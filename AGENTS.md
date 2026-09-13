@@ -91,26 +91,37 @@ Before implementing any change:
 
 Steps 1 and 2 are not optional. **A rule you did not read still binds the change.**
 
+**The implementation itself writes no comments, and a separate pass decides which ones the change
+earned.** A comment produced while generating code is a by-product of generating it, never a judgment
+that the declaration needed one — and a model that writes prose for free produces that by-product at
+every declaration it touches. So write the code bare; then run `/comment-sweep` over the declarations
+you touched. That pass is **unconditional and confirms before it writes**, and until it has run the
+change is unfinished rather than unreviewed. What earns a comment is `docs/rules.md`,
+*コメントと文書*; this file only fixes when the question gets asked.
+
 ## Review Phase Protocol
 
-A request to review work that has already been implemented names **three** subjects, not one:
+A request to review work that has already been implemented names **two** subjects, not one:
 
 | Skill | Subject |
 | --- | --- |
 | `/impl-review` | the change itself — correctness / security / architecture / cohesion / runtime gap |
 | `/test-review` | the tests that pin the change down |
-| `/comment-sweep` | the comment stock carried by the files the change touched |
+
+**The comment stock is not on this list.** `/comment-sweep` runs unconditionally as the last step of
+the implementation, not as a review whose return gets estimated — see *Task Execution Protocol*.
 
 - **Do not silently pick one.** Estimate each skill's return from the context you already hold — which
-  layers moved, whether tests or comments moved at all, what an earlier skill already covered — then
+  layers moved, whether the tests moved at all, what an earlier skill already covered — then
   **ask per skill, stating that estimate and its reason**, and run what is approved.
-- **Do not ask "shall I run all three?".** That hands the cost back unpriced. Say which pass you expect to
+- **Do not ask "shall I run both?".** That hands the cost back unpriced. Say which pass you expect to
   pay off, which you expect to return nothing, and why.
-- **The three are peers, and none invokes another.** One subject to one skill, and that skill is the
+- **The two are peers, and neither invokes the other.** One subject to one skill, and that skill is the
   only place its subject is audited. `/impl-review` owns no test lens and no comment lens and hands
-  nothing off; the other two are invoked in their own right whether or not it runs.
-- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these three
-  questions at its review phase rather than choosing for the user.
+  nothing off; `/test-review` is invoked in its own right whether or not it runs.
+- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these two
+  questions at its review phase rather than choosing for the user, and has already run the comment
+  pass as part of implementing.
 
 ### The response to a review is itself unreviewed
 
@@ -134,8 +145,8 @@ and marker checks, and `permissions.deny` in `.claude/settings.json`. The rest i
 **A rule this file does not repeat is still a rule.** Not finding a prohibition here is evidence about
 this file, not about the prohibition.
 
-**Three responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: none
-of them is decidable from the shape of the code. Hold them yourself:
+**Two responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: neither
+is decidable from the shape of the code. Hold them yourself:
 
 - **Do not pre-emptively handle a problem another layer owns.** Skip what a lower layer already holds
   and what cannot occur; keep what the lower layer cannot catch and what the UX needs here. **A
@@ -144,11 +155,6 @@ of them is decidable from the shape of the code. Hold them yourself:
   values it produced; blanket-hardening what the backend put in a string, a path or an identifier is
   not a design goal — exhaustiveness is unreachable and the supplier's concerns bleed into this side's
   structure. Close what must be closed at the supplier or the boundary.
-- **Do not write a comment when something else already falls if it is false.** Ask what breaks once
-  the statement stops being true: where a type, a test or a rendered example already carries it, the
-  comment is a copy that rots while the original stays right; where one could carry it, write that
-  instead. **Editing a declaration puts its whole comment block in scope, not the lines you happened
-  to change.** The default is nothing — a wrong comment costs more than a missing one.
 
 ## Where You May Stop
 
