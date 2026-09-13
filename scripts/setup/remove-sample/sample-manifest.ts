@@ -223,6 +223,9 @@ export const MARKER_LITERAL_FILES: readonly string[] = [
   "scripts/setup/lib/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
+  // boilerplate-only:begin
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。
+  // 剥がし（`scripts/setup/remove-boilerplate-only/`）が `docs/plan` ごと消すので、宣言も一緒に消える。
   "docs/plan/v1-implementation-plan.md",
+  // boilerplate-only:end
 ];

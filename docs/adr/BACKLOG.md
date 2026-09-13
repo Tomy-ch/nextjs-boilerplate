@@ -127,7 +127,7 @@ UI / スタイリング / データ統合 / 状態管理 / エラー / 観測性
 
 - **B1(ADR 0050 として実装 ✅)**: 2026-07-12 に [ADR 0050](0050-styling-strategy.md) として成文化(2026-07-14・v1 でバッテリー採用へ部分改訂 = Tailwind 主軸 / CSS Modules 限定許可・styled-components・emotion 非採用 / `cn()` は `components` カーネル内 / design token = CSS 変数 / global は `globals.css` 集約)。`tokens/*.json` を SSOT とする CSS 生成・drift gate・`cn()` に加え、variant 定義の `cva` と design token の値が着地したため ✅ とする
 - **B2(ADR 0052 として実装 ✅)**: shadcn/ui を取り込んだ `src/components/` の design-system / patterns / app-starter / shell、`src/components/icon.ts` へ閉じた Tabler のアイコン、Radix ベースの複雑入力、TipTap の `RichTextEditor` と sanitize 済み表示の `RichTextContent`、`cva` による variant 定義を実装済み。取り込みの台帳は `shadcn-manifest.yaml` が持ち、上流追従の drift 検出を CI へ載せている
-- **B5(ADR 0060 — 2026-07-14 に v1 バッテリー採用へ反転・実装 ✅)**: B2 と同じく、当初(2026-07-12)は本体非同梱の exclusion だったが、**v1 = 一般的 Next.js アプリ基盤として必要ライブラリを採用**の方針転換で反転。0060 = react-hook-form + zod / Zustand(横断 client 状態は `stores` カーネル [0023](0023-stores-kernel.md))。Server state = RSC fetch 既定 / Client state = local から、は不変。ライブラリの導入と `stores` の実体化(同意状態 / 通知)は着地済み。詳細は [docs/plan/master-plan.md](../plan/master-plan.md) の採用ロードマップ節
+- **B5(ADR 0060 — 2026-07-14 に v1 バッテリー採用へ反転・実装 ✅)**: B2 と同じく、当初(2026-07-12)は本体非同梱の exclusion だったが、**v1 = 一般的 Next.js アプリ基盤として必要ライブラリを採用**の方針転換で反転。0060 = react-hook-form + zod / Zustand(横断 client 状態は `stores` カーネル [0023](0023-stores-kernel.md))。Server state = RSC fetch 既定 / Client state = local から、は不変。ライブラリの導入と `stores` の実体化(同意状態 / 通知)は着地済み。詳細は `docs/plan/master-plan.md` の採用ロードマップ節
 - **B8(ADR 0090 として実装 ✅)**: Vitest + RTL + MSW + `vitest-axe` を導入し、co-location・正常系 / 異常系・table-driven 禁止の規約、`make test-cached` / `make test-full` の二層実行、100% coverage gate と CI の PR レポートを実装済み。Playwright は story 全数の visual regression(`make vrt`)に加えて、画面を通した E2E ジャーニー・ブラウザが報告する異常の見張り・帯ごとの出し分け・3 つの描画エンジン・画面単位の比較(`make e2e` / `e2e/`)も持つ。どちらも digest 固定した公式イメージ内で実行し、基準画像の置き場を共有する
 - **B3 / B4(ADR 0071 / 0072・実装 ✅)**: 2026-07-13 に決定 4 バッチとして成文化。B3 = [ADR 0071](0071-bff-api-integration.md)(API クライアント = `adapters` / fetch wrapper に go ADR 0019 resilience を広く翻案 = dual timeout + idempotent retry + retry budget + circuit breaker / 生 status を errors へ正規化・詳細テーブルは B6 / response は adapters 境界で zod 検証 / SSRF guard は外部叩き時のみ)。B4 = [ADR 0072](0072-api-type-generation.md)(**型 + runtime validation を orval で zod 生成** — 決定 4 当初の openapi-typescript 型のみから、go 境界値所有哲学に合わせユーザが変更 / `gen/` do-not-edit / gh 取込 + short SHA スタンプ + マニフェスト / 型漏洩禁止 = adapters 変換 / drift ゲート)。取込 + 生成パイプラインは `scripts/openapi/`、生成物は `src/adapters/gen/`、drift ゲートは `gen-drift` が持つ
 - **契約と実物の食い違いが 1 件見つかっている(B4)。** 実バックエンドへ繋いで `/mypage` を開くと、`/v1/users/me/purchases/summary` の応答が生成 schema と一致せず(`period` が無い)、`adapters` の境界検証が `internal` を投げて画面が落ちる。**契約を取り込み直して、どちらが古いのかを確かめる**のが次の作業である。 <!-- sample:line -->
@@ -326,7 +326,7 @@ D4 (AGENTS.md) ─ D5 (スキル運用系) / D6 (スキル開発系)
 
 隣接する `go-boilerplate` リポジトリの `.claude/` 資産(スキル / エージェント)のうち、本リポジトリの ADR 設計思想に照らして移植価値があるものの追跡。**実装ブロッカー(未確定 ADR)が外れたタイミングで着手する移植作業**を、ブロック元の枠 ID に紐づける。`.claude/` は [AGENTS.md](../../AGENTS.md) の保護対象であり、移植の実施はその都度ユーザ指示のもとで行う(本節は計画の記録)。
 
-本節は**枠 ID との紐づけと追跡ステータスの SSOT**。個々の移植作業の定義(輸入元 / 翻案メモ / 完了条件 / 依存)は [go-boilerplate 機構 輸入作業計画](../plan/go-boilerplate-import-plan.md) が持つ。
+本節は**枠 ID との紐づけと追跡ステータスの SSOT**。個々の移植作業の定義(輸入元 / 翻案メモ / 完了条件 / 依存)は `docs/plan/go-boilerplate-import-plan.md` が持つ。
 
 対象スナップショット(2026-07-28): `go-boilerplate` `.claude/`(スキル 35 / エージェント 19 / 共有スペック 5)、`.codex/`(エージェント 19 / スキル 34)。以下の分類は **go 側の資産名**で列挙し、35 スキル / 19 エージェントを漏れなく網羅する。
 
