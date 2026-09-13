@@ -8,6 +8,7 @@ import {
 } from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
 import { idleActionState } from "@/model/action-state";
+import { newUuid } from "@/model/uuid";
 import { PRODUCT_FORM_NAMES } from "./form-names";
 import type { ProductImageUploadState, UploadProductImageAction } from "./form-state";
 
@@ -171,7 +172,7 @@ export function useProductImages(
     (files: readonly File[]) => {
       for (const file of files) {
         // 同じ名前のファイルを選び直しても別の行として扱うため、名前ではなく一意な値で識別する。
-        const entry: ProductImageEntry = { file, id: crypto.randomUUID(), name: file.name };
+        const entry: ProductImageEntry = { file, id: newUuid(), name: file.name };
 
         setEntries((current) => [...current, entry]);
         void send(entry);

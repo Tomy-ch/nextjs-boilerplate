@@ -40,14 +40,19 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/account",
   "src/features/site-info",
   "src/features/admin",
+  "src/features/inquiry",
   // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
   "src/app/api/addresses",
   "src/app/api/purchases",
+  // 購読の発券を中継する口。購読の機構（`src/adapters/client/stream`）はコア残留だが、
+  // 何を購読するかは題材が決めるので、この中継は題材側である。
+  "src/app/api/inquiries",
   // 題材に固有のカーネルモジュール
   "src/model/cart",
   "src/model/dashboard",
+  "src/model/inquiry",
   "src/model/product",
   "src/model/purchase",
   "src/model/user",
@@ -140,7 +145,7 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
  * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
  * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
-export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|\bproducts\b|\bcart\b`;
+export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|問い合わせ|\bproducts\b|\bcart\b|\binquir`;
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";
@@ -166,15 +171,17 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
  * 走査から外す相対パス接頭辞。生成物・作業用の置き場と、マーカーの形をデータとして持つ区画。
  *
  * @remarks
- * マーカー行のベースライン（`scripts/marker-baseline/`）をファイル単位ではなく接頭辞で外すのは、
- * あの区画を boilerplate 限定節の剥がしが**丸ごと消す**からです。`MARKER_LITERAL_FILES` へ並べると、
- * 剥がしだけを走らせた木で「宣言したファイルが実在しない」になります。
+ * マーカー行のベースライン（`scripts/marker-baseline/`）と前提の検査（`scripts/premise-lint/`）を
+ * ファイル単位ではなく接頭辞で外すのは、どちらの区画も boilerplate 限定節の剥がしが**丸ごと消す**
+ * からです。`MARKER_LITERAL_FILES` へ並べると、剥がしだけを走らせた木で「宣言したファイルが実在
+ * しない」になります。
  */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
   ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
   "scripts/marker-baseline/",
+  "scripts/premise-lint/",
   "tmp/",
   "src/app/generated/",
   "src/model/generated/",
@@ -221,8 +228,9 @@ export const MARKER_LITERAL_FILES: readonly string[] = [
   "scripts/setup/lib/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
+  // boilerplate-only:begin
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。
+  // 剥がし（`scripts/setup/remove-boilerplate-only/`）が `docs/plan` ごと消すので、宣言も一緒に消える。
   "docs/plan/v1-implementation-plan.md",
-  // 前提の検査が剥がし後の本文を読むことのテスト。入力としてマーカーの形を持つ。
-  "scripts/premise-lint/scan.test.ts",
+  // boilerplate-only:end
 ];

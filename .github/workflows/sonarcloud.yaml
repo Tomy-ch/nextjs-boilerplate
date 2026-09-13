@@ -12,10 +12,11 @@ name: SonarQube Cloud Scan
 #      scan result. `unconfigured-notice` then says so on the pull request, for the reason
 #      that job gives. This also covers a pull request from a fork, which never receives
 #      repository secrets.
-#   2. REMOVABLE. This file and `sonar-project.properties` are listed in
-#      `scripts/setup/remove-boilerplate-only/manifest.ts` (`SELF_DESTRUCT_PATHS`), so the
-#      strip takes them both. The project key here names THIS repository's SonarCloud
-#      organization; carried into a generated repository unchanged it is dead configuration.
+#   2. REMOVABLE, AS A CHOICE. Whether to keep this layer belongs to whoever owns the
+#      repository, so `make setup-remove-licensed-scanners` takes this file and
+#      `sonar-project.properties` together, in a commit of their own. The project key names a
+#      SonarCloud organization, so it is rewritten by `make setup-replace-repository-reference`
+#      rather than deleted.
 #
 # It is NOT a required status check, and must not become one: a check whose verdict depends
 # on a third-party account cannot be a condition for merging in a repository that ships to
@@ -148,12 +149,6 @@ jobs:
       # The toolchain is installed AFTER the scan on purpose. `sonar.sources` is the whole
       # tree, so an already-populated node_modules is a directory walk the scanner pays for
       # before its own exclusion discards it.
-      #
-      # The mise CLI's own version is the one version number pinned in a workflow:
-      # mise.toml declares what mise resolves, not mise itself, so there is nowhere
-      # else to put it. Left unpinned it floats to whatever released today, which is
-      # the resolver for every other tool. It is restated in each workflow — a bump
-      # has to touch all of them.
       - name: Setup mise and the pinned tools
         uses: ./.github/actions/setup-mise
         with:
