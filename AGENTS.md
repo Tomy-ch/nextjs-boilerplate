@@ -134,8 +134,8 @@ and marker checks, and `permissions.deny` in `.claude/settings.json`. The rest i
 **A rule this file does not repeat is still a rule.** Not finding a prohibition here is evidence about
 this file, not about the prohibition.
 
-**Two responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: neither
-is decidable from the shape of the code. Hold them yourself:
+**Three responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: none
+of them is decidable from the shape of the code. Hold them yourself:
 
 - **Do not pre-emptively handle a problem another layer owns.** Skip what a lower layer already holds
   and what cannot occur; keep what the lower layer cannot catch and what the UX needs here. **A
@@ -144,6 +144,11 @@ is decidable from the shape of the code. Hold them yourself:
   values it produced; blanket-hardening what the backend put in a string, a path or an identifier is
   not a design goal — exhaustiveness is unreachable and the supplier's concerns bleed into this side's
   structure. Close what must be closed at the supplier or the boundary.
+- **Do not write a comment when something else already falls if it is false.** Ask what breaks once
+  the statement stops being true: where a type, a test or a rendered example already carries it, the
+  comment is a copy that rots while the original stays right; where one could carry it, write that
+  instead. **Editing a declaration puts its whole comment block in scope, not the lines you happened
+  to change.** The default is nothing — a wrong comment costs more than a missing one.
 
 ## Where You May Stop
 
