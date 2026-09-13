@@ -2,7 +2,7 @@
 
 `src/app/` には `page.tsx` 以外にも App Router 特殊ファイル(`route.ts` / `actions.ts` / `robots.ts` 等)が同居する。「`app` は feature の画面を呼ぶ薄い driving adapter(import 先は `features` のみ)」という 1 行では、**Route Handler**(`route.ts`)や metadata routes(`robots.ts` 等)が `adapters` / `config` を import する必要と矛盾する —— [0030](0030-environment-variable-management.md) は「Route Handler → adapters 直 import」を前提にしている。
 
-本 ADR は `app` レイヤを **4 element に分割**してこれを解消する(新カーネル不要)。root layout への横断 UI / Provider mount([0026](0026-layout-shell-mount.md))は、本 ADR が定める `app/route-segment` を土台にそちらで定める。
+本 ADR は `app` レイヤを **4 つの役割に分割**してこれを解消する(新カーネル不要)。うち機械が宣言を持つのは 3 つで、`route-segment` は削る集合を書けないため宣言しない(下記 element 表)。root layout への横断 UI / Provider mount([0026](0026-layout-shell-mount.md))は、本 ADR が定める `app/route-segment` を土台にそちらで定める。
 
 ## Status
 
@@ -15,7 +15,7 @@ Server Action の家を `feature/actions.ts` だけに置くと、2 つの穴が
 - **Route Handler に対応する家が無い。** BFF 中継エンドポイント([0081](0081-observability-logging.md) テレメトリ受け・health)のような**どの feature にも属さない横断エンドポイント**は、物理が framework 規約で `src/app/**/route.ts` に強制されるため feature 内には置けず、`app → features のみ`のマトリクスでは書けない。metadata routes が config 値(site URL / env 別 noindex)へ到達する経路も同様に無い
 - **Server Action が feature の家に住めない場合がある。** Server Action は action id を知る者が任意の route へ POST できる**公開 HTTP 口**であり、それを描いた画面の認可は前提にできない。したがって役割の断言は action の内側に要るが、`adapters/server/auth` へ触れてよいのは `app` と `adapters` だけで、`features` からは届かない
 
-## 決定: `app` を 4 element に分割(すべて App Router 特殊ファイル)
+## 決定: `app` を 4 役割に分割(すべて App Router 特殊ファイル)
 
 Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `route-handlers.md`「Route Handlers are the equivalent of API Routes … you do not need to use API Routes and Route Handlers together」+ [0040](0040-routing-rendering-strategy.md)(App Router 単独)。
 

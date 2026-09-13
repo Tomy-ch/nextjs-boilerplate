@@ -25,7 +25,7 @@ src/
 │   └── <name>/     #   内部はフラットなファイル共置が基本(ネスト深化の防止)。Server Action もここ
 ├── model/          # 表示層カーネル: 表示用 VO / フォーマッタ / 表示バリデーション / 表示結果型(ActionState<T>)。依存は errors のみ
 ├── components/     # 横断 UI カーネル: デザインシステム的な純 UI(fetch / config 禁止)
-├── adapters/       # 境界アダプタ: 外部接続のみ。server/・client/ の 2 element([0024])。config 唯一の許可層
+├── adapters/       # 境界アダプタ: 外部接続のみ。server/・client/ の 2 面([0024])。config 唯一の許可層
 ├── capabilities/   # 横断 client hook カーネル: runtime 能力(connectivity / storage / clipboard 等)。client-only([0022])
 ├── stores/         # 横断 client 状態カーネル: 複数 feature が共有する client 状態(Zustand)。client-only([0023])
 ├── config/         # 型付き Config カーネル([0030])
@@ -137,7 +137,7 @@ onion は安定核を `domain` / `usecase` と名付けるが、本リポジト�
 | domain(安定核) | `src/model/` | 表示用 VO / フォーマッタ / 表示バリデーション。**ビジネスルール禁止**。依存は `errors` のみ |
 | usecase | `src/features/<name>/` の編成部(server 関数 / hooks) | 画面ユースケース。boundary IF は `adapters` 公開面の構造的型で代替 |
 | controller(driving adapter) | `src/app/`(route-segment / route-handler / server-action / metadata。[0025](0025-app-layer-elements.md))+ feature 内 `actions.ts` | 薄い編成のみ([0011](0011-no-docker.md) thin proxy と接続) |
-| infrastructure(driven adapter) | `src/adapters/`(server / client の 2 element。[0024](0024-adapters-server-client-split.md)) | 外部接続のみ(backend API client / BFF fetch / analytics 等)。config import の唯一の許可層(server 面)。命名規律により `lib` は不採用 |
+| infrastructure(driven adapter) | `src/adapters/`(server / client の 2 面。[0024](0024-adapters-server-client-split.md)) | 外部接続のみ(backend API client / BFF fetch / analytics 等)。config import の唯一の許可層(server 面)。命名規律により `lib` は不採用 |
 | 横断: config | `src/config/` | 型付き Config([0030](0030-environment-variable-management.md)) |
 | 横断: エラー分類 | `src/errors/` | 全層から参照可([0080](0080-error-handling.md)) |
 | 横断: ログ | `src/logging/` | 構造化ログ([0081](0081-observability-logging.md)) |

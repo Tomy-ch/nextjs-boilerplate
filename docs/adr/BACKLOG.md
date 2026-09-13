@@ -63,7 +63,7 @@
 
 ### Tier 1 の実装ギャップ
 
-- **T2 (0002)**: 「biome 非対応検査は ESLint で補完」を採択し、A3 ([0021](0021-frontend-responsibility.md)) がプラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) を確定した。biome 側の設定に加えて ESLint も導入済みで、依存マトリクスは `architecture.ts` を正に `eslint.config.ts` が import し、層 README の frontmatter との突合は `check:architecture` が担う。いずれも `lint:ci` に直列で載る
+- **T2 (0002)**: 「biome 非対応検査は ESLint で補完」を採択し、A3 ([0021](0021-frontend-responsibility.md)) がプラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) を確定した。biome 側の設定に加えて ESLint も導入済みで、依存マトリクスは `architecture.ts` を正に `eslint.config.ts` が import し、層 README の `imports-allowed` はそこから生成する(`gen:architecture`)。生成結果との差分検査は `check:architecture` が担う。いずれも `lint:ci` に直列で載る
 - **T4 (0004)**: ギャップ解消済み。主要 dev ツールは `typescript` を含め exact pin で整合し、PR テンプレート (`.github/pull_request_template.md`) に「ライブラリ採用チェック」節を組み込んだ
 - **T5 (0156)**: 道具は導入済み（`mise.toml` の `agent-browser` / devDependency の `chrome-devtools-mcp`）で、エージェントの許可は「末尾に自由な入力を残さない + フラグ等価の環境変数を固定」の形で担保済み。**未了は 2 点** —— 観測に使うブラウザをゲートと同じ chromium へ向ける環境変数の置き場が決まっておらず呼ぶ側で都度解決していること、「掘る」レーン（`chrome-devtools`）を実際の調査で通していないこと
 

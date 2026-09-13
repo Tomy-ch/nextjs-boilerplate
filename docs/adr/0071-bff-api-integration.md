@@ -16,7 +16,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 
 ### API クライアントの配置 = `adapters` カーネル
 
-- バックエンド API クライアント(fetch wrapper)は **`adapters` カーネル**に置く([0021](0021-frontend-responsibility.md)。`config` を import できる唯一の層 / 外部接続の所有境界)。生の `fetch` をコンポーネント・feature に散らさない。**`adapters` は server / client の 2 element に分割される**(server = backend client・secret 有・config 可 / client = 同一オリジン BFF fetch・WebSocket・telemetry 送信・secret 不可)。詳細は [0024](0024-adapters-server-client-split.md) が正。本 ADR の resilience(dual timeout / retry / breaker)は主に `adapters/server` に適用する
+- バックエンド API クライアント(fetch wrapper)は **`adapters` カーネル**に置く([0021](0021-frontend-responsibility.md)。`config` を import できる唯一の層 / 外部接続の所有境界)。生の `fetch` をコンポーネント・feature に散らさない。**`adapters` は server / client の 2 面に分割される**(server = backend client・secret 有・config 可 / client = 同一オリジン BFF fetch・WebSocket・telemetry 送信・secret 不可)。詳細は [0024](0024-adapters-server-client-split.md) が正。本 ADR の resilience(dual timeout / retry / breaker)は主に `adapters/server` に適用する
 - 生成型・zod スキーマ([0072](0072-api-type-generation.md))の**変換もこの境界で所有**する([0070](0070-backend-role-separation.md) 型漏洩禁止)
 
 ### fetch wrapper の resilience
@@ -97,7 +97,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / 契約 SSOT / 境界値所有(本 ADR の親決定)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `adapters` / `errors` / `logging` カーネルの責務・依存
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 element 分割・client 側外部接続境界(本 ADR の adapters を細分)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 面分割・client 側外部接続境界(本 ADR の adapters を細分)
 - [0072-api-type-generation.md](0072-api-type-generation.md) — 型 + zod 生成(response 検証スキーマの供給元)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions(変更系の呼び口)/ レンダリングモード(データ取得のキャッシュ設計は本 ADR「データ取得のキャッシュ・再検証」節が持つ)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — BFF runtime config の逃し先

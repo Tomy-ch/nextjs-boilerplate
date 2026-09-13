@@ -738,7 +738,7 @@ test-requirement: unit
 - **主な変更先**:
   - `architecture.ts` — 依存マトリクスの宣言(SSOT)
   - `eslint.config.ts` — `architecture.ts` を import して境界検査へ変換する
-  - `scripts/architecture/` — 層 README の frontmatter と `architecture.ts` の突合(食い違えば fail)
+  - `scripts/architecture/` — 層 README の `imports-allowed` を `architecture.ts` から生成し、差分があれば fail
   - `package.json` — eslint 本体 + `eslint-plugin-boundaries` + import resolver + `jiti` を exact pin。`lint:eslint` と `check:architecture` を追加し `lint:ci` へ直列組込
   - `.claude/skills/` — **`repo-ops` / `node-upgrade` / `full-apply` / `full-verify` の 4 本に残る「lint = biome 一本」前提の記述を更新する**
   - `.vscode/extensions.json` — `dbaeumer.vscode-eslint` を追加([0002](../adr/0002-formatter-linter.md) に記録済み)
