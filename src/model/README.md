@@ -1,5 +1,5 @@
 ---
-imports-allowed: [errors]
+imports-allowed: [errors] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [fetch, config, business-logic]
 test-requirement: unit
 coverage-exclusions:

@@ -1,6 +1,4 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
-forbidden: [features] # 相方の facade/ と、画面まるごとの story は例外
 test-requirement: feature
 ---
 
@@ -8,6 +6,8 @@ test-requirement: feature
 
 支払いを終えてまだ発送していない注文を、まとめて発送してよい便ごとに扱う画面スライスです
 （`/admin/shipments`）。
+
+**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`admin/`](../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
 
 ## 受け入れるもの
 

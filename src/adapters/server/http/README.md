@@ -1,12 +1,12 @@
 ---
-imports-allowed: [model, errors, logging, config, observability]
-forbidden: [components, capabilities, stores, business-logic]
 test-requirement: unit
 ---
 
 # http
 
 `server/` の要求境界が共有する、応答と本体の扱いです。
+
+**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
 
 ## 親と違う点
 

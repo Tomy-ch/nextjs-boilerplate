@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors, logging, config, observability]
+imports-allowed: [model, errors, logging, config, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
 coverage-exclusions:
@@ -8,10 +8,12 @@ coverage-exclusions:
 
 # adapters
 
-バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。`server/` と `client/` の 2 element に分けます。
+バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。実行文脈で
+`server/` と `client/` に分けます —— **これは置き場の分けであって、境界検査の要素の分けではありません**
+（要素の分かれ目は下記「この層の要素」）。
 
 **このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md) §3）。
-実行文脈を持たない規則——どちらの element が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
+実行文脈を持たない規則——どちらの面が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
 
@@ -21,6 +23,24 @@ coverage-exclusions:
 ## 受け入れないもの
 
 - 業務ロジック、UI、local browser API
+
+## この層の要素
+
+境界検査が見る単位です。**`server/` と `client/` はここに出てきません** —— 実行文脈の分けであって、
+import の許可はどちらも同じ `adapters` のものだからです。分かれているのは区画で、**区画は層の許可を
+継ぎません** —— 層の許可は要素の型に当たるため、切り出した時点で届かなくなります。だから区画は
+自分の依存を自分で宣言します。
+
+| 要素 | 位置 | 切り出す理由 |
+| --- | --- | --- |
+| `adapters-gen` | [`gen/`](gen) | 契約から生成した wire 型。層のまま置くと、`adapters` を引ける `app` / `features` へ素通しで届く |
+| `adapters-http` | `http/` | 両方の面が従う要求の形の規則。片方の面へ置くともう片方から届かず、規則が 2 つに割れる |
+| `adapters-auth` | [`server/auth`](server/auth) | session の封緘と復元。入口の楽観判定がここだけを必要とするため、`proxy` へ `adapters` 全体を開けずに済ませる |
+
+**依存の値はここに写しません。** 正は `architecture.ts` の `RESTRICTED_AREAS` で、各区画の README の
+`imports-allowed` はそこから生成されます（`pnpm gen:architecture`）。区画でないディレクトリ
+——`server/http/` や `client/telemetry/` のように、この層の中で置き場を分けているだけのもの——は
+境界を宣言せず、この README の宣言を継ぎます。
 
 ## 値の分類は取得の口が宣言する
 
@@ -159,9 +179,12 @@ endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF 
 **`observability` を import できるのは受け側だけです。** Web Vitals は指標ごとのヒストグラムとして
 出すため OTel の Metrics API へ、例外は返ってきた `traceparent` の文脈で記録するため trace 相関の口へ
 触ります（[0082](../../docs/adr/0082-client-observability.md)）。
-**この許可は `client/` にも機械的に及びます。** 境界検査の要素は `adapters` ひとつで、`server/` と
-`client/` を区別しません（層より細かい単位を分けているのは `features` だけです）。効いているのは
-**`observability` の側が `server-only` を名乗っていること**で、client から引いた時点でビルドが落ちます。
+**この許可は `client/` にも機械的に及びます。** 境界検査は `server/` と `client/` を区別しません ——
+要素を分けているのは実行文脈ではなく区画で、`server/` も `client/` も同じ `adapters` の要素に居ます
+（下記「この層の要素」）。効いているのは **`observability` の側が module ごとに `server-only` を
+名乗っていること**で、client から引いた時点でビルドが落ちます。**名乗っていないのは
+`render-span.ts` の 1 本だけ**で、それは feature が import する面なので意図的にブラウザの束へ入ります
+（[observability/README.md](../observability/README.md)）—— **そこは層検査も `server-only` も止めません。**
 同じ形は `config` にもあります —— ADR 0021 は server config を `adapters/server` だけに許しますが、
 機械強制は層の粒度で当たります。
 

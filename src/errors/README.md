@@ -1,5 +1,5 @@
 ---
-imports-allowed: []
+imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [http-vocabulary, external-dependencies]
 test-requirement: unit
 ---

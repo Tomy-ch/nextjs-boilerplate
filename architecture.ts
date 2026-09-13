@@ -317,6 +317,38 @@ export const RESTRICTED_AREAS = [
   dependencies: readonly Kernel[];
 }[];
 
+/** 境界検査の要素。根を指すパターンと、そこが import してよい層を持つ。 */
+export type BoundaryElement = {
+  /** 要素の型。 */
+  readonly type: string;
+  /** 要素の根を指すパターン。`*` は 1 段ぶん。 */
+  readonly pattern: string;
+  /** その要素が import してよい層。 */
+  readonly dependencies: readonly Kernel[];
+};
+
+/**
+ * 境界検査の要素を、狭いものから順に並べた表。
+ *
+ * @remarks
+ * 区画は層の内側に居るので、層が先に一致すると区画としては見えなくなり、層の粒度の許可がそのまま
+ * 区画への許可になります。狭いものを先に置くことでだけ、区画の宣言が効きます。
+ *
+ * 読む者は強制へ変換する `eslint.config.ts` と、層 README の宣言先を解く `scripts/architecture/`
+ * の 2 つで、**どちらもここから順序を受け取り、写しを持ちません。**
+ *
+ * `dependencies` を要素ごとに持つ理由は {@link RESTRICTED_AREAS} が持ちます。
+ */
+export const BOUNDARY_ELEMENTS: readonly BoundaryElement[] = [
+  ...RESTRICTED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...SHARED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...KERNELS.map((kernel) => ({
+    type: kernel,
+    pattern: KERNEL_PATTERNS[kernel] ?? `src/${kernel}`,
+    dependencies: DEPENDENCIES[kernel],
+  })),
+];
+
 /**
  * Node.js の実行環境そのものへ触ってよい場所。
  *

@@ -9,10 +9,9 @@ import tseslint from "typescript-eslint";
 
 import {
   APP_ELEMENTS,
+  BOUNDARY_ELEMENTS,
   DEPENDENCIES,
   ENTRY_POINTS,
-  KERNEL_PATTERNS,
-  KERNELS,
   NODE_RUNTIME_ACCESS,
   RESTRICTED_AREAS,
   SHARED_AREAS,
@@ -83,17 +82,12 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
 
 const commonImportRestrictions = [nodeBuiltinImports];
 
-const elements = [
-  // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
-  // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
-  ...RESTRICTED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
-  ...SHARED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
-  ...KERNELS.map((type) => ({
-    type,
-    pattern: KERNEL_PATTERNS[type] ?? `src/${type}`,
-    partialMatch: false,
-  })),
-];
+// 並び順は `architecture.ts` の `BOUNDARY_ELEMENTS` が持つ。写しは持たず import で受け取る。
+const elements = BOUNDARY_ELEMENTS.map(({ type, pattern }) => ({
+  type,
+  pattern,
+  partialMatch: false,
+}));
 
 export default [
   {

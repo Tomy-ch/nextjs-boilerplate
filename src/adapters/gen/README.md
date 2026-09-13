@@ -1,4 +1,6 @@
 ---
+imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
+forbidden: [hand-editing, application-types]
 coverage-exclusions:
   - "src/adapters/gen/**"
 ---
