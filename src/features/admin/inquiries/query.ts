@@ -20,11 +20,7 @@ export type AdminInquiryListLocation = {
   readonly trail: readonly string[];
 };
 
-function toHref(cursor: string | null, trail: readonly string[]): string {
-  if (cursor === null) {
-    return ADMIN_INQUIRY_LIST_PATH;
-  }
-
+function toHref(cursor: string, trail: readonly string[]): string {
   const params = new URLSearchParams();
 
   params.set(CURSOR_KEY, cursor);
