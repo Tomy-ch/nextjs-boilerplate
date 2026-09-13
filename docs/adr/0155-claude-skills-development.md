@@ -50,12 +50,12 @@ Accepted
 | `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / cohesion / runtime-gap) の subagent fanout + verifier による多段検証。`cohesion` は「1 つの単位が変わる理由を複数持つ」を見る単位内の観点で、カーネル跨ぎの配置を持つ `architecture` とは重ならない。対象は変更そのものだけで、ソースへは書き込まず、指摘は PR へインライン投稿する |
 | `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象の**集合**について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。画面 1 枚分の一斉配置を単位とし、`test-requirement` の宣言元ディレクトリごとに確認を取る。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / 1:1 ゲート自身を実行時に読む。責務はディレクトリではなくシンボルに従い、HTTP 境界を跨ぐものは `scaffold-integration-test` へ残す。対象は read-only で、検証できない分岐は skip せず所見として報告する |
 | `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
-| `comment-sweep` | コメント在庫の管轄判定 | 蓄積したコメントを 維持 / 削除 / 書換 / **移設** の 4 判定で裁く。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。さらにファイル単位のパスが **集約**（重複 / 分散 / 総量過多）を拾う。1 件ずつの管轄判定では各コピーが単独で通ってしまうためで、対象がコメントの集合になる唯一の判定である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用せず、集約は確度 high のときだけ適用する |
+| `settle-comments` | 変更が値したコメントの決着 | 実装はコメントを書かないので、触れた宣言のコメントを 維持 / 削除 / **不要** / 書換 / **移設** / 集約 / **著述** の 7 判定で決める。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。さらにファイル単位のパスが **集約**（重複 / 分散 / 総量過多）を拾う。1 件ずつの管轄判定では各コピーが単独で通ってしまうためで、対象がコメントの集合になる唯一の判定である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用せず、集約は確度 high のときだけ適用する |
 | `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。報告は read-only だが、意味網羅の穴だけは確認 1 回で塞ぐ (Step 5) |
 | `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
 | `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
 | `adr-scan` | ADR 候補の全リポ発見 | de facto に存在するが BACKLOG 未追跡の設計判断を read-only で走査し、taxonomy (decision / exclusion / rule / inventory) と Tier / frame ID へ分類した候補 inventory を出力。暫定の one-off スキルで、BACKLOG へ反映した時点で削除する |
-| `new-feature` | 画面 1 枚の e2e 動線 | 画面を「ディレクション → story → レビュー → 分離 → 仕様書 → テスト」の順で通す。順序そのものを含め、規則は焼き込まず [`docs/playbook.md`](../playbook.md) / [`docs/templates/feature-readme.md`](../templates/feature-readme.md) / [`docs/spec/README.md`](../spec/README.md) / カーネル README を実行時に読む。配置・命名・境界は `pnpm gen` に委ね、`docs/spec/**` は**読み込み入力であって生成入力ではない**。story のレビューが返るまでテストを書かない。レビュー 3 本（`impl-review` / `test-review` / `comment-sweep`）は `AGENTS.md` の Review Phase Protocol に従い**呼ばずに user へ渡す**。commit / push はしない |
+| `new-feature` | 画面 1 枚の e2e 動線 | 画面を「ディレクション → story → レビュー → 分離 → 仕様書 → テスト」の順で通す。順序そのものを含め、規則は焼き込まず [`docs/playbook.md`](../playbook.md) / [`docs/templates/feature-readme.md`](../templates/feature-readme.md) / [`docs/spec/README.md`](../spec/README.md) / カーネル README を実行時に読む。配置・命名・境界は `pnpm gen` に委ね、`docs/spec/**` は**読み込み入力であって生成入力ではない**。story のレビューが返るまでテストを書かない。レビュー 3 本（`impl-review` / `test-review` / `settle-comments`）は `AGENTS.md` の Review Phase Protocol に従い**呼ばずに user へ渡す**。commit / push はしない |
 | `impl-issue` | issue → merged PR の背骨 | issue 番号を受けて、環境の確保 → 計画 → 実装 → 突き合わせ → レビュー → PR → 回収 → merge → 申し送り → close を通す。**実装判断を一切持たない** —— コミットは `commit`、push と PR は `submit-pr`、base の取り込みと衝突は `resolve-merge`、画面 1 枚は `new-feature`、レビュー 3 本は `AGENTS.md` の Review Phase Protocol に従って見積もり付きで user へ問う。持つのは進行と、承認済み計画と実物の突き合わせと、人間判断が要る瞬間の**機械的検出**である。**止まる場所は 5 箇所に閉じ**、それ以外の判断は起きたその場で追跡外の run record へ追記して、文脈が要約されても Step 9 の申し送りが欠けないようにする。モードは 6 つ（scope / review / issue / flow / derive / plan）。**scope を最初に問う** —— どこで終わるか（merge / PR まで / 手元のコミットまで）が他の全モードを境界づけ、早く終わる実行は他のモードが統べる段へ届かないためで、終わり方が残したもの（とくに回収とランタイム検証）は報告で名指す。`derive` は ADR・`docs/rules.md`・層 README を読んだうえで残る問いを**デファクトスタンダードから**決めてよいとする委譲であり、好みは委譲しない。ゲートは先回りせず hook と CI に委ね、委ねたことを PR に書く。ランタイム検証はリクエスト時の seam が動いたときだけ回し、回さなかったことを述べる |
 | `back-prop` | 宣言と実物のずれの検出 | README / スキル / 語彙表が述べていることと、木が実際にやっていることのずれを 4 種（A README→コード / B コード→README の未文書化パターン（該当 3 件以上） / C スキル↔README の重複 / E 業務語彙の家出）で検出する。integrator + read-only の `drift-detector` をカーネルごとに 1 メッセージで並列起動し、承認と書き込みは integrator が単一スレッドで行う。検出基準は `skills/back-prop/prompts/detect-drift.md` が SSOT で、スキル本文も agent 定義も書き直さず読む。書き込みは層 README のみ。スキル本文の変更は `manage-skill` へ、E2（ADR / `docs/rules.md` への漏れ）は報告のみ。`sync-readme`（構造の drift）とは交わらない |
 | `glossary` | 語彙表の保守 | `docs/spec/glossary.md` を保守する。目録を決定的に抽出し、機械で決着する 4 種（新出用語 / 孤児 / 解決しない参照 / 二重定義）を分けたまま提示する。**正名を選ばず、2 語を同義と宣言しない** —— 前者はチームがどう話すかの判断、後者は機械的な痕跡を残さない。「使われ方に合わせて行を書き換える」を選択肢として出さない（表が散文の索引に化け、文書が誤っていると言えなくなる）。書くのは語彙表だけで、指し先の文書には触れない |
@@ -110,9 +110,9 @@ impl-issue (orchestrator)
 
 **エージェント定義は 1 つ、起動は複数**である。カーネルごとにエージェントのファイルを置くと、同じロジックを層の数だけ保守することになり、腐るのは写しのほうになる。並列に走らせる根拠は「独立した観点を並行させる」であって、定義を増やすことではない。
 
-このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) と `comment-reviewer` (コメント内容の品質基準。`comment-sweep` が実行時に基準の出所として読む) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
+このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) と `comment-reviewer` (コメント内容の品質基準。`settle-comments` が実行時に基準の出所として読む) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
 
-subagent 自身が read-only である規約は例外を持たない。書き込みを行うスキル (`comment-sweep` / `test-review` の Step 5) がソースを変えられるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
+subagent 自身が read-only である規約は例外を持たない。書き込みを行うスキル (`settle-comments` / `test-review` の Step 5) がソースを変えられるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
 
 ### subagent 規約
 
@@ -147,7 +147,7 @@ subagent はどれも「この変更は正しいか」を問うのに対し、�
 **`code-reviewer` を採らないのは、レビューの主題の分け方が違うからである。**このリポジトリは
 `AGENTS.md` の Review Phase Protocol で主題を 3 つ（変更 / テスト / コメント在庫）に割り、それぞれを
 1 つのスキルが所有し、見積もり付きで個別に問う。あれは軸を 3 つ（簡潔さ / 不具合 / 規約）に割るので、
-**同じ「3 本のレビュー」に見えて `test-review` と `comment-sweep` の主題を覆わない。**加えて
+**同じ「2 本のレビュー」に見えて `test-review` の主題を覆わない**（コメントは `settle-comments` が実装の段で決着させており、レビューの主題ではない）。加えて
 finder → verifier の 2 段を持たないため、`impl-review` がまさにそのために置いている「もっともらしいが
 誤り」の濾過が働かない。
 
@@ -170,7 +170,7 @@ finder → verifier の 2 段を持たないため、`impl-review` がまさに�
 | スキル | 入力 | 出力 | 用途 |
 | --- | --- | --- | --- |
 | `portal-manifest-sync` | manifest + 実在 README + 生成スクリプトの出力 | manifest の編集（stale 削除と、名指しされた追加のみ） | portal に何を載せるかのキュレーション |
-| `comment-sweep` | 1 ディレクトリのコメント在庫 | 5 判定の適用（コードと移設先の両方を書く。3 適用モード） | 置き場所の誤りと、同じ内容の分散を在庫から抜く |
+| `settle-comments` | 変更が触れた宣言のコメント（`--bulk` では 1 ディレクトリの在庫） | 7 判定の適用（コードと移設先の両方を書く。3 適用モード） | 置き場所の誤りと、同じ内容の分散を抜き、実装が書かなかった残余を書く |
 | `scaffold-test` | テストを持たない対象の集合 | 対象ごとの `<subject>.test.ts(x)` | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
 | `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
 | `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |
@@ -207,7 +207,7 @@ finder → verifier の 2 段を持たないため、`impl-review` がまさに�
 
 - subagent 設定 (`.claude/agents/`) は本 ADR と対になる。新規 subagent を追加する場合は `SKILL.md` 側の参照も更新する
 - スキルの組み合わせ (`sync-readme` → `canonicalize-doc`) は `SKILL.md` 内で chain として明示する
-- `impl-review` の lens (correctness / security / architecture / cohesion / runtime-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。**レビュー 3 スキルは対等で、互いを呼ばない** —— テストの所管は `test-review`、コメントの所管は `comment-sweep` にあり、`impl-review` はどちらのレンズも持たない ([AGENTS.md](../../AGENTS.md) Review Phase Protocol)
+- `impl-review` の lens (correctness / security / architecture / cohesion / runtime-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。**レビュー 3 スキルは対等で、互いを呼ばない** —— テストの所管は `test-review`、コメントの所管は `settle-comments` にあり、`impl-review` はどちらのレンズも持たない ([AGENTS.md](../../AGENTS.md) Review Phase Protocol)
 
 ## 関連 ADR
 

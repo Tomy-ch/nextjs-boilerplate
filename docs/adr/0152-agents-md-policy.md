@@ -67,7 +67,7 @@ Accepted
 | 2 | Instruction Priority | 指示の優先度 (後述) |
 | 3 | Canonical Documentation | 「何が要るか → どこを読むか」の経路表。**ADR の一覧を持たない** —— 全件は [`docs/adr/README.md`](README.md) が 1 行要約つきで持ち、二重管理にすると片方が黙って古くなる。正典がサフィックス無しのパスであること（`*.ja.md` を読まない）も同じ節が述べる |
 | 4 | Task Execution Protocol | 着手前に踏む順。**触る先を所有する `README.md` を先に読む**ことと、索引から決定を引くこと、既存実装の確認、契約を生成物より先に動かすこと、**所有スキルがある操作を手で組み直さないこと** |
-| 5 | Review Phase Protocol | 「レビューして」が指す 3 つの subject (`impl-review` / `test-review` / `comment-sweep`) と、実行可否を見積もり付きで問う責務。**#4 の直後に置く** —— 着手前の手順と対になる「終えたあとの手順」であり、離すと作業の流れから切れる |
+| 5 | Review Phase Protocol | 「レビューして」が指す 2 つの subject (`impl-review` / `test-review`) と、実行可否を見積もり付きで問う責務。コメントは `settle-comments` が実装の最後に決着させるので subject ではない。**#4 の直後に置く** —— 着手前の手順と対になる「終えたあとの手順」であり、離すと作業の流れから切れる |
 | 6 | Forbidden Shortcuts | **禁止事項を列挙しない**ことを宣言する節。機械で決まるものはゲートが、残りは層 README と `rules.md` が持つと述べ、「ここに書かれていないことは規則でない」の推論を塞ぐ |
 | 7 | Where You May Stop | 決定をユーザへ返してよい場所の**閉じた一覧**と、判断を要さず作業を止める trip wire。**個々の停止点の本体を AGENTS.md 内に置かない** —— 表の行が指す先は必ず AGENTS.md の外にある文書で、内側を指す行があると一覧の閉じ方が壊れる |
 | 8 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |

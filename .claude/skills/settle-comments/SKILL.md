@@ -1,29 +1,36 @@
 ---
-name: comment-sweep
+name: settle-comments
 usage-class: frequent
 description: >-
-  Sweep the accumulated stock of source-code comments in a scope and decide whether each comment belongs where
-  it sits, and which single site owns a Why written in several of them. Use it when comments feel bloated or
-  essay-like though each line is true; when the same reason sits at several declarations with no authoritative
-  one; when a doc comment has grown into a design argument; when a rationale appears in both an ADR and the
-  code under it; as a periodic sweep of a kernel or `scripts/`; and on 「コメントが長すぎる」「コメントを整理して」「この Why
-  はコードに置くべきか」「根拠を ADR に移したい」. Sole owner of the comment subject, invoked in its own right beside
-  `/impl-review` and `/test-review`. Do NOT use it for docs prose (`doc-reviewer`), README↔code drift
-  (`sync-readme` / `back-prop`), or implementation and tests.
-argument-hint: '[path or kernel to sweep] [--apply | --report-only]'
-allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
+  Settle what a change earned in comments — the unconditional last step of implementing. Judges the whole
+  comment block of every declaration the change touched: deletes what an evaluator already carries, writes the
+  residue the implementation did not, authors a general-purpose part's rendered TSDoc, and decides which single
+  site owns a Why written in several. Use it at the end of every implementation, and on
+  「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に移したい」. Its bulk mode sweeps a kernel or `scripts/`. **Not a
+  review** — it finishes a change rather than auditing one, so it is never estimated beside `/impl-review` and
+  `/test-review`. Do NOT use it for docs prose (`doc-reviewer`), README↔code drift (`sync-readme` / `back-
+  prop`), or implementation and tests.
+argument-hint: '[scope] [--bulk] [--apply | --report-only]'
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent
 ---
 
-# Comment Sweep
+# Settle Comments
 
-Judge accumulated comments on one question the existing reviewers cannot ask: **does this content
-belong here?**
+Decide what a change earned in comments. **The implementation writes none** (`AGENTS.md`, *Task
+Execution Protocol*), so this pass is where every comment in the change is settled — both directions:
+what comes out, and what finally gets written.
+
+It asks one question the existing reviewers cannot: **does this content belong here, given what
+already carries it?**
 
 A Japanese reference translation of this skill is available at `SKILL.ja.md` in the same directory
 (not loaded as a skill; for human reference only).
 
 ## When to Use
 
+- **At the end of every implementation, unconditionally.** The change is unfinished until this has
+  run — not unreviewed. Nothing here is estimated or put to the user as a cost; what *is* confirmed
+  is each group of verdicts before it is written.
 - Comments in a directory feel bloated or essay-like even though each line is individually true.
 - A doc comment has grown into a design argument, a threat-model discussion, or a rejected-alternative
   list.
@@ -37,17 +44,38 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 - **README / docs prose quality** — `doc-reviewer`.
 - **README ↔ code structural drift** — `sync-readme` / `back-prop`.
 - **Implementation or test review** — `impl-review` / `test-review`.
+- **Deciding whether to run at all.** There is no such decision: see the first bullet above.
 
 ## Why this skill exists
 
-A reader who judges comments one change at a time can answer only **削除** (the content should not
-exist) or **書換** (the content is right but said badly). A third case is common and neither verdict
-fits: **the content is correct and worth keeping, but it does not belong in a comment.**
+**Writing a comment while generating code is not a judgment that the declaration needed one.** It is a
+by-product of generating the code, produced at every declaration a model touches because prose is
+free to it. So the implementation writes none, and the judgment happens here instead — in a pass whose
+job is deciding rather than producing. That separation is the point: the same statement that steers a
+model 75–100 % of the time while it generates does not steer it while it inspects.
+
+Two consequences follow, and together they are why this is not a sweep.
+
+**It removes.** A reader who judges comments one change at a time can answer only **削除** (the content
+should not exist) or **書換** (the content is right but said badly). Two further cases are common and
+neither verdict fits. The content may be correct, valuable, and **already carried by something that
+falls when it stops being true** — a test, a type, a rendered story — in which case the comment is a
+copy that rots while the original stays right (**不要**). Or it may be correct and worth keeping, but
+belong somewhere other than a comment.
 
 That verdict is **移設**, and it cannot live in a read-only reviewer for two reasons. It requires
 *writing the destination document*, which a reviewer must not do. And it is a judgment over the
 accumulated stock rather than over one diff — the same rationale duplicated across an ADR and five
 call sites is invisible when you only look at what changed.
+
+**It also writes.** Since the implementation deliberately left every declaration bare, whatever the
+change genuinely earned does not exist yet, and nothing else will write it (**著述**). Two kinds reach
+this pass unwritten: the residue that only a comment can carry — a caller's obligation, a deliberate
+absence, an assumption held elsewhere — and, under `src/components/**`, the public TSDoc that
+Storybook's autodocs renders, which is a deliverable rather than a note. **A part shipped without it
+is incomplete**, so 著述 is not optional there.
+
+This is why the skill is not named for sweeping. Half its work adds.
 
 ### The second question: what one comment at a time cannot see
 
@@ -90,8 +118,18 @@ So for a part under a general-purpose kernel (`src/components/**` and anything e
 - **Redundancy between the doc and that part's README is intended, not drift.** Do not raise it.
 - **A contradiction between them is still a finding**, and a `誤り/陳腐化` — when the two disagree,
   one of them lies to somebody. Say which side matches the code.
-- **削除 / 書換 / 移設 are unaffected.** How-narration is still How-narration, and a decision that
-  belongs to an ADR still belongs there.
+- **削除 / 書換 / 移設 / 不要 are unaffected.** How-narration is still How-narration, and a decision
+  that belongs to an ADR still belongs there.
+- **著述 applies here and nowhere else by default.** The implementation left the part bare and the
+  TSDoc is what Storybook renders, so this pass writes it.
+
+**The exemption covers how to call the part, not why it is built that way.** A prop's meaning, the
+composition a caller must respect, the constraint that breaks the part when ignored — those are what
+the hover exists for, and their duplication with the README is intended. The responsibility argument
+is not: which client boundary the part sits on, why a capability was deliberately excluded, what the
+layer's split is. **Those fail the 前提の所在 test against the declaration** — someone changes them
+without touching this file — and the README owns them. A doc comment that has grown to carry them is
+a 移設 like any other, exemption or not.
 
 This does not license a comment to repeat itself *inside one declaration's own doc*: a reader sees
 that at once, so the copies help nobody. The exemption is about two documents with two audiences,
@@ -115,12 +153,19 @@ copy of it.
 
 Stamp the boundary this run crosses before anything else: `.agents/closed-loop/marks.sh reviewStartedAt`.
 
-One `AskUserQuestion` call carrying **two** questions. Skip whichever one the argument or a flag
-already answers; skip the call entirely when both are fixed.
+**When this runs as the last step of an implementation — the default — the scope is not a question.**
+It is the declarations the change touched, judged whole: resolve the base with
+`gh pr view --json baseRefName -q .baseRefName`, falling back to `make -s base-branch`, and never
+`gh repo view --json defaultBranchRef`. Ask only the apply-mode question, and default it to
+確認して適用. Asking a scope question here would imply a choice the protocol does not offer.
 
-- 「comment-sweep の対象スコープを選んでください」
-  - 「変更で触れたファイル」 — sweep the files a change touched, **whole**. Resolve the base with `gh pr view --json baseRefName -q .baseRefName`, falling back to `make -s base-branch`; never `gh repo view --json defaultBranchRef`
-  - 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/<name>/`
+Every other entry point resolves a scope explicitly. One `AskUserQuestion` call carrying **two**
+questions; skip whichever the argument or a flag already answers, and skip the call entirely when
+both are fixed.
+
+- 「settle-comments の対象スコープを選んでください」
+  - 「変更で触れたファイル」 — the default above, stated explicitly
+  - 「1 カーネル / 1 feature」 — e.g. `src/adapters/`, `src/features/<name>/`。`--bulk` はこれを指す
   - 「`scripts/` の 1 ツール」
   - 「レビュー指摘への対応分」 — 前回レビューの最終コミット `...HEAD` が触れたファイルを、**丸ごと**。反映そのものが未レビューである（`AGENTS.md` の Review Phase Protocol）
   - 「パスを指定」
@@ -132,6 +177,19 @@ already answers; skip the call entirely when both are fixed.
 **Sweep one directory at a time.** A repository-wide sweep produces an approval queue nobody
 finishes, and a half-finished queue is worse than none — the reader cannot tell swept from unswept.
 
+### Where this runs
+
+**The per-change pass runs in this session, never in a subagent.** A constraint the implementation
+discovered — that a caller must clear the cookie, that a capability was left out on purpose — exists
+only in the context that just wrote the code. Hand the pass to an agent that did not write it and
+著述 has nothing to write from; it would re-derive from the code and produce something thinner than
+what was known a moment ago.
+
+**`--bulk` is the opposite case and delegates.** Sweeping a kernel that predates this pass carries no
+such context to lose, and reading a whole kernel into this session is exactly the pollution the
+protocol exists to avoid. Fan `comment-reviewer` out over the files, one agent per file or per
+directory, and run the approval loop here on what comes back.
+
 ### Apply modes
 
 | Mode | Selected by | What Steps 3–4 do |
@@ -142,6 +200,8 @@ finishes, and a half-finished queue is worse than none — the reader cannot tel
 
 ### Flags
 
+- `--bulk` — sweep a kernel that predates this pass, delegated per *Where this runs*. Implies a scope
+  question rather than the per-change default, and never runs 著述 for a residue it cannot know.
 - `--apply` — 自動適用. Fixes the mode, so the mode question is not asked.
 - `--report-only` — 報告のみ. Detect and report; never write.
 - Both at once is a contradiction, not a precedence puzzle: say so and fall back to the mode
@@ -198,15 +258,26 @@ reads no extra material — what it adds is a question — so run it on every fi
 where pass 1 found nothing. A file whose comments are all individually fine is exactly where
 duplication hides.
 
-Five verdicts. The first three already exist; the last two are what this skill adds.
+Seven verdicts. Three are ordinary comment review; **不要**, **移設**, **集約** and **著述** are what
+this skill adds.
 
 | 判定 | Pass | When | Action |
 | --- | --- | --- | --- |
 | **維持** | 1 | A correct What, or a constraint that passes the 前提の所在 test | Leave it |
 | **削除** | 1 | How-narration, restatement, 経緯, tautology, a marker the code already satisfies | Remove |
+| **不要** | 1 | Correct and worth knowing, but something that **falls when it turns false** already carries it — a type, a test case, a rendered story, a generator's input | Remove, **naming the 正本**. A finding without that name is not a 不要 |
 | **書換** | 1 | Right content, wrong wording — drifted, ambiguous, or longer than the fact it delivers | Rewrite in place |
 | **移設** | 1 | Correct and worth keeping, but it fails the 前提の所在 test and the 管轄 test names a document | Move it to that document; leave the operative residue and a one-line reference **to the README** |
 | **集約** | 2 / 1.5 | The same content is carried at several sites — in one file, or across the files in scope when Step 1.5 clustered it (重複 / 分散 / 総量過多). **Not raised for a general-purpose part's public doc vs. its own README** — see the exception above | One site keeps it; the rest shrink to a pointer |
+| **著述** | 1 | The declaration carries a constraint only a comment can hold and has none, because the implementation wrote none — or it is a `src/components/**` export whose rendered TSDoc is missing | Write it |
+
+**不要 before 書換.** A comment worth shortening is not worth shortening if something else already
+states it; ask what carries it before deciding how to word it.
+
+**著述 is the one verdict with no comment to quote**, so it is stated as the declaration plus the fact
+being written and where that fact came from — what the implementation established, not what the code
+can be read to imply. **When the fact cannot be sourced, there is no 著述.** Do not invent a
+constraint to fill a bare declaration; bare is the correct state for most of them.
 
 **The 移設 test**: could someone make this statement false without editing this declaration? If yes,
 nobody here can verify it and nothing will flag it when it turns false. Ask where it *would* be
@@ -270,11 +341,13 @@ nothing exists to detect that drift.
 
 ## Step 3. Drive the approval loop
 
-Present the findings **grouped by verdict**, most consequential first (移設 → 削除 → 書換), each with:
+Present the findings **grouped by verdict**, most consequential first (著述 → 移設 → 不要 → 削除 → 書換), each with:
 
 - `file:line` and the comment verbatim
 - the verdict and the one-sentence reason
 - for 移設: the destination file, and the exact text proposed for it
+- for 不要: the 正本 — `file:line` of the test case, the type, or the story that already carries it
+- for 著述: the declaration, the exact text proposed, and where the fact came from
 - the residue proposed for the code (never leave the call site silent when a constraint remains)
 
 In **確認して適用**, confirm with `AskUserQuestion` per group: 「この判定で適用しますか？」 /
@@ -301,7 +374,10 @@ who approves it, and how much of the verdict set is in play.
 ### 自動適用 — no approval prompt
 
 Apply **削除**, **書換**, and **集約** as Step 2 classified them, in one pass, and report what was
-written. Three exclusions come off that set first:
+written. **不要 and 著述 are never applied unattended** and come off first, before the exclusions
+below: 不要 rests on a claim about a file this run may have misread, and its cost when wrong is a
+constraint deleted with nothing left behind; 著述 writes prose nobody has read, which is the failure
+this whole protocol exists to prevent. Both land in 確認して適用. Three further exclusions:
 
 - **A finding whose comment contradicts the code** is reported, never applied. Which side is wrong —
   the comment or the code — is not a comment-cleanup call, and deleting the comment can erase the
@@ -388,7 +464,7 @@ declaration a reader cannot find from where they are standing.
 
 ## Step 6. Report
 
-State per file what was 維持 / 削除 / 書換 / 移設 / 集約, and where each relocation landed. Report the
+State per file what was 維持 / 削除 / 不要 / 書換 / 移設 / 集約 / 著述, where each relocation landed, and for every 不要 the 正本 it was checked against. Report the
 cross-file cluster count from Step 1.5 separately, including the clusters that were left alone — a
 cluster nobody acted on is the finding most likely to recur. **Count a
 集約 once, not once per member**, and report the member count beside it so the size of the edit is
@@ -400,16 +476,25 @@ In **自動適用**, name every finding that was withheld and why — a comment 
 移設 that needs a document write, a 移設 whose destination could not be confirmed. A withheld finding
 that goes unmentioned reads as one that was never raised.
 
-## Relationship to the other review skills
+## Relationship to the review skills
 
-This skill owns the **comments**, and it owns them alone: no review skill carries a comment lens, and
-this one is invoked in its own right rather than from inside another. `/impl-review` (the change) and
-`/test-review` (the tests) are its peers under the Review Phase Protocol in `AGENTS.md` — asked for
-separately, decided separately, and never delegating to one another.
+**This skill is not one of them.** `AGENTS.md`'s Review Phase Protocol names two subjects — the change
+(`/impl-review`) and the tests (`/test-review`) — and asks for each with an estimate of what it will
+return. Comments are not a third: they are part of the deliverable, and a change whose comments are
+unsettled is unfinished rather than unreviewed. So this pass is not estimated, not offered, and not
+declined; it runs.
+
+What the two share with it is the rule against delegation between subjects. No review skill carries a
+comment lens, and this one hands nothing to them. A review that runs afterwards is reviewing the
+comments this pass wrote, like any other part of the change.
 
 ## Constraints
 
 - ✅ Read the standard and the destination documents this run
+- ✅ Run unconditionally at the end of an implementation; confirm the verdicts, never whether to run
+- ✅ Run the per-change pass in this session; delegate only `--bulk`
+- ✅ Name the 正本 on every 不要, and the source of the fact on every 著述
+- ✅ Write the missing TSDoc of a `src/components/**` export — the part is incomplete without it
 - ✅ One directory per sweep
 - ✅ Run both passes on every file — the per-comment jurisdiction question and the per-file stock question
 - ✅ Classify every comment in full whatever the mode — the mode changes Steps 3–5, never Step 2
@@ -417,6 +502,9 @@ separately, decided separately, and never delegating to one another.
 - ✅ In 確認して適用, approve per verdict group, not per sweep
 - ✅ Write the destination document and the code in the same step
 - ✅ In 報告のみ, render every non-`維持` finding in full and write nothing
+- ❌ Apply a 不要 or a 著述 unattended, in any mode
+- ❌ Raise a 著述 for a fact the implementation did not establish — a bare declaration is the normal state
+- ❌ Delegate the per-change pass to a subagent — the constraint it must write exists only here
 - ❌ Apply a 移設 that writes a destination document while in 自動適用
 - ❌ Apply a 集約 rated `medium` or `low` unattended, or split one into per-comment questions
 - ❌ Raise a 集約 over a general-purpose part's public doc duplicating its own README — that redundancy is intended; only a contradiction between the two is a finding
@@ -432,10 +520,11 @@ separately, decided separately, and never delegating to one another.
 - [ ] Scope and apply mode resolved (from the argument, a flag, or Step 0)
 - [ ] Standard and destination documents read this run
 - [ ] Both passes run on every file in scope, mode-independently
-- [ ] Every comment in scope classified into one of the five verdicts
+- [ ] Every comment in scope classified into one of the seven verdicts, and every touched declaration checked for a missing one (著述)
 - [ ] 確認して適用: approval taken per verdict group / 自動適用: withheld findings named
 - [ ] 報告のみ: every non-`維持` finding rendered in full and nothing written
 - [ ] Each applied 移設 wrote both the destination and the code residue
+- [ ] Each 不要 named the 正本 that was opened and confirmed to carry the content
 - [ ] Each 集約 carried its shape, every member, the owning site with evidence, the consolidated
       wording, each pointer, and a 確度
 - [ ] After a 集約, the whole file re-read top to bottom

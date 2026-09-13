@@ -29,7 +29,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 ## このスキルを使わない場面
 
-- 差分のレビュー —— `impl-review` / `test-review` / `comment-sweep`。
+- 差分のレビュー —— `impl-review` / `test-review`。
 - まだ誰も選んでいない選択肢の比較 —— まず `research`。その推奨は決定ではない。
 - ADR を書くこと。
 

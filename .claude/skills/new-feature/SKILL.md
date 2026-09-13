@@ -35,9 +35,9 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
   `pnpm gen <kind> <name>` directly. `docs/playbook.md` exempts kernels from the story-first order
   because no look is being settled there.
 - **Writing tests for code that already exists** — that is `scaffold-test`.
-- **Reviewing** — `impl-review`, `test-review`, and `comment-sweep` are peers under `AGENTS.md`'s
+- **Reviewing** — `impl-review`, `test-review`, and `settle-comments` are peers under `AGENTS.md`'s
   Review Phase Protocol. This skill hands the decision to the user and **never invokes them**; a
-  skill that chained them would make the three subjects stop being independently answerable.
+  skill that chained them would make the two subjects stop being independently answerable.
 
 ## What this skill reads at runtime
 
@@ -154,8 +154,9 @@ locally right now.
 
 Close with a Japanese summary: the files produced per layer, the four states covered, the spec files
 written, and what CI is still deciding. Then state — do not run — that `AGENTS.md`'s Review Phase
-Protocol asks the user per skill whether to run `/impl-review`, `/test-review`, and
-`/comment-sweep`, with an estimate of what each is likely to return for this change.
+Protocol asks the user per skill whether to run `/impl-review` and `/test-review`, with an estimate of
+what each is likely to return for this change. `/settle-comments` is not among them — it has already
+run as the last step of implementing.
 
 **Do not commit. Do not push.** Both belong to the user, through `/commit` and `/submit-pr`.
 
@@ -165,7 +166,7 @@ Protocol asks the user per skill whether to run `/impl-review`, `/test-review`, 
 - ❌ Hand-place a file `pnpm gen` would have placed, or feed the generator an input other than
   `architecture.ts` + the layer README.
 - ❌ Treat `docs/spec/**` as a generation input — it is a **read** input only.
-- ❌ Invoke `impl-review` / `test-review` / `comment-sweep`.
+- ❌ Invoke `impl-review` / `test-review` / `settle-comments`.
 - ❌ Invent product behavior when the direction is underspecified — ask.
 - ❌ Run the full lint or the full test suite locally to pre-empt a gate.
 - ❌ Restate in this file a rule that `docs/playbook.md`, a kernel README, or an ADR owns.

@@ -31,7 +31,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
   「README の**記述**が、いまコードがやっていることを説明できているか」を問う。
   **どちらも他方の部分集合ではなく**、交わるのは目録の節だけである。
 - **README の portal 価値の判定** —— `readme-review`。
-- **差分のレビュー** —— `impl-review` / `test-review` / `comment-sweep`。
+- **差分のレビュー** —— `impl-review` / `test-review`。
 - **実装コードの修正。**finding は提示する。直すのは user。
 
 ## 構造: 並列の detector と、統合役側の承認

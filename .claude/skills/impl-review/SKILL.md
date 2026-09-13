@@ -3,13 +3,13 @@ name: impl-review
 usage-class: frequent
 description: >-
   Local adversarial, low-bias review of THE CHANGE ITSELF, run by subagents on a model that is not the
-  implementer's, each finding then re-derived by an independent skeptic. Adds a runtime build and request
-  stage that mocked component tests cannot reach, and posts surviving findings to the branch's PR as inline
-  comments. Use it before a commit or PR for a second opinion the implementer's own model would not surface,
-  and after a multi-kernel change whose RSC / Client boundary or request path no test covers. Subject: the
-  implementation only — `/test-review` and `/comment-sweep` are peers under the Review Phase Protocol in
-  `AGENTS.md`, never chained from inside it. Do NOT use it for formatting (`pnpm lint:ci`), for applying fixes
-  (read-only on source), or for the tests and comments.
+  implementer's, each finding re-derived by an independent skeptic. Adds a runtime build and request stage
+  mocked component tests cannot reach, and posts surviving findings to the PR as inline comments. Use it before
+  a commit or PR for a second opinion the implementer's model would not surface, and after a multi-kernel change
+  whose RSC / Client boundary or request path no test covers. Subject: the implementation only — `/test-review`
+  is its peer under `AGENTS.md`'s Review Phase Protocol, never chained from here; `/settle-comments` settles
+  comments during implementation. Do NOT use it for formatting (`pnpm lint:ci`), for applying fixes (read-only
+  on source), or for tests and comments.
 ---
 
 # Local Review
@@ -29,7 +29,8 @@ Do NOT use this skill for:
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
 - Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet** (BACKLOG GB-1).
 - Applying fixes — this skill is read-only on source; it reports, the user fixes.
-- Auditing the tests (`/test-review`) or the comment stock (`/comment-sweep`) — peers, not sub-steps.
+- Auditing the tests (`/test-review`) — a peer, not a sub-step.
+- Auditing the comments (`/settle-comments`) — settled during implementation, not reviewed here.
 
 ## Core Idea — reviewer ≠ implementer
 
@@ -41,7 +42,7 @@ Bias reduction is the design constraint, not a nicety. Reviewers therefore run a
 - Reviewer subagents are **read-only** (their agent files grant no Edit/Write) — they only return findings, and this skill never mutates source at all. What to change is the user's call, made from the report.
 
 **This skill audits the change and nothing else.** It has no test lens and no comment lens, and it
-invokes no other skill. Those are `/test-review`'s and `/comment-sweep`'s subjects, each asked for and
+invokes no other skill. Those are `/test-review`'s and `/settle-comments`'s subjects — the first asked for and
 run in its own right beside this one, per the Review Phase Protocol in `AGENTS.md`. A review skill
 that offers to run the next one makes the subjects stop being independently answerable, and lets a
 drift in one skill's question silently drop the other two from every flow that went through it.
@@ -122,7 +123,7 @@ model is passed to every `adversarial-reviewer` / `review-verifier`
 `Agent` call via the `model` parameter in Step 2 and Step 3.
 
 **Two questions, and no more.** There is no test question and no comment question here — those
-subjects belong to `/test-review` and `/comment-sweep`, asked for separately (Core Idea, "This skill
+subjects belong to `/test-review`, asked for separately, and to `/settle-comments`, run during implementation (Core Idea, "This skill
 audits the change and nothing else").
 
 ### Flags
@@ -234,7 +235,7 @@ Produce one Japanese report:
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
 スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap
-未監査の観点: テスト（/test-review）・コメント（/comment-sweep）は本スキルの対象外
+未監査の観点: テスト（/test-review）・コメント（/settle-comments）は本スキルの対象外
 静的ゲート: 緑 / 赤（<check>）/ 未取得（走っていない検査は通った検査ではない）
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
 
@@ -255,8 +256,9 @@ Produce one Japanese report:
 The `lens:` line lists only the lenses that actually ran.
 
 The **`未監査の観点:` line is mandatory**, and it is not boilerplate: this skill audits one of the
-three review subjects, and a report that says nothing about the other two reads as a full review to
-anyone who did not run them. State plainly that the tests and the comments were not looked at here,
+two review subjects, and a report that says nothing about the other reads as a full review to
+anyone who did not run it. State plainly that the tests were not looked at here, and neither were the
+comments — which `settle-comments` settles during implementation rather than here,
 so the omission is visible rather than inferred from a `lens:` list that never mentioned them. Do not
 soften it into a recommendation — whether to run the other two is the user's call under the Review
 Phase Protocol, and this line only records what this run did not cover.
@@ -268,7 +270,7 @@ skipped — silent omission reads as "covered everything" when it was not.
 
 By default, post the surviving **CONFIRMED + PLAUSIBLE** findings to the branch's PR as **inline review comments** — one per finding, anchored to its `path:line`, instead of a single wall-of-text comment. **Never post REFUTED.** The Step 5 local report is still produced regardless; this step is additive.
 
-Only this skill's own findings are posted — `/test-review` and `/comment-sweep` produce their own output for the user to act on (Core Idea, "This skill audits the change and nothing else").
+Only this skill's own findings are posted — `/test-review` and `/settle-comments` produce their own output, the first as a review and the second as part of the change (Core Idea, "This skill audits the change and nothing else").
 
 Skip this step entirely when:
 
@@ -351,7 +353,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 - ✅ State in the report which lenses did not run and why.
 - ❌ Post REFUTED findings, or use `REQUEST_CHANGES` / `APPROVE` — the posted review is advisory `COMMENT` only.
 - ❌ Mutate source at all — every lens reports, the user fixes.
-- ❌ Grow a lens that audits the tests or the comments, or invoke `/test-review` or `/comment-sweep` from here. They are peers under the Review Phase Protocol; surface such an observation in 補足 and name the skill that owns it.
+- ❌ Grow a lens that audits the tests or the comments, or invoke `/test-review` or `/settle-comments` from here. The first is a peer under the Review Phase Protocol; surface such an observation in 補足 and name the skill that owns it.
 - ❌ Let a reviewer run on the same model as the implementer.
 - ❌ Report speculative style nits as findings, or pad the list to look thorough.
 - ❌ Edit generated files or anything in the deny list while verifying.

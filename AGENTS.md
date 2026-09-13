@@ -91,26 +91,37 @@ Before implementing any change:
 
 Steps 1 and 2 are not optional. **A rule you did not read still binds the change.**
 
+**The implementation itself writes no comments, and a separate pass decides which ones the change
+earned.** A comment produced while generating code is a by-product of generating it, never a judgment
+that the declaration needed one — and a model that writes prose for free produces that by-product at
+every declaration it touches. So write the code bare; then run `/settle-comments` over the declarations
+you touched. That pass is **unconditional and confirms before it writes**, and until it has run the
+change is unfinished rather than unreviewed. What earns a comment is `docs/rules.md`,
+*コメントと文書*; this file only fixes when the question gets asked.
+
 ## Review Phase Protocol
 
-A request to review work that has already been implemented names **three** subjects, not one:
+A request to review work that has already been implemented names **two** subjects, not one:
 
 | Skill | Subject |
 | --- | --- |
 | `/impl-review` | the change itself — correctness / security / architecture / cohesion / runtime gap |
 | `/test-review` | the tests that pin the change down |
-| `/comment-sweep` | the comment stock carried by the files the change touched |
+
+**The comment stock is not on this list.** `/settle-comments` runs unconditionally as the last step of
+the implementation, not as a review whose return gets estimated — see *Task Execution Protocol*.
 
 - **Do not silently pick one.** Estimate each skill's return from the context you already hold — which
-  layers moved, whether tests or comments moved at all, what an earlier skill already covered — then
+  layers moved, whether the tests moved at all, what an earlier skill already covered — then
   **ask per skill, stating that estimate and its reason**, and run what is approved.
-- **Do not ask "shall I run all three?".** That hands the cost back unpriced. Say which pass you expect to
+- **Do not ask "shall I run both?".** That hands the cost back unpriced. Say which pass you expect to
   pay off, which you expect to return nothing, and why.
-- **The three are peers, and none invokes another.** One subject to one skill, and that skill is the
+- **The two are peers, and neither invokes the other.** One subject to one skill, and that skill is the
   only place its subject is audited. `/impl-review` owns no test lens and no comment lens and hands
-  nothing off; the other two are invoked in their own right whether or not it runs.
-- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these three
-  questions at its review phase rather than choosing for the user.
+  nothing off; `/test-review` is invoked in its own right whether or not it runs.
+- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these two
+  questions at its review phase rather than choosing for the user, and has already run the comment
+  pass as part of implementing.
 
 ### The response to a review is itself unreviewed
 

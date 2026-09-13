@@ -22,9 +22,9 @@
   配下への追加** —— これらはカーネルなので `pnpm gen <kind> <name>` を直接叩き、story 先行の順序は
   踏まない。あの順序は画面の見た目を確定させる場面にしか要らない。
 - **既にあるコードへのテスト作成** —— それは `scaffold-test` の仕事である。
-- **レビュー** —— `impl-review` / `test-review` / `comment-sweep` は `AGENTS.md` の Review Phase
+- **レビュー** —— `impl-review` / `test-review` は `AGENTS.md` の Review Phase
   Protocol における peers である。このスキルは判断を user へ渡すだけで、**それらを呼ばない**。呼ぶ
-  スキルは、3 つの subject が独立に答えられなくなる代償を払う。
+  スキルは、2 つの subject が独立に答えられなくなる代償を払う。
 
 ## 実行時に読むもの
 
@@ -125,8 +125,9 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 
 日本語で締めの要約を出す —— 層ごとに作ったファイル、押さえた 4 状態、書いた仕様書、CI がまだ判定中の
 もの。そのうえで、`AGENTS.md` の Review Phase Protocol が `/impl-review` / `/test-review` /
-`/comment-sweep` の可否をスキルごとに user へ問うことを、**実行せずに**伝える。この変更でそれぞれが
-何を返しそうかの見積もりを添える。
+の可否をスキルごとに user へ問うことを、**実行せずに**伝える。この変更でそれぞれが
+何を返しそうかの見積もりを添える。`/settle-comments` はこの問いに含まれない —— 実装の最後の手順として
+既に走っている。
 
 **commit しない。push しない。** どちらも `/commit` と `/submit-pr` を通じて user のものである。
 
@@ -136,7 +137,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 - ❌ `pnpm gen` が置くはずのファイルを手で置く、または生成器へ `architecture.ts` ＋層 README 以外の
   入力を渡す。
 - ❌ `docs/spec/**` を生成入力として扱う —— **読み込み**入力に限る。
-- ❌ `impl-review` / `test-review` / `comment-sweep` を呼ぶ。
+- ❌ `impl-review` / `test-review` を呼ぶ。
 - ❌ ディレクションが決まっていないところでプロダクトの振る舞いを作る —— 訊く。
 - ❌ ゲートを先回りして lint 全体 / テスト全体を手元で回す。
 - ❌ `docs/playbook.md` / カーネル README / ADR が所有する規則をこのファイルへ書き写す。
