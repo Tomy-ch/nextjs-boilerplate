@@ -7,6 +7,7 @@ import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { Cart } from "@/model/cart/cart";
 import type { Product } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
+import { newUuid } from "@/model/uuid";
 import { useCartStore } from "@/stores/cart-store";
 import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { ProductDetail } from "./view";
@@ -128,7 +129,7 @@ type Story = StoryObj<typeof meta>;
 
 function product(overrides: Partial<Product> = {}): Product {
   return {
-    id: toProductId(crypto.randomUUID()),
+    id: toProductId(newUuid()),
     name: "ワイヤレスイヤホン",
     description: "<p>ノイズキャンセリング対応。連続再生 30 時間。</p>",
     price: "19.99",

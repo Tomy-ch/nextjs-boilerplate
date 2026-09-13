@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 import AxeBuilder from "@axe-core/playwright";
+import type { Page } from "@playwright/test";
 
 import { CONFORMANCE_TAGS, SCREEN_ONLY_RULES, screenDisabledRuleIds } from "../lib/a11y-rules";
 import {
@@ -32,6 +33,33 @@ const screens = selectScreens(
   process.env["E2E_ONLY"],
 );
 
+/**
+ * 遷移とアニメーションを止める。
+ *
+ * @remarks
+ * **色は遷移の途中にも存在します。** `transition-colors` を持つ部品が状態を変えると、変わり切る
+ * までのあいだ前後のどちらでもない色が計算値として読めます。`color-contrast` はその値を測るため、
+ * 止めずに掛けると**設計が持たない色**で落ちます。状態が動く画面ほど当たりやすく、同じ画面でも
+ * 出たり出なかったりします。
+ *
+ * **撮影の側は Playwright が同じことを自前でやります。** 同じ画面を見る 2 つの検査が違う絵を見ない
+ * よう、こちらは明示して揃えます。
+ *
+ * **DOM が静止するのは待ちません。** 受信の続く画面は書き換えが止まらず、止まるのを待てば必ず
+ * 時間切れになります。止めるのは動きだけで、どの状態を測るかは待ち合わせ（`e2e/lib/screens.ts` の
+ * `settled`）が決めます。
+ */
+async function freezeMotion(page: Page): Promise<void> {
+  await page.addStyleTag({
+    content: `*, *::before, *::after {
+      animation-delay: 0s !important;
+      animation-duration: 0s !important;
+      transition-delay: 0s !important;
+      transition-duration: 0s !important;
+    }`,
+  });
+}
+
 for (const screen of screens) {
   test(screen.name, async ({ page, signIn }) => {
     if (screen.signedIn !== undefined) {
@@ -39,10 +67,16 @@ for (const screen of screens) {
     }
 
     await page.goto(screen.path);
+
     // 撮影と同じ待ち合わせを通す。待たずに評価すると、`Suspense` の fallback（skeleton）を
     // 画面として見てしまう。skeleton は landmark も見出しも持たないことが多く、**違反が出ない**
     // 方向へ倒れるので、偽陰性は結果からは判らない。
+    if (screen.settled !== undefined) {
+      await page.locator(screen.settled).first().waitFor({ state: "visible" });
+    }
+
     await page.evaluate(() => document.fonts.ready);
+    await freezeMotion(page);
 
     const disabled = screenDisabledRuleIds(screen.name);
     const conformance = await new AxeBuilder({ page })

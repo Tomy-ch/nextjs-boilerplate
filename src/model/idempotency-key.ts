@@ -1,3 +1,5 @@
+import { newUuid } from "./uuid";
+
 /** 冪等キーを載せるフォーム項目の名前。 */
 export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
 
@@ -18,5 +20,5 @@ export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
  * 送信の単位を決めているのが画面だからです。
  */
 export function newIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return newUuid();
 }
