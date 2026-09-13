@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  MalformedHeadingError,
-  MissingDeclarationError,
   findMentions,
   isPinReferenced,
+  MalformedHeadingError,
+  MissingDeclarationError,
   removeSection,
   replaceExact,
   repoOf,
