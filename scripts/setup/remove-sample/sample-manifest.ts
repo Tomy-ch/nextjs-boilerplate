@@ -166,15 +166,17 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
  * 走査から外す相対パス接頭辞。生成物・作業用の置き場と、マーカーの形をデータとして持つ区画。
  *
  * @remarks
- * マーカー行のベースライン（`scripts/marker-baseline/`）をファイル単位ではなく接頭辞で外すのは、
- * あの区画を boilerplate 限定節の剥がしが**丸ごと消す**からです。`MARKER_LITERAL_FILES` へ並べると、
- * 剥がしだけを走らせた木で「宣言したファイルが実在しない」になります。
+ * マーカー行のベースライン（`scripts/marker-baseline/`）と前提の検査（`scripts/premise-lint/`）を
+ * ファイル単位ではなく接頭辞で外すのは、どちらの区画も boilerplate 限定節の剥がしが**丸ごと消す**
+ * からです。`MARKER_LITERAL_FILES` へ並べると、剥がしだけを走らせた木で「宣言したファイルが実在
+ * しない」になります。
  */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
   ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
   "scripts/marker-baseline/",
+  "scripts/premise-lint/",
   "tmp/",
   "src/app/generated/",
   "src/model/generated/",
@@ -221,8 +223,9 @@ export const MARKER_LITERAL_FILES: readonly string[] = [
   "scripts/setup/lib/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
+  // boilerplate-only:begin
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。
+  // 剥がし（`scripts/setup/remove-boilerplate-only/`）が `docs/plan` ごと消すので、宣言も一緒に消える。
   "docs/plan/v1-implementation-plan.md",
-  // 前提の検査が剥がし後の本文を読むことのテスト。入力としてマーカーの形を持つ。
-  "scripts/premise-lint/scan.test.ts",
+  // boilerplate-only:end
 ];
