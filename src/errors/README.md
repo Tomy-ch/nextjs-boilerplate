@@ -51,12 +51,12 @@ const meta = resolveErrorMeta(error);
 
 ## boilerplate 導入時の変更点
 
-本 boilerplate はバックエンドエラーの追加情報として `requestId` と `details` を採用します。
+本リポジトリはバックエンドエラーの追加情報として `requestId` と `details` を採用します。
 
 - `requestId` — ログ相関と連絡の突き合わせに使う識別子。画面にはリクエスト ID として表示可能
 - `details` — 不正フィールドなど、公開して安全な識別子の配列。feature / form が表示名へ変換
 
-これは本 boilerplate の既定であり、すべてのバックエンド契約に共通するものではありません。導入先が `traceId` / `correlationId`、`fieldErrors` のオブジェクト配列、または別のエラー形式を採用する場合は、adapter の応答変換と `ErrorMeta` を契約に合わせて変更してください。`errors` カーネルへ transport 固有の処理は追加しません。
+これは本リポジトリの既定であり、すべてのバックエンド契約に共通するものではありません。導入先が `traceId` / `correlationId`、`fieldErrors` のオブジェクト配列、または別のエラー形式を採用する場合は、adapter の応答変換と `ErrorMeta` を契約に合わせて変更してください。`errors` カーネルへ transport 固有の処理は追加しません。
 
 ## 境界
 
