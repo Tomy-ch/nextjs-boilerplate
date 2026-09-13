@@ -8,7 +8,7 @@ import * as z from "zod/mini";
  * 超えるため、数値へ直すと大きい位置で隣の値と区別が付かなくなります。比較は
  * {@link isAfterCursor} が `BigInt` で行います。
  */
-export const streamCursorSchema = z.string().check(z.regex(/^(0|[1-9][0-9]{0,18})$/));
+export const streamCursorSchema = z.string().check(z.regex(/^(0|[1-9]\d{0,18})$/));
 
 /** 購読の開始位置と、届いた event の位置。 */
 export type StreamCursor = z.infer<typeof streamCursorSchema>;

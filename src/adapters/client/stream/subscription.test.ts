@@ -226,6 +226,7 @@ describe("openStream", () => {
 
     expect(stream.requestConnection).toHaveBeenCalledTimes(1);
     expect(stream.sources).toHaveLength(1);
+    expect(stream.latest()?.url).toContain("after=9");
 
     stream.subscription.close();
   });

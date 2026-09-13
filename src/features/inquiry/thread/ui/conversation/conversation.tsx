@@ -118,8 +118,10 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
 
   const send = useCallback(
     (formData: FormData) => {
+      const body = formData.get(INQUIRY_BODY_FIELD);
+
       /* istanbul ignore next -- 送信欄を持つ form が送るため、欠けることも File になることも無い。TS の絞り込みのためだけの分岐。 */
-      addSending({ id: idempotencyKey, body: String(formData.get(INQUIRY_BODY_FIELD) ?? "") });
+      addSending({ id: idempotencyKey, body: typeof body === "string" ? body : "" });
       formAction(formData);
     },
     [addSending, formAction, idempotencyKey],

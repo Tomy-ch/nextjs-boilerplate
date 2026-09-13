@@ -61,10 +61,10 @@ export function toConversationDays(
     const day = formatDate(message.createdAt);
     const current = days.at(-1);
 
-    if (current === undefined || current.day !== day) {
-      days.push({ day, messages: [message] });
-    } else {
+    if (current?.day === day) {
       days[days.length - 1] = { day, messages: [...current.messages, message] };
+    } else {
+      days.push({ day, messages: [message] });
     }
   }
 
