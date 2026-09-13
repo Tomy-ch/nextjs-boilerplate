@@ -7,7 +7,7 @@ description: >-
   be judged rather than run: after tests are written for a new symbol or screen, when coverage is green but
   the viewpoints look thin, and on 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」. It hardcodes no rules — ADR
   0090 / 0091, the nearest README's `test-requirement`, and the subject source are read at runtime. Sole owner
-  of the test subject, invoked in its own right beside `/impl-review` (the change) and `/comment-sweep` (the
+  of the test subject, invoked in its own right beside `/impl-review` (the change) and `/settle-comments` (the
   comment stock), never from inside them. Do NOT use it to review implementation code (`impl-review`) or to
   run the tests (`make test-full`).
 ---
@@ -319,9 +319,9 @@ findings. Name the files and the specific cases, and point a symbol with no test
 ## Relationship to the other review skills
 
 This skill owns the **tests**, and it owns them alone: no other review skill carries a test lens, and
-this one is invoked in its own right rather than from inside another. `/impl-review` (the change) and
-`/comment-sweep` (the comment stock) are its peers under the Review Phase Protocol in `AGENTS.md` —
-asked for separately, decided separately, and never delegating to one another.
+this one is invoked in its own right rather than from inside another. `/impl-review` (the change) is its peer under the Review Phase Protocol in `AGENTS.md` — asked for
+separately, decided separately, and never delegating to one another. `/settle-comments` is not a third
+peer: it settles the comments as the last step of implementing, before either review runs.
 
 Lens 5 owns "no test at all" and Lens 4 owns branch × meaning, so both shapes have exactly one
 reporter. This skill never chains onward.

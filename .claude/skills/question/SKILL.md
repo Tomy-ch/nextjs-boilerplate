@@ -137,9 +137,9 @@ skill set — not a reason to answer it here.
 ### The diff reading has one destination, and it is not a skill
 
 **When the world axis resolves to 「この窓の差分」, hand off to the Review Phase Protocol in
-`AGENTS.md` — never to one of the three review skills directly.**
+`AGENTS.md` — never to one of the review skills directly.**
 
-That protocol names three subjects for a review request (the change, the tests, the comment stock),
+That protocol names two subjects for a review request (the change and the tests; the comment stock is settled during implementation, not reviewed),
 requires an estimate of each skill's return, and asks the user **per skill**. Routing straight to one
 of them silently answers a question the protocol exists to put to the user — and it removes the other
 two from a flow that went through here, which is exactly the drift the protocol is written against.

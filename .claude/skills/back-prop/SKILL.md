@@ -46,7 +46,7 @@ To check a single kernel, run this integrator and pick that kernel in the scope 
   README's *statements* still describe what the code does. Neither is a subset of the other, and the
   only place they meet is an inventory section.
 - **A README's portal-worthiness** — `readme-review`.
-- **Reviewing a diff** — `impl-review` / `test-review` / `comment-sweep`.
+- **Reviewing a diff** — `impl-review` / `test-review`.
 - **Fixing implementation code.** Findings are surfaced; the fix is the user's.
 
 ## Architecture: parallel detectors, integrator-side approval

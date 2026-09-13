@@ -94,7 +94,7 @@ Steps 1 and 2 are not optional. **A rule you did not read still binds the change
 **The implementation itself writes no comments, and a separate pass decides which ones the change
 earned.** A comment produced while generating code is a by-product of generating it, never a judgment
 that the declaration needed one — and a model that writes prose for free produces that by-product at
-every declaration it touches. So write the code bare; then run `/comment-sweep` over the declarations
+every declaration it touches. So write the code bare; then run `/settle-comments` over the declarations
 you touched. That pass is **unconditional and confirms before it writes**, and until it has run the
 change is unfinished rather than unreviewed. What earns a comment is `docs/rules.md`,
 *コメントと文書*; this file only fixes when the question gets asked.
@@ -108,7 +108,7 @@ A request to review work that has already been implemented names **two** subject
 | `/impl-review` | the change itself — correctness / security / architecture / cohesion / runtime gap |
 | `/test-review` | the tests that pin the change down |
 
-**The comment stock is not on this list.** `/comment-sweep` runs unconditionally as the last step of
+**The comment stock is not on this list.** `/settle-comments` runs unconditionally as the last step of
 the implementation, not as a review whose return gets estimated — see *Task Execution Protocol*.
 
 - **Do not silently pick one.** Estimate each skill's return from the context you already hold — which

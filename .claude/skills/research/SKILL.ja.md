@@ -26,7 +26,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 - いまリポジトリがどうなっているかを確かめること —— まず `repo-truth`。
 - 操作の正規手順を探すこと —— `how-to`。
 - 結果の起票 —— `new-issue`。
-- 差分のレビュー —— `impl-review` / `test-review` / `comment-sweep`。
+- 差分のレビュー —— `impl-review` / `test-review`。
 
 ## このスキルが在る理由
 

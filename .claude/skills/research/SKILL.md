@@ -41,7 +41,7 @@ not loaded as a skill).
 - Establishing what the repository currently does — `repo-truth` first.
 - Finding the sanctioned procedure for an operation — `how-to`.
 - Filing the outcome — `new-issue`.
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review`.
 
 ## Why this exists
 

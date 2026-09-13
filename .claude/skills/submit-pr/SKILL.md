@@ -105,15 +105,16 @@ Now apply the early exits that depend on the post-merge commit count:
 
 ## Step 3. Pre-push Local Review Gate (confirm)
 
-With the base merged in and **before composing anything or pushing**, ask whether to run a local review. Reviewing belongs before the change leaves the machine, and this is the one place all three review skills are shown together: none of them offers the others, so a step that names only one is a step through which the other two are silently forgotten. Do NOT auto-run any of them.
+With the base merged in and **before composing anything or pushing**, ask whether to run a local review. Reviewing belongs before the change leaves the machine, and this is the one place both review skills are shown together: neither offers the other, so a step that names only one is a step through which the other is silently forgotten. Do NOT auto-run either of them.
+
+**`/settle-comments` is not on this list and is not asked about here.** It is the last step of implementing, not a review whose return gets estimated (`AGENTS.md`, *Task Execution Protocol*). If it has not run on this change, the change is unfinished: say so and run it, rather than offering it as an option.
 
 | Skill | Subject | Typical return |
 | --- | --- | --- |
 | `/impl-review` | the change itself — correctness / security / architecture / cohesion / runtime gap | High when `src/**` behavior moved, a request-time seam or a kernel boundary was touched |
 | `/test-review` | the tests that pin the change down | High when tests were written or rewritten; low when the diff left them untouched |
-| `/comment-sweep` | the comment stock the touched files carry | Moderate when doc comments moved or grew; low for a mechanical change |
 
-**Price each one from the diff rather than listing all three unpriced.** 「三つとも回しますか」 hands the cost back to the user with no estimate, which is what `AGENTS.md`'s Review Phase Protocol forbids: say which pass you expect to pay off, which you expect to return nothing, and why.
+**Price each one from the diff rather than listing both unpriced.** 「両方とも回しますか」 hands the cost back to the user with no estimate, which is what `AGENTS.md`'s Review Phase Protocol forbids: say which pass you expect to pay off, which you expect to return nothing, and why.
 
 Placing it after Step 2 is deliberate — reviewing the pre-merge state would judge a tree that never reaches CI.
 
@@ -123,7 +124,6 @@ Placing it after Step 2 is deliberate — reviewing the pre-merge state would ju
 - Options (multi-select; state the estimate for each on the option):
   - 「`/impl-review` を実行する（submit-pr はキャンセル）」
   - 「`/test-review` を実行する（submit-pr はキャンセル）」
-  - 「`/comment-sweep` を実行する（submit-pr はキャンセル）」
   - 「実行済み / 不要（このまま進める）」 — continue to Step 4.
   - 「キャンセル」 — abort.
 
@@ -293,7 +293,6 @@ After the PR URL is reported, **always ask the user whether to run a review** �
 - Options (offer the ones that apply):
   - 「`/impl-review` を実行」 — local diff, different-model adversarial review of the change itself (strong on auth / IDOR / boundary / runtime gaps that mocked tests miss); posts its surviving findings as inline PR comments by default (`--no-comment` to suppress)
   - 「`/test-review` を実行」 — the tests that pin the change down; a separate skill with its own subject
-  - 「`/comment-sweep` を実行」 — the comment stock the touched files carry
   - 「`/code-review <PR#>` を実行」 — PR-based review (can post inline comments with `--comment`)
   - 「ultrareview を案内」 — cloud multi-agent review; **user-triggered and billed**, so the skill cannot launch it — only surface the command for the user to run
   - 「レビューしない」
@@ -336,7 +335,7 @@ Before reporting completion, confirm:
 - [ ] PR template was read and reflected in the body
 - [ ] Title and body are Japanese
 - [ ] Title ≤ 70 characters
-- [ ] Step 3 で push 前のローカルレビュー 3 本の実行可否を、見込み付きで確認した（レビューを選んだ場合は submit-pr をキャンセルして案内した）
+- [ ] Step 3 で push 前のローカルレビュー 2 本の実行可否を、見込み付きで確認した（レビューを選んだ場合は submit-pr をキャンセルして案内した）
 - [ ] User confirmation was obtained before the push (mandatory for update path per `CLAUDE.md`)
 - [ ] 見た目が変わりうる差分なら `baseline-retake` ラベルの要否を確認した（承認ではないことを添えて）
 - [ ] PR URL was reported to the user

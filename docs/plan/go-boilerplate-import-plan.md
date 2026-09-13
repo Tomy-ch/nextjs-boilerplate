@@ -69,7 +69,7 @@ IM-29 では `readme-review` の基準が go の英語見出しを前提にし�
 | IM-33 | 移植バックログ節を現行スナップショット 42/22 へ改訂 | A | — | なし | 未着手 |
 | **W1: レビュー体系の追随** | | | | | |
 | IM-02 | `impl-review` を go 側現行仕様へ追随 | B | — | IM-01 | 完了(issue #40) |
-| IM-36 | `comment-sweep` + コメント在庫の管轄ゲート | B | — | IM-34, P3-9 | 未着手 |
+| IM-36 | `settle-comments` + コメント在庫の管轄ゲート | B | — | IM-34, P3-9 | 未着手 |
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | | |
 | IM-03 | `manage-skill` 移植 | A | — | なし | 完了(issue #39) |
 | IM-35 | AI 運用の判断を ADR として持つかの決定 | C | — | なし。IM-34 / IM-04 の前 | 未着手 |
@@ -151,7 +151,7 @@ flowchart TD
   IM05 --> IM06["IM-06 ミラー生成"]
   IM06 --> IM38["IM-38 parity 検査"]
   IM04 --> IM37["IM-37 CODEX.md / rules"]
-  IM34 --> IM36["IM-36 comment-sweep"]
+  IM34 --> IM36["IM-36 settle-comments"]
   P39["v1 P3-9"] --> IM36
   P13["v1 P1-3"] --> IM12["IM-12 skip-guard"]
   IM12 --> IM13["IM-13 リリースゲート"]
@@ -194,7 +194,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 - **目的**: go 側がスキル 42 / エージェント 22 へ増えており、台帳の分類に現れない資産が生じている。IM-01 と同じ作業を現行スナップショットに対して行う
 - **主な変更先**: [BACKLOG.md](../adr/BACKLOG.md) 移植バックログ節
-- **追加分類が必要な資産**: スキル 7 件(`comment-sweep` / `context-map` / `context-map-audit` / `ddd-audit` / `glossary` / `impl-issue` / `new-issue`)、エージェント 3 件(`ddd-origin-auditor` / `drift-detector-ddd` / `drift-detector-glossary`)、`.agents/` の 3 ドメイン
+- **追加分類が必要な資産**: スキル 7 件(`settle-comments` / `context-map` / `context-map-audit` / `ddd-audit` / `glossary` / `impl-issue` / `new-issue`)、エージェント 3 件(`ddd-origin-auditor` / `drift-detector-ddd` / `drift-detector-glossary`)、`.agents/` の 3 ドメイン
 - **併せて反映する**: GB-2(`back-prop`)の検出カテゴリに語彙漏れ(E)が増えた点、GB-5 の受け皿が P4-0 である点
 - **完了条件**: BACKLOG の分類に go 側の全 42 スキル / 22 エージェント / `.agents/` 全ドメインが漏れなく現れる
 - **依存**: なし
@@ -219,11 +219,11 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **依存**: IM-01
 - **状態**: **完了**(issue #40)。その後 `test-review` の移植(IM-28)に伴い、スキル名を `local-review` から go 側と同じ `impl-review` へ改名し、テスト観点は Step 5 で `test-review` へ委譲する形にした(`test-gap` レンズは委譲が動かない場合の fallback)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ。その後の追随で 3 点を取り込んだ — コメント内容の判定を go 側現行の分類へ揃え(下記 IM-36 の 3 番目を除く)、テスト観点委譲の状態を 4 分岐へ割り直して「テストのみの変更で委譲不可」のとき `test-gap` を空振りさせない形にし、`テスト観点:` 行を必須の 4 値へ固定した。併せて `architecture` レンズの前提を実態(`pnpm lint:ci` が `eslint-plugin-boundaries` と `check:architecture` を走らせる)へ訂正した
 
-#### IM-36: `comment-sweep` + コメント在庫の管轄ゲート
+#### IM-36: `settle-comments` + コメント在庫の管轄ゲート
 
 - **目的**: 既存レビュー体系が答えられない問いを 1 つ足す。`comment-reviewer` は差分上のコメントを「削除 / 書換」でしか裁けず、**「この内容はここに置くべきか」という管轄の判定**(= 設計根拠を ADR / 層 README へ移設し、コード側には効力のある残余とリンクだけを残す)を持たない。結果として、1 行ずつは正しいが総量が読み手の負担になったコメント在庫が減らない
-- **輸入元**: `.claude/skills/comment-sweep/`、`.agents/comment-remediation/`、`docs/rules.md` のコメント規則
-- **主な変更先**: `.claude/skills/comment-sweep/SKILL.md`(+ `.ja.md`)、`.agents/comment-remediation/`、`docs/rules.md`、`.claude/settings.json`(hooks)
+- **輸入元**: `.claude/skills/settle-comments/`、`.agents/comment-remediation/`、`docs/rules.md` のコメント規則
+- **主な変更先**: `.claude/skills/settle-comments/SKILL.md`(+ `.ja.md`)、`.agents/comment-remediation/`、`docs/rules.md`、`.claude/settings.json`(hooks)
 - **輸入する 3 点**:
   1. **管轄判定を持つスキル本体** — パッケージ単位に read-only の監査を fan-out し、1 件ずつ承認を取って**コード側と移設先ドキュメントの両方を自分で書く**(移設した根拠が行き先を失わないため)。移設先の誤配 2 種(ライブラリ固有の挙動はコードに残す / 業務知識は ADR ではなく仕様側へ)を拒否する規約も輸入
   2. **在庫台帳 + 編集前の照会フック** — 掃き終えたファイルを `.agents/comment-remediation/` の台帳に記録し、`Edit` / `Write` の `PreToolUse` フックで未掃引ファイルへの編集を検知する。フックは worktree でも黙らない形にする

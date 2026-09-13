@@ -43,7 +43,7 @@ not loaded as a skill).
 
 ## Do NOT use this skill for
 
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review`.
 - Comparing options nobody has chosen between yet — `research` first; its recommendation is not a
   decision.
 - Writing an ADR.

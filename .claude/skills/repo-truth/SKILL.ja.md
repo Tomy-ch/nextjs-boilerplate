@@ -28,7 +28,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 - 既知の運用上の症状と、その対処 —— `repo-ops`。
 - 実行したい操作 —— `how-to`。
 - 選択肢の比較が要る未決の設計の問い —— `research`。
-- 差分のレビュー —— `impl-review` / `test-review` / `comment-sweep`。
+- 差分のレビュー —— `impl-review` / `test-review`。
 - 見つけたものの起票 —— `new-issue`。
 
 ## このスキルが在る理由

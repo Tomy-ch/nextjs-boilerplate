@@ -36,8 +36,8 @@ not loaded as a skill).
 ## Do NOT use this skill for
 
 - **A change with no issue behind it** — `commit` then `submit-pr` directly.
-- **Reviewing an existing diff** — `impl-review` / `test-review` / `comment-sweep`, which are peers
-  under `AGENTS.md`'s Review Phase Protocol and are asked for in their own right.
+- **Reviewing an existing diff** — `impl-review` / `test-review`, which are peers under `AGENTS.md`'s
+  Review Phase Protocol and are asked for in their own right.
 - **Authoring a skill** — `manage-skill`.
 - **Filing the issue in the first place** — `new-issue`. This skill starts from one that exists.
 
@@ -90,7 +90,7 @@ right, or whether a finding deserves an issue. It routes those to the user and r
 | A new screen or feature slice | `new-feature` — hand the whole implementation phase to it |
 | Review of the change itself | `impl-review` |
 | Review of the tests | `test-review` |
-| Review of the comment stock | `comment-sweep` |
+| Settling the comments of a change | `settle-comments` — unconditional, as the last step of implementing |
 | The implementation itself | you, following the approved plan |
 
 ## AI Modification Scope
@@ -336,7 +336,7 @@ server is actually imminent, not as a resume ritual.
 are one default way of satisfying it, not the rule — read the rule off the session's own model rather
 than off a model name written here.
 
-No later gate re-opens the plan: `impl-review` / `test-review` / `comment-sweep` all take the finished
+No later gate re-opens the plan: `impl-review` / `test-review` / `settle-comments` all take the finished
 change as their subject, so whether the plan solves the issue at all is checked here or nowhere.
 
 | Stage | Runs on | Produces | Runs in |
@@ -438,6 +438,11 @@ about drift:
 - **見つけたものは、その場で直す** — under issue mode `fix-here`, a defect found in a part you touched
   is fixed in this run, with the check that catches it again, rather than filed.
 
+**The implementation writes no comments** (`AGENTS.md`, *Task Execution Protocol*). Once the code is
+written, run `settle-comments` over the declarations this change touched — unconditionally, before
+this step ends. It confirms its verdicts before writing; it is not a gate whose cost gets weighed, and
+the change is unfinished until it has run.
+
 ## Step 5 — Reconcile the plan against reality
 
 Run this before the gates. Compare:
@@ -466,14 +471,18 @@ parallel with it instead of after it.
 
 ## Step 7 — Review
 
-A completed change has three review subjects, each owned by one skill: `impl-review` (the change),
-`test-review` (the tests), `comment-sweep` (the comment stock of the touched files). They are peers —
-none invokes another — so this step must not silently pick one.
+A completed change has two review subjects, each owned by one skill: `impl-review` (the change) and
+`test-review` (the tests). They are peers — neither invokes the other — so this step must not silently
+pick one.
 
 Follow the Review Phase Protocol in `AGENTS.md`: **estimate each skill's return from the context this
-run already holds** — which layers the change touched, whether tests or comments moved at all — then
-ask the user per skill, stating that estimate and its reason, and run what they approve.
-「三つとも回しますか」 is not a question; it hands the cost back unpriced.
+run already holds** — which layers the change touched, whether the tests moved at all — then ask the
+user per skill, stating that estimate and its reason, and run what they approve.
+「両方とも回しますか」 is not a question; it hands the cost back unpriced.
+
+**The comment stock is not reviewed here, because Step 4 already settled it.** `settle-comments`
+runs unconditionally as the last step of implementing, not as a subject whose return is estimated. If
+it has not run, the change never finished — go back and run it rather than adding it to this ask.
 
 This step is where the estimate is cheapest to make: the plan, the diff, and the Step 5 reconciliation
 are already in hand.
@@ -600,11 +609,11 @@ payload so the sub-skill skips its own gate.
 | `new-feature` | The approved plan, and the subject | Its Step 0 subject confirmation |
 | `impl-review` | Scope, reviewer model | Its Step 0 |
 | `test-review` | Scope, reviewer model | Its scope question |
-| `comment-sweep` | Scope **and apply mode** | Its scope and apply-mode questions |
+| `settle-comments` | Scope **and apply mode** | Its scope and apply-mode questions |
 | `resolve-merge` | The base | Its base resolution |
 
 **Every row is required, because a missing one reinstates a gate this skill already settled.** A
-sub-skill whose default is to confirm per item — `comment-sweep` is the one to watch — will do exactly
+sub-skill whose default is to confirm per item — `settle-comments` is the one to watch — will do exactly
 that when its apply mode does not arrive.
 
 ## Do / Do NOT
@@ -646,7 +655,8 @@ that when its apply mode does not arrive.
 - [ ] No stop outside the five listed places.
 - [ ] Plan reconciled against the actual diff.
 - [ ] Gates left to CI, and said so in the PR.
-- [ ] The three review skills each estimated and put to the user; the approved ones run with their
+- [ ] `settle-comments` run as the last step of implementing, before any review.
+- [ ] The two review skills each estimated and put to the user; the approved ones run with their
       answers passed through.
 - [ ] General form harvested into the surviving documents, with what was dropped stated.
 - [ ] Runtime verification run for a moved request-time seam — or its absence stated with which of the

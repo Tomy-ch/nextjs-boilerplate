@@ -42,7 +42,7 @@ not loaded as a skill).
 - A known operational symptom with a documented fix — `repo-ops`.
 - An operation you want to perform — `how-to`.
 - An undecided design question that needs options compared — `research`.
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review` / `settle-comments`.
 - Filing what was found — `new-issue`.
 
 ## Why this exists
@@ -287,7 +287,7 @@ This skill is invoked in its own right and chains into nothing. It reports what 
 be — `research` for an undecided design question, `new-issue` to file what it found, `back-prop` for
 drift, `repo-ops` for a known symptom — and the user decides whether to run it.
 
-That is the same reason the three review skills are peers under the Review Phase Protocol in
+That is the same reason the two review skills are peers under the Review Phase Protocol in
 `AGENTS.md`: a skill that runs the next one for you removes that decision from the user, and a drift
 in this skill's judgment would then silently redirect every flow that passed through it.
 

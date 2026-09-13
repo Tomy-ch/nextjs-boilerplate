@@ -1,6 +1,6 @@
 ---
 name: adversarial-reviewer
-description: Read-only adversarial code reviewer for ONE assigned lens (correctness / security / architecture / cohesion / runtime-gap). Independently inspects a diff and the surrounding code, assuming the author was a different (possibly stronger) model whose output must NOT be trusted, and returns evidenced findings. Neither the tests nor the comments are lenses here: those subjects belong to the `/test-review` and `/comment-sweep` skills, which are `impl-review`'s peers rather than its sub-steps. Invoked multiple times — once per lens — by the `impl-review` skill. Default model is `sonnet` so the reviewer differs from an Opus implementer; the orchestrator may override the model to keep reviewer ≠ implementer.
+description: Read-only adversarial code reviewer for ONE assigned lens (correctness / security / architecture / cohesion / runtime-gap). Independently inspects a diff and the surrounding code, assuming the author was a different (possibly stronger) model whose output must NOT be trusted, and returns evidenced findings. Neither the tests nor the comments are lenses here: those subjects belong to the `/test-review` and `/settle-comments` skills, which are `impl-review`'s peers rather than its sub-steps. Invoked multiple times — once per lens — by the `impl-review` skill. Default model is `sonnet` so the reviewer differs from an Opus implementer; the orchestrator may override the model to keep reviewer ≠ implementer.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
@@ -50,7 +50,7 @@ The orchestrator gives you:
   - **Provider / shell mount** ([0026](../../docs/adr/0026-layout-shell-mount.md)) — a Provider missing from the layout shell, so a hook has no context at runtime.
 
   State explicitly what runtime check would expose each one. `impl-review`'s Step 4 runs some of them — the build catches the boundary and bundle cases, and the request stage catches status normalization, headers, the `proxy.ts` matcher, and the shell render. It cannot yet reach cache / revalidation or retry / idempotency semantics (no `adapters` layer, no backend), so say so plainly instead of implying your finding will be confirmed there.
-(Neither the tests nor the comments are lenses here. A gap in the tests belongs to `/test-review` and a comment's content to `/comment-sweep` — peer skills the user invokes in their own right, not sub-steps of this review. If you notice one in passing, say so as an observation and name the skill that owns it.)
+(Neither the tests nor the comments are lenses here. A gap in the tests belongs to `/test-review` and a comment's content to `/settle-comments` — peer skills the user invokes in their own right, not sub-steps of this review. If you notice one in passing, say so as an observation and name the skill that owns it.)
 
 ## How to review
 
