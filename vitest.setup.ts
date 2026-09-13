@@ -170,3 +170,10 @@ if (typeof Element !== "undefined" && Element.prototype.scrollIntoView === undef
     // 意図的に空。
   };
 }
+
+// 位置を指して送る API も無い。末尾へ追従する一覧は、届いた 1 件ごとにここを呼ぶ。
+if (typeof Element !== "undefined" && Element.prototype.scrollTo === undefined) {
+  Element.prototype.scrollTo = function scrollTo(): void {
+    // 意図的に空。
+  };
+}

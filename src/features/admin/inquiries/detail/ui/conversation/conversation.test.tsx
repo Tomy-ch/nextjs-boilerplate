@@ -2,7 +2,7 @@
 
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { InquiryFeedEvent } from "@/adapters/client/api/inquiries";
@@ -51,24 +51,6 @@ function feedEvent(inquiryId: InquiryId): InquiryFeedEvent {
     },
   };
 }
-
-/**
- * jsdom は scroll の口を持たない。追従の器がその口を呼ぶため、呼べる形にだけしておく。
- *
- * @remarks
- * 追従そのものは器の側のテストが確かめます。ここで確かめるのは畳み込みと購読なので、
- * 動きは再現せず、呼べることだけを用意します。
- */
-beforeAll(() => {
-  Object.defineProperty(Element.prototype, "scrollTo", {
-    configurable: true,
-    value: () => undefined,
-  });
-});
-
-afterAll(() => {
-  Reflect.deleteProperty(Element.prototype, "scrollTo");
-});
 
 beforeEach(() => {
   vi.clearAllMocks();
