@@ -2,15 +2,14 @@
 name: settle-comments
 usage-class: frequent
 description: >-
-  Settle what a change earned in comments — the unconditional last step of implementing, run once the code is
-  written bare. Judges the whole comment block of every declaration the change touched: deletes what an
-  evaluator already carries, writes the residue the implementation deliberately did not, authors the rendered
-  TSDoc of a general-purpose part, and decides which single site owns a Why written in several. Use it at the
-  end of every implementation, and on 「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に
-  移したい」. Its bulk mode sweeps a kernel or `scripts/` for the stock that predates the pass. **Not a review**
-  — it finishes a change rather than auditing one, so it is never estimated beside `/impl-review` and
-  `/test-review`. Do NOT use it for docs prose (`doc-reviewer`), README↔code drift (`sync-readme` /
-  `back-prop`), or implementation and tests.
+  Settle what a change earned in comments — the unconditional last step of implementing. Judges the whole
+  comment block of every declaration the change touched: deletes what an evaluator already carries, writes the
+  residue the implementation did not, authors a general-purpose part's rendered TSDoc, and decides which single
+  site owns a Why written in several. Use it at the end of every implementation, and on
+  「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に移したい」. Its bulk mode sweeps a kernel or `scripts/`. **Not a
+  review** — it finishes a change rather than auditing one, so it is never estimated beside `/impl-review` and
+  `/test-review`. Do NOT use it for docs prose (`doc-reviewer`), README↔code drift (`sync-readme` / `back-
+  prop`), or implementation and tests.
 argument-hint: '[scope] [--bulk] [--apply | --report-only]'
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, Agent
 ---

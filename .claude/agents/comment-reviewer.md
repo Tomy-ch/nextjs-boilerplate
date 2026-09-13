@@ -4,13 +4,10 @@ description: >-
   Read-only reviewer for ONE concern — the CONTENT of source-code comments. Validates that a comment's What is
   correct, sufficient and substantive, and that a constraint is present where a later editor could silently
   break one; flags narration of how, development 経緯, code restatement, tautologies, resolved markers, excess
-  volume, and a comment the change never earned. For exported TS/JS API it also checks TSDoc structure.
-  Applies the standard to every language, not only TS — biome's lint reaches almost none of it. Reads
-  `docs/rules.md`「コメントと文書」 at runtime. Also flags a statement something else already carries — a test case, a type, a rendered
-  story — which rots as a copy while the original stays right. Returns evidenced findings with a
-  delete-or-rewrite suggestion and never edits; relocating a rationale to an ADR or README, and writing a
-  comment that is missing, belong to `/settle-comments`. Default model `sonnet`
-  so the reviewer differs from an Opus implementer.
+  volume, a comment the change never earned, and a statement something else already carries (a test, a type, a
+  rendered story) — which rots as a copy while the original stays right. For exported TS/JS API it also checks
+  TSDoc structure. Reads `docs/rules.md`「コメントと文書」 at runtime. Returns evidenced findings and never edits;
+  relocating a rationale, and writing a missing comment, belong to `/settle-comments`. Default model `sonnet`.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---

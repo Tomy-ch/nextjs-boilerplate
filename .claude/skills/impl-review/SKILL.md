@@ -3,13 +3,13 @@ name: impl-review
 usage-class: frequent
 description: >-
   Local adversarial, low-bias review of THE CHANGE ITSELF, run by subagents on a model that is not the
-  implementer's, each finding then re-derived by an independent skeptic. Adds a runtime build and request
-  stage that mocked component tests cannot reach, and posts surviving findings to the branch's PR as inline
-  comments. Use it before a commit or PR for a second opinion the implementer's own model would not surface,
-  and after a multi-kernel change whose RSC / Client boundary or request path no test covers. Subject: the
-  implementation only — `/test-review` is its peer under the Review Phase Protocol, and `/settle-comments` settles the comments during implementation, in
-  `AGENTS.md`, never chained from inside it. Do NOT use it for formatting (`pnpm lint:ci`), for applying fixes
-  (read-only on source), or for the tests and comments.
+  implementer's, each finding re-derived by an independent skeptic. Adds a runtime build and request stage
+  mocked component tests cannot reach, and posts surviving findings to the PR as inline comments. Use it before
+  a commit or PR for a second opinion the implementer's model would not surface, and after a multi-kernel change
+  whose RSC / Client boundary or request path no test covers. Subject: the implementation only — `/test-review`
+  is its peer under `AGENTS.md`'s Review Phase Protocol, never chained from here; `/settle-comments` settles
+  comments during implementation. Do NOT use it for formatting (`pnpm lint:ci`), for applying fixes (read-only
+  on source), or for tests and comments.
 ---
 
 # Local Review
