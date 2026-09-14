@@ -36,14 +36,6 @@ export type FormValidationSummaryProps = {
  *
  * 検証規則、エラーの分類、文言への変換は持たない。feature が利用者に意味の通る文言へ変換して渡す。
  *
- * @example
- * ```tsx
- * <FormValidationSummary
- *   errors={[{ fieldId: "email", message: "メールアドレスの形式が正しくありません" }]}
- *   id="form-errors"
- * />
- * ```
- *
  * @param props.errors - 表示する検証エラー。空なら何も描画しない。
  * @param props.title - 要約の見出し。
  * @param props.id - 呼び出し元が focus を移す際に参照する識別子。

@@ -27,18 +27,6 @@ import { MENUBAR_ITEM_VARIANT, type MenubarItemVariant } from "./menubar.definit
  * @remarks
  * 同じ画面に menubar が複数ある場合は、`aria-label` でそれぞれを区別する。
  *
- * @example
- * ```tsx
- * <Menubar>
- *   <MenubarMenu>
- *     <MenubarTrigger>ファイル</MenubarTrigger>
- *     <MenubarContent>
- *       <MenubarItem onSelect={createDraft}>新規作成</MenubarItem>
- *     </MenubarContent>
- *   </MenubarMenu>
- * </Menubar>
- * ```
- *
  * @param props - Radix `Menubar.Root` の props。`value` / `defaultValue` / `onValueChange` で
  *   開いている menu を制御でき、`loop` で端から端への移動を繋げる。
  *
@@ -361,14 +349,6 @@ function MenubarSeparator({
  *
  * 表示だけを担い、shortcut を登録しない。実際のキー操作は呼び出し元が用意する。対応する操作が
  * キーボードから実行できない場合はここに表示しない。
- *
- * @example
- * ```tsx
- * <MenubarShortcut>
- *   <Kbd>⌘</Kbd>
- *   <Kbd>N</Kbd>
- * </MenubarShortcut>
- * ```
  *
  * @see Storybook `Navigation/Menubar`
  */

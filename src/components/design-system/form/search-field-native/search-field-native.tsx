@@ -60,16 +60,6 @@ export type SearchFieldNativeProps = Omit<
  * HTML の `search` 要素で囲むため、支援技術の landmark 一覧から到達できる。同じ画面に検索欄を
  * 複数置く場合は、`aria-label` で landmark を区別する。
  *
- * @example
- * ```tsx
- * <SearchFieldNative
- *   action="/items"
- *   defaultValue={searchParams.q}
- *   hiddenParams={{ sort: searchParams.sort }}
- *   label="項目を検索"
- * />
- * ```
- *
  * @param props - native `form` 属性と、上記の表示用 props。`method` と `role` は固定のため渡せない。
  * @see Storybook `Form/SearchFieldNative`
  */

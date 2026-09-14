@@ -50,17 +50,6 @@ export type BadgeProps = ComponentProps<"span"> &
  * `asChild` と単一の anchor を組み合わせる。click handler を持つ badge は操作の意図が
  * 伝わりにくいため、`Button` を使う。
  *
- * @example
- * ```tsx
- * import Link from "next/link";
- *
- * <Badge>公開中</Badge>
- *
- * <Badge asChild variant={BADGE_VARIANT.LINK}>
- *   <Link href="/items?category=food">食品</Link>
- * </Badge>
- * ```
- *
  * @param props - native `span` 属性と表示用 props。
  * @param props.variant - ラベルの優先度に対応する見た目。
  * @param props.asChild - 子要素へ badge の見た目と props を合成するか。

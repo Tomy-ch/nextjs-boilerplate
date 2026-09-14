@@ -75,15 +75,6 @@ function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
  * 戻す実装で、trigger を持たないこの部品では focus が document へ落ちてしまう。そのため dialog は
  * 閉じているあいだも mount したままにする。閉じると同時に unmount すると復帰の機会が失われる。
  *
- * @example
- * ```tsx
- * <NavigationGuard when={isDirty}>
- *   <nav>
- *     <Link href="/settings">設定</Link>
- *   </nav>
- * </NavigationGuard>
- * ```
- *
  * @see Storybook `Navigation/NavigationGuard`
  */
 export function NavigationGuard({

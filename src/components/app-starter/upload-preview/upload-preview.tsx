@@ -174,14 +174,6 @@ function UploadPreviewRow({
  * `state` は見た目を変えるだけで支援技術へ伝わらない。進行中や失敗は `description` の文言でも
  * 示す。spinner も装飾として置くため、読み上げは `description` が担う。
  *
- * @example
- * ```tsx
- * <UploadPreview
- *   items={[{ id: "1", name: "cover.png", description: "1.2 MB", preview: file }]}
- *   onRemove={remove}
- * />
- * ```
- *
  * @param props.items - 表示する選択中のファイル。並び順はそのまま使う。
  * @param props.pending - 送信中か。すべての操作を止める。
  * @param props.onRemove - 取り消しの操作を受け取る。省略すると button を出さない。

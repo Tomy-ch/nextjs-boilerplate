@@ -30,17 +30,6 @@ import {
  * `ol` として並び順に意味があることを伝える。**進捗を表す名前を必ず与える**。同じ画面に
  * 複数の進捗があるとき、名前が無いとどちらの進捗か判らない。
  *
- * @example
- * ```tsx
- * <Stepper label="申請の進捗">
- *   <StepperItem marker={1} state={STEPPER_STATE.COMPLETE}>
- *     <ListItemContent>
- *       <ListItemTitle>申請</ListItemTitle>
- *     </ListItemContent>
- *   </StepperItem>
- * </Stepper>
- * ```
- *
  * @param props.label - この進捗のアクセシブルな名前。
  *
  * @see Storybook `Display/Stepper`

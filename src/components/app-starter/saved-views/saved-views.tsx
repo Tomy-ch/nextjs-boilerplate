@@ -88,33 +88,6 @@ export type SavedViewsProps = {
  *
  * 名前は前後の空白を落として渡す。空白だけの名前は保存できない。
  *
- * @example
- * ```tsx
- * "use client";
- *
- * import { useState } from "react";
- *
- * import { SavedViews } from "@/components/app-starter/saved-views/saved-views";
- *
- * export function ListToolbar() {
- *   const [views, setViews] = useState([{ id: "recent", name: "最近の更新" }]);
- *   const [currentViewId, setCurrentViewId] = useState<string | null>("recent");
- *
- *   return (
- *     <SavedViews
- *       currentViewId={currentViewId}
- *       onCreate={(name) => setViews((current) => [...current, { id: name, name }])}
- *       onDelete={(id) => setViews((current) => current.filter((view) => view.id !== id))}
- *       onRename={(id, name) =>
- *         setViews((current) => current.map((view) => (view.id === id ? { ...view, name } : view)))
- *       }
- *       onSelect={setCurrentViewId}
- *       views={views}
- *     />
- *   );
- * }
- * ```
- *
  * @param props - 選べる条件と、選択・保存・改名・削除の受け取り方。
  * @param props.views - 選べる条件。
  * @param props.currentViewId - いま適用している条件の `id`。
