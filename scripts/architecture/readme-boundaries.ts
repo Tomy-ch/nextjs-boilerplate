@@ -19,6 +19,9 @@ const boundaryFrontmatterSchema = z.object({
 
 export type BoundaryFrontmatter = z.infer<typeof boundaryFrontmatterSchema>;
 
+/** 層の名前の集合。`KERNELS` は要素の型が入力より狭く、配列のままでは綴りの一致を問えない。 */
+const KERNEL_NAMES = new Set<string>(KERNELS);
+
 /**
  * 生成物であることを行に残す印。
  *
@@ -120,7 +123,7 @@ export function findBoundaryDrift(
 
   const allowed = new Set<string>(dependencies);
   const contradicting = declaration.forbidden.filter(
-    (type) => KERNELS.some((kernelName) => kernelName === type) && allowed.has(type),
+    (type) => KERNEL_NAMES.has(type) && allowed.has(type),
   );
 
   if (contradicting.length) {
