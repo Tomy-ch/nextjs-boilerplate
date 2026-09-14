@@ -31,14 +31,6 @@ export type SurfacePortalBridgeProps = {
  * React は 1 つのコミットの中で後始末を新しい effect よりも先に走らせます。無条件に消すと、直前に
  * 別の書き手が置いた値まで落とします。
  *
- * @example
- * ```tsx
- * <div data-surface="admin">
- *   <SurfacePortalBridge surface="admin" />
- *   {children}
- * </div>
- * ```
- *
  * @param props.surface - 部分木が名乗っている系統。属性に載る値と同じものを渡す
  * @see Storybook `Foundation/Surface`
  */

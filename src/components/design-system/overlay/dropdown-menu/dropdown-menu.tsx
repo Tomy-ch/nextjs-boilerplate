@@ -302,14 +302,6 @@ function DropdownMenuSeparator({
  * 表示だけを担い、shortcut を登録しない。実際のキー操作は呼び出し元が用意する。対応する操作が
  * キーボードから実行できない場合はここに表示しない。
  *
- * @example
- * ```tsx
- * <DropdownMenuShortcut>
- *   <Kbd>⇧</Kbd>
- *   <Kbd>P</Kbd>
- * </DropdownMenuShortcut>
- * ```
- *
  * @see Storybook `Overlay/DropdownMenu`
  */
 function DropdownMenuShortcut({ className, ...props }: ComponentProps<"kbd">) {

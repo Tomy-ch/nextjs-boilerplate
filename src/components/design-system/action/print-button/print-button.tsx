@@ -19,13 +19,6 @@ import { Button } from "../button/button";
  *
  * 自分自身を紙へ出しません。押せない操作が紙面に残ると、その分だけ内容が押し出されます。
  *
- * @example
- * ```tsx
- * import { PrintButton } from "@/components/design-system/action/print-button/print-button";
- *
- * <PrintButton />;
- * ```
- *
  * @see Storybook `Action/PrintButton`
  */
 export function PrintButton() {

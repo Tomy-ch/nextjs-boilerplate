@@ -23,24 +23,6 @@ export type SelectClientProps = React.ComponentProps<typeof SelectPrimitive.Root
  * 選択された値を native form として送る場合は `name` を渡す。開閉と選択の状態は `value` /
  * `defaultValue` で制御 / 非制御を選ぶ。
  *
- * @example
- * ```tsx
- * <SelectClient defaultValue="standard" name="plan">
- *   <SelectTrigger>
- *     <SelectValue placeholder="プランを選択" />
- *   </SelectTrigger>
- *   <SelectContent>
- *     <SelectGroup>
- *       <SelectLabel>個人向け</SelectLabel>
- *       <SelectItem value="free">無料</SelectItem>
- *       <SelectItem value="standard">標準</SelectItem>
- *     </SelectGroup>
- *     <SelectSeparator />
- *     <SelectItem value="enterprise">法人</SelectItem>
- *   </SelectContent>
- * </SelectClient>
- * ```
- *
  * @param props - 選択状態と `name` を含む Root の props。
  * @see Storybook `Form/SelectClient`
  */

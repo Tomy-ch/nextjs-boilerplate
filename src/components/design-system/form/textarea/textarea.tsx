@@ -20,13 +20,6 @@ export type TextareaProps = ComponentProps<"textarea">;
  * どちらからも利用できる。入力値を React state で制御するか、native form に委ねるかは
  * 呼び出し側が選ぶ。
  *
- * @example
- * ```tsx
- * <Textarea name="address-note" rows={4} />
- *
- * <Textarea aria-invalid={hasError} aria-describedby="note-error" name="note" />
- * ```
- *
  * @param props - native `textarea` 属性。`className` は既定の見た目へ追加・上書きできる。
  * @see Storybook `Form/Textarea`
  */

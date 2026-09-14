@@ -78,16 +78,6 @@ export type FieldProps = ComponentProps<"div"> & {
  * Server Component であり、値の保持・検証・エラー文言の整形は持たない。`aria-invalid` と
  * `aria-describedby` は control 側へ、`data-invalid` はこの外枠へ、いずれも呼び出し元が渡す。
  *
- * @example
- * ```tsx
- * <Field data-invalid={error !== undefined}>
- *   <FieldLabel htmlFor="email">メールアドレス</FieldLabel>
- *   <Input aria-describedby="email-error" aria-invalid={error !== undefined} id="email" name="email" />
- *   <FieldDescription>ご登録済みのアドレスを入力してください。</FieldDescription>
- *   {error === undefined ? null : <FieldError id="email-error">{error}</FieldError>}
- * </Field>
- * ```
- *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.orientation - label と control の並べ方。
  * @see Storybook `Form/Field`

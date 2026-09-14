@@ -22,19 +22,6 @@ export type InputProps = ComponentProps<"input">;
  *
  * 枠線は `border` ではなく `input` を取る（[`components/README.md`](../../../README.md)「境界を示す線」）。
  *
- * @example
- * ```tsx
- * <Input name="email" type="email" autoComplete="email" required />
- *
- * <Input
- *   aria-invalid={hasError}
- *   aria-describedby="email-error"
- *   defaultValue="user@example.com"
- *   name="email"
- *   type="email"
- * />
- * ```
- *
  * @param props - native `input` 属性。`className` は既定の見た目へ追加・上書きできる。
  * @see Storybook `Form/Input`
  */

@@ -15,16 +15,6 @@ import { cn } from "@/components/cn";
  * 行が二つの軸で比較される表形式のデータには使わない。列見出しと行見出しの両方が意味を持つ場合は
  * `Table` を使う。
  *
- * @example
- * ```tsx
- * <KeyValueList>
- *   <KeyValueItem>
- *     <KeyValueLabel>状態</KeyValueLabel>
- *     <KeyValueValue>公開中</KeyValueValue>
- *   </KeyValueItem>
- * </KeyValueList>
- * ```
- *
  * @see Storybook `Display/KeyValueList`
  */
 export function KeyValueList({ className, ...props }: ComponentProps<"dl">) {

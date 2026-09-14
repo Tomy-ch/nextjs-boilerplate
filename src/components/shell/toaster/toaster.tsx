@@ -47,16 +47,6 @@ const DEFAULT_REGION_LABEL = "通知";
  * 文脈内で示すべき失敗の置き換えには使わない。入力の誤りは field のエラー、操作対象の近くで
  * 説明すべき失敗は `Alert` や `FormFeedback` を使う。
  *
- * @example
- * ```tsx
- * "use client";
- *
- * const [toasts, setToasts] = useState<Toast[]>([]);
- * const dismiss = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
- *
- * <Toaster onDismiss={dismiss} toasts={toasts} />
- * ```
- *
  * @param props.toasts - 表示する通知の配列。先頭が最も新しい。
  * @param props.onDismiss - 通知が閉じられたときに、その `id` を受け取る callback。
  *   自動で閉じた場合も呼ばれる。省略すると閉じる操作を提供しない。
@@ -153,16 +143,6 @@ const ToastContext = createContext<ToastControls | undefined>(undefined);
  * root layout から一度だけ mount する。二重に置くと queue が分かれ、上限の意味が失われる。
  *
  * Provider 自身が `Toaster` を描画するため、`Toaster` を別途置く必要はない。
- *
- * @example
- * ```tsx
- * // app/layout.tsx
- * <ToastProvider>{children}</ToastProvider>
- *
- * // 任意の Client Component
- * const { toast } = useToast();
- * toast({ title: "保存しました", duration: 5000 });
- * ```
  *
  * @param props.children - 通知を出せる範囲。
  * @param props.defaultVisibleToasts - 同時に表示する上限の初期値。既定は

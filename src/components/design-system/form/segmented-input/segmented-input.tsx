@@ -71,29 +71,6 @@ export type SegmentedInputSlotProps = ComponentProps<"div"> & {
  * 桁区切りの表示が要らない場合はこれを使わない。`Input` に `inputMode` と適切な `autoComplete` を
  * 与えれば足り、client runtime も要らない。
  *
- * @example
- * ```tsx
- * <SegmentedInput
- *   autoComplete="one-time-code"
- *   inputMode="numeric"
- *   maxLength={6}
- *   name="code"
- *   pattern={SEGMENTED_INPUT_PATTERN.DIGITS}
- * >
- *   <SegmentedInputGroup>
- *     <SegmentedInputSlot index={0} />
- *     <SegmentedInputSlot index={1} />
- *     <SegmentedInputSlot index={2} />
- *   </SegmentedInputGroup>
- *   <SegmentedInputSeparator />
- *   <SegmentedInputGroup>
- *     <SegmentedInputSlot index={3} />
- *     <SegmentedInputSlot index={4} />
- *     <SegmentedInputSlot index={5} />
- *   </SegmentedInputGroup>
- * </SegmentedInput>
- * ```
- *
  * @param props - 実体の `input` へ渡る属性と `containerClassName` / `mask` / `maskChar`。
  *   `maxLength` は必須。
  * @see Storybook `Form/SegmentedInput`

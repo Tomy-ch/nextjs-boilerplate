@@ -37,26 +37,6 @@ export type EditableTableProps = ComponentProps<"form"> & {
  * 少数の値を直接編集する用途に使う。読み取り専用の一覧には `Table`、列定義から組み立てる場合は
  * `sugar/table/editable-data` の `EditableDataTable` を使う。
  *
- * @example
- * ```tsx
- * <EditableTable action={saveRows}>
- *   <EditableTableHeader>
- *     <EditableTableRow>
- *       <EditableTableHead>名称</EditableTableHead>
- *     </EditableTableRow>
- *   </EditableTableHeader>
- *   <EditableTableBody>
- *     {rows.map((row) => (
- *       <EditableTableRow key={row.id}>
- *         <EditableTableCell>
- *           <Input defaultValue={row.name} name={`name.${row.id}`} />
- *         </EditableTableCell>
- *       </EditableTableRow>
- *     ))}
- *   </EditableTableBody>
- * </EditableTable>
- * ```
- *
  * @param props - native `form` 属性と、以下の表示用 props。
  * @param props.children - table の中身。
  * @param props.label - 横スクロールする領域の名前。

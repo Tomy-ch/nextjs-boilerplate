@@ -17,15 +17,6 @@ import { useState } from "react";
  *
  * @param active - いま満たしているか。
  * @returns 一度でも満たしたか。
- *
- * @example
- * ```tsx
- * function Panel({ active, children }: { active: boolean; children: ReactNode }) {
- *   const latched = useLatched(active);
- *
- *   return <div hidden={!active}>{latched ? children : null}</div>;
- * }
- * ```
  */
 export function useLatched(active: boolean): boolean {
   const [latched, setLatched] = useState(active);

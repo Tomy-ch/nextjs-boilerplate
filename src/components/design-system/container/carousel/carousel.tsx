@@ -24,26 +24,6 @@ import { cn } from "@/components/cn";
  * 出すという切り分けを超えるためである。表示中の slide に追従する送り先の一覧が要る場合は
  * `CarouselThumbnails` を使う。
  *
- * @example
- * ```tsx
- * <Carousel aria-label="画像">
- *   <CarouselContent>
- *     <CarouselItem aria-label="1 / 2" id={`${slideId}-1`}>
- *       <MediaImage alt="正面" src={frontUrl} />
- *       <CarouselNext href={`#${slideId}-2`} />
- *     </CarouselItem>
- *     <CarouselItem aria-label="2 / 2" id={`${slideId}-2`}>
- *       <MediaImage alt="背面" src={backUrl} />
- *       <CarouselPrevious href={`#${slideId}-1`} />
- *     </CarouselItem>
- *   </CarouselContent>
- *   <CarouselNav aria-label="画像の送り">
- *     <CarouselLink href={`#${slideId}-1`}>正面</CarouselLink>
- *     <CarouselLink href={`#${slideId}-2`}>背面</CarouselLink>
- *   </CarouselNav>
- * </Carousel>
- * ```
- *
  * @see Storybook `Container/Carousel`
  */
 export function Carousel({ className, ...props }: ComponentProps<"section">) {

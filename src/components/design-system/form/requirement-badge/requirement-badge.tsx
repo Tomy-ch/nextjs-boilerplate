@@ -28,14 +28,6 @@ export type RequirementBadgeProps = {
  * のかを利用者が区別できない。どちらの文言も 2 文字なので、`label` の前に置けば印の列と label の
  * 開始位置が同時に揃う。
  *
- * @example
- * ```tsx
- * <div className="flex items-center gap-2">
- *   <RequirementBadge required />
- *   <FieldLabel htmlFor="last-name">姓</FieldLabel>
- * </div>
- * ```
- *
  * @param props.required - 空欄を受け付けない項目か。
  * @see Storybook `Form/RequirementBadge`
  */

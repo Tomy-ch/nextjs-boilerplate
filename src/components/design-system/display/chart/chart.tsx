@@ -145,15 +145,6 @@ export function ChartStyle({ id, config }: { id: string; config: ChartConfig }) 
  * `config` の各 key は data の系列名と一致させる。色は `--color-<key>` の CSS 変数として配下へ
  * 配られるので、recharts 側では `var(--color-<key>)` で参照する。
  *
- * @example
- * ```tsx
- * <ChartContainer config={{ visits: { label: "訪問", color: "var(--semantic-color-foreground)" } }}>
- *   <BarChart data={data}>
- *     <Bar dataKey="visits" fill="var(--color-visits)" />
- *   </BarChart>
- * </ChartContainer>
- * ```
- *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.config - 系列ごとの表示名・色・アイコン。
  * @param props.initialDimension - 実寸が確定するまでに使う描画領域の大きさ。
