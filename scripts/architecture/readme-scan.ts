@@ -170,9 +170,7 @@ export function decideOutcome(
       declared.map((entry) => ({ ...entry, source: byPath.get(entry.path) ?? entry.source })),
     );
 
-    return remaining.length
-      ? { kind: "failed", messages: remaining }
-      : { kind: "written", writes };
+    return remaining.length ? { kind: "failed", messages: remaining } : { kind: "written", writes };
   }
 
   const drift = formatDrift(declared);

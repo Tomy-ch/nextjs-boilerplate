@@ -46,9 +46,7 @@ function readListValue(frontmatter: string, key: string): string[] | null {
  * 中で但し書きを添えてよい行と添えると読めなくなる行が混在し、書く側からは見分けが付きません。
  */
 function readScalarValue(frontmatter: string, key: string): string | null {
-  return (
-    new RegExp(String.raw`^${key}:\s*(\S+)\s*(?:#.*)?$`, "m").exec(frontmatter)?.[1] ?? null
-  );
+  return new RegExp(String.raw`^${key}:\s*(\S+)\s*(?:#.*)?$`, "m").exec(frontmatter)?.[1] ?? null;
 }
 
 /**

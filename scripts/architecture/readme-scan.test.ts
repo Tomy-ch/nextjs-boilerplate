@@ -79,9 +79,7 @@ describe("classifyReadmes", () => {
     ]);
 
     expect(declared).toEqual([]);
-    expect(failures).toEqual([
-      expect.stringContaining("要素の根ではないので境界を宣言できません"),
-    ]);
+    expect(failures).toEqual([expect.stringContaining("要素の根ではないので境界を宣言できません")]);
   });
 
   it("要素の根なのに宣言していない README を失敗に挙げる", () => {
