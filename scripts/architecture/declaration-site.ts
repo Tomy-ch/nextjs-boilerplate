@@ -1,9 +1,9 @@
 import {
   BOUNDARY_ELEMENTS,
   DEPENDENCIES,
+  type ElementDependency,
   KERNEL_PATTERNS,
   KERNELS,
-  type Kernel,
 } from "../../architecture";
 import { toPathPattern } from "../lib/path-pattern";
 
@@ -12,7 +12,7 @@ export type DeclarationSite = {
   /** 要素の型。失敗の文言に載せ、どの要素として解決されたかを読めるようにする。 */
   readonly type: string;
   /** その要素が import してよい層。 */
-  readonly dependencies: readonly Kernel[];
+  readonly dependencies: readonly ElementDependency[];
 };
 
 /**

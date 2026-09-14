@@ -89,6 +89,104 @@ const elements = BOUNDARY_ELEMENTS.map(({ type, pattern }) => ({
   partialMatch: false,
 }));
 
+/**
+ * 境界検査の設定と規則。**`src/` の中と外で 2 つのブロックが共有します。**
+ *
+ * `src/` の外に居る区画（`mocks`）は、`boundaries/include` に載っていてもルールが当たるファイル
+ * 集合の外に在ると依存の宣言が評価されません。その状態では「検査して違反が無い」と「検査して
+ * いない」が見分けられないので、宣言を持つ範囲へ規則を当てます。
+ *
+ * 写しではなく参照で共有するのは、片方だけが更新された状態を誰も検出できないためです。
+ */
+const boundarySettings = {
+  "boundaries/files": [
+    ...ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
+    ...APP_ELEMENTS.map(({ category, patterns }) => ({ category, pattern: [...patterns] })),
+  ],
+  // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
+  // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
+  "import/resolver": { typescript: { project: "./tsconfig.json" } },
+  "boundaries/include": [
+    "src/**/*",
+    ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+    ...SHARED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+  ],
+  "boundaries/elements": elements,
+} as const;
+
+const boundaryRules = {
+  "boundaries/dependencies": [
+    "error",
+    {
+      default: "disallow",
+      policies: [
+        ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
+          from: { element: { type: from } },
+          allow: { to: { element: { types: { anyOf: types } } } },
+        })),
+        // 区画自身の依存。層としては `features` に居るが、要素としては別の型になるため、
+        // 層の policy が当たらない。
+        ...SHARED_AREAS.map(({ type, dependencies }) => ({
+          from: { element: { type } },
+          allow: { to: { element: { types: { anyOf: dependencies } } } },
+        })),
+        ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
+          from: { element: { types: { anyOf: allowedFrom } } },
+          allow: { to: { element: { type } } },
+        })),
+        // 画面まるごとの story は feature を跨いで組むため、面にも届く必要がある。
+        ...SHARED_AREAS.flatMap(({ type, allowedFromCategories }) =>
+          allowedFromCategories.map((category) => ({
+            from: { file: { categories: category } },
+            allow: { to: { element: { type } } },
+          })),
+        ),
+        // 区画自身の依存。層の許可は要素の型に当たるため、区画へ切り出すと層の許可が届かない。
+        ...RESTRICTED_AREAS.filter(({ dependencies }) => dependencies.length > 0).map(
+          ({ type, dependencies }) => ({
+            from: { element: { type } },
+            allow: { to: { element: { types: { anyOf: dependencies } } } },
+          }),
+        ),
+        ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
+          ({ type, allowedFrom }) => ({
+            from: { element: { types: { anyOf: allowedFrom } } },
+            allow: { to: { element: { type } } },
+          }),
+        ),
+        ...RESTRICTED_AREAS.filter(
+          ({ allowedFromCategories }) => allowedFromCategories.length > 0,
+        ).map(({ type, allowedFromCategories }) => ({
+          from: { file: { categories: allowedFromCategories } },
+          allow: { to: { element: { type } } },
+        })),
+        ...ENTRY_POINTS.map(({ category, dependencies }) => ({
+          from: { file: { categories: category } },
+          allow: { to: { element: { types: { anyOf: dependencies } } } },
+        })),
+        // co-location したテストが対象を読む経路。カーネル内では同一層の import に収まるが、
+        // エントリは層を持たないため category 内の相互参照として明示する。
+        ...ENTRY_POINTS.map(({ category }) => ({
+          from: { file: { categories: category } },
+          allow: { to: { file: { categories: category } } },
+        })),
+        // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
+        ...APP_ELEMENTS.map(({ category, forbidden }) => ({
+          from: { file: { categories: category } },
+          disallow: { to: { element: { types: { anyOf: forbidden } } } },
+        })),
+      ],
+    },
+  ],
+  "boundaries/no-unknown-files": "error",
+  "boundaries/no-unknown-dependencies": "error",
+} as const;
+
+/** 境界の宣言を持つが `src/` の外に居る区画。 */
+const nonSourceAreas = RESTRICTED_AREAS.filter(({ pattern }) => !pattern.startsWith("src/")).map(
+  ({ pattern }) => `${pattern}/**/*.{js,jsx,ts,tsx}`,
+);
+
 export default [
   {
     ignores: [
@@ -124,19 +222,7 @@ export default [
       },
     },
     settings: {
-      "boundaries/files": [
-        ...ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
-        ...APP_ELEMENTS.map(({ category, patterns }) => ({ category, pattern: [...patterns] })),
-      ],
-      // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
-      // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
-      "import/resolver": { typescript: { project: "./tsconfig.json" } },
-      "boundaries/include": [
-        "src/**/*",
-        ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
-        ...SHARED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
-      ],
-      "boundaries/elements": elements,
+      ...boundarySettings,
     },
     rules: {
       // Biome では effect で state を導出する形や描画中の副作用を表現できないため、React Compiler
@@ -161,71 +247,7 @@ export default [
       "react-hooks/unsupported-syntax": "error",
       "react-hooks/use-memo": "error",
       "react-hooks/void-use-memo": "error",
-      "boundaries/dependencies": [
-        "error",
-        {
-          default: "disallow",
-          policies: [
-            ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
-              from: { element: { type: from } },
-              allow: { to: { element: { types: { anyOf: types } } } },
-            })),
-            // 区画自身の依存。層としては `features` に居るが、要素としては別の型になるため、
-            // 層の policy が当たらない。
-            ...SHARED_AREAS.map(({ type, dependencies }) => ({
-              from: { element: { type } },
-              allow: { to: { element: { types: { anyOf: dependencies } } } },
-            })),
-            ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
-              from: { element: { types: { anyOf: allowedFrom } } },
-              allow: { to: { element: { type } } },
-            })),
-            // 画面まるごとの story は feature を跨いで組むため、面にも届く必要がある。
-            ...SHARED_AREAS.flatMap(({ type, allowedFromCategories }) =>
-              allowedFromCategories.map((category) => ({
-                from: { file: { categories: category } },
-                allow: { to: { element: { type } } },
-              })),
-            ),
-            // 区画自身の依存。層の許可は要素の型に当たるため、区画へ切り出すと層の許可が届かない。
-            ...RESTRICTED_AREAS.filter(({ dependencies }) => dependencies.length > 0).map(
-              ({ type, dependencies }) => ({
-                from: { element: { type } },
-                allow: { to: { element: { types: { anyOf: dependencies } } } },
-              }),
-            ),
-            ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
-              ({ type, allowedFrom }) => ({
-                from: { element: { types: { anyOf: allowedFrom } } },
-                allow: { to: { element: { type } } },
-              }),
-            ),
-            ...RESTRICTED_AREAS.filter(
-              ({ allowedFromCategories }) => allowedFromCategories.length > 0,
-            ).map(({ type, allowedFromCategories }) => ({
-              from: { file: { categories: allowedFromCategories } },
-              allow: { to: { element: { type } } },
-            })),
-            ...ENTRY_POINTS.map(({ category, dependencies }) => ({
-              from: { file: { categories: category } },
-              allow: { to: { element: { types: { anyOf: dependencies } } } },
-            })),
-            // co-location したテストが対象を読む経路。カーネル内では同一層の import に収まるが、
-            // エントリは層を持たないため category 内の相互参照として明示する。
-            ...ENTRY_POINTS.map(({ category }) => ({
-              from: { file: { categories: category } },
-              allow: { to: { file: { categories: category } } },
-            })),
-            // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
-            ...APP_ELEMENTS.map(({ category, forbidden }) => ({
-              from: { file: { categories: category } },
-              disallow: { to: { element: { types: { anyOf: forbidden } } } },
-            })),
-          ],
-        },
-      ],
-      "boundaries/no-unknown-files": "error",
-      "boundaries/no-unknown-dependencies": "error",
+      ...boundaryRules,
       "project-rules/no-anonymous-default-export": "error",
       "project-rules/no-captured-bearer-token": "error",
       "project-rules/no-internal-anchor": "error",
@@ -237,6 +259,19 @@ export default [
           assertionStyle: "never",
         },
       ],
+    },
+  },
+  {
+    // `src/` の外に居る区画。境界の宣言だけを当てる。ここへ他の規則を広げると、`node:` の
+    // 締め出しのように `src/` を前提にした規則が、前提の無い場所で鳴る。
+    files: nonSourceAreas,
+    languageOptions: { parser: tseslint.parser },
+    plugins: { boundaries },
+    settings: {
+      ...boundarySettings,
+    },
+    rules: {
+      ...boundaryRules,
     },
   },
   {

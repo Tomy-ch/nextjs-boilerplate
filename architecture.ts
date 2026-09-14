@@ -259,6 +259,19 @@ export const SHARED_AREAS = [
 }[];
 
 /**
+ * 区画の型。
+ *
+ * @remarks
+ * 層ではありませんが、**区画が別の区画へ依存することがある**ので、依存を宣言するための名前が
+ * 要ります（`mocks` は契約から生成した wire 型を引きます）。union で持つのは、依存に層名でない
+ * 語を書けるようにしつつ、打ち間違いを型で落とすためです。
+ */
+export type RestrictedAreaType = "adapters-gen" | "adapters-http" | "adapters-auth" | "mocks";
+
+/** 要素が依存として宣言できる相手。層と、区画そのもの。 */
+export type ElementDependency = Kernel | RestrictedAreaType;
+
+/**
  * 名指しした相手からしか import できない区画。
  *
  * @remarks
@@ -307,14 +320,16 @@ export const RESTRICTED_AREAS = [
     pattern: "mocks",
     allowedFrom: [],
     allowedFromCategories: ["bootstrap"],
-    dependencies: [],
+    // 契約から生成した応答と、それが契約に従っていることを確かめるテストが持つ参照。どちらも
+    // 契約の側から来るもので、モックがアプリの内側へ手を伸ばしているわけではない。
+    dependencies: ["model", "adapters-gen"],
   },
 ] as const satisfies readonly {
-  type: string;
+  type: RestrictedAreaType;
   pattern: string;
   allowedFrom: readonly Kernel[];
   allowedFromCategories: readonly string[];
-  dependencies: readonly Kernel[];
+  dependencies: readonly ElementDependency[];
 }[];
 
 /** 境界検査の要素。根を指すパターンと、そこが import してよい層を持つ。 */
@@ -324,7 +339,7 @@ export type BoundaryElement = {
   /** 要素の根を指すパターン。`*` は 1 段ぶん。 */
   readonly pattern: string;
   /** その要素が import してよい層。 */
-  readonly dependencies: readonly Kernel[];
+  readonly dependencies: readonly ElementDependency[];
 };
 
 /**

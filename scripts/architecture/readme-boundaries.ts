@@ -1,7 +1,7 @@
 import { parse } from "yaml";
 import { z } from "zod";
 
-import { KERNELS, type Kernel } from "../../architecture";
+import { type ElementDependency, KERNELS } from "../../architecture";
 import { extractFrontmatter } from "../lib/frontmatter";
 
 /**
@@ -76,7 +76,7 @@ export function renderImportsAllowed(dependencies: readonly string[]): string {
  */
 export function applyImportsAllowed(
   source: string,
-  dependencies: readonly Kernel[],
+  dependencies: readonly ElementDependency[],
 ): string | null {
   const block = extractFrontmatter(source);
 
@@ -101,7 +101,7 @@ export function applyImportsAllowed(
  * して解釈できる要素だけを検査対象にします。
  */
 export function findBoundaryDrift(
-  dependencies: readonly Kernel[],
+  dependencies: readonly ElementDependency[],
   source: string,
   declaration: BoundaryFrontmatter,
 ): string[] {
