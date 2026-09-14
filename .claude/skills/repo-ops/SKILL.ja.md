@@ -160,13 +160,23 @@ git add package.json pnpm-lock.yaml
 pnpm fix       # biome check --fix : 自動修正可能なものを直す
 pnpm lint      # biome check       : 残エラーを報告(手で直す)
 pnpm format    # biome format --write : フォーマットのみ
-pnpm lint:ci   # pnpm lint + ESLint + architecture 突合
+pnpm lint:ci   # pnpm lint + ESLint + architecture 検査
 ```
 
 `pnpm lint:ci` は hook と CI が回すゲートで、3 段の直列である。`pnpm lint`(biome、設定は 1 枚)、
-`pnpm lint:eslint`、`pnpm check:architecture`(層 README の `imports-allowed` frontmatter と、依存
-マトリクスの単一の正である `architecture.ts` の突合)。失敗はどの段かを名乗るので、整形の問題と決めつける前に
-読む。
+`pnpm lint:eslint`、`pnpm check:architecture`(層 README の `imports-allowed` と、依存マトリクスの
+単一の正である `architecture.ts` が生成する結果との突き合わせ)。失敗はどの段かを名乗るので、整形の問題と
+決めつける前に読む。
+
+**`check:architecture` は差分ゼロの検査なので、直し方は手で書き換えることではなく生成し直すこと:**
+
+```sh
+pnpm gen:architecture   # 層 README の imports-allowed を architecture.ts から書き直す
+```
+
+生成し直しでは直らない失敗が 2 つあり、どちらも文言で自分からそう名乗る。宣言してよい場所でない
+README が境界を宣言している場合(宣言を持つのは要素の根だけ)と、`forbidden` に挙げた層が
+`imports-allowed` にも在る場合である。どちらも人が直す。
 
 `noConsole` は既定 `warn` ── **`console.log` をコミットに残さない**(AGENTS.md / ADR 0002)。自動修正で直らない
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は

@@ -179,14 +179,24 @@ boundaries (`boundaries/*`), the React Hooks rules, the type-assertion ban, and 
 pnpm fix       # biome check --fix : auto-fix what can be fixed
 pnpm lint      # biome check       : report remaining errors (fix these by hand)
 pnpm format    # biome format --write : formatting only
-pnpm lint:ci   # pnpm lint + ESLint + architecture cross-check
+pnpm lint:ci   # pnpm lint + ESLint + architecture check
 ```
 
 `pnpm lint:ci` is the gate the hook and CI run, and it is three stages in series: `pnpm lint`
 (biome, one config), then `pnpm lint:eslint`, then `pnpm check:architecture`
-(the layer READMEs' `imports-allowed` frontmatter against `architecture.ts`, which is the single
-source of the dependency matrix). A failure names its own stage — read which one before assuming
-formatting.
+(the layer READMEs' `imports-allowed` against what `architecture.ts` generates — that file is the
+single source of the dependency matrix). A failure names its own stage — read which one before
+assuming formatting.
+
+**`check:architecture` is a diff-zero check, so the fix is to regenerate rather than to hand-edit:**
+
+```sh
+pnpm gen:architecture   # rewrite every layer README's imports-allowed from architecture.ts
+```
+
+Two failures it reports are not regenerable, and say so in their own message: a README that declares
+a boundary where it may not (only an element root declares one), and a `forbidden` entry that also
+appears in `imports-allowed`. Both are edits a person makes.
 
 `noConsole` is `warn` by default — **do not leave `console.log` in commits** (AGENTS.md / ADR 0002).
 Fix items the auto-fixer cannot handle by hand; do not sprinkle `// biome-ignore` (prefer a scoped
