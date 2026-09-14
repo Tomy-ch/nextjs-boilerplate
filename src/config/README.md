@@ -1,5 +1,5 @@
 ---
-imports-allowed: []
+imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [ui, fetch, business-logic]
 test-requirement: unit
 coverage-exclusions:
@@ -88,7 +88,7 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 - `next.config.ts` は build 境界として `loadEnvironment()` と `validateEnvironment()` を直接呼ぶ。
 - `src/instrumentation.ts` は起動境界として `bootstrapConfig()` だけを呼ぶ。
 - `bootstrap.server.ts` は `validate-environment.server.ts` を import し、全 server Config getter を一度呼ぶ。
-- `adapters/server` と `proxy.ts` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。
+- `adapters/server` と `proxy.ts` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。`app` が直に読むのは、**Next.js の規約が route segment に置くことを要求する値だけ**である（下記「運用」）。
 - 内側のロジックへ設定値が必要な場合は、adapter が getter から取り出した値を引数で渡す。
 - Config class と ENV parser は module 外へ export しない。通常コードが任意の ENV から Config を再生成する経路を持たせない。
 - unit test は `vi.stubEnv()` と `vi.resetModules()` で module cache を再評価し、公開 singleton を検証する。
@@ -96,7 +96,7 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 ## 運用
 
 - `process.env` の直読はこのカーネルだけに置く。
-- server config は `import "server-only"` で保護し、`adapters/server` と起動・ビルド境界、そして入口の `proxy.ts` だけが import する。
+- server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・入口の `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番の束に載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.md) の層定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得の口だけを増やすことになる。
 - client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
 

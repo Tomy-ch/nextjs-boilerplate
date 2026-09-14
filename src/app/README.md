@@ -1,5 +1,5 @@
 ---
-imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model, observability]
+imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [business-logic, direct-fetch]
 test-requirement: route
 coverage-exclusions:

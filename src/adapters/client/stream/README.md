@@ -1,6 +1,4 @@
 ---
-imports-allowed: [model, errors, logging, config, observability]
-forbidden: [components, capabilities, stores, business-logic]
 test-requirement: [unit, integration]
 ---
 
@@ -8,6 +6,8 @@ test-requirement: [unit, integration]
 
 長寿命接続を**開いて読む**面です。接続を保持するのはバックエンドで、ここが持つのは購読 1 本の
 状態機械と、それを組み立てる部品だけです（[親の README](../../README.md)「購読は開いて読む側だけを持つ」）。
+
+**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
 
 ## 親と違う点
 

@@ -1,5 +1,5 @@
 ---
-imports-allowed: []
+imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [business-logic, direct-config-access]
 test-requirement: unit
 ---

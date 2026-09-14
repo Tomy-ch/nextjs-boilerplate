@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors, config]
+imports-allowed: [model, errors, config] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [adapters, components, capabilities, server-config, business-logic]
 test-requirement: unit
 ---

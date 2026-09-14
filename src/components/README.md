@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors]
+imports-allowed: [model, errors] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [fetch, config, capabilities, stores, business-state]
 coverage-exclusions:
   - "src/components/icon.ts"

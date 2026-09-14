@@ -1,6 +1,4 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
-forbidden: [features] # 画面まるごとの story は例外
 test-requirement: feature
 coverage-exclusions:
   - "src/features/admin/inquiries/inquiries.fixture.ts"
@@ -10,6 +8,8 @@ coverage-exclusions:
 
 届いた問い合わせを見比べ、1 件に回答する画面スライスです
 （`/admin/inquiries` と `/admin/inquiries/[inquiryId]`）。
+
+**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`admin/`](../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
 
 ## 受け入れるもの
 

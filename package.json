@@ -18,6 +18,7 @@
     "fix:md": "markdownlint-cli2 --fix",
     "format": "biome format --write",
     "gen": "tsx scripts/gen",
+    "gen:architecture": "tsx scripts/architecture --write",
     "gen:tokens": "tsx tokens/scripts/gen-tokens.ts",
     "knip": "knip",
     "lint": "biome check --error-on-warnings",

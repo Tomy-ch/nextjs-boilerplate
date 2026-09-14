@@ -1,11 +1,7 @@
----
-imports-allowed: [features, components, capabilities, stores, adapters, errors, logging, config, model, observability]
-forbidden: [business-logic, direct-fetch]
----
-
 # api
 
-Route Handler だけを置く区画です。`app` の中にありますが、負う検証の観点だけが親と異なります。
+Route Handler だけを置く区画です。`app` の中にありますが、**ここは何も宣言しません** ——
+負う検証の観点も、import してよい層も、置き場ではなく element が決めるためです。
 
 ## 親と違う点
 
@@ -15,6 +11,15 @@ element が決めるものなので、宣言は `architecture.ts` の `APP_ELEME
 に対して持ちます（[0025](../../../docs/adr/0025-app-layer-elements.md) / [0090](../../../docs/adr/0090-testing-strategy.md)）。
 
 ここに書くと、`api/` の外へ出た同じ element が親の `route` を継いでしまいます。
+
+**境界も同じです。** ここに居るのは `route.ts` と `route.dev.ts` だけで、そのどれもが
+`app-route-handler` として `components` / `capabilities` / `stores` / `config` / `observability` と
+feature の内側を落とされます（宣言は `architecture.ts` の `APP_ELEMENTS`。feature を指すなら
+`facade/` からで、それは別の要素として通ります）。`app` の層の許可をここへ書くと、**この区画の
+どのファイルの実効許可でもない値**が、変更の上限として読まれることになります
+（[AGENTS.md](../../../AGENTS.md)「Task Execution Protocol」1）。
+
+境界を宣言するのは要素の根で、この区画を含む要素の根は [`src/app/`](../README.md) です。
 
 ## 受け入れるもの
 

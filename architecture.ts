@@ -259,6 +259,19 @@ export const SHARED_AREAS = [
 }[];
 
 /**
+ * 区画の型。
+ *
+ * @remarks
+ * 層ではありませんが、**区画が別の区画へ依存することがある**ので、依存を宣言するための名前が
+ * 要ります（`mocks` は契約から生成した wire 型を引きます）。union で持つのは、依存に層名でない
+ * 語を書けるようにしつつ、打ち間違いを型で落とすためです。
+ */
+export type RestrictedAreaType = "adapters-gen" | "adapters-http" | "adapters-auth" | "mocks";
+
+/** 要素が依存として宣言できる相手。層と、区画そのもの。 */
+export type ElementDependency = Kernel | RestrictedAreaType;
+
+/**
  * 名指しした相手からしか import できない区画。
  *
  * @remarks
@@ -307,15 +320,49 @@ export const RESTRICTED_AREAS = [
     pattern: "mocks",
     allowedFrom: [],
     allowedFromCategories: ["bootstrap"],
-    dependencies: [],
+    // 契約から生成した応答と、それが契約に従っていることを確かめるテストが持つ参照。どちらも
+    // 契約の側から来るもので、モックがアプリの内側へ手を伸ばしているわけではない。
+    dependencies: ["model", "adapters-gen"],
   },
 ] as const satisfies readonly {
-  type: string;
+  type: RestrictedAreaType;
   pattern: string;
   allowedFrom: readonly Kernel[];
   allowedFromCategories: readonly string[];
-  dependencies: readonly Kernel[];
+  dependencies: readonly ElementDependency[];
 }[];
+
+/** 境界検査の要素。根を指すパターンと、そこが import してよい層を持つ。 */
+export type BoundaryElement = {
+  /** 要素の型。 */
+  readonly type: string;
+  /** 要素の根を指すパターン。`*` は 1 段ぶん。 */
+  readonly pattern: string;
+  /** その要素が import してよい層。 */
+  readonly dependencies: readonly ElementDependency[];
+};
+
+/**
+ * 境界検査の要素を、狭いものから順に並べた表。
+ *
+ * @remarks
+ * 区画は層の内側に居るので、層が先に一致すると区画としては見えなくなり、層の粒度の許可がそのまま
+ * 区画への許可になります。狭いものを先に置くことでだけ、区画の宣言が効きます。
+ *
+ * 読む者は強制へ変換する `eslint.config.ts` と、層 README の宣言先を解く `scripts/architecture/`
+ * の 2 つで、**どちらもここから順序を受け取り、写しを持ちません。**
+ *
+ * `dependencies` を要素ごとに持つ理由は {@link RESTRICTED_AREAS} が持ちます。
+ */
+export const BOUNDARY_ELEMENTS: readonly BoundaryElement[] = [
+  ...RESTRICTED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...SHARED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...KERNELS.map((kernel) => ({
+    type: kernel,
+    pattern: KERNEL_PATTERNS[kernel] ?? `src/${kernel}`,
+    dependencies: DEPENDENCIES[kernel],
+  })),
+];
 
 /**
  * Node.js の実行環境そのものへ触ってよい場所。

@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features]
 test-requirement: feature
 ---

@@ -37,9 +37,9 @@ Accepted
 `capabilities` は **client-only(`"use client"`)固定**とする。位置づけは **2 軸モデル**([0024](0024-adapters-server-client-split.md))による:
 
 - **WHAT**: `adapters` = アプリが *呼び出す remote 外部システム*(backend API 等)との境界 / `capabilities` = アプリが *その中で動く local runtime*(ブラウザ + フレームワーク)との境界
-- **WHERE**: `capabilities` は client のみ。`adapters` は server / client 両面([0024](0024-adapters-server-client-split.md) で `adapters/server`・`adapters/client` の 2 element に分割)
+- **WHERE**: `capabilities` は client のみ。`adapters` は server / client 両面([0024](0024-adapters-server-client-split.md) で `adapters/server`・`adapters/client` の 2 面に分割)
 
-`capabilities` は `adapters` の「client ミラー」**ではなく**、**WHAT が異なる**(runtime 境界)。両者の RSC 境界(server-only / use-client)は ESLint boundaries の element 属性で機械強制する([0040](0040-routing-rendering-strategy.md))。**local ブラウザ API(Web Storage / clipboard / cookie 読み)は「外部システム」でなく browser runtime API なので、`adapters` でなく `capabilities` が担当する**。
+`capabilities` は `adapters` の「client ミラー」**ではなく**、**WHAT が異なる**(runtime 境界)。両者の RSC 境界(server-only / use-client)は **ESLint boundaries では強制されない** —— 境界検査は層と区画の間しか見ておらず、server と client の区別を持たない。強制は `import "server-only"` の build-time failure と [`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts) が持つ([0024](0024-adapters-server-client-split.md) / [0040](0040-routing-rendering-strategy.md))。**local ブラウザ API(Web Storage / clipboard / cookie 読み)は「外部システム」でなく browser runtime API なので、`adapters` でなく `capabilities` が担当する**。
 
 ### 受け入れないもの
 
