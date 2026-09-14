@@ -16,7 +16,7 @@ import {
  * `recording` と同じ形）。委ねると整形が壊れたときに期待値も同じ形で壊れ、突き合わせが成立しない。
  */
 function generated(dependencies: readonly string[], forbidden = "[fetch]"): string {
-  return `---\nimports-allowed: [${dependencies.join(", ")}] # 生成物。`pnpm gen:architecture` で直す\nforbidden: ${forbidden}\n---\n\n# layer\n`;
+  return `---\nimports-allowed: [${dependencies.join(", ")}] # 生成物。\`pnpm gen:architecture\` で直す\nforbidden: ${forbidden}\n---\n\n# layer\n`;
 }
 
 describe("parseBoundaryFrontmatter", () => {
