@@ -33,7 +33,7 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
 
 | 要素 | 位置 | 切り出す理由 |
 | --- | --- | --- |
-| `adapters-gen` | [`gen/`](gen) | 契約から生成した wire 型。層のまま置くと、`adapters` を引ける `app` / `features` へ素通しで届く |
+| `adapters-gen` | `gen/` | 契約から生成した wire 型。層のまま置くと、`adapters` を引ける `app` / `features` へ素通しで届く |
 | `adapters-http` | `http/` | 両方の面が従う要求の形の規則。片方の面へ置くともう片方から届かず、規則が 2 つに割れる |
 | `adapters-auth` | [`server/auth`](server/auth) | session の封緘と復元。入口の楽観判定がここだけを必要とするため、`proxy` へ `adapters` 全体を開けずに済ませる |
 
