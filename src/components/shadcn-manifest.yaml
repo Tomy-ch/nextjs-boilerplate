@@ -242,7 +242,6 @@ components:
     shadcnCliVersion: 4.15.0
     dependencies:
       - class-variance-authority
-      - next
       - radix-ui
     source:
       - repository: shadcn-ui/ui
@@ -484,7 +483,6 @@ components:
     shadcnCliVersion: 4.15.0
     dependencies:
       - class-variance-authority
-      - next
       - radix-ui
     source:
       - repository: shadcn-ui/ui

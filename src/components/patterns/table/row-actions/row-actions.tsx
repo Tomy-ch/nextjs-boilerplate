@@ -113,23 +113,6 @@ export type RowActionsColumnOptions<Row> = {
  * 見出しは既定で視覚的に隠す。操作列に見える見出しは不要だが、column header が空だと table の
  * 意味論が崩れるため読み上げ用の文言は保持する。
  *
- * @example
- * ```tsx
- * const actions = rowActionsColumn<User>({
- *   triggerLabel: (user) => `${user.name} の操作`,
- *   actions: (user) => [
- *     {
- *       id: "edit",
- *       kind: ROW_ACTION_KIND.LINK,
- *       label: "編集する",
- *       href: `/admin/users/${user.id}`,
- *     },
- *   ],
- * });
- *
- * <StaticDataTable columns={[...columns, actions]} getRowKey={(user) => user.id} rows={users} />
- * ```
- *
  * @see Storybook `Sugar/Table/RowActions`
  */
 export function rowActionsColumn<Row>({

@@ -15,16 +15,6 @@ export type LabelProps = ComponentProps<"label">;
  * 説明文や検証エラー、必須表示などの field 全体のレイアウトは持たない。複数の要素をまとめる
  * 必要がある場合は `Field`、または feature 側の form 構成で組み合わせる。
  *
- * @example
- * ```tsx
- * const inputId = useId();
- *
- * <Label htmlFor={inputId}>表示名</Label>
- * <Input id={inputId} name="displayName" />
- * ```
- *
- * この部品は native 要素だけで構成するため、Server Component からそのまま利用できる。
- *
  * @param props - native `label` 属性。`className` は既定の見た目へ追加・上書きできる。
  * @see Storybook `Form/Label`
  */

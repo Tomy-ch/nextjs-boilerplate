@@ -27,16 +27,6 @@ import { CONTEXT_MENU_ITEM_VARIANT, type ContextMenuItemVariant } from "./contex
  * 項目の内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を
  * `children` として渡す。
  *
- * @example
- * ```tsx
- * <ContextMenu>
- *   <ContextMenuTrigger>{row}</ContextMenuTrigger>
- *   <ContextMenuContent>
- *     <ContextMenuItem onSelect={edit}>編集</ContextMenuItem>
- *   </ContextMenuContent>
- * </ContextMenu>
- * ```
- *
  * @param props - Radix `ContextMenu.Root` の props。`modal` を `false` にすると、開いている
  *   間も背後の内容を操作・スクロールできる。
  *

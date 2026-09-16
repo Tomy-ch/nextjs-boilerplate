@@ -63,14 +63,6 @@ export type ButtonGroupProps = ComponentProps<"div"> & {
  * `size` は揃える。子は `Button` に限らず、`ButtonGroupText`・`Input`・`SelectClient` の trigger も
  * 置ける。
  *
- * @example
- * ```tsx
- * <ButtonGroup aria-label="表示の切り替え">
- *   <Button variant={BUTTON_VARIANT.OUTLINE}>一覧</Button>
- *   <Button variant={BUTTON_VARIANT.OUTLINE}>地図</Button>
- * </ButtonGroup>
- * ```
- *
  * @param props - native `div` 属性。`role="group"` は既定で付与する。
  * @param props.orientation - 操作を並べる向き。
  * @see Storybook `Action/ButtonGroup`
@@ -104,13 +96,6 @@ export type ButtonGroupTextProps = ComponentProps<"div"> & {
  * @remarks
  * 単位・接頭辞・件数など、押せないことが見た目から分かる必要がある語に使う。押せる要素には
  * `Button` を使う。入力欄の名前として使う場合は `asChild` で `label` へ合成し、`htmlFor` を渡す。
- *
- * @example
- * ```tsx
- * <ButtonGroupText asChild>
- *   <label htmlFor={amountId}>金額</label>
- * </ButtonGroupText>
- * ```
  *
  * @param props.asChild - 子要素へ見た目と props を合成するか。
  * @see Storybook `Action/ButtonGroup`

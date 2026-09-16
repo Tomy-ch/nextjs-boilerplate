@@ -14,14 +14,6 @@ import { cn } from "@/components/cn";
  *
  * 修飾キーとの組み合わせは、単一の `Kbd` に文字列を詰めず、`KbdGroup` で個々のキーを並べる。
  *
- * @example
- * ```tsx
- * <KbdGroup>
- *   <Kbd>⌘</Kbd>
- *   <Kbd>K</Kbd>
- * </KbdGroup>
- * ```
- *
  * @see Storybook `Display/Kbd`
  */
 function Kbd({ className, ...props }: ComponentProps<"kbd">) {

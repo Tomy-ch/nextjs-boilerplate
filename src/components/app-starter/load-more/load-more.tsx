@@ -57,13 +57,6 @@ export type LoadMoreProps = {
  * [`CursorPagination`](../cursor-pagination/README.md) を使います。同じ cursor 方式でも、
  * こちらは**読み進めて積み増す**一覧のためのものです。
  *
- * @example
- * ```tsx
- * import { LoadMore } from "@/components/app-starter/load-more/load-more";
- *
- * <LoadMore sentinelRef={sentinelRef} state={{ status: "loading" }} />;
- * ```
- *
  * @param props.state - 続きの読み込みの状態。
  * @param props.sentinelRef - 末尾到達を見張る目印を置く先。
  * @param props.retryLabel - 読み直す操作の名前。

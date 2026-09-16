@@ -18,11 +18,6 @@ import {
  * {@link Button} を render できない場所で、ボタンと同じ見た目だけを借りるために公開している。
  * 通常は {@link Button} を使い、リンクをボタンの見た目にする場合も `asChild` を使う。
  *
- * @example
- * ```tsx
- * <a className={buttonVariants({ variant: BUTTON_VARIANT.OUTLINE })} href="/help">ヘルプ</a>
- * ```
- *
  * @see Storybook `Action/Button`
  */
 export const buttonVariants = cva(
@@ -128,17 +123,6 @@ export type ButtonProps = ComponentProps<"button"> &
  *
  * disabled 状態は native `disabled` 属性で指定する。`asChild` でリンクを使う場合、
  * HTML の link には `disabled` が存在しないため、遷移禁止の状態を表す別の UI を選ぶ。
- *
- * @example
- * ```tsx
- * import Link from "next/link";
- *
- * <Button type="submit">保存する</Button>
- *
- * <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
- *   <Link href="/settings">設定へ進む</Link>
- * </Button>
- * ```
  *
  * @param props - native `button` 属性と、以下の表示用 props。
  * @param props.variant - 操作の優先度に対応する見た目。

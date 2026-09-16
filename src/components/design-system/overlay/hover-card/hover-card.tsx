@@ -15,18 +15,6 @@ import { cn } from "@/components/cn";
  * 補足の表示だけを担い、内容の取得は持ちません。開閉の遅延は `openDelay` / `closeDelay` で
  * 調整します。
  *
- * @example
- * ```tsx
- * <HoverCard>
- *   <HoverCardTrigger asChild>
- *     <a href="/help/pricing">料金の考え方</a>
- *   </HoverCardTrigger>
- *   <HoverCardContent>
- *     利用量に応じて課金されます。無料枠を超えた分だけが対象です。
- *   </HoverCardContent>
- * </HoverCard>
- * ```
- *
  * @param props - Radix `HoverCard.Root` の props。
  * @see Storybook `Overlay/HoverCard`
  */

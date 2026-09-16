@@ -53,11 +53,6 @@ export type KeyboardShortcutKeysProps = Omit<ComponentProps<typeof KbdGroup>, "c
  * 呼び出し元である。何が起きるかはこの表示では伝わらないため、`KeyboardShortcut` の説明や
  * 隣接する文言と必ず組にする。
  *
- * @example
- * ```tsx
- * <KeyboardShortcutKeys keys={[SHORTCUT_MODIFIER.MOD, "K"]} />
- * ```
- *
  * @param props - `KbdGroup` の props から `children` を除いたものと、以下の表示用 props。
  * @param props.keys - 押す順に並べたキー。
  * @param props.platform - 表記を固定するプラットフォーム。{@link SHORTCUT_PLATFORM} のいずれか。

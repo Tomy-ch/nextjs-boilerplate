@@ -57,13 +57,6 @@ function dropProtocolRelativeUrls(node: Nodes): void {
  * class instance は serializable ではないため、Client Component の props へ直接渡せません。
  * 渡す必要が生じた場合は {@link SanitizedRichText.root} を取り出すことになりますが、その時点で
  * 「sanitize 済みである」ことの型保証は失われます。
- *
- * @example
- * ```ts
- * import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
- *
- * const content = SanitizedRichText.from("<p>本文<script>alert(1)</script></p>");
- * ```
  */
 export class SanitizedRichText {
   /**

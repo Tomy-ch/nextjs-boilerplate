@@ -17,14 +17,6 @@ export type SelectNativeProps = Omit<ComponentProps<"select">, "size"> & {
  * を必要とせず、form の `name` と選択値もそのまま送信できる。検索・独自 popup など native
  * 要素で満たせない要件が確定した場合だけ、client island の選択 UI を検討する。
  *
- * @example
- * ```tsx
- * <Label htmlFor="display-mode">表示形式</Label>
- * <SelectNative defaultValue="standard" id="display-mode" name="displayMode">
- *   <SelectNativeOption value="standard">標準</SelectNativeOption>
- * </SelectNative>
- * ```
- *
  * @param props - native `select` 属性と `size`。
  * @param props.size - control の高さ。`default` は 36px、`sm` は 32px。
  * @see Storybook `Form/SelectNative`
