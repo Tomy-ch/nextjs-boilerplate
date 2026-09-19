@@ -71,7 +71,8 @@ jobs:
       # so it is left to whoever runs the generated repository.
       #
       # No `repo_token`, so `Branch-Protection` / `Fuzzing` / `CII-Best-Practices` stay
-      # capped. All three are held there on purpose — BACKLOG W39 / W40 / W41.
+      # capped. All three are held there on purpose, with the conditions that would
+      # reopen each one (see Related ADRs in README.md).
       - name: Run the analysis
         uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
         with:

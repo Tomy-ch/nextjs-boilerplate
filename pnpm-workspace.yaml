@@ -74,6 +74,7 @@ overrides:
   "hono@<4.12.34": ">=4.12.34 <5"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
+# 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
 verifyDepsBeforeRun: error
 
 # mise.toml[SSOT] と同じ Node.js 版を依存の engine 判定にも使う。
