@@ -139,5 +139,6 @@ const body = ((): string => {
 })();
 
 const shardSection = formatShardOutcomes(shardOutcomes, codeBlock);
+const shardPrefix = shardSection === "" ? "" : `${shardSection}\n\n---\n\n`;
 
-fs.writeFileSync(outputPath, `${shardSection ? `${shardSection}\n\n---\n\n` : ""}${body}\n`);
+fs.writeFileSync(outputPath, `${shardPrefix}${body}\n`);

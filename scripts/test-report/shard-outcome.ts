@@ -76,8 +76,12 @@ export function formatShardOutcomes(
 
   for (const outcome of failed) {
     const code = Number.isNaN(outcome.exitCode) ? "不明" : String(outcome.exitCode);
-    lines.push(`### 台 ${outcome.shard} —— 終了コード ${code}`, "");
-    lines.push(...fence(outcome.tail || "(その台のログが空でした)"), "");
+    lines.push(
+      `### 台 ${outcome.shard} —— 終了コード ${code}`,
+      "",
+      ...fence(outcome.tail || "(その台のログが空でした)"),
+      "",
+    );
   }
 
   return lines.join("\n").trimEnd();
