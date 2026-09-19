@@ -101,10 +101,6 @@ export type WizardFormProps = {
  *
  * **到達した段階は DOM へ残し、現在以外を `hidden` で隠す**（理由は `StepPanel`）。
  *
- * 最後の段階で置く操作と「次へ」には別々の `key` を与える。同じ位置の `button` として reconcile
- * されると React が DOM 要素を使い回し、押した瞬間に `type` が `button` から `submit` へ書き換わる。
- * click の既定動作は handler の後に走るため、進んだうえで form まで送信されてしまう。
- *
  * **一度でも到達した段階へは進捗から直接行ける。** 順に辿り直させる理由が無く、確認の段から
  * 1 か所だけ直しに行く動きが最短で済む。まだ到達していない段階は押せない。規則は `canGoTo` が
  * 1 か所で持つ。
@@ -260,7 +256,15 @@ export function WizardForm({
         {isLast ? (
           <Fragment key="submit">{submit}</Fragment>
         ) : (
-          <Button disabled={current.blocked} key="next" onClick={goNext} type="button">
+          <Button
+            // 最後の段階の操作とは別の key を与える。同じ位置の button として reconcile されると React が
+            // DOM 要素を使い回し、押した瞬間に type が button から submit へ書き換わる。click の既定動作は
+            // handler の後に走るため、進んだうえで form まで送信されてしまう。
+            disabled={current.blocked}
+            key="next"
+            onClick={goNext}
+            type="button"
+          >
             {current.nextLabel ?? nextLabel}
           </Button>
         )}

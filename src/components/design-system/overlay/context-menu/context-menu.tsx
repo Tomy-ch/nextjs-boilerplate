@@ -18,7 +18,6 @@ import { CONTEXT_MENU_ITEM_VARIANT, type ContextMenuItemVariant } from "./contex
  * 加速手段**として使う。ここでしか到達できない操作を置いてはならない。行ごとの操作なら
  * `RowActions`、trigger を伴う menu なら `DropdownMenu` が可視の導線を担う。
  *
- * @remarks
  * `ContextMenuTrigger` が覆う範囲では、browser 既定のコンテキストメニューが開かなくなる。
  * 画像の保存やリンクのコピーといった browser の機能もその範囲で使えなくなるため、
  * 覆う範囲は操作対象の要素に限る。

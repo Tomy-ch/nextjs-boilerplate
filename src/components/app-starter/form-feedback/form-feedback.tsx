@@ -19,6 +19,12 @@ export type FormFeedbackProps = {
 /**
  * Server Action の結果を要約し、次の行動と request ID を表示する。
  *
+ * @remarks
+ * Server Component であり、Server Action の呼び出し、エラー分類、文言変換、field 単位の検証は
+ * 持たない。feature が意味の通る文言へ変換して渡す。`variant` は結果の種類を表し、文言と面の色は
+ * 呼び出し元が対応させる。field 単位の誤りには `FieldError`、一時的な通知には `Toaster`、複数項目
+ * の検証結果一覧には `FormValidationSummary` を使う。
+ *
  * @see Storybook `Feedback/FormFeedback`
  */
 export function FormFeedback({

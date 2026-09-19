@@ -455,7 +455,6 @@ describe("addShadcnComponents", () => {
     expect(String(written?.[1])).toContain(
       "localPath: src/components/design-system/form/input-group/input-group.tsx",
     );
-    // 依存は registry の宣言ではなく、置いた実装が実際に import している package から決まる。
     expect(String(written?.[1])).toContain("- radix-ui");
   });
 
@@ -515,7 +514,6 @@ describe("addShadcnComponents", () => {
 });
 
 describe("componentManifestEntries", () => {
-  // ----- 正常系 -----
   it("部品ごとに層・見出し・配置先を備えた台帳項目を作る", () => {
     const entries = componentManifestEntries(
       ["dialog"],

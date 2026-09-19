@@ -61,11 +61,6 @@ export type AppShellProps = {
  * 上では押せず場所を取るだけです（`components/design-system/foundation/print`）。どの画面を
  * 印刷しても器の判断は同じなのでここで決め、中身の何を落とすかは画面ごとに違うので画面が決めます。
  *
- * **`main` は縮める。** 脇に領域を並べる帯では `main` が flex の項目になり、既定では中身の
- * 最小幅より狭くなれません。段組みや長い語を持つ画面がその最小幅を押し上げると、`main` が
- * 親をはみ出して画面全体に横スクロールが出ます。中身の側で防ぐことはできないため、器が縮む
- * ことを宣言します。
- *
  * **`sidebar` と `headerActions` の中身は知りません。** 置き場所だけを用意し、何を出すか・いつ出すか・
  * どれだけの幅を取るかは渡す側が決めます。shell が中身を知ると、画面ごとの出し分けが分岐として
  * ここに集まります。
@@ -121,7 +116,13 @@ export function AppShell({
         </div>
       </header>
       <div className="flex flex-1 flex-col md:flex-row">
-        <main id={APP_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
+        <main
+          // 脇に領域を並べる帯では main が flex の項目になり、既定では中身の最小幅より狭くなれない。
+          // 段組みや長い語を持つ画面がその最小幅を押し上げると、main が親をはみ出して画面全体に
+          // 横スクロールが出る。中身の側で防ぐことはできないため、器がここで縮む。
+          id={APP_SHELL_MAIN_ID}
+          className={cn("min-w-0 flex-1", className)}
+        >
           {children}
         </main>
         {sidebar}

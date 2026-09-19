@@ -94,10 +94,6 @@ export type SearchFieldClientProps = {
  * 完結し結果がその場に見えている画面向け。ほかの条件と一緒にまとめて確定する画面は `submit` を
  * 選び、送信の操作でだけ通知させる。
  *
- * **`submit` でも form は使わない。** form にすると、hydration が終わる前に押されたとき browser の
- * 既定の送信が走り、いま効いている条件を伴わないまま現在の URL へ遷移する —— 押した結果として
- * 条件が消える。form を持たなければ、hydration 前の操作は何も起こさずに済む。
- *
  * 検索の実行、結果の取得、URL の組み立ては持たない。確定したら `onSearch` を呼ぶだけで、router の
  * 操作も行わない。この分担は `Pagination` と同じで、`components` は URL を解釈しない。呼び出し元は
  * 受け取った検索語を `searchParams` へ載せ、結果は Server Component で描画する。結果まで client 側で

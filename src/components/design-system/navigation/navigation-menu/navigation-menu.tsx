@@ -94,7 +94,9 @@ function NavigationMenuItem({
   );
 }
 
-/** trigger と同じ見た目を、他の要素へ適用するための class を返す。  *
+/**
+ * trigger と同じ見た目を、他の要素へ適用するための class を返す。
+ *
  * @see Storybook `Navigation/NavigationMenu`
  */
 const navigationMenuTriggerStyle = cva(

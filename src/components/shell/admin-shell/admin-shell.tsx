@@ -62,9 +62,6 @@ export type AdminShellProps = {
  * 唯一の要素なので、系統の切替もここが持ちます。配下の部品は token を引き直すだけで、改修は
  * 要りません（`tokens/README.md`「切替の軸は 2 本」）。
  *
- * **overlay の中身へは {@link SurfacePortalBridge} が届けます。** Radix の Portal は
- * `document.body` 直下へ出るため、この要素に属性を置くだけでは overlay が属性の外へ落ちます。
- *
  * **器は紙に出しません。** header・脇の一覧・skip link はいずれも画面を渡り歩くためのもので、
  * 紙の上では押せず場所を取るだけです（`components/design-system/foundation/print`）。
  *
@@ -95,7 +92,11 @@ export function AdminShell({
       className="group/shell flex min-h-screen"
       data-surface={SURFACE.ADMIN}
     >
-      <SurfacePortalBridge surface={SURFACE.ADMIN} />
+      <SurfacePortalBridge
+        // Radix の Portal は `document.body` 直下へ出るため、この要素に属性を置くだけでは overlay が
+        // 属性の外へ落ちる。
+        surface={SURFACE.ADMIN}
+      />
       <a
         href={`#${ADMIN_SHELL_MAIN_ID}`}
         className="print-hidden sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"

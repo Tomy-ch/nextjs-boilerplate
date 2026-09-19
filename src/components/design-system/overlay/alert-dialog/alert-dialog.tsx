@@ -10,6 +10,11 @@ import { useOverlayHistory } from "../use-overlay-history";
 /**
  * 確認 dialog の開閉状態を提供する client island root。
  *
+ * @remarks
+ * 開閉状態・focus trap・Escape・背面の inert 化を browser 側で行うため hydration が必要で、
+ * Server Component からは直接 render できない。内容自体に client runtime が要らない場合は、
+ * Server Component で組み立てた要素を `children` として渡す。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialog({

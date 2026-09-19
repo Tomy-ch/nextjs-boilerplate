@@ -173,10 +173,6 @@ export function CarouselNext({
  * {@link CarouselThumbnails} の中に置くと、表示中の slide を指すものへ `aria-current="true"` が付き、
  * 文字色と枠で現在地が分かる。{@link CarouselNav} の中では現在地を持たず、印も付かない。
  *
- * 現在地の枠は border で描く。要素の外側へ描く `ring` は、一覧が横スクロールする面であるため端の
- * 項目で切り取られ、輪の一部だけが線として残る。透明な枠を常に持たせてあるので、印が付いても
- * 大きさは変わらない。
- *
  * link の文言には `1` のような順序ではなく、移動先が何かを表す短い語を与えるとよい。**中身を画像に
  * する場合は `aria-label` でアクセシブルな名前を与える。** 装飾として `alt=""` の画像だけを置くと、
  * link に名前がなくなる。
@@ -233,10 +229,6 @@ export type CarouselThumbnailsProps = ComponentProps<"ul"> & {
  * 位置と余白は `className` で決める。サムネイル同士の間隔はこの component の `gap-*`、
  * {@link Carousel} との間隔は {@link Carousel} の `gap-*`、main との上下左右の並びは
  * {@link Carousel} の `flex-*` が決める。専用の props は持たない。
- *
- * 意味論は APG の tabbed carousel（`tablist` / `tab` / `tabpanel`）にしない。あれは panel を
- * 出し分ける前提であり、slide がすべて存在してスクロールで見せるこの形には合わない。ページ内
- * link の集合のまま `aria-current` で現在地を示す。
  *
  * 何の一覧かを示す `aria-label` を必ず与える。hydration 前は `defaultCurrentId` を指定した場合
  * だけ印が付く。

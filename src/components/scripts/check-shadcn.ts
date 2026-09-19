@@ -36,9 +36,7 @@ const registrySourceSchema = z.object({
  * `components/README.md` の component 目録で、その component が載る見出し。
  *
  * @remarks
- * `design-system` の部品は目的ごとの見出しに分かれ、それ以外の層は目的で割らないため `as` だけが見出しを持つ。
- * `navigation` のように両方へ現れる値があるのは、同じ目的の部品が基底と合成の両方に存在する
- * ためであり、どちらの層かは `directory` が持つ。目的と層は別の軸なので畳まない。
+ * `design-system` 以外の層は目的で割らないため `as` だけが見出しを持つ。
  */
 export const CATALOG_HEADING = {
   ACTION: "action",
@@ -64,12 +62,7 @@ export type CatalogHeading = (typeof CATALOG_HEADING)[keyof typeof CATALOG_HEADI
  *
  * @remarks
  * 層は「その部品を誰が書き換えるか」で決まり、目的（{@link CATALOG_HEADING}）とは別の軸である。
- * 畳まずに両方を持つ。判定は契約から先に当てる。
- *
- * - `design-system` — 契約を知らず、読んでも役割が増えない。目的別に置く
- * - `patterns` — 契約は知らないが、複数の役割を合成する。目的を一つに決められないので割らない
- * - `shell` — アプリのどこに・いくつ置くかが部品側で決まっている。mount 位置が制約になる
- * - `app-starter` — バックエンドの契約を知っている。作り替える前提
+ * 各層の受け持ちは components/README.md「層」参照。
  */
 export const COMPONENT_LAYER = {
   DESIGN_SYSTEM: "design-system",
@@ -92,8 +85,8 @@ export const componentLayerSchema = z.enum([
  * 層と目的から、component ディレクトリのリポジトリ相対パスを組み立てる。
  *
  * @remarks
- * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは目的を一つに決められない
- * ものの置き場なので、割らずに直下へ並べる。
+ * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは {@link COMPONENT_LAYER} の
+ * とおり目的で割らないため、直下へ並べる。
  */
 export function componentDirectoryOf(
   layer: ComponentLayer,
@@ -311,10 +304,9 @@ export function registryItemOf(upstreamPath: string): string {
  * component ディレクトリと、その配下のファイルを、リポジトリ相対パスの一覧から取り出す。
  *
  * @remarks
- * 層のディレクトリ（{@link COMPONENT_LAYER}）と目的のディレクトリを列挙しない。列挙すると、
- * 層や目的が増えるたびに script を直す必要が生まれ、直し忘れたものが台帳から静かに抜ける。
- * 代わりに {@link COMPONENT_MARKER} を持つディレクトリをすべて component として扱うため、
- * 入れ子になっていても、層を移しても記録漏れとして現れる。
+ * 役割ディレクトリを列挙せず、{@link COMPONENT_MARKER} を持つディレクトリをすべて component
+ * として扱う（components/README.md「配置・命名」）。そのため、入れ子になっていても層を移しても
+ * 記録漏れとして現れる。
  *
  * @param filePaths - `src/components` 配下のファイルのリポジトリ相対パス。
  */

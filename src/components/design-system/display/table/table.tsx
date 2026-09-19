@@ -28,10 +28,6 @@ type TableProps = ComponentProps<"table"> & {
  * 包んだ領域は keyboard だけで横へ送れるよう focus を受け取るため、**`label` で名前を与える**。
  * 名前が無いと、focus したときに何の領域へ入ったのかが判らない。`TableCaption` と同じ語を渡す。
  *
- * 端まで来たらスクロールを外側へ渡す。`ScrollArea` の既定は内側で止める指定だが、表は本文の
- * 途中に置かれるものであり、上端で止まると**表の上に指を置いている間だけページが動かない**
- * 状態になる。内側で止める必要があるのは、独立した面として重なる領域だけである。
- *
  * 取得・並べ替え・filter・pagination・行ごとの操作・業務型は持たない。これらは feature が
  * この部品を合成して実装する。列定義から表の骨格を展開したい場合は `sugar/table` を使う。
  *
@@ -45,6 +41,8 @@ function Table({ className, containerClassName, label, ...props }: TableProps) {
   return (
     <ScrollArea
       aria-label={label}
+      // `ScrollArea` の既定は内側でスクロールを止める指定だが、表は本文の途中に置かれるため、端まで
+      // 来たら外側へ渡す。`overscroll-auto` が無いと、表の上に指を置いている間だけページが動かなくなる。
       className={cn("relative w-full overscroll-auto", containerClassName)}
       data-slot="table-container"
       orientation="horizontal"

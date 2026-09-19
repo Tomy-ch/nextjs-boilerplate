@@ -24,9 +24,8 @@ export type DirectionProviderProps = Omit<
  * `SliderClient` など）が、この Provider から向きを読む。Provider が無い場合、それらは `ltr` として
  * 振る舞う。
  *
- * このリポジトリは既定を `ltr` に固定し、**利用者が向きを切り替える機能は持たない**。RTL の
- * locale を提供する決定がされていないためで、`rtl` は Provider を差し替えた場合に配下がどう
- * 変わるかを示すための値である。向きを画面から切り替える UI が要るなら、locale の決定が先になる。
+ * このリポジトリは既定を `ltr` に固定し、**利用者が向きを切り替える機能は持たない**。`rtl` は
+ * Provider を差し替えた場合に配下がどう変わるかを示すための値である。
  *
  * React context を配るため hydration が必要で、Server Component からは直接 render できない。
  * 内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` と
