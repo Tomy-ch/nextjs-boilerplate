@@ -58,6 +58,22 @@ describe("InquiryMessageList", () => {
     expect(screen.getByText("送信中")).toBeVisible();
   });
 
+  it("送信中の 1 通を、確定した自分の発言と同じ面で描く", () => {
+    render(
+      <InquiryMessageList
+        days={DAYS}
+        pending={[{ id: "draft-1", body: "追跡番号を教えてください。" }]}
+      />,
+    );
+
+    const settled = screen.getByText("注文した商品がまだ届きません。発送状況を教えてください。");
+    const pending = screen.getByText("追跡番号を教えてください。");
+
+    expect(pending.className).toBe(settled.className);
+    expect(pending.parentElement).toHaveAttribute("data-variant", "default");
+    expect(settled.parentElement).toHaveAttribute("data-variant", "default");
+  });
+
   it("送信中が無ければ、その区画を描かない", () => {
     render(<InquiryMessageList days={DAYS} pending={[]} />);
 

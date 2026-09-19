@@ -94,7 +94,7 @@ export const AdminInquiryMessageList = withPartSpan(
                 <MessageContent>
                   <MessageHeader>{AUTHOR_LABEL[INQUIRY_AUTHOR_KIND.operator]}</MessageHeader>
                   <Bubble variant={BUBBLE_VARIANT.DEFAULT}>
-                    <BubbleContent className="whitespace-pre-wrap break-words opacity-70">
+                    <BubbleContent className="whitespace-pre-wrap break-words">
                       {draft.body}
                     </BubbleContent>
                   </Bubble>
