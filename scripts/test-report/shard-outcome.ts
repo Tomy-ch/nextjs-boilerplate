@@ -26,7 +26,8 @@ const TAIL_MARKER = "--- tail ---";
  * おり、形が変わったことを「異常なし」へ倒すと、変わった瞬間から永久に通る。
  */
 export function parseShardOutcome(content: string): ShardOutcome {
-  const [head = "", tail = ""] = content.split(`${TAIL_MARKER}\n`, 2);
+  // 区切りが無ければ後ろは無い。先頭は split が空配列を返さないので必ず在る。
+  const [head, tail = ""] = content.split(`${TAIL_MARKER}\n`, 2);
   const fields = new Map(
     head
       .split("\n")
