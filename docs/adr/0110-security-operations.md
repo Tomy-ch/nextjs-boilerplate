@@ -87,7 +87,7 @@ Accepted (一部 exclusion)
   - **点を上げることを目的にしない。** 測られた点が低いことと、守られていないことは別である —— **点が低いことは、どの決定の撤回条件にもならない**([0140](0140-documentation-operations.md) 決定 2)。頭打ちのまま置く信号が 3 つあり、いずれも点ではなく対象の有無で決めている
     - **`Branch-Protection`** —— 読み切るには常設の資格情報が要り、それを置かない決定が先にある([0153](0153-ci-configuration.md) 1「トークンの発行元」)。保護の実体は [`.github/settings/branch-protection.json`](../../.github/settings/branch-protection.json) が宣言している
     - **`Fuzzing`** —— ファジングを持たない。**撤回条件は、本体が、外から来たバイト列を自前で解く層を持つようになったとき**。いまの表現層が解くのは契約から生成した型を通った値で、パーサそのものを持たない —— ファズする対象が無い([0090](0090-testing-strategy.md))
-    - **`CII-Best-Practices`** —— OpenSSF Best Practices バッジを取得しない。**撤回条件は、本リポジトリが、テンプレートではなく成果物そのものとして公開運用へ移るとき**。バッジは*このリポジトリの名前*に紐づく登録で、テンプレートから作った側へは引き継がれない([0142](0142-license.md))
+    - **`CII-Best-Practices`** —— OpenSSF Best Practices バッジを取得しない。**撤回条件は、本リポジトリが、テンプレートではなく成果物そのものとして公開運用へ移るとき**。バッジは登録した*リポジトリの名前*に紐づき、複製したツリーには移らない([0142](0142-license.md))
 - **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**。`--min-severity` は表示も絞るので、全所見を出す実行とゲートの実行を分け、引き下げた所見が出力から消えないようにする。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) §1 が正)
 - **Trivy fs 二段運用**:
   - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
