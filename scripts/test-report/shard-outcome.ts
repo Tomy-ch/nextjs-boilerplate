@@ -26,8 +26,13 @@ const TAIL_MARKER = "--- tail ---";
  * おり、形が変わったことを「異常なし」へ倒すと、変わった瞬間から永久に通る。
  */
 export function parseShardOutcome(content: string): ShardOutcome {
-  // 区切りが無ければ後ろは無い。先頭は split が空配列を返さないので必ず在る。
-  const [head, tail = ""] = content.split(`${TAIL_MARKER}\n`, 2);
+  // 位置で割る。`split` の戻りは要素ごとに `undefined` を含む型になるため既定値が要り、
+  // その既定値は評価されない分岐として残る。
+  const separator = `${TAIL_MARKER}\n`;
+  const separatorAt = content.indexOf(separator);
+  const hasTail = separatorAt !== -1;
+  const head = hasTail ? content.slice(0, separatorAt) : content;
+  const tail = hasTail ? content.slice(separatorAt + separator.length) : "";
   const fields = new Map(
     head
       .split("\n")
