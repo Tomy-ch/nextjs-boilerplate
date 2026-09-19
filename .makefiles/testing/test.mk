@@ -37,15 +37,32 @@ test-cached:
 # 「1 台も届いていない」としか言えなくなる。追跡しない置き場は tmp に揃える。
 TEST_BLOB_DIR := tmp/test-blob
 
+# 台が自分の終了コードとログの末尾を書き出す先。**blob と同じ置き場にしない** —— あちらは
+# 台数を数える側（scripts/test-shards）と vitest の合流が名前で読む区画で、別種のファイルを
+# 混ぜると「届いた台数」の数え方が変わる。
+TEST_SHARD_STATUS_DIR := tmp/test-shard-status
+
 # 合流した結果を構造で書き出す先。報告は失敗だけを出すので、失敗行を語彙で拾う要約器ではなく
 # vitest 自身が分けた出口（`status` / `failureMessages`）を読む（ADR 0157）。組み立ては
 # `scripts/test-report`。
 
-.PHONY: test-shard ## 分割の 1 台ぶんを走らせ、blob を書き出す (SHARD=<i>/<n>)
+# **終了コードを自分で書き出す。** 合流側が読む JSON はケースの成否とカバレッジしか持たないので、
+# 台が失敗を 1 件も記録せずに非ゼロで終わると、その事実はどこにも残らない —— 合流は成立し、本文は
+# 「全件通りました」と述べ、検査だけが赤くなる。台のログはその台の機械にしか無いため、末尾を
+# 添えて渡す。終了コードはそのまま返すので、この書き出しは判定を変えない。
+.PHONY: test-shard ## 分割の 1 台ぶんを走らせ、blob と自分の終了コードを書き出す (SHARD=<i>/<n>)
 test-shard:
 	@test -n "$(SHARD)" || { echo "❌ SHARD=<i>/<n> を渡してください。例: make test-shard SHARD=1/4"; exit 1; }
-	@VITEST_SHARDED=1 pnpm exec vitest run --coverage --no-cache --shard=$(SHARD) \
-		--reporter=blob --outputFile=$(TEST_BLOB_DIR)/blob-$(subst /,-,$(SHARD)).json
+	@mkdir -p $(TEST_SHARD_STATUS_DIR)
+	@log=$(TEST_SHARD_STATUS_DIR)/shard-$(subst /,-,$(SHARD)).log; \
+		VITEST_SHARDED=1 pnpm exec vitest run --coverage --no-cache --shard=$(SHARD) \
+			--reporter=blob --outputFile=$(TEST_BLOB_DIR)/blob-$(subst /,-,$(SHARD)).json \
+			> $$log 2>&1; status=$$?; \
+		cat $$log; \
+		{ echo "shard=$(SHARD)"; echo "exit=$$status"; echo "--- tail ---"; tail -n 40 $$log; } \
+			> $(TEST_SHARD_STATUS_DIR)/shard-$(subst /,-,$(SHARD)).status; \
+		rm -f $$log; \
+		exit $$status
 
 # 束ねる前に落とす。足りないまま束ねると、走らなかったテストがカバレッジの不足として現れ、
 # 原因を取り違える。台数は各台が書いた名前から読み戻すので、ここでは宣言しない
@@ -71,5 +88,6 @@ TEST_RUN ?= test-full
 test-failures:
 	@$(MAKE) --no-print-directory $(TEST_RUN) > $(TEST_LOG) 2>&1; status=$$?; \
 		tail -n 400 $(TEST_LOG) > $(TEST_LOG).tail; \
-		pnpm exec tsx scripts/test-report $(TEST_REPORT_JSON) $(TEST_LOG).tail /dev/stdout; \
+		pnpm exec tsx scripts/test-report $(TEST_REPORT_JSON) $(TEST_LOG).tail /dev/stdout \
+			$(TEST_SHARD_STATUS_DIR); \
 		exit $$status
