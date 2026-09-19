@@ -2,7 +2,10 @@
 //
 // 組み立ては [format.ts](format.ts) が持つ。ここが担うのは読み書きと終了コードだけである。
 //
-//   pnpm exec tsx scripts/test-report <report.json> <tail.log> <出力先>
+//   pnpm exec tsx scripts/test-report <report.json> <tail.log> <出力先> [台の結果の置き場]
+//
+// **台の結果の置き場**は分割実行のときだけ渡す。合流した JSON はケースの成否とカバレッジしか持たず、
+// 台がテスト結果の外で落ちたことは現れない（[shard-outcome.ts](shard-outcome.ts)）。
 //
 // **読めなかったら黙って空にしない。** JSON が無い・壊れている・形が違うのは「失敗が無い」ではなく「何が起きたか
 // 分からない」であり、そのまま緑の報告へ倒すと壊れた瞬間から永久に通る
@@ -11,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { codeBlock, formatReport, type Summary, summarise } from "./format";
+import { formatShardOutcomes, parseShardOutcome, type ShardOutcome } from "./shard-outcome";
 
 /** 触ってよい場所。作業ツリーと、実行系が中間物を置く場所に限る。 */
 const ALLOWED_ROOTS: readonly string[] = [
@@ -45,10 +49,12 @@ function resolveInside(candidate: string, sinks: readonly string[] = []): string
   throw new Error(`触ってよい場所の外を指しています: ${candidate}`);
 }
 
-const [, , reportArg, tailArg, outputArg] = process.argv;
+const [, , reportArg, tailArg, outputArg, shardStatusArg] = process.argv;
 
 if (!reportArg || !tailArg || !outputArg) {
-  process.stderr.write("使い方: tsx scripts/test-report <report.json> <tail.log> <出力先>\n");
+  process.stderr.write(
+    "使い方: tsx scripts/test-report <report.json> <tail.log> <出力先> [台の結果の置き場]\n",
+  );
   process.exit(2);
 }
 
@@ -62,6 +68,34 @@ const tailLog = ((): string => {
   } catch {
     return "(末尾のログを読めませんでした)";
   }
+})();
+
+/**
+ * 台が書き出した結果を読む。
+ *
+ * @remarks
+ * **置き場が無いことと、台が落ちなかったことは別である。** 前者は分割していない実行（手元の
+ * `test-full`）で普通に起きるので空で返す。後者は各ファイルの終了コードが述べる。
+ */
+const shardOutcomes = ((): readonly ShardOutcome[] => {
+  if (!shardStatusArg) return [];
+
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(resolveInside(shardStatusArg)).toSorted();
+  } catch {
+    return [];
+  }
+
+  return entries.flatMap((entry) => {
+    try {
+      return [
+        parseShardOutcome(fs.readFileSync(path.join(resolveInside(shardStatusArg), entry), "utf8")),
+      ];
+    } catch {
+      return [];
+    }
+  });
 })();
 
 const body = ((): string => {
@@ -104,4 +138,7 @@ const body = ((): string => {
   return formatReport(summary, tailLog);
 })();
 
-fs.writeFileSync(outputPath, `${body}\n`);
+const shardSection = formatShardOutcomes(shardOutcomes, codeBlock);
+const shardPrefix = shardSection === "" ? "" : `${shardSection}\n\n---\n\n`;
+
+fs.writeFileSync(outputPath, `${shardPrefix}${body}\n`);

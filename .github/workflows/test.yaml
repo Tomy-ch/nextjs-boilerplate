@@ -107,6 +107,20 @@ jobs:
           # machine reported" for a cause that happened four minutes earlier and elsewhere.
           if-no-files-found: error
 
+      # The exit code this machine returned, plus the tail of its own output. The merged JSON
+      # carries case outcomes and coverage only, so a machine that exits non-zero without
+      # recording a single failure leaves no trace there — the merge succeeds and the comment
+      # says every test passed while the check goes red. Its log lives on this machine, so it
+      # travels with the status file.
+      - name: Hand over the exit code this machine returned
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-shard-status-${{ matrix.shard }}
+          path: tmp/test-shard-status/
+          retention-days: 1
+          if-no-files-found: error
+
   test:
     needs: test-shard
     # The collecting job runs whatever the shards did. A shard that failed still has to
@@ -156,6 +170,15 @@ jobs:
         with:
           path: tmp/test-blob/
           pattern: test-blob-*
+          merge-multiple: true
+
+      # Separate from the blobs on purpose: the blob directory is counted by name to decide
+      # how many machines reported, so a second kind of file there would change that count.
+      - name: Collect what every machine returned
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: tmp/test-shard-status/
+          pattern: test-shard-status-*
           merge-multiple: true
 
       # **A missing blob is not a coverage shortfall.** A shard that died before writing one

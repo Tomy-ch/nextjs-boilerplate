@@ -6,7 +6,7 @@
 // 一致しなければ撤去そのものを止める（[scanner-removal.ts](scanner-removal.ts)）。**宣言が現物と
 // 一致することは [manifest のテスト](scanner-manifest.test.ts)が毎回見る**ので、ずれは行を動かした
 // PR の CI で落ち、複製した側のセットアップまで持ち越さない
-// （[0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+// （[README](../../README.md)）。
 //
 // 宣言し切れない言及は `docMentions` が**報告だけ**する。撤去後も真であり続ける記述（他の検査が
 // 使い続ける pin への言及など）がここに残る。
