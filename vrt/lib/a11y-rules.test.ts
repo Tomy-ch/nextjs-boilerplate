@@ -214,11 +214,22 @@ describe("assertDeclaredStoriesExist", () => {
     }).toThrow("b--open");
   });
 
-  it("実際の宣言が、いま目録に載せている story だけを指す", () => {
-    const declared = STORY_DISABLED_RULES.flatMap((rule) => rule.stories);
+  it("居残りが複数あれば、先頭の 1 件で止めずにすべてを挙げる", () => {
+    const multiple = [
+      { id: "aria-hidden-focus", reason: "理由", removeWhen: "条件", stories: ["z--open"] },
+      { id: "region", reason: "理由", removeWhen: "条件", stories: ["a--open", "b--open"] },
+    ];
 
     expect(() => {
-      assertDeclaredStoriesExist(declared);
-    }).not.toThrow();
+      assertDeclaredStoriesExist(["a--open"], multiple);
+    }).toThrow("無効化の宣言が指す story がありません: b--open, z--open");
+  });
+
+  it("実際の宣言から 1 件を欠いた目録を、本番と同じ呼び方で落とす", () => {
+    const [missing, ...rest] = [...new Set(STORY_DISABLED_RULES.flatMap((rule) => rule.stories))];
+
+    expect(() => {
+      assertDeclaredStoriesExist(rest);
+    }).toThrow(missing);
   });
 });

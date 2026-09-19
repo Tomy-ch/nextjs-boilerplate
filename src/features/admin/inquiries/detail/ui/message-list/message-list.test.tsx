@@ -78,6 +78,7 @@ describe("AdminInquiryMessageList", () => {
 
     expect(pending.className).toBe(settled.className);
     expect(pending.parentElement).toHaveAttribute("data-variant", "default");
+    expect(settled.parentElement).toHaveAttribute("data-variant", "default");
   });
 
   it("a11y 自動検査に違反しない", async () => {
