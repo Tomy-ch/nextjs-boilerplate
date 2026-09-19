@@ -84,7 +84,6 @@ describe("ConsentBanner", () => {
   it("閉じる操作を置かない。選ぶこと以外に面から出る手段が無い", () => {
     render(<ConsentBanner onDecide={vi.fn()} open policyHref="/privacy" />);
 
-    // 個数では見ない。拒否を消して × を足しても数は 2 のまま保たれる。
     expect(screen.getAllByRole("button").map((button) => button.textContent?.trim())).toEqual([
       CONSENT_BANNER_COPY.reject,
       CONSENT_BANNER_COPY.accept,

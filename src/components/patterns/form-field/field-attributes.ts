@@ -1,7 +1,5 @@
 import { toDescriptionId } from "@/components/design-system/form/field/field.definition";
 
-// 入力欄そのものへ与える a11y 属性の組み立て。
-
 /** 入力欄そのものへ与える属性を組むために要る、項目の状態。 */
 export type FieldControlState = {
   /** 入力欄の `id`。 */

@@ -32,7 +32,6 @@ describe("JsonLd", () => {
 });
 
 describe("toJsonLdScriptContent", () => {
-  // ----- 正常系 -----
   it("JSON として読める文字列を返す", () => {
     expect(JSON.parse(toJsonLdScriptContent(DATA))).toEqual(DATA);
   });

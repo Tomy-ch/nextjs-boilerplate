@@ -9,6 +9,8 @@ import { cn } from "@/components/cn";
  * 利用者へ読み込み状態を伝える role や文言は持たない。feature が近くに意味のある loading message
  * を置き、Skeleton は最終コンテンツに近い大きさだけを表現する。`prefers-reduced-motion` 時は
  * animation を停止する。
+ *
+ * @see Storybook `Status/Skeleton`
  */
 function Skeleton({ className, ...props }: ComponentProps<"div">) {
   return (

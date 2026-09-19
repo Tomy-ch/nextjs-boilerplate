@@ -70,16 +70,8 @@ export type ComboboxClientProps = {
  *
  * hydration が必要で、Server Component からは直接 render できない。
  *
- * **trigger に `role="combobox"` は付けない。** 絞り込み入力そのものが `Command` の中で
- * `role="combobox"` として公開されるため、trigger にも付けると combobox が二重になり、
- * `aria-controls` の関連付けも競合する。trigger は popover を開く button であり、開閉は Radix が
- * `aria-expanded` に反映する。
- *
  * trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな
  * 名前を必ず与える**。絞り込み入力の名前は `Command` の `label` として渡している。
- *
- * 絞り込みは label に対して行う。`CommandItem` の `value` は form へ送る値であり表示文言と異なる
- * ため、label を `keywords` として渡して検索対象にしている。
  *
  * **必須指定は持たない。** 値を運ぶ hidden input は constraint validation の対象外であり、
  * `required` を付けても browser は検証しない。必須であることの表示は `Field`、実際の強制は
@@ -120,6 +112,8 @@ export function ComboboxClient({
       <Popover onOpenChange={setOpen} open={open}>
         <PopoverTrigger asChild>
           <Button
+            // 絞り込み入力が `Command` の中で `role="combobox"` として公開されるため、ここには付けない。
+            // 二重になると `aria-controls` の関連付けも競合する。開閉は Radix が `aria-expanded` に反映する。
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
             className={cn("w-full justify-between font-normal", className)}
@@ -142,6 +136,7 @@ export function ComboboxClient({
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>
               {options.map((option) => (
+                // CommandItem の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡す。
                 <CommandItem
                   disabled={option.disabled}
                   key={option.value}

@@ -225,10 +225,7 @@ function CommandGroup({ className, ...props }: ComponentProps<typeof CommandPrim
  * group と group の間に引く区切り線。
  *
  * @remarks
- * 見た目だけの区切りであり、意味論は持たない。支援技術からは既定で隠す。cmdk は
- * `role="separator"` を固定で付けるが、`listbox` が子に許すのは `option` と `group` だけであり、
- * 区切りが読み上げの対象として残ると ARIA として不正な入れ子になる。group の見出しが読み上げ順
- * での区切りをすでに伝えるため、隠しても伝わる情報は減らない。
+ * 見た目だけの区切りであり、意味論は持たない。支援技術からは既定で隠す。
  *
  * @param props - cmdk `Command.Separator` の props。
  *
@@ -240,6 +237,9 @@ function CommandSeparator({
 }: ComponentProps<typeof CommandPrimitive.Separator>) {
   return (
     <CommandPrimitive.Separator
+      // cmdk は role="separator" を固定で付けるが、listbox の子に許されるのは option と group
+      // だけで、読み上げ対象のまま残すと ARIA として不正な入れ子になる。group の見出しが読み上げ順
+      // の区切りをすでに伝えるため、隠しても伝わる情報は減らない。
       aria-hidden="true"
       className={cn("-mx-1 h-px bg-border", className)}
       data-slot="command-separator"

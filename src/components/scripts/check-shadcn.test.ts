@@ -738,7 +738,6 @@ describe("storyHeadingOf", () => {
 });
 
 describe("componentDirectoryOf", () => {
-  // ----- 正常系 -----
   it("design-system では見出しを挟んだ配置先を返す", () => {
     expect(componentDirectoryOf("design-system", "overlay", "dialog")).toBe(
       "src/components/design-system/overlay/dialog",
@@ -753,7 +752,6 @@ describe("componentDirectoryOf", () => {
 });
 
 describe("packageOf", () => {
-  // ----- 正常系 -----
   it("scope を持たない specifier から package 名を取り出す", () => {
     expect(packageOf("clsx")).toBe("clsx");
     expect(packageOf("date-fns/locale")).toBe("date-fns");

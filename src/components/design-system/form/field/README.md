@@ -17,6 +17,8 @@ label、入力、説明、エラーを一つの form field として構成しま
 
 [`field.definition.ts`](./field.definition.ts) は、`FieldDescription` / `FieldError` に与える `id` の綴りを持ちます（`toErrorId` / `toDescriptionId`）。入力欄の `aria-describedby` がその `id` を指すため、綴りを決めているのは受け取る側の都合です。項目の外枠を組む [`patterns/form-field`](../../../patterns/form-field/README.md) もここを引きます。
 
+組み立てる側（`patterns/form-field`）へは置きません。層の向きは `patterns → design-system` の一方向なので、そこに置くと素の `Field` を直接組む catalog や画面が上へ引けず、同じ綴りを手で書くことになります。
+
 ## 利用ケース
 
 native form の入力、選択、説明文、Server Action の検証結果を構成する場合に使います。
