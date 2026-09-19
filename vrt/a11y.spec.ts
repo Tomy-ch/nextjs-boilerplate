@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect } from "@playwright/test";
-import { CONFORMANCE_TAGS, disabledRuleIds } from "./lib/a11y-rules";
+import { assertDeclaredStoriesExist, CONFORMANCE_TAGS, disabledRuleIds } from "./lib/a11y-rules";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
@@ -14,18 +14,22 @@ import { openAtDeclaredViewport } from "./lib/viewport";
 // 入れずに満たす経路（[README](README.md)）。
 //
 // **実ブラウザであることが本質。** component テストの `vitest-axe` は jsdom で走るため色コント
-// ラストを検査できず、実際に無効化されている。ここは light / dark の両方を実描画するので、
-// テーマの切り替えでしか出ない contrast の違反まで届く。
+// ラストを検査できず、実際に無効化されている。ここは撮影と同じ 1 テーマ（light）を実描画するので、
+// 実際の色を測らなければ出ない contrast の違反まで届く。
 
 const STORYBOOK_DIR = "storybook-static";
 
-const stories = selectStories(
-  excludeDeclared(
-    parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
-    EXCLUDED_STORIES,
-  ),
-  process.env["VRT_ONLY"],
+const included = excludeDeclared(
+  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  EXCLUDED_STORIES,
 );
+
+// 撮る対象の集合に対して確かめる。除外された story を指す宣言は axe に一度も掛からないので、
+// 目録に在るかどうかでは居残りを見つけられない。一方 `VRT_ONLY` で絞った後では、走らせなかった
+// story を指す宣言まで居残りに見えるため、絞り込みより前に置く。
+assertDeclaredStoriesExist(included.map((story) => story.id));
+
+const stories = selectStories(included, process.env["VRT_ONLY"]);
 
 const test = base.extend<Record<never, never>, { storybookURL: string }>({
   storybookURL: [

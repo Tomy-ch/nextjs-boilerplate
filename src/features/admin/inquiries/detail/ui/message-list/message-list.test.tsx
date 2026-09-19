@@ -63,6 +63,24 @@ describe("AdminInquiryMessageList", () => {
     expect(screen.getByText("送信中")).toBeVisible();
   });
 
+  it("送信中の回答を、確定した運営の発言と同じ面で描く", () => {
+    render(
+      <AdminInquiryMessageList
+        days={DAYS}
+        pending={[{ id: "draft-1", body: "確認しております。" }]}
+      />,
+    );
+
+    const settled = screen.getByText(
+      "お問い合わせありがとうございます。確認いたしますので、少々お待ちください。",
+    );
+    const pending = screen.getByText("確認しております。");
+
+    expect(pending.className).toBe(settled.className);
+    expect(pending.parentElement).toHaveAttribute("data-variant", "default");
+    expect(settled.parentElement).toHaveAttribute("data-variant", "default");
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<AdminInquiryMessageList days={DAYS} pending={[]} />);
 

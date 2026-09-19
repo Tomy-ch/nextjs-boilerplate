@@ -7,8 +7,8 @@ name: Accessibility
 # Real browser is the point. The component suite's `vitest-axe` runs under jsdom,
 # which has no layout and no computed colour, so `color-contrast` is switched off
 # there — see the `rules: { "color-contrast": { enabled: false } }` scattered through
-# `src/**`. Here both themes are actually painted, so contrast violations that only
-# appear in dark mode are reachable.
+# `src/**`. Here the one theme the screenshots use is actually painted, so contrast
+# violations that only a measured colour reveals are reachable.
 #
 # Kept out of `vrt.yaml` deliberately. An a11y failure landing in the VRT report
 # would enter the retake set, and retaking a screenshot does not fix an a11y
@@ -265,9 +265,10 @@ jobs:
           手元で確かめるなら `make a11y` です。特定の story だけなら
           `make a11y VRT_ARGS="--grep <story 名>"`。
 
-          **rule を切って通さないでください。** 切ってよいのは jsdom に無い前提（layout / 配色）へ
-          依存する rule を component 側の suite で外すときだけで、ここは実ブラウザなのでその理由は
-          立ちません (ADR 0100)。
+          **rule を切って通さないでください。** 無効化を置けるのは
+          `vrt/lib/a11y-rules.ts` の宣言だけで、条件は「取り除けない上流の実装が原因で、かつ実際には
+          到達できない」ことです。「いまは直せない」は理由になりません。spec や story の側で
+          `rules: { ... }` を書いて黙らせる道はありません (ADR 0100 / 0157)。
           NOTE
 
           # Degrades to a fixed body rather than failing: the step that raises the issue does

@@ -502,6 +502,7 @@ GitHub App の作成と鍵の生成だけは自動化できない（REST に作�
 ## 関連する ADR
 
 - [0051](../docs/adr/0051-styling-system.md) — 動きを止めて初期状態で撮る根拠
+- [0053](../docs/adr/0053-ui-component-interaction-seam.md) — dropdown の menu を modal とする決定（`aria-hidden-focus` の宣言の根拠）
 - [0054](../docs/adr/0054-ui-catalog-storybook.md) — a11y の自動検査を story に効かせる
 - [0090](../docs/adr/0090-testing-strategy.md) — 層別責務と、`visual` が宣言を持たない扱い
 - [0091](../docs/adr/0091-test-verification-methods.md) — story 単位の比較と、実行環境の固定
