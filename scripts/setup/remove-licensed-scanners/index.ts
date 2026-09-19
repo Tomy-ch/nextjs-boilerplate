@@ -4,7 +4,7 @@
 // **撤去は選択であって剥がしではない。**CodeQL はライセンス（public は無料・private は GitHub
 // Advanced Security）、SonarQube Cloud はベンダーのトークン、Dependency Review は Dependency
 // graph の有効化を要する —— どれも設定の判断であってコードの判断ではないので、既定は配ることに
-// あり、外すかどうかはこのリポジトリを持つ側が決める（[0110](../../../docs/adr/0110-security-operations.md)）。
+// あり、外すかどうかはこのリポジトリを持つ側が決める（[README](../../README.md)）。
 //
 // 3 つとも、必要なものが無ければ自分を飛ばして緑を返す。**未設定は検査の結果ではなくセットアップ
 // の未了である**ため、決めるまでの間に壊れるものは無い。
