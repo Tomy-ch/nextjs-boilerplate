@@ -19,13 +19,17 @@ import { openAtDeclaredViewport } from "./lib/viewport";
 
 const STORYBOOK_DIR = "storybook-static";
 
-const indexed = parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8"));
+const included = excludeDeclared(
+  parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
+  EXCLUDED_STORIES,
+);
 
-// 目録の全体に対して確かめる。`VRT_ONLY` で絞った後に見ると、走らせなかった story を指す宣言まで
-// 居残りに見える。
-assertDeclaredStoriesExist(indexed.map((story) => story.id));
+// 撮る対象の集合に対して確かめる。除外された story を指す宣言は axe に一度も掛からないので、
+// 目録に在るかどうかでは居残りを見つけられない。一方 `VRT_ONLY` で絞った後では、走らせなかった
+// story を指す宣言まで居残りに見えるため、絞り込みより前に置く。
+assertDeclaredStoriesExist(included.map((story) => story.id));
 
-const stories = selectStories(excludeDeclared(indexed, EXCLUDED_STORIES), process.env["VRT_ONLY"]);
+const stories = selectStories(included, process.env["VRT_ONLY"]);
 
 const test = base.extend<Record<never, never>, { storybookURL: string }>({
   storybookURL: [
