@@ -498,6 +498,8 @@ mount 位置が部品側で決まっている部品（[層](#層)）。
 
 | component | 概要 |
 | --- | --- |
+| [`app-shell`](./shell/app-shell/README.md) | 利用者向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
+| [`admin-shell`](./shell/admin-shell/README.md) | 管理画面の外枠。脇の導線一覧・header・skip link・`main` を同じ位置に置く |
 | [`content-container`](./shell/content-container/README.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
 | [`page-header`](./shell/page-header/README.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
 | [`toaster`](./shell/toaster/README.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |

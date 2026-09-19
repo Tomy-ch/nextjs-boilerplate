@@ -142,6 +142,22 @@ components:
     as: layout
     directory: src/components/shell/page-header
     addedAt: 2026-08-04T00:55:00.000Z
+  app-shell:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/app-shell
+    addedAt: 2026-09-20T00:00:00.000Z
+    dependencies:
+      - next
+  admin-shell:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/admin-shell
+    addedAt: 2026-09-20T00:00:00.000Z
+    dependencies:
+      - next
   cursor-pagination:
     kind: original
     layer: app-starter
