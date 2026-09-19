@@ -17,7 +17,7 @@ import { findDocTags } from "./lib/doc-comment";
  * （`doc-links.gate.test.ts` と同形）。
  *
  * **走査した件数そのものを主張する。** 走査が 0 件へ落ちても「違反なし」は成立してしまうので、
- * 件数を見ないと検査が空回りしたことに気づけない（[0157](../docs/adr/0157-inspection-declaration-discipline.md)）。
+ * 件数を見ないと検査が空回りしたことに気づけない（[README](README.md)）。
  */
 
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
@@ -53,6 +53,10 @@ function* walk(directory: string): Generator<string> {
   }
 }
 
+// 既定の 5 秒はテスト 1 件を想定した値で、ツリー全体を歩く走査の分を含まない。全量を並列で
+// 回すと取り合いでさらに伸び、判定は正しいのに落ちる（docs/testing-conventions.md）。
+const TIMEOUT_MS = 120_000;
+
 /** `@example` を持つ箇所を、`パス:行` の並びで返す。 */
 function examplesIn(files: readonly string[]): string[] {
   return files.flatMap((file) =>
@@ -64,12 +68,16 @@ function examplesIn(files: readonly string[]): string[] {
 
 describe("doc comment の @example", () => {
   // ----- 異常系 -----
-  it("`src/` の doc comment は `@example` を持たない", () => {
-    const files = [...walk(join(REPOSITORY_ROOT, SCAN_ROOT))].map((file) =>
-      relative(REPOSITORY_ROOT, file),
-    );
+  it(
+    "`src/` の doc comment は `@example` を持たない",
+    () => {
+      const files = [...walk(join(REPOSITORY_ROOT, SCAN_ROOT))].map((file) =>
+        relative(REPOSITORY_ROOT, file),
+      );
 
-    expect(files.length).toBeGreaterThan(MINIMUM_SOURCES);
-    expect(examplesIn(files)).toEqual([]);
-  });
+      expect(files.length).toBeGreaterThan(MINIMUM_SOURCES);
+      expect(examplesIn(files)).toEqual([]);
+    },
+    TIMEOUT_MS,
+  );
 });
