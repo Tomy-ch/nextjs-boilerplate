@@ -14,8 +14,8 @@ import { openAtDeclaredViewport } from "./lib/viewport";
 // 入れずに満たす経路（[README](README.md)）。
 //
 // **実ブラウザであることが本質。** component テストの `vitest-axe` は jsdom で走るため色コント
-// ラストを検査できず、実際に無効化されている。ここは light / dark の両方を実描画するので、
-// テーマの切り替えでしか出ない contrast の違反まで届く。
+// ラストを検査できず、実際に無効化されている。ここは撮影と同じ 1 テーマ（light）を実描画するので、
+// 実際の色を測らなければ出ない contrast の違反まで届く。
 
 const STORYBOOK_DIR = "storybook-static";
 
