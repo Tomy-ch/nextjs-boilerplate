@@ -53,6 +53,8 @@ coverage-exclusions:
 | 一覧 | success | `Page/Admin/Inquiries/List/Default` |
 | | empty | `Page/Admin/Inquiries/List/Empty` |
 | 対応 | success | `Page/Admin/Inquiries/Detail/Default` |
+| やり取りの並び | success | `Features/Admin/Inquiries/Detail/MessageList/Default` |
+| | 送信中 | `Features/Admin/Inquiries/Detail/MessageList/Sending` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
 
 ## 構成
