@@ -167,3 +167,4 @@
 "scripts/test-report/shard-outcome.test.ts" = "2026-09-19"
 "scripts/doc-example.gate.test.ts" = "2026-09-19"
 ".makefiles/testing/test.mk" = "2026-09-19"
+"docs/testing-conventions.md" = "2026-09-19"
