@@ -4,8 +4,8 @@ usage-class: frequent
 description: >-
   Settle what a change earned in comments — the unconditional last step of implementing. Judges the whole
   comment block of every declaration the change touched: deletes what an evaluator already carries, writes the
-  residue the implementation did not, authors a general-purpose part's rendered TSDoc, and decides which single
-  site owns a Why written in several. Use it at the end of every implementation, and on
+  residue the implementation did not, authors the required TSDoc frame every named function lacks, and decides
+  which single site owns a Why written in several. Use it at the end of every implementation, and on
   「コメントが長すぎる」「コメントを整理して」「この Why はコードに置くべきか」「根拠を ADR に移したい」. Its bulk mode sweeps a kernel or `scripts/`. **Not a
   review** — it finishes a change rather than auditing one, so it is never estimated beside `/impl-review` and
   `/test-review`. Do NOT use it for docs prose (`doc-reviewer`), README↔code drift (`sync-readme` / `back-
@@ -71,9 +71,15 @@ call sites is invisible when you only look at what changed.
 **It also writes.** Since the implementation deliberately left every declaration bare, whatever the
 change genuinely earned does not exist yet, and nothing else will write it (**著述**). Two kinds reach
 this pass unwritten: the residue that only a comment can carry — a caller's obligation, a deliberate
-absence, an assumption held elsewhere — and, under `src/components/**`, the public TSDoc that
-Storybook's autodocs renders, which is a deliverable rather than a note. **A part shipped without it
-is incomplete**, so 著述 is not optional there.
+absence, an assumption held elsewhere — and the **required TSDoc frame** of every named function —
+the summary and the tags `docs/rules.md` 「コメントと文書」 makes mandatory, whatever the
+function's visibility or nesting. The frame is read in the hover of whoever calls or edits the
+function, and Storybook's autodocs renders it for a part with a story, so it is a deliverable rather
+than a note. **A named function without it is incomplete**, and 著述 is not optional there.
+
+The two differ in where the text comes from. The residue comes only from what the implementation
+established, so it may not exist. The frame describes what the declaration does, which the signature
+and the body supply, so it always exists.
 
 This is why the skill is not named for sweeping. Half its work adds.
 
@@ -120,8 +126,8 @@ So for a part under a general-purpose kernel (`src/components/**` and anything e
   one of them lies to somebody. Say which side matches the code.
 - **削除 / 書換 / 移設 / 不要 are unaffected.** How-narration is still How-narration, and a decision
   that belongs to an ADR still belongs there.
-- **著述 applies here and nowhere else by default.** The implementation left the part bare and the
-  TSDoc is what Storybook renders, so this pass writes it.
+- **著述 is unaffected too.** The required frame is written here exactly as for any other named
+  function; the exemption licenses only the duplication with the part's own README.
 
 **The exemption covers how to call the part, not why it is built that way.** A prop's meaning, the
 composition a caller must respect, the constraint that breaks the part when ignored — those are what
@@ -201,7 +207,8 @@ directory, and run the approval loop here on what comes back.
 ### Flags
 
 - `--bulk` — sweep a kernel that predates this pass, delegated per *Where this runs*. Implies a scope
-  question rather than the per-change default, and never runs 著述 for a residue it cannot know.
+  question rather than the per-change default, and never runs 著述 for a residue it cannot know. It
+  does run 著述 for a missing frame — the code it reads is that text's source.
 - `--apply` — 自動適用. Fixes the mode, so the mode question is not asked.
 - `--report-only` — 報告のみ. Detect and report; never write.
 - Both at once is a contradiction, not a precedence puzzle: say so and fall back to the mode
@@ -265,19 +272,32 @@ this skill adds.
 | --- | --- | --- | --- |
 | **維持** | 1 | A correct What, or a constraint that passes the 前提の所在 test | Leave it |
 | **削除** | 1 | How-narration, restatement, 経緯, tautology, a marker the code already satisfies | Remove |
-| **不要** | 1 | Correct and worth knowing, but something that **falls when it turns false** already carries it — a type, a test case, a rendered story, a generator's input | Remove, **naming the 正本**. A finding without that name is not a 不要 |
-| **書換** | 1 | Right content, wrong wording — drifted, ambiguous, or longer than the fact it delivers | Rewrite in place |
+| **不要** | 1 | Correct and worth knowing, but something that **falls when it turns false** already carries it — a type, a test case, a rendered story, a generator's input | Remove, **naming the 正本**. A finding without that name is not a 不要. Never raised against the required TSDoc frame — the frame is written whatever else carries the fact |
+| **書換** | 1 | Right content, wrong wording — drifted, ambiguous, or longer than the fact it delivers — or a surviving sentence not yet in the shape `docs/rules.md` requires | Rewrite in place |
 | **移設** | 1 | Correct and worth keeping, but it fails the 前提の所在 test and the 管轄 test names a document | Move it to that document; leave the operative residue and a one-line reference **to the README** |
 | **集約** | 2 / 1.5 | The same content is carried at several sites — in one file, or across the files in scope when Step 1.5 clustered it (重複 / 分散 / 総量過多). **Not raised for a general-purpose part's public doc vs. its own README** — see the exception above | One site keeps it; the rest shrink to a pointer |
-| **著述** | 1 | The declaration carries a constraint only a comment can hold and has none, because the implementation wrote none — or it is a `src/components/**` export whose rendered TSDoc is missing | Write it |
+| **著述** | 1 | The declaration carries a constraint only a comment can hold and has none, because the implementation wrote none — or a named function lacks part of the required TSDoc frame `docs/rules.md` defines | Write it |
 
 **不要 before 書換.** A comment worth shortening is not worth shortening if something else already
 states it; ask what carries it before deciding how to word it.
 
-**著述 is the one verdict with no comment to quote**, so it is stated as the declaration plus the fact
-being written and where that fact came from — what the implementation established, not what the code
-can be read to imply. **When the fact cannot be sourced, there is no 著述.** Do not invent a
-constraint to fill a bare declaration; bare is the correct state for most of them.
+**著述 is the one verdict with no comment to quote**, so it is stated as the declaration plus the text
+being written and where that text came from. The two kinds of 著述 source it differently:
+
+- **The frame** — the summary and the mandatory tags — describes what the declaration does, and the
+  signature and the body are its source. Which declarations are in scope, which tags are mandatory and
+  which are written only when they apply is `docs/rules.md` 「コメントと文書」's to say; read it
+  this run rather than from memory. The frame always exists, so a named function without it is never
+  in its correct state.
+- **The residue** — a caller's obligation, a deliberate absence, an assumption held elsewhere — is
+  what the implementation established, not what the code can be read to imply. **When the fact cannot
+  be sourced, there is no residue 著述.** Do not invent a constraint to fill the space the frame
+  leaves.
+
+Weight the prose the way `docs/rules.md` does: `@remarks` states in summary what the declaration takes
+on, and an inline comment is kept to the minimum — it appears in no hover and no Storybook page, so
+when it turns false nobody sees it. `@example` is written where the rules say it earns its place (a
+complex role, several uses), not by default.
 
 **The 移設 test**: could someone make this statement false without editing this declaration? If yes,
 nobody here can verify it and nothing will flag it when it turns false. Ask where it *would* be
@@ -494,7 +514,7 @@ comments this pass wrote, like any other part of the change.
 - ✅ Run unconditionally at the end of an implementation; confirm the verdicts, never whether to run
 - ✅ Run the per-change pass in this session; delegate only `--bulk`
 - ✅ Name the 正本 on every 不要, and the source of the fact on every 著述
-- ✅ Write the missing TSDoc of a `src/components/**` export — the part is incomplete without it
+- ✅ Write the missing required TSDoc frame of every named function in scope, as `docs/rules.md` defines it — the function is incomplete without it
 - ✅ One directory per sweep
 - ✅ Run both passes on every file — the per-comment jurisdiction question and the per-file stock question
 - ✅ Classify every comment in full whatever the mode — the mode changes Steps 3–5, never Step 2
@@ -503,7 +523,7 @@ comments this pass wrote, like any other part of the change.
 - ✅ Write the destination document and the code in the same step
 - ✅ In 報告のみ, render every non-`維持` finding in full and write nothing
 - ❌ Apply a 不要 or a 著述 unattended, in any mode
-- ❌ Raise a 著述 for a fact the implementation did not establish — a bare declaration is the normal state
+- ❌ Raise a residue 著述 for a fact the implementation did not establish — beyond the required frame, a bare declaration is the normal state
 - ❌ Delegate the per-change pass to a subagent — the constraint it must write exists only here
 - ❌ Apply a 移設 that writes a destination document while in 自動適用
 - ❌ Apply a 集約 rated `medium` or `low` unattended, or split one into per-comment questions
