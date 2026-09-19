@@ -79,6 +79,8 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
     stories: [
       "action-buttongroup--split-button-open",
       "container-tableviewoptions--menu-open",
+      "features-admin-products-list-table--row-actions-open", // sample:line
+      "features-admin-users-table--row-actions-open", // sample:line
       "form-selectclient--open",
       "overlay-dropdownmenu--grouped",
       "overlay-dropdownmenu--icon-trigger",
@@ -90,9 +92,9 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
       "page-admin-users--row-actions-open", // sample:line
     ],
     reason:
-      "Radix が modal の overlay を開くとき背景へ `aria-hidden` だけを当て、trigger は tabbable のまま残る。焦点は FocusScope が閉じ込めるため実際には届かない。axe も同じ場合を violation ではなく incomplete にする逃げ道を持つが、その判定は dialog しか見ないため menu では効かない。",
+      "dropdown の menu を modal とする決定の帰結。modal の overlay を開くと Radix は背景へ `aria-hidden` だけを当て、trigger は tabbable のまま残る。焦点は FocusScope が閉じ込めるため実際には届かない。axe も同じ場合を violation ではなく incomplete にする逃げ道を持つが、その判定は dialog しか見ないため menu では効かない。",
     removeWhen:
-      "Radix が `aria-hidden` パッケージの `suppressOthers` へ移り、背景が `inert` になったとき。",
+      "Radix が `aria-hidden` パッケージの `suppressOthers` へ移り、背景が `inert` になったとき。menu を非 modal と定め直したときも同じ。",
   },
   {
     id: "aria-hidden-focus",
@@ -115,4 +117,26 @@ export function disabledRuleIds(
       : storyRules.filter((rule) => rule.stories.includes(storyId)).map((rule) => rule.id);
 
   return [...new Set([...rules.map((rule) => rule.id), ...named])];
+}
+
+/**
+ * 名指しの宣言が指す story が実在することを確かめる。
+ *
+ * @remarks
+ * 居残りの気づき方が、壊れ方で割れます。id を書き損じた宣言はその story を黙らせないので、
+ * 違反が落ちて気づけます。**story を消したり改名したりしたときは落ちるものが無く**、宣言だけが
+ * 何にも当たらないまま残ります。[除外の宣言](story-index.ts)が同じ形の検査を持ちます。
+ */
+export function assertDeclaredStoriesExist(
+  knownStoryIds: readonly string[],
+  storyRules: readonly StoryDisabledRule[] = STORY_DISABLED_RULES,
+): void {
+  const known = new Set(knownStoryIds);
+  const stale = [...new Set(storyRules.flatMap((rule) => rule.stories))]
+    .filter((id) => !known.has(id))
+    .sort();
+
+  if (stale.length > 0) {
+    throw new Error(`無効化の宣言が指す story がありません: ${stale.join(", ")}`);
+  }
 }

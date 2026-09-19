@@ -2,6 +2,7 @@ import axe from "axe-core";
 import { describe, expect, it } from "vitest";
 
 import {
+  assertDeclaredStoriesExist,
   CONFORMANCE_TAGS,
   DEFAULT_OFF_RULES,
   DISABLED_RULES,
@@ -137,7 +138,7 @@ describe("STORY_DISABLED_RULES", () => {
   it("名指しの無効化が増え続けないよう、対象 story の数を目に見える形に保つ", () => {
     // 増やすときはこの数を更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
     // sample:replace-begin
-    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(13);
+    expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(15);
     // sample:replace-with
     // = expect(STORY_DISABLED_RULES.flatMap((rule) => rule.stories)).toHaveLength(11);
     // sample:replace-end
@@ -185,5 +186,39 @@ describe("disabledRuleIds", () => {
   // ----- 異常系 -----
   it("宣言が空なら空を返す", () => {
     expect(disabledRuleIds(undefined, [], [])).toEqual([]);
+  });
+});
+
+describe("assertDeclaredStoriesExist", () => {
+  const storyRules = [
+    {
+      id: "aria-hidden-focus",
+      reason: "理由",
+      removeWhen: "条件",
+      stories: ["a--open", "b--open"],
+    },
+    { id: "region", reason: "理由", removeWhen: "条件", stories: ["a--open"] },
+  ];
+
+  // ----- 正常系 -----
+  it("宣言が指す story がすべて目録にあれば通す", () => {
+    expect(() => {
+      assertDeclaredStoriesExist(["a--open", "b--open", "c--open"], storyRules);
+    }).not.toThrow();
+  });
+
+  // ----- 異常系 -----
+  it("目録に無い story を指す宣言を、その id を挙げて落とす", () => {
+    expect(() => {
+      assertDeclaredStoriesExist(["a--open"], storyRules);
+    }).toThrow("b--open");
+  });
+
+  it("実際の宣言が、いま目録に載せている story だけを指す", () => {
+    const declared = STORY_DISABLED_RULES.flatMap((rule) => rule.stories);
+
+    expect(() => {
+      assertDeclaredStoriesExist(declared);
+    }).not.toThrow();
   });
 });

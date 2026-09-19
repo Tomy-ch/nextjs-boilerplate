@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import AxeBuilder from "@axe-core/playwright";
 import { test as base, expect } from "@playwright/test";
-import { CONFORMANCE_TAGS, disabledRuleIds } from "./lib/a11y-rules";
+import { assertDeclaredStoriesExist, CONFORMANCE_TAGS, disabledRuleIds } from "./lib/a11y-rules";
 import { EXCLUDED_STORIES } from "./lib/excluded-stories";
 import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
@@ -19,13 +19,13 @@ import { openAtDeclaredViewport } from "./lib/viewport";
 
 const STORYBOOK_DIR = "storybook-static";
 
-const stories = selectStories(
-  excludeDeclared(
-    parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8")),
-    EXCLUDED_STORIES,
-  ),
-  process.env["VRT_ONLY"],
-);
+const indexed = parseStoryIndex(readFileSync(`${STORYBOOK_DIR}/index.json`, "utf8"));
+
+// 目録の全体に対して確かめる。`VRT_ONLY` で絞った後に見ると、走らせなかった story を指す宣言まで
+// 居残りに見える。
+assertDeclaredStoriesExist(indexed.map((story) => story.id));
+
+const stories = selectStories(excludeDeclared(indexed, EXCLUDED_STORIES), process.env["VRT_ONLY"]);
 
 const test = base.extend<Record<never, never>, { storybookURL: string }>({
   storybookURL: [
