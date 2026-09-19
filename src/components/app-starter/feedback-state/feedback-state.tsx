@@ -30,6 +30,15 @@ const feedbackStateIcon: Record<Exclude<FeedbackStateKind, "loading">, IconCompo
  * backend の詳細や request ID を表示する場合は、利用者に意味が通じる文言へ変換してから
  * `description` または画面固有の補助要素へ渡す。
  *
+ * @example
+ * ```tsx
+ * <FeedbackState
+ *   kind={FEEDBACK_STATE_KIND.EMPTY}
+ *   title="表示できる通知はありません"
+ *   description="条件を変更して再度確認してください。"
+ * />
+ * ```
+ *
  * @param props - 表示する状態と利用者に伝える文言。
  * @param props.kind - アイコンと通知の role を決める画面状態。
  * @param props.title - すべての状態で必須の、短い状態説明。

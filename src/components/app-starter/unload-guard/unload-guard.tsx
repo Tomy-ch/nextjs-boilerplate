@@ -25,6 +25,11 @@ export type UnloadGuardProps = {
  *
  * 未保存かどうかの判定、保存処理、フォームの値は持たない。呼び出し元が `when` として渡す。
  *
+ * @example
+ * ```tsx
+ * <UnloadGuard when={isDirty} />
+ * ```
+ *
  * @param props.when - 離脱を確認するか。
  *
  * @see Storybook `Navigation/UnloadGuard`

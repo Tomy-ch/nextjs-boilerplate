@@ -73,6 +73,13 @@ const bubbleVariants = cva(
  * `variant` は面の見た目だけを変え、意味論を持たない。`destructive` を選んでも支援技術へは
  * 何も伝わらないため、失敗や取り消しといった意味は本文の文言で示す。
  *
+ * @example
+ * ```tsx
+ * <Bubble variant={BUBBLE_VARIANT.MUTED}>
+ *   <BubbleContent>受け取りました。</BubbleContent>
+ * </Bubble>
+ * ```
+ *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.variant - 面の見せ方。{@link BUBBLE_VARIANT} のいずれか。
  * @param props.align - 吹き出しを寄せる向き。{@link BUBBLE_ALIGN} のいずれか。

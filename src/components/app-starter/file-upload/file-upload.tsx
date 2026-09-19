@@ -119,6 +119,24 @@ function rejectionOf(
  * native の下地は `Field` と `Input type="file"` の組み合わせで、Server Action による検証だけで
  * 足りる場合はそちらを使う。
  *
+ * @example
+ * ```tsx
+ * <Field>
+ *   <FieldLabel htmlFor={fieldId}>添付画像</FieldLabel>
+ *   <FileUpload
+ *     accept="image/png,image/jpeg"
+ *     aria-invalid={message !== null}
+ *     id={fieldId}
+ *     maxSize={2 * 1024 * 1024}
+ *     name="image"
+ *     onReject={handleReject}
+ *     onSelect={handleSelect}
+ *     pending={isPending}
+ *   />
+ *   {message === null ? null : <FieldError>{message}</FieldError>}
+ * </Field>
+ * ```
+ *
  * @param props - native `input` 属性から `type` / `value` / `onSelect` を除いたものに、上記を
  *   加えたもの。`accept` と `multiple` はそのまま native の属性として働き、検証にも使われる。
  * @see Storybook `Form/FileUpload`

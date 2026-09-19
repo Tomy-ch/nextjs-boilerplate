@@ -64,6 +64,19 @@ export type AttachmentProps = ComponentProps<"div"> & {
  *
  * 枠全体を押せるようにする場合は `AttachmentTrigger` を子に置く。枠自体は操作にならない。
  *
+ * @example
+ * ```tsx
+ * <Attachment state={ATTACHMENT_STATE.DONE}>
+ *   <AttachmentMedia>
+ *     <FileIcon />
+ *   </AttachmentMedia>
+ *   <AttachmentContent>
+ *     <AttachmentTitle>仕様書.pdf</AttachmentTitle>
+ *     <AttachmentDescription>1.2 MB</AttachmentDescription>
+ *   </AttachmentContent>
+ * </Attachment>
+ * ```
+ *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.size - 添付の大きさ。{@link ATTACHMENT_SIZE} のいずれか。
  * @param props.orientation - 内容の並べ方。{@link ATTACHMENT_ORIENTATION} のいずれか。

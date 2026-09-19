@@ -30,6 +30,14 @@ export type SurfacePortalBridgeProps = {
  * **消すのは自分が置いた値だけです。** `body` の属性を書くのはここだけとは限らないため
  * （`README.md`）、無条件に消すと直前に別の書き手が置いた値まで落とします。
  *
+ * @example
+ * ```tsx
+ * <div data-surface="admin">
+ *   <SurfacePortalBridge surface="admin" />
+ *   {children}
+ * </div>
+ * ```
+ *
  * @param props.surface - 部分木が名乗っている系統。属性に載る値と同じものを渡す
  * @see Storybook `Foundation/Surface`
  */

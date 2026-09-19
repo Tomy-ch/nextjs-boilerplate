@@ -14,6 +14,16 @@ import { cn } from "@/components/cn";
  *
  * Server Component として使える。hydration は不要。
  *
+ * @example
+ * ```tsx
+ * <main>
+ *   <ContentContainer>
+ *     <PageHeader>…</PageHeader>
+ *     <section>…</section>
+ *   </ContentContainer>
+ * </main>
+ * ```
+ *
  * @see Storybook `Layout/ContentContainer`
  */
 export function ContentContainer({ className, ...props }: ComponentProps<"div">) {

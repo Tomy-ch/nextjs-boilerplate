@@ -42,6 +42,16 @@ export type InputGroupProps = ComponentProps<"div"> & {
  * 直接 render できない。単位や補助操作を枠内へ収める必要がない場合は、`Input` と `Label` /
  * `Field` を組み合わせた Server Component 側の構成を選ぶ。
  *
+ * @example
+ * ```tsx
+ * <InputGroup>
+ *   <InputGroupInput aria-label="数量" inputMode="numeric" name="quantity" />
+ *   <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+ *     <InputGroupText>kg</InputGroupText>
+ *   </InputGroupAddon>
+ * </InputGroup>
+ * ```
+ *
  * @param props - native `div` 属性と `disabled`。`role="group"` は既定で付与する。
  * @see Storybook `Form/InputGroup`
  */

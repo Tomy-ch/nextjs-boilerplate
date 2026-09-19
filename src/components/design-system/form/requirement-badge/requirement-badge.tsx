@@ -18,6 +18,14 @@ export type RequirementBadgeProps = {
  * `label` の中へ入れない。入れると項目の名前が「姓必須」に変わり、`getByLabelText("姓")` のような
  * 名前での取得も一致しなくなる。`label` の隣へ並べる。
  *
+ * @example
+ * ```tsx
+ * <div className="flex items-center gap-2">
+ *   <RequirementBadge required />
+ *   <FieldLabel htmlFor="last-name">姓</FieldLabel>
+ * </div>
+ * ```
+ *
  * @param props.required - 空欄を受け付けない項目か。
  * @see Storybook `Form/RequirementBadge`
  */

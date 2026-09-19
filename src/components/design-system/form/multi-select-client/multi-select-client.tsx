@@ -102,6 +102,20 @@ export function toSummary(
  * 値の運び方・`role="listbox"` を与えない理由・必須指定を持たない理由・hydration の要否は
  * `README.md`「責務境界」。
  *
+ * @example
+ * ```tsx
+ * <span id="tags-label">タグ</span>
+ * <MultiSelectClient
+ *   aria-labelledby="tags-label"
+ *   name="tags"
+ *   options={[
+ *     { value: "1", label: "下書き" },
+ *     { value: "2", label: "公開" },
+ *   ]}
+ *   onValueChange={(values) => console.log(values)}
+ * />
+ * ```
+ *
  * @param props - 下記の表示用 props。native 属性は透過しない。
  * @param props.name - 送信するフィールド名。選ばれた数だけ繰り返す。
  * @param props.options - 並べる候補。並び順がそのまま表示順になる。

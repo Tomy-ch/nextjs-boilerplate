@@ -71,6 +71,15 @@ function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
  *
  * 未保存かどうかの判定、保存処理、遷移先の決定は持たない。呼び出し元が `when` と link を渡す。
  *
+ * @example
+ * ```tsx
+ * <NavigationGuard when={isDirty}>
+ *   <nav>
+ *     <Link href="/settings">設定</Link>
+ *   </nav>
+ * </NavigationGuard>
+ * ```
+ *
  * @see Storybook `Navigation/NavigationGuard`
  */
 export function NavigationGuard({

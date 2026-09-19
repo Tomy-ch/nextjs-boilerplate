@@ -34,6 +34,31 @@ type TableProps = ComponentProps<"table"> & {
  * **layout の目的で使わない。** 情報の関係を表として読む場面に限る。並べるだけでよい内容は
  * `List` や grid の class で組む。
  *
+ * @example
+ * ```tsx
+ * <Table label="直近の申請">
+ *   <TableCaption>直近の申請</TableCaption>
+ *   <TableHeader>
+ *     <TableRow>
+ *       <TableHead scope="col">申請番号</TableHead>
+ *       <TableHead scope="col">金額</TableHead>
+ *     </TableRow>
+ *   </TableHeader>
+ *   <TableBody>
+ *     <TableRow>
+ *       <TableCell>A-1001</TableCell>
+ *       <TableCell>1,200 円</TableCell>
+ *     </TableRow>
+ *   </TableBody>
+ *   <TableFooter>
+ *     <TableRow>
+ *       <TableHead scope="row">合計</TableHead>
+ *       <TableCell>1,200 円</TableCell>
+ *     </TableRow>
+ *   </TableFooter>
+ * </Table>
+ * ```
+ *
  * @param props - native `table` 属性と `label`。
  * @see Storybook `Display/Table`
  */

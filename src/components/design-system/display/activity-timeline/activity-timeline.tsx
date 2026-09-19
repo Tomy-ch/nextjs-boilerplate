@@ -23,6 +23,20 @@ import { List, ListItem, ListItemMedia } from "@/components/design-system/displa
  * 並び順・event の意味・取得・件数の追加読み込みは持たない。新しい順に並べるか古い順に並べるかは
  * 呼び出し元が決め、続きの読み込みは `CursorPagination` を隣に合成する。
  *
+ * @example
+ * ```tsx
+ * <ActivityTimeline label="変更履歴">
+ *   <ActivityTimelineItem>
+ *     <ListItemContent>
+ *       <ListItemTitle>田中 が 状態を「公開中」に変更しました</ListItemTitle>
+ *       <ActivityTimelineTime dateTime="2026-08-04T09:12:00+09:00">
+ *         2026-08-04 09:12
+ *       </ActivityTimelineTime>
+ *     </ListItemContent>
+ *   </ActivityTimelineItem>
+ * </ActivityTimeline>
+ * ```
+ *
  * @param props.label - この履歴のアクセシブルな名前。
  *
  * @see Storybook `Display/ActivityTimeline`

@@ -38,6 +38,17 @@ export type ResizableHandleProps = ResizablePrimitive.SeparatorProps & {
  *
  * 向きは `orientation` が決める。既定は横並びで、`vertical` を渡すと縦に積む。
  *
+ * @example
+ * ```tsx
+ * <ResizablePanelGroup className="h-96" orientation="horizontal">
+ *   <ResizablePanel defaultSize="60%" minSize="30%">
+ *     <MediaImage alt="正面" src={frontUrl} />
+ *   </ResizablePanel>
+ *   <ResizableHandle aria-label="画像と説明の区切り" withHandle />
+ *   <ResizablePanel minSize="20%">{description}</ResizablePanel>
+ * </ResizablePanelGroup>
+ * ```
+ *
  * @param props - `react-resizable-panels` の Group props。`className` で高さを与える。高さを
  *   与えないと内容の高さのままになり、境界を動かせる幅が生まれない。
  * @see Storybook `Container/Resizable`

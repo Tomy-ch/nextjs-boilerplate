@@ -57,6 +57,13 @@ export type FormFieldProps = {
  *
  * 検証も、必須かどうかの判定も持たない。どちらも呼び出し元が検証スキーマから導いて渡す。
  *
+ * @example
+ * ```tsx
+ * <FormField controlId={id} label="姓" message={error} required>
+ *   {(control) => <Input {...control} {...register("lastName")} />}
+ * </FormField>
+ * ```
+ *
  * @see Storybook `Form/FormField`
  */
 export function FormField({

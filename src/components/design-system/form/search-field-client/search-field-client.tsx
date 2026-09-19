@@ -108,6 +108,22 @@ export type SearchFieldClientProps = {
  * HTML の `search` 要素で囲むため、支援技術の landmark 一覧から到達できる。同じ画面に検索欄を
  * 複数置く場合は、`aria-label` で landmark を区別する。
  *
+ * @example
+ * ```tsx
+ * // 打鍵に追従する（既定）
+ * <SearchFieldClient label="項目を検索" onSearch={handleSearch} />
+ *
+ * // ほかの条件と一緒に確定する
+ * <SearchFieldClient
+ *   commit={SEARCH_FIELD_COMMIT.SUBMIT}
+ *   label="項目を検索"
+ *   onSearch={handleSearch}
+ *   onValueChange={setKeyword}
+ *   submitDisabled={keyword === "" && applied === ""}
+ *   value={keyword}
+ * />
+ * ```
+ *
  * @see Storybook `Form/SearchFieldClient`
  */
 export function SearchFieldClient({

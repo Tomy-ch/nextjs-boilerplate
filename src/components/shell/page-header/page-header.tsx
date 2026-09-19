@@ -17,6 +17,17 @@ import { cn } from "@/components/cn";
  * Server Component として使える。hydration は不要で、`PageHeaderActions` に client island を
  * 置く場合もその部品だけが境界を持つ。
  *
+ * @example
+ * ```tsx
+ * <PageHeader>
+ *   <PageHeaderTitle>メンバー一覧</PageHeaderTitle>
+ *   <PageHeaderDescription>参加中のメンバーを確認します。</PageHeaderDescription>
+ *   <PageHeaderActions>
+ *     <Button>メンバーを追加</Button>
+ *   </PageHeaderActions>
+ * </PageHeader>
+ * ```
+ *
  * @see Storybook `Layout/PageHeader`
  */
 export function PageHeader({ className, ...props }: ComponentProps<"header">) {

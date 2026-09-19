@@ -26,6 +26,16 @@ export type SpinnerProps = Omit<ComponentProps<"svg">, "aria-hidden" | "aria-lab
  * `prefers-reduced-motion` 時は回転を停止する。停止しても位置と大きさは変わらないため表示は
  * 崩れない。
  *
+ * @example
+ * ```tsx
+ * <Button disabled>
+ *   <Spinner />
+ *   送信中
+ * </Button>
+ *
+ * <Spinner className="size-8" label="読み込んでいます" />
+ * ```
+ *
  * @param props - native `svg` 属性。`className` で大きさと色を調整できる。色を指定しなければ
  *   `currentColor` を継承する。
  *

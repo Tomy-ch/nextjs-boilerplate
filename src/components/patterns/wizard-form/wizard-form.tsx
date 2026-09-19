@@ -117,6 +117,18 @@ export type WizardFormProps = {
  *
  * 進捗の表示は `Stepper` を合成し、**横に並べる**。段階の並びと現在位置の意味論はそちらが持つ。
  *
+ * @example
+ * ```tsx
+ * <WizardForm
+ *   label="利用申請"
+ *   steps={[
+ *     { id: "applicant", title: "申請者", content: <ApplicantFields /> },
+ *     { id: "confirm", title: "確認", content: <Confirmation /> },
+ *   ]}
+ *   submit={<Button type="submit">申請する</Button>}
+ * />
+ * ```
+ *
  * @param props.label - この入力全体のアクセシブルな名前。
  * @param props.steps - 段階の定義。
  * @param props.submit - 最後の段階で置く操作。

@@ -28,7 +28,10 @@ export function validateName(name: string): string | null {
 }
 
 /**
- * kebab-case の名前を PascalCase の識別子へ変換する（`report-detail` → `ReportDetail`）。
+ * kebab-case の名前を PascalCase の識別子へ変換する。
+ *
+ * @example
+ * `report-detail` → `ReportDetail`
  */
 export function toPascalCase(name: string): string {
   return name

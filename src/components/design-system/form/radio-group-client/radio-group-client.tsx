@@ -22,6 +22,20 @@ export type RadioGroupClientProps = React.ComponentProps<typeof RadioGroupPrimit
  *
  * `value` を渡すと制御 component、`defaultValue` を渡すと非制御 component として動く。
  *
+ * @example
+ * ```tsx
+ * <RadioGroupClient aria-label="配送方法" defaultValue="standard" name="shipping">
+ *   <div className="flex items-center gap-2">
+ *     <RadioGroupClientItem id="standard" value="standard" />
+ *     <Label htmlFor="standard">通常配送</Label>
+ *   </div>
+ *   <div className="flex items-center gap-2">
+ *     <RadioGroupClientItem id="express" value="express" />
+ *     <Label htmlFor="express">お急ぎ便</Label>
+ *   </div>
+ * </RadioGroupClient>
+ * ```
+ *
  * @param props - Radix `RadioGroup.Root` の props。
  * @see Storybook `Form/RadioGroupClient`
  */

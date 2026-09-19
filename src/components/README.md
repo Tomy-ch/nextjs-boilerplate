@@ -88,13 +88,14 @@ TSDoc が満たすべき条件は一つである。**呼び出し側が内部の
 | --- | --- |
 | 先頭の一行 | この component の責務。名前の言い換えではなく、何を引き受けるかを書く |
 | `@remarks` | 呼び出し側が知らないと誤用する制約。SSR / client island の境界、必須の a11y 属性、この component が**持たない**責務 |
+| `@example` | そのまま動く最小の呼び出し例。import が要る場合は import ごと書く |
 | `@param props` | 受け取るものの総称（native 属性を透過するならその旨） |
 | `@param props.<名前>` | props ごとの意味。値集合を持つものは各値が何を表すかまで書く |
-| `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く。呼び出し例はここが指す story が持ち、`@example` は置かない（[docs/rules.md](../../docs/rules.md)「コメントと文書」） |
+| `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く |
 
 型・定数にも TSDoc を書く。`<Component>Props` は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
 
-subcomponent が多い compound では、組み合わせ全体は root の `@see` が指す story で示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
+subcomponent が多い compound では、root に `@example` で組み合わせ全体を示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
 
 書かないもの。
 
