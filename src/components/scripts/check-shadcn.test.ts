@@ -723,6 +723,14 @@ describe("vendorImportsOf", () => {
       vendorImportsOf(['import Image from "next/image";\nimport { Slot } from "radix-ui";']),
     ).toEqual(["next", "radix-ui"]);
   });
+
+  it("コメントの中の import は数えない", () => {
+    expect(
+      vendorImportsOf([
+        '/**\n * @example\n * ```tsx\n * import Link from "next/link";\n * ```\n */\n// import x from "input-otp";\nimport { Slot } from "radix-ui";',
+      ]),
+    ).toEqual(["radix-ui"]);
+  });
 });
 
 describe("storyHeadingOf", () => {

@@ -274,12 +274,14 @@ export function packageOf(specifier: string): string {
  * @remarks
  * 相対 import と `@/` の内部 import は外部依存ではない。react / react-dom は全 component が
  * 前提にする実行環境なので数えない。test と story は component の依存ではないため、呼び出し元が
- * 対象から外す。
+ * 対象から外す。コメントの中の import も数えない —— doc comment の `@example` は呼び出し側の
+ * import を含む。
  */
 export function vendorImportsOf(sources: readonly string[]): string[] {
   const packages = new Set<string>();
   for (const source of sources) {
-    for (const [specifier] of source.matchAll(/(?<=from ")[^"]+(?=")/g)) {
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    for (const [specifier] of code.matchAll(/(?<=from ")[^"]+(?=")/g)) {
       if (specifier.startsWith(".") || specifier.startsWith("@/")) continue;
       const name = packageOf(specifier);
       if (RUNTIME_PACKAGES.has(name)) continue;
