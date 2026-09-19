@@ -33,3 +33,6 @@ export const Default: Story = {};
 export const Sending: Story = {
   args: { pending: [{ id: "draft-1", body: "確認しております。" }] },
 };
+
+/** まだ 1 通も無い状態。並びとしては空で、案内は画面の側が出す。 */
+export const Empty: Story = { args: { days: [] } };
