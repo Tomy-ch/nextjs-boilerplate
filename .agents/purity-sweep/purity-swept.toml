@@ -160,3 +160,6 @@
 "scripts/test-report/index.ts" = "2026-09-11"
 "scripts/test-report/format.test.ts" = "2026-09-11"
 "docs/adr/0144-decision-enforcement-pairing.md" = "2026-09-13"
+".makefiles/github/operation/release-branch.mk" = "2026-09-19"
+"pnpm-workspace.yaml" = "2026-09-19"
+"scripts/verify-deps-bypass.gate.test.ts" = "2026-09-19"
