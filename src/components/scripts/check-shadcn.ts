@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import ts from "typescript";
 import { parse } from "yaml";
 import { z } from "zod";
 
@@ -274,14 +275,17 @@ export function packageOf(specifier: string): string {
  * @remarks
  * 相対 import と `@/` の内部 import は外部依存ではない。react / react-dom は全 component が
  * 前提にする実行環境なので数えない。test と story は component の依存ではないため、呼び出し元が
- * 対象から外す。コメントの中の import も数えない —— doc comment の `@example` は呼び出し側の
- * import を含む。
+ * 対象から外す。数えるのは `import … from` と `export … from` の宣言だけで、コメントや文字列の
+ * 中の綴りは数えない —— doc comment の `@example` は呼び出し側の import を含み、文字列は `/*` を
+ * 含みうるので、字面で拾うと宣言でないものまで数える。
+ *
+ * @param sources - 実装ファイルの中身
+ * @returns 参照している外部 package の名前。重複なく並べ替えたもの
  */
 export function vendorImportsOf(sources: readonly string[]): string[] {
   const packages = new Set<string>();
   for (const source of sources) {
-    const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
-    for (const [specifier] of code.matchAll(/(?<=from ")[^"]+(?=")/g)) {
+    for (const specifier of moduleSpecifiersOf(source)) {
       if (specifier.startsWith(".") || specifier.startsWith("@/")) continue;
       const name = packageOf(specifier);
       if (RUNTIME_PACKAGES.has(name)) continue;
@@ -289,6 +293,33 @@ export function vendorImportsOf(sources: readonly string[]): string[] {
     }
   }
   return [...packages].sort();
+}
+
+/**
+ * ソースの `import … from` / `export … from` 宣言が読み込む先を、構文木から取り出す。
+ *
+ * @param source - TypeScript / TSX のソース
+ * @returns 読み込み先の綴り。宣言の順
+ */
+function moduleSpecifiersOf(source: string): string[] {
+  const file = ts.createSourceFile(
+    "source.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TSX,
+  );
+  const specifiers: string[] = [];
+  for (const statement of file.statements) {
+    let specifier: ts.Expression | undefined;
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      specifier = statement.moduleSpecifier;
+    } else if (ts.isExportDeclaration(statement)) {
+      specifier = statement.moduleSpecifier;
+    }
+    if (specifier && ts.isStringLiteral(specifier)) specifiers.push(specifier.text);
+  }
+  return specifiers;
 }
 
 /**

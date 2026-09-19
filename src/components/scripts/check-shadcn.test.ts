@@ -731,6 +731,20 @@ describe("vendorImportsOf", () => {
       ]),
     ).toEqual(["radix-ui"]);
   });
+
+  it("文字列に `/*` があっても、後ろの import を数える", () => {
+    expect(
+      vendorImportsOf([
+        'const glob = "image/*";\nimport { Slot } from "radix-ui";\n/** 閉じる。 */\nexport const a = 1;',
+      ]),
+    ).toEqual(["radix-ui"]);
+  });
+
+  it("副作用だけの import は数えない", () => {
+    expect(vendorImportsOf(['import "server-only";\nimport { Slot } from "radix-ui";'])).toEqual([
+      "radix-ui",
+    ]);
+  });
 });
 
 describe("storyHeadingOf", () => {
