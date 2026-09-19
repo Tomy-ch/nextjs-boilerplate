@@ -82,19 +82,16 @@ git diff --check
 
 TSDoc が満たすべき条件は一つである。**呼び出し側が内部の振る舞いを知らないまま、props を与えるだけで実装できること。** 実装の手順や内部状態の遷移は書かず、公開 API から見える契約だけを書く。加えて **Storybook の配置先を併記し、どのような見た目かが一目で分かるようにする。**
 
-公開する component には次を揃える。
+どのタグを必須にし、どれを該当するときだけ書くか —— `@param` / `@returns` / `@defaultValue` / `@example` と、props の意味を `<Component>Props` のメンバーへ書くこと —— は [docs/rules.md](../../docs/rules.md)「コメントと文書」が持つ。この層で足すのは次だけである。
 
 | 要素 | 内容 |
 | --- | --- |
 | 先頭の一行 | この component の責務。名前の言い換えではなく、何を引き受けるかを書く |
 | `@remarks` | 呼び出し側が知らないと誤用する制約。SSR / client island の境界、必須の a11y 属性、この component が**持たない**責務 |
-| `@example` | 役割が複雑なもの・組み合わせ方が複数あるものに置く、そのまま動く最小の呼び出し例。import が要る場合は import ごと書く。呼び方が props から一つに決まるものには置かない |
-| `@param props` | 受け取るものの総称（native 属性を透過するならその旨）。props ごとの意味はここではなく `<Component>Props` の各メンバーに書く |
+| `@param props` | native 属性を透過するならその旨 |
 | `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く |
 
-JSX を返す component には `@returns` を書かない。タグ全体の規則は [docs/rules.md](../../docs/rules.md)「コメントと文書」が持つ。
-
-`<Component>Props` の各メンバーには、その prop の意味を書く。値集合を持つものは各値が何を表すかまで書き、既定値を持つものには `@defaultValue` を付ける —— JSX の属性を書いている最中に hover へ出るのはこのメンバーの doc で、分割代入の既定値は型に出ない。`<Component>Props` 自体は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
+`<Component>Props` 自体は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
 
 subcomponent が多い compound では、root の `@example` で組み合わせ全体を示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
 
