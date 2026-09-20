@@ -16,6 +16,11 @@ type WireDashboardSummary = z.infer<typeof GetDashboardSummaryResponse>;
 
 let client: UserScopedHttpClient | undefined;
 
+/**
+ * 集計の接続先。
+ *
+ * @returns 管理向け集計用の client
+ */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
@@ -27,7 +32,12 @@ function getClient(): UserScopedHttpClient {
   return client;
 }
 
-/** 契約の集計を表示用の型へ写す。 */
+/**
+ * 契約の集計を表示用の型へ写す。
+ *
+ * @param wire - 契約の集計応答
+ * @returns 表示用の集計
+ */
 function toDashboardSummary(wire: WireDashboardSummary): DashboardSummary {
   return {
     salesAmount: wire.salesAmount,
@@ -54,6 +64,10 @@ function toDashboardSummary(wire: WireDashboardSummary): DashboardSummary {
  * 期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに見たい期間が違うためです。**受け取るのは
  * 瞬時の半開区間だけです。** 「今日」「今月」を暦の上で解くのは画面の側で、契約はその語彙を
  * 持ちません。省略すると全期間が対象になります。
+ *
+ * @param window - 集計する期間
+ * @defaultValue window = WHOLE_TIME
+ * @returns 横断集計
  */
 export const getDashboardSummary = cache(
   async (window: TimeWindow = WHOLE_TIME): Promise<DashboardSummary> => {

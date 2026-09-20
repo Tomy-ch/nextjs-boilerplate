@@ -40,6 +40,9 @@ const STATE_PARAM = "state";
  *
  * 封緘と復元は既定 Resolver をそのまま借ります。cookie の形が方式で変わると、`dev` で作った
  * session を `idp` で読めなくなり、環境変数を切り替えただけで入り直しが要ります。
+ *
+ * @param deps - 接続先・秘密値・時刻など、封緘と復元に使う依存
+ * @returns IdP を立てずに認可の往復を成立させる Session Resolver
  */
 export function createDevelopmentSessionResolver(
   deps: DefaultSessionResolverDeps,
@@ -98,6 +101,8 @@ export function createDevelopmentSessionResolver(
      * @remarks
      * この session は IdP を通さずに作ったものです。既定 Resolver へ委ねると Discovery を引きに
      * 行き、IdP が立っていない環境ではログアウトが失敗します。
+     *
+     * @returns 常に null
      */
     async endSession(): Promise<string | null> {
       return null;

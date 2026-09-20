@@ -29,6 +29,8 @@ import type { AuthorizationTransaction, SessionRecord } from "./session-resolver
  * **復元した記録を汚します。** 出しては困るのは Access Token と ID Token で、それを含む
  * 記録をそのまま Client Component へ渡すと、渡した時点で描画が落ちます。ここで汚すのは、
  * 記録が生まれる場所がここだけだからです（[README](./README.md)「client へ渡さないものの登録」）。
+ *
+ * @returns 復元した session の記録。cookie が無い、または復元できなければ null
  */
 const readSessionRecord = cache(async (): Promise<SessionRecord | null> => {
   const sealed = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
@@ -82,6 +84,8 @@ export async function getAccessToken(): Promise<string | null> {
  * @remarks
  * cookie の寿命は session の失効時刻に合わせます。長く持たせても、中の Access Token が
  * 期限切れになった時点で API が通らなくなるだけです。
+ *
+ * @param record - cookie へ載せる session の記録
  */
 export async function storeSession(record: SessionRecord): Promise<void> {
   const sealed = await getSessionResolver().seal(record);
@@ -126,6 +130,8 @@ export async function signOut(): Promise<string | null> {
  * @remarks
  * 中身は Resolver が封緘したまま扱います。ここが形を知っていると、認証方式を差し替えるたびに
  * cookie を扱う側も書き直すことになります。
+ *
+ * @param transaction - cookie へ載せる認可要求の一時状態
  */
 export async function storeTransaction(transaction: AuthorizationTransaction): Promise<void> {
   const sealed = await getSessionResolver().sealTransaction(transaction);

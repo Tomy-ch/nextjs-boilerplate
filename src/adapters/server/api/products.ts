@@ -152,6 +152,9 @@ const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished"]);
  * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeUnpublished=yes` のような
  * 打ち間違いが黙って「含めない」に倒れ、絞り込んだつもりの母集団が変わったことを利用者が
  * 知る手段がなくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ *
+ * @param value - URL から届いた素の値
+ * @returns 読めれば真偽値、読めなければ元の文字列
  */
 function toBoolean(value: string): boolean | string {
   if (value === "true") {
@@ -165,13 +168,25 @@ function toBoolean(value: string): boolean | string {
   return value;
 }
 
-/** 素の値を、契約が宣言した型へ直す。 */
+/**
+ * 素の値を、契約が宣言した型へ直す。
+ *
+ * @param raw - URL から届いた素の検索条件
+ * @returns 契約の型に沿って直した値の組
+ */
 function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(raw).map(([key, value]) => [key, toTypedValue(key, value)]),
   );
 }
 
+/**
+ * 1 つのキーの素の値を、契約が宣言した型へ直す。
+ *
+ * @param key - 検索条件のキー名
+ * @param value - URL から届いた素の値
+ * @returns 契約の型に沿って直した値
+ */
 function toTypedValue(key: string, value: string | readonly string[]): unknown {
   if (INTEGER_ARRAY_KEYS.has(key)) {
     return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
@@ -207,6 +222,9 @@ export type ProductQueryParseResult =
  *
  * 未指定のキーは契約の既定値で埋まります。件数と並び順の既定を画面ごとに決め直すと、URL を
  * 省略したときの結果が画面によって変わります。
+ *
+ * @param raw - URL 由来の検索条件
+ * @returns 照らせれば取得条件、読めなければ外れたキーの一覧
  */
 export function parseProductQuery(raw: RawProductQuery): ProductQueryParseResult {
   const parsed = ProductQueryParams.safeParse(toTypedQuery(raw));
@@ -230,6 +248,9 @@ type WireProduct = WireProductPage["products"][number];
  * @remarks
  * 一覧と件数がどちらもこの一式を送ります。取り出す位置（`after` / `first`）と並び順は件数に
  * 効かないため含めません。片方だけに条件を足すと、出ている件数と一覧の中身が食い違います。
+ *
+ * @param query - 商品一覧の取得条件
+ * @returns 一致する対象を決める条件だけを載せたクエリ文字列
  */
 function toFilterParams(
   query: ProductQuery,
@@ -259,6 +280,8 @@ let client: UserScopedHttpClient | undefined;
  * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
  * （`docs/rules.md`「データ分類と機微情報」の「取得の口は分類を宣言する」）。入れてはいけない理由は
  * 同「描画とキャッシュ」の「Data Cache へ入れてよいのは主体を名乗らずに取れるものだけ」が持ちます。
+ *
+ * @returns 商品の口を叩く client
  */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
@@ -278,6 +301,9 @@ function getClient(): UserScopedHttpClient {
  * @remarks
  * 変換をこの境界に閉じるのは、契約の形が変わったときに影響が及ぶ範囲をここまでに留めるためです。
  * 生成型をそのまま内層へ渡すと、契約の都合が画面の実装へ直接漏れます。
+ *
+ * @param wire - 契約の商品応答
+ * @returns 表示用の商品
  */
 export function toProduct(wire: WireProduct): Product {
   return {
@@ -297,7 +323,12 @@ export function toProduct(wire: WireProduct): Product {
   };
 }
 
-/** 契約の 1 ページを表示用の型へ写す。 */
+/**
+ * 契約の 1 ページを表示用の型へ写す。
+ *
+ * @param wire - 契約の商品一覧応答
+ * @returns 表示用の 1 ページ
+ */
 export function toProductPage(wire: WireProductPage): ProductPage {
   return {
     items: wire.products.map(toProduct),
@@ -311,6 +342,10 @@ export function toProductPage(wire: WireProductPage): ProductPage {
  * @remarks
  * 同一レンダリング内の重複呼び出しは `cache()` がまとめます。呼び出し側に「1 回だけ呼ぶ」
  * 規律を要求すると、画面を組み替えるたびに取得の回数が変わってしまうためです。
+ *
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 商品一覧の 1 ページ
  */
 export const getProducts = cache(async (query: ProductQuery = {}): Promise<ProductPage> => {
   const page = await getClient().request({
@@ -335,6 +370,9 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
  * @remarks
  * 画像 URL の解決をここで済ませるのは、配信元が設定から来るためです。設定を読めるのは
  * `adapters` までで、画面側は解決済みの URL しか受け取りません。
+ *
+ * @param product - 表示用の商品
+ * @returns 一覧向けに絞った表示データ
  */
 function toProductListItem(product: Product): ProductListItem {
   return {
@@ -355,6 +393,10 @@ function toProductListItem(product: Product): ProductListItem {
  * @remarks
  * 増分取得が同じ形を JSON で受け取るため、`Date` や省略可能な値を含まない形へここで落とします。
  * 初回ページと増分ページで形が違うと、積み上げた一覧の途中から表示が壊れます。
+ *
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 表示に必要なものだけへ絞った 1 ページ
  */
 export async function getProductListPage(
   query: ProductQuery = {},
@@ -373,6 +415,10 @@ export async function getProductListPage(
  *
  * 一覧と同じ条件を受け取ります。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て、
  * 一覧に並んでいる件数と食い違います。
+ *
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 条件に一致する商品の総数
  */
 export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
   const { count } = await getClient().request({
@@ -406,6 +452,8 @@ export type ProductRankingQuery = {
  *
  * 件数と期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに要る件数が違うためです。
  * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
+ *
+ * @returns 売れ筋ランキング
  */
 export const getProductRanking = cache(
   async ({
@@ -437,6 +485,9 @@ export const getProductRanking = cache(
  * @remarks
  * 一覧と同じ経路を通すため、生 status の分類と応答の検証は fetch wrapper が済ませています。
  * 存在しない ID は wrapper が `not-found` へ正規化するため、ここでは分岐を持ちません。
+ *
+ * @param id - 対象の商品
+ * @returns 商品 1 件
  */
 export const getProduct = cache(async (id: ProductId): Promise<Product> => {
   const product = await getClient().request({
@@ -447,12 +498,22 @@ export const getProduct = cache(async (id: ProductId): Promise<Product> => {
   return toProduct(product);
 });
 
-/** 画像 1 件を契約の形へ写す。 */
+/**
+ * 画像 1 件を契約の形へ写す。
+ *
+ * @param image - 表示用の画像下書き
+ * @returns 契約が受け付ける画像の形
+ */
 function toWireImage(image: ProductImageDraft) {
   return { imagePath: image.imagePath, displaySort: image.displaySort };
 }
 
-/** 公開日時を契約の形へ写す。未公開は null のまま送る。 */
+/**
+ * 公開日時を契約の形へ写す。未公開は null のまま送る。
+ *
+ * @param publishedAt - 表示用の公開日時
+ * @returns 契約が受け付ける ISO 8601 文字列。未公開なら null
+ */
 function toWirePublishedAt(publishedAt: Date | null): string | null {
   return publishedAt === null ? null : publishedAt.toISOString();
 }
@@ -465,6 +526,9 @@ function toWirePublishedAt(publishedAt: Date | null): string | null {
  * 二度送れば別のキーで二重に保存され、片方が誰からも参照されないまま残ります。
  *
  * 返るのはキーだけで、表示 URL はここでは組みません。組み立てに要る配信元は表示側の関心です。
+ *
+ * @param image - アップロードする画像
+ * @returns 保存されたオブジェクトキー
  */
 export async function uploadProductImage(image: File): Promise<string> {
   const body = new FormData();
@@ -485,6 +549,9 @@ export async function uploadProductImage(image: File): Promise<string> {
  *
  * @remarks
  * 自然キーを持たないため**再送しません**。同じ本文を二度送れば商品が 2 件できます。
+ *
+ * @param draft - 作成する商品の内容
+ * @returns 作成された商品
  */
 export async function createProduct(draft: ProductDraft): Promise<Product> {
   const wire = await getClient().request({
@@ -517,6 +584,10 @@ export async function createProduct(draft: ProductDraft): Promise<Product> {
  *
  * 版が現在値と食い違えば wrapper が `conflict` へ正規化します。呼び出し側はそれを、取り直して
  * から送り直す合図として扱います。
+ *
+ * @param id - 対象の商品
+ * @param edit - 更新後の内容
+ * @returns 更新後の商品
  */
 export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<Product> {
   const wire = await getClient().request({

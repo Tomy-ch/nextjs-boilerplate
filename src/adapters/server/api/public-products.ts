@@ -22,6 +22,7 @@ export const PRODUCT_PAGE_LIMIT: number = getProductsQueryFirstMax;
  * ものだけです。
  *
  * @param after - 前のページが返した cursor。先頭なら省略
+ * @returns 公開中の商品 ID の 1 ページ
  */
 export async function getPublicProductIds(after?: string): Promise<CursorPage<ProductId>> {
   const page = await getPublicClient().request({

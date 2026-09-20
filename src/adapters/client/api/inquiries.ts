@@ -79,7 +79,12 @@ export const inquiryFeedEventSchema = z.object({
 /** フィードが運ぶ event 1 件。 */
 export type InquiryFeedEvent = z.infer<typeof inquiryFeedEventSchema>;
 
-/** 届いた event を、取得した履歴と同じ表示用の型へ写す。 */
+/**
+ * 届いた event を、取得した履歴と同じ表示用の型へ写す。
+ *
+ * @param event - 会話 stream から届いた event
+ * @returns 表示用に変換したメッセージ
+ */
 export function toInquiryMessage(event: InquiryConversationEvent): InquiryMessage {
   return {
     id: event.payload.messageId,
@@ -90,7 +95,12 @@ export function toInquiryMessage(event: InquiryConversationEvent): InquiryMessag
   };
 }
 
-/** 更新のあった問い合わせ。一覧はこの識別子を見て、その行を取り直す。 */
+/**
+ * 更新のあった問い合わせ。一覧はこの識別子を見て、その行を取り直す。
+ *
+ * @param event - フィードから届いた event
+ * @returns 更新された問い合わせの識別子
+ */
 export function toUpdatedInquiryId(event: InquiryFeedEvent): InquiryId {
   return event.payload.inquiryId;
 }

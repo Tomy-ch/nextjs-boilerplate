@@ -73,6 +73,8 @@ export function parseTraceExport(value: unknown): TraceExport | undefined {
  * **渡せなかったことを呼び出し元へ持ち出しません。** collector が落ちていることは中継の口の失敗では
  * なく、送り手（exporter）はどのみち再送しません。投げ直すと、観測基盤の不調がそのまま無認証の口の
  * 500 になります。
+ *
+ * @param traces - collector へ中継する OTLP の span 群
  */
 export async function forwardTraceExport(traces: TraceExport): Promise<void> {
   const config = getObservabilityConfig();
@@ -99,7 +101,11 @@ export async function forwardTraceExport(traces: TraceExport): Promise<void> {
   }
 }
 
-/** 渡せなかったことを記録する。記録できないことで中継の応答まで変えない。 */
+/**
+ * 渡せなかったことを記録する。記録できないことで中継の応答まで変えない。
+ *
+ * @param fields - ログへ添える追加のフィールド
+ */
 function reportFailure(fields: Readonly<Record<string, unknown>>): void {
   reportQuietly(() => {
     getLogger().warn("ブラウザの span を collector へ渡せませんでした", fields);
@@ -118,6 +124,9 @@ function reportFailure(fields: Readonly<Record<string, unknown>>): void {
  *
  * **値の中身は見ません。** 上流や第三者が組んだ URL の中まで洗い出すことは表現層の設計目標に
  * 入れていません。名前で持ち回っている限り効き、そうでないものは元の設計が誤っています。
+ *
+ * @param traces - 伏せる対象を含みうる OTLP 封筒
+ * @returns 伏せる名前の属性を censor へ置き換えた OTLP 封筒
  */
 function redactAttributes(traces: TraceExport): TraceExport {
   return {
@@ -135,14 +144,25 @@ function redactAttributes(traces: TraceExport): TraceExport {
   };
 }
 
-/** 伏せる名前の属性なら値を差し替える。 */
+/**
+ * 伏せる名前の属性なら値を差し替える。
+ *
+ * @param item - 検査する属性
+ * @returns 伏せる名前なら値を置き換えた属性、そうでなければ元の属性
+ */
 function censorSecret(item: z.infer<typeof attribute>): z.infer<typeof attribute> {
   return REDACTED_FIELD_NAMES.includes(item.key.toLowerCase())
     ? { ...item, value: { stringValue: REDACTED } }
     : item;
 }
 
-/** 各 resource の service 名を、このアプリが名乗っているものへ揃える。 */
+/**
+ * 各 resource の service 名を、このアプリが名乗っているものへ揃える。
+ *
+ * @param traces - 書き換え対象の OTLP 封筒
+ * @param serviceName - 揃える先の service 名
+ * @returns service 名を揃えた OTLP 封筒
+ */
 function withServiceName(traces: TraceExport, serviceName: string): TraceExport {
   return {
     ...traces,

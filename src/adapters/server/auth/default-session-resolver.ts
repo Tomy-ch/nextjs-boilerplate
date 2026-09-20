@@ -99,6 +99,9 @@ export type DefaultSessionResolverDeps = {
  *
  * Discovery の結果は生成した Resolver が抱えます。**取得に失敗したときは抱え込みません**
  * （`resolveEndpoints` の `??=` を参照）。
+ *
+ * @param deps - 接続先・秘密値・時刻など、この Resolver が使う依存
+ * @returns Authorization Code + PKCE と JWE 封緘による Session Resolver
  */
 export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): SessionResolver {
   const now = deps.now ?? Date.now;
@@ -112,6 +115,11 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
   let endpoints: Promise<OidcEndpoints> | undefined;
   let jwks: ReturnType<typeof createRemoteJWKSet> | undefined;
 
+  /**
+   * Discovery の結果を取得し、以後は使い回す。
+   *
+   * @returns IdP が公開している接続先
+   */
   const resolveEndpoints = (): Promise<OidcEndpoints> => {
     // 失敗した Promise は捨てる。`??=` は undefined のときしか代入しないため、reject した
     // Promise を残すと次の呼び出しも同じ失敗を返し、プロセスを入れ替えるまで回復しない。
@@ -126,6 +134,11 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
     return endpoints;
   };
 
+  /**
+   * 署名鍵の取得元を組み立て、以後は使い回す。
+   *
+   * @returns ID Token の署名検証に使う JWK Set
+   */
   const resolveJwks = async (): Promise<ReturnType<typeof createRemoteJWKSet>> => {
     const resolved = await resolveEndpoints();
     // 鍵の取得も渡された実装に通す。ここだけが環境の fetch を直に掴むと、IdP との通信が
@@ -312,6 +325,12 @@ export function createDefaultSessionResolver(deps: DefaultSessionResolverDeps): 
  * `expires_in` は token endpoint が返す「この access token が使える残り秒数」で、session を
  * それより長く生かしても Bearer が通らなくなるだけです。返さない IdP もあるため、その場合は
  * ID Token の `exp` へ落とします。
+ *
+ * @param expiresIn - token endpoint が返した残り秒数。無ければ undefined
+ * @param idTokenExp - ID Token の `exp`（epoch 秒）。無ければ undefined
+ * @param at - 起点とする現在時刻（epoch ミリ秒）
+ * @returns 失効時刻
+ * @throws expiresIn と idTokenExp のどちらも無いとき
  */
 function toExpiry(expiresIn: number | undefined, idTokenExp: number | undefined, at: number): Date {
   if (expiresIn !== undefined) {

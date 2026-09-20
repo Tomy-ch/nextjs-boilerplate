@@ -54,6 +54,7 @@ export type OidcEndpoints = {
  * @param issuer - 設定が持つ issuer
  * @param maxUrlBytes - 1 つの要求 URL に許すバイト数の上限
  * @param fetchImpl - 取得に使う実装。既定は環境の `fetch`
+ * @returns IdP が公開している接続先
  * @throws Discovery を取得できないとき、`issuer` が一致しないとき
  */
 export async function fetchOidcEndpoints(

@@ -58,6 +58,9 @@ export type DevelopmentAuthorization = {
  * 秘密値を引数に取らず設定から読むのは、**呼ぶのが app 層だから**です
  * （`app/dev/session/authorize-development-session.ts`）。渡す形にすると、封緘の鍵が
  * `adapters/server/auth` の外を通ります。
+ *
+ * @param authorization - 発行する認可コードが束ねる、要求の `state` と session の指定
+ * @returns 封緘した認可コード
  */
 export async function issueDevelopmentAuthorizationCode(
   authorization: DevelopmentAuthorization,
@@ -85,6 +88,9 @@ export async function issueDevelopmentAuthorizationCode(
  * 秘密値を引数で受け取るのは、**呼ぶのが Resolver だから**です。Resolver は依存を注入されて
  * 組み立てられるので、ここで設定を直に読むと、Resolver の検証が環境変数の用意を要求します。
  *
+ * @param code - 発行済みの開発用認可コード
+ * @param secret - 封緘鍵の導出に使う秘密値
+ * @returns 発行時の要求の `state` と session の指定
  * @throws 復号できないとき、失効しているとき、中身が宣言した形でないとき
  */
 export async function openDevelopmentAuthorizationCode(

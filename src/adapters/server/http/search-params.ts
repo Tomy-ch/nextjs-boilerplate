@@ -12,6 +12,9 @@
  * **キーは利用者が決めます。** 空の object へ `raw[key] =` で書くと `__proto__` が代入の
  * 対象になり、その object の prototype を差し替えられます。`Object.fromEntries` は同じ綴りでも
  * 自前のプロパティを作るため、キーの綴りが振る舞いを変えません。
+ *
+ * @param searchParams - 変換元のクエリ文字列
+ * @returns キーごとに畳んだ、条件として読める形
  */
 export function toRawQuery(
   searchParams: URLSearchParams,

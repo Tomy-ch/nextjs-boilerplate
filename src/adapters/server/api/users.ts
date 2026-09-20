@@ -31,6 +31,11 @@ type WireUser = z.infer<typeof GetUsersMeResponse>;
 
 let client: UserScopedHttpClient | undefined;
 
+/**
+ * 利用者の口が使う接続先。
+ *
+ * @returns 利用者用の client
+ */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
@@ -51,12 +56,19 @@ function getClient(): UserScopedHttpClient {
  * この境界の内側で解決します。
  *
  * memo 化するのは、1 リクエストの中で表示と更新の双方がこれを引くためです。
+ *
+ * @returns 契約の形のままの自分の情報
  */
 const getMyUser = cache(async (): Promise<WireUser> => {
   return getClient().request({ path: "/v1/users/me", schema: GetUsersMeResponse });
 });
 
-/** 契約の応答を表示用の型へ写す。 */
+/**
+ * 契約の応答を表示用の型へ写す。
+ *
+ * @param wire - 契約の利用者応答
+ * @returns 表示用のプロフィール
+ */
 function toUserProfile(wire: WireUser): UserProfile {
   return {
     firstName: wire.firstName,
@@ -71,7 +83,11 @@ function toUserProfile(wire: WireUser): UserProfile {
   };
 }
 
-/** 自分のプロフィールを取得する。 */
+/**
+ * 自分のプロフィールを取得する。
+ *
+ * @returns 自分のプロフィール
+ */
 export async function getMyProfile(): Promise<UserProfile> {
   return toUserProfile(await getMyUser());
 }
@@ -111,6 +127,8 @@ export async function findMyProfile(): Promise<UserProfile | null> {
  *
  * 未認証を先に判定します。身元が無いまま `/v1/users/me` を叩いても `401` が返るだけで、
  * 往復が 1 つ増えます。
+ *
+ * @returns 未認証 / 未登録 / 登録済みのいずれか
  */
 export async function findRegistration(): Promise<RegistrationStatus> {
   if ((await verifySession()) === null) {
@@ -125,6 +143,8 @@ export async function findRegistration(): Promise<RegistrationStatus> {
  *
  * @remarks
  * ステータスは ID と名称が解決済みで届くため、名称を引き直しません。
+ *
+ * @returns 自分の購入の集計
  */
 export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => {
   const wire = await getClient().request({
@@ -189,6 +209,7 @@ export async function registerUser(profile: UserProfile, idempotencyKey: string)
  * 契約は全項目の置換（`PUT`）を要求します。部分更新の口もありますが、フォームが常に全項目を
  * 持って送るため、送った内容がそのまま更新後の状態になる形を選びます。
  *
+ * @param profile - 更新後のプロフィール内容
  * @returns 更新後のプロフィール
  */
 export async function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
@@ -278,7 +299,12 @@ export type ManagedUserQuery = {
   readonly active?: boolean;
 };
 
-/** 契約の応答 1 件を、一覧が並べる形へ写す。 */
+/**
+ * 契約の応答 1 件を、一覧が並べる形へ写す。
+ *
+ * @param wire - 契約の利用者応答 1 件
+ * @returns 一覧向けの利用者
+ */
 function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]): ManagedUser {
   return {
     id: toUserId(wire.id),
@@ -302,6 +328,9 @@ function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]):
  *
  * admin の役割を要します。役割の判定はこの手前（`app` 層の断言と `admin` の器）にあり、ここは
  * 通った要求だけを受けます。
+ *
+ * @param query - 一覧を絞り込む条件
+ * @returns 利用者一覧の 1 ページ
  */
 export const getManagedUserPage = cache(
   async (query: ManagedUserQuery): Promise<OffsetPage<ManagedUser>> => {

@@ -26,6 +26,8 @@ let client: UserScopedHttpClient | undefined;
  * @remarks
  * 認証を任意にします。参考換算は購入前の利用者にも要るため、契約が資格情報の無い呼び出しも
  * 受け付けます。
+ *
+ * @returns 為替換算用の client
  */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({

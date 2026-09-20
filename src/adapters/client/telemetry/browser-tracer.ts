@@ -41,6 +41,11 @@ class DocumentRootContextManager extends StackContextManager {
     this.#document = documentContext;
   }
 
+  /**
+   * 有効な文脈を返す。
+   *
+   * @returns 囲まれた span が無ければ画面を組んだ要求の文脈、それ以外は現在の文脈
+   */
   override active(): Context {
     const current = super.active();
 
@@ -130,6 +135,9 @@ const TRACEPARENT = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/;
  * **伝播器を通しません。** 大域に登録されたものは `register()` が済むまで何もしない実装のままで、
  * この読み替えはその前に要ります（登録の引数に渡す文脈だからです）。読む形式は 1 つだけなので、
  * 書式を確かめて位置で切り出します。
+ *
+ * @param traceparent - サーバーから渡された `traceparent`。無ければ `undefined`
+ * @returns 読み替えた文脈。渡っていない、または形式に合わない場合は根の文脈
  */
 function toDocumentContext(traceparent: string | undefined): Context {
   if (traceparent === undefined || !TRACEPARENT.test(traceparent)) {
@@ -151,6 +159,10 @@ function toDocumentContext(traceparent: string | undefined): Context {
  * 既定の名前は方式だけ（`GET`）で、どの経路への要求かを持ちません。集約の単位にするためにパスを
  * 足し、**クエリは名前に載せません**（理由は[同区画の README](README.md)）。
  * クエリを含む URL は既定の計装が属性の `url.full` へ残すので、1 件ずつ辿るときはそちらを読みます。
+ *
+ * @param span - 名づける対象の span
+ * @param request - 計装が渡す要求。`fetch` の呼び出し引数
+ * @param result - 計装が渡す応答、または送出に失敗した結果
  */
 function nameByPath(span: Span, request: Request | RequestInit, result: unknown): void {
   const url = request instanceof Request ? request.url : findResponseUrl(result);
@@ -166,7 +178,12 @@ function nameByPath(span: Span, request: Request | RequestInit, result: unknown)
   span.setAttribute(ATTR_URL_PATH, pathname);
 }
 
-/** 応答から要求先を読む。失敗した要求は応答を持たない。 */
+/**
+ * 応答から要求先を読む。失敗した要求は応答を持たない。
+ *
+ * @param result - 計装が渡す応答、または送出に失敗した結果
+ * @returns 要求先の URL。読めない場合は `undefined`
+ */
 function findResponseUrl(result: unknown): string | undefined {
   if (typeof result !== "object" || result === null || !("url" in result)) {
     return undefined;

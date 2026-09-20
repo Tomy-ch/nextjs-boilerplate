@@ -29,6 +29,9 @@ export type TestSessionSpec = {
  * 既定で組むトークンは本物ではありません。この指定が通る環境では API 自体がモックされており、
  * Bearer が検証される先がないためです。**実物の API へ繋ぐときだけ `accessToken` を渡します** —
  * 検証する先があるなら、そこを通るトークンでなければ意味がありません。
+ *
+ * @param spec - 発行する session の指定
+ * @returns 組み立てた session の記録
  */
 export function toTestSessionRecord(spec: TestSessionSpec): SessionRecord {
   return {

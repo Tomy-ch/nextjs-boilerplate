@@ -26,6 +26,7 @@ const ROLES_PATH = "/v1/users/me/roles";
  * 役割が 1 つも無い主体は一般利用者として扱います。空配列はエラーではなく、契約がそう定めています。
  *
  * @param accessToken - 確立しようとしている session の Access Token
+ * @returns 主体が持つ役割
  */
 export async function fetchSessionRole(accessToken: string): Promise<SessionRole> {
   const wire = await createHttpClient({

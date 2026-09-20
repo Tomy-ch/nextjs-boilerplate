@@ -32,6 +32,9 @@ export const PRODUCT_MASTERS_TAG = "product-masters";
  * 表示の順序になります。
  *
  * `code` は残します。分類で絞り込む条件として URL に載るのはこの番号だからです。
+ *
+ * @param wire - 契約の分類マスタ応答
+ * @returns 表示用の分類一覧
  */
 function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
   return wire.map(({ id, name, code }) => ({ id, name, code }));
@@ -53,6 +56,8 @@ function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
  *
  * 外側の `cache()` は同一リクエスト内の重複を畳みます。`use cache` はリクエストをまたぐ層で、
  * 別物です。
+ *
+ * @returns 商品カテゴリのマスタ
  */
 export const getProductCategories = cache(async (): Promise<readonly ProductCategory[]> => {
   "use cache";
@@ -72,6 +77,9 @@ export const getProductCategories = cache(async (): Promise<readonly ProductCate
  *
  * @remarks
  * `code` を残す理由は {@link toProductCategories} と同じです。
+ *
+ * @param wire - 契約のステータスマスタ応答
+ * @returns 表示用のステータス一覧
  */
 function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
   return wire.map(({ id, name, code }) => ({ id, name, code }));
@@ -82,6 +90,8 @@ function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
  *
  * @remarks
  * キャッシュの扱いは {@link getProductCategories} と同じです。
+ *
+ * @returns 商品ステータスのマスタ
  */
 export const getProductStatuses = cache(async (): Promise<readonly ProductStatus[]> => {
   "use cache";

@@ -48,7 +48,12 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
   }
 }
 
-/** 宣言された型が JSON かを見る。charset などの引数が付いていても本体の型は変わらない。 */
+/**
+ * 宣言された型が JSON かを見る。charset などの引数が付いていても本体の型は変わらない。
+ *
+ * @param contentType - 検査する Content-Type ヘッダの値
+ * @returns JSON を宣言しているか
+ */
 function isJson(contentType: string | null): boolean {
   return contentType !== null && contentType.split(";")[0]?.trim().toLowerCase() === CONTENT_TYPE;
 }

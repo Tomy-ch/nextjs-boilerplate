@@ -22,6 +22,8 @@ let resolver: SessionResolver | undefined;
  * **環境と併せて見ます。** `AUTH_MODE` だけを条件にすると、設定を誤って実環境へ `dev` を与えた
  * 瞬間に、IdP を通らずに任意の役割で入れる経路が公開ドメインで開きます。開ける環境の一覧は
  * `developmentOnlyEnvironments` の 1 か所のままにします。
+ *
+ * @returns 開発用の面へ差し替えるなら true
  */
 function usesDevelopmentAuthorization(): boolean {
   return getAuthConfig().mode === "dev" && isDevelopmentOnlyEndpointOpen();
@@ -39,6 +41,8 @@ function usesDevelopmentAuthorization(): boolean {
  *
  * 一度作った Resolver を使い回します。呼ぶたびに作り直すと、Resolver が抱える Discovery と
  * 鍵の取得結果も毎回捨てることになります。
+ *
+ * @returns 環境に応じて選ばれた Session Resolver
  */
 export function getSessionResolver(): SessionResolver {
   const config = getAuthConfig();

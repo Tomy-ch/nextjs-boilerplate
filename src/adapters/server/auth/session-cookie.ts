@@ -42,6 +42,8 @@ export const TRANSACTION_MAX_AGE_SECONDS = 600;
  * `secure` は自分が https で配信されているときだけ付けます。常に付けると `http://localhost` の
  * 開発で cookie が保存されず、逆に常に外すと本番で平文の経路に載ります。判定は
  * {@link isServedOverTls} が持ちます。
+ *
+ * @returns cookie に共通で付ける属性
  */
 export function baseCookieOptions(): {
   httpOnly: true;

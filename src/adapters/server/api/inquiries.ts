@@ -35,6 +35,11 @@ type WireList = z.infer<typeof GetInquiriesResponse>;
 
 let client: UserScopedHttpClient | undefined;
 
+/**
+ * 問い合わせの口が使う接続先。
+ *
+ * @returns 問い合わせ用の client
+ */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
@@ -46,7 +51,12 @@ function getClient(): UserScopedHttpClient {
   return client;
 }
 
-/** 契約のメッセージを表示用の型へ写す。所属する問い合わせは履歴の側が持つため落とす。 */
+/**
+ * 契約のメッセージを表示用の型へ写す。所属する問い合わせは履歴の側が持つため落とす。
+ *
+ * @param wire - 契約のメッセージ
+ * @returns 表示用のメッセージ
+ */
 function toMessage(wire: WireMessage): InquiryMessage {
   return {
     id: wire.id,
@@ -57,6 +67,12 @@ function toMessage(wire: WireMessage): InquiryMessage {
   };
 }
 
+/**
+ * 契約の履歴応答を表示用の型へ写す。
+ *
+ * @param wire - 契約の履歴応答
+ * @returns 表示用の履歴
+ */
 function toHistory(wire: WireHistory): InquiryHistory {
   return {
     inquiryId:
@@ -67,6 +83,12 @@ function toHistory(wire: WireHistory): InquiryHistory {
   };
 }
 
+/**
+ * 契約の一覧応答を表示用の 1 ページへ写す。
+ *
+ * @param wire - 契約の一覧応答
+ * @returns 表示用の 1 ページ
+ */
 function toListPage(wire: WireList): InquiryListPage {
   return {
     items: wire.items.map((item) => ({
@@ -79,7 +101,12 @@ function toListPage(wire: WireList): InquiryListPage {
   };
 }
 
-/** 位置を指定した取得のクエリ。先頭から読むときは何も付けない。 */
+/**
+ * 位置を指定した取得のクエリ。先頭から読むときは何も付けない。
+ *
+ * @param afterSequence - この位置より後ろを取得する。先頭から読むときは undefined
+ * @returns クエリに載せる検索条件。先頭から読むときは undefined
+ */
 function afterSequenceParams(
   afterSequence: number | undefined,
 ): Readonly<Record<string, string>> | undefined {
@@ -98,6 +125,7 @@ function afterSequenceParams(
  * 取得と購読の間に追加されたメッセージが抜けます。
  *
  * @param afterSequence - この位置より後ろを取得する。先頭から読むときは省略する
+ * @returns 履歴の 1 ページ
  */
 export async function getMyInquiryHistory(afterSequence?: number): Promise<InquiryHistory> {
   return toHistory(
@@ -118,6 +146,8 @@ export async function getMyInquiryHistory(afterSequence?: number): Promise<Inqui
  * **冪等キーは必ず付けます。** 契約では任意ですが、メッセージは自然キーを持たないため、
  * 付けない再送はそのまま 2 通目になります。
  *
+ * @param body - メッセージの本文
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
  * @returns 追加されたメッセージ。位置と識別子が確定しているため、楽観追加した行を置き換えられる
  */
 export async function postMyInquiryMessage(
@@ -141,6 +171,9 @@ export async function postMyInquiryMessage(
  *
  * @remarks
  * 更新日時の新しい順です。本文を持たないため、一覧は行だけで組み立てます。
+ *
+ * @param after - 前のページが返した cursor。先頭なら省略
+ * @returns 問い合わせ一覧の 1 ページ
  */
 export async function listInquiries(after?: string): Promise<InquiryListPage> {
   return toListPage(
@@ -152,7 +185,13 @@ export async function listInquiries(after?: string): Promise<InquiryListPage> {
   );
 }
 
-/** 任意の問い合わせの履歴を 1 ページ取得する（運営）。形も開始位置の使い方も自分の履歴と同じ。 */
+/**
+ * 任意の問い合わせの履歴を 1 ページ取得する（運営）。形も開始位置の使い方も自分の履歴と同じ。
+ *
+ * @param inquiryId - 対象の問い合わせ
+ * @param afterSequence - この位置より後ろを取得する。先頭から読むときは省略する
+ * @returns 履歴の 1 ページ
+ */
 export async function getInquiryHistory(
   inquiryId: InquiryId,
   afterSequence?: number,
@@ -166,7 +205,14 @@ export async function getInquiryHistory(
   );
 }
 
-/** 問い合わせへ回答を 1 通追加する（運営）。送り手は運営として記録される。 */
+/**
+ * 問い合わせへ回答を 1 通追加する（運営）。送り手は運営として記録される。
+ *
+ * @param inquiryId - 対象の問い合わせ
+ * @param body - 回答の本文
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ * @returns 追加された回答
+ */
 export async function postInquiryReply(
   inquiryId: InquiryId,
   body: string,
