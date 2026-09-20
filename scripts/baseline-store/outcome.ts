@@ -33,13 +33,7 @@ export type RetakeOutcomeInput = {
   readonly pointerPrUrl: string;
   /** 画面の判定がまだ届いていないか。 */
   readonly screensPending: boolean;
-  /**
-   * この commit で E2E が一度も走っていないか。
-   *
-   * @remarks
-   * 画面の比較は PR では既定で回りません。回っていなければ報告が空になり、撮り直しも空になります。
-   * **story だけが撮り直されて merge されると、画面の基準は古いまま release へ入ります。**
-   */
+  /** この commit で E2E が一度も走っておらず、画面を撮り直す余地そのものが無かったか。 */
   readonly screensAbsent: boolean;
   /** 作業ツリーが指すブランチ。 */
   readonly headRef: string;
