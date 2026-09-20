@@ -732,10 +732,10 @@ describe("vendorImportsOf", () => {
     ).toEqual(["radix-ui"]);
   });
 
-  it("文字列に `/*` があっても、後ろの import を数える", () => {
+  it("文字列の中に import の綴りがあっても数えない", () => {
     expect(
       vendorImportsOf([
-        'const glob = "image/*";\nimport { Slot } from "radix-ui";\n/** 閉じる。 */\nexport const a = 1;',
+        'const sample = `import { Fake } from "fake-pkg";`;\nconst glob = "image/*";\nimport { Slot } from "radix-ui";\n/** 閉じる。 */\nexport const a = 1;',
       ]),
     ).toEqual(["radix-ui"]);
   });
@@ -746,10 +746,24 @@ describe("vendorImportsOf", () => {
     ]);
   });
 
+  it("読み込み先を持たない再輸出は数えない", () => {
+    expect(vendorImportsOf(['const a = 1;\nexport { a };'])).toEqual([]);
+  });
+
   it("副作用だけの import は数えない", () => {
     expect(vendorImportsOf(['import "server-only";\nimport { Slot } from "radix-ui";'])).toEqual([
       "radix-ui",
     ]);
+  });
+
+  it("型だけの import も数える", () => {
+    expect(vendorImportsOf(['import type { Config } from "input-otp";'])).toEqual(["input-otp"]);
+  });
+
+  it("scope 付きの package を、内部 import と区別して数える", () => {
+    expect(
+      vendorImportsOf(['import { cn } from "@/components/cn";\nimport { Editor } from "@tiptap/react";']),
+    ).toEqual(["@tiptap/react"]);
   });
 });
 
