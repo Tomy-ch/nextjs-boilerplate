@@ -57,7 +57,7 @@ export interface MissingFrame {
 
 /** その名前で framework が呼ぶファイルか。 */
 function isFrameworkFile(file: string): boolean {
-  const basename = file.split("/").at(-1) ?? "";
+  const basename = file.slice(file.lastIndexOf("/") + 1);
 
   return FRAMEWORK_BASENAMES.has(basename.replace(/\.(tsx|ts)$/, "").replace(/\.dev$/, ""));
 }
@@ -81,10 +81,6 @@ function hasParamTag(node: ts.Node): boolean {
  */
 function typeCarriesTheDoc(node: ts.Node): boolean {
   const { parent } = node;
-
-  if (parent === undefined) {
-    return false;
-  }
 
   if (ts.isObjectLiteralExpression(parent)) {
     return true;
@@ -179,7 +175,7 @@ export function findMissingFrames(file: string, source: string): MissingFrame[] 
 
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
 
-  return namedFunctions(tree).flatMap(({ node, name }) => {
+  return namedFunctions(tree).flatMap(({ node, name }): MissingFrame[] => {
     const line = tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
 
     if (!documented(node)) {

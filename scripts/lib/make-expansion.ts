@@ -31,7 +31,7 @@ const ASSIGNMENT = /^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*[:?+!]?=/;
  * 関数呼び出し（空白や `,` を含む）は当たりません。直前の `$` を除くのは、`$$(cmd)` が make の
  * 展開ではなく**シェルの実行置換**だからです。除かないと、シェルの書き方を違反として報告します。
  */
-const EXPANSION = /(?<!\$)\$\(([A-Za-z_][A-Za-z0-9_]*)\)/g;
+const EXPANSION = /(?<!\$\$\()(?<=\$\()[A-Za-z_][A-Za-z0-9_]*(?=\))/g;
 
 /**
  * リテラルだけで絞る `filter`。ここに渡った値は候補のどれかか空にしかならない。
@@ -95,7 +95,7 @@ export function findBareExpansions(
     if (DEFINE_START.test(line)) inDefine = true;
     else if (DEFINE_END.test(line)) inDefine = false;
     else if (!inDefine && line.startsWith("\t")) {
-      for (const [, name] of line.replace(BOUNDED_FILTER, "").matchAll(EXPANSION)) {
+      for (const [name] of line.replace(BOUNDED_FILTER, "").matchAll(EXPANSION)) {
         if (!assigned.has(name) && !BUILTIN.has(name)) {
           found.push({ file, line: index + 1, variable: name });
         }

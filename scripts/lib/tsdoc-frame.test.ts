@@ -70,6 +70,14 @@ describe("findMissingFrames", () => {
     expect(findMissingFrames(FILE, source)).toEqual([]);
   });
 
+  it("式で書いたクラスでも、`implements` があれば対象にしない", () => {
+    const source = ["const A = class implements B {", "  run(value: number): void {}", "};"].join(
+      "\n",
+    );
+
+    expect(findMissingFrames(FILE, source)).toEqual([]);
+  });
+
   it("framework が名前で呼ぶファイルは走査しない", () => {
     const source = "export default function Page() {}";
 
