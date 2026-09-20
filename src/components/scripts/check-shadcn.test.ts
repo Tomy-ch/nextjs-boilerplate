@@ -747,7 +747,7 @@ describe("vendorImportsOf", () => {
   });
 
   it("読み込み先を持たない再輸出は数えない", () => {
-    expect(vendorImportsOf(['const a = 1;\nexport { a };'])).toEqual([]);
+    expect(vendorImportsOf(["const a = 1;\nexport { a };"])).toEqual([]);
   });
 
   it("副作用だけの import は数えない", () => {
@@ -762,7 +762,9 @@ describe("vendorImportsOf", () => {
 
   it("scope 付きの package を、内部 import と区別して数える", () => {
     expect(
-      vendorImportsOf(['import { cn } from "@/components/cn";\nimport { Editor } from "@tiptap/react";']),
+      vendorImportsOf([
+        'import { cn } from "@/components/cn";\nimport { Editor } from "@tiptap/react";',
+      ]),
     ).toEqual(["@tiptap/react"]);
   });
 });
