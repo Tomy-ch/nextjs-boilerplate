@@ -30,6 +30,7 @@ const MINIMUM_SECTIONS = 10;
 describe("実装規約の集計", () => {
   const tally = collectRuleTally(readFileSync(resolve(ROOT, "docs/rules.md"), "utf8"));
 
+  // ----- 正常系 -----
   it("数えられなかったものが無い", () => {
     expect(tally.violations).toEqual([]);
   });

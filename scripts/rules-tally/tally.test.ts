@@ -102,24 +102,134 @@ describe("collectRuleTally", () => {
     expect(tally.judged).toEqual([]);
     expect(tally.violations).toEqual(["判定の綴りが 3 語の外: 「寄せられていない」（規約。）"]);
   });
+
+  it("規約の外に書かれた判定を、数えずに violations へ載せる", () => {
+    const tally = collectRuleTally(
+      ['<a id="x"></a>', "## 節", "導入。散文 —— **寄せられる**。", "- **規約。**"].join("\n"),
+    );
+
+    expect(tally.judged).toEqual([]);
+    expect(tally.violations).toEqual(["判定が規約の外にある: 「寄せられる」（節）"]);
+  });
+
+  it("要旨がその行で閉じていない箇条書きを、規約に数えずに violations へ載せる", () => {
+    const tally = collectRuleTally(
+      ['<a id="x"></a>', "## 節", "- **規約", "  続き。**"].join("\n"),
+    );
+
+    expect(tally.rules).toBe(0);
+    expect(tally.violations).toEqual(["規約の要旨がその行で閉じていない: 「- **規約」"]);
+  });
+
+  it("節へ対応しない錨を violations へ載せる", () => {
+    const tally = collectRuleTally(['<a id="a"></a>', '<a id="b"></a>', "## 節"].join("\n"));
+
+    expect(tally.violations).toEqual(["錨が節へ対応していない: 「a」"]);
+  });
+
+  it("見出しが来ないまま文書が終わった錨も violations へ載せる", () => {
+    const tally = collectRuleTally(['<a id="x"></a>', "本文だけ"].join("\n"));
+
+    expect(tally.sections).toBe(0);
+    expect(tally.violations).toEqual(["錨が節へ対応していない: 「x」"]);
+  });
+
+  it("節頭の根拠が 2 つある節を、二重に数えずに violations へ載せる", () => {
+    const tally = collectRuleTally(
+      [
+        '<a id="x"></a>',
+        "## 節",
+        "> Rationale: [ADR 0020](adr/0020.md); enforced via a。",
+        "- **規約。**",
+        "> Rationale: [ADR 0021](adr/0021.md); enforced via b。",
+      ].join("\n"),
+    );
+
+    expect(tally.enforcedSections).toBe(1);
+    expect(tally.violations).toEqual(["節頭の根拠が 2 つある: 「節」"]);
+  });
+
+  it("`enforced via` を持たない根拠は、節頭の手段に数えない", () => {
+    const tally = collectRuleTally(
+      ['<a id="x"></a>', "## 節", "> Rationale: [ADR 0020](adr/0020.md); review が見る。"].join(
+        "\n",
+      ),
+    );
+
+    expect(tally.enforcedSections).toBe(0);
+    expect(tally.violations).toEqual([]);
+  });
+
+  it("1 つの規約が判定を 2 つ述べたら、どちらも数えずに violations へ載せる", () => {
+    const tally = collectRuleTally(
+      [
+        '<a id="x"></a>',
+        "## 節",
+        "- **規約。** 散文 —— **寄せられる**。散文 —— **寄せられない**。",
+      ].join("\n"),
+    );
+
+    expect(tally.judged).toEqual([]);
+    expect(tally.violations).toEqual(["1 つの規約が判定を 2 つ述べている: 「規約。」"]);
+  });
+
+  it("コードフェンスの中の見出しと錨を、節として数えない", () => {
+    const tally = collectRuleTally(
+      [
+        '<a id="x"></a>',
+        "## 節",
+        "```md",
+        '<a id="fake"></a>',
+        "## 例として書いた見出し",
+        "```",
+        "- **規約。** 散文 —— **寄せられる**。",
+      ].join("\n"),
+    );
+
+    expect(tally.sections).toBe(1);
+    expect(tally.judged).toEqual([
+      { anchor: "x", section: "節", summary: "規約。", verdict: "寄せられる" },
+    ]);
+    expect(tally.violations).toEqual([]);
+  });
 });
 
 describe("renderRuleTally", () => {
   // ----- 正常系 -----
 
-  it("件数の表と、仕事が残っている規約の一覧を組む", () => {
-    const block = renderRuleTally(collectRuleTally(DOCUMENT));
-
-    expect(block).toContain("**節が 2、規約が 4 件。**");
-    expect(block).toContain("| 寄せられない | 1 |");
-    expect(block).toContain("| 一部寄せられる | 1 |");
-    expect(block).toContain("### 仕事が残っている 2 件");
-    expect(block).toContain("| [フォームと送信](rules.md#forms) | 確認を挟む。 | 寄せられる |");
+  it("印・件数の表・仕事が残っている一覧を、この並びで組む", () => {
+    expect(renderRuleTally(collectRuleTally(DOCUMENT))).toBe(
+      [
+        "<!-- generated: rules-tally -->",
+        "",
+        "**節が 2、規約が 4 件。**",
+        "うち 1 節が節頭で機械の手段を名乗り、3 件の規約が自分で判定を述べる。",
+        "",
+        "| 判定 | 件数 |",
+        "| --- | --- |",
+        "| 寄せられない | 1 |",
+        "| 一部寄せられる | 1 |",
+        "| 寄せられる | 1 |",
+        "",
+        "### 仕事が残っている 2 件",
+        "",
+        "| 節 | 規約 | 判定 |",
+        "| --- | --- | --- |",
+        "| [フォームと送信](rules.md#forms) | 確認を挟む。 | 寄せられる |",
+        "| [フォームと送信](rules.md#forms) | タグは 2 段だけ。 | 一部寄せられる |",
+        "",
+        "<!-- /generated: rules-tally -->",
+      ].join("\n"),
+    );
   });
 
-  it("寄せられない規約は、仕事が残っている一覧に載せない", () => {
-    expect(renderRuleTally(collectRuleTally(DOCUMENT))).not.toContain(
-      "| [層境界と依存](rules.md#layers) |",
+  it("規約の文言に現れたパイプを逃がし、表の列を割らせない", () => {
+    const tally = collectRuleTally(
+      ['<a id="x"></a>', "## 節", "- **`a|b` を使う。** 散文 —— **寄せられる**。"].join("\n"),
+    );
+
+    expect(renderRuleTally(tally)).toContain(
+      "| [節](rules.md#x) | `a\\|b` を使う。 | 寄せられる |",
     );
   });
 

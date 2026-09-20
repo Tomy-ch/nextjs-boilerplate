@@ -6,9 +6,10 @@
  * 集計を手で書かない判断と、判定の綴りを 3 語へ閉じる判断は、[scripts](../README.md)「関連する ADR」
  * が持ちます。
  *
- * ここが機械で数えられるのは綴りが閉じているからで、閉じていない綴りは数えずに
- * {@link RuleTally.violations} へ載せます —— 読み飛ばすと、取りこぼした分だけ件数が小さく出て、
- * 集計が「守られている」向きに倒れます。
+ * ここが機械で数えられるのは綴りが閉じているからです。**読めなかったものは数えずに
+ * {@link RuleTally.violations} へ載せます** —— 読み飛ばすと、取りこぼした分だけ件数が小さく出て、
+ * 集計が「守られている」向きに倒れます。載せる先は綴りだけではなく、錨と節の対応・要旨の閉じ方・
+ * 判定の置き場所も同じです。
  */
 
 /** 判定の綴り。この 3 語の外は数えない。 */
@@ -27,6 +28,12 @@ const RATIONALE = /^> Rationale:.*enforced via/;
 
 /** 規約の箇条書き。要旨は最初の強調に入っている。 */
 const RULE = /^- \*\*(.+?)\*\*/;
+
+/** 規約の書き出し。{@link RULE} に一致しないものは、要旨がその行で閉じていない。 */
+const RULE_OPENING = /^- \*\*/;
+
+/** コードフェンスの開閉。 */
+const FENCE = /^\s*(```|~~~)/;
 
 /** 規約が自分で述べる判定。 */
 const VERDICT = /散文 —— \*\*([^*]+)\*\*/g;
@@ -80,8 +87,9 @@ export function collectRuleTally(markdown: string): RuleTally {
   const anchors = new Set<string>();
 
   let anchor: string | null = null;
-  let section: { anchor: string; title: string } | null = null;
+  let section: { anchor: string; rationale: boolean; title: string } | null = null;
   let pending: Pending | null = null;
+  let inFence = false;
   let enforcedSections = 0;
   let sections = 0;
   let rules = 0;
@@ -90,29 +98,44 @@ export function collectRuleTally(markdown: string): RuleTally {
   const settle = (): void => {
     if (pending === null) return;
 
-    for (const [, spelling] of pending.lines.join("\n").matchAll(VERDICT)) {
+    const spellings = [...pending.lines.join("\n").matchAll(VERDICT)].map(([, word]) => word);
+    const [spelling] = spellings;
+
+    if (spellings.length > 1) {
+      violations.push(
+        `1 つの規約が判定を ${spellings.length} つ述べている: 「${pending.summary}」`,
+      );
+    } else if (spelling !== undefined) {
       const verdict = VERDICTS.find((known) => known === spelling);
 
       if (verdict === undefined) {
         violations.push(`判定の綴りが 3 語の外: 「${spelling}」（${pending.summary}）`);
-        continue;
+      } else {
+        judged.push({
+          anchor: pending.anchor,
+          section: pending.section,
+          summary: pending.summary,
+          verdict,
+        });
       }
-
-      judged.push({
-        anchor: pending.anchor,
-        section: pending.section,
-        summary: pending.summary,
-        verdict,
-      });
     }
 
     pending = null;
   };
 
   for (const line of markdown.split("\n")) {
+    if (FENCE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    if (inFence) continue;
+
     const found = ANCHOR.exec(line)?.[1];
 
     if (found !== undefined) {
+      if (anchor !== null) violations.push(`錨が節へ対応していない: 「${anchor}」`);
+
       anchor = found;
       continue;
     }
@@ -127,7 +150,7 @@ export function collectRuleTally(markdown: string): RuleTally {
       else if (anchors.has(anchor)) violations.push(`錨が重複している: 「${anchor}」`);
       else anchors.add(anchor);
 
-      section = { anchor: anchor ?? "", title };
+      section = { anchor: anchor ?? "", rationale: false, title };
       anchor = null;
       continue;
     }
@@ -135,7 +158,10 @@ export function collectRuleTally(markdown: string): RuleTally {
     if (section === null) continue;
 
     if (RATIONALE.test(line)) {
-      enforcedSections += 1;
+      if (section.rationale) violations.push(`節頭の根拠が 2 つある: 「${section.title}」`);
+      else enforcedSections += 1;
+
+      section = { ...section, rationale: true };
       continue;
     }
 
@@ -145,14 +171,36 @@ export function collectRuleTally(markdown: string): RuleTally {
       settle();
       rules += 1;
       pending = { anchor: section.anchor, lines: [], section: section.title, summary: lead };
+    } else if (RULE_OPENING.test(line)) {
+      violations.push(`規約の要旨がその行で閉じていない: 「${line.trim()}」`);
     }
 
-    pending?.lines.push(line);
+    if (pending === null) {
+      for (const [, spelling] of line.matchAll(VERDICT)) {
+        violations.push(`判定が規約の外にある: 「${spelling}」（${section.title}）`);
+      }
+
+      continue;
+    }
+
+    pending.lines.push(line);
   }
 
   settle();
 
+  if (anchor !== null) violations.push(`錨が節へ対応していない: 「${anchor}」`);
+
   return { enforcedSections, judged, rules, sections, violations };
+}
+
+/**
+ * 規約の文言を、表のセルへ入れられる形にする。
+ *
+ * @param text - `rules.md` から取った文言。
+ * @returns パイプを逃がした文言。
+ */
+function cell(text: string): string {
+  return text.replaceAll("|", "\\|");
 }
 
 /**
@@ -172,7 +220,8 @@ export function renderRuleTally(tally: RuleTally): string {
   );
   const pending = tally.judged.filter((rule) => rule.verdict !== "寄せられない");
   const rows = pending.map(
-    (rule) => `| [${rule.section}](rules.md#${rule.anchor}) | ${rule.summary} | ${rule.verdict} |`,
+    (rule) =>
+      `| [${cell(rule.section)}](rules.md#${rule.anchor}) | ${cell(rule.summary)} | ${rule.verdict} |`,
   );
 
   return [
