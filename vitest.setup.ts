@@ -177,3 +177,26 @@ if (typeof Element !== "undefined" && Element.prototype.scrollTo === undefined) 
     // 意図的に空。
   };
 }
+
+// 選択範囲の座標を測る API も無い。編集面は選択を移したあと、その位置が視野に入るかを測ろうとして
+// ここを呼ぶ。測るのはテストが終わった後の frame なので、補わないと**テストは通ったまま、実行の
+// 混み具合しだいで未処理の例外として落ちる**。レイアウトは jsdom に無く測れないため、空の矩形を返す。
+if (typeof Range !== "undefined" && Range.prototype.getClientRects === undefined) {
+  const emptyRect = {
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    toJSON: () => ({}),
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  } as const;
+  Range.prototype.getClientRects = function getClientRects(): DOMRectList {
+    return Object.assign([], { item: () => null }) as unknown as DOMRectList;
+  };
+  Range.prototype.getBoundingClientRect = function getBoundingClientRect(): DOMRect {
+    return emptyRect as unknown as DOMRect;
+  };
+}
