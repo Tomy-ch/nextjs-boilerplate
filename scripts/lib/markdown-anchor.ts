@@ -16,6 +16,17 @@ const HEADING = /^#{1,6}[ \t]+(.*)/;
 const CLOSING_HASHES = /[ \t]#+$/;
 
 /**
+ * 文書が自分で綴りを決めた錨。
+ *
+ * @remarks
+ * GitHub は `id` を `user-content-` 付きで描き、断片の解決も同じ規則で行うため、指す側は接頭辞を
+ * 書きません。ここもそれに合わせて綴りをそのまま採ります。
+ *
+ * 見出しの slug ではなく明示の錨を正とする判断は、[scripts](../README.md)「関連する ADR」が持ちます。
+ */
+const EXPLICIT_ANCHOR = /<a\s[^<>]*\bid="([^"]+)"/gi;
+
+/**
  * 見出しを GitHub と同じ規則でアンカーへ変換する。
  *
  * @remarks
@@ -40,7 +51,7 @@ export function toAnchor(heading: string): string {
  * 同じ見出しが 2 度目以降に現れたときは `-1` / `-2` が付きます。GitHub の採番に合わせています。
  *
  * コードフェンスの中の `#` は見出しではありません。外さないと、例示した見出しがアンカーとして
- * 数えられ、実在しない節への参照が通ります。
+ * 数えられ、実在しない節への参照が通ります。明示の錨も同じ理由でフェンスの外だけを見ます。
  */
 export function collectAnchors(markdown: string): Set<string> {
   const anchors = new Set<string>();
@@ -55,7 +66,11 @@ export function collectAnchors(markdown: string): Set<string> {
       continue;
     }
 
-    const heading = inFence ? undefined : HEADING.exec(line)?.[1];
+    if (inFence) continue;
+
+    for (const [, id] of line.matchAll(EXPLICIT_ANCHOR)) anchors.add(id.toLowerCase());
+
+    const heading = HEADING.exec(line)?.[1];
 
     if (heading === undefined) continue;
 
