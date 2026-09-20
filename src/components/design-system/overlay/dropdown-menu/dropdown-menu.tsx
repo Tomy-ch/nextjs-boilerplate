@@ -124,8 +124,6 @@ function DropdownMenuGroup({ ...props }: ComponentProps<typeof DropdownMenuPrimi
  * 指定であり、意味論は変えない。
  *
  * @param props - Radix `DropdownMenu.Item` の props。`disabled` で操作不能にできる。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
- * @param props.variant - 項目の見た目。
  *
  * @see Storybook `Overlay/DropdownMenu`
  */
@@ -135,7 +133,13 @@ function DropdownMenuItem({
   variant = DROPDOWN_MENU_ITEM_VARIANT.DEFAULT,
   ...props
 }: ComponentProps<typeof DropdownMenuPrimitive.Item> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
+  /**
+   * 項目の見た目。
+   *
+   * @defaultValue DROPDOWN_MENU_ITEM_VARIANT.DEFAULT
+   */
   variant?: DropdownMenuItemVariant;
 }) {
   return (
@@ -251,7 +255,6 @@ function DropdownMenuRadioItem({
  * 選択できない表示専用の要素で、`menuitem` としては扱われない。
  *
  * @param props - Radix `DropdownMenu.Label` の props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
  *
  * @see Storybook `Overlay/DropdownMenu`
  */
@@ -260,6 +263,7 @@ function DropdownMenuLabel({
   inset,
   ...props
 }: ComponentProps<typeof DropdownMenuPrimitive.Label> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
 }) {
   return (
@@ -310,6 +314,8 @@ function DropdownMenuSeparator({
  * </DropdownMenuShortcut>
  * ```
  *
+ * @param props - native `kbd` 属性。
+ *
  * @see Storybook `Overlay/DropdownMenu`
  */
 function DropdownMenuShortcut({ className, ...props }: ComponentProps<"kbd">) {
@@ -344,7 +350,6 @@ function DropdownMenuSub({ ...props }: ComponentProps<typeof DropdownMenuPrimiti
  * 右端の矢印は装飾であり、開閉状態は `aria-expanded` として提供される。
  *
  * @param props - Radix `DropdownMenu.SubTrigger` の props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
  *
  * @see Storybook `Overlay/DropdownMenu`
  */
@@ -354,6 +359,7 @@ function DropdownMenuSubTrigger({
   children,
   ...props
 }: ComponentProps<typeof DropdownMenuPrimitive.SubTrigger> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
 }) {
   return (

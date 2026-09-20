@@ -14,6 +14,9 @@ export const CAROUSEL_ITEM_SLOT = '[data-slot="carousel-item"]';
  *
  * ページのスクロールは動かしません。`scrollIntoView` は carousel ごと画面内へ引き寄せるため、
  * 送っただけで読んでいた位置が変わります。
+ *
+ * @param container - slide を並べている、横スクロールする領域
+ * @param target - 先頭へ寄せる slide
  */
 export function alignSlideToStart(container: Element, target: Element): void {
   container.scrollBy({
@@ -31,6 +34,9 @@ export function alignSlideToStart(container: Element, target: Element): void {
  *
  * 判定は領域との重なり幅で行い、同点（送っている途中に 2 枚が同じだけ見えている状態）は DOM 順で
  * 先を取ります。追従表示を担う `CarouselThumbnails` の割合による判定と同じ結果になります。
+ *
+ * @param container - slide を並べている、横スクロールする領域
+ * @returns 最も見えている slide の 0 起点の位置
  */
 export function currentSlideIndex(container: Element): number {
   const slides = [...container.querySelectorAll(CAROUSEL_ITEM_SLOT)];

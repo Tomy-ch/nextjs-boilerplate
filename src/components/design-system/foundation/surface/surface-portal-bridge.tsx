@@ -6,7 +6,11 @@ import { SURFACE_ATTRIBUTE, type Surface } from "./surface.definition";
 
 /** `SurfacePortalBridge` の props。 */
 export type SurfacePortalBridgeProps = {
-  /** 部分木が名乗っている系統。 */
+  /**
+   * 部分木が名乗っている系統。
+   *
+   * 属性に載る値と同じものを渡す。
+   */
   surface: Surface;
 };
 
@@ -38,7 +42,7 @@ export type SurfacePortalBridgeProps = {
  * </div>
  * ```
  *
- * @param props.surface - 部分木が名乗っている系統。属性に載る値と同じものを渡す
+ * @param props - 部分木が名乗っている系統。
  * @see Storybook `Foundation/Surface`
  */
 export function SurfacePortalBridge({ surface }: SurfacePortalBridgeProps): null {

@@ -24,7 +24,12 @@ const POSITION_CLASS: Readonly<Record<ToastPosition, string>> = {
   [TOAST_POSITION.BOTTOM_RIGHT]: "bottom-4 right-4",
 };
 
-/** 上端に積むかどうか。積む向きと、畳んだときに後ろの通知を覗かせる向きを決める。 */
+/**
+ * 上端に積むかどうか。積む向きと、畳んだときに後ろの通知を覗かせる向きを決める。
+ *
+ * @param position - 通知を積む隅
+ * @returns 上端に積むか
+ */
 function isTopAnchored(position: ToastPosition): boolean {
   return (
     position === TOAST_POSITION.TOP_LEFT ||
@@ -33,7 +38,14 @@ function isTopAnchored(position: ToastPosition): boolean {
   );
 }
 
-/** 畳んだ状態で、index 番目の通知を後ろへ下げる見た目。 */
+/**
+ * 畳んだ状態で、index 番目の通知を後ろへ下げる見た目。
+ *
+ * @param index - 先頭から数えた位置。0 が最も手前
+ * @param topAnchored - 上端に積んでいるか。後ろへ下げる向きを決める
+ * @param total - 積んでいる通知の総数。重なり順の算出に使う
+ * @returns その 1 件へ当てる style
+ */
 function collapsedStyle(index: number, topAnchored: boolean, total: number): CSSProperties {
   const direction = topAnchored ? 1 : -1;
 
@@ -60,12 +72,7 @@ function collapsedStyle(index: number, topAnchored: boolean, total: number): CSS
  * 計時を止める。読もうとしている最中に消えるのを避けるためであり、`expand` で常時展開
  * している場合は止めない（読んでいるとは限らないため）。
  *
- * @param props.toasts - 表示する通知。先頭が最も新しい。件数の上限は呼び出し元が絞る。
- * @param props.onDismiss - 通知が閉じられたときに `id` を渡す callback。
- * @param props.position - 積む隅。値の一覧は {@link TOAST_POSITION}。
- * @param props.expand - 常に展開して並べるか。既定では畳み、hover / focus で展開する。
- * @param props.hotkey - 領域へ focus を移すキー操作。
- * @param props.label - 領域のアクセシブルな名前。
+ * @param props - 並べる通知と、積む隅・展開の仕方・領域への到達手段。
  *
  * @see Storybook `Feedback/Toaster`
  */
@@ -77,11 +84,17 @@ export function ToastRegion({
   hotkey,
   label,
 }: {
+  /** 表示する通知。先頭が最も新しい。件数の上限は呼び出し元が絞る。 */
   toasts: Toast[];
+  /** 通知が閉じられたときに `id` を渡す callback。 */
   onDismiss: (id: string) => void;
+  /** 積む隅。値の一覧は {@link TOAST_POSITION}。 */
   position: ToastPosition;
+  /** 常に展開して並べるか。既定では畳み、hover / focus で展開する。 */
   expand: boolean;
+  /** 領域へ focus を移すキー操作。 */
   hotkey: ToastHotkey;
+  /** 領域のアクセシブルな名前。 */
   label: string;
 }) {
   const regionRef = useRef<HTMLElement>(null);
@@ -90,6 +103,11 @@ export function ToastRegion({
   const { code, altKey, ctrlKey, metaKey, shiftKey } = hotkey;
 
   useEffect(() => {
+    /**
+     * 指定のキー操作が押されたら、通知の領域へ focus を移す。
+     *
+     * @param event - 押されたキー操作
+     */
     function handleKeyDown(event: KeyboardEvent) {
       if (event.code !== code) return;
       if (event.altKey !== Boolean(altKey)) return;

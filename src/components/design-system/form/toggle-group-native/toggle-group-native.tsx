@@ -22,6 +22,7 @@ export type ToggleGroupNativeProps = ComponentProps<"fieldset">;
  * 排他選択は項目を `type="radio"`、複数選択は `type="checkbox"` にし、同じ `name` を与える。
  * 選択肢どうしの移動は browser の標準動作に従う（radio は矢印キー、checkbox は Tab）。
  *
+ * @param props - native `fieldset` 属性。
  * @see Storybook `Form/ToggleGroupNative`
  */
 export function ToggleGroupNative({ className, ...props }: ToggleGroupNativeProps) {
@@ -37,7 +38,11 @@ export function ToggleGroupNative({ className, ...props }: ToggleGroupNativeProp
 /** {@link ToggleGroupNativeItem} の props。 */
 export type ToggleGroupNativeItemProps = Omit<ComponentProps<"input">, "size" | "type"> &
   VariantProps<typeof toggleVariants> & {
-    /** 排他選択なら `radio`、複数選択なら `checkbox`。 */
+    /**
+     * 排他選択なら `radio`、複数選択なら `checkbox`。
+     *
+     * @defaultValue `"radio"`
+     */
     type?: "radio" | "checkbox";
   };
 

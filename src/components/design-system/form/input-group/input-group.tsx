@@ -106,7 +106,11 @@ const inputGroupAddonVariants = cva(
   },
 );
 
-/** addon の空白部分を押したとき、同じ枠内の control へ focus を移す。 */
+/**
+ * addon の空白部分を押したとき、同じ枠内の control へ focus を移す。
+ *
+ * @param event - addon が受け取った click event。
+ */
 function forwardFocusToControl(event: MouseEvent<HTMLDivElement>): void {
   if (event.target instanceof HTMLElement && event.target.closest("button")) {
     return;
@@ -126,6 +130,8 @@ export type InputGroupAddonProps = ComponentProps<"div"> &
      * - `inline-end`: 送信・消去など、入力欄の後ろに置く
      * - `block-start`: 見出しや操作列として、入力欄の上に積む
      * - `block-end`: 補足や操作列として、入力欄の下に積む
+     *
+     * @defaultValue `INPUT_GROUP_ADDON_ALIGN.INLINE_START`（`"inline-start"`）
      */
     align?: InputGroupAddonAlign;
   };
@@ -145,8 +151,7 @@ export type InputGroupAddonProps = ComponentProps<"div"> &
  * tab で到達する。addon へ操作を置く場合は `InputGroupButton` を使い、その button 自身に
  * アクセシブルな名前を与える。
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.align - 入力欄に対して addon を置く位置。
+ * @param props - native `div` 属性と、表示用 props。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupAddon({
@@ -191,6 +196,8 @@ export type InputGroupButtonProps = Omit<ComponentProps<typeof Button>, "size"> 
      *
      * - `xs` / `sm`: 文言を伴う操作
      * - `icon-xs` / `icon-sm`: アイコンだけの正方形の操作
+     *
+     * @defaultValue `INPUT_GROUP_BUTTON_SIZE.EXTRA_SMALL`（`"xs"`）
      */
     size?: InputGroupButtonSize;
   };
@@ -207,8 +214,7 @@ export type InputGroupButtonProps = Omit<ComponentProps<typeof Button>, "size"> 
  * アイコンだけを子に置く場合、button のアクセシブルな名前が空になる。`aria-label` か視覚的に
  * 隠したテキストを必ず与える。
  *
- * @param props - `Button` の props（`size` を除く）と、以下の表示用 props。
- * @param props.size - 入力欄の枠内に収める button の大きさ。
+ * @param props - `Button` の props（`size` を除く）と、表示用 props。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupButton({
@@ -238,6 +244,7 @@ export type InputGroupTextProps = ComponentProps<"span">;
  * @remarks
  * 入力欄の名前にはならない（{@link InputGroup}）。子にアイコンを置いた場合は既定の大きさへ揃える。
  *
+ * @param props - native `span` 属性。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupText({ className, ...props }: InputGroupTextProps) {
@@ -267,6 +274,7 @@ export type InputGroupInputProps = ComponentProps<"input">;
  * @remarks
  * 名前の与え方は {@link InputGroup} が持つ。
  *
+ * @param props - native `input` 属性。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupInput({ className, ...props }: InputGroupInputProps) {
@@ -299,6 +307,7 @@ export type InputGroupTextareaProps = ComponentProps<"textarea">;
  * @remarks
  * 名前の与え方は {@link InputGroup} が持つ。
  *
+ * @param props - native `textarea` 属性。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupTextarea({ className, ...props }: InputGroupTextareaProps) {

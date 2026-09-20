@@ -14,6 +14,8 @@ import { MESSAGE_ALIGN, type MessageAlign } from "./message.definition";
  * この component 自身は role を持たない。会話や通知の一覧であることを支援技術へ伝える必要が
  * ある場合は、呼び出し元が `role` とアクセシブルな名前を与える。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Message`
  */
 function MessageGroup({ className, ...props }: ComponentProps<"div">) {
@@ -86,6 +88,8 @@ function Message({
  *
  * `MessageFooter` を持つメッセージでは、本文の高さに合わせて上へずらす。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Message`
  */
 function MessageAvatar({ className, ...props }: ComponentProps<"div">) {
@@ -111,6 +115,8 @@ function MessageAvatar({ className, ...props }: ComponentProps<"div">) {
  * 本文そのものの組版は持たないため、段落や強調は呼び出し元が組む。sanitize 済みの
  * Markdown / HTML を表示する場合は `Typeset` を併用する。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Message`
  */
 function MessageContent({ className, ...props }: ComponentProps<"div">) {
@@ -132,6 +138,8 @@ function MessageContent({ className, ...props }: ComponentProps<"div">) {
  * @remarks
  * 誰の発言かを支援技術へ伝える唯一の経路であるため、`align` で向きを分けるメッセージには
  * 送信者が分かる文言を置く。日時は整形済みの文字列として受け取る。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/Message`
  */
@@ -155,6 +163,8 @@ function MessageHeader({ className, ...props }: ComponentProps<"div">) {
  * `align` に追従して左右へ寄る。操作を置く場合、その実行内容と結果の通知は呼び出し元が持つ。
  * 送信中や失敗のように利用者の対応が要る状態は、この位置の文言だけに頼らず feature 側で
  * `Alert` などの通知と組み合わせる。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/Message`
  */

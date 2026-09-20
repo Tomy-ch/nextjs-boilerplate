@@ -31,6 +31,8 @@ export type AdminShellMenuProps = {
  * **選んだら閉じますが、閉じるのは移った後です。** 押した時点で閉じると、overlay が積んだ履歴
  * 1 件を戻す動きが遷移そのものと競合します。
  *
+ * @param props - 受け取る内容。個々の意味は {@link AdminShellMenuProps} の各メンバーが持つ。
+ *
  * @see Storybook `Layout/AdminShell`
  */
 export function AdminShellMenu({ groups }: AdminShellMenuProps) {

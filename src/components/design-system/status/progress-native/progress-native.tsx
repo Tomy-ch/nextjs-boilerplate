@@ -4,7 +4,11 @@ import { cn } from "@/components/cn";
 
 /** {@link ProgressNative} の props。 */
 export type ProgressNativeProps = Omit<ComponentProps<"progress">, "max" | "value"> & {
-  /** 進捗の最大値。 */
+  /**
+   * 進捗の最大値。
+   *
+   * @defaultValue `100`
+   */
   max?: number;
   /** 現在の進捗値。`0` 以上 `max` 以下で指定する。 */
   value: number;
@@ -29,6 +33,8 @@ export type ProgressNativeProps = Omit<ComponentProps<"progress">, "max" | "valu
  * 太さや幅は `className` で上書きする。既定は `h-2 w-full` で、track は `bg-border`、進捗部分は
  * `bg-foreground` を使う。track と進捗部分は browser ごとに別の擬似要素で描画されるため、
  * `::-webkit-progress-bar` / `::-webkit-progress-value` / `::-moz-progress-bar` の三つへ指定する。
+ *
+ * @param props - native `progress` 属性と、進捗の値。
  *
  * @see Storybook `Status/ProgressNative`
  */

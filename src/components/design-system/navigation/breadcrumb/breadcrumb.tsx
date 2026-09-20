@@ -14,6 +14,7 @@ import { ChevronRightIcon, EllipsisIcon } from "@/components/icon";
  * 階層が 1 段しかない画面には置かない。到達経路が 1 つに定まらない画面（複数の入口から開く
  * 詳細など）では、実際にたどった経路ではなくサイト構造上の階層を示す。
  *
+ * @param props - native `nav` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function Breadcrumb({ ...props }: ComponentProps<"nav">) {
@@ -27,6 +28,7 @@ function Breadcrumb({ ...props }: ComponentProps<"nav">) {
  * `ol` として順序に意味があることを示す。`Breadcrumb` の直下に置き、子は `BreadcrumbItem` と
  * `BreadcrumbSeparator` に限る。
  *
+ * @param props - native `ol` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
@@ -45,6 +47,7 @@ function BreadcrumbList({ className, ...props }: ComponentProps<"ol">) {
 /**
  * 階層 1 段ぶんの項目。
  *
+ * @param props - native `li` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
@@ -64,7 +67,7 @@ function BreadcrumbItem({ className, ...props }: ComponentProps<"li">) {
  * 既定では `a` を render する。リポジトリ内の遷移では `asChild` を指定して `next/link` の
  * `Link` を子に渡す。
  *
- * @param props.asChild - 単一の子要素へ合成するか。
+ * @param props - native `a` 属性と、合成の指定。
  *
  * @see Storybook `Navigation/Breadcrumb`
  */
@@ -73,6 +76,7 @@ function BreadcrumbLink({
   className,
   ...props
 }: ComponentProps<"a"> & {
+  /** 単一の子要素へ合成するか。 */
   asChild?: boolean;
 }) {
   const Comp = asChild ? Slot.Root : "a";
@@ -94,6 +98,7 @@ function BreadcrumbLink({
  * を伝える。生成物は `role="link"` と `aria-disabled` を付けるが、focus できない要素に
  * interactive role を与えることになり a11y lint に反するため採らない。
  *
+ * @param props - native `span` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
@@ -114,6 +119,7 @@ function BreadcrumbPage({ className, ...props }: ComponentProps<"span">) {
  * 装飾なので読み上げ対象から外す。階層の関係は `ol` の構造が伝えるため、区切り自体に意味を
  * 持たせない。既定の記号を変える場合は `children` へ任意の要素を渡す。
  *
+ * @param props - native `li` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"li">) {
@@ -137,6 +143,7 @@ function BreadcrumbSeparator({ children, className, ...props }: ComponentProps<"
  * 階層が長い場合に中間を省略して表示するための記号で、それ自体は開閉しない。省略した階層へ
  * 到達させる場合は、`DropdownMenu` などの操作を呼び出し元が合成する。
  *
+ * @param props - native `span` 属性。
  * @see Storybook `Navigation/Breadcrumb`
  */
 function BreadcrumbEllipsis({ className, ...props }: ComponentProps<"span">) {

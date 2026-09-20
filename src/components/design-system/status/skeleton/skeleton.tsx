@@ -10,6 +10,7 @@ import { cn } from "@/components/cn";
  * を置き、Skeleton は最終コンテンツに近い大きさだけを表現する。`prefers-reduced-motion` 時は
  * animation を停止する。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Status/Skeleton`
  */
 function Skeleton({ className, ...props }: ComponentProps<"div">) {

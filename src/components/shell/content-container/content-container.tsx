@@ -24,6 +24,8 @@ import { cn } from "@/components/cn";
  * </main>
  * ```
  *
+ * @param props - native `div` 属性。`className` は既定の見た目へ追加・上書きできる。
+ *
  * @see Storybook `Layout/ContentContainer`
  */
 export function ContentContainer({ className, ...props }: ComponentProps<"div">) {

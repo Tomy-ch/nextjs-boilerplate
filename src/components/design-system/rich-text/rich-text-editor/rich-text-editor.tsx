@@ -156,17 +156,18 @@ function readLinkHref(editor: Editor): string {
  * いる環境で決まり、その判定は {@link KeyboardShortcutKeys} が既に持っています。ここで二つ目の
  * 判定を持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
  *
- * @param props.label - 操作の名前
- * @param props.shortcut - 同じことを起こすキー。押す順に並べる。持たない操作もある
- * @param props.children - 案内を添える対象のボタン
+ * @param props - 操作の名前とキー、案内を添える対象のボタン。
  */
 function RichTextEditorHint({
   label,
   shortcut,
   children,
 }: {
+  /** 操作の名前。 */
   label: string;
+  /** 同じことを起こすキー。押す順に並べる。持たない操作もある。 */
   shortcut?: readonly string[];
+  /** 案内を添える対象のボタン。 */
   children: ReactNode;
 }) {
   return (
@@ -186,14 +187,14 @@ function RichTextEditorHint({
  * 適用状態を押下状態として示す toolbar のボタンです。
  *
  * @param props - 表す操作と、操作対象の editor
- * @param props.action - toolbar に並べる操作
- * @param props.editor - 操作対象の editor
  */
 function RichTextEditorToggle({
   action,
   editor,
 }: {
+  /** toolbar に並べる操作。 */
   action: RichTextEditorToggleAction;
+  /** 操作対象の editor。 */
   editor: Editor;
 }) {
   const isActive = useEditorState({ editor, selector: (state) => action.isActive(state.editor) });
@@ -220,14 +221,14 @@ function RichTextEditorToggle({
  * 実行できるかどうかだけを示す toolbar のボタンです。
  *
  * @param props - 表す操作と、操作対象の editor
- * @param props.action - toolbar に並べる操作
- * @param props.editor - 操作対象の editor
  */
 function RichTextEditorCommand({
   action,
   editor,
 }: {
+  /** toolbar に並べる操作。 */
   action: RichTextEditorCommandAction;
+  /** 操作対象の editor。 */
   editor: Editor;
 }) {
   const isEnabled = useEditorState({
@@ -502,6 +503,8 @@ export type RichTextEditorProps = {
    * 初期表示する HTML 文字列。
    *
    * allowlist の外にあるタグは parse の時点で落ちる。保存済みの内容を編集する場合に渡す。
+   *
+   * @defaultValue `""`
    */
   defaultValue?: string;
   /**
@@ -510,7 +513,11 @@ export type RichTextEditorProps = {
    * 誤りの要約など、外から編集面を名指しで指したい場合に渡す。省略すると付かない。
    */
   id?: string;
-  /** `true` の間は読み取り専用になり、toolbar からの操作も効かなくなる。 */
+  /**
+   * `true` の間は読み取り専用になり、toolbar からの操作も効かなくなる。
+   *
+   * @defaultValue `false`
+   */
   disabled?: boolean;
   /** 外枠へ追加する class。 */
   className?: string;

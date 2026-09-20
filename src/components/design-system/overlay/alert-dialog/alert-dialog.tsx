@@ -15,6 +15,8 @@ import { useOverlayHistory } from "../use-overlay-history";
  * Server Component からは直接 render できない。内容自体に client runtime が要らない場合は、
  * Server Component で組み立てた要素を `children` として渡す。
  *
+ * @param props - Radix `AlertDialog.Root` の props。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialog({
@@ -43,6 +45,8 @@ export const AlertDialogPortal = Primitive.Portal;
 /**
  * dialog の背面を覆う overlay。
  *
+ * @param props - Radix `AlertDialog.Overlay` の props。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogOverlay({
@@ -64,6 +68,8 @@ export function AlertDialogOverlay({
  * アクセシブルな名前として `AlertDialogTitle` を必ず子に置く。説明が要る場合は
  * `AlertDialogDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示する。
  * どちらも無いと Radix が警告する。
+ *
+ * @param props - Radix `AlertDialog.Content` の props。
  *
  * @see Storybook `Overlay/AlertDialog`
  */
@@ -88,6 +94,8 @@ export function AlertDialogContent({
 /**
  * title と説明をまとめる領域。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogHeader({ className, ...props }: ComponentProps<"div">) {
@@ -101,6 +109,8 @@ export function AlertDialogHeader({ className, ...props }: ComponentProps<"div">
 }
 /**
  * cancel と action を並べる操作領域。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Overlay/AlertDialog`
  */
@@ -119,6 +129,8 @@ export function AlertDialogFooter({ className, ...props }: ComponentProps<"div">
  * @remarks
  * Radix が `aria-labelledby` を自動で結び付けるため、`id` を手で振る必要はない。
  *
+ * @param props - Radix `AlertDialog.Title` の props。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogTitle({ className, ...props }: ComponentProps<typeof Primitive.Title>) {
@@ -135,6 +147,8 @@ export function AlertDialogTitle({ className, ...props }: ComponentProps<typeof 
  *
  * @remarks
  * Radix が `aria-describedby` を自動で結び付けるため、`id` を手で振る必要はない。
+ *
+ * @param props - Radix `AlertDialog.Description` の props。
  *
  * @see Storybook `Overlay/AlertDialog`
  */
@@ -153,6 +167,8 @@ export function AlertDialogDescription({
 /**
  * 確認済みの操作を完了して dialog を閉じる Button 合成。
  *
+ * @param props - Radix `AlertDialog.Action` の props と、{@link Button} の `variant` / `size`。
+ *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogAction({
@@ -169,6 +185,8 @@ export function AlertDialogAction({
 }
 /**
  * 操作を取り消して dialog を閉じる Button 合成。
+ *
+ * @param props - Radix `AlertDialog.Cancel` の props と、{@link Button} の `variant` / `size`。
  *
  * @see Storybook `Overlay/AlertDialog`
  */

@@ -34,12 +34,23 @@ export type ApiError = {
   retryAfter?: number;
 };
 
+/**
+ * 失敗の発生場所に対応する見出しを返す。
+ *
+ * @param kind - 失敗の発生場所。
+ * @returns 見出しとして表示する文言。
+ */
 function getTitle(kind: ApiError["kind"]) {
   if (kind === "client") return "入力を確認してください";
   if (kind === "network") return "通信を確認してください";
   return "処理に失敗しました";
 }
 
+/**
+ * 失敗の発生場所に対応するアイコン。
+ *
+ * @param props - 表示用 props。
+ */
 function ErrorIcon({ kind }: { kind: ApiError["kind"] }) {
   return kind === "client" ? (
     <AlertTriangleIcon aria-hidden="true" />
@@ -51,6 +62,8 @@ function ErrorIcon({ kind }: { kind: ApiError["kind"] }) {
 /**
  * client-side API failure を文脈内へ表示する Alert。
  *
+ * @param props - 表示する失敗と、再試行の導線。
+ *
  * @see Storybook `Feedback/ApiErrorFeedback`
  */
 export function ApiErrorAlert({
@@ -61,9 +74,15 @@ export function ApiErrorAlert({
 }: {
   /** 認証・遷移など feature 固有の補助操作。 */
   children?: ReactNode;
+  /** 表示する API 失敗。 */
   error: ApiError;
+  /** 再試行の実行。渡さないと再試行ボタンを出さない。 */
   onRetry?: () => void;
-  /** 再試行処理中はボタンを無効化する。 */
+  /**
+   * 再試行処理中はボタンを無効化する。
+   *
+   * @defaultValue false
+   */
   retryPending?: boolean;
 }) {
   return (
@@ -90,6 +109,8 @@ export function ApiErrorAlert({
 /**
  * 操作継続を止める client-side API failure dialog。
  *
+ * @param props - 表示する失敗と、dialog の開閉および再試行の導線。
+ *
  * @see Storybook `Feedback/ApiErrorFeedback`
  */
 export function ApiErrorDialog({
@@ -102,11 +123,19 @@ export function ApiErrorDialog({
 }: {
   /** 認証・遷移など feature 固有の補助操作。 */
   children?: ReactNode;
+  /** 表示する API 失敗。 */
   error: ApiError;
+  /** 再試行の実行。渡さないと再試行ボタンを出さない。 */
   onRetry?: () => void;
+  /** dialog を開いているか。 */
   open: boolean;
+  /** dialog の開閉の要求を受け取る。 */
   onOpenChange: (open: boolean) => void;
-  /** 再試行処理中はボタンを無効化する。 */
+  /**
+   * 再試行処理中はボタンを無効化する。
+   *
+   * @defaultValue false
+   */
   retryPending?: boolean;
 }) {
   return (

@@ -29,6 +29,8 @@ export type InvalidQueryFeedbackProps = {
  * **直せる導線を必ず添えます。** 条件は URL に入っており、画面の操作だけでは戻せない状態になり得る
  * ためです。
  *
+ * @param props - 出せない理由の文言と、条件を外す導線。
+ *
  * @see Storybook `Feedback/InvalidQueryFeedback`
  */
 export function InvalidQueryFeedback({

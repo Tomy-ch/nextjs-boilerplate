@@ -11,7 +11,11 @@ import { BellIcon } from "@/components/icon";
 
 /** {@link NotificationTrigger} の props。 */
 export type NotificationTriggerProps = Omit<ComponentProps<typeof Button>, "asChild"> & {
-  /** 未読の件数。0 のときは数を出さない。 */
+  /**
+   * 未読の件数。0 のときは数を出さない。
+   *
+   * @defaultValue 0
+   */
   unreadCount?: number;
   /** 操作の名前の基。既定は「通知」。 */
   label?: string;
@@ -28,7 +32,7 @@ export type NotificationTriggerProps = Omit<ComponentProps<typeof Button>, "asCh
  *
  * `Popover` や `Sheet` の trigger へ `asChild` で渡す。開いた先の器はこの部品が持たない。
  *
- * @param props.unreadCount - 未読の件数。
+ * @param props - `Button` の props（`asChild` を除く）と、未読の件数。
  *
  * @see Storybook `Status/NotificationCenter`
  */
@@ -58,7 +62,11 @@ export type NotificationPanelProps = ComponentProps<"div"> & {
   unreadCount: number;
   /** すべてを既読にする操作。渡すと操作を表示する。 */
   onMarkAllRead?: () => void;
-  /** すべて既読にする操作の文言。 */
+  /**
+   * すべて既読にする操作の文言。
+   *
+   * @defaultValue "すべて既読にする"
+   */
   markAllReadLabel?: string;
   /** 通知の一覧、または通知が無いことの表示。 */
   children?: ReactNode;
@@ -75,8 +83,7 @@ export type NotificationPanelProps = ComponentProps<"div"> & {
  *
  * 既読の記録、配信、通知種別の意味は持たない。件数と操作を呼び出し元が渡す。
  *
- * @param props.unreadCount - 未読の件数。
- * @param props.onMarkAllRead - すべてを既読にする操作。
+ * @param props - native `div` 属性と、未読の件数および既読にする操作。
  *
  * @see Storybook `Status/NotificationCenter`
  */
@@ -121,6 +128,8 @@ export function NotificationPanel({
  *
  * 捕捉段階で受け取るのは、呼び出し元の処理でこの操作が押せなくなるより先に focus を動かすためで
  * ある。移さないと focus が document へ落ち、keyboard 利用者は通知へ辿り直すことになる。
+ *
+ * @param event - 捕捉段階の `click`。
  */
 function focusNotificationList(event: MouseEvent<HTMLButtonElement>) {
   const panel = event.currentTarget.closest("[data-slot='notification-panel']");
@@ -131,7 +140,11 @@ function focusNotificationList(event: MouseEvent<HTMLButtonElement>) {
 
 /** {@link NotificationList} の props。 */
 export type NotificationListProps = ComponentProps<"ul"> & {
-  /** 一覧の名前。 */
+  /**
+   * 一覧の名前。
+   *
+   * @defaultValue "通知の一覧"
+   */
   label?: string;
 };
 
@@ -147,7 +160,7 @@ export type NotificationListProps = ComponentProps<"ul"> & {
  * pointer で操作したあとに focus を移す場合は、押した場所と無関係な枠が現れることになるためで、
  * 行き先は要素の名前が伝える。
  *
- * @param props.label - 一覧の名前。
+ * @param props - native `ul` 属性と、一覧の名前。
  *
  * @see Storybook `Status/NotificationCenter`
  */
@@ -175,9 +188,17 @@ export function NotificationList({
 
 /** {@link NotificationItem} の props。 */
 export type NotificationItemProps = Omit<ComponentProps<"li">, "size"> & {
-  /** まだ読んでいないか。 */
+  /**
+   * まだ読んでいないか。
+   *
+   * @defaultValue false
+   */
   unread?: boolean;
-  /** 未読であることを読み上げへ伝える語。 */
+  /**
+   * 未読であることを読み上げへ伝える語。
+   *
+   * @defaultValue "未読"
+   */
   unreadLabel?: string;
   /** 通知の内容。 */
   children?: ReactNode;
@@ -192,7 +213,7 @@ export type NotificationItemProps = Omit<ComponentProps<"li">, "size"> & {
  * 詳細への遷移は持たない。`ListItemLink` を内容として渡すか、内容の中へ link を置く。遷移先を
  * 決めるのは呼び出し元である。
  *
- * @param props.unread - まだ読んでいないか。
+ * @param props - native `li` 属性（`size` を除く）と、未読かどうか。
  *
  * @see Storybook `Status/NotificationCenter`
  */
@@ -224,7 +245,11 @@ export function NotificationItem({
 
 /** {@link NotificationEmpty} の props。 */
 export type NotificationEmptyProps = {
-  /** 通知が無いことを示す見出し。 */
+  /**
+   * 通知が無いことを示す見出し。
+   *
+   * @defaultValue "通知はありません"
+   */
   title?: string;
   /** 見出しを補う説明。 */
   description?: string;
@@ -236,6 +261,8 @@ export type NotificationEmptyProps = {
  * @remarks
  * 一覧ごと消さずに、無いことを示す。空白のままだと、読み込みに失敗したのか本当に無いのかが
  * 区別できない。
+ *
+ * @param props - 通知が無いことを示す見出しと説明。
  *
  * @see Storybook `Status/NotificationCenter`
  */

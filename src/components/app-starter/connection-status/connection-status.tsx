@@ -44,8 +44,7 @@ export type ConnectionStatusProps = Omit<ComponentProps<typeof Badge>, "children
  *
  * 色は文言に重ねているだけで、色だけで区別させない。
  *
- * @param props - `Badge` の属性と、以下の表示用 props。
- * @param props.status - いまの受信の状態。
+ * @param props - `Badge` の属性と、いまの受信の状態。
  *
  * @see Storybook `Status/ConnectionStatus`
  */

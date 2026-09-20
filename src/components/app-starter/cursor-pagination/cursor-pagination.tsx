@@ -16,9 +16,17 @@ export type CursorPaginationProps = Omit<ComponentProps<"nav">, "children"> & {
   previousHref?: string;
   /** 次のページの URL。末尾ページでは省略する。 */
   nextHref?: string;
-  /** 前へ戻る操作の文言。 */
+  /**
+   * 前へ戻る操作の文言。
+   *
+   * @defaultValue "前へ"
+   */
   previousLabel?: string;
-  /** 次へ進む操作の文言。 */
+  /**
+   * 次へ進む操作の文言。
+   *
+   * @defaultValue "次へ"
+   */
   nextLabel?: string;
 };
 
@@ -42,6 +50,8 @@ export type CursorPaginationProps = Omit<ComponentProps<"nav">, "children"> & {
  *
  * 同じ画面に複数の navigation が並ぶため、`aria-label` で何の移動かを示す。省略時は「ページ送り」
  * になる。
+ *
+ * @param props - native `nav` 属性と、前後のページの URL および文言。
  *
  * @see Storybook `Navigation/CursorPagination`
  */

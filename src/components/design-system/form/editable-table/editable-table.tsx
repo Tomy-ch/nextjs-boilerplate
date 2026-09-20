@@ -57,10 +57,7 @@ export type EditableTableProps = ComponentProps<"form"> & {
  * </EditableTable>
  * ```
  *
- * @param props - native `form` 属性と、以下の表示用 props。
- * @param props.children - table の中身。
- * @param props.label - 横スクロールする領域の名前。
- * @param props.tableClassName - 内側の `table` 要素へ渡す class 名。
+ * @param props - native `form` 属性と、表示用 props。
  * @see Storybook `Form/EditableTable`
  */
 export function EditableTable({

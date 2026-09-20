@@ -62,6 +62,8 @@ export type AppShellProps = {
  * どれだけの幅を取るかは渡す側が決めます。shell が中身を知ると、画面ごとの出し分けが分岐として
  * ここに集まります。
  *
+ * @param props - 受け取る内容。個々の意味は {@link AppShellProps} の各メンバーが持つ。
+ *
  * @see Storybook `Layout/AppShell`
  */
 export function AppShell({

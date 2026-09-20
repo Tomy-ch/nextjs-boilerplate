@@ -59,13 +59,25 @@ function Command({ className, ...props }: ComponentProps<typeof CommandPrimitive
  * {@link CommandDialog} の props。
  */
 type CommandDialogProps = ComponentProps<typeof Dialog> & {
-  /** dialog のアクセシブルな名前。視覚的には隠れる。 */
+  /**
+   * dialog のアクセシブルな名前。視覚的には隠れる。
+   *
+   * @defaultValue "コマンドパレット"
+   */
   title?: string;
-  /** dialog の説明。視覚的には隠れる。 */
+  /**
+   * dialog の説明。視覚的には隠れる。
+   *
+   * @defaultValue "実行する操作を検索します。"
+   */
   description?: string;
   /** 内側の `Command` へ渡す追加の class。 */
   className?: string;
-  /** 右上の閉じる操作を描画するか。 */
+  /**
+   * 右上の閉じる操作を描画するか。
+   *
+   * @defaultValue true
+   */
   showCloseButton?: boolean;
 };
 
@@ -280,6 +292,8 @@ function CommandItem({ className, ...props }: ComponentProps<typeof CommandPrimi
  *
  * @remarks
  * 表示だけを担い、キー入力は購読しない。shortcut を実際に効かせる処理は feature 側に置く。
+ *
+ * @param props - native `span` 属性。
  *
  * @see Storybook `Overlay/Command`
  */

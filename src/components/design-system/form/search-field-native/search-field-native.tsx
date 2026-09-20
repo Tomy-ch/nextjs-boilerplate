@@ -25,7 +25,11 @@ export type SearchFieldNativeProps = Omit<
    * 入力を始めると消えるため、名前の代わりにはならない。
    */
   label: string;
-  /** 検索語を載せる query の名前。 */
+  /**
+   * 検索語を載せる query の名前。
+   *
+   * @defaultValue `"q"`
+   */
   name?: string;
   /** 初期表示する検索語。現在の検索条件を反映する場合に、呼び出し元が `searchParams` から渡す。 */
   defaultValue?: string;
@@ -41,7 +45,11 @@ export type SearchFieldNativeProps = Omit<
    * 決まっていないため、map で表すと表せない条件が出る。
    */
   hiddenParams?: Readonly<Record<string, string | readonly string[]>>;
-  /** 送信ボタンのラベル。 */
+  /**
+   * 送信ボタンのラベル。
+   *
+   * @defaultValue `"検索"`
+   */
   submitLabel?: string;
 };
 

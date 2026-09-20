@@ -20,6 +20,8 @@ import {
  * 間隔だけを持つ。1 件のメッセージの中で本文を複数の吹き出しに分ける場合に使う。送信者・時刻・
  * avatar を伴うメッセージ単位のまとまりは `MessageGroup` が担う。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Bubble`
  */
 function BubbleGroup({ className, ...props }: ComponentProps<"div">) {
@@ -81,8 +83,6 @@ const bubbleVariants = cva(
  * ```
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.variant - 面の見せ方。{@link BUBBLE_VARIANT} のいずれか。
- * @param props.align - 吹き出しを寄せる向き。{@link BUBBLE_ALIGN} のいずれか。
  *
  * @see Storybook `Display/Bubble`
  */
@@ -92,7 +92,17 @@ function Bubble({
   className,
   ...props
 }: ComponentProps<"div"> & {
+  /**
+   * 面の見せ方。{@link BUBBLE_VARIANT} のいずれか。
+   *
+   * @defaultValue `BUBBLE_VARIANT.DEFAULT`
+   */
   variant?: BubbleVariant;
+  /**
+   * 吹き出しを寄せる向き。{@link BUBBLE_ALIGN} のいずれか。
+   *
+   * @defaultValue `BUBBLE_ALIGN.START`
+   */
   align?: BubbleAlign;
 }) {
   return (
@@ -116,7 +126,6 @@ function Bubble({
  * 子要素のテキストが伝え、遷移先や実行内容は呼び出し元が持つ。
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.asChild - 子要素へ本文の見た目と props を合成するか。
  *
  * @see Storybook `Display/Bubble`
  */
@@ -125,6 +134,11 @@ function BubbleContent({
   className,
   ...props
 }: ComponentProps<"div"> & {
+  /**
+   * 子要素へ本文の見た目と props を合成するか。
+   *
+   * @defaultValue `false`
+   */
   asChild?: boolean;
 }) {
   const Component = asChild ? Slot.Root : "div";
@@ -172,8 +186,6 @@ const bubbleReactionsVariants = cva(
  * 件数や反応の名前をテキストとして併記するか、操作にアクセシブルな名前を与える。
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.side - 重ねる縁。{@link BUBBLE_REACTIONS_SIDE} のいずれか。
- * @param props.align - 縁のどちら側へ寄せるか。{@link BUBBLE_ALIGN} のいずれか。
  *
  * @see Storybook `Display/Bubble`
  */
@@ -183,7 +195,17 @@ function BubbleReactions({
   className,
   ...props
 }: ComponentProps<"div"> & {
+  /**
+   * 縁のどちら側へ寄せるか。{@link BUBBLE_ALIGN} のいずれか。
+   *
+   * @defaultValue `BUBBLE_ALIGN.END`
+   */
   align?: BubbleAlign;
+  /**
+   * 重ねる縁。{@link BUBBLE_REACTIONS_SIDE} のいずれか。
+   *
+   * @defaultValue `BUBBLE_REACTIONS_SIDE.BOTTOM`
+   */
   side?: BubbleReactionsSide;
 }) {
   return (

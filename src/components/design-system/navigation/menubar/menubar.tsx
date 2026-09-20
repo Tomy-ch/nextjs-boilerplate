@@ -197,9 +197,7 @@ function MenubarContent({
  * `inset` は、同じ menu 内に checkbox / radio 項目があるときに左端の余白を揃えるための表示
  * 指定であり、意味論は変えない。
  *
- * @param props - Radix `Menubar.Item` の props と、以下の表示用 props。
- * @param props.variant - 取り消せない操作を区別する見た目。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
+ * @param props - Radix `Menubar.Item` の props と、表示用の props。
  *
  * @see Storybook `Navigation/Menubar`
  */
@@ -209,7 +207,13 @@ function MenubarItem({
   variant = MENUBAR_ITEM_VARIANT.DEFAULT,
   ...props
 }: ComponentProps<typeof MenubarPrimitive.Item> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
+  /**
+   * 取り消せない操作を区別する見た目。
+   *
+   * @defaultValue `MENUBAR_ITEM_VARIANT.DEFAULT`
+   */
   variant?: MenubarItemVariant;
 }) {
   return (
@@ -306,8 +310,7 @@ function MenubarRadioItem({
  * それ自体は選択できない。項目の並びが何の集まりかを示す場合に、menu の先頭または
  * `MenubarGroup` の先頭へ置く。
  *
- * @param props - Radix `Menubar.Label` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
+ * @param props - Radix `Menubar.Label` の props と、表示用の props。
  *
  * @see Storybook `Navigation/Menubar`
  */
@@ -316,6 +319,7 @@ function MenubarLabel({
   inset,
   ...props
 }: ComponentProps<typeof MenubarPrimitive.Label> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
 }) {
   return (
@@ -370,6 +374,8 @@ function MenubarSeparator({
  * </MenubarShortcut>
  * ```
  *
+ * @param props - native `kbd` 属性。
+ *
  * @see Storybook `Navigation/Menubar`
  */
 function MenubarShortcut({ className, ...props }: ComponentProps<"kbd">) {
@@ -404,8 +410,7 @@ function MenubarSub({ ...props }: ComponentProps<typeof MenubarPrimitive.Sub>) {
  * 右端に開く向きを示す装飾のアイコンを伴う。項目自体は操作を実行せず、`MenubarSubContent` を
  * 開くだけである。
  *
- * @param props - Radix `Menubar.SubTrigger` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
+ * @param props - Radix `Menubar.SubTrigger` の props と、表示用の props。
  *
  * @see Storybook `Navigation/Menubar`
  */
@@ -415,6 +420,7 @@ function MenubarSubTrigger({
   children,
   ...props
 }: ComponentProps<typeof MenubarPrimitive.SubTrigger> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
 }) {
   return (

@@ -81,7 +81,6 @@ function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.V
  * 与える。入力内容が不正であることを示す場合は `aria-invalid` を渡す。
  *
  * @param props - Radix `Select.Trigger` の props と `size`。
- * @param props.size - trigger の高さ。`default` は 36px、`sm` は 32px。
  * @see Storybook `Form/SelectClient`
  */
 function SelectTrigger({
@@ -90,6 +89,11 @@ function SelectTrigger({
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  /**
+   * trigger の高さ。`default` は 36px、`sm` は 32px。
+   *
+   * @defaultValue `"default"`
+   */
   size?: "sm" | "default";
 }) {
   return (

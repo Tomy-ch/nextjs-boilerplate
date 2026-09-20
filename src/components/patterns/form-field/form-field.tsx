@@ -64,6 +64,8 @@ export type FormFieldProps = {
  * </FormField>
  * ```
  *
+ * @param props - 項目の名前と入力欄の組み立て方、補足と誤りの文言。
+ *
  * @see Storybook `Form/FormField`
  */
 export function FormField({

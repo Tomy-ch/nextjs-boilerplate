@@ -16,7 +16,12 @@ import {
   type ToastPosition,
 } from "./toaster.definition";
 
-/** 通知を払いのける向き。0 はその軸へ払えないことを表す。 */
+/**
+ * 通知を払いのける向き。0 はその軸へ払えないことを表す。
+ *
+ * @param position - 通知が積まれている隅
+ * @returns 横方向と縦方向、それぞれの払いのける向き
+ */
 function swipeDirection(position: ToastPosition): { horizontal: number; vertical: number } {
   const vertical =
     position === TOAST_POSITION.TOP_LEFT ||
@@ -43,11 +48,7 @@ const NO_DRAG = { x: 0, y: 0 };
  * 積み方と配置は領域側の責務であり、この component は自分が置かれた向き（`position`）を、
  * 払いのける向きの決定にだけ使う。
  *
- * @param props.toast - 表示する通知。
- * @param props.onDismiss - 閉じたときに `id` を渡す callback。自動で閉じた場合も呼ばれる。
- * @param props.position - 通知が積まれている隅。払いのける向きを決める。
- * @param props.paused - 自動で閉じる計時を止めるか。領域が hover / focus されている間に立つ。
- *   掴んでいる間とタブが背面にある間は、この値によらず止まる。
+ * @param props - 表示する通知と、積まれた隅、閉じたときの通知先、計時を止めるかどうか。
  *
  * @see Storybook `Feedback/Toaster`
  */
@@ -57,9 +58,16 @@ export function ToastItem({
   position,
   paused,
 }: {
+  /** 表示する通知。 */
   toast: Toast;
+  /** 閉じたときに `id` を渡す callback。自動で閉じた場合も呼ばれる。 */
   onDismiss: (id: string) => void;
+  /** 通知が積まれている隅。払いのける向きを決める。 */
   position: ToastPosition;
+  /**
+   * 自動で閉じる計時を止めるか。領域が hover / focus されている間に立つ。
+   * 掴んでいる間とタブが背面にある間は、この値によらず止まる。
+   */
   paused: boolean;
 }) {
   const [remaining, setRemaining] = useState(toast.duration ?? 0);

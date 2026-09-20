@@ -23,7 +23,6 @@ import { SWITCH_SIZE, type SwitchSize } from "../switch-native/switch-native.def
  * その色トークンが未定義で focus 位置がまったく見えなくなる。
  *
  * @param props - Radix `Switch.Root` の props。`checked` / `onCheckedChange` で状態を扱う。
- * @param props.size - 表示サイズ。{@link SWITCH_SIZE} のいずれか。
  *
  * @see Storybook `Form/SwitchClient`
  */
@@ -32,6 +31,11 @@ function SwitchClient({
   size = SWITCH_SIZE.DEFAULT,
   ...props
 }: ComponentProps<typeof SwitchPrimitive.Root> & {
+  /**
+   * 表示サイズ。{@link SWITCH_SIZE} のいずれか。
+   *
+   * @defaultValue `SWITCH_SIZE.DEFAULT`
+   */
   size?: SwitchSize;
 }) {
   return (

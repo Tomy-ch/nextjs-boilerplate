@@ -40,11 +40,23 @@ const attachmentVariants = cva(
 
 /** {@link Attachment} の props。 */
 export type AttachmentProps = ComponentProps<"div"> & {
-  /** 添付の大きさ。 */
+  /**
+   * 添付の大きさ。{@link ATTACHMENT_SIZE} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_SIZE.DEFAULT
+   */
   size?: AttachmentSize;
-  /** 内容の並べ方。 */
+  /**
+   * 内容の並べ方。{@link ATTACHMENT_ORIENTATION} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_ORIENTATION.HORIZONTAL
+   */
   orientation?: AttachmentOrientation;
-  /** 今どの段階にあるか。 */
+  /**
+   * 今どの段階にあるか。{@link ATTACHMENT_STATE} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_STATE.DONE
+   */
   state?: AttachmentState;
 };
 
@@ -77,10 +89,7 @@ export type AttachmentProps = ComponentProps<"div"> & {
  * </Attachment>
  * ```
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.size - 添付の大きさ。{@link ATTACHMENT_SIZE} のいずれか。
- * @param props.orientation - 内容の並べ方。{@link ATTACHMENT_ORIENTATION} のいずれか。
- * @param props.state - 今どの段階にあるか。{@link ATTACHMENT_STATE} のいずれか。
+ * @param props - native `div` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -121,7 +130,11 @@ const attachmentMediaVariants = cva(
 
 /** {@link AttachmentMedia} の props。 */
 export type AttachmentMediaProps = ComponentProps<"div"> & {
-  /** 置く媒体の種類。 */
+  /**
+   * 置く媒体の種類。{@link ATTACHMENT_MEDIA_VARIANT} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_MEDIA_VARIANT.ICON
+   */
   variant?: AttachmentMediaVariant;
 };
 
@@ -132,8 +145,7 @@ export type AttachmentMediaProps = ComponentProps<"div"> & {
  * `icon` はアイコンを、`image` は縮小表示を置く。いずれも装飾であり、何のファイルかは
  * `AttachmentTitle` のテキストが伝える。画像を置く場合も同じ理由で `alt` は空にできる。
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.variant - 置く媒体の種類。{@link ATTACHMENT_MEDIA_VARIANT} のいずれか。
+ * @param props - native `div` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -154,6 +166,8 @@ export function AttachmentMedia({
 
 /**
  * 名前と補足を縦に並べる領域。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -177,6 +191,8 @@ export function AttachmentContent({ className, ...props }: ComponentProps<"div">
  * 枠に収まらない場合は末尾を省略する。省略された名前だけでは判別できないため、全体を示す
  * 必要がある場合は呼び出し元が `title` 属性などを添える。
  *
+ * @param props - native `span` 属性。
+ *
  * @see Storybook `Display/Attachment`
  */
 export function AttachmentTitle({ className, ...props }: ComponentProps<"span">) {
@@ -194,6 +210,8 @@ export function AttachmentTitle({ className, ...props }: ComponentProps<"span">)
  *
  * @remarks
  * 進行中や失敗であることはここのテキストで示す（{@link Attachment} の `state` は見た目にしか出ない）。
+ *
+ * @param props - native `span` 属性。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -216,6 +234,8 @@ export function AttachmentDescription({ className, ...props }: ComponentProps<"s
  *
  * @remarks
  * `vertical` では枠の右上へ重ねて置く。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -262,7 +282,11 @@ export function AttachmentAction({
 
 /** {@link AttachmentTrigger} の props。 */
 export type AttachmentTriggerProps = ComponentProps<"button"> & {
-  /** 子要素へ trigger の当たり判定と props を合成するか。 */
+  /**
+   * 子要素へ trigger の当たり判定と props を合成するか。
+   *
+   * @defaultValue false
+   */
   asChild?: boolean;
 };
 
@@ -276,8 +300,7 @@ export type AttachmentTriggerProps = ComponentProps<"button"> & {
  *
  * **アクセシブルな名前は呼び出し元が必ず与える**。面だけでは何をする操作か判らない。
  *
- * @param props - native `button` 属性と、以下の表示用 props。
- * @param props.asChild - 子要素へ trigger の当たり判定と props を合成するか。
+ * @param props - native `button` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -301,7 +324,11 @@ export function AttachmentTrigger({
 
 /** {@link AttachmentGroup} の props。 */
 export type AttachmentGroupProps = ComponentProps<"section"> & {
-  /** 領域の名前。 */
+  /**
+   * 領域の名前。
+   *
+   * @defaultValue "添付の一覧"
+   */
   label?: string;
 };
 

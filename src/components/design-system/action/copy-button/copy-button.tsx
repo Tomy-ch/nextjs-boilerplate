@@ -20,7 +20,11 @@ export type CopyButtonProps = Omit<ButtonProps, "children" | "onClick" | "type">
   value: string;
   /** 操作のアクセシブルな名前。何を写すのかが分かる語にする。 */
   label: string;
-  /** 写した直後に読み上げる語。 */
+  /**
+   * 写した直後に読み上げる語。
+   *
+   * @defaultValue `"写しました"`
+   */
   copiedLabel?: string;
 };
 

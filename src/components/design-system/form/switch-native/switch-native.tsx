@@ -5,7 +5,11 @@ import { SWITCH_SIZE, type SwitchSize } from "./switch-native.definition";
 
 /** {@link SwitchNative} の props。 */
 export type SwitchNativeProps = Omit<ComponentProps<"input">, "size" | "type"> & {
-  /** 表示サイズ。 */
+  /**
+   * 表示サイズ。{@link SWITCH_SIZE} のいずれか。
+   *
+   * @defaultValue `SWITCH_SIZE.DEFAULT`
+   */
   size?: SwitchSize;
 };
 
@@ -31,7 +35,6 @@ export type SwitchNativeProps = Omit<ComponentProps<"input">, "size" | "type"> &
  *
  * @param props - native `input` 属性。`type` は固定のため指定できない。native の `size`
  *   属性は text 入力の文字数を表すもので switch には意味がないため、表示サイズの props で置き換える。
- * @param props.size - 表示サイズ。{@link SWITCH_SIZE} のいずれか。
  * @see Storybook `Form/SwitchNative`
  */
 export function SwitchNative({

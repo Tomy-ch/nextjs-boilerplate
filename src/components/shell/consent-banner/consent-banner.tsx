@@ -9,7 +9,11 @@ import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.
 import { CONSENT_CHOICE, type ConsentChoice } from "@/model/consent";
 import { CONSENT_BANNER_COPY } from "./consent-banner.definition";
 
-/** 閉じる操作を握り潰す。選ぶこと以外でこの面は閉じない。 */
+/**
+ * 閉じる操作を握り潰す。選ぶこと以外でこの面は閉じない。
+ *
+ * @param event - 握り潰す、閉じようとした操作
+ */
 function keepOpen(event: Event): void {
   event.preventDefault();
 }
@@ -42,9 +46,7 @@ export type ConsentBannerProps = {
  *
  * 理由は同層の README「設計」が持ちます。
  *
- * @param props.open - 尋ねている最中か
- * @param props.onDecide - 選ばれた意思を受け取る callback
- * @param props.policyHref - 判断の材料を示す文書の行き先
+ * @param props - 受け取る内容。個々の意味は {@link ConsentBannerProps} の各メンバーが持つ。
  *
  * @see Storybook `Overlay/ConsentBanner`
  */

@@ -4,9 +4,17 @@ import { cn } from "@/components/cn";
 
 /** {@link Separator} の props。 */
 export type SeparatorProps = ComponentProps<"hr"> & {
-  /** 読み上げ対象にしない装飾的な区切りか。 */
+  /**
+   * 読み上げ対象にしない装飾的な区切りか。
+   *
+   * @defaultValue `false`
+   */
   decorative?: boolean;
-  /** 区切り線の方向。 */
+  /**
+   * 区切り線の方向。
+   *
+   * @defaultValue `"horizontal"`
+   */
   orientation?: "horizontal" | "vertical";
 };
 
@@ -16,6 +24,8 @@ export type SeparatorProps = ComponentProps<"hr"> & {
  * @remarks
  * 装飾だけなら `decorative` を指定して screen reader の読み上げ対象から外す。操作・状態・余白を
  * 持たないため、client runtime は必要ない。
+ *
+ * @param props - native `hr` 属性と、以下の表示用 props。
  *
  * @see Storybook `Display/Separator`
  */

@@ -21,7 +21,11 @@ export type SelectAllCheckboxProps = Omit<
   totalCount: number;
   /** すべて選択する / すべて外す。 */
   onSelectAllChange: (selectAll: boolean) => void;
-  /** 操作のアクセシブルな名前。 */
+  /**
+   * 操作のアクセシブルな名前。
+   *
+   * @defaultValue "すべて選択"
+   */
   label?: string;
 };
 
@@ -37,9 +41,7 @@ export type SelectAllCheckboxProps = Omit<
  *
  * 選択状態そのものは持たない。件数を受け取り、変更を呼び出し元へ返す。
  *
- * @param props.selectedCount - いま選択されている件数。
- * @param props.totalCount - 選択できる全件数。
- * @param props.onSelectAllChange - すべて選択する / すべて外す。
+ * @param props - 選択の件数と、全選択・全解除を受け取る callback。`CheckboxClient` の props をそのまま透過する。
  *
  * @see Storybook `Container/SelectionToolbar`
  */
@@ -75,11 +77,19 @@ export type SelectionToolbarProps = ComponentProps<"div"> & {
   selectedCount: number;
   /** 選択できる全件数。渡すと「全 N 件中」を添える。 */
   totalCount?: number;
-  /** 件数の単位。「件」「人」など。 */
+  /**
+   * 件数の単位。「件」「人」など。
+   *
+   * @defaultValue "件"
+   */
   unit?: string;
   /** 選択を解除する操作。渡すと解除ボタンを表示する。 */
   onClearSelection?: () => void;
-  /** 操作を出す位置。 */
+  /**
+   * 操作を出す位置。
+   *
+   * @defaultValue {@link SELECTION_TOOLBAR_POSITION.INLINE}
+   */
   position?: SelectionToolbarPosition;
   /** 選択した対象への操作。 */
   children?: ReactNode;
@@ -102,12 +112,7 @@ export type SelectionToolbarProps = ComponentProps<"div"> & {
  *
  * 業務操作の実行、権限の判定、確認 dialog は持たない。呼び出し元が操作を `children` として渡す。
  *
- * @param props.selectedCount - いま選択されている件数。
- * @param props.totalCount - 選択できる全件数。
- * @param props.unit - 件数の単位。
- * @param props.onClearSelection - 選択を解除する操作。
- * @param props.position - 操作を出す位置。
- * @param props.children - 選択した対象への操作。
+ * @param props - 選択の件数と単位、解除の手段、出す位置、選択した対象への操作。
  *
  * @see Storybook `Container/SelectionToolbar`
  */
@@ -156,7 +161,14 @@ export function SelectionToolbar({
   );
 }
 
-/** 母数が分かるときだけ添える。選択の意味は全体との比で変わる。 */
+/**
+ * 母数が分かるときだけ添える。選択の意味は全体との比で変わる。
+ *
+ * @param selectedCount - いま選択されている件数。
+ * @param totalCount - 選択できる全件数。渡さなければ母数を添えない。
+ * @param unit - 件数の単位。
+ * @returns 選択中であることを伝える文言。
+ */
 function formatSelection(selectedCount: number, totalCount: number | undefined, unit: string) {
   if (totalCount === undefined) return `${selectedCount} ${unit}を選択中`;
 

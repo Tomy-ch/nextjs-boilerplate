@@ -47,7 +47,11 @@ export const buttonGroupVariants = cva(
 
 /** {@link ButtonGroup} の props。 */
 export type ButtonGroupProps = ComponentProps<"div"> & {
-  /** 操作を並べる向き。 */
+  /**
+   * 操作を並べる向き。
+   *
+   * @defaultValue `BUTTON_GROUP_ORIENTATION.HORIZONTAL`
+   */
   orientation?: ButtonGroupOrientation;
 };
 
@@ -72,7 +76,6 @@ export type ButtonGroupProps = ComponentProps<"div"> & {
  * ```
  *
  * @param props - native `div` 属性。`role="group"` は既定で付与する。
- * @param props.orientation - 操作を並べる向き。
  * @see Storybook `Action/ButtonGroup`
  */
 export function ButtonGroup({
@@ -94,7 +97,11 @@ export function ButtonGroup({
 
 /** {@link ButtonGroupText} の props。 */
 export type ButtonGroupTextProps = ComponentProps<"div"> & {
-  /** 子要素へ見た目と props を合成するか。 */
+  /**
+   * 子要素へ見た目と props を合成するか。
+   *
+   * @defaultValue `false`
+   */
   asChild?: boolean;
 };
 
@@ -112,7 +119,7 @@ export type ButtonGroupTextProps = ComponentProps<"div"> & {
  * </ButtonGroupText>
  * ```
  *
- * @param props.asChild - 子要素へ見た目と props を合成するか。
+ * @param props - native `div` 属性。
  * @see Storybook `Action/ButtonGroup`
  */
 export function ButtonGroupText({ className, asChild = false, ...props }: ButtonGroupTextProps) {

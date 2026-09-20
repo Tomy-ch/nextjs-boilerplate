@@ -13,14 +13,27 @@ import {
 export type AuthStateFeedbackProps = {
   /** 表示する状態。 */
   state: AuthState;
-  /** 既定の見出しの差し替え。 */
+  /**
+   * 既定の見出しの差し替え。
+   *
+   * @defaultValue {@link AUTH_STATE_MESSAGE} の `state` に対応する見出し
+   */
   title?: string;
-  /** 既定の説明の差し替え。 */
+  /**
+   * 既定の説明の差し替え。
+   *
+   * @defaultValue {@link AUTH_STATE_MESSAGE} の `state` に対応する説明
+   */
   description?: string;
   /** サインイン・復帰など、次に取る行動。 */
   children?: ReactNode;
 };
 
+/**
+ * 状態に対応するアイコン。
+ *
+ * @param props - 表示用 props。
+ */
 function StateIcon({ state }: { state: AuthState }) {
   if (state === AUTH_STATE.FORBIDDEN) return <LockIcon aria-hidden="true" />;
   if (state === AUTH_STATE.NOT_FOUND) return <SearchOffIcon aria-hidden="true" />;
@@ -49,8 +62,7 @@ function StateIcon({ state }: { state: AuthState }) {
  * </AuthStateFeedback>
  * ```
  *
- * @param props.state - 表示する状態。
- * @param props.children - 次に取る行動。
+ * @param props - 表示する状態と、そこから抜け出す導線。
  *
  * @see Storybook `Feedback/AuthStateFeedback`
  */
@@ -76,7 +88,11 @@ export function AuthStateFeedback({
 export type AuthSignInActionProps = {
   /** サインインを開始する Route Handler の URL。 */
   href: string;
-  /** 操作の文言。 */
+  /**
+   * 操作の文言。
+   *
+   * @defaultValue "サインインする"
+   */
   children?: ReactNode;
 };
 
@@ -90,7 +106,7 @@ export type AuthSignInActionProps = {
  * `href` の組み立てと `returnUrl` の検証は呼び出し元が持つ。復帰先を外部 URL にできないよう、
  * 同一 origin の相対パスに限定するのは feature / adapter の責務である。
  *
- * @param props.href - サインインを開始する URL。
+ * @param props - サインインの遷移先と、操作の文言。
  *
  * @see Storybook `Feedback/AuthStateFeedback`
  */

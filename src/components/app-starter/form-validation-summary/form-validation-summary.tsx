@@ -12,7 +12,11 @@ export type FormValidationError = {
 export type FormValidationSummaryProps = {
   /** 表示する検証エラー。空なら何も描画しない。 */
   errors: readonly FormValidationError[];
-  /** 要約の見出し。 */
+  /**
+   * 要約の見出し。
+   *
+   * @defaultValue "入力内容を確認してください"
+   */
   title?: string;
   /** 送信後に focus を移す場合の対象。呼び出し元が参照する。 */
   id?: string;
@@ -44,9 +48,7 @@ export type FormValidationSummaryProps = {
  * />
  * ```
  *
- * @param props.errors - 表示する検証エラー。空なら何も描画しない。
- * @param props.title - 要約の見出し。
- * @param props.id - 呼び出し元が focus を移す際に参照する識別子。
+ * @param props - 表示する検証エラーと、要約の見出し。
  *
  * @see Storybook `Feedback/FormValidationSummary`
  */

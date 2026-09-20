@@ -14,10 +14,20 @@ import { cn } from "@/components/cn";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icon";
 import { Button, buttonVariants } from "../../action/button/button";
 
+/**
+ * `Calendar` の最も外側の器。`DayPicker` の `Root` として差し替える。
+ *
+ * @param props - `react-day-picker` の `RootProps`。
+ */
 function CalendarRoot({ className, rootRef, ...rootProps }: RootProps) {
   return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...rootProps} />;
 }
 
+/**
+ * `Calendar` の送りの向きに合わせた記号。`DayPicker` の `Chevron` として差し替える。
+ *
+ * @param props - `react-day-picker` の `ChevronProps`。
+ */
 function CalendarChevron({ className, orientation, ...iconProps }: ChevronProps) {
   if (orientation === "left") {
     return <ChevronLeftIcon className={cn("size-4", className)} {...iconProps} />;
@@ -30,6 +40,11 @@ function CalendarChevron({ className, orientation, ...iconProps }: ChevronProps)
   return <ChevronDownIcon className={cn("size-4", className)} {...iconProps} />;
 }
 
+/**
+ * 週番号を桁の中央へ置く `td`。`DayPicker` の `WeekNumber` として差し替える。
+ *
+ * @param props - `react-day-picker` の `WeekNumberProps`。
+ */
 function CalendarWeekNumber({ children, ...weekNumberProps }: WeekNumberProps) {
   return (
     <td {...weekNumberProps}>
@@ -48,6 +63,7 @@ function CalendarWeekNumber({ children, ...weekNumberProps }: WeekNumberProps) {
  * 必要とする。フォーム送信値や日時の変換は持たず、呼び出し側で選択結果を hidden input などへ
  * 接続する。日付だけを直接入力する場合は native の `input type="date"` を優先する。
  *
+ * @param props - `react-day-picker` の `DayPicker` の props と `buttonVariant`。
  * @see Storybook `Form/Calendar`
  */
 function Calendar({
@@ -162,7 +178,11 @@ function Calendar({
   );
 }
 
-/** `Calendar` 内の一日を表す操作要素。通常は `Calendar` が内部で利用する。 */
+/**
+ * `Calendar` 内の一日を表す操作要素。通常は `Calendar` が内部で利用する。
+ *
+ * @param props - `react-day-picker` の `DayButton` の props。
+ */
 function CalendarDayButton({
   className,
   day,
