@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 届け先に並べる項目数。[`../shipping-card/`](../shipping-card/shipping-card.tsx) と同じ。 */
-const PLACEHOLDER_FIELDS = 4;
+const PLACEHOLDER_FIELDS = 3;
 
 /** 枠だけで見せる明細の行数。多すぎると、実際より入っているように見える。 */
 const PLACEHOLDER_ROWS = 3;
