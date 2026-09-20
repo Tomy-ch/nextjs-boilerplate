@@ -22,12 +22,21 @@ export const STREAM_ORIGIN: StreamCursor = "0";
  * @remarks
  * 契約は履歴の側の位置を整数で返し、stream の側を文字列で扱います。両方が同じ位置を指すため、
  * 綴りの違いはこの 1 か所で吸収します。
+ *
+ * @param value - 履歴の応答が返した位置（整数）
+ * @returns stream の側で扱う文字列表現の位置
  */
 export function toStreamCursor(value: number): StreamCursor {
   return streamCursorSchema.parse(String(value));
 }
 
-/** `candidate` が `baseline` より後ろの位置かどうか。 */
+/**
+ * `candidate` が `baseline` より後ろの位置かどうか。
+ *
+ * @param candidate - 比較する位置
+ * @param baseline - 基準になる位置
+ * @returns `candidate` が `baseline` より後ろなら `true`
+ */
 export function isAfterCursor(candidate: StreamCursor, baseline: StreamCursor): boolean {
   return BigInt(candidate) > BigInt(baseline);
 }

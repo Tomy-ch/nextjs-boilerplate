@@ -55,6 +55,11 @@ export type UseStreamResult = {
  *
  * **event の畳み込みは呼び出し側が持ちます。** どの event で何がどう変わるかは画面の判断で、
  * 購読の側には現れません。
+ *
+ * @typeParam T - 検証済みで受け取る event の型
+ * @param options - {@link UseStreamOptions} の指定
+ * @defaultValue enabled = true
+ * @returns 画面へ出す状態と、再開の口
  */
 export function useStream<T>({
   ticketPath,

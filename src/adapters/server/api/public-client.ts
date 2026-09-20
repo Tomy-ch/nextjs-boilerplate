@@ -18,6 +18,8 @@ let client: PublicHttpClient | undefined;
  * **このモジュールが作れるのは公開の client だけです。** それが、`use cache` を持つモジュールがここを
  * 経由できる理由そのものです —— 直に引けるモジュールは user-scoped な client も組める状態にあり、
  * `project-rules/no-user-scoped-in-cached-module` が落とします。
+ *
+ * @returns 公開の口が共有する client
  */
 export function getPublicClient(): PublicHttpClient {
   client ??= createHttpClient({

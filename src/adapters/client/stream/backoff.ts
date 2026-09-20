@@ -17,6 +17,8 @@ const MAX_DELAY_MS = 30_000;
  * @param attempt - 続けて失敗した回数。0 が最初の張り直し
  * @param random - 散らしに使う乱数。`Math.random` と同じ範囲を返すこと
  * @param hintMs - サーバが示した目安。無ければ回数から決める
+ *
+ * @returns 次の張り直しまでの待ち時間（ミリ秒）
  */
 export function nextDelayMs(attempt: number, random: () => number, hintMs?: number): number {
   const ceiling = hintMs ?? Math.min(BASE_DELAY_MS * 2 ** attempt, MAX_DELAY_MS);

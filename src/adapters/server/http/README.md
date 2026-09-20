@@ -32,9 +32,13 @@ test-requirement: unit
 
 - `server/` の要求境界が共有する、応答と本体の規則
 
+- 接続先ごとに差し替える resilience 設定（劣化の許容度が接続先の性質で変わるため。`ResilienceProfile`）
+
 ## 受け入れないもの
 
 - 業務ロジック、特定の口に固有の契約
+
+- レート制限・大域的な遮断（edge / WAF の責務。`json-request.ts` は宣言された型と本体の大きさだけを見る）
 
 ## 関連する ADR
 

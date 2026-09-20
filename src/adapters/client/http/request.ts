@@ -49,7 +49,7 @@ export type RequestOptions = {
  * 同一オリジンの BFF を叩き、応答を検証して返す。
  *
  * @remarks
- * ブラウザから出る要求はここだけを通ります。timeout・再試行・遮断は `adapters/server` が持ちます。
+ * ブラウザから出る fetch 要求はここだけを通ります（`EventSource` によるストリーム接続はここを通りません。`client/stream/subscription.ts` 参照）。timeout・再試行・遮断は `adapters/server` が持ちます。
  * ここで独自に持つと、同じ要求に対して 2 つの再試行が別々の勘定で走ります。
  *
  * **送る前に予算を確かめます。** 予算を超えた要求は経路の中継が弾き、返るのは中継が
@@ -58,11 +58,15 @@ export type RequestOptions = {
  * 生の status を投げ直さず分類へ写します。呼び出し側は「入力が悪いのか、取得できなかったのか」
  * だけを見て表示を決めます。
  *
+ * @typeParam T - 検証を通過した応答本体の型（`schema` の推論結果）
  * @param path - 同一オリジンの絶対パス。クエリを含み、percent-encode 済みであること
  * @param schema - 応答の検証スキーマ。**流儀は問わない** —— `zod` と `zod/mini` は同じ core の型を
  *   共有するため、ここは core の口だけを見る。共有層が片方の流儀を要求すると、呼び出し側の移行が
  *   この 1 箇所のために止まる
  * @param options - 打ち切りの合図と、取得以外の要求で使う method
+ * @returns 検証を通過した応答本体（`schema` が推論する `T`）
+ * @throws 送る前に URL が予算を超えているとき（`uri-too-long`）、応答が `ok` でないとき、または
+ *   検証に失敗したときに `AppError` を投げる
  */
 export async function request<T>(
   path: string,

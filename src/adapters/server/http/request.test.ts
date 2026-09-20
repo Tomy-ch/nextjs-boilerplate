@@ -729,7 +729,6 @@ describe("createHttpClient", () => {
   });
 
   it("経過時間だけで期限に達したら、待ちが短くても諦める", async () => {
-    // 締切は単調時計で測る。待ちの長さではなく、試行に費やした時間の積算で越えさせる。
     const now = vi.fn(() => 0);
 
     now.mockReturnValueOnce(0).mockReturnValue(profile.overallTimeoutMs);
@@ -826,8 +825,6 @@ describe("createHttpClient", () => {
       attemptsPerRequest.push(fetchImpl.mock.calls.length - before);
     }
 
-    // 予算は失敗 1 件につき 1 消費し、上限の半分を下回ると再試行を止める。失敗だけが続くと
-    // 要求ごとの試行回数がそのぶん減り、3 度目には 1 度も再試行できない。
     expect(attemptsPerRequest).toEqual([profile.maxAttempts, 2, 1]);
   });
 });

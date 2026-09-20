@@ -19,7 +19,12 @@ const DEVELOPMENT_HOSTS: ReadonlySet<string> = new Set([
   "host.docker.internal",
 ]);
 
-/** `Host` の値からポートと IPv6 の角括弧を落とす。 */
+/**
+ * `Host` の値からポートと IPv6 の角括弧を落とす。
+ *
+ * @param value - `Host` ヘッダーの生値
+ * @returns ポートと角括弧を除いたホスト名
+ */
 function toHostname(value: string): string {
   const trimmed = value.trim().toLowerCase();
 
@@ -49,6 +54,8 @@ function toHostname(value: string): string {
  *
  * 宛先を名乗らない要求は閉じます。判定できないものを開ける側へ倒すと、条件が無い要求が最も
  * 通りやすくなります。
+ *
+ * @returns 開発専用の口をこの要求に対して開いてよければ true
  */
 export async function isDevelopmentAccessAllowed(): Promise<boolean> {
   if (!isDevelopmentOnlyEndpointOpen()) {

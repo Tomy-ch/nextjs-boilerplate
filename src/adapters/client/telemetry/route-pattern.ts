@@ -15,6 +15,7 @@ import { MAX_ROUTE_LENGTH } from "@/adapters/http/telemetry-report";
  * @param pathname - `usePathname()` が返す実際のパス
  * @param params - `useParams()` が返す動的セグメントの値。catch-all は配列で届き、名前だけあって
  *   値が無いセグメントでは `undefined` が入る
+ * @returns 組み立てた route。`MAX_ROUTE_LENGTH` を超える分は切り詰める
  */
 export function toRoutePattern(
   pathname: string,

@@ -60,14 +60,24 @@ const controlEventSchema = z.object({
 /** 制御指示 1 件。 */
 export type ControlEvent = z.infer<typeof controlEventSchema>;
 
-/** 受け取った文字列を封筒として読む。読めなければ `null`。 */
+/**
+ * 受け取った文字列を封筒として読む。読めなければ `null`。
+ *
+ * @param data - 封筒として読む文字列
+ * @returns 読めた封筒、または読めなかったときの `null`
+ */
 export function parseEnvelope(data: string): StreamEnvelope | null {
   const parsed = streamEnvelopeSchema.safeParse(toJson(data));
 
   return parsed.success ? parsed.data : null;
 }
 
-/** 受け取った文字列を制御指示として読む。読めなければ `null`。 */
+/**
+ * 受け取った文字列を制御指示として読む。読めなければ `null`。
+ *
+ * @param data - 制御指示として読む文字列
+ * @returns 読めた制御指示、または読めなかったときの `null`
+ */
 export function parseControl(data: string): ControlEvent | null {
   const parsed = controlEventSchema.safeParse(toJson(data));
 
@@ -80,6 +90,9 @@ export function parseControl(data: string): ControlEvent | null {
  * @remarks
  * 読めない文字列は検証で落ちる値として返します。例外を投げないのは、1 件の壊れた event で
  * 購読そのものを止めないためです。
+ *
+ * @param data - JSON として読む文字列
+ * @returns 読めた値、または読めなかったときの `null`
  */
 function toJson(data: string): unknown {
   try {

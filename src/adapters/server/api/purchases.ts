@@ -40,6 +40,11 @@ type WirePurchaseDetail = z.infer<typeof GetPurchasesDetailResponse>;
 
 let client: UserScopedHttpClient | undefined;
 
+/**
+ * 購入の口が使う接続先。
+ *
+ * @returns 購入用の client
+ */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
@@ -51,6 +56,12 @@ function getClient(): UserScopedHttpClient {
   return client;
 }
 
+/**
+ * 契約の履歴応答を表示用の 1 ページへ写す。
+ *
+ * @param wire - 契約の購入履歴応答
+ * @returns 表示用の履歴の 1 ページ
+ */
 function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
   return {
     items: wire.items.map(({ code, totalAmount, status, orderedAt }) => ({
@@ -97,6 +108,9 @@ const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeOtherUsers"]);
  * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeOtherUsers=yes` のような
  * 打ち間違いが黙って「自分の購入だけ」に倒れ、母集団が変わったことを利用者が知る手段が
  * なくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ *
+ * @param value - URL から届いた素の値
+ * @returns 読めれば真偽値、読めなければ元の文字列
  */
 function toBoolean(value: string): boolean | string {
   if (value === "true") {
@@ -121,6 +135,9 @@ function toBoolean(value: string): boolean | string {
  *
  * **キーは利用者が決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、
  * 並びを組んでから `Object.fromEntries` で畳みます。同じ綴りでも自前のプロパティになります。
+ *
+ * @param raw - URL 由来の検索条件
+ * @returns 照らせれば取得条件、読めなければ外れたキーの一覧
  */
 export function parsePurchaseHistoryQuery(
   raw: Readonly<Record<string, string | readonly string[]>>,
@@ -152,7 +169,12 @@ export function parsePurchaseHistoryQuery(
   return { ok: true, query: parsed.data };
 }
 
-/** 取得条件を、クエリ文字列へ載せる形へ写す。 */
+/**
+ * 取得条件を、クエリ文字列へ載せる形へ写す。
+ *
+ * @param query - 購入履歴の取得条件
+ * @returns クエリ文字列に載せる検索条件
+ */
 function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | undefined> {
   return {
     after: query.after,
@@ -172,6 +194,9 @@ function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | un
  * 次ページの鍵は応答の `nextCursor` に載ります。**ページ送りの間は同じ区間を渡します。**
  * 途中で条件が変わると keyset の連続性が保証されず、飛ばされる購入が出ます。区間は瞬時の
  * 半開区間 `[orderedAfter, orderedBefore)` で、暦の区分から解くのは呼び出し側です。
+ *
+ * @param query - 購入履歴の取得条件
+ * @returns 購入履歴の 1 ページ
  */
 export const getMyPurchases = cache(
   async (query: PurchaseHistoryQuery): Promise<PurchaseHistoryPage> => {
@@ -185,6 +210,12 @@ export const getMyPurchases = cache(
   },
 );
 
+/**
+ * 契約の購入詳細応答を表示用の型へ写す。
+ *
+ * @param wire - 契約の購入詳細応答
+ * @returns 表示用の購入
+ */
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {
     code: wire.code,
@@ -212,6 +243,7 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
  * 呼び出し側が所有者を確かめる必要はありません。
  *
  * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ * @returns 購入 1 件
  */
 export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchase> => {
   const wire = await getClient().request({
@@ -268,6 +300,11 @@ export async function createPurchase(
  *
  * **再送しません。** 同じ要求が 2 度届くと 2 度目は `conflict` になるため、遷移は冪等ではあり
  * ません。通信の途中で切れた要求を勝手に送り直すと、成立していた遷移が失敗として見えます。
+ *
+ * @typeParam T - 遷移応答の契約の形
+ * @param purchaseCode - 対象の購入コード
+ * @param action - 契約の URL に載せる遷移操作名
+ * @param schema - 応答を検証する契約のスキーマ
  */
 async function transition<T>(
   purchaseCode: string,
@@ -320,6 +357,8 @@ export async function payMyPurchase(purchaseCode: string): Promise<void> {
  *
  * 組分けと並び順を契約が決めること、範囲の外の購入が別の便になることは
  * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
+ *
+ * @returns 発送可能な購入の組
  */
 export async function getShippablePurchases(): Promise<readonly PurchaseDispatchGroup[]> {
   const wire = await getClient().request({
@@ -348,6 +387,7 @@ export async function getShippablePurchases(): Promise<readonly PurchaseDispatch
  * に分かれます。発送のような便の組は作りません。
  *
  * @param first - 1 度に読む件数。ページ送りを持たないため、ここが見せられる上限になる
+ * @returns 発送済みで未配達の購入
  */
 export const getShippedPurchases = cache(
   async (first: number): Promise<readonly PurchaseHistoryEntry[]> => {

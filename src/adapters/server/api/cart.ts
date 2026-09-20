@@ -37,6 +37,8 @@ let client: UserScopedHttpClient | undefined;
  * @remarks
  * 認証を任意にします。カートは未ログインでも使え、主体はゲストの識別子か認証済みの利用者かの
  * どちらかで、契約が両方の呼び出しを受け付けます。
+ *
+ * @returns カート用の client
  */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
@@ -56,6 +58,8 @@ function getClient(): UserScopedHttpClient {
  * @remarks
  * 認証済みの呼び出しでも付けたままにします。契約は両方が提示された場合に認証済みの主体を採ると
  * 定めており、こちらで優先順位を判断すると同じ規則が 2 箇所に生まれます。
+ *
+ * @returns ゲストの識別子ヘッダ。未発行なら undefined
  */
 async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | undefined> {
   const token = await readCartSession();
@@ -63,7 +67,12 @@ async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | u
   return token === null ? undefined : { [CART_SESSION_HEADER]: token };
 }
 
-/** 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。 */
+/**
+ * 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。
+ *
+ * @param wire - 契約のカート応答
+ * @returns 表示用のカート
+ */
 function toCart(wire: WireCart): Cart {
   return {
     lines: wire.items.map((item) => ({
@@ -85,6 +94,8 @@ function toCart(wire: WireCart): Cart {
  * @remarks
  * 識別子が載るのは、その呼び出しがゲストのカートを新しく作ったときだけです。載っていない応答で
  * 手元の cookie を消さないのは、既に持っている識別子がそのまま生きているためです。
+ *
+ * @param wire - カート操作の契約応答
  */
 async function keepIssuedSession(wire: WireCart): Promise<void> {
   if (wire.sessionToken === undefined || wire.sessionToken === null) {
@@ -104,6 +115,8 @@ async function keepIssuedSession(wire: WireCart): Promise<void> {
  * この取得はカートを作りません。ゲストの識別子がまだ無い利用者にも、空のカートが返ります。
  *
  * 1 リクエストの中で外枠と画面の双方がカートを読むため memo 化します。
+ *
+ * @returns 自分のカート
  */
 export const getMyCart = cache(async (): Promise<Cart> => {
   return toCart(
@@ -127,6 +140,8 @@ export const getMyCart = cache(async (): Promise<Cart> => {
  *
  * 在庫を超えた数量も拒まれません。買えるかどうかは明細の `issues` として返ります。
  *
+ * @param productId - 対象の商品
+ * @param quantity - 設定後の数量
  * @returns 設定後のカート（取得と同じく再評価つき）
  */
 export async function setMyCartItem(productId: ProductId, quantity: number): Promise<Cart> {
@@ -149,6 +164,8 @@ export async function setMyCartItem(productId: ProductId, quantity: number): Pro
  * @remarks
  * 対象が無くても成功します。公開が止まった商品も取り除けます（そうでないと、買えない明細を
  * 利用者が片付けられません）。
+ *
+ * @param productId - 取り除く商品
  */
 export async function removeMyCartItem(productId: ProductId): Promise<void> {
   await getClient().request({

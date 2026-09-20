@@ -26,6 +26,9 @@ export const PREFECTURE_MASTERS_TAG = "prefecture-masters";
  * @remarks
  * `code` は落とします。並び順を決めるための番号であり、契約が `code` 昇順で返すと定めている
  * ため、受け取った順序がそのまま表示の順序になります。
+ *
+ * @param wire - 契約の都道府県マスタ応答
+ * @returns 表示用の都道府県一覧
  */
 function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
   return wire.map(({ id, name }) => ({ id, name }));
@@ -41,6 +44,8 @@ function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
  * 都道府県は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。
  * 寿命と入れ物の性質は商品マスタと同じで、`getProductCategories` の項が持ちます。
  * 捨てる印だけが別で、{@link PREFECTURE_MASTERS_TAG} を使います。
+ *
+ * @returns 都道府県マスタ
  */
 export const getPrefectures = cache(async (): Promise<readonly Prefecture[]> => {
   "use cache";

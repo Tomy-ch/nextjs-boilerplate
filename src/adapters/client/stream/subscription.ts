@@ -137,7 +137,12 @@ export type StreamSubscription = {
 /** 発券の中継が返す形。 */
 const connectionPayload = z.object({ url: z.string(), expiresAt: z.string() });
 
-/** 同一オリジンの中継から発券を受け取る。生の ticket はこの URL の中にしか現れない。 */
+/**
+ * 同一オリジンの中継から発券を受け取る。生の ticket はこの URL の中にしか現れない。
+ *
+ * @param path - 発券を中継する同一オリジンの絶対パス
+ * @returns 接続先の URL と、この口で新しい接続を始められる期限
+ */
 async function requestConnection(path: string): Promise<StreamConnection> {
   const payload = await request(path, connectionPayload, { method: "POST" });
 
@@ -150,6 +155,9 @@ async function requestConnection(path: string): Promise<StreamConnection> {
  * @remarks
  * 名前を付けた event の listener には `Event` として届きます。本文を持たない event はそもそも
  * この stream に流れませんが、型の上では区別が付かないため、形で確かめてから渡します。
+ *
+ * @param event - 受け取った DOM イベント
+ * @param receive - 文字列として読めたときに本文を渡す関数
  */
 function forward(event: Event, receive: (data: string) => void): void {
   const data: unknown = event instanceof MessageEvent ? event.data : null;
@@ -168,6 +176,10 @@ function forward(event: Event, receive: (data: string) => void): void {
  *
  * 組み込みの再接続は使いません。`error` で即座に閉じるのは、閉じずにいると組み込みの再接続と
  * 自前の張り直しが同じ URL へ二重に走るためです。
+ *
+ * @param url - 接続先の URL（開始位置を含む）
+ * @param handlers - 受信した event を渡す先
+ * @returns 開いた接続 1 本。`close` で閉じる
  */
 function createSource(url: string, handlers: StreamSourceHandlers): StreamSource {
   const source = new EventSource(url);
@@ -189,7 +201,11 @@ function createSource(url: string, handlers: StreamSourceHandlers): StreamSource
   return { close: () => source.close() };
 }
 
-/** 既定の道具。ブラウザの時計・乱数・可視性をそのまま使う。 */
+/**
+ * 既定の道具。ブラウザの時計・乱数・可視性をそのまま使う。
+ *
+ * @returns {@link StreamDeps} の既定実装
+ */
 function browserDeps(): StreamDeps {
   return {
     requestConnection,
@@ -205,6 +221,7 @@ function browserDeps(): StreamDeps {
     now: Date.now,
     isHidden: () => document.hidden,
     onVisible: (listener) => {
+      /** 画面が見えるようになったときだけ `listener` を呼ぶ。 */
       const handle = (): void => {
         if (!document.hidden) {
           listener();
@@ -225,6 +242,10 @@ function browserDeps(): StreamDeps {
  *
  * @remarks
  * 位置がまだ無ければ何も載せません。送り手は発券のときに束ねた位置から配り始めます。
+ *
+ * @param url - 接続先の URL
+ * @param cursor - 開始位置。`null` なら載せない
+ * @returns 開始位置を載せた URL 文字列
  */
 function withCursor(url: string, cursor: StreamCursor | null): string {
   if (cursor === null) {
@@ -247,6 +268,10 @@ function withCursor(url: string, cursor: StreamCursor | null): string {
  *
  * 打ち切りと張り直しの分かれ目は発券の往復から来ます。接続の失敗は理由を持たないため、
  * `open` の前に落ちた接続は発券からやり直し、そこで返る分類で打ち切るかどうかを決めます。
+ *
+ * @typeParam T - 検証済みで上へ流す event の型
+ * @param options - 購読の指定
+ * @returns 開いた購読。{@link StreamSubscription.resume} と `close` を持つ
  */
 export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription {
   const deps = { ...browserDeps(), ...options.deps };
@@ -287,22 +312,34 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
   let halted = false;
   let closed = false;
 
+  /**
+   * `closed` でなければ、購読の状態が変わったことを呼び出し側へ知らせる。
+   *
+   * @param state - 通知する新しい状態
+   */
   function emit(state: StreamState): void {
     if (!closed) {
       options.onState(state);
     }
   }
 
+  /** 開いている接続を閉じ、参照を外す。 */
   function closeSource(): void {
     source?.close();
     source = null;
   }
 
+  /** 予約している張り直しを取り消す。 */
   function clearReconnect(): void {
     cancelReconnect?.();
     cancelReconnect = null;
   }
 
+  /**
+   * 購読を打ち切り、`stopped` を通知する。以降は張り直さない。
+   *
+   * @param reason - 打ち切りの理由
+   */
   function stop(reason: StreamStopReason): void {
     halted = true;
     clearReconnect();
@@ -310,6 +347,7 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     emit({ kind: "stopped", reason });
   }
 
+  /** 窓を閉じて検証を通った event だけを呼び出し側へ渡す。1 件でも溜まっていれば、以降は自分が流した位置から張り直す。 */
   function flush(): void {
     const drained = window.drain();
     const events: T[] = [];
@@ -331,6 +369,7 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     }
   }
 
+  /** 整列の窓を閉じる合図を、二重に予約しないよう 1 回だけ仕掛ける。 */
   function scheduleFlush(): void {
     if (cancelFlush !== null) {
       return;
@@ -342,6 +381,7 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     }, WINDOW_MS);
   }
 
+  /** 正本の取り直しを要求する。開始位置を持たない購読はその場で張り直し、持つ購読は取り直しの完了を待つ。 */
   function requestResync(): void {
     if (awaitingResync || closed) {
       return;
@@ -364,6 +404,11 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     options.onResync();
   }
 
+  /**
+   * 張り直しを 1 回予約する。
+   *
+   * @param hintMs - サーバが示した目安。無ければ回数から待ち時間を決める
+   */
   function scheduleReconnect(hintMs?: number): void {
     if (closed || halted || awaitingResync) {
       return;
@@ -380,6 +425,7 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     }, delay);
   }
 
+  /** 画面が見えるようになるまで待ち、見えたら 1 回だけ張り直しを再開する。 */
   function waitForVisible(): void {
     releaseVisibility ??= deps.onVisible(() => {
       releaseVisibility?.();
@@ -388,6 +434,11 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     });
   }
 
+  /**
+   * 受け取った制御指示に従って、購読を打ち切る・取り直す・張り直すのいずれかを行う。
+   *
+   * @param control - 読めた制御指示。読めなければ何もしない
+   */
   function handleControl(control: ControlEvent | null): void {
     if (control === null) {
       return;
@@ -413,12 +464,22 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     scheduleReconnect(control.retryAfterMs);
   }
 
+  /**
+   * 指定された接続先で `EventSource` を開き、世代を切り替えて通知を配線する。
+   *
+   * @param target - 接続先の URL と期限
+   */
   function connect(target: StreamConnection): void {
     closeSource();
 
     generation += 1;
 
     const mine = generation;
+    /**
+     * この接続がまだ有効な世代かどうか。
+     *
+     * @returns 世代が変わっていない、かつ購読が閉じられていなければ `true`
+     */
     const current = (): boolean => mine === generation && !closed;
 
     let opened = false;
@@ -477,6 +538,11 @@ export function openStream<T>(options: OpenStreamOptions<T>): StreamSubscription
     });
   }
 
+  /**
+   * 発券を取りに行く。失敗の分類によって打ち切るか張り直すかを決め、いずれの場合も `null` を返す。
+   *
+   * @returns 取得できた接続先。取得できなかった、または打ち切ったときは `null`
+   */
   async function issue(): Promise<StreamConnection | null> {
     emit({ kind: "connecting" });
 

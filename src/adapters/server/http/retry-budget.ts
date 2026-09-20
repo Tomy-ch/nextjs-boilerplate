@@ -1,8 +1,16 @@
 /** 再試行の予算。使い切ると、再試行してよい失敗であっても再試行しない。 */
 export type RetryBudget = {
-  /** 試行の結果を記録する。 */
+  /**
+   * 試行の結果を記録する。
+   *
+   * @param succeeded - 試行が成功したか
+   */
   record(succeeded: boolean): void;
-  /** いま再試行してよいか。 */
+  /**
+   * いま再試行してよいか。
+   *
+   * @returns 再試行してよいか
+   */
   canRetry(): boolean;
 };
 
@@ -21,6 +29,8 @@ const DEFAULT_MAX_TOKENS = 10;
  *
  * @param ratio - 成功 1 件あたりに回復するトークン数。通常リクエストに対する再試行の比率
  * @param maxTokens - トークンの上限
+ * @defaultValue maxTokens - `DEFAULT_MAX_TOKENS`（10）
+ * @returns 作成した予算
  */
 export function createRetryBudget(ratio: number, maxTokens = DEFAULT_MAX_TOKENS): RetryBudget {
   let tokens = maxTokens;

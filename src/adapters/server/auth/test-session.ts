@@ -16,6 +16,8 @@ import { type TestSessionSpec, toTestSessionRecord } from "./test-session-record
  *
  * 認可の往復を通す経路（`AUTH_MODE=dev`）はここを通りません。あちらは `/api/auth/callback` が
  * session を置くため、組み立てだけを {@link toTestSessionRecord} から借ります。
+ *
+ * @param spec - 発行するテスト用 session の指定
  */
 export async function issueTestSession(spec: TestSessionSpec): Promise<void> {
   await storeSession(toTestSessionRecord(spec));

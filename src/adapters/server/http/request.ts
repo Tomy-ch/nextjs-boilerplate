@@ -119,10 +119,9 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
  * 主体に紐づくものの指定。
  *
  * @remarks
- * **キャッシュの指定を型として持ちません。**「PII を共有キャッシュへ入れるな」を注意書きでは
- * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。それでもキャッシュしたい値の
- * 扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから user-scoped な
- * 取得の口を引かない」が持ちます。
+ * **キャッシュの指定を型として持ちません**（[adapters の README](../../README.md)）。それでも
+ * キャッシュしたい値の扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから
+ * user-scoped な取得の口を引かない」が持ちます。
  */
 type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
 
@@ -190,13 +189,8 @@ type UserScopedCredential =
        * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
        *
        * @remarks
-       * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を
-       * 作らないようにするためです。接続先ごとに認証が要るかどうかが決まるので、
-       * 指定はクライアントの生成時に 1 度だけ行います。
-       *
-       * **要求のたびに `cookies()` から解決する口を渡します**（0112 決定 5）。解決済みの値を掴む
-       * と、cached scope の中で `cookies()` が読まれなくなり、framework 側の防御
-       * （`next-request-in-use-cache`）が何も言わずに外れます。
+       * 接続先ごとに認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+       * ヘッダの組み立てと `cookies()` を読む理由は [adapters の README](../../README.md) が持ちます。
        *
        * @returns 認証できないときは null
        */
@@ -209,9 +203,8 @@ type UserScopedCredential =
        * 解決済みの Bearer。
        *
        * @remarks
-       * **session を確立する途中の 1 往復だけの口です。** その時点では cookie がまだ無く、
-       * 通常の取得口（cookie から Bearer を組む）は存在しません。綴りを分けてあるのは、
-       * 上の防御が外れる箇所を数えられるようにするためです（0112 決定 5 の例外）。
+       * **session を確立する途中の 1 往復だけの口です**（[adapters の README](../../README.md)）。
+       * 綴りを分けてあるのは、上の防御が外れる箇所を数えられるようにするためです。
        */
       bearerToken: string;
     };
@@ -240,9 +233,6 @@ type UserScopedClientDeps = BaseClientDeps &
      * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
      * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
      * 扱われるためです。
-     *
-     * **立てても分類は動きません。** 資格情報を載せうる口は、載せなかった回も含めて
-     * user-scoped です（0112 決定 3）。
      */
     allowAnonymous?: boolean;
   };
@@ -259,6 +249,9 @@ const NO_CONTENT_STATUS = 204;
  * `204` は本文を持たないと HTTP が定めている（RFC 9110 §15.3.5）ため、読みに行きません。
  * 空の本文を JSON として解釈しようとすると構文エラーになり、成功した呼び出しが失敗として
  * 表に出ます。
+ *
+ * @param response - 読む対象の応答
+ * @returns 本文が無ければ undefined、あれば JSON として読んだ値
  */
 async function readBody(response: Response): Promise<unknown> {
   return response.status === NO_CONTENT_STATUS ? undefined : response.json();
@@ -286,6 +279,7 @@ const errorDetailsSchema = z.object({ details: z.array(z.string()).optional() })
  * @remarks
  * 読めない本文は「詳細が無い」に畳み、元の失敗をすり替えません。
  *
+ * @param response - 詳細を読む対象の失敗応答
  * @returns 名指しされた項目名。読めなければ空
  */
 async function readErrorDetails(response: Response): Promise<readonly string[]> {
@@ -302,7 +296,12 @@ async function readErrorDetails(response: Response): Promise<readonly string[]> 
   }
 }
 
-/** 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。 */
+/**
+ * 指定された本文を、送出できる形と Content-Type の組へ変換する。本文が無ければ undefined。
+ *
+ * @param spec - 変換元の本文の指定
+ * @returns 送出できるヘッダと本文の組。本文が無ければ undefined
+ */
 function encodePayload(
   spec: RequestPayload,
 ): { headers: Record<string, string>; body: BodyInit } | undefined {
@@ -351,6 +350,8 @@ const DOT_SEGMENT_PATTERN = /\/\.{1,2}(?:\/|$)/;
  * 弾いたものは `invalid-argument` です。接続先の不調ではなく、渡された値が路として成り立って
  * いないためで、再試行しても結果は変わりません。
  *
+ * @param path - 検査する路
+ * @returns 先頭を `/` で揃えた、畳み込む区間を含まない路
  * @throws 畳み込む区間を含むとき
  */
 function assertNoDotSegment(path: string): string {
@@ -376,6 +377,11 @@ function assertNoDotSegment(path: string): string {
  *
  * **絶対 URL はそのまま使います。** Discovery が返す各エンドポイントは絶対 URL であり、それを
  * 接続先へ繋ぎ直す意味がありません。組み立てていない路なので、畳み込みの検査も掛けません。
+ *
+ * @param baseUrl - 接続先の base URL
+ * @param path - 繋ぐ相対パス、または絶対 URL
+ * @param searchParams - 付与するクエリ
+ * @returns 組み立てた URL
  */
 function buildUrl(
   baseUrl: string,
@@ -409,6 +415,9 @@ function buildUrl(
  *
  * 時刻・乱数・待機・fetch は引数で受け取ります。これらを内部で直接掴むと、再試行や遮断の
  * 振る舞いを実時間を待たずに検証できなくなります。
+ *
+ * @param deps - 接続先ごとの実行環境。`scope` が `"public"` か `"user-scoped"` かで受け取れる項目が変わる
+ * @returns `scope` に応じた client
  */
 export function createHttpClient(deps: PublicClientDeps): PublicHttpClient;
 export function createHttpClient(deps: UserScopedClientDeps): UserScopedHttpClient;
@@ -442,6 +451,9 @@ export function createHttpClient({
    * **接続先と生成元が違えば載せません。** 絶対 URL を渡された要求は接続先を離れるため、
    * 載せると資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることが
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
+   *
+   * @param url - 認証ヘッダを載せる対象の URL
+   * @returns 載せるヘッダの組。認証を要さない・匿名で通す場合は空
    */
   async function authorizationHeader(url: URL): Promise<Record<string, string>> {
     const carriesCredential = getBearerToken !== undefined || bearerToken !== undefined;
@@ -465,6 +477,15 @@ export function createHttpClient({
     return { Authorization: `Bearer ${token}` };
   }
 
+  /**
+   * 1 回分の試行として要求を送る。
+   *
+   * @param url - 送信先の URL
+   * @param spec - 呼び出し 1 件の指定
+   * @param signal - 全体の期限と合成する中断信号
+   * @param authorization - 付与する認証ヘッダ
+   * @returns 接続先からの応答
+   */
   async function attempt(
     url: URL,
     spec: RequestSpec<unknown>,
@@ -574,6 +595,12 @@ export function createHttpClient({
  * @remarks
  * 検証に失敗した応答は契約破れであり、通信の失敗と区別して `internal` として扱います。
  * 送り直しても直らないため再試行の対象にもしません。
+ *
+ * @typeParam T - 検証に使うスキーマが表す型
+ * @param schema - 突き合わせに使う検証スキーマ
+ * @param payload - 検証する応答の本文
+ * @param path - エラー時のメッセージに含める呼び出し先
+ * @returns 検証を通った値
  */
 function parse<T>(schema: ZodType<T>, payload: unknown, path: string): T {
   const result = schema.safeParse(payload);

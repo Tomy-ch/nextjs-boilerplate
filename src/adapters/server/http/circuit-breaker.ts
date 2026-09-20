@@ -6,7 +6,17 @@ type BreakerState = "closed" | "open" | "half-open";
 export type CircuitBreaker = {
   /** いま試行してよいか。遮断中なら false。 */
   canAttempt(): boolean;
+  /**
+   * 試行の結果を記録する。
+   *
+   * @param succeeded - 試行が成功したか
+   */
   record(succeeded: boolean): void;
+  /**
+   * いまの遮断状態を返す。
+   *
+   * @returns 遮断器の現在の状態
+   */
   state(): BreakerState;
 };
 
@@ -23,6 +33,7 @@ export type CircuitBreaker = {
  *
  * @param config - 失敗率・観測数・遮断時間・復帰試行数
  * @param now - 経過時間をミリ秒で返す時計。呼び出し側が渡す。差だけを見るので単調なものを渡す
+ * @returns 作成した遮断器
  */
 export function createCircuitBreaker(
   config: ResilienceProfile["breaker"],
@@ -33,12 +44,14 @@ export function createCircuitBreaker(
   let openedAt = 0;
   let probesLeft = 0;
 
+  /** 遮断へ移行する。窓を空にし、遮断の起点時刻を記録する。 */
   function open(): void {
     state = "open";
     openedAt = now();
     window.length = 0;
   }
 
+  /** 遮断を解除して閉状態へ戻す。窓を空にする。 */
   function close(): void {
     state = "closed";
     window.length = 0;

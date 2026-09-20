@@ -58,6 +58,7 @@ const ProductCountPayload = z.object({ count: z.int() });
  *
  * @param query - URL へ載せる検索条件。カーソルを含める
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ * @returns 一覧の次ページ
  */
 export async function fetchProductListPage(
   query: URLSearchParams,
@@ -75,6 +76,7 @@ export async function fetchProductListPage(
  *
  * @param query - URL へ載せる検索条件。読み進めた位置は含めない
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ * @returns 条件に一致する件数
  */
 export async function fetchProductCount(
   query: URLSearchParams,

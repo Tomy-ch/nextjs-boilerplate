@@ -21,6 +21,8 @@ const TOKEN_BYTES = 32;
  *
  * 乱数は Web Crypto から取ります。`Math.random` は予測可能であり、ここで使うと `state` の
  * 推測による認可コード注入を許します。
+ *
+ * @returns base64url エンコードした乱数値
  */
 export function createRandomToken(): string {
   const bytes = new Uint8Array(TOKEN_BYTES);

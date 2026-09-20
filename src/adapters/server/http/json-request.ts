@@ -13,8 +13,8 @@ export type JsonBody =
  *
  * @remarks
  * **認証を要求しない口が持つ最小の防御です**。宣言された型と本体の大きさを見て、
- * 契約の外にあるものを落とします。レート制限と大域的な遮断は edge / WAF の責務なので、
- * ここには置きません（同 §1）。
+ * 契約の外にあるものを落とします。レート制限と大域的な遮断はここに置きません
+ * （[同区画の README](README.md)）。
  *
  * **大きさは 2 度見ます。** 宣言された長さで先に落とすと本体を読まずに済み、宣言の無い要求や偽った
  * 宣言は読んだ後の実測で落ちます。**読む前に打ち切ることまではしません** —— 際限なく流し込まれる
@@ -48,7 +48,12 @@ export async function readJsonBody(request: Request, maxBytes: number): Promise<
   }
 }
 
-/** 宣言された型が JSON かを見る。charset などの引数が付いていても本体の型は変わらない。 */
+/**
+ * 宣言された型が JSON かを見る。charset などの引数が付いていても本体の型は変わらない。
+ *
+ * @param contentType - 検査する Content-Type ヘッダの値
+ * @returns JSON を宣言しているか
+ */
 function isJson(contentType: string | null): boolean {
   return contentType !== null && contentType.split(";")[0]?.trim().toLowerCase() === CONTENT_TYPE;
 }

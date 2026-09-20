@@ -12,6 +12,9 @@ export const SEAL_HEADER = { alg: "dir", enc: "A256GCM" } as const;
  *
  * 封緘するものが増えても導き方は 1 つに保ちます。導出が分かれると、同じ秘密値から違う鍵が出て、
  * 片方で封緘したものをもう片方が開けません。
+ *
+ * @param secret - 鍵の元になる秘密値
+ * @returns 256 bit の鍵
  */
 export async function deriveSealKey(secret: string): Promise<Uint8Array> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(secret));

@@ -44,6 +44,11 @@ export type StreamConnection = {
 
 let client: UserScopedHttpClient | undefined;
 
+/**
+ * 問い合わせ購読の発券口が使う接続先。
+ *
+ * @returns 発券用の client
+ */
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
@@ -74,7 +79,14 @@ function assertSubscribable(): void {
   }
 }
 
-/** 発券の応答から、そのまま開ける URL を組む。 */
+/**
+ * 発券の応答から、そのまま開ける URL を組む。
+ *
+ * @param ticket - 発券された ticket
+ * @param streamId - 接続先の stream を指す識別子
+ * @param expiresAt - 接続を開ける期限（ISO 8601）
+ * @returns ブラウザが購読を始めるための接続情報
+ */
 function toConnection(ticket: string, streamId: string, expiresAt: string): StreamConnection {
   const url = new URL(
     `${getApiConfig().baseUrl.replace(/\/$/, "")}${STREAMS_PATH}/${encodeURIComponent(streamId)}`,
@@ -94,6 +106,8 @@ function toConnection(ticket: string, streamId: string, expiresAt: string): Stre
  *
  * 購読する問い合わせを持たない主体には `not-found` が返ります。まだ 1 通も送っていない状態が
  * これに当たり、履歴の取得が成功することとは両立します。
+ *
+ * @returns ブラウザが購読を始めるための接続情報
  */
 export async function issueMyInquiryStreamConnection(): Promise<StreamConnection> {
   assertSubscribable();
@@ -107,7 +121,11 @@ export async function issueMyInquiryStreamConnection(): Promise<StreamConnection
   return toConnection(wire.ticket, wire.streamId, wire.expiresAt);
 }
 
-/** 問い合わせの更新フィードを購読する口を発券する（運営）。運ぶのは行の更新だけで、本文は含まない。 */
+/**
+ * 問い合わせの更新フィードを購読する口を発券する（運営）。運ぶのは行の更新だけで、本文は含まない。
+ *
+ * @returns ブラウザが購読を始めるための接続情報
+ */
 export async function issueInquiryFeedStreamConnection(): Promise<StreamConnection> {
   assertSubscribable();
 
