@@ -43,6 +43,7 @@ export type OrderingWindow = {
  * 整列の窓を作る。
  *
  * @param initialCursor - 購読を始める位置。正本の取得が返した位置をそのまま渡す
+ * @returns 整列の窓（{@link OrderingWindow}）
  */
 export function createOrderingWindow(initialCursor: StreamCursor): OrderingWindow {
   let cursor = initialCursor;

@@ -58,11 +58,14 @@ export type RequestOptions = {
  * 生の status を投げ直さず分類へ写します。呼び出し側は「入力が悪いのか、取得できなかったのか」
  * だけを見て表示を決めます。
  *
+ * @typeParam T - 検証を通過した応答本体の型（`schema` の推論結果）
  * @param path - 同一オリジンの絶対パス。クエリを含み、percent-encode 済みであること
  * @param schema - 応答の検証スキーマ。**流儀は問わない** —— `zod` と `zod/mini` は同じ core の型を
  *   共有するため、ここは core の口だけを見る。共有層が片方の流儀を要求すると、呼び出し側の移行が
  *   この 1 箇所のために止まる
  * @param options - 打ち切りの合図と、取得以外の要求で使う method
+ * @returns 検証を通過した応答本体（`schema` が推論する `T`）
+ * @throws 応答が `ok` でないとき、または検証に失敗したときに `AppError` を投げる
  */
 export async function request<T>(
   path: string,
