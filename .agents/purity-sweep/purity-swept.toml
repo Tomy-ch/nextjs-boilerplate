@@ -198,3 +198,6 @@
 "src/components/design-system/overlay/use-overlay-history.ts" = "2026-09-21"
 "src/features/checkout/actions.ts" = "2026-09-21"
 "src/app/telemetry.tsx" = "2026-09-21"
+"scripts/setup/verify-sample-removal/verify.ts" = "2026-09-21"
+"scripts/setup/verify-sample-removal/verify.test.ts" = "2026-09-21"
+"scripts/setup/remove-sample/sample-manifest.ts" = "2026-09-21"
