@@ -42,6 +42,13 @@ function StateIcon({ state }: { state: AuthState }) {
  * session の検証、権限の判定、status code の分類は持たない。`adapters/server` が正規化した結果を
  * feature が {@link AuthState} へ対応させて渡す。
  *
+ * @example
+ * ```tsx
+ * <AuthStateFeedback state="session-expired">
+ *   <AuthSignInAction href={signInHref} />
+ * </AuthStateFeedback>
+ * ```
+ *
  * @param props.state - 表示する状態。
  * @param props.children - 次に取る行動。
  *

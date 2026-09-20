@@ -40,6 +40,16 @@ function MessageGroup({ className, ...props }: ComponentProps<"div">) {
  * 吹き出しの面は持たない。本文の背景や角丸が必要な場合は `MessageContent` の子として
  * 呼び出し元が組む。
  *
+ * @example
+ * ```tsx
+ * <Message align={MESSAGE_ALIGN.END}>
+ *   <MessageContent>
+ *     <MessageHeader>自分 12:04</MessageHeader>
+ *     <p>本文</p>
+ *   </MessageContent>
+ * </Message>
+ * ```
+ *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.align - avatar と本文を寄せる向き。{@link MESSAGE_ALIGN} のいずれか。
  *

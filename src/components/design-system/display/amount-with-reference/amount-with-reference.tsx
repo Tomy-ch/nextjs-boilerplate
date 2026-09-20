@@ -39,6 +39,13 @@ const SHOW_REFERENCE_LABEL = "円で見る";
  *
  * 何の金額かは持ちません。見出しは呼び出し側が渡します。
  *
+ * @example
+ * ```tsx
+ * import { AmountWithReference } from "@/components/design-system/display/amount-with-reference/amount-with-reference";
+ *
+ * <AmountWithReference amount={21_287} label="合計" reference={reference} />;
+ * ```
+ *
  * @param props.label - 金額の見出し。
  * @param props.amount - 基準通貨の金額。最小単位の整数。
  * @param props.reference - 表示通貨での参考換算額。読めなければ null。

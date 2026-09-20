@@ -82,20 +82,18 @@ git diff --check
 
 TSDoc が満たすべき条件は一つである。**呼び出し側が内部の振る舞いを知らないまま、props を与えるだけで実装できること。** 実装の手順や内部状態の遷移は書かず、公開 API から見える契約だけを書く。加えて **Storybook の配置先を併記し、どのような見た目かが一目で分かるようにする。**
 
-公開する component には次を揃える。
+どのタグを必須にし、どれを該当するときだけ書くか —— `@param` / `@returns` / `@defaultValue` / `@example` と、props の意味を `<Component>Props` のメンバーへ書くこと —— は [docs/rules.md](../../docs/rules.md)「コメントと文書」が持つ。この層で足すのは次だけである。
 
 | 要素 | 内容 |
 | --- | --- |
 | 先頭の一行 | この component の責務。名前の言い換えではなく、何を引き受けるかを書く |
 | `@remarks` | 呼び出し側が知らないと誤用する制約。SSR / client island の境界、必須の a11y 属性、この component が**持たない**責務 |
-| `@example` | そのまま動く最小の呼び出し例。import が要る場合は import ごと書く |
-| `@param props` | 受け取るものの総称（native 属性を透過するならその旨） |
-| `@param props.<名前>` | props ごとの意味。値集合を持つものは各値が何を表すかまで書く |
+| `@param props` | native 属性を透過するならその旨 |
 | `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く |
 
-型・定数にも TSDoc を書く。`<Component>Props` は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
+`<Component>Props` 自体は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
 
-subcomponent が多い compound では、root に `@example` で組み合わせ全体を示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
+subcomponent が多い compound では、root の `@example` で組み合わせ全体を示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
 
 書かないもの。
 
@@ -131,6 +129,8 @@ subcomponent が多い compound では、root に `@example` で組み合わせ�
 - **光ってよい色は決まっている。** `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive` の 5 つだけが存在し、`secondary` と `emphasis` には token が無い（`tokens/README.md`「発光の可否と時機」）
 - **`warning` と `destructive` は休止時に光らせない。** `hover:` / `focus-visible:` に付ける。危険な操作が常時光っていると「いま押せる」と読める
 - **面の色と違う色で光らせない。** 赤い面を主色の光で囲むと、光でできた世界では破綻して見える
+- **主行動（`default`）だけは休止時から光らせる。** 画面の中で「いま生きている操作」は 1 つなので、常時の装飾ではなく状態の表示にあたる
+- **`destructive` は hover / active の不透明度差を他の variant より大きく取る**（`/75` と `/60`。他は `/85` と `/70`）。暗い配色の上では不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない
 
 ### 境界を示す線
 
@@ -497,6 +497,8 @@ mount 位置が部品側で決まっている部品（[層](#層)）。
 
 | component | 概要 |
 | --- | --- |
+| [`app-shell`](./shell/app-shell/README.md) | 利用者向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
+| [`admin-shell`](./shell/admin-shell/README.md) | 管理画面の外枠。脇の導線一覧・header・skip link・`main` を同じ位置に置く |
 | [`content-container`](./shell/content-container/README.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
 | [`page-header`](./shell/page-header/README.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
 | [`toaster`](./shell/toaster/README.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |

@@ -18,6 +18,11 @@ import {
  * {@link Button} を render できない場所で、ボタンと同じ見た目だけを借りるために公開している。
  * 通常は {@link Button} を使い、リンクをボタンの見た目にする場合も `asChild` を使う。
  *
+ * @example
+ * ```tsx
+ * <a className={buttonVariants({ variant: BUTTON_VARIANT.OUTLINE })} href="/help">ヘルプ</a>
+ * ```
+ *
  * @see Storybook `Action/Button`
  */
 export const buttonVariants = cva(
@@ -25,18 +30,14 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // 主行動だけは休止時から光らせる。画面の中で「いま生きている操作」は 1 つなので、
-        // 常時の装飾ではなく状態の表示にあたる。
         [BUTTON_VARIANT.DEFAULT]:
           "bg-primary text-primary-foreground shadow-glow-primary hover:bg-primary/85 active:bg-primary/70",
         [BUTTON_VARIANT.OUTLINE]:
           "border border-border bg-background text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         [BUTTON_VARIANT.GHOST]:
           "bg-transparent text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
-        // hover と active の差を他の variant（`/85` と `/70`）より大きく取る。暗い配色の上では
-        // 不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない。
-        //
-        // 自分の色で、hover / focus-visible にだけ光らせる（`src/components/README.md`「発光」）
+        // hover / active の差を他の variant より大きく取り、自分の色で hover / focus-visible にだけ
+        // 光らせる（`src/components/README.md`「発光」）
         [BUTTON_VARIANT.DESTRUCTIVE]:
           "bg-destructive text-destructive-foreground hover:bg-destructive/75 hover:shadow-glow-destructive focus-visible:shadow-glow-destructive active:bg-destructive/60",
       },
@@ -123,6 +124,17 @@ export type ButtonProps = ComponentProps<"button"> &
  *
  * disabled 状態は native `disabled` 属性で指定する。`asChild` でリンクを使う場合、
  * HTML の link には `disabled` が存在しないため、遷移禁止の状態を表す別の UI を選ぶ。
+ *
+ * @example
+ * ```tsx
+ * import Link from "next/link";
+ *
+ * <Button type="submit">保存する</Button>
+ *
+ * <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
+ *   <Link href="/settings">設定へ進む</Link>
+ * </Button>
+ * ```
  *
  * @param props - native `button` 属性と、以下の表示用 props。
  * @param props.variant - 操作の優先度に対応する見た目。

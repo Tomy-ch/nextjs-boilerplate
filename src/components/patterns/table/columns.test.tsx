@@ -71,7 +71,6 @@ describe("TableColumnHeaders", () => {
 });
 
 describe("tableColumnCellClass", () => {
-  // ----- 正常系 -----
   it("列の寄せに対応する class を返す", () => {
     expect(tableColumnCellClass({ id: "a", header: "a", align: "center" })).toBe("text-center");
     expect(tableColumnCellClass({ id: "a", header: "a", align: "end" })).toBe("text-right");

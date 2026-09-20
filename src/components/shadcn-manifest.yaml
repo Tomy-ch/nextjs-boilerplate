@@ -5,23 +5,12 @@
 #
 #   key           実体を指すラベル。原則ディレクトリ名。衝突する場合だけ修飾する
 #   registryItem  上流の item 名。`original` は上流を持たないため書かない
-#   dependencies  実装が実際に import している外部 package。参照が無ければ書かない
+#   layer         誰が書き換えるか（design-system / patterns / shell / app-starter）
+#   as            component 目録で載る見出し。目的を表す
 #   directory     実体の置き場所。名前から推測しないためこれが正
+#   dependencies  実装が実際に import している外部 package。参照が無ければ書かない
 #   kind          copy-in = 要追従 / reimplemented = 参考 / original = 上流なし /
 #                 not-adopted = 検討したうえで作らない
-#   as            component 目録で載る見出し。目的を表す
-#
-# `not-adopted` は実体を持たないため `layer` / `as` / `directory` を書かず、代わりに `reason` と
-# `revisitWhen` を必須にする。**条件を書けない「やらない」は判断ではなく先送りである。**
-# ここに残すのは「検討したのか、まだ見ていないのか」を後から区別できるようにするためで、
-# 責務を引き取った component がある場合はその README が決定の実体を持つ。
-#
-# `as` と `directory` を 1 つに畳まないこと。`as` は目的、`directory` は層と置き場所で、軸が違う。
-# `design-system/navigation/pagination` と `app-starter/cursor-pagination` はどちらも
-# `as: navigation` であり、どの層かは `directory` だけが持つ。
-#
-# key と registryItem を 1 つに畳まないこと。同じ item から native / client の 2 実装を
-# 作った場合に表現できなくなる。
 schemaVersion: 1
 components:
   action-bar:
@@ -153,6 +142,22 @@ components:
     as: layout
     directory: src/components/shell/page-header
     addedAt: 2026-08-04T00:55:00.000Z
+  app-shell:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/app-shell
+    addedAt: 2026-09-20T00:00:00.000Z
+    dependencies:
+      - next
+  admin-shell:
+    kind: original
+    layer: shell
+    as: layout
+    directory: src/components/shell/admin-shell
+    addedAt: 2026-09-20T00:00:00.000Z
+    dependencies:
+      - next
   cursor-pagination:
     kind: original
     layer: app-starter

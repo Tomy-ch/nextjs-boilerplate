@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import ts from "typescript";
 import { parse } from "yaml";
 import { z } from "zod";
 
@@ -36,9 +37,7 @@ const registrySourceSchema = z.object({
  * `components/README.md` の component 目録で、その component が載る見出し。
  *
  * @remarks
- * `design-system` の部品は目的ごとの見出しに分かれ、それ以外の層は目的で割らないため `as` だけが見出しを持つ。
- * `navigation` のように両方へ現れる値があるのは、同じ目的の部品が基底と合成の両方に存在する
- * ためであり、どちらの層かは `directory` が持つ。目的と層は別の軸なので畳まない。
+ * `design-system` 以外の層は目的で割らないため `as` だけが見出しを持つ。
  */
 export const CATALOG_HEADING = {
   ACTION: "action",
@@ -64,12 +63,7 @@ export type CatalogHeading = (typeof CATALOG_HEADING)[keyof typeof CATALOG_HEADI
  *
  * @remarks
  * 層は「その部品を誰が書き換えるか」で決まり、目的（{@link CATALOG_HEADING}）とは別の軸である。
- * 畳まずに両方を持つ。判定は契約から先に当てる。
- *
- * - `design-system` — 契約を知らず、読んでも役割が増えない。目的別に置く
- * - `patterns` — 契約は知らないが、複数の役割を合成する。目的を一つに決められないので割らない
- * - `shell` — アプリのどこに・いくつ置くかが部品側で決まっている。mount 位置が制約になる
- * - `app-starter` — バックエンドの契約を知っている。作り替える前提
+ * 各層の受け持ちは components/README.md「層」参照。
  */
 export const COMPONENT_LAYER = {
   DESIGN_SYSTEM: "design-system",
@@ -92,8 +86,8 @@ export const componentLayerSchema = z.enum([
  * 層と目的から、component ディレクトリのリポジトリ相対パスを組み立てる。
  *
  * @remarks
- * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは目的を一つに決められない
- * ものの置き場なので、割らずに直下へ並べる。
+ * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは {@link COMPONENT_LAYER} の
+ * とおり目的で割らないため、直下へ並べる。
  */
 export function componentDirectoryOf(
   layer: ComponentLayer,
@@ -281,12 +275,17 @@ export function packageOf(specifier: string): string {
  * @remarks
  * 相対 import と `@/` の内部 import は外部依存ではない。react / react-dom は全 component が
  * 前提にする実行環境なので数えない。test と story は component の依存ではないため、呼び出し元が
- * 対象から外す。
+ * 対象から外す。数えるのは `import … from` と `export … from` の宣言だけで、コメントや文字列の
+ * 中の綴りは数えない —— doc comment の `@example` は呼び出し側の import を含み、文字列は `/*` を
+ * 含みうるので、字面で拾うと宣言でないものまで数える。
+ *
+ * @param sources - 実装ファイルの中身
+ * @returns 参照している外部 package の名前。重複なく並べ替えたもの
  */
 export function vendorImportsOf(sources: readonly string[]): string[] {
   const packages = new Set<string>();
   for (const source of sources) {
-    for (const [specifier] of source.matchAll(/(?<=from ")[^"]+(?=")/g)) {
+    for (const specifier of moduleSpecifiersOf(source)) {
       if (specifier.startsWith(".") || specifier.startsWith("@/")) continue;
       const name = packageOf(specifier);
       if (RUNTIME_PACKAGES.has(name)) continue;
@@ -294,6 +293,33 @@ export function vendorImportsOf(sources: readonly string[]): string[] {
     }
   }
   return [...packages].sort();
+}
+
+/**
+ * ソースの `import … from` / `export … from` 宣言が読み込む先を、構文木から取り出す。
+ *
+ * @param source - TypeScript / TSX のソース
+ * @returns 読み込み先の綴り。宣言の順
+ */
+function moduleSpecifiersOf(source: string): string[] {
+  const file = ts.createSourceFile(
+    "source.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TSX,
+  );
+  const specifiers: string[] = [];
+  for (const statement of file.statements) {
+    let specifier: ts.Expression | undefined;
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      specifier = statement.moduleSpecifier;
+    } else if (ts.isExportDeclaration(statement)) {
+      specifier = statement.moduleSpecifier;
+    }
+    if (specifier && ts.isStringLiteral(specifier)) specifiers.push(specifier.text);
+  }
+  return specifiers;
 }
 
 /**
@@ -311,10 +337,9 @@ export function registryItemOf(upstreamPath: string): string {
  * component ディレクトリと、その配下のファイルを、リポジトリ相対パスの一覧から取り出す。
  *
  * @remarks
- * 層のディレクトリ（{@link COMPONENT_LAYER}）と目的のディレクトリを列挙しない。列挙すると、
- * 層や目的が増えるたびに script を直す必要が生まれ、直し忘れたものが台帳から静かに抜ける。
- * 代わりに {@link COMPONENT_MARKER} を持つディレクトリをすべて component として扱うため、
- * 入れ子になっていても、層を移しても記録漏れとして現れる。
+ * 役割ディレクトリを列挙せず、{@link COMPONENT_MARKER} を持つディレクトリをすべて component
+ * として扱う（components/README.md「配置・命名」）。そのため、入れ子になっていても層を移しても
+ * 記録漏れとして現れる。
  *
  * @param filePaths - `src/components` 配下のファイルのリポジトリ相対パス。
  */

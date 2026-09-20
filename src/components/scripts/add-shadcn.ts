@@ -178,6 +178,10 @@ type ValidShadcnAddInvocation = ShadcnAddInvocation & {
  *
  * shadcn CLI のオプションは `--` より後ろに書く。これにより、manifest に記録する部品名と
  * CLI のオプション値を曖昧なく区別する。`--as` はラッパー自身のオプションなので `--` の手前に置く。
+ *
+ * @example
+ * splitShadcnAddArguments(["button", "--as=action", "--", "--yes"])
+ * // { components: ["button"], as: "action", shadcnArguments: ["--yes"] }
  */
 export function splitShadcnAddArguments(arguments_: string[]): ShadcnAddInvocation {
   const separatorIndex = arguments_.indexOf(ARGUMENT_SEPARATOR);

@@ -1,6 +1,14 @@
+---
+test-requirement: unit
+---
+
 # ui scripts
 
 `components/scripts/` は、shadcn/ui の copy-in と、その来歴情報の更新・追従確認を実行するスクリプトを置きます。
+
+**描画を持たない Node 側のツーリングは `unit` である。** 宣言を自分で持たないと、機械の解決は親の
+`src/components/README.md` の `component` を継ぎ、描画も a11y も持たないここへ、描画を前提にした
+観点が当たる（[`scripts/README.md`](../../../scripts/README.md) も同じ理由で `unit` を宣言する）。
 
 ## 実行
 

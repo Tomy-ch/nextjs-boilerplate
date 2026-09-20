@@ -88,6 +88,13 @@ export type TextHighlightProps = Omit<ComponentProps<"span">, "children"> & {
  * `em` とは意味が異なる。強調が視覚的な手掛かりでしかない場合でも、本文の読み上げ内容は
  * 変わらないため、一致件数や検索条件を利用者へ伝える必要があるときは、別途テキストで示す。
  *
+ * @example
+ * ```tsx
+ * <TextHighlight query={keyword} text={item.name} />
+ *
+ * <TextHighlight caseSensitive query={["ID", "Key"]} text={item.description} />
+ * ```
+ *
  * @param props - native `span` 属性と、以下の表示用 props。`children` は受け取らない。
  * @param props.text - 強調対象の本文。
  * @param props.query - 強調する語。

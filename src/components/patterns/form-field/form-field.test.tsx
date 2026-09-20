@@ -108,7 +108,6 @@ describe("FormField", () => {
   });
 
   it("誤りが無くても `aria-invalid` を落とさない", () => {
-    // 属性ごと消すと、支援技術には「一度も検証していない」と区別が付かない。
     renderField();
 
     expect(screen.getByLabelText("姓")).toHaveAttribute("aria-invalid", "false");

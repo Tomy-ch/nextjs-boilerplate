@@ -33,6 +33,14 @@ const alertVariants = cva(
  *
  * 先頭に icon を置く場合は、`Alert` の直下の子として渡すと見出しと本文の左へ配置される。
  *
+ * @example
+ * ```tsx
+ * <Alert variant="warning">
+ *   <AlertTitle>保存されていない変更があります</AlertTitle>
+ *   <AlertDescription>数量を減らすか、入荷通知を受け取ってください。</AlertDescription>
+ * </Alert>
+ * ```
+ *
  * @param props - native `div` 属性と `variant`。
  * @param props.variant - 伝える深刻度。`default` は補足、`warning` は続行できる注意、
  *   `destructive` は失敗や不可逆な結果を表す。

@@ -11,6 +11,13 @@ import { KeyboardShortcutKeys } from "./keyboard-shortcut-keys";
  * 操作の説明とキーの対を `dl` として並べる、表示専用の Server Component である。並び順・件数・
  * どの操作を載せるかは呼び出し元が決める。
  *
+ * @example
+ * ```tsx
+ * <KeyboardShortcutList>
+ *   <KeyboardShortcut keys={[SHORTCUT_MODIFIER.MOD, "K"]}>コマンドパレットを開く</KeyboardShortcut>
+ * </KeyboardShortcutList>
+ * ```
+ *
  * @see Storybook `Display/KeyboardShortcut`
  */
 export function KeyboardShortcutList({ className, ...props }: ComponentProps<"dl">) {

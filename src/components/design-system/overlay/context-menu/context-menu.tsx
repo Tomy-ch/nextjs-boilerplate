@@ -18,7 +18,6 @@ import { CONTEXT_MENU_ITEM_VARIANT, type ContextMenuItemVariant } from "./contex
  * 加速手段**として使う。ここでしか到達できない操作を置いてはならない。行ごとの操作なら
  * `RowActions`、trigger を伴う menu なら `DropdownMenu` が可視の導線を担う。
  *
- * @remarks
  * `ContextMenuTrigger` が覆う範囲では、browser 既定のコンテキストメニューが開かなくなる。
  * 画像の保存やリンクのコピーといった browser の機能もその範囲で使えなくなるため、
  * 覆う範囲は操作対象の要素に限る。
@@ -26,6 +25,16 @@ import { CONTEXT_MENU_ITEM_VARIANT, type ContextMenuItemVariant } from "./contex
  * 開閉と focus 管理のため hydration が必要で、Server Component からは直接 render できない。
  * 項目の内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を
  * `children` として渡す。
+ *
+ * @example
+ * ```tsx
+ * <ContextMenu>
+ *   <ContextMenuTrigger>{row}</ContextMenuTrigger>
+ *   <ContextMenuContent>
+ *     <ContextMenuItem onSelect={edit}>編集</ContextMenuItem>
+ *   </ContextMenuContent>
+ * </ContextMenu>
+ * ```
  *
  * @param props - Radix `ContextMenu.Root` の props。`modal` を `false` にすると、開いている
  *   間も背後の内容を操作・スクロールできる。

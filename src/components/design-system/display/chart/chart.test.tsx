@@ -227,7 +227,6 @@ describe("ChartTooltipContent", () => {
       </Wrapper>,
     );
 
-    // 見出しと系列名の双方に定義の表示名が出る。
     expect(screen.getAllByText("受付")).toHaveLength(2);
     expect(screen.getByText("186")).toBeVisible();
   });

@@ -86,6 +86,16 @@ export type MessageScrollerProps = ComponentProps<"div"> & {
  * 高さは持たないため、`max-h-*` や `h-*` を `className` で与える。与えない場合は内容が伸びる
  * だけでスクロールしない。
  *
+ * @example
+ * ```tsx
+ * <MessageScroller className="h-96">
+ *   <MessageScrollerViewport aria-label="やり取り">
+ *     <MessageScrollerContent>{items}</MessageScrollerContent>
+ *   </MessageScrollerViewport>
+ *   <MessageScrollerButton />
+ * </MessageScroller>
+ * ```
+ *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.autoFollow - 末尾にいる間、内容が増えたら末尾へ追従するか。
  * @param props.scrollEdgeThreshold - 末尾から何 px までを「末尾にいる」とみなすか。

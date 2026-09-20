@@ -61,6 +61,8 @@ overlay は `role="dialog"` を持ち、名前が無いと支援技術から用�
 **`role="listbox"` は与えません。** 中身は checkbox の集まりで、選択状態は各 checkbox が `checked`
 として公開します。listbox にすると option の選択状態と checkbox の状態が二重になります。
 
+項目名を button の中へ直接テキストとして入れるだけでは、要素の間に区切りが入らず語が繋がって読み上げられます。そのため項目名の要素と trigger 自身の 2 つを指す `aria-labelledby` として分けて組み替えています。
+
 ## Storybook とテスト
 
 Storybook は未選択・開いた状態・1 件選択・複数選択・複数選択で開いた状態・要約の差し替え・外の要素を

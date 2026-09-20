@@ -71,9 +71,14 @@ function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
  *
  * 未保存かどうかの判定、保存処理、遷移先の決定は持たない。呼び出し元が `when` と link を渡す。
  *
- * dialog を閉じたときの focus は、押した link へ自分で戻す。Radix は `AlertDialogTrigger` へ
- * 戻す実装で、trigger を持たないこの部品では focus が document へ落ちてしまう。そのため dialog は
- * 閉じているあいだも mount したままにする。閉じると同時に unmount すると復帰の機会が失われる。
+ * @example
+ * ```tsx
+ * <NavigationGuard when={isDirty}>
+ *   <nav>
+ *     <Link href="/settings">設定</Link>
+ *   </nav>
+ * </NavigationGuard>
+ * ```
  *
  * @see Storybook `Navigation/NavigationGuard`
  */
@@ -126,7 +131,12 @@ export function NavigationGuard({
     // 中身の配置が変わると、見張るために置いただけの器が見た目を動かすことになる。
     <div className="contents" data-slot="navigation-guard" onClickCapture={interceptNavigation}>
       {children}
-      <AlertDialog onOpenChange={setOpen} open={open}>
+      <AlertDialog
+        // Radix は `AlertDialogTrigger` へ focus を戻す実装で、trigger を持たないこの部品では focus が
+        // document へ落ちる。閉じても unmount せず mount したままにして、復帰の機会を保つ。
+        onOpenChange={setOpen}
+        open={open}
+      >
         <AlertDialogContent onCloseAutoFocus={restoreFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{title}</AlertDialogTitle>

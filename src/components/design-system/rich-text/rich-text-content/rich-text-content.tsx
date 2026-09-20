@@ -45,6 +45,23 @@ export type RichTextContentProps = Omit<
  * Client Component の props へは渡せず、Client Component の内側へ置く場合は描画した結果を
  * `children` として渡します。
  *
+ * @example
+ * ```tsx
+ * import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
+ * import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
+ *
+ * <RichTextContent content={SanitizedRichText.from("<p>本文</p>")} />
+ * ```
+ *
+ * @example
+ * 組版 preset を重ね、文書としての意味論を外側で与える。
+ * ```tsx
+ * <article aria-labelledby="body-heading">
+ *   <h2 id="body-heading">説明</h2>
+ *   <RichTextContent className="typeset-docs" content={SanitizedRichText.from(html)} />
+ * </article>
+ * ```
+ *
  * @param props - `content` のほかは native `div` 属性。
  * @param props.content - 表示するリッチテキスト。
  *

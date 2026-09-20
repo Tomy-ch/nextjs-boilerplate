@@ -55,6 +55,13 @@ export type MarkerProps = ComponentProps<"div"> &
  * 既定では `div` を render する。この component 自身は role を持たないため、区切りとしての意味を
  * 支援技術へ伝える必要がある場合は、呼び出し元が見出し要素を子に置くか `asChild` で合成する。
  *
+ * @example
+ * ```tsx
+ * <Marker variant={MARKER_VARIANT.SEPARATOR}>
+ *   <MarkerContent>ここまで表示しました</MarkerContent>
+ * </Marker>
+ * ```
+ *
  * @param props - native `div` 属性と、以下の表示用 props。
  * @param props.variant - 周囲の内容との区切り方。
  * @param props.asChild - 子要素へ marker の見た目と props を合成するか。

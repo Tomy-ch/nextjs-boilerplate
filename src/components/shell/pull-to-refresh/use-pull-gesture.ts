@@ -62,9 +62,6 @@ function isModalOpen(): boolean {
  * 引き量に抵抗を掛け、上限を設けています。等倍かつ無制限だと、指を少し動かしただけで実行の域に
  * 入り、引き続けるほど画面がずれ続けます。
  *
- * 監視は passive で登録します。`preventDefault` に頼らず `overscroll-behavior` で既定を止めて
- * いるため、scroll を止める必要がありません。
- *
  * modal が開いている間は拾いません（{@link isModalOpen}）。
  *
  * @param onRelease - 実行の域まで引いた状態で指を離したときに呼ばれる
@@ -183,6 +180,7 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       }
     };
 
+    // preventDefault に頼らず overscroll-behavior で既定を止めているため、scroll を止める必要が無い。
     window.addEventListener("touchstart", start, { passive: true });
     window.addEventListener("touchmove", move, { passive: true });
     window.addEventListener("touchend", end, { passive: true });

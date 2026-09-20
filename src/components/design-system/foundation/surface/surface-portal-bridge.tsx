@@ -27,9 +27,16 @@ export type SurfacePortalBridgeProps = {
  * **外れるときに消します。** 系統を持つ部分木から出ても `body` に残ると、次に開いた overlay が
  * 前の画面の系統で描かれます。
  *
- * **消すのは自分が置いた値だけです。** `body` の属性を書くのはここだけとは限らず（`README.md`）、
- * React は 1 つのコミットの中で後始末を新しい effect よりも先に走らせます。無条件に消すと、直前に
- * 別の書き手が置いた値まで落とします。
+ * **消すのは自分が置いた値だけです。** `body` の属性を書くのはここだけとは限らないため
+ * （`README.md`）、無条件に消すと直前に別の書き手が置いた値まで落とします。
+ *
+ * @example
+ * ```tsx
+ * <div data-surface="admin">
+ *   <SurfacePortalBridge surface="admin" />
+ *   {children}
+ * </div>
+ * ```
  *
  * @param props.surface - 部分木が名乗っている系統。属性に載る値と同じものを渡す
  * @see Storybook `Foundation/Surface`
@@ -39,6 +46,8 @@ export function SurfacePortalBridge({ surface }: SurfacePortalBridgeProps): null
     document.body.setAttribute(SURFACE_ATTRIBUTE, surface);
 
     return () => {
+      // React は 1 つのコミットの中で後始末を新しい effect よりも先に走らせるため、この時点で
+      // 既に別の書き手が値を置き直している場合がある。
       if (document.body.getAttribute(SURFACE_ATTRIBUTE) === surface) {
         document.body.removeAttribute(SURFACE_ATTRIBUTE);
       }

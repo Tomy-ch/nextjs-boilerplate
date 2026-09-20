@@ -543,6 +543,36 @@ export type RichTextEditorProps = {
  *
  * `label` は必ず与える（{@link RichTextEditorProps.label}）。
  *
+ * @example
+ * ```tsx
+ * "use client";
+ *
+ * import { useCallback, useState } from "react";
+ *
+ * import { RichTextEditor } from "@/components/design-system/rich-text/rich-text-editor/rich-text-editor";
+ *
+ * export function DescriptionField() {
+ *   const [html, setHtml] = useState("");
+ *   const handleChange = useCallback((value: string) => setHtml(value), []);
+ *
+ *   return (
+ *     <>
+ *       <RichTextEditor label="説明" onChange={handleChange} />
+ *       <input name="description" type="hidden" value={html} />
+ *     </>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * 送られてきた文字列を表示するのは Server Component 側で、sanitize はその直前に行う。
+ * ```tsx
+ * import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
+ * import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
+ *
+ * <RichTextContent className="typeset-docs" content={SanitizedRichText.from(html)} />
+ * ```
+ *
  * @param props - 編集面の名前・初期値・変更の受け取り方。
  * @see Storybook `Rich Text/RichTextEditor`
  */

@@ -16,6 +16,13 @@ export type JsonLdProps = {
  * 何を入れるか（schema.org の type と項目）は画面の判断で、この component は持ちません。
  * Server Component として使えます。hydration は不要です。
  *
+ * @example
+ * ```tsx
+ * import { JsonLd } from "@/components/design-system/display/json-ld/json-ld";
+ *
+ * <JsonLd data={{ "@context": "https://schema.org", "@type": "Organization", name: "Acme" }} />
+ * ```
+ *
  * @param props - 構造化データ
  * @param props.data - schema.org の語彙で組み立てた 1 つの object
  * @see Storybook `Display/JsonLd`

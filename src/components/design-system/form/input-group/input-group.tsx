@@ -42,6 +42,16 @@ export type InputGroupProps = ComponentProps<"div"> & {
  * 直接 render できない。単位や補助操作を枠内へ収める必要がない場合は、`Input` と `Label` /
  * `Field` を組み合わせた Server Component 側の構成を選ぶ。
  *
+ * @example
+ * ```tsx
+ * <InputGroup>
+ *   <InputGroupInput aria-label="数量" inputMode="numeric" name="quantity" />
+ *   <InputGroupAddon align={INPUT_GROUP_ADDON_ALIGN.INLINE_END}>
+ *     <InputGroupText>kg</InputGroupText>
+ *   </InputGroupAddon>
+ * </InputGroup>
+ * ```
+ *
  * @param props - native `div` 属性と `disabled`。`role="group"` は既定で付与する。
  * @see Storybook `Form/InputGroup`
  */
@@ -53,19 +63,15 @@ export function InputGroup({ className, disabled, ...props }: InputGroupProps) {
         "group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] dark:bg-input/30",
         "h-10 min-w-0 has-[>textarea]:h-auto",
 
-        // Variants based on alignment.
         "has-[>[data-align=inline-start]]:[&>input]:pl-2",
         "has-[>[data-align=inline-end]]:[&>input]:pr-2",
         "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3",
         "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
 
-        // Focus state.
         "has-[[data-slot=input-group-control]:focus-visible]:outline-2 has-[[data-slot=input-group-control]:focus-visible]:outline-offset-2 has-[[data-slot=input-group-control]:focus-visible]:outline-active",
 
-        // Error state.
         "has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40",
 
-        // Disabled state.
         "has-[[data-slot=input-group-control]:disabled]:border-border data-[disabled=true]:border-border",
 
         className,
