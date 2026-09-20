@@ -14,7 +14,7 @@ describe("findBareVariables", () => {
   });
 
   it("裸の変数の直後に全角が続く箇所を、行とともに返す", () => {
-    expect(findBareVariables("a.sh", ['echo "先頭"', 'echo "件数=$COUNT 件"'].join("\n"))).toEqual([
+    expect(findBareVariables("a.sh", ['echo "先頭"', 'echo "件数は$COUNT件"'].join("\n"))).toEqual([
       { file: "a.sh", line: 2, variable: "$COUNT" },
     ]);
   });
