@@ -22,13 +22,13 @@ const TAGGING_KERNEL = join("src", "adapters");
 const MAXIMUM_SEPARATORS = 1;
 
 /** 印の綴り。静的に決まらない形は `undefined`。 */
-function tagSpelling(node: Rule.Node | undefined): string | undefined {
-  if (node?.type === "Literal" && typeof node.value === "string") {
-    return node.value;
+function tagSpelling(node: Rule.Node): string | undefined {
+  if (node.type === "Literal") {
+    return typeof node.value === "string" ? node.value : undefined;
   }
 
-  if (node?.type === "TemplateLiteral") {
-    return node.quasis.map((quasi) => quasi.value.cooked ?? "").join("");
+  if (node.type === "TemplateLiteral") {
+    return node.quasis.map((quasi) => quasi.value.raw).join("");
   }
 
   return undefined;

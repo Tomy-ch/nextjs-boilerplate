@@ -80,6 +80,30 @@ describe("noCacheOptionInUseCache", () => {
     });
   });
 
+  it("引用符で書いた鍵も挙げる", () => {
+    ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {
+      valid: [],
+      invalid: [
+        {
+          code: `${CACHED}await fetch(url, { "cache": "force-cache" });`,
+          errors: [{ messageId: "noCacheOptionInUseCache" }],
+        },
+        {
+          code: `${CACHED}await fetch(url, { 'next': { tags: [] } });`,
+          errors: [{ messageId: "noCacheOptionInUseCache" }],
+        },
+      ],
+    });
+  });
+
+  it("式文に置かれた文字列でない値を、宣言として読まない", () => {
+    // 式文の直下に来る literal は宣言だけではない。数値も同じ位置に立つ。
+    ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {
+      valid: ['42;\nawait fetch(url, { cache: "force-cache" });'],
+      invalid: [],
+    });
+  });
+
   it("名前で書いていないプロパティは見ない", () => {
     // 添字で組んだ鍵は、名前がここでは決まらない。
     ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {

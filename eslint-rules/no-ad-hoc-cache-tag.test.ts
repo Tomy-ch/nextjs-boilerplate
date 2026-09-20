@@ -24,6 +24,8 @@ describe("noAdHocCacheTag", () => {
         { code: ["cacheTag(`products:$", "{id}`);"].join(""), filename: IN_ADAPTERS },
         // 綴りが静的に決まらない印は、段の数を見ない。
         { code: "cacheTag(tag);", filename: IN_ADAPTERS },
+        // 文字列でない印は、段の数を見ない。
+        { code: "cacheTag(1);", filename: IN_ADAPTERS },
         // 名前だけが同じ別の関数を巻き込まない。
         { code: 'addTag("a:b:c");', filename: OUTSIDE_ADAPTERS },
       ],

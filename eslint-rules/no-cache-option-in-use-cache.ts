@@ -17,16 +17,25 @@ import { isServerCacheDirective } from "./cache-directive";
 /** 外側の寿命と競合する指定。 */
 const CONFLICTING_OPTIONS: readonly string[] = ["cache", "next"];
 
-/** そのプロパティ名が、外側の寿命と競合する指定か。 */
-function conflictingName(property: Rule.Node): string | undefined {
-  if (property.type !== "Property") {
+/**
+ * そのプロパティが、外側の寿命と競合する指定か。
+ *
+ * 鍵は綴りのまま突き合わせる。種別で分岐すると、素の名前と引用符つきの名前で同じ判定を 2 度
+ * 書くことになる。添字で組んだ鍵は、名前がここでは決まらないので見ない。
+ */
+function conflictingOption(
+  property: Rule.Node,
+  spell: (node: Rule.Node) => string,
+): string | undefined {
+  if (property.type !== "Property" || property.computed) {
     return undefined;
   }
 
-  const { key } = property;
-  const name = key.type === "Identifier" ? key.name : undefined;
+  const key = spell(property.key as Rule.Node);
 
-  return CONFLICTING_OPTIONS.find((option) => option === name);
+  return CONFLICTING_OPTIONS.find(
+    (option) => key === option || key === `"${option}"` || key === `'${option}'`,
+  );
 }
 
 const noCacheOptionInUseCache: Rule.RuleModule = {
@@ -67,7 +76,9 @@ const noCacheOptionInUseCache: Rule.RuleModule = {
         }
 
         for (const property of init.properties) {
-          const option = conflictingName(property as Rule.Node);
+          const option = conflictingOption(property as Rule.Node, (target) =>
+            context.sourceCode.getText(target),
+          );
 
           if (option !== undefined) {
             options.push({ node: property as Rule.Node, option });
