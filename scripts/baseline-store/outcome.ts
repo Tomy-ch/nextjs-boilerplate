@@ -33,6 +33,14 @@ export type RetakeOutcomeInput = {
   readonly pointerPrUrl: string;
   /** 画面の判定がまだ届いていないか。 */
   readonly screensPending: boolean;
+  /**
+   * この commit で E2E が一度も走っていないか。
+   *
+   * @remarks
+   * 画面の比較は PR では既定で回りません。回っていなければ報告が空になり、撮り直しも空になります。
+   * **story だけが撮り直されて merge されると、画面の基準は古いまま release へ入ります。**
+   */
+  readonly screensAbsent: boolean;
   /** 作業ツリーが指すブランチ。 */
   readonly headRef: string;
   /** 撮り直した story の id をカンマで並べたもの。 */
@@ -148,6 +156,20 @@ export function composeRetakeOutcome(input: RetakeOutcomeInput): string {
   if (input.screensPending) {
     blocks.push(
       "画面は E2E がまだ判定していないため撮り直していません。**ラベルは付けたままです** — E2E の完了に合わせて自動で撮り直します。",
+    );
+  }
+
+  if (input.screensAbsent) {
+    blocks.push(
+      [
+        "⚠️ **この commit で E2E が走っていないため、画面の基準は撮り直していません。**",
+        "",
+        "画面の比較は PR では既定で回らず、回っていなければ報告が空になり、撮り直す対象も空になります。" +
+          "描画が動く変更なら、**`run-e2e` ラベルを付けて E2E を回したうえで `baseline-retake` を付け直してください** —— " +
+          "1 回の push で story と画面がまとめて撮り直されます。",
+        "",
+        "このまま merge すると、画面の基準が古いまま release へ入り、**merge 後の全数で落ちます**。",
+      ].join("\n"),
     );
   }
 
