@@ -30,6 +30,9 @@ const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
  * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も
  * 届き得るため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態に
  * なります。
+ *
+ * @param params - 素の `searchParams`。
+ * @returns いま見ている場所。
  */
 export function toAdminInquiryListLocation(params: RawSearchParams): AdminInquiryListLocation {
   const cursor = textSchema.parse(params[CURSOR_KEY]);

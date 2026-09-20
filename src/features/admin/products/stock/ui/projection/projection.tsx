@@ -20,6 +20,8 @@ export type StockProjectionProps = {
  *
  * 参考値である理由と、量が読めないうちに出さない理由は
  * [画面要件](../../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)「送信後の見込みを出す」。
+ *
+ * @see Storybook `Features/Admin/Products/Stock/Projection`
  */
 export const StockProjection = withPartSpan(
   "features/admin/products/stock/ui/projection/projection",

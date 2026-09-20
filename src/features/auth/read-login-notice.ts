@@ -21,6 +21,7 @@ const noticeSchema = singleValue(z.enum(LOGIN_NOTICE).nullable()).catch(null);
  * 画面を変えると、任意の案内を出させる導線になります（`docs/rules.md`「URL と条件」の
  * 「`searchParams` は zod で検証する」）。
  *
+ * @param params - 読み取り元の素の `searchParams`
  * @returns 案内する理由。宣言に無い値・繰り返された値・未指定なら null
  */
 export function readLoginNotice(params: RawSearchParams): LoginNotice | null {

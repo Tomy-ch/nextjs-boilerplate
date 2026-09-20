@@ -24,6 +24,9 @@ export type PurchaseAmountSummaryProps = {
  * が持ちます。
  *
  * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています（README 参照）。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseAmountSummaryProps} の各メンバーが持つ。
+ * @see Storybook `Features/Purchases/AmountSummary`
  */
 export function PurchaseAmountSummary({ purchase, reference }: PurchaseAmountSummaryProps) {
   const rows = [

@@ -31,7 +31,12 @@ export type AdminProductFilterSheetProps = {
   statusOptions: readonly AdminProductFilterOption[];
 };
 
-/** いま効いている条件の数。選ばれた値 1 つを 1 件と数える。 */
+/**
+ * いま効いている条件の数。選ばれた値 1 つを 1 件と数える。
+ *
+ * @param conditions - いま効いている条件
+ * @returns 選ばれた値の合計件数
+ */
 function countActive(conditions: AdminProductListConditions): number {
   return conditions.categoryCodes.length + conditions.statusCodes.length;
 }
@@ -51,6 +56,8 @@ function countActive(conditions: AdminProductListConditions): number {
  * 開く操作を画面下端に固定するのは、表を読み進めた先でも絞り込みへ戻れるようにするためです。
  * 検索語をここへ入れないのは、入力欄が幅によらず画面の上に出ているためで、同じ条件を 2 か所から
  * 確定できる形にしません。
+ *
+ * @param props - {@link AdminProductFilterSheetProps} を受け取る。
  *
  * @see Storybook `Features/Admin/Products/List/FilterSheet`
  */

@@ -12,13 +12,6 @@ import {
 
 import type { AdminUserRow } from "../../row";
 
-/**
- * 狭い段で伏せる列に付ける class。
- *
- * @remarks
- * 電話番号は行を見比べるときの手がかりで、1 人を特定するのには要りません。狭い段で残すのは
- * **誰か（名前）・どこへ連絡するか（メール）・どういう状態か・何ができるか**です。
- */
 const WIDE_ONLY = "hidden md:table-cell";
 
 /** `AdminUserTable` の props。 */
@@ -31,10 +24,22 @@ export type AdminUserTableProps = {
   pagination?: ReactNode;
 };
 
+/**
+ * 行の React key を組む。
+ *
+ * @param item - 対象の行
+ * @returns 行の識別子
+ */
 function rowKey(item: AdminUserRow): string {
   return item.id;
 }
 
+/**
+ * 表の列定義を組み立てる。
+ *
+ * @param onWithdraw - 退会操作が選ばれたときに呼ぶ
+ * @returns 静的データ表へ渡す列定義
+ */
 function toColumns(
   onWithdraw: (user: AdminUserRow) => void,
 ): readonly StaticDataTableColumn<AdminUserRow>[] {
@@ -62,7 +67,6 @@ function toColumns(
     {
       ...rowActionsColumn<AdminUserRow>({
         triggerLabel: (item) => `${item.name} の操作`,
-        // 退会済みには操作を出さない。もう一度退会させる意味が無く、出しても契約が拒むだけ。
         // 空を返すと `RowActionsMenu` が trigger ごと描かない。
         actions: (item) =>
           item.withdrawn
@@ -96,6 +100,7 @@ function toColumns(
  *
  * **退会済みかを色だけで伝えません。** 状態の列に文字のバッジを置き、行そのものは淡くしません。
  *
+ * @param props - {@link AdminUserTableProps} を参照。
  * @see Storybook `Features/Admin/Users/Table`
  */
 export function AdminUserTable({ items, onWithdraw, pagination }: AdminUserTableProps) {

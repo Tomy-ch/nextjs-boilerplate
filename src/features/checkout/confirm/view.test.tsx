@@ -55,8 +55,6 @@ describe("CheckoutConfirmView", () => {
 
     await userEvent.click(within(aside).getByRole("button", { name: "注文を確定する" }));
 
-    // 脇と下端は CSS で出し分けるだけで、DOM には両方が居る。送信の状態を姿ごとに持つと、
-    // 送った直後に幅が境界を跨いだとき、表に出る側が「何も送っていない」姿になる。
     expect(await screen.findAllByText("在庫が変わりました。")).toHaveLength(2);
   });
 

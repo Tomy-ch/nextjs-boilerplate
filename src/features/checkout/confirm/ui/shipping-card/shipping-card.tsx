@@ -22,13 +22,18 @@ import type { UserProfile } from "@/model/user/user";
 import { withPartSpan } from "@/observability/render-span";
 import { PROFILE_EDIT_PATH } from "../../../paths";
 
-/** `ShippingCard` の props。 */
+/** {@link ShippingCard} の props。 */
 export type ShippingCardProps = {
   /** 届け先として使う登録情報。 */
   profile: UserProfile;
 };
 
-/** 住所を 1 つの文字列へ組む。建物名は任意入力なので、無ければ区切りごと落とす。 */
+/**
+ * 住所を 1 つの文字列へ組む。建物名は任意入力なので、無ければ区切りごと落とす。
+ *
+ * @param profile - 届け先の登録情報。
+ * @returns 組んだ住所の文字列。
+ */
 function formatAddress(profile: UserProfile): string {
   const lines = [profile.prefecture, profile.city, profile.street, profile.building ?? ""];
 
@@ -42,6 +47,8 @@ function formatAddress(profile: UserProfile): string {
  * **この画面では編集しません。** 購入の作成が受け取るのは商品と数量だけで、届け先は登録情報から
  * 決まります。ここに入力欄を置くと、送っていない値を編集させることになります。変更は登録情報の
  * 側で行い、この画面はその導線だけを持ちます。
+ *
+ * @param props - {@link ShippingCardProps}。
  */
 export const ShippingCard = withPartSpan(
   "features/checkout/confirm/ui/shipping-card/shipping-card",

@@ -28,6 +28,8 @@ export type CartLineIssuesProps = {
  * 変わった事情は警告の配色と三角の絵柄（買えるが、金額を確かめる必要がある）、画面が足す一文は
  * 本文の補足として弱く出します。値の変動を補足と同じ強さで出すと、**金額が変わったことが読み
  * 飛ばされます**。絵柄も分けるのは、配色だけの区別が色を見分けにくい利用者へ届かないためです。
+ *
+ * @see Storybook `Features/Cart/LineIssues`
  */
 export function CartLineIssues({ issues, availableQuantity, note }: CartLineIssuesProps) {
   if (issues.length === 0) {

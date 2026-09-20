@@ -25,6 +25,9 @@ export type BarAxis = {
  * @remarks
  * 1・2・5 とその 10 倍だけを採ります。7 や 30 のような幅で刻むと、目盛りの数字から帯の
  * 長さを暗算で読めなくなります。
+ *
+ * @param rough - 覆いたい値
+ * @returns rough を覆う切りのよい刻み幅
  */
 function niceStep(rough: number): number {
   const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(rough)));
@@ -68,6 +71,7 @@ export function barAxis(counts: readonly number[]): BarAxis {
  *
  * @param value - 軸の上に置く値
  * @param axis - {@link barAxis} が返した軸
+ * @returns 軸の上での位置を表す百分率（例: `42%`）
  */
 export function axisPercent(value: number, axis: BarAxis): string {
   return `${(value / axis.max) * 100}%`;

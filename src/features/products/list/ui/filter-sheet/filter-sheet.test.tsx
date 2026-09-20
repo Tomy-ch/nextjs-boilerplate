@@ -30,6 +30,12 @@ const CATEGORIES: readonly FilterOption[] = [
   { value: "20", label: "ウェアラブル" },
 ];
 
+/**
+ * 絞り込みシートを画面と同じ器で描画する。
+ *
+ * @param selection - いま効いている条件。
+ * @returns Testing Library の render 結果。
+ */
 function renderSheet(selection: ProductListSelection = {}) {
   return render(
     <ProductFilterDraftProvider selection={selection}>
@@ -38,10 +44,20 @@ function renderSheet(selection: ProductListSelection = {}) {
   );
 }
 
+/**
+ * シートを開閉する操作を取得する。
+ *
+ * @returns 開く操作のボタン要素。
+ */
 function trigger(): HTMLElement {
   return screen.getByRole("button", { name: /絞り込み/ });
 }
 
+/**
+ * 絞り込みシートを開く。
+ *
+ * @returns シートが開ききるまでの待機。
+ */
 async function open(): Promise<void> {
   await userEvent.click(trigger());
 }

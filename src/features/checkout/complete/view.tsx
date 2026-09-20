@@ -28,6 +28,8 @@ export type CheckoutCompleteViewProps = {
  *
  * 次の導線を 2 本置きます。買い物へ戻る道と、控えを後から確かめる道です。ここで行き止まりに
  * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。
+ *
+ * @param props - {@link CheckoutCompleteViewProps} を参照。
  */
 export const CheckoutCompleteView = withScreenSpan(
   "features/checkout/complete/view",

@@ -21,6 +21,8 @@ import { RepositorySupplement } from "../repository-supplement/repository-supple
  *
  * 補足を開く操作は link の後ろに置き、`relative` で重なりの上へ出します。DOM の順序が後ろに
  * ある位置指定要素が上に描かれるため、段階値を持ち出さずに押せる状態を作れます。
+ *
+ * @param props - 並べるリポジトリ 1 件
  */
 function RepositoryCard({ repository }: { readonly repository: Repository }) {
   return (
@@ -55,6 +57,8 @@ function RepositoryCard({ repository }: { readonly repository: Repository }) {
  * @remarks
  * フッターの導線より詳しく書きます。あちらはどの画面からでも辿れることを担い、ここは
  * 「何と何で出来ているのか」を読ませます。
+ *
+ * @see Storybook `Features/SiteInfo/RepositoryCards`
  */
 export const RepositoryCards = withPartSpan(
   "features/site-info/ui/repository-cards/repository-cards",

@@ -36,6 +36,9 @@ export type ErrorVisibility<TField extends string> = {
  *
  * 項目名の型だけを受け取り、フォームの実装（react-hook-form など）を知りません。規則は repo 全体の
  * ものなので、機構が変わっても残ります。
+ *
+ * @typeParam TField - 項目名の型
+ * @returns 誤りを出すかどうかを決める関数と、focus の追跡を組む関数
  */
 export function useErrorVisibility<TField extends string>(): ErrorVisibility<TField> {
   // 編集中の項目と、焦点を当てた時点に出ていた文言。1 つの値にするのは、片方だけが残ると

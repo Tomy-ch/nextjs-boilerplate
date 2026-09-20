@@ -35,6 +35,8 @@ export type AdminProductFilterControlProps = {
  * `MultiSelectClient` は hydration を要します。native の `select` では複数選択の操作が
  * 実用に耐えず、候補ごとの入り切りを見せられません
  * （`components/design-system/form/multi-select-client`）。
+ *
+ * @see Storybook `Features/Admin/Products/List/FilterControl`
  */
 export function AdminProductFilterControl({
   label,

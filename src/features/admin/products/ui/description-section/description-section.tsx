@@ -36,6 +36,8 @@ export type ProductDescriptionSectionProps = {
  * **送信に載せる欄は、編集面より先に置きます。** 編集面は開かれるまで読み込まれない一方で、
  * 開かれないまま送られる経路（tab の器）があります。値は器が持っているので、編集面の有無に
  * かかわらずここから送ります。
+ *
+ * @param props - 開閉の状態・入力欄の `id` の前置き・本文の初期値と今の値・変更の通知。
  */
 export function ProductDescriptionSection({
   active,

@@ -10,6 +10,8 @@ const PLACEHOLDER_ROWS = 6;
  * @remarks
  * スピナー 1 つで代用すると、描画された瞬間に表の高さが変わり、下に置いたページ送りの位置が
  * 動きます。
+ *
+ * @see Storybook `Features/Admin/Products/List/Skeleton`
  */
 export const AdminProductListSkeleton = withPartSpan(
   "features/admin/products/list/ui/skeleton/skeleton",

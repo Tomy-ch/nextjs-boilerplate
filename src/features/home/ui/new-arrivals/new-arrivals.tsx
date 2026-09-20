@@ -25,6 +25,8 @@ const LEADING_COUNT = 4;
  *
  * 一覧への導線を節の見出しの隣に置いています。ここに並ぶのは先頭の数件だけで、続きがあることを
  * 示さないと、これが全部だと読めてしまいます。
+ *
+ * @param props - 描画する新着商品の一覧。
  */
 export const NewArrivals = withPartSpan(
   "features/home/ui/new-arrivals/new-arrivals",

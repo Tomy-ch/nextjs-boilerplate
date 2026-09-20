@@ -26,6 +26,10 @@ export type ProductDetailPageContentProps = {
  *
  * try の範囲は取得だけです。**JSX の構築を try に入れても、描画中の例外はここでは捕まりません** —
  * React が描画するのは戻り値を受け取った後だからです。捕まるように見える形にしないため分けています。
+ *
+ * @param id - route の動的セグメントが渡す商品の ID
+ * @returns 取得した商品
+ * @throws `not-found` 以外の失敗はそのまま投げる
  */
 async function loadProduct(id: string) {
   try {
@@ -47,6 +51,8 @@ async function loadProduct(id: string) {
  *
  * 構造化データもここで置きます。商品を知っているのは取得を済ませたこの層で、表示（`view`）は
  * 検索エンジンへ何を名乗るかを持ちません。
+ *
+ * @param props - 表示する商品の ID を持つ props
  */
 export const ProductDetailPageContent = withScreenSpan(
   "features/products/detail/page-content",

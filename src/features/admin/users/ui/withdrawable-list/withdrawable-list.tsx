@@ -29,6 +29,8 @@ export type WithdrawableUserListProps = {
  * いるのはこの層だけです。
  *
  * 確認を成否によらず閉じる理由は [画面要件](../../../../../../docs/spec/route/admin/users/page.screen.md)「退会の確認」。
+ *
+ * @param props - {@link WithdrawableUserListProps} を参照。
  */
 export function WithdrawableUserList({
   items,

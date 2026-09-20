@@ -46,7 +46,11 @@ export type InquiryMessageListProps = {
   pending: readonly InquiryDraft[];
 };
 
-/** 1 通ぶんの吹き出し。誰の発言かで向きと面が変わる。 */
+/**
+ * 1 通ぶんの吹き出し。誰の発言かで向きと面が変わる。
+ *
+ * @param props.message - 表示する 1 通。
+ */
 function InquiryMessageRow({ message }: { message: InquiryMessage }) {
   const mine = message.authorKind === INQUIRY_AUTHOR_KIND.user;
 
@@ -72,6 +76,8 @@ function InquiryMessageRow({ message }: { message: InquiryMessage }) {
  * 描くだけにします。送信中の 1 通は、確定したものと同じ向き・同じ面で末尾に置きます。
  *
  * 日付の区切りと向きが何を約束するかは、同 feature の [README](../../../README.md)。
+ *
+ * @param props - 確定したやり取りの並びと、まだ応答が返っていない送信。
  */
 export const InquiryMessageList = withPartSpan(
   "features/inquiry/thread/ui/message-list/message-list",

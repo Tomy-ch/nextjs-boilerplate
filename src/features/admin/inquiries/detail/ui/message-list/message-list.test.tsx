@@ -33,7 +33,6 @@ describe("AdminInquiryMessageList", () => {
     for (const message of messages) {
       const mine = message.getAttribute("data-align") === "end";
 
-      // 別々に数えると、送り手と向きの対応が入れ替わっても両方の検査が通る。
       expect(within(message).getByText(mine ? /運営/ : /利用者/)).toBeVisible();
       expect(within(message).queryByText(mine ? /利用者/ : /運営/)).not.toBeInTheDocument();
     }

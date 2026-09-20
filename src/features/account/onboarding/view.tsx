@@ -47,6 +47,8 @@ export type OnboardingViewProps = {
  * 項目からだけ出します。
  *
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません。
+ *
+ * @param props - 選べる都道府県、この登録を指す鍵、登録を終えた利用者を戻す先。
  */
 export function OnboardingView({
   idempotencyKey: initialIdempotencyKey,

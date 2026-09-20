@@ -35,6 +35,8 @@ export type ProductCategoryFieldProps = {
  * **上限に達したら、まだ選んでいない分類を選べなくします。** 押せるのに何も起きない形にすると、
  * 壊れていると読まれます。`disabled` ではなく `aria-disabled` にするのは、`disabled` だと focus が
  * 当たらず、keyboard と支援技術の利用者が理由へ辿り着けないためです。外す操作は常に通します。
+ *
+ * @param props - 選べる分類、選択中の値、上限、変更の通知。
  */
 export function ProductCategoryField({
   options,
@@ -76,6 +78,8 @@ export function ProductCategoryField({
  *
  * @remarks
  * 独立した component にしているのは、切り替えを伝える関数を選択肢ごとに安定させるためです。
+ *
+ * @param props - 選択肢そのものと、選択済みか・上限に達しているかの状態、変更の通知。
  */
 function CategoryOption({
   checked,

@@ -26,6 +26,8 @@ export type AdminUserListViewProps = {
  * **効いている条件の chip を置きません。** 絞り込みが 1 つしかなく、その欄は幅によらず常に
  * 見えているためです。欄に出ている値と chip が同じことを言います（商品一覧は狭い段で欄が
  * overlay へ入るので、そちらには要ります）。
+ *
+ * @param props - いま効いている範囲と、一覧本体
  */
 export const AdminUserListView = withScreenSpan(
   "features/admin/users/view",

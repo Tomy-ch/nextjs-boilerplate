@@ -4,7 +4,7 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
-/** `PlaceOrderForm` の props。 */
+/** {@link PlaceOrderForm} の props。 */
 export type PlaceOrderFormProps = {
   /** 確定できる明細があるか。無ければ押せない。 */
   orderable: boolean;
@@ -22,6 +22,8 @@ const LABEL = "注文を確定する";
  * 金額が変わっている場合はこの姿を使いません。確かめてから送る
  * [`PriceChangeConfirm`](../price-change-confirm/price-change-confirm.tsx) が受け持ち、
  * どちらを出すかは呼び出し元が選びます。
+ *
+ * @param props - {@link PlaceOrderFormProps}。
  */
 export function PlaceOrderForm({ orderable }: PlaceOrderFormProps) {
   const { formAction, idempotencyKey } = usePlaceOrderState();

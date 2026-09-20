@@ -22,6 +22,8 @@ const CLOSE_LABEL = "小計を隠す";
  *
  * 掴んで引く形にはしていません。引く操作は指の移動量と速度で判定が要り、`prefers-reduced-motion`
  * や支援技術からの操作に別の経路を用意することになります。押すだけなら 1 つの経路で済みます。
+ *
+ * @see Storybook `Features/Cart/DockHandle`
  */
 export const CartDockHandle = withPartSpan(
   "features/cart/ui/dock-handle/dock-handle",

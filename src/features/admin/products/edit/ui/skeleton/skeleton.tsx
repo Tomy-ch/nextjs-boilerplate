@@ -10,6 +10,8 @@ const PLACEHOLDER_FIELDS = 4;
  * @remarks
  * 一覧の待機表示を流用すると、表の行が並んでからフォームが現れることになり、何を待っているかが
  * 伝わりません。
+ *
+ * @see Storybook `Features/Admin/Products/Edit/Skeleton`
  */
 export const AdminProductEditSkeleton = withPartSpan(
   "features/admin/products/edit/ui/skeleton/skeleton",

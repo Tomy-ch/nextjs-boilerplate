@@ -31,6 +31,8 @@ export type AdminInquiryDetailViewProps = {
  * **誰の問い合わせかを出せません。** 契約が返すメッセージは送り手の種別しか持たず、利用者の
  * 識別子は一覧の行だけが持ちます。代わりに問い合わせの識別子を出し、一覧の行と突き合わせられる
  * ようにしています。
+ *
+ * @see Storybook `Page/Admin/Inquiries/Detail`
  */
 export const AdminInquiryDetailView = withScreenSpan(
   "features/admin/inquiries/detail/view",

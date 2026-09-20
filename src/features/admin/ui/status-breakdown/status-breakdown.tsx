@@ -37,6 +37,9 @@ const TITLE = "ステータス別の件数";
  * **棒も表もサーバで描き切ります。** 棒は渡された件数を並べるだけで操作を受けないため、
  * client 島にする理由がありません。
  *
+ * @param props - 並べるステータス別件数
+ *
+ *
  * @see Storybook `Features/Admin/StatusBreakdown`
  */
 export const StatusBreakdown = withPartSpan(

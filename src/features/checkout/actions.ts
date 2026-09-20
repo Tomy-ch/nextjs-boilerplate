@@ -33,6 +33,8 @@ const PRICE_CHANGED_MESSAGE = "金額が変わりました。内容を確かめ�
  *
  * 買った明細だけを取り除きます。カートを丸ごと空にすると、買えなくて今回の購入から外れた明細まで
  * 消え、利用者が選び直す手掛かりを失います。
+ *
+ * @param lines - 取り除く対象の明細。
  */
 async function removeOrderedLines(lines: readonly PurchaseOrderLine[]): Promise<void> {
   try {
@@ -50,6 +52,8 @@ async function removeOrderedLines(lines: readonly PurchaseOrderLine[]): Promise<
  * @remarks
  * 設定（絶対値）を送ると、提示済みの価格が今の価格へ置き直されます。次の取得では値の変わった
  * 事情が消え、小計にも含まれます。**利用者が確認の上で選んだときだけ**呼びます。
+ *
+ * @param lines - 承知した明細（新しい数量を含む）。
  */
 async function acceptPriceChanges(lines: readonly PurchaseOrderLine[]): Promise<void> {
   await Promise.all(lines.map(({ productId, quantity }) => setMyCartItem(productId, quantity)));
@@ -59,17 +63,11 @@ async function acceptPriceChanges(lines: readonly PurchaseOrderLine[]): Promise<
  * 購入を確定する。
  *
  * @remarks
- * **送る明細はこの時点のカートから組み直します。** 画面が見せていた内容を送り返すと、開いたまま
- * 放置されたあいだに在庫や価格が変わっていても、古い前提のまま確定できてしまいます。
- *
  * **値が変わっていたら、承知したという合図が無い限り送りません。** 画面は押す前に確かめますが、
  * 確かめた後に変わることもあります。合図があれば、その明細を今の価格で置き直してから購入します。
  *
  * **冪等キーは画面が組んだ時点の値をそのまま使います。** 二重に押しても再読み込みで送り直しても、
  * 同じ鍵で届いた要求は初回の結果の再生として扱われ、購入は 1 件のままです。
- *
- * 成立したら完了画面へ送ります。同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が
- * 確定前の画面へ帰ります。
  *
  * **送るのは積み増しではなく置き換えです。** 確定した後の確認画面はもう見せる内容を持たず、
  * 被せた overlay の中から確定したときは、その overlay が積んだ 1 件が戻り先として残ります。

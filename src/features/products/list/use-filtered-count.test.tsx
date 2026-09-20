@@ -120,7 +120,6 @@ describe("useFilteredCount", () => {
   });
 
   it("打ち切られた取得は、1 つ前の件数を消さない", async () => {
-    // 実物の fetch と同じく、signal が中断されたら reject する。
     const aborted = (_query: URLSearchParams, signal?: AbortSignal) =>
       new Promise<number>((_resolve, reject) => {
         signal?.addEventListener("abort", () =>

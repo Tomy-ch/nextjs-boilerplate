@@ -47,6 +47,8 @@ export type ProductDescriptionEditorProps = RichTextEditorProps & {
  * @remarks
  * **一度開いたら閉じません**（`useLatched`）。編集面は `defaultValue` からしか組み立てられない
  * ため、隠れるたびに外すと、戻ったときに書いた内容が初期値へ戻ります。
+ *
+ * @param props - {@link ProductDescriptionEditorProps}。
  */
 export function ProductDescriptionEditor({ active, ...props }: ProductDescriptionEditorProps) {
   return useLatched(active) ? (

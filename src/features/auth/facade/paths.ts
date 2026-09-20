@@ -14,6 +14,7 @@ export const LOGIN_PATH = "/login";
  * 参照できないためで、これは重複ではなく層の境界です。
  *
  * @param returnTo - 認証後に戻す先。同一 origin の相対パスでなければ `/` へ倒れる
+ * @returns ログイン画面の URL
  */
 export function loginPath(returnTo: string): string {
   return `${LOGIN_PATH}?returnUrl=${encodeURIComponent(toSafeReturnUrl(returnTo))}`;

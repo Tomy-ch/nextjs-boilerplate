@@ -36,6 +36,8 @@ const PRODUCTS_PATH = "/products";
  * 中身は `CartSummaryCard` に 1 つだけ持ちます。
  *
  * 明細の下端には引き出しのぶんの余白を空けます。空けないと、最後の行の操作が引き出しに隠れます。
+ *
+ * @param props - {@link CartViewProps} を参照。
  */
 export const CartView = withScreenSpan("features/cart/view", ({ cart }: CartViewProps) => {
   const presentProductIds = cart.lines.map((line) => line.productId);

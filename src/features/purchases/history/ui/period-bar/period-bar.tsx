@@ -15,9 +15,6 @@ import { PurchasePeriodFields } from "../period-fields/period-fields";
  * 一覧が隣に見えている幅で使います。入力欄は {@link PurchasePeriodFields} が持ち、下書きは画面で
  * 1 つのものを読みます（`filter-draft.tsx`）。
  *
- * **確定の操作を置きます。** 商品一覧の脇の絞り込みが選んだ時点で反映するのは、1 回の操作で条件が
- * 1 つ決まるからです。ここは違い、期間の指定は開始日と終了日の 2 つが揃って初めて条件になります。
- *
  * **確定を入力欄の下へ段で分けます。** 同じ行に並べると、区分ごとに入力欄の数が違うぶん確定が
  * 左右に動き、区分を選んでから確定を押すまでの間に狙いが外れます。段を分ければ左端で揃うので、
  * どの区分でも同じ場所にあります。入力欄の行そのものは区分によらず同じ高さです
@@ -37,6 +34,8 @@ import { PurchasePeriodFields } from "../period-fields/period-fields";
  * 名前を持たせて landmark にします。支援技術から絞り込みへ直接移動できます。
  *
  * 出す幅の判断は持ちません。この帯を出す下限は置く側が担います。
+ *
+ * @see Storybook `Features/Purchases/History/PeriodBar`
  */
 export function PurchasePeriodBar() {
   const { draft, applied, pending, change, apply } = usePurchaseFilterDraft();

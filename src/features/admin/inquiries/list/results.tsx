@@ -17,6 +17,8 @@ export type AdminInquiryResultsProps = {
  * **取り直す範囲がここです。** 購読の状態は外側にあり、一覧の取り直しに巻き込まれません。
  *
  * 並び順は更新の新しい順で、契約が決めています。
+ *
+ * @param props - いま見ている場所（ページ送りの行き先を組むのに使う）。
  */
 export async function AdminInquiryResults({ location }: AdminInquiryResultsProps) {
   const page = await listInquiries(location.cursor ?? undefined);

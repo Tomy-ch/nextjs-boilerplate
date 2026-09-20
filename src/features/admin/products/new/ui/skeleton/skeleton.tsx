@@ -10,6 +10,8 @@ const PLACEHOLDER_FIELDS = 4;
  * @remarks
  * 編集の待機表示を流用すると、先頭に出る枠が観点の切り替えの形になり、段階に分けて進む画面だと
  * 伝わりません。
+ *
+ * @see Storybook `Features/Admin/Products/New/Skeleton`
  */
 export const AdminProductCreateSkeleton = withPartSpan(
   "features/admin/products/new/ui/skeleton/skeleton",

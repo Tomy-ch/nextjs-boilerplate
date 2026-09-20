@@ -24,6 +24,8 @@ export type CategoryLinksProps = {
  *
  * 空のときは何も描きません。「分類がありません」は利用者が取れる行動を持たない告知で、
  * トップに残しても場所を取るだけです。
+ *
+ * @param props - 描画する分類の一覧。
  */
 export const CategoryLinks = withPartSpan(
   "features/home/ui/category-links/category-links",

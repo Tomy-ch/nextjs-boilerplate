@@ -28,6 +28,8 @@ export type CartSummaryDockProps = {
  *
  * 出すかどうかの判断は持ちません（[`useDockVisibility`](../../use-dock-visibility.ts)）。この器が
  * 持つのは、出ている / 隠れているをどう見せるかだけです。
+ *
+ * @see Storybook `Features/Cart/SummaryDock`
  */
 export function CartSummaryDock({ children }: CartSummaryDockProps) {
   const { shown, toggle } = useDockVisibility();

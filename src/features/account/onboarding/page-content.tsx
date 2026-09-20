@@ -18,6 +18,8 @@ type OnboardingPageContentProps = {
  * 冪等キーをここで作ります。画面を組み立てるたびに 1 つ作るため、同じ画面から二重に送っても
  * 登録は 1 件のままです。逆に開き直せば別の鍵になりますが、そのときは登録が済んでいれば
  * この画面には入れません（`requireUnregisteredUser`）。
+ *
+ * @param props - 登録を終えた利用者を戻す先。
  */
 export const OnboardingPageContent = withScreenSpan(
   "features/account/onboarding/page-content",

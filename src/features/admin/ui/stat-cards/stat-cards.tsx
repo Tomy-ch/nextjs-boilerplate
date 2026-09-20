@@ -46,6 +46,9 @@ const FOCUS_RING =
  * ここへ来る時点の値の長さは決まっていません。落とすのを末尾にするのは、上位の桁が残れば
  * 大きさが読めるためです。読み上げには全桁が渡ります —— 落ちるのは描画だけです。
  *
+ * @param props - 並べる数値カードと、一覧の見出し
+ *
+ *
  * @see Storybook `Features/Admin/StatCards`
  */
 export const StatCards = withPartSpan(

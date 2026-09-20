@@ -60,6 +60,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   const postalCode = fields.fieldOf("postalCode");
   const prefecture = fields.fieldOf("prefecture");
 
+  // 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
+  // 入力欄を見ていない利用者には届かない（住所欄直下の role="status" の p が読み上げを担う）。
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-8">
       {state.status === "error" && state.formError !== null ? (
@@ -108,8 +110,6 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>住所</FieldLegend>
         <FieldGroup>
-          {/* 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
-              入力欄を見ていない利用者には届かない。 */}
           <p className="text-sm text-muted-foreground" role="status">
             {address.message}
           </p>

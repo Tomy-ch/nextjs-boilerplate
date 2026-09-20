@@ -18,6 +18,8 @@ type PrefectureFieldProps = ProfileFieldProps & {
  * @remarks
  * 検索つきの client island を使いません。契約が全 47 件を固定で返す静的な候補なので、
  * 持ち込む理由がありません。
+ *
+ * @param props - 入力欄の基本 props と、選べる都道府県。
  */
 export function PrefectureField({
   controlId,

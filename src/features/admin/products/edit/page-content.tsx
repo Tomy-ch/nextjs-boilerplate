@@ -24,6 +24,8 @@ export type AdminProductEditPageContentProps = {
  *
  * @remarks
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
+ *
+ * @param props - 編集する商品の識別子・受け付ける画像の上限・更新と画像送信の送信先。
  */
 export const AdminProductEditPageContent = withScreenSpan(
   "features/admin/products/edit/page-content",

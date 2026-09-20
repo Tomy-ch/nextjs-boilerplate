@@ -2,7 +2,12 @@ import type { Cart, CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import type { PurchaseOrderLine } from "@/model/purchase/purchase";
 
-/** その明細が値の変わった明細か。買えなくなる事情は持たない。 */
+/**
+ * その明細が値の変わった明細か。買えなくなる事情は持たない。
+ *
+ * @param line - 判定する明細。
+ * @returns 値が変わった明細なら true。
+ */
 function hasPriceChange(line: CartLine): boolean {
   return line.issues.length > 0 && !hasBlockingIssue(line);
 }
@@ -17,6 +22,9 @@ function hasPriceChange(line: CartLine): boolean {
  *
  * 買えるかどうかの判定はバックエンドが済ませています。ここが決めるのは、その結果を
  * 「今回の購入に載せる / 載せない」へ写す一段だけです。
+ *
+ * @param cart - 対象のカート。
+ * @returns この購入に載せる明細。
  */
 export function orderLinesOf(cart: Cart): readonly PurchaseOrderLine[] {
   return cart.lines
@@ -30,6 +38,9 @@ export function orderLinesOf(cart: Cart): readonly PurchaseOrderLine[] {
  * @remarks
  * 何件外れたかは数えません。外れた明細はそれぞれ理由とともに画面へ出るため、数だけを別に
  * 持つと同じことを 2 通りで言うことになります。
+ *
+ * @param cart - 対象のカート。
+ * @returns 載らない明細が 1 件でもあれば true。
  */
 export function hasExcludedLines(cart: Cart): boolean {
   return cart.lines.some(hasBlockingIssue);
@@ -44,6 +55,9 @@ export function hasExcludedLines(cart: Cart): boolean {
  *
  * 上がったか下がったかで分けません。どちらも「見ていた金額と違う」ことに変わりはなく、確かめる
  * かどうかの判断は同じです。
+ *
+ * @param cart - 対象のカート。
+ * @returns 値の変わった明細が 1 件でもあれば true。
  */
 export function hasPriceChangedLines(cart: Cart): boolean {
   return cart.lines.some(hasPriceChange);
@@ -55,6 +69,9 @@ export function hasPriceChangedLines(cart: Cart): boolean {
  * @remarks
  * 確認の文面に並べます。どの商品の話かが判らなければ、進めてよいかを判断できません。名前を
  * 引けない明細は買えない事情も持つため、ここには現れません。
+ *
+ * @param cart - 対象のカート。
+ * @returns 値の変わった明細の名前。
  */
 export function priceChangedNames(cart: Cart): readonly string[] {
   return cart.lines
@@ -69,6 +86,9 @@ export function priceChangedNames(cart: Cart): readonly string[] {
  * @remarks
  * 承知したことをバックエンドへ伝える手段は、**その明細を今の数量で設定し直すこと**です。設定は
  * 提示済みの価格を今の価格へ置き直すため、次の取得では事情が消え、小計にも含まれます。
+ *
+ * @param cart - 対象のカート。
+ * @returns 値が変わったことを承知した明細。
  */
 export function priceChangedLines(cart: Cart): readonly PurchaseOrderLine[] {
   return cart.lines

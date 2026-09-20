@@ -14,7 +14,6 @@ import { idleActionState } from "@/model/action-state";
 
 import { ADMIN_INQUIRY_HISTORY, ADMIN_INQUIRY_ID } from "../inquiries.fixture";
 
-/** 送信先。この段は素通しするだけなので、押しても何も起きない形で渡す。 */
 const replyAction = async () => idleActionState<void, "body">();
 
 import { AdminInquiryDetailView } from "./view";
@@ -68,7 +67,6 @@ describe("AdminInquiryDetailView", () => {
     );
 
     expect(screen.getByText("開始")).toBeVisible();
-    // 見出しは空のときにも出る。分かれるのは値の側。
     expect(
       screen.getByText(formatDateTime(ADMIN_INQUIRY_HISTORY.messages[0]?.createdAt ?? new Date())),
     ).toBeVisible();

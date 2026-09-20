@@ -23,6 +23,8 @@ export type CartSubtotalProps = {
  * 足し直しません。
  *
  * 金額の書式は locale に従います。
+ *
+ * @see Storybook `Features/Cart/Subtotal`
  */
 export const CartSubtotal = withPartSpan(
   "features/cart/ui/subtotal/subtotal",

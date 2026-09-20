@@ -45,6 +45,9 @@ export type SummaryCard = {
  * バックエンドが返していない数です。
  *
  * 行き先を添える条件は {@link SummaryCard.href} の契約に従います。
+ *
+ * @param summary - 写す元になるダッシュボードの集計
+ * @returns 数値カードの並び
  */
 export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[] {
   // 枚数を変えたら待機表示の枠数（`ui/skeleton/skeleton.tsx` の `CARD_COUNT`）も合わせる。

@@ -31,12 +31,22 @@ export const ADMIN_INQUIRY_LIST_PATH = "/admin/inquiries";
 /** 商品を作る画面のパス。 */
 export const ADMIN_PRODUCT_NEW_PATH = `${ADMIN_PRODUCT_LIST_PATH}/new`;
 
-/** 商品を編集する画面のパス。 */
+/**
+ * 商品を編集する画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 編集画面のパス
+ */
 export function adminProductEditPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/edit`;
 }
 
-/** 在庫を補充する画面のパス。 */
+/**
+ * 在庫を補充する画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 在庫補充画面のパス
+ */
 export function adminProductStockPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/stock`;
 }
@@ -50,12 +60,20 @@ export function adminProductStockPath(id: ProductId): string {
  * 人が求めているのは「どんな商品か」であって編集ではありません。
  *
  * 管理側に 1 件を眺める面ができたら、行き先をそちらへ替えるのはこの関数だけです。
+ *
+ * @param id - 対象の商品
+ * @returns 商品を眺める利用者向け画面のパス
  */
 export function productDetailPath(id: ProductId): string {
   return `/products/${encodeURIComponent(id)}`;
 }
 
-/** 問い合わせ 1 件のやり取りを見る画面のパス。 */
+/**
+ * 問い合わせ 1 件のやり取りを見る画面のパス。
+ *
+ * @param id - 対象の問い合わせ
+ * @returns やり取りを見る画面のパス
+ */
 export function adminInquiryDetailPath(id: InquiryId): string {
   return `${ADMIN_INQUIRY_LIST_PATH}/${encodeURIComponent(id)}`;
 }

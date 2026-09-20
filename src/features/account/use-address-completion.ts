@@ -31,6 +31,10 @@ export type AddressCompletion = {
  * @remarks
  * 1 つの郵便番号が複数の町域を指すことがあります。候補の先頭を無条件に採ると、利用者が
  * 選んでいない住所が黙って入ります。全部が同じなら選ぶ余地が無いので、そこだけ埋めます。
+ *
+ * @param candidates - 突き合わせる候補
+ * @param pick - 候補から比較する値を取り出す
+ * @returns 全候補で一致した値。割れていれば undefined
  */
 function agreedValue(
   candidates: readonly AddressCandidate[],
@@ -59,6 +63,7 @@ function agreedValue(
  * 壊れていると読まれます。
  *
  * @param onCompleted - 埋める値を受け取る。フォームへの反映は呼び出し側が持つ
+ * @returns 郵便番号を引く関数・取得中かどうか・直近の結果
  */
 export function useAddressCompletion(onCompleted: (completion: AddressCompletion) => void) {
   const [result, setResult] = useState<AddressCompletionResult>("idle");

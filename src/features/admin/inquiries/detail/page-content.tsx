@@ -18,6 +18,8 @@ export type AdminInquiryDetailPageContentProps = {
  *
  * @remarks
  * 1 ページだけ取ります。古いやり取りを遡る導線はまだ置いていません。
+ *
+ * @param props - route の動的セグメントが指す問い合わせと、回答の送信先。
  */
 export const AdminInquiryDetailPageContent = withScreenSpan(
   "features/admin/inquiries/detail/page-content",

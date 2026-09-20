@@ -17,6 +17,8 @@ export type AdminProductStockPageContentProps = {
  *
  * @remarks
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
+ *
+ * @param props - 対象の識別子と送信先。
  */
 export const AdminProductStockPageContent = withScreenSpan(
   "features/admin/products/stock/page-content",

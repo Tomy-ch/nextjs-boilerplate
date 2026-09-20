@@ -25,6 +25,8 @@ const NOT_FOUND_TITLE = "商品が見つかりません";
  * 取得は画面と同じ `getProduct` で、同一描画の中では `cache()` が 1 回にまとめます。
  *
  * @param id - route の動的セグメントが渡す商品の ID
+ * @returns 商品の title と canonical URL を持つ Metadata。見つからない場合は noindex を持つ Metadata
+ * @throws `NOT_FOUND` 以外の失敗はそのまま投げる
  */
 export async function resolveProductMetadata(id: string): Promise<Metadata> {
   const productId = toProductId(id);
@@ -44,7 +46,13 @@ export async function resolveProductMetadata(id: string): Promise<Metadata> {
   };
 }
 
-/** 見つからないものだけを null へ写し、それ以外の失敗は投げる。 */
+/**
+ * 見つからないものだけを null へ写し、それ以外の失敗は投げる。
+ *
+ * @param id - 取得する商品の ID
+ * @returns 見つかった商品。見つからない場合は null
+ * @throws NOT_FOUND 以外の失敗はそのまま投げる
+ */
 async function findProduct(id: ProductId) {
   try {
     return await getProduct(id);
@@ -67,7 +75,12 @@ async function findProduct(id: ProductId) {
  */
 const SUMMARY_LENGTH = 160;
 
-/** リッチテキストの説明から、markup を落として先頭だけを採る。 */
+/**
+ * リッチテキストの説明から、markup を落として先頭だけを採る。
+ *
+ * @param html - 説明の元になるリッチテキストの HTML 文字列
+ * @returns 先頭 `SUMMARY_LENGTH` 文字までのプレーンテキスト。整形後に空文字になる場合は null
+ */
 function toSummary(html: string): string | null {
   const text = SanitizedRichText.from(html).text.replace(/\s+/g, " ").trim();
 

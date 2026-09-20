@@ -138,7 +138,6 @@ describe("placeOrderAction", () => {
     await run(formDataOf({ [ACCEPT_PRICE_CHANGE_FIELD]: "1" }));
 
     expect(setMyCartItem).toHaveBeenCalledWith("0195f0c2-0000-7000-8000-000000000005", 1);
-    // 置き直したあとのカートで購入する。取り直しが抜けると、置き直す前の明細のまま送られる。
     expect(createPurchase).toHaveBeenCalledWith(
       ORDERABLE_CART.lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
       KEY,

@@ -10,7 +10,14 @@ export type StatusBarsProps = {
   counts: readonly PurchaseStatusCount[];
 };
 
-/** 目盛りの数字を、指す位置へ置く。両端だけは軸の内側へ寄せて、枠から出ないようにする。 */
+/**
+ * 目盛りの数字を、指す位置へ置く。両端だけは軸の内側へ寄せて、枠から出ないようにする。
+ *
+ * @param tick - 置く目盛りの値
+ * @param index - 目盛りの並びの中での位置
+ * @param axis - 目盛りが乗る軸
+ * @returns 配置に使う CSS の位置指定
+ */
 function tickStyle(tick: number, index: number, axis: BarAxis): CSSProperties {
   const left = axisPercent(tick, axis);
 
@@ -48,6 +55,9 @@ function tickStyle(tick: number, index: number, axis: BarAxis): CSSProperties {
  * 省かれると行名と目盛りだけの空白になります。
  *
  * 取得も並べ替えも持たず、渡された配列をそのまま描きます。
+ *
+ * @param props - 並べるステータス別件数
+ *
  *
  * @see Storybook `Features/Admin/StatusBars`
  */

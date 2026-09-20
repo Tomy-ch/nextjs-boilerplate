@@ -18,6 +18,10 @@ const NEIGHBOR_SPAN = 1;
  *
  * 飛ばす対象が 1 ページしか無いときは省略記号を置かず、その番号をそのまま出します。記号と
  * 番号は同じ幅を占めるので、隠しても短くならないうえに 1 手増えます。
+ *
+ * @param current - いま見ているページ番号
+ * @param pageCount - 全ページ数
+ * @returns 並べるページ番号と省略記号
  */
 export function toPageWindow(current: number, pageCount: number): readonly PageWindowEntry[] {
   const shown = new Set<number>([1, pageCount]);

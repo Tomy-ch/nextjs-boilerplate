@@ -19,7 +19,12 @@ const PRODUCT_VALUE_FIELDS = [
   "description",
 ] as const satisfies readonly (keyof ProductValues)[];
 
-/** `datetime-local` が受け取る形へ写す。秒より下は扱わない。 */
+/**
+ * `datetime-local` が受け取る形へ写す。秒より下は扱わない。
+ *
+ * @param value - 写す対象の日時。無ければ null
+ * @returns `datetime-local` が受け取る形の文字列
+ */
 function toLocalInputValue(value: Date | null): string {
   if (value === null) return "";
 
@@ -28,7 +33,11 @@ function toLocalInputValue(value: Date | null): string {
   return new Date(value.getTime() - offset).toISOString().slice(0, 16);
 }
 
-/** 何も無い状態から始めるときの値。 */
+/**
+ * 何も無い状態から始めるときの値。
+ *
+ * @returns 空欄で揃えた値
+ */
 export function emptyProductValues(): ProductValues {
   return {
     name: "",
@@ -42,7 +51,12 @@ export function emptyProductValues(): ProductValues {
   };
 }
 
-/** 読み込んだ商品から始めるときの値。 */
+/**
+ * 読み込んだ商品から始めるときの値。
+ *
+ * @param product - 読み込んだ商品
+ * @returns 商品の値で揃えた値
+ */
 export function productValuesOf(product: Product): ProductValues {
   return {
     name: product.name,
@@ -89,6 +103,7 @@ export type ProductFormValues = {
  *
  * @param initial - 開いた時点の値。ここからの差分が「書きかけ」の判定になる
  * @param options.withQuantity - 在庫数を尋ねるか。編集では別の口が持つため尋ねない
+ * @returns 画面が持つ入力の状態と、その操作
  */
 export function useProductValues(
   initial: ProductValues,

@@ -18,6 +18,7 @@ const purchaseCodeSchema = singleValue(PurchaseCode);
  * 同じ条件が繰り返されていたら読みません。どれを指しているのかを決める根拠が無く、先頭を採るのは
  * 推測になります。
  *
+ * @param searchParams - route が受け取った検索条件。
  * @returns 指している購入が読み取れなければ null
  */
 export function readPurchaseCode(searchParams: RawSearchParams): string | null {

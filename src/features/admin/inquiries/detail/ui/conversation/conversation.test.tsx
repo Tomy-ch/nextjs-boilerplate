@@ -27,7 +27,6 @@ import {
 } from "../../../inquiries.fixture";
 import { AdminInquiryConversation } from "./conversation";
 
-/** 送信先。canvas と同じく、押しても何も起きない形で渡す。 */
 const replyAction = vi.fn(async () => idleActionState<void, "body">());
 
 let opened: UseStreamOptions<InquiryFeedEvent> | null = null;

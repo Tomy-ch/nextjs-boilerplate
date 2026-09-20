@@ -19,7 +19,11 @@ export type CartMatchStockButtonProps = {
   label: string;
 };
 
-/** 送信部。`useFormStatus` は form の子でしか状態を読めないため切り出している。 */
+/**
+ * 送信部。`useFormStatus` は form の子でしか状態を読めないため切り出している。
+ *
+ * @param props - 表示に要る、いま買える数と対象の名前。
+ */
 function MatchSubmit({ availableQuantity, label }: { availableQuantity: number; label: string }) {
   const { pending } = useFormStatus();
 
@@ -50,6 +54,8 @@ function MatchSubmit({ availableQuantity, label }: { availableQuantity: number; 
  *
  * 送る数量はボタン自身が持ちます。設定（絶対値）を送る契約なので、押した時点の在庫がそのまま
  * 送る値になります。
+ *
+ * @see Storybook `Features/Cart/MatchStockButton`
  */
 export function CartMatchStockButton({
   productId,

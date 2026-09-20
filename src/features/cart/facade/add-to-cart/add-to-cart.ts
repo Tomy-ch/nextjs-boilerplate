@@ -27,6 +27,10 @@ const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画�
  * カートの画面で確かめられます。
  *
  * 在庫を超えても拒みません。買えるかどうかはバックエンドが明細の事情として返します。
+ *
+ * @param _previous - `useActionState` が渡す直前の結果。ここでは使いません。
+ * @param formData - 送信された FormData。`productId` を含みます。
+ * @returns 受け付けた・拒んだ・失敗したのいずれかの結果。
  */
 export async function addToCartAction(
   _previous: ActionState<void>,

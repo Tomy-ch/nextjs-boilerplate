@@ -30,7 +30,11 @@ const SUBMIT_LABEL = "送信";
 
 const SENDING_LABEL = "送信中";
 
-/** 送信欄。書きかけはここが持ち、成立したときだけ片付ける。 */
+/**
+ * 送信欄。書きかけはここが持ち、成立したときだけ片付ける。
+ *
+ * @param props - 送信の受け口、直前の送信結果、この送信に使う冪等キー、送信中かどうか。
+ */
 export function InquiryComposer({ action, state, idempotencyKey, pending }: InquiryComposerProps) {
   const [draft, setDraft] = useState("");
   const [seenState, setSeenState] = useState(state);

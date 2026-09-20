@@ -39,6 +39,7 @@ const LINK_CHOICES: readonly { readonly period: DashboardPeriod; readonly label:
  * `aria-current` でいま見ている項目を示します。色の違いだけで現在地を表すと、色を区別できない
  * 利用者に伝わりません。
  *
+ * @param props - {@link PeriodSwitchProps} を参照。
  * @see Storybook `Features/Admin/Analytics/PeriodSwitch`
  */
 export const PeriodSwitch = withPartSpan(

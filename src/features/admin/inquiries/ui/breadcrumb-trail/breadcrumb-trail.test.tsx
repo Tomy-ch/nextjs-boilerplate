@@ -22,7 +22,6 @@ describe("InquiryBreadcrumbTrail", () => {
       .map((item) => item.textContent?.trim() ?? "")
       .filter((label) => label !== "");
 
-    // 1 段だけでは「並べる」かどうかが出ない。順序が反転しても通ってしまう。
     expect(labels).toEqual(["問い合わせ管理", "対応", "履歴"]);
   });
 

@@ -12,7 +12,6 @@ import { ProductPublishSection } from "./publish-section";
 
 const STATUS_OPTIONS = [{ value: "status-1", label: "在庫あり" }];
 
-/** 段の部品は入力の状態を外から受けるため、hook を通した本物の状態で確かめる。 */
 function Harness({
   children,
 }: {
@@ -66,7 +65,6 @@ describe("ProductPublishSection", () => {
     await userEvent.clear(screen.getByLabelText("公開日時"));
     await userEvent.tab();
 
-    // 空欄は未公開として許すため、誤りにはならない。
     expect(screen.queryByText(/公開日時を日付として/)).not.toBeInTheDocument();
   });
 

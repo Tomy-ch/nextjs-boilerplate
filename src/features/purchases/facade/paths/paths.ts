@@ -14,6 +14,7 @@ export const PURCHASE_HISTORY_PATH = "/purchases";
  * 購入 1 件の詳細を指す。
  *
  * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ * @returns 購入詳細のパス。
  */
 export function purchaseDetailPath(purchaseCode: string): string {
   return `${PURCHASE_HISTORY_PATH}/${encodeURIComponent(purchaseCode)}`;

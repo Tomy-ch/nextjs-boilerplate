@@ -88,7 +88,7 @@ TSDoc が満たすべき条件は一つである。**呼び出し側が内部の
 | --- | --- |
 | 先頭の一行 | この component の責務。名前の言い換えではなく、何を引き受けるかを書く |
 | `@remarks` | 呼び出し側が知らないと誤用する制約。SSR / client island の境界、必須の a11y 属性、この component が**持たない**責務 |
-| `@param props` | native 属性を透過するならその旨 |
+| `@param props` | 必須（規則は rules.md）。この層で足すのは、native 属性を透過するならその旨 |
 | `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く |
 
 `<Component>Props` 自体は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。

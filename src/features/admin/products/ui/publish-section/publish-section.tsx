@@ -10,17 +10,29 @@ import type { ProductSelectOption } from "../select-field/select-field";
 import { ProductSelectField } from "../select-field/select-field";
 import { ProductTextField } from "../text-field/text-field";
 
-/** 時差は変わらない。購読しないので、解除も何もしない。 */
+/**
+ * 時差は変わらない。購読しないので、解除も何もしない。
+ *
+ * @returns 何もしない解除関数。
+ */
 function subscribeToNothing(): () => void {
   return () => undefined;
 }
 
-/** 描き終えた側の時差。server では持たない。 */
+/**
+ * 描き終えた側の時差。server では持たない。
+ *
+ * @returns UTC との時差（分）。
+ */
 function readTimezoneOffset(): number {
   return new Date().getTimezoneOffset();
 }
 
-/** server では持たない。時差は描いた場所の話で、server の時差を送っても意味が無い。 */
+/**
+ * server では持たない。時差は描いた場所の話で、server の時差を送っても意味が無い。
+ *
+ * @returns 常に `undefined`。
+ */
 function readNothing(): undefined {
   return undefined;
 }
@@ -34,6 +46,8 @@ function readNothing(): undefined {
  *
  * server と client で違う値になるため、`useSyncExternalStore` で「server では持たない」ことを
  * 明示します。effect で後から入れると、描画のたびにもう 1 周させることになります。
+ *
+ * @returns 分単位の time zone offset。server では `undefined`。
  */
 function useTimezoneOffset(): number | undefined {
   return useSyncExternalStore(subscribeToNothing, readTimezoneOffset, readNothing);
@@ -62,6 +76,8 @@ export type ProductPublishSectionProps = {
  * 未公開へ戻す操作を別に置きます。`datetime-local` は年・月・日・時・分がそれぞれ独立した区画で、
  * 空へ戻すには区画の数だけ消す操作が要ります。「公開をやめる」という 1 つの意図に対して操作が
  * 複数回要るのは、意図と操作の粒度が合っていません。
+ *
+ * @param props - 入力欄の `id` の前置き・選べる状態・入力の状態と操作。
  */
 export function ProductPublishSection({
   form,

@@ -40,6 +40,8 @@ const SENDING_LABEL = "送信中";
  * @remarks
  * **`⌘Enter` での送信を持ちません。** 運営の回答は書き上げてから送るもので、打ち終わりが
  * そのまま送信になると、書きかけが利用者へ届きます。
+ *
+ * @param props - 回答先・送信の受け口・直前の結果・冪等キー・送信中かどうか。
  */
 export function AdminInquiryReplyForm({
   action,

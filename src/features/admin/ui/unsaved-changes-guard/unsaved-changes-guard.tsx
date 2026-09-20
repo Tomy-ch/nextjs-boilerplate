@@ -47,6 +47,8 @@ export type UnsavedChangesGuardProps = {
  *
  * アプリ内の移動とリロード / タブを閉じるは別の経路なので、2 つの部品を併せて使います。
  * browser の戻る / 進むはどちらでも塞げません（`NavigationGuard` の README）。
+ *
+ * @param props - 見張る範囲
  */
 export function UnsavedChangesGuard({ children }: UnsavedChangesGuardProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -70,6 +72,8 @@ export function UnsavedChangesGuard({ children }: UnsavedChangesGuardProps) {
  *
  * 器の外で呼ばれたときは何もしません。申告先が無いのは「この画面は器に包まれていない」という
  * ことで、確認を出す相手が居ません。
+ *
+ * @param hasUnsavedChanges - 書きかけがあるか
  */
 export function useUnsavedChanges(hasUnsavedChanges: boolean): void {
   const setHasUnsavedChanges = useContext(UnsavedChangesContext);

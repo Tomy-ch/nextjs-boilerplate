@@ -72,7 +72,6 @@ describe("controlIdOf", () => {
   });
 
   it("項目の綴りと id の綴りは別の規則に従う", () => {
-    // 送信名は契約の綴り、id は kebab-case。導出を 1 か所に置くのは、両者が別々に動くため。
     expect(controlIdOf("form", "stockWarningThreshold")).toBe("form-stock-warning-threshold");
   });
 

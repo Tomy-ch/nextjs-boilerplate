@@ -13,6 +13,9 @@ import { PROFILE_FIELD_LABELS } from "./field-labels";
  * **名前が一致していることに頼りません。**契約の項目名とフォームの項目名は今のところ同じ綴りですが、
  * それは契約側の都合で変わり得ます。読めない名前をそのまま鍵にすると、どの入力欄にも結び付かない
  * 文言を状態へ入れることになり、画面は何も出さないのに「項目の誤りがある」状態になります。
+ *
+ * @param name - 判定する項目名
+ * @returns この画面の入力欄として読めれば true
  */
 function isProfileField(name: string): name is ProfileField {
   return Object.hasOwn(PROFILE_FIELD_LABELS, name);
@@ -28,6 +31,9 @@ function isProfileField(name: string): name is ProfileField {
  *
  * 項目名を主語にするのは、送る前の検証が出す文言と同じ理由です。誤りだけを読んでどこを直せば
  * よいか判る必要があり、支援技術は項目から離れた位置で読み上げることがあります。
+ *
+ * @param field - 弾かれた項目
+ * @returns 項目の入力欄へ出す文言
  */
 function rejectionMessageOf(field: ProfileField): string {
   return `${PROFILE_FIELD_LABELS[field]}は受け付けられませんでした。入力し直してください。`;

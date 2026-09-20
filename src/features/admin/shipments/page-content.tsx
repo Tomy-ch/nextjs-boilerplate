@@ -17,6 +17,8 @@ export type ShipmentQueuePageContentProps = {
  *
  * @remarks
  * 待機の境界を一覧本体だけに掛けます。取得を待つのは組の並びだけで、見出しはその前に描かれます。
+ *
+ * @param props - 発送の送信先と配達の確認の送信先。
  */
 export const ShipmentQueuePageContent = withScreenSpan(
   "features/admin/shipments/page-content",

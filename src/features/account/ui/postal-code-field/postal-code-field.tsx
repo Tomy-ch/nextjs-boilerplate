@@ -29,6 +29,8 @@ type PostalCodeFieldProps = Pick<ProfileFieldProps, "controlId" | "message" | "r
  * 補完の機構が使えないと判ったら操作を閉じます。押しても永久に何も起きない操作を残すと、
  * 利用者は自分の入力した郵便番号を疑って何度も試します。手入力へ促す文言は呼び出し側の
  * 読み上げ領域が出します。
+ *
+ * @param props - 入力欄の基本 props と、住所検索の状態・操作。
  */
 export function PostalCodeField({
   controlId,

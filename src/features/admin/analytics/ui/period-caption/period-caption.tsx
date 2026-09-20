@@ -19,6 +19,7 @@ export type PeriodCaptionProps = {
  *
  * 1 日だけを指すときは範囲の形にしません。同じ日付を 2 度並べても、読み手が得るものがありません。
  *
+ * @param props - {@link PeriodCaptionProps} を参照。
  * @see Storybook `Features/Admin/Analytics/PeriodCaption`
  */
 export const PeriodCaption = withPartSpan(

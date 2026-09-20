@@ -51,7 +51,12 @@ export const STOCK_AVAILABILITY_OPTIONS: readonly StockAvailabilityOption[] = Ob
   STOCK_AVAILABILITY,
 ).map((value) => ({ value, label: STOCK_AVAILABILITY_TEXT[value] }));
 
-/** 在庫状況の表示名。 */
+/**
+ * 在庫状況の表示名。
+ *
+ * @param availability - 在庫状況
+ * @returns 表示名
+ */
 export function formatStockAvailability(availability: StockAvailability): string {
   return STOCK_AVAILABILITY_TEXT[availability];
 }
@@ -66,6 +71,9 @@ export const STOCK_AVAILABILITY_LABEL = "在庫状況";
  * 在庫数の下限と上限は URL で直接指定でき、「1 つ以上」「1 つも無い」以外の範囲も書けます。
  * どちらにも当てはまらない範囲は「すべて」として読みます。3 つの選択肢のどれかに寄せると、
  * 選んでいない状態が選ばれているように見えます。
+ *
+ * @param selection - いま効いている条件
+ * @returns 在庫状況
  */
 export function toStockAvailability(selection: ProductListSelection): StockAvailability {
   const min = toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY);
@@ -82,7 +90,13 @@ export function toStockAvailability(selection: ProductListSelection): StockAvail
   return STOCK_AVAILABILITY.ALL;
 }
 
-/** 在庫状況を在庫数の条件へ書き戻す。 */
+/**
+ * 在庫状況を在庫数の条件へ書き戻す。
+ *
+ * @param selection - いま効いている条件
+ * @param availability - 在庫状況
+ * @returns 書き戻した後の条件
+ */
 export function applyStockAvailability(
   selection: ProductListSelection,
   availability: StockAvailability,

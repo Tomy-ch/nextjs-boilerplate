@@ -31,6 +31,12 @@ const ITEM: ProductListItem = {
   imageUrl: null,
 };
 
+/**
+ * 商品カードを描画する。
+ *
+ * @param item - 描画する商品。
+ * @returns Testing Library の render 結果。
+ */
 function renderCard(item: ProductListItem) {
   return render(<ProductCard item={item} />);
 }

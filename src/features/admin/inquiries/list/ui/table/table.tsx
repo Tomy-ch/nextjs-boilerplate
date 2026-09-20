@@ -52,6 +52,12 @@ const COLUMNS: readonly StaticDataTableColumn<InquirySummary>[] = [
   },
 ];
 
+/**
+ * 行の一意な識別子。
+ *
+ * @param item - 対象の問い合わせ。
+ * @returns 問い合わせの識別子。
+ */
 function rowKey(item: InquirySummary): string {
   return item.id;
 }
@@ -73,6 +79,8 @@ export type AdminInquiryTableProps = {
  *
  * 行から開くのは利用者の識別子を押す形です。問い合わせ自身に題名が無く、行を指す語が他に
  * ありません。
+ *
+ * @param props - 並べる問い合わせと、下に置くページ送り。
  */
 export const AdminInquiryTable = withPartSpan(
   "features/admin/inquiries/list/ui/table/table",

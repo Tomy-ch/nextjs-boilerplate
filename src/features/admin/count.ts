@@ -2,6 +2,12 @@ import { DEFAULT_LOCALE } from "@/model/locale";
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
+/**
+ * locale に対応する `Intl.NumberFormat` を、無ければ作ってキャッシュしてから返す。
+ *
+ * @param locale - 用いる locale
+ * @returns その locale の `Intl.NumberFormat`
+ */
 function formatterOf(locale: string): Intl.NumberFormat {
   let formatter = formatters.get(locale);
 
@@ -22,6 +28,7 @@ function formatterOf(locale: string): Intl.NumberFormat {
  *
  * @param count - 件数
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns locale に沿って整形した文字列
  */
 export function formatCount(count: number, locale: string = DEFAULT_LOCALE): string {
   return formatterOf(locale).format(count);

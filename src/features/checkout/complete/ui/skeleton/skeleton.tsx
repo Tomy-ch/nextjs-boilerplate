@@ -13,6 +13,8 @@ const LINES = Array.from({ length: PLACEHOLDER_LINES }, (_, index) => index);
  * 礼の一文、控えと集計の 2 枚、購入した商品の一覧、次の導線まで場所取りします。枠が実物より
  * 短いと、穴が埋まった瞬間に下の要素が押し下げられます（`docs/rules.md`「状態表示と待機」の「loading は形状が近い skeleton を優先する」と
  * 「UI 部品と操作」の「状態で出入りする表示で操作の位置を動かさない」）。
+ *
+ * @see Storybook `Features/Checkout/Complete/Skeleton`
  */
 export const CheckoutCompleteSkeleton = withPartSpan(
   "features/checkout/complete/ui/skeleton/skeleton",

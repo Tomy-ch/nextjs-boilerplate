@@ -17,6 +17,9 @@ export type AdminRankingRow = {
  * @remarks
  * 順位は並びの位置をそのまま数にしたものです。販売数量から順位を決め直してはいません。同順位の
  * 扱いを決めているのは契約の側で、画面が数え直すとその規則が 2 か所に分かれます。
+ *
+ * @param entries - 契約から届いた並び順のランキング。
+ * @returns 表の行として並べる形に写した配列。
  */
 export function toRankingRows(entries: readonly ProductRankingEntry[]): readonly AdminRankingRow[] {
   return entries.map((entry, index) => ({

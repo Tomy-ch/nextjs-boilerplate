@@ -44,6 +44,8 @@ export type ProductFilterFieldsProps = {
  * 価格を先頭に置きます。予算は商品を探す前から決まっていることが多く、分類を跨いで効きます。
  * 在庫状況を最後に置くのは、これが結果を絞るための条件というより、出てきた結果から買えないものを
  * 外す条件だからです。
+ *
+ * @param props - 選べる分類、その上限、組み立て中の条件、変更の通知。
  */
 export function ProductFilterFields({
   categories,

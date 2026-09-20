@@ -48,6 +48,8 @@ export type CartHeaderActionProps = {
  * **その代わり、初回描画は常に常設側の姿です。** 押せるようになるのは hydration が終わってからで、
  * この入れ替えは許容しています。押せる状態に見せるには出し分けを CSS へ移す必要があり、そうすると
  * 点数が 2 か所に出て、幅ごとの姿を存在の有無で検証できなくなります。
+ *
+ * @see Storybook `Features/Cart/HeaderAction`
  */
 export function CartHeaderAction({ cart }: CartHeaderActionProps) {
   const isNarrow = useMediaQuery(NARROW);

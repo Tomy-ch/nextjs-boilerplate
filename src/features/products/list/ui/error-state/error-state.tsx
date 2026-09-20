@@ -20,6 +20,8 @@ export type ProductListErrorProps = {
  * 生のエラーもスタックも出しません。production では Server Component から投げられたエラーの
  * 本文が伏せられ、境界には汎用文言と `digest` だけが渡るためです。原因の特定は `digest` と
  * サーバ側のログの突合で行います。
+ *
+ * @param props - 表示する文言、突合用の識別子、再取得の呼び出し。
  */
 export function ProductListError({ message, digest, onRetry }: ProductListErrorProps) {
   return (

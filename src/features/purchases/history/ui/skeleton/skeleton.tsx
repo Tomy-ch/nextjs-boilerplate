@@ -11,6 +11,8 @@ const ROWS = Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index);
  *
  * @remarks
  * スピナー 1 つで代用すると、描画された瞬間に位置が動き、読み始めた場所を見失います。
+ *
+ * @see Storybook `Features/Purchases/History/Skeleton`
  */
 export const PurchaseHistorySkeleton = withPartSpan(
   "features/purchases/history/ui/skeleton/skeleton",

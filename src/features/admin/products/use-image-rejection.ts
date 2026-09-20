@@ -20,6 +20,9 @@ export type ImageRejection = {
  * @remarks
  * 弾く判定そのものは `FileUpload` が持ち、文言は持ちません。何をどう伝えるかは画面の側の判断で、
  * ここがその置き場所です。
+ *
+ * @param maxUploadBytes - 受け付ける 1 枚あたりの大きさ（byte）
+ * @returns 弾かれたファイルの文言と、その受け口
  */
 export function useImageRejection(maxUploadBytes: number): ImageRejection {
   const [rejection, setRejection] = useState<string>();

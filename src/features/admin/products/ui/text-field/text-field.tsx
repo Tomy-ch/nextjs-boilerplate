@@ -40,6 +40,8 @@ export type ProductTextFieldProps = Pick<
  *
  * 入力欄へ与える a11y 属性は `fieldControlAttributes` が組みます。項目ごとに書き写すと、項目が
  * 増えたときに付け忘れが起きます。
+ *
+ * @param props - native `input` 属性の一部と、上記の表示用 props。
  */
 export function ProductTextField({
   controlId,

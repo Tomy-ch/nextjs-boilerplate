@@ -58,6 +58,8 @@ function ClearSubmit() {
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
  *
  * カートそのものは残ります。空のカートは正当な状態で、利用者の同一性も切れません。
+ *
+ * @see Storybook `Features/Cart/ClearButton`
  */
 export function CartClearButton() {
   const [state, formAction] = useActionState<CartActionState, FormData>(

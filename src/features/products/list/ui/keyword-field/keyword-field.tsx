@@ -32,6 +32,8 @@ export type ProductKeywordFieldProps = {
  * **空のまま押せるのは、いま検索語が効いているときだけです。** 効いている検索語を消すには空の
  * 送信が要る一方、何も効いていない状態での送信は結果が変わりません。押しても何も起きない操作を
  * 残すと、反応が無いのか結果が同じなのかを利用者から区別できません。
+ *
+ * @param props - いま一覧に効いている条件。
  */
 export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
   "use memo";

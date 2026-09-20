@@ -13,7 +13,6 @@ function validForm(overrides: Readonly<Record<string, string>> = {}): FormData {
     categoryId: "01936f6d-0000-7000-8000-000000000001",
     statusId: "01936f6d-0000-7000-8000-000000000101",
     publishedAt: "2026-08-07T09:00",
-    // UTC より 9 時間東（JST）から送られた体で組む。壁時計だけでは瞬間が決まらない。
     timezoneOffset: "-540",
     description: "<p>説明</p>",
     version: "4",
@@ -130,8 +129,6 @@ describe("parseProductDraftForm", () => {
   });
 
   it("規則は通るが瞬間にできない綴りも、確定せずに断る", () => {
-    // 規則は `new Date` で読めるかだけを見るため、既に時差を持つ綴りは通る。壁時計として
-    // 読み直せない以上、瞬間は決められない。
     const result = parseProductDraftForm(validForm({ publishedAt: "2026-08-07T09:00:00Z" }));
 
     expect(result.ok).toBe(false);
@@ -150,7 +147,6 @@ describe("parseProductDraftForm", () => {
   });
 
   it("入力された壁時計を、送られた時差の側の瞬間として確定する", () => {
-    // UTC より 9 時間東で 2026-08-07 09:00 と入れたら、瞬間は前日 24:00 = 当日 00:00Z。
     const result = parseProductDraftForm(validForm());
 
     expect(result.ok && result.value.publishedAt?.toISOString()).toBe("2026-08-07T00:00:00.000Z");

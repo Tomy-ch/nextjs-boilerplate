@@ -23,6 +23,8 @@ export type StockCurrentAmountProps = {
  *
  * 何をどう出すか（鮮度の注記 / 取り直す導線 / 商品名を 2 行で打ち切る）は
  * [画面要件](../../../../../../../docs/spec/route/admin/products/[id]/stock/page.screen.md)。
+ *
+ * @see Storybook `Features/Admin/Products/Stock/CurrentStock`
  */
 export const StockCurrentAmount = withPartSpan(
   "features/admin/products/stock/ui/current-stock/current-stock",

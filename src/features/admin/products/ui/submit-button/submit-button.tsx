@@ -23,6 +23,8 @@ export type ProductSubmitButtonProps = {
  *
  * 送信中の見せ方は `Button` が持ちます。文言を差し替えると幅が動くため、ここでは文言を渡すだけで
  * 差し替えません。
+ *
+ * @param props - 押せるとき・送信中の文言と、送信を止める理由の有無。
  */
 export function ProductSubmitButton({ blocked, label, pendingLabel }: ProductSubmitButtonProps) {
   const { pending } = useFormStatus();

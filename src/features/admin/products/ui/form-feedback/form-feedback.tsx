@@ -38,6 +38,8 @@ export type ProductFormFeedbackProps = {
  * 送信そのものの失敗（通信・権限）は要約ではなく `FormFeedback` が扱います。直すべきものが
  * 入力の中に無いためです。**項目ごとの誤りがあるときに全体の文言を出さない**のは送る側の判断で、
  * ここは受け取ったものを出すだけです。
+ *
+ * @param props - 送信の結果・入力欄の `id` の前置き・見出し・もう出さないかの指定。
  */
 export function ProductFormFeedback({
   children,

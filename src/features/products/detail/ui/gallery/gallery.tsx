@@ -18,7 +18,12 @@ import { ImageViewer } from "@/components/design-system/overlay/image-viewer/ima
 import { NO_IMAGE_URL } from "@/model/media";
 import { withPartSpan } from "@/observability/render-span";
 
-/** slide を指す `id`。送り操作と一覧の双方が同じ規則で参照する。 */
+/**
+ * slide を指す `id`。送り操作と一覧の双方が同じ規則で参照する。
+ *
+ * @param index - slide の 0 始まりの位置
+ * @returns slide を指す DOM の id
+ */
 function slideIdOf(index: number): string {
   return `product-image-${index + 1}`;
 }
@@ -45,6 +50,15 @@ export type ProductGalleryProps = {
  *
  * 紙には先頭の 1 枚だけを残し、幅も抑えます。carousel は横に送って見る形で、紙では送れないため
  * 全部並べると同じ商品の写真が紙を埋め、幅を抑えないと 1 枚でも紙 1 面を占めます。
+ *
+ * @example
+ * ```tsx
+ * <ProductGallery imageUrls={["https://example.com/a.png"]} productName="ワイヤレスイヤホン" />
+ * ```
+ *
+ * @param props.productName - 画像の代替テキストになる商品名。
+ * @param props.imageUrls - 表示順に並べた画像 URL。解決は feature 側の取得で済ませておく。
+ * @see Storybook `Features/Products/Detail/Gallery`
  */
 export const ProductGallery = withPartSpan(
   "features/products/detail/ui/gallery/gallery",
@@ -85,10 +99,9 @@ export const ProductGallery = withPartSpan(
                   />
                 </ImageViewer>
               )}
-              {/* 送る操作は画像より後ろに置く。位置指定要素は DOM の順で重なるため、
-                  前に置くと画像に覆われて押せない。 */}
               {index === 0 ? null : (
                 <CarouselPrevious
+                  // 画像より後ろに置く。位置指定要素は DOM の順で重なるため、前に置くと画像に覆われて押せない。
                   className="print-hidden"
                   href={`#${slideIdOf(index - 1)}`}
                   tabIndex={-1}

@@ -27,6 +27,8 @@ const LEADING_COUNT = 3;
  *
  * 並び自体に名前を与えます。1 つの画面には絞り込みの選択肢や global nav といった別の一覧も
  * 並ぶため、名前が無いと支援技術からはどれが結果の一覧かを言い分けられません。
+ *
+ * @param props - 表示する商品。
  */
 export const ProductGrid = withPartSpan(
   "features/products/list/ui/grid/grid",

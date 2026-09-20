@@ -21,6 +21,8 @@ export type AdminInquiryListViewProps = {
  *
  * 絞り込みを置きません。契約が受け付ける条件はページ送りだけで、状態も担当も持たない問い合わせに
  * 絞る軸がありません。
+ *
+ * @see Storybook `Page/Admin/Inquiries/List`
  */
 export const AdminInquiryListView = withScreenSpan(
   "features/admin/inquiries/list/view",
