@@ -179,7 +179,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 
 ### 機械的強制が文書に追いついていない箇所
 
-- **`app` の element 分割は、行ごとに強制の届き方が違う。** どの行がどこまで強制されるか、`import` 先の集合として書けないものが何かは [0025](0025-app-layer-elements.md) が表で持つ（`route-handler` は全部 / `server-action` は `config` が通る / `metadata` は `adapters` が 5 ファイルすべてで通る / `route-segment` は要素として宣言が無く層の粒度）。**残る 2 つは実装の不足ではなく表現できないもの**である —— `server config` と `NEXT_PUBLIC` の公開定数は同じ `config` に居り、`route-segment` の `observability` / `config` の限定は「何を import してよいか」ではなく「どう使ってよいか」である。**意味的監査（下記）が受け持つ範囲であり、それが在るまでは人のレビューが拾う。**
+[`docs/traceability.md`](../traceability.md)「機械が届かないと分かっているところ」が持つ。
 
 ---
 
