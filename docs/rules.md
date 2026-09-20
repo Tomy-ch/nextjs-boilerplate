@@ -46,7 +46,7 @@
 
 ## 描画とキャッシュ
 
-> Rationale: [ADR 0041](adr/0041-cache-components-decision.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module`、framework の `next-request-in-use-cache`、adapter / feature テスト。
+> Rationale: [ADR 0041](adr/0041-cache-components-decision.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module` / `no-cache-option-in-use-cache` / `no-global-revalidate-path` / `no-ad-hoc-cache-tag`、framework の `next-request-in-use-cache`、adapter / feature テスト。
 
 - **描くモードを画面が宣言しない。** Cache Components が有効なので、殻と穴の分かれ目は器の形そのもの —— 何を `Suspense` の外に置き、何を内に置くか —— で決まる。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、**すべて穴の内側**で解く（実時計はさらに `connection()` を待ってから読む）。器の側で待つと、待っている間は殻すら配れない。**殻を配れない画面だけが `export const instant = false` を理由つきで宣言する** —— 「まだ手を付けていない」ではなく「分けても得るものが無い」「殻を配ること自体が要件に反する」を書く。
 - **実時計を読む場所は 1 つに固定し、URL を解釈する層（合成の入口 `app`）が読んで props で配る。** `features` は `config` を参照できない（`architecture.ts`）。描画のたびに実時計を読む部品にすると、基準画像が撮った時刻に依存する。
@@ -54,12 +54,12 @@
 - **`Suspense` や `key` に与える鍵は、値を一意に表す形で作る。** 区切り文字で連結すると、値に区切り文字が現れた時点で別の条件が同じ鍵になる。作り直す契機も鍵が持つ —— 取り直す導線が同じ URL を指す画面では、取得した値（版・現在の量・ページ）を入力の `key` に含める。含めないと、取得した値だけが新しく、入力欄には前回打った内容が残った木ができる。散文 —— **寄せられない**。値に区切り文字が現れうるか、どの値が作り直しの契機かは値の出所で決まり、式の形からは決まらない。**根拠 ADR 無し** —— この内容を決めた ADR が存在しない。
 - **同一 render 内で重複し得る取得は adapters 側で `cache()` または fetch memoization を使い、呼び出し側に重複排除を委ねない。** 畳めていなければ `cache()` を外し、呼び出し側で 1 度だけ引く形へ倒す —— 効いていない機構をコメントで主張しない。ただし外す前に応答を見る —— 描画の span に同じ取得が複数本見えても、HTTP client の再試行は memo 化より内側で起きるので、効いていても本数は増える。
 - **キャッシュは既定で無い。** 残したいものに `use cache` を付け、寿命は `cacheLife`、捨てる印は `cacheTag` で持つ。下の所有境界とタグの綴りはそのまま効く。**user-scoped な値は既定 uncached で、`use cache` の下へ置かない**（[データ分類と機微情報](#data-classification)）。
-- **`use cache` の内側の `fetch` に個別のキャッシュ指定（`cache` / `next.tags`）を置かない。** 内側の取得はまとめて外側の寿命に従うので、二重に持つと内側が切れないぶん、外側が再取得しても同じ古い応答を掴む。寿命は `cacheLife`、印は `cacheTag` が持つ。散文 —— **寄せられる**。`use cache` の内側で `cache` / `next.tags` を渡す形は、`no-user-scoped-in-cached-module` と同じ書き方で検出できる。
+- **`use cache` の内側の `fetch` に個別のキャッシュ指定（`cache` / `next.tags`）を置かない。** 内側の取得はまとめて外側の寿命に従うので、二重に持つと内側が切れないぶん、外側が再取得しても同じ古い応答を掴む。寿命は `cacheLife`、印は `cacheTag` が持つ。
 - **`use cache` を持つモジュールは `createHttpClient` を直に引かない。** **分類ごとに 1 つ置いた接続口**を引く。口は `adapters/server` が持ち、モジュールごとに組ませない。直に引けるモジュールは user-scoped な client も組める状態にあり、キャッシュの下でそれを許すと主体の値が別の主体へ配られる。
 - **Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ。** 入れ物は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほぼ起きないのに、入れ物だけが主体の数だけ増える。**入れないものへ印を付けない** —— 印は入っているものにしか付かないので、付けた側も捨てる側も、動いていないのに動いて見える。
 - **mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。** 所有境界の決め方とタグの綴りは次の 2 つが持つ。
-- **捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。** `revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。散文 —— **寄せられる**。`revalidatePath("/", "layout")` はリテラルの検出で落とせる。所有境界そのものの判定は人に残る。
-- **タグは `<資源>` と `<資源>:<識別子>` の 2 段だけを使う。** 資源名はバックエンド契約の集合名に揃え、識別子はその資源の URL に現れる鍵を使う。**タグを付けるのは取得側（`adapters`）1 か所**で、捨てる側は同じ綴りを書く。取得と再検証で綴りを別々に決めると、捨てたつもりのものが残る。散文 —— **一部寄せられる**。綴りの 2 段と、`cacheTag` を呼ぶのが `adapters` だけであることは静的に決まる。資源名が契約の集合名と揃っているかは、契約を読まないと決まらない。
+- **捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。** `revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。**捨てる先が所有境界かどうかは人に残る** —— 機械が落とすのは全体を捨てるリテラルだけである。
+- **タグは `<資源>` と `<資源>:<識別子>` の 2 段だけを使う。** 資源名はバックエンド契約の集合名に揃え、識別子はその資源の URL に現れる鍵を使う。**タグを付けるのは取得側（`adapters`）1 か所**で、捨てる側は同じ綴りを書く。取得と再検証で綴りを別々に決めると、捨てたつもりのものが残る。**資源名が契約の集合名と揃っているか**は散文 —— **寄せられない**。契約を読まないと決まらない。
 
 <a id="data-classification"></a>
 
@@ -225,7 +225,7 @@
 
 ## レイアウトと帯
 
-> Rationale: [ADR 0051](adr/0051-styling-system.md) / [ADR 0050](adr/0050-styling-strategy.md) / [ADR 0100](adr/0100-accessibility-target.md) / [ADR 0045](adr/0045-fonts-and-images.md); enforced via 帯を跨いで見る E2E のジャーニー、`components/patterns/action-bar` の component テスト、Storybook と visual regression、Biome formatter。
+> Rationale: [ADR 0051](adr/0051-styling-system.md) / [ADR 0050](adr/0050-styling-strategy.md) / [ADR 0100](adr/0100-accessibility-target.md) / [ADR 0045](adr/0045-fonts-and-images.md); enforced via 帯を跨いで見る E2E のジャーニー、`components/patterns/action-bar` の component テスト、Storybook と visual regression、Biome formatter、ESLint `project-rules/no-arbitrary-z-index`。
 
 - **本文の脇に常設する領域（サイドバー・レール）は `lg` 以上でだけ出す。** `lg` 未満では本文へ被せて出す（overlay）。
 - **本文から幅を取る常設領域は、幅が足りていても閉じられる。** 閉じられないと、一度開いた利用者は本文を狭いまま読み続ける。閉じた後に開き直す入口は、その領域の外（header など）に持つ。
@@ -239,7 +239,7 @@
 - **契約が長さを決める値に、1 行に収まる前提を置かない。** 分類名や状態名は上限の宣言が無く、契約が許す長さで枠ごと横に伸びる。折り返しを呼び出し側で許すか、幅で詰める。詰めるときは文字数では切らない —— 書記素の切れ目を跨いで壊し、同じ文字数でも和文と欧文で占める幅が違う。
 - **情報を色だけで伝えない。** 現在地・状態・事情の強さは文字か下線か絵柄で持ち、色は補強に留める —— 色覚特性やコントラスト設定によって区別できない。弱める表現は文字だけに掛け、行ごと薄くして地との比を [ADR 0100](adr/0100-accessibility-target.md) の要求より下げない。
 - **紙に出すのは内容だけ。** header・脇の一覧・skip link・押せない操作は紙の上では押せず場所を取るだけなので落とし、画像は先頭の 1 枚だけを残して幅を抑える。
-- **z-index は Tailwind の段階値（`z-10` / `z-20` …）だけを使う。** 任意値（`z-[…]`）で段を増やさない。散文 —— **寄せられる**。任意値の記法は静的に検出できる。**token drift gate は見ていない** —— あれは `tokens/` から生成した CSS が生成物と一致するかの突合で、z-index は token 化されていない。
+- **z-index は Tailwind の段階値（`z-10` / `z-20` …）だけを使う。** 任意値（`z-[…]`）で段を増やさない。**token drift gate は見ていない** —— あれは `tokens/` から生成した CSS が生成物と一致するかの突合で、z-index は token 化されていない。
 - **Tailwind class は読みやすいまとまりで記述する。** 長い class 列は component / variant に分け、`@apply` は使わない。
 - **ラテン専用の書体を、和文を含む文字列へ当てない。** 1 語の中で書体が変わる。
 
@@ -325,7 +325,7 @@
 
 ## 生成物と補助スクリプト
 
-> Rationale: [ADR 0072](adr/0072-api-type-generation.md) / [ADR 0110](adr/0110-security-operations.md) / [ADR 0153](adr/0153-ci-configuration.md) / [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）。
+> Rationale: [ADR 0072](adr/0072-api-type-generation.md) / [ADR 0110](adr/0110-security-operations.md) / [ADR 0153](adr/0153-ci-configuration.md) / [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）、`scripts/shell-brace.gate.test.ts`（全角の直前の裸の変数）。
 
 - **ゲートを足す前に、それが並列でいくつ走るかを見る。** 費用は 1 回ぶんではない —— このリポジトリは並行する作業ツリーで進むうえ、fan-out するスキルは同じ検査を lens やカーネルの数だけ呼ぶ。**手元で n 倍、CI で PR の数だけ**になり、遅くなった機械の上では検査そのものが失敗の源になる。`make load-status` の帯は掛かった負荷に**反応する**機構であって、足す前の見積もりは肩代わりしない。散文 —— **寄せられない**。何倍になるかは呼び出し側の構造で決まり、検査の側からは見えない。
 - **同じ判定を複数の worker に計算させない。** 統合する側が 1 回だけ解いて配る。判定の権威が CI に在るものは、**解くのではなく取得する**（[0151](adr/0151-git-hooks.md)）。
@@ -340,7 +340,7 @@
 - **カタログで Server Action を差し替える `sb.mock(import("…"))` の引数は、拡張子まで綴る。** 省くと解決に失敗し、宣言はしているのに 1 件も登録されないまま進む —— 失敗は無言で、差し替わっていないことは canvas が実際に送ってから判る。
 - **検査の除外一覧に、保護対象であることを理由に入れない。** 保護は「誰が編集してよいか」の話で、linter が読んでよいかとは無関係。除外してよいのは、このリポジトリのソースではない領域だけ —— 依存・git の管理領域・別ブランチの作業ツリー・ツールの生成物。木を歩くツールはどれも `.gitignore` を読まないので、除外は各ツールに書き、走査するツールを増やしたら全部に書く。
 - **外から来る値を make の変数として recipe 行へ展開しない。** `$(VAR)` はシェルへ渡る前にテキスト置換されるので、`"` や `;` を含む値でクォートが破れ、任意のコマンドが走る。ブランチ名は `git check-ref-format` が両方の文字を許すため、想定上ではなく実在する入力である。`export <NAME>` で環境変数として渡し、受け取る側が `process.env` から読めば、値はシェルの構文解析を一度も通らない。散文 —— **寄せられる**。`make actions-shellcheck` が見るのは composite action の `run:` で、`make shellcheck` が見るのは追跡下のシェルスクリプトであり、Make の展開はどちらも通らない。
-- **シェル変数を全角文字の直前に裸で置かない。** シェルが全角文字の先頭バイトを変数名の一部として食い、空へ展開したうえで壊れたバイト列を出す。`${NAME}` と囲む。散文 —— **寄せられる**。壊れるのは表示だけで終了コードは変わらないため、検査でも人の目でも素通りする。
+- **シェル変数を全角文字の直前に裸で置かない。** シェルが全角文字の先頭バイトを変数名の一部として食い、空へ展開したうえで壊れたバイト列を出す。`${NAME}` と囲む。**壊れるのは表示だけで終了コードは変わらない**ため、綴りのほうを見ている。
 - **`echo "$(...)"` で値を渡さない。** 置換の中の失敗を飲んで成功を返し、下流へ空値を渡す。先に変数へ代入して、失敗をそのステップで落とす。
 - **workflow の `uses:` は 1 ステップ 1 行の block notation で書く。** flow mapping は pin の走査対象外で、黙って飛ばされずに拒まれる。
 - **ファイルは存在を先に確かめず、読めたかどうかそのものを判定にする。** 確かめてから読むまでの間に消えうる。読めなかったことと UTF-8 として扱えないことは、どちらも同じ「扱わない」へ倒す。
