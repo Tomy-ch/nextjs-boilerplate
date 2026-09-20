@@ -11,6 +11,11 @@
 #
 # **これでログの大きさが通過件数に比例しなくなる。** 2,703 件の suite で 15,420B → 7,626B、行数は
 # 38 行。`tail -n 400` が全文を覆うので、フォールバックが部分読みでなくなる。
+# 外から来る値はレシピ行へ展開せず、環境変数として渡す。make の変数はシェルへ渡る前にテキスト
+# 置換されるため、`"` や `;` を含む値でクォートが破れる。
+SHARD ?=
+export SHARD
+
 TEST_REPORT_JSON := tmp/test-report.json
 TEST_LOG := tmp/test.log
 TEST_REPORTERS := --reporter=dot --reporter=json --outputFile=$(TEST_REPORT_JSON)
@@ -52,15 +57,16 @@ TEST_SHARD_STATUS_DIR := tmp/test-shard-status
 # 添えて渡す。終了コードはそのまま返すので、この書き出しは判定を変えない。
 .PHONY: test-shard ## 分割の 1 台ぶんを走らせ、blob と自分の終了コードを書き出す (SHARD=<i>/<n>)
 test-shard:
-	@test -n "$(SHARD)" || { echo "❌ SHARD=<i>/<n> を渡してください。例: make test-shard SHARD=1/4"; exit 1; }
+	@test -n "$$SHARD" || { echo "❌ SHARD=<i>/<n> を渡してください。例: make test-shard SHARD=1/4"; exit 1; }
 	@mkdir -p $(TEST_SHARD_STATUS_DIR)
-	@log=$(TEST_SHARD_STATUS_DIR)/shard-$(subst /,-,$(SHARD)).log; \
-		VITEST_SHARDED=1 pnpm exec vitest run --coverage --no-cache --shard=$(SHARD) \
-			--reporter=blob --outputFile=$(TEST_BLOB_DIR)/blob-$(subst /,-,$(SHARD)).json \
+	@name=$$(printf '%s' "$$SHARD" | tr / -); \
+		log=$(TEST_SHARD_STATUS_DIR)/shard-$$name.log; \
+		VITEST_SHARDED=1 pnpm exec vitest run --coverage --no-cache --shard="$$SHARD" \
+			--reporter=blob --outputFile=$(TEST_BLOB_DIR)/blob-$$name.json \
 			> $$log 2>&1; status=$$?; \
 		cat $$log; \
-		{ echo "shard=$(SHARD)"; echo "exit=$$status"; echo "--- tail ---"; tail -n 40 $$log; } \
-			> $(TEST_SHARD_STATUS_DIR)/shard-$(subst /,-,$(SHARD)).status; \
+		{ echo "shard=$$SHARD"; echo "exit=$$status"; echo "--- tail ---"; tail -n 40 $$log; } \
+			> $(TEST_SHARD_STATUS_DIR)/shard-$$name.status; \
 		rm -f $$log; \
 		exit $$status
 

@@ -25,6 +25,12 @@ export RUNNER_GID
 VRT_ONLY ?=
 export VRT_ONLY
 
+# 外から来る値はレシピ行へ展開せず、環境変数として渡す（`.makefiles/README.md`）。
+VRT_ARGS ?=
+export VRT_ARGS
+BASELINE_BRANCH ?=
+export BASELINE_BRANCH
+
 # 撮り直しであることを撮る側へ伝える。置き場との対応の検査は、撮り直しの最中は他の撮影の
 # 途中経過を欠けとして読むため、そこだけ見送る (baseline/lib/store.ts)。
 BASELINE_RETAKE ?=
@@ -79,7 +85,7 @@ VRT_BASELINE_TAG := @baselines
 
 # その検査を走らせる形。呼ぶのは 1 台目だけである（$(VRT_LEAD_SHARD)）。
 VRT_BASELINE_CHECK = $(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts \
-	--grep $(VRT_BASELINE_TAG) $(VRT_ARGS)
+	--grep $(VRT_BASELINE_TAG) $$VRT_ARGS
 
 # 配線の確認。撮り直しは空の置き場から始められる必要があるので、中身までは要求しない。
 VRT_REQUIRE_WIRING = \
@@ -106,7 +112,7 @@ vrt: build-storybook
 		if [ -n "$(VRT_LEAD_SHARD)" ]; then $(VRT_BASELINE_CHECK); \
 		else echo "   対応の検査は 1 台目が担います。"; fi; \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_SHARD_ARGS) $(VRT_ARGS) \
+		$(VRT_RUN) ./node_modules/.bin/playwright test $(VRT_SPECS) $(VRT_SHARD_ARGS) $$VRT_ARGS \
 			&& $(if $(VRT_SHARD),true,$(call RECORD_VERIFIED,$(VRT_VERIFIED_FILE))); \
 	fi
 
@@ -136,8 +142,8 @@ vrt-update: build-storybook
 	@# `--grep` / `--project` などでも起きる（vrt/README.md が案内している使い方）。どの引数が
 	@# 撮影対象を狭めるかを列挙して判定すると、列挙から漏れた引数がそのまま「全 story を消して
 	@# 一部だけ撮り直す」になる。知らない引数は安全側 —— 消さない —— へ倒す。
-	@if [ -z "$(VRT_ONLY)$(VRT_ARGS)" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
-	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $(VRT_ARGS)
+	@if [ -z "$$VRT_ONLY$$VRT_ARGS" ]; then pnpm exec tsx scripts/vrt clear-stories; fi
+	@$(VRT_RUN) ./node_modules/.bin/playwright test vrt/stories.spec.ts --update-snapshots $$VRT_ARGS
 	@pnpm exec tsx scripts/vrt inputs > $(VRT_INPUTS_FILE)
 	@echo "🎞️ 撮影しました。置き場へ送るまでは手元だけの状態です。"
 
@@ -161,7 +167,7 @@ baseline-sync:
 # 撮り直しどうしが繋がり、掃除でどれも落とせなくなる。
 baseline-push:
 	@$(VRT_REQUIRE_WIRING)
-	@pnpm exec tsx scripts/baseline-store push $(BASELINE_BRANCH)
+	@pnpm exec tsx scripts/baseline-store push $$BASELINE_BRANCH
 
 # 撮影と同じコンテナ・同じ story 列挙で走らせる。基準画像は要らないので配線も要求しない。
 #
@@ -173,7 +179,7 @@ a11y: build-storybook
 	if [ "$$decision" = "skip" ]; then \
 		echo "⏭️ 絵を決める入力が前に axe が通った時点と同じです。検査を省きます。"; \
 	else \
-		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/a11y.spec.ts $(VRT_ARGS) \
+		$(VRT_RUN) ./node_modules/.bin/playwright test vrt/a11y.spec.ts $$VRT_ARGS \
 			&& $(call RECORD_VERIFIED,$(A11Y_VERIFIED_FILE)); \
 	fi
 

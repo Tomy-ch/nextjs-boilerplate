@@ -325,7 +325,7 @@
 
 ## 生成物と補助スクリプト
 
-> Rationale: [ADR 0072](adr/0072-api-type-generation.md) / [ADR 0110](adr/0110-security-operations.md) / [ADR 0153](adr/0153-ci-configuration.md) / [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）、`scripts/shell-brace.gate.test.ts`（全角の直前の裸の変数）。
+> Rationale: [ADR 0072](adr/0072-api-type-generation.md) / [ADR 0110](adr/0110-security-operations.md) / [ADR 0153](adr/0153-ci-configuration.md) / [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）、`scripts/shell-brace.gate.test.ts`（全角の直前の裸の変数）、`scripts/make-expansion.gate.test.ts`（外から来る値の展開）。
 
 - **ゲートを足す前に、それが並列でいくつ走るかを見る。** 費用は 1 回ぶんではない —— このリポジトリは並行する作業ツリーで進むうえ、fan-out するスキルは同じ検査を lens やカーネルの数だけ呼ぶ。**手元で n 倍、CI で PR の数だけ**になり、遅くなった機械の上では検査そのものが失敗の源になる。`make load-status` の帯は掛かった負荷に**反応する**機構であって、足す前の見積もりは肩代わりしない。散文 —— **寄せられない**。何倍になるかは呼び出し側の構造で決まり、検査の側からは見えない。
 - **同じ判定を複数の worker に計算させない。** 統合する側が 1 回だけ解いて配る。判定の権威が CI に在るものは、**解くのではなく取得する**（[0151](adr/0151-git-hooks.md)）。
@@ -339,7 +339,7 @@
 - **資材はルート絶対の URL で指し、実体を配信の根へ置く。** アプリが出すものは `public/`、カタログでだけ使うものは `.storybook/public/` で、後者の綴りは `.storybook/lib/sample-asset.ts` が公開する。**`/src/...` を指さない** —— dev サーバは素通しで配信するが `storybook build` の成果物には入らず、**壊れた絵がそのまま基準画像として承認される**。解決しないことが正しい参照は `scripts/lib/catalog-assets.ts` へ理由と撤去条件つきで宣言する。
 - **カタログで Server Action を差し替える `sb.mock(import("…"))` の引数は、拡張子まで綴る。** 省くと解決に失敗し、宣言はしているのに 1 件も登録されないまま進む —— 失敗は無言で、差し替わっていないことは canvas が実際に送ってから判る。
 - **検査の除外一覧に、保護対象であることを理由に入れない。** 保護は「誰が編集してよいか」の話で、linter が読んでよいかとは無関係。除外してよいのは、このリポジトリのソースではない領域だけ —— 依存・git の管理領域・別ブランチの作業ツリー・ツールの生成物。木を歩くツールはどれも `.gitignore` を読まないので、除外は各ツールに書き、走査するツールを増やしたら全部に書く。
-- **外から来る値を make の変数として recipe 行へ展開しない。** `$(VAR)` はシェルへ渡る前にテキスト置換されるので、`"` や `;` を含む値でクォートが破れ、任意のコマンドが走る。ブランチ名は `git check-ref-format` が両方の文字を許すため、想定上ではなく実在する入力である。`export <NAME>` で環境変数として渡し、受け取る側が `process.env` から読めば、値はシェルの構文解析を一度も通らない。散文 —— **寄せられる**。`make actions-shellcheck` が見るのは composite action の `run:` で、`make shellcheck` が見るのは追跡下のシェルスクリプトであり、Make の展開はどちらも通らない。
+- **外から来る値を make の変数として recipe 行へ展開しない。** `$(VAR)` はシェルへ渡る前にテキスト置換されるので、`"` や `;` を含む値でクォートが破れ、任意のコマンドが走る。ブランチ名は `git check-ref-format` が両方の文字を許すため、想定上ではなく実在する入力である。`export <NAME>` で環境変数として渡し、受け取る側が `process.env` から読めば、値はシェルの構文解析を一度も通らない。**「外から来る」かどうかは Makefile の形からは決まらない** —— `?=` で既定を持つ変数が外から渡されるのか内側の定数なのかは、呼び出し元を辿らないと分からない。機械が見るのは決定可能な中核（**木のどこにも代入が無い変数**）だけで、`?=` だけを持つ変数の展開は散文 —— **寄せられない**。
 - **シェル変数を全角文字の直前に裸で置かない。** シェルが全角文字の先頭バイトを変数名の一部として食い、空へ展開したうえで壊れたバイト列を出す。`${NAME}` と囲む。**壊れるのは表示だけで終了コードは変わらない**ため、綴りのほうを見ている。
 - **`echo "$(...)"` で値を渡さない。** 置換の中の失敗を飲んで成功を返し、下流へ空値を渡す。先に変数へ代入して、失敗をそのステップで落とす。
 - **workflow の `uses:` は 1 ステップ 1 行の block notation で書く。** flow mapping は pin の走査対象外で、黙って飛ばされずに拒まれる。
