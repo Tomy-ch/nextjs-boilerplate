@@ -70,17 +70,18 @@ export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[
       label: "公開中の商品",
       value: formatCount(summary.publishedProductCount),
       note: "現在の数です。期間では変わりません",
-      // 一覧は公開済みだけを返すため、条件を付けない一覧がそのままこの数になる。
-      href: ADMIN_PRODUCT_LIST_PATH,
-      linkLabel: "公開中の商品を一覧で見る",
+      // 押せません。公開済みだけを並べる一覧が無く、admin の一覧は未公開を含めて返すため、
+      // 送るとこの数より多い件数が出ます（`src/features/admin/README.md`「契約との関係で
+      // 気を付けること」）。
     },
     {
       id: "total-product-count",
       label: "登録済みの商品",
       value: formatCount(summary.totalProductCount),
       note: "未公開を含む現在の数です",
-      // 押せません。未公開を含む一覧を返す取得口が契約に無く、公開済みだけの一覧へ送ると
-      // 押す前と後で件数が食い違います（`src/features/admin/README.md`「現契約でできないこと」）。
+      // admin の一覧は未公開を含めて返すので、条件を付けない一覧がそのままこの数になる。
+      href: ADMIN_PRODUCT_LIST_PATH,
+      linkLabel: "登録済みの商品を一覧で見る",
     },
   ];
 }
