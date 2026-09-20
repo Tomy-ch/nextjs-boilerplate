@@ -58,6 +58,8 @@ export type SavedViewsProps = {
    * いま適用している条件の `id`。
    *
    * `null` は「保存した条件をどれも当てていない」を表し、名前の変更と削除は選べなくなる。
+   *
+   * @defaultValue null
    */
   currentViewId?: string | null;
   /** 条件を選んだ。 */
@@ -68,7 +70,11 @@ export type SavedViewsProps = {
   onRename: (viewId: string, name: string) => void;
   /** 選択中の条件を消した。確認は済んでいる。 */
   onDelete: (viewId: string) => void;
-  /** 操作のアクセシブルな名前。条件を当てていないときは trigger の表示にもなる。 */
+  /**
+   * 操作のアクセシブルな名前。条件を当てていないときは trigger の表示にもなる。
+   *
+   * @defaultValue "保存した条件"
+   */
   label?: string;
 };
 
@@ -116,8 +122,6 @@ export type SavedViewsProps = {
  * ```
  *
  * @param props - 選べる条件と、選択・保存・改名・削除の受け取り方。
- * @param props.views - 選べる条件。
- * @param props.currentViewId - いま適用している条件の `id`。
  *
  * @see Storybook `Container/SavedViews`
  */
@@ -138,26 +142,40 @@ export function SavedViews({
   const hasCurrentView = currentView !== null;
   const currentViewName = currentView?.name ?? "";
 
+  /** 名前を空にして、保存の入力を開く。 */
   const openCreate = useCallback(() => {
     setDraftName("");
     setDialog(SAVED_VIEWS_DIALOG.CREATE);
   }, []);
 
+  /** 選択中の名前を初期値にして、改名の入力を開く。 */
   const openRename = useCallback(() => {
     setDraftName(currentViewName);
     setDialog(SAVED_VIEWS_DIALOG.RENAME);
   }, [currentViewName]);
 
+  /** 削除の確認を開く。 */
   const openDelete = useCallback(() => setDialog(SAVED_VIEWS_DIALOG.DELETE), []);
 
   // 開くのは menu の項目だけなので、開閉の要求は必ず「閉じる」を意味する。
+  /** 開いている dialog を閉じる。 */
   const closeDialog = useCallback(() => setDialog(null), []);
 
+  /**
+   * 入力中の名前を控える。
+   *
+   * @param event - 名前の入力欄の `change`。
+   */
   const changeDraftName = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => setDraftName(event.target.value),
     [],
   );
 
+  /**
+   * 前後の空白を落とした名前で、保存または改名を行う。空白だけの名前では何もしない。
+   *
+   * @param event - 名前の form の `submit`。
+   */
   const submitName = useCallback(
     (event: SyntheticEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -179,6 +197,7 @@ export function SavedViews({
     [currentView, dialog, draftName, onCreate, onRename],
   );
 
+  /** 選択中の条件を消し、確認を閉じる。 */
   const confirmDelete = useCallback(() => {
     if (currentView !== null) {
       onDelete(currentView.id);

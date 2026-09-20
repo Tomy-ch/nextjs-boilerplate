@@ -10,7 +10,11 @@ export type FormFeedbackProps = {
   description?: ReactNode;
   /** 連絡のときに伝える request ID。 */
   requestId?: string;
-  /** 通常・warning・destructive の見た目。 */
+  /**
+   * 通常・warning・destructive の見た目。
+   *
+   * @defaultValue "default"
+   */
   variant?: "default" | "warning" | "destructive";
   /** link など、次の行動へ進む要素。 */
   children?: ReactNode;
@@ -24,6 +28,8 @@ export type FormFeedbackProps = {
  * 持たない。feature が意味の通る文言へ変換して渡す。`variant` は結果の種類を表し、文言と面の色は
  * 呼び出し元が対応させる。field 単位の誤りには `FieldError`、一時的な通知には `Toaster`、複数項目
  * の検証結果一覧には `FormValidationSummary` を使う。
+ *
+ * @param props - 表示する要約と、次の行動。
  *
  * @see Storybook `Feedback/FormFeedback`
  */

@@ -51,6 +51,8 @@ export function AppShellMenuFallback() {
  * 戻す動きが遷移そのものと競合し、閉じるだけで移らない回が出ます。移る側は置き換えで移るため、
  * 積んだ 1 件は移り先に上書きされます。
  *
+ * @param props - 受け取る内容。個々の意味は {@link AppShellMenuProps} の各メンバーが持つ。
+ *
  * @see Storybook `Layout/AppShell`
  */
 export function AppShellMenu({ items, navSlot }: AppShellMenuProps) {

@@ -13,7 +13,11 @@ export type ResizablePanelProps = ResizablePrimitive.PanelProps;
 
 /** {@link ResizableHandle} の props。 */
 export type ResizableHandleProps = ResizablePrimitive.SeparatorProps & {
-  /** 掴む場所を示す標識を境界の中央へ置くか。 */
+  /**
+   * 掴む場所を示す標識を境界の中央へ置くか。
+   *
+   * @defaultValue false
+   */
   withHandle?: boolean;
 };
 

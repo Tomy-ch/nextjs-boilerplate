@@ -88,6 +88,11 @@ export const componentLayerSchema = z.enum([
  * @remarks
  * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは {@link COMPONENT_LAYER} の
  * とおり目的で割らないため、直下へ並べる。
+ *
+ * @param layer - component を置く層。
+ * @param as - component 目録で載る見出し。
+ * @param component - component の名前。
+ * @returns component ディレクトリのリポジトリ相対パス。
  */
 export function componentDirectoryOf(
   layer: ComponentLayer,
@@ -127,6 +132,9 @@ export const CATALOG_HEADING_TITLE: Readonly<Record<CatalogHeading, string>> = {
  * @remarks
  * `title` を持たない story は Storybook が配置を自動生成するため、sidebar が規約から外れる。
  * 取り出せなかったことを `undefined` で表し、呼び出し元が欠落として報告する。
+ *
+ * @param source - story ファイルの中身。
+ * @returns `title` の先頭セグメント。取り出せなければ `undefined`。
  */
 export function storyHeadingOf(source: string): string | undefined {
   return /title:\s*"([^"/]+)\//.exec(source)?.[1];
@@ -207,6 +215,10 @@ export type CheckResult = {
  *
  * `original` は上流を持たないため確認しない。`reimplemented` は追従対象ではないが、上流の
  * 変更が自前実装の見直し材料になるため確認対象に含める。
+ *
+ * @param fetchUpstreamJson - 上流の JSON を取得する手段。
+ * @param manifestSource - 台帳の YAML の中身。
+ * @returns 確認した件数と、対象外・動いたもの・確認できなかったものの内訳。
  */
 export async function checkUpstreamDrift(
   fetchUpstreamJson: (url: string) => Promise<unknown>,
@@ -246,11 +258,24 @@ export async function checkUpstreamDrift(
   return result;
 }
 
+/**
+ * 記録した上流ファイルの、最新 commit を 1 件だけ問い合わせる URL。
+ *
+ * @param source - 記録済みの上流ファイル。
+ * @returns GitHub API の commits の URL。
+ */
 function commitsUrl(source: RegistrySource): string {
   return `${UPSTREAM_API_URL}/repos/${source.repository}/commits?path=${encodeURIComponent(source.path)}&per_page=1`;
 }
 
-/** 差分を読むための 3-way merge 用 URL を組み立てる。 */
+/**
+ * 差分を読むための 3-way merge 用 URL を組み立てる。
+ *
+ * @param repository - 上流リポジトリ。
+ * @param commit - 基準にする commit。
+ * @param path - 上流でのファイルの位置。
+ * @returns その commit 時点のファイルを生で取得できる URL。
+ */
 export function baselineUrl(repository: string, commit: string, path: string): string {
   return `${UPSTREAM_RAW_URL}/${repository}/${commit}/${path}`;
 }
@@ -264,6 +289,9 @@ const RUNTIME_PACKAGES: ReadonlySet<string> = new Set(["react", "react-dom"]);
  * @remarks
  * `next/image` は `next` に、`@tiptap/react` はそのまま数える。台帳が答えるのは
  * 「どの package を参照しているか」であって、その package のどの入口を使ったかではない。
+ *
+ * @param specifier - import 宣言が読み込む先の綴り。
+ * @returns package 名。
  */
 export function packageOf(specifier: string): string {
   return specifier.replace(/^((?:@[^/]+\/)?[^/]+).*/, "$1");
@@ -328,6 +356,9 @@ function moduleSpecifiersOf(source: string): string[] {
  * @remarks
  * 上流は 1 item = 1 ファイルで、ファイル名がそのまま item 名である。`registryItem` の宣言が
  * この対応から外れていないかを確かめるために使う。
+ *
+ * @param upstreamPath - 上流でのファイルの位置。
+ * @returns registry item 名。
  */
 export function registryItemOf(upstreamPath: string): string {
   return upstreamPath.replace(/^.*\//, "").replace(/\.[a-z]+$/, "");
@@ -342,6 +373,7 @@ export function registryItemOf(upstreamPath: string): string {
  * 記録漏れとして現れる。
  *
  * @param filePaths - `src/components` 配下のファイルのリポジトリ相対パス。
+ * @returns component ディレクトリの一覧と、渡されたファイルの集合。
  */
 export function collectComponentLayout(filePaths: readonly string[]): {
   directories: readonly string[];
@@ -362,6 +394,13 @@ export function collectComponentLayout(filePaths: readonly string[]): {
  * 上流と名前が違う component があるため、対応付けを名前の一致で推測しない。各エントリが宣言する
  * `directory` と、実際に存在するディレクトリを突き合わせる。宣言があることで、実体を移動・改名
  * したときに記録漏れと取り残されたエントリの両方が検出できる。
+ *
+ * @param componentDirectories - 実際に存在する component ディレクトリ。
+ * @param existingFiles - 実際に存在するファイルのリポジトリ相対パス。
+ * @param manifestSource - 台帳の YAML の中身。
+ * @param vendorImports - component ディレクトリごとの、実際に参照している外部 package。省略時は空で、package の突き合わせを行わない。
+ * @param storyHeadings - component ディレクトリごとの、story の title の先頭セグメント。省略時は空で、title の突き合わせを行わない。
+ * @returns 見つかった食い違い。無ければ空。
  */
 export function verifyManifestIntegrity(
   componentDirectories: readonly string[],
@@ -467,18 +506,31 @@ export function verifyManifestIntegrity(
  *
  * 上流が動いた場合も失敗として扱う。定期実行から見たときに、追従の判断が必要になったことが
  * 赤で見えるようにするためであり、`make actions-pin-check` が pin のずれで落ちるのと同じ扱いである。
+ *
+ * @param result - 追従判断のために確認した結果。
+ * @returns 終了コード。
  */
 export function checkExitCode(result: CheckResult): number {
   return result.drifted.length > 0 || result.failed.length > 0 ? 1 : 0;
 }
 
-/** 整合性の確認結果を、そのまま読める報告へ整形する。 */
+/**
+ * 整合性の確認結果を、そのまま読める報告へ整形する。
+ *
+ * @param problems - 見つかった食い違い。
+ * @returns 標準出力へそのまま書ける報告。
+ */
 export function formatIntegrityProblems(problems: readonly string[]): string {
   if (problems.length === 0) return "manifest の整合性: 問題ありません。\n";
   return `manifest の整合性: ${String(problems.length)} 件\n${problems.map((problem) => `  ${problem}`).join("\n")}\n`;
 }
 
-/** 確認結果を、そのまま読める報告へ整形する。 */
+/**
+ * 確認結果を、そのまま読める報告へ整形する。
+ *
+ * @param result - 追従判断のために確認した結果。
+ * @returns 標準出力へそのまま書ける報告。
+ */
 export function formatCheckResult(result: CheckResult): string {
   const lines = [
     `確認: ${String(result.checked)} 件 / 対象外（自前実装）: ${String(result.skipped.length)} 件`,
@@ -512,6 +564,9 @@ export function formatCheckResult(result: CheckResult): string {
  *
  * 1 回の確認で記録件数ぶんのリクエストを出すため、未認証の 60 req/hr では足りない。`gh` の
  * 認証を使うことで上限を避ける。`gh` が無い環境では、その旨がそのまま失敗として表れる。
+ *
+ * @param url - 取得先。GitHub API の URL なら `gh api` の endpoint へ畳む。
+ * @returns 応答本体を JSON として読んだもの。
  */
 export async function fetchJson(url: string): Promise<unknown> {
   const endpoint = url.startsWith(`${UPSTREAM_API_URL}/`)
@@ -521,6 +576,9 @@ export async function fetchJson(url: string): Promise<unknown> {
   return JSON.parse(stdout);
 }
 
+/**
+ * 台帳の整合性を確認し、`--offline` でなければ上流との差も見て、結果を報告して終了コードを決める。
+ */
 /* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
 async function main(): Promise<void> {
   const manifestSource = await readFile(manifestPath, "utf8");

@@ -22,6 +22,7 @@ import {
  *
  * 列を揃えて属性を比較させたい場合は `Table`、情報と操作を囲う塊は `Card` を使う。
  *
+ * @param props - native `ul` 属性と、以下の表示用 props。
  * @param props.asChild - 単一の子要素へ合成するか。`ol` を渡す場合に指定する。
  *
  * @see Storybook `Display/List`
@@ -66,8 +67,7 @@ const listItemVariants = cva(
  * 行全体を遷移先にする場合は、この要素を link に差し替えず `ListItemLink` を子に置く。`li` を
  * 失うと `ul` の意味論が崩れる。
  *
- * @param props.variant - 面の見せ方。{@link LIST_ITEM_VARIANT} のいずれか。
- * @param props.size - 余白の大きさ。{@link LIST_ITEM_SIZE} のいずれか。
+ * @param props - native `li` 属性（`size` を除く）と、以下の表示用 props。
  *
  * @see Storybook `Display/List`
  */
@@ -78,7 +78,17 @@ function ListItem({
   ...props
 }: Omit<ComponentProps<"li">, "size"> &
   Omit<VariantProps<typeof listItemVariants>, "size" | "variant"> & {
+    /**
+     * 余白の大きさ。{@link LIST_ITEM_SIZE} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_SIZE.DEFAULT`
+     */
     size?: ListItemSize;
+    /**
+     * 面の見せ方。{@link LIST_ITEM_VARIANT} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_VARIANT.DEFAULT`
+     */
     variant?: ListItemVariant;
   }) {
   return (
@@ -101,6 +111,7 @@ function ListItem({
  *
  * リポジトリ内の遷移では `asChild` を指定して `next/link` の `Link` を子に渡す。
  *
+ * @param props - native `a` 属性と、以下の表示用 props。
  * @param props.asChild - 単一の子要素へ合成するか。
  *
  * @see Storybook `Display/List`
@@ -148,7 +159,7 @@ const listItemMediaVariants = cva(
  * @remarks
  * `icon` は控えめな面（`bg-muted`）に載せ、内容の色を `text-foreground` にする。
  *
- * @param props.variant - 媒体の種類。{@link LIST_ITEM_MEDIA_VARIANT} のいずれか。
+ * @param props - native `div` 属性と、以下の表示用 props。
  *
  * @see Storybook `Display/List`
  */
@@ -158,6 +169,11 @@ function ListItemMedia({
   ...props
 }: ComponentProps<"div"> &
   Omit<VariantProps<typeof listItemMediaVariants>, "variant"> & {
+    /**
+     * 媒体の種類。{@link LIST_ITEM_MEDIA_VARIANT} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_MEDIA_VARIANT.DEFAULT`
+     */
     variant?: ListItemMediaVariant;
   }) {
   return (
@@ -172,6 +188,8 @@ function ListItemMedia({
 
 /**
  * 見出しと説明をまとめる領域。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/List`
  */
@@ -191,6 +209,8 @@ function ListItemContent({ className, ...props }: ComponentProps<"div">) {
 /**
  * 行の主題。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/List`
  */
 function ListItemTitle({ className, ...props }: ComponentProps<"div">) {
@@ -208,6 +228,8 @@ function ListItemTitle({ className, ...props }: ComponentProps<"div">) {
  *
  * @remarks
  * 2 行で切り詰める。全文を見せる必要がある場合は `className` で上書きする。
+ *
+ * @param props - native `p` 属性。
  *
  * @see Storybook `Display/List`
  */
@@ -228,6 +250,8 @@ function ListItemDescription({ className, ...props }: ComponentProps<"p">) {
 /**
  * 行の末尾に置く補助操作の領域。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/List`
  */
 function ListItemActions({ className, ...props }: ComponentProps<"div">) {
@@ -243,6 +267,8 @@ function ListItemActions({ className, ...props }: ComponentProps<"div">) {
 /**
  * 行の上へ添える補足の一行。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/List`
  */
 function ListItemHeader({ className, ...props }: ComponentProps<"div">) {
@@ -257,6 +283,8 @@ function ListItemHeader({ className, ...props }: ComponentProps<"div">) {
 
 /**
  * 行の下へ添える補足の一行。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Display/List`
  */
@@ -276,6 +304,8 @@ function ListItemFooter({ className, ...props }: ComponentProps<"div">) {
  * @remarks
  * `ul` の直下に置けるよう `li` として render し、読み上げ対象から外す。区切りは装飾であり、
  * 一覧の構造は `ul` と `li` が伝える。
+ *
+ * @param props - native `li` 属性。
  *
  * @see Storybook `Display/List`
  */

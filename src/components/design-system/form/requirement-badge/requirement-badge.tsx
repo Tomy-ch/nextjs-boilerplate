@@ -26,7 +26,7 @@ export type RequirementBadgeProps = {
  * </div>
  * ```
  *
- * @param props.required - 空欄を受け付けない項目か。
+ * @param props - 表示用 props。native 属性は透過しない。
  * @see Storybook `Form/RequirementBadge`
  */
 export function RequirementBadge({ required }: RequirementBadgeProps) {

@@ -40,9 +40,6 @@ const feedbackStateIcon: Record<Exclude<FeedbackStateKind, "loading">, IconCompo
  * ```
  *
  * @param props - 表示する状態と利用者に伝える文言。
- * @param props.kind - アイコンと通知の role を決める画面状態。
- * @param props.title - すべての状態で必須の、短い状態説明。
- * @param props.description - 原因・次の行動を補足する任意の説明。
  * @see Storybook `View State/Feedback State`
  */
 export function FeedbackState({ kind, title, description }: FeedbackStateProps) {
@@ -65,6 +62,11 @@ export function FeedbackState({ kind, title, description }: FeedbackStateProps) 
   );
 }
 
+/**
+ * 画面状態に対応するアイコン。
+ *
+ * @param props - 表示用 props。
+ */
 function FeedbackStateIcon({ kind }: { kind: Exclude<FeedbackStateKind, "loading"> }) {
   const Icon = feedbackStateIcon[kind];
 

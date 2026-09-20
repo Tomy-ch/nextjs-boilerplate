@@ -182,6 +182,10 @@ type ValidShadcnAddInvocation = ShadcnAddInvocation & {
  * @example
  * splitShadcnAddArguments(["button", "--as=action", "--", "--yes"])
  * // { components: ["button"], as: "action", shadcnArguments: ["--yes"] }
+ *
+ * @param arguments_ - `pnpm add:ui` へ渡された引数。
+ * @returns 部品名・ラッパー自身のオプション・shadcn CLI へ渡す引数に分けたもの。
+ * @throws ラッパーのオプションが `=` を伴わないとき、追加対象が無いとき、CLI のオプションが `--` の手前にあるとき。
  */
 export function splitShadcnAddArguments(arguments_: string[]): ShadcnAddInvocation {
   const separatorIndex = arguments_.indexOf(ARGUMENT_SEPARATOR);
@@ -198,6 +202,12 @@ export function splitShadcnAddArguments(arguments_: string[]): ShadcnAddInvocati
 
   const asPrefix = `${AS_OPTION}=`;
   const layerPrefix = `${LAYER_OPTION}=`;
+  /**
+   * 接頭辞で始まるラッパー引数から、その値を取り出す。
+   *
+   * @param prefix - `--as=` のような、値の手前までの綴り。
+   * @returns 指定されていればその値、無ければ `undefined`。
+   */
   const pick = (prefix: string): string | undefined =>
     wrapperArguments.find((argument) => argument.startsWith(prefix))?.slice(prefix.length);
   const as = pick(asPrefix);
@@ -227,6 +237,15 @@ export function splitShadcnAddArguments(arguments_: string[]): ShadcnAddInvocati
  * 一致するが、取り込み後に実体を改名・移動した場合は key と `directory` を追随させ、
  * `registryItem` は上流の名前のまま据え置く。両者を 1 つのスロットへ畳むと、同じ item から
  * native / client の 2 実装を作ったときに表現できなくなる。
+ *
+ * @param components - 取り込んだ部品名。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置いた層。
+ * @param addedAt - 取り込んだ時刻。
+ * @param shadcnCliVersion - 取り込みに使った shadcn CLI の版。
+ * @param dependencies - 置いた実装が実際に参照している外部 package。
+ * @param upstream - 解決できた上流の来歴。解決できなければ渡さない。
+ * @returns 台帳へ重ねる component エントリ。
  */
 export function componentManifestEntries(
   components: string[],
@@ -256,7 +275,19 @@ export function componentManifestEntries(
   );
 }
 
-/** {@link componentManifestEntries} を既存の台帳へ重ねた結果を返す。 */
+/**
+ * {@link componentManifestEntries} を既存の台帳へ重ねた結果を返す。
+ *
+ * @param manifest - 重ねる先の台帳。
+ * @param components - 取り込んだ部品名。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置いた層。
+ * @param addedAt - 取り込んだ時刻。
+ * @param shadcnCliVersion - 取り込みに使った shadcn CLI の版。
+ * @param dependencies - 置いた実装が実際に参照している外部 package。
+ * @param upstream - 解決できた上流の来歴。解決できなければ渡さない。
+ * @returns エントリを重ねた後の台帳。
+ */
 export function upsertComponentManifest(
   manifest: ComponentManifest,
   components: string[],
@@ -286,6 +317,13 @@ export function upsertComponentManifest(
   };
 }
 
+/**
+ * shadcn CLI の `add` を、このリポジトリのルートで走らせる。
+ *
+ * @param component - 取り込む部品名。
+ * @param shadcnArguments - shadcn CLI へそのまま渡す引数。
+ * @throws CLI が 0 以外で終了したとき。台帳は更新しない。
+ */
 async function runShadcnAdd(component: string, shadcnArguments: string[]): Promise<void> {
   const result = await new Promise<number | null>((resolveResult, reject) => {
     const child = spawn("pnpm", ["exec", "shadcn", "add", component, ...shadcnArguments], {
@@ -303,15 +341,36 @@ async function runShadcnAdd(component: string, shadcnArguments: string[]): Promi
   }
 }
 
-/** manifest へ宣言する、component ディレクトリのリポジトリ相対パス。 */
+/**
+ * manifest へ宣言する、component ディレクトリのリポジトリ相対パス。
+ *
+ * @param component - component の名前。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置く層。
+ * @returns component ディレクトリのリポジトリ相対パス。
+ */
 function componentDirectory(component: string, as: CatalogHeading, layer: ComponentLayer): string {
   return componentDirectoryOf(layer, as, component);
 }
 
+/**
+ * shadcn CLI が生成物を書き出す位置。
+ *
+ * @param component - component の名前。
+ * @returns 生成直後のファイルの絶対パス。
+ */
 function componentSourcePath(component: string): string {
   return resolve(stagingDirectoryPath, `${component}.tsx`);
 }
 
+/**
+ * 取り込んだ実装を置く位置。
+ *
+ * @param component - component の名前。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置く層。
+ * @returns component ディレクトリの中の実装ファイルの絶対パス。
+ */
 function componentDestinationPath(
   component: string,
   as: CatalogHeading,
@@ -320,10 +379,24 @@ function componentDestinationPath(
   return resolve(repositoryRoot, componentDirectory(component, as, layer), `${component}.tsx`);
 }
 
+/**
+ * component に co-locate する README の位置。
+ *
+ * @param component - component の名前。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置く層。
+ * @returns component ディレクトリの中の README の絶対パス。
+ */
 function componentReadmePath(component: string, as: CatalogHeading, layer: ComponentLayer): string {
   return resolve(repositoryRoot, componentDirectory(component, as, layer), "README.md");
 }
 
+/**
+ * そのパスに実体があるか。
+ *
+ * @param path - 確かめるパス。
+ * @returns 辿れれば真。
+ */
 async function exists(path: string): Promise<boolean> {
   try {
     await access(path);
@@ -342,6 +415,9 @@ type PackagedLocation = { name: string; as: CatalogHeading; layer: ComponentLaye
  * @remarks
  * 依存部品の置き場は名前から決まらない。取り込み時に指定した層と見出しで決まり、あとから
  * 動かすこともあるため、実体を探して答える。見つからなければ未取り込みである。
+ *
+ * @param component - 探す部品名。
+ * @returns 見つかった置き場。未取り込みなら `undefined`。
  */
 async function locatePackaged(component: string): Promise<PackagedLocation | undefined> {
   const candidates: PackagedLocation[] = [];
@@ -365,6 +441,13 @@ async function locatePackaged(component: string): Promise<PackagedLocation | und
   return candidates.find((_, index) => found[index]);
 }
 
+/**
+ * 生成直後の実装を、component ディレクトリへ移す。
+ *
+ * @param component - component の名前。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置く層。
+ */
 async function moveComponentToPackage(
   component: string,
   as: CatalogHeading,
@@ -376,7 +459,11 @@ async function moveComponentToPackage(
   await rename(sourcePath, destinationPath);
 }
 
-/** shadcn CLI が依存として出力した、`design-system/` 直下のフラットな生成物の部品名を返す。 */
+/**
+ * shadcn CLI が依存として出力した、`design-system/` 直下のフラットな生成物の部品名を返す。
+ *
+ * @returns 生成物の部品名。
+ */
 async function listFlatGeneratedComponents(): Promise<string[]> {
   const entries = await readdir(stagingDirectoryPath, { withFileTypes: true });
   return entries
@@ -389,6 +476,11 @@ async function listFlatGeneratedComponents(): Promise<string[]> {
  *
  * @remarks
  * 同じ見出しの下なら 1 段、違う見出しなら見出しを跨ぐぶんだけ深くなる。
+ *
+ * @param component - 取り込んだ component の名前。
+ * @param as - 取り込んだ component の見出し。
+ * @param layer - 取り込んだ component を置いた層。
+ * @param dependencies - 既に package 済みの依存と、その置き場。
  */
 async function pointImportsAtPackagedComponents(
   component: string,
@@ -421,6 +513,9 @@ async function pointImportsAtPackagedComponents(
  * 放置すると実体の重複と解決しない import が同時に残り、次に typecheck を回した別の作業まで
  * 巻き込んで失敗する。
  *
+ * @param component - 取り込んだ component の名前。
+ * @param as - 取り込んだ component の見出し。
+ * @param layer - 取り込んだ component を置いた層。
  * @returns まだ package されていない依存の部品名。呼び出し元が利用者へ知らせる。
  */
 async function reconcileGeneratedDependencies(
@@ -446,7 +541,13 @@ async function reconcileGeneratedDependencies(
   return unpackaged;
 }
 
-/** 新規 component には README テンプレートを置き、監査時に内容を具体化する。 */
+/**
+ * 新規 component には README テンプレートを置き、監査時に内容を具体化する。
+ *
+ * @param component - component の名前。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置く層。
+ */
 async function copyComponentReadmeTemplate(
   component: string,
   as: CatalogHeading,
@@ -457,10 +558,23 @@ async function copyComponentReadmeTemplate(
   await copyFile(componentReadmeTemplatePath, readmePath);
 }
 
+/**
+ * 捕まえた値から、利用者へ出す文言を取り出す。
+ *
+ * @param error - 捕まえた値。
+ * @returns `Error` ならその message、そうでなければ文字列にしたもの。
+ */
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+/**
+ * JSON を取得する。
+ *
+ * @param url - 取得先。
+ * @returns 応答本体を JSON として読んだもの。
+ * @throws 応答が 2xx でないとき。
+ */
 async function fetchJson(url: string): Promise<unknown> {
   const response = await fetch(url, { headers: { accept: "application/json" } });
   if (!response.ok) {
@@ -476,6 +590,11 @@ async function fetchJson(url: string): Promise<unknown> {
  * 位置は item 自身が `files[].path` として申告するため、こちらで組み立てない。commit を記録して
  * おくと、上流が変わったときに何が変わったかを差分として読める。CDN の `last-modified` は
  * キャッシュ充填時刻であり、`etag` は転送時の符号化で表現が変わるため、いずれも使わない。
+ *
+ * @param component - 取り込んだ部品名。
+ * @param as - component 目録で載る見出し。
+ * @param layer - component を置いた層。
+ * @returns registry item が宣言する依存と、上流ファイルごとの commit。
  */
 async function resolveUpstreamItem(
   component: string,
@@ -506,6 +625,11 @@ async function resolveUpstreamItem(
   return { dependencies: item.dependencies, source };
 }
 
+/**
+ * 台帳を、コメントを保ったまま読み込んで検証する。
+ *
+ * @returns 解析した YAML の文書。
+ */
 async function loadManifestDocument(): Promise<Document> {
   const source = await readFile(manifestPath, "utf8");
   const document = parseDocument(source);
@@ -513,22 +637,44 @@ async function loadManifestDocument(): Promise<Document> {
   return document;
 }
 
+/**
+ * 取り込みに使う shadcn CLI の版を読む。
+ *
+ * @returns インストール済みの shadcn の版。
+ */
 async function loadShadcnCliVersion(): Promise<string> {
   const source = await readFile(shadcnPackagePath, "utf8");
   return shadcnPackageSchema.parse(JSON.parse(source)).version;
 }
 
+/**
+ * shadcn CLI へ渡す引数が `--dry-run` を含むか。
+ *
+ * @param arguments_ - shadcn CLI へそのまま渡す引数。
+ * @returns 含んでいれば真。
+ */
 function isDryRun(arguments_: string[]): boolean {
   return arguments_.some(
     (argument) => argument === DRY_RUN_OPTION || argument.startsWith(`${DRY_RUN_OPTION}=`),
   );
 }
 
-/** `--view` は生成物を書き出さない inspection-only の shadcn CLI オプション。 */
+/**
+ * `--view` は生成物を書き出さない inspection-only の shadcn CLI オプション。
+ *
+ * @param arguments_ - shadcn CLI へそのまま渡す引数。
+ * @returns 生成物を書き出さない呼び出しなら真。
+ */
 function isInspectionOnly(arguments_: string[]): boolean {
   return isDryRun(arguments_) || arguments_.some((argument) => argument === VIEW_OPTION);
 }
 
+/**
+ * shadcn CLI へ渡す引数が配置先の指定を含むか。
+ *
+ * @param arguments_ - shadcn CLI へそのまま渡す引数。
+ * @returns 含んでいれば真。
+ */
 function hasPathOption(arguments_: string[]): boolean {
   return arguments_.some(
     (argument) =>
@@ -538,12 +684,24 @@ function hasPathOption(arguments_: string[]): boolean {
   );
 }
 
+/**
+ * shadcn CLI へ渡す引数が `--overwrite` を含むか。
+ *
+ * @param arguments_ - shadcn CLI へそのまま渡す引数。
+ * @returns 含んでいれば真。
+ */
 function hasOverwriteOption(arguments_: string[]): boolean {
   return arguments_.some(
     (argument) => argument === OVERWRITE_OPTION || argument.startsWith(`${OVERWRITE_OPTION}=`),
   );
 }
 
+/**
+ * 取り込みを始めてよい呼び出しかを確かめる。
+ *
+ * @param invocation - 分離した `pnpm add:ui` の引数。
+ * @throws 部品が一つでないとき、部品名が kebab-case でないとき、見出しや層が目録に無いとき、配置先が指定されているとき。
+ */
 function validateInvocation(
   invocation: ShadcnAddInvocation,
 ): asserts invocation is ValidShadcnAddInvocation {
@@ -581,7 +739,12 @@ function validateInvocation(
   }
 }
 
-/** shadcn add の成功後に、copy-in した部品の来歴を manifest へ記録する。 */
+/**
+ * shadcn add の成功後に、copy-in した部品の来歴を manifest へ記録する。
+ *
+ * @param arguments_ - `pnpm add:ui` へ渡された引数。
+ * @throws 呼び出しが不正なとき、実体が既に在るのに `--overwrite` が無いとき、shadcn CLI が失敗したとき。
+ */
 export async function addShadcnComponents(arguments_: string[]): Promise<void> {
   const invocation = splitShadcnAddArguments(arguments_);
   validateInvocation(invocation);

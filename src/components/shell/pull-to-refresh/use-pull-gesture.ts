@@ -36,6 +36,8 @@ export type PullGesture = {
  * **背面が閉じているかは landmark を起点に見ます。** 触れた要素から辿ると、装飾のアイコンに付く
  * `aria-hidden` を modal と取り違え、modal が無いのに引けなくなります。`main` は本文そのものなので
  * 装飾の理由で隠れることがありません。
+ *
+ * @returns modal が開いているか
  */
 function isModalOpen(): boolean {
   if (document.querySelector('[aria-modal="true"]') !== null) {
@@ -65,6 +67,7 @@ function isModalOpen(): boolean {
  * modal が開いている間は拾いません（{@link isModalOpen}）。
  *
  * @param onRelease - 実行の域まで引いた状態で指を離したときに呼ばれる
+ * @returns 引ける環境かどうか、いまの段階、引かれている量
  */
 export function usePullGesture(onRelease: () => void): PullGesture {
   const [enabled, setEnabled] = useState(false);
@@ -81,6 +84,7 @@ export function usePullGesture(onRelease: () => void): PullGesture {
 
   useEffect(() => {
     const query = window.matchMedia(COARSE_POINTER);
+    /** いまの環境が引ける側かどうかを取り込む。 */
     const sync = () => setEnabled(query.matches);
 
     sync();
@@ -109,12 +113,18 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       return;
     }
 
+    /** 引き始めの基準点と、追っている指の識別子を捨てる。 */
     const reset = () => {
       originRef.current = null;
       pointerRef.current = null;
       distanceRef.current = 0;
     };
 
+    /**
+     * 指が触れた時点で、引き始めの基準点と追う指を決める。
+     *
+     * @param event - 触れた操作
+     */
     const start = (event: TouchEvent) => {
       // 上端にいないときは通常の scroll。ここで拾うと途中から引き戻す操作を奪う。
       // modal が開いている間も拾わない。背面の取り直しは利用者が求めた操作ではない。
@@ -134,6 +144,11 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       pointerRef.current = touch.identifier;
     };
 
+    /**
+     * 追っている指の移動に合わせて、引き量と段階を更新する。
+     *
+     * @param event - 動いた操作
+     */
     const move = (event: TouchEvent) => {
       const origin = originRef.current;
       // 追うのは引き始めた指だけ。別の指を基準にすると、基準点が入れ替わって引き量が飛ぶ。
@@ -159,6 +174,11 @@ export function usePullGesture(onRelease: () => void): PullGesture {
       }
     };
 
+    /**
+     * 追っている指が離れた時点で、実行の域に届いていれば呼び出し元へ知らせる。
+     *
+     * @param event - 離れた、または取り消された操作
+     */
     const end = (event: TouchEvent) => {
       // 離れたのが引き始めた指でなければ、引き下げはまだ続いている。
       const released = [...event.changedTouches].some(

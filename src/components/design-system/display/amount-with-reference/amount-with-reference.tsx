@@ -19,7 +19,11 @@ export type AmountWithReferenceProps = {
   amount: number;
   /** 表示通貨での参考換算額。読めなければ null で、切り替えの操作ごと出さない。 */
   reference: ReferenceAmount | null;
-  /** 金額の大きさ。脇に添える金額は控えめに、その画面の主役になる金額は大きく出す。 */
+  /**
+   * 金額の大きさ。脇に添える金額は控えめに、その画面の主役になる金額は大きく出す。
+   *
+   * @defaultValue `"prominent"`
+   */
   size?: "compact" | "prominent";
 };
 
@@ -46,10 +50,7 @@ const SHOW_REFERENCE_LABEL = "円で見る";
  * <AmountWithReference amount={21_287} label="合計" reference={reference} />;
  * ```
  *
- * @param props.label - 金額の見出し。
- * @param props.amount - 基準通貨の金額。最小単位の整数。
- * @param props.reference - 表示通貨での参考換算額。読めなければ null。
- * @param props.size - 金額の大きさ。
+ * @param props - 表示する金額と、その見せ方。
  * @see Storybook `Display/AmountWithReference`
  */
 export function AmountWithReference({

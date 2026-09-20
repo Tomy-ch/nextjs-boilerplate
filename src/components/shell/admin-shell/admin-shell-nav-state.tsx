@@ -17,6 +17,7 @@ const AdminShellNavContext = createContext<AdminShellNavState | null>(null);
 /**
  * 開閉の状態を読む。
  *
+ * @returns いま脇の一覧を出しているかと、それを切り替える手段
  * @throws 供給の外で呼んだとき
  */
 export function useAdminShellNav(): AdminShellNavState {
@@ -58,6 +59,8 @@ export type AdminShellNavStateProviderProps = {
  *
  * 畳んだ状態は覚えません。覚える先は cookie になり、器のためだけに要求ごとの読み取りを増やす
  * ことになります。route の遷移では器が作り直されないため、畳んだ状態は画面を移っても続きます。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link AdminShellNavStateProviderProps} の各メンバーが持つ。
  */
 export function AdminShellNavStateProvider({
   children,

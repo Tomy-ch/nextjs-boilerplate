@@ -4,7 +4,11 @@ import { cn } from "@/components/cn";
 
 /** {@link AspectRatio} の props。 */
 export type AspectRatioProps = ComponentProps<"div"> & {
-  /** 幅を 1 としたときの縦横比。既定は 1（正方形）。 */
+  /**
+   * 幅を 1 としたときの縦横比。既定は 1（正方形）。
+   *
+   * @defaultValue 1
+   */
   ratio?: number;
 };
 
@@ -20,7 +24,6 @@ export type AspectRatioProps = ComponentProps<"div"> & {
  * 任意の比率を数値で指定する場合である。
  *
  * @param props - native `div` 属性。`className` で余白や背景を追加できる。
- * @param props.ratio - 幅を 1 としたときの縦横比。
  *
  * @see Storybook `Container/AspectRatio`
  */

@@ -68,6 +68,7 @@ function Alert({
  * 1 行に収まらない分は省略される。詳細は `AlertDescription` へ書く。見た目のみを持つ `div`
  * であり、文書構造上の見出しにはならない。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Status/Alert`
  */
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
@@ -87,6 +88,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
  * 行数の制限を持たないため、`AlertTitle` に収まらない説明はここへ書く。原因の技術的な内訳では
  * なく、**利用者が次に何をすればよいか**を書く。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Status/Alert`
  */
 function AlertDescription({ className, ...props }: React.ComponentProps<"div">) {

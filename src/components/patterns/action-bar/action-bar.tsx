@@ -10,7 +10,11 @@ import {
 
 /** `ActionBar` の props。 */
 export type ActionBarProps = Omit<ComponentProps<"div">, "children"> & {
-  /** 操作を出す位置。既定は本文の流れの中。 */
+  /**
+   * 操作を出す位置。既定は本文の流れの中。
+   *
+   * @defaultValue {@link ACTION_BAR_POSITION.INLINE}
+   */
   position?: ActionBarPosition;
   /** 並べる操作。 */
   children: ComponentProps<"div">["children"];
@@ -25,8 +29,7 @@ export type ActionBarProps = Omit<ComponentProps<"div">, "children"> & {
  * class を組み立て直す必要はありません。同じ見た目を各画面で綴ると、重なり順や safe area の
  * 余白がそのつど抜けます。
  *
- * @param props.position - 操作を出す位置。
- * @param props.children - 並べる操作。
+ * @param props - 操作を出す位置と、並べる操作。
  *
  * @see Storybook `Container/ActionBar`
  */

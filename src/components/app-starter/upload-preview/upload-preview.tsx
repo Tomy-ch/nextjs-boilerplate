@@ -21,7 +21,11 @@ import { UPLOAD_PREVIEW_ORIENTATION } from "./upload-preview.definition";
 
 type ItemHandler = (id: string) => void;
 
-/** 1 件ぶんの表示。表示用 URL の生涯と、操作の束ねをここで持つ。 */
+/**
+ * 1 件ぶんの表示。表示用 URL の生涯と、操作の束ねをここで持つ。
+ *
+ * @param props - 表示する 1 件と、件ごとの操作および前後端かどうか。
+ */
 function UploadPreviewRow({
   item,
   pending,
@@ -33,14 +37,23 @@ function UploadPreviewRow({
   atStart,
   atEnd,
 }: {
+  /** 表示する 1 件。 */
   item: UploadPreviewItem;
+  /** 送信中か。すべての操作を止める。 */
   pending: boolean;
+  /** 取り消しの操作。省略すると button を出さない。 */
   onRemove?: ItemHandler;
+  /** 再試行の操作。省略すると button を出さない。 */
   onRetry?: ItemHandler;
+  /** 差し替えの操作。省略すると button を出さない。 */
   onReplace?: ItemHandler;
+  /** 1 つ前へ動かす操作。省略すると button を出さない。 */
   onMoveUp?: ItemHandler;
+  /** 1 つ後ろへ動かす操作。省略すると button を出さない。 */
   onMoveDown?: ItemHandler;
+  /** 一覧の先頭か。前へ動かす操作を止める。 */
   atStart: boolean;
+  /** 一覧の末尾か。後ろへ動かす操作を止める。 */
   atEnd: boolean;
 }) {
   const { preview } = item;
@@ -73,10 +86,15 @@ function UploadPreviewRow({
       </AttachmentMedia>
     );
 
+  /** この件の取り消しを呼び出し元へ伝える。 */
   const remove = useCallback(() => onRemove?.(item.id), [item.id, onRemove]);
+  /** この件の再試行を呼び出し元へ伝える。 */
   const retry = useCallback(() => onRetry?.(item.id), [item.id, onRetry]);
+  /** この件の差し替えを呼び出し元へ伝える。 */
   const replace = useCallback(() => onReplace?.(item.id), [item.id, onReplace]);
+  /** この件を 1 つ前へ動かすことを呼び出し元へ伝える。 */
   const moveUp = useCallback(() => onMoveUp?.(item.id), [item.id, onMoveUp]);
+  /** この件を 1 つ後ろへ動かすことを呼び出し元へ伝える。 */
   const moveDown = useCallback(() => onMoveDown?.(item.id), [item.id, onMoveDown]);
 
   return (
@@ -182,16 +200,8 @@ function UploadPreviewRow({
  * />
  * ```
  *
- * @param props.items - 表示する選択中のファイル。並び順はそのまま使う。
- * @param props.pending - 送信中か。すべての操作を止める。
- * @param props.onRemove - 取り消しの操作を受け取る。省略すると button を出さない。
- * @param props.onRetry - 再試行の操作を受け取る。省略すると button を出さない。
- * @param props.onReplace - 差し替えの操作を受け取る。ファイルを選び直す導線は呼び出し元が
- *   `FileUpload` で用意する。省略すると button を出さない。
- * @param props.onMoveUp - 1 つ前へ動かす操作を受け取る。省略すると button を出さない。
- * @param props.onMoveDown - 1 つ後ろへ動かす操作を受け取る。省略すると button を出さない。
- * @param props.orientation - 並べ方。値は {@link UPLOAD_PREVIEW_ORIENTATION}。
- * @param props.label - 一覧のアクセシブルな名前。
+ * @param props - native `ul` 属性（`children` を除く）と、表示する選択中のファイルおよび
+ *   件ごとの操作。
  *
  * @see Storybook `Display/UploadPreview`
  */
@@ -208,14 +218,38 @@ export function UploadPreview({
   className,
   ...props
 }: Omit<ComponentProps<"ul">, "children"> & {
+  /** 表示する選択中のファイル。並び順はそのまま使う。 */
   items: readonly UploadPreviewItem[];
+  /**
+   * 並べ方。値は {@link UPLOAD_PREVIEW_ORIENTATION}。
+   *
+   * @defaultValue UPLOAD_PREVIEW_ORIENTATION.LIST
+   */
   orientation?: UploadPreviewOrientation;
+  /**
+   * 送信中か。すべての操作を止める。
+   *
+   * @defaultValue false
+   */
   pending?: boolean;
+  /** 取り消しの操作を受け取る。省略すると button を出さない。 */
   onRemove?: ItemHandler;
+  /** 再試行の操作を受け取る。省略すると button を出さない。 */
   onRetry?: ItemHandler;
+  /**
+   * 差し替えの操作を受け取る。ファイルを選び直す導線は呼び出し元が `FileUpload` で用意する。
+   * 省略すると button を出さない。
+   */
   onReplace?: ItemHandler;
+  /** 1 つ前へ動かす操作を受け取る。省略すると button を出さない。 */
   onMoveUp?: ItemHandler;
+  /** 1 つ後ろへ動かす操作を受け取る。省略すると button を出さない。 */
   onMoveDown?: ItemHandler;
+  /**
+   * 一覧のアクセシブルな名前。
+   *
+   * @defaultValue "選択中のファイル"
+   */
   label?: string;
 }) {
   if (items.length === 0) {

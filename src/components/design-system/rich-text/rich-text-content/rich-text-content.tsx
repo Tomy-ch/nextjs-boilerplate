@@ -63,7 +63,6 @@ export type RichTextContentProps = Omit<
  * ```
  *
  * @param props - `content` のほかは native `div` 属性。
- * @param props.content - 表示するリッチテキスト。
  *
  * @see Storybook `Rich Text/RichTextContent`
  */

@@ -69,6 +69,8 @@ export type AdminShellProps = {
  * `ContentContainer` へ入れるのは、階層と本文の左端が揃っていなければ現在地が本文の外側の
  * 飾りに見えるためで、`main` 自身は幅を持ったままではありません。
  *
+ * @param props - 受け取る内容。個々の意味は {@link AdminShellProps} の各メンバーが持つ。
+ *
  * @see Storybook `Layout/AdminShell`
  */
 export function AdminShell({

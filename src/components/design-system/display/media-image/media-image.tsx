@@ -15,11 +15,19 @@ export type MediaImageProps = Omit<
   ImageProps,
   "className" | "fill" | "loader" | "onError" | "onLoad" | "preload" | "priority" | "src"
 > & {
-  /** レイアウトシフトを防ぐ wrapper の比率。 */
+  /**
+   * レイアウトシフトを防ぐ wrapper の比率。
+   *
+   * @defaultValue `MEDIA_IMAGE_ASPECT_RATIO.STANDARD`
+   */
   aspectRatio?: MediaImageAspectRatio;
   /** wrapper に追加する class 名。 */
   className?: string;
-  /** 代替画像の代替テキスト。既定は空文字で、装飾として扱われる。 */
+  /**
+   * 代替画像の代替テキスト。既定は空文字で、装飾として扱われる。
+   *
+   * @defaultValue `""`
+   */
   fallbackAlt?: string;
   /**
    * `src` が無いときに表示する画像。これも無ければ何も描画しない。
@@ -30,9 +38,17 @@ export type MediaImageProps = Omit<
   fallbackSrc?: ImageProps["src"];
   /** 実画像に追加する class 名。 */
   imageClassName?: string;
-  /** CSS Skeleton を表示するか。LCP 候補では既定で無効になる。 */
+  /**
+   * CSS Skeleton を表示するか。LCP 候補では既定で無効になる。
+   *
+   * @defaultValue `priority !== MEDIA_IMAGE_PRIORITY.PRELOAD`
+   */
   showSkeleton?: boolean;
-  /** 読み込みの優先度。既定は `lazy`。 */
+  /**
+   * 読み込みの優先度。既定は `lazy`。
+   *
+   * @defaultValue `MEDIA_IMAGE_PRIORITY.LAZY`
+   */
   priority?: MediaImagePriority;
   /** 表示する画像。未設定なら `fallbackSrc` を表示する。 */
   src: ImageProps["src"] | null;
@@ -53,6 +69,8 @@ export type MediaImageProps = Omit<
  * 「無い」を分岐で表すと呼び出し側ごとに扱いが分かれるためである。差し替える画像は
  * `fallbackSrc` で受け取り、この component は経路を選ぶだけで既定のパスを持たない。どちらも
  * 無ければ枠ごと描画しない。
+ *
+ * @param props - `next/image` の props と、枠・代替画像・待機表示の指定。
  *
  * @see Storybook `Display/MediaImage`
  */

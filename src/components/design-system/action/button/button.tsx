@@ -101,6 +101,8 @@ export type ButtonProps = ComponentProps<"button"> &
      * `pendingLabel` が操作自身の名前として伝えます。
      *
      * `asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
+     *
+     * @defaultValue `false`
      */
     pending?: boolean;
     /**
@@ -110,7 +112,11 @@ export type ButtonProps = ComponentProps<"button"> &
      * 省略すると、待っているあいだ操作が名前を持ちません。`pending` を使うなら併せて渡します。
      */
     pendingLabel?: string;
-    /** 子要素へボタンの見た目と props を合成するか。 */
+    /**
+     * 子要素へボタンの見た目と props を合成するか。
+     *
+     * @defaultValue `false`
+     */
     asChild?: boolean;
   };
 
@@ -136,10 +142,7 @@ export type ButtonProps = ComponentProps<"button"> &
  * </Button>
  * ```
  *
- * @param props - native `button` 属性と、以下の表示用 props。
- * @param props.variant - 操作の優先度に対応する見た目。
- * @param props.size - 操作を置く領域に対応する大きさ。
- * @param props.asChild - 子要素へボタンの見た目と props を合成するか。
+ * @param props - native `button` 属性と、表示用の props。
  * @see Storybook `Action/Button`
  */
 export function Button({

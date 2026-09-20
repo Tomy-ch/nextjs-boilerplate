@@ -59,6 +59,7 @@ export type ToggleProps = ComponentProps<"button"> &
  * 伝えるため、名前を「〜を有効にする」「〜を無効にする」と状態で切り替えない。名前は変えずに
  * 状態だけを変える。
  *
+ * @param props - native `button` 属性と、押下状態および見た目の指定。
  * @see Storybook `Action/Toggle`
  */
 export function Toggle({

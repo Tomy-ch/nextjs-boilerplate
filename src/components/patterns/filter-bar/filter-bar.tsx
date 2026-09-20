@@ -9,7 +9,11 @@ import { FilterIcon, XIcon } from "@/components/icon";
 
 /** {@link FilterBar} の props。 */
 export type FilterBarProps = ComponentProps<"section"> & {
-  /** landmark の名前。同じ画面に絞り込みが複数あるときは区別できる名前にする。 */
+  /**
+   * landmark の名前。同じ画面に絞り込みが複数あるときは区別できる名前にする。
+   *
+   * @defaultValue "絞り込み"
+   */
   label?: string;
 };
 
@@ -23,7 +27,7 @@ export type FilterBarProps = ComponentProps<"section"> & {
  * 条件の解釈・URL の組み立て・絞り込みの実行は持たない。呼び出し元が結果として表示する条件と、
  * 解除先の URL または callback を渡す。
  *
- * @param props.label - landmark の名前。
+ * @param props - landmark の名前と、絞り込みの領域へ並べる内容。
  *
  * @see Storybook `Navigation/FilterBar`
  */
@@ -44,6 +48,8 @@ export function FilterBar({ className, label = "絞り込み", ...props }: Filte
  * @remarks
  * 幅の広い要素（検索欄）を先に置くと、狭い画面で操作が折り返しても押しやすい並びになる。
  *
+ * @param props - 行に並べる内容。`div` の属性をそのまま透過する。
+ *
  * @see Storybook `Navigation/FilterBar`
  */
 export function FilterBarControls({ className, ...props }: ComponentProps<"div">) {
@@ -58,7 +64,11 @@ export function FilterBarControls({ className, ...props }: ComponentProps<"div">
 
 /** {@link FilterBarTrigger} の props。 */
 export type FilterBarTriggerProps = Omit<ComponentProps<typeof Button>, "asChild"> & {
-  /** いま効いている条件の数。0 のときは表示しない。 */
+  /**
+   * いま効いている条件の数。0 のときは表示しない。
+   *
+   * @defaultValue 0
+   */
   count?: number;
 };
 
@@ -73,7 +83,7 @@ export type FilterBarTriggerProps = Omit<ComponentProps<typeof Button>, "asChild
  * 条件の数を操作の中に出すのは、閉じている入力欄の中身が見えないためである。数だけでは何が
  * 効いているか分からないので、{@link FilterBarActiveFilters} と併せて使う。
  *
- * @param props.count - いま効いている条件の数。
+ * @param props - 操作の文言と、いま効いている条件の数。`Button` の props をそのまま透過する。文言は既定で「絞り込み」、見た目は既定で `outline`。
  *
  * @see Storybook `Navigation/FilterBar`
  */
@@ -114,9 +124,7 @@ export type FilterBarSummaryProps = ComponentProps<"div"> & {
  * 利用者には何件になったか分からない。URL 遷移で一覧全体が入れ替わる場合は読み上げが重複しない
  * よう、`aria-live` は件数の要素だけに閉じている。
  *
- * @param props.count - 絞り込んだ結果の件数。
- * @param props.total - 絞り込む前の総件数。
- * @param props.children - すべての条件を解除する導線。
+ * @param props - 絞り込んだ結果の件数と、すべての条件を解除する導線。
  *
  * @see Storybook `Navigation/FilterBar`
  */
@@ -143,7 +151,11 @@ export function FilterBarSummary({
 
 /** {@link FilterBarActiveFilters} の props。 */
 export type FilterBarActiveFiltersProps = ComponentProps<"ul"> & {
-  /** 一覧の名前。 */
+  /**
+   * 一覧の名前。
+   *
+   * @defaultValue "適用中の条件"
+   */
   label?: string;
 };
 
@@ -157,7 +169,7 @@ export type FilterBarActiveFiltersProps = ComponentProps<"ul"> & {
  * `tabIndex={-1}` は、条件を外したあとの focus の移動先にするため（{@link focusActiveFilters}）。
  * focus は移すが輪は描かない。操作した直後に中身が目に見えて変わるため、輪が足す情報が無く、pointer で操作した人には押した場所と無関係な枠が現れることになる。行き先は要素の名前が伝える。
  *
- * @param props.label - 一覧の名前。
+ * @param props - 一覧の名前と、並べる条件。`ul` の属性をそのまま透過する。
  *
  * @see Storybook `Navigation/FilterBar`
  */
@@ -200,8 +212,7 @@ export type FilterChipProps = {
  * 解除操作のアクセシブルな名前には条件名と値を含める。「×」だけでは、複数並んだときにどれを外す
  * のか操作の一覧からは判別できない。
  *
- * @param props.label - 条件の名前。
- * @param props.value - 条件の値。
+ * @param props - 条件の名前と値、およびその解除の手段。
  *
  * @see Storybook `Navigation/FilterBar`
  */
@@ -234,6 +245,8 @@ const REMOVE_CONTROL_CLASS =
  * 呼び出し元の `onRemove` が要素を外すより先に focus を移す必要があるためである。
  *
  * 移さないと focus が document へ落ち、keyboard 利用者は残りの条件へ辿り直すことになる。
+ *
+ * @param event - 解除操作の click event。捕捉段階で受け取る。
  */
 function focusActiveFilters(event: MouseEvent<HTMLButtonElement>) {
   const list = event.currentTarget.closest("[data-slot='filter-bar-active-filters']");
@@ -241,7 +254,11 @@ function focusActiveFilters(event: MouseEvent<HTMLButtonElement>) {
   if (list instanceof HTMLElement) list.focus();
 }
 
-/** URL で外すか、その場で外すか、外せないかを 1 か所で決める。 */
+/**
+ * URL で外すか、その場で外すか、外せないかを 1 か所で決める。
+ *
+ * @param props - 解除操作のアクセシブルな名前と、外す手段。
+ */
 function FilterChipRemove({
   href,
   label,

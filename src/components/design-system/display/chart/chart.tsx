@@ -53,6 +53,12 @@ type ChartContextProps = {
 
 const ChartContext = createContext<ChartContextProps | null>(null);
 
+/**
+ * 配下の component から、`ChartContainer` が配った系列定義を読む。
+ *
+ * @returns `ChartContainer` が配った系列定義。
+ * @throws `ChartContainer` の配下でない場合に `Error`。
+ */
 function useChart(): ChartContextProps {
   const context = useContext(ChartContext);
 
@@ -63,10 +69,23 @@ function useChart(): ChartContextProps {
   return context;
 }
 
+/**
+ * 値が、key を引ける object かどうかを判定する。
+ *
+ * @param value - 判定する値。
+ * @returns `null` でない object であれば `true`。
+ */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+/**
+ * object から、値が文字列である field だけを読む。
+ *
+ * @param source - 読む対象の object。
+ * @param key - 読む field の名前。
+ * @returns 値が文字列であればその値、そうでなければ `undefined`。
+ */
 function readStringField(source: Record<string, unknown>, key: string): string | undefined {
   const value = source[key];
 
@@ -78,6 +97,11 @@ function readStringField(source: Record<string, unknown>, key: string): string |
  *
  * payload は recharts の内部形なので、形を確かめてから読む。`key` の指す値が payload 側に
  * 文字列としてあればそれを定義名に使い、無ければ `key` 自体を定義名として扱う。
+ *
+ * @param config - 系列ごとの定義。
+ * @param payload - recharts が渡す payload。
+ * @param key - 定義名を引く key。
+ * @returns 対応する系列の定義。引けなければ `undefined`。
  */
 function getPayloadConfigFromPayload(
   config: ChartConfig,
@@ -104,6 +128,7 @@ function getPayloadConfigFromPayload(
  * `ChartContainer` が内部で描画するため、通常は直接指定しない。`config` の色は開発者が書く定数で
  * あることを前提に、そのまま stylesheet へ載せる。利用者入力や API 応答を色として渡さない。
  *
+ * @param props - 変数を適用する対象と、配る色。
  * @param props.id - 変数を適用する `data-chart` の値。
  * @param props.config - 系列ごとの色定義。
  * @see Storybook `Display/Chart`
@@ -155,8 +180,6 @@ export function ChartStyle({ id, config }: { id: string; config: ChartConfig }) 
  * ```
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.config - 系列ごとの表示名・色・アイコン。
- * @param props.initialDimension - 実寸が確定するまでに使う描画領域の大きさ。
  * @see Storybook `Display/Chart`
  */
 export function ChartContainer({
@@ -167,8 +190,15 @@ export function ChartContainer({
   initialDimension = INITIAL_DIMENSION,
   ...props
 }: ComponentProps<"div"> & {
+  /** 系列ごとの表示名・色・アイコン。 */
   config: ChartConfig;
+  /** 描画する recharts の chart。 */
   children: ComponentProps<typeof RechartsPrimitive.ResponsiveContainer>["children"];
+  /**
+   * 実寸が確定するまでに使う描画領域の大きさ。
+   *
+   * @defaultValue `{ width: 320, height: 200 }`
+   */
   initialDimension?: { width: number; height: number };
 }) {
   const uniqueId = useId();
@@ -214,11 +244,6 @@ export const ChartTooltip = RechartsPrimitive.Tooltip;
  * 要約を feature 側に用意する。
  *
  * @param props - recharts `Tooltip` の props と native `div` 属性に、以下を加えたもの。
- * @param props.indicator - 系列に添える印の形。
- * @param props.hideLabel - 見出し行を隠すか。
- * @param props.hideIndicator - 系列の印を隠すか。
- * @param props.nameKey - 系列名として読む payload の key。
- * @param props.labelKey - 見出しとして読む payload の key。
  * @see Storybook `Display/Chart`
  */
 export function ChartTooltipContent({
@@ -237,10 +262,27 @@ export function ChartTooltipContent({
   labelKey,
 }: ComponentProps<typeof RechartsPrimitive.Tooltip> &
   ComponentProps<"div"> & {
+    /**
+     * 見出し行を隠すか。
+     *
+     * @defaultValue `false`
+     */
     hideLabel?: boolean;
+    /**
+     * 系列の印を隠すか。
+     *
+     * @defaultValue `false`
+     */
     hideIndicator?: boolean;
+    /**
+     * 系列に添える印の形。{@link CHART_INDICATOR} のいずれか。
+     *
+     * @defaultValue `CHART_INDICATOR.DOT`
+     */
     indicator?: ChartIndicator;
+    /** 系列名として読む payload の key。 */
     nameKey?: string;
+    /** 見出しとして読む payload の key。 */
     labelKey?: string;
   } & Omit<
     RechartsPrimitive.DefaultTooltipContentProps<TooltipValueType, TooltipNameType>,
@@ -375,8 +417,6 @@ export const ChartLegend = RechartsPrimitive.Legend;
  * `ChartContainer` の配下でのみ使える。色だけで系列を区別させないため、表示名は必ず添える。
  *
  * @param props - native `div` 属性と recharts の凡例 props に、以下を加えたもの。
- * @param props.hideIcon - 系列のアイコンを隠すか。
- * @param props.nameKey - 系列名として読む payload の key。
  * @see Storybook `Display/Chart`
  */
 export function ChartLegendContent({
@@ -386,7 +426,13 @@ export function ChartLegendContent({
   verticalAlign = "bottom",
   nameKey,
 }: ComponentProps<"div"> & {
+  /**
+   * 系列のアイコンを隠すか。
+   *
+   * @defaultValue `false`
+   */
   hideIcon?: boolean;
+  /** 系列名として読む payload の key。 */
   nameKey?: string;
 } & RechartsPrimitive.DefaultLegendContentProps) {
   const { config } = useChart();

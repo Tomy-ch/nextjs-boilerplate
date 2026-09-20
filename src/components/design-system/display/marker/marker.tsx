@@ -32,9 +32,15 @@ export type MarkerProps = ComponentProps<"div"> &
      * - `default`: 区切り線を持たず、内容の流れに沿って一行を置く
      * - `separator`: 内容の左右へ水平線を伸ばし、区切りの見出しとして中央に置く
      * - `border`: 下に罫線を引き、直後の内容の始まりを示す
+     *
+     * @defaultValue `MARKER_VARIANT.DEFAULT`
      */
     variant?: MarkerVariant;
-    /** 子要素へ marker の見た目と props を合成するか。 */
+    /**
+     * 子要素へ marker の見た目と props を合成するか。
+     *
+     * @defaultValue `false`
+     */
     asChild?: boolean;
   };
 
@@ -63,8 +69,6 @@ export type MarkerProps = ComponentProps<"div"> &
  * ```
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.variant - 周囲の内容との区切り方。
- * @param props.asChild - 子要素へ marker の見た目と props を合成するか。
  * @see Storybook `Display/Marker`
  */
 export function Marker({
@@ -92,6 +96,8 @@ export function Marker({
  * `aria-hidden` を持つため支援技術へは読み上げられない。アイコンだけで意味を伝えず、意味は必ず
  * `MarkerContent` のテキストに書く。
  *
+ * @param props - native `span` 属性。
+ *
  * @see Storybook `Display/Marker`
  */
 export function MarkerIcon({ className, ...props }: ComponentProps<"span">) {
@@ -110,6 +116,8 @@ export function MarkerIcon({ className, ...props }: ComponentProps<"span">) {
  *
  * @remarks
  * `separator` の Marker では、左右へ伸びる水平線に挟まれて中央に置かれる。長い文は折り返す。
+ *
+ * @param props - native `span` 属性。
  *
  * @see Storybook `Display/Marker`
  */

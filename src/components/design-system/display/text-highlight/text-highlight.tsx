@@ -5,6 +5,12 @@ import { cn } from "@/components/cn";
 
 const REGEXP_METACHARACTERS = /[.*+?^${}()|[\]\\]/g;
 
+/**
+ * 語を、正規表現の記号ではなく文字そのものとして扱える形へ逃がす。
+ *
+ * @param term - 逃がす語。
+ * @returns 正規表現へそのまま埋め込める文字列。
+ */
 function escapeRegExp(term: string): string {
   return term.replace(REGEXP_METACHARACTERS, "\\$&");
 }
@@ -20,6 +26,11 @@ type TextSegment = {
  *
  * key には本文中の開始位置を使う。同じ本文と語であれば描画のたびに同じ key になり、
  * 一致箇所の増減があっても既存の区間が別物として作り直されない。
+ *
+ * @param text - 切り分ける本文。
+ * @param terms - 強調する語。
+ * @param caseSensitive - 大文字小文字を区別して一致を判定するか。
+ * @returns 本文の並び順どおりに並んだ区間。
  */
 function splitByMatches(
   text: string,
@@ -56,7 +67,11 @@ function splitByMatches(
 
 /** {@link TextHighlight} の props。 */
 export type TextHighlightProps = Omit<ComponentProps<"span">, "children"> & {
-  /** 大文字小文字を区別して一致を判定するか。既定は区別しない。 */
+  /**
+   * 大文字小文字を区別して一致を判定するか。既定は区別しない。
+   *
+   * @defaultValue `false`
+   */
   caseSensitive?: boolean;
   /**
    * 強調する語。複数渡した場合は、いずれかに一致した区間をすべて強調する。
@@ -96,9 +111,6 @@ export type TextHighlightProps = Omit<ComponentProps<"span">, "children"> & {
  * ```
  *
  * @param props - native `span` 属性と、以下の表示用 props。`children` は受け取らない。
- * @param props.text - 強調対象の本文。
- * @param props.query - 強調する語。
- * @param props.caseSensitive - 大文字小文字を区別して一致を判定するか。
  * @see Storybook `Display/TextHighlight`
  */
 export function TextHighlight({

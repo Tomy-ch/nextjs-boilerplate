@@ -18,6 +18,8 @@ import { KeyboardShortcutKeys } from "./keyboard-shortcut-keys";
  * </KeyboardShortcutList>
  * ```
  *
+ * @param props - native `dl` 属性。
+ *
  * @see Storybook `Display/KeyboardShortcut`
  */
 export function KeyboardShortcutList({ className, ...props }: ComponentProps<"dl">) {
@@ -52,8 +54,6 @@ export type KeyboardShortcutProps = ComponentProps<"div"> & {
  * キーボードから実行できない操作は載せない。
  *
  * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.keys - 押す順に並べたキー。
- * @param props.platform - 表記を固定するプラットフォーム。{@link SHORTCUT_PLATFORM} のいずれか。
  *
  * @see Storybook `Display/KeyboardShortcut`
  */

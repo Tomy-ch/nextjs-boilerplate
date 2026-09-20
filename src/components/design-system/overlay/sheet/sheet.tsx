@@ -142,12 +142,16 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
      *
      * - `right` / `left`: 画面の高さいっぱいの縦長パネル。navigation や絞り込みに使う
      * - `top` / `bottom`: 画面の幅いっぱいの横長パネル。内容の高さに合わせて伸縮する
+     *
+     * @defaultValue SHEET_SIDE.RIGHT
      */
     side?: SheetSide;
     /**
      * 右上の閉じる操作を描画するか。
      *
      * `false` にする場合は、内容側に `SheetClose` の閉じる手段を必ず用意する。
+     *
+     * @defaultValue true
      */
     showCloseButton?: boolean;
   };
@@ -200,6 +204,8 @@ function SheetContent({
 /**
  * title と説明をまとめる領域。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Overlay/Sheet`
  */
 function SheetHeader({ className, ...props }: ComponentProps<"div">) {
@@ -218,6 +224,8 @@ function SheetHeader({ className, ...props }: ComponentProps<"div">) {
  * @remarks
  * 配置だけを担い、操作そのものは持たない。閉じる操作は `SheetClose` を `Button` へ合成して
  * 呼び出し元が置く。`mt-auto` により、内容が短いときは sheet の下端へ寄る。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Overlay/Sheet`
  */

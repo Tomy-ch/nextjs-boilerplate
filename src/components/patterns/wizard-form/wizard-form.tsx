@@ -47,6 +47,8 @@ export type WizardSteps = readonly [WizardStep, ...WizardStep[]];
  *
  * @remarks
  * 段階ごとに切り出すのは、行き先を閉じ込めた handler を段階の数だけ作らないためです。
+ *
+ * @param props - 移る先の段階と、選ばれたことを受け取る callback。
  */
 function WizardStepLink({
   disabled,
@@ -84,9 +86,17 @@ export type WizardFormProps = {
   steps: WizardSteps;
   /** 最後の段階で「次へ」の代わりに置く操作。送信は呼び出し元が持つ。 */
   submit: ReactNode;
-  /** 前の段階へ戻る操作の文言。 */
+  /**
+   * 前の段階へ戻る操作の文言。
+   *
+   * @defaultValue "戻る"
+   */
   previousLabel?: string;
-  /** 次の段階へ進む操作の文言。 */
+  /**
+   * 次の段階へ進む操作の文言。
+   *
+   * @defaultValue "次へ"
+   */
   nextLabel?: string;
   /** 外枠の class。 */
   className?: string;
@@ -129,9 +139,7 @@ export type WizardFormProps = {
  * />
  * ```
  *
- * @param props.label - この入力全体のアクセシブルな名前。
- * @param props.steps - 段階の定義。
- * @param props.submit - 最後の段階で置く操作。
+ * @param props - 入力全体の名前、段階の定義、最後に置く操作、および前後へ動く操作の文言。
  *
  * @see Storybook `Form/WizardForm`
  */
@@ -290,6 +298,11 @@ export function WizardForm({
  * @remarks
  * 通過したことは **`currentIndex` ではなく `furthestIndex` で見る**。現在地だけで決めると、前へ
  * 戻った時点で通過済みの印が消え、済ませた入力までやり直しに見える。
+ *
+ * @param index - 状態を求める段階の位置。
+ * @param currentIndex - いま居る段階の位置。
+ * @param furthestIndex - 最も先まで進んだ段階の位置。
+ * @returns 進捗に出すその段階の状態。
  */
 function stepState(index: number, currentIndex: number, furthestIndex: number) {
   if (index === currentIndex) return STEPPER_STATE.CURRENT;
@@ -310,6 +323,8 @@ function stepState(index: number, currentIndex: number, furthestIndex: number) {
  * focus は移すが輪は描かない。操作した直後に中身が目に見えて変わるため、輪が足す情報が無く、pointer で操作した人には押した場所と無関係な枠が現れることになる。行き先は要素の名前が伝える。`legend` は
  * flex の流れから外れて描かれるため `gap` が効かない。段階名と最初の入力が詰まらないよう、
  * `legend` 自身へ下の余白を持たせる。
+ *
+ * @param props - 段階の名前と中身、その領域の id、いま表示している段階かどうか。
  */
 function StepPanel({
   active,

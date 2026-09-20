@@ -5,7 +5,11 @@ import { ChevronDownIcon } from "@/components/icon";
 
 /** {@link SelectNative} の props。 */
 export type SelectNativeProps = Omit<ComponentProps<"select">, "size"> & {
-  /** control の高さ。 */
+  /**
+   * control の高さ。`default` は 36px、`sm` は 32px。
+   *
+   * @defaultValue `"default"`
+   */
   size?: "sm" | "default";
 };
 
@@ -26,7 +30,6 @@ export type SelectNativeProps = Omit<ComponentProps<"select">, "size"> & {
  * ```
  *
  * @param props - native `select` 属性と `size`。
- * @param props.size - control の高さ。`default` は 36px、`sm` は 32px。
  * @see Storybook `Form/SelectNative`
  */
 function SelectNative({ className, size = "default", ...props }: SelectNativeProps) {
@@ -64,6 +67,7 @@ function SelectNative({ className, size = "default", ...props }: SelectNativePro
  *
  * 面の色は OS が描画する popup に合わせるため、`className` で背景色を上書きしない。
  *
+ * @param props - native `option` 属性。
  * @see Storybook `Form/SelectNative`
  */
 function SelectNativeOption({ className, ...props }: ComponentProps<"option">) {
@@ -82,6 +86,7 @@ function SelectNativeOption({ className, ...props }: ComponentProps<"option">) {
  * @remarks
  * 区分の名前は native の `label` 属性が伝えるため、必ず指定する。区分そのものは選べない。
  *
+ * @param props - native `optgroup` 属性。
  * @see Storybook `Form/SelectNative`
  */
 function SelectNativeOptGroup({ className, ...props }: ComponentProps<"optgroup">) {

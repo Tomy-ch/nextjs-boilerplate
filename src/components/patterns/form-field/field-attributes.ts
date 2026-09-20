@@ -40,6 +40,9 @@ export type FieldControlAttributes = {
  *
  * 補足と誤りの両方があるときは、**描画される順**（補足 → 誤り）で並べます。読み上げの順が
  * 目で追う順と食い違うと、同じ項目の説明が 2 度に分かれて聞こえます。
+ *
+ * @param state - 属性を組むために要る、項目の状態。
+ * @returns 入力欄へ広げる a11y 属性。
  */
 export function fieldControlAttributes({
   controlId,

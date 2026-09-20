@@ -34,7 +34,13 @@ type MessageScrollerContextValue = {
   syncAfterScroll: (viewport: HTMLElement) => void;
 };
 
-/** 呼び出し元が渡した ref へ、内部で保持する要素を引き渡す。 */
+/**
+ * 呼び出し元が渡した ref へ、内部で保持する要素を引き渡す。
+ *
+ * @typeParam TElement - 受け渡す要素の型
+ * @param ref - 呼び出し元が渡した ref。省略された場合は何もしない
+ * @param element - 引き渡す要素。外れたときは `null`
+ */
 function assignRef<TElement extends HTMLElement>(
   ref: Ref<TElement> | undefined,
   element: TElement | null,
@@ -51,6 +57,13 @@ function assignRef<TElement extends HTMLElement>(
 
 const MessageScrollerContext = createContext<MessageScrollerContextValue | null>(null);
 
+/**
+ * 最も近い {@link MessageScroller} が配る context を読む。
+ *
+ * @param part - 例外の文面に出す、呼び出し元の component 名
+ * @returns 末尾にいるかどうかと、位置を合わせる操作
+ * @throws {@link MessageScroller} の外で呼ばれたとき
+ */
 function useMessageScrollerContext(part: string): MessageScrollerContextValue {
   const context = useContext(MessageScrollerContext);
 
@@ -63,9 +76,17 @@ function useMessageScrollerContext(part: string): MessageScrollerContextValue {
 
 /** {@link MessageScroller} の props。 */
 export type MessageScrollerProps = ComponentProps<"div"> & {
-  /** 末尾にいる間、内容が増えたら末尾へ追従するか。 */
+  /**
+   * 末尾にいる間、内容が増えたら末尾へ追従するか。
+   *
+   * @defaultValue true
+   */
   autoFollow?: boolean;
-  /** 末尾から何 px までを「末尾にいる」とみなすか。 */
+  /**
+   * 末尾から何 px までを「末尾にいる」とみなすか。
+   *
+   * @defaultValue 8
+   */
   scrollEdgeThreshold?: number;
 };
 
@@ -96,9 +117,7 @@ export type MessageScrollerProps = ComponentProps<"div"> & {
  * </MessageScroller>
  * ```
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.autoFollow - 末尾にいる間、内容が増えたら末尾へ追従するか。
- * @param props.scrollEdgeThreshold - 末尾から何 px までを「末尾にいる」とみなすか。
+ * @param props - native `div` 属性と、`autoFollow` / `scrollEdgeThreshold`。
  *
  * @see Storybook `Container/MessageScroller`
  */
@@ -260,6 +279,8 @@ export function MessageScrollerViewport({
  * @remarks
  * 既存項目の変更や削除は通知しないため、内容を書き換える用途には使わない。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Container/MessageScroller`
  */
 export function MessageScrollerContent({ className, ref, ...props }: ComponentProps<"div">) {
@@ -287,7 +308,11 @@ export function MessageScrollerContent({ className, ref, ...props }: ComponentPr
 
 /** {@link MessageScrollerButton} の props。 */
 export type MessageScrollerButtonProps = ComponentProps<typeof Button> & {
-  /** scroll の動き方。 */
+  /**
+   * scroll の動き方。
+   *
+   * @defaultValue "smooth"
+   */
   behavior?: ScrollBehavior;
 };
 
@@ -300,8 +325,7 @@ export type MessageScrollerButtonProps = ComponentProps<typeof Button> & {
  * 既定では下向きの装飾アイコンと読み上げ用の文言だけを持つ。文言を変える場合は `children` に
  * 渡す。
  *
- * @param props - {@link Button} の props と、以下の表示用 props。
- * @param props.behavior - scroll の動き方。
+ * @param props - {@link Button} の props と、`behavior`。
  *
  * @see Storybook `Container/MessageScroller`
  */

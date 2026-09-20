@@ -15,7 +15,11 @@ export type ProgressClientProps = Omit<
    * `className` は外枠にしか届かないため、進捗部分の指定はこちらで行う。
    */
   indicatorClassName?: string;
-  /** 進捗の最大値。 */
+  /**
+   * 進捗の最大値。
+   *
+   * @defaultValue `100`
+   */
   max?: number;
   /** 現在の進捗値。`0` 以上 `max` 以下で指定する。 */
   value: number;
@@ -41,6 +45,8 @@ export type ProgressClientProps = Omit<
  *
  * 完了時期が不明な進捗（indeterminate）は扱わない。待機の表現は `Skeleton` / `Shimmer` が担う
  * ため、進捗部品は値の判っている進捗だけを引き受ける。
+ *
+ * @param props - Radix `Progress.Root` の props と、進捗の値および進捗部分の class。
  *
  * @see Storybook `Status/ProgressClient`
  */

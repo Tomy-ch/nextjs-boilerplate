@@ -64,12 +64,7 @@ export type LoadMoreProps = {
  * <LoadMore sentinelRef={sentinelRef} state={{ status: "loading" }} />;
  * ```
  *
- * @param props.state - 続きの読み込みの状態。
- * @param props.sentinelRef - 末尾到達を見張る目印を置く先。
- * @param props.retryLabel - 読み直す操作の名前。
- * @param props.failureMessage - 失敗したことを伝える文。
- * @param props.loadingLabel - 取得中であることを読み上げへ伝える語。
- * @param props.placeholder - 取得中に、届く分の場所を先に取る骨組み。
+ * @param props - 続きの読み込みの状態と、末尾到達の目印および文言。
  * @see Storybook `Navigation/LoadMore`
  */
 export function LoadMore({

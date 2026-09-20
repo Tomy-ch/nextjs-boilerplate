@@ -15,7 +15,11 @@ const OVERLAY_HISTORY_MARKER = "overlayHistory";
 export type OverlayHistoryOptions = {
   /** 外から制御する場合の開閉状態。 */
   open?: boolean;
-  /** 制御しない場合の初期状態。 */
+  /**
+   * 制御しない場合の初期状態。
+   *
+   * @defaultValue false
+   */
   defaultOpen?: boolean;
   /** 開閉が変わったときに呼ぶ。 */
   onOpenChange?: (open: boolean) => void;
@@ -50,6 +54,9 @@ export type OverlayHistory = {
  *
  * 制御されている（`open` を渡された）場合も同じように積みます。開閉の持ち主が誰であっても、
  * 戻る操作の意味は変わらないためです。
+ *
+ * @param options - 開閉の指定
+ * @returns 開閉状態と、その切り替え口
  */
 export function useOverlayHistory({
   open,

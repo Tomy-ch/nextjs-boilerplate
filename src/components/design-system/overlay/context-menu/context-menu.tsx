@@ -134,8 +134,7 @@ function ContextMenuRadioGroup({
  * 右端に開く向きを示す装飾のアイコンを伴う。項目自体は操作を実行せず、`ContextMenuSubContent`
  * を開くだけである。
  *
- * @param props - Radix `ContextMenu.SubTrigger` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。
+ * @param props - Radix `ContextMenu.SubTrigger` の props と、`inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -145,6 +144,7 @@ function ContextMenuSubTrigger({
   children,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.SubTrigger> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。 */
   inset?: boolean;
 }) {
   return (
@@ -237,9 +237,7 @@ function ContextMenuContent({
  * `inset` は、同じ menu 内に checkbox / radio 項目があるときに左端の余白を揃えるための表示
  * 指定であり、意味論は変えない。
  *
- * @param props - Radix `ContextMenu.Item` の props と、以下の表示用 props。
- * @param props.variant - 取り消せない操作を区別する見た目。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
+ * @param props - Radix `ContextMenu.Item` の props と、`variant` / `inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -249,7 +247,13 @@ function ContextMenuItem({
   variant = CONTEXT_MENU_ITEM_VARIANT.DEFAULT,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.Item> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
+  /**
+   * 取り消せない操作を区別する見た目。
+   *
+   * @defaultValue CONTEXT_MENU_ITEM_VARIANT.DEFAULT
+   */
   variant?: ContextMenuItemVariant;
 }) {
   return (
@@ -347,8 +351,7 @@ function ContextMenuRadioItem({
  * それ自体は選択できない。操作対象が何であるかを示す場合に、menu の先頭または
  * `ContextMenuGroup` の先頭へ置く。
  *
- * @param props - Radix `ContextMenu.Label` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。
+ * @param props - Radix `ContextMenu.Label` の props と、`inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -357,6 +360,7 @@ function ContextMenuLabel({
   inset,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.Label> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。 */
   inset?: boolean;
 }) {
   return (
@@ -402,6 +406,8 @@ function ContextMenuSeparator({
  * @remarks
  * 表示だけを担い、キーの割り当ては行わない。実際の shortcut は呼び出し元が別途実装する。
  * 割り当てていない表記を置くと、押しても何も起きない案内になる。
+ *
+ * @param props - native `span` 属性。
  *
  * @see Storybook `Overlay/ContextMenu`
  */

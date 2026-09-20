@@ -21,17 +21,38 @@ export type NavigationGuardProps = {
   when: boolean;
   /** 監視する範囲。この配下の link click を傍受する。 */
   children: ReactNode;
-  /** 確認 dialog の見出し。 */
+  /**
+   * 確認 dialog の見出し。
+   *
+   * @defaultValue "編集中の内容が保存されていません"
+   */
   title?: string;
-  /** 何が失われるかを伝える説明。 */
+  /**
+   * 何が失われるかを伝える説明。
+   *
+   * @defaultValue "このまま移動すると、入力した内容は失われます。"
+   */
   description?: string;
-  /** 遷移を続ける操作の文言。 */
+  /**
+   * 遷移を続ける操作の文言。
+   *
+   * @defaultValue "移動する"
+   */
   confirmLabel?: string;
-  /** 留まる操作の文言。 */
+  /**
+   * 留まる操作の文言。
+   *
+   * @defaultValue "留まる"
+   */
   cancelLabel?: string;
 };
 
-/** click の経路から、遷移の起点になる link を探す。 */
+/**
+ * click の経路から、遷移の起点になる link を探す。
+ *
+ * @param path - click の合成された経路。
+ * @returns 最も内側の link。無ければ `undefined`。
+ */
 function findAnchor(path: readonly EventTarget[]): HTMLAnchorElement | undefined {
   for (const node of path) {
     if (node instanceof HTMLAnchorElement) return node;
@@ -40,7 +61,12 @@ function findAnchor(path: readonly EventTarget[]): HTMLAnchorElement | undefined
   return undefined;
 }
 
-/** 同一 origin かつ現在地と異なる遷移先だけを、確認の対象にする。 */
+/**
+ * 同一 origin かつ現在地と異なる遷移先だけを、確認の対象にする。
+ *
+ * @param anchor - 遷移の起点になる link。
+ * @returns 確認の対象にする遷移先。対象外なら `undefined`。
+ */
 function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
   if (anchor.target !== "" && anchor.target !== "_self") return undefined;
   if (anchor.origin !== window.location.origin) return undefined;
@@ -80,6 +106,8 @@ function resolveGuardedHref(anchor: HTMLAnchorElement): string | undefined {
  * </NavigationGuard>
  * ```
  *
+ * @param props - 確認するかどうかと、監視する範囲および dialog の文言。
+ *
  * @see Storybook `Navigation/NavigationGuard`
  */
 export function NavigationGuard({
@@ -95,6 +123,11 @@ export function NavigationGuard({
   const [open, setOpen] = useState(false);
   const pendingAnchorRef = useRef<HTMLAnchorElement>(null);
 
+  /**
+   * 配下の link の click を捕捉段階で受け取り、確認の対象なら遷移を止めて dialog を開く。
+   *
+   * @param event - 捕捉段階の `click`。
+   */
   const interceptNavigation = useCallback(
     (event: MouseEvent<HTMLDivElement>) => {
       if (!when) return;
@@ -116,11 +149,17 @@ export function NavigationGuard({
     [when],
   );
 
+  /**
+   * dialog を閉じたあとの focus を、遷移の起点になった link へ戻す。
+   *
+   * @param event - `onCloseAutoFocus` が渡す event。
+   */
   const restoreFocus = useCallback((event: Event) => {
     event.preventDefault();
     pendingAnchorRef.current?.focus();
   }, []);
 
+  /** 確認を閉じ、止めていた遷移先へ進む。 */
   const leave = useCallback(() => {
     setOpen(false);
     router.push(pendingHref);

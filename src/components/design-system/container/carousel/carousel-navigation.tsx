@@ -17,10 +17,22 @@ import { alignSlideToStart, CAROUSEL_CONTENT_SLOT, CAROUSEL_ITEM_SLOT } from "./
 
 const CarouselCurrentContext = createContext<string | null>(null);
 
+/**
+ * fragment 付きの `href` から、指している slide の `id` を取り出す。
+ *
+ * @param href - `#` から始まる、slide の `id` を指す参照
+ * @returns `#` を除き、percent encoding を解いた `id`
+ */
 function slideIdOf(href: string) {
   return decodeURIComponent(href.slice(1));
 }
 
+/**
+ * 領域からはみ出している要素だけを、はみ出した分だけ横へ送って見える位置へ戻す。
+ *
+ * @param container - 横スクロールする領域
+ * @param target - 見える位置へ戻す要素
+ */
 function keepVisible(container: Element, target: Element) {
   const view = container.getBoundingClientRect();
   const box = target.getBoundingClientRect();
@@ -40,6 +52,13 @@ export type CarouselNavigationProps = Omit<ComponentProps<"a">, "href"> & {
   href: string;
 };
 
+/**
+ * `href` が指す slide を領域の先頭へ寄せ、fragment 遷移の既定動作を止める。行き先が見つからない
+ * ときは何もせず、link の既定動作に任せる。
+ *
+ * @param event - link の click event
+ * @param href - 移動先の slide を指す参照
+ */
 function scrollToSlide(event: MouseEvent<HTMLAnchorElement>, href: string) {
   const target = document.getElementById(slideIdOf(href));
   const content = target?.closest(CAROUSEL_CONTENT_SLOT);
@@ -52,6 +71,14 @@ function scrollToSlide(event: MouseEvent<HTMLAnchorElement>, href: string) {
   alignSlideToStart(content, target);
 }
 
+/**
+ * link の click handler を組み立てる。呼び出し元の handler を先に呼び、既定動作が止められていた
+ * 場合と修飾キーを伴う click では送らない。
+ *
+ * @param href - 移動先の slide を指す参照
+ * @param onClick - 呼び出し元が渡した click handler
+ * @returns link へ渡す click handler
+ */
 function handleSlideClick(href: string, onClick?: MouseEventHandler<HTMLAnchorElement>) {
   return (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);

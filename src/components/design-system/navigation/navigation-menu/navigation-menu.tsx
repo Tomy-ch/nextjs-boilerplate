@@ -20,9 +20,7 @@ import { ChevronDownIcon } from "@/components/icon";
  *
  * 現在地の明示は `Breadcrumb`、ページ内の一覧送りは `Pagination` が担う。
  *
- * @param props - Radix `NavigationMenu.Root` の props。
- * @param props.viewport - 開いた内容を共通の viewport へまとめるか。`false` にすると各項目の
- *   直下へ表示する。
+ * @param props - Radix `NavigationMenu.Root` の props と、表示用の props。
  *
  * @see Storybook `Navigation/NavigationMenu`
  */
@@ -32,6 +30,11 @@ function NavigationMenu({
   viewport = true,
   ...props
 }: ComponentProps<typeof NavigationMenuPrimitive.Root> & {
+  /**
+   * 開いた内容を共通の viewport へまとめるか。`false` にすると各項目の直下へ表示する。
+   *
+   * @defaultValue `true`
+   */
   viewport?: boolean;
 }) {
   return (

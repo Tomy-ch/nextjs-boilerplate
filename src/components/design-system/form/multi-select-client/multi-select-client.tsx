@@ -31,25 +31,41 @@ export type MultiSelectClientProps = {
   defaultValue?: readonly string[];
   /** 選択が変わったときの通知。候補の並び順で渡す。 */
   onValueChange?: (values: readonly string[]) => void;
-  /** 1 つも選ばれていないときに trigger へ表示する文言。 */
+  /**
+   * 1 つも選ばれていないときに trigger へ表示する文言。
+   *
+   * @defaultValue `"すべて"`
+   */
   placeholder?: string;
   /**
    * 2 件以上選ばれたときの要約を組む。
    *
    * @remarks
    * 省略すると「<先頭の文言> 他 N 件」になる。単位や語順を変えたい場合に渡す。
+   *
+   * @defaultValue 「<先頭の文言> 他 N 件」を組む関数。
    */
   formatSummary?: (labels: readonly string[]) => string;
   /** trigger のアクセシブルな名前。`aria-labelledby` を渡す場合は不要。 */
   "aria-label"?: string;
   /** 名前を外の要素から参照する場合の id。 */
   "aria-labelledby"?: string;
-  /** 入力を無効にするか。 */
+  /**
+   * 入力を無効にするか。
+   *
+   * @defaultValue `false`
+   */
   disabled?: boolean;
   /** trigger へ追加する class。 */
   className?: string;
 };
 
+/**
+ * 2 件以上選ばれたときの既定の要約を組む。
+ *
+ * @param labels - 選ばれている文言。
+ * @returns 「<先頭の文言> 他 N 件」の形の要約。
+ */
 function defaultSummary(labels: readonly string[]): string {
   return `${labels[0]} 他 ${labels.length - 1} 件`;
 }
@@ -60,6 +76,12 @@ function defaultSummary(labels: readonly string[]): string {
  * @remarks
  * **候補の並び順で返します。** 押した順に積むと、同じ組み合わせでも並びが変わり、値を URL へ
  * 載せる呼び出し元では同じ条件が別のリンクとして見えます。
+ *
+ * @param options - 並べている候補。返り値の並び順の基準になる。
+ * @param current - いま選ばれている値。
+ * @param toggled - 入り切りを変えた候補の値。
+ * @param checked - 変えた後に入っているか。
+ * @returns 変更後に選ばれている値。候補の並び順で返す。
  */
 export function toToggledValues(
   options: readonly MultiSelectClientOption[],
@@ -72,7 +94,14 @@ export function toToggledValues(
     .filter((candidate) => (candidate === toggled ? checked : current.includes(candidate)));
 }
 
-/** 選ばれている文言を、trigger に出す 1 行へ畳む。 */
+/**
+ * 選ばれている文言を、trigger に出す 1 行へ畳む。
+ *
+ * @param labels - 選ばれている文言。
+ * @param placeholder - 1 つも選ばれていないときに返す文言。
+ * @param format - 2 件以上選ばれているときに要約を組む関数。
+ * @returns trigger に出す 1 行。
+ */
 export function toSummary(
   labels: readonly string[],
   placeholder: string,
@@ -116,10 +145,7 @@ export function toSummary(
  * />
  * ```
  *
- * @param props - 下記の表示用 props。native 属性は透過しない。
- * @param props.name - 送信するフィールド名。選ばれた数だけ繰り返す。
- * @param props.options - 並べる候補。並び順がそのまま表示順になる。
- * @param props.formatSummary - 2 件以上選ばれたときの要約。省略時は「<先頭> 他 N 件」。
+ * @param props - 表示用 props。native 属性は透過しない。
  * @see Storybook `Form/MultiSelectClient`
  */
 export function MultiSelectClient({

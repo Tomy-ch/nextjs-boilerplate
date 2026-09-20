@@ -19,6 +19,8 @@ export type CheckboxClientProps = React.ComponentProps<typeof CheckboxPrimitive.
  *
  * indeterminate は checked と別の印（横線）で示す。同じ印だと背景の塗りだけが違う状態になり、
  * 「一部選択」と「選択済み」が一目で区別できない。
+ *
+ * @param props - Radix `Checkbox.Root` の props。
  */
 function CheckboxClient({ className, ...props }: CheckboxClientProps) {
   return (

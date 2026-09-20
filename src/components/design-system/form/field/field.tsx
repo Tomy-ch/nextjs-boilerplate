@@ -10,6 +10,7 @@ import { Label } from "../label/label";
  * @remarks
  * 群そのものの名前は {@link FieldLegend} が与える。単一の入力項目には使わず {@link Field} を使う。
  *
+ * @param props - native `fieldset` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
@@ -24,6 +25,7 @@ export function FieldSet({ className, ...props }: ComponentProps<"fieldset">) {
  * @remarks
  * `fieldset` の直下に置く。支援技術は群に属する各 control の名前へこの文字列を前置して読み上げる。
  *
+ * @param props - native `legend` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldLegend({ className, ...props }: ComponentProps<"legend">) {
@@ -42,6 +44,7 @@ export function FieldLegend({ className, ...props }: ComponentProps<"legend">) {
  * @remarks
  * 意味論を持たない `div` であり、群としての名前が要る場合は {@link FieldSet} と {@link FieldLegend} を使う。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldGroup({ className, ...props }: ComponentProps<"div">) {
@@ -67,6 +70,8 @@ export type FieldProps = ComponentProps<"div"> & {
    *
    * - `vertical`: label を control の上に置く既定の配置
    * - `horizontal`: checkbox や switch のように label を control の横へ置く配置
+   *
+   * @defaultValue `"vertical"`
    */
   orientation?: "horizontal" | "vertical";
 };
@@ -88,8 +93,7 @@ export type FieldProps = ComponentProps<"div"> & {
  * </Field>
  * ```
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.orientation - label と control の並べ方。
+ * @param props - native `div` 属性と、表示用 props。
  * @see Storybook `Form/Field`
  */
 export function Field({ className, orientation = "vertical", ...props }: FieldProps) {
@@ -114,6 +118,7 @@ export function Field({ className, orientation = "vertical", ...props }: FieldPr
  * `orientation="horizontal"` の {@link Field} で、control と釣り合う幅を占めて残りを埋める。
  * 縦並びの field では入れ子にする必要はない。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldContent({ className, ...props }: ComponentProps<"div">) {
@@ -150,6 +155,7 @@ export function FieldLabel({ className, ...props }: ComponentProps<typeof Label>
  * `label` 要素ではないため control とは関連付かない。入力欄の名称には {@link FieldLabel} を使う。
  * 用途は、複数の control をまとめた行の表題や、値を表示するだけの項目の名称である。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldTitle({ className, ...props }: ComponentProps<"div">) {
@@ -169,6 +175,7 @@ export function FieldTitle({ className, ...props }: ComponentProps<"div">) {
  * 支援技術へ届けるには `id` を与え、control 側の `aria-describedby` から参照する。参照しない場合、
  * 視覚的には見えても読み上げ時に control と結び付かない。エラー文言には {@link FieldError} を使う。
  *
+ * @param props - native `p` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldDescription({ className, ...props }: ComponentProps<"p">) {
@@ -222,6 +229,7 @@ export function FieldSeparator({
  * control との結び付け方は {@link FieldDescription} と同じで、併せて `aria-invalid` を立てる。
  * 文言の整形と検証は持たないため、利用者向けの文字列を呼び出し元が渡す。
  *
+ * @param props - native `div` 属性。
  * @see Storybook `Form/Field`
  */
 export function FieldError({ className, ...props }: ComponentProps<"div">) {
