@@ -25,8 +25,7 @@ type Event = z.infer<typeof schema>;
 
 let opened: OpenStreamOptions<Event> | undefined;
 
-function ignoreEvents(): void {
-}
+function ignoreEvents(): void {}
 
 function Probe({
   enabled = true,
