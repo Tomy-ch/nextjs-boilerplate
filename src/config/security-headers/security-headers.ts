@@ -107,6 +107,9 @@ const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
  *   eval を使うためで、本番の React も Next.js も eval を使いません
  * - `upgrade-insecure-requests` は https で配信しているときだけ出します。http の開発環境で出すと、
  *   `http://localhost` の副資源まで https へ書き換えられて取得できなくなります
+ *
+ * @param inputs - 検証済みの ENV と配信の条件
+ * @returns CSP ヘッダの値
  */
 function buildContentSecurityPolicy({
   apiOrigin,

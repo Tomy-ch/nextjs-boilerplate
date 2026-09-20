@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** observability purpose 専用の ENV validator を定義する。 */
-
 /** signal exporter の有効化値型です。 */
 export type OtelExporter = "otlp" | "none" | "";
 
@@ -39,12 +37,20 @@ const renderSpans = z
   .enum([RenderSpanScope.NONE, RenderSpanScope.SCREEN, RenderSpanScope.PART])
   .default(RenderSpanScope.SCREEN);
 
-/** OTLP exporter の endpoint を検証する。 */
+/**
+ * OTLP exporter の endpoint を検証する。
+ *
+ * @returns OTLP endpoint の検証器
+ */
 export function otlpEndpointValidator() {
   return httpUrl;
 }
 
-/** signal 別 exporter の有効化値を検証する。空文字列と none は無効として扱う。 */
+/**
+ * signal 別 exporter の有効化値を検証する。空文字列と none は無効として扱う。
+ *
+ * @returns exporter 有効化値の検証器
+ */
 export function otlpExporterValidator() {
   return exporter;
 }
@@ -56,12 +62,18 @@ export function otlpExporterValidator() {
  * 既定を `screen` にするのは、画面 1 つあたり 2 span で済み、外向きの通信を画面へ結び付けるという
  * 目的がその範囲で満たされるためです。`part` は 1 描画の span が描く部品の数だけ増えるので、
  * 分岐した結果を読みたいときに開けます。
+ *
+ * @returns 描画 span の範囲の検証器
  */
 export function renderSpansValidator() {
   return renderSpans;
 }
 
-/** テレメトリの発信元を表す service 名を検証する。 */
+/**
+ * テレメトリの発信元を表す service 名を検証する。
+ *
+ * @returns service 名の検証器
+ */
 export function serviceNameValidator() {
   return z.string().min(1);
 }

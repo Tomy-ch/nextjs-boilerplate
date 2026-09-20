@@ -7,7 +7,6 @@ import { SESSION_ROLE } from "@/model/session";
 const IssueRequest = z.object({
   /** 誰として振る舞うか。 */
   subject: z.string().min(1).default("user-john-doe"),
-  /** 与える役割。 */
   role: z.enum([SESSION_ROLE.admin, SESSION_ROLE.user]).default(SESSION_ROLE.user),
   /** 失効までの秒数。失効の挙動を試すために短くもできる。 */
   expiresInSeconds: z.number().int().positive().default(3600),
@@ -31,7 +30,7 @@ const IssueRequest = z.object({
  * session の組み立ては `adapters/server` が持ちます。ここが持つのは、開ける環境の判定と
  * 受け取った指定の検証だけです。
  *
- * @returns 発行できたときは 204。開けていない環境では 404
+ * @returns 発行できたときは 204。指定が不正なときは 400。開けていない環境では 404
  */
 export async function POST(request: Request): Promise<Response> {
   if (!(await isDevelopmentAccessAllowed())) {

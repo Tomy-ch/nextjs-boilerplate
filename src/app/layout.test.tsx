@@ -76,7 +76,7 @@ describe("RootLayout", () => {
 
   it("配る書体はラテンの 2 つだけで、和文の Web フォントは持たない", () => {
     // 和文書体を `next/font` で読むと、番号付きスライスの @font-face が全て、描画をブロックする
-    // CSS として載る。増やすならその費用を測り直すこと（0051 §5）。
+    // CSS として載る。増やすならその費用を測り直すこと（関連は README「関連する ADR」）。
     const markup = renderToStaticMarkup(
       <RootLayout>
         <p>テスト用コンテンツ</p>

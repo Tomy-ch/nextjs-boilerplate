@@ -100,7 +100,6 @@ describe("buildSecurityHeaders", () => {
   });
 
   it("購読の宛先だけを connect-src へ開ける", () => {
-    // 取得は同一オリジンの中継が担うので `'self'` で足りる。ブラウザが直接開くのは購読だけ。
     expect(directives(production).get("connect-src")).toStrictEqual([
       "'self'",
       "https://api.example.com",

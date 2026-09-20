@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** media purpose 専用の ENV validator を定義する。 */
-
 const httpUrl = z.url().refine(
   (value) => {
     const protocol = new URL(value).protocol;
@@ -10,7 +8,11 @@ const httpUrl = z.url().refine(
   { error: "http または https の URL を指定してください" },
 );
 
-/** media 配信 origin を検証する。 */
+/**
+ * media 配信 origin を検証する。
+ *
+ * @returns media 配信 origin の検証器
+ */
 export function mediaOriginValidator() {
   return httpUrl;
 }

@@ -28,6 +28,10 @@ const formatters = new Map<string, Intl.NumberFormat>();
  *
  * @remarks
  * 生成には locale データの解決が伴うため、描画ごとに作ると件数に比例して積み上がります。
+ *
+ * @param locale - 用いる locale
+ * @param currency - 用いる通貨
+ * @returns 対応する `Intl.NumberFormat`
  */
 function formatterOf(locale: string, currency: string): Intl.NumberFormat {
   const key = `${locale}/${currency}`;
@@ -48,6 +52,11 @@ function formatterOf(locale: string, currency: string): Intl.NumberFormat {
  * 1 単位あたりの最小単位の数は通貨ごとに違う（`USD` は 100、`JPY` は 1）ため、`Intl` が
  * その通貨に用いる小数桁から導きます。通貨と桁数の対応を手元の表に持つと、扱う通貨が
  * 増えるたびに 2 か所を揃えることになります。
+ *
+ * @param minorUnits - 最小単位の整数で表した金額
+ * @param currency - 用いる通貨
+ * @param locale - 用いる locale
+ * @returns 通貨表記の文字列
  */
 function formatMinorUnits(minorUnits: number, currency: string, locale: string): string {
   const formatter = formatterOf(locale, currency);
@@ -66,6 +75,7 @@ function formatMinorUnits(minorUnits: number, currency: string, locale: string):
  *
  * @param minorUnits - 最小単位（セント）の整数で表した金額
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 基準通貨の表示用文字列
  */
 export function formatMoney(minorUnits: number, locale: string = DEFAULT_LOCALE): string {
   return formatMinorUnits(minorUnits, BASE_CURRENCY, locale);
@@ -80,6 +90,7 @@ export function formatMoney(minorUnits: number, locale: string = DEFAULT_LOCALE)
  *
  * @param reference - 契約が返した参考換算額
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 表示通貨の表示用文字列
  */
 export function formatReferenceAmount(
   reference: ReferenceAmount,

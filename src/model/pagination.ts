@@ -27,8 +27,10 @@ export type CursorPage<T> = {
  * 重複が出るのは取得元が cursor の約束を守っていない場合であり、それを表示層で吸収すると
  * 契約違反が見えなくなります。
  *
+ * @typeParam T - ページに含まれる要素の型
  * @param loaded - すでに読み込んであるページ
  * @param next - 継ぎ足すページ
+ * @returns 継ぎ足した後のページ
  */
 export function appendCursorPage<T>(loaded: CursorPage<T>, next: CursorPage<T>): CursorPage<T> {
   return {
@@ -66,6 +68,10 @@ export type OffsetPage<T> = {
  * @remarks
  * 1 ページの件数が 0 以下なら 1 を返します。0 除算を画面へ運ばないためで、割る数が 0 になるのは
  * 契約が最小 1 を要求する値を欠いたときだけです。
+ *
+ * @param offset - このページの先頭が全体の何件目か。0 から数える
+ * @param perPage - 1 ページあたりの件数
+ * @returns 1 から数えるページ番号
  */
 export function toPageNumber(offset: number, perPage: number): number {
   if (perPage <= 0) {
@@ -83,6 +89,10 @@ export function toPageNumber(offset: number, perPage: number): number {
  * 位置の数え方と矛盾しないためです。
  *
  * 1 ページの件数が 0 以下のときも 1 を返します（{@link toPageNumber} と同じ理由）。
+ *
+ * @param total - 絞り込みを適用した後の全件数
+ * @param perPage - 1 ページあたりの件数
+ * @returns 最後のページ番号
  */
 export function toPageCount(total: number, perPage: number): number {
   if (perPage <= 0) {

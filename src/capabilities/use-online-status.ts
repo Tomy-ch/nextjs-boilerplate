@@ -2,7 +2,11 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-/** サーバでは回線の有無を判定できないため、繋がっている側を返す。 */
+/**
+ * サーバでは回線の有無を判定できないため、繋がっている側を返す。
+ *
+ * @returns 常に `true`
+ */
 function serverSnapshot(): boolean {
   return true;
 }

@@ -24,6 +24,9 @@ export type UserId = z.infer<typeof userIdSchema>;
  * @remarks
  * **呼んでよいのは境界だけ**です。外から来た値を確定させる場所（`adapters` の検証の出口・
  * フォームの受け取り）で 1 度だけ通し、内側では確定した型を持ち回ります。
+ *
+ * @param value - 確定させる文字列
+ * @returns 利用者の識別子
  */
 export function toUserId(value: string): UserId {
   return userIdSchema.parse(value);

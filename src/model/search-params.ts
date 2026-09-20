@@ -20,7 +20,12 @@ import { z } from "zod";
  */
 export type RawSearchParams = Readonly<Record<string, string | readonly string[] | undefined>>;
 
-/** 前後の空白を落とし、空なら未指定として扱う。 */
+/**
+ * 前後の空白を落とし、空なら未指定として扱う。
+ *
+ * @param value - 判定する文字列
+ * @returns 前後の空白を落とした文字列。空なら undefined
+ */
 function toTrimmed(value: string): string | undefined {
   const trimmed = value.trim();
 
@@ -34,7 +39,9 @@ function toTrimmed(value: string): string | undefined {
  * **繰り返されていたら未指定として扱います**（同じキーの読み方は module 冒頭の規則が持ちます）。
  * 既定へ倒す先は、渡したスキーマの `.catch()` や `.default()` が持ちます。
  *
+ * @typeParam Schema - 取り出した値を照らすスキーマの型
  * @param schema - 取り出した 1 つの値を照らすスキーマ
+ * @returns 前処理を組み込んだスキーマ
  */
 export function singleValue<Schema extends z.ZodType>(schema: Schema) {
   return z.preprocess(
@@ -51,7 +58,9 @@ export function singleValue<Schema extends z.ZodType>(schema: Schema) {
  * 1 つだけ選ばれた条件は URL に 1 回しか現れないため、単一の文字列も 1 件の並びとして読みます。
  * 空の値は落とします。入力欄を空にして送った form は `?key=` を URL に残すためです。
  *
+ * @typeParam Schema - 取り出した並びを照らすスキーマの型
  * @param schema - 取り出した並びを照らすスキーマ
+ * @returns 前処理を組み込んだスキーマ
  */
 export function repeatedValues<Schema extends z.ZodType>(schema: Schema) {
   return z.preprocess((value) => {

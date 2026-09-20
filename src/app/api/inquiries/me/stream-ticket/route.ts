@@ -6,7 +6,6 @@ import { toCaughtErrorResponse } from "@/adapters/server/http/error-response";
  *
  * @remarks
  * ブラウザは Access Token を持たないため、backend の発券口を通せるのはこの中継だけです。
- * ここが持つのは分類を HTTP へ写すことだけで、取得も検証も `adapters/server` が済ませています。
  *
  * **`GET` を置きません。** 発券は ticket という状態を作る操作で、契約も `POST` だけを受けます。
  *

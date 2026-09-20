@@ -26,6 +26,8 @@ const MEASUREMENT_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
  *
  * `document.cookie` を生で読む実装がここと `stores/consent-store`（読む相手は同意の cookie で別物）の
  * 2 か所にあるのは、`stores` が `capabilities` を引けず、共通の読み手へ寄せられないためです。
+ *
+ * @returns 形の合った計測 id。合わなければ `undefined`。
  */
 function readMeasurementId(): string | undefined {
   const value = document.cookie

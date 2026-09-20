@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** API purpose 専用の ENV validator を定義する。 */
-
 const httpUrl = z.url().refine(
   (value) => {
     const protocol = new URL(value).protocol;
@@ -10,12 +8,20 @@ const httpUrl = z.url().refine(
   { error: "http または https の URL を指定してください" },
 );
 
-/** API の接続先 URL を検証する。 */
+/**
+ * API の接続先 URL を検証する。
+ *
+ * @returns API base URL の検証器
+ */
 export function apiBaseUrlValidator() {
   return httpUrl;
 }
 
-/** API 接続モードを検証する。 */
+/**
+ * API 接続モードを検証する。
+ *
+ * @returns API 接続モードの検証器
+ */
 export function apiModeValidator() {
   return z.enum(["live", "mock"]);
 }

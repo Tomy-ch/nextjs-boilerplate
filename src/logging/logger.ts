@@ -53,8 +53,32 @@ export type TraceContextExtractor = () => TraceContext | undefined;
 
 /** アプリケーションが依存する構造化 logger の公開契約です。 */
 export interface Logger {
+  /**
+   * debug レベルでログを書き出す。
+   *
+   * @param message - ログメッセージ
+   * @param fields - 追加の構造化フィールド
+   */
   debug(message: string, fields?: LogFields): void;
+  /**
+   * info レベルでログを書き出す。
+   *
+   * @param message - ログメッセージ
+   * @param fields - 追加の構造化フィールド
+   */
   info(message: string, fields?: LogFields): void;
+  /**
+   * warn レベルでログを書き出す。
+   *
+   * @param message - ログメッセージ
+   * @param fields - 追加の構造化フィールド
+   */
   warn(message: string, fields?: LogFields): void;
+  /**
+   * error レベルでログを書き出す。
+   *
+   * @param message - ログメッセージ
+   * @param fields - 追加の構造化フィールド
+   */
   error(message: string, fields?: LogFields): void;
 }

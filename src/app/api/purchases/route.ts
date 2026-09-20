@@ -11,9 +11,9 @@ import { ErrorKind } from "@/errors/error-kind";
  * `adapters/server` が済ませこのハンドラは分類を HTTP へ写すだけである点は、一覧の増分取得
  * （`../products/route.ts`）と同じです。
  *
- * この口が要るのは、0073 が client の増分取得を **same-origin への薄い fetch** に限っている
- * ためです。client からバックエンドを直接叩くと、資格情報の載せ方と timeout・再試行が
- * `adapters/server` の外にもう 1 系統できます。
+ * この口が要るのは、client の増分取得を **same-origin への薄い fetch** に限っているためです
+ * （[README](../README.md)「関連する ADR」）。client からバックエンドを直接叩くと、資格情報の載せ方と
+ * timeout・再試行が `adapters/server` の外にもう 1 系統できます。
  *
  * 認証は購入の取得そのものが要求します。ここで先に弾かないのは、判定を 2 か所に置くと
  * 片方だけが緩む余地が残るためで、資格情報が無い要求は `adapters` が `unauthenticated` として

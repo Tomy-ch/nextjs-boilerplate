@@ -46,6 +46,8 @@ const PUBLIC_PATHS: readonly string[] = [
  *
  * 主体を名乗らない口を使うのは、`use cache` の中で cookie を読めないためです
  * （`adapters/server/api/public-products`）。
+ *
+ * @returns 公開中の商品の詳細経路の一覧。
  */
 async function listProductPaths(): Promise<string[]> {
   "use cache";
@@ -71,6 +73,8 @@ async function listProductPaths(): Promise<string[]> {
  * 一覧の取得が失敗しても、backend に依らない経路まで一緒に落としません。500 を返すと、
  * クローラは静的な画面の存在まで知れなくなります。失敗の分類と記録は `adapters` の境界が
  * 済ませているので、ここでは記録し直しません。
+ *
+ * @returns 商品の経路の一覧。取得に失敗すれば空配列。
  */
 async function findProductPaths(): Promise<string[]> {
   try {

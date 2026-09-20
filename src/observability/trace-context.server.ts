@@ -18,7 +18,11 @@ export type ActiveTraceContext = Readonly<{
 /** W3C Trace Context の `traceparent` ヘッダ形式。version は `00` で固定されている。 */
 const TRACEPARENT = /^00-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$/;
 
-/** 現在アクティブな span から、ログ相関に使う識別子を抽出する。 */
+/**
+ * 現在アクティブな span から、ログ相関に使う識別子を抽出する。
+ *
+ * @returns 抽出した {@link ActiveTraceContext}。アクティブな span が無ければ `undefined`
+ */
 export function extractActiveTraceContext(): ActiveTraceContext | undefined {
   const spanContext = findActiveSpanContext();
 
@@ -73,14 +77,23 @@ export function withRemoteTraceContext(traceparent: string | undefined, run: () 
   context.with(remote, run);
 }
 
-/** アクティブな span の識別子。無効なものは無いものとして扱う。 */
+/**
+ * アクティブな span の識別子。無効なものは無いものとして扱う。
+ *
+ * @returns 有効な `SpanContext`。無ければ `undefined`
+ */
 function findActiveSpanContext(): SpanContext | undefined {
   const spanContext = trace.getActiveSpan()?.spanContext();
 
   return spanContext !== undefined && isSpanContextValid(spanContext) ? spanContext : undefined;
 }
 
-/** `traceparent` を span の識別子へ読み替える。形が違う値と全 0 の識別子は受け付けない。 */
+/**
+ * `traceparent` を span の識別子へ読み替える。形が違う値と全 0 の識別子は受け付けない。
+ *
+ * @param traceparent - 読み替え対象の W3C Trace Context
+ * @returns 読み替えた `SpanContext`。形が合わなければ `undefined`
+ */
 function toSpanContext(traceparent: string): SpanContext | undefined {
   if (!TRACEPARENT.test(traceparent)) {
     return undefined;

@@ -15,6 +15,10 @@ const tracer = trace.getTracer("render");
  * 本体で待つ取得だけが中に入ります。
  *
  * この実装を feature へ直接持たせません。起動境界が {@link RenderSpanRunner} としてここを注入します。
+ *
+ * @param name - span 名に載せるモジュールパス
+ * @param render - span で包んで実行する描画
+ * @returns render の戻り値
  */
 export const runRenderSpan: RenderSpanRunner = (name, render) =>
   tracer.startActiveSpan(`render ${name}`, (span) => {
@@ -41,7 +45,12 @@ export const runRenderSpan: RenderSpanRunner = (name, render) =>
     }
   });
 
-/** 失敗として span を閉じる。ただし Next が制御に使う throw は失敗として記録しない。 */
+/**
+ * 失敗として span を閉じる。ただし Next が制御に使う throw は失敗として記録しない。
+ *
+ * @param span - 閉じる対象の span
+ * @param error - 捕捉した値
+ */
 function endWithFailure(span: Span, error: unknown): void {
   if (!isNavigationSignal(error)) {
     span.setStatus({ code: SpanStatusCode.ERROR });
@@ -60,6 +69,9 @@ function endWithFailure(span: Span, error: unknown): void {
  * @remarks
  * 判定を digest の中身から読み取らず `unstable_rethrow` に委ねます。対象は framework の内部表現で、
  * 版が変われば形も変わります。
+ *
+ * @param error - 判定対象の値
+ * @returns framework が制御に使う throw であれば `true`
  */
 function isNavigationSignal(error: unknown): boolean {
   try {

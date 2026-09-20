@@ -18,7 +18,11 @@ import {
 import { isAdmin } from "@/model/authz";
 import { toUserId } from "@/model/user/user";
 
-/** 役割を持たない主体の要求をここで止める。 */
+/**
+ * 役割を持たない主体の要求をここで止める。
+ *
+ * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
+ */
 async function assertAdmin(): Promise<void> {
   if (!isAdmin(await verifySession())) {
     throw createAppError(ErrorKind.PERMISSION_DENIED, {
@@ -39,6 +43,10 @@ async function assertAdmin(): Promise<void> {
  * 「進行中の購入が残っている」ことであるのは、この画面でしか言えません。
  *
  * 呼び名を結果へ載せて返すのは、成立した時点でその行が一覧から消えていることがあるためです。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 退会させる利用者の識別子と呼び名を積んだ送信内容。
+ * @returns 送信結果を表す action state。
  */
 export async function withdrawUserAction(
   _previous: WithdrawUserState,

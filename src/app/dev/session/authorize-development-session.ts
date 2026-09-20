@@ -46,6 +46,9 @@ export type AuthorizeOutcome =
  * **対応づける値が正しいかは判定しません。** 突き合わせるのは `/api/auth/callback` が復元する
  * 一時状態で、ここでも判定すると同じ判定が 2 か所に分かれます。ここが見るのは、載っているか
  * どうかだけです。
+ *
+ * @param request - 開発用 IdP からの認可応答を運ぶ要求。
+ * @returns 送り出す先を表す結果。
  */
 export async function authorizeDevelopmentSession(request: Request): Promise<AuthorizeOutcome> {
   const declaredBytes = Number(request.headers.get("content-length") ?? 0);

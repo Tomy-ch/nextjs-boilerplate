@@ -24,6 +24,8 @@ type ConsentStore = {
  *
  * @remarks
  * 呼ぶのはブラウザ側だけです（{@link useConsentState} の effect）。
+ *
+ * @returns 読み取った同意状態
  */
 function readConsentCookie(): ConsentState {
   const found = document.cookie
@@ -42,6 +44,8 @@ function readConsentCookie(): ConsentState {
  *
  * `secure` は https で配信されているときだけ付けます。常に付けると `http://localhost` の開発で
  * 保存されず、選んでも次の描画でまた尋ねることになります。
+ *
+ * @param choice - 保存する意思
  */
 function writeConsentCookie(choice: ConsentChoice): void {
   const attributes = [
@@ -64,7 +68,11 @@ function writeConsentCookie(choice: ConsentChoice): void {
  */
 const useConsentStore = create<ConsentStore>(() => ({ state: UNREAD_CONSENT }));
 
-/** いまの同意状態。サーバでもブラウザでも同じ口から読む。 */
+/**
+ * いまの同意状態。サーバでもブラウザでも同じ口から読む。
+ *
+ * @returns いまの同意状態
+ */
 function snapshot(): ConsentState {
   return useConsentStore.getState().state;
 }
@@ -80,6 +88,8 @@ function snapshot(): ConsentState {
  *
  * cookie を読むのは mount 後の 1 回だけです。サーバは同意状態を知らないので、**バナーはその読み
  * 取りの後に現れます**。知らないまま尋ねるか、知るまで待つかのどちらかしかありません。
+ *
+ * @returns いまの同意状態
  */
 export function useConsentState(): ConsentState {
   useEffect(() => {

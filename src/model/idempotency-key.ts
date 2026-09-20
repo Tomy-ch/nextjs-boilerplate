@@ -18,6 +18,8 @@ export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
  *
  * 鍵の役割はバックエンドの再送検知だけで、推測されて困る値ではありません。ここで作れるのは、
  * 送信の単位を決めているのが画面だからです。
+ *
+ * @returns 新しい冪等キー
  */
 export function newIdempotencyKey(): string {
   return newUuid();

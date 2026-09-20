@@ -27,6 +27,7 @@ export class AppError extends Error {
  *
  * @param kind エラー分類
  * @param options 原因エラーを保持するための Error options
+ * @returns 生成した {@link AppError}
  */
 export function createAppError(kind: ErrorKind, options?: ErrorOptions): AppError {
   return new AppError(kind, options);
@@ -35,7 +36,11 @@ export function createAppError(kind: ErrorKind, options?: ErrorOptions): AppErro
 /**
  * cause chain から最初に見つかるアプリケーションエラーを返します。
  *
+ * @remarks
  * cause が循環している場合も走査を停止します。
+ *
+ * @param error - 走査対象のエラー
+ * @returns 見つかった {@link AppError}。無ければ `undefined`
  */
 export function findAppError(error: unknown): AppError | undefined {
   const seen = new Set<Error>();
@@ -53,7 +58,12 @@ export function findAppError(error: unknown): AppError | undefined {
   return undefined;
 }
 
-/** cause chain にアプリケーションエラー分類が含まれるかを返します。 */
+/**
+ * cause chain にアプリケーションエラー分類が含まれるかを返します。
+ *
+ * @param error - 判定対象のエラー
+ * @returns 含まれていれば `true`
+ */
 export function isAppError(error: unknown): boolean {
   return findAppError(error) !== undefined;
 }

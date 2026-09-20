@@ -12,17 +12,30 @@ class ApiConfig {
     this.#mode = mode;
   }
 
-  /** 検証済み ENV から production singleton を組み立てる。 */
+  /**
+   * 検証済み ENV から production singleton を組み立てる。
+   *
+   * @param values - 検証済みの API 用 ENV
+   * @returns 組み立てた {@link ApiConfig}
+   */
   static fromValues(values: ApiEnvironment): ApiConfig {
     return new ApiConfig(values.APP_API_BASE_URL, values.APP_API_MODE);
   }
 
-  /** BFF が接続する API の base URL。 */
+  /**
+   * BFF が接続する API の base URL。
+   *
+   * @returns API の base URL
+   */
   get baseUrl(): string {
     return this.#baseUrl;
   }
 
-  /** API 接続モード。 */
+  /**
+   * API 接続モード。
+   *
+   * @returns API 接続モード
+   */
   get mode(): "live" | "mock" {
     return this.#mode;
   }
@@ -30,7 +43,11 @@ class ApiConfig {
 
 let apiConfig: ApiConfig | undefined;
 
-/** API adapter が利用する、プロセス内で不変な singleton を返す。 */
+/**
+ * API adapter が利用する、プロセス内で不変な singleton を返す。
+ *
+ * @returns {@link ApiConfig} の singleton
+ */
 export function getApiConfig(): ApiConfig {
   apiConfig ??= ApiConfig.fromValues(getEnvironment());
   return apiConfig;

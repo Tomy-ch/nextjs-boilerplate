@@ -22,7 +22,11 @@ import {
 } from "@/model/action-state";
 import { isAdmin } from "@/model/authz";
 
-/** 役割を持たない主体の要求をここで止める。 */
+/**
+ * 役割を持たない主体の要求をここで止める。
+ *
+ * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
+ */
 async function assertAdmin(): Promise<void> {
   if (!isAdmin(await verifySession())) {
     throw createAppError(ErrorKind.PERMISSION_DENIED, {
@@ -31,7 +35,12 @@ async function assertAdmin(): Promise<void> {
   }
 }
 
-/** 送信から発送する購入を取り出す。1 件も載っていなければ空の並び。 */
+/**
+ * 送信から発送する購入を取り出す。1 件も載っていなければ空の並び。
+ *
+ * @param formData - 発送・配達の送信内容。
+ * @returns 文字列として読めた購入コードだけを並べたもの。
+ */
 function readPurchaseCodes(formData: FormData): readonly string[] {
   return formData
     .getAll(SHIPMENT_FORM_NAMES.purchaseCode)
@@ -61,6 +70,9 @@ type ShipmentProgress = {
  * 同じように起きるため、送り続けても数が増えるだけです。
  *
  * 打ち切っても、そこまでに通った件数は返します。使い道は {@link shipPurchasesAction}。
+ *
+ * @param purchaseCodes - 順に発送する購入コード。
+ * @returns 通った件数・拒まれた件数、および打ち切った理由（最後まで送れば null）。
  */
 async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgress> {
   let shipped = 0;
@@ -96,9 +108,12 @@ async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgr
  * 「まだ発送していない注文」になります。**途中で打ち切ったときも同じです** —— 打ち切りの理由を
  * 伝えることと、そこまでに成立した発送を一覧へ反映することは別の話で、後者を落とすと発送済みの
  * 注文が未発送として並び続けます。
-
  *
  * 主体の断言が要る action なので、この層に置きます（[同層の README](../../README.md)）。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 発送する購入の識別子群を積んだ送信内容。
+ * @returns 発送結果を表す action state。
  */
 export async function shipPurchasesAction(
   _previous: ShipmentState,
@@ -145,6 +160,10 @@ export async function shipPurchasesAction(
  * すると押せば必ず競合になる操作が並び続けます。
  *
  * 置き場の判断は {@link shipPurchasesAction} と同じです。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 配達を確認する購入コードを積んだ送信内容。
+ * @returns 配達確認の結果を表す action state。
  */
 export async function deliverPurchaseAction(
   _previous: DeliveryState,
