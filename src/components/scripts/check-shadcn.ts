@@ -259,7 +259,7 @@ export async function checkUpstreamDrift(
 }
 
 /**
- * 記録した上流ファイルの、最新 commit を 1 件だけ問い合わせる URL。
+ * 記録した上流ファイルの、最新 commit を 1 件だけ取りに行く URL。
  *
  * @param source - 記録済みの上流ファイル。
  * @returns GitHub API の commits の URL。
