@@ -119,10 +119,9 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
  * 主体に紐づくものの指定。
  *
  * @remarks
- * **キャッシュの指定を型として持ちません。**「PII を共有キャッシュへ入れるな」を注意書きでは
- * なく引数の不在にするのが、この分類の目的です（0112 決定 1）。それでもキャッシュしたい値の
- * 扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから user-scoped な
- * 取得の口を引かない」が持ちます。
+ * **キャッシュの指定を型として持ちません**（[adapters の README](../../README.md)）。それでも
+ * キャッシュしたい値の扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから
+ * user-scoped な取得の口を引かない」が持ちます。
  */
 type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
 
@@ -190,13 +189,8 @@ type UserScopedCredential =
        * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
        *
        * @remarks
-       * ヘッダの組み立てをこの境界が持つのは、呼び出し側が個別に `Authorization` を
-       * 作らないようにするためです。接続先ごとに認証が要るかどうかが決まるので、
-       * 指定はクライアントの生成時に 1 度だけ行います。
-       *
-       * **要求のたびに `cookies()` から解決する口を渡します**（0112 決定 5）。解決済みの値を掴む
-       * と、cached scope の中で `cookies()` が読まれなくなり、framework 側の防御
-       * （`next-request-in-use-cache`）が何も言わずに外れます。
+       * 接続先ごとに認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+       * ヘッダの組み立てと `cookies()` を読む理由は [adapters の README](../../README.md) が持ちます。
        *
        * @returns 認証できないときは null
        */
@@ -209,9 +203,8 @@ type UserScopedCredential =
        * 解決済みの Bearer。
        *
        * @remarks
-       * **session を確立する途中の 1 往復だけの口です。** その時点では cookie がまだ無く、
-       * 通常の取得口（cookie から Bearer を組む）は存在しません。綴りを分けてあるのは、
-       * 上の防御が外れる箇所を数えられるようにするためです（0112 決定 5 の例外）。
+       * **session を確立する途中の 1 往復だけの口です**（[adapters の README](../../README.md)）。
+       * 綴りを分けてあるのは、上の防御が外れる箇所を数えられるようにするためです。
        */
       bearerToken: string;
     };
@@ -240,9 +233,6 @@ type UserScopedClientDeps = BaseClientDeps &
      * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
      * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
      * 扱われるためです。
-     *
-     * **立てても分類は動きません。** 資格情報を載せうる口は、載せなかった回も含めて
-     * user-scoped です（0112 決定 3）。
      */
     allowAnonymous?: boolean;
   };

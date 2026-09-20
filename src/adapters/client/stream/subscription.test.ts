@@ -118,7 +118,7 @@ function harness(
     received,
     resyncs: () => resyncs,
     latest: () => sources.at(-1),
-    /** 溜まっている待機を 1 つ進める。待機が無ければ何もしない。 */
+    /** 溜まっている待機をすべて進める。待機が無ければ何もしない。 */
     runTimers: () => {
       for (const [id, timer] of [...timers]) {
         timers.delete(id);
@@ -241,7 +241,6 @@ describe("openStream", () => {
     stream.latest()?.handlers.onEvent(envelope(1));
 
     expect(stream.received).toEqual([]);
-    // 2 通届いても窓は 1 つ。重ねて仕掛けると、同じ窓を二度流すことになる。
     expect(stream.delays()).toHaveLength(1);
 
     stream.runTimers();
@@ -299,7 +298,6 @@ describe("openStream", () => {
 
     await settle();
     stream.latest()?.handlers.onOpen();
-    // 窓へ 1 件入れて閉じる時刻を仕掛けたあと、遅れて届いた event で取り直しへ入る。
     stream.latest()?.handlers.onEvent(envelope(6));
     stream.latest()?.handlers.onEvent(envelope(3));
     stream.subscription.resume(toStreamCursor(9));
@@ -479,7 +477,6 @@ describe("openStream", () => {
     stream.latest()?.handlers.onOpen();
     stream.latest()?.handlers.onControl(control("RETRY_LATER", 4_000));
 
-    // 目安にも散らしを掛ける。同じ値が全 client へ配られるため、そのまま待つと山が崩れない。
     expect(stream.delays()).toEqual([3_000]);
   });
 

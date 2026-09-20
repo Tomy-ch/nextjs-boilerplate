@@ -43,8 +43,7 @@ function usesDevelopmentAuthorization(): boolean {
 export function getSessionResolver(): SessionResolver {
   const config = getAuthConfig();
 
-  // 署名鍵を汚す。文字列は参照で追えないので値そのものを登録し、登録の寿命はこの値を持つ singleton
-  // に握らせる。config カーネルは react を持ち込めないため、登録は読む側であるここが行う。
+  // 署名鍵を汚す（README「client へ渡さないものの登録」）。
   taintUniqueValue(
     "session の署名鍵は server 専用です。Client Component へ渡さないでください",
     config,

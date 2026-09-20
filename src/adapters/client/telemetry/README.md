@@ -23,6 +23,8 @@ test-requirement: unit
 | [`route-pattern.ts`](route-pattern.ts) | `unit` | パスから route の型を復元する |
 | [`browser-tracer.ts`](browser-tracer.ts) | `unit` | OTel の provider と計装を組み立てて登録する。実送信は SDK が持つ |
 
+**span の名前にクエリを含めません。** 要求ごとに条件が違うため、含めると同じ経路への要求が別の名前へ散ります（[0082](../../../../docs/adr/0082-client-observability.md)）。クエリを含む URL は既定の計装が `url.full` 属性へ残すため、1 件ずつ辿るときはそちらを読みます。
+
 ## 受け入れるもの
 
 - 報告の組み立てと送信、ブラウザ側の計装の立ち上げ

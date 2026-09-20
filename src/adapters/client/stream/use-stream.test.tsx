@@ -25,9 +25,7 @@ type Event = z.infer<typeof schema>;
 
 let opened: OpenStreamOptions<Event> | undefined;
 
-/** 受け取り手の既定。描画のたびに別の関数を渡さないため、module の側に持つ。 */
 function ignoreEvents(): void {
-  // 受け取らない。
 }
 
 function Probe({

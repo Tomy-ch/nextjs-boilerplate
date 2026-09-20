@@ -28,9 +28,7 @@ import type { AuthorizationTransaction, SessionRecord } from "./session-resolver
  *
  * **復元した記録を汚します。** 出しては困るのは Access Token と ID Token で、それを含む
  * 記録をそのまま Client Component へ渡すと、渡した時点で描画が落ちます。ここで汚すのは、
- * 記録が生まれる場所がここだけだからです。**参照でしか追えない**ので、項目を抜き出した値には
- * 及びません —— 内側の層へ渡してよいのは {@link verifySession} が返す身元だけ、という約束が主で、
- * これはそこを抜けたときに実行時で捕まえる補助です。
+ * 記録が生まれる場所がここだけだからです（[README](./README.md)「client へ渡さないものの登録」）。
  */
 const readSessionRecord = cache(async (): Promise<SessionRecord | null> => {
   const sealed = (await cookies()).get(SESSION_COOKIE_NAME)?.value;

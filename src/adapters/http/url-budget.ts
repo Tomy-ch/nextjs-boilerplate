@@ -18,8 +18,6 @@ import { ErrorKind } from "@/errors/error-kind";
 export function assertRequestTargetWithinBudget(target: string, maxBytes: number): void {
   const bytes = new TextEncoder().encode(target).length;
 
-  // 「収まっている」の否定で判定する。上限が数値として届かなければどの比較も成り立たず、
-  // 素直に書くと予算の無い要求が全部通る。
   if (!(bytes <= maxBytes)) {
     throw createAppError(ErrorKind.URI_TOO_LONG, {
       cause: new Error(

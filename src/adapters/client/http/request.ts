@@ -49,7 +49,7 @@ export type RequestOptions = {
  * 同一オリジンの BFF を叩き、応答を検証して返す。
  *
  * @remarks
- * ブラウザから出る要求はここだけを通ります。timeout・再試行・遮断は `adapters/server` が持ちます。
+ * ブラウザから出る fetch 要求はここだけを通ります（`EventSource` によるストリーム接続はここを通りません。`client/stream/subscription.ts` 参照）。timeout・再試行・遮断は `adapters/server` が持ちます。
  * ここで独自に持つと、同じ要求に対して 2 つの再試行が別々の勘定で走ります。
  *
  * **送る前に予算を確かめます。** 予算を超えた要求は経路の中継が弾き、返るのは中継が
