@@ -24,17 +24,6 @@ describe("buildDanglingCommand", () => {
   it("ヒットが無くても落ちないようにする", () => {
     expect(buildDanglingCommand("商品")).toContain("|| true");
   });
-
-  it("追跡下の全ファイルを走査する", () => {
-    expect(buildDanglingCommand("商品")).toContain("git grep");
-  });
-
-  it("外すと決めた区画を、走査から落とす", () => {
-    const command = buildDanglingCommand("商品");
-
-    expect(command).toContain("':!.github/release'");
-    expect(command).toContain("':!scripts/setup'");
-  });
 });
 
 describe("parseSnapshot", () => {

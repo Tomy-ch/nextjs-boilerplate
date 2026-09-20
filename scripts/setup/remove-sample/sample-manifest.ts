@@ -144,14 +144,8 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
  *
  * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
  * 一致し、題材と無関係な部品が消し残しとして報告されます）。
- *
- * **多義語は載せません。** 「在庫」は作業の残量の、「問い合わせ」は照会の意味でも使われ、走査を
- * リポジトリ全体へ広げると**題材と無関係な 34 箇所**に当たります。語の意味を綴りから決められない
- * 以上、載せれば除外の一覧が育ち、そちらが先に腐ります。**この 2 語だけを使った残留は、この検査を
- * 素通りします** —— 題材の実体はほぼ必ず上の語と同居するため、取りこぼしは狭いという判断です
- * （[scripts](../../README.md)「関連する ADR」）。
  */
-export const DANGLING_PATTERN = String.raw`商品|カート|購入|注文|\bproducts\b|\bcart\b|\binquir`;
+export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|問い合わせ|\bproducts\b|\bcart\b|\binquir`;
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";

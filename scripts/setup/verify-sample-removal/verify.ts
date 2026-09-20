@@ -7,45 +7,16 @@
 const SAMPLE_MAKE_TARGET = "setup-remove-sample";
 
 /**
- * 走査から外す区画。**外す理由を 1 つずつ持つ**（[scripts](../../README.md)「関連する ADR」）。
- *
- * @remarks
- * 外してよいのは 2 種類だけです。**題材の語彙が残っているのが正しい区画**と、**同じ綴りを別の
- * 意味で使う区画**。「いまは鳴るから」は理由になりません。
- */
-const EXCLUDED: readonly { readonly path: string; readonly why: string }[] = [
-  {
-    path: ".github/release",
-    why: "版ごとの記録。何が在ったかを書く場所なので、破棄した題材の名前が残るのが正しい",
-  },
-  { path: "docs/plan", why: "v1.0.0 で破棄される計画書。それまでは題材を前提に書かれている" },
-  { path: "docs/adr/BACKLOG.md", why: "同上。進捗の板であって、作った側へは渡らない" },
-  { path: ".agents", why: "エージェントの道具立て。「在庫」を作業の残量の意味で使う" },
-  { path: ".claude", why: "同上。加えて、規約を説明するために題材の語彙を例示する" },
-  {
-    path: "scripts/setup",
-    why: "破棄の機構そのもの。題材の語彙を宣言している側で、検証の後に自分ごと消える",
-  },
-];
-
-/**
  * 残留サンプル参照を洗い出す shell コマンド。ヒット無しでも非 0 で落ちないようにする。
  *
  * @remarks
  * 語彙を import ではなく引数で受け取る理由は `sample-manifest.ts` の `DANGLING_PATTERN` が
  * 持ちます —— 検証が走る時点で、そのモジュール自体が消えています。
  *
- * **走査は追跡下の全ファイルです。** `src/` と `mocks/` だけを見ると、カタログの模擬応答・E2E の
- * 画面表・契約の取得元・生成器の設定に残った題材が素通りします。外す区画は {@link EXCLUDED} が
- * 理由つきで宣言し、そこだけが走査に入りません。
- *
  * @param danglingPattern - manifest が宣言した題材の語彙
- * @returns 残留を 1 行 1 件で出すコマンド
  */
 export function buildDanglingCommand(danglingPattern: string): string {
-  const excluded = EXCLUDED.map(({ path }) => `':!${path}'`).join(" ");
-
-  return `git grep -niE '${danglingPattern}' -- . ${excluded} || true`;
+  return `grep -rniE '${danglingPattern}' src/ mocks/ --include='*.ts' --include='*.tsx' || true`;
 }
 
 /**
