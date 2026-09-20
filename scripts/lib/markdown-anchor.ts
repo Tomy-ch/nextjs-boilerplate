@@ -24,7 +24,7 @@ const CLOSING_HASHES = /[ \t]#+$/;
  *
  * 見出しの slug ではなく明示の錨を正とする判断は、[scripts](../README.md)「関連する ADR」が持ちます。
  */
-const EXPLICIT_ANCHOR = /<a\s[^<>]*\bid="([^"]+)"/gi;
+const EXPLICIT_ANCHOR = /(?<=<a\s[^<>]*\bid=")[^"]+/gi;
 
 /**
  * 見出しを GitHub と同じ規則でアンカーへ変換する。
@@ -68,7 +68,7 @@ export function collectAnchors(markdown: string): Set<string> {
 
     if (inFence) continue;
 
-    for (const [, id] of line.matchAll(EXPLICIT_ANCHOR)) anchors.add(id.toLowerCase());
+    for (const [id] of line.matchAll(EXPLICIT_ANCHOR)) anchors.add(id.toLowerCase());
 
     const heading = HEADING.exec(line)?.[1];
 
