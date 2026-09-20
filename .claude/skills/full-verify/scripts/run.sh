@@ -693,7 +693,7 @@ process_module() { # $1=dir
   fi
 }
 
-log "Pass2 実装検証を開始（${#MODULES[@]} ユニット, 粒度=$GRANULARITY）"
+log "Pass2 実装検証を開始（${#MODULES[@]} ユニット, 粒度=${GRANULARITY}）"
 cb_reset   # 前回の即失敗カウントを掃除
 
 if [ "$PARALLEL" -gt 1 ]; then
