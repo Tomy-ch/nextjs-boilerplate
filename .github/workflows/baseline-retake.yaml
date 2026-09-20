@@ -370,6 +370,7 @@ jobs:
           {
             echo 'found=false'
             echo 'pending=false'
+            echo 'absent=false'
           } >> "$GITHUB_OUTPUT"
 
           if [ "$STORIES" = 'false' ]; then
@@ -382,7 +383,10 @@ jobs:
               --jq 'if (.workflow_runs | length) == 0 then empty
                     else (.workflow_runs[0] | "\(.id) \(.status)") end')"
 
+            # This has to reach the pull-request comment, not only this log: at the merge
+            # decision a story-only retake is indistinguishable from a complete one.
             if [ -z "$run" ]; then
+              echo 'absent=true' >> "$GITHUB_OUTPUT"
               echo 'ℹ️ この commit に E2E の実行がありません。画面は撮り直しません。'
               exit 0
             fi
@@ -657,6 +661,7 @@ jobs:
           DEFERRED: ${{ steps.gate.outputs.deferred }}
           FAILED: ${{ steps.gate.outputs.failed }}
           SCREENS_PENDING: ${{ steps.screens.outputs.pending }}
+          SCREENS_ABSENT: ${{ steps.screens.outputs.absent }}
           HEAD_REF: ${{ steps.pr.outputs.head_ref }}
           # What actually moved, not what was asked for — the same set the count above is
           # taken from, so the images the comment counts and the ones it opens agree.

@@ -9,6 +9,7 @@ const BASE: RetakeOutcomeInput = {
   ids: "home",
   pointerPrUrl: "",
   screensPending: false,
+  screensAbsent: false,
   headRef: "release/v0.6.0",
   stories: "",
   screens: "home",
@@ -93,6 +94,20 @@ describe("composeRetakeOutcome", () => {
     expect(composeRetakeOutcome({ ...BASE, screensPending: true })).toContain(
       "画面は E2E がまだ判定していないため撮り直していません。",
     );
+  });
+
+  it("E2E が走っていなければ、画面が古いまま残ることと次の一手を書く", () => {
+    const outcome = composeRetakeOutcome({ ...BASE, screensAbsent: true });
+
+    expect(outcome).toContain(
+      "この commit で E2E が走っていないため、画面の基準は撮り直していません",
+    );
+    expect(outcome).toContain("`run-e2e`");
+    expect(outcome).toContain("merge 後の全数で落ちます");
+  });
+
+  it("E2E が走っていれば、走っていないときの断りを出さない", () => {
+    expect(composeRetakeOutcome(BASE)).not.toContain("E2E が走っていないため");
   });
 
   it("動いた画像が無ければ、表を出さない", () => {
