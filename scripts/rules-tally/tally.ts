@@ -42,7 +42,7 @@ const VERDICT = /散文 —— \*\*([^*]+)\*\*/g;
 const BLOCK = /<!-- generated: rules-tally -->[\s\S]*?<!-- \/generated: rules-tally -->/;
 
 /** 判定を自分で述べた規約 1 件。 */
-export interface JudgedRule {
+interface JudgedRule {
   /** 属する節の錨。指す側はこれを使う。 */
   readonly anchor: string;
   /** 属する節の見出し。 */
