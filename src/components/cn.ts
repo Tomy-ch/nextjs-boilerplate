@@ -12,6 +12,9 @@ import { twMerge } from "tailwind-merge";
  * ```ts
  * cn("px-2", isCompact && "px-1") // "px-1"
  * ```
+ *
+ * @param inputs - 連結する class 名。偽の値は落ちるので、条件をそのまま渡せる
+ * @returns 競合を解いた class 名
  */
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

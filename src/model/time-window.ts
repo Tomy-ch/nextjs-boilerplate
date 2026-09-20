@@ -52,6 +52,13 @@ export function calendarDate(now: Date): string {
  * @returns `YYYY-MM-DD` の文字列
  */
 function formatDate({ year, month, day }: CalendarDate): string {
+  /**
+   * 数を桁数に合わせて 0 で埋める。
+   *
+   * @param value - 埋める数
+   * @param width - 揃える桁数
+   * @returns 左を 0 で埋めた文字列
+   */
   const pad = (value: number, width: number): string => String(value).padStart(width, "0");
 
   return `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`;
@@ -230,7 +237,7 @@ export function todayWindow(now: Date): TimeWindow {
  * 暦月 1 つを表す形。`YYYY-MM`。
  *
  * @remarks
- * 契約はもう月を受け取りません。区分を組み立てるのは画面の側なので、形を決めるのもこちらです。
+ * 契約は月を受け取りません。区分を組み立てるのは画面の側なので、形を決めるのもこちらです。
  * 入力欄が送る前に確かめるために公開します。
  */
 export const CALENDAR_MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/;

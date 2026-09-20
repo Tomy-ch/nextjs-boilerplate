@@ -99,6 +99,7 @@ export function useOverlayHistory({
     window.history.pushState({ ...window.history.state, [OVERLAY_HISTORY_MARKER]: historyId }, "");
     pushedRef.current = true;
 
+    /** 戻る操作を受けて、自分が積んだ 1 件から離れたときだけ閉じる。 */
     const handlePopState = () => {
       // 自分の印が残っているなら、離れたのは自分の 1 件ではない。同じ文書の中での移動でも
       // popstate は届くため、届いたことだけを閉じる合図にすると、開いた直後に閉じる。
