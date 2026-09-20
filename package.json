@@ -14,6 +14,7 @@
     "check:ui": "tsx src/components/scripts/check-shadcn.ts",
     "design:bundle": "tsx scripts/design-bundle",
     "dev": "APP_ENV=${APP_ENV:-local} next dev",
+    "docs:tally": "tsx scripts/rules-tally",
     "fix": "biome check --fix",
     "fix:md": "markdownlint-cli2 --fix",
     "format": "biome format --write",

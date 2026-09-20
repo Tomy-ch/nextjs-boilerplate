@@ -42,9 +42,33 @@ describe("collectAnchors", () => {
     expect(collectAnchors("## 表題 ##\n")).toEqual(new Set(["表題"]));
   });
 
+  it("文書が自分で綴りを決めた錨を、見出しと並べて集める", () => {
+    expect(collectAnchors('<a id="layers"></a>\n\n## 層境界と依存\n')).toEqual(
+      new Set(["layers", "層境界と依存"]),
+    );
+  });
+
+  it("錨の綴りを小文字へ揃える", () => {
+    expect(collectAnchors('<a id="Layers"></a>\n')).toEqual(new Set(["layers"]));
+  });
+
+  it("同じ行に錨が 2 つあっても両方集める", () => {
+    expect(collectAnchors('<a id="a"></a><a id="b"></a>\n')).toEqual(new Set(["a", "b"]));
+  });
+
   // ----- 異常系 -----
   it("コードフェンスの中の `#` は見出しではない", () => {
     expect(collectAnchors("# 表題\n\n```md\n## 例の節\n```\n")).toEqual(new Set(["表題"]));
+  });
+
+  it("コードフェンスの中の錨は、例示であって錨ではない", () => {
+    expect(collectAnchors('# 表題\n\n```md\n<a id="例の錨"></a>\n```\n')).toEqual(
+      new Set(["表題"]),
+    );
+  });
+
+  it("`id` を持たない `a` は錨にならない", () => {
+    expect(collectAnchors('<a name="layers"></a>\n')).toEqual(new Set());
   });
 
   it("先頭に BOM があっても 1 行目の見出しを拾う", () => {

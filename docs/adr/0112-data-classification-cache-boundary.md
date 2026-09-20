@@ -10,7 +10,7 @@ Accepted
 
 Cache Components(PPR)を有効化すると、**user-scoped な値が共有・静的な領域へ載る経路が新たに生まれる**。User A の個人データが共有キャッシュへ入り User B へ配られる事故は、表示層で起こしうる中で最も損害が大きい。
 
-規約([`docs/rules.md`「描画とキャッシュ」](../rules.md#描画とキャッシュ)の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」)だけでは止まらない。`adapters/server/http` の `RequestSpec` が `cache` / `tags` を**どの client でも受け取れる**形なら、資格情報を載せる口に `cache: "force-cache"` を渡す書き方が型検査を通る。**要るのは強制**である。
+規約([`docs/rules.md`「描画とキャッシュ」](../rules.md#rendering)の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」)だけでは止まらない。`adapters/server/http` の `RequestSpec` が `cache` / `tags` を**どの client でも受け取れる**形なら、資格情報を載せる口に `cache: "force-cache"` を渡す書き方が型検査を通る。**要るのは強制**である。
 
 [0030](0030-environment-variable-management.md) §8 は Server → Client の誤送信に対する防御を持つ。**キャッシュ側の境界は本 ADR が持つ。**
 

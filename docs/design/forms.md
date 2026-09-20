@@ -1,6 +1,6 @@
 # 入力と送信の読み方
 
-この文書は、入力欄に文字が入ってから Server Action が結果を返し、それが画面に現れるまでを**通しで**説明するものである。送信の機構は [ADR 0061](../adr/0061-form-mutation-ux.md)、検証の二層は [ADR 0062](../adr/0062-form-input-validation.md)、結果の見せ方は [ADR 0063](../adr/0063-mutation-result-notification.md)、入力状態のライブラリは [ADR 0060](../adr/0060-state-management.md)、ファイル添付の経路は [ADR 0075](../adr/0075-file-upload-seam.md) が持つ。日々強制される規則は [`docs/rules.md`](../rules.md#フォームと送信)「フォームと送信」にある。
+この文書は、入力欄に文字が入ってから Server Action が結果を返し、それが画面に現れるまでを**通しで**説明するものである。送信の機構は [ADR 0061](../adr/0061-form-mutation-ux.md)、検証の二層は [ADR 0062](../adr/0062-form-input-validation.md)、結果の見せ方は [ADR 0063](../adr/0063-mutation-result-notification.md)、入力状態のライブラリは [ADR 0060](../adr/0060-state-management.md)、ファイル添付の経路は [ADR 0075](../adr/0075-file-upload-seam.md) が持つ。日々強制される規則は [`docs/rules.md`](../rules.md#forms)「フォームと送信」にある。
 
 ここが持つのは**それらを読むために要る前提**と、**実装のどこに何が居るか**である。規則の写しは作らない。判断に迷ったら ADR を優先する。
 
@@ -51,7 +51,7 @@ sequenceDiagram
 | --- | --- | --- |
 | `useActionState(action, initial)` | `[state, formAction, isPending]` | `<form action={formAction}>` を描く component |
 | `useFormStatus()` | `{ pending, data, ... }` | **親の `<form>` の中**。form を描く component 自身では読めない |
-| `useOptimistic` | 楽観的な仮の値 | 使っていない。使うならロールバックを持てる場合に限る（[`docs/rules.md`](../rules.md#フォームと送信)） |
+| `useOptimistic` | 楽観的な仮の値 | 使っていない。使うならロールバックを持てる場合に限る（[`docs/rules.md`](../rules.md#forms)） |
 
 `useFormStatus` は「自分を包む最も近い `form`」の送信状態を読む。したがって送信中の姿を出すボタンは、`form` を描く component から**子へ切り出す**。同梱サンプルではどの feature も `ui/submit-button/` にその子を持ち、`Button` の `pending` へ渡すだけにしている。
 
@@ -149,7 +149,7 @@ rhf を使うときの配線は次のとおり。
 
 鍵は全部の変更に要るわけではない。**設定（絶対値）を送る操作は自然に冪等**なので鍵を持たない。逆に自然キーを持たない作成は再試行もしない —— 同じ本文を二度送れば 2 件できる。
 
-**確認を挟むかどうか**の基準は [`docs/rules.md`](../rules.md#フォームと送信) が持つ。挟むときの形は「`AlertDialog` の中に `form`」で、確認を経た合図（hidden の 1 項目）を送信に載せ、Server Action の側でも合図の有無で止める。画面が押す前に確かめても、確かめた後に前提が変わることがある。
+**確認を挟むかどうか**の基準は [`docs/rules.md`](../rules.md#forms) が持つ。挟むときの形は「`AlertDialog` の中に `form`」で、確認を経た合図（hidden の 1 項目）を送信に載せ、Server Action の側でも合図の有無で止める。画面が押す前に確かめても、確かめた後に前提が変わることがある。
 
 **送信の失敗は 2 系統ある。** action が `error` を**返す**失敗と、呼び出しそのものが **reject する**失敗（切断・本文の上限超過・5xx）で、後者は戻り値では受け取れない。`<form action>` 経由なら reject は最も近い error 境界（`error.tsx`。[ADR 0080](../adr/0080-error-handling.md)）へ届く。action を **form を通さず直接呼ぶ**場合（選んだ時点で送るファイルなど）は呼び出し側が `try / catch` で受けないと、その送信は進行中でも失敗でもない状態に居残る。
 

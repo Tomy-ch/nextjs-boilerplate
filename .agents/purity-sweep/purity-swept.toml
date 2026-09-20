@@ -26,6 +26,7 @@
 "docs/plan/v1-implementation-plan.md" = "計画が閉じて `docs/plan/**` が削除されたとき（AGENTS.md「Temporary Operating Rules until v1.0.0」手順 5）。それまでは中身が経緯そのものであり、純化の対象にならない"
 "docs/adr/BACKLOG.md" = "v1.0.0 の一括除去（AGENTS.md「Temporary Operating Rules until v1.0.0」手順 4 = 全 ADR 本体と本ファイルから経緯・計画番号を剥がす）が済んだとき"
 ".claude/skills/full-verify/prompts/verify-impl.md" = "観点 1 が持つコメント規約の写しが、`docs/rules.md`「コメントと文書」を実行時に読む指示へ置き換わったとき（`comment-reviewer.md` と同じ形）"
+"docs/traceability.md" = "実装タスクの章が、テンプレートから作った側でも真になる形に決着したとき —— いまの本文はこのリポジトリの issue 番号と起票日を証拠に使っており、作った側の手元では解決しない"
 
 [swept]
 ".agents/README.md" = "2026-09-06"
@@ -167,3 +168,10 @@
 "scripts/test-report/shard-outcome.test.ts" = "2026-09-19"
 ".makefiles/testing/test.mk" = "2026-09-19"
 "docs/testing-conventions.md" = "2026-09-19"
+"scripts/lib/markdown-anchor.ts" = "2026-09-21"
+"scripts/rules-tally/tally.ts" = "2026-09-21"
+"scripts/rules-tally/index.ts" = "2026-09-21"
+"scripts/rules-tally/tally.test.ts" = "2026-09-21"
+"scripts/rules-tally.gate.test.ts" = "2026-09-21"
+"docs/adr/0146-rule-reference-stability.md" = "2026-09-21"
+"scripts/README.md" = "2026-09-21"
