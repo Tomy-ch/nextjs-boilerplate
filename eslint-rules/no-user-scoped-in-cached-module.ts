@@ -3,6 +3,8 @@ import { dirname, join, resolve } from "node:path";
 
 import type { Rule } from "eslint";
 
+import { isServerCacheDirective } from "./cache-directive";
+
 /**
  * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール
  * （`docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから user-scoped な
@@ -24,23 +26,11 @@ import type { Rule } from "eslint";
  * その読み方の帰結として、口を作る kernel（`adapters/server/http/request.ts`）自身も当たる。外さない
  * —— `use cache` の下で client をその場で組む形も、作る先が user-scoped なら同じ事故を作る。
  */
-const CACHE_DIRECTIVE_PATTERN = /^use cache(?::\s*([\w-]+))?$/;
-
-/** サーバへ保存しないキャッシュの profile。 */
-const CLIENT_ONLY_CACHE_PROFILE = "private";
-
 /** 取得の口が user-scoped を名乗る綴り。 */
 const USER_SCOPED_DECLARATION = /scope:\s*"user-scoped"/;
 
 /** import 先の候補になる拡張子。 */
 const MODULE_SUFFIXES: readonly string[] = [".ts", ".tsx", "/index.ts", "/index.tsx"];
-
-/** サーバへ保存されるキャッシュの宣言か。 */
-function isServerCacheDirective(value: string): boolean {
-  const match = CACHE_DIRECTIVE_PATTERN.exec(value);
-
-  return match !== null && match[1] !== CLIENT_ONLY_CACHE_PROFILE;
-}
 
 /**
  * import の綴りから、拡張子を除いた実ファイルの位置を組む。組めない綴りは `undefined`。
