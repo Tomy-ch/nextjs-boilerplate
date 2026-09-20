@@ -81,6 +81,7 @@
 - [0143-spec-driven-development.md](0143-spec-driven-development.md) - 仕様書駆動（画面要件を仕様書として持つ / 生成 scaffold を持たない / 実装との突合は存在（機械）と内容（読み合わせ）の 2 つ）
 - [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) - 決定と強制手段の併記（散文へ逃がす前に機械強制を検討する / 寄せられない理由を書く）
 - [0145-docs-viewer-package-boundary.md](0145-docs-viewer-package-boundary.md) - docs-viewer のパッケージ境界（依存分離をパッケージ境界で担保する）
+- [0146-rule-reference-stability.md](0146-rule-reference-stability.md) - 規約の参照と集計の生成（節の錨で指す / 手で数えない / 判定は 3 語）
 - [0150-git-workflow.md](0150-git-workflow.md) - Git ブランチ・コミット運用方針
 - [0151-git-hooks.md](0151-git-hooks.md) - Pre-commit / Pre-push hook 運用方針（lefthook 採用）
 - [0152-agents-md-policy.md](0152-agents-md-policy.md) - AGENTS.md 運用方針

@@ -116,6 +116,7 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
 - [0113](../docs/adr/0113-development-access-surface.md) — 開発用の口を build から外す線
 - [0141](../docs/adr/0141-portal-operations.md) — portal の URL と差し替えマーカーの族
 - [0143](../docs/adr/0143-spec-driven-development.md) — route と画面要件の存在の突合
+- [0146](../docs/adr/0146-rule-reference-stability.md) — 規約を節の錨で指す / 集計を手で数えない / 判定の 3 語
 - [0150](../docs/adr/0150-git-workflow.md) — ブランチ命名 / 昇格の連なり / 版の出所
 - [0151](../docs/adr/0151-git-hooks.md) — ローカルゲートの帯と bypass の可否
 - [0152](../docs/adr/0152-agents-md-policy.md) — 本文言語と対訳ペアの運用 / boilerplate-only マーカーを独立させる理由 <!-- boilerplate-only:line -->
