@@ -152,11 +152,11 @@
 
 ## フォームと送信
 
-> Rationale: [ADR 0061](adr/0061-form-mutation-ux.md) / [ADR 0062](adr/0062-form-input-validation.md) / [ADR 0063](adr/0063-mutation-result-notification.md) / [ADR 0080](adr/0080-error-handling.md); enforced via feature テスト。
+> Rationale: [ADR 0061](adr/0061-form-mutation-ux.md) / [ADR 0062](adr/0062-form-input-validation.md) / [ADR 0063](adr/0063-mutation-result-notification.md) / [ADR 0080](adr/0080-error-handling.md); enforced via feature テスト、`src/app/boundary-feedback.test.ts`（版が揃わない失敗の扱い）。
 
 - **mutation 中は submit を無効化して二重送信を防ぎ、必要な操作には idempotency key を付与する。** 鍵は画面を組み立てるたびに 1 つ作り、同じ画面から何度送っても同じ鍵にする（受け取る側が 2 度目を初回の再生として扱う）。鍵も送信の状態も画面が 1 つだけ持ち、開閉で unmount される部分木（dialog / sheet / drawer）には置かない —— 閉じると木ごと外れるので、開き直すたびに作り直される。`useOptimistic` はロールバックを実装できる場合に限る。[ADR 0071](adr/0071-bff-api-integration.md)
 - **409 の楽観ロック競合では、再読み込み導線を表示する。** 読み込んだ時点の版を送り、版が食い違ったときだけ導線を添える —— 権限や通信の失敗にまで添えると、やり直せば直るものとして読める。再読み込みで版だけを差し替えない —— 版を入力の `key` に含めて入力ごと作り直す（[描画とキャッシュ](#rendering)）。作り直さないと、古い入力に最新の版が付き、他者の更新を見ないまま上書きできる。差分提示はバックエンド契約が提供するときだけ行う。
-- **Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。** [ADR 0040](adr/0040-routing-rendering-strategy.md) 散文 —— **寄せられる**。skew を起こした応答から reload へ誘導されることは integration テストで固定できるが、そのテストは無い。
+- **Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。** 配信が入れ替わると、開いたままの画面が持つ識別子はもう server に無く、**同じ識別子で送り直しても結果は変わらない**。判別は framework が公開している述語に任せる —— 識別子の持ち方は framework の都合で動き、応答の綴りを自分で見ると動いたときに黙って外れる。error 境界は、この失敗だけ再試行ではなく読み込み直しを出す。
 - **送信の失敗は 2 系統ある。** action が値で返す失敗と、呼び出しそのものが reject する失敗（切断・上限超過・5xx）で、後者は戻り値では受け取れない。捕まえないと、その送信は進行中でも失敗でもない状態に居残り、送信口が塞がったままになる。
 - **送信中を出す操作は、`form` を描く component の子へ切り出す。** `useFormStatus` は親の `form` の送信状態を読むので、`form` を描く component の中では自分の送信を観測できない。
 - **弾かれた送信のあとも残す入力は、値を呼び出し元が持つ。** `<form action>` は action の完了で form を reset するので、非制御の入力欄は弾かれた送信のあとに書いた内容を失う。単純な単一入力を非制御のまま置いてよいのは、失って困らない場合だけである。

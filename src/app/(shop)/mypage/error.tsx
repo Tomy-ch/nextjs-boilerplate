@@ -1,9 +1,8 @@
 "use client";
 
+import { boundaryFeedback } from "@/app/boundary-feedback";
 import { ApiErrorAlert } from "@/components/app-starter/api-error-feedback/api-error-feedback";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
-import { getDefaultErrorMeta } from "@/errors/error-catalog";
-import { ErrorKind } from "@/errors/error-kind";
 
 /**
  * マイページの error 境界。
@@ -25,15 +24,7 @@ export default function MypageError({
 }) {
   return (
     <ContentContainer className="py-8">
-      <ApiErrorAlert
-        error={{
-          kind: "server",
-          message: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
-          requestId: error.digest,
-          retryable: true,
-        }}
-        onRetry={reset}
-      />
+      <ApiErrorAlert {...boundaryFeedback(error, reset)} />
     </ContentContainer>
   );
 }
