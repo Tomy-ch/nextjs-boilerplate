@@ -65,7 +65,8 @@ export type RequestOptions = {
  *   この 1 箇所のために止まる
  * @param options - 打ち切りの合図と、取得以外の要求で使う method
  * @returns 検証を通過した応答本体（`schema` が推論する `T`）
- * @throws 応答が `ok` でないとき、または検証に失敗したときに `AppError` を投げる
+ * @throws 送る前に URL が予算を超えているとき（`uri-too-long`）、応答が `ok` でないとき、または
+ *   検証に失敗したときに `AppError` を投げる
  */
 export async function request<T>(
   path: string,
