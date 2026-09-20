@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -35,10 +35,18 @@ const SCANNED = [".sh", ".mk"] as const;
  */
 const MINIMUM_FILES = 20;
 
+/**
+ * 走査するファイル。
+ *
+ * @remarks
+ * `git ls-files` が読むのは index であって、木ではない。**剥がした後の木では、index に居るのに
+ * 消えているファイルが在る**ので、実在するものだけを採る。縮退は下限が見張る。
+ */
 function tracked(): string[] {
   return execFileSync("git", ["ls-files"], { cwd: REPOSITORY_ROOT, encoding: "utf8" })
     .split("\n")
-    .filter((path) => path === "Makefile" || SCANNED.some((suffix) => path.endsWith(suffix)));
+    .filter((path) => path === "Makefile" || SCANNED.some((suffix) => path.endsWith(suffix)))
+    .filter((path) => existsSync(join(REPOSITORY_ROOT, path)));
 }
 
 describe("シェル変数の囲み", () => {
