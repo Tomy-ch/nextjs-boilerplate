@@ -740,6 +740,12 @@ describe("vendorImportsOf", () => {
     ).toEqual(["radix-ui"]);
   });
 
+  it("再輸出の読み込み先も数える", () => {
+    expect(vendorImportsOf(['export { Slot } from "radix-ui";\nexport const a = 1;'])).toEqual([
+      "radix-ui",
+    ]);
+  });
+
   it("副作用だけの import は数えない", () => {
     expect(vendorImportsOf(['import "server-only";\nimport { Slot } from "radix-ui";'])).toEqual([
       "radix-ui",
