@@ -23,7 +23,12 @@ export type PeriodDraft = {
   readonly days: number;
 };
 
-/** 効いている条件を、入力欄の初期値へ直す。 */
+/**
+ * 効いている条件を、入力欄の初期値へ直す。
+ *
+ * @param period - いま効いている期間
+ * @returns 入力欄の初期値となる組み立て中の条件
+ */
 export function toPeriodDraft(period: PeriodSelection): PeriodDraft {
   return {
     kind: period.kind,
@@ -43,6 +48,9 @@ export function toPeriodDraft(period: PeriodSelection): PeriodDraft {
  *
  * 終了日が開始日より前かどうかもここで見ます（理由は {@link toPeriodSelection}）。押した後に
  * 一覧が消えるより、押せない理由をその場に出すほうが直せます。
+ *
+ * @param draft - 組み立て中の条件
+ * @returns 絞り込める条件。足りていなければ `null`
  */
 export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {
   if (draft.kind === "all") {
@@ -75,6 +83,9 @@ export function toAppliedPeriod(draft: PeriodDraft): PeriodSelection | null {
  * 成り立っていれば `null` を返します。確定を押せなくするだけでは、何を入れれば押せるのかが
  * 画面から読み取れません。判定と同じ場所に置くのは、片方だけを直した画面（押せないのに理由が
  * 出ない、または理由が実際の判定とずれている）を作らないためです。
+ *
+ * @param draft - 組み立て中の条件
+ * @returns 足りない理由の文言。成り立っていれば `null`
  */
 export function describeMissing(draft: PeriodDraft): string | null {
   if (toAppliedPeriod(draft) !== null) {

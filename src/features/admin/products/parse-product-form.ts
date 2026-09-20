@@ -16,7 +16,13 @@ export type ProductFormParseResult<T> =
       readonly formError?: string;
     };
 
-/** 空欄を undefined として読む。form は未入力を空文字として送るため。 */
+/**
+ * 空欄を undefined として読む。form は未入力を空文字として送るため。
+ *
+ * @param form - 読み取り元の form
+ * @param key - 読む項目の名前
+ * @returns トリム済みの値。空欄なら undefined
+ */
 function readText(form: FormData, key: string): string | undefined {
   const value = form.get(key);
 
@@ -33,6 +39,9 @@ function readText(form: FormData, key: string): string | undefined {
  * @remarks
  * 表示順は**送られてきた並びそのもの**です。画面が並べ替えた結果がその並びであり、番号を別の欄で
  * 受け取ると、並びと番号のどちらが正かが決まりません。
+ *
+ * @param form - 読み取り元の form
+ * @returns 表示順を保った画像の一覧
  */
 function readImages(form: FormData): readonly ProductImageDraft[] {
   return form
@@ -51,6 +60,10 @@ function readImages(form: FormData): readonly ProductImageDraft[] {
  *
  * 時差が運ばれてこなかったときは確定できないので、瞬間を作らずに捨てます。既定の時差へ倒すと、
  * ずれた日時が正しい値として保存されます。
+ *
+ * @param wallClock - 時差を持たない壁時計の値
+ * @param offsetMinutes - 入力した人の時差（分）。運ばれてこなければ undefined
+ * @returns 確定させた瞬間。時差が無ければ undefined
  */
 function toInstant(wallClock: string, offsetMinutes: number | undefined): Date | undefined {
   if (offsetMinutes === undefined) return undefined;
@@ -62,7 +75,12 @@ function toInstant(wallClock: string, offsetMinutes: number | undefined): Date |
   return new Date(wall + offsetMinutes * 60_000);
 }
 
-/** 入力した人の時差を分で読む。`getTimezoneOffset()` と同じ符号（UTC より東は負）。 */
+/**
+ * 入力した人の時差を分で読む。`getTimezoneOffset()` と同じ符号（UTC より東は負）。
+ *
+ * @param form - 読み取り元の form
+ * @returns 時差（分）。読めなければ undefined
+ */
 function readTimezoneOffset(form: FormData): number | undefined {
   const raw = readText(form, PRODUCT_FORM_NAMES.timezoneOffset);
 
@@ -79,6 +97,9 @@ function readTimezoneOffset(form: FormData): number | undefined {
  * @remarks
  * 版は利用者が入力する項目ではないため、形の上での判定を持つ項目の一覧には入りません。読めない
  * ときは「編集の前提が失われた」であって、直せる入力の誤りではありません。
+ *
+ * @param form - 読み取り元の form
+ * @returns 版の番号。読めなければ undefined
  */
 function readVersion(form: FormData): number | undefined {
   const raw = readText(form, PRODUCT_FORM_NAMES.version);
@@ -96,7 +117,13 @@ type CommonFields = {
   readonly fieldErrors: Record<string, readonly string[]>;
 };
 
-/** 判定を掛けずに、項目の値だけを読む。 */
+/**
+ * 判定を掛けずに、項目の値だけを読む。
+ *
+ * @param form - 読み取り元の form
+ * @param field - 読む項目
+ * @returns トリム済みの値。読めなければ空文字
+ */
 function read(form: FormData, field: ProductValidatedField): string {
   const raw = form.get(PRODUCT_FORM_NAMES[field]);
 
@@ -109,6 +136,11 @@ function read(form: FormData, field: ProductValidatedField): string {
  * @remarks
  * **判定と文言は {@link PRODUCT_FIELD_RULES} が持ちます。**同じ判定を画面の側も通るため、ここへ
  * 書き写すと同じ誤りに 2 通りの言い方が生まれ、片方だけを直せます。
+ *
+ * @param form - 読み取り元の form
+ * @param field - 判定する項目
+ * @param fieldErrors - 見つかった誤りを書き込む先
+ * @returns トリム済みの値
  */
 function check(
   form: FormData,
@@ -124,6 +156,18 @@ function check(
   return value.trim();
 }
 
+/**
+ * 共通項目を読み、形の上での判定に掛ける。
+ *
+ * @param form - 読み取り元の form
+ * @returns 共通部分の読み取り結果と、見つかった誤り
+ */
+/**
+ * 共通項目を読み、形の上での判定に掛ける。
+ *
+ * @param form - 読み取り元の form
+ * @returns 共通部分の読み取り結果と、見つかった誤り
+ */
 function parseCommon(form: FormData): CommonFields {
   const fieldErrors: Record<string, readonly string[]> = {};
 
@@ -171,6 +215,9 @@ function parseCommon(form: FormData): CommonFields {
  * @remarks
  * 検証をここに置くのは、**送信の編成と入力の読み取りを分ける**ためです。ここが持つのは form の
  * 綴りと、利用者へ返す文言までで、業務としての妥当性は backend が決めます。
+ *
+ * @param form - 送信されたフォームの中身
+ * @returns 読み取りの結果
  */
 export function parseProductDraftForm(form: FormData): ProductFormParseResult<ProductDraft> {
   const { draft, fieldErrors } = parseCommon(form);
@@ -189,6 +236,9 @@ export function parseProductDraftForm(form: FormData): ProductFormParseResult<Pr
  *
  * @remarks
  * 版を必ず要求します。読み込んだ時点の版が無いまま送ると、その間の他者の更新を黙って消します。
+ *
+ * @param form - 送信されたフォームの中身
+ * @returns 読み取りの結果
  */
 export function parseProductEditForm(form: FormData): ProductFormParseResult<ProductEdit> {
   const { draft, fieldErrors } = parseCommon(form);

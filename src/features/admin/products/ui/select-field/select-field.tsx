@@ -44,6 +44,8 @@ export type ProductSelectFieldProps = {
  * 表せないと、利用者が確かめずに送った値と、意図して選んだ値が区別できません。
  *
  * 選ぶことが即ち触れることなので、`onBlur` を待たずに誤りを出せます。
+ *
+ * @param props - 入力欄の `id` と名前・項目名・選べる候補・今の値・変更の通知・誤りの文言。
  */
 export function ProductSelectField({
   controlId,

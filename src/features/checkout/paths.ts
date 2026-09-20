@@ -35,6 +35,7 @@ export const MYPAGE_PATH = "/mypage";
  * ままで完了を出すと、再読み込みで完了が消え、戻る操作が確定前の画面へ帰ります。
  *
  * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ * @returns 完了画面の URL。
  */
 export function purchaseCompletePath(purchaseCode: string): string {
   return `${CHECKOUT_COMPLETE_PATH}?${PURCHASE_PARAM}=${encodeURIComponent(purchaseCode)}`;

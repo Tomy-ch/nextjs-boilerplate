@@ -37,6 +37,8 @@ export type PurchaseLoadMoreListProps = {
  * 件数を読み上げへ伝えます。追加された購入は一覧の末尾に増えるだけなので、伝えないと画面を
  * 見ていない利用者には何も起きていないのと区別が付きません。読み込み中の報告を同じ文へ
  * まとめないのは、読み込みのたびに件数まで読み直されるためです。
+ *
+ * @see Storybook `Features/Purchases/History/PurchaseList`
  */
 export const PurchaseLoadMoreList = withPartSpan(
   "features/purchases/history/ui/purchase-list/purchase-list",

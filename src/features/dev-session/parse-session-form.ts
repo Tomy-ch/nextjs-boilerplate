@@ -99,7 +99,13 @@ const devSessionRelations = devSessionSchema.superRefine((value, ctx) => {
   }
 });
 
-/** `FormData` の 1 項目を文字列として読む。未入力と欠落を同じ空文字へ均す。 */
+/**
+ * `FormData` の 1 項目を文字列として読む。未入力と欠落を同じ空文字へ均す。
+ *
+ * @param formData - 読み取り元の `FormData`。
+ * @param name - 読む項目の名前。
+ * @returns 読み取った文字列。未入力・欠落なら空文字列。
+ */
 function readField(formData: FormData, name: DevSessionField): string {
   const value = formData.get(name);
 
@@ -118,6 +124,9 @@ function readField(formData: FormData, name: DevSessionField): string {
  * おらず、残っているのは切り替える前に打った値です。両方を持ち回ると、どちらが効いたのかが
  * 送信した本人にも判らなくなります。逆に、取りに行かないときは接続先を落とします —— 効かない
  * 値を持ち回ると、送信先が「どちらの経路か」を指定の中身から読み取ることになります。
+ *
+ * @param formData - 送信された `FormData`。
+ * @returns 解けた指定。読めなければ `ok: false` に項目ごとの誤りを添えて返す。
  */
 export function parseDevSessionForm(formData: FormData): DevSessionParseResult {
   const issueAccessToken = readField(formData, "issueAccessToken") === SWITCH_ON;

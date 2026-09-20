@@ -19,6 +19,9 @@ const scopeSchema = singleValue(z.enum(USER_SCOPE)).catch(USER_SCOPE.ALL);
  * 上限は契約が決めるため、外から受け取ります（`adapters` が公開する）。ここで数字を持つと、契約を
  * 再生成しても画面側だけが古い範囲のまま残ります。**下限だけを見ると、上限を超えたページ番号が
  * そのまま取得へ渡り、一覧の代わりにエラー面が出ます。**
+ *
+ * @param pageMax - 契約が許すページ番号の上限
+ * @returns ページ番号を読む zod スキーマ
  */
 function pageSchema(pageMax: number) {
   return singleValue(z.coerce.number().int().min(FIRST_PAGE).max(pageMax)).catch(FIRST_PAGE);
@@ -34,7 +37,9 @@ function pageSchema(pageMax: number) {
  * 判定はスキーマが持ちます（`docs/rules.md`「URL と条件」の「`searchParams` は zod で検証する」）。
  * 手で条件を並べると、契約が宣言している制約のどれを見ていないのかが読み取れません。
  *
+ * @param params - 素の `searchParams`
  * @param pageMax - 契約が許すページ番号の上限
+ * @returns 検証済みの、いま見ている場所
  */
 export function toAdminUserListLocation(
   params: RawSearchParams,

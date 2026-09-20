@@ -13,7 +13,6 @@ describe("AdminInquiryTable", () => {
   it("行から対応の画面へ入れる", () => {
     render(<AdminInquiryTable items={ADMIN_INQUIRY_ROWS} />);
 
-    // 先頭の行だけだと、行と行き先の対応ではなく「どこかに 1 本ある」ことしか言えない。
     for (const row of ADMIN_INQUIRY_ROWS) {
       expect(screen.getByRole("link", { name: row.userId })).toHaveAttribute(
         "href",

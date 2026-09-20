@@ -39,7 +39,12 @@ export type ProductFilterSheetProps = {
   selection: ProductListSelection;
 };
 
-/** いま効いている条件の数。入力欄 1 つを 1 件と数え、指定なしは数えない。 */
+/**
+ * いま効いている条件の数。入力欄 1 つを 1 件と数え、指定なしは数えない。
+ *
+ * @param selection - いま効いている検索条件。
+ * @returns 効いている条件の件数。
+ */
 function countActive(selection: ProductListSelection): number {
   const [low, high] = toPriceRange(selection);
 
@@ -72,6 +77,8 @@ function countActive(selection: ProductListSelection): number {
  *
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
  * （`docs/rules.md`「レイアウトと帯」の「常に届く操作は `lg` 未満で画面下端に固定する」）。
+ *
+ * @param props - 選べる分類、その上限、いま効いている条件。
  */
 export function ProductFilterSheet({
   categories,

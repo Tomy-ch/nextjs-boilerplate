@@ -14,6 +14,8 @@ const LINES = Array.from({ length: PLACEHOLDER_LINES }, (_, index) => index);
  * 場所取りします。枠が実物より短いと、穴が埋まった瞬間に下の要素が押し下げられます（`docs/rules.md`「状態表示と待機」の
  * 「loading は形状が近い skeleton を優先する」と「UI 部品と操作」の
  * 「状態で出入りする表示で操作の位置を動かさない」）。
+ *
+ * @see Storybook `Features/Purchases/Detail/Skeleton`
  */
 export const PurchaseDetailSkeleton = withPartSpan(
   "features/purchases/detail/ui/skeleton/skeleton",

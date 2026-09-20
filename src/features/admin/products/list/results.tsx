@@ -28,6 +28,8 @@ export type AdminProductListResultsProps = {
  * 商品とマスタを並行して取ります。状態に色を付けるには、商品が持つ指し先とマスタのコードを
  * 突き合わせる必要があります（{@link toAdminProductRows}）。マスタは要求をまたいで固定されるため、
  * 突き合わせのために毎回取りに行くわけではありません。
+ *
+ * @param props - {@link AdminProductListResultsProps} を受け取る。
  */
 export async function AdminProductListResults({ location, query }: AdminProductListResultsProps) {
   const [page, statuses] = await Promise.all([

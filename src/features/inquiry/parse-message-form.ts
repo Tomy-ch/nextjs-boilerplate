@@ -23,6 +23,9 @@ const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で�
  *
  * 長さは契約の上限をそのまま当てます。文字数の数え方は契約と揃える必要があり、UTF-16 の要素数で
  * 数えると絵文字を含む本文が実際より長く見えます。
+ *
+ * @param formData - 送信欄から届いたフォームの内容。
+ * @returns 解いた結果。成功なら本文と冪等キー、失敗なら本文の項目エラー。
  */
 export function parseInquiryMessageForm(formData: FormData): InquiryMessageFormResult {
   const body = z.string().safeParse(formData.get(INQUIRY_BODY_FIELD));

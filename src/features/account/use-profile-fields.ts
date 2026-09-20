@@ -72,6 +72,7 @@ export type ProfileFields = {
  *
  * @param profile - 入力欄の初期値。まだ登録が無ければ null
  * @param state - server の応答。項目ごとの文言を client 側の検証より後ろに置く
+ * @returns 入力欄ごとの props を組む関数と、rhf の値取得・書き込み・購読用 control
  */
 export function useProfileFields(
   profile: UserProfile | null,
@@ -91,13 +92,30 @@ export function useProfileFields(
     defaultValues: toDefaultValues(profile),
   });
 
-  /** 検証の結果。client 側を優先し、無ければ server の応答を使う。 */
+  /**
+   * 検証の結果。client 側を優先し、無ければ server の応答を使う。
+   *
+   * @param field - 対象の項目
+   * @returns 出す文言。誤りが無ければ undefined
+   */
   function messageOf(field: ProfileField): string | undefined {
     const fromServer = state.status === "error" ? state.fieldErrors?.[field] : undefined;
 
     return errors[field]?.message ?? fromServer?.[0];
   }
 
+  /**
+   * 入力欄 1 つぶんの props を組む。
+   *
+   * @param field - 対象の項目
+   * @returns 入力欄の描画に要る props
+   */
+  /**
+   * 入力欄 1 つぶんの props を組む。
+   *
+   * @param field - 対象の項目
+   * @returns 入力欄の描画に要る props
+   */
   function fieldOf(field: ProfileField): ProfileFieldProps {
     const registration = register(field);
     const current = messageOf(field);
@@ -127,6 +145,9 @@ export function useProfileFields(
  * @remarks
  * まだ登録が無い場合は全項目を空で開きます。`undefined` を渡すと rhf は入力欄を非制御のまま
  * 扱い、初回の送信で項目そのものが欠けます。
+ *
+ * @param profile - 初期値の元。まだ登録が無ければ null
+ * @returns 各項目を埋めた rhf の初期値
  */
 function toDefaultValues(profile: UserProfile | null): ProfileInput {
   return {

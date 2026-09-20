@@ -50,6 +50,8 @@ export type CheckoutConfirmViewProps = {
  * **確定の送信状態は器が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
  * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
  * 表に出る側が「何も送っていない」姿になります。
+ *
+ * @param props - {@link CheckoutConfirmViewProps} を参照。
  */
 export const CheckoutConfirmView = withScreenSpan(
   "features/checkout/confirm/view",

@@ -59,13 +59,6 @@ export type AdminProductEditViewProps = {
  * 順番を持たせず、観点を切り替えて 1 か所を直させる商品編集の器。
  *
  * @remarks
- * 編集で主なのは 1 か所を直すことなので、順番を持つ器にすると直したい所へ行くのに段を踏まされます。
- * 段の中身は作る画面と同じ部品で、器だけが違います。
- *
- * **選んでいない観点も DOM に残します**（`forceMount`）。既定では外れるため、観点を切り替えた
- * 時点で入力途中の値が消え、送信にも載りません。残したうえで `hidden` を自分で渡すのは、
- * 「DOM に在る」ことと「見えている」ことが別だからです。
- *
  * **送信が弾かれたら、誤りのある観点へ移ります。**そうしないと、画面のどこも赤くないのに送信
  * だけが通らない状態になります。順番を持たない器は、進む前に止める `wizard` の仕組みを持たない
  * ためです。
@@ -76,6 +69,8 @@ export type AdminProductEditViewProps = {
  * 読み込んだ時点の版を hidden の欄で持ち回ります。その間に別の人が更新していれば送信が拒まれ、
  * **そのときだけ**読み込み直す導線を出します。権限や通信の失敗にまで添えると、やり直せば直る
  * ものとして読めてしまいます。
+ *
+ * @see Storybook `Page/Admin/Products/Edit`
  */
 export function AdminProductEditView({
   categoryOptions,
@@ -151,7 +146,12 @@ export function AdminProductEditView({
         ) : null}
       </ProductFormFeedback>
 
-      <TabsClient onValueChange={changeSection} value={section}>
+      <TabsClient
+        // 選んでいない観点も DOM に残す（forceMount）。既定で外すと、切り替えた時点で入力途中の
+        // 値が消え、送信にも載らない。hidden は「見えているか」だけを自分で渡して分ける。
+        onValueChange={changeSection}
+        value={section}
+      >
         <TabsClientList aria-label="編集する観点">
           {PRODUCT_FORM_SECTIONS.map((value) => (
             <TabsClientTrigger key={value} value={value}>

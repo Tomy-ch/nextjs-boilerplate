@@ -29,6 +29,7 @@ export type AuthorizeError = (typeof AUTHORIZE_ERROR)[keyof typeof AUTHORIZE_ERR
  * @param returnUrl - 認証後に戻す先。検証済みの相対パスであること
  * @param state - 要求と応答を対応づける値
  * @param error - 成立させられなかった理由
+ * @returns 戻す行き先の URL。
  */
 export function authorizeFailurePath(
   returnUrl: string,

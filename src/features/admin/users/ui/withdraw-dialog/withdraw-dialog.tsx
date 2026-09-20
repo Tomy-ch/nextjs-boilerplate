@@ -38,6 +38,8 @@ export type UserWithdrawDialogProps = {
  *
  * 送信は dialog の中の form が担い、結果は外側が受けます。成立すれば dialog は閉じ、そこに
  * 出した結果ごと消えるためです。
+ *
+ * @param props - {@link UserWithdrawDialogProps} を参照。
  */
 export function UserWithdrawDialog({ formAction, onDismiss, target }: UserWithdrawDialogProps) {
   // 開くのは行の操作が選ばれたときだけで、この面は trigger を持たない。したがって開閉の合図が

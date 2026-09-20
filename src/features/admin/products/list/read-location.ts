@@ -8,9 +8,7 @@ import { type AdminProductListLocation, CURSOR_KEY, FILTER_KEY, TRAIL_KEY } from
  * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある。**
  *
  * @remarks
- * 読むのは画面を組み立てる地点だけで、組むのは絞り込みの入力欄といった client の部品です。同じ
- * module に置くと、スキーマを組み立てる module 直下の式が tree-shaking を妨げ、**検証ライブラリごと
- * client の束に載ります**。境界を強制しているのは束であって、読みやすさではありません。
+ * 読むのは画面を組み立てる地点だけで、組むのは絞り込みの入力欄といった client の部品です。
  */
 
 /** 1 つしか受け取らない条件。読めなければ未指定（空文字）として扱う。 */
@@ -46,6 +44,9 @@ const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
  *
  * 読み方はスキーマが持ちます（`docs/rules.md`「URL と条件」の「`searchParams` は zod で検証する」）。
  * 1 つしか受け取らない条件が繰り返されていたら未指定として扱い、複数を選べる条件だけが並びのまま残ります。
+ *
+ * @param params - 生の searchParams
+ * @returns いま見ている場所
  */
 export function toAdminProductListLocation(params: RawSearchParams): AdminProductListLocation {
   const cursor = textSchema.parse(params[CURSOR_KEY]);

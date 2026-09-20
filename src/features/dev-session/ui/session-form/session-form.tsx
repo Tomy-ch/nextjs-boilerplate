@@ -36,7 +36,7 @@ export type AuthorizationHandoff = {
   readonly notice: AuthorizeError | null;
 };
 
-/** `DevSessionForm` の props。 */
+/** {@link DevSessionForm} の props。 */
 export type DevSessionFormProps = {
   /** 発行したあとの戻り先。 */
   returnUrl: string;
@@ -116,6 +116,10 @@ const PENDING_LABEL = "session を発行しています";
  * 出所が 2 つあります。その場で発行する送信の結果（Server Action の戻り値）と、認可 endpoint が
  * URL で戻した理由です。**同時には立ちません** —— 送信先はどちらか一方だけなので、直近の送信の
  * 結果があればそちらを採ります。
+ *
+ * @param state - その場で発行した送信の結果。
+ * @param authorization - 認可の往復からの引き渡し。直接開いたときは null。
+ * @returns 出す 1 文。無ければ null。
  */
 function toFeedback(
   state: DevSessionFormState,
@@ -156,8 +160,6 @@ function IssueSubmit() {
  * **接続先は書き換えられる形で出します**（{@link DevSessionFormProps.defaultIssuer}）。ずれたまま
  * 取ると、トークンは出るのに API で 401 になります。
  *
- * 役割は radio です。同時に 1 つしか選べないものを選ぶ操作であり、既定を持ちます。
- *
  * 失効までの秒数を指定できるのは、**失効したときの見え方を確かめるため**です。短い値を入れると、
  * その秒数のあとに保護された画面がどうなるかを実際に踏めます。
  *
@@ -165,6 +167,8 @@ function IssueSubmit() {
  * 出ません —— どちらも Server Action の戻り値に載る情報で、素の送信は状態を持ち越せないためです。
  * 認可 endpoint が分類しか戻さないこと（[`authorize-error.ts`](../../authorize-error.ts) の
  * `AUTHORIZE_ERROR`）と、そこで揃います。
+ *
+ * @param props - {@link DevSessionFormProps}。
  */
 export function DevSessionForm({
   returnUrl,
@@ -185,6 +189,16 @@ export function DevSessionForm({
   const [issuesToken, setIssuesToken] = useState(connectsLiveApi);
   const errors = state.status === "error" ? state.fieldErrors : undefined;
   const feedback = toFeedback(state, authorization);
+  /**
+   * API 接続モードの切り替えから、トークンを取りに行くかの状態を更新する。
+   *
+   * @param event - switch の change event。
+   */
+  /**
+   * API 接続モードの切り替えから、トークンを取りに行くかの状態を更新する。
+   *
+   * @param event - switch の change event。
+   */
   const toggleIssuesToken = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setIssuesToken(event.currentTarget.checked);
   }, []);

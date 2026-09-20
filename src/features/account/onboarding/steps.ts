@@ -44,6 +44,7 @@ export const REGISTRATION_FIELDS: readonly ProfileField[] = [...BASICS_FIELDS, .
  *
  * @param values - 入力中の値。触れていない項目は欠けている
  * @param fields - その段が尋ねる項目
+ * @returns その段の必須項目がすべて検証を通れば true
  */
 export function isStepComplete(
   values: Partial<ProfileInput>,

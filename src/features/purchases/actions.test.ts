@@ -27,7 +27,12 @@ import {
 
 const PURCHASE_CODE = "0195f0c2-0000-7000-9000-000000000001";
 
-/** 形の上で通る最小の入力。 */
+/**
+ * 形の上で通る最小の入力。
+ *
+ * @param purchaseCode - 対象の購入コード。空文字を渡すと未指定を模す。
+ * @returns 遷移の送信に使う FormData。
+ */
 function transitionForm(purchaseCode: string = PURCHASE_CODE): FormData {
   const form = new FormData();
 

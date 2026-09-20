@@ -20,6 +20,8 @@ export type InquiryThreadViewProps = {
  * **高さをここで確定させます。** 中の枠は与えられた高さを分け合うだけなので、やり取りが何通
  * あっても送信欄の位置は動きません。画面が縦に流れない理由は同 feature の
  * [README](../README.md)。
+ *
+ * @param props - 取得した正本と、購読の開始位置。
  */
 export const InquiryThreadView = withScreenSpan(
   "features/inquiry/thread/view",

@@ -69,6 +69,9 @@ export const ALL_PERIOD: PeriodSelection = { kind: "all" };
  *
  * 区分が使わない値も載せません。契約は無視すると宣言していますが、URL に残ると戻る操作や共有した
  * リンクで前の区分の値が復活します。
+ *
+ * @param period - いま効いている期間
+ * @returns URL に載せるクエリ文字列
  */
 export function toPeriodSearchParams(period: PeriodSelection): URLSearchParams {
   const params = new URLSearchParams();
@@ -95,7 +98,12 @@ export function toPeriodSearchParams(period: PeriodSelection): URLSearchParams {
   return params;
 }
 
-/** 期間の条件から購入履歴の URL を組む。 */
+/**
+ * 期間の条件から購入履歴の URL を組む。
+ *
+ * @param period - いま効いている期間
+ * @returns 購入履歴の URL
+ */
 export function toPurchaseHistoryHref(period: PeriodSelection): string {
   const params = toPeriodSearchParams(period);
 
@@ -109,6 +117,9 @@ export function toPurchaseHistoryHref(period: PeriodSelection): string {
  *
  * @remarks
  * 全期間では `null` を返します。既定は条件ではないため、解除できる条件として画面に並べません。
+ *
+ * @param period - いま効いている期間
+ * @returns 利用者向けの言い回し。全期間なら `null`
  */
 export function describePeriod(period: PeriodSelection): string | null {
   if (period.kind === "all") {
@@ -141,6 +152,7 @@ export function describePeriod(period: PeriodSelection): string | null {
  *
  * @param period - いま効いている期間
  * @param now - 相対の期間を解く基準の瞬時
+ * @returns 契約が受け取る半開区間
  */
 export function toPurchaseWindow(period: PeriodSelection, now: Date): TimeWindow {
   if (period.kind === "month") {

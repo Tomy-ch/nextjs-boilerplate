@@ -23,6 +23,8 @@ export type RankingListProps = {
  *
  * 行全体を link にせず商品名だけを link にしています。販売数量は遷移先の説明ではないため、
  * 読み上げの名前に混ぜません。
+ *
+ * @param props - 描画するランキングの一覧。
  */
 export const RankingList = withPartSpan(
   "features/home/ui/ranking-list/ranking-list",

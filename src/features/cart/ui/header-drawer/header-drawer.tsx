@@ -32,6 +32,8 @@ export type CartHeaderDrawerProps = {
  *
  * 開閉は `stores` の要求に従います。商品をカートへ入れたときも開く必要があり、その操作は別の
  * feature にあるためです。
+ *
+ * @see Storybook `Features/Cart/HeaderDrawer`
  */
 export function CartHeaderDrawer({ cart }: CartHeaderDrawerProps) {
   const isOpen = useCartStore((state) => state.isOpen);

@@ -19,6 +19,8 @@ export type CartActionErrorProps = {
  *
  * 操作ごとに置くのは、カートに操作が複数あり、どれが通らなかったのかを離れた場所の 1 行では
  * 指せないためです。
+ *
+ * @see Storybook `Features/Cart/ActionError`
  */
 export const CartActionError = withPartSpan(
   "features/cart/ui/action-error/action-error",

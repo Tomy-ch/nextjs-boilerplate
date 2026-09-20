@@ -31,6 +31,10 @@ const LABEL = "リポジトリの補足";
  *
  * 面の中に導線を置きません。リポジトリそのものへはカードを押せば行けます。同じ行き先を
  * 2 か所に置くと、どちらが正しい入口かが読み取れません。
+ *
+ * @param props - 補足を表示するリポジトリ 1 件
+ *
+ * @see Storybook `Features/SiteInfo/RepositorySupplement`
  */
 export function RepositorySupplement({ repository }: { readonly repository: Repository }) {
   const titleId = useId();

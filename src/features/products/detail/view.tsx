@@ -55,6 +55,15 @@ type ProductDetailProps = {
  *
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
  * は紙面の場所を取るだけなので落とします。
+ *
+ * @example
+ * ```tsx
+ * <ProductDetail imageUrls={["https://example.com/a.png"]} product={product} />
+ * ```
+ *
+ * @param props.product - 表示する商品。
+ * @param props.imageUrls - 表示順に並べた画像 URL。解決は feature 側の取得で済ませておく。
+ * @see Storybook `Page/Products/Detail`
  */
 export const ProductDetail = withScreenSpan(
   "features/products/detail/view",
@@ -76,7 +85,6 @@ export const ProductDetail = withScreenSpan(
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
                 <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -89,7 +97,6 @@ export const ProductDetail = withScreenSpan(
 
           <div className="flex flex-col items-start gap-6">
             <div className="flex flex-wrap items-center gap-2">
-              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
               <Badge className="whitespace-normal break-words" variant="secondary">
                 {product.category.name}
               </Badge>

@@ -62,8 +62,6 @@ describe("productValuesOf", () => {
   });
 
   it("保存された瞬間を、読む人の時差の壁時計へ写す", () => {
-    // 書式だけを見ると、符号の取り違えや二重補正でも通る。実行時の時差は Asia/Tokyo に
-    // 固定してあるので（`vitest.config.ts`）、09:00Z は 18:00 として出るはずである。
     expect(productValuesOf(PRODUCT).publishedAt).toBe("2026-08-07T18:00");
   });
 });

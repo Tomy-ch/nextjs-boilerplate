@@ -93,6 +93,7 @@ export type PeriodRequest =
  *
  * @param selection - URL が表している期間の選択
  * @param now - 相対の期間を解く基準の瞬時
+ * @returns 集計を求められるかどうかの判定結果。
  */
 export function toPeriodRequest(selection: DashboardPeriodSelection, now: Date): PeriodRequest {
   const period = selection.period ?? DASHBOARD_PERIOD.TODAY;
@@ -123,6 +124,9 @@ export function toPeriodRequest(selection: DashboardPeriodSelection, now: Date):
  * 日付を持ち越しません。日付が要る期間は overlay の中で両端を決めてから遷移するため、選択肢を
  * 押しただけの時点では行き先に載せるものがありません。載せたままにすると、効いていない条件が
  * 画面の外（アドレス欄・共有した URL）にだけ残ります。
+ *
+ * @param period - 切り替え先の期間区分。
+ * @returns 遷移先の URL。
  */
 export function toPeriodHref(period: DashboardPeriod): string {
   return `${ADMIN_ANALYTICS_PATH}?${new URLSearchParams({ [PERIOD_KEY.PERIOD]: period })}`;

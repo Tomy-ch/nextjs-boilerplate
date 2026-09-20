@@ -33,6 +33,8 @@ export type PurchaseRowProps = {
  *
  * 購入コードは折り返さずに詰めます。契約が返すのは UUID で、折り返すと 1 行の高さが 2 倍になり、
  * 一覧を読み進める密度が落ちます。全文は詳細の控えにあります。
+ *
+ * @see Storybook `Features/Purchases/History/PurchaseRow`
  */
 export const PurchaseRow = withPartSpan(
   "features/purchases/history/ui/purchase-row/purchase-row",

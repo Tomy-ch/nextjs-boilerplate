@@ -11,7 +11,11 @@ import { CHECKOUT_PATH } from "../../paths";
 export type CartCheckoutLinkProps = {
   /** 進める先のカート。 */
   cart: Cart;
-  /** 器に合わせた大きさ。脇の領域は小さく、全画面は既定。 */
+  /**
+   * 器に合わせた大きさ。脇の領域は小さく、全画面は既定。
+   *
+   * @defaultValue `BUTTON_SIZE.DEFAULT`
+   */
   size?: (typeof BUTTON_SIZE)[keyof typeof BUTTON_SIZE];
 };
 
@@ -27,6 +31,8 @@ const LABEL = "購入手続きへ";
  *
  * 押せない状態を link のままにしません。link は押せば必ず移動するもので、移動しない link は
  * 支援技術から見ると壊れた導線です。
+ *
+ * @see Storybook `Features/Cart/CheckoutLink`
  */
 export const CartCheckoutLink = withPartSpan(
   "features/cart/ui/checkout-link/checkout-link",

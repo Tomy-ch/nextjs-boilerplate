@@ -25,6 +25,13 @@ const STATUS_LABEL = "状態";
  * 選択肢に無い番号は条件として出しません。
  *
  * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」）。
+ *
+ * @param codes - 選ばれたコードの一覧
+ * @param options - コードを表示名へ直す候補
+ * @param label - 各条件に付ける表示名
+ * @param key - 条件のキーに使う接頭辞
+ * @param toConditions - 1 件を外した残りのコードから条件を組み立てる関数
+ * @returns 解除先付きの条件の一覧
  */
 function toFilters(
   codes: readonly string[],
@@ -63,6 +70,7 @@ function toFilters(
  * @param conditions - いま効いている条件
  * @param categoryOptions - 選べる分類。コードを表示名へ直すために使う
  * @param statusOptions - 選べる状態。同上
+ * @returns 解除先付きの条件の一覧
  */
 export function toAdminActiveFilters(
   conditions: AdminProductListConditions,

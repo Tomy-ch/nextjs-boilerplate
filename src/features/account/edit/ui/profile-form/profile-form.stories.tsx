@@ -15,8 +15,8 @@ import { ProfileForm } from "./profile-form";
  *
  * **最後だけ `tab()` を使いません。** 次の項目は郵便番号で、そこへ focus が移ると離れた時点で
  * 住所の補完が走り、この story の主題ではない状態まで進みます。focus ring も絵に残り、その角は
- * 実行ごとに aa が揺れるため、この story だけが 2 画素で落ち続けていました。検証を起こすのに
- * 要るのは焦点が外れることだけなので、移さずに外します。
+ * 実行ごとに aa が揺れます。検証を起こすのに要るのは焦点が外れることだけなので、移さずに
+ * 外します。
  */
 async function showValidationErrors({
   canvasElement,

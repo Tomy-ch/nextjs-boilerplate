@@ -30,6 +30,8 @@ export type ProductTeaserProps = {
  * カートへ入れる操作が内側に居るためで、ここには入れ子になる操作がありません。
  *
  * 段の中での大きさは器が決めます。この部品は幅を持たず、置かれた枠に従います。
+ *
+ * @param props - 描画する商品と、画像の読み込み優先度。
  */
 export const ProductTeaser = withPartSpan(
   "features/home/ui/product-teaser/product-teaser",

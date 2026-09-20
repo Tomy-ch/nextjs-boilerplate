@@ -71,6 +71,7 @@ export type AdminProductRow = {
  *
  * @param products - 表に並べる商品
  * @param statuses - 状態のマスタ
+ * @returns 表に並べる行の一覧
  */
 export function toAdminProductRows(
   products: readonly Product[],

@@ -19,6 +19,8 @@ import { REPOSITORIES } from "../../repositories";
  *
  * 説明を HoverCard に載せるのは、常時出すとフッターが本文と同じ量の文字を持つことになるためです。
  * keyboard の focus でも開くので、hover を持たない利用者も読めます。
+ *
+ * @see Storybook `Features/SiteInfo/RepositoryLinks`
  */
 export const RepositoryLinks = withPartSpan(
   "features/site-info/ui/repository-links/repository-links",

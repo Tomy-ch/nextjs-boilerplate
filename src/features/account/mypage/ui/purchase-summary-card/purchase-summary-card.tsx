@@ -40,6 +40,8 @@ type PurchaseSummaryCardProps = {
  *
  * 表に caption を置きません。カードの見出しが同じことを言っており、`Table` の `label` が
  * scroll 領域の名前を供給するので、支援技術から見た名前も失われません。
+ *
+ * @param props - 購入サマリと購入履歴。
  */
 export const PurchaseSummaryCard = withPartSpan(
   "features/account/mypage/ui/purchase-summary-card/purchase-summary-card",

@@ -41,6 +41,7 @@ const UNKNOWN_STATUS_TONE: BadgeVariant = BADGE_VARIANT.GHOST;
  * 状態のコードから、バッジの見た目を選ぶ。
  *
  * @param code - 状態マスタのコード。マスタに見つからなければ undefined
+ * @returns 対応するバッジの見た目
  */
 export function toStatusTone(code: number | undefined): BadgeVariant {
   return (code === undefined ? undefined : STATUS_TONE[code]) ?? UNKNOWN_STATUS_TONE;

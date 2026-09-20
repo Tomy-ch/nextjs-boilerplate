@@ -12,7 +12,6 @@ describe("AdminInquiryDetailSkeleton", () => {
     const frames = [...container.querySelectorAll('[data-slot="skeleton"]')];
 
     expect(frames).toHaveLength(PLACEHOLDER_MESSAGES + 2);
-    // 数だけでは、やり取りの枠が増えて概要か回答欄が消えても通る。
     expect(frames.at(0)).toHaveClass("h-16");
     expect(frames.at(-1)).toHaveClass("h-28");
   });

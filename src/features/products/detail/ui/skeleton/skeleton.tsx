@@ -7,6 +7,12 @@ import { withPartSpan } from "@/observability/render-span";
  * @remarks
  * 1 本のスピナーで代用すると、届いた瞬間に段組みが立ち上がって読み始めた位置が動きます（`docs/rules.md`「状態表示と待機」の「loading は形状が近い skeleton を
  * 優先する」）。
+ *
+ * @example
+ * ```tsx
+ * <ProductDetailSkeleton />
+ * ```
+ * @see Storybook `Features/Products/Detail/Skeleton`
  */
 export const ProductDetailSkeleton = withPartSpan(
   "features/products/detail/ui/skeleton/skeleton",

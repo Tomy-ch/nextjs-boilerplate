@@ -34,6 +34,10 @@ const MALFORMED_MESSAGE = "送信を受け付けられませんでした。画�
  *
  * 送信の後に画面を取り直すのは、送った 1 通を正本へ入れるためだけではありません。取り直した
  * 応答が新しい購読の開始位置を返すので、送信と購読の位置が同じ往復で揃います。
+ *
+ * @param _previous - 直前の呼び出しの結果。ここでは参照しない。
+ * @param formData - 送信欄から届いたフォームの内容。
+ * @returns 送信結果。成功時は値を持たず、失敗時は項目ごとの理由を持つ。
  */
 export async function sendInquiryMessageAction(
   _previous: InquiryMessageActionState,

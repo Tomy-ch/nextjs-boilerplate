@@ -29,6 +29,8 @@ const NAV_ITEMS = [
  * @remarks
  * 見出しは置きません。この画面の見出しはパンくずの現在地（購入コード）が担い、`page.tsx` からも
  * `PageHeader` を出しません。
+ *
+ * @param Story - 包む対象の story 本体。
  */
 function withPageFrame(Story: () => ReactElement) {
   useCartStore.setState({ isOpen: false });

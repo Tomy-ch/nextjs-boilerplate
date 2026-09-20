@@ -5,13 +5,6 @@ import { describe, expect, it } from "vitest";
 
 import { useActionResultFreshness } from "./use-action-result-freshness";
 
-/**
- * 描画ごとの `resultIsNew` を記録する。
- *
- * @remarks
- * この合図は**描画のあいだだけ真**になり、落ち着いたあとは偽へ戻ります（入れ替わりを見た時点で
- * 覚え直すため）。落ち着いたあとの値を見ると、どの経路でも偽なので何も判りません。
- */
 function Probe({ state, seen }: { state: string; seen: boolean[] }) {
   const freshness = useActionResultFreshness(state);
 

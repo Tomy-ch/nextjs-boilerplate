@@ -55,6 +55,10 @@ function rejectedFieldsState(error: unknown): ProfileFormState | undefined {
  *
  * 成功しても画面を移しません。フォームの文脈に留まる保存なので、通知は toast が担います。
  * マイページ側は次に開いたときに新しい内容が出るよう、ここで再検証を要求しておきます。
+ *
+ * @param _previous - 直前のフォーム状態。ここでは参照しない
+ * @param formData - 送信された `FormData`
+ * @returns 検証または更新の結果を表すフォーム状態
  */
 export async function updateProfileAction(
   _previous: ProfileFormState,
@@ -92,6 +96,10 @@ export async function updateProfileAction(
  *
  * `409` にだけ専用の文言を当てます。契約は既存の利用者との競合をこの分類で返すため、カタログの
  * 既定文言（分類だけを伝える）よりも、この画面でしか言えないことがあります。
+ *
+ * @param _previous - 直前のフォーム状態。ここでは参照しない
+ * @param formData - 送信された `FormData`
+ * @returns 検証または登録に失敗したときのフォーム状態。成立した場合は戻り先へ redirect するため戻らない
  */
 export async function registerAction(
   _previous: ProfileFormState,
@@ -135,6 +143,10 @@ export async function registerAction(
  *
  * `409` にだけ専用の文言を当てます。カタログの既定文言は分類だけを伝えるもので、退会が
  * 通らなかった理由が進行中の購入であることは、この画面でしか言えません。
+ *
+ * @param _previous - 直前のフォーム状態。ここでは参照しない
+ * @param _formData - 送信された `FormData`。ここでは参照しない
+ * @returns 失敗したときのフォーム状態。成立した場合は redirect するため戻らない
  */
 export async function withdrawAction(
   _previous: WithdrawFormState,

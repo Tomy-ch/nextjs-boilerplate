@@ -28,6 +28,9 @@ import { PROFILE_EDIT_PATH } from "../../../paths";
  * @remarks
  * 郵便番号を先頭に置き、都道府県から番地までを続けます。建物名は任意入力なので、無ければ
  * その区切りごと落とします。空の要素を残すと区切り記号だけが並びます。
+ *
+ * @param profile - 住所を組む元のプロフィール
+ * @returns 郵便番号から番地までを 1 行にした文字列
  */
 function formatAddress(profile: UserProfile): string {
   const lines = [profile.prefecture, profile.city, profile.street, profile.building ?? ""];
@@ -40,10 +43,14 @@ function formatAddress(profile: UserProfile): string {
  *
  * @remarks
  * 導線を画面の下端にまとめると、何を変えに行くのかが操作の位置から読み取れなくなります。
+ *
+ * @param props - 表示するプロフィール。
  */
 export const ProfileCard = withPartSpan(
   "features/account/mypage/ui/profile-card/profile-card",
   ({ profile }: { readonly profile: UserProfile }) => {
+    // メールアドレスは契約が長さの上限を置いていないので、1 行に収まる前提を置けない
+    // （下の KeyValueValue に break-all を当てている）。
     return (
       <Card>
         <CardHeader>
@@ -62,7 +69,6 @@ export const ProfileCard = withPartSpan(
             </KeyValueItem>
             <KeyValueItem>
               <KeyValueLabel>メールアドレス</KeyValueLabel>
-              {/* 契約は長さの上限を置いていないので、1 行に収まる前提を置けない。 */}
               <KeyValueValue className="break-all">{profile.email}</KeyValueValue>
             </KeyValueItem>
             <KeyValueItem>

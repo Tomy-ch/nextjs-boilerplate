@@ -32,6 +32,8 @@ export type ProductStockFieldProps = {
  * `name` に生成した ID を混ぜているのは、脇の領域と overlay が同時に DOM へ存在するためです。
  * 同じ `name` の radio が 2 組あると、ブラウザはそれらを 1 つの群として扱い、片方を選ぶと
  * もう片方の選択が外れます。
+ *
+ * @param props - いま選ばれている在庫状況と、変更の通知。
  */
 export function ProductStockField({ value, onChange }: ProductStockFieldProps) {
   "use memo";
@@ -59,6 +61,8 @@ export function ProductStockField({ value, onChange }: ProductStockFieldProps) {
  *
  * @remarks
  * 独立した component にしているのは、選んだことを伝える関数を選択肢ごとに安定させるためです。
+ *
+ * @param props - 選択肢そのものと、選択中かどうか、変更の通知。
  */
 function StockOption({
   checked,

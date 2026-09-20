@@ -11,7 +11,12 @@ import {
 } from "../../../facade/purchase.fixture";
 import { PurchaseTransitions } from "./transitions";
 
-/** 確認を開いて、その中の実行まで押す。dialog は portal で `body` の側へ出る。 */
+/**
+ * 確認を開いて、その中の実行まで押す。dialog は portal で `body` の側へ出る。
+ *
+ * @param label - 開く操作と確認の中の実行操作、両方の表示名。
+ * @returns story の `play` へ渡す関数。
+ */
 function confirm(label: string) {
   return async ({ canvasElement }: { canvasElement: HTMLElement }): Promise<void> => {
     const body = within(document.body);

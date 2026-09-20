@@ -36,6 +36,8 @@ export type ProductLoadMoreListProps = {
  * 件数を読み上げへ伝えます。追加された商品は一覧の末尾に増えるだけなので、伝えないと画面を
  * 見ていない利用者には何も起きていないのと区別が付きません。読み込み中の報告を同じ文へ
  * まとめないのは、読み込みのたびに件数まで読み直されるためです。
+ *
+ * @param props - 読み込み済みの商品、総数、続きの読み込みの状態、目印の ref。
  */
 export const ProductLoadMoreList = withPartSpan(
   "features/products/list/ui/load-more-list/load-more-list",

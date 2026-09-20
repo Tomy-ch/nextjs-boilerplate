@@ -12,6 +12,10 @@ import {
  * 回線の有無を先に見る理由は、利用者側の問い合わせ画面と同じです。**同じ写しを共有していないのは、
  * 画面の slice どうしが互いを参照しないため**で、運営側と利用者側では出す語も違います —— こちらは
  * 受け取る対象が常にあり、「待機中」へ落ちる経路がありません。
+ *
+ * @param state - 更新フィードの接続状態。
+ * @param online - 回線が繋がっているか。
+ * @returns 画面へ出す接続状態の 1 語。
  */
 export function toFeedConnectionStatus(state: StreamState, online: boolean): ConnectionStatusValue {
   if (!online) {

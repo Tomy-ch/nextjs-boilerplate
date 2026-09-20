@@ -26,6 +26,8 @@ export type InquiryBreadcrumbTrailProps = {
  *
  * @remarks
  * 一覧へ戻る先頭の 1 段はどの画面でも同じなので、ここが持ちます。
+ *
+ * @param props - 一覧より下の現在地（並び順がそのまま階層になる）。
  */
 export const InquiryBreadcrumbTrail = withPartSpan(
   "features/admin/inquiries/ui/breadcrumb-trail/breadcrumb-trail",

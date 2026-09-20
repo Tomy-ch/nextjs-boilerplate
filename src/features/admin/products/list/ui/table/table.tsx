@@ -116,6 +116,18 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
   },
 ];
 
+/**
+ * 行の React key を取り出す。
+ *
+ * @param item - 対象の行
+ * @returns 行の商品 ID
+ */
+/**
+ * 行の React key を取り出す。
+ *
+ * @param item - 対象の行
+ * @returns 行の商品 ID
+ */
 function rowKey(item: AdminProductRow): string {
   return item.id;
 }
@@ -125,10 +137,6 @@ function rowKey(item: AdminProductRow): string {
  *
  * @remarks
  * 取得もページ送りの組み立ても持ちません。並べる商品と、上下へ置くものを受け取るだけです。
- *
- * **利用者側の一覧と同じ商品を、違う形で出します。** 買う側は 1 件ずつ眺めて選ぶのでカードで、
- * 管理側は同じ属性を件どうしで見比べるので表です。同じ部品を共有すると、どちらかの都合が
- * もう一方へ漏れます。
  *
  * **行全体が編集への導線ですが、link で包んではいません。** `tr` を link で包むことはできず、
  * 包めたとしても在庫と行操作が link の内側に入り、操作の中に操作が居る形になります。代わりに
@@ -148,6 +156,8 @@ function rowKey(item: AdminProductRow): string {
  *
  * **行を押す・在庫を押すのどちらも、明示的に選ぶ道を menu が残します**（理由は `docs/spec/route/admin/products/page.function.md`
  * 「行から進める先」）。
+ *
+ * @param props - {@link AdminProductTableProps} を受け取る。
  *
  * @see Storybook `Features/Admin/Products/List/Table`
  */

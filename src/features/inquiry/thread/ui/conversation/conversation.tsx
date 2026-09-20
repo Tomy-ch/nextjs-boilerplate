@@ -62,6 +62,8 @@ export type InquiryConversationProps = {
  *
  * まだ 1 通も無い利用者では購読を始めません。問い合わせが作られるのは最初の送信のときで、
  * それまで購読する対象が存在しないためです。
+ *
+ * @param props - 取得した正本と、購読の開始位置。
  */
 export function InquiryConversation({ history }: InquiryConversationProps) {
   const router = useRouter();

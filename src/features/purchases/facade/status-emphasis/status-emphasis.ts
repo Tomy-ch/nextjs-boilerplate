@@ -49,6 +49,9 @@ const UNKNOWN_STATUS_EMPHASIS: BadgeVariant = BADGE_VARIANT.GHOST;
  *
  * 3 つに束ねる根拠と、色を文言の補強に留める根拠は
  * [画面要件](../../../../../docs/spec/route/shop/purchases/page.screen.md)「状況」。
+ *
+ * @param statusCode - 購入ステータスの業務キー。
+ * @returns 対応する badge の見た目。
  */
 export function toStatusEmphasis(statusCode: number): BadgeVariant {
   if (SETTLED_STATUS_CODES.has(statusCode)) {

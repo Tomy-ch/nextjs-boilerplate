@@ -12,6 +12,9 @@ import { isPurchasable } from "@/model/cart/issue-notice";
  *
  * 買えるかどうかの判定そのものはバックエンドが持ちます。ここが決めるのは、その結果を画面の可否へ
  * 写す一段だけです。
+ *
+ * @param cart - 判定するカート
+ * @returns 買える明細が 1 つでもあれば true
  */
 export function canCheckout(cart: Cart): boolean {
   return cart.lines.some(isPurchasable);

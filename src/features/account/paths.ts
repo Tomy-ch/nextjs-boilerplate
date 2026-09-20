@@ -23,6 +23,7 @@ export const ONBOARDING_PATH = "/onboarding";
  * 送れます（open redirect）。検証は `model` が持ち、ここはその結果を URL へ組むだけです。
  *
  * @param returnTo - 登録後に戻す先。同一 origin の相対パスでなければ `/` へ倒れる
+ * @returns 登録画面の URL
  */
 export function onboardingPath(returnTo: string): string {
   return `${ONBOARDING_PATH}?returnUrl=${encodeURIComponent(toSafeReturnUrl(returnTo))}`;

@@ -26,6 +26,18 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+/**
+ * story 用の商品データを作る。
+ *
+ * @param overrides - 既定値から変える項目。
+ * @returns 既定値に `overrides` を重ねた商品。
+ */
+/**
+ * story 用の商品データを作る。
+ *
+ * @param overrides - 既定値から変える項目。
+ * @returns 既定値に `overrides` を重ねた商品。
+ */
 function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
     id: toProductId("0195f0c2-0000-7000-8000-000000000001"),

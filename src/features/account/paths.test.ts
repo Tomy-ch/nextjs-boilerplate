@@ -2,11 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { MYPAGE_PATH, ONBOARDING_PATH, onboardingPath, PROFILE_EDIT_PATH } from "./paths";
 
-/*
- * 参照側のテストは定数どうしを突き合わせるので、値そのものは誰も固定していない。ここが唯一の
- * 直値との突き合わせであり、`app/` の route segment と定数がずれたことに気づける地点である。
- */
-
 describe("MYPAGE_PATH", () => {
   // ----- 正常系 -----
   it("マイページの route segment を指す", () => {

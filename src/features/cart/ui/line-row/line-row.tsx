@@ -47,6 +47,8 @@ const SUBTOTAL_NOTE = "小計には含めていません。";
  * **在庫が足りない明細には、その数へ合わせる操作が生えます。** 事情として今買える数が届いている
  * 以上、利用者に数え直させる理由がありません。在庫が 1 つも無い明細には出しません（合わせる先が
  * ありません）。
+ *
+ * @see Storybook `Features/Cart/LineRow`
  */
 export const CartLineRow = withPartSpan(
   "features/cart/ui/line-row/line-row",

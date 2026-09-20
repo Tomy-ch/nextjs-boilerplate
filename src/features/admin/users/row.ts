@@ -20,6 +20,9 @@ export type AdminUserRow = {
  *
  * 退会したかを日時ではなく真偽値で持ちます。**いつ退会したかを一覧は出しません** —— 出す先が
  * 無い値を運ぶと、行を見る側が「使っていないが在る」項目を毎回読み飛ばすことになります。
+ *
+ * @param users - 写す対象の利用者
+ * @returns 1 行の形へ写した利用者
  */
 export function toAdminUserRows(users: readonly ManagedUser[]): readonly AdminUserRow[] {
   return users.map((user) => ({

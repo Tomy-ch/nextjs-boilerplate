@@ -8,10 +8,30 @@ import { axe } from "vitest-axe";
 import { PRICE_RANGE_MAX, PRICE_RANGE_MIN } from "../../price-range";
 import { ProductPriceField } from "./price-field";
 
+/**
+ * 価格の下限を選ぶセレクトボックスを取得する。
+ *
+ * @returns 下限のセレクトボックス要素。
+ */
+/**
+ * 価格の下限を選ぶセレクトボックスを取得する。
+ *
+ * @returns 下限のセレクトボックス要素。
+ */
 function low(): HTMLElement {
   return screen.getByLabelText("価格の下限", { selector: "select" });
 }
 
+/**
+ * 価格の上限を選ぶセレクトボックスを取得する。
+ *
+ * @returns 上限のセレクトボックス要素。
+ */
+/**
+ * 価格の上限を選ぶセレクトボックスを取得する。
+ *
+ * @returns 上限のセレクトボックス要素。
+ */
 function high(): HTMLElement {
   return screen.getByLabelText("価格の上限", { selector: "select" });
 }

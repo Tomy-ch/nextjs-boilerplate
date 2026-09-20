@@ -32,7 +32,6 @@ describe("AdminInquiryListView", () => {
     const body = screen.getByText("一覧");
 
     expect(watch).toBeVisible();
-    // 一覧の内側へ入ると、行の描き直しのたびに受信の状態も作り直される。
     expect(body.contains(watch)).toBe(false);
     expect(watch.compareDocumentPosition(body) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

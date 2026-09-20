@@ -20,6 +20,20 @@ export type AdminInquiryListLocation = {
   readonly trail: readonly string[];
 };
 
+/**
+ * cursor と trail を URL のクエリへ組む。
+ *
+ * @param cursor - いま見ているページの起点。
+ * @param trail - ここまでに通ってきた起点。
+ * @returns 組み上がった URL。
+ */
+/**
+ * cursor と trail を URL のクエリへ組む。
+ *
+ * @param cursor - いま見ているページの起点。
+ * @param trail - ここまでに通ってきた起点。
+ * @returns 組み上がった URL。
+ */
 function toHref(cursor: string, trail: readonly string[]): string {
   const params = new URLSearchParams();
 
@@ -32,7 +46,13 @@ function toHref(cursor: string, trail: readonly string[]): string {
   return `${ADMIN_INQUIRY_LIST_PATH}?${params.toString()}`;
 }
 
-/** 次のページの URL を組む。通ってきた起点に、いまの起点を積む。 */
+/**
+ * 次のページの URL を組む。通ってきた起点に、いまの起点を積む。
+ *
+ * @param location - いま見ている場所。
+ * @param nextCursor - 次のページの起点。
+ * @returns 次のページの URL。
+ */
 export function toNextPageHref(location: AdminInquiryListLocation, nextCursor: string): string {
   const trail = location.cursor === null ? [] : [...location.trail, location.cursor];
 
@@ -44,6 +64,9 @@ export function toNextPageHref(location: AdminInquiryListLocation, nextCursor: s
  *
  * @remarks
  * 積んである起点の末尾が 1 つ前のページで、それを降ろした残りがそのページの通り道になります。
+ *
+ * @param location - いま見ている場所。
+ * @returns 1 つ前のページの URL。先頭ページなら `undefined`。
  */
 export function toPreviousPageHref(location: AdminInquiryListLocation): string | undefined {
   if (location.cursor === null) {

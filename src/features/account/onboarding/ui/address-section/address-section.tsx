@@ -28,6 +28,8 @@ export type RegistrationAddressSectionProps = {
  * 知る必要がありません。埋める値の決め方は `useAddressField` が持ちます。
  *
  * 補完が起きたことを読み上げます。入力欄の値が変わるだけでは、そこを見ていない利用者に届きません。
+ *
+ * @param props - 入力欄の props を組む口と、選べる都道府県。
  */
 export function RegistrationAddressSection({
   fields,
@@ -38,8 +40,6 @@ export function RegistrationAddressSection({
 
   return (
     <FieldGroup>
-      {/* 補完は focus が外れた時点でも走る。起きたことを画面の変化だけで伝えると、
-          入力欄を見ていない利用者には届かない。 */}
       <p className="text-sm text-muted-foreground" role="status">
         {address.message}
       </p>

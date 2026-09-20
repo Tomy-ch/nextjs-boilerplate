@@ -23,6 +23,8 @@ export type AdminInquiryListPageContentProps = {
  *
  * **場所が変わったら作り直します**（`key`）。同じ位置に留まったまま中身だけ入れ替わると、前の
  * ページの行が新しい待機の下に残ります。
+ *
+ * @param props - route が受け取った素の検索条件。
  */
 export const AdminInquiryListPageContent = withScreenSpan(
   "features/admin/inquiries/list/page-content",

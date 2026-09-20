@@ -2,10 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import { REPOSITORIES } from "./repositories";
 
-/**
- * 参照側のテストは `REPOSITORIES` 自身をループして描画結果と突き合わせるので、実データの内容は
- * 誰も固定していない。この表が「単一の真実の源」である以上、中身を守る地点が 1 つ要る。
- */
 describe("REPOSITORIES", () => {
   // ----- 正常系 -----
   it("このサイトを構成する 2 つのリポジトリを持つ", () => {

@@ -14,6 +14,8 @@ export type AdminProductStockBreadcrumbContentProps = {
  *
  * @remarks
  * 商品名を出すために取得します。本文と同じ取得を通るため、同じ描画の中では 1 回にまとまります。
+ *
+ * @param props - 在庫を動かす対象の識別子。
  */
 export async function AdminProductStockBreadcrumbContent({
   id,

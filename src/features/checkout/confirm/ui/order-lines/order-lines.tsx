@@ -20,7 +20,7 @@ import type { CartLine } from "@/model/cart/cart";
 import { CART_PATH } from "../../../paths";
 import { OrderLineRow } from "../order-line-row/order-line-row";
 
-/** `OrderLines` の props。 */
+/** {@link OrderLines} の props。 */
 export type OrderLinesProps = {
   /** 再掲する明細。 */
   lines: readonly CartLine[];
@@ -30,7 +30,7 @@ export type OrderLinesProps = {
  * 畳まずに出す明細の数。
  *
  * @remarks
- * カートは契約上 50 行まで入ります。全部を常に並べると、確定するまでの丈がその行数に比例します。
+ * 全部を常に並べると、確定するまでの丈が明細の行数に比例します。
  */
 const VISIBLE_LIMIT = 10;
 
@@ -51,6 +51,8 @@ const VISIBLE_LIMIT = 10;
  * 畳む手段が読んでいる位置から届きます。それ未満の幅で貼り付けないのは、画面の下端を確定の帯が
  * 占めており、二つが重なるためです（`docs/rules.md`「レイアウトと帯」の「常に届く操作は `lg` 未満で
  * 画面下端に固定する」）。
+ *
+ * @param props - {@link OrderLinesProps}。
  */
 export function OrderLines({ lines }: OrderLinesProps) {
   const [expanded, setExpanded] = useState(false);
@@ -59,6 +61,8 @@ export function OrderLines({ lines }: OrderLinesProps) {
   const foldedCount = lines.length - VISIBLE_LIMIT;
   const shown = expanded ? lines : lines.slice(0, VISIBLE_LIMIT);
 
+  /** 一覧の開閉を切り替える。 */
+  /** 一覧の開閉を切り替える。 */
   const toggle = useCallback(() => {
     setExpanded((current) => {
       // 畳むと上の行が縮み、押した操作が画面の外へ出る。押した場所を視野に残す。

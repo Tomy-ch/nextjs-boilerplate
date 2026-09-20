@@ -21,6 +21,8 @@ export type ProfileSubmitButtonProps = {
  *
  * 送信中の見せ方は `Button` が持ちます。文言を差し替えると幅が動くため、ここでは待っている
  * あいだの名前を渡すだけです。
+ *
+ * @param props - 押せるときの文言と、送信中の文言。
  */
 export function ProfileSubmitButton({ label, pendingLabel }: ProfileSubmitButtonProps) {
   const { pending } = useFormStatus();

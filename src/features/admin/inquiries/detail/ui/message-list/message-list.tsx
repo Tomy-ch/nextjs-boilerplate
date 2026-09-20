@@ -45,6 +45,16 @@ export type AdminInquiryDraft = {
   readonly body: string;
 };
 
+/**
+ * 送り手ごとに向きと面を変える、メッセージ 1 件の吹き出し。
+ *
+ * @param props - 描画するメッセージ 1 件。
+ */
+/**
+ * 送り手ごとに向きと面を変える、メッセージ 1 件の吹き出し。
+ *
+ * @param props - 描画するメッセージ 1 件。
+ */
 function AdminInquiryMessageRow({ message }: { message: InquiryMessage }) {
   const mine = message.authorKind === INQUIRY_AUTHOR_KIND.operator;
 
@@ -68,6 +78,8 @@ function AdminInquiryMessageRow({ message }: { message: InquiryMessage }) {
  * @remarks
  * 取得も並べ替えも持たず、確定した並びを描くだけです。日付の区切りを挟む理由は利用者側と
  * 同じで、時刻だけを見せているためです。
+ *
+ * @see Storybook `Features/Admin/Inquiries/Detail/MessageList`
  */
 export const AdminInquiryMessageList = withPartSpan(
   "features/admin/inquiries/detail/ui/message-list/message-list",

@@ -62,6 +62,8 @@ export type ProductFormInput = {
  * 送信そのもの（`useActionState`）は持ちません。送信先が画面ごとに違い、戻り先も別のためです。
  * 結果だけを受け取り、**入れ替わったかどうか**を返します。入れ替わりに何を起こすかは画面が
  * 決めます（誤りのある観点へ移る、など）。
+ *
+ * @returns フォームが持つ状態のひとまとまり
  */
 export function useProductForm({
   initialValues,

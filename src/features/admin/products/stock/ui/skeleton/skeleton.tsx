@@ -7,6 +7,8 @@ import { withPartSpan } from "@/observability/render-span";
  * @remarks
  * 一覧の待機表示を流用すると、表の行が並んでからフォームが現れることになり、何を待っているかが
  * 伝わりません。
+ *
+ * @see Storybook `Features/Admin/Products/Stock/Skeleton`
  */
 export const AdminProductStockSkeleton = withPartSpan(
   "features/admin/products/stock/ui/skeleton/skeleton",

@@ -18,6 +18,8 @@ const CATEGORIES: readonly FilterOption[] = [
  * @remarks
  * 下書きは画面で 1 つのものを読み、供給の外では失敗させてあります。器を decorator ではなく
  * component にしてあるのは、効いている条件を story の引数として型のまま扱うためです。
+ *
+ * @param props - {@link ProductFilterSheet} へそのまま渡す props。
  */
 function SheetInPage(props: ProductFilterSheetProps) {
   return (

@@ -37,6 +37,8 @@ export type AdminProductListPageContentProps = {
  * 与えないと、次の結果が届くまで前のページの行が残ります。通ってきた道は取得に効かないため
  * 鍵に含めません。含めると、同じ結果を出す遷移でも表が組み直されます。**鍵は値を一意に表す形で
  * 作ります。** 区切り文字で連結すると、値に区切り文字が現れた時点で別の条件が同じ鍵になります。
+ *
+ * @param props - {@link AdminProductListPageContentProps} を受け取る。
  */
 export const AdminProductListPageContent = withScreenSpan(
   "features/admin/products/list/page-content",

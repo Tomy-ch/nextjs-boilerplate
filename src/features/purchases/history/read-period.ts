@@ -76,6 +76,9 @@ const periodSchema = z
  * 判定は {@link periodSchema} が持ちます（`docs/rules.md`「URL と条件」の「`searchParams` は zod で
  * 検証する」）。区分ごとに必須の値が違うため、区分ごとの姿を並べて照らします。手で条件を並べると、
  * 区分と値の組み合わせのうちどれを見ていないのかが読み取れません。
+ *
+ * @param params - page が受け取った素の検索条件
+ * @returns 読み取れなければ全期間へ倒した、いま効いている期間
  */
 export function toPeriodSelection(params: RawSearchParams): PeriodSelection {
   return periodSchema.parse(params);

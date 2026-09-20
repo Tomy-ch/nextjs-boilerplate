@@ -32,6 +32,7 @@ export type AnalyticsViewProps = {
  * **数値カードと内訳は入口（`view.tsx`）と同じ部品です。** 同じ値を別の形で出すと、期間を変えた
  * だけのつもりで読み方まで変わります。
  *
+ * @param props - {@link AnalyticsViewProps} を参照。
  * @see Storybook `Page/Admin/Analytics`
  */
 export const AnalyticsView = withScreenSpan(

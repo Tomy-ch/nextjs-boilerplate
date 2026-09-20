@@ -25,7 +25,12 @@ export const STOCK_DIRECTION_LABELS = {
   [STOCK_DIRECTION.DEDUCT]: "差し引く",
 } as const satisfies Readonly<Record<StockDirection, string>>;
 
-/** 外から来た値が向きのどちらかであるかを判定する。 */
+/**
+ * 外から来た値が向きのどちらかであるかを判定する。
+ *
+ * @param value - 判定する値。
+ * @returns 向きのどちらかであれば `true`。
+ */
 export function isStockDirection(value: unknown): value is StockDirection {
   return value === STOCK_DIRECTION.REPLENISH || value === STOCK_DIRECTION.DEDUCT;
 }
@@ -36,6 +41,10 @@ export function isStockDirection(value: unknown): value is StockDirection {
  * @remarks
  * 契約は符号付きの 1 つの数で受け取ります（`delta`）。向きと量に分かれているのは画面の都合で、
  * 送る直前にここで畳みます。
+ *
+ * @param direction - 動かす向き。
+ * @param quantity - 動かす量。符号を持たない。
+ * @returns 契約へ送る、符号付きの増減量。
  */
 export function toStockDelta(direction: StockDirection, quantity: number): number {
   return direction === STOCK_DIRECTION.DEDUCT ? -quantity : quantity;

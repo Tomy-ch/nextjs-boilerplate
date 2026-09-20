@@ -67,6 +67,22 @@ export type AdminProductListLocation = AdminProductListConditions & {
   readonly trail: readonly string[];
 };
 
+/**
+ * 条件とページ位置から一覧の URL を組む。
+ *
+ * @param conditions - 絞り込み条件
+ * @param cursor - いま見ているページの起点。先頭ページは null
+ * @param trail - ここまでに通ってきたページの起点
+ * @returns 組み立てた URL
+ */
+/**
+ * 条件とページ位置から一覧の URL を組む。
+ *
+ * @param conditions - 絞り込み条件
+ * @param cursor - いま見ているページの起点。先頭ページは null
+ * @param trail - ここまでに通ってきたページの起点
+ * @returns 組み立てた URL
+ */
 function toHref(
   conditions: AdminProductListConditions,
   cursor: string | null,
@@ -106,12 +122,21 @@ function toHref(
  * @remarks
  * 読み進めた位置は載せません。条件が変わった後の「続き」は前の条件の続きを指しており、そのまま
  * 引き継ぐと、絞り直したのに前の条件の途中から始まります。
+ *
+ * @param conditions - 絞り込み条件
+ * @returns 組んだ URL
  */
 export function toConditionHref(conditions: AdminProductListConditions): string {
   return toHref(conditions, null, []);
 }
 
-/** 次のページの URL を組む。 */
+/**
+ * 次のページの URL を組む。
+ *
+ * @param location - いま見ている場所
+ * @param nextCursor - 次のページの起点
+ * @returns 組んだ URL
+ */
 export function toNextPageHref(location: AdminProductListLocation, nextCursor: string): string {
   const trail = location.cursor === null ? [] : [...location.trail, location.cursor];
 
@@ -125,6 +150,7 @@ export function toNextPageHref(location: AdminProductListLocation, nextCursor: s
  * 先頭ページには戻る先がないため、行き先を返しません。省略された向きは押せない control として
  * 描かれます（`components/app-starter/cursor-pagination`）。
  *
+ * @param location - いま見ている場所
  * @returns 先頭ページなら undefined
  */
 export function toPreviousPageHref(location: AdminProductListLocation): string | undefined {

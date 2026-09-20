@@ -23,7 +23,7 @@ import {
   ProductStickyRegion,
 } from "./ui/sticky-region/sticky-region";
 
-/** `ProductListView` の props。 */
+/** {@link ProductListView} の props。 */
 export type ProductListViewProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
@@ -64,6 +64,8 @@ export type ProductListViewProps = {
  *
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と
  * 同じであり、まとめて確定する絞り込みの中に入れると確定の操作が 2 段になります。
+ *
+ * @see Storybook `Page/Products/List`
  */
 export const ProductListView = withScreenSpan(
   "features/products/list/view",
@@ -91,9 +93,14 @@ export const ProductListView = withScreenSpan(
                       />
                     ))}
                   </FilterBarActiveFilters>
-                  {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
                   {activeFilters.length > 1 ? (
-                    <Button asChild className="shrink-0" size="sm" variant="ghost">
+                    <Button
+                      // 1 件しか効いていないときは、その chip の解除と行き先が同じになる。
+                      asChild
+                      className="shrink-0"
+                      size="sm"
+                      variant="ghost"
+                    >
                       <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
                     </Button>
                   ) : null}

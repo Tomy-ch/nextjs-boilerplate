@@ -32,6 +32,8 @@ export type RegistrationConfirmSectionProps = {
  * 値は購読して読みます。段の行き来はこの部品の外で起きるため、組み立て時の値を写して持つと、
  * 前の段で直した内容が確認に反映されません。購読するのはこの部品だけで、入力のたびにフォーム
  * 全体を描き直しません。
+ *
+ * @param props - 入力中の値を購読する control。
  */
 export function RegistrationConfirmSection({ control }: RegistrationConfirmSectionProps) {
   const values = useWatch({ control });

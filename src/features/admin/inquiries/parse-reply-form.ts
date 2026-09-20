@@ -29,6 +29,9 @@ const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で�
  *
  * 前後の空白と長さの扱いは利用者側の送信と同じです。同じ契約の同じ項目を、役割ごとに違う
  * 規則で受けないためです。
+ *
+ * @param formData - 送信された form data。
+ * @returns 解けた回答、または検証エラー。
  */
 export function parseAdminInquiryReplyForm(formData: FormData): AdminInquiryReplyFormResult {
   const body = z.string().safeParse(formData.get(REPLY_BODY_FIELD));

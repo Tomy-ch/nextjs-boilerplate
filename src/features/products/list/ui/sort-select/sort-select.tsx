@@ -31,6 +31,8 @@ export type ProductSortSelectProps = {
  *
  * `select` を使うのは、狭い幅で OS の選択 UI に乗るためです。選択肢が増えても画面を覆わず、
  * 支援技術からも既知の操作として扱えます。
+ *
+ * @param props - 選べる並び順と、いま効いている条件。
  */
 export function ProductSortSelect({ options, selection }: ProductSortSelectProps) {
   const router = useRouter();

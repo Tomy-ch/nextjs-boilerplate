@@ -46,6 +46,8 @@ export type CartPanelProps = {
  * **開いているかどうかは幅によらず store の要求に従います。** 脇に常設できる幅でも、この領域は本文の
  * 幅をその分だけ持っていきます。閉じられないと、一度カートへ入れた利用者は一覧を狭いまま読み続ける
  * ことになります。閉じた後は header の入口から開き直せます。
+ *
+ * @see Storybook `Features/Cart/Panel`
  */
 export function CartPanel({ cart }: CartPanelProps) {
   const isOpen = useCartStore((state) => state.isOpen);

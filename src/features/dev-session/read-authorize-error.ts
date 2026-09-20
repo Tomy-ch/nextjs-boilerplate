@@ -20,6 +20,7 @@ const errorSchema = singleValue(z.enum(AUTHORIZE_ERROR).nullable()).catch(null);
  * **知らない値は案内しません。** URL は利用者が直接編集できるため、載っている文字列を根拠に
  * 画面を変えると、任意の案内を出させる導線になります。
  *
+ * @param params - 素の `searchParams`。
  * @returns 案内する理由。宣言に無い値・繰り返された値・未指定なら null
  */
 export function readAuthorizeError(params: RawSearchParams): AuthorizeError | null {

@@ -9,6 +9,7 @@ import { PRODUCT_LIST_PATH } from "../list-url/list-url";
  * 状態を作れます。
  *
  * @param id - 商品の ID
+ * @returns 商品詳細の経路
  */
 export function toProductDetailHref(id: string): string {
   return `${PRODUCT_LIST_PATH}/${encodeURIComponent(id)}`;

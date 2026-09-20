@@ -27,6 +27,7 @@ const LABEL = "今日の集計";
  * 行き先の名前に揃えているのもその一部で、根拠は
  * `docs/spec/route/admin/page.screen.md`「期間を選ばせない」。
  *
+ * @param props - {@link DashboardViewProps} を参照。
  * @see Storybook `Page/Admin/Dashboard`
  */
 export const DashboardView = withScreenSpan(

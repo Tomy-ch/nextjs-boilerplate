@@ -35,6 +35,8 @@ export type CartLineListProps = {
  *
  * 行そのものは server が組み立てたものを受け取ります。この器が持つのは並べる順だけで、明細の
  * 見た目は知りません。
+ *
+ * @see Storybook `Features/Cart/LineList`
  */
 export function CartLineList({ slots, className }: CartLineListProps) {
   const present = slots.map((slot) => slot.productId);

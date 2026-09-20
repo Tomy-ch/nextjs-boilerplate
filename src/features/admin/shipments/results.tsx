@@ -30,6 +30,8 @@ export type ShipmentQueueResultsProps = {
  * **2 つを並行で取ります。** 互いに依存しないので、順に待つと遅いほうの後ろに速いほうが並ぶ
  * だけです。片方だけの失敗を許さないのは、どちらも同じ担当者が続けて使うもので、片方だけが
  * 出ている画面は「何かが壊れている」以上のことを伝えないためです。
+ *
+ * @param props - 発送の送信先と配達の確認の送信先。
  */
 export async function ShipmentQueueResults({
   shipAction,

@@ -23,6 +23,8 @@ export type AddToCartButtonProps = {
    * `detail` は画面の主操作として幅を占めて大きく出す。`list` は 1 件ぶんの枠に他の情報と
    * 並ぶため内容の幅に収める。小さくしすぎないのは、一覧でも指で押す対象であることが
    * 変わらないためで、`size` は既定より下げない。
+   *
+   * @defaultValue "detail"
    */
   placement?: "detail" | "list";
 };
@@ -41,6 +43,8 @@ const PENDING_LABEL = "カートに追加しています";
  *
  * 送信中の見せ方は `Button`（`pending`）が持ちます。一覧では幅の揺れが隣の値まで動かすため、
  * 視覚の文言は差し替えません。
+ *
+ * @param props - 押せない状態と、置かれる場所。
  */
 function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "detail" | "list" }) {
   const { pending } = useFormStatus();
@@ -75,6 +79,8 @@ function AddSubmit({ disabled, placement }: { disabled: boolean; placement: "det
  * 変わらない操作が画面に残ります。
  *
  * 画面の下には置かれません。詳細と一覧の両方から使うため、どこへ置くかは呼び出し元が決めます。
+ *
+ * @see Storybook `Features/Cart/AddToCartButton`
  */
 export function AddToCartButton({
   productId,

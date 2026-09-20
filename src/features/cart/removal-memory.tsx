@@ -42,6 +42,8 @@ const DisplayedOrderContext = createContext<readonly string[]>([]);
  * 中身の側に持つとその切り替わりで記憶ごと失われます。
  *
  * `stores` へは置きません。これはカートの中だけで閉じる状態で、他の feature は読みません。
+ *
+ * @param props - 器の中に描画する子要素
  */
 export function CartRemovalNoticeProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<{
@@ -92,6 +94,8 @@ export function useCartRemovalNotice(): RemovalNotice | null {
  * @remarks
  * 並びを知っているのは並べている器だけです。行 1 つずつに順を持たせると、行の数だけ同じ一覧を
  * 運ぶことになります。
+ *
+ * @param props - 描画する並びと子要素
  */
 export function CartDisplayedOrder({
   order,
@@ -103,7 +107,11 @@ export function CartDisplayedOrder({
   return <DisplayedOrderContext.Provider value={order}>{children}</DisplayedOrderContext.Provider>;
 }
 
-/** 今まさに画面が並べている順。器の外では空。 */
+/**
+ * 今まさに画面が並べている順。器の外では空。
+ *
+ * @returns 並べている商品 ID の列
+ */
 export function useDisplayedOrder(): readonly string[] {
   return useContext(DisplayedOrderContext);
 }
@@ -117,6 +125,7 @@ export function useDisplayedOrder(): readonly string[] {
  * ボタン）が送った直後に消えるためです。
  *
  * @param presentProductIds - いまカートに入っている商品
+ * @returns 商品 ID で引ける、いま戻せる明細
  */
 export function usePendingRemovals(
   presentProductIds: readonly string[],

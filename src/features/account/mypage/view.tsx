@@ -20,6 +20,8 @@ type MypageViewProps = {
  *
  * 段は 2 列までにします。3 列へ広げると 1 枚あたりの幅が住所や表の 1 行を折り返す幅まで縮み、
  * 広い画面のほうが読みにくくなります。
+ *
+ * @param props - プロフィール・購入サマリ・購入履歴。
  */
 export const MypageView = withScreenSpan(
   "features/account/mypage/view",

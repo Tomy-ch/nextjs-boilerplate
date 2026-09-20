@@ -55,10 +55,7 @@ const meta = {
     docs: {
       story: { inline: false, iframeHeight: 1100 },
       description: {
-        component: [
-          "プロフィール編集です。マイページの下の階層にあるためパンくずを置きます。",
-          "**保存はカタログでは動きません** —— 送信先は Server Action です。",
-        ].join(""),
+        component: ["プロフィール編集です。マイページの下の階層にあるためパンくずを置きます。"].join(""),
       },
     },
   },

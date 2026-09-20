@@ -58,6 +58,7 @@ const CATEGORY_LABEL = "カテゴリ";
  *
  * @param categories - 選べる分類。ID を表示名へ直すために使う
  * @param selection - いま効いている条件
+ * @returns 解除先付きの、いま効いている条件の一覧
  */
 export function toActiveFilters(
   categories: readonly FilterOption[],

@@ -19,6 +19,7 @@ export type WithdrawFeedbackProps = {
  * 成立の報せに後始末の但し書きを添えます。退会そのものは終わっていても、購入の取消と在庫の
  * 戻しは後から順に進むためです。添えないと、一覧を見た人はもう在庫も戻っていると読みます。
  *
+ * @param props - {@link WithdrawFeedbackProps} を参照。
  * @see Storybook `Features/Admin/Users/WithdrawFeedback`
  */
 export const WithdrawFeedback = withPartSpan(

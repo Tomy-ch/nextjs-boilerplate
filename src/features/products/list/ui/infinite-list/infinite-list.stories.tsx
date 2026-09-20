@@ -8,6 +8,18 @@ import { ProductInfiniteList } from "./infinite-list";
 
 let itemSeq = 0;
 
+/**
+ * story 用の商品データを、呼ぶたびに違う id で作る。
+ *
+ * @param overrides - 既定値から変える項目。
+ * @returns 既定値に `overrides` を重ねた商品。
+ */
+/**
+ * story 用の商品データを、呼ぶたびに違う id で作る。
+ *
+ * @param overrides - 既定値から変える項目。
+ * @returns 既定値に `overrides` を重ねた商品。
+ */
 function item(overrides: Partial<ProductListItem> = {}): ProductListItem {
   itemSeq += 1;
 

@@ -12,12 +12,22 @@ import { PRODUCT_NAME_MAX_LENGTH, PRODUCT_PRICE_PATTERN } from "./field-limits";
  */
 export type ProductFieldRule = (value: string) => string | undefined;
 
-/** 空欄を undefined として扱う。 */
+/**
+ * 空欄を undefined として扱う。
+ *
+ * @param value - 判定する入力値
+ * @returns 空欄なら true
+ */
 function isBlank(value: string): boolean {
   return value.trim() === "";
 }
 
-/** 商品名。 */
+/**
+ * 商品名。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validateName: ProductFieldRule = (value) => {
   if (isBlank(value)) return "商品名を入力してください。";
   if (value.trim().length > PRODUCT_NAME_MAX_LENGTH) {
@@ -27,7 +37,12 @@ export const validateName: ProductFieldRule = (value) => {
   return undefined;
 };
 
-/** 価格。 */
+/**
+ * 価格。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validatePrice: ProductFieldRule = (value) => {
   if (isBlank(value)) return "価格を入力してください。";
   if (!PRODUCT_PRICE_PATTERN.test(value.trim())) {
@@ -37,14 +52,24 @@ export const validatePrice: ProductFieldRule = (value) => {
   return undefined;
 };
 
-/** 0 以上の整数として読めるか。 */
+/**
+ * 0 以上の整数として読めるか。
+ *
+ * @param value - 判定する入力値
+ * @returns 0 以上の整数として読めれば true
+ */
 function isNonNegativeInteger(value: string): boolean {
   const parsed = Number(value.trim());
 
   return Number.isInteger(parsed) && parsed >= 0;
 }
 
-/** 在庫数。作るときだけ尋ねる。 */
+/**
+ * 在庫数。作るときだけ尋ねる。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validateQuantity: ProductFieldRule = (value) => {
   if (isBlank(value)) return "在庫数を入力してください。";
   if (!isNonNegativeInteger(value)) return "在庫数は 0 以上の整数で入力してください。";
@@ -52,7 +77,12 @@ export const validateQuantity: ProductFieldRule = (value) => {
   return undefined;
 };
 
-/** 在庫警告の閾値。空欄を許す。 */
+/**
+ * 在庫警告の閾値。空欄を許す。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validateStockWarningThreshold: ProductFieldRule = (value) => {
   if (isBlank(value)) return undefined;
   if (!isNonNegativeInteger(value)) return "在庫警告の閾値は 0 以上の整数で入力してください。";
@@ -60,15 +90,30 @@ export const validateStockWarningThreshold: ProductFieldRule = (value) => {
   return undefined;
 };
 
-/** 分類。 */
+/**
+ * 分類。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validateCategoryId: ProductFieldRule = (value) =>
   isBlank(value) ? "分類を選んでください。" : undefined;
 
-/** 状態。 */
+/**
+ * 状態。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validateStatusId: ProductFieldRule = (value) =>
   isBlank(value) ? "状態を選んでください。" : undefined;
 
-/** 公開日時。空欄を許す。 */
+/**
+ * 公開日時。空欄を許す。
+ *
+ * @param value - 判定する入力値
+ * @returns 誤りの文言。問題なければ undefined
+ */
 export const validatePublishedAt: ProductFieldRule = (value) => {
   if (isBlank(value)) return undefined;
 

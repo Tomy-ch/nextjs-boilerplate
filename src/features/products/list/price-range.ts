@@ -39,12 +39,22 @@ export const PRICE_RANGE_MAX = PRICE_SCALE.length - 1;
 /** 下限と上限の位置。 */
 export type PriceRange = readonly [number, number];
 
-/** 目盛りの位置を、契約が受け取る十進文字列へ写す。指定なしの端は `undefined`。 */
+/**
+ * 目盛りの位置を、契約が受け取る十進文字列へ写す。指定なしの端は `undefined`。
+ *
+ * @param index - 目盛りの位置
+ * @returns 十進文字列。指定なしの端は `undefined`
+ */
 function toBound(index: number): string | undefined {
   return PRICE_SCALE[index]?.toString();
 }
 
-/** 十進文字列がどの位置に当たるかを探す。目盛りに無い値は `undefined`。 */
+/**
+ * 十進文字列がどの位置に当たるかを探す。目盛りに無い値は `undefined`。
+ *
+ * @param value - 十進文字列
+ * @returns 目盛りの位置。無ければ `undefined`
+ */
 function toIndex(value: string): number | undefined {
   const found = value === "" ? -1 : PRICE_SCALE.indexOf(Number(value));
 
@@ -58,6 +68,9 @@ function toIndex(value: string): number | undefined {
  * 目盛りに無い値は「指定なし」の端として読みます。URL は利用者が直接編集できるため、目盛りの
  * 外の値がそのまま届きます。その条件自体は効いたままで、効いていることは条件の chip が伝えます。
  * 操作面の側は、次に動かしたときどの値になるかを見せられる位置に置きます。
+ *
+ * @param selection - いま効いている条件
+ * @returns 下限と上限の位置
  */
 export function toPriceRange(selection: ProductListSelection): PriceRange {
   return [
@@ -66,7 +79,13 @@ export function toPriceRange(selection: ProductListSelection): PriceRange {
   ];
 }
 
-/** 目盛りの位置を検索条件へ書き戻す。 */
+/**
+ * 目盛りの位置を検索条件へ書き戻す。
+ *
+ * @param selection - いま効いている条件
+ * @param range - 下限と上限の位置
+ * @returns 書き戻した後の条件
+ */
 export function applyPriceRange(
   selection: ProductListSelection,
   [low, high]: PriceRange,
@@ -78,7 +97,13 @@ export function applyPriceRange(
   };
 }
 
-/** 目盛りの位置を、その端の役割に合った表示へ写す。 */
+/**
+ * 目盛りの位置を、その端の役割に合った表示へ写す。
+ *
+ * @param index - 目盛りの位置
+ * @param edge - 表示する端。指定なしの表示文言を選ぶために使う
+ * @returns 表示用の文字列
+ */
 export function formatPriceBound(index: number, edge: "low" | "high"): string {
   const value = PRICE_SCALE[index];
 

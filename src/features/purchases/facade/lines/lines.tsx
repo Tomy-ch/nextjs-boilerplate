@@ -22,6 +22,9 @@ export type PurchaseLineListProps = {
  *
  * 行ごとの金額は出しません。単価と数量を掛けると、画面が金額を作ることになります。合算した
  * 値は内訳が持ちます。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseLineListProps} の各メンバーが持つ。
+ * @see Storybook `Features/Purchases/LineList`
  */
 export function PurchaseLineList({ lines }: PurchaseLineListProps) {
   return (

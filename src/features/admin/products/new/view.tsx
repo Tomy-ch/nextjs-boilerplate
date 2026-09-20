@@ -54,6 +54,8 @@ export type AdminProductCreateViewProps = {
  *
  * 画像を送り終わるまで送信を止めます。載るのは保存済みのキーだけなので、途中で送ると、上げた
  * つもりの画像を持たない商品ができます。
+ *
+ * @see Storybook `Page/Admin/Products/Create`
  */
 export function AdminProductCreateView({
   categoryOptions,
@@ -78,6 +80,16 @@ export function AdminProductCreateView({
 
   // 説明欄だけは値の更新と結果の取り下げを 1 つの handler にまとめる。他の項目は form 全体の
   // `onInput` が取り下げを担うが、編集面は input event を出さない。
+  /**
+   * 描いている説明を書き換え、結果の表示を取り下げる。
+   *
+   * @param value - 新しい説明の値。
+   */
+  /**
+   * 描いている説明を書き換え、結果の表示を取り下げる。
+   *
+   * @param value - 新しい説明の値。
+   */
   const changeDescription = useCallback(
     (value: string) => {
       values.setValue("description", value);

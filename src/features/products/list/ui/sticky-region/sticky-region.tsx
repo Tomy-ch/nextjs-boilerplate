@@ -30,6 +30,18 @@ type StickyRegion = {
 
 const StickyRegionContext = createContext<StickyRegion | null>(null);
 
+/**
+ * 貼り付く領域の状態を読む。
+ *
+ * @returns 検索の帯の表示状態・高さと、高さを報告する関数。
+ * @throws {@link ProductStickyRegion} の外で呼ばれたとき。
+ */
+/**
+ * 貼り付く領域の状態を読む。
+ *
+ * @returns 検索の帯の表示状態・高さと、高さを報告する関数。
+ * @throws {@link ProductStickyRegion} の外で呼ばれたとき。
+ */
 function useRegion(): StickyRegion {
   const region = use(StickyRegionContext);
 
@@ -47,6 +59,8 @@ function useRegion(): StickyRegion {
  * 検索の帯と脇の絞り込みは、画面の別の列にありながら**上端を取り合います**。帯が出ているあいだ
  * 絞り込みはその下で止まり、帯が退いたら header の直下まで上がります。取り合う相手の高さは
  * 条件の数で変わる（条件が折り返すと帯が伸びる）ため、値を書き写さず測った値を配ります。
+ *
+ * @param props - `children` として貼り付く子要素を受け取る。
  */
 export function ProductStickyRegion({ children }: { children: ReactNode }) {
   "use memo";
@@ -74,6 +88,8 @@ export function ProductStickyRegion({ children }: { children: ReactNode }) {
  * 本来の位置より上へは決して行きません。
  *
  * 背景を敷きます。貼り付いているあいだ商品がこの下を通るため、透けると文字が重なって読めません。
+ *
+ * @param props - `children` として帯の中身を受け取る。
  */
 export function ProductStickyBar({ children }: { children: ReactNode }) {
   "use memo";
@@ -119,6 +135,8 @@ export function ProductStickyBar({ children }: { children: ReactNode }) {
  * **画面に収まらない高さになったら、自分の中で送ります。** 分類が増えると絞り込みは画面より高く
  * なり得ますが、外側の送りは商品のためのものなので、そちらに任せると絞り込みの下端へ到達できま
  * せん。自分の中で送れば、どれだけ分類が並んでも末尾の条件まで届きます。
+ *
+ * @param props - `children` として絞り込みの中身を受け取る。
  */
 export function ProductStickyAside({ children }: { children: ReactNode }) {
   "use memo";

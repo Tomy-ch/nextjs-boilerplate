@@ -35,9 +35,6 @@ export type AdminProductListViewProps = {
  * @remarks
  * 一覧本体は `children` として受け取り、取り直す範囲は `AdminProductListResults` が持ちます。
  *
- * 絞り込みを `FilterBar` にまとめます。landmark になるため、支援技術から絞り込みへ直接移動
- * できます。
- *
  * **効いている条件を chip で出します。** 狭い段では分類と状態の入力欄が overlay の中にあり、
  * 閉じている間は何で絞り込まれているかが画面から読めません。検索語も、入力欄に文字が残って
  * いるだけでは打ちかけと区別できません。chip は 1 つずつ外せるため、絞り直すのに overlay を
@@ -56,6 +53,8 @@ export type AdminProductListViewProps = {
  *
  * 作成への導線は絞り込みの外の右端へ置きます。一覧を絞る操作と一覧を増やす操作は対象が違い、
  * 同じ landmark に入れると「絞り込み」の中に絞り込みでない操作が混ざります。
+ *
+ * @param props - {@link AdminProductListViewProps} を受け取る。
  */
 export const AdminProductListView = withScreenSpan(
   "features/admin/products/list/view",

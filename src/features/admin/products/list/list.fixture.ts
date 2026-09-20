@@ -14,7 +14,12 @@ import { toStatusTone } from "./status-tone";
  */
 const MAX_NAME_LENGTH = 255;
 
-/** 折り返しの有無を見分けるため、区切りの無い長い語と日本語を混ぜる。 */
+/**
+ * 折り返しの有無を見分けるため、区切りの無い長い語と日本語を混ぜる。
+ *
+ * @param length - 生成する文字列の長さ
+ * @returns 指定した長さの文字列
+ */
 function longText(length: number): string {
   const unit = "超高性能ワイヤレスノイズキャンセリングイヤホン-第3世代-ProMaxUltraEdition-";
 

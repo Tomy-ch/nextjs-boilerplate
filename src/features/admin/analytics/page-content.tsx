@@ -41,6 +41,8 @@ export type AdminAnalyticsPageContentProps = {
  * 1 つの値を両方へ配ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。実時計を
  * 読む場所を `app` に置くのは、既定の「今日」が要求のクエリへ入るためです。ここで読むと、
  * その画面の基準画像は撮った暦日のあいだしか一致しません（`config/clock`）。
+ *
+ * @param props - {@link AdminAnalyticsPageContentProps} を参照。
  */
 export const AdminAnalyticsPageContent = withScreenSpan(
   "features/admin/analytics/page-content",

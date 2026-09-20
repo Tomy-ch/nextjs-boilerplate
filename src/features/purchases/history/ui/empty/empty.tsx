@@ -25,6 +25,8 @@ export type PurchaseHistoryEmptyProps =
  * @remarks
  * 絞り込んだ結果が 0 件のときに「購入がありません」とだけ出すと、条件を外せば出てくることが
  * 画面から読み取れません。買った覚えのある利用者にとっては、履歴が消えたようにも見えます。
+ *
+ * @see Storybook `Features/Purchases/History/Empty`
  */
 export const PurchaseHistoryEmpty = withPartSpan(
   "features/purchases/history/ui/empty/empty",

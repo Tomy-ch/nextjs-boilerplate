@@ -18,7 +18,7 @@ import type { Session } from "@/model/session";
 
 import type { DiscardDevSessionAction, DiscardSessionFormState } from "../../form-state";
 
-/** `CurrentSession` の props。 */
+/** {@link CurrentSession} の props。 */
 export type CurrentSessionProps = {
   /** いま持っている session。持っていなければ null。 */
   session: Session | null;
@@ -53,6 +53,8 @@ function DiscardSubmit() {
  * そのもので、確かめる画面のために出すと、その性質を自分で壊すことになります。
  *
  * 捨てたあとは画面に留まります。結果は同じ画面が出し直すこの表示に現れます。
+ *
+ * @param props - {@link CurrentSessionProps}。
  */
 export function CurrentSession({ session, action }: CurrentSessionProps) {
   const [state, formAction] = useActionState<DiscardSessionFormState, FormData>(

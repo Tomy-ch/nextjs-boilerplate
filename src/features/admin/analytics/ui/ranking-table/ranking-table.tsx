@@ -64,6 +64,18 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
   },
 ];
 
+/**
+ * `StaticDataTable` の行キーを取り出す。
+ *
+ * @param row - 対象の行。
+ * @returns 行を一意に表す商品 ID。
+ */
+/**
+ * `StaticDataTable` の行キーを取り出す。
+ *
+ * @param row - 対象の行。
+ * @returns 行を一意に表す商品 ID。
+ */
 function rowKey(row: AdminRankingRow): string {
   return row.id;
 }
@@ -83,6 +95,7 @@ function rowKey(row: AdminRankingRow): string {
  * ではありません。一覧（`../../products/ui/table/`）が行いっぱいの導線を持つのは、そこが操作を
  * 目的にした画面だからです。ここは読む画面なので、押せる範囲を名前に留めます。
  *
+ * @param props - {@link RankingTableProps} を参照。
  * @see Storybook `Features/Admin/Analytics/RankingTable`
  */
 export const RankingTable = withPartSpan(

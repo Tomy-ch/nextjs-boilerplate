@@ -18,6 +18,8 @@ export type AdminDashboardPageContentProps = {
  *
  * **「いま」は受け取ります。** ここで実時計を読むと、暦日の区切りが要求のクエリへ入り、検証で
  * 固定できない要求になります（`config/clock`）。
+ *
+ * @param props - {@link AdminDashboardPageContentProps} を参照。
  */
 export const AdminDashboardPageContent = withScreenSpan(
   "features/admin/dashboard/page-content",

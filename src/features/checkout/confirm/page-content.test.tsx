@@ -46,7 +46,6 @@ describe("CheckoutConfirmPageContent", () => {
     render(await CheckoutConfirmPageContent());
 
     expect(readReferenceAmount).toHaveBeenCalledWith(ORDERABLE_CART.subtotalAmount);
-    // 集計は脇と下端の 2 か所へ置かれる（出るのは CSS で一方だけ）。
     expect(screen.getAllByRole("button", { name: "円で見る" })).toHaveLength(2);
   });
 

@@ -12,6 +12,18 @@ import { useCartStore } from "@/stores/cart-store";
 
 import { ProductLoadMoreList } from "./load-more-list";
 
+/**
+ * テスト用の商品データを作る。
+ *
+ * @param index - id と名前に使う連番。
+ * @returns 商品 1 件。
+ */
+/**
+ * テスト用の商品データを作る。
+ *
+ * @param index - id と名前に使う連番。
+ * @returns 商品 1 件。
+ */
 function item(index: number): ProductListItem {
   return {
     id: toProductId(`0195f0c2-0000-7000-8000-${String(index).padStart(12, "0")}`),

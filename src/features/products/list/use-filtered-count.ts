@@ -41,6 +41,7 @@ export type FilteredCount = {
  * 取りに行くと、捨てるための往復が並びます。前の取得は打ち切ります。
  *
  * @param conditions - 数える対象の条件
+ * @returns 一致する件数と、その取得の状況
  */
 export function useFilteredCount(conditions: ProductListSelection): FilteredCount {
   // 条件そのものではなく、条件を表す 1 つの文字列で見張る。条件は描画のたびに別の object に

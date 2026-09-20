@@ -53,6 +53,8 @@ export type AdminInquiryConversationProps = {
  * **会話そのものは購読しません。** フィードを購読し、開いている問い合わせが動いたときだけ
  * 正本を取り直します。したがって新しい 1 通は、届いた本文ではなく取り直した正本として
  * 現れます。この経路しか無い理由は同 feature の [README](../../../README.md)。
+ *
+ * @param props - 回答先・取得した正本・回答の送信先。
  */
 export function AdminInquiryConversation({
   history,

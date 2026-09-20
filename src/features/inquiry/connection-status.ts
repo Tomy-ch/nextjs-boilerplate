@@ -22,6 +22,10 @@ export type ConnectionContext = {
  *
  * 購読していない間を「接続中」と言いません。繋ぎにいっていないものを繋ぎにいっていると言うと、
  * 待っていれば繋がるように読めます。
+ *
+ * @param state - 購読ストリームの現在の状態。
+ * @param context - 画面側の事情（{@link ConnectionContext}）。
+ * @returns 画面へ出す接続状態の 1 語。
  */
 export function toConnectionStatus(
   state: StreamState,

@@ -56,6 +56,7 @@ export type AddressField = {
  * 町域と番地を町域だけで置き換えません。
  *
  * @param fields - `useProfileFields` が返すもの。郵便番号の配線と値の書き込みに使う
+ * @returns 郵便番号欄の配線・検索操作・取得中かどうか・読み上げ用の文言
  */
 export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields): AddressField {
   const applyCompletion = useCallback(

@@ -21,6 +21,8 @@ type ProfileEditViewProps = {
  *
  * @remarks
  * nav が直接指すのはマイページまでで、ここはその下の階層にあります。
+ *
+ * @param props - 表示するプロフィールと選べる都道府県。
  */
 export const ProfileEditView = withScreenSpan(
   "features/account/edit/view",

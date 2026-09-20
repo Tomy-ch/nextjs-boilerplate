@@ -4,7 +4,7 @@ import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import { withPartSpan } from "@/observability/render-span";
 
-/** `OrderLineRow` の props。 */
+/** {@link OrderLineRow} の props。 */
 export type OrderLineRowProps = {
   /** 再掲する明細。 */
   line: CartLine;
@@ -31,6 +31,8 @@ const PRICE_CHANGED_NOTE = "この金額で購入してよいかを、確定の�
  * **弱めるのは商品名だけで、行ごと薄くはしません。** 行に透過をかけると、載らない理由の文字まで
  * 一緒に薄くなり、地とのコントラスト比が足りなくなります。読ませたいのはその理由なので、
  * 弱めるのは対象の名前に留めます。
+ *
+ * @param props - {@link OrderLineRowProps}。
  */
 export const OrderLineRow = withPartSpan(
   "features/checkout/confirm/ui/order-line-row/order-line-row",

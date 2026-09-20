@@ -34,6 +34,16 @@ import { ProductStickyAside, ProductStickyBar, ProductStickyRegion } from "./sti
 /** 帯の高さを持たせた器。jsdom は自分では高さを持たない。 */
 const BAR_HEIGHT = 40;
 
+/**
+ * 貼り付く帯と脇の領域を、送れる本文と一緒に描画する。
+ *
+ * @returns Testing Library の render 結果。
+ */
+/**
+ * 貼り付く帯と脇の領域を、送れる本文と一緒に描画する。
+ *
+ * @returns Testing Library の render 結果。
+ */
 function renderRegion() {
   return render(
     <ProductStickyRegion>
@@ -48,6 +58,20 @@ function renderRegion() {
 }
 
 /** 器の中の 1 つ目の要素。無ければテストの前提が崩れている。 */
+/**
+ * 器の中の 1 つ目の要素を取得する。
+ *
+ * @param parent - 探す先の器。
+ * @returns 1 つ目の子要素。
+ * @throws 子要素が無いとき。
+ */
+/**
+ * 器の中の 1 つ目の要素を取得する。
+ *
+ * @param parent - 探す先の器。
+ * @returns 1 つ目の子要素。
+ * @throws 子要素が無いとき。
+ */
 function firstChild(parent: Element): HTMLElement {
   const found = parent.firstElementChild;
 
@@ -58,10 +82,32 @@ function firstChild(parent: Element): HTMLElement {
   return found;
 }
 
+/**
+ * 検索の帯の要素を取得する。
+ *
+ * @param container - render の結果の container。
+ * @returns 帯の要素。
+ */
+/**
+ * 検索の帯の要素を取得する。
+ *
+ * @param container - render の結果の container。
+ * @returns 帯の要素。
+ */
 function bar(container: HTMLElement): HTMLElement {
   return firstChild(container);
 }
 
+/**
+ * 脇の絞り込みの中身の要素を取得する。
+ *
+ * @returns 脇の絞り込みの中身の要素。
+ */
+/**
+ * 脇の絞り込みの中身の要素を取得する。
+ *
+ * @returns 脇の絞り込みの中身の要素。
+ */
 function asideInner(): HTMLElement {
   return firstChild(screen.getByRole("complementary", { name: "絞り込み条件" }));
 }

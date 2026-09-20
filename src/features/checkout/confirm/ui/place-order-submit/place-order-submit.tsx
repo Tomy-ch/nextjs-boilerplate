@@ -5,13 +5,17 @@ import { Button } from "@/components/design-system/action/button/button";
 
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 
-/** `PlaceOrderSubmit` の props。 */
+/** {@link PlaceOrderSubmit} の props。 */
 export type PlaceOrderSubmitProps = {
   /** 見えている文言。 */
   label: string;
   /** 確定できる明細があるか。無ければ押せない。 */
   orderable: boolean;
-  /** 器の幅いっぱいに広げるか。集計の中では主操作として広げ、確かめの footer では文言の幅に収める。 */
+  /**
+   * 器の幅いっぱいに広げるか。集計の中では主操作として広げ、確かめの footer では文言の幅に収める。
+   *
+   * @defaultValue false
+   */
   fullWidth?: boolean;
 };
 
@@ -29,6 +33,8 @@ const PENDING_LABEL = "注文を確定しています";
  *
  * この画面では鍵が同じなので二度押しても購入は増えませんが、**それを理由に押せるまま残しません**
  * （押せなくする理由は `Button` の `pending`）。
+ *
+ * @param props - {@link PlaceOrderSubmitProps}。
  */
 export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceOrderSubmitProps) {
   const { isPending } = usePlaceOrderState();

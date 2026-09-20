@@ -35,6 +35,8 @@ export type CartContentsProps = {
  *
  * 導線は 2 本あり、主が購入手続き、副がカートページです（それぞれの理由は
  * [cart の README](../../README.md)）。
+ *
+ * @see Storybook `Features/Cart/Contents`
  */
 export const CartContents = withPartSpan(
   "features/cart/ui/contents/contents",

@@ -34,6 +34,9 @@ export type DispatchGroupCardProps = {
  * @remarks
  * `useFormStatus` は `form` の子でしか送信状態を読めないため、別の部品に切り出しています。
  * 二重送信を止めるのと、押した操作が進んでいることを示すのを兼ねます。
+ *
+ * @param props - ボタンの文言と見た目
+ * @defaultValue variant = BUTTON_VARIANT.DEFAULT
  */
 function ShipSubmit({
   label,
@@ -53,7 +56,13 @@ function ShipSubmit({
   );
 }
 
-/** 結果の文言。通った件数と、いまの状況では通らなかった件数を伝える。 */
+/**
+ * 結果の文言。通った件数と、いまの状況では通らなかった件数を伝える。
+ *
+ * @param shipped - 発送できた件数
+ * @param refused - いまの状況では発送できなかった件数
+ * @returns 結果を伝える文言
+ */
 function shipmentSummary(shipped: number, refused: number): string {
   return refused === 0
     ? `${shipped} 件を発送しました。`
@@ -72,6 +81,8 @@ function shipmentSummary(shipped: number, refused: number): string {
  *
  * 何をどう見せるか（宛先の明示・1 件しかない便でまとめる操作を出さない・結果を便ごとに出す）は
  * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md)。
+ *
+ * @param props - まとめて発送してよい組と、発送の送信先
  */
 export function DispatchGroupCard({ group, shipAction }: DispatchGroupCardProps) {
   const [state, formAction] = useActionState<ShipmentState, FormData>(

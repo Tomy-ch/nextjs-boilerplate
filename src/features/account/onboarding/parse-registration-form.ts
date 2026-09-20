@@ -31,6 +31,9 @@ export type RegistrationFormParseResult =
  * 冪等キーが無い・形が違う送信は画面が組んだものではなく、利用者に直せることがありません。
  *
  * 戻り先は検証を通した相対パスへ倒します。載っていなくても失敗にはしません。
+ *
+ * @param formData - 登録の画面から送信された `FormData`
+ * @returns 解いた結果。`status` で成功・入力の誤り・壊れた要求を区別する
  */
 export function parseRegistrationForm(formData: FormData): RegistrationFormParseResult {
   const idempotencyKey = z.uuid().safeParse(formData.get(IDEMPOTENCY_KEY_FIELD));

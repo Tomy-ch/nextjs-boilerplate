@@ -59,7 +59,6 @@ describe("PurchaseDetailView", () => {
     const heading = screen.getByRole("heading", { level: 1 });
 
     expect(heading).toHaveTextContent(PURCHASE_DETAIL.code);
-    // 見えないことをこの class で表す。出してしまうと、パンくずの現在地と同じ識別子が 2 度並ぶ。
     expect(heading).toHaveClass("sr-only");
   });
 

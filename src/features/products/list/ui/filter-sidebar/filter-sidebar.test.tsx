@@ -20,6 +20,18 @@ const CATEGORIES: readonly FilterOption[] = [
   { value: "20", label: "ウェアラブル" },
 ];
 
+/**
+ * 脇の絞り込みを画面と同じ器で描画する。
+ *
+ * @param selection - いま効いている条件。
+ * @returns Testing Library の render 結果。
+ */
+/**
+ * 脇の絞り込みを画面と同じ器で描画する。
+ *
+ * @param selection - いま効いている条件。
+ * @returns Testing Library の render 結果。
+ */
 function renderSidebar(selection: ProductListSelection = {}) {
   return render(
     <ProductFilterDraftProvider selection={selection}>

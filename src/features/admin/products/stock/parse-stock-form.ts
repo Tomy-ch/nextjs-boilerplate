@@ -31,6 +31,9 @@ export type StockFormParseResult =
  *
  * 向きが読めない値は既定へ倒さず弾きます。「補充のつもりが差し引かれた」を黙って起こさない
  * ためで、どちらか判らないまま在庫を動かす筋はありません。
+ *
+ * @param formData - 送信された form の値。
+ * @returns 読めた結果。読めなければ `ok: false` にエラーの内訳を添えて返す。
  */
 export function parseStockForm(formData: FormData): StockFormParseResult {
   const id = formData.get(STOCK_FORM_NAMES.productId);

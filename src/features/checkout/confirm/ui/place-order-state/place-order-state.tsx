@@ -27,10 +27,12 @@ export type PlaceOrderState = {
 
 const PlaceOrderStateContext = createContext<PlaceOrderState | null>(null);
 
-/** `PlaceOrderStateProvider` の props。 */
+/** {@link PlaceOrderStateProvider} の props。 */
 export type PlaceOrderStateProviderProps = {
   /** 画面を組み立てた地点が作った鍵。 */
   idempotencyKey: string;
+  /** 内側に描く木。 */
+  /** 内側に描く木。 */
   children: ReactNode;
 };
 
@@ -47,6 +49,8 @@ export type PlaceOrderStateProviderProps = {
  * は自分が属する `form` しか見ないので、共有できるのは送信の状態そのものを持つ側だけです。
  *
  * 鍵は最初に受け取ったものを使い続けます（理由は `model/idempotency-key.ts`）。
+ *
+ * @param props - {@link PlaceOrderStateProviderProps}。
  */
 export function PlaceOrderStateProvider({
   idempotencyKey: initialIdempotencyKey,
@@ -76,6 +80,8 @@ export function PlaceOrderStateProvider({
  * 2 つある状態へ戻ります。
  *
  * @throws 器の外で呼ばれたとき
+ *
+ * @returns 確定の送信状態。
  */
 export function usePlaceOrderState(): PlaceOrderState {
   const found = useContext(PlaceOrderStateContext);

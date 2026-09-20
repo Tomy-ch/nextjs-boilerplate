@@ -37,6 +37,9 @@ export type PeriodSelectionParseResult =
  * @remarks
  * **`range` のときに日付が揃っているかは見ません。** 日付をこれから選ぶ状態も同じ URL の形を
  * しているためで、揃っているかどうかは `toPeriodRequest`（`period.ts`）が見ます。
+ *
+ * @param params - 素の `searchParams`。
+ * @returns 読めた選択、または読めなかったキーの一覧。
  */
 export function parsePeriodSelection(params: RawSearchParams): PeriodSelectionParseResult {
   const parsed = selectionSchema.safeParse(params);

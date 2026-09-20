@@ -26,6 +26,8 @@ export type AnalyticsRankingSectionProps = {
  *
  * 選択に従わせないのは、売れ筋を「いま何が動いているか」として読むためです。集計と同じ期間に
  * 揃えると、過去の月を選んだときに当時の順位が出て、いまの品揃えの判断には使えなくなります。
+ *
+ * @param props - {@link AnalyticsRankingSectionProps} を参照。
  */
 export async function AnalyticsRankingSection({ now }: AnalyticsRankingSectionProps) {
   const ranking = await getProductRanking({
