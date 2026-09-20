@@ -30,22 +30,10 @@ export type AdminUserTableProps = {
  * @param item - 対象の行
  * @returns 行の識別子
  */
-/**
- * 行の React key を組む。
- *
- * @param item - 対象の行
- * @returns 行の識別子
- */
 function rowKey(item: AdminUserRow): string {
   return item.id;
 }
 
-/**
- * 表の列定義を組み立てる。
- *
- * @param onWithdraw - 退会操作が選ばれたときに呼ぶ
- * @returns 静的データ表へ渡す列定義
- */
 /**
  * 表の列定義を組み立てる。
  *

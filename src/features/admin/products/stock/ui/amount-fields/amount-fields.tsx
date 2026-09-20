@@ -58,11 +58,6 @@ export function StockAmountFields({ current, message }: StockAmountFieldsProps) 
    *
    * @param event - radio の change event。
    */
-  /**
-   * radio の選択から向きの状態を更新する。
-   *
-   * @param event - radio の change event。
-   */
   const changeDirection = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     // DOM から返るのは素の文字列。選択肢は 2 つしかないので、差し引きかどうかだけを見る。
     setDirection(
@@ -73,7 +68,6 @@ export function StockAmountFields({ current, message }: StockAmountFieldsProps) 
   }, []);
 
   // 量の欄は focus が外れたことを外へ伝えない。結果を取り下げる合図は、外側の form が入力ごとに拾う。
-  /** 量の欄が focus を外れても、外へは何もしない。 */
   /** 量の欄が focus を外れても、外へは何もしない。 */
   const leave = useCallback(() => undefined, []);
 

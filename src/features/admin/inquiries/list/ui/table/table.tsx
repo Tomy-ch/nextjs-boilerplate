@@ -58,12 +58,6 @@ const COLUMNS: readonly StaticDataTableColumn<InquirySummary>[] = [
  * @param item - 対象の問い合わせ。
  * @returns 問い合わせの識別子。
  */
-/**
- * 行の一意な識別子。
- *
- * @param item - 対象の問い合わせ。
- * @returns 問い合わせの識別子。
- */
 function rowKey(item: InquirySummary): string {
   return item.id;
 }

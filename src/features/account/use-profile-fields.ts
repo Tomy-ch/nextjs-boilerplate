@@ -110,12 +110,6 @@ export function useProfileFields(
    * @param field - 対象の項目
    * @returns 入力欄の描画に要る props
    */
-  /**
-   * 入力欄 1 つぶんの props を組む。
-   *
-   * @param field - 対象の項目
-   * @returns 入力欄の描画に要る props
-   */
   function fieldOf(field: ProfileField): ProfileFieldProps {
     const registration = register(field);
     const current = messageOf(field);

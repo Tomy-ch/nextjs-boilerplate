@@ -62,7 +62,6 @@ export function OrderLines({ lines }: OrderLinesProps) {
   const shown = expanded ? lines : lines.slice(0, VISIBLE_LIMIT);
 
   /** 一覧の開閉を切り替える。 */
-  /** 一覧の開閉を切り替える。 */
   const toggle = useCallback(() => {
     setExpanded((current) => {
       // 畳むと上の行が縮み、押した操作が画面の外へ出る。押した場所を視野に残す。

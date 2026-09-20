@@ -27,13 +27,6 @@ export type AdminInquiryListLocation = {
  * @param trail - ここまでに通ってきた起点。
  * @returns 組み上がった URL。
  */
-/**
- * cursor と trail を URL のクエリへ組む。
- *
- * @param cursor - いま見ているページの起点。
- * @param trail - ここまでに通ってきた起点。
- * @returns 組み上がった URL。
- */
 function toHref(cursor: string, trail: readonly string[]): string {
   const params = new URLSearchParams();
 

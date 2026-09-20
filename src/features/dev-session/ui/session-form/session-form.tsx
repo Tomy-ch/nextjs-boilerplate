@@ -194,11 +194,6 @@ export function DevSessionForm({
    *
    * @param event - switch の change event。
    */
-  /**
-   * API 接続モードの切り替えから、トークンを取りに行くかの状態を更新する。
-   *
-   * @param event - switch の change event。
-   */
   const toggleIssuesToken = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     setIssuesToken(event.currentTarget.checked);
   }, []);

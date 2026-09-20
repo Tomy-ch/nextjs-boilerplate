@@ -21,12 +21,6 @@ import { ProductKeywordField } from "./keyword-field";
  * @param selection - いま一覧に効いている条件。
  * @returns Testing Library の render 結果。
  */
-/**
- * キーワードの入力欄を下書きの供給ごと描画する。
- *
- * @param selection - いま一覧に効いている条件。
- * @returns Testing Library の render 結果。
- */
 function renderField(selection: ProductListSelection = {}) {
   return render(
     <ProductFilterDraftProvider selection={selection}>
@@ -40,20 +34,10 @@ function renderField(selection: ProductListSelection = {}) {
  *
  * @returns 入力欄の要素。
  */
-/**
- * キーワードの入力欄を取得する。
- *
- * @returns 入力欄の要素。
- */
 function input(): HTMLElement {
   return screen.getByLabelText("商品名で探す");
 }
 
-/**
- * 検索の送信操作を取得する。
- *
- * @returns 送信ボタンの要素。
- */
 /**
  * 検索の送信操作を取得する。
  *

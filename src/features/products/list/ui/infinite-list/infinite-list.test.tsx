@@ -40,12 +40,6 @@ type Observed = {
  * @param observed - 差し替える読み込み済み商品と続きの読み込み状態。
  * @returns 末尾を見張る目印の ref。
  */
-/**
- * `useInfiniteProducts` の戻り値を差し替える。
- *
- * @param observed - 差し替える読み込み済み商品と続きの読み込み状態。
- * @returns 末尾を見張る目印の ref。
- */
 function observing({ items = [ITEM], loadMore = { status: "exhausted" } }: Observed = {}) {
   const sentinelRef = createRef<HTMLDivElement>();
 

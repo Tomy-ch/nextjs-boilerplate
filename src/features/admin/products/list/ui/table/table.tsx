@@ -122,12 +122,6 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
  * @param item - 対象の行
  * @returns 行の商品 ID
  */
-/**
- * 行の React key を取り出す。
- *
- * @param item - 対象の行
- * @returns 行の商品 ID
- */
 function rowKey(item: AdminProductRow): string {
   return item.id;
 }

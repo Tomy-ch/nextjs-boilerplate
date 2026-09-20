@@ -36,12 +36,6 @@ const StickyRegionContext = createContext<StickyRegion | null>(null);
  * @returns 検索の帯の表示状態・高さと、高さを報告する関数。
  * @throws {@link ProductStickyRegion} の外で呼ばれたとき。
  */
-/**
- * 貼り付く領域の状態を読む。
- *
- * @returns 検索の帯の表示状態・高さと、高さを報告する関数。
- * @throws {@link ProductStickyRegion} の外で呼ばれたとき。
- */
 function useRegion(): StickyRegion {
   const region = use(StickyRegionContext);
 

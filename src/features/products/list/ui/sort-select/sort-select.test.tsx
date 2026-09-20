@@ -25,11 +25,6 @@ const OPTIONS: readonly FilterOption[] = [
  *
  * @returns 並び替えの要素。
  */
-/**
- * 並び替えのセレクトボックスを取得する。
- *
- * @returns 並び替えの要素。
- */
 function field(): HTMLElement {
   return screen.getByLabelText("並び替え");
 }

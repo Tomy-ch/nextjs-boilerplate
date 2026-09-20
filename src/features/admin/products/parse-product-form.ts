@@ -162,12 +162,6 @@ function check(
  * @param form - 読み取り元の form
  * @returns 共通部分の読み取り結果と、見つかった誤り
  */
-/**
- * 共通項目を読み、形の上での判定に掛ける。
- *
- * @param form - 読み取り元の form
- * @returns 共通部分の読み取り結果と、見つかった誤り
- */
 function parseCommon(form: FormData): CommonFields {
   const fieldErrors: Record<string, readonly string[]> = {};
 

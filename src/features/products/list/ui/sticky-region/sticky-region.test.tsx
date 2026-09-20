@@ -39,11 +39,6 @@ const BAR_HEIGHT = 40;
  *
  * @returns Testing Library の render 結果。
  */
-/**
- * 貼り付く帯と脇の領域を、送れる本文と一緒に描画する。
- *
- * @returns Testing Library の render 結果。
- */
 function renderRegion() {
   return render(
     <ProductStickyRegion>
@@ -58,13 +53,6 @@ function renderRegion() {
 }
 
 /** 器の中の 1 つ目の要素。無ければテストの前提が崩れている。 */
-/**
- * 器の中の 1 つ目の要素を取得する。
- *
- * @param parent - 探す先の器。
- * @returns 1 つ目の子要素。
- * @throws 子要素が無いとき。
- */
 /**
  * 器の中の 1 つ目の要素を取得する。
  *
@@ -88,21 +76,10 @@ function firstChild(parent: Element): HTMLElement {
  * @param container - render の結果の container。
  * @returns 帯の要素。
  */
-/**
- * 検索の帯の要素を取得する。
- *
- * @param container - render の結果の container。
- * @returns 帯の要素。
- */
 function bar(container: HTMLElement): HTMLElement {
   return firstChild(container);
 }
 
-/**
- * 脇の絞り込みの中身の要素を取得する。
- *
- * @returns 脇の絞り込みの中身の要素。
- */
 /**
  * 脇の絞り込みの中身の要素を取得する。
  *

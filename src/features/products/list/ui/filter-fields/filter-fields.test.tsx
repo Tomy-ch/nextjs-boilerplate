@@ -21,13 +21,6 @@ const CATEGORIES: readonly FilterOption[] = [
  * @param onChange - 変更を受け取るモック。
  * @returns 渡した（または生成した既定の）`onChange` モック。
  */
-/**
- * 絞り込みの入力欄を描画する。
- *
- * @param draft - 組み立て中の条件。
- * @param onChange - 変更を受け取るモック。
- * @returns 渡した（または生成した既定の）`onChange` モック。
- */
 function renderFields(draft: ProductListSelection = {}, onChange = vi.fn()) {
   render(
     <ProductFilterFields

@@ -85,11 +85,6 @@ export function AdminProductCreateView({
    *
    * @param value - 新しい説明の値。
    */
-  /**
-   * 描いている説明を書き換え、結果の表示を取り下げる。
-   *
-   * @param value - 新しい説明の値。
-   */
   const changeDescription = useCallback(
     (value: string) => {
       values.setValue("description", value);

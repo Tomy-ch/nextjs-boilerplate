@@ -75,14 +75,6 @@ export type AdminProductListLocation = AdminProductListConditions & {
  * @param trail - ここまでに通ってきたページの起点
  * @returns 組み立てた URL
  */
-/**
- * 条件とページ位置から一覧の URL を組む。
- *
- * @param conditions - 絞り込み条件
- * @param cursor - いま見ているページの起点。先頭ページは null
- * @param trail - ここまでに通ってきたページの起点
- * @returns 組み立てた URL
- */
 function toHref(
   conditions: AdminProductListConditions,
   cursor: string | null,

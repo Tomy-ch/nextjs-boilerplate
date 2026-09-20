@@ -8,12 +8,6 @@ const formatters = new Map<string, Intl.NumberFormat>();
  * @param locale - 用いる locale
  * @returns その locale の `Intl.NumberFormat`
  */
-/**
- * locale に対応する `Intl.NumberFormat` を、無ければ作ってキャッシュしてから返す。
- *
- * @param locale - 用いる locale
- * @returns その locale の `Intl.NumberFormat`
- */
 function formatterOf(locale: string): Intl.NumberFormat {
   let formatter = formatters.get(locale);
 

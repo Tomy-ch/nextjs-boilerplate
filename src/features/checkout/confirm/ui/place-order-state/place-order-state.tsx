@@ -32,7 +32,6 @@ export type PlaceOrderStateProviderProps = {
   /** 画面を組み立てた地点が作った鍵。 */
   idempotencyKey: string;
   /** 内側に描く木。 */
-  /** 内側に描く木。 */
   children: ReactNode;
 };
 

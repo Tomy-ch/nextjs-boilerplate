@@ -50,11 +50,6 @@ export type AdminInquiryDraft = {
  *
  * @param props - 描画するメッセージ 1 件。
  */
-/**
- * 送り手ごとに向きと面を変える、メッセージ 1 件の吹き出し。
- *
- * @param props - 描画するメッセージ 1 件。
- */
 function AdminInquiryMessageRow({ message }: { message: InquiryMessage }) {
   const mine = message.authorKind === INQUIRY_AUTHOR_KIND.operator;
 

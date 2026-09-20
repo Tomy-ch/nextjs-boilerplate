@@ -70,12 +70,6 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
  * @param row - 対象の行。
  * @returns 行を一意に表す商品 ID。
  */
-/**
- * `StaticDataTable` の行キーを取り出す。
- *
- * @param row - 対象の行。
- * @returns 行を一意に表す商品 ID。
- */
 function rowKey(row: AdminRankingRow): string {
   return row.id;
 }
