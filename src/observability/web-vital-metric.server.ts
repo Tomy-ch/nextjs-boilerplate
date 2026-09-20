@@ -66,6 +66,8 @@ const histograms = new Map<Instrumented, Histogram>();
  *
  * 送出されるのは metrics signal が有効なときだけです。無効なら OTel API が何もしない実装を返すので、
  * ここで有効・無効を判定しません。
+ *
+ * @param vital - 記録する Web Vitals 1 件
  */
 export function recordWebVital(vital: WebVital): void {
   histogramFor(vital.name).record(vital.value, {
@@ -75,7 +77,12 @@ export function recordWebVital(vital: WebVital): void {
   });
 }
 
-/** 指標に対応する計器を返す。同じ計器を測定のたびに作り直さない。 */
+/**
+ * 指標に対応する計器を返す。同じ計器を測定のたびに作り直さない。
+ *
+ * @param name - 対象の指標
+ * @returns 指標に対応する `Histogram`
+ */
 function histogramFor(name: Instrumented): Histogram {
   const existing = histograms.get(name);
 

@@ -4,7 +4,12 @@ export const redactedValue = "[REDACTED]";
 /**
  * メッセージに含まれる明示指定の秘匿値を置き換えます。
  *
+ * @remarks
  * 何を秘匿するかは呼び出し元が指定します。空文字は置換せず、長い値から処理して部分一致による漏れを防ぎます。
+ *
+ * @param message - 置換対象のメッセージ
+ * @param sensitiveValues - 置換する秘匿値の一覧
+ * @returns 秘匿値を置換したメッセージ
  */
 export function redactMessage(message: string, sensitiveValues: readonly string[]): string {
   const values = [...new Set(sensitiveValues.filter((value) => value.length > 0))].sort(

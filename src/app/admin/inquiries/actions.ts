@@ -18,7 +18,11 @@ import {
 } from "@/model/action-state";
 import { isAdmin } from "@/model/authz";
 
-/** 役割を持たない主体の要求をここで止める。 */
+/**
+ * 役割を持たない主体の要求をここで止める。
+ *
+ * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
+ */
 async function assertAdmin(): Promise<void> {
   if (!isAdmin(await verifySession())) {
     throw createAppError(ErrorKind.PERMISSION_DENIED, {
@@ -36,6 +40,10 @@ async function assertAdmin(): Promise<void> {
  * 保護されていることは、action が保護されていることを意味しません。
  *
  * 送信の後に開いている 1 件だけを取り直します。一覧は購読が知らせます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 回答フォームの送信内容。
+ * @returns 送信結果を表す action state。
  */
 export async function replyInquiryAction(
   _previous: AdminInquiryReplyState,

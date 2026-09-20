@@ -14,6 +14,13 @@ type StyleName = keyof typeof STYLE;
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
+/**
+ * locale と粒度の組ごとの `Intl.DateTimeFormat` を使い回す。
+ *
+ * @param locale - 用いる locale
+ * @param style - 用いる粒度
+ * @returns 対応する `Intl.DateTimeFormat`
+ */
 function formatterOf(locale: string, style: StyleName): Intl.DateTimeFormat {
   const key = `${style}:${locale}`;
   let formatter = formatters.get(key);
@@ -41,6 +48,7 @@ function formatterOf(locale: string, style: StyleName): Intl.DateTimeFormat {
  *
  * @param value - 表示する日時
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 日時の表示用文字列
  */
 export function formatDateTime(value: Date, locale: string = DEFAULT_LOCALE): string {
   return formatterOf(locale, "dateTime").format(value);
@@ -53,12 +61,22 @@ export function formatDateTime(value: Date, locale: string = DEFAULT_LOCALE): st
  * 固定したタイムゾーンで丸めた日付なので、**同じ日かどうかの判定にそのまま使えます**。時刻を
  * 落とした `Date` を作って比べる形にすると、丸める側と表示する側で別々にタイムゾーンを扱う
  * ことになります。
+ *
+ * @param value - 表示する日時
+ * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 日付の表示用文字列
  */
 export function formatDate(value: Date, locale: string = DEFAULT_LOCALE): string {
   return formatterOf(locale, "date").format(value);
 }
 
-/** 時刻だけを locale に沿った文字列にする。日付は呼び出し側が別に示す。 */
+/**
+ * 時刻だけを locale に沿った文字列にする。日付は呼び出し側が別に示す。
+ *
+ * @param value - 表示する日時
+ * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 時刻の表示用文字列
+ */
 export function formatTime(value: Date, locale: string = DEFAULT_LOCALE): string {
   return formatterOf(locale, "time").format(value);
 }

@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** analytics purpose 専用の ENV validator を定義する。 */
-
 /**
  * 容器 ID の綴り。
  *
@@ -20,7 +18,11 @@ const gtmContainerId = z
     error: "容器 ID は `GTM-` で始まる英数字です。読み込ませない配備では空にしてください",
   });
 
-/** タグマネージャの容器 ID を検証する。空は読み込まないことを表す。 */
+/**
+ * タグマネージャの容器 ID を検証する。空は読み込まないことを表す。
+ *
+ * @returns 容器 ID の検証器
+ */
 export function gtmContainerIdValidator() {
   return gtmContainerId;
 }

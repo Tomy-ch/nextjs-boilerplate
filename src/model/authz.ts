@@ -88,6 +88,7 @@ export function allowedRolesFor(pathname: string): readonly SessionRole[] | null
  * cookie を復元する境界（`adapters/server`）の仕事です。
  *
  * @param session - 判定対象。未認証なら null
+ * @returns 管理画面へ入れる役割を持つか
  */
 export function isAdmin(session: Session | null): boolean {
   return hasAllowedRole(session, ADMIN_ROLES);

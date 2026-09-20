@@ -47,19 +47,39 @@ export type ActionState<T, TField extends string = string> =
       readonly kind?: ErrorKind;
     };
 
-/** まだ送信していない状態。`useActionState` の初期値に渡す。 */
+/**
+ * まだ送信していない状態。`useActionState` の初期値に渡す。
+ *
+ * @typeParam T - 成功時に画面へ返す値
+ * @typeParam TField - 項目エラーのキーになり得る項目名
+ * @returns 送信前を表す状態
+ */
 export function idleActionState<T, TField extends string = string>(): ActionState<T, TField> {
   return { status: "idle" };
 }
 
-/** 成功した状態。 */
+/**
+ * 成功した状態。
+ *
+ * @typeParam T - 成功時に画面へ返す値
+ * @typeParam TField - 項目エラーのキーになり得る項目名
+ * @param value - 成功時に画面へ返す値
+ * @returns 渡した値を載せた成功の状態
+ */
 export function succeededActionState<T, TField extends string = string>(
   value: T,
 ): ActionState<T, TField> {
   return { status: "success", value };
 }
 
-/** 失敗した状態。フォーム全体の文言・項目ごとの文言・分類は、いずれも省略できる。 */
+/**
+ * 失敗した状態。フォーム全体の文言・項目ごとの文言・分類は、いずれも省略できる。
+ *
+ * @typeParam T - 成功時に画面へ返す値
+ * @typeParam TField - 項目エラーのキーになり得る項目名
+ * @param options - フォーム全体の文言・項目ごとの文言・分類。省略時はすべて空
+ * @returns 組み立てた失敗の状態
+ */
 export function failedActionState<T, TField extends string = string>(
   options: { formError?: string | null; fieldErrors?: FieldErrors<TField>; kind?: ErrorKind } = {},
 ): ActionState<T, TField> {
@@ -81,6 +101,11 @@ export function failedActionState<T, TField extends string = string>(
  * 分類の付いていないエラーは `internal` として扱います。文言を付けずに返すと、画面には
  * 「失敗したが理由の表示は無い」状態が出ます。原因の詳細は外へ出せませんが、失敗したことは
  * 伝わらなければなりません。
+ *
+ * @typeParam T - 成功時に画面へ返す値
+ * @typeParam TField - 項目エラーのキーになり得る項目名
+ * @param error - 投げられた値
+ * @returns カタログの文言を載せた失敗の状態
  */
 export function actionStateFromError<T, TField extends string = string>(
   error: unknown,

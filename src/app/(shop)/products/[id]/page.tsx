@@ -31,6 +31,8 @@ export async function generateMetadata({
  *
  * **存在しない ID でも 200 が返ります。** 見つからないことは画面と `noindex` が伝え、その理由は
  * {@link generateMetadata} が呼ぶ `detail/metadata.ts` が持ちます。
+ *
+ * @param params - route の動的セグメント。商品 ID を運ぶ。
  */
 async function ProductDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

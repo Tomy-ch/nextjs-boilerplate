@@ -81,6 +81,9 @@ export type ProfileField = keyof ProfileInput;
  * @remarks
  * 必須かどうかを列挙せず、スキーマへ空文字を通して判定します。列挙すると、規則を緩めたのに
  * 画面が必須のままという状態を作れます。**印と検証の出所を 1 つにするための判定**です。
+ *
+ * @param field - 判定する項目
+ * @returns 空欄を受け付けないか
  */
 export function isRequiredProfileField(field: ProfileField): boolean {
   return !profileSchema.shape[field].safeParse("").success;

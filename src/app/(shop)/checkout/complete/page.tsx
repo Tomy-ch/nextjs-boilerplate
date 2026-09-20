@@ -25,6 +25,8 @@ export const metadata: Metadata = {
  *
  * **指し先の無い URL でも 200 が返ります。** 殻を先に流すため、`notFound()` に達した時点で応答の
  * ヘッダは出ています。書き方では解けないので、見つからないことは画面と `noindex` が伝えます。
+ *
+ * @param searchParams - 検証前の検索パラメータ。
  */
 async function CheckoutCompleteContent({
   searchParams,

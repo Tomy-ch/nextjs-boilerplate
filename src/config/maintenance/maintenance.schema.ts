@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** maintenance purpose 専用の ENV validator を定義する。 */
-
 const maintenanceMode = z
   .string()
   .trim()
@@ -16,6 +14,8 @@ const maintenanceMode = z
  * **未設定と空文字はどちらも「止めていない」です。** 止めるのは運用が明示したときだけであり、
  * 欠落を不正として落とすと、この変数を注入していない環境が起動できなくなります。止まっている
  * 側を既定にすると、設定を忘れた環境が全ルート停止で立ち上がります。
+ *
+ * @returns 配信停止指定の検証器
  */
 export function maintenanceModeValidator() {
   return maintenanceMode;

@@ -28,6 +28,8 @@ export const metadata: Metadata = {
  *
  * 判定を穴の内側へ置いても、登録済みの主体を送り返す働きは変わりません。転送は描画の途中でも
  * 効き、殻を先に配ったぶんだけ早く判定へ入ります。
+ *
+ * @param searchParams - 復帰先を運ぶ検索パラメータ。
  */
 async function OnboardingContent({
   searchParams,

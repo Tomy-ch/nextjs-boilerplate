@@ -33,6 +33,8 @@ import { indexableValidator, publicOriginValidator } from "./site/site.schema";
  * @remarks
  * 開発と CI の ENV ファイルが積む同梱値を通すための例外です。`APP_ENV` の未指定は許しません
  * —— 未指定は `null` で返り、`local` にも `ci` にも一致しないためです。
+ *
+ * @returns 同梱の秘密値を許すか
  */
 function allowsShippedSecrets(): boolean {
   const environment = findApplicationEnvironment();
@@ -75,6 +77,9 @@ let cachedEnvironment: Environment | undefined;
  *
  * この関数は config カーネル内部だけで用いる。本番の singleton は
  * {@link getEnvironment} を通じて同じ評価結果を共有する。
+ *
+ * @param environment - 検証する環境変数セット
+ * @returns 型付きに変換した {@link Environment}
  */
 function parseEnvironment(environment: NodeJS.ProcessEnv): Environment {
   const result = environmentSchema.safeParse(environment);
@@ -93,6 +98,8 @@ function parseEnvironment(environment: NodeJS.ProcessEnv): Environment {
  * `loadEnvironment()` が `env/.env.<APP_ENV>` を `process.env` へ読み込んだ後に初めて
  * 呼ぶことを前提とする。ESM の module cache とこのキャッシュにより、目的別 Config は
  * 同一の不変な評価結果を共有する。
+ *
+ * @returns 検証済みの {@link Environment}
  */
 export function getEnvironment(): Environment {
   cachedEnvironment ??= parseEnvironment(process.env);

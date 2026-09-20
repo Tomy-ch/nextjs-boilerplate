@@ -26,6 +26,9 @@ export type InquiryId = z.infer<typeof inquiryIdSchema>;
  * @remarks
  * **呼んでよいのは境界だけ**です。外から来た値を確定させる場所（`adapters` の検証の出口・
  * route の動的セグメント）で 1 度だけ通し、内側では確定した型を持ち回ります。
+ *
+ * @param value - 確定させる文字列
+ * @returns 問い合わせの識別子
  */
 export function toInquiryId(value: string): InquiryId {
   return inquiryIdSchema.parse(value);

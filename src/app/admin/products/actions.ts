@@ -42,7 +42,11 @@ const MISSING_IMAGE_MESSAGE = "画像が選ばれていません。";
 const UNSUPPORTED_IMAGE_MESSAGE = `${PRODUCT_IMAGE_ACCEPT_LABEL} のいずれかを選んでください。`;
 const OVERSIZED_IMAGE_MESSAGE = "画像が大きすぎます。もっと小さいものを選んでください。";
 
-/** 役割を持たない主体の要求をここで止める。 */
+/**
+ * 役割を持たない主体の要求をここで止める。
+ *
+ * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
+ */
 async function assertAdmin(): Promise<void> {
   if (!isAdmin(await verifySession())) {
     throw createAppError(ErrorKind.PERMISSION_DENIED, {
@@ -64,6 +68,10 @@ async function assertAdmin(): Promise<void> {
  *
  * 形式は宣言された `type` で見ます。これは送信者が付けられる値なので、中身がその形式である
  * ことまでは保証しません。中身の判定は保存する側が持ちます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - アップロードする画像を積んだ送信内容。
+ * @returns アップロード結果を表す action state。
  */
 export async function uploadProductImageAction(
   _previous: ProductImageUploadState,
@@ -102,6 +110,10 @@ export async function uploadProductImageAction(
  * @remarks
  * 成立したら一覧へ送ります。作った直後に同じ空のフォームへ留まると、続けて押したときに同じ
  * 商品をもう 1 件作れてしまいます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 新規作成フォームの送信内容。
+ * @returns 送信結果を表す action state。成立時は一覧へ redirect するため戻らない。
  */
 export async function createProductAction(
   _previous: ProductFormState,
@@ -136,6 +148,10 @@ export async function createProductAction(
  * @remarks
  * `409` にだけ専用の文言を当てます。カタログの既定文言は分類だけを伝えるもので、拒まれた理由が
  * 「読み込んでからの間に別の人が更新した」ことであるのは、この画面でしか言えません。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 編集フォームの送信内容。
+ * @returns 送信結果を表す action state。成立時は一覧へ redirect するため戻らない。
  */
 export async function updateProductAction(
   _previous: ProductFormState,
@@ -186,6 +202,10 @@ export async function updateProductAction(
  *
  * 成立したら一覧へ送ります。連続して補充するときは一覧を経由します。同じ画面に留まると、
  * 押し直しがそのまま二重の加算になり、しかも成立した後なので取り消す手段がありません。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 在庫の増減を指定する送信内容。
+ * @returns 送信結果を表す action state。成立時は一覧へ redirect するため戻らない。
  */
 export async function adjustProductStockAction(
   _previous: StockFormState,

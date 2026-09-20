@@ -122,6 +122,7 @@ export function parseConsentState(raw: string | undefined): ConsentState {
  * 通っているからです。
  *
  * @param choice - 利用者が選んだ意思
+ * @returns cookie へ載せる綴り
  */
 export function toConsentCookieValue(choice: ConsentChoice): string {
   return `${choice}.${CONSENT_COPY_VERSION}`;
@@ -136,6 +137,7 @@ export function toConsentCookieValue(choice: ConsentChoice): string {
  *
  * @param state - いまの同意状態
  * @param category - 動かしたい用途の区分
+ * @returns 動かしてよいか
  */
 export function allowsCategory(state: ConsentState, category: ConsentCategory): boolean {
   if (category === CONSENT_CATEGORY.necessary) {
@@ -153,6 +155,7 @@ export function allowsCategory(state: ConsentState, category: ConsentCategory): 
  * 一度バナーが出ます。
  *
  * @param state - いまの同意状態
+ * @returns 尋ねるべきか
  */
 export function shouldAskConsent(state: ConsentState): boolean {
   return state.status === "unset";

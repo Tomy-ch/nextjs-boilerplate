@@ -169,6 +169,11 @@ export async function proxy(request: NextRequest): Promise<Response> {
  * `s-maxage` を伴うため、その応答を保存した CDN は以後の訪問者全員へ同じ id を配ります
  * （`docs/rules.md`「データ分類と機微情報」の「主体に紐づく応答の `Cache-Control` を個別に
  * 書かない」）。
+ *
+ * @param request - 受信した要求
+ * @param response - 差し替え後の応答
+ * @param url - 要求の URL
+ * @returns 送出する応答
  */
 function finalize(request: NextRequest, response: NextResponse, url: URL): NextResponse {
   syncMeasurementId(request, response, url);
@@ -194,6 +199,10 @@ function finalize(request: NextRequest, response: NextResponse, url: URL): NextR
  * 採番はここで行います。**同意を確かめてからでなければ呼べない**という制約が、判定と採番を
  * 同じ関数に置いて初めて読み取れる形になります。値そのものは推測されて困るものではなく、同じ
  * ブラウザからの訪問を繋ぐためだけの識別子です。
+ *
+ * @param request - 受信した要求
+ * @param response - 書き換える応答
+ * @param url - 要求の URL
  */
 function syncMeasurementId(request: NextRequest, response: NextResponse, url: URL): void {
   const consent = parseConsentState(request.cookies.get(CONSENT_COOKIE_NAME)?.value);
@@ -220,7 +229,13 @@ function syncMeasurementId(request: NextRequest, response: NextResponse, url: UR
   });
 }
 
-/** 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。 */
+/**
+ * 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。
+ *
+ * @param request - 受信した要求
+ * @param origin - 許可された送信元 origin
+ * @returns 送出する応答
+ */
 async function openCors(request: NextRequest, origin: string): Promise<NextResponse> {
   if (request.method === "OPTIONS") {
     return new NextResponse(null, {
@@ -242,7 +257,12 @@ async function openCors(request: NextRequest, origin: string): Promise<NextRespo
   return response;
 }
 
-/** 到達してよい役割を持たない要求を送り返し、それ以外を通す。 */
+/**
+ * 到達してよい役割を持たない要求を送り返し、それ以外を通す。
+ *
+ * @param request - 受信した要求
+ * @returns 送出する応答
+ */
 async function authorize(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);

@@ -37,7 +37,11 @@ type RenderSpanConfiguration = Readonly<{
  */
 const CONFIGURATION_KEY = Symbol.for("nextjs-boilerplate.observability.render-spans");
 
-/** 描画を span に載せる範囲と実装を、起動境界から注入する。 */
+/**
+ * 描画を span に載せる範囲と実装を、起動境界から注入する。
+ *
+ * @param next - 注入する範囲と実装
+ */
 export function configureRenderSpans(next: RenderSpanConfiguration): void {
   Reflect.set(globalThis, CONFIGURATION_KEY, next);
 }
@@ -52,6 +56,8 @@ export function configureRenderSpans(next: RenderSpanConfiguration): void {
  *
  * @param name - span 名に載せる `src/` からのモジュールパス。**利用者の入力を混ぜてはいけません**
  *   （理由は [README](./README.md) の「描画の計装」）。
+ * @param render - span で包む描画
+ * @returns span で包んだ描画
  */
 export function withScreenSpan<Args extends readonly unknown[], Result extends RenderResult>(
   name: string,
@@ -74,6 +80,8 @@ export function withScreenSpan<Args extends readonly unknown[], Result extends R
  * trace から読みたいときに開けます。
  *
  * @param name - {@link withScreenSpan} と同じ。
+ * @param render - span で包む描画
+ * @returns span で包んだ描画
  */
 export function withPartSpan<Args extends readonly unknown[], Result extends RenderResult>(
   name: string,
@@ -88,13 +96,23 @@ export function withPartSpan<Args extends readonly unknown[], Result extends Ren
   };
 }
 
-/** 注入された構成を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。 */
+/**
+ * 注入された構成を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。
+ *
+ * @returns 見つかった構成。形が合わなければ `undefined`
+ */
 function findConfiguration(): RenderSpanConfiguration | undefined {
   const value: unknown = Reflect.get(globalThis, CONFIGURATION_KEY);
 
   return isConfiguration(value) ? value : undefined;
 }
 
+/**
+ * 値が {@link RenderSpanConfiguration} の形を持つかを判定する。
+ *
+ * @param value - 判定対象の値
+ * @returns 形を満たせば `true`
+ */
 function isConfiguration(value: unknown): value is RenderSpanConfiguration {
   return (
     typeof value === "object" &&

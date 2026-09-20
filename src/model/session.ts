@@ -45,6 +45,7 @@ export type SessionRole = (typeof SESSION_ROLE)[keyof typeof SESSION_ROLE];
  *
  * @param session - 判定対象。未認証なら null
  * @param allowed - 許可する役割
+ * @returns 許可された役割のいずれかを持つか
  */
 export function hasAllowedRole(
   session: Session | null,
@@ -58,6 +59,7 @@ export function hasAllowedRole(
  *
  * @param session - 判定対象
  * @param now - 判定の基準時刻
+ * @returns 失効しているか
  */
 export function isSessionExpired(session: Session, now: Date): boolean {
   return session.expiresAt.getTime() <= now.getTime();

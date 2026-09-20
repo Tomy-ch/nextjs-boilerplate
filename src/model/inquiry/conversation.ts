@@ -17,6 +17,10 @@ export type ConversationDay = {
  *
  * 並べ直すのは位置の昇順です。届いた順は保証されないため、受け取った順のまま並べると、
  * 遅れて届いた発言が最後に付きます。
+ *
+ * @param base - 正本のメッセージ
+ * @param appended - 購読で届いたメッセージ
+ * @returns 位置の昇順に畳んだ並び
  */
 export function mergeMessages(
   base: readonly InquiryMessage[],
@@ -37,6 +41,10 @@ export function mergeMessages(
  * @remarks
  * 取り直した正本は、その時点の位置までを含みます。同じものを控えにも持ち続けると、次の
  * 取り直しまで畳み込みが効き続け、控えが際限なく伸びます。
+ *
+ * @param appended - 購読で受け取った控え
+ * @param streamCursor - 正本を読んだ時点の購読の位置
+ * @returns 正本にまだ入っていない分だけの控え
  */
 export function pruneApplied(
   appended: readonly InquiryMessage[],
@@ -51,6 +59,9 @@ export function pruneApplied(
  * @remarks
  * 区切りの判定に整形済みの日付を使うのは、表示するタイムゾーンで丸めた値がそれだからです。
  * `Date` のまま比べると、丸める側と表示する側で別々にタイムゾーンを扱うことになります。
+ *
+ * @param messages - 位置の昇順に並んだメッセージ
+ * @returns 日付で区切った並び
  */
 export function toConversationDays(
   messages: readonly InquiryMessage[],

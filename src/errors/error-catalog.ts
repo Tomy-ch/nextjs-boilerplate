@@ -61,7 +61,12 @@ const defaultErrorMeta: Readonly<Record<ErrorKindType, ErrorMeta>> = {
   }),
 };
 
-/** 指定した分類の既定メタ情報を返します。 */
+/**
+ * 指定した分類の既定メタ情報を返します。
+ *
+ * @param kind - 対象のエラー分類
+ * @returns 分類に対応する既定の {@link ErrorMeta}
+ */
 export function getDefaultErrorMeta(kind: ErrorKindType): ErrorMeta {
   return defaultErrorMeta[kind];
 }
@@ -69,7 +74,11 @@ export function getDefaultErrorMeta(kind: ErrorKindType): ErrorMeta {
 /**
  * cause chain の分類と、最も外側のメタ情報から表示用メタ情報を解決します。
  *
+ * @remarks
  * 分類がないエラーは境界で `internal` へ正規化するため、ここでは解決しません。
+ *
+ * @param error - 解決対象のエラー
+ * @returns 解決した {@link ErrorMeta}。分類が無ければ `undefined`
  */
 export function resolveErrorMeta(error: unknown): ErrorMeta | undefined {
   const appError = findAppError(error);

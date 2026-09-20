@@ -23,6 +23,8 @@ export const metadata: Metadata = {
  *
  * **存在しない購入でも 200 が返ります。** 殻を先に流すため、`notFound()` に達した時点で応答の
  * ヘッダは出ています。書き方では解けないので、見つからないことは画面と `noindex` が伝えます。
+ *
+ * @param params - route の動的セグメント。購入コードを運ぶ。
  */
 async function PurchaseDetailContent({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;

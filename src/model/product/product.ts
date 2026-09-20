@@ -30,6 +30,9 @@ export type ProductId = z.infer<typeof productIdSchema>;
  * 実在するかは検査しません。識別子を知っているのはバックエンドであり、存在しない値は取得が
  * `not-found` として返します。
  * ここが担うのは、どの種類の識別子かを型に載せることだけです。
+ *
+ * @param value - 確定させる文字列
+ * @returns 商品の識別子
  */
 export function toProductId(value: string): ProductId {
   return productIdSchema.parse(value);
@@ -44,6 +47,7 @@ export function toProductId(value: string): ProductId {
  * 比べる必要のない値を比べることになり、しかも画面ごとに境界の扱いが分かれます。
  *
  * @param product - 判定する商品
+ * @returns 廃番かどうか
  */
 export function isDiscontinued(product: Pick<Product, "discontinuedAt">): boolean {
   return product.discontinuedAt !== null;

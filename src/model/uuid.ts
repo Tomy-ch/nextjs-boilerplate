@@ -17,6 +17,8 @@ const TIMESTAMP_LENGTH = 12;
  *
  * 版 7 を選ぶのは、先頭に時刻が入って**作った順に並ぶ**ためです。同じミリ秒に作っても、
  * 残りの 74 bit が乱数なので別の値になります。
+ *
+ * @returns 新しい一意な値
  */
 export function newUuid(): string {
   const time = Date.now().toString(16).padStart(TIMESTAMP_LENGTH, "0");

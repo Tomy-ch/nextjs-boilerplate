@@ -39,12 +39,18 @@ type CalendarDate = {
  * います。別々に解くと、境目の時刻に添え書きと集計の対象日が食い違います。
  *
  * @param now - 判定に使う瞬時。呼び出し側が渡す
+ * @returns `YYYY-MM-DD` の暦日
  */
 export function calendarDate(now: Date): string {
   return formatDate(toCalendarDate(now));
 }
 
-/** 年月日を `YYYY-MM-DD` へ。桁は暦の表記に合わせて 0 で埋める。 */
+/**
+ * 年月日を `YYYY-MM-DD` へ。桁は暦の表記に合わせて 0 で埋める。
+ *
+ * @param calendar - 変換する年月日
+ * @returns `YYYY-MM-DD` の文字列
+ */
 function formatDate({ year, month, day }: CalendarDate): string {
   const pad = (value: number, width: number): string => String(value).padStart(width, "0");
 
@@ -59,6 +65,7 @@ function formatDate({ year, month, day }: CalendarDate): string {
  * 1 か所だけ桁を間違えても他が正しく動いてしまうためです。
  *
  * @param now - 判定に使う瞬時。呼び出し側が渡す
+ * @returns `YYYY-MM` の暦月
  */
 export function calendarMonth(now: Date): string {
   return calendarDate(now).slice(0, MONTH_LENGTH);
@@ -74,6 +81,9 @@ const MONTH_LENGTH = 7;
  * ランタイムのタイムゾーンを使いません。サーバは配信先の既定（多くは UTC）で動き、ブラウザは
  * 閲覧者の現在地で動くため、「今日」がどの日かが実行場所ごとに変わります
  * （{@link DEFAULT_TIME_ZONE}）。
+ *
+ * @param instant - 変換する瞬時
+ * @returns 店のタイムゾーンで見た年月日
  */
 function toCalendarDate(instant: Date): CalendarDate {
   // `en-CA` は `YYYY-MM-DD` で出る。部位を 1 つずつ拾うより、組み上がった形を読むほうが短い。
@@ -96,6 +106,9 @@ const OFFSET_LENGTH = 6;
  * @remarks
  * 固定の文字列を書かないのは、夏時間を持つ地域へ {@link DEFAULT_TIME_ZONE} を変えたときに、
  * オフセットだけが古いまま残らないようにするためです。
+ *
+ * @param instant - 対象の瞬時
+ * @returns `±HH:MM` 形式のオフセット
  */
 function offsetAt(instant: Date): string {
   const name = new Intl.DateTimeFormat("en-US", {
@@ -118,6 +131,9 @@ function offsetAt(instant: Date): string {
  * @remarks
  * オフセットは**その日時点**のものを引きます。年を跨いで夏時間の切り替わる地域では、区間の
  * 両端で違うオフセットになり得るためです。
+ *
+ * @param calendar - 変換する年月日
+ * @returns その日の始まりを指すオフセット付き RFC3339 文字列
  */
 function startOfDay(calendar: CalendarDate): string {
   const date = formatDate(calendar);
@@ -134,6 +150,11 @@ function startOfDay(calendar: CalendarDate): string {
  * **`Date.UTC` の上で動かします。** `date-fns` の日付演算はランタイムのタイムゾーンで境界を
  * 解決し、{@link DEFAULT_TIME_ZONE} への固定と両立しません（同層の README「関連する ADR」）。
  * 閏年と月末の繰り上げは `Date.UTC` が持っています。
+ *
+ * @param calendar - 起点の年月日
+ * @param months - 加える月数
+ * @param days - 加える日数
+ * @returns 動かした後の年月日
  */
 function shift({ year, month, day }: CalendarDate, months: number, days: number): CalendarDate {
   const moved = new Date(Date.UTC(year, month - 1 + months, day + days));
@@ -149,6 +170,7 @@ function shift({ year, month, day }: CalendarDate, months: number, days: number)
  * 対象が落ちます。
  *
  * @param month - `YYYY-MM`
+ * @returns 暦月 1 つを対象にする窓
  */
 export function monthWindow(month: string): TimeWindow {
   const first = parseDate(month);
@@ -165,6 +187,7 @@ export function monthWindow(month: string): TimeWindow {
  *
  * @param from - `YYYY-MM-DD`。含む
  * @param to - `YYYY-MM-DD`。含む
+ * @returns 開始日と終了日で挟む窓
  */
 export function dateRangeWindow(from: string, to: string): TimeWindow {
   return {
@@ -182,6 +205,7 @@ export function dateRangeWindow(from: string, to: string): TimeWindow {
  *
  * @param days - 遡る日数。1 以上
  * @param now - いまの瞬時。呼び出し側が渡す
+ * @returns 今日から遡る日数を対象にする窓
  */
 export function recentDaysWindow(days: number, now: Date): TimeWindow {
   const today = toCalendarDate(now);
@@ -196,6 +220,7 @@ export function recentDaysWindow(days: number, now: Date): TimeWindow {
  * 今日 1 日を対象にする窓。
  *
  * @param now - いまの瞬時。呼び出し側が渡す
+ * @returns 今日 1 日を対象にする窓
  */
 export function todayWindow(now: Date): TimeWindow {
   return recentDaysWindow(1, now);
@@ -220,6 +245,8 @@ const CALENDAR_DATE_PATTERN = /^(\d{4})-(0[1-9]|1[0-2])(?:-(0[1-9]|[12]\d|3[01])
  * **読めない文字列は投げます。** 既定値へ倒すと、URL を手で書き換えた利用者に対して、年 0 の
  * 区間という誰も意図していない条件が組み上がります。
  *
+ * @param date - 変換する文字列
+ * @returns 変換した年月日
  * @throws 形が合わないとき
  */
 function parseDate(date: string): CalendarDate {

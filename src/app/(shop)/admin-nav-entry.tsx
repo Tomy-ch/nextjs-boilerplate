@@ -24,6 +24,8 @@ export type AdminNavEntryProps = {
  *
  * 置き場が `features/admin` ではなく器の隣なのは、`adapters/server/auth` を引けるのが `app` と
  * `adapters` だけだからです（`architecture.ts` の `adapters-auth`）。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link AdminNavEntryProps} の各メンバーが持つ。
  */
 export async function AdminNavEntry({ replace }: AdminNavEntryProps) {
   return isAdmin(await verifySession()) ? (

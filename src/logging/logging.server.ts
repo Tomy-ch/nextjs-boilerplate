@@ -17,7 +17,11 @@ type InitializeLoggerOptions = Parameters<typeof createLogger>[0];
  */
 const LOGGER_KEY = Symbol.for("nextjs-boilerplate.logging.logger");
 
-/** 起動境界で注入された設定から、プロセス共通の logger を一度だけ初期化する。 */
+/**
+ * 起動境界で注入された設定から、プロセス共通の logger を一度だけ初期化する。
+ *
+ * @param options - 注入する logger の構成
+ */
 export function initializeLogger(options: InitializeLoggerOptions): void {
   if (findLogger() === undefined) {
     Reflect.set(globalThis, LOGGER_KEY, createLogger(options));
@@ -27,6 +31,7 @@ export function initializeLogger(options: InitializeLoggerOptions): void {
 /**
  * 初期化済みのアプリケーション logger を返す。
  *
+ * @returns 初期化済みの {@link Logger}
  * @throws 起動境界の初期化を経ていないとき
  */
 export function getLogger(): Logger {
@@ -39,13 +44,23 @@ export function getLogger(): Logger {
   return logger;
 }
 
-/** 注入された logger を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。 */
+/**
+ * 注入された logger を読む。別のモジュールインスタンスが書いた値なので、形を確かめてから使う。
+ *
+ * @returns 見つかった {@link Logger}。形が合わなければ `undefined`
+ */
 function findLogger(): Logger | undefined {
   const value: unknown = Reflect.get(globalThis, LOGGER_KEY);
 
   return isLogger(value) ? value : undefined;
 }
 
+/**
+ * 値が {@link Logger} の形を持つかを判定する。
+ *
+ * @param value - 判定対象の値
+ * @returns {@link Logger} の形を満たせば `true`
+ */
 function isLogger(value: unknown): value is Logger {
   return (
     typeof value === "object" &&
