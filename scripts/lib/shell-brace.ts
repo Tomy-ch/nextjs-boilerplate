@@ -16,7 +16,7 @@
  * @remarks
  * 全角の範囲は CJK・かな・全角記号（`U+3000`–`U+9FFF`）と全角形（`U+FF00`–`U+FFEF`）に採ります。
  */
-const BARE_BEFORE_FULLWIDTH = /\$[A-Za-z_][A-Za-z0-9_]*(?=[　-鿿＀-￯])/g;
+const BARE_BEFORE_FULLWIDTH = /\$[A-Za-z_]\w*(?=[\u{3000}-\u{9fff}\u{ff00}-\u{ffef}])/gu;
 
 /** 見つかった 1 件。 */
 export interface BareVariable {
