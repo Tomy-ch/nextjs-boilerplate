@@ -94,22 +94,21 @@ function typeCarriesTheDoc(node: ts.Node): boolean {
   );
 }
 
-/** 初期化子が関数である変数宣言か。 */
-function initializesFunction(node: ts.VariableDeclaration): boolean {
-  return (
-    node.initializer !== undefined &&
-    (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
-  );
+/** 名前の付いた関数 1 つ。 */
+interface Named {
+  readonly node: ts.Node;
+  readonly name: string;
+  readonly parameters: readonly ts.ParameterDeclaration[];
 }
 
 /**
  * 名前の付いた関数を集める。
  *
  * @param source - 構文木の根。
- * @returns 宣言の節点と、その名前の対。同じ名前の関数宣言が続く（多重定義）ときは最初の 1 つだけ。
+ * @returns 宣言の節点・名前・引数。同じ名前の関数宣言が続く（多重定義）ときは最初の 1 つだけ。
  */
-function namedFunctions(source: ts.SourceFile): { node: ts.Node; name: string }[] {
-  const found: { node: ts.Node; name: string }[] = [];
+function namedFunctions(source: ts.SourceFile): Named[] {
+  const found: Named[] = [];
   const seen = new Set<string>();
 
   function visit(node: ts.Node): void {
@@ -117,16 +116,18 @@ function namedFunctions(source: ts.SourceFile): { node: ts.Node; name: string }[
       // 多重定義は先頭の宣言だけが doc を持つ。呼び出し地点の hover もそちらを出す。
       if (!seen.has(node.name.text)) {
         seen.add(node.name.text);
-        found.push({ name: node.name.text, node });
+        found.push({ name: node.name.text, node, parameters: node.parameters });
       }
     } else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) {
-      if (!typeCarriesTheDoc(node)) found.push({ name: node.name.text, node });
-    } else if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      initializesFunction(node)
-    ) {
-      found.push({ name: node.name.text, node });
+      if (!typeCarriesTheDoc(node)) {
+        found.push({ name: node.name.text, node, parameters: node.parameters });
+      }
+    } else if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) {
+      const { initializer } = node;
+
+      if (initializer !== undefined && ts.isFunctionLike(initializer)) {
+        found.push({ name: node.name.text, node, parameters: initializer.parameters });
+      }
     }
 
     ts.forEachChild(node, visit);
@@ -138,27 +139,18 @@ function namedFunctions(source: ts.SourceFile): { node: ts.Node; name: string }[
 }
 
 /**
- * その宣言が受け取る引数のうち、**読み手に名前が見えるもの**の数。
+ * 読み手に名前が見える引数の数。
  *
  * @remarks
  * 分割代入で受ける引数は数えません。読み手に見える名前が無く、各メンバーの doc は型の側が
  * 持つためです（{@link typeCarriesTheDoc} と同じ原理）。`@param` を求めても、書けるのは
  * 定型文だけになります。
+ *
+ * @param parameters - その宣言が受け取る引数。
+ * @returns 名前で受けている引数の数。
  */
-function namedParameterCount(node: ts.Node): number {
-  const parameters =
-    ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node)
-      ? node.parameters
-      : functionParameters(node);
-
+function namedParameterCount(parameters: readonly ts.ParameterDeclaration[]): number {
   return parameters.filter((parameter) => ts.isIdentifier(parameter.name)).length;
-}
-
-/** 変数へ入れた関数の引数。関数でなければ空。 */
-function functionParameters(node: ts.Node): readonly ts.ParameterDeclaration[] {
-  const { initializer } = node as ts.VariableDeclaration;
-
-  return initializer !== undefined && ts.isFunctionLike(initializer) ? initializer.parameters : [];
 }
 
 /**
@@ -175,14 +167,14 @@ export function findMissingFrames(file: string, source: string): MissingFrame[] 
 
   const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
 
-  return namedFunctions(tree).flatMap(({ node, name }): MissingFrame[] => {
+  return namedFunctions(tree).flatMap(({ node, name, parameters }): MissingFrame[] => {
     const line = tree.getLineAndCharacterOfPosition(node.getStart(tree)).line + 1;
 
     if (!documented(node)) {
       return [{ file, line, missing: "doc", name } as const];
     }
 
-    if (namedParameterCount(node) > 0 && !hasParamTag(node)) {
+    if (namedParameterCount(parameters) > 0 && !hasParamTag(node)) {
       return [{ file, line, missing: "param", name } as const];
     }
 

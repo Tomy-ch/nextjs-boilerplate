@@ -36,6 +36,18 @@ describe("ApiErrorAlert", () => {
     expect(alert.queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
   });
 
+  it("読み込み直しの実行中は、その旨を出して押せなくする", () => {
+    render(
+      <ApiErrorAlert
+        error={{ kind: "stale", message: "本文", retryable: true }}
+        onRetry={noop}
+        retryPending
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "読み込み直し中…" })).toBeDisabled();
+  });
+
   it("server の失敗では処理が失敗した見出しを出す", () => {
     render(<ApiErrorAlert error={{ kind: "server", message: "本文", retryable: true }} />);
 
