@@ -21,7 +21,6 @@ import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export
 import noArbitraryZIndex from "./eslint-rules/no-arbitrary-z-index";
 import noCacheOptionInUseCache from "./eslint-rules/no-cache-option-in-use-cache";
 import noCapturedBearerToken from "./eslint-rules/no-captured-bearer-token";
-import noGlobalRevalidatePath from "./eslint-rules/no-global-revalidate-path";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
 import noRawFontWeight from "./eslint-rules/no-raw-font-weight";
@@ -221,7 +220,6 @@ export default [
           "no-arbitrary-z-index": noArbitraryZIndex,
           "no-cache-option-in-use-cache": noCacheOptionInUseCache,
           "no-captured-bearer-token": noCapturedBearerToken,
-          "no-global-revalidate-path": noGlobalRevalidatePath,
           "no-internal-anchor": noInternalAnchor,
           "no-markup-outside-ui-layers": noMarkupOutsideUiLayers,
           "no-raw-font-weight": noRawFontWeight,
@@ -261,7 +259,6 @@ export default [
       "project-rules/no-arbitrary-z-index": "error",
       "project-rules/no-cache-option-in-use-cache": "error",
       "project-rules/no-captured-bearer-token": "error",
-      "project-rules/no-global-revalidate-path": "error",
       "project-rules/no-internal-anchor": "error",
       "project-rules/no-markup-outside-ui-layers": "error",
       "project-rules/no-user-scoped-in-cached-module": "error",

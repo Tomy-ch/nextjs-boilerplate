@@ -180,8 +180,6 @@
 "eslint-rules/cache-directive.test.ts" = "2026-09-21"
 "eslint-rules/no-arbitrary-z-index.ts" = "2026-09-21"
 "eslint-rules/no-arbitrary-z-index.test.ts" = "2026-09-21"
-"eslint-rules/no-global-revalidate-path.ts" = "2026-09-21"
-"eslint-rules/no-global-revalidate-path.test.ts" = "2026-09-21"
 "eslint-rules/no-cache-option-in-use-cache.ts" = "2026-09-21"
 "eslint-rules/no-cache-option-in-use-cache.test.ts" = "2026-09-21"
 "eslint-rules/no-ad-hoc-cache-tag.ts" = "2026-09-21"

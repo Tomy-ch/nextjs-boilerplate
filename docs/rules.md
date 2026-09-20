@@ -46,7 +46,7 @@
 
 ## 描画とキャッシュ
 
-> Rationale: [ADR 0041](adr/0041-cache-components-decision.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module` / `no-cache-option-in-use-cache` / `no-global-revalidate-path` / `no-ad-hoc-cache-tag`、framework の `next-request-in-use-cache`、adapter / feature テスト。
+> Rationale: [ADR 0041](adr/0041-cache-components-decision.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module` / `no-cache-option-in-use-cache` / `no-ad-hoc-cache-tag`、framework の `next-request-in-use-cache`、adapter / feature テスト。
 
 - **描くモードを画面が宣言しない。** Cache Components が有効なので、殻と穴の分かれ目は器の形そのもの —— 何を `Suspense` の外に置き、何を内に置くか —— で決まる。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、**すべて穴の内側**で解く（実時計はさらに `connection()` を待ってから読む）。器の側で待つと、待っている間は殻すら配れない。**殻を配れない画面だけが `export const instant = false` を理由つきで宣言する** —— 「まだ手を付けていない」ではなく「分けても得るものが無い」「殻を配ること自体が要件に反する」を書く。
 - **実時計を読む場所は 1 つに固定し、URL を解釈する層（合成の入口 `app`）が読んで props で配る。** `features` は `config` を参照できない（`architecture.ts`）。描画のたびに実時計を読む部品にすると、基準画像が撮った時刻に依存する。
@@ -58,7 +58,7 @@
 - **`use cache` を持つモジュールは `createHttpClient` を直に引かない。** **分類ごとに 1 つ置いた接続口**を引く。口は `adapters/server` が持ち、モジュールごとに組ませない。直に引けるモジュールは user-scoped な client も組める状態にあり、キャッシュの下でそれを許すと主体の値が別の主体へ配られる。
 - **Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ。** 入れ物は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほぼ起きないのに、入れ物だけが主体の数だけ増える。**入れないものへ印を付けない** —— 印は入っているものにしか付かないので、付けた側も捨てる側も、動いていないのに動いて見える。
 - **mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。** 所有境界の決め方とタグの綴りは次の 2 つが持つ。
-- **捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。** `revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。**捨てる先が所有境界かどうかは人に残る** —— 機械が落とすのは全体を捨てるリテラルだけである。
+- **捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。** `revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。**ただし、更新した値がどの画面にも付く外枠に出るときだけは例外とし、理由をその場に書く** —— 経路を 1 つ指定しても外枠は古いままになる。散文 —— **寄せられる**。全体を捨てるリテラルは静的に検出できるが、**例外を宣言する綴りが未決**で、決まるまで寄せると例外の側が落ちる。
 - **タグは `<資源>` と `<資源>:<識別子>` の 2 段だけを使う。** 資源名はバックエンド契約の集合名に揃え、識別子はその資源の URL に現れる鍵を使う。**タグを付けるのは取得側（`adapters`）1 か所**で、捨てる側は同じ綴りを書く。取得と再検証で綴りを別々に決めると、捨てたつもりのものが残る。**資源名が契約の集合名と揃っているか**は散文 —— **寄せられない**。契約を読まないと決まらない。
 
 <a id="data-classification"></a>
