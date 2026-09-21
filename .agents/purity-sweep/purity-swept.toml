@@ -219,3 +219,4 @@
 ".makefiles/testing/e2e.mk" = "2026-09-21"
 ".makefiles/agents/closed-loop.mk" = "2026-09-21"
 ".makefiles/security/bearer.mk" = "2026-09-21"
+"docs/adr/0156-browser-observation-tooling.md" = "2026-09-21"
