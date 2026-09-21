@@ -24,6 +24,30 @@ describe("ApiErrorAlert", () => {
     ).toBeInTheDocument();
   });
 
+  it("版が揃っていない失敗では、送り直しではなく読み込み直しへ誘導する", () => {
+    render(
+      <ApiErrorAlert error={{ kind: "stale", message: "本文", retryable: true }} onRetry={noop} />,
+    );
+
+    const alert = within(screen.getByRole("alert"));
+
+    expect(alert.getByText("表示が新しくなりました")).toBeInTheDocument();
+    expect(alert.getByRole("button", { name: "読み込み直す" })).toBeInTheDocument();
+    expect(alert.queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
+  });
+
+  it("読み込み直しの実行中は、その旨を出して押せなくする", () => {
+    render(
+      <ApiErrorAlert
+        error={{ kind: "stale", message: "本文", retryable: true }}
+        onRetry={noop}
+        retryPending
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "読み込み直し中…" })).toBeDisabled();
+  });
+
   it("server の失敗では処理が失敗した見出しを出す", () => {
     render(<ApiErrorAlert error={{ kind: "server", message: "本文", retryable: true }} />);
 

@@ -71,6 +71,10 @@ async function acceptPriceChanges(lines: readonly PurchaseOrderLine[]): Promise<
  *
  * **送るのは積み増しではなく置き換えです。** 確定した後の確認画面はもう見せる内容を持たず、
  * 被せた overlay の中から確定したときは、その overlay が積んだ 1 件が戻り先として残ります。
+ *
+ * @param _previous - 直前の状態。`useActionState` が渡すが、確定はこれを読まない
+ * @param formData - 送信された入力
+ * @returns 確定の結果。失敗は分類つきで返る
  */
 export async function placeOrderAction(
   _previous: PlaceOrderFormState,

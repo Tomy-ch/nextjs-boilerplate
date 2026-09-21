@@ -58,6 +58,11 @@ export function Telemetry({ traceparent }: Readonly<{ traceparent?: string }>): 
   useEffect(() => {
     let remaining = MAX_ERROR_REPORTS;
 
+    /**
+     * 捕まえた失敗を送る。上限に達したら黙る。
+     *
+     * @param thrown - 投げられた値。`Error` とは限らない
+     */
     const report = (thrown: unknown): void => {
       if (remaining > 0) {
         remaining -= 1;
@@ -65,9 +70,19 @@ export function Telemetry({ traceparent }: Readonly<{ traceparent?: string }>): 
       }
     };
 
+    /**
+     * 捕まえられなかった例外を受ける。
+     *
+     * @param event - `error` の出来事
+     */
     const onError = (event: ErrorEvent): void => {
       report(event.error ?? event.message);
     };
+    /**
+     * 受け手の無い reject を受ける。
+     *
+     * @param event - `unhandledrejection` の出来事
+     */
     const onRejection = (event: PromiseRejectionEvent): void => {
       report(event.reason);
     };

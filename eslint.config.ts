@@ -16,7 +16,10 @@ import {
   RESTRICTED_AREAS,
   SHARED_AREAS,
 } from "./architecture";
+import noAdHocCacheTag from "./eslint-rules/no-ad-hoc-cache-tag";
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
+import noArbitraryZIndex from "./eslint-rules/no-arbitrary-z-index";
+import noCacheOptionInUseCache from "./eslint-rules/no-cache-option-in-use-cache";
 import noCapturedBearerToken from "./eslint-rules/no-captured-bearer-token";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
@@ -42,13 +45,6 @@ const iconVendorImports = {
     "アイコンの供給元は `@/components/icon` へ閉じます（ADR 0052）。アイコンはそこから import してください。",
 };
 
-/**
- * どのファイルでも締め出すもの。
- *
- * **新しい締め出しは原則ここへ足す。**flat config は同名ルールを配列ごと後勝ちで置き換えるので、
- * 適用範囲の広いブロックの側だけへ足すと、それを外している例外ファイルには黙って効かない。
- * 例外ファイルを持つ締め出しは、この基底へではなく、例外を外した側のブロックで足す。
- */
 /**
  * `process` の直読を落とす選択子。
  *
@@ -80,6 +76,13 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
     "購読を開けるのは `adapters/client/stream` だけです（ADR 0074）。画面は購読 adapter を通してください。",
 };
 
+/**
+ * どのファイルでも締め出すもの。
+ *
+ * **新しい締め出しは原則ここへ足す。**flat config は同名ルールを配列ごと後勝ちで置き換えるので、
+ * 適用範囲の広いブロックの側だけへ足すと、それを外している例外ファイルには黙って効かない。
+ * 例外ファイルを持つ締め出しは、この基底へではなく、例外を外した側のブロックで足す。
+ */
 const commonImportRestrictions = [nodeBuiltinImports];
 
 // 並び順は `architecture.ts` の `BOUNDARY_ELEMENTS` が持つ。写しは持たず import で受け取る。
@@ -212,7 +215,10 @@ export default [
       "react-hooks": reactHooks,
       "project-rules": {
         rules: {
+          "no-ad-hoc-cache-tag": noAdHocCacheTag,
           "no-anonymous-default-export": noAnonymousDefaultExport,
+          "no-arbitrary-z-index": noArbitraryZIndex,
+          "no-cache-option-in-use-cache": noCacheOptionInUseCache,
           "no-captured-bearer-token": noCapturedBearerToken,
           "no-internal-anchor": noInternalAnchor,
           "no-markup-outside-ui-layers": noMarkupOutsideUiLayers,
@@ -248,7 +254,10 @@ export default [
       "react-hooks/use-memo": "error",
       "react-hooks/void-use-memo": "error",
       ...boundaryRules,
+      "project-rules/no-ad-hoc-cache-tag": "error",
       "project-rules/no-anonymous-default-export": "error",
+      "project-rules/no-arbitrary-z-index": "error",
+      "project-rules/no-cache-option-in-use-cache": "error",
       "project-rules/no-captured-bearer-token": "error",
       "project-rules/no-internal-anchor": "error",
       "project-rules/no-markup-outside-ui-layers": "error",
