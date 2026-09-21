@@ -96,6 +96,34 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 | --- | --- | --- | --- | --- |
 | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャの容器 ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す口がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.md) §2）。secret ではない（容器 ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れる配備は、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
 
+## boilerplate 導入時の変更点
+
+`local` と `ci` に入っている接続先は、本リポジトリの相方として開発されたバックエンドと、その隣に
+立てる開発用 IdP を指しています。**どれも自分の置き場には実在しないので、値を入れ替えるまで
+手元は繋がりません。** `dev` / `stg` / `prd` は変数名だけを持つので、値は PaaS か secret store へ入れます。
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| API の接続先 | `APP_API_BASE_URL` が手元の相方を指す | `.env.local` / `.env.ci` と、配信する環境の設定。**build 時にも読まれる**（上記） |
+| IdP | `AUTH_ISSUER` / `AUTH_CLIENT_ID` が開発用 IdP とそこへ登録した client を指す | 同上。`AUTH_REDIRECT_URI` は IdP 登録値と完全一致させる |
+| session の秘密値 | `AUTH_SESSION_SECRET` は `local` / `ci` の値が公開リポジトリに載っており、他の環境では起動時に拒否される | 配信する環境ごとに secret store から供給する |
+| 画像の配信元 | `MEDIA_ORIGIN` が手元の置き場を指す。**画像を 1 枚も置かない間も必須**で、この値だけが `next/image` の許可 host と CSP の `img-src` を決める | 同上 |
+| テレメトリの送信先 | `OTEL_EXPORTER_OTLP_ENDPOINT` が手元の collector を、`OBS_SERVICE_NAME` が既定の service 名を指す | 送信先と、相方のサービスと重ならない名前へ |
+| 公開 origin | `SITE_PUBLIC_ORIGIN` が手元の口を指す。canonical / `sitemap.xml` / OG 画像の絶対 URL がこれを起点にする | 外から見た自分の origin へ |
+| 索引の可否 | `SITE_INDEXABLE` は Code default `off` | 索引させてよい環境だけが `on` を宣言する |
+| URL と本体の上限 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` / `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` は既定を持たない | 経路上で最も小さい上限を測って入れる |
+| 別 origin からの BFF 呼び出し | `HTTP_ALLOWED_ORIGINS` は空（同一 origin だけ） | 開く相手があるときだけ |
+| タグマネージャ | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` は空（読み込まない） | 使うときだけ容器 ID を入れる。CSP の許可 origin も一緒に動く |
+
+各変数の意味・型・必須かどうかは上の表が持ちます。ここが挙げているのは**入れ替えないと偽になる
+もの**だけで、それ以外の既定は触らずに動きます。
+
+配信ヘッダが持つ第三者 origin の固定値は
+[`src/config/README.md`](../src/config/README.md#boilerplate-導入時の変更点) が、外向き通信の
+timeout と再試行は
+[`src/adapters/server/http/README.md`](../src/adapters/server/http/README.md#boilerplate-導入時の変更点)
+が持ちます。どちらも環境変数ではありません。
+
 ## 運用
 
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。

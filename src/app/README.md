@@ -92,6 +92,25 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 `sitemap.ts` が挙げるのは索引させたい画面だけで、`robots.ts` が断る経路は保護の宣言（`model/authz`）
 から採る。どちらも書き写しを持たない。
 
+## boilerplate 導入時の変更点
+
+**サイトの名乗りは `site.ts` が 1 か所で持ちます。** 初期化のコマンドはリポジトリの識別子を書き換え
+ますが、ここは触りません。metadata・OG 画像・アイコンが同じ値を読むので、**書き換えないと自分の
+サイトが本リポジトリの名前で名乗り続けます。**
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| サイト名 | リポジトリ名と同じ綴り。タイトルの雛形と OG 画像が読む | `site.ts` の `SITE_NAME`。**ラテンの綴りに限る** —— OG 画像を描く既定の書体が和文を持たず、画像の側だけが欠ける |
+| サイトの説明 | 本リポジトリ自身を説明する文。root の `description` に載る | `site.ts` の `SITE_DESCRIPTION` |
+| アイコンに描く印 | 1 文字 | `site.ts` の `SITE_MONOGRAM`。枠の大きさは描く側が決めるので 1 文字に限る |
+| 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | `fonts.ts` と [`tokens/README.md`](../../tokens/README.md#boilerplate-導入時の変更点) の両方 |
+
+外から見た origin と索引の可否は環境変数で、[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点) が持ちます。`site.ts` が持つのは環境に依らない名乗りだけです。
+
+同意ゲートの裏で読み込むタグマネージャを別のものへ替えるなら、`analytics.tsx` と配信ヘッダの
+許可 origin（[`src/config/README.md`](../config/README.md#boilerplate-導入時の変更点)）の両方を
+動かします。
+
 ## 運用
 
 - **`route` の宣言が掛かるのは route segment の合成（`page.tsx` / `layout.tsx`）です**。
