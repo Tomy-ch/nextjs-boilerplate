@@ -8,6 +8,7 @@
 #
 # パスやルールの面で除外したい場合は、本ファイルではなく .gitleaks.toml の allowlist を使う。
 #
+# boilerplate-only:begin
 # テストが組み立てに使う固定値。バックエンドへ送らず、どの環境の資格情報でもない。
 # 秘密スキャンを CI に載せたのが 1408f520 で、この 2 つはそれより前のコミットのため、
 # PR 単位の走査（base..HEAD）を一度も通っていない。
@@ -31,3 +32,4 @@ d4a49aca7440cf07404459335916d97a71651eb8:src/features/admin/inquiries/actions.te
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/admin/inquiries/parse-reply-form.test.ts:generic-api-key:11
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/inquiry/actions.test.ts:generic-api-key:22
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/inquiry/parse-message-form.test.ts:generic-api-key:7
+# boilerplate-only:end

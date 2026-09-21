@@ -14,7 +14,7 @@ describe("noCacheOptionInUseCache", () => {
     ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {
       valid: [
         'await fetch(url, { cache: "force-cache" });',
-        'await fetch(url, { next: { tags: ["products"] } });',
+        'await fetch(url, { next: { tags: ["resources"] } });',
       ],
       invalid: [],
     });
@@ -60,7 +60,7 @@ describe("noCacheOptionInUseCache", () => {
       valid: [],
       invalid: [
         {
-          code: `${CACHED}await fetch(url, { next: { tags: ["products"] } });`,
+          code: `${CACHED}await fetch(url, { next: { tags: ["resources"] } });`,
           errors: [{ messageId: "noCacheOptionInUseCache" }],
         },
       ],

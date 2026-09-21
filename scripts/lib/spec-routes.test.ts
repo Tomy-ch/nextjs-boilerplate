@@ -12,12 +12,12 @@ import {
 describe("toSpecDir", () => {
   // ----- 正常系 -----
   it("route group の括弧を外す", () => {
-    expect(toSpecDir("src/app/(shop)/cart/page.tsx")).toBe(`${SPEC_ROOT}/shop/cart`);
+    expect(toSpecDir("src/app/(group)/resources/page.tsx")).toBe(`${SPEC_ROOT}/group/resources`);
   });
 
   it("動的セグメントの角括弧は保つ", () => {
-    expect(toSpecDir("src/app/(shop)/products/[id]/page.tsx")).toBe(
-      `${SPEC_ROOT}/shop/products/[id]`,
+    expect(toSpecDir("src/app/(group)/resources/[id]/page.tsx")).toBe(
+      `${SPEC_ROOT}/group/resources/[id]`,
     );
   });
 
@@ -34,14 +34,14 @@ describe("toSpecDir", () => {
   });
 
   it("並行ルートのスロットは段ごと落とし、差し込む画面と同じ置き場へ写す", () => {
-    expect(toSpecDir("src/app/admin/@breadcrumb/products/page.tsx")).toBe(
-      `${SPEC_ROOT}/admin/products`,
+    expect(toSpecDir("src/app/admin/@breadcrumb/resources/page.tsx")).toBe(
+      `${SPEC_ROOT}/admin/resources`,
     );
   });
 
   // ----- 異常系 -----
   it("page でも layout でもない入口は写さない", () => {
-    expect(toSpecDir("src/app/(shop)/cart/error.tsx")).toBeNull();
+    expect(toSpecDir("src/app/(group)/resources/error.tsx")).toBeNull();
   });
 
   it("route handler は写さない", () => {
@@ -49,15 +49,15 @@ describe("toSpecDir", () => {
   });
 
   it("`src/app` の外は写さない", () => {
-    expect(toSpecDir("src/features/cart/page.tsx")).toBeNull();
+    expect(toSpecDir("src/features/resources/page.tsx")).toBeNull();
   });
 });
 
 describe("toScreenSpecPath", () => {
   // ----- 正常系 -----
   it("page は `page.screen.md` を要求する", () => {
-    expect(toScreenSpecPath("src/app/(shop)/cart/page.tsx")).toBe(
-      `${SPEC_ROOT}/shop/cart/page.screen.md`,
+    expect(toScreenSpecPath("src/app/(group)/resources/page.tsx")).toBe(
+      `${SPEC_ROOT}/group/resources/page.screen.md`,
     );
   });
 
@@ -78,8 +78,8 @@ describe("findMissingScreenSpecs", () => {
   it("画面要件が揃っていれば空にする", () => {
     expect(
       findMissingScreenSpecs(
-        ["src/app/(shop)/cart/page.tsx"],
-        [`${SPEC_ROOT}/shop/cart/page.screen.md`],
+        ["src/app/(group)/resources/page.tsx"],
+        [`${SPEC_ROOT}/group/resources/page.screen.md`],
       ),
     ).toEqual([]);
   });
@@ -87,21 +87,21 @@ describe("findMissingScreenSpecs", () => {
   it("機能要件の不在は挙げない", () => {
     expect(
       findMissingScreenSpecs(
-        ["src/app/(shop)/cart/page.tsx"],
-        [`${SPEC_ROOT}/shop/cart/page.screen.md`],
+        ["src/app/(group)/resources/page.tsx"],
+        [`${SPEC_ROOT}/group/resources/page.screen.md`],
       ),
     ).toEqual([]);
   });
 
   // ----- 異常系 -----
   it("画面要件を持たない入口を挙げる", () => {
-    expect(findMissingScreenSpecs(["src/app/(shop)/cart/page.tsx"], [])).toEqual([
-      "src/app/(shop)/cart/page.tsx",
+    expect(findMissingScreenSpecs(["src/app/(group)/resources/page.tsx"], [])).toEqual([
+      "src/app/(group)/resources/page.tsx",
     ]);
   });
 
   it("入口でないファイルは母数に数えない", () => {
-    expect(findMissingScreenSpecs(["src/app/(shop)/cart/error.tsx"], [])).toEqual([]);
+    expect(findMissingScreenSpecs(["src/app/(group)/resources/error.tsx"], [])).toEqual([]);
   });
 });
 
@@ -110,16 +110,19 @@ describe("findOrphanSpecs", () => {
   it("route が在る仕様書は挙げない", () => {
     expect(
       findOrphanSpecs(
-        ["src/app/(shop)/cart/page.tsx"],
-        [`${SPEC_ROOT}/shop/cart/page.screen.md`, `${SPEC_ROOT}/shop/cart/page.function.md`],
+        ["src/app/(group)/resources/page.tsx"],
+        [
+          `${SPEC_ROOT}/group/resources/page.screen.md`,
+          `${SPEC_ROOT}/group/resources/page.function.md`,
+        ],
       ),
     ).toEqual([]);
   });
 
   // ----- 異常系 -----
   it("route が消えた仕様書を挙げる", () => {
-    expect(findOrphanSpecs([], [`${SPEC_ROOT}/shop/cart/page.screen.md`])).toEqual([
-      `${SPEC_ROOT}/shop/cart/page.screen.md`,
+    expect(findOrphanSpecs([], [`${SPEC_ROOT}/group/resources/page.screen.md`])).toEqual([
+      `${SPEC_ROOT}/group/resources/page.screen.md`,
     ]);
   });
 
