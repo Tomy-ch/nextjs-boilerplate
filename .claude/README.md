@@ -10,6 +10,35 @@ Claude Code 向けの設定資産を置く。
 
 個々のスキル・エージェントの棚卸しはここに手書きしない。`/tool-map` が実体から生成する。
 
+## `deny` へ何を載せるか
+
+`settings.json` の `deny` は**綴りの一覧であって、危険度の一覧ではない**。載せた綴りは
+[`command-guard`](../scripts/command-guard/) の出所にもなり、そちらはコマンド行の**どこに在っても**
+止める。だから「念のため」で足すと、安全な使い方まで一律で止まる。
+
+載せる理由は 5 つあり、**どれに当たるかを言えないものは載せない。**
+
+| 帯 | 基準 | 例 |
+| --- | --- | --- |
+| 壊す | 取り消せない × 打ち間違いで起こりうる × 正当な用途が無い | `rm -rf` / `git clean` / `git reset --hard` |
+| 書き換える | 履歴や参照を作り直す | `git rebase` / `git filter-branch` / `git push --force` |
+| 外へ出す | 作業ツリーの外を変える。人の確認が要る（[0154](../docs/adr/0154-claude-skills-operations.md)） | `make tag-*` / `gh api *DELETE*` |
+| 観測を歪める | ゲートの判定を欠落つきで報告させる（[0157](../docs/adr/0157-inspection-declaration-discipline.md)） | `rtk log` / `rtk read` |
+| 外部と繋ぐ | 中身がマシンの外へ出る、または導入・信頼付与になる | `agent-browser --cdp` / `pnpm dlx` / `mise trust` |
+
+**「取り戻せるか」を問うのは「壊す」帯だけである。** 他の 4 つは取り戻せても載る —— 外へ出した
+ものは戻せても**出たこと**が残り、歪んだ観測は後から正しくならない。
+
+### 載せないもの
+
+- **git 自身が断る操作。** `git branch -d` は未マージなら git が拒否する。二重に止めると、安全な
+  削除の手段のほうが無くなる（force の `-D` だけを止める）
+- **退避や段取りのように、失わない操作。** `git stash` は stash に載り、`git add .` は stage する
+  だけである。巻き込みが問題なら、止めるのは綴りではなく**何がステージされたか**で、そこは
+  `.gitignore` と push 前の secret scan が見ている
+- **「〜を除く」が要る操作。** 宣言は例外を書けない。`git restore <path>` は捨てるが
+  `git restore --staged` は unstage するだけで、1 つの綴りでは分けられない
+
 ## セットアップ
 
 clone 後に 1 度実行する。手順の全体は [README.md](../README.md) のクイックスタートにある。
