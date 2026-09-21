@@ -14,6 +14,7 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 | --- | --- |
 | [`no-ad-hoc-cache-tag`](no-ad-hoc-cache-tag.ts) | 捨てる印の段の数（`<資源>` と `<資源>:<識別子>` の 2 段まで）と、印を付ける場所（取得側の `src/adapters/` 1 か所）。資源名が契約の集合名と揃っているかは契約を読まないと決まらないので見ない |
 | [`no-anonymous-default-export`](no-anonymous-default-export.ts) | 名前を持たない default export。1:1 ゲートが `describe` で指せる名前を要求する（[0090](../docs/adr/0090-testing-strategy.md)） |
+| [`no-app-wide-revalidate`](no-app-wide-revalidate.ts) | アプリ全体を捨てる再検証（`revalidatePath("/", "layout")`）。所有境界ではないので、更新した値がどの画面にも付く外枠に出るときだけの例外とし、`eslint-disable-next-line` に理由を書いて名乗る（[0071](../docs/adr/0071-bff-api-integration.md)）。所有境界そのものの判定は契約と画面を読まないと決まらないので見ない |
 | [`no-arbitrary-z-index`](no-arbitrary-z-index.ts) | 重なりの段の任意値（`z-[…]`）。段階値の間に割り込み、どれが上かを画面全体から読まないと決められなくなる |
 | [`no-cache-option-in-use-cache`](no-cache-option-in-use-cache.ts) | `use cache` を持つモジュールの `fetch` に渡した `cache` / `next`。内側が切れないぶん、外側が再取得しても同じ古い応答を掴む |
 | [`no-captured-bearer-token`](no-captured-bearer-token.ts) | 資格情報の取得口へ渡す掴んだ値。`getBearerToken` は import した口だけ、`bearerToken`（確立中の例外）は囲む関数の引数だけを通す。掴んだ値を渡すと `cookies()` が読まれず、cached scope の防御が黙って外れる（[0112](../docs/adr/0112-data-classification-cache-boundary.md) 決定 5） |

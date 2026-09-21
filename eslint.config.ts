@@ -18,6 +18,7 @@ import {
 } from "./architecture";
 import noAdHocCacheTag from "./eslint-rules/no-ad-hoc-cache-tag";
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
+import noAppWideRevalidate from "./eslint-rules/no-app-wide-revalidate";
 import noArbitraryZIndex from "./eslint-rules/no-arbitrary-z-index";
 import noCacheOptionInUseCache from "./eslint-rules/no-cache-option-in-use-cache";
 import noCapturedBearerToken from "./eslint-rules/no-captured-bearer-token";
@@ -192,6 +193,13 @@ const nonSourceAreas = RESTRICTED_AREAS.filter(({ pattern }) => !pattern.startsW
 
 export default [
   {
+    // 抑止は撤回条件とペアで持つ（[0144](docs/adr/0144-decision-enforcement-pairing.md)）。
+    // 効かなくなった抑止が黙って残ると、例外を名乗った理由だけが残り、規則の側が動いていない。
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
+  },
+  {
     ignores: [
       ".next/**",
       "coverage/**",
@@ -217,6 +225,7 @@ export default [
         rules: {
           "no-ad-hoc-cache-tag": noAdHocCacheTag,
           "no-anonymous-default-export": noAnonymousDefaultExport,
+          "no-app-wide-revalidate": noAppWideRevalidate,
           "no-arbitrary-z-index": noArbitraryZIndex,
           "no-cache-option-in-use-cache": noCacheOptionInUseCache,
           "no-captured-bearer-token": noCapturedBearerToken,
@@ -256,6 +265,7 @@ export default [
       ...boundaryRules,
       "project-rules/no-ad-hoc-cache-tag": "error",
       "project-rules/no-anonymous-default-export": "error",
+      "project-rules/no-app-wide-revalidate": "error",
       "project-rules/no-arbitrary-z-index": "error",
       "project-rules/no-cache-option-in-use-cache": "error",
       "project-rules/no-captured-bearer-token": "error",

@@ -20,6 +20,7 @@ import { readProductId, readQuantity } from "./parse-cart-form";
  * 1 つ指定しても外枠は古いままになるため、layout の段で無効にします。
  */
 function revalidateCart(): void {
+  // eslint-disable-next-line project-rules/no-app-wide-revalidate -- 明細は外枠に出る
   revalidatePath("/", "layout");
 }
 
