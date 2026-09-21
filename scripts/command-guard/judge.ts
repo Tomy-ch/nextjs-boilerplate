@@ -168,7 +168,7 @@ export function deriveLiterals(denyEntries: readonly string[]): readonly Literal
  * @remarks
  * flag を綴りのまま照合すると、順番と束ね方の数だけ宣言が要ります（`rm -rf` と `rm -fr` を別々に
  * 書く形）。短 flag を文字の集合として見れば 1 つの宣言で済みますが、**大文字小文字は区別します** ——
- * `git branch -d` と `-D` は別の操作なので、畳むと片方が緩みます。
+ * `git branch` の `-d` と `-D` のように、同じ語で危険度の違う操作が在るためです。
  */
 export function parseShape(text: string): CommandShape {
   const head: string[] = [];
@@ -287,12 +287,6 @@ function containsInOrder(rest: string, fragments: readonly string[]): boolean {
   return true;
 }
 
-/**
- * コマンド行が、塞がれた綴りをコマンド位置に持つか。当たった綴りを返す（無ければ `undefined`）。
- *
- * @remarks
- * 直後が行末か区切りであることを求めるので、`make tag-patch-dry` は `make tag-patch` で止まりません。
- */
 /** 綴りの直後が、語の切れ目になっているか。`>` / `<` は前に空白が要らないので含める。 */
 function endsAtBoundary(rest: string): boolean {
   return rest === "" || /^[\s;&|)<>]/.test(rest);
@@ -320,6 +314,12 @@ function hits(segment: string, got: CommandShape, literal: Literal, want: Comman
   return flagsSatisfied(want, got);
 }
 
+/**
+ * コマンド行が、塞がれた綴りをコマンド位置に持つか。当たった綴りを返す（無ければ `undefined`）。
+ *
+ * @remarks
+ * 直後が行末か区切りであることを求めるので、`make tag-patch-dry` は `make tag-patch` で止まりません。
+ */
 export function judge(commandLine: string, literals: readonly Literal[]): string | undefined {
   const shapes = literals.map((literal) => ({ literal, want: parseShape(literal.head) }));
   const segments = splitSegments(stripHeredoc(commandLine), 0);
