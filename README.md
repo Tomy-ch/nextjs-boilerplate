@@ -97,7 +97,7 @@ pnpm dev
 | 意匠 | サイトの名乗り（名前・説明・アイコンの印） | [app](src/app/README.md#boilerplate-導入時の変更点) |
 | 意匠 | UI 部品。参考実装であり、置き換えてよい | [components](src/components/README.md#ここにあるものは参考実装です) |
 | 認可 | 保護する経路と、そこへ入れる役割 | [model](src/model/README.md#boilerplate-導入時の変更点) |
-| 同梱サンプル | 破棄すると画面横断のテストから何が消えるか | [e2e](e2e/README.md#同梱サンプルを破棄すると何が消えるか) |
+| 同梱サンプル | 破棄すると画面横断のテストから何が消えるか | [e2e](e2e/README.md#同梱サンプルを破棄すると何が消えるか) <!-- sample:line --> |
 
 **この表は既定値を持ちません。** 値を 2 か所に置くと片方が遅れるためで、正はどれもリンク先です
 （[ADR 0140](docs/adr/0140-documentation-operations.md)）。
