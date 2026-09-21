@@ -69,6 +69,24 @@ make api-fetch NAME=api   # 契約を 1 本だけ取得する
 だけで（[`src/adapters/server/auth/`](../src/adapters/server/auth/README.md)）、契約から生成した
 型を一切通らないためです。取り込む対象がそもそも無いので、IdP をどう用意したかには依存しません。
 
+## boilerplate 導入時の変更点
+
+宣言が指しているのは、本リポジトリの相方として開発されたバックエンドの契約です。**自分の
+バックエンドの契約へ最初に差し替える箇所です。**
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| 取得座標 | `repo` / `path` が相方のリポジトリと契約のパスを指し、`ref` はコミット SHA で固定されている | `sources.yaml` の `repo` / `path` / `ref`。`sha` / `fetchedAt` は書かず、`make api-fetch` に書き戻させる |
+| 契約の本数と `name` | 1 本、`name` は `api` | `sources.yaml`。`name` を変えると生成側の綴りも一緒に動く（下記） |
+| 生成の入出力 | `orval.config.ts` の `apiInput.target` / `output.target` / `output.schemas` が `name` に対応する綴りを直に持つ | `name` を変えたときだけ `orval.config.ts` と `scripts/openapi/gen-api-plan.ts` の `GEN_API_OUTPUTS` を揃える |
+| client を作らない tag | 監視・診断の口（health / ready / version など）と、応答の型としてしか使わない内部 tag を除いている | `orval.config.ts` の `NON_CLIENT_TAGS`。契約側の tag の付け方が違えば合わない |
+
+差し替えたら `make api-fetch` → `make api-gen` の順で取り直します。取得したまま生成し忘れた状態は
+`make api-gen-check` が検出します。
+
+契約から読めない値域をモックへ与える設定は、こちらではなく
+[`mocks/README.md`](../mocks/README.md#boilerplate-導入時の変更点) が持ちます。
+
 ## ref の固定
 
 `ref` はブランチ・タグ・コミット SHA のいずれも書けますが、**コミット SHA で固定します**。取り込む

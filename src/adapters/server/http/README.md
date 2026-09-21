@@ -40,6 +40,22 @@ test-requirement: unit
 
 - レート制限・大域的な遮断（edge / WAF の責務。`json-request.ts` は宣言された型と本体の大きさだけを見る）
 
+## boilerplate 導入時の変更点
+
+**外向きの往復に許す時間と試行回数は、環境変数ではなくコードが持ちます**（`resilience-profile.ts` の
+`DEFAULT_PROFILE`）。相手の性質で決まる値なので、接続先を差し替えたら測り直す箇所です。
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| 1 回の試行と全体の上限 | `perAttemptTimeoutMs` 3 秒 / `overallTimeoutMs` 10 秒 | `resilience-profile.ts`。上限は相手の応答時間の分布から取る |
+| 試行回数と再試行の予算 | `maxAttempts` 3 / `retryBudgetRatio` 0.1 | 同上。全体の上限が per-attempt の 3 倍を少し超える値なので、回数だけ増やしても overall に阻まれる |
+| 遮断の条件 | `failureRate` 0.5 / `sampleSize` 20 / `openMs` 5 秒 / `halfOpenProbes` 3 | 同上 |
+
+**接続先ごとに別の値を与えられます**（`ResilienceProfile` を差し替える形）。劣化の許容度が接続先の
+性質で変わるためで、1 本の既定で足りないときはプロファイルを増やします。
+
+値を選ぶ根拠は [0071](../../../../docs/adr/0071-bff-api-integration.md) が持ちます。
+
 ## 関連する ADR
 
 この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**

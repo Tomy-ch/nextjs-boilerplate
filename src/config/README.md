@@ -100,6 +100,20 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 - client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置く（`http/http.client.ts`）。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
 
+## boilerplate 導入時の変更点
+
+環境変数から来る値はこのカーネルが検証するだけで、**値そのものは
+[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点) が持ちます。** ここに書くのは、
+環境変数を通らずにコードへ焼いてある既定です。
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| 配信ヘッダが許す第三者 origin | タグマネージャを読み込む配備向けに、Google の配信元と計測の送り先を `script-src` / `connect-src` / `img-src` へ載せる分岐を持つ | `security-headers/security-headers.ts`。別のタグマネージャへ替えるなら、この origin と読み込み口（`src/app/analytics.tsx`）の両方を動かす |
+| `script-src` 以下の既定 | 上記以外の第三者 origin を許さない。要求に依らないヘッダは配信側が付ける | 同上。足すときは [0111](../../docs/adr/0111-csp-security-headers.md) の判断に従う |
+
+`security-headers` は build 境界の持ち物で、`next.config.ts` が読みます。目的別 config と違って
+リクエストにも環境変数にも依らないため、差し替えはコードの変更になります。
+
 ## 関連する ADR
 
 - [0021](../../docs/adr/0021-frontend-responsibility.md) — 設定を読めるのがどの層までかという線

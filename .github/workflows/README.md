@@ -410,6 +410,26 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 
 この判断を見直すのは、レジストリのルールが OSI 承認ライセンスへ戻ったときか、固定先が更新を止めて**他の層でも補えない面**が実測で見つかったときである。**ルールが少ないこと・上流の更新が鈍いことだけでは条件にならない** —— 減ること自体は承知のうえで選んでおり、条件は「減った分がどこにも無い」と実測で言えることである。
 
+## boilerplate 導入時の変更点
+
+ワークフローの中身は組織に依りませんが、**GitHub 側の設定として与えるものは移せません。** 資格情報を
+要する検査を残すかどうかも、契約を持っている側にしか決められません。
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| 必須チェックの集合と保護対象のブランチ名 | [`../settings/branch-protection.json`](../settings/branch-protection.json) が CI Checks 群を必須にし、リリース線と hotfix 線を保護する | 同ファイル。`make branch-protection-apply` で適用する。登録してよい条件は[上記](#required-status-check) |
+| ラベル | [`../settings/labels.json`](../settings/labels.json) | 同ファイル |
+| 資格情報を要する検査 | CodeQL / SonarQube Cloud / Dependency Review は、無ければ自分を飛ばして緑のまま残る | 残すなら secret を登録し、撤去するなら `make setup-remove-licensed-scanners` |
+| 通知の宛先 | `SLACK_WEBHOOK_URL`。未設定なら配送を飛ばして緑のまま | repository secret。transport ごと替えるなら [`notify.yaml`](notify.yaml) の後半 2 ステップと呼び出し側の `secrets:` 行（[上記](#通知)） |
+| 定期実行の時刻 | 週次のセキュリティ検査と日次の重い検査が、それぞれ固定の時刻に走る | 各ワークフローの `schedule:` |
+| 基準画像の置き場への書き込み | 専用の GitHub App の資格情報を secret から読む | [`vrt/README.md`](../../vrt/README.md#boilerplate-導入時の変更点) |
+| ドキュメントの配信先 | GitHub Pages。配信するブランチは make 変数と `deploy-docs.yaml` の両方が持つ | 替えるときは**両方を揃える**。片方だけだと配信が止まる |
+
+**job 名を変えると必須チェックの設定が黙って無効になります**（context 名は job 名です。[上記](#required-status-check)）。`make actions-required-check-lint` が両者の一致を見ます。
+
+これらを最初に一通り当てる順序は
+[`docs/get-started/setup-repository.md`](../../docs/get-started/setup-repository.md) が持ちます。
+
 ## Related ADRs
 
 The decisions the workflows here follow. **Comments in the workflow definitions do not cite an ADR

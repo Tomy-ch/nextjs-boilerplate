@@ -32,7 +32,7 @@ type CalendarDate = {
 };
 
 /**
- * 瞬時を、店のタイムゾーンで見たときの暦日（`YYYY-MM-DD`）にする。
+ * 瞬時を、基準のタイムゾーンで見たときの暦日（`YYYY-MM-DD`）にする。
  *
  * @remarks
  * 集計が「どの日の話か」を添える画面が使います。区間を組む側と同じ暦の上で解くために公開して
@@ -65,7 +65,7 @@ function formatDate({ year, month, day }: CalendarDate): string {
 }
 
 /**
- * 瞬時を、店のタイムゾーンで見たときの暦月（`YYYY-MM`）にする。
+ * 瞬時を、基準のタイムゾーンで見たときの暦月（`YYYY-MM`）にする。
  *
  * @remarks
  * 「今月」を解く画面が使います。暦日から切り出さないのは、切り出す桁を呼び出し側ごとに書くと、
@@ -82,7 +82,7 @@ export function calendarMonth(now: Date): string {
 const MONTH_LENGTH = 7;
 
 /**
- * 瞬時を、店のタイムゾーンで見たときの年月日へ写す。
+ * 瞬時を、基準のタイムゾーンで見たときの年月日へ写す。
  *
  * @remarks
  * ランタイムのタイムゾーンを使いません。サーバは配信先の既定（多くは UTC）で動き、ブラウザは
@@ -90,7 +90,7 @@ const MONTH_LENGTH = 7;
  * （{@link DEFAULT_TIME_ZONE}）。
  *
  * @param instant - 変換する瞬時
- * @returns 店のタイムゾーンで見た年月日
+ * @returns 基準のタイムゾーンで見た年月日
  */
 function toCalendarDate(instant: Date): CalendarDate {
   // `en-CA` は `YYYY-MM-DD` で出る。部位を 1 つずつ拾うより、組み上がった形を読むほうが短い。
@@ -108,7 +108,7 @@ function toCalendarDate(instant: Date): CalendarDate {
 const OFFSET_LENGTH = 6;
 
 /**
- * その日の店のタイムゾーンでのオフセットを、`+09:00` の形で返す。
+ * その日の基準のタイムゾーンでのオフセットを、`+09:00` の形で返す。
  *
  * @remarks
  * 固定の文字列を書かないのは、夏時間を持つ地域へ {@link DEFAULT_TIME_ZONE} を変えたときに、

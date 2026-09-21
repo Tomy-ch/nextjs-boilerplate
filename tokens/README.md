@@ -49,7 +49,7 @@ W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います�
 
 ### 系統を足す・消す
 
-`themes/` の下にディレクトリを作れば系統が増えます。生成側は系統の名前を持ちません。テンプレートから作った側が `admin/` を丸ごと消せば、生成物は配色 1 軸の形に戻ります。
+`themes/` の下にディレクトリを作れば系統が増えます。生成側は系統の名前を持ちません。`admin/` を丸ごと消せば、生成物は配色 1 軸の形に戻ります。
 
 **すべての系統と配色が同じ token を宣言していなければ生成が落ちます。** 欠けた token は宣言が無いだけでは済まず、カスケードにより既定の系統や既定の配色の値をそのまま引き継ぐため、系統を切り替えたつもりの箇所だけが元の色のまま残ります。
 
@@ -175,6 +175,27 @@ Storybook の **`Tokens/Catalog`** に全件が出ます。名前はこの SSOT 
 
 ツールバーの `Theme` と `Surface` を切り替えると、同じ token が何に解決されるかが入れ替わります。地に対するコントラスト比も添えてあるので、AA を満たしているかがその場で読めます。
 
+## boilerplate 導入時の変更点
+
+**意匠はここが単独で持ちます。** コンポーネントは semantic token しか参照しないので、色・書体・形を
+入れ替えるのに `src/` を触る必要はありません。
+
+| 何を | 既定 | 変更する箇所 |
+| --- | --- | --- |
+| 基礎値 | 色・余白・角丸・フォント・段・字間・ぼかし・字重の primitive | `primitives.json` |
+| 役割ごとの値 | 系統 × 配色の 4 ファイルが primitive を参照する | `themes/<系統>/<配色>.json`。[すべての系統と配色が同じ token を宣言していないと生成が落ちます](#系統を足す消す) |
+| 系統の数 | `user` と `admin` の 2 本 | `themes/` のディレクトリを足す・消す（[上記](#系統を足す消す)） |
+| 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | primitive の `font` と、`next/font` の実体を持つ `src/app/fonts.ts` の両方 |
+| 撮る配色 | VRT は既定の配色だけを撮り、もう一方は `:root` へ届くことだけを見る | [`vrt/README.md`](../vrt/README.md#boilerplate-導入時の変更点) |
+
+差し替えたら `pnpm gen:tokens` で作り直し、`pnpm check:tokens` が生成物と宣言の一致を見ます
+（[下記](#生成と検査)）。生成物（`src/app/generated/tokens.css` と `src/model/generated/` の 2 本）は
+手で直しません。
+
+明度・コントラスト・発光の層をどう決めるかはこの README の他の節が持ちます。**値を入れ替えるとき
+それらの判断まで捨てる必要はありません** —— 判断は役割に紐づいており、色そのものには紐づいて
+いないためです。
+
 ## 生成と検査
 
 ```sh
@@ -182,7 +203,7 @@ pnpm gen:tokens
 pnpm check:tokens
 ```
 
-前者は `src/app/generated/tokens.css` と `src/model/generated/breakpoint.ts` を更新します。後者は更新せず、生成結果との差分があれば失敗します。**生成物を手編集してはいけません。**
+前者は `src/app/generated/tokens.css` と、`src/model/generated/` の `breakpoint.ts` / `design-token.ts` を更新します。後者は更新せず、生成結果との差分があれば失敗します。**生成物を手編集してはいけません。**
 
 `src/**/generated/**` は biome の formatter の対象外です（`biome.json` の override）。`color-mix()` を含む宣言や長い配列は 100 桁を超えて折り返されるため、対象に含めると formatter と `pnpm check:tokens` が互いの出力を上書きし合います。**生成物の綴りは生成側が決めます。**
 

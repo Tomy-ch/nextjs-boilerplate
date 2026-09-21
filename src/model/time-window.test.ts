@@ -29,22 +29,22 @@ describe("WHOLE_TIME", () => {
 
 describe("calendarDate", () => {
   // ----- 正常系 -----
-  it("店のタイムゾーンで見た暦日を返す", () => {
+  it("基準のタイムゾーンで見た暦日を返す", () => {
     expect(calendarDate(NOON_IN_JST)).toBe("2026-08-24");
   });
 
-  it("協定世界時では前日でも、店では翌日として読む", () => {
+  it("協定世界時では前日でも、基準のタイムゾーンでは翌日として読む", () => {
     expect(calendarDate(AFTER_MIDNIGHT_IN_JST)).toBe("2026-08-24");
   });
 });
 
 describe("calendarMonth", () => {
   // ----- 正常系 -----
-  it("店のタイムゾーンで見た暦月を返す", () => {
+  it("基準のタイムゾーンで見た暦月を返す", () => {
     expect(calendarMonth(NOON_IN_JST)).toBe("2026-08");
   });
 
-  it("協定世界時では前日でも、店では翌日の属する月として読む", () => {
+  it("協定世界時では前日でも、基準のタイムゾーンでは翌日の属する月として読む", () => {
     expect(calendarMonth(AFTER_MIDNIGHT_IN_JST)).toBe("2026-08");
   });
 });
@@ -125,7 +125,7 @@ describe("recentDaysWindow", () => {
     expect(recentDaysWindow(30, NOON_IN_JST).after).toBe("2026-07-26T00:00:00+09:00");
   });
 
-  it("店のタイムゾーンで日付が変わっていれば、UTC がまだ前日でも今日として数える", () => {
+  it("基準のタイムゾーンで日付が変わっていれば、UTC がまだ前日でも今日として数える", () => {
     expect(recentDaysWindow(1, AFTER_MIDNIGHT_IN_JST)).toEqual({
       after: "2026-08-24T00:00:00+09:00",
       before: "2026-08-25T00:00:00+09:00",
@@ -142,7 +142,7 @@ describe("todayWindow", () => {
     });
   });
 
-  it("店のタイムゾーンで日付が変わった直後も、その日を指す", () => {
+  it("基準のタイムゾーンで日付が変わった直後も、その日を指す", () => {
     expect(todayWindow(AFTER_MIDNIGHT_IN_JST).after).toBe("2026-08-24T00:00:00+09:00");
   });
 });

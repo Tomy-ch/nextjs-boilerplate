@@ -151,6 +151,9 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 必須かは [`env/README.md`](../../env/README.md)。`MEDIA_ORIGIN` は画像を 1 枚も置かない間も必須で、
 `next/image` の許可 host と CSP の `img-src` をこの値だけが決める。
 
+**破棄とは別に、供給されている既定そのものを見直す。** ここが挙げるのは破棄が直接壊すものだけで、
+契約・意匠・運用設定を含む全体の索引は [ルート README](../../README.md#導入時に見直す既定) にある。
+
 ## 7. VRT の基準画像の置き場を用意する
 
 ### 7-1. 置き場を作る
@@ -274,6 +277,9 @@ count=<動いた枚数>
 make api-fetch
 make api-gen
 ```
+
+座標の書き方と、`name` を変えたときに一緒に動く綴りは
+[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点) が持つ。
 
 ## 9. 認証済みの画面を手元で見る
 
