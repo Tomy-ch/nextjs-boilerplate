@@ -56,6 +56,8 @@ function ClearSubmit() {
  *
  * 確認は `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
+ * 同じ理由で、失敗の文言は dialog の内側に置きます —— 外に置くと、開いたままの overlay の
+ * 背後へ出ます。
  *
  * カートそのものは残ります。空のカートは正当な状態で、利用者の同一性も切れません。
  *
@@ -84,6 +86,9 @@ export function CartClearButton() {
                 入れ直すことになります。
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="mt-4 empty:hidden">
+              <CartActionError state={state} title="カートを空にできませんでした" />
+            </div>
             <AlertDialogFooter className="mt-6">
               <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
               <ClearSubmit />
@@ -91,7 +96,6 @@ export function CartClearButton() {
           </form>
         </AlertDialogContent>
       </AlertDialog>
-      <CartActionError state={state} title="カートを空にできませんでした" />
     </div>
   );
 }

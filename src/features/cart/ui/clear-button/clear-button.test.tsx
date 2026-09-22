@@ -111,8 +111,8 @@ describe("CartClearButton", () => {
     const dialog = await open(user);
     await user.click(confirmButton(dialog));
 
-    expect(await screen.findByText("カートを空にできませんでした")).toBeVisible();
-    expect(screen.getByText("現在サービスを利用できません。")).toBeVisible();
+    expect(await within(dialog).findByText("カートを空にできませんでした")).toBeVisible();
+    expect(within(dialog).getByText("現在サービスを利用できません。")).toBeVisible();
   });
 
   it("送信していない間は失敗の文言を出さない", () => {
