@@ -43,54 +43,69 @@ function WithdrawSubmit() {
 }
 
 /**
- * 退会。押すと確認 dialog を開く。
+ * 確認 dialog の中身。
  *
  * @remarks
- * 確認は `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
- * 時点で dialog を閉じるため、送信中の表示も失敗の文言も、利用者が見ていない場所に出ます。
- * 閉じるのは成立して画面が変わるときだけにしてあります。
- *
- * 完了を待たずに反映されるとは書きません。退会に伴う取り消しや在庫の戻しは結果整合で走るため、
- * 即時に終わると読ませると、直後に古い状態を見た利用者が失敗を疑います。
+ * **送信の状態をここで持ちます。** dialog を閉じると Radix がこの木ごと外すので、開き直した
+ * ときに前回の失敗が残りません。外側で持つと、何も送っていない dialog が前回の文言を出します。
  */
-export function WithdrawButton() {
+function WithdrawDialogBody() {
   const [state, formAction] = useActionState<WithdrawFormState, FormData>(
     withdrawAction,
     idleActionState(),
   );
 
   return (
-    <>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button className="w-full" variant={BUTTON_VARIANT.DESTRUCTIVE}>
-            {CONFIRM_LABEL}
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <form action={formAction}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>退会してもよろしいですか？</AlertDialogTitle>
-              <AlertDialogDescription>
-                アカウントと登録情報は利用できなくなり、元に戻すことはできません。購入の取り消しや
-                在庫の戻しは順次処理されるため、退会の直後は反映されていないことがあります。
-                進行中の購入が残っている場合は退会できません。
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-6">
-              <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
-              <WithdrawSubmit />
-            </AlertDialogFooter>
-          </form>
-        </AlertDialogContent>
-      </AlertDialog>
-      {state.status === "error" && state.formError !== null ? (
-        <FormFeedback
-          description={state.formError}
-          title="退会できませんでした"
-          variant="destructive"
-        />
-      ) : null}
-    </>
+    <form action={formAction}>
+      <AlertDialogHeader>
+        <AlertDialogTitle>退会してもよろしいですか？</AlertDialogTitle>
+        <AlertDialogDescription>
+          アカウントと登録情報は利用できなくなり、元に戻すことはできません。購入の取り消しや
+          在庫の戻しは順次処理されるため、退会の直後は反映されていないことがあります。
+          進行中の購入が残っている場合は退会できません。
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <div className="mt-4 empty:hidden">
+        {state.status === "error" && state.formError !== null ? (
+          <FormFeedback
+            description={state.formError}
+            title="退会できませんでした"
+            variant="destructive"
+          />
+        ) : null}
+      </div>
+      <AlertDialogFooter className="mt-6">
+        <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
+        <WithdrawSubmit />
+      </AlertDialogFooter>
+    </form>
+  );
+}
+
+/**
+ * 退会。押すと確認 dialog を開く。
+ *
+ * @remarks
+ * 確認は `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
+ * 時点で dialog を閉じるため、送信中の表示も失敗の文言も、利用者が見ていない場所に出ます。
+ * 同じ理由で、失敗の文言も dialog の内側に置きます —— 開いているあいだ、外側は overlay の
+ * 背後にあるうえ `aria-hidden` が付き、支援技術からも届きません。
+ * 閉じるのは成立して画面が変わるときだけにしてあります。
+ *
+ * 完了を待たずに反映されるとは書きません。退会に伴う取り消しや在庫の戻しは結果整合で走るため、
+ * 即時に終わると読ませると、直後に古い状態を見た利用者が失敗を疑います。
+ */
+export function WithdrawButton() {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button className="w-full" variant={BUTTON_VARIANT.DESTRUCTIVE}>
+          {CONFIRM_LABEL}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <WithdrawDialogBody />
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
