@@ -53,7 +53,7 @@ export async function addToCartAction(
     return actionStateFromError(error);
   }
 
-  // 明細は本体だけでなく、どの画面にも付く外枠（脇の領域と header の点数）にも出る。
+  // eslint-disable-next-line project-rules/no-app-wide-revalidate -- 明細は外枠に出る
   revalidatePath("/", "layout");
 
   return succeededActionState(undefined);

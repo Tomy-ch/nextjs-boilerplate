@@ -135,17 +135,73 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
 ];
 
 /**
+ * 語に付ける境界の形。
+ *
+ * @remarks
+ * **語ごとに違います。** 両側に付けられるのは、その語が語として現れるときだけです。
+ * `cart` は両側に付けないと `CartesianGrid` に当たりますが、`inquiry` を両側にすると
+ * `inquiryId` や `InquiryListResponse` のような複合した識別子に当たらなくなります。
+ * 日本語の語は語境界の概念を持たないので付けません。
+ */
+const WORD_BOUNDARY = {
+  /** 前後ともに境界を要求する。 */
+  BOTH: "both",
+  /** 先頭だけ境界を要求する。 */
+  LEADING: "leading",
+  /** 境界を要求しない。 */
+  NONE: "none",
+} as const;
+
+type WordBoundary = (typeof WORD_BOUNDARY)[keyof typeof WORD_BOUNDARY];
+
+/** 題材の語 1 つと、その語に付ける境界。 */
+type DanglingWord = {
+  readonly word: string;
+  readonly boundary: WordBoundary;
+};
+
+/**
  * 破棄後に実装へ残っていてはいけない題材の語彙。
+ *
+ * @remarks
+ * 語を足す / 落とすのはこの表だけを触ります。境界の付け方は `toBoundedPattern` が持つので、
+ * 語を足す側が正規表現を書くことはありません。
+ */
+const DANGLING_WORDS: readonly DanglingWord[] = [
+  { boundary: WORD_BOUNDARY.NONE, word: "商品" },
+  { boundary: WORD_BOUNDARY.NONE, word: "カート" },
+  { boundary: WORD_BOUNDARY.NONE, word: "在庫" },
+  { boundary: WORD_BOUNDARY.NONE, word: "購入" },
+  { boundary: WORD_BOUNDARY.NONE, word: "注文" },
+  { boundary: WORD_BOUNDARY.NONE, word: "問い合わせ" },
+  { boundary: WORD_BOUNDARY.BOTH, word: "products" },
+  { boundary: WORD_BOUNDARY.BOTH, word: "cart" },
+  { boundary: WORD_BOUNDARY.LEADING, word: "inquiry" },
+  { boundary: WORD_BOUNDARY.LEADING, word: "inquiries" },
+];
+
+/**
+ * 語と境界の宣言から、その語 1 つ分の正規表現を組む。
+ *
+ * @returns 境界を付けた正規表現の断片。
+ */
+function toBoundedPattern({ boundary, word }: DanglingWord): string {
+  if (boundary === WORD_BOUNDARY.BOTH) {
+    return String.raw`\b${word}\b`;
+  }
+
+  return boundary === WORD_BOUNDARY.LEADING ? String.raw`\b${word}` : word;
+}
+
+/**
+ * 破棄後に実装へ残っていてはいけない題材の語彙を、1 本の正規表現として渡す。
  *
  * @remarks
  * 検証側はこれをスナップショット経由で受け取ります。**検証は削除の後に走り、その時点でこの
  * モジュールは消えている**ため、import では渡せません。宣言をここに置くのは、破棄する対象と
  * 残留を探す語彙が同じ表から出る必要があるからです。
- *
- * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
- * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
-export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|問い合わせ|\bproducts\b|\bcart\b|\binquir`;
+export const DANGLING_PATTERN: string = DANGLING_WORDS.map(toBoundedPattern).join("|");
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";

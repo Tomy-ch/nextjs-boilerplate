@@ -48,6 +48,39 @@ function ClearSubmit() {
 }
 
 /**
+ * 確認 dialog の中身。
+ *
+ * @remarks
+ * **送信の状態をここで持ちます。** dialog を閉じると Radix がこの木ごと外すので、開き直した
+ * ときに前回の失敗が残りません。外側で持つと、何も送っていない dialog が前回の文言を出します。
+ */
+function ClearDialogBody() {
+  const [state, formAction] = useActionState<CartActionState, FormData>(
+    clearCartAction,
+    idleActionState(),
+  );
+
+  return (
+    <form action={formAction}>
+      <AlertDialogHeader>
+        <AlertDialogTitle>カートを空にしますか？</AlertDialogTitle>
+        <AlertDialogDescription>
+          入っている商品をすべて取り除きます。元に戻すには、同じ商品をもう一度カートへ
+          入れ直すことになります。
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <div className="mt-4 empty:hidden">
+        <CartActionError state={state} title="カートを空にできませんでした" />
+      </div>
+      <AlertDialogFooter className="mt-6">
+        <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
+        <ClearSubmit />
+      </AlertDialogFooter>
+    </form>
+  );
+}
+
+/**
  * カートの明細をすべて取り除く操作。
  *
  * @remarks
@@ -56,17 +89,14 @@ function ClearSubmit() {
  *
  * 確認は `AlertDialogAction` ではなく form の submit で行います。`AlertDialogAction` は押した
  * 時点で dialog を閉じるため、送信中の表示も失敗の文言も利用者の見ていない場所に出ます。
+ * 同じ理由で、失敗の文言も dialog の内側に置きます —— 開いているあいだ、外側は overlay の
+ * 背後にあるうえ `aria-hidden` が付き、**支援技術からも届きません**。
  *
  * カートそのものは残ります。空のカートは正当な状態で、利用者の同一性も切れません。
  *
  * @see Storybook `Features/Cart/ClearButton`
  */
 export function CartClearButton() {
-  const [state, formAction] = useActionState<CartActionState, FormData>(
-    clearCartAction,
-    idleActionState(),
-  );
-
   return (
     <div className="flex flex-col gap-2">
       <AlertDialog>
@@ -76,22 +106,9 @@ export function CartClearButton() {
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
-          <form action={formAction}>
-            <AlertDialogHeader>
-              <AlertDialogTitle>カートを空にしますか？</AlertDialogTitle>
-              <AlertDialogDescription>
-                入っている商品をすべて取り除きます。元に戻すには、同じ商品をもう一度カートへ
-                入れ直すことになります。
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="mt-6">
-              <AlertDialogCancel type="button">キャンセル</AlertDialogCancel>
-              <ClearSubmit />
-            </AlertDialogFooter>
-          </form>
+          <ClearDialogBody />
         </AlertDialogContent>
       </AlertDialog>
-      <CartActionError state={state} title="カートを空にできませんでした" />
     </div>
   );
 }

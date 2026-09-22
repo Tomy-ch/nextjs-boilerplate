@@ -111,8 +111,28 @@ describe("CartClearButton", () => {
     const dialog = await open(user);
     await user.click(confirmButton(dialog));
 
-    expect(await screen.findByText("カートを空にできませんでした")).toBeVisible();
-    expect(screen.getByText("現在サービスを利用できません。")).toBeVisible();
+    expect(await within(dialog).findByText("カートを空にできませんでした")).toBeVisible();
+    expect(within(dialog).getByText("現在サービスを利用できません。")).toBeVisible();
+  });
+
+  it("開き直したとき、前回の失敗の文言を持ち越さない", async () => {
+    const user = userEvent.setup();
+
+    clearCartAction.mockResolvedValue(
+      failedActionState({ formError: "現在サービスを利用できません。" }),
+    );
+
+    render(<CartClearButton />);
+    const failed = await open(user);
+    await user.click(confirmButton(failed));
+    expect(await within(failed).findByText("カートを空にできませんでした")).toBeVisible();
+
+    await user.click(within(failed).getByRole("button", { name: "キャンセル" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+
+    const reopened = await open(user);
+
+    expect(within(reopened).queryByText("カートを空にできませんでした")).not.toBeInTheDocument();
   });
 
   it("送信していない間は失敗の文言を出さない", () => {

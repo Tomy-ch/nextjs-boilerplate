@@ -104,8 +104,24 @@ describe("WithdrawButton", () => {
     const dialog = await open(user);
     await user.click(confirmButton(dialog));
 
-    expect(await screen.findByText("退会できませんでした")).toBeVisible();
-    expect(screen.getByText(CONFLICT_MESSAGE)).toBeVisible();
+    expect(await within(dialog).findByText("退会できませんでした")).toBeVisible();
+    expect(within(dialog).getByText(CONFLICT_MESSAGE)).toBeVisible();
+  });
+
+  it("開き直したとき、前回の失敗の文言を持ち越さない", async () => {
+    const user = userEvent.setup();
+
+    render(<WithdrawButton />);
+    const failed = await open(user);
+    await user.click(confirmButton(failed));
+    expect(await within(failed).findByText("退会できませんでした")).toBeVisible();
+
+    await user.click(within(failed).getByRole("button", { name: "キャンセル" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+
+    const reopened = await open(user);
+
+    expect(within(reopened).queryByText("退会できませんでした")).not.toBeInTheDocument();
   });
 
   it("送信中は押せなくなり、進行中であることを文言で示す", async () => {

@@ -6,7 +6,7 @@ import noUserScopedInCachedModule from "./no-user-scoped-in-cached-module";
 
 const ruleTester = new RuleTester({ languageOptions: { parser: tseslint.parser } });
 
-const FILENAME = "src/features/products/list/page-content.ts";
+const FILENAME = "src/features/resources/list/page-content.ts";
 
 /** 分類を宣言している実在のモジュール。写しではなく宣言そのものを読ませる。 */
 const USER_SCOPED = "@/adapters/server/http/request";

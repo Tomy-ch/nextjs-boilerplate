@@ -9,19 +9,19 @@ import noAdHocCacheTag from "./no-ad-hoc-cache-tag";
 const ruleTester = new RuleTester({ languageOptions: { parser: tseslint.parser } });
 
 /** 取得側。印を付けてよい場所。 */
-const IN_ADAPTERS = "src/adapters/server/api/products.ts";
+const IN_ADAPTERS = "src/adapters/server/api/resources.ts";
 
 /** 捨てる側。印を付けてはいけない場所。 */
-const OUTSIDE_ADAPTERS = "src/features/admin/products/actions.ts";
+const OUTSIDE_ADAPTERS = "src/features/admin/resources/actions.ts";
 
 describe("noAdHocCacheTag", () => {
   // ----- 正常系 -----
   it("取得側の 2 段までの印を通す", () => {
     ruleTester.run("no-ad-hoc-cache-tag", noAdHocCacheTag, {
       valid: [
-        { code: 'cacheTag("products");', filename: IN_ADAPTERS },
-        { code: 'cacheTag("products:42");', filename: IN_ADAPTERS },
-        { code: ["cacheTag(`products:$", "{id}`);"].join(""), filename: IN_ADAPTERS },
+        { code: 'cacheTag("resources");', filename: IN_ADAPTERS },
+        { code: 'cacheTag("resources:42");', filename: IN_ADAPTERS },
+        { code: ["cacheTag(`resources:$", "{id}`);"].join(""), filename: IN_ADAPTERS },
         // 綴りが静的に決まらない印は、段の数を見ない。
         { code: "cacheTag(tag);", filename: IN_ADAPTERS },
         // 文字列でない印は、段の数を見ない。
@@ -39,12 +39,12 @@ describe("noAdHocCacheTag", () => {
       valid: [],
       invalid: [
         {
-          code: 'cacheTag("products:42:reviews");',
+          code: 'cacheTag("resources:42:reviews");',
           filename: IN_ADAPTERS,
           errors: [{ messageId: "tooManySegments" }],
         },
         {
-          code: ["cacheTag(`products:$", "{id}:$", "{page}`);"].join(""),
+          code: ["cacheTag(`resources:$", "{id}:$", "{page}`);"].join(""),
           filename: IN_ADAPTERS,
           errors: [{ messageId: "tooManySegments" }],
         },
@@ -57,7 +57,7 @@ describe("noAdHocCacheTag", () => {
       valid: [],
       invalid: [
         {
-          code: 'cacheTag("products");',
+          code: 'cacheTag("resources");',
           filename: OUTSIDE_ADAPTERS,
           errors: [{ messageId: "outsideAdapters" }],
         },
@@ -70,7 +70,7 @@ describe("noAdHocCacheTag", () => {
       valid: [],
       invalid: [
         {
-          code: 'cacheTag("products:42:reviews");',
+          code: 'cacheTag("resources:42:reviews");',
           filename: OUTSIDE_ADAPTERS,
           errors: [{ messageId: "outsideAdapters" }, { messageId: "tooManySegments" }],
         },
@@ -84,7 +84,7 @@ describe("noAdHocCacheTag", () => {
       valid: [],
       invalid: [
         {
-          code: 'cacheTag("products");',
+          code: 'cacheTag("resources");',
           filename: "src/adapters-legacy/api.ts",
           errors: [{ messageId: "outsideAdapters" }],
         },
@@ -94,7 +94,7 @@ describe("noAdHocCacheTag", () => {
 
   it("絶対パスで渡された場所も判定する", () => {
     ruleTester.run("no-ad-hoc-cache-tag", noAdHocCacheTag, {
-      valid: [{ code: 'cacheTag("products");', filename: resolve(IN_ADAPTERS) }],
+      valid: [{ code: 'cacheTag("resources");', filename: resolve(IN_ADAPTERS) }],
       invalid: [],
     });
   });

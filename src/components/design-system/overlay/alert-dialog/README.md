@@ -36,6 +36,14 @@ Client island として開閉・focus trap・Escape を担い、確認内容・S
 
 何を消すのか、実行後にどこへ遷移するのか、失敗したときに何を出すのかは持ちません。`AlertDialogAction` は dialog を閉じるところまでで、実行そのものは呼び出し元の handler または `form` の送信が担います。
 
+**失敗の文言は `AlertDialogContent` の内側へ置きます。** 外側は開いているあいだ overlay に覆われ、
+さらに Radix が背面すべてに `aria-hidden` を付けるため、`role="alert"` を持っていても支援技術へ
+届きません。**出すものは呼び出し元が決めますが、出す場所はこの component の作りが決めます。**
+
+**送信の状態も内側で持ちます。** 閉じると Radix は中身を木ごと外すので、状態を外側に置くと
+dialog だけが作り直され、**何も送っていない dialog が前回の失敗を出します**。`useActionState` は
+`AlertDialogContent` の子で呼び、開くたびに初期状態から始めます。
+
 `AlertDialogTitle` と `AlertDialogDescription` は Radix が dialog のアクセシブルな名前と説明として関連付けます。title を省くと dialog が名前を持たなくなるため、必ず置きます。
 
 vendor は現在 Radix ですが、公開 API に vendor 名は含めません。

@@ -57,6 +57,11 @@
   絞った query からは辿れない。開いた面は `screen.findByRole("dialog")` で受け、trigger と同じ名前を持つ
   実行操作は `within(dialog)` で内側へ絞る（確認の trigger と実行は、ふつう同じ名前を持つ）。story の
   play 関数で `within(canvasElement)` から始めるときも同じで、開いた面は `within(document.body)` から引く。
+- **「利用者が見ている場所へ出す」は `toBeVisible` では留まらない。** jsdom は重なりを持たないので、
+  overlay の背後にある要素にも `toBeVisible` は通る。`screen` から引くと、面の外に出てしまった文言も
+  見つかってしまい、**約束が破れているのにテストは緑になる**。場所そのものが約束なら、その場所を
+  定める器で query を絞る —— 面の中に出す約束なら `within(dialog)` から引き、外へ出た瞬間に
+  query が落ちるようにする。
 - **描画のあいだだけ真になる値は、落ち着いた後に読まない。**落ち着いた値はどの経路でも偽なので、何も判らない。
   描画ごとの値を配列へ記録する probe component で包み、記録の列を見る。
 - **sleep ではなく待つ。**`await waitFor(...)` / `await screen.findBy...` を使う。固定の遅延は構造的に flaky になる。時間そのものが主題なら `vi.useFakeTimers` + `vi.advanceTimersByTime`。

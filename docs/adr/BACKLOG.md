@@ -60,6 +60,8 @@
 | **T3** | 0003 | version-manager (mise) | ✅ | ✅ | T1 | ツール・言語バージョンの SSOT に `mise.toml` を採用 / 配送層への mise 拡張禁止 |
 | **T4** | 0004 | library-management | ✅ | ✅ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR / 一次判定 (単一責務 × 単一 upstream) + 例外パス + fork コスト上限 |
 | **T5** | 0156 | ブラウザ実測ツール | ✅ | ⚠️ | T1, T3, B8 | 観測の 3 レーン(見る・触る / 測る / 掘る)と問い 1 つに道具 1 つ / CLI 前提・MCP 登録しない / 実ブラウザのプロファイルへ接続しない / 取得経路は Node パッケージ=pnpm・単体バイナリ=mise(`npm:` backend 不採用) / 基準画像とゲートには接続しない |
+| **T6** | 0158 | コード検索・影響解析ツール | ✅ | ✅ | T1, T3 | 採るのは関係付きの推移的な変更影響(`affected`)で grep の置き換えにはしない / 問い合わせは予算で切り詰められグラフはスナップショットなので、網羅が要る問いは grep へ戻る / 取得は単体バイナリとして mise / 導入経路は bootstrap 1 本 / 外部 LLM API を呼ぶ操作は都度確認 |
+| **T7** | 0159 | 補助スクリプトの言語と構造 | ✅ | ✅ | T1 | 補助スクリプトは TypeScript + `tsx` で書き呼び出し側も揃える(シェル据え置きは要件を持つものだけ)/ `scripts/` 直下は 1 ツール = 1 ディレクトリで入口は `index.ts` / 入口と判定を分ける / export と test の 1:1 対応をゲートにする |
 
 ### Tier 1 の実装ギャップ
 
@@ -76,6 +78,7 @@
 | 枠 ID | ADR # | タイトル | 選定済み | 実装済み | 依存 | 内容要旨 |
 | --- | --- | --- | --- | --- | --- | --- |
 | **R1** | 0011 | no-docker (表示層ロール定義) | ✅ | ✅ | T1, T3, T4 | Next.js を「表示層」として定義 / アプリ本体 Docker 不採用 / dev 補助 docker-compose は例外 |
+| **R2** | 0056 | mock app の公開 | ✅ | ⬜ | — | **exclusion**: mock app を Storybook / portal と並ぶ公開面にしない(示す立場に無いものを常設しない / 開発専用の口が開く環境でしか完動しない)/ 検証の土台としての同梱は変わらない |
 
 ---
 
@@ -92,6 +95,16 @@
 | **A5** | 0027 | ディレクトリ構造 | ✅ | ✅ | A3, A4 | `src/` 配下の物理配置 / path alias (`@/*`) / co-location の方針 / 共有モジュール粒度 |
 | **A6** | 0028 | 命名規則 | ✅ | ✅ | A5 | 優先順位 = Next.js > React > nextjs-boilerplate 自身・業界スタンダード / ファイル名 (全ソース kebab-case 統一) / 識別子 (component=Pascal / hook=useCamel / 型=Pascal / 定数=UPPER_SNAKE) / route segment (Next.js 小文字・`[slug]`・`(group)`・`_folder`) / 環境変数 (`{SUBSYSTEM}_{NAME}`・標準名〈`OTEL_*` 等〉は例外) / ADR ファイル (kebab・採番はブロック帯で確定〈0001〜0155〉) / テストファイルは B8 |
 | **A7** | 0030 | 環境変数管理 | ✅ | ✅ | A5 | 全 ENV 検証 (ビルド時 + 起動時のみ) / 不変 Config (`#`+getter) / server・client 分割 / ESM singleton 配布 / `NEXT_PUBLIC_` 境界 / Secret 境界 |
+| **A8** | 0010 | 標準準拠と非ロックイン | ✅ | ⚠️ | — | seam の形はデファクトに乗り独自発明しない / ロックイン判定の根は選択の主体が誰か(可搬性・正当性材料の 2 診断)/ 乗る決定にはベンダー非依存の正当性材料を必ず添える / 判断の宛先はいまの snapshot であって履歴ではない |
+| **A9** | 0022 | `capabilities` カーネル | ✅ | ✅ | A3 | runtime(ブラウザ + フレームワーク)の能力を reactive な client hook として供給 / `"use client"` 固定 / remote IO・業務状態・ポリシー状態は受けない / 合成は feature が行う |
+| **A10** | 0023 | `stores` カーネル | ✅ | ✅ | A3 | 複数 feature が共有する横断 client 状態(Zustand)の家 / `"use client"` 固定 / server state の二重キャッシュ禁止、ただし利用者の選択の記録は射程外(鮮度の責任が誰にあるかで判定)/ 昇格ルールの 5 つ目の出口 |
+| **A11** | 0024 | adapters の server/client 分割 | ✅ | ✅ | A3 | 境界カーネルを WHAT(remote 外部システム / local runtime)× WHERE(server / client)の 2 軸で位置づけ / `adapters` は 1 カーネル内で `server`(server-only)と `client`(use-client)の 2 面へ / 実行文脈を持たない規則は区画 `adapters/http` へ / RSC 境界は boundaries でなく `server-only` とゲートが見る |
+| **A12** | 0025 | app レイヤの element 構成 | ✅ | ✅ | A3, A4 | `app` を route-segment / route-handler / server-action / metadata の 4 役割へ分割(Pages Router 不採用)/ element ごとに許可 import 先を宣言 / 強制の届く範囲を行ごとに示し、届かない分は指針と明記する |
+| **A13** | 0026 | layout の横断 UI / Provider mount | ✅ | ✅ | A12 | root layout は app シェル(nav / footer / toaster / Provider)の薄い mount 点で `page.tsx` は `features` のみ / 横断 UI 状態の帰属を mount と対で確定 / route group は shell とジャーニーの単位であり、跨ぐ遷移へ client 状態を持ち越さない |
+| **A14** | 0029 | 型設計の規律 | ✅ | ✅ | A3 | 状態は判別可能 union で表す / 境界で 1 度だけ parse し確定型を内側へ渡す / client へ届くスキーマは `zod/mini`・server に閉じるものと生成物は `zod` / 識別子は branded type / 型は `satisfies` で確かめ注釈で潰さない |
+| **A15** | 0031 | ポリシー状態の供給方針 | ✅ | ✅ | A9, A10 | consent / flag の供給を「生値の読み / セマンティクス + no-op 既定 / ツリーへの供給」の 3 つへ分解し既存カーネルへ(新カーネル不要)/ 供給の既定は stateless、反応的な横断だけ `stores` / 家は依存マトリクスが先に決める |
+| **A16** | 0041 | Cache Components(PPR)有効化判断 | ✅ | ✅ | A4, B28 | `cacheComponents: true` を採用 / 器の形が殻と穴の分かれ目になり segment config は併存しない / 殻を配れない route だけが `instant = false` を名乗り、宣言と実態を突合 / 代償(可逆性・一次資源の不在が 200 になること・build のバックエンド到達性)を引き受ける |
+| **A17** | 0042 | React 19 レンダリング API 規約 | ✅ | ✅ | A4 | ref as prop(`forwardRef` を新規に書かない)/ `use()` は境界前提の読取プリミティブ / `useEffect` は外部システム同期に限定 / React Compiler は基盤の必須にせず `annotation` で opt-in、印は購読の経路を数えて付ける |
 
 ### Tier 3 の de facto 状態
 
@@ -122,6 +135,26 @@ UI / スタイリング / データ統合 / 状態管理 / エラー / 観測性
 | **B8** | 0090 | テスト戦略 | ✅ | ✅ | A3, A4, A5, A6 | Vitest + RTL + MSW + Playwright / go 準拠戦略(co-location・正常系異常系・table-driven 禁止)/ 100% ハードゲート / integration=HTTP 境界 mock / 二層実行(CI 厳格 / hook 高速)/ 命名は 0028 kebab。Playwright は story 単位の visual regression と、画面を通した E2E ジャーニー・画面単位の比較の双方に載る |
 | **B9** | 0153 | CI 構成方針 | ✅ | ⚠️ | A7, B8 | 1 関心事=1 workflow(lint/typecheck/build/test/e2e)/ SHA ピン + concurrency + 最小 permissions / hooks mirror CI / upsert-pr-comment / matrix 非採用(単一 ubuntu・mise SSOT) |
 | **B10** | 0110 | セキュリティ運用 | ✅ | ✅ | T4, B9 | Dependabot cooldown(patch5/minor7/major30・security 即時)/ gitleaks fail-closed / Trivy fs 二段(dev advisory・release strict)/ pnpm audit(severity high+ / 修正可能性で blocking。到達性フィルタは現行ツール非対応)/ SECURITY.md / **CSP 適合ゲート**(配信ヘッダと 0111 宣言の突合・fail-closed)/ **image-scan・cosign・SBOM は no-docker で exclusion** |
+| **B11** | 0051 | スタイリング体系 | ✅ | ✅ | B1 | token は primitive / semantic の 2 層で SSOT は `tokens/*.json` / 参照面の既定は semantic、配色と系統は別名の再束縛だけで切替 / レスポンシブは mobile-first + コンテナクエリ / モーションは CSS・View Transitions 既定で reduced-motion 尊重 / 印刷の面も持つ |
+| **B12** | 0053 | インタラクション a11y seam | ✅ | ✅ | B2 | プラットフォーム built-in をライブラリより先に置く / 複雑入力の相互作用 a11y 契約 / リッチテキストは TipTap + 差替可能な sanitizer port を `model` へ / sanitize 済みを nominal type で表し迂回経路を型から消す / 許容範囲の違う sanitizer は別パッケージへ |
+| **B13** | 0054 | UI カタログ(Storybook) | ✅ | ✅ | B2 | Storybook を部品の唯一の在庫リストとし story を持たない部品を作らない / story は主題で数え 1 部品 15 主題を上限 / 画面まるごとの story は route と同じ器で包む / server の無い面では外部の口だけを差し替える / a11y 自動検査を story 全数へ |
+| **B14** | 0055 | デザインシステムの外部書き出し | ✅ | ✅ | B11, B13 | `pnpm design:bundle` が registry item / 目録 / semantic token の 3 つを tool 非依存で出す / 送り先を知るのは skill だけで script は知らない / 依存の向きは repo → design の一本で書き戻さない / bundle は生成物であり追跡しない |
+| **B15** | 0061 | フォーム送信フローの canonical 機構 | ✅ | ✅ | A4 | `<form action>` + `useActionState` + `useFormStatus` を既定形とする / 戻り値契約 `ActionState<T>` を `model` が所有し、入力検証と結果通知はこれを入力に取る / pending 表示を送信フローの一部として要求する |
+| **B16** | 0062 | フォーム入力検証 UX | ✅ | ✅ | B15 | 誤りは focus が外れた時点で出し、focus 中は消す方向にだけ効かせる / 候補から選ぶ項目に既定の選択を置かない / 表示規則(`model` の手書き zod)と契約検証(`adapters` 境界)の二層分離 / 生成スキーマは client へ載せず契約由来の定数だけを引く |
+| **B17** | 0063 | 変更結果の通知 UX | ✅ | ✅ | B15 | フォーム文脈に留まるならインライン、離れるならトースト、遷移するなら redirect + 再検証 / インラインは全体の要約と欄ごとの文言の両方を出す / 出し分けは失敗の種類で行い文言では行わない / live region の a11y 要件 |
+| **B18** | 0073 | ページネーション・取得境界 | ✅ | ✅ | A11, B3 | cursor 既定(offset は安定した集合とページ番号ジャンプに限る)/ ページ状態は searchParams で RSC 駆動 / 条件が変われば読み進めた位置は捨てる / 無限スクロールは限定した明示例外で増分取得の所有は `adapters/client` / 積み上げを捨てる判断は置く側が React の鍵で表す |
+| **B19** | 0074 | 双方向 / ストリーム通信 seam | ✅ | ✅ | A11 | 長寿命接続の hosting は非同梱(別ドメイン責務)/ 購読 seam は `adapters/client` が所有し `errors` へ正規化 / 順序・重複・再接続・cursor は transport 都合、ドメインイベントの畳み込みは feature / transport は SSE 既定で真に双方向のときだけ WebSocket |
+| **B20** | 0075 | ファイルの受け取りと配信 | ✅ | ✅ | A7, A12 | 受け口は Server Action 1 つで `/api/*` に中継専用の口を作らない / 上限と宣言された種類の検査を置き、上限は起動時設定から引いてフレームワーク側の上限も同じ値から導く / 配信は公開の配信元で、主体ごとに見せる相手が変わるものを載せない / 署名付き URL への直接送信は採らない |
+| **B21** | 0076 | 決済 UI seam | ✅ | ⬜ | — | **exclusion**: 決済 SDK 本体も mount seam の実体も非同梱(設置面の無い seam は腐る)/ 記すのは採用時の座標(SDK の DOM マウント点 + client_secret 受け渡し口)だけ / PCI 境界(生カード情報をフロントに持たせない)は採否によらず不変 |
+| **B22** | 0077 | BFF abuse 保護境界 | ✅ | ✅ | B7 | レート制限 / bot フィルタ / DDoS 緩和 / WAF は infra(PaaS・edge)責務として境界 seam で切る / 本体が残す最小防御は Route Handler の content-type 検証・本体サイズ上限・入力検証 / 参照形はテレメトリ中継(415 / 413、宣言された長さで先に落とす) |
+| **B23** | 0078 | 動的 feature flag seam | ✅ | ⬜ | A15 | **exclusion**: flag / A-B / 段階的配信の SaaS 本体は非同梱で seam もコードとして置かない / 評価場所の既定は server(bundle から排除できること・flicker と CLS の回避の 2 根拠)/ 再デプロイ単位で凍結する値は env、再デプロイなしで変える値は BFF runtime config へ逃がす |
+| **B24** | 0079 | 認証のフロント側 seam | ✅ | ✅ | A11, C6 | session は httpOnly cookie に置き payload は最小 / 認可は 2 層で、楽観は `proxy.ts`(cookie 読みのみ・データ源参照禁止)、確定はデータ源直近の `verifySession()`(`adapters/server` + `cache()`)/ 画面へ渡すのは DTO / 実装方式(JWT 風 / session id)は定めない |
+| **B25** | 0082 | クライアント観測性 | ✅ | ✅ | B7 | ブラウザ発の経路をすべて BFF 中継 seam に載せる / 送信面は `adapters/client`、受けは `route.ts` → `adapters/server` / ブラウザの trace は `fetch` すべてを包み OTLP のまま渡す / Web Vitals は metric、client の未捕捉例外は log / プロダクト分析の発火 IF は置かない |
+| **B26** | 0091 | テスト検証手段方針 | ✅ | ✅ | B8 | async RSC は `render(await Component(props))` で unit へ寄せ、取得は `vi.mock` で module 境界ごと差し替える / 通しでしか確かめられないものだけ integration・E2E へ / a11y は component 層 `vitest-axe` + story 全数を実ブラウザの axe で 1 テーマ / VRT と a11y は spec も job も分ける |
+| **B27** | 0111 | CSP・セキュリティヘッダ | ✅ | ✅ | A7 | 要求内容に依らない静的ヘッダは `next.config.ts` の `headers()` で全経路へ付け、組み立ては `config/security-headers` が持つ / HSTS は https 配信時だけ出す / 標準は W3C・IETF でブラウザが enforce する多層防御 / 適合は組み立ての単体検査と実ブラウザでの違反監視で見る |
+| **B28** | 0112 | データ分類とキャッシュ境界 | ✅ | ✅ | B3 | 分類はラッパ型ではなく取得の口(`createHttpClient({ scope })`)に持たせ、受け取れる引数を分類ごとに変える / public は `cache` / `tags` を、user-scoped は資格情報を、互いに型として持たない / 事故が起きる面はキャッシュ投入と client 引き渡しの 2 箇所に集中する |
+| **B29** | 0113 | 開発用の口の制御面 | ✅ | ✅ | A7, B24 | 制御面は到達したい状態の集合で決め、実システムのポリシーで狭めない(役割の直接指定 / 失効秒数 / 無指定は最弱)/ 危険は口を開ける環境の判定(`APP_ENV` + 宛先)で閉じ、一覧は 1 か所に置く / 成果物から口ごと外す拡張子分離と実行時判定の二重 |
+| **B30** | 0157 | 検査の宣言規律 | ✅ | ✅ | — | 成立しなかった検査を「違反なし」へ倒さない(fail-closed / 件数の突き合わせは単位ごと / 走査範囲を狭めて時間を縮めない)/ 欠損するフィルタ越しに結果を報告しない / 除外・抑止は 1 箇所へ宣言し理由と撤去条件を持たせる / 抑止を足したことを差分へ出す |
 
 ### Tier 4 の de facto 状態
 
@@ -156,6 +189,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 | **C7** | 0044 | SEO / メタデータ戦略 | ✅ | ✅ | A4, C5 | Metadata API 既定(`metadataBase`/`title.template`)/ `sitemap.ts`・`robots.ts` / `alternates.canonical` / JSON-LD 枠 / アイコン体系(0045 と責務分担)/ proxy matcher 除外 / 具体値は作った側 |
 | **C8** | 0130 | PWA 戦略 | ✅ | ⬜ | C7 | **exclusion**: Web App Manifest / Service Worker / オフライン本体非同梱(用途依存)+ 採用時の `manifest.*` seam |
 | **C9** | 0131 | Cookie 同意 | ✅ | ✅ | A2, C6 | **v1 採用(exclusion から反転)**: 軽量 consent 機構(同意状態保持 / バナー / スクリプト読み込みゲート / 計測 cookie_id)と、**ゲートの裏のタグマネージャ**を同梱 / **CMP・IAB TCF は非同梱**(一部 exclusion)。計測製品そのものは容器の中身として作った側が選ぶ / 状態供給は 0031 |
+| **C10** | 0120 | ロケール対応フォーマット | ✅ | ✅ | A3 | 表示は `Intl.*`(ECMA-402)へ一本化 / 演算は `date-fns`(表示系関数と locale パッケージは使わない)/ ラッパは `model` カーネルへ閉じて vendor 直参照を散らさない / 暦の境界は固定ゾーンで解き、日付だけの値は `YYYY-MM-DD` の文字列で運ぶ |
 
 ### Tier 5 の状態
 
@@ -195,6 +229,14 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 | **D4** | 0152 | AGENTS.md 構成方針 | ✅ | ✅ | D1 | ファイル配置 / 本文言語（+ 対訳 `AGENTS.ja.md`）/ 節構成と節を立てる判定 / Instruction Priority / 保護対象の機械強制 |
 | **D5** | 0154 | Claude スキル運用方針 (運用系) | ✅ | ✅ | D4, G1, G2, T3, T4 | 配置・命名・frontmatter / 本文構造 / カバー範囲 / 商用操作前ユーザ確認 |
 | **D6** | 0155 | Claude スキル運用方針 (開発系) | ✅ | ✅ | D4, D1, A1 | 配置・命名・frontmatter は D5 共通 / カバー範囲 / subagent パターン / `new-env` の Next.js 再設計 |
+| **D7** | 0143 | 仕様書駆動 | ✅ | ✅ | A4 | 仕様書を持つのは画面(`src/app` の route)で置き場は `docs/spec/route/**` / 機能要件と画面要件の 2 層へ分ける / 契約・token・README は指すだけで写さない / 生成 scaffold は持たない / 突合は存在(機械)と内容(読み合わせ)の 2 つ |
+| **D8** | 0144 | 決定と強制手段の併記 | ✅ | ✅ | — | ADR / `rules.md` / 実装タスクの issue / コードのコメントは、決定と同じ場所に強制手段を書く / 散文のままにするなら理由を付ける / 宣言だけでは担保にならず、その手段自身がどの経路で素通りされるかを言う / 集計は決定を持たない |
+| **D9** | 0145 | docs-viewer のパッケージ境界 | ✅ | ✅ | B12, D2 | 許容範囲の違う allowlist を同じパッケージへ並べない / 独立 workspace パッケージとして Vite で静的にビルドし Next.js 固有 API を使わない / 依存の向きはビューアー → アプリ本体の一本 / 部品をコピーせず、デザインシステムの実利用者になる |
+| **D10** | 0146 | 規約の参照と集計の生成 | ✅ | ✅ | D8 | `rules.md` の各節は英語固定語の錨を持ち、指す側はそこへリンクする(見出しから導かない / 一度付けたら変えない)/ 指す粒度は節 / `traceability.md` の集計は `rules.md` から生成し、手で数えた件数と手書きの表を置かない |
+| **D11** | 0159-1 | 他リポジトリへの参照 | ✅ | ⚠️ | — | 既定は `redirect.github.com` を通し、上流へ公開のクロスリファレンスを残さない / 素のリンクは禁止ではなく留保し、使うときは相手リポジトリの言語でタイトルを書く / 素のリンクを使う判断は例外なく人間のもので、常設の委任もこの権限を移さない |
+| **D12** | 0160 | エージェント環境の改善をループにする | ✅ | ✅ | D13 | 観測 → 改善 → 再計測 を 1 周とし再計測を省略しない / 所見を出すまでが機械で、何を取り込むかは人が決める / 決定的な集計を先に置き、モデルは「何が難しかったか」と関心への畳み込みだけ / 畳み込みは明示したときだけ走り、根拠の一覧を必ず持つ |
+| **D13** | 0161 | 開発の窓をフィードバックの単位とする | ✅ | ✅ | — | 窓は作業の開始で開き、文脈が切れた時点(明示的な破棄 / 圧縮 / 終了)で閉じる / 閉じたことが所見を出す契機 / 窓は checkout ごと・実行ごとに独立 / セッション・コミット・PR・人の申告はいずれも所見の多い作業を優先的に落とすため母数に採らない |
+| **D14** | 0162 | アプリケーションは AI に依存しない | ✅ | ⚠️ | — | 実行時 / ビルド / テスト / 必須チェックは、エージェントが居ない環境と `.claude/` の無い checkout で通る / AI への依存は成果物に現れないもの(スキル定義・静音実行・文脈量だけを変える道具)に閉じる / エージェント資産を検査する側は対象が無ければ 0 件で通す |
 
 ### Tier 6 の de facto 状態
 

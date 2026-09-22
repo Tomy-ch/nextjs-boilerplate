@@ -35,8 +35,8 @@ route group は URL に現れないため、括弧を外した名前で置きま
 セグメントは URL に現れるため、角括弧を含む名前のまま置きます。
 
 **並行ルートのスロット（`@slot/`）は置き場を持ちません。**URL に現れず、独立した画面でもないため、
-その約束はスロットを差し込む画面の仕様書が持ちます（`admin/@breadcrumb/products/page.tsx` の約束は
-`route/admin/products/page.screen.md`）。
+その約束はスロットを差し込む画面の仕様書が持ちます（`<group>/@slot/<segment>/page.tsx` の約束は
+`route/<group>/<segment>/page.screen.md`）。
 
 **開発専用の route も仕様書を持ちます。**`page.dev.tsx` は build から外れますが
 （[0113](../adr/0113-development-access-surface.md)）、**build から外れることと、約束を持たないことは
