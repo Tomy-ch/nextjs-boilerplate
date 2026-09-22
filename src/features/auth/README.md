@@ -18,7 +18,7 @@ test-requirement: feature
 
 - 認証そのもの（IdP との往復、トークンの交換、session の作成）。すべて `/api/auth/*` の
   Route Handler と `adapters/server/auth` が持ちます
-- メールアドレスとパスワードの入力欄。資格情報は IdP の画面が受け取るもので、この画面を通りません
+- メールアドレスとパスワードの入力欄。**この構成では**資格情報を IdP の画面が受け取るため、この画面を通りません。[0079](../../../docs/adr/0079-auth-frontend-seam.md) §8 は**入力面を所有画面へ置く**ことを決めており、ここはその到達点にまだ居ません
 - session の読み取り（画面は認証済みかどうかを知らない。判定は `verifySession()` と `proxy.ts`）
 
 ## Route と契約
