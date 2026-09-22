@@ -27,8 +27,11 @@ function argumentSpelling(node: Rule.Node): string | undefined {
     return typeof node.value === "string" ? node.value : undefined;
   }
 
+  // 式を含む形は静的に決まらない。`quasis` だけを繋ぐと式が消え、`` `/${locale}` `` が根に見える。
   if (node.type === "TemplateLiteral") {
-    return node.quasis.map((quasi) => quasi.value.raw).join("");
+    return node.expressions.length === 0
+      ? node.quasis.map((quasi) => quasi.value.raw).join("")
+      : undefined;
   }
 
   return undefined;

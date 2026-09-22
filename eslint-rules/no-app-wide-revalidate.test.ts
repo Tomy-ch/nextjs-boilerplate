@@ -22,6 +22,8 @@ describe("noAppWideRevalidate", () => {
         'revalidatePath("/", "layout", "extra");',
         // 経路が静的に決まらない形は見ない。
         'revalidatePath(path, "layout");',
+        // 式を含むテンプレートリテラルも静的に決まらない。根に見えても別の経路である。
+        ["revalidatePath(`/$", '{locale}`, "layout");'].join(""),
         'revalidatePath("/", type);',
         // 文字列でない引数は見ない。
         'revalidatePath(1, "layout");',
