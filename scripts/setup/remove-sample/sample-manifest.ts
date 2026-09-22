@@ -144,11 +144,11 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
  * 日本語の語は語境界の概念を持たないので付けません。
  */
 const WORD_BOUNDARY = {
-  /** 語としてだけ現れる。前後ともに境界を要求する。 */
+  /** 前後ともに境界を要求する。 */
   BOTH: "both",
-  /** 複合した識別子の内側にも現れる。先頭だけ境界を要求する。 */
+  /** 先頭だけ境界を要求する。 */
   LEADING: "leading",
-  /** 語境界を持たない文字体系。 */
+  /** 境界を要求しない。 */
   NONE: "none",
 } as const;
 
@@ -180,7 +180,11 @@ const DANGLING_WORDS: readonly DanglingWord[] = [
   { boundary: WORD_BOUNDARY.LEADING, word: "inquiries" },
 ];
 
-/** 語と境界の宣言から、その語 1 つ分の正規表現を組む。 */
+/**
+ * 語と境界の宣言から、その語 1 つ分の正規表現を組む。
+ *
+ * @returns 境界を付けた正規表現の断片。
+ */
 function toBoundedPattern({ boundary, word }: DanglingWord): string {
   if (boundary === WORD_BOUNDARY.BOTH) {
     return String.raw`\b${word}\b`;

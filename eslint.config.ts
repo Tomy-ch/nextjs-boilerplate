@@ -193,7 +193,6 @@ const nonSourceAreas = RESTRICTED_AREAS.filter(({ pattern }) => !pattern.startsW
 
 export default [
   {
-    // 抑止は撤回条件とペアで持つ（[0144](docs/adr/0144-decision-enforcement-pairing.md)）。
     // 効かなくなった抑止が黙って残ると、例外を名乗った理由だけが残り、規則の側が動いていない。
     linterOptions: {
       reportUnusedDisableDirectives: "error",

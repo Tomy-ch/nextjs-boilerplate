@@ -3,8 +3,7 @@ import type { Rule } from "eslint";
 /**
  * アプリ全体を捨てる再検証を、例外と分かる綴りでだけ書かせるルール。
  *
- * 規約そのものは `docs/rules.md`「描画とキャッシュ」が持ち、決定は
- * [0071](../docs/adr/0071-bff-api-integration.md) が持つ。
+ * 規約そのものは `docs/rules.md`「描画とキャッシュ」が持つ。
  *
  * 見るのは 1 つ。**`revalidatePath("/", "layout")` というリテラルの形**だけである。
  * これはアプリ全体を捨てる呼び方であって所有境界ではない。**所有境界そのものの判定は見ない**
@@ -21,7 +20,12 @@ import type { Rule } from "eslint";
 const APP_ROOT_PATH = "/";
 const LAYOUT_TYPE = "layout";
 
-/** 引数の綴り。静的に決まらない形は `undefined`。 */
+/**
+ * 引数の綴りを静的に読む。
+ *
+ * @param node - 呼び出しの引数ノード。
+ * @returns 綴り。静的に決まらない形は `undefined`。
+ */
 function argumentSpelling(node: Rule.Node): string | undefined {
   if (node.type === "Literal") {
     return typeof node.value === "string" ? node.value : undefined;
