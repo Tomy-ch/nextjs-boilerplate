@@ -12,6 +12,7 @@ import {
 } from "./plan";
 import {
   BINARY_EXTENSIONS,
+  DANGLING_PATTERN,
   EXCLUDED_DIRECTORIES,
   EXCLUDED_PATH_PREFIXES,
   MARKER_LITERAL_FILES,
@@ -113,5 +114,27 @@ describe("BINARY_EXTENSIONS", () => {
         (extension) => !extension.startsWith(".") || extension !== extension.toLowerCase(),
       ),
     ).toEqual([]);
+  });
+});
+
+describe("DANGLING_PATTERN", () => {
+  it("語ごとに宣言した境界の形で組み上がる", () => {
+    expect(DANGLING_PATTERN).toBe(
+      String.raw`商品|カート|在庫|購入|注文|問い合わせ|\bproducts\b|\bcart\b|\binquiry|\binquiries`,
+    );
+  });
+
+  it("複合した識別子の内側に現れる語を取りこぼさない", () => {
+    const pattern = new RegExp(DANGLING_PATTERN, "i");
+
+    expect(pattern.test("inquiryId")).toBe(true);
+    expect(pattern.test("InquiryListResponse")).toBe(true);
+  });
+
+  it("語としてだけ現れる語は、別語の一部に当たらない", () => {
+    const pattern = new RegExp(DANGLING_PATTERN, "i");
+
+    expect(pattern.test("CartesianGrid")).toBe(false);
+    expect(pattern.test("@inquirer/prompts")).toBe(false);
   });
 });

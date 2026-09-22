@@ -75,6 +75,12 @@ make setup-remove-boilerplate-only   # boilerplate-only:line
 `PORTAL_URL=https://docs.example.com/` を足す。**手順 3 で Pages を有効にしていなくても実行してよい** —
 URL の形は Pages の有効化ではなく `<owner>/<repo>` が決めるため、後から有効にしてもリンクは合う。
 
+3 つ目は `.gitleaksignore` の抑止も落とす。抑止しているのは**このリポジトリの履歴にしか残っていない
+値**で、履歴を引き継がずに作った木では指す先が無いためである。**履歴ごと複製した木（fork、remote を
+外した clone）でここを通したときは**、指紋だけが消えて履歴中の値は残るので、週次の秘密スキャン
+（`make secret-scan-history`）がそれらを未抑止の所見として挙げる。露出が増えたわけではない ——
+抑止が外れただけなので、内容を確かめて `.gitleaksignore` へ書き戻すか、履歴を切り直す。
+
 <!-- boilerplate-only:begin -->
 3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
 （[0152](../adr/0152-agents-md-policy.md)）。飛ばす選択肢は無い —— テンプレートから作った時点で前提が
