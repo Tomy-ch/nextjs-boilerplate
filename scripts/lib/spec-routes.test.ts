@@ -62,14 +62,14 @@ describe("toScreenSpecPath", () => {
   });
 
   it("layout は `layout.screen.md` を要求する", () => {
-    expect(toScreenSpecPath("src/app/(shop)/layout.tsx")).toBe(
-      `${SPEC_ROOT}/shop/layout.screen.md`,
+    expect(toScreenSpecPath("src/app/(group)/layout.tsx")).toBe(
+      `${SPEC_ROOT}/group/layout.screen.md`,
     );
   });
 
   // ----- 異常系 -----
   it("入口でなければ null を返す", () => {
-    expect(toScreenSpecPath("src/app/(shop)/loading.tsx")).toBeNull();
+    expect(toScreenSpecPath("src/app/(group)/loading.tsx")).toBeNull();
   });
 });
 
@@ -128,7 +128,7 @@ describe("findOrphanSpecs", () => {
 
   it("layout だけが在る階層の仕様書は孤児にしない", () => {
     expect(
-      findOrphanSpecs(["src/app/(shop)/layout.tsx"], [`${SPEC_ROOT}/shop/layout.screen.md`]),
+      findOrphanSpecs(["src/app/(group)/layout.tsx"], [`${SPEC_ROOT}/group/layout.screen.md`]),
     ).toEqual([]);
   });
 });

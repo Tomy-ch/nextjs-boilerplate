@@ -29,6 +29,9 @@ describe("noAppWideRevalidate", () => {
         'revalidatePath(1, "layout");',
         // 名前だけが同じ別の関数を巻き込まない。
         'revalidateRoute("/", "layout");',
+        // 呼び出しの名前が式で決まる形は見ない。
+        'cache.revalidatePath("/", "layout");',
+        'cache["revalidatePath"]("/", "layout");',
         // 呼び出しの形でない識別子を巻き込まない。
         "const f = revalidatePath;",
       ],
