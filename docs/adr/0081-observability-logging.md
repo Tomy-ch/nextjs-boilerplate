@@ -53,7 +53,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 ### 6. 観測性バックエンド = OTLP/OTel(vendor-neutral・vendor SDK 非同梱)
 
-観測性の export transport は **OTLP / OTel 一本**(vendor-neutral)とし、**特定の観測性 / RUM SaaS SDK(Sentry / Datadog 等)を本体に同梱しない**(用途依存)。エラー通知・アラート等の運用機能は、向け先に選んだ **OTLP 互換バックエンド**(任意の OTLP Collector / SaaS = Grafana / Honeycomb / Datadog / Sentry 等)側で行う —— vendor SDK を同梱してまで本体が持つべき運用機能は無く、向け先の側で足りる。本体は OTLP export の口だけを持ち、vendor 固有 SDK に依存しない。
+観測性の export transport は **OTLP / OTel 一本**(vendor-neutral)とし、**特定の観測性 / RUM SaaS SDK(Sentry / Datadog 等)を本体に同梱しない**(用途依存)。**撤回条件は、OTLP で表現できない観測面が実測で見つかったとき** —— そのベンダーの SDK を通してしか取れない情報が、運用上どうしても要ると言えるとき。**「導入が速いこと」は条件にならない** —— 速さは vendor 直参照の恒久コストと釣り合わない。エラー通知・アラート等の運用機能は、向け先に選んだ **OTLP 互換バックエンド**(任意の OTLP Collector / SaaS = Grafana / Honeycomb / Datadog / Sentry 等)側で行う —— vendor SDK を同梱してまで本体が持つべき運用機能は無く、向け先の側で足りる。本体は OTLP export の口だけを持ち、vendor 固有 SDK に依存しない。
 
 - **差し替え可能性([0010](0010-standards-and-non-lockin.md))**: OTLP / OTel semconv は W3C / CNCF の公開標準であり、向け先を任意の OTLP バックエンドへ変えられる。vendor SDK を本体に持たないため lock-in が構造的に生じない(設計者が選択主体)。
 - vendor SDK を使う場合は、それを `observability` カーネルの **OTLP / OTel exporter 実装**として境界の裏に閉じ込める(アプリコードは `observability` の公開面〈構造的型〉に依存。vendor 具象を `features` / `components` / `model` へ散らさない。[0021](0021-frontend-responsibility.md))。導入時は exact-pin + `pnpm audit`([0004](0004-library-management.md))。

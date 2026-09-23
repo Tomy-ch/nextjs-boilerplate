@@ -14,7 +14,7 @@ Accepted (一部 exclusion)
 
 ### 1. 依存更新 = Dependabot + cooldown(Renovate 不採用)
 
-- **Dependabot を採用**する(Renovate は不採用)。cooldown(更新 PR を出すまでの待機日数)を semver 別に設定する:
+- **Dependabot を採用**する(Renovate は不採用。**撤回条件**: Dependabot が cooldown を落としたとき、または本リポジトリが扱う ecosystem を Dependabot が覆わなくなったとき —— cooldown は本 ADR が敷いた検疫の実装そのもので、これを持たない更新機構への乗り換えは検疫の撤回を意味する。**「設定の自由度が高いこと」は条件にならない**)。cooldown(更新 PR を出すまでの待機日数)を semver 別に設定する:
   - **patch = 5 日 / minor = 7 日 / major = 30 日**(default 5 日)。`github-actions` エコシステムは default 5 日
   - **セキュリティアップデートは cooldown をスキップ**して即時 PR
 - エコシステムは **`npm`**(+ `github-actions`)。1 エコシステム = 1 グループ PR、open PR 上限・週次。major 更新は別 PR([0004](0004-library-management.md) と一致)
@@ -71,12 +71,13 @@ Accepted (一部 exclusion)
   - リモート追跡参照が 1 つも無い状態(remote から一度も fetch していない初回 push 等)では履歴全体が対象になる。対象が広がる方向であり、取りこぼす方向ではない
 - **コミット履歴全体の走査は CI の定期実行が持つ**。マージ済み履歴に埋もれた秘密を拾う用途で、コミット数に比例して伸びるため hook には載せない。**撤回条件**: 走査時間がコミット数に比例しなくなったとき —— 差分走査やキャッシュが入ったとき。**現在の実測が速いことは条件にならない** —— リポジトリの成長で必ず破れる
 - 検出値はログに出さない(`--redact`)。hook / CI のログ自体が二次的な漏洩経路になるため
-- **`useDefault` は gitleaks 本体の global allowlist を同伴する**。node_modules / 各種 lockfile / `.svg` 等が無条件に走査対象外となり、これは `.gitleaks.toml` からは打ち消せない。打ち消すには全ルールを自前で持つことになり既定ルールの更新追随を失うため、**追随を優先して除外範囲を把握したうえで受け入れる**。生成型([0072](0072-api-type-generation.md))など自前の除外は、誤検知が実際に出た時点で下記の抑止ポリシーに沿って追加する
+- **`useDefault` は gitleaks 本体の global allowlist を同伴する**。node_modules / 各種 lockfile / `.svg` 等が無条件に走査対象外となり、これは `.gitleaks.toml` からは打ち消せない。打ち消すには全ルールを自前で持つことになり既定ルールの更新追随を失うため、**追随を優先して除外範囲を把握したうえで受け入れる**(**撤回条件**: gitleaks が既定 allowlist の部分的な打ち消しを提供したとき、または除外対象(lockfile 等)に実際の秘密が入る事例が公表されたとき)。生成型([0072](0072-api-type-generation.md))など自前の除外は、誤検知が実際に出た時点で下記の抑止ポリシーに沿って追加する
 
 ### 3. 脆弱性スキャン(多層防御)
 
 - **CodeQL SAST**: `languages: javascript-typescript`。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。workflow 内の hard-fail には依存しない)
 - **portable SAST(Opengrep)**: SAST の既定は**リポジトリと一緒に持ち出せる実体**で持つ。GitHub の code scanning が供給する解析は **GitHub の外へ持ち出せず**、private かつ GHAS 無しの構成ではその層がまるごと消えるため、**同じ問いに答える持ち出せる実体**を持つ。実体は `mise.toml` にピンした 1 バイナリで、ローカルでも CI でも同じ `make sast` が回す。**Semgrep 本体ではなく OSS fork の Opengrep を採る** —— ルール記法は互換で `// nosemgrep:` の抑止もそのまま効くうえ、ライセンス判断を利用側へ渡さずに済む。**0 件の baseline を保つことがこのゲートの前提**であり、0 件だからこそ新しい所見が読み飛ばす対象ではなく信号になる。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置き、判断をコードの側に残す。**検査条件(対象・ルール・除外)は 1 箇所に持つ** —— ゲートと code scanning への取り込みが違う走査を指すと、落ちた内容と Security タブの一覧が食い違う。**ルールはレジストリ(semgrep.dev)から引かない** —— レジストリの集合は Semgrep Rules License v1.0 で内部利用に限られ、**エンジンだけ OSS へ替えても、ルールをそこから引いている限りライセンスの判断は利用側へ渡る**。代わりに `opengrep/opengrep-rules` を **commit で固定**して読む。取り出す分類・digest の照合・検体を置かない取り出し方の本体は `.github/workflows/README.md` の「SAST のルールをレジストリから引かない」が持つ
+  - **Node / JS 特化の SAST(njsscan)は層として持たない。** 同じ面を上のルール集合が覆っており、重ねても所見は増えない。**撤回条件は、このルール供給が Node / Express 固有のパターンを覆わなくなったとき** —— njsscan が同梱するルールはライセンス変更前の semgrep-rules 由来で、レジストリを引かずに Node 向けの面だけを戻せる。**「層が 1 つ減ったこと」は条件にならない** —— 減らしたのは重なっていた層である
 - **編集時 SAST(eslint-plugin-security)**: 上の 2 つと同じ問いに、**型を解決したうえで編集中に**答える層。走査が CI にしか無いと、指摘が届くのは push の後になる。ただし **[0002](0002-formatter-linter.md) の能力ベース分担に従い、推奨プリセットは当てない** —— 束を当てれば biome と重なる規則も、この層に対象の無い規則も同時に入る。**有効化するのは 0 件の baseline を保てる規則だけ**とし、落とした規則とその理由は `eslint.config.ts` に書く(ReDoS と path traversal は Opengrep / CodeQL が引き続き担うので、落としても検査面は消えない)。落とした規則を戻すのは、その規則が形ではなく実体を見るようになったときに限る —— 例えば `detect-unsafe-regex` が量指定子の入れ子の形ではなく実際の後戻り計算量で判定するようになれば、`/^\d+(\.\d+)?$/` は鳴らなくなり 0 件を保てる。「SAST の層が薄い」は理由にならない
 - **外部解析サービス(SonarQube Cloud)**: 上のどれとも違い、**外部アカウントに依存する**唯一の層。public リポジトリでは無料、private では有料であるため、**契約が無いことを既定として設計する** —— `SONAR_TOKEN` が未設定なら解析ジョブごと降り、**緑のまま「未設定」を PR へ述べる**(コメントの不在は「検査が緑だった」と見分けが付かない)。**required check には登録しない**。第三者のアカウントの有無がマージの条件になってはならない。**剥がしの対象にはしない** —— 残すかどうかは契約の有無を知っている側の判断であり、[`docs/get-started/setup-repository.md`](../get-started/setup-repository.md) の 1 段で選ぶ。`projectKey` / `organization` はリポジトリの識別子なので、設定ではなく**アイデンティティ**として `make setup-replace-repository-reference` が書き換える
 - **OSV 二段**: Trivy / `pnpm audit` と**参照するデータベースが違う**。件数は一致せず、下記「和集合を正とする」の実例そのものになる。二段の形は Trivy と同じで、**報告(全 PR・落とさない)と昇格ゲート(保護ブランチ宛 PR・検出で落ちる)**に割る
@@ -106,6 +107,8 @@ Accepted (一部 exclusion)
 同じ理由で、脆弱性の報告先は **PR コメント**とする。hook の出力はレビューされず記録も残らないため、報告としても機能しない。
 
 秘密スキャンが逆にすべての条件を満たす(その場で解消でき、変更と共に決まり、判断の余地が無い)ことが、両者の扱いが違う理由である。
+
+**撤回条件**: 上の 3 点のうち先の 2 つが消えたとき —— 脆弱性をその場で当事者が解消できる機構が入るか、変更と独立に結果が変動する性質が消えるか。**検出件数が減ったことは条件にならない**(それは状態であって、ゲートの形が成立しない理由は 1 つも動いていない)。昇格ゲート(保護ブランチ宛 PR)側は本条件の対象外で、そちらは最初からブロックする。
 
 ### 3.2 落とさない層を置く判断
 

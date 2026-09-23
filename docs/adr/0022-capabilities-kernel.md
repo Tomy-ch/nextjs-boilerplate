@@ -28,7 +28,7 @@ Accepted
 - ページの可視性(既読の確定・隠れている間の再接続の抑制)
 - navigation-block(離脱ガード)
 - scroll 制御
-- Web Worker へのオフロード(seam)
+- Web Worker へのオフロード(seam) —— **v1 では seam を置かない。撤回条件は、client 側に主スレッドを塞ぐ処理が実際に現れたとき。「重い画面がある」ことは条件にならない** —— 重さの出どころが取得か描画なら、Worker は何も速くしない
 
 キーボードショートカットは据え置き除外のため hook 例から外す([0053](0053-ui-component-interaction-seam.md) §5)。グローバルショートカットを採用する場合の置き場が `capabilities` であることだけは変わらない。
 

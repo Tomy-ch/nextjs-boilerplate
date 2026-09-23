@@ -14,7 +14,7 @@ Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)�
 
 ## 決定: 同梱しない(用途依存)
 
-- **Web App Manifest / Service Worker / オフラインキャッシュ / インストール促進(A2HS)を 同梱しない**。用途依存のため、必要になった時点で判断する
+- **Web App Manifest / Service Worker / オフラインキャッシュ / インストール促進(A2HS)を 同梱しない**。用途依存のため、必要になった時点で判断する。**撤回条件は、オフラインで成立させたい画面が本体に現れたとき**、または Service Worker の登録と更新が Next.js の既定機構として設定だけで載るようになったとき。**「モバイルで使われること」は条件にならない** —— 画面が online 前提で成立している限り、Service Worker は保守対象が増えるだけである
 - 導出根拠: [0011](0011-no-docker.md) の「用途未定の表示層」ロール —— 用途依存の判断を本体で先取りしない([0121](0121-i18n-strategy.md) と同じ論理)
 - **本体側の採用は v2 に予定し、局所ライブラリ(Serwist〈`@serwist/next`〉)を下記 seam に置く形を採る。** その場合も本体は seam を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 / adapters・カーネル境界の裏で差替可能 / vendor 直参照を feature・component に散らさない)と [0004](0004-library-management.md)(exact pin / `pnpm audit`)の枠内で置く
 - **PWA を採用する場合の seam**(参考):
