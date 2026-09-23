@@ -30,9 +30,7 @@ describe("findSectionedAdrReferences", () => {
       "手順は [0140](0140-documentation-operations.md) 決定 4 が持つ。",
     );
 
-    expect(found.map(({ text }) => text)).toEqual([
-      "](0140-documentation-operations.md) 決定 4",
-    ]);
+    expect(found.map(({ text }) => text)).toEqual(["](0140-documentation-operations.md) 決定 4"]);
   });
 
   it("節記号を伴わない裸の番号も、その綴りで挙げる", () => {

@@ -21,14 +21,16 @@ export type SectionedAdrReference = {
 };
 
 /** ADR ファイルへのリンクと、その直後に続く節番号。 */
-const SECTIONED = /\]\([^)]*?0\d{3}-[a-z0-9-]+\.md\)[ 　]*(?:§[ 　]*\d+(?:\.\d+)?|決定[ 　]*\d+|\d+(?:\.\d+)?)(?![\d.])/g;
+const SECTIONED =
+  /\]\([^)]*?0\d{3}-[a-z0-9-]+\.md\)[ 　]*(?:§[ 　]*\d+(?:\.\d+)?|決定[ 　]*\d+|\d+(?:\.\d+)?)(?![\d.])/g;
 
 /**
  * 数でありながら節を指していないもの。
  *
  * @remarks
- * 助数詞が続く数は件数であって節番号ではない。ここを見ないと「[0011](…) 1 つの理由」が
- * 違反として挙がり、**直しようのない指摘**になる（番号を消すと文が壊れる）。
+ * 助数詞が続く数は件数であって節番号ではない。ここを見ないと、ADR へのリンクの直後に
+ * 「1 つの理由」と続く形が違反として挙がり、**直しようのない指摘**になる —— 番号を消すと
+ * 文が壊れる。
  */
 const COUNTER = /^[ 　]*[つ本件回点種段層人箇]/;
 
@@ -43,11 +45,13 @@ export function findSectionedAdrReferences(
   file: string,
   content: string,
 ): readonly SectionedAdrReference[] {
-  return content.split("\n").flatMap((text, index) =>
-    [...text.matchAll(SECTIONED)]
-      .filter((match) => !COUNTER.test(text.slice(match.index + match[0].length)))
-      .map((match) => ({ file, line: index + 1, text: match[0].trim() })),
-  );
+  return content
+    .split("\n")
+    .flatMap((text, index) =>
+      [...text.matchAll(SECTIONED)]
+        .filter((match) => !COUNTER.test(text.slice(match.index + match[0].length)))
+        .map((match) => ({ file, line: index + 1, text: match[0].trim() })),
+    );
 }
 
 /**
@@ -56,9 +60,7 @@ export function findSectionedAdrReferences(
  * @param references - 検出した参照。
  * @returns 1 件 1 行の文言。違反が無ければ空文字。
  */
-export function formatSectionedAdrReferences(
-  references: readonly SectionedAdrReference[],
-): string {
+export function formatSectionedAdrReferences(references: readonly SectionedAdrReference[]): string {
   return references
     .map(
       ({ file, line, text }) =>
