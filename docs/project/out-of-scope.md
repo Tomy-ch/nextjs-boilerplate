@@ -59,13 +59,14 @@
 - **PWA** —— manifest / Service Worker / オフライン。座標は `app/manifest.*`（[0130](../adr/0130-pwa-strategy.md)）
 - **CMP・IAB TCF 相当の同意管理** —— 法域とベンダーに依存する。軽量な同意機構とタグマネージャの
   読み込み口までは持つ（[0131](../adr/0131-cookie-consent.md)）
-- **プロダクト分析の発火 IF** —— 本体にタグへ値を渡す呼び出しが 1 つも無いため、空の IF を置かない（[0082](../adr/0082-client-observability.md) §3）
-- **決済 SDK の mount seam** —— PCI 境界（生カード情報を持たない）は不変で、実体化は決済画面が本体に
-  現れたとき（[0076](../adr/0076-payment-ui-seam.md)）
-- **WebSocket / SSE の購読 seam、動的 feature flag の供給 seam** —— 消費する画面が本体に現れるまで
-  座標だけ（[0074](../adr/0074-runtime-communication-seam.md) / [0078](../adr/0078-dynamic-feature-flag-seam.md)）
-- **DnD、グローバルショートカットの実行機構、searchParams 同期ヘルパ** —— 並べ替えが操作の本体に
-  なる画面、入力欄との競合解決、URL と client 状態の同期層を要する画面が現れていない
+- **プロダクト分析の発火 IF** —— 同梱するのはタグマネージャの容器を読み込む口までで、値を渡す IF は持たない（[0082](../adr/0082-client-observability.md) §3）
+- **決済 SDK の mount seam** —— SDK を同梱せず、記すのは採用時の座標だけ。PCI 境界（生カード情報を
+  フロントに持たせない）は採否によらず不変（[0076](../adr/0076-payment-ui-seam.md)）
+- **長寿命接続の hosting、動的 feature flag の供給 seam** —— 前者は別ドメインの責務で、購読する側は
+  `adapters/client/stream/` に実体を持つ。後者は座標だけ（[0074](../adr/0074-runtime-communication-seam.md) /
+  [0078](../adr/0078-dynamic-feature-flag-seam.md)）
+- **DnD、グローバルショートカットの実行機構、searchParams 同期ヘルパ** —— ライブラリを同梱せず、
+  任意の操作を任意のキーへ結ぶ登録機構も、URL と client 状態を同期させる層も置かない
   （[0053](../adr/0053-ui-component-interaction-seam.md) / [0060](../adr/0060-state-management.md)）
 - **mock app の公開** —— 検証の土台としては同梱するが、人に見せる面にはしない。公開した瞬間にデモに
   なり、示す内容の正しさに責務を持つ主体が居ない（[0056](../adr/0056-mock-app-exclusion.md)）
@@ -74,14 +75,13 @@
 
 ### runtime 能力の置き場
 
-長寿命の接続を持つ画面が本体に現れるまで次は置かないが、現れたときの置き場は決まっている
-（[0022](../adr/0022-capabilities-kernel.md)）。
+次の区別は置き場だけが決まっている（[0022](../adr/0022-capabilities-kernel.md)）。
 
 - **回線の有無**と**ページの可視性**は runtime の能力であり、`capabilities` が持つ。画面に固有ではない
 - **接続が生きているか**（再接続の待ち時間を含む）は通信機構の状態であり、購読の adapter が持つ。
   前者とは別物で、画面はどちらも要る
 - **画面内で完結するキー操作**は、登録機構を作らずに UI の内側へ置く
-- **主スレッドを塞ぐ処理**が client に現れるまで、Web Worker へ逃がす口は置かない
+- **Web Worker へ逃がす口**は置かない。置くときの家は `capabilities` である
 
 ### 実例を持たないパターン
 

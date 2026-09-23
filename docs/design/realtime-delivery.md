@@ -1,6 +1,6 @@
 # 購読と配信
 
-**この seam はまだ実体を持たない。ここに書くのは、実体化するときに満たすべき形である。** `src/` に購読 adapter は無く（[ADR 0074](../adr/0074-runtime-communication-seam.md) 補足 —— 設置面の無い IF は置かない）、この文書は他の設計リファレンスのように実装を読んで書いたものではない。既に在る機構 —— `adapters` の server / client 分割、`errors` の分類、`logging` の redaction、fetch wrapper の冪等 opt-in、`architecture.ts` の境界 —— は実物を読んで書き、まだ無い部分は「そこへ嵌めるとどういう形になるか」を書く。
+**購読 seam は実体を持つ。** 置き場は [`src/adapters/client/stream/`](../../src/adapters/client/stream/README.md) で、購読 1 本の状態機械と、それを組み立てる部品（封筒・順序・カーソル・待ち時間）から成る。引いているのは [`features/inquiry`](../../src/features/inquiry/README.md) である。この文書は他の設計リファレンスと同じく実装を読んで書いた。
 
 決定そのもの —— transport は SSE、認証は BFF 発行の ticket、stream が運ぶのは event、client が前提するのは単調増加だけ、再接続は自前、mock で差し替えない —— は [ADR 0074](../adr/0074-runtime-communication-seam.md) が持つ。家が `adapters/client` である理由は [ADR 0024](../adr/0024-adapters-server-client-split.md)、往復側の取得と正規化は [data-fetching.md](data-fetching.md)、資格情報の持ち方は [auth.md](auth.md) が持つ。ここが持つのは、それらを読むために要る前提と、実体化するときに踏むものである。
 
@@ -20,7 +20,7 @@
 
 同じ非対称が不可能にするのは、**stream の中身を自分で補完すること**である。届かなかった event を推測して埋めない、順序を backend に問い合わせて直さない。整合を取り戻す手段は 1 つ —— 初期表示の取得口を取り直す —— しか持たない。
 
-## 登場するもの（実体化したときの在り処）
+## 登場するもの（在り処）
 
 | 役割 | 在り処 | いま在るか |
 | --- | --- | --- |
@@ -210,7 +210,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 ## 自分で確かめる
 
 ```bash
-# 購読の実装が `adapters/client` の外に無いか（実体化した後に回す）
+# 購読の実装が `adapters/client` の外に無いか
 grep -rn "new EventSource\|new WebSocket" src --include='*.ts' --include='*.tsx' | grep -v "src/adapters/client/"
 
 # CSP が stream の origin を許しているか（起動した dev サーバに対して）

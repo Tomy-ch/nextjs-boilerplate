@@ -58,7 +58,6 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 ### 5. キーボードショートカット = 除外
 
 - **グローバルキーボードショートカットは採らない**(exclusion)。後付けで散在実装すると input フォーカス時の誤発火等の事故が起きるが、それは採る場合の話であり、本体は機構も置かない
-- **登録機構(shortcut registry)の seam も置かない**。設置面(実使用箇所)が存在しない seam は敷かない方針のため、採用する際に `capabilities` へ足す拡張点として名前だけを記録するに留める
 - 個々の UI のキーボード操作性(タブ順序 / Enter・Escape 等)は a11y 契約の一部であり、[0100](0100-accessibility-target.md)(WCAG 2.x AA)を正とする。本項が除外するのは**グローバルショートカット機構**のみ
 - **その component 自身の UI 内で完結するキー操作は例外で、component に置いてよい**(自身が出した領域へ focus を移す hotkey 等)。除外するのは、任意の操作を任意のキーへ結び付ける汎用の登録機構である
 - **キー操作の「案内」を表示する部品は持てる。** 何が起きるかとどのキーかの対を表示する UI は、登録も `keydown` の待ち受けも持たない純粋な表示 primitive であり、機構ではない。ただし **`components` はこの案内が実際に効くことを担保できない** —— 案内部品と結線は層が違い(`components` は `capabilities` を import できない)、キーと handler を結ぶのは両方を import できる `features` 以上である。したがって**案内を載せた側が、そのキーで実行できることまでを負う**。キーボードから実行できない操作を案内に載せない
@@ -75,7 +74,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 拡張点は **設置面(実使用箇所)が実在する場合にのみコードとして実体化する**。空の IF / port 定義は置かない(使われない IF は腐り、実装時に必ず書き直されるため)。
 
 - **sanitizer port は `model` カーネルに実体化済み**(§3)。エディタの採用により表示側の設置面が実在する
-- **shortcut registry は置かない** — 設置面が無い(§5)。本 ADR は「名前 + 家 + a11y 契約」を記録し、採用する時点で実体化する
+- **shortcut registry は置かない**(§5)。本 ADR は「名前 + 家 + a11y 契約」を記録し、採用する時点で実体化する
 - **DnD のドラッグ代替は、ライブラリを要さない範囲では component の実装として実体化済み**(§6)。ライブラリを要する DnD の代替 IF は、設置面が現れるまで置かない
 
 ### 部品が持つ状態と、外から渡すもの
@@ -141,7 +140,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - ❌ リッチテキスト表示で **sanitizer port を通さず** `dangerouslySetInnerHTML` を使うこと(規約の正は [0110](0110-security-operations.md))
 - ❌ **route-as-modal(intercepting / parallel routes)の採否を本 ADR で確定**すること(ルーティング判断 = [0040](0040-routing-rendering-strategy.md) 管轄)
 - ❌ focus-trap・scroll-lock・DnD 等の UI 密着挙動 hook を `capabilities` に上げること([0022](0022-capabilities-kernel.md):UI 挙動は component co-location)
-- ❌ 設置面が無い拡張点(shortcut registry / DnD ドラッグ代替 IF)を、空の IF 定義としてコードに置くこと(§7)
+- ❌ 記録するに留めた拡張点(shortcut registry / DnD ドラッグ代替 IF)を、空の IF 定義としてコードに置くこと(§7)
 
 ## 補足
 
