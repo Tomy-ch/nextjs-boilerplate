@@ -108,14 +108,14 @@ flowchart TD
 | 採らない分割モデル | [0040](adr/0040-routing-rendering-strategy.md) § 採らない分割モデル |
 | server（取得・編成）/ client（相互作用）の線 | [0040](adr/0040-routing-rendering-strategy.md) § `"use client"` は feature 内の葉へ押し下げる |
 | 待つ単位・失敗の単位 | [0040](adr/0040-routing-rendering-strategy.md) § 境界の粒度 / [0080](adr/0080-error-handling.md) § 境界の粒度 |
-| **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) § 4. 重さを持ち込まない書き方 |
+| **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) 重さを持ち込まない書き方 |
 | 部品が持つ状態と、外から渡すもの | [0053](adr/0053-ui-component-interaction-seam.md) § 部品が持つ状態と、外から渡すもの |
 | 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) つの操作に 1 つの role |
 | 一度に見せる量 / 構造の差し替え | [0053](adr/0053-ui-component-interaction-seam.md) § 一度に見せる量は段階で絞る・§ 構造の差し替えは props ではなく slot で受ける |
 | variant の使いどころ / headless に分ける条件 | [0052](adr/0052-ui-component-policy.md) § variant は排他の見た目にだけ使う・§ 振る舞いと見た目を分けるのは、振る舞いが 2 箇所目で要るときだけ |
 | 状態をどこまで上げるか | [0060](adr/0060-state-management.md) § 状態をどこまで上げるか |
 | 状態遷移を書く手段の使い分け | [0060](adr/0060-state-management.md) § 状態遷移を書く手段は 4 つあり、目的で使い分ける |
-| 型で表すもの / 表さないもの | [0029](adr/0029-type-design-discipline.md) § 1. 状態は判別可能 union で表す・§ 4. 型は `satisfies` で確かめ、注釈で潰さない |
+| 型で表すもの / 表さないもの | [0029](adr/0029-type-design-discipline.md) 状態は判別可能 union で表す・型は `satisfies` で確かめ、注釈で潰さない |
 | 帯で分けるか、器の幅で分けるか | [0051](adr/0051-styling-system.md) § 幅で決めるものと、器で決めるもの |
 | 物理配置 | [0027](adr/0027-directory-structure.md) § co-location 方針 |
 | 共有モジュールの粒度 | [0027](adr/0027-directory-structure.md) § 共有モジュールの粒度 |

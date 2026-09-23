@@ -51,6 +51,15 @@ describe("findSectionedAdrReferences", () => {
     expect(found.map(({ text }) => text)).toEqual(["](../adr/0051-styling-system.md) §2"]);
   });
 
+  it("節番号のあとに節題が続く形も挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/playbook.md",
+      "| [0029](adr/0029-type-design-discipline.md) § 1. 状態は判別可能 union で表す |",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual(["](adr/0029-type-design-discipline.md) § 1"]);
+  });
+
   it("行番号は 1 起点で返す", () => {
     const found = findSectionedAdrReferences(
       "docs/x.md",
