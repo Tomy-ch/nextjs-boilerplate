@@ -22,6 +22,7 @@ Accepted
 制約 = **配置のみ**。`<ThemeProvider><Toaster/>{children}</ThemeProvider>` の**配置は薄い mount(可)**、layout で hook を呼びデータを組むのは**ロジック(不可 = feature の仕事)**。
 
 - **`page.tsx` は `features` のみ**(不変)
+- **殻の header の高さは測らず、定数として押し付ける**(`ADMIN_SHELL_HEADER_HEIGHT`)。**撤回条件は、header の高さが中身で変わる形になったとき** —— 導線が折り返す、行が可変になる等で「決められる量」でなくなったとき。それまでは押し付けている限り書き写した値と描画がずれず、測る形は SSR と初回描画のあいだ 0 を配るため、知り得る量を知るまで間違っている仕組みに置き換えることになる。**「同じ画面で帯の高さは測っているのに不揃いだ」ことは条件にならない** —— 帯は中身の量で折り返すので測る以外に知る方法が無く、種類の違う量である
 - 根拠: root layout は「どの feature にも属さない **app シェル**(html / body・グローバル Provider・nav / footer / toaster)の合成点」であり、`page.tsx`(= 画面 = 1 feature)と性質が違う
 - **root layout は画面本体(`children`)を、自分が描く 1 要素で包む。** hydration は `<Suspense>` 境界ごとに分かれて進み、先に hydrate された島の effect が、まだ hydrate されていない側の DOM を React の外から書き換えると(focus の閉じ込めや背面の inert 化を行うライブラリはこれをする)、後から来た React が食い違いとして報告する。書き換えの相手を root layout が描く要素にしておけば、その要素は境界の外にあって最初の commit で hydrate されるため、島がいつ動いても相手は既に hydrate 済みである。「相手の側から hydrate されたと言わせる」形は採らない —— 書き換える主体がライブラリのとき、その合図を出す口が無い。時計(`setTimeout` / `requestAnimationFrame` 等)で待つ形も採らない(外れる理由の実測は [docs/design/rendering.md](../design/rendering.md))
 

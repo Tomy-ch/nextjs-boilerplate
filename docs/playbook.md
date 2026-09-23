@@ -28,7 +28,7 @@ flowchart TD
 | 複数 feature で表示モデルを共有したい | `src/model/` | `type`、純粋関数 | generated API 型や transport 語彙を持ち込まない。 |
 | Server Action を追加したい | feature 内 `actions.ts`（受け口が route 側にしか置けないなら `app` の同じ段） | `ActionState<T>` | 二重送信、idempotency key、再検証、field error を決める。 |
 | client 横断 state が必要 | `src/stores/` | Zustand store | feature local state で足りないか先に確認する。 |
-| client 横断 hook が必要 | `src/capabilities/` | browser API を包む hook | 実際の設置面があるか、SSR 安全かを確認する。 |
+| client 横断 hook が必要 | `src/capabilities/` | browser API を包む hook | 実際に使う場所があるか、SSR 安全かを確認する。 |
 | 環境値を読みたい | `src/config/` | purpose ごとの Config getter | `process.env` を直接読まず、server / client 境界を守る。 |
 | 失敗を表示したい | `src/errors/` と feature | `ErrorKind`、表示用 Meta | HTTP status を上位層へ漏らさず、adapter で正規化済みか確認する。 |
 | 記録・計測したい | `src/logging/` / `src/observability/` | structured log、OTel | 秘匿値を渡さず、trace context を引き継ぐ。 |

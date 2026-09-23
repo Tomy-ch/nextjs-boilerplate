@@ -75,7 +75,7 @@
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
 - [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
 - [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものは容器の中身として選ぶ）
-- [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向・移行 v1 / タクソノミー / rules.md 新設 / ADR 不可変性）
+- [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向 / タクソノミー / rules.md 新設 / ADR 不可変性）
 - [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages / 実装は Phase 3）
 - [0142-license.md](0142-license.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / 同梱ライブラリ整合 / private:true との関係）
 - [0143-spec-driven-development.md](0143-spec-driven-development.md) - 仕様書駆動（画面要件を仕様書として持つ / 生成 scaffold を持たない / 実装との突合は存在（機械）と内容（読み合わせ）の 2 つ）

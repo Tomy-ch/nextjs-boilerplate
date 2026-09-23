@@ -77,7 +77,7 @@
 
 ### 1.4 棄却(据え置き除外)
 
-- **v1 / v2 とも採用しない 3 件**: キーボードショートカット / Prettier / Renovate。撤回条件は [BACKLOG](../adr/BACKLOG.md#撤回条件-決定を見直すトリガ) が持つ
+- **v1 / v2 とも採用しない 3 件**: キーボードショートカット / Prettier / Renovate。撤回条件は各決定を書いた ADR の本文が持つ —— キーボードショートカットは [0053](../adr/0053-ui-component-interaction-seam.md) §5、Renovate は [0110](../adr/0110-security-operations.md) 1。**Prettier はどこにも撤回条件を持たない**
 - **印刷 CSS は棄却しない**: [0051](../adr/0051-styling-system.md) §4 が print CSS をフロント領域の拡張点として採り、最小の実装を `foundation/print` として同梱する。棄却は PDF 生成(backend 責務)の側だけである
 - **ADR 化済みの exclusion**(参照のみ): [0121](../adr/0121-i18n-strategy.md)(i18n 本体)/ [0130](../adr/0130-pwa-strategy.md)(PWA 本体)等
 - **v1 では入れない**: PostHog 本体。CMP・IAB TCF 等の本格的な同意管理も対象外。GTM 本体は同意ゲートの裏へ同梱する側へ反転済みで、決定は [0131](../adr/0131-cookie-consent.md) §2 が持つ

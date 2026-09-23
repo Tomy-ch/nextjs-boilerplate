@@ -224,7 +224,7 @@ hook の側で押さえるのは 3 つ。
 
 ## 購読はこの通り道に無い
 
-wrapper は**単発の往復**だけを扱う。締切・再試行・遮断はどれも「1 つの応答を待つ」前提で組まれており、長寿命の接続には当てはまらない。server → client の push（SSE / WebSocket）の家は `adapters/client` と決まっているが（[ADR 0074](../adr/0074-runtime-communication-seam.md)）、**購読 adapter は `src/` に存在しない**。設置面（実使用箇所）が無いまま IF だけを置くと腐るためで、実体化するときの契約（ticket の扱い・event の粒度・到達順・mock の線引き）は ADR 0074 が主題として持ち、実装の在り処と落とし穴はその時点で別の設計解説として書く。
+wrapper は**単発の往復**だけを扱う。締切・再試行・遮断はどれも「1 つの応答を待つ」前提で組まれており、長寿命の接続には当てはまらない。server → client の push（SSE / WebSocket）の家は `adapters/client` と決まっており（[ADR 0074](../adr/0074-runtime-communication-seam.md)）、**購読 adapter は `src/adapters/client/stream/` に実体を持つ**。契約（ticket の扱い・event の粒度・到達順・mock の線引き）は ADR 0074 が主題として持ち、実装の在り処と落とし穴は[購読と配信](realtime-delivery.md)が持つ。
 
 ## 間違えやすいところ
 

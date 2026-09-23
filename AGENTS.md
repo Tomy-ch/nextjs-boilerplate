@@ -145,6 +145,8 @@ and marker checks, and `permissions.deny` in `.claude/settings.json`. The rest i
 **A rule this file does not repeat is still a rule.** Not finding a prohibition here is evidence about
 this file, not about the prohibition.
 
+**A decision's grounds are never this tree's own inventory.** "There is no such screen here yet" reads, in a repository created from this template, as a claim about *its* screens — see [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md), *決定の根拠に、この木の在庫を置かない*. <!-- boilerplate-only:line -->
+
 **Two responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: neither
 is decidable from the shape of the code. Hold them yourself:
 

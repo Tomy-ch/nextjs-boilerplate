@@ -76,7 +76,7 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 
 - **seam A(既定・静的)= `next.config.ts` `headers()` に非 nonce CSP。** inline は `'unsafe-inline'` で許す。**レンダリングモードを固定しない**([0040](0040-routing-rendering-strategy.md))。
 - **seam B(opt-in・strict)= `src/proxy.ts` で per-request nonce。** `strict-dynamic` + nonce の strict CSP を敷けるが、**全ページを dynamic rendering に固定**し、静的最適化・ISR・CDN キャッシュ・Cache Components を犠牲にする。厳格な脅威モデル(`'unsafe-inline'` 禁止のコンプライアンス要件)を持つ場合に **明示的に opt-in** する拡張点として名前を与える。
-- **seam A を確定した理由**: [0041](0041-cache-components-decision.md) が Cache Components を v1 で採用しており、nonce はこれと両立しない。nonce を既定にすると [0040](0040-routing-rendering-strategy.md)「モードを強制しない」・[0043](0043-middleware-policy.md)「Proxy は薄い last resort」の双方に反する。既定は**開いておく**側に倒し、strict 化は選択に委ねる。
+- **seam A を確定した理由**: [0041](0041-cache-components-decision.md) が Cache Components を採用しており、nonce はこれと両立しない。nonce を既定にすると [0040](0040-routing-rendering-strategy.md)「モードを強制しない」・[0043](0043-middleware-policy.md)「Proxy は薄い last resort」の双方に反する。既定は**開いておく**側に倒し、strict 化は選択に委ねる。
 - **`script-src` の `'unsafe-inline'` は弱い許可であり、strict CSP ではない。** 静的を保ったまま厳格化する道は nonce ではなく hash ベース(Next.js の実験的 SRI)である。実験的機能は採らない([0004](0004-library-management.md))。**撤回条件**: SRI が stable になり、Next.js 自身の inline script(RSC payload)を hash で許せるようになった時点で、seam A のまま `'unsafe-inline'` を外す。
 - **`style-src` は `style-src-elem` / `style-src-attr` に割らない。** 属性側は Radix の popper(`position` / `transform` / `--radix-popper-*`)と `next/image`(`color: transparent`)が要素の `style` 属性へ書くため、`'unsafe-inline'` から降りられない。要素側だけ厳格にする案は、動的な内容の `<style>` 要素(`components` の chart が系列色を CSS 変数として配る)と TipTap の runtime 注入(`injectCSS`)が hash で許せず、Safari が割った指定を持たず `style-src` へフォールバックするため、費用に対して得るものが薄い。リッチテキストの sanitizer は `style` 属性を通さない(`src/model/rich-text`)ので、**「リッチテキストのために `'unsafe-inline'`」は成立しない**。**撤回条件**: chart が変数を要素の `style` 属性へ移し、TipTap を `injectCSS: false` にし、[0102](0102-browser-support.md) の支持ブラウザが割った指定を揃えて持った時点で、要素側を `'self'` へ絞る。
 - seam B を採る場合も [0043](0043-middleware-policy.md) の制約を守る: `proxy.ts` は薄く保ち、nonce 生成とヘッダ設定に限る。`matcher` で prefetch・静的アセット(`_next/static` 等)を除外する。
@@ -131,7 +131,7 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 - [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — データ分類とキャッシュ境界。段 5(配信)の実体を本 ADR §5 が持つ
 - [0043-middleware-policy.md](0043-middleware-policy.md) — `proxy.ts` = 薄い last resort。seam B と `Cache-Control` の実装制約
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — レンダリングモード非強制。nonce CSP を既定にしない根拠
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components は v1 採用。nonce と非互換のため seam A を確定する根拠
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components を採用している。nonce と非互換のため seam A を確定する根拠
 - [0076-payment-ui-seam.md](0076-payment-ui-seam.md) — 決済 UI はフロントに置かない。`Permissions-Policy` の `payment` と `Cross-Origin-Embedder-Policy` の前提
 - [0131-cookie-consent.md](0131-cookie-consent.md) — 同意ゲート(外部スクリプトの CSP allowlist と連動)
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) — CSRF/origin 検証(`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」)の主 Rationale(本 ADR には同居させない)

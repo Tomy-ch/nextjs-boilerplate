@@ -221,7 +221,7 @@ nobody can read is a backlog nobody uses.
 | An existing issue covers it | Comment there with the new finding |
 | The fix is small enough to just make | Offer to make it now |
 | Step 2 disproved the premise | Report that; file nothing |
-| It is a decision, not a task | Propose an ADR, or a slot in `docs/adr/BACKLOG.md` with its 撤回条件 |
+| It is a decision, not a task | Propose an ADR, whose body carries the 撤回条件 when the decision is a deliberate exclusion |
 | It is a screen's promise, not a defect | Propose a spec update under `docs/spec/` |
 | It is a thing deliberately not carried | Check `docs/project/out-of-scope.md` first — it may already be answered, with the condition that would change it |
 
