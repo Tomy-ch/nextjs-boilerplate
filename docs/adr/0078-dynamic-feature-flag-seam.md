@@ -57,7 +57,7 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を本リポジトリに�
 
 - 本 ADR は保守的に **評価場所 = server 既定 + 動的値 = runtime config / source adapter 逃し + cache 焼き込み回避**の指針までを定め、具体機構(source の選択・cache key 設計)は実装側へ委ねる。
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーで **exclusion(+ 拡張点)** 分類に属する。exclusion 本体(非同梱宣言)と named seam(拡張点)を併記する型に従う。
-- **本体は flag 供給 seam をコードとして置かない。** 動的 flag を消費する設置面が本体に存在せず、使われない seam は腐るためである。**撤回条件は、再デプロイなしで切り替えたい対象が本体に実際に現れたとき。** 再デプロイ単位で固定するフラグは [0030](0030-environment-variable-management.md) の env / 目的別 config が既に受け持つため、**その種のフラグが増えたことは条件にならない** —— 凍結が正しい振る舞いであるものは、動的 flag の設置面ではない。本 ADR が記すのは採用時の拡張点の座標(source adapter + no-op 既定 + stateless props〈[0031](0031-policy-state-supply.md)〉/ 評価既定 = server / 動的値 = runtime config 逃し)であり、SaaS 採用と seam の実体化は採用時に行う(既定の形は env + adapter で、GrowthBook 等の SaaS は adapter の裏で差し替える)。採用時も本体は source adapter / no-op 既定 / server 評価既定を保持し、flag SaaS を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters / カーネル境界の裏で差替可能・vendor 直参照を feature / component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **本体は flag 供給 seam をコードとして置かない。** 動的 flag を消費する設置面が本体に存在せず、使われない seam は腐るためである。本 ADR が記すのは採用時の拡張点の座標(source adapter + no-op 既定 + stateless props〈[0031](0031-policy-state-supply.md)〉/ 評価既定 = server / 動的値 = runtime config 逃し)であり、SaaS 採用と seam の実体化は採用時に行う(既定の形は env + adapter で、GrowthBook 等の SaaS は adapter の裏で差し替える)。採用時も本体は source adapter / no-op 既定 / server 評価既定を保持し、flag SaaS を [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters / カーネル境界の裏で差替可能・vendor 直参照を feature / component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 
 ## 関連 ADR
 

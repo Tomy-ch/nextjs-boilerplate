@@ -107,7 +107,7 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 
 ## 補足
 
-- **購読 seam は実体を持つ。** 置き場は `src/adapters/client/stream/` で、中身は native `EventSource` + 薄い client である(§手段の優先順位=標準準拠は不変)。**設置面が無いうちは置かない** —— 使われない IF は腐るためで、実体化は設置面を持つ feature が生まれた時点で行う。**撤回条件は、サーバから押し出される更新を必要とする画面が本体に現れたとき。** **「バックエンドが SSE の口を持ったこと」は条件にならない** —— 設置面は供給側の能力ではなく、消費する画面の実在で決まる。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
+- **購読 seam は実体を持つ。** 置き場は `src/adapters/client/stream/` で、中身は native `EventSource` + 薄い client である(§手段の優先順位=標準準拠は不変)。**設置面が無いうちは置かない** —— 使われない IF は腐るためで、実体化は設置面を持つ feature が生まれた時点で行う。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
 - **発券の中継と購読の家は別である。** 発券は同一オリジンの Route Handler(`src/app/api/<資源>/…/stream-ticket/`)が中継し、購読そのものはブラウザが backend へ直接開く。中継が返すのは ticket の生値ではなく**繋ぎ先の URL** で、ブラウザ側で組み立てと取り回しを増やさないためである(URL を文言・ログ・span へ載せない制約は 決定 4 が持つ)。
 - **契約側に属するものは決めない。** 再開 cursor の query パラメータ名 / heartbeat の形式と間隔 / 開発時にイベントを起こす手段 / ticket の TTL は backend の契約が持つ。それらが client 側の設計に何を要求するかは [docs/design/realtime-delivery.md](../design/realtime-delivery.md) が列挙する。
 - 本 ADR は exclusion(非同梱宣言 + named seam を併記する)である。polling / 相対時刻更新等の周期 client 取得の rule は本 ADR の対象外([docs/rules.md](../rules.md))。本 ADR は**双方向/ストリーム**の seam のみを扱う(動的配信フラグは [0078](0078-dynamic-feature-flag-seam.md))。
