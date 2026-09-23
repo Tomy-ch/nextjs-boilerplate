@@ -90,7 +90,7 @@ sequenceDiagram
 
 ## 順序の扱い
 
-client が前提してよいのは「単位ごとに sequence が単調増加する」ことだけで、歯抜けも到達順の乱れも正常である（[ADR 0074](../adr/0074-runtime-communication-seam.md) 決定 6）。この前提から、整列の組み立ては次の形になる。
+client が前提してよいのは「単位ごとに sequence が単調増加する」ことだけで、歯抜けも到達順の乱れも正常である（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。この前提から、整列の組み立ては次の形になる。
 
 | 段 | 何をするか | 持つ状態 |
 | --- | --- | --- |
@@ -109,7 +109,7 @@ client が前提してよいのは「単位ごとに sequence が単調増加す
 
 ## 再接続の組み立て
 
-`EventSource` の組み込み再接続は使わず、adapter が自前で張り直す（[ADR 0074](../adr/0074-runtime-communication-seam.md) 決定 8）。状態は adapter が 1 つの機械として持つ。
+`EventSource` の組み込み再接続は使わず、adapter が自前で張り直す（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。状態は adapter が 1 つの機械として持つ。
 
 ```mermaid
 stateDiagram-v2
@@ -192,7 +192,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 
 ### Storybook と mock は購読を持たない
 
-`mocks/` に SSE のハンドラは置かない（[ADR 0074](../adr/0074-runtime-communication-seam.md) 決定 9）。story が見せるのは購読の結果として feature が取る状態 —— 開いている / 切れている / 権限が無い / 楽観行がある —— で、それは props で与える。開発時に event を起こす手段は backend 側が持ち、この層は実 backend へ繋ぐ。
+`mocks/` に SSE のハンドラは置かない（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。story が見せるのは購読の結果として feature が取る状態 —— 開いている / 切れている / 権限が無い / 楽観行がある —— で、それは props で与える。開発時に event を起こす手段は backend 側が持ち、この層は実 backend へ繋ぐ。
 
 ## バックエンド側に決めてもらうもの
 

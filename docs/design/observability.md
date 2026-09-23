@@ -173,7 +173,7 @@ Sentry / Datadog / Faro のような SaaS SDK は同梱しない。向け先は�
 
 ### 伝播先は API の origin だけである
 
-`traceparent` / `baggage` が付くのは `APP_API_BASE_URL` と同じ origin への要求だけで、IdP や第三者の origin には付かない。別の origin で trace が切れているのを「バグ」として伝播先を広げてはならない —— `Baggage` を渡してよい相手を絞っている（[ADR 0081](../adr/0081-observability-logging.md) §2）。
+`traceparent` / `baggage` が付くのは `APP_API_BASE_URL` と同じ origin への要求だけで、IdP や第三者の origin には付かない。別の origin で trace が切れているのを「バグ」として伝播先を広げてはならない —— `Baggage` を渡してよい相手を絞っている（[ADR 0081](../adr/0081-observability-logging.md)）。
 
 ### 属性名が span の出所で違う
 

@@ -25,7 +25,7 @@ Accepted
 - **unit が負うのは、取得結果をどう組み立てて渡すか**である。取得した値の写し方、`notFound()` などフレームワーク境界への振り分け、失敗分類の再 throw は、いずれも取得の実体を持たずに決まるため unit の対象とする
 - **E2E / integration が負うのは、通しでしか確かめられないもの**に限る。実 API 応答の形と契約適合は integration(MSW)、ブラウザ経路・streaming と HTTP ステータスの対応・hydration・cache の再検証は E2E(Playwright)である。unit で mock した取得を「取得を検証した」と数えない
 - **route segment(`src/app/**/page.tsx`)は別に判定する**。`params` / `searchParams` が Promise である App Router の規約と生成型に依存するため、unit の対象に含めるかは route 側の検証手段として個別に決める(E2E 側に置く)
-- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: この線引きは「フレームワークが提供する描画経路をどこまで再現するか」ではなく、**検証対象が取得の実体を必要とするか**で決まる。したがって React / Next.js の実装詳細が変わっても線は動かず、Vitest / Playwright のどちらを使うかにも依存しない
+- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md))**: この線引きは「フレームワークが提供する描画経路をどこまで再現するか」ではなく、**検証対象が取得の実体を必要とするか**で決まる。したがって React / Next.js の実装詳細が変わっても線は動かず、Vitest / Playwright のどちらを使うかにも依存しない
 - 本 ADR が確定するのは**寄せ先(placement)**である。**MSW モックの具体パイプライン(契約 → MSW の契約駆動モック)は [0071](0071-bff-api-integration.md) の責務**であり、本 ADR では二重に決めない([0090](0090-testing-strategy.md) の mock 戦略 = MSW / `vi.mock` と接続)
 
 ### 2. a11y 自動テストの組込
@@ -39,16 +39,16 @@ Accepted
   - **story 層(実ブラウザ)**が見るのは、**実描画でしか出ないもの** — コントラストの実測と、合成した状態での崩れである。全数を 1 テーマで回す(上記)
   - ARIA 系のルールは両層で鳴り得るが、**落ちる時機と単位が違う**ため重複ではない。片方を落とすと、部品の契約が壊れたことを PR の unit では検知できなくなるか(component 側を落とした場合)、実際の配色で読めないことを検知できなくなる(story 側を落とした場合)
   - したがって **story を持たない対象(feature の合成 / page)にも `axe()` は要る**。story 層が到達しないので、そこだけが唯一の検査地点になる
-- **検査するルールの範囲は適合目標そのもので決める**。axe は既定で目標の外側(`best-practice` 等)まで回すため、範囲を宣言しないと掲げていない水準を全 story ぶん評価することになる。宣言は目標([0100](0100-accessibility-target.md) §1 = WCAG 2.x AA)を axe のタグへ写したものであり、目標を動かすときは 0100 を先に変える
+- **検査するルールの範囲は適合目標そのもので決める**。axe は既定で目標の外側(`best-practice` 等)まで回すため、範囲を宣言しないと掲げていない水準を全 story ぶん評価することになる。宣言は目標([0100](0100-accessibility-target.md) = WCAG 2.x AA)を axe のタグへ写したものであり、目標を動かすときは 0100 を先に変える
 - **無効化するルールは理由と撤去条件を添えて 1 箇所へ宣言する**。全 story から外してよいのは、story が部品を単独で描画していることの副作用として鳴るものだけで、「いまは直せない」は理由にならない
 - **story を名指しする無効化は、上流の実装が原因で到達不能なものに限る**。使う側の実装では取り除けず、かつ利用者が実際には到達できないことが条件で、宣言は対象 story を列挙する。他の story では同じルールが生きたまま残る
-- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: AA 目標(0100)は、biome(静的)が表現できない**実行時 DOM の ARIA 整合・コントラスト**を機械検証する層を必要とする。この必要性は特定ベンダーに依存しない — axe-core は Lighthouse / Deque / 各種 `*-axe` ラッパが共有する事実上の a11y エンジンであり、「axe を正当化から抜いても、実行時 a11y を自動アサートする層を test に敷く」というパターンは AA 準拠それ自体から正当化される(数ある選択肢〈手動のみ / 他エンジン〉から、独立した根拠で axe を 1 要因として選んだ)。`vitest-axe` / `@axe-core/playwright` は 0090 で既決のフレームワークへの標準バインディングゆえに一意
+- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md))**: AA 目標(0100)は、biome(静的)が表現できない**実行時 DOM の ARIA 整合・コントラスト**を機械検証する層を必要とする。この必要性は特定ベンダーに依存しない — axe-core は Lighthouse / Deque / 各種 `*-axe` ラッパが共有する事実上の a11y エンジンであり、「axe を正当化から抜いても、実行時 a11y を自動アサートする層を test に敷く」というパターンは AA 準拠それ自体から正当化される(数ある選択肢〈手動のみ / 他エンジン〉から、独立した根拠で axe を 1 要因として選んだ)。`vitest-axe` / `@axe-core/playwright` は 0090 で既決のフレームワークへの標準バインディングゆえに一意
 - 依存追加は exact pin + `pnpm audit`([0004](0004-library-management.md))。CI 組込は [0153](0153-ci-configuration.md) へ
 
 ### 3. visual regression = Playwright のスクリーンショット比較を採用
 
 - **visual regression を採用**し、実行基盤は **[0090](0090-testing-strategy.md) が既に採る Playwright のスクリーンショット比較**(`toHaveScreenshot()`)とする。追加のサービス・別ランナーは導入しない
-- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2)**: 検出したいのは「意図しない見た目の変化」であり、これは DOM アサートでは表現できない。Playwright は E2E ですでに動いており、スクリーンショット比較はその**組込機能**であるため、専用 SaaS を正当化から抜いても「基準画像との差分を CI で比較する」というパターンは成立する
+- **正当性材料(vendor-independent / [0010](0010-standards-and-non-lockin.md))**: 検出したいのは「意図しない見た目の変化」であり、これは DOM アサートでは表現できない。Playwright は E2E ですでに動いており、スクリーンショット比較はその**組込機能**であるため、専用 SaaS を正当化から抜いても「基準画像との差分を CI で比較する」というパターンは成立する
 - **対象は Storybook の story を第一とする**([0054](0054-ui-catalog-storybook.md))。story がコンポーネント在庫リストであり、feature 画面より安定した比較単位になるため。画面単位の比較は主要ジャーニーに限る
 - **基準画像は専用のリポジトリへ置き、サブモジュールとして参照する**。PNG は圧縮済みで delta も zlib も効かないため、同じ repo に置くと更新 1 回ぶんがほぼ丸ごと永久に積まれ、design token を触るたびに全数が動く。置き場は workflow もルールセットも持たず、更新・掃除はすべて本体側から流し込む
 - **置き場の公開範囲は既定で `private`**。基準画像は画面の見た目そのものなので、公開側へ倒れる既定は取らない。代償は、**外部(fork)からの PR で比較が落ちる**こと —— fork の PR には secrets が渡らず、基準画像を読むトークンを取れない。外部の PR を受けるリポジトリは `public` にする
@@ -76,7 +76,7 @@ Accepted
 - **アプリはホストで起動し、コンテナで動かすのはブラウザだけ**にする。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` を起動できない
 - **同じ Playwright の土台に乗る 3 件を E2E の射程に含め、独立させない**:
   - **ブラウザエラー** — hydration の不一致 / 描画中の例外 / 通信の失敗を検出する。**hydration の不一致は build も型検査も通り、実機でしか出ない**
-  - **レスポンシブ** — [0051](0051-styling-system.md) §2 の 3 段で見る。境界の値は design token が持ち、テストへ数値を書かない
+  - **レスポンシブ** — [0051](0051-styling-system.md) の 3 段で見る。境界の値は design token が持ち、テストへ数値を書かない
   - **クロスブラウザ** — [0102](0102-browser-support.md) が追認するモダンブラウザを 3 つの描画エンジン(Chromium / Firefox / WebKit)へ畳んだものだけを見る。**銘柄も版も見ていない**ことを job に書く
 
 ## 禁止事項

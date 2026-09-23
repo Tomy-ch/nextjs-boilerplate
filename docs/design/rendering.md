@@ -173,7 +173,7 @@ sequenceDiagram
 
 この性質から、次の使い分けが出る。
 
-- **本文の幅・順序が変わる出し分けには使わない**。hydration の前後で配置が動く。CSS の media query（Tailwind の `lg:` など）で行う（[ADR 0051](../adr/0051-styling-system.md) §2）
+- **本文の幅・順序が変わる出し分けには使わない**。hydration の前後で配置が動く。CSS の media query（Tailwind の `lg:` など）で行う（[ADR 0051](../adr/0051-styling-system.md)）
 - **押せる必要のある操作の有無にも使わない**。JavaScript が届くまで押せない操作ができる
 - **使ってよいのは、DOM を残したままでは成立しないもの**（focus trap など）と、**現れても位置が動かないもの**
 

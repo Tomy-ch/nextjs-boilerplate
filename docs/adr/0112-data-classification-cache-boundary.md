@@ -12,7 +12,7 @@ Cache Components(PPR)を有効化すると、**user-scoped な値が共有・静
 
 規約([`docs/rules.md`「描画とキャッシュ」](../rules.md#rendering)の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」)だけでは止まらない。`adapters/server/http` の `RequestSpec` が `cache` / `tags` を**どの client でも受け取れる**形なら、資格情報を載せる口に `cache: "force-cache"` を渡す書き方が型検査を通る。**要るのは強制**である。
 
-[0030](0030-environment-variable-management.md) §8 は Server → Client の誤送信に対する防御を持つ。**キャッシュ側の境界は本 ADR が持つ。**
+[0030](0030-environment-variable-management.md) は Server → Client の誤送信に対する防御を持つ。**キャッシュ側の境界は本 ADR が持つ。**
 
 ## 不変条件
 
@@ -57,7 +57,7 @@ createHttpClient({ scope: "user-scoped" })  // 資格情報を載せられる。
 | **user-scoped** | 主体に紐づくもの(プロフィール・利用者ごとの一覧・利用履歴) | request scope / 動的 RSC。**共有キャッシュと静的生成は不可**。client へは詰め替えた後のみ |
 | **secret** | 署名鍵・トークン | server 内部のみ。キャッシュ・静的描画・client DTO・client 送信のいずれも不可 |
 
-**`secret` はこの取得経路を通らない。** `config/*.server.ts` に閉じ、`import "server-only"` と [0030](0030-environment-variable-management.md) §8 の taint が持つ。**値の数が少なく描画へ出ないため、こちらは branded / opaque な値型が費用に見合う**(包むのは secret だけ)。
+**`secret` はこの取得経路を通らない。** `config/*.server.ts` に閉じ、`import "server-only"` と [0030](0030-environment-variable-management.md) の taint が持つ。**値の数が少なく描画へ出ないため、こちらは branded / opaque な値型が費用に見合う**(包むのは secret だけ)。
 
 ### 3. 資格情報を載せうる口は、載せなかった回も含めて user-scoped
 
@@ -77,8 +77,8 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 | **キャッシュ投入前** | `use cache` を持つモジュールから user-scoped adapter を import する | lint(`project-rules/no-user-scoped-in-cached-module`) | `lint:ci` |
 | **描画** | cached scope からの `cookies()` / `headers()` 読み出し。資格情報が cookie 由来であるため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる | framework | build または実行時 |
 | **取得時** | 型を迂回して組まれた spec のキャッシュ指定と、呼び出しごとに持ち込まれた資格情報のヘッダ | `adapters/server/http` の関門 | 要求時に throw |
-| **client 送信前** | server object をそのまま client へ渡す | taint([0030](0030-environment-variable-management.md) §8) | 描画時 |
-| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ。session cookie を載せた要求への応答に `src/proxy.ts` が `Cache-Control: private, no-store` を付ける([0111](0111-csp-security-headers.md) §5) | 応答時 |
+| **client 送信前** | server object をそのまま client へ渡す | taint([0030](0030-environment-variable-management.md)) | 描画時 |
+| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ。session cookie を載せた要求への応答に `src/proxy.ts` が `Cache-Control: private, no-store` を付ける([0111](0111-csp-security-headers.md)) | 応答時 |
 
 **どの段も、他の段が見えないものを見ている。** 取得の口だけでは `use cache` を書かれた時点で外れ、taint だけでは派生値とコピーで抜け、ヘッダだけではアプリ内部の共有キャッシュに効かない。
 
@@ -102,7 +102,7 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 | --- | --- |
 | 分類 + 取得の口 | **どこで使ってよいか**を型と引数で制約する |
 | PPR / Cache Components([0041](0041-cache-components-decision.md)) | 共有・静的領域への誤投入を防ぐ(キャッシュ方針の側) |
-| taint([0030](0030-environment-variable-management.md) §8) | Server → Client の誤送信を実行時に検知する |
+| taint([0030](0030-environment-variable-management.md)) | Server → Client の誤送信を実行時に検知する |
 | React Compiler([0042](0042-react19-rendering-api.md)) | **性能最適化のみ。** PII / キャッシュ / セキュリティ境界とは独立で、opt-in |
 
 **React Compiler は PII 保護機構ではない。** 本 ADR の設計から切り離す。

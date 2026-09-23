@@ -19,7 +19,7 @@ Accepted
 ### 1. 送信フローの canonical 形(デファクトに乗る)
 
 - `<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を送信フローの**既定形**とする。Server Action は feature 内 `actions.ts` に置き、編成のみを行う([0021](0021-frontend-responsibility.md) / [0040](0040-routing-rendering-strategy.md))。`"use client"` は入力を扱う葉へ押し下げる([0040](0040-routing-rendering-strategy.md))
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2):progressive enhancement(JS 無効でも `<form>` が送信される)/ PRG(Post-Redirect-Get は web-platform の確立パターン)/ pending・結果 state の一元化。運用テスト =「React / Next.js を正当化から抜いても、サーバ往復する form は『標準 HTTP form + 進捗表示 + 結果表示』として成立するか?」→ Yes。ゆえにデファクトに乗っても縛られていない
+- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)):progressive enhancement(JS 無効でも `<form>` が送信される)/ PRG(Post-Redirect-Get は web-platform の確立パターン)/ pending・結果 state の一元化。運用テスト =「React / Next.js を正当化から抜いても、サーバ往復する form は『標準 HTTP form + 進捗表示 + 結果表示』として成立するか?」→ Yes。ゆえにデファクトに乗っても縛られていない
 
 ### 2. 戻り値契約 `ActionState<T>`(入力検証・通知が共通に依拠する器)
 

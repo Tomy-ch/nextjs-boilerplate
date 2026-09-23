@@ -452,7 +452,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **検疫**: `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)未満の解決先は採用せず、既存ピンがあれば維持・無ければ見送る。1 つ前の通過済み版への step-back は `actions-pin` スキルが持つ
 - **再ポイントタグ検知**: ロックファイルの差分監視としてスキルの手順に置いた(厳密版 tag の SHA が動いたらセキュリティイベント扱いで停止)
 - `check` は fail-closed。go 版の「未登録 / 未固定」に加え、**壊れたロックファイル行**と**孤児エントリ**も error にした
-- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md) 1「別関心として分ける」)
+- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md)「別関心として分ける」)
 
 > go 側はこの後、補助スクリプト群の fail-open を一括で fail-close 化している。本リポジトリの `check` は当初から fail-closed のため追随不要。
 
@@ -581,7 +581,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
   - `mise exec` で包まない。素の `graphify` を activate 済み mise の PATH から解決する([0003](../adr/0003-version-manager.md))。この帰結としてスクリプトは `mise.toml` の pin を読まない
   - 対象プラットフォームは Claude Code のみ。`.codex/` の器が無く着地検証ができない(IM-04 待ち)
   - `[sql]` extra を付けない。表示層に SQL ソースを持たない([0070](../adr/0070-backend-role-separation.md))
-  - クールダウン基準の置き場は [0110](../adr/0110-security-operations.md) 1.1
+  - クールダウン基準の置き場は [0110](../adr/0110-security-operations.md)
   - `.graphifyignore` は `*.ja.md` の 1 件のみ。本リポジトリの生成物は gitignore 済みで graphify が自動的に外す
   - project スコープ書き換え命令の `deny` を、プラットフォーム名の列挙ではなくパターン(`graphify * install*`)で書く
 

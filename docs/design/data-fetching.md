@@ -204,7 +204,7 @@ hook の側で押さえるのは 3 つ。
 
 ## データ分類が取得の口に付く
 
-分類は値ではなく**口**に付く。`createHttpClient` は `scope` を必ず受け取り、分類ごとに受け取れる引数が型として変わる（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) 決定 1）。
+分類は値ではなく**口**に付く。`createHttpClient` は `scope` を必ず受け取り、分類ごとに受け取れる引数が型として変わる（[ADR 0112](../adr/0112-data-classification-cache-boundary.md)）。
 
 | `scope` | 持てるもの | 型として持たないもの |
 | --- | --- | --- |

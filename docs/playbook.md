@@ -110,7 +110,7 @@ flowchart TD
 | 待つ単位・失敗の単位 | [0040](adr/0040-routing-rendering-strategy.md) § 境界の粒度 / [0080](adr/0080-error-handling.md) § 境界の粒度 |
 | **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) § 4. 重さを持ち込まない書き方 |
 | 部品が持つ状態と、外から渡すもの | [0053](adr/0053-ui-component-interaction-seam.md) § 部品が持つ状態と、外から渡すもの |
-| 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) § 1 つの操作に 1 つの role |
+| 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) つの操作に 1 つの role |
 | 一度に見せる量 / 構造の差し替え | [0053](adr/0053-ui-component-interaction-seam.md) § 一度に見せる量は段階で絞る・§ 構造の差し替えは props ではなく slot で受ける |
 | variant の使いどころ / headless に分ける条件 | [0052](adr/0052-ui-component-policy.md) § variant は排他の見た目にだけ使う・§ 振る舞いと見た目を分けるのは、振る舞いが 2 箇所目で要るときだけ |
 | 状態をどこまで上げるか | [0060](adr/0060-state-management.md) § 状態をどこまで上げるか |

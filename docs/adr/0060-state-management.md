@@ -79,7 +79,7 @@ Server Actions と Server Component fetch を既定に置くのは、**画面側
 - 状態が変わっても、読んでいない部品の描画が変わらない
 - 器が消えても状態が失われない位置にあること —— **上げる理由が「寿命」であること**を確かめる
 
-**押し下げは再描画を理由に行わない。** 再描画の費用は計測してから手を打つものであり([0042](0042-react19-rendering-api.md) 決定 4)、計測の前に構造で先回りすると、寿命ではなく費用の推測で境界が決まる。押し下げる理由は寿命(その器と一緒に消えてよいか)である。
+**押し下げは再描画を理由に行わない。** 再描画の費用は計測してから手を打つものであり([0042](0042-react19-rendering-api.md))、計測の前に構造で先回りすると、寿命ではなく費用の推測で境界が決まる。押し下げる理由は寿命(その器と一緒に消えてよいか)である。
 
 ### URL を正とする入力欄が持つ手元の値
 
@@ -101,11 +101,11 @@ Server Actions と Server Component fetch を既定に置くのは、**画面側
 採用する 3 ライブラリはいずれも [0010](0010-standards-and-non-lockin.md) の 2 原則(§1 デファクト準拠 / §2 vendor-independent 正当化)に沿って選ぶ。
 
 - **react-hook-form**: React の de-facto フォームライブラリ。`register` / uncontrolled + resolver という標準形に乗る。vendor-independent = 入力規則は **`model` の手書き zod 表示検証スキーマが SSOT**([0062](0062-form-input-validation.md) 二層分離)であり、react-hook-form を抜いても「スキーマ検証されたフォーム状態を hook で扱う」構造は可搬(代替: TanStack Form / Formik)。uncontrolled による再描画抑制と RSC/Server Actions との親和性を独立根拠として選択
-  - **非ロックインの担保形が他 2 者と異なる(例外注記)**: react-hook-form は hook の性質上、`useForm` / `register` を **feature コンポーネントから直接呼ぶ**構造であり、Zustand(`stores` カーネル)/ date-fns(ユーティリティ)のように **vendor 直参照を 1 箇所へ局所化する**形は字義通りには成立しない。したがって rhf の非ロックインは「境界の裏に集約」ではなく、**入力規則の SSOT を zod スキーマ(`model` の表示検証スキーマ)側に置く**ことで担保する。zod スキーマは可搬な契約なので、rhf を抜いても契約(検証ルール・型)は残り、別フォームライブラリの resolver に載せ替えられる(= [0010](0010-standards-and-non-lockin.md) §2 の運用テスト「差し替えても契約が残るか」を満たす)。散らしてはならないのは vendor API そのものではなく、**zod を経由しない独自バリデーションロジック**である(禁止事項に同旨)
+  - **非ロックインの担保形が他 2 者と異なる(例外注記)**: react-hook-form は hook の性質上、`useForm` / `register` を **feature コンポーネントから直接呼ぶ**構造であり、Zustand(`stores` カーネル)/ date-fns(ユーティリティ)のように **vendor 直参照を 1 箇所へ局所化する**形は字義通りには成立しない。したがって rhf の非ロックインは「境界の裏に集約」ではなく、**入力規則の SSOT を zod スキーマ(`model` の表示検証スキーマ)側に置く**ことで担保する。zod スキーマは可搬な契約なので、rhf を抜いても契約(検証ルール・型)は残り、別フォームライブラリの resolver に載せ替えられる(= [0010](0010-standards-and-non-lockin.md) の運用テスト「差し替えても契約が残るか」を満たす)。散らしてはならないのは vendor API そのものではなく、**zod を経由しない独自バリデーションロジック**である(禁止事項に同旨)
 - **zod**: TypeScript-first のスキーマ検証デファクト。スキーマは可搬な契約であり、resolver 経由で他フォームライブラリにも噛む(代替: valibot / yup)。「スキーマから型と検証を導出する」構造がベンダー非依存
 - **Zustand**: 軽量 store の de-facto。`create()` + hook の標準形に乗り、Zustand を抜いても「横断 client 状態を hook で読む」構造は可搬([0023](0023-stores-kernel.md) 詳述。代替: Jotai / Redux Toolkit)
 
-差し替え可能性の担保形は 2 通りに分かれる。**Zustand は vendor 直参照を `stores` カーネルに集約**([0023](0023-stores-kernel.md))して「境界の裏」に閉じる。一方 **react-hook-form は上記の例外注記のとおり、hook を feature から直接呼ぶため「境界の裏への集約」では担保できず、zod スキーマ(`model` の表示検証スキーマ)を入力規則の SSOT に置くこと**で可搬性を保つ(rhf を抜いても契約が残る)。共通するのは、いずれも [0010](0010-standards-and-non-lockin.md) §2 の運用テスト(差し替えても契約・構造が残るか)を満たす点であり、集約の物理形ではなく可搬性の成立が判定軸である。導入は **exact-pin + `pnpm audit`**([0004](0004-library-management.md))の枠内で行う。
+差し替え可能性の担保形は 2 通りに分かれる。**Zustand は vendor 直参照を `stores` カーネルに集約**([0023](0023-stores-kernel.md))して「境界の裏」に閉じる。一方 **react-hook-form は上記の例外注記のとおり、hook を feature から直接呼ぶため「境界の裏への集約」では担保できず、zod スキーマ(`model` の表示検証スキーマ)を入力規則の SSOT に置くこと**で可搬性を保つ(rhf を抜いても契約が残る)。共通するのは、いずれも [0010](0010-standards-and-non-lockin.md) の運用テスト(差し替えても契約・構造が残るか)を満たす点であり、集約の物理形ではなく可搬性の成立が判定軸である。導入は **exact-pin + `pnpm audit`**([0004](0004-library-management.md))の枠内で行う。
 
 ## 禁止事項
 

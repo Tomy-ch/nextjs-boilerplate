@@ -285,7 +285,7 @@ console の行と通信の打ち切りをどう見分けるか（文言に頼る
 
 **どちらもここに数値や銘柄を書かない。**
 
-- **帯**は [0051](../docs/adr/0051-styling-system.md) §2 が 3 つに固定し、境界の値は design token
+- **帯**は [0051](../docs/adr/0051-styling-system.md) が 3 つに固定し、境界の値は design token
   （`tokens/primitives.json`）が持つ。撮るのは**帯の下端** —— `min-width` で切り替わる以上、その帯の
   指定が初めて効く幅であり、崩れるならまずそこで崩れる。モバイルだけは下端を token が持たない
   （下限は [0102](../docs/adr/0102-browser-support.md) が用途依存としている）ので、上端（`md - 1`）を

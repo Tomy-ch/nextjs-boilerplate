@@ -37,9 +37,9 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 
 ### 3. transport は SSE を既定とし、WebSocket は真に双方向のときだけ
 
-**手段の優先順位(標準に乗る。[0010](0010-standards-and-non-lockin.md) §1)**: server→client の一方向 push は **SSE(`EventSource`)を既定**とし、**真に双方向が必要な場合のみ WebSocket** を採る。定期再取得(polling)は [0060](0060-state-management.md) の Server state 既定を破らない範囲での例外であり、その規約は [docs/rules.md](../rules.md) が持つ。
+**手段の優先順位(標準に乗る。[0010](0010-standards-and-non-lockin.md))**: server→client の一方向 push は **SSE(`EventSource`)を既定**とし、**真に双方向が必要な場合のみ WebSocket** を採る。定期再取得(polling)は [0060](0060-state-management.md) の Server state 既定を破らない範囲での例外であり、その規約は [docs/rules.md](../rules.md) が持つ。
 
-**vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: `EventSource` / `WebSocket` は WHATWG / W3C の **web プラットフォーム標準**であり Next.js 固有 API ではない(= フレームワーク・ロックインを構成しない)。SSE を既定に置く独立根拠 = ① HTTP 上で動き既存の proxy / CDN / 認証基盤をそのまま通る、② ブラウザ組み込みで依存を足さず、購読の口が「URL を 1 つ開く」だけの形に収まる、③ 供給元が無くてもバックエンド直結へ素直に degrade する —— いずれも「Next.js が推奨するから」ではない web 標準の性質。**`EventSource` が再接続を内蔵することは根拠に数えない** —— 決定 8 でそれを使わないと決めているため。
+**vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: `EventSource` / `WebSocket` は WHATWG / W3C の **web プラットフォーム標準**であり Next.js 固有 API ではない(= フレームワーク・ロックインを構成しない)。SSE を既定に置く独立根拠 = ① HTTP 上で動き既存の proxy / CDN / 認証基盤をそのまま通る、② ブラウザ組み込みで依存を足さず、購読の口が「URL を 1 つ開く」だけの形に収まる、③ 供給元が無くてもバックエンド直結へ素直に degrade する —— いずれも「Next.js が推奨するから」ではない web 標準の性質。**`EventSource` が再接続を内蔵することは根拠に数えない** —— 決定 8 でそれを使わないと決めているため。
 
 強制: 散文 —— **寄せられない**。「真に双方向か」は用途の判断で、コードの形からは決まらない。
 

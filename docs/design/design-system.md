@@ -17,7 +17,7 @@ design token から feature の画面部品まで、見た目を決めるもの�
 
 上から下へ、**下の段は上の段を知らず、上の段は下の段を組み合わせるだけ**である。`components` が import してよい層は `model` と `errors` に限られ（`architecture.ts`）、逆に `features` は `components` を自由に引く。`cn()` を feature が使うのはこの向きに沿っており、実際に十数の feature ファイルが引いている。
 
-**部品は自分がどの系統に置かれたかを知らない。** 系統の差は semantic token の引き直しだけで完結し（[0051](../adr/0051-styling-system.md) §1）、部品側の分岐も系統ごとの部品も存在しない。同じ理由で、部品は自分がどこに置かれるか（下端に固定か、脇に常設か）も知らない —— それは画面の判断で、[`docs/rules.md`](../rules.md)「UI 部品と操作」の末尾が禁じている。
+**部品は自分がどの系統に置かれたかを知らない。** 系統の差は semantic token の引き直しだけで完結し（[0051](../adr/0051-styling-system.md)）、部品側の分岐も系統ごとの部品も存在しない。同じ理由で、部品は自分がどこに置かれるか（下端に固定か、脇に常設か）も知らない —— それは画面の判断で、[`docs/rules.md`](../rules.md)「UI 部品と操作」の末尾が禁じている。
 
 ## token —— 値の出所と、届く経路
 
@@ -221,7 +221,7 @@ story の `title` の先頭セグメントは台帳の `as` と一致させ、`p
 
 ### a11y はカタログで全数
 
-`axe` は visual regression と同じ digest 固定コンテナで story 全数に掛かる（[0091](../adr/0091-test-verification-methods.md) §2）。`addon-a11y` は手元の対話パネルであり、ゲートではない。component 層の `vitest-axe` とは見えるものが違う —— jsdom には色が無いので、コントラストの実測は story 層でしか出ない。
+`axe` は visual regression と同じ digest 固定コンテナで story 全数に掛かる（[0091](../adr/0091-test-verification-methods.md)）。`addon-a11y` は手元の対話パネルであり、ゲートではない。component 層の `vitest-axe` とは見えるものが違う —— jsdom には色が無いので、コントラストの実測は story 層でしか出ない。
 
 ## 外部への書き出し
 

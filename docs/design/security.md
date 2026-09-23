@@ -6,7 +6,7 @@
 
 ## 全体の形
 
-防御は 1 か所に集めず、**値が通る道のりの段ごと**に置いてある。どの段も他の段が見えないものを見ている（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) 決定 4）ので、1 つを読んで「ここが守っている」と結論しない。
+防御は 1 か所に集めず、**値が通る道のりの段ごと**に置いてある。どの段も他の段が見えないものを見ている（[ADR 0112](../adr/0112-data-classification-cache-boundary.md)）ので、1 つを読んで「ここが守っている」と結論しない。
 
 ```text
 ブラウザ ──(要求)──▶ proxy.ts ──▶ Route Handler / 画面 / Server Action ──▶ adapters/server ──▶ バックエンド
@@ -42,7 +42,7 @@
 
 CSP の `script-src` は `'self' 'unsafe-inline'` である。**nonce は使っていない。** Next.js 自身が RSC payload を inline script（`self.__next_f.push`）として吐くため、nonce も hash も無い構成で inline を許すにはこれしか無い。
 
-nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) §4 の seam B）を採ると、`src/proxy.ts` が要求ごとに nonce を生成し、Next.js が全 script に付ける。その瞬間に**全 route が dynamic rendering になる**。静的な殻は配れず、CDN キャッシュも ISR も効かず、このリポジトリが有効にしている Cache Components（[rendering.md](rendering.md)「このリポジトリは有効にしている」）と両立しない。「CSP を厳しくしたい」という要件は、配信モデルごと入れ替える判断を伴う。
+nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) の seam B）を採ると、`src/proxy.ts` が要求ごとに nonce を生成し、Next.js が全 script に付ける。その瞬間に**全 route が dynamic rendering になる**。静的な殻は配れず、CDN キャッシュも ISR も効かず、このリポジトリが有効にしている Cache Components（[rendering.md](rendering.md)「このリポジトリは有効にしている」）と両立しない。「CSP を厳しくしたい」という要件は、配信モデルごと入れ替える判断を伴う。
 
 `Content-Security-Policy-Report-Only` も経由していない。段階導入の代わりに、違反は次項の検査が実ブラウザで見つける。
 
@@ -61,7 +61,7 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) §4 の sea
 
 `next.config.ts` と `src/config/security-headers/` を触った変更は `scripts/deferred-checks/recommend.ts` が `run-e2e` を名指しする。ヘッダの変更を単体テストだけで通した気にならないように、実ブラウザの検査へ誘導している。
 
-**CI はタグマネージャの容器 ID を空にして走る。** したがって Google の配信元を足す側の CSP と、`Cross-Origin-Embedder-Policy` が降りた状態は、実ブラウザでは検査されていない。単体テストが組み立てを固定しているだけである（[ADR 0110](../adr/0110-security-operations.md) §3.5）。
+**CI はタグマネージャの容器 ID を空にして走る。** したがって Google の配信元を足す側の CSP と、`Cross-Origin-Embedder-Policy` が降りた状態は、実ブラウザでは検査されていない。単体テストが組み立てを固定しているだけである（[ADR 0110](../adr/0110-security-operations.md)）。
 
 ### 配信ヘッダの隣にあるもの
 

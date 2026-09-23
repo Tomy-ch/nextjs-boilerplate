@@ -12,7 +12,7 @@ coverage-exclusions:
 `server/` と `client/` に分けます —— **これは置き場の分けであって、境界検査の要素の分けではありません**
 （要素の分かれ目は下記「この層の要素」）。
 
-**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md) §3）。
+**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md)）。
 実行文脈を持たない規則——どちらの面が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
@@ -225,7 +225,7 @@ event の採番も、誰に何を配るかも持ちません。
 
 ## client へ渡してはいけないものを登録する
 
-`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) §8 の口です。
+`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) の口です。
 汚した object や値を Client Component へ渡すと、**描画が実行時に落ちます**。
 
 | 汚すもの | 例 | 登録する場所 | 寿命 |

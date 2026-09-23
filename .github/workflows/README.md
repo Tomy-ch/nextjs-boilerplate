@@ -72,7 +72,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 **本文を安全にするのは呼ぶ側の責務である。**issue の本文は Markdown として描かれ、そこへ流すのは
 道具の出力 —— このリポジトリが書いたのではない文字列 —— なので、4 スペース字下げでコードブロックに
-するか、markup を作れない文字集合へ濾してから渡す（[0153](../../docs/adr/0153-ci-configuration.md) §5）。
+するか、markup を作れない文字集合へ濾してから渡す（[0153](../../docs/adr/0153-ci-configuration.md)）。
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
@@ -136,7 +136,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 `dast` は初日からゲートである。**ただし恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止める。** 壁が壁として機能するには通れる形が要る。
 
-そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md) 3.4）。
+そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md)）。
 
 各行に撤回条件が書いてある。条件が満たされた行は削除する —— 一覧が空になることが目標であって、一覧そのものは成果物ではない。CSP と同伴ヘッダ（[0111](../../docs/adr/0111-csp-security-headers.md)）は載っており、ZAP が読むのはそのヘッダである。ヘッダをブラウザが enforce した結果は `e2e` の見張りが見る。
 
@@ -144,7 +144,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 ### 落とさない層がある
 
-**すべての層をゲートにしていない。** ゲートにしてよいのは baseline を 0 件に保てる層か、「この変更が増やしたか」だけを問う層に限る（[0110](../../docs/adr/0110-security-operations.md) 3.2）。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
+**すべての層をゲートにしていない。** ゲートにしてよいのは baseline を 0 件に保てる層か、「この変更が増やしたか」だけを問う層に限る（[0110](../../docs/adr/0110-security-operations.md)）。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
 
 | 配線 | 該当 job | 何が赤にするか |
 | --- | --- | --- |
@@ -168,7 +168,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 **報告専用の job が要るのは、脆弱性が「変更の作者がその場で解消できない」うえ「変更と独立に状態が変わる」ため。**
 それでゲートを組むと `--no-verify` と同じ経路を CI 側に作る。止める場所は昇格（保護ブランチ宛 PR）の一点で、
-そこは誰かがリスクを引き受けて判断する場面である（[0110](../../docs/adr/0110-security-operations.md) 3.1）。
+そこは誰かがリスクを引き受けて判断する場面である（[0110](../../docs/adr/0110-security-operations.md)）。
 
 **Trivy と `pnpm audit` の件数は一致しない。突合して差分を潰そうとしない。** 集計単位（CVE / advisory）も参照する
 DB も違うので、片方だけを正とするとそのツールが見ない領域が恒久的な死角になる。**和集合が正**で、どちらか一方でも
@@ -275,7 +275,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 
 ## hooks mirror CI
 
-`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` / `images-pin` の 6 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) §4 / [0151](../../docs/adr/0151-git-hooks.md)）。
+`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` / `images-pin` の 6 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) / [0151](../../docs/adr/0151-git-hooks.md)）。
 
 残りは片側にしか無い。**どちらが持つかは意図的な配置**であって、揃えるべき漏れではない。
 
@@ -303,10 +303,10 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
-- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md) §3）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古い木の結果が新しい木の結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
-- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.md) §3）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
+- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md)）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古い木の結果が新しい木の結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
+- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.md)）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
 - **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`baseline-retake.yaml`](baseline-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**job を改名するときは新旧の両方を置く** — この配列を読むのは `workflow_run` で起動する撮り直し側であり、そこで使われるのは既定ブランチの定義である（上記）。改名した PR が既定ブランチへ入るまで、照合されるのは旧名のままになる。旧名は既定ブランチが追いついてから外す。該当する check run が無い名前は、単に一致しないだけで害を持たない。**書き漏らすと、壊れた木から撮った絵が基準画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
-- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` を**版や OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.md) §6）
+- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` を**版や OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.md)）
 - **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。この 1 つだけは `setup-mise` の中に**版と SHA256 の対で**書かれている（[下記](#mise-の導入)）
 
 ## `paths:` フィルタを使わない
@@ -344,7 +344,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 条件 2 が無いと、書き漏らしがそのまま **「何も検査しない gate」** になる。`diff-scope` 側にも同じ注記を置いてある。
 
-`dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.md) 3.1 が禁じている形そのものである。
+`dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.md) が禁じている形そのものである。
 
 `codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
@@ -384,7 +384,7 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 > You may use the rules only for your own internal business purposes.
 > This license does not allow you to distribute the rules, or to make them available to others as a service.
 
-エンジンに OSS fork の opengrep を採った判断は「利用側へライセンスの判断を渡さない」ことだった（[0110](../../docs/adr/0110-security-operations.md) 3）。**ルールをレジストリから引いている限り、その判断は成立しない** —— エンジンが LGPL でも、走らせているルールが内部利用限定なら、判断は層をずれて渡されているだけである。
+エンジンに OSS fork の opengrep を採った判断は「利用側へライセンスの判断を渡さない」ことだった（[0110](../../docs/adr/0110-security-operations.md)）。**ルールをレジストリから引いている限り、その判断は成立しない** —— エンジンが LGPL でも、走らせているルールが内部利用限定なら、判断は層をずれて渡されているだけである。
 
 | | 取得元 | ライセンス |
 | --- | --- | --- |

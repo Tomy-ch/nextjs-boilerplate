@@ -41,8 +41,8 @@
 
 - **濃淡の定義**: Full = 常用・深く統合・参照実装まで同梱 / Medium = 統合するが既定は控えめ(必要時に使う)/ Thin = seam + 配線 + 最小デモのみ(実使用は作った側次第)
 - **1.1 の改訂に伴い、上記 6 件は v1 では何も置かない**(設置面が実在しないため)
-- **v1 採用へ移した 3 件**: リッチテキスト(TipTap)は商品説明で実使用するため / Cookie 同意は [0031](../adr/0031-policy-state-supply.md) が状態供給を規定済みで設置面があり、かつサードパーティスクリプトのゲートは後付けコストが高いため / **プロダクト分析**は同意ゲートの裏へタグマネージャを同梱したことで seam が v1 に在る([0131](../adr/0131-cookie-consent.md) §2 / [0082](../adr/0082-client-observability.md) §3)—— 特定の SaaS(PostHog 等)を本体が選ぶことはせず、繋ぐのは容器の中身の入れ替えで済むため、**ライブラリとして v2 で同梱する対象ではなくなった**
-- **プラットフォーム機能**(ライブラリとは別軸): Cache Components([0041](../adr/0041-cache-components-decision.md))/ React Compiler([0042](../adr/0042-react19-rendering-api.md))/ React taint API([0030](../adr/0030-environment-variable-management.md))—— Cache Components は **v1 で採用**、React taint API は **v1 で採用**(experimental を承知の例外)、React Compiler は**基盤の必須機能にせず opt-in の性能最適化手段として扱う**([0042](../adr/0042-react19-rendering-api.md) 決定 4)
+- **v1 採用へ移した 3 件**: リッチテキスト(TipTap)は商品説明で実使用するため / Cookie 同意は [0031](../adr/0031-policy-state-supply.md) が状態供給を規定済みで設置面があり、かつサードパーティスクリプトのゲートは後付けコストが高いため / **プロダクト分析**は同意ゲートの裏へタグマネージャを同梱したことで seam が v1 に在る([0131](../adr/0131-cookie-consent.md) / [0082](../adr/0082-client-observability.md))—— 特定の SaaS(PostHog 等)を本体が選ぶことはせず、繋ぐのは容器の中身の入れ替えで済むため、**ライブラリとして v2 で同梱する対象ではなくなった**
+- **プラットフォーム機能**(ライブラリとは別軸): Cache Components([0041](../adr/0041-cache-components-decision.md))/ React Compiler([0042](../adr/0042-react19-rendering-api.md))/ React taint API([0030](../adr/0030-environment-variable-management.md))—— Cache Components は **v1 で採用**、React taint API は **v1 で採用**(experimental を承知の例外)、React Compiler は**基盤の必須機能にせず opt-in の性能最適化手段として扱う**([0042](../adr/0042-react19-rendering-api.md))
 - **capabilities の hook・機構として v1 実装する 4 件**: 離脱ガード(navigation-block hook = [0022](../adr/0022-capabilities-kernel.md) に記載)/ オンライン・オフライン検知(`useConnectivity` = 同)/ **Web Worker(オフロード seam。どの ADR にも記載がなく本行が唯一の記録)**/ メンテナンスモード(proxy rewrite 機構 + env フラグ seam。capabilities ではなく proxy 側)
 - **全採用の共通条件**: [0010](../adr/0010-standards-and-non-lockin.md) の vendor-independent 正当化 + adapters / seam 越しで差し替え可能に保つ(vendor 直参照を feature / component に散らさない)+ exact-pin + `pnpm audit`([0004](../adr/0004-library-management.md))
 
@@ -77,10 +77,10 @@
 
 ### 1.4 棄却(据え置き除外)
 
-- **v1 / v2 とも採用しない 3 件**: キーボードショートカット / Prettier / Renovate。撤回条件は各決定を書いた ADR の本文が持つ —— キーボードショートカットは [0053](../adr/0053-ui-component-interaction-seam.md) §5、Renovate は [0110](../adr/0110-security-operations.md) 1。**Prettier はどこにも撤回条件を持たない**
-- **印刷 CSS は棄却しない**: [0051](../adr/0051-styling-system.md) §4 が print CSS をフロント領域の拡張点として採り、最小の実装を `foundation/print` として同梱する。棄却は PDF 生成(backend 責務)の側だけである
+- **v1 / v2 とも採用しない 3 件**: キーボードショートカット / Prettier / Renovate。撤回条件は各決定を書いた ADR の本文が持つ —— キーボードショートカットは [0053](../adr/0053-ui-component-interaction-seam.md)、Renovate は [0110](../adr/0110-security-operations.md)。**Prettier はどこにも撤回条件を持たない**
+- **印刷 CSS は棄却しない**: [0051](../adr/0051-styling-system.md) が print CSS をフロント領域の拡張点として採り、最小の実装を `foundation/print` として同梱する。棄却は PDF 生成(backend 責務)の側だけである
 - **ADR 化済みの exclusion**(参照のみ): [0121](../adr/0121-i18n-strategy.md)(i18n 本体)/ [0130](../adr/0130-pwa-strategy.md)(PWA 本体)等
-- **v1 では入れない**: PostHog 本体。CMP・IAB TCF 等の本格的な同意管理も対象外。GTM 本体は同意ゲートの裏へ同梱する側へ反転済みで、決定は [0131](../adr/0131-cookie-consent.md) §2 が持つ
+- **v1 では入れない**: PostHog 本体。CMP・IAB TCF 等の本格的な同意管理も対象外。GTM 本体は同意ゲートの裏へ同梱する側へ反転済みで、決定は [0131](../adr/0131-cookie-consent.md) が持つ
 - [0011](../adr/0011-no-docker.md) の性格転換(「用途未定の表示層」→「オピニオン付き全部入り starter」)は **v2 時点**の話。v1 の 0011 は「アプリケーション基盤」で現状維持とする
 
 ---
