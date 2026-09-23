@@ -10,7 +10,7 @@
 
 ## 本リポジトリでのピンの仕組み
 
-何かを始める前にここを読むこと。以下の全手順はこの機構に依存する。判断の出所は [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3。
+何かを始める前にここを読むこと。以下の全手順はこの機構に依存する。判断の出所は [ADR 0153](../../../docs/adr/0153-ci-configuration.md)。
 
 - 外部参照は `uses: owner/repo[/sub]@<40 桁 16 進 SHA> # <tag>` の形で固定する。**版の SSOT は末尾コメントの tag** であって `@<sha>` の側ではない。
 - `.github/actions-pin.toml` がロックファイル（`"owner/repo@<tag>" = "<sha>"`）。`apply` の SSOT であり、`resolve` が毎回全量を再生成する。
@@ -33,7 +33,7 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0 actions/c
 
 承認は 1 回の移動に対して与えるものである。移動していないキーは「承認は不要でした」と報告される。古い承認を残したままにすると次の付け替えを黙って通すためである。検疫は独立に掛かり続け、`ACTIONS_PIN_ALLOW_MOVED` が黙らせるのは付け替えの fail だけ。どの `uses:` からも参照されないキーは error になるため、綴り誤りが承認済みとして通ることはない。
 
-> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) 決定 3
+> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md)
 
 ## 使用タイミング
 

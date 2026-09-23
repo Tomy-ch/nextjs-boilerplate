@@ -88,7 +88,7 @@ section that answers it.
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
-1. **Target README path** — the canonical README to review. Below v1.0.0 the canonical file is the Japanese one on the suffix-less path (ADR 0140), so `README.md` is the target and a `.ja.md` sibling is the exception, not the rule. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
+1. **Target README path** — the canonical README to review. The canonical file is the one on the suffix-less path and ADR 0140 owns its language, so `README.md` is the target and a `.ja.md` sibling is the exception, not the rule. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
 2. **Output verbosity** — concise scorecard (default) or full per-pattern breakdown.
 
 If the user provided a `*.ja.md` path, ask whether to review the Japanese file directly (rare) or switch to the canonical sibling.

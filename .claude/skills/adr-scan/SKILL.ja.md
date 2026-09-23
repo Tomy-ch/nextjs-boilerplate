@@ -20,7 +20,7 @@
 
 - **decision** — 持続的な帰結を伴う選択肢間の選択（Y ではなく X）。BACKLOG 枠に値する。
 - **exclusion** — 「意図的に X をやらない」という根拠付きの決定。枠に値する（負の意思決定。BACKLOG の「明示的に boilerplate では決めない (out of scope)」節が一部の受け皿）。
-- **rule** — 日々の制約・帰結（例: 「`@/*` alias を使う」「コミット prefix」）。[`docs/rules.md`](../../../docs/rules.md) に留まり、`AGENTS.md` には置かない（[0140](../../../docs/adr/0140-documentation-operations.md) 決定 3）。ADR を*参照*してよいが、それ自体は新しい意思決定領域ではない。
+- **rule** — 日々の制約・帰結（例: 「`@/*` alias を使う」「コミット prefix」）。[`docs/rules.md`](../../../docs/rules.md) に留まり、`AGENTS.md` には置かない（[0140](../../../docs/adr/0140-documentation-operations.md)）。ADR を*参照*してよいが、それ自体は新しい意思決定領域ではない。
 - **inventory** — コードとともに drift するカタログ（依存一覧・スクリプト一覧）。生きた参照ドキュメント / README に留まり、ADR にはしない。
 
 枠に値するのは次をすべて満たす候補のみ: 検討された選択肢を持つ（または含意する）／横断的または元に戻しにくい／既存のルール・インベントリ・既追跡枠の言い換えでない。
@@ -52,7 +52,7 @@ Agent ツールで並列に fan out する（read-only）。各ワーカーは�
 
 - **(A) 未追跡の decision / exclusion** — 枠に値するが BACKLOG に無いもの。提案 Tier + 枠 ID 付き。*これが主たる成果物。*
 - **(B) 追跡済みだが drift** — BACKLOG のステータス対（選定済み / 実装済み）や Tier が観測された実態と食い違って見える枠。
-- **(C) rule のままとする一覧** — 新規枠ではなく [`docs/rules.md`](../../../docs/rules.md) の領分（[0140](../../../docs/adr/0140-documentation-operations.md) 決定 3）。AGENTS.md ではない。
+- **(C) rule のままとする一覧** — 新規枠ではなく [`docs/rules.md`](../../../docs/rules.md) の領分（[0140](../../../docs/adr/0140-documentation-operations.md)）。AGENTS.md ではない。
 - **(D) inventory のままとする一覧** — 生きた参照ドキュメントの領分であり、ADR にはしない。
 
 orchestrator はこれらを*候補としてのみ*ユーザへ提示する。`BACKLOG.md` への反映（あるいは ADR の起票）は**別途ユーザ承認を要するステップ**であり、本スキルは実施しない（`BACKLOG.md` は `AGENTS.md` 上 AI 編集可能だが、運用ルールが枠追加の前に 内容合意 を求めているため）。

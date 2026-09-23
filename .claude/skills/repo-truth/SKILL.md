@@ -149,8 +149,8 @@ Keyword search comes **last**, as a net for what the indexes missed — never as
 The corpus here is small and mostly honest, which makes the two exceptions easy to miss:
 
 - **`SKILL.ja.md` is a translation, not a source.** Hitting one is useful as a *locator* — it proves
-  the topic is documented — but cite the canonical `SKILL.md` beside it. Below v1.0.0 these are the
-  only `*.ja.md` in the repository ([0140](../../../docs/adr/0140-documentation-operations.md)).
+  the topic is documented — but cite the canonical `SKILL.md` beside it. While 0140 keeps Japanese
+  canonical on the suffix-less path, these are the only `*.ja.md` in the repository ([0140](../../../docs/adr/0140-documentation-operations.md)).
 - **Generated views are not authority.** `docs/portal/` is built from the sources it lists, and
   `graphify-out/` is a derived index. Cite what they were built from.
 

@@ -52,7 +52,7 @@ Apply these rules when producing each side of the pair.
 
 ### Language
 
-**Below v1.0.0, a pair exists in exactly two places: `.claude/skills/<name>/`, and `AGENTS.md` /
+**A pair exists in exactly two places: `.claude/skills/<name>/`, and `AGENTS.md` /
 `AGENTS.ja.md` at the repo root.** ADR
 [0140](../../../docs/adr/0140-documentation-operations.md) keeps Japanese canonical on the
 suffix-less path and forbids creating a `*.ja.md` beside it — but that ban reaches only documents
@@ -68,9 +68,9 @@ returns nothing today.
   stays protected during this skill's run (below), so the only direction this skill may take on it
   is `translation-from-canonical`. `scripts/skill-lint` checks the two for a 1:1 heading structure;
   what it cannot judge — whether the translation says the same thing — is this skill's job.
-- **Everywhere else, below v1.0.0 — Japanese on the suffix-less path is canonical, and there is no
-  translation.** The EN-canonical + `docs/ja/**` mirror described under *Targets* is the shape 0140
-  switches to **at the v1.0.0 boundary**, not the shape in force now.
+- **Everywhere else — Japanese on the suffix-less path is canonical, and there is no translation.**
+  The EN-canonical + `docs/ja/**` mirror described under *Targets* is the shape 0140 **switches
+  to**, not the shape in force now. Read 0140 for which side is in force before writing.
 
 ### SKILL files (`.claude/skills/<name>/`)
 

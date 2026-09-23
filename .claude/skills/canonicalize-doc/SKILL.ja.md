@@ -48,7 +48,7 @@
 
 ### 言語
 
-**v1.0.0 未満において、対が存在するのは 2 か所である: `.claude/skills/<name>/` と、repo ルートの
+**対が存在するのは 2 か所である: `.claude/skills/<name>/` と、repo ルートの
 `AGENTS.md` / `AGENTS.ja.md`。**
 ADR [0140](../../../docs/adr/0140-documentation-operations.md) は日本語をサフィックス無しのパスの
 canonical に置き、その隣に `*.ja.md` を作ることを禁じている —— ただしその禁止が届くのは canonical が
@@ -63,9 +63,9 @@ canonical に置き、その隣に `*.ja.md` を作ることを禁じている �
   このスキルの実行中も保護対象のまま（下記）なので、取りうる方向は `translation-from-canonical` だけ。
   見出し構造が 1:1 であることは `scripts/skill-lint` が検査する。訳文が同じことを言っているかは
   機械では判定できず、そこがこのスキルの仕事である。
-- **それ以外は、v1.0.0 未満ではサフィックス無しのパスの日本語が canonical で、翻訳は存在しない。**
-  *対象* に挙げた「英語 canonical + `docs/ja/**` mirror」は、0140 が **v1.0.0 の境界で切り替える**形であって、
-  いま効いている形ではない。
+- **それ以外は、サフィックス無しのパスの日本語が canonical で、翻訳は存在しない。**
+  *対象* に挙げた「英語 canonical + `docs/ja/**` mirror」は、0140 が**切り替える**形であって、
+  いま効いている形ではない。どちらが効いているかは、書く前に 0140 を読んで確かめる。
 
 ### SKILL ファイル（`.claude/skills/<name>/`）
 

@@ -29,10 +29,10 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** to confi
 
 Do NOT read the file tree or write any file until these are confirmed.
 
-This skill always operates on the **canonical** README — and below v1.0.0 that is the **Japanese**
-file on the suffix-less path. ADR [0140](../../../docs/adr/0140-documentation-operations.md) keeps
-Japanese canonical there and forbids creating a `*.ja.md` beside it until the v1.0.0 boundary, so a
-README in this repository has **no translation sibling**: `find src docs -name '*.ja.md'` returns
+This skill always operates on the **canonical** README — the file on the suffix-less path. ADR
+[0140](../../../docs/adr/0140-documentation-operations.md) owns which language that is and whether
+a `*.ja.md` may sit beside it; read it rather than assuming. While it keeps Japanese canonical
+there and forbids the sibling, a README in this repository has **no translation sibling**: `find src docs -name '*.ja.md'` returns
 nothing. Do not create one, and do not chain into `canonicalize-doc` to "re-sync" a file that must
 not exist.
 
@@ -68,7 +68,7 @@ Compare the README's documented entries against the actual entries:
 
 ## Repo Conventions
 
-- The canonical README is `README.md`, written in **Japanese** below v1.0.0 (ADR 0140). There is no co-located translation, and this skill does not create one.
+- The canonical README is `README.md` on the suffix-less path; ADR 0140 owns its language. There is no co-located translation, and this skill does not create one.
 - Preserve existing section ordering and styling (tables vs lists vs prose) unless the user explicitly asks to restructure.
 - Preserve existing prose that is still accurate. Do not rewrite for stylistic reasons — minimize churn.
 
@@ -131,8 +131,8 @@ Rewrite the README so it reflects reality:
 
 ## Step 6. Confirm there is no translation to sync
 
-Below v1.0.0 there is nothing to chain into: the README just written **is** the canonical, and 0140
-forbids a `*.ja.md` beside it. Check that the update did not produce one, and report the canonical as
+There is nothing to chain into while 0140 forbids a `*.ja.md` beside a README: the file just
+written **is** the canonical. Check that the update did not produce one, and report the canonical as
 updated standalone.
 
 The one place this repository does keep a pair is `.claude/skills/<name>/SKILL.md` + `SKILL.ja.md`,

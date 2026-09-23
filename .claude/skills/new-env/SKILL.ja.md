@@ -4,7 +4,7 @@
 
 新規環境変数をプロジェクトに end-to-end で追加するスキル。各環境の env ファイルへ値を置き env 変数表へ載せる。加えて、アプリが config 経由で読む変数であれば、**目的（purpose）別の config モジュール 1 本**のスキーマに宣言し、その不変な型付きオブジェクト経由で公開し、config カーネル README で解説する。
 
-2 つのドキュメントは持つものが違う（[0030](../../../docs/adr/0030-environment-variable-management.md) §6）。**`env/README` が「どの変数が存在するか」の正**であり、値がプレースホルダのみの変数も config を経由しない変数もここに載る。**config カーネル README は「設定値そのもの」の正**であり、ビルド時に検証され構築時に purpose モジュールへ流し込まれる値を扱う。config が扱うのは env に存在するものの部分集合であり、同じ内容を両方へ書かない。
+2 つのドキュメントは持つものが違う（[0030](../../../docs/adr/0030-environment-variable-management.md)）。**`env/README` が「どの変数が存在するか」の正**であり、値がプレースホルダのみの変数も config を経由しない変数もここに載る。**config カーネル README は「設定値そのもの」の正**であり、ビルド時に検証され構築時に purpose モジュールへ流し込まれる値を扱う。config が扱うのは env に存在するものの部分集合であり、同じ内容を両方へ書かない。
 
 本スキルが実装する設計は [0030](../../../docs/adr/0030-environment-variable-management.md)（環境変数管理 / config カーネル）、命名形式は [0028](../../../docs/adr/0028-naming-convention.md) に従う。ADR が正であり、本スキルはその機械的作業を自動化するだけである。
 
@@ -29,7 +29,7 @@ ls src/config/ 2>/dev/null
 
 - 既存 env 変数の**リネーム**（別ワークフロー。全箇所を一括で改名する）
 - 既存 env 変数の**削除**（逆方向。手作業のほうが安全）
-- **purpose の新設**（`src/config/<purpose>/` の新規ディレクトリ）。本スキルは purpose モジュールが既に在ることを前提とする。新設時は最初の 1 変数を手で書く（新モジュールは import 境界上の位置づけ決定も要る — [0030](../../../docs/adr/0030-environment-variable-management.md) §3）。以降の追加から本スキルを使う
+- **purpose の新設**（`src/config/<purpose>/` の新規ディレクトリ）。本スキルは purpose モジュールが既に在ることを前提とする。新設時は最初の 1 変数を手で書く（新モジュールは import 境界上の位置づけ決定も要る — [0030](../../../docs/adr/0030-environment-variable-management.md)）。以降の追加から本スキルを使う
 - **再デプロイなしで変えたい値**を env へ置くこと。それは BFF runtime config の担当（[0071](../../../docs/adr/0071-bff-api-integration.md)）であり、ここではない
 
 ## 読み書きする対象
@@ -50,13 +50,13 @@ ls src/config/ 2>/dev/null
 
 **触らない**:
 
-- `next.config.ts` / `instrumentation.ts` — ビルド時・サーバ起動時の検証点（[0030](../../../docs/adr/0030-environment-variable-management.md) §1）はスキーマモジュールを丸ごと import するため、既存 purpose のスキーマへフィールドを足せば自動的に検証対象になる。ここへの変更が要るように見える場合は、その purpose モジュールが未接続ということなので、編集せず報告して止まる
+- `next.config.ts` / `instrumentation.ts` — ビルド時・サーバ起動時の検証点（[0030](../../../docs/adr/0030-environment-variable-management.md)）はスキーマモジュールを丸ごと import するため、既存 purpose のスキーマへフィールドを足せば自動的に検証対象になる。ここへの変更が要るように見える場合は、その purpose モジュールが未接続ということなので、編集せず報告して止まる
 - `biome.json` — `noProcessEnv` の override は config カーネルの持ち物で、変数追加の範囲ではない
 - `env/` と `src/config/` の外のすべて
 
 ## Step 0. 仕様の収集
 
-**スキル起動直後に必ず `AskUserQuestion` を呼ぶ**。env 変数の追加はユーザ確認を要する（[0030](../../../docs/adr/0030-environment-variable-management.md) §6）。まとめて聞く。
+**スキル起動直後に必ず `AskUserQuestion` を呼ぶ**。env 変数の追加はユーザ確認を要する（[0030](../../../docs/adr/0030-environment-variable-management.md)）。まとめて聞く。
 
 ### 質問 1: 変数名と purpose
 
@@ -100,7 +100,7 @@ ls src/config/ 2>/dev/null
   - 「number / boolean / enum, required（型は後で指定）」
   - 「number / boolean / enum, code default あり（型と値を後で指定）」
 
-該当する場合は具体の型とデフォルト値を追加で自由入力させる。判定則は [0030](../../../docs/adr/0030-environment-variable-management.md) §4: プロジェクト固有・環境ごとに変わる値は **required**（欠落でビルド / 起動が失敗する）、フレームワーク的な普遍値はスキーマ側の **code default**。
+該当する場合は具体の型とデフォルト値を追加で自由入力させる。判定則は [0030](../../../docs/adr/0030-environment-variable-management.md): プロジェクト固有・環境ごとに変わる値は **required**（欠落でビルド / 起動が失敗する）、フレームワーク的な普遍値はスキーマ側の **code default**。
 
 ### 質問 5: Secret ラベル
 
@@ -110,7 +110,7 @@ ls src/config/ 2>/dev/null
   - 「Secret management required（本番は secret store から供給。平文コミット禁止）」
   - 「Secret management recommended（定期ローテーション推奨）」
 
-いずれかの secret ラベルが付く場合、コミットされる env ファイルへ書くのは**プレースホルダ**であり実値ではない。本番値は PaaS の env / secret store から供給する（[0030](../../../docs/adr/0030-environment-variable-management.md) §5 / §6）。実値を尋ねるのではなく、この旨をユーザへ伝える。
+いずれかの secret ラベルが付く場合、コミットされる env ファイルへ書くのは**プレースホルダ**であり実値ではない。本番値は PaaS の env / secret store から供給する（[0030](../../../docs/adr/0030-environment-variable-management.md)）。実値を尋ねるのではなく、この旨をユーザへ伝える。
 
 ### 質問 6: 説明
 
@@ -149,7 +149,7 @@ purpose ディレクトリは schema モジュールと、対応する runtime �
 2. **環境スキーマ項目** — `src/config/environment.ts` の明示的な `z.object({...})` へ validator を import して呼び出す
 3. **Config 値と getter** — 対応する runtime モジュールに型付き値と getter を加え、private constructor と既存作法を保つ。setter や外部公開 constructor / factory は足さない
 
-client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md) §2）: 値は**静的なドット参照**で読む — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` と literal に書き下す。動的インデックスアクセスと分割代入はビルド時のリテラル置換が効かないため禁止。
+client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md)）: 値は**静的なドット参照**で読む — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` と literal に書き下す。動的インデックスアクセスと分割代入はビルド時のリテラル置換が効かないため禁止。
 
 server モジュール固有: `import "server-only"` はファイル先頭に既にあるはず。無ければ、無防備なモジュールへ黙って変数を足すのではなく欠陥として報告する。
 
@@ -222,7 +222,7 @@ pnpm typecheck  # 新 getter とその型
 pnpm build      # スキーマ全量のビルド時検証（required の欠落はここで落ちる）
 ```
 
-テストスクリプトが在ればそれも実行する。本スキルにとって意味のあるゲートは `pnpm build` である — [0030](../../../docs/adr/0030-environment-variable-management.md) §1 の全量検証が実際に走るのがそこだから。
+テストスクリプトが在ればそれも実行する。本スキルにとって意味のあるゲートは `pnpm build` である — [0030](../../../docs/adr/0030-environment-variable-management.md) の全量検証が実際に走るのがそこだから。
 
 失敗したら内容を提示して停止する。編集のロールバックはしない（fix forward するかはユーザが決める）。
 
