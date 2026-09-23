@@ -34,7 +34,7 @@ test-requirement: unit
 ## 受け入れないもの
 
 - 保護ルートの判定・`returnUrl` の検証・役割による認可。方式が変わっても変わらないため、
-  Resolver の外（`model` と `proxy.ts`）が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md) §6）
+  Resolver の外（`model` と `proxy.ts`）が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）
 - `SessionRecord` を外へ出すこと。Access Token を含むため、内側へ渡すのは `Session` だけです。
   ただし **ID Token はログアウトの送り先に埋めて外へ出します** —— RP-Initiated Logout は
   `id_token_hint` を利用者のブラウザ経由で IdP へ届ける手順で、届かないと終わらせられません。
@@ -45,7 +45,7 @@ test-requirement: unit
 `session.ts` が復元する記録には Access Token と ID Token が入ります。復元した時点で
 [taint](../taint/taint.ts) に登録するので、記録をそのまま Client Component へ渡すと描画が落ちます。
 署名鍵（`AUTH_SESSION_SECRET`）は読む側である `resolver.ts` が登録します —— `config` は
-`imports-allowed: []` で react を持ち込めないためです（[0030](../../../../docs/adr/0030-environment-variable-management.md) §8）。
+`imports-allowed: []` で react を持ち込めないためです（[0030](../../../../docs/adr/0030-environment-variable-management.md)）。
 
 内側の層へ渡してよいのは `verifySession()` が返す身元だけ、という約束が主で、登録はそこを抜けた
 ときに実行時で捕まえる補助です。

@@ -38,7 +38,7 @@ v1.0.0 未満の間、以下を**一時的に解除する**。
 
 **解除しないもの**: 下記の Git ルールと、`permissions.deny` に載っているものすべて。
 
-これを元に戻すのは 1 つの変更であり、**このファイルはその手順を持たない** —— 契機と手順は [0140](docs/adr/0140-documentation-operations.md) 決定 4、権限側は [0152](docs/adr/0152-agents-md-policy.md) の「v1.0.0 での復元手順」。
+これを元に戻すのは 1 つの変更であり、**このファイルはその手順を持たない** —— 契機と手順は [0140](docs/adr/0140-documentation-operations.md)、権限側は [0152](docs/adr/0152-agents-md-policy.md) の「v1.0.0 での復元手順」。
 
 ## 指示の優先順位
 

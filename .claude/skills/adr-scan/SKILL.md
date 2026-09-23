@@ -41,7 +41,7 @@ Each candidate is exactly one of:
   of these).
 - **rule** — a day-to-day constraint/consequence (e.g. "use the `@/*` alias", "commit prefixes"). Stays
   in [`docs/rules.md`](../../../docs/rules.md), never in `AGENTS.md`
-  ([0140](../../../docs/adr/0140-documentation-operations.md) 決定 3); may *reference* an ADR but is not
+  ([0140](../../../docs/adr/0140-documentation-operations.md)); may *reference* an ADR but is not
   itself a new decision area.
 - **inventory** — a catalog that drifts with code (dependency list, script list). Stays in a living
   reference doc / README, never an ADR.
@@ -90,7 +90,7 @@ Aggregate into:
   frame ID. *This is the primary deliverable.*
 - **(B) Tracked-but-drifted** — frames whose BACKLOG status pair (選定済み / 実装済み) or Tier looks wrong
   vs the observed reality.
-- **(C) Stays-a-rule list** — belongs in `docs/rules.md` ([0140](../../../docs/adr/0140-documentation-operations.md) 決定 3), not a new frame and not `AGENTS.md`.
+- **(C) Stays-a-rule list** — belongs in `docs/rules.md` ([0140](../../../docs/adr/0140-documentation-operations.md)), not a new frame and not `AGENTS.md`.
 - **(D) Stays-inventory list** — belongs in a living reference, never an ADR.
 
 The orchestrator presents these to the user as *candidates only*. Folding any of them into

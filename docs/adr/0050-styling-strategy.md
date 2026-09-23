@@ -16,7 +16,7 @@ Accepted
 
 - スタイリングは **Tailwind CSS(v4)のユーティリティクラスを既定(主軸)**とする
 - **CSS Modules は、Tailwind ユーティリティでは記述しづらい複雑スタイル(高度な `:has()` / 複雑な擬似要素連鎖 / keyframes など)に限り、エスケープハッチとして限定許可**する。まず Tailwind で賄えるかを確認し、賄えない場合のみ CSS Modules を用いる
-  - 採用理由(vendor-independent / [0010](0010-standards-and-non-lockin.md) §2): CSS Modules は **ビルド時にスコープ化される純 CSS で、ランタイム CSS-in-JS を持たない**。したがって RSC 既定([0040](0040-routing-rendering-strategy.md))と衝突せず、Server Component でもそのまま使える。加えて **Next.js / バンドラが標準機能として同梱**する(特定ライブラリへの依存が発生しない)ため、「ベンダーを正当化から抜いてもパターンが成立する」= 非ロックインの運用テストを満たす。プラットフォーム標準に乗る([0010](0010-standards-and-non-lockin.md) §1)選択であり、追加ライブラリ・追加ランタイムを伴わない
+  - 採用理由(vendor-independent / [0010](0010-standards-and-non-lockin.md)): CSS Modules は **ビルド時にスコープ化される純 CSS で、ランタイム CSS-in-JS を持たない**。したがって RSC 既定([0040](0040-routing-rendering-strategy.md))と衝突せず、Server Component でもそのまま使える。加えて **Next.js / バンドラが標準機能として同梱**する(特定ライブラリへの依存が発生しない)ため、「ベンダーを正当化から抜いてもパターンが成立する」= 非ロックインの運用テストを満たす。プラットフォーム標準に乗る([0010](0010-standards-and-non-lockin.md))選択であり、追加ライブラリ・追加ランタイムを伴わない
   - CSS Modules はプラットフォーム標準機能であり **追加依存を導入しない**ため exact-pin 対象は生じない。将来 `cn()` 実装等でライブラリを足す場合のみ [0004](0004-library-management.md)(exact pin + `pnpm audit`)に従う
 - **styled-components / emotion 等のランタイム CSS-in-JS は非採用**とする
   - 非採用理由: これらは **ランタイムでスタイルを生成する CSS-in-JS** であり、Server Component 既定([0040](0040-routing-rendering-strategy.md))と衝突する(`"use client"` 強制・ランタイムコスト・SSR ハイドレーション複雑化)。CSS Modules の「ビルド時スコープ化・ランタイム無し」という利点を欠くため、エスケープハッチとしても採らない
@@ -46,7 +46,7 @@ Accepted
 
 - テーマ(ライト / ダーク等)は **CSS 変数の design token(上記)を切り替える**方式を既定とする。色を各所にハードコードせず token 経由で参照することで、テーマ切替が token 差し替えに閉じる
 - ダークモードは **`prefers-color-scheme`(OS 設定追従)を既定の土台**とし、Tailwind v4 の `dark` variant で表現する。ユーザ明示切替(トグル)を足す場合も、切替状態は最小の状態管理に留める(局所は local state、横断的に共有する場合は [0060](0060-state-management.md) が採用した `stores`(Zustand。家は [0023](0023-stores-kernel.md))に置く。Context 濫用は避ける)
-- **系統(`data-surface`)の属性は、Portal の出口を含む位置へ置く。** overlay 部品(Dialog / Popover / DropdownMenu / Sheet / Tooltip / ContextMenu)は `document.body` 直下へ出るため、器の外枠に置いた属性は overlay の中身へ届かない。本文は器が外枠へ置く属性で server 描画の時点から効かせ、overlay の中身は `body` へ橋渡しした属性で hydration 後に効かせる —— overlay は操作で開くものなので、開く時点は常に hydration より後であり、既定の系統で描かれる瞬間が無い。Portal の `container` を系統の内側へ向ける案は採らない(overlay 部品の全てに口を足したうえで、呼び出し側が毎回指定することになる)。系統の軸そのものは [0051](0051-styling-system.md) §1
+- **系統(`data-surface`)の属性は、Portal の出口を含む位置へ置く。** overlay 部品(Dialog / Popover / DropdownMenu / Sheet / Tooltip / ContextMenu)は `document.body` 直下へ出るため、器の外枠に置いた属性は overlay の中身へ届かない。本文は器が外枠へ置く属性で server 描画の時点から効かせ、overlay の中身は `body` へ橋渡しした属性で hydration 後に効かせる —— overlay は操作で開くものなので、開く時点は常に hydration より後であり、既定の系統で描かれる瞬間が無い。Portal の `container` を系統の内側へ向ける案は採らない(overlay 部品の全てに口を足したうえで、呼び出し側が毎回指定することになる)。系統の軸そのものは [0051](0051-styling-system.md)
 - **具体的なカラーパレット・提供するテーマの種類・トグル UI の有無は用途依存**のため、ここでは決めない。本リポジトリは「token 切替 + `prefers-color-scheme` 追従」という仕組みの枠を定める
 
 ## 禁止事項

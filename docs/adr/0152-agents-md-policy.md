@@ -135,7 +135,7 @@ AI エージェントは以下の優先度で指示に従う。矛盾時は上�
 
 ## 未策定領域の扱い
 
-ADR 化されていない決定領域の一覧を AGENTS.md は持たない。追跡先は `docs/adr/BACKLOG.md` が在る間はそれ、破棄後は issue トラッカー —— **閉じることのできる単位**である。AGENTS.md や ADR に一覧を写せば、1 つ着地した瞬間に陳腐化する二重管理になる([`docs/project/roadmap.md`](../project/roadmap.md) が作業項目を持たないのと同じ理由)。**踏み込んだときの振る舞いは AGENTS.md が持たない。** 「導出できない領域で規約・パターン・ライブラリを持ち込まない / 暫定実装は着手前に明示する」は日常強制される rule であり、置き場は [`docs/rules.md`](../rules.md)「作業とエージェント」である([0140](0140-documentation-operations.md) 決定 3)。AGENTS.md 側は `Where You May Stop` の停止点表から 1 行で指すだけにする —— 節を立てると、停止点の一覧が自分の内側を指すことになり、閉じた一覧である意味が消える。
+ADR 化されていない決定領域の一覧を AGENTS.md は持たない。追跡先は `docs/adr/BACKLOG.md` が在る間はそれ、破棄後は issue トラッカー —— **閉じることのできる単位**である。AGENTS.md や ADR に一覧を写せば、1 つ着地した瞬間に陳腐化する二重管理になる([`docs/project/roadmap.md`](../project/roadmap.md) が作業項目を持たないのと同じ理由)。**踏み込んだときの振る舞いは AGENTS.md が持たない。** 「導出できない領域で規約・パターン・ライブラリを持ち込まない / 暫定実装は着手前に明示する」は日常強制される rule であり、置き場は [`docs/rules.md`](../rules.md)「作業とエージェント」である([0140](0140-documentation-operations.md))。AGENTS.md 側は `Where You May Stop` の停止点表から 1 行で指すだけにする —— 節を立てると、停止点の一覧が自分の内側を指すことになり、閉じた一覧である意味が消える。
 
 ADR が策定されたら、[`docs/adr/README.md`](README.md) の一覧へ追加する。AGENTS.md は触らない。
 
@@ -153,7 +153,7 @@ Next.js 自身が `AGENTS.md` を生成する範囲の境界であり、将来�
 
 ## 更新責務
 
-- AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する(**v1.0.0 未満の間はこの都度承認を解除する** — 下記「Protected Documentation の機械強制」の「いまの形」/ [0140](0140-documentation-operations.md) 決定 4)
+- AGENTS.md は `Protected Documentation` に列挙され、AI エージェントは直接編集しない。変更案を提示してユーザ承認を得てから編集する(**v1.0.0 未満の間はこの都度承認を解除する** — 下記「Protected Documentation の機械強制」の「いまの形」/ [0140](0140-documentation-operations.md))
 - 本 ADR (0152) と AGENTS.md は **構成上の対応関係** を持つ。本 ADR を改訂する場合は AGENTS.md 側も同じ PR で揃える
 - `Canonical Documentation` 表への索引の追加は軽微編集として扱う
 
@@ -170,7 +170,7 @@ Next.js 自身が `AGENTS.md` を生成する範囲の境界であり、将来�
 | `Edit(AGENTS.md)` / `Write(AGENTS.md)` | 規約本体 |
 | `Edit(LICENSE)` / `Write(LICENSE)` | ライセンス([0142](0142-license.md)) |
 | `Edit(.claude/settings.json)` / `Write(.claude/settings.json)` | 権限境界そのもの。エージェントが自分の deny を外せる形にしない |
-| `Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` | Accepted ADR 本文(immutable — [0140](0140-documentation-operations.md) 決定 4)。`*-*` は番号付きの ADR にだけ掛かり、`docs/adr/README.md` には掛からない |
+| `Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` | Accepted ADR 本文(immutable — [0140](0140-documentation-operations.md))。`*-*` は番号付きの ADR にだけ掛かり、`docs/adr/README.md` には掛からない |
 
 **`ask` ではなく `deny` にする理由。** `ask` は編集のたびに承認を求める形で、承認する側が内容を読まずに通した 1 回で保護が破れる。Protected Documentation の保護の中身は「人が変更案を読んで判断する」ことなので、経路をエージェントの提案 → 人の編集に限り、エージェントの編集そのものを塞ぐ。`deny` には承認疲れで通る経路が無い。
 
@@ -179,7 +179,7 @@ Next.js 自身が `AGENTS.md` を生成する範囲の境界であり、将来�
 - `AGENTS.md` / `LICENSE` / `.claude/settings.json` の 6 エントリは `permissions.ask` に置く。承認は残し、hard block はしない
 - Accepted ADR 本文はエントリを持たない
 
-v1.0.0 未満の ADR は living document で、本文を直接上書きする([0140](0140-documentation-operations.md) 決定 4)。この期間の作業の大半は ADR 本文の書き換えそのものなので、ADR に `ask` を置くと承認が常時鳴り、承認する側が内容を読まずに通す習慣を作る —— `deny` を選ぶ理由と正反対の状態である。鳴らないほうが、鳴り続けて無視されるより保護として正しい。AGENTS.md / LICENSE / settings.json は編集の頻度が低く、`ask` が「読んで判断する」機会として機能するので残す。
+v1.0.0 未満の ADR は living document で、本文を直接上書きする([0140](0140-documentation-operations.md))。この期間の作業の大半は ADR 本文の書き換えそのものなので、ADR に `ask` を置くと承認が常時鳴り、承認する側が内容を読まずに通す習慣を作る —— `deny` を選ぶ理由と正反対の状態である。鳴らないほうが、鳴り続けて無視されるより保護として正しい。AGENTS.md / LICENSE / settings.json は編集の頻度が低く、`ask` が「読んで判断する」機会として機能するので残す。
 
 ### v1.0.0 での復元手順
 
@@ -187,7 +187,7 @@ v1.0.0 未満の ADR は living document で、本文を直接上書きする([0
 2. `AGENTS.md` の `Temporary Operating Rules until v1.0.0` 節を削除し、`AI Modification Scope` / `Protected Documentation` に付いている「v1.0.0 未満は解除」の但し書きを消す
 3. 本 ADR の節構成表から #1.5 の行、「更新責務」の v1.0.0 未満の但し書き、上記「いまの形」の小節を消す
 
-[0140](0140-documentation-operations.md) 決定 4 の immutable 切替と同じ変更で行う。片方だけ切り替えると、上書きしてよい文書が `deny` で塞がれるか、immutable な文書がエージェントに開いたままになる。
+[0140](0140-documentation-operations.md) の immutable 切替と同じ変更で行う。片方だけ切り替えると、上書きしてよい文書が `deny` で塞がれるか、immutable な文書がエージェントに開いたままになる。
 
 ### 強制手段と、届かない範囲
 

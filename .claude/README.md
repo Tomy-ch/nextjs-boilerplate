@@ -94,7 +94,7 @@ pnpm exec tsx scripts/bootstrap-external-skills
 - 上流: `Graphify-Labs/graphify`（Apache-2.0）
 - PyPI パッケージ名は **`graphifyy`**（y 2 つ）で、CLI 名が `graphify`。取り違えやすいので、手順を書く
   ときは必ず `graphifyy` を使う（理由は [`mise.toml`](../mise.toml) のコメント）
-- 版の SSOT は [`mise.toml`](../mise.toml)。bump の検疫は [ADR 0110](../docs/adr/0110-security-operations.md) 1.1
+- 版の SSOT は [`mise.toml`](../mise.toml)。bump の検疫は [ADR 0110](../docs/adr/0110-security-operations.md)
 
 **以下は `mise.toml` で pin している版の挙動**。既定値もサブコマンドも上流の版に紐づくため、pin を
 上げたらこの節も突き合わせる（同 1.1 がレビュー項目として要求している）。
@@ -151,7 +151,7 @@ graphify uninstall --purge
 の形で元のツールを包む。
 
 - 上流: `rtk-ai/rtk`
-- 版の SSOT は [`mise.toml`](../mise.toml)。bump の検疫は [ADR 0110](../docs/adr/0110-security-operations.md) 1.1
+- 版の SSOT は [`mise.toml`](../mise.toml)。bump の検疫は [ADR 0110](../docs/adr/0110-security-operations.md)
 - **build / test / CI のどの経路も呼ばない。** 入っていない checkout でも挙動は変わらず、変わるのは
   エージェントのコンテキスト量だけである
 

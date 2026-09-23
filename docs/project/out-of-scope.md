@@ -36,7 +36,7 @@
 ## 非機能のツール選択で、持たないもの
 
 - **観測性 / RUM の vendor SDK**（Sentry / Datadog 等）—— 出口は OTLP 一本。通知やアラートは向け先の
-  OTLP 互換バックエンドで足りる（[0081](../adr/0081-observability-logging.md) §6）
+  OTLP 互換バックエンドで足りる（[0081](../adr/0081-observability-logging.md)）
 - **Renovate の併用** —— 依存更新は cooldown を持つ Dependabot に一本化する。cooldown は供給網検疫の
   実装そのものである（[0110](../adr/0110-security-operations.md)）
 - **Node 特化の SAST** —— 汎用 SAST が当てているルール集合で覆われており、重なる層を足さない（同上）
@@ -59,7 +59,7 @@
 - **PWA** —— manifest / Service Worker / オフライン。座標は `app/manifest.*`（[0130](../adr/0130-pwa-strategy.md)）
 - **CMP・IAB TCF 相当の同意管理** —— 法域とベンダーに依存する。軽量な同意機構とタグマネージャの
   読み込み口までは持つ（[0131](../adr/0131-cookie-consent.md)）
-- **プロダクト分析の発火 IF** —— 同梱するのはタグマネージャの容器を読み込む口までで、値を渡す IF は持たない（[0082](../adr/0082-client-observability.md) §3）
+- **プロダクト分析の発火 IF** —— 同梱するのはタグマネージャの容器を読み込む口までで、値を渡す IF は持たない（[0082](../adr/0082-client-observability.md)）
 - **決済 SDK の mount seam** —— SDK を同梱せず、記すのは採用時の座標だけ。PCI 境界（生カード情報を
   フロントに持たせない）は採否によらず不変（[0076](../adr/0076-payment-ui-seam.md)）
 - **長寿命接続の hosting、動的 feature flag の供給 seam** —— 前者は別ドメインの責務で、購読する側は

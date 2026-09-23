@@ -10,7 +10,7 @@ Accepted
 
 後付けの CSP は既存の inline script / style との衝突で最も導入コストが高く、初期に方針を固めておく価値が高い。[0043](0043-middleware-policy.md) は「Proxy でヘッダ操作が可能」とのみ述べ、ポリシー本体・配置方針を持たない。
 
-CSP 適合の検査は **CI 時点で払える**ため [0110](0110-security-operations.md) §3.5 が持ち、本 ADR はポリシー内容・seam・配置という **実行時本体**だけを所有する。両者は両輪であり、片側だけでは閉じない。
+CSP 適合の検査は **CI 時点で払える**ため [0110](0110-security-operations.md) が持ち、本 ADR はポリシー内容・seam・配置という **実行時本体**だけを所有する。両者は両輪であり、片側だけでは閉じない。
 
 本リポジトリは **Next.js 16 / React 19**。`node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md` が定める前提は次のとおり。
 
@@ -23,7 +23,7 @@ CSP 適合の検査は **CI 時点で払える**ため [0110](0110-security-oper
 
 ### 1. 標準準拠と非ロックインの位置づけ([0010](0010-standards-and-non-lockin.md) 適用)
 
-- CSP・各セキュリティヘッダは **W3C / IETF の Web プラットフォーム標準**(CSP Level 3 / RFC 6797 HSTS / Referrer-Policy / Permissions-Policy / Cross-Origin-* isolation)であり、**ブラウザが enforce する**。seam(ヘッダを吐く場所)は Next.js のデファクト(`next.config.ts` `headers()` / `proxy.ts` のヘッダ操作)に乗る([0010](0010-standards-and-non-lockin.md) §1・[0043](0043-middleware-policy.md))が、**防御の実体は Next.js に依存しない**。
+- CSP・各セキュリティヘッダは **W3C / IETF の Web プラットフォーム標準**(CSP Level 3 / RFC 6797 HSTS / Referrer-Policy / Permissions-Policy / Cross-Origin-* isolation)であり、**ブラウザが enforce する**。seam(ヘッダを吐く場所)は Next.js のデファクト(`next.config.ts` `headers()` / `proxy.ts` のヘッダ操作)に乗る([0010](0010-standards-and-non-lockin.md)・[0043](0043-middleware-policy.md))が、**防御の実体は Next.js に依存しない**。
 - **vendor-independent 正当性材料**(0010 §2 の必須記載): CSP = XSS・clickjacking・コードインジェクションへの **多層防御**(`script-src` で任意スクリプト実行を、`frame-ancestors` / `X-Frame-Options` で clickjacking を、`object-src 'none'` / `base-uri 'self'` で注入面を絞る)/ HSTS = 中間者・ダウングレード攻撃の緩和 / `X-Content-Type-Options: nosniff` = MIME スニッフィング由来の XSS 緩和 / `Referrer-Policy` = リファラ経由の情報漏洩の最小化 / `Cross-Origin-Opener-Policy` + `Cross-Origin-Embedder-Policy` + `Cross-Origin-Resource-Policy` = 別 origin との文脈共有を閉じ、Spectre 系のサイドチャネルから隔離する。**運用テスト(0010 §2)**: 「Next.js を正当化から抜いても、これらのヘッダは正当か?」→ **Yes**(任意の HTTP サーバ・CDN 上で等価に有効)。
 
 ### 2. 既定で敷く静的ヘッダ(レンダリングモード非依存・`next.config.ts` `headers()`)
@@ -66,7 +66,7 @@ upgrade-insecure-requests                      ← https で配信している�
 - **`'unsafe-eval'` は開発サーバーだけ。** React が server 側のエラースタックをブラウザで組み直すのに eval を使う。本番の React も Next.js も eval を使わない
 - **`upgrade-insecure-requests` は https で配信しているときだけ。** http の開発環境で出すと `http://localhost` の副資源まで https へ書き換えられる
 - **`connect-src 'self'`**: ブラウザからの送信先は BFF(`/api/*`)に限る。観測性のシグナルも中継 seam を通る([0081](0081-observability-logging.md))。OTLP を直接叩かせない
-- **外部オリジン**(タグマネージャ・分析 SDK 等)は、[0131](0131-cookie-consent.md) §2 の同意ゲートと連動して `script-src` / `connect-src` / `img-src` に載る。**同梱するタグマネージャのぶんは本体が宣言し、それ以外を足すのは拡張点**とする。サードパーティスクリプト規約は `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」
+- **外部オリジン**(タグマネージャ・分析 SDK 等)は、[0131](0131-cookie-consent.md) の同意ゲートと連動して `script-src` / `connect-src` / `img-src` に載る。**同梱するタグマネージャのぶんは本体が宣言し、それ以外を足すのは拡張点**とする。サードパーティスクリプト規約は `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」
 - **`Cross-Origin-Embedder-Policy` は降ろす。** `require-corp` は副資源に `Cross-Origin-Resource-Policy` か CORS を要求するが、タグマネージャが注入するタグの配信元はそれを返さない。**cross-origin isolation を失うことを受け入れた結果**であり、`SharedArrayBuffer` 等の isolation を前提とする機能はこの構成では使えない。isolation が要るなら容器 ID を空にして本ヘッダを戻す
 - **`Content-Security-Policy-Report-Only` は経由しない。** 違反は CI が実ブラウザで検知する(§6)ので、可視化のためだけの段階導入は要らない。外部オリジンを足して衝突を見たいときの手段として残す
 
@@ -101,15 +101,15 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 
 ### 6. CI 適合スライスは 0110 が持つ(本 ADR は実行時本体)
 
-- **配信ヘッダの有無・妥当性は DAST(OWASP ZAP baseline)が見る**([0110](0110-security-operations.md) §3.5)。読むのは成果物ではなく応答であり、`next.config.ts` が宣言したものと ブラウザが実際に受け取るものは別の事実である。
+- **配信ヘッダの有無・妥当性は DAST(OWASP ZAP baseline)が見る**([0110](0110-security-operations.md))。読むのは成果物ではなく応答であり、`next.config.ts` が宣言したものと ブラウザが実際に受け取るものは別の事実である。
 - **違反の検知は E2E の見張りが持つ**(`e2e/lib/test.ts`)。CSP の違反はブラウザ自身が console へ書くため通常の console の見張りには掛からず、`securitypolicyviolation` イベントで受けて数える。全 spec・3 つの描画エンジンに効く。enforce されていることは、宣言に無い配信元の script を差して違反が報告されることで示す(`e2e/journeys/csp.spec.ts`)。`Report-Only` へ緩めるとヘッダを読むだけの検査は通るが、この spec は通らない。
 - `next.config.ts` と `src/config/security-headers/` の変更は `run-e2e` を名指しする(`scripts/deferred-checks/recommend.ts`)。
 
 ## 禁止事項
 
 - ❌ nonce ベース CSP(`proxy.ts`)を **既定**にすること(全経路を dynamic に固定し [0040](0040-routing-rendering-strategy.md)「モード非強制」と [0041](0041-cache-components-decision.md) に反する。strict 化は opt-in = seam B)
-- ❌ CSP・セキュリティヘッダを「Next.js が推奨するから」だけで正当化すること([0010](0010-standards-and-non-lockin.md) §2)
-- ❌ seam の形(nonce の載せ方・ヘッダ配置)を独自発明・中立化すること([0010](0010-standards-and-non-lockin.md) §1。Next.js デファクト = `headers()` / `proxy.ts` に乗る)
+- ❌ CSP・セキュリティヘッダを「Next.js が推奨するから」だけで正当化すること([0010](0010-standards-and-non-lockin.md))
+- ❌ seam の形(nonce の載せ方・ヘッダ配置)を独自発明・中立化すること([0010](0010-standards-and-non-lockin.md)。Next.js デファクト = `headers()` / `proxy.ts` に乗る)
 - ❌ `proxy.ts` に nonce 生成・ヘッダ設定以外の業務ロジックを書くこと([0043](0043-middleware-policy.md) 薄い境界)
 - ❌ 要求に依らないヘッダを `proxy.ts` に置くこと(静的に配れる応答から漏れる)
 - ❌ CSP を「別ドメインの責務」として沈黙で省略すること(表示層の実行時防御。seam A/B を名前付きで敷く)

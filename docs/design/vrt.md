@@ -1,7 +1,7 @@
 # VRT の機構
 
 story 単位の visual regression が、どの部品でどう組み上がっているか。決定は
-[ADR 0091](../adr/0091-test-verification-methods.md) §3、使い方は [`vrt/README.md`](../../vrt/README.md)、
+[ADR 0091](../adr/0091-test-verification-methods.md)、使い方は [`vrt/README.md`](../../vrt/README.md)、
 初回の用意は [セットアップ手順](../get-started/setup-repository.md) §6 が正。ここは**全体の composition**
 だけを持つ。
 
@@ -122,7 +122,7 @@ story だけが撮り直された PR が完成して見え、画面の基準が�
 
 **ポインタは、そのブランチが変更を受け取る経路で入る。** 直接 push できるブランチへは push し、
 ruleset が PR を要求するブランチへは gitlink だけを載せた PR を対象ごとに 1 本開いて更新する。経路の
-選び方と、保護を緩めない判断は [ADR 0091](../adr/0091-test-verification-methods.md) §3 が持つ。ここで
+選び方と、保護を緩めない判断は [ADR 0091](../adr/0091-test-verification-methods.md) が持つ。ここで
 効く機構は 1 つ —— **経路の判定は ruleset そのものに問い合わせる。** パターンの写しを持つと、保護の
 宣言と撮り直しの前提が別々に動く。
 

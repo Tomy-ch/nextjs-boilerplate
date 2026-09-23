@@ -1,6 +1,6 @@
 # 認証のフロント側 seam
 
-**認証本体(IdP・ユーザDB・資格情報検証・トークン発行・session の永続実装)は本リポジトリの out of scope である**([0070](0070-backend-role-separation.md))。この宣言を前提に本 ADR は、どの認証プロバイダを選んでも変わらない **フロント側の seam(接続点)の形** のみを定める。すなわち session の保管場所規約 / 認可 2 層(optimistic + 確定認可)の分担 / 保護ルートの表現 / 未認証時リダイレクトと `returnUrl` / ログアウト時の状態破棄を、[0021](0021-frontend-responsibility.md) のカーネル上の座標として確定する。seam の形は発明せず、**Next.js 公式 auth ガイドの文書化パターンに乗る**([0010](0010-standards-and-non-lockin.md) §1)。
+**認証本体(IdP・ユーザDB・資格情報検証・トークン発行・session の永続実装)は本リポジトリの out of scope である**([0070](0070-backend-role-separation.md))。この宣言を前提に本 ADR は、どの認証プロバイダを選んでも変わらない **フロント側の seam(接続点)の形** のみを定める。すなわち session の保管場所規約 / 認可 2 層(optimistic + 確定認可)の分担 / 保護ルートの表現 / 未認証時リダイレクトと `returnUrl` / ログアウト時の状態破棄を、[0021](0021-frontend-responsibility.md) のカーネル上の座標として確定する。seam の形は発明せず、**Next.js 公式 auth ガイドの文書化パターンに乗る**([0010](0010-standards-and-non-lockin.md))。
 
 ## Status
 
@@ -19,7 +19,7 @@ Accepted
 
 **裏取り元**: `node_modules/next/dist/docs/01-app/02-guides/authentication.md`(実装前確認。Next.js 16 —— [AGENTS.md](../../AGENTS.md)「Canonical Documentation」が実装前の確認を要求している)。同ガイドの Authorization 節は (1) httpOnly session cookie に最小 payload を格納、(2) 認可を 2 層(optimistic checks with Proxy〈optional〉+ Data Access Layer の `verifySession()` を React `cache()` で memo 化した確定認可)、(3) DTO で必要データのみ返す、を推奨形として文書化している。
 
-**0070 の中立との整合**: 0070 が守る中立は **プロバイダ中立**であって **seam の形の中立ではない**。Next.js 自身が httpOnly cookie を標準推奨している以上、それに乗るのは特定方式の先取りではなく **プラットフォーム標準準拠**([0010](0010-standards-and-non-lockin.md) §1)であり、0070 の「特定の認証・セッションモデルを本体に前提として組み込まない」とは衝突しない。本 ADR が固定するのは seam の形(座標)のみで、プロバイダ・session 実装詳細(stateless vs DB / 暗号化方式)は固定しない。
+**0070 の中立との整合**: 0070 が守る中立は **プロバイダ中立**であって **seam の形の中立ではない**。Next.js 自身が httpOnly cookie を標準推奨している以上、それに乗るのは特定方式の先取りではなく **プラットフォーム標準準拠**([0010](0010-standards-and-non-lockin.md))であり、0070 の「特定の認証・セッションモデルを本体に前提として組み込まない」とは衝突しない。本 ADR が固定するのは seam の形(座標)のみで、プロバイダ・session 実装詳細(stateless vs DB / 暗号化方式)は固定しない。
 
 ## 決定
 
@@ -63,7 +63,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - ログアウトは **session cookie の破棄(server)+ client 側の派生状態・キャッシュの teardown** を伴う。破棄の起点は `adapters/server`(cookie 削除)に置く。
 - **利用者のブラウザが IdP の session を持っている場合は、加えてブラウザを IdP の終了口へ遷移させる。** IdP 側の session を保持しているのは利用者のブラウザが持つ cookie であり、サーバから発した要求にそれは載らない —— 要求は成功を返しながら、IdP 側は何も終わらない。**この機構をここが持つ**ので、実装側は繰り返さずに本節を指す(呼び出しの連鎖に沿って同じ根拠が何度も書かれることになるため)。
 - **遷移が要るかどうかは、ログインが借り物の画面を経由したかで決まる。** 所有画面から資格情報を渡した経路(§6)では、ブラウザは IdP を一度も訪れておらず、破棄すべき IdP 側 cookie が存在しない。federation の経路(§6)だけがブラウザに IdP の session を残すため、終了口への遷移もその経路に限る。**どちらで確立したかは session 側が保持する** —— ログアウト時に推測すると、破棄漏れか無駄な往復のどちらかが必ず出る。
-- **client 側の取得が資格情報切れ(401)を受けたときは、その取得の失敗として扱わず、サーバへ描き直しを頼む。** 続きを読めなかった失敗として画面に出すと、利用者にできるのは読み直しだけで、サインインへ導く経路が無い。描き直せば各入口の判定(§4)が走り、未認証のリダイレクトへ倒れる([0080](0080-error-handling.md) §2 の「`Unauthenticated` を `Internal` へ畳まない」が前提)。
+- **client 側の取得が資格情報切れ(401)を受けたときは、その取得の失敗として扱わず、サーバへ描き直しを頼む。** 続きを読めなかった失敗として画面に出すと、利用者にできるのは読み直しだけで、サインインへ導く経路が無い。描き直せば各入口の判定(§4)が走り、未認証のリダイレクトへ倒れる([0080](0080-error-handling.md) の「`Unauthenticated` を `Internal` へ畳まない」が前提)。
 - サインイン UI・session 更新(refresh)の具体は §6 の Resolver に閉じる。本 ADR は座標(どの層が何を所有するか)と拡張点の名前を敷く。
 
 ### 6. 動く最小 session 機構を本体へ同梱する(Resolver IF 方式)
@@ -92,7 +92,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - **引き継ぎの結果は BFF が受け取れる形にする**。切り捨てや丸めなど利用者へ知らせるべき結果が生じうる場合、バックエンド内部の認証完了フックに寄せると報告先が無くなる。表示するかどうかは画面の判断に残す。
 - **引き継ぎ後、元の識別子の cookie は破棄する**。引き継ぎ済みの識別子が残ると、二重適用の経路になり、引き継ぎ先が他者の主体である場合には到達経路にもなる。ログアウト時の teardown(§5)にも含める。
 
-**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2): 引き継ぎを認証往復の**片側 1 箇所**に閉じるのは、同じ状態遷移を複数の起点から起こすと二重適用と競合の面が増えるという一般原則(単一の書き込み経路)による。失敗でログインを落とさないのは、**関心の分離** — 認証の可否を、認証と無関係な処理の成否に従属させないこと。
+**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): 引き継ぎを認証往復の**片側 1 箇所**に閉じるのは、同じ状態遷移を複数の起点から起こすと二重適用と競合の面が増えるという一般原則(単一の書き込み経路)による。失敗でログインを落とさないのは、**関心の分離** — 認証の可否を、認証と無関係な処理の成否に従属させないこと。
 
 ### 8. 資格情報を検証しない / 認証画面は意匠ごと所有する
 
@@ -143,7 +143,7 @@ federation の連携先と IdP の終了口だけであり、そこには意匠�
   所有しないことを意味しない —— 供給できる範囲を供給し、できない範囲を分かって残すのと、何も
   供給しないのは別である
 
-**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2): 中継に留めて検証も
+**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): 中継に留めて検証も
 保持もしないのは、**扱わないデータは漏らせない**という一般原則(最小露出)による。通過するだけの値に
 対して責任範囲が広がるのは、保存・ログ・派生を始めた時点である。IdP を知らないままにするのは、
 **依存は差し替えられる形で持つ**という一般原則であり、IdP を替えてもこの線は動かない。意匠を供給元
@@ -152,8 +152,8 @@ federation の連携先と IdP の終了口だけであり、そこには意匠�
 
 ## 禁止事項
 
-- ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md) §1)
-- ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md) §2)
+- ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md))
+- ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md))
 - ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))
 - ❌ Access Token をブラウザ(client JS / localStorage / 非 httpOnly cookie)へ露出させること(§6)
 - ❌ 空の IF / port 定義だけを置いて実装を持たないこと(§6)
@@ -178,6 +178,7 @@ federation の連携先と IdP の終了口だけであり、そこには意匠�
 - 本 ADR は **seam の座標(どの層が session verify / DTO / cookie を所有するか)** に加えて、**動く最小 session 機構の同梱**(§6 Resolver IF + 既定実装 1 本)を確定する。持つのは既定実装であって「唯一の実装」ではない。
 - **CSRF / origin 検証は本 ADR に同居させない。** それは日常強制される rule であり、`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」が持つ。本 ADR の httpOnly / SameSite cookie 前提がその rule の土台を提供する関係のみを明記する([0140](0140-documentation-operations.md) 「decision と rule を分ける」タクソノミー)。
 - **CSP / セキュリティヘッダ([0111](0111-csp-security-headers.md))との境界**: 認証 seam(本 ADR)と CSP 実行時本体は別関心。cookie 属性・認可分担は本 ADR、`Content-Security-Policy` / `X-Frame-Options` 等のヘッダ配置は 0111 が所有する。両者を同居させない(局所推論の維持)。
+- **外部の認証基盤へ繋ぐ経路は、前提の連鎖に従属する。** 着手できる順は **IdP の構築 → バックエンドが正規化されたチャレンジを返す機構 → この層の画面**であり、逆順には進められない。正規化されたチャレンジの契約が無いまま画面を書くと、契約が決まった時点で必ず書き直しになる。
 - 本 ADR は [0140](0140-documentation-operations.md) タクソノミーにおいて **decision**(seam 定義)分類に属する。日常強制される rule(cookie 属性既定値 = 「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに明示する」/ CSRF = 「認可と入口」の「状態を変える要求の送信元を検証する」)は `docs/rules.md` 側が持つ。
 
 ## 関連 ADR

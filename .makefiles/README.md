@@ -302,7 +302,7 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 
 更新の運用手順は `actions-pin` スキルが持ちます。
 
-> Rationale: [0153](../docs/adr/0153-ci-configuration.md) 決定 3
+> Rationale: [0153](../docs/adr/0153-ci-configuration.md)
 
 ### container image の digest ピン関連
 
@@ -388,7 +388,7 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | --- | --- | --- |
 | `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | pre-push hook から実行されます。対象は「`HEAD` から辿れてどのリモートにも無いコミット」。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力しません。 |
 | `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | CI の週次実行だけが呼びます。マージ済みの履歴に埋もれた秘密を拾う用途で、走査時間がコミット数に比例して伸びるため hook には載せません（撤回条件は [0110](../docs/adr/0110-security-operations.md) の 2）。 |
-| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md) 3.1）。 **CI だけが `TRIVY_FS_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。 |
+| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md)）。 **CI だけが `TRIVY_FS_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。 |
 | `make trivy-fs-release` | 昇格前の依存脆弱性を Trivy fs で厳格にスキャンします。 | 保護ブランチ宛 PR で CI が呼ぶゲート。上の報告専用との差分は `--ignore-unfixed` を外すことだけで、severity の範囲は同じです。検出で exit 1。 |
 | `make opengrep-rules` | SAST のルールを固定した commit から取り出します。 | `make sast` / `make sast-sarif` の前段で自動的に走ります。レジストリ（semgrep.dev）を引かない理由と、検体を置かない取り出し方は [`.github/workflows/README.md`](../.github/workflows/README.md) の「SAST のルールをレジストリから引かない」が持ちます。固定値は `opengrep-rules-pin.toml`（`.github/actions-pin.toml` と同じ形）が持ち、commit を上げるときは `pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` が書き直します。 |
 | `make sast` | 自分が書いたコードの脆弱なパターンを opengrep で検査します。 | **0 件の baseline を前提にしたゲート**で、所見があれば exit 1。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置きます。GitHub の外へ持ち出せる SAST としてここに置き、ローカルでも CI でも同じコマンドが回ります。 |
@@ -401,7 +401,7 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make suppression-expiry` | 抑止の撤回条件を突き合わせ、満たしたものか様式を欠くものがあれば落とします。 | 週に一度 CI が回します。**限界が 2 つあり、報告がそれを名指しします。** 決められるのは日付だけなので出力は全件の一覧を伴い、理由をコメントに持つ面（gitleaks / zizmor / pnpm の override / sonar）は宣言単位では読めず日付を含む行だけが出ます。冷却の免除（`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` と `mise.toml` の `tools-cooldown-ignore:`）は宣言単位で読み、理由が無い・版を名指ししていない・日付を持たないものを様式違反として落とします。`SUPPRESSION_REPORT` を環境から渡すと issue の本文を書き出します（recipe 行へは展開しません）。 |
 | `make tools-cooldown-check TOOLS_COOLDOWN_BASE=<ref>` | `mise.toml` の pin のうち base から動いたものが、配布経路ごとの冷却期間を満たすか検査します。 | PR で CI が base ブランチを渡して回します。窓は配布経路ごとに 2 つあります —— `TOOLS_COOLDOWN_RELEASE_DAYS`（GitHub Releases。`ACTIONS_PIN_MIN_AGE_DAYS` と同じ値）と `TOOLS_COOLDOWN_REGISTRY_DAYS`（npm / PyPI）で、言語ランタイム（`core:`）は窓の対象外です。窓の内側の pin は exit 1、公開日時を引けない pin や経路を持たない backend は exit 2（検査が成立していない）。免除は pin の直上に `# tools-cooldown-ignore: <理由>。<窓が明ける日> に外す` を置きます（[`scripts/tools-cooldown/README.md`](../scripts/tools-cooldown/README.md)）。`GITHUB_TOKEN` が無ければ `gh auth token` を借ります。 |
 | `make tools-cooldown-audit` | `mise.toml` の全 pin を冷却期間に照らして棚卸しします。 | 週に一度 CI が回します。手元でも引けます。免除の無いまま窓の内側に居る pin で落ち、免除の期限切れは `make suppression-expiry` が見ます。 |
-| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でも閾値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.md) 3）。 |
+| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でも閾値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.md)）。 |
 
 ## `.makefiles/agents` 系
 
@@ -416,10 +416,10 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make closed-loop-report` | 打刻された開発の窓の、段の区間と所見を報告します。 | 読むだけで何も刻みません。打刻は `.agents/closed-loop/marks.sh` が hook とスキルから行い、置き場は追跡外の `tmp/closed-loop/` です。**決定的な集計だけでモデルを使いません**（[ADR 0160](../docs/adr/0160-agent-environment-loop.md) 決定 2）。窓が 0 件のときは「所見なし」ではなく 0 件であること自体を出します（[ADR 0157](../docs/adr/0157-inspection-declaration-discipline.md)）。 |
-| `make closed-loop-send` | 閉じたまま届いていない窓の所見を issue へ送出します。 | **先に `make labels-create-default` を 1 回通しておくこと。**`feedback` 系のラベルが実在しないと `gh issue create` が拒否し、窓は未送出のまま溜まり続けます。送出先は `.git` の remote から導き、設定項目で宛先を持ちません（[ADR 0160](../docs/adr/0160-agent-environment-loop.md) 決定 4）。送るのは**閉じていて、段の境界を 1 つ以上越えた窓**だけです。通常はセッション開始時に `.agents/closed-loop/send.sh` が自動で回すので、これを叩くのは取りこぼしを手で流すときです。 |
+| `make closed-loop-report` | 打刻された開発の窓の、段の区間と所見を報告します。 | 読むだけで何も刻みません。打刻は `.agents/closed-loop/marks.sh` が hook とスキルから行い、置き場は追跡外の `tmp/closed-loop/` です。**決定的な集計だけでモデルを使いません**（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）。窓が 0 件のときは「所見なし」ではなく 0 件であること自体を出します（[ADR 0157](../docs/adr/0157-inspection-declaration-discipline.md)）。 |
+| `make closed-loop-send` | 閉じたまま届いていない窓の所見を issue へ送出します。 | **先に `make labels-create-default` を 1 回通しておくこと。**`feedback` 系のラベルが実在しないと `gh issue create` が拒否し、窓は未送出のまま溜まり続けます。送出先は `.git` の remote から導き、設定項目で宛先を持ちません（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）。送るのは**閉じていて、段の境界を 1 つ以上越えた窓**だけです。通常はセッション開始時に `.agents/closed-loop/send.sh` が自動で回すので、これを叩くのは取りこぼしを手で流すときです。 |
 | `make closed-loop-send-dry` | 送出する内容だけを出します。 | 何も送らず、送出済みの索引にも触れません。送出が走っている最中でも見られます。 |
-| `make closed-loop-weekly` | 期間ぶんの所見を束ね、点の高い順に並べ、着地した改善を測り直します。 | **週次で `.github/workflows/closed-loop-weekly.yaml` が同じものを回す**ので、手で叩くのは期間を指定して見直すときです。既定は直近 7 日。`ARGS="--from 2026-09-01 --to 2026-09-07"` で期間を指定します。**読むだけで、issue を作りも閉じもしません。**再計測は省略できない段です（[ADR 0160](../docs/adr/0160-agent-environment-loop.md) 決定 1）—— 省略した時点でループは蓄積器へ退化します。 |
+| `make closed-loop-weekly` | 期間ぶんの所見を束ね、点の高い順に並べ、着地した改善を測り直します。 | **週次で `.github/workflows/closed-loop-weekly.yaml` が同じものを回す**ので、手で叩くのは期間を指定して見直すときです。既定は直近 7 日。`ARGS="--from 2026-09-01 --to 2026-09-07"` で期間を指定します。**読むだけで、issue を作りも閉じもしません。**再計測は省略できない段です（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）—— 省略した時点でループは蓄積器へ退化します。 |
 | `make closed-loop-weekly-consolidate` | 同じことをした上で、未クローズの所見を関心へ畳みます。 | **issue を作り、畳んだ大元を閉じます。**畳み込みだけを明示指定にしてあるのは、副作用が既定に入ると意図しない畳み込みに誰も気づかないためです。 |
 
 ## 関連する ADR

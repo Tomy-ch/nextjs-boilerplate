@@ -31,7 +31,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 
 **接続口は downstream と分類([0112](0112-data-classification-cache-boundary.md))の組ごとに 1 つ置く。** retry budget と circuit breaker は client の中に状態として載るため、同じ downstream へ client を複数組むと、劣化したかどうかの判断が分けた数だけ割れ、budget も breaker も設計値どおりに働かない。public 側は「データ取得のキャッシュ・再検証」節の、分類ごとに 1 つ置いた接続口がこれを兼ねる。
 
-**user-scoped 側は 1 つの接続口へ寄せていない。** 寄せるには、資格情報の取得口を client へ渡す形を 1 か所へ集めることになり、[0112](0112-data-classification-cache-boundary.md) 決定 5 の検査(`project-rules/no-captured-bearer-token`: 取得口には import した口だけを渡せる)と正面から交差する —— 集めた側が取得口を引数で受け取れば検査が通さず、集めた側が取得口を自分で import して固定すれば、資格情報の解決経路が「呼ぶ口を読めば分かる」場所から 1 段離れ、検査が守っている前提が動く。どちらも決定 5 の検査の形と同時にしか決められないため、寄せるなら両方を 1 つの改定として扱う。それまで user-scoped の接続口は各取得口が自前で組み、その module 変数に固定する。**user-scoped でも downstream ごとに 1 つが原則で、破るなら理由をその場に書く。** 強制: 散文。「同じ downstream か」は `baseUrl` の実行時の値で決まりコードの形からは決まらないため、1 つへ寄せるまでは機械へ寄せられない。寄せた後は「client を組む kernel を直に引けるのは接続口だけ」という import 制限へ寄せられる(public 側で `project-rules/no-user-scoped-in-cached-module` が採る形)。
+**user-scoped 側は 1 つの接続口へ寄せていない。** 寄せるには、資格情報の取得口を client へ渡す形を 1 か所へ集めることになり、[0112](0112-data-classification-cache-boundary.md) の検査(`project-rules/no-captured-bearer-token`: 取得口には import した口だけを渡せる)と正面から交差する —— 集めた側が取得口を引数で受け取れば検査が通さず、集めた側が取得口を自分で import して固定すれば、資格情報の解決経路が「呼ぶ口を読めば分かる」場所から 1 段離れ、検査が守っている前提が動く。どちらも決定 5 の検査の形と同時にしか決められないため、寄せるなら両方を 1 つの改定として扱う。それまで user-scoped の接続口は各取得口が自前で組み、その module 変数に固定する。**user-scoped でも downstream ごとに 1 つが原則で、破るなら理由をその場に書く。** 強制: 散文。「同じ downstream か」は `baseUrl` の実行時の値で決まりコードの形からは決まらないため、1 つへ寄せるまでは機械へ寄せられない。寄せた後は「client を組む kernel を直に引けるのは接続口だけ」という import 制限へ寄せられる(public 側で `project-rules/no-user-scoped-in-cached-module` が採る形)。
 
 ### エラー正規化(生 status を漏らさない)
 
@@ -68,7 +68,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - **殻へ載る取得の profile に `expire` を置かない。** `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すため、そこで取得先へ届かないと、殻を配れていたはずの route が丸ごと失敗へ倒れる。置かなければ取り直しは常に背後で起き、失敗しても最後に読めた内容が出続ける
 - **`use cache` が確実に残すのは、組み立て時に殻へ焼かれた分だけである。** 既定の入れ物はプロセスのメモリなので、serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと捨てられる。これは `fetch` の `cache: "force-cache"`(Data Cache。デプロイとインスタンスをまたいで残る)から失うもので、**request 時の再利用を保証と読んではならない**。インスタンスをまたいで残す必要が出たときは `cacheHandlers` か `use cache: remote` を選ぶ —— どちらも配備先に依存するため、本体は選ばない([0010](0010-standards-and-non-lockin.md))
 - **`use cache` の内側の取得に個別のキャッシュ指定(`cache` / `next.tags`)を置かない。** 内側はまとめて外側の寿命に従うため、二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴む
-- **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** **分類ごとに 1 つ置いた接続口**を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.md) 決定 4 の段 2 がその import を落とす
+- **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** **分類ごとに 1 つ置いた接続口**を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.md) の段 2 がその import を落とす
 - **`use cache` を持つ口は組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.md) の環境定義) —— そのとき build は契約から生成したハンドラを HTTP の口として立て、取得先を自給する。これは request 時の往復を減らすことと引き換えに受け取る制約である
 - **user-scoped な値は `use cache` の下へ置かない**([0112](0112-data-classification-cache-boundary.md))。手段は `use cache: private` に限り、それは明示的な例外能力である。強制は `project-rules/no-user-scoped-in-cached-module` と framework の `next-request-in-use-cache` が持つ
 - 具体値(何を・どれだけ・どの tag で)は用途依存のため、ここでは確定しない(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)

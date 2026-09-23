@@ -29,7 +29,7 @@
 ## Step 0. backend 別の検疫の窓を解決する
 
 **窓は単一の数値ではなく、この文書が決めるものでもない。** ADR
-[0110](../../../docs/adr/0110-security-operations.md) 1.1 が backend ごとに定めている。窓が追うのは
+[0110](../../../docs/adr/0110-security-operations.md) が backend ごとに定めている。窓が追うのは
 その配布経路で悪性のリリースが検知・撤回されるまでの速さであって、そのツールが何を壊しうるかではない。
 全 backend に同じ値を当てると、窓の長いほうの経路が黙って検疫不足になる。待つこと自体が防御の大半を買う
 —— 典型的な悪性リリース（npm `ua-parser-js` 2021、PyPI `ctx` 2022）は公開後 24〜72 時間以内に検知・yank されている。
@@ -125,7 +125,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
   - pipx:graphifyy: PyPI への接続失敗
 ```
 
-`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかった窓を証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.md) §1.2）。
+`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかった窓を証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.md)）。
 
 ## Step 4. 適用候補の per-tool 確認
 
@@ -177,7 +177,7 @@ pnpm build
 
 ## 注意事項
 
-- **supply-chain quarantine の根拠**: Step 0 —— backend ごとの窓は ADR [0110](../../../docs/adr/0110-security-operations.md) 1.1 の決定であって、このスキルのものではなく、動きうる。
+- **supply-chain quarantine の根拠**: Step 0 —— backend ごとの窓は ADR [0110](../../../docs/adr/0110-security-operations.md) の決定であって、このスキルのものではなく、動きうる。
 - **pre-release の除外**: 常に最新の **stable** リリースを選ぶ。upstream が pre-release タグを出していても latest として選択しない。
 - **calendar versioning**: `2024.12.30` のような calendar versioning を使うツールは lexicographic + semver fallback で比較する。downgrade ガードは常時有効。
 - **rate limit**: GitHub API は anonymous で 60 req/h（IP 単位）。本スキルは `gh api` を経由して `GITHUB_TOKEN` 認証で 1000 req/h に上げる。

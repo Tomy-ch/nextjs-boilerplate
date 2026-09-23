@@ -31,7 +31,7 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を本リポジトリに�
 - ① フラグ判定ロジックと SaaS SDK を **client bundle から排除**できる(バンドルサイズ)。
 - ② client 評価で起きる **flag flicker / CLS を回避**できる(レイアウト安定)。
 
-いずれもプラットフォーム中立な web パフォーマンス根拠であり、「フレームワーク推奨」ではない([0010](0010-standards-and-non-lockin.md) §2 の vendor-independent 正当化)。
+いずれもプラットフォーム中立な web パフォーマンス根拠であり、「フレームワーク推奨」ではない([0010](0010-standards-and-non-lockin.md) の vendor-independent 正当化)。
 
 ### 2. 動的フラグ値の出所と [0030](0030-environment-variable-management.md) env の関係整理(緊張の解消)
 

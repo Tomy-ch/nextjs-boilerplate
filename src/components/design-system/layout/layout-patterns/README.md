@@ -28,7 +28,7 @@
 
 ## viewport breakpoint と container query の使い分け
 
-判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) §2 が、守る形は [`docs/rules.md`](../../../../../docs/rules.md) #73 / #74 が持ちます。
+判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md) #73 / #74 が持ちます。
 
 | 分岐の基準 | 使うところ |
 | --- | --- |

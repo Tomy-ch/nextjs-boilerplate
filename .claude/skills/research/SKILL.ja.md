@@ -140,7 +140,7 @@ graphify affected <symbol>                             # その前例に何が�
 | --- | --- |
 | デファクトへの適合 / 非ロックイン | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
 | 採用アーキテクチャからの導出 | [0020](../../../docs/adr/0020-adopted-architecture.md) / [0021](../../../docs/adr/0021-frontend-responsibility.md) / `architecture.ts` |
-| いまの状態としての純粋さ | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) §3 |
+| いまの状態としての純粋さ | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
 | 依存を足す問いなら、選定基準 | [0004](../../../docs/adr/0004-library-management.md) と [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) の依存欄 |
 
 CI のゲートについての問いはアーキテクチャの軸で決まらない。ライブラリを足す問いはほとんど最後の行で

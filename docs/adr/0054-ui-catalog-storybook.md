@@ -25,7 +25,7 @@ Accepted
   - **再現に含めるのは layout / page が置くものだけではない。** 本文の取り分を変える常設領域(脇に開く panel など)の開閉と、`Suspense` の殻の側に居て view の外にある節も含める。前者は開閉で本文の幅が変わり、後者は枠に置かないと段の見え方が実物とずれる
   - **story のための種まきが立てた副作用は、その場で畳む。** 初期状態を作るために store へ値を入れると、実際の操作と同じ通知や要求が立つことがある。種まきは初期状態の再現であって利用者の追加操作ではないので、それらは畳んでから描く
 - **story ごとに違う値を要る器は、decorator ではなく component として組む。** decorator は `parameters` 経由でしか値を受けられず、効いている条件が型を失う。component なら条件を story の args として型のまま扱える
-- **a11y の自動検査を Storybook に載せる。** story 全数へ検査を効かせ、違反ゼロを取り込みの完了条件に含める([0100](0100-accessibility-target.md) の自動検査手段の 1 つ)。検査の実体は **visual regression と同じコンテナで走る axe**([0091](0091-test-verification-methods.md) §2)で、`addon-a11y` は対話パネルとして手元の確認に使う
+- **a11y の自動検査を Storybook に載せる。** story 全数へ検査を効かせ、違反ゼロを取り込みの完了条件に含める([0100](0100-accessibility-target.md) の自動検査手段の 1 つ)。検査の実体は **visual regression と同じコンテナで走る axe**([0091](0091-test-verification-methods.md))で、`addon-a11y` は対話パネルとして手元の確認に使う
 
 ## 1 部品あたりの主題
 

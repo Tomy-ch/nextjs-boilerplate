@@ -39,7 +39,7 @@ Do NOT use this skill for:
 ## Step 0. Resolve the quarantine window per backend
 
 **The window is not a single number, and it is not this file's to choose.** ADR
-[0110](../../../docs/adr/0110-security-operations.md) 1.1 sets one per backend, because the window
+[0110](../../../docs/adr/0110-security-operations.md) sets one per backend, because the window
 tracks how fast a malicious release gets detected and revoked on that distribution channel — not how
 much damage the tool could do. A single value applied to every backend silently under-quarantines
 whichever channel has the longer window. Waiting buys most of the protection: typical malicious
@@ -138,7 +138,7 @@ Print a Japanese-language summary grouped by class. Example:
   - pipx:graphifyy: PyPI への接続失敗
 ```
 
-A `pending` release is a candidate for `supply-chain-triage`: it scores the version on direct evidence over four axes so the window can be discharged by evidence rather than only by waiting. **Report the band; never adopt on the strength of a low score** — that decision is the user's ([0110](../../../docs/adr/0110-security-operations.md) §1.2).
+A `pending` release is a candidate for `supply-chain-triage`: it scores the version on direct evidence over four axes so the window can be discharged by evidence rather than only by waiting. **Report the band; never adopt on the strength of a low score** — that decision is the user's ([0110](../../../docs/adr/0110-security-operations.md)).
 
 ## Step 4. Confirm Per-tool Update Set
 
@@ -190,7 +190,7 @@ Do NOT commit, stage, or push. The user reviews the resulting working tree and r
 
 ## Notes
 
-- **Supply-chain quarantine rationale**: Step 0 — the window per backend is ADR [0110](../../../docs/adr/0110-security-operations.md) 1.1's decision, not this skill's, and it moves.
+- **Supply-chain quarantine rationale**: Step 0 — the window per backend is ADR [0110](../../../docs/adr/0110-security-operations.md)'s decision, not this skill's, and it moves.
 - **Pre-release exclusion**: this skill always selects the latest **stable** release. Pre-release tags are visible in upstream but never chosen as `latest`.
 - **Calendar versioning**: for tools using calendar versioning (e.g., `2024.12.30`), comparison is lexicographic with semver fallback. The "potential downgrade" guard remains active.
 - **Rate limits**: GitHub API anonymous limit is 60 req/h per IP. The skill SHOULD use `gh api` which authenticates via `GITHUB_TOKEN` (1000 req/h authenticated).

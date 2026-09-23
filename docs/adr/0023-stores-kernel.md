@@ -19,7 +19,7 @@ Accepted
 `stores` は、**複数 feature が共有する横断 client 状態**(Zustand ストア)を置くカーネルである。
 
 - **既定は [0060](0060-state-management.md) のまま**: server state = RSC fetch / 単一 feature の client 状態 = feature 内 local state(`useState` / `useReducer`)。**真に横断する client 状態のみ `stores` へ昇格**する(受入基準 = 複数 feature 参照)。
-- 採用ライブラリ = **Zustand**(軽量・de-facto。[0010](0010-standards-and-non-lockin.md) §1 標準準拠)。ストアは `"use client"`。
+- 採用ライブラリ = **Zustand**(軽量・de-facto。[0010](0010-standards-and-non-lockin.md) 標準準拠)。ストアは `"use client"`。
 
 ### `"use client"` 不変条件
 

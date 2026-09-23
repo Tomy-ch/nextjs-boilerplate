@@ -78,7 +78,7 @@ describe("parseSearchParams", () => {
 | e2e | ブラウザ経路の通し | Playwright |
 | visual | story の**見た目**(基準画像との比較) | Playwright(コンテナ内) |
 
-`visual` だけは対象が実装モジュールではなく **story** であり、`test-requirement` の宣言も持たない。他の層が「この振る舞いが正しいか」を問うのに対し、`visual` が問うのは「**前と変わっていないか**」だけで、正しさの基準を内部に持たないためである(基準は過去の自分)。DOM のアサートでは表現できない観点をここが負う。手段と運用は [0091](0091-test-verification-methods.md) §3。
+`visual` だけは対象が実装モジュールではなく **story** であり、`test-requirement` の宣言も持たない。他の層が「この振る舞いが正しいか」を問うのに対し、`visual` が問うのは「**前と変わっていないか**」だけで、正しさの基準を内部に持たないためである(基準は過去の自分)。DOM のアサートでは表現できない観点をここが負う。手段と運用は [0091](0091-test-verification-methods.md)。
 
 他の層は README frontmatter の `test-requirement` が宣言する。**テストを持つディレクトリは、遡って必ずどこかの宣言に当たる**こと。当たらないと層別責務表のどの行に照らせばよいかが引けず、レビューする側は対象の見た目から推測することになる。宣言の有無は `scripts/test-requirement.gate.test.ts` が機械判定する。解決は「遡って最初に `test-requirement` を持つ README」で、宣言を持たない README は素通しする。手段が同じ 3 層(`component` / `feature` / `route`)の判別は**対象の合成の度合い**で決める。単一コンポーネントの描画契約なら `component`、複数のカーネルや feature 内部品を画面単位で組み上げたものなら `feature`、その画面を route に載せる器なら `route` である。手段ではなく合成の度合いで分けるのは、負う観点が変わるためで、`feature` と `route` は「部品が揃って初めて成立する振る舞い」を負う。
 
@@ -97,7 +97,7 @@ describe("parseSearchParams", () => {
 
 - **`unit` の対象が React の hook API を使う場合は RTL の `render` / `act` を用いてよい**。hook は React のツリーを介してしか呼べず、純粋ロジックと同じ手段では検証できない(`capabilities` カーネル)
 - **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保)。**ただし境界自身が判定を持つ Route Handler では、その判定結果(status / body / header)が対象の契約であり、integration がその値を直接アサートする** —— その判定を担保する unit 層は他に無く、形だけを見ると 400 と 401 の分岐が区別できない
-- **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は [0091](0091-test-verification-methods.md) §1 が持つ(async RSC は unit、通しでしか確かめられないものだけを E2E / integration へ)
+- **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は [0091](0091-test-verification-methods.md) が持つ(async RSC は unit、通しでしか確かめられないものだけを E2E / integration へ)
 
 ### カバレッジゲート
 

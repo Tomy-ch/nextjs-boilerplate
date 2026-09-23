@@ -78,7 +78,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 | --- | --- | --- | --- | --- |
 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つの要求 URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。既定値はどれも持たない |
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 中継する 1 件のアップロードに許すバイト数の上限 | integer | `4194304` | Required。配備先が要求本体に課す上限より内側に取る。外側の値は配備先が先に打ち切るため効かない |
-| `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変える要求の送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.md) §5）。パス付き・`*` は不可 |
+| `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変える要求の送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.md)）。パス付き・`*` は不可 |
 
 ### Site
 
@@ -94,7 +94,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャの容器 ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す口がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.md) §2）。secret ではない（容器 ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れる配備は、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
+| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャの容器 ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す口がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.md)）。secret ではない（容器 ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れる配備は、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
 
 ## boilerplate 導入時の変更点
 

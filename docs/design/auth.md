@@ -55,7 +55,7 @@
 
 **session の寿命は Access Token の寿命と同じである。** Resolver の面に `refresh` は無い —— それを使う既定実装が無いためで、IdP が refresh を持つなら `restore` の内側で完結させる。失効した session は `restore` が `null` を返し、未認証と区別されない（壊れた cookie も同じ）。失効・改竄・鍵の入れ替えを呼び出し側が区別できると、その区別が攻撃者への手掛かりになる。
 
-**役割は確立時に 1 度だけ引く。** 既定 Resolver は `resolveRole` を依存として受け取り、`completeAuthorization` の途中で Access Token を渡して呼ぶ。ここは cookie がまだ無い唯一の往復なので、取得口は `getBearerToken` ではなく `bearerToken` の綴りで解決済みの値を渡す（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) 決定 5 の例外）。**`resolveRole` を渡さなければ、権限を持たない側へ倒す。** 同梱サンプルはバックエンドの役割の口を繋いでいるが、その adapter はサンプルと一緒に消えるので、残る側では役割の出所を繋ぎ直す。
+**役割は確立時に 1 度だけ引く。** 既定 Resolver は `resolveRole` を依存として受け取り、`completeAuthorization` の途中で Access Token を渡して呼ぶ。ここは cookie がまだ無い唯一の往復なので、取得口は `getBearerToken` ではなく `bearerToken` の綴りで解決済みの値を渡す（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) の例外）。**`resolveRole` を渡さなければ、権限を持たない側へ倒す。** 同梱サンプルはバックエンドの役割の口を繋いでいるが、その adapter はサンプルと一緒に消えるので、残る側では役割の出所を繋ぎ直す。
 
 ## 認証の往復
 
@@ -161,7 +161,7 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 ## いまの実装と ADR 0079 §8 の差
 
-**[ADR 0079](../adr/0079-auth-frontend-seam.md) §8 が定める形と、いまの実装は一致していない。** どちらが実態かを先に書く。
+**[ADR 0079](../adr/0079-auth-frontend-seam.md) が定める形と、いまの実装は一致していない。** どちらが実態かを先に書く。
 
 | | ADR §8 / §6 が定める形 | いまの実装 |
 | --- | --- | --- |

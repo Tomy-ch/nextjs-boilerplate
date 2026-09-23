@@ -12,7 +12,7 @@ Accepted
 
 本リポジトリは **React 19.2 / Next.js 16** を採用しており([0011](0011-no-docker.md) / App Router de facto の帰結)、この領域は AI エージェントの訓練データと乖離が大きい([`docs/design/rendering.md`](../design/rendering.md) が用語と誤りを持つ)。規約が無いと、新旧パターン(`forwardRef` / 手書き `memo` / `useCallback` と、ref as prop / React Compiler)が実装者ごとに混在する。本 ADR はレンダリング関連 React API の使用規約を成文化する。
 
-裏取り元(実装前確認・[0010](0010-standards-and-non-lockin.md) §1 の「乗る」先): `node_modules/react`(v19.2.4)/ `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/reactCompiler.md` / 同 `01-getting-started/06-fetching-data.md`(`use()` の Promise / Context 解決例)。
+裏取り元(実装前確認・[0010](0010-standards-and-non-lockin.md) の「乗る」先): `node_modules/react`(v19.2.4)/ `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/reactCompiler.md` / 同 `01-getting-started/06-fetching-data.md`(`use()` の Promise / Context 解決例)。
 
 ### 射程宣言(0040 と重複しない)
 
@@ -22,7 +22,7 @@ Accepted
 | --- | --- | --- |
 | RSC / Client 境界を **どこに置くか**・`"use client"` の押し下げ | [0040](0040-routing-rendering-strategy.md) | 本 ADR は境界の内側の **API の書き方** のみ |
 | `use()` を使った **データ取得の編成・キャッシュ・重複排除** | [0071](0071-bff-api-integration.md) | 本 ADR は `use()` を **レンダリングのプリミティブ** としてどう書くかのみ |
-| `<Suspense>` / `loading.tsx` の **境界配置・粒度** | [0080](0080-error-handling.md) §4 | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
+| `<Suspense>` / `loading.tsx` の **境界配置・粒度** | [0080](0080-error-handling.md) | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
 | 横断的な reactive client hook(runtime 能力)の **家** | [0022](0022-capabilities-kernel.md) | 本 ADR は `useEffect` の **書き方の抑制方針** のみ |
 
 ## 決定
@@ -30,13 +30,13 @@ Accepted
 ### 1. ref as prop を採用し、新規コードで `forwardRef` を使わない
 
 - React 19 では ref を **通常の prop** として関数コンポーネントで受け取れる。新規コンポーネントはこれを用い、**`forwardRef` を新規に書かない**。
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md) §2): `forwardRef` は wrapper による余分な間接層を生み、型(`ForwardRefRenderFunction` 等)を複雑化させる。ref as prop は素の関数シグネチャで済み、props と ref の型付けが一様になる。これは React の権威を抜いても成立する API 設計上の単純化根拠であり、「React が deprecate したから」に留まらない。React 19 は `forwardRef` を deprecation 方向に置いており([0010](0010-standards-and-non-lockin.md) §1 の「デファクトに乗る」= React 規約への準拠)、乗ることは車輪の再発明の回避でもある。
+- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): `forwardRef` は wrapper による余分な間接層を生み、型(`ForwardRefRenderFunction` 等)を複雑化させる。ref as prop は素の関数シグネチャで済み、props と ref の型付けが一様になる。これは React の権威を抜いても成立する API 設計上の単純化根拠であり、「React が deprecate したから」に留まらない。React 19 は `forwardRef` を deprecation 方向に置いており([0010](0010-standards-and-non-lockin.md) の「デファクトに乗る」= React 規約への準拠)、乗ることは車輪の再発明の回避でもある。
 
 ### 2. `use()` を条件付きの読取プリミティブとして許容する
 
 - `use()` を **Promise / Context の読取**に用いてよい。`useContext` に代えて `use()` で Context を読むことを許容する(`use()` は条件分岐・早期 return の内側でも呼べる —— Hook のトップレベル制約を受けない読取であるため)。
 - **正道**: Server Component で開始した fetch の Promise を Client Component へ **props で渡し**、`<Suspense>` 境界の下で `use()` により解決する(`fetching-data.md` の文書化パターン。0040「`"use client"` は葉へ押し下げ」と整合し、fetch 自体は server に留めつつ待機のみ client へ寄せる)。
-- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0080](0080-error-handling.md) §4 が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
+- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0080](0080-error-handling.md) が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
 
 ### 3. `useEffect` を外部システム同期に限定する(抑制)
 
@@ -57,7 +57,7 @@ Accepted
   - **同一性に依存する先が無い** —— その値が依存配列にも、メモ化された子にも渡らない(素の DOM 属性へ渡すだけの handler など)
   - **再描画が起きても費用が問題にならない** —— エッジケースのさらにエッジケースだけを捕まえるもの
 - **計測は「書いてよいかの条件」ではない。** 意味があるかを言えないときの決め手である。逆に、意味があると言えるものを書くのに計測は要らない。
-- **理由は成熟度ではなく blast radius**: Compiler は stable であり、実装も React 本体である。問題は品質ではなく**壊れ方が fail-fast でない**ことにある。[0030](0030-environment-variable-management.md) §8 の taint は違反時に throw し、[0041](0041-cache-components-decision.md) の Cache Components は前提を満たさなければ build が落ちる。Compiler は落ちない —— build 時に component を自動変換してメモ化を導入するため、**値の参照同一性・effect の依存・購読・第三者ライブラリとの相互作用**に、fail-fast でない静かな挙動差分が出うる。lint / E2E / VRT / a11y の網は持っているが、それを**全体自動適用を正当化する根拠にはしない**。
+- **理由は成熟度ではなく blast radius**: Compiler は stable であり、実装も React 本体である。問題は品質ではなく**壊れ方が fail-fast でない**ことにある。[0030](0030-environment-variable-management.md) の taint は違反時に throw し、[0041](0041-cache-components-decision.md) の Cache Components は前提を満たさなければ build が落ちる。Compiler は落ちない —— build 時に component を自動変換してメモ化を導入するため、**値の参照同一性・effect の依存・購読・第三者ライブラリとの相互作用**に、fail-fast でない静かな挙動差分が出うる。lint / E2E / VRT / a11y の網は持っているが、それを**全体自動適用を正当化する根拠にはしない**。
 - **コストの及ぶ範囲は適用範囲に一致させる**: full-auto は共有 chunk +16.4 KB gzip・各 route の初期 JS +4〜15 KB を全 route へ乗せる。`annotation` は共有 chunk を増やさず、印を付けた component が乗る route だけが増える —— 実測で、供給の購読者 13 個を付けた 1 つの画面が +2.4 KB、印を 1 つも持たない他の route は増分 0(`pnpm bundle-budget <現行の .next> <比較先の .next>`)。
 - **利益は TBT ではなく INP に出る。** JS の増加は TBT(実行時間)を悪化させる側であり、Compiler が縮めるのは再描画で、これは実ユーザーの操作からしか観測できない。したがって**測れているコストを払って、まだ測れていない利益を全 route へ先行適用することはしない**。
 - **採用条件は「stable 化」ではない**(既に stable である)。**再描画が集中する経路であると言えること**、および**払う費用がその route に収まっていることを実測で示せること**が条件である。

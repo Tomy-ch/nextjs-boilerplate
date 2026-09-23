@@ -55,8 +55,8 @@ Accepted
 
 **[0010](0010-standards-and-non-lockin.md) 準拠(vendor-independent 正当化)**:
 
-- intercepting / parallel routes は **Next.js 固有 API** だが、これは「App Router を選んだ」という別既決([0011](0011-no-docker.md) / App Router 単独)の帰結であって、機能固有のロックインではない([0010](0010-standards-and-non-lockin.md) §2 運用テスト)。route-as-modal を採る/採らないという **構造決定**自体は、`?modal=` 等の search-param 駆動モーダルや純クライアント状態モーダル([0053](0053-ui-component-interaction-seam.md) が既定を所有)へ**代替可能**であり、Next.js を正当化から抜いても「URL に紐づくモーダルという UI パターン」は成立する = 非ロックイン
-- seam の形は **Next.js 規約(`@modal` / `(.)` file convention)にそのまま乗る**(独自発明・中立化しない。[0010](0010-standards-and-non-lockin.md) §1・命名優先順位 [0028](0028-naming-convention.md))
+- intercepting / parallel routes は **Next.js 固有 API** だが、これは「App Router を選んだ」という別既決([0011](0011-no-docker.md) / App Router 単独)の帰結であって、機能固有のロックインではない([0010](0010-standards-and-non-lockin.md) 運用テスト)。route-as-modal を採る/採らないという **構造決定**自体は、`?modal=` 等の search-param 駆動モーダルや純クライアント状態モーダル([0053](0053-ui-component-interaction-seam.md) が既定を所有)へ**代替可能**であり、Next.js を正当化から抜いても「URL に紐づくモーダルという UI パターン」は成立する = 非ロックイン
+- seam の形は **Next.js 規約(`@modal` / `(.)` file convention)にそのまま乗る**(独自発明・中立化しない。[0010](0010-standards-and-non-lockin.md)・命名優先順位 [0028](0028-naming-convention.md))
 - 本 ADR は route-as-modal を **選択肢として認める(受け皿)**にとどめる。モーダル全体の既定手段(native `<dialog>` / focus trap / Escape / scroll lock / route-as-modal をいつ選ぶか)の方針は **[0053](0053-ui-component-interaction-seam.md) が所有**し、本節を URL 設計側の受け皿として参照する
 
 ### `loading.tsx` / `error.tsx` の配置
@@ -76,7 +76,7 @@ Accepted
 
 `Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。
 
-**外枠が既に await しているものを、画面側の境界で待たない。** 取得を `cache` で memo 化していれば、外枠が出せる時点で画面の中身も揃っている。そこへ境界を置くと、**手元にある値を待つために待機表示を出す**ことになり、後から入れ替わるぶんだけ下の要素が動く。一覧のように長さがデータで決まるものでは、待機表示の高さが実物と一致しないため、この差はそのまま CLS になる([0101](0101-performance-budget.md) §4)。**待つものが無い画面は待機表示を持たない**([0080](0080-error-handling.md) §4)。
+**外枠が既に await しているものを、画面側の境界で待たない。** 取得を `cache` で memo 化していれば、外枠が出せる時点で画面の中身も揃っている。そこへ境界を置くと、**手元にある値を待つために待機表示を出す**ことになり、後から入れ替わるぶんだけ下の要素が動く。一覧のように長さがデータで決まるものでは、待機表示の高さが実物と一致しないため、この差はそのまま CLS になる([0101](0101-performance-budget.md))。**待つものが無い画面は待機表示を持たない**([0080](0080-error-handling.md))。
 
 境界の内側は**待っているあいだ操作できない**。操作できる必要があるものを内側へ入れない(検索欄・絞り込み・戻る導線)。
 
@@ -88,7 +88,7 @@ Accepted
 - ❌ コード分割の第一軸を route にすること(第一軸は feature。[0020](0020-adopted-architecture.md))
 - ❌ 特定レンダリングモード(全面 SSG / 全面 dynamic 等)を本リポジトリで一律強制すること
 - ❌ route-as-modal を全モーダルの既定として強制すること(あくまで**選択肢**。既定手段の判断は [0053](0053-ui-component-interaction-seam.md) 管轄)
-- ❌ intercepting / parallel routes の代替に独自ルーティング機構を発明・中立化すること(Next.js file convention にそのまま乗る。[0010](0010-standards-and-non-lockin.md) §1)
+- ❌ intercepting / parallel routes の代替に独自ルーティング機構を発明・中立化すること(Next.js file convention にそのまま乗る。[0010](0010-standards-and-non-lockin.md))
 
 ## 関連 ADR
 

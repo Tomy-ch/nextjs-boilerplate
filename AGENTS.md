@@ -35,7 +35,7 @@ Accordingly `.claude/settings.json` holds `AGENTS.md` / `LICENSE` / itself under
 
 **Not lifted**: the Git Rules below, and everything under `permissions.deny`.
 
-Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md) 決定 4, the permission half is [0152](docs/adr/0152-agents-md-policy.md)'s 復元手順.
+Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md), the permission half is [0152](docs/adr/0152-agents-md-policy.md)'s 復元手順.
 
 ## Instruction Priority
 

@@ -23,7 +23,7 @@ Accepted
 
 レート制限・IP / bot フィルタ・DDoS 緩和・大域的な WAF は Vercel / Cloudflare / AWS 等の edge / WAF 機能で敷く。本体はこれを前提とし、PaaS 側で設定する拡張点として明示する([0081](0081-observability-logging.md) が生む無防備エンドポイント = テレメトリ中継 `/api/*` の保護もここに載る)。
 
-- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md) §2)**: 公開エンドポイントを edge で多層防御する構造は OWASP / 一般的 web セキュリティの原則であって特定 PaaS 機能に依存しない(Vercel / Cloudflare / AWS WAF いずれでも成立)。
+- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: 公開エンドポイントを edge で多層防御する構造は OWASP / 一般的 web セキュリティの原則であって特定 PaaS 機能に依存しない(Vercel / Cloudflare / AWS WAF いずれでも成立)。
 
 ### 2. 本体に最小限残す防御(フロント領域で表現可能な防御)
 

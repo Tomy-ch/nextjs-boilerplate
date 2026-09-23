@@ -169,7 +169,7 @@ numbers.** Report exposure as a separate line:
 - **Build / dev-time only** — a generator, a linter, a `mise`-managed CLI. **A tool that distributes
   agent skills sits above this line rather than on it**: it runs with the developer's privileges on a
   workstation holding repository write access, and it decides for itself what leaves the machine
-  ([0110](../../../docs/adr/0110-security-operations.md) §1.1).
+  ([0110](../../../docs/adr/0110-security-operations.md)).
 
 ## Procedure
 
@@ -199,7 +199,7 @@ cannot answer.
   evidence here, because a real commit range is available
 - [`references/container-images.md`](references/container-images.md) — image digests. The thinnest
 
-Also read [0110](../../../docs/adr/0110-security-operations.md) §1.1 for the window that applies —
+Also read [0110](../../../docs/adr/0110-security-operations.md) for the window that applies —
 what the toolchain already guarantees decides whether an axis is free or absent.
 
 ### 3. Gather, score, band
@@ -254,7 +254,7 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
   window or turning off its strict mode.
 - **`make tools-cooldown-check` fails the build.** A blocked pin is blocked by a check this
   repository owns, and a LOW score does not clear it. The escape hatch is the exemption comment
-  [0110](../../../docs/adr/0110-security-operations.md) §1.1 requires — **a triage verdict is the
+  [0110](../../../docs/adr/0110-security-operations.md) requires — **a triage verdict is the
   evidence that belongs in that comment's reason, not permission to write it.**
 - **A first-ever pin has no aged fallback**, so a LOW score still leaves the choice between waiting
   and a deliberate bootstrap.
@@ -280,7 +280,7 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
 
 ## Checklist
 
-- [ ] [0110](../../../docs/adr/0110-security-operations.md) §1.1 and §1.2 read at runtime.
+- [ ] [0110](../../../docs/adr/0110-security-operations.md) and §1.2 read at runtime.
 - [ ] Candidate fixed: ecosystem, name, candidate version, **the baseline the caller would keep**,
       window `N`, disposition, urgency.
 - [ ] The one matching `references/` file read; its unanswerable axes honored.

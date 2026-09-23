@@ -95,8 +95,8 @@ right, or whether a finding deserves an issue. It routes those to the user and r
 
 ## AI Modification Scope
 
-`AGENTS.md` confines AI edits to `src/` / `public/` / `docs/adr/BACKLOG.md` by default. Below v1.0.0
-its *Temporary Operating Rules* already lift the protected-path list; what remains is that an issue
+`AGENTS.md` confines AI edits to `src/` / `public/` / `docs/adr/BACKLOG.md` by default. Its
+*Temporary Operating Rules* already lift the protected-path list; what remains is that an issue
 about CI, tooling, or documentation reaches surfaces the default scope never names. **Invoking this
 skill is the explicit user instruction that relaxes the remainder**, because this skill is
 issue-generic: the issue decides the surface.

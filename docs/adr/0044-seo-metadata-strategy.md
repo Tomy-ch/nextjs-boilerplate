@@ -49,7 +49,7 @@ Accepted
 
 ### 6. Proxy との交点
 
-- `proxy.ts`([0043](0043-middleware-policy.md))は、**メタデータファイル(`sitemap` / `robots` / `icon` / `opengraph-image` 等)を対象外とする**(Next.js 公式の good-to-know。メタデータの配信を Proxy が横取りしないため)。除外は `proxy.ts` の `matcher` で行い、選び足りなさは e2e が負う([0043](0043-middleware-policy.md) §4)
+- `proxy.ts`([0043](0043-middleware-policy.md))は、**メタデータファイル(`sitemap` / `robots` / `icon` / `opengraph-image` 等)を対象外とする**(Next.js 公式の good-to-know。メタデータの配信を Proxy が横取りしないため)。除外は `proxy.ts` の `matcher` で行い、選び足りなさは e2e が負う([0043](0043-middleware-policy.md))
 
 ### 7. 公開面の検査は「在るか」ではなく「成立しているか」を見る
 

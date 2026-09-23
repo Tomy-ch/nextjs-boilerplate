@@ -8,7 +8,7 @@ description: Add a new environment variable end-to-end, keeping the env files, p
 
 Adds a new environment variable to the project end-to-end: set in each per-environment env file and listed in the env variable table, and — when the app reads it through config — declared in the schema of **one purpose-scoped config module**, exposed through that module's immutable typed object, and explained in the config kernel README.
 
-The two documentation sides own different things ([0030](../../../docs/adr/0030-environment-variable-management.md) §6). **`env/README` is the authority on which variables exist**, placeholder-only and config-less variables included. **The config kernel README is the authority on the config values themselves** — those validated at build time and injected into the purpose modules at construction. What config covers is a subset of what exists in env; never write the same content into both.
+The two documentation sides own different things ([0030](../../../docs/adr/0030-environment-variable-management.md)). **`env/README` is the authority on which variables exist**, placeholder-only and config-less variables included. **The config kernel README is the authority on the config values themselves** — those validated at build time and injected into the purpose modules at construction. What config covers is a subset of what exists in env; never write the same content into both.
 
 The design this skill implements is [0030](../../../docs/adr/0030-environment-variable-management.md) (env management / config kernel); the naming form comes from [0028](../../../docs/adr/0028-naming-convention.md). Those ADRs are authoritative — this skill only automates the mechanics.
 
@@ -35,7 +35,7 @@ Do NOT use this skill for:
 
 - Renaming an existing env var (different workflow — rename across all places at once).
 - Removing an existing env var (reverse direction; safer by hand).
-- Adding a whole new **purpose** (a new `src/config/<purpose>/` directory). This skill assumes the purpose module already exists. For a new purpose, write the first variable manually — a new module also needs its import-boundary placement decided ([0030](../../../docs/adr/0030-environment-variable-management.md) §3) — then use this skill for subsequent additions.
+- Adding a whole new **purpose** (a new `src/config/<purpose>/` directory). This skill assumes the purpose module already exists. For a new purpose, write the first variable manually — a new module also needs its import-boundary placement decided ([0030](../../../docs/adr/0030-environment-variable-management.md)) — then use this skill for subsequent additions.
 - Moving a value out of env because it must change without a redeploy — that belongs behind the BFF runtime config ([0071](../../../docs/adr/0071-bff-api-integration.md)), not here.
 
 ## What This Skill Reads / Writes
@@ -56,13 +56,13 @@ Do NOT use this skill for:
 
 **Never touches**:
 
-- `next.config.ts` / `instrumentation.ts` — the build-time and server-start validation points ([0030](../../../docs/adr/0030-environment-variable-management.md) §1) import the schema module wholesale, so adding a field to an existing purpose schema is already covered. If a change there looks necessary, that means the purpose module is not wired in — stop and report it instead of editing.
+- `next.config.ts` / `instrumentation.ts` — the build-time and server-start validation points ([0030](../../../docs/adr/0030-environment-variable-management.md)) import the schema module wholesale, so adding a field to an existing purpose schema is already covered. If a change there looks necessary, that means the purpose module is not wired in — stop and report it instead of editing.
 - `biome.json` — the `noProcessEnv` override belongs to the config kernel, not to a variable addition.
 - Anything outside `env/` and `src/config/`.
 
 ## Step 0. Gather the Spec
 
-This skill **MUST call `AskUserQuestion` immediately after invocation** — adding an env variable requires user confirmation ([0030](../../../docs/adr/0030-environment-variable-management.md) §6). Ask in batches to collect the spec.
+This skill **MUST call `AskUserQuestion` immediately after invocation** — adding an env variable requires user confirmation ([0030](../../../docs/adr/0030-environment-variable-management.md)). Ask in batches to collect the spec.
 
 ### Question 1: Variable name and purpose
 
@@ -106,7 +106,7 @@ Enforce the two invariants of [0030](../../../docs/adr/0030-environment-variable
   - 「number / boolean / enum, required(型は後で指定)」
   - 「number / boolean / enum, code default あり(型と値を後で指定)」
 
-Follow up with free text for the concrete type and the default value where applicable. The choice rule from [0030](../../../docs/adr/0030-environment-variable-management.md) §4: a value that is project-specific or varies per environment is **required** (its absence fails the build / server start); a universal framework-level value gets a **code default** in the schema.
+Follow up with free text for the concrete type and the default value where applicable. The choice rule from [0030](../../../docs/adr/0030-environment-variable-management.md): a value that is project-specific or varies per environment is **required** (its absence fails the build / server start); a universal framework-level value gets a **code default** in the schema.
 
 ### Question 5: Secret label
 
@@ -116,7 +116,7 @@ Follow up with free text for the concrete type and the default value where appli
   - 「Secret management required(本番は secret store から供給。平文コミット禁止)」
   - 「Secret management recommended(定期ローテーション推奨)」
 
-For either secret label, the value written into the committed env files is a **placeholder**, never the real secret — production values are supplied from the PaaS env / secret store ([0030](../../../docs/adr/0030-environment-variable-management.md) §5 / §6). Say this to the user rather than asking for the real value.
+For either secret label, the value written into the committed env files is a **placeholder**, never the real secret — production values are supplied from the PaaS env / secret store ([0030](../../../docs/adr/0030-environment-variable-management.md)). Say this to the user rather than asking for the real value.
 
 ### Question 6: Description
 
@@ -155,7 +155,7 @@ The purpose directory has a schema module and exactly one corresponding runtime 
 2. **Environment schema entry** — import and call that validator in the explicit `z.object({...})` declaration in `src/config/environment.ts`.
 3. **Config value and getter** — add the typed value and getter in the corresponding runtime module, preserving its private constructor and existing style. Never add a setter or expose a constructor/factory.
 
-Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md) §2): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
+Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md)): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
 
 Server-module specifics: `import "server-only"` is already at the top of the file; if it is missing, report that as a defect rather than silently adding a variable to an unguarded module.
 
@@ -228,7 +228,7 @@ pnpm typecheck  # the new getter and its type
 pnpm build      # build-time validation of the full schema (a missing required var fails here)
 ```
 
-Run the test script too if the project has one. `pnpm build` is the meaningful gate for this skill: it is where [0030](../../../docs/adr/0030-environment-variable-management.md) §1's full-set validation actually executes.
+Run the test script too if the project has one. `pnpm build` is the meaningful gate for this skill: it is where [0030](../../../docs/adr/0030-environment-variable-management.md)'s full-set validation actually executes.
 
 If a command fails, surface the failure and stop. Do NOT roll back the edits — the user decides whether to fix forward.
 

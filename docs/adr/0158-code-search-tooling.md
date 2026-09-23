@@ -29,7 +29,7 @@ Accepted
 
 ## 取得経路
 
-成果物が何であるかで経路を分ける（[0156](0156-browser-observation-tooling.md) 取得経路）。graphify は Python の CLI であり、単体で動く実行ファイルとして `mise.toml` が pin を持つ。版の検疫は [0110](0110-security-operations.md) 1.1 に従い、**エージェントスキルを配布するツールとして、bump のたびに「何をマシンの外へ送るか」をレビューする。**
+成果物が何であるかで経路を分ける（[0156](0156-browser-observation-tooling.md) 取得経路）。graphify は Python の CLI であり、単体で動く実行ファイルとして `mise.toml` が pin を持つ。版の検疫は [0110](0110-security-operations.md) に従い、**エージェントスキルを配布するツールとして、bump のたびに「何をマシンの外へ送るか」をレビューする。**
 
 **配布名と CLI 名が違う。** パッケージの綴りを取り違えると別の（空き名の）パッケージを掴むため、手順を書くときは pin にある綴りをそのまま使う。
 

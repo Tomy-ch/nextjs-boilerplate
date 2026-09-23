@@ -66,7 +66,7 @@ Step 2 のキーワード集合は、`portal-manifest-sync` の実行で false-n
 
 `AskUserQuestion`:
 
-1. **対象 README パス** — canonical 版。v1.0.0 までは接尾辞なしのパスにある日本語版が canonical（[0140](../../../docs/adr/0140-documentation-operations.md)）なので `README.md` を対象にし、`.ja.md` は例外扱い。引数 / 直近メッセージにあれば候補として提示
+1. **対象 README パス** — canonical 版。canonical は接尾辞なしのパスにあり、その言語は [0140](../../../docs/adr/0140-documentation-operations.md) が持つ。したがって `README.md` を対象にし、`.ja.md` は例外扱い。引数 / 直近メッセージにあれば候補として提示
 2. **出力詳細度** — 簡潔スコアカード（デフォルト）/ パターン別フル breakdown
 
 `*.ja.md` パスが渡された場合は、ja を直接 review するか canonical sibling に切り替えるか確認。

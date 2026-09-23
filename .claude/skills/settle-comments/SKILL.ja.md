@@ -272,7 +272,7 @@ pipeline そのものより、**決定的で安価である**という性質が�
 承認にもモードにも関わらず効くガード。
 
 - **機能ディレクティブを消さない** —— `// @ts-expect-error`、`// biome-ignore …`、`// eslint-disable*`、`/** @jsxImportSource … */`、`// Code generated … DO NOT EDIT`、shebang。（`"use client"` / `"use server"` は文字列ディレクティブでコメントではない。触らない）
-- **保護されたパスを編集しない。** `AGENTS.md`、`LICENSE`、`.claude/settings.json` の `permissions.deny` にあるものは触らない。Accepted な ADR 本文は v1.0.0 未満では編集でき、通常の移設先である。v1.0.0 以降は他の ADR 編集と同じく承認を要する
+- **保護されたパスを編集しない。** `AGENTS.md`、`LICENSE`、`.claude/settings.json` の `permissions.deny` にあるものは触らない。Accepted な ADR 本文は、`AGENTS.md` の *Temporary Operating Rules* が承認の要求を外している間は通常の移設先である。外れた後は他の ADR 編集と同じく承認を要する
 - **生成ファイルに触れない** —— `**/gen/**`、生成バナーを持つもの
 - **コードの振る舞いを書き換えない。** コードが誤っているせいでコメントが誤っているなら、報告して止まる
 
