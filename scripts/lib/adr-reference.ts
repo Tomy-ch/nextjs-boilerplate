@@ -24,8 +24,14 @@ export type SectionedAdrReference = {
   readonly text: string;
 };
 
-/** Markdown リンクの丸括弧の中身。 */
-const LINK = /\]\(([^)]*)\)/g;
+/**
+ * Markdown リンクの `](…)` の部分。
+ *
+ * @remarks
+ * 中身を捕獲グループで取らないのは、取ると型の上で「無いかもしれない」値になり、
+ * **到達しない分岐**が生まれるためです。一致全体から括弧を外して取り出します。
+ */
+const LINK = /\]\([^)]*\)/g;
 
 /** その中身が ADR のファイルを指しているか。 */
 const ADR_PATH = /(?:^|\/)0\d{3}-[a-z0-9-]+\.md$/;
@@ -53,7 +59,7 @@ const COUNTER = /^[ 　]*[つ本件回点種段層人箇]/;
  */
 function findInLine(file: string, line: number, text: string): readonly SectionedAdrReference[] {
   return [...text.matchAll(LINK)].flatMap((link) => {
-    if (!ADR_PATH.test(link[1] ?? "")) return [];
+    if (!ADR_PATH.test(link[0].slice("](".length, -")".length))) return [];
 
     const section = SECTION.exec(text.slice(link.index + link[0].length));
 
