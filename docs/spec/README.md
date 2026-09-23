@@ -92,7 +92,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 **仕様書を先に固めることは求めません。** 書ける時点は見た目が確定した後なので、画面実装の順序
 （[`playbook.md`](../playbook.md)）では story のレビューを通ったあとに置きます。ただし
 **仕様書を持たない route が残るのは埋めるべき穴であって、正常な状態ではありません。**
-`src/app` の route とこの目録を機械で突き合わせる検査は v1.0.0 到達前に入れます（同 ADR）。
+`src/app` の route とこの目録は機械で突き合わせます（[`scripts/spec-routes.gate.test.ts`](../../scripts/spec-routes.gate.test.ts)）。
 
 ## 何を書かないか
 

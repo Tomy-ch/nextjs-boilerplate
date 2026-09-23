@@ -95,8 +95,7 @@ expensive output — a comparison that re-litigates something already decided.
 
 | Where | What it settles |
 | --- | --- |
-| [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions |
-| [`docs/adr/BACKLOG.md`](../../../docs/adr/BACKLOG.md) | A slot's **撤回条件** — what was deferred, and what would have to become true to revisit it |
+| [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions and the **撤回条件** each one carries in its own body — what would have to become true to revisit it |
 | [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | What this repository deliberately does not carry, and under what condition it would |
 
 The last two are what make 「やらない」 a decision rather than an absence. A question that looks open
@@ -279,7 +278,7 @@ to code is one somebody chose. The route onward is human approval, then `new-iss
 ## Do / Do NOT
 
 - ✅ Establish the current state first; stop and ask for `repo-truth` when it is unclear.
-- ✅ Check all three settling places — the ADRs, the backlog's 撤回条件, and the out-of-scope list.
+- ✅ Check both settling places — the ADRs, including the 撤回条件 in their own bodies, and the out-of-scope list.
 - ✅ Search the indexes by concern, never by the feature's words.
 - ✅ Look for an isomorphic mechanism before treating the question as a design branch — by shape, by
   enumerating the kernels, not by grepping the concept.
