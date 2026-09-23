@@ -10,7 +10,7 @@ Accepted (一部 exclusion)
 
 同意管理は**対象法域(GDPR / ePrivacy / CCPA 等)・使用するトラッキング / アナリティクスの有無・SaaS 選定に強く依存**するため、CMP レベルの実装を本体で一律に決めると法令要件を狭める。
 
-一方で、**同意はサードパーティスクリプトの読み込みをゲートする機構**であり、layout の構成([0026](0026-layout-shell-mount.md))・CSP の `script-src`([0111](0111-csp-security-headers.md))・`next/script` の strategy に同時に食い込む。この 3 点は後から差し込むと広範囲の書き換えになるため、**機構だけは最初から持つ**方が構造的に安い。加えて同意状態の供給 seam は [0031](0031-policy-state-supply.md) が既に規定しており、**設置面が実在する**。
+一方で、**同意はサードパーティスクリプトの読み込みをゲートする機構**であり、layout の構成([0026](0026-layout-shell-mount.md))・CSP の `script-src`([0111](0111-csp-security-headers.md))・`next/script` の strategy に同時に食い込む。この 3 点は後から差し込むと広範囲の書き換えになるため、**機構だけは最初から持つ**方が構造的に安い。加えて同意状態の供給 seam は [0031](0031-policy-state-supply.md) が既に規定している。
 
 ## 決定
 

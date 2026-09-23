@@ -10,7 +10,7 @@ Accepted (exclusion; v2 に局所採用を予定)
 
 用途依存の「やらない」判断は、沈黙のままだと意識的に線引きした痕跡が残らない。i18n([0121](0121-i18n-strategy.md))と同じく、PWA も exclusion として明文化する。
 
-Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)が存在するが、Service Worker / オフラインキャッシュは Next.js の自動組込み機構ではなく、個別の実装(または外部ライブラリ)を要する。PWA が有用かは**配信形態・オフライン要件・インストール可能性の要否に強く依存**する。本体には manifest / Service Worker の設置面が存在しないため、seam をコードとして置かず、本 ADR が記すのは**採用時の拡張点の座標**である。
+Next.js には Web App Manifest のファイル規約(`app/manifest.(json|ts)`)が存在するが、Service Worker / オフラインキャッシュは Next.js の自動組込み機構ではなく、個別の実装(または外部ライブラリ)を要する。PWA が有用かは**配信形態・オフライン要件・インストール可能性の要否に強く依存**する。seam をコードとして置かず、本 ADR が記すのは**採用時の拡張点の座標**である。
 
 ## 決定: 同梱しない(用途依存)
 

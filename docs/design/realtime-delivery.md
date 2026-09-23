@@ -1,6 +1,6 @@
 # 購読と配信
 
-**購読 seam は実体を持つ。** 置き場は [`src/adapters/client/stream/`](../../src/adapters/client/stream/README.md) で、購読 1 本の状態機械と、それを組み立てる部品（封筒・順序・カーソル・待ち時間）から成る。引いているのは [`features/inquiry`](../../src/features/inquiry/README.md) である。この文書は他の設計リファレンスと同じく実装を読んで書いた。
+**購読 seam は実体を持つ。** 置き場は [`src/adapters/client/stream/`](../../src/adapters/client/stream/README.md) で、購読 1 本の状態機械と、それを組み立てる部品（封筒・順序・カーソル・待ち時間）から成る。この文書は他の設計リファレンスと同じく実装を読んで書いた。
 
 決定そのもの —— transport は SSE、認証は BFF 発行の ticket、stream が運ぶのは event、client が前提するのは単調増加だけ、再接続は自前、mock で差し替えない —— は [ADR 0074](../adr/0074-runtime-communication-seam.md) が持つ。家が `adapters/client` である理由は [ADR 0024](../adr/0024-adapters-server-client-split.md)、往復側の取得と正規化は [data-fetching.md](data-fetching.md)、資格情報の持ち方は [auth.md](auth.md) が持つ。ここが持つのは、それらを読むために要る前提と、実体化するときに踏むものである。
 
