@@ -27,9 +27,13 @@ concurrency:
 
 jobs:
   issue-field-lint:
-    # Only implementation tasks carry this template, and the template applies the label.
-    # Everything else has its own shape.
-    if: contains(github.event.issue.labels.*.name, 'implementation-task')
+    # Only implementation tasks carry this template. The web form applies the label, but
+    # `--body-file` does not, so a body written to the template's shape counts as well.
+    # A `labeled` event runs only when that label itself was just applied.
+    if: >-
+      (github.event.action != 'labeled' || github.event.label.name == 'implementation-task')
+      && (contains(github.event.issue.labels.*.name, 'implementation-task')
+      || contains(github.event.issue.body, '### 対象 ADR'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

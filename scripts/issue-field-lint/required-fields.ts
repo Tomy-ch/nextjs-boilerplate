@@ -36,10 +36,26 @@ export const REQUIRED_HEADINGS: readonly string[] = ["目的", "強制手段", "
  * 実装タスクの issue に付くラベル。
  *
  * @remarks
- * **雛形の `labels:` と `.github/workflows/issue-field-lint.yaml` の `if:` が同じ名前を持ちます。**
- * どれか 1 つだけ変えると、検査は対象を見失ったまま緑を返します。
+ * 雛形の `labels:` と `.github/workflows/issue-field-lint.yaml` の `if:` も同じ名前を持ち、
+ * 3 つの一致はテストが見ます。
  */
 export const IMPLEMENTATION_TASK_LABEL = "implementation-task";
+
+/**
+ * 実装タスクの雛形にしか無い見出し。
+ *
+ * @remarks
+ * ラベルは Web フォームしか付けず、`gh issue create --body-file` は付けません。**検査が狙う経路で
+ * ラベルが抜ける**ので、雛形に沿って書かれた本文もこの見出しで対象に入れます。
+ */
+export const IMPLEMENTATION_TASK_HEADING = "対象 ADR";
+
+function isImplementationTask(issue: IssueBody): boolean {
+  return (
+    issue.labels.includes(IMPLEMENTATION_TASK_LABEL) ||
+    issue.body.includes(`### ${IMPLEMENTATION_TASK_HEADING}`)
+  );
+}
 
 /**
  * 必須の見出しを欠いている issue を選ぶ。
@@ -53,7 +69,7 @@ export const IMPLEMENTATION_TASK_LABEL = "implementation-task";
  */
 export function missingRequiredFields(issues: readonly IssueBody[]): readonly MissingField[] {
   return issues
-    .filter((issue) => issue.labels.includes(IMPLEMENTATION_TASK_LABEL))
+    .filter(isImplementationTask)
     .flatMap((issue) =>
       REQUIRED_HEADINGS.filter((heading) => !issue.body.includes(`### ${heading}`)).map(
         (field) => ({ number: issue.number, title: issue.title, field }),

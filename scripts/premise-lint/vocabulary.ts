@@ -82,7 +82,12 @@ export const PREMISE_SHAPES: readonly PremiseShape[] = [
   {
     name: "工程の文書への参照",
     why: "計画書と BACKLOG はこのリポジトリを作る工程の文書で、複製した側には渡りません。そこを指す参照は、渡った先で辿れません",
-    phrases: ["docs/plan", "BACKLOG", "v1 実装計画", "triage #"],
+    phrases: ["docs/plan", "BACKLOG", "v1 実装計画"],
+  },
+  {
+    name: "私的な issue 番号への参照",
+    why: "issue は複製した側へ渡らないので、番号は渡った先で別の issue を指すか、何も指しません",
+    phrases: ["triage #"],
   },
 ];
 

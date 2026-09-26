@@ -6,11 +6,7 @@
 //   pnpm exec tsx scripts/issue-field-lint --all      閉じたものも含めて見る
 import { execFileSync } from "node:child_process";
 
-import {
-  IMPLEMENTATION_TASK_LABEL,
-  type IssueBody,
-  missingRequiredFields,
-} from "./required-fields.js";
+import { type IssueBody, missingRequiredFields } from "./required-fields.js";
 
 function listIssues(requested: string): readonly IssueBody[] {
   const raw = execFileSync(
@@ -20,8 +16,6 @@ function listIssues(requested: string): readonly IssueBody[] {
       "list",
       "--state",
       requested,
-      "--label",
-      IMPLEMENTATION_TASK_LABEL,
       "--limit",
       "200",
       "--json",
