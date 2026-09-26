@@ -99,7 +99,7 @@ Mark which of these applies on every named-function finding, so the apply step d
 - **Functional / directive comments** — these are not prose to judge and must NEVER be flagged for removal: `// @ts-expect-error` / `// @ts-ignore`, `// biome-ignore ...`, `/* eslint-* */` (if any), `/** @jsxImportSource ... */`, `// prettier-ignore`, `// Code generated ... DO NOT EDIT`, shebang lines, SQL/YAML tool directives. (Note: `"use client"` / `"use server"` are string directives, not comments — out of scope.)
 - **README / Markdown prose** — the comment rules govern *source-code comments*, not standalone documents. If the orchestrator hands you `.md` files, skip their prose (that is `doc-reviewer`'s job).
 - **Usage / How in a module/component overview** — a top-of-file overview or example-style doc prose is tutorial documentation, not an implementation comment. Usage steps and "how to use" belong there and must NOT be flagged as `実装手段の暴露` / `逐次処理ナレーション`. The never-How rule applies to per-declaration / inline comments (this mirrors how `doc-reviewer` treats docs prose).
-- **An unresolved TODO / FIXME** — a legitimate marker whose corresponding code is not written yet, including one tied to a documented pending area (BACKLOG / a `// TODO:` hand-off to a human), is NOT a finding. Only a marker the code below already satisfies (resolved-but-left-behind) qualifies as `解決済みTODO/FIXME`.
+- **An unresolved TODO / FIXME** — a legitimate marker whose corresponding code is not written yet, including one tied to a documented pending area (an open issue / a `// TODO:` hand-off to a human), is NOT a finding. Only a marker the code below already satisfies (resolved-but-left-behind) qualifies as `解決済みTODO/FIXME`.
 
 ## How to review
 

@@ -167,8 +167,8 @@ export const ENTRY_POINTS = [
  *   `errors` / `logging` だけなので、UI 部品・横断状態と `observability` を落とします —— 計装の
  *   mount は `route-segment` の名指しの例外であって、変更の口が span を立てる場所ではありません。
  *   **`config` は落としていません**: 禁じているのは server config の直読で、`actions.ts` が読んで
- *   いるのは `NEXT_PUBLIC` の公開定数です。層の粒度ではその 2 つを分けられないため、扱いは
- *   [BACKLOG](docs/adr/BACKLOG.md) の GB-1 が持ちます
+ *   いるのは `NEXT_PUBLIC` の公開定数です。層の粒度ではその 2 つを分けられないため、区別は
+ *   人のレビューが拾います（[traceability](docs/traceability.md)「機械が届かないと分かっているところ」）
  *
  * - `app-metadata`: クローラと共有先が読む配信物。`config`（外から見た origin・索引の可否）と
  *   `model`（保護している経路の宣言）を読み、要求時に一覧を辿る `sitemap.ts` だけが
@@ -179,11 +179,10 @@ export const ENTRY_POINTS = [
  *   `unit` で検証し、絵を返すだけの 3 つは判定を持たないので単体では回しません
  *   （`scripts/lib/untested-modules.ts`）
  *
- * `route-segment` はまだこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
+ * `route-segment` はこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
  * 許されているのは計装の mount と、Next.js の規約が route segment に置くことを要求する値だけ
  * ですが、その限定は「何を import してよいか」ではなく「どう使ってよいか」なので、層の許可を削る
- * 形では表せません。残りは意味的な監査と人のレビューが拾います。表を実態へ揃える作業は
- * [BACKLOG](docs/adr/BACKLOG.md) の GB-1 が持ちます。
+ * 形では表せません。残りは意味的な監査と人のレビューが拾います。
  *
  * `testRequirement` をここが持つのは、負う観点を決めるのが**置き場ではなく element** だからです。
  * ディレクトリから遡る README は、`api/` の外に置いた Route Handler へ届きません。対象のテストは

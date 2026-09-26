@@ -7,7 +7,7 @@ name: Issue Field Lint
 # `gh issue create --body-file` walks straight past it — and that is the path an agent
 # takes. An issue filed without the enforcement field is indistinguishable, later, from
 # one whose decision genuinely had no mechanical enforcement, which is exactly the
-# distinction the ledger is built to record.
+# distinction ADR 0144 asks the field to make.
 #
 # Runs on the issue itself rather than on a pull request: a pull request creates no
 # issue, so a PR gate would never see the moment the field goes missing. The job
@@ -16,7 +16,7 @@ name: Issue Field Lint
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened, edited, labeled]
 
 permissions:
   contents: read
@@ -27,8 +27,13 @@ concurrency:
 
 jobs:
   issue-field-lint:
-    # Only implementation tasks carry this template. Everything else has its own shape.
-    if: startsWith(github.event.issue.title, '[P')
+    # Only implementation tasks carry this template. The web form applies the label, but
+    # `--body-file` does not, so a body written to the template's shape counts as well.
+    # A `labeled` event runs only when that label itself was just applied.
+    if: >-
+      (github.event.action != 'labeled' || github.event.label.name == 'implementation-task')
+      && (contains(github.event.issue.labels.*.name, 'implementation-task')
+      || contains(github.event.issue.body, '### 対象 ADR'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

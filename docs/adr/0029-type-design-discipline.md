@@ -39,7 +39,7 @@ Accepted
 - **両方を受ける層は core の型で書く。** `zod` と `zod/mini` は `zod/v4/core` の `$ZodType` を共有する。共有層(client の HTTP 呼び出しなど)が片方の流儀を要求すると、呼び出し側の移行がその 1 箇所のために止まる
 - **react-hook-form へ渡すときは `standardSchemaResolver`**([0062](0062-form-input-validation.md))。`zodResolver` は `zod` の型を要求するが、`zod/mini` は Standard Schema を実装しているため標準側の口で繋がる
 
-**生成物を経由して `zod` が client へ入る経路がある間は、client 側だけを移しても classic は消えない**(mini が上乗せされるだけになる)。その経路と順序は [BACKLOG](BACKLOG.md) の「予算に対して残っている重さ」が持つ。
+**生成物を経由して `zod` が client へ入る経路がある間は、client 側だけを移しても classic は消えない**(mini が上乗せされるだけになる)。その経路は、生成物から定数だけの module を切り出して client にそちらだけを引かせることで塞ぐ([0072](0072-api-type-generation.md)「制約の定数は、検証と別の module へ出す」)。client の島から `zod` の既定の入口か生成スキーマへ届く import が現れたら `scripts/client-schema-weight.gate.test.ts` が落とす。
 
 #### 部分更新の payload は `undefined` に意味を持たせず、`adapters` で正規化する
 

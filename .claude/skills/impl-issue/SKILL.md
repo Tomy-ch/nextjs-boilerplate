@@ -59,7 +59,7 @@ Where this pipeline stops is a specification, not a judgment. It stops here and 
 | 1 | Step 0 | The six modes, in two back-to-back calls, before anything else |
 | 2 | Step 3 | Approval of the written plan |
 | 3 | Step 4 | A trip-wire whose row says halt |
-| 4 | Step 7 | Which of the three peer review skills to run, each with its estimated return |
+| 4 | Step 7 | Which of the two peer review skills to run, each with its estimated return |
 | 5 | Step 8 | Runtime verification failed; and the merge itself |
 
 `AGENTS.md`'s *Where You May Stop* still governs above this list — its stopping points and trip wires
@@ -95,11 +95,10 @@ right, or whether a finding deserves an issue. It routes those to the user and r
 
 ## AI Modification Scope
 
-`AGENTS.md` confines AI edits to `src/` / `public/` / `docs/adr/BACKLOG.md` by default. Its
-*Temporary Operating Rules* already lift the protected-path list; what remains is that an issue
-about CI, tooling, or documentation reaches surfaces the default scope never names. **Invoking this
-skill is the explicit user instruction that relaxes the remainder**, because this skill is
-issue-generic: the issue decides the surface.
+`AGENTS.md` confines AI edits to `src/` / `public/` by default, and an issue about CI, tooling, or
+documentation reaches surfaces the default scope never names. **Invoking this skill is the explicit
+user instruction that relaxes that scope** (`AGENTS.md`, *Exception: Skill Execution*), because this
+skill is issue-generic: the issue decides the surface.
 
 The relaxation is bounded, and the bound is the plan:
 
@@ -587,8 +586,9 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 The handover comment covers, per the completion criteria: **どの条件をどう満たしたか / 指示と違えた
 判断とその理由 / 別 issue が妥当な積み残し**.
 
-**Fetch again before asserting anything about the state of the world.** Release lines move in minutes
-here, so a handover written from a session-start snapshot claims things that stopped being true.
+**Fetch again before asserting anything about the state of the world.** A release line can move while
+a run is in progress, so a handover written from a session-start snapshot claims things that stopped
+being true.
 
 **Clean up the worktree, not the branch.** `git worktree remove` leaves the local branch, and that is
 the correct end state; the remote branch is deleted by GitHub on merge. Do not run `git branch -d`.

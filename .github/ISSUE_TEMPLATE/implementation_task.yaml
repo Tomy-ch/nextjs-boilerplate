@@ -1,24 +1,8 @@
-name: 実装タスク(v1 実装計画の PR 1 件)
-description: docs/plan/v1-implementation-plan.md の PR 1 行を 1 issue として起票する
-title: "[PNN-N] "
-labels: ["feature"]
+name: 実装タスク
+description: 決定を実装する変更 1 件を 1 issue として起票する
+labels: ["implementation-task"]
 
 body:
-  - type: markdown
-    attributes:
-      value: |
-        `docs/plan/v1-implementation-plan.md` の PR 1 行 = この issue 1 件。
-        各項目の意味は同計画 §0.3「PR の記法」を参照してください。
-
-  - type: input
-    id: plan-id
-    attributes:
-      label: 計画 ID
-      description: v1 実装計画の PR ID。計画外の実装なら「計画外」と書いてください
-      placeholder: "例: P3-2"
-    validations:
-      required: true
-
   - type: textarea
     id: purpose
     attributes:

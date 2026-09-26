@@ -90,7 +90,7 @@ Before anything else, establish the current state. If it is unclear or contested
 so**: the user should run `repo-truth` first. Do not invoke it yourself and do not paper over the gap
 with an assumption, because the assumption then silently shapes every option.
 
-**Three places settle a question here, not one.** Missing any of them produces this skill's most
+**Two places settle a question here, not one.** Missing any of them produces this skill's most
 expensive output — a comparison that re-litigates something already decided.
 
 | Where | What it settles |
@@ -98,7 +98,7 @@ expensive output — a comparison that re-litigates something already decided.
 | [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions and the **撤回条件** each one carries in its own body — what would have to become true to revisit it |
 | [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | What this repository deliberately does not carry, and under what condition it would |
 
-The last two are what make 「やらない」 a decision rather than an absence. A question that looks open
+Together they make 「やらない」 a decision rather than an absence. A question that looks open
 is often one whose 撤回条件 simply has not been met — and the answer is that condition, not a
 comparison.
 
@@ -246,7 +246,7 @@ Always this shape, in Japanese. Lead with the recommendation; the comparison is 
 - <測れなかったコスト / 確認できなかった主張> — <なぜ測れなかったか、測れば何が変わるか>
 
 ## 決めるべきこと
-- <人が決める事項> — 記録先: ADR / BACKLOG の枠 / issue / spec / 層 README のどれか
+- <人が決める事項> — 記録先: ADR / issue / spec / 層 README のどれか
 ```
 
 When only part of the question could be researched, return that part and name the rest as
@@ -271,9 +271,9 @@ This skill produces `決めるべきこと` and stops. It does not adopt an opti
 issue, or start implementing — and it does not invoke `new-issue` for you.
 
 **The gap between a recommendation and a decision is the whole point of the step.** A recommendation
-that flows straight into implementation was never reviewed by anyone; `AGENTS.md` puts the areas
-`docs/adr/BACKLOG.md` still leaves blank behind a human gate precisely so that the option surviving
-to code is one somebody chose. The route onward is human approval, then `new-issue`.
+that flows straight into implementation was never reviewed by anyone; `docs/rules.md`
+(*作業とエージェント*) puts the areas no Accepted ADR decides behind a human gate precisely so that
+the option surviving to code is one somebody chose. The route onward is human approval, then `new-issue`.
 
 ## Do / Do NOT
 
@@ -306,7 +306,7 @@ to code is one somebody chose. The route onward is human approval, then `new-iss
 
 - [ ] `--stage` / `--sources` resolved; under `repo` the unmakeable claims were named.
 - [ ] Current state established, or the run stopped with `repo-truth` named as the next step.
-- [ ] All three settling places checked by concern; a standing decision or an unmet 撤回条件 reported
+- [ ] Both settling places checked by concern; a standing decision or an unmet 撤回条件 reported
       as the answer if one exists.
 - [ ] Isomorphic-mechanism check done by shape over enumerated kernels; 「設計分岐なし」 reported when
       it applies, and the enumerated scope stated when claiming none exists.

@@ -30,7 +30,7 @@
 
 - `AGENTS.md`
 - `LICENSE`
-- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.md) / [0155](../../../docs/adr/0155-claude-skills-development.md) のカバー範囲テーブルへ行を追加するが、それが今できるのは `AGENTS.md`「Temporary Operating Rules until v1.0.0」が ADR 本文への承認要件を解除しているからにすぎない。この暫定運用が外れたら、行追加も他の ADR 編集と同様にユーザの明示的承認を要する — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
+- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.md) / [0155](../../../docs/adr/0155-claude-skills-development.md) のカバー範囲テーブルへ行を追加する。その編集にユーザの明示的承認が要るかは、他の ADR 編集と同様に `AGENTS.md` の *Protected Documentation* が決める — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
 - `.claude/settings.json` — プラグイン bootstrap が `claude` CLI 経由で書き込む（Step 0）。ここで手編集してはならない。
 - `.claude/settings.json` の `permissions.deny` に載っているパス。
 
@@ -75,7 +75,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 
 各系統の現在の構成員は、その ADR のカバー範囲テーブルが持つ。ここに一覧を置かず、今回の実行で読む。
 
-提案されたスキルが、`BACKLOG.md` でまだ未決の領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（`docs/rules.md`「作業とエージェント」）。スキルを、規約が暗黙に決まる場所にしてはならない。
+提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（`docs/rules.md`「作業とエージェント」）。スキルを、規約が暗黙に決まる場所にしてはならない。
 
 近い役割の重複を作るくらいなら、既存スキルの拡張を優先する。粒度は「1 起動 = 1 オペレーション」（ADR 0154）。
 
