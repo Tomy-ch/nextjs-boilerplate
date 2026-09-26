@@ -148,13 +148,13 @@ flowchart LR
   A["バックエンドの status"] -->|toErrorKind| K["ErrorKind（cause chain に保持）"]
   K -->|Server Action: actionStateFromError| S["ActionState の formError"]
   K -->|Route Handler: toCaughtErrorResponse| H["status + カタログの定型文"]
-  H -->|adapters/client: KIND_BY_STATUS| C["ErrorKind（400 / 401 / 414 以外は internal）"]
+  H -->|adapters/client: KIND_BY_STATUS| C["ErrorKind（400 / 401 / 403 / 404 / 414 以外は internal）"]
   K -->|feature: findAppError| N["not-found / conflict の分岐"]
 ```
 
 1. **バックエンド → wrapper。** 表に無い status は `internal` へ矯正される。分類を持たない値が上へ出ることは無い
 2. **Route Handler → ブラウザ。** `toCaughtErrorResponse` は cause chain から分類を拾い、無ければ `internal` にする。載せる文言は `errors` のカタログが持つ既定文だけで、バックエンドの `message` は出ない
-3. **BFF → `adapters/client`。** `KIND_BY_STATUS` に載っている 400 / 401 / 414 だけを写し、残りは `internal` に畳む。BFF が返すのは自分で組んだ応答なので、それ以上の区別は呼び出し側に要らない。**401 だけは畳まない** —— 畳むと画面は読み直す操作しか出せず、押しても同じ経路を辿る
+3. **BFF → `adapters/client`。** `KIND_BY_STATUS` に載っている 400 / 401 / 403 / 404 / 414 だけを写し、残りは `internal` に畳む。BFF が返すのは自分で組んだ応答なので、それ以上の区別は呼び出し側に要らない。**401 / 403 / 404 は畳まない** —— 畳むと画面は読み直す操作しか出せず、押しても同じ経路を辿る。張り直しを繰り返す購読では、畳むと直らない相手へ張り直し続ける
 
 **本文から読むのは `details` だけである。** それも契約が `ErrorResponseWithDetails` を宣言した `422` に限る。読めた項目名は `withErrorDetails` で cause に載り、表示名へ写すのは項目を知っている feature / form の側になる。読めなかった本文は「詳細が無い」に畳み、元の失敗をすり替えない。
 
