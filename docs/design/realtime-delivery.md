@@ -22,17 +22,17 @@
 
 ## 登場するもの（在り処）
 
-| 役割 | 在り処 | いま在るか |
-| --- | --- | --- |
-| 初期表示の取得口（History の projection と、購読の開始位置） | `src/adapters/server/api/<資源>.ts` | 資源ごとに作る |
-| 発券の取得口（backend へ Bearer 付きで ticket を求める user-scoped の口） | `src/adapters/server/api/<資源>-stream.ts` | 無い |
-| 発券の BFF | `src/app/api/<資源>/stream-ticket/route.ts` | 無い |
-| 購読 adapter（開く / 整列 / 重複排除 / 再接続 / 閉じる） | `src/adapters/client/stream/` | 無い |
-| React への束ね（購読と snapshot の 2 口を `useSyncExternalStore` へ渡す） | 使う feature が 1 つならその feature。複数なら購読 adapter の隣 | 無い |
-| event の畳み込み（どの event で何をどう変えるか） | `src/features/<feature>/` | 無い |
-| 送信（Server Action → `adapters/server` の冪等な POST） | `src/app/**/actions.ts` → `src/adapters/server/api/<資源>.ts` | 資源ごとに作る |
-| CSP の `connect-src` に stream の origin を足す口 | [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) | 在る。origin の入力が無い |
-| status → 分類の対応（ブラウザ側） | [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) の `KIND_BY_STATUS` | 在る。403 の行が無い |
+| 役割 | 在り処 |
+| --- | --- |
+| 初期表示の取得口（History の projection と、購読の開始位置） | `src/adapters/server/api/<資源>.ts` |
+| 発券の取得口（backend へ Bearer 付きで ticket を求める user-scoped の口） | `src/adapters/server/api/<資源>-stream.ts` |
+| 発券の BFF | `src/app/api/<資源>/stream-ticket/route.ts` |
+| 購読 adapter（開く / 整列 / 重複排除 / 再接続 / 閉じる） | `src/adapters/client/stream/` |
+| React への束ね（購読と snapshot の 2 口を `useSyncExternalStore` へ渡す） | 使う feature が 1 つならその feature。複数なら購読 adapter の隣 |
+| event の畳み込み（どの event で何をどう変えるか） | `src/features/<feature>/` |
+| 送信（Server Action → `adapters/server` の冪等な POST） | `src/app/**/actions.ts` → `src/adapters/server/api/<資源>.ts` |
+| CSP の `connect-src` にバックエンドの origin を載せる口 | [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) |
+| status → 分類の対応（ブラウザ側） | [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) の `KIND_BY_STATUS` |
 
 React への束ねの置き場は依存表から導ける。`capabilities` と `components` は `adapters` を import できず（`architecture.ts` の `DEPENDENCIES`）、stream の生死は通信機構の状態として `adapters/client` に属する（[ADR 0022](../adr/0022-capabilities-kernel.md)）。したがって hook は feature か `adapters/client` のどちらかにしか置けず、`use-media-query` と同じ `useSyncExternalStore` の形で束ねる。
 
@@ -148,7 +148,7 @@ stateDiagram-v2
 | `app/api` | 発券の BFF。分類を status へ写すだけ | ticket の検証・保管 |
 | `adapters/client` | 開く / 閉じる、整列、重複排除、cursor、再接続、backoff、TTL 内の ticket の再利用、分類への正規化、event の schema 検証 | event の意味、画面の状態 |
 | `features` | event の畳み込み、楽観行の突合、切れているときの姿 | sequence、再接続、ticket |
-| `config` | CSP の `connect-src` に stream の origin を載せること | — |
+| `config` | CSP の `connect-src` にバックエンドの origin を載せること | — |
 
 **分類への正規化は adapter の内側で 1 度だけ行う。** 往復側と同じで（[data-fetching.md](data-fetching.md)「エラーの正規化」）、ブラウザが投げた例外も `EventSource` の `error` も `errors` の分類へ写してから feature に渡す。
 
@@ -158,15 +158,17 @@ stateDiagram-v2
 
 ### `EventSource` は status を見せない
 
-`onerror` に届くのは `Event` で、応答の status も本文も無い。403 も 500 も網の断も同じ `error` である。判定の材料は「`open` が来たことがあるか」と「発券の往復が返した分類」だけで、上の状態機械はそれで組んである。status を読む必要が出たなら、それは `EventSource` を使わず `fetch` で SSE を読む判断であり、[ADR 0074](../adr/0074-runtime-communication-seam.md) の既定を外れる。
+`onerror` に届くのは `Event` で、応答の status も本文も無い。403 も 500 も網の断も同じ `error` である。標準が分けるのは後始末だけで、網の断なら `readyState` を `CONNECTING` に戻して組み込み再接続へ進み、200 以外の応答なら `CLOSED` に落として張り直さない（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。どちらでも `error` の直後に `close()` するこの adapter には、その違いも届かない。判定の材料は「`open` が来たことがあるか」と「発券の往復が返した分類」だけで、上の状態機械はそれで組んである。status を読む必要が出たなら、それは `EventSource` を使わず `fetch` で SSE を読む判断であり、[ADR 0074](../adr/0074-runtime-communication-seam.md) の既定を外れる。
 
-### `KIND_BY_STATUS` に 403 が無い
+### `KIND_BY_STATUS` は 403 と 404 を畳まない
 
-ブラウザ側の要求境界は 400 / 401 / 414 だけを分類へ写し、残りを `internal` に畳む。発券の BFF が backend の `permission-denied` を 403 で返しても、`adapters/client/http/request.ts` はそれを `internal` にするので、権限喪失が backoff の対象になる。発券口を足すときに 403 → `PERMISSION_DENIED` の行を足す —— 「401 を畳まない」と同じ理由で、畳むと打ち切れない。
+ブラウザ側の要求境界（`adapters/client/http/request.ts`）は、発券の BFF が返す 401 / 403 / 404 をそれぞれ `unauthenticated` / `permission-denied` / `not-found` へ写す。畳んで `internal` にすると、権限喪失も購読する対象が無いことも backoff の対象になり、直らない相手へ張り直し続ける —— 「401 を畳まない」と同じ理由である。発券口を足すときに backend が返す拒否の status がこの表に無ければ、行を足す。
 
-### `connect-src` が `'self'` だけ
+### `connect-src` にバックエンドの origin が要る
 
-CSP の `connect-src` は同一オリジンと計測の送り先しか許していない。ブラウザが backend の stream を直接開く以上、その origin を `connect-src` に載せなければ接続はブロックされ、コンソール以外に何も出ない。`SecurityHeaderInputs` は `mediaOrigin` / `authIssuer` の形で origin を受けているので、stream の origin も同じ形で足す。開発時は backend の origin が `localhost` の別ポートになるので、そこも同じ経路で通す。
+往復はすべて同一オリジンの BFF を通るので `'self'` で足りるが、購読はブラウザが backend へ直接開く。その origin が `connect-src` に無ければ接続はブロックされ、コンソール以外に何も出ない。購読の口は API と同じ origin に置かれる前提で、`SecurityHeaderInputs` の `apiOrigin`（`APP_API_BASE_URL` から導く）が `connect-src` に載る（[ADR 0111](../adr/0111-csp-security-headers.md)）。購読の口を API と別の origin に置く backend へ繋ぐなら、その origin を同じ形の入力として足す。開発時は backend の origin が `localhost` の別ポートになるが、同じ入力から導かれる。
+
+`EventSource` は別 origin へ CORS の要求を出す（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。応答にこの origin を許す `Access-Control-Allow-Origin` が無ければ、ブラウザは接続を失敗として扱う。これは backend の応答の側で決まり、このリポジトリの CORS（BFF の応答へ付けるもの。[ADR 0111](../adr/0111-csp-security-headers.md)）とは別物である。
 
 ### ticket は URL に載る
 
@@ -176,7 +178,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 
 ### heartbeat がコメント行だと client には見えない
 
-`EventSource` は `:` で始まるコメント行を捨て、event を発火しない。backend が heartbeat をコメントで送ると（proxy の idle timeout を防ぐ形）、client からは何も届いていないのと同じで、「一定時間 event が無い」を切断の合図に使えない。client 側で liveness を見たいなら heartbeat は名前付きの event でなければならず、それは契約の側の決定である。決まるまでは、liveness は `error` の到着だけに頼る。
+`EventSource` は `:` で始まるコメント行を捨て、event を発火しない。backend が heartbeat をコメントで送ると（proxy の idle timeout を防ぐ形）、client からは何も届いていないのと同じで、「一定時間 event が無い」を切断の合図に使えない。client 側で liveness を見たいなら heartbeat は名前付きの event でなければならず、それは契約の側の決定である。heartbeat がコメント行である間は、liveness は `error` の到着だけに頼る。
 
 ### 見えない画面の購読を張ったままにしない
 
@@ -189,6 +191,10 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 ### テストは構築子を差し替える
 
 購読 adapter は `EventSource` の構築子を注入で受ける（往復側の `fetchImpl` と同じ形）。テストは偽の構築子で `open` / `message` / `error` を順に起こし、整列・重複排除・打ち切り・backoff を確かめる。実行環境が `EventSource` を持つかどうかに検証を依存させない。`integration` の宣言が掛かるのは外部との往復を持つ発券の口で、adapter の判定は `unit` の形で確かめる（[`src/adapters/README.md`](../../src/adapters/README.md)「運用」）。
+
+### 購読はタブごとに張り、タブの間で共有しない
+
+同じ画面を複数のタブで開けば、同じ単位の購読がタブの数だけ張られる。整列・重複排除・cursor は購読 1 本の内側で閉じており、タブを跨いで 1 本に束ねる仕組み（`BroadcastChannel` や `SharedWorker` での共有）は持たない —— 束ねると、どのタブが接続を持ちどのタブが受け取るかという、transport と別の状態が要る。これは backend が 1 主体からの複数接続を受け付けることを前提にしている。受け付ける数の上限を越えた接続は拒否され、`open` の前の `error` として張り直しの経路に乗る。
 
 ### Storybook と mock は購読を持たない
 

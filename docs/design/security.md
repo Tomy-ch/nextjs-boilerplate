@@ -30,6 +30,7 @@
 | --- | --- | --- |
 | `mediaOrigin` | `MEDIA_ORIGIN` | `img-src` |
 | `authIssuer` | `AUTH_ISSUER` | `form-action`（ログインの form が IdP へリダイレクトされる先） |
+| `apiOrigin` | `APP_API_BASE_URL` | `connect-src`（ブラウザが backend へ直接開く購読の宛先。往復は BFF を通るので要らない） |
 | `servesOverTls` | `AUTH_REDIRECT_URI` の scheme（`isServedOverTls()`） | HSTS と `upgrade-insecure-requests` を出すか |
 | `development` | `next dev` かどうか（phase） | `script-src` に `'unsafe-eval'` を足すか |
 | `gtmContainerId` | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | Google の配信元を `script-src` / `connect-src` / `img-src` に足し、`Cross-Origin-Embedder-Policy` を**出さない** |
