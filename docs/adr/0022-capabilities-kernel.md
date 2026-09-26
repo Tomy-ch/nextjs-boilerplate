@@ -79,13 +79,13 @@ feature の移植可能性は、**カーネル契約に対して相対的**で�
 
 ## 禁止事項
 
-- ❌ `capabilities` に server 実行コード / remote IO / server config / secret / 業務状態 / UI マークアップを置くこと(client config の NEXT_PUBLIC リテラルは可)
+- ❌ `capabilities` に server 実行コード / remote IO / server config / secret / 業務状態 / UI マークアップを置くこと(client config の NEXT_PUBLIC リテラルは可)（強制: `server-only` の build-time failure と `scripts/server-only.gate.test.ts` が server 実行コードと server config を、ESLint `project-rules/no-markup-outside-ui-layers` が UI マークアップを、ESLint boundaries（`adapters` 不可）と `no-restricted-syntax`（購読の組み立て）が remote IO の大半を落とす。生の `fetch` は散文 —— **寄せられる**（`src/capabilities/` 下の `fetch` 呼び出しを落とす形。規則は無い）。secret と業務状態は **寄せられない**。値の意味で決まる）
 - ❌ `adapters/server`(server-only)に client hook を混ぜること / `adapters/client` に secret を持たせること(RSC・secret 境界。[0024](0024-adapters-server-client-split.md))
-- ❌ `components` が `capabilities` を import すること(合成は feature 経由。UI 挙動 hook は component co-location)
-- ❌ app(route / page)に合成ロジックを書くこと(Provider の薄い mount のみ許可)
-- ❌ ポリシー状態(consent / feature-flag)を `capabilities` に持たせること(各 seam が所有)
-- ❌ 通信機構の状態(stream の生死・backoff)を `capabilities` に持たせること(購読 seam が所有)
-- ❌ メカニズム名の `hooks` カーネルを作ること(役割名 `capabilities` が家)
+- ❌ `components` が `capabilities` を import すること(合成は feature 経由。UI 挙動 hook は component co-location)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `DEPENDENCIES.components` に `capabilities` が無い））
+- ❌ app(route / page)に合成ロジックを書くこと(Provider の薄い mount のみ許可)（強制: 散文 —— **一部寄せられる**。route / page での hook 呼び出しは `src/app/**` の `use` で始まる呼び出しとして落とせるが規則は無い。それ以外の合成か薄い mount かは値の使い方で決まり、import の集合では表せない）
+- ❌ ポリシー状態(consent / feature-flag)を `capabilities` に持たせること(各 seam が所有)（強制: 散文 —— **寄せられない**。状態がポリシーか runtime 能力かは状態の意味で決まり、コードの形からは決まらない）
+- ❌ 通信機構の状態(stream の生死・backoff)を `capabilities` に持たせること(購読 seam が所有)（強制: ESLint `no-restricted-syntax` が `capabilities` での `EventSource` / `WebSocket` の組み立てを落とす。購読 seam の状態を写して持つ形は散文 —— **寄せられない**。写しかどうかは状態の出所の意味で決まる）
+- ❌ メカニズム名の `hooks` カーネルを作ること(役割名 `capabilities` が家)（強制: ESLint `boundaries/no-unknown-files`（`KERNELS` に無い `src/hooks/` 下のファイルを落とす））
 
 ## 関連 ADR
 

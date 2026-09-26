@@ -131,9 +131,9 @@ DevTools の trace を採り、Insight を名指しで展開する。source map 
 
 ## 禁止事項
 
-- ❌ ここで定めた道具で撮った画像を**基準画像として採用**すること。撮影環境の固定は [0091](0091-test-verification-methods.md) が持つ
-- ❌ ここで定めた道具を CI・git hook・build のいずれかのゲートに接続すること。ゲートの権威は既存の検査にある
-- ❌ 同じ問いに 2 つのレーンを充てること
+- ❌ ここで定めた道具で撮った画像を**基準画像として採用**すること。撮影環境の固定は [0091](0091-test-verification-methods.md) が持つ（強制: `vrt` job の比較（digest 固定コンテナ・`maxDiffPixels: 0`）が別環境で撮った画素を差分として落とし、`baseline-approval` job が基準画像を動かす PR に承認ラベルを要求する）
+- ❌ ここで定めた道具を CI・git hook・build のいずれかのゲートに接続すること。ゲートの権威は既存の検査にある（強制: 散文 —— **寄せられる**（`.github/workflows/**`・`.lefthook.yaml`・`package.json` の scripts に `agent-browser` / `chrome-devtools` / `playwright cli` の呼び出しが現れないことを走査で見る。規則は無い））
+- ❌ 同じ問いに 2 つのレーンを充てること（強制: 散文 —— **寄せられない**。2 つの道具が同じ問いに充てられているかは、観測の目的で決まる）
 - ❌ 実ブラウザのプロファイルへ接続する経路を、確認なしに使うこと
 
 ## 関連 ADR

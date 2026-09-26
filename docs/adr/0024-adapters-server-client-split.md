@@ -57,7 +57,7 @@ src/adapters/
 
 - ❌ `adapters/client` に secret / server config を置くこと(client bundle 漏洩)。client config の NEXT_PUBLIC リテラルは可
 - ❌ `adapters/server` に client hook / `"use client"` を混ぜること(逆も。RSC 境界。[0040](0040-routing-rendering-strategy.md))
-- ❌ local ブラウザ API(storage / clipboard / cookie 読み)を `adapters` に置くこと(→ `capabilities`)
+- ❌ local ブラウザ API(storage / clipboard / cookie 読み)を `adapters` に置くこと(→ `capabilities`)（強制: 散文 —— **寄せられる**（`src/adapters/` 下の `localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照を `no-restricted-syntax` で落とす形。規則は無い））
 
 ## 補足
 

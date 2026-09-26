@@ -34,10 +34,10 @@ consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置�
 
 ## 禁止事項
 
-- ❌ ポリシー状態を **既定で** client store に持つこと(既定は stateless props = RSC が読み props で配る。[0060](0060-state-management.md))。反応的な横断ケース(同意バナー操作の即時反映等)に限り `stores`([0023](0023-stores-kernel.md) / Zustand)を用いてよい
+- ❌ ポリシー状態を **既定で** client store に持つこと(既定は stateless props = RSC が読み props で配る。[0060](0060-state-management.md))。反応的な横断ケース(同意バナー操作の即時反映等)に限り `stores`([0023](0023-stores-kernel.md) / Zustand)を用いてよい（強制: 散文 —— **寄せられない**。反応的な横断ケースかどうかは要件の判断で、store の形からは決まらない）
 - ❌ 依存マトリクスが許さない配置を、表の既定を理由に実装へ要求すること(「家の決まり方」。表とマトリクスが食い違うときはマトリクスが勝ち、表の側を直す)
-- ❌ consent / flag の値取得を各 feature / component に直書きすること(source adapter へ集約)
-- ❌ ポリシー状態を `capabilities` に置くこと(runtime 能力に限る。[0022](0022-capabilities-kernel.md))
+- ❌ consent / flag の値取得を各 feature / component に直書きすること(source adapter へ集約)（強制: 散文 —— **一部寄せられる**。`document.cookie` の読みと `next/headers` の `cookies` の import を `features` / `components` で落とす形は書けるが規則は無い。flag の出所は用途依存で、取得の形が決まらない）
+- ❌ ポリシー状態を `capabilities` に置くこと(runtime 能力に限る。[0022](0022-capabilities-kernel.md))（強制: 散文 —— **寄せられない**。値がポリシー状態か runtime 能力かは意味で決まり、hook の形からは決まらない）
 
 ## 補足
 

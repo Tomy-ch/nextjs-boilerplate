@@ -211,11 +211,11 @@ Accepted
 
 ## 禁止事項
 
-- ❌ 運用系スキルから業務ロジックを直接編集すること (コード編集は開発系 = 0155 の領域)
-- ❌ `SKILL.md` の frontmatter `description` を「機能説明」のみで書くこと (発火条件を含めること)
+- ❌ 運用系スキルから業務ロジックを直接編集すること (コード編集は開発系 = 0155 の領域)（強制: 散文 —— **寄せられない**。スキルの手順が何を編集するかは実行時の判断で決まり、`SKILL.md` の形からは決まらない）
+- ❌ `SKILL.md` の frontmatter `description` を「機能説明」のみで書くこと (発火条件を含めること)（強制: 散文 —— **寄せられない**。`description` が発火条件を含むかは文の意味で決まる（`skill-lint` の `description-length` が見るのは長さだけ））
 - ❌ 商用操作 (push / tag / release) を確認なしで実行すること
-- ❌ `SKILL.md` を翻訳ファイル (`SKILL.ja.md`) で上書きすること (canonical は英)
-- ❌ skill 名 / ディレクトリ名に空白・大文字・日本語を含めること
+- ❌ `SKILL.md` を翻訳ファイル (`SKILL.ja.md`) で上書きすること (canonical は英)（強制: `scripts/skill-lint` が対訳で上書きされた `SKILL.md`（frontmatter の欠落）を落とす。本文が英語で書かれているかは散文 —— **寄せられない**。日本語のトリガ語句を含めるのは正当で、canonical が英語かの閾値がコードに無い）
+- ❌ skill 名 / ディレクトリ名に空白・大文字・日本語を含めること（強制: 散文 —— **寄せられる**（`scripts/skill-lint` で `.claude/skills/` のディレクトリ名を kebab-case の正規表現と照合する。`name` と配置名の一致は既に見ている。規則は無い））
 
 ## 補足
 

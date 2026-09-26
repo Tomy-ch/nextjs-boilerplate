@@ -45,14 +45,14 @@ Accepted
 ## 禁止事項
 
 - ❌ ページ状態(現在ページ / cursor)を searchParams 以外(コンポーネント state のみ 等)に閉じ込め、ブックマーク・共有・戻る操作で復元不能にすること(§1)
-- ❌ 挿入 / 削除が起きるデータで安易に offset ページネーションを既定にすること(cursor 既定。offset は限定条件のみ)
-- ❌ 絞り込み・並び順を変えたときにページ位置を持ち越すこと(§1。前の条件の位置は新しい条件では別の場所を指す)
-- ❌ 無限スクロール / 追加取得の client fetch を**生 `fetch` でコンポーネントに直接書く**こと(必ず `adapters/client` 経由。§2 / [0024](0024-adapters-server-client-split.md))
-- ❌ client 追加取得に resilience(timeout / retry / breaker)を **client 側で独自実装**すること(resilience は server = `adapters/server` が持つ。client は same-origin の薄い fetch)
-- ❌ client 追加取得の response を検証・正規化せず UI へ流すこと([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md) の境界原則は client 経路にも適用)
-- ❌ 増分取得の hook が初回ページの差し替えを見張って積み上げを捨てること(§2。置く側の鍵が持つ)
-- ❌ 資格情報切れ(401)を、再試行できる失敗と同じ状態へ畳むこと(§2。再試行導線は 401 では誤り)
-- ❌ 無限スクロールを理由にデータ取得ライブラリを持ち込むこと([0060](0060-state-management.md) exclusion)
+- ❌ 挿入 / 削除が起きるデータで安易に offset ページネーションを既定にすること(cursor 既定。offset は限定条件のみ)（強制: 散文 —— **寄せられない**。データに挿入・削除が起きるかは契約とデータの性質で決まり、コードの形からは決まらない）
+- ❌ 絞り込み・並び順を変えたときにページ位置を持ち越すこと(§1。前の条件の位置は新しい条件では別の場所を指す)（強制: 散文 —— **寄せられない**。どのキーが位置でどれが条件かは一覧ごとの意味で決まり、一覧ごとのテストでしか見えない）
+- ❌ 無限スクロール / 追加取得の client fetch を**生 `fetch` でコンポーネントに直接書く**こと(必ず `adapters/client` 経由。§2 / [0024](0024-adapters-server-client-split.md))（強制: 散文 —— **寄せられる**（`adapters` の外での `fetch` の呼び出しを、購読の `SUBSCRIPTION_CONSTRUCTION_SELECTOR` と同じ `no-restricted-syntax` で落とせる。規則は無い））
+- ❌ client 追加取得に resilience(timeout / retry / breaker)を **client 側で独自実装**すること(resilience は server = `adapters/server` が持つ。client は same-origin の薄い fetch)（強制: 散文 —— **寄せられない**。打ち切りや再試行を独自に持つかは制御の流れの意味で決まり、形からは決まらない）
+- ❌ client 追加取得の response を検証・正規化せず UI へ流すこと([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md) の境界原則は client 経路にも適用)（強制: 型（`src/adapters/client/http/request.ts` の `request` は `schema` を必須引数に取る）と `request.test.ts`（契約と違う応答を internal として落とす）。wrapper を通らない生 `fetch` は散文 —— **寄せられる**（`adapters` の外の `fetch` を落とす規則が無い））
+- ❌ 増分取得の hook が初回ページの差し替えを見張って積み上げを捨てること(§2。置く側の鍵が持つ)（強制: 散文 —— **寄せられない**。見張っているかは effect の依存の意味で決まり、hook ごとのテストでしか見えない）
+- ❌ 資格情報切れ(401)を、再試行できる失敗と同じ状態へ畳むこと(§2。再試行導線は 401 では誤り)（強制: `src/adapters/client/http/request.test.ts` が 401 を unauthenticated へ写し、内部の失敗へ畳まないことを落とす。増分取得の hook が分類ごとに状態を分けているかは散文 —— **寄せられない**。hook の分岐の意味で決まる）
+- ❌ 無限スクロールを理由にデータ取得ライブラリを持ち込むこと([0060](0060-state-management.md) exclusion)（強制: 持たない —— 採らない決定。データ取得ライブラリは依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
 
 ## 補足
 

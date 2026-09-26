@@ -124,15 +124,15 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 
 ## 禁止事項
 
-- ❌ `errors` カーネルに HTTP status / レスポンス形式を持たせること(分類は transport 非依存。変換は境界)
+- ❌ `errors` カーネルに HTTP status / レスポンス形式を持たせること(分類は transport 非依存。変換は境界)（強制: ESLint `no-restricted-syntax`（`src/errors/**` で `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルを落とす）。数値の status やレスポンス形を別名で持つことは散文 —— **寄せられない**。数値や型の意味が transport 由来かは綴りからは決まらない）
 - ❌ 生 HTTP status・生エラー・スタックを内層 / UI へ漏らすこと(境界で正規化)
-- ❌ エラーを握り潰すこと(swallow 禁止)/ 秘匿情報を redact せずログ・レスポンスに出すこと
-- ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)
+- ❌ エラーを握り潰すこと(swallow 禁止)/ 秘匿情報を redact せずログ・レスポンスに出すこと（強制: `src/logging` の名前の表（`pino.server.test.ts` が固定）がログの秘匿項目を名前で伏せる。握り潰しは散文 —— **寄せられない**。値へ畳む `catch` が握り潰しか §2 の degrade かは意図で決まる）
+- ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)（強制: 散文 —— **寄せられない**。何が業務ロジックかは処理の意味で決まり、特殊ファイルの形からは決まらない）
 - ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、Suspense 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)
-- ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)
-- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)
-- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)
-- ❌ 一次資源の不在を status で伝えられる前提で設計すること(§4。有効な `Cache Components` の下では 200 で配信される)
+- ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)（強制: 散文 —— **寄せられない**。同じエラーが複数回記録されるかは実行時の経路で決まり、1 箇所のコードの形からは決まらない）
+- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)（強制: 散文 —— **寄せられない**。どの分類へ写すかは写像の中身で決まり、書かれたテストの範囲でしか見えない）
+- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)（強制: 散文 —— **寄せられない**。値が画面の成立に要らないかは画面の意味で決まり、`try` / `catch` の形からは決まらない）
+- ❌ 一次資源の不在を status で伝えられる前提で設計すること(§4。有効な `Cache Components` の下では 200 で配信される)（強制: 散文 —— **寄せられない**。設計の前提であってコードに現れない）
 - ❌ 画面が所有しない状態の部品を作ること(§4。参照されない skeleton が残る)
 
 ## 関連 ADR

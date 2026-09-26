@@ -92,8 +92,8 @@ pnpm install --offline --frozen-lockfile
 
 ## 禁止事項
 
-- npm / yarn の使用は禁止
-- lockfile（pnpm-lock.yaml）の手動編集は禁止
+- npm / yarn の使用は禁止（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が npm / yarn で足した依存による lockfile の不整合を落とす。package-lock.json / yarn.lock のコミットと scripts・workflow 内の npm / yarn 呼び出しは綴りで落とせるが規則は無い。手元で打つ npm / yarn は散文 —— **寄せられない**。コードに現れない）
+- lockfile（pnpm-lock.yaml）の手動編集は禁止（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が package.json と食い違う手編集を落とす。package.json の範囲を満たしたままの手編集は散文 —— **寄せられない**。pnpm が解決した行と区別できない）
 - 未宣言依存に依存した実装は禁止
 
 ## 補足

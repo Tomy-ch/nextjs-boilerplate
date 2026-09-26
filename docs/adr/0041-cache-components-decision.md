@@ -38,9 +38,9 @@ Accepted
 
 ## 禁止事項
 
-- ❌ [0112](0112-data-classification-cache-boundary.md) の分類とキャッシュ境界が無い状態で有効化すること
+- ❌ [0112](0112-data-classification-cache-boundary.md) の分類とキャッシュ境界が無い状態で有効化すること（強制: 散文 —— **寄せられない**。有効化と分類の順序の判断であって、有効化した後のコードには現れない）
 - ❌ キャッシュヒット率や PPR 適用率を理由に、user-scoped な値を静的な殻・共有キャッシュへ載せること([0112](0112-data-classification-cache-boundary.md))
-- ❌ `export const instant = false` を、応答ステータスを 404 / 3xx へ戻す手段として使うこと(戻らない。有効時は動的な route が必ず殻から流れる)
+- ❌ `export const instant = false` を、応答ステータスを 404 / 3xx へ戻す手段として使うこと(戻らない。有効時は動的な route が必ず殻から流れる)（強制: 散文 —— **寄せられない**。`instant = false` を名乗る動機は理由文にしか現れず、宣言の形からは決まらない）
 
 ## 補足
 

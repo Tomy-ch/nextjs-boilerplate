@@ -98,8 +98,8 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 
 - ❌ realtime transport サーバ(長寿命接続の hosting)を本体に同梱すること([0011](0011-no-docker.md) PaaS 前提 = 別ドメイン。バックエンド直結 or 外部サービス)
 - ❌ WebSocket / SSE の購読を `features` / `components` に直書きすること([0071](0071-bff-api-integration.md) の生 fetch 禁止と同型。購読 seam = `adapters/client`。[0024](0024-adapters-server-client-split.md)。強制: boundaries は import を、`no-restricted-syntax` は global の構築を落とす —— 後者は実体化と同時に置く)
-- ❌ 生の接続エラー / close code / ストリーム例外を上位へ漏らすこと(`errors` 分類へ正規化。[0021](0021-frontend-responsibility.md))
-- ❌ transport 都合の状態(順序 / 重複 / 再接続 / cursor)を feature に持たせ、ドメインイベントの畳み込みを `adapters` に持たせること(責務分界を跨ぐ)
+- ❌ 生の接続エラー / close code / ストリーム例外を上位へ漏らすこと(`errors` 分類へ正規化。[0021](0021-frontend-responsibility.md))（強制: `src/adapters/client/stream/subscription.test.ts`（発券が unauthenticated / permission-denied なら打ち切る 等）が購読 adapter の分類を落とす。例外の文言に生の値が混ざるかは散文 —— **寄せられない**。文言の中身は実行時に決まる）
+- ❌ transport 都合の状態(順序 / 重複 / 再接続 / cursor)を feature に持たせ、ドメインイベントの畳み込みを `adapters` に持たせること(責務分界を跨ぐ)（強制: 散文 —— **寄せられない**。どの状態が transport 都合でどれがドメインの畳み込みかは責務の判断で、コードの形からは決まらない）
 - ❌ [0071](0071-bff-api-integration.md) の request/response resilience(dual timeout / retry / breaker)をそのまま長寿命ストリームに適用すること(別形 = 再接続 backoff / liveness / resume)
 - ❌ Access Token を stream の資格情報にすること(ブラウザに無い。[0079](0079-auth-frontend-seam.md)。資格情報は BFF 発行の ticket)
 - ❌ ticket を含む URL を例外の文言・ログ・span の属性へ載せること(名前で伏せる redaction には届かない。[0081](0081-observability-logging.md))

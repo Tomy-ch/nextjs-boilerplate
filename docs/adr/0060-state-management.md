@@ -109,14 +109,14 @@ Server Actions と Server Component fetch を既定に置くのは、**画面側
 
 ## 禁止事項
 
-- ❌ TanStack Query 等のクライアント取得・キャッシュ層を本体既定として前提にすること(取得の編成は feature server 関数 / `adapters`。[0071](0071-bff-api-integration.md))
-- ❌ server state を Zustand ストアに二重キャッシュすること(server state は RSC fetch / `adapters`)
-- ❌ 単一 feature の状態を `stores`(Zustand)へ上げること(横断性が無ければ feature 内 local)
-- ❌ Zustand ストアを feature / component に直書きして横断参照させること(横断は `stores` へ集約。[0023](0023-stores-kernel.md))
-- ❌ zod を経由しない独自バリデーションロジックを各フォームに散らすこと(スキーマを SSOT にする)
-- ❌ react-hook-form で送信機構そのものを置換して二重化すること(送信は [0061](0061-form-mutation-ux.md) の `<form action>` + `useActionState` に 1 本化)
-- ❌ 生成 wire スキーマを `zodResolver` へ直接食わせること(表示検証は `model` 手書きスキーマ / 契約検証は `adapters` 境界。[0062](0062-form-input-validation.md) / [0072](0072-api-type-generation.md))
-- ❌ 状態ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))
+- ❌ TanStack Query 等のクライアント取得・キャッシュ層を本体既定として前提にすること(取得の編成は feature server 関数 / `adapters`。[0071](0071-bff-api-integration.md))（強制: 持たない —— 採らない決定。TanStack Query 等は依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
+- ❌ server state を Zustand ストアに二重キャッシュすること(server state は RSC fetch / `adapters`)（強制: ESLint boundaries（`architecture.ts` の `stores` は `adapters` を import できない）が store の中での取得を落とす。feature が取得した値を store へ入れることは散文 —— **寄せられない**。値が server 由来かは出所で決まり、store の形からは決まらない）
+- ❌ 単一 feature の状態を `stores`(Zustand)へ上げること(横断性が無ければ feature 内 local)（強制: 散文 —— **寄せられる**（`stores` の各 module を import する feature が 1 つだけかを依存グラフで数えれば落とせる。規則は無い））
+- ❌ Zustand ストアを feature / component に直書きして横断参照させること(横断は `stores` へ集約。[0023](0023-stores-kernel.md))（強制: 散文 —— **寄せられる**（`zustand` の import を `src/stores` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
+- ❌ zod を経由しない独自バリデーションロジックを各フォームに散らすこと(スキーマを SSOT にする)（強制: 散文 —— **寄せられない**。条件式が検証かどうかは意味で決まり、コードの形からは決まらない）
+- ❌ react-hook-form で送信機構そのものを置換して二重化すること(送信は [0061](0061-form-mutation-ux.md) の `<form action>` + `useActionState` に 1 本化)（強制: 散文 —— **寄せられる**（`useForm` の `handleSubmit` の呼び出しを `features` / `components` で拾えば落とせる。規則は無い））
+- ❌ 生成 wire スキーマを `zodResolver` へ直接食わせること(表示検証は `model` 手書きスキーマ / 契約検証は `adapters` 境界。[0062](0062-form-input-validation.md) / [0072](0072-api-type-generation.md))（強制: ESLint boundaries（`architecture.ts` の `adapters-gen` は `adapters` からだけ import できる）が feature / component から生成スキーマを直接引くことを落とす。`adapters` が公開した生成スキーマを resolver へ渡すことは散文 —— **寄せられない**。スキーマが生成物由来かは公開面の型に現れない）
+- ❌ 状態ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))（強制: `dependency-audit` job（`make audit`）が lockfile に届く PR で `pnpm audit` を走らせ、修正版のある high / critical を落とす。exact-pin は散文 —— **寄せられる**（`package.json` の版指定に `^` / `~` などの範囲があるかで落とせる。規則は無い））
 
 ## 関連 ADR
 

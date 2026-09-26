@@ -92,16 +92,16 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 
 ## 禁止事項
 
-- ❌ 新規コンポーネントで `forwardRef` を使うこと(ref as prop に乗る。決定 1)
-- ❌ `use()` を `<Suspense>` / error boundary の外に裸で置くこと(決定 2 の不変条件)
+- ❌ 新規コンポーネントで `forwardRef` を使うこと(ref as prop に乗る。決定 1)（強制: biome `noReactForwardRef`（`--error-on-warnings` で `forwardRef` の使用を落とす））
+- ❌ `use()` を `<Suspense>` / error boundary の外に裸で置くこと(決定 2 の不変条件)（強制: 散文 —— **寄せられない**。境界は別ファイルの祖先に置かれ、`use()` を呼ぶファイルの形からは決まらない）
 - ❌ props / state から導出できる派生値を `useEffect` + `useState` で同期すること(render 中計算 or event handler。決定 3)
-- ❌ `reactCompiler` を `compilationMode` の指定なしに設定し、全 component へ暗黙に適用すること(決定 4)
-- ❌ 再描画が集中する経路であると言えないまま `"use memo"` を撒くこと、および費用の増分をその route で測らずに付けること(決定 4)
-- ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)
-- ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)
-- ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)
+- ❌ `reactCompiler` を `compilationMode` の指定なしに設定し、全 component へ暗黙に適用すること(決定 4)（強制: 散文 —— **寄せられる**（`next.config.ts` が返す設定の `reactCompiler.compilationMode` が `annotation` であることを単体テストで確かめる形。検査は無い））
+- ❌ 再描画が集中する経路であると言えないまま `"use memo"` を撒くこと、および費用の増分をその route で測らずに付けること(決定 4)（強制: `bundle-budget` job が印を付けた route の増分の上限を落とす。再描画が集中する経路かどうかは散文 —— **寄せられない**。購読の広がりの判断で、印の有無からは決まらない）
+- ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)（強制: 散文 —— **一部寄せられる**。`"use no memo"` の出現は静的に数えられるが規則は無い。恒常の前提か一時の退避かは運用の意図で決まる）
+- ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)（強制: 散文 —— **寄せられない**。一律に削除したかどうかは変更の意図であって、残ったコードの形には現れない）
+- ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)（強制: 散文 —— **寄せられない**。緩める理由は変更の動機でコードに現れない。境界そのものは 0112 の側の機械が見る）
 - ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)
-- ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)
+- ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)（強制: 散文 —— **寄せられない**。ある記述が射程外の再決定かどうかは内容の意味で決まり、文書の形からは決まらない）
 
 ## 補足
 

@@ -88,14 +88,14 @@ shadcn/ui から取り込んだ実装は**参照実装**として持つ。取り
 
 ## 禁止事項
 
-- ❌ Radix / react-day-picker を feature 内・各画面から直接 import すること(UI ライブラリ依存は `components` カーネルに閉じ込める。[0021](0021-frontend-responsibility.md) 昇格ルール)
+- ❌ Radix / react-day-picker を feature 内・各画面から直接 import すること(UI ライブラリ依存は `components` カーネルに閉じ込める。[0021](0021-frontend-responsibility.md) 昇格ルール)（強制: 散文 —— **寄せられる**（`iconVendorImports` と同じ形で、`radix-ui` / `react-day-picker` の import を `src/components` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
 - ❌ アイコンの供給元を `src/components/icon.ts` 以外から import すること(`components` の内側も含む)
 - ❌ アイコンの公開面に、名前から component を引く表を置くこと(セット全体が束へ乗る)
-- ❌ shadcn/ui 以外の UI コンポーネントライブラリ(MUI / Chakra / Ant Design 等、ランタイム同梱型)を並行採用すること([0050](0050-styling-strategy.md) の Tailwind 主軸 + CSS Modules 限定許可(ランタイム CSS-in-JS = styled-components / emotion は非採用)および copy-in 方針と衝突。必要なら ADR 改定)
-- ❌ @tabler/icons-react 以外のアイコンライブラリを追加同梱すること(差し替えは可だが並行同梱はしない)
-- ❌ 別の headless 上流を、registry item が要求するという理由だけで併存させること(合成か自前実装で組む。上流の追加は現行からの移行判断としてのみ扱う)
-- ❌ 採用ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))
-- ❌ 本体スコープを超える局所的な UI 要件(ライブラリを要する DnD 等)を本 ADR の範囲で本体へ持ち込むこと(seam と契約は [0053](0053-ui-component-interaction-seam.md) / ライブラリは用途依存)
+- ❌ shadcn/ui 以外の UI コンポーネントライブラリ(MUI / Chakra / Ant Design 等、ランタイム同梱型)を並行採用すること([0050](0050-styling-strategy.md) の Tailwind 主軸 + CSS Modules 限定許可(ランタイム CSS-in-JS = styled-components / emotion は非採用)および copy-in 方針と衝突。必要なら ADR 改定)（強制: 持たない —— 採らない決定。ランタイム同梱型の UI ライブラリは依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
+- ❌ @tabler/icons-react 以外のアイコンライブラリを追加同梱すること(差し替えは可だが並行同梱はしない)（強制: 持たない —— 採らない決定。2 つ目のアイコンセットは依存に無く、足せば `package.json` の diff として現れる）
+- ❌ 別の headless 上流を、registry item が要求するという理由だけで併存させること(合成か自前実装で組む。上流の追加は現行からの移行判断としてのみ扱う)（強制: 持たない —— 採らない決定。`@base-ui/react` などの別の headless 上流は依存に無く、足せば `package.json` の diff と移行判断として現れる）
+- ❌ 採用ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))（強制: `dependency-audit` job（`make audit`）が lockfile に届く PR で `pnpm audit` を走らせ、修正版のある high / critical を落とす。exact-pin は散文 —— **寄せられる**（`package.json` の版指定に `^` / `~` などの範囲があるかで落とせる。規則は無い））
+- ❌ 本体スコープを超える局所的な UI 要件(ライブラリを要する DnD 等)を本 ADR の範囲で本体へ持ち込むこと(seam と契約は [0053](0053-ui-component-interaction-seam.md) / ライブラリは用途依存)（強制: 持たない —— 採らない決定。DnD などのライブラリは本体の依存に無く、持ち込めば `package.json` の diff として現れる）
 - ❌ リッチテキストの表示を sanitizer を通さずに行うこと(生の `dangerouslySetInnerHTML` は禁止。sanitizer port は [0053](0053-ui-component-interaction-seam.md))
 - ❌ `components` 配下に台帳に無い部品を置くこと / shadcn CLI を直接叩いて取り込むこと(強制: `pnpm check:ui`)
 - ❌ 上流追従の検査を required check に登録すること(著者に直せない理由で PR が止まる。[0153](0153-ci-configuration.md))

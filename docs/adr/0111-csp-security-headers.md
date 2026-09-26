@@ -107,16 +107,16 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 
 ## 禁止事項
 
-- ❌ nonce ベース CSP(`proxy.ts`)を **既定**にすること(全経路を dynamic に固定し [0040](0040-routing-rendering-strategy.md)「モード非強制」と [0041](0041-cache-components-decision.md) に反する。strict 化は opt-in = seam B)
-- ❌ CSP・セキュリティヘッダを「Next.js が推奨するから」だけで正当化すること([0010](0010-standards-and-non-lockin.md))
-- ❌ seam の形(nonce の載せ方・ヘッダ配置)を独自発明・中立化すること([0010](0010-standards-and-non-lockin.md)。Next.js デファクト = `headers()` / `proxy.ts` に乗る)
-- ❌ `proxy.ts` に nonce 生成・ヘッダ設定以外の業務ロジックを書くこと([0043](0043-middleware-policy.md) 薄い境界)
-- ❌ 要求に依らないヘッダを `proxy.ts` に置くこと(静的に配れる応答から漏れる)
+- ❌ nonce ベース CSP(`proxy.ts`)を **既定**にすること(全経路を dynamic に固定し [0040](0040-routing-rendering-strategy.md)「モード非強制」と [0041](0041-cache-components-decision.md) に反する。strict 化は opt-in = seam B)（強制: 散文 —— **寄せられる**（`src/proxy.ts` が `Content-Security-Policy` を綴る・nonce を生成することを gate で落とす形。seam B を opt-in するときに外す。規則は無い））
+- ❌ CSP・セキュリティヘッダを「Next.js が推奨するから」だけで正当化すること([0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられない**。正当化の根拠は文書の論証であり、コードに現れない）
+- ❌ seam の形(nonce の載せ方・ヘッダ配置)を独自発明・中立化すること([0010](0010-standards-and-non-lockin.md)。Next.js デファクト = `headers()` / `proxy.ts` に乗る)（強制: 散文 —— **寄せられない**。seam の形が独自発明かは設計の判断であり、コードの形から決まらない）
+- ❌ `proxy.ts` に nonce 生成・ヘッダ設定以外の業務ロジックを書くこと([0043](0043-middleware-policy.md) 薄い境界)（強制: 散文 —— **寄せられない**。何が業務ロジックかは層の責務の判断であり、コードの形から決まらない）
+- ❌ 要求に依らないヘッダを `proxy.ts` に置くこと(静的に配れる応答から漏れる)（強制: 散文 —— **一部寄せられる**。§2 の静的ヘッダ名を `src/proxy.ts` が綴ることは静的に検出できるが規則は無い。任意のヘッダが要求に依るかは実装の意味で決まる）
 - ❌ CSP を「別ドメインの責務」として沈黙で省略すること(表示層の実行時防御。seam A/B を名前付きで敷く)
-- ❌ `script-src` / `style-src` に `'unsafe-inline'` を残したまま「strict CSP を敷いた」と称すること(弱い許可の明示。strict を謳うなら nonce か SRI へ)
-- ❌ 配信元(`MEDIA_ORIGIN` / `AUTH_ISSUER`)を CSP へ直接書くこと(検証済み ENV から組み立てる)
+- ❌ `script-src` / `style-src` に `'unsafe-inline'` を残したまま「strict CSP を敷いた」と称すること(弱い許可の明示。strict を謳うなら nonce か SRI へ)（強制: 散文 —— **寄せられない**。「strict CSP を敷いた」と称するのは文書や説明の主張であり、コードに現れない）
+- ❌ 配信元(`MEDIA_ORIGIN` / `AUTH_ISSUER`)を CSP へ直接書くこと(検証済み ENV から組み立てる)（強制: `src/config/security-headers/security-headers.test.ts`（環境ごとに異なる配信元が img-src / form-action へ写ることを見る））
 - ❌ 主体に紐づく応答の `Cache-Control` を画面や handler ごとに書くこと(`proxy.ts` が要求の側で一律に付ける)
-- ❌ `Access-Control-Allow-Origin: *` や、CORS の許可と書き込みの許可を別々の宣言で持つこと(§5)
+- ❌ `Access-Control-Allow-Origin: *` や、CORS の許可と書き込みの許可を別々の宣言で持つこと(§5)（強制: `src/proxy.test.ts` が宣言した origin にだけ CORS ヘッダを返すことを落とす。CORS と書き込みの許可を別の宣言に割ることは散文 —— **寄せられない**。宣言が 1 つかは設定の意味で決まる）
 - ❌ Route Handler ごとに CORS ヘッダや origin 検証を書くこと(`proxy.ts` が宣言から一律に付ける)
 
 ## 補足

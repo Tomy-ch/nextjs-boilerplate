@@ -133,14 +133,14 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 
 ## 禁止事項
 
-- ❌ ライブラリを要する局所 interaction UI(並べ替え等の DnD)を、使う実装を伴わないまま本体へ同梱すること([0052](0052-ui-component-policy.md) の本体スコープに従う。複雑入力とリッチテキストは採用済みのため本項の対象外)
-- ❌ native / built-in(native input / `details` / `overflow` / native DnD API)で要件を満たせるのに、自前実装 / ライブラリで**再発明**すること(§1 built-in 優先を破る)
-- ❌ 逆に、built-in で要件を満たせないと判明した領域で、契約を自前で補い直すこと(overlay の focus / scroll lock がこれに当たる。§4)
-- ❌ 採用した interaction を **a11y 契約([0100](0100-accessibility-target.md))なしで実装**すること(modal の focus / scroll-lock / Escape、DnD の WCAG 2.2 ドラッグ代替、複雑入力のキーボード / ARIA)
+- ❌ ライブラリを要する局所 interaction UI(並べ替え等の DnD)を、使う実装を伴わないまま本体へ同梱すること([0052](0052-ui-component-policy.md) の本体スコープに従う。複雑入力とリッチテキストは採用済みのため本項の対象外)（強制: `dead-code` job（`pnpm knip`）がどこからも import されない依存を落とす。`src/components` の部品で包んだだけで使う画面の無いものは散文 —— **寄せられない**。`src/components` は公開面として未使用が正常であり、使う実装を伴うかは形からは決まらない）
+- ❌ native / built-in(native input / `details` / `overflow` / native DnD API)で要件を満たせるのに、自前実装 / ライブラリで**再発明**すること(§1 built-in 優先を破る)（強制: 散文 —— **寄せられない**。built-in で要件を満たせるかは要件の判断そのもので、コードの形からは決まらない）
+- ❌ 逆に、built-in で要件を満たせないと判明した領域で、契約を自前で補い直すこと(overlay の focus / scroll lock がこれに当たる。§4)（強制: 散文 —— **一部寄せられる**。body の scroll 固定や Tab の捕捉を手で書く形（`document.body.style.overflow` への代入など）は静的に拾えるが規則は無い。どの領域が built-in で足りないかは領域ごとの判定で、形からは決まらない）
+- ❌ 採用した interaction を **a11y 契約([0100](0100-accessibility-target.md))なしで実装**すること(modal の focus / scroll-lock / Escape、DnD の WCAG 2.2 ドラッグ代替、複雑入力のキーボード / ARIA)（強制: Biome の a11y 規則と、story 全数へ axe を当てる `a11y` job（`make a11y`）が ARIA と role の静的な違反を落とす。focus の閉じ込め・Escape・ドラッグ代替などの挙動は散文 —— **寄せられない**。操作への振る舞いは描画の形に現れず、interaction テストを書くかは部品ごとの判断に残る）
 - ❌ リッチテキスト表示で **sanitizer port を通さず** `dangerouslySetInnerHTML` を使うこと(規約の正は [0110](0110-security-operations.md))
-- ❌ **route-as-modal(intercepting / parallel routes)の採否を本 ADR で確定**すること(ルーティング判断 = [0040](0040-routing-rendering-strategy.md) 管轄)
-- ❌ focus-trap・scroll-lock・DnD 等の UI 密着挙動 hook を `capabilities` に上げること([0022](0022-capabilities-kernel.md):UI 挙動は component co-location)
-- ❌ 記録するに留めた拡張点(shortcut registry / DnD ドラッグ代替 IF)を、空の IF 定義としてコードに置くこと(§7)
+- ❌ **route-as-modal(intercepting / parallel routes)の採否を本 ADR で確定**すること(ルーティング判断 = [0040](0040-routing-rendering-strategy.md) 管轄)（強制: 散文 —— **寄せられない**。ADR の文が採否を確定しているかは文の意味で決まり、形からは決まらない）
+- ❌ focus-trap・scroll-lock・DnD 等の UI 密着挙動 hook を `capabilities` に上げること([0022](0022-capabilities-kernel.md):UI 挙動は component co-location)（強制: 散文 —— **寄せられない**。hook が runtime 能力か UI 挙動かは振る舞いの意味で決まり、置き場の形からは決まらない）
+- ❌ 記録するに留めた拡張点(shortcut registry / DnD ドラッグ代替 IF)を、空の IF 定義としてコードに置くこと(§7)（強制: `dead-code` job（`pnpm knip`）が内部の層で呼ばれない export を落とす。公開面の `src/components` に置いた空の IF は散文 —— **寄せられない**。公開面は未使用が正常であり、実装を伴うかは使う側が現れるまで決まらない）
 
 ## 補足
 

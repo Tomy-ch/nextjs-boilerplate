@@ -85,10 +85,10 @@ Accepted
 ## 禁止事項
 
 - ❌ actions を SHA ピンせず moving tag で使うこと(検疫付き SHA ピン必須)
-- ❌ ワークフローに広い permissions を与えること(read-only 既定 + 局所加算)
-- ❌ concurrency 制御なしで PR ごとに旧実行を積むこと
-- ❌ CI を通すために hook を恒久 bypass すること(local == CI の二重化)
-- ❌ コンテナ配信・DB を前提とする job(image-scan / migration 等)を no-Docker の本リポに持ち込むこと([0011](0011-no-docker.md))
+- ❌ ワークフローに広い permissions を与えること(read-only 既定 + 局所加算)（強制: 散文 —— **寄せられる**（各 workflow のトップレベル `permissions` が在り `contents: read` を超えないことを YAML で見る。規則は無い））
+- ❌ concurrency 制御なしで PR ごとに旧実行を積むこと（強制: 散文 —— **寄せられる**（`pull_request` で起動する workflow がトップレベルに `concurrency` と `cancel-in-progress: true` を持つかを YAML で見る。規則は無い））
+- ❌ CI を通すために hook を恒久 bypass すること(local == CI の二重化)（強制: 散文 —— **寄せられない**。bypass は手元の起動の仕方で、リポジトリの差分に現れない）
+- ❌ コンテナ配信・DB を前提とする job(image-scan / migration 等)を no-Docker の本リポに持ち込むこと([0011](0011-no-docker.md))（強制: 持たない —— 採らない決定。コンテナ配信や DB を前提とする job が無いこと自体が状態で、持ち込めば workflow の追加として差分に現れる）
 
 ## 補足
 

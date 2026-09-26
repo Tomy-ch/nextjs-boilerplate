@@ -60,11 +60,11 @@ Zustand は de-facto の軽量 store で、`create()` + hook の標準形に乗�
 
 ## 禁止事項
 
-- ❌ `stores` に server state(API レスポンス)を二重キャッシュすること(server state は RSC/adapters)。**選択の記録に含む表示値のスナップショットはこれに当たらない**(§選択の記録)
-- ❌ 単一 feature の状態を `stores` へ上げること(横断性が無ければ feature 内 local)
-- ❌ `components` が `stores` を import すること(合成は feature 経由)
-- ❌ `stores` に UI マークアップ / secret / `serverConfig` / 業務ロジックを置くこと
-- ❌ Zustand ストアを feature/component に直書きして横断参照させること(横断は `stores` へ集約)
+- ❌ `stores` に server state(API レスポンス)を二重キャッシュすること(server state は RSC/adapters)。**選択の記録に含む表示値のスナップショットはこれに当たらない**(§選択の記録)（強制: 散文 —— **寄せられない**。二重キャッシュか選択の記録かは鮮度の責任を誰が持つかで決まり、store の型からは決まらない）
+- ❌ 単一 feature の状態を `stores` へ上げること(横断性が無ければ feature 内 local)（強制: 散文 —— **寄せられる**（`src/stores/` の各ストアを import する feature スライスが 2 つ未満なら落とす形。規則は無い））
+- ❌ `components` が `stores` を import すること(合成は feature 経由)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `DEPENDENCIES.components` に `stores` が無い））
+- ❌ `stores` に UI マークアップ / secret / `serverConfig` / 業務ロジックを置くこと（強制: ESLint `project-rules/no-markup-outside-ui-layers` が UI マークアップを、`server-only` の build-time failure と `scripts/server-only.gate.test.ts` が `serverConfig` を落とす。secret と業務ロジックは散文 —— **寄せられない**。値の意味と判断の所在で決まる）
+- ❌ Zustand ストアを feature/component に直書きして横断参照させること(横断は `stores` へ集約)（強制: ESLint boundaries が feature 内のストアを他 feature から参照する形を落とす。`src/stores/` の外での `zustand` の利用は散文 —— **寄せられる**（`no-restricted-imports` で `zustand` を `src/stores/` 以外から落とす形。規則は無い））
 
 ## 関連 ADR
 

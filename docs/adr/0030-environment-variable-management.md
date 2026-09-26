@@ -131,13 +131,13 @@ node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
 
 ## 禁止事項
 
-- ❌ リクエストハンドラ内 / Client Component での実行時 env 検証・parse
+- ❌ リクエストハンドラ内 / Client Component での実行時 env 検証・parse（強制: ESLint `no-restricted-syntax`（`process` の直読）と biome `noProcessEnv` が config カーネルと起動境界の外で env を読んで parse する形を落とす。config の検証関数を要求経路や client から呼ぶことは散文 —— **寄せられる**（`@/config/environment` と `*.schema` の import を起動 / ビルド境界の外で落とす形。規則は無い））
 - ❌ `process.env` を config モジュール以外から直読すること(biome `noProcessEnv` で強制)
-- ❌ 各 config オブジェクトに setter を持たせる / テスト外で再生成すること / 全目的を束ねる単一 facade を作ること
-- ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)
-- ❌ secret を `NEXT_PUBLIC_` に置くこと
-- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)
-- ❌ 開発専用の口の開閉を、環境ではなく API の接続モードで判定すること
+- ❌ 各 config オブジェクトに setter を持たせる / テスト外で再生成すること / 全目的を束ねる単一 facade を作ること（強制: 散文 —— **一部寄せられる**。setter の宣言と Config class の export は `src/config/**` の class の `set` accessor と export を見る形で落とせるが規則は無い。単一 facade かどうかは束ねる範囲の意味で決まる）
+- ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)（強制: 散文 —— **寄せられる**（`src/config/**/*.client.ts` で `process.env` の計算プロパティ参照（文字列リテラル以外の添字）と分割代入を ESLint `no-restricted-syntax` で落とす形。規則は無い））
+- ❌ secret を `NEXT_PUBLIC_` に置くこと（強制: 散文 —— **一部寄せられる**。Secret management ラベルを持つ変数が `NEXT_PUBLIC_` を名乗らないことは `env/README.md` の変数表の突合で落とせるが規則は無い。ラベルの無い値が秘密かどうかは値の意味で決まる）
+- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)（強制: `src/config/load-environment.test.ts` が判定関数の未指定を起動エラー / 口を閉じる側へ固定する。判定関数を通らずに `APP_ENV` の既定を書く箇所（配信用の script や新しい読み手）は散文 —— **寄せられる**（`package.json` の `build` / `start` に `APP_ENV` の既定が無いこと、`APP_ENV` の直読が `load-environment.ts` だけであることを gate で見る形。規則は無い））
+- ❌ 開発専用の口の開閉を、環境ではなく API の接続モードで判定すること（強制: `src/config/load-environment.test.ts` が共有の判定を `APP_ENV` の値で開閉するよう固定する。新しい口がその判定を通らず接続モードで分岐することは散文 —— **寄せられる**（開発専用の口（`*.dev.ts` / `page.dev.tsx`）が `isDevelopmentAccessAllowed` を通り、`APP_API_MODE` を条件にしないことを gate で見る形。規則は無い））
 - ❌ RSC から Client Component へ server config 値を props で渡すこと
 - ❌ **server config**(secret を含む runtime object)を `adapters/server`・起動 / ビルド境界以外の層から import すること([0021](0021-frontend-responsibility.md)。client config〈NEXT_PUBLIC インラインリテラル〉は client 側の層から import 可 — §2 / §3)
 

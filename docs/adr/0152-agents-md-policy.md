@@ -197,11 +197,11 @@ v1.0.0 未満の ADR は living document で、本文を直接上書きする([0
 
 ## 禁止事項
 
-- ❌ AGENTS.md と並列に同等の規約ファイル (CLAUDE-RULES.md / GENERAL-RULES.md 等) を追加すること (規約は AGENTS.md 1 本)
-- ❌ 確定済み ADR の本文を AGENTS.md に転載 / 二重化すること (要旨表に留める)
-- ❌ AGENTS.md の節順序を独自判断で変えること
-- ❌ BEGIN-END マーカーを削除すること
-- ❌ エージェント固有設定 (`.github/copilot-instructions.md` 等) に AGENTS.md と矛盾するルールを書くこと
+- ❌ AGENTS.md と並列に同等の規約ファイル (CLAUDE-RULES.md / GENERAL-RULES.md 等) を追加すること (規約は AGENTS.md 1 本)（強制: 持たない —— 採らない決定。規約ファイルが AGENTS.md 1 本であること自体が状態で、並ぶファイルを置けば追加として差分に現れる）
+- ❌ 確定済み ADR の本文を AGENTS.md に転載 / 二重化すること (要旨表に留める)（強制: 散文 —— **寄せられない**。AGENTS.md は英語で ADR は日本語のため転載は訳を伴って字面が一致せず、要旨と転載の境目は意味で決まる）
+- ❌ AGENTS.md の節順序を独自判断で変えること（強制: 散文 —— **寄せられる**（AGENTS.md の `##` 見出しの並びを本 ADR の節構成表の順と突き合わせる。規則は無い））
+- ❌ BEGIN-END マーカーを削除すること（強制: 散文 —— **寄せられる**（AGENTS.md の先頭と末尾に `BEGIN:nextjs-agent-rules` / `END:nextjs-agent-rules` の対が在るかを見る。規則は無い））
+- ❌ エージェント固有設定 (`.github/copilot-instructions.md` 等) に AGENTS.md と矛盾するルールを書くこと（強制: 散文 —— **寄せられない**。2 つの規則が矛盾するかは文の意味で決まる）
 
 ## 補足
 

@@ -65,10 +65,10 @@ Pages Router(`pages/` / `pages/api`)は採用しない。裏取り: 公式 doc `
 ## 禁止事項
 
 - ❌ `route.ts` に業務ロジック / 重い集約を書くこと(thin proxy。[0011](0011-no-docker.md) / [0070](0070-backend-role-separation.md))
-- ❌ Pages Router(`pages/` / `pages/api`)を追加すること(App Router 単独)
+- ❌ Pages Router(`pages/` / `pages/api`)を追加すること(App Router 単独)（強制: 持たない —— 採らない決定。`pages/` を持たないこと自体が状態で、足せばディレクトリの追加として diff に現れる）
 - ❌ `app/route-handler` から `config` を直接 import すること(config は `adapters/server` 経由。metadata は例外として config 可)
 - ❌ `app/server-action` から **`server config`** を直接 import すること(route-handler と同じ理由。secret を持つ runtime object は `adapters/server` の側で読む)
-- ❌ `app/server-action` で主体の断言を省き、その action を描いた画面が保護されていることに依拠すること(action id を知る者は任意の route から呼べる)
+- ❌ `app/server-action` で主体の断言を省き、その action を描いた画面が保護されていることに依拠すること(action id を知る者は任意の route から呼べる)（強制: 散文 —— **一部寄せられる**。`src/app/**/actions.ts` の各 action が `adapters/server/auth` の断言を呼んでいるかは呼び出しの有無として落とせるが規則は無い。断言が役割・所有の判定として足りているかは業務の意味で決まる）
 - ❌ `app/route-segment` が入口の保護の名目で取得や業務ロジックを持つこと(許すのは `verifySession()` の呼び出し・`model` の述語による判定・`redirect()` だけ。[0079](0079-auth-frontend-seam.md))
 - ❌ `app/route-segment` から **`server config`** を直接 import すること(値は `adapters` か、全層が読める `NEXT_PUBLIC` の公開定数から受け取る。[0021](0021-frontend-responsibility.md) の「内側は値を引数で受け取る」と同じ規定)。**例外は Next.js の規約が route segment に置くことを要求する値だけ** —— root layout の `metadata` export が読む `metadataBase` / `robots`(`config/site`。[0044](0044-seo-metadata-strategy.md))と、画面が「いま」として読む `config/clock`。どちらも `adapters` を経由させると、値の置き場が規約で決まっているのに取得の口だけを増やすことになる
 

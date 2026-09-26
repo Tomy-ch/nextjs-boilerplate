@@ -209,7 +209,8 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       },
       {
         file: "docs/adr/0110-security-operations.md",
-        block: "- ❌ SAST を CodeQL だけに寄せること(持ち出せない層を唯一の SAST にしない)\n",
+        block:
+          "- ❌ SAST を CodeQL だけに寄せること(持ち出せない層を唯一の SAST にしない)（強制: 散文 —— **寄せられる**（workflow に `make sast` を呼ぶ job が在ることを gate で落とす形。規則は無い））\n",
       },
       {
         file: "docs/get-started/setup-repository.md",

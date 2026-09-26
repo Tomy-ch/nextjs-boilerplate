@@ -48,9 +48,9 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を本リポジトリに�
 
 ## 禁止事項
 
-- ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.md) の供給 seam に乗せる)
-- ❌ **動的フラグ値を [0030](0030-environment-variable-management.md) の env / 目的別 config 経由に載せること**(env は凍結。動的値は runtime config / source adapter へ逃がす)
-- ❌ フラグ評価ロジック / SaaS SDK を既定で client bundle に載せること(評価既定 = server。flicker / CLS 回避・バンドル排除)
+- ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.md) の供給 seam に乗せる)（強制: 持たない —— 採らない決定。flag / A-B / 段階的公開の SaaS は依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
+- ❌ **動的フラグ値を [0030](0030-environment-variable-management.md) の env / 目的別 config 経由に載せること**(env は凍結。動的値は runtime config / source adapter へ逃がす)（強制: 散文 —— **寄せられない**。フラグが再デプロイなしで変えたい値かは運用の意図で決まり、コードの形からは決まらない）
+- ❌ フラグ評価ロジック / SaaS SDK を既定で client bundle に載せること(評価既定 = server。flicker / CLS 回避・バンドル排除)（強制: 散文 —— **一部寄せられる**。SaaS SDK を client から引く形は `no-restricted-imports` で落とせるが規則は無い。評価の判定を client に書いたかは判定の意味で決まる）
 - ❌ ユーザ / コホート依存のフラグ評価結果をキャッシュ / PPR static 出力へ焼き込むこと(dynamic 扱い or cohort を cache key に含める)
 
 ## 補足

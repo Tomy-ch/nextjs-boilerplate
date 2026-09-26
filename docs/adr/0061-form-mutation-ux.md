@@ -33,9 +33,9 @@ Accepted
 
 ## 禁止事項
 
-- ❌ Server Action ごとに戻り値形状を発明すること(`ActionState<T>` 契約に従い、[0062](0062-form-input-validation.md) の入力検証・[0063](0063-mutation-result-notification.md) の共通通知を可能にする)
-- ❌ 送信フローを `<form action>` + `useActionState` 以外の自前機構で発明すること(標準デファクトに乗る = [0010](0010-standards-and-non-lockin.md))
-- ❌ react-hook-form 等の form state ライブラリで**送信機構そのものを置換して二重化**すること(rhf はクライアント入力検証に用い、送信は本 ADR の `<form action>` + Server Action に合流させる。[0060](0060-state-management.md) の rhf 採用と整合)
+- ❌ Server Action ごとに戻り値形状を発明すること(`ActionState<T>` 契約に従い、[0062](0062-form-input-validation.md) の入力検証・[0063](0063-mutation-result-notification.md) の共通通知を可能にする)（強制: 散文 —— **寄せられる**（`"use server"` の module が export する関数の戻り値型が `ActionState<T>` かを型付きの lint で見られる。規則は無い））
+- ❌ 送信フローを `<form action>` + `useActionState` 以外の自前機構で発明すること(標準デファクトに乗る = [0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **一部寄せられる**。画面からの生 `fetch` による送信は `adapters` の外の `fetch` 呼び出しを落とす `no-restricted-syntax` で落とせるが規則は無い。`onSubmit` を持つ form が server への変更か URL・局所の操作かは用途で決まる）
+- ❌ react-hook-form 等の form state ライブラリで**送信機構そのものを置換して二重化**すること(rhf はクライアント入力検証に用い、送信は本 ADR の `<form action>` + Server Action に合流させる。[0060](0060-state-management.md) の rhf 採用と整合)（強制: 散文 —— **寄せられない**。rhf の API を呼ぶ形は送信を合流させる場合と置き換える場合で同じで、どこへ送るかはコールバックの中身の意味で決まる）
 - ❌ pending 表示を伴わない送信(`useFormStatus` を既定として要求する)
 
 ## 補足

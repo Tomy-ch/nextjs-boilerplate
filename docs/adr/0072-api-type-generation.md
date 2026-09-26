@@ -78,10 +78,10 @@ API 型を OpenAPI から生成するか手書きか・生成器の選定・生�
 
 ## 禁止事項
 
-- ❌ API 型を手書きで複製すること(SSOT = バックエンドの `openapi.gen.yaml`)
+- ❌ API 型を手書きで複製すること(SSOT = バックエンドの `openapi.gen.yaml`)（強制: 散文 —— **寄せられない**。手書きの型が契約の写しかは形の一致ではなく意味で決まり、偶然同じ形の自前の view 型と区別できない）
 - ❌ `gen/` 配下の生成物を手編集すること(do-not-edit)
-- ❌ 生成型・zod スキーマを `model` 等の内層へ漏らすこと(変換は `adapters` 境界)
-- ❌ 取得座標をマニフェスト外にハードコードすること(座標は静的マニフェストで管理)
+- ❌ 生成型・zod スキーマを `model` 等の内層へ漏らすこと(変換は `adapters` 境界)（強制: ESLint boundaries（`architecture.ts` の `RESTRICTED_AREAS` の `adapters-gen`）が `model` / `features` からの生成物の直接 import を落とす。`adapters` の公開面を経由した素通しは散文 —— **寄せられない**。公開面が返す型が生成型か自前の view 型かは推論を経た型の出所で決まり、import の形からは決まらない）
+- ❌ 取得座標をマニフェスト外にハードコードすること(座標は静的マニフェストで管理)（強制: 散文 —— **寄せられる**（契約の座標（リポジトリ名と `openapi.gen.yaml` のパス）の literal が `openapi/sources.yaml` の外に現れることを走査で落とせる。規則は無い））
 - ❌ drift ゲートなしに生成物をコミット運用すること
 
 ## 補足

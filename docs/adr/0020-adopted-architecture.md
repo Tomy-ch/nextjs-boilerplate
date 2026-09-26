@@ -168,12 +168,12 @@ onion は安定核を `domain` / `usecase` と名付けるが、本リポジト�
 
 ## 禁止事項
 
-- ❌ `src/domain/` / `src/usecase/` を作成すること(安定核は `model`、画面ユースケースは feature 内共置。上記「採用しない理由」参照)
-- ❌ route / Server Action / `page.tsx` に業務ロジックを書くこと(driving adapter は薄い編成のみ。[0011](0011-no-docker.md) thin proxy)
-- ❌ コード分割の第一軸を route にすること(第一軸は feature)
-- ❌ 生成型・外部ライブラリ型を `model` 等の内層へ漏らすこと(変換は `adapters` 所有境界で行う)
+- ❌ `src/domain/` / `src/usecase/` を作成すること(安定核は `model`、画面ユースケースは feature 内共置。上記「採用しない理由」参照)（強制: ESLint `boundaries/no-unknown-files` が `src/domain/` / `src/usecase/` に置いたコードを落とす。コード以外のファイルだけを持つディレクトリは散文 —— **寄せられる**（`src/` 直下のディレクトリを `architecture.ts` の `KERNELS` と突き合わせる。規則は無い））
+- ❌ route / Server Action / `page.tsx` に業務ロジックを書くこと(driving adapter は薄い編成のみ。[0011](0011-no-docker.md) thin proxy)（強制: 散文 —— **寄せられない**。どこからが業務ロジックでどこまでが薄い編成かは層の責務の判断で、コードの形からは決まらない）
+- ❌ コード分割の第一軸を route にすること(第一軸は feature)（強制: 散文 —— **寄せられない**。コードをどの軸で分けたかは設計の判断で、ディレクトリの形からは決まらない）
+- ❌ 生成型・外部ライブラリ型を `model` 等の内層へ漏らすこと(変換は `adapters` 所有境界で行う)（強制: ESLint boundaries が `adapters` 以外からの `src/adapters/gen` の import を落とす。`src/model` での外部ライブラリの import は `no-restricted-imports` で落とせるが規則は無い。`adapters` の公開面を経由した生成型の再公開は散文 —— **寄せられない**。型の由来の追跡が要り、依存表の向きからは決まらない）
 - ❌ カーネルの依存を外向きにすること(`model` が `adapters` を import する等。詳細マトリクスは [0021](0021-frontend-responsibility.md))
-- ❌ 中身の決定を持たないカーネルの空ディレクトリを生やすこと(カーネルは、その中身を定める ADR と対で存在する)
+- ❌ 中身の決定を持たないカーネルの空ディレクトリを生やすこと(カーネルは、その中身を定める ADR と対で存在する)（強制: 散文 —— **一部寄せられる**。コードを持たないカーネルのディレクトリ（`.gitkeep` だけ等）は `src/` の走査で落とせるが規則は無い。対になる ADR がそのカーネルの中身を定めているかは文書の意味で決まる）
 
 ## 補足
 
