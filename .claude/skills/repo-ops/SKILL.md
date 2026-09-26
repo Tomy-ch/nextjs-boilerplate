@@ -4,7 +4,7 @@ usage-class: situational
 description: >-
   Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed
   toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, the lefthook git
-  hooks, and the servers and browser tabs several worktrees share on one host. Read-only — it tells you the exact command to run and mutates nothing. It is SYMPTOM-driven and
+  hooks, and worktree dev servers. Read-only — it tells you the exact command to run and mutates nothing. It is SYMPTOM-driven and
   answers only from its own index: a symptom that is not listed is routed to `how-to` (a goal, which can
   conclude that no procedure exists) or `repo-truth` (the current state), because this runbook cannot conclude
   an absence and its silence must not read as an answer. Triggers: 「make install-tools が mise not found
