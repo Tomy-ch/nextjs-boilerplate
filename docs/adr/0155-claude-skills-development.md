@@ -195,11 +195,11 @@ finder → verifier の 2 段を持たないため、`impl-review` がまさに�
 
 ## 禁止事項
 
-- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)
-- ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)
-- ❌ subagent に code edit 権限を渡すこと (read-only 原則)
+- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)（強制: 散文 —— **寄せられない**。スキルが開発系か運用系かは frontmatter に宣言が無く、主目的の判断で決まる）
+- ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)（強制: 散文 —— **寄せられない**。subagent を足すことがコストに見合うかは判断そのもの）
+- ❌ subagent に code edit 権限を渡すこと (read-only 原則)（強制: 散文 —— **一部寄せられる**。`.claude/agents/*.md` の frontmatter `tools` に Edit / Write / NotebookEdit が在るかは `skill-lint` で落とせるが規則は無い。`Bash` を持つ定義がそれで書き込むかは実行時の振る舞いで決まる）
 - ❌ `new-env` に config カーネル (`src/config/` / スキーマ / 検証呼び出し / `env/`) を新規作成させること
-- ❌ ドキュメント系 4 件 (`canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync`) の責務を重複させること。とくに **`portal-manifest-sync` に判定基準を持たせないこと** — 基準の単一ソースは `readme-review` であり、複製した瞬間に片方だけが更新される
+- ❌ ドキュメント系 4 件 (`canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync`) の責務を重複させること。とくに **`portal-manifest-sync` に判定基準を持たせないこと** — 基準の単一ソースは `readme-review` であり、複製した瞬間に片方だけが更新される（強制: 散文 —— **寄せられない**。2 つのスキルの責務が重なるか、判定基準を持っているかは本文の意味で決まる）
 
 ## 補足
 

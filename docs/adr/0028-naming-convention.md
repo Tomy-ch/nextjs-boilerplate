@@ -81,13 +81,13 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 
 ## 禁止事項
 
-- ❌ ソースファイル名に PascalCase / camelCase を用いること(`UserCard.tsx` / `formatDate.ts` 等)。ファイル名は kebab-case で統一する
-- ❌ ケースの混在(kebab-case 以外のファイル名を持ち込む)
-- ❌ 型 / interface への `I` プレフィックス(`IUser` 等)
-- ❌ App Router 特殊ファイル・route セグメントに独自の命名パターンを持ち込むこと(Next.js 規約に従う)
-- ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること(標準名の例外に該当する場合を除く)/ secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))
-- ❌ 標準が規定する変数名(`OTEL_*` 等)を `{SUBSYSTEM}_{NAME}` へ改名すること(標準実装が読めなくなる)
-- ❌ カーネル・ディレクトリに役割を名指ししない名称を付けること([0021](0021-frontend-responsibility.md) 命名規律。本 ADR の対象外だが再掲)
+- ❌ ソースファイル名に PascalCase / camelCase を用いること(`UserCard.tsx` / `formatDate.ts` 等)。ファイル名は kebab-case で統一する（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で置いたファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
+- ❌ ケースの混在(kebab-case 以外のファイル名を持ち込む)（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で持ち込んだファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
+- ❌ 型 / interface への `I` プレフィックス(`IUser` 等)（強制: 散文 —— **寄せられる**（型 / interface 宣言の名前が `^I[A-Z]` に当たるものを lint で落とす形。規則は無い））
+- ❌ App Router 特殊ファイル・route セグメントに独自の命名パターンを持ち込むこと(Next.js 規約に従う)（強制: 散文 —— **一部寄せられる**。`src/app/` 配下のセグメント名は小文字 kebab-case と Next.js の記法（`[...]` / `(...)` / `_...`）の正規表現で落とせるが規則は無い。特殊ファイルに似せた独自の綴りかは名前の意図で決まる）
+- ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること(標準名の例外に該当する場合を除く)/ secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))（強制: 散文 —— **一部寄せられる**。`env/.env.*` の変数名が UPPER_SNAKE で prefix を持つかは正規表現で落とせるが規則は無い。prefix がサブシステムか・標準名の例外か・値が secret かは意味で決まる）
+- ❌ 標準が規定する変数名(`OTEL_*` 等)を `{SUBSYSTEM}_{NAME}` へ改名すること(標準実装が読めなくなる)（強制: 散文 —— **寄せられない**。どの変数名を外部の仕様が規定しているかはコードに無く、改名は標準名が消えることとしてしか現れない）
+- ❌ カーネル・ディレクトリに役割を名指ししない名称を付けること([0021](0021-frontend-responsibility.md) 命名規律。本 ADR の対象外だが再掲)（強制: ESLint `boundaries/no-unknown-files` が `KERNELS` に無い名前の `src/` 直下ディレクトリ（中の JS/TS）を落とす。カーネル内のディレクトリ名は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
 
 ## 補足
 

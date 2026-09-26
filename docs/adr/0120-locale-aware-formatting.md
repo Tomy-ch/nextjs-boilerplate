@@ -43,16 +43,16 @@ Accepted
 
 ## 禁止事項
 
-- ❌ 日付の**表示(format)**に `date-fns` の `format` / `formatDistance` / `formatRelative` 等や `date-fns/locale` を用いること(表示は §1 の `Intl` に一本化。二重フォーマット禁止)
-- ❌ `Intl` と `date-fns` で同じ表示を**二重に**持つこと(表示 = `Intl`、演算 = `date-fns` の役割分界を崩さない)
-- ❌ Moment / Luxon / Day.js 等、**独自 DateTime ラッパ型**を持つ日付ライブラリを採用すること(型境界を汚染する。標準 `Date` を境界型に保つ。[0020](0020-adopted-architecture.md) 型漏洩禁止 / §2)
-- ❌ `date-fns` の関数を feature / component から**直接 import して散らす**こと(横断利用は `model` の薄いラッパ越し。vendor 直参照を 1 箇所に閉じ込め差替点を保つ。§2 / [0010](0010-standards-and-non-lockin.md))
-- ❌ `date-fns` を [0004](0004-library-management.md) フロー(exact pin + `pnpm audit`)を通さず追加すること
-- ❌ 日付だけの値を `Date` のまま境界(callback / hidden input / API 契約)へ出すこと(§2。`YYYY-MM-DD` 文字列で運ぶ)
-- ❌ 同一の locale-aware フォーマッタ・日付演算ヘルパを feature ごとに再発明すること(横断は `model` へ昇格。[0021](0021-frontend-responsibility.md))
-- ❌ フォーマッタ・日付演算ヘルパ(表示用ロジック)を `components` / `adapters` / `capabilities` / 汎用置き場に置くこと(`model` 管轄。[0021](0021-frontend-responsibility.md) 依存マトリクス・命名規律)
-- ❌ 既定 locale をコンポーネント各所へハードコード直書きすること(単一 seam = `model` 定数に集約)
-- ❌ `Intl` / `date-fns` 使用の**日常 rule**(明示 locale 引数の徹底・`Intl.*` インスタンスの生成コスト回避のための memo 化・`Date#toLocaleString` 等の各所直書き禁止・`date-fns` の import は関数単位で行う 等)を ADR 本文へ書き込むこと(rule は `docs/rules.md` へ。[0140](0140-documentation-operations.md))
+- ❌ 日付の**表示(format)**に `date-fns` の `format` / `formatDistance` / `formatRelative` 等や `date-fns/locale` を用いること(表示は §1 の `Intl` に一本化。二重フォーマット禁止)（強制: 散文 —— **寄せられる**（ESLint `no-restricted-imports` の `importNames` で `date-fns` の `format` / `formatDistance` / `formatRelative` と `date-fns/locale` を落とせる。規則は無い））
+- ❌ `Intl` と `date-fns` で同じ表示を**二重に**持つこと(表示 = `Intl`、演算 = `date-fns` の役割分界を崩さない)（強制: 散文 —— **一部寄せられる**。`date-fns` の表示関数の import は `no-restricted-imports` で落とせるが規則は無い。手書きの文字列組み立てで `Intl` と同じ表示を再現しているかは、出力の意味を読まないと決まらない）
+- ❌ Moment / Luxon / Day.js 等、**独自 DateTime ラッパ型**を持つ日付ライブラリを採用すること(型境界を汚染する。標準 `Date` を境界型に保つ。[0020](0020-adopted-architecture.md) 型漏洩禁止 / §2)（強制: 持たない —— 採らない決定。独自 DateTime 型のライブラリは依存に無く、足す変更は `package.json` の依存追加として diff に現れる）
+- ❌ `date-fns` の関数を feature / component から**直接 import して散らす**こと(横断利用は `model` の薄いラッパ越し。vendor 直参照を 1 箇所に閉じ込め差替点を保つ。§2 / [0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **一部寄せられる**。`components` からの `date-fns` の import は `no-restricted-imports` で落とせるが規則は無い。feature 内の単発ヘルパは直参照を許すので、feature からの import が「散らし」かは参照の広がりの判断で決まる）
+- ❌ `date-fns` を [0004](0004-library-management.md) フロー(exact pin + `pnpm audit`)を通さず追加すること（強制: Dependency Scan の audit gate job が既知の脆弱性を持つ版を落とす。exact pin は散文 —— **寄せられる**（`package.json` の版指定に範囲指定子 `^` / `~` が含まれることを検出できる。規則は無い））
+- ❌ 日付だけの値を `Date` のまま境界(callback / hidden input / API 契約)へ出すこと(§2。`YYYY-MM-DD` 文字列で運ぶ)（強制: 散文 —— **寄せられない**。日付だけの値と瞬時はどちらも `Date` 型で、型からは区別できない）
+- ❌ 同一の locale-aware フォーマッタ・日付演算ヘルパを feature ごとに再発明すること(横断は `model` へ昇格。[0021](0021-frontend-responsibility.md))（強制: 散文 —— **寄せられない**。2 つのヘルパが同じ表示を作るかは意味の判断で、コードの形からは決まらない）
+- ❌ フォーマッタ・日付演算ヘルパ(表示用ロジック)を `components` / `adapters` / `capabilities` / 汎用置き場に置くこと(`model` 管轄。[0021](0021-frontend-responsibility.md) 依存マトリクス・命名規律)（強制: 散文 —— **一部寄せられる**。`components` / `adapters` / `capabilities` での `Intl.*` の生成と `date-fns` の import は `no-restricted-syntax` / `no-restricted-imports` で落とせるが規則は無い。手書きの表示用ロジックかどうかは読まないと決まらない）
+- ❌ 既定 locale をコンポーネント各所へハードコード直書きすること(単一 seam = `model` 定数に集約)（強制: 散文 —— **寄せられる**（`model` の外で `Intl.*` / `toLocale*String` の locale 引数へ文字列リテラルを渡す形を `no-restricted-syntax` で落とせる。規則は無い））
+- ❌ `Intl` / `date-fns` 使用の**日常 rule**(明示 locale 引数の徹底・`Intl.*` インスタンスの生成コスト回避のための memo 化・`Date#toLocaleString` 等の各所直書き禁止・`date-fns` の import は関数単位で行う 等)を ADR 本文へ書き込むこと(rule は `docs/rules.md` へ。[0140](0140-documentation-operations.md))（強制: 散文 —— **寄せられない**。文が rule か decision かは内容の意味で決まり、文書の形からは決まらない）
 
 ## 補足
 

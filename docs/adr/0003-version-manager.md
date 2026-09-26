@@ -122,12 +122,12 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 
 ## 禁止事項
 
-- ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）
-- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる
-- ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）
-- ❌ npm パッケージを `npm:` backend で取ること。mise 経由の npm パッケージは lockfile にも `pnpm audit` にも載らず、[0001](0001-package-manager.md) の単一経路と冷却期間の検疫を迂回する 2 つ目の npm 供給経路になる。Node で動くものは `pnpm add -DE` で取る（[0156](0156-browser-observation-tooling.md) 取得経路）。見直すのは pnpm が冷却期間・lockfile・公開日時を返さないレジストリの拒否を提供しなくなったときだけで、「mise に寄せると SSOT が 1 つになる」は理由にならない —— バイナリと npm パッケージでは配布経路も検疫の手段も異なる
-- ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る
-- ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）
+- ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）（強制: 散文 —— **寄せられる**（`.nvmrc` / `.node-version` / `.tool-versions` の存在と、`package.json` の `packageManager` / `volta` を gate で見る。規則は無い））
+- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる（強制: 散文 —— **寄せられる**（workflow の `run:` と `docker/**/Dockerfile` に現れる `mise` の呼び出しを、`.github/actions/setup-mise` を除いて検出する。規則は無い））
+- ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）（強制: 散文 —— **寄せられる**（`mise.toml` を TOML として読み、`[tasks]` / `[env]` の表が無いことを gate で見る。規則は無い））
+- ❌ npm パッケージを `npm:` backend で取ること。mise 経由の npm パッケージは lockfile にも `pnpm audit` にも載らず、[0001](0001-package-manager.md) の単一経路と冷却期間の検疫を迂回する 2 つ目の npm 供給経路になる。Node で動くものは `pnpm add -DE` で取る（[0156](0156-browser-observation-tooling.md) 取得経路）。見直すのは pnpm が冷却期間・lockfile・公開日時を返さないレジストリの拒否を提供しなくなったときだけで、「mise に寄せると SSOT が 1 つになる」は理由にならない —— バイナリと npm パッケージでは配布経路も検疫の手段も異なる（強制: 散文 —— **寄せられる**（`mise.toml` の `[tools]` のキーが `npm:` で始まらないことを gate で見る。規則は無い））
+- ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` / `.makefiles/` / scripts / workflow の `mise exec` は綴りで落とせるが規則は無い。手で打つコマンドはコードに現れない）
+- ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）（強制: 散文 —— **寄せられる**（`mise.toml` の `[tools]` の値がパッチまでの 3 つ組であることを gate で見る。規則は無い））
 
 ## 補足
 

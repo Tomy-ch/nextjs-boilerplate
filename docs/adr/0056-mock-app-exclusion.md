@@ -42,9 +42,9 @@ mock app はどちらでもない。読み手に何かを説明するもので�
 
 ## 禁止事項
 
-- ❌ 配信サイトに mock app の tenant を足すこと、または mock app の URL をデモとして配ること(撤回条件が揃うまで)
-- ❌ mock app を「見本」として README や portal から案内すること(見本は Storybook の story が持つ。[0054](0054-ui-catalog-storybook.md))
-- ❌ 公開のために、開発専用の口が開いたままの build を手元の宛先以外へ置くこと([0011](0011-no-docker.md) / [0113](0113-development-access-surface.md))
+- ❌ 配信サイトに mock app の tenant を足すこと、または mock app の URL をデモとして配ること(撤回条件が揃うまで)（強制: 持たない —— 採らない決定。配信サイトに mock app の tenant は無く、足せば配信の組み立ての diff として現れる）
+- ❌ mock app を「見本」として README や portal から案内すること(見本は Storybook の story が持つ。[0054](0054-ui-catalog-storybook.md))（強制: 散文 —— **寄せられない**。案内かどうかは文の意味で決まり、リンクの形からは決まらない）
+- ❌ 公開のために、開発専用の口が開いたままの build を手元の宛先以外へ置くこと([0011](0011-no-docker.md) / [0113](0113-development-access-surface.md))（強制: 散文 —— **寄せられない**。build を置く先は配備の操作で決まり、コードに現れない（置かれた先で口を閉じるのは 0113 の実行時判定である））
 
 ## 関連 ADR
 

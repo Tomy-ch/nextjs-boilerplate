@@ -170,12 +170,12 @@ pre-push:
 
 ## 禁止事項
 
-- ❌ pre-commit に重い処理 (`pnpm build` / e2e / 全テスト) を入れること
-- ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること
-- ❌ CI 側で hook 相当の検査をスキップすること
-- ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)
-- ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行入口を 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)
-- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること ([0004](0004-library-management.md) のコア dev ツール方針に従い exact pin)
+- ❌ pre-commit に重い処理 (`pnpm build` / e2e / 全テスト) を入れること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の pre-commit の `run:` に `pnpm build` / e2e / `make test-full` が現れることは綴りで落とせるが規則は無い。それ以外の処理が重いかは実行時間で決まり、設定の形からは決まらない）
+- ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること（強制: 散文 —— **寄せられない**。alias と IDE の設定は利用者の環境に在り、リポジトリの差分に現れない）
+- ❌ CI 側で hook 相当の検査をスキップすること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の各 command が呼ぶ入口がいずれかの workflow の `run:` に在ることは突き合わせで落とせるが規則は無い。そのステップが実際に走るかは `if:` の評価で決まり実行時にしか分からない）
+- ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)（強制: 散文 —— **寄せられない**。`.git/hooks/` は追跡外で、書き込みがリポジトリの差分に現れない）
+- ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行入口を 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の `run:` が既存の入口を 1 行で呼ぶ形であることは YAML を読めば落とせるが規則は無い。呼ばれた script や target が段の選択を抱え込んでいるかは中身の意味で決まる）
+- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること ([0004](0004-library-management.md) のコア dev ツール方針に従い exact pin)（強制: 散文 —— **寄せられる**（`package.json` の `lefthook` の値が範囲指定子を持たない完全な版かを見る。規則は無い））
 
 ## 補足
 

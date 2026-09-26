@@ -46,6 +46,8 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 ### 4. 認証は BFF が発行する短命 ticket。one-time にはしない
 
 - **ブラウザは backend の stream endpoint を直接叩く。** [0079](0079-auth-frontend-seam.md) により Access Token はブラウザに無く、`EventSource` は任意のヘッダを載せられないので、資格情報は **BFF(Route Handler)が発行する短命の ticket** として **query に載せる**。発券の口は主体を名乗る要求なので user-scoped の口である([0112](0112-data-classification-cache-boundary.md))
+- **標準の上に、資格情報をヘッダで載せる経路は無い。** `EventSource` の構築子が受けるのは URL と `withCredentials` だけで([WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html) の `EventSourceInit`)、ブラウザの `WebSocket` も URL とサブプロトコルしか受けない([WHATWG WebSockets Standard](https://websockets.spec.whatwg.org/))。**WebSocket へ倒しても資格情報の載せ方は変わらない**ので、認証の都合は transport の選択(決定 3)を動かさない
+- **BFF が stream を中継して Bearer を付ける形は採らない。** 中継点が長寿命接続を保持することになり、それは決定 1 が本体に持たせないものである([0011](0011-no-docker.md))。BFF が中継するのは発券の往復だけで、購読はブラウザが直接開く
 - **ticket は主体 × 購読の単位 × stream の scope に束縛し、寿命(TTL)を持つ。** 束縛と TTL が再利用の範囲を限る
 - **one-time にはしない。** one-time にすると、再接続のたびに BFF → backend の発券往復が要る。再接続を起こすのは stream 側の都合(5xx / 網の断)なので、そちらの障害が再接続の回数だけ発券口の負荷へ転化する。ブラウザ組み込みの再接続も同じ URL の再利用を前提に作られており、one-time はその前提と衝突する。TTL の内側は同じ ticket で張り直し、越えた分だけ発券し直す
 - **ticket は URL に載るので、URL を文言・ログ・span の属性へ載せない。** `logging` の redaction は**名前で伏せ、値の形は見ない**([0081](0081-observability-logging.md))ため、URL 文字列の中の ticket には届かない。ブラウザ由来の例外文言を包むときは `errors` の `redactMessage` で値を名指しして消す
@@ -77,7 +79,7 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 ### 8. 再接続は自前。`EventSource` の組み込み再接続と `Last-Event-ID` は使わない
 
 - [0071](0071-bff-api-integration.md) の resilience(dual timeout / idempotent retry / breaker)は**単発の往復**に効くもので、長寿命ストリームには**そのまま適用できない**。ストリーム側の resilience は形が異なる —— **再接続 backoff + jitter / liveness / resume-from-cursor** —— であり、`adapters/client` の購読 seam が持つ
-- **`EventSource` の組み込み再接続は使わない。** backoff と jitter を自前で持つと、間隔を `retry:` でしか動かせない組み込み再接続とは共存できない。`onerror` で即 `close()` して自前で張り直す
+- **`EventSource` の組み込み再接続は使わない。** 組み込み再接続が張り直すのは網の断のときだけで、応答が 200 以外なら接続を失敗として `CLOSED` に落とし、張り直さない([WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html))。ticket の期限切れで拒否された接続はこちらに落ちるので、発券へ戻る経路は組み込み再接続の外にしか作れない。張り直すまでの待ちは `retry:` で決まる reconnection time で、それ以上の backoff を足すかは user agent の任意であり、page から jitter を掛ける口は無い —— サーバが接続を一斉に閉じると、全 client がほぼ同時に戻ってくる。発券への復帰も散らしも組み込み再接続とは共存できないので、`onerror` で即 `close()` して自前で張り直す
 - **`Last-Event-ID` は使わず、cursor を毎回明示する。** `Last-Event-ID` を送るのは組み込み再接続だけで、自前で張り直した接続には載らない。再開位置の経路が 2 つあると、どちらが正か決める規則が要る
 - **backoff の対象は 5xx と網の断だけ。** 発券の 401(`unauthenticated`)は session 切れとして打ち切り再ログインへ、stream 側の 403(`permission-denied`)は権限喪失として打ち切る。再試行が 401 / 403 で誤りであることは [0080](0080-error-handling.md) と同じ
 
@@ -96,8 +98,8 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 
 - ❌ realtime transport サーバ(長寿命接続の hosting)を本体に同梱すること([0011](0011-no-docker.md) PaaS 前提 = 別ドメイン。バックエンド直結 or 外部サービス)
 - ❌ WebSocket / SSE の購読を `features` / `components` に直書きすること([0071](0071-bff-api-integration.md) の生 fetch 禁止と同型。購読 seam = `adapters/client`。[0024](0024-adapters-server-client-split.md)。強制: boundaries は import を、`no-restricted-syntax` は global の構築を落とす —— 後者は実体化と同時に置く)
-- ❌ 生の接続エラー / close code / ストリーム例外を上位へ漏らすこと(`errors` 分類へ正規化。[0021](0021-frontend-responsibility.md))
-- ❌ transport 都合の状態(順序 / 重複 / 再接続 / cursor)を feature に持たせ、ドメインイベントの畳み込みを `adapters` に持たせること(責務分界を跨ぐ)
+- ❌ 生の接続エラー / close code / ストリーム例外を上位へ漏らすこと(`errors` 分類へ正規化。[0021](0021-frontend-responsibility.md))（強制: `src/adapters/client/stream/subscription.test.ts`（発券が unauthenticated / permission-denied なら打ち切る 等）が購読 adapter の分類を落とす。例外の文言に生の値が混ざるかは散文 —— **寄せられない**。文言の中身は実行時に決まる）
+- ❌ transport 都合の状態(順序 / 重複 / 再接続 / cursor)を feature に持たせ、ドメインイベントの畳み込みを `adapters` に持たせること(責務分界を跨ぐ)（強制: 散文 —— **寄せられない**。どの状態が transport 都合でどれがドメインの畳み込みかは責務の判断で、コードの形からは決まらない）
 - ❌ [0071](0071-bff-api-integration.md) の request/response resilience(dual timeout / retry / breaker)をそのまま長寿命ストリームに適用すること(別形 = 再接続 backoff / liveness / resume)
 - ❌ Access Token を stream の資格情報にすること(ブラウザに無い。[0079](0079-auth-frontend-seam.md)。資格情報は BFF 発行の ticket)
 - ❌ ticket を含む URL を例外の文言・ログ・span の属性へ載せること(名前で伏せる redaction には届かない。[0081](0081-observability-logging.md))

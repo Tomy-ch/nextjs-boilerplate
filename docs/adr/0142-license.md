@@ -48,8 +48,8 @@ Accepted
 ## 禁止事項
 
 - ❌ コピーレフト(GPL / AGPL / SSPL 等)・ライセンス不明の依存を追加すること([0004](0004-library-management.md)。MIT 配布と両立しない)
-- ❌ CLA / 著作権譲渡を貢献の必須条件として持ち込むこと(inbound = outbound を既定とする。強化は `CONTRIBUTING.md` で別途合意)
-- ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤ)
+- ❌ CLA / 著作権譲渡を貢献の必須条件として持ち込むこと(inbound = outbound を既定とする。強化は `CONTRIBUTING.md` で別途合意)（強制: 持たない —— 採らない決定。CLA・著作権譲渡の仕組みは置かれておらず、入れる変更は `CONTRIBUTING.md` と運用の追加として diff に現れる）
+- ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤ)（強制: 散文 —— **寄せられない**。フラグの解釈は読み手の理解の問題で、コードに現れない）
 - ❌ `LICENSE` の Copyright 表記・許諾文を無断で除去・改変すること(Protected Documentation。[0152](0152-agents-md-policy.md) / AGENTS.md)
 
 ## 関連 ADR

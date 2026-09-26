@@ -82,13 +82,13 @@ Accepted
 
 ## 禁止事項
 
-- ❌ Pages Router の追加(App Router 単独)
-- ❌ `page.tsx` / `layout.tsx` / route / Server Action に業務ロジックを書くこと(薄い driving adapter。[0011](0011-no-docker.md) thin proxy)
+- ❌ Pages Router の追加(App Router 単独)（強制: 持たない —— 採らない決定。Pages Router のディレクトリを置いていないこと自体が状態で、足せば `pages/` の追加として差分に現れる）
+- ❌ `page.tsx` / `layout.tsx` / route / Server Action に業務ロジックを書くこと(薄い driving adapter。[0011](0011-no-docker.md) thin proxy)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `APP_ELEMENTS`）と `scripts/app-elements.gate.test.ts` が Route Handler / Server Action から業務ロジックの置き場へ伸びる import を落とす。書かれたコードが業務ロジックかどうかは散文 —— **寄せられない**。編成と業務判断の区別は意味で決まる）
 - ❌ `"use client"` を `layout.tsx` / `page.tsx` や上位に不要に置くこと(境界は葉へ押し下げる)
-- ❌ コード分割の第一軸を route にすること(第一軸は feature。[0020](0020-adopted-architecture.md))
-- ❌ 特定レンダリングモード(全面 SSG / 全面 dynamic 等)を本リポジトリで一律強制すること
-- ❌ route-as-modal を全モーダルの既定として強制すること(あくまで**選択肢**。既定手段の判断は [0053](0053-ui-component-interaction-seam.md) 管轄)
-- ❌ intercepting / parallel routes の代替に独自ルーティング機構を発明・中立化すること(Next.js file convention にそのまま乗る。[0010](0010-standards-and-non-lockin.md))
+- ❌ コード分割の第一軸を route にすること(第一軸は feature。[0020](0020-adopted-architecture.md))（強制: 散文 —— **寄せられない**。どの単位でコードを切るかは設計の判断で、route ごとのディレクトリは Next.js の規約として常に在る）
+- ❌ 特定レンダリングモード(全面 SSG / 全面 dynamic 等)を本リポジトリで一律強制すること（強制: 持たない —— 採らない決定。全 route を一律に縛る設定（`output: "export"` や一律の segment config）を置いていないこと自体が状態である）
+- ❌ route-as-modal を全モーダルの既定として強制すること(あくまで**選択肢**。既定手段の判断は [0053](0053-ui-component-interaction-seam.md) 管轄)（強制: 持たない —— 採らない決定。route-as-modal を既定にする仕組みを置いていないこと自体が状態で、選ぶ画面だけが `@modal` と intercepting route を足す）
+- ❌ intercepting / parallel routes の代替に独自ルーティング機構を発明・中立化すること(Next.js file convention にそのまま乗る。[0010](0010-standards-and-non-lockin.md))（強制: 持たない —— 採らない決定。独自のルーティング機構を置いていないこと自体が状態で、入れれば依存かモジュールの追加として差分に現れる）
 
 ## 関連 ADR
 
