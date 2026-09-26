@@ -60,13 +60,13 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 ## 禁止事項
 
-- ❌ **`features` / `components` / `model` から vendor 観測性 SDK(`@sentry/*` 等)を直接 import すること**(vendor 直参照を散らさない。vendor SDK の配線は `observability` / `adapters` / 起動境界に限る = §6 / [0010](0010-standards-and-non-lockin.md) / [0021](0021-frontend-responsibility.md))
-- ❌ vendor 具象へアプリコードを直結し **差し替え不能にすること**(依存先は `observability` カーネルの公開面。OTLP / OTel 骨格を迂回して vendor 固有機能へロックインしない)
-- ❌ custom / vendor-specific な semconv キーを typed config に入れること(公式 semconv のみ)
-- ❌ `logging` が `observability` を import すること(依存逆転。trace 抽出は注入で受ける)
-- ❌ 起動境界からの注入をモジュール変数へ置くこと(Next は起動境界と RSC を別のモジュールグラフとして組み、同じファイルが 1 プロセス内で 2 回インスタンス化される。realm を共有する registered symbol で渡す)
-- ❌ `logging` / `observability` カーネルが config を直読すること(注入で受ける。直読は config カーネルのみ = [0030](0030-environment-variable-management.md)。vendor の DSN / endpoint も typed config 経由)
-- ❌ ブラウザから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)
+- ❌ **`features` / `components` / `model` から vendor 観測性 SDK(`@sentry/*` 等)を直接 import すること**(vendor 直参照を散らさない。vendor SDK の配線は `observability` / `adapters` / 起動境界に限る = §6 / [0010](0010-standards-and-non-lockin.md) / [0021](0021-frontend-responsibility.md))（強制: 散文 —— **一部寄せられる**。既知の vendor SDK（`@sentry/*` 等）は `features` / `components` / `model` への `no-restricted-imports` で落とせるが規則は無い。未知のパッケージが観測性 SDK かは名前からは決まらない）
+- ❌ vendor 具象へアプリコードを直結し **差し替え不能にすること**(依存先は `observability` カーネルの公開面。OTLP / OTel 骨格を迂回して vendor 固有機能へロックインしない)（強制: 散文 —— **寄せられない**。依存が vendor 固有機能へのロックインかは機能の意味で決まり、import の形からは決まらない）
+- ❌ custom / vendor-specific な semconv キーを typed config に入れること(公式 semconv のみ)（強制: 散文 —— **一部寄せられる**。`resourceFromAttributes` へ渡すキーが `@opentelemetry/semantic-conventions` の `ATTR_*` 以外なら落とす形は書けるが規則は無い。typed config の値が公式 semconv に当たるかは意味で決まる）
+- ❌ `logging` が `observability` を import すること(依存逆転。trace 抽出は注入で受ける)（強制: ESLint boundaries（`architecture.ts` の `DEPENDENCIES` が `logging` に import 先を持たせない））
+- ❌ 起動境界からの注入をモジュール変数へ置くこと(Next は起動境界と RSC を別のモジュールグラフとして組み、同じファイルが 1 プロセス内で 2 回インスタンス化される。realm を共有する registered symbol で渡す)（強制: 散文 —— **寄せられない**。モジュール変数が起動境界からの注入を持つかは代入元の経路で決まり、宣言の形からは決まらない）
+- ❌ `logging` / `observability` カーネルが config を直読すること(注入で受ける。直読は config カーネルのみ = [0030](0030-environment-variable-management.md)。vendor の DSN / endpoint も typed config 経由)（強制: ESLint boundaries（`DEPENDENCIES` が `logging` / `observability` に `config` を持たせない）と `no-restricted-syntax`（`process` の直読を `NODE_RUNTIME_ACCESS` の外で落とす））
+- ❌ ブラウザから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)（強制: `src/config/security-headers/security-headers.test.ts`（CSP の `connect-src` を `'self'` とバックエンドの origin に固定する）と E2E の `securitypolicyviolation` の見張り）
 - ❌ PII / token / password をログに出すこと / `console.log` をコミットに残すこと([0002](0002-formatter-linter.md))
 
 ## 補足

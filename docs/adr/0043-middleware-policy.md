@@ -48,13 +48,13 @@ Accepted
 
 ## 禁止事項
 
-- ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)
-- ❌ `proxy.ts` をセッション管理・確定的な認可の主機構にすること(optimistic チェックのみ。認可はデータ境界)
-- ❌ deprecated な `middleware.ts` を新規に作ること(Next.js 16 は `proxy.ts`)
-- ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること(CDN 配置され得る。Edge 互換を保つ)
+- ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `ENTRY_POINTS` の `proxy`）が取得の口（`adapters`）と feature の import を落とす。直の `fetch` と、書かれた処理が業務ロジックか重いかは散文 —— **寄せられない**。処理の意味と重さはコードの形から決まらない）
+- ❌ `proxy.ts` をセッション管理・確定的な認可の主機構にすること(optimistic チェックのみ。認可はデータ境界)（強制: 散文 —— **寄せられない**。判定が optimistic か確定かは、それを何の根拠に使うかの意味で決まる）
+- ❌ deprecated な `middleware.ts` を新規に作ること(Next.js 16 は `proxy.ts`)（強制: ESLint `boundaries/no-unknown-files`（`src/middleware.ts` はどの要素にも属さないため落ちる））
+- ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること(CDN 配置され得る。Edge 互換を保つ)（強制: ESLint `no-restricted-syntax` / `no-restricted-imports`（`NODE_RUNTIME_ACCESS` の外で `process` と `node:*` を落とす）。接頭辞の無い組み込みモジュールと、共有モジュール・グローバル状態への依存は散文 —— **寄せられない**。共有されるかは実行時の配置で決まる）
 - ❌ `proxy.ts` に `runtime` セグメント設定を書くこと(Next.js 16 の Proxy では使用不可・エラーになる)
-- ❌ 特定の認証実装・デプロイ先 runtime 前提を本リポジトリで強制すること(認証は用途依存。runtime はデプロイ先依存)
-- ❌ 停止画面のために proxy が本体の HTML を組み立てること、および根拠の無い `Retry-After` を付けること(§5)
+- ❌ 特定の認証実装・デプロイ先 runtime 前提を本リポジトリで強制すること(認証は用途依存。runtime はデプロイ先依存)（強制: 持たない —— 採らない決定。特定の認証実装と runtime 前提を `proxy.ts` に組み込んでいないこと自体が状態である）
+- ❌ 停止画面のために proxy が本体の HTML を組み立てること、および根拠の無い `Retry-After` を付けること(§5)（強制: `src/proxy.test.ts` が停止中の読み取りを rewrite で差し替えることを固定する。`Retry-After` を付けないことは散文 —— **寄せられる**（503 の応答に `Retry-After` が無いことを同じテストで確かめる形。検査は無い））
 
 ## 関連 ADR
 

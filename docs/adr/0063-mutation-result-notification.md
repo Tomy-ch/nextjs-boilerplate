@@ -40,10 +40,10 @@ Accepted
 
 ## 禁止事項
 
-- ❌ 通知手段(インライン / トースト / redirect)の使い分けを feature ごとにばらつかせること
+- ❌ 通知手段(インライン / トースト / redirect)の使い分けを feature ごとにばらつかせること（強制: 散文 —— **寄せられない**。フォーム文脈に留まる結果か離れる結果かは画面の流れの判断で、コードの形からは決まらない）
 - ❌ 通知の出し分けを文言の一致で行うこと(分類で行う。文言は人間向け)
-- ❌ トースト等の非同期通知を live region なしで出すこと(支援技術に伝わらない = [0100](0100-accessibility-target.md) 違反)
-- ❌ トースト UI を `components` 以外へ置く / shadcn 以外の UI コンポーネントライブラリを並行導入して代替すること([0021](0021-frontend-responsibility.md) 帰属 / [0052](0052-ui-component-policy.md) の shadcn 採用・並行同梱禁止)
+- ❌ トースト等の非同期通知を live region なしで出すこと(支援技術に伝わらない = [0100](0100-accessibility-target.md) 違反)（強制: `src/components/shell/toaster/toast-item.test.tsx` と `toaster.test.tsx` がトーストの `role="status"` / `role="alert"` を落とす。トースト以外の非同期の状態変化は散文 —— **寄せられない**。どの変化が非同期の通知に当たるかは画面の意味で決まる）
+- ❌ トースト UI を `components` 以外へ置く / shadcn 以外の UI コンポーネントライブラリを並行導入して代替すること([0021](0021-frontend-responsibility.md) 帰属 / [0052](0052-ui-component-policy.md) の shadcn 採用・並行同梱禁止)（強制: 散文 —— **一部寄せられる**。別の UI ライブラリの供給元を `components` の外から引く形は `no-restricted-imports`（アイコンの供給元と同じ形）で落とせるが規則は無い。トーストに当たる UI を `components` の外で自作したかは描く内容の意味で決まる）
 
 ## 補足
 

@@ -104,12 +104,12 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 
 - ❌ decision / exclusion を `rules.md` に、rule を ADR 本文に書くこと(タクソノミーの取り違え)
 - ❌ pre-v1 の ADR に改定履歴表を積むこと(living document。直接上書き)
-- ❌ v1 前に ADR を immutable 扱いして supersede-by-new-ADR を強制すること(pre-v1 は living)
+- ❌ v1 前に ADR を immutable 扱いして supersede-by-new-ADR を強制すること(pre-v1 は living)（強制: 散文 —— **寄せられない**。ADR を immutable として扱うかは運用の判断で、ファイルの形に現れない）
 - ❌ 改定の経緯・比較検討・反転の日付をドキュメント本文に書くこと(決定の現在形のみを書く。経緯は git 履歴が持つ)
-- ❌ `*.ja.md`(将来の日本語 mirror)を AI エージェントの canonical 読込元にすること(v1 以降は英語 canonical を読む)
+- ❌ `*.ja.md`(将来の日本語 mirror)を AI エージェントの canonical 読込元にすること(v1 以降は英語 canonical を読む)（強制: 散文 —— **一部寄せられる**。Claude Code の読込は `.claude/settings.json` の `permissions.deny` に `Read(**/*.ja.md)` を置けば落とせるが規則は無い。翻訳を同期するスキルの読込との両立と、他のエージェントの読込元は機械で縛れない）
 - ❌ AGENTS.md に rule を積むこと(rule は `rules.md` へ)
 - ❌ 同じ理由付けを ADR と手順の文書(README / SKILL)の両方に書くこと(上記 7。手順側は逆参照だけを持つ)
-- ❌ README のファイル列挙を実体と突合するゲートを置くこと(上記 5)
+- ❌ README のファイル列挙を実体と突合するゲートを置くこと(上記 5)（強制: 持たない —— 採らない決定。README のファイル列挙を突合するゲートは置かれておらず、足す変更はゲートの追加として diff に現れる）
 
 ## 補足
 

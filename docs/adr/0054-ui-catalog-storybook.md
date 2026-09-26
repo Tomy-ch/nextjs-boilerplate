@@ -58,15 +58,15 @@ Accepted
 
 ## 禁止事項
 
-- ❌ Storybook を「機能 seam」として扱い、アプリ本体のランタイム経路や機能フラグに結合させること(あくまで開発ツール = カタログである)
-- ❌ ドキュメント portal([0141](0141-portal-operations.md))と UI カタログ(Storybook)の役割を混同し、叙述ドキュメントを Storybook へ、視覚カタログを portal へ二重化すること
-- ❌ `.stories.*` を co-location 外(集約ディレクトリ等)に散在させること([0027](0027-directory-structure.md) co-location に従う)
-- ❌ story を持たない component を新規に作ること(Storybook が唯一の在庫リスト)
-- ❌ Storybook / addon 依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))
-- ❌ story の中で `fetch` を差し替えて応答を作ること(部品が通る経路を迂回する)
-- ❌ 契約から生成したモックの置き場へ、手書きのハンドラを足すこと
-- ❌ カタログのためだけの口を本番コードへ足すこと
-- ❌ Storybook のバージョン固定方針・CI ビルド組込を本 ADR で確定すること([0004](0004-library-management.md) / [0153](0153-ci-configuration.md) が所有。二重決定しない)
+- ❌ Storybook を「機能 seam」として扱い、アプリ本体のランタイム経路や機能フラグに結合させること(あくまで開発ツール = カタログである)（強制: 散文 —— **一部寄せられる**。story 以外の `src` から `storybook` / `@storybook/*` / `.storybook/` を import することは `no-restricted-imports` で落とせるが規則は無い。機能フラグへの結合は値の意味で決まり、形からは決まらない）
+- ❌ ドキュメント portal([0141](0141-portal-operations.md))と UI カタログ(Storybook)の役割を混同し、叙述ドキュメントを Storybook へ、視覚カタログを portal へ二重化すること（強制: 散文 —— **寄せられない**。叙述か視覚的仕様かは内容の役割で決まり、置き場の形からは決まらない）
+- ❌ `.stories.*` を co-location 外(集約ディレクトリ等)に散在させること([0027](0027-directory-structure.md) co-location に従う)（強制: scaffold（`pnpm gen`）が部品の隣に `.stories.tsx` を生成する。生成後の移動と手で作る story は散文 —— **寄せられる**（`.stories.*` の隣に同じ名前の実装が在るかで落とせる。規則は無い））
+- ❌ story を持たない component を新規に作ること(Storybook が唯一の在庫リスト)（強制: scaffold（`pnpm gen`）が部品と同時に story を生成する。手で作る部品は散文 —— **一部寄せられる**。`src/components` の部品ディレクトリに `.stories.tsx` が在るかは `pnpm check:ui` と同じ走査単位で落とせるが規則は無い。feature 配下はどのファイルが部品かが命名から決まらない）
+- ❌ Storybook / addon 依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))（強制: `dependency-audit` job（`make audit`）が lockfile に届く PR で `pnpm audit` を走らせ、修正版のある high / critical を落とす。exact-pin は散文 —— **寄せられる**（`package.json` の版指定に `^` / `~` などの範囲があるかで落とせる。規則は無い））
+- ❌ story の中で `fetch` を差し替えて応答を作ること(部品が通る経路を迂回する)（強制: 散文 —— **寄せられる**（`*.stories.tsx` での `fetch` への代入や spy を構文木で拾えば落とせる。規則は無い））
+- ❌ 契約から生成したモックの置き場へ、手書きのハンドラを足すこと（強制: `gen-drift` job（`make api-gen` で出力先を空にして作り直し、`git status --porcelain -- src/adapters/gen mocks` を見る）が生成物の置き場へ足した手書きのファイルを落とす）
+- ❌ カタログのためだけの口を本番コードへ足すこと（強制: 散文 —— **寄せられない**。口がカタログのためだけかは足した側の意図で決まり、形からは決まらない）
+- ❌ Storybook のバージョン固定方針・CI ビルド組込を本 ADR で確定すること([0004](0004-library-management.md) / [0153](0153-ci-configuration.md) が所有。二重決定しない)（強制: 散文 —— **寄せられない**。ADR の文が方針を確定しているかは文の意味で決まり、形からは決まらない）
 
 ## 補足
 

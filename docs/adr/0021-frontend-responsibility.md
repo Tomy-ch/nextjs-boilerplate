@@ -201,12 +201,12 @@ Server Action は `actions.ts`(controller 相当)に置く。**どこの `action
 - ❌ 依存マトリクスにない import 方向(外向き依存 / `model` からの外部 import 等)
 - ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)。**例外は 2 つ** —— 画面まるごとの story と、**相手の `facade/`**(上記「昇格できないもの」)
 - ❌ `server config` を `adapters/server`(+ 起動 / ビルド境界)以外の層から import すること(内側は値を引数で受け取る)。※ client config の NEXT_PUBLIC リテラルは client 側の層も import 可
-- ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成
-- ❌ barrel(`index.ts`)を作ること(公開面は `architecture.ts` と README frontmatter が宣言する)
+- ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成（強制: ESLint `boundaries/no-unknown-files` が `src/` 直下に作った禁止名の置き場（中の JS/TS）を落とす。カーネル・feature の内側は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
+- ❌ barrel(`index.ts`)を作ること(公開面は `architecture.ts` と README frontmatter が宣言する)（強制: 散文 —— **寄せられる**（再輸出だけを持つ `index.ts` を biome `noBarrelFile` で落とし、生成物は override で外す形。規則は無い））
 - ❌ Server Action / `actions.ts` に業務ロジックを書くこと(編成のみ)
 - ❌ カーネルに単一機能ヘルパ・ビジネスロジックを置くこと(受入基準違反)
-- ❌ 行数・props の数・ファイルの大きさを基準に部品を分けること(基準は変わる理由であり、量ではない)
-- ❌ 役割を名指しできない分割(`Wrapper` / `Inner` / `Base` 等)を作ること
+- ❌ 行数・props の数・ファイルの大きさを基準に部品を分けること(基準は変わる理由であり、量ではない)（強制: 散文 —— **寄せられない**。分けた基準が量か変わる理由かは分割の動機で決まり、コードの形には現れない）
+- ❌ 役割を名指しできない分割(`Wrapper` / `Inner` / `Base` 等)を作ること（強制: 散文 —— **一部寄せられる**。`Wrapper` / `Inner` / `Base` 等の綴りは識別子・ファイル名の照合で落とせるが規則は無い。それ以外の名前が役割を名指しているかは名前の意味で決まる）
 
 ## 補足
 

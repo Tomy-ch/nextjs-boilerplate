@@ -51,10 +51,10 @@ portal は canonical ドキュメントの生成ビューである。何を載�
 
 ## 禁止事項
 
-- ❌ manifest に内容(カードの本文)を持たせること(内容は canonical README が正。manifest は構造制御のみ)
-- ❌ 未登録 README を drift 扱いして自動登録すること(curation は人間判断)
+- ❌ manifest に内容(カードの本文)を持たせること(内容は canonical README が正。manifest は構造制御のみ)（強制: 散文 —— **一部寄せられる**。section エントリの余計なキーは `scripts/portal/portal-manifest.ts` の `copyEntrySchema` を strict にすれば落とせるが規則は無い。`meta` の表示名が本文へ膨らんでいるかは意味の判断で決まる）
+- ❌ 未登録 README を drift 扱いして自動登録すること(curation は人間判断)（強制: 持たない —— 採らない決定。未登録 README を自動登録する仕組みは置かれておらず、足す変更はスクリプトの追加として diff に現れる）
 - ❌ 生成物(`docs.json` / `dist/**`)を手編集すること
-- ❌ portal を全 README の網羅辞書にすること(キュレーション済み手引き)
+- ❌ portal を全 README の網羅辞書にすること(キュレーション済み手引き)（強制: 散文 —— **寄せられない**。何を載せるかは curation の判断で、manifest の形からは決まらない）
 
 ## 関連 ADR
 

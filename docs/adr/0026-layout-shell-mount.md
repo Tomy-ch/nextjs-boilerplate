@@ -75,11 +75,11 @@ Provider が持つ状態は、境界の向こうへ持ち越されない。Cache
 
 ## 禁止事項
 
-- ❌ `page.tsx` が横断 UI / Provider を直接 mount すること(mount 例外は `layout.tsx` 限定)
-- ❌ `layout.tsx` で hook 呼び + データ配線を行うこと(mount = 配置のみ。合成は feature)
-- ❌ 器(`AppShell`)がパンくずの口を持つこと、および階層が 1 段の画面へパンくずを置くこと
-- ❌ 見せる相手が違う面を 1 枚の shell に分岐で抱えること(shell を分ける)
-- ❌ 本来ローカルで足りる一時的な UI 状態(単発トーストの表示フラグ等)を、shell マウント層でグローバル状態として抱え込むこと。横断的に共有すべき UI 状態は [0060](0060-state-management.md) が採用した `stores`(Zustand)へ置く
+- ❌ `page.tsx` が横断 UI / Provider を直接 mount すること(mount 例外は `layout.tsx` 限定)（強制: 散文 —— **寄せられる**（`src/app/**/page.tsx` を `APP_ELEMENTS` の category として宣言し、`components` / `capabilities` / `stores` を `forbidden` に入れる形。規則は無い））
+- ❌ `layout.tsx` で hook 呼び + データ配線を行うこと(mount = 配置のみ。合成は feature)（強制: 散文 —— **一部寄せられる**。`layout.tsx` での hook 呼び出しは `use` で始まる呼び出しとして落とせるが規則は無い。データ配線は取得の使い方で決まり、import の集合では表せない）
+- ❌ 器(`AppShell`)がパンくずの口を持つこと、および階層が 1 段の画面へパンくずを置くこと（強制: 散文 —— **一部寄せられる**。`AppShell` の props がパンくずの口を持つかは型で落とせるが規則は無い。画面の階層が 1 段かは global nav との関係で決まり、コードの形からは決まらない）
+- ❌ 見せる相手が違う面を 1 枚の shell に分岐で抱えること(shell を分ける)（強制: 散文 —— **寄せられない**。見せる相手が違うかは画面の意味で決まり、shell 内の分岐の形からは決まらない）
+- ❌ 本来ローカルで足りる一時的な UI 状態(単発トーストの表示フラグ等)を、shell マウント層でグローバル状態として抱え込むこと。横断的に共有すべき UI 状態は [0060](0060-state-management.md) が採用した `stores`(Zustand)へ置く（強制: 散文 —— **寄せられない**。状態がローカルで足りるかは使われ方の判断で、コードの形からは決まらない）
 
 ## 関連 ADR
 

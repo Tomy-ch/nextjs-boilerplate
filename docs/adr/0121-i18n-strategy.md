@@ -12,7 +12,7 @@ i18n は**必要ロケール・翻訳運用が用途に強く依存**するた�
 
 ## 決定: 同梱しない(用途依存)
 
-- **i18n ライブラリ(next-intl 等)・ロケール解決・翻訳キー体系を 同梱しない**。用途依存のため、必要になった時点で判断する
+- **i18n ライブラリ(next-intl 等)・ロケール解決・翻訳キー体系を 同梱しない**。用途依存のため、必要になった時点で判断する（強制: 持たない —— 採らない決定。i18n ライブラリ・ロケール解決・翻訳キーは同梱されておらず、入れる変更は依存とファイルの追加として diff に現れる）
 - 導出根拠: [0011](0011-no-docker.md) の「用途未定の表示層」ロール —— 用途依存の判断を本体で先取りしない
 - **採用するときは、局所ライブラリ(next-intl)を下記 seam に置く形を採る。** その場合も本体は seam を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 / adapters・カーネル境界の裏で差替可能 / vendor 直参照を feature・component に散らさない)と [0004](0004-library-management.md)(exact pin / `pnpm audit`)の枠内で置く
 - **i18n を採用する場合の seam**(参考): App Router のロケール解決は **`proxy.ts`(ロケール検出・リダイレクト。[0043](0043-middleware-policy.md))** と **route セグメント(`[locale]`。[0040](0040-routing-rendering-strategy.md) / [0028](0028-naming-convention.md))** で行うのが Next.js 慣行。導入時も [0021](0021-frontend-responsibility.md)(カーネル配置・命名規律)・[0004](0004-library-management.md)(exact pin / audit)の枠内で行う

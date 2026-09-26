@@ -51,12 +51,12 @@ Accepted
 
 ## 禁止事項
 
-- ❌ styled-components / emotion 等の**ランタイム CSS-in-JS** を導入すること([0040](0040-routing-rendering-strategy.md) RSC 既定と衝突)
-- ❌ Tailwind ユーティリティで賄える規則を CSS Modules や `globals.css` へ逃がすこと(CSS Modules はあくまで賄えない複雑スタイルのエスケープハッチであり、既定は Tailwind)
-- ❌ CSS Modules をグローバルスコープ(`:global` の濫用)で用い、co-location の局所性を崩すこと
-- ❌ `cn()` を `components` 以外の汎用置き場(`utils/` / `lib/` 等)に置くこと([0021](0021-frontend-responsibility.md) 命名規律)
-- ❌ ユーティリティで賄える規則を `globals.css` に積み増すこと
-- ❌ 系統の属性を Portal の出口より内側にだけ置くこと(overlay が既定の系統で描かれる)
+- ❌ styled-components / emotion 等の**ランタイム CSS-in-JS** を導入すること([0040](0040-routing-rendering-strategy.md) RSC 既定と衝突)（強制: 持たない —— 採らない決定。ランタイム CSS-in-JS の依存を置いていないこと自体が状態で、入れれば `package.json` の依存追加として差分に現れる）
+- ❌ Tailwind ユーティリティで賄える規則を CSS Modules や `globals.css` へ逃がすこと(CSS Modules はあくまで賄えない複雑スタイルのエスケープハッチであり、既定は Tailwind)（強制: 散文 —— **寄せられない**。ユーティリティで賄えるかは表現したいスタイルの判断で、CSS の形からは決まらない）
+- ❌ CSS Modules をグローバルスコープ(`:global` の濫用)で用い、co-location の局所性を崩すこと（強制: 散文 —— **一部寄せられる**。`*.module.css` の `:global` の出現は静的に検出できるが規則は無い。濫用かどうかは局所化の判断で決まる）
+- ❌ `cn()` を `components` 以外の汎用置き場(`utils/` / `lib/` 等)に置くこと([0021](0021-frontend-responsibility.md) 命名規律)（強制: ESLint `boundaries/no-unknown-files` が `src/utils` / `src/lib` のような層外の置き場を落とす。層の内側（feature 配下の `lib/` 等）へ `cn()` を置くことは散文 —— **寄せられる**（`clsx` / `tailwind-merge` の import を `components` の外で `no-restricted-imports` で落とす形。規則は無い））
+- ❌ ユーティリティで賄える規則を `globals.css` に積み増すこと（強制: 散文 —— **寄せられない**。ユーティリティで賄えるかは表現したいスタイルの判断で、CSS の形からは決まらない）
+- ❌ 系統の属性を Portal の出口より内側にだけ置くこと(overlay が既定の系統で描かれる)（強制: `surface-portal-bridge.test.tsx` が橋渡しで Portal の出口へ系統を載せることを固定する。系統を置く器が橋渡しを mount しているかは散文 —— **寄せられる**（`data-surface` を置くファイルが `SurfacePortalBridge` を描くことを gate で見る形。規則は無い））
 
 ## 関連 ADR
 

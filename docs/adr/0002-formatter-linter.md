@@ -243,13 +243,13 @@ repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形�
 ## 禁止事項
 
 - Prettier の併用は禁止（フォーマッタは biome 単独）。pre-commit と CI は `biome check` で整形を判定するため、Prettier が書いたファイルは hook が落とし、どちらが正かを決める仕事が恒久に増える。見直すのは biome の整形が本リポジトリで実際に扱う言語のいずれかを覆わなくなったとき（対応言語が減る、または新たに扱う言語が biome の対象外であるとき）だけで、Prettier の plugin が豊富であることは理由にならない
-- ESLint をフォーマッタとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）
-- `.editorconfig` に biome の対象ファイル向けの独自値を書くことは禁止（整形の権威は `biome.json`。`.editorconfig` は biome が見ないファイルのみを担当する）
-- biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース。食い違いが成立する。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）
-- `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）
-- `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）
-- 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.ts` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける
-- biome の設定ファイルを増やさない（プロファイル分割の禁止。上記「設定を分けない」）
+- ESLint をフォーマッタとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）（強制: `pnpm lint:ci`（biome の整形判定）が biome と異なる整形を落とす。`eslint.format.enable` の値と `eslint.config.ts` への stylistic 系 plugin の導入は設定ファイルの解析で落とせるが規則は無い）
+- `.editorconfig` に biome の対象ファイル向けの独自値を書くことは禁止（整形の権威は `biome.json`。`.editorconfig` は biome が見ないファイルのみを担当する）（強制: 散文 —— **寄せられる**（`.editorconfig` の各節のうち biome の対象に当たる glob の値を `biome.json` の formatter と突き合わせる。規則は無い））
+- biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース。食い違いが成立する。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）（強制: 散文 —— **一部寄せられる**。biome に同等の規則を持つ ESLint 規則は規則名の対応表との突き合わせで落とせるが規則は無い。独自規則（`eslint-rules/`）を biome が表現できるかは検査の意味の判断で、名前からは決まらない）
+- `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）（強制: 散文 —— **寄せられる**（`eslint.config.ts` の構文木で `*.configs.*` の展開や `eslint-config-*` の import を検出する。規則は無い））
+- `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）（強制: 散文 —— **寄せられない**。無効化は `biome.json` の差分に現れるが、それが個別案件の都合か ADR で合意したものかは経緯の判断でコードの形に無い）
+- 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.ts` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける（強制: ESLint `reportUnusedDisableDirectives` が効いていない `eslint-disable` を落とす。「多用」かどうかは散文 —— **寄せられない**。件数の閾値がコードに無い）
+- biome の設定ファイルを増やさない（プロファイル分割の禁止。上記「設定を分けない」）（強制: 散文 —— **寄せられる**（追跡ファイルの `biome.json` / `biome.jsonc` が 1 枚であることと、scripts・workflow に `--config-path` が無いことを gate で見る。規則は無い））
 
 ## 補足
 

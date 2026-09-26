@@ -71,15 +71,15 @@ Accepted
 
 ## 禁止事項
 
-- ❌ `<head>` の手書き / `next/head` の使用(Metadata API を使う)
-- ❌ 同一メタデータを複数箇所で重複定義すること(root の `title.template` / `metadataBase` を土台に差分宣言)
-- ❌ 絶対 URL を要求の `Host` から組み立てること(出所は config の公開 origin 1 つ)
-- ❌ `sitemap` / `robots` を独自の静的配置・手書き生成で実装すること(Next.js のファイル規約 `app/sitemap.ts` / `app/robots.ts` を使う)
-- ❌ 手書き `<link rel="canonical">` を置くこと(`alternates.canonical` を使う)
-- ❌ `proxy.ts` でメタデータファイルを巻き込むこと(Proxy の対象外とする)
+- ❌ `<head>` の手書き / `next/head` の使用(Metadata API を使う)（強制: biome `noHeadElement` が `app/` の外の `<head>` を落とす。`src/app` 内の `<head>` と `next/head` の import は散文 —— **寄せられる**（`next/head` を `no-restricted-imports` で、`<head>` の JSX を `no-restricted-syntax` で落とす形。規則は無い））
+- ❌ 同一メタデータを複数箇所で重複定義すること(root の `title.template` / `metadataBase` を土台に差分宣言)（強制: 散文 —— **寄せられない**。差分か重複かは値の意味で決まり、宣言の形からは決まらない）
+- ❌ 絶対 URL を要求の `Host` から組み立てること(出所は config の公開 origin 1 つ)（強制: `src/app/layout.test.tsx` と `src/app/sitemap.test.ts` が `metadataBase` と sitemap を config の origin へ固定する。新しく絶対 URL を組む箇所が `Host` を読むことは散文 —— **寄せられる**（`src/app` の metadata 経路で `headers()` から `host` / `x-forwarded-host` を読む式を落とす形。規則は無い））
+- ❌ `sitemap` / `robots` を独自の静的配置・手書き生成で実装すること(Next.js のファイル規約 `app/sitemap.ts` / `app/robots.ts` を使う)（強制: `src/app/robots.test.ts` / `src/app/sitemap.test.ts` と `make e2e-metadata` がファイル規約の生成物を確かめる。`public/` に静的な `robots.txt` / `sitemap*.xml` を置くことは散文 —— **寄せられる**（`public/` 配下にその名前が無いことを gate で見る形。規則は無い））
+- ❌ 手書き `<link rel="canonical">` を置くこと(`alternates.canonical` を使う)（強制: 散文 —— **寄せられる**（JSX の `<link rel="canonical">` を ESLint `no-restricted-syntax` で落とす形。規則は無い））
+- ❌ `proxy.ts` でメタデータファイルを巻き込むこと(Proxy の対象外とする)（強制: 散文 —— **寄せられる**（`src/proxy.ts` の `config.matcher` を正規表現として組み、メタデータファイルの経路が一致しないことを単体テストで確かめる形。検査は無い））
 - ❌ 公開面の検査を存在確認だけで済ませること(§7)
-- ❌ 動的な一覧の取得が失敗したとき、`sitemap` 全体を 500 で返すこと(§2。静的な経路まで一緒に落とさない)
-- ❌ 用途依存の具体値(タイトル文言・収録 URL・JSON-LD type)をここで固定すること(枠のみ・値は置かない)
+- ❌ 動的な一覧の取得が失敗したとき、`sitemap` 全体を 500 で返すこと(§2。静的な経路まで一緒に落とさない)（強制: `src/app/sitemap.test.ts`（一覧の取得が失敗しても静的な経路を返すことを固定する））
+- ❌ 用途依存の具体値(タイトル文言・収録 URL・JSON-LD type)をここで固定すること(枠のみ・値は置かない)（強制: 持たない —— 採らない決定。タイトル文言・収録 URL・JSON-LD type をこの ADR に置いていないこと自体が状態である）
 
 ## 関連 ADR
 

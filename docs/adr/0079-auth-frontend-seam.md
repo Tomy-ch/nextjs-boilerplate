@@ -152,26 +152,26 @@ federation の連携先と IdP の終了口だけであり、そこには意匠�
 
 ## 禁止事項
 
-- ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md))
-- ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md))
-- ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))
+- ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられない**。seam の形が文書化パターンに乗っているかは設計の判断そのもので、コードの形からは決まらない）
+- ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられない**。正当化の材料が添えられているかは ADR 本文の論証の中身で、コードに現れない）
+- ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。何がプロバイダ・session 実装の詳細かは処理の意味で決まり、置き場の形からは決まらない）
 - ❌ Access Token をブラウザ(client JS / localStorage / 非 httpOnly cookie)へ露出させること(§6)
-- ❌ 空の IF / port 定義だけを置いて実装を持たないこと(§6)
-- ❌ 受け取った資格情報を保存・ログ出力・session payload へ載せること / 中継以外の判断へ使うこと(§8)
-- ❌ 資格情報の正しさの判定・試行回数の制限・ロックアウトをこのリポジトリで実装すること(バックエンドが持つ。§8 / [0070](0070-backend-role-separation.md))
-- ❌ IdP の API を直接叩くこと / IdP 固有 SDK・IdP の資格情報をこのリポジトリの依存に入れること(§6 / §8)
-- ❌ IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面や `features` へ持ち込むこと(バックエンドが正規化した列挙のみを受け取る。§6)
-- ❌ 借り物の画面の意匠を放棄すること / ブランディングの設定を design token と別に手で持つこと(§8)
-- ❌ `面` を画面の意味で使うこと(接続点の意味で予約済み。§8 の用語)
-- ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))
-- ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))
+- ❌ 空の IF / port 定義だけを置いて実装を持たないこと(§6)（強制: 散文 —— **寄せられない**。IF が動く既定実装を伴っているかは実装が役目を果たすかの判断で、宣言の形からは決まらない）
+- ❌ 受け取った資格情報を保存・ログ出力・session payload へ載せること / 中継以外の判断へ使うこと(§8)（強制: `src/logging` の名前の表（`REDACTED_FIELD_NAMES`。`pino.server.test.ts` が固定）が `password` / `token` の名前で持ち回るログ項目を伏せる。保存・session payload への積載・中継以外の判断は散文 —— **寄せられない**。値が資格情報かどうかは経路の意味で決まり、型からは決まらない）
+- ❌ 資格情報の正しさの判定・試行回数の制限・ロックアウトをこのリポジトリで実装すること(バックエンドが持つ。§8 / [0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。処理が資格情報の判定・試行制限にあたるかは業務上の意味で決まり、コードの形からは決まらない）
+- ❌ IdP の API を直接叩くこと / IdP 固有 SDK・IdP の資格情報をこのリポジトリの依存に入れること(§6 / §8)（強制: 持たない —— 採らない決定。IdP 固有 SDK も IdP の資格情報も依存に無いこと自体が状態で、入れる変更は `package.json` と設定の差分に現れる）
+- ❌ IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面や `features` へ持ち込むこと(バックエンドが正規化した列挙のみを受け取る。§6)（強制: 散文 —— **寄せられない**。文字列が IdP 固有の語彙かどうかは綴りからは決まらない）
+- ❌ 借り物の画面の意匠を放棄すること / ブランディングの設定を design token と別に手で持つこと(§8)（強制: 散文 —— **寄せられない**。供給先は IdP の管理画面でありリポジトリの外に在るため、token と手書き設定の二重管理はコードに現れない）
+- ❌ `面` を画面の意味で使うこと(接続点の意味で予約済み。§8 の用語)（強制: 散文 —— **寄せられない**。`面` がどちらの意味で使われたかは文脈で決まり、綴りからは決まらない）
+- ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))（強制: ESLint boundaries（`architecture.ts` の `ENTRY_POINTS` の `proxy` は `model` / `config` / `errors` と `adapters-auth` だけへ届く）が `proxy.ts` から取得を持つ `adapters` への import を落とす。生の `fetch` と「唯一の防御線にしない」は散文 —— **寄せられない**。防御の層の数は配置全体の設計判断で、1 ファイルの形からは決まらない）
+- ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))（強制: ESLint boundaries（`architecture.ts` の `DEPENDENCIES` と `adapters-auth`）が `model` などの内側から session 区画への import を落とし、`scripts/server-only.gate.test.ts` と `server-only` の build-time failure が client への混入を落とす。`verifySession()` を `adapters/server` の外に置くことは散文 —— **一部寄せられる**。名前での置き場は静的に見られるが規則は無い。同じ役目を別名で持つことは意味で決まる）
 - ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
 - ❌ 認可の**判定規則**(どの役割が何を満たすか)を app 層 / `features` / `proxy.ts` へ直書きすること(述語は `model`。app が持つのは編成のみ。§4)
 - ❌ `features` から `adapters/server/auth`(DAL / session)を import すること / session の型を `features` へ渡すこと(依存マトリクスの帰結と型漏洩禁止。[0021](0021-frontend-responsibility.md) / [0020](0020-adopted-architecture.md) / `architecture.ts` の `adapters-auth`)
 - ❌ `returnUrl` を検証せず外部 URL へリダイレクトすること(open redirect。同一 origin 相対パスに限定)
 - ❌ 未認証時の識別子をブラウザから読める形(localStorage / 非 httpOnly cookie)で持つこと / session cookie の payload へ混ぜること(§7)
-- ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)
-- ❌ 引き継ぎの規則(合算・上限・優先)をフロントに実装すること(業務ロジックはバックエンド。§7 / [0070](0070-backend-role-separation.md))
+- ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)（強制: 散文 —— **一部寄せられる**。起点が callback 1 箇所であることは、引き継ぎを起こす関数の import 元を callback の `route.ts` に限る `no-restricted-imports` で落とせるが規則は無い。失敗でログインを落とさないことは実行時の分岐で、書かれたテストの範囲でしか見えない）
+- ❌ 引き継ぎの規則(合算・上限・優先)をフロントに実装すること(業務ロジックはバックエンド。§7 / [0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。処理が合算・上限・優先の業務規則にあたるかは意味で決まり、コードの形からは決まらない）
 
 ## 補足
 

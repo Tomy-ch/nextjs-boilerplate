@@ -44,11 +44,11 @@ Accepted
 
 ## 禁止事項
 
-- ❌ Web フォントを外部 CDN 直参照 / 手動 `@font-face` で読むこと(`next/font` を使う)
-- ❌ ラスター画像に生の `<img>` を使うこと(`next/image`。装飾 SVG 等は例外)
-- ❌ `public/` にビルドを要する / 秘匿すべきファイルを置くこと(静的公開アセットのみ)
-- ❌ バックエンド由来画像のために自前の配信経路(`/cdn` 等の Route Handler プロキシ)を作ること(§2.1。public storage + `next/image` で賄う)
-- ❌ `images.remotePatterns` にワイルドカードのオリジンを登録すること(配信元は明示的に列挙する)
+- ❌ Web フォントを外部 CDN 直参照 / 手動 `@font-face` で読むこと(`next/font` を使う)（強制: CSP の `font-src 'self'` と E2E の `securitypolicyviolation` の見張りが外部 CDN からの読み込みを落とす。自前配信の手動 `@font-face` は散文 —— **寄せられる**（`src/**/*.css` の `@font-face` を gate で落とす形。規則は無い））
+- ❌ ラスター画像に生の `<img>` を使うこと(`next/image`。装飾 SVG 等は例外)（強制: biome `noImgElement`（next ドメイン。`--error-on-warnings` で生の `<img>` を落とす））
+- ❌ `public/` にビルドを要する / 秘匿すべきファイルを置くこと(静的公開アセットのみ)（強制: gitleaks（`gitleaks` workflow と `make secret-scan`）が `public/` を含む秘密値の形を落とす。ビルドを要するファイルは散文 —— **寄せられる**（`public/` 配下の拡張子を許可リストで gate する形。規則は無い））
+- ❌ バックエンド由来画像のために自前の配信経路(`/cdn` 等の Route Handler プロキシ)を作ること(§2.1。public storage + `next/image` で賄う)（強制: 持たない —— 採らない決定。画像の配信用 Route Handler を置いていないこと自体が状態で、足せば `route.ts` の追加として差分に現れる）
+- ❌ `images.remotePatterns` にワイルドカードのオリジンを登録すること(配信元は明示的に列挙する)（強制: 散文 —— **寄せられる**（`MEDIA_ORIGIN` の検証器で host に `*` を含む値を拒む形。検査は無い））
 
 ## 関連 ADR
 

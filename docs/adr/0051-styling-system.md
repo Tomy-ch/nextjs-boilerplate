@@ -151,20 +151,20 @@ z-index は Tailwind の段階値だけを使い、任意値で段を増やさ�
 
 ## 禁止事項
 
-- ❌ semantic 層を飛ばして primitive(生スケール)や色リテラルをコンポーネントに直接撒くこと(テーマ切替が token 差し替えに閉じなくなる。§1)
-- ❌ 系統ごとに別の部品を持つこと、および部品に自分の置かれた系統を判定させること(系統は semantic 別名の再束縛だけで完結する。§1)
-- ❌ 系統と配色を掛け合わせた組を平置きして 1 本の軸として扱うこと(直交する 2 軸を畳むと、片方を足すたびに組が掛け算で増える。§1)
-- ❌ token 命名層(primitive / semantic)を無視した ad-hoc な CSS 変数を各所に増やすこと。新規 token は `@theme` の primitive か semantic 別名として定義する
-- ❌ ブレークポイントの値(`rem` / `px`)を本 ADR 本文へ書くこと。段は名前(`sm` 〜 `2xl`)でだけ指し、値は design token を正とする(併記した時点で token を差し替えても ADR だけが取り残される。§2)
-- ❌ レスポンシブの**日常 rule**(脇に常設する領域を出す帯・常時到達させる操作の置き場・帯と器の使い分けを実装でどう守るか 等)を本 ADR や ADR 本文へ書き込むこと(rule は `rules.md` へ。[0140](0140-documentation-operations.md))
-- ❌ モーションを `prefers-reduced-motion` 分岐なしで実装すること(§3 / [0100](0100-accessibility-target.md))
-- ❌ CSS transition / animation / View Transitions で足りる単純モーションに Framer Motion を持ち出すこと(既定は標準手段。Framer は exit / layout / gesture / orchestration / spring の複雑ケースに限る。§3)
-- ❌ 既定手段の上に animation plugin を足すこと、および進捗部品で indeterminate を表現すること(待機は骨格表示が担う。§3)
-- ❌ Framer Motion(`motion.*` / `AnimatePresence` 等)の vendor 直参照を feature スライスに散らすこと(vendor 参照は `components` 層に閉じ、差し替え可能に保つ。§3 / [0010](0010-standards-and-non-lockin.md))
-- ❌ Framer Motion 以外の別モーションライブラリ(GSAP / React Spring 等)を勝手に併存させること(採用は Framer Motion に一本化。追加が必要なら ADR 改定でユーザ確定)
-- ❌ 表示層で PDF をサーバ生成する実装を持ち込むこと(backend 境界 seam を越える。§4)
-- ❌ 器の導線(header / footer / skip link)を紙に出すこと、および画面が落とす中身を器に判定させること(§4)
-- ❌ 同じ帯の中の前後関係を新しい段階値で解くこと、および部品の内側の重なりに使う値を部品の外へ効かせること(§重なり順の帯)
+- ❌ semantic 層を飛ばして primitive(生スケール)や色リテラルをコンポーネントに直接撒くこと(テーマ切替が token 差し替えに閉じなくなる。§1)（強制: 散文 —— **寄せられる**（class 文字列の primitive 色 utility・`--color-*` の直参照・色リテラルを、`project-rules/no-raw-font-weight` と同じ文字列リテラルの走査で拾えば落とせる。規則は無い））
+- ❌ 系統ごとに別の部品を持つこと、および部品に自分の置かれた系統を判定させること(系統は semantic 別名の再束縛だけで完結する。§1)（強制: 散文 —— **一部寄せられる**。部品に系統を判定させることは `src/components` での `data-surface` の参照を拾えば落とせるが規則は無い。系統ごとに別の部品を持つかは部品どうしの対応の判断で、形からは決まらない）
+- ❌ 系統と配色を掛け合わせた組を平置きして 1 本の軸として扱うこと(直交する 2 軸を畳むと、片方を足すたびに組が掛け算で増える。§1)（強制: 散文 —— **寄せられない**。組を 1 本の軸として扱っているかは名前の意味で決まり、`tokens/themes/` の構造からは決まらない（系統の名前に配色を含めても生成は通る））
+- ❌ token 命名層(primitive / semantic)を無視した ad-hoc な CSS 変数を各所に増やすこと。新規 token は `@theme` の primitive か semantic 別名として定義する（強制: `tokens-drift` job（`pnpm check:tokens`）が生成物 `tokens.css` への手書きの変数を落とす。生成物の外で増やす変数は散文 —— **寄せられる**（`tokens.css` の外の `--*` 宣言のうち semantic を参照しないものを拾えば落とせる。規則は無い））
+- ❌ ブレークポイントの値(`rem` / `px`)を本 ADR 本文へ書くこと。段は名前(`sm` 〜 `2xl`)でだけ指し、値は design token を正とする(併記した時点で token を差し替えても ADR だけが取り残される。§2)（強制: 散文 —— **寄せられる**（本 ADR の本文で数値を伴う `rem` / `px` を拾えば落とせる。規則は無い））
+- ❌ レスポンシブの**日常 rule**(脇に常設する領域を出す帯・常時到達させる操作の置き場・帯と器の使い分けを実装でどう守るか 等)を本 ADR や ADR 本文へ書き込むこと(rule は `rules.md` へ。[0140](0140-documentation-operations.md))（強制: 散文 —— **寄せられない**。rule か decision かは記述の役割で決まり、文の形からは決まらない）
+- ❌ モーションを `prefers-reduced-motion` 分岐なしで実装すること(§3 / [0100](0100-accessibility-target.md))（強制: 散文 —— **一部寄せられる**。`animate-*` / `transition*` を含む class 文字列に `motion-safe:` / `motion-reduce:` が並ぶかは文字列リテラルの走査で落とせるが規則は無い。`@media` や `useReducedMotion` で分岐したときに低減が足りているかは動きの意味で決まる）
+- ❌ CSS transition / animation / View Transitions で足りる単純モーションに Framer Motion を持ち出すこと(既定は標準手段。Framer は exit / layout / gesture / orchestration / spring の複雑ケースに限る。§3)（強制: 散文 —— **寄せられない**。標準手段で足りるかは動きの要件で決まり、コードの形からは決まらない）
+- ❌ 既定手段の上に animation plugin を足すこと、および進捗部品で indeterminate を表現すること(待機は骨格表示が担う。§3)（強制: 型（`ProgressNative` / `ProgressClient` の `value` が `number` 必須）が進捗部品の indeterminate を落とす。animation plugin の側は持たない —— 採らない決定。足せば依存と CSS の `@import` が diff に現れる）
+- ❌ Framer Motion(`motion.*` / `AnimatePresence` 等)の vendor 直参照を feature スライスに散らすこと(vendor 参照は `components` 層に閉じ、差し替え可能に保つ。§3 / [0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられる**（`iconVendorImports` と同じ形で、`motion` / `framer-motion` の import を `src/components` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
+- ❌ Framer Motion 以外の別モーションライブラリ(GSAP / React Spring 等)を勝手に併存させること(採用は Framer Motion に一本化。追加が必要なら ADR 改定でユーザ確定)（強制: 持たない —— 採らない決定。GSAP / React Spring 等は依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
+- ❌ 表示層で PDF をサーバ生成する実装を持ち込むこと(backend 境界 seam を越える。§4)（強制: 持たない —— 採らない決定。表示層は PDF をサーバ生成する依存も口も持たず、足せば依存と Route Handler の追加として diff に現れる）
+- ❌ 器の導線(header / footer / skip link)を紙に出すこと、および画面が落とす中身を器に判定させること(§4)（強制: 散文 —— **一部寄せられる**。器の header / footer / skip link が `print-hidden` を持つことは shell の component テストで固定できるがテストは無い。画面が落とす中身を器に判定させないかは責務の判断で、形からは決まらない）
+- ❌ 同じ帯の中の前後関係を新しい段階値で解くこと、および部品の内側の重なりに使う値を部品の外へ効かせること(§重なり順の帯)（強制: ESLint `project-rules/no-arbitrary-z-index` が任意値（`z-[…]`）の段を落とす。既存の段階値を帯の外の意味で使うことと、部品の内側の値を外へ効かせることは散文 —— **寄せられない**。どの帯に属するかは置かれる面の意味で決まり、class の形からは決まらない）
 - ❌ viewport の下端に固定する面から safe area の余白を落とすこと、または viewport の宣言の有無で部品を変えること(§重なり順の帯)
 
 ## 補足

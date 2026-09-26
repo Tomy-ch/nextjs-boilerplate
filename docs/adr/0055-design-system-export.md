@@ -54,11 +54,11 @@ bundle に**描画した HTML も screenshot も入らない**。story は JavaS
 
 ## 禁止事項
 
-- ❌ 書き出しの script(`scripts/design-bundle`)や `package.json` に、特定のデザインツールの名前・API・手順を書くこと(vendor の形をしたものは skill へ)
-- ❌ デザインツールの出力(token / 部品のソース / screenshot)を、書き出しの経路から repo へ書き戻すこと。実装するなら人が読んで決める通常の実装作業として行う
-- ❌ `tmp/design-bundle/` を commit すること、または bundle の写しを `src/` や `docs/` に置くこと
-- ❌ 目録のために部品の説明を書き足すこと(用途と責務境界は各部品の README が正。story 名は Storybook の index が正)
-- ❌ bundle に無いもの(描画結果)を、送り先が受け取ったかのように報告すること
+- ❌ 書き出しの script(`scripts/design-bundle`)や `package.json` に、特定のデザインツールの名前・API・手順を書くこと(vendor の形をしたものは skill へ)（強制: 散文 —— **一部寄せられる**。既知のデザインツールの名前は `scripts/design-bundle` と `package.json` の文字列走査で落とせるが規則は無い。手順や API の癖は名前を持たず、形からは決まらない）
+- ❌ デザインツールの出力(token / 部品のソース / screenshot)を、書き出しの経路から repo へ書き戻すこと。実装するなら人が読んで決める通常の実装作業として行う（強制: 持たない —— 採らない決定。書き出しの script は repo へ書き戻す経路を持たず、逆向きの同期を足せば script と依存の追加として diff に現れる）
+- ❌ `tmp/design-bundle/` を commit すること、または bundle の写しを `src/` や `docs/` に置くこと（強制: `.gitignore` の `/tmp` が `tmp/design-bundle/` を追跡の外に置く（`git add -f` は素通りする）。写しを `src/` や `docs/` に置くことは散文 —— **寄せられない**。写しかどうかは中身の出所で決まり、`tokens.css` のように生成物と同じ名前も持つため形からは決まらない）
+- ❌ 目録のために部品の説明を書き足すこと(用途と責務境界は各部品の README が正。story 名は Storybook の index が正)（強制: 散文 —— **寄せられない**。書き足した文が README の写しか新しい説明かは文の意味で決まる）
+- ❌ bundle に無いもの(描画結果)を、送り先が受け取ったかのように報告すること（強制: 散文 —— **寄せられない**。報告はエージェントの出力であり、コードに現れない）
 
 ## 関連 ADR
 

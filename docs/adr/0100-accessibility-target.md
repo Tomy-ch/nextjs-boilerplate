@@ -32,8 +32,8 @@ Accepted
 
 ## 禁止事項
 
-- ❌ biome の a11y ルールを理由なく無効化すること([0002](0002-formatter-linter.md) の biome-ignore 濫用禁止)
-- ❌ a11y を「後から対応」として feature 実装から切り離すこと(実装 PR 時に担保)
+- ❌ biome の a11y ルールを理由なく無効化すること([0002](0002-formatter-linter.md) の biome-ignore 濫用禁止)（強制: 散文 —— **一部寄せられる**。`biome.json` で a11y 規則を `off` にすることと `biome-ignore lint/a11y/` の綴りは静的に拾えるが規則は無い。無効化の理由が妥当かは人の判断である）
+- ❌ a11y を「後から対応」として feature 実装から切り離すこと(実装 PR 時に担保)（強制: `a11y` job（required。存在は `make actions-required-check-lint` が見る）が全 story を実行時検査し、scaffold が生成時に `axe()` を置く。キーボード操作・スクリーンリーダーの確認は散文 —— **寄せられない**。体験の確認であってコードに現れない）
 
 ## 関連 ADR
 

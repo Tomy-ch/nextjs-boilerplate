@@ -84,14 +84,14 @@ Accepted (一部 exclusion)
 
 ## 禁止事項
 
-- ❌ ブラウザから直接 SaaS へ RUM / エラーを送ること(BFF 中継 seam。[0081](0081-observability-logging.md))。**唯一の例外が同意ゲートの裏のタグマネージャ**で、これは中継へ通すことが原理的にできないため、[0131](0131-cookie-consent.md) が帰結ごと引き受ける。**例外はその経路に閉じる** —— §1 の RUM と §2 の client エラーは中継を通したままにする
-- ❌ 観測性 SaaS SDK を同梱すること([0081](0081-observability-logging.md) の OTLP 中立に反する)。**プロダクト分析のタグマネージャは [0131](0131-cookie-consent.md) が同梱を決めており、この禁止の対象外**
-- ❌ `dataLayer` を同意ゲートの島(§3)以外から触ること。発火 IF を立てた後は、その IF を通さず直書きすることも同じく禁じる([0031](0031-policy-state-supply.md))
+- ❌ ブラウザから直接 SaaS へ RUM / エラーを送ること(BFF 中継 seam。[0081](0081-observability-logging.md))。**唯一の例外が同意ゲートの裏のタグマネージャ**で、これは中継へ通すことが原理的にできないため、[0131](0131-cookie-consent.md) が帰結ごと引き受ける。**例外はその経路に閉じる** —— §1 の RUM と §2 の client エラーは中継を通したままにする（強制: `src/config/security-headers/security-headers.test.ts`（`connect-src` を `'self'` とバックエンドの origin に固定し、計測の送り先は容器 ID を宣言した配備にだけ開く）と E2E の `securitypolicyviolation` の見張り）
+- ❌ 観測性 SaaS SDK を同梱すること([0081](0081-observability-logging.md) の OTLP 中立に反する)。**プロダクト分析のタグマネージャは [0131](0131-cookie-consent.md) が同梱を決めており、この禁止の対象外**（強制: 持たない —— 採らない決定。観測性 SaaS の SDK が依存に無いこと自体が状態で、入れる変更は `package.json` の差分に現れる）
+- ❌ `dataLayer` を同意ゲートの島(§3)以外から触ること。発火 IF を立てた後は、その IF を通さず直書きすることも同じく禁じる([0031](0031-policy-state-supply.md))（強制: 散文 —— **寄せられる**（`dataLayer` の参照と `@next/third-parties` の送信関数の import を `src/app/analytics.tsx` の外で落とす `no-restricted-syntax` / `no-restricted-imports`。規則は無い））
 - ❌ プロダクト分析を consent gate 無しで発火させること(0031 gate 述語必須。[0131](0131-cookie-consent.md))
-- ❌ 訪問を繋ぐ識別子を未同意のうちに配ること / 同意が外れた後も残すこと(§4)
-- ❌ [0081](0081-observability-logging.md) の名前の表に当たる属性を、伏せずに載せること
-- ❌ 例外の文言や stack が伏せられている前提で、そこへ主体固有の値を載せること(中身は無害化しない)
-- ❌ ブラウザ発の送信面を `adapters/client` 以外(feature / component の生 fetch 等)に置くこと([0071](0071-bff-api-integration.md) / [0024](0024-adapters-server-client-split.md))
+- ❌ 訪問を繋ぐ識別子を未同意のうちに配ること / 同意が外れた後も残すこと(§4)（強制: `src/proxy.test.ts`（同意が無い間・拒否の間は計測 id を発行せず、同意が外れたら撤去する）と `e2e/journeys/consent.spec.ts`）
+- ❌ [0081](0081-observability-logging.md) の名前の表に当たる属性を、伏せずに載せること（強制: 受け側の redaction（`src/adapters/server/telemetry/browser-traces.test.ts` と `src/logging/pino.server.test.ts`）が名前の表に当たる属性を伏せる。表を通らない新しい受け口は散文 —— **寄せられない**。経路が表を通るかは配線で決まり、属性の形からは決まらない）
+- ❌ 例外の文言や stack が伏せられている前提で、そこへ主体固有の値を載せること(中身は無害化しない)（強制: 散文 —— **寄せられない**。文言に載る値が主体固有かは値の出所で決まり、式の形からは決まらない）
+- ❌ ブラウザ発の送信面を `adapters/client` 以外(feature / component の生 fetch 等)に置くこと([0071](0071-bff-api-integration.md) / [0024](0024-adapters-server-client-split.md))（強制: 散文 —— **寄せられる**（`features` / `components` で `fetch` と `navigator.sendBeacon` の呼び出しを落とす `no-restricted-syntax`。規則は無い））
 
 ## 補足
 
