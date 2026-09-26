@@ -53,7 +53,7 @@ script-src 'self' 'unsafe-inline';            ← 開発サーバーだけ 'unsa
 style-src 'self' 'unsafe-inline';
 img-src 'self' blob: <MEDIA_ORIGIN の origin>;
 font-src 'self';
-connect-src 'self';
+connect-src 'self' <APP_API_BASE_URL の origin>;
 object-src 'none';
 base-uri 'self';
 form-action 'self' <AUTH_ISSUER の origin>;
@@ -65,7 +65,7 @@ upgrade-insecure-requests                      ← https で配信している�
 - **`form-action` に IdP の origin を含める。** ログインは form の送信で始まり、その応答が IdP へリダイレクトする。Chromium は form の送信先だけでなく、その先のリダイレクト先にも `form-action` を適用するため、`'self'` だけだと認可要求が止まる
 - **`'unsafe-eval'` は開発サーバーだけ。** React が server 側のエラースタックをブラウザで組み直すのに eval を使う。本番の React も Next.js も eval を使わない
 - **`upgrade-insecure-requests` は https で配信しているときだけ。** http の開発環境で出すと `http://localhost` の副資源まで https へ書き換えられる
-- **`connect-src 'self'`**: ブラウザからの送信先は BFF(`/api/*`)に限る。観測性のシグナルも中継 seam を通る([0081](0081-observability-logging.md))。OTLP を直接叩かせない
+- **`connect-src` はバックエンドの origin だけを足す。** ブラウザが往復で叩く先は BFF(`/api/*`)に限り、観測性のシグナルも中継 seam を通る([0081](0081-observability-logging.md))。OTLP を直接叩かせない。例外は購読(長寿命接続)で、長寿命接続を保持しない BFF はこれを中継できず、ブラウザが backend へ直接開く([0074](0074-runtime-communication-seam.md))。**購読の口は API と同じ origin に置かれる前提**なので、足す origin は検証済みの `APP_API_BASE_URL` から導く 1 つで済み、入力を増やさない。購読の口が API と別の origin に置かれるなら、ここにその origin の入力を足す
 - **外部オリジン**(タグマネージャ・分析 SDK 等)は、[0131](0131-cookie-consent.md) の同意ゲートと連動して `script-src` / `connect-src` / `img-src` に載る。**同梱するタグマネージャのぶんは本体が宣言し、それ以外を足すのは拡張点**とする。サードパーティスクリプト規約は `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」
 - **`Cross-Origin-Embedder-Policy` は降ろす。** `require-corp` は副資源に `Cross-Origin-Resource-Policy` か CORS を要求するが、タグマネージャが注入するタグの配信元はそれを返さない。**cross-origin isolation を失うことを受け入れた結果**であり、`SharedArrayBuffer` 等の isolation を前提とする機能はこの構成では使えない。isolation が要るなら容器 ID を空にして本ヘッダを戻す
 - **`Content-Security-Policy-Report-Only` は経由しない。** 違反は CI が実ブラウザで検知する(§6)ので、可視化のためだけの段階導入は要らない。外部オリジンを足して衝突を見たいときの手段として残す
@@ -95,7 +95,7 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 
 - **要求に依らないヘッダを `proxy.ts` で足さない。** 前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。
 - **資格情報を載せた要求への応答は `Cache-Control: private, no-store`。** [0112](0112-data-classification-cache-boundary.md) 段 5(配信)の実体で、主体に紐づく応答が CDN / プロキシの共有キャッシュへ載り別の主体へ配られる事故を、応答ヘッダで止める。**判定は要求の側で行う** —— session cookie を載せた要求は、その応答が何であれ主体に紐づく。画面や Route Handler ごとに書かせず、宣言を持たない handler にも届く。代償はログイン済み利用者への静的画面が CDN で共有されないことで、これは 0112 の優先順位(機密性 > キャッシュ効率)どおりである。framework が動的な応答に付ける `no-store` はアプリ内側の判断で、静的に固まった応答には付かない —— 主体に紐づく画面が誤って固まった回に効くのは、この段だけである。**届く範囲は `proxy.ts` の `matcher` が選ぶ経路に限る** —— 除外している `_next/static` / `_next/image` / `favicon.ico` は cookie を載せた要求でも framework 自身の `Cache-Control`（画像最適化は `public, max-age=...`）のまま配られる。同梱の画像最適化経路には公開画像しか載せていないため成立している前提であり、主体固有の画像を `next/image` に載せるなら、この除外を見直すか配信元で `private` を返す。
-- **別 origin へ開く口は 1 つの宣言で持つ。** `HTTP_ALLOWED_ORIGINS`(`config/http`)に挙げた origin だけに、`src/proxy.ts` が BFF(`/api/*`)の応答へ `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` / `Vary: Origin` を返し、preflight に 204 で答える。credentials を許すのは BFF の口が session cookie で主体を判定するためで、`*` は使えない。**既定は空 = 同一 origin だけ**であり、ブラウザから叩く先は BFF に限る(§3 `connect-src 'self'`)ので、この構成では宣言する相手が居ない。別 origin の SPA / 管理画面が BFF を叩くときに、その origin を宣言する。
+- **別 origin へ開く口は 1 つの宣言で持つ。** `HTTP_ALLOWED_ORIGINS`(`config/http`)に挙げた origin だけに、`src/proxy.ts` が BFF(`/api/*`)の応答へ `Access-Control-Allow-Origin` / `Access-Control-Allow-Credentials` / `Vary: Origin` を返し、preflight に 204 で答える。credentials を許すのは BFF の口が session cookie で主体を判定するためで、`*` は使えない。**既定は空 = 同一 origin だけ**であり、ブラウザが往復で叩く先は BFF に限る(§3 `connect-src`)ので、この構成では宣言する相手が居ない。別 origin の SPA / 管理画面が BFF を叩くときに、その origin を宣言する。
 - **同じ宣言が書き込みの送信元を決める。** `Origin` を持つ要求のうち、自分自身(host が `X-Forwarded-Host` / `Host` と一致)でも宣言した origin でもないものからの状態を変えるメソッド(`GET` / `HEAD` / `OPTIONS` 以外)は、handler へ届く前に 403 で止める。**自分自身の判定は host だけで行い、scheme を比べない** —— TLS を終端するリバースプロキシの後ろでは、自分が見る要求は http でも `Origin` は https で届く。host は `X-Forwarded-Host` を先に読み、無ければ `Host` を使う(Next.js が Server Action の送信元を確かめるのと同じ順)。一方、宣言した別 origin は **origin の完全一致**で、scheme・host・port のどれか 1 つでも違えば別物として扱う。読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。「読ませる相手」と「書かせる相手」を別々の宣言にすると、片方だけ開けた状態を作れる。Server Action は Next.js 自身が `Origin` と `Host` を突合しており、リバースプロキシで Host が書き換わる配備だけが `serverActions.allowedOrigins` を要する。判定は `src/model/cross-origin.ts` が持つ。
 - **PaaS/CDN での付与は「境界 seam」**として認める(HSTS・一部の静的ヘッダは配送層で終端する構成が現実的)。`next.config.ts` を SSOT とするが、**PaaS 側と重複・矛盾しない**ことをデプロイ時に確認する(同一ヘッダの二重付与を避ける)。
 
@@ -134,4 +134,5 @@ CSP は「別ドメイン(infra / backend)の責務」ではなく **表示層�
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components を採用している。nonce と非互換のため seam A を確定する根拠
 - [0076-payment-ui-seam.md](0076-payment-ui-seam.md) — 決済 UI はフロントに置かない。`Permissions-Policy` の `payment` と `Cross-Origin-Embedder-Policy` の前提
 - [0131-cookie-consent.md](0131-cookie-consent.md) — 同意ゲート(外部スクリプトの CSP allowlist と連動)
+- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) — 購読はブラウザが backend へ直接開く。`connect-src` にバックエンドの origin を足す理由
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) — CSRF/origin 検証(`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」)の主 Rationale(本 ADR には同居させない)
