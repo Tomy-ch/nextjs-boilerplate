@@ -72,6 +72,11 @@ overrides:
   # ヘッダ残留。sdk の宣言は ^4.11.4 で 4.12.34 はその内側。
   # @modelcontextprotocol/sdk が 4.12.34 以上を要求したら撤去する。
   "hono@<4.12.34": ">=4.12.34 <5"
+  # vite-plugin-storybook-nextjs（@storybook/nextjs-vite が引く）の推移的依存。
+  # GHSA-5p2g-fcmc-qvqq / GHSA-w3rx-r6r6-pgpr (high): JXL / HEIF / ICNS の解析が無限ループに入る。
+  # vite-plugin-storybook-nextjs の宣言は ^2.0.0 で 2.0.3 はその内側。
+  # vite-plugin-storybook-nextjs が 2.0.3 以上を要求するか、image-size を引かなくなったら撤去する。
+  "image-size@<2.0.3": ">=2.0.3 <3"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
