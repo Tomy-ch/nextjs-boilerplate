@@ -254,3 +254,4 @@
 "docs/adr/0142-license.md" = "2026-09-26"
 "docs/README.md" = "2026-09-26"
 "scripts/premise-lint/vocabulary.ts" = "2026-09-26"
+"osv-scanner.toml" = "2026-09-26"

@@ -31,6 +31,8 @@
 | scratch の出力を `git status` に出したくない / どこへ置くか | 6 |
 | commit / push が hook に弾かれる | 7 |
 | mise 自身の版を上げたい / 上げたら CI が落ちた | 8 |
+| worktree を消したのにポートが空かない / 消したはずのコードが配られている | 9 |
+| 別ポートで開いた localhost のタブが、他のタブのダイアログで固まる | 10 |
 
 **この索引が、このスキルに答えられることの全部である。**ここに無い症状は「たぶん大丈夫」でもなければ
 「手順が存在しない」でもない —— **この runbook は後者を結論できない。**結論できるようにすると、
@@ -219,7 +221,7 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm lint:md`、workflow が staged なら `make actionlint` | biome + ESLint + `architecture.ts` 突合(§5) / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
-| pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
+| pre-push | `make test-full`、`pnpm typecheck`、`make secret-scan` | Vitest cache 無効 + カバレッジしきい値 / `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
 
 `make trivy-fs` は **hook に接続していない**(手動実行専用)。依存の脆弱性は push する当事者がその場で
 解消できず、diff と独立に状態が変わるため、ゲートとして成立しないという判断による ── 報告は PR コメント、
@@ -302,10 +304,50 @@ make actions-mise-pin-lint
 
 `mise.toml` の中のツールの版は別件で、`tools-upgrade` が担当し、mise 自身は意図的に触らない。
 
+## 9. worktree を消しても、そこから起動したサーバは止まらない
+
+`git worktree remove` が消すのはチェックアウトとその登録で、作業ディレクトリがその中にあったプロセスには
+触れない。バックグラウンドに残った `pnpm dev` や `pnpm storybook` はポートを掴んだまま、読み込み済みの
+コードを配り続ける ── 次にそのポートを開いた人はもう存在しない worktree を見ることになり、そのポートを
+使いたい worktree は使えない。`make review-clean` も同じで、見直し用のターゲットは自分のサーバを Ctrl-C で
+止め、片付けはその worktree を消すが、手で起動したサーバはそれらが止めるものではない。
+
+ポートを掴んでいるプロセスを見つけ、どこから・いつ起動したかを読む。
+
+```bash
+lsof -tnP -iTCP:<port> -sTCP:LISTEN      # ポートを LISTEN している pid
+lsof -p <pid> -a -d cwd -Fn              # その作業ディレクトリ: どの worktree のものか
+ps -p <pid> -o lstart=,command=          # いつ起動した、何のプロセスか
+kill <pid>
+```
+
+`cwd` が `git worktree list` の知らないチェックアウト ── もう存在しないディレクトリ、またはゴミ箱へ
+移されたもの(macOS なら `~/.Trash/`) ── を指していれば孤児である。生きている worktree の中を指す
+`cwd` はそこで作業している人のもの: 止めずに別のポートを選ぶ(`AGENTS.md`、*Working in a git worktree*)。
+
+## 10. あるポートのタブが、別のタブのダイアログが開いている間固まる
+
+ポートを分けるとサーバは衝突しないが、browser の中のタブは**隔離されない**。Chrome はレンダラープロセスを
+*サイト* ── スキーム + 登録可能ドメイン(eTLD+1) ── 単位でまとめ、ポートはそこに含まれない。
+`http://localhost:6006` と `http://localhost:6007` は別オリジンだが同一サイトなので、タブが 1 つの
+レンダラープロセスを共有しうる。JavaScript のモーダル(`alert` / `confirm` / `prompt` / `window.print()`)は
+そのプロセスのメインスレッドを止めるため、片方のタブのダイアログがもう片方を固め、Chrome は固まった側を
+ダイアログが閉じられるまで通知により一時停止したものとして表示する。
+
+アプリは壊れておらず、さらに別のポートへ移しても効かない。もう一方のタブのダイアログを閉じる。2 つの
+worktree を互いに影響させずに並べて見る必要があるなら、2 つ目を別の browser プロファイルで開く ── browser を
+`--user-data-dir=<新しいディレクトリ>` 付きで起動する ── と、独立したプロセス群として動く。
+
+ツリーがどのモーダル呼び出しを持つかは画面の増減で変わるので、一覧を信じず検索する。
+
+```bash
+grep -rnE 'window\.(print|alert|confirm|prompt)\(' src
+```
+
 ## 制約
 
 - ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。
-- ✅ 破壊的ステップ(§3 のタグ/ブランチ削除)は `AGENTS.md` に従い事前警告。
+- ✅ 破壊的ステップ(§3 のタグ/ブランチ削除、§9 の `kill`)は `AGENTS.md` に従い事前警告。
 - ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── 既定の
   AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
   作るのではなく捨てる操作だから。

@@ -3,8 +3,8 @@ name: repo-ops
 usage-class: situational
 description: >-
   Operational runbook for this repository's recurring, easy-to-trip-on gotchas around the mise-managed
-  toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, and the lefthook git
-  hooks. Read-only — it tells you the exact command to run and mutates nothing. It is SYMPTOM-driven and
+  toolchain, the pnpm lockfile, the Makefile setup targets, the scratch directories, the lefthook git
+  hooks, and worktree dev servers. Read-only — it tells you the exact command to run and mutates nothing. It is SYMPTOM-driven and
   answers only from its own index: a symptom that is not listed is routed to `how-to` (a goal, which can
   conclude that no procedure exists) or `repo-truth` (the current state), because this runbook cannot conclude
   an absence and its silence must not read as an answer. Triggers: 「make install-tools が mise not found
@@ -44,6 +44,8 @@ root file, say so to the user first per `AGENTS.md`.
 | scratch の出力を `git status` に出したくない / どこへ置くか | 6 |
 | commit / push が hook に弾かれる | 7 |
 | mise 自身の版を上げたい / 上げたら CI が落ちた | 8 |
+| worktree を消したのにポートが空かない / 消したはずのコードが配られている | 9 |
+| 別ポートで開いた localhost のタブが、他のタブのダイアログで固まる | 10 |
 
 **This index is the whole of what this skill can answer.** A symptom that is not in it is not
 "probably fine" and it is not "no procedure exists" — **this runbook cannot conclude the latter**, and
@@ -337,11 +339,55 @@ trust boundary ([0153](../../../docs/adr/0153-ci-configuration.md)).
 Tool versions inside `mise.toml` are a different job — `tools-upgrade` owns those and deliberately
 does not touch mise itself.
 
+## 9. Removing a worktree does not stop the servers started from it
+
+`git worktree remove` deletes the checkout and its registration; it does not touch the processes whose
+working directory was inside it. A `pnpm dev` or `pnpm storybook` left running in the background keeps
+its port and keeps serving the code it had loaded, so whoever opens that port next sees a worktree that
+no longer exists, and the worktree that wants the port cannot have it. `make review-clean` behaves the
+same way: the review targets stop their own server on Ctrl-C, and the clean-up removes their worktrees,
+but a server started by hand is not theirs to stop.
+
+Find the holder of the port, then read where it runs from and when it started:
+
+```bash
+lsof -tnP -iTCP:<port> -sTCP:LISTEN      # the pid listening on the port
+lsof -p <pid> -a -d cwd -Fn              # its working directory: which worktree it belongs to
+ps -p <pid> -o lstart=,command=          # when it started, and what it is
+kill <pid>
+```
+
+The process is an orphan when its `cwd` is not a checkout `git worktree list` knows: a directory that
+no longer exists, or one that was moved to the Trash (`~/.Trash/` on macOS). A `cwd` inside a live
+worktree belongs to whoever works there; leave it running and pick another port, per `AGENTS.md`,
+*Working in a git worktree*.
+
+## 10. A tab on one port freezes while a dialog is open in another
+
+Separate ports keep servers from colliding; they do **not** isolate tabs in the browser. Chrome groups
+renderer processes by *site* — scheme plus registrable domain (eTLD+1) — and the port is not part of
+it. `http://localhost:6006` and `http://localhost:6007` are different origins but the same site, so
+their tabs can share one renderer process. A JavaScript modal (`alert` / `confirm` / `prompt` /
+`window.print()`) blocks that process's main thread, so a dialog in one tab freezes the other, and
+Chrome shows the frozen tab as paused by a notification until the dialog is closed.
+
+Nothing in the app is broken, and moving to yet another port does not help. Close the dialog in the
+other tab. When two worktrees must be viewed side by side without affecting each other, open the second
+in a separate browser profile — start the browser with `--user-data-dir=<a fresh directory>` — which
+runs as its own set of processes.
+
+Which modal calls the tree makes changes as screens come and go, so search for them rather than
+trusting a list:
+
+```bash
+grep -rnE 'window\.(print|alert|confirm|prompt)\(' src
+```
+
 ## Constraints
 
 - ✅ Read-only knowledge: surface the exact command; run it only when the user asked you to perform the
   operation.
-- ✅ Warn before destructive steps (tag/branch deletion in §3) per `AGENTS.md`.
+- ✅ Warn before destructive steps (tag/branch deletion in §3, `kill` in §9) per `AGENTS.md`.
 - ✅ Confirm with the user before editing root files (`biome.json` in §5, `package.json` in §4) —
   they are outside the default AI Modification Scope. §2's `git restore pnpm-workspace.yaml` is the
   exception: it discards an unrequested machine edit rather than making one.
