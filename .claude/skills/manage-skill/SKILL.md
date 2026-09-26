@@ -130,8 +130,8 @@ option and let the user confirm it.
 The current members of each family are the coverage table of that ADR — read it this run rather
 than a list kept here.
 
-If the proposed skill would establish a new convention, pattern, or library in an area `BACKLOG.md`
-still leaves undecided, **stop and defer the ADR decision to the user** (`docs/rules.md`,
+If the proposed skill would establish a new convention, pattern, or library in an area no Accepted
+ADR decides yet, **stop and defer the ADR decision to the user** (`docs/rules.md`,
 *作業とエージェント*). Do not let a skill become the place a convention gets decided implicitly.
 
 Prefer extending an existing skill over adding a near-duplicate. Granularity is

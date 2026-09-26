@@ -167,8 +167,8 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 
 | # | 内容 | 決着させる時期 |
 | --- | --- | --- |
-| 1 | **`style-src`(CSP)の運用方式** — TipTap が inline style を出力するため、nonce 運用かハッシュ運用かで A6 / A7 のエディタ組み込み方法が変わる | v1 実装計画 P6-2 |
-| 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く(v1 実装計画 §3.10) | 決着済み |
+| 1 | ~~**`style-src`(CSP)の運用方式**~~ — **決着済み**。`style-src` は `'self' 'unsafe-inline'` のまま割らず、TipTap の inline style もそこで受ける([0111](../adr/0111-csp-security-headers.md)) | 決着済み |
+| 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く | 決着済み |
 | 3 | ~~**未公開商品を含む admin 商品一覧**~~ — **決着済み**。`GET /v1/products` に `includeUnpublished` が入り、admin だけが `true` を指定できる。A2 はこれを指定して未公開の商品も並べる | 決着済み |
 | 4 | ~~**在庫僅少一覧**~~ — **契約は決着済み**。`GET /v1/products/low-stock` が OpenAPI に入った。A1 の数値カードとは独立した後続機能なので、画面はまだ持たない | 契約は決着済み / 画面は後続 |
 | 5 | ~~**配達完了の対象を admin が指せない**~~ — **決着済み**。`GET /v1/purchases` に `statusCodes` と `includeOtherUsers` が入り、admin は発送済みの注文を列挙できる。A8 がその一覧と `deliver` を持つ | 決着済み |

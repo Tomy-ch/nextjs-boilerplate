@@ -16,8 +16,8 @@
 
 ## 読む順
 
-`AGENTS.md`「Instruction Priority」が定める順に従う。本書はその 4 番目であり、
-上位（`AGENTS.md` / `docs/adr/**` / `docs/adr/BACKLOG.md`）と食い違ったときは上位が勝つ。
+`AGENTS.md`「Instruction Priority」が定める順に従う。本書はその 3 番目であり、
+上位（`AGENTS.md` / `docs/adr/**`）と食い違ったときは上位が勝つ。
 
 読む先は次の 4 つで足りる。
 

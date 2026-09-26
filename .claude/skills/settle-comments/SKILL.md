@@ -419,8 +419,8 @@ this whole protocol exists to prevent. Both land in 確認して適用. Three fu
 
 **Do not apply a 移設 that would write to a destination document.** Report those with their count and
 proposed landing form, and say that 確認して適用 is where they land. The reason is not caution in
-general: `AGENTS.md`'s *AI Modification Scope* permits editing `docs/adr/BACKLOG.md` but reserves
-**ADR file creation for a prior user instruction**, and whether a rationale becomes a new record or a
+general: `AGENTS.md`'s *AI Modification Scope* leaves `docs/adr/` outside the default scope, so
+**writing an ADR needs a prior user instruction**, and whether a rationale becomes a new record or a
 rewrite of an existing one is exactly that call. A mode whose contract is "no questions" has no way
 to ask it. Keeping that one question alive would break the contract; answering it silently would
 settle a repository-policy question by generator.

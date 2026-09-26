@@ -246,7 +246,7 @@ Always this shape, in Japanese. Lead with the recommendation; the comparison is 
 - <測れなかったコスト / 確認できなかった主張> — <なぜ測れなかったか、測れば何が変わるか>
 
 ## 決めるべきこと
-- <人が決める事項> — 記録先: ADR / BACKLOG の枠 / issue / spec / 層 README のどれか
+- <人が決める事項> — 記録先: ADR / issue / spec / 層 README のどれか
 ```
 
 When only part of the question could be researched, return that part and name the rest as
@@ -271,9 +271,9 @@ This skill produces `決めるべきこと` and stops. It does not adopt an opti
 issue, or start implementing — and it does not invoke `new-issue` for you.
 
 **The gap between a recommendation and a decision is the whole point of the step.** A recommendation
-that flows straight into implementation was never reviewed by anyone; `AGENTS.md` puts the areas
-`docs/adr/BACKLOG.md` still leaves blank behind a human gate precisely so that the option surviving
-to code is one somebody chose. The route onward is human approval, then `new-issue`.
+that flows straight into implementation was never reviewed by anyone; `docs/rules.md`
+(*作業とエージェント*) puts the areas no Accepted ADR decides behind a human gate precisely so that
+the option surviving to code is one somebody chose. The route onward is human approval, then `new-issue`.
 
 ## Do / Do NOT
 

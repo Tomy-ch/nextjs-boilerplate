@@ -10,7 +10,7 @@
 
 ## 今後定義する ADR
 
-未着手の意思決定領域は [BACKLOG.md](BACKLOG.md) に網羅・優先度付けで一覧化している。新規 ADR は BACKLOG での合意後に番号を付けて起票する。
+未着手の意思決定領域は issue トラッカーが追う。一覧をこのディレクトリに写さないのは、1 つ着地した瞬間に古くなる二重管理になるためである（[0152](0152-agents-md-policy.md)「未策定領域の扱い」）。新規 ADR は issue で内容を合意してから、上の採番規則で番号を付けて起票する。
 
 ## 一覧
 
@@ -76,7 +76,7 @@
 - [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
 - [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものは容器の中身として選ぶ）
 - [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向 / タクソノミー / rules.md 新設 / ADR 不可変性）
-- [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages / 実装は Phase 3）
+- [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages）
 - [0142-license.md](0142-license.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / 同梱ライブラリ整合 / private:true との関係）
 - [0143-spec-driven-development.md](0143-spec-driven-development.md) - 仕様書駆動（画面要件を仕様書として持つ / 生成 scaffold を持たない / 実装との突合は存在（機械）と内容（読み合わせ）の 2 つ）
 - [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) - 決定と強制手段の併記（散文へ逃がす前に機械強制を検討する / 寄せられない理由を書く）

@@ -15,7 +15,7 @@
 以下には使わない:
 
 - formatting / style — `pnpm fix` / `pnpm lint:ci`
-- 静的な層境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**それはまだ実体が無い**（BACKLOG GB-1）
+- 静的な層境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査は専用の監査スキルの仕事だが、**それはまだ実体が無い**
 - 修正の適用 — ソースに対して read-only。指摘するだけで、直すのはユーザー
 - テスト（`/test-review`）の監査 — 対等な相方であって下位の手順ではない。コメントは `/settle-comments` が実装の最後に決着させている
 

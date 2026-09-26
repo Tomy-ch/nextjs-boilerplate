@@ -78,7 +78,7 @@ issue から PR まで通す半自動のパイプライン。進行・記帳・�
 
 ## AI Modification Scope
 
-`AGENTS.md` は既定で AI の編集を `src/` / `public/` / `docs/adr/BACKLOG.md` に閉じる。
+`AGENTS.md` は既定で AI の編集を `src/` / `public/` に閉じる。
 *Temporary Operating Rules* が保護パスの一覧を既に外しており、残るのは「CI・道具・文書についての
 issue は、既定の範囲が名指していない面へ届く」という点である。**本スキルの起動が、その残りを緩める
 明示の指示である。**本スキルは issue 非依存であり、面を決めるのは issue だからである。

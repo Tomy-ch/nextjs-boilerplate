@@ -124,7 +124,7 @@ export const getEntry = cache(async (id: EntryId): Promise<Entry> => {
 
 締切・回数・遮断の閾値は [`ResilienceProfile`](../../src/adapters/server/http/resilience-profile.ts) で、`createHttpClient` の `profile` に渡す。渡さなければ `DEFAULT_PROFILE`（試行 3s / 全体 10s / 3 回 / budget 10% / 失敗率 0.5 を 20 件で判定 / open 5s / half-open 3 本）。
 
-**遮断器と retry budget は client のインスタンスに載る。** だから同じ接続先へ client を複数作ると、劣化したかどうかの判断が作った数だけ割れる。だから**接続先ごとに 1 つを共有する口**を `adapters/server` 側に置き、モジュールごとに作らせない。user-scoped の口は各モジュールがモジュール変数に 1 つずつ持っており、**寄っていない** —— 資格情報の取得口をどこへ寄せるかが `project-rules/no-captured-bearer-token` と交差するためで、扱いは [BACKLOG](../adr/BACKLOG.md) が持つ。
+**遮断器と retry budget は client のインスタンスに載る。** だから同じ接続先へ client を複数作ると、劣化したかどうかの判断が作った数だけ割れる。だから**接続先ごとに 1 つを共有する口**を `adapters/server` 側に置き、モジュールごとに作らせない。user-scoped の口は各モジュールがモジュール変数に 1 つずつ持っており、**寄っていない** —— 寄せるなら資格情報の取得口を渡す形を 1 か所へ置くことになり、それが `project-rules/no-captured-bearer-token`（[0112](../adr/0112-data-classification-cache-boundary.md)）と正面から交差するため、両方を同時に決める。
 
 ### wrapper が持たないもの
 

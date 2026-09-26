@@ -10,7 +10,7 @@ Accepted
 
 ## 背景
 
-[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` へ昇格させる)には、それだけでは **reactive な横断 client hook の出口が無い**。`useConnectivity` のような「フロント領域の横断 client hook(拡張点 / seam)」は、表示ロジックでも UI でも外部接続でもなく、複数 feature から使うときの昇格先を要する。
+[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` へ昇格させる)には、それだけでは **reactive な横断 client hook の出口が無い**。`useOnlineStatus` のような「フロント領域の横断 client hook(拡張点 / seam)」は、表示ロジックでも UI でも外部接続でもなく、複数 feature から使うときの昇格先を要する。
 
 [0021](0021-frontend-responsibility.md) の命名規律は「役割を名指しできない置き場が必要になった時点で、それは設計の欠落であり、**真に横断が必要になったら ADR 追補で役割を定義してから作る**」と定めている。本 ADR はその条項に従い、役割を定義したうえでカーネルを立てる。onion の層に対応物はない(React の client hook はフロント固有である)。
 
@@ -20,13 +20,13 @@ Accepted
 
 `capabilities` は、**runtime(ブラウザ + Next.js フレームワーク)の能力を reactive な client hook として供給する**カーネルである。想定する hook 例:
 
-- `useConnectivity`(オンライン/オフライン検知 = `navigator.onLine` の購読)
+- `useOnlineStatus`(オンライン/オフライン検知 = `navigator.onLine` の購読)
 - `useMediaQuery` / breakpoint
 - `useClipboard`
 - Web Storage(`useLocalStorage` / `useSessionStorage`)/ client cookie 読み
 - safe-area / viewport
 - ページの可視性(既読の確定・隠れている間の再接続の抑制)
-- navigation-block(離脱ガード)
+- navigation-block(離脱ガード)。申告する feature が 1 つのうちは上げない —— 昇格ルールは複数 feature からの参照を要するので、それまでは部品(`components`)を feature が束ねる形で足りる
 - scroll 制御
 - Web Worker へのオフロード(seam)
 
@@ -75,7 +75,7 @@ hook の呼び出しと UI への配線(合成)は **feature** が行う。**app
 
 feature の移植可能性は、**カーネル契約に対して相対的**である(ゼロ依存の島ではない)。`capabilities` を消費する feature は、`components` を消費する feature と**同程度に移植可能**であり、`capabilities` はその移植の土台(カーネル群)を脅かすのではなく広げる。
 
-移植性を最大化するため、`capabilities` の hook API は **デファクト標準の形**(`useConnectivity` / `useMediaQuery` 等の慣用シグネチャ)に寄せる([0010](0010-standards-and-non-lockin.md) の標準準拠)。標準形であるほど、移植先のプロジェクトで等価カーネルが見つかり、feature がそのまま噛む。
+移植性を最大化するため、`capabilities` の hook API は **デファクト標準の形**(`useOnlineStatus` / `useMediaQuery` 等の慣用シグネチャ)に寄せる([0010](0010-standards-and-non-lockin.md) の標準準拠)。標準形であるほど、移植先のプロジェクトで等価カーネルが見つかり、feature がそのまま噛む。
 
 ## 禁止事項
 

@@ -27,7 +27,7 @@ A Japanese reference translation of this skill lives at `SKILL.ja.md` in this di
 Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
-- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet** (BACKLOG GB-1).
+- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet**.
 - Applying fixes — this skill is read-only on source; it reports, the user fixes.
 - Auditing the tests (`/test-review`) — a peer, not a sub-step.
 - Auditing the comments (`/settle-comments`) — settled during implementation, not reviewed here.
