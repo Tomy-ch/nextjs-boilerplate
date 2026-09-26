@@ -9,9 +9,10 @@
 export type IssueBody = {
   /** issue 番号。報告でそのまま出す。 */
   readonly number: number;
-  /** issue のタイトル。実装タスクかどうかの判定に使う。 */
   readonly title: string;
   readonly body: string;
+  /** 付いているラベルの名前。実装タスクかどうかの判定に使う。 */
+  readonly labels: readonly string[];
 };
 
 /** 欄を欠いている issue。 */
@@ -31,10 +32,7 @@ export type MissingField = {
  */
 export const REQUIRED_HEADINGS: readonly string[] = ["目的", "強制手段", "完了条件"];
 
-/** 実装タスクの issue かどうか。タイトルが計画 ID で始まるものだけを見る。 */
-function isImplementationTask(title: string): boolean {
-  return /^\[P\d+-\d+/.test(title);
-}
+export const IMPLEMENTATION_TASK_LABEL = "implementation-task";
 
 /**
  * 必須の見出しを欠いている issue を選ぶ。
@@ -48,7 +46,7 @@ function isImplementationTask(title: string): boolean {
  */
 export function missingRequiredFields(issues: readonly IssueBody[]): readonly MissingField[] {
   return issues
-    .filter((issue) => isImplementationTask(issue.title))
+    .filter((issue) => issue.labels.includes(IMPLEMENTATION_TASK_LABEL))
     .flatMap((issue) =>
       REQUIRED_HEADINGS.filter((heading) => !issue.body.includes(`### ${heading}`)).map(
         (field) => ({ number: issue.number, title: issue.title, field }),

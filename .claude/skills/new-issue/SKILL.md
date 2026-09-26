@@ -243,7 +243,9 @@ State which branch of the table applied. **Silence reads as "it was obviously an
 gh issue create --title "<title>" --label <label> --body-file <file>
 ```
 
-Labels come from `.github/settings/labels.json`; read it rather than guessing a name. Report the URL,
+Labels come from `.github/settings/labels.json`; read it rather than guessing a name. **Pass the
+template's own `labels:` too** — the web form applies them and `--body-file` does not, and
+`scripts/issue-field-lint` finds the issues it checks by that label. Report the URL,
 and say which premises were observed and which only read.
 
 If the user selected `--output=draft`, stop before this and hand over the body.

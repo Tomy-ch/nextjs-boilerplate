@@ -219,7 +219,9 @@ gh issue list --state all --limit 50 --search "<keywords>"
 gh issue create --title "<title>" --label <label> --body-file <file>
 ```
 
-ラベルは `.github/settings/labels.json` から取る。名前を推測しない。URL を報告し、
+ラベルは `.github/settings/labels.json` から取る。名前を推測しない。**テンプレート自身の `labels:` も
+渡す** —— Web フォームはそれを付けるが `--body-file` は付けず、`scripts/issue-field-lint` は検査する
+issue をそのラベルで見つける。URL を報告し、
 **どの前提を観測し、どれを読んだだけかを述べる。**
 
 user が `--output=draft` を選んでいれば、ここへ来る前に止めて本文を渡す。
