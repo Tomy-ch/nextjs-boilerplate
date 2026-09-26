@@ -27,7 +27,7 @@ A Japanese reference translation of this skill lives at `SKILL.ja.md` in this di
 Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
-- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing belongs to a dedicated auditor skill, which **does not exist yet**.
+- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing is out of scope here.
 - Applying fixes — this skill is read-only on source; it reports, the user fixes.
 - Auditing the tests (`/test-review`) — a peer, not a sub-step.
 - Auditing the comments (`/settle-comments`) — settled during implementation, not reviewed here.
@@ -45,7 +45,7 @@ Bias reduction is the design constraint, not a nicety. Reviewers therefore run a
 invokes no other skill. Those are `/test-review`'s and `/settle-comments`'s subjects — the first asked for and
 run in its own right beside this one, per the Review Phase Protocol in `AGENTS.md`. A review skill
 that offers to run the next one makes the subjects stop being independently answerable, and lets a
-drift in one skill's question silently drop the other two from every flow that went through it.
+drift in one skill's question silently drop the other from every flow that went through it.
 
 ## Precedence — findings are ranked, not just collected
 
@@ -133,7 +133,7 @@ audits the change and nothing else").
 ## Step 1 — Gather Context
 
 - Resolve the base ref and produce the review target: `git diff <base>...HEAD` (or `git diff` for uncommitted), plus the changed-file list (`git diff --name-only ...`).
-- Detect which **kernels / elements** are touched. The inventory is ADR [0027](../../../docs/adr/0027-directory-structure.md)'s physical layout, and what each may import is ADR [0021](../../../docs/adr/0021-frontend-responsibility.md)'s dependency matrix: `src/app/**` (3 elements — route-segment `page`/`layout`, route-handler `route.ts`, metadata), `src/features/<name>/**`, `src/model/**`, `src/components/**`, `src/adapters/server/**` · `src/adapters/client/**`, `src/capabilities/**`, `src/stores/**`, `src/config/**`, `src/errors/**`, `src/logging/**`, `src/observability/**` — plus the **boot / build boundary entries that sit outside the kernels**: `src/proxy.ts`, `src/instrumentation.ts`, `next.config.ts`. Several kernels are not on disk yet (ADR 0027 creates each when its decision lands); detect what exists rather than assuming the full set.
+- Detect which **kernels / elements** are touched. The inventory is ADR [0027](../../../docs/adr/0027-directory-structure.md)'s physical layout, and what each may import is ADR [0021](../../../docs/adr/0021-frontend-responsibility.md)'s dependency matrix: `src/app/**` (3 elements — route-segment `page`/`layout`, route-handler `route.ts`, metadata), `src/features/<name>/**`, `src/model/**`, `src/components/**`, `src/adapters/server/**` · `src/adapters/client/**`, `src/capabilities/**`, `src/stores/**`, `src/config/**`, `src/errors/**`, `src/logging/**`, `src/observability/**` — plus the **boot / build boundary entries that sit outside the kernels**: `src/proxy.ts`, `src/instrumentation.ts`, `next.config.ts`. A kernel can be absent from disk (ADR 0027 creates each only when its decision lands); detect what exists rather than assuming the full set.
 - Note whether a **request-time seam** is touched — a Route Handler (`src/app/**/route.ts`), a Server Action (`src/features/<name>/actions.ts`), `src/proxy.ts`, the response header configuration (`next.config.ts` `headers()`), or the **layout shell / Provider composition** (`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.md); a missing Provider only fails when the route actually renders). This decides whether Step 4-2 runs. <!-- skill-lint-ignore -->
 - Note whether a **generated API artifact** is touched (`**/gen/**` — the types / zod schemas of ADR [0072](../../../docs/adr/0072-api-type-generation.md)). A regenerated artifact ripples to every consumer, so widen the review to the `adapters` conversions and features that import it, not just the changed file.
 
@@ -219,7 +219,7 @@ Gate: Step 1 found a touched **request-time seam** (the list is in Step 1).
 3. **`src/proxy.ts` changes:** exercise both a path the `matcher` selects and one it excludes. A matcher regression is invisible to unit tests and to the build (ADR [0043](../../../docs/adr/0043-middleware-policy.md)).
 4. **Layout shell / Provider changes:** request a route beneath the changed layout and confirm it renders — a Provider dropped from the shell leaves a hook without context, which surfaces as a runtime error or an error boundary, not a build failure (ADR [0026](../../../docs/adr/0026-layout-shell-mount.md)).
 
-**What this stage does NOT reach.** It asserts the four points above plus the matcher and shell checks — nothing else. The `runtime-gap` lens can raise categories this stage cannot execute today, chiefly **cache / revalidation** (a mutation that fails to invalidate its tags) and **retry / idempotency / breaker semantics**: both need the `adapters` layer and a backend, and ADR 0071 leaves their concrete shape to the implementation PR. Report those findings as 到達不能 rather than treating an unrun check as a pass.
+**What this stage does NOT reach.** It asserts the four points above plus the matcher and shell checks — nothing else. The `runtime-gap` lens can raise categories this stage cannot execute, chiefly **cache / revalidation** (a mutation that fails to invalidate its tags) and **retry / idempotency / breaker semantics**: both need the `adapters` layer and a backend, and ADR 0071 leaves their concrete shape to the implementation PR. Report those findings as 到達不能 rather than treating an unrun check as a pass.
 
 **There is no backend in this repository** — DB / auth / business logic belong to a separate service (ADR [0011](../../../docs/adr/0011-no-docker.md) / [0070](../../../docs/adr/0070-backend-role-separation.md)), so a Route Handler's upstream call fails unless a stub is configured. That is not a reason to skip the stage: the *failure* path is precisely what ADR 0071's error normalization owns, so assert it. What genuinely cannot be reached without a backend — a real success response, cross-subject authorization — is **stated as 到達不能 in the Step 5 report**. Never simulate it, and never report it as passing.
 
@@ -260,7 +260,7 @@ two review subjects, and a report that says nothing about the other reads as a f
 anyone who did not run it. State plainly that the tests were not looked at here, and neither were the
 comments — which `settle-comments` settles during implementation rather than here,
 so the omission is visible rather than inferred from a `lens:` list that never mentioned them. Do not
-soften it into a recommendation — whether to run the other two is the user's call under the Review
+soften it into a recommendation — whether to run `/test-review` is the user's call under the Review
 Phase Protocol, and this line only records what this run did not cover.
 
 Order by tier, then by severity within a tier, CONFIRMED before PLAUSIBLE — never by severity alone. A finding held behind an unresolved higher-tier one is marked 保留 with what it is waiting on. Always state what runtime checks ran and what was
@@ -279,7 +279,7 @@ Skip this step entirely when:
 
 Posting to GitHub is an outward-facing action, so confirm **once** before posting — show the count and the target PR (`AskUserQuestion`: 「<N> 件の指摘を PR #<番号> にインラインコメントとして投稿しますか？」/「投稿する」「投稿しない（ローカルレポートのみ）」).
 
-**Redact before posting.** This repository is public, and a `security` finding quotes the very thing it flags — a leaked token, a hardcoded credential, a PII sample. Posting that verbatim republishes the secret in a place that cannot be retracted. Before building the payload, rewrite every finding body so the evidence is described, not reproduced: replace concrete secret-shaped values with `***REDACTED***` and cite `path:line` instead. A finding whose point cannot survive redaction (the value *is* the finding) stays in the local report only — say so in the summary rather than posting it.
+**Redact before posting.** A `security` finding quotes the very thing it flags — a leaked token, a hardcoded credential, a PII sample. Posting that verbatim republishes the secret to everyone who can read the PR, in a place that cannot be retracted. Before building the payload, rewrite every finding body so the evidence is described, not reproduced: replace concrete secret-shaped values with `***REDACTED***` and cite `path:line` instead. A finding whose point cannot survive redaction (the value *is* the finding) stays in the local report only — say so in the summary rather than posting it.
 
 **`gh api` is available for this call.** `.claude/settings.json` allows `Bash(gh api *)` and denies only the shapes that lose committed work: anything containing `DELETE`, and ref manipulation (`git/refs`, whose `force` update is an API-side force push). Posting a review is neither, so it runs. Those denies still hold during skill execution — if a call you need is blocked, surface it and let the user decide. Never re-route a blocked request through `python3` / `pnpm exec tsx` / any other allowed interpreter (that defeats the guard rather than satisfying it), and never edit `permissions.deny` to unblock yourself.
 
@@ -347,7 +347,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 - ✅ State on the `未監査の観点:` line of every report that the tests and the comment stock were not audited here.
 - ✅ By default, post the CONFIRMED + PLAUSIBLE findings to the branch's PR as inline review comments (Step 6); suppress with `--no-comment` or when no open PR exists.
 - ✅ Confirm once before posting to the PR (outward action); anchor each comment to its `path:line`, fold off-diff findings into the review summary.
-- ✅ Redact secret-shaped values out of every finding body before posting — this repository is public and a post cannot be retracted.
+- ✅ Redact secret-shaped values out of every finding body before posting — everyone who can read the PR reads the post, and it cannot be retracted.
 - ❌ Skip the Step 6 confirmation because `gh api` is allowed — the permission rule is not the safety control, the confirmation is.
 - ❌ Route a denied command through an allowed interpreter, or edit `permissions.deny` to unblock yourself — surface the block and offer the summary-comment fallback instead.
 - ✅ State in the report which lenses did not run and why.

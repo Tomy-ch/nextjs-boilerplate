@@ -1,11 +1,11 @@
 # フロント実装リファレンス: 画面一覧 & API 概要
 
-輸入 EC サンプル(go-boilerplate 協調)。nextjs-boilerplate 実装時の入力資料。
-詳細な型・エラーコードは `go-boilerplate/openapi/openapi.gen.yaml` を正とする。本書は画面と API の対応関係・実装上の注意点の把握用である。認証だけは `go-boilerplate/docker/mock-auth-server/openapi/openapi.gen.yaml` の mock OIDC 契約を正とする。
+EC サンプルの画面と API の対応表。サンプルのバックエンドは go-boilerplate で、取得元は [`openapi/sources.yaml`](../../openapi/sources.yaml) が宣言する。
+詳細な型・エラーコードは取り込んだ契約 [`openapi/api.gen.yaml`](../../openapi/api.gen.yaml) を正とする。本書は画面と API の対応関係・実装上の注意点の把握用である。認証だけは `go-boilerplate/docker/mock-auth-server/openapi/openapi.gen.yaml` の mock OIDC 契約を正とする。
 
-- 本書は**サンプルの仕様**であり、画面実装の PR 分解はここを入力とする
+- 本書は**サンプルの仕様**である
 - 本書に列挙された画面・feature は**原則としてサンプル破棄(爆破)の対象**であり、**本書自身も消える**。**例外**(ログイン画面等のコア残留分)と正確な境界は [`scripts/setup/remove-sample/sample-manifest.ts`](../../scripts/setup/remove-sample/sample-manifest.ts) の `SAMPLE_PATHS` が正
-- backend API の実装計画は [go-boilerplate #596](https://redirect.github.com/Tomy-ch/go-boilerplate/issues/596) を参照する。**未チェックの項目は未実装であり、OpenAPI に追加されるまでフロントから呼び出さない**。本書では現行 OpenAPI に存在する API だけを使用 API として記載する
+- 本書は取り込んだ OpenAPI に存在する API だけを使用 API として記載する。**OpenAPI に無い API はフロントから呼び出さない**
 
 ---
 
@@ -52,7 +52,7 @@
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
-| A1 | ダッシュボード | `GET /v1/dashboard/summary` | 数値カードと、ステータス別内訳の横棒 | サマリは **backend 側で合成済み**の値をそのまま表示する。在庫僅少一覧は契約(`GET /v1/products/low-stock`)が入ったが、A1 は使っていない(独立した後続機能) |
+| A1 | ダッシュボード | `GET /v1/dashboard/summary` | 数値カードと、ステータス別内訳の横棒 | サマリは **backend 側で合成済み**の値をそのまま表示する。在庫僅少一覧(`GET /v1/products/low-stock`)は A1 では使わない(独立した別機能で、画面を持たない) |
 | A2 | 商品一覧 | `GET /v1/products`(`includeUnpublished=true`) / `GET /v1/products/statuses` | admin 操作一覧。作成・編集・補充への導線 | 未公開の商品も母集団に含める。含める指定は admin だけが通せる。母集団を変えると並び順の第 1 キーが登録日時へ変わるため、ページ送りの鍵は同じ指定の中でだけ使える |
 | A3 | 商品補充 | `PATCH /v1/products/{productId}/stock` | 在庫数の加算 / 調整のみ | `delta` は符号付き。409 は再取得、503 は時間を空けて再試行する。在庫以外は編集しない(A7 の担当) |
 | A4 | 集計 | `GET /v1/dashboard/summary` / `GET /v1/products/ranking/quantity` | 売上・ランキング系の集計表示 | A1 と共通 API を使うが表示観点が異なる。期間は瞬時の半開区間 `[orderedAfter, orderedBefore)` で送り、暦の区分（今日・今月）を解くのは画面の側。売れ筋は直近 30 日に固定し、期間の選択に従わない |
@@ -63,9 +63,9 @@
 | A9 | 問い合わせ一覧 | `GET /v1/inquiries`(`after` / `first`) / `POST /v1/inquiries/feed/stream-ticket` / `GET /v1/streams/{destination}` | 届いた問い合わせを更新の新しい順に並べる。本文は含まない | 更新フィードを購読し、届いた時点で一覧を取り直す。**届いた内容で行を書き換えない** —— フィードが運ぶのは「どの問い合わせがどこまで進んだか」だけで、並び順の基準も他の列も入っていない。ページ送りは cursor で、戻る先は URL が覚える |
 | A10 | 問い合わせの対応 | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | 1 件のやり取りを読み、回答する | **会話そのものを購読できない** —— 契約が持つ購読の口は「自分の問い合わせ」と「更新フィード」の 2 つで、運営が任意の 1 件を直接購読する口が無い。フィードが開いている 1 件の更新を伝えたときに正本を取り直す。右へ寄るのは運営の発言で、利用者側とは「自分」が入れ替わる。誰の問い合わせかは履歴が返さないため、一覧の行と突き合わせる |
 
-### 輸入元に無い画面(4)
+### サイト情報・開発用の画面(4)
 
-輸入した EC サンプルには無く、この repo が足した画面である。**題材(EC)を持つのは静的 3 画面の
+EC の業務フローの外にある画面である。**題材(EC)を持つのは静的 3 画面の
 うち「このサイトについて」だけ**で、残りは boilerplate 自身の説明と開発用の面なので、サンプルを
 捨てた後も `/dev/session` は残る。
 
@@ -163,21 +163,7 @@ Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock 
 
 ---
 
-## 3. 未決事項(フロント実装に影響するもの)
-
-| # | 内容 | 決着させる時期 |
-| --- | --- | --- |
-| 1 | ~~**`style-src`(CSP)の運用方式**~~ — **決着済み**。`style-src` は `'self' 'unsafe-inline'` のまま割らず、TipTap の inline style もそこで受ける([0111](../adr/0111-csp-security-headers.md)) | 決着済み |
-| 2 | ~~**sanitizer ライブラリの選定**~~ — **決着済み**。`hast-util-from-html` + `hast-util-sanitize` + `hast-util-to-jsx-runtime` を採用し、port は `src/model/rich-text/` に置く | 決着済み |
-| 3 | ~~**未公開商品を含む admin 商品一覧**~~ — **決着済み**。`GET /v1/products` に `includeUnpublished` が入り、admin だけが `true` を指定できる。A2 はこれを指定して未公開の商品も並べる | 決着済み |
-| 4 | ~~**在庫僅少一覧**~~ — **契約は決着済み**。`GET /v1/products/low-stock` が OpenAPI に入った。A1 の数値カードとは独立した後続機能なので、画面はまだ持たない | 契約は決着済み / 画面は後続 |
-| 5 | ~~**配達完了の対象を admin が指せない**~~ — **決着済み**。`GET /v1/purchases` に `statusCodes` と `includeOtherUsers` が入り、admin は発送済みの注文を列挙できる。A8 がその一覧と `deliver` を持つ | 決着済み |
-
-> **PostHog / Cookie 同意**: 軽量 consent 機構 + ゲートは採用、GTM・PostHog 本体は不採用([0131](../adr/0131-cookie-consent.md))。
-
----
-
-## 4. 除外事項(フロントで作らなくてよいもの)
+## 3. 除外事項(フロントで作らなくてよいもの)
 
 - 決済 SDK 本体・PSP 連携(pay 操作は Go 側の状態遷移のみで完結。擬似決済)
 - 推薦・パーソナライズ機能

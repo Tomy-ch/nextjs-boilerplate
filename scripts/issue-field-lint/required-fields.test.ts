@@ -41,7 +41,7 @@ describe("missingRequiredFields", () => {
 
   it("タイトルの形では判定しない。ラベルが付いていれば見る", () => {
     expect(
-      missingRequiredFields([issue({ title: "[計画外] 何かを直す", body: "本文だけ" })]),
+      missingRequiredFields([issue({ title: "[bug] 何かを直す", body: "本文だけ" })]),
     ).toHaveLength(REQUIRED_HEADINGS.length);
   });
 

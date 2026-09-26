@@ -20,7 +20,7 @@
   "Makefile": 1,
   "README.md": 2,
   "SECURITY.md": 3,
-  "docs/README.md": 1,
+  "docs/README.md": 2,
   "docs/adr/0140-documentation-operations.md": 1,
   "docs/adr/0152-agents-md-policy.md": 3,
   "docs/adr/0153-ci-configuration.md": 1,

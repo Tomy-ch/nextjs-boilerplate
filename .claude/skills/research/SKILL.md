@@ -90,7 +90,7 @@ Before anything else, establish the current state. If it is unclear or contested
 so**: the user should run `repo-truth` first. Do not invoke it yourself and do not paper over the gap
 with an assumption, because the assumption then silently shapes every option.
 
-**Three places settle a question here, not one.** Missing any of them produces this skill's most
+**Two places settle a question here, not one.** Missing any of them produces this skill's most
 expensive output — a comparison that re-litigates something already decided.
 
 | Where | What it settles |
@@ -98,7 +98,7 @@ expensive output — a comparison that re-litigates something already decided.
 | [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions and the **撤回条件** each one carries in its own body — what would have to become true to revisit it |
 | [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | What this repository deliberately does not carry, and under what condition it would |
 
-The last two are what make 「やらない」 a decision rather than an absence. A question that looks open
+Together they make 「やらない」 a decision rather than an absence. A question that looks open
 is often one whose 撤回条件 simply has not been met — and the answer is that condition, not a
 comparison.
 
@@ -306,7 +306,7 @@ the option surviving to code is one somebody chose. The route onward is human ap
 
 - [ ] `--stage` / `--sources` resolved; under `repo` the unmakeable claims were named.
 - [ ] Current state established, or the run stopped with `repo-truth` named as the next step.
-- [ ] All three settling places checked by concern; a standing decision or an unmet 撤回条件 reported
+- [ ] Both settling places checked by concern; a standing decision or an unmet 撤回条件 reported
       as the answer if one exists.
 - [ ] Isomorphic-mechanism check done by shape over enumerated kernels; 「設計分岐なし」 reported when
       it applies, and the enumerated scope stated when claiming none exists.

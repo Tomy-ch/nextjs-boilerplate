@@ -183,8 +183,8 @@ Three writing rules that keep an issue from rotting:
   reader who follows one to the wrong place trusts what they find there.
 - **Record the recommendation together with its basis.** A recommendation that turns out to be wrong
   is fine and normal; one whose reasoning is invisible cannot be overturned by evidence.
-- **Redact before writing a security finding.** This repository is public and an issue cannot be
-  retracted. Describe the shape, cite `path` and symbol, and never reproduce a secret-shaped value.
+- **Redact before writing a security finding.** An issue cannot be retracted, and everyone who can
+  read the repository reads it. Describe the shape, cite `path` and symbol, and never reproduce a secret-shaped value.
   A finding whose point cannot survive redaction is one to raise privately, not to file.
 
 **For a link to another repository's issue or PR, use `redirect.github.com`.** A plain `github.com`
@@ -271,7 +271,7 @@ checked, not where they read most smoothly.**
 - ✅ Search existing issues, closed ones included, before concluding it is new.
 - ✅ Say explicitly which claims are unverified.
 - ✅ Cite symbols and paths; record the recommendation's basis alongside it.
-- ✅ Redact a security finding before it reaches a public issue.
+- ✅ Redact a security finding before it reaches an issue.
 - ✅ State which branch of the Step 6 table applied.
 - ✅ Write in Japanese.
 - ❌ Assert runtime behavior that was never observed, without labelling it as unverified.

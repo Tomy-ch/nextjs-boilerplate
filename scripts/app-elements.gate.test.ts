@@ -77,7 +77,7 @@ describe("app の element の禁止", () => {
 
   // ----- 正常系 -----
   it(
-    "`route.ts` から境界アダプタと feature の `facade/` は引ける",
+    "`route.ts` から `model` と feature の `facade/` は引ける",
     async () => {
       const errors = await boundaryErrorsOf(
         "src/app/api/probe/route.ts",

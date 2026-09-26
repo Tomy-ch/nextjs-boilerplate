@@ -448,9 +448,9 @@ Guards that hold regardless of approval or mode:
   `// eslint-disable*`, `/** @jsxImportSource … */`, `// Code generated … DO NOT EDIT`, shebangs.
   (`"use client"` / `"use server"` are string directives, not comments — never touch them.)
 - **Never edit a protected path.** `AGENTS.md`, `LICENSE`, and anything under
-  `.claude/settings.json`'s `permissions.deny` stay untouched. Accepted ADR bodies are a normal
-  destination while `AGENTS.md`'s *Temporary Operating Rules* lift the approval requirement; once
-  that lifting ends they need approval like any other ADR edit.
+  `.claude/settings.json`'s `permissions.deny` stay untouched. Whether an Accepted ADR body needs
+  approval before it becomes a destination is decided by `AGENTS.md`'s *Protected Documentation*,
+  like any other ADR edit.
 - **Never touch generated files** — `**/gen/**`, anything with a generated banner.
 - **Do not rewrite the code's behavior.** This skill moves prose. If a comment is wrong because the
   code is wrong, report it and stop.
@@ -460,8 +460,8 @@ Guards that hold regardless of approval or mode:
 Run this only when something was written. 報告のみ has nothing to verify; 自動適用 needs it most,
 because nobody read the edits one at a time.
 
-**Format only what this run wrote, and leave the gates to the hooks and CI** (`AGENTS.md`, *Do not
-pre-run the gates* — CI is the authority):
+**Format only what this run wrote, and leave the gates to the hooks and CI** (`docs/playbook.md`,
+*ゲートを先回りして回さない* — CI is the authority):
 
 ```sh
 pnpm exec biome check --fix <the source files you touched>

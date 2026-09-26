@@ -23,7 +23,7 @@
 
 | 何を知りたいか | 読む先 |
 | --- | --- |
-| 層の責務・依存の向き・カーネルの置き場 | [`AGENTS.md`](../AGENTS.md) の ADR 一覧から該当 ADR |
+| 層の責務・依存の向き・カーネルの置き場 | [`docs/adr/README.md`](../docs/adr/README.md) の ADR 一覧から該当 ADR |
 | 変更してよいパス | `AGENTS.md`「AI Modification Scope」 |
 | ブランチ・コミット・PR の作法 | `AGENTS.md`「Git Rules」と [0150](../docs/adr/0150-git-workflow.md) |
 | 日常的に守る実装規則 | [`docs/rules.md`](../docs/rules.md) |
@@ -34,5 +34,5 @@ AGENTS.md に書かれていない、この器だけの事情を置く。
 
 - **ブランチ保護の実体は [`settings/branch-protection.json`](settings/branch-protection.json) が持つ。**
   Copilot は保護ブランチへ直接コミットせず、必ず feature ブランチを切る。承認を待たずに merge しない
-- **PR ブランチへ積んだ後は止まる。** push するかは人が決める（`AGENTS.md`「Git Rules」3）
+- **PR ブランチへ積んだ後は止まる。** push するかは人が決める（`AGENTS.md`「Git Rules」）
 - **コードレビューのコメントも日本語で書く**（`AGENTS.md`「Language Rules」）

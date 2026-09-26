@@ -62,11 +62,9 @@ These stay protected even during this skill's execution:
 - `LICENSE`
 - Accepted ADR bodies. Step 5 appends a row to the coverage table of ADR
   [0154](../../../docs/adr/0154-claude-skills-operations.md) or
-  [0155](../../../docs/adr/0155-claude-skills-development.md); that is possible today only because
-  `AGENTS.md`'s "Temporary Operating Rules until v1.0.0" lift the approval requirement on ADR
-  bodies. Once those rules are removed, the row addition needs the user's explicit approval like any
-  other ADR edit — the ADRs' own "adding a row is a minor edit" clause does not by itself override
-  `AGENTS.md`.
+  [0155](../../../docs/adr/0155-claude-skills-development.md); whether that edit needs the user's
+  explicit approval is decided by `AGENTS.md`'s *Protected Documentation*, like any other ADR edit —
+  the ADRs' own "adding a row is a minor edit" clause does not by itself override `AGENTS.md`.
 - `.claude/settings.json` — the plugin bootstrap writes it through the `claude` CLI (Step 0); never
   hand-edit it here.
 - Anything listed under `permissions.deny` in `.claude/settings.json`.

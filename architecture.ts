@@ -179,7 +179,7 @@ export const ENTRY_POINTS = [
  *   `unit` で検証し、絵を返すだけの 3 つは判定を持たないので単体では回しません
  *   （`scripts/lib/untested-modules.ts`）
  *
- * `route-segment` はまだこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
+ * `route-segment` はこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
  * 許されているのは計装の mount と、Next.js の規約が route segment に置くことを要求する値だけ
  * ですが、その限定は「何を import してよいか」ではなく「どう使ってよいか」なので、層の許可を削る
  * 形では表せません。残りは意味的な監査と人のレビューが拾います。

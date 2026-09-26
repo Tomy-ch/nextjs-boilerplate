@@ -103,9 +103,9 @@ done
 
 Treat `architecture.md` (design-derived items) **with a bias toward skipping**. Design changes are
 heavy judgments and tend to match the user policy "proceed only where no design decision is needed /
-do not handle suspicious places." In this repository especially, most architecture-level items fall
-inside a **pending ADR area** (one no Accepted ADR decides) and MUST be deferred. Pick only the clear and local
-ones, and leave the rest deferred with a reason.
+do not handle suspicious places." An architecture-level item that falls inside a **pending ADR area**
+(one no Accepted ADR decides) MUST be deferred. Pick only the clear and local ones, and leave the rest
+deferred with a reason.
 
 Processing order is **Critical → High → Medium → Low**, and within each band by file-path order
 (= the same directory clusters together, consistent with stop granularity `dir`).
