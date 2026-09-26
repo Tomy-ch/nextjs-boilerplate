@@ -11,16 +11,7 @@ import { type IssueBody, missingRequiredFields } from "./required-fields.js";
 function listIssues(requested: string): readonly IssueBody[] {
   const raw = execFileSync(
     "gh",
-    [
-      "issue",
-      "list",
-      "--state",
-      requested,
-      "--limit",
-      "200",
-      "--json",
-      "number,title,body,labels",
-    ],
+    ["issue", "list", "--state", requested, "--limit", "200", "--json", "number,title,body,labels"],
     { encoding: "utf8" },
   );
 
