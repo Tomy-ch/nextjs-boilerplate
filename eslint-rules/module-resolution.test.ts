@@ -57,4 +57,14 @@ describe("moduleSpecifiers", () => {
   it("モジュールを指さないソースからは何も拾わない", () => {
     expect(moduleSpecifiers("const from = 1;")).toEqual([]);
   });
+
+  it("コメントと文字列の中に書かれた綴りは拾わない", () => {
+    const source = [
+      '// import { a } from "./in-comment";',
+      'const text = \'import { b } from "./in-string";\';',
+      '/** @example import { c } from "./in-doc"; */',
+    ].join("\n");
+
+    expect(moduleSpecifiers(source)).toEqual([]);
+  });
 });
