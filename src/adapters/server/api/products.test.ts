@@ -62,6 +62,10 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
   return undefined;
 }
 
+beforeEach(() => {
+  getAccessToken.mockResolvedValue(null);
+});
+
 afterEach(() => {
   vi.restoreAllMocks();
 });

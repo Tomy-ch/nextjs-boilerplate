@@ -65,6 +65,7 @@ describe("noClientOutsideConnectionPort", () => {
         // client 側の要求境界。綴りは同じだが、解決した先が組み立ての kernel ではない。
         { code: 'import { createHttpClient } from "../http/request";', filename: CLIENT_FILENAME },
         { code: 'import { createHttpClient } from "./session";', filename: FILENAME },
+        { code: 'export * from "./session";', filename: FILENAME },
         { code: 'import { z } from "zod";', filename: FILENAME },
         { code: 'const loaded = await import("./session");', filename: FILENAME },
         { code: "const loaded = await import(specifier);", filename: FILENAME },
