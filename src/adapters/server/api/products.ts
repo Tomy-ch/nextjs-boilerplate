@@ -274,9 +274,8 @@ let client: UserScopedHttpClient | undefined;
  * 商品の口を叩く client。
  *
  * @remarks
- * **資格情報は取れたときだけ載せます。**読む口は未ログインでも通り、書き込む口は主体を要求
- * します。読み書きが 1 つの client に同居するときの形と、落としたときの症状は
- * [adapters](../../README.md) の「主体を名乗るかは、口ではなく client が決める」節。
+ * **資格情報は取れたときだけ載せます。**読む口は要求ごとに認証を任意と宣言して未ログインでも
+ * 通し、書き込む口は主体を要求します。
  *
  * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
  * （`docs/rules.md`「データ分類と機微情報」の「取得の口は分類を宣言する」）。入れてはいけない理由は
@@ -287,7 +286,6 @@ let client: UserScopedHttpClient | undefined;
 function getClient(): UserScopedHttpClient {
   client ??= createHttpClient({
     scope: "user-scoped",
-    allowAnonymous: true,
     baseUrl: getApiConfig().baseUrl,
     getBearerToken: getAccessToken,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
@@ -351,6 +349,7 @@ export function toProductPage(wire: WireProductPage): ProductPage {
 export const getProducts = cache(async (query: ProductQuery = {}): Promise<ProductPage> => {
   const page = await getClient().request({
     path: "/v1/products",
+    allowAnonymous: true,
     searchParams: {
       ...toFilterParams(query),
       after: query.after,
@@ -424,6 +423,7 @@ export async function getProductListPage(
 export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
   const { count } = await getClient().request({
     path: "/v1/products/count",
+    allowAnonymous: true,
     searchParams: toFilterParams(query),
     schema: GetProductsCountResponse,
   });
@@ -496,6 +496,7 @@ export const getProductRanking = cache(
 export const getProduct = cache(async (id: ProductId): Promise<Product> => {
   const product = await getClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
+    allowAnonymous: true,
     schema: GetProductsDetailResponse,
   });
 

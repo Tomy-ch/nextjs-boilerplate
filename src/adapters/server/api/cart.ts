@@ -35,8 +35,8 @@ let client: UserScopedHttpClient | undefined;
  * カートの接続先。
  *
  * @remarks
- * 認証を任意にします。カートは未ログインでも使え、主体はゲストの識別子か認証済みの利用者かの
- * どちらかで、契約が両方の呼び出しを受け付けます。
+ * カートは未ログインでも使え、主体はゲストの識別子か認証済みの利用者かのどちらかです。契約が
+ * 両方の呼び出しを受け付ける口は、要求ごとに認証を任意と宣言します。引き継ぎは主体を要求します。
  *
  * @returns カート用の client
  */
@@ -46,7 +46,6 @@ function getClient(): UserScopedHttpClient {
     baseUrl: getApiConfig().baseUrl,
     maxUrlBytes: getHttpConfig().maxUrlBytes,
     getBearerToken: getAccessToken,
-    allowAnonymous: true,
   });
 
   return client;
@@ -122,6 +121,7 @@ export const getMyCart = cache(async (): Promise<Cart> => {
   return toCart(
     await getClient().request({
       path: CART_PATH,
+      allowAnonymous: true,
       headers: await cartSessionHeader(),
       schema: GetCartsMeResponse,
     }),
@@ -147,6 +147,7 @@ export const getMyCart = cache(async (): Promise<Cart> => {
 export async function setMyCartItem(productId: ProductId, quantity: number): Promise<Cart> {
   const wire = await getClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
+    allowAnonymous: true,
     method: "PUT",
     headers: await cartSessionHeader(),
     body: { quantity } satisfies CartItemPutRequest,
@@ -170,6 +171,7 @@ export async function setMyCartItem(productId: ProductId, quantity: number): Pro
 export async function removeMyCartItem(productId: ProductId): Promise<void> {
   await getClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
+    allowAnonymous: true,
     method: "DELETE",
     headers: await cartSessionHeader(),
     schema: DeleteCartsMeItemResponse,
@@ -226,6 +228,7 @@ export async function mergeGuestCart(): Promise<CartMergeResult | null> {
 export async function clearMyCart(): Promise<void> {
   await getClient().request({
     path: CART_PATH,
+    allowAnonymous: true,
     method: "DELETE",
     headers: await cartSessionHeader(),
     schema: DeleteCartsMeResponse,

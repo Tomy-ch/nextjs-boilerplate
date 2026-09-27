@@ -256,4 +256,15 @@ describe("mergeGuestCart", () => {
     );
     expect(clearCartSession).not.toHaveBeenCalled();
   });
+
+  it("資格情報が無ければ送らず、識別子を残したまま未認証で落とす", async () => {
+    readCartSession.mockResolvedValue(TOKEN);
+    const requests = serveWrite("post", CART_MERGE_URL, { clamped: [], dropped: [] });
+
+    await expect(mergeGuestCart()).rejects.toSatisfy(
+      (error: unknown) => findAppError(error)?.kind === ErrorKind.UNAUTHENTICATED,
+    );
+    expect(requests).toHaveLength(0);
+    expect(clearCartSession).not.toHaveBeenCalled();
+  });
 });
