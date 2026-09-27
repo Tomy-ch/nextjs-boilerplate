@@ -14,7 +14,7 @@ import { ENTRYPOINT_PATTERNS, GENERATED_MODULES } from "./scripts/lib/untested-m
  * **公開面と内部で扱いを変えます。** boilerplate はテンプレートから作った側が使う口を意図的に export するため、
  * `src/components/**` は内部から呼ばれないことが正常であり、未使用がそのまま欠陥になりません。
  * これらを入口として宣言し、export の未使用を問いません。外部 API の接続口
- * （[`architecture.ts`](architecture.ts) の `CONNECTION_PORTS`）も同じ扱いです。取得の口がまだ 1 つも
+ * （[`architecture.ts`](architecture.ts) の `CONNECTION_PORTS`）も同じ扱いです。取得の口が 1 つも
  * 無い状態でも、テンプレートから作った側が最初に引く口として残します。それ以外の層（`features` / `app` /
  * `adapters` / `capabilities` / `stores` / `model` / `config` / `errors` / `logging` /
  * `observability` / `scripts`）は内部であり、どこからも呼ばれない export は死んだコードです。

@@ -82,7 +82,7 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 
 **どの段も、他の段が見えないものを見ている。** 取得の口だけでは `use cache` を書かれた時点で外れ、taint だけでは派生値とコピーで抜け、ヘッダだけではアプリ内部の共有キャッシュに効かない。
 
-**段 2 の判定はモジュール単位で、口の分類の綴りを読む。** 分類の綴りは接続口に居て、取得の口を並べるモジュールは接続口を引くだけなので、import 先とその 1 段先までを読む。1 段先で数えないのは client を組む kernel だけである —— 分類を型として宣言するため両方の綴りを持ち、公開の接続口を経由するモジュールまで取り違える。 名前ごとに口へ辿り着くかを追う解析はこの段の役目に見合わないので、口と純粋な変換が同居するモジュールは変換だけを引いても止まる —— 止まったほうを直す(変換が自分のモジュールを持つ)。綴りを定数へ寄せると段そのものが黙るため、綴りが残っていることを別の口が見張る。
+**段 2 の判定はモジュール単位で、口の分類の綴りを読む。** 分類の綴りは接続口に居て、取得の口を並べるモジュールは接続口を引くだけなので、import 先とその 1 段先までを読む。1 段先で数えないのは client を組む kernel だけである —— 分類を型として宣言するため両方の綴りを持ち、公開の接続口を経由するモジュールまで取り違える。名前ごとに口へ辿り着くかを追う解析はこの段の役目に見合わないので、口と純粋な変換が同居するモジュールは変換だけを引いても止まる —— 止まったほうを直す(変換が自分のモジュールを持つ)。綴りを定数へ寄せると段そのものが黙るため、綴りが残っていることを別の口が見張る。
 
 ### 5. 「資格情報は使用地点で cookie から解決する」を規約として機械検査する
 
@@ -170,21 +170,21 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 
 ## 補足
 
-- **[0020](0020-adopted-architecture.md) 設計原則 6 との関係**: 原則 6 は「他の層が握る問題を、こちらで予防的に手当てしない」と定める。本 ADR の段はこれに反しない —— **それぞれが自分の持ち場を守っている**のであって、他所の答えを二つ目に書いているのではない。ただし決定 5 の前提に段 3 と取得時の関門が二重に乗る点だけは重複であり、これは同原則の**セキュリティ例外**(責務分界は防御を薄くする理由にならない)を根拠とする。
+- **[0020](0020-adopted-architecture.md) の設計原則「他の層が握る問題を、こちらで予防的に手当てしない」との関係**: 本 ADR の段はこれに反しない —— **それぞれが自分の持ち場を守っている**のであって、他所の答えを二つ目に書いているのではない。ただし決定 5 の前提に段 3 と取得時の関門が二重に乗る点だけは重複であり、これは同原則の**セキュリティ例外**(責務分界は防御を薄くする理由にならない)を根拠とする。
 - **実装時に実測する点**: `verifySession` は React `cache()` でメモ化されている。cached scope の外で解決済みの値が中で再利用されると、`cookies()` が再読されず段 3 が発火しない可能性がある。有効化時に実測して確かめる。
 - **トレードオフ**: 通常実装の可読性はほぼ変わらない(feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行)。代わりに、資格情報を載せうる口は共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化を採るなら、**口を分ける**ことが条件になる。
 
-- **SSR-First との関係**: [0040](0040-routing-rendering-strategy.md) は Server Components を既定とし、どのレンダリングモードも閉ざさないと定める。これは**性能と UX 上の既定値**であって、PII の機密性を上回る制約ではない。既定は維持しつつ、PII を含む範囲では不変条件 1 が優先し、決定 8 / 10 の順序で決める。
+- **SSR-First との関係**: [0040](0040-routing-rendering-strategy.md) は Server Components を既定とし、どのレンダリングモードも閉ざさないと定める。これは**性能と UX 上の既定値**であって、PII の機密性を上回る制約ではない。既定は維持しつつ、PII を含む範囲では不変条件 1 が優先し、決定 9 の順序で決める。
 - **PPR との関係**: [0041](0041-cache-components-decision.md) の PPR は **public data に対する性能最適化**として扱う。user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する。
 
 ## 関連 ADR
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 設計原則 6(責務を超えた予防措置 / セキュリティ例外)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — §8 漏洩防御(`server-only` + taint)。本 ADR の段 4
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 設計原則「他の層が握る問題を、こちらで予防的に手当てしない」(責務を超えた予防措置 / セキュリティ例外)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — 漏洩防御(`server-only` + taint)。本 ADR の「client 送信前」の段
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components(PPR)。本 ADR は有効化の前提
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — キャッシュ・再検証の所有層。`docs/rules.md`「描画とキャッシュ」の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」の Rationale
 - [0072-api-type-generation.md](0072-api-type-generation.md) — 型漏洩禁止(wire 型を内層へ出さない)
 - [0029-type-design-discipline.md](0029-type-design-discipline.md) — branded / opaque(secret の値型)
-- [0111-csp-security-headers.md](0111-csp-security-headers.md) — 応答ヘッダ。本 ADR の段 5
+- [0111-csp-security-headers.md](0111-csp-security-headers.md) — 応答ヘッダ。本 ADR の「配信」の段
 - [0110-security-operations.md](0110-security-operations.md) — セキュリティ運用の全体像
 - [0042-react19-rendering-api.md](0042-react19-rendering-api.md) — React Compiler は性能最適化のみ(本 ADR の対象外)

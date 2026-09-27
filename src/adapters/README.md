@@ -277,7 +277,7 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
 
 **主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
 （`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
-抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
 
 **`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
 `taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため

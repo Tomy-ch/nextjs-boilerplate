@@ -22,7 +22,7 @@ const ROLES_PATH = "/v1/users/me/roles";
  * 変わります。
  *
  * **session を確立する途中で呼ぶため、トークンを引数で受け取ります。** この時点では cookie が
- * まだ無く、通常の取得口（cookie から Bearer を組む）は使えません。
+ * まだ無く、cookie から Bearer を組む共有の接続口（`getUserScopedClient`）は使えません。
  *
  * 役割が 1 つも無い主体は一般利用者として扱います。空配列はエラーではなく、契約がそう定めています。
  *

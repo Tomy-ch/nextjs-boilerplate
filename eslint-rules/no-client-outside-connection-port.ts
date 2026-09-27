@@ -7,11 +7,10 @@ import { resolveModule } from "./module-resolution";
 
 /**
  * 外部 API を叩く client を、接続口の外で組ませないルール（`docs/rules.md`「取得と契約」の
- * 「接続口は downstream と分類の組ごとに 1 つ」）。
+ * 「接続口は downstream と分類の組ごとに 1 つ置き、client を組むのはそこだけにする」）。
  *
- * 遮断器と再試行の予算は client の中に状態として載るため、同じ接続先へ client を分けると劣化の
- * 判断が分けた数だけ割れる。組んでよいのは [`architecture.ts`](../architecture.ts) の
- * `CONNECTION_PORTS` だけで、それ以外で組む箇所は `eslint-disable-next-line` に理由を書いて名乗る。
+ * 組んでよいのは [`architecture.ts`](../architecture.ts) の `CONNECTION_PORTS` だけで、それ以外で
+ * 組む箇所は `eslint-disable-next-line` に理由を書いて名乗る。
  *
  * **判定は import の綴りを実ファイルへ解決してから行う。** server 側と client 側の要求境界は同じ
  * `../http/request` という綴りを持つため、綴りだけでは区別できない。解決した先が
@@ -24,6 +23,7 @@ import { resolveModule } from "./module-resolution";
  *
  * テストは対象外にする。組み立ての振る舞いを確かめる側であり、束には載らない。
  */
+
 /** 外部 API を叩く client を組む関数の名前。 */
 const FACTORY_NAME = "createHttpClient";
 
