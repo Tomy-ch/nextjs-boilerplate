@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 接続先の issuer を呼び出しごとに受け取る
 import { createHttpClient } from "../http/request";
 
 /** OIDC Discovery の取得先。仕様が定める固定パス（OpenID Connect Discovery 1.0 §4）。 */

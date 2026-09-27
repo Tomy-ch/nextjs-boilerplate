@@ -395,3 +395,19 @@ export const NODE_RUNTIME_ACCESS = [
  * 宣言します。
  */
 export const HTTP_CLIENT_FACTORY = "src/adapters/server/http/request.ts";
+
+/**
+ * 外部 API を叩く client を組んでよい接続口。
+ *
+ * @remarks
+ * 遮断器と再試行の予算は client の中に状態として載るため、接続先と分類の組ごとに 1 つだけ置き、
+ * 取得の口はここを引きます。ここ以外で client を組む箇所は、`eslint-disable-next-line` に理由を
+ * 書いて名乗ります（`project-rules/no-client-outside-connection-port`）。
+ *
+ * 取得の口がまだ 1 つも無い状態でも、テンプレートから作った側が最初に引く口として残すので、
+ * 未使用の検査（`knip.ts`）はここを入口として扱います。
+ */
+export const CONNECTION_PORTS = [
+  "src/adapters/server/http/public-client.ts",
+  "src/adapters/server/http/user-scoped-client.ts",
+] as const;

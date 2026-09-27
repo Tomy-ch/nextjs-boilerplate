@@ -7,6 +7,7 @@ import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 接続先の issuer を注入で受け取る
 import { createHttpClient } from "../http/request";
 import { fetchOidcEndpoints, type OidcEndpoints } from "./oidc-discovery";
 import { toCodeChallenge } from "./pkce";

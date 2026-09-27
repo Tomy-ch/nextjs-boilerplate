@@ -5,6 +5,7 @@ import { getHttpConfig } from "@/config/http/http.server";
 import { SESSION_ROLE, type SessionRole } from "@/model/session";
 
 import { GetUsersMeRolesResponse } from "../../gen/api/endpoints.zod";
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 確立中の 1 往復で、トークンが呼び出しと一緒に届く
 import { createHttpClient } from "../http/request";
 
 /** 管理者を表すロールコード。契約が持つ安定コードで、表示名では判定しない。 */
