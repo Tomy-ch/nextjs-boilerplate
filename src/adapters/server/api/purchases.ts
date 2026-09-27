@@ -3,8 +3,6 @@ import "server-only";
 import { cache } from "react";
 import { type ZodType, z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { toProductId } from "@/model/product/product";
 import type {
   Purchase,
@@ -28,8 +26,7 @@ import {
 } from "../../gen/api/endpoints.zod";
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -37,24 +34,6 @@ const PURCHASES_PATH = "/v1/purchases";
 
 type WirePurchases = z.infer<typeof GetPurchasesResponse>;
 type WirePurchaseDetail = z.infer<typeof GetPurchasesDetailResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 購入の口が使う接続先。
- *
- * @returns 購入用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 契約の履歴応答を表示用の 1 ページへ写す。
@@ -200,7 +179,7 @@ function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | un
  */
 export const getMyPurchases = cache(
   async (query: PurchaseHistoryQuery): Promise<PurchaseHistoryPage> => {
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: PURCHASES_PATH,
       searchParams: toSearchParams(query),
       schema: GetPurchasesResponse,
@@ -246,7 +225,7 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
  * @returns 購入 1 件
  */
 export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchase> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}`,
     schema: GetPurchasesDetailResponse,
   });
@@ -276,7 +255,7 @@ export async function createPurchase(
   lines: readonly PurchaseOrderLine[],
   idempotencyKey: string,
 ): Promise<string> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: PURCHASES_PATH,
     method: "POST",
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
@@ -311,7 +290,7 @@ async function transition<T>(
   action: string,
   schema: ZodType<T>,
 ): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}/${action}`,
     method: "PATCH",
     schema,
@@ -361,7 +340,7 @@ export async function payMyPurchase(purchaseCode: string): Promise<void> {
  * @returns 発送可能な購入の組
  */
 export async function getShippablePurchases(): Promise<readonly PurchaseDispatchGroup[]> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/shippable`,
     schema: GetPurchasesShippableResponse,
   });
@@ -391,7 +370,7 @@ export async function getShippablePurchases(): Promise<readonly PurchaseDispatch
  */
 export const getShippedPurchases = cache(
   async (first: number): Promise<readonly PurchaseHistoryEntry[]> => {
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: PURCHASES_PATH,
       searchParams: {
         first: String(first),

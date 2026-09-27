@@ -3,34 +3,13 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 
 import { GetDashboardSummaryResponse } from "../../gen/api/endpoints.zod";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 type WireDashboardSummary = z.infer<typeof GetDashboardSummaryResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 集計の接続先。
- *
- * @returns 管理向け集計用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 契約の集計を表示用の型へ写す。
@@ -71,7 +50,7 @@ function toDashboardSummary(wire: WireDashboardSummary): DashboardSummary {
  */
 export const getDashboardSummary = cache(
   async (window: TimeWindow = WHOLE_TIME): Promise<DashboardSummary> => {
-    const summary = await getClient().request({
+    const summary = await getUserScopedClient().request({
       path: "/v1/dashboard/summary",
       searchParams: { orderedAfter: window.after, orderedBefore: window.before },
       schema: GetDashboardSummaryResponse,

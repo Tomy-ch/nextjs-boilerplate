@@ -13,7 +13,7 @@ import type { Rule, Scope } from "eslint";
  * | `getBearerToken` | import した口 | 宣言が 1 か所にあり、そこを読めば解決の経路が分かる |
  * | `bearerToken` | 囲む関数の引数 | 確立中の 1 往復は、トークンが呼び出しと一緒に届く |
  *
- * **例外の綴りも見る。** 周囲の adapter は `let client; client ??= createHttpClient(...)` で
+ * **例外の綴りも見る。** 接続口は `let client; client ??= createHttpClient(...)` で
  * クライアントをモジュール変数へ固定する形を採っており、その形へ `bearerToken` を持ち込むと、
  * 最初の要求のトークンがプロセスの寿命だけ居座って、以後の全員がその主体として出ていく。引数
  * だけを通すのは、掴んだ値がこの綴りからも入れないようにするためである。

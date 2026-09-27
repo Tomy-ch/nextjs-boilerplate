@@ -3,8 +3,6 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { getLogger } from "@/logging/logging.server";
@@ -24,28 +22,10 @@ import {
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
 import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
-import { getAccessToken, signOut, verifySession } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { signOut, verifySession } from "../auth/session";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 type WireUser = z.infer<typeof GetUsersMeResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 利用者の口が使う接続先。
- *
- * @returns 利用者用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 自分の情報を契約の形のまま取る。
@@ -60,7 +40,7 @@ function getClient(): UserScopedHttpClient {
  * @returns 契約の形のままの自分の情報
  */
 const getMyUser = cache(async (): Promise<WireUser> => {
-  return getClient().request({ path: "/v1/users/me", schema: GetUsersMeResponse });
+  return getUserScopedClient().request({ path: "/v1/users/me", schema: GetUsersMeResponse });
 });
 
 /**
@@ -147,7 +127,7 @@ export async function findRegistration(): Promise<RegistrationStatus> {
  * @returns 自分の購入の集計
  */
 export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: "/v1/users/me/purchases/summary",
     schema: GetUsersMePurchasesSummaryResponse,
   });
@@ -182,7 +162,7 @@ export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => 
  * @param idempotencyKey - 同一の試みを指す鍵。契約は表示可能 ASCII 255 文字以内を要求する
  */
 export async function registerUser(profile: UserProfile, idempotencyKey: string): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: "/v1/users",
     method: "POST",
     headers: { "Idempotency-Key": idempotencyKey },
@@ -215,7 +195,7 @@ export async function registerUser(profile: UserProfile, idempotencyKey: string)
 export async function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
   const { id } = await getMyUser();
 
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/users/${id}`,
     method: "PUT",
     body: {
@@ -256,7 +236,7 @@ export async function updateMyProfile(profile: UserProfile): Promise<UserProfile
 export async function withdrawMe(): Promise<string | null> {
   const { id } = await getMyUser();
 
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `/v1/users/${id}`,
     method: "DELETE",
     schema: DeleteUsersDetailResponse,
@@ -340,7 +320,7 @@ export const getManagedUserPage = cache(
       ...(query.active === undefined ? {} : { active: query.active }),
     });
 
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: "/v1/users",
       searchParams: {
         active: params.active?.toString(),
@@ -372,7 +352,7 @@ export const getManagedUserPage = cache(
  * @param id - 退会させる利用者
  */
 export async function withdrawUser(id: UserId): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `/v1/users/${encodeURIComponent(id)}`,
     method: "DELETE",
     schema: DeleteUsersDetailResponse,

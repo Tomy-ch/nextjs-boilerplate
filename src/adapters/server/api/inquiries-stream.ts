@@ -1,7 +1,6 @@
 import "server-only";
 
 import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
@@ -9,8 +8,7 @@ import {
   PostInquiriesFeedStreamTicketResponse,
   PostInquiriesMeStreamTicketResponse,
 } from "../../gen/api/endpoints.zod";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 const MY_TICKET_PATH = "/v1/inquiries/me/stream-ticket";
 
@@ -41,24 +39,6 @@ export type StreamConnection = {
   /** この URL で新しい接続を始められる期限。過ぎたら取り直す。 */
   readonly expiresAt: Date;
 };
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 問い合わせ購読の発券口が使う接続先。
- *
- * @returns 発券用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 購読を表せない配備では、発券そのものを断る。
@@ -112,7 +92,7 @@ function toConnection(ticket: string, streamId: string, expiresAt: string): Stre
 export async function issueMyInquiryStreamConnection(): Promise<StreamConnection> {
   assertSubscribable();
 
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: MY_TICKET_PATH,
     method: "POST",
     schema: PostInquiriesMeStreamTicketResponse,
@@ -129,7 +109,7 @@ export async function issueMyInquiryStreamConnection(): Promise<StreamConnection
 export async function issueInquiryFeedStreamConnection(): Promise<StreamConnection> {
   assertSubscribable();
 
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: FEED_TICKET_PATH,
     method: "POST",
     schema: PostInquiriesFeedStreamTicketResponse,

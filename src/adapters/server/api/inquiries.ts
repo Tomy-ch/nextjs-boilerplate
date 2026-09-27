@@ -2,8 +2,6 @@ import "server-only";
 
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type {
   InquiryHistory,
   InquiryId,
@@ -20,8 +18,7 @@ import {
   PostInquiriesMeMessagesResponse,
 } from "../../gen/api/endpoints.zod";
 import type { InquiryMessagePostRequest } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -32,24 +29,6 @@ const INQUIRIES_PATH = "/v1/inquiries";
 type WireHistory = z.infer<typeof GetInquiriesMeMessagesResponse>;
 type WireMessage = WireHistory["messages"][number];
 type WireList = z.infer<typeof GetInquiriesResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 問い合わせの口が使う接続先。
- *
- * @returns 問い合わせ用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 契約のメッセージを表示用の型へ写す。所属する問い合わせは履歴の側が持つため落とす。
@@ -129,7 +108,7 @@ function afterSequenceParams(
  */
 export async function getMyInquiryHistory(afterSequence?: number): Promise<InquiryHistory> {
   return toHistory(
-    await getClient().request({
+    await getUserScopedClient().request({
       path: MY_MESSAGES_PATH,
       searchParams: afterSequenceParams(afterSequence),
       schema: GetInquiriesMeMessagesResponse,
@@ -154,7 +133,7 @@ export async function postMyInquiryMessage(
   body: string,
   idempotencyKey: string,
 ): Promise<InquiryMessage> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: MY_MESSAGES_PATH,
     method: "POST",
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
@@ -177,7 +156,7 @@ export async function postMyInquiryMessage(
  */
 export async function listInquiries(after?: string): Promise<InquiryListPage> {
   return toListPage(
-    await getClient().request({
+    await getUserScopedClient().request({
       path: INQUIRIES_PATH,
       searchParams: after === undefined ? undefined : { after },
       schema: GetInquiriesResponse,
@@ -197,7 +176,7 @@ export async function getInquiryHistory(
   afterSequence?: number,
 ): Promise<InquiryHistory> {
   return toHistory(
-    await getClient().request({
+    await getUserScopedClient().request({
       path: `${INQUIRIES_PATH}/${encodeURIComponent(inquiryId)}/messages`,
       searchParams: afterSequenceParams(afterSequence),
       schema: GetInquiriesDetailMessagesResponse,
@@ -218,7 +197,7 @@ export async function postInquiryReply(
   body: string,
   idempotencyKey: string,
 ): Promise<InquiryMessage> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${INQUIRIES_PATH}/${encodeURIComponent(inquiryId)}/messages`,
     method: "POST",
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },

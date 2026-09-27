@@ -3,8 +3,6 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
@@ -35,9 +33,8 @@ import type {
   ProductStockPatchRequest,
   ProductsPostRequest,
 } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
 import { getPublicClient } from "../http/public-client";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
@@ -268,32 +265,6 @@ function toFilterParams(
   };
 }
 
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 商品の口を叩く client。
- *
- * @remarks
- * **資格情報は取れたときだけ載せます。**読む口は要求ごとに認証を任意と宣言して未ログインでも
- * 通し、書き込む口は主体を要求します。
- *
- * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
- * （`docs/rules.md`「データ分類と機微情報」の「取得の口は分類を宣言する」）。入れてはいけない理由は
- * 同「描画とキャッシュ」の「Data Cache へ入れてよいのは主体を名乗らずに取れるものだけ」が持ちます。
- *
- * @returns 商品の口を叩く client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    getBearerToken: getAccessToken,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
-}
-
 /**
  * 契約の商品を表示用の型へ写す。
  *
@@ -347,7 +318,7 @@ export function toProductPage(wire: WireProductPage): ProductPage {
  * @returns 商品一覧の 1 ページ
  */
 export const getProducts = cache(async (query: ProductQuery = {}): Promise<ProductPage> => {
-  const page = await getClient().request({
+  const page = await getUserScopedClient().request({
     path: "/v1/products",
     allowAnonymous: true,
     searchParams: {
@@ -421,7 +392,7 @@ export async function getProductListPage(
  * @returns 条件に一致する商品の総数
  */
 export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
-  const { count } = await getClient().request({
+  const { count } = await getUserScopedClient().request({
     path: "/v1/products/count",
     allowAnonymous: true,
     searchParams: toFilterParams(query),
@@ -494,7 +465,7 @@ export const getProductRanking = cache(
  * @returns 商品 1 件
  */
 export const getProduct = cache(async (id: ProductId): Promise<Product> => {
-  const product = await getClient().request({
+  const product = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
     allowAnonymous: true,
     schema: GetProductsDetailResponse,
@@ -539,7 +510,7 @@ export async function uploadProductImage(image: File): Promise<string> {
   const body = new FormData();
   body.append("image", image);
 
-  const { imagePath } = await getClient().request({
+  const { imagePath } = await getUserScopedClient().request({
     path: "/v1/products/images",
     method: "POST",
     multipart: body,
@@ -559,7 +530,7 @@ export async function uploadProductImage(image: File): Promise<string> {
  * @returns 作成された商品
  */
 export async function createProduct(draft: ProductDraft): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: "/v1/products",
     method: "POST",
     body: {
@@ -595,7 +566,7 @@ export async function createProduct(draft: ProductDraft): Promise<Product> {
  * @returns 更新後の商品
  */
 export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
     method: "PATCH",
     body: {
@@ -635,7 +606,7 @@ export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<P
  * @returns 増減後の商品
  */
 export async function adjustProductStock(id: ProductId, delta: number): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}/stock`,
     method: "PATCH",
     body: { delta } satisfies ProductStockPatchRequest,
