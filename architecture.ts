@@ -384,3 +384,14 @@ export const NODE_RUNTIME_ACCESS = [
   "src/instrumentation.ts",
   "src/components/scripts/**",
 ] as const;
+
+/**
+ * 外部 API を叩く client を組む kernel。
+ *
+ * @remarks
+ * 取得の口の分類（`public` / `user-scoped`）を型として宣言するため、両方の綴りを持ちます。
+ * 口の分類を綴りで読む検査がこれを 1 段先の相手として数えると、公開の口を経由するだけの
+ * モジュールまで user-scoped と取り違えます。検査が名指しで除けるように、置き場をここで
+ * 宣言します。
+ */
+export const HTTP_CLIENT_FACTORY = "src/adapters/server/http/request.ts";

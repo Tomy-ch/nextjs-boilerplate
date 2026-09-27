@@ -21,9 +21,11 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 | [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
 | [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよい層の外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`） |
 | [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.md)）。`font-normal` は打ち消しなので対象外 |
-| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) の段 2）。判定はモジュール単位で、綴りの宣言を読む（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
+| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) の段 2）。判定はモジュール単位で、import 先とその 1 段先の綴りの宣言を読む。1 段先で client を組む kernel（[`architecture.ts`](../architecture.ts) の `HTTP_CLIENT_FACTORY`）は数えない（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
 
-`use cache` の宣言を読む述語は [`cache-directive.ts`](cache-directive.ts) が持つ。
+`use cache` の宣言を読む述語は [`cache-directive.ts`](cache-directive.ts) が持つ。import の綴りを
+実ファイルへ解決する関数と、lint の対象でないファイルから綴りを拾う関数は
+[`module-resolution.ts`](module-resolution.ts) が持つ。
 
 ## テストの責務
 
