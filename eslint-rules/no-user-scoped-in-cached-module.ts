@@ -1,9 +1,11 @@
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import type { Rule } from "eslint";
 
+import { HTTP_CLIENT_FACTORY } from "../architecture";
 import { isServerCacheDirective } from "./cache-directive";
+import { moduleSpecifiers, resolveModule } from "./module-resolution";
 
 /**
  * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール
@@ -13,8 +15,12 @@ import { isServerCacheDirective } from "./cache-directive";
  * `use cache` は**口の外側からモジュールごと**キャッシュへ入れるため、口の型では止まらない。
  * `use cache: private` はサーバへ保存されないので対象外。
  *
- * **判定は直接の import だけを見る。** 間接参照の深い経路は取りこぼすが、そこは framework の防御
- * (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う。
+ * **判定は直接の import と、その 1 段先までを見る。** user-scoped の口は接続口の 1 か所で組まれ、
+ * 取得の口を並べるモジュールは接続口を引くだけで分類の綴りを持たないため、直接の import だけでは
+ * 取得の口へ届かない。1 段先で数えないのは client を組む kernel（`architecture.ts` の
+ * `HTTP_CLIENT_FACTORY`）だけで、分類を型として宣言する kernel は両方の綴りを持ち、公開の接続口を
+ * 経由するモジュールまで取り違えるためである。それより深い経路は取りこぼすが、そこは framework の
+ * 防御 (cached scope からの `cookies()` 読み出し) と取得時の関門が覆う。
  *
  * **判定の単位はモジュールであって、import した名前ではない。** 口を作るモジュールが純粋な変換も
  * 一緒に export していると、変換だけを引いた `use cache` も止まる。名前ごとに口へ辿り着くかを
@@ -23,53 +29,39 @@ import { isServerCacheDirective } from "./cache-directive";
  * 引く側が増えた時点で自分のモジュールを持つに値する。
  *
  * 分類の宣言そのものを読む。写した一覧を持つと、口の宣言が動いたときに黙って古いままになる。
- * その読み方の帰結として、口を作る kernel（`adapters/server/http/request.ts`）自身も当たる。外さない
- * —— `use cache` の下で client をその場で組む形も、作る先が user-scoped なら同じ事故を作る。
+ * その読み方の帰結として、kernel を直接 import したときは kernel 自身も当たる。外さない —— `use cache`
+ * の下で client をその場で組む形も、作る先が user-scoped なら同じ事故を作る。
  */
 /** 取得の口が user-scoped を名乗る綴り。 */
 const USER_SCOPED_DECLARATION = /scope:\s*"user-scoped"/;
 
-/** import 先の候補になる拡張子。 */
-const MODULE_SUFFIXES: readonly string[] = [".ts", ".tsx", "/index.ts", "/index.tsx"];
-
 /**
- * import の綴りから、拡張子を除いた実ファイルの位置を組む。組めない綴りは `undefined`。
+ * そのモジュールか、それが引く 1 段先のモジュールが user-scoped な取得の口を宣言しているか。
  *
- * 扱うのは別名（`@/`）と相対だけで、素の package 名はここで落ちる。
- */
-function moduleBase(specifier: string, filename: string, cwd: string): string | undefined {
-  if (specifier.startsWith("@/")) {
-    return join(cwd, "src", specifier.slice("@/".length));
-  }
-
-  if (specifier.startsWith(".")) {
-    return resolve(dirname(filename), specifier);
-  }
-
-  return undefined;
-}
-
-/**
- * import の綴りを実ファイルへ解決する。解決できなければ `undefined`。
+ * 1 段先の綴りは、綴りを書いた 1 段目のファイルを起点に解決する。
  *
- * 見るのはこのリポジトリのソースだけである。依存パッケージは取得の口を持たないうえ、解決に
- * `node_modules` の探索が要る。
+ * @param path - import 先の実ファイル
+ * @param cwd - リポジトリの根
+ * @returns 宣言していれば true
  */
-function resolveModule(specifier: string, filename: string, cwd: string): string | undefined {
-  const base = moduleBase(specifier, filename, cwd);
+function reachesUserScopedClient(path: string, cwd: string): boolean {
+  const source = readFileSync(path, "utf8");
 
-  if (base === undefined) {
-    return undefined;
+  if (USER_SCOPED_DECLARATION.test(source)) {
+    return true;
   }
 
-  return MODULE_SUFFIXES.map((suffix) => `${base}${suffix}`).find((candidate) =>
-    existsSync(candidate),
-  );
-}
+  const factory = resolve(cwd, HTTP_CLIENT_FACTORY);
 
-/** そのモジュールが user-scoped な取得の口を宣言しているか。 */
-function declaresUserScopedClient(path: string): boolean {
-  return USER_SCOPED_DECLARATION.test(readFileSync(path, "utf8"));
+  return moduleSpecifiers(source).some((specifier) => {
+    const next = resolveModule(specifier, path, cwd);
+
+    return (
+      next !== undefined &&
+      next !== factory &&
+      USER_SCOPED_DECLARATION.test(readFileSync(next, "utf8"))
+    );
+  });
 }
 
 const noUserScopedInCachedModule: Rule.RuleModule = {
@@ -109,7 +101,7 @@ const noUserScopedInCachedModule: Rule.RuleModule = {
         for (const { node, specifier } of imports) {
           const path = resolveModule(specifier, context.filename, context.cwd);
 
-          if (path !== undefined && declaresUserScopedClient(path)) {
+          if (path !== undefined && reachesUserScopedClient(path, context.cwd)) {
             context.report({ node, messageId: "noUserScopedInCachedModule", data: { specifier } });
           }
         }

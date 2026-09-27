@@ -6,6 +6,7 @@ import { getAuthConfig } from "@/config/auth/auth.server";
 import { getHttpConfig } from "@/config/http/http.server";
 import { createErrorMeta, withErrorMeta } from "@/errors/error-meta";
 
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 接続先の issuer を呼び出しごとに受け取る
 import { createHttpClient } from "../http/request";
 import { fetchOidcEndpoints } from "./oidc-discovery";
 

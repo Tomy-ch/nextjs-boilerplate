@@ -18,12 +18,15 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 | [`no-arbitrary-z-index`](no-arbitrary-z-index.ts) | 重なりの段の任意値（`z-[…]`）。段階値の間に割り込み、どれが上かを画面全体から読まないと決められなくなる |
 | [`no-cache-option-in-use-cache`](no-cache-option-in-use-cache.ts) | `use cache` を持つモジュールの `fetch` に渡した `cache` / `next`。内側が切れないぶん、外側が再取得しても同じ古い応答を掴む |
 | [`no-captured-bearer-token`](no-captured-bearer-token.ts) | 資格情報の取得口へ渡す掴んだ値。`getBearerToken` は import した口だけ、`bearerToken`（確立中の例外）は囲む関数の引数だけを通す。掴んだ値を渡すと `cookies()` が読まれず、cached scope の防御が黙って外れる（[0112](../docs/adr/0112-data-classification-cache-boundary.md)） |
+| [`no-client-outside-connection-port`](no-client-outside-connection-port.ts) | 接続口（[`architecture.ts`](../architecture.ts) の `CONNECTION_PORTS`）の外で外部 API の client を組むこと。遮断器と再試行の予算は client に載るため、同じ接続先へ分けると劣化の判断が割れる（[0071](../docs/adr/0071-bff-api-integration.md)）。接続先を呼び出しごとに受け取るなど寄せられない箇所は、`eslint-disable-next-line` に理由を書いて名乗る。import の綴りを実ファイルへ解決してから判定するので、client 側の同じ綴りは当たらない |
 | [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
 | [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよい層の外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`） |
 | [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.md)）。`font-normal` は打ち消しなので対象外 |
-| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) の段 2）。判定はモジュール単位で、綴りの宣言を読む（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
+| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) の段 2）。判定はモジュール単位で、import 先とその 1 段先の綴りの宣言を読む。1 段先で client を組む kernel（[`architecture.ts`](../architecture.ts) の `HTTP_CLIENT_FACTORY`）は数えない（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
 
-`use cache` の宣言を読む述語は [`cache-directive.ts`](cache-directive.ts) が持つ。
+`use cache` の宣言を読む述語は [`cache-directive.ts`](cache-directive.ts) が持つ。import の綴りを
+実ファイルへ解決する関数と、lint の対象でないファイルから綴りを拾う関数は
+[`module-resolution.ts`](module-resolution.ts) が持つ。
 
 ## テストの責務
 

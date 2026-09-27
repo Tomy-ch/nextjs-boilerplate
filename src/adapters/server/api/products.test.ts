@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -61,6 +61,10 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
 
   return undefined;
 }
+
+beforeEach(() => {
+  getAccessToken.mockResolvedValue(null);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -280,6 +284,15 @@ describe("getProducts", () => {
     expect(page.items[0]?.name).toBe("商品");
   });
 
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ keyword: "本", first: 20 });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("未公開を含める指定をクエリへ載せる", async () => {
     const requests = serveJson(PRODUCTS_URL, wirePage);
 
@@ -419,6 +432,15 @@ describe("getProductCount", () => {
     await expect(getProductCount({ keyword: "鞄" })).resolves.toBe(42);
   });
 
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(COUNT_URL, { count: 42 });
+
+    await getProductCount({ keyword: "鞄" });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("一致する対象を決める条件だけをクエリへ載せる", async () => {
     const requests = serveJson(COUNT_URL, { count: 0 });
 
@@ -454,6 +476,15 @@ describe("getProduct", () => {
     const product = await getProduct(toProductId(wireProduct.id));
 
     expect(product.name).toBe("商品");
+  });
+
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await getProduct(toProductId(wireProduct.id));
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
   });
 
   it("ID をパスへ載せる", async () => {
@@ -526,6 +557,15 @@ describe("getProductRanking", () => {
     expect(query.get("limit")).toBe("5");
   });
 
+  it("ログイン中でも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveJson(RANKING_URL, wireRanking);
+
+    await getProductRanking({ limit: 5 });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("数量の軸の口を叩く", async () => {
     const requests = serveJson(RANKING_URL, wireRanking);
 
@@ -573,6 +613,10 @@ const DRAFT = {
 describe("uploadProductImage", () => {
   const IMAGES_URL = `${PRODUCTS_URL}/images`;
 
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
   // ----- 正常系 -----
   it("保存されたオブジェクトキーだけを返す", async () => {
     serveWrite("post", IMAGES_URL, { imagePath: "products/abc.png" });
@@ -607,9 +651,23 @@ describe("uploadProductImage", () => {
       kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
     ).resolves.toBe(ErrorKind.PAYLOAD_TOO_LARGE);
   });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("post", IMAGES_URL, wireProduct);
+
+    await expect(
+      kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
+    ).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("createProduct", () => {
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
   // ----- 正常系 -----
   it("契約の応答を表示用の型へ写して返す", async () => {
     serveWrite("post", PRODUCTS_URL, wireProduct);
@@ -644,10 +702,23 @@ describe("createProduct", () => {
 
     await expect(requests[0]?.json()).resolves.toMatchObject({ publishedAt: null });
   });
+
+  // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await expect(kindOf(() => createProduct(DRAFT))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("updateProduct", () => {
   const id = toProductId("0195f0c2-0000-7000-8000-000000000001");
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
 
   // ----- 正常系 -----
   it("契約の応答を表示用の型へ写して返す", async () => {
@@ -682,11 +753,25 @@ describe("updateProduct", () => {
       ErrorKind.CONFLICT,
     );
   });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("patch", PRODUCT_URL, wireProduct);
+
+    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 4 }))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("adjustProductStock", () => {
   const STOCK_URL = `${PRODUCT_URL}/stock`;
   const ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
 
   // ----- 正常系 -----
   it("増減後の商品を表示用の型へ写して返す", async () => {
@@ -733,6 +818,14 @@ describe("adjustProductStock", () => {
     serveStatus("patch", STOCK_URL, 422);
 
     await expect(kindOf(() => adjustProductStock(ID, -1000))).resolves.toBe(ErrorKind.VALIDATION);
+  });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
   });
 
   it("並行して動かされて拒まれた応答を、競合として分類する", async () => {

@@ -13,19 +13,26 @@ import type { Rule, Scope } from "eslint";
  * | `getBearerToken` | import した口 | 宣言が 1 か所にあり、そこを読めば解決の経路が分かる |
  * | `bearerToken` | 囲む関数の引数 | 確立中の 1 往復は、トークンが呼び出しと一緒に届く |
  *
- * **例外の綴りも見る。** 周囲の adapter は `let client; client ??= createHttpClient(...)` で
+ * **例外の綴りも見る。** 接続口は `let client; client ??= createHttpClient(...)` で
  * クライアントをモジュール変数へ固定する形を採っており、その形へ `bearerToken` を持ち込むと、
  * 最初の要求のトークンがプロセスの寿命だけ居座って、以後の全員がその主体として出ていく。引数
  * だけを通すのは、掴んだ値がこの綴りからも入れないようにするためである。
  *
  * テストは対象外にする。取得口の振る舞いを確かめる側であり、束には載らない。
  */
+
+/** 使用地点で資格情報を解決する取得口を渡す綴り。 */
 const RESOLVER_PROPERTY = "getBearerToken";
 
 /** 解決済みの資格情報を渡す、確立中だけの綴り。 */
 const ESTABLISHING_PROPERTY = "bearerToken";
 
-/** テストか。 */
+/**
+ * テストか。
+ *
+ * @param filename - lint 対象のファイル
+ * @returns テストなら true
+ */
 function isTest(filename: string): boolean {
   return /\.test\.[cm]?[jt]sx?$/.test(filename);
 }
@@ -34,9 +41,13 @@ function isTest(filename: string): boolean {
  * プロパティが名指している綴り。実行時にしか決まらないキーなら `undefined`。
  *
  * @remarks
- * **リテラルのキーは `[...]` で書かれていても綴りが確定します。** 綴りで一致を取る検査が
- * `["getBearerToken"]` を見逃すと、括弧を足すだけで規則を外せることになります。確定しないのは
- * `[識別子]` のように値が実行時に決まるキーだけです。
+ * **リテラルのキーは `[...]` で書かれていても綴りが確定する。** 綴りで一致を取る検査が
+ * `["getBearerToken"]` を見逃すと、括弧を足すだけで規則を外せることになる。確定しないのは
+ * `[識別子]` のように値が実行時に決まるキーだけである。
+ *
+ * @param key - プロパティのキー
+ * @param computed - `[...]` で書かれたキーか
+ * @returns 名指している綴り
  */
 function spelledProperty(
   key: { type: string; value?: unknown; name?: string },
@@ -55,6 +66,10 @@ function spelledProperty(
  * @remarks
  * 参照の解決を scope の連なりで行うのは、渡す口が module の直下で import され、渡す側が関数の
  * 中に居るためである。手前の scope だけを見ると、その全部を取りこぼす。
+ *
+ * @param scope - 探し始める scope
+ * @param name - 変数の名前
+ * @returns 見つかった変数
  */
 function findVariable(scope: Scope.Scope | null, name: string): Scope.Variable | undefined {
   for (let current = scope; current !== null; current = current.upper) {
@@ -68,7 +83,14 @@ function findVariable(scope: Scope.Scope | null, name: string): Scope.Variable |
   return undefined;
 }
 
-/** その名前が、宣言の種類のいずれかとして束縛されているか。 */
+/**
+ * その名前が、指定した宣言の種類として束縛されているか。
+ *
+ * @param scope - 探し始める scope
+ * @param name - 変数の名前
+ * @param definition - 求める宣言の種類
+ * @returns その種類で束縛されていれば true
+ */
 function boundAs(
   scope: Scope.Scope | null,
   name: string,

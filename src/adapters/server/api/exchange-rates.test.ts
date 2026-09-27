@@ -5,14 +5,12 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { serveJson, serveStatus } from "../../../../vitest.setup.msw";
 
-const { getAccessToken, getEnvironment, warn } = vi.hoisted(() => ({
-  getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
+const { getEnvironment, warn } = vi.hoisted(() => ({
   getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
   warn: vi.fn(),
 }));
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
-vi.mock("../auth/session", () => ({ getAccessToken }));
 vi.mock("@/logging/logging.server", () => ({
   getLogger: () => ({ warn }),
   reportQuietly: (run: () => void) => run(),
@@ -58,6 +56,14 @@ describe("convertToReferenceAmount", () => {
     expect(url.searchParams.get("original")).toBe("188.97");
     expect(url.searchParams.get("base")).toBe("USD");
     expect(url.searchParams.get("displayCurrency")).toBe("JPY");
+  });
+
+  it("資格情報を付けずに送る", async () => {
+    const requests = serveJson(EXCHANGE_RATES_URL, wire);
+
+    await convertToReferenceAmount(18_897);
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
   });
 
   // ----- 異常系 -----

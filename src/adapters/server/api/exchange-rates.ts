@@ -1,13 +1,10 @@
 import "server-only";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { BASE_CURRENCY, type ReferenceAmount } from "@/model/money";
 
 import { GetExchangeRatesResponse } from "../../gen/api/endpoints.zod";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getPublicClient } from "../http/public-client";
 
 /** 参考換算に使える表示通貨。契約が受け付ける値そのもの。 */
 const DISPLAY_CURRENCY = "JPY";
@@ -18,29 +15,6 @@ const MINOR_UNITS_PER_UNIT = 100;
 /** 基準通貨の小数桁。 */
 const MINOR_UNIT_DIGITS = 2;
 
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 為替の接続先。
- *
- * @remarks
- * 認証を任意にします。参考換算は購入前の利用者にも要るため、契約が資格情報の無い呼び出しも
- * 受け付けます。
- *
- * @returns 為替換算用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-    allowAnonymous: true,
-  });
-
-  return client;
-}
-
 /**
  * 基準通貨の金額を、表示通貨での参考換算額へ写す。
  *
@@ -48,9 +22,12 @@ function getClient(): UserScopedHttpClient {
  * **参考換算額は請求額ではありません。** 保存される金額は基準通貨のままで、この値は表示にしか
  * 使いません。
  *
+ * 認証を要しない公開の口です。契約がこの operation に資格情報を求めないため、主体を名乗らずに
+ * 送ります。
+ *
  * 換算できなかった場合（レートの提供元が表示通貨を持たない等）は契約が `null` を返します。
  * 通信そのものが失敗した場合は投げます。**画面が使う口はこちらではなく {@link readReferenceAmount}**
- * です。こちらは応答をそのまま伝える下地で、失敗を区別したい呼び出し側のために残しています。
+ * です。こちらは応答をそのまま伝える下地で、失敗を区別したい呼び出し側が直接使います。
  *
  * @param minorUnits - 最小単位（セント）の整数で表した基準通貨の金額
  * @returns 換算できなければ null
@@ -58,7 +35,7 @@ function getClient(): UserScopedHttpClient {
 export async function convertToReferenceAmount(
   minorUnits: number,
 ): Promise<ReferenceAmount | null> {
-  const wire = await getClient().request({
+  const wire = await getPublicClient().request({
     path: "/v1/exchange-rates",
     searchParams: {
       base: BASE_CURRENCY,
@@ -69,7 +46,7 @@ export async function convertToReferenceAmount(
     schema: GetExchangeRatesResponse,
   });
 
-  if (wire.referenceAmount === undefined || wire.referenceAmount === null) {
+  if (wire.referenceAmount === null) {
     return null;
   }
 
@@ -95,9 +72,6 @@ export async function convertToReferenceAmount(
  *
  * 通信の失敗と「契約が換算を持たない」を同じ `null` へ畳みます。画面から見ればどちらも
  * 「出せない」であり、区別しても表示は変わりません。失敗した事実は記録に残します。
- *
- * **投げてほしい画面が現れたら {@link convertToReferenceAmount} を直接使います。** 残してあるのは
- * そのためで、この関数はいまのところ全画面が同じ扱いをしているぶんを 1 か所へ畳んだものです。
  *
  * 読めなかったことは、画面が円の表示を出さないことで表します。0 円や「—」を置きません。金額として
  * 読める形を残すと、換算できなかったことが「その金額である」と受け取られます。

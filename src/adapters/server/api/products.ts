@@ -3,8 +3,6 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
@@ -35,8 +33,8 @@ import type {
   ProductStockPatchRequest,
   ProductsPostRequest,
 } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getPublicClient } from "../http/public-client";
+import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
@@ -267,34 +265,6 @@ function toFilterParams(
   };
 }
 
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 商品の口を叩く client。
- *
- * @remarks
- * **資格情報は取れたときだけ載せます。**読む口は未ログインでも通り、書き込む口は主体を要求
- * します。読み書きが 1 つの client に同居するときの形と、落としたときの症状は
- * [adapters](../../README.md) の「主体を名乗るかは、口ではなく client が決める」節。
- *
- * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
- * （`docs/rules.md`「データ分類と機微情報」の「取得の口は分類を宣言する」）。入れてはいけない理由は
- * 同「描画とキャッシュ」の「Data Cache へ入れてよいのは主体を名乗らずに取れるものだけ」が持ちます。
- *
- * @returns 商品の口を叩く client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    allowAnonymous: true,
-    baseUrl: getApiConfig().baseUrl,
-    getBearerToken: getAccessToken,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
-}
-
 /**
  * 契約の商品を表示用の型へ写す。
  *
@@ -348,8 +318,9 @@ export function toProductPage(wire: WireProductPage): ProductPage {
  * @returns 商品一覧の 1 ページ
  */
 export const getProducts = cache(async (query: ProductQuery = {}): Promise<ProductPage> => {
-  const page = await getClient().request({
+  const page = await getUserScopedClient().request({
     path: "/v1/products",
+    allowAnonymous: true,
     searchParams: {
       ...toFilterParams(query),
       after: query.after,
@@ -421,8 +392,9 @@ export async function getProductListPage(
  * @returns 条件に一致する商品の総数
  */
 export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
-  const { count } = await getClient().request({
+  const { count } = await getUserScopedClient().request({
     path: "/v1/products/count",
+    allowAnonymous: true,
     searchParams: toFilterParams(query),
     schema: GetProductsCountResponse,
   });
@@ -453,6 +425,9 @@ export type ProductRankingQuery = {
  * 件数と期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに要る件数が違うためです。
  * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
  *
+ * 認証を要しない公開の口です。契約がこの operation に資格情報を求めないため、ログイン中でも
+ * 主体を名乗らずに送ります。
+ *
  * @returns 売れ筋ランキング
  */
 export const getProductRanking = cache(
@@ -460,7 +435,7 @@ export const getProductRanking = cache(
     window = WHOLE_TIME,
     limit,
   }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
-    const response = await getClient().request({
+    const response = await getPublicClient().request({
       path: "/v1/products/ranking/quantity",
       searchParams: {
         orderedAfter: window.after,
@@ -490,8 +465,9 @@ export const getProductRanking = cache(
  * @returns 商品 1 件
  */
 export const getProduct = cache(async (id: ProductId): Promise<Product> => {
-  const product = await getClient().request({
+  const product = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
+    allowAnonymous: true,
     schema: GetProductsDetailResponse,
   });
 
@@ -534,7 +510,7 @@ export async function uploadProductImage(image: File): Promise<string> {
   const body = new FormData();
   body.append("image", image);
 
-  const { imagePath } = await getClient().request({
+  const { imagePath } = await getUserScopedClient().request({
     path: "/v1/products/images",
     method: "POST",
     multipart: body,
@@ -554,7 +530,7 @@ export async function uploadProductImage(image: File): Promise<string> {
  * @returns 作成された商品
  */
 export async function createProduct(draft: ProductDraft): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: "/v1/products",
     method: "POST",
     body: {
@@ -590,7 +566,7 @@ export async function createProduct(draft: ProductDraft): Promise<Product> {
  * @returns 更新後の商品
  */
 export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
     method: "PATCH",
     body: {
@@ -630,7 +606,7 @@ export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<P
  * @returns 増減後の商品
  */
 export async function adjustProductStock(id: ProductId, delta: number): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}/stock`,
     method: "PATCH",
     body: { delta } satisfies ProductStockPatchRequest,

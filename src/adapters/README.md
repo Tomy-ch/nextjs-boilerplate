@@ -45,6 +45,8 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
 ## 値の分類は取得の口が宣言する
 
 **`createHttpClient` は分類を必ず受け取ります**（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
+client を組むのは分類ごとに 1 つの接続口（[`server/http/`](server/http/README.md) の `getPublicClient()` /
+`getUserScopedClient()`）で、取得の口は分類に合う接続口を引きます。
 
 | 分類 | 何を運ぶか | 持てるもの |
 | --- | --- | --- |
@@ -87,32 +89,37 @@ serverless では要求ごとに別のインスタンスへ着地しえて再利
 
 **`use cache` を持つモジュールは `createHttpClient` を直に引けません。** 直に引けるモジュールは
 user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
-代わりに、**公開の分類だけを作る口を `server/` 側に 1 つ置き**、そこを引きます —— その口が作れる
-のは公開の client だけなので、キャッシュの下で分類を取り違えようがありません。
+代わりに、**公開の分類だけを作る接続口**（`getPublicClient()`）を引きます —— その口が作れるのは
+公開の client だけなので、キャッシュの下で分類を取り違えようがありません。
 
-その口が 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に状態として
-載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。**この理由は
-user-scoped 側にも同じだけ当てはまりますが、そちらは各口が自前で組み、module 変数に固定します** ——
-資格情報の取得口をどこへ寄せるかが `project-rules/no-captured-bearer-token` と交差し、その検査の形と
-同時にしか決められないためです（[0071](../../docs/adr/0071-bff-api-integration.md)「fetch wrapper の
-resilience」）。user-scoped でも downstream ごとに 1 つが原則で、破るなら理由をその場に書きます。
+接続口が分類ごとに 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に
+状態として載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。
+**user-scoped 側も同じ理由で `getUserScopedClient()` 1 つに寄せてあり、帰結として user-scoped の口は
+すべて遮断器を共有します** —— ある口で失敗が続いて遮断されると、同じ module graph の中の他の
+user-scoped の口も接続せずに落ちます（[0071](../../docs/adr/0071-bff-api-integration.md)「fetch wrapper の
+resilience」）。
 
-## 主体を名乗るかは、口ではなく client が決める
+**client を組めるのは接続口（`architecture.ts` の `CONNECTION_PORTS`）だけです。** 外で組むと
+`project-rules/no-client-outside-connection-port` が落とします。接続先を呼び出しごとに受け取る IdP への
+要求のように寄せられない箇所は、`eslint-disable-next-line` に理由を書いて名乗ります。
 
-**`createHttpClient` に `getBearerToken` を渡さない client は、そこを通る要求のすべてが匿名になります。**
-資格情報はヘッダを組む境界が付けるもので、呼び出し側の口ごとには決まりません。読み取りだけを持つ
-うちは匿名で妥当ですが、**同じ client の上に書き込みを足した時点で、書き込みも匿名で出ていきます**。
+## 資格情報を載せるかは接続口が、送ってよいかは要求が決める
 
-公開の読み取りと主体の要る書き込みが 1 つの client に同居するときは、`getBearerToken` を渡したうえで
-`allowAnonymous: true` を併せます。取れたときだけ載る形になり、未ログインの読み取りも通ります。
+**資格情報の取得口（`getBearerToken`）を渡すのは user-scoped の接続口だけです。** 取得の口ごとに
+渡させると、1 つ渡し忘れた口の要求はすべて匿名で出ていき、型も検査も落ちません。
+
+**資格情報が取れなかったときに送ってよいかは、要求が `allowAnonymous` で宣言します。** 契約は認証の
+要否を operation ごとに宣言する（OpenAPI の `security`）ので、client の単位では粗すぎます。立てるのは、
+契約がその operation の `security` に `{}` を含めているものだけです。`security: []` の operation は
+公開の接続口を引きます。立てても、取れた資格情報は載せます。立てていない要求は、資格情報が取れなければ
+送らずに `unauthenticated` で落ちます。
 
 **渡すのは import した口だけです。** `Authorization` を組む値をその場で掴むと、要求のたびに
 `cookies()` を読む形が崩れ、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れます。
 cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡します。
 
-これを落としても型も検査も落ちません。**気づけるのはバックエンドが 401 を返したときだけ**で、症状は
-「その画面の保存だけが必ず失敗する」という形で現れます。前面の役割判定は残りますが、バックエンドが
-自分で認可を判断する材料が届かなくなるため、層が 1 枚に減ります。
+`allowAnonymous` を付け間違えても型も検査も落ちません。認証が要る operation に立てると、資格情報が
+取れなかった回も匿名で送られ、**気づけるのはバックエンドが 401 を返したときだけ**です。
 
 ## URL の予算
 
@@ -246,7 +253,7 @@ event の採番も、誰に何を配るかも持ちません。
 ```ts
 export const getAccount = cache(async (): Promise<Account> => {
   const account = toAccount(
-    await getClient().request({ path: "/v1/accounts/me", schema: GetAccountResponse }),
+    await getUserScopedClient().request({ path: "/v1/accounts/me", schema: GetAccountResponse }),
   );
 
   taintObjectReference(
@@ -270,7 +277,7 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
 
 **主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
 （`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
-抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md) 段 4）。
+抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
 
 **`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
 `taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため

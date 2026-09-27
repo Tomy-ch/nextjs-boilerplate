@@ -7,7 +7,7 @@ import type { z } from "zod";
 import type { Prefecture } from "@/model/user/user";
 
 import { GetPrefecturesResponse } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 
@@ -38,7 +38,7 @@ function toPrefectures(wire: WirePrefectures): readonly Prefecture[] {
  * 都道府県のマスタを取得する。
  *
  * @remarks
- * 認証を要しない公開の口です。クライアントに Bearer の取得口を渡していないのはそのためで、
+ * 認証を要しない公開の口です。主体を名乗らない公開の client から引くのはそのためで、
  * 未ログインの画面からも同じ取得口を使えます。
  *
  * 都道府県は画面を開くたびに変わる種類のデータではないので、キャッシュへ入れます。

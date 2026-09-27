@@ -23,7 +23,7 @@ import {
  * 本文の符号化。JSON と form のどちらか一方だけを指定できる。
  *
  * @remarks
- * 型で排他にしているのは、両方を渡した実装が「どちらが送られるか」を読む側に推測させるためです。
+ * 型で排他にしているのは、両方を渡せると「どちらが送られるか」を読む側が推測することになるためです。
  * 送る形は 1 つに決まっていなければなりません。
  */
 type RequestPayload =
@@ -89,8 +89,8 @@ type BaseRequestSpec<T> = RequestPayload & {
   /**
    * 応答の検証スキーマ。
    *
-   * 契約に載っている形であることを、内層へ渡す前にここで確かめる。バックエンドの応答には
-   * server 側の runtime 検証が無く、契約破れを止める最後の地点がこの境界になる。
+   * 契約に載っている形であることを、内層へ渡す前にここで確かめる。バックエンドが契約どおりに
+   * 返すことをこちらからは確かめられないため、契約破れを止める最後の地点がこの境界になる。
    */
   schema: ZodType<T>;
   /**
@@ -123,7 +123,21 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
  * キャッシュしたい値の扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから
  * user-scoped な取得の口を引かない」が持ちます。
  */
-type UserScopedRequestSpec<T> = BaseRequestSpec<T> & { cache?: never; tags?: never };
+type UserScopedRequestSpec<T> = BaseRequestSpec<T> & {
+  cache?: never;
+  tags?: never;
+  /**
+   * 資格情報が取れなかったときに、認証を伴わずに送ってよい要求であることの宣言。
+   *
+   * @remarks
+   * 契約がこの operation の `security` に `{}` を含めている（認証を任意と宣言している）場合だけ
+   * 立てます。認証が要るかどうかは operation ごとに決まるので、client ではなく要求が持ちます。
+   *
+   * 立てても、取得できた資格情報は常に載せます。無効な資格情報を伏せて匿名として通すと、失効に
+   * 気づかないまま別の主体として扱われるためです。
+   */
+  allowAnonymous?: boolean;
+};
 
 type RequestSpec<T> = PublicRequestSpec<T> | UserScopedRequestSpec<T>;
 
@@ -189,7 +203,8 @@ type UserScopedCredential =
        * 認証済みの呼び出しに付ける Bearer の取得口。渡さなければ認証なしで送る。
        *
        * @remarks
-       * 接続先ごとに認証が要るかどうかが決まるので、指定はクライアントの生成時に 1 度だけ行います。
+       * 取得口は client の生成時に 1 度だけ渡します。認証が要るかどうかは operation ごとに決まるので、
+       * 要求の `allowAnonymous` が運びます。
        * ヘッダの組み立てと `cookies()` を読む理由は [adapters の README](../../README.md) が持ちます。
        *
        * @returns 認証できないときは null
@@ -204,7 +219,8 @@ type UserScopedCredential =
        *
        * @remarks
        * **session を確立する途中の 1 往復だけの口です**（[adapters の README](../../README.md)）。
-       * 綴りを分けてあるのは、上の防御が外れる箇所を数えられるようにするためです。
+       * 綴りを分けてあるのは、要求のたびに `cookies()` を読む形（上の `getBearerToken`）を外れる
+       * 箇所を数えられるようにするためです。
        */
       bearerToken: string;
     };
@@ -219,22 +235,12 @@ type PublicClientDeps = BaseClientDeps & {
   scope: "public";
   getBearerToken?: never;
   bearerToken?: never;
-  allowAnonymous?: never;
 };
 
 /** 主体に紐づくものを運ぶ口。 */
 type UserScopedClientDeps = BaseClientDeps &
   UserScopedCredential & {
     scope: "user-scoped";
-    /**
-     * 認証を伴わない呼び出しを認める接続先の宣言。
-     *
-     * @remarks
-     * 契約が資格情報の無い呼び出しを受け付ける場合だけ立てます。立てても、取得できた資格情報は
-     * 常に載せます。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として
-     * 扱われるためです。
-     */
-    allowAnonymous?: boolean;
   };
 
 const JSON_CONTENT_TYPE = "application/json";
@@ -427,7 +433,6 @@ export function createHttpClient({
   maxUrlBytes,
   getBearerToken,
   bearerToken,
-  allowAnonymous = false,
   profile = DEFAULT_PROFILE,
   // 既定を `fetch` そのものではなく呼び出し時の解決にする。クライアントは接続先ごとに
   // 1 つを長く使い回すため、生成時点の実装を握ると、後から差し込まれた実装（モックなど）に
@@ -442,7 +447,7 @@ export function createHttpClient({
   const budget: RetryBudget = createRetryBudget(profile.retryBudgetRatio);
 
   /**
-   * 認証ヘッダを解決する。認証を要求する接続先で認証できなければ、送らずに投げる。
+   * 認証ヘッダを解決する。認証を要する要求で認証できなければ、送らずに投げる。
    *
    * @remarks
    * 再試行の外側で 1 度だけ呼びます。試行のたびに解決すると、認証できないことが接続の失敗と
@@ -453,9 +458,13 @@ export function createHttpClient({
    * あり、呼び出し側が相対パスしか渡さない慣習だけでは止まりません。
    *
    * @param url - 認証ヘッダを載せる対象の URL
+   * @param allowAnonymous - 資格情報が取れなくても送ってよい要求か
    * @returns 載せるヘッダの組。認証を要さない・匿名で通す場合は空
    */
-  async function authorizationHeader(url: URL): Promise<Record<string, string>> {
+  async function authorizationHeader(
+    url: URL,
+    allowAnonymous: boolean,
+  ): Promise<Record<string, string>> {
     const carriesCredential = getBearerToken !== undefined || bearerToken !== undefined;
 
     if (!carriesCredential || url.origin !== new URL(baseUrl).origin) {
@@ -470,7 +479,7 @@ export function createHttpClient({
       }
 
       throw createAppError(ErrorKind.UNAUTHENTICATED, {
-        cause: new Error(`認証が要る接続先です: ${url}`),
+        cause: new Error(`認証が要る要求です: ${url}`),
       });
     }
 
@@ -522,7 +531,10 @@ export function createHttpClient({
         });
       }
 
-      const authorization = await authorizationHeader(url);
+      const authorization = await authorizationHeader(
+        url,
+        "allowAnonymous" in spec && spec.allowAnonymous === true,
+      );
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);
       const retryable = isRetryableMethod(spec.method ?? "GET", spec.idempotent ?? false);

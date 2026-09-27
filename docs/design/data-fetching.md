@@ -89,7 +89,7 @@ function toEntry(wire: WireEntry): Entry {
 }
 
 export const getEntry = cache(async (id: EntryId): Promise<Entry> => {
-  const wire = await getClient().request({ path: `/v1/entries/${encodeURIComponent(id)}`, schema: GetEntryResponse });
+  const wire = await getUserScopedClient().request({ path: `/v1/entries/${encodeURIComponent(id)}`, schema: GetEntryResponse });
 
   return toEntry(wire);
 });
@@ -124,7 +124,9 @@ export const getEntry = cache(async (id: EntryId): Promise<Entry> => {
 
 締切・回数・遮断の閾値は [`ResilienceProfile`](../../src/adapters/server/http/resilience-profile.ts) で、`createHttpClient` の `profile` に渡す。渡さなければ `DEFAULT_PROFILE`（試行 3s / 全体 10s / 3 回 / budget 10% / 失敗率 0.5 を 20 件で判定 / open 5s / half-open 3 本）。
 
-**遮断器と retry budget は client のインスタンスに載る。** だから同じ接続先へ client を複数作ると、劣化したかどうかの判断が作った数だけ割れる。だから**接続先ごとに 1 つを共有する口**を `adapters/server` 側に置き、モジュールごとに作らせない。user-scoped の口は各モジュールがモジュール変数に 1 つずつ持っており、**寄っていない** —— 寄せるなら資格情報の取得口を渡す形を 1 か所へ置くことになり、それが `project-rules/no-captured-bearer-token`（[0112](../adr/0112-data-classification-cache-boundary.md)）と正面から交差するため、両方を同時に決める。
+**遮断器と retry budget は client のインスタンスに載る。** だから同じ接続先へ client を複数作ると、劣化したかどうかの判断が作った数だけ割れる。だから**接続先と分類の組ごとに 1 つを共有する接続口**を [`adapters/server/http`](../../src/adapters/server/http/README.md) に置き（`getPublicClient()` / `getUserScopedClient()`）、モジュールごとに作らせない。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` で、それ以外で `createHttpClient` を引くと `project-rules/no-client-outside-connection-port` が落とす。
+
+**帰結として、user-scoped の口はすべて遮断器を共有する。** ある口で失敗が続いて遮断されると、他の user-scoped の口も接続せずに `unavailable` で落ちる。共有されるのは同じ module graph の中で、framework が graph を分けて組む境界ごとに接続口も別に組まれる。公開の接続口は別の遮断器を持つ。
 
 ### wrapper が持たないもの
 
@@ -206,16 +208,16 @@ hook の側で押さえるのは 3 つ。
 
 分類は値ではなく**口**に付く。`createHttpClient` は `scope` を必ず受け取り、分類ごとに受け取れる引数が型として変わる（[ADR 0112](../adr/0112-data-classification-cache-boundary.md)）。
 
-| `scope` | 持てるもの | 型として持たないもの |
-| --- | --- | --- |
-| `"public"` | `cache` / `tags` | `getBearerToken` / `bearerToken` / `allowAnonymous` |
-| `"user-scoped"` | `getBearerToken`（または `bearerToken`）/ `allowAnonymous` | `cache` / `tags` |
+| `scope` | client が持てるもの | 要求が持てるもの | 型として持たないもの |
+| --- | --- | --- | --- |
+| `"public"` | — | `cache` / `tags` | `getBearerToken` / `bearerToken` / `allowAnonymous` |
+| `"user-scoped"` | `getBearerToken`（または `bearerToken`） | `allowAnonymous` | `cache` / `tags` |
 
 実装で押さえる点は 4 つ。
 
-- **資格情報を載せうる口は user-scoped である。** `allowAnonymous: true` を立てても分類は動かない。分類は口の性質であって要求ごとの結果ではない
+- **資格情報を載せうる口は user-scoped である。** `allowAnonymous: true` を立てても分類は動かない。分類は口の性質であって要求ごとの結果ではない。`allowAnonymous` を立てるのは要求で、契約がその operation の `security` に `{}` を含めているものだけ。`security: []` の operation は公開の接続口を引く
 - **主体を指すのは Bearer だけではない。** 契約が独自に持つ識別子のヘッダ（未認証の主体を指す `X-...` など）を載せる口も user-scoped になる。判定は「認証されているか」ではなく「応答が主体で変わるか」。`assertNoCredentialHeader` が弾くのは `Authorization` / `Cookie` の 2 つだけで、独自ヘッダは通る —— だから分類の側で覆う
-- **`getBearerToken` には import した口を渡す。** [`session.ts`](../../src/adapters/server/auth/session.ts) の `getAccessToken` がそれで、要求のたびに `cookies()` を読む。解決済みの値を掴むと、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れる。`project-rules/no-captured-bearer-token` がこの形だけを通す
+- **`getBearerToken` へ取得口を渡すのは user-scoped の接続口だけで、import した口を渡す。** [`session.ts`](../../src/adapters/server/auth/session.ts) の `getAccessToken` がそれで、要求のたびに `cookies()` を読む。解決済みの値を掴むと、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れる。`project-rules/no-captured-bearer-token` がこの形だけを通す
 - **`bearerToken`（解決済みの値）は session 確立の 1 往復だけ。** cookie がまだ無い時点で役割を引く口がそれで、渡せるのは囲む関数の引数だけ。モジュール変数の client にこの綴りを持ち込むと、最初の主体の資格情報がプロセスの寿命だけ居座る
 
 **client へ渡してはいけないものを登録する口は別にある。** [`server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) の `taintObjectReference` / `taintUniqueValue` で、登録しているのは session の記録（Access Token を持つ object）と署名鍵だけである。取得の口で PII を含む取得結果を汚す形は [`adapters/README.md`](../../src/adapters/README.md) が参照実装として示しているが、**同梱の口でそれを呼んでいるものは無い**。
@@ -228,11 +230,13 @@ wrapper は**単発の往復**だけを扱う。締切・再試行・遮断は�
 
 ## 間違えやすいところ
 
-### `getBearerToken` を落としても何も落ちない
+### `allowAnonymous` の付け忘れと付け間違いは、型も lint も落ちない
 
-`createHttpClient({ scope: "user-scoped" })` に `getBearerToken` を渡さないと、その client を通る要求は**すべて匿名**で出ていく。型も lint も落ちない。読み取りだけを持つうちは匿名で妥当に見えるので、同じ client に書き込みを足した日に「その画面の保存だけが必ず 401 になる」という形で現れる。
+**付け忘れ**: 契約が認証を任意にしている読み取りに立て忘れると、未ログインの要求は送る前に `unauthenticated` で落ちる。ログインして確かめている間は見えず、未ログインで開いた日に「その画面だけが必ずログインへ飛ぶ」という形で現れる。
 
-**確かめ方**: バックエンドのログで、その要求に `Authorization` が載っているかを見る。
+**付け間違い**: 認証が要る operation に立てると、資格情報が取れなかった回も匿名で送り、バックエンドの 401 まで気づけない。漏洩にはならないが、手前で止められた失敗を 1 往復ぶん遅らせる。
+
+**確かめ方**: 契約でその operation の `security` を見る。`{}` を含むなら立て、`[]` なら公開の接続口を引く。
 
 ### 絶対 URL には資格情報が載らない
 
@@ -254,9 +258,9 @@ wrapper は**単発の往復**だけを扱う。締切・再試行・遮断は�
 
 `readErrorDetails` は `response.status === 422` のときしか本文を読まない。400 や 409 の本文に何が入っていても画面には届かず、`message` は status に関わらず読まれない。「バックエンドが返した文言が出ない」は仕様である。
 
-### `use cache` の口から `createHttpClient` を引くと lint で落ちる
+### `use cache` の口から user-scoped な口を引くと lint で落ちる
 
-`project-rules/no-user-scoped-in-cached-module` の判定はモジュール単位で、そのモジュールが `createHttpClient` を直に引いているかを見る。口と純粋な変換が同居するモジュールは、変換だけを import しても止まる —— 止まったほうを直す（変換が自分のモジュールを持つ）。公開の口は `getPublicClient()` を引く。
+`project-rules/no-user-scoped-in-cached-module` の判定はモジュール単位で、import したモジュールと、それが引く 1 段先が user-scoped の分類を綴っているかを見る。分類の綴りは接続口に居るので、`getUserScopedClient()` を引く取得の口を import すれば落ちる。口と純粋な変換が同居するモジュールは、変換だけを import しても止まる —— 止まったほうを直す（変換が自分のモジュールを持つ）。公開の口は `getPublicClient()` を引く。
 
 ### client 側の zod は生成物ではない
 
