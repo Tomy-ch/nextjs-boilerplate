@@ -46,7 +46,7 @@ export async function convertToReferenceAmount(
     schema: GetExchangeRatesResponse,
   });
 
-  if (wire.referenceAmount === undefined || wire.referenceAmount === null) {
+  if (wire.referenceAmount === null) {
     return null;
   }
 
