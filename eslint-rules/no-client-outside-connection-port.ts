@@ -27,12 +27,24 @@ import { resolveModule } from "./module-resolution";
 /** 外部 API を叩く client を組む関数の名前。 */
 const FACTORY_NAME = "createHttpClient";
 
-/** テストか。 */
+/**
+ * テストか。
+ *
+ * @param filename - lint 対象のファイル
+ * @returns テストなら true
+ */
 function isTest(filename: string): boolean {
   return /\.test\.[cm]?[jt]sx?$/.test(filename);
 }
 
-/** 綴りが組み立ての kernel を指しているか。 */
+/**
+ * 綴りが組み立ての kernel を指しているか。
+ *
+ * @param specifier - import / export の綴り。文字列でなければ kernel ではない
+ * @param filename - 綴りを書いたファイル
+ * @param cwd - リポジトリの根
+ * @returns kernel を指していれば true
+ */
 function isFactory(specifier: unknown, filename: string, cwd: string): boolean {
   return (
     typeof specifier === "string" &&
@@ -44,12 +56,21 @@ function isFactory(specifier: unknown, filename: string, cwd: string): boolean {
  * 型だけを運ぶ宣言か。
  *
  * `importKind` / `exportKind` は TypeScript の構文木にしか無く、ESLint の型（estree）は持たない。
+ *
+ * @param node - import / export の宣言か、その指定子
+ * @param kind - 見るプロパティ
+ * @returns 型だけなら true
  */
 function isTypeOnly(node: object, kind: "importKind" | "exportKind"): boolean {
-  return kind in node && Reflect.get(node, kind) === "type";
+  return Reflect.get(node, kind) === "type";
 }
 
-/** import / export の指定子が指している、kernel 側の名前。 */
+/**
+ * import / export の指定子が指している、kernel 側の名前。
+ *
+ * @param node - 識別子か、文字列の名前
+ * @returns kernel 側の名前
+ */
 function exportedName(node: { type: string; name?: unknown; value?: unknown }): unknown {
   return node.type === "Identifier" ? node.name : node.value;
 }
@@ -73,6 +94,11 @@ const noClientOutsideConnectionPort: Rule.RuleModule = {
       return {};
     }
 
+    /**
+     * 接続口の外で client を組む宣言として報告する。
+     *
+     * @param node - 報告する宣言。抑止が効くのはこの先頭行だけ
+     */
     const report = (node: Rule.Node): void => {
       context.report({ node, messageId: "noClientOutsideConnectionPort" });
     };
@@ -96,12 +122,7 @@ const noClientOutsideConnectionPort: Rule.RuleModule = {
         }
       },
       ExportNamedDeclaration(node) {
-        if (
-          node.source === null ||
-          node.source === undefined ||
-          isTypeOnly(node, "exportKind") ||
-          !isFactory(node.source.value, filename, cwd)
-        ) {
+        if (isTypeOnly(node, "exportKind") || !isFactory(node.source?.value, filename, cwd)) {
           return;
         }
 

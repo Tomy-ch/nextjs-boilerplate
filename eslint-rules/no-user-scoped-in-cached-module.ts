@@ -39,6 +39,10 @@ const USER_SCOPED_DECLARATION = /scope:\s*"user-scoped"/;
  * そのモジュールか、それが引く 1 段先のモジュールが user-scoped な取得の口を宣言しているか。
  *
  * 1 段先の綴りは、綴りを書いた 1 段目のファイルを起点に解決する。
+ *
+ * @param path - import 先の実ファイル
+ * @param cwd - リポジトリの根
+ * @returns 宣言していれば true
  */
 function reachesUserScopedClient(path: string, cwd: string): boolean {
   const source = readFileSync(path, "utf8");

@@ -48,6 +48,7 @@ describe("noClientOutsideConnectionPort", () => {
         { code: `import type { UserScopedHttpClient } from "${FACTORY}";`, filename: FILENAME },
         { code: `import { type createHttpClient } from "${FACTORY}";`, filename: FILENAME },
         { code: `import { buildUrl } from "${FACTORY}";`, filename: FILENAME },
+        { code: `import request from "${FACTORY}";`, filename: FILENAME },
         { code: `export type { PublicHttpClient } from "${FACTORY}";`, filename: FILENAME },
         { code: `export { type createHttpClient } from "${FACTORY}";`, filename: FILENAME },
         { code: `export { buildUrl } from "${FACTORY}";`, filename: FILENAME },

@@ -11,9 +11,8 @@ let client: PublicHttpClient | undefined;
  * 主体を名乗らずに引ける口が共有する接続先。
  *
  * @remarks
- * **公開の口はここを引き、`createHttpClient` を直に引きません。** 1 つに寄せる理由（retry budget と
- * circuit breaker の状態）は [adapters](../../README.md) の「リクエストをまたいで残すのは `use cache`
- * の側」が持ちます。
+ * 1 つに寄せる理由（retry budget と circuit breaker の状態）は [adapters](../../README.md) の
+ * 「リクエストをまたいで残すのは `use cache` の側」が持ちます。
  *
  * **このモジュールが作れるのは公開の client だけです。** それが、`use cache` を持つモジュールがここを
  * 経由できる理由そのものです —— 直に引けるモジュールは user-scoped な client も組める状態にあり、

@@ -10,13 +10,21 @@ const MODULE_SUFFIXES: readonly string[] = [".ts", ".tsx", "/index.ts", "/index.
  * 静的な `import … from` / `export … from`、副作用だけの `import "…"`、動的な `import("…")` を
  * 拾う。構文木を組まずに読むのは、1 段先のファイルは lint の対象ではなく、ESLint が構文木を
  * 渡さないためである。
+ *
+ * 綴りを捕獲グループで取らないのは、取ると型の上で「無いかもしれない」値になり、到達しない分岐が
+ * 生まれるためである。一致全体（引用符つきの綴り）から引用符を外して取り出す。
  */
-const MODULE_SPECIFIER = /(?:\bfrom\s*|\bimport\s*\(?\s*)["']([^"']+)["']/g;
+const MODULE_SPECIFIER = /(?<=\bfrom\s*|\bimport\s*\(?\s*)["'][^"']+["']/g;
 
 /**
  * import の綴りから、拡張子を除いた実ファイルの位置を組む。組めない綴りは `undefined`。
  *
  * 扱うのは別名（`@/`）と相対だけで、素の package 名はここで落ちる。
+ *
+ * @param specifier - import の綴り
+ * @param filename - 綴りを書いたファイル。相対の綴りはここを起点にする
+ * @param cwd - リポジトリの根
+ * @returns 拡張子を除いた実ファイルの位置
  */
 function moduleBase(specifier: string, filename: string, cwd: string): string | undefined {
   if (specifier.startsWith("@/")) {
@@ -36,6 +44,11 @@ function moduleBase(specifier: string, filename: string, cwd: string): string | 
  * 見るのはこのリポジトリのソースだけである。依存パッケージは取得の口を持たないうえ、解決に
  * `node_modules` の探索が要る。相対の綴りは `filename` を起点に解決するので、1 段先を読むときは
  * 綴りを書いた 1 段目のファイルを渡す。
+ *
+ * @param specifier - import の綴り
+ * @param filename - 綴りを書いたファイル
+ * @param cwd - リポジトリの根
+ * @returns 実ファイルの絶対パス
  */
 export function resolveModule(
   specifier: string,
@@ -53,9 +66,12 @@ export function resolveModule(
   );
 }
 
-/** ソースが指しているモジュールの綴りを、出てきた順に並べる。 */
+/**
+ * ソースが指しているモジュールの綴りを、出てきた順に並べる。
+ *
+ * @param source - モジュールのソース
+ * @returns 出てきた順の綴り
+ */
 export function moduleSpecifiers(source: string): readonly string[] {
-  return [...source.matchAll(MODULE_SPECIFIER)].flatMap((match) =>
-    match[1] === undefined ? [] : [match[1]],
-  );
+  return [...source.matchAll(MODULE_SPECIFIER)].map((match) => match[0].slice(1, -1));
 }
