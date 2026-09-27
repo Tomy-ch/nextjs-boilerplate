@@ -113,7 +113,6 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
   cache?: RequestCache;
   /** キャッシュの再検証に使うタグ。 */
   tags?: readonly string[];
-  allowAnonymous?: never;
 };
 
 /**
