@@ -531,7 +531,10 @@ export function createHttpClient({
         });
       }
 
-      const authorization = await authorizationHeader(url, spec.allowAnonymous === true);
+      const authorization = await authorizationHeader(
+        url,
+        "allowAnonymous" in spec && spec.allowAnonymous === true,
+      );
       const deadline = now() + profile.overallTimeoutMs;
       const overall = AbortSignal.timeout(profile.overallTimeoutMs);
       const retryable = isRetryableMethod(spec.method ?? "GET", spec.idempotent ?? false);
