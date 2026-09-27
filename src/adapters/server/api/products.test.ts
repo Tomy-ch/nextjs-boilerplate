@@ -656,7 +656,9 @@ describe("uploadProductImage", () => {
     getAccessToken.mockResolvedValue(null);
     const requests = serveWrite("post", IMAGES_URL, wireProduct);
 
-    await expect(kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" })))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    await expect(
+      kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
+    ).resolves.toBe(ErrorKind.UNAUTHENTICATED);
     expect(requests).toHaveLength(0);
   });
 });
@@ -756,7 +758,9 @@ describe("updateProduct", () => {
     getAccessToken.mockResolvedValue(null);
     const requests = serveWrite("patch", PRODUCT_URL, wireProduct);
 
-    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 4 }))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 4 }))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
     expect(requests).toHaveLength(0);
   });
 });

@@ -79,7 +79,11 @@ describe("noClientOutsideConnectionPort", () => {
     ruleTester.run("no-client-outside-connection-port", noClientOutsideConnectionPort, {
       valid: [],
       invalid: [
-        { code: `import { createHttpClient } from "${FACTORY}";`, filename: FILENAME, errors: [ERROR] },
+        {
+          code: `import { createHttpClient } from "${FACTORY}";`,
+          filename: FILENAME,
+          errors: [ERROR],
+        },
         // 別名で受けても、kernel 側の名前で判定する。
         {
           code: `import { createHttpClient as build } from "${FACTORY}";`,
@@ -108,7 +112,11 @@ describe("noClientOutsideConnectionPort", () => {
     ruleTester.run("no-client-outside-connection-port", noClientOutsideConnectionPort, {
       valid: [],
       invalid: [
-        { code: `export { createHttpClient } from "${FACTORY}";`, filename: FILENAME, errors: [ERROR] },
+        {
+          code: `export { createHttpClient } from "${FACTORY}";`,
+          filename: FILENAME,
+          errors: [ERROR],
+        },
         { code: `export * from "${FACTORY}";`, filename: FILENAME, errors: [ERROR] },
       ],
     });
