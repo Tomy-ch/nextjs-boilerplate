@@ -10,7 +10,7 @@ import {
   GetProductCategoriesResponse,
   GetProductStatusesResponse,
 } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WireCategories = z.infer<typeof GetProductCategoriesResponse>;
 type WireStatuses = z.infer<typeof GetProductStatusesResponse>;

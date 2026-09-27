@@ -6,7 +6,7 @@ import type { z } from "zod";
 import type { AddressCandidate, AddressLookup } from "@/model/user/user";
 
 import { GetAddressesResponse } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WireAddresses = z.infer<typeof GetAddressesResponse>;
 

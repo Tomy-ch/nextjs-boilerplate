@@ -4,7 +4,7 @@ import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { BASE_CURRENCY, type ReferenceAmount } from "@/model/money";
 
 import { GetExchangeRatesResponse } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 /** 参考換算に使える表示通貨。契約が受け付ける値そのもの。 */
 const DISPLAY_CURRENCY = "JPY";

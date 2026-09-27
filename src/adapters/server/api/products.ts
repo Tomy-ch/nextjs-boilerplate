@@ -36,9 +36,9 @@ import type {
   ProductsPostRequest,
 } from "../../gen/api/model";
 import { getAccessToken } from "../auth/session";
+import { getPublicClient } from "../http/public-client";
 import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
-import { getPublicClient } from "./public-client";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
 

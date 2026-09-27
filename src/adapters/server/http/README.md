@@ -1,19 +1,20 @@
 ---
-test-requirement: unit
+test-requirement: [unit, integration]
 ---
 
 # http
 
-`server/` の要求境界が共有する、応答と本体の扱いです。
+`server/` の要求境界が共有する、応答と本体の扱いと、接続先ごとの口です。
 
 **import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
 
 ## 親と違う点
 
 **検証の要求が親と違います。** `adapters` の宣言は `integration` ですが、それが掛かるのは**外部との
-往復を持つモジュール**です（[README](../../README.md) の「運用」）。ここに置くものは要求と応答の間で
-値を写すだけで、`fetch` も注入された `fetchImpl` も持ちません。境界を持たないものへ境界のテストを
-課しても、確かめる相手が居ません。
+往復を持つモジュール**です（[README](../../README.md) の「運用」）。ここには 2 種類を置きます。要求と
+応答の間で値を写すだけのものは `fetch` も注入された `fetchImpl` も持たず、境界を持たないものへ境界の
+テストを課しても確かめる相手が居ないので `unit` です。外部 API を叩く client と、それを接続先ごとに
+1 つ持つ接続口は外へ出るので `integration` です。
 
 **判定は「そのモジュールが外へ出るか」で行い、ディレクトリの位置では決めません。** 外へ出るものが
 ここへ増えたら、そのモジュールだけが `integration` に戻ります。
@@ -24,6 +25,7 @@ test-requirement: unit
 | [`error-status.ts`](error-status.ts) | `unit` | 分類から status への表 |
 | [`error-response.ts`](error-response.ts) | `unit` | 分類から応答を組む |
 | [`json-request.ts`](json-request.ts) | `unit` | 受け取った要求の型と大きさを見る |
+| [`public-client.ts`](public-client.ts) | `integration` | 主体を名乗らずに取れるものの接続口 |
 | [`request.ts`](request.ts) | `integration` | 外部 API を叩く |
 | [`retry-policy.ts`](retry-policy.ts) | `unit` | status から再試行の可否を決める |
 | [`search-params.ts`](search-params.ts) | `unit` | クエリを素の値へ写す |
@@ -33,6 +35,8 @@ test-requirement: unit
 - `server/` の要求境界が共有する、応答と本体の規則
 
 - 接続先ごとに差し替える resilience 設定（劣化の許容度が接続先の性質で変わるため。`ResilienceProfile`）
+
+- 接続先と分類の組ごとに 1 つ置く接続口（遮断器と再試行の予算は client の中に状態として載るため、同じ接続先へ client を分けると劣化の判断が割れる）
 
 ## 受け入れないもの
 

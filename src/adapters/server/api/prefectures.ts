@@ -7,7 +7,7 @@ import type { z } from "zod";
 import type { Prefecture } from "@/model/user/user";
 
 import { GetPrefecturesResponse } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WirePrefectures = z.infer<typeof GetPrefecturesResponse>;
 

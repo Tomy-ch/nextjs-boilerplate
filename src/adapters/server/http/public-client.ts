@@ -3,7 +3,7 @@ import "server-only";
 import { getApiConfig } from "@/config/api/api.server";
 import { getHttpConfig } from "@/config/http/http.server";
 
-import { createHttpClient, type PublicHttpClient } from "../http/request";
+import { createHttpClient, type PublicHttpClient } from "./request";
 
 let client: PublicHttpClient | undefined;
 
