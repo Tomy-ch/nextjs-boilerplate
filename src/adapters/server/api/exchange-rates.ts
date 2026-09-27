@@ -1,13 +1,10 @@
 import "server-only";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { BASE_CURRENCY, type ReferenceAmount } from "@/model/money";
 
 import { GetExchangeRatesResponse } from "../../gen/api/endpoints.zod";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getPublicClient } from "./public-client";
 
 /** 参考換算に使える表示通貨。契約が受け付ける値そのもの。 */
 const DISPLAY_CURRENCY = "JPY";
@@ -18,35 +15,15 @@ const MINOR_UNITS_PER_UNIT = 100;
 /** 基準通貨の小数桁。 */
 const MINOR_UNIT_DIGITS = 2;
 
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 為替の接続先。
- *
- * @remarks
- * 認証を任意にします。参考換算は購入前の利用者にも要るため、契約が資格情報の無い呼び出しも
- * 受け付けます。
- *
- * @returns 為替換算用の client
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-    allowAnonymous: true,
-  });
-
-  return client;
-}
-
 /**
  * 基準通貨の金額を、表示通貨での参考換算額へ写す。
  *
  * @remarks
  * **参考換算額は請求額ではありません。** 保存される金額は基準通貨のままで、この値は表示にしか
  * 使いません。
+ *
+ * 認証を要しない公開の口です。契約がこの operation に資格情報を求めないため、主体を名乗らずに
+ * 送ります。
  *
  * 換算できなかった場合（レートの提供元が表示通貨を持たない等）は契約が `null` を返します。
  * 通信そのものが失敗した場合は投げます。**画面が使う口はこちらではなく {@link readReferenceAmount}**
@@ -58,7 +35,7 @@ function getClient(): UserScopedHttpClient {
 export async function convertToReferenceAmount(
   minorUnits: number,
 ): Promise<ReferenceAmount | null> {
-  const wire = await getClient().request({
+  const wire = await getPublicClient().request({
     path: "/v1/exchange-rates",
     searchParams: {
       base: BASE_CURRENCY,

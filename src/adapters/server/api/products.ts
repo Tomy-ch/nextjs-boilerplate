@@ -38,6 +38,7 @@ import type {
 import { getAccessToken } from "../auth/session";
 import { createHttpClient, type UserScopedHttpClient } from "../http/request";
 import { resolveMediaUrl } from "../media/media-url";
+import { getPublicClient } from "./public-client";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
 
@@ -453,6 +454,9 @@ export type ProductRankingQuery = {
  * 件数と期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに要る件数が違うためです。
  * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
  *
+ * 認証を要しない公開の口です。契約がこの operation に資格情報を求めないため、ログイン中でも
+ * 主体を名乗らずに送ります。
+ *
  * @returns 売れ筋ランキング
  */
 export const getProductRanking = cache(
@@ -460,7 +464,7 @@ export const getProductRanking = cache(
     window = WHOLE_TIME,
     limit,
   }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
-    const response = await getClient().request({
+    const response = await getPublicClient().request({
       path: "/v1/products/ranking/quantity",
       searchParams: {
         orderedAfter: window.after,

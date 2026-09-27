@@ -526,6 +526,15 @@ describe("getProductRanking", () => {
     expect(query.get("limit")).toBe("5");
   });
 
+  it("ログイン中でも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveJson(RANKING_URL, wireRanking);
+
+    await getProductRanking({ limit: 5 });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("数量の軸の口を叩く", async () => {
     const requests = serveJson(RANKING_URL, wireRanking);
 
