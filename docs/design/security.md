@@ -74,7 +74,7 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) の seam B�
 
 ### 分類は取得の口が持つ
 
-値を包む型（`UserScopedData<T>` のようなもの）は無い。分類は**取得の口**が宣言し、[`src/adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) の `createHttpClient()` が `scope` を必ず受け取る。
+値を包む型（`UserScopedData<T>` のようなもの）は無い。分類は**取得の口**が宣言し、[`src/adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) の `createHttpClient()` が `scope` を必ず受け取る。client を組むのは分類ごとに 1 つの接続口（[`public-client.ts`](../../src/adapters/server/http/public-client.ts) / [`user-scoped-client.ts`](../../src/adapters/server/http/user-scoped-client.ts)）で、取得の口は分類に合う接続口を引く。
 
 | 分類 | 何か | 口が持てるもの |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) の seam B�
 
 「PII を共有キャッシュへ入れるな」は注意書きではなく**引数の不在**になっている。不在は両側にあり、public の口には資格情報を載せる引数そのものが無い。だから分類を読めば「その口が資格情報を載せうるか」が言い当てられる。
 
-**`allowAnonymous` は分類を動かさない。** 資格情報が取れたときは常に載せ、取れなかった回だけ匿名で送る宣言であって、口は user-scoped のままである。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として扱われる。
+**`allowAnonymous` は分類を動かさない。** 資格情報が取れたときは常に載せ、取れなかった回だけ匿名で送る**要求ごと**の宣言であって、口は user-scoped のままである。立ててよいのは、契約がその operation の認証を任意と宣言している（`security` に `{}` を含む）ものだけである。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として扱われる。
 
 ### 段ごとの関所
 
@@ -92,9 +92,9 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) の seam B�
 
 | 段 | 止めるもの | 手段 | 在り処 |
 | --- | --- | --- | --- |
-| 取得の口 | user-scoped の口に `cache` / `tags` を渡す | 型 | `request.ts` の `UserScopedClientDeps` |
+| 取得の口 | user-scoped の口に `cache` / `tags` を渡す | 型 | `request.ts` の `UserScopedRequestSpec` |
 | 取得時 | 型を迂回して組んだ spec のキャッシュ指定、呼び出しごとに持ち込んだ `Authorization` / `Cookie` | 要求時に throw | [`data-scope.ts`](../../src/adapters/server/http/data-scope.ts) の `assertSpecWithinScope()` / `assertNoCredentialHeader()` |
-| キャッシュ投入前 | `use cache` を持つモジュールが user-scoped の口を import する | ESLint | `project-rules/no-user-scoped-in-cached-module`。分類の綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る |
+| キャッシュ投入前 | `use cache` を持つモジュールが user-scoped の口を import する（import 先とその 1 段先） | ESLint | `project-rules/no-user-scoped-in-cached-module`。分類の綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る |
 | 描画 | cached scope からの `cookies()` 読み出し | framework | `next-request-in-use-cache`。資格情報が cookie 由来であることに乗っている |
 | client 送信前 | server の object と秘密値を Client Component へ渡す | taint | [`adapters/server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) |
 | 配信 | 主体に紐づく応答が共有キャッシュへ載る | 応答ヘッダ | `src/proxy.ts` の `Cache-Control: private, no-store` |
@@ -280,7 +280,7 @@ HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetIn
 
 ### `allowAnonymous: true` は public ではない
 
-匿名でも呼べる口を public にしたくなるが、資格情報を載せうる口は載せなかった回も含めて user-scoped である。「匿名でも取れるものを共有キャッシュへ」入れたいなら、**口を分ける**のが条件になる。
+匿名で送ってよい要求を public にしたくなるが、資格情報を載せうる接続口を通るなら、載せなかった回も含めて user-scoped である。「匿名でも取れるものを共有キャッシュへ」入れたいなら、**資格情報を載せない公開の接続口から取る**のが条件になる —— 契約がその operation を `security: []`（認証を要しない）と宣言していれば、公開の接続口を引く。
 
 ### taint はコピーに効かない
 

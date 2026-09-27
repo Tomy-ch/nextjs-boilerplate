@@ -55,7 +55,7 @@
 - **同一 render 内で重複し得る取得は adapters 側で `cache()` または fetch memoization を使い、呼び出し側に重複排除を委ねない。** 畳めていなければ `cache()` を外し、呼び出し側で 1 度だけ引く形へ倒す —— 効いていない機構をコメントで主張しない。ただし外す前に応答を見る —— 描画の span に同じ取得が複数本見えても、HTTP client の再試行は memo 化より内側で起きるので、効いていても本数は増える。
 - **キャッシュは既定で無い。** 残したいものに `use cache` を付け、寿命は `cacheLife`、捨てる印は `cacheTag` で持つ。下の所有境界とタグの綴りはそのまま効く。**user-scoped な値は既定 uncached で、`use cache` の下へ置かない**（[データ分類と機微情報](#data-classification)）。
 - **`use cache` の内側の `fetch` に個別のキャッシュ指定（`cache` / `next.tags`）を置かない。** 内側の取得はまとめて外側の寿命に従うので、二重に持つと内側が切れないぶん、外側が再取得しても同じ古い応答を掴む。寿命は `cacheLife`、印は `cacheTag` が持つ。
-- **`use cache` を持つモジュールは `createHttpClient` を直に引かない。** **分類ごとに 1 つ置いた接続口**を引く。口は `adapters/server` が持ち、モジュールごとに組ませない。直に引けるモジュールは user-scoped な client も組める状態にあり、キャッシュの下でそれを許すと主体の値が別の主体へ配られる。
+- **`use cache` を持つモジュールは `createHttpClient` を直に引かない。** **分類ごとに 1 つ置いた接続口**を引く。接続口は `adapters/server/http` が持ち、モジュールごとに組ませない。直に引けるモジュールは user-scoped な client も組める状態にあり、キャッシュの下でそれを許すと主体の値が別の主体へ配られる。
 - **Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ。** 入れ物は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほぼ起きないのに、入れ物だけが主体の数だけ増える。**入れないものへ印を付けない** —— 印は入っているものにしか付かないので、付けた側も捨てる側も、動いていないのに動いて見える。
 - **mutation 後は、データの所有境界で `revalidateTag`、`revalidatePath`、または `router.refresh()` により UI を更新する。** 所有境界の決め方とタグの綴りは次の 2 つが持つ。
 - **捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。** `revalidatePath("/", "layout")` はアプリ全体を捨てる呼び方であって所有境界ではない。捨てる先が複数の route にまたがるなら、route を並べるのではなく `revalidateTag` を使う。**ただし、更新した値がどの画面にも付く外枠に出るときだけは例外とし、理由をその場に書く** —— 経路を 1 つ指定しても外枠は古いままになる。例外は `eslint-disable-next-line project-rules/no-app-wide-revalidate` で名乗り、理由をその行に書く。散文 —— **一部寄せられる**。全体を捨てるリテラルは静的に検出でき、例外は抑止の綴りで名乗る。**その例外が正当かは人に残る** —— 値が外枠に出るかは画面を読まないと決まらない。
@@ -67,9 +67,9 @@
 
 > Rationale: [ADR 0112](adr/0112-data-classification-cache-boundary.md) / [ADR 0111](adr/0111-csp-security-headers.md) / [ADR 0060](adr/0060-state-management.md); enforced via 型（user-scoped の口は `cache` / `tags` を受け取らない）、`adapters/server/http/request.ts` の取得時の関門、ESLint `project-rules/no-user-scoped-in-cached-module` / `project-rules/no-captured-bearer-token`、`scripts/scope-spelling.gate.test.ts`、`src/proxy.test.ts` と E2E、adapters テストと client component テスト。
 
-- **取得の口は分類を宣言する。** `createHttpClient` には `scope: "public"` / `scope: "user-scoped"` のどちらかを渡す。**資格情報を載せうる口は、載せなかった回も含めて user-scoped** であり、`allowAnonymous` を立てても動かない。分類は口の性質であって要求ごとの結果ではない。資格情報のヘッダの持ち込みは取得時の関門で落ちる。
-- **サーバへ保存されるキャッシュ（`use cache` / `unstable_cache` / Data Cache）から user-scoped な取得の口を引かない。** user-scoped な値をキャッシュする唯一の手段は `use cache: private`（サーバへ保存されず、ブラウザのメモリにのみ載る）で、これは**明示的な例外能力であって一般許可ではない**。既定は uncached。ESLint の判定はモジュール単位・直接の import のみで、間接参照は framework の `next-request-in-use-cache` と取得時の関門が覆う。宣言が綴りのまま残っていることは `scripts/scope-spelling.gate.test.ts` が見張る。
-- **資格情報は使用地点で `cookies()` から解決する。** `getBearerToken` には import した取得口を渡し、その場で組んだ関数・ローカル変数・引数で持ち回った値を渡さない。解決済みの値を掴むと `cookies()` が読まれず、cached scope の防御が**何も言わずに**外れる。cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡し、そこへ渡せるのは**囲む関数がその呼び出しで受け取った引数**だけとする。
+- **取得の口は分類を宣言する。** 接続口が `createHttpClient` に `scope: "public"` / `scope: "user-scoped"` のどちらかを渡し、取得の口は分類に合う接続口を引く。**資格情報を載せうる口は、載せなかった回も含めて user-scoped** であり、`allowAnonymous` を立てても動かない。分類は口の性質であって要求ごとの結果ではない。資格情報が取れなかったときに送ってよいかは契約が operation ごとに宣言するので、`allowAnonymous` は要求に立て、契約の `security` が `{}` を含む operation だけに限る。`security: []` の operation は公開の接続口を引く。資格情報のヘッダの持ち込みは取得時の関門で落ちる。
+- **サーバへ保存されるキャッシュ（`use cache` / `unstable_cache` / Data Cache）から user-scoped な取得の口を引かない。** user-scoped な値をキャッシュする唯一の手段は `use cache: private`（サーバへ保存されず、ブラウザのメモリにのみ載る）で、これは**明示的な例外能力であって一般許可ではない**。既定は uncached。ESLint の判定はモジュール単位で、直接の import とその 1 段先までを読む（分類の綴りは接続口に居るため）。それより深い間接参照は framework の `next-request-in-use-cache` と取得時の関門が覆う。宣言が綴りのまま残っていることは `scripts/scope-spelling.gate.test.ts` が見張る。
+- **資格情報は使用地点で `cookies()` から解決する。** `getBearerToken` へ取得口を渡すのは user-scoped の接続口だけで、import した取得口を渡し、その場で組んだ関数・ローカル変数・引数で持ち回った値を渡さない。解決済みの値を掴むと `cookies()` が読まれず、cached scope の防御が**何も言わずに**外れる。cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡し、そこへ渡せるのは**囲む関数がその呼び出しで受け取った引数**だけとする。
 - **public data と PII を同じキャッシュ可能な DTO へ混在させない。** 混ざった時点で全体が user-scoped になり、共有キャッシュの選択肢を失う。
 - **取得する PII を最小化する。** 一部しか使わないのに主体のオブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得の口で詰め替える。ブラウザに置く理由の無い値（更新対象を指す識別子など）は画面へ渡さず、`adapters` の中で解決する。
 - **PII を含むという理由で画面全体を CSR 化しない。** PII のために SSR / PPR を諦めるのは許されるが、CSR にするのは PII を必要とする最小の Client Island に限る。散文 —— **寄せられない**。CSR 化の動機はコードの形に現れない。
@@ -130,8 +130,9 @@
 
 ## 取得と契約
 
-> Rationale: [ADR 0070](adr/0070-backend-role-separation.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.md) / [ADR 0080](adr/0080-error-handling.md) / [ADR 0060](adr/0060-state-management.md); enforced via adapters テストと feature テスト。
+> Rationale: [ADR 0070](adr/0070-backend-role-separation.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.md) / [ADR 0080](adr/0080-error-handling.md) / [ADR 0060](adr/0060-state-management.md); enforced via adapters テストと feature テスト、ESLint `project-rules/no-client-outside-connection-port`。
 
+- **接続口は downstream と分類の組ごとに 1 つ置き、client を組むのはそこだけにする。** 遮断器と再試行の予算は client の中に状態として載るので、同じ接続先へ client を分けると劣化の判断が分けた数だけ割れる。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` が宣言する。接続先を呼び出しごとに受け取るなど寄せられない箇所は、`eslint-disable-next-line project-rules/no-client-outside-connection-port` に理由を書いて名乗る。
 - **契約が決めた並び・分類・組分けを画面で組み替えない。** 並べ直すと、契約の判断に画面の判断が重なる。表示順は並びそのものが持ち、番号を別に持たない —— 動かしたときに並びと番号のどちらが正か決まらない。
 - **範囲を外れた要求は契約が拒む。** 画面が要求を止めてよい根拠は契約の宣言だけで、読み込んだ時点の値を根拠に止めない —— 送る時点で足りるかどうかは契約の側にしか判らない。
 - **何も変えない要求を成功として受け取らない。** 変更量 0 を通すと、押した人は動いたと受け取る。向きや量が読めない値は既定へ倒さず弾く。

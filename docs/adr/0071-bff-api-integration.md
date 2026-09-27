@@ -29,9 +29,15 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - **circuit breaker**: closed / half-open / open の状態機械(既定: 失敗率 0.5 / サンプル 20 / open 5s / half-open probe 3)。単一バックエンドでも、劣化時に叩き続けず fail-fast するために持つ
 - per-downstream の **Profile**(timeout / retry / breaker 設定)で調整し、未指定は既定 Profile を使う
 
-**接続口は downstream と分類([0112](0112-data-classification-cache-boundary.md))の組ごとに 1 つ置く。** retry budget と circuit breaker は client の中に状態として載るため、同じ downstream へ client を複数組むと、劣化したかどうかの判断が分けた数だけ割れ、budget も breaker も設計値どおりに働かない。public 側は「データ取得のキャッシュ・再検証」節の、分類ごとに 1 つ置いた接続口がこれを兼ねる。
+**接続口は downstream と分類([0112](0112-data-classification-cache-boundary.md))の組ごとに 1 つ置く。** retry budget と circuit breaker は client の中に状態として載るため、同じ downstream へ client を複数組むと、劣化したかどうかの判断が分けた数だけ割れ、budget も breaker も設計値どおりに働かない。接続口は `src/adapters/server/http/` に分類ごとに 1 つずつ(`getPublicClient()` / `getUserScopedClient()`)置き、取得の口はどちらかを引く。「データ取得のキャッシュ・再検証」節の、分類ごとに 1 つ置いた接続口はこれである。
 
-**user-scoped 側は 1 つの接続口へ寄せていない。** 寄せるには、資格情報の取得口を client へ渡す形を 1 か所へ集めることになり、[0112](0112-data-classification-cache-boundary.md) の検査(`project-rules/no-captured-bearer-token`: 取得口には import した口だけを渡せる)と正面から交差する —— 集めた側が取得口を引数で受け取れば検査が通さず、集めた側が取得口を自分で import して固定すれば、資格情報の解決経路が「呼ぶ口を読めば分かる」場所から 1 段離れ、検査が守っている前提が動く。どちらも決定 5 の検査の形と同時にしか決められないため、寄せるなら両方を 1 つの改定として扱う。それまで user-scoped の接続口は各取得口が自前で組み、その module 変数に固定する。**user-scoped でも downstream ごとに 1 つが原則で、破るなら理由をその場に書く。** 強制: 散文。「同じ downstream か」は `baseUrl` の実行時の値で決まりコードの形からは決まらないため、1 つへ寄せるまでは機械へ寄せられない。寄せた後は「client を組む kernel を直に引けるのは接続口だけ」という import 制限へ寄せられる(public 側で `project-rules/no-user-scoped-in-cached-module` が採る形)。
+**資格情報の取得口を渡すのは user-scoped の接続口の 1 か所だけである。** [0112](0112-data-classification-cache-boundary.md) が資格情報の解決に置く検査(`project-rules/no-captured-bearer-token`: 取得口には import した口だけを渡せる)が求める「宣言が 1 か所にあり、そこを読めば解決の経路が分かる」は、接続口が import した取得口を渡すことで満たす。取得口は要求のたびに session から解決され、接続口は資格情報を保持しない。
+
+**帰結として、user-scoped の要求は遮断器と retry budget を共有する。** ある口で失敗が続いて遮断されると、他の user-scoped の口も同じく fail-fast で落ちる。downstream を単位とする resilience の設計値そのものである。共有されるのは同じ module graph の中で、framework が graph を分けて組む境界(起動境界と描画など)ごとに接続口も別に組まれる。
+
+**資格情報が無いときに送ってよいかは、要求が宣言する(`allowAnonymous`)。** 契約は認証の要否を operation ごとに宣言する(OpenAPI の `security`)ため、client の単位では粗い。立ててよいのは、契約がその operation の `security` に `{}` を含めているものだけで、`security: []`(認証を要しない)の operation は公開の接続口を引く。付け間違えても、資格情報の無い要求がバックエンドで 401 になるだけで漏洩にはならない。強制: 散文 —— **寄せられる**(契約の `security` と要求の `allowAnonymous` を operation ごとに突き合わせられる。規則は無い)。
+
+**接続口の外で client を組む箇所は、理由をその場に書く。** 接続先(issuer)を呼び出しごとに、または注入で受け取る IdP への要求と、session を確立する 1 往復が該当する。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` が宣言する。
 
 ### エラー正規化(生 status を漏らさない)
 
@@ -84,6 +90,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - ❌ 非 idempotent メソッド(POST / PATCH)を idempotency key なしに無条件 retry すること（強制: `src/adapters/server/http/retry-policy.test.ts` と `request.test.ts`（宣言の無い POST / PATCH を再試行しない）が wrapper の既定を落とす。`idempotent: true` の宣言に idempotency key が伴うかは散文 —— **寄せられない**。ヘッダの意味は wrapper には見えない）
 - ❌ retry budget / circuit breaker なしに retry すること(retry storm 防止)（強制: `src/adapters/server/http/request.test.ts`（遮断中は接続せずに落とす / 予算を使い切ったら再試行しない）と `retry-budget.test.ts` / `circuit-breaker.test.ts` が wrapper の再試行を落とす。wrapper の外に書いた再試行は散文 —— **寄せられない**。再試行かどうかは制御の流れの意味で決まり、形からは決まらない）
 - ❌ `adapters` の fetch wrapper に業務ロジックを書くこと(外部接続と変換のみ。[0021](0021-frontend-responsibility.md))（強制: 散文 —— **寄せられない**。業務ロジックか外部接続の変換かは層の責務の判断で、コードの形からは決まらない）
+- ❌ 接続口の外で client を組むこと(downstream と分類の組ごとに 1 つ)（強制: ESLint `project-rules/no-client-outside-connection-port`。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` で、寄せられない箇所は `eslint-disable-next-line` に理由を書いて名乗る）
 - ❌ response を検証せず内層へ流すこと(adapters 境界で zod 検証。[0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md))（強制: 型（server / client の wrapper は `schema` を必須引数に取る）と両 wrapper の `request.test.ts`（契約と違う応答を internal として落とす）。wrapper を通らない生 `fetch` は散文 —— **寄せられる**（`adapters` の外の `fetch` を落とす規則が無い））
 - ❌ キャッシュ / 再検証の指定をコンポーネント各所へ散らすこと(データ取得の所有層 = adapters / 呼び出す RSC に集約)
 - ❌ `use cache` の内側の `fetch` へ `cache` / `next.tags` を置くこと(寿命が二重になり、外側の再取得が古い応答を掴む)

@@ -104,7 +104,7 @@ make setup-remove-sample
 | `src/app/` | root layout、`(auth)`、`api/auth` / `api/health` / `api/telemetry`、`dev/session`、`maintenance`、`not-found`、動作確認用の最小の `page.tsx` |
 | `src/features/` | `auth` / `dev-session` / `maintenance` と層 README |
 | `src/model/` | `action-state` / `pagination` / `datetime` / `search-params` / `session` / `authz` など題材を持たない型と関数 |
-| `src/adapters/` | `server/http`（fetch wrapper）/ `server/auth` / `client/http` / `http/`。**`server/api/` と `gen/` は空になる** |
+| `src/adapters/` | `server/http`（fetch wrapper と、分類ごとの接続口 `getPublicClient()` / `getUserScopedClient()`）/ `server/auth` / `client/http` / `http/`。**`server/api/` と `gen/` は空になる** |
 | `src/components/` | 全部。題材の語を持たない部品だけが置かれている |
 | `mocks/` | 機構（`stable-responses.ts` / `node.ts` / `serve.ts`）。**`api/` は空になる** |
 | `docs/` | ADR・設計解説・規約・層の README・コア残留画面の仕様書 |
@@ -394,8 +394,6 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { type Note, type NoteId, type NotePage, type NoteSummary, toNoteId } from "@/model/note/note";
 
 import {
@@ -404,8 +402,7 @@ import {
   PatchNotesDetailResponse,
 } from "../../gen/api/endpoints.zod";
 import type { NotePatchRequest } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 const NOTES_PATH = "/v1/notes";
 
@@ -414,26 +411,6 @@ export const NOTE_PAGE_SIZE = 20;
 
 type WireNoteSummary = z.infer<typeof GetNotesResponse>["items"][number];
 type WireNote = z.infer<typeof GetNotesDetailResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 主体を名乗って引く口が共有する接続先。
- *
- * @remarks
- * `getBearerToken` には import した口（`getAccessToken`）をそのまま渡します。解決済みの値を掴むと、
- * 要求のたびに cookie を読む形が崩れます（置き方は `adapters` の README）。
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 function toNoteSummary(wire: WireNoteSummary): NoteSummary {
   return {
@@ -456,7 +433,7 @@ function toNote(wire: WireNote): Note {
  * @param after - 前のページが返した cursor。先頭なら省略
  */
 export const getMyNotes = cache(async (after?: string): Promise<NotePage> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: NOTES_PATH,
     searchParams: { first: String(NOTE_PAGE_SIZE), after },
     schema: GetNotesResponse,
@@ -473,7 +450,7 @@ export const getMyNotes = cache(async (after?: string): Promise<NotePage> => {
  * 呼び出し側が所有者を確かめる必要はありません。
  */
 export const getMyNote = cache(async (id: NoteId): Promise<Note> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${NOTES_PATH}/${encodeURIComponent(id)}`,
     schema: GetNotesDetailResponse,
   });
@@ -489,7 +466,7 @@ export const getMyNote = cache(async (id: NoteId): Promise<Note> => {
  * 他の場所で先に更新されていた場合は `conflict` として返ります。
  */
 export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise<Note> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${NOTES_PATH}/${encodeURIComponent(id)}`,
     method: "PATCH",
     body: { title: input.title, body: input.body } satisfies NotePatchRequest,
@@ -502,6 +479,9 @@ export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise
 
 押さえること。
 
+- **client は組まず、分類に合う接続口を引く。** 主体を名乗る口は `getUserScopedClient()` を引く。
+  資格情報の取得口を渡すのは接続口だけで、`createHttpClient` を直に引くと
+  `project-rules/no-client-outside-connection-port` が落とす
 - **`scope` は口の性質で決まる。** 資格情報を載せうる口は、載せなかった回も含めて
   `"user-scoped"` である。この分類は型で効き、`cache` / `tags` を渡せない
   （[0112](../adr/0112-data-classification-cache-boundary.md)）
@@ -513,11 +493,12 @@ export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise
   組み立ての前に `invalid-argument` で落とす
 
 **分岐: 主体を名乗らない一覧を作りたいとき。** 誰でも読める一覧なら口は `"public"` になり、
-`createHttpClient` を直に引かず `server/api/public-client.ts` の `getPublicClient()` を引く。
+`server/http/public-client.ts` の `getPublicClient()` を引く。
 その口だけが `use cache` / `cacheLife` / `cacheTag` を名乗れる。書き方と、なぜ口の側が寿命を持つかは
 [`src/adapters/README.md`](../../src/adapters/README.md)「リクエストをまたいで残すのは `use cache` の側」
-と [0071](../adr/0071-bff-api-integration.md)。読み取りが公開で書き込みが主体を要する場合の
-`allowAnonymous` も同じ README にある。
+と [0071](../adr/0071-bff-api-integration.md)。未ログインでも読める（契約がその operation の認証を
+任意と宣言している）要求に立てる `allowAnonymous` は、同じ README の「資格情報を載せるかは接続口が、
+送ってよいかは要求が決める」にある。
 
 **分岐: ブラウザから 2 ページ目以降を取りたいとき。** 初回は Server Component がこの口を直接呼び、
 続きだけを `app/api/notes/route.ts`（BFF）と `adapters/client/api/notes.ts` で取る。経路と
