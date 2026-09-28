@@ -118,9 +118,20 @@ Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の 
 
 - OTLP と公式 semconv のみを使用する
 - 実装時に設定値を注入し、vendor 固定を避ける
-- local 開発では go 側 compose の `observability` が公開する OTLP HTTP `http://localhost:4318` と Grafana `http://localhost:3000` を使う
+- local 開発の送り先は `OTEL_EXPORTER_OTLP_ENDPOINT` の既定（手元の collector の OTLP HTTP）で、collector と閲覧面はこのリポジトリの外で立てる。値は [env/README.md](../../env/README.md) が持つ
 - バックエンドや collector に合わせて endpoint、`service.name`(`OBS_SERVICE_NAME`)、signal 有効化を設定する。`service.name` は同じ trace に載る他サービスと異なる値にする。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
 - Next.js が自前で張る `fetch` span は、span 名に query 付きの URL をそのまま載せる。名前が要求ごとに散って集計の単位にならないので、抑止するなら `NEXT_OTEL_FETCH_DISABLED=1` を使う。同じ外向き通信は Undici instrumentation の span が覆い、そちらの名前は経路だけを持つ
+
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: business-logic` — 業務ロジックを持たない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 |
+| `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
+| `render-span.ts` は OTel を import しない。span で包む実装は起動境界から注入で受ける | violation | この README「構成」「載せる範囲」 |
+| `render-span.ts` 以外の module は `server-only` を名乗る | 名乗っていなければ violation | [adapters/README.md](../adapters/README.md)「ブラウザ発のテレメトリの中継」。機械（`scripts/server-only.gate.test.ts`）が見るのは `*.server.ts` の綴りを持つものだけ |
+| OTLP と公式 semconv だけを使い、vendor の SDK をこのカーネルへ固定しない | vendor SDK の import は violation。公式 semconv に無い属性キーは suggestion | この README「運用」/ [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
+| 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
 
 ## 関連する ADR
 

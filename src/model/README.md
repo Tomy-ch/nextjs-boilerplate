@@ -74,6 +74,17 @@ coverage-exclusions:
 - 依存先は `errors` のみ
 - ファイル名は kebab-case、型名は PascalCase、関数名は camelCase とする
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: fetch` — `fetch` などの外部 IO を持たない | violation。`adapters` の import と購読の組み立て（`EventSource` / `WebSocket`）は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。機械: ESLint boundaries と `no-restricted-syntax`（`eslint.config.ts`） |
+| `forbidden: config` — `config` を import せず、`process.env` を読まない。設定値が要るなら引数で受け取る | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
+| `forbidden: business-logic` — バックエンドが所有する業務ルールを持たない。置くのは型と、表示のための最小限の関数まで | 契約が返さない値を計算して出していれば violation。最小限の関数か判定ロジックかが読み分けられないときは suggestion | [0029](../../docs/adr/0029-type-design-discipline.md) 禁止事項 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 |
+| バックエンドの契約を手書きの型で写さない。置くのは表示のための型で、契約の形との変換は `adapters` が持つ | suggestion（偶然同じ形の表示用の型と区別できない） | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / この README「受け入れないもの」 |
+| 置いてあるものは複数箇所から参照される。1 つの feature しか使わないものは feature の内側に置く | 参照が 1 か所しか無ければ suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」1・2 / この README「受け入れるもの」 |
+| 型の形から読める型設計の規律 —— 同時に立ち得ない状態を真偽値の組で表さない、公開面の引数に `unknown` を置かない、外部由来の識別子を素の `string` のまま公開しない | suggestion | [0029](../../docs/adr/0029-type-design-discipline.md) 決定 1〜3 と禁止事項 |
+
 ## 関連する ADR
 
 - [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。ここが `errors` だけを引く根拠

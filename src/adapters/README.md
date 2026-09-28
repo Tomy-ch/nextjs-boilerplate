@@ -304,6 +304,20 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
 - `server/` は server config を利用でき、`client/` は secret を利用しない
 - 外部型・生成型はここで変換し、内側へ漏らさない
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: components` — UI 部品を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
+| `forbidden: capabilities` — `capabilities` を import しない。storage / clipboard / cookie の読みといった local ブラウザ API もここに置かない | import は violation（機械が落とす）。`localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照も violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項。機械: ESLint boundaries（import のみ） |
+| `forbidden: stores` — `stores` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
+| `forbidden: business-logic` — 持つのは接続と、外部の形から表示の型への変換だけ。契約が返さない値を計算しない | violation。変換か業務の判定かが読み分けられないときは suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
+| `client/` は server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数は読んでよい | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項 / この README「ブラウザ発のテレメトリの中継」。機械は層の粒度でしか見ず、`server/` と `client/` を区別しない |
+| `server/` に client hook や `"use client"` を置かない。逆に `client/` に `server-only` の module を置かない | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項 |
+| 公開面が返す型は表示の型で、`gen/` の生成型を素通しにしない | 公開面の宣言が生成型を名指していれば violation。推論を経て生成型が出ていくなら suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / この README「運用」。機械は `gen/` の直接の import までを落とす |
+| `observability` を import するのは中継の受け側（`server/telemetry/`）だけ | violation | この README「ブラウザ発のテレメトリの中継」。機械は層の粒度でしか見ない |
+| client へ渡してはいけない値は取得の口で汚し、呼び出し側では汚さない。`react` の taint API は `server/taint/taint.ts` を通して呼ぶ | `taint.ts` の外で `react` の taint API を直に呼んでいれば violation。PII を含む取得の口が汚していなければ suggestion（何が PII かは 0112 が持つ） | この README「client へ渡してはいけないものを登録する」/ [0112](../../docs/adr/0112-data-classification-cache-boundary.md) |
+
 ## 関連する ADR
 
 この層のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります** ——

@@ -290,6 +290,21 @@ components/
 - **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、その部品が何のためにあるかと、**隣の似た部品との使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違う部品は、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く
 - 説明の置き場は 2 つある。component 全体は `parameters.docs.description.component`、story ごとは export の直前の JSDoc（または `parameters.docs.description.story`）である。**どちらも Docs ページにしか描画されない。** [`.storybook/preview.ts`](../../.storybook/preview.tsx) が `tags: ["autodocs"]` を付けているのはこのためで、外すと書いた説明がどこにも出なくなる
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: fetch` — `fetch` などの外部 IO を持たない。取得の結果は呼び出し元から props で受け取る | violation。`adapters` の import は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。機械: ESLint boundaries |
+| `forbidden: config` — `config` を import せず、`process.env` を読まない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
+| `forbidden: capabilities` — `capabilities` を import しない。runtime 能力が要る合成は feature で行う | violation | [0022](../../docs/adr/0022-capabilities-kernel.md) 禁止事項。機械: ESLint boundaries |
+| `forbidden: stores` — `stores` を import しない。横断状態が要る合成は feature で行う | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries |
+| `forbidden: business-state` — 持てる状態は表示に必要な UI 状態（開閉・選択中の項目・通知の queue など）だけで、取得した業務データの写しや業務の進行状態を持たない | 取得したデータを自分の状態に写していれば violation。状態が UI のものか業務のものかが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」/ この README「受け入れないもの」 |
+| 層（`design-system` / `patterns` / `shell` / `app-starter`）は「誰が書き換えるか」で決まり、依存は `app-starter・shell → patterns → design-system` の一方向に流れる | 逆向きの import は violation。契約を知っている部品が `app-starter` の外に居るなど、判定の順（契約 → mount 位置 → 役割の閉じ方）と置き場が合わなければ suggestion | この README「層」 |
+| 置いてある部品は複数の feature から使われる。1 つの feature 専用の UI は feature の内側に置く | 使う feature が 1 つしか無ければ suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」1・2 / この README「運用」 |
+| SSR first —— `"use client"`・Radix・Portal を使うのは、native 要素では満たせない操作要件がある client island に限る | suggestion | この README「運用」/ [docs/rules.md](../../docs/rules.md)「UI 部品と操作」 |
+| 色と余白は semantic token を通す。class の結合は `cn.ts` を通し、`clsx` / `tailwind-merge` を直に使わない | primitive token の直接利用と、`cn.ts` を通さない結合は violation | この README「運用」 |
+| focus 表示は `outline`、装飾の輪は `ring` で書き分け、境界を示す線と本文の色は「focus 表示と装飾的な輪の使い分け」の各節に従う | 節が名指しで禁じている形（focus に `ring` を使う、`focus-visible:outline-2` と `outline-none` の併記、`primary` / `emphasis` を本文の色に使う）は violation | この README「focus 表示と装飾的な輪の使い分け」。文字の太さは機械: `project-rules/no-raw-font-weight` |
+
 ## 関連する ADR
 
 部品ごとの README はこの節を持たない。ADR への参照はこの層の README に集める。

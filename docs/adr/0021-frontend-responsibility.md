@@ -187,13 +187,14 @@ Server Action は `actions.ts`(controller 相当)に置く。**どこの `action
 - **violation severity**: 境界違反は CI(`pnpm lint:ci`)でブロック(error)とする
 - **マトリクスの正(本 ADR で確定)**: 依存マトリクスの機械可読な表現は **`architecture.ts` 1 箇所**に置く。ESLint はそれを import して強制へ変換し、層 README の `imports-allowed` は**そこから生成する**(`pnpm gen:architecture`)。`pnpm check:architecture` は生成し直した結果と突き合わせ、差分があれば落とす。**人が書き写す形にしない** —— 完全一致を要求する宣言は値が他所から完全に決まっており、書き写しても正しさは 1 つも増えず、書き写しの誤りを検出する仕組みが要るだけになる。単一の正から生成し、差分ゼロを検査する形は `gofmt -l` / `prettier --check` / `cargo fmt --check` と同じである
 - **境界の宣言を持つのは要素の根だけ(本 ADR で確定)**: 根でないディレクトリは宣言を持たず、最も近い要素の根の宣言を継ぐ。解決は `scripts/architecture/` が `architecture.ts` の `BOUNDARY_ELEMENTS`(狭い要素が先)を読んで行い、**ESLint と同じ順序を同じ 1 箇所から受け取る**。**`KERNEL_PATTERNS` が要素を狭めている層(`features`)だけは、スライスの根に加えて層の根も宣言先になる** —— 狭めているのは強制の粒度であって依存の集合ではないので、両者は同じ集合を宣言する。順序を持つ解決器が 2 つあると、片方だけが区画を見ないまま動き、区画の README は自分の実効許可ではない値を書くことになる。**`forbidden` は生成しない** —— `fetch` / `business-logic` のようにカーネル名でない語彙を含む散文寄りの列で、`architecture.ts` に対応する値を持たない
-- **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査(置いたものが README の受け入れ範囲に合っているか)は層 README を読むレビューが担う
+- **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査(置いたものが README の受け入れ範囲に合っているか)は層 README の「監査の観点」を読む `arch-check` が担う
 
 ## 層別 README 運用
 
 11 カーネル(`app` / `features` / `model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`)+ 各 feature に README を配置する。
 
 - 各 README を **層別アーキ監査とテスト観点の実行時読込元**(= 正)とする。監査する側が規約の写しを持つと、README を直しても監査が古い規約で裁く
+- 層別アーキ監査(`arch-check`)が読むのは各カーネル README の **`## 監査の観点`** 節である。列は `観点` / `判定の形` / `根拠` の 3 つで、frontmatter の `forbidden` のタグはそれぞれ 1 行を持ち、そのタグの読み方を定める。残りの行は、import の集合では表せない原則を README・`docs/rules.md`・ADR から引いて置く。判定の形は `violation`(README が受け入れないもの・`forbidden` への抵触)と `suggestion`(形が曖昧で人が裁くもの)の 2 つで、機械が既に落とす行は根拠の欄にその手段を書き、監査は再判定しない。feature の README はこの節を持たない —— 役割論はカーネル README が持つ
 - 各 README には、本 ADR の**命名規律**(役割名のみ・禁止名)と**カーネル受入基準**を転記し、その場で参照できるようにする
 
 ## 禁止事項

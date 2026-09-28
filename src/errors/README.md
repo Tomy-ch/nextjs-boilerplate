@@ -6,7 +6,7 @@ test-requirement: unit
 
 # errors
 
-全層から参照できる、protocol-agnostic なアプリケーション共通エラーのカーネルです。Go の `internal/apperror` と同じく、分類・原因・表示メタ情報を分離します。
+全層から参照できる、protocol-agnostic なアプリケーション共通エラーのカーネルです。分類・原因・表示メタ情報を分けて持ちます —— 分類は内側で判定に使い、原因は `cause` として辿れるまま残し、表示メタ情報は外側で上書きできます。
 
 ## 公開 API
 
@@ -64,6 +64,14 @@ const meta = resolveErrorMeta(error);
 - 生の transport 応答からの分類は `adapters` 境界で一度だけ行う
 - 未分類エラーを `internal` に正規化する判断も境界の責務
 - ログレベルとログ出力は `logging` と境界の責務。errors 自身は出力しない
+
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: http-vocabulary` — HTTP status・レスポンスの形・transport 固有の語彙を持たない。分類から status への変換は `adapters` の境界が持つ | violation。数値や型が transport 由来かが綴りから読み分けられないときは suggestion | [0080](../../docs/adr/0080-error-handling.md) 禁止事項 / この README「境界」。機械: ESLint `no-restricted-syntax` が `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルまでを落とす |
+| `forbidden: external-dependencies` — 他のカーネルも外部パッケージも import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。他のカーネルの import は機械: ESLint boundaries。外部パッケージの import は機械が届かない |
+| errors 自身はログを出力しない | `console` や logger の呼び出しがあれば violation | この README「境界」 |
 
 ## 関連する ADR
 

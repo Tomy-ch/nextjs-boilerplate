@@ -35,6 +35,19 @@ test-requirement: unit
 - client-only の実装では `"use client"` を最小の境界に置く
 - 単一 feature の状態は feature 内の local state に留める
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: adapters` — `adapters` を import せず、`fetch` などの remote IO を持たない。server state は RSC と `adapters` が持つ | violation。import は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries |
+| `forbidden: components` — UI 部品を import せず、UI マークアップを持たない | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries と `project-rules/no-markup-outside-ui-layers` |
+| `forbidden: capabilities` — `capabilities` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
+| `forbidden: server-config` — server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。ESLint は `config` を層の粒度でしか見ない |
+| `forbidden: business-logic` — 業務ロジックを持たない。持つのは横断する client 状態とその更新だけ | violation。状態の更新か業務の判定かが読み分けられないときは suggestion | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
+| API の応答を store へ写して二重にキャッシュしない。選択の記録に含む表示値のスナップショットはこれに当たらない | suggestion（鮮度の責任を誰が持つかは store の型から決まらない） | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
+| 置いてある store は複数の feature から使われる | import する feature スライスが 2 つ未満なら suggestion | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 / この README「運用」 |
+| Zustand のストアを `src/stores/` の外で作らない | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
+
 ## 関連する ADR
 
 - [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界

@@ -114,6 +114,19 @@ OTel SDK と logger へ値を注入します。Config 自身は logger / observa
 `security-headers` は build 境界の持ち物で、`next.config.ts` が読みます。目的別 config と違って
 リクエストにも環境変数にも依らないため、差し替えはコードの変更になります。
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: ui` — 画面を描かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。機械: `project-rules/no-markup-outside-ui-layers` |
+| `forbidden: fetch` — `fetch` などの外部 IO を持たない。持つのは環境変数の検証と、検証した値の公開だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
+| `forbidden: business-logic` — 業務ロジックを持たない。値の意味の判定は読み手の側に置く | violation。検証の規則か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
+| `*.server.ts` を import するのは、`adapters/server`、起動 / ビルド境界（`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`）、`app/metadata`、Next.js の規約が route segment に置くことを要求する値（`config/site` / `config/clock`）を読む route segment だけ。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | 許可の外からの import は violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスと Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / この README「運用」。機械は `config` を層の粒度でしか見ない |
+| `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数の静的な参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.md) §2 と禁止事項 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
+| secret を `NEXT_PUBLIC_` に置かない | [`env/README.md`](../../env/README.md) で secret 管理のラベルを持つ変数が `NEXT_PUBLIC_` を名乗っていれば violation。ラベルは無いが署名鍵・資格情報として使われている値が `NEXT_PUBLIC_` を名乗っていれば suggestion | [0030](../../docs/adr/0030-environment-variable-management.md) 禁止事項 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
+| server config の値を props として client component へ渡さない。client が要る値は最初から `NEXT_PUBLIC_` の client config に置く | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の禁止則 / この README「運用」 |
+| Config class と ENV parser を module の外へ export しない | violation | [docs/rules.md](../../docs/rules.md)「設定と環境」/ この README「Config の配線」 |
+
 ## 関連する ADR
 
 - [0021](../../docs/adr/0021-frontend-responsibility.md) — 設定を読めるのがどの層までかという線

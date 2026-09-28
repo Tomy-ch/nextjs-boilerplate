@@ -142,6 +142,22 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 - metadata は Metadata API で宣言する。`<head>` の手書きと `next/head` は使わない。土台と差分の割り当ては「metadata の土台と差分」が持つ
 - **route segment は描画の span を持たない。** Next.js が `render route (app)` を張るので、同じ範囲を二重に持たない。画面の中の帰属は feature 層の最上位が持つ（[observability/README.md](../observability/README.md)）
 
+## 監査の観点
+
+| 観点 | 判定の形 | 根拠 |
+| --- | --- | --- |
+| `forbidden: business-logic` — どの element も、契約が返さない値の計算・業務の判定・重い集約を持たない。`error.tsx` / `not-found.tsx` / `loading.tsx` も同じ | violation。持っているのが表示のための整形か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / [0080](../../docs/adr/0080-error-handling.md) 禁止事項 |
+| `forbidden: direct-fetch` — route segment は `fetch` も `adapters` の取得の口も呼ばない。取得は feature が持つ。例外は入口の保護（`adapters/server/auth` の `verifySession()` を呼び、`model` の述語で判定し、`redirect()` する）だけ。Route Handler も生の `fetch` を持たず `adapters` を通す | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス / [0025](../../docs/adr/0025-app-layer-elements.md) element 表と禁止事項 / [api/README.md](api/README.md)「受け入れないもの」 |
+| route segment の `observability` は計装の mount だけ —— root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す。span を作る・記録する用途で引かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスの注記 / [0025](../../docs/adr/0025-app-layer-elements.md)「import 先の集合として書けないもの」。機械は届かない（`route-segment` は要素として宣言していない） |
+| route segment が直に読む `config` は、Next.js の規約が route segment に置くことを要求する値だけ（metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。それ以外の `*.server.ts` を route segment が import しない。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [config/README.md](../config/README.md)「運用」。機械は届かない |
+| Server Action（`src/app/**/actions.ts`）は、export する action ごとに内側で `adapters/server/auth` の断言を呼ぶ。描画した画面が保護されていることに依拠しない | 呼び出しが無ければ violation。呼んでいるが、役割・所有の判定として足りているかは suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」/ [docs/rules.md](../../docs/rules.md)「認可と入口」 |
+| Server Action は `server config`（`*.server.ts`）を読まない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項と「この表のどこまでが機械で強制されるか」。機械は `config` を層の粒度でしか見ず、この区別は届かない |
+| Route Handler は中継と入出力の検証だけを持つ薄い proxy で、Node runtime に留まる。分類から status と本文を組むのは `adapters/server/http` の口で、handler の中で組み立てない | runtime の宣言を変えていれば violation。応答を handler の中で組み立てていれば suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) element 表 / [docs/rules.md](../../docs/rules.md)「層境界と依存」/ [api/README.md](api/README.md)「失敗の返し方」 |
+| route segment の器（`layout` / `page` / `template` / `default`）に `"use client"` を置かない | violation | [docs/rules.md](../../docs/rules.md)「層境界と依存」。機械: ESLint `no-restricted-syntax`（`eslint.config.ts`） |
+| 横断 UI と Provider を mount するのは `layout.tsx` だけで、mount は配置だけを意味する。`page.tsx` は feature を呼ぶだけで、layout は hook を呼んでデータを組まない | violation | [0026](../../docs/adr/0026-layout-shell-mount.md) 禁止事項 / この README「運用」 |
+| segment config（`dynamic` / `revalidate` 等）を持たない。殻を配れない画面だけが `export const instant = false` を名乗る | violation | この README「この層が持つ判断」/ [0041](../../docs/adr/0041-cache-components-decision.md) |
+| metadata は Metadata API で宣言し、`<head>` の手書きと `next/head` を使わない。各 segment は「metadata の土台と差分」の表が定める差分を宣言する | 手書きの `<head>` / `next/head` は violation。表が求める差分（`alternates.canonical`、認証の要る画面の `robots`）の欠落は suggestion | この README「metadata の土台と差分」「運用」/ [0044](../../docs/adr/0044-seo-metadata-strategy.md) |
+
 ## 関連する ADR
 
 この層のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります** ——
