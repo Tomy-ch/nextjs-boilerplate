@@ -13,6 +13,7 @@
 | `skills/` | OpenAI Codex CLI のスキル。置き場は `AGENTS.md` が割り当てる。下記 |
 | `purity-sweep/` | 純化パスの台帳と照会フック。下記 <!-- boilerplate-only:line --> |
 | `closed-loop/` | 開発の窓の打刻。下記 |
+| `doc-router/` | 編集しようとしているパスを統べる文書の名指し。下記 |
 | `private/` | 機械ローカルの索引（追跡外）。再生成できる cache で、失っても費用がゼロ |
 
 ## `skills/`
