@@ -12,9 +12,9 @@ import { idleActionState } from "@/model/action-state";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
+import { MYPAGE_PATH } from "../../../facade/paths/paths";
 import { PROFILE_FIELD_LABELS } from "../../../field-labels";
 import type { ProfileFormState } from "../../../form-state";
-import { MYPAGE_PATH } from "../../../facade/paths/paths";
 import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
 import { PrefectureField } from "../../../ui/prefecture-field/prefecture-field";
 import { ProfileSubmitButton } from "../../../ui/submit-button/submit-button";

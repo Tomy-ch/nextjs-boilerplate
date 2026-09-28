@@ -65,7 +65,7 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
     "",
   ],
   [
-    /^ionice\s+(?:(?:-[A-Za-z]*[cnpPu]\s*\S+|--(?:class|classdata|pid|pgid|uid)\s+\S+|-(?![A-Za-z]*[cnpPu])[A-Za-z]+|--(?!(?:class|classdata|pid|pgid|uid)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
+    /^ionice\s+(?:(?:-[A-OQ-Zabd-moq-tv-z]*[cnpPu]\s*\S+|--(?:class|classdata|pid|pgid|uid)\s+\S+|-[A-OQ-Zabd-moq-tv-z]+|--(?!(?:class|classdata|pid|pgid|uid)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
     "",
   ],
   [
@@ -82,7 +82,7 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
     "",
   ],
   [
-    /^xargs\s+(?:(?:-[A-Za-z0-9]*[EILPadns]\s*\S+|--(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s+)\S+|-[A-Za-z0-9]+|--(?!(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s))[\w-]+(?:=\S+)?)\s+)*/,
+    /^xargs\s+(?:(?:-[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]*[EILPadns]\s*\S+|--(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s+)\S+|-[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]+|--(?!(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s))[\w-]+(?:=\S+)?)\s+)*/,
     "",
   ],
   [
@@ -133,7 +133,7 @@ const INTERPRETER_PAYLOAD = new RegExp(
  */
 const REMOTE_COMMAND: readonly RegExp[] = [
   /(?:^|\s)ssh\s+(?:(?:-[46AaCfGgKkMNnqsTtVvXxYy]*[BDEFIJLORSWbceilmopw]\s*\S+|-[46AaCfGgKkMNnqsTtVvXxYy]+)\s+)*[^\s-]\S*\s+/,
-  /(?:^|\s)watch\s+(?:(?:-[A-Za-z]*[nq]\s*\S+|--interval[=\s]\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?)\s+)*/,
+  /(?:^|\s)watch\s+(?:(?:-[A-Za-mo-pr-z]*[nq]\s*\S+|--interval[=\s]\S+|-[A-Za-mo-pr-z]+|--(?!interval[=\s])[\w-]+(?:=\S+)?)\s+)*/,
 ];
 
 /**
@@ -372,6 +372,27 @@ function stripQuotes(segment: string): string {
 }
 
 /**
+ * 引用を開閉する文字か。
+ *
+ * @param character - 1 文字
+ * @returns 単引用符か二重引用符なら true
+ */
+function isQuoteCharacter(character: string): character is "'" | '"' {
+  return character === "'" || character === '"';
+}
+
+/**
+ * その位置でコマンド置換（backtick か `$(`）が始まるか。
+ *
+ * @param line - コマンド行
+ * @param at - 調べる位置
+ * @returns コマンド置換が始まるなら true
+ */
+function opensCommandSubstitution(line: string, at: number): boolean {
+  return line.charAt(at) === "`" || line.startsWith("$(", at);
+}
+
+/**
  * 引用の中身と、バックスラッシュで打ち消した文字を塗り潰した写しを返す。長さと、引用を開閉する
  * 文字の位置は元のまま保つ。
  *
@@ -395,12 +416,12 @@ function maskQuoted(line: string): string | undefined {
       out += FILL.repeat(Math.min(2, line.length - at));
     } else if (quote === undefined) {
       if (character === "'" && line.charAt(at - 1) === "$") return undefined;
-      if (character === "'" || character === '"') quote = character;
+      if (isQuoteCharacter(character)) quote = character;
       out += character;
     } else if (character === quote) {
       quote = undefined;
       out += character;
-    } else if (quote === '"' && (character === "`" || line.startsWith("$(", at))) {
+    } else if (quote === '"' && opensCommandSubstitution(line, at)) {
       return undefined;
     } else {
       out += FILL;

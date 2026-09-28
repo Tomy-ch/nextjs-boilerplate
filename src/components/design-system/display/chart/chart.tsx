@@ -123,6 +123,16 @@ function getPayloadConfigFromPayload(
 }
 
 /**
+ * tooltip に並べる値の表示用文字列。
+ *
+ * @param value - recharts が渡す系列の値。
+ * @returns 数は locale に沿って桁区切りにし、それ以外は文字列にしたもの。
+ */
+function formatTooltipValue(value: TooltipValueType): string {
+  return typeof value === "number" ? formatNumber(value) : String(value);
+}
+
+/**
  * 系列の色を CSS 変数として配る `style` 要素。
  *
  * @remarks
@@ -384,9 +394,7 @@ export function ChartTooltipContent({
                       </div>
                       {item.value == null ? null : (
                         <span className="font-mono font-emphasis text-foreground tabular-nums">
-                          {typeof item.value === "number"
-                            ? formatNumber(item.value)
-                            : String(item.value)}
+                          {formatTooltipValue(item.value)}
                         </span>
                       )}
                     </div>

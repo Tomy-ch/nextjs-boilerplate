@@ -82,7 +82,7 @@
    1440 で割ると日数）、`minimumReleaseAgeStrict`、現在の `minimumReleaseAgeExclude`、`overrides:` の
    上のコメントと既存の override の全項目。候補を既に名指しする除外があれば、その版のために窓が
    意図して開けられている。
-4. [0110](../../../docs/adr/0110-security-operations.md) の 1.1 / 1.2 / 3.4 を読む。**workspace が
+4. [0110](../../../docs/adr/0110-security-operations.md) のツールの cooldown、直接証拠で解除できる代理としての窓、抑止のポリシーを読む。**workspace が
    公開経過の窓を宣言していない、または ADR が定める npm の窓と食い違うなら、止まって 2 つの出典を
    報告する** —— 権威を主張する 2 つの出典の食い違いは `AGENTS.md` の trip wire であって、どちらかを
    選ぶ値ではない。
@@ -164,7 +164,7 @@ pnpm view <pkg> time --json
 
 トリアージは報告のみで、帯（`LOW` / `MEDIUM` / `HIGH` / `CRITICAL` /
 `INSUFFICIENT-EVIDENCE`）を返す。窓か証拠かの判断はすべてあちらのもので
-（[0110](../../../docs/adr/0110-security-operations.md) 1.2）、このスキルは帯を問いへ運ぶだけで、
+（[0110](../../../docs/adr/0110-security-operations.md)：窓は直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
 そこから何も決めない。**LOW の帯は利用者への証拠であって、除外してよいという許可ではない。**
 
 blocked が無ければこの手順は飛ばす。
@@ -257,7 +257,7 @@ minimumReleaseAgeExclude:
   比べ、窓が明ける前に行を消すとすべての install が壊れる。
 
 **承認された抑止。** `osv-scanner.toml` / `.trivyignore.yaml` の冒頭と
-[0110](../../../docs/adr/0110-security-operations.md) 3.4 が述べる形で書く —— 脆弱性 ID 1 件、
+[0110](../../../docs/adr/0110-security-operations.md) の抑止のポリシーが述べる形で書く —— 脆弱性 ID 1 件、
 ここでなぜ許容できるかの理由、それを退役させる条件。
 
 ## Step 7. 検証する

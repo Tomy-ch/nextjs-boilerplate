@@ -24,7 +24,12 @@ describe("formatDateTime", () => {
   });
 
   it("同じ locale の書式は 1 度だけ作って使い回す", () => {
-    const construct = vi.spyOn(Intl, "DateTimeFormat");
+    const original = Intl.DateTimeFormat;
+    const construct = vi
+      .spyOn(Intl, "DateTimeFormat")
+      .mockImplementation(
+        new Proxy(original, { construct: (target, args) => Reflect.construct(target, args) }),
+      );
 
     expect(formatDateTime(PUBLISHED_AT, "en-GB")).toBe("12 Aug 2026, 09:05");
     expect(formatDateTime(PUBLISHED_AT, "en-GB")).toBe("12 Aug 2026, 09:05");
@@ -78,7 +83,12 @@ describe("formatMonthName", () => {
   });
 
   it("同じ locale の書式は 1 度だけ作って使い回す", () => {
-    const construct = vi.spyOn(Intl, "DateTimeFormat");
+    const original = Intl.DateTimeFormat;
+    const construct = vi
+      .spyOn(Intl, "DateTimeFormat")
+      .mockImplementation(
+        new Proxy(original, { construct: (target, args) => Reflect.construct(target, args) }),
+      );
 
     expect(formatMonthName(3, "en-GB")).toBe("Apr");
     expect(formatMonthName(3, "en-GB")).toBe("Apr");

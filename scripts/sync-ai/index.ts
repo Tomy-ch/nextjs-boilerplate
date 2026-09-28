@@ -9,7 +9,13 @@ import path from "node:path";
 
 import { isCommandOnPath } from "../lib/command-presence.js";
 import { errorMessage } from "../lib/error-message.js";
-import { CODEX_RECEIVER_WORKFLOW, codexExecArgs, handoffPrompt } from "./handoff.js";
+import {
+  CODEX_RECEIVER_WORKFLOW,
+  CONTRACT_DIR,
+  codexExecArgs,
+  handoffPrompt,
+  resolveContractPath,
+} from "./handoff.js";
 import { acquireHandoffLock, lockRefusal, releaseHandoffLock } from "./lock.js";
 
 const EXIT_USAGE = 2;
@@ -42,10 +48,19 @@ function main(): number {
     return EXIT_USAGE;
   }
 
+  const root = repoRoot();
+  const resolvedContractPath = resolveContractPath(root, path.resolve(contractPath));
+
+  if (resolvedContractPath === undefined) {
+    console.error(`✘ sync-ai: 契約は ${CONTRACT_DIR}/ の中に置いてください: ${contractPath}`);
+
+    return EXIT_USAGE;
+  }
+
   let contract: string;
 
   try {
-    contract = fs.readFileSync(contractPath, "utf8");
+    contract = fs.readFileSync(resolvedContractPath, "utf8");
   } catch (error) {
     console.error(`✘ sync-ai: 契約を読めません: ${contractPath}\n    ${errorMessage(error)}`);
 
@@ -60,7 +75,6 @@ function main(): number {
     return EXIT_CODEX_ABSENT;
   }
 
-  const root = repoRoot();
   const lockPath = path.join(root, "tmp", "skills", "sync-ai", ".handoff.lock");
   const lock = acquireHandoffLock(lockPath, `scripts/sync-ai (pid ${process.pid})`, Date.now());
 

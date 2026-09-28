@@ -94,7 +94,8 @@ function resultLine(result: unknown): string {
   const line = numberOf(fieldOf(fieldOf(location, "region"), "startLine"), UNREADABLE_LINE);
   const rule = textOf(fieldOf(result, "ruleId"), UNREADABLE);
   const message = textOf(fieldOf(fieldOf(result, "message"), "text"), "");
-  const heading = `${drawToolOutputInline(`${uri}:${line}`)} ${drawToolOutputInline(rule)}`;
+  const position = `${uri}:${line}`;
+  const heading = `${drawToolOutputInline(position)} ${drawToolOutputInline(rule)}`;
 
   return `- [${levelOf(result)}] ${heading}\n  - ${drawToolOutputInline(message)}`;
 }

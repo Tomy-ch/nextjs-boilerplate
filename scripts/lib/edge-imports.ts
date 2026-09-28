@@ -23,7 +23,8 @@ export function isNodeOnlySpecifier(specifier: string): boolean {
     return true;
   }
 
-  const head = specifier.replace(/\/.*$/s, "");
+  const slashAt = specifier.indexOf("/");
+  const head = slashAt < 0 ? specifier : specifier.slice(0, slashAt);
 
   return NODE_BUILTINS.has(head) || head === "dotenv";
 }

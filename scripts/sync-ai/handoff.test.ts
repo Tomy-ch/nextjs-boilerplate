@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { CODEX_RECEIVER_WORKFLOW, CODEX_SKILLS_DIR, codexExecArgs, handoffPrompt } from "./handoff";
+import {
+  CODEX_RECEIVER_WORKFLOW,
+  CODEX_SKILLS_DIR,
+  CONTRACT_DIR,
+  codexExecArgs,
+  handoffPrompt,
+  resolveContractPath,
+} from "./handoff";
 
 const CONTRACT = "# 転送契約\n\n- name: example\n";
 
@@ -49,9 +56,44 @@ describe("handoffPrompt", () => {
 
   it("連鎖を延ばさないことと、書き込みを名指しの 1 スキルに限ることを求める", () => {
     const prompt = handoffPrompt(CONTRACT, true);
+    const skillPlaceholder = "<name>";
 
     expect(prompt).toContain("Do not start another agent");
-    expect(prompt).toContain(`Write only under \`${CODEX_SKILLS_DIR}/<name>/\``);
+    expect(prompt).toContain(`Write only under \`${CODEX_SKILLS_DIR}/${skillPlaceholder}/\``);
     expect(prompt).toContain("Do not ask questions");
+  });
+});
+
+describe("resolveContractPath", () => {
+  // ----- 正常系 -----
+  it("契約の置き場の中を指す相対パスを、リポジトリからの絶対パスにする", () => {
+    expect(resolveContractPath("/repo", `${CONTRACT_DIR}/example-contract.md`)).toBe(
+      "/repo/tmp/skills/sync-ai/example-contract.md",
+    );
+  });
+
+  it("契約の置き場の中を指す絶対パスをそのまま返す", () => {
+    expect(resolveContractPath("/repo", "/repo/tmp/skills/sync-ai/example-contract.md")).toBe(
+      "/repo/tmp/skills/sync-ai/example-contract.md",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("置き場の外を指すパスは断る", () => {
+    expect(resolveContractPath("/repo", "/etc/passwd")).toBeUndefined();
+  });
+
+  it("置き場から親へ遡るパスは断る", () => {
+    expect(resolveContractPath("/repo", `${CONTRACT_DIR}/../../../.env`)).toBeUndefined();
+  });
+
+  it("置き場と前方だけ一致する隣のディレクトリは断る", () => {
+    expect(
+      resolveContractPath("/repo", "/repo/tmp/skills/sync-ai-other/contract.md"),
+    ).toBeUndefined();
+  });
+
+  it("置き場そのものは契約として読まない", () => {
+    expect(resolveContractPath("/repo", CONTRACT_DIR)).toBeUndefined();
   });
 });

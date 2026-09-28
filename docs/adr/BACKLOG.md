@@ -350,4 +350,3 @@ Go 側の本丸は **spec 駆動 scaffold + 層別監査体系**。先に移植�
 | 運用 | `resolve-merge` / `new-issue` / `supply-chain-triage` |
 | 語彙と接触点 | `glossary` / `context-map` / `context-map-audit`（IM-48 は「採る」で決着） |
 | エージェント環境のループ | `closed-loop`（[0160](0160-agent-environment-loop.md) / [0161](0161-development-window-as-feedback-unit.md)）。宣言・打刻・集計・送出・読解・週次の測り直しまで一通り |
-

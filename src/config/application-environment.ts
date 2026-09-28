@@ -11,7 +11,9 @@ export type ApplicationEnvironment = (typeof applicationEnvironments)[number];
  * @returns 選べる {@link ApplicationEnvironment} のいずれかか
  */
 function isApplicationEnvironment(value: string): value is ApplicationEnvironment {
-  return applicationEnvironments.some((environment) => environment === value);
+  const environments: readonly string[] = applicationEnvironments;
+
+  return environments.includes(value);
 }
 
 /**

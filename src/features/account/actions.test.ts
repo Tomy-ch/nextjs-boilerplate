@@ -20,9 +20,9 @@ vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/api/users", () => ({ registerUser, updateMyProfile, withdrawMe }));
 
 import { registerAction, updateProfileAction, withdrawAction } from "./actions";
+import { MYPAGE_PATH } from "./facade/paths/paths";
 import type { ProfileFormState, WithdrawFormState } from "./form-state";
 import { RETURN_URL_FIELD } from "./onboarding/form-names";
-import { MYPAGE_PATH } from "./facade/paths/paths";
 
 const PROFILE = {
   firstName: "太郎",

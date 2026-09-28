@@ -6,6 +6,26 @@ export const CODEX_SKILLS_DIR = ".agents/skills";
 /** Codex 側でスキルを作成・更新する手順の置き場（リポジトリ相対）。 */
 export const CODEX_RECEIVER_WORKFLOW = `${CODEX_SKILLS_DIR}/manage-skill/SKILL.md`;
 
+/** 送信側が転送契約を書く置き場（リポジトリ相対）。 */
+export const CONTRACT_DIR = "tmp/skills/sync-ai";
+
+/**
+ * 転送契約として読むファイルの絶対パスを返す。
+ *
+ * @remarks
+ * 契約の本文はそのまま Codex へ渡るので、契約の置き場の外を指す引数は読まずに断ります。
+ *
+ * @param repoRoot - リポジトリの絶対パス
+ * @param candidate - 引数で受け取った契約のパス。相対なら `repoRoot` から解決する
+ * @returns 契約の置き場の中を指していればその絶対パス、外なら `undefined`
+ */
+export function resolveContractPath(repoRoot: string, candidate: string): string | undefined {
+  const contractDir = path.resolve(repoRoot, CONTRACT_DIR);
+  const resolved = path.resolve(repoRoot, candidate);
+
+  return resolved.startsWith(`${contractDir}${path.sep}`) ? resolved : undefined;
+}
+
 /**
  * `codex exec` へ渡す引数。
  *

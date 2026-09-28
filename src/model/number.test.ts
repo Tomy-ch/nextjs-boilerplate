@@ -17,7 +17,12 @@ describe("formatNumber", () => {
   });
 
   it("同じ locale の書式は 1 度だけ作って使い回す", () => {
-    const construct = vi.spyOn(Intl, "NumberFormat");
+    const original = Intl.NumberFormat;
+    const construct = vi
+      .spyOn(Intl, "NumberFormat")
+      .mockImplementation(
+        new Proxy(original, { construct: (target, args) => Reflect.construct(target, args) }),
+      );
 
     expect(formatNumber(1234567, "en-IN")).toBe("12,34,567");
     expect(formatNumber(1234567, "en-IN")).toBe("12,34,567");

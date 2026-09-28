@@ -94,7 +94,8 @@ Never, even during this skill:
    divide by 1440 for days), `minimumReleaseAgeStrict`, the current `minimumReleaseAgeExclude`, the
    comment above `overrides:` and every existing override entry. An exclusion already naming the
    candidate means the window was opened deliberately for it.
-4. Read [0110](../../../docs/adr/0110-security-operations.md) 1.1 / 1.2 / 3.4. **If the workspace
+4. Read [0110](../../../docs/adr/0110-security-operations.md) — the tool cooldown, the window as a proxy
+   that direct evidence can lift, and the suppression policy. **If the workspace
    declares no release-age window, or one that disagrees with the npm window the ADR sets, stop and
    report the two sources** — two authorities disagreeing is a trip wire in `AGENTS.md`, not a value
    to pick.
@@ -179,7 +180,8 @@ holds**, the window, the disposition, and the advisory that forces the move.
 
 Triage is report-only and returns a band (`LOW` / `MEDIUM` / `HIGH` / `CRITICAL` /
 `INSUFFICIENT-EVIDENCE`). The window-versus-evidence judgement is entirely its own
-([0110](../../../docs/adr/0110-security-operations.md) 1.2); this skill carries the band into the
+([0110](../../../docs/adr/0110-security-operations.md): the window is a proxy that direct evidence can
+lift); this skill carries the band into the
 question and decides nothing from it. **A LOW band is evidence for the user, not permission to
 exclude.**
 
@@ -276,7 +278,7 @@ minimumReleaseAgeExclude:
   breaks every install.
 
 **Approved suppression.** Write the entry in the form the header of `osv-scanner.toml` /
-`.trivyignore.yaml` and [0110](../../../docs/adr/0110-security-operations.md) 3.4 state — one
+`.trivyignore.yaml` and the suppression policy of [0110](../../../docs/adr/0110-security-operations.md) state — one
 vulnerability id, a reason saying why it is acceptable here, and the condition that retires it.
 
 ## Step 7. Verify

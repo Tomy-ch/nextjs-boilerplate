@@ -68,7 +68,9 @@ describe("handlers", () => {
     it("どれも同じ要求へ同じ応答を返し、応答の組み立てに差し替えが掛かっている", async () => {
       const requests = handlers.map((handler) => {
         const method = String(handler.info.method);
-        const url = `${ORIGIN}${pathOf(handler).replace(/^\*/, "").replace(/:[^/]+/g, "1")}`;
+        const url = `${ORIGIN}${pathOf(handler)
+          .replace(/^\*/, "")
+          .replace(/:[^/]+/g, "1")}`;
         const body = METHODS_WITH_BODY.has(method) ? "{}" : undefined;
 
         return { endpoint: `${method} ${url}`, url, init: { method, body } };
