@@ -8,8 +8,6 @@ async function loadSubject(result: { error?: Error } = {}) {
   return {
     config,
     loadEnvironment: module.loadEnvironment,
-    findApplicationEnvironment: module.findApplicationEnvironment,
-    isDevelopmentOnlyEndpointOpen: module.isDevelopmentOnlyEndpointOpen,
   };
 }
 
@@ -73,69 +71,5 @@ describe("loadEnvironment", () => {
 
     expect(() => loadEnvironment()).toThrow("環境変数ファイルを読み込めません");
     expect(() => loadEnvironment()).toThrow(expect.objectContaining({ cause }));
-  });
-});
-
-describe("findApplicationEnvironment", () => {
-  // ----- 正常系 -----
-  it("指定された環境を返す", async () => {
-    vi.stubEnv("APP_ENV", "stg");
-    const { findApplicationEnvironment } = await loadSubject();
-
-    expect(findApplicationEnvironment()).toBe("stg");
-  });
-
-  it("APP_ENV 未指定時は null を返す", async () => {
-    const { findApplicationEnvironment } = await loadSubject();
-
-    expect(findApplicationEnvironment()).toBeNull();
-  });
-
-  it("ENV ファイルを読み込まなくても解決する", async () => {
-    vi.stubEnv("APP_ENV", "prd");
-    const { config, findApplicationEnvironment } = await loadSubject();
-
-    findApplicationEnvironment();
-
-    expect(config).not.toHaveBeenCalled();
-  });
-
-  // ----- 異常系 -----
-  it("選べない環境名を拒否する", async () => {
-    vi.stubEnv("APP_ENV", "production");
-    const { findApplicationEnvironment } = await loadSubject();
-
-    expect(() => findApplicationEnvironment()).toThrow("APP_ENV は local, ci, dev, stg, prd");
-  });
-});
-
-describe("isDevelopmentOnlyEndpointOpen", () => {
-  // ----- 正常系 -----
-  it("開発では開ける", async () => {
-    vi.stubEnv("APP_ENV", "local");
-    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
-
-    expect(isDevelopmentOnlyEndpointOpen()).toBe(true);
-  });
-
-  it("CI でも開ける", async () => {
-    vi.stubEnv("APP_ENV", "ci");
-    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
-
-    expect(isDevelopmentOnlyEndpointOpen()).toBe(true);
-  });
-
-  // ----- 異常系 -----
-  it("実環境では開けない", async () => {
-    vi.stubEnv("APP_ENV", "prd");
-    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
-
-    expect(isDevelopmentOnlyEndpointOpen()).toBe(false);
-  });
-
-  it("APP_ENV が明示されていなければ開けない", async () => {
-    const { isDevelopmentOnlyEndpointOpen } = await loadSubject();
-
-    expect(isDevelopmentOnlyEndpointOpen()).toBe(false);
   });
 });

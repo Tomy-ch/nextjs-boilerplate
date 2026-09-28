@@ -1,9 +1,10 @@
 import type { NextConfig } from "next";
 import { PHASE_DEVELOPMENT_SERVER } from "next/constants";
 
+import { isDevelopmentOnlyEndpointOpen } from "./src/config/application-environment";
 import { isServedOverTls } from "./src/config/auth/auth.schema";
 import { getEnvironment, validateEnvironment } from "./src/config/environment";
-import { isDevelopmentOnlyEndpointOpen, loadEnvironment } from "./src/config/load-environment";
+import { loadEnvironment } from "./src/config/load-environment";
 import { buildSecurityHeaders } from "./src/config/security-headers/security-headers";
 
 /** すべての環境で route として扱う拡張子。 */
