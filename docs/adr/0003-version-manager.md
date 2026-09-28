@@ -2,7 +2,7 @@
 
 本プロジェクトでは、ツールおよび言語ランタイム（Node.js / pnpm 等）の **バージョン宣言の単一ソース (SSOT)** として `mise.toml` を採用する。
 
-[mise](https://mise.jdx.dev/) は当該 SSOT を読み取る既定の host インストール backend として位置付け、配送（Docker / CI）には拡張しない。これにより mise への過度な依存を避けつつ、開発体験の統一を図る。
+[mise](https://mise.jdx.dev/) は当該 SSOT を読み取る既定のインストール backend として host と CI で使い、CI では composite action `.github/actions/setup-mise` の 1 箇所に閉じる。Docker には持ち込まない。これにより mise への過度な依存を避けつつ、開発体験と CI の版を `mise.toml` 1 つに揃える。
 
 ## Status
 
@@ -30,8 +30,8 @@ Accepted
 仮に将来 mise が衰退・廃止されても以下が成立する。
 
 - `mise.toml` は仕様ファイルとして残せる（人間にもツールにも読める）
-- 切り替え範囲は **配送層** (`make install-tools` の実装) に限られる
-- CI / Docker / 開発者の日常コマンドに `mise` を撒いていないため、撤退コストが contract 層に閉じる
+- 切り替え範囲は **配送層** (`make install-tools` の実装と CI の `setup-mise`) に限られる
+- Docker / 開発者の日常コマンドに `mise` を撒かず、CI の呼び出しも `setup-mise` 1 箇所に閉じているため、撤退コストは契約層と CI の入口 1 つに閉じる
 
 mise の現状シェアは asdf / nodenv / nvm / volta 等と拮抗しており、リポジトリとしての再利用性を確保するためにもロックインを限定する。
 
@@ -52,8 +52,8 @@ mise の現状シェアは asdf / nodenv / nvm / volta 等と拮抗しており�
 ├─────────────────────────────────────────────────────────┤
 │ 配送層        :  レイヤごとに別実装                       │
 │   ├ host    : mise install                              │
-│   ├ Docker  : 公式 base image (FROM node:X.Y.Z-alpine)   │
-│   └ CI      : actions/setup-node 系 + version-file 連携  │
+│   ├ Docker  : 周辺サービスのみ（digest 固定、mise なし）  │
+│   └ CI      : setup-mise (composite) → mise install     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -65,7 +65,7 @@ mise の現状シェアは asdf / nodenv / nvm / volta 等と拮抗しており�
 | 契約 (Makefile) | 開発者に対する安定した I/F を提供する | ほぼ変更なし |
 | 配送 (mise / Docker / CI) | 実体を取得し PATH に置く | 環境追加・mise からの移行時に変更 |
 
-mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / その他の配送ルートには mise コマンドを撒かない。
+mise への依存は **配送層の host と CI の `setup-mise`** に閉じている。SSOT / 契約 / その他の配送ルートには mise コマンドを撒かない。
 
 ## SSOT としての mise.toml
 
@@ -83,7 +83,7 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
   - 明示をやめる判断は前提の側からしか起きない —— mise がレジストリのマッピング固定を宣言の外で保証するようになるか、明示した backend が解決できない環境の事例が出るかのどちらかである。記述が冗長であることは理由にならない
   - これが守るのはレジストリのマッピング差し替えだけである。配布物そのものの改竄は mise 既定の checksum / cosign 検証が担う。両者は別の層であり、片方が他方を代替しない
 - mise の機能利用を前提とした追加機能（タスク定義 `[tasks]` / 環境変数 `[env]` 等）はここに置かない。SSOT の純度を保つため、mise 固有の付加機能は別ファイル / Makefile 側で扱う
-- **版の宣言の同期検査は持たない。撤回条件は、版の宣言が `mise.toml` の外にもう 1 箇所現れたとき。** 本リポジトリは Docker を持たない（[0011](0011-no-docker.md)）ため宣言が 1 箇所しか無く、workflow が版を名乗る唯一の面は `make actions-mise-pin-lint` が既に見ている。**「他所が持っているから」は条件にならない** —— 同期の検査は、同期すべき 2 つ目が在って初めて意味を持つ
+- **版の宣言の同期検査は持たない。撤回条件は、版の宣言が `mise.toml` の外にもう 1 箇所現れたとき。** 本リポジトリは Docker を持たない（[0011](0011-no-docker.md)）ため宣言が 1 箇所しか無く、CI のツールも `setup-mise` が `mise.toml` から読むので写しが無い。`mise.toml` に書けない mise 自身の版は `setup-mise` が持ち、同じ action 内の digest / キャッシュキーとの整合を `make actions-mise-pin-lint` が見る。`mise.toml` の管理外のツールを workflow が単独で固定する版は、同期の相手を持たないので対象外である。**「他所が持っているから」は条件にならない** —— 同期の検査は、同期すべき 2 つ目が在って初めて意味を持つ
 
 ## 配送層の扱い
 
@@ -100,8 +100,9 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 
 ### CI
 
-- GitHub Actions では `actions/setup-node` + バージョンファイル指定、または `jdx/mise-action` の利用を想定
-- いずれを採用するにせよ、ジョブ内で `mise.toml` を **読み取り** はしてよいが、`mise.toml` 自体や `make install-tools` を CI で書き換えない
+- **CI の入口は composite action `.github/actions/setup-mise` 1 つ**。digest で照合した mise 本体を入れ、ジョブが名指ししたツールだけを `mise.toml` の版で `mise install` する。ジョブが渡すのはツール名だけで、版は `mise.toml` からしか来ないため、CI 側に版の写しが生まれない
+- 入口を 1 つに閉じるのは、mise 本体の取得・検証・キャッシュを 1 箇所で持つためである（`actions/setup-node` を採らない理由を含め [0153](0153-ci-configuration.md) ランタイム供給）。workflow の `run:` から mise を直接呼ばない
+- ジョブ内で `mise.toml` を **読み取り** はしてよいが、`mise.toml` 自体や `make install-tools` を CI で書き換えない
 
 ## 基本コマンド
 
@@ -117,13 +118,12 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 
 1. `mise.toml` を編集してバージョンを書き換える
 2. `mise install` （または `make install-tools`）で実体を取得
-3. 配送層の同期（Dockerfile FROM タグ など）が必要なら反映する
-4. 動作確認の上、当該変更を PR に含める
+3. 動作確認の上、当該変更を PR に含める
 
 ## 禁止事項
 
 - ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）（強制: 散文 —— **寄せられる**（`.nvmrc` / `.node-version` / `.tool-versions` の存在と、`package.json` の `packageManager` / `volta` を gate で見る。規則は無い））
-- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで直接 `mise install` チェーンを組む等）。配送層は各環境のネイティブ手段で完結させる（強制: 散文 —— **寄せられる**（workflow の `run:` と `docker/**/Dockerfile` に現れる `mise` の呼び出しを、`.github/actions/setup-mise` を除いて検出する。規則は無い））
+- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで `setup-mise` を経ずに `mise` を呼ぶ等）。Docker は各環境のネイティブ手段で完結させ、CI は `setup-mise` 1 箇所に閉じる（強制: 散文 —— **寄せられる**（workflow の `run:` と `docker/**/Dockerfile` に現れる `mise` の呼び出しを、`.github/actions/setup-mise` を除いて検出する。規則は無い））
 - ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）（強制: 散文 —— **寄せられる**（`mise.toml` を TOML として読み、`[tasks]` / `[env]` の表が無いことを gate で見る。規則は無い））
 - ❌ npm パッケージを `npm:` backend で取ること。mise 経由の npm パッケージは lockfile にも `pnpm audit` にも載らず、[0001](0001-package-manager.md) の単一経路と冷却期間の検疫を迂回する 2 つ目の npm 供給経路になる。Node で動くものは `pnpm add -DE` で取る（[0156](0156-browser-observation-tooling.md) 取得経路）。見直すのは pnpm が冷却期間・lockfile・公開日時を返さないレジストリの拒否を提供しなくなったときだけで、「mise に寄せると SSOT が 1 つになる」は理由にならない —— バイナリと npm パッケージでは配布経路も検疫の手段も異なる（強制: 散文 —— **寄せられる**（`mise.toml` の `[tools]` のキーが `npm:` で始まらないことを gate で見る。規則は無い））
 - ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` / `.makefiles/` / scripts / workflow の `mise exec` は綴りで落とせるが規則は無い。手で打つコマンドはコードに現れない）
@@ -136,7 +136,7 @@ mise への依存は **配送層 (host)** に閉じている。SSOT / 契約 / �
 - **`mise activate` を経ない実行環境（GUI クライアントから起動した git hook / エージェントのシェル / CI）は、shims ディレクトリ（`~/.local/share/mise/shims`）を PATH に載せて揃える**（`mise activate --shims`）。解決を PATH 側で直す点は対話シェルと同じで、呼び出しごとの包み込みには落とさない
 - ツールを呼ぶ入口（hook / make レシピ / スクリプト）は、前段で `command -v <tool>` を確認し、無ければ `make install-tools` と activate を促して落とす。包んで動かすのではなく、環境の不足をその場で名指しする
 - mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
-- 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットのみ
+- 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットと、CI の `.github/actions/setup-mise` の 2 つ
 
 ## 関連 ADR
 
