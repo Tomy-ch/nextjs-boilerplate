@@ -80,7 +80,7 @@ const preview: Preview = {
     surface: DEFAULT_SURFACE,
   },
   decorators: [
-    // 配色は `:root`、系統は `body` へ置く（`tokens/README.md`）。
+    // 属性は Portal の出口を含む位置へ置く。story の木を包む要素には置かない（`tokens/README.md`）。
     (Story, context) => {
       writeAttribute(
         document.documentElement,

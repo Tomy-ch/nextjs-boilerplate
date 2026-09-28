@@ -8,8 +8,8 @@
 // - **位置** —— `Bash(make tag-patch *)` は `pnpm build && make tag-patch` に当たらない
 // - **引数なし** —— 同じ宣言は素の `make tag-patch` にも当たらない。しかも危険な target ほど
 //   引数なしが通常の呼び方である
-// - **包み** —— `bash -c` / `rtk run` / `make ai-` / `sudo` / `runuser -u` / `env` / `setsid` /
-//   `chroot` / `timeout` / `ssh` / `watch` などは中身を実行するので、包みを剥がして判定する
+// - **包み** —— `bash -c` / `sudo` / `env` / `ssh` / `make ai-` などは中身を実行するので、包みを
+//   剥がして判定する
 //
 // 読むのはシェルの文法だけである。`python -c` / `node -e` の引数はその言語の文字列で、そこから
 // シェルを呼ぶかどうかは形から分からない。迂回を禁じるのは AGENTS.md の規則であって、ここではない。
@@ -400,7 +400,7 @@ function splitOutsideQuotes(line: string): readonly string[] {
 }
 
 /**
- * 区間の途中に立つ `sh -c` / `eval` へ渡した引用の中身を取り出す。
+ * 区間の途中に立つ `sh -c` / `eval` / `su -c` / `runuser -c` へ渡した引用の中身を取り出す。
  *
  * @param segment - 区切りで割った 1 区間
  * @returns 実行されるコマンド行として読む引用の中身

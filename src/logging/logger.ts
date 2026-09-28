@@ -43,7 +43,8 @@ export const LogFieldKey = {
  * @remarks
  * `trace_id` / `span_id` は渡せません。logger が実行中の span から付けます。
  *
- * `cause` を文字列に限るのは、`Error` をそのまま置くと OTLP sink で `{}` になるためです。
+ * `cause` を文字列に限るのは、`Error` をそのまま置くと stdout では `{}` になり、OTLP sink では
+ * 欠落するためです。
  */
 export type LogFields = Readonly<{
   [LogFieldKey.TRACE_ID]?: never;

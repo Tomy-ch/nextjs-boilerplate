@@ -78,7 +78,13 @@ export function isGenerationKind(value: string): value is GenerationKind {
   return (GENERATION_KINDS as readonly string[]).includes(value);
 }
 
-/** 層 README の frontmatter を組み立てる。 */
+/**
+ * 層 README の frontmatter を組み立てる。
+ *
+ * @param importsAllowed - 生成先の層が import を許されている層
+ * @param contract - 生成先の層 README が宣言する契約
+ * @returns `---` で挟んだ frontmatter
+ */
 function frontmatter(importsAllowed: readonly string[], contract: LayerContract): string {
   const testRequirement =
     typeof contract.testRequirement === "string"

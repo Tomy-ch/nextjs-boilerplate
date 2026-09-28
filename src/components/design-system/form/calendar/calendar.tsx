@@ -78,6 +78,11 @@ function Calendar({
   components,
   ...props
 }: React.ComponentProps<typeof DayPicker> & {
+  /**
+   * 前後の月へ送る button の variant。
+   *
+   * @defaultValue `"ghost"`
+   */
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();

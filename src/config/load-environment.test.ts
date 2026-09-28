@@ -14,8 +14,7 @@ async function loadSubject(result: { error?: Error } = {}) {
 beforeEach(() => {
   vi.resetModules();
   vi.unstubAllEnvs();
-  // 周囲の APP_ENV を明示的に外す。CI は workflow で `ci` を宣言しており、
-  // 「未指定のとき」を確かめるケースが実行環境しだいで結果を変えてしまう。
+  // 実行環境の APP_ENV を前提にしない（`src/config/README.md` のテストの節）。
   vi.stubEnv("APP_ENV", undefined);
 });
 

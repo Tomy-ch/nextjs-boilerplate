@@ -52,8 +52,7 @@ export function findApplicationEnvironment(): ApplicationEnvironment | null {
  *
  * @remarks
  * ここに `dev` / `stg` / `prd` を足すと、**誰でも任意の役割の session を発行できる口**が実環境に
- * 開きます。判定を API の接続モードではなく環境そのものに置いているのは、接続モードが
- * 「mock を実環境に置かない」という散文の約束でしか守られていないためです。
+ * 開きます。API の接続モードでは判定しません（`src/config/README.md`）。
  */
 const developmentOnlyEnvironments: ReadonlySet<ApplicationEnvironment> = new Set(["local", "ci"]);
 
@@ -64,8 +63,7 @@ const developmentOnlyEnvironments: ReadonlySet<ApplicationEnvironment> = new Set
  * **`APP_ENV` が指定されていることも要求します。** 未指定を既定値へ落とさない理由は
  * {@link findApplicationEnvironment} と同じです。
  *
- * 判定をここに置くのは、口が増えるたびに同じ条件が写るのを避けるためです。開ける環境の一覧が
- * 2 か所にあると、片方だけを広げた変更が黙って通ります。
+ * 口を足す側は条件を写さず、これを呼びます（`src/config/README.md`）。
  *
  * @returns 開発専用の口を開けてよいか
  */

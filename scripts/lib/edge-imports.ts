@@ -125,10 +125,6 @@ export function runtimeImportsOf(path: string, content: string): string[] {
 /**
  * 入口から静的に辿れる module のうち、Node.js にしか無い入口を引くものを挙げる。
  *
- * @remarks
- * 外部パッケージの中は辿りません（`resolve` が null を返す綴り）。辿るのはこのリポジトリの
- * ソースだけです。
- *
  * @param entry - 辿り始める module（リポジトリルート相対）
  * @param load - パスからソースを読む。読めなければ null
  * @param resolve - import 先をリポジトリルート相対のパスへ解決する。辿らない綴りは null

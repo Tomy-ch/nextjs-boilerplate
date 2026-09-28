@@ -10,6 +10,11 @@ import { findNodeOnlyImports, formatNodeOnlyImports, runtimeImportsOf } from "./
  * @remarks
  * 判定の中身は `lib/edge-imports.ts` が持ち、ここは読み込みと解決だけを担う
  * （`client-schema-weight.gate.test.ts` と同形）。
+ *
+ * **Proxy は最適化の際に CDN（Edge 相当）へ置かれうる。** そこから辿れる module は Node.js の API も
+ * ENV ファイルの読込も要してはならないが、型検査も lint も import の先の実行環境を見ないので、
+ * 辿れるグラフの側にゲートを置く。config のどこまでが辿れてよいかは `src/config/README.md`「運用」が
+ * 持つ。
  */
 
 const REPOSITORY_ROOT = resolvePath(import.meta.dirname, "..");

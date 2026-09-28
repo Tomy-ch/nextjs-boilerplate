@@ -56,6 +56,7 @@ const mono: CSSProperties = {
   fontSize: "0.8125rem",
 };
 
+/** 見出しと注記を添えた、token 一覧の表 1 つ分の区画。 */
 function Section({ title, note, children }: { title: string; note: string; children: ReactNode }) {
   return (
     <section style={{ marginBlockEnd: "2.5rem" }}>
