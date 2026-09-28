@@ -8,8 +8,8 @@
 // - **位置** —— `Bash(make tag-patch *)` は `pnpm build && make tag-patch` に当たらない
 // - **引数なし** —— 同じ宣言は素の `make tag-patch` にも当たらない。しかも危険な target ほど
 //   引数なしが通常の呼び方である
-// - **包み** —— `bash -c` / `sudo` / `env` / `ssh` / `make ai-` などは中身を実行するので、包みを
-//   剥がして判定する
+// - **包み** —— `bash -c` / `sudo` / `env` / `FOO=bar` / `ssh` / `make ai-` などは中身を実行するので、
+//   包みを剥がして判定する
 //
 // 読むのはシェルの文法だけである。`python -c` / `node -e` の引数はその言語の文字列で、そこから
 // シェルを呼ぶかどうかは形から分からない。迂回を禁じるのは AGENTS.md の規則であって、ここではない。
@@ -36,17 +36,25 @@ const SHORT_FLAG = /^-[^-\s]+$/;
  */
 const HEREDOC_BODY = /<<-?[ \t]*(["']?)([A-Za-z_]\w*)\1\n(?:(?!\2$)[^\n]*\n)*\2$/gm;
 
+/** 環境変数の代入 1 語。値は引用や打ち消しを含んでよく、`FOO="a b"` も 1 語として読む。 */
+const ASSIGNMENT = String.raw`[A-Za-z_]\w*=(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s'"\\])*`;
+
 /** `env` の、実行するコマンドの手前に立つ flag と環境変数の代入。`-S` は含まない。 */
-const ENV_OPTIONS = String.raw`(?:(?:-[A-Za-z]*[uC](?:\s+|(?=[^A-Za-z\s]))\S+|--(?:unset|chdir)\s+\S+|-(?![A-Za-z]*S|[A-Za-z]*[uC]\s)[A-Za-z]+|--(?!split-string|(?:unset|chdir)\s)[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*`;
+const ENV_OPTIONS = String.raw`(?:(?:-[A-Za-z]*[uC](?:\s+|(?=[^A-Za-z\s]))\S+|--(?:unset|chdir)\s+\S+|-(?![A-Za-z]*S|[A-Za-z]*[uC]\s)[A-Za-z]+|--(?!split-string|(?:unset|chdir)\s)[\w-]+(?:=\S+)?|${ASSIGNMENT})\s+)*`;
 
 /** `env -S` / `--split-string` の、渡した文字列の手前まで。文字列は語に割られてコマンド行になる。 */
 const ENV_SPLIT = String.raw`^env\s+${ENV_OPTIONS}(?:-[A-Za-z]*S\s*|--split-string(?:=|\s+))`;
+
+/** `sudo` の、値を取る長 flag。値を消費しないと、値の方がコマンドとして残る。 */
+const SUDO_VALUED_LONG =
+  "user|group|host|prompt|role|type|close-from|chdir|chroot|other-user|command-timeout|login-class";
 
 /** 中身をそのまま実行する包みと、剥がしたあとに残す綴り。 */
 const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   // quiet.mk の `ai-%` は `make <target>` を回す入口なので、target 名だけを残す。
   [/^make\s+ai-/, "make "],
   [/^rtk\s+(?:run|summary|smart)\s+/, ""],
+  [new RegExp(String.raw`^(?:${ASSIGNMENT}\s+)+`), ""],
   [/^(?:nohup|time)\s+(?:--\s+)?/, ""],
   [new RegExp(String.raw`${ENV_SPLIT}(["'])([\s\S]*?)\1`), "$2"],
   [new RegExp(ENV_SPLIT), ""],
@@ -73,21 +81,26 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
     /^timeout\s+(?:(?:-[sk]\s*\S+|--(?:signal|kill-after)\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+/,
     "",
   ],
-  [/^xargs\s+(?:(?:-[A-Za-z0-9]*[EILPadns]\s*\S+|-[A-Za-z0-9]+|--[\w-]+(?:=\S+)?)\s+)*/, ""],
   [
-    /^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*(?:--\s+)?/,
+    /^xargs\s+(?:(?:-[A-Za-z0-9]*[EILPadns]\s*\S+|--(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s+)\S+|-[A-Za-z0-9]+|--(?!(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s))[\w-]+(?:=\S+)?)\s+)*/,
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|--(?:${SUDO_VALUED_LONG})(?:=|\s+)\S+|-[A-Za-z]+|--(?!(?:${SUDO_VALUED_LONG})(?:=|\s))[\w-]+(?:=\S+)?|${ASSIGNMENT})\s+)*(?:--\s+)?`,
+    ),
     "",
   ],
 ];
 
-/** シェルの名前。`/bin/bash` のようにパスで呼んでも同じ。 */
-const SHELL = String.raw`(?:(?:\/[\w.-]+)*\/)?(?:ba|da|k|mk|z)?sh`;
+/** シェルの名前。`/bin/bash` のようにパスで呼んでも、`busybox sh` のように束ねた入口から呼んでも同じ。 */
+const SHELL = String.raw`(?:(?:\/[\w.-]+)*\/)?(?:(?:ba|da|k|mk|z|a|c|tc)?sh|fish|busybox\s+(?:a|hu)?sh)`;
 
 /**
  * `-c` の手前に立ちうる flag（`-l` / `-o pipefail` / `-O extglob` / `--norc` / `--rcfile <file>`）と、
- * `-c` を含む束（`-lc` / `-ec`）。
+ * `-c` を含む束（`-lc` / `-ec`）、または fish の `--command`。
  */
-const SHELL_COMMAND_FLAG = String.raw`(?:(?:[-+][A-Za-z]*[oO]\s+\S+|--(?:rcfile|init-file)\s+\S+|[-+](?![A-Za-z]*[oO]\s)[A-Za-z]+|--(?!(?:rcfile|init-file)\s)[\w-]+(?:=\S+)?)\s+)*?-[A-Za-z]*c[A-Za-z]*\s+`;
+const SHELL_COMMAND_FLAG = String.raw`(?:(?:[-+][A-Za-z]*[oO]\s+\S+|--(?:rcfile|init-file)\s+\S+|[-+](?![A-Za-z]*[oO]\s)[A-Za-z]+|--(?!(?:rcfile|init-file)\s)[\w-]+(?:=\S+)?)\s+)*?(?:-[A-Za-z]*c[A-Za-z]*\s+|--command(?:=|\s+))`;
 
 /** `sh -c <引用>` は引用の中身がそのままコマンド行なので、引用を落とす前に剥がす。 */
 const SHELL_C = new RegExp(
@@ -289,16 +302,40 @@ export function parseShape(text: string): CommandShape {
  * （`rtk run pnpm build`）、剥がさないと迂回路になります（`rtk run rm -rf /`）。
  */
 export function unwrap(segment: string): string {
+  return unwrapStages(segment).unwrapped;
+}
+
+/**
+ * 包みを 1 枚剥がすたびの綴りを、剥がす前から順に返す。
+ *
+ * @remarks
+ * 1 回の走査で複数の包みが剥がれるので、最後の綴りだけを見ると途中に立った包みが検査から落ちる
+ * （`FOO=1 sudo ls` の `sudo ls`）。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 剥がす前の綴りを先頭に剥がした順で並べた綴りと、剥がし終えた綴り
+ */
+function unwrapStages(segment: string): {
+  readonly stages: readonly string[];
+  readonly unwrapped: string;
+} {
   let current = segment.trim();
+  const stages = [current];
 
   for (let depth = 0; depth < 8; depth++) {
     const before = current;
-    for (const [pattern, replacement] of WRAPPERS) current = current.replace(pattern, replacement);
-    current = current.replace(SHELL_C, "$2").trim();
-    if (current === before) return current;
+    for (const [pattern, replacement] of WRAPPERS) {
+      const next = current.replace(pattern, replacement);
+      if (next !== current) stages.push(next);
+      current = next;
+    }
+    const next = current.replace(SHELL_C, "$2").trim();
+    if (next !== current) stages.push(next);
+    current = next;
+    if (current === before) return { stages, unwrapped: current };
   }
 
-  return current;
+  return { stages, unwrapped: current };
 }
 
 /**
@@ -486,7 +523,7 @@ function splitSegments(line: string, depth: number): readonly string[] | undefin
     const trimmed = raw.replace(/^[\s&]+/, "").trim();
     if (!trimmed) continue;
 
-    const unwrapped = unwrap(trimmed);
+    const { stages, unwrapped } = unwrapStages(trimmed);
     const nested =
       unwrapped !== trimmed
         ? [unwrapped]
@@ -497,8 +534,8 @@ function splitSegments(line: string, depth: number): readonly string[] | undefin
       out.push(...inner);
     }
     // 包み自身も 1 つのコマンドである。剥がした側だけを見ると、`sudo` のように包みの綴りそのものを
-    // 塞いだ宣言が区切りの後ろで当たらなくなる。
-    out.push(stripQuotes(trimmed), stripQuotes(unwrapped));
+    // 塞いだ宣言が区切りの後ろや別の包みの内側で当たらなくなる。
+    out.push(...stages.map(stripQuotes));
   }
   return out;
 }

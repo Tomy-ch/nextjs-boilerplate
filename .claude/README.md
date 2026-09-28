@@ -19,8 +19,8 @@ Claude Code 向けの設定資産を置く。
 
 `command-guard` は `deny` の `Bash(...)` 宣言だけを読み、自分では何も持たない —— 塞ぐ対象の母集合は
 この 1 か所である。判定はコマンド行を**引用の外の**区切り（`;` / `|` / `&&` / `$(` など）で割り、
-包み（`sh -c` / `rtk run` / `make ai-` / `sudo` / `env` / `nohup` / `timeout` / `nice` / `xargs`）を
-剥がしてから、各区間の先頭を宣言と照合する。包みの綴りそのものも区間として照合するので、`sudo` を
+包み（`sh -c` と `csh` / `fish` / `busybox sh` などの同類 / `rtk run` / `make ai-` / `sudo` / `env` / `FOO=bar` の前置き /
+`nohup` / `timeout` / `nice` / `xargs`）を剥がしてから、各区間の先頭を宣言と照合する。包みの綴りそのものも区間として照合するので、`sudo` を
 載せれば `echo; sudo …` も止まる。引用の中は散文として読むので、`grep -E 'a|git reset --hard'` は
 止まらない。ただし**引用を別のシェルがコマンド行として読み直す場合**は中身を割る —— `sh -c` /
 `bash -lc` / `eval` / `su -c` / `runuser -c` へ渡した引用と、`ssh <host>` / `watch` へ渡した残りの
