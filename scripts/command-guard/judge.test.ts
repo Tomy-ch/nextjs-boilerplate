@@ -139,9 +139,56 @@ describe("unwrap", () => {
     expect(unwrap("env APP_ENV=local FOO=1 make tag-patch")).toBe("make tag-patch");
   });
 
+  it("実行者の前置きを、利用者の指定と `--` ごと落とす", () => {
+    expect(unwrap("sudo -u root -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("doas -u root -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -u app -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -u app make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -g wheel --user=app -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`setsid` / `chroot` / `ionice` / `stdbuf` / `nohup` の前置きを、引数を取る flag ごと落とす", () => {
+    expect(unwrap("setsid -f make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("chroot /srv/root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("chroot --userspec app:app /srv/root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("ionice -c 3 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("ionice -c2 -n7 -t make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("stdbuf -oL -e 0 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("nohup -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`env` の flag と環境変数の前置きを落とす", () => {
+    expect(unwrap("env -i make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -i PATH=/bin make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -u HOME -C /tmp make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`env -S` へ渡した文字列をコマンド行として取り出す", () => {
+    expect(unwrap("env -S 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap('env -i -S "make tag-patch"')).toBe("make tag-patch");
+    expect(unwrap("env --split-string='make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("env -S make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("引数を取る長 flag の後ろに立つ `-c` の引用の中身を取り出す", () => {
+    expect(unwrap("bash --rcfile x -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash --init-file=/etc/x -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash --norc -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash -O extglob -c 'make tag-patch'")).toBe("make tag-patch");
+  });
+
   // ----- 異常系 -----
   it("包みでないものを変えない", () => {
     expect(unwrap("pnpm lint")).toBe("pnpm lint");
+  });
+
+  it("`runuser -u` の後ろに `-c` が立つ形は剥がさず、引用の側の検査へ残す", () => {
+    expect(unwrap("runuser -u app -c 'rm -rf /'")).toBe("runuser -u app -c 'rm -rf /'");
+  });
+
+  it("コマンドを持たない `chroot` を変えない", () => {
+    expect(unwrap("chroot /srv/root")).toBe("chroot /srv/root");
   });
 
   it("深さの上限を超えた包みは、剥がしかけで返す", () => {
@@ -345,6 +392,53 @@ describe("judge", () => {
     expect(judge('eval "rm -rf /"', LITERALS)).toBe("rm -rf");
   });
 
+  it("実行者の `--` の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("sudo -u root -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("doas -u root -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("runuser -u app -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("true; runuser -u app rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("sudo -u root -- bash --rcfile x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`runuser -u` の後ろの `-c` へ渡した引用の中身を捕まえる", () => {
+    expect(judge("runuser -u app -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`setsid` / `chroot` / `ionice` / `stdbuf` / `nohup` の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("setsid rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("setsid -w rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("chroot /srv/root rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("chroot --userspec=a:b /srv/root rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("ionice -c 3 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("ionice -c2 -n7 -t rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("stdbuf -oL rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("stdbuf --output=L rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("nohup rm -rf / &", LITERALS)).toBe("rm -rf");
+    expect(judge("setsid ionice -c 3 nohup make tag-patch", LITERALS)).toBe("make tag-patch");
+  });
+
+  it("`env` の flag と環境変数の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("env -i rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -i PATH=/bin rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -u HOME rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`env -S` へ渡した文字列の中身を捕まえる", () => {
+    expect(judge("env -S 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('env -i -S "true; rm -rf /"', LITERALS)).toBe("rm -rf");
+    expect(judge("env -S rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("引数を取る長 flag の後ろに立つ `-c` の引用の中身を捕まえる", () => {
+    expect(judge("bash --rcfile x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash --norc -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash --init-file=/etc/x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash -O extglob -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec bash --rcfile x -c 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
   it("語の途中で終わる綴りを、区切りを求めずに捕まえる", () => {
     const prefixed = deriveLiterals(["Bash(git switch release/*)"]);
 
@@ -408,6 +502,29 @@ describe("judge", () => {
 
   it("包みそのものは止めない", () => {
     expect(judge("rtk run pnpm build", LITERALS)).toBeUndefined();
+  });
+
+  it("新しく剥がす包みで包んだ、塞がれていないコマンドを通す", () => {
+    expect(judge("runuser -u app -- pnpm lint", LITERALS)).toBeUndefined();
+    expect(judge("setsid -f pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("chroot /srv/root pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("ionice -c 3 pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("stdbuf -oL pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("nohup -- pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("env -i PATH=/bin pnpm lint", LITERALS)).toBeUndefined();
+    expect(judge("env -S 'pnpm lint'", LITERALS)).toBeUndefined();
+    expect(judge("bash --rcfile x -c 'pnpm lint'", LITERALS)).toBeUndefined();
+  });
+
+  it("新しく剥がす包みの中身でも、引用の中の綴りでは止めない", () => {
+    expect(judge("env -S \"echo 'rm -rf /'\"", LITERALS)).toBeUndefined();
+    expect(judge("bash --norc -c 'echo \"rm -rf /\"'", LITERALS)).toBeUndefined();
+    expect(judge("setsid echo 'rm -rf /'", LITERALS)).toBeUndefined();
+  });
+
+  it("前置きの flag の値を、塞いだ target と読み違えない", () => {
+    expect(judge("ionice -c 3 make tag-patch-dry", LITERALS)).toBeUndefined();
+    expect(judge("chroot /srv/root make tag-patch-dry", LITERALS)).toBeUndefined();
   });
 
   it("塞がれていないコマンドを通す", () => {

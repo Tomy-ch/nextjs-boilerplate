@@ -8,8 +8,8 @@
 // - **位置** —— `Bash(make tag-patch *)` は `pnpm build && make tag-patch` に当たらない
 // - **引数なし** —— 同じ宣言は素の `make tag-patch` にも当たらない。しかも危険な target ほど
 //   引数なしが通常の呼び方である
-// - **包み** —— `bash -c` / `rtk run` / `make ai-` / `sudo` / `timeout` / `ssh` / `watch` などは中身を
-//   実行するので、包みを剥がして判定する
+// - **包み** —— `bash -c` / `rtk run` / `make ai-` / `sudo` / `runuser -u` / `env` / `setsid` /
+//   `chroot` / `timeout` / `ssh` / `watch` などは中身を実行するので、包みを剥がして判定する
 //
 // 読むのはシェルの文法だけである。`python -c` / `node -e` の引数はその言語の文字列で、そこから
 // シェルを呼ぶかどうかは形から分からない。迂回を禁じるのは AGENTS.md の規則であって、ここではない。
@@ -36,13 +36,38 @@ const SHORT_FLAG = /^-[^-\s]+$/;
  */
 const HEREDOC_BODY = /<<-?[ \t]*(["']?)([A-Za-z_]\w*)\1\n(?:(?!\2$)[^\n]*\n)*\2$/gm;
 
+/** `env` の、実行するコマンドの手前に立つ flag と環境変数の代入。`-S` は含まない。 */
+const ENV_OPTIONS = String.raw`(?:(?:-[A-Za-z]*[uC](?:\s+|(?=[^A-Za-z\s]))\S+|--(?:unset|chdir)\s+\S+|-(?![A-Za-z]*S|[A-Za-z]*[uC]\s)[A-Za-z]+|--(?!split-string|(?:unset|chdir)\s)[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*`;
+
+/** `env -S` / `--split-string` の、渡した文字列の手前まで。文字列は語に割られてコマンド行になる。 */
+const ENV_SPLIT = String.raw`^env\s+${ENV_OPTIONS}(?:-[A-Za-z]*S\s*|--split-string(?:=|\s+))`;
+
 /** 中身をそのまま実行する包みと、剥がしたあとに残す綴り。 */
 const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   // quiet.mk の `ai-%` は `make <target>` を回す入口なので、target 名だけを残す。
   [/^make\s+ai-/, "make "],
   [/^rtk\s+(?:run|summary|smart)\s+/, ""],
-  [/^(?:nohup|time)\s+/, ""],
-  [/^env\s+(?:[A-Za-z_]\w*=\S*\s+)+/, ""],
+  [/^(?:nohup|time)\s+(?:--\s+)?/, ""],
+  [new RegExp(String.raw`${ENV_SPLIT}(["'])([\s\S]*?)\1`), "$2"],
+  [new RegExp(ENV_SPLIT), ""],
+  [new RegExp(String.raw`^env\s+${ENV_OPTIONS}(?:--\s+)?`), ""],
+  [/^setsid\s+(?:(?:-[A-Za-z]+|--[\w-]+)\s+)*(?:--\s+)?/, ""],
+  [
+    /^chroot\s+(?:(?:--(?:userspec|groups)\s+\S+|--(?!(?:userspec|groups)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?\S+\s+/,
+    "",
+  ],
+  [
+    /^ionice\s+(?:(?:-[A-Za-z]*[cnpPu]\s*\S+|--(?:class|classdata|pid|pgid|uid)\s+\S+|-(?![A-Za-z]*[cnpPu])[A-Za-z]+|--(?!(?:class|classdata|pid|pgid|uid)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
+    "",
+  ],
+  [
+    /^stdbuf\s+(?:(?:-[ioe]\s*\S+|--(?:input|output|error)\s+\S+|--(?!(?:input|output|error)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
+    "",
+  ],
+  [
+    /^runuser\s+(?:(?:-[gG]\s+\S+|--(?:group|supp-group)(?:=|\s+)\S+|-(?![gG]\s|u)[A-Za-z]+|--(?!(?:group|supp-group|user)\b)[\w-]+(?:=\S+)?)\s+)*(?:-u\s*\S+|--user(?:=|\s+)\S+)\s+(?:--\s+)?(?![\s-])/,
+    "",
+  ],
   [/^nice\s+(?:(?:-n\s*\S+|--adjustment=\S+|-\d+)\s+)?/, ""],
   [
     /^timeout\s+(?:(?:-[sk]\s*\S+|--(?:signal|kill-after)\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+/,
@@ -50,7 +75,7 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   ],
   [/^xargs\s+(?:(?:-[A-Za-z0-9]*[EILPadns]\s*\S+|-[A-Za-z0-9]+|--[\w-]+(?:=\S+)?)\s+)*/, ""],
   [
-    /^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*/,
+    /^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*(?:--\s+)?/,
     "",
   ],
 ];
@@ -58,8 +83,11 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
 /** シェルの名前。`/bin/bash` のようにパスで呼んでも同じ。 */
 const SHELL = String.raw`(?:(?:\/[\w.-]+)*\/)?(?:ba|da|k|mk|z)?sh`;
 
-/** `-c` の手前に立ちうる flag（`-l` / `-o pipefail` / `--norc`）と、`-c` を含む束（`-lc` / `-ec`）。 */
-const SHELL_COMMAND_FLAG = String.raw`(?:(?:-o\s+\S+|[-+][A-Za-z]+|--[\w-]+)\s+)*?-[A-Za-z]*c[A-Za-z]*\s+`;
+/**
+ * `-c` の手前に立ちうる flag（`-l` / `-o pipefail` / `-O extglob` / `--norc` / `--rcfile <file>`）と、
+ * `-c` を含む束（`-lc` / `-ec`）。
+ */
+const SHELL_COMMAND_FLAG = String.raw`(?:(?:[-+][A-Za-z]*[oO]\s+\S+|--(?:rcfile|init-file)\s+\S+|[-+](?![A-Za-z]*[oO]\s)[A-Za-z]+|--(?!(?:rcfile|init-file)\s)[\w-]+(?:=\S+)?)\s+)*?-[A-Za-z]*c[A-Za-z]*\s+`;
 
 /** `sh -c <引用>` は引用の中身がそのままコマンド行なので、引用を落とす前に剥がす。 */
 const SHELL_C = new RegExp(
