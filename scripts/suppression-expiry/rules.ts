@@ -49,11 +49,11 @@ const VERSIONED_SUBJECT = /^(@[^@\s/]+\/)?[^@\s/]+@\S+/;
  *
  * @remarks
  * **判定できるのは日付だけです。** 日付で決まらない条件はここでは満たされたと判定しないので、
- * **呼ぶ側は絞り込んだ結果だけでなく全件も出します**
- * （`index.ts`）。
+ * **呼ぶ側は絞り込んだ結果だけでなく全件も出します**（`index.ts`）。
  *
  * @param suppressions - 読み取った宣言の全件
  * @param today - 判定の基準日（`YYYY-MM-DD`）
+ * @returns 条件の最も遅い日付が基準日以前の宣言。その日付を添える
  */
 export function expiredSuppressions(
   suppressions: readonly Suppression[],
@@ -81,6 +81,7 @@ export function expiredSuppressions(
  * 免除の撤回条件は窓が明ける日付でしか書けないので、日付の無い免除は撤回条件を持ちません。
  *
  * @param suppressions - 読み取った宣言の全件
+ * @returns 欠けているものが 1 つ以上ある宣言。欠けているものを添える
  */
 export function malformedSuppressions(
   suppressions: readonly Suppression[],
