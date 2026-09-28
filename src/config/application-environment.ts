@@ -1,14 +1,8 @@
-/** `APP_ENV` が選べる環境。 */
-export type ApplicationEnvironment = "local" | "ci" | "dev" | "stg" | "prd";
-
 /** `APP_ENV` が選べる環境の一覧。 */
-export const applicationEnvironments: readonly ApplicationEnvironment[] = [
-  "local",
-  "ci",
-  "dev",
-  "stg",
-  "prd",
-];
+export const applicationEnvironments = ["local", "ci", "dev", "stg", "prd"] as const;
+
+/** `APP_ENV` が選べる環境。 */
+export type ApplicationEnvironment = (typeof applicationEnvironments)[number];
 
 /**
  * `APP_ENV` が選べる環境のいずれかか。

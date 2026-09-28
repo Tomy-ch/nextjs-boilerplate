@@ -268,6 +268,16 @@ describe("updateMyProfile", () => {
     });
   });
 
+  it("更新後のプロフィールを client へ渡せないものとして登録する", async () => {
+    serveJson(ME_URL, wireUser);
+    serveWrite("put", USER_URL, wireUser);
+
+    const result = await updateMyProfile(profile);
+
+    expect(taintObjectReference).toHaveBeenCalledTimes(1);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), result);
+  });
+
   it("自分の識別子を解決してから対象の口を PUT で叩く", async () => {
     const resolved = serveJson(ME_URL, wireUser);
     const updates = serveWrite("put", USER_URL, wireUser);

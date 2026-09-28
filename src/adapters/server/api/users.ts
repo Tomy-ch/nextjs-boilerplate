@@ -220,7 +220,14 @@ export async function updateMyProfile(profile: UserProfile): Promise<UserProfile
     schema: PutUsersDetailResponse,
   });
 
-  return toUserProfile(wire);
+  const updated = toUserProfile(wire);
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    updated,
+  );
+
+  return updated;
 }
 
 /**
