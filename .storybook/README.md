@@ -138,9 +138,9 @@ story ごとに書くと、同じ Promise の作り方が story の数だけ散�
 
 差し替え宣言（`preview.tsx` の `sb.mock` の並び）と `msw/handlers.ts` は題材そのものを列挙する。
 **列挙は `sample:` マーカーで囲み、捨てた後も読み込める形（空の配列、題材専用の import を持たない
-import 行）を `replace-with` に退避しておく** —— 題材を捨てた瞬間に設定が壊れないようにする。マーカーの意味は
-[boilerplate-only conventions](../docs/get-started/boilerplate-only-conventions.md)、破棄の走査から
+import 行）を `replace-with` に退避しておく** —— 題材を捨てた瞬間に設定が壊れないようにする。破棄の走査から
 外れている区画（`public/`）は [`public/README.md`](public/README.md) が持つ。
+マーカーの意味は [boilerplate-only conventions](../docs/get-started/boilerplate-only-conventions.md) が持つ。 <!-- boilerplate-only:line -->
 
 ## story がカタログの器から受ける制約
 

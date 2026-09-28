@@ -1,6 +1,6 @@
 {
   ".agents/README.md": 3,
-  ".claude/README.md": 1,
+  ".claude/README.md": 2,
   ".claude/skills/commit/SKILL.ja.md": 6,
   ".claude/skills/commit/SKILL.md": 6,
   ".claude/skills/context-map/SKILL.ja.md": 2,
@@ -14,6 +14,7 @@
   ".gitleaksignore": 2,
   ".makefiles/README.md": 1,
   ".makefiles/github/operation/setup-repository.mk": 8,
+  ".storybook/README.md": 1,
   ".storybook/msw/handlers.ts": 6,
   ".storybook/preview.tsx": 5,
   "AGENTS.ja.md": 6,

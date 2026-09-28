@@ -407,28 +407,57 @@ function opensCommandSubstitution(line: string, at: number): boolean {
  */
 function maskQuoted(line: string): string | undefined {
   let out = "";
-  let quote: "'" | '"' | undefined;
+  let quote: Quote;
 
   for (let at = 0; at < line.length; at = out.length) {
-    const character = line.charAt(at);
-
-    if (character === "\\" && quote !== "'") {
-      out += FILL.repeat(Math.min(2, line.length - at));
-    } else if (quote === undefined) {
-      if (character === "'" && line.charAt(at - 1) === "$") return undefined;
-      if (isQuoteCharacter(character)) quote = character;
-      out += character;
-    } else if (character === quote) {
-      quote = undefined;
-      out += character;
-    } else if (quote === '"' && opensCommandSubstitution(line, at)) {
-      return undefined;
-    } else {
-      out += FILL;
-    }
+    const step = maskAt(line, at, quote);
+    if (step === undefined) return undefined;
+    out += step.text;
+    quote = step.quote;
   }
 
   return quote === undefined ? out : undefined;
+}
+
+/** 開いている引用の種類。引用の外なら `undefined`。 */
+type Quote = "'" | '"' | undefined;
+
+/** 1 文字（打ち消しなら 2 文字）ぶんの写しと、その後の引用の状態。 */
+type MaskStep = { readonly text: string; readonly quote: Quote };
+
+/**
+ * `at` の位置の文字を塗るかどうかを決める。
+ *
+ * @param line - コマンド行
+ * @param at - 読む位置
+ * @param quote - その位置で開いている引用
+ * @returns 写しと次の引用の状態。塗ってよいと言い切れなければ `undefined`
+ */
+function maskAt(line: string, at: number, quote: Quote): MaskStep | undefined {
+  const character = line.charAt(at);
+
+  if (character === "\\" && quote !== "'") {
+    return { text: FILL.repeat(Math.min(2, line.length - at)), quote };
+  }
+  if (quote === undefined) return maskUnquoted(line, at, character);
+  if (character === quote) return { text: character, quote: undefined };
+  if (quote === '"' && opensCommandSubstitution(line, at)) return undefined;
+
+  return { text: FILL, quote };
+}
+
+/**
+ * 引用の外の文字を写す。引用を開く文字なら、その種類を次の状態にする。
+ *
+ * @param line - コマンド行
+ * @param at - 読む位置
+ * @param character - `at` の位置の文字
+ * @returns 写しと次の引用の状態。`$'…'` の開始なら `undefined`
+ */
+function maskUnquoted(line: string, at: number, character: string): MaskStep | undefined {
+  if (character === "'" && line.charAt(at - 1) === "$") return undefined;
+
+  return { text: character, quote: isQuoteCharacter(character) ? character : undefined };
 }
 
 /**

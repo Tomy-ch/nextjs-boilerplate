@@ -175,7 +175,7 @@ test -x "$CLAUDE_PROJECT_DIR/<実体>" && "$CLAUDE_PROJECT_DIR/<実体>" --hook 
   `canonicalize-doc`、見出し構造の 1:1 は `skill-lint` が見る。
 - **同梱スクリプトは `tsx` で回す TypeScript**。依存を入れる前に単独で動く必要がある headless の
   駆動だけがシェルである（`/manage-skill` が持つ）。
-- `boilerplate-only` マーカーは SKILL.md の中でも使える。マーカーの意味は
+- `boilerplate-only` マーカーは SKILL.md の中でも使える。マーカーの意味は <!-- boilerplate-only:line -->
   [boilerplate-only conventions](../docs/get-started/boilerplate-only-conventions.md) が持つ。 <!-- boilerplate-only:line -->
 
 ### `skill-lint` が見るもの
