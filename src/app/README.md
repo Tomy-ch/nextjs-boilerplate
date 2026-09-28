@@ -336,7 +336,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 | segment config（`dynamic` / `revalidate` 等）を持たない。殻を配れない画面だけが `export const instant = false` を名乗る | violation | この README「この層が持つ判断」/ [0041](../../docs/adr/0041-cache-components-decision.md) |
 | metadata は Metadata API で宣言し、`<head>` の手書きと `next/head` を使わない。各 segment は「metadata の土台と差分」の表が定める差分を宣言する | 手書きの `<head>` / `next/head` は violation。表が求める差分（`alternates.canonical`、認証の要る画面の `robots`）の欠落は suggestion | この README「metadata の土台と差分」「運用」/ [0044](../../docs/adr/0044-seo-metadata-strategy.md) |
 | 器（`page.tsx` の default export）は `params` / `searchParams` / cookie / 実時計を await せず、穴（`Suspense` の内側の async component）で解く。器で待つのは `instant = false` を理由つきで名乗った画面だけ | 宣言なしに器で待っていれば violation | この README「殻と穴の定型」/ [docs/rules.md](../../docs/rules.md)「描画とキャッシュ」/ [0041](../../docs/adr/0041-cache-components-decision.md)。機械: `scripts/render-mode` が宣言と prerender の結果を突き合わせる |
-| `error.tsx` / `not-found.tsx` / `global-error.tsx` は文言を `errors` のカタログ（または `boundary-feedback.ts`）から採り、`error.message` を出さず、自分で組まない | `error.message` を描く、境界の中で文言を組む、はいずれも violation | この README「失敗と不在の面の作法」/ [0080](../../docs/adr/0080-error-handling.md) §3。機械は届かない —— 各境界のテスト（生の本文を出さないこと）が固定する範囲まで |
+| `error.tsx` / `not-found.tsx` / `global-error.tsx` は文言を `errors` のカタログ（または `boundary-feedback.ts`）から採り、`error.message` を出さず、自分で組まない | `error.message` を描く、境界の中で文言を組む、はいずれも violation | この README「失敗と不在の面の作法」/ [0080](../../docs/adr/0080-error-handling.md) の、エラーの特殊ファイルを正規化済みの文言だけを出す薄い境界にする決定。機械は届かない —— 各境界のテスト（生の本文を出さないこと）が固定する範囲まで |
 
 ## 関連する ADR
 
