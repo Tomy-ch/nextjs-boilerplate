@@ -263,6 +263,18 @@ Update the row when an existing skill's coverage materially changes.
   responsibility: whether the translation says the same thing, and whether the body is still correct.
 - Confirm no eval artifact is staged (`git status`), and that no protected path was touched.
 
+## Step 7. Offer the port to Codex
+
+Codex reads its own copy of a skill from `.agents/skills/<name>/`, and nothing carries a change there
+by itself. After Step 6, for a new or materially changed skill that is not Claude-only, **offer**
+`/sync-ai` with this skill as the source — only when `.agents/skills/<name>/` already exists or the
+user wants a Codex copy. Ask with `AskUserQuestion`; never start it on your own, because its Codex
+handoff runs a separate paid agent that writes to the working tree.
+
+Skip the offer when this run is itself the receiving side of a `sync-ai` port (it was invoked with a
+transfer contract): a receiver that starts another synchronization is the loop `sync-ai` guards
+against. A skill deliberately kept Claude-only is left alone; say so in the report.
+
 ## Definition of Done
 
 - The official `skill-creator` methodology was resolved and loaded (Step 0).
@@ -274,3 +286,4 @@ Update the row when an existing skill's coverage materially changes.
   applies.
 - No eval artifacts committed; no protected path touched.
 - Verification commands run and reported honestly, including what was **not** machine-checked.
+- The `/sync-ai` port offered per Step 7 when a Codex copy exists or is wanted, or the reason it was not.

@@ -19,7 +19,7 @@
 以下の用途では使用しない。
 
 - Node.js 自体のアップグレード → `/node-upgrade` を使う（その Node ラインのリリースノート / 破壊的変更をレビューする）
-- npm 依存のアップデート（`package.json`）→ `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.md)）
+- npm 依存のアップデート（`package.json`）→ セキュリティアドバイザリが名指しした依存は `/dep-vuln-upgrade`、それ以外の更新は `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.md)）
 - 単発のアドホックなバージョン bump → `mise.toml` を直接編集して `make install-tools`。
   **検疫はこの経路にも掛かる** —— `make tools-cooldown-check` が、窓を満たさない pin をどの経路で入れたかに依らず落とす
 - **mise 自身**のアップグレード → `mise.toml` が宣言するのは mise が解決する対象であって mise 自身は

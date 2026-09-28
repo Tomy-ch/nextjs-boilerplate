@@ -67,14 +67,15 @@ CI である（`docs/playbook.md`「ゲートを先回りして回さない」�
 2 問をまとめて出す。引数が既に答えている問いは飛ばす。
 
 1. 「アーキ監査のスコープを選んでください」
-   - 「変更ファイルのみ（ベースとの diff。触れたカーネルだけ fan-out）」 —— ベースに無いコミットを
-     ブランチが持つときの既定
+   - 「変更ファイルのみ（ベースとのマージベースから作業ツリーまでの差分。未コミット・未追跡を含む。触れたカーネルだけ fan-out）」
+     —— コミット済みか否かを問わず、作業ツリーがマージベースと異なるときの既定
    - 「リポジトリ全体（全カーネルを fan-out）」 —— リリースラインの上、または差分が無いときの既定
    - 「特定のカーネルのみ（続けて指定）」
    - 「キャンセル」
 
 2. 「静的検査の結果をどこから取りますか」
-   - 「PR の Lint の結果を使う」 —— PR があり、その head が手元の `HEAD` と同じときの既定
+   - 「PR の Lint の結果を使う」 —— PR があり、その head が手元の `HEAD` と同じで、作業ツリーが綺麗なときの
+     既定
    - 「範囲を絞って手元で 1 回だけ回す」
    - 「取得しない（未取得として監査）」
 
@@ -85,12 +86,15 @@ CI である（`docs/playbook.md`「ゲートを先回りして回さない」�
 ```sh
 BASE=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || make -s base-branch)
 test -n "$BASE" || { echo "ベースブランチを解決できませんでした"; exit 1; }
-git diff --name-only "origin/${BASE}...HEAD"
+MERGE_BASE=$(git merge-base "origin/${BASE}" HEAD) || { echo "マージベースを解決できませんでした"; exit 1; }
+{ git diff --name-only "$MERGE_BASE"; git ls-files --others --exclude-standard; } | sort -u
 ```
 
-**既存の pull request の `baseRefName` が正であり続ける** —— 監査が読むのは PR が見せている差分でなければ
-ならない。**ベースを解決できなければ続けずに止まる。** 空のファイル一覧は auditor を 1 つも起動せず、
-それは綺麗な監査とまったく同じに見える。
+**差分はマージベースから作業ツリーまでを取る。** コミット済み・未コミット・未追跡の作業がすべて入るので、
+コミットせずに書く呼び出し元（`scaffold-slice`）も、書いたばかりのものを監査できる。
+**既存の pull request の `baseRefName` が正であり続ける** —— 監査が読むのは、PR が見せている差分と、
+その上にまだコミットされていないものである。**ベースかマージベースを解決できなければ続けずに止まる。**
+空のファイル一覧は auditor を 1 つも起動せず、それは綺麗な監査とまったく同じに見える。
 
 `src/` の下の変更パスを先頭のセグメントでカーネルへ振り分け、**カーネルの一覧はここに持たず
 [`architecture.ts`](../../../architecture.ts) の `KERNELS` から読む。** 差分全体の一覧も残す ——
@@ -100,6 +104,7 @@ git diff --name-only "origin/${BASE}...HEAD"
 
 - テストファイル（`*.test.ts` / `*.test.tsx`）
 - 生成物 —— どのパスでも `git check-attr linguist-generated -- <path>` が答える
+- 削除されたパス —— `diffFiles` には残し、カーネルの一覧からは外す
 
 **`README.md` が変わったカーネルは、差分が他に何を触ったかに関わらず全体を監査する。** 表が変われば
 基準が変わっており、差分が触っていないファイルもその基準で裁かれる。報告にそう書く。
@@ -119,8 +124,8 @@ auditor を立てない。それらに関わる行は、それらが import す�
 - **PR の Lint の結果。** `Lint` workflow（[`.github/workflows/lint.yaml`](../../../.github/workflows/lint.yaml)）
   は `pnpm lint:ci` —— biome・ESLint・`pnpm check:architecture` —— を回し、ログ全体を
   `<!-- lint-result -->` の印を持つ PR コメントとして上書きする。使ってよいのは、PR の現在の head に
-  対するその workflow の実行が終わっていて、head が手元の `HEAD` と同じときだけである。そうでなければ
-  その判定は別の木のものである。判定はその実行の `緑` / `赤`、保存するファイルはコメントの本文。
+  対するその workflow の実行が終わっていて、head が手元の `HEAD` と同じで、in-scope のファイルに未コミット・
+  未追跡の変更が無いときだけである。そうでなければその判定は別の木のものである。判定はその実行の `緑` / `赤`、保存するファイルはコメントの本文。
 - **範囲を絞った手元の実行。** `pnpm check:architecture` を 1 回、`pnpm exec eslint` を in-scope の
   ファイル（full スコープならカーネルのディレクトリ）に対して 1 回。それぞれの終了コードを記録する。
   判定が `緑` になるのは両方が 0 で終えたときだけ。
@@ -204,7 +209,8 @@ violation を直すこと、suggestion を裁くこと、README の表を育て�
 ## Checklist
 
 - [ ] スコープと静的判定の出所を 1 回の `AskUserQuestion` で確かめた。
-- [ ] ベースを `baseRefName` / `make base-branch` で解決した。解決できなければ止まった。
+- [ ] ベースを `baseRefName` / `make base-branch` で解決し、変更ファイルをそのマージベースから作業ツリーまで、
+      未追跡も含めて取った。どちらかを解決できなければ止まった。
 - [ ] カーネルの一覧を `architecture.ts` から読み、各一覧からテストと生成物を外した。
 - [ ] README が変わったカーネルを全体へ広げた。
 - [ ] 静的判定を 1 度だけ決め、`tmp/arch-check/` へ保存した。

@@ -130,8 +130,9 @@ of implementing and confirms before it writes; the children left it to this step
 
 ## Step 8. Exit check — `arch-check`
 
-Invoke `arch-check` scoped to **the kernels the chain touched**, choosing its "specific kernels" mode:
-its changed-files mode reads the committed diff against the base, and this chain commits nothing. Let
+Invoke `arch-check` in its changed-files mode: it reads the working tree against the merge base,
+untracked files included, so it sees what this chain wrote without a commit and fans out only to the
+kernels the chain touched. Let
 `arch-check` ask its own static-verdict question. The result is **report-only** — it gates nothing here
 and fixes nothing. Relay its report as it returned it, counts included.
 
@@ -162,7 +163,7 @@ within its own declared scope.
   comments → audit
 - ✅ Halt on the first step that stops, and surface its hand-off; never roll back earlier writes
 - ✅ Let each child confirm its own plan
-- ✅ Scope `arch-check` to the touched kernels and relay its report unfiltered
+- ✅ Run `arch-check` in its changed-files mode and relay its report unfiltered
 - ✅ Japanese for everything the skill emits or writes to the repository
 - ❌ Write source directly — every file comes from a child or a generator
 - ❌ Edit a generated file, or move the contract `ref` without confirmation
@@ -179,5 +180,5 @@ within its own declared scope.
 - [ ] `scaffold-model` → `scaffold-adapter` → `pnpm gen feature` → `scaffold-route` run in order, or halted with a hand-off (Steps 2–5)
 - [ ] `scaffold-test` run once over the placed units, screen units excluded (Step 6)
 - [ ] `/settle-comments` run once over the chain's declarations (Step 7)
-- [ ] `arch-check` run on the touched kernels; report relayed as returned (Step 8)
+- [ ] `arch-check` run in changed-files mode; report relayed as returned (Step 8)
 - [ ] Screen handed to `new-feature`; review decision handed to the user; nothing committed (Step 9)

@@ -4,7 +4,7 @@ usage-class: safety
 description: >-
   Gather direct evidence about ONE artifact version that a cooldown window has caught, and score how likely it
   is to be a compromised publish, so a human can decide adopt-now vs wait from evidence rather than a day
-  count. Use it whenever a version is held or deferred by `tools-upgrade` / `actions-pin` / `images-pin`;
+  count. Use it whenever a version is held back by `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`;
   whenever `make tools-cooldown-check` blocks a pin; whenever a Dependabot security update wants to skip the
   window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. It reports an axis as
   unanswerable rather than as a pass when the evidence cannot be obtained. Strictly report-only — it never
@@ -37,7 +37,8 @@ command recipes, not prose for human readers.
 ## When to Use
 
 - A cooldown window caught a candidate and someone must decide whether to wait: `tools-upgrade`
-  classified a release pending, `actions-pin` had to step back or hold, `images-pin` held on a tag.
+  classified a release pending, `actions-pin` had to step back or hold, `images-pin` held on a tag,
+  `dep-vuln-upgrade` found an advisory's fixed version still inside the npm window.
 - `make tools-cooldown-check` fails on a `mise.toml` pin. That gate **fails the build**, so the
   question is not whether an override slipped through but whether waiting is protective.
 - A Dependabot security update wants to skip the window, and someone must decide whether taking a
@@ -57,7 +58,7 @@ command recipes, not prose for human readers.
 
 ## Do NOT use this skill for
 
-- Performing the upgrade — `tools-upgrade` / `actions-pin` / `images-pin`, or the Dependabot PR.
+- Performing the upgrade — `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`, or the Dependabot PR.
   This skill only reports.
 - Scanning first-party code for defects — `impl-review` and the SAST gates.
 - **A routine image hold.** For a mutable tag two of the four axes are usually unanswerable (there is
@@ -274,7 +275,7 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
   is the normal case for this skill; download counts and stars are not evidence about this version.
 - **Attribution matters as much as the verdict.** When a score lands HIGH or CRITICAL, the publisher
   and commit identified on axes P and A are what makes an upstream report actionable. Include them.
-- **This repository is public.** When a finding names a live indicator, describe it rather than
+- **Treat what reaches the repository's issues and pull requests as public.** When a finding names a live indicator, describe it rather than
   reproducing it, and raise a confirmed compromise privately before it reaches an issue body.
 - The skill never commits, stages, or pushes.
 

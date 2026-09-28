@@ -27,7 +27,7 @@ A Japanese reference translation of this skill lives at `SKILL.ja.md` in this di
 Do NOT use this skill for:
 
 - Style / formatting — `pnpm fix` / `pnpm lint:ci`.
-- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing is out of scope here.
+- Static layer-boundary enforcement — `pnpm lint:ci` runs `eslint-plugin-boundaries` (ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) Enforcement) plus `pnpm check:architecture`, so import direction **is** statically gated. The `architecture` lens is therefore the *semantic* pass on top of that gate: spend it on violations the matrix cannot express (a type leaking through a legal import, responsibility placed in the wrong kernel, an abstraction that inverts the dependency only nominally), not on re-deriving what ESLint already fails on. Exhaustive layer-compliance auditing — every file against its kernel README's `## 監査の観点` table — belongs to `/arch-check`; do not re-flag what a row of that table carries.
 - Applying fixes — this skill is read-only on source; it reports, the user fixes.
 - Auditing the tests (`/test-review`) — a peer, not a sub-step.
 - Auditing the comments (`/settle-comments`) — settled during implementation, not reviewed here.
@@ -36,7 +36,7 @@ Do NOT use this skill for:
 
 Bias reduction is the design constraint, not a nicety. Reviewers therefore run as **subagents on a different model than whoever wrote the code**:
 
-- The reviewer agents (`adversarial-reviewer`, `review-verifier`) default to **`sonnet`** in their frontmatter, which differs from the usual Opus implementer.
+- The reviewer agents (`adversarial-reviewer`, `type-design-reviewer`, `review-verifier`) default to **`sonnet`** in their frontmatter, which differs from the usual Opus implementer.
 - **The reviewer model is chosen by the user in Step 0.** The options are `fable` (Fable 5) / `sonnet` / `opus` / `haiku`, plus an *auto* default that resolves to a model ≠ the session's implementer. Pass the chosen model to every reviewer subagent via the `Agent` tool's `model` parameter (it takes precedence over the agent file's `sonnet` default) — e.g. `opus` for depth, `haiku` for a cheap divergent pass, `fable` for a fresh independent perspective.
 - **The orchestrator MUST guarantee reviewer ≠ implementer.** If the user selects the same model as the session's implementer, warn that it undermines the different-model bias reduction and confirm before proceeding. Never silently let reviewer and implementer be the same model.
 - Reviewer subagents are **read-only** (their agent files grant no Edit/Write) — they only return findings, and this skill never mutates source at all. What to change is the user's call, made from the report.
@@ -57,7 +57,7 @@ because its finder called it "high". The tiers in the Step 2 table are that rank
 | --- | --- | --- |
 | 1 | `architecture` | what the code should *be* |
 | 2 | `security`, `correctness` | whether what it is, works |
-| 3 | `runtime-gap`, `cohesion` | whether it holds up in the real system, and whether the unit is one anybody can keep |
+| 3 | `runtime-gap`, `cohesion`, `type-design` | whether it holds up in the real system, and whether the unit is one anybody can keep |
 
 **A change at a higher tier propagates downward; a lower tier does not, as a rule, act on a higher
 one.** Moving a responsibility into another kernel invalidates the behavior verified against it where
@@ -119,7 +119,7 @@ reviewer subagents run on:
 *Auto* resolves to the agent-file default (`sonnet`) when the implementer is not `sonnet`,
 otherwise to a different tier. If the user picks the implementer's own model, warn (per Core
 Idea) that it weakens the different-model guarantee and confirm before continuing. The chosen
-model is passed to every `adversarial-reviewer` / `review-verifier`
+model is passed to every `adversarial-reviewer` / `type-design-reviewer` / `review-verifier`
 `Agent` call via the `model` parameter in Step 2 and Step 3.
 
 **Two questions, and no more.** There is no test question and no comment question here — those
@@ -147,7 +147,7 @@ lens, and this repository's authority for a gate verdict is CI anyway (`docs/pla
 gh pr checks --json name,state,link 2>/dev/null   # the branch's PR, if one is open
 ```
 
-Pass the outcome into every `adversarial-reviewer` prompt in one of three shapes, and **never
+Pass the outcome into every finder prompt in one of three shapes, and **never
 collapse them**:
 
 | Shape | When | What the lens does with it |
@@ -162,7 +162,7 @@ has not agreed to.
 
 ## Step 2 — Fan-out Finders (different model, concurrent)
 
-Spawn all finders concurrently (issue every `Agent` call in a single message). Pass the Step 0 user-selected reviewer model to every `Agent` call via the `model` parameter (omit only when *auto* already resolves to the agent-file default). Every finder runs `adversarial-reviewer` — one per lens, `agentType: "adversarial-reviewer"`, `label` like `find:security`.
+Spawn all finders concurrently (issue every `Agent` call in a single message). Pass the Step 0 user-selected reviewer model to every `Agent` call via the `model` parameter (omit only when *auto* already resolves to the agent-file default). Each lens finder runs `adversarial-reviewer` — one per lens, `agentType: "adversarial-reviewer"`, `label` like `find:security`. The `type-design` finder runs `type-design-reviewer` instead (`agentType: "type-design-reviewer"`, `label: find:type-design`).
 
 | Finder | Tier | Agent | Run when |
 | --- | --- | --- | --- |
@@ -171,12 +171,15 @@ Spawn all finders concurrently (issue every `Agent` call in a single message). P
 | `architecture` | 1 | adversarial-reviewer | always |
 | `cohesion` | 3 | adversarial-reviewer | always |
 | `runtime-gap` | 3 | adversarial-reviewer | when a Route Handler / Server Action / `src/proxy.ts` / Provider mount / generated API artifact is touched — the seams a mocked component test does not exercise |
+| `type-design` | 3 | type-design-reviewer | when the diff touches `src/model/**`, or adds / changes a `type` / `interface` / zod schema elsewhere under `src/` — the agent resolves that wider scope itself |
 
 **No lens here audits the tests or the comments** (Core Idea, "This skill audits the change and
 nothing else"). When a lens surfaces an untested change or a comment's content in passing, say so in
 the 補足 section as an observation and name the skill that owns it — never grow a lens to cover it.
 
 Each `adversarial-reviewer` prompt MUST include: the lens name + its definition, the base ref + changed-file list + the diff, and pointers to `AGENTS.md` / the relevant `README.md` / the governing ADRs.
+
+The `type-design-reviewer` prompt carries `scope: changed`, the base ref, the changed-file list and the static verdict — nothing else. Its criteria live in [`prompts/type-design.md`](prompts/type-design.md) and are neither restated nor extended here. It returns scored blocks; **only its `懸念` entries enter Step 3 verification** as findings, and its scores are reported as they came back, never re-graded or averaged into a severity.
 
 **`cohesion` lens definition.** `architecture` asks *which layer owns this*; `cohesion` asks *how many different asks would land on this same function or file*. The two never overlap, and the gap between them is real: a unit can sit in exactly the right kernel and pass `eslint-plugin-boundaries` and `pnpm check:architecture` while still forcing whoever revises an error's wording to read the code that talks to the network. Nothing in the toolchain sees that, and `full-verify`'s `impl-verifier` — which does own cleanliness and maintainability — only runs over the whole repository, so without this lens the finding waits for an audit instead of surfacing on the diff that introduced it.
 
@@ -234,7 +237,7 @@ Produce one Japanese report:
 ```text
 ## ローカルレビュー結果（reviewer: <model> / implementer: <model>）
 
-スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap
+スコープ: <base>...HEAD（<N> files） / lens: correctness, security, architecture, cohesion, runtime-gap, type-design
 未監査の観点: テスト（/test-review）・コメント（/settle-comments）は本スキルの対象外
 静的ゲート: 緑 / 赤（<check>）/ 未取得（走っていない検査は通った検査ではない）
 ランタイム検証: 4-1 build 実施 / 4-2 リクエスト検証 実施（curl）・対象外（リクエスト時 seam の変更なし）・到達不能（バックエンド不在で未検証の経路: <経路>）
@@ -250,6 +253,7 @@ Produce one Japanese report:
 ### 補足
 - REFUTED: <n> 件（finder が挙げたが verifier が否定）
 - ランタイム検証でカバーした経路 / スキップした経路
+- type-design の採点（実行したとき。返ってきたまま）
 - 他スキルが所管する観点として気づいた点（あれば。所管スキル名を添える）
 ```
 
@@ -336,7 +340,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 ## Do / Do NOT
 
 - ✅ Guarantee reviewer model ≠ implementer model (user selects it in Step 0; warn + confirm if they pick the implementer's model).
-- ✅ Run finders concurrently (one message, multiple `Agent` calls), all via `adversarial-reviewer` — one per lens.
+- ✅ Run finders concurrently (one message, multiple `Agent` calls) — one `adversarial-reviewer` per lens, plus `type-design-reviewer` when a type is touched.
 - ✅ Independently verify every finding before reporting; drop REFUTED.
 - ✅ Run `pnpm build` (Step 4-1) whenever app code is touched, and the request stage (Step 4-2) when a request-time seam is.
 - ✅ When a generated artifact changed, widen the *finders'* read scope (Step 1) to every consumer that imports it — Step 4 does not widen; it verifies the paths it can reach.
@@ -362,7 +366,7 @@ The permission layer is not what makes this safe — a pattern rule cannot tell 
 
 - [ ] Scope confirmed via `AskUserQuestion`; base ref resolved.
 - [ ] Reviewer model selected in Step 0 and verified ≠ implementer model (warn + confirm if same).
-- [ ] Finders fanned out concurrently, one `adversarial-reviewer` per lens — no test lens, no comment lens.
+- [ ] Finders fanned out concurrently, one `adversarial-reviewer` per lens (plus `type-design-reviewer` when a type is touched) — no test lens, no comment lens.
 - [ ] No other skill invoked from this run.
 - [ ] Report ordered by tier then severity; a duplicated fact folded once into the higher tier; blocked lower-tier findings marked 保留.
 - [ ] Every finding independently verified; REFUTED dropped (count kept).

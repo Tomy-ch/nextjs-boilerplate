@@ -83,14 +83,15 @@ times, and CI owns that verdict anyway (`docs/playbook.md`, *ゲートを先回�
 Two batched questions, skipped where the argument already answers.
 
 1. 「アーキ監査のスコープを選んでください」
-   - 「変更ファイルのみ（ベースとの diff。触れたカーネルだけ fan-out）」 — default when the branch has
-     commits the base does not
+   - 「変更ファイルのみ（ベースとのマージベースから作業ツリーまでの差分。未コミット・未追跡を含む。触れたカーネルだけ fan-out）」
+     — default when the working tree differs from the merge base, committed or not
    - 「リポジトリ全体（全カーネルを fan-out）」 — default on a release line or with no diff
    - 「特定のカーネルのみ（続けて指定）」
    - 「キャンセル」
 
 2. 「静的検査の結果をどこから取りますか」
-   - 「PR の Lint の結果を使う」 — default when a PR exists and its head is the local `HEAD`
+   - 「PR の Lint の結果を使う」 — default when a PR exists, its head is the local `HEAD`, and the
+     working tree is clean
    - 「範囲を絞って手元で 1 回だけ回す」
    - 「取得しない（未取得として監査）」
 
@@ -101,12 +102,15 @@ For "changed files" mode:
 ```sh
 BASE=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || make -s base-branch)
 test -n "$BASE" || { echo "ベースブランチを解決できませんでした"; exit 1; }
-git diff --name-only "origin/${BASE}...HEAD"
+MERGE_BASE=$(git merge-base "origin/${BASE}" HEAD) || { echo "マージベースを解決できませんでした"; exit 1; }
+{ git diff --name-only "$MERGE_BASE"; git ls-files --others --exclude-standard; } | sort -u
 ```
 
-**An existing pull request's `baseRefName` stays the authority** — the audit has to read the diff the
-PR shows. **Stop on an unresolved base rather than continuing**: an empty file list fans out zero
-auditors, which reads exactly like a clean audit.
+**The diff runs from the merge base to the working tree**, so committed, uncommitted and untracked work
+are all in it: a caller that writes without committing (`scaffold-slice`) audits what it just wrote.
+**An existing pull request's `baseRefName` stays the authority** — the audit reads the diff the PR
+shows plus what is not yet committed on top of it. **Stop on an unresolved base or merge base rather
+than continuing**: an empty file list fans out zero auditors, which reads exactly like a clean audit.
 
 Map each changed path under `src/` to its kernel by the first segment, and **read the kernel list from
 `KERNELS` in [`architecture.ts`](../../../architecture.ts) rather than carrying one here**. Keep the
@@ -116,6 +120,7 @@ Remove from each kernel's list what no row audits:
 
 - test files (`*.test.ts` / `*.test.tsx`)
 - generated files — `git check-attr linguist-generated -- <path>` answers for any path
+- deleted paths — they stay in `diffFiles` and leave the kernel's list
 
 **A kernel whose `README.md` changed is audited in full**, whatever else the diff touched: a changed
 table is changed criteria, and the files the diff did not touch are judged by them too. Say so in the
@@ -136,8 +141,8 @@ through a filter that drops rows ([0157](../../../docs/adr/0157-inspection-decla
 - **PR's Lint result.** The `Lint` workflow ([`.github/workflows/lint.yaml`](../../../.github/workflows/lint.yaml))
   runs `pnpm lint:ci` — biome, ESLint and `pnpm check:architecture` — and upserts its full log as a PR
   comment carrying the marker `<!-- lint-result -->`. Use it only when that workflow's run on the PR's
-  current head has finished and the head equals the local `HEAD`; otherwise the verdict belongs to
-  another tree. The verdict is `緑` or `赤` from that run, and the saved file is the comment's body.
+  current head has finished, the head equals the local `HEAD`, and no in-scope file carries an
+  uncommitted or untracked change; otherwise the verdict belongs to another tree. The verdict is `緑` or `赤` from that run, and the saved file is the comment's body.
 - **Narrowed local run.** `pnpm check:architecture` once, and `pnpm exec eslint` once over the in-scope
   files (the kernel directories under full scope). Record each exit code. The verdict is `緑` only when
   both exited 0.
@@ -223,7 +228,8 @@ under `.claude/settings.json`'s `permissions.deny`. The auditors write nothing a
 ## Checklist
 
 - [ ] Scope and the static-verdict source confirmed in one `AskUserQuestion`.
-- [ ] Base resolved via `baseRefName` / `make base-branch`; run stopped if it could not be.
+- [ ] Base resolved via `baseRefName` / `make base-branch`, and changed files taken from its merge base
+      to the working tree, untracked included; run stopped if either could not be resolved.
 - [ ] Kernel list read from `architecture.ts`; tests and generated files removed from each list.
 - [ ] Kernels whose README changed widened to full.
 - [ ] Static verdict settled once and saved under `tmp/arch-check/`.
