@@ -55,6 +55,7 @@ test-requirement: component
 - 「一度満たしたら以後 mount を維持する」判断には [`use-latched.ts`](./use-latched.ts) を使う。器が閉じるたびに中身を外すと、**外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる必要がある入力欄）が作り直しになる。層をまたいで要るため層の下ではなくここに置く
 - 色・余白などは [`tokens/`](../../tokens/README.md) の semantic token を使う。primitive token の直接利用はしない
 - shadcn/ui の追加は `pnpm add:ui <component> --as=<見出し> [--layer=<層>] [-- <shadcn add のオプション>]` を使う。一度に一部品だけを層と見出しに応じた場所へ copy-in し、成功時に [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ層・見出し・レジストリ・追加日時・CLI 版を記録するため、`pnpm exec shadcn add` を直接実行しない。`--as` は必須、`--layer` の既定は `design-system` で、いずれも値が不正なら `shadcn add` を走らせる前に弾かれる
+- 上流に相当する item が無い自前の component は `pnpm gen component <name> --as=<見出し> [--layer=<層>]` で置く。配置オプションの語彙と既定は `add:ui` と同じで、実装・story・test と `component-template.md` の写しの README を同じディレクトリへ出し、[`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ `kind: original` の行を記録する。README を持つディレクトリは台帳に行が無いと `pnpm check:ui` が落とすため、雛形と台帳の行は一度に出る
 - **描画の span を持たない。** 横断 UI は画面ごとの帰属を持たないため、計装は feature 層の最上位に限る（[observability/README.md](../observability/README.md)）
 
 ## 変更したあとの確認
@@ -77,6 +78,15 @@ git diff --check
 - 触っていない component が落ちている場合、直すのではなく報告する。落ちていること自体が、その component を持っている側への情報である
 
 `pnpm build-storybook` が出す Vite の chunk-size warning は build の成功を妨げない。これは分割の助言であり、component 側の欠陥を指していない。
+
+### テストの形
+
+観点は [docs/testing-conventions.md](../../docs/testing-conventions.md) と、各 README の「Storybook とテスト」が持つ。この層で揃えている形は次の 4 つである。
+
+- `vitest.config.ts` の既定環境は `node` なので、描画するテストは先頭に `// @vitest-environment jsdom` を置く。描画を持たない `scripts/` はこの行を持たない
+- 描画を返す対象のテストは `vitest-axe` の `axe()` を必ず 1 件持つ（[0091](../../docs/adr/0091-test-verification-methods.md)）
+- router を読む部品（`next/navigation`）は `vi.mock("next/navigation")` で現在地と遷移を差し替える。部品は取得を持たないので、描画する部品のテストが `fetch` を差し替えることはない
+- 閲覧環境で表示を変える部品は、server の出力が環境に依らないことを `renderToStaticMarkup` で固定する。`render` は hydration 後の姿しか見ないため、初回描画の食い違いはそこでは見つからない
 
 ## TSDoc の基準
 
@@ -122,7 +132,8 @@ subcomponent が多い compound では、root の `@example` で組み合わせ�
 ### 系統（`data-surface`）と Portal
 
 - **系統の属性は Portal の出口を含む位置に置く。** `overlay/` の部品は Radix の Portal で `document.body` 直下へ出るため、本文の内側の要素に属性を置くと overlay の中身だけ既定の系統で描かれる（`tokens/README.md`「属性を置く場所は、Portal を含む位置でなければならない」）
-- 部品側で `container` を差し替える場合も同じ制約が掛かる。**どちらを採るかは系統を導入する画面が決める**
+- token 側が示す 2 択（`body` 相当に置く / Portal の `container` を系統の内側へ向ける）のうち、この層は**前者**を採る。本文は器が外枠へ置く `data-surface` で server が描いた時点から効き、overlay の中身は [`foundation/surface`](./design-system/foundation/surface/README.md) の橋が `body` へ同じ値を載せる。hydration の後でも足りるのは、overlay が操作で開くものだからである。`container` の差し替えは採らない —— overlay の部品すべてに口を足したうえで、呼び出し側が毎回指定することになる
+- **記号に色を焼き込まない。** check mark のような記号は画像ではなく罫線や `currentColor` で描く。画像にすると系統や配色で token が変わっても追従しない
 
 ### 発光
 
@@ -180,6 +191,46 @@ grep -ohE 'var\(--[a-z0-9-]+\)' src/components/<層>/**/<component>/*.tsx \
 
 `--radix-*` は Radix が、component 自身が `style` で渡す変数はその component が runtime で設定するため除外してよい。
 
+## 実装で繰り返す形
+
+部品をまたいで同じ形を取るものと、その形を選ぶ理由である。個々の部品の README はこの節を前提にし、繰り返さない。
+
+### `data-slot`
+
+- **描画する要素には `data-slot` を付ける。** 値は kebab-case で、root はその部品の概念名（`dialog`）、subcomponent は `<概念>-<部位>`（`dialog-content`）。親が子の部位へ style を当てる選択子（`*:data-[slot=alert-title]:text-warning`）と、role から引けない要素をテストで取る手掛かり（[docs/testing-conventions.md](../../docs/testing-conventions.md)「component / hook のテスト」）の両方がこの値を読む
+- `pnpm check:classes` は `className` と `cn()` / `cva()` の引数だけを候補に取るため、`data-slot` の値が class と誤認されることはない
+
+### variant の定義
+
+- variant の名前は `<部品名>.definition.ts` の定数が持ち、`cva` の `variants` はその定数を計算キーで引く（`[BUTTON_VARIANT.DEFAULT]: "…"`）。名前が 1 か所にしか書かれないので、値集合を足したとき definition と class 表のどちらかだけが増える状態にならない
+- 各値の使い分けは definition 側の定数の doc に列挙する（[TSDoc の基準](#tsdoc-の基準)）。`cva` の側には class だけを書く
+
+### state の調整は描画中に、資源の生成は effect に
+
+- **前回値との差分で state を戻す調整は、effect ではなく描画中に行う。** 「一度満たしたら保つ」（`use-latched.ts`）、遷移先で menu を畳む、段が減って現在地が並びの外へ出たら先頭へ戻す、といった調整を effect に置くと、調整前の描画が 1 度挟まる —— 移った先の内容が menu に覆われたまま 1 フレーム出る、存在しない段の位置で描く。描画中に `setState` を呼ぶと React はその回の描画結果を捨てて描き直すため、呼び出し側へ返るのは調整後の値である。`react-hooks/no-deriving-state-in-effects` が機械で見る
+- **解放が要る資源（object URL など）の生成は effect に置く。** 描画中に作ると、捨てられた描画のぶんが破棄されずに残る。`react-hooks/set-state-in-effect` へ掛かるので、抑止の行に「資源の生成を伴う同期のため」と理由を添える
+- 更新関数は state から次の state を返すだけにする。更新関数の中で別の state の更新関数を呼ぶと、React が更新関数を再実行したときに副作用も繰り返される。関係する値は 1 つの state にまとめる
+- **同じ位置で `type` が `button` から `submit` へ変わる button は `key` を分ける。** 同じ位置の要素として reconcile されると DOM 要素が使い回され、押した瞬間に `type` が書き換わる。click の既定動作は handler の後に走るため、進んだうえで form まで送信される
+- 使わない間も **外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる入力欄）を抱える中身は、`hidden` で隠して mount を保つ。判定は `use-latched.ts` が持つ（[運用](#運用)）
+
+### client island と native form
+
+- **Portal で form の外へ出る面の中の control は、`name` を与えても送信に載らない。** 選択値は trigger の側に置いた hidden input で運ぶ。複数選択なら選ばれた数だけ同じ `name` の hidden input を並べる
+- **hidden input は constraint validation の対象外なので、`required` は効かない。** 必須であることの表示は `Field` / `RequirementBadge`、実際の強制は Server Action か server 側の検証が持つ。部品の README に「必須指定を持たない」と書く
+- file input は、選び直しても `change` が出るよう、読み取った後に `value` を空へ戻す。drop で受け取ったファイルは選択ダイアログを通らないため、input へ書き戻さないと native form の送信に載らない
+
+### 支援技術への配線で biome を抑止するとき
+
+biome の a11y ルールは要素の形だけを見るため、意味論が正しくても指摘が出る場合がある。**実装を後退させず、指摘の行に理由を添えて抑止する**（[docs/rules.md](../../docs/rules.md)「UI 部品と操作」）。繰り返し現れる 2 つ。
+
+- **局所スクロールする領域は非対話でも `tabIndex={0}` を持つ**（`noNoninteractiveTabindex`）。外すと keyboard だけではスクロールできず、WCAG 2.1.1 に反する
+- **一つの control とその装飾の外枠、carousel の一枚のような「複数 control の集合ではないまとまり」は `role="group"` で表す**（`useSemanticElements`）。`fieldset` は `legend` を伴う複数 control の集合を表すため、そこに使うと意味論が嘘になる
+
+### 本文の上へ重なる面
+
+- **Portal で本文の上へ出る面（通知、menu、dialog）は不透明な地を持つ。** 文脈内の `Alert` が使う `bg-warning/10` のような tint は、下地が本文の面であることを前提にしている。同じ variant の class を重なる面へ流用するときは、下地を面の側で与える
+- 脇に領域を並べる帯では `main` が flex の項目になり、既定では中身の最小幅より狭くなれない。段組みや長い語が最小幅を押し上げると、`main` が親をはみ出して画面全体に横スクロールが出る。中身の側では防げないので、器が `min-w-0` で縮む
+
 ## 配置・命名
 
 Next.js と React は、`components/` 配下のディレクトリ構造・ディレクトリ名・テストや story の配置を規定しない。Next.js のファイルシステム規約は `app/` 配下の route segment と特殊ファイルに限られ、React が定めるのは JSX で使うコンポーネント識別子の PascalCase などである。以下はフレームワーク規約ではなく、本リポジトリの規約として採る。
@@ -195,7 +246,8 @@ Next.js と React は、`components/` 配下のディレクトリ構造・ディ
 - 値集合の公開定数は `export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する
 - 公開 API でなくても、複数ファイルが同じ UI 概念の値を使う場合は owner を一つ決めて定義し、各ファイルから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい
 - 層・目的・コンポーネント名は小文字 kebab-case にする。これは全ソースの kebab-case 規約と揃えるためであり、Next.js / React の強制ではない
-- `foundation` は個々の component ではなく、UI を横断して支える CSS 基盤の目的である。`typeset` の組版と `scrollbar` の scrollbar 表示が属し、いずれも `globals.css` から import する。**React component を公開しない**のが共通点であり、効き方は 2 通りある。`scrollbar` のように継承プロパティを `:root` へ一度宣言して指定なしに効くものと、`typeset` のように `.typeset` を付けた範囲だけに効く opt-in のものがある。どちらかを README の冒頭で明示する
+- `foundation` は個々の component ではなく、UI を横断して支える基盤の目的である。`typeset` の組版と `scrollbar` の scrollbar 表示が属し、いずれも `globals.css` から import する。**見える要素を描かない**のが共通点で、CSS だけのものと、属性を運ぶだけで描画を返さない client island（`surface` の橋）がある。CSS の効き方は 2 通りある。`scrollbar` のように継承プロパティを `:root` へ一度宣言して指定なしに効くものと、`typeset` のように `.typeset` を付けた範囲だけに効く opt-in のものがある。どちらかを README の冒頭で明示する
+- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が引く）、層をまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
 
 ### 層
 
@@ -284,11 +336,13 @@ components/
 - **取得を行うもの（`page-content.tsx`）は story にしない。** story は取得の実体を持てないため、確かめられるのは合成した結果だけである。取得の検証は unit テストが持つ
 - **`Icons/` も component の見出しではない。** [`icon.ts`](./icon.ts) が配るアイコンの目録（[`.storybook/icon.stories.tsx`](../../.storybook/icon.stories.tsx)）で、`Tokens/` と同じ理由で層にも目録にも載らない。名前を書き写さず公開面から実行時に読むので、`icon.ts` へ足せばこの画面に出る
 - **`Tokens/` は component の見出しではない。** design token の目録（[`.storybook/design-token.stories.tsx`](../../.storybook/design-token.stories.tsx)）で、アプリが描画する部品ではないため `components/` の層にも目録にも載らない。`components/` 直下は「誰が書き換えるか」で層を分ける規約なので、そこへ 5 つ目の層として足すと規約が嘘になる。Storybook 自身の資料として `.storybook/` に置き、`main.ts` の `stories` が拾う
-- sidebar の並び順は [`.storybook/preview.ts`](../../.storybook/preview.tsx) の `storySort` が持つ。**`Page` → `Features` → `Tokens` → `Icons` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
+- sidebar の並び順は [`.storybook/preview.tsx`](../../.storybook/preview.tsx) の `storySort` が持つ。**`Page` → `Features` → `Tokens` → `Icons` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
 - Storybook Canvas の座標や余白はアプリのレイアウト規約ではない。`layout: "centered"` は、小さな単体 UI を確認しやすくする story 側の表示指定である。画面・幅いっぱいに広がる部品には `fullscreen` または `padded` を story ごとに選ぶ
 - Controls が推論した props は任意の React 要素を生成できない。`asChild` のように単一の要素 child を必要とする props は Control を公開せず、必要な child を `render` で明示した専用 story を用意する
 - **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、その部品が何のためにあるかと、**隣の似た部品との使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違う部品は、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く
-- 説明の置き場は 2 つある。component 全体は `parameters.docs.description.component`、story ごとは export の直前の JSDoc（または `parameters.docs.description.story`）である。**どちらも Docs ページにしか描画されない。** [`.storybook/preview.ts`](../../.storybook/preview.tsx) が `tags: ["autodocs"]` を付けているのはこのためで、外すと書いた説明がどこにも出なくなる
+- 説明の置き場は 2 つある。component 全体は `parameters.docs.description.component`、story ごとは export の直前の JSDoc（または `parameters.docs.description.story`）である。**どちらも Docs ページにしか描画されない。** [`.storybook/preview.tsx`](../../.storybook/preview.tsx) が `tags: ["autodocs"]` を付けているのはこのためで、外すと書いた説明がどこにも出なくなる
+- 幅を持たない部品（入力欄、card、menu の trigger）は、story の `decorators` で幅を与えた `div` に包む。幅は story 側の表示指定であり、部品にもアプリの layout にも属さない。狭い画面で見切れないよう `max-w-[calc(100vw-2rem)]` を併記する
+- 操作しないと現れない状態（開いた menu、選び終えた候補、送った後の一覧）は `play` で操作して story に固定する。閉じた姿しか story に無いと、その部品の主な姿がカタログにも visual regression にも載らない。Portal で `body` 直下へ出た面の引き方は [docs/testing-conventions.md](../../docs/testing-conventions.md)「component / hook のテスト」が持つ
 
 ## 監査の観点
 
@@ -304,6 +358,8 @@ components/
 | SSR first —— `"use client"`・Radix・Portal を使うのは、native 要素では満たせない操作要件がある client island に限る | suggestion | この README「運用」/ [docs/rules.md](../../docs/rules.md)「UI 部品と操作」 |
 | 色と余白は semantic token を通す。class の結合は `cn.ts` を通し、`clsx` / `tailwind-merge` を直に使わない | primitive token の直接利用と、`cn.ts` を通さない結合は violation | この README「運用」 |
 | focus 表示は `outline`、装飾の輪は `ring` で書き分け、境界を示す線と本文の色は「focus 表示と装飾的な輪の使い分け」の各節に従う | 節が名指しで禁じている形（focus に `ring` を使う、`focus-visible:outline-2` と `outline-none` の併記、`primary` / `emphasis` を本文の色に使う）は violation | この README「focus 表示と装飾的な輪の使い分け」。文字の太さは機械: `project-rules/no-raw-font-weight` |
+| 前回値との差分で state を戻す調整は描画中に行い、解放が要る資源の生成は effect に置く | 調整を effect に置いていれば violation。`set-state-in-effect` の抑止に理由が無ければ violation | この README「実装で繰り返す形」。機械: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect` |
+| Portal で form の外へ出る面の中の control に送信を頼らず、値は hidden input で運ぶ。局所スクロールする領域は focus 可能である | Portal の内側の control だけに `name` を置いていれば violation。`overflow-*` を持つ領域に `tabIndex` が無ければ violation | この README「実装で繰り返す形」/ [docs/rules.md](../../docs/rules.md)「UI 部品と操作」。a11y の残りは機械: `vitest-axe`（[0091](../../docs/adr/0091-test-verification-methods.md)） |
 
 ## 関連する ADR
 
@@ -333,7 +389,7 @@ components/
 
 #### foundation
 
-UI を横断して支える CSS 基盤。React component を公開しない。
+UI を横断して支える基盤。見える要素を描かない。
 
 | component | 概要 |
 | --- | --- |
@@ -496,6 +552,7 @@ trigger から本文の上へ面を開く部品。
 
 | component | 概要 |
 | --- | --- |
+| [`action-bar`](./patterns/action-bar/README.md) | 操作をまとめて置く領域。位置と重なり順だけを持つ |
 | [`filter-bar`](./patterns/filter-bar/README.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
 | [`form-field`](./patterns/form-field/README.md) | 項目名・必須の印・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
 | [`selection-toolbar`](./patterns/selection-toolbar/README.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
@@ -530,6 +587,7 @@ mount 位置が部品側で決まっている部品（[層](#層)）。
 | [`api-error-feedback`](./app-starter/api-error-feedback/README.md) | client-side の API 失敗を、文脈内の Alert または操作を止める Dialog として表示する |
 | [`attachment`](./app-starter/attachment/README.md) | 選択済みのファイル 1 件を、種類・名前・進行状況・取り消し操作として表示する |
 | [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |
+| [`connection-status`](./app-starter/connection-status/README.md) | 継続的な受信がいまどうなっているかを、短いラベルで示す |
 | [`cursor-pagination`](./app-starter/cursor-pagination/README.md) | cursor 方式の一覧で前後のページへ移動する |
 | [`feedback-state`](./app-starter/feedback-state/README.md) | loading / empty / error / success の表示状態を一貫して伝える |
 | [`load-more`](./app-starter/load-more/README.md) | 読み進めて積み増す一覧の末尾で、続きの読み込みの状態を示す |
