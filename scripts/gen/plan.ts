@@ -80,11 +80,16 @@ export function isGenerationKind(value: string): value is GenerationKind {
 
 /** 層 README の frontmatter を組み立てる。 */
 function frontmatter(importsAllowed: readonly string[], contract: LayerContract): string {
+  const testRequirement =
+    typeof contract.testRequirement === "string"
+      ? contract.testRequirement
+      : `[${contract.testRequirement.join(", ")}]`;
+
   return [
     "---",
     `imports-allowed: [${importsAllowed.join(", ")}]`,
     `forbidden: [${contract.forbidden.join(", ")}]`,
-    `test-requirement: ${contract.testRequirement}`,
+    `test-requirement: ${testRequirement}`,
     "---",
   ].join("\n");
 }

@@ -227,6 +227,16 @@ describe("planGeneration", () => {
     expect(readme.match(/^---$/gm)).toHaveLength(2);
   });
 
+  it("並びで宣言された test-requirement を並びのまま frontmatter へ出す", () => {
+    const listed = {
+      ...featureInput(),
+      contract: { ...contract, testRequirement: ["feature", "component", "unit"] },
+    };
+    const readme = fileNamed(planGeneration(listed), "README.md").content;
+
+    expect(readme).toContain("test-requirement: [feature, component, unit]\n---\n");
+  });
+
   it("frontmatter を持たないテンプレートにも、層の契約の frontmatter を付ける", () => {
     const readme = fileNamed(
       planGeneration(featureInput({ readmeTemplate: "# <feature 名>\n" })),

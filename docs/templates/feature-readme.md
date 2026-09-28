@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
-test-requirement: feature
+test-requirement: [feature, component, unit]
 ---
 
 # <feature 名>
@@ -102,7 +102,7 @@ components へ渡さない。
 ## テスト観点
 
 <!--
-層の宣言（`test-requirement: feature`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
+層の宣言（`test-requirement: [feature, component, unit]`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
 この slice でしか出てこない観点だけである。
 -->
 

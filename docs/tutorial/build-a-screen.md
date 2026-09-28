@@ -2177,7 +2177,7 @@ route が行う（外枠の前捌きは防御線ではない。[0079](../../../.
 
 **feature README。** [`docs/templates/feature-readme.md`](../templates/feature-readme.md) を
 `src/features/notes/README.md` へ写して埋める。必須の節は雛形が宣言しており、`readme-review` が
-その一覧を読んで採点する。frontmatter には `test-requirement: feature` と、`__mocks__/` の
+その一覧を読んで採点する。frontmatter には `test-requirement: [feature, component, unit]` と、`__mocks__/` の
 `coverage-exclusions` を書く。
 
 書くのは **この slice に固有の線引きと、契約・仕様・デザインへの索引だけ**である。層の役割論は

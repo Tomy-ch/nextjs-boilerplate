@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features]
-test-requirement: feature
+test-requirement: [feature, component, unit]
 ---
 
 # features
@@ -262,13 +262,14 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
   README」のように隣から辿れる形で書く（[`docs/rules.md`](../../docs/rules.md)「コメントと文書」）。
   ADR は番号も節も決定の所在も動くが、README は層と一緒に動くので、動いたことが参照側へ波及しない ——
   コメントが直接指していると、参照はコード側に散り、ADR からは誰が指しているか見えないまま腐る
-- **`test-requirement: feature` が掛かるのは画面の単位で組み上げたもの**（`page-content` / `view` /
+- **宣言は `test-requirement: [feature, component, unit]` の並びで、slice が 3 つの形を抱えることを書く。**
+  `feature` が掛かるのは画面の単位で組み上げたもの（`page-content` / `view` /
   `results` / 殻の側の合成）で、部品が揃って初めて成立する振る舞いを負う。**`ui/<part>/` の単一部品は
   `component` の形**——その部品 1 つの描画契約と a11y——で、**値を返す対象**（純関数、hook、Server
   Action の補助）は `unit` の形で確かめる。判別は手段ではなく合成の度合いで決める
-  （[0090](../../docs/adr/0090-testing-strategy.md) 層別責務）。宣言が feature の下の全ファイルへ
-  一律に掛かると、React のツリーを要さない対象にまで合成の観点を課すことになり、テストの側が正しい
-  のに宣言と食い違う
+  （[0090](../../docs/adr/0090-testing-strategy.md) 層別責務）。`feature` の 1 語だけを宣言すると
+  feature の下の全ファイルへ一律に掛かり、React のツリーを要さない対象にまで合成の観点を課すことに
+  なって、テストの側が正しいのに宣言と食い違う
 
 ## 監査の観点
 
@@ -297,5 +298,5 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 - [0054](../../docs/adr/0054-ui-catalog-storybook.md) — カタログの方針。story を持つ範囲と、Server Action の差し替え宣言
 - [0061](../../docs/adr/0061-form-mutation-ux.md) — `<form action>` + Server Action の正機構と `ActionState<T>`。`form-state.ts` が閉じる器
 - [0080](../../docs/adr/0080-error-handling.md) — エラーの扱い。本体の失敗を境界へ渡し、添え物の失敗を値へ倒す線
-- [0090](../../docs/adr/0090-testing-strategy.md) — 層別のテスト責務。`test-requirement: feature` が指す先と、fixture / `coverage-exclusions` の置き方
+- [0090](../../docs/adr/0090-testing-strategy.md) — 層別のテスト責務。`test-requirement` の各層が指す先と、fixture / `coverage-exclusions` の置き方
 - [0091](../../docs/adr/0091-test-verification-methods.md) — 検証の方法。async RSC を `render(await X())` で描く根拠

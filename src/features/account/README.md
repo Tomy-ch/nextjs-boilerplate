@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/account/__mocks__/**"
   - "src/features/account/account.fixture.ts"

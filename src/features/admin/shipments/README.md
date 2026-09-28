@@ -1,5 +1,5 @@
 ---
-test-requirement: feature
+test-requirement: [feature, component, unit]
 ---
 
 # admin/shipments
