@@ -17,7 +17,6 @@ describe("codexExecArgs", () => {
     ]);
   });
 
-  // ----- 異常系 -----
   it("パスが引用符とバックスラッシュを含んでも、root の値を 1 つの文字列として閉じる", () => {
     expect(codexExecArgs('/a"b\\c')).toContain(
       'sandbox_workspace_write.writable_roots=["/a\\"b\\\\c/.agents"]',

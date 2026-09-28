@@ -1,9 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatDate, formatDateTime, formatMonthName, formatTime } from "./datetime";
 
 /** バックエンドが返す形と同じ、タイムゾーンを含む絶対時刻。 */
 const PUBLISHED_AT = new Date("2026-08-12T00:05:00.000Z");
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("formatDateTime", () => {
   // ----- 正常系 -----
@@ -19,8 +23,12 @@ describe("formatDateTime", () => {
     expect(formatDateTime(new Date("2026-08-11T15:30:00.000Z"))).toBe("2026/08/12 0:30");
   });
 
-  it("同じ locale を繰り返し渡しても同じ表記になる", () => {
-    expect(formatDateTime(PUBLISHED_AT)).toBe(formatDateTime(PUBLISHED_AT));
+  it("同じ locale の書式は 1 度だけ作って使い回す", () => {
+    const construct = vi.spyOn(Intl, "DateTimeFormat");
+
+    expect(formatDateTime(PUBLISHED_AT, "en-GB")).toBe("12 Aug 2026, 09:05");
+    expect(formatDateTime(PUBLISHED_AT, "en-GB")).toBe("12 Aug 2026, 09:05");
+    expect(construct).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -69,7 +77,11 @@ describe("formatMonthName", () => {
     expect(formatMonthName(11)).toBe("12月");
   });
 
-  it("同じ locale を繰り返し渡しても同じ表記になる", () => {
-    expect(formatMonthName(3, "en-US")).toBe(formatMonthName(3, "en-US"));
+  it("同じ locale の書式は 1 度だけ作って使い回す", () => {
+    const construct = vi.spyOn(Intl, "DateTimeFormat");
+
+    expect(formatMonthName(3, "en-GB")).toBe("Apr");
+    expect(formatMonthName(3, "en-GB")).toBe("Apr");
+    expect(construct).toHaveBeenCalledTimes(1);
   });
 });

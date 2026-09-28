@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { formatNumber } from "./number";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe("formatNumber", () => {
   // ----- 正常系 -----
@@ -12,8 +16,12 @@ describe("formatNumber", () => {
     expect(formatNumber(1234567, "de-DE")).toBe("1.234.567");
   });
 
-  it("同じ locale を続けて使っても表記が変わらない", () => {
-    expect(formatNumber(1000, "de-DE")).toBe(formatNumber(1000, "de-DE"));
+  it("同じ locale の書式は 1 度だけ作って使い回す", () => {
+    const construct = vi.spyOn(Intl, "NumberFormat");
+
+    expect(formatNumber(1234567, "en-IN")).toBe("12,34,567");
+    expect(formatNumber(1234567, "en-IN")).toBe("12,34,567");
+    expect(construct).toHaveBeenCalledTimes(1);
   });
 
   it("0 は区切りなしで返す", () => {

@@ -78,7 +78,6 @@ describe("declaredSurfaces", () => {
     expect(declaredSurfaces(css)).toEqual(["admin", "ops"]);
   });
 
-  // ----- 異常系 -----
   it("系統を再束縛しない CSS からは何も取り出さない", () => {
     expect(declaredSurfaces(CSS)).toEqual([]);
   });
