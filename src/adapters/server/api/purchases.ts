@@ -67,7 +67,19 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
 export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
 /** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
-export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
+export type PurchaseHistoryQuery = {
+  /** 次ページの鍵。先頭ページなら省く。区間の下限ではない。 */
+  readonly after?: string;
+  readonly first: number;
+  /** 区間の下限（この瞬時を含む）。RFC3339 の瞬時。 */
+  readonly orderedAfter?: string;
+  /** 区間の上限（この瞬時を含まない）。 */
+  readonly orderedBefore?: string;
+  /** 状態のコード。マスタ行を指す静的な番号。 */
+  readonly statusCodes?: readonly number[];
+  /** 他の利用者の購入も母集団に含めるか。含める指定は管理の役割を持つ主体しか通らない。 */
+  readonly includeOtherUsers: boolean;
+};
 
 /** `parsePurchaseHistoryQuery` の結果。読めなかったキーは呼び出し側が画面へ出す。 */
 export type PurchaseHistoryQueryParseResult =

@@ -41,7 +41,7 @@ OTel を用いた server-side の trace、metrics、logs のためのカーネ�
 
 **実装を注入で渡すのは、feature 向けの面に OTel を持ち込まないためである。** `render-span.ts` は feature が import するのでブラウザのバンドルにも入る。`@opentelemetry/api` を連れて行くと、Vite が取り込む CJS ビルドがブラウザに無い `__dirname` を参照し、**モジュール評価の時点で落ちる** —— その面を import した story は 1 つも描けなくなる。
 
-**SDK の有無を無効化の代わりに使えない。** `OBS_TRACES_EXPORTER=none` にしても、logs か metrics が有効なら `NodeSDK` は tracer provider を立てるため、span は記録されたうえで捨てられる —— 成果物だけがゼロになり、計装のコストは残る。だから範囲を独立した軸として持つ（[0081](../../docs/adr/0081-observability-logging.md) 決定 3）。
+**SDK の有無を無効化の代わりに使えない。** `OBS_TRACES_EXPORTER=none` にしても、logs か metrics が有効なら `NodeSDK` は tracer provider を立てるため、span は記録されたうえで捨てられる —— 成果物だけがゼロになり、計装のコストは残る。だから範囲を独立した軸として持つ（[0081](../../docs/adr/0081-observability-logging.md)）。
 
 供給は `OBS_RENDER_SPANS`（`none` / `screen` / `part`、既定 `screen`）で、`tracesEnabled` との合成は起動境界が行う。`part` を開けると 1 描画の span が描く部品の数だけ増えるので、常用ではなく調査のときに開ける。
 
@@ -159,7 +159,7 @@ OTel API は provider が登録されていなければ何もしない実装を�
 | `render-span.ts` 以外の module は `server-only` を名乗る | 名乗っていなければ violation | [adapters/README.md](../adapters/README.md)「ブラウザ発のテレメトリの中継」。機械（`scripts/server-only.gate.test.ts`）が見るのは `*.server.ts` の綴りを持つものだけ |
 | OTLP と公式 semconv だけを使い、vendor の SDK をこのカーネルへ固定しない | vendor SDK の import は violation。公式 semconv に無い属性キーは suggestion | この README「運用」/ [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
 | 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
-| ブラウザから返ってきた trace 文脈は書式だけを確かめ、読めない値は無いものとして扱う（中継要求の span へ倒さない） | violation | [0082](../../docs/adr/0082-client-observability.md) 決定 2 / この README「ブラウザ側のシグナル」。機械: `trace-context.server.test.ts` |
+| ブラウザから返ってきた trace 文脈は書式だけを確かめ、読めない値は無いものとして扱う（中継要求の span へ倒さない） | violation | [0082](../../docs/adr/0082-client-observability.md)（ブラウザ発のシグナルの中継） / この README「ブラウザ側のシグナル」。機械: `trace-context.server.test.ts` |
 
 ## 関連する ADR
 

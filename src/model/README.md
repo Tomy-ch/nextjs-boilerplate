@@ -75,7 +75,7 @@ coverage-exclusions:
   れていない」（尋ねてよいかが逆になる）、「該当なし」と「機構が動いていない」（直せば埋まるか
   が違う）は分けます。「商品を引けない」と「画像を 1 枚も持たない」は、利用者から見ればどちらも
   「出す絵が無い」なので `null` 1 つに畳みます。分けた状態は判別可能 union で表します
-  （[0029](../../docs/adr/0029-type-design-discipline.md) 決定 1）。
+  （[0029](../../docs/adr/0029-type-design-discipline.md)）。
 - **金額は契約が返す形のまま持ちます。** 十進の文字列で届く単価は文字列のまま
   （[`docs/rules.md`](../../docs/rules.md) *表示と書式*）、最小単位の整数で届く合計は整数のままで、
   主単位へ戻すのは `formatMoney` を通す表示の直前だけです。参考換算額はレートと基準日を併せて持ちます
@@ -90,7 +90,7 @@ coverage-exclusions:
 ## 識別子
 
 外部由来の識別子を branded type にする決定は [0029](../../docs/adr/0029-type-design-discipline.md)
-決定 3 が持ちます。この層での形は次のとおりです。
+が持ちます。この層での形は次のとおりです。
 
 - `<subject>IdSchema = z.string().brand<"<subject>">()`、`type <Subject>Id = z.infer<typeof …>`、
   `to<Subject>Id(value: string): <Subject>Id` の 3 点で 1 組にします。
@@ -103,9 +103,11 @@ coverage-exclusions:
 - brand は型だけの印で、JSON を跨いだ値は素の文字列のまま変わりません。テストはこれを 1 本で
   固定します。
 - スキーマを `zod` と `zod/mini` のどちらで書くかは、ブラウザへ届くかで決めます
-  （[0029](../../docs/adr/0029-type-design-discipline.md) 決定 2）。`model` は client 側の層からも
+  （[0029](../../docs/adr/0029-type-design-discipline.md)）。`model` は client 側の層からも
   引かれるので、値として引かれ得るスキーマは `zod/mini` で書きます。型だけを引く `import type` は
   bundle に載らず、載った場合は `scripts/client-schema-weight.gate.test.ts` が落とします。
+  呼び出し側が `zod` の連鎖（`.catch()` / `.optional()`）で組み立てる部品（`search-params.ts`）は、
+  読み手が server に閉じるので `zod` で書きます。client から引かれた時点で同じゲートが落とします。
 
 ## 表示検証スキーマ
 
@@ -126,8 +128,7 @@ coverage-exclusions:
   `DEFAULT_TIME_ZONE` に固定します —— ランタイムに任せると、サーバ（多くは UTC）で描画した文字列と
   ブラウザ（閲覧者の現在地）で描画した文字列が実行場所ぶんずれます。
 - **`Intl.*` の生成は locale と粒度（または通貨）の組ごとに 1 度だけ行い、module 内の `Map` で
-  使い回します。** 生成には locale データの解決が伴うため、描画ごとに作ると件数に比例して積み上がり
-  ます。
+  使い回します。** 使い回す理由は [`docs/rules.md`](../../docs/rules.md) の「表示と書式」が持ちます。
 - **通貨ごとの小数桁は `Intl` の `resolvedOptions()` から導きます。** 通貨と桁数の対応を手元の表に
   持つと、扱う通貨が増えるたびに 2 か所を揃えることになります。
 - **参考であることは書式に混ぜません。** 「約」や注記を書式へ入れると、金額として読める形が 2 通り
@@ -211,7 +212,7 @@ coverage-exclusions:
 | `forbidden: business-logic` — バックエンドが所有する業務ルールを持たない。置くのは型と、表示のための最小限の関数まで | 契約が返さない値を計算して出していれば violation。最小限の関数か判定ロジックかが読み分けられないときは suggestion | [0029](../../docs/adr/0029-type-design-discipline.md) 禁止事項 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 |
 | バックエンドの契約を手書きの型で写さない。置くのは表示のための型で、契約の形との変換は `adapters` が持つ | suggestion（偶然同じ形の表示用の型と区別できない） | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / この README「受け入れないもの」 |
 | 置いてあるものは複数箇所から参照される。1 つの feature しか使わないものは feature の内側に置く | 参照が 1 か所しか無ければ suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」1・2 / この README「受け入れるもの」 |
-| 型の形から読める型設計の規律 —— 同時に立ち得ない状態を真偽値の組で表さない、`unknown` を内層へ持ち回らず境界で 1 度確かめる（境界の関数が `unknown` を受けて確定させるのはその形そのもの）、外部由来の識別子を素の `string` のまま公開しない | suggestion | [0029](../../docs/adr/0029-type-design-discipline.md) 決定 1〜3 と禁止事項 |
+| 型の形から読める型設計の規律 —— 同時に立ち得ない状態を真偽値の組で表さない、`unknown` を内層へ持ち回らず境界で 1 度確かめる（境界の関数が `unknown` を受けて確定させるのはその形そのもの）、外部由来の識別子を素の `string` のまま公開しない | suggestion | [0029](../../docs/adr/0029-type-design-discipline.md) の型設計の決定と禁止事項 |
 
 ## 関連する ADR
 

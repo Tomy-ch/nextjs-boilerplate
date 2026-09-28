@@ -94,8 +94,8 @@ test-requirement: unit
 
 - **カタログの文言は分類しか伝えません。** 「接続できません」からは、宛先が立っていないのか、宛先を間違えたのかは判りません。宛先のようにその場でしか判らない文脈を持つ境界は、分類を残したまま `withErrorMeta()` で文言を載せます。文言の正はカタログにあるので、`withMessage()` を含めて文言を差し替えるのは境界層に限ります
 - `resolveErrorMeta()` は分類のないエラーに `undefined` を返します。**未分類を `INTERNAL` へ倒すのは呼出し側の境界の判断**であり、`resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL)` の形で書きます。分類を持たない値は想定していない経路で投げられたものなので、この層は利用者に見せる形を選べません
-- `AppError` は `Error` の派生、`ErrorMeta` は `#private` を持つクラスで、どちらも素の値ではなく、**Server Action / RSC の直列化境界を越えません**。越える前に `resolveErrorMeta()` と `findAppError()` で code・文言・分類の素の値へ落とします。画面へ返す器は `model` が持ちます（[0080](../../docs/adr/0080-error-handling.md) §3）
-- production では Server Component から投げられたエラーの本文が伏せられ、error 境界には `digest` しか届きません。**error 境界は受け取ったエラーから解決せず、`getDefaultErrorMeta(ErrorKind.INTERNAL)` の文言を出します**（[0080](../../docs/adr/0080-error-handling.md) §3）
+- `AppError` は `Error` の派生、`ErrorMeta` は `#private` を持つクラスで、どちらも素の値ではなく、**Server Action / RSC の直列化境界を越えません**。越える前に `resolveErrorMeta()` と `findAppError()` で code・文言・分類の素の値へ落とします。画面へ返す器は `model` が持ちます（[0080](../../docs/adr/0080-error-handling.md)）
+- production では Server Component から投げられたエラーの本文が伏せられ、error 境界には `digest` しか届きません。**error 境界は受け取ったエラーから解決せず、`getDefaultErrorMeta(ErrorKind.INTERNAL)` の文言を出します**（[0080](../../docs/adr/0080-error-handling.md)）
 
 ## 秘匿値の置換
 
@@ -103,7 +103,7 @@ test-requirement: unit
 
 - 秘匿値は重複を除き、空文字を捨て、**長い値から置換**します。短い値を先に置換すると、長い値の残りが部分一致で漏れます
 - 置換は文字列の分割と結合で行い、正規表現を組みません。秘匿値に記号が含まれても escape を考えずに済みます
-- **wrap する前に置換します**（[0080](../../docs/adr/0080-error-handling.md) §5）。chain の内側に生の値が残ると、外側で置換しても辿れば読めます
+- **wrap する前に置換します**（[0080](../../docs/adr/0080-error-handling.md)）。chain の内側に生の値が残ると、外側で置換しても辿れば読めます
 
 ## 利用例
 
@@ -152,8 +152,8 @@ const meta = resolveErrorMeta(error);
 | `forbidden: http-vocabulary` — HTTP status・レスポンスの形・transport 固有の語彙を持たない。分類から status への変換は `adapters` の境界が持つ | violation。数値や型が transport 由来かが綴りから読み分けられないときは suggestion | [0080](../../docs/adr/0080-error-handling.md) 禁止事項 / この README「境界」。機械: ESLint `no-restricted-syntax` が `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルまでを落とす |
 | `forbidden: external-dependencies` — 他のカーネルも外部パッケージも import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。他のカーネルの import は機械: ESLint boundaries。外部パッケージの import は機械が届かない |
 | errors 自身はログを出力しない | `console` や logger の呼び出しがあれば violation | この README「境界」 |
-| 表示用の code と文言は分類ごとのカタログだけが持ち、`AppError` と `ErrorKind` には持たせない | `AppError` や分類の定義に code・文言の項目があれば violation | [0080](../../docs/adr/0080-error-handling.md) §2 / この README「表示メタ情報の解決」 |
-| wrap は `cause` を切らない | `{ cause }` を渡さずに元エラーを包み直す箇所があれば violation | [0080](../../docs/adr/0080-error-handling.md) §5 / この README「分類とメタ情報の重ね方」 |
+| 表示用の code と文言は分類ごとのカタログだけが持ち、`AppError` と `ErrorKind` には持たせない | `AppError` や分類の定義に code・文言の項目があれば violation | [0080](../../docs/adr/0080-error-handling.md)（表示用の code と文言の置き場） / この README「表示メタ情報の解決」 |
+| wrap は `cause` を切らない | `{ cause }` を渡さずに元エラーを包み直す箇所があれば violation | [0080](../../docs/adr/0080-error-handling.md)（wrap と置換の順序） / この README「分類とメタ情報の重ね方」 |
 | 全分類がカタログに既定メタ情報を持つ | violation | 機械: `error-catalog.ts` の表の型 `Record<ErrorKind, ErrorMeta>` |
 
 ## 関連する ADR

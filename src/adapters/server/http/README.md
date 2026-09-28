@@ -30,6 +30,10 @@ test-requirement: [unit, integration]
 | [`user-scoped-client.ts`](user-scoped-client.ts) | `integration` | 主体に紐づくものの接続口。資格情報の取得口を渡すのはここだけ |
 | [`retry-policy.ts`](retry-policy.ts) | `unit` | status から再試行の可否を決める |
 | [`search-params.ts`](search-params.ts) | `unit` | クエリを素の値へ写す |
+| [`circuit-breaker.ts`](circuit-breaker.ts) | `unit` | 失敗率で接続先を遮断する。時計は呼び出し側が渡す |
+| [`retry-budget.ts`](retry-budget.ts) | `unit` | 再試行の予算。使い切ると再試行しない |
+| [`resilience-profile.ts`](resilience-profile.ts) | `unit` | 試行・再試行・遮断の既定値（下の表の値の置き場） |
+| [`patch-payload.ts`](patch-payload.ts) | `unit` | 部分更新の「触らない」と「消す」を型で分け、`undefined` のキーを落とす |
 
 ## 受け入れるもの
 

@@ -70,7 +70,7 @@ test-requirement: unit
   [`model/consent`](../model/consent.ts) の `ConsentState`）。読み終えたかを見てから読み、2 度目の mount で
   読み直さない。以後の書き換えは書き込む関数だけが行う
 - 帰結として、サーバはその値を知らないので、**値に依る面は読み取りの後に現れる**。知らないまま出すか、知るまで
-  待つかのどちらかしかない。サーバ側で読まない根拠は [0131](../../docs/adr/0131-cookie-consent.md) §1
+  待つかのどちらかしかない。サーバ側で読まない根拠は [0131](../../docs/adr/0131-cookie-consent.md) が持つ
 - **Zustand の hook のサーバ側スナップショットは `getInitialState()`** で、読み終えた後も初期値を返す。Cache
   Components の下では穴が届いた時点で subtree の hydration がもう一度走り、そのとき server snapshot が読まれて
   「まだ読んでいない」へ巻き戻る —— 出した面が一度消えて開き直り、その消失が layout shift として数えられる。

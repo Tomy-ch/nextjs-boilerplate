@@ -33,12 +33,13 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 ## ファイルの書き方
 
 5 つのファイルは同じ変数を同じ順序で持ち、順序は下の変数表と揃えます。ある環境に無関係な
-変数でも行は消さず、行の形で「誰が値を与えるか」を表します。
+変数でも行は消さず、行の形で「誰が値を与えるか」を表します。例外は下に挙げる 2 種類（検証のための
+上書きと開発専用の口）だけで、それらは配信する環境のファイルに行を持ちません。
 
 | 行の形 | 意味 | 例 |
 | --- | --- | --- |
 | `NAME=value` | このファイルが値を与える。`local` / `ci` の基本形 | `APP_API_MODE=mock` |
-| `NAME=` | Optional の変数を「指定なし」のまま在庫として残す。未設定と空文字が同じ意味であること（[ADR 0030](../docs/adr/0030-environment-variable-management.md) 決定 4）が前提 | `CLOCK_FIXED_NOW=` |
+| `NAME=` | Optional の変数を「指定なし」のまま在庫として残す。未設定と空文字が同じ意味であること（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）が前提 | `CLOCK_FIXED_NOW=` |
 | `# NAME=` | 値は PaaS の環境設定か secret store が与える。ファイルは名前だけを持つ | `# AUTH_SESSION_SECRET=` |
 | `# NAME=候補` | 同上。入れるなら通常この値、という候補を添える | `# AUTH_SCOPES=openid profile email api.read api.write` |
 | `# NAME=on` | Code default が止まる側にある切り替え。行頭の `#` を外すのが「入れる」操作 | `# APP_MAINTENANCE_MODE=on` |
@@ -46,14 +47,14 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 配信する環境（`dev` / `stg` / `prd`）のファイルが値を持つ行は 2 種類だけです。配備によらず同じで
 秘密でもない値（接続モード、service 名）と、その環境だけが宣言する方針値（索引の可否）です。接続先と
 秘密値は名前だけを持ち、実値は供給側に任せます —— 平文で commit しない
-（[ADR 0030](../docs/adr/0030-environment-variable-management.md) 決定 5・6）。
+（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
 
-- 検証のためだけの上書き（時計の固定）は `ci` にだけ値を置きます。配信する環境のファイルへ書くと、
-  検証の都合が本番の起動条件に混ざります。
+- 検証のためだけの上書き（時計の固定）は `ci` にだけ値を置き、配信する環境のファイルには行を置きません。
+  書くと検証の都合が本番の起動条件に混ざり、`# NAME=` の形でも「供給側が与える」と読まれます
+  （[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
 - 開発専用の口に属する変数（`AUTH_MODE`）は、それが効く環境（`local` / `ci`）のファイルにしか
   書きません。配信する環境のファイルに行があると、効かないはずの値を入れる招きになります。効く
-  環境を決めるのは `APP_ENV` です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)
-  決定 6）。
+  環境を決めるのは `APP_ENV` です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
 
 ## サブシステム別の変数
 
@@ -61,8 +62,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 に対応します。外部 SDK が標準名で直接読む変数（`OTEL_*`）はその標準名のまま置き、ブラウザへ出す
 値だけが `NEXT_PUBLIC_` を名乗ります。
 
-Notes 列のラベルは次の意味です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)
-決定 4・5）。
+Notes 列のラベルは次の意味です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
 
 - **Required** —— 欠落は build / 起動の失敗。
 - **Code default `x`** —— 省略でき、スキーマが `x` を補う。
@@ -177,5 +177,5 @@ timeout と再試行は
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。
 - `NEXT_PUBLIC_` 変数にはブラウザへ露出してよい公開値だけを置く。secret を置いてはならない。
 - `NEXT_PUBLIC_` はビルド時にリテラルへ置換されるため、値の変更には再ビルドが要る。起動時の差し替えは効かない。
-- 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。追加はユーザ確認を要する（[ADR 0030](../docs/adr/0030-environment-variable-management.md) 決定 6）。
+- 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。追加はユーザ確認を要する（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
 - 追加の手順はスキル `new-env` が持つ（[ADR 0030](../docs/adr/0030-environment-variable-management.md) 補足）。手で行うなら、サブシステムの節へ変数表の行を足し、5 つのファイルへ「ファイルの書き方」の形で 1 行ずつ置く。config 経由で読む変数は、さらに `src/config/<purpose>/<purpose>.schema.ts` の validator、`environment.ts` の登録、`environment.fixture.ts` の stub、runtime module の getter を同時に足す（[`src/config/README.md`](../src/config/README.md)）。config を経由しない変数（外部 SDK が標準名で直接読むもの）も、表と 5 つのファイルには載せる。

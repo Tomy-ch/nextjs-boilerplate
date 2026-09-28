@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { Table } from "@/components/design-system/display/table/table";
 
@@ -67,6 +68,16 @@ describe("TableColumnHeaders", () => {
 
     expect(screen.getByRole("columnheader", { name: "価格" })).toHaveClass("text-right");
     expect(screen.getByRole("columnheader", { name: "備考" })).toHaveClass("sr-only");
+  });
+
+  it("並べた見出しは a11y 違反を持たない", async () => {
+    const { container } = render(
+      <Table>
+        <TableColumnHeaders columns={COLUMNS} />
+      </Table>,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
 

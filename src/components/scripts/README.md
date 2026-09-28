@@ -44,7 +44,7 @@ shadcn CLI はこのリポジトリの層と目的による配置を知らない
 
 ## manifest
 
-`../shadcn-manifest.yaml` は、design system の各 component が上流とどういう関係にあるかを記録する台帳です。`pnpm add:ui` の成功時に copy-in のエントリを upsert します。`--dry-run` では更新しません。自前実装のエントリは、その component を作った作業で手で追加します。
+`../shadcn-manifest.yaml` は、design system の各 component が上流とどういう関係にあるかを記録する台帳です。`pnpm add:ui` の成功時に copy-in のエントリを upsert します。`--dry-run` では更新しません。自前実装のエントリは、`pnpm gen component` が雛形と同時に `kind: original` の行として記録します（[`scripts/gen/manifest.ts`](../../../scripts/gen/manifest.ts)）。雛形を通さずに作った component と、`reimplemented` / `not-adopted` のエントリは、その作業で手で追加します。
 
 ```yaml
 select:

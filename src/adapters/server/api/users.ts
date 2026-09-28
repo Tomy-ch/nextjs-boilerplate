@@ -5,7 +5,7 @@ import type { z } from "zod";
 
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { getLogger } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import type { OffsetPage } from "@/model/pagination";
 import type { RegistrationStatus } from "@/model/user/registration";
 import type { ManagedUser, PurchaseSummary, UserId, UserProfile } from "@/model/user/user";
@@ -24,6 +24,7 @@ import {
 import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
 import { signOut, verifySession } from "../auth/session";
 import { getUserScopedClient } from "../http/user-scoped-client";
+import { taintObjectReference } from "../taint/taint";
 
 type WireUser = z.infer<typeof GetUsersMeResponse>;
 
@@ -245,7 +246,9 @@ export async function withdrawMe(): Promise<string | null> {
   try {
     return await signOut();
   } catch (cause) {
-    getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) });
+    reportQuietly(() =>
+      getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) }),
+    );
 
     return null;
   }
@@ -330,8 +333,17 @@ export const getManagedUserPage = cache(
       schema: GetUsersResponse,
     });
 
+    const items = wire.users.map(toManagedUser);
+
+    for (const item of items) {
+      taintObjectReference(
+        "利用者には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+        item,
+      );
+    }
+
     return {
-      items: wire.users.map(toManagedUser),
+      items,
       total: wire.total,
       perPage: wire.limit,
       offset: wire.offset,

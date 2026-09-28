@@ -47,14 +47,18 @@ describe("validateEnvironment", () => {
     const [
       { getApiConfig },
       { getAuthConfig },
+      { getClockConfig },
       { getHttpConfig },
+      { getMaintenanceConfig },
       { getMediaConfig },
       { getObservabilityConfig },
       { getSiteConfig },
     ] = await Promise.all([
       import("./api/api.server"),
       import("./auth/auth.server"),
+      import("./clock/clock.server"),
       import("./http/http.server"),
+      import("./maintenance/maintenance.server"),
       import("./media/media.server"),
       import("./observability/observability.server"),
       import("./site/site.server"),
@@ -72,10 +76,12 @@ describe("validateEnvironment", () => {
       scopes: VALID_ENVIRONMENT.AUTH_SCOPES,
       sessionSecret: VALID_ENVIRONMENT.AUTH_SESSION_SECRET,
     });
+    expect(getClockConfig().now()).toEqual(new Date(VALID_ENVIRONMENT.CLOCK_FIXED_NOW));
     expect(getHttpConfig()).toMatchObject({
       maxUrlBytes: Number(VALID_ENVIRONMENT.NEXT_PUBLIC_HTTP_MAX_URL_BYTES),
       maxUploadBytes: Number(VALID_ENVIRONMENT.NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES),
     });
+    expect(getMaintenanceConfig().isStopped).toBe(false);
     expect(getMediaConfig()).toMatchObject({ origin: VALID_ENVIRONMENT.MEDIA_ORIGIN });
     expect(getObservabilityConfig()).toMatchObject({
       otlpEndpoint: VALID_ENVIRONMENT.OTEL_EXPORTER_OTLP_ENDPOINT,

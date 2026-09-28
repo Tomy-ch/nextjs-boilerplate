@@ -128,8 +128,7 @@ validator は**変数の形**を検証し、値の意味は判定しません。
   `new URL("/path", base)` がそのパスを捨てて意図と結果が食い違う。`Origin` ヘッダと比べる値も
   同じ形でなければ完全一致にならない。CSP へ載せる origin は組み立て側が `new URL(value).origin`
   に落とすので、URL として受けた値のパスやポートの有無は載る形に影響しない。
-- **省略できる変数は、未設定と空文字を同じ「指定なし」として扱う**（[0030](../../docs/adr/0030-environment-variable-management.md)
-  §4）。配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証や運用のための
+- **省略できる変数は、未設定と空文字を同じ「指定なし」として扱う**（[0030](../../docs/adr/0030-environment-variable-management.md)）。配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証や運用のための
   つまみの行は持たない。
 - **既定は、設定を忘れた環境が踏んで困らない側に置く** —— 止めない・索引させない・読み込まない・
   同一 origin だけ・固定しない・IdP へ向かう。逆側を既定にすると、変数を注入し忘れた環境が全ルート
@@ -149,7 +148,7 @@ validator は**変数の形**を検証し、値の意味は判定しません。
   決めて引数で渡す。
 - **同じ事実を 2 つの変数で持たない。** https で配信されているかは IdP の callback URL（自分の
   origin）から導き、cookie の `secure` と HSTS / `upgrade-insecure-requests` が同じ 1 つの判定を読む
-  （[0030](../../docs/adr/0030-environment-variable-management.md) §4）。
+  （[0030](../../docs/adr/0030-environment-variable-management.md)）。
 - **検証の失敗は 1 つの Error にまとめ、欠けた / 不正な変数名を列挙する。** 読み手のテストは変数名で
   失敗を突き合わせる。
 
@@ -191,12 +190,13 @@ Node.js サーバーインスタンスの起動
 | unit test | `vi.stubEnv()` と `vi.resetModules()` | env スタブを設定して Config module を再評価する | テスト呼出しごと |
 
 `loadEnvironment()` は `override: false` で読み込むため、CI / PaaS がすでに注入した変数を
-上書きしません。`env/.env.dev`・`.env.stg`・`.env.prd` は変数名の宣言に留め、実値は PaaS の
-環境設定または secret store から供給します。
+上書きしません。`env/.env.dev`・`.env.stg`・`.env.prd` が値を持つのは配備によらず同じ値と
+その環境の方針値だけで、接続先と秘密値は名前だけを置き、実値は PaaS の環境設定または secret
+store から供給します（行の形は [`env/README.md`](../../env/README.md) の「ファイルの書き方」）。
 
 `APP_ENV` の未指定は `null` で返し、既定へ落としません。ファイルの選択、同梱の秘密値の許可、
 開発専用の口の開閉がすべてこの選択子を見るため、既定を持つと「未設定」を安全側へ倒せなく
-なります（[0030](../../docs/adr/0030-environment-variable-management.md) §6）。開発専用の口を
+なります（[0030](../../docs/adr/0030-environment-variable-management.md)）。開発専用の口を
 開けてよい環境の一覧は `load-environment.ts` の 1 か所にだけ置き、build（開発専用 route を束に
 含めるか）と実行時（口を開けるか）が同じ判定を読みます —— 一覧が 2 か所にあると、片方だけを
 広げた変更が黙って通ります。
@@ -234,7 +234,7 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 
 - `process.env` の直読はこのカーネルだけに置く（`src/` では biome `noProcessEnv` の override がこのカーネルと `src/instrumentation.ts` だけを外す）。
 - server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・入口の `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番の束に載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.md) の層定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得の口だけを増やすことになる。
-- client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側の層も `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.md) §2 / §3）。
+- client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側の層も `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.md)）。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
 
 ## 配信ヘッダの組み立て
@@ -303,12 +303,12 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 | `forbidden: fetch` — `fetch` などの外部 IO を持たない。持つのは環境変数の検証と、検証した値の公開だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
 | `forbidden: business-logic` — 業務ロジックを持たない。値の意味の判定は読み手の側に置く | violation。検証の規則か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
 | `*.server.ts` を import するのは、`adapters/server`、起動 / ビルド境界（`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`）、`app/metadata`、Next.js の規約が route segment に置くことを要求する値（`config/site` / `config/clock`）を読む route segment だけ。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | 許可の外からの import は violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスと Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / この README「運用」。機械は `config` を層の粒度でしか見ない |
-| `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.md) §2 と禁止事項 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
+| `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の client config の置き方と禁止事項 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
 | `*.schema.ts` は `process.env` も `APP_ENV` の判定も読まない。環境に依る条件は validator の引数で受け、渡すのは `environment.ts` である | violation | この README「目的別 module の形」 |
 | secret を `NEXT_PUBLIC_` に置かない | [`env/README.md`](../../env/README.md) で secret 管理のラベルを持つ変数が `NEXT_PUBLIC_` を名乗っていれば violation。ラベルは無いが署名鍵・資格情報として使われている値が `NEXT_PUBLIC_` を名乗っていれば suggestion | [0030](../../docs/adr/0030-environment-variable-management.md) 禁止事項 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
 | server config の値を props として client component へ渡さない。client が要る値は最初から `NEXT_PUBLIC_` の client config に置く | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の禁止則 / この README「運用」 |
 | Config class と ENV parser を module の外へ export しない | violation | [docs/rules.md](../../docs/rules.md)「設定と環境」/ この README「Config の配線」 |
-| 省略できる変数の既定が、設定を忘れた環境が踏んで困る側（止める・索引させる・第三者を読み込む・別 origin を許す）にある | 既定が環境によらず正しい根拠を validator の文書が持たなければ suggestion | この README「検証の語彙」/ [0030](../../docs/adr/0030-environment-variable-management.md) §4 / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
+| 省略できる変数の既定が、設定を忘れた環境が踏んで困る側（止める・索引させる・第三者を読み込む・別 origin を許す）にある | 既定が環境によらず正しい根拠を validator の文書が持たなければ suggestion | この README「検証の語彙」/ [0030](../../docs/adr/0030-environment-variable-management.md)（任意の変数の扱い） / [docs/rules.md](../../docs/rules.md)「設定と環境」 |
 
 ## 関連する ADR
 

@@ -88,16 +88,20 @@ function toOtlpValue(value: unknown): AnyValue | undefined {
 }
 
 /**
- * unknown から得た object がログフィールドとして列挙可能かを判定する。
+ * unknown から得た object が、入れ子の属性として写せる素の object かを判定する。
+ *
+ * @remarks
+ * `Date` / `Map` / class のインスタンスは列挙しても中身が出ず、空の入れ子として載るため外します。
  *
  * @param value - 判定対象の値
- * @returns 列挙可能な object であれば `true`
+ * @returns prototype が `Object.prototype` か `null` の object であれば `true`
  */
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    !(value instanceof Uint8Array)
-  );
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+
+  return prototype === Object.prototype || prototype === null;
 }

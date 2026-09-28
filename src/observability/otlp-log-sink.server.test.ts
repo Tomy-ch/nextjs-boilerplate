@@ -33,8 +33,14 @@ describe("createOtlpLogSink", () => {
         retryable: true,
         value: null,
         nested: { reason: "expired" },
+        bare: Object.assign(Object.create(null), { reason: "expired" }),
         binary: new Uint8Array([1]),
         values: ["one", 2],
+        date: new Date(0),
+        map: new Map([["reason", "expired"]]),
+        instance: new (class Reason {
+          readonly reason = "expired";
+        })(),
         invalid_values: ["one", Symbol("value")],
         unsupported: Symbol("value"),
       },
@@ -50,6 +56,7 @@ describe("createOtlpLogSink", () => {
         retryable: true,
         value: null,
         nested: { reason: "expired" },
+        bare: { reason: "expired" },
         binary: new Uint8Array([1]),
         values: ["one", 2],
       },
