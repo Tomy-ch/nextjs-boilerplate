@@ -22,6 +22,7 @@ sb.mock(import("../src/features/account/actions.ts"));
 sb.mock(import("../src/features/cart/actions.ts"));
 sb.mock(import("../src/features/cart/facade/add-to-cart/add-to-cart.ts"));
 sb.mock(import("../src/features/checkout/actions.ts"));
+sb.mock(import("../src/features/inquiry/actions.ts"));
 sb.mock(import("../src/features/purchases/actions.ts"));
 // sample:end
 

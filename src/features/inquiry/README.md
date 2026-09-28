@@ -1,8 +1,9 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
+  - "src/features/inquiry/__mocks__/**"
   - "src/features/inquiry/inquiry.fixture.ts"
 ---
 
@@ -72,6 +73,7 @@ coverage-exclusions:
 | `thread/ui/composer/` | 送信欄。書きかけを持ち、成立したときだけ片付ける |
 | `thread/ui/skeleton/` | 待機表示。出来上がりと同じ高さの器を先に置く |
 | `inquiry.fixture.ts` | story とテストが読む固定のやり取り |
+| `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
 
 ## 依存カーネル
 
