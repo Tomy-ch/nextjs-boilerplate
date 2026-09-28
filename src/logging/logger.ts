@@ -18,8 +18,44 @@ export const REDACTED_FIELD_NAMES: readonly string[] = [
 /** 伏せた値の代わりに置く文字列。 */
 export const REDACTED = "[REDACTED]";
 
-/** 構造化ログへ付与する追加フィールドです。 */
-export type LogFields = Readonly<Record<string, unknown>>;
+/**
+ * 構造化ログのフィールド名の表。
+ *
+ * @remarks
+ * 同じ意味の項目が呼び出し側ごとに別の名前で載ると、backend で 1 つの問いとして引けなくなります。
+ * 表に無い名前も渡せますが、公式 semconv に名前がある項目はその名前を使います。
+ */
+export const LogFieldKey = {
+  TRACE_ID: "trace_id",
+  SPAN_ID: "span_id",
+  REQUEST_ID: "request_id",
+  ERROR_CODE: "error_code",
+  ERROR_MESSAGE: "error_message",
+  LATENCY_MS: "latency_ms",
+  CAUSE: "cause",
+} as const;
+
+/**
+ * 構造化ログへ付与する追加フィールドです。
+ *
+ * @remarks
+ * `trace_id` / `span_id` は渡せません。logger が実行中の span から付けます。
+ *
+ * `cause` を文字列に限るのは、`Error` をそのまま置くと OTLP sink で `{}` になるためです。
+ */
+export type LogFields = Readonly<{
+  [LogFieldKey.TRACE_ID]?: never;
+  [LogFieldKey.SPAN_ID]?: never;
+  [LogFieldKey.REQUEST_ID]?: string;
+  [LogFieldKey.ERROR_CODE]?: string;
+  [LogFieldKey.ERROR_MESSAGE]?: string;
+  [LogFieldKey.LATENCY_MS]?: number;
+  [LogFieldKey.CAUSE]?: string;
+}> &
+  Readonly<Record<string, unknown>>;
+
+/** 出力先へ渡す、trace 相関を添えて伏せ終えたフィールドです。 */
+type LogRecordFields = Readonly<Record<string, unknown>>;
 
 /** アプリケーション logger が扱うログレベルの値型です。 */
 export type LogLevel = "debug" | "info" | "warn" | "error";
@@ -36,7 +72,7 @@ export const LogLevel: Readonly<Record<Uppercase<LogLevel>, LogLevel>> = {
 type LogRecord = Readonly<{
   level: LogLevel;
   message: string;
-  fields: LogFields;
+  fields: LogRecordFields;
 }>;
 
 /** stdout 以外の出力先へログレコードを渡す注入境界です。 */
