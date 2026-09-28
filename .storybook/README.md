@@ -72,7 +72,8 @@ coverage-exclusions:
   うる
 - **story の例外は `lib/story-error-boundary` が受け止める**（判断は同 component の doc）。decorator は
   story の `id` を `key` に与え、story が変わるたびに作り直す。持ち越すと直した story まで落ちたままに
-  見える
+  見える。境界の画面は `pageerror` に届かないので、撮影と a11y は `data-story-error` を見て落とす
+  （[`vrt/README.md`](../vrt/README.md)「壊れた story を「変わっていない」で通さない」）
 - **`beforeEach` で mock を全て戻す**（`resetAllMocks`）。差し替えた mock はモジュール共有で、docs
   ページは同じページの story を同時に描くため、戻さないと隣の story が別の story の戻り値を出す。
   `fn(impl)` で与えた実装まで戻るので、差し替え先の既定の応答が復帰する
