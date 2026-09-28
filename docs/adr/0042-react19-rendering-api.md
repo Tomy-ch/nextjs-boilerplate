@@ -94,18 +94,18 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 
 - ❌ 新規コンポーネントで `forwardRef` を使うこと(ref as prop に乗る。決定 1)（強制: biome `noReactForwardRef`（`--error-on-warnings` で `forwardRef` の使用を落とす））
 - ❌ `use()` を `<Suspense>` / error boundary の外に裸で置くこと(決定 2 の不変条件)（強制: 散文 —— **寄せられない**。境界は別ファイルの祖先に置かれ、`use()` を呼ぶファイルの形からは決まらない）
-- ❌ props / state から導出できる派生値を `useEffect` + `useState` で同期すること(render 中計算 or event handler。決定 3)
+- ❌ props / state から導出できる派生値を `useEffect` + `useState` で同期すること(render 中計算 or event handler。決定 3)（強制: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect`）
 - ❌ `reactCompiler` を `compilationMode` の指定なしに設定し、全 component へ暗黙に適用すること(決定 4)（強制: 散文 —— **寄せられる**（`next.config.ts` が返す設定の `reactCompiler.compilationMode` が `annotation` であることを単体テストで確かめる形。検査は無い））
 - ❌ 再描画が集中する経路であると言えないまま `"use memo"` を撒くこと、および費用の増分をその route で測らずに付けること(決定 4)（強制: `bundle-budget` job が印を付けた route の増分の上限を落とす。再描画が集中する経路かどうかは散文 —— **寄せられない**。購読の広がりの判断で、印の有無からは決まらない）
 - ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)（強制: 散文 —— **一部寄せられる**。`"use no memo"` の出現は静的に数えられるが規則は無い。恒常の前提か一時の退避かは運用の意図で決まる）
 - ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)（強制: 散文 —— **寄せられない**。一律に削除したかどうかは変更の意図であって、残ったコードの形には現れない）
 - ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)（強制: 散文 —— **寄せられない**。緩める理由は変更の動機でコードに現れない。境界そのものは 0112 の側の機械が見る）
-- ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)
+- ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)（強制: 散文 —— **寄せられない**。手当てが下の層と重なるか、メモ化の先に同一性へ依存する相手が居るかは責務と購読の判断で、コードの形からは決まらない。責務の側は [`docs/rules.md`](../rules.md)「層境界と依存」が持つ）
 - ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)（強制: 散文 —— **寄せられない**。ある記述が射程外の再決定かどうかは内容の意味で決まり、文書の形からは決まらない）
 
 ## 補足
 
-- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、[`docs/rules.md`](../rules.md) が Rationale 逆参照付きで持つ。本 ADR 本文には rule の芯(なぜ)のみを残す。
+- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、機械で決まる前 2 つは禁止事項に名指しした lint 規則が持つ。形から決まらない 3 つ目は、責務の判断として [`docs/rules.md`](../rules.md)「層境界と依存」が持つ。本 ADR 本文には rule の芯(なぜ)のみを残す。
 - **「手書き memo 禁止」という連動規約は発生しない**: 決定 4 が全体適用を採らないため、Compiler にメモ化を委ねることを前提にした手書き禁止規約は生じない。`compilationMode` の選択も決定 4 が `annotation` として持つ。
 - **React Compiler は correctness / architecture / runtime の前提ではない**: 本体の実装・レビュー・テストは Compiler の有無に依存しない。opt-in された箇所は、E2E が退行していないことと、費用の増分がその route に収まっていることを確かめたうえで維持する。**VRT はこの確認に使えない** —— story の撮影は Storybook の build を撮り、そちらは `next.config.ts` を読まないので Compiler が走らない。撮っているのは常に印の無い側の描画であり、Compiler が変換した結果を通るのは `next build` を経る経路だけである。
 
@@ -119,7 +119,7 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components の採否(前提を満たさなければ build が落ちる fail-fast 型の機構。決定 4 の blast radius の対比先)
 - [0080-error-handling.md](0080-error-handling.md) — `<Suspense>` / `loading.tsx` 境界の配置・粒度(`use()` の前提)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(React 規約に乗る)+ vendor-independent 正当性材料の必須化
-- [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → rules.md)
+- [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → lint 規則 / rules.md)
 - [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` の exact pin + `pnpm audit` フロー
 - [0101-performance-budget.md](0101-performance-budget.md) — 性能予算(Compiler の適用可否を判断する計測の側)
 - [0082-client-observability.md](0082-client-observability.md) — INP を含む Web Vitals の RUM(効果測定の前提)
