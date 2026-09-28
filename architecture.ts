@@ -200,7 +200,7 @@ export const APP_ELEMENTS = [
     category: "app-server-action",
     patterns: ["src/app/**/actions.ts"],
     forbidden: ["components", "capabilities", "stores", "observability"],
-    testRequirement: "route",
+    testRequirement: "unit",
   },
   {
     category: "app-metadata",
