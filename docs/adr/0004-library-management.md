@@ -136,6 +136,7 @@ lockfile だけを動かす形になり、**版が動いたことが `package.js
 ### 補助スキル
 
 - 本リポの `.claude/skills/tools-upgrade/` を利用する場合は、mise.toml 経由のツールに対しても同様の監査を実施
+- セキュリティ警告が名指しした npm 依存の更新は `.claude/skills/dep-vuln-upgrade/` が担う。同じ major の最小修正版へ動かし（推移的依存は `pnpm-workspace.yaml` の `overrides`）、窓に捕まった版は `supply-chain-triage` へ渡す。代替への乗り換えは新しい依存の追加として本 ADR の採用フローを通す
 
 ## 採用フロー
 
