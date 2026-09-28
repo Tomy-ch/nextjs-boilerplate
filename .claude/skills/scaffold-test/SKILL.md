@@ -240,23 +240,23 @@ its planned path and case list, so the agreement covers all of them at once:
 ```txt
 群: <feature>/（test-requirement: [feature, component, unit]）
 
-書き出し先: <feature>/<期間を解く純関数>.test.ts
-  describe("toPeriodRequest")
+書き出し先: <feature>/<入力を解く純関数>.test.ts
+  describe("<toXxxRequest>")
     ----- 正常系 -----
-    - 日付の要らない区分はそのまま求められる形になる
+    - 追加の入力が要らない区分はそのまま求められる形になる
     ----- 異常系 -----
-    - range で日付が欠けていれば求めない
-    - range で終了日が開始日より前なら求めない
-  describe("toPeriodHref")
+    - 範囲指定で端が欠けていれば求めない
+    - 範囲指定で終端が始端より前なら求めない
+  describe("<toXxxHref>")
     ----- 正常系 -----
-    - 日付を持ち越さない
+    - 範囲の端を持ち越さない
 
 書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
-  describe("RankingTable")
+  describe("<XxxTable>")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す
     ----- 揃っているとき -----
-    - 契約の並び順のまま順位を出す
+    - 契約の並び順のまま行を出す
     - 表として読み上げられる（axe）
 ```
 

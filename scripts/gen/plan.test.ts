@@ -373,6 +373,7 @@ describe("planGeneration", () => {
     expect(pageContentTest.content).toContain("render(await ListPageContent());");
   });
 
+  // sample:begin
   it("feature の README・story・テストに同梱サンプルの語彙を入れない", () => {
     const contents = planGeneration(featureInput()).map((file) => file.content);
 
@@ -380,6 +381,7 @@ describe("planGeneration", () => {
       expect(content).not.toMatch(/商品|カート|注文|在庫|購入|決済/);
     }
   });
+  // sample:end
 
   it("component の README はテンプレートの写しで、component 名だけを PascalCase で入れる", () => {
     const readme = fileNamed(planGeneration(componentInput()), "README.md").content;

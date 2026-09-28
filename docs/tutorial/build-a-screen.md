@@ -109,7 +109,7 @@ make setup-remove-sample
 | `mocks/` | 機構（`stable-responses.ts` / `node.ts` / `serve.ts`）。**`api/` は空になる** |
 | `docs/` | ADR・設計解説・規約・層の README・コア残留画面の仕様書 |
 
-**消えるもの:** 題材の画面群（`src/app/(shop)` など）、それに固有の `features` / `model` /
+**消えるもの:** 題材の画面群（`src/app/` の下で題材が持つ route group と segment）、それに固有の `features` / `model` /
 `adapters/server/api` / `stores`、契約（`openapi/api.gen.yaml`）と生成物、題材の仕様書、
 題材の E2E ジャーニー。
 

@@ -15,7 +15,7 @@ design token から feature の画面部品まで、見た目を決めるもの�
 | **shell / app-starter** | `src/components/shell/` / `src/components/app-starter/` | 置く位置と数が決まっている器 / 契約（HTTP status・送信結果・upload の段取り）を知る部品 | 業務の語彙（持った時点で `features` 行き） |
 | **feature の ui** | `src/features/<name>/<screen>/ui/<part>/` | 題材の語彙を持つ組み立て。上の部品へ実データと Server Action を配線した形 | 見た目の体系（token を直に足さない。`components` の部品を並べる） |
 
-上から下へ、**下の段は上の段を知らず、上の段は下の段を組み合わせるだけ**である。`components` が import してよい層は `model` と `errors` に限られ（`architecture.ts`）、逆に `features` は `components` を自由に引く。`cn()` を feature が使うのはこの向きに沿っており、実際に十数の feature ファイルが引いている。
+上から下へ、**下の段は上の段を知らず、上の段は下の段を組み合わせるだけ**である。`components` が import してよい層は `model` と `errors` に限られ（`architecture.ts`）、逆に `features` は `components` を自由に引く。`cn()` を feature が使うのはこの向きに沿っている。
 
 **部品は自分がどの系統に置かれたかを知らない。** 系統の差は semantic token の引き直しだけで完結し（[0051](../adr/0051-styling-system.md)）、部品側の分岐も系統ごとの部品も存在しない。同じ理由で、部品は自分がどこに置かれるか（下端に固定か、脇に常設か）も知らない —— それは画面の判断で、[`docs/rules.md`](../rules.md)「UI 部品と操作」の末尾が禁じている。
 

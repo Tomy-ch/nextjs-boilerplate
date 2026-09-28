@@ -117,7 +117,7 @@ const NON_DECIDING_MODULES = [
  * 判定を持たず、検証を通る入力一式を用意するだけ。テストが自分の分だけを組み立てると、
  * 他の purpose の欠落で落ちて検査したい判定へ到達しないため 1 箇所に置いてあります。
  *
- * `account.fixture.ts` は story とテストの双方が読みます。都道府県の 47 件のように、
+ * 機能の fixture は story とテストの双方が読みます。選択肢の全件のように、
  * 実物どおりの件数でなければ器の幅を確かめられない入力があるためです。
  *
  * `experimental-react.fixture.ts` が返すのは Next.js 同梱の experimental React の位置です。本番は
@@ -145,7 +145,7 @@ const TEST_FIXTURE_MODULES = [
  * 判定は持たず、隣にある本物の Server Action がテストの対象です。
  *
  * `.storybook/msw/handlers.ts` も同じ genre で、カタログが自分で答える `/api/*` の据え置きです。
- * 郵便番号ごとの出し分けは題材そのもの（`sample:replace` でサンプル破棄時に空へ置き換わる）で、
+ * 入力値ごとの応答の出し分けは題材そのもの（`sample:replace` でサンプル破棄時に空へ置き換わる）で、
  * 固定しても確かめられるのは並べた fixture が並べたとおりであることだけです。返す形が正しいことは
  * `adapters/client` の検証が担います。
  */
