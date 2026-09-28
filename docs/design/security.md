@@ -122,7 +122,7 @@ secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` �
 2. **同梱の秘密値を実環境で拒む** —— [`config/auth/auth.schema.ts`](../../src/config/auth/auth.schema.ts) の `authSessionSecretValidator()` は、公開リポジトリに平文で載っている 2 つの値を `local` / `ci` 以外で受け付けない。設定し忘れは「値が無い」ではなく「既知の値が入っている」形で現れるため、長さだけを見る検証では通る。判定は起動時で、cookie を 1 枚も発行する前に止まる
 3. **taint** —— 上記
 
-`APP_ENV` が未指定のときは、同梱値を許す判定も `null` を返して**許さない側へ倒れる**。既定値へ落とす経路はどこにも無い（`load-environment.ts` の `findApplicationEnvironment()`）。
+`APP_ENV` が未指定のときは、同梱値を許す判定も `null` を返して**許さない側へ倒れる**。既定値へ落とす経路はどこにも無い（`application-environment.ts` の `findApplicationEnvironment()`）。
 
 ## `NEXT_PUBLIC_` の境界
 

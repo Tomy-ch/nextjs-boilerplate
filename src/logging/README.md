@@ -23,7 +23,18 @@ test-requirement: unit
 - `pino.server.ts` は Pino による JSON stdout 出力を実装する。上の表に当たるフィールドを、大文字小文字を区別せず `[REDACTED]` に置換する。Pino を知るのはこのファイルだけである。
 - `logging.server.ts` は起動境界から注入された設定で、プロセス内 singleton を一度だけ初期化する。アプリケーションの server 側コードは `getLogger()` を使い、Pino を直接 import しない。記録の失敗を呼び出し元へ持ち出さない `reportQuietly()` もここが持つ（下記「書く側の形」）。
 
-ログ呼出し時に注入済みの trace 抽出器が有効な span を返すと、`trace_id` と `span_id` を構造化フィールドへ自動付与する。**呼び出し側が同じ名前のフィールドを渡していても、span があればそちらで上書きする** —— 相関は実行文脈から取るもので、caller が明示的に渡すものではない（[0081](../../docs/adr/0081-observability-logging.md) の ctx-native）。同じ正規化済みレコードは、必要なら注入済み sink にも渡す。OTLP Logs への送出はこの sink を observability 側が実装し、logging から observability への依存は作らない。
+ログ呼出し時に注入済みの trace 抽出器が有効な span を返すと、`trace_id` と `span_id` を構造化フィールドへ自動付与する。**呼び出し側はこの 2 つを渡せない** —— `LogFields` が型で拒む。相関は実行文脈から取るもので、caller が明示的に渡すものではない（[0081](../../docs/adr/0081-observability-logging.md) の ctx-native）。同じ正規化済みレコードは、必要なら注入済み sink にも渡す。OTLP Logs への送出はこの sink を observability 側が実装し、logging から observability への依存は作らない。
+
+### フィールド名の表
+
+構造化フィールドの名前は `logger.ts` の `LogFieldKey` が 1 か所で持つ（[0081](../../docs/adr/0081-observability-logging.md) の「ログキーの表」）。同じ意味の項目が呼び出し側ごとに別の名前で載ると、backend で 1 つの問いとして引けなくなるためである。`LogFields` は表の名前に型を付ける。
+
+- `trace_id` / `span_id` は渡せない。logger が実行中の span から付ける
+- `cause` は文字列だけを受ける（理由は下記「書く側の形」）
+- `latency_ms` は数値を受ける
+- 例外の内容は OpenTelemetry semconv の名前（`exception.type` / `exception.message` / `exception.stacktrace`）で載せ、いずれも文字列を受ける。独自の名前（`error_message` 等）を立てない
+
+表に無い名前も渡せる。ただし公式 semconv に名前がある項目はその名前を使う。
 
 ### レコードの形
 

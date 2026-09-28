@@ -6,7 +6,7 @@
 `APP_ENV` が選択子であり、**指定は必須です**。未指定のまま起動すると、読み込むファイルを
 選べないものとして落とします。5 つ以外の値も同じく落とします。既定を持たせない理由は
 [ADR 0030](../docs/adr/0030-environment-variable-management.md) が持ちます。`APP_ENV` を直に
-読むのは `src/config/load-environment.ts` だけで、同梱の秘密値を許すか・開発専用の口を開くか・
+読むのは `src/config/application-environment.ts` だけで、同梱の秘密値を許すか・開発専用の口を開くか・
 開発専用の route を build の束に載せるかの判定も、この 1 か所の解決を経由します。
 
 CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、`prd` に設定します。ファイルは

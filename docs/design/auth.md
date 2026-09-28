@@ -35,7 +35,7 @@
 | 認証の往復の口 | `src/app/api/auth/{login,callback,logout}/route.ts` |
 | ログイン画面 | `src/app/(auth)/login/page.tsx` → `src/features/auth/login-view.tsx` |
 | 開発用の口（画面・Server Action・認可 endpoint・直接発行 API） | `src/app/dev/session/` / `src/app/api/auth/test-session/route.dev.ts` |
-| 開発専用の口を開けてよいかの判定 | `src/config/load-environment.ts` の `isDevelopmentOnlyEndpointOpen()` と `src/adapters/server/auth/development-access.ts` |
+| 開発専用の口を開けてよいかの判定 | `src/config/application-environment.ts` の `isDevelopmentOnlyEndpointOpen()` と `src/adapters/server/auth/development-access.ts` |
 | `AUTH_*` の検証と Config | `src/config/auth/` |
 
 `features` からは `adapters/server/auth` を引けない（`architecture.ts` の区画 `adapters-auth`。引けるのは `app` / `adapters` / `proxy`）。したがって session を読む場所は app 層の器・Server Action・Route Handler に限られ、feature が受け取るのは判定済みの結果だけになる。

@@ -68,9 +68,9 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** — addi
 
 - Question: 「環境変数名を入力してください(`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
 - Free-text. Then:
-  1. Strip a leading `NEXT_PUBLIC_` if present (that prefix marks the client side, not the subsystem) and split at the first `_` to get the subsystem.
-  2. Match the subsystem against the purposes discovered under `src/config/`.
-  3. If matched, show the inferred module (e.g. 「推定 purpose: `api` (`src/config/api/api.server.ts`)」) and ask for confirmation.
+  1. **The purpose is drawn by the reader, not by the name** ([0030](../../../docs/adr/0030-environment-variable-management.md)). The prefix is [0028](../../../docs/adr/0028-naming-convention.md)'s naming unit and is independent of the purpose: variables sharing a prefix can land in different purposes when different subsystems read them. Ask which subsystem reads the value.
+  2. Match that reader against the purposes discovered under `src/config/`.
+  3. If matched, show the module (e.g. 「読み手から引いた purpose: `api` (`src/config/api/api.server.ts`)」) and ask for confirmation.
   4. If unmatched, surface the available purposes and ask the user to pick one, or stop so a new purpose module can be added by hand.
   5. **Standard-name exception** ([0028](../../../docs/adr/0028-naming-convention.md)): names fixed by an external spec that a third-party SDK reads (`OTEL_EXPORTER_OTLP_ENDPOINT`, `PORT`, …) keep the standard name and are exempt from `{SUBSYSTEM}_{NAME}`. Only apply this when an external tool reads the variable — not when the app reads it itself.
 

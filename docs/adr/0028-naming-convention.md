@@ -66,7 +66,7 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 
 ### 環境変数
 
-- 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md) の決定に連なる
+- 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md) の決定に連なる。**接頭辞は命名の単位であり、config の purpose とは独立する** —— purpose はその値を読むサブシステムが引く([0030](0030-environment-variable-management.md))。接頭辞から purpose を、purpose から接頭辞を決めない
 - ブラウザへ露出する変数は Next.js 規約に従い **`NEXT_PUBLIC_` プレフィックス**を付す(`NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。境界・検証・型付けの詳細は **[0030](0030-environment-variable-management.md)(環境変数管理)** を正とする
 - **例外: 標準・デファクトが変数名まで規定しているものは、その標準名をそのまま使う**(例: OpenTelemetry の `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME`、Next.js の `NEXT_PUBLIC_*` / `PORT`)。標準名を `{SUBSYSTEM}_{NAME}` へ改名すると、その標準を実装した SDK・ツールが既定で読めなくなり、自前の橋渡しコードが必要になるため([0010](0010-standards-and-non-lockin.md) 標準準拠)。例外に該当するのは **外部の仕様・ツールが読む変数だけ**であり、アプリが自分で読む変数は例外にしない
 

@@ -62,9 +62,9 @@ ls src/config/ 2>/dev/null
 
 - 質問:「環境変数名を入力してください（`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`）。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
 - 自由入力。その後:
-  1. 先頭に `NEXT_PUBLIC_` があれば剥がし（これは client 側を示すプレフィックスであってサブシステム名ではない）、最初の `_` で分割してサブシステムを得る
-  2. `src/config/` から検出した purpose 群と突合する
-  3. 一致すれば推定モジュールを提示して確認する（例:「推定 purpose: `api`（`src/config/api/api.server.ts`）」）
+  1. **purpose は名前ではなく読み手が引く**（[0030](../../../docs/adr/0030-environment-variable-management.md)）。接頭辞は [0028](../../../docs/adr/0028-naming-convention.md) の命名の単位で purpose とは独立しており、同じ接頭辞の変数でも読むサブシステムが違えば別の purpose に入る。その値をどのサブシステムが読むかを尋ねる
+  2. その読み手を `src/config/` から検出した purpose 群と突合する
+  3. 一致すればモジュールを提示して確認する（例:「読み手から引いた purpose: `api`（`src/config/api/api.server.ts`）」）
   4. 一致しなければ候補を提示し、選び直すか、purpose モジュールを手で追加するために停止するかを尋ねる
   5. **標準名の例外**（[0028](../../../docs/adr/0028-naming-convention.md)）: 外部仕様が名前まで規定し、サードパーティ SDK が読む変数（`OTEL_EXPORTER_OTLP_ENDPOINT` / `PORT` 等）は標準名のままとし `{SUBSYSTEM}_{NAME}` を課さない。適用対象は**外部ツールが読む変数だけ**で、アプリが自分で読む変数には適用しない
 

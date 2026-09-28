@@ -28,7 +28,8 @@ coverage-exclusions:
 | --- | --- |
 | [`rich-text/`](rich-text/README.md) | リッチテキストの sanitize port。HTML 文字列を表示してよい範囲の木へ変換する |
 | `breakpoint.ts` | 段に達していない幅の media query を組む。幅は design token が持つ |
-| `datetime.ts` | 日時の locale 対応フォーマッタ |
+| `datetime.ts` | 日時と月名の locale 対応フォーマッタ |
+| `number.ts` | 数の locale 対応整形（桁区切り）。金額は `money.ts` が持つ |
 | `locale.ts` | 既定 locale と既定タイムゾーン。フォーマッタが省略時に用いる単一の差し替え点 |
 | `generated/breakpoint.ts` | 段の名前と幅。`tokens/` から生成する（手編集禁止） |
 | `generated/design-token.ts` | 意味トークンと生スケールの名前。`tokens/` から生成する（手編集禁止） |

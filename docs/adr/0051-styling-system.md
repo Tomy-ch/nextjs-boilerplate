@@ -19,7 +19,8 @@ Accepted
 ### 1. デザイントークン体系 = 2 層(primitive / semantic)
 
 - token を **2 層**に分ける。この分離は [W3C Design Tokens](https://www.w3.org/community/design-tokens/) が標準化を進める業界パターンであり、CSS custom properties だけで成立する(**Tailwind を抜いても成立する** = [0010](0010-standards-and-non-lockin.md) の「ベンダーを正当化から抜いても成立するか」に対する非ロックインの正当性材料)。
-  - **primitive(生スケール)**: 意味を持たない生の値。色パレット(`--color-*` の raw ramp)・`--spacing-*`・`--text-*`(font-size / line-height)・`--font-weight-*`・`--radius-*`・`--shadow-*`。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
+  - **primitive(生スケール)**: 意味を持たない生の値。**どの系統を primitive として持つかの一覧は `tokens/primitives.json` が持ち**、本 ADR は写さない。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
+  - **Tailwind の既定スケールをそのまま使う系統は SSOT の primitive ではない。** font-size / line-height(`--text-*`)と影の段階(`--shadow-sm` 等の `--shadow-*`)は Tailwind v4 の既定値であり、`tokens/*.json` は持たない。名前で意味を持つ影(パネルの影・発光)は semantic 層の token として `tokens/themes/**` が持ち、`@theme` の `--shadow-*` に別名として登録される。
   - **semantic(意味別名)**: 用途を名指しした別名。接頭辞は `--semantic-color-*`(`background` / `foreground` / `muted` / `border` / `accent` 等)とし、primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。接頭辞を分けるのは、生成した CSS に対する検出で primitive 直参照と semantic 参照を機械的に見分けるためである。
 - **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
 - **token の SSOT は `tokens/*.json`**([W3C Design Tokens](https://www.w3.org/community/design-tokens/) 形式・手書き)であり、デザインツールからの生成物ではない。`tokens/scripts/gen-tokens.ts` が primitive の `@theme` 登録と semantic 別名を含む CSS を生成し、`src/app/globals.css` がそれを import する。**生成物は編集しない**([0072](0072-api-type-generation.md) の生成物規律と同型)。CSS を直接書き換えると SSOT が二重化するため、token の追加・変更は必ず `tokens/*.json` に対して行う。

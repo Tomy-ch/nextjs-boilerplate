@@ -18,8 +18,9 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 - ログは **抽象ロガー interface** 経由とし、実装(pino 等)をアプリコードから隠蔽する(実装ライブラリは [0004](0004-library-management.md) で確定)
 - **ctx-native**: ロガーは実行コンテキスト(サーバは `AsyncLocalStorage` 等の request context)から **`trace_id` / `span_id` を自動注入**する(caller は明示的に渡さない)
-- レベルは Debug / Info / Warn / Error。**出力先・format は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.md)。production = JSON / development = console 相当)
-- **ログキースキーマを 1 箇所に集約**する(`trace_id` / `span_id` / `error_code` / `error_message` / `latency_ms` / `request_id` 等)
+- レベルは Debug / Info / Warn / Error。**出力先は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.md))
+- **出力形式はどの環境でも JSON だけである。** 人が読みやすい整形は受け取る側(ログを表示・転送する側)の仕事とし、本体は環境で形式を切り替えない。形式が環境で分かれると、開発で見た行と配信で集めた行が別物になり、その差は配信へ出るまで現れない
+- **ログキーの表を 1 箇所に集約**する(`src/logging/logger.ts` の `LogFieldKey`)。表が持つのは `trace_id` / `span_id` / `request_id` / `error_code` / `latency_ms` / `cause` と、例外の内容を載せる OpenTelemetry semconv の `exception.type` / `exception.message` / `exception.stacktrace` である。**公式 semconv に名前がある項目はその名前を使い**、独自の名前(`error_message` 等)を立てない。表に無い名前も渡せる
 - **PII / token / password をログに出さない**(masking。[0080](0080-error-handling.md) の redact と一致)。`console.log` はコミットに残さない([0002](0002-formatter-linter.md) `noConsole`)
 - **伏せるのは名前で決め、値の形は見ない。** 値から秘密を見分けようとすると、見分けられなかったものが素通りし、見分けられたつもりのものが偽の安心になる。伏せる項目名の表はコード(`src/logging`)が持ち、名前に当たる値は形を問わず伏せる
 

@@ -124,8 +124,8 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 
 ### 責務はディレクトリではなくシンボルに従う
 
-`test-requirement` は frontmatter の一語であり、ディレクトリが抱えるシンボルはすべてが同じでは
-ない。**その宣言が実際にどのシンボルへ掛かるのかを述べているのは README の本文である** ——
+`test-requirement` は frontmatter の 1 つの値か短い並び（`[feature, component, unit]`）であり、
+ディレクトリが抱えるシンボルはすべてが同じではない。**その宣言が実際にどのシンボルへ掛かるのかを述べているのは README の本文である** ——
 `src/adapters` は `integration` を宣言した上で、本文でそれを外部との往復を持つモジュールへ狭め、
 純粋な変換は `unit` へ送っている。frontmatter だけでなく本文を読む。手順 1 が両方を求めているのは、
 本文がそのためにあるからである。
@@ -213,7 +213,7 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 書き出し先とケース一覧を示し、1 回の合意がその全部を覆うようにする。
 
 ```txt
-群: <feature>/（test-requirement: feature）
+群: <feature>/（test-requirement: [feature, component, unit]）
 
 書き出し先: <feature>/<期間を解く純関数>.test.ts
   describe("toPeriodRequest")

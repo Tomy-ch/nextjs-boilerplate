@@ -30,7 +30,7 @@ Accepted
 - **server state**(→ RSC fetch / [0071](0071-bff-api-integration.md) adapters)。store に API レスポンスを二重キャッシュしない。**ただし「利用者が何を選んだか」自体を表す記録は例外**(下記)
 - **単一 feature の状態**(→ feature 内 local state。昇格しない)
 - **UI マークアップ**(→ `components`)/ `serverConfig` / secret / 業務ロジック(バックエンド責務。[0011](0011-no-docker.md))
-- **ポリシー状態**(consent/flag は各 seam。[0031](0031-policy-state-supply.md))
+- **ポリシー状態**(consent/flag は既定では `stores` のものではなく各 seam が持つ。ただし [0031](0031-policy-state-supply.md) の条件 —— 初回描画より前に同期で要る、かつ反応的 —— を満たす値(consent がこれにあたる)は `stores` が持つ)
 
 ### 選択の記録に含む表示値のスナップショット
 

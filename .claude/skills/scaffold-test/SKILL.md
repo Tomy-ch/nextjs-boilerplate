@@ -144,8 +144,8 @@ not one.
 
 ### The duty follows the symbol, not the directory
 
-`test-requirement` is one word in frontmatter, and a directory holds symbols that are not all the
-same. **The README body is where the layer says which of its symbols the declaration actually
+`test-requirement` is one value or a short list in frontmatter (`[feature, component, unit]`), and a
+directory holds symbols that are not all the same. **The README body is where the layer says which of its symbols the declaration actually
 covers** — `src/adapters` declares `integration` and then its body narrows that to modules with an
 external round-trip, sending pure transforms to `unit`. Read the body, not just the frontmatter;
 step 1 above asks for both because this is what the body is for.
@@ -238,7 +238,7 @@ Confirm **per group**, not per file and not for the whole set. Show every subjec
 its planned path and case list, so the agreement covers all of them at once:
 
 ```txt
-群: <feature>/（test-requirement: feature）
+群: <feature>/（test-requirement: [feature, component, unit]）
 
 書き出し先: <feature>/<期間を解く純関数>.test.ts
   describe("toPeriodRequest")

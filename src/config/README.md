@@ -23,7 +23,8 @@ coverage-exclusions:
 
 | モジュール | 用途 | 種別 | 利用者 |
 | --- | --- | --- | --- |
-| `load-environment.ts` | `APP_ENV` の解決、`env/.env.<環境>` の一度きりの読込、環境変数だけから決まる判定（開発専用の口を開けてよい環境か） | server + build 境界 | `bootstrap.server.ts` / `next.config.ts` / build script / `adapters/server/auth` |
+| `application-environment.ts` | `APP_ENV` の解決と、環境変数だけから決まる判定（開発専用の口を開けてよい環境か）。Node API を使わないので `proxy.ts` から辿れる | server + build 境界 | `environment.ts` / `load-environment.ts` / `next.config.ts` / `adapters/server/auth` |
+| `load-environment.ts` | `env/.env.<環境>` の一度きりの読込。`dotenv` と `node:path` を使うため、起動 / ビルド境界だけが呼ぶ | server + build 境界 | `bootstrap.server.ts` / `next.config.ts` / build script / `playwright.e2e.config.ts` |
 | `environment.ts` | 全 purpose の validator を束ねた全量検証と、その結果のプロセス内キャッシュ | server + build 境界 | 各 `*.server.ts` / `next.config.ts` |
 | `environment.fixture.ts` | 検証を通る環境変数一式（テスト専用。並びを書く唯一の場所） | test | このカーネルのテストと、`getEnvironment` を差し替える読み手のテスト |
 | `validate-environment.server.ts` | import されると全 server Config の getter を一度ずつ呼ぶ起動用の集約入口 | server | `bootstrap.server.ts` だけ |
@@ -46,8 +47,8 @@ coverage-exclusions:
 
 ## 目的別 module の形
 
-purpose は値を読む側の**サブシステム**の単位です。変数名の接頭辞
-（[0028](../../docs/adr/0028-naming-convention.md) の `{SUBSYSTEM}_{NAME}`）は目安で、同じ接頭辞の
+purpose は値を読む側の**サブシステム**の単位で、読み手が引きます。変数名の接頭辞
+（[0028](../../docs/adr/0028-naming-convention.md) の `{SUBSYSTEM}_{NAME}`）は命名の単位で purpose とは独立し、同じ接頭辞の
 変数が読み手の違いで別の purpose に分かれることも、外部の標準名をそのまま使う変数が purpose に
 属することもあります。1 つの purpose は次の 3 種のファイルから成り、全 purpose が同じ形をとります。
 
@@ -197,7 +198,7 @@ store から供給します（行の形は [`env/README.md`](../../env/README.md
 `APP_ENV` の未指定は `null` で返し、既定へ落としません。ファイルの選択、同梱の秘密値の許可、
 開発専用の口の開閉がすべてこの選択子を見るため、既定を持つと「未設定」を安全側へ倒せなく
 なります（[0030](../../docs/adr/0030-environment-variable-management.md)）。開発専用の口を
-開けてよい環境の一覧は `load-environment.ts` の 1 か所にだけ置き、build（開発専用 route を束に
+開けてよい環境の一覧は `application-environment.ts` の 1 か所にだけ置き、build（開発専用 route を束に
 含めるか）と実行時（口を開けるか）が同じ判定を読みます —— 一覧が 2 か所にあると、片方だけを
 広げた変更が黙って通ります。
 
@@ -236,6 +237,7 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 - server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・入口の `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番の束に載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.md) の層定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得の口だけを増やすことになる。
 - client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側の層も `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.md)）。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
+- proxy から辿れる config は ENV ファイルを読まない。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、`dotenv` / `node:path` を使う `load-environment.ts` へは届かない。ENV ファイルは起動 / ビルド境界が先に読み込んでいる（[0043](../../docs/adr/0043-middleware-policy.md) の Edge 互換。`scripts/proxy-edge.gate.test.ts` が辿れるグラフを見る）。
 
 ## 配信ヘッダの組み立て
 
