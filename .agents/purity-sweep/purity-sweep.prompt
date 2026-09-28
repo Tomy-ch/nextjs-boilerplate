@@ -10,7 +10,7 @@ diff ではなくファイル全体**で、コメントだけでなく散文・�
 
 ## 先に読むもの
 
-権威は `AGENTS.md` の `What to Recommend`（何に向けて最適化するか）と `Language Rules`、
+権威は `AGENTS.md` の `Purity Sweep`（ファイル全体に何を問うか）と `Language Rules`、
 [0140](../../docs/adr/0140-documentation-operations.md)（経緯は git が持ち、本文は現在形だけを
 書く）である。既に文脈に在るなら読み直さない。以下はそれを、1 ファイルの走査が決めることへ
 蒸留したものである。コメントの主題をさらに深く見るときだけ `/settle-comments` を起動する

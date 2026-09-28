@@ -30,10 +30,9 @@ commit へ解決する機構なので registry には効かず、digest を扱�
 
 ## image は digest で固定する
 
-registry の tag は、同じ名前のまま別の中身を指せる。tag だけで参照していると、指し先が
-差し替わったことに気づけないまま新しい中身を引く。そこで **tag は版の SSOT として参照側に
-残し、digest をロックファイルが持つ**形にしてある。固定してあれば、指し先が変わった時点で
-pull が失敗する。
+**tag は版の SSOT として参照側に残し、digest をロックファイルが持つ。** 固定する理由、検疫の窓、
+tag の付け替えを検知しない理由は [0011](../docs/adr/0011-no-docker.md) が持ち、ここは手順と
+記法だけを持つ。
 
 ```bash
 make images-pin-resolve   # tag を digest へ解決してロックファイルを更新する（唯一ネットワークに出る）
@@ -41,13 +40,8 @@ make images-pin-apply     # ロックファイルを元に参照を digest へ�
 make images-pin-check     # 固定済みか検証する（書き換えなし。pre-commit hook と CI が回す）
 ```
 
-`resolve` は**公開から 14 日未満の digest を採らない**（`IMAGES_PIN_MIN_AGE_DAYS`）。上流が
-乗っ取りを検知して取り消すまでの時間を稼ぐためで、既存のピンがあればそれを維持する。退行先の
-無い出来立ての image は、tag のまま残さず失敗させる。
-
-tag の付け替えそのものは検知しない。base image の tag は patch 版が出るたび前進するのが通例で、
-「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなる。image に対して働く
-防壁は検疫と固定の 2 つである。
+`resolve` は公開から `IMAGES_PIN_MIN_AGE_DAYS`（既定 14 日）未満の digest を採らない。既存の
+ピンがあればそれを維持し、退行先の無い出来立ての image は tag のまま残さず失敗させる。
 
 ### 検疫の測り方
 

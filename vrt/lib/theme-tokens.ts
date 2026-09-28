@@ -59,6 +59,25 @@ export function semanticColorTokens(css: string): string[] {
   return names;
 }
 
+/** 系統の部分木を再束縛する選択子。 */
+const SURFACE_SELECTOR = /\[data-surface="([a-z0-9-]+)"\]/g;
+
+/**
+ * 生成した CSS が再束縛する系統の名前を取り出す。
+ *
+ * @remarks
+ * 系統は `tokens/themes/` のディレクトリで増減するので、検査する系統を綴りで持つと、系統を消した
+ * 木で存在しない名前を検査し続けます。既定の系統は `:root` が持ち、ここには現れません。
+ *
+ * @param css - 生成した CSS
+ * @returns 系統の名前。重複を除いて並べたもの
+ */
+export function declaredSurfaces(css: string): string[] {
+  const names = [...css.matchAll(SURFACE_SELECTOR)].map(([, name]) => name as string);
+
+  return [...new Set(names)].sort();
+}
+
 /** 変数名と、その値を読むための CSS プロパティの対。 */
 export type TokenProbe = { readonly name: string; readonly property: string };
 

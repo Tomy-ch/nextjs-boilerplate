@@ -153,6 +153,25 @@ is_window_closed() {
   [ -f "${LOOP_DIR}/marks/$1/closedAt" ]
 }
 
+# 標準入力のペイロードから、最上位の文字列の値を 1 つ取り出す。無ければ空を出す。
+read_field() {
+  node -e '
+    const [key] = process.argv.slice(1);
+    let raw = "";
+    process.stdin.on("data", (chunk) => { raw += chunk; });
+    process.stdin.on("end", () => {
+      let payload;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        return;
+      }
+      const value = payload?.[key];
+      if (typeof value === "string") process.stdout.write(value);
+    });
+  ' "$1"
+}
+
 # 窓が閉じた後に届いた作業は、次の窓のものであって最後の窓のものではない。セッションが終わった
 # 後に着地したコミットは、終わったものへの遅れた脚注ではなく**何かの始まり**である —— そして
 # 閉じた窓へ綴じると、その窓自身の終わりより後ろに打刻が並び、どんな区間も計算できなくなる。
@@ -206,8 +225,8 @@ case "${1:-}" in
     # 誤って回すと、まだ開いていた窓が壊れる。保守的なのは前者である。
     field=""
     case "${2:-}" in
-      session-start) field='.source' ;;
-      pre-compact) field='.trigger' ;;
+      session-start) field='source' ;;
+      pre-compact) field='trigger' ;;
       session-end)
         close_window
         exit 0
@@ -216,9 +235,9 @@ case "${1:-}" in
     esac
 
     value=""
-    if command -v jq >/dev/null 2>&1; then
+    if command -v node >/dev/null 2>&1; then
       payload=$(cat 2>/dev/null) || payload=""
-      [ -n "${payload}" ] && value=$(printf '%s' "${payload}" | jq -r "${field} // empty" 2>/dev/null || printf '')
+      [ -n "${payload}" ] && value=$(printf '%s' "${payload}" | read_field "${field}" 2>/dev/null || printf '')
     fi
 
     rotate=0

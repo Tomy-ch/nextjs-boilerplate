@@ -96,6 +96,18 @@ describe("noCacheOptionInUseCache", () => {
     });
   });
 
+  it("括弧で書いたリテラルの鍵も挙げる", () => {
+    ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {
+      valid: [],
+      invalid: [
+        {
+          code: `${CACHED}await fetch(url, { ["cache"]: "force-cache" });`,
+          errors: [{ messageId: "noCacheOptionInUseCache" }],
+        },
+      ],
+    });
+  });
+
   it("式文に置かれた文字列でない値を、宣言として読まない", () => {
     // 式文の直下に来る literal は宣言だけではない。数値も同じ位置に立つ。
     ruleTester.run("no-cache-option-in-use-cache", noCacheOptionInUseCache, {

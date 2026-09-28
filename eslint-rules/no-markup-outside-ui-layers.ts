@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import type { Rule } from "eslint";
 
 import { UI_KERNELS } from "../architecture";
+import { isTest } from "./test-file";
 
 /**
  * UI を置いてよい層の外で DOM マークアップを書かせないルール。
@@ -29,11 +30,6 @@ const UI_LAYERS: readonly string[] = UI_KERNELS;
  */
 function layerOf(filename: string, cwd: string): string | undefined {
   return /^src\/([^/]+)\//.exec(relative(cwd, filename).replaceAll("\\", "/"))?.[1];
-}
-
-/** テストか。 */
-function isTest(filename: string): boolean {
-  return /\.test\.[cm]?[jt]sx?$/.test(filename);
 }
 
 const noMarkupOutsideUiLayers: Rule.RuleModule = {

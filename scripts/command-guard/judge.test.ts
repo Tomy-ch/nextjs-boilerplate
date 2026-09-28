@@ -243,6 +243,37 @@ describe("judge", () => {
     expect(judge("gh api -X DELETE /users", ordered)).toBe("gh api");
   });
 
+  it("`sh -c` の引用の中の区切りの後ろでも捕まえる", () => {
+    expect(judge("sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("区間の途中に立つ `sh -c` の引用の中身も捕まえる", () => {
+    expect(judge("xargs sh -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec bash -c 'true; rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("二重引用の中のコマンド置換でも捕まえる", () => {
+    expect(judge('echo "$(rm -rf /)"', LITERALS)).toBe("rm -rf");
+    expect(judge('echo "`rm -rf /`"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("二重引用の中のコマンド置換の後ろに続くコマンドを捕まえる", () => {
+    // 置換の中の引用で閉じる位置を読み違えると、後ろのコマンドが引用の中に見える。
+    expect(judge('echo "$(date)"; rm -rf /; echo $(b)"x"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("打ち消した引用符は引用を開かない", () => {
+    expect(judge("echo \\'; rm -rf /; echo \\'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("閉じない引用の後ろでも捕まえる", () => {
+    expect(judge('echo "a; rm -rf /', LITERALS)).toBe("rm -rf");
+  });
+
+  it("`$'…'` の引用の後ろでも捕まえる", () => {
+    expect(judge("echo $'a\\''; rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
   it("`eval` の引用の中でも捕まえる", () => {
     expect(judge('eval "rm -rf /"', LITERALS)).toBe("rm -rf");
   });
@@ -280,6 +311,15 @@ describe("judge", () => {
 
   it("引用の中の綴りで止めない", () => {
     expect(judge('echo "rm -rf /"', LITERALS)).toBeUndefined();
+  });
+
+  it("引用の中の区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge("grep -E 'x|rm -rf /' notes.txt", LITERALS)).toBeUndefined();
+    expect(judge('echo "done; make tag-patch"', LITERALS)).toBeUndefined();
+  });
+
+  it("打ち消した区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge("echo a \\; rm -rf /", LITERALS)).toBeUndefined();
   });
 
   it("heredoc の散文で止めない", () => {

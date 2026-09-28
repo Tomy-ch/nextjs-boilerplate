@@ -44,6 +44,18 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
 /** `sh -c <引用>` は引用の中身がそのままコマンド行なので、引用を落とす前に剥がす。 */
 const SHELL_C = /^(?:(?:ba)?sh|eval)\s+(?:-c\s+)?(["'])([\s\S]*?)\1/;
 
+/**
+ * 区間の途中に立つ `sh -c` / `eval` と、その直後の引用の開き。
+ *
+ * @remarks
+ * `xargs sh -c '…'` や `find … -exec sh -c '…'` の引用も中身がコマンド行として実行されるが、
+ * 区間の先頭ではないので `SHELL_C` では剥がれない。
+ */
+const INTERPRETER_PAYLOAD = /(?:^|\s)(?:(?:ba)?sh\s+-c|eval)\s+(["'])/g;
+
+/** 引用の中身を塗る文字。区切りにも空白にも引用符にも当たらない。 */
+const FILL = "_";
+
 /** 宣言とコマンド行を、同じ形（先頭の語 + 求める flag）へ割った結果。 */
 export type CommandShape = {
   /** flag が現れる前までの語。`git switch -f` なら `git switch`。 */
@@ -241,6 +253,91 @@ function stripQuotes(segment: string): string {
   return segment.replace(/'[^']*'/g, " ").replace(/"(?:[^"\\]|\\.)*"/g, " ");
 }
 
+/**
+ * 引用の中身と、バックスラッシュで打ち消した文字を塗り潰した写しを返す。長さと、引用を開閉する
+ * 文字の位置は元のまま保つ。
+ *
+ * @remarks
+ * 区切りを引用の外でだけ探すための写しです。**散文だと言い切れないものは塗りません** —— 閉じない
+ * 引用、`$'…'`、二重引用の中のコマンド置換（`$(` / backtick）のどれかに出会ったら `undefined` を
+ * 返し、呼び出し側は引用を見ずに割ります。二重引用の中のコマンド置換は実行されるうえ、その中に
+ * また引用が立つので、閉じる位置を読み違えると後ろに続くコマンドを塗り潰して見逃します。
+ *
+ * @param line - コマンド行
+ * @returns 塗った写し。塗ってよいと言い切れなければ `undefined`
+ */
+function maskQuoted(line: string): string | undefined {
+  let out = "";
+  let quote: "'" | '"' | undefined;
+
+  for (let at = 0; at < line.length; at = out.length) {
+    const character = line.charAt(at);
+
+    if (character === "\\" && quote !== "'") {
+      out += FILL.repeat(Math.min(2, line.length - at));
+    } else if (quote === undefined) {
+      if (character === "'" && line.charAt(at - 1) === "$") return undefined;
+      if (character === "'" || character === '"') quote = character;
+      out += character;
+    } else if (character === quote) {
+      quote = undefined;
+      out += character;
+    } else if (quote === '"' && (character === "`" || line.startsWith("$(", at))) {
+      return undefined;
+    } else {
+      out += FILL;
+    }
+  }
+
+  return quote === undefined ? out : undefined;
+}
+
+/**
+ * コマンド行を、引用の外に立つ区切りで割る。
+ *
+ * @remarks
+ * 引用の中の `|` や `;` は散文やパターンの一部であり、区切りではありません。割ってから引用を
+ * 落とすと、`grep -E 'a|rm -rf'` の `rm -rf` がコマンド位置に立って見えます。引用を読み切れない
+ * 行は、見逃すより止めすぎる側へ倒して引用ごと割ります。
+ *
+ * @param line - コマンド行
+ * @returns 区切りで割った区間
+ */
+function splitOutsideQuotes(line: string): readonly string[] {
+  const masked = maskQuoted(line);
+  if (masked === undefined) return line.split(SEPARATOR);
+
+  const pieces: string[] = [];
+  let start = 0;
+  for (const match of masked.matchAll(SEPARATOR)) {
+    pieces.push(line.slice(start, match.index));
+    start = match.index + match[0].length;
+  }
+  pieces.push(line.slice(start));
+
+  return pieces;
+}
+
+/**
+ * 区間の途中に立つ `sh -c` / `eval` へ渡した引用の中身を取り出す。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 実行されるコマンド行として読む引用の中身
+ */
+function interpreterPayloads(segment: string): readonly string[] {
+  const masked = maskQuoted(segment);
+  if (masked === undefined) return [];
+
+  const payloads: string[] = [];
+  for (const match of masked.matchAll(INTERPRETER_PAYLOAD)) {
+    const open = match.index + match[0].length - 1;
+    const close = masked.indexOf(masked.charAt(open), open + 1);
+    payloads.push(segment.slice(open + 1, close));
+  }
+
+  return payloads;
+}
+
 /** 包みを剥がすたびに中身がまたコマンド行になるので、その深さの上限。 */
 const NEST_LIMIT = 4;
 
@@ -251,9 +348,14 @@ export const UNDECIDABLE = "(包みが深すぎて判定できません)";
  * コマンド行を、コマンド位置に立つ区間の一覧へ割る。
  *
  * @remarks
- * 順序が要です。**区切りで割り、区間ごとに包みを剥がし、剥がせたものは中身をもう一度割ります。**
- * 包みの中身はコマンド行なので、そこにも区切りが在ります。引用を落とすのは剥がし終えた区間に
- * 対してだけで、`sh -c "..."` の引用を散文として消してしまわないようにしています。
+ * 順序が要です。**引用の外の区切りで割り、区間ごとに包みを剥がし、剥がせたものは中身をもう一度
+ * 割ります。** 包みの中身はコマンド行なので、そこにも区切りが在ります。区間の途中に立つ `sh -c` /
+ * `eval` の引用も同じく中身を割ります。引用を落とすのはそのあとの区間に対してだけで、`sh -c "..."`
+ * の引用を散文として消してしまわないようにしています。
+ *
+ * @param line - コマンド行
+ * @param depth - 包みを剥がした深さ
+ * @returns コマンド位置に立つ区間。剥がし切れなければ `undefined`
  */
 function splitSegments(line: string, depth: number): readonly string[] | undefined {
   // **剥がし切れなかったら空へ倒さない。** 落とすと「塞ぐ対象が無い」と読めるが、実際は
@@ -261,13 +363,14 @@ function splitSegments(line: string, depth: number): readonly string[] | undefin
   if (depth > NEST_LIMIT) return undefined;
 
   const out: string[] = [];
-  for (const raw of line.split(SEPARATOR)) {
+  for (const raw of splitOutsideQuotes(line)) {
     const trimmed = raw.replace(/^[\s&]+/, "").trim();
     if (!trimmed) continue;
 
     const unwrapped = unwrap(trimmed);
-    if (unwrapped !== trimmed) {
-      const inner = splitSegments(unwrapped, depth + 1);
+    const nested = unwrapped !== trimmed ? [unwrapped] : interpreterPayloads(trimmed);
+    for (const commandLine of nested) {
+      const inner = splitSegments(commandLine, depth + 1);
       if (inner === undefined) return undefined;
       out.push(...inner);
     }

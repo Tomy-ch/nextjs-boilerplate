@@ -1,7 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { setupServer } from "msw/node";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { getGoBoilerplateAPIMock } from "./api/endpoints.msw";
 import { handlers } from "./handlers";
+
+const ORIGIN = "https://api.test";
+
+/** 本文を送る method。送らないと、本文から seed を決める経路を通らない。 */
+const METHODS_WITH_BODY = new Set(["POST", "PUT", "PATCH"]);
+
+const server = setupServer(...handlers);
 
 /** ハンドラが指すパス。生成物は HTTP ハンドラだけなので、常に文字列で得られる。 */
 function pathOf(handler: (typeof handlers)[number]): string {
@@ -46,5 +54,39 @@ describe("handlers", () => {
     const generated = getGoBoilerplateAPIMock().map(endpointOf).sort();
 
     expect(handlers.map(endpointOf).sort()).toEqual(generated);
+  });
+
+  describe("応答本文を持つ口", () => {
+    beforeAll(() => {
+      server.listen({ onUnhandledRequest: "error" });
+    });
+
+    afterAll(() => {
+      server.close();
+    });
+
+    it("どれも同じ要求へ同じ応答を返し、応答の組み立てに差し替えが掛かっている", async () => {
+      const requests = handlers.map((handler) => {
+        const method = String(handler.info.method);
+        const url = `${ORIGIN}${pathOf(handler).replace(/^\*/, "").replace(/:[^/]+/g, "1")}`;
+        const body = METHODS_WITH_BODY.has(method) ? "{}" : undefined;
+
+        return { endpoint: `${method} ${url}`, url, init: { method, body } };
+      });
+      const answer = ({ url, init }: (typeof requests)[number]) =>
+        fetch(url, init).then((response) => response.text());
+
+      const unstable: string[] = [];
+      let compared = 0;
+      for (const request of requests) {
+        const first = await answer(request);
+        if (first === "") continue;
+        compared += 1;
+        if ((await answer(request)) !== first) unstable.push(request.endpoint);
+      }
+
+      expect(compared, "応答本文を持つ口が 1 つも見つかりません").toBeGreaterThan(0);
+      expect(unstable).toEqual([]);
+    });
   });
 });

@@ -54,7 +54,7 @@ const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 
 // FROM [--platform=...] <ref> [AS <stage>]
 export function dockerfileFromPattern(): RegExp {
-  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
+  return /^(FROM[ \t]+(?:--platform=\S+[ \t]+)?)([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 
