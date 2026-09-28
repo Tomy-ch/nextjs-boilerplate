@@ -8,7 +8,11 @@
 // - **位置** —— `Bash(make tag-patch *)` は `pnpm build && make tag-patch` に当たらない
 // - **引数なし** —— 同じ宣言は素の `make tag-patch` にも当たらない。しかも危険な target ほど
 //   引数なしが通常の呼び方である
-// - **包み** —— `bash -c` / `rtk run` / `make ai-` は中身を実行するので、包みを剥がして判定する
+// - **包み** —— `bash -c` / `rtk run` / `make ai-` / `sudo` / `timeout` / `ssh` / `watch` などは中身を
+//   実行するので、包みを剥がして判定する
+//
+// 読むのはシェルの文法だけである。`python -c` / `node -e` の引数はその言語の文字列で、そこから
+// シェルを呼ぶかどうかは形から分からない。迂回を禁じるのは AGENTS.md の規則であって、ここではない。
 
 /**
  * 区切りの直後はコマンド位置になる。単体の `(` だけは散文に多すぎるので採らない。
@@ -39,19 +43,68 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   [/^rtk\s+(?:run|summary|smart)\s+/, ""],
   [/^(?:nohup|time)\s+/, ""],
   [/^env\s+(?:[A-Za-z_]\w*=\S*\s+)+/, ""],
+  [/^nice\s+(?:(?:-n\s*\S+|--adjustment=\S+|-\d+)\s+)?/, ""],
+  [
+    /^timeout\s+(?:(?:-[sk]\s*\S+|--(?:signal|kill-after)\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+/,
+    "",
+  ],
+  [/^xargs\s+(?:(?:-[A-Za-z0-9]*[EILPadns]\s*\S+|-[A-Za-z0-9]+|--[\w-]+(?:=\S+)?)\s+)*/, ""],
+  [
+    /^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?|[A-Za-z_]\w*=\S*)\s+)*/,
+    "",
+  ],
 ];
 
+/** シェルの名前。`/bin/bash` のようにパスで呼んでも同じ。 */
+const SHELL = String.raw`(?:(?:\/[\w.-]+)*\/)?(?:ba|da|k|mk|z)?sh`;
+
+/** `-c` の手前に立ちうる flag（`-l` / `-o pipefail` / `--norc`）と、`-c` を含む束（`-lc` / `-ec`）。 */
+const SHELL_COMMAND_FLAG = String.raw`(?:(?:-o\s+\S+|[-+][A-Za-z]+|--[\w-]+)\s+)*?-[A-Za-z]*c[A-Za-z]*\s+`;
+
 /** `sh -c <引用>` は引用の中身がそのままコマンド行なので、引用を落とす前に剥がす。 */
-const SHELL_C = /^(?:(?:ba)?sh|eval)\s+(?:-c\s+)?(["'])([\s\S]*?)\1/;
+const SHELL_C = new RegExp(
+  String.raw`^(?:${SHELL}\s+(?:${SHELL_COMMAND_FLAG})?|eval\s+)(["'])([\s\S]*?)\1`,
+);
+
+/** `su -c` / `runuser -c` の、引用の手前まで。利用者名や `-l` が `-c` の前後どちらにも立つ。 */
+const SWITCH_USER_COMMAND = String.raw`(?:su|runuser)\s+(?:\S+\s+)*?(?:-[A-Za-z]*c|--(?:session-)?command)(?:=|\s+)`;
 
 /**
- * 区間の途中に立つ `sh -c` / `eval` と、その直後の引用の開き。
+ * 区間の途中に立つ、引用を 1 つのコマンド行として実行させる呼び出しと、その直後の引用の開き。
  *
  * @remarks
  * `xargs sh -c '…'` や `find … -exec sh -c '…'` の引用も中身がコマンド行として実行されるが、
- * 区間の先頭ではないので `SHELL_C` では剥がれない。
+ * 区間の先頭ではないので `SHELL_C` では剥がれない。`su -c` / `runuser -c` も、渡した引用を
+ * 相手の利用者のシェルが `-c` で実行する。
  */
-const INTERPRETER_PAYLOAD = /(?:^|\s)(?:(?:ba)?sh\s+-c|eval)\s+(["'])/g;
+const INTERPRETER_PAYLOAD = new RegExp(
+  String.raw`(?:^|\s)(?:${SHELL}\s+${SHELL_COMMAND_FLAG}|eval\s+|${SWITCH_USER_COMMAND})(["'])`,
+  "g",
+);
+
+/**
+ * 残りの引数を空白で繋ぎ、相手側のシェルがコマンド行として読み直す呼び出しの、残りの手前まで。
+ *
+ * @remarks
+ * `ssh <host> …` は遠隔のシェルへ、`watch …` は `sh -c` へ、引数を繋いだ 1 行を渡す。引用は
+ * こちらのシェルが 1 層外してから渡すので、`ssh host 'a; b'` の `;` も向こうでは区切りになる。
+ * ssh の flag は引数を取るものと取らないもので分けないと、`-p 22` の `22` をホストと読み違える。
+ */
+const REMOTE_COMMAND: readonly RegExp[] = [
+  /(?:^|\s)ssh\s+(?:(?:-[46AaCfGgKkMNnqsTtVvXxYy]*[BDEFIJLORSWbceilmopw]\s*\S+|-[46AaCfGgKkMNnqsTtVvXxYy]+)\s+)*[^\s-]\S*\s+/,
+  /(?:^|\s)watch\s+(?:(?:-[A-Za-z]*[nq]\s*\S+|--interval[=\s]\S+|-[A-Za-z]+|--[\w-]+(?:=\S+)?)\s+)*/,
+];
+
+/**
+ * シェルが 1 層で外す引用の単位。単引用、二重引用、打ち消した 1 文字、対にならない引用符。
+ *
+ * @remarks
+ * 対にならない引用符は落とす。中身を散文として残すと、閉じない引用の後ろのコマンドが見えなくなる。
+ */
+const QUOTING = /'([^']*)'|"((?:[^"\\]|\\[\s\S])*)"|\\([\s\S])|["']/g;
+
+/** 二重引用の中でバックスラッシュが打ち消す文字。それ以外の前ではバックスラッシュが残る。 */
+const DOUBLE_QUOTE_ESCAPE = /\\([$`"\\\n])/g;
 
 /** 引用の中身を塗る文字。区切りにも空白にも引用符にも当たらない。 */
 const FILL = "_";
@@ -338,6 +391,44 @@ function interpreterPayloads(segment: string): readonly string[] {
   return payloads;
 }
 
+/**
+ * こちらのシェルが引用を 1 層外したあとの綴りを返す。
+ *
+ * @remarks
+ * 相手側のシェルが読み直す行は、こちらで引用を外した結果である。二重引用の中のバックスラッシュは
+ * `DOUBLE_QUOTE_ESCAPE` の文字の前でだけ消え、ほかの文字の前では残る —— 残った `\;` は向こうでも
+ * 打ち消されたままで、区切りにならない。
+ *
+ * @param text - 引用を含む引数の並び
+ * @returns 引用を 1 層外した綴り
+ */
+function dequote(text: string): string {
+  return text.replace(
+    QUOTING,
+    (_quoted: string, single?: string, double?: string, escaped?: string) =>
+      single ?? double?.replace(DOUBLE_QUOTE_ESCAPE, "$1") ?? escaped ?? "",
+  );
+}
+
+/**
+ * 区間の中で `ssh` / `watch` へ渡した残りの引数を、相手側が読み直すコマンド行として取り出す。
+ *
+ * @remarks
+ * 引用を読み切れない区間でも位置は元の綴りで探す。区切りは呼び出し側が既に引用ごと割っており、
+ * ここで諦めると、残りの引数だけが検査から落ちる。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 相手側のシェルが実行するコマンド行
+ */
+function remoteCommandLines(segment: string): readonly string[] {
+  const masked = maskQuoted(segment) ?? segment;
+
+  return REMOTE_COMMAND.flatMap((pattern) => {
+    const matched = pattern.exec(masked);
+    return matched ? [dequote(segment.slice(matched.index + matched[0].length))] : [];
+  });
+}
+
 /** 包みを剥がすたびに中身がまたコマンド行になるので、その深さの上限。 */
 const NEST_LIMIT = 4;
 
@@ -350,8 +441,8 @@ export const UNDECIDABLE = "(包みが深すぎて判定できません)";
  * @remarks
  * 順序が要です。**引用の外の区切りで割り、区間ごとに包みを剥がし、剥がせたものは中身をもう一度
  * 割ります。** 包みの中身はコマンド行なので、そこにも区切りが在ります。区間の途中に立つ `sh -c` /
- * `eval` の引用も同じく中身を割ります。引用を落とすのはそのあとの区間に対してだけで、`sh -c "..."`
- * の引用を散文として消してしまわないようにしています。
+ * `eval` / `su -c` の引用と、`ssh` / `watch` の残りの引数も同じく中身を割ります。引用を落とすのは
+ * そのあとの区間に対してだけで、`sh -c "..."` の引用を散文として消してしまわないようにしています。
  *
  * @param line - コマンド行
  * @param depth - 包みを剥がした深さ
@@ -368,13 +459,18 @@ function splitSegments(line: string, depth: number): readonly string[] | undefin
     if (!trimmed) continue;
 
     const unwrapped = unwrap(trimmed);
-    const nested = unwrapped !== trimmed ? [unwrapped] : interpreterPayloads(trimmed);
+    const nested =
+      unwrapped !== trimmed
+        ? [unwrapped]
+        : [...interpreterPayloads(trimmed), ...remoteCommandLines(trimmed)];
     for (const commandLine of nested) {
       const inner = splitSegments(commandLine, depth + 1);
       if (inner === undefined) return undefined;
       out.push(...inner);
     }
-    out.push(stripQuotes(unwrapped));
+    // 包み自身も 1 つのコマンドである。剥がした側だけを見ると、`sudo` のように包みの綴りそのものを
+    // 塞いだ宣言が区切りの後ろで当たらなくなる。
+    out.push(stripQuotes(trimmed), stripQuotes(unwrapped));
   }
   return out;
 }

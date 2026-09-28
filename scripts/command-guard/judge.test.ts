@@ -20,6 +20,7 @@ const DENY = [
   "Bash(git branch -d *)",
   "Bash(git branch -D *)",
   "Bash(rtk init *)",
+  "Bash(sudo *)",
   "Edit(AGENTS.md)",
 ];
 const LITERALS = deriveLiterals(DENY);
@@ -120,6 +121,18 @@ describe("unwrap", () => {
     const deep = `${'sh -c "'.repeat(8)}rm -rf /${'"'.repeat(8)}`;
 
     expect(() => judge(deep, LITERALS)).not.toThrow();
+  });
+
+  it("引数を取る flag ごと実行者の前置きを落とす", () => {
+    expect(unwrap("sudo -u root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("timeout -s KILL 5 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("nice -n 10 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("xargs -0 -I {} make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("パスで呼んだシェルと、束ねた `-c` の引用の中身を取り出す", () => {
+    expect(unwrap("/bin/bash -lc 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("zsh -o pipefail -c 'make tag-patch'")).toBe("make tag-patch");
   });
 
   it("環境変数の前置きを落とす", () => {
@@ -274,6 +287,60 @@ describe("judge", () => {
     expect(judge("echo $'a\\''; rm -rf /", LITERALS)).toBe("rm -rf");
   });
 
+  it("ssh へ渡した遠隔のコマンド行の区切りの後ろでも捕まえる", () => {
+    expect(judge("ssh host 'x; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(
+      judge('ssh -p 2222 -i ~/.ssh/key user@host "cd /tmp && rm -rf /"', LITERALS),
+    ).toBe("rm -rf");
+  });
+
+  it("ssh の手元で打ち消した区切りも、遠隔では区切りとして捕まえる", () => {
+    expect(judge("ssh host echo hi\\; rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("ssh の二重引用の中で打ち消した引用符を外してから割る", () => {
+    expect(judge('ssh host "cd \\"/tmp\\"; rm -rf /"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("ssh の閉じない引用の後ろでも捕まえる", () => {
+    expect(judge('ssh host "a; rm -rf /', LITERALS)).toBe("rm -rf");
+  });
+
+  it("`su -c` / `runuser -c` へ渡した引用の中身を捕まえる", () => {
+    expect(judge("su -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('su - root -c "rm -rf /"', LITERALS)).toBe("rm -rf");
+    expect(judge("su root --command='rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("runuser -l app -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`watch` へ渡したコマンド行の区切りの後ろでも捕まえる", () => {
+    expect(judge("watch 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('watch -n 1 "date; rm -rf /"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("実行者の前置きの後ろに立つ `sh -c` の引用の中身を捕まえる", () => {
+    expect(judge("nohup sh -c 'true; rm -rf /' &", LITERALS)).toBe("rm -rf");
+    expect(judge("timeout 5 bash -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("env X=1 sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("nice -n 5 sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs -I{} sh -c 'rm -rf {}'", LITERALS)).toBe("rm -rf");
+    expect(judge("sudo sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("実行者の前置きの後ろに立つコマンドを捕まえる", () => {
+    expect(judge("timeout 5 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs -0 rm -rf", LITERALS)).toBe("rm -rf");
+  });
+
+  it("パスで呼んだシェルや、束ねた `-c` の引用の中身を捕まえる", () => {
+    expect(judge("/bin/bash -lc 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec /bin/sh -ec 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("前置きとして剥がす綴りそのものを塞いだ宣言も、区切りの後ろで捕まえる", () => {
+    expect(judge("echo hi; sudo ls", LITERALS)).toBe("sudo");
+  });
+
   it("`eval` の引用の中でも捕まえる", () => {
     expect(judge('eval "rm -rf /"', LITERALS)).toBe("rm -rf");
   });
@@ -324,6 +391,19 @@ describe("judge", () => {
 
   it("heredoc の散文で止めない", () => {
     expect(judge("cat <<PY\nrm -rf は危険\nPY", LITERALS)).toBeUndefined();
+  });
+
+  it("ssh の手元で外れた引用の中の綴りで止めない", () => {
+    // 遠隔のシェルが受け取るのは `echo rm -rf /` で、`rm` はコマンド位置に立たない。
+    expect(judge("ssh host echo 'rm -rf /'", LITERALS)).toBeUndefined();
+  });
+
+  it("ssh の二重引用の中で打ち消したままの区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge('ssh host "echo a \\; rm -rf /"', LITERALS)).toBeUndefined();
+  });
+
+  it("シェル以外の言語へ渡した引用は割らない", () => {
+    expect(judge("node -e 'console.log(1); make tag-patch'", LITERALS)).toBeUndefined();
   });
 
   it("包みそのものは止めない", () => {
