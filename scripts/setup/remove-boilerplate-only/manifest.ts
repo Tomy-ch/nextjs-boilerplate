@@ -46,6 +46,8 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // この状態を生んだ計画であって、状態そのものではない。[README](../../README.md)
   // は v1.0.0 で削除すると決めており、それより前に複製された木へ渡す理由も無い。
   "docs/plan",
+  // 同じ工程の未決の待ち行列。ADR 0140 は v1.0.0 で計画と一緒に消すと決めている。
+  "docs/adr/BACKLOG.md",
 ];
 
 /**
