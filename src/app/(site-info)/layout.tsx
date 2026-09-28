@@ -4,8 +4,7 @@ import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { SiteFooter } from "@/features/site-info/ui/site-footer/site-footer";
 
 import { GLOBAL_NAV_ITEMS } from "../global-nav";
-
-const SITE_NAME = "nextjs-boilerplate";
+import { SITE_NAME } from "../site";
 
 /**
  * サイトの案内の外枠。

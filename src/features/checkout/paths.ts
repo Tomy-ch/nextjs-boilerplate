@@ -1,31 +1,10 @@
-/** 購入を確かめて確定する画面。この feature が所有するルート。 */
-export const CHECKOUT_PATH = "/checkout";
+import { CHECKOUT_PATH } from "./facade/paths/paths";
 
 /** 購入が成立したことを伝える画面。 */
-const CHECKOUT_COMPLETE_PATH = "/checkout/complete";
+const CHECKOUT_COMPLETE_PATH = `${CHECKOUT_PATH}/complete`;
 
 /** 成立した購入を指す検索条件の名前。 */
 export const PURCHASE_PARAM = "purchase";
-
-/**
- * この画面から出る先。
- *
- * @remarks
- * 行き先の画面はどれも別のスライスが持ちますが、パスはここで宣言します。スライスを跨いで
- * 参照し合うと、片方を消したときにもう片方が壊れます。
- */
-
-/** カートの中身を直す画面。 */
-export const CART_PATH = "/cart";
-
-/** 届け先の元になる登録情報を変える画面。 */
-export const PROFILE_EDIT_PATH = "/mypage/edit";
-
-/** 買い物を続ける先。 */
-export const PRODUCTS_PATH = "/products";
-
-/** 購入の控えを後から確かめる画面。 */
-export const MYPAGE_PATH = "/mypage";
 
 /**
  * 成立した購入の完了画面を指す。

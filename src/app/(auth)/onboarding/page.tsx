@@ -7,9 +7,9 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { OnboardingPageContent } from "@/features/account/onboarding/page-content";
 import { OnboardingSkeleton } from "@/features/account/onboarding/ui/skeleton/skeleton";
-import { MYPAGE_PATH } from "@/features/account/paths";
 import { requireUnregisteredUser } from "@/features/account/registration-gate";
 import { toSafeReturnUrl } from "@/model/return-url";
 

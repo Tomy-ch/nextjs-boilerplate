@@ -8,7 +8,7 @@ import {
 } from "@/components/design-system/navigation/breadcrumb/breadcrumb";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 import { withScreenSpan } from "@/observability/render-span";
-import { MYPAGE_PATH } from "../paths";
+import { MYPAGE_PATH } from "../facade/paths/paths";
 import { ProfileForm } from "./ui/profile-form/profile-form";
 
 type ProfileEditViewProps = {

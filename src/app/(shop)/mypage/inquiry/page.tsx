@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ContentContainer } from "@/components/shell/content-container/content-container";
-import { MYPAGE_PATH } from "@/features/account/paths";
+import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { InquiryThreadPageContent } from "@/features/inquiry/thread/page-content";
 import { InquiryThreadSkeleton } from "@/features/inquiry/thread/ui/skeleton/skeleton";

@@ -9,6 +9,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: () => {} }),
 }));
 
+import { SITE_NAME } from "../site";
 import AuthLayout from "./layout";
 
 describe("AuthLayout", () => {
@@ -29,7 +30,7 @@ describe("AuthLayout", () => {
       </AuthLayout>,
     );
 
-    expect(within(screen.getByRole("banner")).getByText("nextjs-boilerplate")).toBeVisible();
+    expect(within(screen.getByRole("banner")).getByText(SITE_NAME)).toBeVisible();
   });
 
   it("他の画面への導線を並べない", () => {

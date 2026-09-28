@@ -50,7 +50,8 @@ coverage-exclusions:
 | | 空 | `Features/Inquiry/Thread/MessageList/Empty` |
 | 送信欄 | idle / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,Pending,Invalid}` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
-| 待機表示 | loading | 画面と同じ高さの枠（`thread/ui/skeleton/`） |
+| やり取りと送信 | success / empty / 長い本文 | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
+| 待機表示 | loading | `Features/Inquiry/Thread/Skeleton/Default` |
 
 **error は画面としては持ちません。** 送信の失敗は送信欄の隣に出し、取得の失敗は route の
 `error` 境界（`src/app/(shop)/mypage/inquiry/error.tsx`）が受けます。

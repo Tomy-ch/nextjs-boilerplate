@@ -7,9 +7,9 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { MypagePageContent } from "@/features/account/mypage/page-content";
 import { MypageSkeleton } from "@/features/account/mypage/ui/skeleton/skeleton";
-import { MYPAGE_PATH } from "@/features/account/paths";
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 
 export const metadata: Metadata = {

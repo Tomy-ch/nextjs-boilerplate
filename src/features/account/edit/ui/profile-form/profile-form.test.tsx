@@ -17,7 +17,7 @@ vi.mock("@/adapters/client/api/addresses", () => ({ fetchAddresses }));
 vi.mock("../../../actions", () => ({ updateProfileAction }));
 
 import { ADDRESS_LOOKUP, PREFECTURES, PROFILE } from "../../../account.fixture";
-import { MYPAGE_PATH } from "../../../paths";
+import { MYPAGE_PATH } from "../../../facade/paths/paths";
 import { ProfileForm } from "./profile-form";
 
 const LABELS = [

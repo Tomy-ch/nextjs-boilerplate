@@ -61,6 +61,7 @@ loading / empty / error の 3 つは持ちません。**取得が無いためで
 | --- | --- |
 | `model` | 戻り先の安全な形（`return-url`）と、案内する理由の語彙 |
 | `components` | 面を組む器（カード・ボタン・案内） |
+| `observability` | 描画を span に載せる |
 
 **`adapters` を引きません。** 認証の往復を持たないためで、これがこの slice の線引きそのものです。
 

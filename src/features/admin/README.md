@@ -216,8 +216,9 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
 | `observability` | 描画を span に載せる |
 
-**他 feature の `facade/` を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
-という冒頭の線引きがそのまま依存にも出ています。
+**他 feature の `facade/` から部品を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
+という冒頭の線引きがそのまま依存にも出ています。引くのはルートの識別子だけで、商品 1 件を眺める
+利用者向けの画面は `products` の `facade/detail-url/` から取ります（`paths.ts` の `productDetailPath`）。
 
 ## Action 戻り値契約
 

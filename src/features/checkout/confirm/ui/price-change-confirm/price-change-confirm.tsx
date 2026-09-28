@@ -13,9 +13,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
+import { CART_PATH } from "@/features/cart/facade/paths/paths";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
-import { CART_PATH } from "../../../paths";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 
-const SITE_NAME = "nextjs-boilerplate";
+import { SITE_NAME } from "../site";
 
 /**
  * 認証まわりの画面の外枠。

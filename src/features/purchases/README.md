@@ -56,10 +56,10 @@ coverage-exclusions:
 | 詳細 | success | `Page/Purchases/Detail/Default` |
 | | 支払い済み / 配達済み | `Page/Purchases/Detail/{Paid,Delivered}` |
 | | 参考換算額が読めなかった | `Page/Purchases/Detail/WithoutReference` |
+| | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
 **空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
-行動が違います。**詳細は loading を持ちません** —— 理由は「設計」にあります。error は route の
-`error` 境界、見つからない場合は `not-found` が受けます。
+行動が違います。error は route の `error` 境界、見つからない場合は `not-found` が受けます。
 
 ## 構成
 
@@ -102,6 +102,7 @@ coverage-exclusions:
 | `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ |
 | `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
 | `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
+| `detail/ui/skeleton/` | 詳細の待機表示 |
 
 ## 依存カーネル
 
@@ -168,9 +169,9 @@ coverage-exclusions:
 - **通らなかったことは確認の中で伝えます。** 送信しても確認は開いたままなので、外へ出すと利用者が
   見ていない場所に文言が出ます。逆に成立の知らせは操作が並ぶ段が持ちます。進んだ購入では操作ごと
   確認が消えるためです
-- **詳細は待機の状態を持ちません。** 購入は見つからないことがあり、その route に `loading.tsx` は
-  置けません。取得の待ちは route が丸ごと引き受けるので、
-  この画面に skeleton はありません。一覧のほうは Suspense の境界を持つので `history/ui/skeleton/` があります
+- **詳細の待機の境界は route の `page.tsx` が置きます。** `page-content` ごと `Suspense` で包み、
+  fallback に `detail/ui/skeleton/` を描きます。一覧はその形に加えて `page-content` が `results` を
+  包み、期間を変えたときも操作面を待機の外に残します
 - **増分取得の部品は商品一覧と共有です。** 続きの読み込みの状態は
   [`LoadMore`](../../components/app-starter/load-more/README.md)、目印が見えたことを知るのは
   [`use-on-visible`](../../capabilities/use-on-visible.ts) が持ちます。積み上げの状態機械だけが

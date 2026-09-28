@@ -14,7 +14,7 @@ import {
 import type { ProfileFormState, WithdrawFormState } from "./form-state";
 import { parseRegistrationForm } from "./onboarding/parse-registration-form";
 import { parseProfileForm } from "./parse-profile-form";
-import { MYPAGE_PATH } from "./paths";
+import { MYPAGE_PATH } from "./facade/paths/paths";
 import { toProfileFieldErrors } from "./profile-rejection";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";

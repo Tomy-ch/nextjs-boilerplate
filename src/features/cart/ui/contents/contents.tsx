@@ -5,7 +5,7 @@ import { BUTTON_SIZE } from "@/components/design-system/action/button/button.def
 import { ScrollArea } from "@/components/design-system/container/scroll-area/scroll-area";
 import type { Cart } from "@/model/cart/cart";
 import { withPartSpan } from "@/observability/render-span";
-import { CART_PATH } from "../../paths";
+import { CART_PATH } from "../../facade/paths/paths";
 import { CartCheckoutLink } from "../checkout-link/checkout-link";
 import { CartClearButton } from "../clear-button/clear-button";
 import { CartLineList } from "../line-list/line-list";

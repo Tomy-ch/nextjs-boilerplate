@@ -2,9 +2,9 @@
  * サイトの名。
  *
  * @remarks
- * タイトルの雛形（`layout.tsx`）と OG 画像（`opengraph-image.tsx`）が読みます。route 要素のどれにも
- * 当たらない宣言をこのモジュールへ切り出してあるのは、器ごとに書くと片方だけが動くためです
- * （`fonts.ts` と同じ扱い）。
+ * タイトルの雛形（`layout.tsx`）、OG 画像（`opengraph-image.tsx`）、各 route group の shell の header が
+ * 読みます。route 要素のどれにも当たらない宣言をこのモジュールへ切り出してあるのは、器ごとに書くと
+ * 片方だけが動くためです（`fonts.ts` と同じ扱い）。
  *
  * **ラテンの綴りに限ります。** 画像を描く `ImageResponse` が持つ既定の書体はラテンの字しか
  * 持たず、和文を含めると画像の側だけが欠けます。

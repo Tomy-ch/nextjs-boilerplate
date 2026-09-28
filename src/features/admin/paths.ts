@@ -1,3 +1,4 @@
+import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 import type { ProductId } from "@/model/product/product";
 
@@ -59,13 +60,14 @@ export function adminProductStockPath(id: ProductId): string {
  * 眺める面がありません。編集の面（{@link adminProductEditPath}）は目的が違い、名前を押した
  * 人が求めているのは「どんな商品か」であって編集ではありません。
  *
- * 管理側に 1 件を眺める面ができたら、行き先をそちらへ替えるのはこの関数だけです。
+ * 綴りは所有者の `products` が出すものを引きます。管理側に 1 件を眺める面ができたら、行き先を
+ * そちらへ替えるのはこの関数だけです。
  *
  * @param id - 対象の商品
  * @returns 商品を眺める利用者向け画面のパス
  */
 export function productDetailPath(id: ProductId): string {
-  return `/products/${encodeURIComponent(id)}`;
+  return toProductDetailHref(id);
 }
 
 /**

@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { CircleCheckIcon } from "@/components/icon";
+import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
+import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import { PurchaseAmountSummary } from "@/features/purchases/facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "@/features/purchases/facade/lines/lines";
 import { PurchaseReceiptCard } from "@/features/purchases/facade/receipt/receipt";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
 import { withScreenSpan } from "@/observability/render-span";
-import { MYPAGE_PATH, PRODUCTS_PATH } from "../paths";
 
 /** `CheckoutCompleteView` の props。 */
 export type CheckoutCompleteViewProps = {
@@ -52,7 +53,7 @@ export const CheckoutCompleteView = withScreenSpan(
 
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href={PRODUCTS_PATH}>買い物を続ける</Link>
+            <Link href={PRODUCT_LIST_PATH}>買い物を続ける</Link>
           </Button>
           <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
             <Link href={MYPAGE_PATH}>購入の控えを見る</Link>

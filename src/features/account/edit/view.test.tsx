@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
 import { PREFECTURES, PROFILE } from "../account.fixture";
-import { MYPAGE_PATH } from "../paths";
+import { MYPAGE_PATH } from "../facade/paths/paths";
 import { ProfileEditView } from "./view";
 
 /** 保存の成功は toast で伝えるため、shell が載せる Provider をここでも被せる。 */

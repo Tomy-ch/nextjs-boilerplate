@@ -56,6 +56,13 @@ coverage-exclusions:
 | やり取りの並び | success | `Features/Admin/Inquiries/Detail/MessageList/Default` |
 | | 送信中 | `Features/Admin/Inquiries/Detail/MessageList/Sending` |
 | | 空 | `Features/Admin/Inquiries/Detail/MessageList/Empty` |
+| 一覧の表 | success / ページ送りつき / empty / スマホ幅 | `Features/Admin/Inquiries/List/Table/{Default,WithPagination,Empty,Mobile}` |
+| 一覧の購読 | 待機 | `Features/Admin/Inquiries/List/FeedWatch/Default` |
+| 一覧の待機表示 | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
+| やり取りと回答 | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
+| 回答欄 | idle / pending / 項目エラー | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
+| 対応の待機表示 | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
+| 階層 | 一覧の下 | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
 
 ## 構成

@@ -8,11 +8,11 @@ import {
   APP_SHELL_HEADER_HEIGHT,
   APP_SHELL_STICKY_GAP,
 } from "@/components/shell/app-shell/app-shell.definition";
+import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import type { UserProfile } from "@/model/user/user";
 import { withScreenSpan } from "@/observability/render-span";
-import { PRODUCTS_PATH } from "../paths";
 import { OrderLines } from "./ui/order-lines/order-lines";
 import { OrderSummary } from "./ui/order-summary/order-summary";
 import { PlaceOrderStateProvider } from "./ui/place-order-state/place-order-state";
@@ -63,7 +63,7 @@ export const CheckoutConfirmView = withScreenSpan(
             カートに商品が入っていないため、確定できる注文がありません。
           </p>
           <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={PRODUCTS_PATH}>商品を探す</Link>
+            <Link href={PRODUCT_LIST_PATH}>商品を探す</Link>
           </Button>
         </div>
       );

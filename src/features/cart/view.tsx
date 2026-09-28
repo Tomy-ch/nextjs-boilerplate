@@ -5,6 +5,7 @@ import {
   APP_SHELL_HEADER_HEIGHT,
   APP_SHELL_STICKY_GAP,
 } from "@/components/shell/app-shell/app-shell.definition";
+import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { Cart } from "@/model/cart/cart";
 import { withScreenSpan } from "@/observability/render-span";
 import { CartClearButton } from "./ui/clear-button/clear-button";
@@ -19,9 +20,6 @@ export type CartViewProps = {
   /** 表示するカート。 */
   cart: Cart;
 };
-
-/** 商品を探しに戻る先。 */
-const PRODUCTS_PATH = "/products";
 
 /**
  * カートの全画面表示。
@@ -48,7 +46,7 @@ export const CartView = withScreenSpan("features/cart/view", ({ cart }: CartView
         <CartRemovalNoticeList presentProductIds={presentProductIds} />
         <p className="text-muted-foreground">カートに商品が入っていません。</p>
         <Button asChild variant="outline">
-          <Link href={PRODUCTS_PATH}>商品を探す</Link>
+          <Link href={PRODUCT_LIST_PATH}>商品を探す</Link>
         </Button>
       </div>
     );
