@@ -73,15 +73,15 @@ confirm it.
 
 ## Step 1. Contract
 
-Check that each operation is in `openapi/*.gen.yaml`, and that `make ai-api-gen-check` is green.
+Check that each operation is in `openapi/*.gen.yaml`, and that `make ai-api-gen-check` is green. <!-- skill-lint-ignore -->
 
 - **An operation is missing** → the contract is the backend's
   ([ADR 0072](../../../docs/adr/0072-api-type-generation.md)). If the backend has not published it, stop
   and hand off. If it has, propose moving `ref` in `openapi/sources.yaml` to the commit that carries it,
   and confirm with `AskUserQuestion` before editing.
-- **After a `ref` move**, run `make ai-api-fetch` then `make ai-api-gen`. Never edit `openapi/*.gen.yaml`
-  or `src/adapters/gen/` by hand — both are generated, and editing one is a trip wire in `AGENTS.md`.
-- **A regeneration changes shared schemas.** Read the diff under `src/adapters/gen/`, find every module
+- **After a `ref` move**, run `make ai-api-fetch` then `make ai-api-gen`. Never edit `openapi/*.gen.yaml` <!-- skill-lint-ignore -->
+  or `src/adapters/gen/` by hand — both are generated, and editing one is a trip wire in `AGENTS.md`. <!-- skill-lint-ignore -->
+- **A regeneration changes shared schemas.** Read the diff under `src/adapters/gen/`, find every module <!-- skill-lint-ignore -->
   that imports a changed schema, and list them in the report: a change made for this slice can break a
   sibling that no test in this chain exercises.
 
@@ -154,7 +154,7 @@ Report in Japanese:
 
 Invoking this skill is the explicit instruction for the one write outside `src/` that the chain makes:
 the `ref` in `openapi/sources.yaml`, after confirmation, followed by the generators that rewrite
-`openapi/` and `src/adapters/gen/`. Everything else is written by the child skills under `src/`, each
+`openapi/` and `src/adapters/gen/`. Everything else is written by the child skills under `src/`, each <!-- skill-lint-ignore -->
 within its own declared scope.
 
 ## Constraints

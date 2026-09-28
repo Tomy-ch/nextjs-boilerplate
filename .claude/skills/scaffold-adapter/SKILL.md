@@ -57,11 +57,11 @@ reported.
 | `src/adapters/README.md` — `## 監査の観点` | The rows the seam must satisfy; the plan answers each one |
 | `src/adapters/README.md` — classification, lifetime, credential, URL-budget and taint sections | Which connection port, whether `allowAnonymous`, whether and how the seam keeps a lifetime, whether it taints its result |
 | `src/adapters/server/http/README.md` | The connection ports and the request boundary the seam goes through |
-| `openapi/<name>.gen.yaml` and `src/adapters/gen/` | The operation, its `security`, parameters, declared responses and the generated schema |
+| `openapi/<name>.gen.yaml` and `src/adapters/gen/` | The operation, its `security`, parameters, declared responses and the generated schema <!-- skill-lint-ignore --> |
 | `scripts/gen/` | What `pnpm gen adapter` places, and the next steps it prints |
 | A sibling module that calls the same kind of operation | The concrete shape of a request, a mapping and a taint; on conflict the README wins |
 
-Writes: what `pnpm gen adapter` places, then edits to those files only. Nothing under `src/adapters/gen/`
+Writes: what `pnpm gen adapter` places, then edits to those files only. Nothing under `src/adapters/gen/` <!-- skill-lint-ignore -->
 or `openapi/`.
 
 ## Step 0. Preconditions
@@ -69,13 +69,13 @@ or `openapi/`.
 Resolve the name and the operations (`operationId`s) from the argument, from `scaffold-slice`'s context,
 or with `AskUserQuestion`. Then check, and **stop at the first that fails**:
 
-1. **The operation is in the fetched contract.** Search `openapi/*.gen.yaml` for each `operationId`.
+1. **The operation is in the fetched contract.** Search `openapi/*.gen.yaml` for each `operationId`. <!-- skill-lint-ignore -->
    When one is missing, stop with the hand-off: the contract changes on the backend side; then the `ref`
    in `openapi/sources.yaml` moves, and `make ai-api-fetch` and `make ai-api-gen` regenerate
    (`openapi/README.md` owns the procedure). `scaffold-slice` performs that move with confirmation; this
    skill does not.
 2. **The generated files match the contract.** `make ai-api-gen-check`. A drift means someone fetched
-   without generating; the fix is `make ai-api-gen`, never an edit under `src/adapters/gen/` — that path
+   without generating; the fix is `make ai-api-gen`, never an edit under `src/adapters/gen/` — that path <!-- skill-lint-ignore -->
    is generated (`git check-attr linguist-generated -- <path>` says so), and editing it is a trip wire in
    `AGENTS.md`.
 3. **The target path does not exist.** `pnpm gen adapter` refuses an existing path; so does this skill.
@@ -136,7 +136,7 @@ steps — follow the parts this skill does not already cover.
 Replace the generated stub with the planned seam:
 
 - The request goes through the connection port Step 1 derived, with the generated schema, and returns the
-  display type. Nothing from `src/adapters/gen/` appears in the exported signatures.
+  display type. Nothing from `src/adapters/gen/` appears in the exported signatures. <!-- skill-lint-ignore -->
 - Lifetime and taint exactly as Step 1 derived — or not at all when it derived none.
 - **Remove the generated `TODO:` text** the skeleton carries; the plan has answered it. **Write no new
   comments** — Step 7 decides which ones the seam earned.
@@ -171,7 +171,7 @@ table, the tests produced, what was handed off and why, and any README gap. Do n
 ## AI Modification Scope
 
 Writes only under `src/adapters/`, through `pnpm gen adapter` and then edits to the files it placed.
-`openapi/` and `src/adapters/gen/` are read-only here.
+`openapi/` and `src/adapters/gen/` are read-only here. <!-- skill-lint-ignore -->
 
 ## Constraints
 

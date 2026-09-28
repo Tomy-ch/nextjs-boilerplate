@@ -38,7 +38,7 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 ## Do NOT use this skill for
 
 - **A type only one feature uses** — it lives inside that feature. Step 1 settles this and stops.
-- **A copy of a contract type** — the wire shape stays in `src/adapters/gen/`, and the mapping from it to
+- **A copy of a contract type** — the wire shape stays in `src/adapters/gen/`, and the mapping from it to <!-- skill-lint-ignore -->
   the display type is the adapter's. Mirroring the contract by hand is refused by
   [ADR 0072](../../../docs/adr/0072-api-type-generation.md).
 - **Changing an existing model module** — edit it directly.
@@ -161,7 +161,7 @@ findings with what was applied and what was left, and the README gaps found. Do 
 - ✅ Stop when Step 1 says the module does not belong in `model`
 - ✅ Score the written types with `type-design-reviewer` on `sonnet`
 - ❌ Place a type only one feature uses
-- ❌ Copy a contract type, or import from `src/adapters/gen/`
+- ❌ Copy a contract type, or import from `src/adapters/gen/` <!-- skill-lint-ignore -->
 - ❌ Write comments while writing the code
 - ❌ Add a dependency, or route around one
 - ❌ Restate a README row or an ADR 0029 rule in this file

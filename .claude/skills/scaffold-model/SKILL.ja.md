@@ -22,7 +22,7 @@
 ## このスキルを使わないとき
 
 - **1 つの feature しか使わない型** —— その feature の内側に置く。Step 1 がこれを決めて止まる。
-- **契約の型の写し** —— wire の形は `src/adapters/gen/` に留まり、そこから表示用の型への写しは adapter の
+- **契約の型の写し** —— wire の形は `src/adapters/gen/` に留まり、そこから表示用の型への写しは adapter の <!-- skill-lint-ignore -->
   ものである。契約を手で写すことは [ADR 0072](../../../docs/adr/0072-api-type-generation.md) が断っている。
 - **既存の model モジュールの変更** —— 直接編集する。
 - **テストを書くこと** —— `scaffold-test`。単独で走るときはこのスキルが連鎖させる。
@@ -136,7 +136,7 @@ README がモジュール表を持っていれば、その表の言い回しで�
 - ✅ Step 1 が `model` に属さないと言ったら止まる
 - ✅ 書いた型を `sonnet` の `type-design-reviewer` で採点する
 - ❌ 1 つの feature しか使わない型を置く
-- ❌ 契約の型を写す、または `src/adapters/gen/` から import する
+- ❌ 契約の型を写す、または `src/adapters/gen/` から import する <!-- skill-lint-ignore -->
 - ❌ コードを書きながらコメントを書く
 - ❌ 依存を足す、あるいは迂回する
 - ❌ README の行や ADR 0029 の規則をこのファイルへ書き写す

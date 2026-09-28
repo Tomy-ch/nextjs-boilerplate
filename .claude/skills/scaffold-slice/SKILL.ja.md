@@ -56,15 +56,15 @@ feature スライスを 1 つ、契約から内側へ向かって作る —— �
 
 ## Step 1. 契約
 
-各 operation が `openapi/*.gen.yaml` に在ること、`make ai-api-gen-check` が緑であることを確かめる。
+各 operation が `openapi/*.gen.yaml` に在ること、`make ai-api-gen-check` が緑であることを確かめる。 <!-- skill-lint-ignore -->
 
 - **operation が無い** → 契約はバックエンドのものである
   （[ADR 0072](../../../docs/adr/0072-api-type-generation.md)）。バックエンドが公開していなければ、止まって
   引き渡す。公開しているなら、`openapi/sources.yaml` の `ref` をそれを含むコミットへ動かすことを提案し、
   編集の前に `AskUserQuestion` で確認する。
-- **`ref` を動かしたら**、`make ai-api-fetch`、次に `make ai-api-gen` を回す。`openapi/*.gen.yaml` と
-  `src/adapters/gen/` を手で直さない —— どちらも生成物で、編集は `AGENTS.md` の trip wire である。
-- **生成し直しが共有スキーマを変える。** `src/adapters/gen/` の下の差分を読み、変わったスキーマを import
+- **`ref` を動かしたら**、`make ai-api-fetch`、次に `make ai-api-gen` を回す。`openapi/*.gen.yaml` と <!-- skill-lint-ignore -->
+  `src/adapters/gen/` を手で直さない —— どちらも生成物で、編集は `AGENTS.md` の trip wire である。 <!-- skill-lint-ignore -->
+- **生成し直しが共有スキーマを変える。** `src/adapters/gen/` の下の差分を読み、変わったスキーマを import <!-- skill-lint-ignore -->
   している全モジュールを探して報告に並べる。このスライスのための変更が、この連鎖のどのテストも通らない
   隣を壊しうる。
 
@@ -134,7 +134,7 @@ Step 2〜5 が置いた単位 —— model のモジュール、adapter の単�
 ## AI Modification Scope
 
 このスキルを起動することが、連鎖が `src/` の外で行う唯一の書き込みへの明示の指示になる: 確認のあとの
-`openapi/sources.yaml` の `ref` と、それに続いて `openapi/` と `src/adapters/gen/` を書き直す生成器である。
+`openapi/sources.yaml` の `ref` と、それに続いて `openapi/` と `src/adapters/gen/` を書き直す生成器である。 <!-- skill-lint-ignore -->
 それ以外はすべて子スキルが `src/` の下に、それぞれが宣言する範囲の内側で書く。
 
 ## 制約

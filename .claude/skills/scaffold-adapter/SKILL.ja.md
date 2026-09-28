@@ -39,11 +39,11 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 | `src/adapters/README.md` の `## 監査の観点` | 口が満たすべき行。計画はその 1 行ずつに答える |
 | `src/adapters/README.md` の分類・寿命・資格情報・URL の予算・taint の節 | どの接続口か、`allowAnonymous` を立てるか、寿命を持つか・どう持つか、結果を汚すか |
 | `src/adapters/server/http/README.md` | 口が通る接続口と要求境界 |
-| `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメータ・宣言された応答・生成スキーマ |
+| `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメータ・宣言された応答・生成スキーマ <!-- skill-lint-ignore --> |
 | `scripts/gen/` | `pnpm gen adapter` が何を置き、どんな次の手順を出すか |
 | 同じ種類の operation を呼ぶ隣のモジュール | 要求・写し・taint の具体の形。食い違えば README が勝つ |
 
-書くもの: `pnpm gen adapter` が置いたもの、そのあとはそれらのファイルへの編集だけ。`src/adapters/gen/` と
+書くもの: `pnpm gen adapter` が置いたもの、そのあとはそれらのファイルへの編集だけ。`src/adapters/gen/` と <!-- skill-lint-ignore -->
 `openapi/` の下には書かない。
 
 ## Step 0. 前提条件
@@ -51,12 +51,12 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 名前と operation（`operationId`）を、引数・`scaffold-slice` の文脈・`AskUserQuestion` のいずれかで決める。
 そのうえで次を確かめ、**最初に落ちたところで止まる**。
 
-1. **operation が取得済みの契約に在る。** 各 `operationId` を `openapi/*.gen.yaml` から探す。無ければ引き渡しを
+1. **operation が取得済みの契約に在る。** 各 `operationId` を `openapi/*.gen.yaml` から探す。無ければ引き渡しを <!-- skill-lint-ignore -->
    添えて止まる: 契約はバックエンド側で変わり、そのあと `openapi/sources.yaml` の `ref` が動き、
    `make ai-api-fetch` と `make ai-api-gen` が生成し直す（手順は `openapi/README.md` が持つ）。その移動は
    `scaffold-slice` が確認つきで行い、このスキルは行わない。
 2. **生成物が契約と揃っている。** `make ai-api-gen-check`。ずれているなら、誰かが取得したまま生成していない。
-   直すのは `make ai-api-gen` であって、`src/adapters/gen/` の編集ではない —— そこは生成物であり
+   直すのは `make ai-api-gen` であって、`src/adapters/gen/` の編集ではない —— そこは生成物であり <!-- skill-lint-ignore -->
    （`git check-attr linguist-generated -- <path>` がそう答える）、編集は `AGENTS.md` の trip wire である。
 3. **置き先のパスが無い。** `pnpm gen adapter` は既に在るパスを拒み、このスキルも同じく拒む。
 4. **口が返す表示用の型が在る**か、今回の実行に含まれている。adapter が返せるのは自分が import できる
@@ -114,7 +114,7 @@ pnpm gen adapter <name>
 生成されたスタブを計画どおりの口に置き換える。
 
 - 要求は Step 1 が導いた接続口を通り、生成スキーマを伴い、表示用の型を返す。export されるシグネチャに
-  `src/adapters/gen/` 由来のものは現れない。
+  `src/adapters/gen/` 由来のものは現れない。 <!-- skill-lint-ignore -->
 - 寿命と taint は Step 1 が導いたとおりに —— 導かなかったなら持たせない。
 - **骨組みが持つ生成された `TODO:` の文を消す。** 計画が答えている。**新しいコメントは書かない** —— 口が
   どれを得たかは Step 7 が決める。
@@ -148,7 +148,7 @@ pnpm gen adapter <name>
 ## AI Modification Scope
 
 書くのは `src/adapters/` の下だけで、`pnpm gen adapter` を通し、そのあとはそれが置いたファイルへの編集に
-限る。`openapi/` と `src/adapters/gen/` はここでは read-only である。
+限る。`openapi/` と `src/adapters/gen/` はここでは read-only である。 <!-- skill-lint-ignore -->
 
 ## 制約
 
