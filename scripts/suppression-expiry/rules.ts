@@ -42,7 +42,7 @@ export type MalformedSuppression = Suppression & {
 };
 
 /** 冷却の免除の対象の形。名前に続けて版を名指しする。 */
-const VERSIONED_SUBJECT = /^[^@\s]+@\S+/;
+const VERSIONED_SUBJECT = /^(@[^@\s/]+\/)?[^@\s/]+@\S+/;
 
 /**
  * 撤回条件を満たした宣言を選ぶ。

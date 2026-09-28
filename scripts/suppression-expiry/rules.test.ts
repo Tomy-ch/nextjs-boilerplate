@@ -83,6 +83,25 @@ describe("malformedSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("scope 付きの名前でも、版を名指しした免除は様式を満たす", () => {
+    expect(
+      malformedSuppressions([
+        exemption("@scope/pkg@1.2.3", "修正版。窓が明ける 2026-08-02 に外す。"),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("scope 付きの名前だけの免除は落とす", () => {
+    expect(
+      malformedSuppressions([exemption("@scope/pkg", "修正版。窓が明ける 2026-08-02 に外す。")]),
+    ).toEqual([
+      {
+        ...exemption("@scope/pkg", "修正版。窓が明ける 2026-08-02 に外す。"),
+        defects: ["対象が版を名指ししていない（<name>@<version> の形で書く）"],
+      },
+    ]);
+  });
+
   it("免除でない宣言は、理由さえあれば日付を求めない", () => {
     expect(
       malformedSuppressions([
