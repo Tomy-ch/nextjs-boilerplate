@@ -1,13 +1,5 @@
 import path from "node:path";
 
-/**
- * Claude 側から Codex へ移植を渡すときの、起動の姿勢と受け手への前置き。
- *
- * @remarks
- * 起動と終了コードは入口が持ちます。ここは「何を渡すか」だけを持ち、姿勢を散文ではなく
- * 1 箇所の値に置くことで、実行のたびに組み立て直されないようにします。
- */
-
 /** Codex 側のスキルの置き場（リポジトリ相対）。 */
 export const CODEX_SKILLS_DIR = ".agents/skills";
 
@@ -18,10 +10,8 @@ export const CODEX_RECEIVER_WORKFLOW = `${CODEX_SKILLS_DIR}/manage-skill/SKILL.m
  * `codex exec` へ渡す引数。
  *
  * @remarks
- * サンドボックスは `workspace-write` のまま、書き込み可能な root へ `.agents/` を 1 つ足すだけです。
- * 受け手が書くのはエージェント資産の置き場で、そこへ書けるかを sandbox の既定に委ねないために
- * 明示します。root の追加であって、サンドボックスを置き換えも外しもしません。プロンプトは
- * 標準入力（`-`）から渡します。
+ * 受け手の書き込み先 `.agents/` へ書けるかを sandbox の既定に委ねないため、`workspace-write` の
+ * まま書き込み可能な root を 1 つ足します。プロンプトは標準入力（`-`）から渡します。
  *
  * @param repoRoot - リポジトリの絶対パス
  * @returns `codex` に続ける引数の並び
@@ -44,7 +34,7 @@ export function codexExecArgs(repoRoot: string): string[] {
  *
  * @remarks
  * 受け手は非対話で、尋ねる相手がいません。前置きは質問で止まらないことと、連鎖を延ばさないことを
- * 求めます。ただし連鎖の深さを実際に抑えるのは前置きではなくリースです。
+ * 求めます。連鎖の深さを実際に抑えるのは `lock.ts` の `acquireHandoffLock` のリースです。
  *
  * @param contract - 転送契約の本文
  * @param hasReceiverWorkflow - Codex 側に `manage-skill` が在るか
