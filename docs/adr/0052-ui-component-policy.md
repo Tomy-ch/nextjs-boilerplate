@@ -74,7 +74,7 @@ shadcn/ui から取り込んだ実装は**参照実装**として持つ。取り
 
 - **shadcn/ui は copy-in(コードを本体に取り込む)方式**であり、npm 依存としての**バージョンロックが構造的に存在しない**。取り込んだ後は自リポジトリのコードであり、shadcn という配布元が消えても、更新を止めても、任意に改変しても成立する(可搬性 = 十分)。これは「shadcn だから」ではなく「**Radix の WAI-ARIA 準拠 primitive + Tailwind の組み合わせを、自コードとして所有できる**」という独立根拠で選んでいる(正当性材料 = 十分)
 - アイコンセットは他の SVG アイコン(Heroicons / Phosphor 等)へ差し替え可能であり、参照は `src/components/icon.ts` 1 ファイルに閉じる。差し替えはこのファイルの右辺だけで完結し、呼び出し側の綴りは動かない
-- 運用テスト(0010 §2): 「shadcn / Tabler を正当化から抜いても、Radix primitive + Tailwind + SVG アイコンで純 UI を組む、というパターンは正当か?」→ Yes。乗っても縛られていない
+- 運用テスト([0010](0010-standards-and-non-lockin.md) の非ロックインの判定): 「shadcn / Tabler を正当化から抜いても、Radix primitive + Tailwind + SVG アイコンで純 UI を組む、というパターンは正当か?」→ Yes。乗っても縛られていない
 
 **非ロックイン境界(adapters/カーネル境界)**:
 

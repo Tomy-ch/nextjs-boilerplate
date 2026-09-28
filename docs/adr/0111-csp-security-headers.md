@@ -24,7 +24,7 @@ CSP 適合の検査は **CI 時点で払える**ため [0110](0110-security-oper
 ### 1. 標準準拠と非ロックインの位置づけ([0010](0010-standards-and-non-lockin.md) 適用)
 
 - CSP・各セキュリティヘッダは **W3C / IETF の Web プラットフォーム標準**(CSP Level 3 / RFC 6797 HSTS / Referrer-Policy / Permissions-Policy / Cross-Origin-* isolation)であり、**ブラウザが enforce する**。seam(ヘッダを吐く場所)は Next.js のデファクト(`next.config.ts` `headers()` / `proxy.ts` のヘッダ操作)に乗る([0010](0010-standards-and-non-lockin.md)・[0043](0043-middleware-policy.md))が、**防御の実体は Next.js に依存しない**。
-- **vendor-independent 正当性材料**(0010 §2 の必須記載): CSP = XSS・clickjacking・コードインジェクションへの **多層防御**(`script-src` で任意スクリプト実行を、`frame-ancestors` / `X-Frame-Options` で clickjacking を、`object-src 'none'` / `base-uri 'self'` で注入面を絞る)/ HSTS = 中間者・ダウングレード攻撃の緩和 / `X-Content-Type-Options: nosniff` = MIME スニッフィング由来の XSS 緩和 / `Referrer-Policy` = リファラ経由の情報漏洩の最小化 / `Cross-Origin-Opener-Policy` + `Cross-Origin-Embedder-Policy` + `Cross-Origin-Resource-Policy` = 別 origin との文脈共有を閉じ、Spectre 系のサイドチャネルから隔離する。**運用テスト(0010 §2)**: 「Next.js を正当化から抜いても、これらのヘッダは正当か?」→ **Yes**(任意の HTTP サーバ・CDN 上で等価に有効)。
+- **vendor-independent 正当性材料**(標準に乗る決定が必ず添えるもの。[0010](0010-standards-and-non-lockin.md)): CSP = XSS・clickjacking・コードインジェクションへの **多層防御**(`script-src` で任意スクリプト実行を、`frame-ancestors` / `X-Frame-Options` で clickjacking を、`object-src 'none'` / `base-uri 'self'` で注入面を絞る)/ HSTS = 中間者・ダウングレード攻撃の緩和 / `X-Content-Type-Options: nosniff` = MIME スニッフィング由来の XSS 緩和 / `Referrer-Policy` = リファラ経由の情報漏洩の最小化 / `Cross-Origin-Opener-Policy` + `Cross-Origin-Embedder-Policy` + `Cross-Origin-Resource-Policy` = 別 origin との文脈共有を閉じ、Spectre 系のサイドチャネルから隔離する。**運用テスト(0010 の非ロックインの判定)**: 「Next.js を正当化から抜いても、これらのヘッダは正当か?」→ **Yes**(任意の HTTP サーバ・CDN 上で等価に有効)。
 
 ### 2. 既定で敷く静的ヘッダ(レンダリングモード非依存・`next.config.ts` `headers()`)
 

@@ -2,7 +2,7 @@
 
 story 単位の visual regression が、どの部品でどう組み上がっているか。決定は
 [ADR 0091](../adr/0091-test-verification-methods.md)、使い方は [`vrt/README.md`](../../vrt/README.md)、
-初回の用意は [セットアップ手順](../get-started/setup-repository.md) §6 が正。ここは**全体の composition**
+初回の用意（基準画像の置き場・GitHub App・最初の撮影）は [セットアップ手順](../get-started/setup-repository.md) が正。ここは**全体の composition**
 だけを持つ。
 
 ## 何と何を比べているか

@@ -40,7 +40,7 @@ ls src/config/ 2>/dev/null
 - `src/config/environment.ts` — 明示的な環境スキーマと purpose validator の import
 - `env/README.md` — 変数表とサブシステム別セクション。**どの変数が存在するか**の正
 - `src/config/README.md` — config カーネル README。**設定値そのもの**（ビルド時に検証され、purpose モジュールへ渡される値）の正
-- `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` — 環境別の値の置き場とセクションコメントの体裁
+- `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` — 環境別の値の置き場。セクションコメントは持たず、行の順序と行の形は `env/README.md` の「ファイルの書き方」が決める
 - `package.json` — 存在する検証スクリプト（`lint:ci` / `typecheck` / `build`、テストスクリプトが追加済みならそれも）
 
 **書く（確認後のみ）**:
@@ -130,7 +130,7 @@ ls src/config/ 2>/dev/null
   - 「prd だけ別の値を入れる」
   - 「環境ごとに個別指定する（追加質問）」
 
-選択に応じて値を集める。`prd` は、ユーザが明示値を与えない限り既存ファイルのプレースホルダ慣行（通常はコメントアウト行）に従う。secret ラベル付きの変数は常にプレースホルダとする。
+選択に応じて値を集める。`prd` は、ユーザが明示値を与えない限り、`env/README.md` がプラットフォームの与える値に割り当てる行の形（名前だけのコメントアウト行）にする。secret ラベル付きの変数は常にその形とする。
 
 ## Step 1. 挿入位置の決定
 
@@ -152,7 +152,8 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 
 実在する `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` の各々について:
 
-- purpose のセクションコメントを探し、その下へ既存の整列とコメント作法を保って 1 行足す
+- どのファイルでも同じ位置へ行を足す。5 つのファイルは `env/README.md` の変数表と同じ順序で同じ変数を持つので、新しい行は表の行が入る位置に入る。目印にするセクションコメントは無い
+- 行の形（`NAME=value` / `NAME=` / `# NAME=` / `# NAME=<候補>`）は、`env/README.md` の「ファイルの書き方」の定義に従って、誰が値を与えるかで選ぶ。同じ節が一部の環境に限る変数（検証のためだけの上書き、開発専用の切り替え）は、その環境のファイルにだけ足す
 - secret ラベル付きはプレースホルダ（またはコメントアウト行）とし、実値は書かない
 
 ### `env/README.md` — 変数の存在（常に）
@@ -251,7 +252,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - ❌ env 変数表の内容を config README へ二重に書くこと（逆も同様。2 つの文書は持つものが違う）
 - ❌ 仕様確認の `AskUserQuestion` を省くこと / 計画提示なしに適用すること
 - ✅ ユーザ向け出力は日本語
-- ✅ env ファイル（整列・コメント作法）と README 表（列数・順序）の体裁を保つ
+- ✅ env ファイル（行の順序・行の形）と README 表（列数・順序）の体裁を保つ
 - ✅ 書き込み後に `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` を実行する
 - ✅ 検証の失敗は提示する。自動ロールバックはしない
 
@@ -270,7 +271,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] 計画全体を提示し、ユーザが承認した
 - [ ] config 経由の経路: purpose を 1 つだけ更新した（スキーマ項目 + runtime モジュールの既存の形での値。setter なし）
 - [ ] client モジュールの値は文字列リテラルで名指す参照のみ
-- [ ] 実在する env ファイルすべてを該当セクション配下で更新した
+- [ ] 変数が属する env ファイルすべてを、表の順序の位置へ、`env/README.md` が割り当てる行の形で更新した
 - [ ] `env/README.md` の変数表に行を足した（常に）
 - [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）
 - [ ] config 経由の経路: `src/config/environment.fixture.ts` にも鍵を足した

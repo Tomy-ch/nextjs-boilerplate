@@ -222,7 +222,7 @@ hook の側で押さえるのは 3 つ。
 
 **client へ渡してはいけないものを登録する口は別にある。** [`server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) の `taintObjectReference` / `taintUniqueValue` で、登録しているのは session の記録（Access Token を持つ object）と署名鍵だけである。取得の口で PII を含む取得結果を汚す形は [`adapters/README.md`](../../src/adapters/README.md) が参照実装として示しているが、**同梱の口でそれを呼んでいるものは無い**。
 
-段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダ）は ADR 0112 決定 4 の表が持ち、ここでは再掲しない。
+段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダ）は、関所を一箇所に集めず段として置くと決めた [0112](../adr/0112-data-classification-cache-boundary.md) の表が持ち、ここでは再掲しない。
 
 ## 購読はこの通り道に無い
 

@@ -34,7 +34,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 ### 3. シグナル別 config gating
 
-- traces / metrics / logs を **`OBS_*` config(例 `OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER` / `OBS_OTLP_ENDPOINT`)で個別に on/off** する。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
+- traces / metrics / logs を **`OBS_*` config(`OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER`)で個別に on/off** する。送り先の endpoint は `OBS_*` に改名せず、OTel の標準名 `OTEL_EXPORTER_OTLP_ENDPOINT` で受ける([0028](0028-naming-convention.md) の標準名の例外)。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
 - **何を計装するかは transport と別の軸で持つ**。描画の計装は `OBS_RENDER_SPANS`(`none` / `screen` / `part`)で範囲を選び、起動境界から注入する。exporter の無効化を計装の無効化の代わりに使えない —— `OBS_TRACES_EXPORTER=none` でも他の signal が有効なら SDK は tracer provider を立て、span は記録されたうえで捨てられる(成果物だけがゼロになり計装のコストは残る)
 - gating は **構築時**に効かせる(disabled シグナルは exporter / batcher / reader を一切作らない)。config は [0030](0030-environment-variable-management.md) の型付き Config で供給し、`observability` は config を注入で受ける([0021](0021-frontend-responsibility.md))
 - **`logging` は `observability` を import しない**(依存方向を逆転させない)。trace 抽出は `observability` が提供する抽出器を logging へ**注入**する
@@ -77,6 +77,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `logging` / `observability` カーネル(config は注入で受ける)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — `OBS_*` config の供給 / BFF runtime config / secret 非露出
+- [0028-naming-convention.md](0028-naming-convention.md) — OTel の標準名(`OTEL_EXPORTER_OTLP_ENDPOINT` 等)を `{SUBSYSTEM}_{NAME}` へ改名しない例外
 - [0080-error-handling.md](0080-error-handling.md) — エラーログのレベル(5xx=error / 4xx=warn)・redact(本 ADR がスキーマ・trace 相関を定める)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — fetch wrapper のログ / trace 伝播 / ブラウザ→BFF 中継の実装層
 - [0082-client-observability.md](0082-client-observability.md) — ブラウザ発の経路(trace / RUM / client エラー / プロダクト分析)の具体化

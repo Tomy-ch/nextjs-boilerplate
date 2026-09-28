@@ -46,7 +46,7 @@ Do NOT use this skill for:
 - `src/config/environment.ts` — the explicit environment schema and the purpose-validator imports.
 - `env/README.md` — the variable table and its per-subsystem sections. This is the authority on **which variables exist**.
 - `src/config/README.md` — the config kernel README. This is the authority on **the config values themselves** — the ones validated at build time and supplied to purpose modules.
-- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement and section-comment layout.
+- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement. The files carry no section comments; line order and line form are set by the file-writing section of `env/README.md`.
 - `package.json` — which verification scripts exist (`lint:ci` / `typecheck` / `build`, and a test script if one has been added).
 
 **Writes (only after confirmation)**:
@@ -136,7 +136,7 @@ Keep both short and direct, matching the register of surrounding rows.
   - 「prd だけ別の値を入れる」
   - 「環境ごとに個別指定する(追加質問)」
 
-Collect the values per the choice. For `prd`, follow whatever placeholder convention the existing files use (typically a commented-out line) unless the user supplies an explicit value — and always for a secret-labelled variable.
+Collect the values per the choice. For `prd`, use the line form `env/README.md` assigns to a value the platform supplies (a commented-out name) unless the user supplies an explicit value — and always for a secret-labelled variable.
 
 ## Step 1. Plan the Insertion Points
 
@@ -158,7 +158,8 @@ Server-module specifics: `import "server-only"` is already at the top of the fil
 
 For each of `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` (use the set that actually exists):
 
-- Locate the section comment for the purpose and append the line under it, preserving the existing alignment and comment style.
+- Insert the line at the same position in every file: the files hold the same variables in the order of the variable table in `env/README.md`, so the new line goes where its table row goes. There are no section comments to anchor on.
+- Pick the line form (`NAME=value` / `NAME=` / `# NAME=` / `# NAME=<candidate>`) that states who supplies the value, as the file-writing section of `env/README.md` defines it. A variable that the same section confines to some environments — a verification-only override, a development-only switch — goes only into those files.
 - Secret-labelled variables get a placeholder (or a commented-out line), never a real value.
 
 ### `env/README.md` — the variable exists (always)
@@ -257,7 +258,7 @@ Remains protected:
 - ❌ Duplicate the env variable-table content into the config README (or the reverse) — the two documents own different things
 - ❌ Skip the spec-confirmation `AskUserQuestion`, or apply changes without showing the plan first
 - ✅ Japanese user-facing output
-- ✅ Preserve formatting in env files (alignment, comment style) and README tables (column count and order)
+- ✅ Preserve formatting in env files (line order, line form) and README tables (column count and order)
 - ✅ Run `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` after the writes
 - ✅ Surface any verification failure; do not auto-rollback
 
@@ -276,7 +277,7 @@ Before reporting completion, confirm:
 - [ ] The full plan was displayed and the user approved it
 - [ ] Config-backed path: exactly one purpose updated (schema entry + value in the runtime module's existing shape, no setter)
 - [ ] Client-module values are read only by string-literal name
-- [ ] All existing env files updated under the matching section
+- [ ] Every env file the variable belongs in was updated at its table-order position, in the line form `env/README.md` assigns
 - [ ] `env/README.md` got its variable-table row (always)
 - [ ] `src/config/README.md` updated on the config-backed path, without restating the env row
 - [ ] Config-backed path: the key was added to `src/config/environment.fixture.ts` as well

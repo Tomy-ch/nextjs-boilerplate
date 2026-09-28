@@ -35,7 +35,7 @@ Accepted
 
 - 配置: `.claude/skills/<slug>/SKILL.md` (canonical 英) + `SKILL.ja.md` (翻訳参考)
 - 命名: kebab-case 動詞ベース
-- frontmatter: `name` / `description` / `argument-hint` (任意) / `allowed-tools` (任意)
+- frontmatter: `name` / `description` / `usage-class` / `argument-hint` (任意) / `allowed-tools` (任意)
 - 本文構造: When to Use / Do NOT use / Step 番号付き手順 / 検証
 
 ## カバー範囲 (既存スキル)

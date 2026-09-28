@@ -63,7 +63,7 @@ Accepted
 | # | 節 | 責務 |
 | --- | --- | --- |
 | 1 | 前文（見出しを持たない） | リポジトリの役割を数行で述べ、**規約をここに再掲しないこと**と、どの文書が何を持つかは #3 の表が言うことを宣言する。役割の詳細は [`README.md`](../../README.md) が持ち、写しを置かない。続けて**全作業に掛かる 3 制約**（決定的な検査が判断より上位 / アーキテクチャと方針は人のゲートを残す / アプリは AI に依存しない）を置く —— どれも個別の節の中では述べられない、節をまたいで効く前提である |
-| 1.5 | Temporary Operating Rules until v1.0.0 | **v1.0.0 未満の期間限定節**。Protected Documentation / AI Modification Scope の一時解除を宣言する。v1.0.0 到達時に節ごと削除し、戻す先の形と手順は下記「Protected Documentation の機械強制」が持つ([0140](0140-documentation-operations.md) の同名節と対。切替は 0140 決定 4 と同じ変更で行う) |
+| 1.5 | Temporary Operating Rules until v1.0.0 | **v1.0.0 未満の期間限定節**。Protected Documentation / AI Modification Scope の一時解除を宣言する。v1.0.0 到達時に節ごと削除し、戻す先の形と手順は下記「Protected Documentation の機械強制」が持つ([0140](0140-documentation-operations.md) の同名節と対。切替は 0140 が ADR を immutable へ移すのと同じ `release/v1.0.0` の変更で行う) |
 | 2 | Instruction Priority | 指示の優先度 (後述) |
 | 3 | Canonical Documentation | 「何が要るか → どこを読むか」の経路表。**ADR の一覧を持たない** —— 全件は [`docs/adr/README.md`](README.md) が 1 行要約つきで持ち、二重管理にすると片方が黙って古くなる。正典がサフィックス無しのパスであること（`*.ja.md` を読まない）も同じ節が述べる |
 | 4 | Task Execution Protocol | 着手前に踏む順。**触る先を所有する `README.md` を先に読む**ことと、索引から決定を引くこと、既存実装の確認、契約を生成物より先に動かすこと、**所有スキルがある操作を手で組み直さないこと** |

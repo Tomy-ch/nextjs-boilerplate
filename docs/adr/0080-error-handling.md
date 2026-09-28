@@ -37,6 +37,8 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 | Unimplemented | `NOT_IMPLEMENTED` | 501 | システム起因 |
 | Internal | `INTERNAL` | 500 | システム起因 |
 
+表の sentinel 名は分類の概念名である。コード上は、値を kebab-case の文字列(`"invalid-argument"`)、名前付き定数を UPPER_SNAKE_CASE(`ErrorKind.INVALID_ARGUMENT`。定数の形は [0028](0028-naming-convention.md))で持ち、どちらも同じ分類を指す。
+
 - **worker 向けの分類(再試行可能 / 恒久 / 致命)は採らない**。メッセージング worker 固有の軸であり、表示層は HTTP taxonomy のみを持つ
 - **エラーコード語彙はこの repo が持つ**: 上表のコードは分類ごとに `errors` カタログが生成する**この repo の語彙**であり、**wire へ出ることは無い**(route が返す失敗は文言だけを載せる)。境界も接続先の `code` を読まない(下記 2)。**契約は `ErrorResponse.code` の値域を宣言していない**(`type: string`)ため、生成物から突き合わせる手段も無い。したがってバックエンドの綴りへ機械的に寄せることはせず、**分類の意味に対して正しい名前を選ぶ**(401 は認証が成立していないので `UNAUTHENTICATED`、403 は認可の拒否なので `FORBIDDEN`)。エラーコードは wire contract の値ではないため、[0028](0028-naming-convention.md) の「命名の権威をバックエンドに置かない」がそのまま効く。人がログを突き合わせるときの対応は HTTP status で取れる —— 一次キーが status であることが、綴りの一致より確実な対応づけになる。フロント内部で追加の分類ラベルが要る場合も、この語彙と競合させない
 - **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる

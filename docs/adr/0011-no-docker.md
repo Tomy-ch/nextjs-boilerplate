@@ -238,5 +238,5 @@ Docker / self-host が必要なロールに拡張する場合の指針:
 - [0001-package-manager.md](0001-package-manager.md) — pnpm 採用（Dockerfile を持つ場合も `npm ci` を使わない根拠）
 - [0003-version-manager.md](0003-version-manager.md) — Node / pnpm バージョンの SSOT（Dockerfile FROM タグとの同期問題を消す根拠）
 - [0004-library-management.md](0004-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針 / 同梱ライブラリの exact-pin・`pnpm audit`
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 同梱ライブラリの採用の規律(vendor-independent 正当化 + adapters/seam 越し差替可能)。本 ADR の表示層ロール定義は 0010 §2「フレームワーク選択は別既決」の根拠でもある
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 同梱ライブラリの採用の規律(vendor-independent 正当化 + adapters/seam 越し差替可能)。本 ADR の表示層ロール定義は、フレームワーク固有 API の使用をロックインでなく「フレームワークを選んだ」既決の帰結とする 0010 の判定の根拠でもある
 - [0110-security-operations.md](0110-security-operations.md) / [0153-ci-configuration.md](0153-ci-configuration.md) — 供給網検疫の窓 / Actions の SHA ピン（image の digest 固定と対になる機構）

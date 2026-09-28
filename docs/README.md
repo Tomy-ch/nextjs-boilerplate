@@ -96,9 +96,9 @@
 - **逆引きと手順の表は「どこを開くか」だけを持つ。** 基準を書き写した時点で古い版が二重に残る
   （[`playbook.md`](playbook.md)、[`tutorial/`](tutorial/README.md) がこの形）
 
-## `adr` / `design` / `rules.md` は 3 つのノード
+## ノードごとの問い
 
-同じ主題について、3 つが別々の問いに答える。
+同じ主題について、ノードごとに別々の問いに答える。
 
 | ノード | 問い | 時間的性質 |
 | --- | --- | --- |
@@ -138,7 +138,7 @@
 | --- | --- |
 | [`playbook.md`](playbook.md) | 逆引きの索引と、画面を作るときの作業順。どちらも「どこを開くか」を持つだけで、基準は指す先が持つ。行き先が増えたら索引を更新するだけ |
 | [`traceability.md`](traceability.md) | 集計。自分でそう宣言している。規約の集計は `rules.md` から生成され、手で数えた件数を置かない（[0146](adr/0146-rule-reference-stability.md)） |
-| [`adr/BACKLOG.md`](adr/BACKLOG.md) | 進捗ボード。決定も撤回条件も持たず、持つ ADR の本文を指す |
+| [`adr/BACKLOG.md`](adr/BACKLOG.md) | 進捗ボード。決定も撤回条件も持たず、持つ ADR の本文を指す <!-- boilerplate-only:line --> |
 | [`portal/`](portal/) | 生成ビュー。生成器が書き直す。`docs/<dir>/` 直下の `*.md` は走査で自動発見され、載る位置は [`manifest.yaml`](portal/manifest.yaml) の `meta` が決める（[0141](adr/0141-portal-operations.md)） |
 | `plan/` | 過程の成果物。配布物ではない <!-- boilerplate-only:line --> |
 | `get-started/` | 手順。順序と人手の要る箇所しか持たず、テンプレートから作る前提が死ぬと使われなくなる |

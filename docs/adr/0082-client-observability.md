@@ -46,7 +46,7 @@ Accepted (一部 exclusion)
 ### 1. Web Vitals RUM = 採用
 
 - `useReportWebVitals`(Next.js 組込 hook)で LCP / INP / CLS 等を収集し、同一オリジン BFF 経由でサーバへ送り、**サーバ側で OTLP export**(0081)する。これで [0101](0101-performance-budget.md) の lab 計測(CI Lighthouse)に対する **field 値の欠落経路を閉じる**。閾値は置かない —— [0101](0101-performance-budget.md) の予算は lab の側が持ち、field 値は分布として読む。
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): CWV は web.dev / W3C 由来の業界標準指標(0101 が既に一次指標として独立採用済み)/ 送信 transport は OTLP/OTel = vendor-neutral(0081)/ BFF 中継は secret 非露出([0030](0030-environment-variable-management.md))と lock-in 回避。**RUM 観測性 vendor SDK(Datadog RUM 等)を正当化から抜いても、CWV を OTLP/OTel で収集する構成は成立** する = 非ロックイン(0081 のスタンスは OTLP/OTel vendor-neutral・vendor SDK 非同梱であり、特定 vendor を前提としない)。`useReportWebVitals` の使用は「App Router を選んだ」既決の帰結(0010 §2)であって機能固有ロックインではない。
+- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): CWV は web.dev / W3C 由来の業界標準指標(0101 が既に一次指標として独立採用済み)/ 送信 transport は OTLP/OTel = vendor-neutral(0081)/ BFF 中継は secret 非露出([0030](0030-environment-variable-management.md))と lock-in 回避。**RUM 観測性 vendor SDK(Datadog RUM 等)を正当化から抜いても、CWV を OTLP/OTel で収集する構成は成立** する = 非ロックイン(0081 のスタンスは OTLP/OTel vendor-neutral・vendor SDK 非同梱であり、特定 vendor を前提としない)。`useReportWebVitals` の使用は「App Router を選んだ」既決の帰結(フレームワーク固有 API の扱い。0010)であって機能固有ロックインではない。
 - **RUM 観測性 SaaS は同梱しない(exclusion)**(0081 と一致。Collector / OTLP 経由を基本とする)。
 - **サーバ側では metric(指標ごとのヒストグラム)として持つ**。求めるのは実利用者ぶんの百分位であり、1 件ずつのレコードから毎回それを組むより計器の側が分布を持つほうが、読む手数も保持のコストも小さい。公式 semantic convention が web vitals へ与えているのは `browser.web_vital` という event 名だけで metric 名を定めていないが、event で出すと 1 レコードごとに中継要求の span が付き、測定が起きていない要求と親子になる。
 - これは **運用テレメトリ(パフォーマンス)** であり、[0131](0131-cookie-consent.md) が consent gate の対象とする **ユーザ行動トラッキングとは区別** される。→ **既定で consent gate の対象外**(下記 §4)。
@@ -58,14 +58,14 @@ Accepted (一部 exclusion)
 - エラー分類は `errors` カーネルのセンチネル([0080](0080-error-handling.md))を用いる。**送る側は 1 回のページ読み込みで打ち切り件数まで**とし、**サンプリングは持たない** —— 率が要るなら中継の口の手前へ足す。
 - **伏せるのは受け側**で、[0081](0081-observability-logging.md) の名前の表に当たる属性だけを落とす。**例外の文言と stack の中身は無害化しない** —— この層が始末できるのは自分が組み立てた値だけである([0070](0070-backend-role-separation.md) 境界値の所有)。文言に載せてよいものは呼び出し側が決める。
 - **vendor-independent**: ブラウザ側エラーの可視化は 0080 / 0081 がサーバ側で完結していた観測性の片翼を埋めるもので、収集経路は構造化ログ / OTLP(0081)= vendor-neutral。エラー監視 SaaS は同梱しない(§1 と同じ exclusion 論理)。
-- **運用テレメトリ扱い**(consent gate 対象外。0131。§4)。
+- **運用テレメトリ扱い**(consent gate 対象外。0131。線引きは本 ADR の「consent gate の線引き」の節)。
 
 ### 3. プロダクト分析 seam = タグマネージャを同梱する
 
 - **タグマネージャを同梱する**([0131](0131-cookie-consent.md))。同梱するのは**容器を読み込む口だけ**で、何を計測するかは容器の中身が持つ。
 - **物理配置 = `app` の client island**(`src/app/analytics.tsx`)。`adapters/client` ではない。あそこが受け持つのは**このアプリが送信を組み立てる経路**(§1 RUM / §2 client エラー)であり、タグマネージャは**読み込むだけで送信は容器の中身が行う**。送信の組み立てを持たないものに source adapter を立てても、通り道が 1 つ増えるだけになる。
 - **`dataLayer` へ値を渡してよいのはこの island だけ**とする。feature / component から直接触ると、何が外へ出るかが散る。
-- **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものである。掛け方は**呼び出しの手前で述語を見る形ではなく、島そのものを mount しない形**を採る —— [0031](0031-policy-state-supply.md) の純関数 gate 述語(既定 = 「未同意で全 gate」)が偽である間、`src/app/consent.tsx` は島を描かない。**要素が在る時点で取得が始まる資材は、述語では止められない**(0131 §1)。gate の具体粒度・consent ソースは用途依存でここでは定めない(0031 と一致)。
+- **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものである。掛け方は**呼び出しの手前で述語を見る形ではなく、島そのものを mount しない形**を採る —— [0031](0031-policy-state-supply.md) の純関数 gate 述語(既定 = 「未同意で全 gate」)が偽である間、`src/app/consent.tsx` は島を描かない。**要素が在る時点で取得が始まる資材は、述語では止められない**(0131 の軽量 consent 機構が島を描かないことで止める理由)。gate の具体粒度・consent ソースは用途依存でここでは定めない(0031 と一致)。
 - **vendor-independent**: 同梱するのは容器を読み込む口だけで、**どの計測ベンダーへ繋ぐかは容器の中身が持つ**。ベンダーを替えても本体のコードは変わらない。外すのは容器 ID を空にするだけで済み、外した配備の初期 JS にライブラリは載らない([0131](0131-cookie-consent.md))。
 
 ### 4. consent gate の線引き(運用テレメトリ vs 行動トラッキング)

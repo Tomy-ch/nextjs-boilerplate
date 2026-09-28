@@ -324,11 +324,12 @@ the discipline is here because it binds every turn.
 - **Do not wrap `grep` or `read`.** `rtk grep` passes small inputs through but **silently truncates
   large ones**, and `read` drops lines at every level above the default. Both produce output that is
   missing things while looking complete.
-- **Never report a gate, a test or a lint through it.** `rtk log` and `rtk read -l` are denied for that
-  reason, which is where a rule like this belongs
+- **Never report a gate, a test or a lint through it.** `rtk log` and `rtk read` — at every level, not
+  only `-l` — are denied for that reason, which is where a rule like this belongs
   ([0144](docs/adr/0144-decision-enforcement-pairing.md)).
-- The arbitrary-command wrappers (`run` / `summary` / `smart`) are denied: they route around an allow
-  list written at inner-command granularity.
+- The arbitrary-command wrappers (`run` / `summary` / `smart`) are not in `allow`, and the hook
+  `scripts/command-guard` strips them and judges the wrapped command: the allow list is written at inner-command
+  granularity, and a wrapper would otherwise route around it.
 
 **`graphify`** is a local AST knowledge graph of this repository (`/graphify`).
 
