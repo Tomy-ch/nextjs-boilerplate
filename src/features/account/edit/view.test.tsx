@@ -26,6 +26,14 @@ describe("ProfileEditView", () => {
     expect(screen.getByLabelText("名字")).toHaveValue("山田");
   });
 
+  it("連絡先と住所の各項目も初期値としてフォームへ渡す", () => {
+    renderView();
+
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue(PROFILE.email);
+    expect(screen.getByLabelText("都道府県")).toHaveValue(PROFILE.prefecture);
+    expect(screen.getByLabelText("建物名・部屋番号")).toHaveValue(PROFILE.building);
+  });
+
   it("受け取った都道府県をフォームの選択肢へ渡す", () => {
     renderView();
 

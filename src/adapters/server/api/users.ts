@@ -70,7 +70,14 @@ function toUserProfile(wire: WireUser): UserProfile {
  * @returns 自分のプロフィール
  */
 export async function getMyProfile(): Promise<UserProfile> {
-  return toUserProfile(await getMyUser());
+  const profile = toUserProfile(await getMyUser());
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    profile,
+  );
+
+  return profile;
 }
 
 /**

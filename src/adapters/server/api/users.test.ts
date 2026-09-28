@@ -149,6 +149,15 @@ describe("getMyProfile", () => {
     await expect(getMyProfile()).resolves.not.toHaveProperty("deletedAt");
   });
 
+  it("写したプロフィールを client へ渡せないものとして登録する", async () => {
+    serveJson(ME_URL, wireUser);
+
+    const result = await getMyProfile();
+
+    expect(taintObjectReference).toHaveBeenCalledTimes(1);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), result);
+  });
+
   it("建物名の無い利用者の建物名を null にする", async () => {
     serveJson(ME_URL, { ...wireUser, building: undefined });
 
