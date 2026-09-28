@@ -10,10 +10,22 @@
 
 | パス | 中身 |
 | --- | --- |
-| `skills/` | `AGENTS.md` が OpenAI Codex CLI 用に予約しているパス（実体は未作成） |
+| `skills/` | OpenAI Codex CLI のスキル。置き場は `AGENTS.md` が割り当てる。下記 |
 | `purity-sweep/` | 純化パスの台帳と照会フック。下記 <!-- boilerplate-only:line --> |
 | `closed-loop/` | 開発の窓の打刻。下記 |
 | `private/` | 機械ローカルの索引（追跡外）。再生成できる cache で、失っても費用がゼロ |
+
+## `skills/`
+
+**記録ではなく、アシスタントへ渡す設定**である。上の線引き（設定は各アシスタントの
+ディレクトリ、記録はここ）の例外で、置き場は `AGENTS.md` の *Agent configuration file protection* が
+OpenAI Codex CLI に割り当てている。設定なので、寿命は記録ではなく設定の側に従う —— 問いが閉じても
+消さない。
+
+Claude 側（`.claude/skills/`）との対応は、ディレクトリのコピーではなく 1 スキルずつの意味的な移植で
+取る。手順は [`sync-ai`](../.claude/skills/sync-ai/SKILL.md) スキルが持ち、Codex への引き渡しは
+[`scripts/sync-ai/`](../scripts/sync-ai/) が行う。書くのは受け手の Codex であって、Claude はここへ
+書かない。
 
 <!-- boilerplate-only:begin -->
 ## `purity-sweep/`
