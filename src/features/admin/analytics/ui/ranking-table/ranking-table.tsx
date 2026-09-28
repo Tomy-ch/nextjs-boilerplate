@@ -4,8 +4,8 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { formatNumber } from "@/model/number";
 import { withPartSpan } from "@/observability/render-span";
-import { formatCount } from "../../../count";
 import { productDetailPath } from "../../../paths";
 import type { AdminRankingRow } from "../../ranking-rows";
 
@@ -51,7 +51,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
     header: "販売数",
     align: "end",
     headerClassName: "w-24",
-    cell: (row) => <span className="tabular-nums">{formatCount(row.soldQuantity)}</span>,
+    cell: (row) => <span className="tabular-nums">{formatNumber(row.soldQuantity)}</span>,
   },
   {
     id: "price",

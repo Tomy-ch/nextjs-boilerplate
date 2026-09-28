@@ -14,6 +14,7 @@ import type { TooltipValueType } from "recharts";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/components/cn";
+import { formatNumber } from "@/model/number";
 
 import {
   CHART_INDICATOR,
@@ -384,7 +385,7 @@ export function ChartTooltipContent({
                       {item.value == null ? null : (
                         <span className="font-mono font-emphasis text-foreground tabular-nums">
                           {typeof item.value === "number"
-                            ? item.value.toLocaleString()
+                            ? formatNumber(item.value)
                             : String(item.value)}
                         </span>
                       )}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDate, formatDateTime, formatTime } from "./datetime";
+import { formatDate, formatDateTime, formatMonthName, formatTime } from "./datetime";
 
 /** バックエンドが返す形と同じ、タイムゾーンを含む絶対時刻。 */
 const PUBLISHED_AT = new Date("2026-08-12T00:05:00.000Z");
@@ -52,5 +52,24 @@ describe("formatTime", () => {
 
   it("locale を明示すればその表記にする", () => {
     expect(formatTime(PUBLISHED_AT, "en-US")).toBe("9:05 AM");
+  });
+});
+
+describe("formatMonthName", () => {
+  // ----- 正常系 -----
+  it("既定の locale で短い月名にする", () => {
+    expect(formatMonthName(0)).toBe("1月");
+  });
+
+  it("locale を明示すればその表記にする", () => {
+    expect(formatMonthName(7, "en-US")).toBe("Aug");
+  });
+
+  it("年の最後の月を翌年の月へ繰り上げない", () => {
+    expect(formatMonthName(11)).toBe("12月");
+  });
+
+  it("同じ locale を繰り返し渡しても同じ表記になる", () => {
+    expect(formatMonthName(3, "en-US")).toBe(formatMonthName(3, "en-US"));
   });
 });

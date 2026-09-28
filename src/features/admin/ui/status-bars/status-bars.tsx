@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
-import { formatCount } from "../../count";
+import { formatNumber } from "@/model/number";
 import { axisPercent, type BarAxis, barAxis } from "./axis";
 
 /** `StatusBars` の props。 */
@@ -87,7 +87,7 @@ export function StatusBars({ counts }: StatusBarsProps) {
         <div className="relative h-6 pt-1 tabular-nums">
           {axis.ticks.map((tick, index) => (
             <span className="absolute" key={tick} style={tickStyle(tick, index, axis)}>
-              {formatCount(tick)}
+              {formatNumber(tick)}
             </span>
           ))}
         </div>

@@ -1,6 +1,6 @@
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 import { formatMoney } from "@/model/money";
-import { formatCount } from "./count";
+import { formatNumber } from "@/model/number";
 import { ADMIN_PRODUCT_LIST_PATH } from "./paths";
 
 /**
@@ -62,13 +62,13 @@ export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[
     {
       id: "sales-count",
       label: "売上の件数",
-      value: formatCount(summary.salesCount),
+      value: formatNumber(summary.salesCount),
       note: "売上に算入した購入の数です",
     },
     {
       id: "published-product-count",
       label: "公開中の商品",
-      value: formatCount(summary.publishedProductCount),
+      value: formatNumber(summary.publishedProductCount),
       note: "現在の数です。期間では変わりません",
       // 押せません。公開済みだけを並べる一覧が無く、admin の一覧は未公開を含めて返すため、
       // 送るとこの数より多い件数が出ます（`src/features/admin/README.md`「契約との関係で
@@ -77,7 +77,7 @@ export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[
     {
       id: "total-product-count",
       label: "登録済みの商品",
-      value: formatCount(summary.totalProductCount),
+      value: formatNumber(summary.totalProductCount),
       note: "未公開を含む現在の数です",
       // admin の一覧は未公開を含めて返すので、条件を付けない一覧がそのままこの数になる。
       href: ADMIN_PRODUCT_LIST_PATH,

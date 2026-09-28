@@ -12,6 +12,8 @@ import {
 
 import { cn } from "@/components/cn";
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from "@/components/icon";
+import { formatMonthName } from "@/model/datetime";
+
 import { Button, buttonVariants } from "../../action/button/button";
 
 /**
@@ -91,7 +93,7 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       formatters={{
-        formatMonthDropdown: (date) => date.toLocaleString("default", { month: "short" }),
+        formatMonthDropdown: (date) => formatMonthName(date.getMonth()),
         ...formatters,
       }}
       classNames={{
@@ -201,7 +203,7 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="sm"
-      data-day={day.date.toLocaleDateString()}
+      data-day={day.isoDate}
       data-selected-single={
         modifiers["selected"] &&
         !modifiers["range_start"] &&

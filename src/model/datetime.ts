@@ -80,3 +80,28 @@ export function formatDate(value: Date, locale: string = DEFAULT_LOCALE): string
 export function formatTime(value: Date, locale: string = DEFAULT_LOCALE): string {
   return formatterOf(locale, "time").format(value);
 }
+
+const monthNameFormatters = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * 暦の月を、locale に沿った短い月名にする。
+ *
+ * @remarks
+ * 瞬時ではなく暦の月を受け取るので、タイムゾーンを通しません。月の初日を指す `Date` は作られた
+ * 場所の現地時刻で 0 時を指しており、{@link DEFAULT_TIME_ZONE} で読み直すと、それより東の
+ * 現地時刻では前の月に落ちます。
+ *
+ * @param monthIndex - 0 始まりの月（1 月が 0）
+ * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 短い月名
+ */
+export function formatMonthName(monthIndex: number, locale: string = DEFAULT_LOCALE): string {
+  let formatter = monthNameFormatters.get(locale);
+
+  if (formatter === undefined) {
+    formatter = new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" });
+    monthNameFormatters.set(locale, formatter);
+  }
+
+  return formatter.format(Date.UTC(2000, monthIndex, 1));
+}
