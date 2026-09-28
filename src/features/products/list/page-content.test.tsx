@@ -4,7 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { ProductRef } from "@/model/product/product";
+import type { ProductCategoryId, ProductRef } from "@/model/product/product";
+import { toProductCategoryId } from "@/model/product/product";
 
 const { getProductCategories } = vi.hoisted(() => ({ getProductCategories: vi.fn() }));
 const { ProductListResults } = vi.hoisted(() => ({
@@ -18,9 +19,9 @@ vi.mock("@/adapters/client/api/products", () => ({ fetchProductCount: vi.fn(asyn
 
 import { ProductListPageContent } from "./page-content";
 
-const CATEGORIES: readonly ProductRef[] = [
-  { id: "0195f0c2-0000-7000-8000-0000000000c1", name: "オーディオ" },
-  { id: "0195f0c2-0000-7000-8000-0000000000c2", name: "ウェアラブル" },
+const CATEGORIES: readonly ProductRef<ProductCategoryId>[] = [
+  { id: toProductCategoryId("0195f0c2-0000-7000-8000-0000000000c1"), name: "オーディオ" },
+  { id: toProductCategoryId("0195f0c2-0000-7000-8000-0000000000c2"), name: "ウェアラブル" },
 ];
 
 beforeEach(() => {

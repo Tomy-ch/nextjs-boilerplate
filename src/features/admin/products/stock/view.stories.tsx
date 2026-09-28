@@ -22,7 +22,7 @@ import {
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, ADMIN_USER_LIST_PATH } from "../../paths";
 import { AdminProductStockView } from "./view";
@@ -39,8 +39,8 @@ const PRODUCT: Product = {
   price: "19.99",
   quantity: 128,
   stockWarningThreshold: 3,
-  status: { id: "01936f6d-0000-7000-8000-000000000101", name: "在庫あり" },
-  category: { id: "01936f6d-0000-7000-8000-000000000001", name: "電子機器" },
+  status: { id: toProductStatusId("01936f6d-0000-7000-8000-000000000101"), name: "在庫あり" },
+  category: { id: toProductCategoryId("01936f6d-0000-7000-8000-000000000001"), name: "電子機器" },
   publishedAt: new Date("2026-08-07T09:00:00.000Z"),
   discontinuedAt: null,
   imagePaths: [],

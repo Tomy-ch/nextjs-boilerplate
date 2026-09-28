@@ -53,9 +53,51 @@ export function isDiscontinued(product: Pick<Product, "discontinuedAt">): boolea
   return product.discontinuedAt !== null;
 }
 
-/** 商品に紐づく分類。ID と表示名だけを持つ。 */
-export type ProductRef = {
-  readonly id: string;
+const productCategoryIdSchema = z.string().brand<"productCategory">();
+
+/**
+ * 商品の分類を指す識別子。
+ *
+ * @remarks
+ * 状態の識別子と別の型にしてあります。どちらも UUID の文字列で、分類と状態を取り違えても素の
+ * `string` では型が止めないためです。
+ */
+export type ProductCategoryId = z.infer<typeof productCategoryIdSchema>;
+
+/**
+ * 文字列を商品の分類の識別子として確定させる。
+ *
+ * @remarks
+ * 呼んでよい場所と検査しないものは {@link toProductId} と同じです。
+ *
+ * @param value - 確定させる文字列
+ * @returns 商品の分類の識別子
+ */
+export function toProductCategoryId(value: string): ProductCategoryId {
+  return productCategoryIdSchema.parse(value);
+}
+
+const productStatusIdSchema = z.string().brand<"productStatus">();
+
+/** 商品の状態を指す識別子。分類の識別子と分ける理由は {@link ProductCategoryId} と同じ。 */
+export type ProductStatusId = z.infer<typeof productStatusIdSchema>;
+
+/**
+ * 文字列を商品の状態の識別子として確定させる。
+ *
+ * @remarks
+ * 呼んでよい場所と検査しないものは {@link toProductId} と同じです。
+ *
+ * @param value - 確定させる文字列
+ * @returns 商品の状態の識別子
+ */
+export function toProductStatusId(value: string): ProductStatusId {
+  return productStatusIdSchema.parse(value);
+}
+
+/** 商品に紐づくマスタへの参照。識別子と表示名だけを持つ。 */
+export type ProductRef<Id extends ProductCategoryId | ProductStatusId> = {
+  readonly id: Id;
   readonly name: string;
 };
 
@@ -66,7 +108,7 @@ export type ProductRef = {
  * 商品に紐づく {@link ProductRef} と分けてあります。マスタだけが `code` を持ち、絞り込みは
  * この番号で行うためです。商品の側に載る分類は表示のための参照で、番号を持ちません。
  */
-export type ProductCategory = ProductRef & {
+export type ProductCategory = ProductRef<ProductCategoryId> & {
   /** マスタ行を指す静的な番号。UUID と違い、絞り込みの条件として URL に載せられる。 */
   readonly code: number;
 };
@@ -79,7 +121,7 @@ export type ProductCategory = ProductRef & {
  * という契約の都合が揃っているだけで、公開・非公開といった状態の体系と商品の分類体系は別々に
  * 動きます。1 つの型にまとめると、片方の都合でもう片方の宣言が動きます。
  */
-export type ProductStatus = ProductRef & {
+export type ProductStatus = ProductRef<ProductStatusId> & {
   /** マスタ行を指す静的な番号。分類と同じく、絞り込みの条件として URL に載せられる。 */
   readonly code: number;
 };
@@ -110,8 +152,8 @@ export type Product = {
    * 何個から「少ない」かはバックエンドが持つ運用の値であり、表示側で決めない。
    */
   readonly stockWarningThreshold: number | null;
-  readonly status: ProductRef;
-  readonly category: ProductRef;
+  readonly status: ProductRef<ProductStatusId>;
+  readonly category: ProductRef<ProductCategoryId>;
   /** 公開日時。未公開なら null。 */
   readonly publishedAt: Date | null;
   /**
@@ -157,8 +199,8 @@ export type ProductDraft = {
   readonly price: string;
   readonly quantity: number;
   readonly stockWarningThreshold: number | null;
-  readonly categoryId: string;
-  readonly statusId: string;
+  readonly categoryId: ProductCategoryId;
+  readonly statusId: ProductStatusId;
   readonly publishedAt: Date | null;
   readonly images: readonly ProductImageDraft[];
 };

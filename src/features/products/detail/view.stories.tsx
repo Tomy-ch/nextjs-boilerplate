@@ -6,7 +6,7 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import type { Cart } from "@/model/cart/cart";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 import { newUuid } from "@/model/uuid";
 import { useCartStore } from "@/stores/cart-store";
 import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
@@ -135,8 +135,8 @@ function product(overrides: Partial<Product> = {}): Product {
     price: "19.99",
     quantity: 12,
     stockWarningThreshold: null,
-    status: { id: "s1", name: "公開" },
-    category: { id: "c1", name: "オーディオ" },
+    status: { id: toProductStatusId("s1"), name: "公開" },
+    category: { id: toProductCategoryId("c1"), name: "オーディオ" },
     publishedAt: new Date("2026-07-01T00:00:00.000Z"),
     discontinuedAt: null,
     imagePaths: ["earphone.png"],
@@ -215,8 +215,8 @@ export const MaxLengthPC: Story = {
       // 挟んでから描画する。ここでタグを外すと、その経路を通らない見本になる。
       // nosemgrep: html-in-template-string
       description: `<p>${longText(600)}</p>`,
-      category: { id: "c1", name: longText(40) },
-      status: { id: "s1", name: longText(24) },
+      category: { id: toProductCategoryId("c1"), name: longText(40) },
+      status: { id: toProductStatusId("s1"), name: longText(24) },
       price: "999999999.999",
       quantity: 2147483647,
     }),

@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { Product, ProductStatus } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 const { getProducts, getProductStatuses } = vi.hoisted(() => ({
   getProducts: vi.fn(),
@@ -26,7 +26,7 @@ import type { ProductQuery } from "@/adapters/server/api/products";
 import type { AdminProductListLocation } from "./query";
 import { AdminProductListResults } from "./results";
 
-const STATUS_ID = "6b0f2f3e-0000-4000-8000-000000000001";
+const STATUS_ID = toProductStatusId("6b0f2f3e-0000-4000-8000-000000000001");
 
 const STATUSES: readonly ProductStatus[] = [{ id: STATUS_ID, name: "在庫あり", code: 1 }];
 
@@ -39,7 +39,7 @@ function product(): Product {
     quantity: 12,
     stockWarningThreshold: null,
     status: { id: STATUS_ID, name: "在庫あり" },
-    category: { id: "c1", name: "電子機器" },
+    category: { id: toProductCategoryId("c1"), name: "電子機器" },
     publishedAt: null,
     discontinuedAt: null,
     imagePaths: [],

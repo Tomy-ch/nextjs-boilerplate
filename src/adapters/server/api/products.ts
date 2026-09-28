@@ -14,7 +14,7 @@ import type {
   ProductPage,
   ProductRankingEntry,
 } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 import {
   GetProductsCountResponse,
@@ -283,8 +283,8 @@ export function toProduct(wire: WireProduct): Product {
     price: wire.price,
     quantity: wire.quantity,
     stockWarningThreshold: wire.stockWarningThreshold,
-    status: { id: wire.status.id, name: wire.status.name },
-    category: { id: wire.category.id, name: wire.category.name },
+    status: { id: toProductStatusId(wire.status.id), name: wire.status.name },
+    category: { id: toProductCategoryId(wire.category.id), name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
     discontinuedAt: wire.discontinuedAt === null ? null : new Date(wire.discontinuedAt),
     // 契約が displaySort 昇順で返すため、受け取った順序がそのまま表示の順序になる。

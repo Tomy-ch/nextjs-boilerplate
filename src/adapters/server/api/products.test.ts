@@ -12,7 +12,7 @@ const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import {
   adjustProductStock,
@@ -36,8 +36,8 @@ const wireProduct = {
   price: "19.99",
   quantity: 3,
   stockWarningThreshold: 2,
-  status: { id: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "公開" },
-  category: { id: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13", name: "雑貨" },
+  status: { id: toProductStatusId("1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12"), name: "公開" },
+  category: { id: toProductCategoryId("2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13"), name: "雑貨" },
   publishedAt: "2026-08-07T00:00:00.000Z",
   discontinuedAt: null,
   images: [{ imagePath: "products/abc.png", displaySort: 1 }],
@@ -604,8 +604,8 @@ const DRAFT = {
   price: "19.99",
   quantity: 3,
   stockWarningThreshold: 2,
-  categoryId: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13",
-  statusId: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12",
+  categoryId: toProductCategoryId("2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13"),
+  statusId: toProductStatusId("1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12"),
   publishedAt: new Date("2026-08-07T00:00:00.000Z"),
   images: [{ imagePath: "products/abc.png", displaySort: 1 }],
 };
