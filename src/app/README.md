@@ -120,12 +120,12 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
   値が定まらない
 - **穴の内側の転送は殻を配り終えた後になる。** 応答は 200 で出ており、転送は `Location` ではなく
   meta タグで伝わる。未認証は前捌き（`proxy.ts`）が入口で本物の転送として捌くので、ここまで届くのは
-  バックエンドに問わないと分からない判定（登録の有無など）だけである
+  バックエンドに問わないと分からない判定（主体についてバックエンドだけが持つ状態など）だけである
   （[0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md)）
 - **一次資源が無いことも 200 で伝わる。** 見つからないことは `not-found.tsx` と `noindex` が伝える
   （[0080](../../docs/adr/0080-error-handling.md)）
 - **確かめる前に殻を配れない区画は、器が判定し `instant = false` を名乗る。** 判定を穴へ落とすと、
-  その面の殻（コンソール名・導線）が確かめる前に誰にでも配られる
+  その面の殻（区画の名前・導線）が確かめる前に誰にでも配られる
 - **`Suspense` に `key` を与えない。** 条件が変わったときに取り直す範囲は feature の `page-content` の
   内側で区切る。器の境界に鍵を与えると、絞り込みの入力欄まで待機表示へ落ちる。取り直す範囲を
   画面より狭くしたい画面では、待ちの境界そのものを feature 側へ置き、器は殻だけを持つ
@@ -289,7 +289,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   出しません（要約が同じことを言い、同じ指摘が 2 か所に並ぶ）。カタログの既定文言は分類しか伝えないので、
   拒まれた理由がその画面でしか言えないとき（版の競合、進行中の関連が残っている）だけ画面固有の文言を
   当てます。成立した後にどこへ送るかは 3 通りです:
-  - **`redirect()` で一覧へ送る** —— 同じ画面に留まると押し直しが二重の作成・二重の加算になり、成立した
+  - **`redirect()` で一覧へ送る** —— 同じ画面に留まると押し直しが二重の作成・二重の更新になり、成立した
     後なので取り消せないとき
   - **`revalidatePath()` で取り直させて留まる** —— 成立した行が一覧に残ると、押せば必ず競合になる操作が
     並び続けるとき。途中で打ち切っても 1 件でも通ったら取り直させます（打ち切りの理由を伝えることと、
@@ -315,7 +315,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 - metadata は Metadata API で宣言する。`<head>` の手書きと `next/head` は使わない。土台と差分の割り当ては「metadata の土台と差分」が持つ
 - **route segment は描画の span を持たない。** Next.js が `render route (app)` を張るので、同じ範囲を二重に持たない。画面の中の帰属は feature 層の最上位が持つ（[observability/README.md](../observability/README.md)）
 - **shell は root layout ではなく route group の `layout.tsx` が敷く。** root が持つのは `html` / `body` と Provider の mount だけで、器の選択はその下の段が行う。見せる相手が違えば shell を分け、描く時点が違えば（配下を build 時の姿だけで配りたい）器が cookie にもバックエンドにも触れないところまで下がる —— その器には request 時に読む導線（主体で決まる入口）は出ず、出さない側が安全側になる。器の分け方と、route group が client 状態の境界でもあることは [0026](../../docs/adr/0026-layout-shell-mount.md)
-- **器の隣に置く journey 内の Provider は、その journey の外へ出た時点で状態を失ってよいものに限る**（[0026](../../docs/adr/0026-layout-shell-mount.md)）。空になると畳む器の外へ置く —— 器の内側に持つと、最後の 1 件を取り除いた切り替わりで記憶ごと失われる
+- **器の隣に置く journey 内の Provider は、その journey の外へ出た時点で状態を失ってよいものに限る**（[0026](../../docs/adr/0026-layout-shell-mount.md)）。中身が空になると畳む器の外へ置く —— 器の内側に持つと、中身が空になって器が畳まれた時点で記憶ごと失われる
 - **`globals.css` が持つのは import の束ね・`dark` variant・系統ごとの書体の当て直しだけ。** `dark` の発火条件は tokens の生成側と揃える必要があり、条件の正本は [`tokens/README.md`](../../tokens/README.md)。`[data-surface]` で `font-family` を当て直すのは、継承する値であり変数を差し替えただけでは部分木に届かないため
 - **`FONT_VARIABLES` は `<html>` とカタログの story の双方が同じ定義を使う。** `next/font` は変数の宣言を class に載せるので、変数を読む要素の祖先に必ずこの class が要る
 - **開発専用の入口（`page.dev.tsx` / `route.dev.ts` / その action）は入口ごとに環境の判定を呼ぶ**（[0113](../../docs/adr/0113-development-access-surface.md)）。route group の外に置くので `main` は自分で置く
