@@ -1,0 +1,14 @@
+{
+  "name": "work-branch-history",
+  "target": "branch",
+  "source_type": "Repository",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "exclude": [],
+      "include": ["refs/heads/feature/**/*", "refs/heads/bugfix/**/*"]
+    }
+  },
+  "rules": [{ "type": "non_fast_forward" }],
+  "bypass_actors": []
+}

@@ -224,7 +224,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 | --- | --- | --- | --- | --- | --- | --- |
 | **D1** | 0140 | ドキュメント運用ポリシー | ✅ | ⚠️ | — | canonical 言語 = EN 目標・移行は v1(0.0.x は日本語 living)/ タクソノミー4分類(decision・exclusion=ADR / rule=rules.md 新設 / inventory=BACKLOG)/ ADR 不可変性(0.0.x living→v1 immutable)/ per-package README |
 | **D2** | 0141 | ポータル運用 | ✅ | ✅ | D1 | `docs/portal/manifest.yaml` = 構造制御のみ(curated manual)/ コード README 手動登録・`docs/*` 自動発見 / GitHub Pages 配信 |
-| **D3** | 0142 | ライセンス選定 | ✅ | ✅ | — | MIT 採用根拠(最大許容・エコシステム標準・go 統一)/ OSS 寄与 = inbound=outbound・CLA なし / 同梱ライブラリ整合は 0004 / `private:true` は publish ガードで MIT と両立 |
+| **D3** | 0142 | ライセンス選定 | ✅ | ✅ | — | MIT 採用根拠(最大許容・エコシステム標準・go 統一)/ OSS 寄与 = inbound=outbound・CLA なし / `private:true` は publish ガードで MIT と両立 |
 | **D4** | 0152 | AGENTS.md 構成方針 | ✅ | ✅ | D1 | ファイル配置 / 本文言語（+ 対訳 `AGENTS.ja.md`）/ 節構成と節を立てる判定 / Instruction Priority / 保護対象の機械強制 |
 | **D5** | 0154 | Claude スキル運用方針 (運用系) | ✅ | ✅ | D4, G1, G2, T3, T4 | 配置・命名・frontmatter / 本文構造 / カバー範囲 / 商用操作前ユーザ確認 |
 | **D6** | 0155 | Claude スキル運用方針 (開発系) | ✅ | ✅ | D4, D1, A1 | 配置・命名・frontmatter は D5 共通 / カバー範囲 / subagent パターン / `new-env` の Next.js 再設計 |
@@ -241,7 +241,7 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 
 - **D1(ADR 0140・実装 ⚠️)**: canonical 言語 = **EN 目標・移行は v1**(v1.0.0 未満は日本語 canonical のまま living)/ タクソノミー 4 分類 / `rules.md` への rule 集約 / ADR 不可変性 = v1.0.0 未満 living → v1 immutable / per-package README。着地済みなのは `docs/rules.md`・4 分類の判定([`docs/README.md`](../README.md))・per-package README・運用スキル(`canonicalize-doc` / `sync-readme` / `readme-review`)・英語 canonical の 2 例外が持つ対訳(`SKILL.ja.md` / `AGENTS.ja.md`)。**残るのは v1 境界でまとめて行う分だけ** —— `docs/**` の EN canonical 化と `docs/ja/` mirror への再編、および ADR の immutable 切替である
 - **D2(ADR 0141・実装 ✅)**: `docs/portal/manifest.yaml` によるキュレーション、`scripts/portal/` の生成(判断は純粋関数・FS 入出力は CLI)、独立 workspace の `docs-viewer/`、GitHub Pages への配信 workflow を実装済み。`portal-manifest-sync` スキルも移植済みで、判定基準は `readme-review` を実行時に読む。配信先の設定(Pages を Actions 配信にし、`github-pages` environment へ配信元ブランチを許可する)は `make pages-delivery-apply` が持ち、`make setup-repo` が呼ぶ。**許可が無いと `docs-deploy` は job としては起動するが step を 1 つも実行せずに落ち、ログに理由が出ない** —— `docs-build` は緑のままなので、配信の緑赤は `deploy-docs.yaml` の `docs-deploy` の結果で見る
-- **D3(ADR 0142 として策定済み)**: 2026-07-13 に成文化([ADR 0142](0142-license.md))。MIT 採用根拠(最大許容・エコシステム標準・go-boilerplate と統一・低儀式性)/ OSS 寄与 = **inbound=outbound・CLA なし**(DCO は必要時 `CONTRIBUTING.md`)/ 同梱ライブラリのライセンス整合は [0004](0004-library-management.md) 許可リストが担保 / `package.json` の `private:true` は npm publish ガードで MIT と別レイヤ・両立。**follow-up: `package.json` に `"license": "MIT"` 追加はルート設定保護のためユーザ指示待ち**
+- **D3(ADR 0142 として策定済み)**: 2026-07-13 に成文化([ADR 0142](0142-license.md))。MIT 採用根拠(最大許容・エコシステム標準・go-boilerplate と統一・低儀式性)/ OSS 寄与 = **inbound=outbound・CLA なし**(DCO は必要時 `CONTRIBUTING.md`)/ `package.json` の `private:true` は npm publish ガードで MIT と別レイヤ・両立。**follow-up: `package.json` に `"license": "MIT"` 追加はルート設定保護のためユーザ指示待ち**
 - **D6 ✅**: 開発系スキルは A7([0030](0030-environment-variable-management.md))の構造へ揃済。`new-env` が要求する `src/config/` は目的別に着地しており、スキル冒頭のガードは通る
 
 ---

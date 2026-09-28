@@ -2,7 +2,7 @@
 
 本プロジェクトの Git ブランチ戦略、コミット規約、Pull Request 運用、リリース運用を定義する。
 
-リポジトリ設定 (`.github/settings/branch-protection.json`) によりブランチ保護を機械的に強制しているが、本 ADR はその根拠と、人間が日常的に従うべき運用ルール全体を「意思決定」として明文化したものである。
+リポジトリ設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) によりブランチ保護を機械的に強制しているが、本 ADR はその根拠と、人間が日常的に従うべき運用ルール全体を「意思決定」として明文化したものである。
 
 ## Status
 
@@ -172,7 +172,7 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
 3. push する (古い approve は dismiss される)
 4. レビュアーに再 review を依頼する
 
-履歴書き換え (`git commit --amend` 後の force push、`git rebase`) は保護設定で物理的に拒否されるため、追加修正は **常に新規コミット** で積む。
+履歴書き換え (`git commit --amend` 後の force push、`git rebase`) は、保護ブランチでは `branch-protection.json` が、`feature/**` / `bugfix/**` では `work-branch-history.json` が非 fast-forward の push として拒否するため、追加修正は **常に新規コミット** で積む。作業ブランチの ruleset は非 fast-forward の禁止だけを持ち、PR の要求・削除の禁止は持たない —— マージ後の自動削除と、PR を開く前の直接 push を止めないため。PR を開く前の force push も同じく拒否される —— ruleset は PR の有無でブランチを分けられず、開く前だけ許すと、開いた後に止める手段が残らない
 
 ## リリース運用
 
@@ -216,10 +216,10 @@ PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記�
 - ❌ `feature/*` / `bugfix/*` を `develop` / `staging` / `production` から派生させること (必ず最新の `release/*` から)
 - ❌ プレフィックスなしの commit メッセージ (`update`, `wip` 等)
 - ❌ メジャー依存更新を他のコミット (機能追加 / バグ修正等) と同じコミット・PR に混ぜること（強制: 散文 —— **一部寄せられる**。PR の差分が `package.json` の major 版の繰り上げとそれ以外の変更を併せ持つことは差分で落とせるが規則は無い。併せ持った変更が更新への追従か別の機能かは変更の意味で決まる）
-- ❌ 既存 PR ブランチへの履歴書き換え (`commit --amend` + force push、`rebase` 等)。追加修正は常に新規コミットで積む
+- ❌ 既存 PR ブランチへの履歴書き換え (`commit --amend` + force push、`rebase` 等)。追加修正は常に新規コミットで積む（強制: `feature/**` / `bugfix/**` は `work-branch-history.json` の `non_fast_forward`、保護ブランチは `branch-protection.json`。手元の `commit --amend` / `rebase` そのものは push されるまで現れない）
 - ❌ PR テンプレートのセクション (`概要` / `変更内容` / `動作確認方法`) を削除・空欄のまま merge すること（強制: 散文 —— **一部寄せられる**。PR 本文に 3 つの見出しが在り中身が空でないことは `pull_request` の本文を読めば落とせるが規則は無い。中身が変更を説明しているかは読んで決まる）
 - ❌ コミット・PR メッセージで英語を既定とすること (日本語が既定。技術用語の英表記は許容)
-- ❌ ブランチ保護設定 (`.github/settings/branch-protection.json`) を本 ADR の改訂なしに緩めること（強制: 散文 —— **一部寄せられる**。`branch-protection.json` の規則の削除や数値の引き下げを、`0150` の本文を伴わない PR で落とす形は書けるが規則は無い。リポジトリ設定を UI から直接緩めた場合はファイルに現れない）
+- ❌ ブランチ保護設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) を本 ADR の改訂なしに緩めること（強制: 散文 —— **一部寄せられる**。両ファイルの規則の削除や数値の引き下げを、`0150` の本文を伴わない PR で落とす形は書けるが規則は無い。リポジトリ設定を UI から直接緩めた場合はファイルに現れない）
 
 ## 補足
 
