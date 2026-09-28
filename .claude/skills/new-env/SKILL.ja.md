@@ -114,17 +114,12 @@ ls src/config/ 2>/dev/null
 
 ### 質問 6: 説明
 
-自由入力。ユーザは英語か日本語の**どちらか**（または両方）を与える。不足側はスキルが補い、変数表の両言語が二度書きなしで同期する。
+自由入力。`env/README.md` が書かれている言語で受ける —— 変数表は 1 言語の 1 枚である（[0140](../../../docs/adr/0140-documentation-operations.md)）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
 
-- 「説明（日本語または英語のどちらか）」
-- Notes 欄（任意） — Secret 管理 / 環境依存等の注記。説明と同じ言語で受ける
+- 「説明」
+- Notes 欄（任意） — Secret 管理 / 環境依存等の注記
 
-解決規則:
-
-- 日本語のみ → 日本語行を書き、英語側へ訳す
-- 英語のみ → その逆
-- 両方 → そのまま使い、翻訳しない
-- 訳は短く直截に、周囲の行のレジスタに合わせる。自明でない訳は書き込み前に Step 2 の計画へ出してレビューを受ける
+どちらも短く直截に、周囲の行のレジスタに合わせる。
 
 ### 質問 7: 環境別の値
 
@@ -143,13 +138,13 @@ ls src/config/ 2>/dev/null
 
 ### purpose config モジュール
 
-purpose ディレクトリは schema モジュールと、対応する runtime モジュール 1 本（`src/config/<purpose>/<purpose>.server.ts` **または** `<purpose>.client.ts`）を持つ。
+purpose ディレクトリは schema モジュールと、runtime モジュールの片方または両方（`src/config/<purpose>/<purpose>.server.ts` / `<purpose>.client.ts`）を持つ（[0030](../../../docs/adr/0030-environment-variable-management.md)）。この変数がどちらへ入るかは質問 3 が決める。
 
 1. **スキーマ validator** — `<purpose>.schema.ts` の named validator を追加・拡張する。既存のスキーマライブラリを使い、required / code default は質問 4 に従う
 2. **環境スキーマ項目** — `src/config/environment.ts` の明示的な `z.object({...})` へ validator を import して呼び出す
-3. **Config 値と getter** — 対応する runtime モジュールに型付き値と getter を加え、private constructor と既存作法を保つ。setter や外部公開 constructor / factory は足さない
+3. **Config 値** — 選んだ runtime モジュールへ、そのモジュールの既存の形で型付き値を足す。server モジュールなら `#` private フィールドと getter（private constructor は保つ）、client モジュールなら export する定数。setter や外部公開 constructor / factory は足さない
 
-client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md)）: 値は**静的なドット参照**で読む — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` と literal に書き下す。動的インデックスアクセスと分割代入はビルド時のリテラル置換が効かないため禁止。
+client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md)）: 値は**変数名を文字列リテラルで名指して**読む — `process.env["NEXT_PUBLIC_ANALYTICS_SITE_ID"]` と literal に書き下す。ドット記法も置換されるが、`noPropertyAccessFromIndexSignature` が型検査で落とす。動的インデックスアクセス（文字列リテラル以外の添字）と分割代入はビルド時のリテラル置換が効かないため禁止。
 
 server モジュール固有: `import "server-only"` はファイル先頭に既にあるはず。無ければ、無防備なモジュールへ黙って変数を足すのではなく欠陥として報告する。
 
@@ -191,7 +186,7 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 
 ## Step 2. 計画の提示と確認
 
-変更内容一式を日本語サマリで提示する — 変数名、config 経由か env のみか、purpose と対象モジュール、server / client、型、required / code default、secret ラベル、両言語の説明、環境別の値、各ファイルで何が変わるかの一覧、レビュー対象の自動翻訳。env のみの経路では、config モジュールにも config README にも触れないことを明示する。
+変更内容一式を日本語サマリで提示する — 変数名、config 経由か env のみか、purpose と対象モジュール、server / client、型、required / code default、secret ラベル、説明、環境別の値、各ファイルで何が変わるかの一覧、レビュー対象の訳（あれば）。env のみの経路では、config モジュールにも config README にも触れないことを明示する。
 
 `AskUserQuestion` で確認する:
 
@@ -202,7 +197,7 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 
 読み取り済みコンテキストから導いた厳密なアンカー（対象セクションの最後のスキーマ項目 / フィールド / getter / 表の行）で `Edit` を使う。順序:
 
-1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → getter）— config 経由の経路のみ
+1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → 値）— config 経由の経路のみ
 2. `src/config/environment.fixture.ts` — config 経由の経路のみ
 3. config テスト（存在する場合）
 4. env ファイル（1 ファイル 1 編集）
@@ -270,11 +265,11 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] server / client を確認し、`NEXT_PUBLIC_` の有無と整合している
 - [ ] secret ラベルを確認した。secret を `NEXT_PUBLIC_` に置いておらず、実 secret 値をコミット対象へ書いていない
 - [ ] 型と required / code default を確認した
-- [ ] 説明を片方の言語で受け取り、他方を訳して計画に提示しレビューを受けた
+- [ ] 説明を `env/README.md` の言語で確定した（訳したなら計画に提示しレビューを受けた）
 - [ ] 環境別の値を確定した
 - [ ] 計画全体を提示し、ユーザが承認した
-- [ ] config 経由の経路: purpose モジュールを 1 本だけ更新した（スキーマ項目 + private フィールド + getter。setter なし）
-- [ ] client モジュールの値は静的ドット参照のみ
+- [ ] config 経由の経路: purpose を 1 つだけ更新した（スキーマ項目 + runtime モジュールの既存の形での値。setter なし）
+- [ ] client モジュールの値は文字列リテラルで名指す参照のみ
 - [ ] 実在する env ファイルすべてを該当セクション配下で更新した
 - [ ] `env/README.md` の変数表に行を足した（常に）
 - [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）

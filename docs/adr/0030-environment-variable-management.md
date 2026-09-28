@@ -27,7 +27,7 @@ env の基本形は、**起動時に一度だけ読み込んで検証し、以�
 - **`process.env` の直読は `src/config/` 配下(目的別 config モジュール群)のみ**に限る。**biome の `noProcessEnv` で機械強制**する([0002](0002-formatter-linter.md) の能力ベース原則。config ディレクトリのみ override で除外)。env の出所を config カーネルに閉じる
 - **各目的 × server / client の分割**: 各目的 config は、含むフィールドの種別で **server config**(secret を含む)と **client config**(NEXT_PUBLIC のみ)に分ける。1 目的は server / client の**片方または両方**を持つ(例: `analytics` = 公開 ID〈client〉+ 送信キー〈server〉)
   - server config(`<purpose>.server.ts`)— 先頭に `import "server-only"` を置き、client バンドルへの混入をビルド時に遮断する。secret を含む runtime object
-  - client config(`<purpose>.client.ts`)— **`NEXT_PUBLIC_` の静的ドット参照のみ**で構成する(`process.env.NEXT_PUBLIC_FOO` の形)。動的アクセス・分割代入はビルド時のリテラル置換が効かないため**禁止**する
+  - client config(`<purpose>.client.ts`)— **`NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照のみ**で構成する(`process.env["NEXT_PUBLIC_FOO"]` の形。ドット記法も置換されるが、[0002](0002-formatter-linter.md) の `noPropertyAccessFromIndexSignature` が型検査で落とす)。動的アクセス(文字列リテラル以外の添字)・分割代入はビルド時のリテラル置換が効かないため**禁止**する
 - `NEXT_PUBLIC_` はビルド時に参照箇所ごとの**リテラルへインライン置換**される(公開定数。ブラウザ側は構造的に書き換え不能)。client config は「インラインリテラルの typed view」であって **runtime object ではない**。したがって import 境界の制限(§3)がかかるのは **server config(runtime object・secret)のみ**で、client config は client 側の層が自由に import してよい
 
 ### 3. 配布(DI コンテナの代替)
@@ -59,7 +59,7 @@ env の基本形は、**起動時に一度だけ読み込んで検証し、以�
 - **`process.env` への供給は Next.js 標準の `.env*` ロード**に委ねる(`.env*` を直読しない)。config モジュールがその `process.env` を読む唯一の場所となる(決定 2)
 - **本番の secret / 環境別値は PaaS(Vercel / Amplify 等)の env・secret store から供給**する([0011](0011-no-docker.md) の配送前提)。平文ファイルへコミットしない
 - ドキュメントは **2 本立て**とし、正の範囲を分ける。同じ内容を二重に書かない:
-  - **`env/README.{md,ja.md}` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(`Variable Name | Description | Type | Example | Notes`)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
+  - **`env/README.md` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(`Variable Name | Description | Type | Example | Notes`)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
   - **`config` カーネルの README = 設定値の解説の正**([0021](0021-frontend-responsibility.md) 層別 README 運用)。**ビルド時に検証され、構築時に各 purpose モジュールへ流し込まれる設定値**について、purpose 区分・server / client 境界・required と code default の別・受け手側の使い方を説明する
   - 変数の**存在**は env 側、設定値の**意味と扱い**は config 側が持つ。config に載るのは env 側の部分集合である
 - **env 変数の追加はユーザ確認を要する**

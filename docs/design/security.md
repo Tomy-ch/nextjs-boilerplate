@@ -136,7 +136,7 @@ secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` �
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 同上 | 送る前に弾く。**受け口が同じ大きさをもう一度確かめる** —— ブラウザ側の判定は送信者が差し替えられる |
 | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | [`config/analytics/analytics.client.ts`](../../src/config/analytics/analytics.client.ts) | 空なら同意ゲートの裏の要素そのものを描かない。容器 ID はタグを読む URL に現れる公開値で、秘密は容器の編集権限の側にある |
 
-client config は `NEXT_PUBLIC_` の**静的ドット参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
+client config は `NEXT_PUBLIC_` 変数を**文字列リテラルで名指す参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
 
 ### 何が入らないか
 

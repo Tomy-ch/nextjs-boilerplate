@@ -120,17 +120,12 @@ For either secret label, the value written into the committed env files is a **p
 
 ### Question 6: Description
 
-Free text. The user provides EITHER English OR Japanese (or both); the skill fills in the missing side so both sides of the variable table stay in sync without the user writing it twice.
+Free text, in the language `env/README.md` is written in — a single table in one language ([0140](../../../docs/adr/0140-documentation-operations.md)). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
 
-- 「説明(日本語または英語のどちらか)」
-- Notes 欄(任意) — Secret 管理 / 環境依存等の注記。Provided in the same language as the description.
+- 「説明」
+- Notes 欄(任意) — Secret 管理 / 環境依存等の注記
 
-Resolution rules:
-
-- Japanese only → write the Japanese row, translate for the English side.
-- English only → the reverse.
-- Both → use as-is, no translation.
-- Keep translations short and direct, matching the register of surrounding rows. Surface any non-trivial translation in the Step 2 plan for review before writing.
+Keep both short and direct, matching the register of surrounding rows.
 
 ### Question 7: Per-environment values
 
@@ -149,13 +144,13 @@ Compute each exact insertion point by reading the existing patterns rather than 
 
 ### The purpose config module
 
-The purpose directory has a schema module and exactly one corresponding runtime module — `src/config/<purpose>/<purpose>.server.ts` **or** `<purpose>.client.ts`.
+The purpose directory has a schema module and one or both runtime modules — `src/config/<purpose>/<purpose>.server.ts` and / or `<purpose>.client.ts` ([0030](../../../docs/adr/0030-environment-variable-management.md)). Question 3 picks the one this variable goes into.
 
 1. **Schema validator** — add or extend the named validator in `<purpose>.schema.ts`, using the schema library already used there. Required vs code default follows Question 4.
 2. **Environment schema entry** — import and call that validator in the explicit `z.object({...})` declaration in `src/config/environment.ts`.
-3. **Config value and getter** — add the typed value and getter in the corresponding runtime module, preserving its private constructor and existing style. Never add a setter or expose a constructor/factory.
+3. **Config value** — add the typed value in the chosen runtime module in the shape it already has: in a server module, a `#` private field and a getter, keeping its private constructor; in a client module, an exported constant. Never add a setter or expose a constructor/factory.
 
-Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md)): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
+Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md)): the value **must** be read by naming the variable with a string literal — `process.env["NEXT_PUBLIC_ANALYTICS_SITE_ID"]` — literally spelled out. Dot access would be substituted too, but `noPropertyAccessFromIndexSignature` fails it at typecheck. Dynamic indexing (any subscript that is not a string literal) and destructuring are forbidden because the build-time literal substitution does not apply to them.
 
 Server-module specifics: `import "server-only"` is already at the top of the file; if it is missing, report that as a defect rather than silently adding a variable to an unguarded module.
 
@@ -197,7 +192,7 @@ The testing approach for config is **env stub + factory regeneration** (`vi.stub
 
 ## Step 2. Show the Plan and Confirm
 
-Display the whole proposed change set as a Japanese summary — variable name, config-backed or env-only, purpose and target module, server/client side, type, required vs code default, secret label, both descriptions, per-environment values, the file list with what changes in each, and any auto-translation for review. On the env-only path, say explicitly that no config module and no config README entry are involved.
+Display the whole proposed change set as a Japanese summary — variable name, config-backed or env-only, purpose and target module, server/client side, type, required vs code default, secret label, the description, per-environment values, the file list with what changes in each, and any translation for review. On the env-only path, say explicitly that no config module and no config README entry are involved.
 
 Confirm with `AskUserQuestion`:
 
@@ -208,7 +203,7 @@ Confirm with `AskUserQuestion`:
 
 Use `Edit` with exact anchors derived from the read context (the last existing schema entry / field / getter / table row in the target section). Order:
 
-1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → getter) — config-backed path only
+1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → value) — config-backed path only
 2. `src/config/environment.fixture.ts` — config-backed path only
 3. The config test file, if one exists
 4. env files (one edit per file)
@@ -276,11 +271,11 @@ Before reporting completion, confirm:
 - [ ] Server / client side confirmed, and consistent with the presence or absence of `NEXT_PUBLIC_`
 - [ ] Secret label confirmed; no secret was placed behind `NEXT_PUBLIC_`, and no real secret value was written to a committed file
 - [ ] Type and required-vs-code-default confirmed
-- [ ] Description provided in one language; the other side was translated and surfaced in the plan for review
+- [ ] Description confirmed in the language of `env/README.md` (a translation, if any, surfaced in the plan for review)
 - [ ] Per-environment values resolved
 - [ ] The full plan was displayed and the user approved it
-- [ ] Config-backed path: exactly one purpose module updated (schema entry + private field + getter, no setter)
-- [ ] Client-module values use static dot access only
+- [ ] Config-backed path: exactly one purpose updated (schema entry + value in the runtime module's existing shape, no setter)
+- [ ] Client-module values are read only by string-literal name
 - [ ] All existing env files updated under the matching section
 - [ ] `env/README.md` got its variable-table row (always)
 - [ ] `src/config/README.md` updated on the config-backed path, without restating the env row

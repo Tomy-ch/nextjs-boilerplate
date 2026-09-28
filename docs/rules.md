@@ -33,7 +33,7 @@
 > Rationale: [ADR 0030](adr/0030-environment-variable-management.md) / [ADR 0044](adr/0044-seo-metadata-strategy.md) / [ADR 0079](adr/0079-auth-frontend-seam.md); enforced via 型（config は schema を通してだけ読める）、`SITE_INDEXABLE` の code default が `off`（`src/config/site/site.schema.ts`）、`e2e/journeys/metadata.spec.ts` と `make e2e-metadata`（`e2e/metadata/`）、`src/app/api/health/route.test.ts`。
 
 - **Config class と ENV parser を module 外へ export しない。** 通常コードが任意の ENV から Config を再生成する経路を持たせない。
-- **client config は `NEXT_PUBLIC_` の静的ドット参照だけを持つ `*.client.ts` に置き、そこでは検証しない**（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
+- **client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置き、そこでは検証しない**（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
 - **secret を `NEXT_PUBLIC_` に置かない。** その値はブラウザの束へリテラルとして埋め込まれる。公開してよい ID と秘密の鍵に分け、鍵は server に留める。
 - **開発・CI でだけ開く口（テスト用の session 発行など）は、環境が明示されていることを要求し、未設定を既定へ落とさない。** 落とすと、設定を忘れた実環境がその口を開ける。宛先（`Host` / `X-Forwarded-Host`）を名乗らない要求は閉じる。ただし**宛先の判定は防御線ではない** —— `Host` は要求側が名乗る値で偽れる。止めるのは「設定を誤ったまま公開したときに、普通の利用者が普通に踏む経路」で、狙って偽る相手を止めるのは環境の側である。直すときに、開ける宛先の集合を広げない。
 - **その口が開く起動は、待ち受けを loopback とコンテナが到達に使う経路 1 本に絞る。** 指定しないと Next.js は全インターフェースで待ち受け、同じ LAN の他のホストから任意の役割の session を取れる状態になる。
