@@ -30,7 +30,9 @@ export const LogFieldKey = {
   SPAN_ID: "span_id",
   REQUEST_ID: "request_id",
   ERROR_CODE: "error_code",
-  ERROR_MESSAGE: "error_message",
+  EXCEPTION_TYPE: "exception.type",
+  EXCEPTION_MESSAGE: "exception.message",
+  EXCEPTION_STACKTRACE: "exception.stacktrace",
   LATENCY_MS: "latency_ms",
   CAUSE: "cause",
 } as const;
@@ -48,7 +50,9 @@ export type LogFields = Readonly<{
   [LogFieldKey.SPAN_ID]?: never;
   [LogFieldKey.REQUEST_ID]?: string;
   [LogFieldKey.ERROR_CODE]?: string;
-  [LogFieldKey.ERROR_MESSAGE]?: string;
+  [LogFieldKey.EXCEPTION_TYPE]?: string;
+  [LogFieldKey.EXCEPTION_MESSAGE]?: string;
+  [LogFieldKey.EXCEPTION_STACKTRACE]?: string;
   [LogFieldKey.LATENCY_MS]?: number;
   [LogFieldKey.CAUSE]?: string;
 }> &
