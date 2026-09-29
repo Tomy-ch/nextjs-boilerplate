@@ -171,7 +171,7 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 ## 補足
 
 - **[0020](0020-adopted-architecture.md) の設計原則「他の層が握る問題を、こちらで予防的に手当てしない」との関係**: 本 ADR の段はこれに反しない —— **それぞれが自分の持ち場を守っている**のであって、他所の答えを二つ目に書いているのではない。ただし決定 5 の前提に段 3 と取得時の関門が二重に乗る点だけは重複であり、これは同原則の**セキュリティ例外**(責務分界は防御を薄くする理由にならない)を根拠とする。
-- **実装時に実測する点**: `verifySession` は React `cache()` でメモ化されている。cached scope の外で解決済みの値が中で再利用されると、`cookies()` が再読されず段 3 が発火しない可能性がある。有効化時に実測して確かめる。
+- **`cache()` によるメモ化**: session の復元(`readSessionRecord`)と `verifySession` は React `cache()` で包み、復号を 1 リクエストにつき 1 度へ畳む。これは 1 リクエストの描画に閉じるメモ化であって共有キャッシュではなく、不変条件 3 の request-scoped の内側で使ってよい。`use cache` の内側では `React.cache` が外側と切り離された scope で動くため、解決済みの値がメモ化を経路として中へ届くことはなく、サーバへ保存される `use cache` の下から `verifySession` を呼べば `cookies()` の読み出しとして段 3 が止める(`node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md`「React.cache isolation」「Request-time APIs」)。段 2 の lint は分類の綴りを読むため、`verifySession` を引くだけのモジュールには届かない。分離が塞ぐのはメモ化の経路だけで、解決済みの `Session` を引数や閉包で `use cache` へ渡すと cache key に載る —— これは禁止事項の「user-scoped な値を、サーバ側に保存されるキャッシュへ入れること」に当たり、止める機械の段は無い。`use cache: private` の内側では `cookies()` が許されて段 3 は発火しないが、それは決定 3 の例外能力の側である。
 - **トレードオフ**: 通常実装の可読性はほぼ変わらない(feature 側の記述は増えず、変わるのは adapter を書くときに口を選ぶ 1 行)。代わりに、資格情報を載せうる口は共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化を採るなら、**口を分ける**ことが条件になる。
 
 - **SSR-First との関係**: [0040](0040-routing-rendering-strategy.md) は Server Components を既定とし、どのレンダリングモードも閉ざさないと定める。これは**性能と UX 上の既定値**であって、PII の機密性を上回る制約ではない。既定は維持しつつ、PII を含む範囲では不変条件 1 が優先し、決定 9 の順序で決める。
