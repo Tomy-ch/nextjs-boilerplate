@@ -65,8 +65,7 @@ const TIMEOUT_VALUED_LONG = "signal|kill-after";
 /** xargs の値を取らない短 flag の文字。値を取る `[EILPadns]` の補集合なので、片方を変えたら両方を直す。 */
 const XARGS_FLAG_SHORT = "[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]";
 
-const XARGS_VALUED_LONG =
-  "arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var";
+const XARGS_VALUED_LONG = "arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var";
 
 /** 中身をそのまま実行する包みと、剥がしたあとに残す綴り。 */
 const WRAPPERS: readonly (readonly [RegExp, string])[] = [
