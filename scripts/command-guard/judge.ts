@@ -49,6 +49,25 @@ const ENV_SPLIT = String.raw`^env\s+${ENV_OPTIONS}(?:-[A-Za-z]*S\s*|--split-stri
 const SUDO_VALUED_LONG =
   "user|group|host|prompt|role|type|close-from|chdir|chroot|other-user|command-timeout|login-class";
 
+const CHROOT_VALUED_LONG = "userspec|groups";
+
+/** ionice の値を取らない短 flag の文字。値を取る `[cnpPu]` の補集合なので、片方を変えたら両方を直す。 */
+const IONICE_FLAG_SHORT = "[A-OQ-Zabd-moq-tv-z]";
+
+const IONICE_VALUED_LONG = "class|classdata|pid|pgid|uid";
+
+const STDBUF_VALUED_LONG = "input|output|error";
+
+const RUNUSER_VALUED_LONG = "group|supp-group";
+
+const TIMEOUT_VALUED_LONG = "signal|kill-after";
+
+/** xargs の値を取らない短 flag の文字。値を取る `[EILPadns]` の補集合なので、片方を変えたら両方を直す。 */
+const XARGS_FLAG_SHORT = "[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]";
+
+const XARGS_VALUED_LONG =
+  "arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var";
+
 /** 中身をそのまま実行する包みと、剥がしたあとに残す綴り。 */
 const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   // quiet.mk の `ai-%` は `make <target>` を回す入口なので、target 名だけを残す。
@@ -61,28 +80,40 @@ const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   [new RegExp(String.raw`^env\s+${ENV_OPTIONS}(?:--\s+)?`), ""],
   [/^setsid\s+(?:(?:-[A-Za-z]+|--[\w-]+)\s+)*(?:--\s+)?/, ""],
   [
-    /^chroot\s+(?:(?:--(?:userspec|groups)\s+\S+|--(?!(?:userspec|groups)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?\S+\s+/,
+    new RegExp(
+      String.raw`^chroot\s+(?:(?:--(?:${CHROOT_VALUED_LONG})\s+\S+|--(?!(?:${CHROOT_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?\S+\s+`,
+    ),
     "",
   ],
   [
-    /^ionice\s+(?:(?:-[A-OQ-Zabd-moq-tv-z]*[cnpPu]\s*\S+|--(?:class|classdata|pid|pgid|uid)\s+\S+|-[A-OQ-Zabd-moq-tv-z]+|--(?!(?:class|classdata|pid|pgid|uid)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
+    new RegExp(
+      String.raw`^ionice\s+(?:(?:-${IONICE_FLAG_SHORT}*[cnpPu]\s*\S+|--(?:${IONICE_VALUED_LONG})\s+\S+|-${IONICE_FLAG_SHORT}+|--(?!(?:${IONICE_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?`,
+    ),
     "",
   ],
   [
-    /^stdbuf\s+(?:(?:-[ioe]\s*\S+|--(?:input|output|error)\s+\S+|--(?!(?:input|output|error)\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?/,
+    new RegExp(
+      String.raw`^stdbuf\s+(?:(?:-[ioe]\s*\S+|--(?:${STDBUF_VALUED_LONG})\s+\S+|--(?!(?:${STDBUF_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?`,
+    ),
     "",
   ],
   [
-    /^runuser\s+(?:(?:-[gG]\s+\S+|--(?:group|supp-group)(?:=|\s+)\S+|-(?![gG]\s|u)[A-Za-z]+|--(?!(?:group|supp-group|user)\b)[\w-]+(?:=\S+)?)\s+)*(?:-u\s*\S+|--user(?:=|\s+)\S+)\s+(?:--\s+)?(?![\s-])/,
+    new RegExp(
+      String.raw`^runuser\s+(?:(?:-[gG]\s+\S+|--(?:${RUNUSER_VALUED_LONG})(?:=|\s+)\S+|-(?![gG]\s|u)[A-Za-z]+|--(?!(?:${RUNUSER_VALUED_LONG}|user)\b)[\w-]+(?:=\S+)?)\s+)*(?:-u\s*\S+|--user(?:=|\s+)\S+)\s+(?:--\s+)?(?![\s-])`,
+    ),
     "",
   ],
   [/^nice\s+(?:(?:-n\s*\S+|--adjustment=\S+|-\d+)\s+)?/, ""],
   [
-    /^timeout\s+(?:(?:-[sk]\s*\S+|--(?:signal|kill-after)\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+/,
+    new RegExp(
+      String.raw`^timeout\s+(?:(?:-[sk]\s*\S+|--(?:${TIMEOUT_VALUED_LONG})\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+`,
+    ),
     "",
   ],
   [
-    /^xargs\s+(?:(?:-[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]*[EILPadns]\s*\S+|--(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s+)\S+|-[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]+|--(?!(?:arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var)(?:=|\s))[\w-]+(?:=\S+)?)\s+)*/,
+    new RegExp(
+      String.raw`^xargs\s+(?:(?:-${XARGS_FLAG_SHORT}*[EILPadns]\s*\S+|--(?:${XARGS_VALUED_LONG})(?:=|\s+)\S+|-${XARGS_FLAG_SHORT}+|--(?!(?:${XARGS_VALUED_LONG})(?:=|\s))[\w-]+(?:=\S+)?)\s+)*`,
+    ),
     "",
   ],
   [
@@ -123,6 +154,12 @@ const INTERPRETER_PAYLOAD = new RegExp(
   "g",
 );
 
+/** ssh の値を取らない短 flag の文字。値を取る `[BDEFIJLORSWbceilmopw]` の補集合なので、片方を変えたら両方を直す。 */
+const SSH_FLAG_SHORT = "[46AaCfGgKkMNnqsTtVvXxYy]";
+
+/** watch の値を取らない短 flag の文字。値を取る `[nq]` の補集合なので、片方を変えたら両方を直す。 */
+const WATCH_FLAG_SHORT = "[A-Za-mo-pr-z]";
+
 /**
  * 残りの引数を空白で繋ぎ、相手側のシェルがコマンド行として読み直す呼び出しの、残りの手前まで。
  *
@@ -132,8 +169,12 @@ const INTERPRETER_PAYLOAD = new RegExp(
  * ssh の flag は引数を取るものと取らないもので分けないと、`-p 22` の `22` をホストと読み違える。
  */
 const REMOTE_COMMAND: readonly RegExp[] = [
-  /(?:^|\s)ssh\s+(?:(?:-[46AaCfGgKkMNnqsTtVvXxYy]*[BDEFIJLORSWbceilmopw]\s*\S+|-[46AaCfGgKkMNnqsTtVvXxYy]+)\s+)*[^\s-]\S*\s+/,
-  /(?:^|\s)watch\s+(?:(?:-[A-Za-mo-pr-z]*[nq]\s*\S+|--interval[=\s]\S+|-[A-Za-mo-pr-z]+|--(?!interval[=\s])[\w-]+(?:=\S+)?)\s+)*/,
+  new RegExp(
+    String.raw`(?:^|\s)ssh\s+(?:(?:-${SSH_FLAG_SHORT}*[BDEFIJLORSWbceilmopw]\s*\S+|-${SSH_FLAG_SHORT}+)\s+)*[^\s-]\S*\s+`,
+  ),
+  new RegExp(
+    String.raw`(?:^|\s)watch\s+(?:(?:-${WATCH_FLAG_SHORT}*[nq]\s*\S+|--interval[=\s]\S+|-${WATCH_FLAG_SHORT}+|--(?!interval[=\s])[\w-]+(?:=\S+)?)\s+)*`,
+  ),
 ];
 
 /**
