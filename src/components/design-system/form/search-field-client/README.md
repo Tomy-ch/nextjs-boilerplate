@@ -30,10 +30,11 @@
 - 一覧の主導線で、打鍵しながら結果を絞り込みたい場合（`commit` は既定のまま）
 - 取得が重く、打鍵ごとの呼び出しを待ち時間でまとめたい場合
 - 検索語がほかの条件と並び、まとめて確定する場合（`commit` に `submit` を選ぶ）
+- server を持たない利用側（静的サイトとして配信する [`docs-viewer`](../../../../../docs-viewer/README.md) など）で、検索語を client の state に持って結果をその場で絞る場合。`searchParams` を読み直す server が居ないので、下の「結果は Server Component で描画する」はこの場合には当たりません
 
 JavaScript が無くても送信できる形が要る場合や、検索が主導線でない場合は `SearchFieldNative` を使います。候補集合から選ぶことがゴールの UI には `Command` を使います。
 
-キーワード以外の条件（状態・期間・価格帯など）も並ぶ画面では、この検索欄を [`FilterBar`](../../../patterns/filter-bar/README.md) の中へ置きます。`FilterBar` は検索欄を持たず、適用中の条件・件数・全解除の導線を束ねる外枠なので、排他ではなく入れ子の関係です。この component 単体で足りるのは、絞り込みがキーワードだけの場合です。
+キーワード以外の条件（状態・期間・数値の範囲など）も並ぶ画面では、この検索欄を [`FilterBar`](../../../patterns/filter-bar/README.md) の中へ置きます。`FilterBar` は検索欄を持たず、適用中の条件・件数・全解除の導線を束ねる外枠なので、排他ではなく入れ子の関係です。この component 単体で足りるのは、絞り込みがキーワードだけの場合です。
 
 ## 責務境界
 
@@ -45,7 +46,7 @@ JavaScript が無くても送信できる形が要る場合や、検索が主導
 
 ### 結果は Server Component で描画する
 
-`onSearch` で受け取った検索語は、呼び出し元が `searchParams` へ載せ、結果は Server Component で描画します。結果まで client 側で取得すると、URL と表示が一致しなくなり、共有・履歴・戻る操作が壊れます。この component が client なのは入力の操作性のためだけであり、データの取得と描画を client へ移すためではありません。
+`onSearch` で受け取った検索語は、呼び出し元が `searchParams` へ載せ、結果は Server Component で描画します。結果まで client 側で取得すると、URL と表示が一致しなくなり、共有・履歴・戻る操作が壊れます。この component が client なのは入力の操作性のためだけであり、データの取得と描画を client へ移すためではありません。server を持たない利用側だけは例外で、検索語を client の state に持ちます（利用ケース）。
 
 ### `onSearch` は安定した関数を渡す
 

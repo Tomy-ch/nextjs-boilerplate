@@ -40,7 +40,7 @@ ls src/config/ 2>/dev/null
 - `src/config/environment.ts` — 明示的な環境スキーマと purpose validator の import
 - `env/README.md` — 変数表とサブシステム別セクション。**どの変数が存在するか**の正
 - `src/config/README.md` — config カーネル README。**設定値そのもの**（ビルド時に検証され、purpose モジュールへ渡される値）の正
-- `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` — 環境別の値の置き場とセクションコメントの体裁
+- `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` — 環境別の値の置き場。セクションコメントは持たず、行の順序と行の形は `env/README.md` の「ファイルの書き方」が決める
 - `package.json` — 存在する検証スクリプト（`lint:ci` / `typecheck` / `build`、テストスクリプトが追加済みならそれも）
 
 **書く（確認後のみ）**:
@@ -62,9 +62,9 @@ ls src/config/ 2>/dev/null
 
 - 質問:「環境変数名を入力してください（`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`）。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
 - 自由入力。その後:
-  1. 先頭に `NEXT_PUBLIC_` があれば剥がし（これは client 側を示すプレフィックスであってサブシステム名ではない）、最初の `_` で分割してサブシステムを得る
-  2. `src/config/` から検出した purpose 群と突合する
-  3. 一致すれば推定モジュールを提示して確認する（例:「推定 purpose: `api`（`src/config/api/api.server.ts`）」）
+  1. **purpose は名前ではなく読み手が引く**（[0030](../../../docs/adr/0030-environment-variable-management.md)）。接頭辞は [0028](../../../docs/adr/0028-naming-convention.md) の命名の単位で purpose とは独立しており、同じ接頭辞の変数でも読むサブシステムが違えば別の purpose に入る。その値をどのサブシステムが読むかを尋ねる
+  2. その読み手を `src/config/` から検出した purpose 群と突合する
+  3. 一致すればモジュールを提示して確認する（例:「読み手から引いた purpose: `api`（`src/config/api/api.server.ts`）」）
   4. 一致しなければ候補を提示し、選び直すか、purpose モジュールを手で追加するために停止するかを尋ねる
   5. **標準名の例外**（[0028](../../../docs/adr/0028-naming-convention.md)）: 外部仕様が名前まで規定し、サードパーティ SDK が読む変数（`OTEL_EXPORTER_OTLP_ENDPOINT` / `PORT` 等）は標準名のままとし `{SUBSYSTEM}_{NAME}` を課さない。適用対象は**外部ツールが読む変数だけ**で、アプリが自分で読む変数には適用しない
 
@@ -114,17 +114,12 @@ ls src/config/ 2>/dev/null
 
 ### 質問 6: 説明
 
-自由入力。ユーザは英語か日本語の**どちらか**（または両方）を与える。不足側はスキルが補い、変数表の両言語が二度書きなしで同期する。
+自由入力。`env/README.md` が書かれている言語で受ける —— 変数表は 1 言語の 1 枚である（[0140](../../../docs/adr/0140-documentation-operations.md)）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
 
-- 「説明（日本語または英語のどちらか）」
-- Notes 欄（任意） — Secret 管理 / 環境依存等の注記。説明と同じ言語で受ける
+- 「説明」
+- Notes 欄（任意） — Secret 管理 / 環境依存等の注記
 
-解決規則:
-
-- 日本語のみ → 日本語行を書き、英語側へ訳す
-- 英語のみ → その逆
-- 両方 → そのまま使い、翻訳しない
-- 訳は短く直截に、周囲の行のレジスタに合わせる。自明でない訳は書き込み前に Step 2 の計画へ出してレビューを受ける
+どちらも短く直截に、周囲の行のレジスタに合わせる。
 
 ### 質問 7: 環境別の値
 
@@ -135,7 +130,7 @@ ls src/config/ 2>/dev/null
   - 「prd だけ別の値を入れる」
   - 「環境ごとに個別指定する（追加質問）」
 
-選択に応じて値を集める。`prd` は、ユーザが明示値を与えない限り既存ファイルのプレースホルダ慣行（通常はコメントアウト行）に従う。secret ラベル付きの変数は常にプレースホルダとする。
+選択に応じて値を集める。`prd` は、ユーザが明示値を与えない限り、`env/README.md` がプラットフォームの与える値に割り当てる行の形（名前だけのコメントアウト行）にする。secret ラベル付きの変数は常にその形とする。
 
 ## Step 1. 挿入位置の決定
 
@@ -143,13 +138,13 @@ ls src/config/ 2>/dev/null
 
 ### purpose config モジュール
 
-purpose ディレクトリは schema モジュールと、対応する runtime モジュール 1 本（`src/config/<purpose>/<purpose>.server.ts` **または** `<purpose>.client.ts`）を持つ。
+purpose ディレクトリは schema モジュールと、runtime モジュールの片方または両方（`src/config/<purpose>/<purpose>.server.ts` / `<purpose>.client.ts`）を持つ（[0030](../../../docs/adr/0030-environment-variable-management.md)）。この変数がどちらへ入るかは質問 3 が決める。
 
 1. **スキーマ validator** — `<purpose>.schema.ts` の named validator を追加・拡張する。既存のスキーマライブラリを使い、required / code default は質問 4 に従う
 2. **環境スキーマ項目** — `src/config/environment.ts` の明示的な `z.object({...})` へ validator を import して呼び出す
-3. **Config 値と getter** — 対応する runtime モジュールに型付き値と getter を加え、private constructor と既存作法を保つ。setter や外部公開 constructor / factory は足さない
+3. **Config 値** — 選んだ runtime モジュールへ、そのモジュールの既存の形で型付き値を足す。server モジュールなら `#` private フィールドと getter（private constructor は保つ）、client モジュールなら export する定数。setter や外部公開 constructor / factory は足さない
 
-client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md)）: 値は**静的なドット参照**で読む — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` と literal に書き下す。動的インデックスアクセスと分割代入はビルド時のリテラル置換が効かないため禁止。
+client モジュール固有（[0030](../../../docs/adr/0030-environment-variable-management.md)）: 値は**変数名を文字列リテラルで名指して**読む — `process.env["NEXT_PUBLIC_ANALYTICS_SITE_ID"]` と literal に書き下す。ドット記法も置換されるが、`noPropertyAccessFromIndexSignature` が型検査で落とす。動的インデックスアクセス（文字列リテラル以外の添字）と分割代入はビルド時のリテラル置換が効かないため禁止。
 
 server モジュール固有: `import "server-only"` はファイル先頭に既にあるはず。無ければ、無防備なモジュールへ黙って変数を足すのではなく欠陥として報告する。
 
@@ -157,7 +152,8 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 
 実在する `env/.env.local` / `.env.ci` / `.env.dev` / `.env.stg` / `.env.prd` の各々について:
 
-- purpose のセクションコメントを探し、その下へ既存の整列とコメント作法を保って 1 行足す
+- どのファイルでも同じ位置へ行を足す。5 つのファイルは `env/README.md` の変数表と同じ順序で同じ変数を持つので、新しい行は表の行が入る位置に入る。目印にするセクションコメントは無い
+- 行の形（`NAME=value` / `NAME=` / `# NAME=` / `# NAME=<候補>`）は、`env/README.md` の「ファイルの書き方」の定義に従って、誰が値を与えるかで選ぶ。同じ節が一部の環境に限る変数（検証のためだけの上書き、開発専用の切り替え）は、その環境のファイルにだけ足す
 - secret ラベル付きはプレースホルダ（またはコメントアウト行）とし、実値は書かない
 
 ### `env/README.md` — 変数の存在（常に）
@@ -191,7 +187,7 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 
 ## Step 2. 計画の提示と確認
 
-変更内容一式を日本語サマリで提示する — 変数名、config 経由か env のみか、purpose と対象モジュール、server / client、型、required / code default、secret ラベル、両言語の説明、環境別の値、各ファイルで何が変わるかの一覧、レビュー対象の自動翻訳。env のみの経路では、config モジュールにも config README にも触れないことを明示する。
+変更内容一式を日本語サマリで提示する — 変数名、config 経由か env のみか、purpose と対象モジュール、server / client、型、required / code default、secret ラベル、説明、環境別の値、各ファイルで何が変わるかの一覧、レビュー対象の訳（あれば）。env のみの経路では、config モジュールにも config README にも触れないことを明示する。
 
 `AskUserQuestion` で確認する:
 
@@ -202,7 +198,7 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 
 読み取り済みコンテキストから導いた厳密なアンカー（対象セクションの最後のスキーマ項目 / フィールド / getter / 表の行）で `Edit` を使う。順序:
 
-1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → getter）— config 経由の経路のみ
+1. `src/config/<purpose>/<purpose>.schema.ts`、対応 runtime モジュール、`src/config/environment.ts`（validator → 環境スキーマ項目 → 値）— config 経由の経路のみ
 2. `src/config/environment.fixture.ts` — config 経由の経路のみ
 3. config テスト（存在する場合）
 4. env ファイル（1 ファイル 1 編集）
@@ -256,7 +252,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - ❌ env 変数表の内容を config README へ二重に書くこと（逆も同様。2 つの文書は持つものが違う）
 - ❌ 仕様確認の `AskUserQuestion` を省くこと / 計画提示なしに適用すること
 - ✅ ユーザ向け出力は日本語
-- ✅ env ファイル（整列・コメント作法）と README 表（列数・順序）の体裁を保つ
+- ✅ env ファイル（行の順序・行の形）と README 表（列数・順序）の体裁を保つ
 - ✅ 書き込み後に `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` を実行する
 - ✅ 検証の失敗は提示する。自動ロールバックはしない
 
@@ -270,12 +266,12 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] server / client を確認し、`NEXT_PUBLIC_` の有無と整合している
 - [ ] secret ラベルを確認した。secret を `NEXT_PUBLIC_` に置いておらず、実 secret 値をコミット対象へ書いていない
 - [ ] 型と required / code default を確認した
-- [ ] 説明を片方の言語で受け取り、他方を訳して計画に提示しレビューを受けた
+- [ ] 説明を `env/README.md` の言語で確定した（訳したなら計画に提示しレビューを受けた）
 - [ ] 環境別の値を確定した
 - [ ] 計画全体を提示し、ユーザが承認した
-- [ ] config 経由の経路: purpose モジュールを 1 本だけ更新した（スキーマ項目 + private フィールド + getter。setter なし）
-- [ ] client モジュールの値は静的ドット参照のみ
-- [ ] 実在する env ファイルすべてを該当セクション配下で更新した
+- [ ] config 経由の経路: purpose を 1 つだけ更新した（スキーマ項目 + runtime モジュールの既存の形での値。setter なし）
+- [ ] client モジュールの値は文字列リテラルで名指す参照のみ
+- [ ] 変数が属する env ファイルすべてを、表の順序の位置へ、`env/README.md` が割り当てる行の形で更新した
 - [ ] `env/README.md` の変数表に行を足した（常に）
 - [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）
 - [ ] config 経由の経路: `src/config/environment.fixture.ts` にも鍵を足した

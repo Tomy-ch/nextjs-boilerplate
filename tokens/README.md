@@ -13,12 +13,16 @@ frontmatter の `test-requirement: unit` が掛かるのは [`scripts/`](scripts
 
 ## 構成
 
-- `primitives.json`: 色・余白・角丸・フォント・段の基礎値
+- `primitives.json`: 色・余白・角丸・書体・段・字間・ぼかし・字重の基礎値
 - `themes/<系統>/<配色>.json`: primitive を参照する semantic token
 
 W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います。**コンポーネントは primitive を直接参照せず、生成される semantic token を使います。**
 
 参照は値の一部としても書けます。`color-mix()` や `box-shadow` のように primitive を素材の 1 つとして組み立てる値があるためで、そこを素の色で書くと semantic 層から primitive への経路が切れ、テーマの差し替えがその宣言だけ効かなくなります。
+
+**参照先の無い token は生成が落ちます。** 通すと実在しない変数を指す `var()` が出て、その宣言はエラーにならず丸ごと無効になり、面や文字が静かに消えます（[`docs/design/design-system.md`](../docs/design/design-system.md)「解決しない CSS 変数は、class より静かに壊れる」）。参照の区切りは `.` ですが、`{spacing.0.5}` のように段の名前自体が `.` を含む場合も、宣言済みの primitive と突き合わせて解決します。
+
+値そのものの理由は、その token の `$description` に書けます。W3C の項目で、生成物には出ません。
 
 ## 切替の軸は 2 本
 
@@ -34,7 +38,9 @@ W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います�
 
 生成物は系統 × 配色の 6 ブロックです。セレクタの詳細度は `[data-surface]` が `(0,1,0)`、`:root[data-theme]` が `(0,2,0)`、両方揃った範囲が `(0,3,0)` と積み上がるので、同じ木では**系統と配色の両方を指定した宣言が必ず勝ちます**。既定の系統を先に出すのも同じ理由で、**記述順が詳細度の同点を裁くため順序は生成物の意味の一部です**。
 
-`color-scheme` は配色の軸の宣言なので `:root` 側にだけ出します。系統の側にも出すと同じ条件を二重に持つことになります。
+配色の二経路では**明示指定が OS の設定に勝ちます**。OS 側のブロックは `:root:not([data-theme="<既定>"])` に掛け、既定の配色を明示した文書を除外します。既定以外の配色は `screen` に限定し、印刷は常に既定の配色で出ます（[0051](../docs/adr/0051-styling-system.md)）。同じ発火条件を `globals.css` の `@custom-variant dark` も持つので、**条件を変えるときは生成側と 2 箇所を一緒に動かします**。
+
+`color-scheme` は配色の軸の宣言なので `:root` 側にだけ出します。系統の側にも出すと同じ条件を二重に持つことになります。宣言しないと、配色を切り替えてもスクロールバー・フォーム部品・キャンバスの既定描画が既定の配色のまま残ります。
 
 ### 属性を置く場所は、Portal を含む位置でなければならない
 
@@ -45,11 +51,13 @@ W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います�
 属性は **Portal の出口を含む位置**（`body` 相当）に置くか、Portal の `container` を系統の内側へ
 向けるかのどちらかが要ります。**部分木の途中に置くだけでは足りません。**
 
-カタログ（`.storybook/preview.tsx`）は `body` に置いています。
+カタログ（`.storybook/preview.tsx`）は `body` に置いています。実アプリは前者の形で、器が部分木の外枠へ属性を置き、`SurfacePortalBridge` が同じ系統を `body` へ届けます。分担と理由は [`src/components/design-system/foundation/surface/README.md`](../src/components/design-system/foundation/surface/README.md) が持ちます。
 
 ### 系統を足す・消す
 
-`themes/` の下にディレクトリを作れば系統が増えます。生成側は系統の名前を持ちません。`admin/` を丸ごと消せば、生成物は配色 1 軸の形に戻ります。
+`themes/` の下にディレクトリを作れば系統が増えます。生成側が名前で知るのは**既定の系統と既定の配色だけ**（`scripts/gen-tokens.ts` の定数）で、それ以外はディレクトリを走査して見つけます。`admin/` を丸ごと消せば、生成物は配色 1 軸の形に戻ります。既定の系統は消せず、改名するなら生成側の定数も一緒に動かします。
+
+配色も同じ形で増えます。**すべての系統が同じ配色のファイルを持っていなければ生成が落ちます**（既定の配色は必須）。OS の経路は配色の名前をそのまま `prefers-color-scheme` の値に使うため、OS が持つ値以外の名前は `data-theme` の明示経路だけで効きます。
 
 **すべての系統と配色が同じ token を宣言していなければ生成が落ちます。** 欠けた token は宣言が無いだけでは済まず、カスケードにより既定の系統や既定の配色の値をそのまま引き継ぐため、系統を切り替えたつもりの箇所だけが元の色のまま残ります。
 
@@ -134,7 +142,8 @@ WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token 
 
 ラテンと等幅の実体は `next/font` が [`src/app/fonts.ts`](../src/app/fonts.ts) で読み、`--typeface-*` として
 配ります。primitive の綴りを `--font-*` と分けているのは、生成する別名と同じ名前になると宣言が自分自身を
-指すためです。
+指すためです。`next/font` はその変数を class に載せて配るので、読む要素の祖先に `FONT_VARIABLES` の class が
+要ります（実アプリの `<html>` とカタログの双方が同じ定義を使います）。
 
 ### 強調は 1 段だけ持つ
 
@@ -167,7 +176,17 @@ WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token 
 
 ## 形
 
-`radius` は直角に寄せてあります（`md` / `lg` で 2px）。丸みのある面は、光を主役にした体系の中では前に出すぎます。`tracking` は広い側だけを定義し（`wide` / `wider` / `widest`）、狭い側は Tailwind の既定に任せます。`blur` は `card` の背後をぼかす `panel` の 1 段だけです。
+`radius` は直角に寄せ、Tailwind の既定より 1 段小さく取ってあります（この repo の `md` が既定の `sm`、`lg` が既定の `md` に当たります）。丸みのある面は、光を主役にした体系の中では前に出すぎます。`tracking` は `normal` と広い側（`wide` / `wider` / `widest`）だけを定義し、狭い側は Tailwind の既定に任せます。`blur` は `card` の背後をぼかす `panel` の 1 段だけです。
+
+## token を足す
+
+1. 生の値が要るなら `primitives.json` に段を足します。段の番号は名前ではなく測った結果です（[面と文字で明度を分ける](#面と文字で明度を分ける)）
+2. semantic token を `themes/` の**すべての系統 × 配色**に同じ名前で足します。面の色には対になる `<名前>-foreground` を一緒に持ちます —— 面の上に乗る文字の色は面ごとに決まり、`foreground` の使い回しでは配色ごとに成立しません
+3. `pnpm gen:tokens` を回し、生成物を同じ変更に含めます。カタログは名前を生成物から受け取るので、手で足す目録はありません
+
+**名前空間が、生える utility を決めます。** `color` に置けば Tailwind は `bg-*` / `text-*` / `border-*` を作り、`shadow` なら `shadow-*` だけを作ります。面と文字が同じ変数を引くのはこのためで、文字に置かない色を `color` に置くと、置けてしまう utility が生えます（[役割ごとに要求が違う](#役割ごとに要求が違う) / [光の層](#光の層)）。
+
+**手で書く CSS は `--semantic-*` を引きます。** 生成する別名 `--color-*` / `--font-*` は `:root` で解決済みなので、系統を切り替えた部分木で `var(--color-primary)` を引いても既定の値のままです。utility は `@theme inline` が別名の中身を展開するため追従します。
 
 ## いま効いている値を見る
 
@@ -184,13 +203,13 @@ Storybook の **`Tokens/Catalog`** に全件が出ます。名前はこの SSOT 
 | --- | --- | --- |
 | 基礎値 | 色・余白・角丸・フォント・段・字間・ぼかし・字重の primitive | `primitives.json` |
 | 役割ごとの値 | 系統 × 配色の 4 ファイルが primitive を参照する | `themes/<系統>/<配色>.json`。[すべての系統と配色が同じ token を宣言していないと生成が落ちます](#系統を足す消す) |
-| 系統の数 | `user` と `admin` の 2 本 | `themes/` のディレクトリを足す・消す（[上記](#系統を足す消す)） |
+| 系統の数 | `user` と `admin` の 2 本 | `themes/` のディレクトリを足す・消す（[上記](#系統を足す消す)）。既定の系統は残す |
 | 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | primitive の `font` と、`next/font` の実体を持つ `src/app/fonts.ts` の両方 |
 | 撮る配色 | VRT は既定の配色だけを撮り、もう一方は `:root` へ届くことだけを見る | [`vrt/README.md`](../vrt/README.md#boilerplate-導入時の変更点) |
 
 差し替えたら `pnpm gen:tokens` で作り直し、`pnpm check:tokens` が生成物と宣言の一致を見ます
-（[下記](#生成と検査)）。生成物（`src/app/generated/tokens.css` と `src/model/generated/` の 2 本）は
-手で直しません。
+（[下記](#生成と検査)）。生成物（`src/app/generated/tokens.css` と、`src/model/generated/` の
+`breakpoint.ts` / `design-token.ts` の 3 本）は手で直しません。
 
 明度・コントラスト・発光の層をどう決めるかはこの README の他の節が持ちます。**値を入れ替えるとき
 それらの判断まで捨てる必要はありません** —— 判断は役割に紐づいており、色そのものには紐づいて
@@ -204,6 +223,8 @@ pnpm check:tokens
 ```
 
 前者は `src/app/generated/tokens.css` と、`src/model/generated/` の `breakpoint.ts` / `design-token.ts` を更新します。後者は更新せず、生成結果との差分があれば失敗します。**生成物を手編集してはいけません。**
+
+`breakpoint.ts` を CSS と同じ SSOT から出すのは、`lg:` のような variant は Tailwind が `@theme` の `--breakpoint-*` から作る一方、JS から media query を組む経路はそこを読めないためです。片方を手で書くと、段を差し替えたときに CSS と JS で境界がずれ、両方出る幅か両方消える幅ができます。`design-token.ts` は名前だけを持ち、値は持ちません —— 値は配色と系統で変わるので、表示する側が実行時に CSS から読みます（[上記](#いま効いている値を見る)）。
 
 `src/**/generated/**` は biome の formatter の対象外です（`biome.json` の override）。`color-mix()` を含む宣言や長い配列は 100 桁を超えて折り返されるため、対象に含めると formatter と `pnpm check:tokens` が互いの出力を上書きし合います。**生成物の綴りは生成側が決めます。**
 

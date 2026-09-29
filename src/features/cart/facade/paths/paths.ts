@@ -1,4 +1,11 @@
 /**
+ * この feature が持つルート。
+ *
+ * @remarks
+ * `facade` へ置くのは、購入手続き（`checkout`）がカートへ戻る導線を持つためです。
+ */
+
+/**
  * カートの中身を全画面で確かめる画面。
  *
  * @remarks
@@ -6,6 +13,3 @@
  * 確かめられる唯一の経路になります。
  */
 export const CART_PATH = "/cart";
-
-/** 購入手続きの入口。認証の内側にある。 */
-export const CHECKOUT_PATH = "/checkout";

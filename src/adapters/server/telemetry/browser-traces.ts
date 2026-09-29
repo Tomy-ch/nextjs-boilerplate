@@ -9,7 +9,7 @@ import {
 import { z } from "zod";
 
 import { getObservabilityConfig } from "@/config/observability/observability.server";
-import { REDACTED, REDACTED_FIELD_NAMES } from "@/logging/logger";
+import { type LogFields, REDACTED, REDACTED_FIELD_NAMES } from "@/logging/logger";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { getSignalEndpoint, OtelSignal } from "@/observability/initialize.server";
 
@@ -106,7 +106,7 @@ export async function forwardTraceExport(traces: TraceExport): Promise<void> {
  *
  * @param fields - ログへ添える追加のフィールド
  */
-function reportFailure(fields: Readonly<Record<string, unknown>>): void {
+function reportFailure(fields: LogFields): void {
   reportQuietly(() => {
     getLogger().warn("ブラウザの span を collector へ渡せませんでした", fields);
   });

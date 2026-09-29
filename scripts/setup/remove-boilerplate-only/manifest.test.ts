@@ -117,6 +117,16 @@ describe("SELF_DESTRUCT_PATHS", () => {
     TIMEOUT_MS,
   );
 
+  it("スキャナ撤去の宣言は、剥がした後に自消滅で消える文書を指さない", () => {
+    const manifest = fs.readFileSync(
+      path.join(ROOT_DIR, "scripts/setup/remove-licensed-scanners/scanner-manifest.ts"),
+      "utf8",
+    );
+    const { content } = stripMarkers(manifest, BOILERPLATE_ONLY_MARKER);
+
+    expect(SELF_DESTRUCT_PATHS.filter((target) => content.includes(`"${target}`))).toEqual([]);
+  });
+
   it("共有機構は消さない", () => {
     const shared = "scripts/setup/lib/markers.ts";
 

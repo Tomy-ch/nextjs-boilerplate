@@ -11,7 +11,7 @@
 | --- | --- |
 | [mise](https://mise.jdx.dev) | ツール / ランタイムの版管理。**シェルで activate しておくこと**（[0003](../adr/0003-version-manager.md)） |
 | GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
-| Docker | 手順 7 でのみ使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.md)） |
+| Docker | 手順 8 でのみ使う。基準画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.md)） |
 
 ## 1. 手元を用意する
 
@@ -136,8 +136,13 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 題材を持つ画面群と、その題材に固有の契約・モック・破棄の道具そのものを消す。
 破棄後に整形・検査・build・test まで連鎖するので、参照の消し残しはその場で判る。
 
-サンプルを残して使う場合はこの手順を飛ばす。ただし**次の手順より先に済ませたほうがよい** —
+サンプルを残して使う場合はこの手順を飛ばす。ただし**手順 8 より先に済ませたほうがよい** —
 破棄はサブモジュールの中へ届かないため、逆順にすると題材の基準画像を自分の置き場に撮ってしまう。
+
+**破棄の変更は、手順 7 で自分の契約を入れるまで commit しない。** 破棄は題材の契約の宣言も消すため、
+直後の `openapi/sources.yaml` は宣言が 0 本になり、読み取りで拒否される。同じ読み取りを通る
+`make api-gen-check` は commit 時の hook（`openapi/**` を触った commit）と CI の両方で落ちるので、
+破棄だけを先に commit・push することはできない（[`openapi/README.md`](../../openapi/README.md)）。
 
 ### 破棄後に自分で書き換えるもの
 
@@ -160,9 +165,23 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 **破棄とは別に、供給されている既定そのものを見直す。** ここが挙げるのは破棄が直接壊すものだけで、
 契約・意匠・運用設定を含む全体の索引は [ルート README](../../README.md#導入時に見直す既定) にある。
 
-## 7. VRT の基準画像の置き場を用意する
+## 7. 自分の契約を入れる
 
-### 7-1. 置き場を作る
+`openapi/sources.yaml` に自分のバックエンドの契約の座標を書き、生成し直す。
+
+```bash
+make api-fetch
+make api-gen
+```
+
+座標の書き方と、`name` を変えたときに一緒に動く綴りは
+[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点) が持つ。
+
+**基準画像を撮る前に済ませる。** 画面単位の撮影は契約から生成したモックの応答で描くため、契約より先に撮ると、入れ替えた時点で全数を撮り直すことになる。
+
+## 8. VRT の基準画像の置き場を用意する
+
+### 8-1. 置き場を作る
 
 ```bash
 make setup-baseline-store
@@ -192,7 +211,7 @@ git commit -m "Build: 基準画像の置き場を配線する"
 > **置き場にルールセットを掛けないこと。** 撮り直しは GitHub App の push で行うため、
 > 保護を掛けると更新経路そのものを塞ぐ。
 
-### 7-2. GitHub App を作る（人手）
+### 8-2. GitHub App を作る（人手）
 
 自動化できない。REST に作成の口が無く、秘密鍵は生成時に一度しか表示されない。
 
@@ -215,7 +234,7 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 
 作成後、続けて 3 つ。作成直後に着地するのが **General** ページなので、上から順に済ませられる。
 
-1. **App ID を控える** — General ページの上部に数字で出ている。次の 6-3 で貼り付ける
+1. **App ID を控える** — General ページの上部に数字で出ている。次の 8-3 で貼り付ける
 2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
 3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
@@ -227,14 +246,14 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 > いないと、撮り直しはトークンの発行そのものが
 > `422 The permissions requested are not granted to this installation.` で落ちる。
 
-### 7-3. App を登録する
+### 8-3. App を登録する
 
 ```bash
 make setup-baseline-app
 ```
 
 ```text
-App ID（General ページの App ID）:           ← 6-2 で控えた数字
+App ID（General ページの App ID）:           ← 8-2 で控えた数字
 
   App ID : ...
   登録先 : <owner>/<repo>
@@ -252,7 +271,7 @@ App ID（General ページの App ID）:           ← 6-2 で控えた数字
 gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
 ```
 
-### 7-4. 最初の基準画像を撮る
+### 8-4. 最初の基準画像を撮る
 
 Docker が要る。**2 つある。**置き場は story 単位と画面単位で共有し、区画だけが分かれる
 （[`baseline/README.md`](../../baseline/README.md)）。片方だけ撮ると、もう片方は「基準画像が無い」で
@@ -274,18 +293,6 @@ count=<動いた枚数>
 
 以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。画面単位の側は
 [`e2e/README.md`](../../e2e/README.md) を見る。
-
-## 8. 自分の契約を入れる
-
-`openapi/sources.yaml` に自分のバックエンドの契約の座標を書き、生成し直す。
-
-```bash
-make api-fetch
-make api-gen
-```
-
-座標の書き方と、`name` を変えたときに一緒に動く綴りは
-[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点) が持つ。
 
 ## 9. 認証済みの画面を手元で見る
 

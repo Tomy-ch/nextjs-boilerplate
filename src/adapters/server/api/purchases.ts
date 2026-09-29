@@ -67,7 +67,19 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
 export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
 /** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
-export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
+export type PurchaseHistoryQuery = {
+  /** 次ページの鍵。先頭ページなら省く。区間の下限ではない。 */
+  readonly after?: string;
+  readonly first: number;
+  /** 区間の下限（この瞬時を含む）。RFC3339 の瞬時。 */
+  readonly orderedAfter?: string;
+  /** 区間の上限（この瞬時を含まない）。 */
+  readonly orderedBefore?: string;
+  /** 状態のコード。マスタ行を指す静的な番号。 */
+  readonly statusCodes?: readonly number[];
+  /** 他の利用者の購入も母集団に含めるか。含める指定は管理の役割を持つ主体しか通らない。 */
+  readonly includeOtherUsers: boolean;
+};
 
 /** `parsePurchaseHistoryQuery` の結果。読めなかったキーは呼び出し側が画面へ出す。 */
 export type PurchaseHistoryQueryParseResult =
@@ -76,6 +88,16 @@ export type PurchaseHistoryQueryParseResult =
 
 /** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
 const NUMERIC_KEYS: ReadonlySet<string> = new Set(["first"]);
+
+/**
+ * 契約が整数の並びで宣言している条件。
+ *
+ * @remarks
+ * 1 つだけ選ばれた条件は URL に 1 回しか現れず、素の値としては単一の文字列で届きます。
+ * 並びへ揃えないと、1 つ選んだときだけ契約の宣言に当たって落ちます。同じ値の繰り返しは
+ * 指している条件が 1 度のときと同じなので、畳んでから照らします。
+ */
+const INTEGER_ARRAY_KEYS: ReadonlySet<string> = new Set(["statusCodes"]);
 
 /** 真偽値として宣言されている条件。同じく、クエリ文字列からは文字列で届く。 */
 const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeOtherUsers"]);
@@ -124,6 +146,11 @@ export function parsePurchaseHistoryQuery(
   const typed: [string, unknown][] = [];
 
   for (const [key, value] of Object.entries(raw)) {
+    if (INTEGER_ARRAY_KEYS.has(key)) {
+      typed.push([key, [...new Set((typeof value === "string" ? [value] : value).map(Number))]]);
+      continue;
+    }
+
     if (typeof value !== "string") {
       continue;
     }
@@ -154,12 +181,15 @@ export function parsePurchaseHistoryQuery(
  * @param query - 購入履歴の取得条件
  * @returns クエリ文字列に載せる検索条件
  */
-function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | undefined> {
+function toSearchParams(
+  query: PurchaseHistoryQuery,
+): Record<string, string | readonly string[] | undefined> {
   return {
     after: query.after,
     first: String(query.first),
     orderedAfter: query.orderedAfter,
     orderedBefore: query.orderedBefore,
+    statusCodes: query.statusCodes?.map(String),
     includeOtherUsers: String(query.includeOtherUsers),
   };
 }

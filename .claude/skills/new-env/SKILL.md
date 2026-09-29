@@ -46,7 +46,7 @@ Do NOT use this skill for:
 - `src/config/environment.ts` — the explicit environment schema and the purpose-validator imports.
 - `env/README.md` — the variable table and its per-subsystem sections. This is the authority on **which variables exist**.
 - `src/config/README.md` — the config kernel README. This is the authority on **the config values themselves** — the ones validated at build time and supplied to purpose modules.
-- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement and section-comment layout.
+- `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` — per-environment value placement. The files carry no section comments; line order and line form are set by the file-writing section of `env/README.md`.
 - `package.json` — which verification scripts exist (`lint:ci` / `typecheck` / `build`, and a test script if one has been added).
 
 **Writes (only after confirmation)**:
@@ -68,9 +68,9 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** — addi
 
 - Question: 「環境変数名を入力してください(`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
 - Free-text. Then:
-  1. Strip a leading `NEXT_PUBLIC_` if present (that prefix marks the client side, not the subsystem) and split at the first `_` to get the subsystem.
-  2. Match the subsystem against the purposes discovered under `src/config/`.
-  3. If matched, show the inferred module (e.g. 「推定 purpose: `api` (`src/config/api/api.server.ts`)」) and ask for confirmation.
+  1. **The purpose is drawn by the reader, not by the name** ([0030](../../../docs/adr/0030-environment-variable-management.md)). The prefix is [0028](../../../docs/adr/0028-naming-convention.md)'s naming unit and is independent of the purpose: variables sharing a prefix can land in different purposes when different subsystems read them. Ask which subsystem reads the value.
+  2. Match that reader against the purposes discovered under `src/config/`.
+  3. If matched, show the module (e.g. 「読み手から引いた purpose: `api` (`src/config/api/api.server.ts`)」) and ask for confirmation.
   4. If unmatched, surface the available purposes and ask the user to pick one, or stop so a new purpose module can be added by hand.
   5. **Standard-name exception** ([0028](../../../docs/adr/0028-naming-convention.md)): names fixed by an external spec that a third-party SDK reads (`OTEL_EXPORTER_OTLP_ENDPOINT`, `PORT`, …) keep the standard name and are exempt from `{SUBSYSTEM}_{NAME}`. Only apply this when an external tool reads the variable — not when the app reads it itself.
 
@@ -120,17 +120,12 @@ For either secret label, the value written into the committed env files is a **p
 
 ### Question 6: Description
 
-Free text. The user provides EITHER English OR Japanese (or both); the skill fills in the missing side so both sides of the variable table stay in sync without the user writing it twice.
+Free text, in the language `env/README.md` is written in — a single table in one language ([0140](../../../docs/adr/0140-documentation-operations.md)). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
 
-- 「説明(日本語または英語のどちらか)」
-- Notes 欄(任意) — Secret 管理 / 環境依存等の注記。Provided in the same language as the description.
+- 「説明」
+- Notes 欄(任意) — Secret 管理 / 環境依存等の注記
 
-Resolution rules:
-
-- Japanese only → write the Japanese row, translate for the English side.
-- English only → the reverse.
-- Both → use as-is, no translation.
-- Keep translations short and direct, matching the register of surrounding rows. Surface any non-trivial translation in the Step 2 plan for review before writing.
+Keep both short and direct, matching the register of surrounding rows.
 
 ### Question 7: Per-environment values
 
@@ -141,7 +136,7 @@ Resolution rules:
   - 「prd だけ別の値を入れる」
   - 「環境ごとに個別指定する(追加質問)」
 
-Collect the values per the choice. For `prd`, follow whatever placeholder convention the existing files use (typically a commented-out line) unless the user supplies an explicit value — and always for a secret-labelled variable.
+Collect the values per the choice. For `prd`, use the line form `env/README.md` assigns to a value the platform supplies (a commented-out name) unless the user supplies an explicit value — and always for a secret-labelled variable.
 
 ## Step 1. Plan the Insertion Points
 
@@ -149,13 +144,13 @@ Compute each exact insertion point by reading the existing patterns rather than 
 
 ### The purpose config module
 
-The purpose directory has a schema module and exactly one corresponding runtime module — `src/config/<purpose>/<purpose>.server.ts` **or** `<purpose>.client.ts`.
+The purpose directory has a schema module and one or both runtime modules — `src/config/<purpose>/<purpose>.server.ts` and / or `<purpose>.client.ts` ([0030](../../../docs/adr/0030-environment-variable-management.md)). Question 3 picks the one this variable goes into.
 
 1. **Schema validator** — add or extend the named validator in `<purpose>.schema.ts`, using the schema library already used there. Required vs code default follows Question 4.
 2. **Environment schema entry** — import and call that validator in the explicit `z.object({...})` declaration in `src/config/environment.ts`.
-3. **Config value and getter** — add the typed value and getter in the corresponding runtime module, preserving its private constructor and existing style. Never add a setter or expose a constructor/factory.
+3. **Config value** — add the typed value in the chosen runtime module in the shape it already has: in a server module, a `#` private field and a getter, keeping its private constructor; in a client module, an exported constant. Never add a setter or expose a constructor/factory.
 
-Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md)): the value **must** be read as a static dot access — `process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID` — literally spelled out. Dynamic indexing and destructuring are forbidden because the build-time literal substitution does not apply to them.
+Client-module specifics ([0030](../../../docs/adr/0030-environment-variable-management.md)): the value **must** be read by naming the variable with a string literal — `process.env["NEXT_PUBLIC_ANALYTICS_SITE_ID"]` — literally spelled out. Dot access would be substituted too, but `noPropertyAccessFromIndexSignature` fails it at typecheck. Dynamic indexing (any subscript that is not a string literal) and destructuring are forbidden because the build-time literal substitution does not apply to them.
 
 Server-module specifics: `import "server-only"` is already at the top of the file; if it is missing, report that as a defect rather than silently adding a variable to an unguarded module.
 
@@ -163,7 +158,8 @@ Server-module specifics: `import "server-only"` is already at the top of the fil
 
 For each of `env/.env.local`, `.env.ci`, `.env.dev`, `.env.stg`, `.env.prd` (use the set that actually exists):
 
-- Locate the section comment for the purpose and append the line under it, preserving the existing alignment and comment style.
+- Insert the line at the same position in every file: the files hold the same variables in the order of the variable table in `env/README.md`, so the new line goes where its table row goes. There are no section comments to anchor on.
+- Pick the line form (`NAME=value` / `NAME=` / `# NAME=` / `# NAME=<candidate>`) that states who supplies the value, as the file-writing section of `env/README.md` defines it. A variable that the same section confines to some environments — a verification-only override, a development-only switch — goes only into those files.
 - Secret-labelled variables get a placeholder (or a commented-out line), never a real value.
 
 ### `env/README.md` — the variable exists (always)
@@ -197,7 +193,7 @@ The testing approach for config is **env stub + factory regeneration** (`vi.stub
 
 ## Step 2. Show the Plan and Confirm
 
-Display the whole proposed change set as a Japanese summary — variable name, config-backed or env-only, purpose and target module, server/client side, type, required vs code default, secret label, both descriptions, per-environment values, the file list with what changes in each, and any auto-translation for review. On the env-only path, say explicitly that no config module and no config README entry are involved.
+Display the whole proposed change set as a Japanese summary — variable name, config-backed or env-only, purpose and target module, server/client side, type, required vs code default, secret label, the description, per-environment values, the file list with what changes in each, and any translation for review. On the env-only path, say explicitly that no config module and no config README entry are involved.
 
 Confirm with `AskUserQuestion`:
 
@@ -208,7 +204,7 @@ Confirm with `AskUserQuestion`:
 
 Use `Edit` with exact anchors derived from the read context (the last existing schema entry / field / getter / table row in the target section). Order:
 
-1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → getter) — config-backed path only
+1. `src/config/<purpose>/<purpose>.schema.ts`, its runtime module, and `src/config/environment.ts` (validator → environment-schema entry → value) — config-backed path only
 2. `src/config/environment.fixture.ts` — config-backed path only
 3. The config test file, if one exists
 4. env files (one edit per file)
@@ -262,7 +258,7 @@ Remains protected:
 - ❌ Duplicate the env variable-table content into the config README (or the reverse) — the two documents own different things
 - ❌ Skip the spec-confirmation `AskUserQuestion`, or apply changes without showing the plan first
 - ✅ Japanese user-facing output
-- ✅ Preserve formatting in env files (alignment, comment style) and README tables (column count and order)
+- ✅ Preserve formatting in env files (line order, line form) and README tables (column count and order)
 - ✅ Run `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` after the writes
 - ✅ Surface any verification failure; do not auto-rollback
 
@@ -276,12 +272,12 @@ Before reporting completion, confirm:
 - [ ] Server / client side confirmed, and consistent with the presence or absence of `NEXT_PUBLIC_`
 - [ ] Secret label confirmed; no secret was placed behind `NEXT_PUBLIC_`, and no real secret value was written to a committed file
 - [ ] Type and required-vs-code-default confirmed
-- [ ] Description provided in one language; the other side was translated and surfaced in the plan for review
+- [ ] Description confirmed in the language of `env/README.md` (a translation, if any, surfaced in the plan for review)
 - [ ] Per-environment values resolved
 - [ ] The full plan was displayed and the user approved it
-- [ ] Config-backed path: exactly one purpose module updated (schema entry + private field + getter, no setter)
-- [ ] Client-module values use static dot access only
-- [ ] All existing env files updated under the matching section
+- [ ] Config-backed path: exactly one purpose updated (schema entry + value in the runtime module's existing shape, no setter)
+- [ ] Client-module values are read only by string-literal name
+- [ ] Every env file the variable belongs in was updated at its table-order position, in the line form `env/README.md` assigns
 - [ ] `env/README.md` got its variable-table row (always)
 - [ ] `src/config/README.md` updated on the config-backed path, without restating the env row
 - [ ] Config-backed path: the key was added to `src/config/environment.fixture.ts` as well

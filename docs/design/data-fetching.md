@@ -162,7 +162,7 @@ flowchart LR
 
 **分類が表示へ変わるのは `adapters` の外である。** Server Action は [`actionStateFromError`](../../src/model/action-state.ts) で `formError` へ、Server Component は `findAppError(error)?.kind === ErrorKind.NOT_FOUND` で `notFound()` へ、増分取得の hook は `UNAUTHENTICATED` で `router.refresh()` へ写す。
 
-**補助的な値は口の側で畳む。** 無くても画面が成り立つ添え物（別の口から引く参考表示など）は、`adapters` に「読めなければ `null`」を返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増える。畳んでよいのは、どの画面も同じ扱いをすると言い切れるときだけである。
+**補助的な値は口の側で畳む。** 無くても画面が成り立つ添え物（主たる内容とは別の口から引く補足など）は、`adapters` に「読めなければ `null`」を返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増える。畳んでよいのは、どの画面も同じ扱いをすると言い切れるときだけである。
 
 ## 一覧の続きを取る
 
@@ -175,7 +175,7 @@ features/<一覧>/use-infinite-<資源>.ts        末尾の目印が見えたら
             └─ adapters/server/api/<資源>.ts   初回ページと同じ口。JSON で運べる形へ落として返す
 ```
 
-Route Handler が持つのは分類を HTTP へ写すところだけで、取得も検証も画像 URL の解決も取得の口が済ませている。**Route Handler の `try / catch` は握り潰しではない** —— 投げたままにすると応答の中身が framework の既定になり、内側の事情がそのまま外へ出る。
+Route Handler が持つのは分類を HTTP へ写すところだけで、取得も検証も表示用の型への変換も取得の口が済ませている。**Route Handler の `try / catch` は握り潰しではない** —— 投げたままにすると応答の中身が framework の既定になり、内側の事情がそのまま外へ出る。
 
 **BFF が返す形は契約の形ではない。** 取得の口が表示用に絞った形（`Date` も省略可能な値も含まない `CursorPage<T>`）なので、client 側の検証は生成物ではなく手書きの `zod/mini` になる。初回ページと 2 ページ目以降で形が違うと、積み上げた一覧の途中から表示が壊れる。
 
@@ -198,7 +198,11 @@ hook の側で押さえるのは 3 つ。
 
 **`use cache` を名乗る口は `getPublicClient()` しか引けない。** `createHttpClient` を直に引けるモジュールは user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が落とす。`getPublicClient` が作れるのは公開の client だけなので、キャッシュの下で分類を取り違えようがない。
 
-**寿命は profile の名前で、印は定数で。** 口は `cacheLife("<profile>")` と `cacheTag(<定数>)` を名乗り、秒数は `next.config.ts` の `cacheLife` が持つ。印の定数は口が `export` し、捨てる側はそれを import する。このリポジトリでキャッシュを名乗っているのは、バックエンドが持ちこの面からは更新しないマスタの口と `sitemap.ts` で、**`use cache: private` を使っている口は無い**。
+**寿命は profile の名前で、印は定数で。** 口は `cacheLife("<profile>")` と `cacheTag(<定数>)` を名乗り、秒数は `next.config.ts` の `cacheLife` が持つ。印の定数は口が `export` し、捨てる側はそれを import する。
+
+<!-- sample:begin -->
+同梱サンプルでキャッシュを名乗っているのは、バックエンドが持ちこの面からは更新しない値の口と `sitemap.ts` で、**`use cache: private` を使っている口は無い**。
+<!-- sample:end -->
 
 **内側の `fetch` に `cache` / `tags` を置かない。** 内側の取得はまとめて外側の寿命に従うので、二重に持つと外側が取り直しても同じ古い応答を掴む。
 
@@ -222,7 +226,7 @@ hook の側で押さえるのは 3 つ。
 
 **client へ渡してはいけないものを登録する口は別にある。** [`server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) の `taintObjectReference` / `taintUniqueValue` で、登録しているのは session の記録（Access Token を持つ object）と署名鍵だけである。取得の口で PII を含む取得結果を汚す形は [`adapters/README.md`](../../src/adapters/README.md) が参照実装として示しているが、**同梱の口でそれを呼んでいるものは無い**。
 
-段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダ）は ADR 0112 決定 4 の表が持ち、ここでは再掲しない。
+段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダ）は、関所を一箇所に集めず段として置くと決めた [0112](../adr/0112-data-classification-cache-boundary.md) の表が持ち、ここでは再掲しない。
 
 ## 購読はこの通り道に無い
 

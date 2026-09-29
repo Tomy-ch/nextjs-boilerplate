@@ -18,8 +18,9 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 - ログは **抽象ロガー interface** 経由とし、実装(pino 等)をアプリコードから隠蔽する(実装ライブラリは [0004](0004-library-management.md) で確定)
 - **ctx-native**: ロガーは実行コンテキスト(サーバは `AsyncLocalStorage` 等の request context)から **`trace_id` / `span_id` を自動注入**する(caller は明示的に渡さない)
-- レベルは Debug / Info / Warn / Error。**出力先・format は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.md)。production = JSON / development = console 相当)
-- **ログキースキーマを 1 箇所に集約**する(`trace_id` / `span_id` / `error_code` / `error_message` / `latency_ms` / `request_id` 等)
+- レベルは Debug / Info / Warn / Error。**出力先は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.md))
+- **出力形式はどの環境でも JSON だけである。** 人が読みやすい整形は受け取る側(ログを表示・転送する側)の仕事とし、本体は環境で形式を切り替えない。形式が環境で分かれると、開発で見た行と配信で集めた行が別物になり、その差は配信へ出るまで現れない
+- **ログキーの表を 1 箇所に集約**する(`src/logging/logger.ts` の `LogFieldKey`)。表が持つのは `trace_id` / `span_id` / `request_id` / `error_code` / `latency_ms` / `cause` と、例外の内容を載せる OpenTelemetry semconv の `exception.type` / `exception.message` / `exception.stacktrace` である。**公式 semconv に名前がある項目はその名前を使い**、独自の名前(`error_message` 等)を立てない。表に無い名前も渡せる
 - **PII / token / password をログに出さない**(masking。[0080](0080-error-handling.md) の redact と一致)。`console.log` はコミットに残さない([0002](0002-formatter-linter.md) `noConsole`)
 - **伏せるのは名前で決め、値の形は見ない。** 値から秘密を見分けようとすると、見分けられなかったものが素通りし、見分けられたつもりのものが偽の安心になる。伏せる項目名の表はコード(`src/logging`)が持ち、名前に当たる値は形を問わず伏せる
 
@@ -34,7 +35,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 ### 3. シグナル別 config gating
 
-- traces / metrics / logs を **`OBS_*` config(例 `OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER` / `OBS_OTLP_ENDPOINT`)で個別に on/off** する。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
+- traces / metrics / logs を **`OBS_*` config(`OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER`)で個別に on/off** する。送り先の endpoint は `OBS_*` に改名せず、OTel の標準名 `OTEL_EXPORTER_OTLP_ENDPOINT` で受ける([0028](0028-naming-convention.md) の標準名の例外)。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
 - **何を計装するかは transport と別の軸で持つ**。描画の計装は `OBS_RENDER_SPANS`(`none` / `screen` / `part`)で範囲を選び、起動境界から注入する。exporter の無効化を計装の無効化の代わりに使えない —— `OBS_TRACES_EXPORTER=none` でも他の signal が有効なら SDK は tracer provider を立て、span は記録されたうえで捨てられる(成果物だけがゼロになり計装のコストは残る)
 - gating は **構築時**に効かせる(disabled シグナルは exporter / batcher / reader を一切作らない)。config は [0030](0030-environment-variable-management.md) の型付き Config で供給し、`observability` は config を注入で受ける([0021](0021-frontend-responsibility.md))
 - **`logging` は `observability` を import しない**(依存方向を逆転させない)。trace 抽出は `observability` が提供する抽出器を logging へ**注入**する
@@ -77,6 +78,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `logging` / `observability` カーネル(config は注入で受ける)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — `OBS_*` config の供給 / BFF runtime config / secret 非露出
+- [0028-naming-convention.md](0028-naming-convention.md) — OTel の標準名(`OTEL_EXPORTER_OTLP_ENDPOINT` 等)を `{SUBSYSTEM}_{NAME}` へ改名しない例外
 - [0080-error-handling.md](0080-error-handling.md) — エラーログのレベル(5xx=error / 4xx=warn)・redact(本 ADR がスキーマ・trace 相関を定める)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — fetch wrapper のログ / trace 伝播 / ブラウザ→BFF 中継の実装層
 - [0082-client-observability.md](0082-client-observability.md) — ブラウザ発の経路(trace / RUM / client エラー / プロダクト分析)の具体化

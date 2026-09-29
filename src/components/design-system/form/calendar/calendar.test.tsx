@@ -44,6 +44,12 @@ describe("Calendar", () => {
     expect(screen.getByRole("grid").closest("[data-week-numbers=true]")).toBeVisible();
   });
 
+  it("月の選択肢を既定の locale の短い月名で出す", () => {
+    render(<Calendar captionLayout="dropdown" defaultMonth={calendarMonth} mode="single" />);
+
+    expect(screen.getByRole("option", { name: "8月" })).toBeInTheDocument();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<Calendar defaultMonth={calendarMonth} mode="single" />);
 
@@ -73,6 +79,16 @@ describe("CalendarDayButton", () => {
       .find((button) => button.getAttribute("data-selected-single") === "true");
 
     expect(selected).toBeDefined();
+  });
+
+  it("その日を実行環境の locale によらない暦の日付として data 属性に持つ", () => {
+    render(<Calendar defaultMonth={calendarMonth} mode="single" selected={calendarMonth} />);
+
+    const selected = screen
+      .getAllByRole("button")
+      .find((button) => button.getAttribute("data-selected-single") === "true");
+
+    expect(selected).toHaveAttribute("data-day", "2026-08-01");
   });
 
   it("何も選んでいなければ単独選択の印を付けない", () => {

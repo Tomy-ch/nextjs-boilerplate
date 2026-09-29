@@ -185,12 +185,12 @@ describe("dockerfileFromPattern", () => {
     expect(matches[0]?.slice(1, 4)).toEqual(["FROM ", "alpine:3.24", " AS base"]);
   });
 
-  it("platform 指定を接頭辞の外へ置いて参照だけを取り出す", () => {
+  it("platform 指定を接頭辞に含めて参照だけを取り出す", () => {
     const matches = [
       ..."FROM --platform=linux/amd64 alpine:3.24\n".matchAll(dockerfileFromPattern()),
     ];
 
-    expect(matches[0]?.[2]).toBe("alpine:3.24");
+    expect(matches[0]?.slice(1, 3)).toEqual(["FROM --platform=linux/amd64 ", "alpine:3.24"]);
   });
 
   // ----- 異常系 -----

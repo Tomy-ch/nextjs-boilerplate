@@ -33,19 +33,19 @@ env / ADR / テストの命名形式は、**本リポジトリ自身の既存規
 
 | 対象 | ファイル名 | 主 export の識別子 | 例 |
 | --- | --- | --- | --- |
-| React コンポーネント | **kebab-case** | PascalCase | `user-card.tsx` → `UserCard` |
-| hook | **kebab-case**(`use-` 始まり) | `use` + PascalCase | `use-login.ts` → `useLogin` |
+| React コンポーネント | **kebab-case** | PascalCase | `date-picker.tsx` → `DatePicker` |
+| hook | **kebab-case**(`use-` 始まり) | `use` + PascalCase | `use-media-query.ts` → `useMediaQuery` |
 | その他モジュール(model / adapters / 関数群) | **kebab-case** | camelCase | `format-date.ts` → `formatDate` / `api-client.ts` → `apiClient` |
 | Next.js 特殊ファイル | **小文字固定(Next.js 規約)** | — | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx` / `not-found.tsx` / `route.ts` / `template.tsx` / `default.tsx` / `global-error.tsx` |
 | 起動 / 設定ファイル | **Next.js / ツール規約の固定名** | — | `instrumentation.ts` / `proxy.ts`(Next.js 16 の旧 `middleware.ts`。[0043](0043-middleware-policy.md))/ `next.config.ts` |
 | Server Action 集約 | **`actions.ts`**(固定名) | — | `features/<name>/actions.ts`([0021](0021-frontend-responsibility.md)) |
 
-- 従来型 React 慣行(コンポーネントファイルを PascalCase = `UserCard.tsx`)は**採らない**。Next.js エコシステムの業界スタンダードと case-insensitive FS 安全性を優先し、ファイル名は全種別 kebab-case に統一する
+- 従来型 React 慣行(コンポーネントファイルを PascalCase = `DatePicker.tsx`)は**採らない**。Next.js エコシステムの業界スタンダードと case-insensitive FS 安全性を優先し、ファイル名は全種別 kebab-case に統一する
 - kebab-case 統一により、ファイル種別に依らず 1 つの規則で済み、ケース混在・大文字小文字衝突が構造的に起きない
 
 ### route セグメント名(App Router — Next.js 規約)
 
-- ルートセグメントのディレクトリ名は **Next.js App Router の規約に従い小文字**とする(`app/users/` / `app/sign-in/` 等。複数語は kebab-case)
+- ルートセグメントのディレクトリ名は **Next.js App Router の規約に従い小文字**とする(`app/help/` / `app/sign-in/` 等。複数語は kebab-case)
 - Next.js の記法に従う(独自パターンを作らない):
   - 動的: `[slug]`(動的)/ `[...slug]`(catch-all)/ `[[...slug]]`(optional catch-all)
   - route group: `(group)`(URL に影響しないグルーピング)
@@ -58,7 +58,7 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 | 対象 | ケース | 備考 |
 | --- | --- | --- |
 | React コンポーネント | **PascalCase** | JSX 構文上必須(React 規約) |
-| hook | **`use` + PascalCase**(呼称は `useCamelCase`) | `useLogin` / `useUser`。React の規約 |
+| hook | **`use` + PascalCase**(呼称は `useCamelCase`) | `useMediaQuery` / `useDebounce`。React の規約 |
 | 関数・変数 | **camelCase** | |
 | 型 / interface | **PascalCase** | **`I` プレフィックス禁止**(TypeScript の業界スタンダード = 非ハンガリアン) |
 | 真の定数(モジュールレベルの不変値) | **UPPER_SNAKE_CASE** | 列挙的定数等。環境変数の値は対象外(UPPER_SNAKE 定数として再公開せず、型付き Config の getter 経由で参照する — [0030](0030-environment-variable-management.md)) |
@@ -66,7 +66,7 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 
 ### 環境変数
 
-- 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md) の決定に連なる
+- 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md) の決定に連なる。**接頭辞は命名の単位であり、config の purpose とは独立する** —— purpose はその値を読むサブシステムが引く([0030](0030-environment-variable-management.md))。接頭辞から purpose を、purpose から接頭辞を決めない
 - ブラウザへ露出する変数は Next.js 規約に従い **`NEXT_PUBLIC_` プレフィックス**を付す(`NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。境界・検証・型付けの詳細は **[0030](0030-environment-variable-management.md)(環境変数管理)** を正とする
 - **例外: 標準・デファクトが変数名まで規定しているものは、その標準名をそのまま使う**(例: OpenTelemetry の `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME`、Next.js の `NEXT_PUBLIC_*` / `PORT`)。標準名を `{SUBSYSTEM}_{NAME}` へ改名すると、その標準を実装した SDK・ツールが既定で読めなくなり、自前の橋渡しコードが必要になるため([0010](0010-standards-and-non-lockin.md) 標準準拠)。例外に該当するのは **外部の仕様・ツールが読む変数だけ**であり、アプリが自分で読む変数は例外にしない
 
@@ -81,9 +81,9 @@ React/JSX の構文的制約と業界スタンダード(非ハンガリアン記
 
 ## 禁止事項
 
-- ❌ ソースファイル名に PascalCase / camelCase を用いること(`UserCard.tsx` / `formatDate.ts` 等)。ファイル名は kebab-case で統一する（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で置いたファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
+- ❌ ソースファイル名に PascalCase / camelCase を用いること(`DatePicker.tsx` / `formatDate.ts` 等)。ファイル名は kebab-case で統一する（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で置いたファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
 - ❌ ケースの混在(kebab-case 以外のファイル名を持ち込む)（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で持ち込んだファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
-- ❌ 型 / interface への `I` プレフィックス(`IUser` 等)（強制: 散文 —— **寄せられる**（型 / interface 宣言の名前が `^I[A-Z]` に当たるものを lint で落とす形。規則は無い））
+- ❌ 型 / interface への `I` プレフィックス(`IButtonProps` 等)（強制: 散文 —— **寄せられる**（型 / interface 宣言の名前が `^I[A-Z]` に当たるものを lint で落とす形。規則は無い））
 - ❌ App Router 特殊ファイル・route セグメントに独自の命名パターンを持ち込むこと(Next.js 規約に従う)（強制: 散文 —— **一部寄せられる**。`src/app/` 配下のセグメント名は小文字 kebab-case と Next.js の記法（`[...]` / `(...)` / `_...`）の正規表現で落とせるが規則は無い。特殊ファイルに似せた独自の綴りかは名前の意図で決まる）
 - ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること(標準名の例外に該当する場合を除く)/ secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))（強制: 散文 —— **一部寄せられる**。`env/.env.*` の変数名が UPPER_SNAKE で prefix を持つかは正規表現で落とせるが規則は無い。prefix がサブシステムか・標準名の例外か・値が secret かは意味で決まる）
 - ❌ 標準が規定する変数名(`OTEL_*` 等)を `{SUBSYSTEM}_{NAME}` へ改名すること(標準実装が読めなくなる)（強制: 散文 —— **寄せられない**。どの変数名を外部の仕様が規定しているかはコードに無く、改名は標準名が消えることとしてしか現れない）

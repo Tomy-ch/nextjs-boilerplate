@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import { PROFILE } from "../../../account.fixture";
-import { PROFILE_EDIT_PATH } from "../../../paths";
+import { PROFILE_EDIT_PATH } from "../../../facade/paths/paths";
 import { ProfileCard } from "./profile-card";
 
 describe("ProfileCard", () => {

@@ -90,7 +90,7 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 ## 環境の定義
 
 `APP_ENV` が選べるのは `local` / `ci` / `dev` / `stg` / `prd` の 5 つである
-(`src/config/load-environment.ts`)。**各環境が何をする場所か**をここで定める。**変数をどう持つかは
+(`src/config/application-environment.ts`)。**各環境が何をする場所か**をここで定める。**変数をどう持つかは
 [0030](0030-environment-variable-management.md) の責務**で、本節は扱わない —— 0011 が「どの環境が
 何をする場所か」、0030 が「その環境の値をどう持つか」である。
 
@@ -221,7 +221,7 @@ Docker / self-host が必要なロールに拡張する場合の指針:
 - ❌ README / ドキュメントで「Docker での起動」を **アプリ本体の推奨デプロイ手段** として記載すること（強制: 持たない —— 採らない決定。Docker での起動を推奨する記述が無いこと自体が状態で、足せば文書の差分として現れる）
 - ❌ CI / scripts に **アプリ本体の** Docker build を組み込むこと（強制: 持たない —— 採らない決定。アプリ本体の Docker build を組む job やスクリプトが無いこと自体が状態で、足せば workflow / scripts の追加として diff に現れる）
 - ❌ `stand-alone` / `cloud` を値に持つ config の軸を置くこと(呼び名は 2 群の別名であって独立した軸ではない。組み合わせが表現できなくなる。§環境の定義)（強制: 持たない —— 採らない決定。`stand-alone` / `cloud` を値に持つ変数が config に無いこと自体が状態で、足せば schema と env の差分として現れる）
-- ❌ 開発専用の口の開閉を、接続モード(`APP_API_MODE` 等)や環境の呼び名で判定すること(判定は `APP_ENV` と宛先が持つ。§環境の定義)（強制: `src/config/load-environment.test.ts` と `src/adapters/server/auth/development-access.test.ts` / `resolver.test.ts` が既存の口の開閉が `APP_ENV` に拠ることを見る。新しく足した口が別の条件で開閉するかは散文 —— **寄せられない**。どれが開発専用の口かは宛先の意味で決まる）
+- ❌ 開発専用の口の開閉を、接続モード(`APP_API_MODE` 等)や環境の呼び名で判定すること(判定は `APP_ENV` と宛先が持つ。§環境の定義)（強制: `src/config/application-environment.test.ts` と `src/adapters/server/auth/development-access.test.ts` / `resolver.test.ts` が既存の口の開閉が `APP_ENV` に拠ることを見る。新しく足した口が別の条件で開閉するかは散文 —— **寄せられない**。どれが開発専用の口かは宛先の意味で決まる）
 - ❌ frontend だけを mock のまま cloud へ置くこと(IdP 無しで session を出す口を cloud で開くことになる。§環境の定義)（強制: 散文 —— **寄せられる**（config の schema で `APP_ENV` が `dev` / `stg` / `prd` のとき `APP_API_MODE=mock` を起動時に拒む。規則は無い））
 - ❌ 補助ツールの image を tag だけで参照すること / tag でしか image を受け取れない action を経由して image を実行すること(digest 固定の走査対象から外れる。§補助ツールの image は digest で固定する)
 
@@ -238,5 +238,5 @@ Docker / self-host が必要なロールに拡張する場合の指針:
 - [0001-package-manager.md](0001-package-manager.md) — pnpm 採用（Dockerfile を持つ場合も `npm ci` を使わない根拠）
 - [0003-version-manager.md](0003-version-manager.md) — Node / pnpm バージョンの SSOT（Dockerfile FROM タグとの同期問題を消す根拠）
 - [0004-library-management.md](0004-library-management.md) — `sharp` の prebuilt binary 等、現代ライブラリの system 依存に関する評価指針 / 同梱ライブラリの exact-pin・`pnpm audit`
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 同梱ライブラリの採用の規律(vendor-independent 正当化 + adapters/seam 越し差替可能)。本 ADR の表示層ロール定義は 0010 §2「フレームワーク選択は別既決」の根拠でもある
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 同梱ライブラリの採用の規律(vendor-independent 正当化 + adapters/seam 越し差替可能)。本 ADR の表示層ロール定義は、フレームワーク固有 API の使用をロックインでなく「フレームワークを選んだ」既決の帰結とする 0010 の判定の根拠でもある
 - [0110-security-operations.md](0110-security-operations.md) / [0153-ci-configuration.md](0153-ci-configuration.md) — 供給網検疫の窓 / Actions の SHA ピン（image の digest 固定と対になる機構）

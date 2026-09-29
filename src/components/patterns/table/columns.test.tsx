@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { axe } from "vitest-axe";
 
 import { Table } from "@/components/design-system/display/table/table";
 
@@ -14,7 +15,7 @@ import {
 
 const COLUMNS: TableColumnDefinition[] = [
   { id: "name", header: "名称", width: "12rem" },
-  { id: "price", header: "価格", align: "end" },
+  { id: "count", header: "件数", align: "end" },
   { id: "note", header: "備考", headerClassName: "sr-only" },
 ];
 
@@ -53,7 +54,7 @@ describe("TableColumnHeaders", () => {
 
     expect(screen.getAllByRole("columnheader").map((cell) => cell.textContent)).toEqual([
       "名称",
-      "価格",
+      "件数",
       "備考",
     ]);
   });
@@ -65,8 +66,18 @@ describe("TableColumnHeaders", () => {
       </Table>,
     );
 
-    expect(screen.getByRole("columnheader", { name: "価格" })).toHaveClass("text-right");
+    expect(screen.getByRole("columnheader", { name: "件数" })).toHaveClass("text-right");
     expect(screen.getByRole("columnheader", { name: "備考" })).toHaveClass("sr-only");
+  });
+
+  it("並べた見出しは a11y 違反を持たない", async () => {
+    const { container } = render(
+      <Table>
+        <TableColumnHeaders columns={COLUMNS} />
+      </Table>,
+    );
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });
 

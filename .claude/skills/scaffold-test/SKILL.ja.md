@@ -124,8 +124,8 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 
 ### 責務はディレクトリではなくシンボルに従う
 
-`test-requirement` は frontmatter の一語であり、ディレクトリが抱えるシンボルはすべてが同じでは
-ない。**その宣言が実際にどのシンボルへ掛かるのかを述べているのは README の本文である** ——
+`test-requirement` は frontmatter の 1 つの値か短い並び（`[feature, component, unit]`）であり、
+ディレクトリが抱えるシンボルはすべてが同じではない。**その宣言が実際にどのシンボルへ掛かるのかを述べているのは README の本文である** ——
 `src/adapters` は `integration` を宣言した上で、本文でそれを外部との往復を持つモジュールへ狭め、
 純粋な変換は `unit` へ送っている。frontmatter だけでなく本文を読む。手順 1 が両方を求めているのは、
 本文がそのためにあるからである。
@@ -213,25 +213,25 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
 書き出し先とケース一覧を示し、1 回の合意がその全部を覆うようにする。
 
 ```txt
-群: <feature>/（test-requirement: feature）
+群: <feature>/（test-requirement: [feature, component, unit]）
 
-書き出し先: <feature>/<期間を解く純関数>.test.ts
-  describe("toPeriodRequest")
+書き出し先: <feature>/<入力を解く純関数>.test.ts
+  describe("<toXxxRequest>")
     ----- 正常系 -----
-    - 日付の要らない区分はそのまま求められる形になる
+    - 追加の入力が要らない区分はそのまま求められる形になる
     ----- 異常系 -----
-    - range で日付が欠けていれば求めない
-    - range で終了日が開始日より前なら求めない
-  describe("toPeriodHref")
+    - 範囲指定で端が欠けていれば求めない
+    - 範囲指定で終端が始端より前なら求めない
+  describe("<toXxxHref>")
     ----- 正常系 -----
-    - 日付を持ち越さない
+    - 範囲の端を持ち越さない
 
 書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
-  describe("RankingTable")
+  describe("<XxxTable>")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す
     ----- 揃っているとき -----
-    - 契約の並び順のまま順位を出す
+    - 契約の並び順のまま行を出す
     - 表として読み上げられる（axe）
 ```
 

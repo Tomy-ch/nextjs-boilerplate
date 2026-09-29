@@ -122,7 +122,7 @@ secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` �
 2. **同梱の秘密値を実環境で拒む** —— [`config/auth/auth.schema.ts`](../../src/config/auth/auth.schema.ts) の `authSessionSecretValidator()` は、公開リポジトリに平文で載っている 2 つの値を `local` / `ci` 以外で受け付けない。設定し忘れは「値が無い」ではなく「既知の値が入っている」形で現れるため、長さだけを見る検証では通る。判定は起動時で、cookie を 1 枚も発行する前に止まる
 3. **taint** —— 上記
 
-`APP_ENV` が未指定のときは、同梱値を許す判定も `null` を返して**許さない側へ倒れる**。既定値へ落とす経路はどこにも無い（`load-environment.ts` の `findApplicationEnvironment()`）。
+`APP_ENV` が未指定のときは、同梱値を許す判定も `null` を返して**許さない側へ倒れる**。既定値へ落とす経路はどこにも無い（`application-environment.ts` の `findApplicationEnvironment()`）。
 
 ## `NEXT_PUBLIC_` の境界
 
@@ -136,7 +136,7 @@ secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` �
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 同上 | 送る前に弾く。**受け口が同じ大きさをもう一度確かめる** —— ブラウザ側の判定は送信者が差し替えられる |
 | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | [`config/analytics/analytics.client.ts`](../../src/config/analytics/analytics.client.ts) | 空なら同意ゲートの裏の要素そのものを描かない。容器 ID はタグを読む URL に現れる公開値で、秘密は容器の編集権限の側にある |
 
-client config は `NEXT_PUBLIC_` の**静的ドット参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
+client config は `NEXT_PUBLIC_` 変数を**文字列リテラルで名指す参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
 
 ### 何が入らないか
 

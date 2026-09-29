@@ -20,6 +20,7 @@ const DENY = [
   "Bash(git branch -d *)",
   "Bash(git branch -D *)",
   "Bash(rtk init *)",
+  "Bash(sudo *)",
   "Edit(AGENTS.md)",
 ];
 const LITERALS = deriveLiterals(DENY);
@@ -122,13 +123,101 @@ describe("unwrap", () => {
     expect(() => judge(deep, LITERALS)).not.toThrow();
   });
 
+  it("引数を取る flag ごと実行者の前置きを落とす", () => {
+    expect(unwrap("sudo -u root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("timeout -s KILL 5 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("nice -n 10 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("xargs -0 -I {} make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("パスで呼んだシェルと、束ねた `-c` の引用の中身を取り出す", () => {
+    expect(unwrap("/bin/bash -lc 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("zsh -o pipefail -c 'make tag-patch'")).toBe("make tag-patch");
+  });
+
   it("環境変数の前置きを落とす", () => {
     expect(unwrap("env APP_ENV=local FOO=1 make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("実行者の前置きを、利用者の指定と `--` ごと落とす", () => {
+    expect(unwrap("sudo -u root -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("doas -u root -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -u app -- make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -u app make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("runuser -g wheel --user=app -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`setsid` / `chroot` / `ionice` / `stdbuf` / `nohup` の前置きを、引数を取る flag ごと落とす", () => {
+    expect(unwrap("setsid -f make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("chroot /srv/root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("chroot --userspec app:app /srv/root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("ionice -c 3 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("ionice -c2 -n7 -t make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("stdbuf -oL -e 0 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("nohup -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("値を取る長 flag を、空白区切りと `=` 区切りのどちらでも値ごと落とす", () => {
+    expect(unwrap("xargs --max-args 1 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("xargs --delimiter=, make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("sudo --user root make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("sudo --chdir=/tmp make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`env` の flag と環境変数の前置きを落とす", () => {
+    expect(unwrap("env -i make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -i PATH=/bin make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -u HOME -C /tmp make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("env -- make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("`env -S` へ渡した文字列をコマンド行として取り出す", () => {
+    expect(unwrap("env -S 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap('env -i -S "make tag-patch"')).toBe("make tag-patch");
+    expect(unwrap("env --split-string='make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("env -S make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("先頭に並んだ環境変数の代入を、引用した値ごと落とす", () => {
+    expect(unwrap("FOO=bar make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("A=1 B=2 make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("FOO=\"a b\" BAR='x y' make tag-patch")).toBe("make tag-patch");
+    expect(unwrap("FOO=a\\ b make tag-patch")).toBe("make tag-patch");
+  });
+
+  it("csh 系 / ash / fish / busybox のシェルへ渡した `-c` の引用の中身を取り出す", () => {
+    expect(unwrap("csh -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("/bin/tcsh -fc 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("ash -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("fish -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("fish --command='make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("busybox sh -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("/bin/busybox ash -c 'make tag-patch'")).toBe("make tag-patch");
+  });
+
+  it("引数を取る長 flag の後ろに立つ `-c` の引用の中身を取り出す", () => {
+    expect(unwrap("bash --rcfile x -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash --init-file=/etc/x -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash --norc -c 'make tag-patch'")).toBe("make tag-patch");
+    expect(unwrap("bash -O extglob -c 'make tag-patch'")).toBe("make tag-patch");
   });
 
   // ----- 異常系 -----
   it("包みでないものを変えない", () => {
     expect(unwrap("pnpm lint")).toBe("pnpm lint");
+  });
+
+  it("後ろにコマンドを持たない代入と、名前の一部だけがシェルに見える語を変えない", () => {
+    expect(unwrap("FOO=bar")).toBe("FOO=bar");
+    expect(unwrap("crash -c 'make tag-patch'")).toBe("crash -c 'make tag-patch'");
+  });
+
+  it("`runuser -u` の後ろに `-c` が立つ形は剥がさず、引用の側の検査へ残す", () => {
+    expect(unwrap("runuser -u app -c 'rm -rf /'")).toBe("runuser -u app -c 'rm -rf /'");
+  });
+
+  it("コマンドを持たない `chroot` を変えない", () => {
+    expect(unwrap("chroot /srv/root")).toBe("chroot /srv/root");
   });
 
   it("深さの上限を超えた包みは、剥がしかけで返す", () => {
@@ -243,8 +332,195 @@ describe("judge", () => {
     expect(judge("gh api -X DELETE /users", ordered)).toBe("gh api");
   });
 
+  it("`sh -c` の引用の中の区切りの後ろでも捕まえる", () => {
+    expect(judge("sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("区間の途中に立つ `sh -c` の引用の中身も捕まえる", () => {
+    expect(judge("xargs sh -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec bash -c 'true; rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("二重引用の中のコマンド置換でも捕まえる", () => {
+    expect(judge('echo "$(rm -rf /)"', LITERALS)).toBe("rm -rf");
+    expect(judge('echo "`rm -rf /`"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("二重引用の中のコマンド置換の後ろに続くコマンドを捕まえる", () => {
+    // 置換の中の引用で閉じる位置を読み違えると、後ろのコマンドが引用の中に見える。
+    expect(judge('echo "$(date)"; rm -rf /; echo $(b)"x"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("打ち消した引用符は引用を開かない", () => {
+    expect(judge("echo \\'; rm -rf /; echo \\'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("閉じない引用の後ろでも捕まえる", () => {
+    expect(judge('echo "a; rm -rf /', LITERALS)).toBe("rm -rf");
+  });
+
+  it("`$'…'` の引用の後ろでも捕まえる", () => {
+    expect(judge("echo $'a\\''; rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("ssh へ渡した遠隔のコマンド行の区切りの後ろでも捕まえる", () => {
+    expect(judge("ssh host 'x; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('ssh -p 2222 -i ~/.ssh/key user@host "cd /tmp && rm -rf /"', LITERALS)).toBe(
+      "rm -rf",
+    );
+  });
+
+  it("ssh の手元で打ち消した区切りも、遠隔では区切りとして捕まえる", () => {
+    expect(judge("ssh host echo hi\\; rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("ssh の二重引用の中で打ち消した引用符を外してから割る", () => {
+    expect(judge('ssh host "cd \\"/tmp\\"; rm -rf /"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("ssh の閉じない引用の後ろでも捕まえる", () => {
+    expect(judge('ssh host "a; rm -rf /', LITERALS)).toBe("rm -rf");
+  });
+
+  it("`su -c` / `runuser -c` へ渡した引用の中身を捕まえる", () => {
+    expect(judge("su -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('su - root -c "rm -rf /"', LITERALS)).toBe("rm -rf");
+    expect(judge("su root --command='rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("runuser -l app -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`watch` へ渡したコマンド行の区切りの後ろでも捕まえる", () => {
+    expect(judge("watch 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('watch -n 1 "date; rm -rf /"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("実行者の前置きの後ろに立つ `sh -c` の引用の中身を捕まえる", () => {
+    expect(judge("nohup sh -c 'true; rm -rf /' &", LITERALS)).toBe("rm -rf");
+    expect(judge("timeout 5 bash -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("env X=1 sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("nice -n 5 sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs -I{} sh -c 'rm -rf {}'", LITERALS)).toBe("rm -rf");
+    expect(judge("sudo sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("実行者の前置きの後ろに立つコマンドを捕まえる", () => {
+    expect(judge("timeout 5 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs -0 rm -rf", LITERALS)).toBe("rm -rf");
+  });
+
+  it("パスで呼んだシェルや、束ねた `-c` の引用の中身を捕まえる", () => {
+    expect(judge("/bin/bash -lc 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec /bin/sh -ec 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("前置きとして剥がす綴りそのものを塞いだ宣言も、区切りの後ろで捕まえる", () => {
+    expect(judge("echo hi; sudo ls", LITERALS)).toBe("sudo");
+  });
+
   it("`eval` の引用の中でも捕まえる", () => {
     expect(judge('eval "rm -rf /"', LITERALS)).toBe("rm -rf");
+  });
+
+  it("実行者の `--` の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("sudo -u root -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("doas -u root -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("runuser -u app -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("true; runuser -u app rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("sudo -u root -- bash --rcfile x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`runuser -u` の後ろの `-c` へ渡した引用の中身を捕まえる", () => {
+    expect(judge("runuser -u app -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`setsid` / `chroot` / `ionice` / `stdbuf` / `nohup` の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("setsid rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("setsid -w rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("chroot /srv/root rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("chroot --userspec=a:b /srv/root rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("ionice -c 3 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("ionice -c2 -n7 -t rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("stdbuf -oL rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("stdbuf --output=L rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("nohup rm -rf / &", LITERALS)).toBe("rm -rf");
+    expect(judge("setsid ionice -c 3 nohup make tag-patch", LITERALS)).toBe("make tag-patch");
+  });
+
+  it("`env` の flag と環境変数の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("env -i rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -i PATH=/bin rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -u HOME rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env -- rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("env rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("`env -S` へ渡した文字列の中身を捕まえる", () => {
+    expect(judge("env -S 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge('env -i -S "true; rm -rf /"', LITERALS)).toBe("rm -rf");
+    expect(judge("env -S rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("引数を取る長 flag の後ろに立つ `-c` の引用の中身を捕まえる", () => {
+    expect(judge("bash --rcfile x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash --norc -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash --init-file=/etc/x -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("bash -O extglob -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec bash --rcfile x -c 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("環境変数の代入の後ろに立つコマンドを捕まえる", () => {
+    expect(judge("FOO=bar rm -rf /tmp", LITERALS)).toBe("rm -rf");
+    expect(judge("A=1 B=2 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge('FOO="a; b" rm -rf /', LITERALS)).toBe("rm -rf");
+    expect(judge("FOO='x' rm -rf /", LITERALS)).toBe("rm -rf");
+  });
+
+  it("環境変数の代入を、区切りの後ろや別の包みと重ねても剥がす", () => {
+    expect(judge("true && FOO=1 rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge("sudo -u root FOO='a b' rm -rf /", LITERALS)).toBe("rm -rf");
+    expect(judge('env FOO="a b" rm -rf /', LITERALS)).toBe("rm -rf");
+    expect(judge("sh -c 'FOO=1 rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("FOO=1 sh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("FOO=1 make ai-tag-patch", LITERALS)).toBe("make tag-patch");
+  });
+
+  it("剥がす途中に立った包みの綴りそのものを塞いだ宣言も捕まえる", () => {
+    expect(judge("FOO=1 sudo ls", LITERALS)).toBe("sudo");
+    expect(judge("nohup sudo ls", LITERALS)).toBe("sudo");
+  });
+
+  it("csh 系 / ash / fish / busybox のシェルへ渡した `-c` の引用の中身を捕まえる", () => {
+    expect(judge("csh -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("tcsh -fc 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("/bin/tcsh -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("ash -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("fish -c 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("fish --command 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("busybox sh -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("/bin/busybox ash -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+  });
+
+  it("区間の途中に立つ csh 系 / ash / fish / busybox の `-c` の引用の中身も捕まえる", () => {
+    expect(judge("xargs csh -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec /bin/tcsh -c 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs ash -c 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("xargs /usr/bin/fish --command='rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("find . -exec busybox ash -c 'rm -rf /' \\;", LITERALS)).toBe("rm -rf");
+  });
+
+  it("値を取る長 flag の後ろに立つコマンドを捕まえる", () => {
+    const withoutSudo = deriveLiterals(["Bash(rm -rf *)"]);
+
+    expect(judge("xargs --max-args 1 rm -rf", withoutSudo)).toBe("rm -rf");
+    expect(judge("xargs --delimiter , rm -rf x", withoutSudo)).toBe("rm -rf");
+    expect(judge("sudo --user root rm -rf /", withoutSudo)).toBe("rm -rf");
+    expect(judge("doas --user x rm -rf /", withoutSudo)).toBe("rm -rf");
+  });
+
+  it("前置きの後ろに立つ `ssh` / `watch` へ渡したコマンド行の中身を捕まえる", () => {
+    expect(judge("env X=1 ssh host 'rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("nohup ssh host 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
+    expect(judge("timeout 5 watch -n1 'true; rm -rf /'", LITERALS)).toBe("rm -rf");
   });
 
   it("語の途中で終わる綴りを、区切りを求めずに捕まえる", () => {
@@ -282,12 +558,75 @@ describe("judge", () => {
     expect(judge('echo "rm -rf /"', LITERALS)).toBeUndefined();
   });
 
+  it("引用の中の区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge("grep -E 'x|rm -rf /' notes.txt", LITERALS)).toBeUndefined();
+    expect(judge('echo "done; make tag-patch"', LITERALS)).toBeUndefined();
+  });
+
+  it("打ち消した区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge("echo a \\; rm -rf /", LITERALS)).toBeUndefined();
+  });
+
   it("heredoc の散文で止めない", () => {
     expect(judge("cat <<PY\nrm -rf は危険\nPY", LITERALS)).toBeUndefined();
   });
 
+  it("ssh の手元で外れた引用の中の綴りで止めない", () => {
+    // 遠隔のシェルが受け取るのは `echo rm -rf /` で、`rm` はコマンド位置に立たない。
+    expect(judge("ssh host echo 'rm -rf /'", LITERALS)).toBeUndefined();
+  });
+
+  it("ssh の二重引用の中で打ち消したままの区切りの後ろに綴りが立っても止めない", () => {
+    expect(judge('ssh host "echo a \\; rm -rf /"', LITERALS)).toBeUndefined();
+  });
+
+  it("シェル以外の言語へ渡した引用は割らない", () => {
+    expect(judge("node -e 'console.log(1); make tag-patch'", LITERALS)).toBeUndefined();
+  });
+
   it("包みそのものは止めない", () => {
     expect(judge("rtk run pnpm build", LITERALS)).toBeUndefined();
+  });
+
+  it("新しく剥がす包みで包んだ、塞がれていないコマンドを通す", () => {
+    expect(judge("runuser -u app -- pnpm lint", LITERALS)).toBeUndefined();
+    expect(judge("setsid -f pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("chroot /srv/root pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("ionice -c 3 pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("stdbuf -oL pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("nohup -- pnpm build", LITERALS)).toBeUndefined();
+    expect(judge("env -i PATH=/bin pnpm lint", LITERALS)).toBeUndefined();
+    expect(judge("env -S 'pnpm lint'", LITERALS)).toBeUndefined();
+    expect(judge("bash --rcfile x -c 'pnpm lint'", LITERALS)).toBeUndefined();
+  });
+
+  it("新しく剥がす包みの中身でも、引用の中の綴りでは止めない", () => {
+    expect(judge("env -S \"echo 'rm -rf /'\"", LITERALS)).toBeUndefined();
+    expect(judge("bash --norc -c 'echo \"rm -rf /\"'", LITERALS)).toBeUndefined();
+    expect(judge("setsid echo 'rm -rf /'", LITERALS)).toBeUndefined();
+  });
+
+  it("環境変数の代入で包んだ、塞がれていないコマンドを通す", () => {
+    expect(judge("FOO=bar ls", LITERALS)).toBeUndefined();
+    expect(judge("FOO=bar", LITERALS)).toBeUndefined();
+    expect(judge("FOO='rm -rf /' ls", LITERALS)).toBeUndefined();
+    expect(judge('A=1 B="x; rm -rf /" echo', LITERALS)).toBeUndefined();
+  });
+
+  it("csh 系 / ash / fish / busybox の `-c` でも、塞がれていないコマンドと引用の中の綴りでは止めない", () => {
+    expect(judge("csh -c 'echo hi'", LITERALS)).toBeUndefined();
+    expect(judge("fish -c 'echo \"rm -rf /\"'", LITERALS)).toBeUndefined();
+    expect(judge("busybox ls", LITERALS)).toBeUndefined();
+    expect(judge("crash -c 'rm -rf /'", LITERALS)).toBeUndefined();
+  });
+
+  it("値を取る長 flag で包んだ、塞がれていないコマンドを通す", () => {
+    expect(judge("xargs --max-args 1 echo", LITERALS)).toBeUndefined();
+  });
+
+  it("前置きの flag の値を、塞いだ target と読み違えない", () => {
+    expect(judge("ionice -c 3 make tag-patch-dry", LITERALS)).toBeUndefined();
+    expect(judge("chroot /srv/root make tag-patch-dry", LITERALS)).toBeUndefined();
   });
 
   it("塞がれていないコマンドを通す", () => {

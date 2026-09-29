@@ -18,13 +18,18 @@
 ## このスキルを使わないとき
 
 - **既存 feature の変更** —— 直接編集する。このスキルは何も無いところから始まる前提で書かれている。
-- **`src/components/**` / `src/adapters/**` / `src/model/**` / `src/stores/**` / `src/capabilities/**`
-  配下への追加** —— これらはカーネルなので `pnpm gen <kind> <name>` を直接叩き、story 先行の順序は
-  踏まない。あの順序は画面の見た目を確定させる場面にしか要らない。
+  例外は 1 つで、`scaffold-slice` が置いて見た目を残した画面は Step 3 の story から引き取る。
+- **カーネル側の単位**（`components` / `adapters` / `model` / `stores` / `capabilities`）。
+  `docs/playbook.md` はカーネルを story 先行の順序から外している —— そこでは見た目を確定させないため
+  である。`pnpm gen` が生成するのは `feature` / `component` / `adapter` だけで、component は
+  `pnpm gen component <name> --as=<見出し>`、adapter は `scaffold-adapter`（`pnpm gen adapter` を包んで
+  スタブを埋める）、model の型は `scaffold-model` で置く。`stores` と `capabilities` には生成器の kind が
+  無いので、そのカーネル README に従って置く。
 - **既にあるコードへのテスト作成** —— それは `scaffold-test` の仕事である。
 - **レビュー** —— `impl-review` / `test-review` は `AGENTS.md` の Review Phase
   Protocol における peers である。このスキルは判断を user へ渡すだけで、**それらを呼ばない**。呼ぶ
-  スキルは、2 つの subject が独立に答えられなくなる代償を払う。
+  スキルは、2 つの subject が独立に答えられなくなる代償を払う。`/settle-comments` はレビューではない ——
+  実装の最後に無条件で走る段であり、このスキルは Step 7 でそれを回す。
 
 ## 実行時に読むもの
 
@@ -76,6 +81,8 @@
 配置・命名・境界は生成器に委ね、**手で置かない**。生成器が取る入力以外を渡さない（`architecture.ts`
 ＋層 README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
 
+`scaffold-slice` がこの画面を既に置いているなら —— 2 つのスキルは `pnpm gen feature` で出会う —— 生成器を飛ばして story から始める。
+
 出るのは slice の `README.md` と画面のディレクトリ（`<画面>/view.tsx` / `<画面>/page-content.tsx` / `<画面>/view.stories.tsx` と、それぞれの隣のテスト）で、**画面軸は 1 画面目から在る**。**2 画面目は同じコマンドをもう一度回す** —— 生成器は新しい画面のディレクトリだけを足し、README には触らない。`<name>/<画面>/` が既に在れば止まる。生成器が書くはずのものを手で置かない。
 
 そのうえで、README の状態表が宣言する 4 状態 —— loading / empty / error / success —— すべての story
@@ -113,10 +120,13 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / 部品
 カタログ / ADR は**指すだけ**で、写さない。
 
-## Step 7. テスト（工程 6）
+## Step 7. テスト（工程 6）とコメント
 
 揃った対象について `scaffold-test` スキルを連鎖させる。観点は対象自身の分岐と最近傍 README の
 `test-requirement` から導かれる。テストの規約をここへ書き写さない。
+
+そのうえで、この実行が触れたすべての宣言に対して `/settle-comments` を 1 回回す。実装の最後に無条件で
+走る段であり、書く前に確認を取る。
 
 ## Step 8. ゲートと引き渡し
 
@@ -124,7 +134,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 掃かない。commit / push して結果を読む。いま手元で走るゲートは `make load-status` が出す。
 
 日本語で締めの要約を出す —— 層ごとに作ったファイル、押さえた 4 状態、書いた仕様書、CI がまだ判定中の
-もの。そのうえで、`AGENTS.md` の Review Phase Protocol が `/impl-review` / `/test-review` /
+もの。そのうえで、`AGENTS.md` の Review Phase Protocol が `/impl-review` / `/test-review`
 の可否をスキルごとに user へ問うことを、**実行せずに**伝える。この変更でそれぞれが
 何を返しそうかの見積もりを添える。`/settle-comments` はこの問いに含まれない —— 実装の最後の手順として
 既に走っている。
@@ -144,6 +154,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 - ✅ スキルが出力しリポジトリへ書くものはすべて日本語。
 - ✅ 失敗した工程で停止して表に出す。先行する書き込みを自動で巻き戻さない。
 - ✅ 既存の `Explore` / `Plan` エージェント型を再利用する。
+- ✅ 触れた宣言に対して `/settle-comments` を 1 回、実装の最後の段として回す。
 
 ## チェックリスト
 
@@ -153,5 +164,5 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 - [ ] ファイルは `pnpm gen` が置いた。4 状態の story を書いた（Step 3）
 - [ ] テストを 1 行も書く前に、Storybook を立てて人が見た目を確定させた（Step 4）
 - [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書いた（Step 5〜6）
-- [ ] `scaffold-test` でテストを作った（Step 7）
+- [ ] `scaffold-test` でテストを作り、触れた宣言に `/settle-comments` を回した（Step 7）
 - [ ] 手元で全体を回していない / commit していない / push していない / レビュースキルを呼んでいない（Step 8）

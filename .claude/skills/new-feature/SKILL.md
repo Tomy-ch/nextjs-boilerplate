@@ -2,14 +2,14 @@
 name: new-feature
 usage-class: situational
 description: >-
-  End-to-end driver that takes one screen from a direction to a reviewed, spec-backed, tested feature slice,
-  chaining the rails this repository already ships instead of inventing a parallel path. It follows the
+  Takes one screen from a direction to a reviewed, spec-backed, tested feature slice, chaining the rails
+  this repository already ships. It follows the
   screen-implementation order direction → story → review → split → spec → tests, read from `docs/playbook.md`
   at runtime, because tests written before the look is settled get rewritten. Use it whenever a NEW screen or
-  feature slice is added and the whole path should be built consistently: 「画面を追加したい」「feature
-  を新しく作りたい」「新しい画面を一から作って」. Do NOT use it to modify an existing feature, to add anything under a kernel
-  (`components` / `adapters` / `model` / `stores` / `capabilities` — run `pnpm gen` directly), to write tests
-  for existing code (`scaffold-test`), or to review anything.
+  feature slice is added: 「画面を追加したい」「feature
+  を新しく作りたい」「新しい画面を一から作って」, and to settle the look of a screen `scaffold-slice` placed. Do NOT use it
+  to modify an existing feature, to add a kernel-side unit (`pnpm gen component`, `scaffold-adapter`,
+  `scaffold-model`), to write tests for existing code (`scaffold-test`), or to review anything.
 ---
 
 # New Feature
@@ -30,14 +30,19 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 
 ## Do NOT use this skill for
 
-- **Modifying an existing feature** — edit it directly. This skill assumes nothing is there yet.
-- **A kernel-side unit** (`components` / `adapters` / `model` / `stores` / `capabilities`) — run
-  `pnpm gen <kind> <name>` directly. `docs/playbook.md` exempts kernels from the story-first order
-  because no look is being settled there.
+- **Modifying an existing feature** — edit it directly. This skill assumes nothing is there yet, with
+  one exception: a screen `scaffold-slice` placed and left for its look is picked up at Step 3's stories.
+- **A kernel-side unit** (`components` / `adapters` / `model` / `stores` / `capabilities`).
+  `docs/playbook.md` exempts kernels from the story-first order because no look is being settled
+  there. `pnpm gen` generates only `feature` / `component` / `adapter`: a component is
+  `pnpm gen component <name> --as=<heading>`, an adapter is `scaffold-adapter` (which wraps
+  `pnpm gen adapter` and fills the stub), a model type is `scaffold-model`. `stores` and
+  `capabilities` have no generator kind; place them by their kernel README.
 - **Writing tests for code that already exists** — that is `scaffold-test`.
-- **Reviewing** — `impl-review`, `test-review`, and `settle-comments` are peers under `AGENTS.md`'s
-  Review Phase Protocol. This skill hands the decision to the user and **never invokes them**; a
-  skill that chained them would make the two subjects stop being independently answerable.
+- **Reviewing** — `impl-review` and `test-review` are peers under `AGENTS.md`'s Review Phase
+  Protocol. This skill hands the decision to the user and **never invokes them**; a skill that chained
+  them would make the two subjects stop being independently answerable. `/settle-comments` is not a
+  review: it is the unconditional last step of implementing, and this skill runs it in Step 7.
 
 ## What this skill reads at runtime
 
@@ -94,6 +99,8 @@ design calls for. Let the generator place, name, and bound the files — never h
 never pass it an input other than the one it takes (`architecture.ts` + the layer README are its
 single source; `docs/spec/**` is **not** a generation input).
 
+When `scaffold-slice` has already placed this screen — the two skills meet at `pnpm gen feature` — skip the generator and start at the stories.
+
 It emits the slice `README.md` plus a screen directory — `<screen>/view.tsx`,
 `<screen>/page-content.tsx`, `<screen>/view.stories.tsx` and a test beside each — so the screen axis
 is there from the first screen. **A second screen is the same command run again**: the generator adds
@@ -140,11 +147,14 @@ the same user goal but a different description?".
 The spec records settled promises, which is why it is written here and not first. It **points at**
 the contract, tokens, `rules.md`, the component catalog, and the ADRs — it never copies them.
 
-## Step 7. Tests (order step 6)
+## Step 7. Tests (order step 6) and comments
 
 Chain the `scaffold-test` skill for the units now in place. It derives the viewpoints from the
 subject's own branches and the nearest README's `test-requirement`; do not restate test conventions
 here.
+
+Then run `/settle-comments` once over every declaration this run touched. It is the unconditional last
+step of implementing and confirms before it writes.
 
 ## Step 8. Gates and hand-off
 
@@ -166,13 +176,14 @@ run as the last step of implementing.
 - ❌ Hand-place a file `pnpm gen` would have placed, or feed the generator an input other than
   `architecture.ts` + the layer README.
 - ❌ Treat `docs/spec/**` as a generation input — it is a **read** input only.
-- ❌ Invoke `impl-review` / `test-review` / `settle-comments`.
+- ❌ Invoke `impl-review` / `test-review`.
 - ❌ Invent product behavior when the direction is underspecified — ask.
 - ❌ Run the full lint or the full test suite locally to pre-empt a gate.
 - ❌ Restate in this file a rule that `docs/playbook.md`, a kernel README, or an ADR owns.
 - ✅ Japanese for everything the skill emits or writes to the repository.
 - ✅ Halt on a failing phase and surface it; never auto-rollback earlier writes.
 - ✅ Reuse the existing `Explore` / `Plan` agent types.
+- ✅ Run `/settle-comments` once over the touched declarations, as the last step of implementing.
 
 ## Checklist
 
@@ -182,5 +193,5 @@ run as the last step of implementing.
 - [ ] Files placed by `pnpm gen`; four-state stories written (Step 3)
 - [ ] Storybook served and the look settled by a human before any test was written (Step 4)
 - [ ] Spec written under `docs/spec/route/**` after the split (Steps 5–6)
-- [ ] Tests produced via `scaffold-test` (Step 7)
+- [ ] Tests produced via `scaffold-test`; `/settle-comments` run over the touched declarations (Step 7)
 - [ ] No local full-suite runs; no commit; no push; no review skill invoked (Step 8)

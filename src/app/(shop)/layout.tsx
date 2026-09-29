@@ -6,9 +6,8 @@ import { CartHeaderSlot, CartPanelSlot } from "@/features/cart/ui/shell-slots/sh
 import { SiteFooter } from "@/features/site-info/ui/site-footer/site-footer";
 
 import { GLOBAL_NAV_ITEMS } from "../global-nav";
+import { SITE_NAME } from "../site";
 import { AdminNavEntry } from "./admin-nav-entry";
-
-const SITE_NAME = "nextjs-boilerplate";
 
 /**
  * 利用者向け画面の外枠。

@@ -1,9 +1,9 @@
-import { DEFAULT_LOCALE } from "@/model/locale";
+import { DEFAULT_LOCALE } from "./locale";
 
 const formatters = new Map<string, Intl.NumberFormat>();
 
 /**
- * locale に対応する `Intl.NumberFormat` を、無ければ作ってキャッシュしてから返す。
+ * locale ごとの `Intl.NumberFormat` を使い回す。
  *
  * @param locale - 用いる locale
  * @returns その locale の `Intl.NumberFormat`
@@ -20,16 +20,15 @@ function formatterOf(locale: string): Intl.NumberFormat {
 }
 
 /**
- * 件数を locale に沿った表記にする。
+ * 数を locale に沿った桁区切りの表記にする。
  *
  * @remarks
- * この feature だけが使う整形なので feature 内に置いています。2 つ目の feature が同じ整形を要する
- * 段で `model` へ上げます。
+ * 金額には使いません。金額は通貨ごとの小数桁と記号を持つので `money.ts` が整えます。
  *
- * @param count - 件数
+ * @param value - 表示する数
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
  * @returns locale に沿って整形した文字列
  */
-export function formatCount(count: number, locale: string = DEFAULT_LOCALE): string {
-  return formatterOf(locale).format(count);
+export function formatNumber(value: number, locale: string = DEFAULT_LOCALE): string {
+  return formatterOf(locale).format(value);
 }

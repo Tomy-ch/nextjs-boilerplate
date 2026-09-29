@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
 forbidden: [features]
-test-requirement: feature
+test-requirement: [feature, component, unit]
 ---
 
 # <feature 名>
@@ -18,7 +18,7 @@ src/features/<feature-name>/README.md は docs/templates/feature-readme.md の�
 - 状態がどう見えるか → Storybook の story
 
 同じことを 2 か所へ書くと、片方だけが腐る。索引は腐っても壊れた link として現れるが、写しは
-黙って食い違う。**入れ子の README を持つ画面（例: `admin/shipments/`）は、その画面の契約・
+黙って食い違う。**入れ子の README を持つ画面（例: `<route>/<child>/`）は、その画面の契約・
 状態・Action を子が持ち、親は route の地図と子への索引だけを持つ。**
 -->
 
@@ -102,7 +102,7 @@ components へ渡さない。
 ## テスト観点
 
 <!--
-層の宣言（`test-requirement: feature`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
+層の宣言（`test-requirement: [feature, component, unit]`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
 この slice でしか出てこない観点だけである。
 -->
 
@@ -120,7 +120,7 @@ components へ渡さない。
 
 <!--
 必要なときだけ「テンプレートから作った側で変える箇所」の節を足す。テンプレートから作った側が差し替える箇所（backend 契約・デザイン・
-認証）を書く節である。**題材のサンプルには要らない —— ファイルごと捨てられるためである。**
+認証）を書く節である。**ファイルごと捨てられる slice には要らない —— 差し替える側が残らないためである。**
 残る slice で、作った側が触らざるを得ない点があるときだけ置く。
 -->
 

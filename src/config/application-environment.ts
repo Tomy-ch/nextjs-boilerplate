@@ -1,0 +1,70 @@
+/** `APP_ENV` が選べる環境の一覧。 */
+export const applicationEnvironments = ["local", "ci", "dev", "stg", "prd"] as const;
+
+/** `APP_ENV` が選べる環境。 */
+export type ApplicationEnvironment = (typeof applicationEnvironments)[number];
+
+/**
+ * `APP_ENV` が選べる環境のいずれかか。
+ *
+ * @param value - 検査する文字列
+ * @returns 選べる {@link ApplicationEnvironment} のいずれかか
+ */
+function isApplicationEnvironment(value: string): value is ApplicationEnvironment {
+  const environments: readonly string[] = applicationEnvironments;
+
+  return environments.includes(value);
+}
+
+/**
+ * `APP_ENV` に指定された環境を返す。指定が無ければ null。
+ *
+ * @remarks
+ * **既定値へ落としません。** 環境を条件にして開発専用の口を閉じる判断も、同梱の秘密値を許す
+ * 判断も、「未設定」を安全側へ倒せなければ意味を失います。既定値を返すと、`APP_ENV` を設定し
+ * 忘れた実環境が `local` として扱われ、閉じたはずの口が開きます。
+ *
+ * @returns 指定された {@link ApplicationEnvironment}。未指定は null
+ * @throws `APP_ENV` が選べる値でないとき
+ */
+export function findApplicationEnvironment(): ApplicationEnvironment | null {
+  const applicationEnvironment = process.env["APP_ENV"];
+
+  if (applicationEnvironment === undefined) {
+    return null;
+  }
+
+  if (!isApplicationEnvironment(applicationEnvironment)) {
+    throw new Error(
+      `APP_ENV は ${applicationEnvironments.join(", ")} のいずれかを指定してください: ${applicationEnvironment}`,
+    );
+  }
+
+  return applicationEnvironment;
+}
+
+/**
+ * 開発専用の口を開ける環境。
+ *
+ * @remarks
+ * ここに `dev` / `stg` / `prd` を足すと、**誰でも任意の役割の session を発行できる口**が実環境に
+ * 開きます。API の接続モードでは判定しません（`src/config/README.md`）。
+ */
+const developmentOnlyEnvironments: ReadonlySet<ApplicationEnvironment> = new Set(["local", "ci"]);
+
+/**
+ * 開発専用の口を開けてよい環境か。
+ *
+ * @remarks
+ * **`APP_ENV` が指定されていることも要求します。** 未指定を既定値へ落とさない理由は
+ * {@link findApplicationEnvironment} と同じです。
+ *
+ * 口を足す側は条件を写さず、これを呼びます（`src/config/README.md`）。
+ *
+ * @returns 開発専用の口を開けてよいか
+ */
+export function isDevelopmentOnlyEndpointOpen(): boolean {
+  const environment = findApplicationEnvironment();
+
+  return environment !== null && developmentOnlyEnvironments.has(environment);
+}

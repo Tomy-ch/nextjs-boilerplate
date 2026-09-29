@@ -1,11 +1,11 @@
 # token scripts
 
-`tokens/scripts/` は、token SSOT から CSS を生成し、その生成物との一致を検査する責務を持ちます。
+`tokens/scripts/` は、token SSOT から CSS と TypeScript の定数を生成し、その生成物との一致を検査する責務を持ちます。
 
 ## ファイル
 
-- `gen-tokens.ts`: `primitives.json` と `themes/<系統>/<配色>.json` から `src/app/generated/tokens.css` を生成し、`--check` 時は差分を検査する
-- `gen-tokens.test.ts`: 生成する CSS の契約を検証する
+- `gen-tokens.ts`: `primitives.json` と `themes/<系統>/<配色>.json` から `src/app/generated/tokens.css` と、`src/model/generated/` の `breakpoint.ts` / `design-token.ts` の 3 本を生成し、`--check` 時は 3 本すべての差分を検査する
+- `gen-tokens.test.ts`: 生成する CSS と TypeScript の契約を検証する
 
 ## 実行
 

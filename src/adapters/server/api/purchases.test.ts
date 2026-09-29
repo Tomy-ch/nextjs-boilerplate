@@ -103,6 +103,22 @@ describe("getMyPurchases", () => {
     );
   });
 
+  it("複数の状態を、同じ名前を繰り返してクエリへ載せる", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getMyPurchases({ ...HISTORY_QUERY, statusCodes: [7, 8] });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.getAll("statusCodes")).toEqual(["7", "8"]);
+  });
+
+  it("状態を指定しなければ状態の条件を送らない", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getMyPurchases(HISTORY_QUERY);
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("statusCodes")).toBe(false);
+  });
+
   it("次ページのカーソルを引き継ぐ", async () => {
     serveJson(PURCHASES_URL, wirePage);
 
@@ -316,6 +332,18 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(excluded.ok && excluded.query.includeOtherUsers).toBe(false);
   });
 
+  it("1 つだけ選ばれた状態を、整数の並びへ直す", () => {
+    const parsed = parsePurchaseHistoryQuery({ statusCodes: "7" });
+
+    expect(parsed.ok && parsed.query.statusCodes).toEqual([7]);
+  });
+
+  it("繰り返された状態を並びのまま残し、重複を畳む", () => {
+    const parsed = parsePurchaseHistoryQuery({ statusCodes: ["7", "8", "7"] });
+
+    expect(parsed.ok && parsed.query.statusCodes).toEqual([7, 8]);
+  });
+
   it("繰り返された条件は指定なしとして落とす", () => {
     const parsed = parsePurchaseHistoryQuery({
       orderedAfter: ["2026-07-01T00:00:00+09:00", "2026-08-01T00:00:00+09:00"],
@@ -343,6 +371,13 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(parsePurchaseHistoryQuery({ includeOtherUsers: "yes" })).toEqual({
       ok: false,
       invalidKeys: ["includeOtherUsers"],
+    });
+  });
+
+  it("整数として読めない状態は読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ statusCodes: ["7", "発送済み"] })).toEqual({
+      ok: false,
+      invalidKeys: ["statusCodes"],
     });
   });
 

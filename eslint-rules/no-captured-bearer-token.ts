@@ -1,5 +1,8 @@
 import type { Rule, Scope } from "eslint";
 
+import { spelledProperty } from "./property-key";
+import { isTest } from "./test-file";
+
 /**
  * 資格情報の取得口に、その場で組んだ関数や掴んだ値を渡させないルール。
  *
@@ -26,39 +29,6 @@ const RESOLVER_PROPERTY = "getBearerToken";
 
 /** 解決済みの資格情報を渡す、確立中だけの綴り。 */
 const ESTABLISHING_PROPERTY = "bearerToken";
-
-/**
- * テストか。
- *
- * @param filename - lint 対象のファイル
- * @returns テストなら true
- */
-function isTest(filename: string): boolean {
-  return /\.test\.[cm]?[jt]sx?$/.test(filename);
-}
-
-/**
- * プロパティが名指している綴り。実行時にしか決まらないキーなら `undefined`。
- *
- * @remarks
- * **リテラルのキーは `[...]` で書かれていても綴りが確定する。** 綴りで一致を取る検査が
- * `["getBearerToken"]` を見逃すと、括弧を足すだけで規則を外せることになる。確定しないのは
- * `[識別子]` のように値が実行時に決まるキーだけである。
- *
- * @param key - プロパティのキー
- * @param computed - `[...]` で書かれたキーか
- * @returns 名指している綴り
- */
-function spelledProperty(
-  key: { type: string; value?: unknown; name?: string },
-  computed: boolean,
-): string | undefined {
-  if (key.type === "Literal") {
-    return typeof key.value === "string" ? key.value : undefined;
-  }
-
-  return !computed && key.type === "Identifier" ? key.name : undefined;
-}
 
 /**
  * 名前が指す変数を、内側の scope から順に探す。見つからなければ `undefined`。

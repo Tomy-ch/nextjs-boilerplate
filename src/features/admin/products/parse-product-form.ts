@@ -1,5 +1,6 @@
 import type { FieldErrors } from "@/model/action-state";
 import type { ProductDraft, ProductEdit, ProductImageDraft } from "@/model/product/product";
+import { toProductCategoryId, toProductStatusId } from "@/model/product/product";
 
 import { PRODUCT_FORM_NAMES } from "./form-names";
 import { PRODUCT_VERSION_LOST_MESSAGE, type ProductFormField } from "./form-state";
@@ -171,8 +172,8 @@ function parseCommon(form: FormData): CommonFields {
 
   const name = read(form, "name");
   const price = read(form, "price");
-  const categoryId = read(form, "categoryId");
-  const statusId = read(form, "statusId");
+  const categoryId = toProductCategoryId(read(form, "categoryId"));
+  const statusId = toProductStatusId(read(form, "statusId"));
   const threshold = read(form, "stockWarningThreshold");
   const publishedAt = read(form, "publishedAt");
   // 形として読めないことは規則が既に言っている。重ねて言うと、同じ項目に 2 つの文言が並ぶ。

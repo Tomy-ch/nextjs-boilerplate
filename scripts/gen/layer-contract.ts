@@ -11,8 +11,14 @@
 export type LayerContract = {
   /** その層が受け付けない対象。README の語をそのまま引き継ぐ。 */
   readonly forbidden: readonly string[];
-  /** その層のテスト責務（層別責務表を引く鍵）。 */
-  readonly testRequirement: string;
+  /**
+   * その層のテスト責務（層別責務表を引く鍵）。
+   *
+   * @remarks
+   * 1 つのディレクトリが複数の層を抱えるときは並びで宣言される。README の書き方（1 語か並びか）の
+   * まま引き継ぐ。
+   */
+  readonly testRequirement: string | readonly string[];
 };
 
 /**
@@ -63,7 +69,9 @@ export function readLayerContract(readmeText: string): LayerContract | null {
   }
 
   const forbidden = readListValue(frontmatter, "forbidden");
-  const testRequirement = readScalarValue(frontmatter, "test-requirement");
+  const testRequirement =
+    readListValue(frontmatter, "test-requirement") ??
+    readScalarValue(frontmatter, "test-requirement");
 
   if (forbidden === null || testRequirement === null) {
     return null;

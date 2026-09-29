@@ -14,6 +14,7 @@ import type { TooltipValueType } from "recharts";
 import * as RechartsPrimitive from "recharts";
 
 import { cn } from "@/components/cn";
+import { formatNumber } from "@/model/number";
 
 import {
   CHART_INDICATOR,
@@ -119,6 +120,16 @@ function getPayloadConfigFromPayload(
     key;
 
   return configKey in config ? config[configKey] : config[key];
+}
+
+/**
+ * tooltip に並べる値の表示用文字列。
+ *
+ * @param value - recharts が渡す系列の値。
+ * @returns 数は locale に沿って桁区切りにし、それ以外は文字列にしたもの。
+ */
+function formatTooltipValue(value: TooltipValueType): string {
+  return typeof value === "number" ? formatNumber(value) : String(value);
 }
 
 /**
@@ -383,9 +394,7 @@ export function ChartTooltipContent({
                       </div>
                       {item.value == null ? null : (
                         <span className="font-mono font-emphasis text-foreground tabular-nums">
-                          {typeof item.value === "number"
-                            ? item.value.toLocaleString()
-                            : String(item.value)}
+                          {formatTooltipValue(item.value)}
                         </span>
                       )}
                     </div>

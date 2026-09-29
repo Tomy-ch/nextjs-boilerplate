@@ -35,11 +35,11 @@ export type SelectNativeProps = Omit<ComponentProps<"select">, "size"> & {
 function SelectNative({ className, size = "default", ...props }: SelectNativeProps) {
   return (
     <div
-      className="group/native-select relative w-fit has-[select:disabled]:opacity-50"
-      data-slot="native-select-wrapper"
+      className="group/select-native relative w-fit has-[select:disabled]:opacity-50"
+      data-slot="select-native-wrapper"
     >
       <select
-        data-slot="native-select"
+        data-slot="select-native"
         data-size={size}
         className={cn(
           "h-9 w-full min-w-0 appearance-none rounded-md border border-input bg-transparent px-3 py-2 pr-9 text-sm shadow-xs transition-[color,box-shadow] selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed data-[size=sm]:h-8 data-[size=sm]:py-1 dark:bg-input/30 dark:hover:bg-input/50",
@@ -52,7 +52,7 @@ function SelectNative({ className, size = "default", ...props }: SelectNativePro
       <ChevronDownIcon
         className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-muted-foreground opacity-50 select-none"
         aria-hidden="true"
-        data-slot="native-select-icon"
+        data-slot="select-native-icon"
       />
     </div>
   );
@@ -73,7 +73,7 @@ function SelectNative({ className, size = "default", ...props }: SelectNativePro
 function SelectNativeOption({ className, ...props }: ComponentProps<"option">) {
   return (
     <option
-      data-slot="native-select-option"
+      data-slot="select-native-option"
       className={cn("bg-[Canvas] text-[CanvasText]", className)}
       {...props}
     />
@@ -92,7 +92,7 @@ function SelectNativeOption({ className, ...props }: ComponentProps<"option">) {
 function SelectNativeOptGroup({ className, ...props }: ComponentProps<"optgroup">) {
   return (
     <optgroup
-      data-slot="native-select-optgroup"
+      data-slot="select-native-optgroup"
       className={cn("bg-[Canvas] text-[CanvasText]", className)}
       {...props}
     />

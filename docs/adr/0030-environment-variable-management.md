@@ -23,18 +23,19 @@ env の基本形は、**起動時に一度だけ読み込んで検証し、以�
 ### 2. 型付き config(不変・目的別 / 単一オブジェクトを作らない)
 
 - **単一の巨大 Config オブジェクトは作らない**。config は**目的(サブシステム)ごと**に独立した typed・不変モジュールとして作る(例: `authConfig` / `apiConfig` / `analyticsConfig`)。各受け手は**自分の目的の config だけ**を import する。必要なフィールドだけを注入する原則の徹底であり、「1 つの Config を getter でスライス」ではなく **目的ごとに独立モジュール**とする(blast radius 最小化・tree-shaking・composition-root の明確化)
+- **purpose は読み手が引く。** purpose は値を読むサブシステムの単位であり、どの purpose に属するかはその値を誰が読むかで決まる。環境変数名の接頭辞は [0028](0028-naming-convention.md) の命名の単位であって purpose とは独立する —— 同じ接頭辞の変数が読み手の違いで別の purpose に分かれることも、外部の標準名をそのまま使う変数が purpose に属することもある
 - 各 config は **`#` private フィールド + getter のみの不変オブジェクト**とする。`#` private は実行時にも不可触なので `Object.freeze` 不要。setter は持たない。テスト以外での再生成を禁止する(plain object を公開面にする場合のみ deep freeze を必須)
 - **`process.env` の直読は `src/config/` 配下(目的別 config モジュール群)のみ**に限る。**biome の `noProcessEnv` で機械強制**する([0002](0002-formatter-linter.md) の能力ベース原則。config ディレクトリのみ override で除外)。env の出所を config カーネルに閉じる
 - **各目的 × server / client の分割**: 各目的 config は、含むフィールドの種別で **server config**(secret を含む)と **client config**(NEXT_PUBLIC のみ)に分ける。1 目的は server / client の**片方または両方**を持つ(例: `analytics` = 公開 ID〈client〉+ 送信キー〈server〉)
   - server config(`<purpose>.server.ts`)— 先頭に `import "server-only"` を置き、client バンドルへの混入をビルド時に遮断する。secret を含む runtime object
-  - client config(`<purpose>.client.ts`)— **`NEXT_PUBLIC_` の静的ドット参照のみ**で構成する(`process.env.NEXT_PUBLIC_FOO` の形)。動的アクセス・分割代入はビルド時のリテラル置換が効かないため**禁止**する
+  - client config(`<purpose>.client.ts`)— **`NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照のみ**で構成する(`process.env["NEXT_PUBLIC_FOO"]` の形。ドット記法も置換されるが、[0002](0002-formatter-linter.md) の `noPropertyAccessFromIndexSignature` が型検査で落とす)。動的アクセス(文字列リテラル以外の添字)・分割代入はビルド時のリテラル置換が効かないため**禁止**する
 - `NEXT_PUBLIC_` はビルド時に参照箇所ごとの**リテラルへインライン置換**される(公開定数。ブラウザ側は構造的に書き換え不能)。client config は「インラインリテラルの typed view」であって **runtime object ではない**。したがって import 境界の制限(§3)がかかるのは **server config(runtime object・secret)のみ**で、client config は client 側の層が自由に import してよい
 
 ### 3. 配布(DI コンテナの代替)
 
 - 配布メカニズム = **ESM モジュールキャッシュによるシングルトン**(1 プロセス 1 評価。import した全員が同一の不変インスタンスを取得)。DI コンテナの provide / inject に相当するものを、モジュールスコープでの組み立て + import で行う
 - DI の統制部分 = **import 境界ルール**。**server config(secret を持つ runtime object)を import してよいのは、その目的の `adapters/server`(+ 起動 / ビルド境界)のみ**([0021](0021-frontend-responsibility.md) 依存マトリクスと一致)。内側の層は server config でなく**値を引数で受け取る**(内側の層は config を知らない)。※ client config(NEXT_PUBLIC インラインリテラル)は runtime object でなく公開定数のため、client 側の層(`adapters/client` / `capabilities` / Client Component)も import 可
-- 起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata`〈[0025](0025-app-layer-elements.md)〉/ `proxy.ts`〈Edge 互換 config スライス。[0043](0043-middleware-policy.md)〉)は 11 カーネルの外側の専用 element として server config import を許す([0021](0021-frontend-responsibility.md) 起動 / ビルド境界の例外)
+- 起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata`〈[0025](0025-app-layer-elements.md)〉/ `proxy.ts`〈辿れる config は `environment.ts` → `application-environment.ts` まで。[0043](0043-middleware-policy.md)〉)は 11 カーネルの外側の専用 element として server config import を許す([0021](0021-frontend-responsibility.md) 起動 / ビルド境界の例外)
 - 各 adapter の factory は自分の目的の config だけを import して singleton を組む(mini composition root)。全目的 config の集約入口(`config.auth` 等の単一 facade)は**作らない**
 
 ### 4. default-vs-required 統治
@@ -42,7 +43,7 @@ env の基本形は、**起動時に一度だけ読み込んで検証し、以�
 - **Code default(immutable)** — スキーマ側にデフォルト値を持つ変数。env ファイルから省略でき、フレームワーク的な普遍値に用いる
 - **Required(variable)** — 各環境で必ず与える変数。欠落は検証失敗(起動 / ビルド abort)とする
 - 選択ルール: プロジェクト固有・環境ごとに変わる値 → required / 普遍的な値 → code default
-- **任意の変数は、未設定と空文字を同じ「指定なし」として扱う。** 配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証のための上書き(時計の固定等)の行を持たない。欠落を不正として落とすと本番の起動が通らず、空文字だけを別扱いにすると env ファイルの書き方で意味が変わる
+- **任意の変数は、未設定と空文字を同じ「指定なし」として扱う。** 配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証のための上書き(時計の固定等)の行を持たない —— `#` で名前だけを置く行も「供給側が与える」と読まれるので、持たない行に含む。欠落を不正として落とすと本番の起動が通らず、空文字だけを別扱いにすると env ファイルの書き方で意味が変わる
 - **同じ事実を 2 つの変数で持たない。** 配信の scheme(https か)は「環境の種類」を表す変数を別に立てて知るのではなく、IdP の callback URL —— IdP がブラウザを戻す先、すなわち自分の origin —— から導く。cookie の `secure` と配信ヘッダ(HSTS / `upgrade-insecure-requests`)が同じ答えを要るため、判定は config の 1 か所に置く
 
 ### 5. Secret 境界
@@ -56,10 +57,10 @@ env の基本形は、**起動時に一度だけ読み込んで検証し、以�
 
 配信物へ env を焼き込む機構は持たない([0011](0011-no-docker.md) no-Docker / PaaS・静的 CDN 配送)。したがって:
 
-- **`process.env` への供給は Next.js 標準の `.env*` ロード**に委ねる(`.env*` を直読しない)。config モジュールがその `process.env` を読む唯一の場所となる(決定 2)
+- **`process.env` への供給は、`APP_ENV` が選ぶ `env/.env.<環境>` を起動 / ビルド境界で 1 度だけ読み込む形**に揃える(`load-environment.ts`)。それ以外の場所は `.env*` を直読しない。config モジュールがその `process.env` を読む唯一の場所となる(決定 2)
 - **本番の secret / 環境別値は PaaS(Vercel / Amplify 等)の env・secret store から供給**する([0011](0011-no-docker.md) の配送前提)。平文ファイルへコミットしない
 - ドキュメントは **2 本立て**とし、正の範囲を分ける。同じ内容を二重に書かない:
-  - **`env/README.{md,ja.md}` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(`Variable Name | Description | Type | Example | Notes`)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
+  - **`env/README.md` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(`Variable Name | Description | Type | Example | Notes`)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
   - **`config` カーネルの README = 設定値の解説の正**([0021](0021-frontend-responsibility.md) 層別 README 運用)。**ビルド時に検証され、構築時に各 purpose モジュールへ流し込まれる設定値**について、purpose 区分・server / client 境界・required と code default の別・受け手側の使い方を説明する
   - 変数の**存在**は env 側、設定値の**意味と扱い**は config 側が持つ。config に載るのは env 側の部分集合である
 - **env 変数の追加はユーザ確認を要する**
@@ -126,7 +127,7 @@ node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
 - **再デプロイなしで変えたい値**は env に置かず **BFF runtime config へ逃がす**(例外扱い・キャッシュ必須・ユーザー体感レイテンシに載せない)。逃し先の具体設計(エンドポイント / キャッシュ方式)は **[0071](0071-bff-api-integration.md)(BFF / API 統合)の責務**とする
 - **`NEXT_PUBLIC_` の表面積は最小化**する(変更 = 再ビルドのリードタイムが必ず発生するため)
 - **SSG / ISR ページ内で読んだ server env はプリレンダー結果に凍結**される([0040](0040-routing-rendering-strategy.md) / [0041](0041-cache-components-decision.md))
-- **`proxy.ts`**(Next.js 16 の旧 Middleware)は既定 Node.js runtime だが、最適化時に CDN(Edge 相当)配置され得るため、config を参照するなら **Node API 非依存の config スライス**を使う([0043](0043-middleware-policy.md))。**この Edge 互換 config スライスの所有は本 ADR(config カーネル)** にある
+- **`proxy.ts`**(Next.js 16 の旧 Middleware)は既定 Node.js runtime だが、最適化時に CDN(Edge 相当)配置され得るため、**`proxy.ts` から辿れる config は ENV ファイルを読まない**。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、Node API と `dotenv` を使う ENV ファイルの読み込み(`load-environment.ts`)は起動 / ビルド境界だけが呼ぶ([0043](0043-middleware-policy.md))。**この境界の引き方の所有は本 ADR(config カーネル)** にある
 - **テスト**: 凍結インスタンスの変異ではなく **env スタブ + factory 再生成**(`new ServerConfig(stubEnv)`)で行う(本番コードでの使用は禁止)。具体 API は [0090](0090-testing-strategy.md) の **Vitest `vi.stubEnv`**
 
 ## 禁止事項
@@ -136,8 +137,8 @@ node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
 - ❌ 各 config オブジェクトに setter を持たせる / テスト外で再生成すること / 全目的を束ねる単一 facade を作ること（強制: 散文 —— **一部寄せられる**。setter の宣言と Config class の export は `src/config/**` の class の `set` accessor と export を見る形で落とせるが規則は無い。単一 facade かどうかは束ねる範囲の意味で決まる）
 - ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)（強制: 散文 —— **寄せられる**（`src/config/**/*.client.ts` で `process.env` の計算プロパティ参照（文字列リテラル以外の添字）と分割代入を ESLint `no-restricted-syntax` で落とす形。規則は無い））
 - ❌ secret を `NEXT_PUBLIC_` に置くこと（強制: 散文 —— **一部寄せられる**。Secret management ラベルを持つ変数が `NEXT_PUBLIC_` を名乗らないことは `env/README.md` の変数表の突合で落とせるが規則は無い。ラベルの無い値が秘密かどうかは値の意味で決まる）
-- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)（強制: `src/config/load-environment.test.ts` が判定関数の未指定を起動エラー / 口を閉じる側へ固定する。判定関数を通らずに `APP_ENV` の既定を書く箇所（配信用の script や新しい読み手）は散文 —— **寄せられる**（`package.json` の `build` / `start` に `APP_ENV` の既定が無いこと、`APP_ENV` の直読が `load-environment.ts` だけであることを gate で見る形。規則は無い））
-- ❌ 開発専用の口の開閉を、環境ではなく API の接続モードで判定すること（強制: `src/config/load-environment.test.ts` が共有の判定を `APP_ENV` の値で開閉するよう固定する。新しい口がその判定を通らず接続モードで分岐することは散文 —— **寄せられる**（開発専用の口（`*.dev.ts` / `page.dev.tsx`）が `isDevelopmentAccessAllowed` を通り、`APP_API_MODE` を条件にしないことを gate で見る形。規則は無い））
+- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)（強制: `src/config/application-environment.test.ts` が判定関数の未指定を口を閉じる側へ、`src/config/load-environment.test.ts` が ENV ファイルの選択での未指定を起動エラーへ固定する。判定関数を通らずに `APP_ENV` の既定を書く箇所（配信用の script や新しい読み手）は散文 —— **寄せられる**（`package.json` の `build` / `start` に `APP_ENV` の既定が無いこと、`APP_ENV` の直読が `application-environment.ts` だけであることを gate で見る形。規則は無い））
+- ❌ 開発専用の口の開閉を、環境ではなく API の接続モードで判定すること（強制: `src/config/application-environment.test.ts` が共有の判定を `APP_ENV` の値で開閉するよう固定する。新しい口がその判定を通らず接続モードで分岐することは散文 —— **寄せられる**（開発専用の口（`*.dev.ts` / `page.dev.tsx`）が `isDevelopmentAccessAllowed` を通り、`APP_API_MODE` を条件にしないことを gate で見る形。規則は無い））
 - ❌ RSC から Client Component へ server config 値を props で渡すこと
 - ❌ **server config**(secret を含む runtime object)を `adapters/server`・起動 / ビルド境界以外の層から import すること([0021](0021-frontend-responsibility.md)。client config〈NEXT_PUBLIC インラインリテラル〉は client 側の層から import 可 — §2 / §3)
 
@@ -149,13 +150,13 @@ node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
 ## 関連 ADR
 
 - [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `config` カーネルの枠予約・依存マトリクス(config import の唯一の許可層 = `adapters`)。本 ADR はその中身を確定
-- [0011-no-docker.md](0011-no-docker.md) — no-Docker / PaaS 配送(焼き込み不成立 → Next.js 標準 `.env` + PaaS secret store)
+- [0011-no-docker.md](0011-no-docker.md) — no-Docker / PaaS 配送(焼き込み不成立 → `env/.env.<環境>` + PaaS secret store)
 - [0027-directory-structure.md](0027-directory-structure.md) — `config` カーネルの物理配置
-- [0028-naming-convention.md](0028-naming-convention.md) — 環境変数の命名形式(`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_` プレフィックス)。本 ADR は境界・検証・型付けを定める
+- [0028-naming-convention.md](0028-naming-convention.md) — 環境変数の命名形式(`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_` プレフィックス)。接頭辞は purpose と独立する。本 ADR は境界・検証・型付けを定める
 - [0002-formatter-linter.md](0002-formatter-linter.md) — `process.env` 直読禁止の機械強制(biome `noProcessEnv`)の能力ベース分担
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0071-bff-api-integration.md](0071-bff-api-integration.md) — runtime config の逃し先・受け手アダプタの接続先
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) / [0041-cache-components-decision.md](0041-cache-components-decision.md) — プリレンダーでの env 凍結
 - [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — 開発専用の session 発行口(環境で開閉する対象)
 - [0090-testing-strategy.md](0090-testing-strategy.md) — env スタブの具体 API(`vi.stubEnv`)
 - [0153-ci-configuration.md](0153-ci-configuration.md) — ビルド時検証の CI 組込み
-- [0043-middleware-policy.md](0043-middleware-policy.md) — Edge runtime 用に Node API 非依存の config スライス(本文「周辺ルール」参照)
+- [0043-middleware-policy.md](0043-middleware-policy.md) — proxy から辿れる config の範囲(本文「周辺ルール」参照)

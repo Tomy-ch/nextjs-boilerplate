@@ -27,7 +27,7 @@ Accepted
 ### 2. Runtime 方針(Node.js 既定・Edge 互換維持)
 
 - **Next.js 16 の Proxy は既定で Node.js runtime** であり、`runtime` セグメント設定は Proxy ファイルでは使用できない(設定するとエラー)。runtime はコードで選択する対象ではなく、実際の実行環境はデプロイ先(adapter)に依存する。本リポジトリは特定のデプロイ先・runtime 前提を強制しない([0011](0011-no-docker.md))
-- ただし Proxy は最適化されたデプロイでは **CDN(Edge 相当)に配置され得る**ため、`proxy.ts` のコードは **Edge Runtime 互換(Node API・共有グローバル非依存)を保つ**ことを既定とする。config を参照する場合は **Node API 非依存の config スライス**を使う([0030](0030-environment-variable-management.md))。config は import 境界に従い、Proxy でも [0030](0030-environment-variable-management.md) の client/server 分割・不変 Config を守る
+- ただし Proxy は最適化されたデプロイでは **CDN(Edge 相当)に配置され得る**ため、`proxy.ts` のコードは **Edge Runtime 互換(Node API・共有グローバル非依存)を保つ**ことを既定とする。**`proxy.ts` から辿れる import のグラフは Node API と `dotenv` を含まない。** config を参照する場合、辿れる config は `environment.ts` → `application-environment.ts` で止まり、ENV ファイルを読むモジュール(`load-environment.ts`)へは届かない。ENV ファイルの読み込みは起動 / ビルド境界が先に済ませている([0030](0030-environment-variable-management.md))。config は import 境界に従い、Proxy でも [0030](0030-environment-variable-management.md) の client/server 分割・不変 Config を守る
 
 ### 3. 認証 hook の置き場 = 用途依存
 
@@ -51,7 +51,7 @@ Accepted
 - ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `ENTRY_POINTS` の `proxy`）が取得の口（`adapters`）と feature の import を落とす。直の `fetch` と、書かれた処理が業務ロジックか重いかは散文 —— **寄せられない**。処理の意味と重さはコードの形から決まらない）
 - ❌ `proxy.ts` をセッション管理・確定的な認可の主機構にすること(optimistic チェックのみ。認可はデータ境界)（強制: 散文 —— **寄せられない**。判定が optimistic か確定かは、それを何の根拠に使うかの意味で決まる）
 - ❌ deprecated な `middleware.ts` を新規に作ること(Next.js 16 は `proxy.ts`)（強制: ESLint `boundaries/no-unknown-files`（`src/middleware.ts` はどの要素にも属さないため落ちる））
-- ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること(CDN 配置され得る。Edge 互換を保つ)（強制: ESLint `no-restricted-syntax` / `no-restricted-imports`（`NODE_RUNTIME_ACCESS` の外で `process` と `node:*` を落とす）。接頭辞の無い組み込みモジュールと、共有モジュール・グローバル状態への依存は散文 —— **寄せられない**。共有されるかは実行時の配置で決まる）
+- ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること、および `proxy.ts` から辿れる import のグラフに Node API や `dotenv` を含めること(CDN 配置され得る。Edge 互換を保つ)（強制: `scripts/proxy-edge.gate.test.ts` が `proxy.ts` から辿れる import のグラフに Node API と `dotenv` が現れないことを見る。ESLint `no-restricted-syntax` / `no-restricted-imports`（`NODE_RUNTIME_ACCESS` の外で `process` と `node:*` を落とす）が個々のファイルの側を落とす。共有モジュール・グローバル状態への依存は散文 —— **寄せられない**。共有されるかは実行時の配置で決まる）
 - ❌ `proxy.ts` に `runtime` セグメント設定を書くこと(Next.js 16 の Proxy では使用不可・エラーになる)
 - ❌ 特定の認証実装・デプロイ先 runtime 前提を本リポジトリで強制すること(認証は用途依存。runtime はデプロイ先依存)（強制: 持たない —— 採らない決定。特定の認証実装と runtime 前提を `proxy.ts` に組み込んでいないこと自体が状態である）
 - ❌ 停止画面のために proxy が本体の HTML を組み立てること、および根拠の無い `Retry-After` を付けること(§5)（強制: `src/proxy.test.ts` が停止中の読み取りを rewrite で差し替えることを固定する。`Retry-After` を付けないことは散文 —— **寄せられる**（503 の応答に `Retry-After` が無いことを同じテストで確かめる形。検査は無い））
@@ -61,7 +61,7 @@ Accepted
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / 認証は用途依存 / 確定的認可はデータ境界
 - [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — 前捌きは防御線ではない(確定認可の側が持つ)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router / driving adapter 原則
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — Edge 用 Node API 非依存 config スライス(本 ADR との交点)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — proxy から辿れる config の範囲(`environment.ts` → `application-environment.ts`。本 ADR との交点)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 起動 / 境界エントリ(11 カーネル外)としての `proxy.ts`
 - [0011-no-docker.md](0011-no-docker.md) — 配信面(CDN / ロードバランサ)との役割分担(停止を機械へ伝える側)
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) — ロケール検出の seam(採用時、Proxy を使う場合)

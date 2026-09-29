@@ -35,7 +35,7 @@
 | 認証の往復の口 | `src/app/api/auth/{login,callback,logout}/route.ts` |
 | ログイン画面 | `src/app/(auth)/login/page.tsx` → `src/features/auth/login-view.tsx` |
 | 開発用の口（画面・Server Action・認可 endpoint・直接発行 API） | `src/app/dev/session/` / `src/app/api/auth/test-session/route.dev.ts` |
-| 開発専用の口を開けてよいかの判定 | `src/config/load-environment.ts` の `isDevelopmentOnlyEndpointOpen()` と `src/adapters/server/auth/development-access.ts` |
+| 開発専用の口を開けてよいかの判定 | `src/config/application-environment.ts` の `isDevelopmentOnlyEndpointOpen()` と `src/adapters/server/auth/development-access.ts` |
 | `AUTH_*` の検証と Config | `src/config/auth/` |
 
 `features` からは `adapters/server/auth` を引けない（`architecture.ts` の区画 `adapters-auth`。引けるのは `app` / `adapters` / `proxy`）。したがって session を読む場所は app 層の器・Server Action・Route Handler に限られ、feature が受け取るのは判定済みの結果だけになる。
@@ -55,7 +55,11 @@
 
 **session の寿命は Access Token の寿命と同じである。** Resolver の面に `refresh` は無い —— それを使う既定実装が無いためで、IdP が refresh を持つなら `restore` の内側で完結させる。失効した session は `restore` が `null` を返し、未認証と区別されない（壊れた cookie も同じ）。失効・改竄・鍵の入れ替えを呼び出し側が区別できると、その区別が攻撃者への手掛かりになる。
 
-**役割は確立時に 1 度だけ引く。** 既定 Resolver は `resolveRole` を依存として受け取り、`completeAuthorization` の途中で Access Token を渡して呼ぶ。ここは cookie がまだ無い唯一の往復なので、取得口は `getBearerToken` ではなく `bearerToken` の綴りで解決済みの値を渡す（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) の例外）。**`resolveRole` を渡さなければ、権限を持たない側へ倒す。** 同梱サンプルはバックエンドの役割の口を繋いでいるが、その adapter はサンプルと一緒に消えるので、残る側では役割の出所を繋ぎ直す。
+**役割は確立時に 1 度だけ引く。** 既定 Resolver は `resolveRole` を依存として受け取り、`completeAuthorization` の途中で Access Token を渡して呼ぶ。ここは cookie がまだ無い唯一の往復なので、取得口は `getBearerToken` ではなく `bearerToken` の綴りで解決済みの値を渡す（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) の例外）。**`resolveRole` を渡さなければ、権限を持たない側へ倒す。** 役割の出所（バックエンドの役割の口）は利用側が `resolver.ts` で繋ぐ。
+
+<!-- sample:begin -->
+同梱サンプルはバックエンドの役割の口を繋いでいるが、その adapter はサンプルと一緒に消えるので、残る側では役割の出所を繋ぎ直す。
+<!-- sample:end -->
 
 ## 認証の往復
 
@@ -159,17 +163,17 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 **通過するだけの値に責任範囲が広がるのは、保存・ログ・派生を始めた時点である。** ID Token だけは例外で、ログアウトの送り先に `id_token_hint` として埋めて外へ出る —— RP-Initiated Logout は利用者のブラウザ経由でそれを IdP へ届ける手順であり、届かないと IdP 側が終わらない。出るのはこの 1 用途だけで、Access Token は今も外へ出ない。
 
-## いまの実装と ADR 0079 §8 の差
+## 資格情報の入力面 —— いまの実装と ADR 0079 の差
 
 **[ADR 0079](../adr/0079-auth-frontend-seam.md) が定める形と、いまの実装は一致していない。** どちらが実態かを先に書く。
 
-| | ADR §8 / §6 が定める形 | いまの実装 |
+| | ADR が定める形（認証画面を意匠ごと所有し、借り物の画面は federation に限る） | いまの実装 |
 | --- | --- | --- |
 | 資格情報の入力面 | `/login` が所有する。利用者は自分のドメインを離れない | **IdP の画面（借り物）が受け取る。** `/login` は「ログインへ進む」の 1 ボタンで、`/api/auth/login` が authorize endpoint へ 302 する |
 | 検証との接点 | Route Handler がバックエンドへ中継し、バックエンドが正規化したチャレンジを返す | **既定 Resolver が OIDC クライアントとして IdP と直接往復する**（Discovery / token 交換 / JWKS） |
 | 借り物の画面が現れる場所 | federation の連携先と IdP の終了口だけ | **主たる経路そのもの** |
 
-つまり、いまの実装は同 ADR §6 が **federation に限って**認めている形を、主たる経路として採っている。ADR は書き戻していない —— 決定のほうが正しく、実装が追いついていないだけだからで、ADR を実態へ倒すと、戻す根拠が消える。
+つまり、いまの実装は同 ADR が **federation に限って**認めている形を、主たる経路として採っている。ADR は書き戻していない —— 決定のほうが正しく、実装が追いついていないだけだからで、ADR を実態へ倒すと、戻す根拠が消える。
 
 実装がそこへ届いていないのは、この層の中だけでは進められない前提の連鎖に従属しているためである。**IdP の構築が先、次にバックエンドが認証機構を持って正規化されたチャレンジを返すこと、最後にこの層の画面**の順で、逆順に着手すると、契約が無い状態で画面を書き、契約が決まった時点で書き直すことになる。`env/.env.{dev,stg,prd}` の `AUTH_*` が空欄なのはこの帰結で、cloud 環境の認証はこの層が単独で閉じられない。
 
@@ -188,7 +192,7 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 - **前捌きは宣言した接頭辞しか見ない。** `/api/auth/*` と `/api/health` は誰でも叩ける。認証の要る Route Handler を足すときは、`authz.ts` へ接頭辞を足すか、`adapters` の 401 を写すかのどちらかであり、Route Handler 自身に判定を書かない。
 - **`Cache-Control: private, no-store` は matcher が外した経路には届かない。** 主体ごとに違う画像を `next/image` に載せるなら、除外を見直す。
 - **Bearer は `baseUrl` と同じ origin にしか付かない。** Discovery が返した絶対 URL や、別 origin の API を同じクライアントで叩くと、認証なしで出ていって 401 になる。接続先ごとにクライアントを作る。
-- **`resolveRole` を渡さなければ全員が権限を持たない側になる。** サンプルを破棄した直後はこの状態で、`/admin` には誰も入れない。役割の出所を繋ぐのが最初の仕事である。
+- **`resolveRole` を渡さなければ全員が権限を持たない側になる。** 繋ぐまではこの状態で、`/admin` には誰も入れない。役割の出所を繋ぐのが最初の仕事である。
 - **`/account` は宣言だけで画面が無い。** 前捌きは効く（未認証で踏むとログインへ送られる）が、認証後に戻ると 404 になる。宣言を消さずに画面を足すか、宣言ごと自分の接頭辞へ書き換える。
 - **Server Action から Route Handler へ `redirect()` しても要求は出ない。** `/dev/session` の認可の往復が素の form 送信になっているのはこのためで、同じ形を他所で組むときも Server Action を経由させない。
 - **`use cache` の下で `verifySession()` は呼べない。** `cookies()` を読むため framework が落とす。認可の判定は穴の内側で解く。
@@ -196,7 +200,7 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 ## 関連する ADR
 
-- [0079](../adr/0079-auth-frontend-seam.md) — 認証の前側の seam。所有の線・2 層の認可・Resolver 方式・§8 の所有画面
+- [0079](../adr/0079-auth-frontend-seam.md) — 認証の前側の seam。所有の線・2 層の認可・Resolver 方式・認証画面を意匠ごと所有すること
 - [0043](../adr/0043-middleware-policy.md) — `proxy.ts` は optimistic な前捌きまで。唯一の防御線にしない
 - [0113](../adr/0113-development-access-surface.md) — 開発用の口の制御面と、それを閉じる環境の判定
 - [0112](../adr/0112-data-classification-cache-boundary.md) — 資格情報が通る道のりの関所。`bearerToken` の例外

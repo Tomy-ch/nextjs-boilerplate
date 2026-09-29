@@ -8,6 +8,7 @@
 // **何件のうち何件を出したかを必ず書く。** 出力を見た人が「これで全部か」を判断できないと、部分読みと
 // 同じことになる。
 
+import { drawToolOutputInline } from "../lib/issue-body";
 import {
   asArray,
   isFailed,
@@ -111,20 +112,19 @@ function clamp(text: string, limit: number): string {
 }
 
 /**
- * 道具が吐いた文字列を、1 行のコードスパンにする。
+ * 道具が吐いた文字列を、色の制御列を落として 1 行のコードスパンにする。
  *
  * @remarks
  * **見出しとファイル名も素通しにしません。** ケース名（`it` の説明文・story 名）とファイル名は
  * 失敗の文言と同じく**このリポジトリが書いたものではなく**、PR を出した側が決めます。素で
  * `### ${name}` に入れると、`@利用者` の通知と偽の見出し・偽のリンクが CI の名義で公開の面に
  * 載り、取り消せません。
+ *
+ * @param text - 実行系が吐いた文字列
+ * @returns コードスパン
  */
 export function codeSpan(text: string): string {
-  const flat = decolour(text).replace(/\s+/g, " ").trim() || "(空)";
-  const longest = Math.max(0, ...[...flat.matchAll(/`+/g)].map((run) => run[0].length));
-  const fence = "`".repeat(longest + 1);
-  const pad = flat.startsWith("`") || flat.endsWith("`") ? " " : "";
-  return `${fence}${pad}${flat}${pad}${fence}`;
+  return drawToolOutputInline(decolour(text));
 }
 
 /**

@@ -53,10 +53,52 @@ export function isDiscontinued(product: Pick<Product, "discontinuedAt">): boolea
   return product.discontinuedAt !== null;
 }
 
-/** 商品に紐づく分類。ID と表示名だけを持つ。 */
-export type ProductRef = {
-  id: string;
-  name: string;
+const productCategoryIdSchema = z.string().brand<"productCategory">();
+
+/**
+ * 商品の分類を指す識別子。
+ *
+ * @remarks
+ * 状態の識別子と別の型にしてあります。どちらも UUID の文字列で、分類と状態を取り違えても素の
+ * `string` では型が止めないためです。
+ */
+export type ProductCategoryId = z.infer<typeof productCategoryIdSchema>;
+
+/**
+ * 文字列を商品の分類の識別子として確定させる。
+ *
+ * @remarks
+ * 呼んでよい場所と検査しないものは {@link toProductId} と同じです。
+ *
+ * @param value - 確定させる文字列
+ * @returns 商品の分類の識別子
+ */
+export function toProductCategoryId(value: string): ProductCategoryId {
+  return productCategoryIdSchema.parse(value);
+}
+
+const productStatusIdSchema = z.string().brand<"productStatus">();
+
+/** 商品の状態を指す識別子。分類の識別子と分ける理由は {@link ProductCategoryId} と同じ。 */
+export type ProductStatusId = z.infer<typeof productStatusIdSchema>;
+
+/**
+ * 文字列を商品の状態の識別子として確定させる。
+ *
+ * @remarks
+ * 呼んでよい場所と検査しないものは {@link toProductId} と同じです。
+ *
+ * @param value - 確定させる文字列
+ * @returns 商品の状態の識別子
+ */
+export function toProductStatusId(value: string): ProductStatusId {
+  return productStatusIdSchema.parse(value);
+}
+
+/** 商品に紐づくマスタへの参照。識別子と表示名だけを持つ。 */
+export type ProductRef<Id extends ProductCategoryId | ProductStatusId> = {
+  readonly id: Id;
+  readonly name: string;
 };
 
 /**
@@ -66,9 +108,9 @@ export type ProductRef = {
  * 商品に紐づく {@link ProductRef} と分けてあります。マスタだけが `code` を持ち、絞り込みは
  * この番号で行うためです。商品の側に載る分類は表示のための参照で、番号を持ちません。
  */
-export type ProductCategory = ProductRef & {
+export type ProductCategory = ProductRef<ProductCategoryId> & {
   /** マスタ行を指す静的な番号。UUID と違い、絞り込みの条件として URL に載せられる。 */
-  code: number;
+  readonly code: number;
 };
 
 /**
@@ -79,9 +121,9 @@ export type ProductCategory = ProductRef & {
  * という契約の都合が揃っているだけで、公開・非公開といった状態の体系と商品の分類体系は別々に
  * 動きます。1 つの型にまとめると、片方の都合でもう片方の宣言が動きます。
  */
-export type ProductStatus = ProductRef & {
+export type ProductStatus = ProductRef<ProductStatusId> & {
   /** マスタ行を指す静的な番号。分類と同じく、絞り込みの条件として URL に載せられる。 */
-  code: number;
+  readonly code: number;
 };
 
 /**
@@ -92,56 +134,56 @@ export type ProductStatus = ProductRef & {
  * 別の理由で動くためです。
  */
 export type Product = {
-  id: ProductId;
-  name: string;
+  readonly id: ProductId;
+  readonly name: string;
   /** 商品説明。リッチテキストであり、表示側は必ず sanitizer を通す。 */
-  description: string | null;
+  readonly description: string | null;
   /**
    * 価格。USD の decimal 文字列のまま持つ。
    *
    * 数値へ変換しないのは、JSON number が IEEE754 double として復元され、サブセント精度を
    * 失うためである。丸めの判断は表示の直前に行う。
    */
-  price: string;
-  quantity: number;
+  readonly price: string;
+  readonly quantity: number;
   /**
    * 在庫が少ないと見なす境界。設定が無ければ null。
    *
    * 何個から「少ない」かはバックエンドが持つ運用の値であり、表示側で決めない。
    */
-  stockWarningThreshold: number | null;
-  status: ProductRef;
-  category: ProductRef;
+  readonly stockWarningThreshold: number | null;
+  readonly status: ProductRef<ProductStatusId>;
+  readonly category: ProductRef<ProductCategoryId>;
   /** 公開日時。未公開なら null。 */
-  publishedAt: Date | null;
+  readonly publishedAt: Date | null;
   /**
    * 廃番日時。廃番でなければ null。
    *
    * 廃番は取り消せず、廃番の商品は公開日時を持たない。判定は {@link isDiscontinued} を通す。
    */
-  discontinuedAt: Date | null;
+  readonly discontinuedAt: Date | null;
   /**
    * 配信基盤上のオブジェクトキー。表示 URL はここから組み立てる。
    *
    * 画像が無い商品は空配列になる。表示の順序は配列の順序に従う。**枚数で分岐しない** —
    * 契約は常に配列で返し、0 枚も 1 枚も複数枚も同じ形で届く。
    */
-  imagePaths: readonly string[];
+  readonly imagePaths: readonly string[];
   /**
    * 読み込んだ時点の版。更新の要求に添えて競合を検出する。
    *
    * 表示するための値ではない。更新を送る主体は自分が見た版を申告し、その間に別の主体が
    * 更新していれば要求が拒まれる。添えずに送ると、後から送った側が黙って前の更新を消す。
    */
-  version: number;
+  readonly version: number;
 };
 
 /** 商品へ紐づける画像 1 件。 */
 export type ProductImageDraft = {
   /** アップロードの応答が返したオブジェクトキー。 */
-  imagePath: string;
+  readonly imagePath: string;
   /** 同一商品内での表示順。1 から数える。 */
-  displaySort: number;
+  readonly displaySort: number;
 };
 
 /**
@@ -152,15 +194,15 @@ export type ProductImageDraft = {
  * 作る側だけが渡すもの（分類と状態を**参照ではなく識別子で**指定する）があるためです。
  */
 export type ProductDraft = {
-  name: string;
-  description: string | null;
-  price: string;
-  quantity: number;
-  stockWarningThreshold: number | null;
-  categoryId: string;
-  statusId: string;
-  publishedAt: Date | null;
-  images: readonly ProductImageDraft[];
+  readonly name: string;
+  readonly description: string | null;
+  readonly price: string;
+  readonly quantity: number;
+  readonly stockWarningThreshold: number | null;
+  readonly categoryId: ProductCategoryId;
+  readonly statusId: ProductStatusId;
+  readonly publishedAt: Date | null;
+  readonly images: readonly ProductImageDraft[];
 };
 
 /**
@@ -173,7 +215,7 @@ export type ProductDraft = {
  * 版を持つのは、送る側が自分の見た状態を申告するためです（{@link Product.version}）。
  */
 export type ProductEdit = Omit<ProductDraft, "quantity"> & {
-  version: number;
+  readonly version: number;
 };
 
 /** cursor 方式で取得した商品の 1 ページ。 */

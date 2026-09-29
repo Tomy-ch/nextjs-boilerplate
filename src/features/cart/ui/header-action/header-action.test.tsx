@@ -40,7 +40,10 @@ describe("CartHeaderAction", () => {
     render(<CartHeaderAction cart={CART} />);
     await user.click(screen.getByRole("button", { name: "カートを開く" }));
 
-    expect(useCartStore.getState().isOpen).toBe(true);
+    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 

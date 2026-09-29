@@ -8,6 +8,7 @@ import {
 } from "@/components/design-system/display/card/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 import type { SafeReturnUrl } from "@/model/return-url";
+import { withScreenSpan } from "@/observability/render-span";
 
 import { LOGIN_NOTICE, type LoginNotice } from "./facade/login-notice";
 
@@ -28,7 +29,7 @@ const NOTICE_TEXT = {
 const DESCRIPTION = [
   "操作を続けるには認証が必要です。",
   "認証はこのアプリの外にある認証基盤で行い、済むと元の操作に戻ります。",
-  "この画面ではアカウントを作らず、初めての方も認証を済ませてから登録へ進みます。",
+  "この画面ではアカウントを作りません。初めての方も、まず認証を済ませてください。",
 ].join("");
 
 /** `LoginView` の props。 */
@@ -67,8 +68,9 @@ export type LoginViewProps = {
  * **面の見出しを `h1` として描きます。** `CardTitle` は見た目だけを持つので、文書構造上の見出しは
  * 呼び出し元が子として渡します。この画面は `PageHeader` を持たないため、ここが唯一の h1 です。
  */
-export function LoginView({ returnUrl, notice }: LoginViewProps) {
-  return (
+export const LoginView = withScreenSpan(
+  "features/auth/login-view",
+  ({ returnUrl, notice }: LoginViewProps) => (
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -95,5 +97,5 @@ export function LoginView({ returnUrl, notice }: LoginViewProps) {
         </CardContent>
       </Card>
     </div>
-  );
-}
+  ),
+);

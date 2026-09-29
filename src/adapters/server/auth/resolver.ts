@@ -1,8 +1,8 @@
 import "server-only";
 
+import { isDevelopmentOnlyEndpointOpen } from "@/config/application-environment";
 import { getAuthConfig } from "@/config/auth/auth.server";
 import { getHttpConfig } from "@/config/http/http.server";
-import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
 
 import { fetchSessionRole } from "../api/user-roles"; // sample:line
 import { taintUniqueValue } from "../taint/taint";

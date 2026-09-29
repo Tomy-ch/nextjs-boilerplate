@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 
 import { PREFECTURES, PROFILE } from "../account.fixture";
-import { MYPAGE_PATH } from "../paths";
+import { MYPAGE_PATH } from "../facade/paths/paths";
 import { ProfileEditView } from "./view";
 
 /** 保存の成功は toast で伝えるため、shell が載せる Provider をここでも被せる。 */
@@ -24,6 +24,14 @@ describe("ProfileEditView", () => {
     renderView();
 
     expect(screen.getByLabelText("名字")).toHaveValue("山田");
+  });
+
+  it("連絡先と住所の各項目も初期値としてフォームへ渡す", () => {
+    renderView();
+
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue(PROFILE.email);
+    expect(screen.getByLabelText("都道府県")).toHaveValue(PROFILE.prefecture);
+    expect(screen.getByLabelText("建物名・部屋番号")).toHaveValue(PROFILE.building);
   });
 
   it("受け取った都道府県をフォームの選択肢へ渡す", () => {

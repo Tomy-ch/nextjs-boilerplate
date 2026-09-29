@@ -27,7 +27,7 @@ Accepted
 
 - session の保管場所の seam は **httpOnly cookie**(Next.js `cookies()` API)とする。cookie は **server で set** し、`httpOnly` / `Secure` / `SameSite` / `Max-Age`(or `Expires`)/ `Path` を既定属性とする(具体既定値・アプリ cookie 規約は `docs/rules.md`「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに明示する」が保持)。
 - **payload は最小**(id / role 等の後続リクエストで使う一意データのみ)。PII(電話番号・メール・カード情報)や機微情報(パスワード)を **cookie に入れない**。
-- **vendor-independent 正当性材料**(0010 §2 必須):
+- **vendor-independent 正当性材料**(標準に乗る決定が必ず添えるもの。[0010](0010-standards-and-non-lockin.md)):
   - **httpOnly = XSS によるトークン窃取の緩和** — client-side JS から cookie を読めなくすることで、XSS 起点の session 窃取という web 一般の攻撃面を塞ぐ。これは Next.js 固有の話でなく MDN / OWASP 由来の web セキュリティ基本原理である。
   - **最小 payload = 最小権限(least privilege)/ 最小データ露出** — cookie は各リクエストで送出され改竄面でもあるため、載せる情報を必要最小に絞ることは attack surface と情報漏洩を減らす一般原則である。
 - session 実装詳細(stateless JWT 風 vs DB session id / 暗号化・署名方式)は **ここでは定めない**([0070](0070-backend-role-separation.md))。特定方式を組み込まない。
@@ -39,7 +39,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 - **optimistic(楽観)層 = `proxy.ts`**(optional・[0043](0043-middleware-policy.md))— cookie の session のみを読み、権限ベースの **リダイレクト / UI 出し分け**に使う。**DB / データ源参照は禁止**(Proxy は prefetch 含む全 route で走るため。cookie 読みは `req.cookies.get(...)` に留める)。**唯一の防御線にしない**。Node.js runtime([0043](0043-middleware-policy.md))。
 - **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。app 層の入口(route-segment / Route Handler / Server Action)は必ずこの `verifySession()` を通してから feature へ進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
 - **カーネル座標の導出**(べき論): `verifySession()` は session cookie(`server-only`)と secret を扱う **remote/runtime 境界 = `adapters/server`** に属する(secret を持てる唯一の実行層 = `adapters/server`。[0021](0021-frontend-responsibility.md) 依存マトリクス / [0024](0024-adapters-server-client-split.md))。DAL を `adapters/server` に置くことで「session verify は境界アダプタが所有し、内側の層(`model` / feature 純粋ロジック)は session を知らない」が保たれる(型漏洩禁止・[0020](0020-adopted-architecture.md))。
-- **vendor-independent 正当性材料**(0010 §2 必須):
+- **vendor-independent 正当性材料**(標準に乗る決定が必ず添えるもの。[0010](0010-standards-and-non-lockin.md)):
   - **データ境界での確定認可 = 多層防御(defense in depth)** — Proxy(edge/入口)の楽観チェックは最適化配置(CDN)や prefetch の都合で信頼の単一点にできないため、検査を **データ源直近**に置いて最終防御線とする。これは「認可はリソースアクセス直前に行う」という web セキュリティ一般原則であり、Next.js を正当化から抜いても成立する(0010 運用テスト: Yes)。
 
 ### 3. DTO / 露出データの最小化
@@ -52,7 +52,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 - 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)か、`adapters` が分類した結果を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
 - **session に基づく保護の編成は app 層が行う。** `verifySession()` を呼び、結果で分岐し、リダイレクトするか feature を呼ぶ —— これは driving adapter の合成であって業務ロジックではない([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。`features` がこれを持てないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけだからで(`architecture.ts` の `adapters-auth`)、依存マトリクスの帰結であって例外規定ではない([0021](0021-frontend-responsibility.md))。
-- **feature が受け取ってよいのは `adapters` が分類した結果であって、session そのものではない。** 「未認証 / 未登録 / 登録済み」のような列挙は表示用の値であり、session の型も secret も内側の層へ渡らない([0020](0020-adopted-architecture.md) 型漏洩禁止)。この形なら入口ガードを feature に 1 つ置いて、同じ判定を画面ごとに書き写さずに済む。**分類を作るのは `adapters` の仕事**であり、feature のために session を素通しする関数を `adapters` へ足してはならない —— それは依存マトリクスを迂回して session の分岐を feature へ持ち込む経路になる。判定に使う規則そのものはバックエンドが持つ([0070](0070-backend-role-separation.md))。
+- **feature が受け取ってよいのは `adapters` が分類した結果であって、session そのものではない。** 「未認証 / 認証済み」や、それをバックエンドが返す状態でさらに分けた列挙は表示用の値であり、session の型も secret も内側の層へ渡らない([0020](0020-adopted-architecture.md) 型漏洩禁止)。この形なら入口ガードを feature に 1 つ置いて、同じ判定を画面ごとに書き写さずに済む。**分類を作るのは `adapters` の仕事**であり、feature のために session を素通しする関数を `adapters` へ足してはならない —— それは依存マトリクスを迂回して session の分岐を feature へ持ち込む経路になる。判定に使う規則そのものはバックエンドが持つ([0070](0070-backend-role-separation.md))。
 - **判定の述語は `model` が持つ。** 「この session が役割を満たすか」は session を入力に取る純粋な判定であり、app 層にも feature にも書かない。前捌き(`proxy.ts`)と確定認可が同じ述語を引くことで、2 層の判定がずれない。
 - **保護は保護される側を列挙して宣言する。** 公開側を列挙する書き方だと、新しく足した画面が既定で公開になり、書き忘れがそのまま漏洩になる。**経路の接頭辞は入れ子にしない** —— 入れ子を許すと、どちらの宣言が勝つかを決める規則が要り、宣言の並べ替えだけで認可が変わる状態を作れる。1 つの経路に 2 通りの役割を求めたくなったときは、規則を足す前にその設計を見直す。経路の一覧そのものはコード(`src/model/authz.ts`)が持つ
 - **静的ルートの注意**: build 時に取得され全ユーザで共有される静的 route は DAL(request 時検証)が効かないため、その保護は `proxy.ts`(optimistic)側で行う(Next.js ガイド注記)。
@@ -105,7 +105,7 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 
 | 呼び名 | 意味 |
 | --- | --- |
-| **所有画面** | このリポジトリが実装し、配信する画面。`/login` / `/onboarding` など |
+| **所有画面** | このリポジトリが実装し、配信する画面。`/login`・チャレンジ画面・ログイン成立後に続く画面など |
 | **借り物の画面** | IdP が実装し、IdP が配信する画面。サインイン・MFA・パスワード再設定など |
 
 本 ADR で **`面` は接続点(差し替え境界)の意味**で使い、画面の意味では使わない。同じ語を両方に
@@ -118,10 +118,10 @@ Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
 | `/login`・チャレンジ画面(所有画面) | **所有** | **持たない(中継のみ)** | 所有 |
 | federation の連携先(借り物) | 借り物 | 借り物 | **所有(供給する)** |
 | IdP の終了口(借り物) | — | 借り物 | **所有(供給する)** |
-| `/onboarding`(所有画面) | 所有 | — | 所有 |
+| ログイン成立後に続く画面(所有画面) | 所有 | — | 所有 |
 
 **主たる経路に借り物の画面は現れない。** `/login`(所有)→ 必要ならチャレンジ画面(所有)→
-`/onboarding`(所有)で、利用者は最後まで自分のドメインを離れない。借り物の画面が現れるのは
+ログイン成立後に続く画面(所有)で、利用者は最後まで自分のドメインを離れない。借り物の画面が現れるのは
 federation の連携先と IdP の終了口だけであり、そこには意匠を供給する(§6 / §5)。
 
 - **資格情報の入力面は所有する。** ID / パスワード / MFA コードの入力欄を所有画面へ置く。利用者から

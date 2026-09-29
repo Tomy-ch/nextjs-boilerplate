@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/account/__mocks__/**"
   - "src/features/account/account.fixture.ts"
@@ -75,7 +75,8 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | `actions.ts` | 登録・プロフィール更新・退会の Server Action。検証と分類だけを持ち、通信は `adapters` が行う |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え。押せる操作を成立させるためだけに置く |
 | `form-state.ts` | Server Action の戻り値の型。`ActionState<T>` を画面の項目名で閉じる |
-| `paths.ts` | この feature が持つ 3 つのルートと、登録を促す行き先の組み立て |
+| `paths.ts` | 登録のルートと、登録を促す行き先の組み立て |
+| `facade/paths/` | マイページとプロフィール編集のルート。購入手続きが指すので `facade/` に出す |
 | `registration-gate.ts` | 保護された画面の入口。認証と登録の状態を行き先へ変える |
 | `field-labels.ts` | 入力欄と確認に出す項目名。label と見出しの出所を 1 つにする |
 | `parse-profile-form.ts` | 送信された `FormData` を、登録と更新に渡せる形へ解く |

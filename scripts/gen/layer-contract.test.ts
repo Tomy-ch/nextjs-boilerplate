@@ -47,6 +47,15 @@ describe("readLayerContract", () => {
     expect(readLayerContract(readme)?.testRequirement).toBe("feature");
   });
 
+  it("並びで宣言した test-requirement を並びのまま読む", () => {
+    const readme = README.replace(
+      "test-requirement: feature",
+      "test-requirement: [feature, component, unit]",
+    );
+
+    expect(readLayerContract(readme)?.testRequirement).toEqual(["feature", "component", "unit"]);
+  });
+
   it("行末の但し書きに ] が現れても値だけを読む", () => {
     const readme = README.replace(
       "forbidden: [features, business-logic]",

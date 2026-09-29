@@ -14,7 +14,7 @@ import type {
   ProductListItem,
   ProductRankingEntry,
 } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId } from "@/model/product/product";
 import { useCartStore } from "@/stores/cart-store";
 import { SAMPLE_ITEM_URLS } from "~catalog/lib/sample-asset";
 import { CategoryLinks } from "./ui/category-links/category-links";
@@ -129,12 +129,12 @@ const RANKING: readonly ProductRankingEntry[] = [
 ];
 
 const CATEGORIES: readonly ProductCategory[] = [
-  { id: "c1", code: 10, name: "オーディオ" },
-  { id: "c2", code: 20, name: "ウェアラブル" },
-  { id: "c3", code: 30, name: "アクセサリ" },
-  { id: "c4", code: 40, name: "PC 周辺機器" },
-  { id: "c5", code: 50, name: "スマートホーム" },
-  { id: "c6", code: 60, name: "カメラ・映像機器" },
+  { id: toProductCategoryId("c1"), code: 10, name: "オーディオ" },
+  { id: toProductCategoryId("c2"), code: 20, name: "ウェアラブル" },
+  { id: toProductCategoryId("c3"), code: 30, name: "アクセサリ" },
+  { id: toProductCategoryId("c4"), code: 40, name: "PC 周辺機器" },
+  { id: toProductCategoryId("c5"), code: 50, name: "スマートホーム" },
+  { id: toProductCategoryId("c6"), code: 60, name: "カメラ・映像機器" },
 ];
 
 const meta = {

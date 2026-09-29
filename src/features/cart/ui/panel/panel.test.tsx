@@ -64,13 +64,13 @@ describe("CartPanel", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("閉じる操作で要求を下ろす", async () => {
+  it("閉じる操作で枠ごと閉じる", async () => {
     const user = userEvent.setup();
 
     render(<CartPanel cart={CART} />);
     await user.click(screen.getByRole("button", { name: "カートを閉じる" }));
 
-    expect(useCartStore.getState().isOpen).toBe(false);
+    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
   });
 
   it("脇に置けない幅では出さない", () => {

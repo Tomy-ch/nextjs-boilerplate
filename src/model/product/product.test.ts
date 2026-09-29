@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isDiscontinued, toProductId } from "./product";
+import { isDiscontinued, toProductCategoryId, toProductId, toProductStatusId } from "./product";
 
 const RAW_ID = "0195f0c2-0000-7000-8000-000000000001";
 
@@ -13,6 +13,22 @@ describe("toProductId", () => {
     const line = { productId: toProductId(RAW_ID) };
 
     expect(JSON.parse(JSON.stringify(line))).toEqual({ productId: RAW_ID });
+  });
+});
+
+describe("toProductCategoryId", () => {
+  it("受け取った文字列をそのまま分類の識別子として返す", () => {
+    expect(toProductCategoryId("01936f6d-0000-7000-8000-000000000001")).toBe(
+      "01936f6d-0000-7000-8000-000000000001",
+    );
+  });
+});
+
+describe("toProductStatusId", () => {
+  it("受け取った文字列をそのまま状態の識別子として返す", () => {
+    expect(toProductStatusId("01936f6d-0000-7000-8000-000000000101")).toBe(
+      "01936f6d-0000-7000-8000-000000000101",
+    );
   });
 });
 

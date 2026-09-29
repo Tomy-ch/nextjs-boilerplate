@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/checkout/__mocks__/**"
   - "src/features/checkout/checkout.fixture.ts"
@@ -85,7 +85,8 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 | `form-fields.ts` | 値の変更を承知した合図を載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
 | `checkout.fixture.ts` | story とテストが読む固定のカートと購入 |
-| `paths.ts` | 完了画面の場所と、そこへ載せる検索条件。あわせてこの画面から出る先 |
+| `paths.ts` | 完了画面の場所と、そこへ載せる検索条件 |
+| `facade/paths/` | 購入手続きの入口。カートが送る先に引く |
 | `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
 | `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |
@@ -113,7 +114,9 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 | `observability` | 描画を span に載せる |
 
 他 feature の `facade/` も引きます —— 購入の表示（`purchases`）と、明細に立った事情の言い方
-（`cart`）。借りている理由は「借りているもの」に書いてあります。
+（`cart`）。借りている理由は「借りているもの」に書いてあります。この画面から出る先（カート・
+届け先の編集・商品一覧・マイページ）も、所有者の `facade/`（`cart` / `account` / `products`）が
+出しているルートを引きます。
 
 ## Action 戻り値契約
 

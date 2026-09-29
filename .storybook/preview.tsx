@@ -7,6 +7,7 @@ import { resetAllMocks, sb } from "storybook/test";
 
 import { FONT_VARIABLES } from "@/app/fonts";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
+import { attributeValue, writeAttribute } from "./lib/global-attribute";
 import { StoryErrorBoundary } from "./lib/story-error-boundary";
 import { startMockWorker } from "./msw/worker";
 
@@ -21,6 +22,7 @@ sb.mock(import("../src/features/account/actions.ts"));
 sb.mock(import("../src/features/cart/actions.ts"));
 sb.mock(import("../src/features/cart/facade/add-to-cart/add-to-cart.ts"));
 sb.mock(import("../src/features/checkout/actions.ts"));
+sb.mock(import("../src/features/inquiry/actions.ts"));
 sb.mock(import("../src/features/purchases/actions.ts"));
 // sample:end
 
@@ -78,25 +80,18 @@ const preview: Preview = {
     surface: DEFAULT_SURFACE,
   },
   decorators: [
+    // 属性は Portal の出口を含む位置へ置く。story の木を包む要素には置かない（`tokens/README.md`）。
     (Story, context) => {
-      const theme = context.globals.theme;
-      // tokens.css と globals.css の dark variant は :root の data-theme を見る。
-      // 属性を外すと OS の設定に戻る。
-      if (theme === SYSTEM_THEME) {
-        document.documentElement.removeAttribute("data-theme");
-      } else {
-        document.documentElement.setAttribute("data-theme", String(theme));
-      }
-
-      return Story(context);
-    },
-    // 系統は `body` へ置く。story の木だけを包むと Portal の中身が属性の外へ落ちる
-    // （`tokens/README.md`）。既定の系統は `:root` に出るので、戻すときは属性を外す。
-    (Story, context) => {
-      const surface = String(context.globals.surface);
-
-      if (surface === DEFAULT_SURFACE) document.body.removeAttribute("data-surface");
-      else document.body.dataset.surface = surface;
+      writeAttribute(
+        document.documentElement,
+        "data-theme",
+        attributeValue(context.globals.theme, SYSTEM_THEME),
+      );
+      writeAttribute(
+        document.body,
+        "data-surface",
+        attributeValue(context.globals.surface, DEFAULT_SURFACE),
+      );
 
       return Story(context);
     },

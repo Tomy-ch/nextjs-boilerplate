@@ -60,14 +60,6 @@
       "$type": "color",
       "$value": "{color.slate.990}"
     },
-    "primary-light": {
-      "$type": "color",
-      "$value": "{color.cyan.205}"
-    },
-    "primary-highlight": {
-      "$type": "color",
-      "$value": "{color.slate.50}"
-    },
     "secondary": {
       "$type": "color",
       "$value": "{color.blue.600}"

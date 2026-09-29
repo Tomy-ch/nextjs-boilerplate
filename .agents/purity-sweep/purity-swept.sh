@@ -42,8 +42,9 @@ USAGE
 }
 
 # 絶対パスを保持する作業ツリー。REPO_ROOT 自身か、その worktree のどれか。worktree は
-# REPO_ROOT の配下ではなく隣に居るため、接頭辞の比較だけでは足りない。別のリポジトリに
-# 属するパス・どこにも属さないパスでは空を返し、そのパスは相対化されないまま残る。
+# REPO_ROOT の隣に居ることも、配下（`.claude/worktrees/<name>/`）に居ることもあるため、
+# 接頭辞の比較では決まらない。別のリポジトリに属するパス・どこにも属さないパスでは空を返し、
+# そのパスは相対化されないまま残る。
 checkout_root() {
   [ -n "${REPO_COMMON}" ] || return 0
 
@@ -61,15 +62,18 @@ checkout_root() {
 }
 
 # リポジトリ相対へ揃える。フックから来る絶対パスと、シェルから来る相対パスが、どちらの
-# 作業ツリーに在っても同じエントリへ届く。リポジトリの外のパスはそのまま残し、単に台帳を
-# 外す。
+# 作業ツリーに在っても同じエントリへ届く。絶対パスは REPO_ROOT の接頭辞より先に、それを
+# 保持する作業ツリーで切る —— 配下の worktree のファイルを REPO_ROOT で切ると
+# `.claude/worktrees/<name>/` が鍵に残り、記帳済みのファイルが未通過と答える。
+# リポジトリの外のパスはそのまま残し、単に台帳を外す。
 to_relative() {
   case "$1" in
-    "${REPO_ROOT}/"*) printf '%s' "${1#"${REPO_ROOT}"/}" ;;
     /*)
       root=$(checkout_root "$1")
       if [ -n "${root}" ] && [ "$1" != "${1#"${root}"/}" ]; then
         printf '%s' "${1#"${root}"/}"
+      elif [ "$1" != "${1#"${REPO_ROOT}"/}" ]; then
+        printf '%s' "${1#"${REPO_ROOT}"/}"
       else
         printf '%s' "$1"
       fi

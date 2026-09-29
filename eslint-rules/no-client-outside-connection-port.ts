@@ -4,6 +4,7 @@ import type { Rule } from "eslint";
 
 import { CONNECTION_PORTS, HTTP_CLIENT_FACTORY } from "../architecture";
 import { resolveModule } from "./module-resolution";
+import { isTest } from "./test-file";
 
 /**
  * 外部 API を叩く client を、接続口の外で組ませないルール（`docs/rules.md`「取得と契約」の
@@ -26,16 +27,6 @@ import { resolveModule } from "./module-resolution";
 
 /** 外部 API を叩く client を組む関数の名前。 */
 const FACTORY_NAME = "createHttpClient";
-
-/**
- * テストか。
- *
- * @param filename - lint 対象のファイル
- * @returns テストなら true
- */
-function isTest(filename: string): boolean {
-  return /\.test\.[cm]?[jt]sx?$/.test(filename);
-}
 
 /**
  * 綴りが組み立ての kernel を指しているか。

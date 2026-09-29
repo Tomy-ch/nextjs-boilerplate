@@ -26,6 +26,8 @@ export async function CartHeaderSlot() {
  * @remarks
  * 取得を閉じる理由は {@link CartHeaderSlot} と同じです。header の入口と同じ要求を読むため、
  * 2 つの穴が並んでも取得は 1 回です（`getMyCart` は `cache()` で畳まれます）。
+ *
+ * カタログに置けない理由も同じです。中身の `CartPanel` が story を持ちます。
  */
 export async function CartPanelSlot() {
   const cart = await readShellCart();

@@ -43,9 +43,11 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // `.claude/settings.json` のフック定義は JSON なので同じ手が使えないが、スクリプトの不在を
   // 確かめてから呼ぶ形にしてあり、残っても何もしない。
   ".agents/purity-sweep",
-  // この状態を生んだ計画であって、状態そのものではない。[README](../../README.md)
-  // は v1.0.0 で削除すると決めており、それより前に複製された木へ渡す理由も無い。
+  // この状態を生んだ計画であって、状態そのものではない。v1.0.0 で破棄する進捗の文書で、
+  // 複製された木へ渡す理由が無い。
   "docs/plan",
+  // `docs/plan` と同じ工程の未決の待ち行列で、消す理由も同じ。
+  "docs/adr/BACKLOG.md",
 ];
 
 /**

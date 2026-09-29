@@ -9,7 +9,7 @@ import { axe } from "vitest-axe";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState } from "../form-state";
@@ -69,8 +69,8 @@ const PRODUCT: Product = {
   price: "19.99",
   quantity: 12,
   stockWarningThreshold: 3,
-  status: { id: "status-1", name: "在庫あり" },
-  category: { id: "category-1", name: "電子機器" },
+  status: { id: toProductStatusId("status-1"), name: "在庫あり" },
+  category: { id: toProductCategoryId("category-1"), name: "電子機器" },
   publishedAt: new Date("2026-08-07T09:00:00.000Z"),
   discontinuedAt: null,
   imagePaths: ["products/saved.png"],

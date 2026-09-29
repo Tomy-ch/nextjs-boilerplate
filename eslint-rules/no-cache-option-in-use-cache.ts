@@ -1,6 +1,7 @@
 import type { Rule } from "eslint";
 
 import { isServerCacheDirective } from "./cache-directive";
+import { spelledProperty } from "./property-key";
 
 /**
  * `use cache` の内側の取得に、個別のキャッシュ指定を置かせないルール。
@@ -20,22 +21,17 @@ const CONFLICTING_OPTIONS: readonly string[] = ["cache", "next"];
 /**
  * そのプロパティが、外側の寿命と競合する指定か。
  *
- * 鍵は綴りのまま突き合わせる。種別で分岐すると、素の名前と引用符つきの名前で同じ判定を 2 度
- * 書くことになる。添字で組んだ鍵は、名前がここでは決まらないので見ない。
+ * @param property - `fetch` の第 2 引数に書いたプロパティ
+ * @returns 競合する指定の名前。競合しない、または鍵の綴りがここでは決まらないなら `undefined`
  */
-function conflictingOption(
-  property: Rule.Node,
-  spell: (node: Rule.Node) => string,
-): string | undefined {
-  if (property.type !== "Property" || property.computed) {
+function conflictingOption(property: Rule.Node): string | undefined {
+  if (property.type !== "Property") {
     return undefined;
   }
 
-  const key = spell(property.key as Rule.Node);
+  const key = spelledProperty(property.key, property.computed);
 
-  return CONFLICTING_OPTIONS.find(
-    (option) => key === option || key === `"${option}"` || key === `'${option}'`,
-  );
+  return CONFLICTING_OPTIONS.find((option) => key === option);
 }
 
 const noCacheOptionInUseCache: Rule.RuleModule = {
@@ -76,9 +72,7 @@ const noCacheOptionInUseCache: Rule.RuleModule = {
         }
 
         for (const property of init.properties) {
-          const option = conflictingOption(property as Rule.Node, (target) =>
-            context.sourceCode.getText(target),
-          );
+          const option = conflictingOption(property as Rule.Node);
 
           if (option !== undefined) {
             options.push({ node: property as Rule.Node, option });

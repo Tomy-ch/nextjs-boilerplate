@@ -98,28 +98,28 @@ flowchart TD
 ### 工程 4（分離）で読むもの
 
 **基準はここに無い。**書き写した時点で古い版が二重に残るので、この表が持つのは**どこを開くか**
-だけである。分離に着手する前に、該当する行の節を実際に開いて当てる。
+だけである。右の列は、その ADR のどの中身を当てるかを要旨で示す —— 分離に着手する前に、ADR を実際に開いてその中身へ当てる。
 
-| 何を決めるか | 参照先 |
+| 何を決めるか | 参照先と、そこから持ってくるもの |
 | --- | --- |
-| **分ける / 分けないの判定（主）** | [0021](adr/0021-frontend-responsibility.md) § feature 内で部品を分ける基準 |
-| 別名で立て直さない | [0021](adr/0021-frontend-responsibility.md) § 別名で立て直さない考え方 |
-| **粒度で切る分類を採らない** | [0020](adr/0020-adopted-architecture.md) § 採用しないパターン |
-| 採らない分割モデル | [0040](adr/0040-routing-rendering-strategy.md) § 採らない分割モデル |
-| server（取得・編成）/ client（相互作用）の線 | [0040](adr/0040-routing-rendering-strategy.md) § `"use client"` は feature 内の葉へ押し下げる |
-| 待つ単位・失敗の単位 | [0040](adr/0040-routing-rendering-strategy.md) § 境界の粒度 / [0080](adr/0080-error-handling.md) § 境界の粒度 |
-| **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) 重さを持ち込まない書き方 |
-| 部品が持つ状態と、外から渡すもの | [0053](adr/0053-ui-component-interaction-seam.md) § 部品が持つ状態と、外から渡すもの |
-| 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) つの操作に 1 つの role |
-| 一度に見せる量 / 構造の差し替え | [0053](adr/0053-ui-component-interaction-seam.md) § 一度に見せる量は段階で絞る・§ 構造の差し替えは props ではなく slot で受ける |
-| variant の使いどころ / headless に分ける条件 | [0052](adr/0052-ui-component-policy.md) § variant は排他の見た目にだけ使う・§ 振る舞いと見た目を分けるのは、振る舞いが 2 箇所目で要るときだけ |
-| 状態をどこまで上げるか | [0060](adr/0060-state-management.md) § 状態をどこまで上げるか |
-| 状態遷移を書く手段の使い分け | [0060](adr/0060-state-management.md) § 状態遷移を書く手段は 4 つあり、目的で使い分ける |
-| 型で表すもの / 表さないもの | [0029](adr/0029-type-design-discipline.md) 状態は判別可能 union で表す・型は `satisfies` で確かめ、注釈で潰さない |
-| 帯で分けるか、器の幅で分けるか | [0051](adr/0051-styling-system.md) § 幅で決めるものと、器で決めるもの |
-| 物理配置 | [0027](adr/0027-directory-structure.md) § co-location 方針 |
-| 共有モジュールの粒度 | [0027](adr/0027-directory-structure.md) § 共有モジュールの粒度 |
-| **やってはいけない分け方** | [0090](adr/0090-testing-strategy.md) § 禁止事項 |
+| **分ける / 分けないの判定（主）** | [0021](adr/0021-frontend-responsibility.md) —— feature の内側で分けるのは、変わる理由が 2 つある・技術的に境界が強制される・状態の寿命と持ち主が違う・2 つ目の参照が実際に出た・React を外して検証できる、のどれかに当たるときだけ |
+| 別名で立て直さない | [0021](adr/0021-frontend-responsibility.md) —— SSOT / YAGNI / SOLID のような標語を規則として別立てせず、既に規定している側へ戻る |
+| **粒度で切る分類を採らない** | [0020](adr/0020-adopted-architecture.md) —— Atomic Design のように粒度で UI を分類しない。粒度は責務を表さない |
+| 採らない分割モデル | [0040](adr/0040-routing-rendering-strategy.md) —— Islands / render-as-you-fetch を別の語彙として持ち込まず、RSC の分割へ戻る |
+| server（取得・編成）/ client（相互作用）の線 | [0040](adr/0040-routing-rendering-strategy.md) —— `"use client"` はクライアント機能を実際に使う葉にだけ付け、`page.tsx` / `layout.tsx` は Server Component のまま保つ |
+| 待つ単位・失敗の単位 | [0040](adr/0040-routing-rendering-strategy.md) —— `Suspense` の境界は待つものの単位で置き、外枠が既に await したものを待たない / [0080](adr/0080-error-handling.md) —— `error.tsx` は失われて困る範囲の外側に置き、部分的な失敗は境界ではなく表示で受ける |
+| **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) —— 値を 1 つ取るためにスキーマ一式を引き込まない（綴りと数だけの module を分ける）、初期表示に要らない重い部品は `next/dynamic` で外す |
+| 部品が持つ状態と、外から渡すもの | [0053](adr/0053-ui-component-interaction-seam.md) —— 見た目と操作の連続性のためだけの状態は部品が持ち、データ・可否・押した結果は外から渡す |
+| 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) —— 1 つの要素が 2 つの操作を兼ねるなら 2 つの部品にする。粒度は role で決まる |
+| 一度に見せる量 / 構造の差し替え | [0053](adr/0053-ui-component-interaction-seam.md) —— その場の判断に要るものだけを出して残りは次の段へ送る。組み替えは props の分岐でなく `children` / `asChild` で開け、compound は子が単独で意味を持たないときだけ |
+| variant の使いどころ / headless に分ける条件 | [0052](adr/0052-ui-component-policy.md) —— variant は同時に成り立たない見た目にだけ使う。振る舞いを hook / headless へ出すのは、別の見た目で同じ振る舞いが実際に要るときだけ |
+| 状態をどこまで上げるか | [0060](adr/0060-state-management.md) —— 状態は必要な最小の共通祖先に置き、上げる・下げる理由は寿命で決める（再描画の推測では決めない） |
+| 状態遷移を書く手段の使い分け | [0060](adr/0060-state-management.md) —— `useState` / `useReducer`・判別可能 union・Zustand・XState を目的で割り当て、同じ目的に複数の手段を許さない |
+| 型で表すもの / 表さないもの | [0029](adr/0029-type-design-discipline.md) —— 同時に立ち得ない状態は真偽値の組でなく判別可能 union で表す。値の型は注釈で広げず `satisfies` で確かめる |
+| 帯で分けるか、器の幅で分けるか | [0051](adr/0051-styling-system.md) —— 画面の骨格は帯（viewport）で、部品の中身は器の幅（container query）で分ける |
+| 物理配置 | [0027](adr/0027-directory-structure.md) —— カーネルはフラット共置、`features/<name>/` は画面と性質の 2 軸だけで掘る |
+| 共有モジュールの粒度 | [0027](adr/0027-directory-structure.md) —— 判定を持つ module は per-file、UI 部品は per-folder。feature を跨ぐ共有は昇格で受け、汎用フォルダを作らない |
+| **やってはいけない分け方** | [0090](adr/0090-testing-strategy.md) —— テストは実装の隣に 1 対 1 で置き、1 つの export に最上位 `describe` を 1 つだけ対応させる。分けた単位がそのままテストの単位になる |
 
 **棄却側（0020 の採用しないパターン / 0040 の採らない分割モデル）を必ず含める。**同じ発想を
 思いつくたびに一から議論し直さないためである。

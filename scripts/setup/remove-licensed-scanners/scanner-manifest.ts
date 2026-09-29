@@ -69,7 +69,7 @@ const DOCS: readonly string[] = [
   "docs/adr/0110-security-operations.md",
   "docs/adr/0153-ci-configuration.md",
   "docs/adr/README.md",
-  "docs/adr/BACKLOG.md",
+  "docs/adr/BACKLOG.md", // boilerplate-only:line
   "docs/get-started/setup-repository.md",
 ];
 
@@ -281,6 +281,8 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
         fragment: "Security グループ(CodeQL / Trivy",
         replacement: "Security グループ(Opengrep / Trivy",
       },
+      // boilerplate-only:begin
+      // 剥がし（`scripts/setup/remove-boilerplate-only/`）が BACKLOG ごと消すので、宣言も一緒に消える。
       {
         file: "docs/adr/BACKLOG.md",
         fragment: "Trivy 二段・CodeQL js-ts /",
@@ -291,6 +293,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
         fragment: "CI 側は `codeql` / `gitleaks`",
         replacement: "CI 側は `gitleaks`",
       },
+      // boilerplate-only:end
     ],
     docSections: [],
     docMentions: DOCS,

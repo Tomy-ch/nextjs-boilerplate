@@ -322,10 +322,11 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
   欠損である。
 - **`grep` と `read` は包まない。** `rtk grep` は小さい対象では素通しだが、**大きい対象では黙って打ち切る**。
   `read` は既定より上のすべての level で行を落とす。どちらも**欠けているのに完全に見える出力**を作る。
-- **ゲート・テスト・lint の結果をこれ越しに報告しない。** `rtk log` と `rtk read -l` はその理由で `deny`
-  に在る。この種の規則が住むべき場所がそこである（[0144](docs/adr/0144-decision-enforcement-pairing.md)）。
-- 任意の内側コマンドを実行する形（`run` / `summary` / `smart`）も `deny` である。内側のコマンド粒度で
-  書かれた allow を迂回するためである。
+- **ゲート・テスト・lint の結果をこれ越しに報告しない。** `rtk log` と `rtk read`（`-l` に限らず全 level）は
+  その理由で `deny` に在る。この種の規則が住むべき場所がそこである（[0144](docs/adr/0144-decision-enforcement-pairing.md)）。
+- 任意の内側コマンドを実行する形（`run` / `summary` / `smart`）は `allow` に無く、hook の `scripts/command-guard` が
+  包みを剥がして内側のコマンドで判定する。allow は内側のコマンド粒度で書かれており、包みを通すと
+  それを迂回できるためである。
 
 **`graphify`** はこのリポジトリをローカルで AST 解析した知識グラフである（`/graphify`）。
 

@@ -9,7 +9,6 @@ import {
 import { useStream } from "@/adapters/client/stream/use-stream";
 import { useOnlineStatus } from "@/capabilities/use-online-status";
 import { ConnectionStatus } from "@/components/app-starter/connection-status/connection-status";
-import { withPartSpan } from "@/observability/render-span";
 
 import { toFeedConnectionStatus } from "../../../connection-status";
 
@@ -26,24 +25,21 @@ import { toFeedConnectionStatus } from "../../../connection-status";
  * 見えているのは 1 回ぶん古い一覧です。取り直しを求められたときに再開の位置を返さないのも
  * 同じ理由で、購読はそれを見込んで自分で張り直します。
  */
-export const AdminInquiryFeedWatch = withPartSpan(
-  "features/admin/inquiries/list/ui/feed-watch/feed-watch",
-  () => {
-    const router = useRouter();
-    const online = useOnlineStatus();
+export function AdminInquiryFeedWatch() {
+  const router = useRouter();
+  const online = useOnlineStatus();
 
-    const { state } = useStream({
-      ticketPath: INQUIRY_FEED_STREAM_TICKET_PATH,
-      initialCursor: null,
-      schema: inquiryFeedEventSchema,
-      onEvents: () => {
-        router.refresh();
-      },
-      onResync: () => {
-        router.refresh();
-      },
-    });
+  const { state } = useStream({
+    ticketPath: INQUIRY_FEED_STREAM_TICKET_PATH,
+    initialCursor: null,
+    schema: inquiryFeedEventSchema,
+    onEvents: () => {
+      router.refresh();
+    },
+    onResync: () => {
+      router.refresh();
+    },
+  });
 
-    return <ConnectionStatus status={toFeedConnectionStatus(state, online)} />;
-  },
-);
+  return <ConnectionStatus status={toFeedConnectionStatus(state, online)} />;
+}

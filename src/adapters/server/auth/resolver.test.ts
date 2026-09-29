@@ -30,9 +30,9 @@ vi.mock("@/config/auth/auth.server", () => ({ getAuthConfig }));
 // ここは呼んだかどうかだけを見る。
 vi.mock("../taint/taint", () => ({ taintUniqueValue }));
 vi.mock("@/config/http/http.server", () => ({ getHttpConfig: () => ({ maxUrlBytes: 8_000 }) }));
-// 環境の判定だけを差し替える。この module は ENV の読み込みそのものも持っており、丸ごと
-// 置き換えると、設定を読む側（`api.server.ts` など）が起動できない。
-vi.mock(import("@/config/load-environment"), async (importOriginal) => ({
+// 環境の判定だけを差し替える。この module は `APP_ENV` の解決も持っており、丸ごと置き換えると、
+// 設定を読む側（`environment.ts`）が起動できない。
+vi.mock(import("@/config/application-environment"), async (importOriginal) => ({
   ...(await importOriginal()),
   isDevelopmentOnlyEndpointOpen,
 }));

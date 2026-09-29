@@ -5,12 +5,13 @@ import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { ProductCategory } from "@/model/product/product";
+import { toProductCategoryId } from "@/model/product/product";
 
 import { CategoryLinks } from "./category-links";
 
 const CATEGORIES: readonly ProductCategory[] = [
-  { id: "10", code: 10, name: "オーディオ" },
-  { id: "20", code: 20, name: "ウェアラブル" },
+  { id: toProductCategoryId("10"), code: 10, name: "オーディオ" },
+  { id: toProductCategoryId("20"), code: 20, name: "ウェアラブル" },
 ];
 
 describe("CategoryLinks", () => {

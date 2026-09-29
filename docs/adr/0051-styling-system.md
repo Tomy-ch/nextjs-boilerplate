@@ -18,8 +18,9 @@ Accepted
 
 ### 1. デザイントークン体系 = 2 層(primitive / semantic)
 
-- token を **2 層**に分ける。この分離は [W3C Design Tokens](https://www.w3.org/community/design-tokens/) が標準化を進める業界パターンであり、CSS custom properties だけで成立する(**Tailwind を抜いても成立する** = 0010 §2 非ロックインの正当性材料)。
-  - **primitive(生スケール)**: 意味を持たない生の値。色パレット(`--color-*` の raw ramp)・`--spacing-*`・`--text-*`(font-size / line-height)・`--font-weight-*`・`--radius-*`・`--shadow-*`。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
+- token を **2 層**に分ける。この分離は [W3C Design Tokens](https://www.w3.org/community/design-tokens/) が標準化を進める業界パターンであり、CSS custom properties だけで成立する(**Tailwind を抜いても成立する** = [0010](0010-standards-and-non-lockin.md) の「ベンダーを正当化から抜いても成立するか」に対する非ロックインの正当性材料)。
+  - **primitive(生スケール)**: 意味を持たない生の値。**どの系統を primitive として持つかの一覧は `tokens/primitives.json` が持ち**、本 ADR は写さない。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
+  - **Tailwind の既定スケールをそのまま使う系統は SSOT の primitive ではない。** font-size / line-height(`--text-*`)と影の段階(`--shadow-sm` 等の `--shadow-*`)は Tailwind v4 の既定値であり、`tokens/*.json` は持たない。名前で意味を持つ影(パネルの影・発光)は semantic 層の token として `tokens/themes/**` が持ち、`@theme` の `--shadow-*` に別名として登録される。
   - **semantic(意味別名)**: 用途を名指しした別名。接頭辞は `--semantic-color-*`(`background` / `foreground` / `muted` / `border` / `accent` 等)とし、primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。接頭辞を分けるのは、生成した CSS に対する検出で primitive 直参照と semantic 参照を機械的に見分けるためである。
 - **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
 - **token の SSOT は `tokens/*.json`**([W3C Design Tokens](https://www.w3.org/community/design-tokens/) 形式・手書き)であり、デザインツールからの生成物ではない。`tokens/scripts/gen-tokens.ts` が primitive の `@theme` 登録と semantic 別名を含む CSS を生成し、`src/app/globals.css` がそれを import する。**生成物は編集しない**([0072](0072-api-type-generation.md) の生成物規律と同型)。CSS を直接書き換えると SSOT が二重化するため、token の追加・変更は必ず `tokens/*.json` に対して行う。
@@ -36,21 +37,21 @@ Accepted
 ### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
 
 - **Tailwind v4 の既定ブレークポイント**(`sm` / `md` / `lg` / `xl` / `2xl`)を追認する。**境界の値は design token が持ち、本 ADR は持たない** —— SSOT は `tokens/primitives.json` の `breakpoint` であり、そこから `@theme` の `--breakpoint-*` と `BREAKPOINT`(`src/model/generated/breakpoint.ts`)が生成される(§1 の生成物規律)。カスタムスケールへ差し替える場合も token に対して行う(値の選択は用途依存)。
-- **mobile-first(min-width 基準)を明文化**する。これは Tailwind の既定挙動であると同時に CSS の一般作法であり、Tailwind 固有ではない(0010 §2)。無印がモバイル、`md:` 等で上書き加算していく。
+- **mobile-first(min-width 基準)を明文化**する。これは Tailwind の既定挙動であると同時に CSS の一般作法であり、Tailwind 固有ではない(ベンダーを抜いても成立する。[0010](0010-standards-and-non-lockin.md))。無印がモバイル、`md:` 等で上書き加算していく。
 - **段の呼び名を 3 つに固定する**: `md` 未満をモバイル、`md` 以上 `lg` 未満をタブレット、`lg` 以上を PC とする。境界は上の既定をそのまま使い、ここでは既定のどこに段の名前を割り当てるかだけを決める。
   - **`md` ではなく `lg` を PC の下限に置く**根拠は、タブレットの縦持ち幅が `md` 以上 `lg` 未満の帯に集中することと、Storybook の既定 viewport が tablet をその帯に置いていることの 2 点。`md` を PC の下限にすると、その帯の実機が「脇に領域を持てる幅」として扱われる。
   - **`lg` 未満は、本文の脇に幅を割けない帯である。** 幅を占める領域をこの帯から出すと、本文に残る幅がモバイルとほとんど変わらなくなり、本文側が先に破綻する。脇に常設できる帯とそうでない帯を分ける根拠はここにあり、そこから導かれる出し分け(常設か overlay か / 通常配置か下端固定か)は行動規約として [`docs/rules.md`](../rules.md) が持つ。
-- **コンテナクエリ(`@container`)を採用**する。これは Tailwind v4 のコア機能(プラグイン不要)であり、実体は **CSS 標準の `@container` / `container-type`**(Tailwind を抜いても成立 = 0010 §2)。
+- **コンテナクエリ(`@container`)を採用**する。これは Tailwind v4 のコア機能(プラグイン不要)であり、実体は **CSS 標準の `@container` / `container-type`**(Tailwind を抜いても成立 = [0010](0010-standards-and-non-lockin.md) の非ロックイン)。
   - **使い分け**: ページ骨格・レイアウトシェル([0026](0026-layout-shell-mount.md))は **viewport ブレークポイント**、feature スライス内の再利用コンポーネントは **コンテナクエリ既定**。理由 = 機能スライスのコンポーネントは再利用文脈で割り当て幅が変わるため、viewport より「自分が置かれた器の幅」で分岐する方が局所推論に合う([0020](0020-adopted-architecture.md) の局所性原則)。
 
 ### 3. モーション = CSS / View Transitions 既定 + 複雑モーションに Framer Motion + reduced-motion 尊重
 
-- **既定手段(不変)**: モーションの既定手段は **CSS transition / animation** と **View Transitions API**(ブラウザ標準 / Next.js は experimental フラグ〈`experimental.viewTransition`〉+ React 実験的 API で対応)とする。いずれもブラウザ標準機構であり、特定ライブラリに縛られない(0010 §2)。単純な hover / focus / enter・状態遷移・ページ遷移アニメーションはまずこの標準手段で書く。
+- **既定手段(不変)**: モーションの既定手段は **CSS transition / animation** と **View Transitions API**(ブラウザ標準 / Next.js は experimental フラグ〈`experimental.viewTransition`〉+ React 実験的 API で対応)とする。いずれもブラウザ標準機構であり、特定ライブラリに縛られない([0010](0010-standards-and-non-lockin.md) の非ロックイン)。単純な hover / focus / enter・状態遷移・ページ遷移アニメーションはまずこの標準手段で書く。
 - **既定手段の上に animation plugin(ユーティリティ生成の `tw-animate-css` 等)を足さない。** 標準手段で足りる範囲に plugin を重ねると、同じ動きの語彙が 2 系統になる。その帰結として、**待機を動きで伝える手段を体系に持たない** —— 進捗が判らない待機(indeterminate)は進捗部品では表現せず、骨格表示(`Skeleton` / `Shimmer`)が担い、進捗部品は値の判っている進捗だけを引き受ける。
 - **複雑モーションに Framer Motion(`motion` パッケージ)を採用**: 標準の CSS / View Transitions では表現が破綻する複雑ケース —— **exit アニメーション(`AnimatePresence`)/ layout アニメーション(FLIP)/ ジェスチャ(drag・pan)/ 複数要素のオーケストレーション(stagger)/ 物理ベース(spring)** —— に限り、Framer Motion(現行パッケージ名 `motion`)を用いる。
-  - **0010 §1(標準・デファクトへの準拠)**: Framer Motion は React エコシステムにおける宣言的モーションのデファクトであり、命名優先順位(React 規約 > 業界スタンダード)に沿う選択である。
-  - **0010 §2(vendor-independent 正当性材料)**: 採用根拠は「Framer が推奨するから」ではない。上記の複雑ケース(特に **exit アニメーション** = 要素がアンマウントされる前の退場遷移)は **CSS / View Transitions だけでは構造的に表現できない**(React のアンマウント制御と DOM 生存期間の噛み合わせが必要)。この「標準では届かない具体的欠落を、宣言的 API で埋める」という根拠は Framer という固有ベンダーを抜いても成立する(同種の代替 = React Spring / GSAP / Motion One 等の中から、宣言的・React 統合・a11y 配慮という独立根拠で Framer を 1 要因として選択した)。既定を標準手段に置き Framer を複雑ケースに限定する境界そのものが、非ロックインの運用テスト(「Framer を抜いても既定モーションは成立するか」= Yes)を満たす。
-  - **置き場 = `components`**: Framer Motion(`motion.*` コンポーネント / `AnimatePresence` / `useAnimate` 等)への **vendor 直参照は `components` 層に閉じる**。feature スライス側に `motion` を直接撒かず、モーション付き UI は再利用可能なコンポーネントとして `components` にラップして提供する(0010 §2「adapters / カーネル境界の裏に置き差し替え可能に保つ」の具体化 = vendor 差し替え時の影響面を `components` に局所化)。
+  - **標準・デファクトへの準拠([0010](0010-standards-and-non-lockin.md))**: Framer Motion は React エコシステムにおける宣言的モーションのデファクトであり、命名優先順位(React 規約 > 業界スタンダード)に沿う選択である。
+  - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: 採用根拠は「Framer が推奨するから」ではない。上記の複雑ケース(特に **exit アニメーション** = 要素がアンマウントされる前の退場遷移)は **CSS / View Transitions だけでは構造的に表現できない**(React のアンマウント制御と DOM 生存期間の噛み合わせが必要)。この「標準では届かない具体的欠落を、宣言的 API で埋める」という根拠は Framer という固有ベンダーを抜いても成立する(同種の代替 = React Spring / GSAP / Motion One 等の中から、宣言的・React 統合・a11y 配慮という独立根拠で Framer を 1 要因として選択した)。既定を標準手段に置き Framer を複雑ケースに限定する境界そのものが、非ロックインの運用テスト(「Framer を抜いても既定モーションは成立するか」= Yes)を満たす。
+  - **置き場 = `components`**: Framer Motion(`motion.*` コンポーネント / `AnimatePresence` / `useAnimate` 等)への **vendor 直参照は `components` 層に閉じる**。feature スライス側に `motion` を直接撒かず、モーション付き UI は再利用可能なコンポーネントとして `components` にラップして提供する(vendor を差し替え可能な境界の裏に置くという [0010](0010-standards-and-non-lockin.md) の非ロックインの具体化 = vendor 差し替え時の影響面を `components` に局所化)。
   - **依存管理**: `motion` は core dep として **exact-pin**(`pnpm add -E`)し、追加時に **`pnpm audit`** を実施する([0004](0004-library-management.md))。major 更新は別 PR で扱う。
   - **使う時点で依存へ追加する**([0053](0053-ui-component-interaction-seam.md) の「実装を伴う形でのみコードに置く」と同型)。既定手段で足りている間に先回りで入れると、使われないまま major 更新の追随コストだけが残る。
 - **`prefers-reduced-motion` の尊重を必須**とする(Tailwind の `motion-reduce:` / `motion-safe:` variant、`@media (prefers-reduced-motion)`、または Framer Motion の `useReducedMotion` フックで実装)。reduced-motion の尊重は WCAG SC 2.3.3 Animation from Interactions(**Level AAA**)に対応する。AA には該当を直接義務付ける SC はないが、本プロジェクトはユーザ体験配慮として `prefers-reduced-motion` を尊重する。**この強制の根拠水準(AAA)は本 ADR で明記**し、本 ADR は「モーション実装時に reduced-motion 分岐を欠かさない」という体系側の帰結を持つ。Framer Motion を用いる場合も reduced-motion 尊重は同じく必須(退場・layout・spring も低減対象)。
@@ -137,7 +138,7 @@ z-index は Tailwind の段階値だけを使い、任意値で段を増やさ�
 | 帯 | 値 | 何が乗るか |
 | --- | --- | --- |
 | **本文の中の重なり** | `z-10` | 本文の流れの中で貼り付くもの。内容の中の sticky な header / footer、表の固定列、scroll 領域の下端に貼り付ける操作(`sticky`) |
-| **画面が自分で貼る帯** | `z-30` | 1 つの画面が骨格の内側に置く貼り付き。header の直下へ貼る検索の帯、下端から出し入れする集計の器 |
+| **画面が自分で貼る帯** | `z-30` | 1 つの画面が骨格の内側に置く貼り付き。header の直下へ貼る補助の帯(絞り込み等)、下端から出し入れする要約の器 |
 | **画面の骨格** | `z-40` | shell の header と、viewport の下端に固定する操作(`fixed`) |
 | **overlay** | `z-50` | `document.body` へ出るものすべて。dialog / sheet / menu / popover / tooltip、toast の領域、同意を尋ねる面、focus で現れる skip link、引き下げ更新の表示 |
 

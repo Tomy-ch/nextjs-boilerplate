@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/admin/analytics/analytics.fixture.ts"
   - "src/features/admin/products/products.fixture.ts"
@@ -115,7 +115,6 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
 | `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md) #76） |
 | `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
-| `count.ts` | 件数の locale 対応整形。2 つ目の feature が要る段で `model` へ上げる |
 | `summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
 | `analytics/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |
 | `dashboard/page-content.tsx` | 入口（今日）の取得と組み立て |
@@ -202,7 +201,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 **`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /
 `*-section.tsx` が対象で、部品が揃って初めて成立する振る舞いを負います。**`ui/` の単一部品は
 `component` の形**——その部品 1 つの描画契約と、必須の a11y 自動検査——で、
-**画面を跨ぐ純関数（`count.ts` / `summary-cards.ts` / `paths.ts` /
+**画面を跨ぐ純関数（`summary-cards.ts` / `paths.ts` /
 `analytics/period.ts` など）は `unit` の形**——描画を持たず、戻り値と分岐を直接照合する——で
 確かめます。合成を持たないものへ合成のテストを課しても、確かめる相手が無いためです。
 
@@ -211,13 +210,14 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | カーネル | 用途 |
 | --- | --- |
 | `adapters` | 集計・商品・購入・利用者の取得と、画像 URL の解決 |
-| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard`）、ページ送り、期間、`ActionState` |
+| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard`）、ページ送り、期間、数の整形、`ActionState` |
 | `components` | 面を組む器（表・ページ送り・ファイル送信・離脱の警告・入力の要約） |
 | `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
 | `observability` | 描画を span に載せる |
 
-**他 feature の `facade/` を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
-という冒頭の線引きがそのまま依存にも出ています。
+**他 feature の `facade/` から部品を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
+という冒頭の線引きがそのまま依存にも出ています。引くのはルートの識別子だけで、商品 1 件を眺める
+利用者向けの画面は `products` の `facade/detail-url/` から取ります（`paths.ts` の `productDetailPath`）。
 
 ## Action 戻り値契約
 

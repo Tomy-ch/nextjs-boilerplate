@@ -74,9 +74,12 @@ for (const story of stories) {
       await settle(page, testInfo.project.name);
     }
 
-    // 描画中に投げた例外は、画像が撮れてしまうぶん差分に出ないことがある。壊れた story を
+    // ページへ漏れた例外は、画像が撮れてしまうぶん差分に出ないことがある。壊れた story を
     // 「見た目が変わっていない」で通さないため、画像より先に見る。
     expect(crashes.map((crash) => crash.message)).toEqual([]);
+    // 描画中の例外は story の境界が受け止め、`pageerror` へ届かない。境界の画面を撮れば、それが
+    // 基準画像として承認されうる。
+    expect(await page.locator("[data-story-error]").allTextContents()).toEqual([]);
 
     // 配列で渡す。1 本の文字列にすると Playwright が `/` をファイル名として無害化するので、
     // 系統ごとに分かれず 1 階層へ平置きされる。

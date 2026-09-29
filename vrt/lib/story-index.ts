@@ -114,7 +114,7 @@ export function storyGroup(title: string): string {
  * `@storybook/addon-a11y` は story を描くたびに axe を走らせます。撮影も a11y の検査も同じ
  * 面を開くので、**1 story につき axe が 2 回走る**ことになります。撮影にとっては丸ごと無駄で、
  * 検査にとっては自分の実行と衝突する相手です（axe は同時実行を拒み `Axe is already running`
- * で落ちる。`a11y.spec.ts` が再試行を持つのはこのため）。
+ * で落ちる）。
  *
  * 止め方に `globals` を選ぶのは、**この実行にだけ効く**からです。`.storybook/preview.tsx` の
  * parameter で止めると Storybook を開く人からも検査が消えます。

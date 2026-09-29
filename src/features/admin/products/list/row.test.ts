@@ -2,15 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import { BADGE_VARIANT } from "@/components/design-system/display/badge/badge.definition";
 import type { Product, ProductStatus } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { toAdminProductRows } from "./row";
 
-const STATUS_ID = "6b0f2f3e-0000-4000-8000-000000000001";
+const STATUS_ID = toProductStatusId("6b0f2f3e-0000-4000-8000-000000000001");
 
 const STATUSES = [
   { id: STATUS_ID, name: "在庫切れ", code: 2 },
-  { id: "6b0f2f3e-0000-4000-8000-000000000002", name: "在庫あり", code: 1 },
+  { id: toProductStatusId("6b0f2f3e-0000-4000-8000-000000000002"), name: "在庫あり", code: 1 },
 ] satisfies readonly [ProductStatus, ...ProductStatus[]];
 
 function product(overrides: Partial<Product> = {}): Product {
@@ -22,7 +22,7 @@ function product(overrides: Partial<Product> = {}): Product {
     quantity: 12,
     stockWarningThreshold: null,
     status: { id: STATUS_ID, name: "在庫切れ" },
-    category: { id: "c1", name: "電子機器" },
+    category: { id: toProductCategoryId("c1"), name: "電子機器" },
     publishedAt: null,
     discontinuedAt: null,
     imagePaths: [],
@@ -84,8 +84,15 @@ describe("toAdminProductRows", () => {
 
   it("マスタのラベルが廃盤でも、廃番でなければそのラベルのまま出す", () => {
     const rows = toAdminProductRows(
-      [product({ status: { id: "6b0f2f3e-0000-4000-8000-000000000003", name: "廃盤" } })],
-      [...STATUSES, { id: "6b0f2f3e-0000-4000-8000-000000000003", name: "廃盤", code: 7 }],
+      [
+        product({
+          status: { id: toProductStatusId("6b0f2f3e-0000-4000-8000-000000000003"), name: "廃盤" },
+        }),
+      ],
+      [
+        ...STATUSES,
+        { id: toProductStatusId("6b0f2f3e-0000-4000-8000-000000000003"), name: "廃盤", code: 7 },
+      ],
     );
 
     expect(rows[0]).toMatchObject({ statusName: "廃盤", statusTone: BADGE_VARIANT.OUTLINE });

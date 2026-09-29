@@ -24,10 +24,44 @@ usage() {
 USAGE
 }
 
-# 絶対パスをリポジトリルート相対へ均す。外のパスはそのまま返す（どの glob にも当たらない）。
+# REPO_ROOT が worktree と共有するオブジェクトストア。git が答えられないときは空になり、
+# 相対化できる範囲が REPO_ROOT 配下だけに狭まる。
+REPO_COMMON=$(git -C "${REPO_ROOT}" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || :)
+
+# 絶対パスを保持する作業ツリー。REPO_ROOT 自身か、その worktree のどれか。別のリポジトリに
+# 属するパス・どこにも属さないパスでは空を返す。
+checkout_root() {
+  [ -n "${REPO_COMMON}" ] || return 0
+
+  # これから作られるパスにはまだディレクトリが無い。存在する最も近い祖先が代わりに答える。
+  dir=$(dirname -- "$1")
+  while [ ! -d "${dir}" ]; do
+    parent=$(dirname -- "${dir}")
+    [ "${parent}" != "${dir}" ] || return 0
+    dir=${parent}
+  done
+
+  info=$(git -C "${dir}" rev-parse --path-format=absolute --show-toplevel --git-common-dir 2>/dev/null) || return 0
+  [ "$(printf '%s\n' "${info}" | sed -n 2p)" = "${REPO_COMMON}" ] || return 0
+  printf '%s\n' "${info}" | sed -n 1p | tr -d '\n'
+}
+
+# リポジトリ相対へ均す。絶対パスは REPO_ROOT の接頭辞より先に、それを保持する作業ツリーで
+# 切る（理由は [README](../README.md) の共通規約）。外のパスはそのまま返す（どの glob にも
+# 当たらない）。
 to_relative() {
   case "$1" in
-    "${REPO_ROOT}/"*) printf '%s' "${1#"${REPO_ROOT}"/}" ;;
+    /*)
+      root=$(checkout_root "$1")
+      if [ -n "${root}" ] && [ "$1" != "${1#"${root}"/}" ]; then
+        printf '%s' "${1#"${root}"/}"
+      elif [ "$1" != "${1#"${REPO_ROOT}"/}" ]; then
+        printf '%s' "${1#"${REPO_ROOT}"/}"
+      else
+        printf '%s' "$1"
+      fi
+      ;;
+    ./*) printf '%s' "${1#./}" ;;
     *) printf '%s' "$1" ;;
   esac
 }

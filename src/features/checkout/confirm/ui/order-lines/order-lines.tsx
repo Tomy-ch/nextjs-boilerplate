@@ -15,9 +15,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/design-system/display/card/card";
+import { CART_PATH } from "@/features/cart/facade/paths/paths";
 import type { CartLine } from "@/model/cart/cart";
 
-import { CART_PATH } from "../../../paths";
 import { OrderLineRow } from "../order-line-row/order-line-row";
 
 /** {@link OrderLines} の props。 */

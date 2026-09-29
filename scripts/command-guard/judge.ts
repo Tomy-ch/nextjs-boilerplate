@@ -8,7 +8,11 @@
 // - **位置** —— `Bash(make tag-patch *)` は `pnpm build && make tag-patch` に当たらない
 // - **引数なし** —— 同じ宣言は素の `make tag-patch` にも当たらない。しかも危険な target ほど
 //   引数なしが通常の呼び方である
-// - **包み** —— `bash -c` / `rtk run` / `make ai-` は中身を実行するので、包みを剥がして判定する
+// - **包み** —— `bash -c` / `sudo` / `env` / `FOO=bar` / `ssh` / `make ai-` などは中身を実行するので、
+//   包みを剥がして判定する
+//
+// 読むのはシェルの文法だけである。`python -c` / `node -e` の引数はその言語の文字列で、そこから
+// シェルを呼ぶかどうかは形から分からない。迂回を禁じるのは AGENTS.md の規則であって、ここではない。
 
 /**
  * 区切りの直後はコマンド位置になる。単体の `(` だけは散文に多すぎるので採らない。
@@ -32,17 +36,159 @@ const SHORT_FLAG = /^-[^-\s]+$/;
  */
 const HEREDOC_BODY = /<<-?[ \t]*(["']?)([A-Za-z_]\w*)\1\n(?:(?!\2$)[^\n]*\n)*\2$/gm;
 
+/** 環境変数の代入 1 語。値は引用や打ち消しを含んでよく、`FOO="a b"` も 1 語として読む。 */
+const ASSIGNMENT = String.raw`[A-Za-z_]\w*=(?:'[^']*'|"(?:[^"\\]|\\[\s\S])*"|\\[\s\S]|[^\s'"\\])*`;
+
+/** `env` の、実行するコマンドの手前に立つ flag と環境変数の代入。`-S` は含まない。 */
+const ENV_OPTIONS = String.raw`(?:(?:-[A-Za-z]*[uC](?:\s+|(?=[^A-Za-z\s]))\S+|--(?:unset|chdir)\s+\S+|-(?![A-Za-z]*S|[A-Za-z]*[uC]\s)[A-Za-z]+|--(?!split-string|(?:unset|chdir)\s)[\w-]+(?:=\S+)?|${ASSIGNMENT})\s+)*`;
+
+/** `env -S` / `--split-string` の、渡した文字列の手前まで。文字列は語に割られてコマンド行になる。 */
+const ENV_SPLIT = String.raw`^env\s+${ENV_OPTIONS}(?:-[A-Za-z]*S\s*|--split-string(?:=|\s+))`;
+
+/** `sudo` の、値を取る長 flag。値を消費しないと、値の方がコマンドとして残る。 */
+const SUDO_VALUED_LONG =
+  "user|group|host|prompt|role|type|close-from|chdir|chroot|other-user|command-timeout|login-class";
+
+const CHROOT_VALUED_LONG = "userspec|groups";
+
+/** ionice の値を取らない短 flag の文字。値を取る `[cnpPu]` の補集合なので、片方を変えたら両方を直す。 */
+const IONICE_FLAG_SHORT = "[A-OQ-Zabd-moq-tv-z]";
+
+const IONICE_VALUED_LONG = "class|classdata|pid|pgid|uid";
+
+const STDBUF_VALUED_LONG = "input|output|error";
+
+const RUNUSER_VALUED_LONG = "group|supp-group";
+
+const TIMEOUT_VALUED_LONG = "signal|kill-after";
+
+/** xargs の値を取らない短 flag の文字。値を取る `[EILPadns]` の補集合なので、片方を変えたら両方を直す。 */
+const XARGS_FLAG_SHORT = "[0-9A-DF-HJKM-OQ-Zb-ce-mo-rt-z]";
+
+const XARGS_VALUED_LONG = "arg-file|delimiter|max-args|max-procs|max-chars|process-slot-var";
+
 /** 中身をそのまま実行する包みと、剥がしたあとに残す綴り。 */
 const WRAPPERS: readonly (readonly [RegExp, string])[] = [
   // quiet.mk の `ai-%` は `make <target>` を回す入口なので、target 名だけを残す。
   [/^make\s+ai-/, "make "],
   [/^rtk\s+(?:run|summary|smart)\s+/, ""],
-  [/^(?:nohup|time)\s+/, ""],
-  [/^env\s+(?:[A-Za-z_]\w*=\S*\s+)+/, ""],
+  [new RegExp(String.raw`^(?:${ASSIGNMENT}\s+)+`), ""],
+  [/^(?:nohup|time)\s+(?:--\s+)?/, ""],
+  [new RegExp(String.raw`${ENV_SPLIT}(["'])([\s\S]*?)\1`), "$2"],
+  [new RegExp(ENV_SPLIT), ""],
+  [new RegExp(String.raw`^env\s+${ENV_OPTIONS}(?:--\s+)?`), ""],
+  [/^setsid\s+(?:(?:-[A-Za-z]+|--[\w-]+)\s+)*(?:--\s+)?/, ""],
+  [
+    new RegExp(
+      String.raw`^chroot\s+(?:(?:--(?:${CHROOT_VALUED_LONG})\s+\S+|--(?!(?:${CHROOT_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?\S+\s+`,
+    ),
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^ionice\s+(?:(?:-${IONICE_FLAG_SHORT}*[cnpPu]\s*\S+|--(?:${IONICE_VALUED_LONG})\s+\S+|-${IONICE_FLAG_SHORT}+|--(?!(?:${IONICE_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?`,
+    ),
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^stdbuf\s+(?:(?:-[ioe]\s*\S+|--(?:${STDBUF_VALUED_LONG})\s+\S+|--(?!(?:${STDBUF_VALUED_LONG})\s)[\w-]+(?:=\S+)?)\s+)*(?:--\s+)?`,
+    ),
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^runuser\s+(?:(?:-[gG]\s+\S+|--(?:${RUNUSER_VALUED_LONG})(?:=|\s+)\S+|-(?![gG]\s|u)[A-Za-z]+|--(?!(?:${RUNUSER_VALUED_LONG}|user)\b)[\w-]+(?:=\S+)?)\s+)*(?:-u\s*\S+|--user(?:=|\s+)\S+)\s+(?:--\s+)?(?![\s-])`,
+    ),
+    "",
+  ],
+  [/^nice\s+(?:(?:-n\s*\S+|--adjustment=\S+|-\d+)\s+)?/, ""],
+  [
+    new RegExp(
+      String.raw`^timeout\s+(?:(?:-[sk]\s*\S+|--(?:${TIMEOUT_VALUED_LONG})\s+\S+|--[\w-]+(?:=\S+)?|-[A-Za-z]+)\s+)*\S+\s+`,
+    ),
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^xargs\s+(?:(?:-${XARGS_FLAG_SHORT}*[EILPadns]\s*\S+|--(?:${XARGS_VALUED_LONG})(?:=|\s+)\S+|-${XARGS_FLAG_SHORT}+|--(?!(?:${XARGS_VALUED_LONG})(?:=|\s))[\w-]+(?:=\S+)?)\s+)*`,
+    ),
+    "",
+  ],
+  [
+    new RegExp(
+      String.raw`^(?:sudo|doas)\s+(?:(?:-[A-Za-z]*[CDRTUghprtu]\s*\S+|--(?:${SUDO_VALUED_LONG})(?:=|\s+)\S+|-[A-Za-z]+|--(?!(?:${SUDO_VALUED_LONG})(?:=|\s))[\w-]+(?:=\S+)?|${ASSIGNMENT})\s+)*(?:--\s+)?`,
+    ),
+    "",
+  ],
 ];
 
+/** シェルの名前。`/bin/bash` のようにパスで呼んでも、`busybox sh` のように束ねた入口から呼んでも同じ。 */
+const SHELL = String.raw`(?:(?:\/[\w.-]+)*\/)?(?:(?:ba|da|k|mk|z|a|c|tc)?sh|fish|busybox\s+(?:a|hu)?sh)`;
+
+/**
+ * `-c` の手前に立ちうる flag（`-l` / `-o pipefail` / `-O extglob` / `--norc` / `--rcfile <file>`）と、
+ * `-c` を含む束（`-lc` / `-ec`）、または fish の `--command`。
+ */
+const SHELL_COMMAND_FLAG = String.raw`(?:(?:[-+][A-Za-z]*[oO]\s+\S+|--(?:rcfile|init-file)\s+\S+|[-+](?![A-Za-z]*[oO]\s)[A-Za-z]+|--(?!(?:rcfile|init-file)\s)[\w-]+(?:=\S+)?)\s+)*?(?:-[A-Za-z]*c[A-Za-z]*\s+|--command(?:=|\s+))`;
+
 /** `sh -c <引用>` は引用の中身がそのままコマンド行なので、引用を落とす前に剥がす。 */
-const SHELL_C = /^(?:(?:ba)?sh|eval)\s+(?:-c\s+)?(["'])([\s\S]*?)\1/;
+const SHELL_C = new RegExp(
+  String.raw`^(?:${SHELL}\s+(?:${SHELL_COMMAND_FLAG})?|eval\s+)(["'])([\s\S]*?)\1`,
+);
+
+/** `su -c` / `runuser -c` の、引用の手前まで。利用者名や `-l` が `-c` の前後どちらにも立つ。 */
+const SWITCH_USER_COMMAND = String.raw`(?:su|runuser)\s+(?:\S+\s+)*?(?:-[A-Za-z]*c|--(?:session-)?command)(?:=|\s+)`;
+
+/**
+ * 区間の途中に立つ、引用を 1 つのコマンド行として実行させる呼び出しと、その直後の引用の開き。
+ *
+ * @remarks
+ * `xargs sh -c '…'` や `find … -exec sh -c '…'` の引用も中身がコマンド行として実行されるが、
+ * 区間の先頭ではないので `SHELL_C` では剥がれない。`su -c` / `runuser -c` も、渡した引用を
+ * 相手の利用者のシェルが `-c` で実行する。
+ */
+const INTERPRETER_PAYLOAD = new RegExp(
+  String.raw`(?:^|\s)(?:${SHELL}\s+${SHELL_COMMAND_FLAG}|eval\s+|${SWITCH_USER_COMMAND})(["'])`,
+  "g",
+);
+
+/** ssh の値を取らない短 flag の文字。値を取る `[BDEFIJLORSWbceilmopw]` の補集合なので、片方を変えたら両方を直す。 */
+const SSH_FLAG_SHORT = "[46AaCfGgKkMNnqsTtVvXxYy]";
+
+/** watch の値を取らない短 flag の文字。値を取る `[nq]` の補集合なので、片方を変えたら両方を直す。 */
+const WATCH_FLAG_SHORT = "[A-Za-mo-pr-z]";
+
+/**
+ * 残りの引数を空白で繋ぎ、相手側のシェルがコマンド行として読み直す呼び出しの、残りの手前まで。
+ *
+ * @remarks
+ * `ssh <host> …` は遠隔のシェルへ、`watch …` は `sh -c` へ、引数を繋いだ 1 行を渡す。引用は
+ * こちらのシェルが 1 層外してから渡すので、`ssh host 'a; b'` の `;` も向こうでは区切りになる。
+ * ssh の flag は引数を取るものと取らないもので分けないと、`-p 22` の `22` をホストと読み違える。
+ */
+const REMOTE_COMMAND: readonly RegExp[] = [
+  new RegExp(
+    String.raw`(?:^|\s)ssh\s+(?:(?:-${SSH_FLAG_SHORT}*[BDEFIJLORSWbceilmopw]\s*\S+|-${SSH_FLAG_SHORT}+)\s+)*[^\s-]\S*\s+`,
+  ),
+  new RegExp(
+    String.raw`(?:^|\s)watch\s+(?:(?:-${WATCH_FLAG_SHORT}*[nq]\s*\S+|--interval[=\s]\S+|-${WATCH_FLAG_SHORT}+|--(?!interval[=\s])[\w-]+(?:=\S+)?)\s+)*`,
+  ),
+];
+
+/**
+ * シェルが 1 層で外す引用の単位。単引用、二重引用、打ち消した 1 文字、対にならない引用符。
+ *
+ * @remarks
+ * 対にならない引用符は落とす。中身を散文として残すと、閉じない引用の後ろのコマンドが見えなくなる。
+ */
+const QUOTING = /'([^']*)'|"((?:[^"\\]|\\[\s\S])*)"|\\([\s\S])|["']/g;
+
+/** 二重引用の中でバックスラッシュが打ち消す文字。それ以外の前ではバックスラッシュが残る。 */
+const DOUBLE_QUOTE_ESCAPE = /\\([$`"\\\n])/g;
+
+/** 引用の中身を塗る文字。区切りにも空白にも引用符にも当たらない。 */
+const FILL = "_";
 
 /** 宣言とコマンド行を、同じ形（先頭の語 + 求める flag）へ割った結果。 */
 export type CommandShape = {
@@ -196,16 +342,40 @@ export function parseShape(text: string): CommandShape {
  * （`rtk run pnpm build`）、剥がさないと迂回路になります（`rtk run rm -rf /`）。
  */
 export function unwrap(segment: string): string {
+  return unwrapStages(segment).unwrapped;
+}
+
+/**
+ * 包みを 1 枚剥がすたびの綴りを、剥がす前から順に返す。
+ *
+ * @remarks
+ * 1 回の走査で複数の包みが剥がれるので、最後の綴りだけを見ると途中に立った包みが検査から落ちる
+ * （`FOO=1 sudo ls` の `sudo ls`）。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 剥がす前の綴りを先頭に剥がした順で並べた綴りと、剥がし終えた綴り
+ */
+function unwrapStages(segment: string): {
+  readonly stages: readonly string[];
+  readonly unwrapped: string;
+} {
   let current = segment.trim();
+  const stages = [current];
 
   for (let depth = 0; depth < 8; depth++) {
     const before = current;
-    for (const [pattern, replacement] of WRAPPERS) current = current.replace(pattern, replacement);
-    current = current.replace(SHELL_C, "$2").trim();
-    if (current === before) return current;
+    for (const [pattern, replacement] of WRAPPERS) {
+      const next = current.replace(pattern, replacement);
+      if (next !== current) stages.push(next);
+      current = next;
+    }
+    const next = current.replace(SHELL_C, "$2").trim();
+    if (next !== current) stages.push(next);
+    current = next;
+    if (current === before) return { stages, unwrapped: current };
   }
 
-  return current;
+  return { stages, unwrapped: current };
 }
 
 /**
@@ -241,6 +411,179 @@ function stripQuotes(segment: string): string {
   return segment.replace(/'[^']*'/g, " ").replace(/"(?:[^"\\]|\\.)*"/g, " ");
 }
 
+/**
+ * 引用を開閉する文字か。
+ *
+ * @param character - 1 文字
+ * @returns 単引用符か二重引用符なら true
+ */
+function isQuoteCharacter(character: string): character is "'" | '"' {
+  return character === "'" || character === '"';
+}
+
+/**
+ * その位置でコマンド置換（backtick か `$(`）が始まるか。
+ *
+ * @param line - コマンド行
+ * @param at - 調べる位置
+ * @returns コマンド置換が始まるなら true
+ */
+function opensCommandSubstitution(line: string, at: number): boolean {
+  return line.charAt(at) === "`" || line.startsWith("$(", at);
+}
+
+/**
+ * 引用の中身と、バックスラッシュで打ち消した文字を塗り潰した写しを返す。長さと、引用を開閉する
+ * 文字の位置は元のまま保つ。
+ *
+ * @remarks
+ * 区切りを引用の外でだけ探すための写しです。**散文だと言い切れないものは塗りません** —— 閉じない
+ * 引用、`$'…'`、二重引用の中のコマンド置換（`$(` / backtick）のどれかに出会ったら `undefined` を
+ * 返し、呼び出し側は引用を見ずに割ります。二重引用の中のコマンド置換は実行されるうえ、その中に
+ * また引用が立つので、閉じる位置を読み違えると後ろに続くコマンドを塗り潰して見逃します。
+ *
+ * @param line - コマンド行
+ * @returns 塗った写し。塗ってよいと言い切れなければ `undefined`
+ */
+function maskQuoted(line: string): string | undefined {
+  let out = "";
+  let quote: Quote;
+
+  for (let at = 0; at < line.length; at = out.length) {
+    const step = maskAt(line, at, quote);
+    if (step === undefined) return undefined;
+    out += step.text;
+    quote = step.quote;
+  }
+
+  return quote === undefined ? out : undefined;
+}
+
+/** 開いている引用の種類。引用の外なら `undefined`。 */
+type Quote = "'" | '"' | undefined;
+
+/** 1 文字（打ち消しなら 2 文字）ぶんの写しと、その後の引用の状態。 */
+type MaskStep = { readonly text: string; readonly quote: Quote };
+
+/**
+ * `at` の位置の文字を塗るかどうかを決める。
+ *
+ * @param line - コマンド行
+ * @param at - 読む位置
+ * @param quote - その位置で開いている引用
+ * @returns 写しと次の引用の状態。塗ってよいと言い切れなければ `undefined`
+ */
+function maskAt(line: string, at: number, quote: Quote): MaskStep | undefined {
+  const character = line.charAt(at);
+
+  if (character === "\\" && quote !== "'") {
+    return { text: FILL.repeat(Math.min(2, line.length - at)), quote };
+  }
+  if (quote === undefined) return maskUnquoted(line, at, character);
+  if (character === quote) return { text: character, quote: undefined };
+  if (quote === '"' && opensCommandSubstitution(line, at)) return undefined;
+
+  return { text: FILL, quote };
+}
+
+/**
+ * 引用の外の文字を写す。引用を開く文字なら、その種類を次の状態にする。
+ *
+ * @param line - コマンド行
+ * @param at - 読む位置
+ * @param character - `at` の位置の文字
+ * @returns 写しと次の引用の状態。`$'…'` の開始なら `undefined`
+ */
+function maskUnquoted(line: string, at: number, character: string): MaskStep | undefined {
+  if (character === "'" && line.charAt(at - 1) === "$") return undefined;
+
+  return { text: character, quote: isQuoteCharacter(character) ? character : undefined };
+}
+
+/**
+ * コマンド行を、引用の外に立つ区切りで割る。
+ *
+ * @remarks
+ * 引用の中の `|` や `;` は散文やパターンの一部であり、区切りではありません。割ってから引用を
+ * 落とすと、`grep -E 'a|rm -rf'` の `rm -rf` がコマンド位置に立って見えます。引用を読み切れない
+ * 行は、見逃すより止めすぎる側へ倒して引用ごと割ります。
+ *
+ * @param line - コマンド行
+ * @returns 区切りで割った区間
+ */
+function splitOutsideQuotes(line: string): readonly string[] {
+  const masked = maskQuoted(line);
+  if (masked === undefined) return line.split(SEPARATOR);
+
+  const pieces: string[] = [];
+  let start = 0;
+  for (const match of masked.matchAll(SEPARATOR)) {
+    pieces.push(line.slice(start, match.index));
+    start = match.index + match[0].length;
+  }
+  pieces.push(line.slice(start));
+
+  return pieces;
+}
+
+/**
+ * 区間の途中に立つ `sh -c` / `eval` / `su -c` / `runuser -c` へ渡した引用の中身を取り出す。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 実行されるコマンド行として読む引用の中身
+ */
+function interpreterPayloads(segment: string): readonly string[] {
+  const masked = maskQuoted(segment);
+  if (masked === undefined) return [];
+
+  const payloads: string[] = [];
+  for (const match of masked.matchAll(INTERPRETER_PAYLOAD)) {
+    const open = match.index + match[0].length - 1;
+    const close = masked.indexOf(masked.charAt(open), open + 1);
+    payloads.push(segment.slice(open + 1, close));
+  }
+
+  return payloads;
+}
+
+/**
+ * こちらのシェルが引用を 1 層外したあとの綴りを返す。
+ *
+ * @remarks
+ * 相手側のシェルが読み直す行は、こちらで引用を外した結果である。二重引用の中のバックスラッシュは
+ * `DOUBLE_QUOTE_ESCAPE` の文字の前でだけ消え、ほかの文字の前では残る —— 残った `\;` は向こうでも
+ * 打ち消されたままで、区切りにならない。
+ *
+ * @param text - 引用を含む引数の並び
+ * @returns 引用を 1 層外した綴り
+ */
+function dequote(text: string): string {
+  return text.replace(
+    QUOTING,
+    (_quoted: string, single?: string, double?: string, escaped?: string) =>
+      single ?? double?.replace(DOUBLE_QUOTE_ESCAPE, "$1") ?? escaped ?? "",
+  );
+}
+
+/**
+ * 区間の中で `ssh` / `watch` へ渡した残りの引数を、相手側が読み直すコマンド行として取り出す。
+ *
+ * @remarks
+ * 引用を読み切れない区間でも位置は元の綴りで探す。区切りは呼び出し側が既に引用ごと割っており、
+ * ここで諦めると、残りの引数だけが検査から落ちる。
+ *
+ * @param segment - 区切りで割った 1 区間
+ * @returns 相手側のシェルが実行するコマンド行
+ */
+function remoteCommandLines(segment: string): readonly string[] {
+  const masked = maskQuoted(segment) ?? segment;
+
+  return REMOTE_COMMAND.flatMap((pattern) => {
+    const matched = pattern.exec(masked);
+    return matched ? [dequote(segment.slice(matched.index + matched[0].length))] : [];
+  });
+}
+
 /** 包みを剥がすたびに中身がまたコマンド行になるので、その深さの上限。 */
 const NEST_LIMIT = 4;
 
@@ -251,9 +594,14 @@ export const UNDECIDABLE = "(包みが深すぎて判定できません)";
  * コマンド行を、コマンド位置に立つ区間の一覧へ割る。
  *
  * @remarks
- * 順序が要です。**区切りで割り、区間ごとに包みを剥がし、剥がせたものは中身をもう一度割ります。**
- * 包みの中身はコマンド行なので、そこにも区切りが在ります。引用を落とすのは剥がし終えた区間に
- * 対してだけで、`sh -c "..."` の引用を散文として消してしまわないようにしています。
+ * 順序が要です。**引用の外の区切りで割り、区間ごとに包みを剥がし、剥がせたものは中身をもう一度
+ * 割ります。** 包みの中身はコマンド行なので、そこにも区切りが在ります。区間の途中に立つ `sh -c` /
+ * `eval` / `su -c` の引用と、`ssh` / `watch` の残りの引数も同じく中身を割ります。引用を落とすのは
+ * そのあとの区間に対してだけで、`sh -c "..."` の引用を散文として消してしまわないようにしています。
+ *
+ * @param line - コマンド行
+ * @param depth - 包みを剥がした深さ
+ * @returns コマンド位置に立つ区間。剥がし切れなければ `undefined`
  */
 function splitSegments(line: string, depth: number): readonly string[] | undefined {
   // **剥がし切れなかったら空へ倒さない。** 落とすと「塞ぐ対象が無い」と読めるが、実際は
@@ -261,17 +609,23 @@ function splitSegments(line: string, depth: number): readonly string[] | undefin
   if (depth > NEST_LIMIT) return undefined;
 
   const out: string[] = [];
-  for (const raw of line.split(SEPARATOR)) {
+  for (const raw of splitOutsideQuotes(line)) {
     const trimmed = raw.replace(/^[\s&]+/, "").trim();
     if (!trimmed) continue;
 
-    const unwrapped = unwrap(trimmed);
-    if (unwrapped !== trimmed) {
-      const inner = splitSegments(unwrapped, depth + 1);
+    const { stages, unwrapped } = unwrapStages(trimmed);
+    const nested =
+      unwrapped !== trimmed
+        ? [unwrapped]
+        : [...interpreterPayloads(trimmed), ...remoteCommandLines(trimmed)];
+    for (const commandLine of nested) {
+      const inner = splitSegments(commandLine, depth + 1);
       if (inner === undefined) return undefined;
       out.push(...inner);
     }
-    out.push(stripQuotes(unwrapped));
+    // 包み自身も 1 つのコマンドである。剥がした側だけを見ると、`sudo` のように包みの綴りそのものを
+    // 塞いだ宣言が区切りの後ろや別の包みの内側で当たらなくなる。
+    out.push(...stages.map(stripQuotes));
   }
   return out;
 }

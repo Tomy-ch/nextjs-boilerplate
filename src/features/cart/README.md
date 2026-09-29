@@ -1,7 +1,7 @@
 ---
 imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
 forbidden: [features] # 画面まるごとの story は例外
-test-requirement: feature
+test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/cart/__mocks__/**"
   - "src/features/cart/cart.fixture.ts"
@@ -77,11 +77,11 @@ coverage-exclusions:
 | `parse-cart-form.ts` | 送信された内容から商品と数量を取り出す |
 | `removal-memory.tsx` | 取り除いた明細と、画面が見せていた並びの記憶 |
 | `use-dock-visibility.ts` | 画面の下から出す器を、出すかどうかの判断 |
-| `paths.ts` | この feature が指す行き先（カート・購入手続き） |
 | `shell-cart.ts` | 外枠に出すカートの取得。読めなくても投げない |
 | `ui/shell-slots/` | 外枠の header と脇に出すカート。取得を穴の内側に閉じる |
 | `ui/skeleton/` | カートの待機表示。実物と同じ段組みで、1 画面に収まる数の枠を出す |
 | `cart.fixture.ts` | story とテストが読む固定のカート |
+| `facade/paths/` | この feature が持つルート。購入確認がカートへ戻る導線に引く |
 | `facade/add-to-cart/` | 商品をカートへ入れる操作。**他の feature が使う口** |
 | `facade/add-to-cart/__mocks__/` | 同じ口のカタログでの差し替え |
 | `facade/line-issues/` | 明細に立った事情の表示。**購入確認も同じ強さと言い方で出すための口** |
@@ -116,6 +116,9 @@ coverage-exclusions:
 | `stores` | 中身を開いているかどうか。**開く操作が別の feature にあるため client 横断になる** |
 | `logging` | 外枠のカートが読めなかったときの記録。投げずに記録だけ残す |
 | `observability` | 描画を span に載せる |
+
+他 feature の `facade/` も引きます —— 購入手続きの入口（`checkout`）と、商品を探しに戻る先
+（`products`）。どちらも所有者が出しているルートの識別子です。
 
 ## Action 戻り値契約
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import pino, { type DestinationStream, type Logger as PinoLogger } from "pino";
 import {
+  LogFieldKey,
   type LogFields,
   type Logger,
   LogLevel,
@@ -70,7 +71,10 @@ class PinoStructuredLogger implements Logger {
       ...fields,
       ...(traceContext === undefined
         ? {}
-        : { trace_id: traceContext.traceId, span_id: traceContext.spanId }),
+        : {
+            [LogFieldKey.TRACE_ID]: traceContext.traceId,
+            [LogFieldKey.SPAN_ID]: traceContext.spanId,
+          }),
     });
     this.#logRecordSink?.({ level, message, fields: normalizedFields });
     this.#logger[level](normalizedFields, message);
@@ -111,7 +115,9 @@ export function createLogger({
  * @param fields - 置換前のフィールド
  * @returns 秘匿フィールドを置換したフィールド
  */
-function redactFields(fields: LogFields): LogFields {
+function redactFields(
+  fields: Readonly<Record<string, unknown>>,
+): Readonly<Record<string, unknown>> {
   return Object.fromEntries(
     Object.entries(fields).map(([key, value]) => [
       key,

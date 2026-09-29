@@ -5,6 +5,7 @@ import { cache } from "react";
 import type { z } from "zod";
 
 import type { ProductCategory, ProductStatus } from "@/model/product/product";
+import { toProductCategoryId, toProductStatusId } from "@/model/product/product";
 
 import {
   GetProductCategoriesResponse,
@@ -37,7 +38,7 @@ export const PRODUCT_MASTERS_TAG = "product-masters";
  * @returns 表示用の分類一覧
  */
 function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
-  return wire.map(({ id, name, code }) => ({ id, name, code }));
+  return wire.map(({ id, name, code }) => ({ id: toProductCategoryId(id), name, code }));
 }
 
 /**
@@ -82,7 +83,7 @@ export const getProductCategories = cache(async (): Promise<readonly ProductCate
  * @returns 表示用のステータス一覧
  */
 function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
-  return wire.map(({ id, name, code }) => ({ id, name, code }));
+  return wire.map(({ id, name, code }) => ({ id: toProductStatusId(id), name, code }));
 }
 
 /**

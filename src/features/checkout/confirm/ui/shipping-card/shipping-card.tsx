@@ -18,9 +18,9 @@ import {
   KeyValueList,
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
+import { PROFILE_EDIT_PATH } from "@/features/account/facade/paths/paths";
 import type { UserProfile } from "@/model/user/user";
 import { withPartSpan } from "@/observability/render-span";
-import { PROFILE_EDIT_PATH } from "../../../paths";
 
 /** {@link ShippingCard} の props。 */
 export type ShippingCardProps = {

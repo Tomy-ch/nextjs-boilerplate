@@ -2,10 +2,10 @@ import Link from "next/link";
 
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_SIZE } from "@/components/design-system/action/button/button.definition";
+import { CHECKOUT_PATH } from "@/features/checkout/facade/paths/paths";
 import type { Cart } from "@/model/cart/cart";
 import { withPartSpan } from "@/observability/render-span";
 import { canCheckout } from "../../checkout";
-import { CHECKOUT_PATH } from "../../paths";
 
 /** `CartCheckoutLink` の props。 */
 export type CartCheckoutLinkProps = {

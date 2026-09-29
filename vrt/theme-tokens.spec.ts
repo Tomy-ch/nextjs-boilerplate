@@ -7,6 +7,7 @@ import { settle } from "./lib/settle";
 import { createStaticServer } from "./lib/static-server";
 import { excludeDeclared, parseStoryIndex, storyURL } from "./lib/story-index";
 import {
+  declaredSurfaces,
   semanticColorTokens,
   semanticNonColorTokens,
   type TokenProbe,
@@ -31,6 +32,7 @@ const TOKENS_CSS = "src/app/generated/tokens.css";
 const CSS = readFileSync(TOKENS_CSS, "utf8");
 const TOKENS = semanticColorTokens(CSS);
 const OTHER_TOKENS = semanticNonColorTokens(CSS);
+const SURFACES = declaredSurfaces(CSS);
 
 // どの story でもよい。見るのは story の中身ではなく、story を包む面に配色が乗っているか。
 const [PROBE_STORY] = excludeDeclared(
@@ -163,19 +165,29 @@ test.describe("配色トークン", () => {
   });
 
   test("系統を指定した部分木では配色以外も入れ替わる", async ({ page }) => {
+    test.skip(SURFACES.length === 0, "既定のほかに系統が宣言されていません");
     const outside = await readOther(page, OTHER_TOKENS);
-    const inside = await readOther(page, OTHER_TOKENS, "admin");
 
-    // 系統は書体・太さ・影も替える。色だけを見ると、`--font-*` の別名を手書き CSS から直接
-    // 引いた箇所のように、その系統だけ届かない壊れ方を素通しする。
-    expect(inside, "data-surface を置いても配色以外が変わりません").not.toEqual(outside);
+    for (const surface of SURFACES) {
+      const inside = await readOther(page, OTHER_TOKENS, surface);
+
+      // 系統は書体・太さ・影も替える。色だけを見ると、`--font-*` の別名を手書き CSS から直接
+      // 引いた箇所のように、その系統だけ届かない壊れ方を素通しする。
+      const message = `data-surface="${surface}" を置いても配色以外が変わりません`;
+      expect(inside, message).not.toEqual(outside);
+    }
   });
 
   test("系統を指定した部分木では別の配色になる", async ({ page }) => {
+    test.skip(SURFACES.length === 0, "既定のほかに系統が宣言されていません");
     const outside = await readTokens(page, TOKENS);
-    const inside = await readTokens(page, TOKENS, "admin");
 
-    // 生成物では `[data-surface]` が `:root` を上書きする。同じなら再束縛が届いていない。
-    expect(inside, "data-surface を置いても配色が変わりません").not.toEqual(outside);
+    for (const surface of SURFACES) {
+      const inside = await readTokens(page, TOKENS, surface);
+
+      // 生成物では `[data-surface]` が `:root` を上書きする。同じなら再束縛が届いていない。
+      const message = `data-surface="${surface}" を置いても配色が変わりません`;
+      expect(inside, message).not.toEqual(outside);
+    }
   });
 });

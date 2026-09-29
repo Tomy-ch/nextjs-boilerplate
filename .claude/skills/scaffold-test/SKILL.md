@@ -144,8 +144,8 @@ not one.
 
 ### The duty follows the symbol, not the directory
 
-`test-requirement` is one word in frontmatter, and a directory holds symbols that are not all the
-same. **The README body is where the layer says which of its symbols the declaration actually
+`test-requirement` is one value or a short list in frontmatter (`[feature, component, unit]`), and a
+directory holds symbols that are not all the same. **The README body is where the layer says which of its symbols the declaration actually
 covers** — `src/adapters` declares `integration` and then its body narrows that to modules with an
 external round-trip, sending pure transforms to `unit`. Read the body, not just the frontmatter;
 step 1 above asks for both because this is what the body is for.
@@ -238,25 +238,25 @@ Confirm **per group**, not per file and not for the whole set. Show every subjec
 its planned path and case list, so the agreement covers all of them at once:
 
 ```txt
-群: <feature>/（test-requirement: feature）
+群: <feature>/（test-requirement: [feature, component, unit]）
 
-書き出し先: <feature>/<期間を解く純関数>.test.ts
-  describe("toPeriodRequest")
+書き出し先: <feature>/<入力を解く純関数>.test.ts
+  describe("<toXxxRequest>")
     ----- 正常系 -----
-    - 日付の要らない区分はそのまま求められる形になる
+    - 追加の入力が要らない区分はそのまま求められる形になる
     ----- 異常系 -----
-    - range で日付が欠けていれば求めない
-    - range で終了日が開始日より前なら求めない
-  describe("toPeriodHref")
+    - 範囲指定で端が欠けていれば求めない
+    - 範囲指定で終端が始端より前なら求めない
+  describe("<toXxxHref>")
     ----- 正常系 -----
-    - 日付を持ち越さない
+    - 範囲の端を持ち越さない
 
 書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
-  describe("RankingTable")
+  describe("<XxxTable>")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す
     ----- 揃っているとき -----
-    - 契約の並び順のまま順位を出す
+    - 契約の並び順のまま行を出す
     - 表として読み上げられる（axe）
 ```
 

@@ -109,7 +109,7 @@ make setup-remove-sample
 | `mocks/` | 機構（`stable-responses.ts` / `node.ts` / `serve.ts`）。**`api/` は空になる** |
 | `docs/` | ADR・設計解説・規約・層の README・コア残留画面の仕様書 |
 
-**消えるもの:** 題材の画面群（`src/app/(shop)` など）、それに固有の `features` / `model` /
+**消えるもの:** 題材の画面群（`src/app/` の下で題材が持つ route group と segment）、それに固有の `features` / `model` /
 `adapters/server/api` / `stores`、契約（`openapi/api.gen.yaml`）と生成物、題材の仕様書、
 題材の E2E ジャーニー。
 
@@ -2177,7 +2177,7 @@ route が行う（外枠の前捌きは防御線ではない。[0079](../../../.
 
 **feature README。** [`docs/templates/feature-readme.md`](../templates/feature-readme.md) を
 `src/features/notes/README.md` へ写して埋める。必須の節は雛形が宣言しており、`readme-review` が
-その一覧を読んで採点する。frontmatter には `test-requirement: feature` と、`__mocks__/` の
+その一覧を読んで採点する。frontmatter には `test-requirement: [feature, component, unit]` と、`__mocks__/` の
 `coverage-exclusions` を書く。
 
 書くのは **この slice に固有の線引きと、契約・仕様・デザインへの索引だけ**である。層の役割論は

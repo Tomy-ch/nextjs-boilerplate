@@ -69,6 +69,8 @@ for (const story of stories) {
     }
 
     expect(crashes.map((crash) => crash.message)).toEqual([]);
+    // 境界が受け止めた例外は `pageerror` へ届かない。見逃すと axe が部品でなく境界の画面を検査する。
+    expect(await page.locator("[data-story-error]").allTextContents()).toEqual([]);
 
     const { violations } = await new AxeBuilder({ page })
       .withTags([...CONFORMANCE_TAGS])

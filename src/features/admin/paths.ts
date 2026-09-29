@@ -1,3 +1,4 @@
+import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 import type { ProductId } from "@/model/product/product";
 
@@ -65,7 +66,7 @@ export function adminProductStockPath(id: ProductId): string {
  * @returns 商品を眺める利用者向け画面のパス
  */
 export function productDetailPath(id: ProductId): string {
-  return `/products/${encodeURIComponent(id)}`;
+  return toProductDetailHref(id);
 }
 
 /**

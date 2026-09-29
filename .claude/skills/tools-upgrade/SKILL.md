@@ -28,7 +28,7 @@ Use this skill when:
 Do NOT use this skill for:
 
 - Upgrading Node.js itself — use `/node-upgrade`, which reviews the release notes and breaking changes of that Node line
-- Updating npm dependencies (`package.json`) — use `pnpm add` / `pnpm update` directly ([0004](../../../docs/adr/0004-library-management.md))
+- Updating npm dependencies (`package.json`) — a package a security advisory names goes to `/dep-vuln-upgrade`; any other bump uses `pnpm add` / `pnpm update` directly ([0004](../../../docs/adr/0004-library-management.md))
 - One-off ad-hoc version bumps — edit `mise.toml` and run `make install-tools`. The quarantine
   still applies: `make tools-cooldown-check` fails a pin whose upstream release is younger than
   its window, whichever path put it there

@@ -41,9 +41,6 @@ const PUBLISHED_SURFACE = ["src/components/**/*.{ts,tsx}"];
  * - `lighthouse` — `scripts/lighthouse/` が CLI を子プロセスとして起動する。import にしない理由は
  *   同ディレクトリの `index.ts` にある（tsx の変換がページの中で評価される関数を壊す）。撤去条件は、
  *   その変換が問題にならなくなって import へ戻せたとき。
- * - `babel-plugin-react-compiler` — `next.config.ts` の `reactCompiler` が名前で解決する。
- *   設定に文字列すら現れないため、knip からは辿れない。撤去条件は、`"use memo"` を持つ
- *   component が 1 つも無くなり、`reactCompiler` の設定ごと外したとき。
  * - `chrome-devtools-mcp` — CLI（`chrome-devtools`）を `pnpm exec` から起動する。実装が依存しない
  *   道具のため import に現れない。撤去条件は、観測の「掘る」レーンの道具を差し替えたとき。
  */
@@ -52,7 +49,6 @@ const NON_IMPORTED_DEPENDENCIES = [
   "@commitlint/cli",
   "lefthook",
   "lighthouse",
-  "babel-plugin-react-compiler",
   "chrome-devtools-mcp",
 ];
 
@@ -62,8 +58,10 @@ const NON_IMPORTED_DEPENDENCIES = [
  * - `make` — `scripts/review/` が build のレシピ（`make e2e-build`）を呼ぶ。build の手順を写して
  *   持つと、`.makefiles/` を直したときにこちらだけ古くなる。撤去条件は、build の起動元が
  *   TypeScript 側へ移ったとき。
+ * - `codex` — `scripts/sync-ai/` が Codex CLI を子プロセスとして起動する。利用者の環境に導入された
+ *   CLI を使い、このリポジトリは導入しない。撤去条件は、スキルの同期を Codex に委ねなくなったとき。
  */
-const NON_DEPENDENCY_BINARIES = ["make"];
+const NON_DEPENDENCY_BINARIES = ["make", "codex"];
 
 const config: KnipConfig = {
   // playwright.config.ts はコンテナ外で読み込むと落ちるため、knip の plugin では扱えない

@@ -2,7 +2,7 @@ import "server-only";
 
 import { headers } from "next/headers";
 
-import { isDevelopmentOnlyEndpointOpen } from "@/config/load-environment";
+import { isDevelopmentOnlyEndpointOpen } from "@/config/application-environment";
 
 /**
  * 開発専用の口を開けてよい宛先。

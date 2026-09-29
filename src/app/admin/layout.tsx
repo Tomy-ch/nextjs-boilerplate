@@ -17,7 +17,8 @@ import {
 import { UnsavedChangesGuard } from "@/features/admin/ui/unsaved-changes-guard/unsaved-changes-guard";
 import { isAdmin } from "@/model/authz";
 
-const SITE_NAME = "nextjs-boilerplate";
+import { SITE_NAME } from "../site";
+
 const CONSOLE_NAME = "管理";
 
 /** サイトのトップ。役割が足りないときの行き先も兼ねる。 */

@@ -22,7 +22,8 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 ## 使うとき
 
 - 窓が候補を捕まえ、待つべきかを人が決める必要がある —— `tools-upgrade` が pending と分類した、
-  `actions-pin` が step-back か保留になった、`images-pin` がタグで止まった。
+  `actions-pin` が step-back か保留になった、`images-pin` がタグで止まった、`dep-vuln-upgrade` が
+  アドバイザリの修正版をまだ npm の窓の内側に見つけた。
 - `make tools-cooldown-check` が `mise.toml` の pin で落ちた。**このゲートはビルドを落とす**ので、
   問いは「上書きがすり抜けたか」ではなく**「待つことが防御になっているか」**である。
 - Dependabot のセキュリティ更新が窓を飛ばそうとしていて、**当日公開の版を取る価値があるか**を
@@ -42,7 +43,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 ## このスキルを使わない場面
 
-- 更新そのものの実行 —— `tools-upgrade` / `actions-pin` / `images-pin`、あるいは Dependabot の PR。
+- 更新そのものの実行 —— `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`、あるいは Dependabot の PR。
   このスキルは報告しかしない。
 - 自前のコードの欠陥走査 —— `impl-review` と SAST のゲート。
 - **可変タグの通常の保留。**可変タグの再ビルドでは 4 軸のうち 2 つがたいてい未回答になる
@@ -250,7 +251,7 @@ baseline を決められないとき（初回の pin）はそう言う —— **
   このスキルにとって**普通の case** であり、ダウンロード数や star はこの版についての証拠ではない。
 - **帰属は判定と同じくらい重要である。**HIGH / CRITICAL に着地したとき、軸 P と A で特定した
   発行者と commit が、**上流への報告を実行可能にするもの**である。含めること。
-- **このリポジトリは公開されている。**所見が生きた指標を名指すときは、再現せず**形を述べる**。
+- **リポジトリの issue や PR へ届くものは公開されると見なす。**所見が生きた指標を名指すときは、再現せず**形を述べる**。
   確定した侵害は、issue の本文へ届く前に私的に上げる。
 - このスキルは commit も stage も push もしない。
 

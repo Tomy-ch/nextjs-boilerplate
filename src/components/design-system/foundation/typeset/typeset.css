@@ -69,7 +69,7 @@
   ) {
   color: var(--semantic-color-foreground);
   font-family: var(--typeset-font-heading);
-  font-weight: var(--semantic-font-weight-strong);
+  font-weight: var(--semantic-font-weight-emphasis);
   line-height: 1.25;
   text-wrap: balance;
 }
@@ -238,7 +238,7 @@
   :where(th):not(.not-typeset):not(.not-typeset *):not([data-not-typeset]):not(
     [data-not-typeset] *
   ) {
-  font-weight: var(--semantic-font-weight-strong);
+  font-weight: var(--semantic-font-weight-emphasis);
 }
 
 .typeset

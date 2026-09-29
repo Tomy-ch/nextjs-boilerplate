@@ -29,7 +29,7 @@ describe("SelectNative", () => {
 
     const select = screen.getByRole("combobox", { name: "表示形式" });
 
-    expect(select).toHaveAttribute("data-slot", "native-select");
+    expect(select).toHaveAttribute("data-slot", "select-native");
     expect(select).toHaveAttribute("name", "display-mode");
     expect(select).toHaveValue("standard");
   });
@@ -61,7 +61,7 @@ describe("SelectNativeOptGroup", () => {
 
     expect(screen.getByRole("group", { name: "表示形式" })).toHaveAttribute(
       "data-slot",
-      "native-select-optgroup",
+      "select-native-optgroup",
     );
   });
 });
@@ -77,6 +77,6 @@ describe("SelectNativeOption", () => {
     const option = screen.getByRole("option", { name: "標準" });
 
     expect(option).toHaveAttribute("value", "standard");
-    expect(option).toHaveAttribute("data-slot", "native-select-option");
+    expect(option).toHaveAttribute("data-slot", "select-native-option");
   });
 });

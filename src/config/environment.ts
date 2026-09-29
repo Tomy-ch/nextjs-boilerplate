@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { gtmContainerIdValidator } from "./analytics/analytics.schema";
 import { apiBaseUrlValidator, apiModeValidator } from "./api/api.schema";
+import { findApplicationEnvironment } from "./application-environment";
 import {
   authClientIdValidator,
   authIssuerValidator,
@@ -16,7 +17,6 @@ import {
   maxUploadBytesValidator,
   maxUrlBytesValidator,
 } from "./http/http.schema";
-import { findApplicationEnvironment } from "./load-environment";
 import { maintenanceModeValidator } from "./maintenance/maintenance.schema";
 import { mediaOriginValidator } from "./media/media.schema";
 import {

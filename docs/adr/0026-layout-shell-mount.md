@@ -69,7 +69,8 @@ Provider が持つ状態は、境界の向こうへ持ち越されない。Cache
 したがって根の画面、nav が直接指している画面、および**線形フロー**(入力 → 確認 → 完了のように段を順に進み、戻ることを想定しない流れ)には置かない。前 2 つは nav と同じ導線を二重に置くだけであり、線形フローでは「戻れる場所」を示すことが離脱の導線になる。段の進捗は `Stepper` が持つ。
 
 - **到達経路が複数ある画面では、辿った経路ではなくサイト構造上の階層を示す**(一覧から入っても絞り込みから入っても、同じ `トップ > 一覧 > 1 件`)
-- **置く主体は画面**である。器は口を持たない。どの階層を示すかは画面が持っている値(1 件の名前など)に依存し、器が知ると画面ごとの分岐を器が抱える
+- **中身の持ち主は画面**である。どの器(`AppShell` / `AdminShell` ほか全ての shell)もパンくずの中身を持たない。どの階層を示すかは画面が持っている値(1 件の名前など)に依存し、器が知ると画面ごとの分岐を器が抱える
+- **器が受ける口は、画面と同じ形の並行 route(`@breadcrumb` 等)が埋める slot に限って許す。** 位置は器が持ち、中身はその並行 route が画面ごとに組むので、持ち主は画面のまま変わらない。器が自分で中身を組む口(階層の配列や現在地を器が受け取って描く形)は持たない
 
 パンくずは WCAG の AA 要件ではない(SC 2.4.8 Location は AAA。[0100](0100-accessibility-target.md))。したがって上記は a11y 要件の充足ではなく、**情報構造を一貫させるための規約**である。
 
@@ -77,7 +78,7 @@ Provider が持つ状態は、境界の向こうへ持ち越されない。Cache
 
 - ❌ `page.tsx` が横断 UI / Provider を直接 mount すること(mount 例外は `layout.tsx` 限定)（強制: 散文 —— **寄せられる**（`src/app/**/page.tsx` を `APP_ELEMENTS` の category として宣言し、`components` / `capabilities` / `stores` を `forbidden` に入れる形。規則は無い））
 - ❌ `layout.tsx` で hook 呼び + データ配線を行うこと(mount = 配置のみ。合成は feature)（強制: 散文 —— **一部寄せられる**。`layout.tsx` での hook 呼び出しは `use` で始まる呼び出しとして落とせるが規則は無い。データ配線は取得の使い方で決まり、import の集合では表せない）
-- ❌ 器(`AppShell`)がパンくずの口を持つこと、および階層が 1 段の画面へパンくずを置くこと（強制: 散文 —— **一部寄せられる**。`AppShell` の props がパンくずの口を持つかは型で落とせるが規則は無い。画面の階層が 1 段かは global nav との関係で決まり、コードの形からは決まらない）
+- ❌ 器(どの shell も)がパンくずの中身を持つこと、および階層が 1 段の画面へパンくずを置くこと。画面と同じ形の並行 route が埋める slot を器が受けるのは中身を持つことにあたらない（強制: 散文 —— **寄せられない**。器の口が並行 route の slot を受けるだけか中身を組むかは、props の型ではなく渡し方で決まる。画面の階層が 1 段かは global nav との関係で決まり、コードの形からは決まらない）
 - ❌ 見せる相手が違う面を 1 枚の shell に分岐で抱えること(shell を分ける)（強制: 散文 —— **寄せられない**。見せる相手が違うかは画面の意味で決まり、shell 内の分岐の形からは決まらない）
 - ❌ 本来ローカルで足りる一時的な UI 状態(単発トーストの表示フラグ等)を、shell マウント層でグローバル状態として抱え込むこと。横断的に共有すべき UI 状態は [0060](0060-state-management.md) が採用した `stores`(Zustand)へ置く（強制: 散文 —— **寄せられない**。状態がローカルで足りるかは使われ方の判断で、コードの形からは決まらない）
 
@@ -86,7 +87,7 @@ Provider が持つ状態は、境界の向こうへ持ち越されない。Cache
 - [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app/route-segment`(layout / page。本 ADR が layout の mount を細分)
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — Provider mount 例外(本 ADR が capabilities 限定から一般化)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 依存マトリクス(`app/route-segment` 行の layout mount 例外)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — ポリシー Provider(反応的供給時に layout mount)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — ポリシー Provider(反応的供給で Provider を要する形を採るときに layout mount)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — 描画モードは route 全体で決まる(器を分ける判断の相方)
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — 遷移意味論の変更(状態の持ち越しを設計が当てにしない相手)
 - [0050-styling-strategy.md](0050-styling-strategy.md) — テーマ / ダークモード(Provider mount 対象)
