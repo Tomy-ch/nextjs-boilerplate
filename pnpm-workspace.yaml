@@ -28,8 +28,10 @@ overrides:
   # GHSA-7p8r-x3mc-p8w7 (high): authority 部のバックスラッシュで host の解釈が他のパーサとずれる。
   # GHSA-5jgf-p345-68v8 / GHSA-f65p-4m7j-42xc / GHSA-fph4-wmhf-6fwf / GHSA-jqff-g426-hqxp (high):
   # 同じ URI 解析の取り違えが 3.1.5 にも残っており、3.1.6 で塞がれた。
-  # ajv の宣言は ^3.0.1 で 3.1.6 はその内側。ajv が 3.1.6 以上を要求したら撤去する。
-  "fast-uri@<3.1.6": ">=3.1.6 <4"
+  # GHSA-58mr-gqgx-xq4g / GHSA-qw65-cvwx-89v3 (high): authority の閉じない角括弧による host の
+  # 取り違えと、serialize が port を検証せず authority を差し込める件。3.1.7 で塞がれた。
+  # ajv の宣言は ^3.0.1 で 3.1.7 はその内側。ajv が 3.1.7 以上を要求したら撤去する。
+  "fast-uri@<3.1.7": ">=3.1.7 <4"
   # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
   # 公開されるドキュメントサイトで browser 上を走る。
   # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り
@@ -77,6 +79,17 @@ overrides:
   # vite-plugin-storybook-nextjs の宣言は ^2.0.0 で 2.0.3 はその内側。
   # vite-plugin-storybook-nextjs が 2.0.3 以上を要求するか、image-size を引かなくなったら撤去する。
   "image-size@<2.0.3": ">=2.0.3 <3"
+  # express-rate-limit（shadcn CLI > @modelcontextprotocol/sdk が引く）の推移的依存。
+  # GHSA-2vr4-cq9g-pvrc / GHSA-rpw4-54j3-4h4q (moderate): NAT64 のローカル用範囲と fe80::/10 の
+  # リンクローカルを取りこぼし、SSRF や信頼境界の迂回を許す。
+  # express-rate-limit の宣言は ^10.2.0 で 10.5.1 はその内側。
+  # express-rate-limit が 10.5.1 以上を要求したら撤去する。
+  "ip-address@<10.5.1": ">=10.5.1 <11"
+  # jsdom / shadcn CLI / @dotenvx/dotenvx の推移的依存。
+  # GHSA-3wwx-pv8p-q78v (moderate): WebSocket の permessage-deflate の展開で未処理の例外が
+  # 出てプロセスが落ちる。宣言は ^7.24.5 / ^7.27.2 / ^7.11.0 で 7.29.1 はいずれの内側でもある。
+  # 3 つがすべて 7.29.1 以上を要求したら撤去する。
+  "undici@>=7.28.0 <7.29.1": ">=7.29.1 <8"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
