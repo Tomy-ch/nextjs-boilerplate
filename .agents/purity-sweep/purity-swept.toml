@@ -28,7 +28,6 @@
 ".claude/skills/full-verify/prompts/verify-impl.md" = "観点 1 が持つコメント規約の写しが、`docs/rules.md`「コメントと文書」を実行時に読む指示へ置き換わったとき（`comment-reviewer.md` と同じ形）"
 "docs/traceability.md" = "実装タスクの章が、テンプレートから作った側でも真になる形に決着したとき —— いまの本文はこのリポジトリの issue 番号と起票日を証拠に使っており、作った側の手元では解決しない"
 ".claude/skills/full-verify/scripts/run.sh" = "`manage-skill` で full-verify を触るとき。`.claude/**` の維持はそのスキルが所有しており、ここを単独で判定すると所有を跨ぐ"
-"docs/adr/0112-data-classification-cache-boundary.md" = "補足「実装時に実測する点」が、verifySession の cache() が cached scope の中で cookies() の再読を妨げるかの実測結果か、制約の文に置き換わったら"
 
 [swept]
 ".agents/README.md" = "2026-09-28"
@@ -345,3 +344,4 @@
 "tokens/themes/user/light.json" = "2026-09-28"
 "tokens/themes/user/dark.json" = "2026-09-28"
 "scripts/lib/edge-imports.ts" = "2026-09-28"
+"docs/adr/0112-data-classification-cache-boundary.md" = "2026-09-30"
