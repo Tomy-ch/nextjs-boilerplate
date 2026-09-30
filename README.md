@@ -1,5 +1,15 @@
 ---
 test-requirement: unit
+coverage-exclusions:
+  - "commitlint.config.ts"
+  - "eslint.config.ts"
+  - "knip.ts"
+  - "orval.config.ts"
+  - "playwright*.config.ts"
+  - "vitest.config.ts"
+  - "vitest.scripts.config.ts"
+  - "architecture.ts"
+  - "*.d.ts"
 ---
 
 # nextjs-boilerplate
