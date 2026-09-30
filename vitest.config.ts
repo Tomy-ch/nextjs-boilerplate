@@ -56,6 +56,8 @@ export default defineConfig({
       // カタログが自分で持つ判定。設定ファイルは判定を持てないので、外すものは
       // `scripts/lib/untested-modules.ts` の宣言が持つ。
       ".storybook/**/*.test.{ts,tsx}",
+      // リポジトリ直下。相手はアプリの build 設定とこの suite 自身の harness で、lint やゲートではない。
+      "*.test.{ts,tsx}",
     ],
     setupFiles: ["./vitest.setup.ts"],
     // client config はビルド時に置換されるリテラルを前提に `process.env` を静的に読む。この実行は
@@ -80,6 +82,10 @@ export default defineConfig({
         "vrt/**/*.ts",
         "e2e/**/*.ts",
         ".storybook/**/*.{ts,tsx}",
+        // 直下は判定を持つものだけを名指しする。`setupFiles` の `vitest.setup.ts` は、vitest が
+        // 設定では覆せない固定の除外として母数から外すため、ここへ並べても数えられない。
+        "next.config.ts",
+        "vitest.setup.msw.ts",
       ],
       // 検査対象から外すモジュールは scripts/lib/untested-modules.ts の宣言 1 箇所が持ち、
       // カバレッジ母数と 1:1 ゲートの双方がそれを読む。ここへ直接足すと、
