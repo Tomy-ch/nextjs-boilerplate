@@ -90,6 +90,13 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as cons
  * - `.storybook/css.d.ts` — 型宣言のみ。
  * - `.storybook/msw/worker.ts` — ブラウザの service worker を立てるだけ。何を警告と数えるかは
  *   `.storybook/lib/unhandled-request.ts` が持つ。Vitest からは呼べない。
+ * - リポジトリ直下の道具の設定（`commitlint` / `eslint` / `knip` / `orval` / `playwright` /
+ *   `vitest`）— 道具へ渡す値の束で、読み手は道具自身。値が効いていることは、それぞれの道具の
+ *   実行（lint / e2e / 生成 / テスト）が示す。`next.config.ts` は環境から設定を組み立てる判定を
+ *   持つため並べない。**関数を export し始めたら、ここから外してテストを置く。**
+ * - `architecture.ts` — 依存マトリクスと境界の宣言。定数だけを持ち、判定は読み手（境界の lint・
+ *   `check:architecture`・層別責務の解決）が持つ。
+ * - リポジトリ直下の `*.d.ts` — 型宣言のみ。
  */
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
@@ -108,6 +115,15 @@ const NON_DECIDING_MODULES = [
   ".storybook/lib/sample-asset.ts",
   ".storybook/css.d.ts",
   ".storybook/msw/worker.ts",
+  "commitlint.config.ts",
+  "eslint.config.ts",
+  "knip.ts",
+  "orval.config.ts",
+  "playwright*.config.ts",
+  "vitest.config.ts",
+  "vitest.scripts.config.ts",
+  "architecture.ts",
+  "*.d.ts",
 ] as const;
 
 /**

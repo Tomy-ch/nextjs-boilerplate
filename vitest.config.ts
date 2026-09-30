@@ -82,10 +82,9 @@ export default defineConfig({
         "vrt/**/*.ts",
         "e2e/**/*.ts",
         ".storybook/**/*.{ts,tsx}",
-        // 直下は判定を持つものだけを名指しする。`setupFiles` の `vitest.setup.ts` は、vitest が
-        // 設定では覆せない固定の除外として母数から外すため、ここへ並べても数えられない。
-        "next.config.ts",
-        "vitest.setup.msw.ts",
+        // 直下。照合は絶対パスへの部分一致なので、根元から綴らないと全階層に当たる。
+        // `setupFiles` の `vitest.setup.ts` は vitest が固定で外すため数えられない。
+        `${fileURLToPath(new URL(".", import.meta.url))}*.{ts,tsx}`,
       ],
       // 検査対象から外すモジュールは scripts/lib/untested-modules.ts の宣言 1 箇所が持ち、
       // カバレッジ母数と 1:1 ゲートの双方がそれを読む。ここへ直接足すと、
