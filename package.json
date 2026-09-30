@@ -138,7 +138,7 @@
     "lefthook": "2.1.10",
     "lighthouse": "13.4.1",
     "linkedom": "0.18.13",
-    "markdownlint-cli2": "0.23.1",
+    "markdownlint-cli2": "0.23.3",
     "mermaid": "11.16.1",
     "msw": "2.15.0",
     "orval": "8.23.0",

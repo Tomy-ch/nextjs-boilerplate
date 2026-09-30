@@ -289,7 +289,7 @@
 
 ## コメントと文書
 
-> Rationale: [ADR 0144](adr/0144-decision-enforcement-pairing.md) / [ADR 0140](adr/0140-documentation-operations.md) / [ADR 0021](adr/0021-frontend-responsibility.md); review（`comment-reviewer` / `doc-reviewer`）、`premise-lint`（`pnpm lint:md`）、`scripts/tsdoc-frame.gate.test.ts`（名前の付いた関数の枠）が見る。biome は export への doc comment を要求しないので、内容の規約は `premise-lint` が拾う形を除いてレビューが持つ。
+> Rationale: [ADR 0144](adr/0144-decision-enforcement-pairing.md) / [ADR 0140](adr/0140-documentation-operations.md) / [ADR 0021](adr/0021-frontend-responsibility.md); review（`comment-reviewer` / `doc-reviewer`）、`premise-lint`（`pnpm lint:md`）、`scripts/tsdoc-frame.gate.test.ts`（`src/` の名前の付いた関数の枠。`scripts/` などそれ以外の枠はレビューが持つ）が見る。biome は export への doc comment を要求しないので、内容の規約は `premise-lint` が拾う形を除いてレビューが持つ。
 
 - **コメントを書く前に、偽になったとき何が落ちるかを問う（[0144](adr/0144-decision-enforcement-pairing.md)）。** 既に落ちるものが在るなら**書かない** —— 落ちるものが正本で、コメントはその写しとして腐るだけである。落ちるものを作れるなら**作る**（型 / テスト / 実行される例 / 生成の入力）。寄せ先の優先順は 0144 の表の「落ちる時点」が決め、型が最も早い。作れないと分かったものだけがコメントになり、行き先は下記の前提の所在テストが決める。**コメントとは、評価者を作れなかったことの記録である。** この問いを最も厳しく当てるのは**インラインコメント**で、最小限に留める —— 呼び出し地点の hover にも Storybook にも出ないので、偽になっても誰の目にも触れず、見えない所で腐った文書だけが増える。TSDoc は下の項の枠で書き、`@remarks` は宣言が引き受けることの要約を書く。
 - **TSDoc の必須の枠（下の項が求める要約とタグ）の外に残してよいのは、コードが構文的に述べられないことだけ** —— 呼び出し側の義務 / 意図的な不在 / 外の前提。コードは「自分が何をするか」しか言えないので、この 3 つはコードと競合しない。逆に**コードが述べられることをコメントが述べた瞬間、出所が 2 つになり、読み手はどちらを信じるか選ばされる**。読み手は人だけではなく、コメントを実行ロジックより優先して読む。枠の外の文は、既定を「書かない」へ倒す —— 誤ったコメントの害は、無いことの害より大きい。枠そのものは、この既定に関わらず書く。

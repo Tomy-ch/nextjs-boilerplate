@@ -38,27 +38,21 @@ overrides:
   # XSS になる。mermaid の宣言は ^3.3.3 で 3.4.13 はその内側。
   # mermaid が 3.4.13 以上を要求したら撤去する。
   "dompurify@<3.4.13": ">=3.4.13 <4"
-  # minimatch (glob 経由で Storybook の依存が引く) の推移的依存。
+  # minimatch (glob 経由で Storybook の依存、typescript-eslint、eslint が引く) の推移的依存。
   # GHSA-cchq-frgv-rjh5 (high): 展開の中間結果に上限が無く、短い入力で処理が止まらなくなる。
-  # minimatch の宣言は ^5.0.8 で 5.0.9 はその内側。minimatch が 5.0.9 以上を要求したら撤去する。
-  "brace-expansion@<5.0.9": ">=5.0.9 <6"
+  # GHSA-6j4f-fj2g-mc7p / GHSA-qhr7-859c-m2p7 (high): カンマ区切りと入れ子の波括弧の再帰に上限が
+  # 無く、スタックを使い切る。GHSA-q2hr-2g5m-vwhr (moderate): `{a},b}` の書き換えが入力長に対して
+  # 二次で伸びる。5.0.12 で 3 件とも塞がれた。
+  # minimatch の宣言は ^5.0.5 / ^5.0.8 で 5.0.12 はその内側。minimatch が 5.0.12 以上を要求したら撤去する。
+  "brace-expansion@<5.0.12": ">=5.0.12 <6"
   # cosmiconfig (commitlint が引く) の推移的依存。
   # GHSA-pmgw-qhcx-hj4c (high): !!omap の解決が入力長に対して二次で伸びる。
   # cosmiconfig の宣言は ^4.1.0 で 4.3.1 はその内側。cosmiconfig が 4.3.1 以上を要求したら撤去する。
   "js-yaml@>=4 <4.3.1": ">=4.3.1 <5"
-  # markdownlint-cli2 の推移的依存。設定ファイル（TOML）の解析器で、読ませるのはリポジトリが
-  # 持つ資材に限る。配信物には入らず、lint の実行時にしか走らない。
-  # GHSA-7w5x-hrqm-74c2 (high, 8.2): 1.7.0 だけが対象で、1.7.1 で塞がれた。
-  # **ここは「上流の宣言範囲の内側」から外れる。** markdownlint-cli2 の宣言は範囲ではなく
-  # `1.7.0` の完全固定で、最新の 0.23.2 でも同じなので、内側に留まると塞げない。組み合わせの
-  # 検証は `pnpm lint:md` が markdown を触る変更ごとに実際に回すことで代える。
-  # markdownlint-cli2 が 1.7.1 以上を宣言したら撤去する。
-  "smol-toml@1.7.0": ">=1.7.1 <1.8"
-  # markdownlint-cli2 の推移的依存。
-  # GHSA-jvvh-6pj7-4vhr (high): flow collection の解析時間が入力長に対して指数で伸びる。
-  # markdownlint-cli2 は既に 5.2.2 を宣言しており、こちらの lockfile だけが 5.2.1 で止まっている。
-  # markdownlint-cli2 の版を上げた時点で撤去する。
-  "js-yaml@>=5 <5.2.2": ">=5.2.2 <6"
+  # typedoc (orval が引く) の推移的依存。API 型の生成時にしか走らず、配信物には入らない。
+  # GHSA-253c-mchw-3w2r (moderate): linkify を有効にすると 2 つの経路が入力長に対して二次で伸びる。
+  # typedoc の宣言は ^14.3.0 で 14.3.1 はその内側。typedoc が 14.3.1 以上を要求したら撤去する。
+  "markdown-it@<14.3.1": ">=14.3.1 <15"
   # postcss の推移的依存。
   # GHSA-8v8w-v8xg-79rf (high): 自前の生成器を渡すと終わらない場合がある。
   # postcss の宣言は ^3.3.6 で 3.3.18 はその内側。postcss が 3.3.18 以上を要求したら撤去する。

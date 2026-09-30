@@ -30,6 +30,23 @@ Accepted
 
 したがって観測ツールには、ゲートが使う `@playwright/test` の chromium を実行ファイルとして明示的に渡す。自動検出に委ねない。
 
+**値の置き場は `pnpm exec tsx scripts/chromium-path` の 1 か所である。** 答えは `chromium.executablePath()` そのもので、`make lighthouse` も同じ関数で起動する実体を決めている。実体が入っていなければ何も出さずに 2 で終わる。コミットされた設定（`.claude/settings.json` の `env`、`mise.toml` の `[env]`）には書かない —— パスは機械ごとに違い、lockfile の `@playwright/test` の版が動くと黙って古くなる。
+
+受け口は道具ごとに違い、この差は道具の側の事実なので吸収する層を作らない。
+
+| 道具 | 受け口 |
+| --- | --- |
+| `agent-browser` | `--executable-path`（または環境変数 `AGENT_BROWSER_EXECUTABLE_PATH`） |
+| `chrome-devtools` | `start --executablePath` だけ。対応する環境変数は無い |
+
+**受け取りは変数へ代入してから渡す。**
+
+```sh
+p=$(pnpm exec tsx scripts/chromium-path) && agent-browser --executable-path "$p" open <url>
+```
+
+`"$(…)"` を引数へ直に埋めると、置換の失敗が空文字として渡り、道具は自動検出へ落ちて別のブラウザを黙って掴む。
+
 ### 見る・触る — agent-browser
 
 ref 付きの a11y snapshot と、その差分。要素の bounding box と computed styles。axe を同梱した a11y 監査。React の fiber 内省（component tree / props / 再描画 / Suspense 境界の分類）。
@@ -48,7 +65,23 @@ computed styles を画面をまたいで引き比べられることも、この 
 
 DevTools の trace を採り、Insight を名指しで展開する。source map を適用した stack trace。ページの現在の状態に対する Lighthouse 監査。heap snapshot。CPU とネットワーク帯域の絞り込み。
 
-ゲートは Core Web Vitals の数値と予算の照合までを担うが、**なぜその数値になるかには答えない。** バンドルされたコードで例外が出たときに元のソース位置を得る経路も、ここにしかない。
+ゲートは Core Web Vitals の数値と予算の照合までを担うが、**なぜその数値になるかには答えない。** バンドルされたコードで例外が出たときに元のソース位置を得る経路も、道具の宣言の上ではここにしかない。本番 build はブラウザ向けの source map を出さない（`next.config.ts` に `productionBrowserSourceMaps` が無い）ので、この経路が働くのは開発サーバに対してだけである。
+
+**道具より先に `start` を明示して呼ぶ。**
+
+```sh
+p=$(pnpm exec tsx scripts/chromium-path) && pnpm exec chrome-devtools start --executablePath "$p" --no-performance-crux
+```
+
+daemon が居ない状態で道具（`navigate_page` など）を呼ぶと、daemon は暗黙に起動する。道具の引数は起動の指定を受けないので、そのとき掴むのは system の Chrome（stable channel）で、窓が開き、道具自身の永続プロファイル（`~/.cache/chrome-devtools-mcp-cli/chrome-profile`）を使い、下の CrUX 照会も有効のままになる。明示の `start` は headless と使い捨てプロファイル（`--isolated`）を既定にする。どちらで起動したかは `pnpm exec chrome-devtools status` の `args` に出る。
+
+呼び出しの形が持つ制約は 3 つ。
+
+- **daemon は利用者ごとにホストで 1 つ**で、`start` は既に居る daemon を止めてから起動する。並行する作業ツリーは互いの daemon を止めうる
+- **ファイルへの書き出し（`--filePath` / `--outputDirPath`）は OS の一時ディレクトリの内側に限られる。** CLI は書き出し先の範囲を道具へ伝えないためで、範囲外は `Access denied` を返すが終了コードは 0 のままである。範囲を外す `--allow-unrestricted-paths` は使わない
+- 道具の Lighthouse 監査は Performance の区分を持たない。数値はこのレーンの trace と「測る」レーンが持つ
+
+**確かめてある能力**は、本番 build（`APP_ENV=ci`、mock API）に対する trace の採取と Insight の展開、Lighthouse 監査、ネットワークとコンソールの一覧である。source map を当てた stack trace は確かめていない。
 
 ## 裏取り
 
@@ -75,7 +108,7 @@ DevTools の trace を採り、Insight を名指しで展開する。source map 
 
 - **使い方が降ってこない。** repo に MCP の登録を置くと、エージェントが起動のたびにそのサーバを立てる。本リポジトリが配るのは道具の pin であって、エージェントの構成ではない
 - **文脈を常時消費しない。** MCP はツール定義がセッション中ずっと載る
-- **既定が安全側に倒れている。** CLI は使い捨てプロファイルが既定で、MCP サーバ側は永続プロファイルが既定である
+- **既定が安全側に倒れている。** CLI は明示の `start` で起動したとき使い捨てプロファイルが既定で、MCP サーバ側は永続プロファイルが既定である（暗黙の起動は「掘る」の節）
 
 代償として、CLI に生成されないツールがある（待機と一括入力）。待機が要るのは「見る・触る」レーンであり、そこは別の道具が担うため成立する。
 
@@ -114,8 +147,11 @@ DevTools の trace を採り、Insight を名指しで展開する。source map 
 - 利用統計の送信
 - 更新確認のためのレジストリ照会
 - 外部の言語モデルを呼ぶサブコマンド
+- 性能 trace の URL を外部の実測データ API へ照会すること
 
 **止める先は環境変数であって、呼び出しごとのフラグではない。** 道具は最初の呼び出しで常駐プロセスを自分で起動することがあり、そのとき使われるのはライブラリの既定値である。個々のサブコマンドが送信の可否を引数として受け取らない作りなら、**呼び出し側からフラグで止める経路は存在しない。**
+
+例外は `chrome-devtools` の CrUX 照会で、環境変数が無く、`start --no-performance-crux` だけが止める経路である。暗黙の起動ではこれが有効のまま残るが、道具は `localhost` / `127.0.0.1` の URL を照会から外すので、手元の開発サーバを観測する限り URL は外へ出ない。
 
 なお本節が対象にするのは道具自身の既定の送信であって、エージェントが `eval` 相当のサブコマンドへ明示的に渡すコードの送信先までは含まない。
 
@@ -133,6 +169,7 @@ DevTools の trace を採り、Insight を名指しで展開する。source map 
 
 - ❌ ここで定めた道具で撮った画像を**基準画像として採用**すること。撮影環境の固定は [0091](0091-test-verification-methods.md) が持つ（強制: `vrt` job の比較（digest 固定コンテナ・`maxDiffPixels: 0`）が別環境で撮った画素を差分として落とし、`baseline-approval` job が基準画像を動かす PR に承認ラベルを要求する）
 - ❌ ここで定めた道具を CI・git hook・build のいずれかのゲートに接続すること。ゲートの権威は既存の検査にある（強制: 散文 —— **寄せられる**（`.github/workflows/**`・`.lefthook.yaml`・`package.json` の scripts に `agent-browser` / `chrome-devtools` / `playwright cli` の呼び出しが現れないことを走査で見る。規則は無い））
+- ❌ 観測ツールに実行ファイルを渡さずにブラウザを起動させること（強制: 散文 —— **一部寄せられる**。`agent-browser` の起動行に `--executable-path` が無いことは綴りから落とせるが規則は無く、環境変数で渡した指定は綴りに現れない。`chrome-devtools` の暗黙の起動は daemon が居るかどうかで決まり、呼び出しの綴りからは決まらない）
 - ❌ 同じ問いに 2 つのレーンを充てること（強制: 散文 —— **寄せられない**。2 つの道具が同じ問いに充てられているかは、観測の目的で決まる）
 - ❌ 実ブラウザのプロファイルへ接続する経路を、確認なしに使うこと
 

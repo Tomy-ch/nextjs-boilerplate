@@ -59,7 +59,7 @@
 | **T2** | 0002 | formatter-linter (biome) | ✅ | ✅ | T1 | biome 優先 / biome 非対応検査のみ ESLint 補完 (能力ベース・重複禁止・縮小方向) / フォーマッタは biome 単独 / Prettier 不採用 / VSCode 連携 / **tsconfig 追加フラグ 5 件 + `target` 引き上げ**(型で捕まえる検査は tsc 側) |
 | **T3** | 0003 | version-manager (mise) | ✅ | ✅ | T1 | ツール・言語バージョンの SSOT に `mise.toml` を採用 / 配送層への mise 拡張禁止 |
 | **T4** | 0004 | library-management | ✅ | ✅ | T1 | npm 依存の選定・固定・更新・監査メタ方針 / コア依存は exact pin / メジャー更新は別 PR / 一次判定 (単一責務 × 単一 upstream) + 例外パス + fork コスト上限 |
-| **T5** | 0156 | ブラウザ実測ツール | ✅ | ⚠️ | T1, T3, B8 | 観測の 3 レーン(見る・触る / 測る / 掘る)と問い 1 つに道具 1 つ / CLI 前提・MCP 登録しない / 実ブラウザのプロファイルへ接続しない / 取得経路は Node パッケージ=pnpm・単体バイナリ=mise(`npm:` backend 不採用) / 基準画像とゲートには接続しない |
+| **T5** | 0156 | ブラウザ実測ツール | ✅ | ✅ | T1, T3, B8 | 観測の 3 レーン(見る・触る / 測る / 掘る)と問い 1 つに道具 1 つ / CLI 前提・MCP 登録しない / 実ブラウザのプロファイルへ接続しない / 取得経路は Node パッケージ=pnpm・単体バイナリ=mise(`npm:` backend 不採用) / 基準画像とゲートには接続しない |
 | **T6** | 0158 | コード検索・影響解析ツール | ✅ | ✅ | T1, T3 | 採るのは関係付きの推移的な変更影響(`affected`)で grep の置き換えにはしない / 問い合わせは予算で切り詰められグラフはスナップショットなので、網羅が要る問いは grep へ戻る / 取得は単体バイナリとして mise / 導入経路は bootstrap 1 本 / 外部 LLM API を呼ぶ操作は都度確認 |
 | **T7** | 0159 | 補助スクリプトの言語と構造 | ✅ | ✅ | T1 | 補助スクリプトは TypeScript + `tsx` で書き呼び出し側も揃える(シェル据え置きは要件を持つものだけ)/ `scripts/` 直下は 1 ツール = 1 ディレクトリで入口は `index.ts` / 入口と判定を分ける / export と test の 1:1 対応をゲートにする |
 
@@ -67,7 +67,7 @@
 
 - **T2 (0002)**: 「biome 非対応検査は ESLint で補完」を採択し、A3 ([0021](0021-frontend-responsibility.md)) がプラグイン (`eslint-plugin-boundaries`)・層定義マッピング (依存マトリクス)・severity (error) を確定した。biome 側の設定に加えて ESLint も導入済みで、依存マトリクスは `architecture.ts` を正に `eslint.config.ts` が import し、層 README の `imports-allowed` はそこから生成する(`gen:architecture`)。生成結果との差分検査は `check:architecture` が担う。いずれも `lint:ci` に直列で載る
 - **T4 (0004)**: ギャップ解消済み。主要 dev ツールは `typescript` を含め exact pin で整合し、PR テンプレート (`.github/pull_request_template.md`) に「ライブラリ採用チェック」節を組み込んだ
-- **T5 (0156)**: 道具は導入済み（`mise.toml` の `agent-browser` / devDependency の `chrome-devtools-mcp`）で、エージェントの許可は「末尾に自由な入力を残さない + フラグ等価の環境変数を固定」の形で担保済み。**未了は 2 点** —— 観測に使うブラウザをゲートと同じ chromium へ向ける環境変数の置き場が決まっておらず呼ぶ側で都度解決していること、「掘る」レーン（`chrome-devtools`）を実際の調査で通していないこと
+- **T5 (0156)**: ギャップ解消済み。道具は導入済み（`mise.toml` の `agent-browser` / devDependency の `chrome-devtools-mcp`）で、エージェントの許可は「末尾に自由な入力を残さない + フラグ等価の環境変数を固定」の形で担保済み。観測ブラウザの実行ファイルは `scripts/chromium-path` が答え、「掘る」レーンは本番 build に対して trace・Insight・Lighthouse 監査を通してある
 
 ---
 
