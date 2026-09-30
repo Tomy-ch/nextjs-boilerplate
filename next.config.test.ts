@@ -22,9 +22,7 @@ async function resolveConfig(phase: string = PHASE_PRODUCTION_BUILD) {
 /** 設定が組み立てたヘッダと、ヘッダの組み立てへ渡った引数。 */
 async function resolveHeaders(phase: string = PHASE_PRODUCTION_BUILD) {
   const config = await resolveConfig(phase);
-  const { buildSecurityHeaders } = await import(
-    "./src/config/security-headers/security-headers"
-  );
+  const { buildSecurityHeaders } = await import("./src/config/security-headers/security-headers");
   const headers = await config.headers?.();
 
   return {
@@ -36,6 +34,7 @@ async function resolveHeaders(phase: string = PHASE_PRODUCTION_BUILD) {
 
 beforeEach(() => {
   vi.resetModules();
+  vi.resetAllMocks();
   stubValidEnvironment();
   vi.stubEnv("APP_ENV", undefined);
 });
@@ -118,28 +117,28 @@ describe("nextConfig", () => {
   it.each([
     { redirectUri: "https://app.example.test/auth/callback", expected: true },
     { redirectUri: "http://localhost:4000/auth/callback", expected: false },
-  ])("callback URL が $redirectUri なら、https で配信しているかを $expected として渡す", async ({
-    redirectUri,
-    expected,
-  }) => {
-    vi.stubEnv("AUTH_REDIRECT_URI", redirectUri);
+  ])(
+    "callback URL が $redirectUri なら、https で配信しているかを $expected として渡す",
+    async ({ redirectUri, expected }) => {
+      vi.stubEnv("AUTH_REDIRECT_URI", redirectUri);
 
-    const { inputs } = await resolveHeaders();
+      const { inputs } = await resolveHeaders();
 
-    expect(inputs?.servesOverTls).toBe(expected);
-  });
+      expect(inputs?.servesOverTls).toBe(expected);
+    },
+  );
 
   it.each([
     { phase: PHASE_DEVELOPMENT_SERVER, expected: true },
     { phase: PHASE_PRODUCTION_BUILD, expected: false },
-  ])("$phase の phase では、開発用のヘッダかどうかを $expected として渡す", async ({
-    phase,
-    expected,
-  }) => {
-    const { inputs } = await resolveHeaders(phase);
+  ])(
+    "$phase の phase では、開発用のヘッダかどうかを $expected として渡す",
+    async ({ phase, expected }) => {
+      const { inputs } = await resolveHeaders(phase);
 
-    expect(inputs?.development).toBe(expected);
-  });
+      expect(inputs?.development).toBe(expected);
+    },
+  );
 
   it("環境に依らない設定を固定の値で返す", async () => {
     const config = await resolveConfig();
@@ -172,8 +171,6 @@ describe("nextConfig", () => {
   it("検証を通らない ENV では、欠けた変数を名指しして失敗する", async () => {
     vi.stubEnv("MEDIA_ORIGIN", undefined);
 
-    await expect(resolveConfig()).rejects.toThrow(
-      "環境変数が不足しているか不正です: MEDIA_ORIGIN",
-    );
+    await expect(resolveConfig()).rejects.toThrow("環境変数が不足しているか不正です: MEDIA_ORIGIN");
   });
 });

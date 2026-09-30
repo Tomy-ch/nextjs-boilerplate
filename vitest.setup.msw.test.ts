@@ -7,8 +7,8 @@ import {
   serveJson,
   serveStatus,
   serveWrite,
-  watchFetch,
   type WriteMethod,
+  watchFetch,
 } from "./vitest.setup.msw";
 
 const API = "https://api.example.test";
@@ -56,10 +56,7 @@ describe("serveJson", () => {
     await fetch(`${API}/items?page=1`);
     await fetch(`${API}/items?page=2`);
 
-    expect(requests.map(({ url }) => url)).toEqual([
-      `${API}/items?page=1`,
-      `${API}/items?page=2`,
-    ]);
+    expect(requests.map(({ url }) => url)).toEqual([`${API}/items?page=1`, `${API}/items?page=2`]);
   });
 
   // ----- 異常系 -----
@@ -74,21 +71,19 @@ describe("serveJson", () => {
 
 describe("serveWrite", () => {
   // ----- 正常系 -----
-  it.each<WriteMethod>([
-    "post",
-    "patch",
-    "put",
-    "delete",
-  ])("%s を割り当てると、本文を返して要求を積む", async (method) => {
-    const requests = serveWrite(method, `${API}/items/:id`, { saved: true });
+  it.each<WriteMethod>(["post", "patch", "put", "delete"])(
+    "%s を割り当てると、本文を返して要求を積む",
+    async (method) => {
+      const requests = serveWrite(method, `${API}/items/:id`, { saved: true });
 
-    const response = await fetch(`${API}/items/7`, { method: method.toUpperCase() });
+      const response = await fetch(`${API}/items/7`, { method: method.toUpperCase() });
 
-    expect(await response.json()).toEqual({ saved: true });
-    expect(requests.map((request) => [request.method, request.url])).toEqual([
-      [method.toUpperCase(), `${API}/items/7`],
-    ]);
-  });
+      expect(await response.json()).toEqual({ saved: true });
+      expect(requests.map((request) => [request.method, request.url])).toEqual([
+        [method.toUpperCase(), `${API}/items/7`],
+      ]);
+    },
+  );
 
   it("積んだ要求から、送った本文を読み出せる", async () => {
     const requests = serveWrite("post", `${API}/items`, {});
