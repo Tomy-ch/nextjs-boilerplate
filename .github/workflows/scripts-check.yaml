@@ -11,8 +11,8 @@ name: Scripts Check
 # "the machinery broke", never as "the app regressed".
 #
 # No `paths:` filter, deliberately — README.md says why every workflow runs on every PR. The
-# 1:1 gate walks `src/`, `docs-viewer/`, `tokens/` and `mocks/` as well, so a change anywhere
-# can produce a violation here.
+# 1:1 gate walks far beyond `scripts/` (`SCAN_ROOTS` in scripts/one-to-one.gate.test.ts, plus the
+# repository root), so a change anywhere can produce a violation here.
 
 on:
   pull_request:

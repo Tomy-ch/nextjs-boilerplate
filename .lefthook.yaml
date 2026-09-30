@@ -30,7 +30,7 @@ pre-commit:
         - "pnpm-workspace.yaml"
       run: make test-cached
     scripts-test-cached:
-      # 1:1 ゲートは src / docs-viewer / tokens / mocks も走査するため、glob を scripts/ に絞らない。
+      # 1:1 ゲートは scripts/ の外も走査する（scripts/one-to-one.gate.test.ts の SCAN_ROOTS とリポジトリ直下）ため、glob を scripts/ に絞らない。
       glob:
         - "**/*.{ts,tsx}"
         - "vitest.scripts.config.ts"

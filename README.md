@@ -1,3 +1,17 @@
+---
+test-requirement: unit
+coverage-exclusions:
+  - "commitlint.config.ts"
+  - "eslint.config.ts"
+  - "knip.ts"
+  - "orval.config.ts"
+  - "playwright*.config.ts"
+  - "vitest.config.ts"
+  - "vitest.scripts.config.ts"
+  - "architecture.ts"
+  - "*.d.ts"
+---
+
 # nextjs-boilerplate
 
 **Next.js / React の表示層アプリケーション基盤**。バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ
