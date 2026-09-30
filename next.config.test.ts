@@ -55,9 +55,9 @@ describe("nextConfig", () => {
   });
 
   it.each([
-    ["本番の APP_ENV", "prd"],
-    ["APP_ENV の指定が無い", undefined],
-  ])("%s では、開発専用の拡張子を route として扱わない", async (_label, appEnv) => {
+    { label: "本番の APP_ENV", appEnv: "prd" },
+    { label: "APP_ENV の指定が無い", appEnv: undefined },
+  ])("$label では、開発専用の拡張子を route として扱わない", async ({ appEnv }) => {
     vi.stubEnv("APP_ENV", appEnv);
 
     const config = await resolveConfig();
@@ -116,9 +116,12 @@ describe("nextConfig", () => {
   });
 
   it.each([
-    ["https", "https://app.example.test/auth/callback", true],
-    ["http", "http://localhost:4000/auth/callback", false],
-  ])("callback URL が %s なら、https で配信しているかを %s として渡す", async (_scheme, redirectUri, expected) => {
+    { redirectUri: "https://app.example.test/auth/callback", expected: true },
+    { redirectUri: "http://localhost:4000/auth/callback", expected: false },
+  ])("callback URL が $redirectUri なら、https で配信しているかを $expected として渡す", async ({
+    redirectUri,
+    expected,
+  }) => {
     vi.stubEnv("AUTH_REDIRECT_URI", redirectUri);
 
     const { inputs } = await resolveHeaders();
@@ -127,9 +130,12 @@ describe("nextConfig", () => {
   });
 
   it.each([
-    ["開発サーバー", PHASE_DEVELOPMENT_SERVER, true],
-    ["本番 build", PHASE_PRODUCTION_BUILD, false],
-  ])("%s の phase では、開発用のヘッダかどうかを %s として渡す", async (_label, phase, expected) => {
+    { phase: PHASE_DEVELOPMENT_SERVER, expected: true },
+    { phase: PHASE_PRODUCTION_BUILD, expected: false },
+  ])("$phase の phase では、開発用のヘッダかどうかを $expected として渡す", async ({
+    phase,
+    expected,
+  }) => {
     const { inputs } = await resolveHeaders(phase);
 
     expect(inputs?.development).toBe(expected);

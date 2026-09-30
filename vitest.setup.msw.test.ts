@@ -63,10 +63,11 @@ describe("serveJson", () => {
   });
 
   // ----- 異常系 -----
-  it("GET 以外の要求は受けず、ハンドラの無い要求として落とす", async () => {
-    const requests = serveJson(`${API}/items`, {});
+  it("GET 以外の要求は受けず、本物の宛先が居ても届かせない", async () => {
+    const origin = await startServer();
+    const requests = serveJson(`${origin}/items`, {});
 
-    await expect(fetch(`${API}/items`, { method: "POST" })).rejects.toThrow();
+    await expect(fetch(`${origin}/items`, { method: "POST" })).rejects.toThrow();
     expect(requests).toEqual([]);
   });
 });
@@ -98,10 +99,11 @@ describe("serveWrite", () => {
   });
 
   // ----- 異常系 -----
-  it("割り当てたメソッド以外の要求は、同じ URL でも落とす", async () => {
-    const requests = serveWrite("post", `${API}/items`, {});
+  it("割り当てたメソッド以外の要求は、本物の宛先が居ても届かせない", async () => {
+    const origin = await startServer();
+    const requests = serveWrite("post", `${origin}/items`, {});
 
-    await expect(fetch(`${API}/items`, { method: "PATCH" })).rejects.toThrow();
+    await expect(fetch(`${origin}/items`, { method: "PATCH" })).rejects.toThrow();
     expect(requests).toEqual([]);
   });
 });

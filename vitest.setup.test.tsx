@@ -50,7 +50,6 @@ afterEach(() => {
 });
 
 describe("dispatchTouch", () => {
-  // ----- 正常系 -----
   it("指定した種類の event を window へ同期に届ける", () => {
     const received = listen("touchend");
 
@@ -72,7 +71,11 @@ describe("dispatchTouch", () => {
 
     dispatchTouch("touchstart", { touches: [FIRST] });
 
-    expect(received[0]).toMatchObject({ touches: [FIRST], changedTouches: [FIRST] });
+    expect(received[0]).toEqual({
+      type: "touchstart",
+      touches: [FIRST],
+      changedTouches: [FIRST],
+    });
   });
 
   it("changedTouches を渡すと、touches とは別にその指を載せる", () => {
@@ -80,7 +83,11 @@ describe("dispatchTouch", () => {
 
     dispatchTouch("touchmove", { touches: [FIRST, SECOND], changedTouches: [SECOND] });
 
-    expect(received[0]).toMatchObject({ touches: [FIRST, SECOND], changedTouches: [SECOND] });
+    expect(received[0]).toEqual({
+      type: "touchmove",
+      touches: [FIRST, SECOND],
+      changedTouches: [SECOND],
+    });
   });
 
   it("指を渡さなければ、どちらも空の並びで載せる", () => {
@@ -88,6 +95,6 @@ describe("dispatchTouch", () => {
 
     dispatchTouch("touchcancel");
 
-    expect(received[0]).toMatchObject({ touches: [], changedTouches: [] });
+    expect(received[0]).toEqual({ type: "touchcancel", touches: [], changedTouches: [] });
   });
 });
