@@ -1,3 +1,7 @@
+---
+test-requirement: unit
+---
+
 # nextjs-boilerplate
 
 **Next.js / React の表示層アプリケーション基盤**。バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ
