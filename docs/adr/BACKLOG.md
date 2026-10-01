@@ -114,7 +114,7 @@
   - **A6 = [ADR 0028](0028-naming-convention.md)**: 命名優先順位 = **Next.js 規約 > React 規約 > nextjs-boilerplate 自身の既存規約・業界スタンダード**(go-boilerplateは命名の権威に置かない)。ファイル名は**全ソース kebab-case 統一**(Next.js は特殊ファイル以外を unopinionated → 業界スタンダード/shadcn/FS 安全性/自リポ既存の小文字ファイル。従来型 React の PascalCase コンポーネントファイルは不採用)・特殊ファイル/route は Next.js 小文字規約(`[slug]`/`(group)`/`_folder`)・識別子は React 規約(component=PascalCase 等・`I` プレフィックス禁止)・環境変数 `{SUBSYSTEM}_{NAME}`・ADR ファイル `NNNN-kebab`(自リポ既存規約 `docs/adr/README.md`・採番方式はトピック順ブロック帯で確定〈2026-07-14・0001〜0155〉。`Dev-`/`Toolchain-` は数値列へ畳み込み)・テストファイル命名は B8 へ引き渡し。カーネル命名規律は 0021 が正
   - **A7 = [ADR 0030](0030-environment-variable-management.md)**: env/config の翻案方針 (全 ENV 検証 = ビルド時 + サーバ起動時のみ / `#` private + getter の不変 Config / server・client 分割 / `process.env` 直読は config モジュールのみ・biome `noProcessEnv` 強制 / 配布 = ESM シングルトン + import 境界 / 受け手 4 分類 / no-Docker のため embed → Next.js native `.env` + PaaS secret store)。討議経緯は docs/plan 統合(2026-07-18)で破棄(git 履歴参照)。決定は ADR [0030](0030-environment-variable-management.md) が正
   - 3 本とも着地済み。A5 の物理ディレクトリと層別 README、A6 の命名規則、A7 の `src/config/`(目的別に 10 モジュール)が実在し、依存マトリクスの機械強制は `eslint-plugin-boundaries` + `pnpm check:architecture` が `architecture.ts` を正として行う
-- **A4(ADR 0040・実装 ✅)**: App Router 単独 / Server Components 既定 / `"use client"` は feature 葉へ押し下げ / Server Actions = `actions.ts` / page = 薄い driving adapter / レンダリングモード非強制。`src/app/` は route group・parallel route・error 境界・Route Handler まで実在し、Cache Components は `next.config.ts` で有効(`cacheComponents: true`)。キャッシュの設計そのものは B3、境界の粒度は B6 が持つ
+- **A4(ADR 0040・実装 ✅)**: App Router 単独 / Server Components 既定 / `"use client"` は feature 葉へ押し下げ / Server Actions = `actions.ts` / page = 薄い driving adapter / レンダリングモード非強制。`src/app/` は route group・parallel route・error 境界・Route Handler まで実在し、Cache Components は `next.config.ts` で有効(`cacheComponents: true`)。キャッシュの設計そのものは B3、待機表示の責務は B6 が持つ
 - **A2(ADR 0070・実装 ✅)**: Next.js = UI + 薄い BFF / `/api/*` = thin proxy・業務ロジック禁止 / ドメインはバックエンド / 契約 SSOT = backend の `openapi.gen.yaml` / 境界値所有(response 検証はフロントが最後の砦)/ 認証・セッションの具体はテンプレートから用途依存。`src/app/api/**/route.ts` の薄い口、`src/adapters/server/http/` の fetch wrapper、`openapi/` の契約取り込み(`make gen-api`)まで実在する。**Tier 3(A 系)はこれで全 ADR 化完了**
 
 ---
@@ -206,9 +206,6 @@ i18n / a11y / パフォーマンス予算 / ブラウザサポート 等、ア�
 
 - **全 route 共通の土台が 143 KB。** react-dom が 71 KB、Next.js の router が 29 KB を占める。フレームワークの費用であり、削る対象ではない
 - **LCP と TBT の上限は、機械の速さを織り込んだぶんだけ緩い。** どちらも "good" 境界そのものではなく、床(`not-found`)+ 実行をまたぐ振れ + アプリへ割り当てる分で置いてある([0101](0101-performance-budget.md))。振れの項が要るのは runner が実行ごと 3〜4.5 倍まで動くためで、**削れるのは「機械の速さを台ごとに割り戻す」機構が入ったとき**である。床は割った台すべてで測れているので、残るのは判定の側にそれを渡すことだけになる。field の値は RUM が別に持つ([0082](0082-client-observability.md))
-- **`/checkout` の参考換算額が 1 描画で 3 回問い合わせられるのは、再試行である。** 描画 span を入れて採り直すと、3 本とも `checkout/confirm/page-content.tsx` の span の中にあり、応答は 3 本とも **503**(local の go 側で為替の供給元が未設定)。HTTP クライアントが `maxAttempts` まで再試行した結果であって、memo 化の失敗ではない。同じ trace で `getMyCart` / `getMyUser` は layout の取得と 1 回に畳まれており、`cache` は効いている。**供給元を立てた環境で 1 回に戻ることを確認する**のが残りの作業である <!-- sample:line -->
-- **`next/dynamic` にした部品が、初回描画の直後に取得されている。** `wizard-form.tsx` は `<form action>` の送信で入力値を落とさないため全段を `hidden` で DOM に残し、`dynamic` はマウント時点で取得を始める。実測で、操作なしの初回読み込みで編集面(ProseMirror)と確認の段(sanitizer)のチャンクが取得されている。**最初に読む一式からは外れているので `bundle-budget` の数値は正しい**が、同じページを開いた人はそのバイトを払う。本当に遅らせるには「まだ到達していない段は中身を描かない」を器が持つ必要があり、入力欄を持つ段(値を残す必要がある)と読み取り専用の段(確認)で扱いを分けることになる
-- **`/checkout` の `<Suspense>` が待つものの単位で切れていない。** 明細は外枠と同時に届くのに、profile と参考換算額を待つ同じ境界の中にある(0040 の境界の粒度)。CLS が 0.087〜0.112 と上下するのはこのため <!-- sample:line -->
 
 ### 機械的強制が文書に追いついていない箇所
 

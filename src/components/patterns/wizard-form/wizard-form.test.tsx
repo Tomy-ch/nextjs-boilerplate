@@ -213,6 +213,16 @@ describe("WizardForm", () => {
     expect(screen.getAllByRole("group")).toHaveLength(1);
   });
 
+  it("まだ到達していない段階の中身は組み立てない", async () => {
+    const { container } = render(<WizardFixture />);
+
+    expect(container.querySelector("input[name='purpose']")).toBeNull();
+
+    await next();
+
+    expect(container.querySelector("input[name='purpose']")).not.toBeNull();
+  });
+
   it("進捗として段階の並びと現在位置を示す", () => {
     render(<WizardFixture />);
 

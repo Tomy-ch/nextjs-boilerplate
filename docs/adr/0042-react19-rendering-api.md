@@ -22,7 +22,7 @@ Accepted
 | --- | --- | --- |
 | RSC / Client 境界を **どこに置くか**・`"use client"` の押し下げ | [0040](0040-routing-rendering-strategy.md) | 本 ADR は境界の内側の **API の書き方** のみ |
 | `use()` を使った **データ取得の編成・キャッシュ・重複排除** | [0071](0071-bff-api-integration.md) | 本 ADR は `use()` を **レンダリングのプリミティブ** としてどう書くかのみ |
-| `<Suspense>` / `loading.tsx` の **境界配置・粒度** | [0080](0080-error-handling.md) | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
+| `<Suspense>` の **境界配置・粒度** | [0040](0040-routing-rendering-strategy.md)(`loading.tsx` / fallback の待機表示は [0080](0080-error-handling.md)) | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
 | 横断的な reactive client hook(runtime 能力)の **家** | [0022](0022-capabilities-kernel.md) | 本 ADR は `useEffect` の **書き方の抑制方針** のみ |
 
 ## 決定
@@ -36,7 +36,7 @@ Accepted
 
 - `use()` を **Promise / Context の読取**に用いてよい。`useContext` に代えて `use()` で Context を読むことを許容する(`use()` は条件分岐・早期 return の内側でも呼べる —— Hook のトップレベル制約を受けない読取であるため)。
 - **正道**: Server Component で開始した fetch の Promise を Client Component へ **props で渡し**、`<Suspense>` 境界の下で `use()` により解決する(`fetching-data.md` の文書化パターン。0040「`"use client"` は葉へ押し下げ」と整合し、fetch 自体は server に留めつつ待機のみ client へ寄せる)。
-- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0080](0080-error-handling.md) が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
+- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0040](0040-routing-rendering-strategy.md) が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
 
 ### 3. `useEffect` を外部システム同期に限定する(抑制)
 
@@ -101,7 +101,7 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 - ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)（強制: 散文 —— **寄せられない**。一律に削除したかどうかは変更の意図であって、残ったコードの形には現れない）
 - ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)（強制: 散文 —— **寄せられない**。緩める理由は変更の動機でコードに現れない。境界そのものは 0112 の側の機械が見る）
 - ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)（強制: 散文 —— **寄せられない**。手当てが下の層と重なるか、メモ化の先に同一性へ依存する相手が居るかは責務と購読の判断で、コードの形からは決まらない。責務の側は [`docs/rules.md`](../rules.md)「層境界と依存」が持つ）
-- ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0080)を再決定すること(射程外)（強制: 散文 —— **寄せられない**。ある記述が射程外の再決定かどうかは内容の意味で決まり、文書の形からは決まらない）
+- ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0040)を再決定すること(射程外)（強制: 散文 —— **寄せられない**。ある記述が射程外の再決定かどうかは内容の意味で決まり、文書の形からは決まらない）
 
 ## 補足
 
@@ -117,7 +117,7 @@ Compiler を SSR-First の前提や標準挙動には置かない。Compiler を
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — reactive な横断 client hook の家(`useEffect` 昇格先)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — `use()` を用いるデータ取得の編成・キャッシュ・重複排除(本 ADR から委譲)
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components の採否(前提を満たさなければ build が落ちる fail-fast 型の機構。決定 4 の blast radius の対比先)
-- [0080-error-handling.md](0080-error-handling.md) — `<Suspense>` / `loading.tsx` 境界の配置・粒度(`use()` の前提)
+- [0080-error-handling.md](0080-error-handling.md) — `loading.tsx` / `<Suspense fallback>` の待機表示と error boundary(`use()` の前提)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(React 規約に乗る)+ vendor-independent 正当性材料の必須化
 - [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → lint 規則 / rules.md)
 - [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` の exact pin + `pnpm audit` フロー

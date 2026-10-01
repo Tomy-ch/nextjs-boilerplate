@@ -44,7 +44,7 @@ Accepted
 - **ただし、どちらで描くかを画面が宣言することはない。** Cache Components が有効なので([0041](0041-cache-components-decision.md))、殻と穴の分かれ目は器の形そのもの —— 何を `<Suspense>` の外に置き、何を内に置くか —— で決まり、segment config(`export const dynamic`)は併存しない。取得・`params` / `searchParams`・cookie・認可の判定・実時計は、すべて穴の内側で解く。**殻を配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る。**機械で確かめられるのは殻を配れたかどうかまで**で、「殻へ入れてよい内容か」は成果物から読めない
 - **描画モードは page 単体ではなく、layout の連なりを含めた route 全体で決まる。** 祖先の器が request 時の API(`cookies()` / `headers()` 等)を穴の外で読めば、その配下の画面は**自分が取得を持たなくても**殻を配れなくなる。画面側から逃げる手立ては無い。したがって**固めたい画面を含む route group の器は、request 時の読みを穴の内側に閉じるか、持たない**。器がその読みを殻の側で必要とするなら、固めたい画面をその器の外へ出す(器を分ける判断は [0026](0026-layout-shell-mount.md))
 - **宣言は行儀ではなく、この伝播を検知する唯一の手段である。** 前段のとおり機械が読めるのは殻を配れたかまでで、**「配れるのに配れていない」は成果物から読めない**。宣言の無い画面が器の都合でブロックしても何も赤くならず、静的にできる画面が黙って動的なまま座り続ける。`instant = false` を名乗る画面を「殻を配れない画面だけ」に限っておけば、宣言の無い画面がブロックした時点で `scripts/render-mode` が落とし、器へ足された読みが露見する
-- **キャッシュは opt-in とする**(`fetch` 既定 uncached を前提に `use cache`)。ただし**具体的なキャッシュ方針(どこを `use cache` するか / `cacheLife` / `<Suspense>` 境界の切り方)は本 ADR で固定しない**。データ取得のキャッシュ・再検証設計は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節、`loading.tsx` / Suspense 境界は [0080](0080-error-handling.md) が正
+- **キャッシュは opt-in とする**(`fetch` 既定 uncached を前提に `use cache`)。ただし**具体的なキャッシュ方針(どこを `use cache` するか / `cacheLife`)は本 ADR で固定しない**。データ取得のキャッシュ・再検証設計は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が正。`<Suspense>` 境界をどの単位で置くかは下の「境界の粒度」が持ち、`loading.tsx` / fallback が出す待機表示の責務は [0080](0080-error-handling.md) が持つ
 - **`Cache Components`(PPR を既定化する設定)の有効化判断は [0041](0041-cache-components-decision.md) が持つ**(採用)。本 ADR は「モードを強制しない」ことのみ確定する
 
 ### route-as-modal(intercepting / parallel routes)を認める
@@ -61,7 +61,7 @@ Accepted
 
 ### `loading.tsx` / `error.tsx` の配置
 
-- App Router の `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` の配置・責務は [0080](0080-error-handling.md) が正(`error.tsx` 系 = 同 3 節 / `loading.tsx`・Suspense 境界 = 同 4 節)。本 ADR は特殊ファイルの命名([0028](0028-naming-convention.md))と「driving adapter に業務ロジックを置かない」原則のみを敷く
+- App Router の `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` の配置・責務は [0080](0080-error-handling.md) が正(`error.tsx` 系と、`loading.tsx` / `<Suspense fallback>` が出す待機表示)。`<Suspense>` 境界をどこに置くかは下の「境界の粒度」が持つ。本 ADR は特殊ファイルの命名([0028](0028-naming-convention.md))と「driving adapter に業務ロジックを置かない」原則のみを敷く
 
 ### 採らない分割モデル
 
@@ -74,7 +74,9 @@ Accepted
 
 ### 境界の粒度
 
-`Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。
+`Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。したがって境界は feature の中の、実際に待つ部分の近くに置き、`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない。
+
+後から届く取得を別の境界へ割るときは、**その到着で出入りする要素が操作の位置を動かさないか**を併せて見る。動かすなら、割らずに同じ境界で待つか、出入りする要素を操作より後ろへ置く並びに変えてから割る([`docs/rules.md`](../rules.md)「UI 部品と操作」)。
 
 **外枠が既に await しているものを、画面側の境界で待たない。** 取得を `cache` で memo 化していれば、外枠が出せる時点で画面の中身も揃っている。そこへ境界を置くと、**手元にある値を待つために待機表示を出す**ことになり、後から入れ替わるぶんだけ下の要素が動く。一覧のように長さがデータで決まるものでは、待機表示の高さが実物と一致しないため、この差はそのまま CLS になる([0101](0101-performance-budget.md))。**待つものが無い画面は待機表示を持たない**([0080](0080-error-handling.md))。
 
@@ -85,6 +87,7 @@ Accepted
 - ❌ Pages Router の追加(App Router 単独)（強制: 持たない —— 採らない決定。Pages Router のディレクトリを置いていないこと自体が状態で、足せば `pages/` の追加として差分に現れる）
 - ❌ `page.tsx` / `layout.tsx` / route / Server Action に業務ロジックを書くこと(薄い driving adapter。[0011](0011-no-docker.md) thin proxy)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `APP_ELEMENTS`）と `scripts/app-elements.gate.test.ts` が Route Handler / Server Action から業務ロジックの置き場へ伸びる import を落とす。書かれたコードが業務ロジックかどうかは散文 —— **寄せられない**。編成と業務判断の区別は意味で決まる）
 - ❌ `"use client"` を `layout.tsx` / `page.tsx` や上位に不要に置くこと(境界は葉へ押し下げる)
+- ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、`Suspense` 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)（強制: 散文 —— **寄せられない**。どこまでを 1 つの待ちとみなすかは画面の意味で決まり、木の形からは決まらない）
 - ❌ コード分割の第一軸を route にすること(第一軸は feature。[0020](0020-adopted-architecture.md))（強制: 散文 —— **寄せられない**。どの単位でコードを切るかは設計の判断で、route ごとのディレクトリは Next.js の規約として常に在る）
 - ❌ 特定レンダリングモード(全面 SSG / 全面 dynamic 等)を本リポジトリで一律強制すること（強制: 持たない —— 採らない決定。全 route を一律に縛る設定（`output: "export"` や一律の segment config）を置いていないこと自体が状態である）
 - ❌ route-as-modal を全モーダルの既定として強制すること(あくまで**選択肢**。既定手段の判断は [0053](0053-ui-component-interaction-seam.md) 管轄)（強制: 持たない —— 採らない決定。route-as-modal を既定にする仕組みを置いていないこと自体が状態で、選ぶ画面だけが `@modal` と intercepting route を足す）
@@ -102,7 +105,7 @@ Accepted
 - [0060-state-management.md](0060-state-management.md) — Server state = Server Component fetch 既定 / URL state(search params / route params は本 ADR の App Router 標準機構の上で扱う)
 - [0090-testing-strategy.md](0090-testing-strategy.md) — Server Components / route handler / E2E のテスト線引き
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — データ取得のキャッシュ・再検証設計
-- [0080-error-handling.md](0080-error-handling.md) — `loading.tsx` / Suspense 境界 + `error.tsx` 系の配置・責務
+- [0080-error-handling.md](0080-error-handling.md) — `loading.tsx` / `<Suspense fallback>` の待機表示 + `error.tsx` 系の配置・責務
 - [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — モーダル/ダイアログの既定手段(native `<dialog>` / a11y 必須要件)。route-as-modal 採否を本 ADR に委譲(本節がその受け皿)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠と非ロックインの判断軸(route-as-modal = Next.js 規約に乗る seam / 構造は代替可能 = vendor-independent 正当化の根拠)
 - [0004-library-management.md](0004-library-management.md) — ライブラリ管理方針(route-as-modal はネイティブ機能で新規依存を増やさない = 本 ADR は同方針の対象外)

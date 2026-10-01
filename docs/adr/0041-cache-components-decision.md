@@ -1,6 +1,6 @@
 # Cache Components(PPR)有効化判断
 
-`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の採否を、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で定める。レンダリングモードの選択は [0040](0040-routing-rendering-strategy.md) が、データ取得のキャッシュ・再検証は [0071](0071-bff-api-integration.md) が、Suspense 境界の配置は [0080](0080-error-handling.md) が持ち、本 ADR はそれらの上で **PPR を採るかどうか** の 1 点だけを持つ。
+`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の採否を、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で定める。レンダリングモードの選択は [0040](0040-routing-rendering-strategy.md) が、データ取得のキャッシュ・再検証は [0071](0071-bff-api-integration.md) が、Suspense 境界の配置は同じ [0040](0040-routing-rendering-strategy.md) が、待機表示は [0080](0080-error-handling.md) が持ち、本 ADR はそれらの上で **PPR を採るかどうか** の 1 点だけを持つ。
 
 ## Status
 
@@ -8,7 +8,7 @@ Accepted
 
 ## 背景
 
-この判断は、データ取得のキャッシュ設計([0071](0071-bff-api-integration.md))・env のプリレンダー凍結([0030](0030-environment-variable-management.md))・Suspense 境界の配置([0080](0080-error-handling.md))と交差する。いずれも確定しているため、本 ADR は採否だけを扱う。
+この判断は、データ取得のキャッシュ設計([0071](0071-bff-api-integration.md))・env のプリレンダー凍結([0030](0030-environment-variable-management.md))・Suspense 境界の配置([0040](0040-routing-rendering-strategy.md))と交差する。いずれも確定しているため、本 ADR は採否だけを扱う。
 
 裏取り(`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/cacheComponents.md`): `cacheComponents` は 16.0.0 で導入され、従来の `ppr` / `useCache` / `dynamicIO` を **1 つに統合**した設定である。有効化するとデータ取得は明示 `use cache` しない限りプリレンダーから除外され、`use cache` を page / function / component 粒度で置く運用が前提になる。さらに有効時は client-side navigation で React `<Activity>` により旧ルートを unmount せず **state を保存**する(遷移意味論そのものが変わる)。
 
@@ -16,7 +16,7 @@ Accepted
 
 ### Cache Components(PPR)を採用する(`cacheComponents: true`)
 
-- **有効化する。** [0040](0040-routing-rendering-strategy.md) が保留した判断を、本 ADR が「採用」に確定する。
+- **有効化する。** [0040](0040-routing-rendering-strategy.md) はモードを強制しないことだけを持ち、有効化の判断を本 ADR へ委ねる。本 ADR はこれを「採用」に確定する。
 - **根拠は実測である。** 器の layout で cookie を読む 2 つの取得(利用者ごとの状態とセッション)を `<Suspense>` の穴へ落とすと、静的な本文だけの画面・識別子で 1 件を引く画面を含む 8 枚が**部分プリレンダーへ入る**。取得を持たない画面の静的な殻は header・nav・footer・本文を含む 12.4 KB の HTML で、**バックエンドへ 1 度も行かずに配れる**。この分割を持たない限り、同じ画面は器が読む 2 つの往復を待ってから 1 バイト目を返す。**入口の画面は追加の分割なしにこの形へ入る** —— 見出しを `Suspense` の外、取得を内に置く形で書かれているためである。
 - **待つコストが実在する。** 殻と穴の分割・`use cache` の粒度は route の構造そのものであり、後から入れることは同じ画面を二度書くことを意味する。
 - **有効化の前提は [0112](0112-data-classification-cache-boundary.md)** のデータ分類とキャッシュ境界である。PPR は「何が静的な殻へ入るか」を決める機構であり、**分類が無いまま有効化すると事故の面だけが先に開く**。
@@ -45,15 +45,15 @@ Accepted
 ## 補足
 
 - 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する。
-- `use cache` の粒度・静的な殻 / 動的な穴の分割は [0071](0071-bff-api-integration.md) のキャッシュ節が、[0030](0030-environment-variable-management.md) の env プリレンダー凍結との整合は同 ADR が、Suspense × PPR は [0080](0080-error-handling.md) が持つ。
+- `use cache` の粒度は [0071](0071-bff-api-integration.md) のキャッシュ節が、[0030](0030-environment-variable-management.md) の env プリレンダー凍結との整合は同 ADR が、静的な殻 / 動的な穴を分ける `<Suspense>` 境界の位置は [0040](0040-routing-rendering-strategy.md) が、殻から流れる応答のステータスは [0080](0080-error-handling.md) が持つ。
 - ページネーション / 無限スクロールのデータ取得境界は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の確定に従う。
 
 ## 関連 ADR
 
 - [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) — ページネーション / 無限スクロールのデータ取得境界(本 ADR のキャッシュモデルの上に乗る)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — レンダリングモード非強制(本 ADR が `Cache Components` の採用を確定)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — レンダリングモード非強制(本 ADR が `Cache Components` の採用を確定)/ `<Suspense>` 境界の位置と粒度
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — データ取得のキャッシュ・再検証(既定 uncached・opt-in・所有層・profile)
 - [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — データ分類とキャッシュ境界(本 ADR の有効化の前提)
-- [0080-error-handling.md](0080-error-handling.md) — §4 Suspense × PPR(殻から流れる応答のステータス)
+- [0080-error-handling.md](0080-error-handling.md) — 殻から流れる応答のステータスと、fallback の待機表示
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — env プリレンダー凍結(Cache Components 判断との交差)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)

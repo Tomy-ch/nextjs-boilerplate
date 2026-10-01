@@ -1,6 +1,6 @@
 # エラーハンドリング
 
-[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) で枠を予約した **`errors` カーネル** の中身を確定する。**protocol-agnostic なエラー分類(sentinel)/ 境界での HTTP status 正規化 / App Router のエラー特殊ファイル階層 / `loading.tsx`・Suspense 境界 / swallow 禁止・cause chain / ログ出力タイミング** を定める。
+[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) で枠を予約した **`errors` カーネル** の中身を確定する。**protocol-agnostic なエラー分類(sentinel)/ 境界での HTTP status 正規化 / App Router のエラー特殊ファイル階層 / `loading.tsx`・Suspense fallback の待機表示 / swallow 禁止・cause chain / ログ出力タイミング** を定める。
 
 ## Status
 
@@ -81,12 +81,12 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 - 配置は **`src/app/` 配下の route セグメント単位**(App Router の規約上、特殊ファイルは `app/` 配下でのみ機能する — [0027](0027-directory-structure.md)。特殊ファイル命名は [0028](0028-naming-convention.md))。Error Boundary の粒度はセグメント階層に従う。エラー表示の中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する([0040](0040-routing-rendering-strategy.md) driving adapter 原則)
 - `error.tsx` 等に**業務ロジックを書かない**([0040](0040-routing-rendering-strategy.md) driving adapter)
 
-### 4. `loading.tsx` / Suspense ストリーミング境界
+### 4. `loading.tsx` / Suspense fallback の待機表示
 
-異常系 = `error.tsx`(上記 3)と対になる **正常系の待機表示 = `loading.tsx` / `<Suspense>` 境界** を、同じ「薄い表示境界」の規律に載せる:
+異常系 = `error.tsx`(上記 3)と対になる **正常系の待機表示 = `loading.tsx` / `<Suspense fallback>`** を、同じ「薄い表示境界」の規律に載せる:
 
 - `loading.tsx`(セグメントの pending UI)と `<Suspense fallback>` は、**待機表示を担う薄い表示境界**とする。`error.tsx` と対をなし、いずれも業務ロジックを持たない。中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する(error.tsx と同じ / [0040](0040-routing-rendering-strategy.md) driving adapter 原則)
-- **Suspense 境界の粒度**: streaming SSR で「先に出せるシェル」と「待つ部分」を分けるため、境界は **feature 内の、実際にデータ待ちする部分の近く**に置く(`"use client"` を葉へ押し下げる [0040](0040-routing-rendering-strategy.md) と同じ発想で、fallback 境界も過度に上位へ置かない)。`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない
+- **`<Suspense>` 境界をどこへ置くか(粒度)は [0040](0040-routing-rendering-strategy.md)「境界の粒度」が持つ。** ここで定めるのは、置かれた境界の fallback が業務ロジックを持たない薄い表示境界であることまでである
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
 - **一次資源が見つからないことは 200 で配信される。** [0041](0041-cache-components-decision.md) により
   `Cache Components` が有効な間、動的な route は必ず殻から流れる。本文より先にヘッダが出るため、その後で
@@ -101,7 +101,7 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 - **その結果、待機の状態を持たない画面がある。** `docs/rules.md`「状態表示と待機」の「各画面は loading、empty、error、success の 4 状態を設計する」は「4 つ必ず作る」ではなく
   「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
   どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
-- **Suspense × PPR の相互作用**: `Cache Components` は有効なので([0041](0041-cache-components-decision.md))、`<Suspense>` の位置は待機表示の話ではなく**静的な殻と動的な穴の境界そのもの**である。上の「待つ部分の近くへ置く」は、有効化後は性能の助言ではなく**殻を配れるかどうかの条件**になる —— 境界より外にある取得が 1 つでも残っていれば、その route は殻を配れない
+- **Suspense × PPR の相互作用**: `Cache Components` は有効なので([0041](0041-cache-components-decision.md))、`<Suspense>` の位置は**静的な殻と動的な穴の境界そのもの**であり、その置き方は [0040](0040-routing-rendering-strategy.md) が持つ。fallback は、その穴が埋まるまでの殻の一部として配られる
 - **fallback は場所を取る。** 穴が埋まる瞬間に周りが動かないよう、待機表示は実物と同じ大きさの枠を出す(`docs/rules.md`「状態表示と待機」の「loading は形状が近い skeleton を優先する」と、「UI 部品と操作」の「状態によって出入りする表示のせいで、操作の位置を動かさない」)。描くものを持たない穴(計測など)だけが `null` を fallback にしてよい
 - fallback の**見た目(スケルトン / スピナー)の UI 規約**は用途依存であり、ここでは確定しない
 
@@ -130,7 +130,6 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 - ❌ 生 HTTP status・生エラー・スタックを内層 / UI へ漏らすこと(境界で正規化)
 - ❌ エラーを握り潰すこと(swallow 禁止)/ 秘匿情報を redact せずログ・レスポンスに出すこと（強制: `src/logging` の名前の表（`pino.server.test.ts` が固定）がログの秘匿項目を名前で伏せる。握り潰しは散文 —— **寄せられない**。値へ畳む `catch` が握り潰しか §2 の degrade かは意図で決まる）
 - ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)（強制: 散文 —— **寄せられない**。何が業務ロジックかは処理の意味で決まり、特殊ファイルの形からは決まらない）
-- ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、Suspense 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)
 - ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)（強制: 散文 —— **寄せられない**。同じエラーが複数回記録されるかは実行時の経路で決まり、1 箇所のコードの形からは決まらない）
 - ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)（強制: 散文 —— **寄せられない**。どの分類へ写すかは写像の中身で決まり、書かれたテストの範囲でしか見えない）
 - ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)（強制: 散文 —— **寄せられない**。値が画面の成立に要らないかは画面の意味で決まり、`try` / `catch` の形からは決まらない）
@@ -141,7 +140,7 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `errors` カーネル(全層参照可 / `model` が依存してよい唯一)
 - [0071-bff-api-integration.md](0071-bff-api-integration.md) — 生 status を errors 分類へ正規化する境界(本 ADR が対応表の詳細を定める)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — `error.tsx` / `loading.tsx` 配置(本 ADR が責務を確定)/ driving adapter 原則
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — `Suspense` 境界の位置と粒度 / driving adapter 原則(`error.tsx` / `loading.tsx` の配置・責務は本 ADR が確定)
 - [0028-naming-convention.md](0028-naming-convention.md) — App Router 特殊ファイルの命名
 - [0081-observability-logging.md](0081-observability-logging.md) — エラーログのスキーマ・出力先・trace 相関
 - [0070-backend-role-separation.md](0070-backend-role-separation.md) — バックエンドエラーの契約(境界での正規化の前提)
