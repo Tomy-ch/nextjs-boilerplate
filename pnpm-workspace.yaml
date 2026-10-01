@@ -35,9 +35,11 @@ overrides:
   # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
   # 公開されるドキュメントサイトで browser 上を走る。
   # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り
-  # XSS になる。mermaid の宣言は ^3.3.3 で 3.4.13 はその内側。
-  # mermaid が 3.4.13 以上を要求したら撤去する。
-  "dompurify@<3.4.13": ">=3.4.13 <4"
+  # XSS になる。
+  # GHSA-p98j-92pf-mc4p (low): 3.4.13〜3.4.15 でも、hook がノードを消すと切り離された部分木の
+  # event handler が生きたまま残り、DOM XSS になる。
+  # mermaid の宣言は ^3.3.3 で 3.4.16 はその内側。mermaid が 3.4.16 以上を要求したら撤去する。
+  "dompurify@<3.4.16": ">=3.4.16 <4"
   # minimatch (glob 経由で Storybook の依存、typescript-eslint、eslint が引く) の推移的依存。
   # GHSA-cchq-frgv-rjh5 (high): 展開の中間結果に上限が無く、短い入力で処理が止まらなくなる。
   # GHSA-6j4f-fj2g-mc7p / GHSA-qhr7-859c-m2p7 (high): カンマ区切りと入れ子の波括弧の再帰に上限が
@@ -65,9 +67,17 @@ overrides:
   # @modelcontextprotocol/sdk（shadcn CLI が引く）の推移的依存。
   # GHSA-8j4g-w8fx-2239 / GHSA-f23p-vx2j-j53r / GHSA-54fx-42gc-7vw4 / GHSA-79qm-7rj5-m7r9:
   # CORS の ReDoS、memo() の SSR 出力の持ち越し、Language Middleware の DoS、Proxy Helper の
-  # ヘッダ残留。sdk の宣言は ^4.11.4 で 4.12.34 はその内側。
-  # @modelcontextprotocol/sdk が 4.12.34 以上を要求したら撤去する。
-  "hono@<4.12.34": ">=4.12.34 <5"
+  # ヘッダ残留。
+  # GHSA-hxh3-vqpv-xpqv (moderate): hono/jsx の境界コンポーネントが文字列をエスケープせずに描き XSS になる。
+  # sdk の宣言は ^4.11.4 で 4.13.7 はその内側。@modelcontextprotocol/sdk が 4.13.7 以上を要求したら撤去する。
+  "hono@<4.13.7": ">=4.13.7 <5"
+  # @grpc/grpc-js (@opentelemetry/otlp-grpc-exporter-base 経由で @opentelemetry/sdk-node が引く) の推移的依存。
+  # 計測を OTLP/gRPC で送り出すサーバ側の経路で走る。
+  # GHSA-m9gg-hp2v-232j (high): 設定によって getAuthContext が未認可の証明書を認可済みとして返す。
+  # GHSA-f596-whhp-79r4 (low): method handler が投げたエラーの文言を status message でクライアントへ返す。
+  # otlp-grpc-exporter-base の宣言は ^1.14.3 で 1.14.5 はその内側。
+  # @opentelemetry/otlp-grpc-exporter-base が 1.14.5 以上を要求したら撤去する。
+  "@grpc/grpc-js@>=1.14.0 <1.14.5": ">=1.14.5 <2"
   # vite-plugin-storybook-nextjs（@storybook/nextjs-vite が引く）の推移的依存。
   # GHSA-5p2g-fcmc-qvqq / GHSA-w3rx-r6r6-pgpr (high): JXL / HEIF / ICNS の解析が無限ループに入る。
   # vite-plugin-storybook-nextjs の宣言は ^2.0.0 で 2.0.3 はその内側。
