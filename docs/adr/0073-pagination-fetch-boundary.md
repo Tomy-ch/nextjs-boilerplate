@@ -1,6 +1,6 @@
 # ページネーション・無限スクロールのデータ取得境界
 
-一覧画面の **ページネーション / 無限スクロール** のデータ取得境界を定める。[0040](0040-routing-rendering-strategy.md) は「レンダリングモードを強制しない」までを持ち、データ取得のキャッシュ設計は [0071](0071-bff-api-integration.md)、`loading.tsx` / Suspense 境界は [0080](0080-error-handling.md) が持つ。その上で、無限スクロールが必然的に伴う client 追加取得は、[0060](0060-state-management.md) の「Server state = RSC fetch 既定 / クライアントでのデータ取得を本体で前提にしない」と正面から緊張し、[0071](0071-bff-api-integration.md) の fetch wrapper(resilience は主に `adapters/server` に適用 = server 前提)でもカバーされない。本 ADR はこの取得境界の所有者を明示し、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で確定する。
+一覧画面の **ページネーション / 無限スクロール** のデータ取得境界を定める。[0040](0040-routing-rendering-strategy.md) は「レンダリングモードを強制しない」までを持ち、データ取得のキャッシュ設計は [0071](0071-bff-api-integration.md)、Suspense 境界の置き方は同じ [0040](0040-routing-rendering-strategy.md)、`loading.tsx` の待機表示は [0080](0080-error-handling.md) が持つ。その上で、無限スクロールが必然的に伴う client 追加取得は、[0060](0060-state-management.md) の「Server state = RSC fetch 既定 / クライアントでのデータ取得を本体で前提にしない」と正面から緊張し、[0071](0071-bff-api-integration.md) の fetch wrapper(resilience は主に `adapters/server` に適用 = server 前提)でもカバーされない。本 ADR はこの取得境界の所有者を明示し、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で確定する。
 
 ## Status
 
@@ -40,7 +40,7 @@ Accepted
   どこへ送るかは route の確定認可([0079](0079-auth-frontend-seam.md))が既に持っているので、
   サーバへ描き直しを頼んでその判断へ委ねる**(`router.refresh()`)。ここで送り先を決めると
   同じ決定が 2 か所に増える。
-- **データ取得ライブラリ(TanStack Query 等)は引き続き同梱しない**([0060](0060-state-management.md) exclusion を破らない)。増分取得の状態は local state / `adapters/client` の薄い呼び口で足りる範囲に留める。
+- **データ取得ライブラリ(TanStack Query 等)は同梱しない**([0060](0060-state-management.md) exclusion を破らない)。増分取得の状態は local state / `adapters/client` の薄い呼び口で足りる範囲に留める。
 
 ## 禁止事項
 

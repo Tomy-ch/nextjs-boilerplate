@@ -41,7 +41,7 @@
 - [0029-type-design-discipline.md](0029-type-design-discipline.md) - 型設計の規律（判別可能 union / 境界での確定 / branded type / `satisfies`）
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) - 環境変数管理（目的別 config / server・client 分割 / `NEXT_PUBLIC_` 境界 / secret）
 - [0031-policy-state-supply.md](0031-policy-state-supply.md) - ポリシー状態（consent / feature-flag）の供給方針（source adapter + no-op 既定 + stateless props = S3）
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) - ルーティング・レンダリング戦略（App Router / Server Components 既定 / Server Actions / route-as-modal）
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) - ルーティング・レンダリング戦略（App Router / Server Components 既定 / Server Actions / route-as-modal / Suspense 境界の粒度）
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) - Cache Components（PPR）有効化判断
 - [0042-react19-rendering-api.md](0042-react19-rendering-api.md) - React 19 レンダリング API 規約（`use()` 等の書き方）
 - [0043-middleware-policy.md](0043-middleware-policy.md) - Middleware（Proxy）方針（Next.js 16 proxy.ts / thin・last resort / 認証は対象外）
@@ -68,7 +68,7 @@
 - [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) - BFF abuse 保護境界（infra / edge seam）
 - [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) - 動的 feature flag・段階的配信 seam（A-B / 段階的公開）
 - [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) - 認証のフロント側 seam
-- [0080-error-handling.md](0080-error-handling.md) - エラーハンドリング（errors カーネル / sentinel 分類 / 境界正規化 / error.tsx 階層 / loading・Suspense）
+- [0080-error-handling.md](0080-error-handling.md) - エラーハンドリング（errors カーネル / sentinel 分類 / 境界正規化 / error.tsx 階層 / loading と待機表示）
 - [0081-observability-logging.md](0081-observability-logging.md) - 観測性・ロギング（logging/observability カーネル / OTLP-only / signal gating / RUM は非同梱）
 - [0082-client-observability.md](0082-client-observability.md) - クライアント観測性（Web Vitals RUM / client エラー収集 / プロダクト分析 seam）
 - [0090-testing-strategy.md](0090-testing-strategy.md) - テスト戦略（Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ゲート）
