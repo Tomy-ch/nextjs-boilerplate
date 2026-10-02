@@ -73,17 +73,27 @@ describe("toActiveFilters", () => {
     expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: "unknown" })).toEqual([]);
   });
 
-  it("目盛りに無い価格は条件として並べない", () => {
-    expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.MIN_PRICE]: "37" })).toEqual([]);
+  it("目盛りに無い価格も、効いている値のまま並べ、外す先は両方を落とす", () => {
+    expect(
+      toActiveFilters(CATEGORIES, {
+        [FILTER_KEY.MIN_PRICE]: "37",
+        [FILTER_KEY.KEYWORD]: "鞄",
+      })[0],
+    ).toEqual({
+      key: "minPrice",
+      label: "価格",
+      value: "$37 〜 上限なし",
+      removeHref: "/products?keyword=%E9%9E%84",
+    });
   });
 
-  it("3 つの選択肢のどれにも当たらない在庫数の範囲を並べない", () => {
+  it("3 つの選択肢のどれにも当たらない在庫数の範囲も、数のまま並べ、外す先は両方を落とす", () => {
     expect(
       toActiveFilters(CATEGORIES, {
         [FILTER_KEY.MIN_QUANTITY]: "5",
         [FILTER_KEY.MAX_QUANTITY]: "10",
       }),
-    ).toEqual([]);
+    ).toEqual([{ key: "minQuantity", label: "在庫数", value: "5 〜 10", removeHref: "/products" }]);
   });
 
   it("複数回現れたキーワードは単一として読めないため並べない", () => {

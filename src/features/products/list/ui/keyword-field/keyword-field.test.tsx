@@ -35,7 +35,7 @@ function renderField(selection: ProductListSelection = {}) {
  * @returns 入力欄の要素。
  */
 function input(): HTMLElement {
-  return screen.getByLabelText("商品名で探す");
+  return screen.getByLabelText("商品名・説明で探す");
 }
 
 /**

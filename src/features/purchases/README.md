@@ -59,7 +59,9 @@ coverage-exclusions:
 | | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
 **空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
-行動が違います。error は route の `error` 境界、見つからない場合は `not-found` が受けます。
+行動が違います。error は route の `error` 境界が受けます。詳細で見つからない場合（`notFound()`）は、
+詳細の segment も親の segment も `not-found.tsx` を持たないため、root の `src/app/not-found.tsx` が
+受けます。この面は route group の shell を通らず、戻る導線はトップへの 1 本です。
 
 ## 構成
 
@@ -68,7 +70,7 @@ coverage-exclusions:
 
 | ファイル | 役割 |
 | --- | --- |
-| `facade/paths/` | この feature が持つ 2 つのルート。マイページ（`account`）の導線が参照する |
+| `facade/paths/` | この feature が持つ 2 つのルート。マイページ（`account`）と購入完了（`checkout`）の導線が参照する |
 | `facade/receipt/` | 購入の控え（注文番号・注文日時・状況）。**購入完了も同じ形で出す** |
 | `facade/lines/` | 結合済みの明細。**購入完了も同じ形で出す** |
 | `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
@@ -81,7 +83,7 @@ coverage-exclusions:
 | `form-state.ts` | 送信の結果の器と、状況で拒まれたときの文言 |
 | `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
 | `history/period.ts` | 期間の条件。URL のキーと組み立て、利用者への言い換え |
-| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md) #76） |
+| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)「URL と条件」） |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
 | `history/page-content.tsx` | 条件の解釈と、画面と待機の境界の組み立て |
 | `history/results.tsx` | 先頭ページの取得。期間が変わったときに取り直す範囲 |

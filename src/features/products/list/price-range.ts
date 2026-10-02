@@ -105,11 +105,41 @@ export function applyPriceRange(
  * @returns 表示用の文字列
  */
 export function formatPriceBound(index: number, edge: "low" | "high"): string {
-  const value = PRICE_SCALE[index];
+  return formatPriceEdge(toBound(index) ?? "", edge);
+}
 
-  if (value === undefined || value === null) {
+/**
+ * 契約が受け取る十進文字列を、その端の役割に合った表示へ写す。
+ *
+ * @param value - 十進文字列。空は指定なし
+ * @param edge - 表示する端。指定なしの表示文言を選ぶために使う
+ * @returns 表示用の文字列
+ */
+function formatPriceEdge(value: string, edge: "low" | "high"): string {
+  if (value === "") {
     return edge === "low" ? "下限なし" : "上限なし";
   }
 
   return `$${value}`;
+}
+
+/**
+ * いま効いている価格の条件を、下限と上限をまとめた 1 つの表示へ写す。
+ *
+ * @remarks
+ * 目盛りの位置ではなく URL の値から作ります。目盛りに無い値も条件としては効いており、位置へ
+ * 写すと「指定なし」の端に見えて、効いている条件が表示から消えます。
+ *
+ * @param selection - いま効いている条件
+ * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
+ */
+export function formatPriceCondition(selection: ProductListSelection): string | undefined {
+  const low = toSelectedValue(selection, FILTER_KEY.MIN_PRICE);
+  const high = toSelectedValue(selection, FILTER_KEY.MAX_PRICE);
+
+  if (low === "" && high === "") {
+    return undefined;
+  }
+
+  return `${formatPriceEdge(low, "low")} 〜 ${formatPriceEdge(high, "high")}`;
 }

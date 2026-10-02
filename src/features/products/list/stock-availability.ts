@@ -90,6 +90,30 @@ export function toStockAvailability(selection: ProductListSelection): StockAvail
   return STOCK_AVAILABILITY.ALL;
 }
 
+/** 在庫数の条件名。3 つの選択肢のどれにも当たらない範囲の chip に出す。 */
+export const STOCK_QUANTITY_LABEL = "在庫数";
+
+/**
+ * いま効いている在庫数の条件を、下限と上限をまとめた 1 つの表示へ写す。
+ *
+ * @remarks
+ * 選択肢のどれにも当たらない範囲も条件としては効いています。在庫状況へ写すと「すべて」に見えて
+ * 効いている条件が表示から消えるため、こちらは URL の値から作ります。
+ *
+ * @param selection - いま効いている条件
+ * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
+ */
+export function formatStockQuantity(selection: ProductListSelection): string | undefined {
+  const min = toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY);
+  const max = toSelectedValue(selection, FILTER_KEY.MAX_QUANTITY);
+
+  if (min === "" && max === "") {
+    return undefined;
+  }
+
+  return `${min === "" ? "下限なし" : min} 〜 ${max === "" ? "上限なし" : max}`;
+}
+
 /**
  * 在庫状況を在庫数の条件へ書き戻す。
  *

@@ -3,10 +3,10 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { CircleCheckIcon } from "@/components/icon";
-import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import { PurchaseAmountSummary } from "@/features/purchases/facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "@/features/purchases/facade/lines/lines";
+import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
 import { PurchaseReceiptCard } from "@/features/purchases/facade/receipt/receipt";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
@@ -28,7 +28,7 @@ export type CheckoutCompleteViewProps = {
  * おきたい操作が無いためです。
  *
  * 次の導線を 2 本置きます。買い物へ戻る道と、控えを後から確かめる道です。ここで行き止まりに
- * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。
+ * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。控えの道は、この購入の詳細を指します。
  *
  * @param props - {@link CheckoutCompleteViewProps} を参照。
  */
@@ -56,7 +56,7 @@ export const CheckoutCompleteView = withScreenSpan(
             <Link href={PRODUCT_LIST_PATH}>買い物を続ける</Link>
           </Button>
           <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={MYPAGE_PATH}>購入の控えを見る</Link>
+            <Link href={purchaseDetailPath(purchase.code)}>購入の控えを見る</Link>
           </Button>
         </div>
       </div>

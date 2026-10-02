@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ContentContainer } from "@/components/shell/content-container/content-container";
-import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { requireRegisteredUser } from "@/features/account/registration-gate";
+import { INQUIRY_PATH } from "@/features/inquiry/facade/paths/paths";
 import { InquiryThreadPageContent } from "@/features/inquiry/thread/page-content";
 import { InquiryThreadSkeleton } from "@/features/inquiry/thread/ui/skeleton/skeleton";
 
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
  * 登録済みかの判定を穴の内側で行う理由は、マイページ（`../page.tsx`）と同じです。
  */
 async function InquiryContent() {
-  await requireRegisteredUser(MYPAGE_PATH);
+  await requireRegisteredUser(INQUIRY_PATH);
 
   return <InquiryThreadPageContent />;
 }

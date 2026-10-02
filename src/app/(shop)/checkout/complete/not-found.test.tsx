@@ -13,12 +13,12 @@ describe("CheckoutCompleteNotFound", () => {
     expect(screen.getByRole("heading", { name: "対象が見つかりません。" })).toBeVisible();
   });
 
-  it("控えの一覧へ向かう導線を出す", () => {
+  it("控えの一覧（購入履歴）へ向かう導線を出す", () => {
     render(<CheckoutCompleteNotFound />);
 
     expect(screen.getByRole("link", { name: "購入の控えを見る" })).toHaveAttribute(
       "href",
-      "/mypage",
+      "/purchases",
     );
   });
 

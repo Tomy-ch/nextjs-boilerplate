@@ -23,9 +23,9 @@ import {
   toSelectedValues,
 } from "../../../facade/list-url/list-url";
 import { useProductFilterDraft } from "../../filter-draft";
-import { PRICE_RANGE_MAX, PRICE_RANGE_MIN, toPriceRange } from "../../price-range";
+import { formatPriceCondition } from "../../price-range";
 import type { FilterOption } from "../../query";
-import { STOCK_AVAILABILITY, toStockAvailability } from "../../stock-availability";
+import { formatStockQuantity } from "../../stock-availability";
 import { useFilteredCount } from "../../use-filtered-count";
 import { ProductFilterFields } from "../filter-fields/filter-fields";
 
@@ -42,16 +42,18 @@ export type ProductFilterSheetProps = {
 /**
  * いま効いている条件の数。入力欄 1 つを 1 件と数え、指定なしは数えない。
  *
+ * @remarks
+ * 入力欄の上では「指定なし」に見える値（目盛りに無い価格、在庫状況のどれにも当たらない在庫数）も、
+ * 条件としては効いているので数えます。
+ *
  * @param selection - いま効いている検索条件。
  * @returns 効いている条件の件数。
  */
 function countActive(selection: ProductListSelection): number {
-  const [low, high] = toPriceRange(selection);
-
   return [
-    low !== PRICE_RANGE_MIN || high !== PRICE_RANGE_MAX,
+    formatPriceCondition(selection) !== undefined,
     toSelectedValues(selection, FILTER_KEY.CATEGORY).length > 0,
-    toStockAvailability(selection) !== STOCK_AVAILABILITY.ALL,
+    formatStockQuantity(selection) !== undefined,
   ].filter(Boolean).length;
 }
 
@@ -76,7 +78,7 @@ function countActive(selection: ProductListSelection): number {
  * 変われば下書きはそちらへ揃うので、確定した後に古い選択が残ることはありません。
  *
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
- * （`docs/rules.md`「レイアウトと帯」の「常に届く操作は `lg` 未満で画面下端に固定する」）。
+ * （`docs/rules.md`「レイアウトと帯」）。
  *
  * @param props - 選べる分類、その上限、いま効いている条件。
  */
@@ -93,8 +95,7 @@ export function ProductFilterSheet({
   const appliedHref = toProductListHref(selection);
   const [knownHref, setKnownHref] = useState(appliedHref);
 
-  // 一覧に効いている条件が変わったら閉じる。確定で閉じるのではなく、確定した結果が届いたことで
-  // 閉じる。
+  // 一覧に効いている条件が変わったら閉じる。
   if (knownHref !== appliedHref) {
     setKnownHref(appliedHref);
     setOpen(false);

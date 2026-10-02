@@ -5,12 +5,16 @@ import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
-const { postMyInquiryMessage, revalidatePath } = vi.hoisted(() => ({
+const { postMyInquiryMessage, redirect, revalidatePath } = vi.hoisted(() => ({
   postMyInquiryMessage: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
   revalidatePath: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/api/inquiries", () => ({ postMyInquiryMessage }));
 
 import { sendInquiryMessageAction } from "./actions";
@@ -66,7 +70,31 @@ describe("sendInquiryMessageAction", () => {
     });
   });
 
-  it("取得の失敗を分類のまま返す", async () => {
+  it("認証が切れていたら、この画面へ戻る入り直しへ送る", async () => {
+    postMyInquiryMessage.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(sendInquiryMessageAction(idleActionState(), formOf("本文"))).rejects.toThrow(
+      "NEXT_REDIRECT:/login?returnUrl=%2Fmypage%2Finquiry",
+    );
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("契約が本文を弾いたら、本文の項目の文言として返し、全体の文言は出さない", async () => {
+    postMyInquiryMessage.mockRejectedValue(createAppError(ErrorKind.VALIDATION));
+
+    const state = await sendInquiryMessageAction(idleActionState(), formOf("本文"));
+
+    expect(state).toEqual({
+      status: "error",
+      formError: null,
+      fieldErrors: {
+        [INQUIRY_BODY_FIELD]: ["本文は受け付けられませんでした。入力し直してください。"],
+      },
+      kind: ErrorKind.VALIDATION,
+    });
+  });
+
+  it("ほかの送信の失敗は分類のまま返す", async () => {
     postMyInquiryMessage.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
     const state = await sendInquiryMessageAction(idleActionState(), formOf("本文"));
