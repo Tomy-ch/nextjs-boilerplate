@@ -45,6 +45,20 @@ describe("toActiveFilters", () => {
     ]);
   });
 
+  it("在庫なしを選んだ表示名で出し、外す先は在庫数の両端を落とす", () => {
+    expect(
+      toActiveFilters(CATEGORIES, {
+        [FILTER_KEY.MAX_QUANTITY]: "0",
+        [FILTER_KEY.KEYWORD]: "鞄",
+      })[0],
+    ).toEqual({
+      key: "minQuantity",
+      label: "在庫状況",
+      value: "在庫なし",
+      removeHref: "/products?keyword=%E9%9E%84",
+    });
+  });
+
   it("キーワードをそのままの値で出す", () => {
     expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.KEYWORD]: "鞄" })).toEqual([
       { key: "keyword", label: "キーワード", value: "鞄", removeHref: "/products" },
@@ -68,11 +82,6 @@ describe("toActiveFilters", () => {
     ).toBe("/products?keyword=%E9%9E%84");
   });
 
-  // ----- 異常系 -----
-  it("選択肢に無い分類を飛ばす", () => {
-    expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: "unknown" })).toEqual([]);
-  });
-
   it("目盛りに無い価格も、効いている値のまま並べ、外す先は両方を落とす", () => {
     expect(
       toActiveFilters(CATEGORIES, {
@@ -94,6 +103,11 @@ describe("toActiveFilters", () => {
         [FILTER_KEY.MAX_QUANTITY]: "10",
       }),
     ).toEqual([{ key: "minQuantity", label: "在庫数", value: "5 〜 10", removeHref: "/products" }]);
+  });
+
+  // ----- 異常系 -----
+  it("選択肢に無い分類を飛ばす", () => {
+    expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.CATEGORY]: "unknown" })).toEqual([]);
   });
 
   it("複数回現れたキーワードは単一として読めないため並べない", () => {

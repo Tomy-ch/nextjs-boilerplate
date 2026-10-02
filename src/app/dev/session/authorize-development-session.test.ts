@@ -61,6 +61,9 @@ function undeclared(padding: number): Request {
   });
 }
 
+/** {@link undeclared} が `padding` の前に置くバイト数。 */
+const UNDECLARED_PREFIX_BYTES = new TextEncoder().encode(`${VALID_FORM}&padding=`).byteLength;
+
 beforeEach(() => {
   vi.clearAllMocks();
   toSessionInput.mockImplementation(async (input: unknown) => input);
@@ -84,6 +87,15 @@ describe("authorizeDevelopmentSession", () => {
 
   it("長さの宣言が無くても、読んだ本体が上限内なら callback へ転送する", async () => {
     expect(await authorizeDevelopmentSession(undeclared(1024))).toEqual({
+      kind: "redirect",
+      destination: "/api/auth/callback?code=sealed-code&state=tx-state",
+    });
+  });
+
+  it("長さの宣言が無く、読んだ本体が上限ちょうどなら callback へ転送する", async () => {
+    expect(
+      await authorizeDevelopmentSession(undeclared(64 * 1024 - UNDECLARED_PREFIX_BYTES)),
+    ).toEqual({
       kind: "redirect",
       destination: "/api/auth/callback?code=sealed-code&state=tx-state",
     });
@@ -119,6 +131,13 @@ describe("authorizeDevelopmentSession", () => {
     expect(await authorizeDevelopmentSession(undeclared(64 * 1024))).toEqual({
       kind: "too-large",
     });
+    expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();
+  });
+
+  it("長さの宣言が無く、読んだ本体が上限を 1 バイト超えれば too-large になり、認可コードを発行しない", async () => {
+    expect(
+      await authorizeDevelopmentSession(undeclared(64 * 1024 + 1 - UNDECLARED_PREFIX_BYTES)),
+    ).toEqual({ kind: "too-large" });
     expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();
   });
 

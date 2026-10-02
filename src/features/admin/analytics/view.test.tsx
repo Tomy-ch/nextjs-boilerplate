@@ -84,6 +84,15 @@ describe("AnalyticsView", () => {
     expect(screen.getByLabelText(/終了日/)).toHaveValue("2026-08-19");
   });
 
+  it("条件が渡されなければ、overlay の日付を空のまま開く", async () => {
+    renderView();
+
+    await userEvent.click(screen.getByRole("button", { name: "期間を指定" }));
+
+    expect(screen.getByLabelText(/開始日/)).toHaveValue("");
+    expect(screen.getByLabelText(/終了日/)).toHaveValue("");
+  });
+
   it("対象の暦日が決まっていなければその旨を出す", () => {
     renderView({ period: DASHBOARD_PERIOD.RANGE, from: "2026-08-01" });
 
