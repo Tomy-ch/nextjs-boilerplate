@@ -28,7 +28,7 @@ export type CheckoutCompleteViewProps = {
  * おきたい操作が無いためです。
  *
  * 次の導線を 2 本置きます。買い物へ戻る道と、控えを後から確かめる道です。ここで行き止まりに
- * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。控えの道は、この購入の詳細を指します。
+ * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。
  *
  * @param props - {@link CheckoutCompleteViewProps} を参照。
  */
