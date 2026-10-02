@@ -5,9 +5,8 @@ description: >-
   Reconcile the screen specifications under `docs/spec/route/**` with the implementation they describe, by
   reading them. Four findings: a promise the implementation does not keep, a statement filed in the wrong one
   of the two documents, a screen restating what a layout above it already promises, and content the spec
-  deliberately does not carry. It never decides which side moves — whether the promise changed or the
-  implementation drifted is not visible from the diff, so both readings are reported and the human chooses.
-  Use it for the one-time reading of every screen, after a change that alters a screen's promises, or on
+  deliberately does not carry. It never decides which side moves — both readings are reported and the human
+  chooses. Use it for the one-time reading of every screen, after a change that alters a screen's promises, or on
   「仕様書と実装が合ってる？」「この約束まだ守られてる？」. Read-only; it writes nothing. Do NOT use it to check that specs
   exist (a gate does), to judge implementation quality (`impl-review`), or to write a specification
   (`new-feature`).
