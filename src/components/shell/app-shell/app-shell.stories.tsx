@@ -86,7 +86,10 @@ export const MenuOpen: Story = {
   },
 };
 
-/** 畳むものが無い場合。開く操作ごと出ないので、空の overlay へ入る経路が残らない。 */
+/**
+ * 畳むものが無い場合。開く操作も header の `nav` も出ないので、空の overlay や空の landmark へ
+ * 入る経路が残らない。
+ */
 export const WithoutNav: Story = {
   globals: { viewport: { value: "mobile2", isRotated: false } },
   args: { navItems: [], headerActions: undefined },

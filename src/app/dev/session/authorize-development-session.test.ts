@@ -36,6 +36,10 @@ function submission(overrides: Record<string, string> = {}): Request {
   return new Request("http://localhost:3000/dev/session/authorize", { method: "POST", body });
 }
 
+/** 妥当な指定を urlencoded で綴った本体。 */
+const VALID_FORM =
+  "subject=dev-user&role=user&expiresInSeconds=3600&state=tx-state&returnUrl=%2Faccount";
+
 /** 本体の大きさを名乗る送信。中身は妥当なので、上限で落ちなければそのまま処理へ進む。 */
 function declaring(declaredBytes: number): Request {
   return new Request("http://localhost:3000/dev/session/authorize", {
@@ -44,7 +48,16 @@ function declaring(declaredBytes: number): Request {
       "content-length": String(declaredBytes),
       "content-type": "application/x-www-form-urlencoded",
     },
-    body: "subject=dev-user&role=user&expiresInSeconds=3600&state=tx-state&returnUrl=%2Faccount",
+    body: VALID_FORM,
+  });
+}
+
+/** 長さを名乗らない送信。妥当な指定のあとを、`padding` バイトの値で埋める。 */
+function undeclared(padding: number): Request {
+  return new Request("http://localhost:3000/dev/session/authorize", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: `${VALID_FORM}&padding=${"a".repeat(padding)}`,
   });
 }
 
@@ -69,6 +82,13 @@ describe("authorizeDevelopmentSession", () => {
     });
   });
 
+  it("長さの宣言が無くても、読んだ本体が上限内なら callback へ転送する", async () => {
+    expect(await authorizeDevelopmentSession(undeclared(1024))).toEqual({
+      kind: "redirect",
+      destination: "/api/auth/callback?code=sealed-code&state=tx-state",
+    });
+  });
+
   it("認可コードを、その場で指定した内容と発行元の要求で組む", async () => {
     await authorizeDevelopmentSession(
       submission({ role: SESSION_ROLE.admin, subject: "user-jane-smith" }),
@@ -90,6 +110,13 @@ describe("authorizeDevelopmentSession", () => {
 
   it("本体が大きすぎる送信は、読み切る前に断る", async () => {
     expect(await authorizeDevelopmentSession(declaring(64 * 1024 + 1))).toEqual({
+      kind: "too-large",
+    });
+    expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();
+  });
+
+  it("長さの宣言なしで上限を超える本体は、読んだ後に too-large になり、認可コードを発行しない", async () => {
+    expect(await authorizeDevelopmentSession(undeclared(64 * 1024))).toEqual({
       kind: "too-large",
     });
     expect(issueDevelopmentAuthorizationCode).not.toHaveBeenCalled();

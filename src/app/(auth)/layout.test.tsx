@@ -40,9 +40,7 @@ describe("AuthLayout", () => {
       </AuthLayout>,
     );
 
-    expect(
-      within(screen.getByRole("navigation", { name: "主要な導線" })).queryAllByRole("link"),
-    ).toHaveLength(0);
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 
   it("a11y 違反を持たない", async () => {

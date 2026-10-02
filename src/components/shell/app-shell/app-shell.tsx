@@ -15,7 +15,10 @@ import { AppShellNavLink } from "./app-shell-nav-link";
 export type AppShellProps = {
   /** header 左端に置く名称。遷移先はトップ。 */
   siteName: string;
-  /** header に並べる導線。狭い画面では side menu に畳まれ、{@link menuNavSlot} と併せて空なら menu を出さない。 */
+  /**
+   * header に並べる導線。狭い画面では side menu に畳まれ、{@link menuNavSlot} と併せて空なら menu を出さない。
+   * {@link navSlot} と併せて空なら、header の `nav` 自体を置かない。
+   */
   navItems: readonly AppShellNavItem[];
   /**
    * header の導線の末尾へ差す要素。
@@ -79,6 +82,7 @@ export function AppShell({
 }: AppShellProps) {
   // 待ち枠と本体は同じ条件で落とす。片方だけ残すと、届いてから消える枠が header の中身を左へずらす。
   const hasMenu = navItems.length > 0 || menuNavSlot !== undefined;
+  const hasNav = navItems.length > 0 || navSlot !== undefined;
 
   return (
     <>
@@ -104,12 +108,14 @@ export function AppShell({
             {siteName}
           </Link>
           <div className="ml-auto flex items-center gap-1">
-            <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
-              {navItems.map((item) => (
-                <AppShellNavLink key={item.href} item={item} />
-              ))}
-              {navSlot}
-            </nav>
+            {hasNav ? (
+              <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
+                {navItems.map((item) => (
+                  <AppShellNavLink key={item.href} item={item} />
+                ))}
+                {navSlot}
+              </nav>
+            ) : null}
             {headerActions}
           </div>
         </div>
