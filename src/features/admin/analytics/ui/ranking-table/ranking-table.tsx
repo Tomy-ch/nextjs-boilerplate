@@ -26,8 +26,10 @@ const FOCUS_RING =
  * @remarks
  * 何を残すかは `docs/spec/route/admin/analytics/page.screen.md`「幅で変わるもの」。伏せる列を
  * 増やすと、横送りしないと販売数にも届かなくなります。
+ *
+ * 段の境目は、管理の器が脇に一覧を置ける幅（`lg`）に揃えます。
  */
-const WIDE_ONLY = "hidden md:table-cell";
+const WIDE_ONLY = "hidden lg:table-cell";
 
 const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
   {
@@ -82,7 +84,7 @@ function rowKey(row: AdminRankingRow): string {
  * 「売れ筋の期間が対応しない」）。見出しに期間を書いているのはその断りです。
  *
  * **商品名から商品の面へ出られます。** 売れているものを見つけたときに次へ知りたいのは、その
- * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面をまだ持たないためで、
+ * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面を持たないためで、
  * 決めているのは `../../../paths.ts` です。
  *
  * **行全体を押せる形にしていません。** 商品名だけが遷移先で、順位・販売数・価格は遷移先の説明

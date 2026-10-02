@@ -12,8 +12,8 @@ import {
 
 /** `PeriodSwitch` の props。 */
 export type PeriodSwitchProps = {
-  /** いま選ばれている期間。 */
-  current: DashboardPeriod;
+  /** いま選ばれている期間。URL の期間が読めなかったときは渡さない。 */
+  current?: DashboardPeriod;
   /** 日付を選ぶ選択肢。overlay を開くため、ここだけ client island を受け取る。 */
   rangeChoice: ReactNode;
 };

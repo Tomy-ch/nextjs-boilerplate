@@ -61,7 +61,7 @@ describe("AdminProductListView", () => {
   it("検索欄と分類・状態の入力欄を出す", () => {
     renderView();
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toBeInTheDocument();
     expect(screen.getByLabelText("分類")).toBeInTheDocument();
     expect(screen.getByLabelText("状態")).toBeInTheDocument();
   });

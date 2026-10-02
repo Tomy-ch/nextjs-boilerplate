@@ -76,6 +76,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | | loading | `Features/Admin/Skeleton/{Default,Mobile}` |
 | 集計 | 期間を選んだ | `Page/Admin/Analytics/RangeSelected` |
 | | 両端が逆 | `Page/Admin/Analytics/RangeReversed` |
+| | 期間が読めない | `Page/Admin/Analytics/InvalidPeriod` |
 | | 売れ筋が空 | `Page/Admin/Analytics/NoRanking` |
 | | loading（下だけ取り直している間） | `Page/Admin/Analytics/SummaryPending` |
 | 商品一覧 | success（廃番の行を含む） | `Page/Admin/Products/List/Default` |
@@ -113,7 +114,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
 | `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
-| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md) #76） |
+| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)「URL と条件」） |
 | `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
 | `summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
 | `analytics/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |
@@ -159,7 +160,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | `products/list/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
 | `products/list/view.tsx` | 検索欄・絞り込み・効いている条件・作成への導線。一覧本体は受け取る |
 | `products/list/ui/table/` | 商品の表。行ごとの操作は menu へ畳む |
-| `products/list/ui/keyword-field/` | 商品名で探す入力欄。打鍵では検索せず、確定の操作で飛ばす |
+| `products/list/ui/keyword-field/` | 商品名・説明で探す入力欄。打鍵では検索せず、確定の操作で飛ばす |
 | `products/list/ui/filter-control/` | 分類・状態の選択欄そのもの。選ばれた値をどう扱うかは持たない |
 | `products/list/ui/filter-select/` | 選んだ時点で反映する絞り込み。広い段で使う |
 | `products/list/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
@@ -286,7 +287,7 @@ header も失われた素の画面になります。
 表示上のラベルで、別物です。
 
 **在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
-数値カードとは独立した後続の機能です。
+数値カードとは独立した機能です。
 
 ## 関連する ADR
 

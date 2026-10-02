@@ -35,6 +35,13 @@ describe("PeriodSwitch", () => {
     expect(screen.getByRole("link", { name: "今日" })).not.toHaveAttribute("aria-current");
   });
 
+  it("現在地が渡されなければ、どの選択肢にも aria-current を付けない", () => {
+    render(<PeriodSwitch rangeChoice={<button type="button">期間を指定</button>} />);
+
+    expect(screen.getByRole("link", { name: "今日" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "今月" })).not.toHaveAttribute("aria-current");
+  });
+
   it("日付を選ぶ選択肢を外から受け取って末尾に置く", () => {
     renderSwitch();
 

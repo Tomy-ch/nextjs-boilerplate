@@ -9,7 +9,7 @@ import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
 import { AnalyticsView } from "./view";
 
-function renderView(query: DashboardPeriodSelection, window?: { from: string; to: string }) {
+function renderView(query?: DashboardPeriodSelection, window?: { from: string; to: string }) {
   return render(
     <AnalyticsView
       query={query}
@@ -49,6 +49,14 @@ describe("AnalyticsView", () => {
     renderView({});
 
     expect(screen.getByRole("link", { name: "今日" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("条件が渡されなければ、どの選択肢も現在地にしない", () => {
+    renderView();
+
+    expect(screen.getByRole("link", { name: "今日" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "今月" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "期間を指定" })).not.toHaveAttribute("aria-current");
   });
 
   it("選ばれている期間だけに現在地を示す", () => {
