@@ -7,9 +7,10 @@ description: >-
   of the two documents, a screen restating what a layout above it already promises, and content the spec
   deliberately does not carry. It never decides which side moves — whether the promise changed or the
   implementation drifted is not visible from the diff, so both readings are reported and the human chooses.
-  Use it before a release, after a screen's behaviour changed, or on 「仕様書と実装が合ってる？」「この約束まだ守られてる？」. Read-only;
-  it writes nothing. Do NOT use it to check that specs exist (a gate does), to judge implementation quality
-  (`impl-review`), or to write a specification (`new-feature`).
+  Use it for the one-time reading of every screen, after a change that alters a screen's promises, or on
+  「仕様書と実装が合ってる？」「この約束まだ守られてる？」. Read-only; it writes nothing. Do NOT use it to check that specs
+  exist (a gate does), to judge implementation quality (`impl-review`), or to write a specification
+  (`new-feature`).
 argument-hint: '[--scope=changed|full] [route]'
 ---
 
@@ -22,8 +23,9 @@ not loaded as a skill).
 
 ## When to Use
 
-- Before a release — the one point at which every screen is read against its promises.
-- After a screen's observable behaviour changed.
+- Once, for every screen — [0143](../../../docs/adr/0143-spec-driven-development.md) settles that
+  reading all screens is needed only once.
+- After a change that alters a screen's promises — that screen only.
 - When a specification and the screen seem to disagree.
 
 ## Contract
@@ -32,7 +34,7 @@ not loaded as a skill).
 | --- | --- |
 | **Owns** | 仕様書の約束と実装の**読み合わせ**、4 種の所見の提示、確かめられなかった約束の申告 |
 | **Never** | 存在の突合のやり直し / どちらが動くべきかの決定 / 仕様書と実装のどちらかへの書き込み |
-| **Starts when** | リリース前、画面の観測可能な振る舞いが変わった後、あるいは食い違いが疑われたとき |
+| **Starts when** | 全画面を一度読み合わせるとき、画面の約束を変える変更の後、あるいは食い違いが疑われたとき |
 | **Stops when** | 所見を提示したとき。直すのは user、あるいは `new-feature` |
 
 ## Do NOT use this skill for
@@ -64,7 +66,7 @@ One `AskUserQuestion`, skipped when the argument already answers it.
 
 - 「読み合わせのスコープを選んでください」
   - 「変更で触れた画面のみ」 — the routes whose spec or implementation is in the diff
-  - 「全画面」 — every route. **This is the release-time pass**
+  - 「全画面」 — every route. **This is the one-time reading of all screens**
   - 「1 つのルート」 — one route, named
 
 ## Step 1 — Resolve the routes and their inputs
@@ -113,8 +115,8 @@ file.
 ```
 
 **Report the unchecked promises as unchecked.** A review that lists only what it verified is
-indistinguishable from one that verified everything — and at release time that difference is the
-whole value of the pass.
+indistinguishable from one that verified everything — and on the reading of all screens that
+difference is the whole value of the pass.
 
 **Never decide which side moves.** 0143 settles the *direction* — if the promise changed, the spec
 moves; if it did not, the implementation does — but **which of those happened is not visible from
