@@ -3,6 +3,7 @@ import {
   type ProductListSelection,
   toSelectedValue,
 } from "../facade/list-url/list-url";
+import { formatRangeEdge, formatRangeLabel, type RangeEdge } from "./range-label";
 
 /**
  * 価格の目盛り。下限と上限をこの位置から選ぶ。
@@ -104,22 +105,17 @@ export function applyPriceRange(
  * @param edge - 表示する端。指定なしの表示文言を選ぶために使う
  * @returns 表示用の文字列
  */
-export function formatPriceBound(index: number, edge: "low" | "high"): string {
-  return formatPriceEdge(toBound(index) ?? "", edge);
+export function formatPriceBound(index: number, edge: RangeEdge): string {
+  return formatRangeEdge(toBound(index) ?? "", edge, formatPrice);
 }
 
 /**
- * 契約が受け取る十進文字列を、その端の役割に合った表示へ写す。
+ * 契約が受け取る十進文字列を、通貨付きの表示へ写す。
  *
- * @param value - 十進文字列。空は指定なし
- * @param edge - 表示する端。指定なしの表示文言を選ぶために使う
+ * @param value - 十進文字列
  * @returns 表示用の文字列
  */
-function formatPriceEdge(value: string, edge: "low" | "high"): string {
-  if (value === "") {
-    return edge === "low" ? "下限なし" : "上限なし";
-  }
-
+function formatPrice(value: string): string {
   return `$${value}`;
 }
 
@@ -134,12 +130,9 @@ function formatPriceEdge(value: string, edge: "low" | "high"): string {
  * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
  */
 export function formatPriceCondition(selection: ProductListSelection): string | undefined {
-  const low = toSelectedValue(selection, FILTER_KEY.MIN_PRICE);
-  const high = toSelectedValue(selection, FILTER_KEY.MAX_PRICE);
-
-  if (low === "" && high === "") {
-    return undefined;
-  }
-
-  return `${formatPriceEdge(low, "low")} 〜 ${formatPriceEdge(high, "high")}`;
+  return formatRangeLabel(
+    toSelectedValue(selection, FILTER_KEY.MIN_PRICE),
+    toSelectedValue(selection, FILTER_KEY.MAX_PRICE),
+    formatPrice,
+  );
 }

@@ -3,6 +3,7 @@ import {
   type ProductListSelection,
   toSelectedValue,
 } from "../facade/list-url/list-url";
+import { formatRangeLabel } from "./range-label";
 
 /**
  * 在庫の有無で選べる状態。
@@ -104,14 +105,11 @@ export const STOCK_QUANTITY_LABEL = "在庫数";
  * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
  */
 export function formatStockQuantity(selection: ProductListSelection): string | undefined {
-  const min = toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY);
-  const max = toSelectedValue(selection, FILTER_KEY.MAX_QUANTITY);
-
-  if (min === "" && max === "") {
-    return undefined;
-  }
-
-  return `${min === "" ? "下限なし" : min} 〜 ${max === "" ? "上限なし" : max}`;
+  return formatRangeLabel(
+    toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY),
+    toSelectedValue(selection, FILTER_KEY.MAX_QUANTITY),
+    (quantity) => quantity,
+  );
 }
 
 /**
