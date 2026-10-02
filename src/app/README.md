@@ -157,7 +157,10 @@ feature 側の `page-content` / `view` / `ui/skeleton` の分担は [features/RE
 - **`global-error.tsx` は inline style だけで装飾する。** この境界が出るのは root layout ごと壊れたときで、
   `globals.css` も design token も Provider も当てにできない。class に頼ると文字が読めない画面になり得る
 - **`not-found.tsx` は表示だけを持つ。** 文言はカタログから採り、戻る導線は上の階層へ 1 本だけ出す。
-  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md](../../docs/rules.md)「認可と入口」）
+  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md](../../docs/rules.md)「認可と入口」）。
+  **`notFound()` を呼ぶ画面は、器の内側に `not-found.tsx` を持つ segment に置く。** 無ければ root の
+  `not-found.tsx` が受け、route group の器ごと外れて導線もパンくずも消える。`error.tsx` で器を残した
+  segment なら、`not-found.tsx` も同じ高さに置く
 - **確定の失敗は境界に来ない。** Server Action が結果として返し、操作の隣に出る。境界へ来るのは、
   確かめる内容そのものを読めなかったときである
 
