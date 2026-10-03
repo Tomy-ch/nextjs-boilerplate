@@ -19,7 +19,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
-- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `site.ts` / `global-nav.ts`）。route
+- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `site.ts` など）。route
   要素のどれにも当たらないが、器ごとに書くと片方だけが動く。利用者から見て同じサイトの器が
   描く時点の違いだけで分かれているとき、導線の顔ぶれもここに 1 つ持つ —— 役割で出し分ける導線は
   含めず、出す・出さないの判定を持つ器が自分で足す。テストは `unit` として扱う
