@@ -28,7 +28,7 @@
 ".claude/skills/full-verify/prompts/verify-impl.md" = "観点 1 が持つコメント規約の写しが、`docs/rules.md`「コメントと文書」を実行時に読む指示へ置き換わったとき（`comment-reviewer.md` と同じ形）"
 "docs/traceability.md" = "実装タスクの章が、テンプレートから作った側でも真になる形に決着したとき —— いまの本文はこのリポジトリの issue 番号と起票日を証拠に使っており、作った側の手元では解決しない"
 ".claude/skills/full-verify/scripts/run.sh" = "`manage-skill` で full-verify を触るとき。`.claude/**` の維持はそのスキルが所有しており、ここを単独で判定すると所有を跨ぐ"
-"docs/spec/route/auth/login/page.function.md" = "/login が資格情報の入力面を所有する変更（#397）が入り、冒頭の「いまの実装は…手前の姿を写している」注記を現在形に書き直せたとき"
+"docs/spec/route/auth/login/page.function.md" = "/login が資格情報の入力面を所有する変更が入り、冒頭の「いまの実装は…手前の姿を写している」注記を現在形に書き直せたとき"
 
 [swept]
 ".agents/README.md" = "2026-09-28"
@@ -443,6 +443,14 @@
 "src/features/site-info/about/view.tsx" = "2026-10-03"
 "src/app/(shop)/purchases/error.test.tsx" = "2026-10-03"
 "src/app/(shop)/purchases/error.tsx" = "2026-10-03"
+"src/app/(shop)/purchases/not-found.test.tsx" = "2026-10-03"
+"src/app/(shop)/purchases/not-found.tsx" = "2026-10-03"
+"e2e/README.md" = "2026-10-03"
+"src/components/design-system/layout/layout-patterns/README.md" = "2026-10-03"
+"src/components/patterns/action-bar/README.md" = "2026-10-03"
+"src/features/cart/README.md" = "2026-10-03"
+"src/features/home/README.md" = "2026-10-03"
+"docs/spec/README.md" = "2026-10-03"
 ".claude/skills/verify-spec/SKILL.ja.md" = "2026-10-03"
 "src/app/admin/not-found.tsx" = "2026-10-03"
 "src/app/admin/not-found.test.tsx" = "2026-10-03"
