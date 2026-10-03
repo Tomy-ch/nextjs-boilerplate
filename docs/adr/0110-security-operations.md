@@ -151,7 +151,7 @@ Security グループは**週次スケジュール + 差分が届く PR** で走
 | `.gitleaks.toml` | 検知ルールセットとパス単位の allowlist |
 | `.gitleaksignore` | 検出 1 件(フィンガープリント `<path>:<rule-id>:<line>`) |
 | `.trivyignore.yaml` | 脆弱性 ID 1 件(`paths` でパスを限定) |
-| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルタした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる |
+| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルタした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる。**修正版の無い脆弱性は `ignoreUntil` で期限を切る** —— 過ぎた日からスキャナ自身が抑止を外してゲートが落ち、延ばすかどうかを人が決め直す。日付を `reason` へ写さない(下記の週次の突き合わせが `ignoreUntil` を読む) |
 | `sonar-project.properties` | ルール 1 件 × パスの組(`sonar.issue.ignore.multicriteria`)。**SonarCloud は hotspot を UI で review する仕組みを持つが、それはリポジトリの外に決定を置く** —— 複製したリポジトリへ同じ判断が渡らないので、リポジトリが持つ抑止はこのファイルに限る |
 | `bearer.ignore` | 検出 1 件(フィンガープリント)。`comment` に理由を書く。**JSON なので冒頭のポリシー明記が置けない** —— 様式は `bearer ignore add` が決め、理由は各エントリが持つ |
 | `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |

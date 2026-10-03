@@ -39,6 +39,27 @@ describe("scanSuppressions", () => {
     ]);
   });
 
+  it("osv-scanner の期限（ignoreUntil）を条件の日付として添える", () => {
+    place(
+      "osv-scanner.toml",
+      '[[IgnoredVulns]]\nid = "GHSA-4444"\nignoreUntil = 2026-11-02\nreason = "修正版が出たら削除する。"\n',
+    );
+
+    expect(scanSuppressions(root)).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-4444",
+        condition: "修正版が出たら削除する。（ignoreUntil 2026-11-02）",
+      },
+    ]);
+  });
+
+  it("理由が空なら期限があっても添えず、空のまま様式の検査へ渡す", () => {
+    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-5555"\nignoreUntil = 2026-11-02\n');
+
+    expect(scanSuppressions(root)[0]?.condition).toBe("");
+  });
+
   it("角括弧の内側に空白があっても読む。TOML として合法な書き方である", () => {
     // 位置を数える実装はここで黙って 0 件を返し、期限切れが誰にも見えなくなる。
     place("osv-scanner.toml", '[[ IgnoredVulns ]]\nid = "GHSA-2222"\nreason = "理由"\n');
