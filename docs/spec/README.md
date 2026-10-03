@@ -85,6 +85,10 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) <!-- sample:line --> |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
 | `/maintenance` | [`screen`](route/maintenance/page.screen.md) / [`function`](route/maintenance/page.function.md) |
+<!-- sample:replace-begin -->
+<!-- sample:replace-with -->
+<!-- = | `/` | `route/page.screen.md` |-->
+<!-- sample:replace-end -->
 
 **この目録が画面の一覧です。** 画面の約束はここが持ち、ほかの文書が代わりに持つことはありません
 （[0143](../adr/0143-spec-driven-development.md)）。

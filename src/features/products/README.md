@@ -67,6 +67,7 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 | `list/page-size.ts` | 1 度に読み込む件数。条件の解釈から切り離し、client へ zod を持ち込ませない |
 | `list/price-range.ts` | 価格の目盛りと、URL の下限・上限との写し |
 | `list/stock-availability.ts` | 在庫の有無と、URL の在庫数の条件との写し |
+| `list/range-label.ts` | 下限と上限の表示。価格と在庫数が同じ「指定なし」の呼び方とつなぎ方を引く |
 | `list/filter-draft.tsx` | 組み立て中の条件を持ち、画面で 1 つに保つ |
 | `list/use-filtered-count.ts` | 確定していない条件で一致する件数を数える |
 | `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
@@ -74,7 +75,7 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
 | `list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
 | `list/ui/grid/` | 商品を並べる。取得も読み進めも持たず、空のときの案内もここが持つ |
 | `list/ui/card/` | 1 件の見た目。カード全体が詳細への導線になる |
-| `list/ui/contact-button/` | 在庫の無い商品について問い合わせる入口。受け口はまだ無い |
+| `list/ui/contact-button/` | 在庫の無い商品について問い合わせる入口。どの商品かは引き継がない |
 | `list/ui/keyword-field/` | キーワードの入力欄。打鍵では検索せず、確定の操作で飛ばす |
 | `list/ui/sort-select/` | 並び替え。幅によらず選んだ時点で反映する |
 | `list/ui/price-field/` | 価格の入力欄。セレクトボックスとレンジスライダーが同じ目盛りを動く |
@@ -141,7 +142,7 @@ error の面を出すのは route の境界（`error.tsx`）で、上の story �
   [`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです（feature 同士は直接
   参照しないため、口は区画として公開されています）
 - **その操作は、脇の領域が無い帯で画面下端に固定します**（[`docs/rules.md`](../../../docs/rules.md)
-  #72）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
+  「レイアウトと帯」）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
   組み立ての判断なので `detail/view.tsx` が持ち、操作の部品は自分がどこに置かれたかを知りません
 - **カード全体を詳細への導線にしますが、link では包みません**。包むとカートへ入れる操作が link の
   内側に入り、操作の中に操作が居る形になります。商品名の link を疑似要素でカードいっぱいに広げ、

@@ -3,6 +3,7 @@ import {
   type ProductListSelection,
   toSelectedValue,
 } from "../facade/list-url/list-url";
+import { formatRangeEdge, formatRangeLabel, type RangeEdge } from "./range-label";
 
 /**
  * 価格の目盛り。下限と上限をこの位置から選ぶ。
@@ -104,12 +105,34 @@ export function applyPriceRange(
  * @param edge - 表示する端。指定なしの表示文言を選ぶために使う
  * @returns 表示用の文字列
  */
-export function formatPriceBound(index: number, edge: "low" | "high"): string {
-  const value = PRICE_SCALE[index];
+export function formatPriceBound(index: number, edge: RangeEdge): string {
+  return formatRangeEdge(toBound(index) ?? "", edge, formatPrice);
+}
 
-  if (value === undefined || value === null) {
-    return edge === "low" ? "下限なし" : "上限なし";
-  }
-
+/**
+ * 契約が受け取る十進文字列を、通貨付きの表示へ写す。
+ *
+ * @param value - 十進文字列
+ * @returns 表示用の文字列
+ */
+function formatPrice(value: string): string {
   return `$${value}`;
+}
+
+/**
+ * いま効いている価格の条件を、下限と上限をまとめた 1 つの表示へ写す。
+ *
+ * @remarks
+ * 目盛りの位置ではなく URL の値から作ります。目盛りに無い値も条件としては効いており、位置へ
+ * 写すと「指定なし」の端に見えて、効いている条件が表示から消えます。
+ *
+ * @param selection - いま効いている条件
+ * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
+ */
+export function formatPriceCondition(selection: ProductListSelection): string | undefined {
+  return formatRangeLabel(
+    toSelectedValue(selection, FILTER_KEY.MIN_PRICE),
+    toSelectedValue(selection, FILTER_KEY.MAX_PRICE),
+    formatPrice,
+  );
 }

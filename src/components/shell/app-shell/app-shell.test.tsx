@@ -123,7 +123,7 @@ describe("AppShell", () => {
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
-  it("導線が無くても骨格を保つ", () => {
+  it("導線が無くても骨格を保ち、中身の無い nav を置かない", () => {
     render(
       <AppShell siteName="サイト" navItems={[]}>
         <p>本文</p>
@@ -131,7 +131,18 @@ describe("AppShell", () => {
     );
 
     expect(screen.getByRole("main")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "主要な導線" })).toBeEmptyDOMElement();
+    expect(screen.getByRole("banner")).toBeInTheDocument();
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("導線が主体を待つなら header の nav を残す", () => {
+    render(
+      <AppShell siteName="サイト" navItems={[]} navSlot={<Link href="/settings">設定</Link>}>
+        <p>本文</p>
+      </AppShell>,
+    );
+
+    expect(screen.getByRole("navigation", { name: "主要な導線" })).toHaveTextContent("設定");
   });
 
   it("畳むものが無ければ side menu を開く操作を出さない", () => {

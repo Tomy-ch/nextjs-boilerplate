@@ -86,18 +86,31 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
   }
 }
 
-/** 脆弱性 ID ごとの抑止（osv-scanner）。理由は `reason`。 */
+/**
+ * 脆弱性 ID ごとの抑止（osv-scanner）。理由は `reason`。
+ *
+ * @remarks
+ * `ignoreUntil` は osv-scanner 自身が読む期限で、過ぎるとスキャナが抑止を外してゲートが落ちます。
+ * 同じ日付を `reason` へ書き写させないために、ここで条件の末尾へ添えます。理由が空の宣言には
+ * 添えません —— 添えると空であることが様式の検査から見えなくなります。
+ */
 function osvSuppressions(root: string): readonly Suppression[] {
-  const document = parsed<{ IgnoredVulns?: { id?: string; reason?: string }[] }>(
-    read(root, OSV_PATH),
-    parseToml,
-  );
+  const document = parsed<{
+    IgnoredVulns?: { id?: string; reason?: string; ignoreUntil?: Date }[];
+  }>(read(root, OSV_PATH), parseToml);
 
-  return (document?.IgnoredVulns ?? []).map((entry) => ({
-    source: OSV_PATH,
-    subject: entry.id ?? "(id なし)",
-    condition: entry.reason ?? "",
-  }));
+  return (document?.IgnoredVulns ?? []).map((entry) => {
+    const reason = entry.reason ?? "";
+    const until =
+      entry.ignoreUntil instanceof Date ? entry.ignoreUntil.toISOString().slice(0, 10) : undefined;
+
+    return {
+      source: OSV_PATH,
+      subject: entry.id ?? "(id なし)",
+      condition:
+        until === undefined || reason.trim() === "" ? reason : `${reason}（ignoreUntil ${until}）`,
+    };
+  });
 }
 
 /** 脆弱性 ID ごとの抑止（trivy）。理由は `statement`。 */

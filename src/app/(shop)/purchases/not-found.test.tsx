@@ -4,32 +4,32 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import CheckoutCompleteNotFound from "./not-found";
+import PurchaseHistoryNotFound from "./not-found";
 
-describe("CheckoutCompleteNotFound", () => {
+describe("PurchaseHistoryNotFound", () => {
   it("見つからなかったことを見出しで伝える", () => {
-    render(<CheckoutCompleteNotFound />);
+    render(<PurchaseHistoryNotFound />);
 
     expect(screen.getByRole("heading", { name: "対象が見つかりません。" })).toBeVisible();
   });
 
-  it("控えの一覧（購入履歴）へ向かう導線を出す", () => {
-    render(<CheckoutCompleteNotFound />);
+  it("購入履歴へ戻る導線を 1 本だけ出す", () => {
+    render(<PurchaseHistoryNotFound />);
 
-    expect(screen.getByRole("link", { name: "購入の控えを見る" })).toHaveAttribute(
-      "href",
-      "/purchases",
-    );
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAccessibleName("購入履歴へ戻る");
+    expect(links[0]).toHaveAttribute("href", "/purchases");
   });
 
   it("指し先が無いのか他人のものかを言い分けない", () => {
-    render(<CheckoutCompleteNotFound />);
+    render(<PurchaseHistoryNotFound />);
 
     expect(screen.queryByText(/権限|他の利用者/)).not.toBeInTheDocument();
   });
 
   it("a11y 違反を持たない", async () => {
-    const { container } = render(<CheckoutCompleteNotFound />);
+    const { container } = render(<PurchaseHistoryNotFound />);
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

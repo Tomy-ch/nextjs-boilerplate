@@ -115,8 +115,8 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 
 他 feature の `facade/` も引きます —— 購入の表示（`purchases`）と、明細に立った事情の言い方
 （`cart`）。借りている理由は「借りているもの」に書いてあります。この画面から出る先（カート・
-届け先の編集・商品一覧・マイページ）も、所有者の `facade/`（`cart` / `account` / `products`）が
-出しているルートを引きます。
+届け先の編集・商品一覧・購入詳細）も、所有者の `facade/`（`cart` / `account` / `products` /
+`purchases`）が出しているルートを引きます。
 
 ## Action 戻り値契約
 

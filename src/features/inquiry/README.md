@@ -9,8 +9,8 @@ coverage-exclusions:
 
 # inquiry
 
-利用者がサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る、
-このリポジトリで唯一の設置面でもあります。
+利用者がサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
+設置面でもあります。
 
 ## 受け入れるもの
 
@@ -89,7 +89,7 @@ coverage-exclusions:
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | 項目の文言（本文）か、送信欄の隣の文言 |
+| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
 
 **冪等キーを必ず載せます。** メッセージは自然キーを持たないため、応答が届かなかっただけの送信を
 送り直すと 2 通目になります。鍵は成立するまで同じ値を使い、成立した時点で作り直します。

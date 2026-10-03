@@ -4,6 +4,7 @@ import { FILTER_KEY } from "../facade/list-url/list-url";
 import {
   applyPriceRange,
   formatPriceBound,
+  formatPriceCondition,
   PRICE_RANGE_MAX,
   PRICE_RANGE_MIN,
   toPriceRange,
@@ -88,5 +89,31 @@ describe("formatPriceBound", () => {
   // ----- 異常系 -----
   it("目盛りの外の位置は、その端の指定なしとして呼ぶ", () => {
     expect(formatPriceBound(PRICE_RANGE_MAX + 1, "high")).toBe("上限なし");
+  });
+});
+
+describe("formatPriceCondition", () => {
+  // ----- 正常系 -----
+  it("下限と上限を 1 つの表示にまとめる", () => {
+    expect(
+      formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: "25", [FILTER_KEY.MAX_PRICE]: "250" }),
+    ).toBe("$25 〜 $250");
+  });
+
+  it("片側だけなら、もう片方を指定なしと呼ぶ", () => {
+    expect(formatPriceCondition({ [FILTER_KEY.MAX_PRICE]: "100" })).toBe("下限なし 〜 $100");
+  });
+
+  it("目盛りに無い値も URL の値のまま出す", () => {
+    expect(formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: "37" })).toBe("$37 〜 上限なし");
+  });
+
+  it("下限も上限も指定が無ければ undefined を返す", () => {
+    expect(formatPriceCondition({})).toBeUndefined();
+  });
+
+  // ----- 異常系 -----
+  it("同じキーが複数回現れたら指定なしとして扱う", () => {
+    expect(formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: ["25", "50"] })).toBeUndefined();
   });
 });

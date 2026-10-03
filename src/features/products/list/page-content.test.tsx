@@ -70,7 +70,7 @@ describe("ProductListPageContent", () => {
   it("検索欄に現在のキーワードを引き継ぐ", async () => {
     render(await ProductListPageContent({ searchParams: { keyword: "イヤホン" } }));
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("イヤホン");
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toHaveValue("イヤホン");
   });
 
   it("明示された並び順を選択済みにする", async () => {
@@ -96,7 +96,7 @@ describe("ProductListPageContent", () => {
     render(await ProductListPageContent({ searchParams: { categoryCodes: "not-a-uuid" } }));
 
     expect(ProductListResults).not.toHaveBeenCalled();
-    expect(screen.queryByRole("searchbox", { name: "商品名で探す" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "商品名・説明で探す" })).not.toBeInTheDocument();
   });
 
   it("契約を外れた条件の呼び名を、画面上の言葉へ直して出す", async () => {

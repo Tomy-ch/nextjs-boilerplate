@@ -54,6 +54,7 @@ proxy が本体ごと組み立てれば 503 を返せるが、その本体は pr
 | 静的アセット（`_next/static` / `_next/image` / `favicon.ico`） | 止めると、この画面自身が資材を取りに行けない。入口の選別が既に外している |
 | `/api/health` | 外形監視が計画停止と障害を区別できなくなる |
 | `/maintenance` | 差し替え先を差し替えの対象にすると、rewrite が自分を指す |
+| metadata の配信物（`icon` / `apple-icon` / `opengraph-image` / `sitemap.xml` / `robots.txt`） | 誰でも開ける配信物で、入口の選別が既に外している。止めているあいだも元の中身が返る |
 
 ## 切り替え
 

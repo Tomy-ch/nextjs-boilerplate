@@ -102,6 +102,12 @@ describe("ProductFilterSheet", () => {
     expect(trigger()).toHaveTextContent("1");
   });
 
+  it("入力欄に写らない価格と在庫数の範囲も、効いていれば数える", () => {
+    renderSheet({ [FILTER_KEY.MIN_PRICE]: "37", [FILTER_KEY.MIN_QUANTITY]: "5" });
+
+    expect(screen.getByLabelText("2 件の条件が有効")).toBeInTheDocument();
+  });
+
   it("効いている条件が無いときは数を付けない", () => {
     renderSheet();
 

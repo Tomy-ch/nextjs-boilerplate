@@ -3,9 +3,15 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getInquiryHistory } = vi.hoisted(() => ({ getInquiryHistory: vi.fn() }));
+const { getInquiryHistory, notFound } = vi.hoisted(() => ({
+  getInquiryHistory: vi.fn(),
+  notFound: vi.fn(() => {
+    throw new Error("NEXT_NOT_FOUND");
+  }),
+}));
 
 vi.mock("@/adapters/server/api/inquiries", () => ({ getInquiryHistory }));
+vi.mock("next/navigation", () => ({ notFound }));
 vi.mock("./view", () => ({
   AdminInquiryDetailView: ({
     history,
@@ -20,6 +26,8 @@ vi.mock("./view", () => ({
   ),
 }));
 
+import { createAppError, findAppError } from "@/errors/app-error";
+import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
 import { ADMIN_INQUIRY_HISTORY, ADMIN_INQUIRY_ID } from "../inquiries.fixture";
@@ -54,5 +62,29 @@ describe("AdminInquiryDetailPageContent", () => {
     const ids = ADMIN_INQUIRY_HISTORY.messages.map((message) => message.id).join(",");
 
     expect(screen.getByText(`${ADMIN_INQUIRY_ID}:${ids}`)).toBeVisible();
+  });
+
+  it("見つからない問い合わせは not-found の境界へ渡す", async () => {
+    getInquiryHistory.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
+
+    await expect(
+      AdminInquiryDetailPageContent({
+        inquiryId: ADMIN_INQUIRY_ID,
+        replyAction: async () => idleActionState<void, "body">(),
+      }),
+    ).rejects.toThrow("NEXT_NOT_FOUND");
+    expect(notFound).toHaveBeenCalledOnce();
+  });
+
+  it("見つからない以外の失敗は分類のまま投げ直す", async () => {
+    getInquiryHistory.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
+
+    await expect(
+      AdminInquiryDetailPageContent({
+        inquiryId: ADMIN_INQUIRY_ID,
+        replyAction: async () => idleActionState<void, "body">(),
+      }),
+    ).rejects.toSatisfy((error: unknown) => findAppError(error)?.kind === ErrorKind.UNAVAILABLE);
+    expect(notFound).not.toHaveBeenCalled();
   });
 });

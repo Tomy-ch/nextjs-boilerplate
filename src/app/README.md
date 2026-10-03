@@ -19,7 +19,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
-- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `site.ts` / `global-nav.ts`）。route
+- **複数の route group の器が共有する宣言モジュール**（`fonts.ts` / `site.ts` など）。route
   要素のどれにも当たらないが、器ごとに書くと片方だけが動く。利用者から見て同じサイトの器が
   描く時点の違いだけで分かれているとき、導線の顔ぶれもここに 1 つ持つ —— 役割で出し分ける導線は
   含めず、出す・出さないの判定を持つ器が自分で足す。テストは `unit` として扱う
@@ -157,7 +157,10 @@ feature 側の `page-content` / `view` / `ui/skeleton` の分担は [features/RE
 - **`global-error.tsx` は inline style だけで装飾する。** この境界が出るのは root layout ごと壊れたときで、
   `globals.css` も design token も Provider も当てにできない。class に頼ると文字が読めない画面になり得る
 - **`not-found.tsx` は表示だけを持つ。** 文言はカタログから採り、戻る導線は上の階層へ 1 本だけ出す。
-  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md](../../docs/rules.md)「認可と入口」）
+  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md](../../docs/rules.md)「認可と入口」）。
+  **`notFound()` を呼ぶ画面は、器の内側に `not-found.tsx` を持つ segment に置く。** 無ければ root の
+  `not-found.tsx` が受け、route group の器ごと外れて導線もパンくずも消える。`error.tsx` で器を残した
+  segment なら、`not-found.tsx` も同じ高さに置く
 - **確定の失敗は境界に来ない。** Server Action が結果として返し、操作の隣に出る。境界へ来るのは、
   確かめる内容そのものを読めなかったときである
 

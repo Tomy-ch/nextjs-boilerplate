@@ -26,8 +26,10 @@ const FOCUS_RING =
  * @remarks
  * 何を残すかは `docs/spec/route/admin/analytics/page.screen.md`「幅で変わるもの」。伏せる列を
  * 増やすと、横送りしないと販売数にも届かなくなります。
+ *
+ * 段の境目は、管理の器が脇に一覧を置ける幅（`lg`）に揃えます。
  */
-const WIDE_ONLY = "hidden md:table-cell";
+const WIDE_ONLY = "hidden lg:table-cell";
 
 const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
   {
@@ -79,14 +81,14 @@ function rowKey(row: AdminRankingRow): string {
  *
  * @remarks
  * **上の集計とは期間が別です**（`docs/spec/route/admin/analytics/page.function.md`
- * 「売れ筋の期間が対応しない」）。見出しに期間を書いているのはその断りです。
+ * 「売れ筋は期間の選択に従わない」）。見出しに期間を書いているのはその断りです。
  *
  * **商品名から商品の面へ出られます。** 売れているものを見つけたときに次へ知りたいのは、その
- * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面をまだ持たないためで、
+ * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面を持たないためで、
  * 決めているのは `../../../paths.ts` です。
  *
  * **行全体を押せる形にしていません。** 商品名だけが遷移先で、順位・販売数・価格は遷移先の説明
- * ではありません。一覧（`../../products/ui/table/`）が行いっぱいの導線を持つのは、そこが操作を
+ * ではありません。一覧（`../../../products/list/ui/table/`）が行いっぱいの導線を持つのは、そこが操作を
  * 目的にした画面だからです。ここは読む画面なので、押せる範囲を名前に留めます。
  *
  * @param props - {@link RankingTableProps} を参照。

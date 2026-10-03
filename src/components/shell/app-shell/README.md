@@ -19,6 +19,8 @@
 
 利用者向けの route group の layout で一度だけ使います。器をどこに mount するかは [0026](../../../../docs/adr/0026-layout-shell-mount.md) が決めます。
 
+導線を 1 つも持たない器（`navItems` も `navSlot` も空）では、header の `nav` 自体を置きません。中身の無い landmark は、支援技術の一覧に行き先の無い項目として残るためです。
+
 主体を知らなければ決まらない導線（ログイン状態で変わる項目など）は `navItems` へ混ぜず、`navSlot` と `menuNavSlot` へ穴として渡します。`navItems` に待つものを混ぜると器そのものが待つことになり、この器を通る画面がすべて動的描画になります。
 
 ## 責務境界
@@ -37,4 +39,4 @@ skip link を先頭に置くのは、キーボードと支援技術の利用者�
 
 ## Storybook とテスト
 
-Storybook（`Layout/AppShell`）は既定の構成、脇に領域を並べた構成、狭い viewport、side menu を開いた状態、導線を持たない構成、side menu の導線を slot からだけ受け取る構成を確認します。テストは本文が `main` に入ること、skip link の飛び先、header の導線と footer、狭い画面で side menu から導線を開けること、side menu の導線が履歴を積まないことを確認します。
+Storybook（`Layout/AppShell`）は既定の構成、脇に領域を並べた構成、狭い viewport、side menu を開いた状態、導線を持たない構成、side menu の導線を slot からだけ受け取る構成を確認します。テストは本文が `main` に入ること、skip link の飛び先、header の導線と footer、狭い画面で side menu から導線を開けること、side menu の導線が履歴を積まないこと、導線が無ければ header の `nav` を置かないことを確認します。

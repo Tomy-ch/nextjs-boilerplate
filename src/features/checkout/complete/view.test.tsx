@@ -4,6 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
+
 import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutCompleteView } from "./view";
 
@@ -22,7 +24,7 @@ describe("CheckoutCompleteView", () => {
     expect(screen.getByText("ご購入いただいた商品")).toBeVisible();
   });
 
-  it("次の導線を 2 本置く", () => {
+  it("次の導線を 2 本置き、控えの導線はこの購入の詳細を指す", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={TOTAL_REFERENCE} />);
 
     expect(screen.getByRole("link", { name: "買い物を続ける" })).toHaveAttribute(
@@ -31,9 +33,10 @@ describe("CheckoutCompleteView", () => {
     );
     expect(screen.getByRole("link", { name: "購入の控えを見る" })).toHaveAttribute(
       "href",
-      "/mypage",
+      purchaseDetailPath(PURCHASE.code),
     );
   });
+
   it("参考換算額が無くても成り立つ", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={null} />);
 

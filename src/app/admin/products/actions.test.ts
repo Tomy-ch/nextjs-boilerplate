@@ -191,16 +191,6 @@ describe("createProductAction", () => {
     expect(createProduct).not.toHaveBeenCalled();
   });
 
-  it("版が無ければ、編集の前提が失われたことを全体の誤りとして返す", async () => {
-    const state = await updateProductAction(idleActionState(), productForm({ version: "" }));
-
-    expect(state).toMatchObject({
-      status: "error",
-      formError: "編集の前提が失われています。画面を開き直してください。",
-    });
-    expect(updateProduct).not.toHaveBeenCalled();
-  });
-
   it("作れなかったことを分類済みの結果として返す", async () => {
     createProduct.mockRejectedValue(createAppError(ErrorKind.VALIDATION));
 
@@ -241,6 +231,16 @@ describe("updateProductAction", () => {
     const state = await updateProductAction(idleActionState(), productForm({ price: "abc" }));
 
     expect(state).toMatchObject({ status: "error", formError: null });
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("版が無ければ、編集の前提が失われたことを全体の誤りとして返す", async () => {
+    const state = await updateProductAction(idleActionState(), productForm({ version: "" }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: "編集の前提が失われています。画面を開き直してください。",
+    });
     expect(updateProduct).not.toHaveBeenCalled();
   });
 
@@ -347,6 +347,19 @@ describe("adjustProductStockAction", () => {
     const state = await adjustProductStockAction(idleActionState(), stockForm());
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.CONFLICT });
+  });
+
+  it("増減後の在庫が範囲を外れて拒まれたら、量の欄あての文言を返す", async () => {
+    adjustProductStock.mockRejectedValue(createAppError(ErrorKind.VALIDATION));
+
+    const state = await adjustProductStockAction(idleActionState(), stockForm());
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: null,
+      fieldErrors: { quantity: ["動かした後の在庫が扱える範囲を外れます。量を見直してください。"] },
+      kind: ErrorKind.VALIDATION,
+    });
   });
 
   it("一時的に受け付けられないときは、時間を空ける旨の分類で返す", async () => {
