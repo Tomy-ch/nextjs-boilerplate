@@ -59,9 +59,9 @@ coverage-exclusions:
 | | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
 **空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
-行動が違います。error は route の `error` 境界が受けます。詳細で見つからない場合（`notFound()`）は、
-詳細の segment も親の segment も `not-found.tsx` を持たないため、root の `src/app/not-found.tsx` が
-受けます。この面は route group の shell を通らず、戻る導線はトップへの 1 本です。
+行動が違います。error は route の `error` 境界が、詳細で見つからない場合（`notFound()`）は同じ
+高さの `not-found` 境界が受けます。どちらも履歴の segment に置くので、詳細の失敗も shell の内側に
+出ます。不在の面の戻る導線は履歴への 1 本です。
 
 ## 構成
 
