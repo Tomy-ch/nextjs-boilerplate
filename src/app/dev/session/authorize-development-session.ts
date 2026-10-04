@@ -14,7 +14,7 @@ const AUTH_CALLBACK_PATH = "/api/auth/callback";
  *
  * @remarks
  * **受け口が自分で持ちます。** `next.config.ts` の `bodySizeLimit` は Server Action にしか及ばず、
- * Route Handler へ寄せた時点で外れます。ここが受けるのは短い指定だけで、貼られた Bearer を
+ * Route Handler には効きません。ここが受けるのは短い指定だけで、貼られた Bearer を
  * 含めても収まります。
  */
 const MAX_BODY_BYTES = 64 * 1024;
@@ -57,7 +57,13 @@ export async function authorizeDevelopmentSession(request: Request): Promise<Aut
     return { kind: "too-large" };
   }
 
-  const formData = await request.formData();
+  const body = await request.arrayBuffer();
+
+  if (body.byteLength > MAX_BODY_BYTES) {
+    return { kind: "too-large" };
+  }
+
+  const formData = await new Response(body, { headers: request.headers }).formData();
   // File が送られても文字列として扱わない。`[object File]` は state として成立しないため、
   // 対応づかない送信として落とす。
   const stateEntry = formData.get(STATE_PARAM);

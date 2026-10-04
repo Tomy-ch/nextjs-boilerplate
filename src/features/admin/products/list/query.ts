@@ -25,7 +25,7 @@ export const CURSOR_KEY = "after";
  *
  * @remarks
  * cursor は「次の位置」しか指さないため、戻る先はどこにも書かれていません。覚える場所を URL に
- * する理由は `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
+ * する理由は `docs/spec/route/admin/products/page.function.md`「ページ送り」。
  */
 export const TRAIL_KEY = "trail";
 
@@ -51,7 +51,7 @@ export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
  * 具体的な値を同時に選べてしまいます。
  */
 export type AdminProductListConditions = {
-  /** 商品名に含まれる語。 */
+  /** 商品名・商品説明に部分一致で含まれる語。 */
   readonly keyword: string;
   /** 分類のコード。空なら分類で絞り込まない。 */
   readonly categoryCodes: readonly string[];

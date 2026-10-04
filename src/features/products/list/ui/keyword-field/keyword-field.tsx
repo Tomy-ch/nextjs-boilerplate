@@ -53,10 +53,10 @@ export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
     <SearchFieldClient
       className="max-w-xs flex-1"
       commit={SEARCH_FIELD_COMMIT.SUBMIT}
-      label="商品名で探す"
+      label="商品名・説明で探す"
       onSearch={apply}
       onValueChange={setKeyword}
-      placeholder="商品名で探す"
+      placeholder="商品名・説明で探す"
       submitDisabled={keyword === "" && toSelectedValue(selection, FILTER_KEY.KEYWORD) === ""}
       value={keyword}
     />

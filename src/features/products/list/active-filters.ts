@@ -5,13 +5,15 @@ import {
   toSelectedValue,
   toSelectedValues,
 } from "../facade/list-url/list-url";
-import { formatPriceBound, PRICE_RANGE_MAX, PRICE_RANGE_MIN, toPriceRange } from "./price-range";
+import { formatPriceCondition } from "./price-range";
 import type { FilterOption } from "./query";
 import {
   applyStockAvailability,
   formatStockAvailability,
+  formatStockQuantity,
   STOCK_AVAILABILITY,
   STOCK_AVAILABILITY_LABEL,
+  STOCK_QUANTITY_LABEL,
   toStockAvailability,
 } from "./stock-availability";
 
@@ -49,6 +51,10 @@ const CATEGORY_LABEL = "カテゴリ";
  * **価格は下限と上限で 1 つにまとめます。** 片方だけ外せても意味のある操作にならず、範囲は 2 つ
  * そろって初めて 1 つの条件になります。
  *
+ * **操作面に写らない値も並べます。** 目盛りに無い価格や、在庫状況のどれにも当たらない在庫数の範囲は、
+ * 操作面では「指定なし」に見えても条件としては効いています。ここで落とすと、何で絞り込まれているかを
+ * 画面のどこからも読めなくなります。在庫数の範囲は選択肢の名前を持たないため、数のまま出します。
+ *
  * 分類の値には選択肢の表示名を使います。URL に載っているのは ID で、そのまま出しても利用者には
  * 何を選んだのか分かりません。選択肢に無い ID は、契約を外れた値か消えた分類なので飛ばします。
  * 出すと存在しない条件が効いているように読めます。
@@ -65,13 +71,13 @@ export function toActiveFilters(
   selection: ProductListSelection,
 ): readonly ActiveFilter[] {
   const filters: ActiveFilter[] = [];
-  const [low, high] = toPriceRange(selection);
+  const price = formatPriceCondition(selection);
 
-  if (low !== PRICE_RANGE_MIN || high !== PRICE_RANGE_MAX) {
+  if (price !== undefined) {
     filters.push({
       key: FILTER_KEY.MIN_PRICE,
       label: PRICE_LABEL,
-      value: `${formatPriceBound(low, "low")} 〜 ${formatPriceBound(high, "high")}`,
+      value: price,
       removeHref: toProductListHref({
         ...selection,
         [FILTER_KEY.MIN_PRICE]: "",
@@ -101,12 +107,15 @@ export function toActiveFilters(
   }
 
   const availability = toStockAvailability(selection);
+  const quantity = formatStockQuantity(selection);
 
-  if (availability !== STOCK_AVAILABILITY.ALL) {
+  if (quantity !== undefined) {
+    const named = availability !== STOCK_AVAILABILITY.ALL;
+
     filters.push({
       key: FILTER_KEY.MIN_QUANTITY,
-      label: STOCK_AVAILABILITY_LABEL,
-      value: formatStockAvailability(availability),
+      label: named ? STOCK_AVAILABILITY_LABEL : STOCK_QUANTITY_LABEL,
+      value: named ? formatStockAvailability(availability) : quantity,
       removeHref: toProductListHref(applyStockAvailability(selection, STOCK_AVAILABILITY.ALL)),
     });
   }

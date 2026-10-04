@@ -22,13 +22,13 @@
 
 ## 間隔の段
 
-`gap-*` のうち、token が名前を与えているのは `0` / `1` / `2` / `4` / `6` / `8` です。この段は `var(--spacing-N)` を経由するため、[`tokens/primitives.json`](../../../../../tokens/primitives.json) の一箇所で値を変えられます。
+`gap-*` のうち token が名前を与えている段は [`tokens/primitives.json`](../../../../../tokens/primitives.json) の `spacing` が持つので、ここには書きません。この段は `var(--spacing-N)` を経由するため、一箇所で値を変えられます。
 
-それ以外の段（`1.5` / `3` / `10` など）も Tailwind の基底 `--spacing` の倍数として書けますが、`calc(var(--spacing) * N)` に展開されるため token の段とは別経路になります。
+それ以外の段も Tailwind の基底 `--spacing` の倍数として書けますが、`calc(var(--spacing) * N)` に展開されるため token の段とは別経路になります。
 
 ## viewport breakpoint と container query の使い分け
 
-判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md) #73 / #74 が持ちます。
+判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md#layout)「レイアウトと帯」が持ちます。
 
 | 分岐の基準 | 使うところ |
 | --- | --- |
@@ -49,11 +49,11 @@ breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそ�
 </div>
 ```
 
-重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index の token 化は未着手のため、現状はこの実例に揃えます。
+重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index は token を持たず Tailwind の段階値だけを使います（[`docs/rules.md`](../../../../../docs/rules.md#layout)「レイアウトと帯」）。段はこの実例に揃えます。
 
 ## 責務境界
 
-**何も供給しません。** CSS 基盤である [`foundation/`](../../foundation/) の各項目が `.css` を持つのに対し、ここは純粋な説明です。そのため置き場も `foundation/` ではなく、`content-container` / `page-header` と並ぶ `layout/` にしています。
+**何も供給しません。** [`foundation/`](../../foundation/) の各項目が `.css` や橋の実装という供給物を持つのに対し、ここは純粋な説明です。そのため置き場も `foundation/` ではなく、ページの骨格を扱う `layout/`（[`components/README.md`](../../../README.md)）にしています。
 
 Tailwind 一般の使い方は網羅しません。それは Tailwind の文書が持ちます。ここが示すのは**このリポジトリが選んだ値と組み方**だけです。
 
@@ -67,4 +67,4 @@ story の title は `Layout/Layout` です。縦積みと間隔の段、折り�
 
 container query の story は枠の右下を掴んで幅を変えられます。窓の幅を変えずに切り替わることを確かめるためです。
 
-**test はありません。** 公開する実装が無く、検証の対象になるのは合成例の見え方だけだからです。`foundation/` の CSS 基盤が story だけを持つのと同じ形です。
+**test はありません。** 公開する実装が無く、検証の対象になるのは合成例の見え方だけだからです。`.css` だけを供給する `foundation/` の項目が story だけを持つのと同じ形です。

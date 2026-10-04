@@ -26,7 +26,10 @@ import {
   parseProductDraftForm,
   parseProductEditForm,
 } from "@/features/admin/products/parse-product-form";
-import type { StockFormState } from "@/features/admin/products/stock/form-state";
+import {
+  STOCK_OUT_OF_RANGE_MESSAGE,
+  type StockFormState,
+} from "@/features/admin/products/stock/form-state";
 import { parseStockForm } from "@/features/admin/products/stock/parse-stock-form";
 import {
   actionStateFromError,
@@ -63,7 +66,7 @@ async function assertAdmin(): Promise<void> {
  * 送信先を受け取るだけです。
  *
  * **画面から受け取った時点でもう一度確かめます。** 送る前の判定はブラウザ側にあり、
- * 送信者が差し替えられます。署名付き URL の経路なら署名ポリシーが担っていた層がここには無いため、
+ * 送信者が差し替えられます。署名付き URL の経路なら署名ポリシーが担う層がここには無いため、
  * この段が最後の砦です。
  *
  * 形式は宣言された `type` で見ます。これは送信者が付けられる値なので、中身がその形式である
@@ -226,6 +229,15 @@ export async function adjustProductStockAction(
   try {
     await adjustProductStock(parsed.productId, parsed.delta);
   } catch (error) {
+    // 範囲外は入力の誤りなので、量の欄のそばへ返す。欄が 1 つなので先頭の要約は出さない。
+    if (findAppError(error)?.kind === ErrorKind.VALIDATION) {
+      return failedActionState({
+        formError: null,
+        fieldErrors: { quantity: [STOCK_OUT_OF_RANGE_MESSAGE] },
+        kind: ErrorKind.VALIDATION,
+      });
+    }
+
     return actionStateFromError(error);
   }
 

@@ -81,10 +81,10 @@
 ## 取得の失敗
 
 **本文の取得が失敗しても、器（脇の導線・header・利用者向け画面へ戻る導線）は残す。** 境界は
-`/admin` の直下に置く（[0080](../../../../adr/0080-error-handling.md) 境界の粒度）。
+`/admin` の直下に置く（[0080](../../../../adr/0080-error-handling.md)）。
 
-**生のエラーもスタックも出さない。** production では本文が伏せられ、境界には分類ごとの文言と
-`digest` だけが渡る。原因の特定は `digest` とサーバ側のログの突合で行う。
+**生のエラーもスタックも出さない。** production では本文が伏せられ、境界には `digest` だけが
+渡るので、文言は分類を問わない汎用のものになる。原因の特定は `digest` とサーバ側のログの突合で行う。
 
 ## ページ送り
 
@@ -170,5 +170,4 @@
 | --- | --- |
 | 作成 | [`new/page.function.md`](new/page.function.md) / [`screen`](new/page.screen.md) |
 | 編集 | [`[id]/edit/page.function.md`](<[id]/edit/page.function.md>) / [`screen`](<[id]/edit/page.screen.md>) |
-
-在庫補充の画面はまだ無く、導線だけが先に決まっている。
+| 在庫補充 | [`[id]/stock/page.function.md`](<[id]/stock/page.function.md>) / [`screen`](<[id]/stock/page.screen.md>) |

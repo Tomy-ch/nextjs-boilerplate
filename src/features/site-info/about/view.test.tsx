@@ -46,6 +46,20 @@ describe("AboutView", () => {
     render(<AboutView />);
 
     expect(screen.queryByText(/責任を負いません/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/保証しません/)).not.toBeInTheDocument();
+  });
+
+  it("閲覧の同意条件を持たず、利用規約へ寄せる", () => {
+    render(<AboutView />);
+
+    expect(screen.queryByText(/同意したものとみなす/)).not.toBeInTheDocument();
+    expect(screen.getByText(/閲覧の条件と免責は、利用規約にまとめてあります/)).toBeVisible();
+  });
+
+  it("予告なくメンテナンスを行うことがあると伝える", () => {
+    render(<AboutView />);
+
+    expect(screen.getByText("予告なくメンテナンスを行うことがあります。")).toBeVisible();
   });
 
   it("設計上の呼び名を利用者向けの文言に出さない", () => {

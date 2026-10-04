@@ -72,7 +72,7 @@ describe("ProductListView", () => {
   it("キーワードの検索欄を出す", () => {
     renderView();
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toBeInTheDocument();
   });
 
   it("並び替えの選択肢を出す", () => {
@@ -91,7 +91,7 @@ describe("ProductListView", () => {
   it("いま効いているキーワードを検索欄に残す", () => {
     renderView({ [FILTER_KEY.KEYWORD]: "鞄" });
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("鞄");
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toHaveValue("鞄");
   });
 
   it("いま効いている並び順を選択済みにする", () => {
@@ -144,7 +144,7 @@ describe("ProductListView", () => {
     const user = (await import("@testing-library/user-event")).default;
 
     await user.click(within(aside()).getByLabelText("オーディオ"));
-    await user.type(screen.getByRole("searchbox", { name: "商品名で探す" }), "鞄");
+    await user.type(screen.getByRole("searchbox", { name: "商品名・説明で探す" }), "鞄");
     await user.click(screen.getByRole("button", { name: "検索" }));
 
     expect(push).toHaveBeenCalledWith("/products?categoryCodes=10&keyword=%E9%9E%84");

@@ -64,10 +64,10 @@ export function AdminProductKeywordField({ conditions }: AdminProductKeywordFiel
     <SearchFieldClient
       className="max-w-xs flex-1"
       commit={SEARCH_FIELD_COMMIT.SUBMIT}
-      label="商品名で探す"
+      label="商品名・説明で探す"
       onSearch={search}
       onValueChange={setDraft}
-      placeholder="商品名で探す"
+      placeholder="商品名・説明で探す"
       submitDisabled={draft.trim() === "" && conditions.keyword === ""}
       value={draft}
     />

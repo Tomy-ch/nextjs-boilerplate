@@ -8,8 +8,8 @@ import { RangeDialog } from "./ui/range-dialog/range-dialog";
 
 /** `AnalyticsView` の props。 */
 export type AnalyticsViewProps = {
-  /** URL が表す条件。選択肢の現在地と、日付の初期値になる。 */
-  query: DashboardPeriodSelection;
+  /** URL が表す条件。選択肢の現在地と、日付の初期値になる。読めなかったときは渡さない。 */
+  query?: DashboardPeriodSelection;
   /** 集計が対象にしている暦日。決まっていなければ渡さない。 */
   window?: PeriodWindow;
   /** 期間に従って取り直す区画。 */
@@ -29,7 +29,7 @@ export type AnalyticsViewProps = {
  * **売れ筋を別の slot にしているのも同じ理由です。** 期間の選択に従わない区画なので、期間を
  * 変えても取り直す必要がありません。
  *
- * **数値カードと内訳は入口（`view.tsx`）と同じ部品です。** 同じ値を別の形で出すと、期間を変えた
+ * **数値カードと内訳は入口（`../dashboard/view.tsx`）と同じ部品です。** 同じ値を別の形で出すと、期間を変えた
  * だけのつもりで読み方まで変わります。
  *
  * @param props - {@link AnalyticsViewProps} を参照。
@@ -38,7 +38,8 @@ export type AnalyticsViewProps = {
 export const AnalyticsView = withScreenSpan(
   "features/admin/analytics/view",
   ({ query, window, summary, ranking }: AnalyticsViewProps) => {
-    const period = query.period ?? DASHBOARD_PERIOD.TODAY;
+    // 読めなかった期間は既定の今日へ倒さない。倒すと、集計していない今日が現在地として示される。
+    const period = query === undefined ? undefined : (query.period ?? DASHBOARD_PERIOD.TODAY);
 
     return (
       <div className="space-y-8">
@@ -47,9 +48,9 @@ export const AnalyticsView = withScreenSpan(
             current={period}
             rangeChoice={
               <RangeDialog
-                from={query.from}
+                from={query?.from}
                 selected={period === DASHBOARD_PERIOD.RANGE}
-                to={query.to}
+                to={query?.to}
               />
             }
           />

@@ -34,8 +34,8 @@ export type AdminAnalyticsPageContentProps = {
  * 次の集計が届くまで前の期間の数が残ります。**鍵は値を一意に表す形で作ります。** 区切り文字で
  * 連結すると、値に区切り文字が現れた時点で別の期間が同じ鍵になります。
  *
- * URL の条件は `parsePeriodSelection` へ通し、独自の変換を持ちません。読めない期間は集計の代わりに
- * {@link InvalidQueryFeedback} が引き受けます。
+ * URL の条件は `parsePeriodSelection` へ通し、独自の変換を持ちません。読めない期間は集計の区画
+ * だけを {@link InvalidQueryFeedback} が引き受け、選択肢・対象の暦日・売れ筋は残します。
  *
  * **いまの時刻は受け取ります。** どの暦日を見ているかの表示にも、区分を区間へ解くのにも要り、
  * 1 つの値を両方へ配ります。別々に読むと、境目の時刻に添え書きと集計の対象がずれます。実時計を
@@ -48,16 +48,26 @@ export const AdminAnalyticsPageContent = withScreenSpan(
   "features/admin/analytics/page-content",
   ({ now, searchParams }: AdminAnalyticsPageContentProps) => {
     const parsed = parsePeriodSelection(searchParams);
+    const ranking = (
+      <Suspense fallback={null}>
+        <AnalyticsRankingSection now={now} />
+      </Suspense>
+    );
 
     if (!parsed.ok) {
       return (
-        <InvalidQueryFeedback
-          invalidKeys={parsed.invalidKeys}
-          keyLabels={PERIOD_KEY_LABEL}
-          message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
-          resetHref={ADMIN_ANALYTICS_PATH}
-          resetLabel="期間を外して見る"
-          title="この期間では集計を表示できません"
+        <AnalyticsView
+          ranking={ranking}
+          summary={
+            <InvalidQueryFeedback
+              invalidKeys={parsed.invalidKeys}
+              keyLabels={PERIOD_KEY_LABEL}
+              message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+              resetHref={ADMIN_ANALYTICS_PATH}
+              resetLabel="期間を外して見る"
+              title="この期間では集計を表示できません"
+            />
+          }
         />
       );
     }
@@ -67,11 +77,7 @@ export const AdminAnalyticsPageContent = withScreenSpan(
     return (
       <AnalyticsView
         query={parsed.selection}
-        ranking={
-          <Suspense fallback={null}>
-            <AnalyticsRankingSection now={now} />
-          </Suspense>
-        }
+        ranking={ranking}
         summary={
           <Suspense fallback={<AdminSummarySkeleton />} key={JSON.stringify(request)}>
             <AnalyticsSummarySection request={request} />
