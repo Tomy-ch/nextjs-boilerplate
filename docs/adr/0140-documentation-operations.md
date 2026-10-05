@@ -34,7 +34,7 @@ Design knowledge contains four kinds of a different nature (decision / exclusion
   | Loaded as a whole directory | `.claude/agents/*.md` | Claude Code loads every `.md` in that directory as an agent definition, so a sibling `.ja.md` would be read as a duplicate or malformed definition. An agent definition holds only how it takes its input ([0155](0155-claude-skills-development.md)); its criteria live in `prompts/`, which has mirrors |
   | A one-line include | `CLAUDE.md` | Its whole content is `@AGENTS.md` ([0152](0152-agents-md-policy.md)) |
   | Japanese output itself | `.github/release/**`, `.github/pull_request_template.md`, `.github/settings/baseline-store/readme-template.md` | They are Japanese output under the AGENTS.md Output Language (release notes, PR bodies, a README generated into another repository), not documentation with a canonical to follow |
-  | Deleted at the v1.0.0 cut | `docs/plan/**`, `docs/adr/BACKLOG.md` | Decision 4, step 4 |
+  | Deleted at the v1.0.0 cut | `docs/plan/**`, `docs/adr/BACKLOG.md` | Decision 4, step 4 | <!-- boilerplate-only:line -->
   | Generated | `docs/portal/**`, files marked `linguist-generated` | A generator writes them from the canonical ([0141](0141-portal-operations.md)) |
 
 - **The canonical never links to its mirror** — naming the mirror as plain text is fine. Reading both is reading the same thing twice, and the existence of mirrors is stated once, as the suffix convention, here and in [`docs/README.md`](../README.md). The mirror links back to the canonical
