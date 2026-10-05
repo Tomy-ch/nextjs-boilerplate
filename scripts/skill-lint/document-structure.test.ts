@@ -103,6 +103,14 @@ describe("extractHeadings", () => {
     expect(extractHeadings(content)).toEqual([]);
   });
 
+  it("frontmatter の中の YAML コメントを見出しとして扱わない", () => {
+    const content = ["---", "# sample:begin", "key: value", "# sample:end", "---", "", "# 題名"].join(
+      "\n",
+    );
+
+    expect(extractHeadings(content)).toEqual([{ level: 1, text: "題名", lineNo: 7 }]);
+  });
+
   it("見出しを持たない文書では空を返す", () => {
     expect(extractHeadings("本文だけ\n")).toEqual([]);
   });
