@@ -26,6 +26,8 @@
 | 実装 | 仕様書 |
 | --- | --- |
 | `layout.tsx`（根） | `route/layout.{screen,function}.md` |
+| `page.tsx`（根） | `route/page.{screen,function}.md` |
+| `<segment>/page.tsx` | `route/<segment>/page.{screen,function}.md` |
 | `(group)/layout.tsx` | `route/<group>/layout.{screen,function}.md` |
 | `(group)/<segment>/page.tsx` | `route/<group>/<segment>/page.{screen,function}.md` |
 | `(group)/<segment>/<child>/page.tsx` | `route/<group>/<segment>/<child>/page.{screen,function}.md` |
@@ -125,7 +127,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 
 | 指す先 | そこが持つもの |
 | --- | --- |
-| `openapi/api.gen.yaml` | 契約（型・エラー・上限値） |
+| `openapi/<name>.gen.yaml`（[`openapi/README.md`](../../openapi/README.md)） | 契約（型・エラー・上限値） |
 | `tokens/primitives.json` | 値（段の幅など） |
 | [`rules.md`](../rules.md) | 日常的に強制される規約 |
 | `components/**/README.md` + Storybook | 部品の語彙 |

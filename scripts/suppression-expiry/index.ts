@@ -51,7 +51,7 @@ if (malformed.length > 0) {
   console.error(`\n✗ suppression-expiry: ${malformed.length} 件が様式を満たしていません\n`);
   console.error(renderMalformed(malformed));
   console.error(
-    "\n理由と撤回条件を書き足してください。書けない宣言は置かず、値そのものを直してください。",
+    "\n添えた欠けのとおりに直してください。理由と撤回条件を書けない宣言は置かず、値そのものを直してください。",
   );
 }
 

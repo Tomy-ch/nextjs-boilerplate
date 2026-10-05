@@ -86,45 +86,126 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
   }
 }
 
+/** 期限の先頭の暦日（`YYYY-M-D`）と、それに続く残り。 */
+const CALENDAR_DAY = /^(\d{4})-(\d{1,2})-(\d{1,2})(.*)$/;
+
+/** 暦日に続く時刻。秒と小数秒は省ける。 */
+const TIME_OF_DAY = /^[Tt ]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?/;
+
+/** 時刻に続くオフセット。省ける。 */
+const UTC_OFFSET = /^\s*(?:[Zz]|[+-]\d{1,2}(?::?\d{2})?)?$/;
+
 /**
- * 脆弱性 ID ごとの抑止（osv-scanner）。理由は `reason`。
+ * 暦日に続く残りが、時刻とオフセットとして読めるか。
+ *
+ * @param rest - 暦日の後ろに書かれていた文字列
+ * @returns 何も続かないか、時刻（とオフセット）だけが続くなら `true`
+ */
+function isTimeOfDay(rest: string): boolean {
+  if (rest === "") {
+    return true;
+  }
+
+  const time = TIME_OF_DAY.exec(rest);
+
+  return time !== null && UTC_OFFSET.test(rest.slice(time[0].length));
+}
+
+/**
+ * 期限の項目を、書かれた暦日（`YYYY-MM-DD`）にする。
  *
  * @remarks
- * `ignoreUntil` は osv-scanner 自身が読む期限で、過ぎるとスキャナが抑止を外してゲートが落ちます。
- * 同じ日付を `reason` へ書き写させないために、ここで条件の末尾へ添えます。理由が空の宣言には
- * 添えません —— 添えると空であることが様式の検査から見えなくなります。
+ * TOML の日付は `Date` で、YAML の日付は文字列で届きます。どちらも書かれた暦日を取り、月日を
+ * 2 桁に揃えます —— `smol-toml` の `Date` は書かれたオフセットのまま `toISOString` を返すので、
+ * 時刻とオフセットを付けて書かれても暦日はずれません。
+ *
+ * 形を見るのは文字列で届く値（YAML の面）だけです。暦日を `YYYY-MM-DD` で書くのは抑止の撤回条件と
+ * 同じ様式で、全体が暦日か日時でなければ読めない期限として様式の欠けに回します（`withUntil`）。
+ * スキャナが受け付ける形より狭くても、黙って期限の無い宣言にはなりません。
+ *
+ * @param value - 期限の項目に書かれていた値
+ * @returns 暦日。日付として読めなければ `undefined`
+ */
+function writtenDay(value: unknown): string | undefined {
+  const text = value instanceof Date ? value.toISOString() : value;
+  const [, year, month, day, rest] =
+    typeof text === "string" ? (CALENDAR_DAY.exec(text) ?? []) : [];
+
+  return year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    rest === undefined ||
+    !isTimeOfDay(rest)
+    ? undefined
+    : `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+}
+
+/**
+ * 理由と期限から宣言を組む。
+ *
+ * @remarks
+ * 期限は読めたときだけ `until` に持たせます。書かれているのに読めない期限は、書かれた値のまま
+ * `unreadableUntil` に残します —— 落とすと、スキャナが期限を強制しているのに週次の突き合わせだけが
+ * 期限の無い宣言として扱います。
+ *
+ * @param source - 宣言が置かれている面
+ * @param subject - 抑止している対象
+ * @param condition - 撤回条件の散文
+ * @param until - 期限の項目に書かれていた値
+ * @returns 宣言 1 件
+ */
+function withUntil(
+  source: string,
+  subject: string,
+  condition: string,
+  until: unknown,
+): Suppression {
+  if (until === undefined) {
+    return { source, subject, condition };
+  }
+
+  const day = writtenDay(until);
+
+  return day === undefined
+    ? {
+        source,
+        subject,
+        condition,
+        unreadableUntil: typeof until === "string" ? until : JSON.stringify(until),
+      }
+    : { source, subject, condition, until: day };
+}
+
+/**
+ * 脆弱性 ID ごとの抑止（osv-scanner）。理由は `reason`、期限は `ignoreUntil`。
+ *
+ * @param root - リポジトリの根
+ * @returns 宣言の全件
  */
 function osvSuppressions(root: string): readonly Suppression[] {
   const document = parsed<{
-    IgnoredVulns?: { id?: string; reason?: string; ignoreUntil?: Date }[];
+    IgnoredVulns?: { id?: string; reason?: string; ignoreUntil?: unknown }[];
   }>(read(root, OSV_PATH), parseToml);
 
-  return (document?.IgnoredVulns ?? []).map((entry) => {
-    const reason = entry.reason ?? "";
-    const until =
-      entry.ignoreUntil instanceof Date ? entry.ignoreUntil.toISOString().slice(0, 10) : undefined;
-
-    return {
-      source: OSV_PATH,
-      subject: entry.id ?? "(id なし)",
-      condition:
-        until === undefined || reason.trim() === "" ? reason : `${reason}（ignoreUntil ${until}）`,
-    };
-  });
+  return (document?.IgnoredVulns ?? []).map((entry) =>
+    withUntil(OSV_PATH, entry.id ?? "(id なし)", entry.reason ?? "", entry.ignoreUntil),
+  );
 }
 
-/** 脆弱性 ID ごとの抑止（trivy）。理由は `statement`。 */
+/**
+ * 脆弱性 ID ごとの抑止（trivy）。理由は `statement`、期限は `expired_at`。
+ *
+ * @param root - リポジトリの根
+ * @returns 宣言の全件
+ */
 function trivySuppressions(root: string): readonly Suppression[] {
-  const document = parsed<{ vulnerabilities?: { id?: string; statement?: string }[] }>(
-    read(root, TRIVY_PATH),
-    parseYaml,
-  );
+  const document = parsed<{
+    vulnerabilities?: { id?: string; statement?: string; expired_at?: unknown }[];
+  }>(read(root, TRIVY_PATH), parseYaml);
 
-  return (document?.vulnerabilities ?? []).map((entry) => ({
-    source: TRIVY_PATH,
-    subject: entry.id ?? "(id なし)",
-    condition: entry.statement ?? "",
-  }));
+  return (document?.vulnerabilities ?? []).map((entry) =>
+    withUntil(TRIVY_PATH, entry.id ?? "(id なし)", entry.statement ?? "", entry.expired_at),
+  );
 }
 
 /** 検出 1 件ごとの抑止（bearer）。理由は `comment`。 */
