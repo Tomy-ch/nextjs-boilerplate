@@ -99,7 +99,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states \"not configured\" on the PR while staying green** (the absence of a comment is indistinguishable from \"the check was green\"). **It is not registered as a required check**. Whether a third party's account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings\n",
+          '- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states "not configured" on the PR while staying green** (the absence of a comment is indistinguishable from "the check was green"). **It is not registered as a required check**. Whether a third party\'s account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -119,7 +119,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "**SonarQube Cloud is the exception to this format, and the reasons for its suppressions are not written anywhere else in the repository.** This layer is one whose removal can be chosen, and if it is chosen, `sonar-project.properties` and `.github/workflows/sonarcloud.yaml` disappear together. Placing reasons anywhere else — in source comments or in documents that survive the removal — means that **after the flagged rules vanish, only the reasons remain, and nobody can trace what they are about**.\n\nThe same applies when changing the shape of code in response to this inspection's findings: **neither the rule name nor \"Sonar said so\" is written in comments**. A constraint worth keeping can be written as a property of the place without naming the rule; if it cannot, it is a reason only the suppression file should hold.\n\n",
+          '**SonarQube Cloud is the exception to this format, and the reasons for its suppressions are not written anywhere else in the repository.** This layer is one whose removal can be chosen, and if it is chosen, `sonar-project.properties` and `.github/workflows/sonarcloud.yaml` disappear together. Placing reasons anywhere else — in source comments or in documents that survive the removal — means that **after the flagged rules vanish, only the reasons remain, and nobody can trace what they are about**.\n\nThe same applies when changing the shape of code in response to this inspection\'s findings: **neither the rule name nor "Sonar said so" is written in comments**. A constraint worth keeping can be written as a property of the place without naming the rule; if it cannot, it is a reason only the suppression file should hold.\n\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -162,7 +162,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "- **Dependency diff gate (Dependency Review)**: the three above all read **the current state of the tree**, so they cannot distinguish vulnerabilities held from before from ones this change brought in. The former are something a report-only gate structurally has to tolerate, so **a layer that asks only \"did this PR add any\"** is placed separately. Whoever added it can take it back, so this one may fail. The threshold is `high`, aligned with the dependency audit gate. The API it calls is free only for public repositories and requires a Code Security license for private ones — **this is a configuration decision, not a code decision**, so the layer is distributed, and whether to remove it is chosen in one step of setup\n",
+          '- **Dependency diff gate (Dependency Review)**: the three above all read **the current state of the tree**, so they cannot distinguish vulnerabilities held from before from ones this change brought in. The former are something a report-only gate structurally has to tolerate, so **a layer that asks only "did this PR add any"** is placed separately. Whoever added it can take it back, so this one may fail. The threshold is `high`, aligned with the dependency audit gate. The API it calls is free only for public repositories and requires a Code Security license for private ones — **this is a configuration decision, not a code decision**, so the layer is distributed, and whether to remove it is chosen in one step of setup\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -242,7 +242,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "| CodeQL | **Does not step down** | Code scanning alerts close only by \"a later analysis no longer reports it\". Reducing the number of runs can drop occasions for closing |\n",
+          '| CodeQL | **Does not step down** | Code scanning alerts close only by "a later analysis no longer reports it". Reducing the number of runs can drop occasions for closing |\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
