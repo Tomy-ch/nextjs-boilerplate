@@ -7,6 +7,7 @@ import { ABSENT_IDENTIFIER, absentHandlers } from "./absent";
 /** 契約から組み立てた一式を模した相手。具体的な口と、パラメータ区間を持つ口を混ぜる。 */
 const handlers = [
   http.get("https://mock.test/items/latest", () => HttpResponse.json({ from: "latest" })),
+  http.get("https://mock.test:8443/ping", () => HttpResponse.json({ from: "ping" })),
   http.get("https://mock.test/items/:itemId", () => HttpResponse.json({ from: "item" })),
   http.patch("https://mock.test/items/:itemId", () => HttpResponse.json({ from: "item-update" })),
   http.get("https://mock.test/nested/:id/:subId", () => HttpResponse.json({ from: "child" })),
@@ -64,7 +65,7 @@ describe("absentHandlers", () => {
     expect(await response.json()).toEqual({ from: "item" });
   });
 
-  it("パラメータ区間を持たない具体的な口には組み立てない。scheme のコロンは区間ではない", () => {
+  it("パラメータ区間を持たない口には組み立てない。scheme や port のコロンは区間ではない", () => {
     expect(endpointsOf(absentHandlers(handlers))).toEqual([
       "GET https://mock.test/items/:itemId",
       "GET https://mock.test/nested/:id/:subId",
@@ -78,8 +79,19 @@ describe("absentHandlers", () => {
 
   // ----- 異常系 -----
   it("契約に無い method の要求は受けず、未処理として落とす", async () => {
+    const unhandled: string[] = [];
+    const record = ({ request }: { request: Request }) => {
+      unhandled.push(request.method);
+    };
+
+    server.events.on("request:unhandled", record);
+
     await expect(
       fetch(`https://mock.test/items/${ABSENT_IDENTIFIER}`, { method: "DELETE" }),
     ).rejects.toThrow();
+
+    server.events.removeListener("request:unhandled", record);
+
+    expect(unhandled).toEqual(["DELETE"]);
   });
 });
