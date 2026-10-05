@@ -155,7 +155,7 @@ function startOfDay(calendar: CalendarDate): string {
  *
  * @remarks
  * **`Date.UTC` の上で動かします。** `date-fns` の日付演算はランタイムのタイムゾーンで境界を
- * 解決し、{@link DEFAULT_TIME_ZONE} への固定と両立しません（同層の README「関連する ADR」）。
+ * 解決し、{@link DEFAULT_TIME_ZONE} への固定と両立しません（同層の README「Related ADRs」）。
  * 閏年と月末の繰り上げは `Date.UTC` が持っています。
  *
  * @param calendar - 起点の年月日

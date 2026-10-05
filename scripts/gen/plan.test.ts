@@ -388,7 +388,7 @@ describe("planGeneration", () => {
 
     expect(readme).toBe(README_TEMPLATE.replaceAll("{{ComponentName}}", "ReportDetail"));
     expect(readme).not.toContain("{{ComponentName}}");
-    expect(readme).toContain("{{この component を使う利用者上の目的を書く}}");
+    expect(readme).toContain("{{State the user-facing purpose this component serves}}");
   });
 
   it("component の README は frontmatter を持たない", () => {

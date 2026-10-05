@@ -112,10 +112,11 @@ enters their field of view. That is the blind spot a test-file-first read struct
 ### Lens 1: Structural Compliance
 
 Mechanical adherence to ADR 0090 — read it this run and apply what it currently says. The rules
-live in its 「テストの構成: export ↔ describe の 1:1 対応」 section (the export-name `describe`, comment
-separators rather than nested `describe`s, the 軸の選び方 that decides whether a subject splits on
-`正常系` / `異常系` or on display state, which side a case sits on, per-case naming, skip / todo
-discipline), 「mock 戦略」 (the MSW boundary), 「配置・命名」 (co-location) and the 「禁止事項」 list;
+live in its "Test structure: 1:1 export-to-describe mapping" section (the export-name `describe`, comment
+separators rather than nested `describe`s, the "choosing the axis" rule — "The axis is chosen by where
+success and failure appear" — that decides whether a subject splits on `正常系` / `異常系` or on display
+state, which side a case sits on, per-case naming, skip / todo discipline), "Mock Strategy" (the MSW
+boundary), "Placement and Naming" (co-location) and the "Prohibitions" list;
 `AGENTS.md` Language Rules make the case names Japanese. This lens carries no copy of those rules:
 each finding cites the section it violates, and where the ADR is silent the gap goes to 補遺.
 

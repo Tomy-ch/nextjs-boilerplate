@@ -175,7 +175,7 @@ The names below are the English section names the template declares. For each re
 | States and Design References | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
 | Structure | A file/directory table covering what the slice owns |
 | Kernel Dependencies | Each kernel it imports, with what it is used for |
-| Action Return Contract | Each Server Action with its placement, return type, success and failure behavior — or `なし` |
+| Action Return Contract | Each Server Action with its placement, return type, success and failure behavior — or, when the slice has none, a statement that it has none (the template writes `none`; judged by meaning, not by a literal match, so `none` and `なし` both satisfy it) |
 | Test Perspectives | Viewpoints specific to THIS slice (not a restatement of ADR 0090's per-layer duties) |
 
 Report each as present / thin / missing. **Thin** means the heading exists but the content does not

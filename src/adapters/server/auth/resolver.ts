@@ -47,7 +47,7 @@ function usesDevelopmentAuthorization(): boolean {
 export function getSessionResolver(): SessionResolver {
   const config = getAuthConfig();
 
-  // 署名鍵を汚す（README「client へ渡さないものの登録」）。
+  // 署名鍵を汚す（README「Registering What Must Not Reach the Client」）。
   taintUniqueValue(
     "session の署名鍵は server 専用です。Client Component へ渡さないでください",
     config,

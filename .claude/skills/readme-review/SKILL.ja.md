@@ -151,7 +151,7 @@ README を持っている場合、その入れ子も含みます。`src/features
 | States and Design References | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
 | Structure | その slice が所有するファイル / ディレクトリの表がある |
 | Kernel Dependencies | 引いているカーネルと、その用途が書いてある |
-| Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら `なし` |
+| Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら、無いことが書かれている（テンプレートは `none` と書く。字面の一致ではなく意味で判定するので、`none` でも `なし` でも満たす） |
 | Test Perspectives | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
 
 それぞれを present / thin / missing で報告します。**thin** は見出しはあるが上の表の問いに答えて

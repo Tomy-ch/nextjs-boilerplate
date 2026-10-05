@@ -10,7 +10,7 @@ import { cn } from "@/components/cn";
  * 持ち、縦方向の構造・段組み・背景は持たない。それらは中身を組む側が決める。
  *
  * `main` 要素は描画しない。読み幅は一つだけで、個別の調整は `className` で行う。責務の線は
- * 同層の README「責務境界」が持つ。
+ * 同層の README「Responsibility Boundaries」が持つ。
  *
  * Server Component として使える。hydration は不要。
  *

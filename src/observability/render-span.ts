@@ -9,7 +9,7 @@ type RenderResult = ReactNode | Promise<ReactNode>;
  * @remarks
  * **実装をここへ静的に import しません。** このモジュールは feature が import するため、ブラウザ
  * （Storybook・client component）のバンドルにも入ります。実装は起動境界から注入し、注入の無い
- * 実行では計装そのものが動きません（理由は同層の README「描画の計装」）。
+ * 実行では計装そのものが動きません（理由は同層の README「Rendering Instrumentation」）。
  */
 export type RenderSpanRunner = <Result extends RenderResult>(
   name: string,

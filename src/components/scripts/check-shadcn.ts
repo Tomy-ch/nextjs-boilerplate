@@ -63,7 +63,7 @@ export type CatalogHeading = (typeof CATALOG_HEADING)[keyof typeof CATALOG_HEADI
  *
  * @remarks
  * 層は「その部品を誰が書き換えるか」で決まり、目的（{@link CATALOG_HEADING}）とは別の軸である。
- * 各層の受け持ちは components/README.md「層」参照。
+ * 各層の受け持ちは components/README.md「Layers」参照。
  */
 export const COMPONENT_LAYER = {
   DESIGN_SYSTEM: "design-system",
@@ -369,7 +369,7 @@ export function registryItemOf(upstreamPath: string): string {
  *
  * @remarks
  * 役割ディレクトリを列挙せず、{@link COMPONENT_MARKER} を持つディレクトリをすべて component
- * として扱う（components/README.md「配置・命名」）。そのため、入れ子になっていても層を移しても
+ * として扱う（components/README.md「Placement and Naming」）。そのため、入れ子になっていても層を移しても
  * 記録漏れとして現れる。
  *
  * @param filePaths - `src/components` 配下のファイルのリポジトリ相対パス。
