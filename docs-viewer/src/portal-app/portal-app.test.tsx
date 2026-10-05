@@ -7,7 +7,16 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { axe } from "vitest-axe";
 
 import type { DocsJson } from "../docs-json/docs-json";
+import { parseMarkdownDocument } from "../markdown/markdown-document";
 import { PortalApp } from "./portal-app";
+
+// 本物の変換を包み、呼ばれたことだけを記録する。遅れて届いた応答を処理し終えたことを
+// 知る印に使う。
+vi.mock("../markdown/markdown-document", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../markdown/markdown-document")>();
+
+  return { ...actual, parseMarkdownDocument: vi.fn(actual.parseMarkdownDocument) };
+});
 
 const docs: DocsJson = {
   title: "Documentation",
@@ -51,6 +60,26 @@ function setHash(hash: string) {
   window.location.hash = hash;
 }
 
+/** 手で解放するまで待たせる門。応答の届く順をテストが決めるために使う。 */
+function gate(): { readonly opened: Promise<void>; readonly open: () => void } {
+  let open: () => void = () => undefined;
+  const opened = new Promise<void>((resolve) => {
+    open = resolve;
+  });
+
+  return { open, opened };
+}
+
+/** 待ち行列に残った後続の処理を流し切る。 */
+function settle(): Promise<void> {
+  return act(
+    () =>
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      }),
+  );
+}
+
 const server = setupServer();
 
 const scrollIntoView = vi.fn();
@@ -58,6 +87,7 @@ const scrollIntoView = vi.fn();
 beforeEach(() => {
   setHash("");
   scrollIntoView.mockClear();
+  vi.mocked(parseMarkdownDocument).mockClear();
   // jsdom は scrollIntoView を実装しない。呼ばれたことだけを見たいので差し替える。
   Element.prototype.scrollIntoView = scrollIntoView;
 });
@@ -67,6 +97,7 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterEach(() => {
   server.resetHandlers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
@@ -252,6 +283,63 @@ describe("PortalApp", () => {
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
   });
 
+  it("取得中に面を閉じたら、あとから応答が届いても面を開き直さない", async () => {
+    const response = gate();
+
+    server.use(
+      http.get("*/guides/0001.md", async () => {
+        await response.opened;
+
+        return HttpResponse.text("## 節\n\n本文\n");
+      }),
+    );
+
+    render(<PortalApp docs={docs} />);
+    screen.getByRole("button", { name: "ADR 0001" }).click();
+
+    const dialog = await screen.findByRole("dialog");
+
+    screen.getByRole("button", { name: "閉じる" }).click();
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+
+    response.open();
+    await waitFor(() => expect(parseMarkdownDocument).toHaveBeenCalledTimes(1));
+    await settle();
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("先に開いた文書の応答が後から届いても、後に開いた文書の題と本文を残す", async () => {
+    const first = gate();
+
+    server.use(
+      http.get("*/guides/0001.md", async () => {
+        await first.opened;
+
+        return HttpResponse.text("## 先の節\n\n先の本文\n");
+      }),
+      http.get("*/guides/0021.md", () => HttpResponse.text("## 後の節\n\n後の本文\n")),
+    );
+
+    render(<PortalApp docs={docs} />);
+    // 面が開くと背後は支援技術から隠れるので、カードは開く前に掴んでおく。
+    const earlier = screen.getByRole("button", { name: "ADR 0001" });
+    const later = screen.getByRole("button", { name: "ADR 0021" });
+
+    earlier.click();
+    await screen.findByRole("dialog");
+    later.click();
+    expect(await screen.findByRole("heading", { level: 2, name: "後の節" })).toBeInTheDocument();
+
+    first.open();
+    await waitFor(() => expect(parseMarkdownDocument).toHaveBeenCalledTimes(2));
+    await settle();
+
+    expect(screen.getByRole("dialog", { name: "ADR 0021" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "後の節" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "先の節" })).not.toBeInTheDocument();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<PortalApp docs={docs} />);
 
@@ -313,5 +401,37 @@ describe("PortalApp", () => {
     screen.getByRole("button", { name: "ADR 0001" }).click();
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("先に開いた文書の取得が後から失敗しても、後に開いた文書の面を閉じない", async () => {
+    const first = gate();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    server.use(
+      http.get("*/guides/0001.md", async () => {
+        await first.opened;
+
+        return new HttpResponse(null, { status: 404 });
+      }),
+      http.get("*/guides/0021.md", () => HttpResponse.text("## 後の節\n\n後の本文\n")),
+    );
+
+    render(<PortalApp docs={docs} />);
+    const earlier = screen.getByRole("button", { name: "ADR 0001" });
+    const later = screen.getByRole("button", { name: "ADR 0021" });
+
+    earlier.click();
+    await screen.findByRole("dialog");
+    later.click();
+    expect(await screen.findByRole("heading", { level: 2, name: "後の節" })).toBeInTheDocument();
+
+    first.open();
+    await act(async () => {
+      await fetchSpy.mock.results[0]?.value;
+    });
+    await settle();
+
+    expect(screen.getByRole("dialog", { name: "ADR 0021" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "後の節" })).toBeInTheDocument();
   });
 });

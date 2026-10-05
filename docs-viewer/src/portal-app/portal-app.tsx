@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { SearchFieldClient } from "@/components/design-system/form/search-field-client/search-field-client";
 import {
   ToggleGroupNative,
@@ -49,7 +49,13 @@ export function PortalApp({ docs }: PortalAppProps) {
 
   const selectEnglish = useCallback(() => setLang("EN"), []);
   const selectJapanese = useCallback(() => setLang("JA"), []);
-  const closeDocument = useCallback(() => setOpenDocument(null), []);
+  // 文書の取得の世代。開く・閉じるたびに進め、応答が届いた時点で世代が変わっていれば捨てる。
+  // 捨てないと、閉じた面が遅れた応答で開き直り、後から開いた文書が先の応答で上書きされる。
+  const documentRequest = useRef(0);
+  const closeDocument = useCallback(() => {
+    documentRequest.current += 1;
+    setOpenDocument(null);
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setHash(window.location.hash);
@@ -83,6 +89,9 @@ export function PortalApp({ docs }: PortalAppProps) {
     : null;
 
   const onOpenDocument = useCallback((item: PortalItem) => {
+    documentRequest.current += 1;
+    const request = documentRequest.current;
+
     setOpenDocument({ name: item.name, content: null });
 
     fetch(item.path)
@@ -93,10 +102,13 @@ export function PortalApp({ docs }: PortalAppProps) {
 
         return response.text();
       })
-      .then((markdown) => {
-        setOpenDocument({ name: item.name, content: parseMarkdownDocument(markdown) });
-      })
-      .catch(() => setOpenDocument(null));
+      .then(parseMarkdownDocument)
+      .catch(() => null)
+      .then((content) => {
+        if (request !== documentRequest.current) return;
+
+        setOpenDocument(content === null ? null : { name: item.name, content });
+      });
   }, []);
 
   return (
