@@ -26,7 +26,7 @@
 ファイルツリーの読み取りやファイル書き込みは、これらの確定後にのみ行うこと。
 
 このスキルは常に **canonical** README を対象とする。canonical とは、サフィックス無しのパスに
-置かれた英語のファイルである（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。
+置かれた英語のファイルである（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。
 ここで兄弟の `README.ja.md` ミラーを読んだり書いたりしない。ミラーはその後 `canonicalize-doc` が同期し
 （Step 6）、隣の README のエントリにはならない。
 

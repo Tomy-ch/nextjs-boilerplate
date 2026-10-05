@@ -122,7 +122,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 このスキルの変更ではない。
 
 地図はサフィックス無しのパスの英語の canonical で、その日本語ミラーは兄弟の `context-map.ja.md`
-である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。canonical を書き、同じ変更で
+である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。canonical を書き、同じ変更で
 `canonicalize-doc` へ連鎖させてミラーを同期する。そのうえで、このスキルが書いたものだけを整形する。
 
 ```bash

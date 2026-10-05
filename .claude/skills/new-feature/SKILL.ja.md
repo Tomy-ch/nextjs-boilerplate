@@ -121,7 +121,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 カタログ / ADR は**指すだけ**で、写さない。
 
 仕様書と slice の README は英語の canonical で、それぞれ兄弟の `.ja.md` ミラーを持つ
-（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。この実行で書いた canonical すべてに
+（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。この実行で書いた canonical すべてに
 対して `canonicalize-doc` を一括モードで 1 回連鎖させ、ミラーを同じ変更で追従させる。
 
 ## Step 7. テスト（工程 6）とコメント

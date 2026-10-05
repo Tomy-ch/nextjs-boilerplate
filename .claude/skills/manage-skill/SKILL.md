@@ -178,7 +178,7 @@ contexts including Japanese trigger phrases, and an explicit *when NOT* to fire.
 - The skill's *runtime behavior* must obey the Japanese output rule: what the skill emits — responses,
   commit and PR text, code comments — is **Japanese**. A document the skill writes is the **English
   canonical**, and its sibling `.ja.md` mirror is synced through `canonicalize-doc` in the same change
-  (ADR [0140](../../../docs/adr/0140-documentation-operations.md) Decision 1); a skill that reads
+  (ADR [0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model); a skill that reads
   documents excludes `*.ja.md`. Bake both requirements into the skill's own instructions.
 
 ### Confirmation before outward-facing actions (ADR 0154)
@@ -236,7 +236,7 @@ English-canonical body, and the eval workspace under `tmp/`.
 
 Every skill in this repo ships a `SKILL.ja.md` next to `SKILL.md`, and every bundled `prompts/*.md` /
 `references/*.md` has its own sibling `.ja.md` — ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) Decision 1 gives every English canonical a
+[0140](../../../docs/adr/0140-documentation-operations.md) gives every English canonical a
 mirror except its closed no-mirror list, and 0154 makes the `SKILL.md` pair mandatory. This is not
 optional. After a canonical is finalized or changed:
 

@@ -34,7 +34,7 @@
 手順:
 
 1. ユーザーや連鎖元のスキルがファイルパスを渡していれば候補として提示する。
-2. 各候補の対となるファイル（同じディレクトリの `<name>.md` ↔ `<name>.ja.md`）を検出し、ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1 のミラーを作らない一覧に載るパスを外す —— 一覧はコピーではなくそこで読む。
+2. 各候補の対となるファイル（同じディレクトリの `<name>.md` ↔ `<name>.ja.md`）を検出し、ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) のミラーを作らない一覧に載るパスを外す —— 一覧はコピーではなくそこで読む。
 3. `AskUserQuestion` を呼び出す:
     - 質問 1: 「対象ファイルパスを確認してください。」（検出した候補を併記）
     - 質問 2: 「方向は？（canonical-from-translation / translation-from-canonical / sync-both）」 — 既存ファイル状況から推奨オプションを併記。
@@ -46,7 +46,7 @@
 
 ## リポジトリ規約
 
-ペアの両側を生成する際に、以下の規約を適用する。モデルは ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1 が持つ。このセクションは、このスキルがそれをどう実行するかである。
+ペアの両側を生成する際に、以下の規約を適用する。canonical 言語モデルは ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) が持つ。このセクションは、このスキルがそれをどう実行するかである。
 
 ### 言語
 

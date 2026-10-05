@@ -43,7 +43,7 @@ Procedure:
 
 1. If the user or a chaining skill supplied file paths, include them as candidates.
 2. Detect the counterpart of each candidate (`<name>.md` ↔ `<name>.ja.md` in the same directory),
-   and drop any path on ADR [0140](../../../docs/adr/0140-documentation-operations.md) Decision 1's
+   and drop any path on ADR [0140](../../../docs/adr/0140-documentation-operations.md)'s
    no-mirror list — read that list there rather than from a copy.
 3. Call `AskUserQuestion` with:
     - Question 1: "Confirm the source file path." (include the detected candidates)
@@ -59,8 +59,8 @@ Do NOT read or write any files for translation until the source path(s) and dire
 ## Repo Conventions
 
 Apply these rules when producing each side of the pair. ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) Decision 1 owns the model; this section
-is how the skill carries it out.
+[0140](../../../docs/adr/0140-documentation-operations.md) owns the canonical language model; this
+section is how the skill carries it out.
 
 ### Language
 

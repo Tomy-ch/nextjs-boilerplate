@@ -149,7 +149,7 @@ The spec records settled promises, which is why it is written here and not first
 the contract, tokens, `rules.md`, the component catalog, and the ADRs — it never copies them.
 
 The specs and the slice README are English canonicals, each with a sibling `.ja.md` mirror
-([0140](../../../docs/adr/0140-documentation-operations.md) Decision 1). Chain `canonicalize-doc`
+([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). Chain `canonicalize-doc`
 once, in its bulk mode, over every canonical this run wrote, so the mirrors follow in the same change.
 
 ## Step 7. Tests (order step 6) and comments

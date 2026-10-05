@@ -120,7 +120,7 @@ For either secret label, the value written into the committed env files is a **p
 
 ### Question 6: Description
 
-Free text, in English: `env/README.md` is the English canonical, and its sibling `README.ja.md` mirror is synced from it in Step 3 ([0140](../../../docs/adr/0140-documentation-operations.md) Decision 1). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
+Free text, in English: `env/README.md` is the English canonical, and its sibling `README.ja.md` mirror is synced from it in Step 3 ([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
 
 - 「説明」
 - Notes 欄(任意) — Secret 管理 / 環境依存等の注記

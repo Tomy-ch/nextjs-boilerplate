@@ -142,8 +142,8 @@ stale in two places at once**, and the map is the copy that nobody re-reads.
 change, not this skill's.
 
 The map is the English canonical on the suffix-less path, and its Japanese mirror is
-the sibling `context-map.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md)
-Decision 1). Write the canonical, then chain `canonicalize-doc` to sync the mirror in the same
+the sibling `context-map.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md), the
+canonical language model). Write the canonical, then chain `canonicalize-doc` to sync the mirror in the same
 change. Then format only what this skill wrote:
 
 ```bash

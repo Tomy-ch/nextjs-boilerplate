@@ -114,7 +114,7 @@ ls src/config/ 2>/dev/null
 
 ### 質問 6: 説明
 
-自由入力。英語で受ける —— `env/README.md` は英語の canonical で、その兄弟の `README.ja.md` ミラーは Step 3 で canonical から同期する（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
+自由入力。英語で受ける —— `env/README.md` は英語の canonical で、その兄弟の `README.ja.md` ミラーは Step 3 で canonical から同期する（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
 
 - 「説明」
 - Notes 欄（任意） — Secret 管理 / 環境依存等の注記

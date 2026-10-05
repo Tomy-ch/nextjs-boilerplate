@@ -151,8 +151,8 @@ and a vocabulary that cannot contradict the documents can never tell anyone a do
 ## Step 5 — Write
 
 Write `docs/spec/glossary.md` — the English canonical — and nothing else by hand. Its Japanese
-mirror is the sibling `glossary.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md)
-Decision 1): chain `canonicalize-doc` to sync it in the same change. Each screen-side term has one
+mirror is the sibling `glossary.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md), the
+canonical language model): chain `canonicalize-doc` to sync it in the same change. Each screen-side term has one
 English name in the canonical and one Japanese rendering in the mirror; keep that mapping when
 syncing, so `glossary.ja.md` and every other mirror write the term the same way.
 

@@ -119,7 +119,7 @@ and nothing else. Specifically:
   claims a check that did not happen.
 - Rows whose source you could not reach keep their previous verdict **and their previous date**.
 - The ledger is the English canonical; its Japanese mirror `upstream-interpretations.ja.md` follows
-  it ([0140](../../../docs/adr/0140-documentation-operations.md) Decision 1). Chain
+  it ([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). Chain
   `canonicalize-doc` to sync the mirror in the same change, rather than editing it by hand.
 
 Then run the gate over the shape:

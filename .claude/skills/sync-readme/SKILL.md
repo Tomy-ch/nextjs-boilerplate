@@ -30,9 +30,9 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** to confi
 Do NOT read the file tree or write any file until these are confirmed.
 
 This skill always operates on the **canonical** README — the English file on the suffix-less path
-(ADR [0140](../../../docs/adr/0140-documentation-operations.md) Decision 1). Never read or edit the
-sibling `README.ja.md` mirror here: it is synced afterwards by `canonicalize-doc` (Step 6), and a
-mirror is never an entry of the README that sits beside it.
+(ADR [0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model).
+Never read or edit the sibling `README.ja.md` mirror here: it is synced afterwards by
+`canonicalize-doc` (Step 6), and a mirror is never an entry of the README that sits beside it.
 
 ## How the Sync Works
 

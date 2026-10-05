@@ -131,7 +131,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 ## Step 5 —— 書く
 
 英語の canonical である `docs/spec/glossary.md` を書き、それ以外は手で書かない。その日本語ミラーは
-兄弟の `glossary.ja.md` である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。
+兄弟の `glossary.ja.md` である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。
 同じ変更で `canonicalize-doc` へ連鎖させて同期する。画面側の語はそれぞれ、canonical では 1 つの英語名を、
 ミラーでは 1 つの日本語の表記を持つ。同期のときはその対応を保ち、`glossary.ja.md` と他のすべての
 ミラーが同じ表記で書くようにする。

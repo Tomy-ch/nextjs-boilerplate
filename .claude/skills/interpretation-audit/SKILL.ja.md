@@ -109,7 +109,7 @@ type-case を課さない」は道具の挙動を述べているだけで、**�
   主張することになる。
 - 原典へ届かなかった行は、前の判定**と前の日付**を保つ。
 - インベントリは英語の canonical で、その日本語ミラー `upstream-interpretations.ja.md` がそれに追従する
-  （[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。ミラーは手で直さず、同じ変更で
+  （[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。ミラーは手で直さず、同じ変更で
   `canonicalize-doc` へ連鎖させて同期する。
 
 そのうえで、行の形をゲートに掛ける。

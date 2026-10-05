@@ -112,7 +112,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 ### 言語（`AGENTS.md`）
 
 - `SKILL.md` は **英語 canonical**。canonical 本文を日本語で書かない。
-- 一方、スキルの*実行時の挙動*は日本語出力規約に従う — スキルが出力するもの（応答 / コミット・PR 文面 / コードコメント）は**日本語**。スキルが書く文書は**英語の canonical** で、その兄弟の `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。文書を読むスキルは `*.ja.md` を除く。この 2 つの要件をスキル自身の手順へ書き込むこと。
+- 一方、スキルの*実行時の挙動*は日本語出力規約に従う — スキルが出力するもの（応答 / コミット・PR 文面 / コードコメント）は**日本語**。スキルが書く文書は**英語の canonical** で、その兄弟の `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。文書を読むスキルは `*.ja.md` を除く。この 2 つの要件をスキル自身の手順へ書き込むこと。
 
 ### 外向き操作の前のユーザ確認（ADR 0154）
 
@@ -150,7 +150,7 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 
 ## Step 4. 日本語ミラーを同期する
 
-本リポジトリのスキルは必ず `SKILL.md` の隣に `SKILL.ja.md` を持ち、同梱の `prompts/*.md` / `references/*.md` もそれぞれ兄弟の `.ja.md` を持つ —— ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1 は、閉じた「ミラーを作らない一覧」を除くすべての英語の canonical にミラーを与え、0154 は `SKILL.md` のペアを必須にする。これは任意ではない。canonical が確定 / 変更されたら:
+本リポジトリのスキルは必ず `SKILL.md` の隣に `SKILL.ja.md` を持ち、同梱の `prompts/*.md` / `references/*.md` もそれぞれ兄弟の `.ja.md` を持つ —— ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) は、閉じた「ミラーを作らない一覧」を除くすべての英語の canonical にミラーを与え、0154 は `SKILL.md` のペアを必須にする。これは任意ではない。canonical が確定 / 変更されたら:
 
 - `canonicalize-doc` スキルを chain し、変わった canonical それぞれのミラーを生成 / 同期する —— 変更が複数ファイルに及ぶなら一括モードで。
 - ミラーは **YAML frontmatter を持たず**、1 行目の同期の注記から始める。`SKILL.ja.md` は独自の 3 行の注記を持つ: 翻訳であり、直接編集せず、更新は `SKILL.md` から流す。canonical はミラーへリンクしない。
