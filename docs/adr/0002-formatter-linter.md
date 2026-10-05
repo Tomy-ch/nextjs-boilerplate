@@ -253,7 +253,7 @@ An `.editorconfig` sits at the repository root. It covers **files Biome does not
 
 ## Notes
 
-- When a rule needs to be added or disabled, first consider local application through `overrides` (Biome) / file-scoped settings (ESLint flat config); a global change is the last resort
+- When adding or disabling a rule, first consider local application through `overrides` (Biome) / file-scoped settings (ESLint flat config); a global change is the last resort
 - On a version update, confirm that `pnpm exec biome check` produces no diff; if it does, absorb it with `pnpm fix` and include a formatting commit in the same PR. Biome update PRs also check the Biome support status of the checks kept on the ESLint side (whether they can be moved)
 - Nursery rules may change behavior or group across versions. On the premise of exact pinning ([0004-library-management.md](0004-library-management.md)), check the diff in the update PR
 - **Conventions Biome can express, such as the ban on reading `process.env` directly, live on the Biome side (`noProcessEnv` and so on), not in ESLint** (an application of the capability basis; enabling it goes together with the environment-variable ADR = [0030](0030-environment-variable-management.md))
