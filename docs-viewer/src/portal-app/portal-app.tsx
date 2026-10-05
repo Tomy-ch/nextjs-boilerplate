@@ -94,7 +94,7 @@ export function PortalApp({ docs }: PortalAppProps) {
 
     setOpenDocument({ name: item.name, content: null });
 
-    fetch(item.path)
+    void fetch(item.path)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`Could not fetch the document: ${response.status}`);
