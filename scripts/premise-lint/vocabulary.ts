@@ -12,7 +12,7 @@
  * 引けなくなります。`en` が空の綴りは、英語にすると前提ではない一般の語に当たるもの
  * （`boilerplate` という名詞そのもの）か、言語に依らない綴り（`BACKLOG`）です。
  */
-export type PremisePhrase = {
+type PremisePhrase = {
   readonly ja: string;
   readonly en: readonly string[];
 };

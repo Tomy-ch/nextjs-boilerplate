@@ -142,8 +142,8 @@ The field is a required item of the issue template, but the template's `required
 web form, and `gh issue create --body-file` passes straight through — **and that is the path by which AI
 files issues.**
 
-Whether the field is present does not correlate with when the issue was filed (#116 of 2026-07-30 has it,
-#521 of 2026-09-02 does not). It is missing not because the issue is old but **because of the path**.
+Whether the field is present does not correlate with when the issue was filed (#116 of 2026-07-30 has it, #521 of
+2026-09-02 does not). It is missing not because the issue is old but **because of the path**.
 
 It is closed in two ways.
 
