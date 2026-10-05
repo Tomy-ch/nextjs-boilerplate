@@ -84,9 +84,7 @@ describe("extractHeadings", () => {
     ]);
   });
 
-  it("文言が空の見出しも列から落とさない", () => {
-    // 落とすと、片側にだけ在るときに対訳の列がずれた分だけ詰まって揃い、構造ずれが
-    // 無報告になる。全角空白のように markdownlint が素通しする綴りで実際に起こる。
+  it("文言が空の見出しも（全角空白だけの見出しを含め）列から落とさない", () => {
     const content = ["# 題名", "## ", "## 　"].join("\n");
 
     expect(extractHeadings(content)).toEqual([
@@ -104,9 +102,15 @@ describe("extractHeadings", () => {
   });
 
   it("frontmatter の中の YAML コメントを見出しとして扱わない", () => {
-    const content = ["---", "# sample:begin", "key: value", "# sample:end", "---", "", "# 題名"].join(
-      "\n",
-    );
+    const content = [
+      "---",
+      "# sample:begin",
+      "key: value",
+      "# sample:end",
+      "---",
+      "",
+      "# 題名",
+    ].join("\n");
 
     expect(extractHeadings(content)).toEqual([{ level: 1, text: "題名", lineNo: 7 }]);
   });
