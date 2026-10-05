@@ -1,7 +1,7 @@
 // 画面を撮る帯（viewport の幅）の宣言。
 //
 // 帯そのものは 3 つに固定されており、境界の値は design token（`tokens/primitives.json`）が持つ
-// （[README](../README.md)「帯とエンジンは宣言から引く」）。ここに数値を書かないのは、token を
+// （[README](../README.md#bands-and-engines-come-from-declarations)）。ここに数値を書かないのは、token を
 // 差し替えた先で、レイアウトの分岐と撮影の幅が別々に動き始めるためである。
 import { readFileSync } from "node:fs";
 

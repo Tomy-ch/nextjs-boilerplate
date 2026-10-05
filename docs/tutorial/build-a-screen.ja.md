@@ -74,8 +74,8 @@
 - 開発サーバとカタログは `APP_ENV=local` で起動する。`pnpm dev` / `pnpm storybook` は
   `package.json` がこれを付ける
 - バックエンド無しで進めるなら `APP_API_MODE=mock`。契約から生成したモックが応える
-  （[`mocks/README.md`](../../mocks/README.md)）。環境変数の置き場は
-  [`env/README.md`](../../env/README.md)
+  （[`mocks/README.md`](../../mocks/README.ja.md)）。環境変数の置き場は
+  [`env/README.md`](../../env/README.ja.md)
 - 認証の内側の画面を開くには session が要る。開発では `/dev/session` が IdP を通さずに発行する
   （[`src/features/dev-session/README.md`](../../src/features/dev-session/README.ja.md)）
 - やり直せるよう、作業用のブランチで進める
@@ -212,7 +212,7 @@ components:
 
 **取得座標を宣言する。** `openapi/sources.yaml` の `sources` に 1 本足す。`name` は `api` のまま使うのが
 デフォルトで、生成の側（`orval.config.ts` / `scripts/openapi/gen-api-plan.ts`）がその綴りを持っている
-（理由は [`openapi/README.md`](../../openapi/README.md)「複数契約」）。
+（理由は [`openapi/README.md`](../../openapi/README.ja.md)「複数契約」）。
 
 ```yaml
 sources:
@@ -246,7 +246,7 @@ make api-gen        # 型 / zod / MSW ハンドラを生成する
 
 | ファイル | 書くこと | 理由の在処 |
 | --- | --- | --- |
-| `mocks/handlers.ts` | 生成物を `stableHandlers` へ渡す 1 行 | [`mocks/README.md`](../../mocks/README.md) |
+| `mocks/handlers.ts` | 生成物を `stableHandlers` へ渡す 1 行 | [`mocks/README.md`](../../mocks/README.ja.md) |
 | `scripts/lib/untested-modules.ts` の `GENERATED_MODULES` | `src/adapters/gen/**` と `mocks/api/**` | 書き手の居ないコードにテストを課さない（同ファイルの doc） |
 | `src/adapters/README.md` / `mocks/README.md` の frontmatter `coverage-exclusions` | 同じ 2 つのパターン | `scripts/coverage-exclusion.gate.test.ts` が所有側の README に記録を求める |
 | `orval.config.ts` の `PATTERNED_MOCK_PROPERTIES` / `operations` | `pattern` を持つ項目と、組で決まる値の指定 | 同ファイルのコメント |
@@ -2097,7 +2097,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
 
 - **story 単位（`vrt/`）と画面単位（`e2e/visual/`）は見ている対象が違う。** 前者はコンポーネントを単独でレンダリングした姿、
   後者はコンポーネントを組み上げた画面。どちらもベースライン画像はコンテナの中でしか撮らない
-  （[`vrt/README.md`](../../vrt/README.md) / [`e2e/README.md`](../../e2e/README.md)）
+  （[`vrt/README.md`](../../vrt/README.ja.md) / [`e2e/README.md`](../../e2e/README.ja.md)）
 - **意図した変更も、まずは赤くなる。** 撮り直しは PR の `baseline-retake` ラベルがデフォルトの経路で、
   手元から撮って送るのは `make vrt-retake` / `make e2e-retake`。撮る（`*-update`）だけでは親の
   gitlink が古いままになり、手元は通るのに CI だけ落ちる
@@ -2106,7 +2106,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   どこで見るか」）
 
 **迷ったら:** overlay の探し方や docs ページの分け方など、カタログのコンテナに由来する決まりは
-[`.storybook/README.md`](../../.storybook/README.md)。
+[`.storybook/README.md`](../../.storybook/README.ja.md)。
 
 **確認:**
 

@@ -7,13 +7,13 @@ import { loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
  * 被せた面を開いたときの焦点の行き先。
  *
  * @remarks
- * jsdom はフォーカスの実装を持ちません（[README](../README.md) の「フォーカス」）。component
+ * jsdom はフォーカスの実装を持ちません（[README](../README.md#focus)）。component
  * テストの `toHaveFocus` が確かめているのは「その要素へ focus を当てられること」であって、
  * **開いたときに焦点が入るか・Tab が背面へ抜けないか・閉じたときに戻るか**ではありません。
  * ここが唯一の検査地点です。
  *
  * 見るのはその 3 点だけで、機構ごとに 1 本です。menu も閉じ込める側に数える理由を含め、形は
- * [README](../README.md) の「フォーカス」が持ちます。Radix の menu は既定で modal であり、dialog と
+ * [README](../README.md#focus)が持ちます。Radix の menu は既定で modal であり、dialog と
  * 同じく巡回を閉じ込めます。
  */
 
@@ -33,7 +33,7 @@ async function focusIsInside(surface: Locator): Promise<boolean> {
  * 開いた面が焦点を受け取り、閉じたら開いた導線へ返すことを確かめる。
  *
  * @remarks
- * 2 点を 1 本にまとめる理由は [README](../README.md) の「フォーカス」。順序そのものが検査です。
+ * 2 点を 1 本にまとめる理由は [README](../README.md#focus)。順序そのものが検査です。
  *
  * @param page - 対象のページ
  * @param trigger - 面を開く操作。閉じたあとに焦点が戻る先でもある

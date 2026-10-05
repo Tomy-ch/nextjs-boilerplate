@@ -2,7 +2,7 @@
 // 撮影対象の story を取り出す。
 //
 // 対象は既定で全数で、外れるのは [excluded-stories](excluded-stories.ts) が宣言したものだけ
-// ([README](../README.md#何を撮るか))。
+// ([README](../README.md#what-to-capture))。
 import type { ExcludedStory } from "./excluded-stories";
 
 /** 撮影する story 1 件。 */
@@ -98,7 +98,7 @@ function isStory(
  * 見出しの先頭区画を、ディレクトリ名に使える形へ落とす。
  *
  * @remarks
- * 基準画像を系統ごとに分ける理由は [README](../README.md#基準画像は別のリポジトリに置く)。
+ * 基準画像を系統ごとに分ける理由は [README](../README.md#baseline-images-live-in-a-separate-repository)。
  */
 export function storyGroup(title: string): string {
   const separator = title.indexOf("/");

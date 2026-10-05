@@ -66,7 +66,7 @@ v1.0.0 未満の間、以下を**一時的に解除する**。
 | テストの規約 | [`docs/testing-conventions.md`](docs/testing-conventions.ja.md) |
 | レイヤーごとの責務と import 境界 | 触っているレイヤーの `README.md`（`src/**` 配下） |
 | 画面要件・機能要件 | [`docs/spec/`](docs/spec/README.ja.md) |
-| `make` の全ターゲット | [`.makefiles/README.md`](.makefiles/README.md) |
+| `make` の全ターゲット | [`.makefiles/README.md`](.makefiles/README.ja.md) |
 | ある記述をどの文書が所有するか、そして開発の経緯はどこへ行くか | [`docs/README.md`](docs/README.ja.md) |
 
 **canonical はサフィックス無しのパスであり、英語で書かれている。** `*.ja.md` は読まない —— あれは
@@ -277,7 +277,7 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 
 ### make（ブランチ操作 / ゲート / レビュー）
 
-**完全な登記簿は [`.makefiles/README.md`](.makefiles/README.md)** で、`make help` がレシピから同じ一覧を
+**完全な登記簿は [`.makefiles/README.md`](.makefiles/README.ja.md)** で、`make help` がレシピから同じ一覧を
 出す。リリース・タグ・hotfix・一度きりの導入はそちらに在り、ここには置かない。
 
 ```bash
@@ -316,7 +316,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
 ### 文脈へ届くものだけを変える 2 つの道具
 
 どちらも `pnpm build` / `pnpm test` / 必須チェックの経路には居ない（制約 3）。どちらも
-[`mise.toml`](mise.toml) で pin している。費用と除外は [`.claude/README.md`](.claude/README.md) が持ち、
+[`mise.toml`](mise.toml) で pin している。費用と除外は [`.claude/README.md`](.claude/README.ja.md) が持ち、
 ここに置くのはこれが毎ターン効く規律だからである。
 
 **`rtk`** はコマンドの出力を、あなたへ届く前に圧縮する（`rtk <サブコマンド> <元のコマンド>`）。
@@ -358,7 +358,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
   名前は `feature/` / `bugfix/` / `hotfix/` + issue 番号が在れば `<issue-no>-` + kebab の説明。リリース
   ラインは `release/v<X.Y.Z>`。解決器が答えない場合が 2 つある: **既にある PR の `baseRefName` が正**で
   あり、**hotfix の分岐元は人の判断なので聞く**
-  （[`scripts/base-branch/README.md`](scripts/base-branch/README.md)）。
+  （[`scripts/base-branch/README.md`](scripts/base-branch/README.ja.md)）。
 - **追いつかせるのは `make base-merge` であって rebase ではない。** 取り込むのはそのブランチを切った元の
   ベースで、今日 `base-branch` が返すものではない —— 後者は追いつかせるのではなく行き先を付け替える。
   そもそも取り込むかどうかは [`docs/rules.md#workflow`](docs/rules.ja.md#workflow) が持つ判断である。
@@ -413,7 +413,7 @@ issue / PR テンプレート、`settings/`、道具自身の設定 —— は�
 
 このリポジトリのファイルはすべて一度だけ歩かれる。`PreToolUse` hook が編集前にパスを引き、まだ記帳されて
 いなければ手順の在り処を告げる。**決してブロックはしない。**
-[`.agents/README.md`](.agents/README.md) が機構・台帳・照会のエントリポイントを持つ。
+[`.agents/README.md`](.agents/README.ja.md) が機構・台帳・照会のエントリポイントを持つ。
 
 このパスは**ファイル全体**に対して 3 つを問う。あなたの差分に対してではない。
 

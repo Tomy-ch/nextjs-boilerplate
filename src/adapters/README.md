@@ -367,7 +367,7 @@ the credential arrives as **the URL to connect to**, carrying in its query a sho
 The ticket is not passed as a value because the more the browser side assembles and handles it, the more paths there are
 to copy it into UI text or logs.
 
-**A round trip the contract-driven mock cannot represent is refused at the ticket endpoint** ([mocks/README.md](../../mocks/README.md#購読sseは差し替えません),
+**A round trip the contract-driven mock cannot represent is refused at the ticket endpoint** ([mocks/README.md](../../mocks/README.md#subscriptions-sse-are-not-replaced),
 *Subscriptions (SSE) are not replaced*). If only the ticket issuance succeeds, the browser keeps reconnecting to a destination that does not exist.
 When `getApiConfig().mode === "mock"`, the ticket endpoint throws `not-found`, stopping the screen in the same state as when there is
 nothing to subscribe to.

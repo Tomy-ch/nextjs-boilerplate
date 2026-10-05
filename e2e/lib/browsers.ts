@@ -7,7 +7,7 @@
  *
  * @remarks
  * サポート対象は「Next.js の既定 browserslist を追認する（モダンブラウザ）」です
- * （[README](../README.md)「帯とエンジンは宣言から引く」）。モダンブラウザは実装としては
+ * （[README](../README.md#bands-and-engines-come-from-declarations)）。モダンブラウザは実装としては
  * 3 つの描画エンジン（Blink / Gecko / WebKit）に畳まれ、Playwright の `chromium` /
  * `firefox` / `webkit` がそれぞれに対応します。**エンジンが同じブラウザは、ここで捕まえたい
  * 種類の差を持ちません** — Edge も Opera も Blink であり、iOS のブラウザは全て WebKit です。

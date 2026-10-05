@@ -53,7 +53,7 @@ const CANCELLED: ReadonlySet<string> = new Set([
   "Load request cancelled",
 ]);
 
-/** 応答を異常として数える下限のステータス。4xx を含めない理由は README「何を異常と数えるか」。 */
+/** 応答を異常として数える下限のステータス。4xx を含めない理由は [README](../README.md#what-counts-as-an-anomaly)。 */
 const SERVER_ERROR_STATUS = 500;
 
 /** 打ち切りではない通信失敗か。 */

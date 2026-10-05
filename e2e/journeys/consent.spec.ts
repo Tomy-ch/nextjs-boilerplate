@@ -5,7 +5,7 @@ import { MEASUREMENT_ID_COOKIE_NAME } from "@/model/consent";
 
 /**
  * 同意を尋ねる面と、その裏で配られる計測 id。
- * `e2e/lib/test.ts` の test を使わない理由は [README](../README.md)「同意は選び終えた状態から始める」。
+ * `e2e/lib/test.ts` の test を使わない理由は [README](../README.md#consent-starts-already-chosen)。
  */
 
 /**

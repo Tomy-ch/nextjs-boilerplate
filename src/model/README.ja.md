@@ -190,7 +190,7 @@
 （すべてのパスに当たり、ログインの経路自身が保護対象になって遷移が循環します）。理由は
 `ROUTE_POLICIES` の doc コメントが持ちます。
 
-`generated/` の 2 本は `tokens/` からの生成物で、手では直しません（[`tokens/README.ja.md`](../../tokens/README.md#boilerplate-導入時の変更点)）。
+`generated/` の 2 本は `tokens/` からの生成物で、手では直しません（[`tokens/README.ja.md`](../../tokens/README.ja.md#boilerplate-導入時の変更点)）。
 
 ## 運用
 

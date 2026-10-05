@@ -47,7 +47,7 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - **レンダリングは HTML 文字列を経由しない。** 仕様準拠のパーサで HTML をツリー(hast)にし、ツリーを allowlist で検査し、そのツリーから直接 React 要素を組み立てる。文字列のまま検査する方式は採らない —— パーサが補正する崩れた markup を、文字列上の検査はすり抜けさせる。これにより `dangerouslySetInnerHTML` を使う箇所自体が無くなり、[0110](0110-security-operations.ja.md) の禁止規定に対して「使っていない」ではなく「使える形になっていない」状態を作る
 - **sanitizer の許可リストは inline `style` 属性を落とす。** 太字 / 斜体 / リスト / 見出し / リンクはいずれもクラスへマッピングできるため、`style` を通す理由が無い。**この設計が成立することは実装で確認済みであり、リッチテキストを理由に CSP の `style-src-attr` へ `'unsafe-inline'` を開ける必要はない**([0111](0111-csp-security-headers.ja.md) の enforce seam 判断の入力)。`class` / `id` も同様に落とす
 - **editor が出せるタグ ⊆ sanitizer が通すタグ**を保つ。この包含関係が崩れると、入力できるのに保存後に落ちるという不整合が生じる。エディタの extension 集合は allowlist から導出し、**包含関係を test で固定して extension の追加が検知されるようにする**。したがって **`@tiptap/starter-kit` は採らず、extension を個別に入れる** —— starter-kit は allowlist に無いタグを出す extension まで束で引くため、包含関係を保てない
-- **許容範囲の異なる sanitizer を同じパッケージへ同居させない。** リポジトリ自身のコミット済み文書をレンダリングする viewer([`docs-viewer/`](../../docs-viewer/README.md))は表・コードブロック・`class` を通す広い allowlist を要るが、それをアプリ本体と同じパッケージに置くと、広い方を本体から import することを止めるものが規約しか無くなる。別パッケージに置き、構造として到達不能にする([0020](0020-adopted-architecture.ja.md))
+- **許容範囲の異なる sanitizer を同じパッケージへ同居させない。** リポジトリ自身のコミット済み文書をレンダリングする viewer([`docs-viewer/`](../../docs-viewer/README.ja.md))は表・コードブロック・`class` を通す広い allowlist を要るが、それをアプリ本体と同じパッケージに置くと、広い方を本体から import することを止めるものが規約しか無くなる。別パッケージに置き、構造として到達不能にする([0020](0020-adopted-architecture.ja.md))
 - **XSS 規約との接続**: `dangerouslySetInnerHTML` の原則禁止と sanitizer 必須の**規約(rule)自体は [0110](0110-security-operations.ja.md) が所有**する。本 ADR は「sanitizer を差し替え可能な port として名前を付ける」構造側を敷き、規約は 0110 を正とする(二重決定しない)
 
 ### 4. モーダル/ダイアログ = a11y 契約がデフォルト + 実装手段は WAI-ARIA 準拠 primitive

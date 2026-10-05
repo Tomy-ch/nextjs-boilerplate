@@ -241,9 +241,9 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 | サイト名 | リポジトリ名と同じ綴り。タイトルのテンプレート、OG 画像、各レイアウトシェルの header が読む | `site.ts` の `SITE_NAME`。**ラテンの綴りに限る** —— OG 画像をレンダリングするデフォルトの書体が和文を持たず、画像の側だけが欠ける |
 | サイトの説明 | 本リポジトリ自身を説明する文。root の `description` に載る | `site.ts` の `SITE_DESCRIPTION` |
 | アイコンに描く印 | 1 文字 | `site.ts` の `SITE_MONOGRAM`。枠の大きさは描く側が決めるので 1 文字に限る |
-| 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | `fonts.ts` と [`tokens/README.md`](../../tokens/README.md#boilerplate-導入時の変更点) の両方。ラテンの字しか持たないワードマークの書体は和文を含む文字列に当てない —— 和文だけが次の書体へ落ち、1 つの語の中で書体が変わる。和文の Web フォントを `next/font` で足すなら費用を測り直す —— 番号付きスライスの `@font-face` がすべて、レンダリングをブロックする CSS として載る |
+| 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | `fonts.ts` と [`tokens/README.md`](../../tokens/README.ja.md#boilerplate-導入時の変更点) の両方。ラテンの字しか持たないワードマークの書体は和文を含む文字列に当てない —— 和文だけが次の書体へ落ち、1 つの語の中で書体が変わる。和文の Web フォントを `next/font` で足すなら費用を測り直す —— 番号付きスライスの `@font-face` がすべて、レンダリングをブロックする CSS として載る |
 
-外から見た origin とインデックスの可否は環境変数で、[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点) が持ちます。`site.ts` が持つのは環境に依らない名乗りだけです。
+外から見た origin とインデックスの可否は環境変数で、[`env/README.md`](../../env/README.ja.md#boilerplate-導入時の変更点) が持ちます。`site.ts` が持つのは環境に依らない名乗りだけです。
 
 同意ゲートの裏で読み込むタグマネージャを別のものへ替えるなら、`analytics.tsx` と配信ヘッダの
 許可 origin（[`src/config/README.md`](../config/README.ja.md#boilerplate-導入時の変更点)）の両方を
@@ -310,7 +310,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 - **route segment はレンダリングの span を持たない。** Next.js が `render route (app)` を張るので、同じ範囲を二重に持たない。画面の中の帰属は feature レイヤーの最上位が持つ（[observability/README.md](../observability/README.ja.md)）
 - **レイアウトシェルは root layout ではなく route group の `layout.tsx` が敷く。** root が持つのは `html` / `body` と Provider の mount だけで、レイアウトシェルの選択はその下の段が行う。見せる相手が違えばレイアウトシェルを分け、レンダリングする時点が違えば（配下を build 時の姿だけで配りたい）レイアウトシェルが cookie にもバックエンドにも触れないところまで下がる —— そのレイアウトシェルには request 時に読む導線（主体で決まるエントリポイント）は出ず、出さない側が安全側になる。レイアウトシェルの分け方と、route group が client 状態の境界でもあることは [0026](../../docs/adr/0026-layout-shell-mount.ja.md)
 - **レイアウトシェルの隣に置く journey 内の Provider は、その journey の外へ出た時点で状態を失ってよいものに限る**（[0026](../../docs/adr/0026-layout-shell-mount.ja.md)）。中身が空になると畳むレイアウトシェルの外へ置く —— レイアウトシェルの内側に持つと、中身が空になってレイアウトシェルが畳まれた時点で記憶ごと失われる
-- **`globals.css` が持つのは import の束ね・`dark` variant・系統ごとの書体の当て直しだけ。** `dark` の発火条件は tokens の生成側と揃える必要があり、条件の canonical は [`tokens/README.md`](../../tokens/README.md)。`[data-surface]` で `font-family` を当て直すのは、継承する値であり変数を差し替えただけではサブツリーに届かないため
+- **`globals.css` が持つのは import の束ね・`dark` variant・系統ごとの書体の当て直しだけ。** `dark` の発火条件は tokens の生成側と揃える必要があり、条件の canonical は [`tokens/README.md`](../../tokens/README.ja.md)。`[data-surface]` で `font-family` を当て直すのは、継承する値であり変数を差し替えただけではサブツリーに届かないため
 - **`FONT_VARIABLES` は `<html>` とカタログの story の双方が同じ定義を使う。** `next/font` は変数の宣言を class に載せるので、変数を読む要素の祖先に必ずこの class が要る
 - **開発専用のエントリポイント（`page.dev.tsx` / `route.dev.ts` / その action）はエントリポイントごとに環境の判定を呼ぶ**（[0113](../../docs/adr/0113-development-access-surface.ja.md)）。route group の外に置くので `main` は自分で置く
 

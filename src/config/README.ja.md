@@ -101,7 +101,7 @@ purpose は値を読む側の**サブシステム**の単位で、読み手が�
 5. `environment.fixture.ts` の `VALID_ENVIRONMENT` と `PARSED_ENVIRONMENT` の両方に足す。前者は
    `satisfies Record<keyof Environment, string>` で、漏れを型検査が拾う。
 6. `<purpose>.schema.test.ts` と `<purpose>.server.test.ts` を置く（下記「テスト」）。
-7. `env/.env.*` と [`env/README.md`](../../env/README.md) の変数表（変数の存在の正）、この README の
+7. `env/.env.*` と [`env/README.md`](../../env/README.ja.md) の変数表（変数の存在の正）、この README の
    一覧（設定値の意味の正）を更新する。分担は [0030](../../docs/adr/0030-environment-variable-management.ja.md)。
 8. 読み手を `adapters/server` か起動 / ビルド境界に置く。読み手を増やす判断の正は「運用」を見る。
 
@@ -189,7 +189,7 @@ Node.js サーバーインスタンスの起動
 `loadEnvironment()` は `override: false` で読み込むため、CI / PaaS がすでに注入した変数を
 上書きしません。`env/.env.dev`・`.env.stg`・`.env.prd` が値を持つのはデプロイによらず同じ値と
 その環境の方針値だけで、接続先と秘密値は名前だけを置き、実値は PaaS の環境設定または secret
-store から供給します（行の形は [`env/README.md`](../../env/README.md) の「ファイルの書き方」）。
+store から供給します（行の形は [`env/README.md`](../../env/README.ja.md) の「ファイルの書き方」）。
 
 `APP_ENV` の未指定は `null` で返し、デフォルトへ落としません。ファイルの選択、同梱の秘密値の許可、
 開発専用のエンドポイントの開閉がすべてこの選択子を見るため、デフォルトを持つと「未設定」を安全側へ倒せなく
@@ -209,7 +209,7 @@ env に置きません（[0030](../../docs/adr/0030-environment-variable-managem
 
 **プリレンダーへ焼き込まれる値は build と start に同じ ENV を渡します。** 静的にレンダリングされる画面の
 metadata と `robots.txt` は build 時に読まれるため、配信物は環境ごとに build する前提です
-（[env/README.md](../../env/README.md)）。
+（[env/README.md](../../env/README.ja.md)）。
 
 ## Config の配線
 
@@ -232,7 +232,7 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 - `process.env` の直読はこのカーネルだけに置く（`src/` では biome `noProcessEnv` の override がこのカーネルと `src/instrumentation.ts` だけを外す）。
 - server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・エントリポイントの `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番のバンドルに載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.ja.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.ja.md) のレイヤー定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.ja.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得エンドポイントだけを増やすことになる。
 - client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側のレイヤーも `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.ja.md)）。
-- 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
+- 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.ja.md) を正とする。
 - proxy から辿れる config は ENV ファイルを読まない。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、`dotenv` / `node:path` を使う `load-environment.ts` へは届かない。ENV ファイルは起動 / ビルド境界が先に読み込んでいる（[0043](../../docs/adr/0043-middleware-policy.ja.md) の Edge 互換。`scripts/proxy-edge.gate.test.ts` が辿れるグラフを見る）。
 
 ## 配信ヘッダの組み立て
@@ -261,7 +261,7 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 ## boilerplate 導入時の変更点
 
 環境変数から来る値はこのカーネルが検証するだけで、**値そのものは
-[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点) が持ちます。** ここに書くのは、
+[`env/README.md`](../../env/README.ja.md#boilerplate-導入時の変更点) が持ちます。** ここに書くのは、
 環境変数を通らずにコードへ焼いてあるデフォルトです。
 
 | 何を | デフォルト | 変更する箇所 |
@@ -303,7 +303,7 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 | `*.server.ts` を import するのは、`adapters/server`、起動 / ビルド境界（`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`）、`app/metadata`、Next.js の規約が route segment に置くことを要求する値（`config/site` / `config/clock`）を読む route segment だけ。本番のバンドルに載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | 許可の外からの import は violation | [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクスと Enforcement / [0025](../../docs/adr/0025-app-layer-elements.ja.md) 禁止事項 / この README「運用」。機械は `config` をレイヤーの粒度でしか見ない |
 | `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.ja.md) の client config の置き方と禁止事項 / [docs/rules.ja.md](../../docs/rules.ja.md#config) |
 | `*.schema.ts` は `process.env` も `APP_ENV` の判定も読まない。環境に依る条件は validator の引数で受け、渡すのは `environment.ts` である | violation | この README「目的別 module の形」 |
-| secret を `NEXT_PUBLIC_` に置かない | [`env/README.md`](../../env/README.md) で secret 管理のラベルを持つ変数が `NEXT_PUBLIC_` を名乗っていれば violation。ラベルは無いが署名鍵・資格情報として使われている値が `NEXT_PUBLIC_` を名乗っていれば suggestion | [0030](../../docs/adr/0030-environment-variable-management.ja.md) 禁止事項 / [docs/rules.ja.md](../../docs/rules.ja.md#config) |
+| secret を `NEXT_PUBLIC_` に置かない | [`env/README.md`](../../env/README.ja.md) で secret 管理のラベルを持つ変数が `NEXT_PUBLIC_` を名乗っていれば violation。ラベルは無いが署名鍵・資格情報として使われている値が `NEXT_PUBLIC_` を名乗っていれば suggestion | [0030](../../docs/adr/0030-environment-variable-management.ja.md) 禁止事項 / [docs/rules.ja.md](../../docs/rules.ja.md#config) |
 | server config の値を props として client component へ渡さない。client が要る値は最初から `NEXT_PUBLIC_` の client config に置く | violation | [0030](../../docs/adr/0030-environment-variable-management.ja.md) の禁止則 / この README「運用」 |
 | Config class と ENV parser を module の外へ export しない | violation | [docs/rules.ja.md](../../docs/rules.ja.md#config) / この README「Config の配線」 |
 | 省略できる変数のデフォルトが、設定を忘れた環境が踏んで困る側（止める・インデックスさせる・第三者を読み込む・別 origin を許す）にある | デフォルトが環境によらず正しい根拠を validator の文書が持たなければ suggestion | この README「検証の語彙」/ [0030](../../docs/adr/0030-environment-variable-management.ja.md)（任意の変数の扱い） / [docs/rules.ja.md](../../docs/rules.ja.md#config) |

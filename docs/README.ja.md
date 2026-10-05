@@ -72,7 +72,7 @@
   気づかれずに腐ることがないのでコードに残る。できるなら（上流の振る舞い・運用方針・業務規則）、
   誰もそれを検証できず、偽になっても何も鳴らない
 
-手順の文書（レイヤー README / `SKILL.md` / [`.makefiles/README.md`](../.makefiles/README.md)）に理由を
+手順の文書（レイヤー README / `SKILL.md` / [`.makefiles/README.md`](../.makefiles/README.ja.md)）に理由を
 残すかは、もう 1 つの問いで決まる —— **それを読まなかった読み手が違う操作をするか。** しないなら
 それは理由であり、ADR が単独で持つ。手順側に置くのは挙動と使い方だけで、理由は
 `> Rationale: [NNNN](...)` の逆参照で済ませる（[0140](adr/0140-documentation-operations.ja.md)）。
@@ -170,7 +170,7 @@ canonical に追従する翻訳であって、別の置き場ではない。** �
 `begin` / `end` / `replace-*` で囲まない** —— 表は表の行でない行に出会った時点で終わり、以降の行が
 生のパイプの段落になる。表は 1 行 1 実体にし、消える実体は自分の行を持つ
 （[`rules.md`](rules.ja.md#comments)）。
-マーカーを足した / 消したら行数のベースラインを引き直す（[`scripts/README.md`](../scripts/README.md)「撤去マーカーを足したら数え直す」）。 <!-- boilerplate-only:line -->
+マーカーを足した / 消したら行数のベースラインを引き直す（[`scripts/README.md`](../scripts/README.ja.md)「撤去マーカーを足したら数え直す」）。 <!-- boilerplate-only:line -->
 
 ## 文書の形 —— 冒頭・末尾・指し方
 

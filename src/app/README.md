@@ -250,9 +250,9 @@ site keeps presenting itself under this repository's name.**
 | Site name | The same spelling as the repository name. Read by the title template, the OG image, and each layout shell's header | `SITE_NAME` in `site.ts`. **Latin spelling only** — the default typeface that draws the OG image has no Japanese glyphs, and only the image would be missing them |
 | Site description | A sentence describing this repository itself. Goes into root's `description` | `SITE_DESCRIPTION` in `site.ts` |
 | The mark drawn on the icon | One character | `SITE_MONOGRAM` in `site.ts`. The drawing side decides the frame size, so one character only |
-| Typefaces | Japanese uses the OS-bundled gothic; headings and monospace use the bundled Latin typefaces | Both `fonts.ts` and [`tokens/README.md`](../../tokens/README.md#boilerplate-導入時の変更点). Do not apply a named typeface that has Latin characters only to strings containing Japanese — only the Japanese falls to the next typeface, and the typeface changes within a single word. If adding a Japanese web font with `next/font`, re-measure the cost — every numbered-slice `@font-face` lands as render-blocking CSS |
+| Typefaces | Japanese uses the OS-bundled gothic; headings and monospace use the bundled Latin typefaces | Both `fonts.ts` and [`tokens/README.md`](../../tokens/README.md#what-to-change-when-adopting). Do not apply a named typeface that has Latin characters only to strings containing Japanese — only the Japanese falls to the next typeface, and the typeface changes within a single word. If adding a Japanese web font with `next/font`, re-measure the cost — every numbered-slice `@font-face` lands as render-blocking CSS |
 
-The externally visible origin and whether to index are environment variables, held by [`env/README.md`](../../env/README.md#boilerplate-導入時の変更点). `site.ts` holds only the environment-independent identity.
+The externally visible origin and whether to index are environment variables, held by [`env/README.md`](../../env/README.md#what-to-change-when-adopting). `site.ts` holds only the environment-independent identity.
 
 To replace the tag manager loaded behind the consent gate with another, change both `analytics.tsx` and the delivery headers'
 allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-when-adopting)).

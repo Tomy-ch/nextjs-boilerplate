@@ -23,7 +23,7 @@ const NARROW_WIDTH = (loadBreakpoints().get("md") as number) - 1;
  * 面を開いた画面と、その中から選ぶ導線。
  *
  * @remarks
- * 行き先には**自分で URL を書き換えない画面**を選びます。理由は [README](../README.md) の「履歴」。
+ * 行き先には**自分で URL を書き換えない画面**を選びます。理由は [README](../README.md#history)。
  */
 const ORIGIN_PATH = "/about";
 const DESTINATION = { label: "マイページ", path: "/mypage" };

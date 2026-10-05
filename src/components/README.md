@@ -126,18 +126,18 @@ There are two ways to draw a ring around an element: CSS `outline` and `box-shad
 
 ### Font Weight
 
-- **Write emphasis with `font-emphasis`. Do not specify a weight directly.** Each typeface has different weights, and specifying a step it lacks just rounds it and produces no emphasis (`tokens/README.md`, *Only one emphasis step*). **`no-raw-font-weight` checks this mechanically** (`eslint-rules/`). `font-normal` cancels emphasis ("not emphasized"), so it may be used
+- **Write emphasis with `font-emphasis`. Do not specify a weight directly.** Each typeface has different weights, and specifying a step it lacks just rounds it and produces no emphasis ([`tokens/README.md#only-one-emphasis-step`](../../tokens/README.md#only-one-emphasis-step)). **`no-raw-font-weight` checks this mechanically** (`eslint-rules/`). `font-normal` cancels emphasis ("not emphasized"), so it may be used
 - **There is only one step.** The difference between headings and body text comes from size (`text-lg` etc.) and position; weight is added on top of that. Do not try to build another level of hierarchy with weight — some environments with OS-bundled typefaces cannot render it
 
 ### Surface Family (`data-surface`) and Portals
 
-- **Put the surface-family attribute at a position that includes the Portal's exit.** Components in `overlay/` exit to directly under `document.body` through Radix's Portal, so if the attribute sits on an element inside the content, only the overlay's content is rendered in the default family (`tokens/README.md`, *Where the attribute goes must contain the Portal*)
+- **Put the surface-family attribute at a position that includes the Portal's exit.** Components in `overlay/` exit to directly under `document.body` through Radix's Portal, so if the attribute sits on an element inside the content, only the overlay's content is rendered in the default family ([`tokens/README.md#where-the-attribute-goes-must-contain-the-portal`](../../tokens/README.md#where-the-attribute-goes-must-contain-the-portal))
 - Of the two options the token side presents (put it on the `body` equivalent / point the Portal's `container` inside the family), this layer takes **the former**. The content is covered from the moment the server renders it by the `data-surface` the layout shell puts on the outer frame, and overlay content gets the same value on `body` through the bridge in [`foundation/surface`](./design-system/foundation/surface/README.md). Doing it after hydration is enough because overlays open through interaction. Replacing `container` is not adopted — it would add an entry point to every overlay component and make callers specify it every time
 - **Do not bake color into symbols.** Draw symbols such as a check mark with borders or `currentColor`, not images. An image does not follow when the family or color scheme changes the tokens
 
 ### Glow
 
-- **The colors that may glow are fixed.** Only five exist — `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive`; `secondary` and `emphasis` have no token (`tokens/README.md`, *Whether and when to glow*)
+- **The colors that may glow are fixed.** Only five exist — `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive`; `secondary` and `emphasis` have no token ([`tokens/README.md#whether-and-when-to-glow`](../../tokens/README.md#whether-and-when-to-glow))
 - **`warning` and `destructive` do not glow at rest.** Attach it to `hover:` / `focus-visible:`. A dangerous action that glows all the time reads as "pressable right now"
 - **Do not glow in a color different from the surface's.** Wrapping a red surface in the primary color's glow looks broken in a world made of light
 - **Only the primary action (`default`) glows from rest.** There is one "live action right now" on a screen, so this is a state indicator, not constant decoration

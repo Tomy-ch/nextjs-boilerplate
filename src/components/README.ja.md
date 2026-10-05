@@ -8,7 +8,7 @@
 
 ## ここにあるものは参考実装です
 
-**作り替えてもよく、捨ててもよい。**このインベントリに並んでいるコンポーネントも、[`tokens/`](../../tokens/README.md)
+**作り替えてもよく、捨ててもよい。**このインベントリに並んでいるコンポーネントも、[`tokens/`](../../tokens/README.ja.md)
 が持つ値も、自分のデザインへ差し替える前提で置いてあります。**そのまま使うことは
 要件ではありません。**
 
@@ -49,7 +49,7 @@
 - class 名の条件分岐と Tailwind utility の競合解消には [`cn.ts`](./cn.ts) を使う。`clsx` と `tailwind-merge` を直接利用する実装は増やさない
 - アイコンは [`icon.ts`](./icon.ts) から取る。供給元を直接 import する実装は `components` の内側にも置かない。差し替えを 1 ファイルへ閉じるためで、`eslint.config.ts` の `no-restricted-imports` が締め出す。**この面は名前付き再輸出に限る** —— 名前から component を引く表を置くと、使っていないアイコンまでバンドルへ乗る
 - 「一度満たしたら以後 mount を維持する」判断には [`use-latched.ts`](./use-latched.ts) を使う。器が閉じるたびに中身を外すと、**外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる必要がある入力欄）が作り直しになる。レイヤーをまたいで要るためレイヤーの下ではなくここに置く
-- 色・余白などは [`tokens/`](../../tokens/README.md) の semantic token を使う。primitive token の直接利用はしない
+- 色・余白などは [`tokens/`](../../tokens/README.ja.md) の semantic token を使う。primitive token の直接利用はしない
 - shadcn/ui の追加は `pnpm add:ui <component> --as=<見出し> [--layer=<層>] [-- <shadcn add のオプション>]` を使う。一度に一コンポーネントだけをレイヤーと見出しに応じた場所へ copy-in し、成功時に [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へレイヤー・見出し・レジストリ・追加日時・CLI バージョンを記録するため、`pnpm exec shadcn add` を直接実行しない。`--as` は必須、`--layer` のデフォルトは `design-system` で、いずれも値が不正なら `shadcn add` を走らせる前に弾かれる
 - 上流に相当する item が無い自前の component は `pnpm gen component <name> --as=<見出し> [--layer=<層>]` で置く。配置オプションの語彙とデフォルトは `add:ui` と同じで、実装・story・test と `component-template.md` のコピーの README を同じディレクトリへ出し、[`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ `kind: original` の行を記録する。README を持つディレクトリは台帳に行が無いと `pnpm check:ui` が落とすため、テンプレートと台帳の行は一度に出る
 - **レンダリングの span を持たない。** 横断 UI は画面ごとの帰属を持たないため、計装は feature レイヤーの最上位に限る（[observability/README.md](../observability/README.ja.md)）

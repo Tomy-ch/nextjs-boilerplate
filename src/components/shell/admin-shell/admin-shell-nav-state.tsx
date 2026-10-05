@@ -41,7 +41,7 @@ export type AdminShellNavStateProviderProps = {
    *
    * @remarks
    * 外枠の要素はこの供給が描くため、そこに載る属性はこの供給の API です。既定の系統なら渡しません
-   * （`tokens/README.md`「切替の軸は 2 本」）。
+   * （`tokens/README.md#there-are-two-switching-axes`）。
    */
   "data-surface"?: Surface;
 };

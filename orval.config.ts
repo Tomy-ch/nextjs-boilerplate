@@ -29,7 +29,7 @@ const NON_CLIENT_TAGS = [
 // 検証するテスト (`mocks/contract-conformance.test.ts`) が捕まえる。
 // sample:replace-with
 // = // 取りこぼしは黙って通る。生成物と zod はどちらも契約から出るので、両者を突き合わせる検査を
-// = // 契約を入れたときに書く (`mocks/README.md` の「契約適合の検査」)。
+// = // 契約を入れたときに書く (`mocks/README.md#contract-conformance-test`)。
 // sample:replace-end
 const PATTERNED_MOCK_PROPERTIES = {
   // sample:replace-begin

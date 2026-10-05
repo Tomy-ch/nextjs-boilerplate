@@ -2,7 +2,7 @@
  * 比較の対象から外す story の宣言。
  *
  * @remarks
- * 何を除外してよいかは [README](../README.md#何を撮るか) が持ちます。理由と撤去条件を
+ * 何を除外してよいかは [README](../README.md#what-to-capture) が持ちます。理由と撤去条件を
  * 添えないものは足せません。
  */
 

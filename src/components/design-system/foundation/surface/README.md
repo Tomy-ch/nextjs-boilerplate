@@ -26,7 +26,7 @@ The foundation for applying a design token **family** (`user` / `admin`) to a su
 
 ### Why a bridge is needed
 
-`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` go out **directly under `document.body`** through Radix's Portal. Even with the attribute on the layout shell's outer frame, the overlay content falls outside it, so it is rendered in the default family even after the family is switched (`tokens/README.md` 「属性を置く場所は、Portal を含む位置でなければならない」).
+`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` go out **directly under `document.body`** through Radix's Portal. Even with the attribute on the layout shell's outer frame, the overlay content falls outside it, so it is rendered in the default family even after the family is switched ([`tokens/README.md#where-the-attribute-goes-must-contain-the-portal`](../../../../../tokens/README.md#where-the-attribute-goes-must-contain-the-portal)).
 
 The token side shows two options, "place it on the equivalent of `body`" or "point the Portal's `container` inside the family", and leaves the choice to the screen. This repository takes **the former**, with the following division.
 

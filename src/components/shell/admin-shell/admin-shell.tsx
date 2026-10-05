@@ -56,7 +56,7 @@ export type AdminShellProps = {
  *
  * **管理の系統（`data-surface`）をここが名乗ります。** 器そのものが「管理側である」ことを表す
  * 唯一の要素なので、系統の切替もここが持ちます。配下の部品は token を引き直すだけで、改修は
- * 要りません（`tokens/README.md`「切替の軸は 2 本」）。
+ * 要りません（`tokens/README.md#there-are-two-switching-axes`）。
  *
  * **器は紙に出しません。** header・脇の一覧・skip link はいずれも画面を渡り歩くためのもので、
  * 紙の上では押せず場所を取るだけです（`components/design-system/foundation/print`）。

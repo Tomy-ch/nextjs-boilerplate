@@ -58,7 +58,7 @@ The declaration (`next.config.ts`), what the browser receives, and what the brow
 | The browser enforces it | E2E watcher | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) listens for `securitypolicyviolation` on the document and counts violations across **every spec and every rendering engine** |
 | Evidence that enforcement works | E2E spec | [`e2e/journeys/csp.spec.ts`](../../e2e/journeys/csp.spec.ts) injects a script from an undeclared origin and confirms that a violation is reported |
 
-**CSP violations are not caught by the console watcher.** Lines the browser writes itself carry no arguments, and the watcher's rule of counting only "lines JavaScript wrote" excludes them. That is why `securitypolicyviolation` is received on a separate path ([`e2e/README.md`](../../e2e/README.md#何を異常と数えるか) — "What counts as an anomaly"). Loosening to `Report-Only` would pass DAST but fail `csp.spec.ts` — this is why the check that reads headers and the check that observes enforcement exist separately.
+**CSP violations are not caught by the console watcher.** Lines the browser writes itself carry no arguments, and the watcher's rule of counting only "lines JavaScript wrote" excludes them. That is why `securitypolicyviolation` is received on a separate path ([`e2e/README.md`](../../e2e/README.md#what-counts-as-an-anomaly) — "What counts as an anomaly"). Loosening to `Report-Only` would pass DAST but fail `csp.spec.ts` — this is why the check that reads headers and the check that observes enforcement exist separately.
 
 A change touching `next.config.ts` or `src/config/security-headers/` makes `scripts/deferred-checks/recommend.ts` name `run-e2e`. It steers toward the real-browser check so that a header change does not feel done on unit tests alone.
 

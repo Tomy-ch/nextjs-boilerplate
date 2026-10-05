@@ -77,10 +77,10 @@ Accepted
 | 7 | Where You May Stop | 決定をユーザへ返してよい場所の**閉じた一覧**と、判断を要さず作業を止める trip wire。**個々の停止点の本体を AGENTS.md 内に置かない** —— 表の行が指す先は必ず AGENTS.md の外にある文書で、内側を指す行があると一覧の閉じ方が壊れる |
 | 8 | AI Modification Scope | 編集可 / 編集禁止 / エージェント設定保護 / Skill 実行時 Exception |
 | 9 | Installing Things | あらゆる `install` の口に掛かる規律（自発的に入れない / 求められたときだけ / 先に既存の構成を見る）。依存の追加は別問題で [0004](0004-library-management.ja.md) が持つ |
-| 10 | Recommended Commands | pnpm / make のうち、`package.json` と `.makefiles/README.md` から導けないものだけ。**文脈量だけを変える道具（`rtk` / `graphify`）の使い方の規律**も同じセクションが持つ —— 費用と除外は [`.claude/README.md`](../../.claude/README.md) だが、毎ターン効く規律は常時載る側に無いと縛れない |
+| 10 | Recommended Commands | pnpm / make のうち、`package.json` と `.makefiles/README.md` から導けないものだけ。**文脈量だけを変える道具（`rtk` / `graphify`）の使い方の規律**も同じセクションが持つ —— 費用と除外は [`.claude/README.md`](../../.claude/README.ja.md) だが、毎ターン効く規律は常時載る側に無いと縛れない |
 | 11 | Git Rules | 0150 の要点抜粋。**機械が塞いでいるもの（`deny` の force push / rebase / amend）と、他文書が持つ手順は再掲しない** —— 残すのは散文しか止められないもの（base 解決の罠、amend 後の確認文面）だけである |
 | 12 | Language Rules (+ `### Output Language` / `### Response Discipline` サブセクション) | **言語に関する規則を 1 セクションが持つ。** 内部処理は英語可・可視出力は日本語・ユーザが英語を指示したときは英語、の 3 つは同じ規則の 3 つの面であり、セクションを分けると同じことを 3 回書くことになる。応答の規律（結論先出し / 読んでいない事実を書かない / 決定的な検査はフィルタ越しに報告しない）も同じセクションが持つ —— 対象がどちらも「書き戻すもの」で、別のセクションにすると片方だけを読んだ状態が作れる |
-| 12.5 | Purity Sweep | **boilerplate 限定セクション**。全ファイルを 1 度ずつ通す純化パス(純粋性 / 設計判断の蒸留 / 所有文書への還元)の規則と、台帳・照会フックの在り処を述べる。本文を `boilerplate-only:begin` / `end` で囲む。削除の契機は台帳の完了で、条件と同時に消す対象は [`.agents/README.md`](../../.agents/README.md) が持つ <!-- boilerplate-only:line --> |
+| 12.5 | Purity Sweep | **boilerplate 限定セクション**。全ファイルを 1 度ずつ通す純化パス(純粋性 / 設計判断の蒸留 / 所有文書への還元)の規則と、台帳・照会フックの在り処を述べる。本文を `boilerplate-only:begin` / `end` で囲む。削除の契機は台帳の完了で、条件と同時に消す対象は [`.agents/README.md`](../../.agents/README.ja.md) が持つ <!-- boilerplate-only:line --> |
 | 13 | Protected Documentation | 直接編集禁止ファイルの宣言 |
 
 **セクションは「そのセクションを読まなかった読み手が違う操作をするか」で立てる。** 同じ規則の別の面はセクションにせず、1 セクションの中に置く。#12 がその判定を通らなかった例で、内部処理・出力言語・英語指示の 3 つが別のセクションに割れていた。

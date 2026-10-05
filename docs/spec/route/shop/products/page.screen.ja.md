@@ -226,5 +226,5 @@ hydration の前後で配置が動く（[0051](../../../../adr/0051-styling-syst
 ## 関連
 
 - 実装 `src/features/products/` — [README](../../../../../src/features/products/README.ja.md)
-- 進む先 [`/products/[id]`](./[id]/page.screen.ja.md)（商品詳細） / `/cart`（カート）
+- 進む先 [`/products/[id]`]([id]/page.screen.ja.md)（商品詳細） / `/cart`（カート）
 - 外枠に出るカート [`../layout.screen.md`](../layout.screen.ja.md)

@@ -6,7 +6,7 @@
 
 この文書は、このプレゼンテーションレイヤーが**自分で持っている防御**を通しで説明する。持っているのは 2 つの面で、**ブラウザへ配る面**（配信ヘッダ・CSP・バンドルへ入る値）と、**後ろから来た値の扱い**（分類と置き場・上流由来の値への線引き・リッチテキスト）である。エントリポイント（`src/proxy.ts`）はその 2 つの面が交わる場所として扱う。
 
-判断は ADR が持つ。ヘッダと CSP の本体は [ADR 0111](../adr/0111-csp-security-headers.ja.md)、値の分類は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)、env の境界は [ADR 0030](../adr/0030-environment-variable-management.ja.md)、エントリポイントの責務は [ADR 0043](../adr/0043-middleware-policy.ja.md) が正で、ここはそれらを**実装の在り処と落とし穴**から読み直す。CI 側の検査（秘密スキャン・SAST・依存監査・DAST の配線）は [ADR 0110](../adr/0110-security-operations.ja.md) と [`.github/workflows/README.md`](../../.github/workflows/README.md) が持つので再掲しない。認証の往復そのものは [ADR 0079](../adr/0079-auth-frontend-seam.ja.md) の持ち分で、ここに出てくるのは「エントリポイントがそれをどう扱うか」だけである。
+判断は ADR が持つ。ヘッダと CSP の本体は [ADR 0111](../adr/0111-csp-security-headers.ja.md)、値の分類は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)、env の境界は [ADR 0030](../adr/0030-environment-variable-management.ja.md)、エントリポイントの責務は [ADR 0043](../adr/0043-middleware-policy.ja.md) が正で、ここはそれらを**実装の在り処と落とし穴**から読み直す。CI 側の検査（秘密スキャン・SAST・依存監査・DAST の配線）は [ADR 0110](../adr/0110-security-operations.ja.md) と [`.github/workflows/README.md`](../../.github/workflows/README.ja.md) が持つので再掲しない。認証の往復そのものは [ADR 0079](../adr/0079-auth-frontend-seam.ja.md) の持ち分で、ここに出てくるのは「エントリポイントがそれをどう扱うか」だけである。
 
 ## 全体の形
 
@@ -62,7 +62,7 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.ja.md) の seam
 | ブラウザが enforce しているか | E2E の見張り | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) が `securitypolicyviolation` を document で受け、**全 spec・全レンダリングエンジン**で違反を数える |
 | enforce が効いている証拠 | E2E の spec | [`e2e/journeys/csp.spec.ts`](../../e2e/journeys/csp.spec.ts) が宣言に無い配信元の script を差し、違反が報告されることを確かめる |
 
-**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行は引数を持たず、見張りが「JavaScript が書いた行」だけを数える規則で外れる。だから `securitypolicyviolation` を別経路で受けている（[`e2e/README.md`](../../e2e/README.md#何を異常と数えるか) —— 「何を異常と数えるか」）。`Report-Only` へ緩めると DAST は通るが `csp.spec.ts` が落ちる —— ヘッダを読む検査と enforce を見る検査が別に在るのはこのためである。
+**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行は引数を持たず、見張りが「JavaScript が書いた行」だけを数える規則で外れる。だから `securitypolicyviolation` を別経路で受けている（[`e2e/README.md`](../../e2e/README.ja.md#何を異常と数えるか) —— 「何を異常と数えるか」）。`Report-Only` へ緩めると DAST は通るが `csp.spec.ts` が落ちる —— ヘッダを読む検査と enforce を見る検査が別に在るのはこのためである。
 
 `next.config.ts` と `src/config/security-headers/` を触った変更は `scripts/deferred-checks/recommend.ts` が `run-e2e` を名指しする。ヘッダの変更を単体テストだけで通した気にならないように、実ブラウザの検査へ誘導している。
 

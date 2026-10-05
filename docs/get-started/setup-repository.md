@@ -174,7 +174,7 @@ make api-gen
 ```
 
 How to write the coordinates, and the spellings that move together when you change `name`, are held by
-[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点).
+[`openapi/README.md`](../../openapi/README.md#what-to-change-when-adopting).
 
 **Finish this before capturing baseline images.** Screen-level capture renders with mock responses generated from the contract, so capturing before the contract means retaking everything once it is swapped.
 
