@@ -216,7 +216,7 @@ Calling `redirect()` inside a Server Action makes the response an instruction "m
 
 If you need to hand off to a Route Handler after causing a side effect, receive it with **a plain form submission** (`<form method="post" action="/...">`) rather than a Server Action. The browser itself navigates, so a chain of `Response.redirect`s and the cookie round trip go through as is.
 
-The cost is that a plain submission cannot carry state over. **Per-field errors and the submitting indicator** carried on `useActionState`'s return value do not appear, so failures are returned through URL search conditions (`?error=...`). In the bundled sample, the authorization round trip of `/dev/session` takes this shape (`DEV_AUTHORIZE_PATH` in [`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts)).
+The cost is that a plain submission cannot carry state over. **Per-field errors and the submitting indicator** carried on `useActionState`'s return value do not appear, so failures are returned through URL search conditions (`?error=...`). In the sample, the authorization round trip of `/dev/session` takes this shape (`DEV_AUTHORIZE_PATH` in [`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts)).
 
 **How to check**: open a screen that calls `redirect("/api/…")` from a Server Action, operate it, and look at the development server's log. The URL has changed, but not a single line for that `GET` appears.
 

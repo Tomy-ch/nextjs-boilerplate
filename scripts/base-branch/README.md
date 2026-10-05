@@ -19,7 +19,7 @@ so this runs on the host (treated the same as `scripts/release`).
 ## "Latest" is a numeric comparison of versions
 
 `major` / `minor` / `patch` are compared as numbers. The comparison is shared with [`../semver/latest.ts`](../semver/latest.ts),
-aligned with the criterion the side that cuts release lines (`scripts/release`) uses to decide the next version — the creating side and the resolving side
+aligned with the criterion the side that cuts release lines (`scripts/release`) uses to decide the next version — the side that cuts a line and the side that resolves it
 never disagree about what "latest" means.
 
 - **It does not choose by commit date.** Hotfixes to older lines and base merges make the date order disagree with the version order

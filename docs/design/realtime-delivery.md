@@ -186,7 +186,7 @@ There are two safeguards, and both are needed. The adapter does not put URLs int
 
 ### Optimistic additions only when a rollback is possible
 
-`useOptimistic` is not used in the bundled sample, and if it is used, it is limited to cases where a rollback can be held ([forms.md](forms.md)). If submission fails with a classification, remove the optimistic row; if it can be matched with the id echoed by the event, replace it with the confirmed row. An optimistic row left unmatched disappears when the fetch endpoint is refetched — the refetch rebuilds from a state with no optimistic rows.
+`useOptimistic` is not used in the sample, and if it is used, it is limited to cases where a rollback can be held ([forms.md](forms.md)). If submission fails with a classification, remove the optimistic row; if it can be matched with the id echoed by the event, replace it with the confirmed row. An optimistic row left unmatched disappears when the fetch endpoint is refetched — the refetch rebuilds from a state with no optimistic rows.
 
 ### Tests swap the constructor
 
