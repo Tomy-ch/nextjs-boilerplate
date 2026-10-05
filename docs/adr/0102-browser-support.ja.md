@@ -1,0 +1,41 @@
+> **このファイルは [`0102-browser-support.md`](0102-browser-support.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `0102-browser-support.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `0102-browser-support.md` だけです。このファイルは人間が読むための翻訳です。
+
+# ブラウザサポート行列
+
+サポート対象ブラウザの **基準(browserslist)/ polyfill 方針 / 切り捨て条件** を定める。
+
+## Status
+
+Accepted
+
+## 背景
+
+サポート下限は用途に依存する。本リポジトリはモダンブラウザ前提のデフォルトだけを持ち、厳格化 / 緩和は用途側で行う。
+
+## 決定
+
+### 1. 基準 = Next.js のデフォルト browserslist を追認
+
+- サポート対象は **Next.js がデフォルトで用いる browserslist を追認**する(モダンブラウザ。Next.js 16 のトランスパイル / polyfill デフォルトに従う)。本リポジトリで独自の広い後方互換ターゲットを持たない
+- 要件に応じて `browserslist`(または Next.js 設定)を上書きするのは妨げない
+
+### 2. polyfill 方針
+
+- **Next.js のデフォルト polyfill に委ねる**(Next.js は fetch / URL / Object.assign 等の広く使われる polyfill のみ自動注入する。ターゲット外機能に必要な polyfill は自前で追加する = Custom Polyfills)。独自 polyfill を先回りで足さない([0011](0011-no-docker.ja.md) のロール定義上の対象外 + 必要になってから)
+
+### 3. 切り捨て条件
+
+- 具体的なサポート下限(レガシーブラウザの切り捨てライン)は**用途依存**のため、ここでは決めない。本リポジトリはモダンブラウザ前提をデフォルトとする
+- **JavaScript の無い環境は、読む・辿る経路だけを支持する。** 一覧の閲覧・URL に載せた条件の表示・遷移は JavaScript 無しでも成立させる。一方、条件を組み立ててからまとめて確定する操作は browser 側で状態を保持する必要があり、JavaScript 無しで送信できる form とは両立しない —— 途中の条件だけが先に効いて一覧が入れ替わることを避けるため前者を採り、JavaScript 無しの送信は落とす
+
+## 禁止事項
+
+- ❌ 独自 polyfill / 広い後方互換ターゲットを先回りで足すこと(Next.js デフォルトに委ね、必要時に足す)（強制: 持たない —— 採らない決定。独自 polyfill も browserslist の上書きもツリーに置いておらず、足す変更はファイル・設定の追加として diff に現れる）
+
+## 関連 ADR
+
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.ja.md) — Next.js のビルド / トランスパイル前提
+- [0011-no-docker.md](0011-no-docker.ja.md) — 用途未定のプレゼンテーションレイヤー(切り捨て条件をここで定めない根拠)
+- [0101-performance-budget.md](0101-performance-budget.ja.md) — ターゲットとバンドル / パフォーマンスの交差

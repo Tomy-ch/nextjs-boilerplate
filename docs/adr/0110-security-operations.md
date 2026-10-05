@@ -1,240 +1,233 @@
-# セキュリティ運用
+# Security Operations
 
-**依存更新(Dependabot + cooldown)/ 秘密スキャン(gitleaks)/ 脆弱性スキャン(Trivy fs 二段・OSV 二段・CodeQL・Opengrep)/ 依存監査ゲート / 依存差分ゲート / データフロー検査 / サプライチェーン姿勢の計測 / SECURITY.md / 多層防御** を定める。コンテナ配送を前提とする機構は no-Docker([0011](0011-no-docker.md))のため対象外とし、exclusion として記録する。Actions の SHA ピンは CI ハードニング側の主題であり [0153](0153-ci-configuration.md) が持つ。
+Defines **dependency updates (Dependabot + cooldown) / secret scanning (gitleaks) / vulnerability scanning (two-stage Trivy fs, two-stage OSV, CodeQL, Opengrep) / the dependency audit gate / the dependency diff gate / data-flow inspection / measuring supply-chain posture / SECURITY.md / defense in depth**. Mechanisms that assume container delivery are out of scope because of no-Docker ([0011](0011-no-docker.md)) and are recorded as exclusions. SHA pinning of Actions is a CI-hardening subject and is owned by [0153](0153-ci-configuration.md).
 
 ## Status
 
-Accepted (一部 exclusion)
+Accepted (partial exclusion)
 
-## 背景
+## Context
 
-守る対象は 4 つに分かれる —— 取り込む依存 / 履歴に載る秘密 / 自分が書いたコード / CI 定義とリポジトリ自身の設定。どれも他の層の道具では見えないため、**多層防御**(SAST + 秘密スキャン + 依存脆弱性 + 差分ゲート)として層ごとに持ち、層ごとに「落とす / 見せるだけ」を決める。依存追加時の `pnpm audit` は [0004](0004-library-management.md) が定め、本 ADR はその CI ゲート側を確定する。
+What is protected splits into four — the dependencies brought in / secrets that land in history / the code we wrote ourselves / CI definitions and the repository's own settings. None of them is visible to the tools of the other layers, so each is held per layer as **defense in depth** (SAST + secret scanning + dependency vulnerabilities + diff gates), and each layer decides "fail / only show". `pnpm audit` when adding a dependency is defined by [0004](0004-library-management.md); this ADR settles its CI gate side.
 
-## 決定
+## Decision
 
-### 1. 依存更新 = Dependabot + cooldown(Renovate 不採用)
+### 1. Dependency updates = Dependabot + cooldown (Renovate not adopted)
 
-- **Dependabot を採用**する(Renovate は不採用。**撤回条件**: Dependabot が cooldown を落としたとき、または本リポジトリが扱う ecosystem を Dependabot が覆わなくなったとき —— cooldown は本 ADR が敷いた検疫の実装そのもので、これを持たない更新機構への乗り換えは検疫の撤回を意味する。**「設定の自由度が高いこと」は条件にならない**)。cooldown(更新 PR を出すまでの待機日数)を semver 別に設定する:
-  - **patch = 5 日 / minor = 7 日 / major = 30 日**(default 5 日)。`github-actions` エコシステムは default 5 日
-  - **セキュリティアップデートは cooldown をスキップ**して即時 PR
-- エコシステムは **`npm`**(+ `github-actions`)。1 エコシステム = 1 グループ PR、open PR 上限・週次。major 更新は別 PR([0004](0004-library-management.md) と一致)
+- **Dependabot is adopted** (Renovate is not. **Reversal condition**: when Dependabot drops cooldown, or when Dependabot no longer covers an ecosystem this repository handles — cooldown is the very implementation of the quarantine this ADR lays down, and switching to an update mechanism without it would mean withdrawing the quarantine. **"More configuration freedom" is not a condition**). Cooldown (the number of days to wait before opening an update PR) is set per semver level:
+  - **patch = 5 days / minor = 7 days / major = 30 days** (default 5 days). The `github-actions` ecosystem uses the default of 5 days
+  - **Security updates skip the cooldown** and get a PR immediately
+- Ecosystems are **`npm`** (+ `github-actions`). One ecosystem = one grouped PR, with an open PR limit, weekly. Major updates get a separate PR (consistent with [0004](0004-library-management.md))
 
-#### 1.1 mise 管理ツールの cooldown(手動 pin)
+#### 1.1 Cooldown for mise-managed tools (manual pin)
 
-`mise.toml`([0003](0003-version-manager.md))の pin は Dependabot の対象外で、bump は手作業になる。**同じ検疫原則を適用する**: 窓は blast radius ではなく**上流の検知レイテンシ**に比例させる。悪意ある版が公開されてから撤回されるまでの時間を待つのが目的であり、そのツールが何を壊しうるかとは別の話である。
+The pins in `mise.toml` ([0003](0003-version-manager.md)) are outside Dependabot's scope, and bumping is manual. **The same quarantine principle applies**: the window is proportional not to the blast radius but to **upstream detection latency**. The purpose is to wait out the time from a malicious version being published to it being withdrawn, which is a separate matter from what that tool could break.
 
-- **PyPI(`pipx:` backend)= 7 日**。npm と同じ根拠で導く(公開レジストリで、悪性パッケージの検知・撤回が同程度の速さで回る)
-- **GitHub Releases(`aqua:` / `ubi:` backend)= 14 日**。Actions の pin(`ACTIONS_PIN_MIN_AGE_DAYS`・[0153](0153-ci-configuration.md))と配布経路が同じで、検知レイテンシも揃うため同じ窓を当てる
-- bump では「最新」ではなく**「窓を満たす最新」**を採る。窓のために意図的に 1 つ前を採った pin は、その旨を `mise.toml` のコメントに書く(でないと次の担当者が「古い pin」として無条件に上げる)
-- **検疫が買うのは時間であって、版の年齢の証明ではない。** 読めるのは release の公開日時と commit の日付だけで、どちらも解決した SHA そのものを語らず、両方揃えても意図した公開者には破れる。窓は自動化された侵害に対する遅延であり、保証ではない
-- **npm レジストリ(`npm:` backend)= 7 日**。PyPI と同じ根拠
-- **言語ランタイム(`core:` backend)は窓の対象から外す —— 受容するリスクとして。** 配布物が汚染される事態は 1 つの依存が乗っ取られた話ではなく**言語の信頼モデルそのものの失敗**で、待っても検知が回ってくる保証が無い。窓は自動化された侵害への遅延であって、この形には効かない。**棚卸しには載せるが、窓では落とさない。**
-  > **「除外」と「引けなかった」を同じ出口へ倒さない。** 前者は検査しないと決めたもの、後者は検査が成立していないもので、後者は落とす([0157](0157-inspection-declaration-discipline.md))
-- 免除は pin の直上のコメントに、**理由と窓が明ける日**を添えて書く。日付の無い免除、窓を満たした pin に残った免除は落とす(下記 3.4)
+- **PyPI (`pipx:` backend) = 7 days**. Derived on the same grounds as npm (a public registry where detection and withdrawal of malicious packages turn around at a similar speed)
+- **GitHub Releases (`aqua:` / `ubi:` backend) = 14 days**. Same distribution path as Actions pins (`ACTIONS_PIN_MIN_AGE_DAYS`, [0153](0153-ci-configuration.md)), with matching detection latency, so the same window applies
+- A bump takes not "the latest" but **"the latest that satisfies the window"**. A pin that deliberately took the previous version because of the window says so in a `mise.toml` comment (otherwise the next person bumps it unconditionally as an "old pin")
+- **What the quarantine buys is time, not proof of a version's age.** All that can be read are the release's publication time and the commit's date; neither speaks for the resolved SHA itself, and even both together can be defeated by the intended publisher. The window is a delay against automated compromise, not a guarantee
+- **npm registry (`npm:` backend) = 7 days**. Same grounds as PyPI
+- **Language runtimes (`core:` backend) are excluded from the window — as an accepted risk.** A tainted distribution is not a story of one dependency being hijacked but **a failure of the language's trust model itself**, and there is no guarantee that waiting brings detection around. The window is a delay against automated compromise and does not work against this shape. **They go on the inventory, but the window does not fail them.**
+  > **Do not route "excluded" and "could not be looked up" to the same exit.** The former is something we decided not to check; the latter is a check that did not hold, and the latter fails ([0157](0157-inspection-declaration-discipline.md))
+- Exemptions are written in the comment directly above the pin, with **the reason and the date the window opens**. Exemptions without a date, and exemptions left on a pin that already satisfies the window, fail (3.4 below)
 
-#### 1.2 窓は代理であり、直接証拠で解除できる
+#### 1.2 The window is a proxy and can be lifted by direct evidence
 
-**待つことは、4 つの問いへの安い代理である。** 窓が買っているのは「上流が気づいて撤回するまでの時間」であり、
-その時間で誰かが答えるはずの問いは次の 4 つに畳める。
+**Waiting is a cheap proxy for four questions.** What the window buys is "the time until upstream notices and withdraws", and the questions someone is supposed to answer in that time fold into the following four.
 
-1. **発行者は変わったか** —— 前の版と同じ維持者 / commit 者 / 所有者か。公開の頻度は履歴に沿うか
-2. **成果物は出典と一致するか** —— provenance や透明性ログが、成果物を名前の付いた source commit に結び付けるか
-3. **実際に何が変わったか** —— 前の版との差分が、リリースノートに見合う量と内容か
-4. **新しい依存や権限が現れたか** —— 新規の依存・実行の口・広がった権限
+1. **Did the publisher change** — is it the same maintainer / committer / owner as the previous version? Does the publishing frequency follow the history?
+2. **Does the artifact match its source** — do provenance and transparency logs tie the artifact to a named source commit?
+3. **What actually changed** — is the diff from the previous version proportionate in size and content to the release notes?
+4. **Did new dependencies or permissions appear** — new dependencies, new execution entry points, widened permissions
 
-**この 4 つに直接証拠で答えられたなら、窓の趣旨は満たされている。**日数を数えるより強い。
-逆に、**両方を飛ばすこと**（証拠も無く窓も待たない）が唯一許されない組み合わせである。
+**If these four are answered with direct evidence, the purpose of the window is satisfied.** It is stronger than counting days. Conversely, **skipping both** (no evidence and not waiting out the window) is the one combination that is not allowed.
 
-**答えられなかった軸を「問題なし」に数えない。**取れなかった証拠は不在の証拠ではなく、
-その軸は未回答として報告する —— [0157](0157-inspection-declaration-discipline.md) の
-「成立しない検査を『違反なし』へ倒さない」がここにも掛かる。エコシステムによって答えられる軸が
-違うのは**構造上の非対称であって、検査の欠陥ではない**（透明性ログを持つものと、可変タグしか
-持たないものがある）。
+**An axis that could not be answered is not counted as "no problem".** Evidence that could not be obtained is not evidence of absence; that axis is reported as unanswered — [0157](0157-inspection-declaration-discipline.md)'s rule that a check that did not hold is never folded into "no violations" applies here too. That the axes that can be answered differ by ecosystem is **a structural asymmetry, not a defect of the check** (some have transparency logs, others only mutable tags).
 
-**この 4 つは「どれだけ壊れるか」を測らない。**窓の長さが上流の検知レイテンシに比例するのと同じ理由で、
-影響の大きさは別の量である。混ぜると両方の数字が濁る。
+**These four do not measure "how much breaks".** For the same reason that the window's length is proportional to upstream detection latency, the size of the impact is a separate quantity. Mixing them muddies both numbers.
 
-> 強制: `make tools-cooldown-check`(差分で動いた pin)/ `make tools-cooldown-audit`(週次・全件)。窓の値は `.makefiles/` の変数が持ち、GitHub Releases は Actions の pin と同じ変数を直接読む —— 同じ窓であることを散文ではなく構造で持つ
+> Enforcement: `make tools-cooldown-check` (pins moved by the diff) / `make tools-cooldown-audit` (weekly, all of them). The window values are held by variables in `.makefiles/`, and GitHub Releases read the same variable as Actions pins directly — holding "the same window" through structure rather than prose
 
-**エージェントスキルを配布するツールは審査項目が 1 つ増える**。ライブラリはビルド成果物に載るが、この種のツールは**開発者の権限で動き、何をマシン外へ送るかを自分で決める**。したがって pin の bump 時は版番号だけでなく、次の 2 つもレビュー対象とする。
+**Tools that distribute agent skills get one more review item**. Libraries land in build artifacts, but this kind of tool **runs with the developer's privileges and decides for itself what to send off the machine**. So on a pin bump, besides the version number, the following two are also reviewed.
 
-- **CLI 表面の変化** — 上流がサブコマンドを足せば、`.claude/settings.json` の deny が塞いでいるつもりの範囲が黙って穴になる。deny をプラットフォーム名の列挙ではなくパターンで書くのはこのためである([0154](0154-claude-skills-operations.md) 外部スキル)
-- **ツールの挙動を書き写したドキュメントとの整合** — `.claude/README.md` は既定値・API を呼ぶ経路・撤去手順を pin された版の事実として書いている。版が動けば同じ場所が古くなる
+- **Changes to the CLI surface** — if upstream adds a subcommand, the range that the deny list in `.claude/settings.json` is supposed to block silently becomes a hole. This is why deny entries are written as patterns rather than an enumeration of platform names ([0154](0154-claude-skills-operations.md) on external skills)
+- **Consistency with documentation that transcribes the tool's behaviour** — `.claude/README.md` writes defaults, the paths by which APIs are called and the removal procedure as facts of the pinned version. When the version moves, the same places go stale
 
-### 2. 秘密スキャン = gitleaks(fail-closed)
+### 2. Secret scanning = gitleaks (fail-closed)
 
-- **gitleaks** で秘密スキャンする。検知ルールは `useDefault` を土台とする
-- **pre-push([0151](0151-git-hooks.md))と CI の双方**で回す。検出時は **fail-closed**。hook と CI は同じ `make secret-scan` を呼ぶ(ローカルと CI で振る舞いを揃える)
-- **走査対象は「これから送られるコミット範囲」**(`gitleaks git` + `--log-opts`)。作業ツリーのスナップショット(`gitleaks dir`)は採らない。理由は 2 つあり、いずれも**守りたい境界とずれる**ため:
-  - **取りこぼす**: commit したあと作業ツリーから消した秘密は、blob として履歴に残り push される。スナップショットには映らない
-  - **誤検知する**: push されない gitignore 済みファイル(`env/` の外に置いた手元だけの `.env*` 等。`env/.env.*` の 5 つは追跡されており、ここには当たらない —— [0030](0030-environment-variable-management.md))を秘密として検出する。ローカルの正当な秘密で毎回 push が止まれば `--no-verify` の常用を招き、fail-closed が形骸化する
-  - リモート追跡参照が 1 つも無い状態(remote から一度も fetch していない初回 push 等)では履歴全体が対象になる。対象が広がる方向であり、取りこぼす方向ではない
-- **コミット履歴全体の走査は CI の定期実行が持つ**。マージ済み履歴に埋もれた秘密を拾う用途で、コミット数に比例して伸びるため hook には載せない。**撤回条件**: 走査時間がコミット数に比例しなくなったとき —— 差分走査やキャッシュが入ったとき。**現在の実測が速いことは条件にならない** —— リポジトリの成長で必ず破れる
-- 検出値はログに出さない(`--redact`)。hook / CI のログ自体が二次的な漏洩経路になるため
-- **`useDefault` は gitleaks 本体の global allowlist を同伴する**。node_modules / 各種 lockfile / `.svg` 等が無条件に走査対象外となり、これは `.gitleaks.toml` からは打ち消せない。打ち消すには全ルールを自前で持つことになり既定ルールの更新追随を失うため、**追随を優先して除外範囲を把握したうえで受け入れる**(**撤回条件**: gitleaks が既定 allowlist の部分的な打ち消しを提供したとき、または除外対象(lockfile 等)に実際の秘密が入る事例が公表されたとき)。生成型([0072](0072-api-type-generation.md))など自前の除外は、誤検知が実際に出た時点で下記の抑止ポリシーに沿って追加する
+- Secrets are scanned with **gitleaks**. Detection rules build on `useDefault`
+- It runs in **both pre-push ([0151](0151-git-hooks.md)) and CI**. On detection it is **fail-closed**. The hook and CI call the same `make secret-scan` (aligning behaviour locally and in CI)
+- **What is scanned is "the range of commits about to be sent"** (`gitleaks git` + `--log-opts`). A snapshot of the working tree (`gitleaks dir`) is not adopted. There are two reasons, both because it **diverges from the boundary we want to protect**:
+  - **It misses things**: a secret deleted from the working tree after being committed remains in history as a blob and is pushed. It does not show in a snapshot
+  - **It produces false positives**: it detects as secrets gitignored files that are not pushed (local-only `.env*` placed outside `env/`, etc.; the five `env/.env.*` files are tracked and do not fall here — [0030](0030-environment-variable-management.md)). If legitimate local secrets stopped every push, it would invite habitual `--no-verify`, and fail-closed would become an empty form
+  - When there is not a single remote-tracking ref (such as a first push that has never fetched from the remote), the whole history becomes the target. That is the direction of widening the target, not of missing things
+- **Scanning the entire commit history is held by a scheduled CI run**. It is for picking up secrets buried in merged history; it grows in proportion to the number of commits, so it is not put on the hook. **Reversal condition**: when scan time stops being proportional to the number of commits — when diff scanning or caching comes in. **That it is fast as measured today is not a condition** — repository growth will break it for certain
+- Detected values are not output to logs (`--redact`). The hook / CI logs themselves would become a secondary leak path
+- **`useDefault` brings along gitleaks's own global allowlist**. node_modules / various lockfiles / `.svg` and so on are unconditionally excluded from scanning, and this cannot be cancelled from `.gitleaks.toml`. Cancelling it would mean owning every rule ourselves and losing the ability to follow updates to the default rules, so **following updates takes priority, and the excluded range is accepted with awareness of it** (**reversal condition**: when gitleaks provides partial cancellation of the default allowlist, or when a case is published of a real secret ending up in an excluded target (lockfiles, etc.)). Our own exclusions, such as generated types ([0072](0072-api-type-generation.md)), are added following the suppression policy below once a false positive actually occurs
 
-### 3. 脆弱性スキャン(多層防御)
+### 3. Vulnerability scanning (defense in depth)
 
-- **CodeQL SAST**: `languages: javascript-typescript`。trigger = PR + 保護ブランチ push + 週次 cron。`security-events: write` で SARIF アップロード。high-severity はマージブロック(ブロックの実体は branch protection / code scanning の required 設定側。workflow 内の hard-fail には依存しない)
-- **portable SAST(Opengrep)**: SAST の既定は**リポジトリと一緒に持ち出せる実体**で持つ。GitHub の code scanning が供給する解析は **GitHub の外へ持ち出せず**、private かつ GHAS 無しの構成ではその層がまるごと消えるため、**同じ問いに答える持ち出せる実体**を持つ。実体は `mise.toml` にピンした 1 バイナリで、ローカルでも CI でも同じ `make sast` が回す。**Semgrep 本体ではなく OSS fork の Opengrep を採る** —— ルール記法は互換で `// nosemgrep:` の抑止もそのまま効くうえ、ライセンス判断を利用側へ渡さずに済む。**0 件の baseline を保つことがこのゲートの前提**であり、0 件だからこそ新しい所見が読み飛ばす対象ではなく信号になる。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置き、判断をコードの側に残す。**検査条件(対象・ルール・除外)は 1 箇所に持つ** —— ゲートと code scanning への取り込みが違う走査を指すと、落ちた内容と Security タブの一覧が食い違う。**ルールはレジストリ(semgrep.dev)から引かない** —— レジストリの集合は Semgrep Rules License v1.0 で内部利用に限られ、**エンジンだけ OSS へ替えても、ルールをそこから引いている限りライセンスの判断は利用側へ渡る**。代わりに `opengrep/opengrep-rules` を **commit で固定**して読む。取り出す分類・digest の照合・検体を置かない取り出し方の本体は `.github/workflows/README.md` の「SAST のルールをレジストリから引かない」が持つ
-  - **Node / JS 特化の SAST(njsscan)は層として持たない。** 同じ面を上のルール集合が覆っており、重ねても所見は増えない。**撤回条件は、このルール供給が Node / Express 固有のパターンを覆わなくなったとき** —— njsscan が同梱するルールはライセンス変更前の semgrep-rules 由来で、レジストリを引かずに Node 向けの面だけを戻せる。**「層が 1 つ減ったこと」は条件にならない** —— 減らしたのは重なっていた層である
-- **編集時 SAST(eslint-plugin-security)**: 上の 2 つと同じ問いに、**型を解決したうえで編集中に**答える層。走査が CI にしか無いと、指摘が届くのは push の後になる。ただし **[0002](0002-formatter-linter.md) の能力ベース分担に従い、推奨プリセットは当てない** —— 束を当てれば biome と重なる規則も、この層に対象の無い規則も同時に入る。**有効化するのは 0 件の baseline を保てる規則だけ**とし、落とした規則とその理由は `eslint.config.ts` に書く(ReDoS と path traversal は Opengrep / CodeQL が引き続き担うので、落としても検査面は消えない)。落とした規則を戻すのは、その規則が形ではなく実体を見るようになったときに限る —— 例えば `detect-unsafe-regex` が量指定子の入れ子の形ではなく実際の後戻り計算量で判定するようになれば、`/^\d+(\.\d+)?$/` は鳴らなくなり 0 件を保てる。「SAST の層が薄い」は理由にならない
-- **外部解析サービス(SonarQube Cloud)**: 上のどれとも違い、**外部アカウントに依存する**唯一の層。public リポジトリでは無料、private では有料であるため、**契約が無いことを既定として設計する** —— `SONAR_TOKEN` が未設定なら解析ジョブごと降り、**緑のまま「未設定」を PR へ述べる**(コメントの不在は「検査が緑だった」と見分けが付かない)。**required check には登録しない**。第三者のアカウントの有無がマージの条件になってはならない。**剥がしの対象にはしない** —— 残すかどうかは契約の有無を知っている側の判断であり、[`docs/get-started/setup-repository.md`](../get-started/setup-repository.md) の 1 段で選ぶ。`projectKey` / `organization` はリポジトリの識別子なので、設定ではなく**アイデンティティ**として `make setup-replace-repository-reference` が書き換える
-- **OSV 二段**: Trivy / `pnpm audit` と**参照するデータベースが違う**。件数は一致せず、下記「和集合を正とする」の実例そのものになる。二段の形は Trivy と同じで、**報告(全 PR・落とさない)と昇格ゲート(保護ブランチ宛 PR・検出で落ちる)**に割る
-- **依存差分ゲート(Dependency Review)**: 上の 3 者はいずれも**木の現状**を読むため、以前から抱えている脆弱性とこの変更が持ち込んだものを区別できない。前者は報告専用のゲートが構造的に許容せざるを得ないものであり、**「この PR が増やしたか」だけを問う層**を別に置く。増やした当人は取り消せるので、ここは落として良い。閾値は依存監査ゲートと揃えて `high`。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する —— **これは設定の判断であってコードの判断ではない**ので、層は配り、外すかどうかはセットアップの 1 段で選ぶ
-- **データフロー検査(Bearer)**: 値が**プロセスの外(log 行 / 外向き要求 / 第三者クライアント)へ出る地点**を、その値が何かの分類と併せて見る。パターンと taint 経路はこの問いに答えない —— logger へ届いた文字列がメールアドレスであることを、どちらも知らない。**落とさない**(下記 3.2)
-- **言語非依存の regex 検査(DevSkim)**: 言語フロントエンドを持たないため**全ファイルを 1 つのルールセットで読む**。Opengrep も CodeQL も自分が構文解析できる言語しか開かないので、**どちらも開かないファイル**(workflow でない YAML / JSON / 平文 / `docs/` の Markdown)にある弱い暗号名やハードコード資格情報は、他のどの層にも掛からない。**落とさない**(下記 3.2)
-- **サプライチェーン姿勢の計測(OpenSSF Scorecard)**: コードでも依存でもなく、**リポジトリ自身の設定**(ブランチ保護 / 依存のピン / token の権限 / セキュリティポリシーの有無)を測る。**姿勢そのものが成果物**であり、宣言ファイルとセットアップ手順（`make setup-repo`）としてこれを持つ —— **テンプレートからの生成はツリーしか写さず、ブランチ保護も token の権限も複製されない**ので、設定そのものではなく設定を適用する手順が渡る。変更ではなくリポジトリの性質なので PR では走らせず、required check にも登録しない。**公開データセットへの送信(`publish_results`)は行わない** —— リポジトリの名前に関する判断であり、技術的な判断ではないためここでは決めない
-  - **点を上げることを目的にしない。** 測られた点が低いことと、守られていないことは別である —— **点が低いことは、どの決定の撤回条件にもならない**([0140](0140-documentation-operations.md))。頭打ちのまま置く信号が 3 つあり、いずれも点ではなく対象の有無で決めている
-    - **`Branch-Protection`** —— 読み切るには常設の資格情報が要り、それを置かない決定が先にある([0153](0153-ci-configuration.md)「トークンの発行元」)。保護の実体は [`.github/settings/branch-protection.json`](../../.github/settings/branch-protection.json) が宣言している
-    - **`Fuzzing`** —— ファジングを持たない。**撤回条件は、本体が、外から来たバイト列を自前で解く層を持つようになったとき**。いまの表現層が解くのは契約から生成した型を通った値で、パーサそのものを持たない —— ファズする対象が無い([0090](0090-testing-strategy.md))
-    - **`CII-Best-Practices`** —— OpenSSF Best Practices バッジを取得しない。**撤回条件は、本リポジトリが、テンプレートではなく成果物そのものとして公開運用へ移るとき**。バッジは登録した*リポジトリの名前*に紐づき、複製したツリーには移らない([0142](0142-license.md))
-- **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**。`--min-severity` は表示も絞るので、全所見を出す実行とゲートの実行を分け、引き下げた所見が出力から消えないようにする。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.md) が正)
-- **Trivy fs 二段運用**:
-  - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
-  - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化。**止めるのはこの一点だけ**である
-- **依存監査ゲート**: **`pnpm audit` を既定**とする。到達可能性(reachability)フィルタ —— 脆弱な関数へ実際に到達するコードパスがあるものだけを blocking にする絞り込み —— は、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking 閾値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.md) の既定を維持し、本項はその CI ゲート側の blocking 閾値を定める
-- **スキャナ間で検出が食い違う場合は和集合を正とする**。Trivy fs と `pnpm audit` は集計単位(CVE 単位 / advisory 単位)も対象範囲も異なり、同一リポジトリに対して異なる件数を返す。片方だけを正とすると、そのツールが見ない領域(例: `pnpm audit` は npm advisory DB のみを見る)が恒久的な死角になる。**どちらか一方でも blocking 閾値に達したものは blocking として扱う**。両者の件数が一致しないこと自体は異常ではないため、突合して差分を潰そうとしない
+- **CodeQL SAST**: `languages: javascript-typescript`. Trigger = PR + push to protected branches + weekly cron. SARIF is uploaded with `security-events: write`. High severity blocks merging (the substance of the block lives in the required settings of branch protection / code scanning; it does not rely on a hard fail inside the workflow)
+- **Portable SAST (Opengrep)**: the default for SAST is held as **something that can be carried along with the repository**. The analysis that GitHub's code scanning supplies **cannot be taken outside GitHub**, and in a private configuration without GHAS that whole layer disappears, so **a portable implementation that answers the same question** is held. It is a single binary pinned in `mise.toml`, run by the same `make sast` locally and in CI. **Opengrep, an OSS fork, is adopted rather than Semgrep itself** — the rule syntax is compatible and `// nosemgrep:` suppressions keep working, and no licensing judgment is passed on to the user. **Keeping a baseline of 0 findings is the premise of this gate**; precisely because it is 0, a new finding is a signal rather than something to skim past. Accepted findings are placed in the source as `// nosemgrep: <rule-id>` with a reason, leaving the judgment on the code's side. **The inspection conditions (targets, rules, exclusions) are held in one place** — if the gate and the import into code scanning pointed at different scans, what failed and the list in the Security tab would disagree. **Rules are not drawn from the registry (semgrep.dev)** — the registry's set is under the Semgrep Rules License v1.0 and limited to internal use, and **even with only the engine swapped for OSS, as long as rules are drawn from there, the licensing judgment passes to the user**. Instead, `opengrep/opengrep-rules` is read **pinned to a commit**. The categories taken, digest matching, and the way of taking them without placing test samples are owned by 「SAST のルールをレジストリから引かない」 in `.github/workflows/README.md`
+  - **A Node / JS-specific SAST (njsscan) is not held as a layer.** The rule set above covers the same surface, and stacking it adds no findings. **The reversal condition is when this rule supply stops covering Node / Express-specific patterns** — the rules njsscan bundles derive from semgrep-rules before the license change, so the Node-oriented surface alone can be brought back without drawing from the registry. **"One layer fewer" is not a condition** — what was reduced was an overlapping layer
+- **Edit-time SAST (eslint-plugin-security)**: the layer that answers the same question as the two above **during editing, with types resolved**. If scanning existed only in CI, findings would arrive after the push. However, **following the capability-based division of labour in [0002](0002-formatter-linter.md), the recommended preset is not applied** — applying the bundle would bring in, at once, rules overlapping biome and rules with no target in this layer. **Only rules that can keep a baseline of 0 are enabled**, and the dropped rules and the reasons are written in `eslint.config.ts` (ReDoS and path traversal continue to be borne by Opengrep / CodeQL, so dropping them does not remove the inspection surface). A dropped rule comes back only when it starts looking at substance rather than shape — for example, if `detect-unsafe-regex` came to judge by actual backtracking complexity rather than the shape of nested quantifiers, `/^\d+(\.\d+)?$/` would stop firing and 0 could be kept. "The SAST layer is thin" is not a reason
+- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states "not configured" on the PR while staying green** (the absence of a comment is indistinguishable from "the check was green"). **It is not registered as a required check**. Whether a third party's account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings
+- **Two-stage OSV**: it **consults a different database** from Trivy / `pnpm audit`. The counts do not match, which is itself an instance of "the union is authoritative" below. The two-stage shape is the same as Trivy's, split into **a report (every PR, never fails) and a promotion gate (PRs targeting protected branches, fails on detection)**
+- **Dependency diff gate (Dependency Review)**: the three above all read **the current state of the tree**, so they cannot distinguish vulnerabilities held from before from ones this change brought in. The former are something a report-only gate structurally has to tolerate, so **a layer that asks only "did this PR add any"** is placed separately. Whoever added it can take it back, so this one may fail. The threshold is `high`, aligned with the dependency audit gate. The API it calls is free only for public repositories and requires a Code Security license for private ones — **this is a configuration decision, not a code decision**, so the layer is distributed, and whether to remove it is chosen in one step of setup
+- **Data-flow inspection (Bearer)**: looks at **the points where a value leaves the process (log lines / outbound requests / third-party clients)** together with the classification of what that value is. Patterns and taint paths do not answer this question — neither knows that a string reaching the logger is an email address. **It does not fail** (3.2 below)
+- **Language-agnostic regex inspection (DevSkim)**: having no language front end, it **reads every file with one rule set**. Opengrep and CodeQL only open languages they can parse, so weak cipher names and hard-coded credentials in **files neither opens** (YAML that is not a workflow / JSON / plain text / Markdown in `docs/`) are caught by no other layer. **It does not fail** (3.2 below)
+- **Measuring supply-chain posture (OpenSSF Scorecard)**: measures neither code nor dependencies but **the repository's own settings** (branch protection / dependency pinning / token permissions / whether a security policy exists). **The posture itself is the deliverable**, and it is held as declaration files and a setup procedure (`make setup-repo`) — **generating from the template copies only the tree; neither branch protection nor token permissions are duplicated**, so what is handed over is not the settings themselves but the procedure that applies them. It is a property of the repository rather than of a change, so it does not run on PRs and is not registered as a required check. **Results are not sent to the public dataset (`publish_results`)** — that is a judgment about the repository's name, not a technical one, so it is not decided here
+  - **Raising the score is not the goal.** A low measured score and not being protected are different things — **a low score is not a reversal condition for any decision** ([0140](0140-documentation-operations.md)). Three signals are deliberately left capped, each decided by whether there is a target, not by the score
+    - **`Branch-Protection`** — reading it fully requires a standing credential, and the decision not to place one comes first ([0153](0153-ci-configuration.md) on where tokens are issued from). The substance of the protection is declared by [`.github/settings/branch-protection.json`](../../.github/settings/branch-protection.json)
+    - **`Fuzzing`** — no fuzzing is held. **The reversal condition is when the core comes to have a layer that itself parses byte sequences coming from outside**. What the current presentation layer parses are values that passed through types generated from the contract, and it holds no parser itself — there is nothing to fuzz ([0090](0090-testing-strategy.md))
+    - **`CII-Best-Practices`** — the OpenSSF Best Practices badge is not obtained. **The reversal condition is when this repository moves to public operation as a product in its own right rather than as a template**. The badge is tied to the registered *repository name* and does not move to a duplicated tree ([0142](0142-license.md))
+- **Static analysis of Actions definitions (zizmor)**: the layer whose target is what CI executes. The three above, which look at application code and dependencies, do not look at the `run:` steps or permission grants written in `.github/**`. It runs with `--offline` in **both the hook and CI**, and is **fail-closed on high findings**. `--min-severity` also narrows the display, so the run that outputs every finding and the gate run are separated, keeping downgraded findings from disappearing from the output. Suppressions are declared with reasons in `.github/zizmor.yml` and follow the suppression policy of 4 below (the inspection's responsibility and how it fails are authoritative in [0153](0153-ci-configuration.md))
+- **Two-stage Trivy fs operation**:
+  - **Dev gate** (every PR, advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`** (ignore what cannot be fixed) / no hard fail + PR comment
+  - **Release gate** (PRs to protected branches only, strict): made strict with **`ignore-unfixed: false`** (also making the unfixed visible). **This single point is the only thing that blocks**
+- **Dependency audit gate**: **`pnpm audit` is the default**. A reachability filter — narrowing blocking down to only what has a code path actually reaching the vulnerable function — **cannot be implemented with current tools**, because `pnpm audit` has no such feature and osv-scanner's call analysis does not support JS/TS. So the blocking threshold is defined by **severity (`high` / `critical`) and fixability (fixable)** (unfixed (unfixable) findings tend to be noise and are treated as advisory; fixable high and above are blocking). The operational SLA (start addressing `high` and above within 48 hours) keeps the default of [0004](0004-library-management.md); this item defines the blocking threshold on its CI gate side
+- **When detections disagree between scanners, the union is authoritative**. Trivy fs and `pnpm audit` differ in counting unit (per CVE / per advisory) and in scope, and return different counts for the same repository. Treating only one as authoritative makes the area that tool does not look at (e.g. `pnpm audit` looks only at the npm advisory DB) a permanent blind spot. **Anything that reaches the blocking threshold in either one is treated as blocking**. That the two counts do not match is not itself an anomaly, so no attempt is made to reconcile them and erase the difference
 
-#### 3.1 脆弱性スキャンを push のゲートにしない
+#### 3.1 Vulnerability scanning is not a push gate
 
-`make trivy-fs` はローカルで手動実行できるが、**pre-push hook には接続しない**([0151](0151-git-hooks.md))。これは「今は検出件数が多いから」という状態依存の判断ではなく、**ゲートの形として成立しない**という判断である。
+`make trivy-fs` can be run manually locally, but **is not connected to the pre-push hook** ([0151](0151-git-hooks.md)). This is not a state-dependent judgment like "there are many findings right now", but a judgment that **it does not hold together as the shape of a gate**.
 
-- **その場で解消できない**。秘密の混入は値を消して commit し直せば当事者だけで解消できる。依存の脆弱性は上流の修正版が出ていなければ解消できず、出ていても上流が推移的依存を pin していれば `pnpm.overrides` で上流の検証外の組み合わせを作るしかない。**自力で通せないゲートはゲートではなく障害物**であり、`--no-verify` の常用を教育する(これは [0151](0151-git-hooks.md) が禁じている状態そのもの)
-- **変更と独立に状態が変わる**。CVE が公開されれば、コードを 1 行も変えていない push が昨日と違う結果になる。**変更を対象とするゲートに、変更と無関係に変動する信号は載せられない**
-- **判断する権限がその場に無い**。「この脆弱性を抱えたまま出す」は誰かが引き受けるべき判断であり、それが成立するのは昇格(保護ブランチ宛 PR)の場面だけである。push は判断の場ではない
+- **It cannot be resolved on the spot**. A leaked secret can be resolved by the person involved alone, by removing the value and committing again. A dependency vulnerability cannot be resolved unless upstream has published a fix, and even then, if upstream pins the transitive dependency, the only option is to create a combination outside upstream's verification with `pnpm.overrides`. **A gate you cannot pass by your own effort is not a gate but an obstacle**, and it trains habitual `--no-verify` (exactly the state [0151](0151-git-hooks.md) forbids)
+- **Its state changes independently of changes**. When a CVE is published, a push that changed not a single line gets a different result from yesterday. **A signal that fluctuates regardless of the change cannot be put on a gate whose target is the change**
+- **The authority to decide is not present there**. "Ship with this vulnerability" is a judgment someone has to take on, and that holds only at promotion (PRs targeting protected branches). A push is not a place for judgment
 
-同じ理由で、脆弱性の報告先は **PR コメント**とする。hook の出力はレビューされず記録も残らないため、報告としても機能しない。
+For the same reason, vulnerabilities are reported to **PR comments**. Hook output is not reviewed and leaves no record, so it does not function as a report either.
 
-秘密スキャンが逆にすべての条件を満たす(その場で解消でき、変更と共に決まり、判断の余地が無い)ことが、両者の扱いが違う理由である。
+That secret scanning conversely meets every condition (resolvable on the spot, determined together with the change, no room for judgment) is why the two are treated differently.
 
-**撤回条件**: 上の 3 点のうち先の 2 つが消えたとき —— 脆弱性をその場で当事者が解消できる機構が入るか、変更と独立に結果が変動する性質が消えるか。**検出件数が減ったことは条件にならない**(それは状態であって、ゲートの形が成立しない理由は 1 つも動いていない)。昇格ゲート(保護ブランチ宛 PR)側は本条件の対象外で、そちらは最初からブロックする。
+**Reversal condition**: when the first two of the three points above disappear — a mechanism comes in by which the person involved can resolve a vulnerability on the spot, or the property of results fluctuating independently of changes disappears. **A drop in the number of findings is not a condition** (that is a state; not one of the reasons the gate shape does not hold has moved). The promotion gate side (PRs targeting protected branches) is outside this condition and blocks from the start.
 
-### 3.2 落とさない層を置く判断
+### 3.2 The decision to place layers that do not fail
 
-**すべての層をゲートにしない。** ゲートにしてよいのは、**baseline を 0 件に保てるか、あるいは「この変更が増やしたか」だけを問う**層に限る。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
+**Not every layer is made a gate.** Gates are limited to layers that **can keep a baseline of 0, or that ask only "did this change add any"**. Turning anything else red makes red the normal state, and the habit of stopping when seeing red breaks first.
 
-したがって層は 3 つの配線に分かれる。
+So the layers split into three kinds of wiring.
 
-| 配線 | 該当 | 何が赤にするか |
+| Wiring | Applies to | What turns it red |
 | --- | --- | --- |
-| **ゲート** | gitleaks / Opengrep / eslint-plugin-security / 依存監査 / Trivy・OSV の昇格側 | job 自身の exit code |
-| **ゲート** | Dependency Review | job 自身の exit code |
-| **報告専用** | Trivy・OSV の報告側 | 何も赤にしない(スキャナが走らなかったときだけ落ちる) |
-| **code scanning へ送る** | Bearer / DevSkim | **その変更が新しく持ち込んだ所見**に対する GitHub 側の差分チェック |
-| **code scanning へ送る** | CodeQL / SonarQube Cloud | 同上 |
+| **Gate** | gitleaks / Opengrep / eslint-plugin-security / dependency audit / the promotion side of Trivy and OSV | The job's own exit code |
+| **Gate** | Dependency Review | The job's own exit code |
+| **Report only** | The report side of Trivy and OSV | Nothing turns red (it fails only when the scanner did not run) |
+| **Sent to code scanning** | Bearer / DevSkim | GitHub's diff check against **findings newly brought in by that change** |
+| **Sent to code scanning** | CodeQL / SonarQube Cloud | Same as above |
 
-3 つ目は「落とさない」と「見せない」を分けるための配線である。job は緑を返すが、**差分が持ち込んだ alert は PR を赤にする**。baseline を 0 件にできない層 —— 誤検知の傾向が強く、0 へ寄せるには規則単位の無効化が要る層 —— はここに置く。規則単位の無効化は下記 3.4 が禁じている。
+The third is wiring that separates "does not fail" from "does not show". The job returns green, but **alerts brought in by the diff turn the PR red**. Layers whose baseline cannot be made 0 — those with a strong tendency toward false positives, which would need per-rule disabling to get to 0 — go here. Per-rule disabling is forbidden by 3.4 below.
 
-### 3.3 スケジュールがあるから PR を絞れる
+### 3.3 Because there is a schedule, PRs can be narrowed
 
-Security グループは**週次スケジュール + 差分が届く PR** で走る。週次があるのは、コードが 1 行も動いていないツリーに対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+The Security group runs on **a weekly schedule + PRs whose diff reaches it**. The weekly run exists because CVEs can be published even against a tree where not a single line of code moved, which inspections triggered by changes alone cannot reach.
 
-**そして週次があるからこそ、PR 側は絞れる。**各 job は差分が自分に届くかを判定して降りる([0153](0153-ci-configuration.md))。**絞りの意味は「走査が消える」ではなく「週次へ回る」**であり、週次を止めればこの絞りは成立しなくなる。判定を書き漏らしても失うのは最大 1 週間で、恒久の死角にはならない。Security グループの job を required check に登録していないことも前提の一つで、降りても PR は止まらない。
+**And precisely because there is a weekly run, the PR side can be narrowed.** Each job decides whether the diff reaches it and steps down ([0153](0153-ci-configuration.md)). **The meaning of narrowing is not "the scan disappears" but "it moves to the weekly run"**, and stopping the weekly run would make this narrowing invalid. Forgetting to write a condition loses at most one week and does not become a permanent blind spot. That the Security group's jobs are not registered as required checks is also one of the premises: stepping down does not stop the PR.
 
-**降りてよい層と降りてはいけない層がある。**
+**There are layers that may step down and layers that must not.**
 
-| 層 | 降りるか | 理由 |
+| Layer | Steps down? | Reason |
 | --- | --- | --- |
-| 報告専用(Trivy / OSV の報告側) | 降りる | lockfile が動いていなければスキャナの答えは変わらない |
-| 依存監査ゲート(`pnpm audit`) | 降りる | base から引き継いだ判定は変更の作者がその場で解消できない(上記 3.1) |
-| 昇格ゲート(Trivy / OSV の release 側) | **降りない** | 昇格はツリーの現状を誰かが引き受ける場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持つ脆弱性を引き受けない理由にならない |
-| code scanning へ送る層(3.2 の 3 つ目の配線) | **層ごとに別に決める** | alert を閉じるのは GitHub 側で、「後の解析がもう報告しない」ことでしか閉じない。降りた PR では閉じる契機が週次まで遅れる —— 判定を GitHub 側へ預けている層は、他の層と同じ差分判定で降ろす前に、その遅れを引き受けてよいかをその層について問う |
-| CodeQL | **降りない** | code scanning の alert は「後の解析がもう報告しない」ことでしか閉じない。走行回数を減らすと閉じる契機を落としうる |
+| Report only (the report side of Trivy / OSV) | Steps down | If the lockfile has not moved, the scanner's answer does not change |
+| Dependency audit gate (`pnpm audit`) | Steps down | A verdict inherited from base cannot be resolved on the spot by the author of the change (3.1 above) |
+| Promotion gate (the release side of Trivy / OSV) | **Does not step down** | Promotion is where someone takes on the current state of the tree, and that the PR's diff does not touch the lockfile is no reason not to take on the vulnerabilities the tree holds |
+| Layers sent to code scanning (the third wiring of 3.2) | **Decided separately per layer** | Alerts are closed by GitHub, and only by "a later analysis no longer reports it". On a PR that stepped down, the occasion for closing is delayed until the weekly run — for a layer whose verdict is entrusted to GitHub, before stepping it down by the same diff condition as other layers, ask for that layer whether that delay is acceptable |
+| CodeQL | **Does not step down** | Code scanning alerts close only by "a later analysis no longer reports it". Reducing the number of runs can drop occasions for closing |
 
-### 3.4 抑止(ignore)ポリシー
+### 3.4 Suppression (ignore) policy
 
-スキャナの検出を許容する手段は、専用の抑止ファイルに限定する。全ファイルの冒頭に同じポリシーを明記し、様式を揃える。
+The means of tolerating a scanner's detection is limited to dedicated suppression files. The same policy is stated at the top of every file, aligning their format.
 
-| ファイル | 抑止の単位 |
+| File | Unit of suppression |
 | --- | --- |
-| `.gitleaks.toml` | 検知ルールセットとパス単位の allowlist |
-| `.gitleaksignore` | 検出 1 件(フィンガープリント `<path>:<rule-id>:<line>`) |
-| `.trivyignore.yaml` | 脆弱性 ID 1 件(`paths` でパスを限定)。期限の項目は `expired_at` |
-| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルタした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる。期限の項目は `ignoreUntil` |
-| `sonar-project.properties` | ルール 1 件 × パスの組(`sonar.issue.ignore.multicriteria`)。**SonarCloud は hotspot を UI で review する仕組みを持つが、それはリポジトリの外に決定を置く** —— 複製したリポジトリへ同じ判断が渡らないので、リポジトリが持つ抑止はこのファイルに限る |
-| `bearer.ignore` | 検出 1 件(フィンガープリント)。`comment` に理由を書く。**JSON なので冒頭のポリシー明記が置けない** —— 様式は `bearer ignore add` が決め、理由は各エントリが持つ |
-| `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |
-| `mise.toml` | pin 1 件(直上のコメント `tools-cooldown-ignore:`)。**窓が明ける日を必ず添える** —— 検疫の免除は日付でしか撤去条件を書けない |
-| `pnpm-workspace.yaml` | 検疫の免除 1 件(`minimumReleaseAgeExclude` の `<name>@<version>`)。**版を名指しし、直上のコメントに理由と窓が明ける日を書く** —— 名前だけの免除はその依存の以後すべての版を素通しにする |
+| `.gitleaks.toml` | Detection rule set and path-level allowlist |
+| `.gitleaksignore` | One detection (fingerprint `<path>:<rule-id>:<line>`) |
+| `.trivyignore.yaml` | One vulnerability ID (paths limited with `paths`). The expiry field is `expired_at` |
+| `osv-scanner.toml` | One vulnerability ID (`reason` is required). **The tool leaves filtered findings in its output with their reasons**, so suppression and silencing can be told apart. The expiry field is `ignoreUntil` |
+| `sonar-project.properties` | A pair of one rule × a path (`sonar.issue.ignore.multicriteria`). **SonarCloud has a mechanism for reviewing hotspots in its UI, but it places the decision outside the repository** — the same judgment would not carry over to a duplicated repository, so the suppression the repository holds is limited to this file |
+| `bearer.ignore` | One detection (fingerprint). The reason goes in `comment`. **It is JSON, so the policy statement at the top cannot be placed** — the format is decided by `bearer ignore add`, and each entry holds its reason |
+| `.github/zizmor.yml` | One file (`ignore`). **An audit that cannot be narrowed by file is remapped in severity (per audit ID)** — composite actions are all `action.yaml`, and `ignore` matches on base name, so listing one silences every composite action (a limitation of zizmor 1.29.0; the remap is withdrawn once per-file remapping arrives) |
+| `mise.toml` | One pin (the comment `tools-cooldown-ignore:` directly above it). **Always add the date the window opens** — a quarantine exemption can state its removal condition only as a date |
+| `pnpm-workspace.yaml` | One quarantine exemption (`<name>@<version>` in `minimumReleaseAgeExclude`). **Name the version, and write the reason and the date the window opens in the comment directly above** — a name-only exemption lets every later version of that dependency through |
 
-- **ソース側の抑止は行 1 件に限る**。`// nosemgrep: <rule-id>`(Opengrep) と `// DevSkim: ignore <rule-id>`(DevSkim) は、抑止ファイルを持たないスキャナの様式であり、**規則 1 件 × 行 1 件**まで絞れるためこのポリシーを満たす。理由はその場に書く。**DevSkim は所見と同じ行に置いたものしか読まない** —— 直前の行へ置くと黙って効かず、抑止したつもりの所見が Security タブに残り続ける
-- **抑止した所見を code scanning へ渡さない**。Opengrep は `// nosemgrep:` で消した所見を SARIF には `suppressions` 付きで残し、GitHub はそれを閉じた alert として扱わない。渡すと**ゲートは緑のまま Security タブにだけ所見が積み上がり**、上記 3 の「落とさない」と「見せない」の分離が、意図しない側へ崩れる。取り込みの手前で落とす(`scripts/sarif`)
-- **ルールやスキャナの一括無効化は禁止**。抑止はファイル単位 or フィンガープリント単位に限定する。範囲を絞らない抑止は、同じ検知を踏む**新規のファイル・依存まで素通りさせる**
-- **ファイル単位に絞れないときは、抑止ではなく severity の引き下げに留める**。上の禁止が守ろうとしているのは「新規のものが黙って素通りする」ことを避ける点にあり、引き下げなら検査は走り続け、ゲートを抜けるだけである。**そのためには引き下げた所見が出力に残っていなければならない** —— 残らないなら、これは抑止と区別が付かない。ツールがファイル単位を持たないことがこれを選ぶ唯一の理由であり、**撤回条件（ツールが対応したら戻す）をその場に書く**
-- **各エントリに理由を必ず書く**(gitleaks は「なぜ秘密でないか」、Trivy は `statement`)。理由を書けないものは抑止せず、値そのものを消すか依存を上げる
-- **修正版の無い脆弱性は、その面が持つ期限の項目で期限を切る**(上表)。過ぎた日からスキャナ自身が抑止を外してゲートが落ち、延ばすかどうかを人が決め直す。日付を理由へ写さない —— 下記の週次の突き合わせが期限の項目を読み、理由に書かれた日付より優先する。期限の項目と理由の日付が並んだ宣言と、期限の項目が暦日として読めない宣言は、様式の欠けとして報告する
-- **条件が変われば削除する**。恒久 allowlist にしない。**週に一度、宣言を条件へ突き合わせる**(`make suppression-expiry` / `.github/workflows/suppression-expiry.yaml`)。条件の日付は日本時間の暦日で書き、突き合わせも同じ暦日で判定する(時刻は持ち込まない —— UTC で取ると日付をまたぐ時間帯の実行だけ判定が 1 日ずれる)。**見る機構が無いと、期限を過ぎた宣言が残り続け、次に同じ枠を使う人が期限そのものを軽く扱う。****限界が 2 つあり、報告はそれを明示する。** 機械が決められるのは日付だけなので全件の一覧を伴う —— 「上流が N 以上を要求したら」のように決められない条件を黙って落とすと、条件を書いた意味が消える。**理由をコメントに書く様式の面(上表の `.gitleaks.toml` / `.gitleaksignore` / `.github/zizmor.yml`、および `pnpm-workspace.yaml` の冷却期間と override)は宣言単位では読めない** —— パーサがコメントを落とすため、日付を含む行だけが出る
-- 抑止の妥当性そのものはレビュー時の人間判断に残る。機械が強制できるのは「抑止が上記の様式に載っていること」までである
-- **本ポリシーが及ぶのは自リポジトリが書いた抑止だけ**である。gitleaks の `useDefault` が同伴する global allowlist(上記 2 参照)や Trivy 本体の既定除外はツール側に埋め込まれており、ここには現れない。**「抑止ファイルが空 = 何も除外されていない」ではない**
+- **Source-side suppression is limited to one line**. `// nosemgrep: <rule-id>` (Opengrep) and `// DevSkim: ignore <rule-id>` (DevSkim) are the formats of scanners without a suppression file, and they satisfy this policy because they can be narrowed to **one rule × one line**. The reason is written on the spot. **DevSkim reads only what is placed on the same line as the finding** — placing it on the preceding line silently has no effect, and the finding you thought was suppressed keeps remaining in the Security tab
+- **Suppressed findings are not passed to code scanning**. Opengrep leaves findings removed with `// nosemgrep:` in the SARIF with `suppressions`, and GitHub does not treat them as closed alerts. Passing them would **leave the gate green while findings pile up only in the Security tab**, collapsing the separation of "does not fail" and "does not show" from 3 above toward the unintended side. They are dropped before import (`scripts/sarif`)
+- **Disabling rules or scanners wholesale is forbidden**. Suppression is limited to the file unit or the fingerprint unit. Suppression that does not narrow its range **lets new files and dependencies that hit the same detection pass straight through as well**
+- **When it cannot be narrowed to the file unit, stop at lowering the severity rather than suppressing**. What the prohibition above protects is avoiding "new things silently passing through"; with a downgrade, the inspection keeps running and only the gate is passed. **For that, the downgraded findings must remain in the output** — if they do not, it is indistinguishable from suppression. The tool lacking a file unit is the only reason to choose this, and **the reversal condition (revert once the tool supports it) is written on the spot**
+- **Every entry always carries a reason** (for gitleaks, "why it is not a secret"; for Trivy, `statement`). What cannot be given a reason is not suppressed; remove the value itself or upgrade the dependency
+- **Vulnerabilities without a fixed version get a deadline through the expiry field that surface holds** (table above). From the day it passes, the scanner itself removes the suppression and the gate fails, and a person decides again whether to extend it. Dates are not copied into the reason — the weekly reconciliation below reads the expiry field and gives it priority over a date written in the reason. A declaration where an expiry field and a date in the reason sit side by side, and a declaration whose expiry field cannot be read as a calendar date, are reported as format defects
+- **Delete it when conditions change**. Not a permanent allowlist. **Once a week, declarations are reconciled against their conditions** (`make suppression-expiry` / `.github/workflows/suppression-expiry.yaml`). Condition dates are written as calendar dates in Japan time, and the reconciliation judges by the same calendar date (no time of day is brought in — taking UTC would shift the verdict by a day only for runs in the hours that straddle the date). **Without a mechanism that looks, declarations past their deadline keep remaining, and the next person to use the same slot takes the deadline itself lightly.** **There are two limits, and the report states them explicitly.** A machine can decide only dates, so a list of every entry accompanies it — silently dropping conditions it cannot decide, such as "when upstream requires N or later", erases the point of having written the condition. **Surfaces whose format puts the reason in a comment (`.gitleaks.toml` / `.gitleaksignore` / `.github/zizmor.yml` in the table above, and the cooldown and overrides in `pnpm-workspace.yaml`) cannot be read per declaration** — the parser drops comments, so only lines containing dates come out
+- The validity of a suppression itself remains a human judgment at review time. What a machine can enforce goes only as far as "the suppression follows the formats above"
+- **This policy reaches only suppressions this repository wrote itself**. The global allowlist that gitleaks's `useDefault` brings along (see 2 above) and Trivy's own default exclusions are embedded on the tool side and do not appear here. **"The suppression file is empty" does not mean "nothing is excluded"**
 
-**SonarQube Cloud はこの様式の例外で、抑止の理由をリポジトリの他の場所へ書かない。** この層は撤去を選べる層であり、選ばれれば `sonar-project.properties` と `.github/workflows/sonarcloud.yaml` は一緒に消える。理由をそれ以外——ソースのコメントや、撤去を生き延びる文書——へ置くと、**指摘した規則ごと消えたあとに理由だけが残り、何の話をしているのか誰にも辿れなくなる**。
+**SonarQube Cloud is the exception to this format, and the reasons for its suppressions are not written anywhere else in the repository.** This layer is one whose removal can be chosen, and if it is chosen, `sonar-project.properties` and `.github/workflows/sonarcloud.yaml` disappear together. Placing reasons anywhere else — in source comments or in documents that survive the removal — means that **after the flagged rules vanish, only the reasons remain, and nobody can trace what they are about**.
 
-この検査の所見に応じてコードの形を変えるときも同じで、**規則名も「Sonar がこう言った」もコメントに書かない**。残す価値のある制約なら、規則を名指しせずにその場の性質として書けるはずで、書けないならそれは抑止ファイルだけが持つべき理由である。
+The same applies when changing the shape of code in response to this inspection's findings: **neither the rule name nor "Sonar said so" is written in comments**. A constraint worth keeping can be written as a property of the place without naming the rule; if it cannot, it is a reason only the suppression file should hold.
 
-### 3.5 CSP 適合ゲート
+### 3.5 CSP conformance gate
 
-- **配信ヘッダが [0111](0111-csp-security-headers.md) の宣言と一致することを CI で検査する**。ビルド成果物 / 起動したアプリのレスポンスヘッダを取得し、CSP と主要セキュリティヘッダの有無・値を宣言と突合して fail-closed にする
+- **CI checks that the delivered headers match the declaration of [0111](0111-csp-security-headers.md)**. It obtains the response headers of the build artifacts / the started app, matches the presence and values of CSP and the main security headers against the declaration, and is fail-closed
   - > Rationale: [0111](0111-csp-security-headers.md)
-- 対象は CSP と、0111 が定める同伴ヘッダ(`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy` 等)。**検査するのは「宣言と実配信の一致」**であり、ヘッダの内容そのものは 0111 が正
-- 実装は [0153](0153-ci-configuration.md) の Security グループに 1 job として置く
-- **手段は OWASP ZAP の baseline 走査**。ランナーの中にしか存在しないアプリを撃てるのは、ランナーの中から走る DAST だけである。api-scan ではなく baseline を採るのは、本リポが表示層で API を別リポジトリが持ち、OpenAPI 駆動の走査に撃つ先が実質無いことによる
-- **公式の `zaproxy/action-*` は使わない**。`docker_name` が受け取るのは tag であって digest であり、本リポは container image を digest で固定して `make images-pin-check` で突合する([0011](0011-no-docker.md))が、action の input はその走査対象に入らない。**固定したつもりで誰も検査していないピンを増やさない**
-- **ブラウザ側の違反検知は E2E の見張りが持つ**。ZAP が読むのはヘッダであり、そのヘッダをブラウザが enforce した結果(宣言に無い読み込みが拒まれたこと)は実ブラウザでしか出ない。`e2e/lib/test.ts` が `securitypolicyviolation` を全 spec で数え、enforce されていることは宣言に無い配信元を差して違反が報告されることで示す(`e2e/journeys/csp.spec.ts`)。ヘッダの検査と違反の検知は別の事実で、片方だけでは閉じない
-- **ゲートは実装より先に置き、既知の欠落は一覧で持つ**。恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止めるため、いま出ている所見だけを `.github/zap/rules.tsv` へ理由と撤回条件つきで並べ、**一覧に無い所見を赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力へ残すので、下記 3.4 の「引き下げた所見が出力に残っていること」を満たす。**測る側を後から入れると、測る側の導入が実装の完了に従属し、何が足りないかの一覧が最後まで手に入らない**
-- **CI の配備は、同梱するタグマネージャの容器 ID を空にして起動する(exclusion)**。配信元を `script-src` へ足し `Cross-Origin-Embedder-Policy` を降ろす分岐([0131](0131-cookie-consent.md) / [0111](0111-csp-security-headers.md))は、e2e でも DAST でも踏まれない。**CI から外部の配信元を叩かせないための選択である** —— 実在の容器を撃つ検査を置くと、外部の可用性と容器の中身の変更が CI の色に混ざる。ヘッダの組み立てと読み込みの strategy は単体テストが両方の配備で固定し、担保されていないのは組み立てたヘッダが実ブラウザで宣言どおり効くことだけである。撤回条件は、外部へ出ずに CSP の enforce を確かめる手段(配信元を差し替えられる形の検査など)が入ったとき
+- The targets are CSP and the accompanying headers 0111 defines (`Strict-Transport-Security` / `X-Content-Type-Options` / `Referrer-Policy` / `Permissions-Policy`, etc.). **What is checked is "the declaration matching actual delivery"**; the content of the headers themselves is authoritative in 0111
+- The implementation is placed as one job in the Security group of [0153](0153-ci-configuration.md)
+- **The means is an OWASP ZAP baseline scan**. Only a DAST running inside the runner can hit an app that exists only inside the runner. Baseline rather than api-scan is adopted because this repo is a presentation layer with the API owned by a separate repository, so an OpenAPI-driven scan has effectively nothing to hit
+- **The official `zaproxy/action-*` actions are not used**. `docker_name` accepts a tag, not a digest, while this repo pins container images by digest and matches them with `make images-pin-check` ([0011](0011-no-docker.md)), and the action's input is outside that scan's target. **Do not add pins that look fixed while nobody checks them**
+- **Detection of violations on the browser side is held by the E2E watch**. What ZAP reads is headers, and the result of the browser enforcing those headers (that loads not in the declaration were refused) only appears in a real browser. `e2e/lib/test.ts` counts `securitypolicyviolation` across every spec, and that enforcement is in effect is shown by pointing at an origin not in the declaration and having a violation reported (`e2e/journeys/csp.spec.ts`). Checking headers and detecting violations are separate facts, and neither alone closes the loop
+- **The gate is placed before the implementation, and known gaps are held as a list**. A permanently red required check stops every PR, including the PRs that shrink that list, so only the findings appearing now are listed in `.github/zap/rules.tsv` with reasons and reversal conditions, and **findings not in the list turn it red**. ZAP keeps the count, rule names and URLs of rules set to `IGNORE` in its output too, which satisfies "the downgraded findings remain in the output" of 3.4 above. **Adding the measuring side later makes its introduction subordinate to completing the implementation, and the list of what is missing is never obtained until the end**
+- **CI deployments start with the bundled tag manager's container ID empty (exclusion)**. The branch that adds the delivery origin to `script-src` and lowers `Cross-Origin-Embedder-Policy` ([0131](0131-cookie-consent.md) / [0111](0111-csp-security-headers.md)) is exercised by neither e2e nor DAST. **This is a choice to keep CI from hitting external delivery origins** — placing a check that hits a real container would mix external availability and changes to the container's contents into CI's colour. Assembly of the headers and the loading strategy are pinned by unit tests for both deployments, and what is not guaranteed is only that the assembled headers take effect in a real browser as declared. The reversal condition is when a means of verifying CSP enforcement without going outside (such as a check in a form where the delivery origin can be swapped) comes in
 
 ### 4. SECURITY.md
 
-- **`SECURITY.md` を置く**。脆弱性報告フロー(Private Vulnerability Reporting 誘導 / 連絡先 / Supported Versions)を定める(連絡先は差し替える placeholder)
-- release artifact の検証(cosign / provenance / SBOM)は、配送成果物がコンテナイメージでないため**含めない**(下記 exclusion)
+- **A `SECURITY.md` is placed**. It defines the vulnerability reporting flow (directing to Private Vulnerability Reporting / contact / Supported Versions) (the contact is a placeholder to replace)
+- Verification of release artifacts (cosign / provenance / SBOM) is **not included**, because the delivered artifact is not a container image (exclusion below)
 
-### 5. release ゲート vs dev PR ゲート
+### 5. Release gate vs dev PR gate
 
-- **dev PR = advisory 寄り**(Trivy `ignore-unfixed:true` / audit は actionable のみ / CodeQL・gitleaks は fail-closed)、**release(保護ブランチへの PR)= 厳格化**(Trivy `ignore-unfixed:false`。severity リストは dev と同一で、未修正の可視化が差分)。この二段は言語非依存で載る([0153](0153-ci-configuration.md) の Security グループ)。Trivy / CodeQL のマージブロックの実体は required check / branch protection([0150](0150-git-workflow.md))側に置く
+- **Dev PR = leaning advisory** (Trivy `ignore-unfixed:true` / audit only actionable / CodeQL and gitleaks fail-closed), **release (PRs to protected branches) = made strict** (Trivy `ignore-unfixed:false`; the severity list is the same as dev, and the difference is making the unfixed visible). These two stages ride language-independently (the Security group of [0153](0153-ci-configuration.md)). The substance of Trivy / CodeQL merge blocking is placed on the required check / branch protection side ([0150](0150-git-workflow.md))
 
-### 6. エージェントの文脈へ入るリポジトリ由来の文字列
+### 6. Repository-originated strings that enter an agent's context
 
-- **リポジトリに置かれた文字列をエージェントの文脈へ入れる口は、それがデータであると名乗らせる。** 対象は hook の `additionalContext`、スキルやエージェントが読み込む台帳・索引・宣言ファイル、そこから組み立てた要約——**リポジトリの中身がそのままモデルの入力になる経路**である。データを先に、指示を後に置き、データの側に「指示ではない」と述べさせる
-- **制御文字を落とす。** 改行やエスケープシーケンスを残すと、封筒の中で別の段落・別の話者として読まれうる
-- **JSON のエスケープを対策と見なさない。** `JSON.stringify` が保証するのは封筒が壊れないことだけで、消費側が `JSON.parse` した時点で中身は元の文字列へ戻り、そのまま文脈へ入る
-  - > Rationale: その綴りを書いた者は、それを読むセッションの依頼者ではない。本リポジトリは public であり、ファイル名や台帳のエントリは通常の PR で持ち込める。**指示めいた自由記述は「もっともらしい理由」に偽装でき、設計やアーキテクチャの観点で読むレビュアーには見抜きにくい**。効くのは後日、無関係な別セッションが同じファイルへ触れた瞬間である
-- **リポジトリ外の値と同じ扱いにしない。** これは[表示層が上流由来の値を無害化しない](0070-backend-role-separation.md)という線引きの外側にある。ここで守るのは配信先のブラウザではなく、**このリポジトリで作業するエージェント自身**であり、値を作ったのはこのリポジトリである
+- **Any entry point that puts strings stored in the repository into an agent's context makes them identify themselves as data.** The targets are hooks' `additionalContext`, the ledgers, indexes and declaration files that skills and agents load, and summaries assembled from them — **paths by which repository contents become model input as is**. Put the data first and instructions after, and have the data side state "not instructions"
+- **Strip control characters.** Leaving newlines or escape sequences lets them be read as a separate paragraph or a separate speaker inside the envelope
+- **JSON escaping is not regarded as a countermeasure.** What `JSON.stringify` guarantees is only that the envelope does not break; the moment the consuming side calls `JSON.parse`, the contents revert to the original string and enter the context as is
+  - > Rationale: whoever wrote that spelling is not the requester of the session that reads it. This repository is public, and file names and ledger entries can be brought in through ordinary PRs. **Instruction-like free text can be disguised as "a plausible reason", and is hard to see through for reviewers reading from a design or architecture viewpoint**. It takes effect later, the moment an unrelated, separate session touches the same file
+- **It is not treated the same as values from outside the repository.** This lies outside the line that [the presentation layer does not sanitize values that came from upstream](0070-backend-role-separation.md). What is protected here is not the browser at the delivery end but **the agents working in this repository themselves**, and the one who produced the value is this repository
 
-## exclusion(no-Docker で対象外)
+## Exclusion (out of scope under no-Docker)
 
-コンテナ配送を前提とする次の機構は、本リポが [0011](0011-no-docker.md)(no-Docker / PaaS・静的 CDN 配送)のため**採用しない**:
+Because of [0011](0011-no-docker.md) (no-Docker / delivery via PaaS or static CDN), this repo **does not adopt** the following mechanisms that assume container delivery:
 
-- ❌ **コンテナ image スキャン**(Trivy image / SBOM 生成)— アプリ本体の Docker イメージがない
-- ❌ **cosign によるイメージ署名 / SLSA provenance / SBOM attestation** — 配送成果物がコンテナイメージでない
-- ❌ **Dependabot の `docker` エコシステム** — 監査対象の Dockerfile がない(上記 1 のとおり `npm` + `github-actions` のみ)
-- これらは「意図的にやらない」判断として記録する([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。独自にコンテナ配送する場合は用途依存で追加する
+- ❌ **Container image scanning** (Trivy image / SBOM generation) — there is no Docker image of the application itself
+- ❌ **Image signing with cosign / SLSA provenance / SBOM attestation** — the delivered artifact is not a container image
+- ❌ **Dependabot's `docker` ecosystem** — there is no Dockerfile to audit (only `npm` + `github-actions`, as in 1 above)
+- These are recorded as "deliberately not done" decisions (the taxonomy of [0140](0140-documentation-operations.md): exclusion = ADR). If you do your own container delivery, add them according to your use case
 
-## 禁止事項
+## Prohibitions
 
-- ❌ Renovate を併用すること(Dependabot に一本化)（強制: 持たない —— 採らない決定。Renovate の設定ファイルを置いておらず、併用はその追加として diff に現れる）
-- ❌ セキュリティアップデートに cooldown を効かせること(即時 PR)（強制: 散文 —— **寄せられない**。セキュリティ更新への cooldown の効き方は Dependabot 側の挙動で決まり、リポジトリの設定に現れない）
-- ❌ リポジトリ由来の文字列を、囲いもラベルも無くエージェントの文脈へ連結すること（強制: 散文 —— **一部寄せられる**。hook が `additionalContext` へ出す文字列がラベルと制御文字の除去を通るかは hook のスクリプトを読む gate で落とせるが規則は無い。スキルやエージェントが読む台帳のどれが文脈へ入るかはコードの形から決まらない）
-- ❌ gitleaks / CodeQL の検出を fail-closed にしないこと(秘密・SAST high は必ずブロック)
-- ❌ 依存監査を「全 severity 一律 hard-fail」にすること(修正可能な `high` / `critical` のみ blocking = ノイズ抑制。到達可能性フィルタは JS/TS では実装不能)（強制: `scripts/audit-gate/advisories.test.ts`（修正版の無い high と moderate を止めないことを固定する））
-- ❌ image-scan / cosign / SBOM / provenance を no-Docker の本リポに持ち込むこと([0011](0011-no-docker.md))（強制: 持たない —— 採らない決定。image-scan・署名・SBOM の job も設定も置いておらず、持ち込みは workflow の追加として diff に現れる）
-- ❌ SAST を CodeQL だけに寄せること(持ち出せない層を唯一の SAST にしない)（強制: 散文 —— **寄せられる**（workflow に `make sast` を呼ぶ job が在ることを gate で落とす形。規則は無い））
-- ❌ Semgrep 本体を採ること(ライセンス判断を利用側へ渡さない。Opengrep へ一本化)（強制: 持たない —— 採らない決定。Semgrep 本体を pin しておらず、採るなら `mise.toml` の追加として diff に現れる）
-- ❌ baseline が 0 件でない層をゲートにすること(3.2 の配線から選ぶ)（強制: 散文 —— **寄せられない**。baseline が 0 件かはスキャナを回した時点の所見の数で決まり、コードの形に現れない）
-- ❌ スキャナのルールやチェックを一括で無効化すること(抑止は 3.4 の様式に限る)（強制: 散文 —— **一部寄せられる**。スキャナの呼び出しや設定に規則除外の綴り（除外フラグ・規則の `off`）が現れることは静的に拾えるが規則は無い。その絞りが一括かどうかは範囲の判断である）
-- ❌ 理由の書かれていない抑止エントリを置くこと
+- ❌ Using Renovate alongside (unified on Dependabot) (Enforcement: none — a decision not to adopt. No Renovate configuration file is placed, and using it alongside appears in the diff as its addition)
+- ❌ Applying cooldown to security updates (immediate PR) (Enforcement: Prose — **not mechanizable**. How cooldown applies to security updates is decided by Dependabot's behaviour and does not appear in the repository's settings)
+- ❌ Concatenating repository-originated strings into an agent's context with no enclosure or label (Enforcement: Prose — **partly mechanizable**. Whether the strings a hook outputs to `additionalContext` go through labelling and control-character stripping could be rejected by a gate reading the hook's script, but no rule exists. Which of the ledgers that skills and agents read enter the context is not determined by the shape of the code)
+- ❌ Not making gitleaks / CodeQL detections fail-closed (secrets and SAST high always block)
+- ❌ Making the dependency audit "hard-fail uniformly for every severity" (only fixable `high` / `critical` block = noise suppression; a reachability filter cannot be implemented for JS/TS) (Enforcement: `scripts/audit-gate/advisories.test.ts` (pins that high without a fixed version and moderate do not block))
+- ❌ Bringing image-scan / cosign / SBOM / provenance into this no-Docker repo ([0011](0011-no-docker.md)) (Enforcement: none — a decision not to adopt. Neither jobs nor settings for image-scan, signing or SBOM are placed, and bringing them in appears in the diff as added workflows)
+- ❌ Leaning SAST on CodeQL alone (a layer that cannot be carried out is not made the only SAST) (Enforcement: Prose — **mechanizable** (a gate rejecting unless a workflow has a job calling `make sast`; no rule exists))
+- ❌ Adopting Semgrep itself (no licensing judgment is passed to the user; unified on Opengrep) (Enforcement: none — a decision not to adopt. Semgrep itself is not pinned, and adopting it would appear in the diff as an addition to `mise.toml`)
+- ❌ Making a layer whose baseline is not 0 a gate (choose from the wiring of 3.2) (Enforcement: Prose — **not mechanizable**. Whether the baseline is 0 is decided by the number of findings when the scanner runs and does not appear in the shape of the code)
+- ❌ Disabling a scanner's rules or checks wholesale (suppression is limited to the formats of 3.4) (Enforcement: Prose — **partly mechanizable**. The appearance of rule-exclusion spellings (exclusion flags, rules set to `off`) in scanner invocations or settings can be picked up statically, but no rule exists. Whether that narrowing is wholesale is a judgment of range)
+- ❌ Placing a suppression entry with no reason written
 
-## 補足
+## Notes
 
-- スキャナのバージョンは `mise.toml` が SSOT([0003](0003-version-manager.md))。hook / CI とも同じ版のバイナリを使う
-- `.github/` へのセキュリティ workflow の追加はユーザ指示のもとで行う(AGENTS.md AI Modification Scope)
+- Scanner versions have `mise.toml` as their SSOT ([0003](0003-version-manager.md)). The hook and CI use binaries of the same version
+- Security workflows are added to `.github/` under user instruction (AGENTS.md AI Modification Scope)
 
-## 関連 ADR
+## Related ADRs
 
-- [0153-ci-configuration.md](0153-ci-configuration.md) — Security グループの CI 組込み(本 ADR の実行基盤)。Actions の SHA ピンもこちら
-- [0004-library-management.md](0004-library-management.md) — `pnpm audit` / exact pin / major 別 PR(依存監査の土台)
-- [0151-git-hooks.md](0151-git-hooks.md) — pre-push の段階責務(本 ADR のスキャンを走らせる第一段)
-- [0003-version-manager.md](0003-version-manager.md) — gitleaks / Trivy のバージョン宣言(`mise.toml` が SSOT)
-- [0011-no-docker.md](0011-no-docker.md) — no-Docker(image-scan / cosign / SBOM exclusion の根拠)
-- [0072-api-type-generation.md](0072-api-type-generation.md) — 生成物 `src/adapters/gen/**`(誤検知が出た場合の allowlist 候補)
-- [0150-git-workflow.md](0150-git-workflow.md) — 保護ブランチ(release ゲートの対象)
+- [0153-ci-configuration.md](0153-ci-configuration.md) — CI integration of the Security group (the execution foundation of this ADR). SHA pinning of Actions is also there
+- [0004-library-management.md](0004-library-management.md) — `pnpm audit` / exact pin / separate PRs for majors (the foundation of the dependency audit)
+- [0151-git-hooks.md](0151-git-hooks.md) — stage responsibilities of pre-push (the first stage that runs this ADR's scans)
+- [0003-version-manager.md](0003-version-manager.md) — version declarations for gitleaks / Trivy (`mise.toml` is the SSOT)
+- [0011-no-docker.md](0011-no-docker.md) — no-Docker (the grounds for excluding image-scan / cosign / SBOM)
+- [0072-api-type-generation.md](0072-api-type-generation.md) — the generated artifacts `src/adapters/gen/**` (allowlist candidates if false positives appear)
+- [0150-git-workflow.md](0150-git-workflow.md) — protected branches (the target of the release gate)

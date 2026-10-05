@@ -1,0 +1,62 @@
+> **このファイルは [`0062-form-input-validation.md`](0062-form-input-validation.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `0062-form-input-validation.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `0062-form-input-validation.md` だけです。このファイルは人間が読むための翻訳です。
+
+# フォーム入力検証 UX(client 検証・生成 zod の再利用境界)
+
+送信前の**入力検証 UX** を 1 本に定める。表示レベルの入力検証(必須 / 形式 / 文字数など UX 用)を client でも行い即時フィードバックするデフォルトと、**表示バリデーション規則(`model` の手書き zod スキーマ)** と **契約検証(`adapters` 境界・生成スキーマ)** の**二層分離**、および生成 zod([0072](0072-api-type-generation.ja.md))の client 再利用の境界(具体的許容範囲は [0072](0072-api-type-generation.ja.md) 管轄)を定める。client 検証は [0060](0060-state-management.ja.md) が採用する **react-hook-form + zodResolver** で行い(resolver に食わせるのは `model` の表示検証スキーマ)、送信メカニクス([0061](0061-form-mutation-ux.ja.md))の `ActionState` 契約へフィールドエラーを供給するレイヤーである。
+
+## Status
+
+Accepted
+
+## 背景
+
+[0060](0060-state-management.ja.md) は form state に **react-hook-form + zod(`zodResolver`)を採用**している。ただし rhf + resolver は「検証を回す機構」であって、「**どのスキーマで・どのタイミングで検証し、生成 wire スキーマとどう切り分けるか**」は別途規約が要る。これが空白のままだと、boilerplate で最頻出のフォーム入力が、feature ごとに検証タイミングも二重管理の扱いも不統一になる。
+
+入力検証は送信メカニクス([0061](0061-form-mutation-ux.ja.md))と結果通知([0063](0063-mutation-result-notification.ja.md))の間に位置し、送信前の即時フィードバック UX と、生成物(wire スキーマ)を client 入力検証に再利用してよいかという型漏洩境界の判断が交差する。本 ADR は前者(入力検証 UX のデフォルト = どのスキーマを resolver に食わせるかを含む)を敷き、後者の具体的許容範囲は生成物と型漏洩の権威である [0072](0072-api-type-generation.ja.md) に委ねる。
+
+## 決定
+
+### 1. client 表示検証と検証タイミング
+
+- **入力検証を server round-trip 前提にしない**。表示レベルの入力検証(必須 / 形式 / 文字数など UX 用)は client でも行い、即時フィードバックする
+- 検証タイミングのデフォルト = **誤りを出すのは項目から focus が外れた時点。focus が当たっている間、検証は表示を消す方向にだけ効かせ、新しい誤りを出さない**(reward early, punish late)。入力の 1 文字目から赤くしないのは、まだ書いている途中の項目を誤りとして知らせないためであり、focus が外れた時点は「その項目を書き終えた」と見なせる最も早い機会である。**直ったことは focus を外す前に反映する** —— 直っても消えないと、利用者は blur するまで直ったかどうかを確かめられない。submit まで待つ形をデフォルトにしない —— 誤りの数だけ往復させることになり、どこを直すかも submit するまで判らない。エラー文言は日本語(AGENTS.md Language Rules)
+- **候補から選ぶ項目にはデフォルトの選択を置かず、空の候補を先頭に置く。** デフォルトで先頭が選ばれた形にすると、確かめずに送った値と意図して選んだ値を区別できず、必須の選択欄を検証する意味が無くなる。選んでいないことと、先頭の候補を選んだことは別である
+- 検証結果は送信メカニクス([0061](0061-form-mutation-ux.ja.md))の `ActionState` の fieldErrors / formError としてプレゼンテーションレイヤーへ渡る(通知手段の使い分けは [0063](0063-mutation-result-notification.ja.md))
+
+### 2. 検証の二層分離(表示規則 vs 契約検証)
+
+検証を**二層に分離する**(この分離が [0072](0072-api-type-generation.ja.md) の型漏洩禁止との整合の要):
+
+- **表示バリデーション規則** = `model` が持つ**手書きの zod スキーマ**([0021](0021-frontend-responsibility.ja.md) が表示バリデーション規則と呼ぶもの)。UX 用のフィールド規則であり、**wire contract ではない**ため [0072](0072-api-type-generation.ja.md) の型漏洩禁止の対象外。**client 入力検証(rhf の `zodResolver`)に食わせるのはこの `model` 表示検証スキーマ**であり、[0060](0060-state-management.ja.md) が「zod スキーマを入力契約の SSOT とし client の `zodResolver` と共有する」と言う際の SSOT はこの表示検証スキーマを指す。同じ判定を送る前(client)と受け取った後(Server Action)の両方が通す —— 受け取った後にも確かめるのは、送る前の判定が送信者に差し替えられるためである。判定と文言は `model` の 1 か所が持ち、両側へコピーしない
+- **契約検証** = `adapters` 境界。request は生成 request スキーマ、response は生成 response スキーマで `.parse()`([0071](0071-bff-api-integration.ja.md) / [0072](0072-api-type-generation.ja.md))。契約破れは正規化エラー([0080](0080-error-handling.ja.md))として扱う。**生成 wire スキーマを rhf の resolver へ直接食わせない**のがデフォルト(生成物を feature/`model` へ漏らさない = 型漏洩禁止)。生成 request スキーマの client 再利用可否は §3 のとおり [0072](0072-api-type-generation.ja.md) 管轄
+
+### 3. 生成 zod の client 再利用境界(具体的許容範囲は 0072 が持つ)
+
+- 生成 zod([0072](0072-api-type-generation.ja.md))の **request-body スキーマ**を client 入力検証へ再利用してよいか(スキーマ二重管理の回避)は、[0072](0072-api-type-generation.ja.md) の**型漏洩禁止・生成物管轄と接する**
+- **本 ADR は「二重管理を避ける」原則と上記二層分離までを定め、生成スキーマを client bundle に載せる具体的許容範囲は [0072](0072-api-type-generation.ja.md) が持つ**。0072 は生成スキーマを client へ載せず、契約が定める上限・書式の**定数だけ**を検証と別の module で配る形を採っている。client の入力検証が契約由来の値を要るときはその定数を引き、スキーマ本体は引かない
+
+## 禁止事項
+
+- ❌ 入力検証を server round-trip でしか出さない UX(client でも表示検証する)（強制: 散文 —— **寄せられない**。どの項目に送る前の表示検証が要るかは項目の意味で決まり、form の形からは決まらない）
+- ❌ 表示バリデーション規則(`model`・手書き)と生成 wire スキーマ(`adapters/gen`)を混同し、生成スキーマを `model` / feature のドメインロジックへ漏らすこと([0072](0072-api-type-generation.ja.md) 型漏洩禁止)（強制: ESLint boundaries（`architecture.ts` の `RESTRICTED_AREAS` の `adapters-gen`）が `model` / `features` からの生成物の直接 import を落とす。`adapters` の公開面を経由した素通しは散文 —— **寄せられない**。公開面が返す型が生成型か自前の view 型かは推論を経た型の出所で決まり、import の形からは決まらない）
+- ❌ 生成 zod の client 再利用の具体的許容範囲を、本 ADR で確定すること(権威は [0072](0072-api-type-generation.ja.md))（強制: 散文 —— **寄せられない**。どの文書がその決定を持つかは文書の中身の判断で、コードに現れない）
+- ❌ 検証タイミングを feature ごとにばらつかせること(デフォルト = focus が外れた時点に出し、focus 中は消える方向にだけ効かせる)（強制: 散文 —— **寄せられない**。表示の時点は実行時の focus の遷移で決まり、form ごとのテストでしか見えない）
+- ❌ focus が当たっている項目へ新しい誤りを出すこと(編集の途中を咎めることになる)（強制: 散文 —— **寄せられない**。focus 中に出すかは実行時の focus の遷移で決まり、form ごとのテストでしか見えない）
+- ❌ 候補から選ぶ項目にデフォルトの選択を置くこと(未選択と先頭の候補を区別できなくなる)（強制: 散文 —— **一部寄せられる**。form の `select` が空の先頭候補を持つかは JSX の形で検出できるが規則は無い。その欄が入力か、デフォルトを持ってよい条件の切り替えかは用途で決まる）
+
+## 補足
+
+- **rhf の `reValidateMode` だけでは §1 を満たせない**。あの設定が効くのは submit のあとだけで、blur で出した誤りは change では見直されない。素直に書くと「直しても消えない」状態になり、しかも設定は宣言されているので読んだだけでは気づけない。デフォルトを満たすには、blur 済みの項目を change でも検証したうえで、focus 中の表示を「focus した時点の文言」で頭打ちにする
+- 日常強制の細則(検証タイミングの厳密値・文言トーン等)は [docs/rules.md](../rules.ja.md) が持つ
+
+## 関連 ADR
+
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.ja.md) — 送信メカニクス(本 ADR の検証結果を運ぶ `ActionState` 契約の供給元)
+- [0063-mutation-result-notification.md](0063-mutation-result-notification.ja.md) — 変更結果の通知 UX(本 ADR のフィールドエラーを表示するレイヤー)
+- [0072-api-type-generation.md](0072-api-type-generation.ja.md) — 生成 zod / 型漏洩禁止(client 再利用許容範囲の権威)
+- [0071-bff-api-integration.md](0071-bff-api-integration.ja.md) — `adapters` 境界での契約検証(`.parse()`)
+- [0080-error-handling.md](0080-error-handling.ja.md) — 契約破れの正規化エラー
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — `model`(表示バリデーション規則の所有)
+- [0060-state-management.md](0060-state-management.ja.md) — form state = react-hook-form + zod(`zodResolver`)採用。resolver に食わせるのは本 ADR の `model` 表示検証スキーマ(zod SSOT)

@@ -1,103 +1,103 @@
-# 命名規則
+# Naming Conventions
 
-[0027](0027-directory-structure.md)(ディレクトリ構造)で確定した物理配置の上で用いる、**ファイル名 / 識別子(コンポーネント・hook・関数・型・定数)/ route セグメント / 環境変数 / ADR ファイル** の命名規約を定める。
+This ADR sets the naming conventions for **file names / identifiers (components, hooks, functions, types, constants) / route segments / environment variables / ADR files**, used on top of the physical placement settled in [0027](0027-directory-structure.md) (directory structure).
 
-カーネル・ディレクトリそのものの命名規律(役割名のみ許可 / `common` `utils` `lib` 等の禁止名)は [0021](0021-frontend-responsibility.md)「命名規律」を正とし、本 ADR では**繰り返さない**。本 ADR はその内側の、ファイル・識別子の命名を扱う。
+[0021](0021-frontend-responsibility.md) is authoritative for the naming discipline of kernels and directories themselves (role names only / banned names such as `common` `utils` `lib`), and this ADR **does not repeat it**. This ADR covers the naming of files and identifiers inside them.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリの命名は **Next.js の規約 > React の規約 > 本リポジトリ(nextjs-boilerplate)自身の既存規約** の優先順位で決め、**できる限り業界スタンダードに寄せる**。命名の第一義的な拠り所は Next.js / React と業界スタンダードであり、バックエンド側の規約を命名の権威には置かない(層原則は揃えるが、命名はフロントの生態系に従う)。
+Naming in this repository is decided in the priority order **Next.js conventions > React conventions > this repository's (nextjs-boilerplate) own existing conventions**, and **leans toward industry standards as far as possible**. The primary authority for naming is Next.js / React and industry standards; the backend side's conventions are not made the authority for naming (layer principles are aligned, but naming follows the frontend ecosystem).
 
-この優先順位を適用するにあたり、Next.js 16 のドキュメントが**どこを規約化し、どこを規約化していないか**を確認した:
+In applying this priority, we checked **what the Next.js 16 documentation makes a convention and what it does not**:
 
-- **Next.js が規約化している範囲**: 特殊ファイル(`page` / `layout` / `route` 等 = 小文字固定)と route セグメント記法(`[slug]` / `[...slug]` / `(group)` / `_folder`)のみ
-- **Next.js が規約化していない範囲**: コンポーネント / hook / その他モジュールのファイル名・組織化。Next.js のドキュメントは "**Next.js is unopinionated about how you organize and colocate your project files**"(`project-structure`)と明言し、`components` / `lib` / `ui` / `utils` / `hooks` は "generalized placeholders" で "no special framework significance" とする
+- **What Next.js makes a convention**: only special files (`page` / `layout` / `route`, etc. = fixed lowercase) and the route segment notation (`[slug]` / `[...slug]` / `(group)` / `_folder`)
+- **What Next.js does not make a convention**: the file names and organization of components / hooks / other modules. The Next.js documentation states "**Next.js is unopinionated about how you organize and colocate your project files**" (`project-structure`), and calls `components` / `lib` / `ui` / `utils` / `hooks` "generalized placeholders" with "no special framework significance"
 
-したがって:
+Therefore:
 
-- **特殊ファイル・route** は Next.js 規約(小文字)に従う
-- **それ以外のファイル名**は Next.js が非強制なので**業界スタンダード**に委ねる。Next.js エコシステムのデファクト(公式サンプル / shadcn/ui)・ファイルシステム安全性(case-insensitive FS での衝突回避)・本リポジトリ既存ファイル(`src/app/layout.tsx` / `page.tsx` が小文字)のいずれとも整合する **kebab-case** を採る
-- **識別子**(コンポーネント名・hook 名等)は React/JSX が構文的に強制する(コンポーネント = PascalCase 必須)ため React 規約に従う
+- **Special files and routes** follow the Next.js convention (lowercase)
+- **Other file names** are not enforced by Next.js and are left to **industry standards**. **kebab-case** is adopted, consistent with the de facto standard of the Next.js ecosystem (official examples / shadcn/ui), with file-system safety (avoiding collisions on case-insensitive file systems), and with this repository's existing files (`src/app/layout.tsx` / `page.tsx` are lowercase)
+- **Identifiers** (component names, hook names, etc.) follow React conventions, because React/JSX enforces them syntactically (components = PascalCase required)
 
-env / ADR / テストの命名形式は、**本リポジトリ自身の既存規約・関連 ADR を正**とする(ADR ファイル = 本リポの `docs/adr/README.md` / 環境変数 = [0030](0030-environment-variable-management.md) / テスト = [0090](0090-testing-strategy.md))。
+For the naming formats of env / ADRs / tests, **this repository's own existing conventions and related ADRs are authoritative** (ADR files = this repository's `docs/adr/README.md` / environment variables = [0030](0030-environment-variable-management.md) / tests = [0090](0090-testing-strategy.md)).
 
-## 決定
+## Decision
 
-### ファイル名 — 全ソース kebab-case(Next.js 非強制領域 → 業界スタンダード)
+### File Names — kebab-case for All Sources (Not Enforced by Next.js → Industry Standard)
 
-ソースファイル名は **kebab-case で統一**する。ファイル名(kebab-case)と、その中の主 export の識別子(下記「識別子」ルール)は**別軸**であり、ファイル名側は種別によらず kebab-case とする。
+Source file names are **unified in kebab-case**. The file name (kebab-case) and the identifier of its main export (the "Identifiers" rule below) are **separate axes**; the file-name side is kebab-case regardless of kind.
 
-| 対象 | ファイル名 | 主 export の識別子 | 例 |
+| Target | File name | Identifier of the main export | Example |
 | --- | --- | --- | --- |
-| React コンポーネント | **kebab-case** | PascalCase | `date-picker.tsx` → `DatePicker` |
-| hook | **kebab-case**(`use-` 始まり) | `use` + PascalCase | `use-media-query.ts` → `useMediaQuery` |
-| その他モジュール(model / adapters / 関数群) | **kebab-case** | camelCase | `format-date.ts` → `formatDate` / `api-client.ts` → `apiClient` |
-| Next.js 特殊ファイル | **小文字固定(Next.js 規約)** | — | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx` / `not-found.tsx` / `route.ts` / `template.tsx` / `default.tsx` / `global-error.tsx` |
-| 起動 / 設定ファイル | **Next.js / ツール規約の固定名** | — | `instrumentation.ts` / `proxy.ts`(Next.js 16 の旧 `middleware.ts`。[0043](0043-middleware-policy.md))/ `next.config.ts` |
-| Server Action 集約 | **`actions.ts`**(固定名) | — | `features/<name>/actions.ts`([0021](0021-frontend-responsibility.md)) |
+| React component | **kebab-case** | PascalCase | `date-picker.tsx` → `DatePicker` |
+| hook | **kebab-case** (starting with `use-`) | `use` + PascalCase | `use-media-query.ts` → `useMediaQuery` |
+| Other modules (model / adapters / function groups) | **kebab-case** | camelCase | `format-date.ts` → `formatDate` / `api-client.ts` → `apiClient` |
+| Next.js special files | **Fixed lowercase (Next.js convention)** | — | `page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx` / `not-found.tsx` / `route.ts` / `template.tsx` / `default.tsx` / `global-error.tsx` |
+| Start-up / config files | **Fixed names from Next.js / tool conventions** | — | `instrumentation.ts` / `proxy.ts` (the former `middleware.ts` in Next.js 16; [0043](0043-middleware-policy.md)) / `next.config.ts` |
+| Server Action collection | **`actions.ts`** (fixed name) | — | `features/<name>/actions.ts` ([0021](0021-frontend-responsibility.md)) |
 
-- 従来型 React 慣行(コンポーネントファイルを PascalCase = `DatePicker.tsx`)は**採らない**。Next.js エコシステムの業界スタンダードと case-insensitive FS 安全性を優先し、ファイル名は全種別 kebab-case に統一する
-- kebab-case 統一により、ファイル種別に依らず 1 つの規則で済み、ケース混在・大文字小文字衝突が構造的に起きない
+- The traditional React practice (component files in PascalCase = `DatePicker.tsx`) is **not adopted**. Prioritizing the Next.js ecosystem's industry standard and case-insensitive file-system safety, file names are unified in kebab-case for every kind
+- Unifying on kebab-case makes one rule suffice regardless of file kind, and mixed cases and upper/lower-case collisions structurally cannot occur
 
-### route セグメント名(App Router — Next.js 規約)
+### Route Segment Names (App Router — Next.js Convention)
 
-- ルートセグメントのディレクトリ名は **Next.js App Router の規約に従い小文字**とする(`app/help/` / `app/sign-in/` 等。複数語は kebab-case)
-- Next.js の記法に従う(独自パターンを作らない):
-  - 動的: `[slug]`(動的)/ `[...slug]`(catch-all)/ `[[...slug]]`(optional catch-all)
-  - route group: `(group)`(URL に影響しないグルーピング)
-  - private folder: `_folder`(非ルーティングのコロケーション用。将来の Next.js 特殊ファイルとの命名衝突回避にも有効)
+- Directory names of route segments are **lowercase, following the Next.js App Router convention** (`app/help/` / `app/sign-in/`, etc.; multiple words in kebab-case)
+- Follow the Next.js notation (do not invent patterns):
+  - Dynamic: `[slug]` (dynamic) / `[...slug]` (catch-all) / `[[...slug]]` (optional catch-all)
+  - route group: `(group)` (grouping that does not affect the URL)
+  - private folder: `_folder` (for non-routing colocation; also helps avoid naming collisions with future Next.js special files)
 
-### 識別子(React / TypeScript 規約)
+### Identifiers (React / TypeScript Conventions)
 
-React/JSX の構文的制約と業界スタンダード(非ハンガリアン記法)を合わせ、以下で固定する:
+Combining React/JSX's syntactic constraints with industry standards (non-Hungarian notation), the following are fixed:
 
-| 対象 | ケース | 備考 |
+| Target | Case | Notes |
 | --- | --- | --- |
-| React コンポーネント | **PascalCase** | JSX 構文上必須(React 規約) |
-| hook | **`use` + PascalCase**(呼称は `useCamelCase`) | `useMediaQuery` / `useDebounce`。React の規約 |
-| 関数・変数 | **camelCase** | |
-| 型 / interface | **PascalCase** | **`I` プレフィックス禁止**(TypeScript の業界スタンダード = 非ハンガリアン) |
-| 真の定数(モジュールレベルの不変値) | **UPPER_SNAKE_CASE** | 列挙的定数等。環境変数の値は対象外(UPPER_SNAKE 定数として再公開せず、型付き Config の getter 経由で参照する — [0030](0030-environment-variable-management.md)) |
-| 型付き Config のプロパティ | camelCase(getter 名) | 中身は [0030](0030-environment-variable-management.md) |
+| React component | **PascalCase** | Required by JSX syntax (React convention) |
+| hook | **`use` + PascalCase** (referred to as `useCamelCase`) | `useMediaQuery` / `useDebounce`. React's convention |
+| Functions, variables | **camelCase** | |
+| Types / interfaces | **PascalCase** | **No `I` prefix** (TypeScript's industry standard = non-Hungarian) |
+| True constants (module-level immutable values) | **UPPER_SNAKE_CASE** | Enum-like constants, etc. Environment variable values are excluded (not re-exposed as UPPER_SNAKE constants; referred to through the typed Config's getters — [0030](0030-environment-variable-management.md)) |
+| Properties of the typed Config | camelCase (getter names) | Contents in [0030](0030-environment-variable-management.md) |
 
-### 環境変数
+### Environment Variables
 
-- 環境変数名は **`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE**(UPPER_SNAKE は環境変数の業界スタンダード。`{SUBSYSTEM}` はサブシステム prefix(例 `SERVER_` / `AUTH_`)でグルーピングし、`{NAME}` は相対名)。この形式の採用は [0030](0030-environment-variable-management.md) の決定に連なる。**接頭辞は命名の単位であり、config の purpose とは独立する** —— purpose はその値を読むサブシステムが引く([0030](0030-environment-variable-management.md))。接頭辞から purpose を、purpose から接頭辞を決めない
-- ブラウザへ露出する変数は Next.js 規約に従い **`NEXT_PUBLIC_` プレフィックス**を付す(`NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`)。境界・検証・型付けの詳細は **[0030](0030-environment-variable-management.md)(環境変数管理)** を正とする
-- **例外: 標準・デファクトが変数名まで規定しているものは、その標準名をそのまま使う**(例: OpenTelemetry の `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME`、Next.js の `NEXT_PUBLIC_*` / `PORT`)。標準名を `{SUBSYSTEM}_{NAME}` へ改名すると、その標準を実装した SDK・ツールが既定で読めなくなり、自前の橋渡しコードが必要になるため([0010](0010-standards-and-non-lockin.md) 標準準拠)。例外に該当するのは **外部の仕様・ツールが読む変数だけ**であり、アプリが自分で読む変数は例外にしない
+- Environment variable names are **UPPER_SNAKE_CASE of the form `{SUBSYSTEM}_{NAME}`** (UPPER_SNAKE is the industry standard for environment variables. `{SUBSYSTEM}` groups by a subsystem prefix (e.g. `SERVER_` / `AUTH_`), and `{NAME}` is the relative name). Adopting this format follows from [0030](0030-environment-variable-management.md)'s decision. **The prefix is a unit of naming and is independent of the config purpose** — the purpose is drawn by the subsystem that reads the value ([0030](0030-environment-variable-management.md)). Do not decide the purpose from the prefix, or the prefix from the purpose
+- Variables exposed to the browser carry the **`NEXT_PUBLIC_` prefix** per the Next.js convention (`NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`). **[0030](0030-environment-variable-management.md) (environment variable management)** is authoritative for the details of the boundary, validation and typing
+- **Exception: where a standard or de facto standard prescribes the variable name itself, use that standard name as is** (e.g. OpenTelemetry's `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_SERVICE_NAME`, Next.js's `NEXT_PUBLIC_*` / `PORT`). Renaming a standard name to `{SUBSYSTEM}_{NAME}` stops SDKs and tools that implement the standard from reading it by default and requires custom bridging code ([0010](0010-standards-and-non-lockin.md)'s conformance to standards). The exception covers **only variables read by external specifications or tools**; variables the app reads itself are not exceptions
 
-### ADR ファイル名
+### ADR File Names
 
-- ADR ファイルは **`NNNN-kebab-case-title.md`**(4 桁ゼロ埋め番号 + kebab-case タイトル)とする。これは**本リポジトリ自身の既存規約**(`docs/adr/README.md`)であり、ソースファイルの kebab-case 方針とも一致する
-- 採番はトピック順のブロック帯(10 番台 = 主題ブロック)であり、採番のライフサイクルは [0140](0140-documentation-operations.md) が持つ。プレフィックス付きの採番(`Dev-` / `Toolchain-` 等)は用いず、すべて数値列に置く
+- ADR files are **`NNNN-kebab-case-title.md`** (a 4-digit zero-padded number + a kebab-case title). This is **this repository's own existing convention** (`docs/adr/README.md`) and also matches the kebab-case policy for source files
+- Numbering uses topic-ordered block bands (the tens = subject blocks), and [0140](0140-documentation-operations.md) holds the numbering lifecycle. Prefixed numbering (`Dev-` / `Toolchain-`, etc.) is not used; everything sits in one numeric sequence
 
-### テストファイル命名
+### Test File Naming
 
-- テストファイルの拡張子・`describe` / `it` 文字列の規約は [0090](0090-testing-strategy.md) が正(kebab-case + `.test.ts(x)`。`正常系` / `異常系` の日本語命名・table-driven 禁止を含む)。ファイル名の本体部分が kebab-case であることは本 ADR の統一方針に従う
+- [0090](0090-testing-strategy.md) is authoritative for test file extensions and the conventions for `describe` / `it` strings (kebab-case + `.test.ts(x)`, including Japanese naming such as `正常系` / `異常系` and the ban on table-driven tests). That the body of a file name is kebab-case follows this ADR's unified policy
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ソースファイル名に PascalCase / camelCase を用いること(`DatePicker.tsx` / `formatDate.ts` 等)。ファイル名は kebab-case で統一する（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で置いたファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
-- ❌ ケースの混在(kebab-case 以外のファイル名を持ち込む)（強制: scaffold（`pnpm gen`）が生成時の名前を kebab-case に照らす。手で持ち込んだファイルは散文 —— **寄せられる**（biome `useFilenamingConvention` を kebab-case で有効にする形。規則は無い））
-- ❌ 型 / interface への `I` プレフィックス(`IButtonProps` 等)（強制: 散文 —— **寄せられる**（型 / interface 宣言の名前が `^I[A-Z]` に当たるものを lint で落とす形。規則は無い））
-- ❌ App Router 特殊ファイル・route セグメントに独自の命名パターンを持ち込むこと(Next.js 規約に従う)（強制: 散文 —— **一部寄せられる**。`src/app/` 配下のセグメント名は小文字 kebab-case と Next.js の記法（`[...]` / `(...)` / `_...`）の正規表現で落とせるが規則は無い。特殊ファイルに似せた独自の綴りかは名前の意図で決まる）
-- ❌ 環境変数を `{SUBSYSTEM}_{NAME}` 以外の形にすること(標準名の例外に該当する場合を除く)/ secret を `NEXT_PUBLIC_` に置くこと([0030](0030-environment-variable-management.md))（強制: 散文 —— **一部寄せられる**。`env/.env.*` の変数名が UPPER_SNAKE で prefix を持つかは正規表現で落とせるが規則は無い。prefix がサブシステムか・標準名の例外か・値が secret かは意味で決まる）
-- ❌ 標準が規定する変数名(`OTEL_*` 等)を `{SUBSYSTEM}_{NAME}` へ改名すること(標準実装が読めなくなる)（強制: 散文 —— **寄せられない**。どの変数名を外部の仕様が規定しているかはコードに無く、改名は標準名が消えることとしてしか現れない）
-- ❌ カーネル・ディレクトリに役割を名指ししない名称を付けること([0021](0021-frontend-responsibility.md) 命名規律。本 ADR の対象外だが再掲)（強制: ESLint `boundaries/no-unknown-files` が `KERNELS` に無い名前の `src/` 直下ディレクトリ（中の JS/TS）を落とす。カーネル内のディレクトリ名は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
+- ❌ Using PascalCase / camelCase in source file names (`DatePicker.tsx` / `formatDate.ts`, etc.). File names are unified in kebab-case (Enforcement: the scaffold (`pnpm gen`) checks names against kebab-case at generation time. Files placed by hand are Prose — **mechanizable** (enable Biome's `useFilenamingConvention` with kebab-case. No rule exists))
+- ❌ Mixing cases (bringing in file names other than kebab-case) (Enforcement: the scaffold (`pnpm gen`) checks names against kebab-case at generation time. Files brought in by hand are Prose — **mechanizable** (enable Biome's `useFilenamingConvention` with kebab-case. No rule exists))
+- ❌ An `I` prefix on types / interfaces (`IButtonProps`, etc.) (Enforcement: Prose — **mechanizable** (fail, with lint, type / interface declarations whose names match `^I[A-Z]`. No rule exists))
+- ❌ Bringing custom naming patterns into App Router special files or route segments (follow the Next.js convention) (Enforcement: Prose — **partly mechanizable**. Segment names under `src/app/` could be caught with a regular expression for lowercase kebab-case and the Next.js notation (`[...]` / `(...)` / `_...`), but no rule exists. Whether a custom spelling imitates a special file is decided by the intent of the name)
+- ❌ Giving environment variables a shape other than `{SUBSYSTEM}_{NAME}` (except where the standard-name exception applies) / putting secrets in `NEXT_PUBLIC_` ([0030](0030-environment-variable-management.md)) (Enforcement: Prose — **partly mechanizable**. Whether variable names in `env/.env.*` are UPPER_SNAKE with a prefix could be caught with a regular expression, but no rule exists. Whether the prefix is a subsystem, whether it is a standard-name exception, and whether the value is a secret are decided by meaning)
+- ❌ Renaming variable names prescribed by a standard (`OTEL_*`, etc.) to `{SUBSYSTEM}_{NAME}` (standard implementations could no longer read them) (Enforcement: Prose — **not mechanizable**. Which variable names an external specification prescribes is not in the code, and a rename shows up only as the standard name disappearing)
+- ❌ Giving kernels or directories names that do not name a role ([0021](0021-frontend-responsibility.md)'s naming discipline; out of scope for this ADR but restated) (Enforcement: ESLint `boundaries/no-unknown-files` fails on directories directly under `src/` (the JS/TS inside them) whose names are not in `KERNELS`. Directory names inside kernels are Prose — **mechanizable** (match each segment of the path against the list of banned names. No rule exists))
 
-## 補足
+## Notes
 
-- 本 ADR が持つファイル・識別子命名は rule 分類([0140](0140-documentation-operations.md))に当たる。本 ADR は根拠(なぜ)を持ち、日々強制される制約としての置き場は [0140](0140-documentation-operations.md) が定める `docs/rules.md` である
+- The file and identifier naming this ADR holds falls into the rule class ([0140](0140-documentation-operations.md)). This ADR holds the reasoning (why), and the place for it as a constraint enforced day to day is `docs/rules.md`, which [0140](0140-documentation-operations.md) sets
 
-## 関連 ADR
+## Related ADRs
 
-- [0027-directory-structure.md](0027-directory-structure.md) — 物理配置(本 ADR のファイル命名が載る土台)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — カーネル・ディレクトリの命名規律(役割名のみ・禁止名)。本 ADR はその内側のファイル・識別子命名を扱う
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — 環境変数の境界・型付け・検証。本 ADR は命名形式のみを定める
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router セグメント構造。本 ADR はその命名(小文字・動的記法・route group・private folder)を定める
-- [0090-testing-strategy.md](0090-testing-strategy.md) — テストファイルの拡張子・`describe` / `it` 命名
-- [0140-documentation-operations.md](0140-documentation-operations.md) — ADR の採番ライフサイクル / rule 分類
+- [0027-directory-structure.md](0027-directory-structure.md) — physical placement (the foundation this ADR's file naming sits on)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the naming discipline for kernels and directories (role names only, banned names). This ADR covers file and identifier naming inside them
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — the boundary, typing and validation of environment variables. This ADR sets only the naming format
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router segment structure. This ADR sets its naming (lowercase, dynamic notation, route group, private folder)
+- [0090-testing-strategy.md](0090-testing-strategy.md) — test file extensions and `describe` / `it` naming
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the ADR numbering lifecycle / the rule class

@@ -1,227 +1,227 @@
-# フロント内責務分離方針
+# Separation of Responsibilities within the Frontend
 
-[0020](0020-adopted-architecture.md) で採用した **機能スライス × 表示層カーネル** アーキテクチャについて、本 ADR は各カーネルの **責務 / 依存マトリクス / 命名規律 / カーネル受入基準 / Server Action の置き場 / 機械的強制(Enforcement)/ 層別 README 運用** を定める。
+For the **feature slices × presentation-layer kernels** architecture adopted in [0020](0020-adopted-architecture.md), this ADR sets each kernel's **responsibilities / the dependency matrix / the naming discipline / the kernel acceptance criteria / where Server Actions live / mechanical enforcement (Enforcement) / how per-layer READMEs are operated**.
 
-[0020](0020-adopted-architecture.md) がパターンを**宣言**するのに対し、本 ADR は日常運用で参照する**規約**を定める。
+Where [0020](0020-adopted-architecture.md) **declares** the pattern, this ADR sets the **conventions** referred to in day-to-day operation.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0020](0020-adopted-architecture.md) は `src/{app, features/<name>, model, components, adapters, capabilities, stores, config, errors, logging, observability}` の 11 カーネル構成(`capabilities` は [0022](0022-capabilities-kernel.md)、`stores` は [0023](0023-stores-kernel.md))と設計原則を宣言し、各カーネルが「何を受け入れ、どこを import してよいか」の詳細は従属決定として本 ADR に委ねる。本 ADR はその従属決定を成文化する。
+[0020](0020-adopted-architecture.md) declares the 11-kernel layout `src/{app, features/<name>, model, components, adapters, capabilities, stores, config, errors, logging, observability}` (`capabilities` in [0022](0022-capabilities-kernel.md), `stores` in [0023](0023-stores-kernel.md)) and its design principles, and delegates the details of "what each kernel accepts and what it may import" to this ADR as subordinate decisions. This ADR codifies those subordinate decisions.
 
-## 各カーネルの責務
+## Responsibilities of Each Kernel
 
-[0020](0020-adopted-architecture.md) の対応表を責務定義として展開する。
+The mapping table in [0020](0020-adopted-architecture.md) is expanded into definitions of responsibility.
 
-| カーネル | 系統 | 責務 | 受け入れないもの |
+| Kernel | Family | Responsibility | Does not accept |
 | --- | --- | --- | --- |
-| `app` | スライス | driving adapter。**役割はファイル名が決める**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server + model + feature の `facade/` / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots等→config。[0025](0025-app-layer-elements.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
-| `features/<name>` | スライス | 画面ユースケース(データ取得の編成 / 複数 API 集約 / フォーム送信フロー / 楽観更新)+ スライス専用 UI / hooks / Server Action(主体の断言を要さないもの)。hook + UI の合成点。内部はフラット共置 | 他 feature への依存(下記昇格ルール) |
-| `model` | カーネル | 表示用 ValueObject / フォーマッタ / 単位変換 / 表示バリデーション規則 / **表示結果型(`ActionState<T>` 等)**。純粋・依存最小 | **ビジネスルール**(バックエンド責務)/ fetch / config |
-| `components` | カーネル | 横断 UI(デザインシステム的な純 UI コンポーネント)。トースト等の UI 状態は持てる | fetch / config / 業務状態 / `capabilities` ・ `stores` の import |
-| `adapters` | カーネル | 外部接続のみ(backend API client / BFF fetch / analytics 等)。**server / client の 2 面**([0024](0024-adapters-server-client-split.md)。server = config 可・secret / client = `"use client"`・secret 不可。**面は実行文脈の分けで、境界検査の要素ではない**)。生成型・外部型を内層へ漏らさない変換の所有境界 | 業務ロジック / UI / local ブラウザ API(→ `capabilities`) |
-| `capabilities` | カーネル | 横断 client hook(runtime 能力 = connectivity / mediaQuery / storage / clipboard / cookie 読み等)。**client-only**。[0022](0022-capabilities-kernel.md) | remote IO(→ adapters)/ `server config` / 業務状態 / UI / ポリシー状態(client config の NEXT_PUBLIC リテラルは可) |
-| `stores` | カーネル | 横断 client 状態(複数 feature が共有する Zustand ストア = 選択状態 / ウィザード / グローバル UI トグル等)。**client-only**。[0023](0023-stores-kernel.md) | server state(→ RSC/adapters)/ 単一 feature の状態(→ feature 内 local)/ UI マークアップ(→ components)/ `server config` / secret / 業務ロジック |
-| `config` | カーネル | 型付き config(**目的別**・単一オブジェクト非採用。server config〈secret〉/ client config〈NEXT_PUBLIC リテラル〉。[0030](0030-environment-variable-management.md))。`process.env` 直読の唯一の場所 | UI / fetch / 業務ロジック |
-| `errors` | カーネル | エラー分類(protocol-agnostic なセンチネル分類)。全層から参照可。[0080](0080-error-handling.md) | 他カーネルへの依存 |
-| `logging` | カーネル | 構造化ログ。config 値は注入で受ける。[0081](0081-observability-logging.md) | — |
-| `observability` | カーネル | OTel / トレース。config 値は注入で受ける。[0081](0081-observability-logging.md) | — |
+| `app` | Slice | Driving adapter. **The file name decides the role** (`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server + model + the feature's `facade/` / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots etc.→config; [0025](0025-app-layer-elements.md)). `layout` may thinly mount cross-cutting UI/Providers ([0026](0026-layout-shell-mount.md)) | Business logic / orchestration / direct fetch (in a route-segment) |
+| `features/<name>` | Slice | Screen use cases (orchestrating data fetching / aggregating multiple APIs / form submission flows / optimistic updates) + slice-specific UI / hooks / Server Actions (those that need no assertion of the actor). The composition point of hooks + UI. Flat co-location inside | Dependencies on other features (see the promotion rule below) |
+| `model` | Kernel | Display ValueObjects / formatters / unit conversion / display validation rules / **display result types (`ActionState<T>`, etc.)**. Pure, with minimal dependencies | **Business rules** (a backend responsibility) / fetch / config |
+| `components` | Kernel | Cross-cutting UI (design-system-like pure UI components). May hold UI state such as toasts | fetch / config / business state / importing `capabilities` or `stores` |
+| `adapters` | Kernel | External connections only (backend API client / BFF fetch / analytics, etc.). **Two faces, server / client** ([0024](0024-adapters-server-client-split.md); server = config allowed, secrets / client = `"use client"`, no secrets. **The faces are a split by execution context, not elements of the boundary check**). The ownership boundary for the conversion that keeps generated and external types from leaking into inner layers | Business logic / UI / local browser APIs (→ `capabilities`) |
+| `capabilities` | Kernel | Cross-cutting client hooks (runtime capabilities = connectivity / mediaQuery / storage / clipboard / reading cookies, etc.). **client-only**. [0022](0022-capabilities-kernel.md) | Remote IO (→ adapters) / `server config` / business state / UI / policy state (NEXT_PUBLIC literals in client config are allowed) |
+| `stores` | Kernel | Cross-cutting client state (Zustand stores shared by multiple features = selection state / wizards / global UI toggles, etc.). **client-only**. [0023](0023-stores-kernel.md) | Server state (→ RSC/adapters) / state of a single feature (→ local inside the feature) / UI markup (→ components) / `server config` / secrets / business logic |
+| `config` | Kernel | Typed config (**per purpose**; no single object. server config ⟨secrets⟩ / client config ⟨NEXT_PUBLIC literals⟩; [0030](0030-environment-variable-management.md)). The only place that reads `process.env` directly | UI / fetch / business logic |
+| `errors` | Kernel | Error classification (protocol-agnostic sentinel classification). Referenceable from every layer. [0080](0080-error-handling.md) | Dependencies on other kernels |
+| `logging` | Kernel | Structured logging. Receives config values by injection. [0081](0081-observability-logging.md) | — |
+| `observability` | Kernel | OTel / tracing. Receives config values by injection. [0081](0081-observability-logging.md) | — |
 
-## 依存マトリクス
+## Dependency Matrix
 
-各カーネルが import してよい先(import する側 → 許可される先)。**本表を正とする**。
+What each kernel may import (importing side → allowed targets). **This table is authoritative.**
 
-| 層(import する側) | 許可される import 先 |
+| Layer (importing side) | Allowed import targets |
 | --- | --- |
-| `app/route-segment`(page/layout。[0025](0025-app-layer-elements.md)) | `features` / **入口の保護に限り** `adapters/server/auth` の確定認可(`verifySession()`)と `model` の述語([0079](0079-auth-frontend-seam.md))/ **計装の mount に限り** `observability` の trace 相関の取り出し([0082](0082-client-observability.md))(+ `layout` は横断 UI/Provider を `components`/`capabilities`/ポリシー seam から薄く mount 可。[0026](0026-layout-shell-mount.md))/ **Next.js の規約が route segment に置くことを要求する値に限り** `config`(root layout の `metadata` export が読む `config/site`、画面が読む `config/clock`。[0025](0025-app-layer-elements.md) の禁止事項の例外) |
-| `app/route-handler`(`route.ts`) | `adapters/server` / `model` / `errors` / `logging` / feature の `facade/` のみ(thin proxy・業務ロジック禁止。[0025](0025-app-layer-elements.md)。`architecture.ts` の `APP_ELEMENTS` が機械強制する) |
-| `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
-| `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外)。要求時に一覧を辿る `sitemap.ts` に限り `adapters/server` と対象 feature の `facade/`([0025](0025-app-layer-elements.md)) |
-| `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(描画を span へ載せる口。[0081](0081-observability-logging.md)) |
-| `adapters/server`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可層)**/ `observability`(ブラウザから中継したテレメトリを signal へ載せる口。[0082](0082-client-observability.md))。`server-only` |
-| `adapters/client`([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / client config(**`server config` 不可**・NEXT_PUBLIC リテラルは可)。`"use client"` |
-| `capabilities`([0022](0022-capabilities-kernel.md)) | `model` / `errors` / `logging` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
-| `stores`([0023](0023-stores-kernel.md)) | `model` / `errors` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
-| `components` | `model` / `errors`(`capabilities` / `stores` は import しない) |
-| `model` | **`errors` のみ**(安定核が知ってよいのはエラー分類だけ) |
-| `errors` | なし。`logging` / `observability` は config 値を注入で受ける |
+| `app/route-segment` (page/layout; [0025](0025-app-layer-elements.md)) | `features` / **only for protecting the entry point**, the definitive authorization in `adapters/server/auth` (`verifySession()`) and `model` predicates ([0079](0079-auth-frontend-seam.md)) / **only for mounting instrumentation**, extracting trace correlation from `observability` ([0082](0082-client-observability.md)) (+ `layout` may thinly mount cross-cutting UI/Providers from `components`/`capabilities`/policy seams; [0026](0026-layout-shell-mount.md)) / **only for values Next.js conventions require to be placed in a route segment**, `config` (`config/site`, read by the root layout's `metadata` export, and `config/clock`, read by screens; an exception to [0025](0025-app-layer-elements.md)'s prohibitions) |
+| `app/route-handler` (`route.ts`) | `adapters/server` / `model` / `errors` / `logging` / the feature's `facade/` only (thin proxy, no business logic; [0025](0025-app-layer-elements.md). `APP_ELEMENTS` in `architecture.ts` enforces this mechanically) |
+| `app/server-action` (`actions.ts`; [0025](0025-app-layer-elements.md)) | `adapters/server` / `features` / `model` / `errors` / `logging` (**the actor is asserted here**; no business logic) |
+| `app/metadata` (robots etc.) | `config` / `model` (start-up / build boundary exception). Only `sitemap.ts`, which walks a list at request time, may also import `adapters/server` and the target feature's `facade/` ([0025](0025-app-layer-elements.md)) |
+| `features` | `model` / `components` / `adapters` (public surface only) / **`capabilities`** / **`stores`** / `errors` / `logging` / `observability` (the endpoint for putting rendering on spans; [0081](0081-observability-logging.md)) |
+| `adapters/server` ([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / **`config` (= the only layer allowed `server config`)** / `observability` (the endpoint for putting telemetry relayed from the browser onto signals; [0082](0082-client-observability.md)). `server-only` |
+| `adapters/client` ([0024](0024-adapters-server-client-split.md)) | `model` / `errors` / `logging` / client config (**no `server config`**; NEXT_PUBLIC literals allowed). `"use client"` |
+| `capabilities` ([0022](0022-capabilities-kernel.md)) | `model` / `errors` / `logging` / client config (no `server config`; NEXT_PUBLIC literals allowed). `"use client"` |
+| `stores` ([0023](0023-stores-kernel.md)) | `model` / `errors` / client config (no `server config`; NEXT_PUBLIC literals allowed). `"use client"` |
+| `components` | `model` / `errors` (`capabilities` / `stores` are not imported) |
+| `model` | **`errors` only** (all the stable core may know is the error classification) |
+| `errors` | None. `logging` / `observability` receive config values by injection |
 
-- 表にない import 方向はすべて**禁止**(内向き依存原則。[0020](0020-adopted-architecture.md) 設計原則 1)
-- **入口の保護は `app/route-segment` の名指しの例外**である([0079](0079-auth-frontend-seam.md))。`verifySession()` を呼び、`model` の述語で判定し、満たさなければ `redirect()` する —— この 3 つだけを許し、取得も業務ロジックも許さない。例外にする理由は、保護が入口ごとに閉じていなければ意味を持たず、**route segment の集合を知っているのは app 層だけ**だからである。`features` へ回せないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけという同じマトリクスの帰結による(下記「Server Action の置き場」と同型)
-- **計装の mount も `app/route-segment` の名指しの例外**である([0082](0082-client-observability.md))。root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す —— これだけを許し、span の生成も記録も許さない。例外にする理由は、**ブラウザに OTel SDK を置かない**([0081](0081-observability-logging.md))結果としてブラウザが自分の trace を持たず、サーバ側の trace id を渡せるのが器を組む層だけだからである。渡さなければ、ブラウザ発の記録は中継要求の span に紐づき、測定が起きていない要求と親子になる
-- **`server config`(secret を持つ runtime config object)を import してよいのは `adapters/server` のみ**(実行時の唯一の許可層 = 境界アダプタ)。内側の層は server config でなく**値を引数で受け取る**(内側の層は config を知らない)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**。[0030](0030-environment-variable-management.md))は runtime object でなく公開定数のため、client 側の層(`adapters/client` / `capabilities` / Client Component)も import 可
-- **`features` は config を読まない**のだから、外から見た origin を知るのは `app` だけである。絶対 URL の組み立て(構造化データの `url`、canonical 等)は `app` が行い、feature は自分がどこにあるかを画面の正規 URL から受け取るか、持たない
-- **起動 / ビルド境界の例外**: config の検証実行点である `instrumentation.ts`(`src/` 直下)と `next.config.ts`(リポジトリルート)は config を import してよい。これらは 11 カーネルの**外側**にある起動 / ビルドのエントリである。`app/metadata`(robots等。[0025](0025-app-layer-elements.md))と `proxy.ts`(辿れる config は `environment.ts` → `application-environment.ts` まで。[0043](0043-middleware-policy.md))も同格の起動 / ビルド境界例外として config import を許す。ESLint boundaries では専用 element として扱う
+- Every import direction not in the table is **prohibited** (the inward-dependency principle; [0020](0020-adopted-architecture.md)'s first design principle)
+- **Protecting the entry point is a named exception for `app/route-segment`** ([0079](0079-auth-frontend-seam.md)). Call `verifySession()`, decide with a `model` predicate, and `redirect()` if it is not satisfied — only these three are allowed; neither fetching nor business logic is. The reason for the exception is that protection is meaningless unless it is closed per entry point, and **only the app layer knows the set of route segments**. It cannot be moved to `features` because, as a consequence of the same matrix, only `app` and `adapters` may touch `adapters/server/auth`, which contains the DAL (the same shape as "Where Server Actions live" below)
+- **Mounting instrumentation is also a named exception for `app/route-segment`** ([0082](0082-client-observability.md)). The root layout extracts the trace correlation of the active span and passes it to the client component it mounts — only this is allowed; neither creating nor recording spans is. The reason for the exception is that, as a result of **not putting the OTel SDK in the browser** ([0081](0081-observability-logging.md)), the browser has no trace of its own, and only the layer that assembles the layout shell can pass the server-side trace id. Without it, records originating in the browser are tied to the span of the relay request and become parent and child of a request in which no measurement took place
+- **Only `adapters/server` may import `server config` (the runtime config object holding secrets)** (the only layer allowed at runtime = the boundary adapter). Inner layers **receive values as arguments** rather than server config (inner layers do not know config). Note: client config (= NEXT_PUBLIC build-time inlined **literals**; [0030](0030-environment-variable-management.md)) is a public constant rather than a runtime object, so client-side layers (`adapters/client` / `capabilities` / Client Components) may import it too
+- **Since `features` does not read config**, only `app` knows the origin as seen from outside. Building absolute URLs (the `url` of structured data, canonical, etc.) is done by `app`; a feature receives where it lives from the screen's canonical URL, or does not hold it
+- **The start-up / build boundary exception**: `instrumentation.ts` (directly under `src/`) and `next.config.ts` (repository root), which are where config validation runs, may import config. These are start-up / build entries **outside** the 11 kernels. `app/metadata` (robots etc.; [0025](0025-app-layer-elements.md)) and `proxy.ts` (the config it can reach goes as far as `environment.ts` → `application-environment.ts`; [0043](0043-middleware-policy.md)) are allowed config imports as start-up / build boundary exceptions of the same standing. ESLint boundaries treats them as dedicated elements
 
-### `features ↔ features` 禁止と昇格ルール
+### No `features ↔ features` Imports, and the Promotion Rule
 
-feature 間の直接 import は**禁止**する。複数 feature から共有が必要になった要素は、その性質に応じてカーネルへ**昇格**させる:
+Direct imports between features are **prohibited**. An element that needs to be shared by multiple features is **promoted** to a kernel according to its nature:
 
-- 表示用ロジック(VO / フォーマッタ) → `model` へ
-- UI コンポーネント → `components` へ
-- 外部接続 → `adapters`(server / client の面を実行文脈で選ぶ。[0024](0024-adapters-server-client-split.md)) へ
-- **reactive な横断 client hook(runtime 能力) → `capabilities`([0022](0022-capabilities-kernel.md)) へ**
-- **横断する client 状態(stateful store) → `stores`([0023](0023-stores-kernel.md)) へ**(非横断〈単一 feature 内〉の状態は昇格せず feature 内 local。既定は [0060](0060-state-management.md))
+- Display logic (VOs / formatters) → to `model`
+- UI components → to `components`
+- External connections → to `adapters` (choose the server / client face by execution context; [0024](0024-adapters-server-client-split.md))
+- **Reactive cross-cutting client hooks (runtime capabilities) → to `capabilities` ([0022](0022-capabilities-kernel.md))**
+- **Cross-cutting client state (stateful stores) → to `stores` ([0023](0023-stores-kernel.md))** (non-cross-cutting ⟨within a single feature⟩ state is not promoted and stays local inside the feature; the default is [0060](0060-state-management.md))
 
-feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇格するか」を判断し、feature 間の横依存は作らない。
+As soon as something must cross features, decide "which kernel to promote it to", and do not create sideways dependencies between features.
 
-#### 昇格できないもの — feature の `facade/`
+#### What cannot be promoted — the feature's `facade/`
 
-**どのカーネルも受け取れないのに、2 つ目の feature が要るものがある。** それだけを **feature が `facade/` に置き**、他の feature から import してよい。該当するのは次の 2 種で、いずれも「上げ先が無い」ことが条件である。
+**Some things are needed by a second feature yet no kernel can accept them.** Only those are **placed by the feature in `facade/`**, and other features may import them. Two kinds qualify, and the condition for both is that "there is nowhere to promote them to".
 
-- **特定ドメインの語彙を持つ UI。** `components` はドメインを持たない部品の面なので受け取れない。`stores` に依存する UI も同じで、`components` は `stores` を import できない。つまり上の昇格表には**「特定ドメインの状態や語彙を持つ UI」の行を作れない**
-- **その feature が所有するルートの識別子と、その組み立て。** パス定数や URL 構築は `model` の受け入れ範囲(表示用の値・変換・検証規則)ではなく、上げると `model` がアプリの URL 空間の登録簿になり、画面を足すたびに太る。ルートを所有しているのはその feature なので、外へ見せる口だけを `facade/` へ出す。
-  **指す側は宛先を書き写さず、所有者の `facade/` から取る。** 書き写すと同じルートの定義が 2 つになり、
-  変えたときに古いほうが残る —— `facade/` がそもそも在る理由がこれである
+- **UI that carries the vocabulary of a specific domain.** `components` is the surface for components with no domain, so it cannot accept them. The same holds for UI that depends on `stores`: `components` cannot import `stores`. In other words, the promotion table above **cannot have a row for "UI that carries a specific domain's state or vocabulary"**
+- **Identifiers of routes the feature owns, and how they are built.** Path constants and URL construction are not within what `model` accepts (display values, conversions, validation rules); promoting them would turn `model` into a registry of the app's URL space that grows with every screen added. The feature owns the route, so only the endpoint it shows outward goes into `facade/`.
+  **The pointing side does not transcribe the destination; it takes it from the owner's `facade/`.** Transcribing creates two definitions of the same route, and
+  when it changes the old one remains — this is why `facade/` exists in the first place
 
-- **昇格が先である。** `facade/` に置いてよいのは、上の表のどのカーネルも受け取れないものに限る。純粋な表示ロジックは `model`、題材を知らない UI は `components`、横断 hook は `capabilities` へ上げる
-- **置くのは 2 つ目の feature が実際に必要としたときだけ**。1 つの feature しか使わないものは、その feature の内側([0027](0027-directory-structure.md) の co-location 方針)に置く。使う feature が 1 つに戻ったら下ろす
-- **`facade/` 以外は外から見えない。** 画面の下も feature 直下も、その feature の内部である
-- **上の 2 種は「他 feature へ見せる公開面」の列挙であって、`facade/` に置けるファイルの網羅ではない。**
-  公開面が依存する内部実装（判定の純関数など）も `facade/` に同居する。境界検査上 `facade/` は
-  **feature 内部を import できない**（区画が import できるものは `features` と同じで、`features`
-  自身を含まない）ため、公開面が使うものを feature 直下へ置くと、公開面からの参照がそこで落ちる。
-  つまり同居は便宜ではなく構造の帰結である。ただし**同居させたものが公開面になるわけではない** ——
-  他 feature が import してよいのは上の 2 種だけである
-- **名前が指すのは「この feature が外へ見せる顔」**である。`public` を採らないのは、Next.js では静的配信のディレクトリを指す語であり「Web への公開」へ連想が寄るため。`exports` を採らないのは、制約しているのが**外から import してよいか**であって export の集積ではないため(どのファイルも export は持つ)。役割を名指ししているので `common` / `shared` 等の禁止名とは性質が異なる
-- **包んで単純化する層ではない。** 部品をそのまま置く面であり、`facade/` のために wrapper を作らない
+- **Promotion comes first.** `facade/` may hold only what none of the kernels in the table above can accept. Pure display logic goes up to `model`, UI that does not know the subject matter to `components`, cross-cutting hooks to `capabilities`
+- **Place something only when a second feature actually needs it.** Anything only one feature uses lives inside that feature ([0027](0027-directory-structure.md)'s co-location policy). When the features using it drop back to one, move it back down
+- **Nothing outside `facade/` is visible from outside.** Both under a screen and directly under the feature are the feature's internals
+- **The two kinds above enumerate "the public surface shown to other features"; they are not an exhaustive list of files that may be placed in `facade/`.**
+  Internal implementation the public surface depends on (pure decision functions and the like) also lives in `facade/`. For the boundary check, `facade/`
+  **cannot import the feature's internals** (what the area can import is the same as `features`, and does not include `features`
+  itself), so placing what the public surface uses directly under the feature makes the public surface's reference to it fail there.
+  Co-location is therefore a structural consequence, not a convenience. However, **what is co-located does not thereby become public surface** —
+  other features may import only the two kinds above
+- **The name means "the face this feature shows outward".** `public` is not used because in Next.js it names the static-serving directory, and the association drifts toward "publishing to the Web". `exports` is not used because what is constrained is **whether something may be imported from outside**, not a collection of exports (every file has exports). It names a role, so it differs in nature from banned names such as `common` / `shared`
+- **It is not a layer that wraps things to simplify them.** It is a surface where components are placed as they are; no wrappers are made for the sake of `facade/`
 
-**例外は画面まるごとの story(`src/features/**/*.stories.tsx`)だけ**とする。画面が実際に組み合わせている別 feature の部品を含まない story は、その画面の確認に使えない。story は実行時の依存を持たない確認専用の面であり、そこで合成しても製品コードの依存方向は変わらない。したがってこの 1 種のファイルには app 層と同じ合成の権限を与える(`architecture.ts` の `ENTRY_POINTS` の `feature-story` カテゴリが機械強制する)。**製品コード側の出口は上記 5 つのみで、story を経由して型や実装を渡すことは禁止**する。
+**The only exception is whole-screen stories (`src/features/**/*.stories.tsx`).** A story that does not include the components of other features the screen actually combines cannot be used to check that screen. A story is a check-only surface with no runtime dependencies, and composing there does not change the dependency direction of product code. This one kind of file is therefore given the same composition rights as the app layer (the `feature-story` category of `ENTRY_POINTS` in `architecture.ts` enforces this mechanically). **On the product-code side the only exits are the five above, and passing types or implementations through a story is prohibited.**
 
-### 公開面は宣言で示す —— barrel を作らない
+### Declarations show the public surface — no barrels
 
-**barrel(`index.ts`)は作らない。** 公開面は `architecture.ts` の区画宣言と層 README の frontmatter が宣言するものであり、barrel はそれを曖昧にする —— 「index から export されているか」が事実上の公開面になり、宣言と食い違っても誰も咎めない。加えて barrel は循環参照の温床になり、tree-shaking も阻む。import は実ファイルを直接指す(生成物が持つ `index.ts` は生成器の出力であり、本規約の対象外)。
+**No barrels (`index.ts`) are made.** The public surface is what the area declarations in `architecture.ts` and the frontmatter of layer READMEs declare, and a barrel blurs that — "is it exported from index" becomes the de facto public surface, and nobody objects when it diverges from the declaration. Barrels also breed circular references and hinder tree-shaking. Imports point directly at the real file (an `index.ts` that a generated artifact contains is the generator's output and outside this convention).
 
-## feature 内で部品を分ける基準
+## Criteria for Splitting Components within a Feature
 
-昇格ルールが feature を**跨ぐ**分割を決めるのに対し、ここは**跨がない**分割 —— 1 つの feature の内側で部品・hook・純関数をどこで切るか —— を決める。
+Where the promotion rule decides splits that **cross** features, this section decides splits that **do not cross** — where to cut components, hooks and pure functions within one feature.
 
-**分けるのは次のいずれかに当たるときだけ**とする。
+**Split only when one of the following applies.**
 
-- **変わる理由が 2 つ以上ある**。変更の依頼が別々の出来事から来るなら、それは別の部品である
-- **技術的に境界が強制される**。`"use client"` の境界、Server Action、focus trap のように DOM を残せない機構、状態を form の子でしか読めない API など、仕様の側が分割を要求する
-- **状態の寿命と持ち主が違う**。操作の途中経過と表示、方針と器は、置き場所も差し替えのタイミングも別である
-- **2 つ目の参照が実際に出た**。予測では分けない(昇格ルールと同じ規律)。**3 回目まで待つ流儀(rule of three / AHA)は採らない** —— 待つのは「2 箇所目では正しく抽象化できない」という前提を置くことであり、その前提は設計を詰めれば成立しない。2 箇所目で**正しい抽象を選ぶ**ことを要求する
-- **React を外して検証できる形になる**。順序・判定・変換は純関数として切り出す
-- **状態や購読を伴う方針が、2 つ目の部品でも要る**。この場合だけ hook にする(純粋な計算は hook にしない。関数で足りる)
+- **There are two or more reasons to change.** If change requests come from separate events, they are separate components
+- **A boundary is technically enforced.** The specification side requires the split: the `"use client"` boundary, Server Actions, mechanisms that cannot keep the DOM such as a focus trap, APIs whose state can only be read by a form's children, and so on
+- **The lifetime and owner of state differ.** In-progress interaction versus display, and policy versus container, differ both in where they live and in when they are swapped
+- **A second reference has actually appeared.** Do not split on a prediction (the same discipline as the promotion rule). **The style of waiting for the third time (rule of three / AHA) is not adopted** — waiting presupposes that "you cannot abstract correctly at the second place", and that premise does not hold once the design is worked through. It is required to **choose the right abstraction** at the second place
+- **It becomes verifiable without React.** Ordering, decisions and conversions are extracted as pure functions
+- **A policy involving state or subscriptions is needed by a second component too.** Only in this case is it made a hook (pure computation is not made a hook; a function suffices)
 
-**分けないのは次のとき**である。過剰分割は、分割しないことと同じだけ設計を壊す。
+**Do not split in the following cases.** Over-splitting breaks a design just as much as not splitting.
 
-- props を素通しするだけになる(`Wrapper` / `Inner` のように、役割を名指しできない)
-- 常に一緒にしか変わらない
-- 使う場所が 1 つしかない方針を hook へ出す(早すぎる抽象)
-- 分割の結果として真偽値の props が増える。**これは分割ではなく合成へ直す合図**である
+- It would only pass props through (like `Wrapper` / `Inner`, the role cannot be named)
+- They always change together
+- Extracting into a hook a policy used in only one place (premature abstraction)
+- Splitting results in more boolean props. **That is the signal to fix it with composition, not splitting**
 
-「使う場所に置く」という主張(Locality of Behaviour)と、小ささより読み取りやすさを採る主張(CUPID)は、この「分けない基準」として取り込んでいる。分割そのものを否定する立場は採らない。
+The claim of "put it where it is used" (Locality of Behaviour) and the claim of favoring readability over smallness (CUPID) are taken in as these "do not split" criteria. A stance that rejects splitting itself is not adopted.
 
-**重複は 2 箇所目で統合する(DRY)。** `components` の部品が上流の実装を複製して持つのは、参照実装として取り込む決定([0052](0052-ui-component-policy.md))であって、DRY の例外ではない。
+**Duplication is consolidated at the second place (DRY).** Components in `components` holding a copy of an upstream implementation is a decision to take it in as a reference implementation ([0052](0052-ui-component-policy.md)), not an exception to DRY.
 
-判定に迷ったときは、次を順に当てる。**命名**(「〜と〜」でしか説明できないか)/ **早期 return**(別の姿を返しているか)/ **props**(2 群に割れ、片方しか使わない分岐があるか)/ **import**(系統が 2 つに割れているか)/ **state**(互いに無関係な状態が 2 つ以上あるか)。
+When unsure, apply the following in order. **Naming** (can it only be explained as "X and Y") / **early return** (does it return a different shape) / **props** (do they split into two groups, with branches that use only one) / **imports** (do they split into two families) / **state** (are there two or more mutually unrelated pieces of state).
 
-**Container / Presentational は採らない。** その分割線は [0040](0040-routing-rendering-strategy.md) の server(取得・編成)/ client(相互作用)に置き換わっており、実務上の線引きは `"use client"` を葉へ押し下げることである。
+**Container / Presentational is not adopted.** That dividing line has been replaced by [0040](0040-routing-rendering-strategy.md)'s server (fetching, orchestration) / client (interaction), and the practical line is pushing `"use client"` down to the leaves.
 
-**client の器へ server の出力を渡すときは `children` を使う。** 相互作用を持つ器の中に server が組み立てた内容を置く場合、内容を props の値として運ばず `children` として渡す。器が内容の型を知らずに済み、`"use client"` の境界が器の縁で止まる。
+**Use `children` to pass server output into a client container.** When placing server-assembled content inside a container with interaction, pass the content as `children` rather than carrying it as a prop value. The container need not know the content's type, and the `"use client"` boundary stops at the container's edge.
 
-**型で表せることは型で表す。** 状態の表し方・境界での確定・識別子の brand・`satisfies` の使い方は [0029](0029-type-design-discipline.md) が持つ。
+**What types can express is expressed in types.** How state is represented, settling at the boundary, branding identifiers and how to use `satisfies` are held by [0029](0029-type-design-discipline.md).
 
-**props は使う側の必要に合わせて分ける**(Interface Segregation)。1 つの部品が受け取る props に、特定の呼び出し元しか使わない群があるなら、それは 2 つの部品である。
+**Split props according to the needs of the using side** (Interface Segregation). If the props one component receives include a group used only by a particular caller, it is two components.
 
-### 別名で立て直さない考え方
+### Ideas not restated under another name
 
-次の考え方は**規則として別立てしない**。実体は既に別の形で規定されており、標語として並べると同じ規則が 2 か所に現れる。**同じ概念を思いついたときは、ここを見て既存の規定へ戻ること。**
+The following ideas are **not set up as separate rules**. Their substance is already prescribed in another form, and listing them as slogans would make the same rule appear in two places. **When you think of the same concept, look here and go back to the existing prescription.**
 
-| 考え方 | 実体の所在 |
+| Idea | Where the substance lives |
 | --- | --- |
-| Single source of truth | 「server state の写しを持たない」([0023](0023-stores-kernel.md))と「入力規則の SSOT は zod スキーマ」([0060](0060-state-management.md) / [0062](0062-form-input-validation.md)) |
-| YAGNI / KISS / Rule of Least Power | 上の「分けない基準」(予測では分けない / 早すぎる抽象 / 量を基準にしない) |
-| Conway の法則 | 採らない。組織構造を判断材料にしない。置き場所は責務で決める |
-| SOLID の S 以外(O / L / D) | 依存の向きは依存マトリクス、抽象への依存は seam を持つ ADR([0079](0079-auth-frontend-seam.md) 等)が個別に規定する |
+| Single source of truth | "Do not hold a copy of server state" ([0023](0023-stores-kernel.md)) and "the SSOT for input rules is the zod schema" ([0060](0060-state-management.md) / [0062](0062-form-input-validation.md)) |
+| YAGNI / KISS / Rule of Least Power | The "do not split" criteria above (do not split on a prediction / premature abstraction / quantity is not a criterion) |
+| Conway's law | Not adopted. Organizational structure is not an input to judgment. Where things go is decided by responsibility |
+| SOLID other than S (O / L / D) | The direction of dependencies is the dependency matrix; dependence on abstractions is prescribed individually by the ADRs that hold seams ([0079](0079-auth-frontend-seam.md), etc.) |
 
-**分割はテストと story の単位を動かす**([0090](0090-testing-strategy.md) の 1 モジュール 1 テスト / [0054](0054-ui-catalog-storybook.md))。実装が固まった後、テストを書く前に済ませる。
+**Splitting moves the unit of tests and stories** ([0090](0090-testing-strategy.md)'s one test per module / [0054](0054-ui-catalog-storybook.md)). Finish it after the implementation settles and before writing tests.
 
-## 命名規律
+## Naming Discipline
 
-カーネル・ディレクトリは **役割名のみ許可**する。名前だけから受入基準を推定できない名称は**禁止**する。
+Kernels and directories **may only have role names**. Names from which the acceptance criteria cannot be inferred are **prohibited**.
 
-- **禁止名**: `common` / `shared` / `utils` / `util` / `helpers` / `lib` / `misc` 等(役割を名指ししていない置き場)
-- **根拠**: 役割を名指しできない置き場が必要になった時点で、それは**設計の欠落**である。汎用ユーティリティの家は作らない。表示系ヘルパは `model`、非表示系は feature 内に置く。真に横断が必要になったら、**ADR 追補で役割を定義してから**作る
-- **適用例**: 境界アダプタ層は `lib` ではなく **`adapters`** と命名する
+- **Banned names**: `common` / `shared` / `utils` / `util` / `helpers` / `lib` / `misc`, etc. (places that do not name a role)
+- **Basis**: the moment a place that cannot name its role becomes necessary, that is **a gap in the design**. No home for general-purpose utilities is made. Display helpers go in `model`, non-display ones inside features. If something truly needs to cut across, create it **after defining its role in an ADR addendum**
+- **Example**: the boundary adapter layer is named **`adapters`**, not `lib`
 
-命名規律(名前が役割を宣言)と後述のカーネル受入基準(受入基準が中身を検査)で**二段防衛**とする。
+The naming discipline (the name declares the role) and the kernel acceptance criteria below (the criteria inspect the contents) form a **two-stage defense**.
 
-## カーネル受入基準
+## Kernel Acceptance Criteria
 
-カーネルへ要素を追加してよい基準は次の 4 つである。1〜3 は「横断参照されるものだけを置き、単一責務を保つ」というカーネル一般の方針、4 は表示層ロール定義([0011](0011-no-docker.md))の帰結である。
+There are four criteria for adding an element to a kernel. 1–3 are the general kernel policy "place only what is referenced across features and keep a single responsibility"; 4 is a consequence of the presentation-layer role definition ([0011](0011-no-docker.md)).
 
-1. **複数箇所から参照される、または外部ライブラリの wrap である**もののみ受け入れる
-2. **単一機能ヘルパ**(1 つの feature でしか使わないもの)は feature 内に置く。カーネルへ上げない
-3. **単一責務**を保つ(1 カーネル = 1 役割)
-4. **ビジネスロジック禁止**(バックエンド責務。[0011](0011-no-docker.md))
+1. Accept only what **is referenced from multiple places, or wraps an external library**
+2. **Single-feature helpers** (used by only one feature) are placed inside the feature. They are not promoted to a kernel
+3. Keep a **single responsibility** (one kernel = one role)
+4. **No business logic** (a backend responsibility; [0011](0011-no-docker.md))
 
-命名規律(禁止名)と本受入基準の両方を満たさない要素は、カーネルへ追加してはならない。
+An element that does not satisfy both the naming discipline (banned names) and these acceptance criteria must not be added to a kernel.
 
-## Server Action の置き場
+## Where Server Actions live
 
-Server Action は `actions.ts`(controller 相当)に置く。**どこの `actions.ts` かは、主体の断言が要るかで決まる**([0025](0025-app-layer-elements.md) の element 表が正)。
+Server Actions are placed in `actions.ts` (the controller counterpart). **Which `actions.ts` is decided by whether an assertion of the actor is needed** ([0025](0025-app-layer-elements.md)'s element table is authoritative).
 
-| 主体の断言 | 置き場 | element |
+| Assertion of the actor | Location | element |
 | --- | --- | --- |
-| 要る | `src/app/**/actions.ts` | `app/server-action` |
-| 要らない | `features/<name>/<screen>/actions.ts` | `features` |
+| Needed | `src/app/**/actions.ts` | `app/server-action` |
+| Not needed | `features/<name>/<screen>/actions.ts` | `features` |
 
-- **Server Action は公開 HTTP 口である**。action id を知る者は、その action を描いていない route へも POST できる。したがって役割・所有の判定を「この画面は保護されているから」で代替せず、**action の内側で断言する**
-- 断言に要る `adapters/server/auth` へ触れてよいのは `app` と `adapters` だけなので、断言を持つ action は `features` に住めない。置き場が 2 つに分かれるのはこの依存マトリクスの帰結であって、例外規定ではない
-- **feature の画面は送信先を自分で決めない。** 断言を持つ action を使う画面は、その action を `app` の route から props で受け取る。session の封緘は `adapters/server/auth` の領分で、そこへ触れてよいのが `app` だけである以上、送信先を知っているのも `app` だけだからである
-- driving adapter として扱い、**編成のみ**を行う(feature の編成関数 / server 関数を呼ぶ)。**業務ロジックは書かない**([0011](0011-no-docker.md) の thin proxy 決定と接続)
-- `"use client"` は feature 内の葉コンポーネントへ押し下げ、`page.tsx` は Server Component の薄い呼び口に留める([0040](0040-routing-rendering-strategy.md))
+- **A Server Action is a public HTTP endpoint.** Anyone who knows the action id can POST to it even on routes that do not render that action. So the role and ownership decisions are not substituted with "this screen is protected", but **asserted inside the action**
+- Only `app` and `adapters` may touch `adapters/server/auth`, which the assertion needs, so an action holding an assertion cannot live in `features`. Splitting into two locations is a consequence of this dependency matrix, not an exception clause
+- **A feature's screen does not decide its own submission target.** A screen using an action that holds an assertion receives that action as a prop from the `app` route. Sealing the session is the domain of `adapters/server/auth`, and since only `app` may touch it, only `app` knows the submission target
+- Treated as a driving adapter, it does **orchestration only** (calls the feature's orchestration functions / server functions). **It does not hold business logic** (connected to [0011](0011-no-docker.md)'s thin-proxy decision)
+- `"use client"` is pushed down to leaf components inside the feature, and `page.tsx` stays a thin Server Component call endpoint ([0040](0040-routing-rendering-strategy.md))
 
-## Enforcement(機械的強制)
+## Enforcement (Mechanical)
 
-層の依存方向は文書だけで守らず、ESLint boundaries 相当のプラグインで機械強制する。強制手段の全体方針は [0002](0002-formatter-linter.md)「ESLint による補完」節に接続する(フォーマットと biome が表現できる検査は biome、「import する側の層」を文脈に取る境界検査のみ ESLint で補完)。
+Layer dependency directions are not protected by documents alone; they are enforced mechanically with an ESLint boundaries-style plugin. The overall enforcement policy connects to [0002](0002-formatter-linter.md)'s use of ESLint as a complement to Biome (formatting and the checks Biome can express go to Biome; only the boundary check that takes "the layer doing the import" as context is complemented with ESLint).
 
-- **プラグイン選定(本 ADR で確定)**: 層境界検査には **`eslint-plugin-boundaries`** を採用する([0002](0002-formatter-linter.md) が「具体プラグインの選定と層定義マッピングは 0021 の Enforcement 節で定める」としている、その確定をここで行う)。「import する側の層」を element として文脈に取れるのが選定理由で、biome の `noRestrictedImports` では表現できない検査だからである(0002 の能力ベース分担に合致)
-- **層定義マッピング(本 ADR で確定)**: 上記「依存マトリクス」がそのまま element + allowed-import ルールの定義である。11 カーネルを element とし、`features` は feature 単位の element として `features ↔ features` を禁止する。**カーネルより細かい単位は 2 通りの割り方を持ち、混ぜない** —— `app` は**ファイル名が役割を決める**ので `boundaries/files` の category として宣言し(`architecture.ts` の `APP_ELEMENTS`。[0025](0025-app-layer-elements.md))、`adapters` は**区画**を要素として切り出す(`RESTRICTED_AREAS`。`gen/` / `http/` / `server/auth/`)。**`adapters/server` と `adapters/client` は要素ではない** —— 実行文脈の差であり、境界検査は層と区画の間しか見ないため、この軸は `import "server-only"` の build-time failure と [`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts) が別に持つ([0024](0024-adapters-server-client-split.md))。`server config`(runtime config object)を import してよいのは `adapters/server` と起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `proxy.ts`〈辿れる config は `environment.ts` → `application-environment.ts` まで。[0043](0043-middleware-policy.md)〉)、および **Next.js の規約が route segment に置くことを要求する値だけ**([0025](0025-app-layer-elements.md) 禁止事項の例外。`app/metadata` の `config/site` と、画面が「いま」として読む `config/clock`)(client config の NEXT_PUBLIC リテラルは client 側も可)。**本番の束に載らない開発専用画面(`page.dev.tsx`)が直読する形は別に実在し**、[0025](0025-app-layer-elements.md) の element 表がそれを記録している
-- **violation severity**: 境界違反は CI(`pnpm lint:ci`)でブロック(error)とする
-- **マトリクスの正(本 ADR で確定)**: 依存マトリクスの機械可読な表現は **`architecture.ts` 1 箇所**に置く。ESLint はそれを import して強制へ変換し、層 README の `imports-allowed` は**そこから生成する**(`pnpm gen:architecture`)。`pnpm check:architecture` は生成し直した結果と突き合わせ、差分があれば落とす。**人が書き写す形にしない** —— 完全一致を要求する宣言は値が他所から完全に決まっており、書き写しても正しさは 1 つも増えず、書き写しの誤りを検出する仕組みが要るだけになる。単一の正から生成し、差分ゼロを検査する形は `gofmt -l` / `prettier --check` / `cargo fmt --check` と同じである
-- **境界の宣言を持つのは要素の根だけ(本 ADR で確定)**: 根でないディレクトリは宣言を持たず、最も近い要素の根の宣言を継ぐ。解決は `scripts/architecture/` が `architecture.ts` の `BOUNDARY_ELEMENTS`(狭い要素が先)を読んで行い、**ESLint と同じ順序を同じ 1 箇所から受け取る**。**`KERNEL_PATTERNS` が要素を狭めている層(`features`)だけは、スライスの根に加えて層の根も宣言先になる** —— 狭めているのは強制の粒度であって依存の集合ではないので、両者は同じ集合を宣言する。順序を持つ解決器が 2 つあると、片方だけが区画を見ないまま動き、区画の README は自分の実効許可ではない値を書くことになる。**`forbidden` は生成しない** —— `fetch` / `business-logic` のようにカーネル名でない語彙を含む散文寄りの列で、`architecture.ts` に対応する値を持たない
-- **静的強制 vs 意味的監査の分担**: 静的な層境界強制は ESLint、意味的な層責務の監査(置いたものが README の受け入れ範囲に合っているか)は層 README の「監査の観点」を読む `arch-check` が担う
+- **Plugin choice (settled in this ADR)**: **`eslint-plugin-boundaries`** is adopted for the layer-boundary check (this settles what [0002](0002-formatter-linter.md) leaves to this ADR: the concrete plugin and the layer-definition mapping). It is chosen because it can take "the layer doing the import" as context as an element, a check Biome's `noRestrictedImports` cannot express (matching 0002's capability-based division)
+- **Layer-definition mapping (settled in this ADR)**: the "Dependency Matrix" above is itself the definition of the element + allowed-import rules. The 11 kernels are elements, and `features` uses per-feature elements to prohibit `features ↔ features`. **Units finer than a kernel are split in two ways, which are not mixed** — in `app` **the file name decides the role**, so it is declared as a category of `boundaries/files` (`APP_ELEMENTS` in `architecture.ts`; [0025](0025-app-layer-elements.md)), while `adapters` carves out **areas** as elements (`RESTRICTED_AREAS`: `gen/` / `http/` / `server/auth/`). **`adapters/server` and `adapters/client` are not elements** — they differ by execution context, and the boundary check only looks between layers and areas, so this axis is held separately by the build-time failure of `import "server-only"` and by [`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts) ([0024](0024-adapters-server-client-split.md)). `server config` (the runtime config object) may be imported by `adapters/server`, the start-up / build boundary (`instrumentation.ts` / `next.config.ts` / `proxy.ts` ⟨the config it can reach goes as far as `environment.ts` → `application-environment.ts`; [0043](0043-middleware-policy.md)⟩), and **only for values Next.js conventions require to be placed in a route segment** (an exception to [0025](0025-app-layer-elements.md)'s prohibitions: `config/site` in `app/metadata`, and `config/clock`, which screens read as "now") (NEXT_PUBLIC literals in client config are allowed on the client side too). **A shape in which development-only screens that do not ship in the production bundle (`page.dev.tsx`) read config directly also exists**, and [0025](0025-app-layer-elements.md)'s element table records it
+- **Violation severity**: boundary violations block on CI (`pnpm lint:ci`) (error)
+- **The matrix's authority (settled in this ADR)**: the machine-readable expression of the dependency matrix lives in **one place, `architecture.ts`**. ESLint imports it and turns it into enforcement, and the `imports-allowed` of layer READMEs is **generated from it** (`pnpm gen:architecture`). `pnpm check:architecture` compares against a fresh regeneration and fails on any diff. **It is not made something people transcribe** — a declaration that demands an exact match has its value fully determined elsewhere; transcribing adds no correctness at all and only creates the need for a mechanism to detect transcription errors. Generating from a single authority and checking for zero diff is the same shape as `gofmt -l` / `prettier --check` / `cargo fmt --check`
+- **Only element roots hold boundary declarations (settled in this ADR)**: non-root directories hold no declaration and inherit the declaration of the nearest element root. Resolution is done by `scripts/architecture/` reading `BOUNDARY_ELEMENTS` in `architecture.ts` (narrower elements first), and **it receives the same order as ESLint from the same single place**. **Only for a layer whose elements `KERNEL_PATTERNS` narrows (`features`) does the layer root also become a declaration site in addition to the slice roots** — what is narrowed is the granularity of enforcement, not the set of dependencies, so both declare the same set. With two resolvers that have an order, one of them runs without looking at areas, and an area's README ends up writing a value that is not its effective permission. **`forbidden` is not generated** — it is a prose-leaning column containing vocabulary that is not kernel names, such as `fetch` / `business-logic`, and has no corresponding value in `architecture.ts`
+- **Division between static enforcement and semantic audit**: static layer-boundary enforcement is ESLint; the semantic audit of layer responsibilities (does what was placed fit what the README accepts) is done by `arch-check`, which reads the "Audit Criteria" section of the layer READMEs
 
-## 層別 README 運用
+## Operating Per-Layer READMEs
 
-11 カーネル(`app` / `features` / `model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`)+ 各 feature に README を配置する。
+A README is placed in each of the 11 kernels (`app` / `features` / `model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`) + each feature.
 
-- 各 README を **層別アーキ監査とテスト観点の実行時読込元**(= 正)とする。監査する側が規約の写しを持つと、README を直しても監査が古い規約で裁く
-- 層別アーキ監査(`arch-check`)が読むのは各カーネル README の **`## 監査の観点`** 節である。列は `観点` / `判定の形` / `根拠` の 3 つで、frontmatter の `forbidden` のタグはそれぞれ 1 行を持ち、そのタグの読み方を定める。残りの行は、import の集合では表せない原則を README・`docs/rules.md`・ADR から引いて置く。判定の形は `violation`(README が受け入れないもの・`forbidden` への抵触)と `suggestion`(形が曖昧で人が裁くもの)の 2 つで、機械が既に落とす行は根拠の欄にその手段を書き、監査は再判定しない。feature の README はこの節を持たない —— 役割論はカーネル README が持つ
-- 各 README には、本 ADR の**命名規律**(役割名のみ・禁止名)と**カーネル受入基準**を転記し、その場で参照できるようにする
+- Each README is **the source read at runtime by the per-layer architecture audit and for test perspectives** (= the authority). If the auditing side held a copy of the conventions, fixing the README would still leave the audit judging by the old conventions
+- What the per-layer architecture audit (`arch-check`) reads is the **`## Audit Criteria`** section of each kernel README. Its columns are the three `Criterion` / `How It Is Judged` / `Basis`; each tag in the frontmatter's `forbidden` has one row, which sets how that tag is read. The remaining rows carry principles that cannot be expressed as a set of imports, drawn from the README, `docs/rules.md` and ADRs. The verdict shapes are two: `violation` (what the README does not accept, or a conflict with `forbidden`) and `suggestion` (shapes that are ambiguous and need a human to judge); for rows a machine already fails, the basis column names that means and the audit does not re-judge them. Feature READMEs do not have this section — the kernel READMEs hold the discussion of roles
+- Each README restates this ADR's **naming discipline** (role names only, banned names) and **kernel acceptance criteria** so they can be referred to on the spot
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 依存マトリクスにない import 方向(外向き依存 / `model` からの外部 import 等)
-- ❌ `features ↔ features` の直接 import(昇格ルールに従いカーネルへ上げる)。**例外は 2 つ** —— 画面まるごとの story と、**相手の `facade/`**(上記「昇格できないもの」)
-- ❌ `server config` を `adapters/server`(+ 起動 / ビルド境界)以外の層から import すること(内側は値を引数で受け取る)。※ client config の NEXT_PUBLIC リテラルは client 側の層も import 可
-- ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成（強制: ESLint `boundaries/no-unknown-files` が `src/` 直下に作った禁止名の置き場（中の JS/TS）を落とす。カーネル・feature の内側は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
-- ❌ barrel(`index.ts`)を作ること(公開面は `architecture.ts` と README frontmatter が宣言する)（強制: 散文 —— **寄せられる**（再輸出だけを持つ `index.ts` を biome `noBarrelFile` で落とし、生成物は override で外す形。規則は無い））
-- ❌ Server Action / `actions.ts` に業務ロジックを書くこと(編成のみ)
-- ❌ カーネルに単一機能ヘルパ・ビジネスロジックを置くこと(受入基準違反)
-- ❌ 行数・props の数・ファイルの大きさを基準に部品を分けること(基準は変わる理由であり、量ではない)（強制: 散文 —— **寄せられない**。分けた基準が量か変わる理由かは分割の動機で決まり、コードの形には現れない）
-- ❌ 役割を名指しできない分割(`Wrapper` / `Inner` / `Base` 等)を作ること（強制: 散文 —— **一部寄せられる**。`Wrapper` / `Inner` / `Base` 等の綴りは識別子・ファイル名の照合で落とせるが規則は無い。それ以外の名前が役割を名指しているかは名前の意味で決まる）
+- ❌ Import directions not in the dependency matrix (outward dependencies / external imports from `model`, etc.)
+- ❌ Direct `features ↔ features` imports (promote to a kernel per the promotion rule). **There are two exceptions** — whole-screen stories, and **the other feature's `facade/`** ("What cannot be promoted" above)
+- ❌ Importing `server config` from layers other than `adapters/server` (+ the start-up / build boundary) (inner layers receive values as arguments). Note: NEXT_PUBLIC literals in client config may be imported by client-side layers too
+- ❌ Creating places that do not name a role (`common` / `shared` / `utils` / `lib` / `misc`, etc.) (Enforcement: ESLint `boundaries/no-unknown-files` fails on banned-name places (the JS/TS inside them) created directly under `src/`. Inside kernels and features it is Prose — **mechanizable** (match each segment of the path against the list of banned names. No rule exists))
+- ❌ Creating barrels (`index.ts`) (the public surface is declared by `architecture.ts` and the README frontmatter) (Enforcement: Prose — **mechanizable** (fail `index.ts` files that hold only re-exports with Biome's `noBarrelFile`, excluding generated artifacts by override. No rule exists))
+- ❌ Writing business logic in Server Actions / `actions.ts` (orchestration only)
+- ❌ Placing single-feature helpers or business logic in a kernel (violates the acceptance criteria)
+- ❌ Splitting components by line count, number of props or file size (the criterion is reasons to change, not quantity) (Enforcement: Prose — **not mechanizable**. Whether the criterion for a split was quantity or reasons to change is decided by the motive for the split and does not show in the shape of the code)
+- ❌ Creating splits whose role cannot be named (`Wrapper` / `Inner` / `Base`, etc.) (Enforcement: Prose — **partly mechanizable**. Spellings such as `Wrapper` / `Inner` / `Base` could be caught by matching identifiers and file names, but no rule exists. Whether any other name names a role is decided by the name's meaning)
 
-## 補足
+## Notes
 
-- 本 ADR が持つ**依存ルール・命名規律**は [0140](0140-documentation-operations.md) のタクソノミーで rule 分類に当たる。「やったら違反」と機械的に言える形のものは `docs/rules.md` が本 ADR への逆参照付きで持ち、判断の根拠は本 ADR が持つ
+- The **dependency rules and naming discipline** this ADR holds fall into the rule class in the taxonomy of [0140](0140-documentation-operations.md). Those in a shape where one can mechanically say "doing this is a violation" are held by `docs/rules.md` with a back-reference to this ADR, and this ADR holds the reasoning behind them
 
-## 関連 ADR
+## Related ADRs
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 採用アーキテクチャの宣言(本 ADR の親決定)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — `capabilities` カーネル(横断 client hook。本 ADR のマトリクス / 昇格ルールに反映)
-- [0023-stores-kernel.md](0023-stores-kernel.md) — `stores` カーネル(横断 client 状態。本 ADR の責務テーブル / 依存マトリクス / 昇格ルール 5 出口目に反映)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 面分割と、その分離を持つのが境界検査ではないこと
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app` の route-segment/route-handler/server-action/metadata の 4 役割と、そのうち機械が宣言を持つ 3 つ（許可 import 先の正は同 ADR の element 表）
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — consent/flag の供給方針(source adapter + stateless props)
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — `layout` の横断 UI/Provider mount 例外
-- [0011-no-docker.md](0011-no-docker.md) — 表示層ロール定義(ビジネスロジック禁止 / thin proxy)。`model` のビジネスルール禁止・Server Action 編成限定の根拠
-- [0002-formatter-linter.md](0002-formatter-linter.md) — ESLint による層境界検査の補完(Enforcement の接続先)
-- [0027-directory-structure.md](0027-directory-structure.md) / [0028-naming-convention.md](0028-naming-convention.md) / [0030-environment-variable-management.md](0030-environment-variable-management.md) — 本 ADR の物理配置・命名・config 詳細を具体化する ADR
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — the declaration of the adopted architecture (this ADR's parent decision)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the `capabilities` kernel (cross-cutting client hooks; reflected in this ADR's matrix / promotion rule)
+- [0023-stores-kernel.md](0023-stores-kernel.md) — the `stores` kernel (cross-cutting client state; reflected in this ADR's responsibility table / dependency matrix / the fifth exit of the promotion rule)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — the server/client two-face split of `adapters`, and that the boundary check is not what holds that separation
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) — the four roles of `app` (route-segment/route-handler/server-action/metadata) and the three of them for which the machine holds declarations (the authority on allowed import targets is that ADR's element table)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — how consent/flags are supplied (source adapter + stateless props)
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — the exception for `layout` mounting cross-cutting UI/Providers
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role definition (no business logic / thin proxy). The basis for `model`'s ban on business rules and for limiting Server Actions to orchestration
+- [0002-formatter-linter.md](0002-formatter-linter.md) — ESLint complementing the layer-boundary check (where Enforcement connects)
+- [0027-directory-structure.md](0027-directory-structure.md) / [0028-naming-convention.md](0028-naming-convention.md) / [0030-environment-variable-management.md](0030-environment-variable-management.md) — the ADRs that make this ADR's physical placement, naming and config details concrete

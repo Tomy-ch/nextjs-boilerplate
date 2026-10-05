@@ -1,69 +1,69 @@
-# 動的 feature flag・段階的配信 seam(A-B / 段階的公開)
+# Dynamic Feature Flag and Progressive Delivery Seam (A-B / Progressive Rollout)
 
-[0030](0030-environment-variable-management.md) の env は **ビルド/起動時に凍結される immutable fail-fast** の値であり、**再デプロイなしで変えたい動的フラグ値**とは構造的に相性が悪い。本 ADR は、その env モデルが扱わない **動的 feature flag / A-B テスト / 段階的公開** を、**サービス非同梱(exclusion)+ 名前付き拡張点(seam)** として明文化する。flag 供給の物理的な「家」は [0031](0031-policy-state-supply.md)(source adapter + no-op 既定 + stateless props)が持ち、動的値の出所は [0071](0071-bff-api-integration.md)(runtime config 逃し先)が持つため、本 ADR はそれらを**再決定せず結線**し、**(a) 評価場所の既定**と **(b) 動的フラグ値の出所と [0030](0030-environment-variable-management.md) env との緊張の解消**、および **RSC キャッシュとの相互作用の保守的既定**のみを確定する。
+The env of [0030](0030-environment-variable-management.md) holds **immutable fail-fast** values **frozen at build / startup time**, and is structurally a poor fit for **dynamic flag values meant to change without a redeploy**. This ADR makes explicit **dynamic feature flags / A-B testing / progressive rollout**, which that env model does not handle, as **a service not bundled (exclusion) + a named extension point (seam)**. The physical "home" of flag supply is owned by [0031](0031-policy-state-supply.md) (source adapter + no-op default + stateless props), and the source of dynamic values by [0071](0071-bff-api-integration.md) (the runtime config escape hatch), so this ADR **wires them without re-deciding them**, and settles only **(a) the default place of evaluation**, **(b) the source of dynamic flag values and resolving its tension with the env of [0030](0030-environment-variable-management.md)**, and **a conservative default for the interaction with the RSC cache**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-**env([0030](0030-environment-variable-management.md)・ビルド/起動時固定・immutable fail-fast)は動的フラグ値と相性が悪い。** 動的 feature flag / A-B / 段階的公開は「[0030](0030-environment-variable-management.md) の env 既定モデルの外側にある runtime 関心事」であり、seam なしで後入れすると [0021](0021-frontend-responsibility.md) の依存マトリクスに収まらない(段階的公開は RSC / キャッシュ / proxy すべてに触る横断関心事)。
+**Env ([0030](0030-environment-variable-management.md); fixed at build / startup time; immutable fail-fast) is a poor fit for dynamic flag values.** Dynamic feature flags / A-B / progressive rollout are "a runtime concern outside the env default model of [0030](0030-environment-variable-management.md)", and adding them later without a seam does not fit the dependency matrix of [0021](0021-frontend-responsibility.md) (progressive rollout is a cross-cutting concern touching RSC, the cache and the proxy alike).
 
-この seam の**物理的な置き場**は既に確定している:
+The **physical placement** of this seam is already settled:
 
-- **flag 供給**は [0031](0031-policy-state-supply.md) が **source adapter(生値読み)+ no-op 既定 + stateless props** の 3 分解で確定済み。**動的フラグ値の出所(runtime config 逃し先)**は [0071](0071-bff-api-integration.md) が持つ(**評価場所を server 既定とする決定自体は本 ADR §1 が下す**。0071 は「値の出所」を、本 ADR は「評価場所」を確定する分担)。
+- **Flag supply** is already settled by [0031](0031-policy-state-supply.md) as the three-way split of **source adapter (reads raw values) + no-op default + stateless props**. **The source of dynamic flag values (the runtime config escape hatch)** is owned by [0071](0071-bff-api-integration.md) (**the decision itself to make the server the default place of evaluation is made by §1 of this ADR**; the division of labour is that 0071 settles "where values come from" and this ADR settles "where they are evaluated").
 
-したがって本 ADR は**新カーネルも新しい家も立てない**。既存の家を結線したうえで、なお未確定の 2 点 —— **評価場所の既定**、および **動的フラグ値の出所と [0030](0030-environment-variable-management.md) env の関係** —— を、設計思想([0010](0010-standards-and-non-lockin.md) 標準準拠・非ロックイン)からべき論で確定する。
+This ADR therefore **sets up neither a new kernel nor a new home**. Having wired the existing home, it settles the two points still open — **the default place of evaluation**, and **the relationship between the source of dynamic flag values and the env of [0030](0030-environment-variable-management.md)** — as a matter of principle from the design philosophy ([0010](0010-standards-and-non-lockin.md): standards conformance, no lock-in).
 
-同じ「往復モデルの外側の runtime seam」である **双方向/ストリーム通信(WebSocket / SSE)** は subject が異なるため [0074](0074-runtime-communication-seam.md) が持ち、本 ADR には含めない。
+**Bidirectional / streaming communication (WebSocket / SSE)**, which is likewise "a runtime seam outside the round-trip model", has a different subject, so it is owned by [0074](0074-runtime-communication-seam.md) and not included in this ADR.
 
-## 決定
+## Decision
 
-### flag / A-B / 段階的公開サービス本体は非同梱(exclusion)
+### The flag / A-B / progressive rollout service itself is not bundled (exclusion)
 
-SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を本リポジトリに埋め込まない([0031](0031-policy-state-supply.md) と同じ立場)。供給方針(生値読み + no-op 既定 + stateless props 供給)は [0031](0031-policy-state-supply.md) が確定済みであり、本 ADR は**再決定しない**。以下の 2 点のみ確定する。
+SaaS (LaunchDarkly / Statsig / Unleash / GrowthBook, etc.) is not embedded in this repository (the same stance as [0031](0031-policy-state-supply.md)). The supply policy (raw value read + no-op default + stateless props supply) is already settled by [0031](0031-policy-state-supply.md), and this ADR **does not re-decide it**. Only the following two points are settled.
 
-### 1. 評価場所の既定 = server(vendor-independent 根拠付き)
+### 1. Default place of evaluation = server (with vendor-independent grounds)
 
-フラグ評価は既定で **server 側(RSC / route handler / Server Action)** で行う(**server 評価を既定とする決定は本 ADR が下す**。[0071](0071-bff-api-integration.md) の runtime config 逃し先〈動的値の出所〉と結線する)。独立根拠:
+Flag evaluation is done by default on **the server side (RSC / route handler / Server Action)** (**the decision to make server evaluation the default is made by this ADR**; it is wired to the runtime config escape hatch of [0071](0071-bff-api-integration.md) (the source of dynamic values)). Independent grounds:
 
-- ① フラグ判定ロジックと SaaS SDK を **client bundle から排除**できる(バンドルサイズ)。
-- ② client 評価で起きる **flag flicker / CLS を回避**できる(レイアウト安定)。
+- (1) Flag decision logic and SaaS SDKs can be **excluded from the client bundle** (bundle size).
+- (2) **Flag flicker / CLS** caused by client evaluation **can be avoided** (layout stability).
 
-いずれもプラットフォーム中立な web パフォーマンス根拠であり、「フレームワーク推奨」ではない([0010](0010-standards-and-non-lockin.md) の vendor-independent 正当化)。
+Both are platform-neutral web performance grounds, not "framework recommendations" (the vendor-independent justification of [0010](0010-standards-and-non-lockin.md)).
 
-### 2. 動的フラグ値の出所と [0030](0030-environment-variable-management.md) env の関係整理(緊張の解消)
+### 2. Sorting out the relationship between the source of dynamic flag values and the env of [0030](0030-environment-variable-management.md) (resolving the tension)
 
-「フラグ値を env に載せる」と [0030](0030-environment-variable-management.md)(env = ビルド/起動時に凍結・immutable fail-fast)と衝突する。本 ADR はこれを**衝突させずに分岐で解く**:
+"Putting flag values in env" collides with [0030](0030-environment-variable-management.md) (env = frozen at build / startup time; immutable fail-fast). This ADR **resolves it by branching, without a collision**:
 
-- **再デプロイ単位で固定するフラグ**(deploy 単位の kill switch 等)= **[0030](0030-environment-variable-management.md) の env / 目的別 config で持ってよい**(凍結が正しい振る舞い)。
-- **再デプロイなしで変えたい動的フラグ** = env に載せない。[0030](0030-environment-variable-management.md) の周辺ルール「再デプロイなしで変えたい値は **BFF runtime config へ逃がす**」([0071](0071-bff-api-integration.md) 補足)に従い、**リクエスト時に source adapter(cookie / BFF runtime config / 外部サービス)から読む**([0031](0031-policy-state-supply.md) の source adapter)。
+- **Flags fixed per redeploy** (a per-deploy kill switch, etc.) = **may be held in the env / purpose-scoped config of [0030](0030-environment-variable-management.md)** (freezing is the correct behaviour).
+- **Dynamic flags meant to change without a redeploy** = not put in env. Following the surrounding rule of [0030](0030-environment-variable-management.md), "values meant to change without a redeploy **escape to the BFF runtime config**" (quoted in the Notes of [0071](0071-bff-api-integration.md)), they are **read at request time from a source adapter (cookie / BFF runtime config / external service)** (the source adapter of [0031](0031-policy-state-supply.md)).
 
-これにより [0030](0030-environment-variable-management.md) と本 ADR は**補完関係**になり矛盾しない(env は静的フラグ、runtime config / source adapter は動的フラグ)。具体ソース(cookie か BFF runtime config か外部か)は用途依存で [0031](0031-policy-state-supply.md) / 実装側が持つ。
+This makes [0030](0030-environment-variable-management.md) and this ADR **complementary**, with no contradiction (env for static flags, runtime config / source adapter for dynamic flags). The concrete source (cookie, BFF runtime config or external) depends on the use case and is owned by [0031](0031-policy-state-supply.md) / the implementation side.
 
-### 3. RSC キャッシュとの相互作用(保守的立場)
+### 3. Interaction with the RSC cache (conservative stance)
 
-ユーザ / コホートで変わるフラグ評価結果を、キャッシュ / PPR の static 出力へ**誤って焼き込まない**。フラグで分岐する内容は **dynamic(uncached)扱い、またはコホートを cache key に含める**ことを既定とする。Cache Components は有効([0041](0041-cache-components-decision.md))であり、殻と穴の分かれ目は器の形で決まるため、フラグで分岐する内容は穴の内側で解く。**フラグ評価 × cache key の具体設計は用途依存**のため、本 ADR では上記の保守的既定のみ定め、**具体は実装へ委ねる**。
+Flag evaluation results that vary by user / cohort are **not baked by mistake** into the cache / static PPR output. Content that branches on a flag is by default **treated as dynamic (uncached), or the cohort is included in the cache key**. Cache Components is enabled ([0041](0041-cache-components-decision.md)), and the dividing line between the static shell and dynamic holes is decided by the shape of the layout shell, so content that branches on a flag is resolved inside a dynamic hole. **The concrete design of flag evaluation × cache key depends on the use case**, so this ADR defines only the conservative default above and **leaves the specifics to the implementation**.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.md) の供給 seam に乗せる)（強制: 持たない —— 採らない決定。flag / A-B / 段階的公開の SaaS は依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
-- ❌ **動的フラグ値を [0030](0030-environment-variable-management.md) の env / 目的別 config 経由に載せること**(env は凍結。動的値は runtime config / source adapter へ逃がす)（強制: 散文 —— **寄せられない**。フラグが再デプロイなしで変えたい値かは運用の意図で決まり、コードの形からは決まらない）
-- ❌ フラグ評価ロジック / SaaS SDK を既定で client bundle に載せること(評価既定 = server。flicker / CLS 回避・バンドル排除)（強制: 散文 —— **一部寄せられる**。SaaS SDK を client から引く形は `no-restricted-imports` で落とせるが規則は無い。評価の判定を client に書いたかは判定の意味で決まる）
-- ❌ ユーザ / コホート依存のフラグ評価結果をキャッシュ / PPR static 出力へ焼き込むこと(dynamic 扱い or cohort を cache key に含める)
+- ❌ Bundling the flag / A-B / progressive rollout service itself (exclusion; ride on the supply seam of [0031](0031-policy-state-supply.md)) (Enforcement: none — a decision not to adopt. Flag / A-B / progressive rollout SaaS would appear in the `package.json` diff as an added dependency, and not bundling it is itself the state)
+- ❌ **Putting dynamic flag values through the env / purpose-scoped config of [0030](0030-environment-variable-management.md)** (env is frozen; dynamic values escape to the runtime config / source adapter) (Enforcement: Prose — **not mechanizable**. Whether a flag is a value meant to change without a redeploy is decided by operational intent, not by the shape of the code)
+- ❌ Putting flag evaluation logic / SaaS SDKs in the client bundle by default (evaluation default = server; avoids flicker / CLS and keeps them out of the bundle) (Enforcement: Prose — **partly mechanizable**. Pulling a SaaS SDK from the client could be rejected with `no-restricted-imports`, but no rule exists. Whether an evaluation decision was written on the client is decided by the meaning of the decision)
+- ❌ Baking user / cohort-dependent flag evaluation results into the cache / static PPR output (treat as dynamic, or include the cohort in the cache key)
 
-## 補足
+## Notes
 
-- 本 ADR は保守的に **評価場所 = server 既定 + 動的値 = runtime config / source adapter 逃し + cache 焼き込み回避**の指針までを定め、具体機構(source の選択・cache key 設計)は実装側へ委ねる。
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーで **exclusion(+ 拡張点)** 分類に属する。exclusion 本体(非同梱宣言)と named seam(拡張点)を併記する型に従う。
+- This ADR conservatively defines only the guideline of **evaluation place = server default + dynamic values = escape to runtime config / source adapter + avoiding baking into the cache**, and leaves the concrete mechanisms (choice of source, cache key design) to the implementation side.
+- Under the taxonomy of [0140](0140-documentation-operations.md), this ADR belongs to the **exclusion (+ extension point)** classification. It follows the type that writes the exclusion itself (the not-bundled declaration) alongside the named seam (the extension point).
 
-## 関連 ADR
+## Related ADRs
 
-- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md)— 双方向/ストリーム通信 seam(同じ「往復モデルの外側の runtime seam」に属する別主題)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md)— flag 供給(source adapter + no-op + stateless props。本 ADR は再決定せず結線)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md)— 動的フラグ値の runtime config 逃し先(値の出所。本 ADR §1 の server 評価が結線する先。評価場所の既定は本 ADR が確定)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md)— env = ビルド/起動時固定(静的フラグの家)。動的フラグは runtime config へ逃がす境界
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components 有効(フラグ評価 × cache key 相互作用の依存先)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 非ロックインの vendor-independent 正当化(server 評価既定の独立根拠)
-- [0131-cookie-consent.md](0131-cookie-consent.md)— 同じ [0031](0031-policy-state-supply.md) 供給 seam に乗るポリシー状態(consent。機構は本体同梱)
+- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) — bidirectional / streaming communication seam (a separate subject that likewise belongs to "runtime seams outside the round-trip model")
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — flag supply (source adapter + no-op + stateless props; this ADR wires it without re-deciding)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the runtime config escape hatch for dynamic flag values (the source of values; where the server evaluation of §1 of this ADR is wired; the default place of evaluation is settled by this ADR)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env = fixed at build / startup time (the home of static flags); the boundary at which dynamic flags escape to runtime config
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components enabled (what the flag evaluation × cache key interaction depends on)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — vendor-independent justification for no lock-in (the independent grounds for the server evaluation default)
+- [0131-cookie-consent.md](0131-cookie-consent.md) — policy state riding on the same supply seam of [0031](0031-policy-state-supply.md) (consent; the mechanism is bundled in the core)

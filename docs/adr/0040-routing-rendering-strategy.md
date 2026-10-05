@@ -1,111 +1,111 @@
-# ルーティング・レンダリング戦略
+# Routing and Rendering Strategy
 
-App Router の採用を追認し、**Server / Client Components の境界 / Server Actions の採否 / `page.tsx` の責務 / レンダリングモード(CSR・SSR・SSG・ISR / Next.js 16 のキャッシュ)** の方針を定める。本 ADR は [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) が定めた層構造の上で、App Router の各機構をどう使うかを確定する。
+This ADR ratifies the adoption of the App Router and defines the policy on **the Server / Client Components boundary / whether to adopt Server Actions / the responsibility of `page.tsx` / rendering modes (CSR, SSR, SSG, ISR / Next.js 16 caching)**. On top of the layer structure defined by [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md), it fixes how each App Router mechanism is used.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリは **Next.js 16 / React 19** を採用しており、レンダリング・キャッシュの既定が従来の Next.js と異なる。実装前に `node_modules/next/dist/docs/` を確認した結果、以下を前提とする:
+This repository adopts **Next.js 16 / React 19**, whose rendering and caching defaults differ from earlier Next.js. Having checked `node_modules/next/dist/docs/` before implementation, the following are taken as premises:
 
-- Server Components が既定。`"use client"` はファイル先頭で **Server / Client のモジュールグラフ境界**を宣言し、それ以下の import・子は**すべて client バンドル**に含まれる(`getting-started/server-and-client-components`)
-- Server Function(Server Action)は `"use server"` ディレクティブで定義し、Server Component にインライン、または `"use server"` ファイルにまとめて Client Component から import 起動できる(`getting-started/mutating-data`)
-- `fetch` は**既定でキャッシュされない**(Cache Components の有無によらず。`getting-started/fetching-data`)。`use cache` ディレクティブによる opt-in キャッシュと、`<Suspense>` / `use cache` を伴う **Partial Prerendering (PPR)** は、**Cache Components(`next.config.ts` の `cacheComponents: true`)を有効化したときの機構**である(PPR は Cache Components 有効時の既定挙動。`getting-started/caching` / `api-reference/directives/use-cache`)。無効時は従来モデル(`cache: 'force-cache'` 等の opt-in)が適用される(`guides/caching-without-cache-components`)
+- Server Components are the default. `"use client"` at the top of a file declares the **Server / Client module-graph boundary**, and everything imported and every child below it is **included in the client bundle** (`getting-started/server-and-client-components`)
+- A Server Function (Server Action) is defined with the `"use server"` directive, either inline in a Server Component or gathered in a `"use server"` file that a Client Component imports and invokes (`getting-started/mutating-data`)
+- `fetch` is **not cached by default** (regardless of Cache Components; `getting-started/fetching-data`). Opt-in caching via the `use cache` directive, and **Partial Prerendering (PPR)** with `<Suspense>` / `use cache`, are **mechanisms available when Cache Components (`cacheComponents: true` in `next.config.ts`) is enabled** (PPR is the default behavior with Cache Components enabled; `getting-started/caching` / `api-reference/directives/use-cache`). When it is disabled, the earlier model (opt-in via `cache: 'force-cache'`, etc.) applies (`guides/caching-without-cache-components`)
 
-## 決定
+## Decision
 
-### App Router + Server Components 既定
+### App Router + Server Components by default
 
-- **App Router 単独**を採用する(Pages Router は採用しない)。ルート構造・特殊ファイル・セグメント記法は Next.js 規約に従う([0028](0028-naming-convention.md))
-- **Server Components を既定**とする。`"use client"` を付けないコンポーネントはサーバで実行される
+- Adopt **the App Router alone** (the Pages Router is not adopted). Route structure, special files and segment notation follow the Next.js conventions ([0028](0028-naming-convention.md))
+- **Server Components are the default**. A component without `"use client"` runs on the server
 
-### `"use client"` は feature 内の葉へ押し下げる
+### Push `"use client"` down to the leaves inside a feature
 
-- `"use client"` は **feature 内の、クライアント機能(state / event / ブラウザ API)を実際に使う葉コンポーネント**にのみ付ける([0021](0021-frontend-responsibility.md)「Server Action の置き場」の規約が正)
-- 理由: `"use client"` 境界より内側は import・子まで丸ごと client バンドルに入るため、境界を上位(`layout.tsx` / `page.tsx`)に置くと不要に client 化が広がる。境界を葉へ下げて client バンドルを最小化する
-- `page.tsx` / `layout.tsx` は Server Component のまま保つ
+- `"use client"` is placed only on **leaf components inside a feature that actually use client features (state / events / browser APIs)** ([0021](0021-frontend-responsibility.md), which owns where Server Actions live, is the authority for this rule)
+- Reason: everything inside a `"use client"` boundary, down to imports and children, goes wholesale into the client bundle, so putting the boundary high up (`layout.tsx` / `page.tsx`) spreads client conversion needlessly. Lowering the boundary to the leaves minimizes the client bundle
+- `page.tsx` / `layout.tsx` stay Server Components
 
-### Server Actions を採用する
+### Adopt Server Actions
 
-- Server Action を**採用**し、`"use server"` で定義する。置き場は **feature 内 `actions.ts`**(controller 相当。[0021](0021-frontend-responsibility.md) が正)
-- driving adapter として**編成のみ**を行い、**業務ロジックは書かない**([0011](0011-no-docker.md) thin proxy / [0020](0020-adopted-architecture.md) 設計原則 4 / [0021](0021-frontend-responsibility.md))
+- Server Actions are **adopted** and defined with `"use server"`. Their home is **`actions.ts` inside a feature** (the controller equivalent; [0021](0021-frontend-responsibility.md) is the authority)
+- As a driving adapter it performs **orchestration only** and **writes no business logic** ([0011](0011-no-docker.md) thin proxy / [0020](0020-adopted-architecture.md) design principle 4 / [0021](0021-frontend-responsibility.md))
 
-### `page.tsx` = 薄い driving adapter
+### `page.tsx` = a thin driving adapter
 
-- ルートセグメント(`app/` 配下)と `page.tsx` は **feature の画面 RSC を呼ぶ薄い呼び口**([0020](0020-adopted-architecture.md) 設計原則 4)。編成・業務ロジックを抱えない。コード分割の第一軸は route ではなく feature
+- Route segments (under `app/`) and `page.tsx` are **thin call sites that call a feature's screen RSC** ([0020](0020-adopted-architecture.md) design principle 4). They hold no orchestration or business logic. The primary axis of code splitting is the feature, not the route
 
-### レンダリングモードは特定モードを強制しない
+### Rendering modes: no particular mode is enforced
 
-- 本リポジトリは **CSR / SSR / SSG / ISR のいずれのモードも閉ざさない**。特定モードを一律強制せず、静的シェルのプリレンダーと request-time のストリーミングの**両対応を保つ**
-- 導出根拠: [0011](0011-no-docker.md) の想定デプロイは静的 CDN と SSR PaaS の**両方が主想定**であり、本リポジトリはどのモードも前提にしない
-- **モードの選択は機密性に従属する。** Server Components 既定は**性能と UX 上の既定値**であって、PII / user-scoped データの機密性を上回る制約ではない。PII を含む範囲のモード選択は [0112](0112-data-classification-cache-boundary.md)(不変条件 1 / 決定 8・10)が正であり、**PII のために SSR / PPR を諦めることは許可される**(ただし CSR にする範囲は最小の Client Island に限る)
-- **ただし、どちらで描くかを画面が宣言することはない。** Cache Components が有効なので([0041](0041-cache-components-decision.md))、殻と穴の分かれ目は器の形そのもの —— 何を `<Suspense>` の外に置き、何を内に置くか —— で決まり、segment config(`export const dynamic`)は併存しない。取得・`params` / `searchParams`・cookie・認可の判定・実時計は、すべて穴の内側で解く。**殻を配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る。**機械で確かめられるのは殻を配れたかどうかまで**で、「殻へ入れてよい内容か」は成果物から読めない
-- **描画モードは page 単体ではなく、layout の連なりを含めた route 全体で決まる。** 祖先の器が request 時の API(`cookies()` / `headers()` 等)を穴の外で読めば、その配下の画面は**自分が取得を持たなくても**殻を配れなくなる。画面側から逃げる手立ては無い。したがって**固めたい画面を含む route group の器は、request 時の読みを穴の内側に閉じるか、持たない**。器がその読みを殻の側で必要とするなら、固めたい画面をその器の外へ出す(器を分ける判断は [0026](0026-layout-shell-mount.md))
-- **宣言は行儀ではなく、この伝播を検知する唯一の手段である。** 前段のとおり機械が読めるのは殻を配れたかまでで、**「配れるのに配れていない」は成果物から読めない**。宣言の無い画面が器の都合でブロックしても何も赤くならず、静的にできる画面が黙って動的なまま座り続ける。`instant = false` を名乗る画面を「殻を配れない画面だけ」に限っておけば、宣言の無い画面がブロックした時点で `scripts/render-mode` が落とし、器へ足された読みが露見する
-- **キャッシュは opt-in とする**(`fetch` 既定 uncached を前提に `use cache`)。ただし**具体的なキャッシュ方針(どこを `use cache` するか / `cacheLife`)は本 ADR で固定しない**。データ取得のキャッシュ・再検証設計は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が正。`<Suspense>` 境界をどの単位で置くかは下の「境界の粒度」が持ち、`loading.tsx` / fallback が出す待機表示の責務は [0080](0080-error-handling.md) が持つ
-- **`Cache Components`(PPR を既定化する設定)の有効化判断は [0041](0041-cache-components-decision.md) が持つ**(採用)。本 ADR は「モードを強制しない」ことのみ確定する
+- This repository **closes off none of CSR / SSR / SSG / ISR**. It does not uniformly enforce a particular mode and **keeps support for both** prerendering the static shell and streaming at request time
+- Derivation: the deployments assumed by [0011](0011-no-docker.md) have **both** static CDN and SSR PaaS as primary targets, and this repository presupposes no mode
+- **The choice of mode is subordinate to confidentiality.** Server Components by default is **a default for performance and UX**, not a constraint that overrides the confidentiality of PII / user-scoped data. Mode selection for ranges that contain PII is governed by [0112](0112-data-classification-cache-boundary.md) (invariant 1 / Decisions 8 and 10), and **giving up SSR / PPR for PII is permitted** (but the range made CSR is limited to the smallest Client Island)
+- **However, a screen never declares which way it renders.** Because Cache Components is enabled ([0041](0041-cache-components-decision.md)), the split between static shell and dynamic hole is decided by the shape of the layout shell itself — what is placed outside `<Suspense>` and what inside — and segment config (`export const dynamic`) does not coexist with it. Fetching, `params` / `searchParams`, cookies, authorization decisions and the real clock are all resolved inside the dynamic hole. **Only a screen that cannot serve a static shell names itself with `export const instant = false`, with a reason.** Declaration and reality are cross-checked by `scripts/render-mode` against `compute` in `prerender-manifest.json`, looking both at routes that block without a declaration and at routes with a surplus declaration. **What a machine can confirm stops at whether a static shell could be served**; "whether the content may go into the static shell" cannot be read from the build output
+- **The rendering mode is decided not by the page alone but by the whole route, including the chain of layouts.** If an ancestor layout shell reads request-time APIs (`cookies()` / `headers()`, etc.) outside a dynamic hole, the screens below it can no longer serve a static shell **even if they themselves fetch nothing**. The screen side has no way to escape. Therefore **the layout shell of a route group that contains screens meant to be static either confines its request-time reads inside a dynamic hole or does not have them**. If the layout shell needs that read on the static-shell side, move the screens meant to be static outside that layout shell (the decision to split layout shells is [0026](0026-layout-shell-mount.md))
+- **The declaration is not etiquette but the only means of detecting this propagation.** As the previous item says, what a machine can read stops at whether a static shell could be served, and **"could serve one but does not" cannot be read from the build output**. When a screen without a declaration blocks because of its layout shell, nothing turns red, and a screen that could be static sits silently dynamic. If screens naming `instant = false` are limited to "only screens that cannot serve a static shell", `scripts/render-mode` fails as soon as an undeclared screen blocks, exposing the read added to the layout shell
+- **Caching is opt-in** (`use cache`, on the premise that `fetch` is uncached by default). However, **the concrete caching policy (where to `use cache` / `cacheLife`) is not fixed in this ADR**. The caching and revalidation design of data fetching is owned by [0071](0071-bff-api-integration.md). The unit at which `<Suspense>` boundaries are placed is held by "Boundary Granularity" below, and responsibility for the loading UI that `loading.tsx` / a fallback shows is held by [0080](0080-error-handling.md)
+- **The decision to enable `Cache Components` (the setting that makes PPR the default) is held by [0041](0041-cache-components-decision.md)** (adopted). This ADR fixes only that "no mode is enforced"
 
-### route-as-modal(intercepting / parallel routes)を認める
+### Allow route-as-modal (intercepting / parallel routes)
 
-- **route をモーダルとして表示する選択肢を認める**。実現手段は Next.js ネイティブの **intercepting routes(`(.)` / `(..)` / `(..)(..)` / `(...)` 記法)+ parallel routes(`@modal` などの名前付きスロット + `default.tsx`)** の組み合わせとする。ライブラリは導入しない([0004](0004-library-management.md) の対象外 = 新規依存を増やさない。これは非ロックインの強みでもある。[0010](0010-standards-and-non-lockin.md))
-- 挙動の前提: **ソフトナビゲーション**(feed 内の `<Link>` クリック等)では intercept してモーダルを重ね、URL をマスクする。**ハードナビゲーション**(共有 URL 直開き・リフレッシュ)では intercept が起きず**独立したフルページが描画**される。これにより「モーダル内容の URL 共有可能性」「リフレッシュで閉じずコンテキスト保持」「戻る/進むでの開閉」を満たす(`intercepting-routes` / `parallel-routes`)
-- **モーダル境界(`Modal` コンポーネント)とモーダル内容を分離**し、内容側は Server Component のまま保てる構成を既定とする(`"use client"` は開閉制御の葉に押し下げる本 ADR の原則と整合)。未マッチのスロットには `default.tsx`(`null` 返し)を必ず置く
+- **The option of displaying a route as a modal is allowed**. The means is the Next.js-native combination of **intercepting routes (the `(.)` / `(..)` / `(..)(..)` / `(...)` notation) + parallel routes (a named slot such as `@modal` + `default.tsx`)**. No library is introduced (out of scope for [0004](0004-library-management.md) = no new dependency; this is also a non-lock-in strength; [0010](0010-standards-and-non-lockin.md))
+- Behavioral premise: on **soft navigation** (clicking a `<Link>` in a feed, etc.) the route is intercepted, a modal is overlaid and the URL is masked. On **hard navigation** (opening a shared URL directly, refreshing) no interception happens and **an independent full page is rendered**. This satisfies "the modal content's URL is shareable", "refreshing does not close it and keeps context" and "back / forward opens and closes it" (`intercepting-routes` / `parallel-routes`)
+- **Separating the modal boundary (the `Modal` component) from the modal content**, with a configuration that keeps the content side a Server Component, is the default (consistent with this ADR's principle of pushing `"use client"` down to the open / close-control leaf). An unmatched slot always gets a `default.tsx` (returning `null`)
 
-**[0010](0010-standards-and-non-lockin.md) 準拠(vendor-independent 正当化)**:
+**Conformance with [0010](0010-standards-and-non-lockin.md) (vendor-independent justification)**:
 
-- intercepting / parallel routes は **Next.js 固有 API** だが、これは「App Router を選んだ」という別既決([0011](0011-no-docker.md) / App Router 単独)の帰結であって、機能固有のロックインではない([0010](0010-standards-and-non-lockin.md) 運用テスト)。route-as-modal を採る/採らないという **構造決定**自体は、`?modal=` 等の search-param 駆動モーダルや純クライアント状態モーダル([0053](0053-ui-component-interaction-seam.md) が既定を所有)へ**代替可能**であり、Next.js を正当化から抜いても「URL に紐づくモーダルという UI パターン」は成立する = 非ロックイン
-- seam の形は **Next.js 規約(`@modal` / `(.)` file convention)にそのまま乗る**(独自発明・中立化しない。[0010](0010-standards-and-non-lockin.md)・命名優先順位 [0028](0028-naming-convention.md))
-- 本 ADR は route-as-modal を **選択肢として認める(受け皿)**にとどめる。モーダル全体の既定手段(native `<dialog>` / focus trap / Escape / scroll lock / route-as-modal をいつ選ぶか)の方針は **[0053](0053-ui-component-interaction-seam.md) が所有**し、本節を URL 設計側の受け皿として参照する
+- Intercepting / parallel routes are a **Next.js-specific API**, but this is a consequence of a separate, already-settled decision — "the App Router was chosen" ([0011](0011-no-docker.md) / App Router alone) — not feature-specific lock-in (the operational test of [0010](0010-standards-and-non-lockin.md)). The **structural decision** of whether to adopt route-as-modal is itself **replaceable** by a search-param-driven modal such as `?modal=` or by a modal on pure client state ([0053](0053-ui-component-interaction-seam.md) owns the default); even with Next.js taken out of the justification, "a modal tied to a URL" holds as a UI pattern = non-lock-in
+- The shape of the seam **rides directly on the Next.js conventions (the `@modal` / `(.)` file conventions)** (no invention of our own, no neutralization; [0010](0010-standards-and-non-lockin.md), the naming precedence of [0028](0028-naming-convention.md))
+- This ADR stops at **allowing route-as-modal as an option (a receptacle)**. The policy on the default means for modals overall (native `<dialog>` / focus trap / Escape / scroll lock / when to choose route-as-modal) is **owned by [0053](0053-ui-component-interaction-seam.md)**, which references this section as the receptacle on the URL-design side
 
-### `loading.tsx` / `error.tsx` の配置
+### Placement of `loading.tsx` / `error.tsx`
 
-- App Router の `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` の配置・責務は [0080](0080-error-handling.md) が正(`error.tsx` 系と、`loading.tsx` / `<Suspense fallback>` が出す待機表示)。`<Suspense>` 境界をどこに置くかは下の「境界の粒度」が持つ。本 ADR は特殊ファイルの命名([0028](0028-naming-convention.md))と「driving adapter に業務ロジックを置かない」原則のみを敷く
+- The placement and responsibilities of the App Router's `loading.tsx` / `error.tsx` / `not-found.tsx` / `global-error.tsx` are governed by [0080](0080-error-handling.md) (the `error.tsx` family, and the loading UI that `loading.tsx` / `<Suspense fallback>` shows). Where `<Suspense>` boundaries go is held by "Boundary Granularity" below. This ADR lays down only the naming of special files ([0028](0028-naming-convention.md)) and the principle "put no business logic in a driving adapter"
 
-### 採らない分割モデル
+### Partitioning models not adopted
 
-次は**採らない**。RSC が同じ分割をより細かい単位で提供しており、語彙を二重に持つと境界の判断が揺れる。**同じ発想に至ったときは、ここを見て RSC の枠へ戻ること。**
+The following are **not adopted**. RSC provides the same partitioning at a finer unit, and holding the vocabulary twice makes boundary decisions waver. **When you arrive at the same idea, look here and return to the RSC frame.**
 
-| モデル | 採らない理由 |
+| Model | Why not adopted |
 | --- | --- |
-| Islands architecture | 「静的な面の中に動く島を置く」分割は、Server Component の中に Client Component を置く形と同じである。島の単位を別に宣言する必要がない |
-| render-as-you-fetch | 取得と描画を分けて先に走らせる手法は、取得が描画の内側にある RSC では前提が成立しない。取得は Server Component が行い、待つ範囲は `Suspense` の境界が決める |
+| Islands architecture | Partitioning as "place moving islands inside a static surface" is the same as placing Client Components inside a Server Component. There is no need to declare the island unit separately |
+| render-as-you-fetch | The technique of separating fetching from rendering and running it first has no premise in RSC, where fetching is inside rendering. Fetching is done by Server Components, and the range that waits is decided by `Suspense` boundaries |
 
-### 境界の粒度
+### Boundary Granularity
 
-`Suspense` の境界は**待つものの単位**で置く。1 つの境界が複数の取得を覆うと、最も遅い 1 つが他を止める。逆に、同時に届くものを別々の境界へ割ると、画面が何度も継ぎ足されて読み始めた位置が動く。したがって境界は feature の中の、実際に待つ部分の近くに置き、`page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにしない。
+`Suspense` boundaries are placed **per unit of what is awaited**. When one boundary covers several fetches, the slowest one holds up the others. Conversely, splitting things that arrive together into separate boundaries makes the screen get patched in repeatedly and moves the position where reading began. Therefore boundaries are placed inside the feature, near the parts that actually wait, rather than merely covering the whole `page.tsx` with one `loading.tsx`.
 
-後から届く取得を別の境界へ割るときは、**その到着で出入りする要素が操作の位置を動かさないか**を併せて見る。動かすなら、割らずに同じ境界で待つか、出入りする要素を操作より後ろへ置く並びに変えてから割る([`docs/rules.md#ui-parts`](../rules.md#ui-parts))。
+When splitting a later-arriving fetch into a separate boundary, also check **whether the elements that enter and leave on its arrival move the position of interaction**. If they do, either wait in the same boundary without splitting, or reorder so that the entering and leaving elements come after the interaction before splitting ([docs/rules.md](../rules.md#ui-parts)).
 
-**外枠が既に await しているものを、画面側の境界で待たない。** 取得を `cache` で memo 化していれば、外枠が出せる時点で画面の中身も揃っている。そこへ境界を置くと、**手元にある値を待つために待機表示を出す**ことになり、後から入れ替わるぶんだけ下の要素が動く。一覧のように長さがデータで決まるものでは、待機表示の高さが実物と一致しないため、この差はそのまま CLS になる([0101](0101-performance-budget.md))。**待つものが無い画面は待機表示を持たない**([0080](0080-error-handling.md))。
+**Do not wait at a screen-side boundary for something the outer frame already awaits.** If fetching is memoized with `cache`, the screen's contents are ready by the time the outer frame can render. Putting a boundary there means **showing a loading UI to wait for a value already at hand**, and the elements below move by however much gets swapped in later. For something whose length depends on data, such as a list, the loading UI's height does not match the real thing, so the difference becomes CLS as-is ([0101](0101-performance-budget.md)). **A screen with nothing to wait for has no loading UI** ([0080](0080-error-handling.md)).
 
-境界の内側は**待っているあいだ操作できない**。操作できる必要があるものを内側へ入れない(検索欄・絞り込み・戻る導線)。
+The inside of a boundary **cannot be interacted with while waiting**. Do not put inside it anything that needs to be interactive (search box, filters, back links).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ Pages Router の追加(App Router 単独)（強制: 持たない —— 採らない決定。Pages Router のディレクトリを置いていないこと自体が状態で、足せば `pages/` の追加として差分に現れる）
-- ❌ `page.tsx` / `layout.tsx` / route / Server Action に業務ロジックを書くこと(薄い driving adapter。[0011](0011-no-docker.md) thin proxy)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `APP_ELEMENTS`）と `scripts/app-elements.gate.test.ts` が Route Handler / Server Action から業務ロジックの置き場へ伸びる import を落とす。書かれたコードが業務ロジックかどうかは散文 —— **寄せられない**。編成と業務判断の区別は意味で決まる）
-- ❌ `"use client"` を `layout.tsx` / `page.tsx` や上位に不要に置くこと(境界は葉へ押し下げる)
-- ❌ `page.tsx` 全体を 1 つの `loading.tsx` で覆うだけにし、`Suspense` 境界を待つ部分の近くへ置かないこと(ストリーミングの利点を捨てる)（強制: 散文 —— **寄せられない**。どこまでを 1 つの待ちとみなすかは画面の意味で決まり、木の形からは決まらない）
-- ❌ コード分割の第一軸を route にすること(第一軸は feature。[0020](0020-adopted-architecture.md))（強制: 散文 —— **寄せられない**。どの単位でコードを切るかは設計の判断で、route ごとのディレクトリは Next.js の規約として常に在る）
-- ❌ 特定レンダリングモード(全面 SSG / 全面 dynamic 等)を本リポジトリで一律強制すること（強制: 持たない —— 採らない決定。全 route を一律に縛る設定（`output: "export"` や一律の segment config）を置いていないこと自体が状態である）
-- ❌ route-as-modal を全モーダルの既定として強制すること(あくまで**選択肢**。既定手段の判断は [0053](0053-ui-component-interaction-seam.md) 管轄)（強制: 持たない —— 採らない決定。route-as-modal を既定にする仕組みを置いていないこと自体が状態で、選ぶ画面だけが `@modal` と intercepting route を足す）
-- ❌ intercepting / parallel routes の代替に独自ルーティング機構を発明・中立化すること(Next.js file convention にそのまま乗る。[0010](0010-standards-and-non-lockin.md))（強制: 持たない —— 採らない決定。独自のルーティング機構を置いていないこと自体が状態で、入れれば依存かモジュールの追加として差分に現れる）
+- ❌ Adding the Pages Router (App Router alone) (Enforcement: none — a decision not to adopt. Not having a Pages Router directory is itself the state; adding one shows up in the diff as the addition of `pages/`)
+- ❌ Writing business logic in `page.tsx` / `layout.tsx` / routes / Server Actions (thin driving adapter; [0011](0011-no-docker.md) thin proxy) (Enforcement: ESLint `boundaries/dependencies` (`APP_ELEMENTS` in `architecture.ts`) and `scripts/app-elements.gate.test.ts` reject imports reaching from Route Handlers / Server Actions to where business logic lives. Whether written code is business logic is Prose — **not mechanizable**. The distinction between orchestration and business judgment is decided by meaning)
+- ❌ Putting `"use client"` needlessly on `layout.tsx` / `page.tsx` or higher (push the boundary down to the leaves)
+- ❌ Merely covering the whole `page.tsx` with one `loading.tsx` and not placing `Suspense` boundaries near the parts that wait (throws away the benefit of streaming) (Enforcement: Prose — **not mechanizable**. How much counts as one wait is decided by the meaning of the screen, not by the shape of the tree)
+- ❌ Making the route the primary axis of code splitting (the primary axis is the feature; [0020](0020-adopted-architecture.md)) (Enforcement: Prose — **not mechanizable**. The unit at which code is cut is a design judgment, and per-route directories always exist as a Next.js convention)
+- ❌ Uniformly enforcing a particular rendering mode (all SSG / all dynamic, etc.) across this repository (Enforcement: none — a decision not to adopt. Not having a setting that binds every route uniformly (`output: "export"` or a uniform segment config) is itself the state)
+- ❌ Enforcing route-as-modal as the default for all modals (it is only **an option**; the judgment on the default means is under [0053](0053-ui-component-interaction-seam.md)) (Enforcement: none — a decision not to adopt. Not having a mechanism that makes route-as-modal the default is itself the state; only screens that choose it add `@modal` and an intercepting route)
+- ❌ Inventing or neutralizing a routing mechanism of our own in place of intercepting / parallel routes (ride directly on the Next.js file conventions; [0010](0010-standards-and-non-lockin.md)) (Enforcement: none — a decision not to adopt. Not having a routing mechanism of our own is itself the state; bringing one in shows up in the diff as an added dependency or module)
 
-## 関連 ADR
+## Related ADRs
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — driving adapter 非分割軸 / `page.tsx` 薄化 / feature 第一軸(本 ADR の親原則)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — Server Action の置き場(`actions.ts`)・`"use client"` 押し下げ
-- [0011-no-docker.md](0011-no-docker.md) — thin proxy(driving adapter に業務ロジックを置かない)/ 静的 CDN・SSR 両対応の想定デプロイ(モード非強制の根拠)
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 器を分ける判断(描画モードが route 全体で決まることの相方)
-- [0028-naming-convention.md](0028-naming-convention.md) — App Router 特殊ファイル・route セグメントの命名
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — プリレンダーでの env 凍結
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components(PPR)の採用(殻と穴・`instant` 宣言の機構)
-- [0060-state-management.md](0060-state-management.md) — Server state = Server Component fetch 既定 / URL state(search params / route params は本 ADR の App Router 標準機構の上で扱う)
-- [0090-testing-strategy.md](0090-testing-strategy.md) — Server Components / route handler / E2E のテスト線引き
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — データ取得のキャッシュ・再検証設計
-- [0080-error-handling.md](0080-error-handling.md) — `loading.tsx` / `<Suspense fallback>` の待機表示 + `error.tsx` 系の配置・責務
-- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — モーダル/ダイアログの既定手段(native `<dialog>` / a11y 必須要件)。route-as-modal 採否を本 ADR に委譲(本節がその受け皿)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠と非ロックインの判断軸(route-as-modal = Next.js 規約に乗る seam / 構造は代替可能 = vendor-independent 正当化の根拠)
-- [0004-library-management.md](0004-library-management.md) — ライブラリ管理方針(route-as-modal はネイティブ機能で新規依存を増やさない = 本 ADR は同方針の対象外)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — the non-split driving-adapter axis / thin `page.tsx` / feature as the primary axis (the parent principles of this ADR)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — where Server Actions live (`actions.ts`), pushing `"use client"` down
+- [0011-no-docker.md](0011-no-docker.md) — thin proxy (no business logic in a driving adapter) / assumed deployments supporting both static CDN and SSR (the basis for not enforcing a mode)
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — the decision to split layout shells (the counterpart of the rendering mode being decided by the whole route)
+- [0028-naming-convention.md](0028-naming-convention.md) — naming of App Router special files and route segments
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env freezing during prerendering
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — adopting Cache Components (PPR) (the mechanism of static shells, dynamic holes and the `instant` declaration)
+- [0060-state-management.md](0060-state-management.md) — Server state = Server Component fetch by default / URL state (search params / route params are handled on top of this ADR's standard App Router mechanisms)
+- [0090-testing-strategy.md](0090-testing-strategy.md) — the test lines for Server Components / route handlers / E2E
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the caching and revalidation design of data fetching
+- [0080-error-handling.md](0080-error-handling.md) — the loading UI of `loading.tsx` / `<Suspense fallback>` + placement and responsibilities of the `error.tsx` family
+- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — the default means for modals / dialogs (native `<dialog>` / mandatory a11y requirements). Delegates the adoption of route-as-modal to this ADR (this section is the receptacle)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the decision axis for standards conformance and non-lock-in (route-as-modal = a seam riding on Next.js conventions / the structure is replaceable = the basis of the vendor-independent justification)
+- [0004-library-management.md](0004-library-management.md) — the library management policy (route-as-modal is a native feature with no new dependency = this ADR is outside that policy's scope)

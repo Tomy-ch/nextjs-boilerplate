@@ -1,139 +1,139 @@
-# エージェント環境の改善をループにする
+# Improving the Agent Environment as a Loop
 
-本プロジェクトでは、AI エージェントが使う環境 —— スキル・エージェント定義・規約文書・ゲート —— を、**足すだけの対象ではなくループで改善する対象**として扱う。何が実際に効いていないかを観測し、直し、**直したものを再計測する**までを 1 周とする。
+This project treats the environment AI agents use — skills, agent definitions, rule documents, gates — **not as something only added to but as something improved in a loop**. One cycle runs from observing what is actually not working, to fixing it, to **re-measuring what was fixed**.
 
-観測の単位は [0161](0161-development-window-as-feedback-unit.md) が持つ。本 ADR が持つのは、**ループを回すという決定そのもの**と、**その状態がどこに住むか**である。個々のスキルが何をするかは [0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md) が持つ。
+The unit of observation is owned by [0161](0161-development-window-as-feedback-unit.md). What this ADR owns is **the decision to run the loop itself** and **where its state lives**. What each skill does is owned by [0154](0154-claude-skills-operations.md) / [0155](0155-claude-skills-development.md).
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **エージェント環境は放っておくと足すだけになる。** 躓きに気づいた回数ぶんスキルと規約が増え、減る契機が構造的に無い。増えた側は次の読み手の前提になるので、効いていないものが混ざったまま積み上がる
-- **「使われていない」は削除の根拠にならない。** このリポジトリのスキルの多くは**機会を待つ**もので、機会が来なかった週は何も語らない。呼出回数だけで判断すると、新しい画面を作らなかった月にスキャフォールド一式が退役する
-- **直したものを再計測しないと、ループは蓄積器に退化する。** 改善が効いたかを見ない限り、効かなかった改善も環境に残り続ける。**再計測こそが、このループを「足すだけ」と分ける唯一の段である**
+- **Left alone, the agent environment only grows.** Skills and rules increase by the number of times a stumble is noticed, and there is structurally no occasion for them to decrease. What was added becomes a premise for the next reader, so things that do not work pile up mixed in
+- **"Not used" is not grounds for deletion.** Many of this repository's skills **wait for an occasion**, and a week in which the occasion did not come says nothing. Judging by invocation count alone would retire the whole scaffolding set in a month when no new screen was built
+- **Without re-measuring what was fixed, the loop degenerates into an accumulator.** Unless it is checked whether an improvement worked, improvements that did not work also stay in the environment. **Re-measurement is the only stage that separates this loop from "only adding"**
 
-## 決定 1: 観測 → 改善 → 再計測 を 1 周とする
+## Decision 1: Observe → improve → re-measure is one cycle
 
 ```text
-窓が開く → 作業 → 窓が閉じる → 所見を出す → 人が何を取り込むか決める
-        → 改善が着地する → 一定期間後に再計測する → 同じ所見が戻ったかを見る
+window opens → work → window closes → findings are produced → a human decides what to take in
+        → the improvement lands → re-measure after a set period → check whether the same finding returned
 ```
 
-- **所見を出すところまでが機械の仕事で、何を取り込むかは人が決める。** 環境の変更はエージェント自身の設定に触るので、[`AGENTS.md`](../../AGENTS.md) の Agent configuration file protection がそのまま効く
-- **再計測は省略できない。** 省略した時点でこの決定は無効になり、環境は増えるだけに戻る
-- **着地の記録を二重に持たない。** 改善が着地したことは**フィードバックの記録が閉じられたこと**で表す。別に「着地日」の欄を手で保つと、**誰も読み直さない写しのほうが腐る**
+- **Producing findings is the machine's job; what to take in is decided by a person.** Changing the environment touches the agent's own configuration, so Agent configuration file protection in [`AGENTS.md`](../../AGENTS.md) applies as is
+- **Re-measurement cannot be skipped.** The moment it is skipped, this decision is void and the environment goes back to only growing
+- **Landing is not recorded twice.** That an improvement landed is expressed by **the feedback record being closed**. Keeping a separate "landed on" field by hand means **the copy nobody rereads is the one that rots**
 
-## 決定 2: 決定的な集計を先に置き、モデルはその後
+## Decision 2: Deterministic tallies first, the model after
 
-**このループが報告するものの大半に、モデルは要らない。** スキルの起動回数、道具の失敗、中断、所要時間、段の区間、レビューとマージの間隔 —— どれも**数えるもの**であって解釈するものではない。
+**Most of what this loop reports needs no model.** Skill invocation counts, tool failures, interruptions, durations, stage intervals, the gap between review and merge — all are **things to count**, not things to interpret.
 
-モデルが要るのは 2 つだけである —— **窓 1 つについて「何が難しかったか」を言うこと**と、**読み終えた窓を関心へ畳むこと**。どちらも入力は、決定的な集計が**先に絞ったもの**に限る。**絞りが読む費用を成立させ、読みが絞る値打ちを作る。**
+A model is needed for only two things — **saying "what was hard" about a single window**, and **folding read windows into concerns**. For both, the input is limited to what the deterministic tallies **have already narrowed**. **The narrowing makes the cost of reading viable, and the reading makes the narrowing worth doing.**
 
-2 つめは**証拠として 1 段弱い**。入力が既にモデルの出力（読解の節）なので、誤りが増幅されうる。だから畳み込みには 3 つの縛りを掛ける。
+The second is **one step weaker as evidence**. Its input is already model output (the reading section), so errors can be amplified. So folding is bound by three constraints.
 
-- **順位付けと測り直しは畳み込みに依存しない。** 束ねる鍵は分類のラベルで、意味による分類は行わない。畳み込みが落ちても週次は成立する
-- **畳んだ先は根拠の一覧を必ず持つ。** 大元より抽象が 1 段上がっているぶん、どの観測から来たのかを辿れないと**検証できない主張**になる
-- **畳み込みは明示したときだけ走る。** issue を作って大元を閉じる副作用が既定に入ると、意図しない畳み込みが起きたときに気づく人がいない
+- **Ranking and re-measurement do not depend on folding.** The grouping key is the classification label, and no classification by meaning is done. Even if folding fails, the weekly run holds
+- **What is folded into always carries the list of grounds.** Since it is one level more abstract than the source, being unable to trace which observation it came from makes it **a claim that cannot be verified**
+- **Folding runs only when explicitly requested.** If the side effect of opening issues and closing the sources were in the default, no one would notice when an unintended fold happened
 
-- **所見はどちらの半分が出したかを記録する。** 数えたものと読んだものは同じ強さの証拠ではなく、**混ぜた報告は反論できない**
-- **読む側は記録を作った機械の上で動かす。** 記録は開発者の手元に住み、他所へ運ぶと**その内容を外へ出す経路**が生まれる（[0110](0110-security-operations.md) / [`docs/design/security.md`](../design/security.md)）
-- **読めなかったことを「所見なし」へ倒さない。** 人が省いた・モデルを呼べなかった・材料が無かったは次に起きることが違うので、区別して出す（[0157](0157-inspection-declaration-discipline.md)）
+- **A finding records which half produced it.** What was counted and what was read are not evidence of the same strength, and **a mixed report cannot be rebutted**
+- **The reading side runs on the machine that created the records.** Records live on the developer's machine, and carrying them elsewhere creates **a path that takes their content outside** ([0110](0110-security-operations.md) / [`docs/design/security.md`](../design/security.md))
+- **Being unable to read is not collapsed into "no findings".** A person skipped it, the model could not be called, there was no material — what happens next differs for each, so they are reported distinctly ([0157](0157-inspection-declaration-discipline.md))
 
-## 決定 3: スキルは利用の型に対して判定する
+## Decision 3: Skills are judged against their usage type
 
-**呼ばれなかったスキルは、それだけでは無用ではない。**各スキルは自分の**利用の型**を宣言し、判定はその型に対して行う。
+**A skill that was not called is not, by that alone, useless.** Each skill declares its own **usage type**, and judgment is made against that type.
 
-| 型 | 意味 | 呼出回数が語るもの |
+| Type | Meaning | What the invocation count says |
 | --- | --- | --- |
-| `frequent` | 日常的に呼ばれる | 呼ばれないことは所見になる |
-| `situational` | 機会が来たときだけ | 機会の有無を見ないと何も言えない |
-| `lifecycle` | 版や節目に 1 回 | 期間内に節目が無ければ 0 が正常 |
-| `automatic` | hook や CI が起動する | 人の呼出回数は指標にならない |
-| `safety` | **稀であることが正常** | 呼出回数は指標ではない。呼ばれたことのほうが所見 |
+| `frequent` | Called day to day | Not being called is a finding |
+| `situational` | Only when an occasion comes | Nothing can be said without looking at whether the occasion came |
+| `lifecycle` | Once per version or milestone | 0 is normal if no milestone fell in the period |
+| `automatic` | Started by a hook or CI | A person's invocation count is not a metric |
+| `safety` | **Being rare is normal** | The invocation count is not a metric. Being called is the finding |
 
-**宣言はスキル自身が持つ。**別ファイルの台帳に置くと、スキルが増えた日に台帳だけが古くなる。機械強制は `skill-lint` の enum 検査が持つ（[0144](0144-decision-enforcement-pairing.md)）。
+**The declaration is held by the skill itself.** Placing it in a separate ledger file means only the ledger goes stale on the day skills are added. Machine enforcement is held by the enum check of `skill-lint` ([0144](0144-decision-enforcement-pairing.md)).
 
-**「使えたはずの機会」を一般に観測する方法は無い。**機会を書ける対象にだけ書き、書けないものは**書けないと宣言して別の根拠で判定する** —— 評価器の無い述語を数値として出すと、**壊れた検査が緑を返す**（[0157](0157-inspection-declaration-discipline.md)）。
+**There is no general way to observe "occasions where it could have been used".** Occasions are written only for targets where they can be written; for those that cannot, **declare that they cannot and judge by other grounds** — outputting a predicate without an evaluator as a number makes **a broken inspection return green** ([0157](0157-inspection-declaration-discipline.md)).
 
-## 決定 4: 状態は 3 つの置き場に分ける
+## Decision 4: State is split across three places
 
-| 何 | 置き場 | なぜそこか |
+| What | Where | Why there |
 | --- | --- | --- |
-| **宣言** —— 利用の型、機械の投稿者の一覧 | 追跡下（スキルの frontmatter / `.agents/` の宣言） | 他の宣言と同じようにレビューされる |
-| **機械ローカルの索引** —— 再生成できる cache | `.agents/private/`（`.gitignore` 済み） | **失っても費用がゼロ**。コミットすると、別のマシンでそれが正を主張する |
-| **窓ごとの打刻と一時の記録** | `tmp/`（`.gitignore` 済み） | 実行ごと・checkout ごと。残す値打ちが無い |
-| **所見そのもの** | **issue トラッカー** | git の操作なしに直せて消せる。**リポジトリの中に置かない** |
+| **Declarations** — usage types, the list of machine posters | Tracked (skill frontmatter / declarations in `.agents/`) | Reviewed like other declarations |
+| **Machine-local index** — a regenerable cache | `.agents/private/` (in `.gitignore`) | **Losing it costs nothing**. Committed, it would claim to be the truth on another machine |
+| **Per-window timestamps and temporary records** | `tmp/` (in `.gitignore`) | Per run, per checkout. Not worth keeping |
+| **The findings themselves** | **The issue tracker** | Can be fixed and removed without a git operation. **Not placed inside the repository** |
 
-**所見の正をリポジトリに置かない。**維持にコミットを要する置き場は維持されなくなる置き場であり、このループは**所見を絶えず訂正し退役させる**。
+**The source of truth for findings is not placed in the repository.** A place that needs commits to maintain is a place that stops being maintained, and this loop **constantly corrects and retires findings**.
 
-**送出先は設定項目で持たず、`.git` の remote から導く。**このリポジトリが押している先そのものが、
-上の表が言う issue トラッカーである。別の項目で宛先を持つと、**リポジトリと無関係な先へ送れる形**が
-生まれ、境界の議論がその項目の値へ移ってしまう。GitHub 以外のホストへは送らない —— 宛先が `.git` に
-在ることは、それが GitHub であることを意味しない。
+**The destination is not held as a setting; it is derived from the `.git` remote.** The very place this repository pushes to is
+the issue tracker the table above refers to. Holding the destination in a separate setting would create **a form that can send to a destination unrelated to the repository**,
+and the debate over boundaries would move to that setting's value. Nothing is sent to hosts other than GitHub — a destination being
+in `.git` does not mean it is GitHub.
 
-送るのは**閉じていて、段の境界を 1 つ以上越えた窓**だけである。開いたままの窓は不完全で、半分の窓は
-遅れた窓より悪い。開いて閉じただけの窓は何も起きなかった窓であって所見ではなく、`/clear` はそれだけで
-窓を 1 つ作るので、通すと**中身の無い issue が起動回数ぶん立つ**。
+Only windows that are **closed and have crossed at least one stage boundary** are sent. A window still open is incomplete, and a half window
+is worse than a late one. A window that was merely opened and closed is a window in which nothing happened, not a finding, and `/clear` alone
+creates a window, so letting those through would **open an empty issue for every launch**.
 
-## 決定 5: 記録の読み取りは、このリポジトリのぶんに限る
+## Decision 5: Reading records is limited to this repository's share
 
-打刻の弱点は**網羅性**である —— 刻まれなければ存在しない。それを補うのは Claude Code が書く
-セッションの記録で、**置き場はツールが決めており、リポジトリの外にある**
-（`~/.claude/projects/<作業ツリーのパス>/`）。**誰かがそこへ置いたのではなく、ツールがそこへ書く。**
+The weakness of timestamps is **coverage** — what is not stamped does not exist. What compensates is the session
+records Claude Code writes, **whose location the tool decides, and which lie outside the repository**
+(`~/.claude/projects/<working-tree path>/`). **No one placed them there; the tool writes them there.**
 
-**機構はリポジトリの中に置き、外に在るのは読み取り専用のデータだけにする。**この形は既にこの
-リポジトリの普通である —— `scripts/base-branch` は `origin` の実状態を読み、`tools-upgrade` は
-上流のレジストリを読み、ツールチェーンは `mise` の置き場に住む。読む対象が外に在ることと、
-機構が外に在ることは別である。
+**The mechanism is placed inside the repository, and only read-only data lies outside.** This shape is already ordinary in this
+repository — `scripts/base-branch` reads the live state of `origin`, `tools-upgrade` reads
+upstream registries, and the toolchain lives in `mise`'s location. The target of reading lying outside and
+the mechanism lying outside are different things.
 
-読み取りには 3 つの境界を掛ける。
+Reading is subject to three boundaries.
 
-- **範囲はこのリポジトリのぶんだけ。**ツールは 1 人の全プロジェクトぶんを同じ親の下に並べ、置き場は
-  セッションを開いたディレクトリから導かれるので、**このリポジトリの作業ツリーから導いた置き場より
-  外へ出ない**。どれが作業ツリーかを決めるのは git であり、名前の似たディレクトリを拾わない ——
-  前方一致で範囲を決めると、境界が推測になる
-- **読むのは記録を作った機械の上だけ。**運ぶと、**人がセッションへ貼った内容を外へ出す経路**が生まれる
-  （[0110](0110-security-operations.md)）。CI は記録を読まない
-- **外へ出るのは読んだ結果であって、記録そのものではない。**抜粋を公開の場へ複製しない。**これは指示ではなく検査で担保する** —— 逐語の引用を禁じてもモデルは根拠として発話を並べる（実測）。渡した候補は分かっているので、それが本文に現れたかは機械で判定でき、当たった節は落として**落としたことを本文に書く**（[0157](0157-inspection-declaration-discipline.md)）
+- **The scope is only this repository's share.** The tool lines up one person's records for every project under the same parent, and the location is
+  derived from the directory where the session was opened, so **it does not go beyond the locations derived from this repository's working
+  trees**. What counts as a working tree is decided by git, and directories with similar names are not picked up —
+  deciding the scope by prefix match would make the boundary a guess
+- **Reading happens only on the machine that created the records.** Carrying them creates **a path that takes content a person pasted into a session outside**
+  ([0110](0110-security-operations.md)). CI does not read the records
+- **What leaves is the result of reading, not the records themselves.** Excerpts are not copied into public places. **This is guaranteed by a check, not an instruction** — even when verbatim quotation is forbidden, the model lines up utterances as grounds (measured). The candidates handed over are known, so whether they appear in the body can be judged by machine, and sections that match are dropped, with **the fact of dropping written in the body** ([0157](0157-inspection-declaration-discipline.md))
 
-**この 3 つの境界は、リポジトリの持ち主に依らない。**範囲は作業ツリーから導き、読むのは記録を
-作った機械の上だけで、外へ出るのは数えた事実である。だから**この機構は複製された先へも渡す** ——
-変わるのは所見を読む人が誰かであって、境界そのものではない。
+**These three boundaries do not depend on who owns the repository.** The scope is derived from the working tree, reading happens only on the machine
+that created the records, and what leaves is counted facts. So **this mechanism is passed on to copies too** —
+what changes is who reads the findings, not the boundaries themselves.
 
-## 不採用
+## Rejected Alternatives
 
-| 案 | 不採用の理由 |
+| Option | Reason not adopted |
 | --- | --- |
-| 呼出回数だけで判定する | 機会が来なかったことと、機会が来たのに使われなかったことを同じ 0 として扱う。**スキャフォールド一式が最初の月に退役する** |
-| 所見をリポジトリの台帳で持つ | 訂正と退役のたびにコミットが要る。**維持されなくなり、古い所見が権威として残る** |
-| 記録を CI へ運んで読む | 記録は手元に住む。運ぶと、**人が貼った内容を外へ出す経路**を作る |
-| 着地日を別途記録する | 同じ宣言の 2 つめの記録であり、手で保つ側が腐る |
+| Judging by invocation count alone | Treats an occasion not coming and an occasion coming but going unused as the same 0. **The whole scaffolding set retires in the first month** |
+| Holding findings in a ledger in the repository | Every correction and retirement needs a commit. **It stops being maintained, and old findings remain as authority** |
+| Carrying records to CI to read | Records live locally. Carrying them creates **a path that takes content a person pasted outside** |
+| Recording the landing date separately | A second record of the same declaration, and the side kept by hand rots |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ **再計測を省略する。** 省略した時点でこの決定は無効になる（強制: `.github/workflows/closed-loop-weekly.yaml` の週次実行が再計測を回す）
-- ❌ **呼出回数を単独の根拠にスキルを退役させる。** 型と機会を見ずに数だけで判断しない
-- ❌ **評価器の無い述語から数値を出す。** 未評価は未評価として出す（[0157](0157-inspection-declaration-discipline.md)）（強制: 散文 —— **寄せられない**。述語に評価器が在るかは述語の意味で決まる）
-- ❌ **所見の正をリポジトリの中に置く。**（強制: 持たない —— 採らない決定。所見の台帳をリポジトリに置いていないこと自体が状態で、置く変更は追跡下のファイルの追加として差分に現れる）
-- ❌ **人の確認なしに外向きの操作を行う。** 起票も投稿も、[0154](0154-claude-skills-operations.md) の確認要件に従う
-  - **例外は closed-loop の送出 1 つだけである。**宛先をエージェントが選ばないこと（`.git` の
-    remote が決める）、外へ出るのが打刻から数えた事実だけで記録の抜粋を含まないこと（決定 5）、
-    送る窓が閉じた窓に限られることの 3 つが揃うので、確認が守っている判断がここには無い。
-    **3 つのいずれかが崩れたら例外も外す。**
-  - 例外は送出の経路そのものに限る。同じ機構が別の宛先へ出す、記録の抜粋を載せる、開いたままの窓を
-    送る —— どれも新しい外向きの操作であり、確認要件へ戻る
-- ❌ **エージェント自身の設定を、この機構が自動で書き換える。** 何を取り込むかは人が決める（[`AGENTS.md`](../../AGENTS.md)）（強制: 散文 —— **一部寄せられる**。`scripts/closed-loop/**` と `.agents/closed-loop/**` が `.claude/` や `AGENTS.md` を書き込み先に綴っていないかは走査で落とせるが規則は無い。組み立てたパスで書く経路は実行時の値で決まる）
+- ❌ **Skipping re-measurement.** The moment it is skipped, this decision is void (Enforcement: the weekly run of `.github/workflows/closed-loop-weekly.yaml` runs the re-measurement)
+- ❌ **Retiring a skill on invocation count alone.** Do not judge by numbers without looking at type and occasion
+- ❌ **Producing numbers from a predicate without an evaluator.** Report unevaluated as unevaluated ([0157](0157-inspection-declaration-discipline.md)) (Enforcement: Prose — **not mechanizable**. Whether a predicate has an evaluator is decided by the predicate's meaning)
+- ❌ **Placing the source of truth for findings inside the repository.** (Enforcement: none — a decision not to adopt. Not having a ledger of findings in the repository is itself the state, and a change placing one shows up in the diff as an added tracked file)
+- ❌ **Performing outward actions without human confirmation.** Opening issues and posting both follow the confirmation requirements of [0154](0154-claude-skills-operations.md)
+  - **The only exception is the closed-loop send.** The agent does not choose the destination (the `.git`
+    remote decides it), what leaves is only facts counted from timestamps with no excerpts of records (Decision 5),
+    and the windows sent are limited to closed ones — with all three in place, the judgment that confirmation protects is not present here.
+    **If any of the three breaks, the exception is removed too.**
+  - The exception is limited to the send path itself. The same mechanism sending to another destination, carrying excerpts of records, sending
+    a window still open — each is a new outward action and goes back to the confirmation requirement
+- ❌ **This mechanism automatically rewriting the agent's own configuration.** What to take in is decided by a person ([`AGENTS.md`](../../AGENTS.md)) (Enforcement: Prose — **partly mechanizable**. Whether `scripts/closed-loop/**` and `.agents/closed-loop/**` spell `.claude/` or `AGENTS.md` as a write destination can be rejected by a scan, but no rule exists. A path written through an assembled path is decided by run-time values)
 
-## 補足
+## Notes
 
-**この機構は複製された先へも渡す。**複製した側が受け取るのはスキルと規約の一式であり、それを自分で書いていないぶん、冒頭の「放っておくと足すだけになる」は上流より強く効く。剥がしの対象には登録しない —— 宛先も置き場も外から与えられず（決定 4 / 決定 5）、渡った先でそのまま成立する。
+**This mechanism is passed on to copies too.** What the copying side receives is the set of skills and rules, and since it did not write them itself, the opening point "left alone, it only grows" applies even more strongly than upstream. It is not registered for stripping — neither the destination nor the location is given from outside (Decision 4 / Decision 5), so it holds as is where it lands.
 
-## 関連 ADR
+## Related ADRs
 
-- [0161-development-window-as-feedback-unit.md](0161-development-window-as-feedback-unit.md) — 観測の単位
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) / [0155-claude-skills-development.md](0155-claude-skills-development.md) — スキルの規約と、利用の型の宣言先
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — 成立しない検査の倒し方
-- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) — 宣言に機械強制を対で持たせる
-- [0110-security-operations.md](0110-security-operations.md) — 記録を外へ出す経路の扱い
+- [0161-development-window-as-feedback-unit.md](0161-development-window-as-feedback-unit.md) — the unit of observation
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) / [0155-claude-skills-development.md](0155-claude-skills-development.md) — skill conventions, and where usage types are declared
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — how inspections that do not hold fall
+- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) — pairing declarations with machine enforcement
+- [0110-security-operations.md](0110-security-operations.md) — handling paths that take records outside

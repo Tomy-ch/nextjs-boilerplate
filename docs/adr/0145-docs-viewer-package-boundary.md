@@ -1,80 +1,80 @@
-# docs-viewer のパッケージ境界
+# The docs-viewer Package Boundary
 
-本プロジェクトでは、ドキュメントポータルのビューアー（`docs-viewer/`）をアプリ本体とは別の workspace パッケージとして置き、依存を共有しない。ビューアーはアプリ本体のソースを参照するが、アプリ本体からビューアーへは到達できない。**この分離を規約ではなくパッケージ境界で担保する。**
+This project places the documentation portal's viewer (`docs-viewer/`) as a workspace package separate from the application itself, sharing no dependencies. The viewer references the application's source, but the application cannot reach the viewer. **This separation is guaranteed by a package boundary, not by a rule.**
 
-[0141](0141-portal-operations.md) は portal の manifest・生成・配信を持ち、ビューアーが独立パッケージであることまでを述べる。本 ADR が持つのは、その境界が何を分け、何を分けず、何によって守られているかである。
+[0141](0141-portal-operations.md) owns the portal's manifest, generation and delivery, and goes as far as stating that the viewer is an independent package. What this ADR owns is what that boundary separates, what it does not separate, and what protects it.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **無害化の許容範囲が違う。** アプリ本体が sanitizer に通すのは利用者が投稿する内容で、`src/model/rich-text` の allowlist は `table` も `pre` も `class` 属性も通さない。ビューアーが描くのはリポジトリ自身が持つコミット済みの文書で、表・コードブロック・図が出せなければ用を成さない。広い allowlist と狭い allowlist を同じパッケージに並べると、広い方をアプリから import することを止めるものが規約しか無くなる
-- **供給面を分ける。** ビューアーが引く依存（Markdown の変換、図の描画、検索）がアプリ本体の依存一覧に乗らない。アプリの bundle にも、アプリの依存として監査される集合にも現れない
-- **デザインシステムの実利用者を持つ。** ビューアーは部品を Storybook の外で、実データ量・実文書長・実際の組み合わせで使う最初の利用者である。この役割はコピーでは果たせない
+- **The tolerated range of sanitization differs.** What the application passes through its sanitizer is content users post, and the allowlist of `src/model/rich-text` lets through neither `table` nor `pre` nor the `class` attribute. What the viewer renders is committed documents the repository itself holds, and it is useless if it cannot show tables, code blocks and diagrams. With a wide and a narrow allowlist side by side in the same package, only a rule would stop the application from importing the wide one
+- **Separate the supply surface.** The dependencies the viewer pulls in (Markdown conversion, diagram rendering, search) do not land in the application's dependency list. They appear neither in the application's bundle nor in the set audited as the application's dependencies
+- **Give the design system a real user.** The viewer is the first user of the components outside Storybook, with real data volumes, real document lengths and real combinations. A copy cannot play this role
 
-## 独立した workspace パッケージ
+## An independent workspace package
 
-- `pnpm-workspace.yaml` の `packages` にアプリ本体（`.`）と `docs-viewer` を並べ、ビューアーは自分の `package.json` を持つ
-- ビルドは Vite で、Next.js のランタイムに乗らず、静的サイトとして単体でビルドされる。**Next.js 固有の API（`next/link` / `next/image` / Server Components）は使わない**
-- 配信先のパス接頭辞を持たない（`base: "./"`）。portal の URL は配信側が決める（[0141](0141-portal-operations.md)）
+- The `packages` of `pnpm-workspace.yaml` list the application itself (`.`) and `docs-viewer` side by side, and the viewer has its own `package.json`
+- It is built with Vite, does not run on the Next.js runtime, and builds on its own as a static site. **It uses no Next.js-specific API (`next/link` / `next/image` / Server Components)**
+- It has no path prefix for where it is delivered (`base: "./"`). The portal's URL is decided by the delivery side ([0141](0141-portal-operations.md))
 
-## 依存の向きは一方向
+## Dependencies point one way
 
-**ビューアー → アプリ本体だけを許す。**
+**Only viewer → application is allowed.**
 
-- ビューアーは `@` alias でアプリ本体の `src/` を直接参照し、デザインシステムの部品をそのまま使う。コピーしない —— コピーすると乖離した時点で、実運用でデザインシステムを検証するという目的が失われる
-- アイコンもアプリ本体と同じ公開面（`src/components/icon.ts`）から取る。ビューアー側で供給元を名指しできると、名指しできる場所がワークスペースに 2 つできる（[0052](0052-ui-component-policy.md)）
+- The viewer references the application's `src/` directly through the `@` alias and uses the design-system components as they are. It does not copy them — once a copy drifts, the purpose of validating the design system in real use is lost
+- Icons too are taken from the same public surface as the application (`src/components/icon.ts`). If the viewer side could name the supplier, there would be two places in the workspace that name it ([0052](0052-ui-component-policy.md))
 
-**アプリ本体 → ビューアーは無い。** これを守るのは規約ではなく次の 3 つである。
+**There is no application → viewer.** What protects this is not a rule but the following three things.
 
-1. **広い allowlist は `docs-viewer/src/` に住む。** `@/` の解決先は `src/` であり、そこからは届かない
-2. **`src/` の境界検査は、宣言した要素の外を指す依存を拒む**（`boundaries/no-unknown-dependencies` —— [0021](0021-frontend-responsibility.md)）。相対パスで越えても `lint:ci` が落ちる
-3. **ビューアーだけが引く依存はアプリ本体の `package.json` に無い。** パッケージ名で import しても解決しない
+1. **The wide allowlist lives in `docs-viewer/src/`.** `@/` resolves to `src/`, which cannot reach it
+2. **The boundary check on `src/` rejects dependencies that point outside the declared elements** (`boundaries/no-unknown-dependencies` — [0021](0021-frontend-responsibility.md)). Crossing with a relative path still fails `lint:ci`
+3. **Dependencies pulled in only by the viewer are not in the application's `package.json`.** Importing by package name does not resolve
 
-## 分けないもの
+## What is not separated
 
-パッケージを分けるのは依存と到達性であって、品質ゲートではない。
+What the package split separates is dependencies and reachability, not quality gates.
 
-- **テストは同じ gate で回す。** ビューアーのテストはアプリ本体と同じ Vitest の suite に載せる。別 suite にすると片方だけが緑という状態を作れてしまい、CI の判定が「全部通った」を意味しなくなる（[0090](0090-testing-strategy.md)）
-- **lint と型検査もリポジトリの根の設定が見る。** ビューアー向けの例外は、根の設定の中で対象を絞って書く
-- **依存の冷却期間と推移的依存の固定は workspace 全体に一律に効く**（`pnpm-workspace.yaml` の `minimumReleaseAge` / `overrides` —— [0110](0110-security-operations.md)）。ビューアーの依存はアプリの供給面には乗らないが、公開される配信物の中で browser 上を走る。監査の対象から外れる理由にはならない
+- **Tests run in the same gate.** The viewer's tests go in the same Vitest suite as the application. A separate suite would allow a state where only one side is green, and CI's verdict would stop meaning "everything passed" ([0090](0090-testing-strategy.md))
+- **Lint and type checking are also covered by the repository-root configuration.** Exceptions for the viewer are written inside the root configuration, scoped to their targets
+- **The dependency cooldown and pinning of transitive dependencies apply uniformly to the whole workspace** (`minimumReleaseAge` / `overrides` in `pnpm-workspace.yaml` — [0110](0110-security-operations.md)). The viewer's dependencies are not on the application's supply surface, but they run in the browser within a published deliverable. That is no reason to exclude them from auditing
 
-## ビューアーの依存
+## The viewer's dependencies
 
-- **単独で完結する部品に寄せる。** 対に `-native` / `-client` がある部品は、要件が許す限り `-native` を優先する
-- **純粋ロジック（文書の解釈・言語の絞り込み・検索・経路）は検証ライブラリ以外に依存させない。** 描画と切り離して持ち出せる状態を保つ
-- ビューアーが読む `docs.json` は生成物で、ビューアーは内容の出所を持たない（[0141](0141-portal-operations.md)）
+- **Lean toward components that are self-contained.** For components that come in a pair with a `-native` / `-client` counterpart, prefer `-native` as far as the requirements allow
+- **Pure logic (interpreting documents, filtering by language, search, routing) depends on nothing other than the validation library.** It is kept in a state where it can be taken out separately from rendering
+- The `docs.json` the viewer reads is a generated artifact, and the viewer owns no source of the content ([0141](0141-portal-operations.md))
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **規約で担保する**（「ビューアーの sanitizer をアプリから import しない」と書く） | 破った import を止めるものが無い。レビューで読まれなかった変更がそのまま通る |
-| **アプリ本体の sanitizer の allowlist を広げる／引数で切り替える** | 投稿された内容と自前の文書が同じ口を通る。切り替えの引数 1 つで投稿側の許容範囲が広がる |
-| **ビューアーを Next.js の route としてアプリに同居させる** | ビューアーの依存がアプリの供給面に乗る。配信は静的で足り、Next.js のランタイムを要さない |
-| **デザインシステムの部品をビューアーへコピーする** | 乖離した時点で、実運用で検証するという役割が消える |
-| **ビューアーのテストを別 suite にする** | 片方だけが緑になれる |
+| **Guarantee it by a rule** (write "do not import the viewer's sanitizer from the application") | Nothing stops a breaking import. A change that went unread in review passes as is |
+| **Widen the allowlist of the application's sanitizer / switch it with an argument** | Posted content and the repository's own documents would go through the same path. A single switching argument would widen what is tolerated on the posting side |
+| **House the viewer in the application as a Next.js route** | The viewer's dependencies would land on the application's supply surface. Delivery only needs to be static and needs no Next.js runtime |
+| **Copy the design-system components into the viewer** | Once they drift, the role of validating in real use disappears |
+| **Put the viewer's tests in a separate suite** | Only one side could be green |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `src/` から `docs-viewer/` を import すること（向きは一方向）
-- ❌ ビューアーの allowlist をアプリ本体の sanitizer へ写すこと、または共有すること
-- ❌ ビューアーだけが使う依存をアプリ本体の `package.json` に置くこと（強制: `knip`（Dead Code workflow。アプリ本体の workspace で使われない依存を落とす））
-- ❌ デザインシステムの部品をビューアーへコピーすること（強制: 散文 —— **一部寄せられる**。`docs-viewer/src/` と `src/components/` の逐語の複製は複製検出で落とせるが規則は無い。手を入れた写しかどうかは読まないと決まらない）
-- ❌ ビューアーで Next.js 固有の API を使うこと（強制: 散文 —— **寄せられる**（eslint.config.ts の `docs-viewer/src/**` の block で `next` / `next/*` を `no-restricted-imports` に足せば落とせる。規則は無い））
-- ❌ ビューアーのテストをアプリ本体と別の gate へ分けること（強制: カバレッジゲートが `docs-viewer/src/**` を計測対象に持つので、テストだけを別 suite へ移すと閾値で落ちる。計測対象ごと外す変更は散文 —— **寄せられない**。設定の差分として現れ、それを禁じる検査は設定の写しにしかならない）
+- ❌ Importing `docs-viewer/` from `src/` (the direction is one way)
+- ❌ Copying the viewer's allowlist into the application's sanitizer, or sharing it
+- ❌ Putting dependencies used only by the viewer in the application's `package.json` (Enforcement: `knip` (the Dead Code workflow; rejects dependencies unused in the application's workspace))
+- ❌ Copying design-system components into the viewer (Enforcement: Prose — **partly mechanizable**. Verbatim duplication between `docs-viewer/src/` and `src/components/` can be caught by duplicate detection, but no rule exists. Whether something is a modified copy is decided only by reading it)
+- ❌ Using Next.js-specific APIs in the viewer (Enforcement: Prose — **mechanizable** (adding `next` / `next/*` to `no-restricted-imports` in the `docs-viewer/src/**` block of eslint.config.ts would reject them. No rule exists))
+- ❌ Splitting the viewer's tests into a gate separate from the application's (Enforcement: the coverage gate measures `docs-viewer/src/**`, so moving only the tests into a separate suite fails on the threshold. A change that removes it from measurement altogether is Prose — **not mechanizable**. It shows up as a configuration diff, and a check forbidding it would only be a copy of the configuration)
 
-## 関連 ADR
+## Related ADRs
 
-- [0001-package-manager.md](0001-package-manager.md) — pnpm（workspace の機構）
-- [0004-library-management.md](0004-library-management.md) — 依存の選定・固定
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層境界の機械強制（`src/` 側で越境を落とす検査）
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — アイコンの公開面
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — 部品の語彙（ビューアーはその外の実利用者）
-- [0090-testing-strategy.md](0090-testing-strategy.md) — 1 つの gate で回すテスト
-- [0110-security-operations.md](0110-security-operations.md) — 冷却期間と推移的依存の固定
-- [0140-documentation-operations.md](0140-documentation-operations.md) — 文書運用（ビューアーが描く canonical）
-- [0141-portal-operations.md](0141-portal-operations.md) — portal 運用（本 ADR の親決定）
-- [0153-ci-configuration.md](0153-ci-configuration.md) — GitHub Pages への配信 workflow
+- [0001-package-manager.md](0001-package-manager.md) — pnpm (the workspace mechanism)
+- [0004-library-management.md](0004-library-management.md) — choosing and pinning dependencies
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — machine enforcement of layer boundaries (the check that rejects crossings on the `src/` side)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — the public surface for icons
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — component vocabulary (the viewer is a real user outside it)
+- [0090-testing-strategy.md](0090-testing-strategy.md) — tests run in a single gate
+- [0110-security-operations.md](0110-security-operations.md) — cooldown and pinning of transitive dependencies
+- [0140-documentation-operations.md](0140-documentation-operations.md) — documentation operations (the canonical documents the viewer renders)
+- [0141-portal-operations.md](0141-portal-operations.md) — portal operations (the parent decision of this ADR)
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the delivery workflow to GitHub Pages

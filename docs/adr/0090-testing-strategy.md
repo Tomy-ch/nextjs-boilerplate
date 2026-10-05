@@ -1,56 +1,56 @@
-# テスト戦略
+# Testing Strategy
 
-テストの **フレームワーク選定 / 層別責務 / 命名・配置 / カバレッジゲート / 二層実行 / mock 戦略** を定める。規約の根拠は TS / Vitest のデファクトスタンダードと、本リポジトリのアーキテクチャからの導出に限る(§戦略)。
+Defines testing's **framework choice / responsibilities per layer / naming and placement / coverage gate / two-tier execution / mock strategy**. The grounds for the conventions are limited to the TS / Vitest de facto standards and derivation from this repository's architecture (§Strategy).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-テストのフレームワーク選定・層別責務・カバレッジ・配置命名は、決めずに置くとディレクトリごとに別の形で書かれ、カバレッジの数字が何を意味するかを誰も答えられなくなる。本 ADR がこれらを確定する。戦略(何をどう検証するか)の根拠は TS / Vitest のデファクトスタンダードと本リポジトリのアーキテクチャからの導出に限り、フレームワークは Next.js / React の標準に従う。
+Left undecided, the framework choice, per-layer responsibilities, coverage, and placement and naming of tests get written in a different shape per directory, and nobody can answer what the coverage number means. This ADR settles them. The grounds for the strategy (what to verify and how) are limited to the TS / Vitest de facto standards and derivation from this repository's architecture, and the framework follows the Next.js / React standards.
 
-## 決定
+## Decision
 
-### フレームワーク: Vitest + RTL + MSW + Playwright
+### Framework: Vitest + RTL + MSW + Playwright
 
-- **Vitest**(ユニット / コンポーネント)+ **React Testing Library**(コンポーネント)+ **MSW**(HTTP 境界の mock)+ **Playwright**(E2E)を採用する
-- 選定根拠: [0004](0004-library-management.md) の基準(メンテ活発・エコシステム標準)から実質一意。本体・主要ツールは exact pin + `pnpm audit`([0004](0004-library-management.md))
+- Adopt **Vitest** (unit / component) + **React Testing Library** (component) + **MSW** (mocking the HTTP boundary) + **Playwright** (E2E)
+- Grounds for the choice: effectively unique under the criteria of [0004](0004-library-management.md) (actively maintained, ecosystem standard). The packages themselves and main tools are exact-pinned + `pnpm audit` ([0004](0004-library-management.md))
 
-### 戦略
+### Strategy
 
-規約の根拠は 2 つしか認めない — **TS / Vitest のデファクトスタンダード**か、**本リポジトリのアーキテクチャからの導出**である。他言語の慣習を訳したものは根拠にしない。以下、どちらに由来するかを併記する。
+Only two grounds for conventions are accepted — **the TS / Vitest de facto standard**, or **derivation from this repository's architecture**. Translations of other languages' customs are not grounds. Below, the source of each is stated alongside.
 
-- **co-location**(デファクト): テストは実装の隣に置く([0027](0027-directory-structure.md))。`__tests__/` への一括集約はしない
-- **ケース名がケースを同定する**(デファクト): 失敗したケースが名前で特定できることを要求する。`it.each` / `it.for` は名前テンプレート(`"$name の…"` など)を伴えば**この要求を満たすので使ってよい**。満たさないのは手書きの `for` / `forEach` でケースを回す形で、`it` 名が全ケースで共有されて失敗がどのケースか分からず、状態も共有されやすい。これは禁止する
-- **1 対象 1 テスト**(導出): 呼べる export ごとにテストを対応させる。カバレッジ 100% のハードゲートが数字として意味を持つのは、「どの export の契約がどこに在るか」を機械が答えられるときだけである
-- **見た目が決まってからテストを書く**(導出): 描画を返す対象は、見た目の確認(story とレビュー)を先に済ませてからテストを書く。テスト先行は採らない —— 逆にすると見た目が動くたびにテストを書き直すことになり、書き直したテストは「通ること」だけを目的に緩む。値を返す対象(カーネル / 純関数)には見た目が無く、この順序の制約は掛からない
+- **Co-location** (de facto): tests are placed next to the implementation ([0027](0027-directory-structure.md)). They are not collected into `__tests__/`
+- **The case name identifies the case** (de facto): it is required that a failed case can be identified by its name. `it.each` / `it.for` **satisfy this requirement and may be used** when accompanied by a name template (such as `"$name の…"`). What fails it is looping over cases with a hand-written `for` / `forEach`, where the `it` name is shared across all cases so a failure cannot be traced to a case, and state also tends to be shared. This is forbidden
+- **One subject, one test** (derived): each callable export has a corresponding test. A 100% coverage hard gate means something as a number only when a machine can answer "where the contract of which export lives"
+- **Write tests after the look is settled** (derived): for subjects that return rendering, finish checking the look (stories and review) before writing tests. Test-first is not adopted — the other way round means rewriting tests every time the look moves, and rewritten tests slacken toward the sole goal of "passing". Subjects that return values (kernels / pure functions) have no look, and this ordering constraint does not apply
 
-### テストの構成: export ↔ describe の 1:1 対応
+### Test structure: 1:1 export-to-describe mapping
 
-`describe` が主語で `it` が述語という JS/TS の一般的な構成を採り、主語を **export 名**に固定する。
+Adopt the common JS/TS structure where `describe` is the subject and `it` the predicate, and fix the subject to the **export name**.
 
-- **最外 `describe` は export 名**とする。1 ファイルが複数の export を持つなら最外 `describe` も複数並べる
-- **呼べる export は、自分の名前の最上位 `describe` をちょうど 1 つ持つ**。呼べる値(関数 / クラス / React コンポーネント / `cva()` の戻り値など)が対象で、定数や zod スキーマは要求しない(書くことは許す)
-- **最上位 `describe` はいずれかの export に対応する**。対応しない束ね `describe` を置かない
-- **default export も対象**とする。`describe` 名は `export default function Foo` なら宣言名の `Foo`、`export default Foo` なら参照している識別子の `Foo` を使う。公開名が `default` であることは判定の内部事情であり、テスト側には出さない
-- **名前を持たない default export を置かない**。`export default () => {}` / `export default function () {}` は `describe` で指せる名前が無く、1:1 の対象になれない。名前を付けて上の形にする。指せる名前が無いという性質は 1:1 ゲートの語彙(missing / duplicate / unknown)に乗らないため、強制は命名の検査として ESLint `project-rules/no-anonymous-default-export` が持つ
-- **観点の束ねは `describe` の入れ子ではなくコメント区切りで行う**。`it` は export 名 `describe` の直下に並べ、コメントで区切る。**軸は対象の結果がどこに現れるかで変わる**（下記「軸の選び方」）。入れ子を使わないのは、観点は 2 つしかないのに階層が 1 段深くなり、失敗時の表示が `対象 > 正常系 > ケース` と冗長になるためである。区切りコメントは runtime に影響せず、ファイルを走り読みしたときに分岐の軸が見える
-- **入れ子 `describe` は共有 setup を持つ文脈にだけ置く**。`beforeEach` で組み立てる前提が複数ケースに共通するときは入れ子にしてよい(TS の慣用でもある)。その場合の名前は**その文脈**を述べる(`describe("ログイン済みのとき", …)`)。`正常系` / `異常系` を入れ子 `describe` の名前にはしない — それは観点の束ねであって文脈ではない
-- `it` 文字列は**日本語**で、振る舞い + 分岐条件を述べる(AGENTS.md「テスト `describe` / `it` 文字列は日本語」と接続)
-- **分岐を持たない export も対象**とする。`if` の無い本体でも契約は持つ(props をそのまま流すだけの component が渡す先と既定値を固定する、など)
-- **軸の選び方は、成功と失敗がどこに現れるかで決める**。多くの対象ではそれが「値を返すか描画を返すか」と一致する。
-  - **値を返す対象**（純粋関数 / adapter / store / Route Handler / Server Action）は `// ----- 正常系 -----` / `// ----- 異常系 -----` で分ける。成功と失敗が返り値と例外として実在し、「何を受け付け、何を弾くか」が対象自身の契約だからである
-  - **描画を返す対象**（component / 描画のための hook / `page-content`）は**分けない**。分けたいほど長い場合の軸は [`docs/rules.md#states`](../rules.md#states)の「各画面は loading、empty、error、success の 4 状態を設計する」が言う **loading / empty / error / success** で、`// ----- 空のとき -----` のように状態を名前にする。描画する対象にとって上流の失敗は「弾く入力」ではなく**出す状態の 1 つ**であり、成功と同じ資格でハッピーパスに属する。失敗を別扱いにすると、4 状態のうち error だけが別の節へ切り出され、状態の網羅が 2 箇所に割れる
-  - **値を返さない命令的なエントリポイント**（マウント / 登録 / 起動）は、**成功と失敗がどこに現れるかで倒す**。`Promise<void>` を返して例外を飲む対象には、戻り値にも例外にも成功・失敗が実在せず、値側の根拠がそのまま成立しない。観測できる結果が対象自身の出力（描いた DOM）だけなら**描画側と同じ状態の軸**を採り、失敗を呼び出し元へ投げ返すなら値を返さなくても**値側の軸**を採る。第 3 の軸は置かない —— 軸を決めるのは戻り値の型ではなく、失敗の現れる先である
-- **以下の `正常系` / `異常系` の規定は、値を返す対象にだけ適用する**。
-- **`正常系` / `異常系` の振り分けは「ハッピーパスの内側か外側か」で決める**。`正常系` は期待された筋道、`異常系` はその反対 —— 契約の外にある入力、欠けている値、上流の失敗、拒否される境界に対する振る舞いである。**対象がその状況をどう表現するかは問わない**（throw / reject / エラー状態を返す / 値を捨てる / 何も描かない、のいずれでも `異常系` に置く）。TS では失敗が例外だけで表されないため、表現手段で切ると失敗経路のテストが `正常系` に散り、節を分ける目的が失われる
-- **分けるのは可読性のためである**。ハッピーパスとその反対が同じ場所に混ざると、走り読みで「何を受け付け、何を弾くか」が追えない。したがって迷うケースは、**どちらに置くとファイルが読みやすいか**で決めてよい
-- **契約の内側にある入力で、結果が成功なら `正常系` に置く**。値が境界であっても、空であっても変わらない（空配列を渡して空文字が返るのは成功であり `異常系` ではない）。`境界ケース` は観点であって第 3 の区分ではなく、両側が出す結果に応じて 2 つへ割る
-- **「無い」は 2 種類あり、振り分けが逆になる**。宣言された任意値の不在（省略可能な prop / `null` を受ける引数 / 空のリスト）は**契約の内側**なので `正常系` で、既定値へ落ちる振る舞いや「何も描かない」振る舞いはハッピーパスそのものである。在るべきものの不在（必須の設定、存在するはずのファイル、返るはずの応答）は**契約の外側**なので `異常系` に置く。判定は「その不在を契約が宣言しているか」で行う
-- **`it.skip` の前に、検証できない部分を切り出して mock で限界まで寄せる**。TS では `vi.mock` がモジュール境界に届くので、「検証不可能」と言える範囲は狭い。手順は — 検証を妨げている副作用(`process.exit` / 読み込み時の環境参照 / 外部プロセス起動など)を**専用の関数として別モジュールへ切り出し**、対象側はそれを呼ぶだけにする。テストはその境界を mock して**呼ばれた引数と分岐までを検証する**。残るのは切り出した関数の中身だけで、多くの場合そこには分岐が無くなる。**切り出しは対象の変更である** —— テストを書く側が対象を黙って書き換えて到達させることも、到達できないまま skip することもせず、どう切り出せば到達できるかを示して対象側の変更として扱う
-- **`it.skip` は、上の切り出しをしても到達できない残りにだけ許す**。理由には「何が残っていて、なぜ `vi.mock` / `vi.stubGlobal` でも到達できないか」を書く。**「別のテストでカバー済み」は理由として認めない** — 対象の検証を他テストの実装に依存させることになり、カバーしていた側が縮んでも消えても緑のままで、後から足した分岐は黙って未検証になる。1:1 対応が名前だけの殻になる
-- **`it.todo` は解消先が名指しできるときだけ使う**。どの issue / どのフェーズで解消するかを**人間に確認**し、`it.todo("<振る舞い>(#123 で解消)")` のように本文へ明示する。明示できないなら `it.todo` にせず、**現在の規約で書けるところまでテストを書く**。その場合は `it` 名の先頭に `暫定テスト：` を付け、後で書き直す対象であることを名前で示す
+- **The outermost `describe` is the export name**. If one file has several exports, several outermost `describe` blocks are lined up too
+- **A callable export has exactly one top-level `describe` with its own name**. Callable values (functions / classes / React components / the return value of `cva()`, etc.) are covered; constants and zod schemas are not required (writing one is allowed)
+- **Every top-level `describe` corresponds to some export**. No grouping `describe` without a counterpart is placed
+- **Default exports are covered too**. For the `describe` name, use the declared name `Foo` for `export default function Foo`, and the referenced identifier `Foo` for `export default Foo`. That the public name is `default` is an internal detail of the check and does not surface on the test side
+- **No default export without a name is placed**. `export default () => {}` / `export default function () {}` have no name that a `describe` can point at and cannot be a 1:1 subject. Give it a name and use the shape above. The property of having no name to point at does not fit the 1:1 gate's vocabulary (missing / duplicate / unknown), so enforcement is held as a naming check by ESLint `project-rules/no-anonymous-default-export`
+- **Grouping by viewpoint is done with comment separators, not nested `describe`**. `it` blocks are lined up directly under the export-name `describe` and separated by comments. **The axis changes with where the subject's results appear** ("choosing the axis" below). Nesting is not used because, with only two viewpoints, the hierarchy gets one level deeper and the failure display becomes redundant: `対象 > 正常系 > ケース`. Separator comments have no runtime effect, and the axis of branching is visible when skimming the file
+- **Nested `describe` is placed only for a context with shared setup**. When a precondition assembled in `beforeEach` is common to several cases, nesting is allowed (it is also TS idiom). Its name then states **that context** (`describe("ログイン済みのとき", …)`). `正常系` / `異常系` are not used as nested `describe` names — those are viewpoint groupings, not contexts
+- `it` strings are in **Japanese** and state the behaviour + the branching condition (connected to AGENTS.md's "test `describe` / `it` strings are Japanese")
+- **Exports with no branches are covered too**. A body without an `if` still has a contract (a component that just passes props through pins where it passes them and its default values, etc.)
+- **The axis is chosen by where success and failure appear**. For many subjects this coincides with "does it return a value or rendering".
+  - **Subjects that return values** (pure functions / adapters / stores / Route Handlers / Server Actions) are split with `// ----- 正常系 -----` / `// ----- 異常系 -----`. Success and failure really exist as return values and exceptions, and "what it accepts and what it rejects" is the subject's own contract
+  - **Subjects that return rendering** (components / hooks for rendering / `page-content`) are **not split**. When long enough to want splitting, the axis is **loading / empty / error / success** as stated by "each screen designs the four states loading, empty, error and success" in `docs/rules.md` *State Display and Loading*, naming the state as in `// ----- 空のとき -----`. For a subject that renders, an upstream failure is not "an input it rejects" but **one of the states it shows**, belonging to the happy path on the same footing as success. Treating failure separately would cut only error out of the four states into a separate block and split the coverage of states across two places
+  - **Imperative entry points that return no value** (mount / register / start) **lean according to where success and failure appear**. For a subject that returns `Promise<void>` and swallows exceptions, success and failure exist in neither the return value nor exceptions, so the value-side grounds do not hold as is. If the only observable result is the subject's own output (the DOM it rendered), adopt **the same state axis as the rendering side**; if it throws failure back to the caller, adopt **the value-side axis** even though it returns no value. No third axis is set up — what decides the axis is not the return type but where failure appears
+- **The rules on `正常系` / `異常系` below apply only to subjects that return values**.
+- **Sorting into `正常系` / `異常系` is decided by "inside or outside the happy path"**. `正常系` is the expected course; `異常系` is the opposite — behaviour for inputs outside the contract, missing values, upstream failures and refused boundaries. **How the subject expresses that situation does not matter** (throw / reject / returning an error state / discarding the value / rendering nothing — any of these goes in `異常系`). In TS, failure is not expressed only by exceptions, so cutting by means of expression scatters failure-path tests into `正常系` and defeats the purpose of splitting the blocks
+- **The split is for readability**. When the happy path and its opposite are mixed in the same place, skimming cannot follow "what it accepts and what it rejects". So a borderline case may be decided by **which placement makes the file easier to read**
+- **An input inside the contract whose result is success goes in `正常系`**. This holds even if the value is a boundary or empty (passing an empty array and getting an empty string back is success, not `異常系`). `境界ケース` is a viewpoint, not a third category, and is split into the two according to the result on each side
+- **"Absent" comes in two kinds, sorted in opposite directions**. The absence of a declared optional value (an optional prop / an argument accepting `null` / an empty list) is **inside the contract**, so it is `正常系`, and falling back to a default or "rendering nothing" is the happy path itself. The absence of something that should be there (a required setting, a file that should exist, a response that should come back) is **outside the contract**, so it goes in `異常系`. The test is "does the contract declare that absence"
+- **Before `it.skip`, cut out the part that cannot be verified and push it as far as mocks can reach**. In TS, `vi.mock` reaches module boundaries, so the range that can be called "unverifiable" is narrow. The procedure — **cut the side effect blocking verification** (`process.exit` / environment reads at load time / launching external processes, etc.) **out into a dedicated function in a separate module**, and have the subject merely call it. The test mocks that boundary and **verifies up to the arguments it was called with and the branching**. What remains is only the body of the cut-out function, which in most cases has no branches left. **Cutting out is a change to the subject** — the test author neither silently rewrites the subject to reach it nor skips it as unreachable; they show how to cut it out so it becomes reachable, and handle it as a change on the subject's side
+- **`it.skip` is allowed only for the remainder that cannot be reached even after the cutting out above**. The reason states "what remains, and why `vi.mock` / `vi.stubGlobal` cannot reach it". **"Already covered by another test" is not accepted as a reason** — it makes the subject's verification depend on another test's implementation; if the covering side shrinks or disappears it stays green, and branches added later go silently unverified. The 1:1 mapping becomes an empty shell of names only
+- **`it.todo` is used only when where it gets resolved can be named**. **Confirm with a human** which issue / phase resolves it, and state it explicitly in the text, as in `it.todo("<behaviour>(#123 で解消)")`. If it cannot be stated, do not make it `it.todo`; **write the test as far as the current conventions allow**. In that case prefix the `it` name with `暫定テスト：` to show by name that it is to be rewritten later
 
 ```ts
 describe("parseSearchParams", () => {
@@ -62,94 +62,94 @@ describe("parseSearchParams", () => {
 });
 ```
 
-対応は **`scripts/one-to-one.gate.test.ts` が機械判定する**。「export に `describe` が無い」と「`describe` に対応する export が無い」の両方向を見る。片方向だけだと、export を消してテストだけ残った状態や、テストを別名へ改名した状態が検査をすり抜ける。
+The mapping is **checked mechanically by `scripts/one-to-one.gate.test.ts`**. It looks in both directions: "an export has no `describe`" and "a `describe` has no corresponding export". One direction alone would let through the state where an export was deleted but its test remained, and the state where a test was renamed to another name.
 
-本 ADR は判断を持ち、**書くとき・レビューするときの行動規約は [テスト規約](../testing-conventions.md)** が持つ。アサーションの強さ、Testing Library の原則、jsdom に無い API の扱いはそちらにある。
+This ADR holds the judgment; **the code of conduct for writing and reviewing is held by the [Testing Conventions](../testing-conventions.md)**. Assertion strength, Testing Library principles and handling APIs jsdom lacks are there.
 
-### 層別責務
+### Responsibilities per Layer
 
-| 層 | 対象 | ツール |
+| Layer | Subject | Tool |
 | --- | --- | --- |
-| unit | 純粋ロジック(`model` / feature 内純関数) | Vitest |
-| component | UI コンポーネントの描画・振る舞い | Vitest + RTL |
-| feature | 画面スライスの合成 UI と振る舞い(`features/**`) | Vitest + RTL |
-| route | route segment の合成(`app/**` の `layout.tsx` / `page.tsx`) | Vitest + RTL |
-| integration | **HTTP 境界のみ**(`adapters` の API クライアント / route handler の境界) | Vitest + MSW |
-| e2e | ブラウザ経路の通し | Playwright |
-| visual | story の**見た目**(基準画像との比較) | Playwright(コンテナ内) |
+| unit | Pure logic (`model` / pure functions inside a feature) | Vitest |
+| component | Rendering and behaviour of UI components | Vitest + RTL |
+| feature | Composed UI and behaviour of a screen slice (`features/**`) | Vitest + RTL |
+| route | Composition of a route segment (`layout.tsx` / `page.tsx` under `app/**`) | Vitest + RTL |
+| integration | **The HTTP boundary only** (API clients in `adapters` / the route handler boundary) | Vitest + MSW |
+| e2e | End-to-end browser paths | Playwright |
+| visual | The **look** of stories (comparison with baseline images) | Playwright (in a container) |
 
-`visual` だけは対象が実装モジュールではなく **story** であり、`test-requirement` の宣言も持たない。他の層が「この振る舞いが正しいか」を問うのに対し、`visual` が問うのは「**前と変わっていないか**」だけで、正しさの基準を内部に持たないためである(基準は過去の自分)。DOM のアサートでは表現できない観点をここが負う。手段と運用は [0091](0091-test-verification-methods.md)。
+Only `visual` has a **story** as its subject rather than an implementation module, and it holds no `test-requirement` declaration either. Whereas the other layers ask "is this behaviour correct", `visual` asks only "**has it changed from before**", because it holds no internal criterion of correctness (the criterion is its past self). It bears the viewpoints that DOM assertions cannot express. The means and operation are in [0091](0091-test-verification-methods.md).
 
-他の層は README frontmatter の `test-requirement` が宣言する。**テストを持つディレクトリは、遡って必ずどこかの宣言に当たる**こと。当たらないと層別責務表のどの行に照らせばよいかが引けず、レビューする側は対象の見た目から推測することになる。宣言の有無は `scripts/test-requirement.gate.test.ts` が機械判定する。解決は「遡って最初に `test-requirement` を持つ README」で、宣言を持たない README は素通しする。ただしリポジトリ直下の README の宣言は直下のファイルにだけ及ぶ。下へ継がせると全体の既定値になり、宣言を欠いたディレクトリが引けないまま黙って通る。手段が同じ 3 層(`component` / `feature` / `route`)の判別は**対象の合成の度合い**で決める。単一コンポーネントの描画契約なら `component`、複数のカーネルや feature 内部品を画面単位で組み上げたものなら `feature`、その画面を route に載せる器なら `route` である。手段ではなく合成の度合いで分けるのは、負う観点が変わるためで、`feature` と `route` は「部品が揃って初めて成立する振る舞い」を負う。
+The other layers are declared by `test-requirement` in README frontmatter. **A directory that holds tests must, walking upward, always hit some declaration**. If it does not, there is no way to look up which row of the per-layer responsibility table to check it against, and the reviewer ends up guessing from the subject's appearance. Whether a declaration exists is checked mechanically by `scripts/test-requirement.gate.test.ts`. Resolution is "the first README upward that holds `test-requirement`", and READMEs without a declaration are passed through. However, the declaration in the repository-root README covers only the files directly at the root. Inheriting it downward would make it a global default, and directories lacking a declaration would pass silently without being looked up. The three layers that share the same means (`component` / `feature` / `route`) are told apart by **the degree of composition of the subject**. The rendering contract of a single component is `component`; something that assembles multiple kernels and feature-internal components into a screen unit is `feature`; the container that puts that screen on a route is `route`. They are split by degree of composition rather than by means because the viewpoints they bear change: `feature` and `route` bear "behaviour that holds only once the components come together".
 
-**負う観点が置き場ではなく element で決まるものは、README より先に `architecture.ts` が宣言する。** `app` の Route Handler が確かめるのはリクエストに対する結果で、それは `api/` の下に置こうが外に置こうが変わらない。ディレクトリを遡る README はこれを表せず、`api/` の下にだけ nested な上書きを置く形になり、外へ出た同じ element が親の宣言を継ぐ。宣言は `architecture.ts` の `APP_ELEMENTS` が持ち（[0025](0025-app-layer-elements.md)）、`resolveTestRequirement` は README の walk より先にそちらを引く。
+**Where the viewpoints borne are decided by the element rather than the placement, `architecture.ts` declares them ahead of the README.** What an `app` Route Handler verifies is the result for a request, and that does not change whether it is placed under `api/` or outside it. A README found by walking up directories cannot express this; it ends up as a nested override only under `api/`, and the same element moved outside inherits the parent's declaration. The declaration is held by `APP_ELEMENTS` in `architecture.ts` ([0025](0025-app-layer-elements.md)), and `resolveTestRequirement` looks it up before the README walk.
 
-**宣言とテストが食い違ったときは、個別に裁かず次の規則で裁く。** 同じ状況がディレクトリごとに別の結論になると、隣のディレクトリの先例を写すしかなくなる。どの規則を当てたかを言う。
+**When a declaration and the tests disagree, do not adjudicate case by case; adjudicate with the following rules.** If the same situation reaches different conclusions per directory, the only option left is copying the precedent of the neighbouring directory. State which rule was applied.
 
-- **テストの取り方が設計として正しいなら、宣言を直す。** テストが採った手段にアーキテクチャ上の根拠があるなら、実態を書き損ねたのは宣言の側である。そのディレクトリに自身の `test-requirement` を与え、**手段を選ぶ基準**を併せて書く —— 手段だけを書くと、次に同じ状況のディレクトリが先例を写す
-- **宣言が正しい意図なら、テストを直す。** 逸脱に設計上の根拠が無いなら、frontmatter が真であるべき状態を述べており、テストをそれに揃える
-- **継いだ宣言が効くのは、その前提が成り立つ場所だけ。** HTTP 境界の adapter のために書かれた `integration` の宣言は、隣の純粋な整形 helper を支配しない。walk で形式的に解決することと、宣言が当てはまることは別で、当てはまらない最寄りの宣言は無いのと同じに扱い、そのディレクトリへ frontmatter を与えて閉じる
-- **カーネルでないディレクトリも、自分の観点を所有する。** `scripts/` / `tokens/` のように上位にカーネル README を持たないものは、観点を自身の README が持つ。無ければそれは宣言の欠落であり、何にも照らさずに済ませてよい理由にはならない
+- **If how the tests are taken is right as a design, fix the declaration.** If the means the tests adopted has architectural grounds, it is the declaration that failed to describe reality. Give that directory its own `test-requirement`, and write **the criterion for choosing the means** along with it — writing only the means lets the next directory in the same situation copy the precedent
+- **If the declaration is the right intent, fix the tests.** If the deviation has no design grounds, the frontmatter states the state that should be true, and the tests are aligned with it
+- **An inherited declaration applies only where its premise holds.** An `integration` declaration written for an HTTP-boundary adapter does not govern a neighbouring pure formatting helper. Resolving formally through the walk and the declaration applying are different things; the nearest declaration that does not apply is treated as if absent, and the directory is closed by giving it frontmatter
+- **Directories that are not kernels also own their viewpoints.** Directories such as `scripts/` / `tokens/` that have no kernel README above them hold their viewpoints in their own README. If there is none, that is a missing declaration, not a reason to get by without checking against anything
 
-**宣言は、テスト手段が到達できる範囲で割る。** 1 つのモジュールが 1 つの層に収まるとは限らない。収まらない部分を宣言から黙って落とすと、誰も負わない観点がそこに残る。割ったなら、割った先の層も宣言に書く —— frontmatter は `test-requirement: [unit, component]` の並びを受け付ける。
+**Declarations are split by the range the testing means can reach.** One module does not necessarily fit in one layer. Silently dropping the part that does not fit from the declaration leaves a viewpoint nobody bears. If you split, write the layer you split into in the declaration too — frontmatter accepts a list like `test-requirement: [unit, component]`.
 
-**カーネルの外側にある起動 / 境界エントリ**(`src/proxy.ts` / `src/instrumentation.ts`)は README を持たず、どの `test-requirement` の walk にも乗らない([0021](0021-frontend-responsibility.md) の起動 / ビルド境界)。層を持たないディレクトリへ README を置いて宣言すると、そこに層があることになってしまうためである。**関数本体は `unit`** とする —— 関数として呼べば分岐は行使できるためである。宣言の置き場は element と同じで、`architecture.ts` の `ENTRY_POINTS` が持ち、`resolveTestRequirement` はそこを引く。**本 ADR も `scripts/` も写しを持たない** —— 宣言が 2 か所にあると、片方だけ動いた状態を誰も検出できない。ただし `proxy.ts` の `export const config` の `matcher` は、関数を直接呼ぶ経路を通らないので `unit` では原理的に検査できない。**選別の漏れは `e2e` が負う**([0043](0043-middleware-policy.md))。
+**Boot / boundary entries outside the kernels** (`src/proxy.ts` / `src/instrumentation.ts`) have no README and ride on no `test-requirement` walk (the boot / build boundary of [0021](0021-frontend-responsibility.md)). Placing a README in a directory with no layer and declaring there would make it look as if a layer existed there. **The function body is `unit`** — because calling it as a function can exercise its branches. The declaration lives in the same kind of place as elements: `ENTRY_POINTS` in `architecture.ts` holds it, and `resolveTestRequirement` looks it up there. **Neither this ADR nor `scripts/` holds a copy** — with the declaration in two places, nobody can detect a state where only one of them moved. However, the `matcher` of `export const config` in `proxy.ts` does not go through the path of calling the function directly, so in principle it cannot be checked by `unit`. **Selection misses are borne by `e2e`** ([0043](0043-middleware-policy.md)).
 
-- **`unit` の対象が React の hook API を使う場合は RTL の `render` / `act` を用いてよい**。hook は React のツリーを介してしか呼べず、純粋ロジックと同じ手段では検証できない(`capabilities` カーネル)
-- **integration = HTTP 境界のみ**を対象とし、**内側は mock**、**型 / 形状をアサート**する(値の正しさは unit で担保)。**ただし境界自身が判定を持つ Route Handler では、その判定結果(status / body / header)が対象の契約であり、integration がその値を直接アサートする** —— その判定を担保する unit 層は他に無く、形だけを見ると 400 と 401 の分岐が区別できない
-- **Server Components のテスト方針 / RSC・route handler・E2E の線引き**は [0091](0091-test-verification-methods.md) が持つ(async RSC は unit、通しでしか確かめられないものだけを E2E / integration へ)
+- **When a `unit` subject uses React's hook API, RTL's `render` / `act` may be used**. Hooks can be called only through a React tree and cannot be verified by the same means as pure logic (the `capabilities` kernel)
+- **Integration = the HTTP boundary only** is the subject, **the inside is mocked**, and **types / shapes are asserted** (correctness of values is ensured by unit). **However, for a Route Handler where the boundary itself holds decisions, the decision results (status / body / headers) are the subject's contract, and integration asserts those values directly** — there is no other unit layer guaranteeing that decision, and looking only at shape cannot distinguish the 400 and 401 branches
+- **The testing policy for Server Components / the line between RSC, route handlers and E2E** is owned by [0091](0091-test-verification-methods.md) (async RSC is unit; only what can be verified only end to end goes to E2E / integration)
 
-### カバレッジゲート
+### Coverage Gate
 
-- **カバレッジの計測は istanbul で行う**(`@vitest/coverage-istanbul`)。v8 は実行時の block coverage を source map で写す方式で、**同じ React の tsx を複数のテストファイルが読むと、単独では全分岐を通しているファイルの計上を取りこぼす**(実測: `chart.tsx` が単独 102/102 に対し全量で 95/102。pool の種類・AST ベースの写し直し・worker 数のいずれでも変わらない)。istanbul はソースを instrument して数えるため、この取りこぼしが起きない。**除外の指示は `/* istanbul ignore next */` で書き、理由を `--` に続けて必ず添える**(v8 の `ignore start` / `ignore stop` に相当する構文は無く、ブロックを覆う指示は関数ごとに置く)
-- **カバレッジ 100% のハードゲート**とする。除外は `scripts/lib/untested-modules.ts` の宣言 1 箇所が持ち、カバレッジ母数と 1:1 ゲートの双方がそれを読む。2 箇所に書くと片方だけを直したときに黙ってずれ、「ゲートからは外れているのにカバレッジは要求する」向きのずれは気づかれないまま進む
-- **`eslint-rules/` も母数に含める**。自作 lint ルールは判定を 1 つ間違えると「検査対象があるのに 0 件で緑」になり、壊れたことが誰にも見えない。ルール自身が検査されない状態を残さない
-- 除外には**撤去条件**を宣言へ書く。**カバレッジ例外は所有パッケージ(層 / feature)の README にも記録 + 承認**を要する(例外の統治)。記録は README frontmatter の `coverage-exclusions` が持ち、宣言との一致は `scripts/coverage-exclusion.gate.test.ts` が機械判定する —— **両方向**を見て、記録漏れ(所有側が穴に気づけない)と撤去済みの記録の残留(README が実態より多くの穴を告げる)のどちらも落とす
-- **README が持つのは対象の並びだけ**とする。理由と撤去条件は宣言の側にあり、同じ内容を 2 箇所へ書くと片方がずれる。記録が答えるのは「この配下に検査の穴があるか」だけで、なぜ空いているかは宣言を読む。**承認は機械判定の外**にある —— 増やしてよいかは PR のレビューに残り、ゲートが代われるのは「書いてあるか」までである
-- **閾値は収集する側の job が判定し、分割した各 machine は判定しない。** 分割した実行は渡されたファイルにしか到達せず、兄弟が覆った範囲は未到達に見える。したがって各分割は閾値を切って blob レポートを書き、収集側が母集団全体でカバレッジを組み直してから判定する。分割ごとに判定すると、100% ゲートは分割の切り方で赤くなる
-- カバレッジの **PR レポート**を出す。具体的なレポートツールと CI 組込みは **[0153](0153-ci-configuration.md)(CI 構成)** の責務として引き渡す
+- **Coverage is measured with istanbul** (`@vitest/coverage-istanbul`). v8 maps runtime block coverage through source maps, and **when multiple test files load the same React tsx, it drops counts from a file that exercises every branch on its own** (measured: `chart.tsx` at 102/102 alone versus 95/102 in the full run; unchanged by pool type, AST-based remapping or worker count). istanbul instruments the source and counts, so this drop does not happen. **Exclusion directives are written as `/* istanbul ignore next */`, always followed by a reason after `--`** (there is no syntax equivalent to v8's `ignore start` / `ignore stop`; directives covering a block are placed per function)
+- **A 100% coverage hard gate**. Exclusions are held in one place, the declaration in `scripts/lib/untested-modules.ts`, which both the coverage denominator and the 1:1 gate read. Writing them in two places makes them drift silently when only one is fixed, and drift in the direction of "excluded from the gate yet still required by coverage" goes unnoticed
+- **`eslint-rules/` is included in the denominator too**. A home-made lint rule that gets one decision wrong becomes "green with 0 findings despite there being targets", and nobody can see that it broke. No state is left in which the rules themselves go unchecked
+- Exclusions carry **removal conditions** written in the declaration. **A coverage exception also requires a record + approval in the README of the owning package (layer / feature)** (governance of exceptions). The record is held by `coverage-exclusions` in README frontmatter, and agreement with the declaration is checked mechanically by `scripts/coverage-exclusion.gate.test.ts` — it looks **in both directions**, rejecting both a missing record (the owning side cannot notice the hole) and a leftover record for something already removed (the README announces more holes than exist)
+- **The README holds only the list of subjects**. Reasons and removal conditions are on the declaration side; writing the same content in two places lets one drift. The record answers only "is there a hole in checking under here"; why it is open is read from the declaration. **Approval is outside the mechanical check** — whether it may be increased is left to PR review, and the gate can stand in only up to "is it written"
+- **The threshold is judged by the collecting job, not by each split machine.** A split run reaches only the files it was given, and what its siblings covered looks unreached. So each split turns the threshold off and writes a blob report, and the collecting side reassembles coverage over the whole population before judging. Judging per split would turn the 100% gate red depending on how the split was cut
+- A coverage **PR report** is produced. The concrete reporting tool and CI integration are handed over as the responsibility of **[0153](0153-ci-configuration.md) (CI configuration)**
 
-### 二層実行
+### Two-Tier Execution
 
-- **CI = 厳格(キャッシュ無効)**、**pre-commit / ローカル = 高速(キャッシュ有効)** の二層で実行する(速い hook + 権威 CI の二重化。[0151](0151-git-hooks.md) と同型)。lefthook / CI への接続は [0151](0151-git-hooks.md) / [0153](0153-ci-configuration.md) で行う
-- **suite はアプリ本体と `scripts/` の 2 本に分ける**(`vitest.scripts.config.ts`)。1 本に畳まないのは、検査する対象が違うためである —— `scripts/` に居るのは lint とゲートそのもので、壊れると「違反なし」を報告する向きに倒れる。落ちたときにアプリの退行と読み違えないよう、実行も CI のジョブも分ける
+- Execution is two-tier: **CI = strict (cache disabled)**, **pre-commit / local = fast (cache enabled)** (a fast hook + an authoritative CI doubling; same shape as [0151](0151-git-hooks.md)). Hooking into lefthook / CI is done in [0151](0151-git-hooks.md) / [0153](0153-ci-configuration.md)
+- **The suites are split in two: the application itself and `scripts/`** (`vitest.scripts.config.ts`). They are not folded into one because what they check differs — what lives in `scripts/` is the lints and gates themselves, and when they break they fall toward reporting "no violations". So that their failures are not misread as an application regression, both the runs and the CI jobs are separated
 
-### mock 戦略
+### Mock Strategy
 
-- **HTTP 境界の mock は MSW**、**モジュール境界の差し替えは `vi.mock`** を用いる。手書き mock は最小化する — 手書き stub は対象の呼び出し方に結合し、実装を変えると本番が正しくても落ちる
-- **MSW が担うのは契約を持つ相手**である。契約(OpenAPI)から生成したハンドラが応答の形の正であり、手書きすると契約破れをテストが追認する。契約を持たない相手 — 認証基盤のように契約の外にあるもの — には生成ハンドラが存在せず、MSW を使っても応答を手書きすることになるため、**呼び出し側が注入する実装(`fetchImpl`)で差し替える**
-- **通信そのものの振る舞い(再試行 / 遮断 / timeout)を確かめるテストも `fetchImpl` の注入で書く**。試行ごとに別の応答を返す必要があり、その制御は接続先ごとのハンドラではなく呼び出し側が持つ。この注入点は本番のコードが持つ seam であって、テストのための穴ではない
-- config の差し替えは env スタブ + factory 再生成([0030](0030-environment-variable-management.md))。env スタブの具体 API は Vitest の **`vi.stubEnv`** とする([0030](0030-environment-variable-management.md) は具体 API を本 ADR へ委ねる)
+- **Use MSW for mocking the HTTP boundary** and **`vi.mock` for swapping at module boundaries**. Hand-written mocks are minimized — a hand-written stub couples to how the subject calls it, and changing the implementation breaks it even when production is correct
+- **What MSW handles is counterparts that have a contract**. Handlers generated from the contract (OpenAPI) are the source of truth for the response shape, and hand-writing them makes tests ratify contract violations. A counterpart without a contract — something outside the contract, like the authentication platform — has no generated handlers, and using MSW would mean hand-writing responses anyway, so **swap it with an implementation the caller injects (`fetchImpl`)**
+- **Tests that verify the behaviour of the communication itself (retry / circuit breaking / timeout) are also written by injecting `fetchImpl`**. They need a different response per attempt, and that control is held by the caller, not by a per-destination handler. This injection point is a seam the production code holds, not a hole made for tests
+- Swapping config is done by env stubs + factory regeneration ([0030](0030-environment-variable-management.md)). The concrete API for env stubs is Vitest's **`vi.stubEnv`** ([0030](0030-environment-variable-management.md) delegates the concrete API to this ADR)
 
-### 配置・命名
+### Placement and Naming
 
-- テストファイルは実装の隣に co-location([0027](0027-directory-structure.md))。ファイル名の本体部分は **kebab-case + `.test.ts(x)`**([0028](0028-naming-convention.md) の統一方針に従う。例: `format-date.test.ts`)
-- `describe` は export 名、`it` 文字列は日本語(上記「export ↔ describe の 1:1 対応」)
-- **入力一式は `<name>.fixture.ts` として、それを使う範囲の直下に置く。** テストと story の双方が同じ入力を読むためで、片方が自分のぶんだけを組み立てると、器の幅や件数の前提が 2 つに割れる。判定を持たないため 1:1 のテストは求めず、除外はスクリプトの宣言が持つ
+- Test files are co-located next to the implementation ([0027](0027-directory-structure.md)). The stem of the file name is **kebab-case + `.test.ts(x)`** (following the unified policy of [0028](0028-naming-convention.md); e.g. `format-date.test.ts`)
+- `describe` is the export name, and `it` strings are Japanese ("Test structure: 1:1 export-to-describe mapping" above)
+- **A set of inputs is a `<name>.fixture.ts`, placed directly under the range that uses it.** Both tests and stories read the same inputs; if one side assembles only its own share, the assumptions about container width and item counts split in two. It holds no decisions, so no 1:1 test is required, and its exclusion is held by the script's declaration
 
-## 禁止事項
+## Prohibitions
 
-- ❌ テストを `__tests__/` へ一括集約すること(実装の隣に co-location)（強制: `scripts/one-to-one.gate.test.ts`（隣に subject を持たないテストを `orphan-test-file`、隣にテストを持たない export を `missing-test-file` で落とす））
-- ❌ 手書きの `for` / `forEach` でのケース列挙。ケースごとに名前が付く形(sequential な sibling の `it`、または名前テンプレート付きの `it.each` / `it.for`)で書く（強制: 散文 —— **寄せられる**（テストファイルで `for` 文と `forEach` の本体に `it` / `test` の呼び出しがあれば落とす `no-restricted-syntax`。規則は無い））
-- ❌ integration で HTTP 境界の内側まで実結合すること(内側は mock、型 / 形状アサート)（強制: 散文 —— **寄せられない**。どこまでが HTTP 境界の内側かは対象の意味で決まり、mock の有無の形からは決まらない）
-- ❌ 最上位に export 名以外の `describe`(`正常系` などの束ね)を置くこと。観点の束ねはコメント区切りで行う
-- ❌ 1 つの export に最上位 `describe` を 2 つ以上対応させること
-- ❌ 「別のテストでカバー済み」を理由に `it.skip` を置くこと（強制: 散文 —— **寄せられない**。`it.skip` の理由が他テストへの依存かは理由文の意味で決まる）
-- ❌ 検証を妨げる副作用を切り出さずに `it.skip` へ逃げること（強制: 散文 —— **寄せられない**。副作用を切り出せば到達できるかは対象の構造の判断で、`it.skip` の形からは決まらない）
-- ❌ 解消先の issue / フェーズを名指しできない `it.todo`(代わりに `暫定テスト：` を付けて書けるところまで書く)（強制: 散文 —— **一部寄せられる**。`it.todo` の文字列に `#<番号>` が無いことは静的に見られるが規則は無い。フェーズでの名指しは綴りが決まっていない）
-- ❌ 入れ子 `describe` を `正常系` / `異常系` の名前で置くこと(観点の束ねはコメント区切り。入れ子は共有 setup を持つ文脈のみ)（強制: 散文 —— **寄せられる**（入れ子の `describe` の第 1 引数が `正常系` / `異常系` なら落とす `no-restricted-syntax`。規則は無い））
-- ❌ 結果が描画にしか現れない対象のテストを `正常系` / `異常系` で分けること(軸は状態。上流の失敗も状態の 1 つ。値を返さないマウント関数も含む)（強制: 散文 —— **一部寄せられる**。`test-requirement` が `component` / `feature` / `route` の対象のテストに `正常系` / `異常系` の区切りがあれば落とせるが規則は無い。値を返さないマウント関数が描画側かは失敗の現れる先で決まる）
-- ❌ 名前を持たない default export(`export default () => {}` など)。1:1 の対象になれない(強制: ESLint `project-rules/no-anonymous-default-export`)
-- ❌ カバレッジ除外を `scripts/lib/untested-modules.ts` の宣言以外の場所へ書くこと、および README 記録・承認なしに増やすこと
-- ❌ フレームワーク・テスト関連依存を exact pin / `pnpm audit` なしに追加すること([0004](0004-library-management.md))（強制: `make audit`（CI の `dependency-audit`）が修正版のある `high` / `critical` を落とす。exact pin は散文 —— **寄せられる**（`package.json` の依存に `^` / `~` の範囲指定があれば落とすゲート。規則は無い））
-- ❌ テストのために本番コードへ印(`data-*` 等)を足すこと(掴み手は role と accessible name。印が要るのは**画面要件がスタイルの掛かり先として要求するとき**だけで、そのとき印は本番コードの都合として存在する)（強制: 散文 —— **寄せられない**。印が画面要件のスタイルの掛かり先かテストのためかは動機で決まり、属性の形からは決まらない）
+- ❌ Collecting tests into `__tests__/` (co-locate next to the implementation) (Enforcement: `scripts/one-to-one.gate.test.ts` (rejects a test with no subject next to it as `orphan-test-file`, and an export with no test next to it as `missing-test-file`))
+- ❌ Enumerating cases with a hand-written `for` / `forEach`. Write them in a shape where each case gets a name (sequential sibling `it` blocks, or `it.each` / `it.for` with a name template) (Enforcement: Prose — **mechanizable** (`no-restricted-syntax` rejecting `it` / `test` calls inside `for` statements and `forEach` bodies in test files; no rule exists))
+- ❌ Wiring integration tests for real past the inside of the HTTP boundary (the inside is mocked; assert types / shapes) (Enforcement: Prose — **not mechanizable**. Where the inside of the HTTP boundary begins is decided by the subject's meaning, not by the shape of whether mocks are present)
+- ❌ Placing a top-level `describe` other than an export name (a grouping such as `正常系`). Viewpoint grouping is done with comment separators
+- ❌ Mapping two or more top-level `describe` blocks to one export
+- ❌ Placing `it.skip` with "already covered by another test" as the reason (Enforcement: Prose — **not mechanizable**. Whether an `it.skip` reason is a dependency on another test is decided by the meaning of the reason text)
+- ❌ Escaping to `it.skip` without cutting out the side effect that blocks verification (Enforcement: Prose — **not mechanizable**. Whether cutting out the side effect would make it reachable is a judgment about the subject's structure, not determined by the shape of `it.skip`)
+- ❌ An `it.todo` that cannot name the issue / phase that resolves it (instead, prefix `暫定テスト：` and write as far as possible) (Enforcement: Prose — **partly mechanizable**. That an `it.todo` string has no `#<number>` can be seen statically, but no rule exists. Naming by phase has no fixed spelling)
+- ❌ Placing a nested `describe` named `正常系` / `異常系` (viewpoint grouping is with comment separators; nesting only for a context with shared setup) (Enforcement: Prose — **mechanizable** (`no-restricted-syntax` rejecting a nested `describe` whose first argument is `正常系` / `異常系`; no rule exists))
+- ❌ Splitting the tests of a subject whose results appear only in rendering into `正常系` / `異常系` (the axis is state; upstream failure is one of the states; this includes mount functions that return no value) (Enforcement: Prose — **partly mechanizable**. Tests of subjects whose `test-requirement` is `component` / `feature` / `route` that have `正常系` / `異常系` separators could be rejected, but no rule exists. Whether a mount function that returns no value is on the rendering side is decided by where its failure appears)
+- ❌ A default export without a name (`export default () => {}`, etc.). It cannot be a 1:1 subject (Enforcement: ESLint `project-rules/no-anonymous-default-export`)
+- ❌ Writing coverage exclusions anywhere other than the declaration in `scripts/lib/untested-modules.ts`, or increasing them without a README record and approval
+- ❌ Adding framework or test-related dependencies without an exact pin / `pnpm audit` ([0004](0004-library-management.md)) (Enforcement: `make audit` (CI's `dependency-audit`) rejects `high` / `critical` findings that have a fixed version. The exact pin is Prose — **mechanizable** (a gate rejecting `^` / `~` ranges in `package.json` dependencies; no rule exists))
+- ❌ Adding markers (`data-*`, etc.) to production code for the sake of tests (the handles are role and accessible name; a marker is needed only **when a screen requirement demands it as a styling hook**, and then the marker exists for production code's own sake) (Enforcement: Prose — **not mechanizable**. Whether a marker is a styling hook for a screen requirement or for tests is decided by motive, not by the shape of the attribute)
 
-## 関連 ADR
+## Related ADRs
 
-- [0027-directory-structure.md](0027-directory-structure.md) — テストの co-location(実装の隣 / `__tests__` 集約否定)
-- [0028-naming-convention.md](0028-naming-convention.md) — テストファイル名(kebab-case + `.test.ts`)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Components / route handler(テスト線引きの対象)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env スタブ + factory 再生成(本 ADR が具体 API を確定)
-- [0004-library-management.md](0004-library-management.md) — テスト依存の exact pin / audit
-- [0151-git-hooks.md](0151-git-hooks.md) — 二層実行(速い hook + 権威 CI)の接続先
-- [0153](0153-ci-configuration.md)(CI 構成)— カバレッジ PR レポートツール・CI 組込みの確定先
+- [0027-directory-structure.md](0027-directory-structure.md) — co-location of tests (next to the implementation / no `__tests__` collection)
+- [0028-naming-convention.md](0028-naming-convention.md) — test file names (kebab-case + `.test.ts`)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Components / route handlers (what the testing line is drawn for)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env stubs + factory regeneration (this ADR settles the concrete API)
+- [0004-library-management.md](0004-library-management.md) — exact pin / audit for test dependencies
+- [0151-git-hooks.md](0151-git-hooks.md) — where two-tier execution (fast hook + authoritative CI) connects
+- [0153](0153-ci-configuration.md) (CI configuration) — where the coverage PR report tool and CI integration are settled

@@ -1,60 +1,60 @@
-# 変更結果の通知 UX(インライン / トースト / redirect・live region)
+# Notification UX for Mutation Results (Inline / Toast / Redirect, Live Regions)
 
-変更系操作の**結果通知 UX** を 1 本に定める。操作結果を **インライン / トースト / redirect + メッセージ** のどれで出すかを「**フォーム文脈に留まるか離れるか**」で使い分ける規約と、非同期の状態変化を支援技術へ伝える **live region a11y**(目標水準の権威は [0100](0100-accessibility-target.md))を定める。送信メカニクス([0061](0061-form-mutation-ux.md))の `ActionState` 契約を入力に通知手段を選ぶ層である。
+This ADR unifies the **result notification UX** of mutating operations into one. It defines the convention for choosing whether an operation's result is shown **inline / as a toast / as redirect + message** by "**whether it stays in the form context or leaves it**", and **live region a11y** for conveying asynchronous state changes to assistive technology (the authority on the target level is [0100](0100-accessibility-target.md)). It is the layer that chooses the notification means with the submission mechanics' ([0061](0061-form-mutation-ux.md)) `ActionState` contract as input.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0052](0052-ui-component-policy.md) は UI / form 部品(shadcn 系)を採用しているが、部品が手元にあっても「**操作結果をどの手段(インライン / トースト / redirect)で出すか**」という規約は別途要る。これが空白のままだと、成功 / 失敗の通知手段が feature ごとにばらつき、実装者にも利用者にも一貫した UX が失われる。
+[0052](0052-ui-component-policy.md) adopts UI / form components (shadcn family), but even with the components at hand, the convention of "**by which means (inline / toast / redirect) to show an operation's result**" is needed separately. Left blank, the means of notifying success / failure would vary per feature, and both implementers and users would lose a consistent UX.
 
-結果通知の隣接領域は [0080](0080-error-handling.md)(エラー正規化)/ [0052](0052-ui-component-policy.md)(UI)/ [0100](0100-accessibility-target.md)(a11y)に分かれる。結果通知は送信メカニクス([0061](0061-form-mutation-ux.md))が返す `ActionState` を入力に、「フォーム文脈に留まる結果か離れる結果か」で手段を選ぶ層である。本 ADR はその使い分けの規約と live region a11y 要件を敷き、a11y の目標水準は [0100](0100-accessibility-target.md) に委ねる。
+The areas adjacent to result notification are split into [0080](0080-error-handling.md) (error normalization) / [0052](0052-ui-component-policy.md) (UI) / [0100](0100-accessibility-target.md) (a11y). Result notification is the layer that takes the `ActionState` returned by the submission mechanics ([0061](0061-form-mutation-ux.md)) as input and chooses the means by "is the result one that stays in the form context or one that leaves it". This ADR lays down the convention for that choice and the live region a11y requirement, and delegates the a11y target level to [0100](0100-accessibility-target.md).
 
-## 決定
+## Decision
 
-### 1. 通知手段の使い分け(フォーム文脈に留まるか離れるか)
+### 1. Choosing the notification means (does it stay in the form context or leave it)
 
-通知手段は戻り値契約(`ActionState`。[0061](0061-form-mutation-ux.md))と「**フォーム文脈に留まるか離れるか**」で選ぶ:
+The notification means is chosen by the return-value contract (`ActionState`; [0061](0061-form-mutation-ux.md)) and "**whether it stays in the form context or leaves it**":
 
-| 手段 | 用途 | 供給元 |
+| Means | Use | Supplier |
 | --- | --- | --- |
-| **インライン**(フィールド / フォーム近傍) | 入力検証エラー・フォーム固有のエラー。フォーム文脈に留まる結果の既定 | `ActionState` の fieldErrors / formError(正規化済み sentinel。[0080](0080-error-handling.md)) |
-| **トースト** | フォーム文脈を離れた ephemeral な操作結果(遷移を伴わない保存成功等) | `ActionState` の成功値 |
-| **redirect + メッセージ** | 成功後に別画面へ遷移する結果(PRG) | Server Action の `redirect()` + 再検証([0071](0071-bff-api-integration.md) `revalidateTag` / `revalidatePath`) |
+| **Inline** (near the field / form) | Input validation errors and form-specific errors. The default for results that stay in the form context | fieldErrors / formError of `ActionState` (normalized sentinels; [0080](0080-error-handling.md)) |
+| **Toast** | Ephemeral operation results that have left the form context (a save success without navigation, etc.) | The success value of `ActionState` |
+| **Redirect + message** | Results that navigate to another screen after success (PRG) | The Server Action's `redirect()` + revalidation ([0071](0071-bff-api-integration.md) `revalidateTag` / `revalidatePath`) |
 
-- インラインに出す入力検証エラーの供給・検証タイミングは [0062](0062-form-input-validation.md) が管轄する。本 ADR はそれを**どの手段で表示するか**の使い分けを持つ
-- **インラインは、全体の要約と欄ごとの文言の両方を出す。** 項目が多いフォームでは、欄のそばの文言だけでは「どこがいくつ」誤っているのかを辿れない。要約は全体像と導線を、欄の文言はその場での指摘を担う。分岐条件は「直すべきものが入力の中に在るか」であり、送信そのものの失敗(通信・権限)は入力の中に直すものが無いため、要約ではなくフォーム全体の feedback として出す
-- **出し分けは失敗の種類で行い、文言では行わない。** `ActionState` は「何が起きたか」(機械向けの分類)と「何を言うか」(人間向けの文言)を別に持つ。画面が失敗の種類で出し分ける(衝突なら読み込み直す導線を添える、等)とき、文言そのものを合図にすると、文言へ動的な要素を足した瞬間に出し分けが黙って壊れる。両者は変更の理由が違う
+- The supply and validation timing of the input validation errors shown inline are under [0062](0062-form-input-validation.md). This ADR holds the choice of **by which means to display them**
+- **Inline shows both an overall summary and per-field messages.** In forms with many fields, the messages beside the fields alone do not let one trace "where, and how many" are wrong. The summary carries the overall picture and navigation, and the field messages carry the on-the-spot pointing out. The branching condition is "is what needs fixing inside the input"; a failure of the submission itself (network, permission) has nothing to fix inside the input, so it is shown not in the summary but as feedback for the whole form
+- **Presentation is chosen by the kind of failure, not by the wording.** `ActionState` holds "what happened" (a classification for machines) separately from "what to say" (wording for humans). When a screen chooses its presentation by the kind of failure (adding a reload path on a conflict, etc.), using the wording itself as the signal makes the choice silently break the moment a dynamic element is added to the wording. The two change for different reasons
 
-### 2. トースト UI の帰属
+### 2. Where the toast UI belongs
 
-- **トースト UI の帰属**:トースト / 通知部品は **`components` カーネル**に置いて用いる([0052](0052-ui-component-policy.md) の部品方針 / [0021](0021-frontend-responsibility.md)「`components` はトースト等の UI 状態を持てる」で帰属確定済み)。vendor 直参照は `components` カーネルに閉じ込める([0052](0052-ui-component-policy.md) の非ロックイン境界)
-- 本 ADR はトースト *コンポーネント* を再帰属させず、**使い分けの規約**と下記 a11y 要件を持つ
+- **Where the toast UI belongs**: toast / notification components are placed and used in **the `components` kernel** (already settled by [0052](0052-ui-component-policy.md)'s component policy / [0021](0021-frontend-responsibility.md), which lets `components` hold UI state such as toasts). Direct vendor references are confined to the `components` kernel ([0052](0052-ui-component-policy.md)'s non-lock-in boundary)
+- This ADR does not reassign the toast *component*; it holds **the convention for choosing** and the a11y requirement below
 
-### 3. a11y(live region・権威は [0100](0100-accessibility-target.md))
+### 3. a11y (live regions; the authority is [0100](0100-accessibility-target.md))
 
-- トースト・非同期の状態変化は視覚のみでは支援技術に伝わらないため、**live region(`role="status"` / `role="alert"` / `aria-live`)で通知する**。インラインエラーはフィールドと `aria-describedby` / `aria-invalid` で関連付ける
-- a11y の**目標水準・検査タイミングの権威は [0100](0100-accessibility-target.md)**(WCAG 2.x AA / biome a11y 静的検査 + 実装 PR 時の手動チェック)。本 ADR は「**通知 UI は live region を伴う**」ことを結果通知 UX の必須要件として敷くに留め、水準を再定義しない(二重管理回避)
+- Toasts and asynchronous state changes are not conveyed to assistive technology visually alone, so **they are announced with live regions (`role="status"` / `role="alert"` / `aria-live`)**. Inline errors are associated with their field via `aria-describedby` / `aria-invalid`
+- **The authority on a11y target levels and inspection timing is [0100](0100-accessibility-target.md)** (WCAG 2.x AA / biome a11y static checks + manual checks at implementation PRs). This ADR only lays down "**notification UI comes with a live region**" as a mandatory requirement of result notification UX, and does not redefine the level (avoiding double management)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 通知手段(インライン / トースト / redirect)の使い分けを feature ごとにばらつかせること（強制: 散文 —— **寄せられない**。フォーム文脈に留まる結果か離れる結果かは画面の流れの判断で、コードの形からは決まらない）
-- ❌ 通知の出し分けを文言の一致で行うこと(分類で行う。文言は人間向け)
-- ❌ トースト等の非同期通知を live region なしで出すこと(支援技術に伝わらない = [0100](0100-accessibility-target.md) 違反)（強制: `src/components/shell/toaster/toast-item.test.tsx` と `toaster.test.tsx` がトーストの `role="status"` / `role="alert"` を落とす。トースト以外の非同期の状態変化は散文 —— **寄せられない**。どの変化が非同期の通知に当たるかは画面の意味で決まる）
-- ❌ トースト UI を `components` 以外へ置く / shadcn 以外の UI コンポーネントライブラリを並行導入して代替すること([0021](0021-frontend-responsibility.md) 帰属 / [0052](0052-ui-component-policy.md) の shadcn 採用・並行同梱禁止)（強制: 散文 —— **一部寄せられる**。別の UI ライブラリの供給元を `components` の外から引く形は `no-restricted-imports`（アイコンの供給元と同じ形）で落とせるが規則は無い。トーストに当たる UI を `components` の外で自作したかは描く内容の意味で決まる）
+- ❌ Letting the choice of notification means (inline / toast / redirect) vary per feature (Enforcement: Prose — **not mechanizable**. Whether a result stays in the form context or leaves it is a judgment about the screen's flow, not decided by the shape of the code)
+- ❌ Choosing the notification's presentation by matching the wording (choose by classification; wording is for humans)
+- ❌ Showing asynchronous notifications such as toasts without a live region (not conveyed to assistive technology = a [0100](0100-accessibility-target.md) violation) (Enforcement: `src/components/shell/toaster/toast-item.test.tsx` and `toaster.test.tsx` reject toasts without `role="status"` / `role="alert"`. Asynchronous state changes other than toasts are Prose — **not mechanizable**. Which changes count as asynchronous notifications is decided by the meaning of the screen)
+- ❌ Placing the toast UI outside `components` / substituting it by introducing a UI component library other than shadcn in parallel ([0021](0021-frontend-responsibility.md) placement / [0052](0052-ui-component-policy.md)'s adoption of shadcn and ban on bundling in parallel) (Enforcement: Prose — **partly mechanizable**. Pulling the supplier of another UI library from outside `components` could be rejected with `no-restricted-imports` (the same form as for the icon supplier), but no rule exists. Whether toast-like UI was built by hand outside `components` is decided by the meaning of what it renders)
 
-## 補足
+## Notes
 
-- 日常強制の細則(トースト表示秒数・文言トーン等)は [docs/rules.md](../rules.md) が持つ
+- Day-to-day detailed rules (toast display duration, wording tone, etc.) are held by [docs/rules.md](../rules.md)
 
-## 関連 ADR
+## Related ADRs
 
-- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — 送信メカニクス(本 ADR が入力に選ぶ `ActionState` 契約の供給元)
-- [0062-form-input-validation.md](0062-form-input-validation.md) — 入力検証 UX(インラインに出すフィールドエラーの供給元)
-- [0080-error-handling.md](0080-error-handling.md) — errors sentinel / 境界正規化(`ActionState` が運ぶエラーの供給元)
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI / form 部品(shadcn 系)採用。トースト / 通知部品は `components` で用いる
-- [0100-accessibility-target.md](0100-accessibility-target.md) — a11y 目標水準の権威(live region 要件自体は本 ADR が規定)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — Server Action / 再検証(redirect 通知・ミューテーション後反映の連動)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `components`(トースト UI 帰属)
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — submission mechanics (the supplier of the `ActionState` contract this ADR takes as input)
+- [0062-form-input-validation.md](0062-form-input-validation.md) — input validation UX (the supplier of the field errors shown inline)
+- [0080-error-handling.md](0080-error-handling.md) — errors sentinel / boundary normalization (the supplier of the errors `ActionState` carries)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adopting UI / form components (shadcn family). Toast / notification components are used from `components`
+- [0100-accessibility-target.md](0100-accessibility-target.md) — the authority on a11y target levels (the live region requirement itself is specified by this ADR)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — Server Action / revalidation (linked with redirect notification and reflecting mutations)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `components` (where the toast UI belongs)

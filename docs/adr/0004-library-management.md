@@ -1,72 +1,72 @@
-# ライブラリ選定・運用方針
+# Library Selection and Operations Policy
 
-本プロジェクトでは、`package.json` の `dependencies` / `devDependencies` に追加する **npm ライブラリの選定・バージョン固定・更新・監査** について本 ADR の方針に従う。
+This project follows this ADR's policy for the **selection, version pinning, updating and auditing of npm libraries** added to `dependencies` / `devDependencies` in `package.json`.
 
-カテゴリ別の推奨スタック（UI / state / form / validation 等）は本 ADR の対象外とし、必要に応じて別 ADR ないし PR の中で個別に判断する。本 ADR は **メタ方針** に絞る。
+Recommended stacks per category (UI / state / form / validation, etc.) are out of scope for this ADR and are decided case by case in a separate ADR or within a PR as needed. This ADR is limited to the **meta policy**.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- ライブラリ追加・更新時に **その都度ゼロから議論しない** ための判断基準を固定したい
-- 後から読む者が「何を確認すれば採用判断ができるか」「どう保守するか」を辿れるようにしたい
-- セキュリティ・サプライチェーン観点のミニマムな統制を明文化したい
+- Fix the decision criteria so that adding or updating a library **is not argued from scratch every time**
+- Let a later reader trace "what to check to make an adoption decision" and "how to maintain it"
+- Write down a minimum of security / supply-chain controls
 
-## 選定基準
+## Selection Criteria
 
-新しいライブラリを追加する PR では、以下のチェックを実施し PR 本文に結果を記す。判定は **一次(構造)→ 二次(定量)** の順に行い、**一次で落ちたものは二次を見ない**。
+A PR that adds a new library runs the following checks and records the results in the PR body. Judgment proceeds **primary (structural) → secondary (quantitative)**, and **anything that fails the primary judgment is not examined against the secondary**.
 
-### 一次判定: 単一責務 × 単一 upstream
+### Primary Judgment: Single Responsibility × Single Upstream
 
-**採用してよいのは「1 つの名前を付けられる、置き換え可能な責務」に対応するライブラリのみ**とする。これは [0010](0010-standards-and-non-lockin.md)(選択の主体が誰か)から導かれる yes/no テストであり、定量チェックより先に適用する。
+**Only a library that corresponds to "a replaceable responsibility that can be given one name" may be adopted.** This is a yes/no test derived from [0010](0010-standards-and-non-lockin.md) (who is doing the choosing), and it is applied before the quantitative checks.
 
-- **単一責務**: そのライブラリが何を担うかを 1 語で言えること。言えないもの(多目的ユーティリティ束・「フレームワーク」を自称するもの)は、必要な責務だけを担う狭いライブラリへ分解して再検討する
-- **単一 upstream**: 独立にバージョニングされる 2 つの上流の**あいだに立つ**ライブラリ(bridge / instrumentation)は、この基準を構造的に満たせない。後述の**例外パス**を通す
+- **Single responsibility**: what the library is responsible for can be said in one word. Anything that cannot (a bundle of multipurpose utilities, anything calling itself a "framework") is broken down into narrow libraries that carry only the needed responsibilities and reconsidered
+- **Single upstream**: a library that **stands between** two independently versioned upstreams (bridge / instrumentation) structurally cannot satisfy this criterion. It goes through the **exception path** described below
 
-**upstream の数え方(本リポの読み替え)**: `react` / `next` は**ランタイム基盤**であって upstream に数えない。React に紐づくバインディング(`react-hook-form` / `zustand` / `@tabler/icons-react` 等)は、React を「選んだのは別の既決事項」([0010](0010-standards-and-non-lockin.md))として扱い、**単一 upstream とみなす**。この読み替えがないと npm エコシステムではほぼ全てが例外になり、テストが機能しない。
+**How upstreams are counted (this repository's reading)**: `react` / `next` are the **runtime foundation** and are not counted as upstreams. Bindings tied to React (`react-hook-form` / `zustand` / `@tabler/icons-react`, etc.) treat React as "chosen by a separate, already settled decision" ([0010](0010-standards-and-non-lockin.md)) and are **regarded as single upstream**. Without this reading nearly everything in the npm ecosystem would be an exception and the test would not work.
 
-**コピーイン形態の扱い**: ソースを自リポジトリへ複製する配布形態(shadcn/ui 等)は npm 依存ではないため本判定の対象外(= 自コード)。ただし**それが要求する実依存**(Radix 等の下地)は対象とし、コピーインが要求する下地一式は **1 つの採用判断**としてまとめて評価する。
+**Handling copy-in distribution**: a distribution form that copies source into your own repository (shadcn/ui, etc.) is not an npm dependency and is outside this judgment (= your own code). However, **the real dependencies it requires** (the underlying layer such as Radix) are in scope, and the full underlying set a copy-in requires is evaluated together as **one adoption decision**.
 
-### 二次判定・必須
+### Secondary Judgment: Required
 
-| 観点 | 基準 |
+| Aspect | Criterion |
 | --- | --- |
-| メンテナンス状況 | **未修正の既知脆弱性が無いこと**(`pnpm audit`)。release の新しさは基準にしない — 成熟して変更の要らなくなったライブラリは release が止まるのが正常であり、それ自体は不採用理由にならない。**脆弱性が出ているのに修正が出ないもの**だけをアーカイブ済みとみなして不可とする。本体の release が止まっている場合は、攻撃面を持つ層(パーサ等)の依存が維持されているかを併せて見る |
-| TypeScript 対応 | 1st-party の型定義同梱、または公式 `@types/*` パッケージが存在し追従していること |
-| Next.js / React バージョン整合 | 本プロジェクトの `next` / `react` メジャーバージョン（`package.json` が持つ）に対応していること |
+| Maintenance status | **No unfixed known vulnerabilities** (`pnpm audit`). Release recency is not a criterion — it is normal for a library that has matured and needs no changes to stop releasing, and that in itself is not a reason to reject it. Only **a library with a vulnerability and no fix forthcoming** is regarded as archived and rejected. If the library's own releases have stopped, also check whether its dependencies in layers with an attack surface (parsers, etc.) are maintained |
+| TypeScript support | First-party type definitions are bundled, or an official `@types/*` package exists and keeps up |
+| Next.js / React version alignment | Supports this project's `next` / `react` major versions (held by `package.json`) |
 
-### 二次判定・推奨（採用判断材料）
+### Secondary Judgment: Recommended (Input for the Adoption Decision)
 
-| 観点 | 確認手段 |
+| Aspect | How to check |
 | --- | --- |
-| **fork コスト上限** | **最悪 fork した場合の負担が既知であること。「本体の実装行数の桁」×「依存する相手側インターフェースの安定性」で記録する** |
-| バンドルサイズ | <https://bundlephobia.com/> の minified + gzipped を記録 |
-| ESM 対応 | `package.json` の `type: "module"` または `exports` を確認 |
-| コミュニティ規模 | npm 週次ダウンロード数 / GitHub star を参考指標として記録（絶対指標としない） |
-| 依存数 | `pnpm why <pkg>` で推移依存の範囲を確認、極端に多い場合は代替候補と比較。**数そのものより発行元の実数**を見る（マイクロパッケージ群は数が多くても信頼点が少ない一方、同一発行元への集中はそれ自体がリスク） |
+| **Upper bound on fork cost** | **The burden in the worst case of forking is known. Record it as "the order of magnitude of the library's implementation lines" × "the stability of the interface of the counterpart it depends on"** |
+| Bundle size | Record the minified + gzipped size from <https://bundlephobia.com/> |
+| ESM support | Check `type: "module"` or `exports` in `package.json` |
+| Community size | Record npm weekly downloads / GitHub stars as reference indicators (not absolute indicators) |
+| Number of dependencies | Check the extent of transitive dependencies with `pnpm why <pkg>`; if extremely many, compare with alternatives. Look at **the actual number of publishers rather than the count itself** (a swarm of micro-packages may be numerous yet have few trust points, while concentration on one publisher is itself a risk) |
 
-**fork コスト上限を「ガバナンス / 所有者」より優先する理由**: 「メンテナが個人か企業かコミュニティか」は主観判断に流れやすく、単一企業所有でも小さければ実際の危険は小さい。逆にコミュニティ所有でも巨大で fork 不能なら危険は大きい。**最悪ケースの上限が既知かどうか**を問う方が決定論的であり、[0010](0010-standards-and-non-lockin.md)「代替の中から独立した根拠で選べているか」とも直結する。所有形態は fork コストを見積もるための材料として記録すればよく、それ自体を基準にはしない。
+**Why the upper bound on fork cost takes priority over "governance / ownership"**: "whether the maintainer is an individual, a company or a community" easily drifts into subjective judgment; even if owned by a single company, the real danger is small if the library is small. Conversely, even community-owned, the danger is large if it is huge and cannot be forked. Asking **whether the worst-case upper bound is known** is more deterministic, and ties directly to [0010](0010-standards-and-non-lockin.md)'s "were you able to choose among alternatives on independent grounds". Ownership is enough to record as input for estimating the fork cost; it is not a criterion in itself.
 
-### 例外パス: bridge / instrumentation
+### Exception Path: Bridge / Instrumentation
 
-**独立にバージョニングされる 2 つの上流のあいだに立つライブラリ**は一次判定を構造的に満たせない。手書きの接着コードで代替すると相手側の内部ライフサイクルに密結合し、保守債務がむしろ増えるため、**個別に正当化された明示的な例外**として認める。
+**A library that stands between two independently versioned upstreams** structurally cannot satisfy the primary judgment. Substituting hand-written glue code couples tightly to the counterpart's internal lifecycle and actually increases the maintenance debt, so it is accepted as **an explicit exception, justified individually**.
 
-例外を主張する PR は、次の 3 点を本文に記す。
+A PR claiming the exception states the following three points in its body.
 
-1. **手書き代替が不利であること** — 接着を自前で持つと、どの内部ライフサイクルに密結合するか
-2. **fork コスト上限** — 本体が小さいこと(上表と同じ)
-3. **drift 面の限定** — 両上流のリリース追従関係と、実際に破れうるインターフェースが安定版に限られること
+1. **The hand-written substitute is worse** — which internal lifecycle owning the glue yourself would couple you to
+2. **Upper bound on fork cost** — the library itself is small (same as the table above)
+3. **Limited drift surface** — how the releases of the two upstreams track each other, and that the interfaces that can actually break are limited to stable releases
 
-**本リポでは実行時とビルド時 / 開発時を区別する**。ビルド時・開発時の bridge は**本番バンドルに乗らず blast radius が小さい**ため、例外の敷居を実行時より低く扱う。
+**This repository distinguishes runtime from build time / development time.** A build-time or development-time bridge **does not ship in the production bundle and has a small blast radius**, so the threshold for the exception is treated as lower than at runtime.
 
-| 区分 | 例 | 扱い |
+| Category | Examples | Handling |
 | --- | --- | --- |
-| 実行時 bridge | エディタ本体 × React バインディング等 | 上記 3 点を個別に記載して例外化 |
-| ビルド時 / 開発時 bridge | ジェネレータ / バンドラプラグイン / カタログのフレームワーク統合 | 例外として認めるが、記載は fork コスト上限のみで足りる |
+| Runtime bridge | An editor core × its React binding, etc. | Made an exception with the three points above stated individually |
+| Build-time / development-time bridge | Generators / bundler plugins / the catalog's framework integration | Accepted as an exception; stating the upper bound on fork cost alone is enough |
 
-### 採用判断のテンプレ（PR 本文に貼る）
+### Adoption Decision Template (Paste into the PR Body)
 
 ```markdown
 ## ライブラリ採用チェック
@@ -84,93 +84,91 @@ Accepted
 - 代替検討: <他に比較した候補と、それを採用しなかった理由>
 ```
 
-## バージョン固定ポリシー
+## Version Pinning Policy
 
-**原則: すべて exact pin。範囲指定(`^` / `~`)は使わない**。
+**Principle: everything is exact-pinned. Ranges (`^` / `~`) are not used.**
 
-| 区分 | 例 | 指定形式 | 理由 |
+| Category | Examples | Specifier | Reason |
 | --- | --- | --- | --- |
-| ランタイム本体 | `next` / `react` / `react-dom` | exact (`x.y.z`) | 破壊的変更の影響範囲が広く、明示的な更新判断を要するため |
-| 主要 dev ツール | `@biomejs/biome` / `typescript` | exact | フォーマッタ / 型チェッカの揺らぎを禁ずる |
-| その他 dependencies / devDependencies | UI / utility 系 / `@types/*` / 補助ツール | exact | 下記 |
+| Runtime core | `next` / `react` / `react-dom` | exact (`x.y.z`) | Breaking changes have wide impact and need an explicit update decision |
+| Main dev tools | `@biomejs/biome` / `typescript` | exact | Forbids drift in the formatter / type checker |
+| Other dependencies / devDependencies | UI / utilities / `@types/*` / auxiliary tools | exact | See below |
 
-**範囲指定を採らない理由は、更新の入口を 1 つに保つことにある。** 範囲指定の利点は「パッチ取り込みを
-軽くする」ことだが、本リポジトリではその取り込みを Dependabot が PR として持ち込む
-([0110](0110-security-operations.md))。範囲指定にすると、その PR は `package.json` を変えずに
-lockfile だけを動かす形になり、**版が動いたことが `package.json` の差分に現れなくなる**。exact なら
-版の変化は必ず 1 行として現れ、レビューと `git log` の双方から追える。
+**The reason ranges are not used is to keep a single entry point for updates.** The benefit of ranges is "making it lighter to take in patches", but in this repository Dependabot brings those in as PRs
+([0110](0110-security-operations.md)). With ranges, such a PR would move only the lockfile without changing `package.json`, and **a version change would no longer show up in the `package.json` diff**. With exact pins,
+a version change always appears as one line and can be traced from both review and `git log`.
 
-**この区別は「更新してよいか」を変えない。** どの区分も Dependabot の cooldown と
-[更新・監査サイクル](#更新監査サイクル)を同じように通る。指定形式が決めるのは、動いたことが
-どこに現れるかだけである。
+**This distinction does not change "whether an update is allowed".** Every category goes through Dependabot's cooldown and
+the [update and audit cycle](#update-and-audit-cycle) in the same way. The specifier only decides where the change
+shows up.
 
-**lockfile** (`pnpm-lock.yaml`) は **常に commit する**。手動編集は禁止（ADR 0001 の方針を継承）。
+The **lockfile** (`pnpm-lock.yaml`) is **always committed**. Editing it by hand is prohibited (inheriting the policy of ADR 0001).
 
-**追加・更新ルール:**
+**Rules for adding and updating:**
 
-- 追加は必ず `pnpm add -E <pkg>` / `pnpm add -D -E <pkg>` で行い、`package.json` に `^` を残さない
-- メジャー更新は **必ず別 PR** とし、PR 本文に CHANGELOG の breaking change を引用する
-- マイナー / パッチ更新は **複数同時 PR** に集約可（後述「更新・監査サイクル」参照）
+- Always add with `pnpm add -E <pkg>` / `pnpm add -D -E <pkg>`, and leave no `^` in `package.json`
+- A major update is **always a separate PR**, and the PR body quotes the breaking changes from the CHANGELOG
+- Minor / patch updates may be **combined into one PR** (see "Update and Audit Cycle" below)
 
-## 更新・監査サイクル
+## Update and Audit Cycle
 
-定期的に以下を実施する。実施タイミングは個人運用では月次、CI 化する場合は週次が目安。
+Run the following periodically. As a guide, monthly for individual operation and weekly when automated on CI.
 
-### 週次〜月次
+### Weekly to Monthly
 
-- `pnpm outdated` で更新候補を一覧化
-- `pnpm audit` でセキュリティ警告を確認
-- マイナー / パッチ更新を 1 つの「ライブラリ更新 PR」に集約し、CI / 動作確認の上 merge
-- **ESLint → biome 移管判定**: ESLint 補完分（`eslint.config.ts` の各ルール）について、`@biomejs/biome` の更新で biome が同等検査に対応したものが無いかを確認する。対応済みルールは ESLint から削除し biome へ移管する（[0002](0002-formatter-linter.md) の「ESLint による補完」= 能力ベース・縮小方向）。判定材料として `eslint.config.ts` の各ルールに付す「なぜ biome で表現できないか」コメントを参照する
+- List update candidates with `pnpm outdated`
+- Check security warnings with `pnpm audit`
+- Combine minor / patch updates into one "library update PR", and merge after CI and manual verification
+- **ESLint → Biome move decision**: for the ESLint complement (each rule in `eslint.config.ts`), check whether an `@biomejs/biome` update has made Biome support an equivalent check. Supported rules are removed from ESLint and moved to Biome ([0002](0002-formatter-linter.md)'s complementary use of ESLint = capability-based, shrinking direction). As input, refer to the "why Biome cannot express this" comment attached to each rule in `eslint.config.ts`
 
-### 四半期〜半期
+### Quarterly to Semiannually
 
-- メジャー更新の棚卸し（`pnpm outdated` の `Latest` 列が 1 メジャー以上先のものを抽出）
-- それぞれ別 PR で対応。breaking change がある場合は ADR で意思決定（採用継続 / 代替への乗り換え / 機能の削減）
+- Take stock of major updates (extract the ones whose `Latest` column in `pnpm outdated` is one or more majors ahead)
+- Handle each in a separate PR. If there are breaking changes, decide through an ADR (keep using it / switch to an alternative / reduce functionality)
 
-### セキュリティ警告への対応
+### Responding to Security Warnings
 
-- `pnpm audit` の `high` 以上は **48 時間以内** に対応着手（更新 / 一時的に依存固定 / 代替へ乗り換え）
-- 即時対応できない場合は GitHub issue を立て、mitigation（影響経路 / 緩和策）を文書化
+- For `pnpm audit` findings at `high` or above, **start a response within 48 hours** (update / temporarily pin the dependency / switch to an alternative)
+- If it cannot be handled immediately, open a GitHub issue and document the mitigation (affected paths / mitigations)
 
-### 補助スキル
+### Supporting Skills
 
-- 本リポの `.claude/skills/tools-upgrade/` を利用する場合は、mise.toml 経由のツールに対しても同様の監査を実施
-- セキュリティ警告が名指しした npm 依存の更新は `.claude/skills/dep-vuln-upgrade/` が担う。同じ major の最小修正版へ動かし（推移的依存は `pnpm-workspace.yaml` の `overrides`）、窓に捕まった版は `supply-chain-triage` へ渡す。代替への乗り換えは新しい依存の追加として本 ADR の採用フローを通す
+- When using this repository's `.claude/skills/tools-upgrade/`, apply the same audit to tools obtained through mise.toml
+- Updating an npm dependency named by a security warning is handled by `.claude/skills/dep-vuln-upgrade/`. It moves to the smallest fixed version within the same major (transitive dependencies through `overrides` in `pnpm-workspace.yaml`), and versions caught by the window are handed to `supply-chain-triage`. Switching to an alternative is adding a new dependency and goes through this ADR's adoption flow
 
-## 採用フロー
+## Adoption Flow
 
-1. **提案 PR を立てる**
-   - PR 本文に「採用判断のテンプレ」を埋めて貼る
-   - 影響範囲（bundle / 型 / 周辺コード）を簡潔に記述
-2. **レビュー**
-   - **一次判定(単一責務 × 単一 upstream)を先に見る。落ちたものは例外パスの 3 点が書かれているかを確認し、無ければ差し戻す**
-   - 必須チェック項目をすべて満たすか確認
-   - 既存依存との重複や、より軽量な代替が無いかを確認
-3. **merge**
-   - 大規模・方針影響のあるものは別 ADR を起こす（例: 状態管理ライブラリ採用、API クライアント生成方針）
+1. **Open a proposal PR**
+   - Fill in the "Adoption Decision Template" and paste it into the PR body
+   - Briefly describe the scope of impact (bundle / types / surrounding code)
+2. **Review**
+   - **Look at the primary judgment (single responsibility × single upstream) first. For anything that fails it, confirm the three points of the exception path are written; if not, send it back**
+   - Confirm every required check is satisfied
+   - Confirm there is no overlap with existing dependencies and no lighter alternative
+3. **Merge**
+   - Anything large-scale or affecting policy gets a separate ADR (e.g. adopting a state-management library, the API-client generation policy)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ メジャーアップグレードを他の機能変更と同じ PR に混ぜること（強制: `.github/dependabot.yml` の group が Dependabot の major 更新を別 PR に分ける。手で上げた major に同居する変更が追随の修正か別の機能変更かは散文 —— **寄せられない**。変更の意図の判断である）
-- ❌ `pnpm-lock.yaml` を手動編集すること（ADR 0001 と整合）（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が package.json と食い違う手編集を落とす。package.json の範囲を満たしたままの手編集は散文 —— **寄せられない**。pnpm が解決した行と区別できない）
-- ❌ `npm install` / `yarn add` 等で依存を追加すること（pnpm のみ — ADR 0001 と整合）（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が npm / yarn で足して pnpm-lock.yaml が追随していない依存を落とす。package-lock.json / yarn.lock のコミットは綴りで落とせるが規則は無い）
-- ❌ `pnpm audit` の `high` 以上を放置すること（強制: `make audit`（`dependency-audit` job）が修正版のある high 以上を落とす。修正版の無い high への着手と mitigation の記録は散文 —— **寄せられない**。対応の手順であってコードに現れない）
-- ❌ 未修正の既知脆弱性を抱えたライブラリを新規採用すること（release 履歴の古さ自体は不採用理由にしない）（強制: `dependency-review` job が差分で増えた依存の high 以上の既知脆弱性を落とす。high 未満は散文 —— **寄せられる**（同じ action の閾値で落とせる。規則は無い））
-- ❌ 一次判定(単一責務 × 単一 upstream)を通さずに定量チェックだけで採用を判断すること（強制: 散文 —— **一部寄せられる**。依存を足す PR の本文に採用判断テンプレの `一次判定:` 行があるかは本文の検査で落とせるが規則は無い。判定そのものの妥当性は責務の判断で、コードの形からは決まらない）
-- ❌ bridge / instrumentation を例外パスの記載なしに採用すること（例外が暗黙化すると一次判定が骨抜きになる）（強制: 散文 —— **寄せられない**。そのライブラリが 2 つの上流のあいだに立つかは依存の役割の判断で、package.json からは決まらない）
-- ❌ 責務名を 1 語で言えない多目的ライブラリを「便利だから」で採用すること（強制: 散文 —— **寄せられない**。責務を 1 語で言えるかはライブラリの役割の判断で、コードの形からは決まらない）
-- ❌ 採用済みライブラリの一覧を本 ADR に持つこと（一覧は inventory であって decision ではない。下記「補足」）（強制: 散文 —— **寄せられない**。例示としてのパッケージ名と採用済みの一覧の区別は文脈の判断で、綴りからは決まらない）
+- ❌ Mixing a major upgrade into the same PR as other feature changes (Enforcement: the groups in `.github/dependabot.yml` split Dependabot's major updates into separate PRs. Whether a change sitting alongside a major raised by hand is a follow-up fix or a separate feature change is Prose — **not mechanizable**: it is a judgment about the intent of the change)
+- ❌ Editing `pnpm-lock.yaml` by hand (consistent with ADR 0001) (Enforcement: the `lockfile-drift` job (`pnpm install --frozen-lockfile`) fails on hand edits that disagree with package.json. A hand edit that still satisfies the ranges in package.json is Prose — **not mechanizable**: it cannot be distinguished from lines pnpm resolved)
+- ❌ Adding dependencies with `npm install` / `yarn add` and the like (pnpm only — consistent with ADR 0001) (Enforcement: the `lockfile-drift` job (`pnpm install --frozen-lockfile`) fails on dependencies added with npm / yarn that pnpm-lock.yaml has not followed. Committing package-lock.json / yarn.lock could be caught by spelling, but no rule exists)
+- ❌ Leaving `pnpm audit` findings at `high` or above unaddressed (Enforcement: `make audit` (the `dependency-audit` job) fails on high-or-above findings that have a fixed version. Starting work on a high with no fixed version and recording the mitigation is Prose — **not mechanizable**: it is a response procedure and does not appear in code)
+- ❌ Newly adopting a library that carries unfixed known vulnerabilities (an old release history is not itself a reason to reject) (Enforcement: the `dependency-review` job fails on known vulnerabilities at high or above in dependencies added by the diff. Below high is Prose — **mechanizable** (it could be caught with the same action's threshold. No rule exists))
+- ❌ Deciding adoption on the quantitative checks alone without passing the primary judgment (single responsibility × single upstream) (Enforcement: Prose — **partly mechanizable**. Whether the body of a PR adding a dependency has the adoption template's `一次判定:` line could be caught by checking the body, but no rule exists. The soundness of the judgment itself is a judgment about responsibility and is not decided by the shape of the code)
+- ❌ Adopting a bridge / instrumentation without stating the exception path (an implicit exception guts the primary judgment) (Enforcement: Prose — **not mechanizable**. Whether the library stands between two upstreams is a judgment about the dependency's role and is not decided by package.json)
+- ❌ Adopting a multipurpose library whose responsibility cannot be named in one word "because it is convenient" (Enforcement: Prose — **not mechanizable**. Whether the responsibility can be named in one word is a judgment about the library's role and is not decided by the shape of the code)
+- ❌ Keeping a list of adopted libraries in this ADR (a list is inventory, not a decision; see "Notes" below) (Enforcement: Prose — **not mechanizable**. Telling a package name used as an example from a list of adopted libraries is a judgment of context and is not decided by spelling)
 
-## 補足
+## Notes
 
-- 「絶対指標」「数値ボーダー」をあえて避けている項目（コミュニティ規模・bundle サイズ等）は、 リポジトリとしての汎用性を保つため。実プロジェクトでは独自のしきい値を被せても良い
-- 個別ライブラリの採用是非は、本 ADR を参照する PR レビューで判断する。「○○を入れてはいけない」「△△は禁止」といったリストは本 ADR では維持しない
-- **一覧は inventory であって decision ではない**（[0140](0140-documentation-operations.md) のタクソノミー）。現行採用ライブラリの一次情報は `package.json` とし、責務名・例外区分・fork コスト上限といった判断材料を残す必要が生じた時点で `docs/reference/dependencies.md` を新設して分離する。本 ADR は **方針のみ**を持ち、一覧を持たない
+- Items where "absolute indicators" and "numeric borders" are deliberately avoided (community size, bundle size, etc.) are kept that way to keep the repository general-purpose. A real project may layer its own thresholds on top
+- Whether to adopt an individual library is decided in the PR review that refers to this ADR. This ADR does not maintain lists such as "do not add X" or "Y is prohibited"
+- **A list is inventory, not a decision** (the taxonomy of [0140](0140-documentation-operations.md)). The primary source for the currently adopted libraries is `package.json`; once decision inputs such as responsibility names, exception categories and the upper bound on fork cost need to be kept, `docs/reference/dependencies.md` is created to hold them separately. This ADR holds **only the policy**, not a list
 
-## 関連 ADR
+## Related ADRs
 
-- [0001-package-manager.md](0001-package-manager.md) — pnpm 採用 / lockfile 取り扱い
-- [0002-formatter-linter.md](0002-formatter-linter.md) — Biome 採用（dev ツール例）/ ESLint 補完分の exact pin と移管判定
-- [0003-version-manager.md](0003-version-manager.md) — Node / pnpm 本体のバージョン固定（mise.toml）
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 親原則。一次判定(単一責務 × 単一 upstream)と fork コスト上限は §2「選択の主体が誰か」から導かれる
+- [0001-package-manager.md](0001-package-manager.md) — adopting pnpm / lockfile handling
+- [0002-formatter-linter.md](0002-formatter-linter.md) — adopting Biome (an example dev tool) / exact pinning of the ESLint complement and the move decision
+- [0003-version-manager.md](0003-version-manager.md) — pinning the versions of Node / pnpm themselves (mise.toml)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the parent principle. The primary judgment (single responsibility × single upstream) and the upper bound on fork cost derive from its §2 on who is doing the choosing

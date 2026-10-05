@@ -1,73 +1,73 @@
-# ツール・言語バージョン管理方針
+# Tool and Language Version Management Policy
 
-本プロジェクトでは、ツールおよび言語ランタイム（Node.js / pnpm 等）の **バージョン宣言の単一ソース (SSOT)** として `mise.toml` を採用する。
+This project adopts `mise.toml` as the **single source of truth (SSOT) for version declarations** of tools and language runtimes (Node.js / pnpm, etc.).
 
-[mise](https://mise.jdx.dev/) は当該 SSOT を読み取る既定のインストール backend として host と CI で使い、CI では composite action `.github/actions/setup-mise` の 1 箇所に閉じる。Docker には持ち込まない。これにより mise への過度な依存を避けつつ、開発体験と CI の版を `mise.toml` 1 つに揃える。
+[mise](https://mise.jdx.dev/) is used on the host and on CI as the default install backend that reads this SSOT, and on CI it is confined to one place, the composite action `.github/actions/setup-mise`. It is not brought into Docker. This avoids excessive dependence on mise while aligning the developer experience and CI versions on the single `mise.toml`.
 
 ## Status
 
 Accepted
 
-## 採用理由
+## Rationale
 
-### 1. バージョン宣言の SSOT 集約
+### 1. Consolidating Version Declarations into an SSOT
 
-`mise.toml` 1 ファイルに「対象ツールとその固定バージョン」をまとめて宣言する。
-次のような、ツールごと・用途ごとに分かれた宣言は置かない。
+The single `mise.toml` file declares "the target tools and their pinned versions" together.
+Declarations split per tool or per purpose, such as the following, are not kept.
 
 - `.node-version` / `.nvmrc`
-- ツール一覧の yaml と、それを `.makefiles/*.mk` へ同期する独自スクリプト
-- corepack 経由の pnpm バージョン埋め込み（`package.json` の `packageManager`）
+- A YAML tool list plus a custom script that syncs it into `.makefiles/*.mk`
+- Embedding the pnpm version via corepack (`packageManager` in `package.json`)
 
-宣言が 1 ファイルなので、レビュー時に「何がどのバージョンか」を 1 箇所で把握できる。
+Because the declaration is one file, a review can see "which tool is at which version" in one place.
 
-`packageManager` + Corepack は冗長なだけでは済まない。Corepack と mise が同じ `pnpm` を PATH へ載せる 2 つ目の供給経路になり、pin が 2 箇所へ割れて SSOT が破れる。活性化していない側の `pnpm` が動けば、素の pnpm が `pnpm-workspace.yaml` を勝手に書き換える事故経路（`repo-ops` スキル）をリポジトリ自身が開くことになる。置くとすれば、mise が `packageManager` を読んで自らの pin と突き合わせ、二重管理にならない機構を持ったときに限る。素の pnpm を叩いて事故が起きたことは理由にならない —— それは宣言の不在ではなく実行経路の誤りである。
+`packageManager` + Corepack is not merely redundant. Corepack becomes a second supply route putting the same `pnpm` on PATH alongside mise, the pin splits into two places, and the SSOT breaks. If the non-activated `pnpm` runs, the repository itself opens the accident route in which a bare pnpm rewrites `pnpm-workspace.yaml` on its own (the `repo-ops` skill). It could be added only once mise has a mechanism that reads `packageManager` and reconciles it with its own pin so nothing is managed twice. An accident caused by invoking a bare pnpm is not a reason — that is a mistake in the execution path, not a missing declaration.
 
-### 2. ベンダーロック耐性 — 仕様書として読めるファイル
+### 2. Vendor Lock-in Resistance — a File That Reads as a Specification
 
-`mise.toml` は TOML の素朴な宣言ファイルであり、mise の機能を使わなくても「Node.js 24.14.1 / pnpm 10.33.0 を入れろ」という仕様としてそのまま読める。
+`mise.toml` is a plain TOML declaration file, and even without using mise's features it reads directly as the specification "install Node.js 24.14.1 / pnpm 10.33.0".
 
-仮に将来 mise が衰退・廃止されても以下が成立する。
+Even if mise declines or is discontinued in the future, the following hold.
 
-- `mise.toml` は仕様ファイルとして残せる（人間にもツールにも読める）
-- 切り替え範囲は **配送層** (`make install-tools` の実装と CI の `setup-mise`) に限られる
-- Docker / 開発者の日常コマンドに `mise` を撒かず、CI の呼び出しも `setup-mise` 1 箇所に閉じているため、撤退コストは契約層と CI の入口 1 つに閉じる
+- `mise.toml` can remain as a specification file (readable by humans and tools)
+- The scope of a switch is limited to the **delivery layer** (the implementation of `make install-tools` and CI's `setup-mise`)
+- `mise` is not scattered into Docker or developers' everyday commands, and CI calls are confined to `setup-mise`, so the cost of withdrawal is confined to the contract layer and one CI entry point
 
-mise の現状シェアは asdf / nodenv / nvm / volta 等と拮抗しており、リポジトリとしての再利用性を確保するためにもロックインを限定する。
+mise's current share is on par with asdf / nodenv / nvm / volta and the like, so lock-in is limited to keep the repository reusable.
 
-### 3. host インストールの既定 backend として現実的
+### 3. Realistic as the Default Backend for Host Installs
 
-ツール多種を扱う際の起動コストが低い。Node.js / pnpm の 2 つに限っても、shell activate により PATH 切替が自動化されるため、`.node-version` + 手動 `nodenv install` のような運用より摩擦が少ない。
+Start-up cost is low when handling many kinds of tools. Even for just Node.js / pnpm, shell activation automates PATH switching, so there is less friction than with an operation such as `.node-version` plus a manual `nodenv install`.
 
-## 構成 — 3 層モデル
+## Structure — the Three-Layer Model
 
 ```text
-┌─────────────────────────────────────────────────────────┐
-│ SSOT 層       :  mise.toml                              │
-│   └ ツール・言語バージョンの宣言（唯一の真実）            │
-├─────────────────────────────────────────────────────────┤
-│ 契約層        :  Makefile                                │
-│   └ make install-tools / make actions-pin-check など    │
-│     開発者が叩く I/F。実装の差し替え点はここに集約        │
-├─────────────────────────────────────────────────────────┤
-│ 配送層        :  レイヤごとに別実装                       │
-│   ├ host    : mise install                              │
-│   ├ Docker  : 周辺サービスのみ（digest 固定、mise なし）  │
-│   └ CI      : setup-mise (composite) → mise install     │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ SSOT layer      :  mise.toml                                     │
+│   └ declares tool and language versions (single source of truth) │
+├──────────────────────────────────────────────────────────────────┤
+│ Contract layer  :  Makefile                                      │
+│   └ make install-tools / make actions-pin-check, etc.            │
+│     the I/F developers call; implementation swaps converge here  │
+├──────────────────────────────────────────────────────────────────┤
+│ Delivery layer  :  a separate implementation per layer           │
+│   ├ host    : mise install                                       │
+│   ├ Docker  : peripheral services only (digest-pinned, no mise)  │
+│   └ CI      : setup-mise (composite) → mise install              │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-各層の責務:
+Responsibilities of each layer:
 
-| 層 | 責務 | 変更が起きる頻度 |
+| Layer | Responsibility | How often it changes |
 | --- | --- | --- |
-| SSOT (`mise.toml`) | バージョンを宣言する | ツール更新時のみ |
-| 契約 (Makefile) | 開発者に対する安定した I/F を提供する | ほぼ変更なし |
-| 配送 (mise / Docker / CI) | 実体を取得し PATH に置く | 環境追加・mise からの移行時に変更 |
+| SSOT (`mise.toml`) | Declares versions | Only on tool updates |
+| Contract (Makefile) | Provides a stable I/F to developers | Almost never |
+| Delivery (mise / Docker / CI) | Obtains the binaries and puts them on PATH | When an environment is added or when moving away from mise |
 
-mise への依存は **配送層の host と CI の `setup-mise`** に閉じている。SSOT / 契約 / その他の配送ルートには mise コマンドを撒かない。
+Dependence on mise is confined to **the host part of the delivery layer and CI's `setup-mise`**. mise commands are not scattered into the SSOT, the contract, or other delivery routes.
 
-## SSOT としての mise.toml
+## mise.toml as the SSOT
 
 ```toml
 [tools]
@@ -77,67 +77,67 @@ mise への依存は **配送層の host と CI の `setup-mise`** に閉じて�
 "aqua:gitleaks/gitleaks" = "8.30.1"
 ```
 
-- バージョンはパッチまで明示する（再現性のため）
-- **backend (`core:` / `aqua:` 等) を全エントリで明示する**。mise のレジストリは 1 つの短縮名に複数 backend を対応させており、どれが既定かはレジストリ側の都合で変わりうる。短縮名で書くと、その差し替えが**取得元の変更として現れず、バージョンも lockfile も動かないまま別の配布物が入る**。明示すれば SSOT が「何を・どこから取るか」まで宣言したことになる
-  - **一様に適用する**。一部のツールにだけ課す運用は、読み手が「意図的な線引き」と「書き漏れ」を区別できず、規約として機能しない
-  - 明示をやめる判断は前提の側からしか起きない —— mise がレジストリのマッピング固定を宣言の外で保証するようになるか、明示した backend が解決できない環境の事例が出るかのどちらかである。記述が冗長であることは理由にならない
-  - これが守るのはレジストリのマッピング差し替えだけである。配布物そのものの改竄は mise 既定の checksum / cosign 検証が担う。両者は別の層であり、片方が他方を代替しない
-- mise の機能利用を前提とした追加機能（タスク定義 `[tasks]` / 環境変数 `[env]` 等）はここに置かない。SSOT の純度を保つため、mise 固有の付加機能は別ファイル / Makefile 側で扱う
-- **版の宣言の同期検査は持たない。撤回条件は、版の宣言が `mise.toml` の外にもう 1 箇所現れたとき。** 本リポジトリは Docker を持たない（[0011](0011-no-docker.md)）ため宣言が 1 箇所しか無く、CI のツールも `setup-mise` が `mise.toml` から読むので写しが無い。`mise.toml` に書けない mise 自身の版は `setup-mise` が持ち、同じ action 内の digest / キャッシュキーとの整合を `make actions-mise-pin-lint` が見る。`mise.toml` の管理外のツールを workflow が単独で固定する版は、同期の相手を持たないので対象外である。**「他所が持っているから」は条件にならない** —— 同期の検査は、同期すべき 2 つ目が在って初めて意味を持つ
+- Versions are specified down to the patch (for reproducibility)
+- **Every entry states its backend (`core:` / `aqua:`, etc.) explicitly.** mise's registry maps one short name to several backends, and which one is the default can change at the registry's convenience. Written as a short name, such a swap **does not show up as a change of source; a different distribution gets installed while neither the version nor the lockfile moves**. Stating it explicitly makes the SSOT declare "what, and from where"
+  - **Apply it uniformly.** If it is required only for some tools, readers cannot tell "a deliberate line" from "an omission", and it stops working as a convention
+  - A decision to stop stating it can come only from the premises — either mise starts guaranteeing the registry mapping outside the declaration, or a case appears of an environment where the explicit backend cannot be resolved. Verbosity is not a reason
+  - What this protects against is only a swap of the registry mapping. Tampering with the distribution itself is handled by mise's default checksum / cosign verification. The two are different layers, and neither substitutes for the other
+- Additional features that presuppose mise's functionality (task definitions `[tasks]` / environment variables `[env]`, etc.) are not placed here. To keep the SSOT pure, mise-specific extras are handled in a separate file / the Makefile
+- **There is no sync check for version declarations. Reversal condition: a version declaration appears in a second place outside `mise.toml`.** This repository has no Docker ([0011](0011-no-docker.md)), so there is only one declaration, and CI tools are read from `mise.toml` by `setup-mise`, so there is no copy. mise's own version, which cannot be written in `mise.toml`, is held by `setup-mise`, and `make actions-mise-pin-lint` checks its consistency with the digest / cache key in the same action. A version that a workflow pins on its own for a tool outside `mise.toml` has no sync counterpart and is out of scope. **"Something else holds it" is not the condition** — a sync check only means something once a second thing that must be synced exists
 
-## 配送層の扱い
+## Handling the Delivery Layer
 
-### host（開発者ワークステーション）
+### host (Developer Workstations)
 
-- mise を既定の backend として推奨。`make install-tools` がエントリポイント
-- 個人開発などで mise を使いたくない場合、`.makefiles/tools/setup.mk` の `install-tools` ターゲットを別実装（nodenv / volta 等）に差し替えれば済む。SSOT (`mise.toml`) はそのままで読める
+- mise is recommended as the default backend. `make install-tools` is the entry point
+- If you prefer not to use mise, for example in personal development, it is enough to swap the `install-tools` target in `.makefiles/tools/setup.mk` for a different implementation (nodenv / volta, etc.). The SSOT (`mise.toml`) stays readable as is
 
 ### Docker
 
-- **アプリ本体を動かす `Dockerfile` は同梱しない**([0011](0011-no-docker.md))。したがって配送する image のタグと `mise.toml` を突き合わせる問題は起きない
-- **開発を支える周辺サービス**（観測基盤 / 開発用 IdP 等）だけが container で立つ。そこへ mise を持ち込まない —— 配送層に mise 依存を広げないため
-- 周辺サービスの image は**タグではなく digest で固定**し、固定値はロックファイルが持つ（`make images-pin-check` が差分で落とす）。人が写す工程を作らない
+- **No `Dockerfile` that runs the application itself is bundled** ([0011](0011-no-docker.md)). So the problem of reconciling the tag of a delivered image with `mise.toml` does not arise
+- **Only the peripheral services that support development** (the observability stack / a development IdP, etc.) run in containers. mise is not brought into them — to avoid spreading the mise dependency into the delivery layer
+- Images for peripheral services are **pinned by digest, not tag**, and the pinned values are held by a lockfile (`make images-pin-check` fails on a diff). No step has a human copying them
 
 ### CI
 
-- **CI の入口は composite action `.github/actions/setup-mise` 1 つ**。digest で照合した mise 本体を入れ、ジョブが名指ししたツールだけを `mise.toml` の版で `mise install` する。ジョブが渡すのはツール名だけで、版は `mise.toml` からしか来ないため、CI 側に版の写しが生まれない
-- 入口を 1 つに閉じるのは、mise 本体の取得・検証・キャッシュを 1 箇所で持つためである（`actions/setup-node` を採らない理由を含め [0153](0153-ci-configuration.md) ランタイム供給）。workflow の `run:` から mise を直接呼ばない
-- ジョブ内で `mise.toml` を **読み取り** はしてよいが、`mise.toml` 自体や `make install-tools` を CI で書き換えない
+- **CI's entry point is the single composite action `.github/actions/setup-mise`.** It installs a digest-verified mise binary and runs `mise install` for only the tools the job names, at the versions in `mise.toml`. A job passes only tool names, and versions come only from `mise.toml`, so no copy of a version arises on the CI side
+- Confining the entry point to one exists so that obtaining, verifying and caching the mise binary is held in one place ([0153](0153-ci-configuration.md) explains how the runtime is supplied to CI, including why `actions/setup-node` is not adopted). mise is not called directly from a workflow's `run:`
+- Jobs may **read** `mise.toml`, but `mise.toml` itself and `make install-tools` are not rewritten on CI
 
-## 基本コマンド
+## Basic Commands
 
-| 操作 | コマンド |
+| Operation | Command |
 | --- | --- |
-| ツール一式のセットアップ（推奨入口） | `make install-tools` |
-| mise.toml 通りに直接インストール | `mise install` |
-| 現在解決されているバージョン | `mise current` |
-| インストール済み一覧 | `mise ls` |
-| アップデート確認 | `mise outdated` |
+| Set up the tool set (recommended entry point) | `make install-tools` |
+| Install directly as mise.toml says | `mise install` |
+| The currently resolved versions | `mise current` |
+| List installed | `mise ls` |
+| Check for updates | `mise outdated` |
 
-## バージョン更新フロー
+## Version Update Flow
 
-1. `mise.toml` を編集してバージョンを書き換える
-2. `mise install` （または `make install-tools`）で実体を取得
-3. 動作確認の上、当該変更を PR に含める
+1. Edit `mise.toml` and rewrite the version
+2. Obtain the binaries with `mise install` (or `make install-tools`)
+3. After verifying it works, include the change in a PR
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `mise.toml` を別の version manager で二重管理すること（SSOT が壊れる）（強制: 散文 —— **寄せられる**（`.nvmrc` / `.node-version` / `.tool-versions` の存在と、`package.json` の `packageManager` / `volta` を gate で見る。規則は無い））
-- ❌ 配送層に mise コマンドを撒くこと（Dockerfile に `RUN mise install ...`、CI ジョブで `setup-mise` を経ずに `mise` を呼ぶ等）。Docker は各環境のネイティブ手段で完結させ、CI は `setup-mise` 1 箇所に閉じる（強制: 散文 —— **寄せられる**（workflow の `run:` と `docker/**/Dockerfile` に現れる `mise` の呼び出しを、`.github/actions/setup-mise` を除いて検出する。規則は無い））
-- ❌ `mise.toml` に mise 固有のタスク / 環境変数定義を入れること（SSOT の純度を保つ）（強制: 散文 —— **寄せられる**（`mise.toml` を TOML として読み、`[tasks]` / `[env]` の表が無いことを gate で見る。規則は無い））
-- ❌ npm パッケージを `npm:` backend で取ること。mise 経由の npm パッケージは lockfile にも `pnpm audit` にも載らず、[0001](0001-package-manager.md) の単一経路と冷却期間の検疫を迂回する 2 つ目の npm 供給経路になる。Node で動くものは `pnpm add -DE` で取る（[0156](0156-browser-observation-tooling.md) 取得経路）。見直すのは pnpm が冷却期間・lockfile・公開日時を返さないレジストリの拒否を提供しなくなったときだけで、「mise に寄せると SSOT が 1 つになる」は理由にならない —— バイナリと npm パッケージでは配布経路も検疫の手段も異なる（強制: 散文 —— **寄せられる**（`mise.toml` の `[tools]` のキーが `npm:` で始まらないことを gate で見る。規則は無い））
-- ❌ **`mise exec -- <command>` でコマンドを包むこと（全面禁止）**。手で打つコマンド・`.lefthook.yaml` の hook・`.makefiles/` のレシピ・スクリプトのいずれでも使わない。1 コマンドに 2 通りの書き方が生まれ、どちらが正か読めなくなる。加えて、包み込みは PATH の不備をその呼び出しの中だけで覆い隠すため、包み忘れた次の呼び出し側に同じ失敗が回る（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` / `.makefiles/` / scripts / workflow の `mise exec` は綴りで落とせるが規則は無い。手で打つコマンドはコードに現れない）
-- ❌ メジャーのみ・マイナーのみのバージョン指定（再現性が劣化する）（強制: 散文 —— **寄せられる**（`mise.toml` の `[tools]` の値がパッチまでの 3 つ組であることを gate で見る。規則は無い））
+- ❌ Managing `mise.toml` twice with another version manager (it breaks the SSOT) (Enforcement: Prose — **mechanizable** (a gate checks for the presence of `.nvmrc` / `.node-version` / `.tool-versions` and for `packageManager` / `volta` in `package.json`. No rule exists))
+- ❌ Scattering mise commands into the delivery layer (`RUN mise install ...` in a Dockerfile, calling `mise` in a CI job without going through `setup-mise`, etc.). Docker is completed with each environment's native means, and CI is confined to the single `setup-mise` (Enforcement: Prose — **mechanizable** (detect `mise` calls in workflow `run:` and in `docker/**/Dockerfile`, excluding `.github/actions/setup-mise`. No rule exists))
+- ❌ Putting mise-specific task / environment variable definitions into `mise.toml` (to keep the SSOT pure) (Enforcement: Prose — **mechanizable** (a gate reads `mise.toml` as TOML and checks that it has no `[tasks]` / `[env]` tables. No rule exists))
+- ❌ Obtaining npm packages through the `npm:` backend. npm packages via mise appear neither in the lockfile nor in `pnpm audit`, and become a second npm supply route that bypasses [0001](0001-package-manager.md)'s single route and the cooldown quarantine. Anything that runs on Node is obtained with `pnpm add -DE` ([0156](0156-browser-observation-tooling.md) sets out how such tools are obtained). This is revisited only when pnpm stops providing the cooldown, the lockfile, and the rejection of registries that do not return a publish time; "consolidating into mise gives one SSOT" is not a reason — binaries and npm packages differ in both their distribution route and their means of quarantine (Enforcement: Prose — **mechanizable** (a gate checks that no `[tools]` key in `mise.toml` starts with `npm:`. No rule exists))
+- ❌ **Wrapping commands in `mise exec -- <command>` (banned outright).** It is used nowhere: not in commands typed by hand, `.lefthook.yaml` hooks, `.makefiles/` recipes or scripts. It creates two ways to write one command, and which one is right becomes unreadable. Moreover, wrapping hides a PATH defect only inside that one call, so the same failure passes to the next caller that forgets to wrap (Enforcement: Prose — **partly mechanizable**. `mise exec` in `.lefthook.yaml` / `.makefiles/` / scripts / workflows could be caught by spelling, but no rule exists. Commands typed by hand never appear in code)
+- ❌ Major-only or minor-only version specifications (reproducibility degrades) (Enforcement: Prose — **mechanizable** (a gate checks that each value in `mise.toml`'s `[tools]` is a three-part version down to the patch. No rule exists))
 
-## 補足
+## Notes
 
-- **コマンドは activate を前提に素で呼ぶ**。`make install-tools` 後に shell activate を済ませ、`node` / `pnpm` / mise 管理ツールをそのまま実行する。手で打つ場合も、`.lefthook.yaml` の hook や `.makefiles/` のレシピの中でも同じ（[0151](0151-git-hooks.md)）
-- 素で呼んだツールが mise の pin と食い違う、あるいは PATH に無い場合は **環境側が壊れている**。activate と PATH を直す。壊れ方の実例と復旧手順は `repo-ops` スキルが持つ
-- **`mise activate` を経ない実行環境（GUI クライアントから起動した git hook / エージェントのシェル / CI）は、shims ディレクトリ（`~/.local/share/mise/shims`）を PATH に載せて揃える**（`mise activate --shims`）。解決を PATH 側で直す点は対話シェルと同じで、呼び出しごとの包み込みには落とさない
-- ツールを呼ぶ入口（hook / make レシピ / スクリプト）は、前段で `command -v <tool>` を確認し、無ければ `make install-tools` と activate を促して落とす。包んで動かすのではなく、環境の不足をその場で名指しする
-- mise を使わない開発者は `mise.toml` の宣言を参照しつつ自分の version manager で同じバージョンを揃える運用も許容する（SSOT を仕様として読む形）
-- 将来 mise から移行する場合の影響範囲は `.makefiles/tools/setup.mk` の `install-tools` ターゲットと、CI の `.github/actions/setup-mise` の 2 つ
+- **Commands are invoked bare, assuming activation.** After `make install-tools`, finish shell activation and run `node` / `pnpm` / mise-managed tools directly. The same holds when typing by hand and inside `.lefthook.yaml` hooks or `.makefiles/` recipes ([0151](0151-git-hooks.md))
+- If a tool invoked bare disagrees with mise's pin or is missing from PATH, **the environment is broken**. Fix activation and PATH. The `repo-ops` skill holds real examples of the breakage and the recovery steps
+- **Execution environments that do not go through `mise activate` (git hooks launched from GUI clients / agent shells / CI) align by putting the shims directory (`~/.local/share/mise/shims`) on PATH** (`mise activate --shims`). As with interactive shells, resolution is fixed on the PATH side and is never reduced to per-call wrapping
+- Entry points that call tools (hooks / make recipes / scripts) check `command -v <tool>` up front, and if it is missing, fail with a prompt to run `make install-tools` and activate. Rather than wrapping to make it run, they name the missing environment on the spot
+- Developers who do not use mise may also refer to the declarations in `mise.toml` and align the same versions with their own version manager (reading the SSOT as a specification)
+- If the project moves away from mise in the future, the scope of impact is two things: the `install-tools` target in `.makefiles/tools/setup.mk` and CI's `.github/actions/setup-mise`
 
-## 関連 ADR
+## Related ADRs
 
-- [0001-package-manager.md](0001-package-manager.md) — pnpm 採用方針（バージョン宣言の媒体として `mise.toml` を参照）
+- [0001-package-manager.md](0001-package-manager.md) — the pnpm policy (refers to `mise.toml` as the medium for version declarations)

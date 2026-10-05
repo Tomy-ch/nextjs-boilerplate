@@ -1,73 +1,73 @@
-# Cookie 同意(軽量 consent 機構 + スクリプトゲート)
+# Cookie Consent (Lightweight Consent Mechanism + Script Gate)
 
-Cookie 同意の**軽量機構**(同意状態の保持・バナー UI・サードパーティスクリプトの読み込みゲート)と、ゲートの裏に置くタグマネージャを本リポジトリに同梱する。本格的な同意管理プラットフォーム(CMP / IAB TCF)は同梱しない。
+This repository bundles a **lightweight mechanism** for cookie consent (holding consent state, a banner UI, and a gate on loading third-party scripts) and a tag manager placed behind the gate. A full consent management platform (CMP / IAB TCF) is not bundled.
 
 ## Status
 
-Accepted (一部 exclusion)
+Accepted (partial exclusion)
 
-## 背景
+## Context
 
-同意管理は**対象法域(GDPR / ePrivacy / CCPA 等)・使用するトラッキング / アナリティクスの有無・SaaS 選定に強く依存**するため、CMP レベルの実装を本体で一律に決めると法令要件を狭める。
+Consent management **depends heavily on the target jurisdictions (GDPR / ePrivacy / CCPA, etc.), whether tracking / analytics are used at all, and the choice of SaaS**, so deciding a CMP-level implementation uniformly in the core would narrow the legal requirements.
 
-一方で、**同意はサードパーティスクリプトの読み込みをゲートする機構**であり、layout の構成([0026](0026-layout-shell-mount.md))・CSP の `script-src`([0111](0111-csp-security-headers.md))・`next/script` の strategy に同時に食い込む。この 3 点は後から差し込むと広範囲の書き換えになるため、**機構だけは最初から持つ**方が構造的に安い。加えて同意状態の供給 seam は [0031](0031-policy-state-supply.md) が既に規定している。
+On the other hand, **consent is the mechanism that gates loading third-party scripts**, and it cuts at once into the layout structure ([0026](0026-layout-shell-mount.md)), the CSP `script-src` ([0111](0111-csp-security-headers.md)) and the strategy of `next/script`. Inserting these three later means rewriting a wide area, so it is structurally cheaper to **have the mechanism from the start**. In addition, the seam that supplies consent state is already defined by [0031](0031-policy-state-supply.md).
 
-## 決定
+## Decision
 
-### 1. 軽量 consent 機構を本体に同梱する
+### 1. Bundle a lightweight consent mechanism in the core
 
-同梱する範囲は次の 4 点に限る。
+What is bundled is limited to the following four points.
 
-- **同意状態の保持と読み出し** — cookie に保持し、ツリーへの供給は [0031](0031-policy-state-supply.md)(source adapter + no-op 既定 + stateless props 既定)に従う。cookie 操作は [0043](0043-middleware-policy.md) の `proxy.ts` 側
-- **同意バナー UI** — `components` に置く最小のバナー。カテゴリは「画面を表示するために必要なもの / 無くても画面が成立するもの」の 2 値を既定とし、細分カテゴリは用途依存(細分は繋ぐ製品と法域で決まるため、何も繋がっていない状態で先に決めない)。**同意と拒否の 2 つの操作は同じ大きさで並べる** —— 拒否だけを小さくしたり目立たなくしたりすると、得られた同意が自由に与えられたものでなくなる
-- **スクリプト読み込みゲート** — 同意が得られるまでサードパーティスクリプトを読み込まない。`next/script` の mount を gate 述語の裏に置く
-- **計測用 cookie_id の発行** — 同意後に発行する。未同意の間は発行しない
-- **同意の保持期間は 180 日(6 か月)とする** — EU の監督機関が同意の有効期間の目安として挙げる期間に合わせる。無期限にしないのは、繋ぐ製品も文面も変わったあとの画面が古い意思で動くことを避けるためであり、切れたらもう一度尋ねる
-- **尋ねた文面の版を意思と一緒に cookie へ載せ、いまの版と違えば選ばれていないものとして扱う。** 期限だけでは、文面を書き換えても古い文面に同意した意思が効き続ける —— 何に同意したかが変わったのに同意だけが残る。版を添えることで、書き換えた時点で全員へ尋ね直せる。**文面を書き換える側が版を上げる**のが条件で、上げ忘れると新しい文面を見ていない利用者の同意が効いたままになる
-- **同意状態の読み取りはブラウザ側で行う。** 同意は全画面に掛かるので読む場所はルート layout しかなく、そこでサーバ側から cookie を読むと、その読みが全画面に共通の動的な穴になり、丸ごと静的に配れている画面まで穴つきへ落ちる([0041](0041-cache-components-decision.md))。同意の面のためだけに、同意と関係の無い画面の配り方を変えない。帰結として**面はブラウザが読み終えてから現れる**。`proxy.ts` は同じ cookie をサーバ側で読むが、読む主体が 2 つあっても綴りと解釈は 1 か所(`model`)が持つ
+- **Holding and reading consent state** — held in a cookie, and supplied to the tree following [0031](0031-policy-state-supply.md) (source adapter + no-op by default + stateless props by default). Cookie operations live on the `proxy.ts` side of [0043](0043-middleware-policy.md)
+- **Consent banner UI** — a minimal banner placed in `components`. The default categories are two values, "needed to display the screen / the screen works without it"; finer categories are use-case dependent (finer categories are decided by the products connected and the jurisdiction, so they are not decided ahead while nothing is connected). **The two actions, accept and reject, are laid out at the same size** — making only reject smaller or less prominent means the consent obtained was not freely given
+- **Script-loading gate** — third-party scripts are not loaded until consent is obtained. The mount of `next/script` sits behind the gate predicate
+- **Issuing the measurement cookie_id** — issued after consent. It is not issued while consent is absent
+- **Consent is retained for 180 days (6 months)** — matching the period EU supervisory authorities give as a guideline for how long consent remains valid. It is not indefinite so that screens do not keep running on an old choice after both the connected products and the wording have changed; once it expires, the user is asked again
+- **The version of the wording that was asked is stored in the cookie together with the choice, and a different version from the current one is treated as not chosen.** With expiry alone, rewriting the wording leaves the choice made against the old wording in effect — what was consented to changes but the consent remains. Attaching the version lets everyone be asked again the moment the wording is rewritten. The condition is that **whoever rewrites the wording bumps the version**; forgetting to bump it leaves consent in effect for users who have not seen the new wording
+- **Consent state is read on the browser side.** Consent applies to every screen, so the only place to read it is the root layout, and reading the cookie there on the server side would make that read a dynamic hole common to every screen, dropping even screens that are delivered fully static into ones with a hole ([0041](0041-cache-components-decision.md)). The way screens unrelated to consent are delivered is not changed just for the consent surface. As a consequence, **the surface appears only after the browser has finished reading**. `proxy.ts` reads the same cookie on the server side, but even with two readers, the spelling and interpretation are owned by one place (`model`)
 
-### 2. ゲートの先に GTM を同梱する
+### 2. Bundle GTM behind the gate
 
-**タグマネージャ(GTM)本体を同梱し、同意ゲートの裏へ置く。** 機構だけを持って先を空にすると、ゲートが実際に何かを止めていることを本体では確かめられず、最初に繋ぐ側が CSP・COEP・`next/script` の strategy・同意との結線を同時に引き当てることになる。繋いだ状態を同梱することで、その 4 点を本体が引き受ける。
+**The tag manager (GTM) itself is bundled and placed behind the consent gate.** Having only the mechanism with nothing behind it would leave the core unable to confirm that the gate actually stops anything, and whoever connects first would have to get CSP, COEP, the `next/script` strategy and the wiring to consent right all at once. Bundling the connected state means the core takes on those four points.
 
-同梱にあたって受け入れる帰結を明示する。**どれも「まだ選んでいない」ではなく、選んだ結果である。**
+The consequences accepted by bundling it are stated explicitly. **None of them is "not chosen yet"; each is the result of a choice.**
 
-- **ブラウザが Google と直接通信する。** [0082](0082-client-observability.md) 禁止事項「ブラウザから直接 SaaS へ送らない」= BFF 中継 seam の**明示的な例外**である。タグマネージャは各ベンダーのタグを注入して直接喋る仕組みであり、中継へ通すことが原理的にできない。**したがってこの経路には中継の伏せ字が掛からない**([0081](0081-observability-logging.md))。ゲートの裏へ何を置くかが、そのまま何が外へ出るかになる
-- **配信ヘッダを緩める。** `script-src` / `connect-src` / `img-src` に Google の origin を足し、`Cross-Origin-Embedder-Policy` を降ろす([0111](0111-csp-security-headers.md))
-- **Google への依存を継承する。** 外すのは容器 ID を空にするだけで済む形にし、外した状態でも画面が成立することを本体が保証する。読み込み口は動的に読み、**外した配備の初期 JS へライブラリを載せない**
-- **CSP の許可は自分のプロパティに絞れない。** `connect-src` / `img-src` へ足す配信元はオリジン単位でしか書けず、どの計測プロパティ宛てかは表現できない。したがって**この先どこかに注入の穴ができたとき、正規の計測に紛れて外へ持ち出す経路が既に開いている**。緩めた時点でこれを受け入れたことになる
-- **容器の編集権限は、このオリジンでの任意コード実行権限と同じ**である。容器へ入れたタグはこのサイト上で動き、cookie も DOM も読める。**デプロイ資格情報と同水準のアクセス制御**（最小権限・変更履歴・多要素）を運用側へ要求する
+- **The browser talks to Google directly.** This is an **explicit exception** to the [0082](0082-client-observability.md) prohibition "do not send directly from the browser to a SaaS" = the BFF relay seam. A tag manager is a mechanism that injects each vendor's tags and lets them talk directly, so routing it through the relay is impossible in principle. **This path therefore gets none of the relay's redaction** ([0081](0081-observability-logging.md)). What is placed behind the gate is exactly what leaves the site
+- **The delivery headers are loosened.** Google's origins are added to `script-src` / `connect-src` / `img-src`, and `Cross-Origin-Embedder-Policy` is dropped ([0111](0111-csp-security-headers.md))
+- **The dependency on Google is inherited.** Removing it takes only emptying the container ID, and the core guarantees the screens still work in that state. The loader is loaded dynamically, and **the library is not put in the initial JS of a deployment that has removed it**
+- **The CSP allowance cannot be narrowed to your own property.** The sources added to `connect-src` / `img-src` can only be written per origin, and which measurement property they target cannot be expressed. So **if an injection hole ever appears somewhere, a path to exfiltrate data disguised as legitimate measurement is already open**. Loosening the headers means accepting this
+- **Edit rights to the container are the same as the right to run arbitrary code on this origin**. Tags placed in the container run on this site and can read cookies and the DOM. **Access control on the same level as deployment credentials** (least privilege, change history, multi-factor) is required of operations
 
-**引き受けるのは設計であって、CI の検査ではない。** 冒頭に挙げた 4 点はコードとして本体に在り、ヘッダの組み立ても読み込みの strategy も単体テストが固定する。ただし**組み立てたヘッダが実ブラウザで宣言どおり効くことだけは、CI では確かめていない** —— 同梱の e2e / DAST は容器 ID を空にした配備で走るためで、外部へ実通信させないためにそうしている（`e2e/README.md`「タグマネージャを読み込む側は、ここでは通らない」に撤去条件つきで記す）。
+**What is taken on is the design, not a CI check.** The four points listed at the start exist as code in the core, and unit tests pin both the header assembly and the loading strategy. However, **CI does not confirm that the assembled headers actually take effect as declared in a real browser** — the bundled e2e / DAST run on a deployment with an empty container ID, which is done so that nothing actually talks to the outside (recorded with its removal condition in `e2e/README.md`「タグマネージャを読み込む側は、ここでは通らない」).
 
-**タグマネージャの `<noscript>` は置かない。** 提供元の導入手順は `<script>` と `<noscript>` の iframe を対で貼らせるが、後者は**構造的にゲートへ掛けられない** —— ゲートは client island なので、JS が無効な訪問者では尋ねる面が描かれず、同意を与える手段が存在しない。そこへ置くと**同意できない訪問者に対してだけ無条件で発火する**ことになり、本 ADR の禁止事項の 1 つ目に当たる。`frame-src` を開ける判断も同時に要る（[0111](0111-csp-security-headers.md)）。得られるのは JS 無効の訪問者に対するサーバ側タグだけで、割に合わない。
+**The tag manager's `<noscript>` is not placed.** The vendor's installation steps have you paste the `<script>` and a `<noscript>` iframe as a pair, but the latter **structurally cannot be put behind the gate** — the gate is a client island, so for visitors with JS disabled the asking surface is not rendered and there is no way to give consent. Placing it there would **fire unconditionally only for visitors who cannot consent**, which falls under the first prohibition of this ADR. It would also require the judgment to open `frame-src` ([0111](0111-csp-security-headers.md)). All it gains is server-side tags for visitors with JS disabled, which is not worth it.
 
-**CMP・IAB TCF 等の本格的な同意管理は同梱しない**。法域・ベンダー依存が強く、ここで決めると選択を狭める。採る場合は本機構を差し替える形になる(gate 述語の消費側は変えない)。 **撤回条件は、本体が対象法域を 1 つに定めるようになったとき。「GDPR 対応が要ること」は条件にならない** —— gate 述語の消費側は変えずに差し替えられる形が既にあり、差し替えるかは法域と要件が決まってから判断する。
+**Full consent management such as a CMP or IAB TCF is not bundled**. It depends strongly on jurisdiction and vendor, and deciding it here would narrow the choice. Adopting one means replacing this mechanism (the consumers of the gate predicate do not change). **The reversal condition is when the core settles on a single target jurisdiction. "GDPR compliance is needed" is not the condition** — a shape that can be replaced without changing the consumers of the gate predicate already exists, and whether to replace it is judged once the jurisdiction and requirements are decided.
 
-外部ライブラリを使う場合も [0004](0004-library-management.md)(exact pin / `pnpm audit`)・[0021](0021-frontend-responsibility.md)(カーネル配置・命名規律)の枠内で行う。
+Using an external library likewise stays within the bounds of [0004](0004-library-management.md) (exact pin / `pnpm audit`) and [0021](0021-frontend-responsibility.md) (kernel placement, naming discipline).
 
-### 3. 同意ゲートの対象
+### 3. What the consent gate covers
 
-- **ゲートするのはユーザ行動トラッキング**である。[0081](0081-observability-logging.md) の運用テレメトリ(エラー / パフォーマンス)は同意対象と区別する
-- ただし **field RUM 等の運用テレメトリを同意対象とする法域要件があり得る**ため、gate 述語は運用テレメトリ側からも再利用できる形にする([0082](0082-client-observability.md))
+- **What is gated is user-behavior tracking**. The operational telemetry of [0081](0081-observability-logging.md) (errors / performance) is distinguished from what requires consent
+- However, **a jurisdiction may require consent for operational telemetry such as field RUM**, so the gate predicate is shaped so the operational-telemetry side can reuse it too ([0082](0082-client-observability.md))
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 同意状態を確認せずにサードパーティスクリプトを読み込むこと(gate を迂回する `<script>` 直書き)
-- ❌ 同意状態の判定ロジックを feature / component に散らすこと(gate 述語は [0031](0031-policy-state-supply.md) の供給経路に一本化する)（強制: 散文 —— **一部寄せられる**。`features` / `components` から同意の綴りを持つ `@/model/consent` を import することは `no-restricted-imports` で落とせるが規則は無い。供給された状態をその場で解釈し直しているかは読まないと決まらない）
-- ❌ 未同意の状態で計測用 cookie_id を発行すること（強制: `src/proxy.test.ts`（同意が無い間・拒否されている間は計測 id を発行しない））
-- ❌ CMP / IAB TCF 相当の同意管理を本体へ持ち込むこと(用途依存。§2)（強制: 持たない —— 採らない決定。CMP / IAB TCF は同梱されておらず、入れる変更は依存と機構の差し替えとして diff に現れる）
-- ❌ 容器 ID を宣言しない配備で、ゲートの裏のタグを読み込むこと(§2。外した状態でも画面が成立することが同梱の条件)（強制: `src/app/analytics.test.tsx`（容器 ID が空なら何も描かない））
-- ❌ 中継の伏せ字が掛かる前提で、ゲートの裏へ載せる値を選ぶこと(§2。この経路は中継を通らない)（強制: 散文 —— **寄せられない**。ゲートの裏へ載せる値は容器の設定で決まり、リポジトリのコードに現れない）
+- ❌ Loading third-party scripts without checking consent state (writing a `<script>` inline that bypasses the gate)
+- ❌ Scattering the logic that judges consent state across features / components (the gate predicate is unified into the supply path of [0031](0031-policy-state-supply.md)) (Enforcement: Prose — **partly mechanizable**. Importing `@/model/consent`, which holds the consent spelling, from `features` / `components` can be rejected with `no-restricted-imports`, but no rule exists. Whether supplied state is being reinterpreted on the spot is decided only by reading it)
+- ❌ Issuing the measurement cookie_id while consent is absent (Enforcement: `src/proxy.test.ts` (no measurement id is issued while consent is absent or rejected))
+- ❌ Bringing CMP / IAB TCF-level consent management into the core (use-case dependent. §2) (Enforcement: none — a decision not to adopt. No CMP / IAB TCF is bundled, and a change adding one shows up in the diff as added dependencies and a replaced mechanism)
+- ❌ Loading the tags behind the gate in a deployment that declares no container ID (§2; the condition for bundling is that the screens work with it removed) (Enforcement: `src/app/analytics.test.tsx` (renders nothing when the container ID is empty))
+- ❌ Choosing the values to put behind the gate on the assumption that the relay's redaction applies (§2; this path does not go through the relay) (Enforcement: Prose — **not mechanizable**. The values put behind the gate are decided by the container's configuration and do not appear in the repository's code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — consent 供給 seam の定義(source adapter + gate 述語 + stateless props)
-- [0043-middleware-policy.md](0043-middleware-policy.md) — 同意状態の cookie 保持
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — 同意状態をサーバ側で読まない根拠(ルート layout の動的な穴を作らない)
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — バナー / スクリプトの mount 位置
-- [0111-csp-security-headers.md](0111-csp-security-headers.md) — サードパーティスクリプトの `script-src` 許可(ゲートと同じ対象を扱う)
-- [0082-client-observability.md](0082-client-observability.md) — consent gate の主消費者(プロダクト分析は gate 必須・運用テレメトリの法域拡張点)
-- [0081-observability-logging.md](0081-observability-logging.md) — 運用テレメトリ(同意ゲート対象のユーザトラッキングとは区別)
-- [0023-stores-kernel.md](0023-stores-kernel.md) — 横断 client 状態として保持する場合の置き場
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — 用途依存の exclusion 先例(本 ADR で exclusion なのは CMP / IAB TCF だけ)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — definition of the consent supply seam (source adapter + gate predicate + stateless props)
+- [0043-middleware-policy.md](0043-middleware-policy.md) — holding consent state in a cookie
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — the basis for not reading consent state on the server side (no dynamic hole in the root layout)
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — where the banner / scripts are mounted
+- [0111-csp-security-headers.md](0111-csp-security-headers.md) — the `script-src` allowance for third-party scripts (covers the same targets as the gate)
+- [0082-client-observability.md](0082-client-observability.md) — the main consumer of the consent gate (product analytics must be gated; the jurisdiction extension point for operational telemetry)
+- [0081-observability-logging.md](0081-observability-logging.md) — operational telemetry (distinguished from the user tracking the consent gate covers)
+- [0023-stores-kernel.md](0023-stores-kernel.md) — where it lives if held as cross-cutting client state
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — precedents for use-case-dependent exclusions (in this ADR, only CMP / IAB TCF is an exclusion)

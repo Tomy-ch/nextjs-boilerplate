@@ -1,76 +1,76 @@
-# 標準準拠と非ロックイン(設計判断の原則)
+# Standards Conformance and Non-Lock-in (Principles of Design Judgment)
 
-本 ADR は、個別の技術決定に先立つ **設計判断の軸(判断軸)** のうち、**恒久的なもの** を定める。すなわち「**何を取り込むか(標準への準拠)/ その決定をどう正当化するか(非ロックインの判定)/ その判断を誰に向けて下すか(判断はいまのリポジトリの状態に向けて下す)**」という、全 ADR に横断して働くメタ原則である。
+This ADR sets out the **permanent** part of the **axes of design judgment** that precede individual technical decisions. It is the meta-principle that works across every ADR: "**what to take in (conformance to standards) / how to justify that decision (the non-lock-in test) / whom the judgment is addressed to (judgment is made for the repository's present state)**".
 
-[0020](0020-adopted-architecture.md) が **アーキテクチャ・パターン固有の原則**(内向き依存・境界の構造的型・型漏洩禁止など)を定めるのに対し、本 ADR は **決定の下し方そのものを律する上位の判断軸** を定める。したがって 0020 の設計原則も、命名優先順位([0028](0028-naming-convention.md))も、認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))なども、本 ADR の原則を土台として参照する。
+Where [0020](0020-adopted-architecture.md) sets the **principles specific to the architecture pattern** (inward dependencies, structural types at boundaries, no type leakage, etc.), this ADR sets **the higher-level axes of judgment that govern how decisions are made in the first place**. 0020's design principles, the naming priority ([0028](0028-naming-convention.md)), the auth seam ([0079](0079-auth-frontend-seam.md)) / CSP ([0111](0111-csp-security-headers.md)) and others therefore all refer to this ADR's principles as their foundation.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-ADR が「乗る」決定を下すたびに正当化の枠組みを書き直すのは冗長であり、局所推論も崩れる。本 ADR は各 ADR が **リンクする先** としての恒久判断軸を成文化する。適用結果(認証の正当化要件・CSP の正当化など)は各適用先 ADR が保持する。
+Rewriting the justification framework every time an ADR makes a decision to "ride on" something is redundant and also breaks local reasoning. This ADR codifies the permanent axes of judgment as **the place each ADR links to**. The results of applying them (the justification requirements for auth, the justification of the CSP, etc.) are held by each ADR that applies them.
 
-## 決定
+## Decision
 
-### 1. 標準・デファクトへの準拠(乗る)
+### 1. Conforming to Standards and De Facto Standards (Riding On)
 
-- **seam(接続点)の形は、当該プラットフォームのデファクトスタンダードに乗る**。独自発明・中立化しない。優先順位は命名規則([0028](0028-naming-convention.md))と同型 = **Next.js 規約 > React 規約 > 本リポ自身の既存規約・業界スタンダード**。
-- **設計思想・プロバイダ・実装詳細は固定しない**。固定するのは seam の形であって、その中身の選択ではない。
-- 例(認証 seam・[0079](0079-auth-frontend-seam.md)): Next.js 公式 auth ガイド(`node_modules/next/dist/docs/01-app/02-guides/authentication.md`)の文書化パターン(httpOnly session cookie / optimistic proxy + DAL による確定認可 / DTO)に乗る。乗らない=中立発明は「車輪の再発明」であり、本リポジトリの哲学「考えないでもフロントが組める」([0011](0011-no-docker.md))を裏切る。
+- **The shape of a seam (connection point) rides on the platform's de facto standard.** It is not invented independently or neutralized. The priority order has the same shape as the naming convention ([0028](0028-naming-convention.md)) = **Next.js conventions > React conventions > this repository's own existing conventions and industry standards**.
+- **Design philosophy, providers and implementation details are not fixed.** What is fixed is the shape of the seam, not the choice of what goes inside it.
+- Example (the auth seam, [0079](0079-auth-frontend-seam.md)): it rides on the documented patterns of the official Next.js auth guide (`node_modules/next/dist/docs/01-app/02-guides/authentication.md`) (httpOnly session cookie / an optimistic proxy + definitive authorization through the DAL / DTOs). Not riding on them = neutral invention is "reinventing the wheel", and betrays this repository's philosophy that "the frontend can be assembled without having to think about it" ([0011](0011-no-docker.md)).
 
-### 2. ベンダーロックインの定義と判定
+### 2. Defining and Testing Vendor Lock-in
 
-**根の判定 = 選択の主体が誰か**。設計者が選択主体として確立できていれば非ロックイン / ベンダー・ライブラリが実質の決定者であれば(設計者が主体になれていない)ロックイン。
+**The root test = who is doing the choosing.** If the designer is established as the one choosing, it is non-lock-in; if the vendor or library is the de facto decision-maker (the designer has not become the one choosing), it is lock-in.
 
-以下の 2 選言はこの根を測る **診断**(どちらか成立でロックインの兆候):
+The following two disjuncts are **diagnostics** that measure this root (either one holding is a sign of lock-in):
 
-- **(a) 可搬性の欠如** — そのベンダー以外に代替手段がない
-- **(b) 正当性材料の欠如** — ベンダーの権威以外に正当性を補強できる材料がない
+- **(a) Lack of portability** — there is no alternative other than that vendor
+- **(b) Lack of justifying material** — there is no material that can reinforce the justification other than the vendor's authority
 
-いずれも成立すれば実質「ベンダーが選んだ」= 設計者は主体でない。逆に、代替の中から独立した根拠で選べていれば「**数ある標準から、当該プラットフォームを 1 要因として選択した**」= 縛られたのではなく選んだ、であり非ロックイン。
+If either holds, in effect "the vendor chose" = the designer is not the one choosing. Conversely, if you could choose among alternatives on independent grounds, then "**out of many standards, the platform was chosen as one factor**" = it was chosen, not imposed, and is non-lock-in.
 
-- **運用テスト**: 「**そのベンダーを正当化から抜いても、そのパターンは正当か?**」Yes なら、乗っても縛られていない。
-- フレームワーク固有 API(`proxy.ts` 規約 / Server Actions / React `cache()` など)の使用は、「**そのフレームワークを選んだ**」という別の既決事項([0011](0011-no-docker.md) / App Router de facto)の帰結であって、機能固有のロックインではない。ロックインの問いは *構造決定* にかかり、構造(例: 認可を確定はデータ境界・楽観は proxy)が可搬であればクリア。
+- **Operational test**: "**Is the pattern still justified if that vendor is taken out of the justification?**" If yes, riding on it does not bind you.
+- Using framework-specific APIs (the `proxy.ts` convention / Server Actions / React `cache()`, etc.) is a consequence of a separate, already settled decision, "**that framework was chosen**" ([0011](0011-no-docker.md) / App Router de facto), and is not feature-specific lock-in. The lock-in question applies to *structural decisions*; if the structure (e.g. authorization is settled at the data boundary, optimistic checks in the proxy) is portable, it passes.
 
-**帰結(ADR の存在理由に接続)**: 標準に乗る決定を下す ADR は、本体に **vendor-independent(ベンダー非依存)な正当性材料を必ず添える**。「フレームワークが推奨するから X」で終わる ADR は選択主体をベンダーに明け渡している。「{X, Y, Z} から、当該ベンダーを抜いても成立する根拠 R によって X を選んだ」と書く ADR は、**その記述自体が設計者を選択主体として構成する** = 非ロックインを *証明可能* にする。正当性材料を書くことは、設計者の選択主体性を成立させる手段である。
+**Consequence (connecting to the reason ADRs exist)**: an ADR that decides to ride on a standard **always attaches vendor-independent justifying material** in its body. An ADR that ends with "X because the framework recommends it" hands the role of chooser to the vendor. An ADR that writes "out of {X, Y, Z}, X was chosen on grounds R that hold even with that vendor taken out" **constitutes the designer as the chooser by that very statement** = makes non-lock-in *provable*. Writing justifying material is the means by which the designer's agency as chooser is established.
 
-### 3. 判断はいまのリポジトリの状態に向けて下す
+### 3. Judgment Is Made for the Repository's Present State
 
-判断の宛先は、**いまこのリポジトリが在る状態**であって、それを作った履歴ではない。選択肢を比べ、推奨を述べるときは、この snapshot の上で比べる —— このリポジトリを見たことがなく、その git log も読まない読み手に、一貫したものとして読めるか。
+The addressee of a judgment is **the state this repository is in now**, not the history that produced it. When comparing options and making a recommendation, compare on top of this snapshot — does it read as coherent to a reader who has never seen this repository and will not read its git log.
 
-- **この軸では、品質と一貫性が、そこへ到達する費用より優先する。** 教える順序と矛盾する採番、ここだけ守られていない規約、直す手間だけを理由に残っている名前は、直す側に倒す。費用は推奨に添えて示し(触るファイル・誰の何が壊れるか・何を作り直すか)、費用に答えを選ばせない。範囲を削る判断は人が持つ。「もう出荷した」は、配るものが稼働中のデプロイではなく出発点である以上、重みを持たない
-- **姿勢(posture)そのものが製品である。** ブランチ保護・依存の固定・token 権限・security policy といったリポジトリ設定は、宣言ファイルとセットアップ手順（`make setup-repo`）として持つものであり、コードと同じ品質基準で扱う。**リポジトリの複製はツリーしか写さない** —— ブランチ保護も token の権限も複製されないので、設定そのものではなく「設定を適用する手順」を持つ([0110](0110-security-operations.md) / [0153](0153-ci-configuration.md))
-- **利用者が選ぶべき判断を、既定で代わりに下さない。** 外部へ送る値と送り先を選んでいないなら、既定は送らない。カタログ build が送る使用状況テレメトリ、解析結果の公開データセットへの登録は、この理由で既定 off とする —— それはリポジトリの名前についての判断であり、技術的な判断ではない
-- **外部アカウントを要する層を同梱してよいのは、費用ゼロで壊れない場合に限る。** 公開リポジトリなら無料で、未設定なら黙って何もしない形にする
-- **外部のデザインツールとの依存は repo → ツールの一方向。** デザインシステムの正は repo にあり、ツール側の成果物は検討結果であって repo へ自動同期しない(人が読んで実装する)。ツール固有の手順は恒久文書(ADR / `rules.md`)に書かず、skill が持つ
+- **On this axis, quality and consistency outrank the cost of reaching them.** A numbering that contradicts the order it teaches, a convention not followed only here, a name kept only because fixing it is work — lean toward fixing them. The cost is shown alongside the recommendation (files touched, whose what breaks, what must be rebuilt), and the cost is not allowed to choose the answer. The decision to cut scope belongs to a human. "It already shipped" carries no weight, because what is distributed is a starting point, not a running deployment
+- **The posture itself is the product.** Repository settings such as branch protection, dependency pinning, token permissions and the security policy are held as declaration files plus a setup procedure (`make setup-repo`) and are treated with the same quality bar as code. **Duplicating a repository copies only the tree** — neither branch protection nor token permissions are duplicated, so what is held is "the procedure that applies the settings", not the settings themselves ([0110](0110-security-operations.md) / [0153](0153-ci-configuration.md))
+- **Do not make, by default, a decision the user should make.** If the user has not chosen the values sent externally and where they go, the default is not to send. Usage telemetry sent by the catalog build and registering analysis results into public datasets are off by default for this reason — that is a decision about the repository's name, not a technical decision
+- **A layer that requires an external account may be bundled only if it costs nothing and does not break.** Make it free for public repositories and silently do nothing when not configured
+- **Dependence on external design tools is one-way, repo → tool.** The authority on the design system is the repo; artifacts on the tool side are results of exploration and are not automatically synced into the repo (a human reads them and implements). Tool-specific procedures are not written into permanent documents (ADRs / `rules.md`); a skill holds them
 
-### 原則の関係
+### How the Principles Relate
 
-①は **含めるものの取り込み方**、②は **その取り込みを貫く共通の正当化テスト**(設計者が選択主体か)である。①でデファクトに乗るときも、正当化は②「ベンダーを抜いても正当か」で担保する。③は①②を適用する **宛先** を固定する —— 判断はいまの snapshot に向けて下し、それを作った経緯に向けては下さない。
+① is **how what is included gets taken in**, and ② is **the common justification test running through that intake** (is the designer the one choosing). Even when ① rides on a de facto standard, the justification is secured by ② "is it justified with the vendor taken out". ③ fixes the **addressee** to which ① and ② are applied — judgment is made for the present snapshot, not for the history that produced it.
 
-## 適用(How to apply)
+## Application (How to Apply)
 
-- **adopt を伴う ADR**: §1 でデファクトに乗り、§2 の vendor-independent 正当性材料を本体に明記する。
-- 本原則の適用状況は各適用先 ADR が保持する。認証 seam([0079](0079-auth-frontend-seam.md))/ CSP([0111](0111-csp-security-headers.md))は本 ADR を参照して正当化済み。
+- **An ADR that involves adopting something**: rides on the de facto standard per §1 and states §2's vendor-independent justifying material explicitly in its body.
+- The status of applying these principles is held by each ADR that applies them. The auth seam ([0079](0079-auth-frontend-seam.md)) / CSP ([0111](0111-csp-security-headers.md)) are already justified with reference to this ADR.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 標準に乗る決定を「フレームワークが推奨するから」だけで正当化すること(vendor-independent 材料を欠く = 選択主体をベンダーに明け渡す)（強制: 散文 —— **寄せられない**。正当化がベンダーの権威以外の材料を持つかは論証の中身の判断である）
-- ❌ seam の形を独自発明・中立化すること(デファクトに乗る。§1)（強制: 散文 —— **寄せられない**。seam の形がプラットフォームのデファクトに乗っているかは設計の判断で、コードの形からは決まらない）
-- ❌ フレームワーク固有 API の使用を、その機能固有のロックインと混同すること(それは「そのフレームワークを選んだ」別既決の帰結。§2)（強制: 散文 —— **寄せられない**。ロックインの判定は構造決定の論証の中身であり、コードに現れない）
-- ❌ 利用者が選ぶべき判断(外部への送信・外部データセットへの登録)を既定で有効にすること(§3)（強制: 散文 —— **一部寄せられる**。既知の送信口（Storybook の `disableTelemetry` / Scorecard の `publish_results`）は設定値を gate で見れば落とせるが規則は無い。新しく入る道具が既定で外へ送るかは道具ごとの挙動で、コードの形からは決まらない）
+- ❌ Justifying a decision to ride on a standard only with "because the framework recommends it" (it lacks vendor-independent material = hands the role of chooser to the vendor) (Enforcement: Prose — **not mechanizable**. Whether a justification carries material other than the vendor's authority is a judgment about the content of the argument)
+- ❌ Inventing or neutralizing the shape of a seam on your own (ride on the de facto standard; §1) (Enforcement: Prose — **not mechanizable**. Whether the shape of a seam rides on the platform's de facto standard is a design judgment and is not decided by the shape of the code)
+- ❌ Confusing the use of framework-specific APIs with feature-specific lock-in (it is a consequence of the separate settled decision "that framework was chosen"; §2) (Enforcement: Prose — **not mechanizable**. The lock-in test is the content of the argument about a structural decision and does not appear in code)
+- ❌ Enabling by default a decision the user should make (sending data externally, registering into external datasets) (§3) (Enforcement: Prose — **partly mechanizable**. The known sending endpoints (Storybook's `disableTelemetry` / Scorecard's `publish_results`) could be caught by a gate checking their setting values, but no rule exists. Whether a newly added tool sends data out by default is each tool's behavior and is not decided by the shape of the code)
 
-## 補足
+## Notes
 
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する(判断軸=決定であり、日常強制の rule ではない)。
+- In the taxonomy of [0140](0140-documentation-operations.md), this ADR belongs to the **decision** class (an axis of judgment = a decision, not a rule enforced day to day).
 
-## 関連 ADR
+## Related ADRs
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — アーキテクチャ・パターン固有の設計原則。本 ADR のメタ判断軸の上に立つ具体
-- [0028-naming-convention.md](0028-naming-convention.md) — 命名優先順位(Next.js > React > 自身)は §1「標準準拠」の一適用
-- [0011-no-docker.md](0011-no-docker.md) — 表示層ロール / thin proxy / リポジトリの性格。§2 の「フレームワーク選択は別既決」の根拠
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0043-middleware-policy.md](0043-middleware-policy.md) — 認証の責務分担・proxy 方針(認証 seam が本 ADR の原則を適用する土台)
-- [0110-security-operations.md](0110-security-operations.md) / [0153-ci-configuration.md](0153-ci-configuration.md) — 姿勢(供給網・CI ハードニング)の中身
-- [0140-documentation-operations.md](0140-documentation-operations.md) — ドキュメントタクソノミー(本 ADR = decision 分類)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — design principles specific to the architecture pattern. The concrete layer standing on this ADR's meta axes of judgment
+- [0028-naming-convention.md](0028-naming-convention.md) — the naming priority (Next.js > React > our own) is one application of §1, conformance to standards
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role / thin proxy / the character of the repository. The basis for §2's "the framework choice is a separate settled decision"
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0043-middleware-policy.md](0043-middleware-policy.md) — the division of auth responsibilities and the proxy policy (the foundation on which the auth seam applies this ADR's principles)
+- [0110-security-operations.md](0110-security-operations.md) / [0153-ci-configuration.md](0153-ci-configuration.md) — the content of the posture (supply chain, CI hardening)
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the documentation taxonomy (this ADR = the decision class)

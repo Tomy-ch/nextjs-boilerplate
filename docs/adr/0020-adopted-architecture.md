@@ -1,53 +1,53 @@
-# 採用アーキテクチャ
+# Adopted Architecture
 
-本プロジェクトの全体アーキテクチャとして **機能スライス × 表示層カーネル**(feature-sliced × presentation-layer kernels)を採用する。`src/` 直下は 11 カーネル構成とし、画面単位で凝集する **機能スライス**(`app` / `features` の 2 カーネル)と、複数機能から横断参照される **表示層カーネル**(`model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability` の 9 カーネル)の 2 系統に大別する(2 + 9 = 11)。依存は常に内向き(機能スライス → 表示層カーネル、表示層カーネル間はより内側のカーネルのみ)とする。
+This project adopts **feature slices × presentation-layer kernels** (feature-sliced × presentation-layer kernels) as its overall architecture. The top level of `src/` consists of 11 kernels, divided into two families: **feature slices** that cohere per screen (the 2 kernels `app` / `features`), and **presentation-layer kernels** referenced across multiple features (the 9 kernels `model` / `components` / `adapters` / `capabilities` / `stores` / `config` / `errors` / `logging` / `observability`) (2 + 9 = 11). Dependencies always point inward (feature slices → presentation-layer kernels; between presentation-layer kernels, only toward kernels further in).
 
-本 ADR はアーキテクチャの **宣言・設計原則・採用しないパターン** を定める。各カーネルの詳細な責務・依存マトリクス・命名規律・受入基準・機械的強制(Enforcement)は [0021](0021-frontend-responsibility.md) に委ねる(本 ADR = パターン宣言、0021 = 日常運用規約という分担)。
+This ADR sets the architecture's **declaration, design principles and rejected patterns**. The detailed responsibilities of each kernel, the dependency matrix, the naming discipline, the acceptance criteria and the mechanical enforcement (Enforcement) are delegated to [0021](0021-frontend-responsibility.md) (division of labor: this ADR = the pattern declaration, 0021 = the day-to-day operating conventions).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリは Next.js を表示層(presentation layer)として用いる boilerplate であり([0011](0011-no-docker.md))、ビジネスロジック・DB・認証はバックエンド別リポジトリ / 別サービスが持つ。この前提では、バックエンドで一般的な onion(`controller → usecase → domain`、infrastructure が domain の interface を実装)をディレクトリ名ごと持ち込んでも、安定核に置くものが表示用の値と変換くらいしか無く、層が形骸化する。
+This repository is a boilerplate that uses Next.js as the presentation layer ([0011](0011-no-docker.md)); business logic, the DB and authentication are held by a separate backend repository / service. Under this premise, bringing in the onion common on the backend (`controller → usecase → domain`, with infrastructure implementing the domain's interfaces) wholesale, directory names included, leaves little more than display values and conversions to place in the stable core, and the layers become hollow.
 
-本 ADR が表示層へ持ち込むのは onion の **ディレクトリ名ではなく原則** である —— 内向き依存 / 境界 interface / 型漏洩禁止 / 層別 README / driving adapter を分割軸にしない / ツールによる機械強制。これらを表示層の現実(機能単位の変更が支配的・RSC の server/client 混在)に合う形で配置する。
+What this ADR brings into the presentation layer is the onion's **principles, not its directory names** — inward dependencies / boundary interfaces / no type leakage / per-layer READMEs / not using driving adapters as a splitting axis / mechanical enforcement by tools. These are arranged in a shape that fits the reality of the presentation layer (changes are dominated by feature units; RSC mixes server and client).
 
-## 決定: 機能スライス × 表示層カーネル
+## Decision: Feature Slices × Presentation-Layer Kernels
 
-`src/` を以下の 11 カーネル構成とする(`capabilities` は [0022](0022-capabilities-kernel.md)、`stores` は [0023](0023-stores-kernel.md) が中身を定める)。
+`src/` consists of the following 11 kernels (the contents of `capabilities` are set by [0022](0022-capabilities-kernel.md), and those of `stores` by [0023](0023-stores-kernel.md)).
 
 ```text
 src/
-├── app/            # controller 相当。route-segment / route-handler / server-action / metadata の driving adapter([0025])
-├── features/       # 機能スライス。<name>/ ごとに画面ユースケース + 専用 UI / hooks / actions を共置
-│   └── <name>/     #   内部はフラットなファイル共置が基本(ネスト深化の防止)。Server Action もここ
-├── model/          # 表示層カーネル: 表示用 VO / フォーマッタ / 表示バリデーション / 表示結果型(ActionState<T>)。依存は errors のみ
-├── components/     # 横断 UI カーネル: デザインシステム的な純 UI(fetch / config 禁止)
-├── adapters/       # 境界アダプタ: 外部接続のみ。server/・client/ の 2 面([0024])。config 唯一の許可層
-├── capabilities/   # 横断 client hook カーネル: runtime 能力(connectivity / storage / clipboard 等)。client-only([0022])
-├── stores/         # 横断 client 状態カーネル: 複数 feature が共有する client 状態(Zustand)。client-only([0023])
-├── config/         # 型付き Config カーネル([0030])
-├── errors/         # エラー分類カーネル([0080])
-├── logging/        # 構造化ログカーネル([0081])
-└── observability/  # OTel カーネル([0081])
+├── app/            # controller equivalent. driving adapters: route-segment / route-handler / server-action / metadata ([0025])
+├── features/       # feature slices. each <name>/ co-locates screen use cases + dedicated UI / hooks / actions
+│   └── <name>/     #   flat file co-location inside by default (prevents deep nesting). Server Actions live here too
+├── model/          # presentation-layer kernel: display VOs / formatters / display validation / display result types (ActionState<T>). depends on errors only
+├── components/     # cross-cutting UI kernel: design-system-style pure UI (no fetch / config)
+├── adapters/       # boundary adapters: external connections only. two faces, server/ and client/ ([0024]). the only layer allowed config
+├── capabilities/   # cross-cutting client hook kernel: runtime capabilities (connectivity / storage / clipboard, etc.). client-only ([0022])
+├── stores/         # cross-cutting client state kernel: client state shared by several features (Zustand). client-only ([0023])
+├── config/         # typed config kernel ([0030])
+├── errors/         # error classification kernel ([0080])
+├── logging/        # structured logging kernel ([0081])
+└── observability/  # OTel kernel ([0081])
 ```
 
-系統の対応関係(全体像):
+How the families relate (the overall picture):
 
 ```mermaid
 flowchart TD
-    subgraph slices["機能スライス(画面単位で凝集)"]
+    subgraph slices["Feature slices (cohesive per screen)"]
         app["app/\n(route / page = driving adapter)"]
-        features["features/&lt;name&gt;/\n(画面ユースケース + 専用 UI/hooks/actions)"]
+        features["features/&lt;name&gt;/\n(screen use case + dedicated UI/hooks/actions)"]
     end
-    subgraph kernels["表示層カーネル(横断参照)"]
-        model["model/\n(表示 VO / フォーマッタ)"]
-        components["components/\n(横断 UI)"]
-        adapters["adapters/\n(外部接続・server/client)"]
-        capabilities["capabilities/\n(横断 client hook・client-only)"]
-        stores["stores/\n(横断 client 状態・client-only)"]
+    subgraph kernels["Presentation-layer kernels (cross-cutting references)"]
+        model["model/\n(display VOs / formatters)"]
+        components["components/\n(cross-cutting UI)"]
+        adapters["adapters/\n(external connections, server/client)"]
+        capabilities["capabilities/\n(cross-cutting client hooks, client-only)"]
+        stores["stores/\n(cross-cutting client state, client-only)"]
         config["config/"]
         errors["errors/"]
         logging["logging/"]
@@ -75,117 +75,117 @@ flowchart TD
     model --> errors
 ```
 
-(依存方向の詳細な許可 / 禁止マトリクスは [0021](0021-frontend-responsibility.md) を正とする。上図は全体像の把握用。)
+([0021](0021-frontend-responsibility.md) is authoritative for the detailed allow / deny matrix of dependency directions. The diagram above is for grasping the overall picture.)
 
-## 設計原則
+## Design Principles
 
-本アーキテクチャの不変原則。
+The invariant principles of this architecture.
 
-### 1. 依存は内向きのみ
+### 1. Dependencies Point Inward Only
 
-外側の層(揮発的)ほど内側(安定)を知り、内側は外側を知らない。スライス(`app` → `features`)は表示層カーネルを import してよいが、表示層カーネルはスライスを import しない。表示層カーネル間も内向きのみ(例: `model` は `errors` のみに依存し、`adapters` や `components` を知らない)。
+The further out (more volatile) a layer is, the more it knows of the inside (stable); the inside does not know the outside. Slices (`app` → `features`) may import presentation-layer kernels, but presentation-layer kernels do not import slices. Between presentation-layer kernels, too, dependencies point only inward (e.g. `model` depends only on `errors` and knows nothing of `adapters` or `components`).
 
-### 2. 境界は構造的型(TypeScript)で表現する
+### 2. Boundaries Are Expressed with Structural Types (TypeScript)
 
-「内側は抽象に依存し、実装は外側が与える」という境界 interface の考え方を、TypeScript の**構造的型**で表現する。`adapters` が公開する型(公開面)が事実上の境界 interface であり、`features` はその構造的型に依存する。テストでは具体実装ではなく factory 注入で差し替える(DI コンテナは持たず、ESM モジュールキャッシュ + import 境界で代替する。config の注入は [0030](0030-environment-variable-management.md))。
+The idea of a boundary interface — "the inside depends on abstractions, and the outside supplies the implementation" — is expressed with TypeScript's **structural types**. The types `adapters` exposes (its public surface) are the de facto boundary interface, and `features` depends on those structural types. Tests swap in factory injection rather than concrete implementations (there is no DI container; the ESM module cache + import boundaries stand in for it. Config injection is [0030](0030-environment-variable-management.md)).
 
-### 3. 生成型・外部型を内層に漏らさない(型漏洩禁止)
+### 3. Generated and External Types Do Not Leak into Inner Layers (No Type Leakage)
 
-OpenAPI 由来の生成型([0072](0072-api-type-generation.md))や外部ライブラリの型を、`model` などの内層に漏らさない。外界の型は所有境界(`adapters`)で自前の表示用型へ変換する。「request ⊂ domain ⊂ response」「wire contract はドメインルールではない」という境界値所有の哲学を維持する(詳細は [0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md))。
+Types generated from OpenAPI ([0072](0072-api-type-generation.md)) and types of external libraries are not leaked into inner layers such as `model`. Types from the outside world are converted into our own display types at the ownership boundary (`adapters`). The philosophy of owning boundary values — "request ⊂ domain ⊂ response", "the wire contract is not a domain rule" — is maintained (details in [0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md)).
 
-### 4. route・Server Action は driving adapter でありコード分割の軸にしない
+### 4. Routes and Server Actions Are Driving Adapters and Not the Axis of Code Splitting
 
-App Router のルートセグメント(`app/` 配下)と Server Action は**薄い呼び口**(driving adapter)であり、業務の編成やロジックを抱えない([0011](0011-no-docker.md) の thin proxy 決定と接続)。呼び口は呼ばれ方(page / Route Handler / Server Action)ごとに増える入口であって、1 つの機能は複数の入口から呼ばれうる。入口で分割すると 1 機能が入口の数だけ散らばるため、コード分割の第一軸は route ではなく **feature** とする。`page.tsx` は feature の画面 RSC を呼ぶだけの薄い層に留める。
+App Router route segments (under `app/`) and Server Actions are **thin call endpoints** (driving adapters) and hold no business orchestration or logic (connected to [0011](0011-no-docker.md)'s thin-proxy decision). Call endpoints are entry points that multiply with the way something is called (page / Route Handler / Server Action), and one feature can be called from several entry points. Splitting by entry point scatters one feature across as many places as it has entry points, so the primary axis of code splitting is the **feature**, not the route. `page.tsx` stays a thin layer that only calls the feature's screen RSC.
 
-### 5. 構造安全性は ESLint boundaries で CI 強制する
+### 5. Structural Safety Is Enforced on CI with ESLint boundaries
 
-層の依存方向は文書だけで守らず、機械的に強制する。文書だけの規約は、破った commit が咎められずに通り、後から誰も違反の起点を特定できない。強制手段は [0002](0002-formatter-linter.md)「ESLint による補完」節に接続する — フォーマットと biome が表現できる検査は biome が担い、「import する側の層」を文脈に取る境界検査(biome 非対応)のみ ESLint boundaries で補完し、CI(`pnpm lint:ci`)で強制する。プラグイン選定(`eslint-plugin-boundaries`)・element 定義・violation severity は [0021](0021-frontend-responsibility.md) の Enforcement 節が定め、`eslint.config.ts` はそれを検査へ変換する。
+Layer dependency directions are not protected by documents alone; they are enforced mechanically. A document-only convention lets a commit that breaks it pass unchallenged, and later nobody can identify where the violation started. The means of enforcement connects to [0002](0002-formatter-linter.md)'s use of ESLint as a complement to Biome — Biome handles formatting and the checks it can express, and only the boundary check that takes "the layer doing the import" as context (unsupported by Biome) is complemented with ESLint boundaries and enforced on CI (`pnpm lint:ci`). The plugin choice (`eslint-plugin-boundaries`), the element definitions and the violation severity are set by [0021](0021-frontend-responsibility.md), where it states how its layer rules are enforced, and `eslint.config.ts` turns them into checks.
 
-### 6. 他の層が握る問題を、こちらで予防的に手当てしない
+### 6. Do not pre-emptively handle a problem another layer owns
 
-**責務を超えない。外の責務の問題は、外の責務が握る。** 手前の層で先回りして書いた防御は、同じ問題に対する二つ目の答えになり、どちらが正かを決める仕事を恒久的に増やす。片方だけが直った状態も作れる。
+**Do not exceed your responsibility. A problem belonging to another responsibility is owned by that responsibility.** A defense written ahead of time in an earlier layer becomes a second answer to the same problem and permanently adds the work of deciding which one is right. It also makes a state possible in which only one of them is fixed.
 
-**書かないもの**:
+**What is not written**:
 
-- **その下の層が既に握っているもの** —— 契約の妥当性は境界の生成スキーマ([0072](0072-api-type-generation.md) / [0029](0029-type-design-discipline.md))、業務ルールはバックエンド([0070](0070-backend-role-separation.md))、同一 render 内の取得の重複排除は `adapters`([0071](0071-bff-api-integration.md))が握る。上流から来た値を網羅的に無害化し直すのは、この層の設計目標ではない
-- **エッジケースのさらにエッジケースだけを捕まえるもの** —— 起こり得ないものへの手当て
+- **What a lower layer already owns** — contract validity is owned by the generated schemas at the boundary ([0072](0072-api-type-generation.md) / [0029](0029-type-design-discipline.md)), business rules by the backend ([0070](0070-backend-role-separation.md)), and deduplication of fetches within a single render by `adapters` ([0071](0071-bff-api-integration.md)). Re-sanitizing values from upstream exhaustively is not a design goal of this layer
+- **What only catches an edge case of an edge case** — handling for what cannot happen
 
-**これは予防そのものの禁止ではない。** 次は対象外であり、禁じない。
+**This is not a ban on prevention itself.** The following are out of scope and not prohibited.
 
-- **下では捕まえられないもの** —— その層へ届く前に答えが要るもの
-- **UX 上、こちらに在るほうが正しいもの** —— 入力の即時フィードバックが典型で、境界の契約検証と `model` の表示検証を二層に分ける形は [0062](0062-form-input-validation.md) が既に定めている。往復を待たせないことが目的なら、同じ検査が二層にあってよい
+- **What cannot be caught below** — anything that needs an answer before it reaches that layer
+- **What is more correct here for UX** — immediate input feedback is the typical case, and [0062](0062-form-input-validation.md) already sets the shape that splits validation into two layers: contract validation at the boundary and display validation in `model`. If the purpose is not to make the user wait for a round trip, the same check may exist in both layers
 
-**セキュリティ上の懸念は、この原則の対象外である。**
+**Security concerns are outside this principle.**
 
-XSS・インジェクション等の防御は、下の層が握っていても**重複を理由に落とさない**。アーキテクチャは保守性と堅牢性を守るための道具であり、**それに従った結果セキュリティが毀損されるなら、それは前提の破壊であってアーキテクチャ側の欠陥**である。責務分界は、防御を薄くする理由にはならない(セキュリティ運用の全体像は [0110](0110-security-operations.md))。
+Defenses against XSS, injection and the like are **not dropped for being duplicated**, even when a lower layer owns them. The architecture is a tool for protecting maintainability and robustness, and **if following it damages security, that is a breach of its premise and a defect on the architecture's side**. The division of responsibilities is not a reason to thin out defenses (the overall picture of security operations is [0110](0110-security-operations.md)).
 
-上の「網羅的な無害化を設計目標にしない」との線引きは、**具体的な脅威を特定できるか**である。上流由来の値を一律に疑って洗い直すことはしないが、特定できる脅威(この値が HTML として解釈される / この文字列が URL として解決される、等)への防御は、他所にあっても置く。
+The line between this and "exhaustive sanitization is not a design goal" above is **whether a concrete threat can be identified**. Values from upstream are not uniformly suspected and re-washed, but a defense against an identifiable threat (this value is interpreted as HTML / this string is resolved as a URL, etc.) is put in place even if it also exists elsewhere.
 
-判定は 3 つ: **起こりうるか** / **ここが握るべきか** / **下で間に合うか**。ただしセキュリティ上の懸念は、2 つ目を問わない。
+There are three questions: **can it happen** / **should this place own it** / **is it caught in time below**. For security concerns, however, the second is not asked.
 
-## onion 語彙 `domain` / `usecase` を採用しない理由
+## Why the Onion Vocabulary `domain` / `usecase` Is Not Adopted
 
-onion は安定核を `domain` / `usecase` と名付けるが、本リポジトリではこれを**採用しない**。
+The onion names its stable core `domain` / `usecase`, but this repository **does not adopt** those names.
 
-- **緊張点**: 本リポジトリは [0011](0011-no-docker.md) で「ビジネスロジックはバックエンド別リポ」「`/api/*` は thin proxy」を既に決定している。`src/domain/` / `src/usecase/` という受け皿は、本来ここに存在しないはずのビジネスロジックの**誘導路**になる。onion が守る「安定核」は、表示層では表示用 VO・フォーマッタ程度と小さく、同じ層数・層名の再現は過剰装備である。
-- **解消**: 語彙を変えて縮退する。安定核 `domain` は表示層の語彙 **`model`**(表示用 VO・フォーマッタ・表示バリデーション、ビジネスルール禁止)へ縮退し、`usecase`(画面ユースケース)は独立ディレクトリを持たず **feature 内へ共置**する。onion の各役割との対応は下記の対応表で担保し、層別監査・scaffold は本表を土台に載せる。
+- **The tension**: this repository has already decided in [0011](0011-no-docker.md) that "business logic lives in a separate backend repository" and "`/api/*` is a thin proxy". A receptacle named `src/domain/` / `src/usecase/` becomes a **guide path** for business logic that should not exist here in the first place. The "stable core" the onion protects is small in the presentation layer, roughly display VOs and formatters, and reproducing the same number and names of layers is over-equipment.
+- **The resolution**: change the vocabulary and degenerate. The stable core `domain` degenerates into the presentation-layer word **`model`** (display VOs, formatters, display validation; business rules prohibited), and `usecase` (screen use cases) gets no independent directory and is **co-located inside the feature**. The correspondence with each onion role is secured by the mapping table below, and per-layer audits and scaffolding are built on this table.
 
-### onion の役割との対応表
+### Mapping to Onion Roles
 
-| onion の役割 | 本リポの対応 | 備考 |
+| Onion role | This repository's counterpart | Notes |
 | --- | --- | --- |
-| domain(安定核) | `src/model/` | 表示用 VO / フォーマッタ / 表示バリデーション。**ビジネスルール禁止**。依存は `errors` のみ |
-| usecase | `src/features/<name>/` の編成部(server 関数 / hooks) | 画面ユースケース。boundary IF は `adapters` 公開面の構造的型で代替 |
-| controller(driving adapter) | `src/app/`(route-segment / route-handler / server-action / metadata。[0025](0025-app-layer-elements.md))+ feature 内 `actions.ts` | 薄い編成のみ([0011](0011-no-docker.md) thin proxy と接続) |
-| infrastructure(driven adapter) | `src/adapters/`(server / client の 2 面。[0024](0024-adapters-server-client-split.md)) | 外部接続のみ(backend API client / BFF fetch / analytics 等)。config import の唯一の許可層(server 面)。命名規律により `lib` は不採用 |
-| 横断: config | `src/config/` | 型付き Config([0030](0030-environment-variable-management.md)) |
-| 横断: エラー分類 | `src/errors/` | 全層から参照可([0080](0080-error-handling.md)) |
-| 横断: ログ | `src/logging/` | 構造化ログ([0081](0081-observability-logging.md)) |
-| 横断: 観測性 | `src/observability/` | OTel([0081](0081-observability-logging.md)) |
-| (view — onion に対応なし) | `src/components/`(横断)+ feature 内 UI | fetch / config 禁止 |
-| (client runtime hook — onion に対応なし) | `src/capabilities/` | 横断 client hook(runtime 能力)。client-only。[0022](0022-capabilities-kernel.md) |
-| (client 状態 store — onion に対応なし) | `src/stores/` | 横断 client 状態(複数 feature が共有する Zustand ストア)。client-only。[0023](0023-stores-kernel.md) |
+| domain (stable core) | `src/model/` | Display VOs / formatters / display validation. **Business rules prohibited.** Depends only on `errors` |
+| usecase | The orchestration part of `src/features/<name>/` (server functions / hooks) | Screen use cases. Boundary IFs are replaced by the structural types of the `adapters` public surface |
+| controller (driving adapter) | `src/app/` (route-segment / route-handler / server-action / metadata; [0025](0025-app-layer-elements.md)) + `actions.ts` inside the feature | Thin orchestration only (connected to [0011](0011-no-docker.md)'s thin proxy) |
+| infrastructure (driven adapter) | `src/adapters/` (two faces, server / client; [0024](0024-adapters-server-client-split.md)) | External connections only (backend API client / BFF fetch / analytics, etc.). The only layer allowed to import config (server face). `lib` is not adopted, per the naming discipline |
+| Cross-cutting: config | `src/config/` | Typed Config ([0030](0030-environment-variable-management.md)) |
+| Cross-cutting: error classification | `src/errors/` | Referenceable from every layer ([0080](0080-error-handling.md)) |
+| Cross-cutting: logging | `src/logging/` | Structured logging ([0081](0081-observability-logging.md)) |
+| Cross-cutting: observability | `src/observability/` | OTel ([0081](0081-observability-logging.md)) |
+| (view — no onion counterpart) | `src/components/` (cross-cutting) + UI inside features | fetch / config prohibited |
+| (client runtime hook — no onion counterpart) | `src/capabilities/` | Cross-cutting client hooks (runtime capabilities). client-only. [0022](0022-capabilities-kernel.md) |
+| (client state store — no onion counterpart) | `src/stores/` | Cross-cutting client state (Zustand stores shared by multiple features). client-only. [0023](0023-stores-kernel.md) |
 
-## 横断関心事の第一階層分離
+## Separating Cross-Cutting Concerns at the Top Level
 
-横断関心事(`config` / `errors` / `logging` / `observability`)は **`src/` 直下の第一階層へ分離**する。あらゆる層が参照するものを、どれか 1 つのカーネル(例えば `adapters`)の下に置くと、そのカーネルが全層の依存先になり、内向き依存の図が壊れる。独立させれば、各カーネルは「自分より内側の横断関心事」だけを見る形に収まる。
+Cross-cutting concerns (`config` / `errors` / `logging` / `observability`) are **separated at the top level directly under `src/`**. Placing something every layer refers to under one kernel (for example `adapters`) would make that kernel a dependency of every layer and break the inward-dependency picture. Made independent, each kernel fits a shape where it looks only at "the cross-cutting concerns further in than itself".
 
-- `adapters` から `config` を独立させ、`errors` / `logging` / `observability` を並べる。`adapters` は**外部接続のみ**(backend API client / BFF fetch / analytics 送信 等。server/client の 2 面。[0024](0024-adapters-server-client-split.md))に責務を縮小する(local ブラウザ API の storage / clipboard 等は `capabilities`。[0022](0022-capabilities-kernel.md))
-- 各ディレクトリ内は**フラットなファイル共置を基本**とし(feature 内も同様)、肥大化時のみ分割する — ネスト深化の防止
+- `config` is made independent of `adapters`, alongside `errors` / `logging` / `observability`. `adapters` shrinks its responsibility to **external connections only** (backend API client / BFF fetch / sending analytics, etc.; two faces, server/client; [0024](0024-adapters-server-client-split.md)) (local browser APIs such as storage / clipboard go to `capabilities`; [0022](0022-capabilities-kernel.md))
+- Inside each directory, **flat co-location of files is the default** (likewise inside features), split only when it grows too large — preventing deep nesting
 
-## 採用しないパターン
+## Rejected Patterns
 
-決定過程で比較した代替案と、不採用の理由。
+The alternatives compared during the decision, and why they were rejected.
 
-| 不採用パターン | 内容 | 不採用の理由 |
+| Rejected pattern | What it is | Why it was rejected |
 | --- | --- | --- |
-| **onion 直訳(層ディレクトリ型)** | `src/{app, domain, usecase, adapter, components}` と onion の層を 1:1 でディレクトリ化 | 表示層では domain / usecase が薄く**形骸化**する。1 機能の修正が複数ディレクトリに散らばり co-location が弱い。view と usecase の関係は onion に無い軸で結局独自ルールが要る。Next.js 慣行から遠い。加えて `domain/` が業務ロジックの誘導路になる([0011](0011-no-docker.md) 緊張点) |
-| **Next.js 慣行ミニマル** | `src/{app, components, hooks, lib, types}` の最小構成 | usecase の置き場が曖昧で `hooks` が何でも屋化し、境界検査も粗くしか書けない。層別 README と層別の監査 / scaffold が**載らない** |
-| **Atomic Design** | atoms / molecules / organisms / templates / pages と、**粒度**で UI を分類する | 粒度は責務を表さない。organism が肥大し、ロジックの滞留先になる。置き場所の判断が「どちらの粒度か」という主観へ移り、名前から責務が読めなくなる。本リポジトリが優先するのは**責務の明瞭さと、それが名前に出ていること**である |
-| **Feature-Sliced Design (FSD)** | shared / entities / features / widgets / pages / app の 6 層 | 機能スライスという第一軸は同じだが、`entities` / `widgets` が本リポジトリの層と**二重の語彙**になる。同じものを 2 通りに分類できる構造は、置き場所の判断を毎回揺らす |
+| **Literal onion (layer-directory style)** | Turn the onion's layers into directories 1:1 as `src/{app, domain, usecase, adapter, components}` | In the presentation layer, domain / usecase are thin and **become hollow**. A change to one feature scatters across several directories and co-location is weak. The relation between view and usecase is an axis the onion lacks, so custom rules are needed anyway. Far from Next.js practice. In addition, `domain/` becomes a guide path for business logic (the tension in [0011](0011-no-docker.md)) |
+| **Minimal Next.js practice** | The minimal layout `src/{app, components, hooks, lib, types}` | Where use cases go is ambiguous, `hooks` turns into a catch-all, and boundary checks can only be written coarsely. Per-layer READMEs and per-layer audits / scaffolding **cannot be built on it** |
+| **Atomic Design** | Classifies UI by **granularity**: atoms / molecules / organisms / templates / pages | Granularity does not express responsibility. Organisms bloat and become where logic piles up. The judgment of where to put something shifts to the subjective "which granularity is it", and responsibility can no longer be read from the name. What this repository prioritizes is **clarity of responsibility, and that it shows in the name** |
+| **Feature-Sliced Design (FSD)** | Six layers: shared / entities / features / widgets / pages / app | The primary axis of feature slices is the same, but `entities` / `widgets` become **a second vocabulary** alongside this repository's layers. A structure that can classify the same thing in two ways unsettles the judgment of where to put things every time |
 
-採用パターン(機能スライス × カーネル)は、onion の不変原則(内向き依存・境界強制・型漏洩禁止・README 正)を全て維持したまま、表示層の現実(機能単位の変更が支配的・RSC の server/client 混在)に最適化できる。層ファーストではなく機能ファーストに軸を置くのは意図的な設計判断であり、onion の各役割との対応は上記対応表で担保する。
+The adopted pattern (feature slices × kernels) keeps all of the onion's invariant principles (inward dependencies, boundary enforcement, no type leakage, READMEs as authority) while optimizing for the reality of the presentation layer (changes dominated by feature units; RSC mixes server and client). Putting the axis feature-first rather than layer-first is a deliberate design decision, and the correspondence with each onion role is secured by the mapping table above.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `src/domain/` / `src/usecase/` を作成すること(安定核は `model`、画面ユースケースは feature 内共置。上記「採用しない理由」参照)（強制: ESLint `boundaries/no-unknown-files` が `src/domain/` / `src/usecase/` に置いたコードを落とす。コード以外のファイルだけを持つディレクトリは散文 —— **寄せられる**（`src/` 直下のディレクトリを `architecture.ts` の `KERNELS` と突き合わせる。規則は無い））
-- ❌ route / Server Action / `page.tsx` に業務ロジックを書くこと(driving adapter は薄い編成のみ。[0011](0011-no-docker.md) thin proxy)（強制: 散文 —— **寄せられない**。どこからが業務ロジックでどこまでが薄い編成かは層の責務の判断で、コードの形からは決まらない）
-- ❌ コード分割の第一軸を route にすること(第一軸は feature)（強制: 散文 —— **寄せられない**。コードをどの軸で分けたかは設計の判断で、ディレクトリの形からは決まらない）
-- ❌ 生成型・外部ライブラリ型を `model` 等の内層へ漏らすこと(変換は `adapters` 所有境界で行う)（強制: ESLint boundaries が `adapters` 以外からの `src/adapters/gen` の import を落とす。`src/model` での外部ライブラリの import は `no-restricted-imports` で落とせるが規則は無い。`adapters` の公開面を経由した生成型の再公開は散文 —— **寄せられない**。型の由来の追跡が要り、依存表の向きからは決まらない）
-- ❌ カーネルの依存を外向きにすること(`model` が `adapters` を import する等。詳細マトリクスは [0021](0021-frontend-responsibility.md))
-- ❌ 中身の決定を持たないカーネルの空ディレクトリを生やすこと(カーネルは、その中身を定める ADR と対で存在する)（強制: 散文 —— **一部寄せられる**。コードを持たないカーネルのディレクトリ（`.gitkeep` だけ等）は `src/` の走査で落とせるが規則は無い。対になる ADR がそのカーネルの中身を定めているかは文書の意味で決まる）
+- ❌ Creating `src/domain/` / `src/usecase/` (the stable core is `model`; screen use cases are co-located in features. See "Why the Onion Vocabulary `domain` / `usecase` Is Not Adopted" above) (Enforcement: ESLint `boundaries/no-unknown-files` fails on code placed in `src/domain/` / `src/usecase/`. A directory holding only non-code files is Prose — **mechanizable** (compare the directories directly under `src/` with `KERNELS` in `architecture.ts`. No rule exists))
+- ❌ Writing business logic in routes / Server Actions / `page.tsx` (driving adapters do thin orchestration only; [0011](0011-no-docker.md) thin proxy) (Enforcement: Prose — **not mechanizable**. Where business logic begins and thin orchestration ends is a judgment about a layer's responsibility and is not decided by the shape of the code)
+- ❌ Making the route the primary axis of code splitting (the primary axis is the feature) (Enforcement: Prose — **not mechanizable**. Which axis the code was split along is a design judgment and is not decided by the shape of the directories)
+- ❌ Leaking generated types or external library types into inner layers such as `model` (conversion happens at the `adapters` ownership boundary) (Enforcement: ESLint boundaries fails on imports of `src/adapters/gen` from anywhere other than `adapters`. Imports of external libraries in `src/model` could be caught with `no-restricted-imports`, but no rule exists. Re-exporting generated types through the `adapters` public surface is Prose — **not mechanizable**: it requires tracing where a type came from and is not decided by the direction of the dependency table)
+- ❌ Making kernel dependencies point outward (`model` importing `adapters`, etc.; the detailed matrix is in [0021](0021-frontend-responsibility.md))
+- ❌ Sprouting an empty directory for a kernel whose contents have not been decided (a kernel exists paired with the ADR that sets its contents) (Enforcement: Prose — **partly mechanizable**. A kernel directory with no code (only `.gitkeep`, etc.) could be caught by scanning `src/`, but no rule exists. Whether the paired ADR sets that kernel's contents is decided by the meaning of the document)
 
-## 補足
+## Notes
 
-- 本 ADR はパターン**宣言**であり、各カーネルの責務・依存マトリクス・命名規律・受入基準・Server Action の置き場・Enforcement の詳細は [0021](0021-frontend-responsibility.md) を正とする
-- カーネルの物理配置は [0027](0027-directory-structure.md)、命名は [0028](0028-naming-convention.md)、config カーネルの中身は [0030](0030-environment-variable-management.md) が具体化する
+- This ADR is a pattern **declaration**; [0021](0021-frontend-responsibility.md) is authoritative for each kernel's responsibilities, the dependency matrix, the naming discipline, the acceptance criteria, where Server Actions live, and the details of Enforcement
+- The physical placement of kernels is made concrete by [0027](0027-directory-structure.md), naming by [0028](0028-naming-convention.md), and the contents of the config kernel by [0030](0030-environment-variable-management.md)
 
-## 関連 ADR
+## Related ADRs
 
-- [0011-no-docker.md](0011-no-docker.md) — 表示層ロール定義(ビジネスロジックはバックエンド別リポ)。`domain` / `usecase` 不採用と driving adapter 非分割軸の根拠
-- [0002-formatter-linter.md](0002-formatter-linter.md) — 構造安全性の機械強制(ESLint boundaries による層境界検査の補完)の接続先
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 各カーネルの責務 / 依存マトリクス / 命名規律 / 受入基準 / Enforcement(本 ADR の従属決定)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — `capabilities` カーネル(横断 client hook)
-- [0023-stores-kernel.md](0023-stores-kernel.md) — `stores` カーネル(横断 client 状態)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) / [0025-app-layer-elements.md](0025-app-layer-elements.md) — `adapters` / `app` の element 細分
-- [0027-directory-structure.md](0027-directory-structure.md) / [0028-naming-convention.md](0028-naming-convention.md) / [0030-environment-variable-management.md](0030-environment-variable-management.md) — 本アーキテクチャ上の物理配置・命名・config カーネルを具体化する ADR
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role definition (business logic lives in a separate backend repository). The basis for rejecting `domain` / `usecase` and for driving adapters not being a splitting axis
+- [0002-formatter-linter.md](0002-formatter-linter.md) — where the mechanical enforcement of structural safety connects (the layer-boundary check complemented by ESLint boundaries)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — each kernel's responsibilities / the dependency matrix / the naming discipline / the acceptance criteria / Enforcement (decisions subordinate to this ADR)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the `capabilities` kernel (cross-cutting client hooks)
+- [0023-stores-kernel.md](0023-stores-kernel.md) — the `stores` kernel (cross-cutting client state)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) / [0025-app-layer-elements.md](0025-app-layer-elements.md) — the element subdivision of `adapters` / `app`
+- [0027-directory-structure.md](0027-directory-structure.md) / [0028-naming-convention.md](0028-naming-convention.md) / [0030-environment-variable-management.md](0030-environment-variable-management.md) — the ADRs that make physical placement, naming and the config kernel concrete on this architecture

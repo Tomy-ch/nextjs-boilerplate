@@ -55,7 +55,7 @@ Accepted
 | アンカーの実在（指した先が在るか） | `scripts/doc-links.gate.test.ts` —— `#anchor` を解決する既存のゲート |
 | アンカーの網羅（セクションがアンカーを持つか） | `pnpm docs:tally` —— アンカーの無いセクションがあれば件数を出さずに落ちる |
 | 判定の語彙（3 語の外が無いか） | 同上 —— 未知の綴りは数えずに落ちる |
-| 読めなかった規約（要旨が閉じない / 判定が規約の外 / アンカーがセクションへ対応しない） | 同上 —— **黙って 0 件へ縮退させない**（[0157](0157-inspection-declaration-discipline.md)） |
+| 読めなかった規約（要旨が閉じない / 判定が規約の外 / アンカーがセクションへ対応しない） | 同上 —— **黙って 0 件へ縮退させない**（[0157](0157-inspection-declaration-discipline.ja.md)） |
 | 集計の陳腐化 | `scripts/rules-tally.gate.test.ts` —— 生成し直して差分が出れば赤 |
 
 ## この規律が答えないこと
@@ -87,5 +87,5 @@ Accepted
 
 - [0140-documentation-operations.md](0140-documentation-operations.ja.md) — 文書の 4 分類と canonical 言語モデル（英語の canonical と日本語のミラーは言語の違う見出しを持つ。アンカーが言語から独立している理由）
 - [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.ja.md) — 決定と強制手段の併記、判定の 3 語、集計は決定を持たないこと
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — 成立しない検査を「違反なし」へ倒さない（生成が落ちる条件を持つ理由）
-- [0159-script-structure.md](0159-script-structure.md) — 補助スクリプトの構造（`rules-tally` の置き方）
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.ja.md) — 成立しない検査を「違反なし」へ倒さない（生成が落ちる条件を持つ理由）
+- [0159-script-structure.md](0159-script-structure.ja.md) — 補助スクリプトの構造（`rules-tally` の置き方）

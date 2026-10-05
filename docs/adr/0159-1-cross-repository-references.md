@@ -1,53 +1,53 @@
-# 他リポジトリへの参照
+# References to Other Repositories
 
-本プロジェクトから**他リポジトリの issue / PR を指す**ときの形を定める。対象はエージェントが書いた文字列が GitHub へ届く場所すべて —— issue と PR の本文・コメント、コミットメッセージ、上流のスレッドを引用する `docs/` / `.github/` 配下の Markdown —— であり、git の操作手順（[0150](0150-git-workflow.md)）とは射程が違う。
+Defines the form used when this project **points at another repository's issue / PR**. The scope is every place where a string an agent wrote reaches GitHub — issue and PR bodies and comments, commit messages, and Markdown under `docs/` / `.github/` that quotes upstream threads — which differs in reach from git operating procedures ([0150](0150-git-workflow.md)).
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **この参照は取り消せない。** 公開リポジトリからの参照は上流のスレッドへ痕跡を残し、本文を編集しても撤回されない。取り消せない出力には、出す前の規律が要る
-- **クロスリファレンスは需要のシグナルであり、量が増えると壊れる。** エージェントが issue を生成し参照を集められるようになった以上、道具が発した参照と人が選んで送った参照は見分けが付かない。件数はシグナルからスパムへ劣化する
-- **既定を機械で決められる。** 「常に `redirect.github.com`」は判断を要さないので既定に置ける。判断が要るのは例外の側だけになる
+- **This reference cannot be taken back.** A reference from a public repository leaves a trace in the upstream thread, and editing the body does not withdraw it. Output that cannot be taken back needs discipline before it is sent
+- **A cross-reference is a demand signal, and it breaks as volume grows.** Now that agents can generate issues and accumulate references, a reference a tool emitted cannot be told apart from one a person chose to send. The count degrades from signal to spam
+- **The default can be decided mechanically.** "Always `redirect.github.com`" needs no judgment, so it can be the default. Judgment is needed only on the exception side
 
-## 決定 1: 既定は `redirect.github.com` を通す
+## Decision 1: The default goes through `redirect.github.com`
 
-- 素の `https://github.com/<owner>/<repo>/issues/N`、それを包んだ `[text](url)`、`owner/repo#N` の短縮形は、いずれも上流のスレッドへ**公開のクロスリファレンス**を残す
-- `https://redirect.github.com/<owner>/<repo>/issues/N` は `github.com` のサブドメインで、実ページへ 301 する。リンクは働くが GitHub は autolink せず、上流に痕跡が残らない。GitHub 自身が文書化している逃げ道（"Autolinked references and URLs"）であり、Dependabot が PR 本文で使っているのもこれである
-- 失うのは hovercard のプレビューだけである
-- **commit / compare / blob / release の URL はクロスリファレンスを作らない**ので、素のままでよい
+- A plain `https://github.com/<owner>/<repo>/issues/N`, a `[text](url)` wrapping it, and the short form `owner/repo#N` all leave a **public cross-reference** in the upstream thread
+- `https://redirect.github.com/<owner>/<repo>/issues/N` is a subdomain of `github.com` that 301s to the real page. The link works, but GitHub does not autolink it and no trace is left upstream. It is an escape hatch GitHub itself documents ("Autolinked references and URLs"), and it is what Dependabot uses in its PR bodies
+- All that is lost is the hovercard preview
+- **commit / compare / blob / release URLs create no cross-reference**, so they may stay plain
 
-## 決定 2: 素のリンクは禁止ではなく留保する
+## Decision 2: Plain links are reserved, not forbidden
 
-クロスリファレンスは、実在のプロジェクトがその issue を見ていて解決を必要としていることを上流のメンテナへ伝える。彼らは優先度付けでそれを重み付けする。**そのシグナルが意味を持つのは、人間が請け合ったからである。**
+A cross-reference tells upstream maintainers that a real project is watching the issue and needs it resolved. They weigh that in prioritization. **That signal means something because a human vouched for it.**
 
-- 素のリンクは「我々は見ている」「我々には必要だ」と**意図して言うとき**にだけ使う
-- 使うときは、参照元 issue のタイトルを**相手リポジトリの言語**（通常は英語）で書く。上流が見るのはタイトルだけなので、読めないタイトルの参照は純粋な雑音になる。[0140](0140-documentation-operations.md) の日本語規則が譲るのはここだけである
+- A plain link is used only when **deliberately saying** "we are watching" / "we need this"
+- When used, the title of the referring issue is written **in the other repository's language** (usually English). Upstream sees only the title, so a reference with an unreadable title is pure noise. This is the only place the Japanese rule of [0140](0140-documentation-operations.md) yields
 
-## 決定 3: 素のリンクを使う判断は、例外なく人間のものである
+## Decision 3: The judgment to use a plain link belongs to a human, without exception
 
-- AI エージェントが自分で決めてはならない。既定は `redirect.github.com` で、素のリンクが妥当に見えるたびに**毎回問う**
-- **常設の委任はこの権限を移さない。** 「任せる」「判断して」「今後は普通にリンクしていい」といった包括的な指示があっても、都度の確認を挟む。シグナルの要点は人間が送ると決めたことであり、委任された判断で動くエージェントはそれを供給できない
+- An AI agent must not decide on its own. The default is `redirect.github.com`, and **ask every time** a plain link seems appropriate
+- **A standing delegation does not transfer this authority.** Even with a blanket instruction such as "leave it to you", "use your judgment" or "from now on you can link normally", insert a per-case confirmation. The point of the signal is that a human decided to send it, and an agent acting on delegated judgment cannot supply that
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **素のリンクの全面禁止** | シグナルそのものは正当で、人が送りたい場面が実在する。禁じると、必要なときに迂回する動機だけが残る |
-| **後から本文を編集して撤回する運用** | 撤回されない。消せるのは参照元 issue を削除したときだけで、pull request は削除そのものができない |
-| **エージェントへの委任（判断基準を渡して任せる）** | 基準を渡しても「人が請け合った」ことは供給できない。シグナルの価値がそこにしか無い以上、委任すると価値ごと消える |
+| **Forbidding plain links entirely** | The signal itself is legitimate, and situations where a person wants to send it really exist. Forbidding it leaves only a motive to route around it when needed |
+| **An operation of withdrawing by editing the body afterwards** | It is not withdrawn. It disappears only when the referring issue is deleted, and a pull request cannot be deleted at all |
+| **Delegating to the agent (handing over criteria and leaving it to it)** | Handing over criteria cannot supply "a person vouched for it". Since the signal's value lies only there, delegating erases the value with it |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 他リポジトリの issue / PR を、素の URL・`[text](url)`・`owner/repo#N` で指すこと（既定は `redirect.github.com`）（強制: `scripts/lib/issue-body.ts` の書き換え（テストつき）が closed-loop の送出本文に限って他スレッドの URL を `redirect.github.com` へ寄せる。エージェントが書く issue・PR・コミットは散文 —— **寄せられない**。素のリンクは人が都度認めれば正当で、綴りからは認められたかが決まらない）
-- ❌ 素のリンクを使う判断をエージェントが自分で下すこと。常設の委任があっても同じ（強制: 散文 —— **寄せられない**。人が都度認めたかは、出力された文字列の形からは決まらない）
-- ❌ 素のリンクを使うとき、参照元 issue のタイトルを相手リポジトリの読めない言語で書くこと（強制: 散文 —— **寄せられない**。相手リポジトリが読める言語かは相手側の事実で決まる）
-- ❌ クロスリファレンスを残したあとに、本文の編集で撤回したことにすること（強制: 散文 —— **寄せられない**。編集で撤回したと見なすかは、書き手の認識の問題でコードに現れない）
+- ❌ Pointing at another repository's issue / PR with a plain URL, `[text](url)` or `owner/repo#N` (the default is `redirect.github.com`) (Enforcement: the rewriting in `scripts/lib/issue-body.ts` (with tests) moves URLs of other threads to `redirect.github.com`, limited to closed-loop outgoing bodies. Issues, PRs and commits an agent writes are Prose — **not mechanizable**. A plain link is legitimate if a person approves it each time, and whether it was approved cannot be decided from the spelling)
+- ❌ An agent making the judgment to use a plain link on its own. The same holds even with a standing delegation (Enforcement: Prose — **not mechanizable**. Whether a person approved it each time cannot be decided from the shape of the output string)
+- ❌ When using a plain link, writing the referring issue's title in a language the other repository cannot read (Enforcement: Prose — **not mechanizable**. Whether the other repository can read the language is a fact on its side)
+- ❌ After leaving a cross-reference, treating it as withdrawn by editing the body (Enforcement: Prose — **not mechanizable**. Whether an edit is regarded as a withdrawal is a matter of the writer's understanding and does not appear in code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0150-git-workflow.md](0150-git-workflow.md) — git の操作手順。参照の規律は持たず、本 ADR を指す
-- [0140-documentation-operations.md](0140-documentation-operations.md) — 出力言語の規則。決定 2 がその唯一の例外を作る
-- [0110-security-operations.md](0110-security-operations.md) — 公開の場へ所見を出すときの規律（同じ「取り消せない出力」の系統）
+- [0150-git-workflow.md](0150-git-workflow.md) — git operating procedures. It holds no discipline for references and points at this ADR
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the output-language rules. Decision 2 creates their only exception
+- [0110-security-operations.md](0110-security-operations.md) — discipline for putting findings in public places (the same family of "output that cannot be taken back")

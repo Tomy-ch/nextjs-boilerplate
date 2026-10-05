@@ -1,0 +1,111 @@
+> **このファイルは [`README.md`](README.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `README.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `README.md` だけです。このファイルは人間が読むための翻訳です。
+
+# Architecture Decision Records (ADR)
+
+このディレクトリには、本プロジェクトにおける重要な技術的意思決定を記録する。
+
+## ルール
+
+- 1ファイル = 1意思決定
+- トピック順ブロック帯で採番する（10 番台 = 主題ブロック。例: `002x` アーキ / `004x` ルーティング / `007x` データ・BFF / `015x` プロセス）
+- Status を必ず記載する。綴りは `Accepted` / `Accepted (exclusion)` / `Accepted (一部 exclusion)` / `Superseded by NNNN` のいずれか（exclusion の区別と Superseded への移り方は [0140](0140-documentation-operations.ja.md)）
+- 本文は次の骨格で書く。決定の中身に応じてセクションを足してよいが、並びは崩さない
+  1. 見出し直下の前文 —— 何を決める ADR か、隣の ADR とどこで線を引くか
+  2. `## Status`
+  3. `## 背景` または `## 採用理由 / 目的`
+  4. 決定 —— `## 決定` の下に `### 1.` から番号を振るか、決定ごとに `##` を立てる
+  5. 必要なときだけ `## 不採用`（比べて採らなかったものと理由）と `## 補足`
+  6. `## 禁止事項` —— 1 行 1 項目を `❌` で始め、行末に `（強制: …）` で何が落とすかを添える。機械が落とさないものは `散文 ——` の後に判定の 3 語（**寄せられない** / **一部寄せられる** / **寄せられる**）のどれかと理由を書き、採らない決定は `持たない ——` と書く（[0144](0144-decision-enforcement-pairing.ja.md)）。何も禁じない exclusion はセクションごと持たない
+  7. `## 関連 ADR` —— 1 行 1 本で、その ADR から何を受け取るかを添える
+- 他の ADR は `[NNNN](path)` の番号だけで指し、セクション番号（`§2` / `決定 4`）を添えない。どのセクションかは、自分が使っている中身を要旨として書く（[0146](0146-rule-reference-stability.ja.md)）
+
+## 今後定義する ADR
+
+未着手の意思決定領域は issue トラッカーが追う。一覧をこのディレクトリにコピーしないのは、1 つ着地した瞬間に古くなる二重管理になるためである（未策定領域の扱いは [0152](0152-agents-md-policy.ja.md)）。新規 ADR は issue で内容を合意してから、上の採番規則で番号を付けて起票する。
+
+## 一覧
+
+- [0001-package-manager.md](0001-package-manager.ja.md) - パッケージマネージャの選定（pnpm 採用 / lockfile commit / npm・yarn 禁止）
+- [0002-formatter-linter.md](0002-formatter-linter.ja.md) - フォーマッタ・リンタの選定（Biome 優先 + 隙間補完 ESLint）
+- [0003-version-manager.md](0003-version-manager.ja.md) - Node.js / pnpm のバージョンマネージャ選定（mise 採用）
+- [0004-library-management.md](0004-library-management.ja.md) - ライブラリ選定・運用方針（npm 依存のメタ方針 / exact pin / 監査）
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.ja.md) - 標準準拠と非ロックイン（設計判断の恒久メタ軸 = デファクト seam に乗る / 非ロックイン判定）
+- [0011-no-docker.md](0011-no-docker.ja.md) - Docker を採用しない方針（プレゼンテーションレイヤー → アプリ基盤ロール定義）
+- [0020-adopted-architecture.md](0020-adopted-architecture.ja.md) - 採用アーキテクチャ（機能スライス × プレゼンテーションレイヤーカーネル / 設計原則 / 不採用パターン）
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) - フロント内責務分離方針（カーネル責務 / 依存マトリクス / 命名規律 / Enforcement）
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.ja.md) - `capabilities` カーネル（横断 client hook の家 / runtime 能力供給 / use client 固定）
+- [0023-stores-kernel.md](0023-stores-kernel.ja.md) - `stores` カーネル（横断 client 状態 = Zustand の家 / 昇格基準）
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.ja.md) - adapters の server/client 分割（2 軸モデル / client 側外部接続境界 = 構造ブロッカー S1）
+- [0025-app-layer-elements.md](0025-app-layer-elements.ja.md) - app レイヤの element 構成（Route Handler / metadata / 3 element = S2）
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.ja.md) - layout の横断 UI / Provider mount（app シェル合成 = S4）
+- [0027-directory-structure.md](0027-directory-structure.ja.md) - ディレクトリ構造（物理配置 / `@/*` alias / co-location / 共有粒度）
+- [0028-naming-convention.md](0028-naming-convention.ja.md) - 命名規則（ファイル名 / 識別子 / route セグメント / 環境変数 / ADR ファイル）
+- [0029-type-design-discipline.md](0029-type-design-discipline.ja.md) - 型設計の規律（判別可能 union / 境界での確定 / branded type / `satisfies`）
+- [0030-environment-variable-management.md](0030-environment-variable-management.ja.md) - 環境変数管理（目的別 config / server・client 分割 / `NEXT_PUBLIC_` 境界 / secret）
+- [0031-policy-state-supply.md](0031-policy-state-supply.ja.md) - ポリシー状態（consent / feature-flag）の供給方針（source adapter + no-op デフォルト + stateless props = S3）
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.ja.md) - ルーティング・レンダリング戦略（App Router / Server Components デフォルト / Server Actions / route-as-modal / Suspense 境界の粒度）
+- [0041-cache-components-decision.md](0041-cache-components-decision.ja.md) - Cache Components（PPR）有効化判断
+- [0042-react19-rendering-api.md](0042-react19-rendering-api.ja.md) - React 19 レンダリング API 規約（`use()` 等の書き方）
+- [0043-middleware-policy.md](0043-middleware-policy.ja.md) - Middleware（Proxy）方針（Next.js 16 proxy.ts / thin・last resort / 認証は対象外）
+- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.ja.md) - SEO / メタデータ戦略（Metadata API / sitemap・robots / canonical / JSON-LD / アイコン体系）
+- [0045-fonts-and-images.md](0045-fonts-and-images.ja.md) - フォント・画像（next/font / next/image / public/ / 動的 OG）
+- [0050-styling-strategy.md](0050-styling-strategy.ja.md) - スタイリング戦略（Tailwind 主軸 + CSS Modules 限定許可 / `cn()` / design token = CSS 変数）
+- [0051-styling-system.md](0051-styling-system.ja.md) - スタイリング体系（デザイントークン / レスポンシブ / モーション = Framer Motion / 印刷 / 重なり順のバンド）
+- [0052-ui-component-policy.md](0052-ui-component-policy.ja.md) - UI コンポーネント方針（shadcn/ui + Tabler アイコン採用）
+- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.ja.md) - UI コンポーネント方針とインタラクション a11y seam
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.ja.md) - UI カタログ（Storybook）方針
+- [0055-design-system-export.md](0055-design-system-export.ja.md) - デザインシステムの外部書き出し（成果物は tool 非依存 / 配送だけが vendor を知る / 取り込みは一方向）
+- [0056-mock-app-exclusion.md](0056-mock-app-exclusion.ja.md) - mock app を公開しない（exclusion）
+- [0060-state-management.md](0060-state-management.ja.md) - 状態管理方針（Server state = fetch デフォルト / Client = local デフォルト / react-hook-form・Zustand 採用）
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.ja.md) - フォーム送信フローの canonical 機構（`<form action>` + `useActionState` + `useFormStatus`）
+- [0062-form-input-validation.md](0062-form-input-validation.ja.md) - フォーム入力検証 UX（client 検証 / 生成 zod の再利用境界）
+- [0063-mutation-result-notification.md](0063-mutation-result-notification.ja.md) - 変更結果の通知 UX（インライン / トースト / redirect + live region）
+- [0070-backend-role-separation.md](0070-backend-role-separation.ja.md) - バックエンドとの役割分離（BFF = thin proxy / 契約 SSOT / 境界値所有）
+- [0071-bff-api-integration.md](0071-bff-api-integration.ja.md) - BFF / API 統合（adapters の fetch wrapper / resilience 翻案 / エラー正規化 / キャッシュ）
+- [0072-api-type-generation.md](0072-api-type-generation.ja.md) - 型生成（orval + zod 生成 / gh 取込 + short SHA / do-not-edit / drift ゲート）
+- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.ja.md) - ページネーション・無限スクロールのデータ取得境界
+- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.ja.md) - 双方向 / ストリーム通信 seam（WebSocket / SSE）
+- [0075-file-upload-seam.md](0075-file-upload-seam.ja.md) - ファイルの受け取りと配信（受信エンドポイントは Server Action / 配信は公開の配信元 / 署名付き URL への直接送信は不採用）
+- [0076-payment-ui-seam.md](0076-payment-ui-seam.ja.md) - 決済 UI seam（mount seam と PCI 境界）
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.ja.md) - BFF abuse 保護境界（infra / edge seam）
+- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.ja.md) - 動的 feature flag・段階的配信 seam（A-B / 段階的公開）
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.ja.md) - 認証のフロント側 seam
+- [0080-error-handling.md](0080-error-handling.ja.md) - エラーハンドリング（errors カーネル / sentinel 分類 / 境界正規化 / error.tsx 階層 / loading とローディング表示）
+- [0081-observability-logging.md](0081-observability-logging.ja.md) - 観測性・ロギング（logging/observability カーネル / OTLP-only / signal gating / RUM は非同梱）
+- [0082-client-observability.md](0082-client-observability.ja.md) - クライアント観測性（Web Vitals RUM / client エラー収集 / プロダクト分析 seam）
+- [0090-testing-strategy.md](0090-testing-strategy.ja.md) - テスト戦略（Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ゲート）
+- [0091-test-verification-methods.md](0091-test-verification-methods.ja.md) - テスト検証手段方針（async RSC テストの寄せ先 / a11y 自動テスト = axe 組込）
+- [0100-accessibility-target.md](0100-accessibility-target.ja.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
+- [0101-performance-budget.md](0101-performance-budget.ja.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・しきい値は用途依存）
+- [0102-browser-support.md](0102-browser-support.ja.md) - ブラウザサポート行列（Next.js デフォルト browserslist 追認 / 切り捨ては用途依存）
+- [0110-security-operations.md](0110-security-operations.ja.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
+- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) - CSP・セキュリティヘッダ（実行時）
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.ja.md) - データ分類とキャッシュ境界（PII / user-scoped / secret の置き場と段ごとの関所）
+- [0113-development-access-surface.md](0113-development-access-surface.ja.md) - 開発用のエンドポイントの制御面（到達したい状態で決める / build 除外と実行時判定は別の保証）
+- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.ja.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
+- [0121-i18n-strategy.md](0121-i18n-strategy.ja.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
+- [0130-pwa-strategy.md](0130-pwa-strategy.ja.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
+- [0131-cookie-consent.md](0131-cookie-consent.ja.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものはコンテナの中身として選ぶ）
+- [0140-documentation-operations.md](0140-documentation-operations.ja.md) - ドキュメント運用ポリシー（EN canonical 方向 / タクソノミー / rules.md 新設 / ADR 不可変性）
+- [0141-portal-operations.md](0141-portal-operations.ja.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages）
+- [0142-license.md](0142-license.ja.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / private:true との関係）
+- [0143-spec-driven-development.md](0143-spec-driven-development.ja.md) - 仕様書駆動（画面要件を仕様書として持つ / 生成 scaffold を持たない / 実装との突合は存在（機械）と内容（読み合わせ）の 2 つ）
+- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.ja.md) - 決定と強制手段の併記（散文へ逃がす前に機械強制を検討する / 寄せられない理由を書く）
+- [0145-docs-viewer-package-boundary.md](0145-docs-viewer-package-boundary.ja.md) - docs-viewer のパッケージ境界（依存分離をパッケージ境界で担保する）
+- [0146-rule-reference-stability.md](0146-rule-reference-stability.ja.md) - 規約の参照と集計の生成（セクションのアンカーで指す / 手で数えない / 判定は 3 語）
+- [0150-git-workflow.md](0150-git-workflow.ja.md) - Git ブランチ・コミット運用方針
+- [0151-git-hooks.md](0151-git-hooks.ja.md) - Pre-commit / Pre-push hook 運用方針（lefthook 採用）
+- [0152-agents-md-policy.md](0152-agents-md-policy.ja.md) - AGENTS.md 運用方針
+- [0153-ci-configuration.md](0153-ci-configuration.ja.md) - CI 構成（job 分割 / SHA ピン / 最小 permissions / hooks mirror / matrix 非採用）
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.ja.md) - Claude スキル運用方針（運用系）
+- [0155-claude-skills-development.md](0155-claude-skills-development.ja.md) - Claude スキル運用方針（開発系）
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) - ブラウザ実測ツール（3 レーンの分担 / CLI 前提・MCP 登録なし / 実プロファイル非接続 / 取得経路は pnpm と mise の使い分け）
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.ja.md) - 検査の宣言規律（成立しない検査を「違反なし」へ倒さない / 抑止は理由と撤去条件を持つ）
+- [0158-code-search-tooling.md](0158-code-search-tooling.ja.md) - コード検索・影響解析ツール（採用範囲 / 導入経路 / allow・deny 境界）
+- [0159-script-structure.md](0159-script-structure.ja.md) - 補助スクリプトの言語と構造（TypeScript / 1 ツール 1 ディレクトリ / エントリポイントと判定の分離）
+- [0159-1-cross-repository-references.md](0159-1-cross-repository-references.ja.md) - 他リポジトリへの参照（デフォルトは `redirect.github.com` / 素のリンクは留保 / 使う判断は人のもの）
+- [0160-agent-environment-loop.md](0160-agent-environment-loop.ja.md) - エージェント環境の改善をループにする（観測 → 改善 → 再計測 / 利用の型で判定する / 状態の 3 つの置き場）
+- [0161-development-window-as-feedback-unit.md](0161-development-window-as-feedback-unit.ja.md) - 開発のウィンドウをフィードバックの単位とする（セッション・コミット・PR を母数にしない理由 / 打刻が第一で記録は補完）
+- [0162-application-independence-from-ai.md](0162-application-independence-from-ai.ja.md) - アプリケーションは AI に依存しない（成立の条件にエージェントを置かない / 依存は開発の流れに閉じる / 経路に自分を置く道具を採らない）

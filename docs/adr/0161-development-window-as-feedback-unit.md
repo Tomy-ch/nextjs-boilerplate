@@ -1,60 +1,60 @@
-# 開発の窓をフィードバックの単位とする
+# The Development Window as the Unit of Feedback
 
-[0160](0160-agent-environment-loop.md) が回すループの**観測の単位**を定める。1 周が「何についての 1 周なのか」を決める ADR であり、それ以外は持たない。
+Defines **the unit of observation** for the loop run by [0160](0160-agent-environment-loop.md). This ADR decides "what one cycle is a cycle about", and holds nothing else.
 
-単位を **開発の窓**（window）とする —— **エージェントとの 1 続きの作業**であり、開いてから閉じるまでを 1 件として数える。
+The unit is **the development window** (window) — **one continuous stretch of work with an agent**, counted as one item from when it opens until it closes.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **単位が決まらないと、所見を数えられない。** 「スキルが呼ばれなかった」も「ここで詰まった」も、**何回のうち何回か**を言えて初めて所見になる。母数の定義がその単位である
-- **手近な候補はどれも母数として壊れている。** セッション・コミット・PR のいずれも、作業の切れ目と一致しない切れ方をする（下記）
-- **単位は機械が判定できなければならない。** 人が「ここが 1 件」と申告する形にすると、申告されなかった作業が観測から丸ごと落ちる
+- **Without a decided unit, findings cannot be counted.** Both "the skill was not called" and "it got stuck here" become findings only once you can say **how many times out of how many**. The definition of the denominator is that unit
+- **Every handy candidate is broken as a denominator.** Sessions, commits and PRs all break at points that do not coincide with breaks in the work (below)
+- **The unit must be decidable by a machine.** A form where a person reports "this is one item" drops unreported work from observation entirely
 
-## 決定: 窓は「開く」と「閉じる」で区切る
+## Decision: A window is bounded by "open" and "close"
 
-| | 何をもって | なぜ |
+| | Marked by | Why |
 | --- | --- | --- |
-| **開く** | エージェントとの作業が始まった時点 | 以後の打刻と記録がこの窓に属する |
-| **閉じる** | 作業の文脈が切れた時点 —— 文脈の明示的な破棄、文脈の圧縮、作業の終了 | **文脈が切れたところが、人の作業の切れ目と最もよく一致する** |
+| **Open** | The point at which work with an agent begins | Subsequent timestamps and records belong to this window |
+| **Close** | The point at which the context of the work breaks — explicit discarding of context, compaction of context, the end of the work | **Where the context breaks coincides best with where a person's work breaks** |
 
-**閉じたことが所見を出す契機になる。**開いている窓は途中であり、途中の窓から所見を出すと**同じ作業が複数回数えられる**。
+**Closing is the trigger for producing findings.** An open window is still in progress, and producing findings from an in-progress window **counts the same work several times**.
 
-**窓は checkout ごと・実行ごとに独立している。**同じホストで並行に開いた窓は別の窓であり、混ぜない —— このリポジトリは worktree を並行に開く運用なので、混ぜると 1 人の作業が複数人ぶんに見える。
+**Windows are independent per checkout and per run.** Windows opened in parallel on the same host are separate windows and are not mixed — this repository operates by opening worktrees in parallel, so mixing them would make one person's work look like several people's.
 
-## なぜセッションでも、コミットでも、PR でもないのか
+## Why not sessions, commits or PRs
 
-| 候補 | 母数として壊れる理由 |
+| Candidate | Why it breaks as a denominator |
 | --- | --- |
-| **セッション** | 道具の都合で切れる。回線が落ちた、窓を閉じた、再開した —— **どれも作業の切れ目ではない。**1 つの作業が 3 セッションに割れ、所見が 3 回数えられる |
-| **コミット** | 作業の**成果**の単位であって、作業の単位ではない。**詰まって何もコミットできなかった作業が母数から消える** —— それは最も所見が多い作業である |
-| **PR** | 粒度が大きすぎ、かつ**作られなかった作業が落ちる**。調査だけで終わった窓、方針を変えて捨てた窓は PR を持たない |
-| **人の申告** | 申告されなかった作業が観測から丸ごと落ちる。しかも**忙しい日ほど申告されない** |
+| **Session** | It breaks for the tool's reasons. The connection dropped, the window was closed, it was resumed — **none of these are breaks in the work.** One piece of work splits into 3 sessions, and findings are counted 3 times |
+| **Commit** | It is the unit of the work's **output**, not of the work. **Work that got stuck and could commit nothing vanishes from the denominator** — and that is the work with the most findings |
+| **PR** | Too coarse, and **work that produced none is dropped**. Windows that ended at investigation, or that were thrown away after changing direction, have no PR |
+| **Self-report** | Unreported work drops out of observation entirely. And **the busier the day, the less is reported** |
 
-**共通しているのは「落ちる側に偏りがある」ことである。**母数からこぼれるのが無作為ならばまだ推定できるが、上のどれも**所見の多い作業を優先的に落とす**。
+**What they share is that "what drops is biased".** If what spills from the denominator were random it could still be estimated, but every one of the above **preferentially drops the work with the most findings**.
 
-## 決定: 打刻が第一で、記録は補完
+## Decision: Timestamps first, records as a complement
 
-窓の中で何が起きたかは、**2 つの層**から取る。
+What happened inside a window is taken from **two layers**.
 
-- **打刻（marks）は意味を運ぶ。** 段の境界を越えた瞬間に、越えた側が刻む。**その境界は他のどこにも存在しない** —— 記録は全部のやり取りを残すが、そのやり取りがどの段のものだったかを知らない。弱点は**網羅性**で、**刻まれなければ存在しない**
-- **記録（transcript）は網羅を運ぶ。** 全部のやり取り・所要時間・失敗・中断が、誰かが残そうと思ったかに関わらず残る。弱点は**意味**で、そのやり取りが**何のためだったか**を言えない
+- **Timestamps (marks) carry meaning.** At the moment a stage boundary is crossed, the side that crossed it stamps it. **That boundary exists nowhere else** — records keep every exchange but do not know which stage an exchange belonged to. Their weakness is **coverage**: **what is not stamped does not exist**
+- **Records (transcript) carry coverage.** Every exchange, duration, failure and interruption remains whether or not anyone meant to keep it. Their weakness is **meaning**: they cannot say **what an exchange was for**
 
-**打刻を第一、記録を補完とする。**打刻が無いところは記録から導き、**導いたものだと印を付ける** —— 復元した値は持つ値打ちがあり、**復元されたものだと知る値打ちもある**。
+**Timestamps come first, records complement them.** Where there is no timestamp, it is derived from the records and **marked as derived** — a reconstructed value is worth having, and **knowing that it was reconstructed is also worth something**.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ **開いたままの窓から所見を出す。** 同じ作業が複数回数えられる（強制: `scripts/closed-loop/sent-index.test.ts`（開いたままの窓を送出の対象から外す））
-- ❌ **並行する窓を混ぜる。** 1 人の作業が複数人ぶんに見える（強制: `scripts/closed-loop/marks-store.test.ts` が作業ツリーごとの窓を別々に組み立てることを固定する。実行ごとの窓 id の採番は `.agents/closed-loop/marks.sh` にあり散文 —— **寄せられない**。hook から即答することが要件のシェルで、判定モジュールへ切り出せない）
-- ❌ **人の申告を単位にする。** 忙しい日ほど落ちる（強制: 持たない —— 採らない決定。人の申告を受け取る口を置いていないこと自体が状態で、入れる変更は機構の追加として差分に現れる）
-- ❌ **記録から導いた値を、打刻された値と同じものとして出す。** 導いたことを印として残す（[0157](0157-inspection-declaration-discipline.md)）（強制: 散文 —— **寄せられる**（打刻値と記録から導いた値を別の型にし、観測の区画へ導出の印を必須にすれば型で落とせる。規則は無い））
-- ❌ **窓の記録をリポジトリの追跡下へ置く。** 置き場は、状態を 3 つの置き場に分ける [0160](0160-agent-environment-loop.md) が持つ（強制: 散文 —— **寄せられる**（`git ls-files tmp/closed-loop .agents/private` が空であることをゲートテストで見る。規則は無い））
+- ❌ **Producing findings from a window still open.** The same work is counted several times (Enforcement: `scripts/closed-loop/sent-index.test.ts` (excludes windows still open from what is sent))
+- ❌ **Mixing parallel windows.** One person's work looks like several people's (Enforcement: `scripts/closed-loop/marks-store.test.ts` pins that windows are assembled separately per working tree. Assigning a window id per run lives in `.agents/closed-loop/marks.sh` and is Prose — **not mechanizable**. It is shell whose requirement is to answer immediately from a hook, and cannot be cut out into a judgment module)
+- ❌ **Making self-reports the unit.** The busier the day, the more drops (Enforcement: none — a decision not to adopt. Having no endpoint that receives self-reports is itself the state, and a change adding one shows up in the diff as an added mechanism)
+- ❌ **Reporting values derived from records as if they were stamped values.** Leave a mark that they were derived ([0157](0157-inspection-declaration-discipline.md)) (Enforcement: Prose — **mechanizable** (giving stamped values and values derived from records different types, and requiring a derivation mark in the observation section, would reject it by type. No rule exists))
+- ❌ **Placing window records under the repository's tracking.** Where they live is owned by [0160](0160-agent-environment-loop.md), which splits state across three places (Enforcement: Prose — **mechanizable** (check in a gate test that `git ls-files tmp/closed-loop .agents/private` is empty. No rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) — この単位を使うループ
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — 導いた値と観測した値を混ぜない
-- [0151-git-hooks.md](0151-git-hooks.md) — 打刻を刻む口の 1 つ
+- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) — the loop that uses this unit
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — not mixing derived values with observed values
+- [0151-git-hooks.md](0151-git-hooks.md) — one of the points that stamp timestamps

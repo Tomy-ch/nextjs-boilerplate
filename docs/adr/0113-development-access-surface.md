@@ -1,85 +1,85 @@
-# 開発用の口の制御面
+# Control Surface of Development Endpoints
 
-本プロジェクトでは、**開発と自動検査のためだけに開ける口**を持つ。IdP を通さずに session を発行する Route Handler と画面、開発用 IdP の認可 endpoint がそれである。契約から生成したモックでは認証を偽装できず、IdP は CI で起動しないため、E2E が「ログイン済みの状態」へ到達する手段がこの口以外に無い。
+This project has **endpoints opened only for development and automated checks**: the Route Handler and screen that issue a session without going through the IdP, and the authorization endpoint of the development IdP. Mocks generated from the contract cannot fake authentication, and the IdP is not started in CI, so E2E has no means other than these endpoints of reaching "the logged-in state".
 
-こうした口には 2 つの問いが付いて回る。**制御面をどこまで広く取るか**と、**その口をどう閉じておくか**である。本 ADR は、この 2 つを別々の軸として決める —— 制御面は到達したい状態の集合で決め、安全は口を開ける環境の判定で担保する。片方をもう片方の代わりにしない。次に同種の口(モックの制御 API、fixture を生成する口、開発専用の Route Handler)が来たとき、どちらへ倒すかの答えをここが持つ。
+Two questions always come with such endpoints: **how wide to take the control surface**, and **how to keep the endpoint closed**. This ADR decides the two as separate axes — the control surface is decided by the set of states to be reached, and safety is ensured by the judgment of the environment in which the endpoint is opened. Neither stands in for the other. When the next endpoint of the same kind arrives (a mock control API, an endpoint that generates fixtures, a development-only Route Handler), this is where the answer to which way it leans lives.
 
-どの環境で開けるかの定義は [0011](0011-no-docker.md)、環境の選択子を既定値へ落とさないことは [0030](0030-environment-variable-management.md)、session の機構そのものは [0079](0079-auth-frontend-seam.md) が持つ。本 ADR はそれらを写さず、口の側の決定だけを持つ。
+The definition of which environments may open them is owned by [0011](0011-no-docker.md), not falling back to a default for the environment selector by [0030](0030-environment-variable-management.md), and the session mechanism itself by [0079](0079-auth-frontend-seam.md). This ADR does not copy them; it holds only the decisions on the endpoint side.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **テストが到達したい状態を、実システムの都合で狭めない。** 失効したあとの画面、特権を持つ側と持たない側の見え方、特定の主体としての振る舞いは、どれも検証が到達しなければならない状態である。口が実システムのポリシーを写していると、その状態へ届く手段が消える
-- **安全の根拠を 1 か所にする。** 口ごとに「安全な範囲」を持たせると、口が増えるたびに範囲の判断が分散し、どれか 1 つの緩い判断が全体の下限になる
-- **設定の取り違えを、口の不在で受け止める。** 実行時の判定は設定を読む。設定を間違えた成果物に、そもそも口が残っていなければ、判定の正しさに依らず開かない
+- **The states tests want to reach are not narrowed by the real system's circumstances.** The screen after expiry, how things look to the privileged and the unprivileged side, and behaviour as a particular principal are all states verification must reach. If an endpoint copies the real system's policy, the means of reaching those states disappears
+- **Put the grounds for safety in one place.** If each endpoint holds its own "safe range", the judgment of the range scatters with every new endpoint, and any one loose judgment becomes the floor for the whole
+- **Absorb configuration mix-ups with the absence of the endpoint.** The runtime judgment reads configuration. If no endpoint remains in an artifact built with the wrong configuration to begin with, it does not open regardless of whether the judgment is correct
 
-## 制御面は、到達したい状態の集合で決める
+## The control surface is decided by the set of states to reach
 
-**口が受け取る指定は、テストが到達したい状態を直接表す。** 発行する session であれば、誰として入るか・役割・失効までの秒数を指定できる。
+**What an endpoint accepts directly expresses the states tests want to reach.** For issuing a session, who to enter as, the role, and the number of seconds until expiry can be specified.
 
-- **役割はここで直接与える。** 通常のログインでは役割をバックエンドから引く([0079](0079-auth-frontend-seam.md))が、この口は IdP もバックエンドの登録も経由せずに到達させるためのものである。バックエンドの登録を条件にすると、バックエンドが無い環境で特権側の画面を確かめられない
-- **失効までの秒数を短くできる。** 失効したあとの見え方を、実際の失効を待たずに踏むためである。既定値を固定すると、その状態は「待つ」以外に到達できない
-- **指定が無ければ、権限を持たない側で発行する。** 制御面が広いことと、既定が広いことは別である。何も指定しない呼び出しは最も弱い状態へ倒す
+- **The role is given directly here.** In ordinary login the role is pulled from the backend ([0079](0079-auth-frontend-seam.md)), but this endpoint exists to reach states without going through either the IdP or backend registration. Making backend registration a condition would mean privileged-side screens cannot be checked in an environment without a backend
+- **The seconds until expiry can be shortened.** This is to step on how things look after expiry without waiting for actual expiry. Fixing the default would leave "waiting" as the only way to reach that state
+- **Without a specification, it issues on the side without permission.** A wide control surface and a wide default are different things. A call specifying nothing falls to the weakest state
 
-**却下した案: 実システムのポリシーで制御面を狭める。** 「役割はバックエンドから引く」「失効は本番と同じ既定に固定する」「特権側の session は発行できない」といった狭め方は、安全に見えて、検証が到達できない状態を作るだけである。狭めたぶんだけ、その状態を確かめるための別の口か手作業が生まれ、そちらには本 ADR の担保が掛からない。安全は次節が持つ。
+**Rejected alternative: narrowing the control surface by the real system's policy.** Narrowings such as "the role is pulled from the backend", "expiry is fixed to the same default as production" or "privileged-side sessions cannot be issued" look safe but only create states verification cannot reach. For each narrowing, another endpoint or manual work arises to check that state, and this ADR's guarantee does not apply there. Safety is owned by the next section.
 
-## 安全は、口を開ける環境の判定が担う
+## Safety is borne by the judgment of the environment that opens the endpoint
 
-**危険は制御面ではなく、口を開ける環境で閉じる。** 判定の中身は 2 つで、環境(`APP_ENV` が明示され、開発専用の口を開けてよい環境であること)と宛先(要求が名乗る `Host` / `X-Forwarded-Host` が手元の名前であること)である。環境の定義は [0011](0011-no-docker.md)、選択子を既定値へ落とさないことは [0030](0030-environment-variable-management.md) が持つ。
+**The danger is closed not by the control surface but by the environment that opens the endpoint.** The judgment has two parts: the environment (`APP_ENV` is explicit and is an environment where development-only endpoints may be opened) and the destination (the `Host` / `X-Forwarded-Host` the request claims is a local name). The definition of environments is owned by [0011](0011-no-docker.md), and not falling back to a default for the selector by [0030](0030-environment-variable-management.md).
 
-- **開けてよい環境の一覧は 1 か所に置く**(`config` の `isDevelopmentOnlyEndpointOpen()`)。口が増えるたびに条件を写すと、片方だけを広げた変更が黙って通る
-- **宛先の判定は防御線ではない。** `Host` は要求側が名乗る値で偽れる。宛先が止めるのは、設定を誤ったまま公開したときに普通の利用者が普通に踏む経路であり、狙って偽る相手を止めるのは環境の側である。2 つを重ねるのは、役割が違うからであって、片方が弱いからではない
-- **宛先を名乗らない要求は閉じる。** 判定できないものを開ける側へ倒すと、条件の無い要求が最も通りやすくなる
+- **The list of environments that may open them is placed in one place** (`isDevelopmentOnlyEndpointOpen()` in `config`). Copying the condition with every new endpoint lets a change that widens only one of them through silently
+- **The destination judgment is not a line of defense.** `Host` is a value the requester claims and can be forged. What the destination stops is the path ordinary users ordinarily step on when something is published with the wrong configuration; what stops someone deliberately forging it is the environment side. The two are layered because their roles differ, not because one is weak
+- **Requests that do not state a destination are closed.** Leaning what cannot be judged toward opening makes requests without conditions the easiest to get through
 
-**却下した案: 口ごとに開閉の条件を持つ。** 「この口は `local` だけ」「あの口は接続モードが mock のとき」のように口ごとに条件を書くと、条件の数だけ緩い判断が入る余地が生まれる。接続モードで判定しないことは [0011](0011-no-docker.md) / [0030](0030-environment-variable-management.md) が既に禁じている。
+**Rejected alternative: each endpoint holds its own open/close condition.** Writing conditions per endpoint, like "this endpoint only for `local`" or "that endpoint when the connection mode is mock", creates room for a loose judgment for every condition. Judging by connection mode is already forbidden by [0011](0011-no-docker.md) / [0030](0030-environment-variable-management.md).
 
-## build から外れていることと、実行時に開かないことは別の保証である
+## Being excluded from the build and not opening at runtime are separate guarantees
 
-**開発専用の route は、開発と CI の build にしか含まれない。** `page.dev.tsx` / `route.dev.ts` を開発専用の拡張子とし、build の `pageExtensions` に含めるかどうかを、実行時の判定と**同じ 1 つの条件**で決める。
+**Development-only routes are included only in development and CI builds.** `page.dev.tsx` / `route.dev.ts` are development-only extensions, and whether the build includes them in `pageExtensions` is decided by **the same single condition** as the runtime judgment.
 
-二重にするのは、「残っていない」ことと「開かない」ことが別の保証だからである。
+The reason for doubling up is that "not remaining" and "not opening" are separate guarantees.
 
-- **build から外れていれば、成果物に面そのものが存在しない。** 実行時に環境変数を取り違えても、判定を書き間違えても、無いものは開かない。設定の取り違えは実行時の判定が読む値そのものを壊すため、判定だけに頼ると、取り違えた瞬間に担保が消える
-- **実行時に閉じていれば、口を含む成果物が別の場所で動いても開かない。** build は宛先を知らない。CI の build が手元以外へ届く経路、build 時と実行時で環境の指定が食い違う配備は、成果物の側では防げない。宛先まで見るのは実行時にしかできない
+- **If excluded from the build, the surface itself does not exist in the artifact.** Even if environment variables are mixed up at runtime or the judgment is written wrong, what does not exist does not open. A configuration mix-up breaks the very value the runtime judgment reads, so relying only on the judgment means the guarantee disappears the moment of the mix-up
+- **If closed at runtime, it does not open even when an artifact containing the endpoint runs somewhere else.** The build does not know the destination. A path by which a CI build reaches somewhere other than local, or a deployment whose environment designation differs between build time and runtime, cannot be prevented on the artifact side. Looking as far as the destination can only be done at runtime
 
-**却下した案: どちらか一方だけで足りるとする。** 実行時の判定だけなら、設定の取り違えという最も起こりやすい事故に対して担保が無い。build の除外だけなら、開発用の成果物が手元以外で動くことを止められない。片方が完全であれば他方は要らない、という前提がそもそも成り立たない。
+**Rejected alternative: deeming either one alone sufficient.** With the runtime judgment alone, there is no guarantee against the most likely accident, a configuration mix-up. With build exclusion alone, a development artifact running somewhere other than local cannot be stopped. The premise that if one side were complete the other would be unnecessary does not hold in the first place.
 
-## 判定は入口ごとに置く
+## The judgment is placed at each entry point
 
-**画面・Server Action・Route Handler は別々の入口であり、それぞれが判定を呼ぶ。** Server Action は画面を経由せずに呼べる。認可 endpoint は画面が送信先に選ぶだけで、直接叩ける。片方だけ閉じても、閉じたことにならない。
+**Screens, Server Actions and Route Handlers are separate entry points, and each calls the judgment.** A Server Action can be called without going through the screen. The authorization endpoint is merely chosen by the screen as its submission target and can be called directly. Closing only one side does not count as closing.
 
-条件は 1 か所、判定の呼び出しは入口ごと。この分担を崩さない。条件を入口へ写せば前節の「一覧は 1 か所」が壊れ、呼び出しを 1 か所に寄せれば通らない入口が生まれる。
+The condition is in one place; the call to the judgment is at each entry point. This division is not broken. Copying the condition into entry points breaks "the list is in one place" of the previous section, and gathering the calls into one place creates entry points that do not go through it.
 
-## 閉じているときは、存在を知らせない
+## When closed, do not reveal existence
 
-**HTTP の入口は 403 ではなく 404 を返す。** 画面は見つからない扱いにし、Route Handler は空の 404 を返す。存在を知らせないほうが、設定を誤ったまま公開したときの被害が小さい —— 403 は「そこに口がある」ことを教える。
+**HTTP entry points return 404, not 403.** Screens are treated as not found, and Route Handlers return an empty 404. Not revealing existence reduces the damage when something is published with the wrong configuration — 403 tells that "there is an endpoint there".
 
-Server Action は HTTP の口を持たないため 404 にできない。閉じているときは、失敗の結果として「開いていない」ことだけを返す。
+Server Actions have no HTTP endpoint, so they cannot be 404. When closed, they return only "not open" as the result of the failure.
 
-## 口が持つのは、判定と入力の検証だけ
+## The endpoint holds only the judgment and input validation
 
-**口は薄い。** 開ける環境の判定と、受け取った指定の検証だけを持ち、session の組み立ては `adapters/server` が持つ([0079](0079-auth-frontend-seam.md) / [0025](0025-app-layer-elements.md) の thin proxy)。口が組み立てまで持つと、開発用の口と本流で session の作り方が 2 つになり、片方だけ直る。
+**The endpoint is thin.** It holds only the judgment of the environment that opens it and the validation of the received specification; assembling the session is owned by `adapters/server` (the thin proxy of [0079](0079-auth-frontend-seam.md) / [0025](0025-app-layer-elements.md)). If the endpoint also held assembly, the development endpoint and the main line would have two ways of making sessions, and only one would get fixed.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 開発用の口の制御面を、実システムのポリシー(役割の出所・失効の既定・発行できる側の制限)で狭めること。安全は環境の判定が持つ（強制: `src/app/api/auth/test-session/route.dev.test.ts`（役割・失効までの秒数・既定の権限を指定して発行できること）が既存の口の制御面を狭める変更を落とす。次に足す口の制御面をどこまで取るかは散文 —— **寄せられない**。到達したい状態の集合はテストが決める判断である）
-- ❌ 口ごとに開閉の条件を持つこと。条件は `config` の 1 か所に置き、入口はそれを呼ぶ（強制: ESLint `no-restricted-syntax`（`process` の直読）が入口で環境変数から条件を組むことを落とす。config の値を入口で組み合わせて別の条件を持つことは散文 —— **寄せられない**。どの分岐が開閉の条件かは式の意味で決まる）
-- ❌ 開発専用の route を、開発専用の拡張子(`page.dev.tsx` / `route.dev.ts`)以外で置くこと。build から外れなくなる（強制: 散文 —— **寄せられる**（`isDevelopmentAccessAllowed` を import する route segment が `page.tsx` / `route.ts` の綴りであることを検出できる。規則は無い））
-- ❌ build から外れていることを理由に、入口の実行時判定を省くこと。逆も同じ —— 実行時に閉じていることを理由に build へ含めること（強制: 各入口のテスト（閉じた環境で 404 / 発行しない）が実行時判定の省略を落とす。build へ含めるかは `next.config.ts` の `pageExtensions` が同じ条件を呼ぶ形で持つが、それを外す変更を落とすものは無い —— **寄せられる**（`pageExtensions` が `isDevelopmentOnlyEndpointOpen()` で分岐していることを検査できる。規則は無い））
-- ❌ 画面だけ、または Route Handler だけに判定を置き、Server Action や認可 endpoint を素通しにすること（強制: 既存の入口ごとのテスト（Route Handler 2 本と Server Action）が閉じた場合を固定する。`page.dev.tsx` は単体テストの対象外で、新しい入口が判定を呼ぶかは閉じた場合の `it` が書かれた範囲にしか届かない —— **寄せられる**（開発用の口を名乗るモジュールが `isDevelopmentAccessAllowed` を呼ばない形を検出できる。規則は無い））
-- ❌ 閉じている口が 403 や説明付きの応答で存在を知らせること（強制: Route Handler のテストが閉じたときの 404 を固定する。画面（`page.dev.tsx` の `notFound()`）は単体テストの対象外で散文 —— **寄せられる**（閉じた環境で開発用の画面が 404 を返すことを E2E で確かめられる。規則は無い））
-- ❌ 開発用の口に session の組み立てや、実 IdP に固有の手順を持たせること([0079](0079-auth-frontend-seam.md))（強制: 散文 —— **寄せられない**。入力の検証と session の組み立ての線引きは責務の判断で、コードの形からは決まらない）
+- ❌ Narrowing the control surface of development endpoints by the real system's policy (the source of roles, the expiry default, restrictions on which side may be issued). Safety is held by the environment judgment (Enforcement: `src/app/api/auth/test-session/route.dev.test.ts` (that a session can be issued specifying the role, seconds until expiry and default permission) rejects changes narrowing the existing endpoint's control surface. How wide to take the control surface of the next endpoint added is Prose — **not mechanizable**. The set of states to reach is a judgment decided by the tests)
+- ❌ Each endpoint holding its own open/close condition. The condition is placed in one place in `config`, and entry points call it (Enforcement: ESLint `no-restricted-syntax` (direct reads of `process`) rejects assembling the condition from environment variables at an entry point. Combining config values at an entry point to hold a different condition is Prose — **not mechanizable**. Which branch is the open/close condition is decided by the meaning of the expression)
+- ❌ Placing development-only routes with anything other than the development-only extensions (`page.dev.tsx` / `route.dev.ts`). They would no longer be excluded from the build (Enforcement: Prose — **mechanizable** (route segments that import `isDevelopmentAccessAllowed` being spelled `page.tsx` / `route.ts` can be detected; no rule exists))
+- ❌ Omitting an entry point's runtime judgment on the grounds that it is excluded from the build. The reverse likewise — including it in the build on the grounds that it is closed at runtime (Enforcement: each entry point's tests (404 / no issuing in a closed environment) reject omitting the runtime judgment. Whether to include in the build is held by `pageExtensions` in `next.config.ts` calling the same condition, but nothing rejects a change that removes it — **mechanizable** (that `pageExtensions` branches on `isDevelopmentOnlyEndpointOpen()` can be checked; no rule exists))
+- ❌ Placing the judgment only on the screen, or only on the Route Handler, letting Server Actions or the authorization endpoint through (Enforcement: the existing per-entry-point tests (two Route Handlers and a Server Action) pin the closed case. `page.dev.tsx` is outside unit testing, and whether a new entry point calls the judgment is reached only within the range where an `it` for the closed case is written — **mechanizable** (a module that names itself a development endpoint and does not call `isDevelopmentAccessAllowed` can be detected; no rule exists))
+- ❌ A closed endpoint revealing its existence with 403 or an explanatory response (Enforcement: the Route Handler tests pin 404 when closed. The screen (`notFound()` in `page.dev.tsx`) is outside unit testing and is Prose — **mechanizable** (that a development screen returns 404 in a closed environment can be confirmed with E2E; no rule exists))
+- ❌ Giving development endpoints session assembly or steps specific to a real IdP ([0079](0079-auth-frontend-seam.md)) (Enforcement: Prose — **not mechanizable**. The line between input validation and session assembly is a judgment of responsibility, not determined by the shape of the code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0011-no-docker.md](0011-no-docker.md) — 開発専用の口が開く環境の定義と、判定を `APP_ENV` と宛先が持つこと
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — `APP_ENV` の指定を必須とし、既定値へ落とさないこと
-- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — session 機構(Resolver)と、役割の出所がバックエンドであること(この口が意図的に迂回する本流)
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) — Route Handler を thin proxy に保つこと
-- [0110-security-operations.md](0110-security-operations.md) / [0111-csp-security-headers.md](0111-csp-security-headers.md) — 隣接する運用と実行時の防御。本 ADR は開発用の口という 1 点を担う
-- [0090-testing-strategy.md](0090-testing-strategy.md) — この口を通って到達する状態を検証する側
-- [0056-mock-app-exclusion.md](0056-mock-app-exclusion.md) — 開発専用の口が開く build を公開しないこと
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — 手元の観測に実ブラウザの権限を要さず、この口で足りること
+- [0011-no-docker.md](0011-no-docker.md) — the definition of environments in which development-only endpoints open, and that the judgment is held by `APP_ENV` and the destination
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — making `APP_ENV` mandatory and not falling back to a default
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — the session mechanism (Resolver), and that the source of roles is the backend (the main line this endpoint deliberately bypasses)
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) — keeping Route Handlers thin proxies
+- [0110-security-operations.md](0110-security-operations.md) / [0111-csp-security-headers.md](0111-csp-security-headers.md) — the neighbouring operational and runtime defenses. This ADR bears the single point of development endpoints
+- [0090-testing-strategy.md](0090-testing-strategy.md) — the side that verifies the states reached through this endpoint
+- [0056-mock-app-exclusion.md](0056-mock-app-exclusion.md) — not publishing builds in which development-only endpoints open
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — local observation needs no real-browser privileges; this endpoint suffices

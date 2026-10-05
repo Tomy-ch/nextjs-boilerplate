@@ -1,67 +1,67 @@
-# Middleware（Proxy）方針
+# Middleware (Proxy) Policy
 
-Next.js 16 で **Middleware から Proxy へリネームされた `proxy.ts`** の **責務範囲 / runtime 方針 / 認証 hook の置き場 / 配信停止の前捌き** を定める。
+This ADR defines **the scope of responsibility / runtime policy / where the authentication hook goes / pre-processing for suspending service** of **`proxy.ts`, which Next.js 16 renamed from Middleware to Proxy**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリは **Next.js 16** を採用しており、**Middleware は Next.js 16 で「Proxy」にリネーム**された(ファイル規約 = `proxy.ts`。`middleware.ts` は deprecated。移行 codemod `middleware-to-proxy` あり)。実装前に `node_modules/next/dist/docs/` を確認した結果、以下を前提とする(AGENTS.md「Canonical Documentation」):
+This repository adopts **Next.js 16**, and **in Next.js 16 Middleware was renamed to "Proxy"** (file convention = `proxy.ts`; `middleware.ts` is deprecated; a migration codemod `middleware-to-proxy` exists). Having checked `node_modules/next/dist/docs/` before implementation, the following are taken as premises (AGENTS.md "Canonical Documentation"):
 
-- `proxy.ts` はリクエスト完了前にサーバで走り、rewrite / redirect / ヘッダ・cookie 変更 / 直接応答ができる
-- **Next.js 公式は「Proxy は last resort。他に手段がなければ使う」**と明示。**セッション管理・完全な認可には使わず**、`optimistic checks`(権限ベースのリダイレクト等)に限る
-- **遅いデータ取得に使わない**(`fetch` の cache オプションは Proxy 内で無効)。最適化時は CDN に配置されるため、共有モジュール・グローバルに依存しない
-- **既定 runtime は Node.js**(proxy.md「Runtime」節)。`runtime` セグメント設定オプションは Proxy ファイルでは**使用不可**(設定するとエラー)。つまり runtime をコード側で選択する枠はなく、実際の実行環境はデプロイ先(adapter)に依存する(旧 Middleware の「Edge 既定」は Proxy には当てはまらない)
-- **1 プロジェクト 1 `proxy.ts`**(ロジックはモジュールへ分割して import 可)
+- `proxy.ts` runs on the server before a request completes and can rewrite / redirect / change headers and cookies / respond directly
+- **The Next.js docs state explicitly that "Proxy is a last resort; use it when there is no other means"**. It is **not used for session management or full authorization**, and is limited to `optimistic checks` (permission-based redirects, etc.)
+- **Do not use it for slow data fetching** (`fetch` cache options are disabled inside Proxy). When optimized it is placed on the CDN, so it does not depend on shared modules or globals
+- **The default runtime is Node.js** (the "Runtime" section of proxy.md). The `runtime` segment config option is **not available** in the Proxy file (setting it is an error). In other words there is no slot for choosing the runtime in code, and the actual execution environment depends on the deployment target (adapter) (the old Middleware's "Edge by default" does not apply to Proxy)
+- **One `proxy.ts` per project** (the logic may be split into modules and imported)
 
-## 決定
+## Decision
 
-### 1. `proxy.ts` = 薄い境界(thin・last resort)
+### 1. `proxy.ts` = a thin boundary (thin, last resort)
 
-- **`proxy.ts` は薄い境界に限る**。用途は rewrite / redirect / ヘッダ・cookie 操作 / optimistic な権限リダイレクト。**業務ロジック・重い処理・データ取得を書かない**([0011](0011-no-docker.md) thin proxy / [0070](0070-backend-role-separation.md) と一貫。Next.js 公式の「last resort」ガイダンスとも一致)
-- **まず `proxy.ts` 以外で解けないか**を検討する(単純リダイレクトは `next.config.ts` の `redirects`、認可は各境界での検査)。Proxy は代替がない場合の最終手段
-- ファイルは **`src/proxy.ts`**(`src/app/` と同階層)。これは 11 カーネルの**外側**の起動 / 境界エントリであり(`instrumentation.ts` と同類として [0021](0021-frontend-responsibility.md) の起動 / ビルド境界の例外に準ずる)、`app`(route / page)ではない
+- **`proxy.ts` is limited to a thin boundary**. Its uses are rewrite / redirect / header and cookie operations / optimistic permission redirects. **Do not write business logic, heavy processing or data fetching in it** (consistent with [0011](0011-no-docker.md) thin proxy / [0070](0070-backend-role-separation.md); also matches the Next.js "last resort" guidance)
+- **First consider whether it can be solved outside `proxy.ts`** (`redirects` in `next.config.ts` for simple redirects, checks at each boundary for authorization). Proxy is the last resort when there is no alternative
+- The file is **`src/proxy.ts`** (at the same level as `src/app/`). It is a startup / boundary entry **outside** the 11 kernels (in the same category as `instrumentation.ts`, following the startup / build boundary exception of [0021](0021-frontend-responsibility.md)), not `app` (route / page)
 
-### 2. Runtime 方針(Node.js 既定・Edge 互換維持)
+### 2. Runtime policy (Node.js by default, Edge compatibility kept)
 
-- **Next.js 16 の Proxy は既定で Node.js runtime** であり、`runtime` セグメント設定は Proxy ファイルでは使用できない(設定するとエラー)。runtime はコードで選択する対象ではなく、実際の実行環境はデプロイ先(adapter)に依存する。本リポジトリは特定のデプロイ先・runtime 前提を強制しない([0011](0011-no-docker.md))
-- ただし Proxy は最適化されたデプロイでは **CDN(Edge 相当)に配置され得る**ため、`proxy.ts` のコードは **Edge Runtime 互換(Node API・共有グローバル非依存)を保つ**ことを既定とする。**`proxy.ts` から辿れる import のグラフは Node API と `dotenv` を含まない。** config を参照する場合、辿れる config は `environment.ts` → `application-environment.ts` で止まり、ENV ファイルを読むモジュール(`load-environment.ts`)へは届かない。ENV ファイルの読み込みは起動 / ビルド境界が先に済ませている([0030](0030-environment-variable-management.md))。config は import 境界に従い、Proxy でも [0030](0030-environment-variable-management.md) の client/server 分割・不変 Config を守る
+- **The Next.js 16 Proxy runs on the Node.js runtime by default**, and the `runtime` segment config is not available in the Proxy file (setting it is an error). The runtime is not something chosen in code; the actual execution environment depends on the deployment target (adapter). This repository does not enforce a particular deployment target or runtime premise ([0011](0011-no-docker.md))
+- However, in optimized deployments Proxy **may be placed on the CDN (Edge-equivalent)**, so the default is that `proxy.ts` code **stays Edge Runtime compatible (independent of Node APIs and shared globals)**. **The import graph reachable from `proxy.ts` contains no Node APIs and no `dotenv`.** When config is referenced, the reachable config stops at `environment.ts` → `application-environment.ts` and does not reach the module that reads ENV files (`load-environment.ts`). Reading ENV files has already been done by the startup / build boundary ([0030](0030-environment-variable-management.md)). Config follows the import boundaries, and Proxy too keeps [0030](0030-environment-variable-management.md)'s client/server split and immutable Config
 
-### 3. 認証 hook の置き場 = 用途依存
+### 3. Where the authentication hook goes = use-case dependent
 
-- **認証・セッションの具体モデルは用途依存**([0070](0070-backend-role-separation.md)。Next.js 公式も「Proxy をセッション管理・認可に使うな」と明示)。本リポジトリは `proxy.ts` に特定の認証実装を組み込まない
-- 認証を導入する場合、`proxy.ts` で行ってよいのは **optimistic なリダイレクト**(未ログインらしきリクエストのリダイレクト等)までとし、**確定的な認可はデータ境界(`adapters` / Route Handler / Server Action)** で行う([0070](0070-backend-role-separation.md) / [0071](0071-bff-api-integration.md))
+- **The concrete model of authentication and sessions is use-case dependent** ([0070](0070-backend-role-separation.md); the Next.js docs also state explicitly "do not use Proxy for session management or authorization"). This repository builds no particular authentication implementation into `proxy.ts`
+- When authentication is introduced, what `proxy.ts` may do stops at **optimistic redirects** (redirecting requests that look unauthenticated, etc.), and **definitive authorization is done at the data boundary (`adapters` / Route Handler / Server Action)** ([0070](0070-backend-role-separation.md) / [0071](0071-bff-api-integration.md))
 
-### 4. 検証の割り(関数本体 = unit / matcher の選別 = e2e)
+### 4. Division of verification (function body = unit / matcher selection = e2e)
 
-- **`proxy()` の本体は `unit`**。分岐・redirect 先・`returnUrl` の組み立ては、関数として呼べば行使できる([0090](0090-testing-strategy.md))
-- **`export const config` の `matcher` の選び足りなさは `e2e` が負う**。`matcher` は Next.js が経路を選ぶ前に読む宣言であり、`proxy()` を直接呼ぶ経路を通らない。守るべき接頭辞が選別から漏れれば前捌きごと素通しになり、それは経路を開けば応答に出る
-- **選び過ぎは、どのテストも観測できない**。除外している接頭辞を選別へ含めても、`proxy()` はその経路に役割を要求せずそのまま通すため、応答は変わらない。現れるのは静的資産 1 件ごとの費用としてだけである。ここを守るのは宣言の読み合わせであり、テストではない
+- **The body of `proxy()` is `unit`**. Branching, redirect targets and the assembly of `returnUrl` can be exercised by calling it as a function ([0090](0090-testing-strategy.md))
+- **Under-selection by the `matcher` of `export const config` is borne by `e2e`**. `matcher` is a declaration Next.js reads before it selects a route, and it does not pass through the path that calls `proxy()` directly. If a prefix that must be protected slips out of the selection, the pre-processing is bypassed wholesale, and that shows up in the response when the route is opened
+- **Over-selection cannot be observed by any test**. Even if an excluded prefix is included in the selection, `proxy()` requires no role for that route and lets it through, so the response does not change. It appears only as a cost per static asset. What guards this is reading the declaration against each other, not a test
 
-### 5. 配信の停止は `proxy.ts` の前捌きで行い、停止画面の応答は 200 とする
+### 5. Suspend service in `proxy.ts` pre-processing; the suspension screen responds with 200
 
-- 配信を止めているあいだ、読み取り(GET / HEAD)は停止画面へ **rewrite で差し替え**、それ以外の要求は proxy 自身が **503** で断る。URL は動かさない —— 復帰後に同じ URL を開けば元の画面へ戻る。停止の判定は認可より先に置く。止めるのは全ルートに対する 1 つの判断であり、経路によって見え方が変わってはならない
-- **停止画面を描く応答は 200 である。** rewrite に載せた status は読まれない。これは「503 が要らない」という判断ではなく、**表示層で 503 を返す手段が無い**ということである。proxy が本体ごと HTML を組み立てれば 503 を返せるが、その画面はデザインシステムに乗らない —— 状態のために画面を捨てない。止めていることを機械へ伝えたい配備では、**配信面(CDN / ロードバランサ)が前に立つ**([0011](0011-no-docker.md) の役割分担)。そこで止めれば Next.js まで届かないため、この機構と競合しない
-- **`Retry-After` は付けない**(返せる場合でも)。終了の予定を供給する口が無く、根拠の無い値を載せることになる
+- While service is suspended, reads (GET / HEAD) are **replaced with the suspension screen by rewrite**, and proxy itself refuses other requests with **503**. The URL does not move — opening the same URL after recovery returns to the original screen. The suspension check is placed before authorization. Suspending is a single decision over every route, and how it looks must not vary by route
+- **The response that renders the suspension screen is 200.** A status put on a rewrite is not read. This is not a judgment that "503 is unnecessary" but that **the presentation layer has no means to return 503**. If proxy assembled the whole HTML itself it could return 503, but that screen would not ride on the design system — a screen is not thrown away for the sake of a status. In deployments that want to tell machines the service is suspended, **the serving surface (CDN / load balancer) stands in front** (the division of roles in [0011](0011-no-docker.md)). Suspending there means requests never reach Next.js, so it does not conflict with this mechanism
+- **Do not add `Retry-After`** (even when it could be returned). There is no endpoint that supplies the planned end time, so it would carry a baseless value
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `ENTRY_POINTS` の `proxy`）が取得の口（`adapters`）と feature の import を落とす。直の `fetch` と、書かれた処理が業務ロジックか重いかは散文 —— **寄せられない**。処理の意味と重さはコードの形から決まらない）
-- ❌ `proxy.ts` をセッション管理・確定的な認可の主機構にすること(optimistic チェックのみ。認可はデータ境界)（強制: 散文 —— **寄せられない**。判定が optimistic か確定かは、それを何の根拠に使うかの意味で決まる）
-- ❌ deprecated な `middleware.ts` を新規に作ること(Next.js 16 は `proxy.ts`)（強制: ESLint `boundaries/no-unknown-files`（`src/middleware.ts` はどの要素にも属さないため落ちる））
-- ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること、および `proxy.ts` から辿れる import のグラフに Node API や `dotenv` を含めること(CDN 配置され得る。Edge 互換を保つ)（強制: `scripts/proxy-edge.gate.test.ts` が `proxy.ts` から辿れる import のグラフに Node API と `dotenv` が現れないことを見る。ESLint `no-restricted-syntax` / `no-restricted-imports`（`NODE_RUNTIME_ACCESS` の外で `process` と `node:*` を落とす）が個々のファイルの側を落とす。共有モジュール・グローバル状態への依存は散文 —— **寄せられない**。共有されるかは実行時の配置で決まる）
-- ❌ `proxy.ts` に `runtime` セグメント設定を書くこと(Next.js 16 の Proxy では使用不可・エラーになる)
-- ❌ 特定の認証実装・デプロイ先 runtime 前提を本リポジトリで強制すること(認証は用途依存。runtime はデプロイ先依存)（強制: 持たない —— 採らない決定。特定の認証実装と runtime 前提を `proxy.ts` に組み込んでいないこと自体が状態である）
-- ❌ 停止画面のために proxy が本体の HTML を組み立てること、および根拠の無い `Retry-After` を付けること(§5)（強制: `src/proxy.test.ts` が停止中の読み取りを rewrite で差し替えることを固定する。`Retry-After` を付けないことは散文 —— **寄せられる**（503 の応答に `Retry-After` が無いことを同じテストで確かめる形。検査は無い））
+- ❌ Writing business logic, heavy processing or data fetching in `proxy.ts` (a thin boundary; last resort) (Enforcement: ESLint `boundaries/dependencies` (`proxy` in `ENTRY_POINTS` of `architecture.ts`) rejects imports of fetch endpoints (`adapters`) and features. A direct `fetch`, and whether written processing is business logic or heavy, are Prose — **not mechanizable**. The meaning and weight of processing are not decided by the shape of the code)
+- ❌ Making `proxy.ts` the main mechanism of session management or definitive authorization (optimistic checks only; authorization at the data boundary) (Enforcement: Prose — **not mechanizable**. Whether a check is optimistic or definitive is decided by the meaning of what it is used as grounds for)
+- ❌ Newly creating the deprecated `middleware.ts` (Next.js 16 uses `proxy.ts`) (Enforcement: ESLint `boundaries/no-unknown-files` (`src/middleware.ts` belongs to no element, so it fails))
+- ❌ Depending on shared modules, global state or Node APIs in Proxy, and including Node APIs or `dotenv` in the import graph reachable from `proxy.ts` (it may be placed on the CDN; keep Edge compatibility) (Enforcement: `scripts/proxy-edge.gate.test.ts` checks that no Node API and no `dotenv` appear in the import graph reachable from `proxy.ts`. ESLint `no-restricted-syntax` / `no-restricted-imports` (rejecting `process` and `node:*` outside `NODE_RUNTIME_ACCESS`) rejects the individual-file side. Dependence on shared modules and global state is Prose — **not mechanizable**. Whether something is shared is decided by runtime placement)
+- ❌ Writing the `runtime` segment config in `proxy.ts` (not available in the Next.js 16 Proxy; it is an error)
+- ❌ Enforcing a particular authentication implementation or deployment-target runtime premise in this repository (authentication is use-case dependent; the runtime depends on the deployment target) (Enforcement: none — a decision not to adopt. Not having a particular authentication implementation or runtime premise built into `proxy.ts` is itself the state)
+- ❌ Having proxy assemble the core's HTML for the suspension screen, and adding a baseless `Retry-After` (§5) (Enforcement: `src/proxy.test.ts` pins that reads during suspension are replaced by rewrite. Not adding `Retry-After` is Prose — **mechanizable** (the form where the same test checks that a 503 response has no `Retry-After`; no check exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / 認証は用途依存 / 確定的認可はデータ境界
-- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — 前捌きは防御線ではない(確定認可の側が持つ)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router / driving adapter 原則
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — proxy から辿れる config の範囲(`environment.ts` → `application-environment.ts`。本 ADR との交点)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 起動 / 境界エントリ(11 カーネル外)としての `proxy.ts`
-- [0011-no-docker.md](0011-no-docker.md) — 配信面(CDN / ロードバランサ)との役割分担(停止を機械へ伝える側)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) — ロケール検出の seam(採用時、Proxy を使う場合)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / authentication is use-case dependent / definitive authorization at the data boundary
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — pre-processing is not a line of defense (held by the definitive-authorization side)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router / the driving-adapter principle
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — the range of config reachable from proxy (`environment.ts` → `application-environment.ts`; the intersection with this ADR)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `proxy.ts` as a startup / boundary entry (outside the 11 kernels)
+- [0011-no-docker.md](0011-no-docker.md) — division of roles with the serving surface (CDN / load balancer) (the side that tells machines about the suspension)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) — the locale-detection seam (if adopted, when Proxy is used)

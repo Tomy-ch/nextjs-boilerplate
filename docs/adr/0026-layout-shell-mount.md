@@ -1,94 +1,94 @@
-# layout の横断 UI / Provider mount(app シェル合成)
+# Mounting Cross-Cutting UI / Providers in layout (App Shell Composition)
 
-`<Toaster/>`・グローバル nav / footer・各 Provider(テーマ / capabilities / ポリシー)を **root layout に mount する経路**を定める。[0025](0025-app-layer-elements.md) の `app/route-segment` は import 先が `features` のみで、[0022](0022-capabilities-kernel.md) の Provider mount 例外は `capabilities` 限定であるため、それだけでは横断 UI シェルと Provider を layout に置けない。
+This ADR sets **the route by which** `<Toaster/>`, the global nav / footer and the various Providers (theme / capabilities / policy) **are mounted in the root layout**. The import target of [0025](0025-app-layer-elements.md)'s `app/route-segment` is `features` only, and [0022](0022-capabilities-kernel.md)'s Provider mount exception is limited to `capabilities`, so those alone do not allow placing the cross-cutting UI shell and Providers in a layout.
 
-本 ADR は **layout の mount 例外を一般化**し、`layout` と `page` を区別してこれを解く(新カーネルは要らない)。
+This ADR resolves this by **generalizing the layout's mount exception** and distinguishing `layout` from `page` (no new kernel is needed).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-トーストの queue 状態と `<Toaster/>` UI は「UI 状態(業務状態でない)」なので `components` に置ける([0022](0022-capabilities-kernel.md) の「UI 密着は component」原則)。しかしその `<Toaster/>` やレイアウトシェル(nav / footer)・各 Provider を **root `layout.tsx` に mount する経路**は、`app → features のみ`のマトリクスと capabilities 限定の mount 例外の下では存在しない。
+The toast queue state and the `<Toaster/>` UI are "UI state (not business state)", so they can be placed in `components` ([0022](0022-capabilities-kernel.md)'s principle "what is tightly bound to UI belongs with the component"). But **the route for mounting** that `<Toaster/>`, the layout shell (nav / footer) and the Providers **in the root `layout.tsx`** does not exist under an `app → features only` matrix and a capabilities-only mount exception.
 
-## 決定: layout の mount 例外を一般化 + layout / page を区別
+## Decision: Generalize the layout Mount Exception + Distinguish layout / page
 
-`app/route-segment`([0025](0025-app-layer-elements.md))のうち **`layout.tsx`(特に root)** は、横断 UI シェルと Provider を **薄く mount** してよい:
+Among `app/route-segment` ([0025](0025-app-layer-elements.md)), **`layout.tsx` (especially the root)** may **thinly mount** the cross-cutting UI shell and Providers:
 
-- 横断 UI シェル(nav / footer / `<Toaster/>`)を **`components`** から
-- Provider を `components` / `capabilities`([0022](0022-capabilities-kernel.md))/ ポリシー seam([0031](0031-policy-state-supply.md))から
+- The cross-cutting UI shell (nav / footer / `<Toaster/>`) from **`components`**
+- Providers from `components` / `capabilities` ([0022](0022-capabilities-kernel.md)) / policy seams ([0031](0031-policy-state-supply.md))
 
-制約 = **配置のみ**。`<ThemeProvider><Toaster/>{children}</ThemeProvider>` の**配置は薄い mount(可)**、layout で hook を呼びデータを組むのは**ロジック(不可 = feature の仕事)**。
+Constraint = **placement only**. **Placing** `<ThemeProvider><Toaster/>{children}</ThemeProvider>` **is a thin mount (allowed)**; calling hooks and assembling data in a layout is **logic (not allowed = the feature's job)**.
 
-- **`page.tsx` は `features` のみ**(不変)
-- **殻の header の高さは測らず、定数として押し付ける**(`ADMIN_SHELL_HEADER_HEIGHT`)。**撤回条件は、header の高さが中身で変わる形になったとき** —— 導線が折り返す、行が可変になる等で「決められる量」でなくなったとき。それまでは押し付けている限り書き写した値と描画がずれず、測る形は SSR と初回描画のあいだ 0 を配るため、知り得る量を知るまで間違っている仕組みに置き換えることになる。**「同じ画面で帯の高さは測っているのに不揃いだ」ことは条件にならない** —— 帯は中身の量で折り返すので測る以外に知る方法が無く、種類の違う量である
-- 根拠: root layout は「どの feature にも属さない **app シェル**(html / body・グローバル Provider・nav / footer / toaster)の合成点」であり、`page.tsx`(= 画面 = 1 feature)と性質が違う
-- **root layout は画面本体(`children`)を、自分が描く 1 要素で包む。** hydration は `<Suspense>` 境界ごとに分かれて進み、先に hydrate された島の effect が、まだ hydrate されていない側の DOM を React の外から書き換えると(focus の閉じ込めや背面の inert 化を行うライブラリはこれをする)、後から来た React が食い違いとして報告する。書き換えの相手を root layout が描く要素にしておけば、その要素は境界の外にあって最初の commit で hydrate されるため、島がいつ動いても相手は既に hydrate 済みである。「相手の側から hydrate されたと言わせる」形は採らない —— 書き換える主体がライブラリのとき、その合図を出す口が無い。時計(`setTimeout` / `requestAnimationFrame` 等)で待つ形も採らない(外れる理由の実測は [docs/design/rendering.md](../design/rendering.md))
+- **`page.tsx` is `features` only** (unchanged)
+- **The shell header's height is not measured but imposed as a constant** (`ADMIN_SHELL_HEADER_HEIGHT`). **Reversal condition: the header's height comes to vary with its contents** — when it stops being "a quantity that can be decided", because navigation wraps or rows become variable and so on. Until then, as long as it is imposed, the transcribed value and the rendering do not drift, and a measuring shape would hand out 0 between SSR and the first render, replacing it with a mechanism that is wrong until it learns a quantity it could know. **"On the same screen the band's height is measured, yet the header's is not, which is inconsistent" is not the condition** — the band wraps according to the amount of its contents, so there is no way to know it other than measuring; it is a different kind of quantity
+- Basis: the root layout is "the composition point of the **app shell** that belongs to no feature (html / body, global Providers, nav / footer / toaster)", and differs in nature from `page.tsx` (= a screen = one feature)
+- **The root layout wraps the screen body (`children`) in one element it renders itself.** Hydration proceeds separately per `<Suspense>` boundary, and when the effect of an island hydrated earlier rewrites, from outside React, the DOM of a side not yet hydrated (libraries that trap focus or make the background inert do this), React arriving later reports it as a mismatch. If the target of the rewrite is an element the root layout renders, that element is outside the boundaries and hydrated in the first commit, so whenever the island runs, its target is already hydrated. The shape of "having the target side announce that it has been hydrated" is not adopted — when the rewriting party is a library, there is no channel for it to emit that signal. Waiting on a clock (`setTimeout` / `requestAnimationFrame`, etc.) is not adopted either (measurements of why that misses are in [docs/design/rendering.md](../design/rendering.md))
 
-### 横断 UI 状態の帰属(mount と対で確定)
+### Where Cross-Cutting UI State Belongs (Settled Together with the Mount)
 
-- **トースト queue** → `components`(UI 状態・Provider + `useToast()`)。feature は `features → components`(既存許可)で `useToast().show()` を呼ぶ
-- **テーマ** → `capabilities` / `components` の Provider
+- **The toast queue** → `components` (UI state, Provider + `useToast()`). Features call `useToast().show()` through `features → components` (already allowed)
+- **Theme** → a Provider in `capabilities` / `components`
 
-### route group は shell の単位であり、client 状態の境界でもある
+### A route group is the unit of the shell, and also the boundary of client state
 
-route group を分けると器が分かれる。**その境界を跨ぐ遷移は、共有していない layout を unmount する**
-(client-side transition が保つのは shared layout だけである)。したがってその layout へ mount した
-Provider が持つ状態は、境界の向こうへ持ち越されない。Cache Components([0041](0041-cache-components-decision.md))
-が遷移後も前の route の木を保つことがあるのは router 側の最適化であって、状態が境界を跨いで残る保証
-ではない。設計はそれに依存しない。
+Splitting route groups splits layout shells. **A transition crossing that boundary unmounts the layouts that are not shared**
+(what a client-side transition keeps is only the shared layout). So the state held by a Provider mounted in that layout
+is not carried across the boundary. That Cache Components ([0041](0041-cache-components-decision.md))
+sometimes keeps the previous route's tree after a transition is an optimization on the router side, not a guarantee that state survives
+across the boundary. The design does not depend on it.
 
-**これは欠陥ではなく、route group をジャーニーの単位として使うことの裏返しである。** あるジャーニー
-の内側でしか意味を持たない状態は、そのジャーニーを離れた時点で失われてよい。器を分ける理由は
-**見せたい姿の違いでも、描く時点の違いでもよい**([0040](0040-routing-rendering-strategy.md))——
-どちらで分けても、境界がジャーニーの境界になることは変わらない。
+**This is not a defect but the flip side of using route groups as the unit of a journey.** State that only means something
+inside a journey may be lost once that journey is left. The reason for splitting layout shells may be
+**either a difference in how things should look or a difference in when they are rendered** ([0040](0040-routing-rendering-strategy.md)) —
+whichever it is split by, the boundary still becomes the boundary of a journey.
 
-- **見せたい姿が違う**とは、見せる相手と導線が違うことである。利用者向けと管理向けのように相手が
-  違えば shell そのものを分け(`AppShell` / `AdminShell`)、1 枚の shell に分岐で抱えない。抱えると、
-  どの画面でどの導線が出るかを shell を読まないと判断できなくなる
-- **描く時点が違う**とは、配下を組み立て時に固めたいことである。固めるには、器がバックエンドにも
-  cookie にも触れないところまで下がるしかない([0040](0040-routing-rendering-strategy.md))。器が
-  request 時の取得を要るなら、固めたい画面をその器の外へ出す
+- **A difference in how things should look** means the audience and the navigation differ. When the audience differs, such as users versus
+  administrators, split the shell itself (`AppShell` / `AdminShell`) rather than holding both in one shell with branches. Holding them makes it
+  impossible to tell which navigation appears on which screen without reading the shell
+- **A difference in when they are rendered** means wanting to fix what is underneath at build time. To fix it, the layout shell must drop down to where it touches neither the backend
+  nor cookies ([0040](0040-routing-rendering-strategy.md)). If the layout shell
+  needs fetching at request time, move the screen to be fixed outside that layout shell
 
-したがって:
+Therefore:
 
-- ある group の `layout.tsx` へ mount してよいのは、**そのジャーニーの内側で閉じる状態**だけである
-- 状態が境界を跨いで生き残る必要があるなら、**跨ぐこと自体が同じジャーニーの一部**である。その場合は
-  2 つを親の route group でまとめ、親の `layout.tsx` へ Provider を置く。root layout へ上げるのは
-  最後の手段で、1 つのジャーニーで閉じる状態をグローバルへ持ち上げることになる(下記「禁止事項」)
-- **どちらを選んだかは、その器の仕様書に書く。** 失われることを受け入れたのか、跨ぐ必要があると
-  判断したのかは成果物から読めない
+- What may be mounted in a group's `layout.tsx` is only **state that closes within that journey**
+- If state needs to survive across a boundary, **the crossing itself is part of the same journey**. In that case,
+  gather the two under a parent route group and put the Provider in the parent's `layout.tsx`. Raising it to the root layout is
+  the last resort; it lifts state that closes within one journey to global (see "Prohibitions" below)
+- **Which one was chosen is written in that layout shell's specification.** Whether losing it was accepted, or crossing was
+  judged necessary, cannot be read from the deliverable
 
-### パンくずを置く画面(器ではなく画面が持つ)
+### Screens that place breadcrumbs (the screen owns them, not the layout shell)
 
-パンくずは**器が全画面へ一律に置くものではない**。置くのは次の条件を満たす画面だけである。
+Breadcrumbs are **not something a layout shell places uniformly on every screen**. Only screens that meet the following condition place them.
 
-- **global nav から 1 手で戻れない祖先を持つ**(= 階層が 2 段以上)
+- **They have an ancestor that cannot be reached in one step from the global nav** (= the hierarchy is two or more levels)
 
-したがって根の画面、nav が直接指している画面、および**線形フロー**(入力 → 確認 → 完了のように段を順に進み、戻ることを想定しない流れ)には置かない。前 2 つは nav と同じ導線を二重に置くだけであり、線形フローでは「戻れる場所」を示すことが離脱の導線になる。段の進捗は `Stepper` が持つ。
+Therefore they are not placed on root screens, on screens the nav points at directly, or in **linear flows** (flows that advance through steps in order and do not expect going back, such as input → confirmation → completion). The first two would merely duplicate the nav's navigation, and in a linear flow showing "places you can go back to" becomes a path for abandoning. Step progress is held by `Stepper`.
 
-- **到達経路が複数ある画面では、辿った経路ではなくサイト構造上の階層を示す**(一覧から入っても絞り込みから入っても、同じ `トップ > 一覧 > 1 件`)
-- **中身の持ち主は画面**である。どの器(`AppShell` / `AdminShell` ほか全ての shell)もパンくずの中身を持たない。どの階層を示すかは画面が持っている値(1 件の名前など)に依存し、器が知ると画面ごとの分岐を器が抱える
-- **器が受ける口は、画面と同じ形の並行 route(`@breadcrumb` 等)が埋める slot に限って許す。** 位置は器が持ち、中身はその並行 route が画面ごとに組むので、持ち主は画面のまま変わらない。器が自分で中身を組む口(階層の配列や現在地を器が受け取って描く形)は持たない
+- **On a screen with multiple ways to reach it, show the hierarchy of the site structure, not the path taken** (whether entered from a list or from a filter, the same `トップ > 一覧 > 1 件`)
+- **The owner of the contents is the screen.** No layout shell (`AppShell` / `AdminShell` or any other shell) holds breadcrumb contents. Which hierarchy to show depends on values the screen has (the name of an item, etc.), and if the layout shell knew it, the layout shell would hold per-screen branches
+- **The only input a layout shell may receive is a slot filled by a parallel route of the same shape as the screen (`@breadcrumb`, etc.).** The layout shell holds the position, and the parallel route assembles the contents per screen, so the owner remains the screen. The layout shell does not hold an input for assembling the contents itself (a shape in which the layout shell receives an array of the hierarchy or the current location and renders it)
 
-パンくずは WCAG の AA 要件ではない(SC 2.4.8 Location は AAA。[0100](0100-accessibility-target.md))。したがって上記は a11y 要件の充足ではなく、**情報構造を一貫させるための規約**である。
+Breadcrumbs are not a WCAG AA requirement (SC 2.4.8 Location is AAA; [0100](0100-accessibility-target.md)). So the above is not fulfilling an a11y requirement but **a convention for keeping the information structure consistent**.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `page.tsx` が横断 UI / Provider を直接 mount すること(mount 例外は `layout.tsx` 限定)（強制: 散文 —— **寄せられる**（`src/app/**/page.tsx` を `APP_ELEMENTS` の category として宣言し、`components` / `capabilities` / `stores` を `forbidden` に入れる形。規則は無い））
-- ❌ `layout.tsx` で hook 呼び + データ配線を行うこと(mount = 配置のみ。合成は feature)（強制: 散文 —— **一部寄せられる**。`layout.tsx` での hook 呼び出しは `use` で始まる呼び出しとして落とせるが規則は無い。データ配線は取得の使い方で決まり、import の集合では表せない）
-- ❌ 器(どの shell も)がパンくずの中身を持つこと、および階層が 1 段の画面へパンくずを置くこと。画面と同じ形の並行 route が埋める slot を器が受けるのは中身を持つことにあたらない（強制: 散文 —— **寄せられない**。器の口が並行 route の slot を受けるだけか中身を組むかは、props の型ではなく渡し方で決まる。画面の階層が 1 段かは global nav との関係で決まり、コードの形からは決まらない）
-- ❌ 見せる相手が違う面を 1 枚の shell に分岐で抱えること(shell を分ける)（強制: 散文 —— **寄せられない**。見せる相手が違うかは画面の意味で決まり、shell 内の分岐の形からは決まらない）
-- ❌ 本来ローカルで足りる一時的な UI 状態(単発トーストの表示フラグ等)を、shell マウント層でグローバル状態として抱え込むこと。横断的に共有すべき UI 状態は [0060](0060-state-management.md) が採用した `stores`(Zustand)へ置く（強制: 散文 —— **寄せられない**。状態がローカルで足りるかは使われ方の判断で、コードの形からは決まらない）
+- ❌ `page.tsx` directly mounting cross-cutting UI / Providers (the mount exception is limited to `layout.tsx`) (Enforcement: Prose — **mechanizable** (declare `src/app/**/page.tsx` as a category of `APP_ELEMENTS` and put `components` / `capabilities` / `stores` in `forbidden`. No rule exists))
+- ❌ Calling hooks + wiring data in `layout.tsx` (mount = placement only; the feature does composition) (Enforcement: Prose — **partly mechanizable**. Hook calls in `layout.tsx` could be caught as calls starting with `use`, but no rule exists. Data wiring is decided by how fetching is used and cannot be expressed as a set of imports)
+- ❌ A layout shell (any shell) holding breadcrumb contents, and placing breadcrumbs on a screen whose hierarchy is one level. A layout shell receiving a slot filled by a parallel route of the same shape as the screen does not count as holding contents (Enforcement: Prose — **not mechanizable**. Whether a layout shell's input only receives a parallel route's slot or assembles the contents is decided by how it is passed, not by the props' type. Whether a screen's hierarchy is one level is decided by its relation to the global nav and not by the shape of the code)
+- ❌ Holding surfaces for different audiences in one shell with branches (split the shell) (Enforcement: Prose — **not mechanizable**. Whether the audiences differ is decided by the meaning of the screens, not by the shape of the branches inside the shell)
+- ❌ Holding temporary UI state that would be fine locally (a display flag for a one-off toast, etc.) as global state in the shell mount layer. UI state that should be shared across features goes in `stores` (Zustand), which [0060](0060-state-management.md) adopted (Enforcement: Prose — **not mechanizable**. Whether state is fine locally is a judgment about how it is used and is not decided by the shape of the code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app/route-segment`(layout / page。本 ADR が layout の mount を細分)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — Provider mount 例外(本 ADR が capabilities 限定から一般化)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 依存マトリクス(`app/route-segment` 行の layout mount 例外)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — ポリシー Provider(反応的供給で Provider を要する形を採るときに layout mount)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — 描画モードは route 全体で決まる(器を分ける判断の相方)
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — 遷移意味論の変更(状態の持ち越しを設計が当てにしない相手)
-- [0050-styling-strategy.md](0050-styling-strategy.md) — テーマ / ダークモード(Provider mount 対象)
-- [0080-error-handling.md](0080-error-handling.md) / [0052-ui-component-policy.md](0052-ui-component-policy.md) — トースト UI の帰属先
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) — `app/route-segment` (layout / page; this ADR subdivides the layout mount)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the Provider mount exception (this ADR generalizes it from capabilities only)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the dependency matrix (the layout mount exception in the `app/route-segment` row)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — policy Providers (layout mount when adopting a shape that needs a Provider for reactive supply)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the rendering mode is decided for the whole route (the counterpart of the decision to split layout shells)
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — the change in transition semantics (what the design does not rely on for carrying state over)
+- [0050-styling-strategy.md](0050-styling-strategy.md) — theme / dark mode (a target of Provider mounts)
+- [0080-error-handling.md](0080-error-handling.md) / [0052-ui-component-policy.md](0052-ui-component-policy.md) — where the toast UI belongs

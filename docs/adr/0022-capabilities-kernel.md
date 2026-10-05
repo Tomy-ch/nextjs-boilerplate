@@ -1,102 +1,102 @@
-# `capabilities` カーネル(横断 client hook)
+# The `capabilities` Kernel (Cross-Cutting Client Hooks)
 
-[0020](0020-adopted-architecture.md) の **機能スライス × 表示層カーネル** アーキテクチャにおけるカーネル **`capabilities`** について、その **責務 / 依存 / `"use client"` 不変条件 / 合成方針 / 移植性** を定める。
+For the kernel **`capabilities`** in [0020](0020-adopted-architecture.md)'s **feature slices × presentation-layer kernels** architecture, this ADR sets its **responsibilities / dependencies / `"use client"` invariant / composition policy / portability**.
 
-[0021](0021-frontend-responsibility.md) が全カーネルの **責務マトリクス・命名規律・昇格ルールの SSOT** であるのに対し、本 ADR は `capabilities` カーネルの **中身** を定める。これは「実質のあるカーネルは自前 ADR を持つ」という定石の踏襲である(`config` → [0030](0030-environment-variable-management.md) / `errors` → [0080](0080-error-handling.md) / `logging`・`observability` → [0081](0081-observability-logging.md) / `adapters` の中身 → [0071](0071-bff-api-integration.md))。軽量な `model` / `components` が 0021 内で足りるのに対し、`capabilities` は中身が厚い(責務 + RSC 不変条件 + 合成方針 + 移植性)ため独立させる。
+Where [0021](0021-frontend-responsibility.md) is the **SSOT for the responsibility matrix, the naming discipline and the promotion rule** across all kernels, this ADR sets the **contents** of the `capabilities` kernel. This follows the established practice that "a kernel with real substance has its own ADR" (`config` → [0030](0030-environment-variable-management.md) / `errors` → [0080](0080-error-handling.md) / `logging`, `observability` → [0081](0081-observability-logging.md) / the contents of `adapters` → [0071](0071-bff-api-integration.md)). The lightweight `model` / `components` are covered within 0021, whereas `capabilities` has thick contents (responsibilities + the RSC invariant + composition policy + portability), so it is made independent.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0021](0021-frontend-responsibility.md) の**昇格ルール**(feature を跨ぐ横断要素を `model` / `components` / `adapters` へ昇格させる)には、それだけでは **reactive な横断 client hook の出口が無い**。`useOnlineStatus` のような「フロント領域の横断 client hook(拡張点 / seam)」は、表示ロジックでも UI でも外部接続でもなく、複数 feature から使うときの昇格先を要する。
+[0021](0021-frontend-responsibility.md)'s **promotion rule** (promote cross-cutting elements spanning features to `model` / `components` / `adapters`) on its own **has no exit for reactive cross-cutting client hooks**. A "cross-cutting client hook in the frontend domain (an extension point / seam)" such as `useOnlineStatus` is neither display logic, nor UI, nor an external connection, and needs a promotion target when multiple features use it.
 
-[0021](0021-frontend-responsibility.md) の命名規律は「役割を名指しできない置き場が必要になった時点で、それは設計の欠落であり、**真に横断が必要になったら ADR 追補で役割を定義してから作る**」と定めている。本 ADR はその条項に従い、役割を定義したうえでカーネルを立てる。onion の層に対応物はない(React の client hook はフロント固有である)。
+[0021](0021-frontend-responsibility.md)'s naming discipline states: "the moment a place that cannot name its role becomes necessary, that is a gap in the design; **if something truly needs to cut across, create it after defining its role in an ADR addendum**". This ADR follows that clause and sets up the kernel after defining its role. There is no counterpart among the onion's layers (React client hooks are specific to the frontend).
 
-## 決定
+## Decision
 
-### 責務
+### Responsibilities
 
-`capabilities` は、**runtime(ブラウザ + Next.js フレームワーク)の能力を reactive な client hook として供給する**カーネルである。想定する hook 例:
+`capabilities` is the kernel that **supplies the capabilities of the runtime (browser + the Next.js framework) as reactive client hooks**. Expected hooks:
 
-- `useOnlineStatus`(オンライン/オフライン検知 = `navigator.onLine` の購読)
+- `useOnlineStatus` (online/offline detection = subscribing to `navigator.onLine`)
 - `useMediaQuery` / breakpoint
 - `useClipboard`
-- Web Storage(`useLocalStorage` / `useSessionStorage`)/ client cookie 読み
+- Web Storage (`useLocalStorage` / `useSessionStorage`) / reading client cookies
 - safe-area / viewport
-- ページの可視性(既読の確定・隠れている間の再接続の抑制)
-- navigation-block(離脱ガード)。申告する feature が 1 つのうちは上げない —— 昇格ルールは複数 feature からの参照を要するので、それまでは部品(`components`)を feature が束ねる形で足りる
-- scroll 制御
-- Web Worker へのオフロード(seam)
+- Page visibility (confirming something as read, suppressing reconnection while hidden)
+- navigation-block (leave guard). Not promoted while only one feature declares it — the promotion rule requires references from multiple features, so until then it is enough for the feature to bundle the components (`components`)
+- Scroll control
+- Offloading to Web Workers (seam)
 
-キーボードショートカットは据え置き除外のため hook 例から外す([0053](0053-ui-component-interaction-seam.md))。グローバルショートカットを採用する場合の置き場が `capabilities` であることだけは変わらない。
+Keyboard shortcuts are excluded from the hook examples because they are deferred and excluded ([0053](0053-ui-component-interaction-seam.md)). What does not change is that, if global shortcuts are adopted, they go in `capabilities`.
 
-### `"use client"` 不変条件(client-only)
+### The `"use client"` Invariant (client-only)
 
-`capabilities` は **client-only(`"use client"`)固定**とする。位置づけは **2 軸モデル**([0024](0024-adapters-server-client-split.md))による:
+`capabilities` is **fixed as client-only (`"use client"`)**. Its position follows the **two-axis model** ([0024](0024-adapters-server-client-split.md)):
 
-- **WHAT**: `adapters` = アプリが *呼び出す remote 外部システム*(backend API 等)との境界 / `capabilities` = アプリが *その中で動く local runtime*(ブラウザ + フレームワーク)との境界
-- **WHERE**: `capabilities` は client のみ。`adapters` は server / client 両面([0024](0024-adapters-server-client-split.md) で `adapters/server`・`adapters/client` の 2 面に分割)
+- **WHAT**: `adapters` = the boundary with *remote external systems the app calls* (backend APIs, etc.) / `capabilities` = the boundary with *the local runtime the app runs inside* (browser + framework)
+- **WHERE**: `capabilities` is client only. `adapters` has both server / client faces (split into the two faces `adapters/server` and `adapters/client` in [0024](0024-adapters-server-client-split.md))
 
-`capabilities` は `adapters` の「client ミラー」**ではなく**、**WHAT が異なる**(runtime 境界)。両者の RSC 境界(server-only / use-client)は **ESLint boundaries では強制されない** —— 境界検査は層と区画の間しか見ておらず、server と client の区別を持たない。強制は `import "server-only"` の build-time failure と [`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts) が持つ([0024](0024-adapters-server-client-split.md) / [0040](0040-routing-rendering-strategy.md))。**local ブラウザ API(Web Storage / clipboard / cookie 読み)は「外部システム」でなく browser runtime API なので、`adapters` でなく `capabilities` が担当する**。
+`capabilities` is **not** a "client mirror" of `adapters`; **its WHAT differs** (the runtime boundary). The RSC boundary of both (server-only / use-client) is **not enforced by ESLint boundaries** — the boundary check looks only between layers and areas and has no distinction between server and client. Enforcement is held by the build-time failure of `import "server-only"` and by [`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts) ([0024](0024-adapters-server-client-split.md) / [0040](0040-routing-rendering-strategy.md)). **Local browser APIs (Web Storage / clipboard / reading cookies) are browser runtime APIs, not "external systems", so `capabilities`, not `adapters`, owns them**.
 
-### 受け入れないもの
+### What Does Not Belong Here
 
-- **remote IO**(fetch / WebSocket・SSE / analytics・telemetry 送信)→ `adapters/client`([0024](0024-adapters-server-client-split.md))。※ Web Storage / cookie 読みは remote でなく local runtime API なので `capabilities` が担当(上記「責務」)
-- **通信機構の状態**(stream が生きているか = `EventSource` の状態・再接続 backoff の残り)→ `adapters/client` の購読 seam([0074](0074-runtime-communication-seam.md))。回線の有無は runtime の能力だが、stream の生死は通信機構の状態であり、**この 2 つは別物で、画面はどちらも必要とする**
-- **server config**(secret を持つ runtime config object。client のため不可)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**)は runtime object でなく公開定数のため import 可([0030](0030-environment-variable-management.md))
-- **業務状態**
-- **UI マークアップ** → `components`
-- **ポリシー状態**: consent-gate は [0131](0131-cookie-consent.md) の機構([0031](0031-policy-state-supply.md) の供給経路)、feature-flag は [0078](0078-dynamic-feature-flag-seam.md) の seam が所有する。`capabilities` は **runtime 能力に限る**(ポリシー hook はここに置かない)
+- **Remote IO** (fetch / WebSocket, SSE / sending analytics or telemetry) → `adapters/client` ([0024](0024-adapters-server-client-split.md)). Note: Web Storage / reading cookies are local runtime APIs, not remote, so `capabilities` owns them ("Responsibilities" above)
+- **State of the communication mechanism** (whether a stream is alive = the state of an `EventSource`, the remaining reconnection backoff) → the subscription seam in `adapters/client` ([0074](0074-runtime-communication-seam.md)). Whether there is a connection is a runtime capability, but whether a stream is alive is state of the communication mechanism; **the two are different things, and screens need both**
+- **server config** (the runtime config object holding secrets; not allowed because this is client). Note: client config (= NEXT_PUBLIC build-time inlined **literals**) is a public constant rather than a runtime object and may be imported ([0030](0030-environment-variable-management.md))
+- **Business state**
+- **UI markup** → `components`
+- **Policy state**: consent-gate is owned by [0131](0131-cookie-consent.md)'s mechanism (the supply route of [0031](0031-policy-state-supply.md)), and feature-flag by [0078](0078-dynamic-feature-flag-seam.md)'s seam. `capabilities` is **limited to runtime capabilities** (policy hooks do not go here)
 
-### 依存
+### Dependencies
 
-| 層(import する側) | 許可される import 先 |
+| Layer (importing side) | Allowed import targets |
 | --- | --- |
-| `capabilities` | `model` / `errors` / `logging` / client config(**server config 不可**・secret 無。client config = NEXT_PUBLIC リテラルは可。[0030](0030-environment-variable-management.md)) |
-| `features` | 既存 + **`capabilities`** |
+| `capabilities` | `model` / `errors` / `logging` / client config (**no server config**; no secrets. client config = NEXT_PUBLIC literals allowed. [0030](0030-environment-variable-management.md)) |
+| `features` | Existing + **`capabilities`** |
 
-- **`components` は不変**(`model` / `errors` のみ)= **`components` は `capabilities` を import しない**
-- **昇格ルールの 4 つ目の出口**: reactive な横断 client hook(runtime 能力)→ `capabilities` へ。単一 feature でしか使わない hook は feature 内共置のまま([0021](0021-frontend-responsibility.md) 受入基準 1・2)
+- **`components` is unchanged** (`model` / `errors` only) = **`components` does not import `capabilities`**
+- **The fourth exit of the promotion rule**: reactive cross-cutting client hooks (runtime capabilities) → to `capabilities`. A hook used by only one feature stays co-located inside the feature ([0021](0021-frontend-responsibility.md)'s acceptance criteria 1 and 2)
 
-### 合成は feature が行う
+### Features do the composition
 
-hook の呼び出しと UI への配線(合成)は **feature** が行う。**app(route / page = driving adapter)に合成ロジックを書かない**([0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) の thin app 原則)。
+Calling hooks and wiring them to UI (composition) is done by the **feature**. **No composition logic is written in app (route / page = driving adapter)** (the thin-app principle of [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md)).
 
-- **Provider mount 例外**: `capabilities` が export する Provider を root layout に mount する場合、これは **layout の薄い mount 例外**として扱う(app は `<Provider>` を置くだけで薄いまま。feature は `useXxx()` を直接呼び、`components` は props-in のまま = prop 配線は feature が担う)。**この mount 例外を capabilities 限定でなく横断 UI / Provider 全般へ一般化する規約は [0026](0026-layout-shell-mount.md) が定める**
-- **UI 密着の挙動 hook**(focus-trap / scroll-lock 等)は `capabilities` ではなく、その component への **co-location**(runtime 能力ではなく UI 挙動のため)。レスポンシブ判定は JS hook でなく **CSS(Tailwind breakpoint / `@container`)を優先**([0050](0050-styling-strategy.md))し、`useMediaQuery` の乱用を避ける
+- **The Provider mount exception**: mounting a Provider exported by `capabilities` in the root layout is treated as **the layout's thin mount exception** (app only places `<Provider>` and stays thin; the feature calls `useXxx()` directly, and `components` stays props-in = the feature owns the prop wiring). **The convention that generalizes this mount exception from capabilities alone to cross-cutting UI / Providers in general is set by [0026](0026-layout-shell-mount.md)**
+- **Behavior hooks tightly bound to UI** (focus-trap / scroll-lock, etc.) are **co-located** with that component rather than placed in `capabilities` (they are UI behavior, not runtime capabilities). For responsive decisions, **prefer CSS (Tailwind breakpoints / `@container`)** over JS hooks ([0050](0050-styling-strategy.md)), and avoid overusing `useMediaQuery`
 
-### 命名
+### Naming
 
-`capabilities` は **役割名**(runtime 能力の供給)である。メカニズム名の `hooks` / `utils` カーネルは引き続き**禁止**([0021](0021-frontend-responsibility.md) 命名規律)。feature 内の単一 hook の共置は従来どおり許可する。
+`capabilities` is a **role name** (supplying runtime capabilities). Kernels with mechanism names such as `hooks` / `utils` remain **prohibited** ([0021](0021-frontend-responsibility.md) bans places that do not name a role). Co-locating a single hook inside a feature is allowed as before.
 
-## 移植性
+## Portability
 
-feature の移植可能性は、**カーネル契約に対して相対的**である(ゼロ依存の島ではない)。`capabilities` を消費する feature は、`components` を消費する feature と**同程度に移植可能**であり、`capabilities` はその移植の土台(カーネル群)を脅かすのではなく広げる。
+A feature's portability is **relative to the kernel contracts** (it is not a zero-dependency island). A feature that consumes `capabilities` is **as portable** as a feature that consumes `components`, and `capabilities` widens the foundation (the kernels) of that portability rather than threatening it.
 
-移植性を最大化するため、`capabilities` の hook API は **デファクト標準の形**(`useOnlineStatus` / `useMediaQuery` 等の慣用シグネチャ)に寄せる([0010](0010-standards-and-non-lockin.md) の標準準拠)。標準形であるほど、移植先のプロジェクトで等価カーネルが見つかり、feature がそのまま噛む。
+To maximize portability, the hook APIs of `capabilities` lean toward **the shape of the de facto standard** (the idiomatic signatures of `useOnlineStatus` / `useMediaQuery`, etc.) ([0010](0010-standards-and-non-lockin.md)'s conformance to standards). The more standard the shape, the more likely an equivalent kernel is found in the destination project, and the feature plugs in as is.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `capabilities` に server 実行コード / remote IO / server config / secret / 業務状態 / UI マークアップを置くこと(client config の NEXT_PUBLIC リテラルは可)（強制: `server-only` の build-time failure と `scripts/server-only.gate.test.ts` が server 実行コードと server config を、ESLint `project-rules/no-markup-outside-ui-layers` が UI マークアップを、ESLint boundaries（`adapters` 不可）と `no-restricted-syntax`（購読の組み立て）が remote IO の大半を落とす。生の `fetch` は散文 —— **寄せられる**（`src/capabilities/` 下の `fetch` 呼び出しを落とす形。規則は無い）。secret と業務状態は **寄せられない**。値の意味で決まる）
-- ❌ `adapters/server`(server-only)に client hook を混ぜること / `adapters/client` に secret を持たせること(RSC・secret 境界。[0024](0024-adapters-server-client-split.md))
-- ❌ `components` が `capabilities` を import すること(合成は feature 経由。UI 挙動 hook は component co-location)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `DEPENDENCIES.components` に `capabilities` が無い））
-- ❌ app(route / page)に合成ロジックを書くこと(Provider の薄い mount のみ許可)（強制: 散文 —— **一部寄せられる**。route / page での hook 呼び出しは `src/app/**` の `use` で始まる呼び出しとして落とせるが規則は無い。それ以外の合成か薄い mount かは値の使い方で決まり、import の集合では表せない）
-- ❌ ポリシー状態(consent / feature-flag)を `capabilities` に持たせること(各 seam が所有)（強制: 散文 —— **寄せられない**。状態がポリシーか runtime 能力かは状態の意味で決まり、コードの形からは決まらない）
-- ❌ 通信機構の状態(stream の生死・backoff)を `capabilities` に持たせること(購読 seam が所有)（強制: ESLint `no-restricted-syntax` が `capabilities` での `EventSource` / `WebSocket` の組み立てを落とす。購読 seam の状態を写して持つ形は散文 —— **寄せられない**。写しかどうかは状態の出所の意味で決まる）
-- ❌ メカニズム名の `hooks` カーネルを作ること(役割名 `capabilities` が家)（強制: ESLint `boundaries/no-unknown-files`（`KERNELS` に無い `src/hooks/` 下のファイルを落とす））
+- ❌ Placing server-executed code / remote IO / server config / secrets / business state / UI markup in `capabilities` (NEXT_PUBLIC literals in client config are allowed) (Enforcement: the build-time failure of `server-only` and `scripts/server-only.gate.test.ts` fail on server-executed code and server config; ESLint `project-rules/no-markup-outside-ui-layers` fails on UI markup; ESLint boundaries (no `adapters`) and `no-restricted-syntax` (assembling subscriptions) fail on most remote IO. A raw `fetch` is Prose — **mechanizable** (fail `fetch` calls under `src/capabilities/`. No rule exists). Secrets and business state are **not mechanizable**: they are decided by the meaning of the value)
+- ❌ Mixing client hooks into `adapters/server` (server-only) / giving `adapters/client` secrets (the RSC and secret boundaries; [0024](0024-adapters-server-client-split.md))
+- ❌ `components` importing `capabilities` (composition goes through the feature; UI behavior hooks are co-located with the component) (Enforcement: ESLint `boundaries/dependencies` (`DEPENDENCIES.components` in `architecture.ts` has no `capabilities`))
+- ❌ Writing composition logic in app (route / page) (only a thin Provider mount is allowed) (Enforcement: Prose — **partly mechanizable**. Hook calls in a route / page could be caught as calls starting with `use` in `src/app/**`, but no rule exists. Whether anything else is composition or a thin mount is decided by how values are used and cannot be expressed as a set of imports)
+- ❌ Giving `capabilities` policy state (consent / feature-flag) (each seam owns it) (Enforcement: Prose — **not mechanizable**. Whether state is policy or a runtime capability is decided by the meaning of the state and not by the shape of the code)
+- ❌ Giving `capabilities` the state of the communication mechanism (whether a stream is alive, backoff) (the subscription seam owns it) (Enforcement: ESLint `no-restricted-syntax` fails on assembling an `EventSource` / `WebSocket` in `capabilities`. Holding a copy of the subscription seam's state is Prose — **not mechanizable**: whether it is a copy is decided by the meaning of where the state comes from)
+- ❌ Creating a `hooks` kernel with a mechanism name (the role name `capabilities` is its home) (Enforcement: ESLint `boundaries/no-unknown-files` (fails on files under `src/hooks/`, which is not in `KERNELS`))
 
-## 関連 ADR
+## Related ADRs
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 機能スライス × 表示層カーネル(本カーネルの親宣言)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 責務マトリクス / 命名規律 / 昇格ルールの SSOT。命名規律「横断が必要なら追補で役割定義してから作る」の発動
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — 2 軸モデル(本カーネルは adapters の「ミラー」でなく WHAT が異なる runtime 境界)/ remote IO の client 面 = `adapters/client`
-- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) — 購読 seam(通信機構の状態の所有先)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — 本カーネルが持たないポリシー状態(consent / flag)の供給先
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — Provider mount 例外(本 ADR の capabilities 限定から一般化)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — `adapters`(BFF / API 統合)の中身
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — RSC / Client 境界(`"use client"` 不変条件の根拠)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(移植性のための hook API デファクト準拠)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) / [0080-error-handling.md](0080-error-handling.md) / [0081-observability-logging.md](0081-observability-logging.md) — 「実質のあるカーネルは自前 ADR」の先例
-- [0131-cookie-consent.md](0131-cookie-consent.md) / [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — consent 機構 / feature-flag seam(ポリシー状態の所有先。`capabilities` には置かない)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — feature slices × presentation-layer kernels (the parent declaration of this kernel)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the SSOT for the responsibility matrix / naming discipline / promotion rule. Invokes the naming-discipline clause "if something needs to cut across, define its role in an addendum before creating it"
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — the two-axis model (this kernel is not a "mirror" of adapters but a runtime boundary with a different WHAT) / the client face of remote IO = `adapters/client`
+- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) — the subscription seam (owner of the communication mechanism's state)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — where the policy state this kernel does not hold (consent / flag) is supplied
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — the Provider mount exception (generalized from this ADR's capabilities-only form)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the contents of `adapters` (BFF / API integration)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the RSC / Client boundary (the basis for the `"use client"` invariant)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — conformance to standards (hook APIs follow the de facto standard for portability)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) / [0080-error-handling.md](0080-error-handling.md) / [0081-observability-logging.md](0081-observability-logging.md) — precedents for "a kernel with real substance has its own ADR"
+- [0131-cookie-consent.md](0131-cookie-consent.md) / [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — the consent mechanism / feature-flag seam (owners of policy state; not placed in `capabilities`)

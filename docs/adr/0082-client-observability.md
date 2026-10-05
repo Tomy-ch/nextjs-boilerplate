@@ -1,114 +1,114 @@
-# クライアント観測性(Web Vitals RUM / client エラー収集 / プロダクト分析 seam)
+# Client Observability (Web Vitals RUM / Client Error Collection / Product Analytics Seam)
 
-[0081](0081-observability-logging.md) が「ブラウザ側テレメトリは BFF 中継を seam とする」と器だけを定め、[0101](0101-performance-budget.md) が一次指標に Core Web Vitals を採用しながら **field 値(RUM)の収集経路** を本 ADR へ委ねる。本 ADR は、この 0081 seam に載せる **ブラウザ発の経路 —— ブラウザ側の trace / Web Vitals RUM / client エラー収集 / プロダクト分析 —— を確定** する。いずれも「ブラウザから外へ出る IO」であり、送信面は [0024](0024-adapters-server-client-split.md) が明示配置した `adapters/client` に置く。
+[0081](0081-observability-logging.md) defines only the frame, "browser-side telemetry uses the BFF relay as its seam", and [0101](0101-performance-budget.md), while adopting Core Web Vitals as its primary metric, delegates **the collection path for field values (RUM)** to this ADR. This ADR **settles the browser-originated paths — browser-side traces / Web Vitals RUM / client error collection / product analytics —** that ride on this 0081 seam. All of them are "IO leaving the browser", and the sending surface is placed in `adapters/client`, which [0024](0024-adapters-server-client-split.md) explicitly placed.
 
 ## Status
 
-Accepted (一部 exclusion)
+Accepted (partial exclusion)
 
-## 背景
+## Context
 
-[0081](0081-observability-logging.md) はサーバ側の構造化ログ / OTel / vendor-neutral OTLP を確定し、ブラウザ側については「クライアントで計測した値は `/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export する(直接 SaaS へ送らない)」という **seam の宣言** までを行う。何を流すか(CWV field 値 / client エラー / ユーザ行動)は 0081 本文では列挙されない。
+[0081](0081-observability-logging.md) settles server-side structured logs / OTel / vendor-neutral OTLP, and on the browser side goes only as far as **declaring the seam**: "values measured on the client are sent to the server via `/api/*` (BFF) and exported over OTLP on the server side (not sent directly to a SaaS)". What flows through it (CWV field values / client errors / user behaviour) is not enumerated in 0081's body.
 
-- **Web Vitals RUM**: [0101](0101-performance-budget.md) は一次指標を CWV(LCP / INP / CLS)としつつ計測を lab(CI Lighthouse)に限るため、field 値の経路が無いと **「指標はあるがフィールド値が無い」** 状態になる。
-- **client エラー収集**: [0080](0080-error-handling.md) / [0081](0081-observability-logging.md) はサーバ側で完結し、ブラウザで起きたエラーはどこにも残らない **観測性の片翼欠落** になる。
-- **プロダクト分析 seam**: [0131](0131-cookie-consent.md) が「運用テレメトリはユーザ行動トラッキングと区別する」と線を引いた側(= 行動トラッキング)。SaaS 非同梱でも、計測呼び出しがコンポーネントに直書きされるか抽象を通るかは本体の構造問題として残る。
+- **Web Vitals RUM**: [0101](0101-performance-budget.md) takes CWV (LCP / INP / CLS) as its primary metric but limits measurement to the lab (CI Lighthouse), so without a path for field values the state is **"there is a metric but no field values"**.
+- **Client error collection**: [0080](0080-error-handling.md) / [0081](0081-observability-logging.md) are complete on the server side, and errors that happen in the browser remain nowhere — **observability is missing one wing**.
+- **Product analytics seam**: the side of the line [0131](0131-cookie-consent.md) drew with "operational telemetry is distinguished from user behaviour tracking" (= behaviour tracking). Even with no SaaS bundled, whether measurement calls are written directly in components or go through an abstraction remains a structural question for the core.
 
-[0024](0024-adapters-server-client-split.md) が `adapters/client` element を立て、その「中身」列に **telemetry 送信 / analytics 送信** を明示的に割り当てているため、経路の物理的な家は確定している。本 ADR はその家に載る送信内容と発火・ゲートの方針を定める。
+[0024](0024-adapters-server-client-split.md) set up the `adapters/client` element and explicitly assigned **telemetry sending / analytics sending** to its "contents" column, so the physical home of the paths is settled. This ADR defines what is sent from that home and the policy for triggering and gating.
 
-## 決定
+## Decision
 
-経路はすべて 0081 の **ブラウザ→BFF 中継 seam** に載せる。送信面 = `adapters/client`([0024](0024-adapters-server-client-split.md))、受け = `app/route-handler`(`route.ts` → `adapters/server` → OTLP / サーバログ。[0025](0025-app-layer-elements.md) の thin proxy)。**ブラウザから直接 SaaS / collector へ送らない**(0081 禁止事項)。
+All paths ride on 0081's **browser → BFF relay seam**. Sending surface = `adapters/client` ([0024](0024-adapters-server-client-split.md)); receiving = `app/route-handler` (`route.ts` → `adapters/server` → OTLP / server log; the thin proxy of [0025](0025-app-layer-elements.md)). **Nothing is sent directly from the browser to a SaaS / collector** (0081 Prohibitions).
 
-**収集と送信は `observability` カーネルではなく `adapters` に置く。** `observability` が持つのは OTLP export の口と計装であって、ブラウザ発の送信を組み立てる経路(`adapters/client`)と、受けて signal へ載せ替える経路(`adapters/server`)は外部との IO であり、[0024](0024-adapters-server-client-split.md) の家に属する。
+**Collection and sending are placed in `adapters`, not in the `observability` kernel.** What `observability` holds is the OTLP export endpoint and instrumentation; the path that assembles browser-originated sends (`adapters/client`) and the path that receives them and moves them onto signals (`adapters/server`) are IO with the outside world, and belong to the home of [0024](0024-adapters-server-client-split.md).
 
-4 経路は、載せる signal で分かれる。
+The four paths are divided by the signal they ride on.
 
-| 経路 | signal | 中継の口 |
+| Path | Signal | Relay endpoint |
 | --- | --- | --- |
-| ブラウザ側の trace(§0) | traces | OTLP をそのまま渡す口 |
-| Web Vitals RUM(§1) | metrics | このリポジトリが決めた形の報告を受ける口 |
-| client エラー(§2) | logs | 同上 |
-| プロダクト分析(§3) | — | 中継を通らない。タグマネージャが配信元と直接やり取りする |
+| Browser-side traces (§0) | traces | An endpoint that passes OTLP through as is |
+| Web Vitals RUM (§1) | metrics | An endpoint that receives reports in a shape this repository decided |
+| Client errors (§2) | logs | Same as above |
+| Product analytics (§3) | — | Does not go through the relay. The tag manager talks to the delivery origin directly |
 
-口を 2 つに分けるのは、**契約の出所が違う**ためである —— OTLP は OTel が決めるので読み替えずに渡し、報告の形はこのリポジトリが決めるので検証して signal へ載せ替える。
+The endpoints are split in two because **the contracts come from different places** — OTLP is decided by OTel, so it is passed through without reinterpretation; the report shape is decided by this repository, so it is validated and moved onto a signal.
 
-### 0. ブラウザ側の trace = 採用
+### 0. Browser-side traces = adopted
 
-- ブラウザで **OTel の Web SDK** を動かし、ブラウザ発の外向き要求を span にする。export は中継経由で、collector の endpoint も資格情報もブラウザへ出さない(0081)。
-- **包むのは `fetch` すべてである。** 自分で呼んでいる取得だけを包むと、router が画面遷移と先読みで出す RSC の要求が抜け、別の trace の根になる。そのぶん 1 つの trace に載る span は増える。
-- **span 名は方式とパスで置く**(`GET /docs/[slug]` ではなく実際のパス)。計装の既定は方式だけ(`GET`)で、どの経路への要求かを持たない。クエリは名前に載せない —— 条件は要求ごとに違うので、載せると同じ経路が別の名前へ散る。
-- **ブラウザは自分の trace を始めない。** 画面を組んだ要求の `traceparent` をサーバから受け取って親に取る。こうすると SSR から、その画面が後で出した取得までが 1 本の trace になる。渡らない実行(静的生成された画面)では新しい trace を始める。
-- **計装は最初の描画の後に読み込む。** 計測のための資材を初期の読み込みへ載せると、[0101](0101-performance-budget.md) が一次指標に置く当の値を悪くする。
-- **service 名は中継が上書きする。** 認証を要求しない口なので、ブラウザの名乗りをそのまま通すと誰でも任意の service の trace へ span を書ける。ブラウザは自分がどの service の一部かを知る必要がない。
-- **vendor-independent**: OTel の SDK は CNCF の実装であって観測性 SaaS ではなく、送り先は任意の OTLP バックエンドである(§1 と同じ論理)。
+- The **OTel Web SDK** runs in the browser and turns browser-originated outbound requests into spans. Export goes through the relay, and neither the collector endpoint nor credentials are exposed to the browser (0081).
+- **What is wrapped is every `fetch`.** Wrapping only the fetches we call ourselves misses the RSC requests the router issues for navigation and prefetching, which become roots of separate traces. In exchange, more spans land on one trace.
+- **Span names are set as method and path** (the actual path, not `GET /docs/[slug]`). The instrumentation's default is the method only (`GET`), which does not hold which route the request is for. The query is not put in the name — conditions differ per request, so including them scatters the same route across different names.
+- **The browser does not start its own trace.** It receives from the server the `traceparent` of the request that assembled the screen and takes it as its parent. This makes one trace from SSR through to the fetches that screen issues later. In executions where it is not passed (statically generated screens), a new trace is started.
+- **Instrumentation is loaded after the first render.** Putting the assets for measurement into the initial load worsens the very values [0101](0101-performance-budget.md) places as its primary metric.
+- **The service name is overwritten by the relay.** It is an endpoint that requires no authentication, so passing the browser's self-declared name through as is would let anyone write spans into the trace of any service. The browser does not need to know which service it is part of.
+- **Vendor-independent**: the OTel SDK is a CNCF implementation, not an observability SaaS, and the destination is any OTLP backend (same logic as §1).
 
-### 1. Web Vitals RUM = 採用
+### 1. Web Vitals RUM = adopted
 
-- `useReportWebVitals`(Next.js 組込 hook)で LCP / INP / CLS 等を収集し、同一オリジン BFF 経由でサーバへ送り、**サーバ側で OTLP export**(0081)する。これで [0101](0101-performance-budget.md) の lab 計測(CI Lighthouse)に対する **field 値の欠落経路を閉じる**。閾値は置かない —— [0101](0101-performance-budget.md) の予算は lab の側が持ち、field 値は分布として読む。
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): CWV は web.dev / W3C 由来の業界標準指標(0101 が既に一次指標として独立採用済み)/ 送信 transport は OTLP/OTel = vendor-neutral(0081)/ BFF 中継は secret 非露出([0030](0030-environment-variable-management.md))と lock-in 回避。**RUM 観測性 vendor SDK(Datadog RUM 等)を正当化から抜いても、CWV を OTLP/OTel で収集する構成は成立** する = 非ロックイン(0081 のスタンスは OTLP/OTel vendor-neutral・vendor SDK 非同梱であり、特定 vendor を前提としない)。`useReportWebVitals` の使用は「App Router を選んだ」既決の帰結(フレームワーク固有 API の扱い。0010)であって機能固有ロックインではない。
-- **RUM 観測性 SaaS は同梱しない(exclusion)**(0081 と一致。Collector / OTLP 経由を基本とする)。
-- **サーバ側では metric(指標ごとのヒストグラム)として持つ**。求めるのは実利用者ぶんの百分位であり、1 件ずつのレコードから毎回それを組むより計器の側が分布を持つほうが、読む手数も保持のコストも小さい。公式 semantic convention が web vitals へ与えているのは `browser.web_vital` という event 名だけで metric 名を定めていないが、event で出すと 1 レコードごとに中継要求の span が付き、測定が起きていない要求と親子になる。
-- これは **運用テレメトリ(パフォーマンス)** であり、[0131](0131-cookie-consent.md) が consent gate の対象とする **ユーザ行動トラッキングとは区別** される。→ **既定で consent gate の対象外**(下記 §4)。
+- Collect LCP / INP / CLS and others with `useReportWebVitals` (a hook built into Next.js), send them to the server via the same-origin BFF, and **export over OTLP on the server side** (0081). This **closes the missing path for field values** against the lab measurement (CI Lighthouse) of [0101](0101-performance-budget.md). No thresholds are placed — the budget of [0101](0101-performance-budget.md) is held on the lab side, and field values are read as distributions.
+- **Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): CWV are industry-standard metrics from web.dev / W3C (0101 has already adopted them independently as its primary metric) / the sending transport is OTLP/OTel = vendor-neutral (0081) / the BFF relay keeps secrets unexposed ([0030](0030-environment-variable-management.md)) and avoids lock-in. **With RUM observability vendor SDKs (Datadog RUM, etc.) removed from the justification, the configuration that collects CWV over OTLP/OTel still holds** = no lock-in (0081's stance is OTLP/OTel vendor-neutral with no vendor SDK bundled, assuming no particular vendor). Using `useReportWebVitals` is a consequence of the settled decision "we chose App Router" (the handling of framework-specific APIs; 0010), not feature-specific lock-in.
+- **RUM observability SaaS is not bundled (exclusion)** (consistent with 0081; going through a Collector / OTLP is the baseline).
+- **On the server side it is held as metrics (a histogram per metric)**. What is wanted is percentiles over real users, and having the instrument hold the distribution costs less to read and to retain than assembling it every time from individual records. The official semantic conventions give web vitals only the event name `browser.web_vital` and define no metric name, but emitting events attaches the relay request's span to every record, making it a child of a request in which no measurement happened.
+- This is **operational telemetry (performance)**, **distinguished from the user behaviour tracking** that [0131](0131-cookie-consent.md) puts under the consent gate. → **Not subject to the consent gate by default** (§4 below).
 
-### 2. client エラー収集 = 採用
+### 2. Client error collection = adopted
 
-- `window` の `error` / `unhandledrejection` を捕捉し、BFF 中継で **サーバログ**(0081)へ送る。**エラー境界が捕まえた例外はこの経路に乗らない** —— React は明示的な境界の捕捉を`console.error` へ流すだけで `error` を発火しないため、境界でも記録したいなら境界の側から報告する。
-- **記録は画面を組んだ要求の trace へ紐づける**(§0 の `traceparent` を報告に載せて返す)。渡らなければ trace を付けない —— 中継要求の span を付けると、例外が起きていない要求と親子になる。
-- エラー分類は `errors` カーネルのセンチネル([0080](0080-error-handling.md))を用いる。**送る側は 1 回のページ読み込みで打ち切り件数まで**とし、**サンプリングは持たない** —— 率が要るなら中継の口の手前へ足す。
-- **伏せるのは受け側**で、[0081](0081-observability-logging.md) の名前の表に当たる属性だけを落とす。**例外の文言と stack の中身は無害化しない** —— この層が始末できるのは自分が組み立てた値だけである([0070](0070-backend-role-separation.md) 境界値の所有)。文言に載せてよいものは呼び出し側が決める。
-- **vendor-independent**: ブラウザ側エラーの可視化は 0080 / 0081 がサーバ側で完結していた観測性の片翼を埋めるもので、収集経路は構造化ログ / OTLP(0081)= vendor-neutral。エラー監視 SaaS は同梱しない(§1 と同じ exclusion 論理)。
-- **運用テレメトリ扱い**(consent gate 対象外。0131。線引きは本 ADR の「consent gate の線引き」の節)。
+- Capture `window`'s `error` / `unhandledrejection` and send them to the **server log** (0081) through the BFF relay. **Exceptions caught by error boundaries do not ride this path** — React only routes an explicit boundary's catch to `console.error` and does not fire `error`, so if you also want it recorded at the boundary, report from the boundary's side.
+- **Records are tied to the trace of the request that assembled the screen** (the `traceparent` of §0 is put on the report and sent back). If it is not passed, no trace is attached — attaching the relay request's span would make it a child of a request in which no exception happened.
+- The error classification uses the sentinels of the `errors` kernel ([0080](0080-error-handling.md)). **The sending side goes only up to a cap count per page load**, and **holds no sampling** — if a rate is needed, add it in front of the relay endpoint.
+- **Masking is done on the receiving side**, dropping only the attributes that match the name table of [0081](0081-observability-logging.md). **The exception message and the contents of the stack are not sanitized** — this layer can only account for values it assembled itself (ownership of boundary values in [0070](0070-backend-role-separation.md)). What may be put in a message is decided by the caller.
+- **Vendor-independent**: visualizing browser-side errors fills the wing of observability that 0080 / 0081 left complete only on the server side, and the collection path is structured logs / OTLP (0081) = vendor-neutral. Error-monitoring SaaS is not bundled (the same exclusion logic as §1).
+- **Treated as operational telemetry** (not subject to the consent gate; 0131. The line is drawn in this ADR's section on the consent gate line).
 
-### 3. プロダクト分析 seam = タグマネージャを同梱する
+### 3. Product analytics seam = bundle a tag manager
 
-- **タグマネージャを同梱する**([0131](0131-cookie-consent.md))。同梱するのは**容器を読み込む口だけ**で、何を計測するかは容器の中身が持つ。
-- **物理配置 = `app` の client island**(`src/app/analytics.tsx`)。`adapters/client` ではない。あそこが受け持つのは**このアプリが送信を組み立てる経路**(§1 RUM / §2 client エラー)であり、タグマネージャは**読み込むだけで送信は容器の中身が行う**。送信の組み立てを持たないものに source adapter を立てても、通り道が 1 つ増えるだけになる。
-- **`dataLayer` へ値を渡してよいのはこの island だけ**とする。feature / component から直接触ると、何が外へ出るかが散る。
-- **consent gating**: プロダクト分析は 0131 の consent 対象(ユーザ行動トラッキング)そのものである。掛け方は**呼び出しの手前で述語を見る形ではなく、島そのものを mount しない形**を採る —— [0031](0031-policy-state-supply.md) の純関数 gate 述語(既定 = 「未同意で全 gate」)が偽である間、`src/app/consent.tsx` は島を描かない。**要素が在る時点で取得が始まる資材は、述語では止められない**(0131 の軽量 consent 機構が島を描かないことで止める理由)。gate の具体粒度・consent ソースは用途依存でここでは定めない(0031 と一致)。
-- **vendor-independent**: 同梱するのは容器を読み込む口だけで、**どの計測ベンダーへ繋ぐかは容器の中身が持つ**。ベンダーを替えても本体のコードは変わらない。外すのは容器 ID を空にするだけで済み、外した配備の初期 JS にライブラリは載らない([0131](0131-cookie-consent.md))。
+- **A tag manager is bundled** ([0131](0131-cookie-consent.md)). What is bundled is **only the slot that loads the container**, and what to measure is held by the container's contents.
+- **Physical placement = a client island in `app`** (`src/app/analytics.tsx`). Not `adapters/client`. What that place takes on is **the paths where this app assembles the sends** (§1 RUM / §2 client errors), whereas the tag manager **only loads, and the sending is done by the container's contents**. Setting up a source adapter for something that does not assemble sends only adds one more passage.
+- **Only this island may pass values into `dataLayer`**. Touching it directly from a feature / component scatters what goes outside.
+- **Consent gating**: product analytics is exactly what 0131 subjects to consent (user behaviour tracking). The gate is applied **not by checking a predicate just before the call, but by not mounting the island itself** — while the pure-function gate predicate of [0031](0031-policy-state-supply.md) (default = "gate everything without consent") is false, `src/app/consent.tsx` does not render the island. **Assets whose fetching starts the moment the element exists cannot be stopped by a predicate** (the reason 0131's lightweight consent mechanism stops them by not rendering the island). The concrete granularity of the gate and the consent source depend on the use case and are not defined here (consistent with 0031).
+- **Vendor-independent**: what is bundled is only the slot that loads the container, and **which measurement vendor to connect to is held by the container's contents**. Changing vendors does not change the core's code. Removing it only takes emptying the container ID, and a deployment with it removed carries no library in its initial JS ([0131](0131-cookie-consent.md)).
 
-### 4. consent gate の線引き(運用テレメトリ vs 行動トラッキング)
+### 4. The consent gate line (operational telemetry vs behaviour tracking)
 
-[0131](0131-cookie-consent.md) は consent gate の対象を **ユーザ行動トラッキング** に限り、[0081](0081-observability-logging.md) の運用テレメトリと区別する。本 ADR はこの線をそのまま適用する:
+[0131](0131-cookie-consent.md) limits what the consent gate covers to **user behaviour tracking**, distinguishing it from the operational telemetry of [0081](0081-observability-logging.md). This ADR applies that line as is:
 
-- **RUM / client エラー = 運用テレメトリ → 既定で gate 対象外**(パフォーマンス / 障害の運用計測)。
-- **プロダクト分析 = 行動トラッキング → gate 必須**(§3。0031 述語)。
-- ただし **field RUM を同意対象とする法域要件があり得る**ため、RUM / client エラーに gate を掛けたい場合は §3 と同じ 0031 gate 述語を再利用できる拡張点を残す(本体既定は保守的に operational 扱い)。この境界は法域依存で本体では固定しない。
-- **同じブラウザからの訪問を繋ぐ識別子は、同意が得られている間だけ配る。** 未同意のうちに配ると、識別子を渡してから同意を尋ねることになる。**同意が外れたら消す** —— 期限切れ・利用者による削除・選び直しのいずれも同じ扱いにする。これは前捌きを含む機構全体の約束であり、島の mount / unmount だけでは足りない(識別子は cookie として残る)。
+- **RUM / client errors = operational telemetry → not subject to the gate by default** (operational measurement of performance / failures).
+- **Product analytics = behaviour tracking → gate required** (§3; the 0031 predicate).
+- However, **there may be jurisdictional requirements that subject field RUM to consent**, so an extension point is left for reusing the same 0031 gate predicate as §3 when you want to gate RUM / client errors (the core default conservatively treats them as operational). This boundary depends on jurisdiction and is not fixed in the core.
+- **An identifier linking visits from the same browser is handed out only while consent is given.** Handing it out before consent means giving out the identifier and then asking for consent. **When consent is withdrawn, delete it** — expiry, deletion by the user and choosing again are all treated the same. This is a promise of the whole mechanism, including the pre-filter, and mounting / unmounting the island alone is not enough (the identifier remains as a cookie).
 
-### 5. BFF エンドポイントの物理
+### 5. The physical BFF endpoint
 
-- 本 ADR が確定するのは **seam**(0081 中継 / `adapters/client` 送信面 / `adapters/server` 受け)と、**中継の口を契約の出所で 2 つに分ける**こと(§決定の表 —— OTLP をそのまま渡す口 / このリポジトリが決めた形の報告を受ける口)である。報告を受ける口を signal ごとに更に分けるかは用途依存で本体は固定しない。
-- **中継エンドポイントの保護**(レート制限 / ボディサイズ上限 / 無認証エンドポイントの abuse 対策)は **本 ADR の射程外**。これは infra ドメイン寄りの境界 seam = [0077](0077-bff-abuse-protection-boundary.md) が所有する。本 ADR は送信経路のみを定め、保護方針は 0077 を参照する(密結合のため相互参照で局所推論を保つ)。
+- What this ADR settles is the **seam** (the 0081 relay / the `adapters/client` sending surface / `adapters/server` receiving) and **splitting the relay endpoint in two by where the contract comes from** (the table under Decision — an endpoint that passes OTLP through as is / an endpoint that receives reports in a shape this repository decided). Whether to split the report-receiving endpoint further per signal depends on the use case and is not fixed by the core.
+- **Protection of the relay endpoint** (rate limiting / body size limit / abuse countermeasures for an unauthenticated endpoint) is **out of this ADR's reach**. It is an infra-domain boundary seam = owned by [0077](0077-bff-abuse-protection-boundary.md). This ADR defines only the sending path and refers to 0077 for the protection policy (they are tightly coupled, so cross-references keep local reasoning).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ブラウザから直接 SaaS へ RUM / エラーを送ること(BFF 中継 seam。[0081](0081-observability-logging.md))。**唯一の例外が同意ゲートの裏のタグマネージャ**で、これは中継へ通すことが原理的にできないため、[0131](0131-cookie-consent.md) が帰結ごと引き受ける。**例外はその経路に閉じる** —— §1 の RUM と §2 の client エラーは中継を通したままにする（強制: `src/config/security-headers/security-headers.test.ts`（`connect-src` を `'self'` とバックエンドの origin に固定し、計測の送り先は容器 ID を宣言した配備にだけ開く）と E2E の `securitypolicyviolation` の見張り）
-- ❌ 観測性 SaaS SDK を同梱すること([0081](0081-observability-logging.md) の OTLP 中立に反する)。**プロダクト分析のタグマネージャは [0131](0131-cookie-consent.md) が同梱を決めており、この禁止の対象外**（強制: 持たない —— 採らない決定。観測性 SaaS の SDK が依存に無いこと自体が状態で、入れる変更は `package.json` の差分に現れる）
-- ❌ `dataLayer` を同意ゲートの島(§3)以外から触ること。発火 IF を立てた後は、その IF を通さず直書きすることも同じく禁じる([0031](0031-policy-state-supply.md))（強制: 散文 —— **寄せられる**（`dataLayer` の参照と `@next/third-parties` の送信関数の import を `src/app/analytics.tsx` の外で落とす `no-restricted-syntax` / `no-restricted-imports`。規則は無い））
-- ❌ プロダクト分析を consent gate 無しで発火させること(0031 gate 述語必須。[0131](0131-cookie-consent.md))
-- ❌ 訪問を繋ぐ識別子を未同意のうちに配ること / 同意が外れた後も残すこと(§4)（強制: `src/proxy.test.ts`（同意が無い間・拒否の間は計測 id を発行せず、同意が外れたら撤去する）と `e2e/journeys/consent.spec.ts`）
-- ❌ [0081](0081-observability-logging.md) の名前の表に当たる属性を、伏せずに載せること（強制: 受け側の redaction（`src/adapters/server/telemetry/browser-traces.test.ts` と `src/logging/pino.server.test.ts`）が名前の表に当たる属性を伏せる。表を通らない新しい受け口は散文 —— **寄せられない**。経路が表を通るかは配線で決まり、属性の形からは決まらない）
-- ❌ 例外の文言や stack が伏せられている前提で、そこへ主体固有の値を載せること(中身は無害化しない)（強制: 散文 —— **寄せられない**。文言に載る値が主体固有かは値の出所で決まり、式の形からは決まらない）
-- ❌ ブラウザ発の送信面を `adapters/client` 以外(feature / component の生 fetch 等)に置くこと([0071](0071-bff-api-integration.md) / [0024](0024-adapters-server-client-split.md))（強制: 散文 —— **寄せられる**（`features` / `components` で `fetch` と `navigator.sendBeacon` の呼び出しを落とす `no-restricted-syntax`。規則は無い））
+- ❌ Sending RUM / errors directly from the browser to a SaaS (BFF relay seam; [0081](0081-observability-logging.md)). **The only exception is the tag manager behind the consent gate**, which in principle cannot be passed through the relay, so [0131](0131-cookie-consent.md) takes it on along with its consequences. **The exception is closed to that path** — §1 RUM and §2 client errors keep going through the relay (Enforcement: `src/config/security-headers/security-headers.test.ts` (pins `connect-src` to `'self'` and the backend's origin, opening the measurement destinations only for deployments that declared a container ID) and the E2E watch for `securitypolicyviolation`)
+- ❌ Bundling an observability SaaS SDK (contrary to the OTLP neutrality of [0081](0081-observability-logging.md)). **The product-analytics tag manager is bundled by decision of [0131](0131-cookie-consent.md) and is outside this prohibition** (Enforcement: none — a decision not to adopt. That no observability SaaS SDK is among the dependencies is itself the state, and a change adding one appears in the `package.json` diff)
+- ❌ Touching `dataLayer` from anywhere other than the consent-gated island (§3). Once a firing IF is set up, writing directly without going through that IF is likewise forbidden ([0031](0031-policy-state-supply.md)) (Enforcement: Prose — **mechanizable** (`no-restricted-syntax` / `no-restricted-imports` rejecting references to `dataLayer` and imports of `@next/third-parties` send functions outside `src/app/analytics.tsx`; no rule exists))
+- ❌ Firing product analytics without the consent gate (the 0031 gate predicate is required; [0131](0131-cookie-consent.md))
+- ❌ Handing out the visit-linking identifier before consent / keeping it after consent is withdrawn (§4) (Enforcement: `src/proxy.test.ts` (no measurement id is issued while consent is absent or refused, and it is removed when consent is withdrawn) and `e2e/journeys/consent.spec.ts`)
+- ❌ Putting attributes that match the name table of [0081](0081-observability-logging.md) without masking them (Enforcement: receiving-side redaction (`src/adapters/server/telemetry/browser-traces.test.ts` and `src/logging/pino.server.test.ts`) masks attributes matching the name table. A new receiving endpoint that does not go through the table is Prose — **not mechanizable**. Whether a path goes through the table is decided by wiring, not by the shape of the attributes)
+- ❌ Putting principal-specific values into exception messages or stacks on the assumption that they are masked (their contents are not sanitized) (Enforcement: Prose — **not mechanizable**. Whether a value in a message is principal-specific is decided by where the value came from, not by the shape of the expression)
+- ❌ Placing a browser-originated sending surface anywhere other than `adapters/client` (raw fetch in a feature / component, etc.) ([0071](0071-bff-api-integration.md) / [0024](0024-adapters-server-client-split.md)) (Enforcement: Prose — **mechanizable** (`no-restricted-syntax` rejecting calls to `fetch` and `navigator.sendBeacon` in `features` / `components`; no rule exists))
 
-## 補足
+## Notes
 
-- **consent の結線**: プロダクト分析は [0031](0031-policy-state-supply.md) の gate 述語で結線する(掛け方は島を mount しない形。§3)。RUM / client エラーの consent 要否は **法域依存で本体では確定せず**、operational = gate 対象外の保守的既定 + 0031 述語の再利用拡張点、に留める(§4)。
-- **保護は [0077](0077-bff-abuse-protection-boundary.md) へ委譲**(§5)。無防備な公開中継エンドポイントの保護は別ドメイン寄りの境界 seam であり、参照先が本 ADR 外に分散する点を明示。
-- 送信の具体実装(バッチ / `sendBeacon` vs `fetch` / サンプリング率)は用途依存(本体が備えるのは seam までで、§1 RUM / §2 client エラーの話である)。
-- **計測製品そのものを本体が選ぶことはしない**: 同梱するのはタグマネージャ(容器を読み込む口)までで、容器の中に何を入れるかはここでは定めない。SaaS の SDK を直接同梱すると、その 1 つを選んだことが選択肢を狭める —— タグマネージャなら、繋ぎ替えは容器の中身の入れ替えで済む。タグから値を送るようになったとき発火 IF をどこへ立てるかは §3 が持つ。**consent gate 述語は [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) 側に実在する**。なお §1 RUM / §2 client エラーは運用テレメトリ(0081・OTLP)であり、本注記の対象外。
+- **Wiring consent**: product analytics is wired with the gate predicate of [0031](0031-policy-state-supply.md) (applied by not mounting the island; §3). Whether RUM / client errors need consent **depends on jurisdiction and is not settled in the core**; it stays at the conservative default of operational = not subject to the gate + an extension point for reusing the 0031 predicate (§4).
+- **Protection is delegated to [0077](0077-bff-abuse-protection-boundary.md)** (§5). Protecting the unprotected public relay endpoint is a boundary seam leaning toward another domain, and it is stated explicitly that what is referred to is spread outside this ADR.
+- The concrete sending implementation (batching / `sendBeacon` vs `fetch` / sampling rate) depends on the use case (what the core provides goes only up to the seam, and this concerns §1 RUM / §2 client errors).
+- **The core does not choose the measurement product itself**: what is bundled goes only as far as the tag manager (the slot that loads the container), and what goes into the container is not defined here. Bundling a SaaS SDK directly would let the choice of that one narrow the options — with a tag manager, reconnecting is just swapping the container's contents. Where to set up a firing IF once tags start sending values is owned by §3. **The consent gate predicate actually exists on the [0131](0131-cookie-consent.md) / [0031](0031-policy-state-supply.md) side**. Note that §1 RUM / §2 client errors are operational telemetry (0081, OTLP) and are outside the scope of this note.
 
-## 関連 ADR
+## Related ADRs
 
-- [0081-observability-logging.md](0081-observability-logging.md) — ブラウザ→BFF 中継 seam / OTLP-only / SaaS 非同梱。本 ADR はその経路を具体化する
-- [0101-performance-budget.md](0101-performance-budget.md) — CWV 一次指標 / lab 計測。本 ADR が field 値(RUM)収集経路を補完
-- [0131-cookie-consent.md](0131-cookie-consent.md) — consent gate 対象 = 行動トラッキング(プロダクト分析)/ 運用テレメトリ(RUM / client エラー)との区別
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/client`(**このアプリが送信を組み立てる**経路の家。タグマネージャはここに置かない —— §3)
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — consent gate 述語の供給(プロダクト分析は述語が真の間だけ島が mount される)
-- [0080-error-handling.md](0080-error-handling.md) — エラー分類センチネル / redact(client エラーの分類・masking)
-- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) — 中継エンドポイントの保護(§5 の委譲先)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — client→BFF fetch 経路(送信の実装層)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — secret 非露出 / BFF runtime config(BFF 中継の根拠)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + vendor-independent 正当化(RUM 経路の正当性の土台)
+- [0081-observability-logging.md](0081-observability-logging.md) — browser → BFF relay seam / OTLP only / SaaS not bundled. This ADR makes those paths concrete
+- [0101-performance-budget.md](0101-performance-budget.md) — CWV as primary metric / lab measurement. This ADR complements it with the field-value (RUM) collection path
+- [0131-cookie-consent.md](0131-cookie-consent.md) — consent gate scope = behaviour tracking (product analytics) / the distinction from operational telemetry (RUM / client errors)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/client` (the home of the paths where **this app assembles the sends**; the tag manager is not placed here — §3)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — supply of the consent gate predicate (product analytics: the island is mounted only while the predicate is true)
+- [0080-error-handling.md](0080-error-handling.md) — error classification sentinels / redaction (classification and masking of client errors)
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) — protection of the relay endpoint (where §5 delegates)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the client → BFF fetch path (the implementation layer of sending)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — not exposing secrets / BFF runtime config (grounds for the BFF relay)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance + vendor-independent justification (the foundation of the RUM path's validity)

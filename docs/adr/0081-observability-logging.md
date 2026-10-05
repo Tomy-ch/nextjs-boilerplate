@@ -1,89 +1,89 @@
-# 観測性・ロギング
+# Observability and Logging
 
-[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) で枠を予約した **`logging` / `observability` カーネル** の中身を確定する。**構造化ログ / OTel(vendor-neutral OTLP)/ シグナル別 config gating / trace 相関 / ブラウザ側テレメトリの扱い** を定める。
+Settles the contents of the **`logging` / `observability` kernels**, whose frames were reserved by [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md). It defines **structured logs / OTel (vendor-neutral OTLP) / per-signal config gating / trace correlation / the handling of browser-side telemetry**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-構造化ログのスキーマ・出力先(ブラウザ → BFF 中継 vs 直接 SaaS)・観測性 SaaS SDK の採否・trace ID 伝播は、決めずに置くと feature ごとに vendor SDK を直接 import する形で散る。本 ADR がこれらを確定する。
+Left undecided, the schema of structured logs, the destination (browser → BFF relay vs direct to SaaS), whether to adopt observability SaaS SDKs and the propagation of trace IDs scatter into a shape where each feature imports a vendor SDK directly. This ADR settles them.
 
-logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠蔽)** で提供し、observability は **vendor-neutral OTLP-only** / **シグナル別 config gating** / **公式 semconv のみ** で構成する —— vendor SDK をアプリコードが直接持つと差し替えが構造的に不可能になり、signal ごとに切れないと「trace だけ止める」が「全部止める」になる。本 ADR はこの構造を表示層(サーバ + ブラウザ)へ敷く。
+Logging is provided through **an abstract `Logger` interface (ctx-native, hiding the implementation library)**, and observability is built from **vendor-neutral OTLP only** / **per-signal config gating** / **official semconv only** — if application code holds vendor SDKs directly, swapping becomes structurally impossible, and if it cannot be cut per signal, "stop only traces" becomes "stop everything". This ADR lays this structure over the presentation layer (server + browser).
 
-## 決定
+## Decision
 
-### 1. 構造化ログ(`logging` カーネル)
+### 1. Structured logs (the `logging` kernel)
 
-- ログは **抽象ロガー interface** 経由とし、実装(pino 等)をアプリコードから隠蔽する(実装ライブラリは [0004](0004-library-management.md) で確定)
-- **ctx-native**: ロガーは実行コンテキスト(サーバは `AsyncLocalStorage` 等の request context)から **`trace_id` / `span_id` を自動注入**する(caller は明示的に渡さない)
-- レベルは Debug / Info / Warn / Error。**出力先は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.md))
-- **出力形式はどの環境でも JSON だけである。** 人が読みやすい整形は受け取る側(ログを表示・転送する側)の仕事とし、本体は環境で形式を切り替えない。形式が環境で分かれると、開発で見た行と配信で集めた行が別物になり、その差は配信へ出るまで現れない
-- **ログキーの表を 1 箇所に集約**する(`src/logging/logger.ts` の `LogFieldKey`)。表が持つのは `trace_id` / `span_id` / `request_id` / `error_code` / `latency_ms` / `cause` と、例外の内容を載せる OpenTelemetry semconv の `exception.type` / `exception.message` / `exception.stacktrace` である。**公式 semconv に名前がある項目はその名前を使い**、独自の名前(`error_message` 等)を立てない。表に無い名前も渡せる
-- **PII / token / password をログに出さない**(masking。[0080](0080-error-handling.md) の redact と一致)。`console.log` はコミットに残さない([0002](0002-formatter-linter.md) `noConsole`)
-- **伏せるのは名前で決め、値の形は見ない。** 値から秘密を見分けようとすると、見分けられなかったものが素通りし、見分けられたつもりのものが偽の安心になる。伏せる項目名の表はコード(`src/logging`)が持ち、名前に当たる値は形を問わず伏せる
+- Logs go through **an abstract logger interface**, hiding the implementation (pino, etc.) from application code (the implementation library is settled in [0004](0004-library-management.md))
+- **ctx-native**: the logger **automatically injects `trace_id` / `span_id`** from the execution context (on the server, a request context such as `AsyncLocalStorage`) (the caller does not pass them explicitly)
+- Levels are Debug / Info / Warn / Error. **The destination is decided by injection** (the logging kernel does not read config directly; [0021](0021-frontend-responsibility.md))
+- **The output format is JSON only, in every environment.** Human-friendly formatting is the job of the receiving side (whatever displays or forwards the logs), and the core does not switch formats by environment. If the format split by environment, the lines seen in development and the lines collected in production would be different things, and the difference would not show until production
+- **The table of log keys is gathered in one place** (`LogFieldKey` in `src/logging/logger.ts`). The table holds `trace_id` / `span_id` / `request_id` / `error_code` / `latency_ms` / `cause`, and the OpenTelemetry semconv `exception.type` / `exception.message` / `exception.stacktrace` that carry an exception's contents. **Where official semconv has a name for an item, that name is used**, and no names of our own (`error_message`, etc.) are set up. Names not in the table can also be passed
+- **PII / tokens / passwords are not put in logs** (masking; consistent with the redaction of [0080](0080-error-handling.md)). `console.log` is not left in commits ([0002](0002-formatter-linter.md) `noConsole`)
+- **What is masked is decided by name; the shape of the value is not examined.** Trying to tell secrets apart from values lets what could not be told apart pass straight through, and what was thought to be told apart becomes false reassurance. The table of field names to mask is held by code (`src/logging`), and values under those names are masked regardless of shape
 
-### 2. OTel(`observability` カーネル)= vendor-neutral OTLP-only
+### 2. OTel (the `observability` kernel) = vendor-neutral OTLP only
 
-- テレメトリの export transport は **OTLP に固定**する。**アプリコード(`features` / `components` / `model` 等の内層)は vendor SDK を import しない**。vendor SDK を使う場合でもそれは `observability` カーネルの **OTLP / OTel exporter 実装**として境界の裏に閉じ込め(§6)、vendor-specific なルーティング / 認証は **Collector / Agent 側 or その exporter 実装内**に置く
-- resource attribute は **公式 semconv のみ**(`service.name` / `deployment.environment.name` / `service.version` 等)。custom / vendor-specific キーを typed config に入れない
-- W3C `TraceContext` + `Baggage` を伝播規約とする(サービス境界越えの trace 伝播)。外向き `fetch` への注入先は **backend API の origin に限定**し、IdP など別の接続先へ `Baggage` を渡さない
-- **span にもログと同じ redaction を掛ける**(上記 1 の PII / token / password 規則は span 属性と span 名の双方に及ぶ)。
-- **query 文字列は span から落とさない。** 秘匿すべき値を query へ載せていること自体が誤りであり、そこに置いた時点でブラウザの履歴・リファラ・経路上のアクセスログへ残っている。trace で伏せても守るものが無く、代わりに「どの条件の要求が遅いか」を追えなくする。
-- **span 名には query を載せない。** これは秘匿ではなく**集約**の要求である —— 条件は要求ごとに違うので、名前に含めると同じ経路の要求が別の名前へ散り、名前を単位にした集計が成り立たなくなる。条件そのものは属性(`url.full` / `url.query`)に残るので、1 件ずつ辿るときは読める。
+- The export transport for telemetry is **fixed to OTLP**. **Application code (inner layers such as `features` / `components` / `model`) does not import vendor SDKs**. Even when a vendor SDK is used, it is confined behind the boundary as an **OTLP / OTel exporter implementation** of the `observability` kernel (§6), and vendor-specific routing / authentication is placed **on the Collector / Agent side or inside that exporter implementation**
+- Resource attributes are **official semconv only** (`service.name` / `deployment.environment.name` / `service.version`, etc.). Custom / vendor-specific keys are not put in typed config
+- W3C `TraceContext` + `Baggage` is the propagation convention (trace propagation across service boundaries). Injection into outbound `fetch` is **limited to the backend API's origin**, and `Baggage` is not passed to other destinations such as the IdP
+- **Spans get the same redaction as logs** (the PII / token / password rule of 1 above covers both span attributes and span names).
+- **Query strings are not dropped from spans.** Putting a value that should be secret in the query is itself the mistake, and the moment it is placed there it remains in the browser history, the referrer and access logs along the path. Masking it in the trace protects nothing, and instead makes it impossible to trace "which conditions make a request slow".
+- **The query is not put in span names.** This is a requirement of **aggregation**, not secrecy — conditions differ per request, so including them in the name scatters requests on the same route across different names, and aggregation by name stops working. The conditions themselves remain in attributes (`url.full` / `url.query`), so they can be read when following one request at a time.
 
-### 3. シグナル別 config gating
+### 3. Per-signal config gating
 
-- traces / metrics / logs を **`OBS_*` config(`OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER`)で個別に on/off** する。送り先の endpoint は `OBS_*` に改名せず、OTel の標準名 `OTEL_EXPORTER_OTLP_ENDPOINT` で受ける([0028](0028-naming-convention.md) の標準名の例外)。専用 enable flag は持たず、**exporter 値が non-empty かつ `none` でなければ enabled** と derive する
-- **何を計装するかは transport と別の軸で持つ**。描画の計装は `OBS_RENDER_SPANS`(`none` / `screen` / `part`)で範囲を選び、起動境界から注入する。exporter の無効化を計装の無効化の代わりに使えない —— `OBS_TRACES_EXPORTER=none` でも他の signal が有効なら SDK は tracer provider を立て、span は記録されたうえで捨てられる(成果物だけがゼロになり計装のコストは残る)
-- gating は **構築時**に効かせる(disabled シグナルは exporter / batcher / reader を一切作らない)。config は [0030](0030-environment-variable-management.md) の型付き Config で供給し、`observability` は config を注入で受ける([0021](0021-frontend-responsibility.md))
-- **`logging` は `observability` を import しない**(依存方向を逆転させない)。trace 抽出は `observability` が提供する抽出器を logging へ**注入**する
+- Traces / metrics / logs are **turned on/off individually by `OBS_*` config (`OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER`)**. The destination endpoint is not renamed to `OBS_*` and is received under OTel's standard name `OTEL_EXPORTER_OTLP_ENDPOINT` (the standard-name exception of [0028](0028-naming-convention.md)). There is no dedicated enable flag; **enabled is derived as the exporter value being non-empty and not `none`**
+- **What to instrument is held on an axis separate from the transport**. Rendering instrumentation selects its range with `OBS_RENDER_SPANS` (`none` / `screen` / `part`) and is injected from the boot boundary. Disabling the exporter cannot be used in place of disabling instrumentation — even with `OBS_TRACES_EXPORTER=none`, if another signal is enabled the SDK sets up a tracer provider, and spans are recorded and then discarded (only the output drops to zero; the cost of instrumentation remains)
+- Gating takes effect **at construction time** (a disabled signal creates no exporter / batcher / reader at all). Config is supplied as the typed Config of [0030](0030-environment-variable-management.md), and `observability` receives config by injection ([0021](0021-frontend-responsibility.md))
+- **`logging` does not import `observability`** (the dependency direction is not inverted). For trace extraction, the extractor provided by `observability` is **injected** into logging
 
-### 4. ログと trace の相関
+### 4. Correlating logs and traces
 
-- active trace context を持つログ行に `trace_id` / `span_id` を載せ、backend で同一 trace に揃える(上記 1 の ctx-native 注入 + OTLP log export)。相関は上記の signal gate が支配する
+- Log lines that have an active trace context carry `trace_id` / `span_id`, lining them up on the same trace in the backend (the ctx-native injection of 1 above + OTLP log export). Correlation is governed by the signal gate above
 
-### 5. ブラウザ側テレメトリの扱い(表示層固有)
+### 5. Handling browser-side telemetry (specific to the presentation layer)
 
-**server 常駐の OTel exporter / batch 処理 / shutdown hook** を前提にした構成は、Next.js のブラウザ・serverless / edge には**そのまま載らない**ため、以下の形を採る:
+A configuration that assumes **a server-resident OTel exporter / batch processing / shutdown hooks** **does not carry over as is** to Next.js's browser, serverless or edge, so the following shape is adopted:
 
-- **サーバ側(Node runtime)**: 上記 1〜4 の pino + otel-js 相当を適用。serverless では長寿命 exporter を前提にせず、リクエスト境界での flush / OTLP 送信を基本とする
-- **ブラウザ側テレメトリは BFF 中継を seam とする**: クライアントで計測した値は **`/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export** する(ブラウザから直接 SaaS / collector へ送らない)。これは [0030](0030-environment-variable-management.md) の「secret を `NEXT_PUBLIC_` に出さない」「BFF runtime config」と整合し、vendor lock-in も避ける。vendor SDK を使う場合も、ブラウザ→SaaS の直送でなく **自ドメイン `/api/*` 経由のリレー**でこの seam を保つ
-- **ブラウザ側も OTel の SDK で計装する**: ブラウザは自分で span を作り、それを上記の中継へ流す。中継が受けるのは OTLP そのもので、サーバは読み替えずに collector へ渡す。**送り先だけがブラウザから見えない** —— collector の endpoint も資格情報もサーバ側に留まり、seam は変わらない。ブラウザは自分の trace を始めず、サーバが配った `traceparent` を親に取る(これが無いと、ブラウザ発の記録は中継要求の span に紐づき、測定が起きていない要求と親子になる)。**計装は最初の描画の後に読み込む** —— 計測のための資材を初期の読み込みへ載せると、測っている当のものを悪くする
+- **Server side (Node runtime)**: apply the equivalent of pino + otel-js from 1–4 above. On serverless, a long-lived exporter is not assumed; flush / OTLP send at the request boundary is the baseline
+- **Browser-side telemetry uses the BFF relay as its seam**: values measured on the client are **sent to the server via `/api/*` (BFF) and exported over OTLP on the server side** (not sent directly from the browser to a SaaS / collector). This is consistent with [0030](0030-environment-variable-management.md)'s "do not expose secrets in `NEXT_PUBLIC_`" and "BFF runtime config", and also avoids vendor lock-in. Even when a vendor SDK is used, this seam is kept as **a relay via the own domain's `/api/*`** rather than browser → SaaS directly
+- **The browser side is also instrumented with the OTel SDK**: the browser creates its own spans and sends them through the relay above. What the relay receives is OTLP itself, and the server passes it to the collector without reinterpreting it. **Only the destination is invisible to the browser** — the collector endpoint and credentials stay on the server side, and the seam does not change. The browser does not start its own trace; it takes the `traceparent` the server handed out as its parent (without it, browser-originated records would hang off the relay request's span and become children of a request in which no measurement happened). **Instrumentation is loaded after the first render** — putting the assets for measurement into the initial load worsens the very thing being measured
 
-### 6. 観測性バックエンド = OTLP/OTel(vendor-neutral・vendor SDK 非同梱)
+### 6. Observability backend = OTLP/OTel (vendor-neutral, vendor SDKs not bundled)
 
-観測性の export transport は **OTLP / OTel 一本**(vendor-neutral)とし、**特定の観測性 / RUM SaaS SDK(Sentry / Datadog 等)を本体に同梱しない**(用途依存)。**撤回条件は、OTLP で表現できない観測面が実測で見つかったとき** —— そのベンダーの SDK を通してしか取れない情報が、運用上どうしても要ると言えるとき。**「導入が速いこと」は条件にならない** —— 速さは vendor 直参照の恒久コストと釣り合わない。エラー通知・アラート等の運用機能は、向け先に選んだ **OTLP 互換バックエンド**(任意の OTLP Collector / SaaS = Grafana / Honeycomb / Datadog / Sentry 等)側で行う —— vendor SDK を同梱してまで本体が持つべき運用機能は無く、向け先の側で足りる。本体は OTLP export の口だけを持ち、vendor 固有 SDK に依存しない。
+The export transport for observability is **OTLP / OTel only** (vendor-neutral), and **no particular observability / RUM SaaS SDK (Sentry / Datadog, etc.) is bundled in the core** (it depends on the use case). **The reversal condition is when an observability surface that cannot be expressed in OTLP is found by measurement** — when information obtainable only through that vendor's SDK can be said to be operationally indispensable. **"Faster to introduce" is not a condition** — speed does not balance the permanent cost of direct vendor references. Operational features such as error notification and alerting are done on the side of the **OTLP-compatible backend** chosen as the destination (any OTLP Collector / SaaS = Grafana / Honeycomb / Datadog / Sentry, etc.) — there is no operational feature the core should own badly enough to bundle a vendor SDK, and the destination side suffices. The core holds only the OTLP export endpoint and does not depend on vendor-specific SDKs.
 
-- **差し替え可能性([0010](0010-standards-and-non-lockin.md))**: OTLP / OTel semconv は W3C / CNCF の公開標準であり、向け先を任意の OTLP バックエンドへ変えられる。vendor SDK を本体に持たないため lock-in が構造的に生じない(設計者が選択主体)。
-- vendor SDK を使う場合は、それを `observability` カーネルの **OTLP / OTel exporter 実装**として境界の裏に閉じ込める(アプリコードは `observability` の公開面〈構造的型〉に依存。vendor 具象を `features` / `components` / `model` へ散らさない。[0021](0021-frontend-responsibility.md))。導入時は exact-pin + `pnpm audit`([0004](0004-library-management.md))。
+- **Swappability ([0010](0010-standards-and-non-lockin.md))**: OTLP / OTel semconv are public W3C / CNCF standards, and the destination can be changed to any OTLP backend. The core holds no vendor SDK, so lock-in structurally does not arise (the designer is the one who chooses).
+- When a vendor SDK is used, it is confined behind the boundary as an **OTLP / OTel exporter implementation** of the `observability` kernel (application code depends on the public surface (structural types) of `observability`; vendor concretes are not scattered across `features` / `components` / `model`; [0021](0021-frontend-responsibility.md)). On introduction: exact pin + `pnpm audit` ([0004](0004-library-management.md)).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ **`features` / `components` / `model` から vendor 観測性 SDK(`@sentry/*` 等)を直接 import すること**(vendor 直参照を散らさない。vendor SDK の配線は `observability` / `adapters` / 起動境界に限る = §6 / [0010](0010-standards-and-non-lockin.md) / [0021](0021-frontend-responsibility.md))（強制: 散文 —— **一部寄せられる**。既知の vendor SDK（`@sentry/*` 等）は `features` / `components` / `model` への `no-restricted-imports` で落とせるが規則は無い。未知のパッケージが観測性 SDK かは名前からは決まらない）
-- ❌ vendor 具象へアプリコードを直結し **差し替え不能にすること**(依存先は `observability` カーネルの公開面。OTLP / OTel 骨格を迂回して vendor 固有機能へロックインしない)（強制: 散文 —— **寄せられない**。依存が vendor 固有機能へのロックインかは機能の意味で決まり、import の形からは決まらない）
-- ❌ custom / vendor-specific な semconv キーを typed config に入れること(公式 semconv のみ)（強制: 散文 —— **一部寄せられる**。`resourceFromAttributes` へ渡すキーが `@opentelemetry/semantic-conventions` の `ATTR_*` 以外なら落とす形は書けるが規則は無い。typed config の値が公式 semconv に当たるかは意味で決まる）
-- ❌ `logging` が `observability` を import すること(依存逆転。trace 抽出は注入で受ける)（強制: ESLint boundaries（`architecture.ts` の `DEPENDENCIES` が `logging` に import 先を持たせない））
-- ❌ 起動境界からの注入をモジュール変数へ置くこと(Next は起動境界と RSC を別のモジュールグラフとして組み、同じファイルが 1 プロセス内で 2 回インスタンス化される。realm を共有する registered symbol で渡す)（強制: 散文 —— **寄せられない**。モジュール変数が起動境界からの注入を持つかは代入元の経路で決まり、宣言の形からは決まらない）
-- ❌ `logging` / `observability` カーネルが config を直読すること(注入で受ける。直読は config カーネルのみ = [0030](0030-environment-variable-management.md)。vendor の DSN / endpoint も typed config 経由)（強制: ESLint boundaries（`DEPENDENCIES` が `logging` / `observability` に `config` を持たせない）と `no-restricted-syntax`（`process` の直読を `NODE_RUNTIME_ACCESS` の外で落とす））
-- ❌ ブラウザから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)（強制: `src/config/security-headers/security-headers.test.ts`（CSP の `connect-src` を `'self'` とバックエンドの origin に固定する）と E2E の `securitypolicyviolation` の見張り）
-- ❌ PII / token / password をログに出すこと / `console.log` をコミットに残すこと([0002](0002-formatter-linter.md))
+- ❌ **Importing a vendor observability SDK (`@sentry/*`, etc.) directly from `features` / `components` / `model`** (do not scatter direct vendor references; wiring vendor SDKs is limited to `observability` / `adapters` / the boot boundary = §6 / [0010](0010-standards-and-non-lockin.md) / [0021](0021-frontend-responsibility.md)) (Enforcement: Prose — **partly mechanizable**. Known vendor SDKs (`@sentry/*`, etc.) could be rejected with `no-restricted-imports` on `features` / `components` / `model`, but no rule exists. Whether an unknown package is an observability SDK is not determined by its name)
+- ❌ Wiring application code directly to vendor concretes and **making it unswappable** (the dependency target is the public surface of the `observability` kernel; do not bypass the OTLP / OTel skeleton and lock in to vendor-specific features) (Enforcement: Prose — **not mechanizable**. Whether a dependency is lock-in to a vendor-specific feature is decided by the meaning of the feature, not by the shape of the import)
+- ❌ Putting custom / vendor-specific semconv keys into typed config (official semconv only) (Enforcement: Prose — **partly mechanizable**. A check rejecting keys passed to `resourceFromAttributes` that are not `ATTR_*` of `@opentelemetry/semantic-conventions` could be written, but no rule exists. Whether a typed config value corresponds to official semconv is decided by meaning)
+- ❌ `logging` importing `observability` (dependency inversion; trace extraction is received by injection) (Enforcement: ESLint boundaries (`DEPENDENCIES` in `architecture.ts` gives `logging` no import targets))
+- ❌ Putting injection from the boot boundary into a module variable (Next assembles the boot boundary and RSC as separate module graphs, and the same file is instantiated twice within one process; pass it via a registered symbol, which shares the realm) (Enforcement: Prose — **not mechanizable**. Whether a module variable holds injection from the boot boundary is decided by the path of what is assigned to it, not by the shape of the declaration)
+- ❌ The `logging` / `observability` kernels reading config directly (receive it by injection; only the config kernel reads directly = [0030](0030-environment-variable-management.md); vendor DSNs / endpoints also go through typed config) (Enforcement: ESLint boundaries (`DEPENDENCIES` does not give `logging` / `observability` access to `config`) and `no-restricted-syntax` (rejects direct reads of `process` outside `NODE_RUNTIME_ACCESS`))
+- ❌ Sending telemetry directly from the browser to a SaaS (BFF relay seam; keep going through the own domain even when using a vendor SDK) (Enforcement: `src/config/security-headers/security-headers.test.ts` (pins CSP `connect-src` to `'self'` and the backend's origin) and the E2E watch for `securitypolicyviolation`)
+- ❌ Putting PII / tokens / passwords in logs / leaving `console.log` in commits ([0002](0002-formatter-linter.md))
 
-## 補足
+## Notes
 
-- 本 ADR は logging と observability を 1 本にまとめて定める。両者は別カーネルだが、trace 相関(§4)と redaction(§1 / §2)が両方をまたぐため、分けると同じ規則を 2 箇所に書くことになる
+- This ADR defines logging and observability together in one. They are separate kernels, but trace correlation (§4) and redaction (§1 / §2) span both, so splitting them would mean writing the same rules in two places
 
-## 関連 ADR
+## Related ADRs
 
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `logging` / `observability` カーネル(config は注入で受ける)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — `OBS_*` config の供給 / BFF runtime config / secret 非露出
-- [0028-naming-convention.md](0028-naming-convention.md) — OTel の標準名(`OTEL_EXPORTER_OTLP_ENDPOINT` 等)を `{SUBSYSTEM}_{NAME}` へ改名しない例外
-- [0080-error-handling.md](0080-error-handling.md) — エラーログのレベル(5xx=error / 4xx=warn)・redact(本 ADR がスキーマ・trace 相関を定める)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — fetch wrapper のログ / trace 伝播 / ブラウザ→BFF 中継の実装層
-- [0082-client-observability.md](0082-client-observability.md) — ブラウザ発の経路(trace / RUM / client エラー / プロダクト分析)の具体化
-- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) — 中継 seam が生む公開エンドポイントの保護
-- [0002-formatter-linter.md](0002-formatter-linter.md) — `noConsole`(console.log 抑止)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — vendor-independent 正当化 / 差し替え可能性(vendor SDK を抜いても正当・OTLP 経由で非ロックイン)
-- [0004-library-management.md](0004-library-management.md) — vendor 観測性 SDK を導入する場合の exact-pin + `pnpm audit`
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `observability` / `adapters` 境界(vendor SDK を裏に閉じ込める先)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the `logging` / `observability` kernels (config received by injection)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — supply of `OBS_*` config / BFF runtime config / not exposing secrets
+- [0028-naming-convention.md](0028-naming-convention.md) — the exception that OTel standard names (`OTEL_EXPORTER_OTLP_ENDPOINT`, etc.) are not renamed to `{SUBSYSTEM}_{NAME}`
+- [0080-error-handling.md](0080-error-handling.md) — error log levels (5xx=error / 4xx=warn) and redaction (this ADR defines the schema and trace correlation)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — logging / trace propagation in the fetch wrapper / the implementation layer of the browser → BFF relay
+- [0082-client-observability.md](0082-client-observability.md) — making the browser-originated paths concrete (trace / RUM / client errors / product analytics)
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) — protection of the public endpoint produced by the relay seam
+- [0002-formatter-linter.md](0002-formatter-linter.md) — `noConsole` (suppressing console.log)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — vendor-independent justification / swappability (valid with vendor SDKs removed; no lock-in via OTLP)
+- [0004-library-management.md](0004-library-management.md) — exact pin + `pnpm audit` when introducing a vendor observability SDK
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — the `observability` / `adapters` boundary (where vendor SDKs are confined)

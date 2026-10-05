@@ -1,0 +1,57 @@
+> **このファイルは [`0076-payment-ui-seam.md`](0076-payment-ui-seam.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `0076-payment-ui-seam.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `0076-payment-ui-seam.md` だけです。このファイルは人間が読むための翻訳です。
+
+# 決済 UI seam(mount seam と PCI 境界)
+
+決済(Stripe Elements / PayPal / Adyen 等)を **本体非同梱(exclusion)** としたうえで、決済を採用したときに乗る **フロント領域の mount seam**(SDK の DOM マウント点 + client_secret 受け渡しエンドポイント)と、**別ドメイン(backend / PSP)の PCI 境界 seam**(生カード情報をフロントに持たせない = PCI SAQ-A 相当)を分けて明文化する。
+
+## Status
+
+Accepted
+
+## 背景
+
+[0070](0070-backend-role-separation.ja.md) が `/api/*` を **thin proxy** に限定し、[0071](0071-bff-api-integration.ja.md) の fetch wrapper が JSON API を前提とするため、決済 UI は両者のどちらにも乗らない:
+
+- 決済 SDK(Stripe Elements / PayPal Buttons / Adyen Drop-in 等)を本体非同梱とする **exclusion の宣言**が要る(i18n / PWA / 同意と同じく明文で持つ)。
+- 採用時の seam(外部スクリプト方針・PCI 上フロントに置いてよい範囲・BFF 中継の要否)を定めておかないと、SDK が feature へ直接組み込まれる。
+
+決済は性質の異なる 2 ドメインに割れる(フロントの UI マウント面 / backend・PSP の PCI 準拠面)。本 ADR は [0010](0010-standards-and-non-lockin.ja.md) の 2 原則(§1 デファクトへの準拠 / §2 vendor-independent な正当性材料の必須化)と、**境界判定**(「別ドメイン(infra / backend)の責務か?」の一問)を各面に通して仕分ける。
+
+## 決定
+
+決済は 2 つのドメインに割れる。**境界判定**を各面に通す。
+
+### 1. フロント領域 = 決済 SDK の UI マウント seam
+
+決済 SDK(Stripe Elements / PayPal Buttons / Adyen Drop-in 等)は **本体非同梱(exclusion)** とし、採用したときに乗る **mount seam**(SDK が iframe / redirect を差し込む DOM マウント点 + client_secret 等の受け渡しエンドポイント)だけを名前付きで敷く。**デフォルトは決済画面を PSP 側へ遷移させる(redirect)か、backend / BFF 経由で操作する構成**であり、本体の配信ヘッダはその前提で閉じている —— iframe を差す SDK を採るなら、[0111](0111-csp-security-headers.ja.md) の `Cross-Origin-Embedder-Policy` と `Permissions-Policy` の `payment` を開ける判断を伴う。
+
+- 外部スクリプトの読込は [0131](0131-cookie-consent.ja.md)(同意ゲート)と CSP([0111](0111-csp-security-headers.ja.md))に連動させる。決済 SDK の `<script>` は同意 / CSP 許可の下でのみロードする(サードパーティスクリプト規約 = `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」と一貫させる)。
+
+### 2. 別ドメイン(backend / PSP)= PCI 境界 seam で切る
+
+決済処理・金額確定・冪等性・**PCI-DSS 準拠範囲**は backend / PSP の責務。フロントは **生カード情報に触れない**構成(SDK が iframe / redirect でカードデータを隔離し、フロント JS がカード番号・CVC を保持しない = PCI SAQ-A 相当)に留める。PaymentIntent 等の作成は backend、フロントは client_secret / トークンの受け取りのみ(受け取りエンドポイントは `adapters/server`)。
+
+- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.ja.md))**: 「カードデータをフロント JS から隔離する」構造は PCI SSC が定める規格(SAQ-A / iframe 隔離)であって特定 PSP(Stripe / PayPal / Adyen)に依存しない(PSP を抜いても「フロントは生カード情報を持たない」は正当)。本リポジトリが固定するのは mount seam の形だけで、PSP・実装詳細は用途依存とする([0070](0070-backend-role-separation.ja.md) の認証 out-of-scope と同型)。
+
+## 禁止事項
+
+- ❌ 決済 SDK を本リポジトリに同梱すること / 特定 PSP を本体前提に組み込むこと(mount seam のみ・SDK と PSP は用途依存)（強制: 持たない —— 採らない決定。決済 SDK と PSP は依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
+- ❌ フロント JS で生カード情報(カード番号 / CVC)を保持・送信する構成にすること(SDK の iframe / redirect 隔離 = PCI SAQ-A 相当を破る)（強制: 散文 —— **一部寄せられる**。カード番号・CVC の入力欄（`autocomplete="cc-number"` / `cc-csc`）を画面に置く形は JSX で検出できるが規則は無い。値がカード情報かは意味で決まり、欄の形からは決まらない）
+- ❌ 決済 SDK の外部スクリプトを同意 / CSP ゲートの外でロードすること([0131](0131-cookie-consent.ja.md) / [0111](0111-csp-security-headers.ja.md))
+
+## 補足
+
+- **タクソノミー**([0140](0140-documentation-operations.ja.md)): 本 ADR は exclusion(決済 SDK 非同梱)に属する。日常強制される rule(サードパーティスクリプト規約)は `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」が持ち、本 ADR から逆参照する。
+
+## 関連 ADR
+
+- [0075-file-upload-seam.md](0075-file-upload-seam.ja.md)— ファイルアップロード seam(同じ境界判定で仕分けた隣接主題)
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.ja.md)— BFF abuse 保護(infra 境界 seam。同じ境界判定の兄弟)
+- [0070-backend-role-separation.md](0070-backend-role-separation.ja.md)— `/api/*` = thin proxy / 契約 SSOT(決済処理・PCI 準拠が backend 責務であることの親決定)
+- [0071-bff-api-integration.md](0071-bff-api-integration.ja.md)— fetch wrapper(JSON 前提)/ `adapters` の resilience(client_secret 受け取りエンドポイントの土台)
+- [0131-cookie-consent.md](0131-cookie-consent.ja.md)— 同意ゲート(決済 SDK 外部スクリプトの読込条件)
+- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md)— CSP / `Cross-Origin-Embedder-Policy` / `Permissions-Policy`(iframe を差す SDK を採るときに開ける先)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.ja.md)— 標準準拠 + vendor-independent 正当性(PCI SAQ-A の正当化の土台)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.ja.md)— `adapters` server / client 2 分割(client_secret / トークンの受け取り = server 側)

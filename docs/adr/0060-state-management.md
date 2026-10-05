@@ -1,134 +1,134 @@
-# 状態管理方針
+# State Management Policy
 
-状態管理について、**Server state の既定 / Client state の起点(local-first)/ form state ライブラリ・横断 client 状態ライブラリの採用** を定める。
+For state management, this ADR defines **the default for Server state / the starting point for Client state (local-first) / the adoption of a form state library and a cross-cutting client state library**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリは「一般的な Next.js アプリケーション基盤」であり、フォーム入力と横断する client 状態はどちらもその常用要件である。したがって form state = **react-hook-form + zod**(`@hookform/resolvers`)/ 横断 client 状態 = **Zustand**(家は [0023](0023-stores-kernel.md) `stores` カーネル)を本体に採用する。既定は local-first(単一 feature は local / server state は RSC fetch)であり、ライブラリはその既定の外側で要るものにだけ使う。Server state(TanStack Query 等)/ Client state(Zustand / Jotai / Context)/ Form state / URL state の使い分けを本 ADR が確定する。
+This repository is "a general Next.js application foundation", and both form input and cross-cutting client state are everyday requirements of it. Therefore form state = **react-hook-form + zod** (`@hookform/resolvers`) / cross-cutting client state = **Zustand** (its home is the [0023](0023-stores-kernel.md) `stores` kernel) are adopted in the core. The default is local-first (local for a single feature / server state via RSC fetch), and the libraries are used only for what is needed outside that default. This ADR settles how to divide Server state (TanStack Query, etc.) / Client state (Zustand / Jotai / Context) / Form state / URL state.
 
-## 決定
+## Decision
 
-### Server state = Server Component fetch 既定
+### Server state = Server Component fetch by default
 
-- サーバ由来のデータは **Server Component 内の `fetch` を既定**とする([0040](0040-routing-rendering-strategy.md))
-- クライアントでのデータ取得・キャッシュ(TanStack Query 等)は本リポジトリで前提にしない。必要な取得の編成は feature の server 関数 / `adapters` 経由([0021](0021-frontend-responsibility.md) / [0071](0071-bff-api-integration.md))で行う。キャッシュ設計は **[0071](0071-bff-api-integration.md)(BFF / API 統合)** の責務。無限スクロールの増分取得だけは、この既定に対する限定例外として [0073](0073-pagination-fetch-boundary.md) が所有する
+- Server-originated data uses **`fetch` inside Server Components by default** ([0040](0040-routing-rendering-strategy.md))
+- Client-side data fetching and caching (TanStack Query, etc.) is not presupposed in this repository. The needed orchestration of fetching goes through a feature's server functions / `adapters` ([0021](0021-frontend-responsibility.md) / [0071](0071-bff-api-integration.md)). Caching design is the responsibility of **[0071](0071-bff-api-integration.md) (BFF / API integration)**. Only incremental fetching for infinite scroll is owned by [0073](0073-pagination-fetch-boundary.md), as a limited exception to this default
 
 ### Client state = local-first
 
-- クライアント状態は **local state(`useState` / `useReducer`)を起点**とする。Context は濫用せず、真に木を跨ぐ共有が必要な範囲に限る
-- **深い受け渡しは、まず合成で解く。** 中間の部品が値を素通しするだけなら、その部品へ `children` を渡して受け渡しの経路そのものを無くす。Context を使うのは、受け取る側が木のどこに現れるか呼び出し側から決められないときに限る
-- URL state(search params / route params)は Next.js の標準機構で扱う([0040](0040-routing-rendering-strategy.md))
-- **`nuqs` 等の searchParams 同期ヘルパは採らない**。[0004](0004-library-management.md) の一次判定は通るが、一覧のフィルタ / sort / ページングは **URL 変更 → RSC 再取得**で成立しており、client state と URL を同期させる層を必要としないため。実装して不足を感じてから入れる
-- **ただし「入れない」= 各画面が独自実装してよい、ではない**。`searchParams` の標準形は**読む側と組む側の 2 か所**で持つ。読む側は `model/search-params.ts`(同じキーの繰り返しを値の意味へ直す規則。`RawSearchParams` / `singleValue` / `repeatedValues`)を通した zod スキーマで、`page.tsx` は素の `searchParams` を `RawSearchParams` のまま feature の読む module(`read-<対象>.ts`)へ渡す。組む側(URL の綴りとキーの語彙)は行き先の feature が 1 か所で持ち、読む側とは別 module にする。既定へ倒すか落とすか・URL に何を載せるかの規約は [`docs/rules.md#url`](../rules.md#url)が所有する。強制: `model/search-params` の単体テストと、各 feature の読む module の単体テスト。読む側を必ず `model/search-params` 経由にすることは散文 —— **寄せられる**(`page.tsx` の `searchParams` を `Promise<RawSearchParams>` 以外で受ける宣言と、`model/search-params` の外での `RawSearchParams` 値へのプロパティ直参照は静的に検出できるが、規則は無い)
-- 単一 feature 内で完結する状態は feature 内 local に留める(横断性が無ければ昇格しない。[0021](0021-frontend-responsibility.md) 昇格ルール)
+- Client state **starts from local state (`useState` / `useReducer`)**. Context is not overused and is limited to ranges that truly need sharing across the tree
+- **Deep passing is solved by composition first.** If intermediate components only pass a value through, pass `children` to that component and remove the passing path itself. Context is used only when the caller cannot decide where in the tree the receiving side appears
+- URL state (search params / route params) is handled with Next.js's standard mechanisms ([0040](0040-routing-rendering-strategy.md))
+- **searchParams sync helpers such as `nuqs` are not adopted**. They pass [0004](0004-library-management.md)'s primary check, but list filters / sort / paging work through **URL change → RSC refetch**, so no layer that syncs client state with the URL is needed. Bring one in after implementing and feeling a shortfall
+- **However, "not bringing it in" does not mean each screen may implement its own**. The standard form of `searchParams` is held in **two places, the reading side and the building side**. The reading side is a zod schema passed through `model/search-params.ts` (the rule that turns repetitions of the same key into the value's meaning; `RawSearchParams` / `singleValue` / `repeatedValues`), and `page.tsx` passes the raw `searchParams`, still as `RawSearchParams`, to the feature's reading module (`read-<target>.ts`). The building side (the URL's spelling and the vocabulary of keys) is held in one place by the destination feature, in a module separate from the reading side. The rules for falling back to the default or dropping, and what to put in the URL, are owned by [docs/rules.md](../rules.md#url). Enforcement: the unit tests of `model/search-params` and of each feature's reading module. Making the reading side always go through `model/search-params` is Prose — **mechanizable** (declarations that receive `page.tsx`'s `searchParams` as anything other than `Promise<RawSearchParams>`, and direct property references on `RawSearchParams` values outside `model/search-params`, can be detected statically, but no rule exists)
+- State that completes within a single feature stays local in the feature (without cross-cutting use it is not promoted; the promotion rule of [0021](0021-frontend-responsibility.md))
 
-### form state = react-hook-form + zod
+### Form state = react-hook-form + zod
 
-- フォーム状態は **react-hook-form** を採用し、バリデーションは **zod スキーマ** を `@hookform/resolvers`(`zodResolver`)で接続する。置き場は **`features` / `components`**(各フォームは feature-local。カーネルではない)
-- zod スキーマは**二層に分離**する([0062](0062-form-input-validation.md) の二層分離が権威)。client の `zodResolver` に食わせるのは **`model` の手書き表示検証スキーマ**(UX 用フィールド規則の SSOT。wire contract ではない)であり、同一の表示検証スキーマは Server Action 側の再検証でも共有できる(検証ルール・型の一元化はこの層で成立)。一方 **server との契約検証は `adapters` 境界の生成スキーマ**([0072](0072-api-type-generation.md) / [0071](0071-bff-api-integration.md))が担い、生成 wire スキーマを resolver へ直接食わせない
-- 入力状態の手法を混在させない。複数フィールド・バリデーション・エラー表示を伴うフォームは react-hook-form(client 入力状態・検証)に寄せ、ごく単純な単一入力は素の uncontrolled(`<form>` + `FormData`)のままでよい。**いずれの場合も送信そのものは [0061](0061-form-mutation-ux.md) の `<form action>` + `useActionState`(Server Actions 機構)に合流**させ、rhf で送信機構を置換して二重化しない(rhf を使う場合も `FormData` は `<form action>` 経由で Server Action へ直送)
+- Form state adopts **react-hook-form**, and validation connects **zod schemas** via `@hookform/resolvers` (`zodResolver`). Its home is **`features` / `components`** (each form is feature-local; not a kernel)
+- zod schemas are **separated into two layers** (the two-layer separation of [0062](0062-form-input-validation.md) is the authority). What is fed to the client's `zodResolver` is **the hand-written display-validation schema in `model`** (the SSOT of UX field rules; not a wire contract), and the same display-validation schema can be shared by the revalidation on the Server Action side (centralizing validation rules and types holds at this layer). On the other hand, **contract validation with the server is handled by the generated schemas at the `adapters` boundary** ([0072](0072-api-type-generation.md) / [0071](0071-bff-api-integration.md)), and generated wire schemas are not fed directly to the resolver
+- Do not mix approaches to input state. Forms with multiple fields, validation and error display go to react-hook-form (client input state and validation), and a very simple single input may stay plain uncontrolled (`<form>` + `FormData`). **In either case, submission itself merges into [0061](0061-form-mutation-ux.md)'s `<form action>` + `useActionState` (the Server Actions mechanism)**, and rhf does not replace the submission mechanism to duplicate it (even with rhf, `FormData` goes straight to the Server Action via `<form action>`)
 
-### server で処理するか client で処理するかの線引き
+### Drawing the line between server-side and client-side processing
 
-Server Actions と Server Component fetch を既定に置くのは、**画面側で面倒を見る処理をサーバへ肩代わりさせる**ためである。したがって、サーバへ寄せることがかえって処理を増やす場合、それは client の関心である。判定は難易度の感覚ではなく、次の 1 点で行う。
+Server Actions and Server Component fetch are the default in order to **offload to the server the processing the screen side would otherwise look after**. So when moving something to the server would instead increase the processing, it is a client concern. The judgment is made not by a sense of difficulty but by this one point.
 
-**その情報をサーバが持っているか。**
+**Does the server have that information?**
 
-- **状態を変える操作はサーバ**。結果の正はバックエンドが持つ([0061](0061-form-mutation-ux.md) / [0070](0070-backend-role-separation.md))
-- **表示に要るデータの取得もサーバ**。client は写しを持たない(本 ADR の既定 / [0023](0023-stores-kernel.md))
-- **画面が今どう見えているかは client**。サーバが知らず、知る必要もないもの
+- **Operations that change state are on the server**. The backend holds the authority for the result ([0061](0061-form-mutation-ux.md) / [0070](0070-backend-role-separation.md))
+- **Fetching the data needed for display is also on the server**. The client holds no copy (this ADR's default / [0023](0023-stores-kernel.md))
+- **How the screen currently looks is on the client**. Something the server does not know and does not need to know
 
-**線を越えた合図は、サーバの応答から画面の直前の姿を組み立て直す必要が出たときである。** 組み立て直しの手掛かりはサーバが一度も持っておらず、client が最初から知っている。手掛かりを client 側で番号や順序として持ち回り始めたら、それは server 主導で書けない処理を server 主導で書いている。
+**The sign that the line has been crossed is when the screen's previous appearance needs to be rebuilt from the server's response.** The clues for rebuilding were never held by the server, and the client knew them from the start. If the client side starts carrying those clues around as numbers or orderings, it is writing server-driven what cannot be written server-driven.
 
-逆向きの越境もある。**client へ持たせた時点で再取得・無効化・購読といった鮮度の管理が要るものは server の関心**であり、降ろしてはならない([0023](0023-stores-kernel.md) の 3 条件)。
+There is also crossing in the opposite direction. **Anything that, once given to the client, needs freshness management such as refetching, invalidation or subscription is a server concern** and must not be pushed down ([0023](0023-stores-kernel.md)'s three conditions).
 
-この線引きは、変更の経路と参照の経路を分ける設計と同じ発想である。**どちらにも属さない「画面の見え方」を、そのどちらかへ混ぜない。**
+This line follows the same idea as a design that separates the path of change from the path of reference. **Do not mix "how the screen looks", which belongs to neither, into either of them.**
 
-### 状態遷移を書く手段は 4 つあり、目的で使い分ける
+### There are four means of writing state transitions, used by purpose
 
-手段が重なることは問題にしない。**目的が重なったまま複数の手段を許すこと**が問題である。目的を次のとおり割り当てる。
+Means overlapping is not the problem. **Allowing several means while their purposes overlap** is the problem. Purposes are assigned as follows.
 
-| 手段 | 目的 | 使う条件 |
+| Means | Purpose | Condition for use |
 | --- | --- | --- |
-| `useState` / `useReducer` | **1 つの部品の中で完結する状態**。遷移が数個で、条件分岐を持たない | 既定。まずここから始める |
-| 判別可能 union(`ActionState<T>` 等) | **同時に立ち得ない状態を型で排他にする**。取りうる姿が有限で、姿ごとに持つ値が違う | 送信結果・取得結果のように、状態ごとに付随する値が変わるとき |
-| Zustand(`stores`) | **複数 feature が読む横断状態**。木の位置に依存せず参照したい | [0023](0023-stores-kernel.md) の受入基準を満たすとき |
-| **XState** | **遷移そのものが仕様であり、遷移の正しさを固定したい状態** | 下記 3 条件をすべて満たすとき |
+| `useState` / `useReducer` | **State that completes inside one component**. A few transitions, no conditional branching | The default. Start here |
+| Discriminated union (`ActionState<T>`, etc.) | **Making states that cannot coexist mutually exclusive in the type**. The possible shapes are finite, and each shape holds different values | When the accompanying values change per state, as with submission results and fetch results |
+| Zustand (`stores`) | **Cross-cutting state read by several features**. To be referenced independent of position in the tree | When [0023](0023-stores-kernel.md)'s acceptance criteria are met |
+| **XState** | **State where the transitions themselves are the specification and their correctness needs pinning** | When all three conditions below are met |
 
-**XState を使う条件**(すべて満たすこと)。
+**Conditions for using XState** (all must be met).
 
-1. 同一画面で **4 つ以上の状態**を持つ
-2. 遷移が**条件付き**である(同じ操作でも現在の状態によって行き先が変わる)
-3. 遷移の誤りが**利用者に見える損害**になる(二重送信・巻き戻し・到達不能な画面)
+1. The same screen has **four or more states**
+2. Transitions are **conditional** (the same operation goes to different destinations depending on the current state)
+3. A transition error becomes **damage visible to users** (double submission, rollback, unreachable screens)
 
-3 条件を満たさないものは上の 3 手段で書く。**状態が多いこと自体は理由にならない** —— 数が多くても遷移が一直線なら `useReducer` で足り、機械を持ち込むと読む側が状態表と実装を往復することになる。
+What does not meet the three conditions is written with the three means above. **Having many states is not a reason in itself** — however many there are, if the transitions are linear `useReducer` suffices, and bringing in a state machine makes readers go back and forth between the state table and the implementation.
 
-**採用の記録**: `xstate` は [0004](0004-library-management.md) の一次・二次判定を通す(責務名 = 状態遷移 / MIT / TypeScript 1st-party / React 19 対応 / 単一発行元)。**依存として追加するのは、上記条件を満たす最初の実装 PR** であり、その PR 本文に 0004 のチェックを貼る。使う先が無いまま依存だけを置かない。
+**Record of adoption**: `xstate` passes [0004](0004-library-management.md)'s primary and secondary checks (responsibility name = state transitions / MIT / TypeScript 1st-party / React 19 support / single publisher). **It is added as a dependency in the first implementation PR that meets the conditions above**, and that PR's body carries 0004's checklist. Do not place the dependency alone with nothing using it.
 
-### 状態をどこまで上げるか
+### How far to lift state
 
-**祖先は軽くする。** 根に近いほど、そこに置いた状態は下の全体を巻き込む。ページの負荷を上げないため、状態は**必要な最小の共通祖先**に置く。
+**Keep ancestors light.** The closer to the root, the more state placed there drags in everything below. To avoid raising the page's load, state is placed at **the smallest common ancestor needed**.
 
-**祖先へ置くなら、下がそれに影響されない形まで設計する。** 例外として上げる場合は、次を満たすこと。
+**If placing it in an ancestor, design down to a form where the descendants are not affected by it.** When lifting as an exception, satisfy the following.
 
-- 下の部品は、その状態を**読む必要があるものだけ**が読む(全体へ配らない)
-- 状態が変わっても、読んでいない部品の描画が変わらない
-- 器が消えても状態が失われない位置にあること —— **上げる理由が「寿命」であること**を確かめる
+- Among the components below, **only those that need to read** the state read it (it is not distributed to everything)
+- When the state changes, the rendering of components that do not read it does not change
+- It is at a position where the state is not lost when the layout shell disappears — confirm that **the reason for lifting is "lifetime"**
 
-**押し下げは再描画を理由に行わない。** 再描画の費用は計測してから手を打つものであり([0042](0042-react19-rendering-api.md))、計測の前に構造で先回りすると、寿命ではなく費用の推測で境界が決まる。押し下げる理由は寿命(その器と一緒に消えてよいか)である。
+**Do not push down on account of re-rendering.** The cost of re-rendering is something to address after measuring ([0042](0042-react19-rendering-api.md)); getting ahead of it with structure before measuring decides boundaries by guesses about cost rather than by lifetime. The reason for pushing down is lifetime (whether it may disappear together with that layout shell).
 
-### URL を正とする入力欄が持つ手元の値
+### The local value held by an input field whose authority is the URL
 
-確定した条件を URL が持ち、入力欄はその手元の写しを持つ画面では、**URL が変わったとき写しを揃え直すかどうかを、変化の出どころで決める**。
+On a screen where the URL holds the confirmed conditions and the input field holds a local copy of them, **whether to re-align the copy when the URL changes is decided by where the change came from**.
 
-- **外から変わったとき**(その入力欄以外の操作で条件が外れた等)は揃える。揃えないと、外したはずの値が入力欄に残り、効いているように見える
-- **自分が送ったものが届いただけのとき**は触らない。触ると、送信から遷移が終わるまでのあいだに打った値が、遅れて届いた自分の送信で巻き戻る
+- **When it changed from outside** (a condition was removed by an operation other than that input field, etc.), align it. Otherwise a value that was supposed to be removed stays in the input field and looks as though it is in effect
+- **When what arrived is only what it sent itself**, do not touch it. Touching it rolls back values typed between the submission and the end of the transition with its own late-arriving submission
 
-出どころを見ずに「URL が変わったら揃える」とだけ書くと後者を踏む。**送信は即座に、遷移は遅れて反映される**——この 2 つの時点がずれることが原因であり、遷移が速い環境では現れないため、実装時には気づきにくい。
+Writing only "align when the URL changes" without looking at the origin falls into the latter. **Submission is reflected immediately, the transition with a delay** — the gap between these two moments is the cause, and since it does not appear in environments with fast transitions, it is hard to notice during implementation.
 
-### 横断 client 状態 = Zustand(家は `stores` カーネル)
+### Cross-cutting client state = Zustand (its home is the `stores` kernel)
 
-- **真に横断する(複数 feature が共有する)client 状態のみ Zustand ストアへ昇格**し、家は [0023](0023-stores-kernel.md) の **`stores` カーネル** とする([0021](0021-frontend-responsibility.md) 昇格ルールの 5 つ目の出口)
-- 昇格の受入基準 = **複数 feature 参照**。単一 feature でしか使わない状態は Zustand を使わず feature 内 local に留める
-- ストアは `"use client"` 固定。server state を store に二重キャッシュしない(server state は RSC fetch / `adapters`)。詳細な責務・依存・不変条件は [0023](0023-stores-kernel.md) が所有する
+- **Only client state that is truly cross-cutting (shared by several features) is promoted to a Zustand store**, with its home in [0023](0023-stores-kernel.md)'s **`stores` kernel** (the fifth exit of the promotion rule of [0021](0021-frontend-responsibility.md))
+- The acceptance criterion for promotion = **referenced by several features**. State used only by a single feature does not use Zustand and stays local in the feature
+- Stores are fixed to `"use client"`. Server state is not double-cached in a store (server state is RSC fetch / `adapters`). Detailed responsibilities, dependencies and invariants are owned by [0023](0023-stores-kernel.md)
 
-## 標準準拠と非ロックイン([0010](0010-standards-and-non-lockin.md))
+## Standards Conformance and Non-Lock-In ([0010](0010-standards-and-non-lockin.md))
 
-採用する 3 ライブラリはいずれも [0010](0010-standards-and-non-lockin.md) の 2 原則(§1 デファクト準拠 / §2 vendor-independent 正当化)に沿って選ぶ。
+All three adopted libraries are chosen in line with the two principles of [0010](0010-standards-and-non-lockin.md) (§1 de facto conformance / §2 vendor-independent justification).
 
-- **react-hook-form**: React の de-facto フォームライブラリ。`register` / uncontrolled + resolver という標準形に乗る。vendor-independent = 入力規則は **`model` の手書き zod 表示検証スキーマが SSOT**([0062](0062-form-input-validation.md) 二層分離)であり、react-hook-form を抜いても「スキーマ検証されたフォーム状態を hook で扱う」構造は可搬(代替: TanStack Form / Formik)。uncontrolled による再描画抑制と RSC/Server Actions との親和性を独立根拠として選択
-  - **非ロックインの担保形が他 2 者と異なる(例外注記)**: react-hook-form は hook の性質上、`useForm` / `register` を **feature コンポーネントから直接呼ぶ**構造であり、Zustand(`stores` カーネル)/ date-fns(ユーティリティ)のように **vendor 直参照を 1 箇所へ局所化する**形は字義通りには成立しない。したがって rhf の非ロックインは「境界の裏に集約」ではなく、**入力規則の SSOT を zod スキーマ(`model` の表示検証スキーマ)側に置く**ことで担保する。zod スキーマは可搬な契約なので、rhf を抜いても契約(検証ルール・型)は残り、別フォームライブラリの resolver に載せ替えられる(= [0010](0010-standards-and-non-lockin.md) の運用テスト「差し替えても契約が残るか」を満たす)。散らしてはならないのは vendor API そのものではなく、**zod を経由しない独自バリデーションロジック**である(禁止事項に同旨)
-- **zod**: TypeScript-first のスキーマ検証デファクト。スキーマは可搬な契約であり、resolver 経由で他フォームライブラリにも噛む(代替: valibot / yup)。「スキーマから型と検証を導出する」構造がベンダー非依存
-- **Zustand**: 軽量 store の de-facto。`create()` + hook の標準形に乗り、Zustand を抜いても「横断 client 状態を hook で読む」構造は可搬([0023](0023-stores-kernel.md) 詳述。代替: Jotai / Redux Toolkit)
+- **react-hook-form**: React's de facto form library. It rides on the standard form of `register` / uncontrolled + resolver. Vendor-independent = the input rules have **the hand-written zod display-validation schema in `model` as the SSOT** ([0062](0062-form-input-validation.md) two-layer separation), so with react-hook-form taken out, the structure "handle schema-validated form state with hooks" is portable (alternatives: TanStack Form / Formik). Chosen on the independent grounds of re-render suppression through uncontrolled inputs and affinity with RSC / Server Actions
+  - **Its form of guaranteeing non-lock-in differs from the other two (exception note)**: by the nature of hooks, react-hook-form has a structure in which **feature components call `useForm` / `register` directly**, so the form of **localizing direct vendor references to one place**, as with Zustand (the `stores` kernel) / date-fns (utilities), does not hold literally. Therefore rhf's non-lock-in is guaranteed not by "gathering behind a boundary" but by **putting the SSOT of input rules on the zod schema (the display-validation schema in `model`)**. A zod schema is a portable contract, so with rhf taken out the contract (validation rules and types) remains and can be moved onto another form library's resolver (= satisfies [0010](0010-standards-and-non-lockin.md)'s operational test "does the contract remain when swapped"). What must not be scattered is not the vendor API itself but **validation logic of our own that does not go through zod** (to the same effect in Prohibitions)
+- **zod**: the de facto TypeScript-first schema validation. A schema is a portable contract that also engages other form libraries via resolvers (alternatives: valibot / yup). The structure "derive types and validation from a schema" is vendor-independent
+- **Zustand**: the de facto lightweight store. It rides on the standard form of `create()` + hooks, and with Zustand taken out the structure "read cross-cutting client state with hooks" is portable (detailed in [0023](0023-stores-kernel.md); alternatives: Jotai / Redux Toolkit)
 
-差し替え可能性の担保形は 2 通りに分かれる。**Zustand は vendor 直参照を `stores` カーネルに集約**([0023](0023-stores-kernel.md))して「境界の裏」に閉じる。一方 **react-hook-form は上記の例外注記のとおり、hook を feature から直接呼ぶため「境界の裏への集約」では担保できず、zod スキーマ(`model` の表示検証スキーマ)を入力規則の SSOT に置くこと**で可搬性を保つ(rhf を抜いても契約が残る)。共通するのは、いずれも [0010](0010-standards-and-non-lockin.md) の運用テスト(差し替えても契約・構造が残るか)を満たす点であり、集約の物理形ではなく可搬性の成立が判定軸である。導入は **exact-pin + `pnpm audit`**([0004](0004-library-management.md))の枠内で行う。
+The form of guaranteeing swappability splits two ways. **Zustand gathers direct vendor references into the `stores` kernel** ([0023](0023-stores-kernel.md)) and closes them "behind the boundary". On the other hand, **react-hook-form, per the exception note above, has hooks called directly from features and so cannot be guaranteed by "gathering behind the boundary"; portability is kept by putting the zod schema (the display-validation schema in `model`) as the SSOT of input rules** (the contract remains with rhf taken out). What they have in common is that both satisfy [0010](0010-standards-and-non-lockin.md)'s operational test (does the contract and structure remain when swapped); the decision axis is whether portability holds, not the physical form of gathering. Introduction is done within the frame of **exact-pin + `pnpm audit`** ([0004](0004-library-management.md)).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ TanStack Query 等のクライアント取得・キャッシュ層を本体既定として前提にすること(取得の編成は feature server 関数 / `adapters`。[0071](0071-bff-api-integration.md))（強制: 持たない —— 採らない決定。TanStack Query 等は依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
-- ❌ server state を Zustand ストアに二重キャッシュすること(server state は RSC fetch / `adapters`)（強制: ESLint boundaries（`architecture.ts` の `stores` は `adapters` を import できない）が store の中での取得を落とす。feature が取得した値を store へ入れることは散文 —— **寄せられない**。値が server 由来かは出所で決まり、store の形からは決まらない）
-- ❌ 単一 feature の状態を `stores`(Zustand)へ上げること(横断性が無ければ feature 内 local)（強制: 散文 —— **寄せられる**（`stores` の各 module を import する feature が 1 つだけかを依存グラフで数えれば落とせる。規則は無い））
-- ❌ Zustand ストアを feature / component に直書きして横断参照させること(横断は `stores` へ集約。[0023](0023-stores-kernel.md))（強制: 散文 —— **寄せられる**（`zustand` の import を `src/stores` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
-- ❌ zod を経由しない独自バリデーションロジックを各フォームに散らすこと(スキーマを SSOT にする)（強制: 散文 —— **寄せられない**。条件式が検証かどうかは意味で決まり、コードの形からは決まらない）
-- ❌ react-hook-form で送信機構そのものを置換して二重化すること(送信は [0061](0061-form-mutation-ux.md) の `<form action>` + `useActionState` に 1 本化)（強制: 散文 —— **寄せられる**（`useForm` の `handleSubmit` の呼び出しを `features` / `components` で拾えば落とせる。規則は無い））
-- ❌ 生成 wire スキーマを `zodResolver` へ直接食わせること(表示検証は `model` 手書きスキーマ / 契約検証は `adapters` 境界。[0062](0062-form-input-validation.md) / [0072](0072-api-type-generation.md))（強制: ESLint boundaries（`architecture.ts` の `adapters-gen` は `adapters` からだけ import できる）が feature / component から生成スキーマを直接引くことを落とす。`adapters` が公開した生成スキーマを resolver へ渡すことは散文 —— **寄せられない**。スキーマが生成物由来かは公開面の型に現れない）
-- ❌ 状態ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))（強制: `dependency-audit` job（`make audit`）が lockfile に届く PR で `pnpm audit` を走らせ、修正版のある high / critical を落とす。exact-pin は散文 —— **寄せられる**（`package.json` の版指定に `^` / `~` などの範囲があるかで落とせる。規則は無い））
+- ❌ Presupposing a client fetching and caching layer such as TanStack Query as the core default (orchestration of fetching goes through feature server functions / `adapters`; [0071](0071-bff-api-integration.md)) (Enforcement: none — a decision not to adopt. TanStack Query and the like are not among the dependencies; adding one shows up as a `package.json` diff and an ADR revision)
+- ❌ Double-caching server state in a Zustand store (server state is RSC fetch / `adapters`) (Enforcement: ESLint boundaries (`stores` in `architecture.ts` cannot import `adapters`) rejects fetching inside a store. A feature putting values it fetched into a store is Prose — **not mechanizable**. Whether a value is server-originated is decided by its origin, not by the shape of the store)
+- ❌ Lifting a single feature's state into `stores` (Zustand) (without cross-cutting use, local in the feature) (Enforcement: Prose — **mechanizable** (could be rejected by counting on the dependency graph whether only one feature imports each module of `stores`; no rule exists))
+- ❌ Writing Zustand stores directly in features / components and referencing them across (cross-cutting state is gathered in `stores`; [0023](0023-stores-kernel.md)) (Enforcement: Prose — **mechanizable** (could be rejected by putting imports of `zustand` into `no-restricted-imports` outside `src/stores`; no rule exists))
+- ❌ Scattering validation logic of our own that does not go through zod across forms (make the schema the SSOT) (Enforcement: Prose — **not mechanizable**. Whether a conditional expression is validation is decided by meaning, not by the shape of the code)
+- ❌ Replacing the submission mechanism itself with react-hook-form, duplicating it (submission is unified on [0061](0061-form-mutation-ux.md)'s `<form action>` + `useActionState`) (Enforcement: Prose — **mechanizable** (could be rejected by picking up calls to `useForm`'s `handleSubmit` in `features` / `components`; no rule exists))
+- ❌ Feeding generated wire schemas directly to `zodResolver` (display validation is the hand-written schema in `model` / contract validation is at the `adapters` boundary; [0062](0062-form-input-validation.md) / [0072](0072-api-type-generation.md)) (Enforcement: ESLint boundaries (`adapters-gen` in `architecture.ts` can be imported only from `adapters`) rejects features / components pulling generated schemas directly. Passing a generated schema that `adapters` exposed to a resolver is Prose — **not mechanizable**. Whether a schema derives from a generated artifact does not appear in the type of the public surface)
+- ❌ Adding a state library without exact-pin / `pnpm audit` ([0004](0004-library-management.md)) (Enforcement: the `dependency-audit` job (`make audit`) runs `pnpm audit` on PRs that reach the lockfile and rejects high / critical findings that have a fixed version. Exact-pin is Prose — **mechanizable** (could be rejected by whether a version specifier in `package.json` has a range such as `^` / `~`; no rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — 送信メカニクス(`<form action>` + `useActionState` + `useFormStatus`)。rhf の送信はここへ合流(送信機構は 1 本)
-- [0062-form-input-validation.md](0062-form-input-validation.md) — 入力検証 UX・検証の二層分離(resolver に食わせる `model` 表示検証スキーマ / `adapters` 契約検証)の権威
-- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) — 変更結果の通知 UX(`ActionState` を入力に通知手段を選ぶ層)
-- [0023-stores-kernel.md](0023-stores-kernel.md) — 横断 client 状態(Zustand)の家。責務・依存・`"use client"` 不変条件・昇格基準の SSOT
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + vendor-independent 正当化(3 ライブラリ採用の判断軸)
-- [0004-library-management.md](0004-library-management.md) — exact pin / `pnpm audit`(ライブラリ採用の枠)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Components 既定(Server state = fetch の土台)/ URL state
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 昇格ルール(横断 client 状態 → `stores` の出口)/ カーネル配置・命名規律
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — クライアント側データ取得・キャッシュ設計 / server state 境界
-- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) — 無限スクロールの増分取得(client 取得非前提の既定に対する限定例外)
-- [0011-no-docker.md](0011-no-docker.md) — 表示層ロール
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI 部品(shadcn/ui + Tabler アイコン + 複雑入力)の採用。form 部品と対で機能する
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — submission mechanics (`<form action>` + `useActionState` + `useFormStatus`). rhf's submission merges here (one submission mechanism)
+- [0062-form-input-validation.md](0062-form-input-validation.md) — the authority on input validation UX and the two-layer separation of validation (the `model` display-validation schema fed to the resolver / `adapters` contract validation)
+- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) — notification UX for mutation results (the layer that takes `ActionState` as input and chooses the notification means)
+- [0023-stores-kernel.md](0023-stores-kernel.md) — the home of cross-cutting client state (Zustand). The SSOT of responsibilities, dependencies, the `"use client"` invariant and promotion criteria
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance + vendor-independent justification (the decision axis for adopting the three libraries)
+- [0004-library-management.md](0004-library-management.md) — exact pin / `pnpm audit` (the frame for adopting libraries)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Components by default (the foundation of Server state = fetch) / URL state
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the promotion rule (the exit for cross-cutting client state → `stores`) / kernel placement and naming discipline
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — client-side data fetching and caching design / the server state boundary
+- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) — incremental fetching for infinite scroll (a limited exception to the default of not presupposing client fetching)
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adopting UI components (shadcn/ui + Tabler icons + complex inputs). Works paired with the form components

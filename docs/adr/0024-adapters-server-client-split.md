@@ -1,73 +1,73 @@
-# adapters の server/client 分割と client 側外部接続境界
+# The server/client Split of adapters and the Client-Side External Connection Boundary
 
-[0071](0071-bff-api-integration.md) が `adapters`(BFF / API 統合)の中身を、[0022](0022-capabilities-kernel.md) が `capabilities`(client runtime hook)を定める。両者を「`adapters` = 外部システム × server / `capabilities` = runtime × client」という対角線だけで対にすると、**「外部システム × client」セルが空席**になる —— ブラウザから外へ出る IO(client→BFF fetch / WebSocket・SSE / analytics・telemetry 送信)を置く家が無い。
+[0071](0071-bff-api-integration.md) sets the contents of `adapters` (BFF / API integration), and [0022](0022-capabilities-kernel.md) sets `capabilities` (client runtime hooks). Pairing the two only along the diagonal "`adapters` = external systems × server / `capabilities` = runtime × client" leaves **the "external systems × client" cell empty** — there is no home for IO that leaves the browser for the outside (client→BFF fetch / WebSocket, SSE / sending analytics or telemetry).
 
-本 ADR は、この **client 側の外部接続境界**を、`adapters` を **1 カーネル内で server / client の 2 面に分割**することで確定する。あわせて `adapters` と `capabilities` の位置づけを **2 軸モデル**で定める。ポリシー状態(consent / flag)の供給は本 ADR の adapters/client を土台に [0031](0031-policy-state-supply.md) が定める。
+This ADR settles this **client-side external connection boundary** by **splitting `adapters` into two faces, server / client, within one kernel**. Together with this, it positions `adapters` and `capabilities` with a **two-axis model**. The supply of policy state (consent / flag) is set by [0031](0031-policy-state-supply.md), building on this ADR's adapters/client.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-`adapters` を server-only とし、`capabilities` が remote IO を明示拒否し、`features` / `components` への生 fetch を [0071](0071-bff-api-integration.md) が禁止すると、client 発の外部 IO は **全出口が閉じる**。[0021](0021-frontend-responsibility.md) が `adapters` の例に挙げる「analytics 送信」も client でしか起きないため、server-only 宣言とは両立しない。client 側の外部接続には明示の置き場が要る。
+If `adapters` is server-only, `capabilities` explicitly rejects remote IO, and [0071](0071-bff-api-integration.md) prohibits raw fetch in `features` / `components`, then **every exit is closed** for external IO originating on the client. "Sending analytics", which [0021](0021-frontend-responsibility.md) gives as an example of `adapters`, also happens only on the client, so it cannot coexist with a server-only declaration. Client-side external connections need an explicit place.
 
-## 決定
+## Decision
 
-### 1. 2 軸モデル
+### 1. The Two-Axis Model
 
-境界カーネルは 2 つの軸で位置づける:
+Boundary kernels are positioned on two axes:
 
-- **WHAT**: remote 外部システム(アプリが呼び出す先)/ local runtime(アプリが動く器)
+- **WHAT**: remote external systems (what the app calls) / local runtime (the container the app runs in)
 - **WHERE**: server / client
 
 | | server | client |
 | --- | --- | --- |
-| **remote 外部システム** | `adapters/server` | `adapters/client` |
-| **local runtime** | (config / `instrumentation.ts`) | `capabilities` |
+| **Remote external systems** | `adapters/server` | `adapters/client` |
+| **Local runtime** | (config / `instrumentation.ts`) | `capabilities` |
 
-`capabilities` は `adapters` の「client ミラー」ではなく、**WHAT が異なる**(runtime 境界)。`capabilities` の実質ルール(責務・use-client・受け入れないもの)は [0022](0022-capabilities-kernel.md) が持ち、本 ADR はその位置づけを定める。
+`capabilities` is not a "client mirror" of `adapters`; **its WHAT differs** (the runtime boundary). The substantive rules of `capabilities` (responsibilities, use-client, what it does not accept) are held by [0022](0022-capabilities-kernel.md); this ADR sets its position.
 
-### 2. `adapters` を 1 カーネル内で server / client の 2 面に分割
+### 2. Splitting `adapters` into Two Faces, server / client, within One Kernel
 
-外部システム境界は **1 責務**(型変換 + resilience)であり、server / client は**実行文脈の差**。別カーネルにはしない(1 責務が 2 カーネルに割れるのを避ける)。
+The external system boundary is **one responsibility** (type conversion + resilience), and server / client is **a difference in execution context**. It is not made into separate kernels (to avoid one responsibility splitting across two kernels).
 
-**この差は境界検査の要素ではない。** 境界検査が見るのは層と区画の間だけで、`server/` と `client/` はどちらも同じ `adapters` の要素に居る。実行文脈の分離を持つのは別の軸である(下記 `server-only`)。
+**This difference is not an element of the boundary check.** The boundary check looks only between layers and areas, and both `server/` and `client/` sit in the same `adapters` element. Separation by execution context is held by a different axis (`server-only`, below).
 
 ```text
 src/adapters/
-├── gen/      区画: adapters-gen(契約からの生成物。[0072](0072-api-type-generation.md))
-├── http/     区画: adapters-http(実行文脈を持たない、両面が従う規則)
-├── server/   面: server 実行文脈(要素は adapters。区画 adapters-auth を内に持つ)
-└── client/   面: client 実行文脈(要素は adapters)
+├── gen/      area: adapters-gen (generated from the contract. [0072](0072-api-type-generation.md))
+├── http/     area: adapters-http (no execution context; rules both faces follow)
+├── server/   face: server execution context (element: adapters. contains the area adapters-auth)
+└── client/   face: client execution context (element: adapters)
 ```
 
-| 面 | 実行文脈 | import 可 | 中身 |
+| Face | Execution context | May import | Contents |
 | --- | --- | --- | --- |
-| `adapters/server` | **server-only**(`import "server-only"`) | `model` / `errors` / `logging` / **`config`(ここだけ)** | backend API client・secret 有・resilience([0071](0071-bff-api-integration.md)) |
-| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config(**server config 不可・secret 無**。client config = NEXT_PUBLIC リテラルは可) | 同一オリジン BFF fetch / WebSocket・SSE([0074](0074-runtime-communication-seam.md))/ telemetry 送信([0082](0082-client-observability.md))/ アップロード送信(ファイルの受け口([0075](0075-file-upload-seam.md))へ渡す前の選択と検証。既定は backend の受け口で決まる = [0075](0075-file-upload-seam.md))/ analytics 送信(**このアプリが送信を組み立てる場合に限る**。同梱のタグマネージャは組み立てを持たないため通らない = [0082](0082-client-observability.md))。**remote のみ** |
+| `adapters/server` | **server-only** (`import "server-only"`) | `model` / `errors` / `logging` / **`config` (only here)** | Backend API client, with secrets, resilience ([0071](0071-bff-api-integration.md)) |
+| `adapters/client` | **`"use client"`** | `model` / `errors` / `logging` / client config (**no server config, no secrets**; client config = NEXT_PUBLIC literals allowed) | Same-origin BFF fetch / WebSocket, SSE ([0074](0074-runtime-communication-seam.md)) / sending telemetry ([0082](0082-client-observability.md)) / sending uploads (selection and validation before handing a file to the receiving endpoint ([0075](0075-file-upload-seam.md)); the default is decided by the backend's receiving endpoint = [0075](0075-file-upload-seam.md)) / sending analytics (**only when this app assembles the sending**; the bundled tag manager has no assembly and does not go through here = [0082](0082-client-observability.md)). **Remote only** |
 
-- **local ブラウザ API(Web Storage・client cookie 読み)は `adapters` でなく `capabilities`**([0022](0022-capabilities-kernel.md))。clipboard と同型 = browser runtime API であり外部システムではない
-- **宛先オリジン**: 同一オリジン BFF(`/api/*`)が主経路。**同一オリジン外への送信も、ADR が明示に許す場合に限り `adapters/client` が所有する**(realtime のバックエンド直結 / managed サービス([0074](0074-runtime-communication-seam.md)))。telemetry は [0081](0081-observability-logging.md) により BFF 中継(外部直送禁止)。**タグマネージャだけは例外で、`adapters/client` を通らない** —— 読み込む口は `app` の client island が持ち、送信は容器の中身が行う([0082](0082-client-observability.md) / [0131](0131-cookie-consent.md))
-- **実行文脈を持たない規則は、面の下ではなく区画へ置く**(`src/adapters/http/`)。要求 URL の予算のように server / client のどちらの送信にも等しく効く規則は、片方の面に置くともう片方から import できず、規則が 2 つに割れる。`architecture.ts` が `adapters-http` として宣言し、`adapters` の中からだけ届く
-- `features` は両面の公開面を import 可。`capabilities` は `adapters` を import しない
-- **secret / RSC 境界は ESLint boundaries では強制しない。** 境界検査は層と区画の間しか見ておらず、server と client の区別を持たない([`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts))。強制は 2 つ —— server 専用 module が名乗る `import "server-only"` の **build-time failure** と、名乗った module が番人を持っているかを見る同ゲートである。**層の粒度では分けられない**ので、この軸を層の依存表へ足そうとしない
+- **Local browser APIs (Web Storage, reading client cookies) belong to `capabilities`, not `adapters`** ([0022](0022-capabilities-kernel.md)). The same shape as clipboard = browser runtime APIs, not external systems
+- **Destination origin**: the same-origin BFF (`/api/*`) is the main route. **Sending outside the same origin is also owned by `adapters/client`, only when an ADR explicitly allows it** (connecting realtime directly to the backend / managed services ([0074](0074-runtime-communication-seam.md))). Telemetry is relayed through the BFF per [0081](0081-observability-logging.md) (direct sending to the outside is prohibited). **The tag manager alone is an exception and does not go through `adapters/client`** — the point that loads it is held by a client island in `app`, and the sending is done by the container's contents ([0082](0082-client-observability.md) / [0131](0131-cookie-consent.md))
+- **Rules with no execution context are placed in an area, not under a face** (`src/adapters/http/`). A rule that applies equally to sending from server and client, such as the request URL budget, cannot be imported by one face if placed under the other, and the rule splits in two. `architecture.ts` declares it as `adapters-http`, reachable only from inside `adapters`
+- `features` may import the public surfaces of both faces. `capabilities` does not import `adapters`
+- **The secret / RSC boundary is not enforced by ESLint boundaries.** The boundary check looks only between layers and areas and has no distinction between server and client ([`scripts/server-only.gate.test.ts`](../../scripts/server-only.gate.test.ts)). Enforcement is twofold — the **build-time failure** of `import "server-only"` declared by server-only modules, and that same gate, which checks whether the modules declaring it have the guard. **It cannot be split at the granularity of layers**, so do not try to add this axis to the layer dependency table
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `adapters/client` に secret / server config を置くこと(client bundle 漏洩)。client config の NEXT_PUBLIC リテラルは可
-- ❌ `adapters/server` に client hook / `"use client"` を混ぜること(逆も。RSC 境界。[0040](0040-routing-rendering-strategy.md))
-- ❌ local ブラウザ API(storage / clipboard / cookie 読み)を `adapters` に置くこと(→ `capabilities`)（強制: 散文 —— **寄せられる**（`src/adapters/` 下の `localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照を `no-restricted-syntax` で落とす形。規則は無い））
+- ❌ Placing secrets / server config in `adapters/client` (leaks into the client bundle). NEXT_PUBLIC literals in client config are allowed
+- ❌ Mixing client hooks / `"use client"` into `adapters/server` (and vice versa; the RSC boundary; [0040](0040-routing-rendering-strategy.md))
+- ❌ Placing local browser APIs (storage / clipboard / reading cookies) in `adapters` (→ `capabilities`) (Enforcement: Prose — **mechanizable** (fail references to `localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` under `src/adapters/` with `no-restricted-syntax`. No rule exists))
 
-## 補足
+## Notes
 
-- ポリシー状態(consent / flag)の source adapter と供給方針は本 ADR の adapters/client を土台に [0031](0031-policy-state-supply.md) が定める。
+- The source adapter and supply policy for policy state (consent / flag) are set by [0031](0031-policy-state-supply.md), building on this ADR's adapters/client.
 
-## 関連 ADR
+## Related ADRs
 
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — `adapters`(BFF / API 統合)の中身。本 ADR はその server/client 面を確定
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — `capabilities`(runtime hook)。本 ADR が 2 軸モデルで位置づける
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) — consent / flag の source adapter + 供給(本 ADR の adapters/client が土台)
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) — Route Handler(client 送信の受け側 = `adapters/server` の import 元)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — RSC / Client 境界(server-only / use-client の機械強制の根拠)
-- [0081-observability-logging.md](0081-observability-logging.md) — ブラウザ→BFF 中継(client 送信面 = `adapters/client`)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the contents of `adapters` (BFF / API integration). This ADR settles its server/client faces
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — `capabilities` (runtime hooks). This ADR positions it with the two-axis model
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) — the source adapter + supply for consent / flag (built on this ADR's adapters/client)
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) — Route Handlers (the receiving side of client sending = what imports `adapters/server`)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the RSC / Client boundary (the basis for mechanically enforcing server-only / use-client)
+- [0081-observability-logging.md](0081-observability-logging.md) — relaying browser→BFF (the client sending face = `adapters/client`)

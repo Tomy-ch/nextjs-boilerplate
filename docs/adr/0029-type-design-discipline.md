@@ -1,93 +1,93 @@
-# 型設計の規律
+# Type Design Discipline
 
-型で何を表し、何を表さないかを定める。対象は **境界の型 / 状態の型 / 識別子の型 / 型の付け方** の 4 つで、いずれも「実行時に確かめていたことを、型で確かめられる形へ移す」ための規律である。
+This ADR sets what types express and what they do not. It covers four things — **boundary types / state types / identifier types / how types are given** — all disciplines for "moving what was checked at runtime into a shape that types can check".
 
-責務の置き場所は [0021](0021-frontend-responsibility.md)、生成型の扱いは [0072](0072-api-type-generation.md)、表示検証スキーマの二層分離は [0062](0062-form-input-validation.md) が正であり、本 ADR はそれらの上で「型そのものの書き方」を扱う。
+[0021](0021-frontend-responsibility.md) is authoritative for where responsibilities live, [0072](0072-api-type-generation.md) for handling generated types, and [0062](0062-form-input-validation.md) for the two-layer split of display validation schemas; on top of those, this ADR covers "how to write the types themselves".
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-型の付け方を各所の判断に任せると、同じ関心が 3 通りの形で書かれうる —— 真偽値を並べた状態、`unknown` を持ち回って使う直前に確かめる境界、`string` のまま渡される識別子。いずれも実行時にしか誤りが出ず、テストで踏まなければ気づけない。
+If how types are given is left to judgment in each place, the same concern can be written in three shapes — state as a row of booleans, a boundary that carries `unknown` around and checks just before use, and identifiers passed along as plain `string`. In all of them errors appear only at runtime, and nobody notices unless a test steps on them.
 
-型で表せるものを型で表すことは、検証の前倒しであると同時に**読む側への説明**でもある。関数の形を見れば何が来るか判るなら、呼び出し側は本文を読まずに済む。
+Expressing in types what types can express is both moving verification earlier and **an explanation to the reader**. If the shape of a function tells what comes in, the caller does not need to read its body.
 
-## 決定
+## Decision
 
-### 1. 状態は判別可能 union で表す
+### 1. State Is Expressed as Discriminated Unions
 
-同時に立ち得ない状態を、真偽値の組み合わせで表さない。取りうる姿が有限で、姿ごとに持つ値が違うなら判別可能 union にする。`model` の `ActionState<T>` がこの形の範型である。
+Do not express states that cannot hold at the same time as combinations of booleans. If the possible forms are finite and each form carries different values, make it a discriminated union. `ActionState<T>` in `model` is the paradigm of this shape.
 
-真偽値が 2 つ並んだ時点で、あり得ない組み合わせ(両方 true 等)が型として通る。**union は「あり得ない状態を書けなくする」ために使う**のであって、分岐を減らすためではない。
+The moment two booleans sit side by side, impossible combinations (both true, etc.) pass as types. **A union is used to "make impossible states unwritable"**, not to reduce branches.
 
-### 2. 境界で型を確定させる
+### 2. Settle Types at the Boundary
 
-外から来た値は、境界で 1 度だけ検証し、**確定した型として**内側へ渡す(parse, don't validate)。検証の実行は zod が担い([0072](0072-api-type-generation.md) の生成スキーマ / [0062](0062-form-input-validation.md) の表示検証スキーマ)、内側は検証済みの型だけを扱う。
+Values from the outside are validated once at the boundary and passed inward **as a settled type** (parse, don't validate). zod runs the validation (the generated schemas of [0072](0072-api-type-generation.md) / the display validation schemas of [0062](0062-form-input-validation.md)), and the inside handles only validated types.
 
-`unknown` のまま持ち回り、使う直前に確かめる形は採らない —— 確かめ漏れが型に現れないためである。
+The shape of carrying `unknown` around and checking just before use is not adopted — because a missed check does not show up in the types.
 
-#### zod の流儀は、そのスキーマがブラウザへ届くかで選ぶ
+#### Choose the zod style by whether the schema reaches the browser
 
-**client へ届くスキーマは `zod/mini` で書き、server に閉じるスキーマと生成物は `zod` で書く。**
+**Schemas that reach the client are written with `zod/mini`; schemas closed to the server and generated artifacts are written with `zod`.**
 
-実測で、使っている API 面(`z.object` / `z.string` / `z.array` / `z.int` / `z.boolean` / `z.uuid` / `z.email` / `z.coerce` / 長さ・書式の検査 / `safeParse` / `flattenError`)を両者で書き比べると **63.5 KB → 5.4 KB(gzip)** の差になる。`zod` の既定の入口は、この repository が呼ばない JSON Schema 変換とエラー文言の locale を抱えており、それが**画面を開いた人に配られる**。
+Measured by writing the API surface in use (`z.object` / `z.string` / `z.array` / `z.int` / `z.boolean` / `z.uuid` / `z.email` / `z.coerce` / length and format checks / `safeParse` / `flattenError`) both ways, the difference is **63.5 KB → 5.4 KB (gzip)**. `zod`'s default entry point carries JSON Schema conversion and locales for error messages that this repository does not call, and those **are handed out to everyone who opens a screen**.
 
-- **境界で parse する規律は変わらない。** 変わるのは書き方だけで、`.min(n, msg)` が `.check(z.minLength(n, msg))` になる類の差である。検証の内容も文言もそのまま移せる
-- **server 側を揃えない。** bundle に載らないため利益が無く、生成物(`0072`)は生成器が `zod` で出すので選べない。**片方に寄せる価値より、載る側だけを選ぶ価値のほうが大きい**
-- **両方を受ける層は core の型で書く。** `zod` と `zod/mini` は `zod/v4/core` の `$ZodType` を共有する。共有層(client の HTTP 呼び出しなど)が片方の流儀を要求すると、呼び出し側の移行がその 1 箇所のために止まる
-- **react-hook-form へ渡すときは `standardSchemaResolver`**([0062](0062-form-input-validation.md))。`zodResolver` は `zod` の型を要求するが、`zod/mini` は Standard Schema を実装しているため標準側の口で繋がる
+- **The discipline of parsing at the boundary does not change.** Only the way of writing changes, differences such as `.min(n, msg)` becoming `.check(z.minLength(n, msg))`. The validation contents and messages carry over as they are
+- **The server side is not aligned.** It does not ship in the bundle, so there is no benefit, and generated artifacts (`0072`) are output in `zod` by the generator, so there is no choice. **The value of choosing only for the side that ships outweighs the value of converging on one**
+- **Layers that accept both are written with the core types.** `zod` and `zod/mini` share `$ZodType` from `zod/v4/core`. If a shared layer (client HTTP calls, etc.) required one style, the callers' migration would stall for that one place
+- **Pass to react-hook-form with `standardSchemaResolver`** ([0062](0062-form-input-validation.md)). `zodResolver` requires `zod`'s types, but `zod/mini` implements Standard Schema, so it connects through the standard-side interface
 
-**生成物を経由して `zod` が client へ入る経路がある間は、client 側だけを移しても classic は消えない**(mini が上乗せされるだけになる)。その経路は、生成物から定数だけの module を切り出して client にそちらだけを引かせることで塞ぐ([0072](0072-api-type-generation.md)「制約の定数は、検証と別の module へ出す」)。client の島から `zod` の既定の入口か生成スキーマへ届く import が現れたら `scripts/client-schema-weight.gate.test.ts` が落とす。
+**As long as there is a route by which `zod` enters the client through generated artifacts, moving only the client side does not remove zod classic (the full `zod` entry point)** (mini would only be added on top). That route is closed by carving a constants-only module out of the generated artifacts and having the client pull only that ([0072](0072-api-type-generation.md) moves constraint constants into a module separate from validation). If an import appears from a client island that reaches `zod`'s default entry point or a generated schema, `scripts/client-schema-weight.gate.test.ts` fails.
 
-#### 部分更新の payload は `undefined` に意味を持たせず、`adapters` で正規化する
+#### Partial-update payloads give `undefined` no meaning and are normalized in `adapters`
 
-`exactOptionalPropertyTypes` は有効にしない。その穴 —— 「キーが無い」と「値が `undefined`」を型が区別しないこと —— は、散文の規約ではなく機構で埋める。
+`exactOptionalPropertyTypes` is not enabled. Its gap — that types do not distinguish "the key is absent" from "the value is `undefined`" — is filled by a mechanism, not a prose convention.
 
-`JSON.stringify` は値が `undefined` のキーを落とすため、`{ name: undefined }` と `{}` はワイヤ上で同一になる。「消したい」つもりの `undefined` は「触らない」として届き、受け取り側からは判別できない。残る危険は直列化より手前のローカル組み立てだけなので、**PATCH payload の正規化を `adapters`(`adapters/server/http`)の 1 か所に閉じ込める**。
+`JSON.stringify` drops keys whose value is `undefined`, so `{ name: undefined }` and `{}` are identical on the wire. An `undefined` meant as "clear it" arrives as "leave it untouched", and the receiving side cannot tell them apart. The remaining risk is only in local assembly before serialization, so **normalization of PATCH payloads is confined to one place in `adapters` (`adapters/server/http`)**.
 
-- 「触らない」= キーを含めない / 「消す」= `null` を明示する。`undefined` に意味を持たせない
-- `adapters` の公開面は**正規化済みの型でしか受け付けない**(`PatchPayload<T>` = 値に `undefined` を許さない型)。規律を型で強制し、呼び出し側の注意に頼らない
-- 「`undefined` のキーは消える / `null` は残る」はテストで固定する
+- "Leave untouched" = omit the key / "clear" = explicit `null`. `undefined` carries no meaning
+- The public surface of `adapters` **accepts only the normalized type** (`PatchPayload<T>` = a type whose values do not allow `undefined`). The discipline is enforced by types, not left to the caller's care
+- "Keys with `undefined` disappear / `null` remains" is pinned down by tests
 
-### 3. 識別子は branded type にする
+### 3. Identifiers Are Branded Types
 
-**外部から来る識別子は、素の `string` として扱わない。** 資源ごとの ID のように、**同じ形をしていて取り違えても型が通ってしまう**値には brand を付ける。
+**Identifiers coming from outside are not treated as plain `string`.** Values that **have the same shape and still type-check when mixed up**, such as per-resource IDs, get a brand.
 
-- **付ける対象**: 外部 API・URL・フォームから入ってくる識別子。取り違えが起こりうるもの
-- **付けない対象**: 表示専用の文字列、その関数の中だけで閉じる値
-- **brand を与える場所は検証の出口**。zod のスキーマが確定させた値に付ける。**`model` は判定ロジックを持たない**
-- **`model` が持つのは型と、その型にまつわる最小限の関数**(等価判定・文字列化)まで。特殊な判定や論理的な検査は持ち込まない(業務判断はバックエンド。[0070](0070-backend-role-separation.md))
+- **What gets one**: identifiers entering from external APIs, URLs and forms. Things that can be mixed up
+- **What does not**: display-only strings, and values closed within one function
+- **Where the brand is given is the exit of validation.** It is attached to the value settled by the zod schema. **`model` holds no decision logic**
+- **What `model` holds is the type and the minimal functions around it** (equality, stringification). Special decisions or logical checks are not brought in (business judgment belongs to the backend; [0070](0070-backend-role-separation.md))
 
-バックエンド側が同じ識別子を型で守っていても、**このリポジトリは外部 API の応答を信用しない**。境界を跨いだ時点で保証は切れており、こちら側で付け直す。
+Even if the backend side protects the same identifier with types, **this repository does not trust the responses of external APIs**. The guarantee is cut off the moment the boundary is crossed, and it is reattached on this side.
 
-### 4. 型は `satisfies` で確かめ、注釈で潰さない
+### 4. Check Types with `satisfies`; Do Not Flatten Them with Annotations
 
-値に型を与えるときは、型注釈ではなく `satisfies` を使う。注釈は値の型を宣言した型まで**広げる**ため、リテラルの情報(キーの集合・具体的な値)が失われる。`satisfies` は適合を確かめたうえで、値そのものの型を残す。
+When giving a value a type, use `satisfies` rather than a type annotation. An annotation **widens** the value's type to the declared type, losing literal information (the set of keys, the concrete values). `satisfies` checks conformance while keeping the value's own type.
 
-- 変数・オブジェクトリテラル・配列リテラル: `satisfies` を使う
-- 関数の引数・返り値: 注釈を使う(呼び出し側との契約であり、広い型でよい)
+- Variables, object literals, array literals: use `satisfies`
+- Function parameters and return values: use annotations (a contract with the caller; a wide type is fine)
 
-**例外: 型そのものが読む側への契約になる宣言は注釈でよい。** framework が形を定める export(`metadata` 等)と、要素の具体値に意味が無い登録簿(パスの一覧など)がこれに当たる。前者は「これは framework へ渡す値である」ことが型で読めることに価値があり、後者は値を狭めても使い道が無い。
+**Exception: declarations whose type itself is a contract for the reader may use annotations.** Exports whose shape the framework sets (`metadata`, etc.) and registries where the concrete values of elements carry no meaning (lists of paths, etc.) fall under this. For the former, being able to read from the type that "this is a value handed to the framework" is valuable; for the latter, narrowing the values has no use.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 同時に立ち得ない状態を、真偽値の組み合わせで表すこと（強制: 散文 —— **寄せられない**。2 つの真偽値が同時に立ち得ないかは値の意味で決まり、型の形からは決まらない）
-- ❌ `unknown` を内層へ持ち回り、使う直前に確かめること（強制: 散文 —— **一部寄せられる**。内層（`model` / `components` / `features`）の引数・props に `unknown` が現れる形は静的に落とせるが規則は無い。使う直前の確かめが境界の検証の代わりかは意味で決まる）
-- ❌ 外部から来た識別子を素の `string` のまま内層へ渡すこと（強制: 散文 —— **寄せられない**。`string` が外部由来の識別子か・取り違えうるかは値の出所と意味で決まり、型の形からは決まらない）
-- ❌ `model` に判定ロジック・業務ルールを持ち込むこと(型と最小限の関数まで)（強制: 散文 —— **寄せられない**。最小限の関数か判定ロジックかは関数の意味で決まり、コードの形からは決まらない）
-- ❌ リテラルへ型注釈を付けて情報を落とすこと(`satisfies` を使う)（強制: 散文 —— **一部寄せられる**。オブジェクト・配列リテラルを初期化子に持つ変数宣言の型注釈は静的に落とせるが規則は無い。framework が形を定める export と登録簿の例外は宣言の意味で決まる）
-- ❌ `as` による型表明で検証を省くこと(境界の検証は zod が行う)
-- ❌ client へ届くスキーマを `zod` の既定の入口で書くこと(呼ばない機能ごと配られる)（強制: `scripts/client-schema-weight.gate.test.ts`（client から到達する module が `zod` の既定の入口を引くのを落とす））
-- ❌ 部分更新の payload で `undefined` に「消す」の意味を持たせること、および正規化を `adapters` の外で行うこと
-- ❌ 取得の口が持つ検証と別に、内側で独自の写し(数値化・既定値への丸め等)を作ること
-- ❌ 契約を外れた条件を黙って捨て、既定の結果を出すこと
+- ❌ Expressing states that cannot hold at the same time as combinations of booleans (Enforcement: Prose — **not mechanizable**. Whether two booleans cannot hold at the same time is decided by the values' meaning, not by the shape of the type)
+- ❌ Carrying `unknown` into inner layers and checking just before use (Enforcement: Prose — **partly mechanizable**. `unknown` appearing in parameters / props of inner layers (`model` / `components` / `features`) could be caught statically, but no rule exists. Whether a check just before use stands in for boundary validation is decided by meaning)
+- ❌ Passing identifiers from outside into inner layers as plain `string` (Enforcement: Prose — **not mechanizable**. Whether a `string` is an externally sourced identifier and whether it can be mixed up is decided by the value's origin and meaning, not by the shape of the type)
+- ❌ Bringing decision logic or business rules into `model` (only types and minimal functions) (Enforcement: Prose — **not mechanizable**. Whether something is a minimal function or decision logic is decided by the function's meaning, not by the shape of the code)
+- ❌ Annotating literals and dropping information (use `satisfies`) (Enforcement: Prose — **partly mechanizable**. Type annotations on variable declarations initialized with object or array literals could be caught statically, but no rule exists. The exceptions for framework-shaped exports and registries are decided by the meaning of the declaration)
+- ❌ Skipping validation with an `as` type assertion (boundary validation is done by zod)
+- ❌ Writing schemas that reach the client with `zod`'s default entry point (functionality that is never called gets handed out) (Enforcement: `scripts/client-schema-weight.gate.test.ts` (fails when a module reachable from the client pulls `zod`'s default entry point))
+- ❌ Giving `undefined` the meaning "clear" in partial-update payloads, and normalizing outside `adapters`
+- ❌ Making a separate copy of your own on the inside (converting to numbers, rounding to defaults, etc.) apart from the validation the fetch endpoint holds
+- ❌ Silently discarding conditions that fall outside the contract and returning a default result
 
-## 関連 ADR
+## Related ADRs
 
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 責務の置き場所 / feature 内で部品を分ける基準
-- [0062-form-input-validation.md](0062-form-input-validation.md) — 表示検証スキーマの二層分離
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — 業務判断の所在
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — fetch wrapper(部分更新の正規化が座る口)
-- [0072-api-type-generation.md](0072-api-type-generation.md) — 契約からの型生成 / 生成物の扱い
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — where responsibilities live / criteria for splitting components within a feature
+- [0062-form-input-validation.md](0062-form-input-validation.md) — the two-layer split of display validation schemas
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — where business judgment lives
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the fetch wrapper (the place where partial-update normalization sits)
+- [0072-api-type-generation.md](0072-api-type-generation.md) — type generation from the contract / handling of generated artifacts

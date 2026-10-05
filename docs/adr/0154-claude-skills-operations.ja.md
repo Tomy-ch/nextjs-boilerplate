@@ -64,7 +64,7 @@ Accepted
 | `argument-hint` | 任意 | 起動引数の形式ヒント (例: `[--dry-run]`) |
 | `allowed-tools` | 任意 | 使用許可するツールの明示 (Bash の細粒度許可など) |
 
-`usage-class` は、スキルを利用の型に対して判定すると決めた [0160](0160-agent-environment-loop.md) が定める。**判定は呼出回数ではなく型に対して行う** —— 型を持たないスキルは「呼ばれなかった」を根拠に退役させられる側へ落ちる。宣言をスキル自身に持たせるのは、別ファイルの台帳に置くと**スキルが増えた日に台帳だけが古くなる**ためで、機械強制は `scripts/skill-lint` の enum 検査が持つ（[0144](0144-decision-enforcement-pairing.ja.md)）。ツール側が解釈しない追加キーであり、読むのはこのリポジトリの機構だけである。
+`usage-class` は、スキルを利用の型に対して判定すると決めた [0160](0160-agent-environment-loop.ja.md) が定める。**判定は呼出回数ではなく型に対して行う** —— 型を持たないスキルは「呼ばれなかった」を根拠に退役させられる側へ落ちる。宣言をスキル自身に持たせるのは、別ファイルの台帳に置くと**スキルが増えた日に台帳だけが古くなる**ためで、機械強制は `scripts/skill-lint` の enum 検査が持つ（[0144](0144-decision-enforcement-pairing.ja.md)）。ツール側が解釈しない追加キーであり、読むのはこのリポジトリの機構だけである。
 
 `description` は **どのような状況で発火すべきか** を含めること (機能の説明ではなく「いつ使うか」)。
 
@@ -112,20 +112,20 @@ Accepted
 | `commit` | コミット分割と実行 | 作業ツリーの変更を prefix 規約 (Feat/Fix/...) で分割し、`git commit --no-verify` で個別に積む。最後に lefthook 相当の検証を 1 回まとめて回す |
 | `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。push 前にベースブランチを取り込む (保護ブランチは checkout も push もしない)。PR 本文は `.github/pull_request_template.md` から生成 |
 | `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
-| `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、backend 別のウィンドウ（[0110](0110-security-operations.md)）でサプライチェーン検疫。承認後に `mise.toml` 更新 |
-| `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |
-| `actions-pin` | GitHub Actions の SHA ピン監査 | `.github/actions-pin.toml` を SSOT に `uses:` のバージョンを検疫付きで更新する。除外窓より新しいリリースは採らず、ウィンドウを通過済みのバージョンへ step-back する。実体は `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
-| `dep-vuln-upgrade` | 脆弱性を名指しした依存更新 | CVE / GHSA が名指しした npm 依存だけを、同じ major の最小修正版へ動かす。直接依存は `package.json` の exact pin、推移的依存は `pnpm-workspace.yaml` の `overrides`（脆弱な範囲 → 上流の宣言範囲の内側の修正範囲）で動かし、lockfile は `pnpm install --lockfile-only` で作り直す。ウィンドウ（`minimumReleaseAge`）に捕まったバージョンは `supply-chain-triage` へ渡し、ウィンドウは下げない。major 越え・上流範囲の外への override・検疫の免除・抑止ファイルへの記載は 1 件ずつ確認する。新しい依存の追加は扱わない（[0004](0004-library-management.md)） |
+| `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、backend 別のウィンドウ（[0110](0110-security-operations.ja.md)）でサプライチェーン検疫。承認後に `mise.toml` 更新 |
+| `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.ja.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.ja.md)) |
+| `actions-pin` | GitHub Actions の SHA ピン監査 | `.github/actions-pin.toml` を SSOT に `uses:` のバージョンを検疫付きで更新する。除外窓より新しいリリースは採らず、ウィンドウを通過済みのバージョンへ step-back する。実体は `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.ja.md)) |
+| `dep-vuln-upgrade` | 脆弱性を名指しした依存更新 | CVE / GHSA が名指しした npm 依存だけを、同じ major の最小修正版へ動かす。直接依存は `package.json` の exact pin、推移的依存は `pnpm-workspace.yaml` の `overrides`（脆弱な範囲 → 上流の宣言範囲の内側の修正範囲）で動かし、lockfile は `pnpm install --lockfile-only` で作り直す。ウィンドウ（`minimumReleaseAge`）に捕まったバージョンは `supply-chain-triage` へ渡し、ウィンドウは下げない。major 越え・上流範囲の外への override・検疫の免除・抑止ファイルへの記載は 1 件ずつ確認する。新しい依存の追加は扱わない（[0004](0004-library-management.ja.md)） |
 | `repo-truth` | 現状の事実回答 | 「このリポジトリはいまどうなっているか」を一次資料から答え、根拠と推論を分ける。インデックスを関心で先に読み、キーワード検索は最後の網にする（文書は所有する関心で名付けられるため、統べるファイルは問いの語を含まない）。**未定義**（所有インデックスを通読した上で無い）と**確認できず**（通読していない）を別の結論として出し、覆った前線を添える。read-only で、見つけた drift は直さない |
 | `how-to` | 目標 → 正規手順 | 実行したい操作に対し、前提 / コマンド / 成功判定 / 復旧 / 破壊性を揃えて返す。まず所有スキルへ振って止まり、無ければ make ターゲットと `package.json` の scripts の両方をインデックスで読む。手順が無ければ **UNDEFINED** と前線を出し、**コマンドを発明しない**。`repo-ops` が症状駆動で「手順が無い」と結論できないのに対し、こちらは目標駆動でそれを結論できる。`--mode=run` でもゲートは回さない |
 | `question` | 問いの読みの解決とルーティング | 3 軸（世界 / 意図 / 対象）で問いの読みを解き、**本当に割れた軸だけ**を `AskUserQuestion` で確認して所有スキルへ渡す。自分では答えない。行き先は `.claude/skills/*/SKILL.md` の frontmatter を実行時に読んで解決し、表をハードコードしない。**世界の軸が「このウィンドウの差分」に解けたときは `AGENTS.md` の Review Phase Protocol へ渡す** —— レビュー 1 本へ直接振ると、3 本を対等に問う規律を迂回する |
 | `research` | 未決の選択の比較 | 評価軸を**選択肢を挙げる前に**固定し、案 / 利点欠点 / リスク / 既存構造との整合 / コストで比較して、反転条件付きの推奨を出す。案数は合わせない。まず問いを溶かす —— 現行 ADR とその本文が持つ**撤回条件** / `docs/project/out-of-scope.md` / カーネルを列挙して探す同型の前例。コストは述べるが判定に重みとして入れない。採択・ADR 執筆・起票はしない |
 | `resolve-merge` | マージの着地 | 衝突パスをクラスへ分け、クラスごとの機械的解決を当てる —— 生成物は片側を選ばず出典から作り直し、pin lockfile は resolver を回し、追記専用のレジストリは和集合にする。**衝突が無くても走る**（派生物は無衝突マージでも古くなる）。ベースの取り込みは `make base-merge` が持つ。終わり方は 2 つだけで、機械的に解けないものが 1 つでも残ればマーカーを残して打ち切りコミットしない、全部解ければコミットと push の可否を聞く。ゲートは回さない |
 | `new-issue` | issue の起票 | 前提を実装で裏取りしてから起票する。**5 つの blocker**（観測していない振る舞いの断定 / 鮮度未確認の引用 / 測っていない比較 / 部分的な探索からの影響範囲 / 既存 issue の未検索）が下書きを止める。本文の欄は `.github/ISSUE_TEMPLATE/` を実行時に読んで埋め（`scripts/issue-field-lint` が `###` の完全一致で見る）、そこへ 前提 / 論点 / やらないこと を足す。最後に「そもそも issue か」の関門を通す |
-| `supply-chain-triage` | 検疫に掛かったバージョンの証拠採点 | ウィンドウに捕まった 1 つのバージョンについて、[0110](0110-security-operations.md) の 4 つの問いを 4 軸 0–12 で採点する。**report-only** —— lockfile も pin もウィンドウも触らない。成果物を読むが決して実行しない。**取れなかった証拠は `?` として報告し `0` に数えない**（`?` が 2 つ以上なら帯を出さず INSUFFICIENT-EVIDENCE）。暴露面はスコアと別の行で報告する。`actions-pin` / `images-pin` / `tools-upgrade` / `dep-vuln-upgrade` / Dependabot の連鎖先 |
+| `supply-chain-triage` | 検疫に掛かったバージョンの証拠採点 | ウィンドウに捕まった 1 つのバージョンについて、[0110](0110-security-operations.ja.md) の 4 つの問いを 4 軸 0–12 で採点する。**report-only** —— lockfile も pin もウィンドウも触らない。成果物を読むが決して実行しない。**取れなかった証拠は `?` として報告し `0` に数えない**（`?` が 2 つ以上なら帯を出さず INSUFFICIENT-EVIDENCE）。暴露面はスコアと別の行で報告する。`actions-pin` / `images-pin` / `tools-upgrade` / `dep-vuln-upgrade` / Dependabot の連鎖先 |
 | `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない。**症状駆動**であり、答えるのは自分のインデックスに載っているものだけ —— 載っていない症状は `how-to`（目標。手順の不在を結論できる）か `repo-truth`（現状）へ振る。**このランブックは意図的に不在を結論できない**（できるようにすると沈黙が答えと区別できなくなる） |
 | `tool-map` | `.claude/` 配下のインベントリ | commands / skills / agents の表 + Mermaid 依存マップを生成 |
-| `design-export` | デザインシステムの外部書き出し | `pnpm design:bundle` が作る `tmp/design-bundle`（shadcn registry / インベントリ / トークン）を、送り先ごとの手順で運ぶ。依存の向きは repo → design の一本で、書き出した先の成果物を取り込む経路は持たない。特定 SaaS の手順は [0010](0010-standards-and-non-lockin.md) の非ロックインによりこのスキルの中だけに閉じる |
+| `design-export` | デザインシステムの外部書き出し | `pnpm design:bundle` が作る `tmp/design-bundle`（shadcn registry / インベントリ / トークン）を、送り先ごとの手順で運ぶ。依存の向きは repo → design の一本で、書き出した先の成果物を取り込む経路は持たない。特定 SaaS の手順は [0010](0010-standards-and-non-lockin.ja.md) の非ロックインによりこのスキルの中だけに閉じる |
 
 新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
 
@@ -139,7 +139,7 @@ Accepted
 | 配布 | 信頼済み clone で届く | マシンごとに導入が要る |
 | ミラーペア | 必須 ([0140](0140-documentation-operations.ja.md)) | 作らない |
 | `manage-skill` / `skill-lint` | 対象 | 対象外 |
-| 更新経路 | 直接編集 | `mise.toml` の pin bump ([0110](0110-security-operations.md) の検疫) |
+| 更新経路 | 直接編集 | `mise.toml` の pin bump ([0110](0110-security-operations.ja.md) の検疫) |
 
 したがって**外部スキルの `SKILL.md` をリポジトリへ持ち込まない**。40KB 級のサードパーティ本文を vendoring すると、ミラーペアの要求と SSOT の二重化が同時に発生し、上流の更新のたびに両方が腐る。
 
@@ -164,15 +164,15 @@ Accepted
 
 ### 前提にしない
 
-外部スキルは **lint / CI / git hook / build のいずれのゲートにも接続しない**。導入しなくても何も壊れない状態を保つ。上流が pre-1.0 でも採れるのはこの構成が理由であり、逆に言えばゲートへ繋いだ時点でその根拠は失われる ([0110](0110-security-operations.md))。
+外部スキルは **lint / CI / git hook / build のいずれのゲートにも接続しない**。導入しなくても何も壊れない状態を保つ。上流が pre-1.0 でも採れるのはこの構成が理由であり、逆に言えばゲートへ繋いだ時点でその根拠は失われる ([0110](0110-security-operations.ja.md))。
 
-繋げない理由はもう 1 つある。外部スキルの出力 (graphify ならグラフ) は最後に走らせた時点のスナップショットで、未コミットの変更を映さない。ゲートへ載せれば「古い出力で緑」が成立し、検査していないものを合格へ倒す ([0157](0157-inspection-declaration-discipline.md))。繋ぐ判断が起きるとすれば、本リポジトリでの価値が実測で確かめられ、かつ鮮度をゲートの中で保証する機構が入ったときだけで、導入済みであることも上流が pre-1.0 を抜けたことも理由にならない —— 成熟度が上がっても鮮度の問題は消えない。
+繋げない理由はもう 1 つある。外部スキルの出力 (graphify ならグラフ) は最後に走らせた時点のスナップショットで、未コミットの変更を映さない。ゲートへ載せれば「古い出力で緑」が成立し、検査していないものを合格へ倒す ([0157](0157-inspection-declaration-discipline.ja.md))。繋ぐ判断が起きるとすれば、本リポジトリでの価値が実測で確かめられ、かつ鮮度をゲートの中で保証する機構が入ったときだけで、導入済みであることも上流が pre-1.0 を抜けたことも理由にならない —— 成熟度が上がっても鮮度の問題は消えない。
 
 現在の外部スキルは graphify (コードベース知識グラフ) 1 件。導入手順と運用上の注意は [`.claude/README.md`](../../.claude/README.md) が持つ。
 
 **導入対象は Claude Code のみとする。撤回条件は、他プラットフォームの器がこのリポジトリへ着地したとき** —— 器が無いプラットフォームへ入れても、着地したかを検証する先が無い。**「上流が対応している」「輸入元が入れている」は条件にならない。**
 
-**`pipx:graphifyy` に `[sql]` extra は付けない。撤回条件は、SQL ソースが追跡対象に入ったとき** —— プレゼンテーションレイヤーに DB を持たない現行のロール定義（[0070](0070-backend-role-separation.md)）では通常発生しない。**「輸入元が付けているから」は条件にならない** —— extra は依存面積、すなわちサプライチェーン上の露出そのものである。
+**`pipx:graphifyy` に `[sql]` extra は付けない。撤回条件は、SQL ソースが追跡対象に入ったとき** —— プレゼンテーションレイヤーに DB を持たない現行のロール定義（[0070](0070-backend-role-separation.ja.md)）では通常発生しない。**「輸入元が付けているから」は条件にならない** —— extra は依存面積、すなわちサプライチェーン上の露出そのものである。
 
 ## 商用操作前のユーザ確認
 
@@ -193,7 +193,7 @@ Accepted
 
 加えてパターンは前方一致のグロブであり、同じ HTTP 呼び出しは `python3` や `pnpm exec tsx` からも送れる。汎用インタプリタを許可したまま特定コマンドを塞いでも、防げるのは素直な経路だけで、統制としては成立しない。
 
-そこで `permissions.deny` に残すのは **コミット済みの作業を失い、取り戻す手段が無い操作** に限る。`gh api` について具体的には `DELETE` を含む呼び出しと ref 操作 (`git/refs`。その `force` 更新は API 側の force push にあたり、[0150](0150-git-workflow.md) の force push 禁止を素通りする経路になる)。それ以外の外向き書き込みは、実行前の 1 度の確認で担保する。
+そこで `permissions.deny` に残すのは **コミット済みの作業を失い、取り戻す手段が無い操作** に限る。`gh api` について具体的には `DELETE` を含む呼び出しと ref 操作 (`git/refs`。その `force` 更新は API 側の force push にあたり、[0150](0150-git-workflow.ja.md) の force push 禁止を素通りする経路になる)。それ以外の外向き書き込みは、実行前の 1 度の確認で担保する。
 
 この帰結として、**スキルは「コマンドが許可されているから」を理由に確認を省いてはならない**。許可は「機械が止めない」ことしか意味せず、止めるのは人間の判断である。
 
@@ -208,10 +208,10 @@ Accepted
 
 すべての運用系スキルは以下を共通参照する:
 
-- **Git 規約**: [0150](0150-git-workflow.md) — ブランチ・コミット・PR の規約
-- **hook 方針**: [0151](0151-git-hooks.md) — `--no-verify` を用いる場合の例外運用と最終検証
-- **mise.toml の SSOT**: [ADR 0003](0003-version-manager.md) — `tools-upgrade` が監査対象とする
-- **ライブラリ運用**: [0004](0004-library-management.md) — 依存更新時の exact pin / メジャー更新分離の原則
+- **Git 規約**: [0150](0150-git-workflow.ja.md) — ブランチ・コミット・PR の規約
+- **hook 方針**: [0151](0151-git-hooks.ja.md) — `--no-verify` を用いる場合の例外運用と最終検証
+- **mise.toml の SSOT**: [ADR 0003](0003-version-manager.ja.md) — `tools-upgrade` が監査対象とする
+- **ライブラリ運用**: [0004](0004-library-management.ja.md) — 依存更新時の exact pin / メジャー更新分離の原則
 - **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.ja.md)
 
 ## 禁止事項
@@ -230,9 +230,9 @@ Accepted
 
 ## 関連 ADR
 
-- [0003-version-manager.md](0003-version-manager.md) — `tools-upgrade` が監査対象とする `mise.toml`
-- [0004-library-management.md](0004-library-management.md) — 依存更新時の規約
-- [0150-git-workflow.md](0150-git-workflow.md) — `commit` / `submit-pr` の Git 規約
-- [0151-git-hooks.md](0151-git-hooks.md) — `commit` が回避する lefthook の取り扱い
+- [0003-version-manager.md](0003-version-manager.ja.md) — `tools-upgrade` が監査対象とする `mise.toml`
+- [0004-library-management.md](0004-library-management.ja.md) — 依存更新時の規約
+- [0150-git-workflow.md](0150-git-workflow.ja.md) — `commit` / `submit-pr` の Git 規約
+- [0151-git-hooks.md](0151-git-hooks.ja.md) — `commit` が回避する lefthook の取り扱い
 - [0152-agents-md-policy.md](0152-agents-md-policy.ja.md) — AGENTS.md と本 ADR の関係
 - [0155-claude-skills-development.md](0155-claude-skills-development.ja.md) — 開発系スキル方針 (本 ADR と対をなす)

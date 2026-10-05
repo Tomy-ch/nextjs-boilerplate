@@ -1,60 +1,60 @@
-# ファイルの受け取りと配信(受け口は Server Action、配信は公開の配信元)
+# Receiving and Delivering Files (Receiving Endpoint Is a Server Action, Delivery Is a Public Origin)
 
-[0070](0070-backend-role-separation.md) の thin proxy 境界(`/api/*`)に隣接して生じる、ファイルを受け取る口と、受け取ったものを見せる経路を定める。隣接する決済 UI の seam は [0076](0076-payment-ui-seam.md)、BFF abuse 保護の境界は [0077](0077-bff-abuse-protection-boundary.md) が持つ。
+Defines the endpoint that receives files, which arises next to the thin proxy boundary (`/api/*`) of [0070](0070-backend-role-separation.md), and the path that shows what was received. The neighbouring payment UI seam is owned by [0076](0076-payment-ui-seam.md), and the BFF abuse-protection boundary by [0077](0077-bff-abuse-protection-boundary.md).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0070](0070-backend-role-separation.md) が `/api/*` を **thin proxy** に限定し、[0071](0071-bff-api-integration.md) の fetch wrapper は JSON を前提に組んである。ファイルはそのどちらにも素直に乗らないため、受け口と配信を別に決める必要がある。
+[0070](0070-backend-role-separation.md) limits `/api/*` to a **thin proxy**, and the fetch wrapper of [0071](0071-bff-api-integration.md) is built on the assumption of JSON. Files ride on neither of them naturally, so the receiving endpoint and the delivery have to be decided separately.
 
-決めるべきことは 2 つある。**誰が本体を受け取るか**と、**受け取ったものをどこから配るか**である。
+There are two things to decide: **who receives the body**, and **where what was received is delivered from**.
 
-## 決定
+## Decision
 
-### 受け口は Server Action で、本体は backend の受け口へそのまま送る
+### The receiving endpoint is a Server Action, and the body is sent as is to the backend's receiving endpoint
 
-ファイルを受けるのは **Server Action** であり、`/api/*` に中継専用の口を作らない。表現層のサーバは本体を保持せず、`adapters/server` が backend の受け口へ `multipart/form-data` として送り、**保存キーだけを受け取る**。
+Files are received by a **Server Action**; no relay-only endpoint is created under `/api/*`. The presentation layer's server does not hold the body: `adapters/server` sends it to the backend's receiving endpoint as `multipart/form-data` and **receives only the storage key**.
 
-口を 2 つ持たない理由は、Server Action が既に「画面からの送信を受けて `adapters` を呼ぶ」役を持っているためである。同じ役の口を Route Handler 側にも作ると、上限と検査を 2 か所で揃え続けることになる。
+The reason for not having two endpoints is that a Server Action already has the role of "receiving a submission from a screen and calling `adapters`". Creating an endpoint with the same role on the Route Handler side too would mean keeping limits and checks aligned in two places.
 
-**受け口には必ずサイズの上限と、宣言された種類の検査を置く。** 署名で送信内容を縛る層が無いので、ここが唯一の関所になる。**宣言された種類は送信者が付けられる値**なので、それだけを根拠に中身を信用しない。上限は**配備先のボディ上限より内側**に置く —— 外側に置くと配備先が先に打ち切り、その上限は効かない。
+**The receiving endpoint always has a size limit and a check of the declared type.** There is no layer that constrains what is sent with a signature, so this is the only checkpoint. **The declared type is a value the sender can set**, so the content is not trusted on that basis alone. The limit is placed **inside the deployment target's body limit** — placed outside, the deployment target cuts the request off first and the limit has no effect.
 
-> 強制: 受け口側の上限は起動時設定から引き、フレームワークの本体上限も同じ値から導く。2 か所に数字を書かない。
+> Enforcement: the receiving endpoint's limit is drawn from startup configuration, and the framework's body limit is derived from the same value. The number is not written in two places.
 
-### 配信は公開の配信元から行い、表現層は配信元を知らない
+### Delivery is from a public origin, and the presentation layer does not know the origin
 
-**この本体が扱うのは、配信の時点で公開されているものだけである。** backend が返すのは保存キーで、公開 URL への組み立ては `adapters/server` が起動時設定の配信元と結合して行う。画面の層は配信元を読めない([0021](0021-frontend-responsibility.md) / `architecture.ts`)。
+**This core handles only what is public at the time of delivery.** The backend returns a storage key, and `adapters/server` assembles it into a public URL by combining it with the delivery origin from startup configuration. Screen layers cannot read the delivery origin ([0021](0021-frontend-responsibility.md) / `architecture.ts`).
 
-この前提の帰結として、**主体ごとに見せる相手が変わるものを、この経路へ載せてはならない。** 公開の配信元に置いたものは、URL を知る誰にでも届く。見せる相手を絞る必要があるものは、絞れる口を backend 側に持たせる。
+As a consequence of this premise, **anything whose audience varies per principal must not be put on this path.** What is placed on a public origin reaches anyone who knows the URL. For what needs a restricted audience, have the backend side own an endpoint that can restrict it.
 
-### 署名付き URL への直接送信は採らない
+### Direct upload to a signed URL is not adopted
 
-ブラウザが署名付き URL へ直接送る形は**採らない**。署名の発行は backend の責務であり、この本体は発行口があることを前提にしない。加えて、配信が公開である以上、**署名が守ろうとしていた面がそもそも無い**。
+The shape where the browser sends directly to a signed URL is **not adopted**. Issuing signatures is the backend's responsibility, and this core does not assume an issuing endpoint exists. In addition, as long as delivery is public, **there is no surface for the signature to protect in the first place**.
 
-同じ理由で、進捗 / 中断 / 再開の機構も**同梱しない**。用途依存であり、採る時点で `adapters/client` の seam として実装ごと置く。本 ADR が持つのはその座標だけである。
+For the same reason, progress / abort / resume mechanisms are **not bundled** either. They depend on the use case, and when adopted they are placed together with their implementation as a seam in `adapters/client`. What this ADR owns is only their coordinates.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `/api/*` にファイル本体を受ける中継口を作ること(受け口は Server Action。同じ役の口を 2 つ持たない)（強制: 散文 —— **寄せられる**（`src/app/**/route.ts` での `formData()` による本体の受け取りを `no-restricted-syntax` で落とせる。規則は無い））
-- ❌ 受け口にサイズ上限か種類の検査を置かないこと(署名で縛る層が無いので、ここが唯一の関所)（強制: 散文 —— **寄せられない**。どの action がファイルを受けるかは受け取る値の意味で決まり、受け口ごとのテストでしか見えない）
-- ❌ 宣言された種類だけを根拠に中身を信用すること(送信者が自由に付けられる)（強制: 散文 —— **寄せられない**。中身の判定をどの層が持つかは経路の責務の判断で、コードの形からは決まらない）
-- ❌ 受け口の上限を配備先のボディ上限より外側に置くこと(配備先が先に打ち切る)
-- ❌ Server Action の上限を引き上げるとき、それが他の action へ及ぶことを確かめずに済ませること（強制: 散文 —— **寄せられない**。他の action へ及ぶことを確かめたかは変更時の手順で、コードに現れない）
-- ❌ **見せる相手を絞る必要があるものを、公開の配信元へ載せること**（強制: 散文 —— **寄せられない**。見せる相手を絞る必要があるかは内容の意味で決まり、コードの形からは決まらない）
-- ❌ 配信元を画面の層から読むこと(組み立ては `adapters/server`。[0021](0021-frontend-responsibility.md))
-- ❌ 送信の生 fetch や進捗管理をコンポーネントへ散らすこと([0024](0024-adapters-server-client-split.md))（強制: 散文 —— **一部寄せられる**。コンポーネントでの生 `fetch` / `XMLHttpRequest` の構築は `no-restricted-syntax` で落とせるが規則は無い。進捗の管理を持つかは状態の意味で決まる）
+- ❌ Creating a relay endpoint under `/api/*` that receives file bodies (the receiving endpoint is a Server Action; do not have two endpoints with the same role) (Enforcement: Prose — **mechanizable** (receiving a body via `formData()` in `src/app/**/route.ts` could be rejected with `no-restricted-syntax`; no rule exists))
+- ❌ Not placing a size limit or a type check on the receiving endpoint (there is no layer constraining it with a signature, so this is the only checkpoint) (Enforcement: Prose — **not mechanizable**. Which action receives files is decided by the meaning of the received value and is visible only in per-endpoint tests)
+- ❌ Trusting content on the basis of the declared type alone (the sender can set it freely) (Enforcement: Prose — **not mechanizable**. Which layer owns judging the content is a judgment of the path's responsibility and is not determined by the shape of the code)
+- ❌ Placing the receiving endpoint's limit outside the deployment target's body limit (the deployment target cuts off first)
+- ❌ Raising the Server Action limit without confirming that it extends to other actions (Enforcement: Prose — **not mechanizable**. Whether its reach to other actions was confirmed is a procedure at change time and does not appear in the code)
+- ❌ **Putting something that needs a restricted audience on the public delivery origin** (Enforcement: Prose — **not mechanizable**. Whether the audience needs restricting is decided by the meaning of the content, not by the shape of the code)
+- ❌ Reading the delivery origin from screen layers (assembly is `adapters/server`; [0021](0021-frontend-responsibility.md))
+- ❌ Scattering raw fetches for submission or progress management across components ([0024](0024-adapters-server-client-split.md)) (Enforcement: Prose — **partly mechanizable**. Constructing a raw `fetch` / `XMLHttpRequest` in a component could be rejected with `no-restricted-syntax`, but no rule exists. Whether something holds progress management is decided by the meaning of the state)
 
-## 補足
+## Notes
 
-日常強制される規約(上限の具体値・受け口の実装規約)は [docs/rules.md](../rules.md) が持つ。
+The conventions enforced day to day (the concrete limit values, implementation conventions for the receiving endpoint) are owned by [docs/rules.md](../rules.md).
 
-## 関連 ADR
+## Related ADRs
 
-- [0070-backend-role-separation.md](0070-backend-role-separation.md)— `/api/*` を thin proxy に限る境界
-- [0071-bff-api-integration.md](0071-bff-api-integration.md)— fetch wrapper が JSON を前提にすること
-- [0076-payment-ui-seam.md](0076-payment-ui-seam.md)— 決済 UI seam。thin proxy 境界に隣接する別主題
-- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md)— BFF abuse 保護。同じく隣接する別主題
-- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md)— 分類ごとの置き場と関所
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — the boundary limiting `/api/*` to a thin proxy
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the fetch wrapper assumes JSON
+- [0076-payment-ui-seam.md](0076-payment-ui-seam.md) — payment UI seam; a separate subject next to the thin proxy boundary
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) — BFF abuse protection; likewise a neighbouring separate subject
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — placement and checkpoints per classification

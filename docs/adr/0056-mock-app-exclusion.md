@@ -1,56 +1,56 @@
-# mock app の公開(exclusion)
+# Publishing the Mock App (Exclusion)
 
-契約から生成したモックを相手に動く本アプリ(mock app)を、**公開面として持たない**ことを意図的な除外(exclusion)として記録し、撤回する条件を示す。
+This ADR records, as a deliberate exclusion, that the app running against mocks generated from the contract (the mock app) is **not held as a public surface**, and states the conditions for reversing that.
 
-mock app は別のアプリではない。同じアプリを `APP_API_MODE=mock` で起動したものが mock app であり、成果物は増えない。バックエンド無しで build が通り、起動して応答を返すことは CI の起動検査が見ており、画面を通した検証(e2e / 基準画像の比較)もこの形の上に乗る。**検証の土台としては本体に同梱する。公開しないのは、それを人に見せる面にすることである。**
+The mock app is not a separate app. The mock app is the same app started with `APP_API_MODE=mock`, and it adds no build output. That the build passes without a backend, and that it starts and returns responses, is checked by CI's startup check, and verification through screens (e2e / baseline image comparison) also rides on this form. **As a foundation for verification it is bundled in the core. What is not done is making it a surface to show people.**
 
 ## Status
 
 Accepted (exclusion)
 
-## 背景
+## Context
 
-このリポジトリが公開している面は 2 つで、どちらも**このリポジトリのドキュメント**である —— 部品のカタログ(Storybook。[0054](0054-ui-catalog-storybook.md))と、README を束ねた portal([0141](0141-portal-operations.md))。配信先は 1 つの静的サイトで、両者は兄弟の path に並ぶ。
+This repository publishes two surfaces, and both are **this repository's documentation** — the component catalog (Storybook; [0054](0054-ui-catalog-storybook.md)) and the portal that bundles the READMEs ([0141](0141-portal-operations.md)). They are served from one static site, side by side on sibling paths.
 
-mock app はどちらでもない。読み手に何かを説明するものではなく、検証のために画面を最後まで動かすための土台である。中身は契約から生成した値で、実在の業務を写していない。値域を設定で名指ししているのも、画面がその値で確かめられるようにするためであって、それらしく見せるためではない。
+The mock app is neither. It does not explain anything to a reader; it is a foundation for running screens all the way through for verification. Its contents are values generated from the contract and do not depict any real business. The value ranges are named in configuration so that screens can be checked with those values, not to make them look plausible.
 
-用途依存の「やらない」判断は、沈黙のままだと意識的に線引きした痕跡が残らない。i18n([0121](0121-i18n-strategy.md))/ PWA([0130](0130-pwa-strategy.md))と同じく、mock app の公開も exclusion として明文化する。
+A use-case-dependent "not doing it" judgment, if left unspoken, leaves no trace that the line was drawn consciously. Like i18n ([0121](0121-i18n-strategy.md)) / PWA ([0130](0130-pwa-strategy.md)), publishing the mock app is also made explicit as an exclusion.
 
-## 決定: mock app を公開面として持たない
+## Decision: Do Not Hold the Mock App as a Public Surface
 
-- **mock app を Storybook / portal と並ぶ公開面にしない。** 配信サイトに mock app の tenant を足さず、デモとして URL を配らない
-- **理由は、公開した瞬間にそれがデモになるからである。** 見た人はそれを製品の見本として読む。しかし中身は契約から生成した値であり、更新の責務を持つ主体が居ない。読み手へ何かを示す立場に無いものが、示す立場のものと並んで常設される
-- **mock app が完全に動くのは、開発専用の口が開く環境だけである。** IdP を通らずに session を発行する口が無ければ、保護された画面へ到達できない。その口は `local` / `ci` でしか開かず、frontend だけを mock のまま cloud へ置く形は [0011](0011-no-docker.md) が既に禁じている。公開面にするには、その禁止を崩すか、認証の要る画面を諦めるかのどちらかになる
-- **検証の土台としての同梱は変わらない。** CI の起動検査・e2e・基準画像の比較は mock app の上で走り続ける。exclusion の対象は「公開」であって「同梱」ではない
+- **The mock app is not made a public surface alongside Storybook / the portal.** No mock app tenant is added to the serving site, and no URL is handed out as a demo
+- **The reason is that the moment it is published, it becomes a demo.** People who see it read it as a sample of the product. But its contents are values generated from the contract, and there is no party responsible for updating them. Something not in a position to show readers anything would be permanently placed alongside things that are
+- **The mock app works fully only in environments where development-only endpoints are open.** Without the endpoint that issues a session without going through the IdP, protected screens cannot be reached. That endpoint opens only in `local` / `ci`, and [0011](0011-no-docker.md) already forbids putting only the frontend in the cloud with mocks still in place. Making it a public surface would mean either breaking that prohibition or giving up the screens that need authentication
+- **Bundling as a foundation for verification does not change.** CI's startup check, e2e and baseline image comparison keep running on top of the mock app. The target of the exclusion is "publishing", not "bundling"
 
-**却下した案: 常設デモとして公開する。**本リポジトリの見本として画面を触れる場を用意する案。見本が要るなら、部品はカタログが、画面まるごとの姿は route と同じ器で包んだ story が既に持つ([0054](0054-ui-catalog-storybook.md))。触れる見本を別に立てると、そこに映るものの正が story と二重になる。
+**Rejected: publish it as a permanent demo.** The proposal to provide a place where screens can be touched as this repository's sample. If samples are needed, the catalog already holds components, and stories wrapped in the same layout shell as the route already hold whole screens ([0054](0054-ui-catalog-storybook.md)). Standing up a separate touchable sample would double the authority for what is shown there with the stories.
 
-**却下した案: Storybook の中へ mock app を同居させる。** カタログは server の無い面であり、Server Action と Route Handler を差し替えて部品を見せる場である([0054](0054-ui-catalog-storybook.md))。アプリの経路を丸ごと載せると、差し替えの前提が崩れ、カタログが何を見せる場なのか分からなくなる。
+**Rejected: house the mock app inside Storybook.** The catalog is a surface without a server, a place to show components with Server Actions and Route Handlers swapped out ([0054](0054-ui-catalog-storybook.md)). Putting the app's routes on it wholesale would break the premise of swapping, and it would become unclear what the catalog is a place to show.
 
-## 撤回条件
+## Reversal Conditions
 
-公開へ倒すのは、**mock app 自身が読み手へ何かを示す立場になったとき**である。たとえば、画面の仕様を見せる面として使うと決めたとき。そのときは次の 2 つが同時に決まっていなければならない。
+It tips toward publishing **when the mock app itself comes to be in a position to show readers something** — for example, when it is decided to use it as a surface that shows screen specifications. At that point the following two must be decided together.
 
-- **何を示す面か。** 仕様の見本なのか、操作の手触りを見せる場なのか。示すものが決まらないまま公開すると、見た人が勝手に意味を与える
-- **誰が更新の責務を持つか。** 契約が変われば生成物は自動で変わるが、「示している内容が正しいか」は生成では担保されない。その責務を持つ主体が無いなら、示す立場には立てない
+- **What surface it is.** A sample of the specification, or a place to show the feel of interaction. Publishing without deciding what it shows lets viewers assign meaning on their own
+- **Who is responsible for updates.** When the contract changes, the generated artifacts change automatically, but "whether what it shows is correct" is not guaranteed by generation. Without a party holding that responsibility, it cannot stand in the position of showing
 
-条件が揃ったときの置き場は、配信サイトの兄弟 path([0141](0141-portal-operations.md))である。そのときも [0011](0011-no-docker.md) の禁止は残る —— 公開する mock app は開発専用の口を閉じた build であり、認証の要る画面へどう到達させるかを別に決めることになる。
+When the conditions are met, its place is a sibling path of the serving site ([0141](0141-portal-operations.md)). Even then the prohibition of [0011](0011-no-docker.md) remains — a published mock app is a build with the development-only endpoints closed, and how to let people reach screens that need authentication has to be decided separately.
 
-## exclusion の扱い
+## Handling Exclusions
 
-- 本 ADR は「意図的にやらない」判断の記録である([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。自分の判断で mock app を公開する分には、この exclusion は障害にならない
+- This ADR is a record of an "intentionally not doing it" judgment (the taxonomy of [0140](0140-documentation-operations.md): exclusion = ADR). If you publish the mock app on your own judgment, this exclusion is no obstacle
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 配信サイトに mock app の tenant を足すこと、または mock app の URL をデモとして配ること(撤回条件が揃うまで)（強制: 持たない —— 採らない決定。配信サイトに mock app の tenant は無く、足せば配信の組み立ての diff として現れる）
-- ❌ mock app を「見本」として README や portal から案内すること(見本は Storybook の story が持つ。[0054](0054-ui-catalog-storybook.md))（強制: 散文 —— **寄せられない**。案内かどうかは文の意味で決まり、リンクの形からは決まらない）
-- ❌ 公開のために、開発専用の口が開いたままの build を手元の宛先以外へ置くこと([0011](0011-no-docker.md) / [0113](0113-development-access-surface.md))（強制: 散文 —— **寄せられない**。build を置く先は配備の操作で決まり、コードに現れない（置かれた先で口を閉じるのは 0113 の実行時判定である））
+- ❌ Adding a mock app tenant to the serving site, or handing out the mock app's URL as a demo (until the reversal conditions are met) (Enforcement: none — a decision not to adopt. The serving site has no mock app tenant; adding one shows up in the diff of how serving is assembled)
+- ❌ Pointing to the mock app as a "sample" from READMEs or the portal (samples are held by Storybook stories; [0054](0054-ui-catalog-storybook.md)) (Enforcement: Prose — **not mechanizable**. Whether something is pointing to it is decided by the meaning of the sentence, not by the shape of the link)
+- ❌ Placing, for publication, a build with the development-only endpoints still open anywhere other than a local destination ([0011](0011-no-docker.md) / [0113](0113-development-access-surface.md)) (Enforcement: Prose — **not mechanizable**. Where a build is placed is decided by the deployment operation and does not appear in code (closing the endpoints where it is placed is 0113's runtime check))
 
-## 関連 ADR
+## Related ADRs
 
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — 公開面の 1 つ(部品のカタログ)。画面まるごとの見本も story が持つ
-- [0141-portal-operations.md](0141-portal-operations.md) — 公開面の 1 つ(README の portal)と、配信サイトの構成
-- [0011-no-docker.md](0011-no-docker.md) — frontend だけを mock のまま cloud へ置かない、開発専用の口が開く環境の定義
-- [0113-development-access-surface.md](0113-development-access-surface.md) — 開発専用の口が build と実行時の両方で閉じること
-- [0090-testing-strategy.md](0090-testing-strategy.md) / [0091-test-verification-methods.md](0091-test-verification-methods.md) — mock app の上で走る検証
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — 用途依存を exclusion 記録する同型の判断
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — one of the public surfaces (the component catalog). Stories also hold whole-screen samples
+- [0141-portal-operations.md](0141-portal-operations.md) — one of the public surfaces (the README portal), and the composition of the serving site
+- [0011-no-docker.md](0011-no-docker.md) — not putting only the frontend in the cloud with mocks in place; the definition of environments where development-only endpoints open
+- [0113-development-access-surface.md](0113-development-access-surface.md) — development-only endpoints closing both at build time and at runtime
+- [0090-testing-strategy.md](0090-testing-strategy.md) / [0091-test-verification-methods.md](0091-test-verification-methods.md) — the verification that runs on top of the mock app
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — the same kind of judgment, recording a use-case dependency as an exclusion
