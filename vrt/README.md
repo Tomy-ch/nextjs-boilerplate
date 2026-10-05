@@ -633,7 +633,7 @@ The store's visibility defaults to `private`. **When private, `vrt` fails on PRs
 
 Running it when already wired re-points it. Moving organisations or renaming the repository is handled by the same command.
 
-> If you are going to purge the bundled sample, it is best to **purge it first**. The purge does not reach inside the submodule,
+> If you are going to purge the sample, it is best to **purge it first**. The purge does not reach inside the submodule,
 > so in the reverse order the subject's baseline images end up in your own store (they remain in the upstream store, but the reference
 > is cut once you re-point).
 

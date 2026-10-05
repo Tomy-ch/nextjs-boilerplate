@@ -2,7 +2,7 @@
 
 The CI / CD workflow definitions. The source of the design decisions is [ADR 0153](../../docs/adr/0153-ci-configuration.md); this document shows how its implementation is laid out.
 
-**Comments inside workflow definitions are written in English** — both in this directory and in `../actions/` ([0140](../../docs/adr/0140-documentation-operations.md) Decision 1). The documents under `.github/`, this one included, follow the same model as every other document: an English canonical with a sibling Japanese mirror. What stays Japanese is Japanese output itself — the PR / issue templates, `settings/`, and release notes.
+**Comments inside workflow definitions are written in English** — both in this directory and in `../actions/` ([0140](../../docs/adr/0140-documentation-operations.md)). The documents under `.github/`, this one included, follow the same model as every other document: an English canonical with a sibling Japanese mirror. What stays Japanese is Japanese output itself — the PR / issue templates, `settings/`, and release notes.
 
 ## Trigger Strategy
 
@@ -86,7 +86,7 @@ or filter it down to a character set that cannot form markup before passing it (
 | Dead Code | `dead-code.yaml` | `dead-code` | Detects files / exports / dependencies unreachable from any entry point. `src/components/**` is declared as an entry point, being the surface consumers use, and unused items there are not questioned |
 | Smoke | `smoke.yaml` | `smoke` | Starts `next start` and checks that `/` responds |
 | Storybook Build | `storybook-build.yaml` | `storybook-build` | Checks that `build-storybook` passes. Vitest imports stories directly so it does not reach addon or builder resolution, and the `vrt` build is "the stage before comparison", so its failure reads as something else. Kept separate from delivery (`deploy-docs`) |
-| Purge Verify | `purge-verify.yaml` | `purge-verify` | In a throwaway checkout, purges the bundled sample and checks that formatting, checks, build, and test pass on the purged tree, and that nothing is missing or excess and no dangling references remain |
+| Purge Verify | `purge-verify.yaml` | `purge-verify` | In a throwaway checkout, purges the sample and checks that formatting, checks, build, and test pass on the purged tree, and that nothing is missing or excess and no dangling references remain |
 | Strip Verify | `strip-verify.yaml` | `strip-verify` | In a throwaway checkout, strips the boilerplate-only text and checks that formatting, checks, build, and test pass on the stripped tree, and that not a single marker remains. **It includes itself among what is stripped** (`SELF_DESTRUCT_PATHS` in [`../../scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts)). Stripping is not optional, so the creating side is left with nothing for it to verify <!-- boilerplate-only:line --> |
 | Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | Checks that the lockfile matches `package.json` and that install does not rewrite tracked files |
 | Package Version | `package-version.yaml` | `package-version` | Checks that `version` in `package.json` matches the version the PR's base claims. The version has one source, the release branch name (= the next version counted from the tag), and stamping happens inside the procedure in which `make branch-*` cuts the branch. A PR whose base is not a release branch returns green as unchanged |
