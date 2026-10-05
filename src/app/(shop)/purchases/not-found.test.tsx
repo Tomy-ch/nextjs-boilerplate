@@ -22,10 +22,10 @@ describe("PurchaseHistoryNotFound", () => {
     expect(links[0]).toHaveAttribute("href", "/purchases");
   });
 
-  it("指し先が無いのか他人のものかを言い分けない", () => {
-    render(<PurchaseHistoryNotFound />);
+  it("指し先が無いのか他人のものかを言い分けず、見出しと戻る導線のほかに何も書かない", () => {
+    const { container } = render(<PurchaseHistoryNotFound />);
 
-    expect(screen.queryByText(/権限|他の利用者/)).not.toBeInTheDocument();
+    expect(container).toHaveTextContent(/^対象が見つかりません。購入履歴へ戻る$/);
   });
 
   it("a11y 違反を持たない", async () => {
