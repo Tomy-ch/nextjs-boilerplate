@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { isMirror } from "../lib/mirror";
+
 import { META_KEY, portalManifestSchema } from "./portal-manifest";
 
 /** ルート直下の `*.md` をまとめる section id。 */
@@ -88,7 +90,7 @@ function basename(filePath: string): string {
 }
 
 function langOf(destination: string): "en" | "ja" {
-  return /\.ja\.md$/.test(destination) ? "ja" : "en";
+  return isMirror(destination) ? "ja" : "en";
 }
 
 /**
@@ -103,8 +105,8 @@ export function splitByLanguage(files: readonly string[]): {
   const markdown = files.filter((file) => file.endsWith(".md"));
 
   return {
-    enFiles: markdown.filter((file) => !file.endsWith(".ja.md")),
-    jaFiles: markdown.filter((file) => file.endsWith(".ja.md")),
+    enFiles: markdown.filter((file) => !isMirror(file)),
+    jaFiles: markdown.filter((file) => isMirror(file)),
   };
 }
 

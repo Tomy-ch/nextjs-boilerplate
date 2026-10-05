@@ -6,13 +6,13 @@
  * ファイルの読み取りと報告は入口が担います。
  */
 
+import { canonicalOf } from "../lib/mirror.js";
+
 /** canonical とそのミラーの組。どちらもリポジトリ相対パス。 */
 export type TranslationPair = {
   canonical: string;
   translation: string;
 };
-
-const MIRROR_SUFFIX = ".ja.md";
 
 /**
  * 追跡されているファイルの一覧から、canonical も追跡されているミラーの組を取り出す。
@@ -27,11 +27,10 @@ export function translationPairsOf(tracked: readonly string[]): TranslationPair[
   const present = new Set(tracked);
 
   return tracked
-    .filter((file) => file.endsWith(MIRROR_SUFFIX))
-    .map((translation) => ({
-      canonical: `${translation.slice(0, -MIRROR_SUFFIX.length)}.md`,
-      translation,
-    }))
-    .filter(({ canonical }) => present.has(canonical))
+    .flatMap((translation) => {
+      const canonical = canonicalOf(translation);
+
+      return canonical !== null && present.has(canonical) ? [{ canonical, translation }] : [];
+    })
     .sort((left, right) => left.translation.localeCompare(right.translation));
 }

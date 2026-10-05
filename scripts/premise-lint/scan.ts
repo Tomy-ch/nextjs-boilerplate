@@ -6,7 +6,7 @@
 // あり、ここが別の解釈を持つと**検査だけが通って本番の剥がしで残る**形が生まれる。
 
 import { stripMarkers } from "../setup/lib/markers.js";
-import { PREMISE_SHAPES } from "./vocabulary.js";
+import { PREMISE_SHAPES, type PremiseShape } from "./vocabulary.js";
 
 /** 見つけた前提 1 件。 */
 export type Premise = {
@@ -65,6 +65,27 @@ export function survivingText(content: string): string {
 }
 
 /**
+ * 綴りがその行に現れるか。
+ *
+ * @remarks
+ * **英語の対訳だけは大文字小文字を区別しません。** 文頭に来ると先頭が大文字になり
+ * （`This boilerplate …`）、区別すると同じ前提が文の位置だけで素通りします。
+ *
+ * 日本語の側に並ぶ ASCII の綴り（`BACKLOG` / `docs/plan`）は区別します。どれも固有の名前で、
+ * 小文字の一般語（`a backlog`）に当てると前提ではない散文を挙げます。
+ *
+ * @param line - 剥がした後の本文の 1 行。
+ * @param phrase - 探す綴り。
+ * @param shape - その綴りを持つ形。英語の対訳かどうかをここから引く。
+ * @returns 現れれば true。
+ */
+function appears(line: string, phrase: string, shape: PremiseShape): boolean {
+  const english = shape.pairs.some((pair) => pair.en.includes(phrase));
+
+  return english ? line.toLowerCase().includes(phrase.toLowerCase()) : line.includes(phrase);
+}
+
+/**
  * 本文から前提を拾う。
  *
  * @param file - 報告に出すパス
@@ -80,7 +101,7 @@ export function findPremises(content: string, file: string): readonly Premise[] 
   for (const line of survivingText(content).split("\n")) {
     for (const shape of PREMISE_SHAPES) {
       for (const phrase of shape.phrases) {
-        if (line.includes(phrase)) {
+        if (appears(line, phrase, shape)) {
           found.push({ file, shape: shape.name, why: shape.why, phrase, text: line.trim() });
         }
       }

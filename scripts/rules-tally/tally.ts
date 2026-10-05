@@ -40,10 +40,13 @@ const RULE_OPENING = "- **";
 const FENCE = /^\s*(```|~~~)/;
 
 /** 判定の前置き。判定の語はこの直後の強調に入る。 */
-export const VERDICT_PREFIX = "Prose — **";
+const VERDICT_PREFIX = "Prose — **";
 
-/** 規約が自分で述べる判定。前置きは {@link VERDICT_PREFIX} と同じ綴りを逃がしたもの。 */
-const VERDICT = /(?<=Prose — \*\*)[^*]+(?=\*\*)/g;
+/** 規約が自分で述べる判定。前置きは {@link VERDICT_PREFIX} を逃がして組む —— 綴りの出所は 1 つ。 */
+const VERDICT = new RegExp(
+  `(?<=${VERDICT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[^*]+(?=\\*\\*)`,
+  "g",
+);
 
 /** 集計の埋め込み先を挟む印。 */
 const BLOCK = /<!-- generated: rules-tally -->[\s\S]*?<!-- \/generated: rules-tally -->/;
@@ -266,6 +269,23 @@ function judge(chunk: RuleChunk, section: SectionChunk, violations: string[]): J
   }
 
   return { anchor: section.anchor, section: section.title, summary: chunk.summary, verdict };
+}
+
+/**
+ * 判定の前置きを持つ行を数える。
+ *
+ * @remarks
+ * {@link collectRuleTally} と同じ行を見る —— フェンスの外で、節頭の根拠を除いた行。判定の語の
+ * 綴りとは別に前置きだけで数えるので、読めた判定の数と突き合わせれば、綴りの変更で判定だけが
+ * 0 件へ縮んだことが分かる。
+ *
+ * @param markdown - `docs/rules.md` の中身。
+ * @returns 前置きを含む行の数。
+ */
+export function countVerdictPrefixedLines(markdown: string): number {
+  return withoutFences(markdown).filter(
+    (line) => !RATIONALE.test(line) && line.includes(VERDICT_PREFIX),
+  ).length;
 }
 
 /**

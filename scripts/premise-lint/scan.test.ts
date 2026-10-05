@@ -63,7 +63,18 @@ describe("findPremises", () => {
     expect(found[0]?.text).toBe("後続のリリースで順次同梱する");
   });
 
+  it("文頭で大文字になった英語の対訳も、綴りの大小を問わず挙げる", () => {
+    const found = findPremises("This boilerplate ships a sample.", "docs/adr/x.md");
+
+    expect(found.map((premise) => premise.phrase)).toEqual(["this boilerplate"]);
+    expect(found[0]?.text).toBe("This boilerplate ships a sample.");
+  });
+
   // ----- 異常系 -----
+  it("日本語の側に並ぶ ASCII の綴りは、大小が違えば挙げない", () => {
+    expect(findPremises("a backlog nobody reads", "docs/adr/x.md")).toEqual([]);
+  });
+
   it("マーカーで囲われた前提を挙げない", () => {
     const text = [
       "<!-- sample:begin -->",

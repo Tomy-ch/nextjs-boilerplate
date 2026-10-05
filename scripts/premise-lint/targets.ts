@@ -6,6 +6,8 @@
 // である（[`docs/rules.md`](../../docs/rules.md)）。
 // boilerplate-only:end
 
+import { mirrorOf } from "../lib/mirror.js";
+
 /**
  * 走査するパス（リポジトリルート相対）。ディレクトリなら配下を再帰で見る。
  *
@@ -95,11 +97,6 @@ function covers(declared: string, relativePath: string): boolean {
   }
 
   return mirrorOf(declared) === relativePath;
-}
-
-/** 文書の翻訳のミラーのパス。文書でなければ null。 */
-function mirrorOf(declared: string): string | null {
-  return declared.endsWith(".md") ? `${declared.slice(0, -".md".length)}.ja.md` : null;
 }
 
 /**

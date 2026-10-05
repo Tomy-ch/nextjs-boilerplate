@@ -78,6 +78,24 @@ describe("findSectionedAdrReferences", () => {
     expect(found.map(({ text }) => text)).toEqual(["](../adr/0051-styling-system.md) §2"]);
   });
 
+  it("翻訳のミラー（`.ja.md`）を指すリンクの「決定 N」も挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.ja.md",
+      "手順は [0140](0140-x.ja.md) 決定 1 が持つ。",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual(["](0140-x.ja.md) 決定 1"]);
+  });
+
+  it("canonical を指すリンクの英語の「Decision N」も挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      "The model is [0140](0140-x.md) Decision 1 of the record.",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual(["](0140-x.md) Decision 1"]);
+  });
+
   it("節番号のあとに節題が続く形も挙げる", () => {
     const found = findSectionedAdrReferences(
       "docs/playbook.md",
@@ -165,6 +183,12 @@ describe("findSectionedAdrReferences", () => {
       "docs/x.md",
       "[手順](../get-started/setup-repository.md) 6 を先に読む。",
     );
+
+    expect(found).toEqual([]);
+  });
+
+  it("ADR でないミラーへのリンクの直後の番号は挙げない", () => {
+    const found = findSectionedAdrReferences("docs/x.ja.md", "[規則](rules.ja.md) 決定 1 を読む。");
 
     expect(found).toEqual([]);
   });

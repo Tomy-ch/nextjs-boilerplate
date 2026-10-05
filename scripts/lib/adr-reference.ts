@@ -14,6 +14,8 @@
  * 取る・それが ADR か見る・直後を見る、の順に分ければ、どれも前から 1 度読むだけで済む。
  */
 
+import { canonicalOf } from "./mirror";
+
 /** 節番号を伴う ADR 参照 1 件。 */
 export type SectionedAdrReference = {
   /** 検出したファイル（リポジトリルート相対）。 */
@@ -33,7 +35,7 @@ export type SectionedAdrReference = {
  */
 const LINK = /\]\([^)]*\)/g;
 
-/** その中身が ADR のファイルを指しているか。 */
+/** その中身が ADR の canonical を指しているか。 */
 const ADR_PATH = /(?:^|\/)0\d{3}-[a-z0-9-]+\.md$/;
 
 /**
@@ -80,7 +82,11 @@ const ENGLISH_COUNTER =
  */
 function findInLine(file: string, line: number, text: string): readonly SectionedAdrReference[] {
   return [...text.matchAll(LINK)].flatMap((link) => {
-    if (!ADR_PATH.test(link[0].slice("](".length, -")".length))) return [];
+    const destination = link[0].slice("](".length, -")".length);
+
+    // 翻訳のミラーも canonical と同じ ADR を指す。外すと、ミラーの側に書いた節番号だけが
+    // 検査を素通りする。
+    if (!ADR_PATH.test(canonicalOf(destination) ?? destination)) return [];
 
     const section = SECTION.exec(text.slice(link.index + link[0].length));
 

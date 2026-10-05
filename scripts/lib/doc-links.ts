@@ -2,6 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
 
 import { hasAnchor } from "./markdown-anchor";
+import { isMirror } from "./mirror";
 import { groupsAt } from "./regex-groups";
 
 /** 解決しなかったリンク 1 件。 */
@@ -45,9 +46,6 @@ const LINK = /\]\(\s*(?:<([^<>\s]+)>|([^)<>\s]+))(?:\s+"[^"]*")?\s*\)/g;
  * （`[text][ref]`）はこの定義を経由するので、定義さえ見れば宛先は覆えます。
  */
 const LINK_DEFINITION = /^\s*\[[^\]]+\]:\s*<?([^\s<>]+)>?/;
-
-/** 翻訳のミラー。canonical と同じディレクトリに `<name>.ja.md` として置く。 */
-const MIRROR = /\.ja\.md$/;
 
 /** 相対リンクではないもの。URL・プロトコル相対・ルート絶対を外す。 */
 const NOT_RELATIVE = /^([a-z][a-z0-9+.-]*:|\/)/i;
@@ -169,7 +167,7 @@ function brokenReasonOf(file: string, href: string, root: string): BrokenLink["r
 
   // エージェントは canonical だけを読み、ミラーは canonical を追う翻訳なので、canonical から
   // ミラーへ渡る経路を作らない。ミラーの名前を挙げるだけの散文（リンクでないもの）は対象外。
-  if (!MIRROR.test(file) && MIRROR.test(path)) return "mirror";
+  if (!isMirror(file) && isMirror(path)) return "mirror";
 
   return lacksAnchor(target, fragment) ? "anchor" : null;
 }

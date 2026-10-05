@@ -23,13 +23,16 @@ const TARGETS: readonly { readonly path: string; readonly language: TallyLanguag
 const tally = collectRuleTally(readFileSync(RULES, "utf8"));
 
 try {
+  // ミラーも canonical と同じく在るべきもので、片方だけ書き出すと 2 つの集計が黙ってずれる。
+  // 書き出す前に両方を確かめ、欠けがあれば何も書かずに落とす。
+  const missing = TARGETS.filter(({ path }) => !existsSync(resolve(ROOT, path)));
+
+  if (missing.length > 0) {
+    throw new Error(`${missing.map(({ path }) => path).join(" / ")} がありません`);
+  }
+
   for (const { path, language } of TARGETS) {
     const target = resolve(ROOT, path);
-
-    if (!existsSync(target)) {
-      console.warn(`⚠️ ${path} が無いので書き出しませんでした`);
-      continue;
-    }
 
     writeFileSync(
       target,

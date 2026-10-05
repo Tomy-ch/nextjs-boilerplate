@@ -12,6 +12,8 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+import { isMirror } from "../lib/mirror.js";
+
 import {
   eachLineOutsideFence,
   extractHeadings,
@@ -676,7 +678,7 @@ for (const name of skillDirs) {
 const agentFiles = fs.existsSync(path.join(REPO_ROOT, AGENTS_DIR))
   ? fs
       .readdirSync(path.join(REPO_ROOT, AGENTS_DIR))
-      .filter((name) => name.endsWith(".md") && !name.endsWith(".ja.md"))
+      .filter((name) => name.endsWith(".md") && !isMirror(name))
       .sort()
   : [];
 for (const file of agentFiles) {

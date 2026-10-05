@@ -4,9 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   collectRuleTally,
+  countVerdictPrefixedLines,
   renderRuleTally,
   replaceGeneratedBlock,
-  VERDICT_PREFIX,
 } from "./rules-tally/tally";
 
 /**
@@ -47,12 +47,8 @@ describe("実装規約の集計", () => {
     expect(tally.sections).toBeGreaterThanOrEqual(MINIMUM_SECTIONS);
   });
 
-  // 判定の語の綴りが変わると、規約は数えられても判定だけが 0 件へ縮み、残りの検査は緑のまま通る。
-  // 前置きは集計の読み方とは別に行で数え、読めた判定の数と突き合わせる。
   it("判定の前置きを持つ行の数だけ判定を読めており、1 件以上ある", () => {
-    const prefixed = rules.split("\n").filter((line) => line.includes(VERDICT_PREFIX)).length;
-
-    expect(tally.judged.length).toBe(prefixed);
+    expect(tally.judged.length).toBe(countVerdictPrefixedLines(rules));
     expect(tally.judged.length).toBeGreaterThanOrEqual(1);
   });
 
