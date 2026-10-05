@@ -54,6 +54,32 @@ describe("expiredSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("スキャナが強制する期限は、条件に書かれたより遅い日付より優先する", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("2027-01-15 に見直す"), until: "2026-11-02" }],
+        "2026-11-02",
+      ),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "2027-01-15 に見直す",
+        until: "2026-11-02",
+        dueDate: "2026-11-02",
+      },
+    ]);
+  });
+
+  it("スキャナが強制する期限がまだ来ていなければ答えない", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("修正版が出たら削除する"), until: "2026-11-02" }],
+        "2026-11-01",
+      ),
+    ).toEqual([]);
+  });
+
   it("宣言が無ければ空を返す", () => {
     expect(expiredSuppressions([], "2026-09-06")).toEqual([]);
   });

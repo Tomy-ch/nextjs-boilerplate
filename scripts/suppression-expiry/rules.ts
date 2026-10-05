@@ -19,6 +19,14 @@ export type Suppression = {
   /** 撤回条件として添えられた散文。 */
   readonly condition: string;
   /**
+   * 宣言を読むスキャナ自身が強制する期限（`YYYY-MM-DD`）。
+   *
+   * @remarks
+   * 期限を項目として持つ面だけが持ちます。過ぎた日からスキャナが抑止を外すので、撤回条件の散文に
+   * 書かれた日付より優先します。
+   */
+  readonly until?: string;
+  /**
    * 冷却の免除。
    *
    * @remarks
@@ -53,14 +61,14 @@ const VERSIONED_SUBJECT = /^(@[^@\s/]+\/)?[^@\s/]+@\S+/;
  *
  * @param suppressions - 読み取った宣言の全件
  * @param today - 判定の基準日（`YYYY-MM-DD`）
- * @returns 条件の最も遅い日付が基準日以前の宣言。その日付を添える
+ * @returns 期限（スキャナが強制する期限、無ければ条件の最も遅い日付）が基準日以前の宣言。その日付を添える
  */
 export function expiredSuppressions(
   suppressions: readonly Suppression[],
   today: string,
 ): readonly ExpiredSuppression[] {
   return suppressions.flatMap((suppression) => {
-    const dueDate = latestDateIn(suppression.condition);
+    const dueDate = suppression.until ?? latestDateIn(suppression.condition);
 
     if (dueDate === undefined || dueDate > today) {
       return [];

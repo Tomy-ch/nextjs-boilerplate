@@ -14,7 +14,11 @@ import type { ExpiredSuppression, MalformedSuppression, Suppression } from "./ru
  */
 export function renderDigest(suppressions: readonly Suppression[]): string {
   return suppressions
-    .map((entry) => `${entry.source}\t${entry.subject}\t${entry.condition}`)
+    .map((entry) =>
+      [entry.source, entry.subject, entry.condition]
+        .concat(entry.until === undefined ? [] : [`期限 ${entry.until}`])
+        .join("\t"),
+    )
     .join("\n");
 }
 

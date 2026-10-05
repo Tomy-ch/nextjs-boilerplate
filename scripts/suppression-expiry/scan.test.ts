@@ -39,25 +39,45 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  it("osv-scanner の期限（ignoreUntil）を条件の日付として添える", () => {
+  it("osv-scanner の期限（ignoreUntil）を、理由とは別の期限として読む", () => {
     place(
       "osv-scanner.toml",
-      '[[IgnoredVulns]]\nid = "GHSA-4444"\nignoreUntil = 2026-11-02\nreason = "修正版が出たら削除する。"\n',
+      '[[IgnoredVulns]]\nid = "GHSA-5555"\nignoreUntil = 2026-11-02\nreason = "修正版が出たら削除する。"\n',
     );
 
     expect(scanSuppressions(root)).toEqual([
       {
         source: "osv-scanner.toml",
-        subject: "GHSA-4444",
-        condition: "修正版が出たら削除する。（ignoreUntil 2026-11-02）",
+        subject: "GHSA-5555",
+        condition: "修正版が出たら削除する。",
+        until: "2026-11-02",
       },
     ]);
   });
 
-  it("理由が空なら期限があっても添えず、空のまま様式の検査へ渡す", () => {
-    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-5555"\nignoreUntil = 2026-11-02\n');
+  it("時刻とオフセットを付けて書かれた期限も、書かれた暦日で読む", () => {
+    place(
+      "osv-scanner.toml",
+      '[[IgnoredVulns]]\nid = "GHSA-6666"\nignoreUntil = 2026-11-02T00:00:00+09:00\nreason = "理由"\n',
+    );
 
-    expect(scanSuppressions(root)[0]?.condition).toBe("");
+    expect(scanSuppressions(root)[0]?.until).toBe("2026-11-02");
+  });
+
+  it("trivy の期限（expired_at）を、理由とは別の期限として読む", () => {
+    place(
+      ".trivyignore.yaml",
+      'vulnerabilities:\n  - id: CVE-2026-0003\n    statement: "修正版が出たら削除する"\n    expired_at: 2026-11-02\n',
+    );
+
+    expect(scanSuppressions(root)).toEqual([
+      {
+        source: ".trivyignore.yaml",
+        subject: "CVE-2026-0003",
+        condition: "修正版が出たら削除する",
+        until: "2026-11-02",
+      },
+    ]);
   });
 
   it("角括弧の内側に空白があっても読む。TOML として合法な書き方である", () => {
@@ -257,6 +277,25 @@ describe("scanSuppressions", () => {
     expect(scanSuppressions(root).map((entry) => entry.subject)).toEqual([
       "(id なし)",
       "(id なし)",
+    ]);
+  });
+
+  it("期限だけを持ち理由を持たない宣言は、条件を空のまま期限と一緒に載せる", () => {
+    place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-7777"\nignoreUntil = 2026-11-02\n');
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: "osv-scanner.toml", subject: "GHSA-7777", condition: "", until: "2026-11-02" },
+    ]);
+  });
+
+  it("日付として読めない期限は持たせず、理由だけの宣言として載せる", () => {
+    place(
+      "osv-scanner.toml",
+      '[[IgnoredVulns]]\nid = "GHSA-8888"\nignoreUntil = 20261102\nreason = "理由"\n',
+    );
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: "osv-scanner.toml", subject: "GHSA-8888", condition: "理由" },
     ]);
   });
 
