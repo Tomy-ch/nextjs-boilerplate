@@ -6,7 +6,7 @@ description: >-
   break one; flags narration of how, development 経緯, code restatement, tautologies, resolved markers, excess
   volume, a comment the change never earned, and a statement something else already carries (a test, a type, a
   rendered story) — which rots as a copy while the original stays right. For named functions it also checks the
-  required TSDoc frame and its structure. Reads [`docs/rules.md#comments`](../../docs/rules.md#comments) at runtime. Returns evidenced findings and never edits;
+  required TSDoc frame and its structure. Reads `docs/rules.md#comments` at runtime. Returns evidenced findings and never edits;
   relocating a rationale, and writing a missing comment, belong to `/settle-comments`. Default model `sonnet`.
 tools: Read, Grep, Glob, Bash
 model: sonnet
