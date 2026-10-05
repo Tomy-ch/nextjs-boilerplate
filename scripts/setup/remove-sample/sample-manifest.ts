@@ -89,6 +89,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "e2e/journeys/responsive.spec.ts",
   "e2e/journeys/overlay.spec.ts",
   "e2e/journeys/focus.spec.ts",
+  "e2e/journeys/not-found.spec.ts",
   // 破棄の道具（使い終わったら不要）。
   "scripts/setup/remove-sample",
 ];

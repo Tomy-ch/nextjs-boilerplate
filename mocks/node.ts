@@ -1,5 +1,6 @@
 import { setupServer } from "msw/node";
 
+import { absentHandlers } from "./absent";
 import { handlers } from "./handlers";
 
 /**
@@ -12,4 +13,4 @@ import { handlers } from "./handlers";
  * 差し替えるのは API の口だけで、配信元（`MEDIA_ORIGIN`）宛のハンドラは持ちません。ハンドラの無い
  * 宛先を素通しするか落とすかは `listen` を呼ぶ側が決めます（[README](README.md)）。
  */
-export const mockServer = setupServer(...handlers);
+export const mockServer = setupServer(...absentHandlers(handlers), ...handlers);

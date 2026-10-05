@@ -53,6 +53,7 @@ frontmatter の `test-requirement: unit` が掛かるのは、機構が持つ判
 | `handlers.ts` | 契約ごとの配線。どの生成物を通すかと参照の表だけを持ちます |
 | `stable-responses.ts` | 組み立ての機構。同じ要求へ同じ応答を返させ、並び順を決め、口をまたぐ参照を整合させます(下記) |
 | `references.ts` | どの項目がどの口を指すかの表。契約ごとの知識なので機構とは別に置く <!-- sample:line --> |
+| `absent.ts` | 予約した識別子を持つ要求へ 404 を返す口。どの識別子にも応える一式からは届かない「見つからない」状態へ届かせる |
 | `node.ts` | Node 側の interception。Server Components からの取得もここを通ります |
 | `serve.ts` | 同じハンドラを HTTP の口として立てる。プロセスをまたいで届く必要があるとき（下記） |
 | `contract-conformance.test.ts` | 全ハンドラの応答を、対応する zod で検証します。生成器の宣言どうしの整合もここで見ます <!-- sample:line --> |
