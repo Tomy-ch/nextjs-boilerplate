@@ -162,7 +162,7 @@ required, see [`env/README.md`](../../env/README.md). `MEDIA_ORIGIN` is required
 this value alone decides `next/image`'s allowed host and the CSP's `img-src`.
 
 **Separately from the purge, review the supplied defaults themselves.** What is listed here is only what the purge directly breaks;
-the index of the whole, including contracts, design and operational settings, is in the [root README](../../README.md#導入時に見直す既定).
+the index of the whole, including contracts, design and operational settings, is in the [root README](../../README.md#defaults-to-review-when-adopting).
 
 ## 7. Put In Your Own Contract
 

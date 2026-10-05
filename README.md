@@ -14,134 +14,209 @@ coverage-exclusions:
 
 # nextjs-boilerplate
 
-**Next.js / React の表示層アプリケーション基盤**。バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ
-またはサービスが持ち、本リポジトリは表示層だけを受け持って PaaS または静的 CDN へデプロイします
-（Docker は採らない — [ADR 0011](docs/adr/0011-no-docker.md)）。
+**A presentation-layer application base for Next.js / React.** The backend (DB / authentication /
+business logic) is owned by a separate repository or service; this repository takes on the
+presentation layer only and deploys to a PaaS or a static CDN (no Docker —
+[ADR 0011](docs/adr/0011-no-docker.md)).
 
-ツールチェーン、lint / format、git hook、セキュリティスキャン、ドキュメント運用は配線済みで、規約は
-暗黙知にせずすべて ADR として明文化しています。
+The toolchain, lint / format, git hooks, security scanning and documentation operations are already
+wired, and every convention is written down as an ADR rather than left as tacit knowledge.
 
-採用しているのは **Next.js 16 / React 19** です。API・規約・ファイル構成は少し前の Next.js と食い違い、
-とくに描画モデルは古い前提がそのまま誤りになります（`"use client"` はバンドル境界であって「クライアント
-で描画せよ」ではありません）。用語と、それが招く誤りの一覧は [docs/design/rendering.md](docs/design/rendering.md)
-にあります。
+It runs on **Next.js 16 / React 19**. APIs, conventions and file layout differ from slightly older
+Next.js, and the rendering model in particular turns stale assumptions straight into mistakes
+(`"use client"` is a bundle boundary, not "render this on the client"). The terms, and the mistakes
+they lead to, are listed in [docs/design/rendering.md](docs/design/rendering.md).
 
-> この README は意図的に最小限です。正はそれが規定する対象の隣にあり、各トピックはそれを所有する
-> ドキュメントへのリンクに委ねています（[ドキュメントマップ](#ドキュメントマップ)を参照）。このページは
-> 入口にすぎません。
+> This README is intentionally minimal. The source of truth sits next to what it governs, and each
+> topic is delegated to a link to the document that owns it (see the
+> [Documentation Map](#documentation-map)). This page is only the entry point.
 
-## 配線済みのもの
+## Capabilities
 
-各項目は拡張するための seam です。決定とその規約はリンク先にあります。
+Each item is a seam you extend. The decision and its conventions are behind the link.
 
-- **pnpm のみ**（lockfile はコミット必須）— [ADR 0001](docs/adr/0001-package-manager.md)
-- **ツール版数の SSOT は mise**（[`mise.toml`](mise.toml)）— [ADR 0003](docs/adr/0003-version-manager.md)
-- **biome 優先の lint / format**（ESLint は biome で表現できない検査のみ）— [ADR 0002](docs/adr/0002-formatter-linter.md)
-- **lefthook による git hook**（pre-commit / commit-msg / pre-push）— [ADR 0151](docs/adr/0151-git-hooks.md)
-- **ローカルのセキュリティスキャン**（gitleaks / Trivy）と抑止ポリシー — [ADR 0110](docs/adr/0110-security-operations.md)
-- **GitHub Actions 定義の lint**（actionlint + shellcheck）— [ADR 0153](docs/adr/0153-ci-configuration.md)
-- **story 単位の visual regression**（digest 固定した Playwright コンテナで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.md) / [`vrt/README.md`](vrt/README.md) / [機構](docs/design/vrt.md)
-- **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.md)
-- **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.md)
+- **pnpm only** (the lockfile must be committed) — [ADR 0001](docs/adr/0001-package-manager.md)
+- **mise as the SSOT for tool versions** ([`mise.toml`](mise.toml)) — [ADR 0003](docs/adr/0003-version-manager.md)
+- **biome-first lint / format** (ESLint only for checks biome cannot express) — [ADR 0002](docs/adr/0002-formatter-linter.md)
+- **git hooks via lefthook** (pre-commit / commit-msg / pre-push) — [ADR 0151](docs/adr/0151-git-hooks.md)
+- **Local security scanning** (gitleaks / Trivy) and the suppression policy — [ADR 0110](docs/adr/0110-security-operations.md)
+- **Lint for GitHub Actions definitions** (actionlint + shellcheck) — [ADR 0153](docs/adr/0153-ci-configuration.md)
+- **Per-story visual regression** (captured in a digest-pinned Playwright container) — [ADR 0091](docs/adr/0091-test-verification-methods.md) / [`vrt/README.md`](vrt/README.md) / [mechanism](docs/design/vrt.md)
+- **Branch / commit / release operations** — [ADR 0150](docs/adr/0150-git-workflow.md)
+- **make targets for repository operations** — [`.makefiles/README.md`](.makefiles/README.md)
 
-## 運用が普通と違うところ
+## Scope & Non-goals
 
-ほとんどは見たままですが、**手順を知らないと詰まる**ところがいくつかあります。ここは名前とリンク
-だけを置きます。
+Which team and which system this repository is designed for, and the uses it does not anticipate,
+are stated in [docs/project/scope.md](docs/project/scope.md).
 
-- **CI のツールチェーンは digest で照合される** — mise 自身の版は `mise.toml` に書けないため
-  [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) が版と SHA256 を持ち、
-  実行前に照合します。上げ方は [`.github/workflows/README.md`](.github/workflows/README.md#installing-mise)
-- **VRT の基準画像は別リポジトリにある** — `baseline/images` はサブモジュールで、実体は画像だけを
-  持つ置き場にあります。自分の置き場を用意するまで撮り直しは通りません（下記）。理由と運用は
-  [`vrt/README.md`](vrt/README.md)
+What it **deliberately leaves out** is listed in
+[docs/project/out-of-scope.md](docs/project/out-of-scope.md): what belongs to another domain (the
+backend or infrastructure), non-functional tool choices it does not hold, and what depends on the use
+case and is not decided here. Each is a deliberate boundary, not a gap.
 
-詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.md) です。
+## Prerequisites
 
-## 前提ツール
+- [mise](https://mise.jdx.dev) — tool / runtime version manager (**required**; activate it in your shell. The `make` targets resolve tools through mise)
+- GitHub CLI (`gh`) — needed by the repository-operation targets (`make setup-repo`, the release targets)
 
-- [mise](https://mise.jdx.dev) — ツール / ランタイムのバージョン管理（**必須**。シェルで activate しておくこと。`make` ターゲットは mise 経由でツールを解決します）
-- GitHub CLI（`gh`）— リポジトリ運用系ターゲット（`make setup-repo`、リリース系）が必要とします
-
-## クイックスタート
+## Quick Start
 
 ```bash
 git clone https://github.com/Tomy-ch/nextjs-boilerplate.git
 cd nextjs-boilerplate
 
-# 1. mise を導入し (https://mise.jdx.dev/getting-started.html)、シェルで activate する。
-echo 'eval "$(mise activate zsh)"' >> ~/.zshrc   # bash の場合は ~/.bashrc へ `mise activate bash` を追記
-# 新しいターミナルを開き、mise の shim を PATH に載せる。
+# 1. Install mise (https://mise.jdx.dev/getting-started.html) and activate it in your shell.
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc   # for bash, append `mise activate bash` to ~/.bashrc
+# Open a new terminal so the mise shims are on PATH.
 
-# 2. 固定版のツールチェーン・依存・git hook を導入する。
+# 2. Install the pinned toolchain, the dependencies and the git hooks.
 make install-tools
 pnpm install
-pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ実行する
+pnpm exec lefthook install   # not installed automatically; run it once after cloning
 
-# 3. （任意）AI コーディングアシスタント向けの資産を導入する。開発・ビルドの必須経路ではない。
-pnpm exec tsx scripts/bootstrap-plugins           # 公式プラグイン
-pnpm exec tsx scripts/bootstrap-external-skills   # 外部スキル（graphify）
+# 3. (Optional) Install the assets for AI coding assistants. Not on the required path for development or build.
+pnpm exec tsx scripts/bootstrap-plugins           # official plugins
+pnpm exec tsx scripts/bootstrap-external-skills   # external skills (graphify)
 
-# 4. 開発サーバーを起動する。
+# 4. Start the development server.
 pnpm dev
 ```
 
-<http://localhost:3000> を開くと表示されます。`src/app/page.tsx` を編集すると自動で反映されます。
+Open <http://localhost:3000> to see it. Editing `src/app/page.tsx` is reflected automatically.
 
-**Use this template** で新規プロジェクトを作る場合は [`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) を上から辿ってください。 <!-- boilerplate-only:line -->
+<!-- boilerplate-only:begin -->
+## Using This as a Template
 
-## 導入時に見直す既定
+When creating a new project with **Use this template**, follow
+[`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) from the top. It holds
+only the order and the places that need a person; the content of each step is owned by the document
+it points to.
 
-ここが供給している既定のうち、**別のバックエンド・別の組織・別の意匠であれば必ず偽になるもの**の
-索引です。既定値と変更手順は、それぞれを所有するドキュメントが持ちます。立ち上げの順序と人手が
-要る箇所は [`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md) が持ちます。
+The statements that hold only while this is the upstream template, and the markers that let a script
+remove them, are in
+[`docs/get-started/boilerplate-only-conventions.md`](docs/get-started/boilerplate-only-conventions.md).
 
-| 分類 | 何を | 参照先 |
+<!-- boilerplate-only:end -->
+## Defaults to Review When Adopting
+
+An index of the defaults supplied here that **are bound to be false for a different backend, a
+different organization or a different visual design**. The default values and how to change them are
+held by the document that owns each. The order of setup and the places that need a person are held by
+[`docs/get-started/setup-repository.md`](docs/get-started/setup-repository.md).
+
+| Category | What | Where |
 | --- | --- | --- |
-| 契約 | バックエンド契約の取得座標と、生成の入出力 | [openapi](openapi/README.md#what-to-change-when-adopting) |
-| 契約 | 契約から読めない値域と、口をまたぐ参照の配線 | [mocks](mocks/README.md#what-to-change-when-adopting) |
-| 環境 | API・IdP・画像配信・テレメトリの接続先、秘密値、経路上の上限 | [env](env/README.md#what-to-change-when-adopting) |
-| 外部接続 | IdP の差し替え点 | [adapters/server/auth](src/adapters/server/auth/README.md#replacement-points) |
-| 外部接続 | 外向きの往復に許す時間・試行回数・遮断の条件 | [adapters/server/http](src/adapters/server/http/README.md#what-to-change-when-adopting) |
-| 外部接続 | 配信ヘッダが許す第三者 origin | [config](src/config/README.md#what-to-change-when-adopting) |
-| 外部接続 | バックエンドエラーが持つ追加情報の形 | [errors](src/errors/README.md#what-to-change-when-adopting) |
-| 運用 | 必須チェックの集合、保護するブランチ、通知の宛先、定期実行、資格情報を要する検査の取捨 | [.github/workflows](.github/workflows/README.md#what-to-change-when-adopting) |
-| 運用 | VRT 基準画像の置き場と、CI がそこへ書き込む資格 | [vrt](vrt/README.md#what-to-change-when-adopting) |
-| 意匠 | 色・余白・形・書体と、配色と系統の軸 | [tokens](tokens/README.md#what-to-change-when-adopting) |
-| 意匠 | サイトの名乗り（名前・説明・アイコンの印） | [app](src/app/README.md#what-to-change-when-adopting) |
-| 意匠 | UI 部品。参考実装であり、置き換えてよい | [components](src/components/README.md#what-is-here-is-a-reference-implementation) |
-| 認可 | 保護する経路と、そこへ入れる役割 | [model](src/model/README.md#what-to-change-when-adopting) |
-| 同梱サンプル | 破棄すると画面横断のテストから何が消えるか | [e2e](e2e/README.md#what-disappears-when-the-bundled-sample-is-purged) <!-- sample:line --> |
+| Contract | The coordinates for fetching the backend contract, and the inputs and outputs of generation | [openapi](openapi/README.md#what-to-change-when-adopting) |
+| Contract | Value ranges the contract cannot express, and the wiring of references that cross endpoints | [mocks](mocks/README.md#what-to-change-when-adopting) |
+| Environment | Endpoints for the API, IdP, image delivery and telemetry, secrets, and limits along the path | [env](env/README.md#what-to-change-when-adopting) |
+| External connections | The IdP replacement points | [adapters/server/auth](src/adapters/server/auth/README.md#replacement-points) |
+| External connections | The time, attempt count and circuit-breaking conditions allowed for an outbound round trip | [adapters/server/http](src/adapters/server/http/README.md#what-to-change-when-adopting) |
+| External connections | The third-party origins the delivery headers allow | [config](src/config/README.md#what-to-change-when-adopting) |
+| External connections | The shape of the extra information a backend error carries | [errors](src/errors/README.md#what-to-change-when-adopting) |
+| Operations | The set of required checks, the protected branches, notification destinations, scheduled runs, and which credential-bearing checks to keep | [.github/workflows](.github/workflows/README.md#what-to-change-when-adopting) |
+| Operations | The store for VRT baseline images, and the credential CI uses to write to it | [vrt](vrt/README.md#what-to-change-when-adopting) |
+| Visual design | Color, spacing, shape and typeface, and the color-scheme and family axes | [tokens](tokens/README.md#what-to-change-when-adopting) |
+| Visual design | The site's identity (name, description, icon mark) | [app](src/app/README.md#what-to-change-when-adopting) |
+| Visual design | UI components. They are a reference implementation and may be replaced | [components](src/components/README.md#what-is-here-is-a-reference-implementation) |
+| Authorization | The protected routes, and the roles allowed into them | [model](src/model/README.md#what-to-change-when-adopting) |
+| Bundled sample | What disappears from the cross-screen tests when the sample is discarded | [e2e](e2e/README.md#what-disappears-when-the-bundled-sample-is-purged) <!-- sample:line --> |
 
-**この表は既定値を持ちません。** 値を 2 か所に置くと片方が遅れるためで、正はどれもリンク先です
-（[ADR 0140](docs/adr/0140-documentation-operations.md)）。
+**This table holds no default values.** A value placed in two locations lets one of them fall behind,
+so the source of truth is always the linked document
+([ADR 0140](docs/adr/0140-documentation-operations.md)).
 
-## コマンド
+## Non-obvious Operations
 
-アプリケーション側のコマンドは `package.json` の scripts を pnpm から実行します。リポジトリ運用と
-ツールチェーン整備は `make` ターゲットが受け持ちます。
+Most of it is what it looks like, but in a few places **you get stuck unless you know the procedure**.
+Only names and links are given here.
+
+- **CI's toolchain is verified by digest** — mise's own version cannot be written in `mise.toml`, so
+  [`.github/actions/setup-mise`](.github/actions/setup-mise/action.yaml) holds the version and SHA256
+  and verifies them before running. How to upgrade it:
+  [`.github/workflows/README.md`](.github/workflows/README.md#installing-mise)
+- **VRT baseline images live in a separate repository** — `baseline/images` is a submodule, and its
+  content sits in a store that holds images only. Retakes do not go through until you prepare your
+  own store (see above). The reason and the operation are in [`vrt/README.md`](vrt/README.md)
+
+When you get stuck, look in [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.md).
+
+## Development Workflow
+
+Application-side commands run the `package.json` scripts through pnpm. Repository operations and
+toolchain maintenance are handled by `make` targets.
 
 ```bash
-pnpm dev / build / start        # 開発 / ビルド / 本番起動（build と start は APP_ENV を指定する）
-pnpm lint / lint:ci / fix       # biome — エディタ相当 / 完全版 / 自動修正
+pnpm dev / build / start        # dev / build / production start (build and start take APP_ENV)
+pnpm lint / lint:ci / fix       # biome — editor-equivalent / full / auto-fix
 pnpm typecheck                  # tsc --noEmit
-pnpm lint:md                    # markdownlint + mermaid 構文検査
+pnpm lint:md                    # markdownlint + mermaid syntax check
 
-make help                       # 全 make ターゲットとその説明
+make help                       # every make target and its description
 ```
 
-`make help` が一覧の出所です。`.makefiles/**` の全ターゲットを列挙し、説明コメントの無いものを警告します。
-各ターゲットの内容は [`.makefiles/README.md`](.makefiles/README.md) にあります。
+`make help` is the source of the list. It enumerates every target in `.makefiles/**` and warns about
+any without a description comment. What each target does is in
+[`.makefiles/README.md`](.makefiles/README.md).
 
-## ドキュメントマップ
+## Documentation Map
 
-ここを起点に、目的のトピックを所有するリンクを辿ってください。
+Start here and follow the link that owns your topic.
 
-- [docs/get-started/](docs/get-started/) — テンプレートから作成して動かすまでの手順（順序と、人手が要る箇所）
-- [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルール。規約そのものは持たず、どの文書が何を所有するかを指します（日本語訳は `AGENTS.ja.md`）
-- [docs/adr/README.md](docs/adr/README.md) — アーキテクチャ決定記録（ADR）の台帳。1 行要約つきの全件一覧はここだけにあります
-- [docs/rules.md](docs/rules.md) — すべての変更を縛る実装規約（層境界 / データ分類 / フォーム / コメント / 作業の進め方）
-- [docs/design/](docs/design/README.md) — 個別のケースをどう決めるかの基準（描画 / データ取得 / 認証 / 可観測性ほか）
-- [docs/testing-conventions.md](docs/testing-conventions.md) — テストの規約
-- [.makefiles/README.md](.makefiles/README.md) — 全 `make` ターゲット
-- [.claude/README.md](.claude/README.md) — Claude Code 向けの設定資産（スキル / エージェント / 権限境界 / 外部スキル）
+### Core
+
+- [docs/get-started/](docs/get-started/) — the steps from creating a repository from the template to getting it running (the order, and the places that need a person)
+- [AGENTS.md](AGENTS.md) — operating rules for AI coding agents. It holds no conventions itself; it points to which document owns what
+- [docs/README.md](docs/README.md) — the routing that decides which document a piece of design knowledge goes to
+- [docs/adr/README.md](docs/adr/README.md) — the log of architecture decision records (ADRs). The full list with one-line summaries lives only here
+- [docs/rules.md](docs/rules.md) — the implementation rules that bind every change (layer boundaries / data classification / forms / comments / how work is run)
+- [docs/testing-conventions.md](docs/testing-conventions.md) — testing conventions
+- [docs/spec/README.md](docs/spec/README.md) — specifications: what the implementation promises
+- [docs/project/README.md](docs/project/README.md) — what this repository is and is not: scope, non-goals, policy, versions, direction
+- [docs/reference/README.md](docs/reference/README.md) — inventories that change in step with the code
+
+### Design
+
+- [docs/design/](docs/design/README.md) — the criteria for deciding an individual case (rendering / data fetching / authentication / observability and more)
+- [docs/playbook.md](docs/playbook.md) — look up, from what you want to implement, where it goes and how to verify it
+- [docs/tutorial/](docs/tutorial/README.md) — one path that assembles something working, climbing the layers in order
+
+### Layer READMEs
+
+- [app](src/app/README.md) · [features](src/features/README.md) · [components](src/components/README.md) · [model](src/model/README.md) · [adapters](src/adapters/README.md)
+- [capabilities](src/capabilities/README.md) · [stores](src/stores/README.md) · [config](src/config/README.md) · [errors](src/errors/README.md) · [logging](src/logging/README.md) · [observability](src/observability/README.md)
+
+### Contracts, data & tooling
+
+- [openapi/README.md](openapi/README.md) — importing the backend's API contract
+- [mocks/README.md](mocks/README.md) — contract-driven mocks generated from the contract
+- [env/README.md](env/README.md) — per-environment variables
+- [tokens/README.md](tokens/README.md) — the SSOT for design tokens
+- [e2e/README.md](e2e/README.md) — verification through screens, in a real browser
+- [vrt/README.md](vrt/README.md) — per-story visual regression against baseline images
+- [scripts/README.md](scripts/README.md) — tools that check, generate and operate on the repository
+- [.makefiles/README.md](.makefiles/README.md) — every `make` target
+- [.github/workflows/README.md](.github/workflows/README.md) — the CI / CD workflow definitions
+- [docs-viewer/README.md](docs-viewer/README.md) — the viewer for the documentation portal
+- [.claude/README.md](.claude/README.md) — configuration assets for Claude Code (skills / agents / permission boundaries / external skills)
+
+## Stack
+
+The direct dependencies, grouped by the single responsibility each one carries, are inventoried in
+[docs/reference/dependencies.md](docs/reference/dependencies.md); `package.json` is authoritative for
+versions. The criteria for adopting a dependency are [ADR 0004](docs/adr/0004-library-management.md).
+
+## Branch Strategy
+
+The project follows Semantic Versioning. A version is named by its release branch `release/v<X.Y.Z>`,
+and tags are placed on the `production` HEAD — [docs/project/versioning.md](docs/project/versioning.md).
+Branch, commit and release operations: [ADR 0150](docs/adr/0150-git-workflow.md).
+
+## Security
+
+**Reporting a vulnerability** — do not open a public issue. Use GitHub's Private Vulnerability
+Reporting as described in [SECURITY.md](SECURITY.md), which also states the response process.
+
+## License
+
+Released under the **MIT License** — see [LICENSE](LICENSE).
