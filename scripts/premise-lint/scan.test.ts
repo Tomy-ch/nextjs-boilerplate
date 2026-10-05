@@ -70,7 +70,23 @@ describe("findPremises", () => {
     expect(found[0]?.text).toBe("This boilerplate ships a sample.");
   });
 
+  it("英語の対訳に語の末尾が続いても（複数形）、前提として挙げる", () => {
+    const found = findPremises("It removes the bundled samples.", "docs/adr/x.md");
+
+    expect(found.map((premise) => premise.phrase)).toEqual(["bundled sample"]);
+  });
+
+  it("語の途中に埋まった出現の後ろに、語の頭からの出現があれば挙げる", () => {
+    const found = findPremises("An unbundled sample beside a bundled sample.", "docs/adr/x.md");
+
+    expect(found.map((premise) => premise.phrase)).toEqual(["bundled sample"]);
+  });
+
   // ----- 異常系 -----
+  it("英語の対訳が別の語の途中に埋まっているだけなら挙げない", () => {
+    expect(findPremises("It ships an unbundled sample.", "docs/adr/x.md")).toEqual([]);
+  });
+
   it("日本語の側に並ぶ ASCII の綴りは、大小が違えば挙げない", () => {
     expect(findPremises("a backlog nobody reads", "docs/adr/x.md")).toEqual([]);
   });

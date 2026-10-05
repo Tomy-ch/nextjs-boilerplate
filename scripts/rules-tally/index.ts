@@ -6,32 +6,24 @@ import { resolve } from "node:path";
 
 import {
   collectRuleTally,
+  missingTargets,
   renderRuleTally,
   replaceGeneratedBlock,
-  type TallyLanguage,
+  TALLY_TARGETS,
 } from "./tally";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const RULES = resolve(ROOT, "docs/rules.md");
 
-/** 集計ブロックの貼り付け先。canonical とそのミラーへ、同じ集計を各言語で書く。 */
-const TARGETS: readonly { readonly path: string; readonly language: TallyLanguage }[] = [
-  { language: "en", path: "docs/traceability.md" },
-  { language: "ja", path: "docs/traceability.ja.md" },
-];
-
 const tally = collectRuleTally(readFileSync(RULES, "utf8"));
 
 try {
-  // ミラーも canonical と同じく在るべきもので、片方だけ書き出すと 2 つの集計が黙ってずれる。
-  // 書き出す前に両方を確かめ、欠けがあれば何も書かずに落とす。
-  const missing = TARGETS.filter(({ path }) => !existsSync(resolve(ROOT, path)));
+  // 書き出す前に貼り付け先を両方確かめ、欠けがあれば何も書かずに落とす。
+  const missing = missingTargets(TALLY_TARGETS, (path) => existsSync(resolve(ROOT, path)));
 
-  if (missing.length > 0) {
-    throw new Error(`${missing.map(({ path }) => path).join(" / ")} がありません`);
-  }
+  if (missing.length > 0) throw new Error(`${missing.join(" / ")} がありません`);
 
-  for (const { path, language } of TARGETS) {
+  for (const { path, language } of TALLY_TARGETS) {
     const target = resolve(ROOT, path);
 
     writeFileSync(

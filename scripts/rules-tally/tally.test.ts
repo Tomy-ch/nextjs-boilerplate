@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { collectRuleTally, renderRuleTally, replaceGeneratedBlock } from "./tally";
+import { mirrorOf } from "../lib/mirror";
+import {
+  collectRuleTally,
+  countVerdictPrefixedLines,
+  missingTargets,
+  renderRuleTally,
+  replaceGeneratedBlock,
+  TALLY_TARGETS,
+} from "./tally";
 
 const DOCUMENT = [
   "# Implementation Rules",
@@ -198,6 +206,49 @@ describe("collectRuleTally", () => {
   });
 });
 
+describe("countVerdictPrefixedLines", () => {
+  // ----- 正常系 -----
+
+  it("判定の前置きを持つ行を数える", () => {
+    expect(countVerdictPrefixedLines(DOCUMENT)).toBe(3);
+  });
+
+  it("コードフェンスの中の前置きは数えない", () => {
+    expect(
+      countVerdictPrefixedLines(
+        ["- **Rule.** Prose — **mechanizable**.", "```md", "Prose — **mechanizable**.", "```"].join(
+          "\n",
+        ),
+      ),
+    ).toBe(1);
+  });
+
+  it("節頭の根拠の行は、前置きを含んでいても数えない", () => {
+    expect(
+      countVerdictPrefixedLines(
+        "> Rationale: [ADR 0020](adr/0020.md); enforced via a. Prose — **mechanizable**.",
+      ),
+    ).toBe(0);
+  });
+
+  it("空の文書では 0 を返す", () => {
+    expect(countVerdictPrefixedLines("")).toBe(0);
+  });
+
+  // ----- 異常系 -----
+
+  it("判定の語が 3 語の外でも前置きの行として数え、読めた判定の数とずれを出す", () => {
+    const markdown = [
+      '<a id="x"></a>',
+      "## Section",
+      "- **Rule.** Prose — **not yet mechanizable**.",
+    ].join("\n");
+
+    expect(countVerdictPrefixedLines(markdown)).toBe(1);
+    expect(collectRuleTally(markdown).judged).toHaveLength(0);
+  });
+});
+
 describe("renderRuleTally", () => {
   // ----- 正常系 -----
 
@@ -207,7 +258,7 @@ describe("renderRuleTally", () => {
         "<!-- generated: rules-tally -->",
         "",
         "**2 sections, 4 rules.**",
-        "Of these, 1 sections name a mechanical means in their header, and 3 rules state their own verdict.",
+        "Of these, 1 section names a mechanical means in its header, and 3 rules state their own verdict.",
         "",
         "| Verdict | Count |",
         "| --- | --- |",
@@ -253,6 +304,19 @@ describe("renderRuleTally", () => {
     );
   });
 
+  it("英語の件数が 1 のときは単数形で、0 のときは複数形で述べる", () => {
+    const tally = collectRuleTally(
+      ['<a id="x"></a>', "## Section", "- **Rule.** Prose — **mechanizable**."].join("\n"),
+    );
+    const block = renderRuleTally(tally, "en");
+
+    expect(block).toContain("**1 section, 1 rule.**");
+    expect(block).toContain(
+      "Of these, 0 sections name a mechanical means in their header, and 1 rule states its own verdict.",
+    );
+    expect(block).toContain("### 1 rule with work remaining");
+  });
+
   it("規約の文言に現れたパイプを逃がし、表の列を割らせない", () => {
     const tally = collectRuleTally(
       ['<a id="x"></a>', "## Section", "- **Use `a|b`.** Prose — **mechanizable**."].join("\n"),
@@ -296,5 +360,39 @@ describe("replaceGeneratedBlock", () => {
     expect(() => replaceGeneratedBlock("# 台帳", "新しい集計。")).toThrow(
       "貼り付け先が rules-tally の印を持ちません。",
     );
+  });
+});
+
+describe("TALLY_TARGETS", () => {
+  // ----- 正常系 -----
+
+  it("英語の canonical と、そのミラーへ日本語で描く 2 つを持つ", () => {
+    const [canonical, mirror] = TALLY_TARGETS;
+
+    expect(TALLY_TARGETS).toHaveLength(2);
+    expect(canonical).toEqual({ language: "en", path: "docs/traceability.md" });
+    expect(mirror).toEqual({ language: "ja", path: mirrorOf("docs/traceability.md") });
+  });
+});
+
+describe("missingTargets", () => {
+  // ----- 正常系 -----
+
+  it("貼り付け先が両方在るときは空を返す", () => {
+    expect(missingTargets(TALLY_TARGETS, () => true)).toEqual([]);
+  });
+
+  // ----- 異常系 -----
+
+  it("canonical が欠けていれば、そのパスを返す", () => {
+    expect(missingTargets(TALLY_TARGETS, (path) => path !== "docs/traceability.md")).toEqual([
+      "docs/traceability.md",
+    ]);
+  });
+
+  it("ミラーが欠けていれば、そのパスを返す", () => {
+    expect(missingTargets(TALLY_TARGETS, (path) => path !== "docs/traceability.ja.md")).toEqual([
+      "docs/traceability.ja.md",
+    ]);
   });
 });

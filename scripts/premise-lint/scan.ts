@@ -64,6 +64,24 @@ export function survivingText(content: string): string {
   }, content);
 }
 
+/** 英語の語を組む文字。綴りの直前がこれなら、より長い語の途中に居る。 */
+const WORD_CHARACTER = /[A-Za-z0-9_]/;
+
+/**
+ * 綴りが語の頭から始まる位置に現れるか。
+ *
+ * @param haystack - 探す先。
+ * @param needle - 探す綴り。
+ * @returns 直前が語の文字でない位置に 1 度でも現れれば true。
+ */
+function appearsAtWordStart(haystack: string, needle: string): boolean {
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    if (!WORD_CHARACTER.test(haystack.charAt(at - 1))) return true;
+  }
+
+  return false;
+}
+
 /**
  * 綴りがその行に現れるか。
  *
@@ -71,8 +89,13 @@ export function survivingText(content: string): string {
  * **英語の対訳だけは大文字小文字を区別しません。** 文頭に来ると先頭が大文字になり
  * （`This boilerplate …`）、区別すると同じ前提が文の位置だけで素通りします。
  *
- * 日本語の側に並ぶ ASCII の綴り（`BACKLOG` / `docs/plan`）は区別します。どれも固有の名前で、
- * 小文字の一般語（`a backlog`）に当てると前提ではない散文を挙げます。
+ * **英語の対訳は語の頭からだけ当てます。** 語の途中から当てると、否定や再帰の接頭辞が付いた
+ * 別の語（`unbundled sample`）を前提として挙げます。語の末尾は区切りません —— 英語の屈折は
+ * 接尾辞で起きるので、末尾を区切ると複数形（`bundled samples`）の前提が素通りします。
+ *
+ * 日本語の側に並ぶ綴りは区切りを見ません。和文には語の区切りが無く、ASCII の綴り（`BACKLOG` /
+ * `docs/plan`）は大小を区別して当てます。どれも固有の名前で、小文字の一般語（`a backlog`）に
+ * 当てると前提ではない散文を挙げます。
  *
  * @param line - 剥がした後の本文の 1 行。
  * @param phrase - 探す綴り。
@@ -82,7 +105,9 @@ export function survivingText(content: string): string {
 function appears(line: string, phrase: string, shape: PremiseShape): boolean {
   const english = shape.pairs.some((pair) => pair.en.includes(phrase));
 
-  return english ? line.toLowerCase().includes(phrase.toLowerCase()) : line.includes(phrase);
+  return english
+    ? appearsAtWordStart(line.toLowerCase(), phrase.toLowerCase())
+    : line.includes(phrase);
 }
 
 /**

@@ -348,6 +348,18 @@ interface TallyWording {
   readonly pendingHeader: string;
 }
 
+/**
+ * 英語の件数を、数に合わせた形で述べる。
+ *
+ * @param n - 件数。
+ * @param singular - 1 件のときの語（後続の動詞まで含めてよい）。
+ * @param plural - それ以外のときの語。
+ * @returns 件数と語を空白で繋いだもの。
+ */
+function quantity(n: number, singular: string, plural: string): string {
+  return `${n} ${n === 1 ? singular : plural}`;
+}
+
 /** 言語ごとの文言。ミラーの側は、canonical の訳でありながら生成器だけが書く。 */
 const WORDINGS: Readonly<Record<TallyLanguage, TallyWording>> = {
   en: {
@@ -357,12 +369,15 @@ const WORDINGS: Readonly<Record<TallyLanguage, TallyWording>> = {
       mechanizable: "mechanizable",
     },
     rulesFile: "rules.md",
-    totals: (tally) => `**${tally.sections} sections, ${tally.rules} rules.**`,
+    totals: (tally) =>
+      `**${quantity(tally.sections, "section", "sections")}, ` +
+      `${quantity(tally.rules, "rule", "rules")}.**`,
     breakdown: (tally) =>
-      `Of these, ${tally.enforcedSections} sections name a mechanical means in their header, ` +
-      `and ${tally.judged.length} rules state their own verdict.`,
+      `Of these, ${quantity(tally.enforcedSections, "section names", "sections name")} ` +
+      `a mechanical means in ${tally.enforcedSections === 1 ? "its" : "their"} header, and ` +
+      `${quantity(tally.judged.length, "rule states its", "rules state their")} own verdict.`,
     countHeader: "| Verdict | Count |",
-    pendingHeading: (pending) => `### ${pending} rules with work remaining`,
+    pendingHeading: (pending) => `### ${quantity(pending, "rule", "rules")} with work remaining`,
     pendingHeader: "| Section | Rule | Verdict |",
   },
   ja: {
@@ -444,4 +459,36 @@ export function replaceGeneratedBlock(document: string, block: string): string {
   if (!BLOCK.test(document)) throw new Error("貼り付け先が rules-tally の印を持ちません。");
 
   return document.replace(BLOCK, block);
+}
+
+/** 集計ブロックの貼り付け先 1 つ。 */
+export interface TallyTarget {
+  /** リポジトリのルートからのパス。 */
+  readonly path: string;
+  /** そこへ描く言語。 */
+  readonly language: TallyLanguage;
+}
+
+/** 集計ブロックの貼り付け先。canonical とそのミラーへ、同じ集計を各言語で書く。 */
+export const TALLY_TARGETS: readonly TallyTarget[] = [
+  { language: "en", path: "docs/traceability.md" },
+  { language: "ja", path: "docs/traceability.ja.md" },
+];
+
+/**
+ * 欠けている貼り付け先を挙げる。
+ *
+ * @remarks
+ * ミラーも canonical と同じく在るべきもので、片方だけ書き出すと 2 つの集計が黙ってずれる。
+ * 呼び出し側は、これが空でなければ何も書かずに落とす。
+ *
+ * @param targets - 貼り付け先。
+ * @param exists - パスが在るかを答える関数。
+ * @returns 欠けている貼り付け先のパス。渡した順。
+ */
+export function missingTargets(
+  targets: readonly TallyTarget[],
+  exists: (path: string) => boolean,
+): string[] {
+  return targets.filter(({ path }) => !exists(path)).map(({ path }) => path);
 }
