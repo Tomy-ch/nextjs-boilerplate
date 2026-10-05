@@ -104,9 +104,9 @@ describe("extractHeadings", () => {
   it("frontmatter の中の YAML コメントを見出しとして扱わない", () => {
     const content = [
       "---",
-      "# sample:begin",
+      "# 撤去の目印",
       "key: value",
-      "# sample:end",
+      "# 目印の終わり",
       "---",
       "",
       "# 題名",
