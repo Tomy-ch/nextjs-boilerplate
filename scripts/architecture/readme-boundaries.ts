@@ -31,7 +31,7 @@ const KERNEL_NAMES = new Set<string>(KERNELS);
  * 宣言することも、手書きとして宣言することもできません。印を行へ置くのは、手で直そうとした人が
  * その場で気づける唯一の位置だからです。
  */
-const GENERATED_MARKER = "# 生成物。`pnpm gen:architecture` で直す";
+const GENERATED_MARKER = "# Generated: regenerate with `pnpm gen:architecture`";
 
 /** `imports-allowed` のフロー形式の 1 行。ブロック形式は当たらない。 */
 const IMPORTS_ALLOWED_LINE = /^imports-allowed:\s*\[[^\]]*\].*$/m;

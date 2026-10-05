@@ -16,7 +16,7 @@ import {
  * `recording` と同じ形）。委ねると整形が壊れたときに期待値も同じ形で壊れ、突き合わせが成立しない。
  */
 function generated(dependencies: readonly string[], forbidden = "[fetch]"): string {
-  return `---\nimports-allowed: [${dependencies.join(", ")}] # 生成物。\`pnpm gen:architecture\` で直す\nforbidden: ${forbidden}\n---\n\n# layer\n`;
+  return `---\nimports-allowed: [${dependencies.join(", ")}] # Generated: regenerate with \`pnpm gen:architecture\`\nforbidden: ${forbidden}\n---\n\n# layer\n`;
 }
 
 describe("parseBoundaryFrontmatter", () => {
@@ -94,19 +94,19 @@ describe("renderImportsAllowed", () => {
   // ----- 正常系 -----
   it("依存を宣言の 1 行へ描き、生成物であることを行に残す", () => {
     expect(renderImportsAllowed(["model", "errors"])).toBe(
-      "imports-allowed: [model, errors] # 生成物。`pnpm gen:architecture` で直す",
+      "imports-allowed: [model, errors] # Generated: regenerate with `pnpm gen:architecture`",
     );
   });
 
   it("依存が 1 つの要素も同じ形へ描く", () => {
     expect(renderImportsAllowed(["model"])).toBe(
-      "imports-allowed: [model] # 生成物。`pnpm gen:architecture` で直す",
+      "imports-allowed: [model] # Generated: regenerate with `pnpm gen:architecture`",
     );
   });
 
   it("何も import できない要素を空の並びへ描く", () => {
     expect(renderImportsAllowed([])).toBe(
-      "imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す",
+      "imports-allowed: [] # Generated: regenerate with `pnpm gen:architecture`",
     );
   });
 });

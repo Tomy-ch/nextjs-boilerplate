@@ -52,26 +52,48 @@ meta:
 layers:
   - src: src/app/README.md
     dst: docs/portal/guides/app.md
+  - src: src/app/README.ja.md
+    dst: docs/portal/guides/app.ja.md
   - src: src/features/README.md
     dst: docs/portal/guides/features.md
+  - src: src/features/README.ja.md
+    dst: docs/portal/guides/features.ja.md
   - src: src/components/README.md
     dst: docs/portal/guides/components.md
+  - src: src/components/README.ja.md
+    dst: docs/portal/guides/components.ja.md
   - src: src/model/README.md
     dst: docs/portal/guides/model.md
+  - src: src/model/README.ja.md
+    dst: docs/portal/guides/model.ja.md
   - src: src/adapters/README.md
     dst: docs/portal/guides/adapters.md
+  - src: src/adapters/README.ja.md
+    dst: docs/portal/guides/adapters.ja.md
   - src: src/capabilities/README.md
     dst: docs/portal/guides/capabilities.md
+  - src: src/capabilities/README.ja.md
+    dst: docs/portal/guides/capabilities.ja.md
   - src: src/stores/README.md
     dst: docs/portal/guides/stores.md
+  - src: src/stores/README.ja.md
+    dst: docs/portal/guides/stores.ja.md
   - src: src/config/README.md
     dst: docs/portal/guides/config.md
+  - src: src/config/README.ja.md
+    dst: docs/portal/guides/config.ja.md
   - src: src/errors/README.md
     dst: docs/portal/guides/errors.md
+  - src: src/errors/README.ja.md
+    dst: docs/portal/guides/errors.ja.md
   - src: src/logging/README.md
     dst: docs/portal/guides/logging.md
+  - src: src/logging/README.ja.md
+    dst: docs/portal/guides/logging.ja.md
   - src: src/observability/README.md
     dst: docs/portal/guides/observability.md
+  - src: src/observability/README.ja.md
+    dst: docs/portal/guides/observability.ja.md
 
 operations:
   - src: .github/workflows/README.md

@@ -24,8 +24,8 @@ const EXCLUDED_SUFFIXES = [".test.ts", ".test.tsx", ".md"] as const;
  * README の書式は `src/components/component-template.md` が持つ。
  */
 export const README_SECTIONS = {
-  purpose: "用途",
-  boundary: "責務境界",
+  purpose: "Purpose",
+  boundary: "Responsibility Boundaries",
 } as const;
 
 /** bundle に載せる component 1 件。 */
@@ -35,9 +35,9 @@ export type BundleComponent = {
   layer: string;
   as: string;
   directory: string;
-  /** README の「用途」節。1 行で何のための部品かを表す */
+  /** README の「Purpose」節。1 行で何のための部品かを表す */
   purpose: string;
-  /** README の「責務境界」節。この部品が持たないもの */
+  /** README の「Responsibility Boundaries」節。この部品が持たないもの */
   boundary: string;
   files: string[];
   stories: { id: string; name: string }[];

@@ -101,7 +101,7 @@ function frontmatter(importsAllowed: readonly string[], contract: LayerContract)
 }
 
 /** テンプレートが feature 名を受け取る placeholder。 */
-const FEATURE_NAME_PLACEHOLDER = "<feature 名>";
+const FEATURE_NAME_PLACEHOLDER = "<feature name>";
 
 /** テンプレート冒頭の frontmatter。本文とは別に扱う。 */
 const TEMPLATE_FRONTMATTER = /^---\n[\s\S]*?\n---\n*/;
