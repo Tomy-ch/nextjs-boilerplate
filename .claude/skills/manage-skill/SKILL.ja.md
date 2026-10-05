@@ -36,7 +36,7 @@
 
 ## Step 0. 公式の方法論を用意して読み込む
 
-*どうやるか* の正典は公式の `skill-creator`。まずその存在を保証する:
+*どうやるか* の canonical は公式の `skill-creator`。まずその存在を保証する:
 
 ```bash
 pnpm exec tsx scripts/bootstrap-plugins
@@ -75,7 +75,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 
 各系統の現在の構成員は、その ADR のカバー範囲テーブルが持つ。ここに一覧を置かず、今回の実行で読む。
 
-提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（`docs/rules.md`「作業とエージェント」）。スキルを、規約が暗黙に決まる場所にしてはならない。
+提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（[`docs/rules.md#workflow`](../../../docs/rules.md#workflow)）。スキルを、規約が暗黙に決まる場所にしてはならない。
 
 近い役割の重複を作るくらいなら、既存スキルの拡張を優先する。粒度は「1 起動 = 1 オペレーション」（ADR 0154）。
 
@@ -124,7 +124,7 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 
 - 定義は `.claude/agents/<slug>.md` に置き、新種を発明せず既存タイプを再利用する。
 - subagent は **read-only on source** で、所見だけを返す。書き込みは orchestrator 側が行う。
-- 既定モデルは `sonnet`。reviewer ≠ implementer が重要な場合はその意図を `SKILL.md` に明記し、各 subagent の起動モデルも書く。
+- デフォルトモデルは `sonnet`。reviewer ≠ implementer が重要な場合はその意図を `SKILL.md` に明記し、各 subagent の起動モデルも書く。
 - 「念のため」で subagent を増やさない（ADR がコスト見合いで禁じている）。
 
 ### 正は実行時に読む

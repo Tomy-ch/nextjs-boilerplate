@@ -87,13 +87,13 @@ git diff --name-only --diff-filter=U
 | 依存の lockfile | `pnpm-lock.yaml` | 行を選ばない。`package.json` を先に解決してから `pnpm install` |
 | pin の lockfile | `.github/actions-pin.toml`, `docker/images-pin.toml` | 行を選ばない。`make actions-pin-resolve` + `make actions-pin-apply`、`make images-pin-resolve` + `make images-pin-apply` |
 | 版の刻印 | `package.json` の `version` | ブランチ名が出典。そこで決めてから `make version-stamp-check` |
-| 基準画像 | `baseline/images` の gitlink | submodule のポインタの片側を選ばない。撮り直して baseline のターゲットで送る |
+| ベースライン画像 | `baseline/images` の gitlink | submodule のポインタの片側を選ばない。撮り直して baseline のターゲットで送る |
 | マーカーの基準 | `scripts/marker-baseline/baseline.json` | 数を merge しない。マーカーを持つファイルを先に解決してから `pnpm exec tsx scripts/marker-baseline --write` <!-- boilerplate-only:line --> |
 | 追記専用のレジストリ | `docs/adr/README.md` の表、`docs/spec/glossary.md`、`.github/settings/labels.json` | 両側の項目の和集合 —— **同じ鍵が両側に在る場合を除く**。それは Step 5 が人へ返す |
 | 対訳ペア | `**/SKILL.ja.md` | canonical の `SKILL.md` を先に解決し、その後で対訳を見出し 1:1 へ戻す。**対訳を直接解決しない** |
 | 実装 | それ以外すべて | **機械的でない。**マーカーを残して人へ返す |
 
-**何かを解決する前に分類する。どの行にも当たらないパスは既定で実装である** —— 安全な向きだからである。
+**何かを解決する前に分類する。どの行にも当たらないパスはデフォルトで実装である** —— 安全な向きだからである。
 機械的な case を人へ返す費用はメッセージ 1 通、意味的な case を機械的に「解決」する費用は
 **黙って間違ったマージ**である。
 

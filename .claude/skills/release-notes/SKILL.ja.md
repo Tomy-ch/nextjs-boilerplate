@@ -57,7 +57,7 @@
 
 ## AI Modification Scope について
 
-このスキルは AGENTS.md の "Exception: Skill Execution" 節に基づき、スキル実行中に限り通常の AI Modification Scope の縛りを解放する。具体的には以下のパスへの**新規作成**がスキル実行中に許可される:
+このスキルは AGENTS.md の "Exception: Skill Execution" セクションに基づき、スキル実行中に限り通常の AI Modification Scope の縛りを解放する。具体的には以下のパスへの**新規作成**がスキル実行中に許可される:
 
 - `.github/release/<NEW_VERSION>.md`（新規作成のみ）
 

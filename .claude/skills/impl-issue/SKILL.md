@@ -266,7 +266,7 @@ gh issue view <n> --json number,title,body,labels,state,comments
 **Compare the issue against the actual base before writing anything.** An issue body is a snapshot of
 the repository as it was when someone wrote it; line numbers, 「X はまだ無い」, and 「Y に呼び出し側が
 無い」 go stale. Verify each factual claim against the base you are about to branch from — this is
-`docs/rules.md`'s 「『まだ直っていない』『未着手』『存在しない』と言う直前に、測り直す」 applied at the
+[`docs/rules.md#workflow`](../../../docs/rules.md#workflow)'s "Measure again right before saying \"not fixed yet\", \"not started\", or \"does not exist\"" applied at the
 one moment it is cheapest.
 
 Then post a kickoff comment recording branch name, base commit, and — most importantly — **every

@@ -13,13 +13,13 @@
 
 以下の用途には使いません:
 
-- リポジトリ全体のレビュー → `portal-manifest-sync` が同じ基準（後述）で 4 クラスに batch 分類する（部品リファレンスを外し、feature slice を Step 2b へ回したうえで）。本スキルは borderline ケースの個別深堀用
+- リポジトリ全体のレビュー → `portal-manifest-sync` が同じ基準（後述）で 4 クラスに batch 分類する（コンポーネントリファレンスを外し、feature slice を Step 2b へ回したうえで）。本スキルは borderline ケースの個別深堀用
 - README 編集 → `sync-readme`（drift 修正）または手動編集
 - manifest 追加 → `portal-manifest-sync`（curation flow）に chain
 
 ## 他スキルへの source-of-truth 提供
 
-後述の Step 2（P1〜P7 / N1〜N4 / 4 クラス閾値）は、`portal-manifest-sync` が batch 分類のために **実行時に参照** する。**重複定義しないこと**。基準が進化する場合（例: 新しい positive パターンが manifest entry から発見された）は本 SKILL.md だけ編集すれば、`portal-manifest-sync` の挙動も自動追従。
+後述の Step 2（P1〜P7 / N1〜N4 / 4 クラスしきい値）は、`portal-manifest-sync` が batch 分類のために **実行時に参照** する。**重複定義しないこと**。基準が進化する場合（例: 新しい positive パターンが manifest entry から発見された）は本 SKILL.md だけ編集すれば、`portal-manifest-sync` の挙動も自動追従。
 
 本スキルは引き続き、単一 README の **深堀分析**（強み / ギャップ / 補強提案 / 次アクションのフルスコアカード）の canonical 起動点。`portal-manifest-sync` は batch 性のためファイルごとに 1 行根拠だけ出す。
 
@@ -46,12 +46,12 @@ manifest が大きく変わったらこの数値を取り直します。ADR
 
 どちらも件数が多く、候補と取り違えるとリポジトリ全体のレポートが読めなくなります。
 
-- **部品リファレンス** —— `src/components/**` の README は Step 2 の N1 が名指しする固定の節の形を
+- **コンポーネントリファレンス** —— `src/components/**` の README は Step 2 の N1 が名指しする固定のセクションの形を
   共有します。1 つの component の表面を
   書いたもので、このリポジトリの答えは Storybook（manifest の `meta.reference_links` の常設項目）と
   component 自身の TSDoc です。これが本リポジトリでの N1 の読み方です
-- **feature slice** —— `src/features/` 配下の README は代わりに Step 2b の必須節検査で採点します。
-  対象は `docs/templates/feature-readme.md` が宣言する節です
+- **feature slice** —— `src/features/` 配下の README は代わりに Step 2b の必須セクション検査で採点します。
+  対象は `docs/templates/feature-readme.md` が宣言するセクションです
 
 ### キーワード更新ログ
 
@@ -62,7 +62,7 @@ Step 2 のキーワード集合は、`portal-manifest-sync` の実行で false-n
 
 低品質 README を通すための追加はしない。正当な言い換えのスペクトルを取りこぼさないことが目的です。
 いずれにせよ内容で判定します —— このリポジトリは主張そのものを見出しに書くため、リストの語が無くても
-問いに答えている節があれば観点は満たされます。
+問いに答えているセクションがあれば観点は満たされます。
 
 ## Step 0. ターゲット確認
 
@@ -95,7 +95,7 @@ H2 見出しテキストだけでなく、各セクションの内容を読ん�
 | # | 観点 | シグナル |
 | --- | --- | --- |
 | P1 | **役割 / 境界** | `What Belongs Here` / `What Does Not Belong Here` の対、または `Role` / `Boundaries` / `Why …`。「受け入れない」側が、外した仕事の行き先を名指ししていること（外したとだけ書いていないこと） |
-| P2 | **設計判断** | 判断を論じた節。主張そのものを見出しにしたもの（"The fetch endpoint declares the value classification"）や `Design` / `Trigger Strategy` / `Axis of Switching` / `Decisions This Layer Owns`。ルールの列挙ではなく理由 |
+| P2 | **設計判断** | 判断を論じたセクション。主張そのものを見出しにしたもの（"The fetch endpoint declares the value classification"）や `Design` / `Trigger Strategy` / `Axis of Switching` / `Decisions This Layer Owns`。ルールの列挙ではなく理由 |
 | P3 | **規約 / 禁止** | `Conventions` / `Placement and Naming` / `TSDoc Criteria` / `Storybook Display Conventions`、または許可と禁止を突き合わせた表 —— 読み手を拘束できる形の指示 |
 | P4 | **実行機序** | `Execution Mechanics` / `Execution Mechanics and Evaluation Timing` / `Generation and Checks` / `Config Wiring` —— 何がいつ動き、何がトリガーかを書いている |
 | P5 | **配下へのインデックス** | `Structure` / `Modules` / `… List` / `… Inventory` / `Hooks Placed Here` —— 配下を持つディレクトリについて |
@@ -108,7 +108,7 @@ Mermaid 図は加点であって観点ではありません。登録済みエン
 
 | # | 兆候 | 判定 |
 | --- | --- | --- |
-| N1 | **コンポーネントリファレンス** | component README の形（Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests）を持ち、その 1 つの component より大きなものを語る節を他に持たない。その component 自身の振る舞いを書いた節が増えても外れない → Storybook と component の TSDoc の領域 / out-of-scope-for-portal |
+| N1 | **コンポーネントリファレンス** | component README の形（Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests）を持ち、その 1 つの component より大きなものを語るセクションを他に持たない。その component 自身の振る舞いを書いたセクションが増えても外れない → Storybook と component の TSDoc の領域 / out-of-scope-for-portal |
 | N2 | **Stub** | H2 ≤1 かつ散文 200 字未満 |
 | N3 | **Index-only** | 唯一の H2 が `Structure`（または同等の列挙）で、列挙するだけで叙述が無い |
 | N4 | **Operational reference** | コマンド / フラグ / 使い方だけ —— スクリプトの起動面であって、判断が何も記録されていない。スクリプトの隣が置き場 |
@@ -119,40 +119,40 @@ N1〜N4 は保守的に適用します。役割・設計・実行機序の内容
 
 ### 分類しきい値
 
-- **manual-worthy**: positive ≥ 3 かつ negative トリガなし。feature README の場合は Step 2b の必須節がすべて present であることも要る
+- **manual-worthy**: positive ≥ 3 かつ negative トリガなし。feature README の場合は Step 2b の必須セクションがすべて present であることも要る
 - **borderline**: positive 1〜2 かつ negative トリガなし
 - **not-yet-manual-grade**: positive 0、または positive あっても N2/N3 がトリガ
-- **out-of-scope-for-portal**: N1（部品リファレンス）または N4（スクリプトの起動面リファレンス）トリガ
+- **out-of-scope-for-portal**: N1（コンポーネントリファレンス）または N4（スクリプトの起動面リファレンス）トリガ
 
-## Step 2b. feature README の必須節チェック
+## Step 2b. feature README の必須セクションチェック
 
 **この段はターゲットが `src/features/` 配下のときだけ走ります** —— slice の中の 1 画面が自分の
 README を持っている場合、その入れ子も含みます。`src/features/README.md` 自身は対象外です ——
-あれは層 README で、層としての務めは他のカーネル README と同じく P1〜P7 で採点します。
+あれはレイヤー README で、層としての務めは他のカーネル README と同じく P1〜P7 で採点します。
 
-**必須節の一覧をここに焼き込みません。**`docs/templates/feature-readme.md` を読み、冒頭のコメントが
+**必須セクションの一覧をここに焼き込みません。**`docs/templates/feature-readme.md` を読み、冒頭のコメントが
 宣言する `required-sections:` の一覧を必須の集合として扱います。feature README が何を持つべきかの正は
-テンプレート側であり、節が増減してもこのスキルを書き換えずに追従します。
+テンプレート側であり、セクションが増減してもこのスキルを書き換えずに追従します。
 
-**H2 見出しから集合を導かないこと。**テンプレートは意図的に任意とした節も持ちます（見出しの名前を
-固定しない設計判断の節と、一部の slice にしか要らないテンプレート適応の節）。それらを必須として扱うと、
+**H2 見出しから集合を導かないこと。**テンプレートは意図的に任意としたセクションも持ちます（見出しの名前を
+固定しない設計判断のセクションと、一部の slice にしか要らないテンプレート適応のセクション）。それらを必須として扱うと、
 リポジトリ内の全 README が落ちます。
 
-下の表は、いま宣言されている各節が何を意味するかの読み方です。**一覧そのものではありません** ——
-テンプレートの宣言と表が食い違ったらテンプレートが勝ち、表に説明の無い節も宣言されていれば必須です。
+下の表は、いま宣言されている各セクションが何を意味するかの読み方です。**一覧そのものではありません** ——
+テンプレートの宣言と表が食い違ったらテンプレートが勝ち、表に説明の無いセクションも宣言されていれば必須です。
 
 下の名前は、テンプレートが宣言する英語のセクション名です。各必須セクションについて、見出しの一致ではなく中身で判定します。
 
 | 必須セクション | 満たしている状態 |
 | --- | --- |
-| What Belongs Here | その slice が何を引き受けるか。層 README の受入基準の再掲になっていない |
+| What Belongs Here | その slice が何を引き受けるか。レイヤー README の受入基準の再掲になっていない |
 | What Does Not Belong Here | 隣へ渡すものと、その渡し先（`components` / `model` / 他 feature の facade）が名指しされている |
 | Routes and Contracts | その slice が持つ route がすべて並び、`docs/spec/route/**` の対へ link が張られ、使う operationId が挙がっている（使わないなら、その旨と理由がある） |
 | States and Design References | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
 | Structure | その slice が所有するファイル / ディレクトリの表がある |
 | Kernel Dependencies | 引いているカーネルと、その用途が書いてある |
 | Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら、無いことが書かれている（テンプレートは `none` と書く。字面の一致ではなく意味で判定するので、`none` でも `なし` でも満たす） |
-| Test Perspectives | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
+| Test Perspectives | **その slice でしか出てこない**観点である（ADR 0090 のレイヤー別責務の再掲になっていない） |
 
 それぞれを present / thin / missing で報告します。**thin** は見出しはあるが上の表の問いに答えて
 いない状態です —— operationId の載っていない operationId の表、story の付いていない状態表、層の
@@ -166,11 +166,11 @@ README を持っている場合、その入れ子も含みます。`src/features
 - 仕様書への link → `docs/spec/route/` 配下の実ファイル
 - Action 名 → `"use server"` を持つ module の `export async function`
 
-**解決しない主張は指摘であり、節の欠落より重い**です。読み手にとって、間違った案内は無い案内より
+**解決しない主張は指摘であり、セクションの欠落より重い**です。読み手にとって、間違った案内は無い案内より
 高く付きます。
 
-**必須節に missing か thin がある feature README は `manual-worthy` になりません。**P1〜P7 の点数に
-かかわらず `borderline` を上限とし、該当する節をギャップに並べます。
+**必須セクションに missing か thin がある feature README は `manual-worthy` になりません。**P1〜P7 の点数に
+かかわらず `borderline` を上限とし、該当するセクションをギャップに並べます。
 
 ## Step 3. スコアカード出力
 
@@ -254,9 +254,9 @@ verbose 時は、raw H2 リスト / 散文の字数 / テーブル件数 / H2 �
 - [ ] Mermaid / テーブルの有無を確認した
 - [ ] 各 positive 観点（P1〜P7）を Yes/No + 根拠で評価した
 - [ ] 各 negative 観点（N1〜N4）をチェックした
-- [ ] feature README なら、必須節を `docs/templates/feature-readme.md` から読み、present / thin / missing で採点した
+- [ ] feature README なら、必須セクションを `docs/templates/feature-readme.md` から読み、present / thin / missing で採点した
 - [ ] README が名指しした story 識別子・operationId・仕様書 link・Action 名を出所と突き合わせた
-- [ ] 最終分類が閾値と一致している
+- [ ] 最終分類がしきい値と一致している
 - [ ] 出力は日本語で、各観点に対する具体的根拠を併記
 - [ ] 次アクション提案を含む
 - [ ] ファイルを編集 / stage / commit していない

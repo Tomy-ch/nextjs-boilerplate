@@ -12,7 +12,7 @@
 
 - 新しい画面 / feature スライスを足すところで、ディレクション（何を出すか）が既にあるか、これから
   決まる。
-- 置き場・feature README の必須節・`docs/spec/route/**` の仕様書・テストがどれも未作成で、手戻りを
+- 置き場・feature README の必須セクション・`docs/spec/route/**` の仕様書・テストがどれも未作成で、手戻りを
   生まない順序で作りたい。
 
 ## このスキルを使わないとき
@@ -38,7 +38,7 @@
 | 出所 | そこが決めるもの |
 | --- | --- |
 | `docs/playbook.md` | 画面実装の順序 / 置き場の逆引き / ゲートの方針 |
-| `docs/templates/feature-readme.md` | feature README が持つべき必須節 |
+| `docs/templates/feature-readme.md` | feature README が持つべき必須セクション |
 | `docs/spec/README.md` | 仕様書の 2 層構造と置き場 |
 | `src/features/README.md` と各カーネル README | import 境界 / `test-requirement` / 公開面 |
 | `architecture.ts` | `pnpm gen` と ESLint boundaries が強制する依存マトリクス |
@@ -77,9 +77,9 @@
 
 ## Step 3. story 先行（工程 2）
 
-スライスに `pnpm gen feature <name> --screen=<画面>` を、設計が要求する共有部品に `pnpm gen component <name> --as=<見出し>` を回す。
+スライスに `pnpm gen feature <name> --screen=<画面>` を、設計が要求する共有コンポーネントに `pnpm gen component <name> --as=<見出し>` を回す。
 配置・命名・境界は生成器に委ね、**手で置かない**。生成器が取る入力以外を渡さない（`architecture.ts`
-＋層 README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
+＋レイヤー README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
 
 `scaffold-slice` がこの画面を既に置いているなら —— 2 つのスキルは `pnpm gen feature` で出会う —— 生成器を飛ばして story から始める。
 
@@ -96,7 +96,7 @@
 pnpm storybook
 ```
 
-script 側が `APP_ENV` を `local` に既定しているので、前置きは要らない。`:6006` で出る。1 ツールに
+script 側が `APP_ENV` を `local` にデフォルトしているので、前置きは要らない。`:6006` で出る。1 ツールに
 つき 1 つだけ立て、閉じるのは user に任せる。URL と見るべき story id を渡して、待つ。
 
 **これが返るまでテストを書かない。** 順序が在る理由そのものであり、確定していない見た目に対して
@@ -109,7 +109,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 レビューが確定させたものを層へ移す。置き場は `docs/playbook.md` の逆引きと各カーネル README から
 決める。基準はコードにも README にも書き写さず、それを所有する ADR への参照パスとして持つ。
 **参照パスそのものは `docs/playbook.md` の「What to Read at Step 4 (Separation)」の表が持つ** —— 該当する行を
-開いて ADR の節を当てる。棄却側の行も必ず含める。同じ発想を思いつくたびに一から議論し直さない
+開いて ADR のセクションを当てる。棄却側の行も必ず含める。同じ発想を思いつくたびに一から議論し直さない
 ためである。
 
 ## Step 6. 仕様書（工程 5）
@@ -117,7 +117,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 `docs/spec/README.md` に従って `docs/spec/route/<...>/page.{function,screen}.md` を書く —— 機能要件と
 画面要件を、「契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか」で振り分ける。
 
-仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / 部品
+仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / コンポーネント
 カタログ / ADR は**指すだけ**で、写さない。
 
 仕様書と slice の README は英語の canonical で、それぞれ兄弟の `.ja.md` ミラーを持つ
@@ -148,7 +148,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 ## 制約
 
 - ❌ Step 4 のレビューが返る前にテストを書く。
-- ❌ `pnpm gen` が置くはずのファイルを手で置く、または生成器へ `architecture.ts` ＋層 README 以外の
+- ❌ `pnpm gen` が置くはずのファイルを手で置く、または生成器へ `architecture.ts` ＋レイヤー README 以外の
   入力を渡す。
 - ❌ `docs/spec/**` を生成入力として扱う —— **読み込み**入力に限る。
 - ❌ `impl-review` / `test-review` を呼ぶ。
@@ -164,7 +164,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 
 - [ ] feature 名 / route / ディレクションを `AskUserQuestion` で確認した（Step 0）
 - [ ] `docs/playbook.md` を今回の実行で読み、その順序に従った
-- [ ] 部品が 1 つも無いうちに、テンプレートから feature README を埋めた（Step 2）
+- [ ] コンポーネントが 1 つも無いうちに、テンプレートから feature README を埋めた（Step 2）
 - [ ] ファイルは `pnpm gen` が置いた。4 状態の story を書いた（Step 3）
 - [ ] テストを 1 行も書く前に、Storybook を立てて人が見た目を確定させた（Step 4）
 - [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書き、仕様書と README のミラーを `canonicalize-doc` で同期した（Step 5〜6）

@@ -60,13 +60,13 @@ ADR 0025、`src/app/README.md`、`src/app/api/README.md` を通読し、Server A
 の逆引きの行を読む。
 
 - **Route Handler**: `src/app/api/README.md` が handler の受け入れるものを挙げている。データが要るだけの
-  server 描画の画面は feature から adapter を呼び、handler を要さない。受け入れる場合のどれにも当たらない
+  server レンダリングの画面は feature から adapter を呼び、handler を要さない。受け入れる場合のどれにも当たらない
   なら、そう言って止まる。
 - **Server Action**: ADR 0025 は、主体の断言が要るかで住処を決める。要らないなら feature に属する ——
   そう言って止まる。`scaffold-slice` はそれを feature の段へ渡す。
 - **このスキル経由で route segment を求められた**: 止まって `new-feature` を指す。
 
-ここで止まるのは結果であって失敗ではない。どの節が決めたかを報告する。
+ここで止まるのは結果であって失敗ではない。どのセクションが決めたかを報告する。
 
 ## Step 2. 監査の行に対して計画する
 

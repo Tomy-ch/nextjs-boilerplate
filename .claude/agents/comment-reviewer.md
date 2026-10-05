@@ -26,8 +26,9 @@ Your basis is, in order:
 
 1. **`docs/rules.md`** — read it at the start of every run. It is the repository's implementation-rule
    register. **If it carries a Comment Rules section, that section is the single source of truth and
-   overrides everything below — apply it verbatim.** The register carries it as the 「コメントと文書」
-   section; the standard embedded in this agent is the fallback for a checkout where that section is
+   overrides everything below — apply it verbatim.** The register carries it as the
+   [`docs/rules.md#comments`](../../docs/rules.md#comments) section; the standard embedded in this
+   agent is the fallback for a checkout where that section is
    absent.
 2. **`AGENTS.md`** — the **Language Rules** (code comments are Japanese unless the user directs
    otherwise; technical terms may stay English), and `docs/adr/0002-formatter-linter.md` for what the

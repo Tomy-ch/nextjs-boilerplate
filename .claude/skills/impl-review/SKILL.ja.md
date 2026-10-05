@@ -13,7 +13,7 @@
 以下には使わない:
 
 - formatting / style — `pnpm fix` / `pnpm lint:ci`
-- 静的な層境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査 —— 全ファイルをそのカーネル README の `## Audit Criteria` の表と突き合わせること —— は `/arch-check` が持つ。その表の行が担っているものを重ねて指摘しない
+- 静的なレイヤー境界の強制 — `pnpm lint:ci` が `eslint-plugin-boundaries`（ADR [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) Enforcement）と `pnpm check:architecture` を走らせており、import 方向は静的に**ゲートされている**。よって `architecture` レンズはその上に載る*意味的*なパスであり、マトリクスで表現できない違反（正当な import を通って型が漏れている / 責務が別カーネルに置かれている / 名目上だけ依存を反転させた抽象）に使う。ESLint が既に落とすものを再導出することに使わない。網羅的なレイヤ適合監査 —— 全ファイルをそのカーネル README の `## Audit Criteria` の表と突き合わせること —— は `/arch-check` が持つ。その表の行が担っているものを重ねて指摘しない
 - 修正の適用 — ソースに対して read-only。指摘するだけで、直すのはユーザー
 - テスト（`/test-review`）の監査 — 対等な相方であって下位の手順ではない
 - コメント（`/settle-comments`）の監査 — 実装の段で決着させるものであり、ここではレビューしない
@@ -22,8 +22,8 @@
 
 バイアス低減が設計上の制約であって、おまけではない。よって reviewer は **コードを書いた者とは別モデルの subagent** として動く:
 
-- reviewer エージェント（`adversarial-reviewer` / `type-design-reviewer` / `review-verifier`）は frontmatter で既定 **`sonnet`**。通常の Opus 実装者と異なる。
-- **reviewer のモデルは Step 0 でユーザーが選ぶ。** 選択肢は `fable`（Fable 5）/ `sonnet` / `opus` / `haiku`、および *auto*（実装者と異なるモデルへ解決する既定）。選ばれたモデルは全 reviewer subagent へ `Agent` ツールの `model` 引数で渡す（この引数はエージェント定義の `sonnet` 既定より優先）— 深さなら `opus`、安価な発散なら `haiku`、独立した視点なら `fable`。
+- reviewer エージェント（`adversarial-reviewer` / `type-design-reviewer` / `review-verifier`）は frontmatter でデフォルト **`sonnet`**。通常の Opus 実装者と異なる。
+- **reviewer のモデルは Step 0 でユーザーが選ぶ。** 選択肢は `fable`（Fable 5）/ `sonnet` / `opus` / `haiku`、および *auto*（実装者と異なるモデルへ解決するデフォルト）。選ばれたモデルは全 reviewer subagent へ `Agent` ツールの `model` 引数で渡す（この引数はエージェント定義の `sonnet` デフォルトより優先）— 深さなら `opus`、安価な発散なら `haiku`、独立した視点なら `fable`。
 - **オーケストレーターは reviewer ≠ implementer を必ず保証する。** ユーザーが本セッションの実装者と同一モデルを選んだ場合、別モデルによるバイアス低減が損なわれる旨を警告し、続行前に確認する。黙って同一モデルにしない。
 - reviewer subagent は **read-only**（エージェント定義に Edit/Write 権限なし）— finding を返すだけであり、このスキルはソースを一切書き換えない。何を直すかはレポートを読んだユーザーの判断である。
 
@@ -65,7 +65,7 @@
 
 何より先に、この実行が越える境界を打刻する: `.agents/closed-loop/marks.sh reviewStartedAt`。
 
-即座に `AskUserQuestion`。ベースは `commit` / `submit-pr` と同じ解き方で —— `gh pr view --json baseRefName -q .baseRefName`、PR が無ければ `make -s base-branch`。`gh repo view --json defaultBranchRef` は使わない（理由は `.makefiles/README.md` が持つ。この綴りで解くと diff がリリース 1 世代ぶん黙って広がる）。未マージのコミットがあれば「変更ファイルのみ」を既定、なければ作業ツリー / 指定パスを既定。
+即座に `AskUserQuestion`。ベースは `commit` / `submit-pr` と同じ解き方で —— `gh pr view --json baseRefName -q .baseRefName`、PR が無ければ `make -s base-branch`。`gh repo view --json defaultBranchRef` は使わない（理由は `.makefiles/README.md` が持つ。この綴りで解くと diff がリリース 1 世代ぶん黙って広がる）。未マージのコミットがあれば「変更ファイルのみ」をデフォルト、なければ作業ツリー / 指定パスをデフォルト。
 
 ```text
 質問: どの範囲をレビューしますか？
@@ -91,19 +91,19 @@
   - haiku（安価・高速な発散パス）
 ```
 
-*auto* は、実装者が `sonnet` でなければエージェント定義の既定（`sonnet`）へ、`sonnet` なら別ティアへ解決する。ユーザーが実装者自身のモデルを選んだ場合は中核アイデアに従って警告し、続行前に確認する。選ばれたモデルは Step 2 / Step 3 の全 `adversarial-reviewer` / `type-design-reviewer` / `review-verifier` の `Agent` 呼び出しへ `model` 引数で渡す。
+*auto* は、実装者が `sonnet` でなければエージェント定義のデフォルト（`sonnet`）へ、`sonnet` なら別ティアへ解決する。ユーザーが実装者自身のモデルを選んだ場合は中核アイデアに従って警告し、続行前に確認する。選ばれたモデルは Step 2 / Step 3 の全 `adversarial-reviewer` / `type-design-reviewer` / `review-verifier` の `Agent` 呼び出しへ `model` 引数で渡す。
 
 **問いは 2 つで、それ以上は置かない。** テストの問いもコメントの問いもここには無い —— テストは `/test-review` の主題でユーザーが別に問い、コメントは `/settle-comments` が実装の段で決着させている（中核アイデア「このスキルは変更そのものだけを監査する」）。
 
 ### フラグ
 
-- `--no-comment` — Step 6 を抑止（PR へ投稿しない）。ローカルレポートのみを出す。**既定は opt-out**: 現ブランチに open な PR があれば、このフラグが無い限り Step 6 が残った finding をインラインレビューコメントとして投稿する。
+- `--no-comment` — Step 6 を抑止（PR へ投稿しない）。ローカルレポートのみを出す。**デフォルトは opt-out**: 現ブランチに open な PR があれば、このフラグが無い限り Step 6 が残った finding をインラインレビューコメントとして投稿する。
 
 ## Step 1 — コンテキスト収集
 
 - ベース ref を解決しレビュー対象を作る: `git diff <base>...HEAD`（未コミットなら `git diff`）+ 変更ファイル一覧（`git diff --name-only ...`）。
 - どの**カーネル / element** が触られたか検出する。何が在るかは ADR [0027](../../../docs/adr/0027-directory-structure.ja.md) の物理レイアウト、各々が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) の依存マトリクスが正: `src/app/**`（3 element — route-segment `page`/`layout` / route-handler `route.ts` / metadata）、`src/features/<name>/**`、`src/model/**`、`src/components/**`、`src/adapters/server/**`・`src/adapters/client/**`、`src/capabilities/**`、`src/stores/**`、`src/config/**`、`src/errors/**`、`src/logging/**`、`src/observability/**` — に加えて**カーネルの外側にある起動 / ビルド境界エントリ**: `src/proxy.ts`、`src/instrumentation.ts`、`next.config.ts`。カーネルはディスク上に無いことがある（ADR 0027 は対応決定が下りた時点で初めて作成する）ので、全部揃っている前提を置かず実在するものを検出する。
-- **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.ja.md)。Provider の欠落は当該ルートが実際に描画されて初めて落ちる）。Step 4-2 を回すかの判定。 <!-- skill-lint-ignore -->
+- **リクエスト時の seam** が触られたか — Route Handler（`src/app/**/route.ts`）/ Server Action（`src/features/<name>/actions.ts`）/ `src/proxy.ts` / レスポンスヘッダ設定（`next.config.ts` の `headers()`）/ **layout shell・Provider 合成**（`src/app/**/layout.tsx` — ADR [0026](../../../docs/adr/0026-layout-shell-mount.ja.md)。Provider の欠落は当該ルートが実際にレンダリングされて初めて落ちる）。Step 4-2 を回すかの判定。 <!-- skill-lint-ignore -->
 - **生成 API 成果物**（`**/gen/**` — ADR [0072](../../../docs/adr/0072-api-type-generation.ja.md) の型 / zod スキーマ）が触られたか。再生成は全 consumer に波及するので、変更ファイルだけでなくそれを import する `adapters` 変換と feature までレビュー範囲を広げる。
 
 ### 静的な判定は、ここで 1 回だけ解く
@@ -129,7 +129,7 @@ gh pr checks --json name,state,link 2>/dev/null   # ブランチに PR が在れ
 
 ## Step 2 — Finder の fan-out（別モデル、並列）
 
-全 finder を並列起動（`Agent` 呼び出しを1メッセージにまとめる）。Step 0 でユーザーが選んだ reviewer モデルを全 `Agent` 呼び出しへ `model` 引数で渡す（*auto* がエージェント定義の既定へ解決する場合のみ省略可）。レンズの finder は `adversarial-reviewer` — レンズごとに1体、`agentType: "adversarial-reviewer"`、`label` は `find:security` のように。`type-design` の finder だけは `type-design-reviewer` を使う（`agentType: "type-design-reviewer"`、`label: find:type-design`）。
+全 finder を並列起動（`Agent` 呼び出しを1メッセージにまとめる）。Step 0 でユーザーが選んだ reviewer モデルを全 `Agent` 呼び出しへ `model` 引数で渡す（*auto* がエージェント定義のデフォルトへ解決する場合のみ省略可）。レンズの finder は `adversarial-reviewer` — レンズごとに1体、`agentType: "adversarial-reviewer"`、`label` は `find:security` のように。`type-design` の finder だけは `type-design-reviewer` を使う（`agentType: "type-design-reviewer"`、`label: find:type-design`）。
 
 | Finder | Tier | エージェント | 起動条件 |
 | --- | --- | --- | --- |
@@ -140,11 +140,11 @@ gh pr checks --json name,state,link 2>/dev/null   # ブランチに PR が在れ
 | `runtime-gap` | 3 | adversarial-reviewer | Route Handler / Server Action / `src/proxy.ts` / Provider マウント / 生成 API 成果物が触られた時 — モックのコンポーネントテストが通らない継ぎ目 |
 | `type-design` | 3 | type-design-reviewer | diff が `src/model/**` に触れた時、または `src/` の他の場所で `type` / `interface` / zod スキーマを足す・変える時 — その広い範囲はエージェント自身が解決する |
 
-**ここにテストやコメントを監査するレンズは無い**（中核アイデア「このスキルは変更そのものだけを監査する」）。未テストの変更やコメントの内容にレンズがついでに気づいたなら、補足の節に観察として書き、所管するスキル名を添える —— レンズを生やしてはならない。
+**ここにテストやコメントを監査するレンズは無い**（中核アイデア「このスキルは変更そのものだけを監査する」）。未テストの変更やコメントの内容にレンズがついでに気づいたなら、補足のセクションに観察として書き、所管するスキル名を添える —— レンズを生やしてはならない。
 
 各 `adversarial-reviewer` プロンプトに必ず含める: レンズ名 + その定義、ベース ref + 変更ファイル一覧 + diff、`AGENTS.md` / 該当 `README.md` / 根拠となる ADR へのポインタ。
 
-`type-design-reviewer` のプロンプトに渡すのは `scope: changed`・ベース ref・変更ファイル一覧・静的判定だけである。基準は [`prompts/type-design.md`](prompts/type-design.md) にあり、ここで再掲も拡張もしない。返ってくるのは採点のブロックで、**Step 3 の verify に入るのはその `懸念` の項目だけ**である。採点は返ってきたまま報告し、採点し直したり重大度へ均したりしない。
+`type-design-reviewer` のプロンプトに渡すのは `scope: changed`・ベース ref・変更ファイル一覧・静的判定だけである。基準は [`prompts/type-design.md`](prompts/type-design.ja.md) にあり、ここで再掲も拡張もしない。返ってくるのは採点のブロックで、**Step 3 の verify に入るのはその `懸念` の項目だけ**である。採点は返ってきたまま報告し、採点し直したり重大度へ均したりしない。
 
 **`cohesion` レンズの定義。** `architecture` が問うのは*どの層が持つか*、`cohesion` が問うのは*同じ関数やファイルに何種類の依頼が降ってくるか*である。両者は重ならず、その間に実際の隙間がある — ある単位が寸分違わず正しいカーネルに座り、`eslint-plugin-boundaries` も `pnpm check:architecture` も通ったうえで、エラー文言を直したい人にネットワークを叩くコードを読ませ続けることがある。ツールチェーンのどれもそれを見ておらず、きれいさ・保守性を実際に持っている `full-verify` の `impl-verifier` はリポジトリ全体の監査でしか走らない。このレンズが無いと、その指摘は「持ち込んだ diff」ではなく「いつかの監査」まで待つことになる。
 
@@ -182,10 +182,10 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 2. 対象パスへ `curl -i` し検証する:
    - 正常系のステータスとボディ形。
    - **生の上流ステータスを漏らしていないこと** — バックエンド障害は素通しの 4xx/5xx ではなく正規化された `errors` 分類として現れねばならない（ADR [0071](../../../docs/adr/0071-bff-api-integration.ja.md)）。
-   - 変更が生むはずのセキュリティヘッダ / CSP（ADR [0111](../../../docs/adr/0111-csp-security-headers.ja.md) — 既定 seam は `next.config.ts` の `headers()`。nonce CSP は全経路を dynamic に倒すので、意図していなければそれ自体が finding）。
+   - 変更が生むはずのセキュリティヘッダ / CSP（ADR [0111](../../../docs/adr/0111-csp-security-headers.ja.md) — デフォルト seam は `next.config.ts` の `headers()`。nonce CSP は全経路を dynamic に倒すので、意図していなければそれ自体が finding）。
    - 変更が保護するつもりのパスについて、資格情報なしのリクエストが実際に拒否されること — ハンドラを読んで推測せず、証明する。
 3. **`src/proxy.ts` の変更:** `matcher` が選ぶパスと除外するパスの両方を叩く。matcher の退行は単体テストにも build にも映らない（ADR [0043](../../../docs/adr/0043-middleware-policy.ja.md)）。
-4. **layout shell・Provider の変更:** 変更した layout の配下のルートを 1 つ要求し、描画されることを確認する。shell から落ちた Provider は hook から context を奪い、build 失敗ではなくランタイムエラーやエラーバウンダリとして現れる（ADR [0026](../../../docs/adr/0026-layout-shell-mount.ja.md)）。
+4. **layout shell・Provider の変更:** 変更した layout の配下のルートを 1 つ要求し、レンダリングされることを確認する。shell から落ちた Provider は hook から context を奪い、build 失敗ではなくランタイムエラーやエラーバウンダリとして現れる（ADR [0026](../../../docs/adr/0026-layout-shell-mount.ja.md)）。
 
 **本ステージが届かない範囲。** アサートするのは上記 4 点と matcher / shell の確認だけで、それ以外は見ない。`runtime-gap` レンズは本ステージが実行できないカテゴリを挙げうる — 主に**キャッシュ / 再検証**（ミューテーションが tag を無効化しない）と**リトライ / 冪等性 / breaker のセマンティクス**で、いずれも `adapters` 層とバックエンドを要し、ADR 0071 は具体形を実装 PR へ委ねている。これらの finding は 到達不能 として報告し、走らせていない検査を合格扱いにしない。
 
@@ -228,9 +228,9 @@ build 失敗は **それ自体が CONFIRMED な finding**。出力付きで報�
 
 tier 順に、tier 内で重大度順、CONFIRMED を PLAUSIBLE より先に —— 重大度だけで並べない。未決の上位所見に待たされている所見は `保留` と印を付け、何を待っているかを書く。ランタイムで何を検査し何をスキップしたかは必ず明記する（黙って省くと「全部見た」と誤読される）。
 
-## Step 6 — finding を PR インラインコメントとして投稿（既定。`--no-comment` で opt out）
+## Step 6 — finding を PR インラインコメントとして投稿（デフォルト。`--no-comment` で opt out）
 
-既定では、残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** Step 5 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
+デフォルトでは、残った **CONFIRMED + PLAUSIBLE** の finding を、現ブランチの PR へ **インラインレビューコメント**として投稿する — 1 つの巨大コメントではなく、finding ごとに 1 件、その `path:line` へアンカーする。**REFUTED は決して投稿しない。** Step 5 のローカルレポートはいずれにせよ出力する。本ステップは追加分。
 
 投稿するのはこのスキル自身の finding だけである —— `/test-review` と `/settle-comments` はそれぞれ自分の出力を持つ（前者はレビュー、後者は実装の一部として）（中核アイデア「このスキルは変更そのものだけを監査する」）。
 
@@ -307,7 +307,7 @@ GitHub への投稿は外向きの操作なので、投稿前に **1 度だけ**
 - ✅ 所見は重大度より先に tier で順位付けし、重複した事実は上位 tier の framing へ畳み、塞がれた下位 tier の所見は着手可能として出さず `保留` と印を付ける。
 - ❌ 下位 tier の所見を、それより上位の tier の上へ黙って並べ替える —— 両方を出してユーザーに問う。
 - ✅ どのレポートでも `未監査の観点:` 行に、テストとコメント在庫をここでは監査していないと明記。
-- ✅ 既定で CONFIRMED + PLAUSIBLE を PR へインラインレビューコメントとして投稿（Step 6）。`--no-comment` または open な PR が無い場合は抑止。
+- ✅ デフォルトで CONFIRMED + PLAUSIBLE を PR へインラインレビューコメントとして投稿（Step 6）。`--no-comment` または open な PR が無い場合は抑止。
 - ✅ PR 投稿（外向き操作）の前に 1 度だけ確認。各コメントは `path:line` へアンカーし、diff 外の finding はレビューサマリへ畳む。
 - ✅ 投稿前に各 finding 本文から秘密らしき具体値を伏せ字化する — 投稿は PR を読める全員が読み、取り消せない。
 - ❌ `gh api` が許可されているからと Step 6 の確認を省く — 安全性を担保しているのは権限規則ではなく確認のほう。

@@ -4,9 +4,9 @@
 
 # ツールバージョン更新
 
-このスキルは `mise.toml` の `[tools]` table に並ぶ全ツールについて、upstream 最新版との差分を監査し、**サプライチェーン隔離ゲート（supply-chain quarantine gate）** 付きで適用候補を提示する。`min_age_days` 未満の新しいリリースは「通知のみ」として扱い、自動適用しない（窓の解決とその理由は Step 0 が持つ）。
+このスキルは `mise.toml` の `[tools]` table に並ぶ全ツールについて、upstream 最新版との差分を監査し、**サプライチェーン隔離ゲート（supply-chain quarantine gate）** 付きで適用候補を提示する。`min_age_days` 未満の新しいリリースは「通知のみ」として扱い、自動適用しない（ウィンドウの解決とその理由は Step 0 が持つ）。
 
-理由: npm / PyPI / Go module proxy への悪意あるリリースの大半は、公開後 24〜72 時間以内に検知・取り下げが行われる。backend ごとに定めた窓のあいだ待つことで、コミュニティが検知する前に取り込んでしまうリスクを抑える。
+理由: npm / PyPI / Go module proxy への悪意あるリリースの大半は、公開後 24〜72 時間以内に検知・取り下げが行われる。backend ごとに定めたウィンドウのあいだ待つことで、コミュニティが検知する前に取り込んでしまうリスクを抑える。
 
 ## 使用タイミング
 
@@ -21,38 +21,38 @@
 - Node.js 自体のアップグレード → `/node-upgrade` を使う（その Node ラインのリリースノート / 破壊的変更をレビューする）
 - npm 依存のアップデート（`package.json`）→ セキュリティアドバイザリが名指しした依存は `/dep-vuln-upgrade`、それ以外の更新は `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.ja.md)）
 - 単発のアドホックなバージョン bump → `mise.toml` を直接編集して `make install-tools`。
-  **検疫はこの経路にも掛かる** —— `make tools-cooldown-check` が、窓を満たさない pin をどの経路で入れたかに依らず落とす
+  **検疫はこの経路にも掛かる** —— `make tools-cooldown-check` が、ウィンドウを満たさない pin をどの経路で入れたかに依らず落とす
 - **mise 自身**のアップグレード → `mise.toml` が宣言するのは mise が解決する対象であって mise 自身は
   宣言できないため、版は `.github/actions/setup-mise/action.yaml` にあり本スキルの射程外。揃えるべき
   3 箇所を含む手順は `repo-ops` runbook の項目 8
 
-## Step 0. backend 別の検疫の窓を解決する
+## Step 0. backend 別の検疫のウィンドウを解決する
 
-**窓は単一の数値ではなく、この文書が決めるものでもない。** ADR
-[0110](../../../docs/adr/0110-security-operations.ja.md) が backend ごとに定めている。窓が追うのは
+**ウィンドウは単一の数値ではなく、この文書が決めるものでもない。** ADR
+[0110](../../../docs/adr/0110-security-operations.ja.md) が backend ごとに定めている。ウィンドウが追うのは
 その配布経路で悪性のリリースが検知・撤回されるまでの速さであって、そのツールが何を壊しうるかではない。
-全 backend に同じ値を当てると、窓の長いほうの経路が黙って検疫不足になる。待つこと自体が防御の大半を買う
+全 backend に同じ値を当てると、ウィンドウの長いほうの経路が黙って検疫不足になる。待つこと自体が防御の大半を買う
 —— 典型的な悪性リリース（npm `ua-parser-js` 2021、PyPI `ctx` 2022）は公開後 24〜72 時間以内に検知・yank されている。
 
 手順:
 
-1. **ADR 0110 1.1 をその実行で読み**、現在の記述から backend → 窓の対応表を作る。数値をこの文書へ
+1. **ADR 0110 1.1 をその実行で読み**、現在の記述から backend → ウィンドウの対応表を作る。数値をこの文書へ
    写さない —— ここに書いた値は second source of truth になり、ADR が動いた時点で古くなる。
 2. スキル引数に値があれば（例 `/tools-upgrade 14`）**全 backend への上書き提案**として扱い、その旨を
    質問文に書く。
-3. 必ず `AskUserQuestion` を呼び、手順 1 の表を既定として提示する。
-    - 質問: 「リリースを自動適用の対象にするまでの最小経過日数を確認してください（既定は ADR 0110 1.1 の backend 別の窓）」
+3. 必ず `AskUserQuestion` を呼び、手順 1 の表をデフォルトとして提示する。
+    - 質問: 「リリースを自動適用の対象にするまでの最小経過日数を確認してください（デフォルトは ADR 0110 1.1 の backend 別のウィンドウ）」
     - 選択肢: 「ADR どおり（backend 別）」 / 「全 backend に同じ日数を当てる（値を指定）」 / 「キャンセル」
 4. 解決した各値が 0 以上の整数であることを検証し、以降の手順で `<MIN_AGE_DAYS(backend)>` として使う。
-5. **`mise.toml` が実際に使っている backend の窓を ADR が定めていない場合、値を発明しない。** その実行では
-   ADR が示す最長の窓を当て、欠落を所見として報告する —— 窓の宣言が無い backend は ADR 側の欠落であって、
+5. **`mise.toml` が実際に使っている backend のウィンドウを ADR が定めていない場合、値を発明しない。** その実行では
+   ADR が示す最長のウィンドウを当て、欠落を所見として報告する —— ウィンドウの宣言が無い backend は ADR 側の欠落であって、
    ここで数値を選んでよい理由にはならない。
 
-窓の対応表が確定するまでは upstream API へのアクセスや `mise.toml` の読み込みは行わない。
+ウィンドウの対応表が確定するまでは upstream API へのアクセスや `mise.toml` の読み込みは行わない。
 
 ## AI Modification Scope について
 
-`AGENTS.md` の "Exception: Skill Execution" 節に基づき、スキル実行中に以下のパスへの変更が許可される。
+`AGENTS.md` の "Exception: Skill Execution" セクションに基づき、スキル実行中に以下のパスへの変更が許可される。
 
 - `mise.toml`（`[tools]` table のみ、ユーザーが承認したエントリだけを書き換え）
 
@@ -77,7 +77,7 @@
 | `core:python`（ランタイム） | mise core | `https://www.python.org/api/v2/downloads/release/` |
 
 backend prefix の無い key は存在してはならない。[0003](../../../docs/adr/0003-version-manager.ja.md) は backend の
-明示を要求している — 複数 backend を持つツールは、レジストリの既定が変わると取得元が黙って変わるため。
+明示を要求している — 複数 backend を持つツールは、レジストリのデフォルトが変わると取得元が黙って変わるため。
 そうした key は resolve せず、指摘として報告する。
 
 各ツールについて以下を取得する。
@@ -98,7 +98,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 | **pending** | `pinned != latest` かつ `now - release_date < MIN_AGE_DAYS(backend)` |
 | **resolution_failed** | backend lookup が失敗（ネットワークエラー / 404 / parse 失敗） |
 
-ここで使う窓は Step 0 が**そのツールの backend について**解決したものである（backend は Step 1 で判明している）。全ツールを 1 つの数値と突き合わせない。
+ここで使うウィンドウは Step 0 が**そのツールの backend について**解決したものである（backend は Step 1 で判明している）。全ツールを 1 つの数値と突き合わせない。
 
 セーフガード: semver で「downgrade」になる場合は `resolution_failed` 扱い（reason: "potential downgrade"）。
 
@@ -125,13 +125,13 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
   - pipx:graphifyy: PyPI への接続失敗
 ```
 
-`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかった窓を証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.ja.md)）。
+`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかったウィンドウを証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.ja.md)）。
 
 ## Step 4. 適用候補の per-tool 確認
 
 **eligible** が空ならステップ 6 へスキップし、書き換えは行わない。
 
-そうでなければ `AskUserQuestion` を `multiSelect: true` で呼ぶ。各 option は 1 つの eligible ツールに対応し、description にバージョン差分と公開日を載せる。既定状態: 全選択。
+そうでなければ `AskUserQuestion` を `multiSelect: true` で呼ぶ。各 option は 1 つの eligible ツールに対応し、description にバージョン差分と公開日を載せる。デフォルト状態: 全選択。
 
 ユーザーは個別 deselect 可能（特定 bump が既知の壊れもの等）。
 
@@ -177,7 +177,7 @@ pnpm build
 
 ## 注意事項
 
-- **supply-chain quarantine の根拠**: Step 0 —— backend ごとの窓は ADR [0110](../../../docs/adr/0110-security-operations.ja.md) の決定であって、このスキルのものではなく、動きうる。
+- **supply-chain quarantine の根拠**: Step 0 —— backend ごとのウィンドウは ADR [0110](../../../docs/adr/0110-security-operations.ja.md) の決定であって、このスキルのものではなく、動きうる。
 - **pre-release の除外**: 常に最新の **stable** リリースを選ぶ。upstream が pre-release タグを出していても latest として選択しない。
 - **calendar versioning**: `2024.12.30` のような calendar versioning を使うツールは lexicographic + semver fallback で比較する。downgrade ガードは常時有効。
 - **rate limit**: GitHub API は anonymous で 60 req/h（IP 単位）。本スキルは `gh api` を経由して `GITHUB_TOKEN` 認証で 1000 req/h に上げる。
@@ -188,7 +188,7 @@ pnpm build
 
 完了報告時に以下を確認すること。
 
-- [ ] backend 別の窓を ADR 0110 1.1 から読み、`AskUserQuestion` で確認済み
+- [ ] backend 別のウィンドウを ADR 0110 1.1 から読み、`AskUserQuestion` で確認済み
 - [ ] `[tools]` 全エントリの backend を resolve（不能なら理由付きで resolution_failed に分類）
 - [ ] 各ツールを up-to-date / eligible / pending / resolution_failed のいずれかに分類
 - [ ] 分類結果テーブルをユーザーに提示

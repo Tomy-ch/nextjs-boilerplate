@@ -10,7 +10,7 @@
 
 変更はすべて、このリポジトリが既に宣言している方針を通る ——
 [0004](../../../docs/adr/0004-library-management.ja.md) の exact pin、
-[0110](../../../docs/adr/0110-security-operations.ja.md) の公開経過の窓と抑止の様式、
+[0110](../../../docs/adr/0110-security-operations.ja.md) の公開経過のウィンドウと抑止の様式、
 `pnpm-workspace.yaml` の `overrides` ブロック冒頭に書かれた規約。**実行時にそれらを読むこと。
 このファイルはその値をひとつも再掲しない。**
 
@@ -24,7 +24,7 @@
 - `.github/workflows/dependency-scan.yaml` の `dependency-audit` job が修正版のある high / critical で
   落ちたとき、または PR 上の OSV / Trivy の報告が、この変更で塞ぐべきものを名指ししたとき。
 - Dependabot のセキュリティ更新が単独では着地できないとき —— 修正が推移的依存で override が要る、
-  または修正版がまだ公開経過の窓の内側にある。
+  または修正版がまだ公開経過のウィンドウの内側にある。
 
 ## Do NOT use this skill for
 
@@ -35,7 +35,7 @@
 - **依存の追加。** 脆弱なパッケージを別のものへ置き換えるのは新しい依存であり、`AGENTS.md` の
   停止点である。[0004](../../../docs/adr/0004-library-management.ja.md) の選定基準を通し、その
   テンプレを PR に貼る。このスキルは「修正版が無い」で終わり、そう報告する。
-- **窓の内側の版が安全かの判定。** それは `/supply-chain-triage` が持つ。このスキルはそこへ連鎖し、
+- **ウィンドウの内側の版が安全かの判定。** それは `/supply-chain-triage` が持つ。このスキルはそこへ連鎖し、
   返った帯を判断へ運ぶだけである。
 
 ## AI Modification Scope
@@ -55,7 +55,7 @@
 
 このスキルの間でも触らないもの:
 
-- `pnpm-workspace.yaml` の窓と他の解決ポリシー —— `minimumReleaseAge`、
+- `pnpm-workspace.yaml` のウィンドウと他の解決ポリシー —— `minimumReleaseAge`、
   `minimumReleaseAgeStrict`、`minimumReleaseAgeIgnoreMissingTime`、`trustPolicy*`、
   `blockExoticSubdeps`、`strictDepBuilds`、`allowBuilds`、`verifyDepsBeforeRun`、`engineStrict`、
   `nodeVersion`。**それは方針であってパッチではない。**そのどれかを 1 回の実行だけ上書きする CLI
@@ -80,14 +80,14 @@
    データベースと一覧が食い違えばデータベースを採り、要約でその旨を言う。
 3. `pnpm-workspace.yaml` を通読する: `packages:`（importer）、`minimumReleaseAge`（**分単位** ——
    1440 で割ると日数）、`minimumReleaseAgeStrict`、現在の `minimumReleaseAgeExclude`、`overrides:` の
-   上のコメントと既存の override の全項目。候補を既に名指しする除外があれば、その版のために窓が
+   上のコメントと既存の override の全項目。候補を既に名指しする除外があれば、その版のためにウィンドウが
    意図して開けられている。
-4. [0110](../../../docs/adr/0110-security-operations.ja.md) のツールの cooldown、直接証拠で解除できる代理としての窓、抑止のポリシーを読む。**workspace が
-   公開経過の窓を宣言していない、または ADR が定める npm の窓と食い違うなら、止まって 2 つの出典を
+4. [0110](../../../docs/adr/0110-security-operations.ja.md) のツールの cooldown、直接証拠で解除できる代理としてのウィンドウ、抑止のポリシーを読む。**workspace が
+   公開経過のウィンドウを宣言していない、または ADR が定める npm のウィンドウと食い違うなら、止まって 2 つの出典を
    報告する** —— 権威を主張する 2 つの出典の食い違いは `AGENTS.md` の trip wire であって、どちらかを
    選ぶ値ではない。
 
-読んだ窓とその出所を述べる。この手順が終わるまで、どのファイルにも触らない。
+読んだウィンドウとその出所を述べる。この手順が終わるまで、どのファイルにも触らない。
 
 ## Step 1. 各パッケージの所在を突き止める
 
@@ -113,7 +113,7 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
 
 木に居る項目ごとに:
 
-- **既定: 導入済みの major 系列で最も低い修正版。** 候補が複数ある advisory からは、導入済みの
+- **デフォルト: 導入済みの major 系列で最も低い修正版。** 候補が複数ある advisory からは、導入済みの
   major に合うものを採る。
 - **major 越え**（導入済みの系列に修正が無い）: 破壊的変更の可能性として印を付ける。1 件ずつ問い
   （Step 5）、[0004](../../../docs/adr/0004-library-management.ja.md) により単独の PR にして CHANGELOG
@@ -147,24 +147,24 @@ pnpm view <pkg> time --json
 
 | 区分 | 条件 | 効果 |
 | --- | --- | --- |
-| **clear** | 窓より古い、または既に `minimumReleaseAgeExclude` に名指しされている | 適用対象 |
-| **blocked** | 窓より新しい | resolver が拒む —— `minimumReleaseAgeStrict` の下では窓を過ぎた一致が無ければ解決が失敗し、検査は frozen-lockfile の再生にも及ぶので CI も拒む。解除される時刻（公開時刻 + 窓）を報告する |
+| **clear** | ウィンドウより古い、または既に `minimumReleaseAgeExclude` に名指しされている | 適用対象 |
+| **blocked** | ウィンドウより新しい | resolver が拒む —— `minimumReleaseAgeStrict` の下ではウィンドウを過ぎた一致が無ければ解決が失敗し、検査は frozen-lockfile の再生にも及ぶので CI も拒む。解除される時刻（公開時刻 + ウィンドウ）を報告する |
 
-範囲指定は**窓を過ぎた**一致の中で最新の版へしか動かないので、override は失敗せずに advisory の
+範囲指定は**ウィンドウを過ぎた**一致の中で最新の版へしか動かないので、override は失敗せずに advisory の
 下限より下へ着地しうる。実際に何へ解決されたかは Step 7 で読み直す。
 
-**窓を下げる・strict を切る・フラグを渡す、のいずれでも blocked の版を入れられる状態にしない。**
+**ウィンドウを下げる・strict を切る・フラグを渡す、のいずれでも blocked の版を入れられる状態にしない。**
 版単位の除外が唯一の扉で、それを開けるのは利用者である（Step 5）。
 
 ## Step 4. ゲートが捕まえたものをトリアージする
 
 `blocked` の項目ごとに、Step 5 の前に **`/supply-chain-triage`** を 1 件 1 回ずつ連鎖する。
-エコシステム `npm`、パッケージ、候補の版、**lockfile が現に持っている基準の版**、窓、区分、
+エコシステム `npm`、パッケージ、候補の版、**lockfile が現に持っている基準の版**、ウィンドウ、区分、
 移動を強いている advisory を渡す。
 
 トリアージは報告のみで、帯（`LOW` / `MEDIUM` / `HIGH` / `CRITICAL` /
-`INSUFFICIENT-EVIDENCE`）を返す。窓か証拠かの判断はすべてあちらのもので
-（[0110](../../../docs/adr/0110-security-operations.ja.md)：窓は直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
+`INSUFFICIENT-EVIDENCE`）を返す。ウィンドウか証拠かの判断はすべてあちらのもので
+（[0110](../../../docs/adr/0110-security-operations.ja.md)：ウィンドウは直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
 そこから何も決めない。**LOW の帯は利用者への証拠であって、除外してよいという許可ではない。**
 
 blocked が無ければこの手順は飛ばす。
@@ -192,7 +192,7 @@ blocked が無ければこの手順は飛ばす。
 非対称は意図したものである —— 塞ぐことこそ、利用者がこのスキルを起動した目的である:
 
 - **clear・同じ major・親の範囲の内側 → 問わずに当てる。**
-- 以下はすべて **`AskUserQuestion` で 1 項目 1 判断として問い**、選択肢は既定で未選択にする。
+- 以下はすべて **`AskUserQuestion` で 1 項目 1 判断として問い**、選択肢はデフォルトで未選択にする。
   ファイルに既にある前例は、次の項目の承認にならない。
   - **major 越え** —— 当てるか、現在の系列に留めて advisory を開いたままにするか。
   - **範囲外の override** —— 項目に添える正当化を示して当てるか、親が範囲を広げるのを待つか。
@@ -253,8 +253,8 @@ minimumReleaseAgeExclude:
 - **`<pkg>@<version>` で書き、名前だけにしない** —— 名前だけの免除は以後のすべての公開を素通しにする。
 - **block 形式で 1 行 1 項目。** flow 形式の項目（`[...]`）は自分の行を持たないので、上のコメントを
   結び付けられず、検査がその項目を落とす。
-- **日付は日本時間の暦日**で、窓が明けた（公開時刻 + 窓）後の最初の丸 1 日にする: 週次の検査は暦日で
-  比べ、窓が明ける前に行を消すとすべての install が壊れる。
+- **日付は日本時間の暦日**で、ウィンドウが明けた（公開時刻 + ウィンドウ）後の最初の丸 1 日にする: 週次の検査は暦日で
+  比べ、ウィンドウが明ける前に行を消すとすべての install が壊れる。
 
 **承認された抑止。** `osv-scanner.toml` / `.trivyignore.yaml` の冒頭と
 [0110](../../../docs/adr/0110-security-operations.ja.md) の抑止のポリシーが述べる形で書く —— 脆弱性 ID 1 件、
@@ -271,9 +271,9 @@ pnpm install --frozen-lockfile --ignore-scripts   # the install CI runs; proves 
 pnpm why <pkg> -r                                 # every resolution now at or above the fix floor
 ```
 
-- frozen install が公開経過の違反で落ちるなら、窓の内側の版が覆われていない —— 除外が欠けているの
-  であって、窓が長すぎるのではない。
-- 解決がまだ下限より下なら、範囲が窓を過ぎた古い版へ着地している。範囲を締めて押し込まず、報告する。
+- frozen install が公開経過の違反で落ちるなら、ウィンドウの内側の版が覆われていない —— 除外が欠けているの
+  であって、ウィンドウが長すぎるのではない。
+- 解決がまだ下限より下なら、範囲がウィンドウを過ぎた古い版へ着地している。範囲を締めて押し込まず、報告する。
 - **除外か抑止を書いた後は**、`make suppression-expiry` を 1 度回す（`AGENTS.md` に従い静音の
   `ai-` 形で）。それらの項目の様式を見る唯一の検査で、PR ではなく週次で走る。
 - **動かしたパッケージが `make api-gen` の経路に居るなら**、それを回して書き出したものを残す。
@@ -305,7 +305,7 @@ stage・commit・push はしない。利用者がツリーを確認し、`/commi
 ## Notes
 
 - **狙い撃ちであって一括ではない。** 無関係に古いパッケージは報告の 1 行であり、更新はしない。
-- **除外は窓の引き下げではない。** 除外が免除するのは `pkg@version` 1 つで、`minimumReleaseAge` を
+- **除外はウィンドウの引き下げではない。** 除外が免除するのは `pkg@version` 1 つで、`minimumReleaseAge` を
   下げればすべての依存が一度に、黙って免除される。前者の手段として後者を示さない。
 - **workspace 1 つ、lockfile 1 つ。** `pnpm-workspace.yaml` の除外と override は workspace が宣言する
   すべての importer に効くので、1 項目でそのすべてを覆う。
@@ -315,12 +315,12 @@ stage・commit・push はしない。利用者がツリーを確認し、`/commi
 ## Checklist
 
 - [ ] advisory を読み解きパッケージ単位にまとめた。修正下限は advisory データベースから読んだ
-- [ ] 窓・strict・除外・override を `pnpm-workspace.yaml` から読み、ADR 0110 と突き合わせた
+- [ ] ウィンドウ・strict・除外・override を `pnpm-workspace.yaml` から読み、ADR 0110 と突き合わせた
 - [ ] 各パッケージを `pnpm why -r` で突き止め、直接 / 推移的・親・暴露面を記録した
 - [ ] 同じ major の最小修正版を選び、major 越え / 範囲外 / 修正版なし / ダウングレードに印を付けた
 - [ ] 公開時刻を読み、blocked の項目はすべて `/supply-chain-triage` を通した
 - [ ] clear で同じ major の項目は問わずに当て、それ以外の判断は 1 項目ずつ問うた
 - [ ] 直接は exact pin、推移的はコメント付きの範囲セレクタの override で当てた。lockfile は作り直し、編集していない
-- [ ] 除外は advisory・暴露面・日本時間の日付を持つ `pkg@version` で、窓の設定には触れていない
+- [ ] 除外は advisory・暴露面・日本時間の日付を持つ `pkg@version` で、ウィンドウの設定には触れていない
 - [ ] frozen install と `pnpm why` を確かめた。除外か抑止の後は `make suppression-expiry`、経路に居るなら `make api-gen`
 - [ ] 後続作業を含む日本語の報告を出した。stage・commit・push はしていない

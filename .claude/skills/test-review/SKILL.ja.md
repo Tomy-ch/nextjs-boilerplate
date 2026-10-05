@@ -26,20 +26,20 @@
 
 | 出所 | 何を決めるか |
 | --- | --- |
-| [ADR 0090](../../../docs/adr/0090-testing-strategy.ja.md) | フレームワークの分担（Vitest / RTL / MSW / Playwright）、export 名の `describe`、`正常系` / `異常系` のコメント区切り、ケースごとの命名、1 対象 1 テスト、skip / todo の規律、層別責務、integration = HTTP 境界のみ |
+| [ADR 0090](../../../docs/adr/0090-testing-strategy.ja.md) | フレームワークの分担（Vitest / RTL / MSW / Playwright）、export 名の `describe`、`正常系` / `異常系` のコメント区切り、ケースごとの命名、1 対象 1 テスト、skip / todo の規律、レイヤー別責務、integration = HTTP 境界のみ |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.ja.md) | 非同期 RSC テストの置き場、a11y 自動検査の組込 |
 | カーネル `README.md` の frontmatter（`test-requirement: unit \| component \| integration \| route \| feature`） | 対象がどのテスト層に属するか |
 | [AGENTS.md](../../../AGENTS.ja.md) | `describe` / `it` の文字列は日本語 |
 | 同じディレクトリの sibling テスト | その場所で確立している書き方（fixture の形、helper の signature、MSW の配線） |
 | subject のソース | コード起点の 2 レンズが必要とする |
 
-**別の言語の文化に属するテスト規約を持ち込まないこと。** 別のランナーの都合を回避するために在る規則は、ここには当たらない —— Vitest はファイルを既定で並列に走らせ（テストごとの opt-in を要求する相手がいない）、`expect` は 1 つで（致命 / 非致命のアサーションの使い分けが無い）、mock の境界は生成スタブ型ではなく MSW である。
+**別の言語の文化に属するテスト規約を持ち込まないこと。** 別のランナーの都合を回避するために在る規則は、ここには当たらない —— Vitest はファイルをデフォルトで並列に走らせ（テストごとの opt-in を要求する相手がいない）、`expect` は 1 つで（致命 / 非致命のアサーションの使い分けが無い）、mock の境界は生成スタブ型ではなく MSW である。
 
 **規則の出所が沈黙している箇所では、規則を発明せず「無い」と報告する。** 意味的品質の基準は `docs/testing-conventions.md` が持つので、Lens 3 は一般原則ではなく**その文書**を当てる。届かない範囲は補遺でギャップとして報告し、リポジトリの方針であるかのように規則を持ち込んではならない（`docs/rules.md`「作業とエージェント」= 導出できない領域に独自の規約を持ち込まない）。
 
 ## 書き出すもの
 
-無し。成果物は会話へ描画される日本語レポートだけである。
+無し。成果物は会話へレンダリングされる日本語レポートだけである。
 
 ## Step 0. スコープの解決
 
@@ -68,17 +68,17 @@
 3. subject のソースを読む
 4. 同じディレクトリの sibling テストを読む
 
-`test-requirement` が ADR 0090 の層別表を引く鍵である。`unit` のカーネルと `component` のカーネルは同じ観点を負わないし、`integration` を宣言するカーネル配下の対象は「HTTP 境界のみ / 内側は mock / 型・形状をアサート」に縛られる。
+`test-requirement` が ADR 0090 のレイヤー別表を引く鍵である。`unit` のカーネルと `component` のカーネルは同じ観点を負わないし、`integration` を宣言するカーネル配下の対象は「HTTP 境界のみ / 内側は mock / 型・形状をアサート」に縛られる。
 
 ## Step 2. 敵対的レビュアーを 5 つ並列に立てる
 
-`adversarial-reviewer` の subagent を 5 つ**並列**に起動する。既定は `sonnet` で、Opus の実装者とレビュアーが別モデルになるようにする。全員が Step 1 の同じ文脈を受け取り、レンズだけが異なる。
+`adversarial-reviewer` の subagent を 5 つ**並列**に起動する。デフォルトは `sonnet` で、Opus の実装者とレビュアーが別モデルになるようにする。全員が Step 1 の同じ文脈を受け取り、レンズだけが異なる。
 
 うち 2 つは**コード起点**で、subject のソースから始める。したがってテストが 1 つも無いコードも視野に入る。これはテストファイルから読み始める方式では構造上見えない盲点である。
 
 ### Lens 1: 構造準拠
 
-ADR 0090 への機械的な適合。今回の実行で読み、その時点の記述を適用する。規則は「Test structure: 1:1 export-to-describe mapping」節（export 名の `describe`、入れ子の `describe` ではなくコメント区切り、対象が `正常系` / `異常系` で割れるか表示状態で割れるかを決める「choosing the axis」の規則 ——「The axis is chosen by where success and failure appear」、ケースがどちら側に居るか、ケースごとの命名、skip / todo の規律）、「Mock Strategy」（MSW 境界）、「Placement and Naming」（co-location）、「Prohibitions」の一覧が持ち、ケース名が日本語であることは `AGENTS.md` の Language Rules が持つ。このレンズは規則の写しを持たない —— finding は違反した節を引き、ADR が沈黙している範囲は補遺へ回す。
+ADR 0090 への機械的な適合。今回の実行で読み、その時点の記述を適用する。規則は「Test structure: 1:1 export-to-describe mapping」セクション（export 名の `describe`、入れ子の `describe` ではなくコメント区切り、対象が `正常系` / `異常系` で割れるか表示状態で割れるかを決める「choosing the axis」の規則 ——「The axis is chosen by where success and failure appear」、ケースがどちら側に居るか、ケースごとの命名、skip / todo の規律）、「Mock Strategy」（MSW 境界）、「Placement and Naming」（co-location）、「Prohibitions」の一覧が持ち、ケース名が日本語であることは `AGENTS.md` の Language Rules が持つ。このレンズは規則の写しを持たない —— finding は違反したセクションを引き、ADR が沈黙している範囲は補遺へ回す。
 
 **ゲートが既に落とすものを再報告しない。** `scripts/one-to-one.gate.test.ts` が名前レベルの 4 形（`missing-test-file` / `missing-describe` / `duplicate-describe` / `unknown-describe`。最上位の `正常系` 束ねはここに落ちる）を機械判定する。それらは CI で既に赤なので言及は 1 行に留め、このレンズはゲートが読めないもの — 区切りによる束ね、ケースがどちら側に居るか、ケース名の質、ケースごとの命名、skip / todo の規律、MSW 境界、co-location — に使う。**テストが 1 つも無い subject は Lens 5 の所管**であり、このレンズは既にあるテストの形だけを見る（二重報告しないため）。
 
@@ -88,7 +88,7 @@ ADR 0090 への機械的な適合。今回の実行で読み、その時点の�
 
 層が負うものと、テストが実際に確かめているものを突き合わせる。
 
-- カーネルの `test-requirement` が ADR 0090 の層別表の行を選ぶ。その行の責務（unit = 純粋ロジック、component = 描画・振る舞い、integration = HTTP 境界の型・形状、route / feature は ADR に従う）に照らす
+- カーネルの `test-requirement` が ADR 0090 のレイヤー別表の行を選ぶ。その行の責務（unit = 純粋ロジック、component = レンダリング・振る舞い、integration = HTTP 境界の型・形状、route / feature は ADR に従う）に照らす
 - component のテストでは、ADR 0091 により a11y 自動検査が責務に含まれる。`axe` のアサーションが無い component テストは観点の欠落である
 - `components/README.md` が「どの UI がどの状態を所有するか」を定めている。loading / empty / error / success を所有する component はそれらを確かめる必要があり、所有しない component に無意味な state ケースを作ってはならない。component が対象のときは読む
 
@@ -140,7 +140,7 @@ subject のソースから、*symbol* の粒度で始める。答えるのは「
 
 ## Step 3. finding ごとに検証する
 
-生き残った finding は、独立した `review-verifier` subagent（`sonnet`）へ渡す。finder を信用せずコードから結論を導き直し、**既定で懐疑的に倒す** — 曖昧さが残るなら PLAUSIBLE か REFUTED を付ける。
+生き残った finding は、独立した `review-verifier` subagent（`sonnet`）へ渡す。finder を信用せずコードから結論を導き直し、**デフォルトで懐疑的に倒す** — 曖昧さが残るなら PLAUSIBLE か REFUTED を付ける。
 
 検証は finding 間で並列に走らせる。REFUTED はレポートから落とし、件数だけ伝えてノイズの水準を示す。CONFIRMED と PLAUSIBLE は残す。
 
@@ -176,7 +176,7 @@ severity の対応:
 - **再考** — Lens 3 と Lens 4 Axis B。通るが何も明らかにしない
 - **追加検討** — Lens 4 Axis A。subject 起点で見つけた未カバー分岐
 
-## Step 5. 意味論の穴を塞ぐ（既定。ユーザーが断れば飛ばす）
+## Step 5. 意味論の穴を塞ぐ（デフォルト。ユーザーが断れば飛ばす）
 
 **報告しただけで誰も塞がない穴は、また作られる。** このリポジトリのテストは基本的に AI が書くため、同じ形のコードを次に書いたときに同じアサーション漏れが再生産される。したがって「アサーションが無い・空振りしている」種類の finding について、報告は終着点ではない。
 
@@ -222,8 +222,8 @@ Lens 5 が「テストが 1 つも無い」を、Lens 4 が分岐 × 意味を�
 - ❌ 規則一覧の焼き込み。ADR 0090 / 0091 とカーネル README を実行時に読む
 - ❌ 別のランナー固有の規約の持ち込み（テストごとの並列 opt-in、致命 / 非致命のアサーションの使い分け、生成スタブ型の mock）
 - ❌ 規則の出所が沈黙している箇所での規約の発明。代わりに欠落として報告する
-- ✅ verifier は既定で懐疑的に倒す
-- ✅ レビュアーの既定モデルは `sonnet`。実装者と別モデルを保つためにオーケストレータが上書きしてよい
+- ✅ verifier はデフォルトで懐疑的に倒す
+- ✅ レビュアーのデフォルトモデルは `sonnet`。実装者と別モデルを保つためにオーケストレータが上書きしてよい
 - ✅ criticality (1-10) は Lens 4 Axis A と Lens 5 の finding に付す本番影響のソート鍵で、レンズ由来の severity を置換しない
 - ✅ 「テストが 1 つも無いシンボル」は Lens 5 の所管。Lens 1 の逆方向確認や Lens 4 と二重報告しない
 - ✅ Step 5 で足した各ケースは、対象の分岐を壊すと落ちることを確かめてから残す
