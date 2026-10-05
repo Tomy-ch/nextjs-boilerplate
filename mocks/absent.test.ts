@@ -1,4 +1,4 @@
-import { HttpResponse, http } from "msw";
+import { type HttpHandler, HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -13,6 +13,13 @@ const handlers = [
 ];
 
 const server = setupServer(...absentHandlers(handlers), ...handlers);
+
+/** 組み立てた口を、method とパスの組で並べる。並び順は約束していないので整列して比べる。 */
+function endpointsOf(built: readonly HttpHandler[]): string[] {
+  return built
+    .map((handler) => `${String(handler.info.method)} ${String(handler.info.path)}`)
+    .sort();
+}
 
 describe("absentHandlers", () => {
   beforeAll(() => {
@@ -31,7 +38,7 @@ describe("absentHandlers", () => {
     expect(await response.text()).toBe("");
   });
 
-  it("method を問わず、予約した識別子を持つ要求を 404 にする", async () => {
+  it("契約が持つ method なら、読み取り以外の要求も 404 にする", async () => {
     const response = await fetch(`https://mock.test/items/${ABSENT_IDENTIFIER}`, {
       method: "PATCH",
     });
@@ -51,16 +58,28 @@ describe("absentHandlers", () => {
     expect(await response.json()).toEqual({ from: "item" });
   });
 
-  it("パラメータ区間を持たない具体的な口は、一式の応答のまま残す", async () => {
-    const response = await fetch("https://mock.test/items/latest");
+  it("予約した識別子を含むだけの識別子は、一式の口へ素通しする", async () => {
+    const response = await fetch(`https://mock.test/items/${ABSENT_IDENTIFIER}-1`);
 
-    expect(await response.json()).toEqual({ from: "latest" });
+    expect(await response.json()).toEqual({ from: "item" });
   });
 
-  it("同じパスの口が複数あっても、パス 1 つにつき 1 つだけ組み立てる", () => {
-    expect(absentHandlers(handlers).map((handler) => String(handler.info.path))).toEqual([
-      "https://mock.test/items/:itemId",
-      "https://mock.test/nested/:id/:subId",
+  it("パラメータ区間を持たない具体的な口には組み立てない。scheme のコロンは区間ではない", () => {
+    expect(endpointsOf(absentHandlers(handlers))).toEqual([
+      "GET https://mock.test/items/:itemId",
+      "GET https://mock.test/nested/:id/:subId",
+      "PATCH https://mock.test/items/:itemId",
     ]);
+  });
+
+  it("同じ method とパスの口が重なっても、1 つだけ組み立てる", () => {
+    expect(absentHandlers([...handlers, ...handlers])).toHaveLength(3);
+  });
+
+  // ----- 異常系 -----
+  it("契約に無い method の要求は受けず、未処理として落とす", async () => {
+    await expect(
+      fetch(`https://mock.test/items/${ABSENT_IDENTIFIER}`, { method: "DELETE" }),
+    ).rejects.toThrow();
   });
 });
