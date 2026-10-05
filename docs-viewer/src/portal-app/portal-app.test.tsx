@@ -182,7 +182,7 @@ describe("PortalApp", () => {
 
     render(<PortalApp docs={docs} />);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "ドキュメントを検索" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search documentation" }), {
       target: { value: "Setup" },
     });
 
@@ -190,7 +190,7 @@ describe("PortalApp", () => {
       vi.advanceTimersByTime(400);
     });
 
-    expect(await screen.findByRole("heading", { name: /検索結果/ })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Search results/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Setup" })).toBeInTheDocument();
   });
 
@@ -226,7 +226,7 @@ describe("PortalApp", () => {
     screen.getByRole("button", { name: "ADR 0001" }).click();
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("読み込んでいます...")).toBeInTheDocument();
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
   });
 
   it("取得が終わると本文へ差し替える", async () => {
@@ -236,7 +236,7 @@ describe("PortalApp", () => {
     screen.getByRole("button", { name: "ADR 0001" }).click();
 
     expect(await screen.findByRole("heading", { level: 2, name: "節" })).toBeInTheDocument();
-    expect(screen.queryByText("読み込んでいます...")).not.toBeInTheDocument();
+    expect(screen.queryByText("Loading...")).not.toBeInTheDocument();
   });
 
   it("面を閉じると開いていた文書を捨てる", async () => {
@@ -286,7 +286,7 @@ describe("PortalApp", () => {
   it("表示できる group が無ければその旨を示す", () => {
     render(<PortalApp docs={{ ...docs, groups: [] }} />);
 
-    expect(screen.getByText("表示できる項目がありません。")).toBeInTheDocument();
+    expect(screen.getByText("No items to display.")).toBeInTheDocument();
   });
 
   it("検索語に一致しなければその旨を示す", async () => {
@@ -294,7 +294,7 @@ describe("PortalApp", () => {
 
     render(<PortalApp docs={docs} />);
 
-    fireEvent.change(screen.getByRole("searchbox", { name: "ドキュメントを検索" }), {
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search documentation" }), {
       target: { value: "該当しない語" },
     });
 
@@ -302,7 +302,7 @@ describe("PortalApp", () => {
       vi.advanceTimersByTime(400);
     });
 
-    expect(await screen.findByText("一致する項目がありません。")).toBeInTheDocument();
+    expect(await screen.findByText("No matching items.")).toBeInTheDocument();
   });
 
   // ----- 開いた文書を取得できなかったとき -----

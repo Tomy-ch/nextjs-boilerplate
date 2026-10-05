@@ -5,7 +5,7 @@ import { parseDocsJson } from "../docs-json/docs-json";
 import { PortalApp } from "../portal-app/portal-app";
 
 /** 生成物が届かない・形が違う場合に画面へ残す文言。 */
-export const PORTAL_LOAD_ERROR_MESSAGE = "ドキュメントを読み込めませんでした。";
+export const PORTAL_LOAD_ERROR_MESSAGE = "Could not load the documentation.";
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -24,7 +24,7 @@ export async function mountPortal(container: HTMLElement): Promise<void> {
     const response = await fetch("./docs.json");
 
     if (!response.ok) {
-      throw new Error(`docs.json を取得できませんでした: ${response.status}`);
+      throw new Error(`Could not fetch docs.json: ${response.status}`);
     }
 
     const docs = parseDocsJson(await response.json());

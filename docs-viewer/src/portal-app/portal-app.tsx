@@ -88,7 +88,7 @@ export function PortalApp({ docs }: PortalAppProps) {
     fetch(item.path)
       .then((response) => {
         if (!response.ok) {
-          throw new Error(`文書を取得できませんでした: ${response.status}`);
+          throw new Error(`Could not fetch the document: ${response.status}`);
         }
 
         return response.text();
@@ -111,10 +111,10 @@ export function PortalApp({ docs }: PortalAppProps) {
           <div className="flex flex-wrap items-center gap-4">
             <SearchFieldClient
               className="max-w-md flex-1"
-              label="ドキュメントを検索"
+              label="Search documentation"
               onSearch={setQuery}
             />
-            <ToggleGroupNative aria-label="表示言語">
+            <ToggleGroupNative aria-label="Display language">
               <ToggleGroupNativeItem
                 checked={lang === "EN"}
                 name="lang"
@@ -149,10 +149,10 @@ export function PortalApp({ docs }: PortalAppProps) {
           {results ? (
             <section aria-labelledby={searchResultsHeadingId} className="flex flex-col gap-4">
               <h2 className="font-semibold text-xl" id={searchResultsHeadingId}>
-                検索結果 {results.length} 件
+                Search results ({results.length})
               </h2>
               {results.length === 0 ? (
-                <p className="text-muted-foreground">一致する項目がありません。</p>
+                <p className="text-muted-foreground">No matching items.</p>
               ) : (
                 <PortalCardGrid items={results} onOpenDocument={onOpenDocument} />
               )}
@@ -183,7 +183,7 @@ export function PortalApp({ docs }: PortalAppProps) {
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground">表示できる項目がありません。</p>
+            <p className="text-muted-foreground">No items to display.</p>
           )}
         </main>
       </div>
@@ -197,7 +197,7 @@ export function PortalApp({ docs }: PortalAppProps) {
           {openDocument?.content ? (
             <DocumentContent content={openDocument.content} />
           ) : (
-            <p className="text-muted-foreground">読み込んでいます...</p>
+            <p className="text-muted-foreground">Loading...</p>
           )}
         </DialogContent>
       </Dialog>

@@ -38,7 +38,7 @@ export function PortalSidebar({ activeGroupSlug, groups, referenceLinks }: Porta
   const referenceHeadingId = useId();
 
   return (
-    <nav aria-label="ドキュメント" className="flex flex-col gap-6">
+    <nav aria-label="Documentation" className="flex flex-col gap-6">
       <Accordion>
         {groups.map((group) => (
           <AccordionItem key={group.slug} open={group.slug === activeGroupSlug}>
