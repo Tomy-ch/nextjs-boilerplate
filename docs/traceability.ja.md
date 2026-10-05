@@ -5,7 +5,7 @@
 # トレーサビリティ
 
 **決定が何によって守られているかの一覧。** 集計であって決定ではない —— 各項目の強制手段は
-[ADR](adr/README.md) の各決定と、[実装規約](rules.ja.md) の各行と、実装タスクの issue が持つ。
+[ADR](adr/README.ja.md) の各決定と、[実装規約](rules.ja.md) の各行と、実装タスクの issue が持つ。
 ここはそれを並べ、**「散文のみ」で終わっているものに決着が付いているか**を見る場所である。
 
 **ここに新しい規約を書かない。** 書きたくなったら、それは決定なので所有する文書へ置く
@@ -68,7 +68,7 @@
 その後に増えた分を含まない。
 
 **決定の単位は、各 ADR の `## 禁止事項` の箇条 1 行である。** 禁止事項を持たない ADR
-（[0121](adr/0121-i18n-strategy.md) / [0130](adr/0130-pwa-strategy.md)。どちらも exclusion）は、
+（[0121](adr/0121-i18n-strategy.ja.md) / [0130](adr/0130-pwa-strategy.ja.md)。どちらも exclusion）は、
 `## 決定` の筆頭の箇条を 1 件と数える。本文の散文から決定を拾い出す数え方は採らない ——
 どこまでを 1 つの決定と読むかが数える人によって変わり、同じ件数を誰も再現できない。行の数なら
 `## 禁止事項` の箇条を数えれば誰でも同じ母数に着く。**本文にだけ在って禁止事項にコピーされていない決定は
@@ -121,10 +121,10 @@ ADR が自分では述べず、`rules.md` のセクション冒頭が引き受�
 
 | 形 | 例 |
 | --- | --- |
-| 本文に `強制:` を直書き | [0074](adr/0074-runtime-communication-seam.md)（9 決定すべて。散文の場合も寄せられるかまで書いた唯一の完全な例）、[0060](adr/0060-state-management.md)、[0150](adr/0150-git-workflow.md) |
-| `## Enforcement` セクション | [0021](adr/0021-frontend-responsibility.md) |
-| どこまで機械が届くかの表 | [0025](adr/0025-app-layer-elements.md) |
-| 地の文で「機械強制は〜が持つ」 | [0154](adr/0154-claude-skills-operations.ja.md)、[0101](adr/0101-performance-budget.md) |
+| 本文に `強制:` を直書き | [0074](adr/0074-runtime-communication-seam.ja.md)（9 決定すべて。散文の場合も寄せられるかまで書いた唯一の完全な例）、[0060](adr/0060-state-management.ja.md)、[0150](adr/0150-git-workflow.ja.md) |
+| `## Enforcement` セクション | [0021](adr/0021-frontend-responsibility.ja.md) |
+| どこまで機械が届くかの表 | [0025](adr/0025-app-layer-elements.ja.md) |
+| 地の文で「機械強制は〜が持つ」 | [0154](adr/0154-claude-skills-operations.ja.md)、[0101](adr/0101-performance-budget.ja.md) |
 
 **綴り一致では数えられない。** 数え直すときは本文を読むこと。
 
@@ -152,7 +152,7 @@ ADR が自分では述べず、`rules.md` のセクション冒頭が引き受�
 ## 機械が届かないと分かっているところ
 
 `app` の element 分割は、行ごとに強制の届き方が違う。表は
-[0025](adr/0025-app-layer-elements.md) が持ち、`architecture.ts` の `APP_ELEMENTS` が
+[0025](adr/0025-app-layer-elements.ja.md) が持ち、`architecture.ts` の `APP_ELEMENTS` が
 **`import` 先の集合として書ける分**を強制する。書けないものが 2 つ残る。
 
 - `server config` と `NEXT_PUBLIC` の公開定数は同じ `config` カーネルに居る

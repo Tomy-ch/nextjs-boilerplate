@@ -33,8 +33,11 @@ export type ActionBarPosition = (typeof ACTION_BAR_POSITION)[keyof typeof ACTION
  * 余白は iOS のホームバーを避けるため safe area と比較して大きいほうを採る。
  *
  * `fixed-without-aside` が戻る幅は `lg` である。脇に常設する領域を出す下限がそこだと
- * `docs/rules.md#layout`の「脇に常設する領域は `lg` 以上でだけ出す」と「常に届く操作は
- * `lg` 未満で画面下端に固定する」が定めており、脇に操作が並ぶ幅では下端に重ねる理由が無くなる。
+ * `docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above" と
+ * "An action that must always be reachable is pinned to the bottom edge of the screen in the band
+ * without a sidebar (below `lg`), and returns to normal placement at widths where a sidebar can be
+ * permanent" が定めており、脇に操作が並ぶ幅では下端に重ねる理由が無くなる。
  */
 export const ACTION_BAR_POSITION_CLASS: Record<ActionBarPosition, string> = {
   [ACTION_BAR_POSITION.INLINE]: "rounded-md border border-border bg-muted px-3 py-2",

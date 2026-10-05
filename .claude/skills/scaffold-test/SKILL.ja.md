@@ -33,8 +33,8 @@
 
 | 出所 | そこが決めること |
 | --- | --- |
-| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | `describe` = export 名、コメント区切りがどの軸を使うか、ケースの命名、skip / todo の規律、層ごとの責務、mock の境界 |
-| [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | 非同期 RSC のテストの置き場、a11y 自動検査の組み込み方 |
+| [ADR 0090](../../../docs/adr/0090-testing-strategy.ja.md) | `describe` = export 名、コメント区切りがどの軸を使うか、ケースの命名、skip / todo の規律、層ごとの責務、mock の境界 |
+| [ADR 0091](../../../docs/adr/0091-test-verification-methods.ja.md) | 非同期 RSC のテストの置き場、a11y 自動検査の組み込み方 |
 | 最も近い祖先の `README.md` frontmatter（`test-requirement`） | 対象がどの層の責務に照らされるか |
 | 1:1 ゲート自身 | 意図的に対象外としているもの（`RUNTIME_ONLY_MODULES` の glob が `src/app/**/page.tsx` を外している分を含む） |
 | 同じディレクトリの兄弟テスト | その場に定着している形（fixture の書き方、ヘルパの signature、MSW の配線） |
@@ -200,7 +200,7 @@ members と並び順は、ゲートが黙っていても押さえる価値があ
   いるのであり、どちらが誤りかはこのスキルの判断ではない。人に渡す。
 - 「区別できない」の塊は手順 5 へ送る —— 書かれたままでは検証できない対象である。
 - 「読めなかった」の塊は報告へそのまま載せる。読めなかった入力は、何も無かった入力ではない
-  （[0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+  （[0157](../../../docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
 **README が `## テスト観点` を持たない、あるいはテンプレートの雛形しか入っていないときは、そう
 述べて捏造しない。**その不在は報告に値する —— この slice の観点が、いまコードを読んでいる人の

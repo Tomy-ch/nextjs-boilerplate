@@ -4,7 +4,7 @@
 
 本プロジェクトが使う Node.js バージョンを任意のターゲットへ上げる作業手順を定義する。`mise.toml` の
 `[tools] node` が Node ランタイムバージョンの**単一の正**(ADR 0003 /
-[0003-version-manager.md](../../../docs/adr/0003-version-manager.md))。
+[0003-version-manager.md](../../../docs/adr/0003-version-manager.ja.md))。
 
 ## 位置づけ(`tools-upgrade` との違い)
 
@@ -19,7 +19,7 @@
 ## 使わないとき
 
 - `pnpm` 等の更新 → `tools-upgrade`(または単発なら `mise.toml` 編集 + `make install-tools`)。
-- npm 依存(`package.json` の `dependencies` / `devDependencies`)更新 → ここでは対象外。[0004](../../../docs/adr/0004-library-management.md) に従い
+- npm 依存(`package.json` の `dependencies` / `devDependencies`)更新 → ここでは対象外。[0004](../../../docs/adr/0004-library-management.ja.md) に従い
   依存のメジャーは別 PR。
 
 ## Step 0. ターゲットバージョンの確認
@@ -75,7 +75,7 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 ```
 
 `mise.toml` が単一の正。本リポジトリで Node の版を持つファイルは他に無く(Dockerfile も無い ──
-[0011](../../../docs/adr/0011-no-docker.md))、伝播ステップは存在しない。
+[0011](../../../docs/adr/0011-no-docker.ja.md))、伝播ステップは存在しない。
 
 ## Step 3. ローカル Node 環境の更新(ユーザ作業)
 
@@ -114,7 +114,7 @@ pnpm build            # next build ── 新ランタイムで成功必須
 ## Step 6. フォローアップの明示(ここでは束ねない)
 
 - **`@types/node`**: `devDependencies` のメジャーを対象ランタイムのメジャーと突き合わせる。揃えるのは
-  妥当だが、**[0004](../../../docs/adr/0004-library-management.md)** により依存**メジャー**更新は**別 PR**。推奨フォローアップとして報告し、本スキルでは
+  妥当だが、**[0004](../../../docs/adr/0004-library-management.ja.md)** により依存**メジャー**更新は**別 PR**。推奨フォローアップとして報告し、本スキルでは
   `package.json` を編集しない。
 - **CI**: workflow は `.github/actions/setup-mise` でツールチェーンを入れ、版は `mise.toml` から読むので、
   `node-version-file` / matrix の同期対象は無い。

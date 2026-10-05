@@ -28,8 +28,8 @@
 
 | 出所 | 何を決めるか |
 | --- | --- |
-| [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | integration = HTTP 境界のみ / 内側は mock / 形と型をアサート。構造と命名 |
-| [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | 検証方法。非同期 RSC テストの置き場を含む |
+| [ADR 0090](../../../docs/adr/0090-testing-strategy.ja.md) | integration = HTTP 境界のみ / 内側は mock / 形と型をアサート。構造と命名 |
+| [ADR 0091](../../../docs/adr/0091-test-verification-methods.ja.md) | 検証方法。非同期 RSC テストの置き場を含む |
 | `mocks/handlers.ts` / `mocks/node.ts` | 生成ハンドラ一式と、その周りの配線 |
 | [`vitest.setup.msw.ts`](../../../vitest.setup.msw.ts) | テストが起動せず import するサーバと、応答を割り当てるケース用の `serveJson` |
 | `src/adapters/gen/**` | 継ぎ目が検証に使う wire 型と zod スキーマ |
@@ -41,7 +41,7 @@
 
 ## 手順 0. 継ぎ目を解決し、それが継ぎ目であることを確かめる
 
-引数から対象を採るか、`AskUserQuestion` で、契約テストをまだ持たないクライアントと Route Handler を選択肢として尋ねる。レイアウトが揃っている前提を置かず、実在するものを検出する —— ADR [0024](../../../docs/adr/0024-adapters-server-client-split.md) のクライアント側は決定が実体化した時点で作られ、Route Handler はそれを必要とする feature とともに現れる。
+引数から対象を採るか、`AskUserQuestion` で、契約テストをまだ持たないクライアントと Route Handler を選択肢として尋ねる。レイアウトが揃っている前提を置かず、実在するものを検出する —— ADR [0024](../../../docs/adr/0024-adapters-server-client-split.ja.md) のクライアント側は決定が実体化した時点で作られ、Route Handler はそれを必要とする feature とともに現れる。
 
 次に、それが本当に HTTP の継ぎ目かを確かめる。対象を読み、共有 fetch wrapper 経由でリクエストを出しているかを見る。**`adapters` 配下でもリクエストを出さないモジュールは integration の対象ではない** —— ペイロード整形、resilience ポリシー、circuit breaker は unit であり、`scaffold-test` の担当である。境界に何も無い結合テストを書くのではなく、そう言って止まる。
 

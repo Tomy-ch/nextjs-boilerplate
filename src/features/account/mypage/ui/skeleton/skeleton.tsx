@@ -43,7 +43,8 @@ const ACTIONS = Array.from({ length: PLACEHOLDER_ACTIONS }, (_, index) => index)
  *
  * @remarks
  * **出来上がりと同じ器（`Card` / `KeyValueList` / `Separator`）で組みます。**高さを数値で予約
- * しません（`docs/rules.md#ui-parts`の「状態で出入りする表示のせいで操作の位置を動かさない」）
+ * しません（`docs/rules.md#ui-parts` の
+ * "Do not let a display that comes and goes with state move the position of controls"）
  * —— 器を共有していれば、余白と段組みは本物と同じ定義から来ます。
  *
  * 1 枚ずつ現れる形にすると、読み始めた位置が後から来たカードに押し下げられます。

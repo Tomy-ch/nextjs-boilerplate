@@ -18,15 +18,15 @@
 
 ## レイヤー境界と依存
 
-> Rationale: [ADR 0020](adr/0020-adopted-architecture.md) / [ADR 0021](adr/0021-frontend-responsibility.md) / [ADR 0030](adr/0030-environment-variable-management.md) / [ADR 0071](adr/0071-bff-api-integration.md); enforced via ESLint boundaries（依存表は `architecture.ts`）、`project-rules/no-markup-outside-ui-layers`、`no-restricted-syntax` / `no-restricted-imports`、`scripts/server-only.gate.test.ts`、`server-only` の build-time failure。
+> Rationale: [ADR 0020](adr/0020-adopted-architecture.ja.md) / [ADR 0021](adr/0021-frontend-responsibility.ja.md) / [ADR 0030](adr/0030-environment-variable-management.ja.md) / [ADR 0071](adr/0071-bff-api-integration.ja.md); enforced via ESLint boundaries（依存表は `architecture.ts`）、`project-rules/no-markup-outside-ui-layers`、`no-restricted-syntax` / `no-restricted-imports`、`scripts/server-only.gate.test.ts`、`server-only` の build-time failure。
 
 - **server 専用モジュールは先頭で `import "server-only"` し、client component から参照させない。** `*.server.ts` の綴りと突合される。
-- **DOM マークアップは UI を担うレイヤー（`app` / `features` / `components`）にだけ置く。** `adapters` / `capabilities` / `stores` / `config` などの内側で画面をレンダリングしない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.md) / [ADR 0026](adr/0026-layout-shell-mount.md)）。置いてよいレイヤーの宣言は `architecture.ts` の `UI_KERNELS`。
-- **Provider の外で呼ばれた hook は、そのレイアウトシェルが無いと画面の主目的が果たせないなら throw し、機能が任意なら no-op にする。** 必須のレイアウトシェルで黙ると配線ミスが隠れ、任意のレイアウトシェルで throw するとレイアウトシェルを持たない画面がその機能ごと落ちる。どちらにするかは hook の側が決め、呼び出し側で分岐させない（[ADR 0026](adr/0026-layout-shell-mount.md) / [ADR 0022](adr/0022-capabilities-kernel.md)）。
+- **DOM マークアップは UI を担うレイヤー（`app` / `features` / `components`）にだけ置く。** `adapters` / `capabilities` / `stores` / `config` などの内側で画面をレンダリングしない。Provider の合成は許す（[ADR 0022](adr/0022-capabilities-kernel.ja.md) / [ADR 0026](adr/0026-layout-shell-mount.ja.md)）。置いてよいレイヤーの宣言は `architecture.ts` の `UI_KERNELS`。
+- **Provider の外で呼ばれた hook は、そのレイアウトシェルが無いと画面の主目的が果たせないなら throw し、機能が任意なら no-op にする。** 必須のレイアウトシェルで黙ると配線ミスが隠れ、任意のレイアウトシェルで throw するとレイアウトシェルを持たない画面がその機能ごと落ちる。どちらにするかは hook の側が決め、呼び出し側で分岐させない（[ADR 0026](adr/0026-layout-shell-mount.ja.md) / [ADR 0022](adr/0022-capabilities-kernel.ja.md)）。
 - **`process` と `node:` の組み込みモジュールへ触ってよいのは、config カーネルと起動境界、およびリポジトリ自身を操作する道具だけ**（宣言は `architecture.ts` の `NODE_RUNTIME_ACCESS`）。レイヤーの依存表は import の向きしか見ておらず、server と client のどちらで動くかを見ていない。client のバンドルへ載った時点で壊れる参照は、レイヤーとは別の軸で止める。
-- **route segment のシェル（`layout` / `page` / `template` / `default`）を Client Component にしない。** `"use client"` は bundle 境界なので、シェルに付けると配下をまとめてバンドルへ引き込む。client が要るのはリーフで、そこへアイランドとして差す（[rendering](design/rendering.md)）。`error.tsx` / `global-error.tsx` は framework が client を要求するため対象外。[ADR 0040](adr/0040-routing-rendering-strategy.md)
-- **Route Handler は Node runtime の薄い proxy に留め、業務ロジックを置かない。** 非同期の後処理には必要な場合だけ `waitUntil` を使う。Route Handler テストが見る。[ADR 0070](adr/0070-backend-role-separation.md)
-- **計測の span は取得を持つ側を包み、名前は `src/` からのモジュールパスと一致させる。** 利用者の入力を名前に混ぜない。client component は包まない。コンポーネントを常用しない。[ADR 0081](adr/0081-observability-logging.md)
+- **route segment のシェル（`layout` / `page` / `template` / `default`）を Client Component にしない。** `"use client"` は bundle 境界なので、シェルに付けると配下をまとめてバンドルへ引き込む。client が要るのはリーフで、そこへアイランドとして差す（[rendering](design/rendering.md)）。`error.tsx` / `global-error.tsx` は framework が client を要求するため対象外。[ADR 0040](adr/0040-routing-rendering-strategy.ja.md)
+- **Route Handler は Node runtime の薄い proxy に留め、業務ロジックを置かない。** 非同期の後処理には必要な場合だけ `waitUntil` を使う。Route Handler テストが見る。[ADR 0070](adr/0070-backend-role-separation.ja.md)
+- **計測の span は取得を持つ側を包み、名前は `src/` からのモジュールパスと一致させる。** 利用者の入力を名前に混ぜない。client component は包まない。コンポーネントを常用しない。[ADR 0081](adr/0081-observability-logging.ja.md)
 - **他のレイヤーが握る問題を、こちらで予防的に手当てしない。** 書かないのは「下のレイヤーが既に握っているもの」と「起こり得ないもの」で、「下では捕まえられないもの」「UX 上こちらに在るべきもの（入力の即時フィードバック等）」は対象外。**セキュリティ上の懸念（XSS 等）は重複を理由に落とさない。** 散文 —— **寄せられない**。「下のレイヤーが既に握っているか」はレイヤーの責務の判断そのもので、コードの形からは決まらない。
 - **上流から来た値を、網羅的に無害化しようとしない。** プレゼンテーションレイヤーが始末するのは**自分が作った値**であり、バックエンドが載せた文字列・パス・識別子を全面的に安全化することは設計目標ではない。網羅は達成できないうえ、供給側の都合が表示側の構造へ染み出す。防ぐべきものは供給側か境界で閉じる。散文 —— **寄せられない**。どこまでが「自分が作った値」かは経路の意味で決まり、型からは決まらない。
 
@@ -34,7 +34,7 @@
 
 ## 設定と環境
 
-> Rationale: [ADR 0030](adr/0030-environment-variable-management.md) / [ADR 0044](adr/0044-seo-metadata-strategy.md) / [ADR 0079](adr/0079-auth-frontend-seam.md); enforced via 型（config は schema を通してだけ読める）、`SITE_INDEXABLE` の code default が `off`（`src/config/site/site.schema.ts`）、`e2e/journeys/metadata.spec.ts` と `make e2e-metadata`（`e2e/metadata/`）、`src/app/api/health/route.test.ts`。
+> Rationale: [ADR 0030](adr/0030-environment-variable-management.ja.md) / [ADR 0044](adr/0044-seo-metadata-strategy.ja.md) / [ADR 0079](adr/0079-auth-frontend-seam.ja.md); enforced via 型（config は schema を通してだけ読める）、`SITE_INDEXABLE` の code default が `off`（`src/config/site/site.schema.ts`）、`e2e/journeys/metadata.spec.ts` と `make e2e-metadata`（`e2e/metadata/`）、`src/app/api/health/route.test.ts`。
 
 - **Config class と ENV parser を module 外へ export しない。** 通常コードが任意の ENV から Config を再生成する経路を持たせない。
 - **client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置き、そこでは検証しない**（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。
@@ -50,7 +50,7 @@
 
 ## レンダリングとキャッシュ
 
-> Rationale: [ADR 0041](adr/0041-cache-components-decision.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module` / `no-cache-option-in-use-cache` / `no-app-wide-revalidate` / `no-ad-hoc-cache-tag`、framework の `next-request-in-use-cache`、adapter / feature テスト。
+> Rationale: [ADR 0041](adr/0041-cache-components-decision.ja.md) / [ADR 0071](adr/0071-bff-api-integration.ja.md) / [ADR 0112](adr/0112-data-classification-cache-boundary.ja.md); enforced via `scripts/render-mode`（`Build` job。宣言なしにブロックしている route と、宣言が余っている route の双方を `prerender-manifest.json` の `compute` と突き合わせる）、ESLint `project-rules/no-user-scoped-in-cached-module` / `no-cache-option-in-use-cache` / `no-app-wide-revalidate` / `no-ad-hoc-cache-tag`、framework の `next-request-in-use-cache`、adapter / feature テスト。
 
 - **レンダリングするモードを画面が宣言しない。** Cache Components が有効なので、シェルとダイナミックホールの分かれ目はレイアウトシェルの形そのもの —— 何を `Suspense` の外に置き、何を内に置くか —— で決まる。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、**すべてダイナミックホールの内側**で解く（実時計はさらに `connection()` を待ってから読む）。レイアウトシェルの側で待つと、待っている間はシェルすら配れない。**シェルを配れない画面だけが `export const instant = false` を理由つきで宣言する** —— 「まだ手を付けていない」ではなく「分けても得るものが無い」「シェルを配ること自体が要件に反する」を書く。
 - **実時計を読む場所は 1 つに固定し、URL を解釈するレイヤー（合成のエントリポイント `app`）が読んで props で配る。** `features` は `config` を参照できない（`architecture.ts`）。レンダリングのたびに実時計を読むコンポーネントにすると、ベースライン画像が撮った時刻に依存する。
@@ -69,7 +69,7 @@
 
 ## データ分類と機微情報
 
-> Rationale: [ADR 0112](adr/0112-data-classification-cache-boundary.md) / [ADR 0111](adr/0111-csp-security-headers.md) / [ADR 0060](adr/0060-state-management.md); enforced via 型（user-scoped のエンドポイントは `cache` / `tags` を受け取らない）、`adapters/server/http/request.ts` の取得時の関門、ESLint `project-rules/no-user-scoped-in-cached-module` / `project-rules/no-captured-bearer-token`、`scripts/scope-spelling.gate.test.ts`、`src/proxy.test.ts` と E2E、adapters テストと client component テスト。
+> Rationale: [ADR 0112](adr/0112-data-classification-cache-boundary.ja.md) / [ADR 0111](adr/0111-csp-security-headers.ja.md) / [ADR 0060](adr/0060-state-management.ja.md); enforced via 型（user-scoped のエンドポイントは `cache` / `tags` を受け取らない）、`adapters/server/http/request.ts` の取得時の関門、ESLint `project-rules/no-user-scoped-in-cached-module` / `project-rules/no-captured-bearer-token`、`scripts/scope-spelling.gate.test.ts`、`src/proxy.test.ts` と E2E、adapters テストと client component テスト。
 
 - **取得エンドポイントは分類を宣言する。** 接続ポイントが `createHttpClient` に `scope: "public"` / `scope: "user-scoped"` のどちらかを渡し、取得エンドポイントは分類に合う接続ポイントを引く。**資格情報を載せうるエンドポイントは、載せなかった回も含めて user-scoped** であり、`allowAnonymous` を立てても動かない。分類はエンドポイントの性質であって要求ごとの結果ではない。資格情報が取れなかったときに送ってよいかは契約が operation ごとに宣言するので、`allowAnonymous` は要求に立て、契約の `security` が `{}` を含む operation だけに限る。`security: []` の operation は公開の接続ポイントを引く。資格情報のヘッダの持ち込みは取得時の関門で落ちる。
 - **サーバへ保存されるキャッシュ（`use cache` / `unstable_cache` / Data Cache）から user-scoped な取得エンドポイントを引かない。** user-scoped な値をキャッシュする唯一の手段は `use cache: private`（サーバへ保存されず、ブラウザのメモリにのみ載る）で、これは**明示的な例外能力であって一般許可ではない**。デフォルトは uncached。ESLint の判定はモジュール単位で、直接の import とその 1 段先までを読む（分類の綴りは接続ポイントに居るため）。それより深い間接参照は framework の `next-request-in-use-cache` と取得時の関門が覆う。宣言が綴りのまま残っていることは `scripts/scope-spelling.gate.test.ts` が見張る。
@@ -78,16 +78,16 @@
 - **取得する PII を最小化する。** 一部しか使わないのに主体のオブジェクト全体を取得・保持・送信しない。必要な属性を特定し、取得エンドポイントで詰め替える。ブラウザに置く理由の無い値（更新対象を指す識別子など）は画面へ渡さず、`adapters` の中で解決する。
 - **PII を含むという理由で画面全体を CSR 化しない。** PII のために SSR / PPR を諦めるのは許されるが、CSR にするのは PII を必要とする最小の Client Island に限る。散文 —— **寄せられない**。CSR 化の動機はコードの形に現れない。
 - **主体に紐づく応答の `Cache-Control` を画面や Route Handler ごとに書かない。** session cookie を載せた要求への応答には `src/proxy.ts` が `private, no-store` を一律に付ける（`matcher` が除外する `_next/static` / `_next/image` / `favicon.ico` は対象外。主体固有の画像を `next/image` に載せるなら除外を見直す）。共有キャッシュを許してよいのは、資格情報を載せずに取れる応答だけ。
-- **エラーの `details` に載せてよいのは、wire へ出して安全な識別子だけ。** 入力値・token・password・理由文は渡さない。画面の表示名は、業務フィールドを知る feature / form 側で変換する。[ADR 0080](adr/0080-error-handling.md)
+- **エラーの `details` に載せてよいのは、wire へ出して安全な識別子だけ。** 入力値・token・password・理由文は渡さない。画面の表示名は、業務フィールドを知る feature / form 側で変換する。[ADR 0080](adr/0080-error-handling.ja.md)
 - **観測できないことが設計の根拠になっている値（Access Token など）を、確かめるために画面へ出さない。** 貼る欄はあっても、貼った値を読み返す欄は置かない。
 - **Web Storage には機微情報を保存しない。** キー名を名前空間化し、SSR 安全な client 境界からだけ利用する。
-- **アプリ cookie は用途を接頭辞に含め、`Secure`、`HttpOnly`、`SameSite`、`Max-Age` を用途ごとに明示する。** 読み書きは server 境界へ閉じ込める。Route Handler テストが見る。**例外は同意 cookie の 1 つだけ** —— 尋ねるかどうかを初回レンダリングより前に決め、選んだ結果をその場でツリーへ反映する必要があるため、`stores` が生のまま読み書きする（[ADR 0031](adr/0031-policy-state-supply.md)、初回レンダリングより前に同期的に要り、かつ反応的な値がいつ `stores` へ移るかについて）。`HttpOnly` を付けられないのはこの帰結で、載るのは同意したかどうかだけである。**値を手で組まない** —— 綴りを作るのは `toConsentCookieValue` だけで、テストも計測スクリプトも同じエントリポイントを通す。バージョンを欠いた綴りは「選ばれていない」へ落ちるだけなので、**間違えても赤くならず、静かに未同意として扱われる**。本番でこれを書くのは `src/stores/consent-store.ts` だけで、biome の `noDocumentCookie` はそこと、jsdom へ cookie を積む手段が他に無いテストの分だけ `biome.json` の overrides で外す —— 例外を宣言で囲うことが、他所へ広がらないことの担保になる。**同意の文面を書き換えたらバージョンを上げる。** 上げ忘れると、新しい文面を見ていない利用者の同意が効いたままになる。上げる義務は文面の所有者が持つ。同意 cookie は `src/stores/consent-store.test.tsx` が見る。[ADR 0131](adr/0131-cookie-consent.md)
+- **アプリ cookie は用途を接頭辞に含め、`Secure`、`HttpOnly`、`SameSite`、`Max-Age` を用途ごとに明示する。** 読み書きは server 境界へ閉じ込める。Route Handler テストが見る。**例外は同意 cookie の 1 つだけ** —— 尋ねるかどうかを初回レンダリングより前に決め、選んだ結果をその場でツリーへ反映する必要があるため、`stores` が生のまま読み書きする（[ADR 0031](adr/0031-policy-state-supply.ja.md)、初回レンダリングより前に同期的に要り、かつ反応的な値がいつ `stores` へ移るかについて）。`HttpOnly` を付けられないのはこの帰結で、載るのは同意したかどうかだけである。**値を手で組まない** —— 綴りを作るのは `toConsentCookieValue` だけで、テストも計測スクリプトも同じエントリポイントを通す。バージョンを欠いた綴りは「選ばれていない」へ落ちるだけなので、**間違えても赤くならず、静かに未同意として扱われる**。本番でこれを書くのは `src/stores/consent-store.ts` だけで、biome の `noDocumentCookie` はそこと、jsdom へ cookie を積む手段が他に無いテストの分だけ `biome.json` の overrides で外す —— 例外を宣言で囲うことが、他所へ広がらないことの担保になる。**同意の文面を書き換えたらバージョンを上げる。** 上げ忘れると、新しい文面を見ていない利用者の同意が効いたままになる。上げる義務は文面の所有者が持つ。同意 cookie は `src/stores/consent-store.test.tsx` が見る。[ADR 0131](adr/0131-cookie-consent.ja.md)
 
 <a id="authorization"></a>
 
 ## 認可とエントリポイント
 
-> Rationale: [ADR 0079](adr/0079-auth-frontend-seam.md) / [ADR 0070](adr/0070-backend-role-separation.md) / [ADR 0111](adr/0111-csp-security-headers.md); enforced via `src/proxy.test.ts` と E2E（宣言に無い origin からの POST が 403）、feature テスト。
+> Rationale: [ADR 0079](adr/0079-auth-frontend-seam.ja.md) / [ADR 0070](adr/0070-backend-role-separation.ja.md) / [ADR 0111](adr/0111-csp-security-headers.ja.md); enforced via `src/proxy.test.ts` と E2E（宣言に無い origin からの POST が 403）、feature テスト。
 
 - **状態を変える要求の送信元を検証する。** Route Handler ごとに書かず、`src/proxy.ts` が `HTTP_ALLOWED_ORIGINS` の宣言（同一 origin + 許可した別 origin）から一律に判定し、それ以外からの書き込みを 403 で止める。Server Action は Next.js 自身が `Origin` と `Host` を突合する —— リバースプロキシで Host が書き換わるデプロイだけが `serverActions.allowedOrigins` を要する。
 - **どの経路に何の役割が要るかは 1 か所が宣言する。** 前捌きと確定認可が別々に条件を持つと、食い違ったときにどちらが正か決まらない。同じ理由で、対応づける値の正しさを 2 か所で判定しない —— 突き合わせるのは callback が復元する一時状態の 1 か所である。
@@ -102,10 +102,10 @@
 
 ## セキュリティ
 
-> Rationale: [ADR 0110](adr/0110-security-operations.md) / [ADR 0111](adr/0111-csp-security-headers.md) / [ADR 0131](adr/0131-cookie-consent.md) / [ADR 0075](adr/0075-file-upload-seam.md) / [ADR 0045](adr/0045-fonts-and-images.md); enforced via Biome `noDangerouslySetInnerHtml`、E2E の見張り（`securitypolicyviolation`）と DAST、`src/app/consent.test.tsx` と `e2e/journeys/consent.spec.ts`、SAST の 0 件ゲート。
+> Rationale: [ADR 0110](adr/0110-security-operations.ja.md) / [ADR 0111](adr/0111-csp-security-headers.ja.md) / [ADR 0131](adr/0131-cookie-consent.ja.md) / [ADR 0075](adr/0075-file-upload-seam.ja.md) / [ADR 0045](adr/0045-fonts-and-images.ja.md); enforced via Biome `noDangerouslySetInnerHtml`、E2E の見張り（`securitypolicyviolation`）と DAST、`src/app/consent.test.tsx` と `e2e/journeys/consent.spec.ts`、SAST の 0 件ゲート。
 
 - **`dangerouslySetInnerHTML` は原則禁止する。** リッチテキストは sanitizer を通し、無害化を通した値としてのみ渡す（文字列で持ち回ると、渡す前に無害化したかどうかが呼び出し側の規律の問題になる）。外部 URL も利用前に検証する。
-- **第三者 script は同意ゲートの裏に置き、同意が得られるまで要素そのものを作らない**（属性で無効にする形は採らない —— 要素が在る時点で取得が始まる資材を止められない）。そのうえで `next/script` の strategy を明示し、CSP と同時に設計する。`@next/third-parties` の採否は用途ごとに判断する。配信元は `src/config/security-headers/` の CSP へ足し、[ADR 0111](adr/0111-csp-security-headers.md) の `Cross-Origin-Embedder-Policy` を緩める判断を伴う。宣言に無い配信元は実ブラウザで拒まれ、赤になる。
+- **第三者 script は同意ゲートの裏に置き、同意が得られるまで要素そのものを作らない**（属性で無効にする形は採らない —— 要素が在る時点で取得が始まる資材を止められない）。そのうえで `next/script` の strategy を明示し、CSP と同時に設計する。`@next/third-parties` の採否は用途ごとに判断する。配信元は `src/config/security-headers/` の CSP へ足し、[ADR 0111](adr/0111-csp-security-headers.ja.md) の `Cross-Origin-Embedder-Policy` を緩める判断を伴う。宣言に無い配信元は実ブラウザで拒まれ、赤になる。
 - **外部画像の配信元は `next/image` の `remotePatterns` へ allowlist 登録し、ワイルドカードを使わない。**
 - **アップロードの大きさと形式は、送る前と受け取った後の両方で確かめる。** 宣言された形式は送信者が付けられる値なので、それだけを根拠にしない。上限はデプロイ先が要求本体に課す上限より内側に取る —— 外側に置いた上限は、デプロイ先が先に打ち切るため効かない。
 - **人へ出す案内文の綴りに山括弧を使わない。** SAST が「変数を挿した HTML に見える文字列」として拾い、0 件を保つゲートが落ちる。書式の記法ではなく実例を挙げる。
@@ -114,7 +114,7 @@
 
 ## URL と条件
 
-> Rationale: [ADR 0060](adr/0060-state-management.md) / [ADR 0029](adr/0029-type-design-discipline.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.md) / [ADR 0101](adr/0101-performance-budget.md); enforced via feature テストと `model/search-params` の単体テスト、`bundle-budget` job（route ごとの増分の上限）、ESLint `project-rules/no-internal-anchor`。
+> Rationale: [ADR 0060](adr/0060-state-management.ja.md) / [ADR 0029](adr/0029-type-design-discipline.ja.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.ja.md) / [ADR 0101](adr/0101-performance-budget.ja.md); enforced via feature テストと `model/search-params` の単体テスト、`bundle-budget` job（route ごとの増分の上限）、ESLint `project-rules/no-internal-anchor`。
 
 - **`searchParams` は zod で検証し、URL のシリアライズ形式とデフォルト値を明示する。** **読めない値をデフォルトへ倒す画面は features 側のスキーマで読み**（`.catch()` / `safeParse`。手書きの条件列で代替しない）、**契約に照らして落とす画面は adapters の契約スキーマを通す**。**どちらを採るかは、倒した結果が画面の操作面に見えるかで決める** —— ページ番号は pagination が、範囲は選択 UI が現在値を示すので倒してよい。複数を選べる絞り込み条件は 1 つ外れても画面に出ず、倒すと絞り込んだつもりの利用者が絞り込まれていない結果を見るので、倒さずに写せなかったことを出す。どちらでも**契約由来の範囲（上限・enum・書式）は adapters が公開するものを使い、features で書き直さない**。キー名は契約のものを使い、送る側で読み替えない。同じキーの繰り返しは、複数を選べる条件だけ並びとして残し、それ以外は未指定として扱う（`model/search-params.ts`）。動的セグメントの `params` も同じで、形まで確かめてから境界へ渡す —— 手で書き換えられる値であり、確かめずに渡すと契約が受け付けない文字列がそのまま外へ出る。
 - **契約に照らして写せなかった条件は、黙って落とさずに写せなかったことを出し、直せる導線を必ず添える。** URL は利用者が直接編集できる入力であり、範囲外の値を黙って落としてデフォルトの一覧を出すと、絞り込んだつもりの利用者が絞り込まれていない結果を見る。検証は取得の境界で行い、画面は写せなかったキーを受け取って表示を決めるだけにする。条件の呼び名は画面上の言葉へ直して出す。
@@ -126,15 +126,15 @@
 - **デフォルトの値と効いていない条件を URL に載せない。** 同じ一覧に 2 つの住所ができ、効いていない条件がアドレス欄と共有した URL にだけ残る。
 - **「指定なし」を候補として並べない。** 1 つも選んでいない状態がそのまま指定なしであり、候補にすると指定なしと具体的な値を同時に選べる形になる。互いに排他な区分は単一選択にする。
 - **同じ条件は常に同じ URL にする。** キーを並べ替えてから組み立て、複数選べる条件は値どうしも並べ替える。選んだ順序で違う文字列になると、共有されたリンクも履歴も同じ画面を別物として扱う。
-- **URL の綴りを組むのは行き先の区画（facade）1 か所で、呼ぶ側はキーやパスをコピーしない。** コピーすると、行き先が契約に合わせて変えたときにこちらだけが古いまま残る。[ADR 0021](adr/0021-frontend-responsibility.md)
-- **内部リンクは `next/link` を使い、生の `<a>` を使わない。** 外部リンクには必要な `rel` を付与する。[ADR 0040](adr/0040-routing-rendering-strategy.md)
-- **`<Link>` の prefetch はデフォルトで許可する。** 大量リンクを持つ一覧では `prefetch={false}` を明示する。散文 —— **寄せられない**。「大量」のしきい値がコードに無く、規則にすると小さな一覧まで鳴る。[ADR 0040](adr/0040-routing-rendering-strategy.md)
+- **URL の綴りを組むのは行き先の区画（facade）1 か所で、呼ぶ側はキーやパスをコピーしない。** コピーすると、行き先が契約に合わせて変えたときにこちらだけが古いまま残る。[ADR 0021](adr/0021-frontend-responsibility.ja.md)
+- **内部リンクは `next/link` を使い、生の `<a>` を使わない。** 外部リンクには必要な `rel` を付与する。[ADR 0040](adr/0040-routing-rendering-strategy.ja.md)
+- **`<Link>` の prefetch はデフォルトで許可する。** 大量リンクを持つ一覧では `prefetch={false}` を明示する。散文 —— **寄せられない**。「大量」のしきい値がコードに無く、規則にすると小さな一覧まで鳴る。[ADR 0040](adr/0040-routing-rendering-strategy.ja.md)
 
 <a id="fetching"></a>
 
 ## 取得と契約
 
-> Rationale: [ADR 0070](adr/0070-backend-role-separation.md) / [ADR 0071](adr/0071-bff-api-integration.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.md) / [ADR 0080](adr/0080-error-handling.md) / [ADR 0060](adr/0060-state-management.md); enforced via adapters テストと feature テスト、ESLint `project-rules/no-client-outside-connection-port`。
+> Rationale: [ADR 0070](adr/0070-backend-role-separation.ja.md) / [ADR 0071](adr/0071-bff-api-integration.ja.md) / [ADR 0073](adr/0073-pagination-fetch-boundary.ja.md) / [ADR 0080](adr/0080-error-handling.ja.md) / [ADR 0060](adr/0060-state-management.ja.md); enforced via adapters テストと feature テスト、ESLint `project-rules/no-client-outside-connection-port`。
 
 - **接続ポイントは downstream と分類の組ごとに 1 つ置き、client を組むのはそこだけにする。** 遮断器と再試行の予算は client の中に状態として載るので、同じ接続先へ client を分けると劣化の判断が分けた数だけ割れる。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` が宣言する。接続先を呼び出しごとに受け取るなど寄せられない箇所は、`eslint-disable-next-line project-rules/no-client-outside-connection-port` に理由を書いて名乗る。
 - **契約が決めた並び・分類・組分けを画面で組み替えない。** 並べ直すと、契約の判断に画面の判断が重なる。表示順は並びそのものが持ち、番号を別に持たない —— 動かしたときに並びと番号のどちらが正か決まらない。
@@ -144,11 +144,11 @@
 - **まとめる単位を送信の形の違いで表さない。** 1 件も複数件も同じ送信で受け、受け取る側を 2 通りにしない。
 - **区分の判定は業務キーで行い、表示名で判定しない。** 名前は表示のための値で、backend 側の都合で書き換わる。マスタに無いキーはどの区分にも寄せず、装飾を持たない姿で出し、可否を確かめていない状態へ不可逆な操作を出さない。突き合わせは同じ要求の中で 1 度だけ行う。契約が値域を宣言しない項目は、生成器の設定とアプリ側の転記の 2 か所に宣言を持つことになる —— 片方だけ動いても赤くならず、装飾も操作も黙ってデフォルトへ倒れるので、両者を突き合わせる検査を 1 本置く。
 - **一覧の 1 行に、契約が返していない値を出さない。** 出すには行の数だけ取得が増える。
-- **期間の条件は瞬時の半開区間で送る。** 両端はオフセット付きの RFC3339（オフセットの無い文字列は、解釈が接続先の実装差に落ちる）。上限は含まない —— 終了日の 23:59:59 を上限に置くと、最後の 1 秒に入った記録が落ちる。暦の区分を解くのは画面の側で、暦とタイムゾーンは `model` が持つ（[ADR 0120](adr/0120-locale-aware-formatting.md)）。相対の期間は先頭ページを引く時点で 1 度だけ解き、続きの取得へも同じ区間を渡す —— ページごとに解き直すと境目の記録が飛ばされる。
+- **期間の条件は瞬時の半開区間で送る。** 両端はオフセット付きの RFC3339（オフセットの無い文字列は、解釈が接続先の実装差に落ちる）。上限は含まない —— 終了日の 23:59:59 を上限に置くと、最後の 1 秒に入った記録が落ちる。暦の区分を解くのは画面の側で、暦とタイムゾーンは `model` が持つ（[ADR 0120](adr/0120-locale-aware-formatting.ja.md)）。相対の期間は先頭ページを引く時点で 1 度だけ解き、続きの取得へも同じ区間を渡す —— ページごとに解き直すと境目の記録が飛ばされる。
 - **絞り込みは必ずクエリでサーバへ渡し、取得済みのページに client 側で条件を掛けない。** 条件に合う古い記録が落ちた一覧になる。契約が受け取らない条件は画面も持たない。
 - **1 ページの件数は画面が決める。** 契約が受け付ける上限は「これ以上は拒む」線であって、何件並べると読めるかとは別の理由で動く。用途でも変わる —— 読み進める前提で積む面と、1 画面を見比べて操作する面では別の値になり、後者は 1 画面に収まる高さを超えた時点で比較そのものが成り立たない。
 - **client 取得の打ち切り（abort）を失敗として記録しない。** 条件が変わったか画面を離れたかで、伝える相手がもういない。
-- **状態から導ける可否に、操作側の合図を持たせない。** 取り消せるかどうかは「対象がまだそこに在るか」から導く。[ADR 0029](adr/0029-type-design-discipline.md)
+- **状態から導ける可否に、操作側の合図を持たせない。** 取り消せるかどうかは「対象がまだそこに在るか」から導く。[ADR 0029](adr/0029-type-design-discipline.ja.md)
 - **判らない値を 0 として並べない。** 確定するまで出せない値は出さず、いつ決まるかを添える。別の単位へ換算した表示を切り替えで出す画面で換算できなかったときは、切り替えごと出さず、0 や代替の記号も置かない —— 値として読める形を残すと、換算できなかったことが「その値である」と受け取られる。
 - **画面が見せていた内容を送り返さない。** 送る内容は送信の時点の状態から組み直す —— 開いたまま放置されたあいだに値が変わっていても、古い前提のまま確定できてしまう。送らない値に編集の口を置かない。
 - **polling は必要な場合だけ採用し、間隔・停止条件・バックグラウンドタブ抑制を定義する。**
@@ -157,9 +157,9 @@
 
 ## フォームと送信
 
-> Rationale: [ADR 0061](adr/0061-form-mutation-ux.md) / [ADR 0062](adr/0062-form-input-validation.md) / [ADR 0063](adr/0063-mutation-result-notification.md) / [ADR 0080](adr/0080-error-handling.md); enforced via feature テスト、`src/app/boundary-feedback.test.ts`（バージョンが揃わない失敗の扱い）。
+> Rationale: [ADR 0061](adr/0061-form-mutation-ux.ja.md) / [ADR 0062](adr/0062-form-input-validation.ja.md) / [ADR 0063](adr/0063-mutation-result-notification.ja.md) / [ADR 0080](adr/0080-error-handling.ja.md); enforced via feature テスト、`src/app/boundary-feedback.test.ts`（バージョンが揃わない失敗の扱い）。
 
-- **mutation 中は submit を無効化して二重送信を防ぎ、必要な操作には idempotency key を付与する。** キーは画面を組み立てるたびに 1 つ作り、同じ画面から何度送っても同じキーにする（受け取る側が 2 度目を初回の再生として扱う）。キーも送信の状態も画面が 1 つだけ持ち、開閉で unmount されるサブツリー（dialog / sheet / drawer）には置かない —— 閉じるとツリーごと外れるので、開き直すたびに作り直される。`useOptimistic` はロールバックを実装できる場合に限る。[ADR 0071](adr/0071-bff-api-integration.md)
+- **mutation 中は submit を無効化して二重送信を防ぎ、必要な操作には idempotency key を付与する。** キーは画面を組み立てるたびに 1 つ作り、同じ画面から何度送っても同じキーにする（受け取る側が 2 度目を初回の再生として扱う）。キーも送信の状態も画面が 1 つだけ持ち、開閉で unmount されるサブツリー（dialog / sheet / drawer）には置かない —— 閉じるとツリーごと外れるので、開き直すたびに作り直される。`useOptimistic` はロールバックを実装できる場合に限る。[ADR 0071](adr/0071-bff-api-integration.ja.md)
 - **409 の楽観ロック競合では、再読み込み導線を表示する。** 読み込んだ時点のバージョンを送り、バージョンが食い違ったときだけ導線を添える —— 権限や通信の失敗にまで添えると、やり直せば直るものとして読める。再読み込みでバージョンだけを差し替えない —— バージョンを入力の `key` に含めて入力ごと作り直す（[レンダリングとキャッシュ](#rendering)）。作り直さないと、古い入力に最新のバージョンが付き、他者の更新を見ないまま上書きできる。差分提示はバックエンド契約が提供するときだけ行う。
 - **Server Action ID の version skew が起きたら、再試行を繰り返さず full reload へ誘導する。** 配信が入れ替わると、開いたままの画面が持つ識別子はもう server に無く、**同じ識別子で送り直しても結果は変わらない**。判別は framework が公開している述語に任せる —— 識別子の持ち方は framework の都合で動き、応答の綴りを自分で見ると動いたときに黙って外れる。error 境界は、この失敗だけ再試行ではなく読み込み直しを出す。
 - **送信の失敗は 2 系統ある。** action が値で返す失敗と、呼び出しそのものが reject する失敗（切断・上限超過・5xx）で、後者は戻り値では受け取れない。捕まえないと、その送信は進行中でも失敗でもない状態に居残り、送信口が塞がったままになる。
@@ -171,10 +171,10 @@
 - **成立したら別の URL へ移す。** 同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が確定前の画面へ帰る。移した先は送信の応答をレンダリングせず、識別子から取り直す —— 応答をレンダリングすると、再読み込みと共有で中身が消える。次の導線を置く（元の面へ戻る道と、控えを後から確かめる道）—— 行き止まりにすると、利用者は戻る操作で確定前の画面へ帰ろうとする。後始末は処理した対象だけに掛ける —— 器ごと空にすると対象外だったものまで消え、利用者が次に取る手掛かりを失う。後始末が失敗しても成立は見せる —— 成立済みのものを後始末の失敗で隠すと、できなかったように映る。
 - **確認を挟むかどうかは、戻す代償で決める。** すぐ元に戻せる操作は確認を挟まず、取り消しを出す。代償が件数に比例する操作と、不可逆な操作は確認を挟む。不可逆なものは背景を押しても閉じない面（`AlertDialog`）にして、閉じる操作を明示的に選ばせる。散文 —— **寄せられない**。戻せるかどうかは操作の意味で決まり、コードの形からは決まらない。
 - **確認 dialog の実行は dialog の中の submit で、押した時点で dialog を閉じない。** 送信中の表示も失敗の文言も、利用者が見ていない場所に出る。対して結果は dialog の中に出さない —— 成立すれば dialog は閉じ、そこに出した結果ごと消える。送信は dialog の中の form が担い、結果は外側が受ける。
-- **確認を開く操作の見た目は、並んだ操作の中でどれを主に見せるかを表す。** 押した先に起きることの重さは、確認の中の実行操作の見た目が表す。散文 —— **寄せられない**。variant の意味は並びの文脈で決まり、コードの形からは決まらない。[ADR 0050](adr/0050-styling-strategy.md)
-- **`FormData` の項目名は宣言へ寄せ、送る側と受け取る側が同じ綴りを使う。** 文字列を両側に書くと、片方だけを直したときに型では止まらず、実行して初めて「値が届いていない」形で現れる。[ADR 0028](adr/0028-naming-convention.md)
+- **確認を開く操作の見た目は、並んだ操作の中でどれを主に見せるかを表す。** 押した先に起きることの重さは、確認の中の実行操作の見た目が表す。散文 —— **寄せられない**。variant の意味は並びの文脈で決まり、コードの形からは決まらない。[ADR 0050](adr/0050-styling-strategy.ja.md)
+- **`FormData` の項目名は宣言へ寄せ、送る側と受け取る側が同じ綴りを使う。** 文字列を両側に書くと、片方だけを直したときに型では止まらず、実行して初めて「値が届いていない」形で現れる。[ADR 0028](adr/0028-naming-convention.ja.md)
 - **必須のマーカーは付けるが、ブラウザに送信を止めさせない。** 隠れている段の空欄はブラウザが focus できず、送信が理由も示さずに止まる。空欄の指摘は画面が出す。値を hidden input で運ぶコンポーネントに `required` を持たせない —— constraint validation の対象外で、付けても検証されない。必須であることの表示は `RequirementBadge`、強制は Server Action と server 側の検証で行う。必須・任意のマーカーは label の前に置き、支援技術から隠し、必須であることは control が伝える。
-- **検証の文言は項目名を主語にして書く。** エラーだけを読んでもどこを直せばよいか判るようにする —— 支援技術は項目から離れた位置で読み上げることがある。[ADR 0100](adr/0100-accessibility-target.md)
+- **検証の文言は項目名を主語にして書く。** エラーだけを読んでもどこを直せばよいか判るようにする —— 支援技術は項目から離れた位置で読み上げることがある。[ADR 0100](adr/0100-accessibility-target.ja.md)
 - **下書きは画面で 1 つ。** 反映の契機が複数あっても飛ばすものは 1 つで、別々に持つと片方を押した時点でもう片方の入力途中が捨てられる。overlay を開くときに組み立て中の条件を捨てない。選ぶ受け口と選んだ内容の一覧は分け、控えを両方に持たない —— 1 件外したときに受け口の表示だけが古いまま残る。
 - **行ごとに送信を持つ一覧でも、結果の表示は一覧に 1 つだけ置く。** 行ごとに持たせると、どれが最後の結果なのか読み取れない。
 - **選んでいない観点の入力も送信にそのまま載せ、残したうえで見えないようにする。** 観点を切り替えた時点で書きかけが消えると、複数の観点をまとめて直せない。送信が弾かれたら、検証で落ちた項目を持つ観点へ器の側から移す —— 観点を切り替える器は進む前に止める仕組みを持たないので、移らないと、画面のどこも赤くないのに送信だけ通らない状態になる。
@@ -183,7 +183,7 @@
 
 ## UI コンポーネントと操作
 
-> Rationale: [ADR 0053](adr/0053-ui-component-interaction-seam.md) / [ADR 0052](adr/0052-ui-component-policy.md) / [ADR 0021](adr/0021-frontend-responsibility.md) / [ADR 0100](adr/0100-accessibility-target.md); enforced via Storybook と visual regression、component テストと interaction テスト、Biome の a11y ルール、ESLint `no-restricted-imports`（アイコンの供給元）、画面を通した E2E。
+> Rationale: [ADR 0053](adr/0053-ui-component-interaction-seam.ja.md) / [ADR 0052](adr/0052-ui-component-policy.ja.md) / [ADR 0021](adr/0021-frontend-responsibility.ja.md) / [ADR 0100](adr/0100-accessibility-target.ja.md); enforced via Storybook と visual regression、component テストと interaction テスト、Biome の a11y ルール、ESLint `no-restricted-imports`（アイコンの供給元）、画面を通した E2E。
 
 - **状態によって出入りする表示のせいで、操作の位置を動かさない。** 出し入れされる要素は操作より後ろへ置くか、同じ構造（見出し + 操作など）で器の高さを揃える。**高さを数値で予約して揃えない** —— 中のコンポーネントの寸法が変われば予約値が古くなる。端では前後の操作を消さず押せない状態で残す。送信中は絵柄だけを差し替え、見えている文言を据え置く。
 - **面ごと押せる器を link で包まない。** 包むと中の操作が link の内側に入り（操作の中に操作が居る形）、補足まで遷移先の名前として読み上げられる。名前の link を疑似要素で面いっぱいに広げ、操作は link より後ろに置いて `relative` で重なりの上へ出す。支援技術には名前だけが遷移先として見える。
@@ -210,7 +210,7 @@
 - **スクロール復元はルーティングデフォルトを尊重する。** modal / drawer は body scroll を適切に lock し、アニメーションだけのために全体へ `scroll-behavior` を強制しない。interaction テストと手動確認が見る。
 - **背面を塞ぐ overlay の中から遷移するときは、閉じる操作を同時に撃たない。** overlay は戻る操作のために履歴を 1 つ積んでおり、閉じるときにそれを戻す。client 側の遷移は取得が終わるまで URL を動かさないため、同じ操作で閉じると、その戻しが遷移を消す。**遷移が届いたこと（効いている条件・データが変わったこと）で閉じる。** 積んだ 1 件は結果で差し替える（`router.replace`）—— そのうえで積むと戻る操作が 1 度空振りする。
 - **clipboard 操作には成功・失敗のフィードバックを付け、権限拒否や非対応環境のフォールバックを表示する。**
-- **画面は viewport を明示し、safe area、十分なタッチターゲット、hover 非依存を満たす。** safe area の余白は viewport の下端に固定する面が取り、`env()` を効かせる `viewport-fit` の宣言は画面の側が持つ（[ADR 0051](adr/0051-styling-system.md)、z-index の各段がどのバンドを意味するかについて）。tooltip は pointer を合わせている間だけ現れるため touch と keyboard から到達できず、それだけに情報を持たせない。**タッチターゲットと hover 非依存は根拠 ADR 無し** —— 決めた ADR が存在しない（0100 は適合目標と検査の時点、0102 は対応ブラウザの行列で、どちらも触れない）。
+- **画面は viewport を明示し、safe area、十分なタッチターゲット、hover 非依存を満たす。** safe area の余白は viewport の下端に固定する面が取り、`env()` を効かせる `viewport-fit` の宣言は画面の側が持つ（[ADR 0051](adr/0051-styling-system.ja.md)、z-index の各段がどのバンドを意味するかについて）。tooltip は pointer を合わせている間だけ現れるため touch と keyboard から到達できず、それだけに情報を持たせない。**タッチターゲットと hover 非依存は根拠 ADR 無し** —— 決めた ADR が存在しない（0100 は適合目標と検査の時点、0102 は対応ブラウザの行列で、どちらも触れない）。
 - **アイコンは `src/components/icon.ts` から取る。** 供給元を直接 import しない。自作 SVG は `currentColor` を継承し、配置と用途を明示する。散文 —— **寄せられない**（自作 SVG の側）。配置と用途が明示されているかはレンダリングされる文脈で決まり、要素の形からは決まらない。
 - **component API は意味のある props 名を使う。** 状態差分は variant、複合的なコンポーネントは compound component を検討し、無目的な `...rest` 転送を避ける。コンポーネントは自分がどこに置かれたかを知らない —— 下端に固定するか脇に常設するかは画面の組み立ての判断で、操作のコンポーネントに持たせない。
 - **context の読み手は、供給の外でデフォルト値を返さずその場で失敗させる。** 返してしまうと、条件を変えても確定が何も起こさない画面ができ、壊れていることが誰の目にも見えない。
@@ -219,7 +219,7 @@
 
 ## 文言
 
-> Rationale: [ADR 0121](adr/0121-i18n-strategy.md) / [ADR 0080](adr/0080-error-handling.md); review が見る。
+> Rationale: [ADR 0121](adr/0121-i18n-strategy.ja.md) / [ADR 0080](adr/0080-error-handling.ja.md); review が見る。
 
 - **UI 文言は feature 内の定数へ寄せる。** エラー文言は errors の分類・表示モデルに従い、画面ごとに再定義しない。出し分けの合図にするのは分類であって文言ではない —— 文言を直した瞬間に出し分けが黙って壊れる。取得側のメッセージや生のエラー・スタックをそのまま出さない。
 - **設計上の呼び名（実装の語彙）を利用者向けの文言に出さない。**
@@ -230,7 +230,7 @@
 
 ## レイアウトとバンド
 
-> Rationale: [ADR 0051](adr/0051-styling-system.md) / [ADR 0050](adr/0050-styling-strategy.md) / [ADR 0100](adr/0100-accessibility-target.md) / [ADR 0045](adr/0045-fonts-and-images.md); enforced via バンドを跨いで見る E2E のジャーニー、`components/patterns/action-bar` の component テスト、Storybook と visual regression、Biome formatter、ESLint `project-rules/no-arbitrary-z-index`。
+> Rationale: [ADR 0051](adr/0051-styling-system.ja.md) / [ADR 0050](adr/0050-styling-strategy.ja.md) / [ADR 0100](adr/0100-accessibility-target.ja.md) / [ADR 0045](adr/0045-fonts-and-images.ja.md); enforced via バンドを跨いで見る E2E のジャーニー、`components/patterns/action-bar` の component テスト、Storybook と visual regression、Biome formatter、ESLint `project-rules/no-arbitrary-z-index`。
 
 - **本文の脇に常設する領域（サイドバー・レール）は `lg` 以上でだけ出す。** `lg` 未満では本文へ被せて出す（overlay）。
 - **本文から幅を取る常設領域は、幅が足りていても閉じられる。** 閉じられないと、一度開いた利用者は本文を狭いまま読み続ける。閉じた後に開き直すエントリポイントは、その領域の外（header など）に持つ。
@@ -242,7 +242,7 @@
 - **カードを並べる段の上限は画面幅ではなく、1 枚の中身が折り返さずに収まる幅で決める。** 列を増やすと 1 枚あたりの幅が、1 行で読ませたい値（所在の表記・表の 1 行）を折り返す幅まで縮み、広い画面のほうが読みにくくなる。
 - **本文の幅を器で絞らない。** 読み幅と左右余白は本文の側の責務で、両方が幅を持つと画面ごとにどちらが効いているのかを読まないと分からなくなる。
 - **契約が長さを決める値に、1 行に収まる前提を置かない。** 分類名や状態名は上限の宣言が無く、契約が許す長さで枠ごと横に伸びる。折り返しを呼び出し側で許すか、幅で詰める。詰めるときは文字数では切らない —— 書記素の切れ目を跨いで壊し、同じ文字数でも和文と欧文で占める幅が違う。
-- **情報を色だけで伝えない。** 現在地・状態・事情の強さは文字か下線か絵柄で持ち、色は補強に留める —— 色覚特性やコントラスト設定によって区別できない。弱める表現は文字だけに掛け、行ごと薄くして地との比を [ADR 0100](adr/0100-accessibility-target.md) の要求より下げない。
+- **情報を色だけで伝えない。** 現在地・状態・事情の強さは文字か下線か絵柄で持ち、色は補強に留める —— 色覚特性やコントラスト設定によって区別できない。弱める表現は文字だけに掛け、行ごと薄くして地との比を [ADR 0100](adr/0100-accessibility-target.ja.md) の要求より下げない。
 - **紙に出すのは内容だけ。** header・脇の一覧・skip link・押せない操作は紙の上では押せず場所を取るだけなので落とし、画像は先頭の 1 枚だけを残して幅を抑える。
 - **z-index は Tailwind の段階値（`z-10` / `z-20` …）だけを使う。** 任意値（`z-[…]`）で段を増やさない。**token drift gate は見ていない** —— あれは `tokens/` から生成した CSS が生成物と一致するかの突合で、z-index は token 化されていない。
 - **Tailwind class は読みやすいまとまりで記述する。** 長い class 列は component / variant に分け、`@apply` は使わない。
@@ -252,7 +252,7 @@
 
 ## 状態表示と待機
 
-> Rationale: [ADR 0080](adr/0080-error-handling.md) / [ADR 0100](adr/0100-accessibility-target.md); enforced via README の状態表、Storybook と visual regression、feature テスト、`error.tsx` / `not-found.tsx` のテスト。
+> Rationale: [ADR 0080](adr/0080-error-handling.ja.md) / [ADR 0100](adr/0100-accessibility-target.ja.md); enforced via README の状態表、Storybook と visual regression、feature テスト、`error.tsx` / `not-found.tsx` のテスト。
 
 - **各画面は loading、empty、error、success の 4 状態を設計し、その画面が所有する状態を実装・テストする。** 所有しない状態のコンポーネントは作らず、所有しないと決めた理由を README に書く。部分失敗は成功した領域を残して表示し、通った件数と通らなかった件数を両方出す。「空」と「読めなかった」を混ぜない。
 - **空の理由を分ける。** 「まだ無い」と「絞り込んだ結果が無い」を同じ文言で出すと、条件を外せば出てくることが画面から読み取れない。
@@ -269,11 +269,11 @@
 
 ## 表示と書式
 
-> Rationale: [ADR 0120](adr/0120-locale-aware-formatting.md) / [ADR 0040](adr/0040-routing-rendering-strategy.md); enforced via `src/model/datetime.ts` が表示 timezone を `DEFAULT_TIME_ZONE` へ固定することと、その単体テスト。
+> Rationale: [ADR 0120](adr/0120-locale-aware-formatting.ja.md) / [ADR 0040](adr/0040-routing-rendering-strategy.ja.md); enforced via `src/model/datetime.ts` が表示 timezone を `DEFAULT_TIME_ZONE` へ固定することと、その単体テスト。
 
 - **日時は表示 timezone を明示し、server と client で異なる値を初期 render しない。** `suppressHydrationWarning` は理由を記録した例外だけにする。
 - **相対時刻は `Intl.RelativeTimeFormat` で表示し、更新が必要な client component だけを interval で再レンダリングする。**
-- **locale-aware な表示は `model` のフォーマッタを通し、locale は引数で渡す。** 省略したときに使うのは `model` のデフォルト locale だけで、各所に locale の文字列を直書きしない。`Intl.*` のインスタンスはレンダリングごとに作らず、locale と書式の組ごとに作って使い回す —— 生成には locale データの解決が伴い、件数に比例して積み上がる。`toLocaleString` / `toLocaleDateString` をコンポーネントの中で直に呼ばず、`date-fns` は関数単位で import する（[0120](adr/0120-locale-aware-formatting.md)）。
+- **locale-aware な表示は `model` のフォーマッタを通し、locale は引数で渡す。** 省略したときに使うのは `model` のデフォルト locale だけで、各所に locale の文字列を直書きしない。`Intl.*` のインスタンスはレンダリングごとに作らず、locale と書式の組ごとに作って使い回す —— 生成には locale データの解決が伴い、件数に比例して積み上がる。`toLocaleString` / `toLocaleDateString` をコンポーネントの中で直に呼ばず、`date-fns` は関数単位で import する（[0120](adr/0120-locale-aware-formatting.ja.md)）。
 - **十進の値（金額など）は文字列のまま運び、数値へ変換しない。** JSON number は IEEE754 double として復元され、サブセントの精度を失う。数値の入力欄にもしない。丸めと通貨記号の付与は表示の直前だけで行い、画面で値どうしを計算しない —— 受け取った値を掛け合わせた時点で、業務の計算がフロントへ戻る。
 - **同じ格で並べた数値は、同じ母集団のものとして読まれる。** 母集団（除外の条件・期間への依存の有無）が違う数を 1 つの並びに置くなら、数ごとに注記を持つ。省くと、同じ条件で数えた値として読まれる。
 
@@ -281,23 +281,23 @@
 
 ## 型とコード
 
-> Rationale: [ADR 0029](adr/0029-type-design-discipline.md) / [ADR 0028](adr/0028-naming-convention.md) / [ADR 0002](adr/0002-formatter-linter.md); enforced via `erasableSyntaxOnly`（`tsconfig.json`）、Biome `noExplicitAny`、ESLint `@typescript-eslint/consistent-type-assertions`、review。
+> Rationale: [ADR 0029](adr/0029-type-design-discipline.ja.md) / [ADR 0028](adr/0028-naming-convention.ja.md) / [ADR 0002](adr/0002-formatter-linter.ja.md); enforced via `erasableSyntaxOnly`（`tsconfig.json`）、Biome `noExplicitAny`、ESLint `@typescript-eslint/consistent-type-assertions`、review。
 
 - **TypeScript は `type` を優先し、`enum` と `namespace` を使わない。** `any` と型アサーション（`as`）は全面禁止し、型ガード・`satisfies`・パースで表現する。
 - **値集合の公開定数は、`export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する。** 公開 API でなくても、複数ファイルが同じ概念の値を使う場合は所有モジュールを一つ決め、そこから参照する。キーを持つレイヤーが呼び名（表示名）も持つ —— 表示する側がコピーを持つと、キーが増えたときに生の名前が出る画面と出ない画面に割れる。持ち方は集合のキーを網羅した `Record` にする —— `find` とデフォルト値のフォールバックにすると、キーを増やした日に名前の無い候補が黙って混ざる。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい。
 - **公開 API は `export function` を使う。** 値として渡す callback は arrow function を使い、React component / hook は既存の React 規約に従う。
 - **将来の誤りを捕まえる防御分岐は、YAGNI の例外として消さない。** 使われていない機能は消してよいが、**壊れ方を検出するために置いた分岐は「使われていない」ことが正常な状態**であり、到達しないことは不要であることを意味しない。消す代わりに、テストできる単位へ切り出して全分岐を塞ぐ。カバレッジの % はその副産物であって目標ではない —— 数字を目標にすると、塞ぎにくい分岐のほうが先に消される。
-- **重複を潰すかは「その 2 箇所が同じ理由で変わるか」で決める。** 行の一致は理由ではない。別々の理由で変わるものを 1 つにまとめると、片方だけ直したい人が両方の呼び出し側を読むことになる。検査が挙げる重複も同じ尺度で裁き、統合しないと決めたら**なぜ統合しないのか**を抑止の側に添える（[0157](adr/0157-inspection-declaration-discipline.md)）。散文 —— **寄せられない**。変わる理由は将来の要求であって、コードの形には現れない。
+- **重複を潰すかは「その 2 箇所が同じ理由で変わるか」で決める。** 行の一致は理由ではない。別々の理由で変わるものを 1 つにまとめると、片方だけ直したい人が両方の呼び出し側を読むことになる。検査が挙げる重複も同じ尺度で裁き、統合しないと決めたら**なぜ統合しないのか**を抑止の側に添える（[0157](adr/0157-inspection-declaration-discipline.ja.md)）。散文 —— **寄せられない**。変わる理由は将来の要求であって、コードの形には現れない。
 
 <a id="comments"></a>
 
 ## コメントと文書
 
-> Rationale: [ADR 0144](adr/0144-decision-enforcement-pairing.ja.md) / [ADR 0140](adr/0140-documentation-operations.ja.md) / [ADR 0021](adr/0021-frontend-responsibility.md); review（`comment-reviewer` / `doc-reviewer`）、`premise-lint`（`pnpm lint:md`）、`scripts/tsdoc-frame.gate.test.ts`（`src/` の名前の付いた関数の枠。`scripts/` などそれ以外の枠はレビューが持つ）が見る。biome は export への doc comment を要求しないので、内容の規約は `premise-lint` が拾う形を除いてレビューが持つ。
+> Rationale: [ADR 0144](adr/0144-decision-enforcement-pairing.ja.md) / [ADR 0140](adr/0140-documentation-operations.ja.md) / [ADR 0021](adr/0021-frontend-responsibility.ja.md); review（`comment-reviewer` / `doc-reviewer`）、`premise-lint`（`pnpm lint:md`）、`scripts/tsdoc-frame.gate.test.ts`（`src/` の名前の付いた関数の枠。`scripts/` などそれ以外の枠はレビューが持つ）が見る。biome は export への doc comment を要求しないので、内容の規約は `premise-lint` が拾う形を除いてレビューが持つ。
 
 - **コメントを書く前に、偽になったとき何が落ちるかを問う（[0144](adr/0144-decision-enforcement-pairing.ja.md)）。** 既に落ちるものが在るなら**書かない** —— 落ちるものが正本で、コメントはそのコピーとして腐るだけである。落ちるものを作れるなら**作る**（型 / テスト / 実行される例 / 生成の入力）。寄せ先の優先順は 0144 の表の「落ちる時点」が決め、型が最も早い。作れないと分かったものだけがコメントになり、行き先は下記の前提の所在テストが決める。**コメントとは、評価者を作れなかったことの記録である。** この問いを最も厳しく当てるのは**インラインコメント**で、最小限に留める —— 呼び出し地点の hover にも Storybook にも出ないので、偽になっても誰の目にも触れず、見えない所で腐った文書だけが増える。TSDoc は下の項の枠で書き、`@remarks` は宣言が引き受けることの要約を書く。
 - **TSDoc の必須の枠（下の項が求める要約とタグ）の外に残してよいのは、コードが構文的に述べられないことだけ** —— 呼び出し側の義務 / 意図的な不在 / 外の前提。コードは「自分が何をするか」しか言えないので、この 3 つはコードと競合しない。逆に**コードが述べられることをコメントが述べた瞬間、出所が 2 つになり、読み手はどちらを信じるか選ばされる**。読み手は人だけではなく、コメントを実行ロジックより優先して読む。枠の外の文は、デフォルトを「書かない」へ倒す —— 誤ったコメントの害は、無いことの害より大きい。枠そのものは、このデフォルトに関わらず書く。
-- **名前の付いた関数には TSDoc を書き、タグを次の規則で揃える。** 対象は `function f` / `const f = () =>` / メソッドで、export するかどうか・関数の内側にあるかどうかを問わない。読み手は呼び出し地点の hover だけではなく、そのファイルを直す人の hover でもある —— 内側で名前を付けた関数ほど、名前と型だけでは役割が読めない。story を持つコンポーネントでは Storybook の autodocs も同じ doc comment をレンダリングする（`.storybook/main.ts` / `.storybook/preview.tsx`）。対象外は 3 つで、名前の無いコールバック（`map` などの引数へ直接渡す関数）、Next.js の特殊ファイル（`page` / `layout` / `route` など）が framework へ渡す export、そして**テストファイルの中の関数**である。前の 2 つは名前で呼ぶ読み手がいないため、テストは意図を `it` の日本語名が運ぶためで、テストの書き方は [0090](adr/0090-testing-strategy.md) が持つ。複雑度のしきい値では線を引かない —— しきい値は出どころを言えず、境目で判断が揺れる。**`@returns` の有無**は散文で決める。散文 —— **一部寄せられる**。型注釈を持たない関数では戻り値の種別が宣言の形から決まらず、「書かない」と決めた場合（`void` を返す関数、JSX を返す component）と見分けられない。
+- **名前の付いた関数には TSDoc を書き、タグを次の規則で揃える。** 対象は `function f` / `const f = () =>` / メソッドで、export するかどうか・関数の内側にあるかどうかを問わない。読み手は呼び出し地点の hover だけではなく、そのファイルを直す人の hover でもある —— 内側で名前を付けた関数ほど、名前と型だけでは役割が読めない。story を持つコンポーネントでは Storybook の autodocs も同じ doc comment をレンダリングする（`.storybook/main.ts` / `.storybook/preview.tsx`）。対象外は 3 つで、名前の無いコールバック（`map` などの引数へ直接渡す関数）、Next.js の特殊ファイル（`page` / `layout` / `route` など）が framework へ渡す export、そして**テストファイルの中の関数**である。前の 2 つは名前で呼ぶ読み手がいないため、テストは意図を `it` の日本語名が運ぶためで、テストの書き方は [0090](adr/0090-testing-strategy.ja.md) が持つ。複雑度のしきい値では線を引かない —— しきい値は出どころを言えず、境目で判断が揺れる。**`@returns` の有無**は散文で決める。散文 —— **一部寄せられる**。型注釈を持たない関数では戻り値の種別が宣言の形から決まらず、「書かない」と決めた場合（`void` を返す関数、JSX を返す component）と見分けられない。
   - **`@param` と `@returns` は必ず書く。** ただし引数を持たない関数に `@param` は無く、`void` / `Promise<void>` を返す関数と、JSX を返す component には `@returns` を書かない —— 型の言い換えにしかならない。
   - **読み手の hover が型のメンバーへ解決されるなら、doc は型の側が持つ。** component の props（`<Component>Props` 型の各メンバー）がこの形で、JSX の属性を書いている最中に hover へ出るのは型メンバーの doc であり、`@param props.<名前>` はそこに出ない。**同じ理由で、分割代入で受ける引数・object literal のメソッド・`implements` を持つクラスのメソッドは、実装の側に枠を持たない** —— いずれも読み手に見えるのは型の側である。
   - **`@typeParam` / `@throws` / `@defaultValue` は、対応するものがあれば書く。** 分割代入のデフォルト値は型に出ないので、デフォルト値を持つ引数や props のデフォルト値を hover へ届ける手段は `@defaultValue` だけである。
@@ -332,11 +332,11 @@
 
 ## 生成物と補助スクリプト
 
-> Rationale: [ADR 0072](adr/0072-api-type-generation.md) / [ADR 0110](adr/0110-security-operations.md) / [ADR 0153](adr/0153-ci-configuration.md) / [ADR 0054](adr/0054-ui-catalog-storybook.md) / [ADR 0091](adr/0091-test-verification-methods.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）、`scripts/shell-brace.gate.test.ts`（全角の直前の裸の変数）、`scripts/make-expansion.gate.test.ts`（外から来る値の展開）。
+> Rationale: [ADR 0072](adr/0072-api-type-generation.ja.md) / [ADR 0110](adr/0110-security-operations.ja.md) / [ADR 0153](adr/0153-ci-configuration.ja.md) / [ADR 0054](adr/0054-ui-catalog-storybook.ja.md) / [ADR 0091](adr/0091-test-verification-methods.ja.md) / [ADR 0157](adr/0157-inspection-declaration-discipline.ja.md); enforced via `scripts/catalog-assets.gate.test.ts`、`make actions-pin-check`、`make actionlint` / `make actions-shellcheck` / `make actions-required-check-lint`、`scripts/markdown-exclusions.gate.test.ts`、`make tools-cooldown-check`（手で入れた pin の検疫）、`make suppression-expiry`（抑止の期限）、`scripts/shell-brace.gate.test.ts`（全角の直前の裸の変数）、`scripts/make-expansion.gate.test.ts`（外から来る値の展開）。
 
 - **ゲートを足す前に、それが並列でいくつ走るかを見る。** 費用は 1 回ぶんではない —— このリポジトリは並行する作業ツリーで進むうえ、fan-out するスキルは同じ検査を lens やカーネルの数だけ呼ぶ。**手元で n 倍、CI で PR の数だけ**になり、遅くなった機械の上では検査そのものが失敗の源になる。`make load-status` のバンドは掛かった負荷に**反応する**機構であって、足す前の見積もりは肩代わりしない。散文 —— **寄せられない**。何倍になるかは呼び出し側の構造で決まり、検査の側からは見えない。
-- **同じ判定を複数の worker に計算させない。** 統合する側が 1 回だけ解いて配る。判定の権威が CI に在るものは、**解くのではなく取得する**（[0151](adr/0151-git-hooks.md)）。
-- **検査は、自分が見ていない腐り方を出力で述べる。** 緑は「対象が健全」ではなく「この検査が見る形に違反が無い」である。述べない検査は、読み手に見ていない範囲まで保証したと読ませる（[0157](adr/0157-inspection-declaration-discipline.md)）。
+- **同じ判定を複数の worker に計算させない。** 統合する側が 1 回だけ解いて配る。判定の権威が CI に在るものは、**解くのではなく取得する**（[0151](adr/0151-git-hooks.ja.md)）。
+- **検査は、自分が見ていない腐り方を出力で述べる。** 緑は「対象が健全」ではなく「この検査が見る形に違反が無い」である。述べない検査は、読み手に見ていない範囲まで保証したと読ませる（[0157](adr/0157-inspection-declaration-discipline.ja.md)）。
 
 - **required check へ登録するのは、全 PR でその context 名を報告し続ける job だけにする。** `paths:` で絞った job、第三者のアカウント（外部解析サービスのトークン）の有無で降りる job、初期化で消える job を登録すると、報告されない PR が必須チェック待ちのまま止まり、コードでは直せない。降ろすときは `on:` から外さず、job は起動させて `if:` でステップだけを降ろす。Security 群を差分で降ろせるのは、週次スケジュールが残りのスキャンを引き受け、かつ required に載っていないからで、どちらかを外すなら絞りも外す —— 片方だけ外すと書き漏らしが恒久の死角になる。
 
@@ -359,7 +359,7 @@
 
 ## 性能
 
-> Rationale: [ADR 0101](adr/0101-performance-budget.md); enforced via `bundle-budget` job（「遅延 JS」「合計 JS」の列と、route ごとの増分の上限）。
+> Rationale: [ADR 0101](adr/0101-performance-budget.ja.md); enforced via `bundle-budget` job（「遅延 JS」「合計 JS」の列と、route ごとの増分の上限）。
 
 - **`next/dynamic` は初期表示に不要で大きい client-only 機能に限る。** `ssr: false` は SSR が不可能な理由を持つ場合だけ使う。**隠れたまま DOM に残る器（tab）へ置くときは、開かれるまで mount しない** —— `next/dynamic` は mount で取りに行くので、そうしないと初期の一式から外しただけで、取得と実行は最初のレンダリングの直後に走る。移した先の量が見えるので、初期だけが減って合計が動かない変更として現れる。
 - **先に見える分の画像だけを先読みする。** 全件を先読みすると、画面外の画像が最初の表示と帯域を奪い合う。先読みする件数は、最も狭い器で最初の 1 行に収まる数に合わせる。
@@ -369,7 +369,7 @@
 
 ## テスト
 
-> Rationale: [ADR 0090](adr/0090-testing-strategy.md) / [ADR 0091](adr/0091-test-verification-methods.md); enforced via カバレッジゲート、1:1 ゲート、VRT。書き方は [テスト規約](testing-conventions.md)が持つ。
+> Rationale: [ADR 0090](adr/0090-testing-strategy.ja.md) / [ADR 0091](adr/0091-test-verification-methods.ja.md); enforced via カバレッジゲート、1:1 ゲート、VRT。書き方は [テスト規約](testing-conventions.md)が持つ。
 
 - **画面の実装は、見た目が確定するまでテストを書かない。** 未確定の見た目に対して書いたテストは書き直しになり、書き直したテストは正しくなるまでではなく通るまで緩められる。画面要件（spec）が書かれるまで push しない —— 約束が書かれていない画面をレビューへ出すと、読む側が実装から約束を推定する。カーネル（`components` / `adapters` / `model` / `stores` / `capabilities`）はこの順序の対象外で、実装とテストを並べて進めてよい。
 - **判定は自分が触った範囲で行う。** カバレッジは `--coverage.include` で対象へ絞る。リポジトリ全体の数字は自分の変更の良し悪しを何も言わず、並行する worktree の途中の状態で赤になる。触っていない対象が落ちていれば直さず報告する。ゲートの出力も自分のブランチが触ったファイルと突き合わせてから動き、他人の subject にテストを書かない。
@@ -382,7 +382,7 @@
 
 ## 作業とエージェント
 
-> Rationale: [ADR 0150](adr/0150-git-workflow.md) / [ADR 0151](adr/0151-git-hooks.md) / [ADR 0154](adr/0154-claude-skills-operations.ja.md) / [ADR 0155](adr/0155-claude-skills-development.ja.md) / [ADR 0003](adr/0003-version-manager.md); enforced via `.claude/settings.json` の `permissions.deny`、lefthook、CI。
+> Rationale: [ADR 0150](adr/0150-git-workflow.ja.md) / [ADR 0151](adr/0151-git-hooks.ja.md) / [ADR 0154](adr/0154-claude-skills-operations.ja.md) / [ADR 0155](adr/0155-claude-skills-development.ja.md) / [ADR 0003](adr/0003-version-manager.ja.md); enforced via `.claude/settings.json` の `permissions.deny`、lefthook、CI。
 
 - **未コミットの作業を取り戻せない形で捨てる git 操作を使わない。** `git restore <path>` / `git clean` / `git reset --hard` / `git checkout -- <path>` は、実装者が commit していない作業を reflog にも stash にも残さずに消す。`permissions.deny` が前の 3 つを止め、その綴りが別の位置（`sh -c` の中など）へ現れた場合は同じ宣言から `scripts/command-guard` が止める。`git restore` は散文 —— **寄せられる**。捨てる `git restore <path>` と、unstage するだけの `git restore --staged` を分ける必要があるが、`permissions.deny` は「〜を除く」を書けない。**分ける条件は綴りから決まる**ので、書く先は宣言ではなく `command-guard` の判定である。
 - **他のセッションと共有するものへ、自分の作業を置かない。** `git stash` は作業を失わない（`git stash pop` で戻る）が、**worktree の stash stack はマシン上の全セッションで共有される**ので、並行して動いている別の作業の退避と混ざる。退避したいなら commit する —— ブランチは共有されない。散文 —— **寄せられない**。他のセッションが動いているかはコマンドの形からは決まらない。
@@ -404,13 +404,13 @@
 - **scratch 出力を `git add -f` で押し込まない。** 生き残るべき scratch は repo 外に置き、`tmp/` の symlink で参照する。
 - **規約の出所の優先順位は README > コード > スキルである。** スキルが「規約は何か」を判断するときは README を主参照にし、規約に従っていない既存コードを「実態」としてスキルへ取り込まない —— 取り込むと drift が正当化され、README とコードがずれた日にスキルごと道連れになる。規約が足りないと分かったら、まず README へ書く。スキルの中に「コードが正で README は古いかもしれない」と書かない。
 - **導出で決まる判断を、保留として issue へ逃がさない。** 保留したくなったら先に「これは何を待っているのか」を言葉にする。答えが「特に何も」なら、標準とアーキテクチャから導いて決める。**状態を根拠にしない**（「いまは件数が多いから」「実測が速いから」）—— 前提が変わっていないのに決定が動く。導出の結果、自分の実装が誤っていたと分かったら自己申告して直す。
-- **導出できないものは、逆に自分で決めない。** 標準にもアーキテクチャにも答えが無く、[ADR の台帳](adr/README.md)に決定が無い領域では、規約・パターン・ライブラリを持ち込む判断はユーザのものである。上の項と対になる —— 導出できるなら決め、導出できないなら委ねる。判断の分かれ目は「待っているものを言葉にできるか」であって、決めるのが面倒かどうかではない。暫定の実装が避けられないときは、**着手前に「暫定実装である」と明示する** —— 後から言うと、暫定であることを知らないまま次の変更がその上に乗る。
+- **導出できないものは、逆に自分で決めない。** 標準にもアーキテクチャにも答えが無く、[ADR の台帳](adr/README.ja.md)に決定が無い領域では、規約・パターン・ライブラリを持ち込む判断はユーザのものである。上の項と対になる —— 導出できるなら決め、導出できないなら委ねる。判断の分かれ目は「待っているものを言葉にできるか」であって、決めるのが面倒かどうかではない。暫定の実装が避けられないときは、**着手前に「暫定実装である」と明示する** —— 後から言うと、暫定であることを知らないまま次の変更がその上に乗る。
 - **決着して変更まで出た issue に `wontfix` を付けない。** 後から見た人が「検討されずに放置された」と読む。決定の生存を持つのは、その決定を書いた ADR の本文（採らない決定なら撤回条件つき。[0140](adr/0140-documentation-operations.ja.md)）であって、issue のラベルではない。
 - **見つけたものは、その場で直す。** 範囲外であることは起票の理由にならない。原因を実測で特定し、再発を捕まえる検査まで同じ変更に載せる。**起票してよいのは、直すのに別の判断・別の合意が要るものだけ**（決定の新設、機構の採否、他リポジトリ側の作業）。積み残しとして報告に並べる前に、いま直せないかを一度問う。
 - **直したものの一般形を、サンプル破棄後も残る側へ回収する。** 直した事実がサンプルのコードにしか無いと、破棄したときに結論ごと消え、同じ穴を踏み直すことになる。掃くのは **CI が緑になった後・merge の前**である —— 修正は実装中・レビュー・CI の 3 つの時点から出るので、PR を出す前に掃くと最後の 1 つを取り逃がす。列挙は `git log --oneline <base>..HEAD` から機械的に取り、記憶に頼らない。**2 つを落とす** —— 正しい手順を踏めば再発しないエッジケースと、既存のゲートか既存の記述が既に防いでいるもの。「明記されていたのに自分が踏んだ」は文書の穴ではなく読み落としであり、文を足しても直らない。落としたものは報告に明示する。
 - **「まだ直っていない」「未着手」「存在しない」と言う直前に、測り直す。** セッションの頭で取ったスナップショットは、報告時点の根拠にならない。並行する作業ツリーで base は分単位に進み、別の作業が同じ問題を先に直していることがある。数を伴う主張には、そのとき走らせた検査の出力を根拠として添える。直っていたら、黙って引っ込めず、自分の報告が古かったことを明示して訂正する。
-- **決定を改定したら、2 手で掃く。** 改定したセクションを読み返す方式では取り残す。**第 1 手** —— 否定した語彙を 3〜5 語決めて全文 grep する。残ってよいのは「それを持たない」と書いている側だけ。**第 2 手** —— 本文で書き換えた文を、その決定を要約している場所へ順に当てる。grep では拾えないのは「まだ真に見えるが読者を誤らせる文」で、これは意味だけが変わった語に宿る。要約先は有限である（[ADR インデックス](adr/README.md) / 各 ADR の撤回条件 / この文書）。散文 —— **寄せられない**。どの語が意味を変えたかは、決定の意味からしか決まらない。
-- **コミット本文が残すのは、その変更の背景であって作業の足取りではない。** 「前は壊れていた」「〜を直した」は差分が既に持っており、同じ PR の中で自分が作った状態を指すなら、ベースから見ればその事実は起きていない。書くのは変更後の現在形 —— 何がどういう状態になり、なぜその形なのか（[0150](adr/0150-git-workflow.md)、コミット本文が残すものについて）。散文 —— **寄せられない**。背景と足取りの区別は文の意味で決まる。
+- **決定を改定したら、2 手で掃く。** 改定したセクションを読み返す方式では取り残す。**第 1 手** —— 否定した語彙を 3〜5 語決めて全文 grep する。残ってよいのは「それを持たない」と書いている側だけ。**第 2 手** —— 本文で書き換えた文を、その決定を要約している場所へ順に当てる。grep では拾えないのは「まだ真に見えるが読者を誤らせる文」で、これは意味だけが変わった語に宿る。要約先は有限である（[ADR インデックス](adr/README.ja.md) / 各 ADR の撤回条件 / この文書）。散文 —— **寄せられない**。どの語が意味を変えたかは、決定の意味からしか決まらない。
+- **コミット本文が残すのは、その変更の背景であって作業の足取りではない。** 「前は壊れていた」「〜を直した」は差分が既に持っており、同じ PR の中で自分が作った状態を指すなら、ベースから見ればその事実は起きていない。書くのは変更後の現在形 —— 何がどういう状態になり、なぜその形なのか（[0150](adr/0150-git-workflow.ja.md)、コミット本文が残すものについて）。散文 —— **寄せられない**。背景と足取りの区別は文の意味で決まる。
 - **base が前進したとき取り込むかは、base の変更が自分の変更を意味的に壊せるかで決める。** ファイルが重なるかではない —— 同じファイルでも別のセクションなら壊れず、違うファイルでも壊れるもの（署名の変更と新しい呼び出し側）は壊れる。散文のみ、または自分が触れない領域のコードなら取り込まない。共有コード・設定・lockfile・生成物・CI 定義、または自分が import しているものなら取り込んで回し直す。テキスト衝突があるときは選択の余地がない。**最後の push の直前にもう一度取り直す。**
 - **成果物がリポジトリに残る段を、調査用に選んだモデルへ出さない。** 重いスキャン・差分の抽出・現物の確認は並列へ流してよい。調査の出力は「読んだ事実の報告」で、誤りは後段の検証で落ちる。**構築の出力はそのまま残る**ので、モデルの差が成果物の質に直接乗る。境目は「その出力がリポジトリに入るか」で引く。
 - **依存の矢印は、先にマージされていないと着手も完了もできないものだけに引く。** 同じディレクトリやパスを共有することは依存ではない —— 実際に参照しているシンボルが在るかで決める。「先にその置き場を作った」は矢印ではなく非ブロッキングの先例として別記する。偽の矢印は並行できる作業を直列化する。判定は申し送りのコメントではなく実物（変更されたファイル、import と参照シンボル）で取る。

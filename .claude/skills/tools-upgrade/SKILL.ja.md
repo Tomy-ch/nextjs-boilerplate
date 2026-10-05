@@ -19,7 +19,7 @@
 以下の用途では使用しない。
 
 - Node.js 自体のアップグレード → `/node-upgrade` を使う（その Node ラインのリリースノート / 破壊的変更をレビューする）
-- npm 依存のアップデート（`package.json`）→ セキュリティアドバイザリが名指しした依存は `/dep-vuln-upgrade`、それ以外の更新は `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.md)）
+- npm 依存のアップデート（`package.json`）→ セキュリティアドバイザリが名指しした依存は `/dep-vuln-upgrade`、それ以外の更新は `pnpm add` / `pnpm update` を直接使う（[0004](../../../docs/adr/0004-library-management.ja.md)）
 - 単発のアドホックなバージョン bump → `mise.toml` を直接編集して `make install-tools`。
   **検疫はこの経路にも掛かる** —— `make tools-cooldown-check` が、窓を満たさない pin をどの経路で入れたかに依らず落とす
 - **mise 自身**のアップグレード → `mise.toml` が宣言するのは mise が解決する対象であって mise 自身は
@@ -29,7 +29,7 @@
 ## Step 0. backend 別の検疫の窓を解決する
 
 **窓は単一の数値ではなく、この文書が決めるものでもない。** ADR
-[0110](../../../docs/adr/0110-security-operations.md) が backend ごとに定めている。窓が追うのは
+[0110](../../../docs/adr/0110-security-operations.ja.md) が backend ごとに定めている。窓が追うのは
 その配布経路で悪性のリリースが検知・撤回されるまでの速さであって、そのツールが何を壊しうるかではない。
 全 backend に同じ値を当てると、窓の長いほうの経路が黙って検疫不足になる。待つこと自体が防御の大半を買う
 —— 典型的な悪性リリース（npm `ua-parser-js` 2021、PyPI `ctx` 2022）は公開後 24〜72 時間以内に検知・yank されている。
@@ -61,7 +61,7 @@
 以下は引き続き保護対象（スキル実行中でも変更不可）。
 
 - `AGENTS.md` / `CLAUDE.md`
-- 生成物（`src/adapters/gen/**` と取り込んだ `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.md)） <!-- skill-lint-ignore -->
+- 生成物（`src/adapters/gen/**` と取り込んだ `openapi.gen.yaml` — [0072](../../../docs/adr/0072-api-type-generation.ja.md)） <!-- skill-lint-ignore -->
 - バージョン bump と無関係な全てのファイル
 
 ## Step 1. `mise.toml` のパース
@@ -76,7 +76,7 @@
 | `core:node`（ランタイム） | mise core | `https://nodejs.org/dist/index.json` |
 | `core:python`（ランタイム） | mise core | `https://www.python.org/api/v2/downloads/release/` |
 
-backend prefix の無い key は存在してはならない。[0003](../../../docs/adr/0003-version-manager.md) は backend の
+backend prefix の無い key は存在してはならない。[0003](../../../docs/adr/0003-version-manager.ja.md) は backend の
 明示を要求している — 複数 backend を持つツールは、レジストリの既定が変わると取得元が黙って変わるため。
 そうした key は resolve せず、指摘として報告する。
 
@@ -125,7 +125,7 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
   - pipx:graphifyy: PyPI への接続失敗
 ```
 
-`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかった窓を証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.md)）。
+`pending` の版は `supply-chain-triage` の対象である —— 4 つの軸で直接証拠を採点し、**待つことでしか解除できなかった窓を証拠で解除できる**ようにする。**帯を報告するだけで、低いスコアを根拠に採用しない** —— その判断は user のものである（[0110](../../../docs/adr/0110-security-operations.ja.md)）。
 
 ## Step 4. 適用候補の per-tool 確認
 
@@ -151,8 +151,8 @@ GitHub Releases 系は `gh api` を優先する（`GITHUB_TOKEN` 経由で認証
 `mise.toml` と導入済みツールチェインが食い違い、以降の検証は古いバージョンを検証してしまう。
 
 下流への伝播ステップは無い。`mise.toml` が単一の正であり、バージョンを二重に持つ配信層のファイル
-—— Dockerfile もランタイムマニフェストも —— 存在しない（[0003](../../../docs/adr/0003-version-manager.md) /
-[0011](../../../docs/adr/0011-no-docker.md)）。
+—— Dockerfile もランタイムマニフェストも —— 存在しない（[0003](../../../docs/adr/0003-version-manager.ja.md) /
+[0011](../../../docs/adr/0011-no-docker.ja.md)）。
 
 ## Step 7. 検証
 
@@ -177,7 +177,7 @@ pnpm build
 
 ## 注意事項
 
-- **supply-chain quarantine の根拠**: Step 0 —— backend ごとの窓は ADR [0110](../../../docs/adr/0110-security-operations.md) の決定であって、このスキルのものではなく、動きうる。
+- **supply-chain quarantine の根拠**: Step 0 —— backend ごとの窓は ADR [0110](../../../docs/adr/0110-security-operations.ja.md) の決定であって、このスキルのものではなく、動きうる。
 - **pre-release の除外**: 常に最新の **stable** リリースを選ぶ。upstream が pre-release タグを出していても latest として選択しない。
 - **calendar versioning**: `2024.12.30` のような calendar versioning を使うツールは lexicographic + semver fallback で比較する。downgrade ガードは常時有効。
 - **rate limit**: GitHub API は anonymous で 60 req/h（IP 単位）。本スキルは `gh api` を経由して `GITHUB_TOKEN` 認証で 1000 req/h に上げる。

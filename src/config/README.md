@@ -301,9 +301,9 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 
 | 観点 | 判定の形 | 根拠 |
 | --- | --- | --- |
-| `forbidden: ui` — 画面を描かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。機械: `project-rules/no-markup-outside-ui-layers` |
-| `forbidden: fetch` — `fetch` などの外部 IO を持たない。持つのは環境変数の検証と、検証した値の公開だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
-| `forbidden: business-logic` — 業務ロジックを持たない。値の意味の判定は読み手の側に置く | violation。検証の規則か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」 |
+| `forbidden: ui` — 画面を描かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」。機械: `project-rules/no-markup-outside-ui-layers` |
+| `forbidden: fetch` — `fetch` などの外部 IO を持たない。持つのは環境変数の検証と、検証した値の公開だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」 |
+| `forbidden: business-logic` — 業務ロジックを持たない。値の意味の判定は読み手の側に置く | violation。検証の規則か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」 |
 | `*.server.ts` を import するのは、`adapters/server`、起動 / ビルド境界（`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`）、`app/metadata`、Next.js の規約が route segment に置くことを要求する値（`config/site` / `config/clock`）を読む route segment だけ。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | 許可の外からの import は violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスと Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / この README「運用」。機械は `config` を層の粒度でしか見ない |
 | `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の client config の置き方と禁止事項 / [docs/rules.md#config](../../docs/rules.md#config) |
 | `*.schema.ts` は `process.env` も `APP_ENV` の判定も読まない。環境に依る条件は validator の引数で受け、渡すのは `environment.ts` である | violation | この README「目的別 module の形」 |

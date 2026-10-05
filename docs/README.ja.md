@@ -96,7 +96,7 @@
 - **親子の README は境界を持つ。** 子が自分の README を持つなら、親はその子を 1 行の digest と
   参照リンクに留め、中身を再帰的に展開しない（[0140](adr/0140-documentation-operations.ja.md)）
 - **仕様書は契約・token・コンポーネントの語彙・規約・ADR を指すだけで、コピーしない**
-  （[0143](adr/0143-spec-driven-development.md)）
+  （[0143](adr/0143-spec-driven-development.ja.md)）
 - **逆引きと手順の表は「どこを開くか」だけを持つ。** 基準を書き写した時点で古いバージョンが二重に残る
   （[`playbook.md`](playbook.md)、[`tutorial/`](tutorial/README.md) がこの形）
 
@@ -189,7 +189,7 @@ canonical に追従する翻訳であって、別の置き場ではない。** �
 - **`rules.md` のセクションは見出しの直前の `<a id>` アンカーで指す。** 見出しから導いた slug は、訳したときと
   言い換えたときに消える（同 0146）
 - **他リポジトリの issue / PR は `redirect.github.com` を通す。** 素のリンクは上流へ取り消せない
-  痕跡を残す（[0159-1](adr/0159-1-cross-repository-references.md)）
+  痕跡を残す（[0159-1](adr/0159-1-cross-repository-references.ja.md)）
 - **私的な文書のセクション番号（issue の要件 `§30`・計画の工程番号）を焼き込まない。** 読み手が解決
   できない。公開標準のセクション参照は可（[`rules.md`](rules.ja.md#comments)）
 

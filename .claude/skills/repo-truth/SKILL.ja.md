@@ -112,7 +112,7 @@ Procedure、「なぜこの検証は CI 側なのか」は Rationale で、解�
 | 索引 | 何を覆うか |
 | --- | --- |
 | [`docs/README.md`](../../../docs/README.ja.md) | **どの文書がその判断を所有するか** —— 4 分類と行き先の判定。どのコーパスが統べるか分からないときは、まずここ |
-| [`docs/adr/README.md`](../../../docs/adr/README.md) | なぜその決定になったか。どれが意図的な除外か |
+| [`docs/adr/README.md`](../../../docs/adr/README.ja.md) | なぜその決定になったか。どれが意図的な除外か |
 | [`docs/design/README.md`](../../../docs/design/README.md) | 層を跨ぐ 1 つの主題がどう動くか |
 | [`docs/rules.md`](../../../docs/rules.ja.md) | 日々強制される制約。各項が Rationale のリンクを持つ |
 | [`.makefiles/README.md`](../../../.makefiles/README.md) | 全 make ターゲット、領域別 |

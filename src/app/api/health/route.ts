@@ -7,7 +7,8 @@
  *
  * **プロセスが生きていること以外は答えません。** バックエンドへの到達性をここへ足すと、相手の
  * 不調がこちらの死活として報告されます。commit SHA や build 時刻も載せません
- * （`docs/rules.md#config`の「build info を露出するときは出所を明示し、機微な環境変数を含めない」）。
+ * （`docs/rules.md#config` の "When exposing build info, state where the commit SHA and build
+ * time come from, and include no sensitive environment variables"）。
  *
  * @returns 生存していることだけを載せた応答
  */

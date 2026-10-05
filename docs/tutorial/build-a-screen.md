@@ -542,7 +542,7 @@ src/features/notes/
 
 **掘り方は 2 軸だけ**——第 1 軸が画面（`list` / `detail`）、第 2 軸が性質（`ui/`）である。どの画面にも
 属さないもの（`paths.ts` / `load-note.ts`）は画面を挟まず直下へ置く
-（[0027](../adr/0027-directory-structure.md)「co-location 方針」）。
+（[0027](../adr/0027-directory-structure.md)「Co-location Policy」）。
 
 ```ts
 // src/features/notes/paths.ts

@@ -9,7 +9,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 ## 使うとき
 
 - 全画面を一度 —— 全画面の読み合わせは一度で足りると
-  [0143](../../../docs/adr/0143-spec-driven-development.md) が決めている。
+  [0143](../../../docs/adr/0143-spec-driven-development.ja.md) が決めている。
 - 画面の約束を変える変更の後 —— その画面だけ。
 - 仕様書と画面が食い違って見えるとき。
 
@@ -30,7 +30,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 ## 2 つの突合と、これがどちらか
 
-[0143](../../../docs/adr/0143-spec-driven-development.md) は突合を 2 つに割っており、
+[0143](../../../docs/adr/0143-spec-driven-development.ja.md) は突合を 2 つに割っており、
 **割り方は「機械がどこまで届くか」**である。
 
 | | 誰が所有するか |

@@ -173,7 +173,7 @@ export { IconChevronRight as ChevronRightIcon, … } from "@tabler/icons-react";
 
 ## 重なり順の帯
 
-z-index は token 化されていない。Tailwind の段階値だけを使い（[`docs/rules.md#layout`](../rules.md#layout)）、**どの段階値がどの帯か**は [0051](../adr/0051-styling-system.md)「重なり順の帯」が持つ。ここでは、その帯が実装のどこに現れているかを対応させる。
+z-index は token 化されていない。Tailwind の段階値だけを使い（[`docs/rules.md#layout`](../rules.md#layout)）、**どの段階値がどの帯か**は [0051](../adr/0051-styling-system.md)「Stacking-Order Bands」が持つ。ここでは、その帯が実装のどこに現れているかを対応させる。
 
 | 帯 | 値 | 実装での現れ方 |
 | --- | --- | --- |

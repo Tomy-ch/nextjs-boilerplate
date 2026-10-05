@@ -166,7 +166,7 @@ PR で終わる実行は、他のモードが統べる段へそもそも届か�
 | `ask` *(既定)* | 表に出して待つ。その問いで実行が止まる |
 | `derive` | まず ADR・`docs/rules.md`・層の README を読み、それらが開いたままにしている分は、デファクトスタンダード（RFC / 仕様 / プラットフォーム自身の定義）から決めて、導出を記録する |
 
-**`derive` は好みを許可しない。** [0010](../../../docs/adr/0010-standards-and-non-lockin.md) が権威をちょうど 2 つ —— デファクト
+**`derive` は好みを許可しない。** [0010](../../../docs/adr/0010-standards-and-non-lockin.ja.md) が権威をちょうど 2 つ —— デファクト
 スタンダードと、このリポジトリのアーキテクチャが導出する形 —— と名指しており、このモードが委譲する
 のはその 2 つだけである。どちらでも答えられない問いは導出できないので、モードに関わらず人へ戻る。
 導出はすべて、依拠した一節とともに run record へ書く。読み手が作業を繰り返さずに反対できるように。
@@ -345,7 +345,7 @@ issue の本文・Step 1 の食い違い・既に読んだパスを渡す。
 ADR [0155](../../../docs/adr/0155-claude-skills-development.ja.md) を見よ。
 
 **答えを所有する文書を指す**のであって、内容を書き写さない —— 置き場は `docs/playbook.md` の逆引き、
-層が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) の依存
+層が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) の依存
 マトリクス、その層ごとの実体は層 `README.md` の frontmatter、変更が満たすべき規約は `docs/rules.md`。
 3a の問い**すべて**に答える義務がある。
 
@@ -380,7 +380,7 @@ ADR [0155](../../../docs/adr/0155-claude-skills-development.ja.md) を見よ。
 
 計画が承認され実装が始まる —— 決めることと作ることの境界であり、これを知っているのは本スキルだけ
 である。打刻して、このリポジトリ自身のフィードバックループが各段の実時間を後から言えるようにする
-（ADR [0161](../../../docs/adr/0161-development-window-as-feedback-unit.md)）。
+（ADR [0161](../../../docs/adr/0161-development-window-as-feedback-unit.ja.md)）。
 
 ```sh
 .agents/closed-loop/marks.sh planApprovedAt 2>/dev/null || true
@@ -491,7 +491,7 @@ PR を出す前に回収すると 3 つめを取り逃がす。列挙は `git lo
 **関所は `impl-review` Step 4-2 と同じもの**である —— Route Handler（`src/app/**/route.ts`）・
 Server Action・`src/proxy.ts`・応答ヘッダの設定・レイアウトの外枠 / Provider の組み立てのいずれかに
 触れたか。どれも動いていなければそう述べて段を飛ばす。**する理由の無かった検査を、したことにしない**
-（ADR [0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+（ADR [0157](../../../docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
 関所が開いているとき、これは `pnpm build` と `pnpm start` の実行であり、lint でもテストでもないが
 同じ機械を食う。**始める前にそう言い**、並行する worktree が握っていないポートを選ぶ。

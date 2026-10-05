@@ -59,7 +59,7 @@ feature スライスを 1 つ、契約から内側へ向かって作る —— �
 各 operation が `openapi/*.gen.yaml` に在ること、`make ai-api-gen-check` が緑であることを確かめる。 <!-- skill-lint-ignore -->
 
 - **operation が無い** → 契約はバックエンドのものである
-  （[ADR 0072](../../../docs/adr/0072-api-type-generation.md)）。バックエンドが公開していなければ、止まって
+  （[ADR 0072](../../../docs/adr/0072-api-type-generation.ja.md)）。バックエンドが公開していなければ、止まって
   引き渡す。公開しているなら、`openapi/sources.yaml` の `ref` をそれを含むコミットへ動かすことを提案し、
   編集の前に `AskUserQuestion` で確認する。
 - **`ref` を動かしたら**、`make ai-api-fetch`、次に `make ai-api-gen` を回す。`openapi/*.gen.yaml` と <!-- skill-lint-ignore -->

@@ -27,8 +27,11 @@ export type CartViewProps = {
  * @remarks
  * 明細と集計を左右に分け、広い幅では集計を貼り付けます。明細が伸びても小計と先へ進む導線が
  * 画面の中に残るためで、脇に置けない幅では画面の下から出す引き出しが同じ役割を持ちます
- * （`docs/rules.md#layout`の「脇に常設する領域は `lg` 以上でだけ出す」と
- * 「常に届く操作は `lg` 未満で画面下端に固定する」）。
+ * （`docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above" と
+ * "An action that must always be reachable is pinned to the bottom edge of the screen in the band
+ * without a sidebar (below `lg`), and returns to normal placement at widths where a sidebar can be
+ * permanent"）。
  *
  * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で行い、
  * 中身は `CartSummaryCard` に 1 つだけ持ちます。

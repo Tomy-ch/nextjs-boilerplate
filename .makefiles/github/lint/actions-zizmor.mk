@@ -20,7 +20,7 @@ ZIZMOR_FLAGS := -q --no-progress --format plain --config $(ZIZMOR_CONFIG)
 # 全所見を出す実行と、high だけで落とす実行の 2 段に分ける。
 ZIZMOR_GATE_SEVERITY := high
 
-# --offline: hook と CI が同じ答えを返すようにする（0153「hooks mirror CI」）。tag 付け替えの検知は
+# --offline: hook と CI が同じ答えを返すようにする（0153 の "4. hooks mirror CI"）。tag 付け替えの検知は
 # actions-pin の resolve が fail-closed で担う。
 actions-zizmor:
 	@command -v zizmor >/dev/null 2>&1 || { echo "❌ zizmor が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
