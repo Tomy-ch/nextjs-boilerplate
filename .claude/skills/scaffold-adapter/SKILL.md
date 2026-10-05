@@ -54,7 +54,7 @@ reported.
 | Source | What it decides |
 | --- | --- |
 | `src/adapters/README.md` — frontmatter | `forbidden` tags, `test-requirement`, `imports-allowed` |
-| `src/adapters/README.md` — `## 監査の観点` | The rows the seam must satisfy; the plan answers each one |
+| `src/adapters/README.md` — `## Audit Criteria` | The rows the seam must satisfy; the plan answers each one |
 | `src/adapters/README.md` — classification, lifetime, credential, URL-budget and taint sections | Which connection port, whether `allowAnonymous`, whether and how the seam keeps a lifetime, whether it taints its result |
 | `src/adapters/server/http/README.md` | The connection ports and the request boundary the seam goes through |
 | `openapi/<name>.gen.yaml` and `src/adapters/gen/` | The operation, its `security`, parameters, declared responses and the generated schema <!-- skill-lint-ignore --> |
@@ -108,7 +108,7 @@ unclear can each ship a defect that no type and no lint rejects — the README s
 
 ## Step 2. Plan against the audit rows
 
-Read the frontmatter and the `## 監査の観点` table. Build the plan as a table with **one line per row**:
+Read the frontmatter and the `## Audit Criteria` table. Build the plan as a table with **one line per row**:
 
 | Row (観点) | How the seam stays inside it |
 | --- | --- |
@@ -180,7 +180,7 @@ Writes only under `src/adapters/`, through `pnpm gen adapter` and then edits to 
 - ✅ Derive classification, port, `allowAnonymous`, lifetime and taint from the README and the contract,
   each with its source
 - ✅ Stop and hand off when a derivation has no source
-- ✅ Answer every `## 監査の観点` row in the plan, and confirm the plan before writing
+- ✅ Answer every `## Audit Criteria` row in the plan, and confirm the plan before writing
 - ✅ Chain `scaffold-integration-test`
 - ❌ Edit `openapi/**`, `src/adapters/gen/**`, or anything else generated
 - ❌ Hand-place a file the generator would have written

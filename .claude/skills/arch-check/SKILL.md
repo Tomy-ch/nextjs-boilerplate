@@ -2,7 +2,7 @@
 name: arch-check
 usage-class: situational
 description: >-
-  Exhaustive layer-compliance audit: checks each in-scope kernel's files against the `## 監査の観点` table
+  Exhaustive layer-compliance audit: checks each in-scope kernel's files against the `## Audit Criteria` table
   of that kernel's own README, read at runtime — one row per `forbidden` tag plus the principles an import
   rule cannot express. Fans out the read-only `arch-auditor` agent in parallel, one per kernel, hands every
   auditor one static verdict, and reports `violation` / `suggestion` per kernel in Japanese. Report-only.
@@ -24,7 +24,7 @@ not loaded as a skill).
 
 - After a change that touched several kernels, before the pull request is reviewed.
 - Before a release, as the one pass that reads every kernel against its README.
-- When a kernel README's `## 監査の観点` table changed — the criteria moved, so the whole kernel is
+- When a kernel README's `## Audit Criteria` table changed — the criteria moved, so the whole kernel is
   read again.
 
 To audit a single kernel, run this integrator and name that kernel in the scope question.
@@ -33,9 +33,9 @@ To audit a single kernel, run this integrator and name that kernel in the scope 
 
 | | |
 | --- | --- |
-| **Owns** | カーネルのコードと、そのカーネル README の「監査の観点」の突き合わせ。表そのものの欠け（`forbidden` タグに行が無い）の検出 |
+| **Owns** | カーネルのコードと、そのカーネル README の「Audit Criteria」の突き合わせ。表そのものの欠け（`forbidden` タグに行が無い）の検出 |
 | **Never** | ソース・README・PR への書き込み / 規則をこのスキルや agent に写すこと / auditor にゲートを回させること |
-| **Starts when** | 複数カーネルを触った変更の後、リリース前、あるいは「監査の観点」の表が変わったとき |
+| **Starts when** | 複数カーネルを触った変更の後、リリース前、あるいは「Audit Criteria」の表が変わったとき |
 | **Stops when** | 集約した報告を返したとき。直すのは user |
 
 ## Do NOT use this skill for
@@ -54,7 +54,7 @@ Four passes look at structure. Each owns one question, and none repeats another'
 
 | Pass | Question | Subject |
 | --- | --- | --- |
-| **`arch-check`** (this skill) | Does each file stay inside what its kernel README accepts? Exhaustive, row by row | The kernel's files, against the README's `## 監査の観点` table |
+| **`arch-check`** (this skill) | Does each file stay inside what its kernel README accepts? Exhaustive, row by row | The kernel's files, against the README's `## Audit Criteria` table |
 | `full-verify` Pass 1 | Is the structure itself sound — declared intent against actual structure, responsibility placement, abstraction? | The whole tree, as design |
 | `impl-review` `architecture` lens | Does this change leak a type, misplace a responsibility, or invert a dependency only nominally? | The diff, semantically |
 | [`type-design-reviewer`](../../agents/type-design-reviewer.md) | How strongly does each type state what it guarantees? Scored by degree | `src/model/**` — run from here **only under full scope** |

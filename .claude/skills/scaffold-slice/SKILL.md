@@ -5,7 +5,7 @@ description: >-
   Orchestrator that builds one feature slice's data path from the contract inward: contract check →
   `scaffold-model` → `scaffold-adapter` → `pnpm gen feature` → `scaffold-route` → `scaffold-test` →
   `/settle-comments`, then `arch-check` on the kernels it touched as a report-only exit check. Each child
-  reads its kernel README's `## 監査の観点` at runtime and confirms its own plan; this skill owns only the order
+  reads its kernel README's `## Audit Criteria` at runtime and confirms its own plan; this skill owns only the order
   and the hand-offs, and halts on the first failing step without rolling back. Use it when a slice starts from
   an operation in the contract, or on 「契約から feature を一式作って」「API から画面の手前まで通して」. Do NOT use it to
   settle a screen's look (`new-feature`), for one layer (run that scaffold), or to review.

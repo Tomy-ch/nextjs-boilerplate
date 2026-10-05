@@ -36,7 +36,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 | 出所 | そこが決めるもの |
 | --- | --- |
 | `src/adapters/README.md` の frontmatter | `forbidden` タグ / `test-requirement` / `imports-allowed` |
-| `src/adapters/README.md` の `## 監査の観点` | 口が満たすべき行。計画はその 1 行ずつに答える |
+| `src/adapters/README.md` の `## Audit Criteria` | 口が満たすべき行。計画はその 1 行ずつに答える |
 | `src/adapters/README.md` の分類・寿命・資格情報・URL の予算・taint の節 | どの接続口か、`allowAnonymous` を立てるか、寿命を持つか・どう持つか、結果を汚すか |
 | `src/adapters/server/http/README.md` | 口が通る接続口と要求境界 |
 | `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメータ・宣言された応答・生成スキーマ <!-- skill-lint-ignore --> |
@@ -86,7 +86,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 
 ## Step 2. 監査の行に対して計画する
 
-frontmatter と `## 監査の観点` の表を読む。計画は**行 1 つにつき 1 行**の表として組む。
+frontmatter と `## Audit Criteria` の表を読む。計画は**行 1 つにつき 1 行**の表として組む。
 
 | 行（観点） | 口がどうその内側に留まるか |
 | --- | --- |
@@ -156,7 +156,7 @@ pnpm gen adapter <name>
 - ✅ `pnpm gen adapter` で置く。止まったら止まる
 - ✅ 分類・接続口・`allowAnonymous`・寿命・taint を README と契約から導き、それぞれに出所を添える
 - ✅ 出所の無い導出は止まって引き渡す
-- ✅ 計画で `## 監査の観点` の全行に答え、書く前に計画を確認する
+- ✅ 計画で `## Audit Criteria` の全行に答え、書く前に計画を確認する
 - ✅ `scaffold-integration-test` を連鎖させる
 - ❌ `openapi/**`・`src/adapters/gen/**`、その他の生成物を編集する
 - ❌ 生成器が書くはずのファイルを手で置く

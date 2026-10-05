@@ -36,7 +36,7 @@
 | 出所 | そこが決めるもの |
 | --- | --- |
 | [ADR 0025](../../../docs/adr/0025-app-layer-elements.ja.md) | element の表 —— どのファイルがどの element か、それぞれが何を import してよいか、どの行を機械が強制するか |
-| `src/app/README.md` の frontmatter / `## 運用` / `## 監査の観点` | `forbidden` タグ、各 element がどの `test-requirement` で検証されるか、element が満たすべき行 |
+| `src/app/README.md` の frontmatter / `## Operations` / `## Audit Criteria` | `forbidden` タグ、各 element がどの `test-requirement` で検証されるか、element が満たすべき行 |
 | `src/app/api/README.md` | Route Handler が受け入れるものと断るもの、失敗の応答をどこで組むか |
 | `architecture.ts` の `APP_ELEMENTS` | 境界検査が element ごとに掛ける import の制限 |
 | `src/adapters/server/http/` | handler が入力を検証し、失敗を組むのに使う要求側の口 |
@@ -70,7 +70,7 @@ ADR 0025、`src/app/README.md`、`src/app/api/README.md` を通読し、Server A
 
 ## Step 2. 監査の行に対して計画する
 
-`src/app/README.md` の frontmatter と `## 監査の観点` の表を読む。主題がこの element である行だけを残し
+`src/app/README.md` の frontmatter と `## Audit Criteria` の表を読む。主題がこの element である行だけを残し
 —— route segment についての行は handler を縛らない —— どの行を外したか、なぜかを書く。計画は**残した
 行 1 つにつき 1 行**の表として組む。
 
@@ -127,7 +127,7 @@ README の欠け。commit しない。
 ## 制約
 
 - ✅ element が要るかを ADR 0025 と README から決め、要らなければ止まる
-- ✅ 計画で当てはまる `## 監査の観点` の全行に答え、書く前に計画を確認する
+- ✅ 計画で当てはまる `## Audit Criteria` の全行に答え、書く前に計画を確認する
 - ✅ export する `app` 側の各 action の内側で主体を断言する
 - ✅ Route Handler には `scaffold-integration-test` を連鎖させる
 - ❌ route segment・metadata ファイル・feature 側の action を書く
