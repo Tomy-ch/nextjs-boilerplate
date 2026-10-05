@@ -38,7 +38,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
   | ディレクトリごと読み込まれる | `.claude/agents/*.md` | Claude Code はこのディレクトリの `.md` をすべて agent 定義として読み込むので、兄弟の `.ja.md` は重複した、または不正な定義として読まれる。agent 定義が持つのは入力の受け取り方だけで([0155](0155-claude-skills-development.ja.md))、基準は `prompts/` にあり、そちらはミラーを持つ |
   | 読み込みの 1 行 | `CLAUDE.md` | 中身は `@AGENTS.md` だけである([0152](0152-agents-md-policy.ja.md)) |
   | 日本語の出力そのもの | `.github/release/**`、`.github/pull_request_template.md`、`.github/settings/baseline-store/readme-template.md` | AGENTS.md の Output Language が定める日本語の出力(リリースノート、PR 本文、別リポジトリへ生成する README)であって、従うべき canonical を持つドキュメントではない |
-  | v1.0.0 のカットで消える | `docs/plan/**`、`docs/adr/BACKLOG.md` | 決定 4 の手順 4 |
+  | v1.0.0 のカットで消える | `docs/plan/**`、`docs/adr/BACKLOG.md` | 決定 4 の手順 4 | <!-- boilerplate-only:line -->
   | 生成物 | `docs/portal/**`、`linguist-generated` の付いたファイル | 生成器が canonical から書く([0141](0141-portal-operations.ja.md)) |
 
 - **canonical はミラーへリンクしない** —— ミラーの名前を平文で挙げるのは構わない。両方を読むと同じものを 2 回読むことになり、ミラーがあることはサフィックスの規約として、ここと [`docs/README.md`](../README.ja.md) に 1 度だけ書く。ミラーからは canonical へリンクする
