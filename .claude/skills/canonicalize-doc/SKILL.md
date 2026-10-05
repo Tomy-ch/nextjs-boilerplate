@@ -107,10 +107,10 @@ Always replace:
 
 | Calque | Write | Calque | Write |
 | --- | --- | --- | --- |
-| 索引 | インデックス | 正典 / 正本 | canonical |
-| 錨 | アンカー | 雛形 | テンプレート |
-| 閾値 | しきい値 | 基準画像 | ベースライン画像 |
-| 走査 | スキャン | 目録 | インベントリ |
+| 索引 | インデックス | 錨 | アンカー |
+| 雛形 | テンプレート | 閾値 | しきい値 |
+| 基準画像 | ベースライン画像 | 走査 | スキャン |
+| 目録 | インベントリ | | |
 | 既定 | デフォルト | 部品 | コンポーネント |
 | 描画 | レンダリング | 表現層 / 表示層 | プレゼンテーションレイヤー |
 | 部分木 | サブツリー | 殻 | シェル |
@@ -123,6 +123,7 @@ Replace only in the named sense, and keep the word elsewhere:
 
 | Calque | Write | Only when it means |
 | --- | --- | --- |
+| 正典 / 正本 | canonical | the canonical document (the authoritative copy of data stays 正本) |
 | 層 | レイヤー | an architecture layer (階層, 多層防御 stay) |
 | 対訳 | ミラー | the file (翻訳 stays for the act) |
 | 写し / 写す | コピー / コピーする | a copy (書き写す stays) |
