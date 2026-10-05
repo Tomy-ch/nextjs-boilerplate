@@ -329,6 +329,15 @@ describe("scanSuppressions", () => {
     ]);
   });
 
+  it("暦日で始まらない期限は、読めない期限として書かれたまま残す", () => {
+    place(
+      ".trivyignore.yaml",
+      'vulnerabilities:\n  - id: CVE-2026-0007\n    statement: "理由"\n    expired_at: "修正版が出たら"\n',
+    );
+
+    expect(scanSuppressions(root)[0]?.unreadableUntil).toBe("修正版が出たら");
+  });
+
   it("時刻の後ろにオフセットでない文字が続く期限は、読めない期限として書かれたまま残す", () => {
     place(
       ".trivyignore.yaml",
