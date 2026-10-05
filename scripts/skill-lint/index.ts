@@ -696,9 +696,11 @@ const pairedTranslations = new Set([
   ...skillDirs.map((name) => path.join(SKILLS_DIR, name, "SKILL.ja.md")),
   "AGENTS.ja.md",
 ]);
+// 追跡されていても作業ツリーから消えたファイルは組に入れない。サンプルの破棄は `git rm` を経ずに
+// ディレクトリごと消すので、索引だけを見ると消えた canonical の組を「対訳が無い」と報告する。
 const trackedFiles = execFileSync("git", ["ls-files", "-z"], { cwd: REPO_ROOT, encoding: "utf8" })
   .split("\0")
-  .filter((file) => file !== "");
+  .filter((file) => file !== "" && fs.existsSync(path.join(REPO_ROOT, file)));
 const documentPairs = translationPairsOf(trackedFiles).filter(
   ({ translation }) => !pairedTranslations.has(translation),
 );
