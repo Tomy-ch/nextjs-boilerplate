@@ -8,7 +8,7 @@
 //
 // ブランチ名は環境変数で受け取る（`PACKAGE_VERSION_REF` → `GITHUB_REF_NAME` → 現在のブランチ）。
 // **引数では受け取らない** —— 引数にすると make の変数展開を経由するため（理由は
-// [.makefiles/README.md](../../.makefiles/README.md) の「版の焼き込み関連」）。
+// [.makefiles/README.md#version-stamping](../../.makefiles/README.md#version-stamping)）。
 // 何を書くか・何を落とすかは [version.ts](version.ts) が持つ。
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";

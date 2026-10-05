@@ -20,7 +20,7 @@ description: Decide whether an expensive check has to run on this event, or can 
 # decision to merge.
 #
 # The job still starts and reports its context on every pull request; only the expensive steps
-# stand down (workflows/README.md, "`paths:` フィルタを使わない"). `diff-scope` is the same shape
+# stand down (workflows/README.md, "Do not use `paths:` filters"). `diff-scope` is the same shape
 # applied to a different question, which is why the two compose: this action asks whether the
 # cadence can wait, `diff-scope` whether the diff can reach anything at all, and a step runs when
 # both say yes.

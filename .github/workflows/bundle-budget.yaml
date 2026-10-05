@@ -166,7 +166,7 @@ jobs:
 
           exit 0
 
-      # A job that stood down still owes the pull request a verdict (README § PR コメント,
+      # A job that stood down still owes the pull request a verdict (README § PR Comments,
       # the `diff-scope` bullet). The body file is the one the comment step reads, so it has
       # to be written here too.
       - name: Note that the diff cannot reach the bundle

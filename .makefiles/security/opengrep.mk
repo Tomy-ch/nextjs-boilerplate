@@ -14,7 +14,7 @@
 # 変数へ括り出してあるのはそれを構造的に保証するためで、両方の行に書き写さない。
 
 # ルールセット。**レジストリ（semgrep.dev）は引かず**、opengrep-rules を commit で固定して読む。
-# 理由と取り出し方は .github/workflows/README.md の「SAST のルールをレジストリから引かない」が
+# 理由と取り出し方は .github/workflows/README.md § Do not pull SAST rules from a registryが
 # 持つ。取得と照合は scripts/opengrep-rules が担い、置き場・選別・digest の宣言もそちらが持つ。
 OPENGREP_RULES_DIR := tmp/opengrep-rules
 OPENGREP_CONFIGS := --config $(OPENGREP_RULES_DIR)

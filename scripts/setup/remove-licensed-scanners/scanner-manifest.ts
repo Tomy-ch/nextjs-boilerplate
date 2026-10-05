@@ -65,7 +65,9 @@ export type ScannerDomain = {
 /** 製品名を載せている文書。撤去後に読み手が掃く先として報告する。 */
 const DOCS: readonly string[] = [
   ".github/workflows/README.md",
+  ".github/workflows/README.ja.md",
   "SECURITY.md",
+  "SECURITY.ja.md",
   "docs/adr/0110-security-operations.md",
   "docs/adr/0110-security-operations.ja.md",
   "docs/adr/0153-ci-configuration.md",
@@ -90,12 +92,22 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: ".github/workflows/README.md",
         block:
+          '| SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **The only check that needs an external account.** Without `SONAR_TOKEN` it does not run and tells the PR "not configured" while staying green. Whether to remove it is chosen in one step of setup |\n',
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
           "| SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **外部アカウントを要する唯一の検査。** `SONAR_TOKEN` が無ければ走らず、緑のまま「未設定」を PR へ述べる。外すかはセットアップの 1 段で選ぶ |\n",
       },
       {
         file: ".github/workflows/README.md",
         block:
-          "| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |\n",
+          "| `sonarcloud` | CI only | The analysis runs on SonarCloud's side; locally there is only an endpoint to read results. `SONAR_TOKEN` is not handed out to developer environments in the first place |\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
+          "| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読むエンドポイントしか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |\n",
       },
       {
         file: "docs/adr/0110-security-operations.md",
@@ -158,14 +170,28 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: ".github/workflows/README.md",
         block:
-          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
+          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | Looks only at **the dependencies this PR added**. The other dependency scanners look at the current state of the tree and cannot separate carried-over from added. The API it calls is free only when public; private requires a Code Security license. Whether to remove it is chosen in one step of setup |\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
+          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
       },
       {
         file: ".github/workflows/README.md",
+        block: "| Gate | `dependency-review` | The job's exit code |\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
         block: "| ゲート | `dependency-review` | job の exit code |\n",
       },
       {
         file: "SECURITY.md",
+        block:
+          "| **Dependencies this PR added** | Dependency Review | CI (looks only at the PR's diff) |\n",
+      },
+      {
+        file: "SECURITY.ja.md",
         block: "| **この PR が増やした依存** | Dependency Review | CI（PR の差分だけを見る） |\n",
       },
       {
@@ -237,15 +263,29 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: ".github/workflows/README.md",
         block:
+          "| CodeQL Scan | `codeql.yaml` | `codeql` | Answers the same question with GitHub's analysis. Stopping the merge on a high detection is a code scanning setting; this job fails only when the analysis itself did not run |\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
           "| CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |\n",
       },
       {
         file: ".github/workflows/README.md",
         block:
+          'It is not applied to `codeql`. A code scanning alert closes only when "a later analysis no longer reports it", and omitting analysis per PR could drop the occasion for closing. **This is a check that entrusts its judgment to GitHub\'s mechanism, so its run count is not reduced for our convenience.**\n\n',
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
           "`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**\n\n",
       },
       {
         file: "SECURITY.md",
+        block: "| Code we wrote | CodeQL | CI. A layer that runs only inside GitHub |\n",
+      },
+      {
+        file: "SECURITY.ja.md",
         block: "| 自分が書いたコード | CodeQL | CI。GitHub の中でだけ走る層 |\n",
       },
       {
@@ -290,6 +330,10 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       },
       {
         file: ".github/workflows/README.md",
+        block: "| Sent to code scanning | `codeql` / `sonarcloud` | Same as above |\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
         block: "| code scanning へ送る | `codeql` / `sonarcloud` | 同上 |\n",
       },
       {
@@ -380,6 +424,13 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       },
       {
         file: ".github/workflows/README.md",
+        fragment:
+          "**The freshness of this layer is supplemented by CodeQL** (GitHub keeps updating it), so SAST as a whole does not freeze.",
+        replacement:
+          "This layer alone cannot keep itself fresh, so rule updates follow the movement of the upstream fork.",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
         fragment:
           "**この層の鮮度は CodeQL が補っている**（GitHub 側が更新し続ける）ため、SAST 全体が固まるわけではない。",
         replacement: "この層だけで鮮度は保てないので、規則の更新は上流の fork の動きに従う。",

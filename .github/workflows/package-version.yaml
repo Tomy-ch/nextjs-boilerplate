@@ -1,6 +1,6 @@
 name: Package Version
 
-# `package.json` の version is derived from the release branch name, not written by
+# The version in `package.json` is derived from the release branch name, not written by
 # hand: `make branch-*` stamps it onto the branch it cuts. This job re-derives it from
 # the base branch of the pull request and fails when the two disagree — a hand edit, or
 # a release branch created outside `make branch-*`.

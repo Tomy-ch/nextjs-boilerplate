@@ -18,7 +18,7 @@ name: Baseline Retake
 # **Every `gh pr comment` body in this file is a literal written here.** This job posts with
 # `gh` rather than `upsert-pr-comment`, so `make actions-comment-secret-lint` — which finds its
 # subjects by walking to that action — does not see it, and this is the one job where holding a
-# secret and commenting on a pull request meet. The rule still binds (README § PR コメント): do
+# secret and commenting on a pull request meet. The rule still binds (README § PR Comments): do
 # not interpolate tool output or anything else a pull request can influence, because the masking
 # that covers the runner's log does not cover a string handed to `--body`.
 #
@@ -88,7 +88,7 @@ jobs:
             *.data.mcr.microsoft.com:443
 
       # Minted rather than using `GITHUB_TOKEN` for its rate limit, and allowed to fail so the
-      # retake falls back to it (README § PR コメント). This job is the first consumer to
+      # retake falls back to it (README § PR Comments). This job is the first consumer to
       # exhaust the shared cap, making about ten calls on every VRT and E2E completion.
       #
       # The permissions are the union of what the steps below need and nothing else. The
