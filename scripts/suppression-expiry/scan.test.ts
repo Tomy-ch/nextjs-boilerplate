@@ -299,6 +299,17 @@ describe("scanSuppressions", () => {
     ]);
   });
 
+  it("日付で始まっても全体が日付でない期限は持たせず、理由だけの宣言として載せる", () => {
+    place(
+      ".trivyignore.yaml",
+      'vulnerabilities:\n  - id: CVE-2026-0004\n    statement: "理由"\n    expired_at: "2026-11-02 以降"\n',
+    );
+
+    expect(scanSuppressions(root)).toEqual([
+      { source: ".trivyignore.yaml", subject: "CVE-2026-0004", condition: "理由" },
+    ]);
+  });
+
   it("理由を持たない trivy の宣言も、条件を空にして一覧へ載せる", () => {
     place(".trivyignore.yaml", "vulnerabilities:\n  - id: CVE-2026-0002\n");
 

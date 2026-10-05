@@ -87,6 +87,16 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
 }
 
 /**
+ * 期限の項目として読む文字列の形。日付だけか、日付に時刻とオフセットが続くもの。
+ *
+ * @remarks
+ * 全体で照合します。先頭だけで読むと、スキャナが期限として受け付けない値（日付に散文が続くもの）
+ * まで期限に数えます。
+ */
+const WRITTEN_DATE =
+  /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+
+/**
  * 期限の項目を、書かれた暦日（`YYYY-MM-DD`）にする。
  *
  * @remarks
@@ -100,9 +110,7 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
 function writtenDay(value: unknown): string | undefined {
   const text = value instanceof Date ? value.toISOString() : value;
 
-  return typeof text === "string" && /^\d{4}-\d{2}-\d{2}/.test(text)
-    ? text.slice(0, 10)
-    : undefined;
+  return typeof text === "string" && WRITTEN_DATE.test(text) ? text.slice(0, 10) : undefined;
 }
 
 /**

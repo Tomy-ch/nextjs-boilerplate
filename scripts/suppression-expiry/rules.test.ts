@@ -80,6 +80,15 @@ describe("expiredSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("スキャナが強制する期限がまだ来ていなければ、条件に書かれた日付が過ぎていても答えない", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("2026-08-02 以降に削除する"), until: "2026-11-02" }],
+        "2026-09-06",
+      ),
+    ).toEqual([]);
+  });
+
   it("宣言が無ければ空を返す", () => {
     expect(expiredSuppressions([], "2026-09-06")).toEqual([]);
   });
@@ -123,7 +132,27 @@ describe("malformedSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("期限の項目を持つ宣言は、理由に日付が無ければ様式を満たす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("修正版が出たら削除する"), until: "2026-11-02" }]),
+    ).toEqual([]);
+  });
+
   // ----- 異常系 -----
+  it("期限の項目を持つ宣言の理由に日付があれば、理由から外すよう落とす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("2027-01-15 に見直す"), until: "2026-11-02" }]),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "2027-01-15 に見直す",
+        until: "2026-11-02",
+        defects: ["期限の項目があるのに理由にも日付がある（理由から日付を外す）"],
+      },
+    ]);
+  });
+
   it("理由が空の宣言は、面を問わず落とす", () => {
     expect(malformedSuppressions([suppression("   ")])).toEqual([
       { ...suppression("   "), defects: ["理由と撤回条件が書かれていない"] },
