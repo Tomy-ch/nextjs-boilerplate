@@ -138,7 +138,25 @@ describe("malformedSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("期限の項目を持たない宣言は、理由に日付があっても様式を満たす", () => {
+    expect(malformedSuppressions([suppression("2026-08-02 以降に削除する")])).toEqual([]);
+  });
+
   // ----- 異常系 -----
+  it("期限の項目が暦日として読めない宣言は、書かれた値を添えて落とす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("理由"), unreadableUntil: "2026-11-02 以降" }]),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "理由",
+        unreadableUntil: "2026-11-02 以降",
+        defects: ["期限の項目「2026-11-02 以降」が暦日として読めない（YYYY-MM-DD で書く）"],
+      },
+    ]);
+  });
+
   it("期限の項目を持つ宣言の理由に日付があれば、理由から外すよう落とす", () => {
     expect(
       malformedSuppressions([{ ...suppression("2027-01-15 に見直す"), until: "2026-11-02" }]),

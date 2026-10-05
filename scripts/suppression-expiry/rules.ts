@@ -26,6 +26,8 @@ export type Suppression = {
    * 書かれた日付より優先します。
    */
   readonly until?: string;
+  /** 期限の項目に書かれているが、暦日として読めなかった値。書かれたまま残す。 */
+  readonly unreadableUntil?: string;
   /**
    * 冷却の免除。
    *
@@ -106,6 +108,12 @@ export function malformedSuppressions(
 
     if (suppression.until !== undefined && latestDateIn(suppression.condition) !== undefined) {
       defects.push("期限の項目があるのに理由にも日付がある（理由から日付を外す）");
+    }
+
+    if (suppression.unreadableUntil !== undefined) {
+      defects.push(
+        `期限の項目「${suppression.unreadableUntil}」が暦日として読めない（YYYY-MM-DD で書く）`,
+      );
     }
 
     if (suppression.kind === "cooldown-exemption") {

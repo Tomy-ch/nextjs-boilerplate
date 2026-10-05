@@ -64,6 +64,15 @@ describe("scanSuppressions", () => {
     expect(scanSuppressions(root)[0]?.until).toBe("2026-11-02");
   });
 
+  it("文字列で届く時刻付きの期限も、月日を 2 桁に揃えた暦日で読む（trivy）", () => {
+    place(
+      ".trivyignore.yaml",
+      'vulnerabilities:\n  - id: CVE-2026-0005\n    statement: "理由"\n    expired_at: 2026-1-2T00:00:00Z\n',
+    );
+
+    expect(scanSuppressions(root)[0]?.until).toBe("2026-01-02");
+  });
+
   it("trivy の期限（expired_at）を、理由とは別の期限として読む", () => {
     place(
       ".trivyignore.yaml",
@@ -288,25 +297,35 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  it("日付として読めない期限は持たせず、理由だけの宣言として載せる", () => {
+  it("日付として読めない期限は期限に数えず、読めない期限として書かれたまま残す", () => {
     place(
       "osv-scanner.toml",
       '[[IgnoredVulns]]\nid = "GHSA-8888"\nignoreUntil = 20261102\nreason = "理由"\n',
     );
 
     expect(scanSuppressions(root)).toEqual([
-      { source: "osv-scanner.toml", subject: "GHSA-8888", condition: "理由" },
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-8888",
+        condition: "理由",
+        unreadableUntil: "20261102",
+      },
     ]);
   });
 
-  it("日付で始まっても全体が日付でない期限は持たせず、理由だけの宣言として載せる", () => {
+  it("日付で始まっても全体が日付でない期限は、読めない期限として書かれたまま残す", () => {
     place(
       ".trivyignore.yaml",
       'vulnerabilities:\n  - id: CVE-2026-0004\n    statement: "理由"\n    expired_at: "2026-11-02 以降"\n',
     );
 
     expect(scanSuppressions(root)).toEqual([
-      { source: ".trivyignore.yaml", subject: "CVE-2026-0004", condition: "理由" },
+      {
+        source: ".trivyignore.yaml",
+        subject: "CVE-2026-0004",
+        condition: "理由",
+        unreadableUntil: "2026-11-02 以降",
+      },
     ]);
   });
 

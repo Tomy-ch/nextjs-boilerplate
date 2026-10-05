@@ -87,34 +87,46 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
 }
 
 /**
- * 期限の項目として読む文字列の形。日付だけか、日付に時刻とオフセットが続くもの。
+ * 期限の項目として読む文字列の形。暦日（`YYYY-MM-DD`）だけか、それに時刻とオフセットが続くもの。
  *
  * @remarks
- * 全体で照合します。先頭だけで読むと、スキャナが期限として受け付けない値（日付に散文が続くもの）
- * まで期限に数えます。
+ * 形を見るのは文字列で届く値（YAML の面）だけです。TOML の面はパーサが日時として通した値を `Date`
+ * で渡すので、ここへは正規化された形しか来ません。暦日を `YYYY-MM-DD` で書くのは抑止の撤回条件と
+ * 同じ様式です。
+ *
+ * 全体で照合し、合わない値は期限として数えず、読めない期限として様式の欠けに回します（`withUntil`）。
+ * スキャナが受け付ける形より狭くても、黙って期限の無い宣言にはなりません。
  */
 const WRITTEN_DATE =
-  /^\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/;
+  /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[Tt ]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(?:[Zz]|[+-]\d{1,2}(?::?\d{2})?)?)?$/;
 
 /**
  * 期限の項目を、書かれた暦日（`YYYY-MM-DD`）にする。
  *
  * @remarks
- * TOML の日付は `Date` で、YAML の日付は文字列で届きます。どちらも書かれた暦日の先頭 10 文字を
- * 取ります —— `smol-toml` の `Date` は書かれたオフセットのまま `toISOString` を返すので、時刻と
- * オフセットを付けて書かれても暦日はずれません。
+ * TOML の日付は `Date` で、YAML の日付は文字列で届きます。どちらも書かれた暦日を取り、月日を
+ * 2 桁に揃えます —— `smol-toml` の `Date` は書かれたオフセットのまま `toISOString` を返すので、
+ * 時刻とオフセットを付けて書かれても暦日はずれません。
  *
  * @param value - 期限の項目に書かれていた値
  * @returns 暦日。日付として読めなければ `undefined`
  */
 function writtenDay(value: unknown): string | undefined {
   const text = value instanceof Date ? value.toISOString() : value;
+  const [, year, month, day] = typeof text === "string" ? (WRITTEN_DATE.exec(text) ?? []) : [];
 
-  return typeof text === "string" && WRITTEN_DATE.test(text) ? text.slice(0, 10) : undefined;
+  return year === undefined || month === undefined || day === undefined
+    ? undefined
+    : `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
 
 /**
- * 理由と期限から宣言を組む。期限は読めたときだけ持たせる。
+ * 理由と期限から宣言を組む。
+ *
+ * @remarks
+ * 期限は読めたときだけ `until` に持たせます。書かれているのに読めない期限は、書かれた値のまま
+ * `unreadableUntil` に残します —— 落とすと、スキャナが期限を強制しているのに週次の突き合わせだけが
+ * 期限の無い宣言として扱います。
  *
  * @param source - 宣言が置かれている面
  * @param subject - 抑止している対象
@@ -128,10 +140,14 @@ function withUntil(
   condition: string,
   until: unknown,
 ): Suppression {
+  if (until === undefined) {
+    return { source, subject, condition };
+  }
+
   const day = writtenDay(until);
 
   return day === undefined
-    ? { source, subject, condition }
+    ? { source, subject, condition, unreadableUntil: String(until) }
     : { source, subject, condition, until: day };
 }
 
