@@ -3,7 +3,7 @@
 # 原典との突合
 
 このリポジトリの決定のうち**外部の原典から導いたもの**が、原典のいまの言い分と一致しているかを
-確かめ、[目録](../../../docs/reference/upstream-interpretations.md)を書き換える。
+確かめ、[目録](../../../docs/reference/upstream-interpretations.ja.md)を書き換える。
 
 ## いつ使うか
 
@@ -100,7 +100,7 @@ type-case を課さない」は道具の挙動を述べているだけで、**�
 
 ## 手順 4. 目録を書き換える
 
-[`docs/reference/upstream-interpretations.md`](../../../docs/reference/upstream-interpretations.md)
+[`docs/reference/upstream-interpretations.md`](../../../docs/reference/upstream-interpretations.ja.md)
 だけを書き換える。
 
 - 行が指す **ADR / 設計解説 / 設定を書き換えない。**それらは監査の対象である。ここで直すと、

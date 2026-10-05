@@ -84,7 +84,7 @@ proxy → route segment / route handler / Server Action → features → adapter
 
 - **描画の境界。**問題のコードがサーバで走るのかブラウザへ届くのかで、触れるものも、それについての
   主張の意味も変わる。**`"use client"` は束の境界であって「クライアントで描かれる」という指示ではない** ——
-  [`docs/design/rendering.md`](../../../docs/design/rendering.md) が正であり、ここを取り違えた主張は
+  [`docs/design/rendering.md`](../../../docs/design/rendering.ja.md) が正であり、ここを取り違えた主張は
   **もっともらしく読める形で**誤っている。
 - **import の行列。**あるカーネルが何へ届いてよいかは [`architecture.ts`](../../../architecture.ts) が
   決めており、**たまたま今日通ることではない。**例から規則を推測せず、そのファイルを読む。
@@ -180,7 +180,7 @@ issue を腐らせないための書き方の規則が 3 つ。
 `--verify=observed` では、動いているアプリに対して主張を確認する ——
 **先に聞いてから。ここではアプリを立てること自体が別の判断である。**`APP_ENV` は明示が要る ——
 loader は既定へ落ちず、開発用の session の口は環境が自分を名乗ることを要求する
-（認証の側は [`docs/design/auth.md`](../../../docs/design/auth.md) が正）。
+（認証の側は [`docs/design/auth.md`](../../../docs/design/auth.ja.md) が正）。
 
 **何かを「検証」するためにゲートを回さない。**ゲートは hook と CI のもので、判定は CI が正である。
 この段が観測するのは**振る舞い**であって、緑の検査ではない。

@@ -263,7 +263,7 @@ minimumReleaseAgeExclude:
 ## Step 7. 検証する
 
 判定は CI のものである。ここでゲートを回し直さない
-（[`docs/playbook.md`](../../../docs/playbook.md) の *ゲートを先回りして回さない*）。手元でやるのは、
+（[`docs/playbook.md`](../../../docs/playbook.ja.md) の *Do not pre-run the gates*）。手元でやるのは、
 push の前に CI が教えてくれないことだけ:
 
 ```sh

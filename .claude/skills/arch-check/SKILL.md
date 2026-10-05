@@ -76,7 +76,7 @@ neither does the agent definition.
 
 **The static gates are settled once, here.** Every auditor receives the same verdict and relays the
 lines that fall in its kernel. Letting each auditor run the gates would run the same checks eleven
-times, and CI owns that verdict anyway (`docs/playbook.md`, *ゲートを先回りして回さない*).
+times, and CI owns that verdict anyway ([`docs/playbook.md#do-not-pre-run-the-gates`](../../../docs/playbook.md#do-not-pre-run-the-gates)).
 
 ## Step 0 — Confirm the scope and the static verdict (one `AskUserQuestion`)
 

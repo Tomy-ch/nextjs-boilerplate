@@ -112,7 +112,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 ## Step 4 —— 地図を書く。地図だけを書く
 
-[`docs/design/context-map.md`](../../../docs/design/context-map.md) を書く。辺ごとに、相手・所有・翻案・
+[`docs/design/context-map.md`](../../../docs/design/context-map.ja.md) を書く。辺ごとに、相手・所有・翻案・
 契約の出所・そして**どの文書が仕組みを所有するか**。
 
 **仕組みをここへ書かない。**どう繋ぐか・何を送るか・失敗をどう畳むかは、それを既に所有する主題の文書のものである。

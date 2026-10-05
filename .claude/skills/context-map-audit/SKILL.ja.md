@@ -51,7 +51,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 `src/config/` / `src/adapters/` / `src/app/api/**` / metadata の面 / `src/proxy.ts`。
 資源ではなく相手で数える。サンプル限定の辺を分ける。
 
-そのうえで [`docs/design/context-map.md`](../../../docs/design/context-map.md) を読み、
+そのうえで [`docs/design/context-map.md`](../../../docs/design/context-map.ja.md) を読み、
 その行を**記録された側**とする。
 
 **どちらの側も、他方に対する権威ではない。**それこそが、この実行が修正ではなく**所見**を出す理由である。

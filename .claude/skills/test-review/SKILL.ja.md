@@ -22,7 +22,7 @@
 
 ## このスキルが読むもの
 
-規則の出所は ADR と [`docs/testing-conventions.md`](../../../docs/testing-conventions.md) とカーネル README であり、実行時に読む。
+規則の出所は ADR と [`docs/testing-conventions.md`](../../../docs/testing-conventions.ja.md) とカーネル README であり、実行時に読む。
 
 | 出所 | 何を決めるか |
 | --- | --- |
@@ -107,13 +107,13 @@ ADR 0090 への機械的な適合。今回の実行で読み、その時点の�
 
 ### Lens 3: 意味的品質
 
-アサーションに意味があるか。**基準は `docs/testing-conventions.md`** であり、今回の実行で読んでその現行本文を当てる。弱い / 空振りのアサーションは「アサーションの強さ」、component / hook が対象のときは「component / hook のテスト — Testing Library の原則」（指摘では文書と原則を名前で引く）、過剰な mock は「mock の境界」が持つ。このレンズは規則の写しを持たない。文書が沈黙している範囲は、規則を発明せず補遺でギャップとして報告する。
+アサーションに意味があるか。**基準は `docs/testing-conventions.md`** であり、今回の実行で読んでその現行本文を当てる。弱い / 空振りのアサーションは「Assertion Strength」、component / hook が対象のときは「Component and hook tests — Testing Library principles」（指摘では文書と原則を名前で引く）、過剰な mock は「Mock Boundaries」が持つ。このレンズは規則の写しを持たない。文書が沈黙している範囲は、規則を発明せず補遺でギャップとして報告する。
 
 出力: `file:line` と、なぜ弱いかの一文。
 
 ### Lens 4: 分岐 × 意味の網羅（コード起点）
 
-subject のソースを読み、関数ごとに 2 軸の行列を作る。**カバレッジ ≠ 意味**（基準は `docs/testing-conventions.md`「意味網羅 — カバレッジは情報を持たない」。行列はこのレンズによるその適用）であり、100% ゲートを敷いたリポジトリではこの区別だけが情報を持つ。
+subject のソースを読み、関数ごとに 2 軸の行列を作る。**カバレッジ ≠ 意味**（基準は `docs/testing-conventions.md`「Meaning coverage — coverage carries no information」。行列はこのレンズによるその適用）であり、100% ゲートを敷いたリポジトリではこの区別だけが情報を持つ。
 
 **Lens 5 との分担**: Lens 4 は既にテストがある symbol の*内側*を見る。「テストが 1 つも無い」は Lens 5 の finding であり、Lens 5 が挙げた symbol の分岐をここで列挙し直さない（それは 1 件のギャップであって N 件ではない）。
 

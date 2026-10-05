@@ -60,7 +60,7 @@ README に一元化する。** このスキルはどちらも書き直さず、�
 
 **静的ゲートの判定はここで 1 度だけ決める。** 全 auditor が同じ判定を受け取り、自分のカーネルに当たる
 行を中継する。auditor ごとにゲートを回させると同じ検査が 11 回走るうえ、その判定を持つのはそもそも
-CI である（`docs/playbook.md`「ゲートを先回りして回さない」）。
+CI である（`docs/playbook.md`「Do not pre-run the gates」）。
 
 ## Step 0 — スコープと静的判定の出所を確かめる（`AskUserQuestion` 1 回）
 

@@ -176,7 +176,7 @@ AGENTS.md の "Exception: Skill Execution" セクションに基づき、この�
 
 ## Step 7. 書いたファイルの整形
 
-生成ファイル（および `sync-both` モードでは同期側）の書き込み後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（AGENTS.md: ゲートを先回りして回さない）。
+生成ファイル（および `sync-both` モードでは同期側）の書き込み後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（`docs/playbook.md`: Do not pre-run the gates）。
 
 ## チェックリスト
 

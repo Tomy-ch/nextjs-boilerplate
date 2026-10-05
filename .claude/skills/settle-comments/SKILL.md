@@ -461,7 +461,7 @@ Run this only when something was written. 報告のみ has nothing to verify; �
 because nobody read the edits one at a time.
 
 **Format only what this run wrote, and leave the gates to the hooks and CI** (`docs/playbook.md`,
-*ゲートを先回りして回さない* — CI is the authority):
+*Do not pre-run the gates* — CI is the authority):
 
 ```sh
 pnpm exec biome check --fix <the source files you touched>

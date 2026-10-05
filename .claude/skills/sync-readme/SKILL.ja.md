@@ -129,7 +129,7 @@ canonical README を書いた後、兄弟の `README.ja.md` があれば、方�
 
 ## Step 7. 書いたファイルの整形
 
-canonical README の書き込み（および `canonicalize-doc` による翻訳の生成）が完了した後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（docs/playbook.md: ゲートを先回りして回さない）。
+canonical README の書き込み（および `canonicalize-doc` による翻訳の生成）が完了した後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（`docs/playbook.md`: Do not pre-run the gates）。
 
 ## Step 8. 最終検証
 
