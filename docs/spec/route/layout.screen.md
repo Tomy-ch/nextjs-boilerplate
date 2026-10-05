@@ -26,7 +26,7 @@ header も footer も持たない ——それらは route group ごとの器が
 **狭い画面では説明と操作を縦に積む。** 横に並べると、説明が読めない幅まで詰まる。
 
 **文言はこの器が持たない。** 何にどの cookie を使うかは繋ぐ製品で、どこまで書くかは法域で変わる
-ため、書き換える場所を 1 つに寄せてある（[`ConsentBanner`](../../../src/components/shell/consent-banner/README.md) の文言の定義）。
+ため、書き換える場所を 1 つに寄せてある（同意の面を描く部品が文言の定義を持つ。[関連](#関連)）。
 
 ## 面が出る時点
 
@@ -36,4 +36,4 @@ header も footer も持たない ——それらは route group ごとの器が
 ## 関連
 
 - 実装 `src/app/layout.tsx` / `src/app/consent.tsx`
-- 部品 [`ConsentBanner`](../../../src/components/shell/consent-banner/README.md) —— Storybook `Overlay/ConsentBanner`
+- 同意の面を描く部品の [README](../../../src/components/shell/consent-banner/README.md) と、その Storybook

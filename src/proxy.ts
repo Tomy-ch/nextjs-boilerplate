@@ -79,7 +79,7 @@ const PRIVATE_CACHE_CONTROL = "private, no-store";
  *
  * @remarks
  * ログインへは送りません（{@link proxy}）。403 の面を出さない理由は
- * `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
+ * `docs/rules.md`「認可と入口」。
  */
 const FALLBACK_PATH = "/";
 

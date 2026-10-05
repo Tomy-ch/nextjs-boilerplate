@@ -24,8 +24,8 @@
 
 ## 器
 
-**route group の器を通らない。** 入口が全ルートをここへ差し替えるため、route group の layout は
-挟まらない。`main` はこの画面が自分で置く。
+**route group の器を通らない。** 描かれるのは差し替え先の `maintenance/` の階層で、そこは route group
+の外にある。`main` はこの画面が自分で置く。
 
 header と nav を出さないのは、出すと押した先がすべてこの画面へ戻るため。
 
