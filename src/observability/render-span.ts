@@ -55,7 +55,7 @@ export function configureRenderSpans(next: RenderSpanConfiguration): void {
  * [features の README](../features/README.md) が持ちます。
  *
  * @param name - span 名に載せる `src/` からのモジュールパス。**利用者の入力を混ぜてはいけません**
- *   （理由は [README](./README.md) の「描画の計装」）。
+ *   （理由は [README](./README.md#rendering-instrumentation)）。
  * @param render - span で包む描画
  * @returns span で包んだ描画
  */

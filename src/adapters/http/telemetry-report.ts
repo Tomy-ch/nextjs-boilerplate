@@ -4,7 +4,7 @@
  * @remarks
  * `client/` と `server/` が同じ宣言を見るために、実行文脈を持たないここに置きます。検証は受け側が
  * 持ち、ここにあるのは型と、送る前に切り詰める長さだけです
- * （[adapters の README](../README.md) の「ブラウザ発のテレメトリの中継」）。
+ * （[adapters の README](../README.md#relaying-browser-originated-telemetry)）。
  */
 
 /** 収集する Web Vitals の指標。 */

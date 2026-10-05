@@ -12,7 +12,7 @@ import { ErrorKind } from "@/errors/error-kind";
  * （`../products/route.ts`）と同じです。
  *
  * この口が要るのは、client の増分取得を **same-origin への薄い fetch** に限っているためです
- * （[README](../README.md)「関連する ADR」）。client からバックエンドを直接叩くと、資格情報の載せ方と
+ * （[README](../README.md#related-adrs)）。client からバックエンドを直接叩くと、資格情報の載せ方と
  * timeout・再試行が `adapters/server` の外にもう 1 系統できます。
  *
  * 認証は購入の取得そのものが要求します。ここで先に弾かないのは、判定を 2 か所に置くと

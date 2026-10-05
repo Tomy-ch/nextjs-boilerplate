@@ -164,7 +164,7 @@ type BaseClientDeps = {
    * 1 つの要求 URL に許すバイト数の上限。既定を持たない。
    *
    * @remarks
-   * 何を数え、閾値をどこが持つかは [adapters](../../README.md) の「URL の予算」節が持ちます。
+   * 何を数え、閾値をどこが持つかは [adapters](../../README.md#url-budget)が持ちます。
    */
   maxUrlBytes: number;
   profile?: ResilienceProfile;

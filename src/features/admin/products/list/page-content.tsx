@@ -31,7 +31,7 @@ export type AdminProductListPageContentProps = {
  *
  * URL の条件は `parseProductQuery`（取得の口）へ通し、独自の変換を持ちません。写せなかった条件は
  * 一覧の代わりに {@link InvalidQueryFeedback} へ渡します（検証の契約は
- * `src/features/admin/README.md`「条件の検証と失敗」）。
+ * `src/features/admin/README.md#validating-conditions-and-failures`）。
  *
  * 待機表示の境界に鍵を与えるのは、条件やページが変われば表が総入れ替えになるためです。鍵を
  * 与えないと、次の結果が届くまで前のページの行が残ります。通ってきた道は取得に効かないため

@@ -44,7 +44,7 @@ Accepted
 
 - **仕様書は確定した約束を書く。** したがって書ける時点は見た目が確定した後であり、画面実装の順序（[`docs/playbook.md`](../playbook.md)）では story のレビューを通り、レイヤーへの割り付けを終えたあとに置く。**仕様書を先に固めることは強制しない** —— 先に固めると、見た目が動くたびに書き直すことになる
 - **仕様書を書き終えるまで画面をレビューへ出さない。** 約束が書かれていない画面を出すと、読む側が実装から約束を推定することになる
-- **feature の README は route ごとに仕様書の対を指す**（[feature README テンプレート](../templates/feature-readme.md)）。指す先が実在するかは `readme-review` が突き合わせる
+- **feature の README は route ごとに仕様書の対を指す**（[feature README テンプレート](../templates/feature-readme.ja.md)）。指す先が実在するかは `readme-review` が突き合わせる
 - **仕様書は読み込み入力である。** 散文から実装を導けるのは scaffold ではなく、読んで判断する側（人と `new-feature` スキル —— [0155](0155-claude-skills-development.ja.md)）である
 - **約束を変える変更は、仕様書を同じ変更で直す。** 仕様書と実装が食い違ったとき、約束を変えたのなら仕様書を直し、変えていないのなら実装の不具合として扱う
 

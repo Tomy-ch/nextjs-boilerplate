@@ -495,7 +495,7 @@ export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise
 **分岐: 主体を名乗らない一覧を作りたいとき。** 誰でも読める一覧なら口は `"public"` になり、
 `server/http/public-client.ts` の `getPublicClient()` を引く。
 その口だけが `use cache` / `cacheLife` / `cacheTag` を名乗れる。書き方と、なぜ口の側が寿命を持つかは
-[`src/adapters/README.md`](../../src/adapters/README.md)「リクエストをまたいで残すのは `use cache` の側」
+[`src/adapters/README.md#use-cache-is-what-persists-across-requests`](../../src/adapters/README.md#use-cache-is-what-persists-across-requests)
 と [0071](../adr/0071-bff-api-integration.md)。未ログインでも読める（契約がその operation の認証を
 任意と宣言している）要求に立てる `allowAnonymous` は、同じ README の「資格情報を載せるかは接続口が、
 送ってよいかは要求が決める」にある。
@@ -797,7 +797,7 @@ export const NoteDetailView = withScreenSpan(
 押さえること。
 
 - **画面の最上位は `withScreenSpan`、`ui/` の部品は `withPartSpan`。** 名前は `src/` からのモジュール
-  パスと一致させる（[`src/features/README.md`](../../src/features/README.md)「描画を span に載せる」）
+  パスと一致させる（[`src/features/README.md#putting-rendering-on-spans`](../../src/features/README.md#putting-rendering-on-spans)）
 - **`view` は取得を持たない。** 取得を持たせると story で描けなくなる。`loading` は route の
   `Suspense` が `skeleton` を出し、`error` は route の `error.tsx` が受けるので、`view` が持つ状態は
   success と empty である
@@ -1069,14 +1069,14 @@ export default function NoteDetailError({
   宣言しない。殻を配れない画面だけが `export const instant = false` を理由つきで名乗る
 - **認証の要る画面は `robots: { index: false, follow: false }` を置く。** 索引させる環境でも隠す。
   誰でも開ける画面なら代わりに `alternates.canonical` を置き、`src/app/sitemap.ts` の `PUBLIC_PATHS`
-  に載せる（[`src/app/README.md`](../../src/app/README.md)「metadata の土台と差分」）
+  に載せる（[`src/app/README.md#metadata-base-and-per-route-differences`](../../src/app/README.md#metadata-base-and-per-route-differences)）
 - **動的セグメントの画面で中身に応じた `title` を出すなら `generateMetadata`。** 判定は feature 側の
   module に置き、page は `params` を解いて渡すだけにする。取得は Step 3 の `cache()` が 1 回に
   まとめる（[0044](../adr/0044-seo-metadata-strategy.md)）
 - **横断 UI と Provider を mount してよいのは `layout.tsx` だけ**（[0026](../adr/0026-layout-shell-mount.md)）
 
 **迷ったら:** 殻を配れるか、待ちの境界をどこに置くか、失敗と不在の面をどう分けるかは画面ごとの判断で、
-答えを書く場所は [`src/app/README.md`](../../src/app/README.md)「この層が持つ判断」の表にある。
+答えを書く場所は [`src/app/README.md#decisions-this-layer-owns`](../../src/app/README.md#decisions-this-layer-owns)の表にある。
 
 **確認:** 開発サーバで実際に開く。session は `/dev/session` で発行する。
 
@@ -2063,7 +2063,7 @@ export const Default: Story = {
 `NoteList` / `NoteListEmpty` / `NoteListSkeleton` / `NoteDetailView` / `NoteEditView` にも同じ形で
 story を置く。送信中の姿を撮るには、差し替えた action に解決しない送信先
 （`~catalog/lib/pending-action` の `neverSettlingAction`）を返させる。書き方は
-[`src/features/README.md`](../../src/features/README.md)「カタログに載せる」。
+[`src/features/README.md#putting-it-in-the-catalog`](../../src/features/README.md#putting-it-in-the-catalog)。
 
 **画面単位の基準画像は、route の宣言で撮る。** `e2e/lib/screens.ts` の `SCREENS` に 3 つ足す。build が
 出す route と宣言を突き合わせるので、**宣言の無い route が現れたら落ちる**。

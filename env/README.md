@@ -167,9 +167,9 @@ secret store へ入れます。
 もの**だけで、それ以外の既定は触らずに動きます。
 
 配信ヘッダが持つ第三者 origin の固定値は
-[`src/config/README.md`](../src/config/README.md#boilerplate-導入時の変更点) が、外向き通信の
+[`src/config/README.md`](../src/config/README.md#what-to-change-when-adopting) が、外向き通信の
 timeout と再試行は
-[`src/adapters/server/http/README.md`](../src/adapters/server/http/README.md#boilerplate-導入時の変更点)
+[`src/adapters/server/http/README.md`](../src/adapters/server/http/README.md#what-to-change-when-adopting)
 が持ちます。どちらも環境変数ではありません。
 
 ## 運用

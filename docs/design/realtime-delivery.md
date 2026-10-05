@@ -190,7 +190,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 
 ### テストは構築子を差し替える
 
-購読 adapter は `EventSource` の構築子を注入で受ける（往復側の `fetchImpl` と同じ形）。テストは偽の構築子で `open` / `message` / `error` を順に起こし、整列・重複排除・打ち切り・backoff を確かめる。実行環境が `EventSource` を持つかどうかに検証を依存させない。`integration` の宣言が掛かるのは外部との往復を持つ発券の口で、adapter の判定は `unit` の形で確かめる（[`src/adapters/README.md`](../../src/adapters/README.md)「運用」）。
+購読 adapter は `EventSource` の構築子を注入で受ける（往復側の `fetchImpl` と同じ形）。テストは偽の構築子で `open` / `message` / `error` を順に起こし、整列・重複排除・打ち切り・backoff を確かめる。実行環境が `EventSource` を持つかどうかに検証を依存させない。`integration` の宣言が掛かるのは外部との往復を持つ発券の口で、adapter の判定は `unit` の形で確かめる（[`src/adapters/README.md#operations`](../../src/adapters/README.md#operations)）。
 
 ### 購読はタブごとに張り、タブの間で共有しない
 

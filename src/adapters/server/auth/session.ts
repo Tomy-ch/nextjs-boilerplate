@@ -28,7 +28,7 @@ import type { AuthorizationTransaction, SessionRecord } from "./session-resolver
  *
  * **復元した記録を汚します。** 出しては困るのは Access Token と ID Token で、それを含む
  * 記録をそのまま Client Component へ渡すと、渡した時点で描画が落ちます。ここで汚すのは、
- * 記録が生まれる場所がここだけだからです（[README](./README.md)「client へ渡さないものの登録」）。
+ * 記録が生まれる場所がここだけだからです（[README](./README.md#registering-what-must-not-reach-the-client)）。
  *
  * @returns 復元した session の記録。cookie が無い、または復元できなければ null
  */
