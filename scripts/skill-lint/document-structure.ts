@@ -82,7 +82,10 @@ export function parseFrontmatterKeys(fmLines: string[]): Map<string, string> {
 
 export function extractHeadings(content: string): Heading[] {
   const headings: Heading[] = [];
+  // frontmatter の `#` は YAML のコメント（撤去マーカーなど）で、見出しではない。
+  const bodyStart = splitFrontmatter(content)?.endLine ?? 0;
   for (const { line, lineNo } of eachLineOutsideFence(content)) {
+    if (lineNo <= bodyStart) continue;
     const [, hashes, raw] = /^(#{1,6})[ \t](.*)$/.exec(line) ?? [];
     const text = raw?.trim();
     // 文言が空でも列から落とさない。落とすと、片側にだけ在る見出しで**対訳の列がずれた分だけ
