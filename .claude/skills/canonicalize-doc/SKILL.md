@@ -65,7 +65,7 @@ section is how the skill carries it out.
 ### Language
 
 - **English is canonical on the suffix-less path; Japanese is the sibling mirror `<name>.ja.md`.**
-  There is no parallel `docs/ja/` tree. The canonical is the source of truth, and the mirror follows it.
+  There is no parallel Japanese tree. The canonical is the source of truth, and the mirror follows it.
 - **Every tracked suffix-less `.md` has a mirror, except 0140 Decision 1's closed no-mirror list.**
   Never create a mirror for a path on that list.
 - **Agents never read `*.ja.md`.** This skill is the one exception, and only for the single pair (or
