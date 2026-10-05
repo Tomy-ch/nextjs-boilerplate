@@ -44,6 +44,16 @@ describe("SAMPLE_PATHS", () => {
   it("破棄の道具自身を含む", () => {
     expect(SAMPLE_PATHS).toContain("scripts/setup/remove-sample");
   });
+
+  it("ファイルとして挙げた文書に日本語訳があれば、訳も一緒に挙げる（ディレクトリの宣言は中身ごと消えるので見ない）", () => {
+    const orphanedMirrors = SAMPLE_PATHS.filter(
+      (target) => target.endsWith(".md") && !target.endsWith(".ja.md"),
+    )
+      .map((target) => target.replace(/\.md$/, ".ja.md"))
+      .filter((mirror) => exists(mirror) && !SAMPLE_PATHS.includes(mirror));
+
+    expect(orphanedMirrors).toEqual([]);
+  });
 });
 
 describe("SAMPLE_RESTORATIONS", () => {
@@ -67,6 +77,16 @@ describe("SAMPLE_RESTORATIONS", () => {
         assertWithinRoot(to, ROOT_DIR);
       }
     }).not.toThrow();
+  });
+
+  it("文書を置き直すなら、その日本語訳も置き直す", () => {
+    const restored = SAMPLE_RESTORATIONS.map(({ to }) => to);
+    const missingMirrors = restored
+      .filter((target) => target.endsWith(".md") && !target.endsWith(".ja.md"))
+      .map((target) => target.replace(/\.md$/, ".ja.md"))
+      .filter((mirror) => !restored.includes(mirror));
+
+    expect(missingMirrors).toEqual([]);
   });
 
   it("入口の画面を置き直す", () => {

@@ -86,6 +86,30 @@ describe("SCANNER_DOMAINS", () => {
     }
   });
 
+  it("名前を探す文書がすべて実在する", () => {
+    const missing = [...new Set(SCANNER_DOMAINS.flatMap((domain) => domain.docMentions))].filter(
+      (target) => !exists(target),
+    );
+
+    expect(missing).toEqual([]);
+  });
+
+  it("塊か節を落とす文書に日本語訳があれば、訳の側にも落とすものを宣言する", () => {
+    const unpaired = SCANNER_DOMAINS.flatMap((domain) => {
+      const declared = new Set(
+        [...domain.docBlocks, ...domain.docSections].map(({ file }) => file),
+      );
+
+      return [...declared]
+        .filter((file) => file.endsWith(".md") && !file.endsWith(".ja.md"))
+        .map((file) => file.replace(/\.md$/, ".ja.md"))
+        .filter((mirror) => exists(mirror) && !declared.has(mirror))
+        .map((mirror) => `${domain.key}: ${mirror}`);
+    });
+
+    expect(unpaired).toEqual([]);
+  });
+
   it("共有の散文を畳む CodeQL を最後に置く", () => {
     expect(SCANNER_DOMAINS.at(-1)?.key).toBe("codeql");
   });

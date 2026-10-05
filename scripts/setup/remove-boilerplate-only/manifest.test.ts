@@ -63,7 +63,7 @@ describe("SELF_DESTRUCT_PATHS", () => {
     expect(SELF_DESTRUCT_PATHS.filter((target) => !exists(target))).toEqual([]);
   });
 
-  it("消す文書に日本語訳があれば、訳も一緒に消す", () => {
+  it("ファイルとして挙げた文書に日本語訳があれば、訳も一緒に消す（ディレクトリの宣言は中身ごと消えるので見ない）", () => {
     const orphanedMirrors = SELF_DESTRUCT_PATHS.filter((target) => target.endsWith(".md"))
       .map((target) => target.replace(/\.md$/, ".ja.md"))
       .filter((mirror) => exists(mirror) && !SELF_DESTRUCT_PATHS.includes(mirror));
