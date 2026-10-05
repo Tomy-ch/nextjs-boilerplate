@@ -13,7 +13,7 @@ const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "..");
 const LEDGER_PATH = "docs/reference/upstream-interpretations.md";
 
 /** 判定として認める 3 値。4 つめを作らせない。 */
-const VERDICTS = ["差異なし", "差異あり", "逸脱宣言あり"] as const;
+const VERDICTS = ["No difference", "Undeclared difference", "Declared deviation"] as const;
 
 type Row = {
   readonly line: number;

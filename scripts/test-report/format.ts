@@ -288,7 +288,7 @@ export function summarise(raw: string): Summary | undefined {
  * 途中で切れて残りが記法として描かれもします。
  *
  * 全 story が一度に落ちる形は実在するので（[docs/design/vrt.md](../../docs/design/vrt.md) の
- * 「限界」）、上限が無ければ本文は際限なく伸びます。
+ * "Limitations"）、上限が無ければ本文は際限なく伸びます。
  */
 const BODY_BUDGET = 40_000;
 

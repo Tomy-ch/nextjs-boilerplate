@@ -44,7 +44,7 @@ function collect(directory: string, into: ScopeDeclaringModule[]): ScopeDeclarin
 }
 
 // 木を歩くので既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、走査の遅さが
-// そのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+// そのまま赤になる（`docs/testing-conventions.md#gates-that-scan-the-whole-repository`）。
 const TIMEOUT_MS = 300_000;
 
 describe("取得の口の分類の綴り", () => {

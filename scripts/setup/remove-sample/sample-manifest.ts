@@ -76,6 +76,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 画面ごとの約束は `docs/spec/route/**` が持ち、契約は `openapi/api.gen.yaml` が持つので、
   // ここは索引であって正ではない。題材と一緒に消える。
   "docs/spec/screens.md",
+  "docs/spec/screens.ja.md",
   // 題材の画面の仕様書。実装と 1 対 1 で対応するため、画面が消えれば仕様書も消える。
   // 残るのは `docs/spec/README.md` と、コア残留の画面（`auth` の器 / `/login` / `/dev/session`）の分。
   "docs/spec/route/shop",
@@ -132,6 +133,11 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
   {
     from: "scripts/setup/remove-sample/templates/page-screen.md.template",
     to: "docs/spec/route/page.screen.md",
+  },
+  // 上の画面要件の日本語訳。canonical だけを戻すと、ミラーの規約を持つ木に訳の無い仕様書が 1 本残る。
+  {
+    from: "scripts/setup/remove-sample/templates/page-screen.ja.md.template",
+    to: "docs/spec/route/page.screen.ja.md",
   },
 ];
 

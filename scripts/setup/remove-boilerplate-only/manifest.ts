@@ -29,6 +29,8 @@ export const SELF_DESTRUCT_PATHS: readonly string[] = [
   // 上流でしか成り立たない記述を 1 本に集めた文書。残る側にはその指し先しか置かず、指し先は
   // 行ごと消えるので、本体はここで消す以外に消える道が無い。
   "docs/get-started/boilerplate-only-conventions.md",
+  // 上の文書の日本語訳。canonical が消える木に、訳す元を持たないミラーを残さない。
+  "docs/get-started/boilerplate-only-conventions.ja.md",
   // マーカー行数のベースライン。守っているのはマーカーを**書く側**で、書く場面は上流にしかない。
   // 剥がしが済んだツリーにはもう見張る対象が居らず、残せば永久に緑のままの検査が増えるだけになる。
   // サンプル破棄（`scripts/setup/remove-sample`）は、これが先に走った場合に備えて、引き直しを

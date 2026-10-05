@@ -74,6 +74,7 @@ const DOCS: readonly string[] = [
   "docs/adr/README.ja.md",
   "docs/adr/BACKLOG.md", // boilerplate-only:line
   "docs/get-started/setup-repository.md",
+  "docs/get-started/setup-repository.ja.md",
 ];
 
 export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
@@ -99,12 +100,12 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states \"not configured\" on the PR while staying green** (the absence of a comment is indistinguishable from \"the check was green\"). **It is not registered as a required check**. Whether a third party's account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings\n",
+          '- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states "not configured" on the PR while staying green** (the absence of a comment is indistinguishable from "the check was green"). **It is not registered as a required check**. Whether a third party\'s account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
         block:
-          "- **外部解析サービス(SonarQube Cloud)**: 上のどれとも違い、**外部アカウントに依存する**唯一の層。public リポジトリでは無料、private では有料であるため、**契約が無いことをデフォルトとして設計する** —— `SONAR_TOKEN` が未設定なら解析ジョブごと降り、**緑のまま「未設定」を PR へ述べる**(コメントの不在は「検査が緑だった」と見分けが付かない)。**required check には登録しない**。第三者のアカウントの有無がマージの条件になってはならない。**剥がしの対象にはしない** —— 残すかどうかは契約の有無を知っている側の判断であり、[`docs/get-started/setup-repository.md`](../get-started/setup-repository.md) の 1 段で選ぶ。`projectKey` / `organization` はリポジトリの識別子なので、設定ではなく**アイデンティティ**として `make setup-replace-repository-reference` が書き換える\n",
+          "- **外部解析サービス(SonarQube Cloud)**: 上のどれとも違い、**外部アカウントに依存する**唯一の層。public リポジトリでは無料、private では有料であるため、**契約が無いことをデフォルトとして設計する** —— `SONAR_TOKEN` が未設定なら解析ジョブごと降り、**緑のまま「未設定」を PR へ述べる**(コメントの不在は「検査が緑だった」と見分けが付かない)。**required check には登録しない**。第三者のアカウントの有無がマージの条件になってはならない。**剥がしの対象にはしない** —— 残すかどうかは契約の有無を知っている側の判断であり、[`docs/get-started/setup-repository.md`](../get-started/setup-repository.ja.md) の 1 段で選ぶ。`projectKey` / `organization` はリポジトリの識別子なので、設定ではなく**アイデンティティ**として `make setup-replace-repository-reference` が書き換える\n",
       },
       {
         file: "docs/adr/0110-security-operations.md",
@@ -119,7 +120,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "**SonarQube Cloud is the exception to this format, and the reasons for its suppressions are not written anywhere else in the repository.** This layer is one whose removal can be chosen, and if it is chosen, `sonar-project.properties` and `.github/workflows/sonarcloud.yaml` disappear together. Placing reasons anywhere else — in source comments or in documents that survive the removal — means that **after the flagged rules vanish, only the reasons remain, and nobody can trace what they are about**.\n\nThe same applies when changing the shape of code in response to this inspection's findings: **neither the rule name nor \"Sonar said so\" is written in comments**. A constraint worth keeping can be written as a property of the place without naming the rule; if it cannot, it is a reason only the suppression file should hold.\n\n",
+          '**SonarQube Cloud is the exception to this format, and the reasons for its suppressions are not written anywhere else in the repository.** This layer is one whose removal can be chosen, and if it is chosen, `sonar-project.properties` and `.github/workflows/sonarcloud.yaml` disappear together. Placing reasons anywhere else — in source comments or in documents that survive the removal — means that **after the flagged rules vanish, only the reasons remain, and nobody can trace what they are about**.\n\nThe same applies when changing the shape of code in response to this inspection\'s findings: **neither the rule name nor "Sonar said so" is written in comments**. A constraint worth keeping can be written as a property of the place without naming the rule; if it cannot, it is a reason only the suppression file should hold.\n\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -129,11 +130,19 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/get-started/setup-repository.md",
         block:
+          "| [`sonarcloud.yaml`](../../.github/workflows/sonarcloud.yaml) | A SonarQube Cloud account and `SONAR_TOKEN` |\n",
+      },
+      {
+        file: "docs/get-started/setup-repository.ja.md",
+        block:
           "| [`sonarcloud.yaml`](../../.github/workflows/sonarcloud.yaml) | SonarQube Cloud のアカウントと `SONAR_TOKEN` |\n",
       },
     ],
     docFragments: [],
-    docSections: [{ file: "docs/get-started/setup-repository.md", heading: "### 残す場合" }],
+    docSections: [
+      { file: "docs/get-started/setup-repository.md", heading: "### Keeping Them" },
+      { file: "docs/get-started/setup-repository.ja.md", heading: "### 残す場合" },
+    ],
     docMentions: DOCS,
     mentionPatterns: ["SonarQube", "SonarCloud", "sonarcloud", "sonar-project", "SonarSource"],
   },
@@ -162,7 +171,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "- **Dependency diff gate (Dependency Review)**: the three above all read **the current state of the tree**, so they cannot distinguish vulnerabilities held from before from ones this change brought in. The former are something a report-only gate structurally has to tolerate, so **a layer that asks only \"did this PR add any\"** is placed separately. Whoever added it can take it back, so this one may fail. The threshold is `high`, aligned with the dependency audit gate. The API it calls is free only for public repositories and requires a Code Security license for private ones — **this is a configuration decision, not a code decision**, so the layer is distributed, and whether to remove it is chosen in one step of setup\n",
+          '- **Dependency diff gate (Dependency Review)**: the three above all read **the current state of the tree**, so they cannot distinguish vulnerabilities held from before from ones this change brought in. The former are something a report-only gate structurally has to tolerate, so **a layer that asks only "did this PR add any"** is placed separately. Whoever added it can take it back, so this one may fail. The threshold is `high`, aligned with the dependency audit gate. The API it calls is free only for public repositories and requires a Code Security license for private ones — **this is a configuration decision, not a code decision**, so the layer is distributed, and whether to remove it is chosen in one step of setup\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -180,10 +189,20 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/get-started/setup-repository.md",
         block:
+          "| [`dependency-review.yaml`](../../.github/workflows/dependency-review.yaml) | The Dependency graph enabled (step 3). The API it calls is free only for public repositories |\n",
+      },
+      {
+        file: "docs/get-started/setup-repository.ja.md",
+        block:
           "| [`dependency-review.yaml`](../../.github/workflows/dependency-review.yaml) | Dependency graph の有効化（手順 3）。呼ぶ API が無料なのは public のときだけ |\n",
       },
       {
         file: "docs/get-started/setup-repository.md",
+        block:
+          '   (**in this repository the `dependency-review` job also reads it**, so leaving it disabled fails with "not available in this repository". It cannot be fixed on the code side until the setting is in)\n',
+      },
+      {
+        file: "docs/get-started/setup-repository.ja.md",
         block:
           "   （**このリポジトリでは `dependency-review` job もこれを読む**ため、無効のままだと「このリポジトリでは使えない」で落ちる。設定を入れるまでコード側では直せない）\n",
       },
@@ -242,7 +261,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: "docs/adr/0110-security-operations.md",
         block:
-          "| CodeQL | **Does not step down** | Code scanning alerts close only by \"a later analysis no longer reports it\". Reducing the number of runs can drop occasions for closing |\n",
+          '| CodeQL | **Does not step down** | Code scanning alerts close only by "a later analysis no longer reports it". Reducing the number of runs can drop occasions for closing |\n',
       },
       {
         file: "docs/adr/0110-security-operations.ja.md",
@@ -261,6 +280,11 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       },
       {
         file: "docs/get-started/setup-repository.md",
+        block:
+          "| [`codeql.yaml`](../../.github/workflows/codeql.yaml) | GitHub Advanced Security. Free for public, paid for private |\n",
+      },
+      {
+        file: "docs/get-started/setup-repository.ja.md",
         block:
           "| [`codeql.yaml`](../../.github/workflows/codeql.yaml) | GitHub Advanced Security。public は無料、private は課金 |\n",
       },

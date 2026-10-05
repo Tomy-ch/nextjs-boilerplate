@@ -30,7 +30,7 @@ function scanTargets(): string[] {
 }
 
 // リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
-// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md#gates-that-scan-the-whole-repository`）。
 const TIMEOUT_MS = 300_000;
 
 describe("EXCLUDED_DIRECTORIES", () => {
@@ -61,6 +61,14 @@ describe("SELF_DESTRUCT_PATHS", () => {
   // ----- 正常系 -----
   it("宣言したパスがすべて実在する", () => {
     expect(SELF_DESTRUCT_PATHS.filter((target) => !exists(target))).toEqual([]);
+  });
+
+  it("消す文書に日本語訳があれば、訳も一緒に消す", () => {
+    const orphanedMirrors = SELF_DESTRUCT_PATHS.filter((target) => target.endsWith(".md"))
+      .map((target) => target.replace(/\.md$/, ".ja.md"))
+      .filter((mirror) => exists(mirror) && !SELF_DESTRUCT_PATHS.includes(mirror));
+
+    expect(orphanedMirrors).toEqual([]);
   });
 
   it("剥がしの道具自身を含む", () => {

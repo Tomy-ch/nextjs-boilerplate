@@ -162,7 +162,7 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
   解決できなかった import（TS2307）を違反より先に主張する —— 依存が解決できないと `any` になり、
   呼べる export が呼べないものとして扱われる。
 - **走査範囲を狭めて時間を縮めない。** 縮めた分だけ無検査の範囲が増える。時間は明示の timeout で
-  受ける（[testing-conventions](../docs/testing-conventions.md)「リポジトリ全体を走査するゲート」）。
+  受ける（[testing-conventions](../docs/testing-conventions.md#gates-that-scan-the-whole-repository)）。
 - **`git ls-files` は index であって木ではない。** 剥がした後の木では index に居るのに消えている
   ファイルが在るので、実在するものだけを採る。縮退は下限が見張る。
 
