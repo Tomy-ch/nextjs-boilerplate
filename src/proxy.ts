@@ -50,9 +50,8 @@ const OPEN_PATHS: ReadonlySet<string> = new Set([MAINTENANCE_PATH, "/api/health"
  * `Next-Action` ヘッダもそのままなので、止まっていることを要求側へ言うのは差し替えの仕事では
  * ありません。ここで読み取り以外を断るのは、**止めるという約束を自分の境界で言い切るため**です。
  *
- * Next.js 側でも結局は実行されませんが、それは framework の内部の成り行きであって、こちらが
- * 約束したことではありません。**依存すると、その内部が変わった日に黙って開きます**
- * （成り行きの中身は `docs/spec/route/maintenance/page.function.md`）。
+ * 差し替えた要求で Server Action がどう扱われるかを、framework は約束していません。**どう扱われる
+ * かに依存すると、それが変わった日に黙って開きます。**
  */
 const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
 
