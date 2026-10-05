@@ -6,232 +6,255 @@ coverage-exclusions:
 
 # docs-viewer
 
-ドキュメントポータルのビューアーです。アプリ本体とは**別パッケージ**で、Next.js のランタイムには
-乗らず、静的サイトとして単体でビルドされて GitHub Pages へ配信されます
-（[ADR 0141](../docs/adr/0141-portal-operations.md)）。
+The viewer for the documentation portal. It is a **separate package** from the application: it does not run
+on the Next.js runtime, but is built on its own as a static site and deployed to GitHub Pages
+([ADR 0141](../docs/adr/0141-portal-operations.md)).
 
-読み込む `docs.json` は生成物で、`docs/portal/manifest.yaml` を単一ソースとして `scripts/portal/`
-が組み立てます。ビューアーは内容の出所を持たず、生成物を描くだけです。ビルドの入口はルートの
-`pnpm portal:build` で、生成とビューアーのビルド（`pnpm --filter docs-viewer build`）を続けて回します。
+The `docs.json` it loads is a generated artifact, assembled by `scripts/portal/` with
+`docs/portal/manifest.yaml` as the single source. The viewer owns no source of content; it only renders the
+generated artifact. The build entry point is the root `pnpm portal:build`, which runs generation and the
+viewer build (`pnpm --filter docs-viewer build`) in sequence.
 
-## なぜ別パッケージなのか
+## Why a separate package
 
-**無害化の許容範囲が違うからです。** アプリ本体が扱うのは利用者が投稿する内容で、
-[`model/rich-text`](../src/model/rich-text/README.md) の allowlist は `table` も `pre` も `class`
-属性も通しません。それが設計意図です。
+**Because the tolerance for sanitization differs.** The application handles content that users post, and
+the allowlist of [`model/rich-text`](../src/model/rich-text/README.md) lets through neither `table`, nor
+`pre`, nor the `class` attribute. That is by design.
 
-一方このビューアーが描くのは、リポジトリ自身が持つコミット済みのドキュメントです。表・コード
-ブロック・図が出せなければ用を成しません。同じ repo に広い allowlist と狭い allowlist を並べると、
-**広い方をアプリ側から import することを止めるものが規約しか無くなります**。パッケージを分けると、
-広い allowlist はアプリから到達できません。分離をパッケージ境界で担保するための構成です。
+This viewer, on the other hand, renders committed documents the repository itself holds. Without tables,
+code blocks and diagrams it is useless. Placing a wide allowlist and a narrow one side by side in the same
+repo would leave **only a convention to stop the application from importing the wide one**. Splitting the
+package makes the wide allowlist unreachable from the application. The structure exists so that the
+separation is guaranteed by the package boundary.
 
-依存も共有しません。アプリ本体の `package.json` とこのパッケージの `package.json` は別物で、
-ビューアーが引いた依存がアプリの供給面に乗ることはありません。境界の宣言は
-[`pnpm-workspace.yaml`](../pnpm-workspace.yaml) の `packages` に 2 つを並べることが担います。
-逆も成り立ちます —— このパッケージの実行時依存（とその推移的依存）は**公開されるサイトで browser
-上を走る**ため、脆弱性の扱いはアプリ本体の実行時依存と同じ重さで見ます。推移的依存の版の固定は
-同じファイルの `overrides` が持ちます。
+Dependencies are not shared either. The application's `package.json` and this package's `package.json` are
+separate, and dependencies the viewer pulls in never land on the application's supply surface. The boundary
+is declared by listing both under `packages` in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml).
+The converse also holds — this package's runtime dependencies (and their transitive dependencies) **run in
+the browser on the published site**, so their vulnerabilities are treated with the same weight as the
+application's runtime dependencies. Pinning transitive dependency versions is owned by `overrides` in the
+same file.
 
-## 本文を描くまでの経路
+## The path to rendering the body
 
-1 つの文書は次の経路を通って画面に出ます。各段は 1 ディレクトリに閉じ、段を飛ばす経路を持ちません。
+A document reaches the screen through the following path. Each stage is confined to one directory, and no
+path skips a stage.
 
 ```text
-Markdown 文字列
-  → HTML 文字列          (markdown/    marked)
-  → hast の木            (sanitize/    fragment として parse)
-  → sanitize 済みの木    (sanitize/    allowlist で濾す → Value Object)
-  → React 要素           (document-content/  木から直接組む。HTML 文字列を経由しない)
-  → 図                   (mermaid-diagram/   `pre` 1 要素だけを差し替える)
+Markdown string
+  → HTML string          (markdown/    marked)
+  → hast tree            (sanitize/    parsed as a fragment)
+  → sanitized tree       (sanitize/    filtered by the allowlist → Value Object)
+  → React elements       (document-content/  built directly from the tree, never through an HTML string)
+  → diagram              (mermaid-diagram/   replaces only the single `pre` element)
 ```
 
-- **sanitize は常に通します。** 配信される Markdown はリポジトリのドキュメントから機械的に組まれた
-  ものですが、その前提が崩れたときに描画側が最後の防波堤になります。
-- **sanitize 済みであることを型で持ちます。** 構築経路を `SanitizedDocument.from` だけに絞った
-  Value Object で、sanitize を通っていない HTML がこの型として流通しえない状態にします。表示側の
-  部品はこの型だけを受け取り、`children` と `dangerouslySetInnerHTML` を props から外します。
-  アプリ本体の `RichTextContent` と同じ形ですが受け取る型が違い、**両者を混ぜられない**のが要点です。
-- **文字列置換ではなく木を検査します。** 仕様準拠の parser で木にしてから allowlist を当てるため、
-  文字列置換による sanitize で起こる parser の解釈差を持ちません。描画も木から React 要素を直接
-  作り、HTML 文字列へ戻しません。
-- **描画側の判断は木の形だけで行います。** 図にするかどうかは `pre > code.language-mermaid` という
-  形で決め、描画側が文字列を再度 parse することはしません。再 parse すると、sanitize を通った木と
-  描画の判断が別の根拠を持つことになります。差し替えは `hast-util-to-jsx-runtime` の `components`
-  で `pre` 1 要素に閉じ、`passNode` で元の節を受け取って判定します。
-- hast の `className` は型上は配列ですが parser は文字列のまま持つこともあるため、**値の形で受けます**。
+- **Sanitization always runs.** The Markdown served is assembled mechanically from the repository's
+  documents, but when that premise breaks, the rendering side is the last line of defense.
+- **Being sanitized is carried in the type.** A Value Object whose only construction path is
+  `SanitizedDocument.from` makes it impossible for unsanitized HTML to circulate as this type. The display
+  components accept only this type and drop `children` and `dangerouslySetInnerHTML` from their props.
+  It has the same shape as the application's `RichTextContent` but accepts a different type, and the point
+  is that **the two cannot be mixed**.
+- **The tree is inspected, not strings.** The allowlist is applied after a spec-compliant parser builds the
+  tree, so there are none of the parser interpretation differences that string-replacement sanitization
+  suffers. Rendering also builds React elements directly from the tree and never goes back to an HTML string.
+- **The rendering side decides by the shape of the tree alone.** Whether something becomes a diagram is
+  decided by the shape `pre > code.language-mermaid`, and the rendering side never parses strings again.
+  Re-parsing would give the sanitized tree and the rendering decision different grounds. Replacement is
+  confined to the single `pre` element via `components` of `hast-util-to-jsx-runtime`, and the decision
+  receives the original node through `passNode`.
+- hast's `className` is an array in the types, but the parser may keep it as a string, so **it is accepted
+  by the shape of the value**.
 
-### 無害化 schema の決め方
+### How the sanitization schema is decided
 
-schema は `sanitize/document.definition.ts` が持ち、**このパッケージの外へ出しません**。決め方は
-次のとおりです。
+The schema is owned by `sanitize/document.definition.ts` and **does not leave this package**. It is decided
+as follows.
 
-- **`hast-util-sanitize` の既定 schema へ委ねる項目を残しません。** 未指定の項目は既定値で補完される
-  仕様のため、上流の既定が広がったときに通過範囲が黙って広がることを防ぎます。`allowComments` /
-  `allowDoctypes` / `clobber` / `clobberPrefix` を含め、全項目を明示します。
-- **`h1` を通します。** 面の title が持つのは manifest の項目名であって文書の題ではないため、本文の
-  `h1` と競合しません。落とすとタグだけが外れて題のテキストが本文の冒頭へ浮きます。
-- **`class` は形を限定して通します。** コードブロックの言語表記（`language-*`）だけです。class
-  属性はそれ自体が任意の文字列を運べるため、形を限定しないとスタイルを持つ class 名を本文から
-  指定できてしまいます。
-- **protocol-relative URL（`//host`）は sanitize の後段で落とします。** `hast-util-sanitize` の
-  protocol 検査は `:` を含む値のスキームだけを見るため、`//host` は相対参照として素通りします。
-  実体は外部ホストへの絶対 URL で、`img` に残ると公開するサイトから外部ホストへ要求が飛びます。
-- **`alt` を持たない `img` には空文字を補います**（`required`）。読み上げから内容が落ちるのを防ぎ、
-  装飾として読み飛ばせる状態にします。
-- **祖先の制約（`ancestors`）は構造の乱れを防ぐだけで、セキュリティの境界ではありません。** 判定は
-  変換前の木を辿るため、祖先自身が落ちた場合の子は救えません（`table` 抜きの `tr > td` は `tr`
-  だけが外れ、`td` が孤立して残る）。後処理は持ちません。
-- `script` / `style` は内容ごと取り除き、`href` / `src` のプロトコルは `http` / `https` / `mailto`
-  に限ります。
+- **No item is left to `hast-util-sanitize`'s default schema.** Unspecified items are filled in with defaults
+  by specification, so this prevents the allowed range from silently widening when the upstream defaults
+  widen. Every item is explicit, including `allowComments` / `allowDoctypes` / `clobber` / `clobberPrefix`.
+- **`h1` is allowed.** The surface's title holds the manifest item name, not the document's title, so it
+  does not compete with the body's `h1`. Dropping it would remove only the tag, floating the title text to
+  the top of the body.
+- **`class` is allowed in a restricted shape.** Only the code block language notation (`language-*`). A
+  class attribute can carry any string by itself, so without restricting the shape, the body could specify
+  class names that carry styles.
+- **Protocol-relative URLs (`//host`) are dropped after sanitization.** `hast-util-sanitize`'s protocol
+  check looks only at the scheme of values containing `:`, so `//host` passes through as a relative
+  reference. It is in fact an absolute URL to an external host, and left in an `img` it would send requests
+  from the published site to the external host.
+- **An `img` without `alt` gets an empty string** (`required`). This keeps content from dropping out of
+  screen reading and lets it be skipped as decoration.
+- **Ancestor constraints (`ancestors`) only prevent structural disorder; they are not a security boundary.**
+  The check walks the tree before transformation, so it cannot rescue children whose ancestor was itself
+  dropped (`tr > td` without `table` loses only `tr`, leaving `td` orphaned). There is no post-processing.
+- `script` / `style` are removed along with their content, and the protocols of `href` / `src` are limited
+  to `http` / `https` / `mailto`.
 
-### 図の描画
+### Rendering diagrams
 
-- **mermaid は図が現れたときだけ動的 import します。** mermaid は大きく、図を含まない文書のほうが
-  多いため、静的な import にすると初期表示がその分だけ重くなります。
-- **出力の SVG は sanitize を通しません。** 通す必要が無いためです。sanitize は「取得した Markdown
-  を濾す」ためのもので、図へ渡すのはその濾過を通ったコードブロックの文字列です。図はその文字列から
-  手元で組まれ、外から来た HTML はどこにも現れません。`securityLevel` は `strict` にします。
-- **配色は面に合わせます。** portal は配色の切替を持たず OS の設定に従うため、`prefers-color-scheme`
-  を見て `dark` / `default` を選びます。
-- **描けなかった場合は原文をそのまま残します。** 図の構文は `scripts/mermaid-lint` が CI で検証して
-  いるため壊れた図は届きませんが、届いたときに何も見えなくなるよりは読める形で残します。器は
-  `data-state`（`source` / `rendered`）で状態を示します。
-- **mermaid は browser を必要とします。** 図の実寸をテキストの計測から決めるため、DOM を模した
-  環境では描けません（`mermaid.parse` は通っても `mermaid.render` は落ちます）。テストでは
-  `mermaid` を mock し、器を渡して描かせたことと状態の遷移だけを見ます。
+- **mermaid is dynamically imported only when a diagram appears.** mermaid is large, and most documents
+  have no diagram, so a static import would make the initial display that much heavier.
+- **The output SVG is not sanitized.** There is no need to. Sanitization exists to "filter the fetched
+  Markdown", and what is passed to the diagram is the string of a code block that already passed that
+  filter. The diagram is assembled locally from that string, and HTML from outside appears nowhere.
+  `securityLevel` is `strict`.
+- **The color scheme follows the surface.** The portal has no color-scheme switch and follows the OS
+  setting, so it looks at `prefers-color-scheme` to choose `dark` / `default`.
+- **When a diagram cannot be rendered, the source is left as is.** Diagram syntax is validated in CI by
+  `scripts/mermaid-lint`, so broken diagrams do not arrive, but if one does, it is better left readable
+  than showing nothing. The container indicates its state with `data-state` (`source` / `rendered`).
+- **mermaid requires a browser.** It determines the diagram's actual size from text measurement, so it
+  cannot render in an environment that imitates the DOM (`mermaid.parse` passes but `mermaid.render`
+  fails). Tests mock `mermaid` and check only that it was handed the container and asked to render, and the
+  state transitions.
 
-## 表示状態と経路
+## View state and routing
 
-- **共有・履歴・戻る操作に対して復元可能なのは位置ハッシュだけです。** 静的配信されるため経路を
-  サーバへ問い合わせられません（[0141](../docs/adr/0141-portal-operations.md)）。ハッシュは
-  `#/<group>/<section>` で、解釈できない入力は「未指定」として扱い、空表示に落としません。
-- **ハッシュに載せるのは「どの文書を見ているか」だけです。** 検索語と表示言語は一時的な絞り込みで
-  あり、ハッシュに載せません。検索欄が client island なのは入力の操作性のためで、静的サイトには
-  検索語を運ぶ先の server が無いため、結果もその場の状態として描きます。
-- **要求された group は表示可能な group の中から選び直します。** 言語フィルタ後に消えている場合が
-  あるため、無ければ先頭の group へ寄せ、候補が無ければ空である旨を出します。
-- **section を指すハッシュではその見出しまで送ります。** group を切り替えるだけでは長い group の
-  末尾にある section へ辿り着けず、link が指した先と表示がずれます。
-- **文書は面（Dialog）で開きます。** 面は trigger を持たず、開くのはカード側からだけで、閉じる
-  要求だけが面から来ます。開いた直後は題だけを確定させ本文は取得中として描き、取得に失敗したら
-  面を開いたままにしません。
-- **検索コーパスは言語フィルタ後の group から組みます。** 表示していない項目が検索で引けると、
-  結果を開けない状態になるためです。subgroup の項目も平坦化して含めます —— subgroup だけに置かれた
-  項目が検索から漏れると、利用者からは「存在するのに引けない」状態になります。所属する section /
-  group の名前は項目へ畳み込み、検索結果が単体でどこの項目かを示せるようにします。
+- **Only the location hash can be restored across sharing, history and back navigation.** The site is
+  served statically, so the route cannot be asked of a server ([0141](../docs/adr/0141-portal-operations.md)).
+  The hash is `#/<group>/<section>`; input that cannot be interpreted is treated as "unspecified" and does
+  not fall to an empty view.
+- **The hash carries only "which document is being viewed".** The search term and display language are
+  temporary filters and are not put in the hash. The search box is a client island for input usability;
+  a static site has no server to carry the search term to, so results are also rendered as local state.
+- **The requested group is re-chosen from the displayable groups.** It may have disappeared after language
+  filtering, so if it is absent the first group is used, and if there are no candidates an empty notice is
+  shown.
+- **A hash pointing at a section scrolls to that heading.** Switching the group alone cannot reach a section
+  at the end of a long group, and what the link pointed at and what is shown would diverge.
+- **Documents open in a surface (Dialog).** The surface has no trigger; it is opened only from the card
+  side, and only close requests come from the surface. Right after opening, only the title is settled and
+  the body is rendered as loading; if the fetch fails, the surface does not stay open.
+- **The search corpus is built from the groups after language filtering.** If items not shown could be
+  found by search, their results could not be opened. Subgroup items are flattened in too — if items placed
+  only in a subgroup were missing from search, users would see them as "existing but unfindable". The
+  names of the owning section / group are folded into each item so that a search result alone shows where
+  the item belongs.
 
-### 表示言語の絞り込み
+### Filtering by display language
 
-- 項目の言語（`en` / `ja` / `all`）と利用者が選ぶ表示言語（`EN` / `JA`）は**別の軸**です。`all` は
-  翻訳の対を持たない項目（生成物 HTML や外部リンク）で、言語フィルタの対象外として常に先頭に残ります。
-- **言語は section 単位で決め、配下の subgroup へ共有します。** JA を選んでいても JA の項目が 1 件も
-  無い section は EN へ落とし、同じ section の中で subgroup ごとに言語が混ざる状態を防ぎます。
-- section は items と subgroups のどちらかに中身が残っていれば保持し、空になった section と group は
-  落とします。
+- The item language (`en` / `ja` / `all`) and the display language the user picks (`EN` / `JA`) are
+  **separate axes**. `all` is for items without a translation pair (generated HTML or external links); they
+  are outside the language filter and always stay at the top.
+- **Language is decided per section and shared with the subgroups under it.** A section with no JA item at
+  all falls back to EN even when JA is selected, preventing languages from mixing across subgroups within
+  the same section.
+- A section is kept if content remains in either items or subgroups; sections and groups left empty are
+  dropped.
 
-## 操作要素の選び方
+## Choosing interactive elements
 
-- **カードの行き先で操作要素を変えます。** Markdown はこのページの中で面を開くため `button`、それ
-  以外（生成 HTML / 外部ツール）は別の文書への移動なので `a`（別タブ、`rel="noopener noreferrer"`）
-  です。見た目を揃えるために片方へ寄せると、keyboard と支援技術には「押すと何が起きるか」が伝わり
-  ません。
-- **カードの面全体を当たり判定にするには擬似要素で広げます。** `Card` は `asChild` を持たず `div`
-  を描画するため、カード自体を `button` や `a` にはできません。操作要素は title に置き、
-  `after:absolute after:inset-0` で当たり判定だけを広げます。役割は本物の `button` / `a` が持つため
-  支援技術には正しく伝わり、focus の表示はカード側の `focus-within` が担います。
-- **Accordion（native `details`）の見出しに link を置きません。** `summary` はそれ自体が操作要素で、
-  中へ link を置くと操作要素の入れ子になって keyboard の到達順が壊れます（axe の
-  `nested-interactive`）。遷移は section 側の link が担い、link は group と section の両方を指すため、
-  section を選べば group も切り替わります。
-- native `details` は常に一項目だけを開く制御を持ちませんが、文書を見比べる用途では複数開ける方が
-  都合がよいため、排他にするための client island は足しません。
+- **The interactive element changes with the card's destination.** Markdown opens a surface within this
+  page, so it is a `button`; everything else (generated HTML / external tools) navigates to another
+  document, so it is an `a` (new tab, `rel="noopener noreferrer"`). Unifying on one to match the look would
+  stop keyboards and assistive technology from conveying "what happens when pressed".
+- **Making the whole card surface the hit area is done by extending a pseudo-element.** `Card` has no
+  `asChild` and renders a `div`, so the card itself cannot be a `button` or `a`. The interactive element is
+  placed in the title, and `after:absolute after:inset-0` extends only the hit area. The role is held by a
+  real `button` / `a`, so it reaches assistive technology correctly, and the focus indicator is handled by
+  `focus-within` on the card.
+- **No link is placed in an Accordion (native `details`) heading.** `summary` is itself an interactive
+  element, and a link inside it nests interactive elements and breaks the keyboard reach order (axe's
+  `nested-interactive`). Navigation is handled by the section links, which point at both group and section,
+  so selecting a section also switches the group.
+- Native `details` has no control for keeping only one item open at a time, but for comparing documents
+  being able to open several is more convenient, so no client island is added to make them exclusive.
 
-## 起動と失敗の見せ方
+## Startup and how failures are shown
 
-- 生成物は `./docs.json` を**相対パスで取得**し、schema で検証してからマウントします。形の不一致は
-  配信事故であって利用者の入力エラーではないため、回復を試みず例外にします。
-- **失敗の原因は画面へ出します。** 静的配信されるためログの送り先を持たず、壊れた画面を見ている人が
-  そのまま原因を追える形にしておかないと、失敗が誰にも届きません。取得の失敗（応答の状態）、JSON
-  として壊れている、形が違う（どの項目か）のいずれも文言に含めます。
+- The generated artifact `./docs.json` is **fetched by relative path**, validated against the schema, then
+  mounted. A shape mismatch is a deployment accident, not a user input error, so no recovery is attempted;
+  it throws.
+- **The cause of failure is shown on screen.** Served statically, the site has nowhere to send logs, and
+  unless the person looking at the broken screen can trace the cause from it directly, the failure reaches
+  no one. A fetch failure (the response status), broken JSON, and a wrong shape (which item) are all
+  included in the text.
 
-## テストの責務
+## Test Responsibilities
 
-frontmatter が `test-requirement: [unit, component]` と 2 つ挙げるのは、この配下が両方を抱える
-ためです（[0090](../docs/adr/0090-testing-strategy.md)）。文書の解釈・整形・検索・経路は純粋
-ロジックとして確かめ、描画する部品は React Testing Library で確かめます。どちらを負うかは対象が
-描画を返すかで決まります。
+The frontmatter lists two, `test-requirement: [unit, component]`, because this tree carries both
+([0090](../docs/adr/0090-testing-strategy.md)). Document parsing, formatting, search and routing are
+verified as pure logic; components that render are verified with React Testing Library. Which one applies
+is decided by whether the subject returns rendered output.
 
-テストはルートの vitest suite（[`vitest.config.ts`](../vitest.config.ts)）に載り、アプリ本体と同じ
-カバレッジのゲートを受けます。別 suite にすると片方だけが緑という状態を作れてしまうためです。
-カバレッジから外すモジュールは frontmatter の `coverage-exclusions` が記録します
-（[0090](../docs/adr/0090-testing-strategy.md)）。
+The tests run in the root vitest suite ([`vitest.config.ts`](../vitest.config.ts)) and are subject to the
+same coverage gate as the application. A separate suite would make it possible for only one side to be green.
+Modules excluded from coverage are recorded in the frontmatter's `coverage-exclusions`
+([0090](../docs/adr/0090-testing-strategy.md)).
 
-この配下で繰り返す書き方:
+Recurring patterns in this tree:
 
-- ルートの環境は `node` なので、描画する部品のテストはファイル先頭の `// @vitest-environment jsdom`
-  で切り替えます。
-- `fetch` は MSW（`setupServer`、`onUnhandledRequest: "error"`）で受けます。取得中の姿を捉える
-  テストは応答を `delay("infinite")` のまま返さないでおきます —— 返してしまうと、面が出た時点で
-  本文が入っていることがあり、捉えられるかどうかが取得の速さ次第になります。`Error` でない値が
-  投げられる状況は HTTP の応答では作れないため、そこだけ `fetch` を直接差し替えます。
-- jsdom が実装しない `scrollIntoView` は `Element.prototype` へ差し替え、呼ばれたことだけを見ます。
-- 打鍵に追従する検索欄は fake timers（`shouldAdvanceTime: true`）で待ち時間を進めます。
-- Dialog は Portal で `body` 直下へ描くため、面を開いた状態の axe は `container` ではなく
-  `baseElement` へ掛けます。axe で無効化する規則は [0091](../docs/adr/0091-test-verification-methods.md)
-  が決めます。
-- 起動関数が root を返さない場合は `createRoot` を差し替えて生成物を捕まえ、テスト側で畳みます
-  （[`docs/testing-conventions.md`](../docs/testing-conventions.md)）。
+- The root environment is `node`, so tests of rendering components switch with
+  `// @vitest-environment jsdom` at the top of the file.
+- `fetch` is answered by MSW (`setupServer`, `onUnhandledRequest: "error"`). Tests that capture the
+  loading state leave the response unreturned with `delay("infinite")` — returning it can put the body in
+  place by the time the surface appears, making capture depend on fetch speed. A situation where a
+  non-`Error` value is thrown cannot be produced by an HTTP response, so only there is `fetch` replaced
+  directly.
+- `scrollIntoView`, which jsdom does not implement, is replaced on `Element.prototype`, and only the fact
+  that it was called is checked.
+- The search box that follows keystrokes advances its waiting time with fake timers
+  (`shouldAdvanceTime: true`).
+- A Dialog is rendered by a Portal directly under `body`, so axe for the opened state runs against
+  `baseElement`, not `container`. The rules disabled in axe are decided by
+  [0091](../docs/adr/0091-test-verification-methods.md).
+- When a startup function does not return its root, `createRoot` is replaced to capture what it creates,
+  and the test cleans it up ([`docs/testing-conventions.md`](../docs/testing-conventions.md)).
 
-## デザインシステムとの関係
+## Relationship to the Design System
 
-UI は [`src/components/design-system`](../src/components/README.md) の部品で組みます。
-**コピーせず、`@` alias でアプリ本体のソースを直接参照します。** コピーすると乖離した時点で、
-実運用の画面でデザインシステムを検証するという目的が失われるためです。
+The UI is built from the components of [`src/components/design-system`](../src/components/README.md).
+**It references the application's source directly through the `@` alias rather than copying it.** Copying
+would, the moment the two drifted, defeat the purpose of verifying the design system on a screen in real use.
 
-このビューアーはデザインシステムの実利用者であり、Storybook の中だけでは出てこない
-負荷（実データ量・実文書長・実際の組み合わせ）を掛ける役割を持ちます。
+This viewer is a real user of the design system, with the role of applying loads that never appear inside
+Storybook alone (real data volume, real document length, real combinations).
 
-直接参照を成り立たせる配線は 3 か所です。
+Three pieces of wiring make the direct reference work.
 
-- [`vite.config.ts`](vite.config.ts) の alias `@` → `../src`。design-system の部品が内部で使う
-  `@/` もこの alias で解決されます。
-- [`src/styles.css`](src/styles.css) はアプリ本体の `globals.css` をそのまま `@import` します。
-  トークン・組版・foundation の CSS を複製すると、同じ理由で目的が失われます。
-- Tailwind の class 検出はその CSS の位置から辿るため、別パッケージにある部品（`../../src/components`）
-  とビューアー自身のソースを `@source` で明示します。
+- The alias `@` → `../src` in [`vite.config.ts`](vite.config.ts). The `@/` that design-system components
+  use internally also resolves through this alias.
+- [`src/styles.css`](src/styles.css) `@import`s the application's `globals.css` as is. Duplicating the
+  token, typesetting and foundation CSS would defeat the purpose for the same reason.
+- Tailwind's class detection traces from that CSS's location, so components in another package
+  (`../../src/components`) and the viewer's own source are stated explicitly with `@source`.
 
-本文の組版はデザインシステムの `typeset` 基盤が持ち、ドキュメント用の preset（`typeset-docs`）を
-既定で当てます。
+Body typesetting is owned by the design system's `typeset` foundation, and the documentation preset
+(`typeset-docs`) is applied by default.
 
-## 構成
+## Structure
 
-| ディレクトリ | 役割 |
+| Directory | Role |
 | --- | --- |
-| `src/docs-json/` | 生成物 `docs.json` のスキーマと読み取り。形の不一致は配信事故として例外にする |
-| `src/lang-filter/` | 表示言語での絞り込み。JA の実体が無い section は EN へ落とし、section 内で言語が混ざらないようにする |
-| `src/search/` | 検索コーパスの組み立て。所属する section / group 名を項目へ畳み込む |
-| `src/hash-route/` | 位置ハッシュ `#/<group>/<section>` の解釈と組み立て |
-| `src/markdown/` | Markdown から HTML 文字列への変換。出力は必ず sanitize へ渡す |
-| `src/sanitize/` | ドキュメント用 allowlist と、sanitize 済みであることを表す Value Object |
-| `src/document-content/` | sanitize 済みの木を React 要素として描く。`pre` の差し替えだけを持つ |
-| `src/mermaid-diagram/` | 木の形からの mermaid 原文の取り出しと、原文を図として描く部品 |
-| `src/portal-app/` | ビューアー本体。表示状態（ハッシュ・言語・検索語・開いている文書）を持つ |
-| `src/portal-sidebar/` | group と section への導線と、生成 HTML / 外部ツールへの常設リンク |
-| `src/portal-card-grid/` | 項目をカードとして並べる。行き先で `button` / `a` を選ぶ |
-| `src/mount/` | 生成物の取得・検証・マウントと、失敗の見せ方 |
-| `src/main.tsx` | エントリ。`#root` を探して `mount/` へ渡すだけ |
+| `src/docs-json/` | Schema and reading of the generated `docs.json`. A shape mismatch throws as a deployment accident |
+| `src/lang-filter/` | Filtering by display language. A section without JA content falls back to EN so that languages do not mix within a section |
+| `src/search/` | Building the search corpus. Folds the owning section / group names into each item |
+| `src/hash-route/` | Parsing and building the location hash `#/<group>/<section>` |
+| `src/markdown/` | Converting Markdown to an HTML string. The output always goes to sanitize |
+| `src/sanitize/` | The documentation allowlist, and the Value Object that represents being sanitized |
+| `src/document-content/` | Renders the sanitized tree as React elements. Holds only the `pre` replacement |
+| `src/mermaid-diagram/` | Extracting mermaid source from the tree's shape, and the component that renders the source as a diagram |
+| `src/portal-app/` | The viewer itself. Holds the view state (hash, language, search term, open document) |
+| `src/portal-sidebar/` | Navigation to groups and sections, and permanent links to generated HTML / external tools |
+| `src/portal-card-grid/` | Lays items out as cards. Chooses `button` / `a` by destination |
+| `src/mount/` | Fetching, validating and mounting the generated artifact, and how failures are shown |
+| `src/main.tsx` | The entry. Only finds `#root` and passes it to `mount/` |
 
-配信先のパス接頭辞を持たないよう `vite.config.ts` は `base: "./"` とし、サイトのどの位置へ置いても
-動くようにします。生成物の取得（`./docs.json`）も相対です。portal の URL を配信側の都合で決められる
-状態を保つためです。
+`vite.config.ts` uses `base: "./"` so that it holds no deployment path prefix and works wherever on the site
+it is placed. Fetching the generated artifact (`./docs.json`) is relative too. This keeps the portal URL
+something the deploying side can decide.
 
-## 運用
+## Operations
 
-- **依存は極力単独で完結する部品に寄せる**。このビューアーは別リポジトリへそのまま移植できる状態を
-  保つ前提があり、引き込んだ依存はそのまま移植コストになる。対に `-native` / `-client` がある部品は、
-  要件が許す限り `-native` を優先する（表示言語の切替は `ToggleGroupNative`。検索欄は打鍵に追従する
-  要件があるため `SearchFieldClient`）
-- 経路・絞り込み・検索・生成物の読み取り（`docs-json` / `lang-filter` / `search` / `hash-route`）は
-  zod 以外に依存させない。Markdown の変換と無害化（`markdown` / `sanitize`）は marked と hast の
-  一式に閉じる。輸出時にそのまま持っていける状態を保つ
-- Next.js 固有 API（`next/link` / `next/image` / Server Components）は使わない
+- **Lean dependencies toward components that are self-contained as far as possible.** This viewer is meant
+  to stay portable to a separate repository as is, and every dependency pulled in becomes porting cost.
+  For components that come in `-native` / `-client` pairs, prefer `-native` as far as requirements allow
+  (display language switching is `ToggleGroupNative`; the search box has to follow keystrokes, so it is
+  `SearchFieldClient`)
+- Routing, filtering, search and reading the generated artifact (`docs-json` / `lang-filter` / `search` /
+  `hash-route`) depend on nothing but zod. Markdown conversion and sanitization (`markdown` / `sanitize`)
+  are confined to marked and the hast toolset. This keeps them ready to take along as is when exported
+- Next.js-specific APIs (`next/link` / `next/image` / Server Components) are not used

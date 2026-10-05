@@ -4,232 +4,232 @@ test-requirement: unit
 
 # design tokens
 
-`tokens/` は design token の SSOT です。
+`tokens/` is the SSOT for design tokens.
 
-## テストの責務
+## Test Responsibilities
 
-frontmatter の `test-requirement: unit` が掛かるのは [`scripts/`](scripts/README.md) の書き出しである
-（[0090](../docs/adr/0090-testing-strategy.md)）。JSON は SSOT のデータであって判定を持たない。
+The frontmatter `test-requirement: unit` applies to the output written by [`scripts/`](scripts/README.md)
+([0090](../docs/adr/0090-testing-strategy.md)). The JSON is SSOT data and holds no decisions.
 
-## 構成
+## Structure
 
-- `primitives.json`: 色・余白・角丸・書体・段・字間・ぼかし・字重の基礎値
-- `themes/<系統>/<配色>.json`: primitive を参照する semantic token
+- `primitives.json`: base values for color, spacing, radius, typeface, steps, letter spacing, blur and font weight
+- `themes/<family>/<color-scheme>.json`: semantic tokens that reference primitives
 
-W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います。**コンポーネントは primitive を直接参照せず、生成される semantic token を使います。**
+It uses W3C Design Tokens `$type` / `$value` and aliases (`{...}`). **Components never reference primitives directly; they use the generated semantic tokens.**
 
-参照は値の一部としても書けます。`color-mix()` や `box-shadow` のように primitive を素材の 1 つとして組み立てる値があるためで、そこを素の色で書くと semantic 層から primitive への経路が切れ、テーマの差し替えがその宣言だけ効かなくなります。
+A reference can also be written as part of a value. Some values, such as `color-mix()` or `box-shadow`, assemble a primitive as one of their ingredients; writing a raw color there cuts the path from the semantic layer to the primitive, and swapping the theme stops working for that declaration alone.
 
-**参照先の無い token は生成が落ちます。** 通すと実在しない変数を指す `var()` が出て、その宣言はエラーにならず丸ごと無効になり、面や文字が静かに消えます（[`docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes`](../docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes)）。参照の区切りは `.` ですが、`{spacing.0.5}` のように段の名前自体が `.` を含む場合も、宣言済みの primitive と突き合わせて解決します。
+**A token whose reference target does not exist fails generation.** Letting it through would emit a `var()` pointing at a variable that does not exist, and that declaration becomes wholly invalid without an error, so surfaces and text silently disappear ([`docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes`](../docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes)). The reference separator is `.`, but even when a step's own name contains `.`, as in `{spacing.0.5}`, it is resolved by matching against the declared primitives.
 
-値そのものの理由は、その token の `$description` に書けます。W3C の項目で、生成物には出ません。
+The reason for a value itself can be written in that token's `$description`. It is a W3C field and does not appear in the generated artifacts.
 
-## 切替の軸は 2 本
+## There are two switching axes
 
-**配色**（`light` / `dark`）は文書全体の軸で、`:root` に出ます。**系統**（`user` / `admin`）は部分木の軸で、`[data-surface]` に出ます。
+**Color scheme** (`light` / `dark`) is a document-wide axis and is emitted on `:root`. **Family** (`user` / `admin`) is a subtree axis and is emitted on `[data-surface]`.
 
-> 「面」は `bg-*` が塗る面を指す語として repo 全体で使うため、この軸は「系統」と呼びます。属性と
-> ディレクトリの綴りは `surface` です。
+> Across the repo, "surface" is the word for the area a `bg-*` paints, so this axis is called the "family". The attribute and
+> directory spelling is `surface`.
 
-| | 既定 | 既定以外が効く範囲 |
+| | Default | Where a non-default takes effect |
 | --- | --- | --- |
-| 配色 | `light` | OS の設定（`prefers-color-scheme`）と `:root[data-theme]` の二経路 |
-| 系統 | `user` | `[data-surface="<系統>"]` を置いた部分木 |
+| Color scheme | `light` | Two paths: the OS setting (`prefers-color-scheme`) and `:root[data-theme]` |
+| Family | `user` | A subtree carrying `[data-surface="<family>"]` |
 
-生成物は系統 × 配色の 6 ブロックです。セレクタの詳細度は `[data-surface]` が `(0,1,0)`、`:root[data-theme]` が `(0,2,0)`、両方揃った範囲が `(0,3,0)` と積み上がるので、同じ木では**系統と配色の両方を指定した宣言が必ず勝ちます**。既定の系統を先に出すのも同じ理由で、**記述順が詳細度の同点を裁くため順序は生成物の意味の一部です**。
+The generated output is six blocks, family × color scheme. Selector specificity stacks up — `(0,1,0)` for `[data-surface]`, `(0,2,0)` for `:root[data-theme]`, and `(0,3,0)` where both apply — so within the same tree **a declaration that specifies both family and color scheme always wins**. The default family is emitted first for the same reason: **source order settles specificity ties, so the order is part of the generated output's meaning**.
 
-配色の二経路では**明示指定が OS の設定に勝ちます**。OS 側のブロックは `:root:not([data-theme="<既定>"])` に掛け、既定の配色を明示した文書を除外します。既定以外の配色は `screen` に限定し、印刷は常に既定の配色で出ます（[0051](../docs/adr/0051-styling-system.md)）。同じ発火条件を `globals.css` の `@custom-variant dark` も持つので、**条件を変えるときは生成側と 2 箇所を一緒に動かします**。
+Between the two color-scheme paths, **an explicit setting beats the OS setting**. The OS-side block is applied to `:root:not([data-theme="<default>"])`, excluding documents that explicitly set the default color scheme. Non-default color schemes are limited to `screen`, and printing always uses the default color scheme ([0051](../docs/adr/0051-styling-system.md)). `@custom-variant dark` in `globals.css` holds the same trigger condition, so **when changing the condition, move both places together with the generator**.
 
-`color-scheme` は配色の軸の宣言なので `:root` 側にだけ出します。系統の側にも出すと同じ条件を二重に持つことになります。宣言しないと、配色を切り替えてもスクロールバー・フォーム部品・キャンバスの既定描画が既定の配色のまま残ります。
+`color-scheme` is a declaration of the color-scheme axis, so it is emitted only on the `:root` side. Emitting it on the family side too would hold the same condition twice. Without it, scrollbars, form controls and the canvas keep their default rendering in the default color scheme even after the color scheme is switched.
 
-### 属性を置く場所は、Portal を含む位置でなければならない
+### Where the attribute goes must contain the Portal
 
-`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` は Radix の Portal で
-**`document.body` の直下へ出ます**。系統の属性を本文の内側の要素に置くと、これらの中身は属性の外へ
-落ち、系統を切り替えても既定のまま描かれます。
+`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` render through a Radix Portal
+**directly under `document.body`**. If the family attribute is placed on an element inside the body content, their contents fall outside
+the attribute and render in the default even when the family is switched.
 
-属性は **Portal の出口を含む位置**（`body` 相当）に置くか、Portal の `container` を系統の内側へ
-向けるかのどちらかが要ります。**部分木の途中に置くだけでは足りません。**
+The attribute needs to either sit **at a position that contains the Portal's exit** (equivalent to `body`), or have the Portal's `container`
+point inside the family. **Placing it partway down the subtree is not enough.**
 
-カタログ（`.storybook/preview.tsx`）は `body` に置いています。実アプリは前者の形で、器が部分木の外枠へ属性を置き、`SurfacePortalBridge` が同じ系統を `body` へ届けます。分担と理由は [`src/components/design-system/foundation/surface/README.md`](../src/components/design-system/foundation/surface/README.md) が持ちます。
+The catalog (`.storybook/preview.tsx`) puts it on `body`. The real application uses the former shape: the layout shell puts the attribute on the subtree's outer frame, and `SurfacePortalBridge` delivers the same family to `body`. The division of work and the reasons are owned by [`src/components/design-system/foundation/surface/README.md`](../src/components/design-system/foundation/surface/README.md).
 
-### 系統を足す・消す
+### Adding and removing a family
 
-`themes/` の下にディレクトリを作れば系統が増えます。生成側が名前で知るのは**既定の系統と既定の配色だけ**（`scripts/gen-tokens.ts` の定数）で、それ以外はディレクトリを走査して見つけます。`admin/` を丸ごと消せば、生成物は配色 1 軸の形に戻ります。既定の系統は消せず、改名するなら生成側の定数も一緒に動かします。
+Creating a directory under `themes/` adds a family. The only names the generator knows are **the default family and the default color scheme** (constants in `scripts/gen-tokens.ts`); everything else it finds by scanning the directories. Deleting `admin/` entirely returns the generated output to a single color-scheme axis. The default family cannot be deleted; to rename it, move the generator's constants along with it.
 
-配色も同じ形で増えます。**すべての系統が同じ配色のファイルを持っていなければ生成が落ちます**（既定の配色は必須）。OS の経路は配色の名前をそのまま `prefers-color-scheme` の値に使うため、OS が持つ値以外の名前は `data-theme` の明示経路だけで効きます。
+Color schemes are added the same way. **Generation fails unless every family has a file for the same color schemes** (the default color scheme is required). The OS path uses the color scheme's name as the `prefers-color-scheme` value as-is, so a name other than the values the OS has takes effect only through the explicit `data-theme` path.
 
-**すべての系統と配色が同じ token を宣言していなければ生成が落ちます。** 欠けた token は宣言が無いだけでは済まず、カスケードにより既定の系統や既定の配色の値をそのまま引き継ぐため、系統を切り替えたつもりの箇所だけが元の色のまま残ります。
+**Generation fails unless every family and color scheme declares the same tokens.** A missing token is not merely an absent declaration: through the cascade it inherits the value of the default family or default color scheme as-is, so only the places where you believed you switched the family stay in the original color.
 
-## 面と文字で明度を分ける
+## Separate lightness by surface and text
 
-`primary` / `emphasis` / `success` / `warning` / `destructive` / `info` は、light と dark で**別の明度の primitive を参照**します。ほかの semantic token のように 1 つの色を両配色で使い回しません。
+`primary` / `emphasis` / `success` / `warning` / `destructive` / `info` **reference primitives of different lightness** in light and dark. Unlike other semantic tokens, they do not reuse one color across both color schemes.
 
-理由は、これらが**面の色であると同時に文字の色でもある**ためです。`bg-destructive` の面には `destructive-foreground` が乗り、`text-destructive` は背景やその淡い面（`bg-destructive/10`）の上に文字として乗ります。1 つの中間的な明度で両方を満たすことはできません。
+The reason is that these are **surface colors and text colors at the same time**. `destructive-foreground` sits on a `bg-destructive` surface, while `text-destructive` sits as text on the background and on its faint surface (`bg-destructive/10`). A single intermediate lightness cannot satisfy both.
 
-中間の明度を両配色で共有すると、面としては白文字が乗る一方、文字としては WCAG AA の 4.5:1 を割ります。配色ごとに地から離れる方向へ振り、対になる `*-foreground` を反転させることで、面と文字の双方が成立します。
+Sharing an intermediate lightness across both color schemes lets white text sit on it as a surface, but as text it falls below WCAG AA's 4.5:1. Shifting it away from the ground per color scheme and inverting the paired `*-foreground` makes both surface and text work.
 
-**段は名前で揃えず、測って選んでください。** 色相が変われば同じ段でも輝度は変わるので、対応する段の番号を写しても同じ比にはなりません。実際に light の `success` は、`destructive` と同じ段では文字として AA を割ります。この repo では明度をコントラスト要件から導いているため段の番号は生成結果ですが、`themes/` を手で編集するときはこの落とし穴が戻ります。
+**Do not align steps by name; measure and choose.** When the hue changes, the same step has a different luminance, so copying the corresponding step number does not give the same ratio. In fact, light `success` at the same step as `destructive` falls below AA as text. In this repo the lightness is derived from contrast requirements, so the step numbers are a generated result, but this pitfall returns when you edit `themes/` by hand.
 
-**新しく同種の semantic token を足すときも、この形に揃えてください。** `text-*` と `bg-*` は同じ CSS 変数を引くため、変数の差し替えだけで面と文字を分離することはできません。
+**When adding a new semantic token of the same kind, follow this shape too.** `text-*` and `bg-*` read the same CSS variable, so swapping the variable alone cannot separate surface from text.
 
-### 役割ごとに要求が違う
+### Requirements differ by role
 
-WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token はどちらの役割で置かれるかで狙う比率が違います。
+WCAG requires **4.5:1 for text and 3:1 for UI components and graphics**. The ratio a token aims for depends on which role it is placed in.
 
-| 役割 | token | 目標 |
+| Role | token | Target |
 | --- | --- | --- |
-| 文字にも置く | `foreground` `muted-foreground` `secondary` `success` `warning` `destructive` `info` | 4.5:1 |
-| 面と図形にだけ置く | `primary` `emphasis` `input` `active` | 3:1 |
+| Also placed as text | `foreground` `muted-foreground` `secondary` `success` `warning` `destructive` `info` | 4.5:1 |
+| Placed only on surfaces and graphics | `primary` `emphasis` `input` `active` | 3:1 |
 
-**`primary` と `emphasis` を文字に置かないでください。** この 2 つを文字の要求で縛ると、面としての明るさを失います（light では暗い青緑まで沈みます）。文字が要る場面には `secondary` 以下を使います。
+**Do not place `primary` or `emphasis` as text.** Binding these two to the text requirement costs them their brightness as surfaces (in light they sink to a dark blue-green). Where text is needed, use `secondary` and the ones below it.
 
-### 測る地は 5 つ
+### Five grounds to measure against
 
-いずれの token も、`background` / `card` / `popover` / `muted` / `accent` の**すべての上で**目標を満たします。地を背景だけで測ると、hover 中のメニュー項目に乗る `text-destructive` のように、淡い面の上に色文字が乗る組み合わせで割れます。`card` は半透明なので、背景の上に合成した色で測ります。
+Every token meets its target **on all of** `background` / `card` / `popover` / `muted` / `accent`. Measuring against the background alone breaks on combinations where colored text sits on a faint surface, such as `text-destructive` on a hovered menu item. `card` is translucent, so it is measured using the color composited over the background.
 
-線は WCAG 1.4.11 の対象かどうかで要求が分かれます。詳細は [`src/components/README.md#boundary-lines`](../src/components/README.md#boundary-lines)にあります。
+For lines, the requirement depends on whether WCAG 1.4.11 applies. The details are under "Boundary Lines" in [`src/components/README.md`](../src/components/README.md#boundary-lines).
 
-## 光の層
+## Glow Layers
 
-光は色ではなく影の名前空間に置きます。色として出すと Tailwind が `bg-*` / `text-*` を作り、影の値を面や文字に当てられる utility が生えます。
+Glow is placed in the shadow namespace, not in color. Emitted as a color, Tailwind would generate `bg-*` / `text-*`, growing utilities that can apply shadow values to surfaces and text.
 
-| token | 名前空間 | 何を作るか |
+| token | Namespace | What it makes |
 | --- | --- | --- |
-| `glow-inner` / `glow-primary` / `glow-outer` | `shadow` | 光源。3 層を重ねて「発光しているもの」に見せる |
-| `glow-edge` | `shadow` | ぼやけた輪郭。外へのにじみと内側の照り返しを 1 token に収める |
-| `glow` / `glow-strong` | `text-shadow` | 発光する文字 |
+| `glow-inner` / `glow-primary` / `glow-outer` | `shadow` | The light source. Three layers stacked make something look "emitting light" |
+| `glow-edge` | `shadow` | A blurred outline. Fits the outward bleed and the inner reflection into one token |
+| `glow` / `glow-strong` | `text-shadow` | Glowing text |
 
-### 発光の可否と時機
+### Whether and when to glow
 
-**光ってよい色と、その強さは決まっています。持たない色には token がありません**（`shadow-glow-secondary` は存在しないので書けません）。
+**Which colors may glow, and how strongly, is fixed. A color without it has no token** (`shadow-glow-secondary` does not exist, so it cannot be written).
 
-| 色 | 強さ | 時機 |
+| Color | Strength | When |
 | --- | --- | --- |
-| `primary` | 主 | 休止時から光ってよい |
-| `info` / `success` | 控えめ | 休止時から光ってよい |
-| `warning` / `destructive` | 主 | **アクション時のみ**（`hover:` / `focus-visible:`） |
-| `secondary` / `emphasis` | — | 光らせない |
+| `primary` | Main | May glow from rest |
+| `info` / `success` | Subdued | May glow from rest |
+| `warning` / `destructive` | Main | **Only on action** (`hover:` / `focus-visible:`) |
+| `secondary` / `emphasis` | — | Never glows |
 
-可否は **token の有無**が、時機は **使う場所**が担います。`warning` と `destructive` を休止時から光らせると、危険な操作が常時「いま押せる」と読めてしまいます。
+Whether is carried by **the presence of the token**, and when by **where it is used**. Making `warning` and `destructive` glow from rest would make dangerous operations read as permanently "pressable now".
 
-**光を状態の唯一の手掛かりにしないでください。** forced-colors モードでは UA が `box-shadow` を `none` にするため、`shadow-glow-*` は完全に消えます。`Live` / `Running` / `Selected` は色か文言と併せて示します。
+**Do not make glow the only cue for a state.** In forced-colors mode the UA sets `box-shadow` to `none`, so `shadow-glow-*` disappears entirely. Show `Live` / `Running` / `Selected` together with color or wording.
 
-**輪郭のぼかしは focus の表示になりません。** `outline` はぼかせず、focus は `outline` である必要があります（[`src/components/README.md#focus-indicators`](../src/components/README.md#focus-indicators)）。ぼかしはその上に重ねる装飾です。
+**A blurred outline does not serve as a focus indicator.** `outline` cannot be blurred, and focus needs to be an `outline` (「focus 表示」 in [`src/components/README.md`](../src/components/README.md)). The blur is decoration layered on top.
 
-## card は背景の上に半透明で乗る
+## card sits translucently on the background
 
-塗られた面ではなく「枠だけがそこにある」見え方にするため、`card` だけを半透明にしています。`popover` / dialog は任意の内容の上に重なり**合成先が定まらない**ので不透明のままです。
+Only `card` is translucent, so that it looks like "just a frame sitting there" rather than a painted surface. `popover` / dialog overlap arbitrary content and **have no fixed compositing target**, so they stay opaque.
 
-コントラストは `card` を背景の上に合成した色で測っています。`card` の不透明度を変えるときは、合成結果が変わるので測り直してください。
+Contrast is measured using the color of `card` composited over the background. When changing `card`'s opacity, the composited result changes, so measure again.
 
-## 書体
+## Typefaces
 
-書体は素性で primitive を持ち、役割は semantic が持ちます。
+Typefaces hold primitives by origin, and semantics hold the roles.
 
 | semantic | user | admin |
 | --- | --- | --- |
-| `sans`（本文） | **OS 同梱の和文ゴシック**（`system-ui` → ヒラギノ → 游ゴシック → …） | 同左 |
-| `brand`（銘） | Michroma | Michroma |
+| `sans` (body) | **The Japanese gothic bundled with the OS** (`system-ui` → Hiragino → Yu Gothic → …) | Same as left |
+| `brand` (wordmark) | Michroma | Michroma |
 | `mono` | Geist Mono | Geist Mono |
 
-**和文の Web フォントは読みません**（[0051](../docs/adr/0051-styling-system.md)）。和文の Web フォントは
-`@font-face` の宣言が 100 を超える単位で CSS に載り、それが描画を止めます。全画面に効く本文でその費用を
-払うのをやめ、Web フォントはラテン（銘と等幅）だけに残しています。
+**No Japanese web font is loaded** ([0051](../docs/adr/0051-styling-system.md)). A Japanese web font puts `@font-face`
+declarations into the CSS in units of over 100, and that blocks rendering. Instead of paying that cost for body text that affects every screen,
+web fonts are kept only for Latin (the wordmark and monospace).
 
-**系統の差は配色・発光・余白・強調の段が持ちます。** 本文書体はその軸に含めません —— 費用が桁で違い、
-面を分けても管理を開く人はやはり払うためです。
+**The difference between families is carried by color scheme, glow, spacing and the emphasis step.** The body typeface is not part of that axis — the cost differs by
+an order of magnitude, and even with surfaces separated, people who open the admin side would still pay it.
 
-ラテンと等幅の実体は `next/font` が [`src/app/fonts.ts`](../src/app/fonts.ts) で読み、`--typeface-*` として
-配ります。primitive の綴りを `--font-*` と分けているのは、生成する別名と同じ名前になると宣言が自分自身を
-指すためです。`next/font` はその変数を class に載せて配るので、読む要素の祖先に `FONT_VARIABLES` の class が
-要ります（実アプリの `<html>` とカタログの双方が同じ定義を使います）。
+The Latin and monospace typefaces are loaded by `next/font` in [`src/app/fonts.ts`](../src/app/fonts.ts) and distributed as `--typeface-*`.
+The primitive spelling is kept separate from `--font-*` because a declaration with the same name as the generated alias would point at
+itself. `next/font` distributes the variable on a class, so an ancestor of the reading element needs a `FONT_VARIABLES` class
+(the real application's `<html>` and the catalog both use the same definition).
 
-### 強調は 1 段だけ持つ
+### Only one emphasis step
 
-書体ごとに持っている太さが違うため、太さの数値を部品に書くと書体を替えたときに段が潰れます。
+Typefaces have different weights available, so writing weight numbers into components collapses the steps when the typeface is swapped.
 
 | semantic | user | admin |
 | --- | --- | --- |
-| `emphasis`（本文より強い） | 700 | 500 |
+| `emphasis` (stronger than body) | 700 | 500 |
 
-**段は 1 つだけです。** 本文（400）との差だけを持ち、それ以上の階層は作りません。
+**There is only one step.** It holds only the difference from body (400) and creates no further hierarchy.
 
-**1 段しか持たないのは、2 段目が多くの環境で出ないためです。** 同じ文字列を各段で描いてインクの量を
-比べた実測（macOS / Chromium）:
+**There is only one step because a second step does not show up in many environments.** Measured by rendering the same string at each step and comparing the amount of ink
+(macOS / Chromium):
 
-| 書体 | 区別できる段 |
+| Typeface | Distinguishable steps |
 | --- | --- |
-| ヒラギノ角ゴシック | 400 / 500 / 600 / 700 / 800 の**すべて** |
-| 游ゴシック | **400 と、それ以外**（500・600・700・800 は同じ字面） |
+| Hiragino Kaku Gothic | **All** of 400 / 500 / 600 / 700 / 800 |
+| Yu Gothic | **400 and everything else** (500, 600, 700 and 800 render identically) |
 | `system-ui` | 400 / 500=600 / 700 / 800 |
 
-本文（400）との差はどの書体でも残りますが、その上をさらに分けても游ゴシックでは消えます。**部品が選び分けて
-いるのに利用者には届かない区別**を体系に持たせないため、段を 1 つに畳んでいます。見出しと本文の差は寸法と
-位置が作ります（[0051](../docs/adr/0051-styling-system.md)）。
+The difference from body (400) survives in every typeface, but any further split above it disappears in Yu Gothic. The steps are folded into one so that the system does not carry **a distinction
+components choose between but users never receive**. The difference between headings and body comes from size and
+position ([0051](../docs/adr/0051-styling-system.md)).
 
-部品は `font-emphasis` と書きます。**太さを直に指定しないでください** —— 書体が持っていない段を指定しても、丸められるだけで強調になりません。`eslint-rules/no-raw-font-weight` が機械で見ます（`font-normal` は「強調しない」の打ち消しなので対象外）。
+Components write `font-emphasis`. **Do not specify the weight directly** — specifying a step the typeface does not have is only rounded and does not produce emphasis. `eslint-rules/no-raw-font-weight` checks this mechanically (`font-normal` is exempt, as it cancels emphasis).
 
-**`brand` はラテンの字しか持ちません。** 和文を含みうる文字列に当てると、1 つの語の中で書体が変わります。用途はサイト名のような銘に限ります。
+**`brand` has only Latin glyphs.** Applied to a string that may contain Japanese, the typeface changes within a single word. Its use is limited to wordmarks such as the site name.
 
-`font-family` は継承する値なので、変数を差し替えただけでは部分木に届きません。`globals.css` の `[data-surface]` が系統ごとの本文書体を当て直しています。
+`font-family` is an inherited value, so swapping the variable alone does not reach a subtree. `[data-surface]` in `globals.css` reapplies each family's body typeface.
 
-## 形
+## Shape
 
-`radius` は直角に寄せ、Tailwind の既定より 1 段小さく取ってあります（この repo の `md` が既定の `sm`、`lg` が既定の `md` に当たります）。丸みのある面は、光を主役にした体系の中では前に出すぎます。`tracking` は `normal` と広い側（`wide` / `wider` / `widest`）だけを定義し、狭い側は Tailwind の既定に任せます。`blur` は `card` の背後をぼかす `panel` の 1 段だけです。
+`radius` leans toward right angles and is set one step smaller than Tailwind's default (this repo's `md` corresponds to the default `sm`, and `lg` to the default `md`). Rounded surfaces push themselves too far forward in a system where glow is the lead. `tracking` defines only `normal` and the wide side (`wide` / `wider` / `widest`), leaving the narrow side to Tailwind's defaults. `blur` has a single step, `panel`, which blurs what is behind a `card`.
 
-## token を足す
+## Adding a Token
 
-1. 生の値が要るなら `primitives.json` に段を足します。段の番号は名前ではなく測った結果です（[面と文字で明度を分ける](#面と文字で明度を分ける)）
-2. semantic token を `themes/` の**すべての系統 × 配色**に同じ名前で足します。面の色には対になる `<名前>-foreground` を一緒に持ちます —— 面の上に乗る文字の色は面ごとに決まり、`foreground` の使い回しでは配色ごとに成立しません
-3. `pnpm gen:tokens` を回し、生成物を同じ変更に含めます。カタログは名前を生成物から受け取るので、手で足す目録はありません
+1. If a raw value is needed, add a step to `primitives.json`. A step number is a measured result, not a name ([Separate lightness by surface and text](#separate-lightness-by-surface-and-text))
+2. Add the semantic token under the same name to **every family × color scheme** in `themes/`. A surface color comes with its paired `<name>-foreground` — the color of text on a surface is decided per surface, and reusing `foreground` does not work for every color scheme
+3. Run `pnpm gen:tokens` and include the generated artifacts in the same change. The catalog receives the names from the generated artifacts, so there is no inventory to add to by hand
 
-**名前空間が、生える utility を決めます。** `color` に置けば Tailwind は `bg-*` / `text-*` / `border-*` を作り、`shadow` なら `shadow-*` だけを作ります。面と文字が同じ変数を引くのはこのためで、文字に置かない色を `color` に置くと、置けてしまう utility が生えます（[役割ごとに要求が違う](#役割ごとに要求が違う) / [光の層](#光の層)）。
+**The namespace decides which utilities grow.** Placed in `color`, Tailwind generates `bg-*` / `text-*` / `border-*`; in `shadow`, only `shadow-*`. This is why surface and text read the same variable, and placing a color that is never used as text in `color` grows utilities that let it be placed anyway ([Requirements differ by role](#requirements-differ-by-role) / [Glow Layers](#glow-layers)).
 
-**手で書く CSS は `--semantic-*` を引きます。** 生成する別名 `--color-*` / `--font-*` は `:root` で解決済みなので、系統を切り替えた部分木で `var(--color-primary)` を引いても既定の値のままです。utility は `@theme inline` が別名の中身を展開するため追従します。
+**Hand-written CSS reads `--semantic-*`.** The generated aliases `--color-*` / `--font-*` are already resolved at `:root`, so reading `var(--color-primary)` in a subtree with a switched family still gives the default value. Utilities follow along because `@theme inline` expands the alias's contents.
 
-## いま効いている値を見る
+## Seeing the Values in Effect
 
-Storybook の **`Tokens/Catalog`** に全件が出ます。名前はこの SSOT から生成された目録（`src/model/generated/design-token.ts`）が持ち、**値はカタログが実行時に CSS から読みます**。表へ値を書き写していないので、token を足しても替えても目録が古くなりません。
+Storybook's **`Tokens/Catalog`** shows every token. The names are held by the inventory generated from this SSOT (`src/model/generated/design-token.ts`), and **the catalog reads the values from CSS at runtime**. No values are copied into the table, so the inventory does not go stale when tokens are added or changed.
 
-ツールバーの `Theme` と `Surface` を切り替えると、同じ token が何に解決されるかが入れ替わります。地に対するコントラスト比も添えてあるので、AA を満たしているかがその場で読めます。
+Switching `Theme` and `Surface` in the toolbar swaps what the same token resolves to. The contrast ratio against the ground is shown too, so whether AA is met can be read on the spot.
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-**意匠はここが単独で持ちます。** コンポーネントは semantic token しか参照しないので、色・書体・形を
-入れ替えるのに `src/` を触る必要はありません。
+**The visual design is owned solely here.** Components reference only semantic tokens, so replacing color, typeface and shape
+requires no change to `src/`.
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change it |
 | --- | --- | --- |
-| 基礎値 | 色・余白・角丸・フォント・段・字間・ぼかし・字重の primitive | `primitives.json` |
-| 役割ごとの値 | 系統 × 配色の 4 ファイルが primitive を参照する | `themes/<系統>/<配色>.json`。[すべての系統と配色が同じ token を宣言していないと生成が落ちます](#系統を足す消す) |
-| 系統の数 | `user` と `admin` の 2 本 | `themes/` のディレクトリを足す・消す（[上記](#系統を足す消す)）。既定の系統は残す |
-| 書体 | 和文は OS 同梱のゴシック、見出しと等幅は同梱の欧文書体 | primitive の `font` と、`next/font` の実体を持つ `src/app/fonts.ts` の両方 |
-| 撮る配色 | VRT は既定の配色だけを撮り、もう一方は `:root` へ届くことだけを見る | [`vrt/README.md`](../vrt/README.md#boilerplate-導入時の変更点) |
+| Base values | Primitives for color, spacing, radius, font, steps, letter spacing, blur and font weight | `primitives.json` |
+| Values per role | Four files, family × color scheme, reference primitives | `themes/<family>/<color-scheme>.json`. [Generation fails unless every family and color scheme declares the same tokens](#adding-and-removing-a-family) |
+| Number of families | Two: `user` and `admin` | Add or remove directories under `themes/` ([above](#adding-and-removing-a-family)). Keep the default family |
+| Typefaces | The OS-bundled gothic for Japanese, and bundled Latin typefaces for headings and monospace | Both the primitive `font` and `src/app/fonts.ts`, which holds the `next/font` implementation |
+| Color scheme captured | VRT captures only the default color scheme, and for the other checks only that it reaches `:root` | [`vrt/README.md`](../vrt/README.md#what-to-change-when-adopting) |
 
-差し替えたら `pnpm gen:tokens` で作り直し、`pnpm check:tokens` が生成物と宣言の一致を見ます
-（[下記](#生成と検査)）。生成物（`src/app/generated/tokens.css` と、`src/model/generated/` の
-`breakpoint.ts` / `design-token.ts` の 3 本）は手で直しません。
+After replacing, rebuild with `pnpm gen:tokens`; `pnpm check:tokens` checks that the generated artifacts match the declarations
+([below](#generation-and-checking)). The generated artifacts (`src/app/generated/tokens.css` and `breakpoint.ts` / `design-token.ts`
+under `src/model/generated/` — three files in all) are never fixed by hand.
 
-明度・コントラスト・発光の層をどう決めるかはこの README の他の節が持ちます。**値を入れ替えるとき
-それらの判断まで捨てる必要はありません** —— 判断は役割に紐づいており、色そのものには紐づいて
-いないためです。
+How lightness, contrast and glow layers are decided is owned by the other sections of this README. **Replacing the values
+does not require discarding those judgments** — the judgments are tied to roles, not to the colors
+themselves.
 
-## 生成と検査
+## Generation and Checking
 
 ```sh
 pnpm gen:tokens
 pnpm check:tokens
 ```
 
-前者は `src/app/generated/tokens.css` と、`src/model/generated/` の `breakpoint.ts` / `design-token.ts` を更新します。後者は更新せず、生成結果との差分があれば失敗します。**生成物を手編集してはいけません。**
+The former updates `src/app/generated/tokens.css` and `breakpoint.ts` / `design-token.ts` under `src/model/generated/`. The latter does not update anything and fails if there is a difference from the generated result. **Never hand-edit the generated artifacts.**
 
-`breakpoint.ts` を CSS と同じ SSOT から出すのは、`lg:` のような variant は Tailwind が `@theme` の `--breakpoint-*` から作る一方、JS から media query を組む経路はそこを読めないためです。片方を手で書くと、段を差し替えたときに CSS と JS で境界がずれ、両方出る幅か両方消える幅ができます。`design-token.ts` は名前だけを持ち、値は持ちません —— 値は配色と系統で変わるので、表示する側が実行時に CSS から読みます（[上記](#いま効いている値を見る)）。
+`breakpoint.ts` is emitted from the same SSOT as the CSS because Tailwind builds variants such as `lg:` from `--breakpoint-*` in `@theme`, while the path that builds media queries from JS cannot read it. Writing either side by hand makes the boundaries drift between CSS and JS when the steps are replaced, creating widths where both appear or both disappear. `design-token.ts` holds only names, not values — values vary with color scheme and family, so the displaying side reads them from CSS at runtime ([above](#seeing-the-values-in-effect)).
 
-`src/**/generated/**` は biome の formatter の対象外です（`biome.json` の override）。`color-mix()` を含む宣言や長い配列は 100 桁を超えて折り返されるため、対象に含めると formatter と `pnpm check:tokens` が互いの出力を上書きし合います。**生成物の綴りは生成側が決めます。**
+`src/**/generated/**` is excluded from biome's formatter (an override in `biome.json`). Declarations containing `color-mix()` and long arrays wrap past 100 columns, so including them would make the formatter and `pnpm check:tokens` overwrite each other's output. **The spelling of generated artifacts is decided by the generator.**
 
-`scripts/gen-tokens.test.ts` は `pnpm test` の実行対象に含まれ、カバレッジゲートにも載ります。生成結果そのものの回帰は `pnpm check:tokens` が CI で守ります。
+`scripts/gen-tokens.test.ts` is included in what `pnpm test` runs and is also subject to the coverage gate. Regressions in the generated result itself are guarded in CI by `pnpm check:tokens`.
 
-## 小数を含む段
+## Steps with Decimals
 
-`--spacing-0.5` のように `.` を含む名前は、CSS のカスタムプロパティ名（ident）としてそのままでは不正です。生成側が `--spacing-0\.5` へエスケープし、Tailwind が出す参照も同じ綴りになります。ビルド済み CSS を文字列で検索するときは、この綴りを前提にしてください。
+A name containing `.`, such as `--spacing-0.5`, is invalid as-is as a CSS custom property name (ident). The generator escapes it to `--spacing-0\.5`, and the references Tailwind emits use the same spelling. When searching built CSS as a string, assume this spelling.

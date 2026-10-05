@@ -7,688 +7,683 @@ coverage-exclusions:
 
 # vrt
 
-Storybook の全 story を基準画像と比べ、**意図しない見た目の変化**を検知する。ここは使い方が
-正で、部品どうしがどう組み上がっているかは [docs/design/vrt.md](../docs/design/vrt.md) にある。
+Compares every Storybook story against its baseline image and detects **unintended visual changes**. This file is authoritative for
+usage; how the pieces fit together is in [docs/design/vrt.md](../docs/design/vrt.md).
 
-DOM のアサートでは「class 名が変わっていない」ことしか言えず、見た目が変わっていない保証には
-ならない。退行の主因は画面ごとの個別変更ではなく、design token や layout shell を触って全画面が
-同時に動くことなので、部品の側で捕まえる。
+DOM assertions can only say "the class names did not change", which is no guarantee that the appearance did not change.
+The main source of regressions is not per-screen changes but touching a design token or the layout shell and moving every screen
+at once, so it is caught on the component side.
 
-## テストの責務
+## Test Responsibilities
 
-frontmatter の `test-requirement: unit` が掛かるのは、**Vitest から回る `lib/` の判定**である。
-`*.spec.ts` は Playwright が実行する本体で Vitest からは呼べず、層別責務表の `visual` は宣言を
-持たない。撮影そのものを単体で検査できないぶん、判定を `lib/` へ切り出して 1:1 の対象にしてある。
+The frontmatter `test-requirement: unit` applies to **the decisions in `lib/` that run under Vitest**.
+`*.spec.ts` are the main bodies Playwright runs and cannot be called from Vitest, and `visual` in the per-layer responsibility table has no
+declaration. Since capture itself cannot be tested standalone, the decisions are split out into `lib/` and made 1:1 targets.
 
-## 使い方
+## Usage
 
 ```bash
 make vrt          # Storybook を build して全 story を比較する
-make a11y         # 同じ story 全数に axe を掛ける（後述「a11y の検査は撮影に相乗りする」）
+make a11y         # 同じ story 全数に axe を掛ける（後述 "a11y checks ride along with capture"）
 make vrt-retake   # 撮り直して置き場へ送る（手元からの撮り直しはこれ）
 make vrt-report   # 直前の実行の HTML レポートを開く
-make vrt-review   # CI が落とした story を手元で開く（後述「落ちた story を手元で開く」）
+make vrt-review   # CI が落とした story を手元で開く（後述 "Opening failed stories locally"）
 make review-clean # 見直しで生やした作業ツリーを片付ける
 ```
 
-`vrt-retake` は `vrt-update`（撮る）と `baseline-push`（送る）の 2 つを順に走らせる。片方だけ要る場面が
-あれば個別に呼べるが、**撮って送らないと親の gitlink が古いまま**になり、手元の `make vrt` は通るのに
-CI だけ落ちる。
+`vrt-retake` runs `vrt-update` (capture) and `baseline-push` (send) in order. Either can be called on its own when only one
+is needed, but **capturing without sending leaves the parent's gitlink stale**, so a local `make vrt` passes while
+only CI fails.
 
-**置き場へ送るのは `make baseline-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
-どうしが繋がり、掃除でどれも落とせなくなる（後述）。
+**Only `make baseline-push` sends to the store.** Committing directly inside the submodule chains retakes
+together, and pruning can then drop none of them (see below).
 
-`VRT_ARGS` で Playwright へそのまま引数を渡せる。
+`VRT_ARGS` passes arguments straight through to Playwright.
 
 ```bash
 make vrt VRT_ARGS='--project=light --grep "Action/Button"'
 ```
 
-## コンテナの中でしか撮らない
+## Capture only inside the container
 
-フォントのラスタライズは OS でも CPU アーキテクチャでも変わる。基準画像が一意なのは
-**どのイメージで撮ったか**によってであり、撮った人の環境によってではない。そこで実行は
-[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner`
-（digest と `platform` まで固定した Playwright 公式イメージ）に閉じてある。ホストで直接
-`playwright test` を起動した場合は、比較する前に落ちる。
+Font rasterisation changes with both the OS and the CPU architecture. A baseline image is unique by
+**which image it was captured in**, not by the environment of the person who captured it. So execution is
+confined to `browser_runner` in [`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml)
+(the official Playwright image, pinned down to its digest and `platform`). Starting
+`playwright test` directly on the host fails before any comparison.
 
-CI も同じ `make vrt` を回す。手元と CI で判定が割れないのは、両方が同じイメージを引くため。
+CI runs the same `make vrt`. Local runs and CI never disagree on the verdict because both pull the same image.
 
-## 正当な変更も、まず赤くなる
+## Legitimate changes go red first too
 
-VRT が言えるのは「変わった」までで、「変わってよいか」は人が決める。だから**意図した変更も
-いったん差分として上がる**。これは仕組みの欠陥ではなく、判定を人へ渡す形そのものである。
+What VRT can say stops at "it changed"; whether "the change is acceptable" is decided by a person. So **an intended change
+also comes up as a diff first**. This is not a flaw in the mechanism; it is the very form of handing the judgment to a person.
 
-差分が出た PR には、**どの story がどれだけずれたかの一覧表**がコメントで付く。加えて
-`vrt-diff` artifact に期待 / 実際 / 差分の 3 枚と HTML レポートが入る。ここまで見て、
+A PR with diffs gets a comment with **a table of which stories moved and by how much**. In addition,
+the `vrt-diff` artifact contains the three images (expected / actual / diff) and an HTML report. Having looked at these,
 
-- **退行なら実装を直す**
-- **意図した変更なら承認する**
+- **if it is a regression, fix the implementation**
+- **if it is an intended change, approve it**
 
-### 落ちた story を手元で開く
+### Opening failed stories locally
 
-差分が出た PR のコメントには、**落ちた story をそのまま開く 1 行**が付く。別の端末へ貼るだけでよい。
+The comment on a PR with diffs carries **one line that opens the failed stories as they are**. Just paste it into another terminal.
 
-**撮り直しのコメントにも同じ 1 行が付く。**そちらが並べるのは撮り直しの範囲ではなく**画素が実際に
-動いた対象**で、`RUN` は持たない —— 撮り直した後に手元で見たいのは新しい一式で描かれる面であり、
-比較を撮った実行の artifact は古い基準との突き合わせだからである。
+**The retake comment carries the same line too.** What it lists is not the retake's scope but **the targets whose pixels actually
+moved**, and it has no `RUN` — after a retake, what you want to see locally is the surfaces rendered by the new set, while
+the artifact of the run that captured the comparison is a comparison against the old baseline.
 
 ```bash
-make vrt-review BRANCH=<ブランチ> RUN=<run-id> VRT_ONLY=<id>,<id>
+make vrt-review BRANCH=<branch> RUN=<run-id> VRT_ONLY=<id>,<id>
 ```
 
-| 項目 | 値 |
+| Field | Value |
 | --- | --- |
-| `BRANCH` | 見る対象のブランチ。**必須** |
-| `VRT_ONLY` | 落ちた story の id をカンマで並べる。**必須** |
-| `RUN` | CI の実行 id。渡すとその実行の `vrt-diff` を落として隣のポートで配る（`gh` が要る） |
-| `VRT_REVIEW_PORT` | Storybook を待ち受けるポート。既定 `6106`（開発用の `6006` を避ける）。artifact を配るのはその次の番号 |
+| `BRANCH` | The branch to look at. **Required** |
+| `VRT_ONLY` | The ids of the failed stories, comma-separated. **Required** |
+| `RUN` | The CI run id. When given, downloads that run's `vrt-diff` and serves it on the next port (needs `gh`) |
+| `VRT_REVIEW_PORT` | The port Storybook listens on. Default `6106` (avoiding the development `6006`). The artifact is served on the next number |
 
-`tmp/review/vrt/<ブランチ>` に使い捨ての作業ツリーを生やし、`origin/<ブランチ>` の先端へ合わせて
-依存を入れ、そこで Storybook を立てて落ちた story の URL を並べる。**手元の作業ツリーは動かさない**
-ので、編集中の変更を抱えたまま呼べる。参照は切り離して持つため、同じブランチを別の作業ツリーが
-既に持っていても衝突しない。
+It grows a disposable working tree at `tmp/review/vrt/<branch>`, moves it to the tip of `origin/<branch>`,
+installs dependencies, starts Storybook there, and lists the URLs of the failed stories. **Your own working tree does not move**,
+so it can be called while you hold uncommitted changes. The ref is held detached, so it does not collide even when another working tree
+already has the same branch.
 
-`RUN` の artifact は落とせなくても止まらない —— 保存期間を過ぎれば消えるが、そのときに見たいのは
-「いまのブランチがどう描くか」で、それはサーバさえ立てば見られる。ポートが塞がっていれば手前で
-止まるので、そのときは空いている番号を渡す。
+It does not stop if the `RUN` artifact cannot be downloaded — it disappears after its retention period, but what you want to see then is
+"how the current branch renders", which can be seen as long as the server starts. If the port is taken, it stops up front,
+so pass a free number in that case.
 
-見終わったら Ctrl-C で止める。**作業ツリーは残る** —— 同じブランチをもう一度見るときに依存を
-入れ直さずに済むためで、`node_modules` を抱えたまま `tmp/review/` に溜まっていく。片付けるときは
-**`make review-clean`** を使う（画面単位の側で生やしたものも一緒に片付く）。
+When you are done, stop it with Ctrl-C. **The working tree stays** — so that looking at the same branch again does not require
+reinstalling dependencies, and it piles up in `tmp/review/` with its `node_modules`. To clean up, use
+**`make review-clean`** (it also cleans up what the per-screen side grew).
 
 ```bash
 make review-clean
 ```
 
-**ディレクトリを直接消さないこと。** 実体を失った登録が `.git` に残り、次に同じブランチを見ようと
-したときの `git worktree add` がそこで断られる。`review-clean` は git の登録から先に外す。
+**Do not delete the directory directly.** A registration that has lost its files remains in `.git`, and the next
+`git worktree add` for the same branch is refused there. `review-clean` removes the git registration first.
 
-> **ここで見えるのは「なぜ変わったか」であって、画素の一致ではない。**手元の Storybook はホストの
-> フォントで描くので、CI が撮った画像とは元から一致しない（前述「コンテナの中でしか撮らない」）。
-> 画素を判断する面は撮り直しのコメントが並べる前後の一覧のままである。
+> **What you see here is "why it changed", not a pixel match.** The local Storybook renders with the host's
+> fonts, so it never matched the images CI captured in the first place (see "Capture only inside the container" above).
+> The surface for judging pixels remains the before/after list the retake comment lays out.
 
-### 撮り直しと承認は別の操作
+### Retaking and approving are separate operations
 
-**撮り直す**手段は 2 つある。
+There are two ways to **retake**.
 
-| | 操作 | 向き先 |
+| | Operation | Where it goes |
 | --- | --- | --- |
-| `baseline-retake` ラベル | PR にラベルを付ける | CI が撮り直し、置き場へ push してポインタを進める（保護されたブランチではポインタの PR を開く） |
-| 手元 | `make vrt-retake VRT_ONLY=<id>,<id>` / `make e2e-retake E2E_ONLY=<名前>,<名前>` | Docker がある環境で撮り直す。fork からの PR はこちらだけ |
+| `baseline-retake` label | Put the label on the PR | CI retakes, pushes to the store and advances the pointer (on a protected branch it opens a pointer PR) |
+| Locally | `make vrt-retake VRT_ONLY=<id>,<id>` / `make e2e-retake E2E_ONLY=<name>,<name>` | Retakes in an environment with Docker. The only option for PRs from forks |
 
-**ラベルは story と画面の両方を撮り直す。** 置き場も承認ラベルも 1 つなので、撮り直しだけを 2 つに
-分けない。story も画面（[e2e/README.md](../e2e/README.md)）も**表に出ていたものだけ**が対象で、
-両方が 1 つのコミットとして置き場へ入る。**この PR の見た目の変化が 1 つのコメントに揃う**のは
-そのためで、承認する人が見るのはその 1 つである。
+**The label retakes both stories and screens.** There is one store and one approval label, so retakes alone are not split
+in two. For both stories and screens ([e2e/README.md](../e2e/README.md)), **only what appeared in the table** is in scope,
+and both enter the store as one commit. That is why **this PR's visual changes line up in one comment**,
+and that one comment is what the approver looks at.
 
-**範囲は報告と同じ出所から取る。** story は VRT の実行が出したレポート、画面は E2E の実行が出した
-レポートで、どちらもその commit に対する報告そのものである。報告に出ていない対象を撮り直しに
-含めないのは、PR コメントが見せなかった画素が黙って置き場へ入るのを防ぐため。孤児が報告
-されたときだけ、その系統は全数へ倒れる。
+**The scope is taken from the same source as the report.** For stories, the report the VRT run produced; for screens, the report the E2E run produced;
+both are the very report for that commit. Targets not in the report are excluded from the retake
+to keep pixels the PR comment did not show from silently entering the store. Only when orphans are reported
+does that family fall back to the full set.
 
-**「報告が無い」は 2 つある。** 画面の比較は PR では既定で回らないので、報告の不在は「差分が無い」
-とは限らず、「**そもそも比較していない**」でもありうる。どちらでも画面は撮り直されないが、後者は
-story だけが撮り直された PR を外から完成して見せ、画面の基準が古いまま release へ入る（merge 後の
-全数で落ちる）。**だから撮り直しのコメントは、E2E が走っていない commit ではそう書く** —— 描画が
-動く変更なら `run-e2e` を付けて回し直し、`baseline-retake` を付け直せば、story と画面が 1 回の push
-で揃う。
+**"No report" means two things.** Screen comparison does not run on PRs by default, so the absence of a report does not necessarily mean "no diff";
+it can also mean "**nothing was compared at all**". Either way the screens are not retaken, but the latter makes a PR where
+only stories were retaken look complete from outside, and the screen baselines enter the release stale (failing in the full run after merge).
+**So on a commit where E2E did not run, the retake comment says so** — if the change can move
+rendering, rerun with `run-e2e` attached and re-attach `baseline-retake`, and stories and screens line up in a single push.
 
-**どちらも承認ではない。**撮り直しは「画素を見られる形にする」操作でしかない。撮り直した一式は
-置き場へ push され、PR コメントに**動いた画像を 1 枚ずつ並べた表**が付く。行ごとに撮り直す前の絵と
-後の絵へのリンクがあり、**見た目を判断するのはそこ**である。同じコメントには画素が動いた対象を
-手元で開く 1 行も付くが、そちらで見えるのは「なぜ変わったか」までである（前述「落ちた story を
-手元で開く」）。
+**Neither is approval.** A retake is only an operation that "puts the pixels into a viewable form". The retaken set is
+pushed to the store, and the PR comment gets **a table listing the moved images one by one**. Each row links to the picture before the retake
+and the picture after, and **that is where the appearance is judged**. The same comment also carries one line that opens the targets whose pixels moved
+locally, but what that shows stops at "why it changed" (see "Opening failed stories locally"
+above).
 
-判断したことは **`baseline-approve` ラベル**で表す。基準画像が動いている PR では `baseline-approval` の
-チェックがこれを要求し、無ければ赤のままマージできない。**付ける先はポインタを持ち込んだ PR** で、
-そこに付いたラベルは同じポインタを引き継ぐ後続の PR でもそのまま効く（後述「保護されたブランチでは
-ポインタが PR で入る」）。PR のレビュー承認を使わないのは、あれが
-承認するのは PR 全体であって基準画像ではないため — 無関係な push で承認がやり直しになる一方、
-「画素を見た」ことはどこにも残らない。**1 人のリポジトリでも成立する**（PR の作成者は自分の PR を
-レビュー承認できない）。
+The judgment is expressed with the **`baseline-approve` label**. On a PR whose baseline images move, the `baseline-approval`
+check requires it, and without it the PR stays red and cannot be merged. **It goes on the PR that brought in the pointer**,
+and a label there remains effective on later PRs that inherit the same pointer (see "On protected branches, the
+pointer arrives through a PR" below). PR review approval is not used because it
+approves the PR as a whole, not the baseline images — approval resets on unrelated pushes, while
+"someone looked at the pixels" is recorded nowhere. **It works even in a one-person repository** (a PR's author cannot
+review-approve their own PR).
 
-**古い承認は通らない。**チェックが見るのはラベルの有無だけでなく、**ラベルが付いた時刻が基準画像を
-動かした最後のコミットより後であること**。撮り直しが走ったあとも `baseline-approve` は付いたままなので、
-新しい一式には**付け直す**（一度外して付ける）。外さずに置くと時刻が古いままで、チェックは
-「承認 ⟨時刻⟩ / 撮影 ⟨時刻⟩」と出して赤のままになる。
+**A stale approval does not pass.** The check looks not only at whether the label is present but at **whether the label was applied after the last commit that
+moved the baseline images**. After a retake runs, `baseline-approve` stays attached, so for the new set
+**re-apply it** (remove it once and add it again). Left in place, its time stays old, and the check
+prints 「承認 ⟨時刻⟩ / 撮影 ⟨時刻⟩」 and stays red.
 
-**並べるのはリンクであって画像そのものではない。**貼ると長すぎて読めないうえ、置き場が非公開だと
-**GitHub の画像プロキシが匿名でアクセスするので 404 になる**（見る人の権限は関係ない）。リンクなら
-GitHub の UI の中なので、見る人の認証がそのまま効く。
+**What is listed are links, not the images themselves.** Embedding them would be too long to read, and if the store is private,
+**GitHub's image proxy accesses it anonymously and gets a 404** (the viewer's permissions are irrelevant). A link stays
+inside GitHub's UI, so the viewer's own authentication applies.
 
-**置き場の compare ビューは使わない。**撮り直しは一式まるごとを置き場の根の上に積むので、compare は
-動いた数枚ではなく**一式まるごとを「追加」として並べる**（後述「撮り直しは『一式まるごと 1 コミット』」）。
-枚数が多いと生成自体が間に合わず、ページが開かないこともある。
+**The store's compare view is not used.** A retake stacks the whole set on top of the store's root, so compare lists
+**the whole set as "added"** rather than the few images that moved (see "A retake is 'one commit holding the whole set'" below).
+With many images, generating it may not even finish in time, and the page may not open.
 
-**動いた枚数が多いときは表を打ち切る。**打ち切ったことと総数はコメントに書く。全部を見るには
-手元で開く 1 行を使う。
+**When many images moved, the table is truncated.** The comment states that it was truncated and gives the total. To see everything,
+use the line that opens them locally.
 
-撮り直しに掛かる制約は 2 つ。
+Two constraints apply to retakes.
 
-- **直前の実行が報告した story に限る**。範囲は報告の JSON から読むので、表に出ていない差分が
-  基準画像へ黙って入ることはない
-- **base より遅れているブランチでは撮り直せない**。判定されるのは base へマージした結果の木
-  (`refs/pull/N/merge`)なので、遅れた head で撮った画像は判定される木と食い違う
+- **Limited to the stories the previous run reported**. The scope is read from the report's JSON, so a diff that did not appear in the table
+  never silently enters the baseline images
+- **A branch behind its base cannot retake**. What is judged is the tree resulting from merging into the base
+  (`refs/pull/N/merge`), so images captured on a lagging head disagree with the tree being judged
 
-**ラベルは VRT の完了時に読まれる条件であって、引き金ではない。**付けた瞬間には何も起きない。
-手順は次のとおり。
+**The label is a condition read when VRT completes, not a trigger.** Nothing happens the moment you apply it.
+The procedure is as follows.
 
-1. **ラベルは VRT が終わる前に付ける。PR を作るときに付けておくのが最も確実。**完了したあとに
-   付けても、次の VRT 実行が来るまで何も起きない
-2. 付け忘れて VRT が終わってしまったら、ラベルを付けたうえで **VRT を再実行する**
-   （`gh run rerun <run-id>`）。完了のイベントが改めて起き、そこでラベルが読まれる
-3. **VRT が緑の実行ではラベルは消費されず、付いたまま残る**（撮り直しは job ごと走らない）。
-   残したままにすると、その先の意図しない見た目の変化まで自動で撮り直してしまうので、差分を出す
-   予定がない間は外しておく
+1. **Apply the label before VRT finishes. Applying it when creating the PR is the most reliable.** Applying it after completion
+   does nothing until the next VRT run comes
+2. If you forgot and VRT has already finished, apply the label and then **re-run VRT**
+   (`gh run rerun <run-id>`). The completion event fires again, and the label is read then
+3. **On a run where VRT is green, the label is not consumed and stays attached** (the whole retake job does not run).
+   Leaving it attached would automatically retake even unintended visual changes later, so remove it while you have no
+   diff planned
 
-ラベルが外れるのは、**撮り直しが置き場へ push してポインタを置いたときだけ**。他のチェックが
-落ちていて見送られたときも、base に遅れていて断られたときも、ラベルは付いたまま残る。原因を直して
-push すれば、次の VRT の完了で自動的に拾われる。
+The label comes off **only when a retake has pushed to the store and placed the pointer**. When it is skipped because other checks
+failed, and when it is refused because the branch is behind its base, the label stays attached. Fix the cause and
+push, and the next VRT completion picks it up automatically.
 
-### 保護されたブランチではポインタが PR で入る
+### On protected branches, the pointer arrives through a PR
 
-`release/**` / `hotfix/**` と各環境のブランチは ruleset が PR を要求するので、撮り直しはポインタを
-直接 push できない。そこでは **gitlink だけを載せた PR**（`baseline-retake/<PR 番号>` ブランチ）を
-開く。撮り直しのコメントはその PR へのリンクを載せる。
+`release/**` / `hotfix/**` and the per-environment branches require PRs by ruleset, so a retake cannot push the pointer
+directly. There, it opens **a PR carrying only the gitlink** (branch `baseline-retake/<PR number>`).
+The retake comment carries a link to that PR.
 
-やることは 2 つ。
+There are two things to do.
 
-1. **前後の画素は、いつもどおり撮り直しのコメントの表で見比べる。** 判断する面は変わらない
-2. 意図した変更なら、**ポインタの PR に `baseline-approve` を付けて merge する。** merge すると
-   元の PR の比較が回り直し、緑になる
+1. **Compare the before/after pixels in the retake comment's table, as usual.** The surface for judging does not change
+2. If it is an intended change, **apply `baseline-approve` to the pointer PR and merge it.** Merging
+   reruns the original PR's comparison, and it turns green
 
-**承認は 1 回で足りる。**`baseline-approval` はラベルを今の PR だけでなく、そのポインタのコミットを
-持ち込んだ PR にも探す。同じ一式を 2 度承認する必要はない。
+**One approval is enough.** `baseline-approval` looks for the label not only on the current PR but also on the PR that
+brought in that pointer commit. The same set does not need to be approved twice.
 
-**ポインタの PR は 1 本しか開かない。**ブランチも PR も、対象の PR 番号で名前が決まっていて
-使い回す。撮り直しをやり直すと**同じ PR がその場で更新される**ので、レビューの糸は切れず、
-マージしなかった提案が一覧に積み上がることもない。PR が閉じられた時点でブランチも落ちる。
+**Only one pointer PR is ever open.** Both the branch and the PR are named after the target PR number and
+reused. Redoing a retake **updates the same PR in place**, so the review thread is not broken, and
+unmerged proposals do not pile up in the list. When the PR is closed, the branch goes too.
 
-レビュー中に撮り直しが走らないよう、`baseline-retake` は 1 回の撮り直しで外れる。
+So that no retake runs during review, `baseline-retake` comes off after a single retake.
 
-> 大量の差分（design token を触ったときなど）は、人が 1 枚ずつ見ることを期待できない。これは
-> 仕組みで塞げない限界として置いてある。件数を表の先頭に出しているのは、せめて「何枚動いたか」
-> が判断の入口に来るようにするため。
+> A large volume of diffs (such as after touching a design token) cannot be expected to be looked at one by one by a person. This is
+> left as a limit the mechanism cannot close. The count is put at the top of the table so that at least "how many images moved"
+> comes at the entrance to the judgment.
 
-## 何を撮るか
+## What to Capture
 
-- 対象は **story の全数**。`storybook-static/index.json` から列挙するので、story を足せば
-  黙って対象に入る。撮影対象を story 側の申告制にすると、新しく足した story が対象外のまま
-  残る。目録に並ぶ docs ページは撮らない —— story の再掲と自動生成の表からなり、退行は story の
-  側に出る
-- 外すときは [`lib/excluded-stories.ts`](lib/excluded-stories.ts) へ**理由と撤去条件を添えて**
-  宣言する。story 側にタグを 1 行足すだけで黙らせられる状態は作らない。実体を失った宣言
-  （消した / 改名した story を指すもの）は落ちる
-- 除外できるのは**撮っても意味を持たない story** だけ。撮るたび違う絵になるものは基準画像を
-  持てないので、比較そのものが成立しない。**「いまは直せない」は除外の理由にならない** —
-  それは退行であり、直すか issue にするかのどちらかである。検査対象から外すモジュールの宣言
-  （[`scripts/lib/untested-modules.ts`](../scripts/lib/untested-modules.ts)）と同じ規律
-- 撮るのは [`lib/themes.ts`](lib/themes.ts) の `SHOT_THEMES` ＝ **light だけ**。明るい面を選ぶのは、
-  基準画像を人が画像として承認するため（判断は GitHub 上で絵を開いて行い、その画面自体が
-  明るい）。`:root` が light で、dark は属性か OS の設定を要する側でもある。撮らない側は
-  [配色テーマの適用だけを見る](#撮らない側のテーマは適用だけを見る)
-- **どの story からも参照されない基準画像が置き場に残っていないことも見る**。story を消す・
-  改名する・除外を宣言すると、比較にも掛からない画像が残り、置き場の中身が実態から離れる。
-  検査するのは全数実行のときだけ（`VRT_ONLY` で絞った実行では、対象外の story の画像と孤児を
-  区別できない）。落ちたら `make vrt-retake` で撮り直すか、対応する story を戻す。
-  **孤児が出たときの撮り直しは範囲を絞らない** —— 絞った撮り直しは撮ったぶんを上書きするだけで
-  孤児を消さないためで、全数のときだけ撮る前に区画を空にする（story は `vrt clear-stories`、
-  画面は `e2e clear-screens`）。**空にするのは引数が 1 つも付いていないときだけ**である。絞り込みは
-  `VRT_ONLY` / `E2E_ONLY` だけでなく `VRT_ARGS` / `E2E_ARGS` の `--grep` / `--project` でも起きるので、
-  どの引数が撮影対象を狭めるかを列挙して判定すると、列挙から漏れた引数がそのまま「全数を消して
-  一部だけ撮り直す」になる。知らない引数は消さない側へ倒す —— 消してから一部だけ撮ると、
-  撮らなかった story の基準画像が置き場から失われる。
-  CI の撮り直しもこの判定を持ち、報告に孤児があれば絞らずに撮る。
-- viewport は既定で 1 帯（1280×720）、ブラウザも 1 つだけ。帯を増やすのも描画エンジンを増やすのも
-  **画面単位の側**（[e2e/README.md](../e2e/README.md)）が持つ。部品の分岐は器の幅で行う規約なので
-  （[`docs/rules.md#layout`](../docs/rules.md#layout)の「部品の中身は帯（viewport）で分岐させない」）、
-  viewport で分岐しない部品を viewport の数だけ撮っても、増えるのは実行時間だけである。**story が
-  viewport を宣言したときだけ**、その寸法で撮る（後述「story が宣言した viewport は撮る側が合わせる」）
+- The target is **every story**. They are enumerated from `storybook-static/index.json`, so adding a story
+  silently puts it in scope. If capture targets were self-declared on the story side, newly added stories would remain
+  out of scope. The docs pages listed in the inventory are not captured — they consist of restated stories and auto-generated tables, and regressions show
+  on the story side
+- To exclude one, declare it in [`lib/excluded-stories.ts`](lib/excluded-stories.ts) **with a reason and a removal condition**.
+  No state is created where adding one tag line on the story side silences it. A declaration that has lost its target
+  (one pointing at a deleted or renamed story) fails
+- Only **stories for which capturing has no meaning** can be excluded. Something that renders a different picture on every capture cannot hold a baseline
+  image, so the comparison itself does not hold. **"Cannot fix it right now" is not a reason to exclude** —
+  that is a regression, and it is either fixed or turned into an issue. The same discipline as the declarations of modules excluded from checks
+  ([`scripts/lib/untested-modules.ts`](../scripts/lib/untested-modules.ts))
+- What is captured is `SHOT_THEMES` in [`lib/themes.ts`](lib/themes.ts) = **light only**. The light surface is chosen
+  because people approve baseline images as images (the judgment is made by opening the picture on GitHub, and that screen itself is
+  light). `:root` is light, and dark is also the side that needs an attribute or an OS setting. For the side not captured,
+  [only the application of the color theme is checked](#for-the-theme-not-captured-check-only-that-it-applies)
+- **It also checks that no baseline image left in the store is unreferenced by any story**. Deleting or renaming a story,
+  or declaring an exclusion, leaves images that no comparison touches, and the store's contents drift from reality.
+  It is checked only on full runs (on a run narrowed with `VRT_ONLY`, images of out-of-scope stories cannot be told apart from
+  orphans). If it fails, retake with `make vrt-retake` or restore the corresponding story.
+  **A retake when orphans appear is not narrowed** — a narrowed retake only overwrites what it captured and
+  does not remove orphans; only a full retake empties the partition before capturing (`vrt clear-stories` for stories,
+  `e2e clear-screens` for screens). **It empties only when no arguments at all are given.** Narrowing happens
+  not only through `VRT_ONLY` / `E2E_ONLY` but also through `--grep` / `--project` in `VRT_ARGS` / `E2E_ARGS`,
+  so deciding by enumerating which arguments narrow the capture targets would make any argument missing from that enumeration "delete everything
+  and retake only part". Unknown arguments fall toward not deleting — deleting and then capturing only part
+  loses the baseline images of the stories not captured from the store.
+  CI's retake has this decision too, and captures without narrowing when the report contains orphans.
+- The viewport is one band by default (1280×720), with a single browser. Adding bands and adding rendering engines
+  belongs to **the per-screen side** ([e2e/README.md](../e2e/README.md)). The convention is that components branch on their container's width
+  ([`docs/rules.md`](../docs/rules.md#layout) — a component's contents do not branch on the band (viewport)),
+  so capturing a component that does not branch on the viewport once per viewport only adds run time. **Only when a story
+  declares a viewport** is it captured at those dimensions (see "The capturing side matches the viewport a story declares" below)
 
-### story が宣言した viewport は撮る側が合わせる
+### The capturing side matches the viewport a story declares
 
-**viewport の globals は preview へ届かない。** 幅を変えるのは Storybook の manager が iframe を囲む枠を
-縮めることで行われ、撮影が開く素の `iframe.html` には枠が無い。撮る側が Playwright の viewport を
-合わせない限り、狭い幅を名乗る story も既定の幅で撮られ、基準画像は既定の story と 1 バイトも違わない
-ものになる。[`lib/viewport.ts`](lib/viewport.ts) が宣言を寸法へ写す。
+**Viewport globals do not reach the preview.** Changing the width is done by Storybook's manager shrinking the frame around the iframe,
+and the bare `iframe.html` capture opens has no frame. Unless the capturing side
+sets Playwright's viewport, a story claiming a narrow width is captured at the default width too, and its baseline image is not one byte different from the default story's.
+[`lib/viewport.ts`](lib/viewport.ts) maps the declaration to dimensions.
 
-- **宣言は描き終えてからしか読めない。** story ごとの `globals` は目録（`index.json`）へ書き出されないので、
-  読める場所は描画済みの render（`__STORYBOOK_PREVIEW__.storyRenders`）だけ。story の store は触らない ——
-  index が揃うまで getter が例外を投げ、Storybook 自身が直接の利用を非推奨としている
-- **寸法を変えたら開き直す**（`setViewportSize` だけでは足りない）。幅を器から決める部品は mount の時点で
-  段数を決めるため、最初の幅で決めた姿が残る。宣言を持つ story だけが 2 度開かれ、開き直した後は
-  もう一度描き切るのを待つ
-- **名前が解決できなければ落とす。** 既定へ落とすと、綴りを誤った story が既定の幅の絵を基準画像として
-  持ち、その後どの実行も気づけない。組み込みの一覧に無い名前は、その story の
-  `parameters.viewport.options` に定義があればそれを使う（story が持ち込む定義が組み込みより先）
-- **寸法は px でしか読まない。** 撮影は画素数を要求するので、`%` や `rem` の定義は落とす
+- **The declaration can only be read after rendering finishes.** Per-story `globals` are not written to the inventory (`index.json`), so
+  the only place to read them is the rendered render (`__STORYBOOK_PREVIEW__.storyRenders`). The story store is not touched —
+  its getters throw until the index is ready, and Storybook itself discourages direct use
+- **After changing the dimensions, reopen** (`setViewportSize` alone is not enough). A component that decides its width from its container decides
+  its number of columns at mount, so the shape decided at the first width remains. Only stories with a declaration are opened twice, and after reopening
+  it waits for rendering to complete once more
+- **If a name cannot be resolved, it fails.** Falling back to the default would give a misspelled story a default-width picture as its baseline
+  image, and no later run would notice. For a name not in the built-in list, the definition in that story's
+  `parameters.viewport.options` is used if present (the story's own definitions take precedence over the built-ins)
+- **Dimensions are read only in px.** Capture requires a pixel count, so `%` and `rem` definitions fail
 
-a11y の検査も同じ幅で見る。宣言された幅でしか出ない違反（畳んだ操作面の名前・順序）がある。
+The a11y check looks at the same width. Some violations appear only at the declared width (names and order of collapsed controls).
 
-## 揺らぎを止めてある
+## Sources of flakiness are pinned
 
-同じ story が撮るたび違う画像になると、gate は「毎回赤い」か「差分を無視する」のどちらかへ
-倒れる。次を固定してある。
+If the same story produces a different image on every capture, the gate falls either to "red every time" or to "ignore the diff".
+The following are pinned.
 
-| 揺らぎの元 | 止め方 |
+| Source of flakiness | How it is stopped |
 | --- | --- |
-| CSS の animation / transition | 撮影時に停止（`animations: "disabled"`） |
-| Framer Motion（CSS animation ではない） | `reducedMotion: "reduce"` で初期状態のまま撮る |
-| フォントの遅延読み込み | `document.fonts.ready` を待ってから撮る |
-| テキストカーソル | 非表示（`caret: "hide"`） |
-| 日付・時刻の表示 | `timezoneId` と `locale` を固定 |
-| 部品が自分で読む「今日」 | 開く前に `Date` だけを固定（[`lib/clock.ts`](lib/clock.ts)）。タイマーは実時間のまま —— タイマーごと止めると `setTimeout` で描画を進める story が初期状態のまま撮られる |
-| `play` の操作が残すページのスクロール位置 | 撮る直前に先頭へ戻す（[`lib/settle.ts`](lib/settle.ts)） |
-| 描画完了のあとに届くもの（`next/dynamic` の別チャンク・遅れて走る effect） | DOM が静止するまで待つ（[`lib/settle.ts`](lib/settle.ts)） |
-| 画像の遅延読み込み | 全部の `complete` を待ってから撮る |
-| 並列実行時のラスタライズの丸め（実測 ±3） | 色差の下限で切る（`threshold: 0.02`） |
+| CSS animation / transition | Stopped at capture time (`animations: "disabled"`) |
+| Framer Motion (not CSS animation) | Captured in its initial state with `reducedMotion: "reduce"` |
+| Late font loading | Waits for `document.fonts.ready` before capturing |
+| Text caret | Hidden (`caret: "hide"`) |
+| Date and time display | `timezoneId` and `locale` are pinned |
+| "Today" as read by the component itself | Only `Date` is pinned before opening ([`lib/clock.ts`](lib/clock.ts)). Timers stay on real time — stopping timers too would capture stories that advance rendering with `setTimeout` in their initial state |
+| Page scroll position left by `play` interactions | Returned to the top just before capture ([`lib/settle.ts`](lib/settle.ts)) |
+| What arrives after rendering completes (separate `next/dynamic` chunks, late effects) | Waits until the DOM is still ([`lib/settle.ts`](lib/settle.ts)) |
+| Lazy image loading | Waits for every `complete` before capturing |
+| Rasterisation rounding under parallel execution (measured ±3) | Cut off with a lower bound on color difference (`threshold: 0.02`) |
 
-**スクロール位置は story の宣言に現れない。**撮るのはビューポートのぶんだけなので、位置が違えば
-同じ状態でも別の絵になる。`play` を持つ story は操作の途中で focus が動き、ブラウザはその要素を
-見せるためにページを送る。送る量は操作した時点の文書の高さで決まるため、絵を決める入力が
-1 バイトも変わらないまま、実行ごとに送った / 送らないが分かれうる。
+**Scroll position does not appear in a story's declaration.** Only the viewport is captured, so a different position gives
+a different picture even in the same state. Stories with `play` move focus during interaction, and the browser scrolls the page
+to show that element. How far it scrolls depends on the document's height at the time of the interaction, so with not one byte of the inputs that decide the picture
+changing, whether it scrolled can differ from run to run.
 
-**Storybook の言う「描画が終わった」は最初の commit までである。**`next/dynamic` で分けた中身は
-別チャンクとして遅れて届き（実測 23ms）、そのあいだ枠だけが立っている。Playwright は連続する
-2 枚が一致した時点で安定と見なすので、この幅に負けると**枠だけの絵**が確定した絵になる。撮り直しを
-掛ければ、それがそのまま基準画像になる。
+**What Storybook calls "rendering finished" extends only to the first commit.** Contents split with `next/dynamic` arrive late as
+a separate chunk (measured 23ms), and meanwhile only the frame is standing. Playwright considers it stable as soon as two consecutive
+images match, so losing to this gap makes **a frame-only picture** the settled picture. Run a retake,
+and that becomes the baseline image as-is.
 
-**静止を待てるのは、届くものが有限のときだけである。**読み進める一覧にカタログのモックが続きを返すと、
-末尾の目印が見えるたびに次を取りに行き、DOM はいつまでも静止しない。直すのは待ち時間ではなく
-モックの側で、決まりは [`.storybook/README.md`](../.storybook/README.md)「`msw/` の答え方」が持つ。
+**Waiting for stillness works only when what arrives is finite.** If the catalog's mock returns more for an infinitely scrolled list,
+every time the end marker comes into view it fetches the next page, and the DOM never goes still. The fix is not the wait time but
+the mock, and the rule is owned by [`.storybook/README.md#how-msw-answers`](../.storybook/README.md#how-msw-answers).
 
-### 描き終えたと見なす条件
+### When rendering counts as finished
 
-待ち合わせは [`lib/settle.ts`](lib/settle.ts) が 1 箇所で持ち、撮影・a11y・配色の検査が同じものを使う。
-順に、描画の到達 → `play` の完了 → フォント → スクロール位置 → DOM の静止と画像、である。
+The waiting is owned in one place by [`lib/settle.ts`](lib/settle.ts), and capture, a11y and the color-scheme check use the same thing.
+In order: rendering reached → `play` complete → fonts → scroll position → DOM stillness and images.
 
-- **描画の到達は、配色テーマが `:root` へ乗ったことで見る。** テーマを載せるのは story を包む decorator
-  なので、乗っていれば story まで到達している。要素の出現で見ると、描画前の空の `#storybook-root` を
-  「安定した画面」として扱う
-- **`play` の完了まで待つ。** Storybook の段階（`storyRenders[].phase`）に `playing` が残っている間は
-  待つ。操作前の状態も「連続する 2 枚が一致」を満たすので、待たないと操作前の絵が確定した絵になり、
-  撮り直しではそれが基準画像として焼かれる。以後その story は何も検証せず、入力ハッシュが一致する限り
-  比較も省かれるので気づけない
-- **待つ画像はビューポートに掛かっているものだけ。** `loading="lazy"` は画面へ近づくまで取得を始めない
-  ので、外にある画像の `complete` は永久に false のままで、待てば必ず時間切れになる。`complete` は失敗でも
-  立つ —— 撮るのは届いた結果であって成否ではない
-- **変化の時刻を記録する側と、静止を判定する側を分ける。** 判定のたびに購読を張り直すと、そのたびに
-  「いま張った」時点からの静止しか見えない
-- **時間切れの文言は段階ごとに違う。** どの段で止まったか（decorator が走らない / `play` が返らない /
-  DOM が静止しない）を読めば、Storybook で何を確かめるかが決まる
+- **Rendering reached is detected by the color theme having landed on `:root`.** The theme is applied by the decorator wrapping the story,
+  so if it has landed, rendering has reached the story. Detecting by the appearance of an element would treat an empty, pre-render `#storybook-root` as
+  "a stable screen"
+- **Wait until `play` completes.** Wait while Storybook's phase (`storyRenders[].phase`) still shows `playing`.
+  The pre-interaction state also satisfies "two consecutive images match", so without waiting the pre-interaction picture becomes the settled one,
+  and a retake burns it in as the baseline image. From then on that story verifies nothing, and as long as the input hash matches
+  the comparison is skipped too, so nobody notices
+- **Only images within the viewport are waited for.** `loading="lazy"` does not start fetching until the image approaches the screen,
+  so `complete` stays false forever for images outside it, and waiting always times out. `complete` is set even on failure
+  — what is captured is the result that arrived, not whether it succeeded
+- **The side that records the time of changes is separate from the side that judges stillness.** Re-subscribing on every judgment would
+  only ever see stillness since "the moment it subscribed"
+- **The timeout message differs per stage.** Reading which stage it stopped at (the decorator does not run / `play` does not return /
+  the DOM does not go still) tells you what to check in Storybook
 
-**時間の上限は 3 段ある。** 描き切るまでの上限（`settle.ts`）＜ 撮影が収まるまでの上限（設定の
-`expect.timeout`）＜ 1 件の上限（設定の `timeout`）。描き切る上限を 1 件の上限と同じにすると、
-描き切らない story 1 件が上限をまるごと使い、ログには「時間切れ」しか残らない。1 件の上限を既定より
-広く取るのは、負荷が高いときに「揺らぎで落ちた」のか「順番待ちで落ちた」のかを分けるため。
+**There are three time limits.** The limit for rendering to complete (`settle.ts`) < the limit for capture to settle (the configuration's
+`expect.timeout`) < the per-test limit (the configuration's `timeout`). If the rendering limit equalled the per-test limit,
+one story that never finishes rendering would use up the whole limit, leaving only "timeout" in the log. The per-test limit is set wider
+than the default to tell, under heavy load, "failed from flakiness" apart from "failed waiting in the queue".
 
-**再試行はしない**（`retries: 0`）。再試行で通してよい差分は無く、再試行は不安定な story を隠すだけで、
-隠れた分は基準画像の側へ蓄積する。**並列度は設定で固定する** —— 既定は論理コア数の半分で走る場所に
-よって変わり、上の揺れの実測は並列度の関数である。
+**No retries** (`retries: 0`). No diff should be passed through by a retry; retries only hide unstable stories,
+and what is hidden accumulates on the baseline side. **Parallelism is pinned in the configuration** — the default is half the logical cores and varies with
+where it runs, and the measured fluctuation above is a function of parallelism.
 
-**枚数**に許容は置いていない（`maxDiffPixels: 0`）。数えるのは**画素あたりの色差 `threshold` を
-超えた画素だけ**なので、許容の実体はこちらが持つ。Playwright は YIQ 距離の上限を
-`35215 × threshold²` に取り、グレースケールでは `264 × threshold` までの差が 0 枚として通る。
+There is no tolerance on **pixel count** (`maxDiffPixels: 0`). What is counted is **only pixels whose per-pixel color difference exceeds
+`threshold`**, so that is where the tolerance actually lives. Playwright sets the YIQ distance limit to
+`35215 × threshold²`, and in grayscale differences up to `264 × threshold` pass as zero pixels.
 
-既定の `0.2` は上限 52.8 で、`neutral-400` と `neutral-500`（差 48）を取り違えても緑になる。
-低コントラストの退行がここをすり抜けるため、`0.02`（上限 5.28）を置いている。この幅を超える差は
-残らず数える。
+The default `0.2` gives a limit of 52.8, so even confusing `neutral-400` with `neutral-500` (a difference of 48) stays green.
+Low-contrast regressions would slip through here, so `0.02` (a limit of 5.28) is set. Every difference beyond this width
+is counted.
 
-**下限を 5.28 に置いているのは、揺れの実測がそこまで届くため。**全 story を 4 worker で回すと、
-**角の丸みのように弧を反字体で塗る箇所**が実行ごとに動く。カードの角で計測した例では、期待と実際が
-8 画素ずれ、最大で `207,239,242` → `210,242,245`（全チャネル +3）だった。同じ実行を 2 度掛けると
-撮れる絵はバイト一致するので、揺れているのは実行と実行の間である。
+**The lower bound is placed at 5.28 because the measured fluctuation reaches that far.** Running every story on 4 workers,
+**places where an arc is painted with anti-aliasing, such as rounded corners**, move from run to run. In an example measured on a card's corner, expected and actual
+differed by 8 pixels, at most `207,239,242` → `210,242,245` (+3 on every channel). Running the same run twice
+produces byte-identical pictures, so the fluctuation is between runs.
 
-**この幅を撮り直しでは埋められない。**撮り直しはそのとき塗られた弧を正にするだけで、次の実行が
-別の塗りをすれば同じ幅だけまた外れる。下限の側で切るしかない。
+**A retake cannot fill this gap.** A retake only makes the arc painted at that time the truth, and if the next run
+paints differently it is off by the same amount again. The only option is to cut it off at the lower bound.
 
-**比較が黙っていても、バイトは動く。**下限で切っているのは判定であって描画ではないので、揺れた画像は
-「差分 0 枚」で通りながら別のバイト列で撮れる。実測した 4 枚は、滑走子の円弧や `必須` の丸みといった
-**弧の反字体だけ**が動いており、範囲は 15 × 8 画素以内・最大の差は 2 で、比較はどちらの版でも通った。
-つまり**これは story 側で潰せる非決定性ではない** —— 潰す先は弧そのものになる。
+**Even when the comparison is silent, the bytes move.** What the lower bound cuts off is the judgment, not the rendering, so a fluctuating image
+passes as "0 diff pixels" while being captured as a different byte sequence. In the four measured images, only
+**the anti-aliasing of arcs** moved, such as a slider thumb's arc or the rounding of `必須` (the "required" badge), within a 15 × 8 pixel area with a maximum difference of 2, and the comparison passed for both versions.
+In other words, **this is not non-determinism that can be squashed on the story side** — what would have to be squashed is the arc itself.
 
-だから守るのは撮る側で、**撮り直しは報告された集合に限る**（[`../baseline/README.md`](../baseline/README.md)）。
-報告に出ていない画像まで置き直すと、この揺れが黙って基準になり、承認する人は説明の付かない行を
-「たぶん問題ない」で通すことになる。全数を撮るのは `revert-` で始まるブランチだけで、そこは復帰先の
-一式を丸ごと採る場面である。
+So what is guarded is the capturing side: **retakes are limited to the reported set** ([`../baseline/README.md`](../baseline/README.md)).
+Re-placing images not in the report would let this fluctuation silently become the baseline, and the approver would pass unexplained rows
+as "probably fine". Only branches starting with `revert-` capture the full set, since that is where the whole set
+being reverted to is taken wholesale.
 
-## 撮らない側のテーマは適用だけを見る
+## For the theme not captured, check only that it applies
 
-全 story を 2 テーマぶん撮ると実行が倍になる。private ランナー
-（2 コア）で課金されるので、そこは倍にしない。撮るのは light だけにし、**dark は配色テーマが面へ効いていることだけ**
-を見る（[`theme-tokens.spec.ts`](theme-tokens.spec.ts)）。
+Capturing every story in two themes doubles the run. Because it is billed on private runners
+(2 cores), the run is not doubled here. Only light is captured, and **for dark, only that the color theme takes effect on surfaces**
+is checked ([`theme-tokens.spec.ts`](theme-tokens.spec.ts)).
 
-失うのは dark 固有の見た目の退行 —— 暗い面でだけ崩れる部品と、暗い面でだけ出る低コントラスト。
-捕まえ続けるのは「dark の配色が丸ごと壊れた」級である。
+What is lost is dark-specific visual regressions — components that break only on dark surfaces, and low contrast that appears only on dark surfaces.
+What continues to be caught is the "dark color scheme broke entirely" class.
 
-ほかの壊れ方は既に別の検査が持っているので、ここでは見ない。
+Other kinds of breakage are already owned by other checks, so they are not checked here.
 
-| 壊れ方 | 誰が捕まえるか |
+| Kind of breakage | Who catches it |
 | --- | --- |
-| SSOT と生成物がずれる（値の誤り・生成漏れ） | `tokens-drift`（`pnpm check:tokens`） |
-| 生成した CSS がそもそも読まれない | light の全 story 撮影（全数が動く） |
-| 撮らない側のテーマの適用経路だけが壊れる | ここ |
+| The SSOT and the generated artifacts drift (wrong values, missed generation) | `tokens-drift` (`pnpm check:tokens`) |
+| The generated CSS is not read at all | Capturing every light story (the whole set moves) |
+| Only the application path of the theme not captured breaks | Here |
 
-値そのものは持たない。SSOT から生成物までは `tokens-drift` が見ているので、ここで値を持つと同じ表を
-2 箇所に持つことになる。読むのは**切り替えると変わること**だけで、配色の軸（`:root` の `data-theme`）と
-系統の軸（部分木の `data-surface`、[`tokens/README.md`](../tokens/README.md)）の両方で見る。
+It holds no values itself. `tokens-drift` covers the path from the SSOT to the generated artifacts, so holding values here would hold the same table
+in two places. What it reads is only **that switching changes things**, on both the color-scheme axis (`data-theme` on `:root`) and
+the family axis (`data-surface` on a subtree, [`tokens/README.md`](../tokens/README.md)).
 
-| 軸 | 見ること |
+| Axis | What is checked |
 | --- | --- |
-| 配色 | `color-scheme` が project 名と一致する。もう一方のテーマへ切り替えると配色の表が丸ごと同じにはならない |
-| 系統 | 系統を置いた部分木では配色が変わる。**色以外（書体・太さ・影）も変わる** —— 色だけを見ると、書体の別名を手書き CSS から直接引いた箇所のように、その系統だけ届かない壊れ方を素通しする |
+| Color scheme | `color-scheme` matches the project name. Switching to the other theme does not leave the color table entirely the same |
+| Family | In a subtree carrying the family, the colors change. **Things other than color (typeface, weight, shadow) change too** — looking only at color would let through breakage that reaches only that family, such as a place that reads a typeface alias directly from hand-written CSS |
 
-全部が違う必要はない。表が丸ごと同じなら切り替えが効いていない、という判定である。探針にする story は
-どれでもよく（撮影対象の先頭）、見るのは story の中身ではなく story を包む面に配色が乗っているか。
+Not everything has to differ. The verdict is that if the table is entirely the same, the switch is not working. Any story can serve as
+the probe (the first capture target); what is checked is not the story's contents but whether the color scheme lands on the surface wrapping the story.
 
-トークンの名前と、既定のほかに宣言された系統の名前は、生成した CSS から
-[`lib/theme-tokens.ts`](lib/theme-tokens.ts) が取り出す。系統は `tokens/themes/` のディレクトリで増減する
-ので、spec に綴りで持たない。系統が 1 つも宣言されていなければ系統の検査は skip になる。
+The token names, and the names of families declared besides the default, are extracted from the generated CSS by
+[`lib/theme-tokens.ts`](lib/theme-tokens.ts). Families come and go with the directories under `tokens/themes/`,
+so the spec does not hold their spelling. If no family is declared, the family check is skipped.
 
-- **読むのは別名（`--color-*`）ではなく実体（`--semantic-*`）の名前。** 別名は `@theme inline` が `:root` で
-  1 度だけ解決するため、系統を切り替えた部分木では再解決されない。別名を読むと、再束縛が届いていても値が
-  変わらず見える
-- **読むのは宣言ではなく、変数を使った結果（`getComputedStyle`）。** 宣言のまま読むと `var(...)` が解決前の
-  文字列で返る browser がある
-- **色以外は、値を読むプロパティを型ごとに添える**（書体は `font-family`、影は `box-shadow`）。読み取りの
-  プロパティが型で違うため、名前だけでは読めない
+- **What is read is the name of the real variable (`--semantic-*`), not the alias (`--color-*`).** `@theme inline` resolves aliases once at `:root`,
+  so they are not re-resolved in a subtree with a switched family. Reading an alias makes the value look unchanged even when
+  the rebinding has arrived
+- **What is read is the result of using the variable (`getComputedStyle`), not the declaration.** Read as declared, some browsers return
+  `var(...)` as an unresolved string
+- **For things other than color, the property to read the value from is attached per type** (`font-family` for typefaces, `box-shadow` for shadows). The property
+  to read differs by type, so the name alone is not enough to read it
 
-> トークンは継承する色が違う 2 つの面で読む。宣言の無い custom property を使った宣言は計算時に無効に
-> なり、その property は**継承値**へ落ちる。継承値も色として読めるため、1 面だけでは届いた色と継承した
-> 色を区別できない。届いていれば継承元が何であれ同じ色が返る。
+> Tokens are read on two surfaces that inherit different colors. A declaration using a custom property with no declaration becomes invalid at computed-value time,
+> and that property falls back to its **inherited value**. The inherited value also reads as a color, so a single surface cannot distinguish a color that arrived from an inherited
+> one. If it arrived, the same color comes back whatever the inheritance source.
 
-## a11y の検査は撮影に相乗りする
+## a11y checks ride along with capture
 
-`make a11y` は [`a11y.spec.ts`](a11y.spec.ts) を、撮影と同じコンテナ・同じ story の列挙・同じ除外・同じ
-viewport・同じテーマで回し、axe を掛ける。追加のランナーを入れずに「a11y の自動検査を story に効かせる」
-を満たす経路であり、**実ブラウザであることが本質** —— jsdom には描画も色計算も無く、色コントラストは
-実描画でしか出ない。方針（検査の範囲・無効化の条件）は [0091](../docs/adr/0091-test-verification-methods.md)
-の a11y 自動検査の組み込みが持ち、ここは機構だけを書く。宣言の実体は [`lib/a11y-rules.ts`](lib/a11y-rules.ts)。
+`make a11y` runs [`a11y.spec.ts`](a11y.spec.ts) in the same container, with the same story enumeration, the same exclusions, the same
+viewport and the same theme as capture, and applies axe. It is the path that satisfies "make automated a11y checks work on stories"
+without adding another runner, and **a real browser is essential** — jsdom has neither rendering nor color computation, and color contrast
+only appears in real rendering. The policy (the scope of the checks and the conditions for disabling) is owned by [0091](../docs/adr/0091-test-verification-methods.md)'s
+decision on building in automated a11y checks; this file describes only the mechanism. The declarations live in [`lib/a11y-rules.ts`](lib/a11y-rules.ts).
 
-**範囲は適合目標を axe のタグへ写したもの**（`CONFORMANCE_TAGS`）。axe は既定で目標の外側（`best-practice`
-など）まで回すので、宣言しないと掲げていない水準を全 story ぶん評価する。目標を引き上げるなら
-[0100](../docs/adr/0100-accessibility-target.md) を先に変える。
+**The scope is the conformance target mapped onto axe tags** (`CONFORMANCE_TAGS`). By default axe also runs beyond the target (`best-practice`
+and so on), so without the declaration every story would be evaluated against a level that is not claimed. To raise the target,
+change [0100](../docs/adr/0100-accessibility-target.md) first.
 
-**タグで範囲を宣言すると、axe が既定で無効にしているルールまで走る。** axe はタグに一致するものを既定の
-可否に関わらず有効にするため、範囲を絞る宣言が同時に別のルールを増やす。その増分を打ち消す宣言
-（`DEFAULT_OFF_RULES`）を置き、**タグ指定の前後で走るルールが増えない**ことを保つ。過不足は
-[テスト](lib/a11y-rules.test.ts)が axe 本体の目録と突き合わせて検出するので、走らせる判断をしたときは
-この宣言から外すのが手順になる。
+**Declaring the scope by tags also runs rules axe disables by default.** axe enables whatever matches the tags regardless of the default
+setting, so a declaration that narrows the scope simultaneously adds other rules. A declaration cancels that increment
+(`DEFAULT_OFF_RULES`), keeping **the set of rules that run from growing between before and after the tag declaration**. Excess or shortfall is detected by
+[the test](lib/a11y-rules.test.ts), which reconciles against axe's own inventory, so when you decide to run a rule,
+the procedure is to remove it from this declaration.
 
-無効化の宣言は 3 段で、どれも**理由と撤去条件を添える**（後述「宣言の形」）。
+Disabling declarations come in three levels, each **with a reason and a removal condition** (see "Declaration Format" below).
 
-| 宣言 | 効く範囲 | 置いてよいもの |
+| Declaration | Scope | What may be placed there |
 | --- | --- | --- |
-| `DEFAULT_OFF_RULES` | 全 story | タグ指定の副作用の打ち消しだけ |
-| `DISABLED_RULES` | 全 story | story が部品を単独で描画していることの副作用として鳴るものだけ |
-| `STORY_DISABLED_RULES` | 名指しした story | 取り除けない上流の実装が原因で、かつ実際には到達できないもの。他の story では同じルールが生きたまま |
+| `DEFAULT_OFF_RULES` | Every story | Only cancellations of the tag declaration's side effects |
+| `DISABLED_RULES` | Every story | Only what fires as a side effect of a story rendering a component standalone |
+| `STORY_DISABLED_RULES` | Named stories | Caused by an upstream implementation that cannot be removed, and not actually reachable. The same rule stays live for other stories |
 
-landmark・`main`・h1 の類はここで無効化しない。部品を単独で描く限り成立せず、組み上げた画面で初めて
-壊れるので、画面単位の検査（[e2e/README.md](../e2e/README.md)）が持つ。spec の側で `rules: { ... }` を
-書ける形にはしない —— story を足した人がその場で黙らせられる状態になる。
+Landmarks, `main`, h1 and the like are not disabled here. They cannot hold while a component is rendered standalone and only break
+on assembled screens, so the per-screen check ([e2e/README.md](../e2e/README.md)) owns them. The spec side does not get a form where
+`rules: { ... }` can be written — that would let whoever added a story silence it on the spot.
 
-**addon の自動検査は URL で止める。** `@storybook/addon-a11y` は story を描くたびに axe を走らせるので、
-止めないと 1 story につき axe が 2 回走る。撮影には丸ごと無駄で、検査には自分の実行と衝突する相手になる
-（axe は同時実行を拒む）。止め方に `globals`（`a11y.manual:!true`）を選ぶのは**この実行にだけ効く**からで、
-`.storybook/preview.tsx` の parameter で止めると Storybook を開く人からも検査が消える。
+**The addon's automatic check is stopped via the URL.** `@storybook/addon-a11y` runs axe every time it renders a story, so
+unless stopped, axe runs twice per story. For capture it is pure waste, and for the check it collides with its own run
+(axe refuses concurrent execution). `globals` (`a11y.manual:!true`) is chosen as the way to stop it because **it affects only this run**;
+stopping it with a parameter in `.storybook/preview.tsx` would also remove the check for people who open Storybook.
 
-**違反は件数ではなく中身で落とす**（ルール id・説明・要素）。時間切れが原因を語らないのと同じで、
-件数だけでは読む人が Storybook を開いて探し直すことになる。
+**Violations fail with their contents, not a count** (rule id, description, element). Just as a timeout does not tell the cause,
+a count alone sends the reader to open Storybook and search again.
 
-**a11y の spec は `make vrt` の実行に混ぜない。** 混ざると a11y の失敗が撮り直しの対象に入り、撮り直しても
-直らないまま基準画像だけが承認済みになる。配色の検査（`theme-tokens.spec.ts`）は撮影と同じ実行に載せる ——
-基準画像を持たないので撮り直しの対象にならず、見ている面が撮影と同じであるため。
+**The a11y spec is not mixed into the `make vrt` run.** If it were, a11y failures would enter the retake scope, and the baseline images alone
+would become approved while the failures stay unfixed by the retake. The color-scheme check (`theme-tokens.spec.ts`) rides in the same run as capture —
+it has no baseline images, so it never enters the retake scope, and the surface it looks at is the same as capture.
 
-## 壊れた story を「変わっていない」で通さない
+## A broken story does not pass as "unchanged"
 
-**ページへ漏れた例外は、画像より先に見る。** 例外を投げた story でも画像は撮れてしまい、そのぶん差分に
-出ないことがある。撮影も a11y も `pageerror` を集め、撮る前・axe を掛ける前に空であることを見る。
-a11y では、壊れた story は待ち合わせが成立せず時間切れになるが、時間切れは原因を語らない —— 例外そのものを
-出しておく。**`pageerror` に届くのは React の境界の外へ漏れた例外だけ**で、描画中の例外は story の例外を
-受け止める境界（[`.storybook/README.md`](../.storybook/README.md)「`preview.tsx`」）が受け止め、ページへは
-漏れない。**だから境界の画面そのものも見る。** 境界は `data-story-error` を付けるので、撮影も a11y も
-撮る前・axe を掛ける前にそれが 1 つも無いことを確かめ、在れば文言ごと落とす。見なければ境界の画面が
-基準画像として承認され、axe は部品でなく境界の画面を検査する。
+**Exceptions that leak to the page are checked before the image.** Even a story that threw an exception produces an image, and that may
+not show up as a diff. Both capture and a11y collect `pageerror` and check that it is empty before capturing and before applying axe.
+For a11y, a broken story times out because the waiting never settles, but a timeout does not tell the cause — so the exception itself
+is reported. **Only exceptions that leaked outside React's boundary reach `pageerror`**; exceptions during rendering are caught by
+the boundary that catches story exceptions ([`.storybook/README.md#previewtsx`](../.storybook/README.md#previewtsx)) and do not
+leak to the page. **So the boundary's screen itself is checked too.** The boundary sets `data-story-error`, so both capture and a11y
+confirm, before capturing and before applying axe, that none exists, and if one does they fail with its message. Without this, the boundary's screen would be
+approved as a baseline image, and axe would check the boundary's screen instead of the component.
 
-**落ちた story は id で報告へ載る。** test に story の id を注記として付け、承認経路はそれで範囲を絞る。
-見出しの文字列から逆引きさせない。
+**A failed story is reported by id.** The test is annotated with the story id, and the approval path narrows the scope with it.
+It is never looked up in reverse from the title string.
 
-## 空集合は緑ではなく例外
+## An empty set is an error, not green
 
-**「対象が 1 つも無い」を 0 件へ縮退させると、検査していない状態が「差分なし」として緑で通る。** `lib/` の
-入口はどれも空を落とす。
+**Collapsing "not a single target" into zero items lets an unchecked state pass green as "no diff".** Every entry point in `lib/`
+fails on empty.
 
-| 空になる場面 | 落とす理由 |
+| When it becomes empty | Why it fails |
 | --- | --- |
-| 目録に `entries` が無い / story が 1 件も無い | 撮影対象が無い状態が緑で通る |
-| 除外の宣言が撮影対象を空にした | 同上 |
-| `VRT_ONLY` に該当する story が無い | 綴りを誤った撮り直しが「差分なし」で通り、承認したはずの画像が更新されない |
-| 生成した CSS に意味トークンが 1 つも無い | 検査する対象が無い状態が「すべて届いている」で通る |
+| The inventory has no `entries` / not a single story | A state with no capture targets would pass green |
+| Exclusion declarations emptied the capture targets | Same as above |
+| No story matches `VRT_ONLY` | A misspelled retake would pass as "no diff", and the images you believed you approved would not be updated |
+| The generated CSS has not a single semantic token | A state with nothing to check would pass as "everything arrives" |
 
-## 宣言の形
+## Declaration Format
 
-比較から外す story（[`lib/excluded-stories.ts`](lib/excluded-stories.ts)）と無効化する axe のルール
-（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)）は同じ形で持つ。
+Stories excluded from comparison ([`lib/excluded-stories.ts`](lib/excluded-stories.ts)) and disabled axe rules
+([`lib/a11y-rules.ts`](lib/a11y-rules.ts)) are held in the same shape.
 
-- **1 件は `id` / `reason` / `removeWhen`。** 理由と撤去条件が空の宣言は[テスト](lib/excluded-stories.test.ts)が
-  落とす。同じ対象の二重宣言も落とす
-- **件数をテストに焼く。** 宣言を足すとテストの数字を更新することになり、更新が要ること自体が、外した事実を
-  差分へ出す。タグ指定の打ち消しだけは件数ではなく axe の目録との突き合わせで代える（前述）
-- **実体を失った宣言は落とす。** 消した / 改名した story を指す宣言は、その story を黙らせないので違反では
-  気づけず、何にも当たらないまま居座る。突き合わせる相手は**除外を引いた後、`VRT_ONLY` で絞る前**の集合 ——
-  除外された story を指す宣言は axe に一度も掛からないので目録の在否では見つからず、絞った後では走らせなかった
-  story を指す宣言まで居残りに見える
+- **Each entry is `id` / `reason` / `removeWhen`.** A declaration with an empty reason or removal condition fails [the test](lib/excluded-stories.test.ts).
+  A duplicate declaration for the same target fails too
+- **The count is baked into the test.** Adding a declaration means updating the number in the test, and the very need to update puts the fact of exclusion
+  into the diff. Only the cancellations of the tag declaration are reconciled against axe's inventory instead of a count (see above)
+- **A declaration that has lost its target fails.** A declaration pointing at a deleted or renamed story silences nothing, so no violation
+  reveals it, and it squats there hitting nothing. What it is reconciled against is the set **after exclusions are subtracted and before narrowing with `VRT_ONLY`** —
+  a declaration pointing at an excluded story never runs under axe, so the inventory's presence check cannot find it, and after narrowing, declarations pointing at stories
+  not run would also look like squatters
 
-## 絵が変わり得ないときは撮らない
+## Do not capture when the picture cannot have changed
 
-省く判定は **2 層ある**。どちらも独立に効き、片方が省いても他方の判定は変わらない。
+The skip decision has **two layers**. Each works independently, and one skipping does not change the other's decision.
 
-| 層 | 何を問うか | 何を落とすか | 何を見て決めるか | 実体 |
+| Layer | What it asks | What it drops | What it decides from | Implementation |
 | --- | --- | --- | --- | --- |
-| CI の入口 | PR の差分が絵に届きうるか | 依存の導入と build を含む job のステップ全部 | 変更されたパスの一覧 | [`.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) |
-| `make vrt` / `make a11y` | 絵を決める入力が前と同じか | 比較（axe の実行）だけ | 入力の**中身**のハッシュ | [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) |
+| CI entry point | Can the PR's diff reach the picture? | Every step of the job, including installing dependencies and the build | The list of changed paths | [`.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) |
+| `make vrt` / `make a11y` | Are the inputs that decide the picture the same as before? | Only the comparison (the axe run) | A hash of the inputs' **contents** | [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) |
 
-上の層へ「届かない」として渡すのは、**ドキュメントと AI エージェント設定だけ**である（一覧の実体は
-[`vrt.yaml`](../.github/workflows/vrt.yaml) / [`a11y.yaml`](../.github/workflows/a11y.yaml) の
-`ignore:`）。`*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` はいずれも絵を変えるので外せない —
-`bundle-budget` がそれらを外しているのは、あちらが測るのが `.js` の量だけだからで、一覧は別物として
-読むこと（[`.github/workflows/README.md`](../.github/workflows/README.md)）。
+What the upper layer passes over as "cannot reach" is **only documentation and AI agent configuration** (the list lives in
+`ignore:` in [`vrt.yaml`](../.github/workflows/vrt.yaml) / [`a11y.yaml`](../.github/workflows/a11y.yaml)). `*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` all change the picture and cannot be excluded —
+`bundle-budget` excludes them only because what it measures is the size of `.js`, so read that list
+as a separate thing ([`.github/workflows/README.md`](../.github/workflows/README.md)).
 
-以下は下の層の話。比較は 623 story ぶんあり、実行時間のほぼ全部を占める。**絵を決める入力が前に
-判定した時点と同じなら、撮っても同じ絵にしかならない**ので、比較そのものを省く。同じ判定を
-`make a11y` も使う（[`a11y.spec.ts`](a11y.spec.ts) は同じ入力から同じ違反を出す）。
+What follows concerns the lower layer. The comparison covers 623 stories and takes almost all of the run time. **If the inputs that decide the picture are the same as at
+the last verdict, capturing can only produce the same picture**, so the comparison itself is skipped. `make a11y` uses the same
+decision ([`a11y.spec.ts`](a11y.spec.ts) produces the same violations from the same inputs).
 
-入力は [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts) が 1 つのハッシュに畳む。
+The inputs are folded into one hash by [`scripts/vrt/render-hash.ts`](../scripts/vrt/render-hash.ts).
 
-| 入力 | 何を含むか |
+| Input | What it includes |
 | --- | --- |
-| `storybook-static/` | 撮る対象そのもの。story・部品・design token・CSS はすべてここへ畳まれる |
-| `playwright.config.ts` | viewport / テーマ / timezone / locale / 比較条件 |
-| `vrt/**/*.ts` | 撮り方（待ち方・固定する時計・撮影対象の絞り込み）と a11y の検査 |
-| `docker-compose.dev-tools.yml` | フォントのラスタライズを決めるイメージの digest |
-| `pnpm-lock.yaml` | Playwright と axe の版。コンテナはリポジトリをマウントするだけなので、両者はイメージではなく `node_modules` から来る |
+| `storybook-static/` | The capture target itself. Stories, components, design tokens and CSS are all folded in here |
+| `playwright.config.ts` | Viewport / theme / timezone / locale / comparison conditions |
+| `vrt/**/*.ts` | How capture works (how it waits, the pinned clock, narrowing the capture targets) and the a11y check |
+| `docker-compose.dev-tools.yml` | The digest of the image that decides font rasterisation |
+| `pnpm-lock.yaml` | The versions of Playwright and axe. The container only mounts the repository, so both come from `node_modules`, not from the image |
 
-`storybook-static/project.json` だけは build のたびに変わる（telemetry 用の metadata で描画には
-関わらない）ので外す。基準画像そのものも、入力ではなく出力なので入らない。
+Only `storybook-static/project.json` changes on every build (telemetry metadata, irrelevant to rendering),
+so it is excluded. The baseline images themselves are outputs, not inputs, so they are not included either.
 
-### 記録は 2 種類ある
+### There are two kinds of record
 
-| 記録 | 意味 | 書く人 | 置き場所 |
+| Record | Meaning | Written by | Location |
 | --- | --- | --- | --- |
-| `render-inputs.sha256` | この入力で**基準画像を撮った** | `make vrt-update` | 置き場（画像と同じコミット） |
-| `tmp/vrt/verified-inputs.sha256` | この入力で**比較が通った** | `make vrt`（割った実行では `make vrt-record-verified`） | 追跡外。CI は cache で持ち回る |
-| `tmp/a11y/verified-inputs.sha256` | この入力で**axe が通った** | `make a11y` | 同上 |
+| `render-inputs.sha256` | **Baseline images were captured** with these inputs | `make vrt-update` | The store (the same commit as the images) |
+| `tmp/vrt/verified-inputs.sha256` | **The comparison passed** with these inputs | `make vrt` (`make vrt-record-verified` on a sharded run) | Untracked. CI carries it around in a cache |
+| `tmp/a11y/verified-inputs.sha256` | **axe passed** with these inputs | `make a11y` | Same as above |
 
-撮った時点の記録だけでは足りない。絵を変えない変更（リファクタ・非表示の prop・コメント）でも
-`storybook-static` のバイト列は動くので記録とずれ、比較して緑になり、しかし撮り直しは起きないので
-記録は取り残される。通った時点の記録は実行のたびに前へ進むため、一致する窓が閉じない。
+The capture-time record alone is not enough. A change that does not alter the picture (a refactor, a hidden prop, a comment) still
+moves the bytes of `storybook-static`, so it drifts from the record, the comparison runs green, but no retake happens, so
+the record is left behind. The pass-time record advances on every run, so the window of matches does not close.
 
-撮った時点の値を書くのは**撮った直後**（`make vrt-update`）。送る側で書くと、撮らずに置き場を直した
-だけの木でも「この入力で撮った」と記録でき、次の実行が比較を省いてしまう。通った時点の値も同じ理由で
-**通った後**にだけ書く。
+The capture-time value is written **right after capturing** (`make vrt-update`). Writing it on the sending side would let even a tree where the store
+was merely fixed without capturing record "captured with these inputs", and the next run would skip the comparison. For the same reason the pass-time value
+is written only **after passing**.
 
-`vrt` は 2 つの記録のどちらかが一致すれば省く。`a11y` は自分の記録だけを見る — 撮った時点の記録を
-流用すると、axe が落ちる入力状態で撮り直しが起きたときに、以後その状態を「一致」と読んで緑を報告
-するため。
+`vrt` skips if either of the two records matches. `a11y` looks only at its own record — reusing the capture-time record
+would mean that if a retake happened in an input state where axe fails, it would from then on read that state as a "match" and report
+green.
 
-**判定できないときは省かない。**記録が無い状態、`VRT_ONLY` で範囲を絞った実行、入力が 1 つでも
-読めない状態は、すべて検査する側へ倒す。
+**When it cannot decide, it does not skip.** No record, a run whose scope is narrowed with `VRT_ONLY`, and a state where even one input
+cannot be read all fall toward checking.
 
-省いた実行でも**基準画像と撮影対象の 1 対 1 の対応だけは検査する**（`@baselines` タグ）。省くのは
-画素の比較であって、置き場の整合ではない。
+Even on a skipped run, **the one-to-one correspondence between baseline images and capture targets is still checked** (the `@baselines` tag). What is skipped is
+the pixel comparison, not the store's consistency.
 
-CI が撮影を複数台へ割ったときは、この対応の検査を**1 台目だけ**が担う。数える相手は置き場の
-ファイルと story の全目録であって、その実行で走った test ではないため、台の数だけ繰り返しても
-同じ答えが出るだけである。通った時点の記録も同じ理由で 1 台目が出すが、**cache へ残すかどうかを
-決めるのは全台の結果を知っている側**（`vrt.yaml` の `vrt` ジョブ）である。台の中で残すと、
-他の台が赤い実行の入力を「通った」として記録することになる。
+When CI splits capture across several machines, **only the first machine** carries this correspondence check. What it counts against is the store's
+files and the full story inventory, not the tests that ran in that run, so repeating it per machine
+only produces the same answer. The pass-time record is emitted by the first machine for the same reason, but **whether to keep it in the cache is
+decided by the side that knows every machine's result** (the `vrt` job in `vrt.yaml`). Keeping it inside a machine would
+record as "passed" the inputs of a run where another machine was red.
 
-省いたか走ったかは `vrt-gate: skip` / `vrt-gate: run` の 1 行で出る。CI の報告文言はこれを読んで
-「検査して通った」と「前と同じだから見ていない」を書き分ける。
+Whether it skipped or ran is printed as one line, `vrt-gate: skip` / `vrt-gate: run`. CI's report text reads it to
+distinguish "checked and passed" from "not looked at because it is the same as before".
 
-> パスの一覧ではなく中身のハッシュで判定するのは、`.tsx` を触らずに絵が変わる経路がこの
-> リポジトリの設計として複数あるため（design token の SSOT、`foundation/*.css`、依存の更新、
-> イメージの digest）。パスで絞ると、漏れた経路が黙って撮られなくなる。上の層がパスで絞れるのは、
-> 渡す一覧を**絵を描く経路を 1 つも含まないパスだけ**に限っているからで、迷うものを足した時点で
-> この危険が入る。
+> The decision uses a hash of the contents rather than a list of paths because this repository's design has several paths by which
+> the picture changes without touching `.tsx` (the design token SSOT, `foundation/*.css`, dependency updates,
+> image digests). Narrowing by path would silently stop capturing whatever path leaked. The upper layer can narrow by path only
+> because the list it passes is limited to **paths that include not a single path that draws the picture**; the moment anything doubtful is added,
+> this danger comes in.
 
-## 基準画像は別のリポジトリに置く
+## Baseline images live in a separate repository
 
-`screenshots` は**サブモジュール**で、実体は基準画像だけを持つ別リポジトリ（以下「置き場」）に
-ある。中身は `<系統>/<テーマ>/<story id>.png` で、系統は story の見出しの先頭区画
-（`Action` / `Features` / `Page` …）。
+`screenshots` is a **submodule**; its contents live in a separate repository that holds only baseline images (hereafter "the store").
+Its contents are `<family>/<theme>/<story id>.png`, where the family is the first segment of the story's title
+(`Action` / `Features` / `Page` …).
 
-置き場は**画面単位の撮影と共有する**（[e2e/README.md](../e2e/README.md)）。あちらは `screen/` 区画に
-閉じており、story の系統がその名前を名乗ると落ちる
-（[`baseline/`](../baseline/README.md)）。共有するのは、掃除も撮り直しも置き場 1 つに
-対して働くためで、分けると同じ機構を 2 組持つことになる。
+The store is **shared with per-screen capture** ([e2e/README.md](../e2e/README.md)). That side is confined to the `screen/`
+partition, and a story family claiming that name fails
+([`baseline/`](../baseline/README.md)). It is shared because pruning and retakes both work on a single
+store; separating them would mean holding two copies of the same mechanism.
 
-系統で分けるのは、**消す単位を系統に取れるようにする**ため。題材に固有の系統（`Features` /
-`Page`）は丸ごと不要になり、1 枚ずつ列挙せずに落とせる必要がある。千枚単位の画像を
-平らに並べるより辿りやすくもある。系統名は見出しの先頭区画を小文字にし、空白を `-` で繋いだもの
-（[`lib/story-index.ts`](lib/story-index.ts)）。
+It is split by family so that **the unit of deletion can be a family**. Subject-specific families (`Features` /
+`Page`) become entirely unnecessary and need to be droppable without listing images one by one. It is also easier to navigate than
+thousands of images laid out flat. The family name is the title's first segment in lowercase, with spaces joined by `-`
+([`lib/story-index.ts`](lib/story-index.ts)).
 
-**名前は 3 区画の配列で `toHaveScreenshot` へ渡す。** 1 本の文字列にすると Playwright が `/` をファイル名
-として無害化し、系統ごとに分かれず 1 階層へ平置きされる。設定の `snapshotPathTemplate` は `{arg}` を
-受け取るだけで、区画は spec が組み立てる。在るべき画像を数える側（[`lib/expected-baselines.ts`](lib/expected-baselines.ts)）
-は同じ 3 区画を同じ順で組み立てなければならず、食い違うと全数が孤児として上がる。
+**The name is passed to `toHaveScreenshot` as an array of three segments.** As a single string, Playwright sanitises `/` as part of a file name,
+and everything is laid flat in one level instead of split by family. The configuration's `snapshotPathTemplate` only receives `{arg}`,
+and the spec assembles the segments. The side that counts the images that should exist ([`lib/expected-baselines.ts`](lib/expected-baselines.ts))
+must assemble the same three segments in the same order; if they disagree, every image comes up as an orphan.
 
-落とす対象は [破棄する対象の宣言](../scripts/setup/remove-sample/sample-manifest.ts)が持つ。 <!-- sample:line -->
+What to drop is owned by [the declaration of what the purge deletes](../scripts/setup/remove-sample/sample-manifest.ts). <!-- sample:line -->
 
-分けてあるのは PNG のためである。すでに圧縮済みなので git の delta も zlib も効かず、更新 1 回が
-ほぼ丸ごと 1 枚ぶんずつ**永久に**積まれる。design token を触れば全数が動くので、同じリポジトリに
-置くと本体の clone が数か月で使い物にならなくなる。
+It is separated because of PNG. PNGs are already compressed, so neither git's delta nor zlib helps, and each update piles up
+almost a whole image's worth **forever**. Touching a design token moves the whole set, so keeping them in the same repository
+would make cloning the main repository unusable within months.
 
-置き場は**ただの置き場**で、workflow もルールセットもラベルも持たない。更新も掃除もすべて本体の
-make と workflow から流し込む。
+The store is **just a store**, with no workflows, rulesets or labels. Updates and pruning are all fed in from the main repository's
+make targets and workflows.
 
-### 撮り直しは「一式まるごと 1 コミット」
+### A retake is "one commit holding the whole set"
 
-撮り直すたびに、置き場には**全数ぶんの木を持つコミットが 1 つ**増える。親は常に置き場の根
-（README だけのコミット）で、撮り直しどうしを繋げない。
+Each retake adds to the store **one commit whose tree holds the whole set**. Its parent is always the store's root
+(the README-only commit), and retakes are never chained together.
 
-- 繋げると古い一式が新しい一式の祖先になり、掃除でどれも落とせなくなる
-- **この形は GitHub の compare では読めない。**共通の祖先が根になるので、動いた数枚ではなく一式
-  まるごとが「追加」として並ぶ。動いた枚を見せるのは撮り直しのコメントの仕事である
+- Chaining would make an old set an ancestor of a new set, and pruning could drop none of them
+- **This shape cannot be read with GitHub's compare.** The common ancestor is the root, so instead of the few images that moved, the whole
+  set is listed as "added". Showing the moved images is the retake comment's job
 
-同じ内容の PNG は git が blob として共有するので、一式ぶんの実体が毎回増えるわけではない。
+PNGs with identical contents are shared by git as blobs, so a full set's worth of data is not added every time.
 
-### 掃除
+### Pruning
 
-生きた ref（`production` / `staging` / `develop` / `release/*` / `hotfix/*` の先端、直近のタグ、
-開いている PR の head）が指す一式だけを残し、他は消す。**過去のコミットへ遡ると基準画像は揃わない**
-のが前提である。
+Only the sets pointed at by live refs (the tips of `production` / `staging` / `develop` / `release/*` / `hotfix/*`, recent tags, and
+the heads of open PRs) are kept; everything else is deleted. **The premise is that going back to past commits does not give a complete set of baseline images.**
 
 | | |
 | --- | --- |
-| 報告 | [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml) が月次で測り、閾値を超えたときだけ issue を立てる |
-| 実行 | `make baseline-prune`（`DRY_RUN=1` で一覧だけ） |
+| Report | [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml) measures monthly and opens an issue only when a threshold is exceeded |
+| Execution | `make baseline-prune` (`DRY_RUN=1` for the list only) |
 
-実行を人に残すのは、消したものを戻せないためである。保持の条件は
-[`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts) に理由と撤去条件つきで置いてある。
+Execution is left to a person because what is deleted cannot be restored. The retention conditions live in
+[`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts) with reasons and removal conditions.
 
-revert したときは、戻り先の一式が掃除で消えていることがある。そのため
-`revert-` で始まるブランチではラベル無しで撮り直しが走る。revert は定義上「以前に承認された状態へ
-戻す」操作なので、自動化しても承認の意味は壊れない。
+After a revert, the set being reverted to may already have been pruned. So
+on branches starting with `revert-`, a retake runs without the label. A revert is by definition an operation that "returns to a previously approved
+state", so automating it does not break what approval means.
 
-### 置き場を用意する
+### Setting up the store
 
-**自分の置き場を持つ**。上流の置き場には push できない。
+**Have your own store.** You cannot push to the upstream store.
 
 ```bash
 make setup-baseline-store   # 置き場を作る / 既存を指定する → サブモジュールを張り直す
 make setup-baseline-app      # 撮り直しに使う GitHub App を secret へ登録する
 ```
 
-GitHub App の作成と鍵の生成だけは自動化できない（REST に作成の口が無く、鍵は生成時に一度しか
-表示されない）。App は**本体と置き場の 2 つだけ**に installation を絞り、権限は
-**Contents: Read and write** と **Pull requests: Read and write** の 2 つにする。置き場に
-ルールセットを掛けてはいけない — 撮り直しの push を自分で塞ぐことになる。
+Only creating the GitHub App and generating its key cannot be automated (REST has no endpoint for creation, and the key is shown only
+once when generated). Restrict the App's installation to **only two repositories, the main one and the store**, and give it two permissions:
+**Contents: Read and write** and **Pull requests: Read and write**. Do not put a ruleset on the store
+— it would block the retake's own push.
 
-`Pull requests` が要るのは、保護されたブランチではポインタを PR で入れるためである（前述
-「保護されたブランチではポインタが PR で入る」）。**権限を後から足したときは、インストール側で
-承認するまで反映されない** —— App の設定を変えただけでは足りず、
-`https://github.com/settings/installations/<id>` で新しい権限を承認する。承認していないと、
-トークンの発行そのものが `422 The permissions requested are not granted to this installation.`
-で落ちる。
+`Pull requests` is needed because on protected branches the pointer arrives through a PR (see "On protected branches, the pointer arrives through a PR"
+above). **Permissions added later do not take effect until approved on the installation side** — changing the App's settings alone is not enough;
+approve the new permissions at `https://github.com/settings/installations/<id>`. Without approval,
+issuing a token itself fails with `422 The permissions requested are not granted to this installation.`
 
-置き場の公開範囲は既定で `private`。**非公開にすると、外部（fork）からの PR で `vrt` が落ちる**
-（fork の PR には secrets が渡らず、基準画像を読むトークンを取れない）。外部の PR を受けるなら `public`。
+The store's visibility defaults to `private`. **When private, `vrt` fails on PRs from outside (forks)**
+(fork PRs receive no secrets and cannot obtain the token that reads the baseline images). If you accept outside PRs, make it `public`.
 
-配線済みの状態で実行すると張り替える。組織の移動やリポジトリ名の変更でも同じコマンドで済む。
+Running it when already wired re-points it. Moving organisations or renaming the repository is handled by the same command.
 
-> 同梱サンプルを破棄する場合は**先に破棄しておく**とよい。破棄はサブモジュールの中へ届かないので、
-> 順序を逆にすると題材の基準画像が自分の置き場に入る（上流の置き場には残るが、張り替えた時点で
-> 参照は切れる）。
+> If you are going to purge the bundled sample, it is best to **purge it first**. The purge does not reach inside the submodule,
+> so in the reverse order the subject's baseline images end up in your own store (they remain in the upstream store, but the reference
+> is cut once you re-point).
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change it |
 | --- | --- | --- |
-| 基準画像の置き場と、CI がそこへ書き込む資格 | サブモジュールが本リポジトリ用の置き場を指しており、そこへは書き込めない | [置き場を用意する](#置き場を用意する)。手順と、破棄との前後関係もそこが持つ |
-| 撮る配色 | 既定の配色だけを撮り、もう一方は面へ効いていることだけを見る | `lib/themes.ts`。倍の実行時間を払う判断（[上記](#撮らない側のテーマは適用だけを見る)） |
-| 撮る対象 | story の全数。系統は story の見出しの先頭区画で決まる | 宣言しない。題材に固有の系統は破棄で丸ごと落ちる |
+| The baseline image store, and CI's credentials for writing to it | The submodule points at this repository's store, which you cannot write to | [Setting up the store](#setting-up-the-store). The steps and the ordering relative to the purge are owned there |
+| Color scheme captured | Only the default color scheme is captured; for the other, only that it takes effect on surfaces is checked | `lib/themes.ts`. A decision to pay double the run time ([above](#for-the-theme-not-captured-check-only-that-it-applies)) |
+| Capture targets | Every story. The family is decided by the first segment of the story's title | Not declared. Subject-specific families drop entirely with the purge |
 
-**自分の置き場を持つまで撮り直しは通りません。** これが最初に詰まる箇所です。
+**Retakes do not pass until you have your own store.** This is the first place you get stuck.
 
-## 構成
+## Structure
 
-| パス | 役割 |
+| Path | Role |
 | --- | --- |
-| [`stories.spec.ts`](stories.spec.ts) | story を列挙して 1 件ずつ撮る本体 |
-| [`a11y.spec.ts`](a11y.spec.ts) | 同じ列挙で 1 件ずつ axe を掛ける本体（`make a11y`） |
-| [`lib/story-index.ts`](lib/story-index.ts) | 目録から撮影対象を取り出す・story の URL を組み立てる・系統名を決める |
-| [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | 比較の対象から外す story の宣言（理由と撤去条件付き） |
-| [`lib/a11y-rules.ts`](lib/a11y-rules.ts) | 検査する範囲（適合目標のタグ）と、無効化する axe のルールの宣言 |
-| [`lib/settle.ts`](lib/settle.ts) | 描画・`play`・フォント・DOM の静止を待つ（3 つの spec が共有する） |
-| [`lib/viewport.ts`](lib/viewport.ts) | story が宣言した viewport を読み、その寸法で開き直す |
-| [`lib/themes.ts`](lib/themes.ts) | 在る配色テーマと、そのうち全 story を撮るテーマの宣言 |
-| [`theme-tokens.spec.ts`](theme-tokens.spec.ts) | 配色テーマと系統が面へ効いていることを見る（撮らない側のテーマの受け皿） |
-| [`lib/theme-tokens.ts`](lib/theme-tokens.ts) | 生成した CSS から意味トークンの名前を取り出す |
-| [`lib/clock.ts`](lib/clock.ts) | 撮影時に「今日」として読ませる時刻 |
-| [`lib/expected-baselines.ts`](lib/expected-baselines.ts) | 置き場に在るべき story の基準画像を数える |
-| [`lib/static-server.ts`](lib/static-server.ts) | build 済み Storybook を配る依存なしの静的サーバ |
-| [`../baseline/lib/`](../baseline/lib/) | 置き場の区画割りと、対応の突き合わせ。画面単位の撮影と共有する |
-| `../baseline/images/` | 基準画像の置き場（サブモジュール） |
-| `../playwright.config.ts` | 実行環境と比較条件 |
-| `../scripts/vrt/` | 実行結果から一覧表と撮り直しの範囲を取り出す・絵を決める入力のハッシュ |
-| [`../scripts/baseline-store/`](../scripts/baseline-store/) | 置き場の ref 名と、掃除で消す対象の算出 |
-| [`../.github/actions/setup-baselines`](../.github/actions/setup-baselines/action.yaml) | CI が記録されたコミットだけを取ってくる |
-| [`../.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) | CI の入口で、差分が絵に届きうるかを判定する |
+| [`stories.spec.ts`](stories.spec.ts) | The main body that enumerates stories and captures them one by one |
+| [`a11y.spec.ts`](a11y.spec.ts) | The main body that applies axe one by one with the same enumeration (`make a11y`) |
+| [`lib/story-index.ts`](lib/story-index.ts) | Extracts capture targets from the inventory, builds story URLs, and decides family names |
+| [`lib/excluded-stories.ts`](lib/excluded-stories.ts) | Declarations of stories excluded from comparison (with reasons and removal conditions) |
+| [`lib/a11y-rules.ts`](lib/a11y-rules.ts) | Declarations of the scope checked (conformance target tags) and of disabled axe rules |
+| [`lib/settle.ts`](lib/settle.ts) | Waits for rendering, `play`, fonts and DOM stillness (shared by the three specs) |
+| [`lib/viewport.ts`](lib/viewport.ts) | Reads the viewport a story declared and reopens at those dimensions |
+| [`lib/themes.ts`](lib/themes.ts) | Declares the color themes that exist and which of them every story is captured in |
+| [`theme-tokens.spec.ts`](theme-tokens.spec.ts) | Checks that color themes and families take effect on surfaces (the catch for the theme not captured) |
+| [`lib/theme-tokens.ts`](lib/theme-tokens.ts) | Extracts semantic token names from the generated CSS |
+| [`lib/clock.ts`](lib/clock.ts) | The time read as "today" during capture |
+| [`lib/expected-baselines.ts`](lib/expected-baselines.ts) | Counts the story baseline images that should exist in the store |
+| [`lib/static-server.ts`](lib/static-server.ts) | A dependency-free static server that serves the built Storybook |
+| [`../baseline/lib/`](../baseline/lib/) | The store's partitioning and the correspondence reconciliation. Shared with per-screen capture |
+| `../baseline/images/` | The baseline image store (submodule) |
+| `../playwright.config.ts` | Execution environment and comparison conditions |
+| `../scripts/vrt/` | Extracts the table and the retake scope from run results, and hashes the inputs that decide the picture |
+| [`../scripts/baseline-store/`](../scripts/baseline-store/) | The store's ref names, and computing what pruning deletes |
+| [`../.github/actions/setup-baselines`](../.github/actions/setup-baselines/action.yaml) | Fetches only the recorded commit in CI |
+| [`../.github/actions/diff-scope`](../.github/actions/diff-scope/action.yaml) | At CI's entry point, decides whether the diff can reach the picture |
 
-`tmp/vrt/` に出る実行結果（actual / diff / HTML レポート）は追跡しない。差分画像は基準画像と同じ
-拡張子で出るので、追跡下に置くと「更新済みの基準画像」と見分けが付かなくなる。
+The run results written to `tmp/vrt/` (actual / diff / HTML report) are not tracked. Diff images are emitted with the same extension
+as baseline images, so tracking them would make them indistinguishable from "updated baseline images".
 
-**Storybook は `file://` で開けない。** entry が module script で、ブラウザは `file://` 由来の module を
-origin なしとして拒む。そのため標準モジュールだけの静的サーバを worker ごとに立てる。**ポートは OS に
-選ばせる** —— 固定のポートで単一のサーバを外から与えると、worktree を並べた分だけ衝突する。
+**Storybook cannot be opened over `file://`.** Its entry is a module script, and browsers reject modules from `file://` as
+having no origin. So a static server using only standard modules is started per worker. **The OS
+chooses the port** — supplying a single server on a fixed port from outside would collide as many times as there are worktrees side by side.
 
-## 関連する ADR
+## Related ADRs
 
-- [0051](../docs/adr/0051-styling-system.md) — 動きを止めて初期状態で撮る根拠
-- [0053](../docs/adr/0053-ui-component-interaction-seam.md) — dropdown の menu を modal とする決定（`aria-hidden-focus` の宣言の根拠）
-- [0054](../docs/adr/0054-ui-catalog-storybook.md) — a11y の自動検査を story に効かせる
-- [0090](../docs/adr/0090-testing-strategy.md) — 層別責務と、`visual` が宣言を持たない扱い
-- [0091](../docs/adr/0091-test-verification-methods.md) — story 単位の比較と、実行環境の固定
-- [0100](../docs/adr/0100-accessibility-target.md) — 適合目標（WCAG 2.x レベル AA）
+- [0051](../docs/adr/0051-styling-system.md) — the basis for stopping motion and capturing the initial state
+- [0053](../docs/adr/0053-ui-component-interaction-seam.md) — the decision to treat a dropdown's menu as modal (the basis for the `aria-hidden-focus` declaration)
+- [0054](../docs/adr/0054-ui-catalog-storybook.md) — making automated a11y checks work on stories
+- [0090](../docs/adr/0090-testing-strategy.md) — per-layer responsibilities, and the treatment of `visual` as having no declaration
+- [0091](../docs/adr/0091-test-verification-methods.md) — per-story comparison, and pinning the execution environment
+- [0100](../docs/adr/0100-accessibility-target.md) — the conformance target (WCAG 2.x Level AA)

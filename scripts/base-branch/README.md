@@ -1,57 +1,57 @@
 # base-branch
 
-フィーチャーブランチの分岐元 —— 最新のリリースライン（`release/vX.Y.Z`）—— のブランチ名を 1 行で出す。
-`make base-branch` の実体。
+Prints, on one line, the name of the branch a feature branch is cut from — the latest release line (`release/vX.Y.Z`).
+The implementation behind `make base-branch`.
 
-## 出所は origin の実状態だけ
+## The only source is the actual state of origin
 
-答えは `git ls-remote --heads origin 'refs/heads/release/*'` から作り、**ローカルの参照は読まない。**
-分岐元を答えられそうな参照は他にもあるが、どれも警告を出さずに古い答えを返す。
+The answer is built from `git ls-remote --heads origin 'refs/heads/release/*'`; **local refs are not read.**
+Other refs look as if they could answer which branch to cut from, but every one of them returns a stale answer without a warning.
 
-- `refs/remotes/origin/HEAD` は clone 時に一度決まったきりで、`git fetch` では更新されない（更新には
-  `git remote set-head` が要る）。エージェントの harness が提示する "Main branch" もこの参照を読んでいる
-- GitHub のデフォルトブランチは張り替えられて初めて動く設定で、最新のリリースラインと一致している保証が無い
-- 手元の `release/*` は、取り込んでいなければ無い
+- `refs/remotes/origin/HEAD` is set once at clone time and is not updated by `git fetch` (updating it
+  needs `git remote set-head`). The "Main branch" an agent harness presents also reads this ref
+- The GitHub default branch is a setting that moves only when someone repoints it, and nothing guarantees it matches the latest release line
+- A local `release/*` does not exist unless it has been fetched
 
-origin を直接読むので、これらが陳腐化していても答えは変わらない。git はホストの認証情報を使うため、
-ホストで実行する（`scripts/release` と同じ扱い）。
+Because origin is read directly, the answer does not change even when these have gone stale. git uses the host's credentials,
+so this runs on the host (treated the same as `scripts/release`).
 
-## 「最新」は版の数値比較
+## "Latest" is a numeric comparison of versions
 
-`major` / `minor` / `patch` を数として比べる。判定は [`../semver/latest.ts`](../semver/latest.ts) と共有し、
-リリースラインを切る側（`scripts/release`）が次の版を決める基準と揃える —— 作る側と解決する側で「最新」が
-食い違わない。
+`major` / `minor` / `patch` are compared as numbers. The comparison is shared with [`../semver/latest.ts`](../semver/latest.ts),
+aligned with the criterion the side that cuts release lines (`scripts/release`) uses to decide the next version — the creating side and the resolving side
+never disagree about what "latest" means.
 
-- **コミット日時では選ばない。** 古いラインへの hotfix や base の取り込みで、日時の並びは版の並びと食い違う
-- **文字列順でも選ばない。** `v1.10.0` が `v1.9.0` より前に並ぶ
+- **It does not choose by commit date.** Hotfixes to older lines and base merges make the date order disagree with the version order
+- **It does not choose by string order either.** `v1.10.0` sorts before `v1.9.0`
 
-## 1 本も無ければ失敗する
+## It fails when there is none
 
-`release/vX.Y.Z` の形のブランチが origin に 1 本も無ければ exit 1 で止まり、空文字を出さない。取得自体は
-成功しうる（まだ切っていない、参照の書式が変わった）ので、空を「最新」として返すと、呼び出し側は解決できな
-かったことに気付かないまま空のベースで進む。
+If origin has no branch of the form `release/vX.Y.Z`, it stops with exit 1 and prints no empty string. The fetch itself
+can succeed (none has been cut yet, or the ref format changed), so returning empty as "latest" would let the caller
+proceed with an empty base without noticing that resolution failed.
 
-対象は `release/*` だけで、`hotfix/*` は候補にしない。解決しているのは「feature / bugfix は最新の
-`release/*` から切る」規則であり、hotfix の分岐元は人がその場で決める。
+Only `release/*` is in scope; `hotfix/*` is never a candidate. What it resolves is the rule "feature / bugfix branches are cut from the latest
+`release/*`"; the branch a hotfix is cut from is decided by a person on the spot.
 
-## 実行
+## Running
 
-| コマンド | いつ |
+| Command | When |
 | --- | --- |
-| `make base-branch` | ブランチを切るとき、PR の base を決めるとき。`BASE=$(make -s base-branch)` で受ける |
-| `pnpm exec tsx scripts/base-branch` | 同じ。引数は取らない |
+| `make base-branch` | When cutting a branch, and when deciding a PR's base. Capture it with `BASE=$(make -s base-branch)` |
+| `pnpm exec tsx scripts/base-branch` | The same. Takes no arguments |
 
-PR が既にあるなら、その `baseRefName` が正で、こちらは PR が無いときの答えである。
+If a PR already exists, its `baseRefName` is authoritative; this is the answer for when there is no PR.
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| [`index.ts`](index.ts) | 入口。git を呼び、答えを 1 行出す |
-| [`resolve.ts`](resolve.ts) | 判定。`ls-remote` の出力から最新のリリースラインを選ぶ |
+| [`index.ts`](index.ts) | Entry point. Calls git and prints the answer on one line |
+| [`resolve.ts`](resolve.ts) | Decision. Picks the latest release line from the `ls-remote` output |
 
-## 関連する ADR
+## Related ADRs
 
-- [0150](../../docs/adr/0150-git-workflow.md) — feature / bugfix の分岐元は最新の `release/vX.Y.Z`
-- [0157](../../docs/adr/0157-inspection-declaration-discipline.md) — 解決できない状態を空の答えへ倒さない
-- [0159](../../docs/adr/0159-script-structure.md) — 入口と判定の分離
+- [0150](../../docs/adr/0150-git-workflow.md) — feature / bugfix branches are cut from the latest `release/vX.Y.Z`
+- [0157](../../docs/adr/0157-inspection-declaration-discipline.md) — an unresolvable state is not collapsed into an empty answer
+- [0159](../../docs/adr/0159-script-structure.md) — separating the entry point from the decision

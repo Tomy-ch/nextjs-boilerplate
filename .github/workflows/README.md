@@ -1,447 +1,447 @@
-# GitHub Actions ワークフロー
+# GitHub Actions Workflows
 
-CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../docs/adr/0153-ci-configuration.md) で、本書はその実装がどう並んでいるかを示す。
+The CI / CD workflow definitions. The source of the design decisions is [ADR 0153](../../docs/adr/0153-ci-configuration.md); this document shows how its implementation is laid out.
 
-**ワークフロー定義内のコメントは英語で書く** —— このディレクトリと `../actions/` の両方（[AGENTS.md](../../AGENTS.md) 言語規則の明示的な例外。本書を含む `.github/` 配下のドキュメントと道具の設定は日本語）。
+**Comments inside workflow definitions are written in English** — both in this directory and in `../actions/` ([0140](../../docs/adr/0140-documentation-operations.md) Decision 1). The documents under `.github/`, this one included, follow the same model as every other document: an English canonical with a sibling Japanese mirror. What stays Japanese is Japanese output itself — the PR / issue templates, `settings/`, and release notes.
 
-## トリガ戦略
+## Trigger Strategy
 
-| グループ | 走るタイミング | 役割 |
+| Group | When it runs | Role |
 | --- | --- | --- |
-| CI Checks | 全 PR | lint / typecheck / build / test / 起動が壊れていればマージを止める。**費用が PR 1 本に見合わない 3 本（`a11y` / `e2e` / `lighthouse`）は重いステップだけが降りる** —— 下記「先送りにする検査」 |
-| Security | 全 PR + 週次スケジュール | コード・依存・ワークフロー定義・コミット済みシークレットの脆弱性を可視化する |
-| Deployment | 保護ブランチへの push | ビルド成果物の配信 |
-| Documentation | portal 配信 | 生成ドキュメントの再生成と配信 |
+| CI Checks | Every PR | Stops the merge if lint / typecheck / build / test / startup is broken. **For the three whose cost does not justify one PR (`a11y` / `e2e` / `lighthouse`), only the heavy steps skip** — see "Deferred Checks" below |
+| Security | Every PR + a weekly schedule | Makes vulnerabilities in code, dependencies, workflow definitions, and committed secrets visible |
+| Deployment | Push to a protected branch | Delivery of build outputs |
+| Documentation | Portal delivery | Regenerating and delivering the generated documentation |
 
-実体があるのは **CI Checks** / **Security** / **Documentation**。Deployment はアプリ本体の配信先が用途依存であるため（[0011](../../docs/adr/0011-no-docker.md)）本リポには置かない。
+The ones that exist are **CI Checks** / **Security** / **Documentation**. Deployment is not placed in this repository, because where the application itself is delivered depends on the use case ([0011](../../docs/adr/0011-no-docker.md)).
 
-## ワークフロー一覧（CI Checks）
+## Workflow List (CI Checks)
 
-### 先送りにする検査
+### Deferred Checks
 
-`a11y` / `e2e` / `lighthouse` は、**普通の PR では重いステップを走らせない**。実行が回るのは 5 経路
-—— 昇格 PR（base が `develop` / `staging` / `production`）/ 保護ブランチへの push / 日次 / ラベル
-（`run-a11y` / `run-e2e` / `run-lighthouse`）/ `workflow_dispatch` —— で、判定は
-[`../actions/check-trigger`](../actions/check-trigger/action.yaml) 1 箇所が持つ。
+`a11y` / `e2e` / `lighthouse` **do not run their heavy steps on an ordinary PR**. Execution happens through 5 paths
+— promotion PRs (base is `develop` / `staging` / `production`) / pushes to a protected branch / daily / labels
+(`run-a11y` / `run-e2e` / `run-lighthouse`) / `workflow_dispatch` — and the decision is held in one place,
+[`../actions/check-trigger`](../actions/check-trigger/action.yaml).
 
-**降りるのは `if:` であって `on:` ではない。**job は必ず起動して context を報告する。理由は下記
-「`paths:` フィルタを使わない」と同じで、必須 check に登録した context が報告されないと PR は
-永久に止まる。
+**What skips is `if:`, not `on:`.** The job always starts and reports its context. The reason is the same as in
+"Do not use `paths:` filters" below: if a context registered as a required check is not reported, the PR is
+blocked forever.
 
-払う代償は検知が 1 マージぶん遅れることで、買うのは「結果がマージの判断をほとんど動かさない検査を、
-どの PR も待たない」ことである。その代償を払うべきでない差分は `Deferred Checks` が名指しする。
+The price paid is that detection is delayed by one merge, and what it buys is that "no PR waits for checks whose results
+hardly ever move the merge decision". Diffs that should not pay that price are named by `Deferred Checks`.
 
-**ただし `e2e` と `lighthouse` は、待てない差分を自分でも見分ける。** 5 経路に当たらなくても、差分の
-構造が下の形に当たればラベル無しで回る。名指しと違って、これは勧告ではなく実行である。
+**However, `e2e` and `lighthouse` also recognize, on their own, the diffs that cannot wait.** Even without matching the 5 paths, if the diff's
+structure matches the shapes below, they run without a label. Unlike naming, this is execution, not a recommendation.
 
-| 検査 | ラベル無しで回る差分 | なぜ待てないか |
+| Check | Diffs that run without a label | Why they cannot wait |
 | --- | --- | --- |
-| `lighthouse` | 画面の宣言 / 器（layout と shell の部品） | 足した画面には比べる先の数値がまだ無く、待つと検出だけでなく比較そのものが遅れる |
-| `e2e` | 器（layout と shell の部品）/ 全画面が読む土台の CSS / 画面の宣言 | **直す経路が PR にしか無い。** 基準画像の撮り直しは比較が報告した集合に限られ、報告は PR の実行にしか出ない。merge 後に食い違うと、撮り直す相手を名指しできる PR がもう無い |
+| `lighthouse` | Screen declarations / layout shells (layout and shell components) | An added screen has no numbers yet to compare against, and waiting delays not just detection but the comparison itself |
+| `e2e` | Layout shells (layout and shell components) / the foundation CSS every screen reads / screen declarations | **The path to fix it exists only in the PR.** Baseline image retakes are limited to the set the comparison reported, and the report only appears in the PR's run. If it diverges after merge, there is no longer a PR that can name what to retake |
 
-`e2e` の線は「画面を動かすか」ではなく**「動かすことが差分の見た目から分かるか」**で引いてある。mock の
-応答やジャーニーの宣言も画面を動かすが、それは書いた人に見えているのでラベルの側に残る。この判定のため
-に、降りる PR も約 1 分ぶんの道具立てを払う。
+The line for `e2e` is drawn not at "does it move a screen" but at **"can you tell from the diff that it moves one"**. Mock
+responses and journey declarations also move screens, but that is visible to whoever wrote them, so they stay on the label side. For this decision,
+even a PR that skips pays about one minute of tooling setup.
 
-**判定そのものが取れなかったときは、回す側へ倒れる。** 差分を読めないことは「回すに値しない差分だ」の
-証拠にならないためで、`diff-scope` が読めない差分に当てているのと同じ読み方である。倒れたことは
-`::warning::` で残す —— 黙って倒れると、後から見て「差分が要求して回った」実行と区別が付かない。
+**When the decision itself could not be made, it falls toward running.** Being unable to read the diff is not evidence that "the diff is not worth running",
+which is the same reading `diff-scope` applies to diffs it cannot read. That it fell this way is left as a
+`::warning::` — falling silently would make it indistinguishable, in hindsight, from a run "the diff required".
 
-#### 降りた理由は 2 つあり、書き分ける
+#### Two reasons for skipping, reported separately
 
-降りる判定は 2 段ある。**先送り**（この節の 5 経路にも、差分が自分で回すと決める形にも当たらなかった）
-と、**差分が届かない**（`diff-scope` が絵にもジャーニーにも届かないと答えた）である。読み手にとっては別物で、前者は
-merge を待てば答えが出るが、後者はいくら待っても何も出ない。**PR コメントはこの 2 つを書き分ける** ——
-どちらも「回っていません」で済ませると、ラベルを付けるべき PR と付けても無駄な PR が同じ顔になる。
+The skip decision has two stages: **deferred** (matched neither the 5 paths of this section nor a shape where the diff decides to run on its own)
+and **the diff does not reach it** (`diff-scope` answered that it reaches neither pictures nor journeys). To the reader they are different: the former
+gets an answer by waiting for the merge, while the latter produces nothing however long you wait. **The PR comment reports the two separately** —
+if both just say "did not run", a PR that should get a label and a PR where a label would be useless look the same.
 
-#### PR の外で落ちたら、issue にする
+#### A failure outside a PR becomes an issue
 
-`pull_request` 以外（保護ブランチへの push / 日次）で落ちた失敗は、赤いチェックを読む場所が無い。
-**持ち主のいる形に変える必要があるので issue を立てる。ブランチごとに 1 本で、2 度目は同じ issue へ
-コメントする** —— 既に旗の立っているブランチでもう一度落ちたのは、同じ 1 つの未解決の事実である。
+A failure outside `pull_request` (pushes to a protected branch / daily) has no place where its red check gets read.
+**It must be turned into something that has an owner, so an issue is opened. One per branch; a second failure comments
+on the same issue** — failing again on a branch whose flag is already up is the same single unresolved fact.
 
-同じ形を `a11y` / `e2e` / `lighthouse` / `vrt-guard` / `baseline-prune` が持ち、探して立てる側は
-[`../actions/upsert-issue`](../actions/upsert-issue/action.yaml) が 1 つだけ持つ。各ワークフローに
-残るのは**本文を組み立てるステップ**で、書き足すのはその検査に固有の一文（axe なら「rule を切って
-通さないでください」）だけでよい。
+`a11y` / `e2e` / `lighthouse` / `vrt-guard` / `baseline-prune` share this shape, and the part that searches and opens is held once,
+by [`../actions/upsert-issue`](../actions/upsert-issue/action.yaml). What remains in each workflow
+is **the step that assembles the body**, and all it needs to add is the one sentence specific to that check (for axe, "do not turn off a rule
+to make it pass").
 
-**本文が組めなくても issue は立てる。** 起票するステップは `!cancelled()` を持ち、本文を組み立てる
-ステップの成否を見ない。組み立てが落ちたときに何もしなければ、空の issue が立つ。よって組み立ては
-道具を通さない固定文へ退化させる —— ここは誰も見ていない実行のための最後の砦であり、黙るより
-「本文を組めなかった」と言うほうが読み手に届く。
+**The issue is opened even if the body cannot be assembled.** The filing step has `!cancelled()` and does not look at whether the body-assembling
+step succeeded. If nothing were done when assembly fails, an empty issue would be opened. So assembly degrades to
+fixed text that goes through no tools — this is the last line of defense for a run nobody is watching, and saying
+"the body could not be assembled" reaches the reader better than silence.
 
-**本文を安全にするのは呼ぶ側の責務である。**issue の本文は Markdown として描かれ、そこへ流すのは
-道具の出力 —— このリポジトリが書いたのではない文字列 —— なので、4 スペース字下げでコードブロックに
-するか、markup を作れない文字集合へ濾してから渡す（[0153](../../docs/adr/0153-ci-configuration.md)）。
+**Making the body safe is the caller's responsibility.** The issue body is rendered as Markdown, and what flows into it is
+tool output — strings this repository did not write — so either indent it by 4 spaces into a code block
+or filter it down to a character set that cannot form markup before passing it ([0153](../../docs/adr/0153-ci-configuration.md)).
 
-| ワークフロー | ファイル | job 名 | 内容 |
+| Workflow | File | Job name | Contents |
 | --- | --- | --- | --- |
-| Lint | `lint.yaml` | `lint` | biome（full profile）で Markdown を除くリポジトリ全体を検査する（対象範囲は `biome.json` の `files.includes`） |
-| Markdown Lint | `md-lint.yaml` | `md-lint` | markdownlint + mermaid 図の構文 + `.claude/**` の意味検査（`skill-lint`）を実行する |
-| Typecheck | `typecheck.yaml` | `typecheck` | `tsc --noEmit` で型を検査する |
-| Test | `test.yaml` | `test` | アプリ本体（`src` / `docs-viewer` / `tokens` / `mocks`）の Vitest をカバレッジ 100% のハードゲートで実行し、octocov が coverage・差分・実行時間を PR へ報告する |
-| Scripts Check | `scripts-check.yaml` | `scripts-check` | 補助スクリプト（`scripts/**`）の Vitest をカバレッジ 100% で実行し、export と describe の 1:1 対応ゲートをリポジトリ全体へ掛ける |
-| Build | `build.yaml` | `build` | `next build` が通ることを検査する |
-| Bundle Budget | `bundle-budget.yaml` | `bundle-budget` | route ごとに browser が最初に読む client JS を測り、`performance-budget.yaml` の上限と base からの増分に照らす |
-| Dead Code | `dead-code.yaml` | `dead-code` | どの入口からも到達しない file / export / dependency を検出する。`src/components/**` は利用者が使う口として入口に宣言し、未使用を問わない |
-| Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
-| Storybook Build | `storybook-build.yaml` | `storybook-build` | `build-storybook` が通ることを検査する。Vitest は story を直接 import するので addon やビルダーの解決までは見ず、`vrt` の build は「比較の前段」なので失敗が別の意味に読める。配信（`deploy-docs`）とは分けている |
-| Purge Verify | `purge-verify.yaml` | `purge-verify` | 使い捨てチェックアウトで同梱サンプルを破棄し、破棄後のツリーで整形・検査・build・test が通ることと、過不足・残留参照が無いことを検査する |
-| Strip Verify | `strip-verify.yaml` | `strip-verify` | 使い捨てチェックアウトで boilerplate 限定の記述を剥がし、剥がした後のツリーで整形・検査・build・test が通ることと、マーカーが 1 件も残っていないことを検査する。**剥がしの対象に自分自身を含む**（[`../../scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts) の `SELF_DESTRUCT_PATHS`）。剥がしは任意ではないので、作った側には検証する相手が残らない <!-- boilerplate-only:line --> |
-| Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | ロックファイルが `package.json` と一致し、install が追跡ファイルを書き換えないことを検査する |
-| Package Version | `package-version.yaml` | `package-version` | `package.json` の `version` が PR の base が名乗る版と一致するか検査する。版の出所はリリースブランチ名（= タグから数えた次の版）1 つで、焼き込みは `make branch-*` がブランチを切る手順の中で行う。base がリリースブランチでない PR では据え置きとして緑を返す |
-| Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | hand-written token SSOT と追跡する CSS 生成物が一致することを検査する |
-| Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、必須ステータスチェックの宣言と実体の突合を `make actions-required-check-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
-| Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
-| Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（[0091](../../docs/adr/0091-test-verification-methods.md) の、story 全数を visual regression の実行に相乗りして検査する決定）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないまま基準画像だけが承認済みになるため。省く判定は 3 層ある — **普通の PR ではそもそも回さず**（上記「先送りにする検査」）、回す事由があっても差分が story に届かなければ降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.md)）。PR 以外で落ちたときはブランチごとに issue を立てる |
-| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / 描画中の例外 / 通信の失敗 / CSP 違反）・帯ごとの出し分けを 3 つの描画エンジンで回し、画面単位の見た目を基準画像と比べる（[`e2e/README.md`](../../e2e/README.md)）。**見ているのは 3 つの描画エンジンだけで、ブラウザの銘柄も版も見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、版は digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。巡回のあとに、配信を止めた起動（`make e2e-maintenance`）と索引させる設定の build（`make e2e-metadata`。公開面 —— `robots.txt` / `sitemap.xml` / canonical / OG 画像 —— の成立を見る）を別々に回す。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。ただし器・土台の CSS・画面の宣言が動いた差分は、ラベル無しでも回る（同節の表）。回す事由があっても、差分が画面に届かなければ降りる |
-| Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | 基準画像が動いている PR で `baseline-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなく基準画像であるため（[`vrt/README.md`](../../vrt/README.md)） |
-| VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story を基準画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、基準画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI の入口で丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュを基準画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.md)）。比較とコメントを別ジョブに割るのは、基準画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない）。**撮影は `vrt-shard` が 4 台に割る** —— 費用が story 数に比例する一方、1 台の 4 コアは `playwright.config.ts` が既に埋めているため、実時間を縮める手は台数しかない。**必須 context は束ねる側の `vrt` で、matrix の側ではない** —— matrix は `vrt-shard (1)` のように 1 件ずつ報告し、必須 check はその名前を指定できない |
-| Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | 先送りにしている 3 本のうち、この PR の差分が要求するものを**名指しして**コメントを 1 件だけ残す。判定は 2 段で、**構造が先** —— どのパスがどのラベルを呼ぶかは [`recommend.ts`](../../scripts/deferred-checks/recommend.ts) が理由付きで宣言する（story が動けば axe、proxy や mock が動けばジャーニー、書体や寸法が動けば計測）。名指しできなければ [`volume.ts`](../../scripts/deferred-checks/volume.ts) の行数に落ち、線（`ALERT_AT`）を超えたときだけ 3 本を並べる。**ゲートではない。**必須 check にも登録しない —— 行数の線に理論的な根拠は無く、マージを止められる場所に根拠の無い数字を置かない。既に付いているラベルは**その検査だけ**落とす（1 枚付いたことで残る 2 本まで黙ると、付けた人が見なかった検査が名指しされないまま消える）。`lighthouse` / `e2e` が自分で回すと決めた差分では、その検査を勧めない。3 本がそれぞれ「回ったか」を自分のコメントで答えるのに対し、ここが答えるのは**「回すべきだったか」**である |
+| Lint | `lint.yaml` | `lint` | Checks the whole repository except Markdown with biome (full profile) (scope is `files.includes` in `biome.json`) |
+| Markdown Lint | `md-lint.yaml` | `md-lint` | Runs markdownlint + mermaid diagram syntax + semantic checks of `.claude/**` (`skill-lint`) |
+| Typecheck | `typecheck.yaml` | `typecheck` | Checks types with `tsc --noEmit` |
+| Test | `test.yaml` | `test` | Runs Vitest for the application itself (`src` / `docs-viewer` / `tokens` / `mocks`) with a 100% coverage hard gate, and octocov reports coverage, diff, and run time to the PR |
+| Scripts Check | `scripts-check.yaml` | `scripts-check` | Runs Vitest for the helper scripts (`scripts/**`) at 100% coverage, and applies the export-to-describe 1:1 gate across the whole repository |
+| Build | `build.yaml` | `build` | Checks that `next build` passes |
+| Bundle Budget | `bundle-budget.yaml` | `bundle-budget` | Measures, per route, the client JS the browser loads first, and compares it with the limits in `performance-budget.yaml` and the increase from base |
+| Dead Code | `dead-code.yaml` | `dead-code` | Detects files / exports / dependencies unreachable from any entry point. `src/components/**` is declared as an entry point, being the surface consumers use, and unused items there are not questioned |
+| Smoke | `smoke.yaml` | `smoke` | Starts `next start` and checks that `/` responds |
+| Storybook Build | `storybook-build.yaml` | `storybook-build` | Checks that `build-storybook` passes. Vitest imports stories directly so it does not reach addon or builder resolution, and the `vrt` build is "the stage before comparison", so its failure reads as something else. Kept separate from delivery (`deploy-docs`) |
+| Purge Verify | `purge-verify.yaml` | `purge-verify` | In a throwaway checkout, purges the bundled sample and checks that formatting, checks, build, and test pass on the purged tree, and that nothing is missing or excess and no dangling references remain |
+| Strip Verify | `strip-verify.yaml` | `strip-verify` | In a throwaway checkout, strips the boilerplate-only text and checks that formatting, checks, build, and test pass on the stripped tree, and that not a single marker remains. **It includes itself among what is stripped** (`SELF_DESTRUCT_PATHS` in [`../../scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts)). Stripping is not optional, so the creating side is left with nothing for it to verify <!-- boilerplate-only:line --> |
+| Lockfile Drift | `lockfile-drift.yaml` | `lockfile-drift` | Checks that the lockfile matches `package.json` and that install does not rewrite tracked files |
+| Package Version | `package-version.yaml` | `package-version` | Checks that `version` in `package.json` matches the version the PR's base claims. The version has one source, the release branch name (= the next version counted from the tag), and stamping happens inside the procedure in which `make branch-*` cuts the branch. A PR whose base is not a release branch returns green as unchanged |
+| Tokens Drift | `tokens-drift.yaml` | `tokens-drift` | Checks that the hand-written token SSOT and the tracked generated CSS match |
+| Actions Lint | `actions-lint.yaml` | `actions-lint` | Checks the workflow definitions themselves with actionlint (`run:` shells via shellcheck), composite action `run:` shells with `make actions-shellcheck`, tracked `*.sh` with `make shellcheck`, secret leakage into jobs that post PR comments with `make actions-comment-secret-lint`, mise pin consistency with `make actions-mise-pin-lint`, reconciliation of declared and actual required status checks with `make actions-required-check-lint`, and static analysis of the definitions themselves with `make actions-zizmor` |
+| Actions Pin | `actions-pin.yaml` | `actions-pin` | Checks that `uses:` is SHA-pinned exactly as in `.github/actions-pin.toml` |
+| Images Pin | `images-pin.yaml` | `images-pin` | Checks that container image references are digest-pinned exactly as in `docker/images-pin.toml` |
+| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | Runs axe on every story. It rides the same digest-pinned container as the captures, so no extra runner is added ([0091](../../docs/adr/0091-test-verification-methods.md)'s decision to check every story by riding the visual regression run). **Being a real browser, it reaches color contrast** — component tests' `vitest-axe` runs in jsdom and therefore disables contrast. It checks only the one theme that is captured, so violations that appear only in the other theme are not reached ([`vrt/README.md`](../../vrt/README.md)). The job is separated from VRT because if a11y failures entered the retake set, retaking would not fix them while the baseline images alone became approved. The skip decision has 3 layers — **it does not run at all on an ordinary PR** ("Deferred Checks" above), even with a reason to run it skips if the diff does not reach a story, and even if it reaches one it omits axe when the inputs that decide the picture are the same as the last time they passed ([`vrt/README.md`](../../vrt/README.md)). When it fails outside a PR, an issue is opened per branch |
+| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | Runs the built application in real browsers. Main journeys, anomalies the browser reports (hydration mismatches / exceptions during rendering / network failures / CSP violations), and per-band rendering differences run on 3 rendering engines, and per-screen appearance is compared with baseline images ([`e2e/README.md`](../../e2e/README.md)). **It looks only at the 3 rendering engines, not at browser brands or versions** — modern browsers ([0102](../../docs/adr/0102-browser-support.md)) collapse, as implementations, into Chromium / Firefox / WebKit, and the version is decided by the digest-pinned image. The app starts on the runner, and only the browsers run in the container (because `node_modules` is resolved for the OS and CPU it was installed on). After the walk-through, a start with delivery stopped (`make e2e-maintenance`) and a build configured to be indexed (`make e2e-metadata`; checks that the public surface — `robots.txt` / `sitemap.xml` / canonical / OG images — holds) run separately. Comparison and commenting are split into separate jobs for the same reason as VRT. **It does not run on an ordinary PR** ("Deferred Checks" above). However, diffs that move layout shells, foundation CSS, or screen declarations run even without a label (the table in the same section). Even with a reason to run, it skips if the diff does not reach a screen |
+| Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | Requires the `baseline-approve` label on PRs where baseline images move. It checks not only whether the label is present but that it was applied after the last commit that moved the pointer (an old approval is not carried over to a new set). PR review approval is not used because what is approved is the baseline images, not the whole PR ([`vrt/README.md`](../../vrt/README.md)) |
+| VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Builds Storybook and compares every story with baseline images in a digest-pinned Playwright container. Reports stories with differences to the PR as a table, and outputs images as an artifact (`vrt-diff`). A full run also checks that baseline images and capture targets correspond 1:1. The skip decision has 2 layers — if the PR's diff does not reach pictures it skips entirely at the CI entry, and even if it does, `make vrt` checks the hash of the inputs that decide the picture against the value at the time the baseline images were captured, and omits the comparison if they match ([`vrt/README.md`](../../vrt/README.md)). Comparison and commenting are split into separate jobs because, if the baseline store is private, the comparing side holds the App's secret (a job holding a secret must not compose comment bodies). **Capture is split across 4 machines by `vrt-shard`** — cost is proportional to the number of stories, while the 4 cores of one machine are already filled by `playwright.config.ts`, so the only lever to shorten wall time is the number of machines. **The required context is the aggregating `vrt`, not the matrix side** — the matrix reports one by one, as in `vrt-shard (1)`, and a required check cannot name those |
+| Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | Leaves a single comment **naming** which of the three deferred checks this PR's diff requires. The decision has 2 stages, **structure first** — which paths call for which label is declared, with reasons, by [`recommend.ts`](../../scripts/deferred-checks/recommend.ts) (axe if a story moves, journeys if a proxy or mock moves, measurement if typefaces or dimensions move). If nothing can be named, it falls back to the line count in [`volume.ts`](../../scripts/deferred-checks/volume.ts), and lists all three only when the line (`ALERT_AT`) is exceeded. **It is not a gate.** It is not registered as a required check either — the line-count threshold has no theoretical basis, and a number without basis is not placed where it can stop a merge. Labels already applied drop **only that check** (if one label silenced the remaining two as well, checks the labeler did not look at would vanish unnamed). For diffs where `lighthouse` / `e2e` decided to run on their own, that check is not recommended. While each of the three answers "did it run" in its own comment, what this one answers is **"should it have run"** |
 
-### 並列度に台数を書かない
+### Do not write a machine count into parallelism
 
-`a11y` だけが `--workers=100%` を渡し、`vrt` は Playwright の既定（論理コア数の半分）に任せる。`a11y` は違反の有無を見るだけだが、VRT は画素を比較するので、並列度が撮影のタイミングに影響しうる。
+Only `a11y` passes `--workers=100%`; `vrt` leaves it to Playwright's default (half the logical cores). `a11y` only checks whether there are violations, but VRT compares pixels, so the degree of parallelism can affect capture timing.
 
-どちらも**台数は書かない**。standard runner のコア数は public リポジトリで 4、private で 2 であり、受け取るのは後者。台数を書けばこのリポジトリの事情がそのまま既定になる。割合指定なら、その意思だけが渡ってコア数は実行環境が決める。
+Neither **writes a machine count**. A standard runner has 4 cores in a public repository and 2 in a private one, and what is received is the latter. Writing a count would make this repository's situation the default as is. With a ratio, only the intent is passed and the execution environment decides the core count.
 
-大きいランナーで調整したい場合の口は `VRT_ARGS` で、`make vrt` / `make a11y` の双方が受け取る（[`.makefiles/testing/vrt.mk`](../../.makefiles/testing/vrt.mk)）。
+The knob for tuning on larger runners is `VRT_ARGS`, which both `make vrt` / `make a11y` accept ([`.makefiles/testing/vrt.mk`](../../.makefiles/testing/vrt.mk)).
 
-## ワークフロー一覧（Security）
+## Workflow List (Security)
 
-多層防御（[0110](../../docs/adr/0110-security-operations.md)）。**週次スケジュール + 差分が届く PR** で走る。週次があるのは、
-コードが 1 行も動いていない木に対しても CVE が公開されうるためで、変更を入口にした検査だけでは届かない。
+Defense in depth ([0110](../../docs/adr/0110-security-operations.md)). Runs on **a weekly schedule + PRs whose diff reaches it**. The weekly run exists because
+a CVE can be published even against a tree where not a single line of code moved, which checks triggered by changes alone cannot reach.
 
-**そして週次があるからこそ、PR 側は絞れる。** 各 job は `diff-scope` で「自分に届かない差分」を判定して降りる
-（下記「`paths:` フィルタを使わない」）。降りた分の走査が消えるのではなく、**週次へ回る**というのが絞りの正確な意味で、
-週次を止めればこの絞りは成立しなくなる。required status check には 1 つも登録していないため、降りても PR は止まらない。
+**And precisely because the weekly run exists, the PR side can be narrowed.** Each job uses `diff-scope` to decide "diffs that do not reach me" and skips
+("Do not use `paths:` filters" below). The precise meaning of the narrowing is that the skipped scans do not vanish but **move to the weekly run**;
+if the weekly run were stopped, the narrowing would no longer hold. None of them is registered as a required status check, so skipping does not stop a PR.
 
-| ワークフロー | ファイル | job 名 | 内容 |
+| Workflow | File | Job name | Contents |
 | --- | --- | --- | --- |
-| Secret Scan | `gitleaks.yaml` | `secret-scan` | PR が足したコミットを gitleaks で走査する。週次は履歴全体。検出は fail-closed |
-| SAST | `sast.yaml` | `sast` | 自分が書いたコードを opengrep で見る。**0 件の baseline を保つ**ので検出で落ちる。許容する所見はソースの `// nosemgrep:` に理由付きで置く。**ルールはレジストリから引かず**、`opengrep/opengrep-rules` の commit を固定して読む（下記「SAST のルールをレジストリから引かない」） |
-| CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
-| Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
-| OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
-| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのは木の現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |
-| Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
-| DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。**構文木を組む検査が開かないファイル**を読む。**落とさない**（下記） |
-| Tools Cooldown | `tools-cooldown.yaml` | `tools-cooldown` | `mise.toml` の pin が配布経路ごとの冷却期間を満たすかを、版の公開日時を上流から引いて見る。PR では**差分で動いた pin だけ**、週次は全 pin。公開日時を引けない backend は「違反なし」ではなく検査不成立として落ちる。免除は pin の直上のコメント（[`scripts/tools-cooldown/README.md`](../../scripts/tools-cooldown/README.md)） |
-| OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | リポジトリ自身の設定を測る。PR では走らない |
-| SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **外部アカウントを要する唯一の検査。** `SONAR_TOKEN` が無ければ走らず、緑のまま「未設定」を PR へ述べる。外すかはセットアップの 1 段で選ぶ |
-| DAST | `dast.yaml` | `dast` | **ここだけが応答を読む。** アプリを立てて OWASP ZAP で HTTP を撃ち、配信面を見る。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は赤にする** |
+| Secret Scan | `gitleaks.yaml` | `secret-scan` | Scans the commits a PR added with gitleaks. Weekly covers the whole history. Detection is fail-closed |
+| SAST | `sast.yaml` | `sast` | Looks at the code we wrote with opengrep. **It keeps a baseline of 0**, so a detection fails it. Accepted findings are placed in the source as `// nosemgrep:` with a reason. **Rules are not pulled from the registry**; it reads `opengrep/opengrep-rules` at a pinned commit ("Do not pull SAST rules from a registry" below) |
+| CodeQL Scan | `codeql.yaml` | `codeql` | Answers the same question with GitHub's analysis. Stopping the merge on a high detection is a code scanning setting; this job fails only when the analysis itself did not run |
+| Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | Dependency vulnerabilities with Trivy and `pnpm audit`. Three different verdicts on the same target (below) |
+| OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | Reads the same dependencies with the OSV database. The two stages of report and promotion gate have the same shape as Trivy |
+| Dependency Review | `dependency-review.yaml` | `dependency-review` | Looks only at **the dependencies this PR added**. The other dependency scanners look at the current state of the tree and cannot separate carried-over from added. The API it calls is free only when public; private requires a Code Security license. Whether to remove it is chosen in one step of setup |
+| Bearer Scan | `bearer.yaml` | `bearer` | Looks at the points where values leave the process, together with the classification of those values. **Does not fail** (below) |
+| DevSkim Scan | `devskim.yaml` | `devskim` | Regex checks with no language front end. Reads **files that checks building a syntax tree do not open**. **Does not fail** (below) |
+| Tools Cooldown | `tools-cooldown.yaml` | `tools-cooldown` | Checks whether the pins in `mise.toml` satisfy the cooldown period per distribution channel, by fetching the version's publish time from upstream. On PRs **only the pins the diff moved**; weekly, all pins. A backend whose publish time cannot be fetched fails as an inconclusive check, not as "no violations". Exemptions are a comment directly above the pin ([`scripts/tools-cooldown/README.md`](../../scripts/tools-cooldown/README.md)) |
+| OpenSSF Scorecard | `scorecard.yaml` | `scorecard` | Measures the repository's own settings. Does not run on PRs |
+| SonarQube Cloud Scan | `sonarcloud.yaml` | `preflight` / `sonarcloud` / `report` / `unconfigured-notice` | **The only check that needs an external account.** Without `SONAR_TOKEN` it does not run and tells the PR "not configured" while staying green. Whether to remove it is chosen in one step of setup |
+| DAST | `dast.yaml` | `dast` | **The only one that reads responses.** Starts the app, fires HTTP at it with OWASP ZAP, and looks at the delivered surface. Known gaps are held by the list in `.github/zap/rules.tsv`, and **findings not on the list turn it red** |
 
-### 配信面の既知の欠落は「一覧」として持つ
+### Known gaps in the delivered surface are kept as a list
 
-`dast` は初日からゲートである。**ただし恒常的に赤い必須チェックは全 PR を止め、その一覧を縮める PR 自身も止める。** 壁が壁として機能するには通れる形が要る。
+`dast` is a gate from day one. **But a permanently red required check stops every PR, including the PRs that shrink that list.** A wall needs a passable form to work as a wall.
 
-そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.md)）。
+So only the findings currently appearing are listed as `IGNORE` in [`../zap/rules.tsv`](../zap/rules.tsv), and **findings not on the list turn it red**. ZAP keeps the count, rule name, and URL in its output even for rules set to `IGNORE`, so this is a severity downgrade, not silencing ([0110](../../docs/adr/0110-security-operations.md)).
 
-各行に撤回条件が書いてある。条件が満たされた行は削除する —— 一覧が空になることが目標であって、一覧そのものは成果物ではない。CSP と同伴ヘッダ（[0111](../../docs/adr/0111-csp-security-headers.md)）は載っており、ZAP が読むのはそのヘッダである。ヘッダをブラウザが enforce した結果は `e2e` の見張りが見る。
+Each line has its reversal condition written on it. A line whose condition is met is deleted — the goal is for the list to become empty, and the list itself is not a deliverable. CSP and its companion headers ([0111](../../docs/adr/0111-csp-security-headers.md)) are in place, and those headers are what ZAP reads. The result of the browser enforcing the headers is watched by `e2e`.
 
-**測る側を先に入れているのは、後入れだと測る側の導入が実装の完了に従属するため。** 実装が終わるまで計測が入らない形にすると、何が足りないかの一覧が最後まで手に入らない。
+**The measuring side is put in first because, added later, its introduction would be subordinate to the implementation's completion.** In a form where measurement does not arrive until the implementation is done, the list of what is missing is not available until the very end.
 
-### 落とさない層がある
+### Some layers do not fail
 
-**すべての層をゲートにしていない。** ゲートにしてよいのは baseline を 0 件に保てる層か、「この変更が増やしたか」だけを問う層に限る（[0110](../../docs/adr/0110-security-operations.md)）。それ以外を赤にすると赤が常態になり、赤を見て手を止める習慣のほうが先に壊れる。
+**Not every layer is a gate.** Only layers that can keep a baseline of 0, or that ask only "did this change add it", may be gates ([0110](../../docs/adr/0110-security-operations.md)). Turning anything else red makes red the norm, and the habit of stopping at red breaks first.
 
-| 配線 | 該当 job | 何が赤にするか |
+| Wiring | Jobs | What turns it red |
 | --- | --- | --- |
-| ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code |
-| ゲート | `dependency-review` | job の exit code |
-| 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
-| code scanning へ送る | `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
-| code scanning へ送る | `codeql` / `sonarcloud` | 同上 |
+| Gate | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | The job's exit code |
+| Gate | `dependency-review` | The job's exit code |
+| Report only | `dependency-scan` / `osv-scan` | Nothing turns it red (fails only when the scanner did not run) |
+| Sent to code scanning | `bearer` / `devskim` | GitHub's check on **alerts newly introduced by the diff** |
+| Sent to code scanning | `codeql` / `sonarcloud` | Same as above |
 
-**「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかった走査・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない**（下記「`paths:` フィルタを使わない」）。
+**"Does not fail" applies only to findings; if the mechanism breaks, it fails.** For `bearer` / `devskim` / `scorecard` the report is the entire output, so a scan that did not run, SARIF that was not written, or an upload that did not arrive would all be the same green as a clean result. **A gate that does not check cannot be told apart from "no violations"** ("Do not use `paths:` filters" below).
 
-3 つ目は「落とさない」と「見せない」を分けるための配線で、job は緑を返すが差分が持ち込んだ alert は PR を赤にする。
+The third is wiring that separates "does not fail" from "does not show": the job returns green, but alerts the diff introduced turn the PR red.
 
-### 依存の脆弱性は、3 つの判定が同じ対象を見る
+### Three verdicts look at the same dependency vulnerabilities
 
-| job | 手段 | 落ちる条件 |
+| job | Means | When it fails |
 | --- | --- | --- |
-| `dependency-scan` | `make trivy-fs` | **検出では落ちない。** スキャナが走らなかったときだけ落ちる |
-| `dependency-audit` | `make audit` | 修正版のある `high` / `critical` が 1 件でもあれば落ちる |
-| `dependency-gate` | `make trivy-fs-release` | 保護ブランチ宛 PR でだけ起動し、検出があれば落ちる |
+| `dependency-scan` | `make trivy-fs` | **Does not fail on detection.** Fails only when the scanner did not run |
+| `dependency-audit` | `make audit` | Fails if there is even one `high` / `critical` with a fixed version available |
+| `dependency-gate` | `make trivy-fs-release` | Starts only on PRs targeting a protected branch, and fails on any detection |
 
-**報告専用の job が要るのは、脆弱性が「変更の作者がその場で解消できない」うえ「変更と独立に状態が変わる」ため。**
-それでゲートを組むと `--no-verify` と同じ経路を CI 側に作る。止める場所は昇格（保護ブランチ宛 PR）の一点で、
-そこは誰かがリスクを引き受けて判断する場面である（[0110](../../docs/adr/0110-security-operations.md)）。
+**A report-only job is needed because vulnerabilities "cannot be resolved on the spot by the change's author" and "change state independently of the change".**
+Building a gate from that creates the same path as `--no-verify` on the CI side. The one place to stop is promotion (a PR targeting a protected branch),
+which is where someone takes on the risk and decides ([0110](../../docs/adr/0110-security-operations.md)).
 
-**Trivy と `pnpm audit` の件数は一致しない。突合して差分を潰そうとしない。** 集計単位（CVE / advisory）も参照する
-DB も違うので、片方だけを正とするとそのツールが見ない領域が恒久的な死角になる。**和集合が正**で、どちらか一方でも
-閾値に達したものを blocking として扱う。
+**The counts from Trivy and `pnpm audit` do not match. Do not try to reconcile them and eliminate the difference.** Their counting units (CVE / advisory) and
+the databases they consult differ, so treating only one as authoritative makes the area that tool does not see a permanent blind spot. **The union is authoritative**, and anything
+that reaches the threshold in either one is treated as blocking.
 
-`dependency-gate` が `branches:` フィルタではなく `if:` で降りるのは required check の都合による（下記「required status check」）。
+`dependency-gate` skips with `if:` rather than a `branches:` filter because of how required checks work ("required status check" below).
 
-## ワークフロー一覧（Components）
+## Workflow List (Components)
 
-design system の部品（`src/components/**`）を対象にした検査。走るのは他の CI Checks と同じく**全 PR**で、
-どちらも required status check に登録している。
+Checks targeting the design system components (`src/components/**`). Like the other CI Checks they run on **every PR**,
+and both are registered as required status checks.
 
-| ワークフロー | ファイル | job 名 | 内容 |
+| Workflow | File | Job name | Contents |
 | --- | --- | --- | --- |
-| Component Classes | `component-classes.yaml` | `component-classes` | Tailwind が出力しない未定義 class を検出する |
-| shadcn Drift | `shadcn-drift.yaml` | `shadcn-manifest` / `upstream` | 取り込み台帳と実体の乖離（`shadcn-manifest`）、および上流の更新（`upstream`）を検出する |
+| Component Classes | `component-classes.yaml` | `component-classes` | Detects undefined classes that Tailwind does not output |
+| shadcn Drift | `shadcn-drift.yaml` | `shadcn-manifest` / `upstream` | Detects divergence between the import ledger and the actual files (`shadcn-manifest`), and upstream updates (`upstream`) |
 
-`upstream` はネットワークに出るため PR では降ろしており（`if:`）、週次スケジュールでだけ走る。**登録しない** —
-上流が動いたという、PR の著者に直せない理由で作業を止めるため。
+`upstream` goes out to the network, so it is skipped on PRs (`if:`) and runs only on the weekly schedule. **Not registered** —
+because it would stop work for a reason the PR author cannot fix: upstream moved.
 
-## ワークフロー一覧（イベント駆動）
+## Workflow List (Event-Driven)
 
-PR ごとには走らず、ラベルや保護ブランチへの push で起動する。**required status check には登録しない**（起動しない PR では context が報告されないため）。
+These do not run per PR; they start on labels or pushes to protected branches. **They are not registered as required status checks** (a PR that does not start them would not report the context).
 
-> **`workflow_run` で起動するものは、既定ブランチの定義で走る。** `baseline-retake` がこれに当たる。
-> job は PR のブランチを checkout するので**コードは PR のもの**だが、**ワークフロー定義そのもの
-> （`env:` や `uses:` を含む）は既定ブランチのもの**が使われる。PR のブランチで定義を直しても、
-> その PR に対する実行には効かない — 既定ブランチへ入るまで反映されない。定義の修正が要る
-> ときは、その PR とは別に既定ブランチへ入れる必要がある。
+> **Workflows started by `workflow_run` run with the default branch's definition.** `baseline-retake` is one of them.
+> The job checks out the PR's branch, so **the code is the PR's**, but **the workflow definition itself
+> (including `env:` and `uses:`) is the default branch's**. Fixing the definition on the PR's branch
+> has no effect on runs for that PR — it does not take effect until it reaches the default branch. When the definition needs a fix,
+> it must go into the default branch separately from that PR.
 
-| ワークフロー | ファイル | job 名 | 内容 |
+| Workflow | File | Job name | Contents |
 | --- | --- | --- | --- |
-| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面の基準画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインタを進める。story も画面も**報告された差分だけ**が対象で、報告はそれぞれの実行の artifact（`vrt-report` / `e2e-report`）から引く。画面の報告が無いときは撮らない —— 全数へ落とすと、コメントが誰にも見せていない画素を正にしてしまう。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
-| VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**基準画像は撮り直さない** |
-| Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザをコンテナへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言か器が動いていれば待たずに測る。**この job が見るのは、自分で測ると決められる構造だけ**で、ラベルで回すべき差分の名指しは `Deferred Checks` が 3 本ぶんまとめて行う。ラベル（`run-lighthouse`）でも回る。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、払う代償は上記「先送りにする検査」と同じ、買うのは PR が 1 秒も待たないことである |
-| Baseline Prune | `baseline-prune.yaml` | `report` | 月次で基準画像の置き場を測り、閾値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make baseline-prune` で起こす |
+| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | Fires on **completion** of VRT or E2E and, if the `baseline-retake` label is applied, retakes **the baseline images of both stories and screens together**, pushes them to the store, and advances the submodule pointer. For both stories and screens, **only the reported differences** are targeted, and the reports are pulled from each run's artifact (`vrt-report` / `e2e-report`). When there is no screen report, nothing is captured — falling back to everything would make pixels the comment never showed anyone authoritative. When both are red, the E2E run yields to the VRT one — so that one side alone does not use up the label, which keeps "one label, one retake". The label is a condition, not a trigger, so it can be applied when the PR is created (no need to wait for VRT to finish). **While a check that can move pictures** (named by `DECIDES_PIXELS` in `baseline-retake.yaml`) is failing, it holds off without capturing and leaves the label (it resumes automatically on the next run). Only the latest attempt of each check is looked at, and the naming is an allowlist — counting everything that is failing would deadlock with `baseline-approval`, which waits for images that do not exist until captured. On branches starting with `revert-`, everything is retaken without a label (because cleanup removed the set to return to). The pointer push uses the App's token, not `GITHUB_TOKEN` (a push with `GITHUB_TOKEN` does not trigger runs, so the confirming VRT would not run). **It is not approval** — the pixel judgment is made in PR review by looking at the before and after of the moved images the comment lays out |
+| VRT Guard | `vrt-guard.yaml` | `guard` | Redoes the story comparison after a push to a protected branch. Normally it stays silent (PRs are judged on the merge result and branches are required to be up to date). If it fires, an issue is opened as a sign a premise broke. **It does not retake baseline images** |
+| Lighthouse | `lighthouse.yaml` | `lighthouse` | On pushes to protected branches and once a day, opens the screens declared by `e2e/lib/screens.ts` one at a time in Lighthouse and compares LCP / CLS / TBT with the limits in `performance-budget.yaml` ([0101](../../docs/adr/0101-performance-budget.md)). When it fails, an issue is opened (one per branch; a second failure comments on the same issue). **It does not look at the performance score** — a weighted average of 5 metrics cannot say which one dropped when it drops. INP requires real user interaction and cannot be measured in the lab, so TBT stands in. Unlike captures (`vrt` / `a11y` / `e2e`), the browser is not confined to a container because what is compared is numbers, not pixels — what must be pinned is not font rasterization but the browser version, which the lockfile handles. **It does start on PRs, but measures only when the diff requires it** — if screen declarations or layout shells moved, it measures without waiting. **What this job looks at is only the structure it can decide to measure on its own**; naming diffs that should run via label is done by `Deferred Checks` for all three together. It also runs with a label (`run-lighthouse`). **The reason it does not run everything on PRs is measured** — measurement only holds when serial (measuring concurrently mixes the parallelism itself into the numbers), and 23 screens × 3 attempts × about 14 seconds ≈ 16 minutes, against about 1 minute for the build. Cost is pinned to `screens × attempts`; cutting attempts loses the median that absorbs runner jitter, and cutting screens loses the point of drawing the full set from the declarations. **If something is cut, it is frequency, not coverage**: the price paid is the same as in "Deferred Checks" above, and what it buys is that PRs wait not a single second |
+| Baseline Prune | `baseline-prune.yaml` | `report` | Measures the baseline image store monthly, and opens an issue prompting cleanup only when it exceeds the threshold. **It does not delete** — rewriting history is irreversible, so a human triggers it with `make baseline-prune` |
 
-## ワークフロー一覧（Documentation）
+## Workflow List (Documentation)
 
-| ワークフロー | ファイル | job 名 | 内容 |
+| Workflow | File | Job name | Contents |
 | --- | --- | --- | --- |
-| Deploy Docs | `deploy-docs.yaml` | `docs-build` / `docs-deploy` | 生成 HTML のドキュメントサイトを組んで GitHub Pages へ配信する（[0141](../../docs/adr/0141-portal-operations.md)） |
+| Deploy Docs | `deploy-docs.yaml` | `docs-build` / `docs-deploy` | Assembles the generated-HTML documentation site and delivers it to GitHub Pages ([0141](../../docs/adr/0141-portal-operations.md)) |
 
-サイトは**単一のツリーに複数の生成物を同居させる**形を採る。GitHub Pages はリポジトリに 1 サイトしか持てないため、Storybook・portal・coverage のような生成 HTML はそれぞれサイト直下の兄弟パスへ入り、ルートは入口へ転送するだけの薄い層（[`../../docs/index.html`](../../docs/index.html)）に留める。
+The site takes the form of **several generated artifacts living together in a single tree**. GitHub Pages allows only one site per repository, so generated HTML such as Storybook, the portal, and coverage each go into sibling paths directly under the site, and the root is kept as a thin layer that only redirects to the entry page ([`../../docs/index.html`](../../docs/index.html)).
 
-| パス | 中身 |
+| Path | Contents |
 | --- | --- |
-| `/` | 入口（`/portal/`）への転送 |
-| `/portal/` | docs portal（[0141](../../docs/adr/0141-portal-operations.md)）。`pnpm portal:build` の出力 |
-| `/storybook/` | Storybook（`pnpm build-storybook` の出力） |
-| `/<dir>/`, `/*.md` | `docs/` の内容そのまま。portal のカードが `../<dir>/<file>` で参照する |
+| `/` | Redirect to the entry page (`/portal/`) |
+| `/portal/` | The docs portal ([0141](../../docs/adr/0141-portal-operations.md)). Output of `pnpm portal:build` |
+| `/storybook/` | Storybook (output of `pnpm build-storybook`) |
+| `/<dir>/`, `/*.md` | The contents of `docs/` as is. Portal cards reference them as `../<dir>/<file>` |
 
-`docs/` をサイトルートへ写すのは、走査で自動発見したドキュメントへの相対経路（`../<dir>/<file>`）を成立させるため。ここを削ると自動発見のカードが全て死にリンクになる。
+`docs/` is copied to the site root so that relative paths (`../<dir>/<file>`) to documents discovered automatically by the scan hold. Removing this turns every auto-discovered card into a dead link.
 
-配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
+Delivery fires on pushes to `production` (+ `workflow_dispatch` for running from any ref). No `paths:` filter is attached — the reason is not the same as in "Do not use `paths:` filters" below, but the judgment that, since a release can change appearance through indirect paths (tokens, dependency updates, configuration), the maintenance cost of predicting and listing target paths is higher.
 
-この workflow 自身を編集する PR では、`build` だけが自己検査として走る（`deploy` は `pull_request` を除外している）。配信の壊れは、それを必要とするリリースまで気付けないため。この PR 用の実行は **required status check へ登録しない** — 当該ファイルに触れない PR では context が報告されず、必須待ちで止まる。
+On a PR that edits this workflow itself, only `build` runs as a self-check (`deploy` excludes `pull_request`), because a broken delivery would otherwise go unnoticed until the release that needs it. This PR run is **not registered as a required status check** — a PR that does not touch the file would not report the context and would be stuck waiting on the requirement.
 
-**GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
+**Enabling GitHub Pages is done by the user in Settings** (the workflow does not auto-enable it with `actions/configure-pages`). Runs before enabling fail in the deploy job.
 
 ## required status check
 
-[`../settings/branch-protection.json`](../settings/branch-protection.json) が **CI Checks 群を必須**にし、`strict` でブランチが最新であることを要求する。これは VRT が成立する条件でもある — 判定しているのは base へマージした結果の木（`refs/pull/N/merge`）なので、base が動いた後の緑をそのまま通すと、基準画像が「実際にマージされる木」とずれる。
+[`../settings/branch-protection.json`](../settings/branch-protection.json) makes **the CI Checks group required**, and with `strict` requires the branch to be up to date. This is also the condition under which VRT holds — what is judged is the tree resulting from merging into base (`refs/pull/N/merge`), so passing a green result as is after base moved would put the baseline images out of step with "the tree that actually gets merged".
 
-**登録してよいのは、すべての PR でその名前を報告し続ける job だけ。**報告されない context を登録すると PR は永久に止まる（下記「`paths:` フィルタを使わない」）。`deploy-docs` の `docs-build` は `paths:` で自分自身の変更に絞ってあるため登録しない。
+**Only jobs that keep reporting their name on every PR may be registered.** Registering a context that is not reported blocks the PR forever ("Do not use `paths:` filters" below). `deploy-docs`'s `docs-build` is narrowed by `paths:` to changes to itself, so it is not registered.
 
-この条件は `make actions-required-check-lint` が機械検査する（`actions-lint` job と pre-commit が回す）。落ちる条件は `.makefiles/README.md` が持つ（[`.makefiles/README.md`](../../.makefiles/README.md)）。
+This condition is checked mechanically by `make actions-required-check-lint` (run by the `actions-lint` job and pre-commit). When it fails is owned by `.makefiles/README.md` ([`.makefiles/README.md`](../../.makefiles/README.md)).
 
-`diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルタを使わない」）。
+Jobs that skip via `diff-scope` may be registered, because neither the job name nor the context report changes; only whether the steps inside run changes ("Do not use `paths:` filters" below).
 
-context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。同じ理由で、**PR で報告されうる job には、別々のワークフローで同じ名前を置かない** — 報告される check run が 1 つの名前に 2 つ並び、必須がどちらを指すのか決まらなくなる。`deploy-docs` の job が `docs-build` / `docs-deploy` と配信先で名乗るのはこのため。
+Note that the context name is **the job name, not the workflow name**. Renaming a job silently disables the required status check setting. For the same reason, **do not give jobs that can report on PRs the same name in different workflows** — two check runs would appear under one name, and which one the requirement points to would be undecidable. That is why `deploy-docs`'s jobs are named after their destination, `docs-build` / `docs-deploy`.
 
-**PR に context を報告しない job はこの制約の外**にある。`notify-failure` / `notify-detection` はスケジュール実行でしか起動せず、10 本のワークフローで同じ名前を名乗る —— これは重複ではなく、**同じ役割に同じ名前が付いている**状態である。名前を workflow ごとに割ると、通知という 1 つの関心事が 10 個の別物に見える。`baseline-prune` / `baseline-retake` の `report` も同じ理由で並んでいる。
+**Jobs that do not report a context to PRs are outside this constraint.** `notify-failure` / `notify-detection` start only on scheduled runs and carry the same name across 10 workflows — this is not duplication but **the same role carrying the same name**. Splitting the name per workflow would make the single concern of notification look like 10 different things. The `report` of `baseline-prune` / `baseline-retake` sits side by side for the same reason.
 
 <!-- boilerplate-only:replace-begin -->
-**作った側の初期化を生き延びないジョブ（`purge-verify` / `strip-verify`）も登録しない。** `strip-verify` は剥がしで自分ごと消え、消えた後は context を報告しない。`purge-verify` は残るが、破棄を済ませた作った側では「破棄済みなのでこのワークフローを消せ」と赤で止まる設計であり、指示どおり消せば同じく報告されなくなる。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると初期化を済ませた作った側のすべての PR が必須待ちで止まる。
+**Jobs that do not survive the creating side's initialization (`purge-verify` / `strip-verify`) are not registered either.** `strip-verify` disappears along with itself when stripping runs, and after it is gone it reports no context. `purge-verify` remains, but on a creating side that has finished the purge it is designed to stop red with "already purged, so delete this workflow", and deleting it as instructed likewise stops its reporting. `branch-protection.json` is JSON and can hold no comments, so no removal marker can be placed in it; registering them would leave every PR on an initialized creating side stuck waiting on the requirement.
 <!-- boilerplate-only:replace-with -->
-<!-- = **`purge-verify` は登録しない。** サンプルを破棄した後は「破棄済みなのでこのワークフローを消せ」と赤で止まる設計で、指示どおり消せば context を報告しなくなる。`branch-protection.json` は JSON でコメントを持てず削除のマーカーを置けないので、登録すると破棄を済ませた後のすべての PR が必須待ちで止まる。 -->
+<!-- = **`purge-verify` is not registered.** After the sample is purged it is designed to stop red with "already purged, so delete this workflow", and deleting it as instructed stops its context reporting. `branch-protection.json` is JSON and can hold no comments, so no removal marker can be placed in it; registering it would leave every PR after the purge stuck waiting on the requirement. -->
 <!-- boilerplate-only:replace-end -->
 
-## mise の導入
+## Installing mise
 
-Node / pnpm などの供給は composite action [`../actions/setup-mise`](../actions/setup-mise/action.yaml) が行う。全ジョブが mise を必要とするため、**取得は必ずリトライを持ち、一度取ったものは再利用できなければならない** — 配信側の一時的な不調が、そのまま全ジョブの失敗になる位置にある。
+Node / pnpm and the like are supplied by the composite action [`../actions/setup-mise`](../actions/setup-mise/action.yaml). Every job needs mise, so **fetching must always retry, and what has been fetched once must be reusable** — it sits where a temporary hiccup on the distribution side turns directly into every job failing.
 
-この action が持つもの:
+What this action holds:
 
 | | |
 | --- | --- |
-| リトライ | `curl --retry 5 --retry-all-errors`。取得はファイルへ落としてから検証する（パイプのままだと部分受信分がシェルへ流れ込む） |
-| キャッシュ | 固定した版と digest をキーにバイナリを保持する |
-| **digest の照合** | 復元・取得のどちらの経路でも、実行前に SHA256 を照合する。合わなければ捨てて取り直し、それでも合わなければ落とす |
+| Retry | `curl --retry 5 --retry-all-errors`. The fetch is written to a file before verification (left in a pipe, a partially received payload would flow into the shell) |
+| Cache | Keeps the binary keyed by the pinned version and digest |
+| **Digest verification** | On both the restore and fetch paths, verifies the SHA256 before running. On mismatch it discards and refetches; if it still does not match, it fails |
 
-**照合が要るのは、Actions のキャッシュが信頼境界ではないから。**キャッシュはブランチを跨いで共有され、push 権限があれば中身を差し替えられる。そこに置くのが実行可能バイナリなので、照合を挟まなければキャッシュ汚染がそのまま CI 内の任意コード実行になる。`uses:` を SHA で、container image を digest で固定しているのと同じ理由・同じ形。
+**Verification is needed because the Actions cache is not a trust boundary.** The cache is shared across branches, and anyone with push permission can replace its contents. What is placed there is an executable binary, so without verification, cache poisoning becomes arbitrary code execution inside CI. The same reason and the same form as pinning `uses:` by SHA and container images by digest.
 
-### mise の版を上げる
+### Upgrading mise
 
-1. 上流の `SHASUMS256.txt` から `mise-v<版>-linux-x64` の SHA256 を取る
+1. Get the SHA256 for `mise-v<version>-linux-x64` from upstream's `SHASUMS256.txt`
 
    ```bash
-   curl -sSL "https://github.com/jdx/mise/releases/download/v<版>/SHASUMS256.txt" | grep 'linux-x64$'
+   curl -sSL "https://github.com/jdx/mise/releases/download/v<version>/SHASUMS256.txt" | grep 'linux-x64$'
    ```
 
-2. [`../actions/setup-mise/action.yaml`](../actions/setup-mise/action.yaml) の `MISE_VERSION` / `MISE_SHA256` と、キャッシュキーの版・digest 接頭辞を揃えて直す
+2. Update `MISE_VERSION` / `MISE_SHA256` in [`../actions/setup-mise/action.yaml`](../actions/setup-mise/action.yaml), keeping the version and digest prefix in the cache key consistent with them
 
 ## hooks mirror CI
 
-`lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` / `images-pin` の 6 本は、[lefthook](../../.lefthook.yaml) が回すのと**同じコマンド**を実行する。`test` は二層実行で、pre-commit の `make test-cached` に対し、pre-push と CI は `make test-full` を実行する。hook は高速な第一段、CI は権威という二層（[0153](../../docs/adr/0153-ci-configuration.md) / [0151](../../docs/adr/0151-git-hooks.md)）。
+The 6 jobs `lint` / `md-lint` / `typecheck` / `actions-lint` / `actions-pin` / `images-pin` run **the same commands** that [lefthook](../../.lefthook.yaml) runs. `test` is a two-tier run: against pre-commit's `make test-cached`, pre-push and CI run `make test-full`. Hooks are the fast first stage and CI is the authority — two tiers ([0153](../../docs/adr/0153-ci-configuration.md) / [0151](../../docs/adr/0151-git-hooks.md)).
 
-残りは片側にしか無い。**どちらが持つかは意図的な配置**であって、揃えるべき漏れではない。
+The rest exist on one side only. **Which side holds them is a deliberate placement**, not an omission to be aligned.
 
-| 検査 | 持っている側 | 理由 |
+| Check | Held by | Reason |
 | --- | --- | --- |
-| `build` / `smoke` | CI のみ | フルビルドは hook の速度目標（30 秒）に収まらない。収めようとすれば `--no-verify` の常用を招く |
-| `bundle-budget` | CI のみ | 同上。しかも base ブランチの build も要るため、手元では 2 回分かかる |
-| `lighthouse` | CI のみ | 同上に加えて、画面数 × 試行回数だけブラウザを回すため hook の速度目標から桁で外れる。**PR では走らない**（下の「イベント駆動」を参照）。手元の入口は `make lighthouse` |
-| `dead-code` | CI のみ | 到達可能性はワークスペース全体を解決してから判定する。作業中のツリーでは書きかけの import が未使用として鳴り、hook で止めると押し切る癖が付く |
-| `test` | pre-push + CI | pre-commit は開発中の反復を優先して cache を使い、push 前と CI は coverage を含む完全実行で gate を掛ける |
-| `scripts-check` | pre-push + CI | `test` と同じ二層。job を `test` と分けるのは、`scripts/` に居るのが検査機構そのもので、壊れると「違反なし」を報告する向きに倒れるため。赤の意味を「機構が壊れた」と「アプリが退行した」で取り違えない |
-| `purge-verify` | CI のみ | 破棄は取り消せないので、hook では走らせない。使い捨てチェックアウトを前提にした検査であり、手元のツリーで回すと作業中のサンプルが消える |
-| `strip-verify` | CI のみ | 同上。手元のツリーで回すと boilerplate 限定の記述が剥がれ、剥がしの道具ごと消える <!-- boilerplate-only:line --> |
-| `lockfile-drift` | CI のみ | install が追跡ファイルを書き換えたことは、手元では「自分が触った変更」と区別が付かない。第三者の目で見る CI が持つ |
-| commitlint | hook のみ | コミット件名の検査。作り直しがコミット単位でしか効かず、PR 到達後に落としても直す手段が rebase になる |
-| secret-scan | hook + CI | 同じ `make secret-scan` を呼ぶが、**走査範囲の決まり方が違う**。hook の既定は「どのリモートにも無いコミット」で、PR のブランチは既に push 済みなので CI では 0 件になる。CI は `SECRET_SCAN_LOG_OPTS` で base からの範囲を渡す。履歴全体は週次だけ（`make secret-scan-history`） |
-| 依存の脆弱性 | CI のみ | 上記「依存の脆弱性は、3 つの判定が同じ対象を見る」と同じ理由で、hook に載せると `--no-verify` の常用を教える |
-| `sast` | CI のみ | 走査に 1 分前後かかり hook の速度目標に収まらない。手元で確かめるなら `make sast` がそのまま同じ検査を回す |
-| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読む口しか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |
-| `dast` | CI のみ | build と起動を伴うので hook には収まらない。手元で確かめるなら `pnpm start` したものへ `DAST_TARGET=http://host.docker.internal:3000 make dast` を当てる |
+| `build` / `smoke` | CI only | A full build does not fit the hooks' speed target (30 seconds). Trying to fit it would invite habitual `--no-verify` |
+| `bundle-budget` | CI only | Same as above. It also needs a build of the base branch, so locally it costs two builds |
+| `lighthouse` | CI only | In addition to the above, it runs the browser screens × attempts times, missing the hooks' speed target by an order of magnitude. **It does not run on PRs** (see "Event-Driven" below). The local entry is `make lighthouse` |
+| `dead-code` | CI only | Reachability is decided after resolving the whole workspace. In a work-in-progress tree, half-written imports sound as unused, and stopping on them in a hook builds a habit of pushing through |
+| `test` | pre-push + CI | pre-commit uses the cache to favor iteration during development; before push and in CI, a full run including coverage applies the gate |
+| `scripts-check` | pre-push + CI | The same two tiers as `test`. The job is split from `test` because what lives in `scripts/` is the checking machinery itself, which, when broken, falls toward reporting "no violations". So the meaning of red is not confused between "the machinery broke" and "the app regressed" |
+| `purge-verify` | CI only | Purging is irreversible, so it is not run in hooks. It is a check that assumes a throwaway checkout; run on the local tree it would delete the sample being worked on |
+| `strip-verify` | CI only | Same as above. Run on the local tree, it strips the boilerplate-only text and deletes the stripping tool along with it <!-- boilerplate-only:line --> |
+| `lockfile-drift` | CI only | Locally, install rewriting tracked files cannot be told apart from "changes I made". CI, looking with third-party eyes, holds it |
+| commitlint | Hooks only | Checks commit subjects. Redoing only works per commit, and failing it after the PR arrives would leave rebase as the only fix |
+| secret-scan | Hooks + CI | Calls the same `make secret-scan`, but **how the scan range is decided differs**. The hook's default is "commits not on any remote", and a PR's branch is already pushed, so in CI that is 0. CI passes the range from base with `SECRET_SCAN_LOG_OPTS`. The whole history is weekly only (`make secret-scan-history`) |
+| Dependency vulnerabilities | CI only | For the same reason as "Three verdicts look at the same dependency vulnerabilities" above, putting it in hooks would teach habitual `--no-verify` |
+| `sast` | CI only | The scan takes about a minute and does not fit the hooks' speed target. To confirm locally, `make sast` runs the same check as is |
+| `sonarcloud` | CI only | The analysis runs on SonarCloud's side; locally there is only an endpoint to read results. `SONAR_TOKEN` is not handed out to developer environments in the first place |
+| `dast` | CI only | It involves build and startup, so it does not fit in hooks. To confirm locally, point `DAST_TARGET=http://host.docker.internal:3000 make dast` at something started with `pnpm start` |
 
-## 共通の骨格
+## Common Skeleton
 
-全ワークフローが以下を守る。逸脱する場合は ADR の改定が要る。ステップ構成の参照実装は `lint.yaml` で、各ステップが何のためにあるかのコメントもそこに置いてある。
+Every workflow keeps the following. Deviating requires amending the ADR. The reference implementation of the step layout is `lint.yaml`, which also carries comments on what each step is for.
 
-- **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**版の SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.md)）
-- **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
-- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.md)）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古い木の結果が新しい木の結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
-- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.md)）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
-- **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`baseline-retake.yaml`](baseline-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**job を改名するときは新旧の両方を置く** — この配列を読むのは `workflow_run` で起動する撮り直し側であり、そこで使われるのは既定ブランチの定義である（上記）。改名した PR が既定ブランチへ入るまで、照合されるのは旧名のままになる。旧名は既定ブランチが追いついてから外す。該当する check run が無い名前は、単に一致しないだけで害を持たない。**書き漏らすと、壊れた木から撮った絵が基準画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
-- **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor の版はワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.md)）。`matrix` を**版や OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.md)）
-- **例外は mise CLI 自身の版** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身の版を宣言できない。この 1 つだけは `setup-mise` の中に**版と SHA256 の対で**書かれている（[下記](#mise-の導入)）
+- **SHA pins for actions** — `uses: owner/repo@<40hex> # <tag>`. Moving tags are forbidden. **The SSOT for the version is the tag in the trailing comment**, and the tag → SHA mapping is held by [`../actions-pin.toml`](../actions-pin.toml). Resolve with `make actions-pin-resolve`, apply with `make actions-pin-apply`, check with `make actions-pin-check` (run by the `actions-pin` job and the pre-commit hook; details in [`.makefiles/README.md`](../../.makefiles/README.md))
+- **Minimal permissions** — top level is `contents: read`. Only jobs that write PR comments add `pull-requests: write`
+- **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`. Consecutive pushes to the same PR do not pile up old runs. **Delivery is the only exception**: the group is a shared resource name (`pages`) with `cancel-in-progress: false` ([0153](../../docs/adr/0153-ci-configuration.md)). There is not one destination per ref but only one, and cutting a deploy in flight would serve a partially transferred artifact on the live site. **Tipping it to `false` to pile up protected-branch checks is also forbidden** — results for an old tree would be reported after, and overtake, results for a newer tree. Not reading a cancelled run as a failure is the responsibility of the condition expression (`!cancelled()`)
+- **harden-runner** — at the start of every job, outbound traffic is **blocked** (`block`). The SSOT for allowed destinations is the single [`../egress.yaml`](../egress.yaml); `make egress-apply` applies it and `make egress-check` fails on drift (same shape as `actions-pin`; why it cannot be moved into a composite action is in [0153](../../docs/adr/0153-ci-configuration.md)). **The basis for adding a destination is measurement**, and anything whose record is incomplete stays at `audit` in the declaration
+- **Checks that can move pictures are registered with the retake** — when you add a job whose failure can change the appearance of stories, add its job name to `DECIDES_PIXELS` in [`baseline-retake.yaml`](baseline-retake.yaml). **When renaming a job, keep both old and new names** — this array is read by the retake side started by `workflow_run`, where the default branch's definition is used (above). Until the renaming PR reaches the default branch, the old name is what gets matched. Remove the old name after the default branch catches up. A name with no corresponding check run simply does not match and does no harm. **If you forget to add it, pictures captured from a broken tree become baseline images** (it is an allowlist, so anything unregistered is silently ignored). Conversely, do not add checks whose failure does not change pictures — the retake would just stop, and the retake side could not explain why it stopped
+- **The SSOT for version numbers is `mise.toml`** — versions of Node / pnpm / actionlint / shellcheck / zizmor are not written on the workflow side. [`../actions/setup-mise`](../actions/setup-mise/action.yaml) supplies them from `mise.toml` ([0003](../../docs/adr/0003-version-manager.md)). **`matrix` is not used for crossing versions or OSes**; a single `ubuntu-latest` is used. A `matrix` for splitting work is different: only checks whose cost is proportional to item count and which already use up one machine's parallelism use it. Even then, **the required check is the single aggregating job**, not the matrix side ([0153](../../docs/adr/0153-ci-configuration.md))
+- **The exception is the mise CLI's own version** — `mise.toml` declares what mise resolves, and cannot declare mise's own version. This one alone is written inside `setup-mise` **as a version and SHA256 pair** ([below](#installing-mise))
 
-## `paths:` フィルタを使わない
+## Do not use `paths:` filters
 
-CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない。
+CI Checks workflows do not get `paths:` / `paths-ignore:`.
 
-`paths:` で絞られたワークフローは、条件に合わない PR では**実行されず、status context も報告しない**。required check に指定した context が報告されないと、GitHub はその PR を「必須チェック待ち」のまま永久にブロックする。埋めるには、同名 job を即成功させる guard ワークフロー（`paths-ignore` に本体の `paths` を裏返しで書いたもの）を対で置くことになる。
+A workflow narrowed by `paths:` is **not executed and reports no status context** on PRs that do not match. If a context designated as a required check is not reported, GitHub blocks that PR forever as "waiting for required checks". Filling the gap would mean pairing it with a guard workflow that immediately succeeds a job of the same name (one whose `paths-ignore` is the main workflow's `paths` inverted).
 
-本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルタを付けず、全 PR で全 job を走らせる。
+Every CI Check in this repository finishes in minutes, and the maintenance cost of "always keeping the main and guard files as inverses of each other" is higher than the execution cost. So no filters are attached, and every job runs on every PR.
 
-将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
+If a job heavy enough that you want to narrow it with `paths:` (e2e, etc.) is added in the future, **always choose either to provide a paired guard or to remove it from the required checks**. Doing only one makes merging impossible immediately.
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` / `vrt` / `a11y` が使っている。
+**The third way is [`../actions/diff-scope`](../actions/diff-scope/action.yaml).** The job always starts and reports its context, and only the heavy steps are dropped with `if:`. The job name does not change, so neither the required check nor a guard needs touching, and on an unrelated PR all that is lost is a few dozen seconds of checkout and decision. `bundle-budget` / `vrt` / `a11y` use it.
 
-渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。判定の実装はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた判定は必ずずれ、ずれは黙って進む。
+What is passed is a list of "**what cannot affect me**", not a list of what does. An omission costs one wasted run, but a mistake falls toward the job silently checking nothing. **A gate that does not check cannot be told apart from "no violations"**. The decision implementation shares this action and must not be re-written per job — a decision split three ways always drifts, and the drift proceeds silently.
 
-**一覧そのものは共有しない。**呼び出し側が書いた一覧だけが効き、action は既定値を持たない。`bundle-budget` が `*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` / `*.test.ts` を外せるのは測るのが `.js` の量だけだからで、同じ行を `vrt` / `a11y` へ持ち込めば絵が変わる PR で検査が止まる。既定値を置けば、呼び出し側が一度も書いていない行が gate を黙らせうる — 一覧は「この job には届かない」という **job ごとの主張**であって、共有できる事実ではない。
+**The list itself is not shared.** Only the list the caller wrote takes effect, and the action has no default. `bundle-budget` can exclude `*.css` / `tokens/*` / `.storybook/*` / `*.stories.tsx` / `*.test.ts` because what it measures is only the amount of `.js`; bringing the same lines into `vrt` / `a11y` would stop the check on PRs that change pictures. With a default, lines the caller never wrote could silence a gate — the list is **a per-job claim** that "this does not reach this job", not a fact that can be shared.
 
-| job | 外している範囲 |
+| job | Excluded scope |
 | --- | --- |
-| `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
-| `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
-| `sast` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
-| `bearer` | 同上 + `src` の外にあるもの（カタログ / 基準画像 / 生成されるドキュメントサイト） |
-| `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
+| `bundle-budget` | Documentation and AI agent configuration + what only affects pictures (CSS / tokens / stories / tests) |
+| `vrt` / `a11y` | Documentation and AI agent configuration only |
+| `sast` / `devskim` | Documentation and AI agent configuration (+ `public/` for SAST) |
+| `bearer` | Same as above + what is outside `src` (the catalog / baseline images / the generated documentation site) |
+| `dast` | Same as above + what does not appear in delivered responses (stories / tests / CSS / tokens) |
 
-### 依存スキャナだけは「影響しうるもの」の側を書く
+### Only dependency scanners write the "can affect" side
 
-`dependency-scan` / `dependency-audit` / `osv-scan` / `tools-cooldown` は `ignore:` ではなく **`only:`** を渡す。依存の脆弱性を決めているのは lockfile、pin の公開日時を決めているのは `mise.toml` であって、ソースをいくら動かしてもスキャナの答えは変わらない。「影響しえないもの」を列挙する側で書こうとすると、それは「lockfile 以外のすべて」になり、書ける形にならない。
+`dependency-scan` / `dependency-audit` / `osv-scan` / `tools-cooldown` pass **`only:`** rather than `ignore:`. Dependency vulnerabilities are decided by the lockfile and pin publish times by `mise.toml`; however much the source moves, the scanners' answer does not change. Trying to write it on the "cannot affect" side would mean "everything except the lockfile", which is not a writable form.
 
-**許可リストが許されるのはここだけで、条件が 2 つある。**
+**This is the only place an allowlist is permitted, and there are two conditions.**
 
-1. **job の対象がツリーそのものでないこと。** 依存スキャナが読むのは lockfile で、ソースはその入力ではない
-2. **週次のスケジュールがツリー全体を走査していること。** 許可リストの書き漏らしは「1 週間は走らない」で済み、恒久の死角にはならない
+1. **The job's target is not the tree itself.** Dependency scanners read the lockfile, and the source is not their input
+2. **A weekly schedule scans the whole tree.** An omission from the allowlist costs "not running for a week", not a permanent blind spot
 
-条件 2 が無いと、書き漏らしがそのまま **「何も検査しない gate」** になる。`diff-scope` 側にも同じ注記を置いてある。
+Without condition 2, an omission becomes **"a gate that checks nothing"** as is. The same note is placed on the `diff-scope` side.
 
-`dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.md) が禁じている形そのものである。
+`dependency-gate` / `osv-gate` (promotion gates) **do not skip**. Promotion is where someone takes on the current state of the tree and decides, and the fact that the PR's diff does not touch the lockfile is no reason not to take on the vulnerabilities the tree holds. `dependency-audit`, on the other hand, does skip — a verdict inherited from base cannot be resolved on the spot by the change's author, and turning it red is exactly the form [0110](../../docs/adr/0110-security-operations.md) forbids.
 
-`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
+It is not applied to `codeql`. A code scanning alert closes only when "a later analysis no longer reports it", and omitting analysis per PR could drop the occasion for closing. **This is a check that entrusts its judgment to GitHub's mechanism, so its run count is not reduced for our convenience.**
 
-**一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
+**The authority for the list contents is each workflow's `ignore:` block** ([`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)). This table only shows which scope is excluded and does not copy paths — copying would add one more place that silently drifts from the actual contents.
 
-`vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは [`../../vrt/README.md`](../../vrt/README.md) の「絵が変わり得ないときは撮らない」にまとめてある。
+`vrt` / `a11y` have one more decision inside this gate, which omits only the comparison by hashing the inputs that decide the picture. What each of the 2 layers drops is summarized in [Do not capture when the picture cannot have changed](../../vrt/README.md#do-not-capture-when-the-picture-cannot-have-changed) in `../../vrt/README.md`.
 
-`paths:` を持つのは `deploy-docs` だけで、これは**後者（required check から外す）を選んでいる** — 走るのは自分自身を編集する PR だけなので、絞りを外すと全 PR で Pages 用のサイトを組み立てることになる。
+Only `deploy-docs` has `paths:`, and it **chooses the latter (removing it from the required checks)** — it runs only on PRs that edit itself, so removing the narrowing would assemble the Pages site on every PR.
 
-`component-classes` / `shadcn-drift` は絞りを外して全 PR で走らせている。どちらも `pnpm install` とスクリプト 1 本で、`diff-scope` を噛ませていないのは、あの action が受け取るのが「**自分に影響しえないもの**」の一覧であるため — この 2 本が持つ狭い allow-list を裏返すと、書き間違いが「何も検査しない gate」の側へ倒れる。
+`component-classes` / `shadcn-drift` run on every PR without narrowing. Both are `pnpm install` plus one script, and they do not use `diff-scope` because that action takes a list of "**what cannot affect me**" — inverting the narrow allow-list these two hold would make a mistake fall toward "a gate that checks nothing".
 
-## PR コメント（検査ログ: upsert-pr-comment）
+## PR Comments (Check Logs: upsert-pr-comment)
 
-coverage 以外の各 job は検査結果を即 fail させず、いったん capture して [`../actions/upsert-pr-comment`](../actions/upsert-pr-comment/action.yaml) で PR コメントを upsert し、最後に fail-closed で落とす。
+Every job other than coverage does not fail on its check result immediately; it first captures it, upserts a PR comment with [`../actions/upsert-pr-comment`](../actions/upsert-pr-comment/action.yaml), and then fails fail-closed at the end.
 
-- コメントは HTML マーカー（`<!-- lint-result -->` 等）で同定し、**同一 PR では増やさず更新する**。マーカーは job ごとに一意
-- **緑のときはコメントを作らない。** 呼び出し側が `status:` に判定を渡し、`success` のときだけ新規作成を抑止する。すべての job が毎回コメントを残すと、PR の会話は 20 件を超える「PASS」で埋まり、その中に混ざった 1 件の FAIL が読み手に届かない。**通知の価値は件数ではなく信号対雑音比**で決まる
-- **ただし抑止するのは「作ること」だけで、「更新すること」は抑止しない。** 既にコメントがあれば `success` でも上書きする。FAIL → PASS で直したときに古い FAIL が残るのを避けるためで、これは「緑のときは何もしない」では達成できない
-- **REST を叩くジョブは App の installation token を使う。** `GITHUB_TOKEN` の上限は **1,000 req/h・リポジトリ単位**で、全ワークフローと開いている全 PR で共有する。installation token は 5,000 req/h。`baseline-retake` は VRT / E2E の完了ごとに発火して 1 回あたり約 10 回叩くため最初に枯れる側で、実際に `API rate limit exceeded for installation` で撮り直しが止まった。鋳造時の権限は**そのジョブの呼び出しが要るものだけ**を名指しする（push 用の鋳造は `setup-baselines` の側にあり、別の権限で別に取る）。**鋳造は落ちてよい**（`continue-on-error`）—— installation が許可していない権限を求めると 422 になり、そのままではジョブごと落ちる。避けようとした枠切れより悪い。落ちれば出力が空になり、呼び出しは `GITHUB_TOKEN` へ落ちて撮り直しは進む。App を登録していなくても同じ経路で動き続ける —— 枠が小さいだけである。**コメントを投稿するジョブはこの対象外**：長命の秘密鍵が本文を作るジョブへ入ることになり、下の「`secrets.*` を `env:` で渡さない」に反する。`a11y` / `e2e` が既にコメントを別ジョブへ割ってあるのはこの形で、issue を開く側だけがトークンを持つ。`lighthouse` は同じジョブで両方をやるため寄せられていない —— 寄せるならジョブを割る
-- **本文ファイルが無いことは、投稿ステップの失敗ではなく job の打ち切りとして扱う。** 打ち切られた job は本文を書くステップまで到達しない。ここで失敗させると、結果が出ていないだけの実行で投稿ステップだけが赤くなる。**何も投稿せずに戻る** —— 打ち切られたことはチェック一覧が示しており、コメントはそれを言い換えるだけである。加えて費用の形が悪い：打ち切りは判定を持たないため `success` の抑止を通り抜けて必ず書き込みを起こし、それが出る状況（job の中断）は push が連続している状況と重なるので、**API の枠が一番苦しいときに消費が跳ねる**
-- **`diff-scope` で降りたときは `status: success` を渡して更新する。**降りた job は緑を報告するので、投稿ごと落とすと前の push が出した FAIL コメントが緑チェックの隣に残り続ける。赤くした変更を base と同一内容へ戻す直し方（履歴を書き換えないこのリポジトリでは、これが正）で必ず踏む経路である。降りたことを述べる本文を書いて upsert すれば、コメントが無い PR には何も付かず、赤が残っている PR ではそれが置き換わる
-- **報告専用のスキャナは、判定を「走ったか」ではなく「見つかったか」で渡す。** `dependency-scan` / `osv-scan` の job は検出で落ちない設計なので、`status` に job の成否をそのまま渡すと、脆弱性を見つけた実行が `success` としてコメントを抑止する。3 値（`success` / `findings` / `failure`）に割り、スキャナの exit code で区別する（`TRIVY_FS_DETECT_EXIT` / `OSV_DETECT_EXIT`）
-- 投稿ステップは `continue-on-error: true`。fork からの PR はトークンが read-only で投稿できないが、それで検査の判定を落とさない
-- **検査コマンドに `secrets.*` を `env:` で渡さない**。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。そのファイルがこのリポジトリ（public）の PR コメントへそのまま載る。`GITHUB_TOKEN` だけが例外（投稿そのものに要る短命トークン）。この規約は `make actions-comment-secret-lint` が機械検査するが、追えるのは `${{ }}` 式の直接参照までで、`needs.<job>.outputs` 経由の間接渡しは検査を通る — **規約が正であり、検査は退行ガード**。**もう 1 つの死角が `gh pr comment` を直接叩くジョブ**で、検査は `upsert-pr-comment` へ到達するジョブしか対象に取らない。`baseline-retake` の `retake` がそれに当たり、App トークンを持ちながら PR へ投稿する唯一のジョブなので、本文はすべてワークフローに書いたリテラルに保つ（ジョブ側にも同じことを書いてある）
-- **既存コメントの同定は「bot 投稿者」と「マーカーで始まること」の両方を要求する**。public リポジトリでは第三者がマーカー入りのコメントを先に投稿でき、かつ全ワークフローが同じ bot で投稿するため、どちらか片方では同定にならない（別ワークフローのマーカーを検査ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる）。この前提として `github-token` には **bot として投稿するトークンを渡す** — 個人の PAT では投稿できても二度と更新できない
-- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件は ADR 0153 の 5）
-- **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
+- A comment is identified by an HTML marker (`<!-- lint-result -->`, etc.), and **within the same PR it is updated rather than multiplied**. Markers are unique per job
+- **No comment is created when green.** The caller passes the verdict to `status:`, and new creation is suppressed only on `success`. If every job left a comment every time, the PR conversation would fill with 20+ "PASS" entries, and the one FAIL among them would not reach the reader. **The value of a notification is decided by signal-to-noise ratio, not by count**
+- **But only "creating" is suppressed, not "updating".** If a comment already exists, it is overwritten even on `success`. This avoids leaving an old FAIL after fixing FAIL → PASS, which "do nothing when green" cannot achieve
+- **Jobs that call REST use the App's installation token.** The `GITHUB_TOKEN` limit is **1,000 req/h per repository**, shared by all workflows and all open PRs. An installation token has 5,000 req/h. `baseline-retake` fires on every VRT / E2E completion and makes about 10 calls each time, so it is the side that runs dry first, and retakes actually stopped with `API rate limit exceeded for installation`. The permissions at minting **name only what that job's calls need** (minting for push is on the `setup-baselines` side, obtained separately with different permissions). **Minting is allowed to fail** (`continue-on-error`) — requesting a permission the installation does not grant returns 422, which as is would fail the whole job, worse than the quota exhaustion it tried to avoid. If it fails, the output is empty, the calls fall back to `GITHUB_TOKEN`, and the retake proceeds. Even without registering the App it keeps working on the same path — only the quota is smaller. **Jobs that post comments are excluded from this**: a long-lived private key would enter a job that composes bodies, contradicting "do not pass `secrets.*` through `env:`" below. `a11y` / `e2e` already split commenting into a separate job in this shape, and only the side that opens issues holds the token. `lighthouse` does both in the same job and so has not been aligned — aligning it would mean splitting the job
+- **A missing body file is treated not as a failure of the posting step but as the job having been cut short.** A cut-short job never reaches the step that writes the body. Failing here would turn only the posting step red on a run that merely produced no result. **Return without posting anything** — the check list already shows it was cut short, and the comment would only restate that. The cost shape is bad too: a cut-short run has no verdict, so it slips past the `success` suppression and always triggers a write, and the situation where it happens (an interrupted job) coincides with consecutive pushes, so **consumption spikes exactly when the API quota is tightest**
+- **When skipping via `diff-scope`, pass `status: success` and update.** A skipped job reports green, so dropping the post entirely would leave the FAIL comment from the previous push sitting next to a green check. It is a path you always hit when fixing a red change by reverting it to content identical to base (the correct way in this repository, which does not rewrite history). Upserting a body stating that it skipped attaches nothing to a PR with no comment, and replaces the red one on a PR where it remains
+- **Report-only scanners pass their verdict as "found something", not "ran".** The `dependency-scan` / `osv-scan` jobs are designed not to fail on detection, so passing the job's success as `status` would let a run that found vulnerabilities suppress the comment as `success`. It is split into 3 values (`success` / `findings` / `failure`), distinguished by the scanner's exit code (`TRIVY_FS_DETECT_EXIT` / `OSV_DETECT_EXIT`)
+- The posting step is `continue-on-error: true`. PRs from forks have a read-only token and cannot post, but that does not fail the check's verdict
+- **Do not pass `secrets.*` to check commands through `env:`**. Actions secret masking only applies to the path the runner captures for log display; content dropped into a file with `tee` passes straight through. That file is posted as is into PR comments on this (public) repository. Only `GITHUB_TOKEN` is an exception (a short-lived token needed for the posting itself). This convention is checked mechanically by `make actions-comment-secret-lint`, but it can only follow direct references in `${{ }}` expressions; indirect passing via `needs.<job>.outputs` passes the check — **the convention is authoritative, and the check is a regression guard**. **The other blind spot is jobs that call `gh pr comment` directly**: the check only covers jobs that reach `upsert-pr-comment`. `baseline-retake`'s `retake` is one of these, and since it is the only job that posts to the PR while holding the App token, its bodies are all kept as literals written in the workflow (the job says the same)
+- **Identifying an existing comment requires both "the bot as poster" and "starts with the marker"**. In a public repository a third party can post a comment containing the marker first, and every workflow posts as the same bot, so either one alone is not an identification (getting a check log to print another workflow's marker could steer that workflow to the wrong comment). As a premise for this, **pass `github-token` a token that posts as the bot** — with a personal PAT it can post but never update again
+- **The fence used to fold the body is decided from the body**. Linters and compilers print source lines as is into check logs, so their contents are controllable by the PR submitter. Wrapping with a fixed triple backtick lets the body close the fence itself, and what follows renders as raw Markdown (notifying third parties via mentions, fake headings and links posted under the CI bot's name). Callers must not assemble fences themselves and use `details-summary` instead (the reversal condition is item 5 of ADR 0153)
+- **Pass only static literals to `title` and `details-summary`**. Sanitization works only on the body (`body-file`); `title` is placed **outside** the fence as raw Markdown, and `details-summary` as raw HTML. A change that summarizes log contents into `title` would revive, from outside, the injection the fence closed
 
-カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。**これは判定ではなく計測値なので、緑でも投稿し続ける** —— 上の「緑では作らない」が対象にしているのは「PASS」としか言わないコメントである。ただし**積み上げてはいけない**ので `.octocov.yaml` に `updatePrevious: true` を置いてある（既定は push のたびに新しいコメントを作る）。テストの失敗内容そのものは octocov ではなくこの upsert 基盤が投稿する —— octocov は coverage しか報告せず、どのテストが落ちたかを言わない。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
+Only coverage needs structured reporting of line-level coverage and the difference from the base branch, so octocov in `test.yaml` posts a dedicated comment. **This is a measurement, not a verdict, so it keeps posting even when green** — what "do not create when green" above targets is comments that say nothing but "PASS". But **they must not pile up**, so `updatePrevious: true` is set in `.octocov.yaml` (the default creates a new comment on every push). The test failure details themselves are posted not by octocov but by this upsert foundation — octocov reports only coverage and does not say which test failed. Other check logs (including security scan results / generated-artifact drift) ride on this composite action.
 
-## SAST のルールをレジストリから引かない
+## Do not pull SAST rules from a registry
 
-`make sast` が読むルールは、`opengrep/opengrep-rules` の **commit を固定**して取り出したものである。`--config p/javascript` のようなレジストリ参照は使わない。
+The rules `make sast` reads are extracted from `opengrep/opengrep-rules` **at a pinned commit**. Registry references such as `--config p/javascript` are not used.
 
-**理由はライセンスにある。** `p/*` が返す集合（`semgrep/semgrep-rules`）は **Semgrep Rules License v1.0** で、OSI 承認ライセンスではない。
+**The reason is the license.** The set `p/*` returns (`semgrep/semgrep-rules`) is under the **Semgrep Rules License v1.0**, which is not an OSI-approved license.
 
 > You may use the rules only for your own internal business purposes.
 > This license does not allow you to distribute the rules, or to make them available to others as a service.
 
-エンジンに OSS fork の opengrep を採った判断は「利用側へライセンスの判断を渡さない」ことだった（[0110](../../docs/adr/0110-security-operations.md)）。**ルールをレジストリから引いている限り、その判断は成立しない** —— エンジンが LGPL でも、走らせているルールが内部利用限定なら、判断は層をずれて渡されているだけである。
+The decision to adopt opengrep, an OSS fork, as the engine was "not to hand license decisions to the consuming side" ([0110](../../docs/adr/0110-security-operations.md)). **As long as rules are pulled from the registry, that decision does not hold** — even if the engine is LGPL, if the rules being run are internal-use only, the decision has merely been handed over one layer off.
 
-| | 取得元 | ライセンス |
+| | Source | License |
 | --- | --- | --- |
-| エンジン | mise が固定する opengrep | LGPL-2.1-or-later |
-| ルール（レジストリ `p/*`、採らない） | 走査のたびに semgrep.dev | **Semgrep Rules License v1.0** |
-| ルール（採用） | 固定した commit の `opengrep/opengrep-rules` | LGPL-2.1 + Commons Clause |
+| Engine | opengrep pinned by mise | LGPL-2.1-or-later |
+| Rules (registry `p/*`, not adopted) | semgrep.dev on every scan | **Semgrep Rules License v1.0** |
+| Rules (adopted) | `opengrep/opengrep-rules` at a pinned commit | LGPL-2.1 + Commons Clause |
 
-### 取り出し方は 3 つの制約で決まっている
+### Extraction is decided by three constraints
 
-**1. 検体を 1 つもディスクへ置かない。** 置き場はルールとほぼ同数の**検体**（意図的に脆弱なソース）を抱えており、`java/` `php/` には本物の webshell が含まれる。そのまま展開すると開発者のマシンとランナーへ置かれ、ウイルス対策が反応する。よって**言語で絞ったうえで、アーカイブから YAML だけを名指しで取り出す** —— 「全部展開してから消す」では同じ集合になっても途中でディスクへ出る。
+**1. Not a single test specimen is placed on disk.** The store holds nearly as many **specimens** (intentionally vulnerable source) as rules, and `java/` `php/` contain real webshells. Extracting as is would place them on developers' machines and runners, and antivirus would react. So **after narrowing by language, only the YAML files are extracted by name from the archive** — "extract everything, then delete" would reach the same set but touch disk along the way.
 
-**2. `audit` 分類を取らない。** `security/` を丸ごと採ると `audit` の所見で 0 件 baseline が保てない。レジストリの `p/javascript` も既定では含めていない分類で、**読んで判断するための所見**であってゲートに載る前提ではない。同じ規則を [`eslint.config.ts`](../../eslint.config.ts) の security でも落としており、理由も同じ。
+**2. The `audit` category is not taken.** Adopting `security/` wholesale makes it impossible to keep a 0-finding baseline because of `audit` findings. It is a category the registry's `p/javascript` also excludes by default, **findings meant to be read and judged**, not ones premised on riding a gate. The same rules are also dropped in the security config of [`eslint.config.ts`](../../eslint.config.ts), for the same reason.
 
-**3. 照合はアーカイブではなく取り出したものに掛ける。** GitHub が自動生成する tarball はバイト単位で不変ではない（gzip の設定が変われば同じ commit でも digest が動く）。照合したいのは「走らせるルールが固定したものと同じか」であって包み方ではないので、**取り出した YAML の集合に対して digest を取る**。一致しなければ**何も置かずに**落ちる —— 置いてから照合すると、落ちた後のツリーに照合できなかったルールが残り、次の実行がそれを「固定済み」と読む。
+**3. Verification is applied to what was extracted, not to the archive.** The tarballs GitHub generates automatically are not byte-stable (if the gzip settings change, the digest moves even for the same commit). What we want to verify is "are the rules we run the same as the pinned ones", not the packaging, so **the digest is taken over the set of extracted YAML**. On mismatch it fails **without placing anything** — verifying after placing would leave unverifiable rules in the tree after the failure, and the next run would read them as "pinned".
 
-実体は [`../../scripts/opengrep-rules/`](../../scripts/opengrep-rules/) で、固定値は [`../../opengrep-rules-pin.toml`](../../opengrep-rules-pin.toml) が持つ —— `.github/actions-pin.toml` / `docker/images-pin.toml` と同じ形である。**digest をソースへ書かないのは、人が写す工程を作らないため**で、`pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` がロックファイルを書き直す。**rule id は置き場のパスを接頭辞に持つ**（`tmp.opengrep-rules.javascript.…`）ので、置き場を動かすと code scanning の既存 alert が一斉に別物になる。抑止（`// nosemgrep:`）は接頭辞なしの素の id で効く。
+The implementation is [`../../scripts/opengrep-rules/`](../../scripts/opengrep-rules/), and the pinned values are held by [`../../opengrep-rules-pin.toml`](../../opengrep-rules-pin.toml) — the same shape as `.github/actions-pin.toml` / `docker/images-pin.toml`. **The digest is not written into source so as not to create a step where a human copies it**; `pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` rewrites the lockfile. **A rule id carries the store's path as a prefix** (`tmp.opengrep-rules.javascript.…`), so moving the store turns existing code scanning alerts into different ones all at once. Suppression (`// nosemgrep:`) works with the bare id without the prefix.
 
-### 引き換えに失うもの
+### What is given up in exchange
 
-**ルール数が減る。** 固定した commit から取り出す集合は、レジストリの 3 パックより小さい。`p/owasp-top-ten` は複数言語を跨ぐパックで、その大半はこのリポジトリに対象が無いが、**それを差し引いても減っている**。
+**Fewer rules.** The set extracted from the pinned commit is smaller than the registry's three packs. `p/owasp-top-ten` is a pack spanning multiple languages, most of which have no target in this repository, but **even after subtracting that, it is smaller**.
 
-**ルールが更新されない。** `opengrep/opengrep-rules` はライセンス変更直前（2024-12-13）の fork で、上流の動きは鈍い。新しい規則は入ってこない。**この層の鮮度は CodeQL が補っている**（GitHub 側が更新し続ける）ため、SAST 全体が固まるわけではない。
+**Rules are not updated.** `opengrep/opengrep-rules` is a fork from just before the license change (2024-12-13), and upstream moves slowly. New rules do not arrive. **The freshness of this layer is supplemented by CodeQL** (GitHub keeps updating it), so SAST as a whole does not freeze.
 
-この判断を見直すのは、レジストリのルールが OSI 承認ライセンスへ戻ったときか、固定先が更新を止めて**他の層でも補えない面**が実測で見つかったときである。**ルールが少ないこと・上流の更新が鈍いことだけでは条件にならない** —— 減ること自体は承知のうえで選んでおり、条件は「減った分がどこにも無い」と実測で言えることである。
+This decision is revisited when the registry's rules return to an OSI-approved license, or when the pinned source stops updating and measurement finds **a surface no other layer can cover either**. **Having fewer rules or slow upstream updates alone are not conditions** — the reduction itself was chosen knowingly, and the condition is being able to say, from measurement, that "what was lost is nowhere else".
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-ワークフローの中身は組織に依りませんが、**GitHub 側の設定として与えるものは移せません。** 資格情報を
-要する検査を残すかどうかも、契約を持っている側にしか決められません。
+The contents of the workflows do not depend on the organization, but **what is given as GitHub-side settings cannot be carried over.** Whether to keep checks that need credentials
+can also only be decided by the side that holds the contract.
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change |
 | --- | --- | --- |
-| 必須チェックの集合と保護対象のブランチ名 | [`../settings/branch-protection.json`](../settings/branch-protection.json) が CI Checks 群を必須にし、リリース線と hotfix 線を保護する | 同ファイル。`make branch-protection-apply` で適用する。登録してよい条件は[上記](#required-status-check) |
-| ラベル | [`../settings/labels.json`](../settings/labels.json) | 同ファイル |
-| 資格情報を要する検査 | CodeQL / SonarQube Cloud / Dependency Review は、無ければ自分を飛ばして緑のまま残る | 残すなら secret を登録し、撤去するなら `make setup-remove-licensed-scanners` |
-| 通知の宛先 | `SLACK_WEBHOOK_URL`。未設定なら配送を飛ばして緑のまま | repository secret。transport ごと替えるなら [`notify.yaml`](notify.yaml) の後半 2 ステップと呼び出し側の `secrets:` 行（[上記](#通知)） |
-| 定期実行の時刻 | 週次のセキュリティ検査と日次の重い検査が、それぞれ固定の時刻に走る | 各ワークフローの `schedule:` |
-| 基準画像の置き場への書き込み | 専用の GitHub App の資格情報を secret から読む | [`vrt/README.md`](../../vrt/README.md#boilerplate-導入時の変更点) |
-| ドキュメントの配信先 | GitHub Pages。配信するブランチは make 変数と `deploy-docs.yaml` の両方が持つ | 替えるときは**両方を揃える**。片方だけだと配信が止まる |
+| The set of required checks and the protected branch names | [`../settings/branch-protection.json`](../settings/branch-protection.json) makes the CI Checks group required and protects the release and hotfix lines | That file. Apply with `make branch-protection-apply`. The conditions for registration are [above](#required-status-check) |
+| Labels | [`../settings/labels.json`](../settings/labels.json) | That file |
+| Checks that need credentials | CodeQL / SonarQube Cloud / Dependency Review skip themselves and stay green if credentials are absent | To keep them, register the secrets; to remove them, `make setup-remove-licensed-scanners` |
+| Notification destination | `SLACK_WEBHOOK_URL`. If unset, delivery is skipped and it stays green | A repository secret. To replace the transport entirely, the last 2 steps of [`notify.yaml`](notify.yaml) and the callers' `secrets:` lines ([above](#notifications)) |
+| Scheduled run times | The weekly security checks and the daily heavy checks each run at fixed times | Each workflow's `schedule:` |
+| Writing to the baseline image store | Reads a dedicated GitHub App's credentials from secrets | [`vrt/README.md`](../../vrt/README.md#what-to-change-when-adopting) |
+| Documentation delivery destination | GitHub Pages. The delivering branch is held by both a make variable and `deploy-docs.yaml` | When changing it, **align both**. Changing only one stops delivery |
 
-**job 名を変えると必須チェックの設定が黙って無効になります**（context 名は job 名です。[上記](#required-status-check)）。`make actions-required-check-lint` が両者の一致を見ます。
+**Renaming a job silently disables the required check setting** (the context name is the job name; [above](#required-status-check)). `make actions-required-check-lint` checks that the two match.
 
-これらを最初に一通り当てる順序は
-[`docs/get-started/setup-repository.md`](../../docs/get-started/setup-repository.md) が持ちます。
+The order for applying all of these the first time is held by
+[`docs/get-started/setup-repository.md`](../../docs/get-started/setup-repository.md).
 
 ## Related ADRs
 
 The decisions the workflows here follow. **Comments in the workflow definitions do not cite an ADR
 directly — they come here instead.** An ADR's number, section and owning record all move, while this
 README moves with the workflows, so the movement never reaches the definitions
-（[docs/rules.md#comments](../../docs/rules.md#comments)）。
+([docs/rules.md](../../docs/rules.md#comments)).
 
 - [0004](../../docs/adr/0004-library-management.md) — dependency update policy: majors go in their own PR
 - [0011](../../docs/adr/0011-no-docker.md) — what the delivery boundary does and does not promise
 - [0051](../../docs/adr/0051-styling-system.md) — the responsive bands the screen checks read
-- [0054](../../docs/adr/0054-ui-catalog-storybook.md) — the catalogue the visual and a11y checks ride on
-- [0072](../../docs/adr/0072-api-type-generation.md) — generated artefacts carry no findings of their own
+- [0054](../../docs/adr/0054-ui-catalog-storybook.md) — the catalog the visual and a11y checks ride on
+- [0072](../../docs/adr/0072-api-type-generation.md) — generated artifacts carry no findings of their own
 - [0082](../../docs/adr/0082-client-observability.md) — which metrics are collected from real users
 - [0090](../../docs/adr/0090-testing-strategy.md) / [0091](../../docs/adr/0091-test-verification-methods.md) — the framework split and what a real browser owns
 - [0101](../../docs/adr/0101-performance-budget.md) — the budget and the metrics it is written against
@@ -455,23 +455,23 @@ README moves with the workflows, so the movement never reaches the definitions
 - [0157](../../docs/adr/0157-inspection-declaration-discipline.md) — report a gate as it reported itself; never through a filter that classifies by vocabulary
 - [0160](../../docs/adr/0160-agent-environment-loop.md) — the re-measurement step and what the loop may read
 
-## 通知
+## Notifications
 
-**通知するのはスケジュール実行だけ。** PR ではどちらの出来事も既に作者へ届いている —— チェックが赤くなるか、PR コメントが所見を述べるかのどちらかである。そこで通知を足すのは、作者が今見ているものをチャットへ複製することにしかならない。週次の実行には作者が居ない。**誰も触っていないツリーに対して起きた出来事**こそ、リポジトリ側から押し出す価値がある。
+**Only scheduled runs notify.** On a PR, both kinds of event already reach the author — either the check turns red or a PR comment states the finding. Adding a notification there would only duplicate into chat what the author is already looking at. A weekly run has no author. **Events that happen to a tree nobody touched** are what is worth pushing out from the repository side.
 
-宛先は reusable workflow [`notify.yaml`](notify.yaml) が持ち、2 つのモードで呼ぶ。
+The destination is held by the reusable workflow [`notify.yaml`](notify.yaml), called in two modes.
 
-| モード | 呼ぶ側 | 何を伝えるか |
+| Mode | Caller | What it conveys |
 | --- | --- | --- |
-| failure | 週次で走る全セキュリティ検査 | job が落ちた（または打ち切られた）こと。**走査の出力は載せない** —— 実行 URL だけを渡すので、秘密や脆弱性の詳細が通知先へ届く経路が無い |
-| detection | `dependency-scan` / `osv-scan` | **落とさない設計の検査が何かを見つけた**こと。job は緑で終わるので failure では永久に発火しない |
+| failure | Every security check that runs weekly | That the job failed (or was cancelled). **Scan output is not included** — only the run URL is passed, so there is no path by which secrets or vulnerability details reach the destination |
+| detection | `dependency-scan` / `osv-scan` | That **a check designed not to fail found something**. The job ends green, so failure mode would never fire |
 
-detection は「何が見つかったか」を言えなければ、報告している出来事を特定できない。そこで本文を持つが、**載せるのは識別子だけ**とする（[`../actions/notify-detail`](../actions/notify-detail/action.yaml) が advisory 識別子の形をした文字列だけをログから抜く）。「先頭 N 行」のような規則にすると、いつかは値そのものを運ぶ。`secret-scan` に detection モードを与えていないのも同じ理由で、あちらのログに載りうるのは検出された秘密そのものである。
+Unless detection can say "what was found", it cannot identify the event it reports. So it carries a body, but **only identifiers go into it** ([`../actions/notify-detail`](../actions/notify-detail/action.yaml) extracts from the log only strings shaped like advisory identifiers). A rule like "the first N lines" would eventually carry the values themselves. `secret-scan` is not given detection mode for the same reason: what can appear in its log is the detected secret itself.
 
-**打ち切り（`cancelled`）を失敗として数える。** 週次の実行が打ち切られるのは、通常は前の実行が残っているか runner が落ちたときで、いずれも「走らなかった」ことに変わりはない。緑と区別できないまま放置すると、走っていない週が積み上がる。
+**Cancellation (`cancelled`) is counted as failure.** A weekly run is cancelled usually when the previous run is still around or the runner went down, and either way it "did not run". Left indistinguishable from green, weeks that did not run pile up.
 
-`SLACK_WEBHOOK_URL` が未設定なら配送を飛ばして緑のままにする。**webhook が無いことは検査の結果ではなく設定の欠落**であり、報告しようとした出来事のほうを隠してはいけない。送信先の差し替えは `notify.yaml` の後半 2 ステップと各呼び出し側の `secrets:` 行だけで済む（前半は transport 非依存）。
+If `SLACK_WEBHOOK_URL` is unset, delivery is skipped and it stays green. **A missing webhook is a gap in configuration, not a check result**, and must not hide the event that was to be reported. Replacing the destination takes only the last 2 steps of `notify.yaml` and each caller's `secrets:` line (the first half is transport-independent).
 
-**これがリポジトリ唯一の `workflow_call`。** 他の共有物は composite action だが、composite action は呼び出し元の job の中で動くため、webhook が「たった今スキャンした依存ツリーを展開したランナー」に載る。`workflow_call` は必ず自前のランナーを取り、このファイルはリポジトリを checkout しない。
+**This is the repository's only `workflow_call`.** Other shared pieces are composite actions, but a composite action runs inside the caller's job, so the webhook would ride on "the runner that just unpacked the dependency tree it scanned". A `workflow_call` always takes its own runner, and this file does not check out the repository.
 
-なお `make actions-comment-secret-lint` は、この呼び出しを**呼び出し先が投稿するかどうか**で判定する（`notify.yaml` は投稿しないので、呼び出し元は投稿ジョブにならない）。リモートの reusable workflow は解決できないため、従来どおり exit 2 で落ちる。
+Note that `make actions-comment-secret-lint` judges this call by **whether the callee posts** (`notify.yaml` does not post, so the caller does not become a posting job). Remote reusable workflows cannot be resolved, so as before they fail with exit 2.

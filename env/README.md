@@ -1,181 +1,191 @@
-# 環境変数
+# Environment Variables
 
-環境別の実体は `env/.env.<環境>` に置きます。`src/config/load-environment.ts` が Next.js の
-起動・build 前に選択したファイルを読み込みます。
+The per-environment values live in `env/.env.<environment>`. `src/config/load-environment.ts` loads the selected
+file before Next.js starts or builds.
 
-`APP_ENV` が選択子であり、**指定は必須です**。未指定のまま起動すると、読み込むファイルを
-選べないものとして落とします。5 つ以外の値も同じく落とします。既定を持たせない理由は
-[ADR 0030](../docs/adr/0030-environment-variable-management.md) が持ちます。`APP_ENV` を直に
-読むのは `src/config/application-environment.ts` だけで、同梱の秘密値を許すか・開発専用の口を開くか・
-開発専用の route を build の束に載せるかの判定も、この 1 か所の解決を経由します。
+`APP_ENV` is the selector, and **it is required**. Starting without it fails, as the file to load cannot be
+chosen. Any value other than the five fails the same way. Why it has no default is owned by
+[ADR 0030](../docs/adr/0030-environment-variable-management.md). Only
+`src/config/application-environment.ts` reads `APP_ENV` directly, and the decisions whether to allow the
+bundled secret values, whether to open the development-only endpoints, and whether to put development-only
+routes into the build bundle all go through that single resolution.
 
-CI と PaaS は環境設定で `APP_ENV` をそれぞれ `ci`、`dev`、`stg`、`prd` に設定します。ファイルは
-1 プロセスにつき一度だけ読み込まれ、**すでに `process.env` にある値は上書きしません** —— PaaS / CI
-が注入した値がファイルの値より優先されます。手元の開発では `pnpm dev` / `pnpm storybook` /
-`pnpm build-storybook` が `local` を既定として渡すため、clone 直後はそのまま動きます。明示した
-`APP_ENV` はその既定に勝ちます。配信物を作る `pnpm build` と `pnpm start` は既定を持たないので、
-`APP_ENV=local pnpm build` のように指定します。
+CI and the PaaS set `APP_ENV` to `ci`, `dev`, `stg` and `prd` respectively in their environment settings.
+The file is loaded only once per process and **never overwrites values already in `process.env`** — values
+injected by the PaaS / CI take precedence over the file's. For local development, `pnpm dev` /
+`pnpm storybook` / `pnpm build-storybook` pass `local` as the default, so it works right after cloning. An
+explicit `APP_ENV` beats that default. `pnpm build` and `pnpm start`, which produce what is served, have no
+default, so specify it as in `APP_ENV=local pnpm build`.
 
-**`APP_API_BASE_URL` は build 時にも使われます。** リクエストをまたいで残す取得
-（[ADR 0071](../docs/adr/0071-bff-api-integration.md) の `use cache`）は、キャッシュの中身を作るために
-build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達できない場所から `pnpm build` を回すと、
-そこで落ちます。
+**`APP_API_BASE_URL` is used at build time too.** Fetches that persist across requests
+(`use cache` in [ADR 0071](../docs/adr/0071-bff-api-integration.md)) are also called during the build to
+populate the cache. Running `pnpm build` with `APP_API_MODE=live` from somewhere that cannot reach the
+fetch target fails there.
 
-**`mock` のときは `pnpm build` が取得先を自分で立てます**（[mocks/serve.ts](../mocks/serve.ts)）。
-`src/instrumentation.ts` の interception はそれを立てたプロセスにしか効かず、プリレンダーは別の worker
-プロセスで走るため、HTTP の口として立てないと届きません。`APP_API_BASE_URL` はその待ち受け先になります。
+**In `mock` mode, `pnpm build` starts the fetch target itself** ([mocks/serve.ts](../mocks/serve.ts)).
+Interception in `src/instrumentation.ts` only works in the process that set it up, and prerendering runs in
+separate worker processes, so it does not reach them unless started as an HTTP endpoint. `APP_API_BASE_URL`
+becomes its listening address.
 
-`next.config.ts` も build 時に検証済みの値を読み、`next/image` の許可 host（`MEDIA_ORIGIN`）、配信
-ヘッダが許す origin（`APP_API_BASE_URL` / `MEDIA_ORIGIN` / `AUTH_ISSUER` / 容器 ID）、https で配信して
-いるか（`AUTH_REDIRECT_URI` の scheme）、要求本体の上限（`NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES`）を
-決めます。これらは `pnpm build` と `pnpm start` に同じ値を渡します。
+`next.config.ts` also reads validated values at build time and decides the hosts allowed for `next/image`
+(`MEDIA_ORIGIN`), the origins the served headers allow (`APP_API_BASE_URL` / `MEDIA_ORIGIN` /
+`AUTH_ISSUER` / container ID), whether it is served over https (the scheme of `AUTH_REDIRECT_URI`), and the
+request body limit (`NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES`). Pass the same values to `pnpm build` and
+`pnpm start`.
 
-## ファイルの書き方
+## Writing the Files
 
-5 つのファイルは同じ変数を同じ順序で持ち、順序は下の変数表と揃えます。ある環境に無関係な
-変数でも行は消さず、行の形で「誰が値を与えるか」を表します。例外は下に挙げる 2 種類（検証のための
-上書きと開発専用の口）だけで、それらは配信する環境のファイルに行を持ちません。
+The five files hold the same variables in the same order, and the order matches the variable tables below.
+Even a variable irrelevant to an environment keeps its line, and the form of the line states "who provides
+the value". The only exceptions are the two kinds listed below (overrides for verification, and the
+development-only endpoints); those have no line in the files of served environments.
 
-| 行の形 | 意味 | 例 |
+| Line form | Meaning | Example |
 | --- | --- | --- |
-| `NAME=value` | このファイルが値を与える。`local` / `ci` の基本形 | `APP_API_MODE=mock` |
-| `NAME=` | Optional の変数を「指定なし」のまま在庫として残す。未設定と空文字が同じ意味であること（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）が前提 | `CLOCK_FIXED_NOW=` |
-| `# NAME=` | 値は PaaS の環境設定か secret store が与える。ファイルは名前だけを持つ | `# AUTH_SESSION_SECRET=` |
-| `# NAME=候補` | 同上。入れるなら通常この値、という候補を添える | `# AUTH_SCOPES=openid profile email api.read api.write` |
-| `# NAME=on` | Code default が止まる側にある切り替え。行頭の `#` を外すのが「入れる」操作 | `# APP_MAINTENANCE_MODE=on` |
+| `NAME=value` | This file provides the value. The basic form for `local` / `ci` | `APP_API_MODE=mock` |
+| `NAME=` | Keeps an Optional variable listed as "unspecified". Relies on unset and empty string meaning the same thing ([ADR 0030](../docs/adr/0030-environment-variable-management.md)) | `CLOCK_FIXED_NOW=` |
+| `# NAME=` | The value is provided by the PaaS environment settings or a secret store. The file holds only the name | `# AUTH_SESSION_SECRET=` |
+| `# NAME=candidate` | Same as above, with a candidate: the value normally used if one is set | `# AUTH_SCOPES=openid profile email api.read api.write` |
+| `# NAME=on` | A switch whose Code default is on the off side. Removing the leading `#` is the act of "turning it on" | `# APP_MAINTENANCE_MODE=on` |
 
-配信する環境（`dev` / `stg` / `prd`）のファイルが値を持つ行は 2 種類だけです。配備によらず同じで
-秘密でもない値（接続モード、service 名）と、その環境だけが宣言する方針値（索引の可否）です。接続先と
-秘密値は名前だけを持ち、実値は供給側に任せます —— 平文で commit しない
-（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
+The files of served environments (`dev` / `stg` / `prd`) hold values on only two kinds of line: values that
+are the same regardless of deployment and not secret (connection mode, service name), and policy values
+only that environment declares (whether it may be indexed). Connection targets and secrets hold only the
+name, and the real value is left to the supplier — no plaintext commits
+([ADR 0030](../docs/adr/0030-environment-variable-management.md)).
 
-- 検証のためだけの上書き（時計の固定）は `ci` にだけ値を置き、配信する環境のファイルには行を置きません。
-  書くと検証の都合が本番の起動条件に混ざり、`# NAME=` の形でも「供給側が与える」と読まれます
-  （[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
-- 開発専用の口に属する変数（`AUTH_MODE`）は、それが効く環境（`local` / `ci`）のファイルにしか
-  書きません。配信する環境のファイルに行があると、効かないはずの値を入れる招きになります。効く
-  環境を決めるのは `APP_ENV` です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
+- Overrides solely for verification (pinning the clock) have a value only in `ci`, and no line in the files
+  of served environments. Writing one mixes verification concerns into production startup conditions, and
+  even in the `# NAME=` form it would be read as "the supplier provides this"
+  ([ADR 0030](../docs/adr/0030-environment-variable-management.md)).
+- Variables belonging to the development-only endpoints (`AUTH_MODE`) are written only in the files of the
+  environments where they take effect (`local` / `ci`). A line in a served environment's file invites
+  setting a value that should have no effect. What decides the environments where they take effect is
+  `APP_ENV` ([ADR 0030](../docs/adr/0030-environment-variable-management.md)).
 
-## サブシステム別の変数
+## Variables by Subsystem
 
-節はサブシステムの prefix（`{SUBSYSTEM}_{NAME}`、[ADR 0028](../docs/adr/0028-naming-convention.md)）
-に対応します。外部 SDK が標準名で直接読む変数（`OTEL_*`）はその標準名のまま置き、ブラウザへ出す
-値だけが `NEXT_PUBLIC_` を名乗ります。
+Sections correspond to the subsystem prefix (`{SUBSYSTEM}_{NAME}`, [ADR 0028](../docs/adr/0028-naming-convention.md)).
+Variables an external SDK reads directly under a standard name (`OTEL_*`) keep that standard name, and only
+values exposed to the browser carry `NEXT_PUBLIC_`.
 
-Notes 列のラベルは次の意味です（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
+The labels in the Notes column mean the following ([ADR 0030](../docs/adr/0030-environment-variable-management.md)).
 
-- **Required** —— 欠落は build / 起動の失敗。
-- **Code default `x`** —— 省略でき、スキーマが `x` を補う。
-- **Optional** —— 省略でき、既定は「指定なし」。未設定と空文字は同じ。
-- **Secret management required** —— 本番は secret store から供給し、平文で commit しない。
-  `NEXT_PUBLIC_` を名乗らない。
+- **Required** — missing fails the build / startup.
+- **Code default `x`** — may be omitted; the schema fills in `x`.
+- **Optional** — may be omitted; the default is "unspecified". Unset and empty string are the same.
+- **Secret management required** — supplied from a secret store in production, never committed in plaintext.
+  Does not carry `NEXT_PUBLIC_`.
 
-Type 列の `URL` は http / https だけを、`origin` はパス無し（`new URL(v).origin === v` が成り立つ
-形）だけを通します。検証は build 時と起動時に一度ずつ走り、要求経路とブラウザでは走りません。
+In the Type column, `URL` accepts only http / https, and `origin` accepts only values without a path (the
+form where `new URL(v).origin === v` holds). Validation runs once at build time and once at startup, and
+never on the request path or in the browser.
 
 ### Application
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `APP_API_BASE_URL` | BFF が接続する API の base URL | URL | `http://localhost:8080` | Required。環境ごとの API 接続先 |
-| `APP_API_MODE` | API 接続モード | `live` / `mock` | `live` | Required。`mock` は local / CI のみで用いる |
-| `APP_MAINTENANCE_MODE` | 配信を止めているか | `off` / `on` | `on` | Code default `off`。`on` で全ルートを停止画面へ差し替える。切り替えには起動し直しが要る |
+| `APP_API_BASE_URL` | Base URL of the API the BFF connects to | URL | `http://localhost:8080` | Required. The per-environment API target |
+| `APP_API_MODE` | API connection mode | `live` / `mock` | `live` | Required. `mock` is used only locally / in CI |
+| `APP_MAINTENANCE_MODE` | Whether serving is suspended | `off` / `on` | `on` | Code default `off`. `on` replaces every route with the maintenance screen. Switching needs a restart |
 
 ### Clock
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `CLOCK_FIXED_NOW` | 画面が「いま」として読む瞬間の固定 | ISO 8601 の日時 | `2026-01-01T00:00:00.000Z` | Optional。未設定・空文字なら実時計。検証の環境だけが指定する |
+| `CLOCK_FIXED_NOW` | Pins the instant screens read as "now" | ISO 8601 date-time | `2026-01-01T00:00:00.000Z` | Optional. Unset or empty means the real clock. Only verification environments set it |
 
-暦日で区切る画面は、区切りを要求のクエリへ載せます。クエリが実時計から導かれると、契約から応答を
-組み立てるモックの seed も一緒に動くため、その画面の基準画像は撮った暦日のあいだしか一致しません。
-`env/.env.ci` だけが値を持つのはこのためで、配信する環境は未設定のまま実時計で動きます。
+Screens that divide by calendar day put the division into the request query. If the query derives from the
+real clock, the seed of the mock that builds responses from the contract moves with it, so that screen's
+baseline image matches only during the calendar day it was captured. This is why only `env/.env.ci` holds a
+value; served environments leave it unset and run on the real clock.
 
 ### Media
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `MEDIA_ORIGIN` | バックエンドが返すオブジェクトキーの配信 origin | URL | `https://media.example.com` | Required。この値だけが `next/image` の許可 host と CSP の `img-src` を決める（[0045](../docs/adr/0045-fonts-and-images.md) / [0111](../docs/adr/0111-csp-security-headers.md)）。配信元が host 名でバケットを解決する形式なら、その host を含めた origin を置く |
+| `MEDIA_ORIGIN` | The serving origin for object keys the backend returns | URL | `https://media.example.com` | Required. This value alone decides the hosts allowed for `next/image` and CSP's `img-src` ([0045](../docs/adr/0045-fonts-and-images.md) / [0111](../docs/adr/0111-csp-security-headers.md)). If the origin resolves the bucket by host name, use the origin including that host |
 
 ### Observability
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `OBS_SERVICE_NAME` | テレメトリの発信元を表す service 名 | string | `Boilerplate Web` | Required。trace / metrics / logs の resource に `service.name` として載る。backend と同じ trace の中で発信元を見分けるため、相方のサービスと異なる値にする |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP の base endpoint | URL | `http://localhost:4318` | Required。OpenTelemetry 標準名をそのまま使う。各 signal は `/v1/traces` などを自動付与する |
-| `OBS_TRACES_EXPORTER` | trace exporter の有効化値 | string | `otlp` / `none` | Code default `none`。空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
-| `OBS_METRICS_EXPORTER` | metrics exporter の有効化値 | string | `otlp` / `none` | Code default `none`。空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
-| `OBS_LOGS_EXPORTER` | logs exporter の有効化値 | string | `otlp` / `none` | Code default `none`。空文字列または `none` は無効。`otlp` は OTLP exporter を構築する |
-| `OBS_RENDER_SPANS` | 描画を span に載せる範囲 | `none` / `screen` / `part` | `screen` | Code default `screen`。`screen` は画面の最上位（`page-content` / `view`）、`part` は feature が持つ部品まで。`part` は 1 描画の span が描く部品の数だけ増えるため、調査のときに開ける。trace 自体が無効なら効かない |
+| `OBS_SERVICE_NAME` | Service name identifying the telemetry source | string | `Boilerplate Web` | Required. Appears as `service.name` on the resource of traces / metrics / logs. Use a value different from the counterpart service so the source can be told apart within the same trace as the backend |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP base endpoint | URL | `http://localhost:4318` | Required. Uses the OpenTelemetry standard name as is. Each signal appends `/v1/traces` and the like automatically |
+| `OBS_TRACES_EXPORTER` | Enabling value for the trace exporter | string | `otlp` / `none` | Code default `none`. Empty string or `none` disables it. `otlp` builds the OTLP exporter |
+| `OBS_METRICS_EXPORTER` | Enabling value for the metrics exporter | string | `otlp` / `none` | Code default `none`. Empty string or `none` disables it. `otlp` builds the OTLP exporter |
+| `OBS_LOGS_EXPORTER` | Enabling value for the logs exporter | string | `otlp` / `none` | Code default `none`. Empty string or `none` disables it. `otlp` builds the OTLP exporter |
+| `OBS_RENDER_SPANS` | How far rendering is put on spans | `none` / `screen` / `part` | `screen` | Code default `screen`. `screen` is the top of the screen (`page-content` / `view`); `part` goes down to the components a feature owns. With `part`, the spans of one render multiply by the number of components rendered, so open it up when investigating. Has no effect if tracing itself is disabled |
 
 ### Authentication
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `AUTH_MODE` | 認可の開始先 | `idp` / `dev` | `idp` | Code default `idp`。`dev` は IdP を立てずに `/dev/session` から session を発行させる。開発専用の口が開く環境（`local` / `ci`）でしか効かない |
-| `AUTH_ISSUER` | OIDC issuer と Discovery の起点 | URL | `https://idp.example.com/realms/main` | Required。**同梱の `local` / `ci` が指すのは開発用の IdP**で、最初に自分の IdP へ差し替える |
-| `AUTH_CLIENT_ID` | Authorization Code + PKCE の public client ID | string | `<IdP が発行した public client ID>` | Required。client secret は不要。同梱の値は開発用の IdP に登録されたものなので、自分の IdP へ登録し直した ID に差し替える |
-| `AUTH_REDIRECT_URI` | OIDC callback URL | URL | `http://localhost:3000/api/auth/callback` | Required。IdP 登録値と完全一致させる |
-| `AUTH_SCOPES` | 認可リクエストの space-delimited scope | string | `openid profile email api.read api.write` | Required |
-| `AUTH_SESSION_SECRET` | BFF session cookie を保護する秘密値 | string | `local-development-session-secret-change-before-production` | **Secret management required**。32 文字以上。`local` / `ci` に同梱している値は公開リポジトリに載っているため、それ以外の環境では起動時に拒否される |
+| `AUTH_MODE` | Where authorization starts | `idp` / `dev` | `idp` | Code default `idp`. `dev` issues sessions from `/dev/session` without running an IdP. Takes effect only in environments where the development-only endpoints are open (`local` / `ci`) |
+| `AUTH_ISSUER` | OIDC issuer and the base for Discovery | URL | `https://idp.example.com/realms/main` | Required. **The bundled `local` / `ci` point at the development IdP**; replace it with your own IdP first |
+| `AUTH_CLIENT_ID` | Public client ID for Authorization Code + PKCE | string | `<public client ID issued by the IdP>` | Required. No client secret needed. The bundled value is registered with the development IdP, so replace it with an ID registered anew with your own IdP |
+| `AUTH_REDIRECT_URI` | OIDC callback URL | URL | `http://localhost:3000/api/auth/callback` | Required. Must exactly match the value registered with the IdP |
+| `AUTH_SCOPES` | Space-delimited scopes for the authorization request | string | `openid profile email api.read api.write` | Required |
+| `AUTH_SESSION_SECRET` | Secret protecting the BFF session cookie | string | `local-development-session-secret-change-before-production` | **Secret management required**. At least 32 characters. The values bundled for `local` / `ci` are in a public repository, so any other environment rejects them at startup |
 
 ### HTTP
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つの要求 URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。既定値はどれも持たない |
-| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 中継する 1 件のアップロードに許すバイト数の上限 | integer | `4194304` | Required。配備先が要求本体に課す上限より内側に取る。外側の値は配備先が先に打ち切るため効かない |
-| `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変える要求の送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.md)）。パス付き・`*` は不可 |
+| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | Upper limit in bytes for one request URL | integer | `8000` | Required. Enter the smallest limit on the path among browser / CDN / reverse proxy / backend. None of them has a default |
+| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | Upper limit in bytes for one relayed upload | integer | `4194304` | Required. Set it inside the request body limit the deployment target imposes. A value outside it has no effect because the deployment target cuts it off first |
+| `HTTP_ALLOWED_ORIGINS` | Who may call the BFF (`/api/*`) from another origin | comma-separated origins | `https://admin.example.com,https://app.example.com` | Optional. Empty means same origin only. Listed origins are opened via CORS and also trusted as senders of state-changing requests ([0111](../docs/adr/0111-csp-security-headers.md)). Paths and `*` are not allowed |
 
 ### Site
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `SITE_PUBLIC_ORIGIN` | 外から見たこのサイトの origin | origin（パス無し） | `https://www.example.com` | Required。canonical / `sitemap.xml` / OG 画像の絶対 URL はこの値へ経路を足して組み立てる。要求の `Host` からは採らない（配信面を挟むと公開名と一致しない） |
-| `SITE_INDEXABLE` | 検索エンジンに索引させてよいか | `off` / `on` | `on` | Code default `off`。`on` で `robots.txt` が巡回を許し、画面から `noindex` が外れる。**索引させてよい環境（通常は `prd`）だけが `on` を宣言する**（[`docs/rules.md#config`](../docs/rules.md#config)） |
+| `SITE_PUBLIC_ORIGIN` | This site's origin as seen from outside | origin (no path) | `https://www.example.com` | Required. Absolute URLs for canonical / `sitemap.xml` / OG images are built by appending the path to this value. Not taken from the request's `Host` (with a serving layer in between, it does not match the public name) |
+| `SITE_INDEXABLE` | Whether search engines may index it | `off` / `on` | `on` | Code default `off`. `on` makes `robots.txt` allow crawling and removes `noindex` from screens. **Only the environment that may be indexed (usually `prd`) declares `on`** ([`docs/rules.md`](../docs/rules.md#config)) |
 
-**この 2 つは build 時にも読まれる。** 静的に描かれる画面の metadata と `robots.txt` はプリレンダーに
-焼き込まれるため、`pnpm build` と `pnpm start` に同じ値を渡す。起動時の差し替えだけでは効かない。
+**These two are also read at build time.** The metadata of statically rendered screens and `robots.txt` are
+baked into prerendering, so pass the same values to `pnpm build` and `pnpm start`. Swapping them only at
+startup has no effect.
 
 ### Analytics
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャの容器 ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す口がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.md)）。secret ではない（容器 ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れる配備は、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
+| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | Container ID of the tag manager loaded behind the consent gate | string | `GTM-ABC1234` | Optional. **Empty does not mean "unset" but "do not load"** — this is the lever that removes the dependency on Google, and screens hold with it removed ([0131](../docs/adr/0131-cookie-consent.md)). Not a secret (the container ID appears in the URL that loads the tags, so it is always public on sites that use it). A deployment that sets a value accepts that `script-src` / `connect-src` / `img-src` allow Google's origins and that `Cross-Origin-Embedder-Policy` is lowered |
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-`local` と `ci` に入っている接続先は、本リポジトリの相方として開発されたバックエンドと、その隣に
-立てる開発用 IdP を指しています。**どれも自分の置き場には実在しないので、値を入れ替えるまで
-手元は繋がりません。** `dev` / `stg` / `prd` は接続先と秘密値を名前だけで持つので、値は PaaS か
-secret store へ入れます。
+The connection targets in `local` and `ci` point at the backend developed as this repository's counterpart
+and at the development IdP run beside it. **None of them exists where you are, so nothing connects locally
+until the values are replaced.** `dev` / `stg` / `prd` hold connection targets and secrets by name only, so
+the values go into the PaaS or a secret store.
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change |
 | --- | --- | --- |
-| API の接続先 | `APP_API_BASE_URL` が手元の相方を指す | `.env.local` / `.env.ci` と、配信する環境の設定。**build 時にも読まれる**（上記） |
-| IdP | `AUTH_ISSUER` / `AUTH_CLIENT_ID` が開発用 IdP とそこへ登録した client を指す | 同上。`AUTH_REDIRECT_URI` は IdP 登録値と完全一致させる |
-| session の秘密値 | `AUTH_SESSION_SECRET` は `local` / `ci` の値が公開リポジトリに載っており、他の環境では起動時に拒否される | 配信する環境ごとに secret store から供給する |
-| 画像の配信元 | `MEDIA_ORIGIN` が手元の置き場を指す。**画像を 1 枚も置かない間も必須**で、この値だけが `next/image` の許可 host と CSP の `img-src` を決める | 同上 |
-| テレメトリの送信先 | `OTEL_EXPORTER_OTLP_ENDPOINT` が手元の collector を、`OBS_SERVICE_NAME` が既定の service 名を指す | 送信先と、相方のサービスと重ならない名前へ |
-| 公開 origin | `SITE_PUBLIC_ORIGIN` が手元の口を指す。canonical / `sitemap.xml` / OG 画像の絶対 URL がこれを起点にする | 外から見た自分の origin へ |
-| 索引の可否 | `SITE_INDEXABLE` は Code default `off` | 索引させてよい環境だけが `on` を宣言する |
-| URL と本体の上限 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` / `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` は既定を持たない | 経路上で最も小さい上限を測って入れる |
-| 別 origin からの BFF 呼び出し | `HTTP_ALLOWED_ORIGINS` は空（同一 origin だけ） | 開く相手があるときだけ |
-| タグマネージャ | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` は空（読み込まない） | 使うときだけ容器 ID を入れる。CSP の許可 origin も一緒に動く |
+| API target | `APP_API_BASE_URL` points at the local counterpart | `.env.local` / `.env.ci`, and the settings of served environments. **Also read at build time** (above) |
+| IdP | `AUTH_ISSUER` / `AUTH_CLIENT_ID` point at the development IdP and the client registered there | Same as above. `AUTH_REDIRECT_URI` must exactly match the value registered with the IdP |
+| Session secret | The `local` / `ci` values of `AUTH_SESSION_SECRET` are in a public repository, and other environments reject them at startup | Supply from a secret store for each served environment |
+| Image serving origin | `MEDIA_ORIGIN` points at the local store. **Required even while no image is placed**; this value alone decides the hosts allowed for `next/image` and CSP's `img-src` | Same as above |
+| Telemetry destination | `OTEL_EXPORTER_OTLP_ENDPOINT` points at the local collector, `OBS_SERVICE_NAME` at the default service name | To your destination, and a name that does not collide with the counterpart service |
+| Public origin | `SITE_PUBLIC_ORIGIN` points at the local endpoint. Absolute URLs for canonical / `sitemap.xml` / OG images start from it | To your own origin as seen from outside |
+| Indexability | `SITE_INDEXABLE` is Code default `off` | Only environments that may be indexed declare `on` |
+| URL and body limits | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` / `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` have no default | Measure and enter the smallest limit on the path |
+| BFF calls from another origin | `HTTP_ALLOWED_ORIGINS` is empty (same origin only) | Only when there is someone to open it to |
+| Tag manager | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` is empty (not loaded) | Enter a container ID only when using it. CSP's allowed origins move with it |
 
-各変数の意味・型・必須かどうかは上の表が持ちます。ここが挙げているのは**入れ替えないと偽になる
-もの**だけで、それ以外の既定は触らずに動きます。
+The meaning, type and requiredness of each variable are owned by the tables above. What is listed here is
+only **what is false unless replaced**; every other default works untouched.
 
-配信ヘッダが持つ第三者 origin の固定値は
-[`src/config/README.md`](../src/config/README.md#what-to-change-when-adopting) が、外向き通信の
-timeout と再試行は
-[`src/adapters/server/http/README.md`](../src/adapters/server/http/README.md#what-to-change-when-adopting)
-が持ちます。どちらも環境変数ではありません。
+The fixed third-party origin values in the served headers are owned by
+[`src/config/README.md`](../src/config/README.md#what-to-change-when-adopting), and the timeouts and retries of
+outbound calls by
+[`src/adapters/server/http/README.md`](../src/adapters/server/http/README.md#what-to-change-when-adopting).
+Neither is an environment variable.
 
-## 運用
+## Operations
 
-- config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。
-- `NEXT_PUBLIC_` 変数にはブラウザへ露出してよい公開値だけを置く。secret を置いてはならない。
-- `NEXT_PUBLIC_` はビルド時にリテラルへ置換されるため、値の変更には再ビルドが要る。起動時の差し替えは効かない。
-- 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。追加はユーザ確認を要する（[ADR 0030](../docs/adr/0030-environment-variable-management.md)）。
-- 追加の手順はスキル `new-env` が持つ（[ADR 0030](../docs/adr/0030-environment-variable-management.md) 補足）。手で行うなら、サブシステムの節へ変数表の行を足し、5 つのファイルへ「ファイルの書き方」の形で 1 行ずつ置く。config 経由で読む変数は、さらに `src/config/<purpose>/<purpose>.schema.ts` の validator、`environment.ts` の登録、`environment.fixture.ts` の stub、runtime module の getter を同時に足す（[`src/config/README.md`](../src/config/README.md)）。config を経由しない変数（外部 SDK が標準名で直接読むもの）も、表と 5 つのファイルには載せる。
+- Variables used through config are validated by the schemas in `src/config/` at build time and at server startup.
+- `NEXT_PUBLIC_` variables hold only public values that may be exposed to the browser. Secrets must not go there.
+- `NEXT_PUBLIC_` is replaced with a literal at build time, so changing the value requires a rebuild. Swapping at startup has no effect.
+- Before adding a new variable, confirm its purpose, the server/client boundary, required/default, and the secret management label. Adding one requires user confirmation ([ADR 0030](../docs/adr/0030-environment-variable-management.md)).
+- The procedure for adding one is owned by the `new-env` skill (noted in [ADR 0030](../docs/adr/0030-environment-variable-management.md)). By hand, add a row to the variable table of the subsystem's section, and put one line in each of the five files in the form described under Writing the Files. For a variable read through config, also add at the same time the validator in `src/config/<purpose>/<purpose>.schema.ts`, the registration in `environment.ts`, the stub in `environment.fixture.ts`, and the getter in the runtime module ([`src/config/README.md`](../src/config/README.md)). Variables not read through config (those an external SDK reads directly under a standard name) still go in the table and the five files.

@@ -1,17 +1,17 @@
 # token scripts
 
-`tokens/scripts/` は、token SSOT から CSS と TypeScript の定数を生成し、その生成物との一致を検査する責務を持ちます。
+`tokens/scripts/` is responsible for generating CSS and TypeScript constants from the token SSOT and for checking that the generated artifacts match it.
 
-## ファイル
+## Files
 
-- `gen-tokens.ts`: `primitives.json` と `themes/<系統>/<配色>.json` から `src/app/generated/tokens.css` と、`src/model/generated/` の `breakpoint.ts` / `design-token.ts` の 3 本を生成し、`--check` 時は 3 本すべての差分を検査する
-- `gen-tokens.test.ts`: 生成する CSS と TypeScript の契約を検証する
+- `gen-tokens.ts`: generates three files from `primitives.json` and `themes/<family>/<color-scheme>.json` — `src/app/generated/tokens.css`, plus `breakpoint.ts` / `design-token.ts` under `src/model/generated/` — and with `--check` checks all three for differences
+- `gen-tokens.test.ts`: verifies the contract of the generated CSS and TypeScript
 
-## 実行
+## Running
 
 ```sh
 pnpm gen:tokens
 pnpm check:tokens
 ```
 
-前者は追跡対象の生成物を更新します。token を変更したら同じ変更に生成物を含めます。後者は CI でも実行され、生成物が SSOT と一致しない変更を失敗させます。
+The former updates the tracked generated artifacts. When you change a token, include the generated artifacts in the same change. The latter also runs in CI and fails any change whose generated artifacts do not match the SSOT.

@@ -1,64 +1,64 @@
 # full-verify
 
-リポジトリ全体の**アーキテクチャと全実装コードの妥当性**をバックグラウンドで read-only 検証し、`tmp/reviews/`
-配下に Markdown の指摘集を生成する read-only スキル。
+A read-only skill that verifies, in the background and read-only, **the soundness of the whole repository's architecture and all of its implementation code**, and generates
+a set of Markdown findings under `tmp/reviews/`.
 
-任意のリポジトリに対し、**スキル自身が**言語・構造・設計文書の有無を検出して適応する。本リポジトリ固有ではなく、
-別リポジトリにコピーしても無編集で起動できることを目標とする。この Next.js boilerplate では `ts`/`tsx` を自動検出し、
-`AGENTS.md` / `CLAUDE.md` / `docs/adr/**` を基準として拾う。
+For any repository, **the skill itself** detects the language, the structure, and whether design documents exist, and adapts to them. It is not specific to this repository;
+the goal is that it starts without edits even when copied into another repository. In this Next.js boilerplate it auto-detects `ts`/`tsx`, and
+picks up `AGENTS.md` / `CLAUDE.md` / `docs/adr/**` as the basis.
 
-- read-only。守る条件の全文は「制約(厳守)」節。書き込みは `tmp/reviews/` 配下の md 生成だけで、出力 md は
-  シェルリダイレクトで書き、検証する `claude -p` には書き込み権限を与えない
-  (`--allowedTools Read Grep Glob`、`Edit/Write` は明示的に禁止)。
+- Read-only. The full set of conditions it keeps is the `Constraints (Strict)` section. The only writes are the md files generated under `tmp/reviews/`; the output md is
+  written by shell redirection, and the verifying `claude -p` is given no write permission
+  (`--allowedTools Read Grep Glob`; `Edit/Write` are explicitly forbidden).
 
-**リポジトリ全体検証**であって diff/PR スコープのレビューではない。diff は `impl-review` / `/code-review`。
+It is a **whole-repository verification**, not a diff/PR-scoped review. For a diff, use `impl-review` / `/code-review`.
 
-**検証の主眼は「実装の綺麗さ」**(可読性・保守性・凝集度・設計の素直さ)。レイヤ越境・依存方向・命名規約といった
-機械的規約違反は **lint(biome)で潰せている前提**で原則再指摘しない。lint では検出できず、人間が読まないと
-気づけない実装・設計品質の問題に集中する。コメントが振る舞い/契約の記述に留まっているか(冗長・自明なコメント、
-コード内の WHY 欠落)も対象。
+**The main focus of the verification is "implementation cleanliness"** (readability, maintainability, cohesion, straightforward design). Mechanical convention violations such as
+layer crossing, dependency direction, and naming conventions are **assumed to be handled by lint (biome)** and as a rule are not reported again. It concentrates on implementation and design quality problems
+that lint cannot detect and that a human only notices by reading. Whether comments stay within describing behavior/contract (redundant or self-evident comments,
+a missing WHY in the code) is also in scope.
 
-## 本リポジトリでの注意
+## Notes for This Repository
 
-本リポジトリのアーキテクチャ(採用パターン / 層責務 / ディレクトリ構造 / 命名)は `docs/adr/` の Accepted ADR が
-決めている(`docs/adr/README.md` の索引)。本スキルはそれらと `AGENTS.md` を基準に動く: 綺麗さの問題と、
-ADR が宣言した意図への違反を指摘する。Accepted な ADR がまだ決めていない領域は
-判定用の規約を捏造せず「検証不能(基準保留)」として記録する。
+This repository's architecture (adopted patterns / layer responsibilities / directory structure / naming) is decided by the Accepted ADRs in `docs/adr/`
+(the index in `docs/adr/README.md`). This skill works with those and `AGENTS.md` as its basis: it reports cleanliness problems and
+violations of the intent the ADRs declared. For areas no Accepted ADR has decided yet,
+it does not invent conventions to judge by, and records them as 「検証不能(基準欠如)」 (unverifiable: basis on hold).
 
-## 構成
+## Structure
 
 ```txt
 .claude/skills/full-verify/
-  SKILL.md             # /full-verify で起動。検出とバックグラウンド起動を Claude に指示
-  scripts/run.sh       # headless 駆動の中核(冪等・再開可能・タイムアウト/上限対応)
+  SKILL.md             # launched by /full-verify; tells Claude to detect and start in the background
+  scripts/run.sh       # core of the headless driver (idempotent, resumable, timeout/limit aware)
   prompts/
-    verify-arch.md     # Pass1: 構造検証プロンプト
-    verify-impl.md     # Pass2: モジュール実装検証プロンプト
-  README.md            # このファイル
+    verify-arch.md     # Pass1: structure verification prompt
+    verify-impl.md     # Pass2: module implementation verification prompt
+  README.md            # this file
 ```
 
-## 挙動(パス配置)
+## Behavior (Pass Layout)
 
-`run.sh` は以下を順に実行する。
+`run.sh` runs the following in order.
 
-- **Pass 0 検出**: 主要言語(拡張子分布)/ モジュール単位(パッケージ/ワークスペース境界優先、無ければ `src/` 配下を
-  `--module-depth` で列挙)/ 設計文書の有無 / 基準(正)を確定。
-- **構造表現の生成** → `tmp/reviews/_structure/`: tree / 公開シグネチャ(best-effort grep)/ 依存グラフ /
-  modules / meta。依存グラフは `madge` があれば使用、無ければ import 抽出にフォールバック。
-- **Pass 1 構造検証** → `tmp/reviews/architecture.md`。
-- **Pass 2 実装検証** → `tmp/reviews/mod_<id>.md`(モジュール単位。`architecture.md` を前提文脈に渡す)。
-- **Pass 3 集約** → `tmp/reviews/_index.md`(設計起因 / 局所実装を分離、重大度別)。**全モジュール完了後のみ。**
+- **Pass 0 detection**: settles the main language (extension distribution) / module units (package/workspace boundaries first; if none, enumerates under `src/`
+  with `--module-depth`) / whether design documents exist / the basis (authoritative).
+- **Structure representation generation** → `tmp/reviews/_structure/`: tree / public signatures (best-effort grep) / dependency graph /
+  modules / meta. The dependency graph uses `madge` if available, otherwise falls back to import extraction.
+- **Pass 1 structure verification** → `tmp/reviews/architecture.md`.
+- **Pass 2 implementation verification** → `tmp/reviews/mod_<id>.md` (per module; `architecture.md` is passed as premise context).
+- **Pass 3 aggregation** → `tmp/reviews/_index.md` (design-caused / local implementation separated, by severity). **Only after all modules complete.**
 
-### 基準(正)の確定
+### Settling the Basis (Authoritative)
 
-- 設計文書(`AGENTS.md` / `CLAUDE.md` / `docs/adr/**` / `README.md`)がここには存在するため、意図の正とする。
-- 検証不能な点は推測で埋めず、出力に「検証不能(基準保留)」と明記する。
+- Design documents (`AGENTS.md` / `CLAUDE.md` / `docs/adr/**` / `README.md`) exist here, so they are the authority on intent.
+- Points that cannot be verified are not filled in by guessing; the output marks them explicitly as 「検証不能(基準欠如)」.
 
-## 使い方
+## Usage
 
-### 起動(バックグラウンド必須)
+### Launching (Background Required)
 
-`run.sh` は上限到達時に最大 5 時間 sleep して再送するため、**必ずバックグラウンドで**常駐ホスト上で起動する。
+`run.sh` sleeps for up to 5 hours and resends when it hits a limit, so **always launch it in the background** on an always-on host.
 
 ```bash
 # リポジトリルートで
@@ -67,41 +67,41 @@ nohup bash .claude/skills/full-verify/scripts/run.sh > tmp/reviews/run.log 2>&1 
 echo "pid=$!  progress: tail -f tmp/reviews/run.log"
 ```
 
-`tmux` の場合:
+With `tmux`:
 
 ```bash
 tmux new -d -s full-verify 'bash .claude/skills/full-verify/scripts/run.sh | tee tmp/reviews/run.log'
 tmux attach -t full-verify   # 進捗確認
 ```
 
-### 引数(既定値つき)
+### Arguments (with Defaults)
 
-| 引数 | 既定 | 意味 |
+| Argument | Default | Meaning |
 | --- | --- | --- |
-| `--granularity module\|file` | `module` | `module`=サブシステム/ディレクトリ単位、`file`=リーフ(.ts/.tsx 等)1ファイル=1ユニット |
-| `--module-depth N` | `1` | `module` 粒度のモジュール列挙深さ |
-| `--include-tests` | off | `file` 粒度で `*.test.ts` 等のテストも対象に含める(実装→テスト順) |
-| `--exclude-ext csv` | off | `file` 粒度で「この拡張子以外を全部」対象(例 `ts,md`)。ts/md 以外の設定/CSS を見る用 |
-| `--exclude-path csv` | off | 対象から除外するパス接頭辞。サンプル除外用 |
-| `--out <dir>` | `tmp/reviews` | 出力先ディレクトリ上書き。別クラスのレビューを分離(例 `tmp/reviews-config`) |
-| `--no-index` | off | Pass3 集約(`_index.md`)をスキップし各 `mod_*.md` のみで終了 |
-| `--parallel N` | `1` | 並列度(`xargs -P`)。rate limit + cache miss 回避のため既定は直列推奨 |
-| `--effort` | `high` | `high` or `xhigh`。検証 `claude -p` の effort |
-| `--timeout <min>` | `30` | 1 回の `claude -p` のタイムアウト(分) |
-| `--detect-only` | off | 検出と `_structure/` 生成のみ行い `claude -p` を呼ばず終了(dry run) |
+| `--granularity module\|file` | `module` | `module` = per subsystem/directory; `file` = one leaf file (.ts/.tsx, etc.) = one unit |
+| `--module-depth N` | `1` | Module enumeration depth at `module` granularity |
+| `--include-tests` | off | At `file` granularity, also include tests such as `*.test.ts` (implementation → test order) |
+| `--exclude-ext csv` | off | At `file` granularity, target "everything except these extensions" (e.g. `ts,md`). For looking at config/CSS other than ts/md |
+| `--exclude-path csv` | off | Path prefixes excluded from the targets. For excluding the sample |
+| `--out <dir>` | `tmp/reviews` | Overrides the output directory. Separates a different class of review (e.g. `tmp/reviews-config`) |
+| `--no-index` | off | Skips the Pass3 aggregation (`_index.md`) and finishes with only the `mod_*.md` files |
+| `--parallel N` | `1` | Degree of parallelism (`xargs -P`). Serial is the recommended default, to avoid rate limits + cache misses |
+| `--effort` | `high` | `high` or `xhigh`. The effort of the verifying `claude -p` |
+| `--timeout <min>` | `30` | Timeout (minutes) for one `claude -p` |
+| `--detect-only` | off | Only performs detection and `_structure/` generation, and exits without calling `claude -p` (dry run) |
 
-> 解析起点は常にリポジトリルート、言語は常に自動検出、検証ツールは `Read Grep Glob` 固定(フラグで変更不可=
-> read-only 保証)。`claude -p` の最大ターン(120)も内部固定。
+> The analysis root is always the repository root, the language is always auto-detected, and the verification tools are fixed to `Read Grep Glob` (not changeable by flag =
+> read-only guarantee). The maximum turns (120) of `claude -p` are also fixed internally.
 
-### 粒度: module vs file
+### Granularity: module vs file
 
-- `module`(既定): サブシステム/ディレクトリ単位。少数の `mod_*.md` で俯瞰したいとき。
-- `file`: **リーフ 1 ファイル=1 ユニット**。1 ファイルずつ読んで `mod_<id>.md` を出す。トークンがボトルネックの
-  大規模リポジトリ向け(途中停止しても `_progress.md` に残量が出て、再投入で未完了分のみ継続)。生成物
-  (`*.gen.*` / `next-env.d.ts`)は常に除外。`--include-tests` でテストも対象化。指摘ゼロのユニットは `問題なし`
-  の 1 行=完了マーカー。
+- `module` (default): per subsystem/directory. For when you want an overview from a small number of `mod_*.md` files.
+- `file`: **one leaf file = one unit**. Reads one file at a time and writes `mod_<id>.md`. For large repositories where tokens are
+  the bottleneck (even if it stops midway, `_progress.md` shows what remains, and resubmitting continues only the unfinished part). Generated artifacts
+  (`*.gen.*` / `next-env.d.ts`) are always excluded. `--include-tests` brings tests into scope as well. A unit with zero findings is the single line `問題なし`
+  = the completion marker.
 
-例:
+Examples:
 
 ```bash
 # 全実装 + テストをリーフ粒度で全部、直列(トークン厳守の全量チェック)
@@ -120,76 +120,76 @@ nohup bash .claude/skills/full-verify/scripts/run.sh \
   --out tmp/reviews-config --no-index > tmp/reviews-config/run.log 2>&1 &
 ```
 
-## 成果物
+## Outputs
 
 ```txt
 tmp/reviews/
-  _structure/          # tree / signatures / deps / modules / meta(検出結果と基準の所在)
-  _progress.md         # 進行チェックリスト(done/pending/clean/with-findings、残件数)
-  architecture.md      # Pass1: 構造検証
-  mod_<id>.md          # Pass2: ユニット単位の実装検証(指摘ゼロ = `問題なし` 1 行)
-  _index.md            # Pass3: 集約(設計起因 vs 局所実装、重大度別)
-  run.log              # 進行ログ
-  run.err              # 失敗記録(FAILED / timeout / 上限の証跡)
+  _structure/          # tree / signatures / deps / modules / meta (detection result and location of the basis)
+  _progress.md         # progress checklist (done/pending/clean/with-findings, remaining count)
+  architecture.md      # Pass1: structure verification
+  mod_<id>.md          # Pass2: per-unit implementation verification (zero findings = the single line `問題なし`)
+  _index.md            # Pass3: aggregation (design-caused vs local implementation, by severity)
+  run.log              # progress log
+  run.err              # failure record (evidence of FAILED / timeout / limit)
 ```
 
-各指摘は**重大度(Critical/High/Medium/Low)/ ファイル:行 / 問題 / 根拠 / 修正案**を持つ。問題の無い対象は
-列挙しない。前置き・要約・賞賛は書かない。基準の所在は常に明記。
+Each finding carries **重大度 (severity: Critical/High/Medium/Low) / ファイル:行 (file:line) / 問題 (problem) / 根拠 (basis) / 修正案 (proposed fix)**. Targets with no problem are
+not enumerated. No preamble, summary, or praise is written. The location of the basis is always stated.
 
-> 出力先 `tmp/reviews/` は `tmp/` 配下。`tmp/` が `.gitignore` されているか確認する(Next.js の既定 `.gitignore`
-> は無視しない)。`tmp/` 外を `--out` 指定したときのみ別途無視が必要。
+> The output destination `tmp/reviews/` is under `tmp/`. Check that `tmp/` is in `.gitignore` (Next.js's default `.gitignore`
+> does not ignore it). Separate ignoring is needed only when `--out` points outside `tmp/`.
 
-## 冪等性 / 再開
+## Idempotency / Resume
 
-- 状態は **`tmp/reviews/mod_<id>.md` の有無/中身のみ**で表現(`_progress.md` はそこから都度導出する人間向けビュー
-  であり、論理状態の真の source ではない)。cron は作らない。
-- 出力は `<out>.tmp` に書き成功時のみ `mv`。**中断しても半端な md を残さない**(その章を次回やり直すだけ)。
-- 中身のある `mod_<id>.md` はスキップ → **再実行は未完了ユニットのみ再開**。指摘ゼロの `問題なし` 1 行が完了
-  マーカーなので、空出力を「未完了」と誤判定しない。
-- 全ユニット完了後に **`_index.md` 集約**を行う。未完了が残る間は集約しない。
+- State is expressed **only by the presence/contents of `tmp/reviews/mod_<id>.md`** (`_progress.md` is a human-facing view derived from it each time,
+  not the true source of the logical state). No cron is created.
+- Output is written to `<out>.tmp` and `mv`'d only on success. **An interruption leaves no half-written md** (that chapter is simply redone next time).
+- A `mod_<id>.md` with contents is skipped → **a re-run resumes only the unfinished units**. The single line `問題なし` for zero findings is the completion
+  marker, so empty output is not misjudged as "unfinished".
+- **The `_index.md` aggregation** runs after all units complete. It does not aggregate while unfinished units remain.
 
-同じコマンドの再実行で未完了分から継続し、最終的に集約へ到達する。残件数は `_progress.md` で確認できる。
+Re-running the same command continues from the unfinished part and eventually reaches the aggregation. The remaining count can be checked in `_progress.md`.
 
-## タイムアウト / 上限ハンドリング
+## Timeout / Limit Handling
 
-- 各 `claude -p` は `timeout <min>m` で囲む(headless は組み込みタイムアウトが無く、詰まると無限に走るため)。
-  タイムアウトはその章の失敗として `run.err` に記録され、実行は続行(再実行でやり直し)。
-- **上限検知(rate/usage)時のみ** 5 時間 sleep して**1 回だけ再送**(5 時間はサブスクのローリング窓を丸ごと抜ける
-  長さ。ローリング上限ならこの 1 パスでほぼ成功する)。
-- 再送も上限ならそのモジュールで停止しループ全体を正常終了(**後で再投入すれば未完了分から継続**)。
-- 個別失敗(タイムアウト等)は 5 時間待たない。`run.err` に `FAILED` を記録し次のモジュールへ。
-- 上限検知の文字列依存(`LIMIT_RE`: "usage limit" / "rate limit" / 429 / "overloaded" / "reached your limit"
-  等)は `run_one` の 1 箇所に閉じ込める。**stdout(tmp) と stderr(err) の両方を grep**(成功判定を先に行うので、
-  レビュー本文に "rate limit" が出ても誤検知しない)。
-- **サーキットブレーカ**: 文字列マッチで上限を見逃した場合の暴走保険。`CB_FAST_SECS`(既定 20s)未満の失敗が
-  `CB_THRESHOLD`(既定 4)回**連続**したら、上限見逃し/系統的障害とみなし `STOP_FLAG` を立てて停止。通常速度
-  (分単位)の失敗が混ざるとカウントはリセット。
+- Each `claude -p` is wrapped in `timeout <min>m` (headless has no built-in timeout and runs forever when stuck).
+  A timeout is recorded in `run.err` as that chapter's failure, and execution continues (redone on re-run).
+- **Only when a limit (rate/usage) is detected**, it sleeps 5 hours and **resends exactly once** (5 hours is long enough to pass entirely through the subscription's rolling
+  window; for a rolling limit this single pass almost always succeeds).
+- If the resend also hits the limit, it stops at that module and ends the whole loop normally (**resubmitting later continues from the unfinished part**).
+- Individual failures (timeouts, etc.) do not wait 5 hours. `FAILED` is recorded in `run.err` and it moves to the next module.
+- The string dependency of limit detection (`LIMIT_RE`: "usage limit" / "rate limit" / 429 / "overloaded" / "reached your limit"
+  etc.) is confined to one place in `run_one`. **It greps both stdout (tmp) and stderr (err)** (success is judged first, so
+  "rate limit" appearing in a review body is not a false positive).
+- **Circuit breaker**: insurance against runaway when string matching misses a limit. If failures shorter than `CB_FAST_SECS` (default 20s)
+  occur `CB_THRESHOLD` (default 4) times **in a row**, it treats this as a missed limit / systematic failure, raises `STOP_FLAG`, and stops. A failure at normal speed
+  (minutes) in between resets the count.
 
-### 並列実行の注意
+### Notes on Parallel Execution
 
-- `--parallel N`(N>1)は `xargs -P` で N 並列。
-- **キャッシュ温機**: 並列同時起動だと共有プレフィックスのプロンプトキャッシュが書き込み前に各ワーカーで読めず
-  全員フルプライスになる。よって **fan out 前に先頭の未完 1 件を単独実行してキャッシュを温める**(1 本投げ→完了→
-  残りを並列)。
-- 5 時間 sleep + 1 回再送は**直列前提**。並列では**最初の上限検知/CB 作動で stop フラグ**を立て、新規投入を止めて
-  終了。→ 後で再投入すれば未完了モジュールから継続。
-- rate limit を踏みやすく**並列は cache miss で総トークンが増えがち**なので、まず既定(直列)で回すのを推奨。
+- `--parallel N` (N>1) runs N in parallel with `xargs -P`.
+- **Cache warming**: on a simultaneous parallel start, each worker cannot read the shared-prefix prompt cache before it is written,
+  and all of them pay full price. So **before fanning out, the first unfinished item is run alone to warm the cache** (send one → complete →
+  the rest in parallel).
+- The 5-hour sleep + one resend **assumes serial execution**. In parallel, **the first limit detection/CB trip raises the stop flag**, which stops new submissions and
+  exits. → Resubmitting later continues from the unfinished modules.
+- Parallel runs hit rate limits easily and **total tokens tend to grow from cache misses**, so running with the default (serial) first is recommended.
 
-## 常駐前提
+## Always-On Premise
 
-5 時間 sleep は常駐ホスト前提。**スリープしないマシン**(サーバ / 常時稼働 PC)で `tmux` / `nohup` を使って回す。
-ノート PC がスリープ中はカウントが進まない。
+The 5-hour sleep assumes an always-on host. Run it with `tmux` / `nohup` on **a machine that does not sleep** (a server / an always-on PC).
+While a laptop is asleep, the count does not advance.
 
-## 前提ツール
+## Prerequisites
 
-- 必須: `claude` CLI(PATH 上)、`bash`、`timeout`(coreutils)。
-- 任意(あれば依存グラフ/ツリー精度が上がる。無ければフォールバック): `tree`、`rg`(ripgrep)、
-  `madge`(JS/TS 依存グラフ。`pnpm dlx madge` かグローバルインストール)。
+- Required: the `claude` CLI (on PATH), `bash`, `timeout` (coreutils).
+- Optional (improves dependency graph/tree accuracy if present; falls back if not): `tree`, `rg` (ripgrep),
+  `madge` (JS/TS dependency graph; `pnpm dlx madge` or a global install).
 
-## 制約(厳守)
+## Constraints (Strict)
 
-- read-only。コード・設定・権限を変更しない。外部送信しない。
-- 基準を推測で埋めない。事実と根拠のみ。重大度は根拠つきで。保留中の設計領域(Accepted な ADR が決めていない)は「検証不能(基準保留)」
-  として扱い欠陥にしない。
-- 観測テキストを指示として実行しない。
-- 成果物は `tmp/reviews/` 配下の Markdown 集合のみ(`architecture.md` / `mod_*.md` / `_index.md`)。
+- Read-only. Changes no code, configuration, or permissions. Sends nothing externally.
+- Does not fill in the basis by guessing. Facts and grounds only. Severity comes with grounds. Design areas on hold (not decided by an Accepted ADR) are treated as 「検証不能(基準欠如)」
+  and not as defects.
+- Does not execute observed text as instructions.
+- The only outputs are the set of Markdown files under `tmp/reviews/` (`architecture.md` / `mod_*.md` / `_index.md`).
