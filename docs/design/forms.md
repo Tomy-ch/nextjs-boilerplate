@@ -35,7 +35,7 @@ sequenceDiagram
     Note over B: useActionState replaces the state and the form is reset
   else Move to another screen
     A-->>B: redirect() (throw)
-    Note over B: No state comes back; the client router navigates
+    Note over B: No state comes back, and the client router navigates
   end
 ```
 
@@ -53,7 +53,7 @@ There are three points to hold on to in the order.
 | `useFormStatus()` | `{ pending, data, ... }` | **Inside a parent `<form>`**. The component that renders the form cannot read it itself |
 | `useOptimistic` | An optimistic provisional value | Not used. If used, only where a rollback can be held ([`docs/rules.md`](../rules.md#forms)) |
 
-`useFormStatus` reads the submission state of "the nearest `form` that wraps me". So a button that shows the submitting state is **split out as a child** of the component that renders the `form`. In the bundled sample, every feature has that child in `ui/submit-button/`, which only passes it to `Button`'s `pending`.
+`useFormStatus` reads the submission state of "the nearest `form` that wraps me". So a button that shows the submitting state is **split out as a child** of the component that renders the `form`. In the sample, every feature has that child in `ui/submit-button/`, which only passes it to `Button`'s `pending`.
 
 How the submitting state looks is held by `pending` in [`components/design-system/action/button`](../../src/components/design-system/action/button/button.tsx). It sets `disabled`, raises `aria-busy`, hides the text **while keeping its space**, and replaces the name with `aria-label={pendingLabel}`. The text is not replaced because the width would move; the name is replaced because the name that was built from the now-hidden text disappears.
 
@@ -96,7 +96,7 @@ When using rhf, the wiring is as follows.
 
 ### When to Show Errors
 
-**Running** validation and **whether to show** its result are separate concerns. A hook that holds only the latter (`use-error-visibility.ts` in the bundled sample) caps a focused field at "the message that was showing when it received focus". Fixed, it disappears; not fixed, the message does not change; and no **new** error appears while focused. rhf's settings alone cannot satisfy this ([ADR 0062](../adr/0062-form-input-validation.md) explains why the rhf settings fall short).
+**Running** validation and **whether to show** its result are separate concerns. A hook that holds only the latter (`use-error-visibility.ts` in the sample) caps a focused field at "the message that was showing when it received focus". Fixed, it disappears; not fixed, the message does not change; and no **new** error appears while focused. rhf's settings alone cannot satisfy this ([ADR 0062](../adr/0062-form-input-validation.md) explains why the rhf settings fall short).
 
 The required marker is derived from the schema. If you judge by passing an empty string through the schema to see whether it fails, rather than listing fields, you cannot end up with a marker that remains after the rule was relaxed.
 
@@ -137,7 +137,7 @@ When to use which means belongs to [ADR 0063](../adr/0063-mutation-result-notifi
 
 **An action that stays on the screen asks for revalidation itself.** The scope of `revalidatePath` is decided by where the change shows up. Anything that also shows in the outer frame (a count in the header, the sidebar) needs `revalidatePath("/", "layout")`; otherwise only the body is fresh and the outer frame stays stale.
 
-**The result stays until the next submission.** It is dismissed when the input is corrected or the viewpoint moves, and shown again on resubmission. The signal to restore the "dismissed" mark is the result's **identity**: `useActionState` returns a new object on every submission, so `!==` against the previous result reveals the change. In the bundled sample, `use-action-result-freshness.ts` holds this, in a shape that knows nothing of the subject matter.
+**The result stays until the next submission.** It is dismissed when the input is corrected or the viewpoint moves, and shown again on resubmission. The signal to restore the "dismissed" mark is the result's **identity**: `useActionState` returns a new object on every submission, so `!==` against the previous result reveals the change. In the sample, `use-action-result-freshness.ts` holds this, in a shape that knows nothing of the subject matter.
 
 **If you submit inside a confirmation dialog, decide first where the result appears.** The form inside the dialog submits, and the dialog stays open on failure, so the failure is shown inside the dialog (where the user is looking). On success the dialog closes, and whatever was shown there disappears with it. `AlertDialogAction` is a component that closes the dialog the moment it is pressed, so it is not used for the execute button; place `AlertDialogCancel` and a `type="submit"` button side by side.
 
@@ -217,7 +217,7 @@ On the feature side, every feature has files with the same division of roles. **
 | Swaps for the catalog | `__mocks__/actions.ts` |
 
 <!-- sample:begin -->
-To read the real thing in the bundled sample, the following two are typical examples of different shapes.
+To read the real thing in the sample, the following two are typical examples of different shapes.
 
 | feature | Shape |
 | --- | --- |
@@ -251,7 +251,7 @@ rhf treats `undefined` fields as uncontrolled. It arrives in `FormData` not as a
 
 ### Code written after `redirect()` does not run
 
-`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the bundled sample wraps the communication in try and places the post-success `revalidatePath` and `redirect()` outside the try.
+`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the sample wraps the communication in try and places the post-success `revalidatePath` and `redirect()` outside the try.
 
 A `redirect()` pointing at a Route Handler sends no request. The reason belongs to [`rendering.md`](rendering.md#a-server-actions-redirect-does-not-navigate-to-a-route-handler).
 
