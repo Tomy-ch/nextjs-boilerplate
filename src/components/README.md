@@ -92,7 +92,7 @@ git diff --check
 
 TSDoc が満たすべき条件は一つである。**呼び出し側が内部の振る舞いを知らないまま、props を与えるだけで実装できること。** 実装の手順や内部状態の遷移は書かず、公開 API から見える契約だけを書く。加えて **Storybook の配置先を併記し、どのような見た目かが一目で分かるようにする。**
 
-どのタグを必須にし、どれを該当するときだけ書くか —— `@param` / `@returns` / `@defaultValue` / `@example` と、props の意味を `<Component>Props` のメンバーへ書くこと —— は [docs/rules.md](../../docs/rules.md)「コメントと文書」が持つ。この層で足すのは次だけである。
+どのタグを必須にし、どれを該当するときだけ書くか —— `@param` / `@returns` / `@defaultValue` / `@example` と、props の意味を `<Component>Props` のメンバーへ書くこと —— は [docs/rules.md#comments](../../docs/rules.md#comments)が持つ。この層で足すのは次だけである。
 
 | 要素 | 内容 |
 | --- | --- |
@@ -221,7 +221,7 @@ grep -ohE 'var\(--[a-z0-9-]+\)' src/components/<層>/**/<component>/*.tsx \
 
 ### 支援技術への配線で biome を抑止するとき
 
-biome の a11y ルールは要素の形だけを見るため、意味論が正しくても指摘が出る場合がある。**実装を後退させず、指摘の行に理由を添えて抑止する**（[docs/rules.md](../../docs/rules.md)「UI 部品と操作」）。繰り返し現れる 2 つ。
+biome の a11y ルールは要素の形だけを見るため、意味論が正しくても指摘が出る場合がある。**実装を後退させず、指摘の行に理由を添えて抑止する**（[docs/rules.md#ui-parts](../../docs/rules.md#ui-parts)）。繰り返し現れる 2 つ。
 
 - **局所スクロールする領域は非対話でも `tabIndex={0}` を持つ**（`noNoninteractiveTabindex`）。外すと keyboard だけではスクロールできず、WCAG 2.1.1 に反する
 - **一つの control とその装飾の外枠、carousel の一枚のような「複数 control の集合ではないまとまり」は `role="group"` で表す**（`useSemanticElements`）。`fieldset` は `legend` を伴う複数 control の集合を表すため、そこに使うと意味論が嘘になる
@@ -355,11 +355,11 @@ components/
 | `forbidden: business-state` — 持てる状態は表示に必要な UI 状態（開閉・選択中の項目・通知の queue など）だけで、取得した業務データの写しや業務の進行状態を持たない | 取得したデータを自分の状態に写していれば violation。状態が UI のものか業務のものかが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」/ この README「受け入れないもの」 |
 | 層（`design-system` / `patterns` / `shell` / `app-starter`）は「誰が書き換えるか」で決まり、依存は `app-starter・shell → patterns → design-system` の一方向に流れる | 逆向きの import は violation。契約を知っている部品が `app-starter` の外に居るなど、判定の順（契約 → mount 位置 → 役割の閉じ方）と置き場が合わなければ suggestion | この README「層」 |
 | 置いてある部品は複数の feature から使われる。1 つの feature 専用の UI は feature の内側に置く | 使う feature が 1 つしか無ければ suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」1・2 / この README「運用」 |
-| SSR first —— `"use client"`・Radix・Portal を使うのは、native 要素では満たせない操作要件がある client island に限る | suggestion | この README「運用」/ [docs/rules.md](../../docs/rules.md)「UI 部品と操作」 |
+| SSR first —— `"use client"`・Radix・Portal を使うのは、native 要素では満たせない操作要件がある client island に限る | suggestion | この README「運用」/ [docs/rules.md#ui-parts](../../docs/rules.md#ui-parts) |
 | 色と余白は semantic token を通す。class の結合は `cn.ts` を通し、`clsx` / `tailwind-merge` を直に使わない | primitive token の直接利用と、`cn.ts` を通さない結合は violation | この README「運用」 |
 | focus 表示は `outline`、装飾の輪は `ring` で書き分け、境界を示す線と本文の色は「focus 表示と装飾的な輪の使い分け」の各節に従う | 節が名指しで禁じている形（focus に `ring` を使う、`focus-visible:outline-2` と `outline-none` の併記、`primary` / `emphasis` を本文の色に使う）は violation | この README「focus 表示と装飾的な輪の使い分け」。文字の太さは機械: `project-rules/no-raw-font-weight` |
 | 前回値との差分で state を戻す調整は描画中に行い、解放が要る資源の生成は effect に置く | 調整を effect に置いていれば violation。`set-state-in-effect` の抑止に理由が無ければ violation | この README「実装で繰り返す形」。機械: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect` |
-| Portal で form の外へ出る面の中の control に送信を頼らず、値は hidden input で運ぶ。局所スクロールする領域は focus 可能である | Portal の内側の control だけに `name` を置いていれば violation。`overflow-*` を持つ領域に `tabIndex` が無ければ violation | この README「実装で繰り返す形」/ [docs/rules.md](../../docs/rules.md)「UI 部品と操作」。a11y の残りは機械: `vitest-axe`（[0091](../../docs/adr/0091-test-verification-methods.md)） |
+| Portal で form の外へ出る面の中の control に送信を頼らず、値は hidden input で運ぶ。局所スクロールする領域は focus 可能である | Portal の内側の control だけに `name` を置いていれば violation。`overflow-*` を持つ領域に `tabIndex` が無ければ violation | この README「実装で繰り返す形」/ [docs/rules.md#ui-parts](../../docs/rules.md#ui-parts)。a11y の残りは機械: `vitest-axe`（[0091](../../docs/adr/0091-test-verification-methods.md)） |
 
 ## 関連する ADR
 

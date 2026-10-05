@@ -39,7 +39,7 @@ test-requirement: [unit, integration]
 ## 関連する ADR
 
 この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md](../../../../docs/rules.md)「コメントと文書」）。層全体の一覧は
+（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
 [親の README](../../README.md) が持ちます。
 
 - [0074](../../../../docs/adr/0074-runtime-communication-seam.md) — 購読 seam の選択と却下、責務分界。ticket を文言・ログ・span へ載せない制約

@@ -11,7 +11,7 @@ const purchaseCodeSchema = singleValue(PurchaseCode);
  *
  * @remarks
  * 契約が受け付ける形まで確かめます。手で書き換えられる値であり、確かめずに取得へ渡すと、契約が
- * 受け付けない文字列がそのまま外へ出ます（`docs/rules.md`「URL と条件」の「`searchParams` は
+ * 受け付けない文字列がそのまま外へ出ます（`docs/rules.md#url`の「`searchParams` は
  * zod で検証する」—— 動的セグメントの `params` も同じ）。**照らす形は adapters が公開するものを
  * 使い、ここで書き直しません。**
  *

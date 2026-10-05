@@ -6,7 +6,7 @@ import { CALENDAR_MONTH_PATTERN } from "@/model/time-window";
 import { ALL_PERIOD, MAX_RECENT_DAYS, PERIOD_KEY, type PeriodSelection } from "./period";
 
 /**
- * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md`「URL と条件」の
+ * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md#url`の
  * 「`searchParams` を読むスキーマは URL へ組む側と別 module へ置く」）。組むのは期間の入力欄や
  * 続きの読み込みといった client の部品です。
  */
@@ -73,7 +73,7 @@ const periodSchema = z
  * 素の `searchParams` から、効いている期間の条件を読む。
  *
  * @remarks
- * 判定は {@link periodSchema} が持ちます（`docs/rules.md`「URL と条件」の「`searchParams` は zod で
+ * 判定は {@link periodSchema} が持ちます（`docs/rules.md#url`の「`searchParams` は zod で
  * 検証する」）。区分ごとに必須の値が違うため、区分ごとの姿を並べて照らします。手で条件を並べると、
  * 区分と値の組み合わせのうちどれを見ていないのかが読み取れません。
  *

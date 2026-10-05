@@ -79,7 +79,7 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
   import を吐く。
 - **外から来る値は引数ではなく環境変数で受ける**（ブランチ名・git ref・書き出し先）。make の
   recipe 行へ展開させないためで、理由は [`.makefiles/README.md`](../.makefiles/README.md) と
-  [`docs/rules.md`](../docs/rules.md)「生成物と補助スクリプト」が持つ。
+  [`docs/rules.md#generated`](../docs/rules.md#generated)が持つ。
 - **`--name value` の並びは [`lib/cli-options.ts`](lib/cli-options.ts) で読む。** 読み方は遣り取りを
   伴わないので判定の側に置き、崩れた並びは throw する。案内の文面と終了コードは道具ごとに
   `usage` が違うので、入口が持つ。初期化ツール群の `--dry-run` / `--help` は
@@ -128,7 +128,7 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
 - **外から来る JSON は、キーの名前を実物の型から導き、値は信用しない。** `{ [K in keyof T]?: unknown }`
   の形で受ける（[`lib/playwright-report.ts`](lib/playwright-report.ts)）。キーを手で写すと実在しない
   キーを宣言でき、型に守られているつもりのまま常に空を読む。形が崩れていれば throw する —— 0 件へ
-  縮退させると「失敗なし」と読める（[`docs/rules.md`](../docs/rules.md)「生成物と補助スクリプト」）。
+  縮退させると「失敗なし」と読める（[`docs/rules.md#generated`](../docs/rules.md#generated)）。
 - **パーサに任せる値と、生の行から取る位置・コメントを併用するときは、両方で数えた件数を突き合わ
   せる。** コメントは構文木に残らないので、免除や理由をコメントに持つ宣言はパーサだけでは読めない。
   生の行の読み方が壊れたまま 0 件へ縮退すると、免除の無い宣言として通る

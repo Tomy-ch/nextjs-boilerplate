@@ -120,7 +120,7 @@ type PublicRequestSpec<T> = BaseRequestSpec<T> & {
  *
  * @remarks
  * **キャッシュの指定を型として持ちません**（[adapters の README](../../README.md)）。それでも
- * キャッシュしたい値の扱いは `docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから
+ * キャッシュしたい値の扱いは `docs/rules.md#data-classification`の「サーバへ保存されるキャッシュから
  * user-scoped な取得の口を引かない」が持ちます。
  */
 type UserScopedRequestSpec<T> = BaseRequestSpec<T> & {

@@ -8,7 +8,7 @@ import { baseCookieOptions } from "../auth/session-cookie";
  * ゲストのカートを指す識別子を載せる cookie の名前。
  *
  * @remarks
- * 用途を接頭辞に含めます（`docs/rules.md`「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に
+ * 用途を接頭辞に含めます（`docs/rules.md#data-classification`の「アプリ cookie は用途を接頭辞に
  * 含め、属性を用途ごとに明示する」）。認証の cookie と別に置くのは、未認証でも発行され、
  * 寿命も主体も session と一致しないためです。
  */

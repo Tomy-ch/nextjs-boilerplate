@@ -1,6 +1,6 @@
 # デザインシステム
 
-design token から feature の画面部品まで、見た目を決めるものが**どう積み上がり、どの層が何を決めて何を決めないか**を通しで説明する。判断そのものは [ADR 0050](../adr/0050-styling-strategy.md)〜[0055](../adr/0055-design-system-export.md) が持ち、日々の禁止は [`docs/rules.md`](../rules.md) の「UI 部品と操作」「レイアウトと帯」が持つ。ここが持つのは、それらを読むために要る前提と、**実装を開いて初めて判る経路と落とし穴**である。
+design token から feature の画面部品まで、見た目を決めるものが**どう積み上がり、どの層が何を決めて何を決めないか**を通しで説明する。判断そのものは [ADR 0050](../adr/0050-styling-strategy.md)〜[0055](../adr/0055-design-system-export.md) が持ち、日々の禁止は [`docs/rules.md#ui-parts`](../rules.md#ui-parts)「レイアウトと帯」が持つ。ここが持つのは、それらを読むために要る前提と、**実装を開いて初めて判る経路と落とし穴**である。
 
 `src/components/` の受け入れ範囲と目録は [`src/components/README.md`](../../src/components/README.md) が正であり、ここはそれを写さない。食い違う場合は ADR と層 README を優先する。
 
@@ -17,7 +17,7 @@ design token から feature の画面部品まで、見た目を決めるもの�
 
 上から下へ、**下の段は上の段を知らず、上の段は下の段を組み合わせるだけ**である。`components` が import してよい層は `model` と `errors` に限られ（`architecture.ts`）、逆に `features` は `components` を自由に引く。`cn()` を feature が使うのはこの向きに沿っている。
 
-**部品は自分がどの系統に置かれたかを知らない。** 系統の差は semantic token の引き直しだけで完結し（[0051](../adr/0051-styling-system.md)）、部品側の分岐も系統ごとの部品も存在しない。同じ理由で、部品は自分がどこに置かれるか（下端に固定か、脇に常設か）も知らない —— それは画面の判断で、[`docs/rules.md`](../rules.md)「UI 部品と操作」の末尾が禁じている。
+**部品は自分がどの系統に置かれたかを知らない。** 系統の差は semantic token の引き直しだけで完結し（[0051](../adr/0051-styling-system.md)）、部品側の分岐も系統ごとの部品も存在しない。同じ理由で、部品は自分がどこに置かれるか（下端に固定か、脇に常設か）も知らない —— それは画面の判断で、[`docs/rules.md#ui-parts`](../rules.md#ui-parts)の末尾が禁じている。
 
 ## token —— 値の出所と、届く経路
 
@@ -173,7 +173,7 @@ export { IconChevronRight as ChevronRightIcon, … } from "@tabler/icons-react";
 
 ## 重なり順の帯
 
-z-index は token 化されていない。Tailwind の段階値だけを使い（[`docs/rules.md`](../rules.md)「レイアウトと帯」）、**どの段階値がどの帯か**は [0051](../adr/0051-styling-system.md)「重なり順の帯」が持つ。ここでは、その帯が実装のどこに現れているかを対応させる。
+z-index は token 化されていない。Tailwind の段階値だけを使い（[`docs/rules.md#layout`](../rules.md#layout)）、**どの段階値がどの帯か**は [0051](../adr/0051-styling-system.md)「重なり順の帯」が持つ。ここでは、その帯が実装のどこに現れているかを対応させる。
 
 | 帯 | 値 | 実装での現れ方 |
 | --- | --- | --- |
@@ -244,7 +244,7 @@ story 単位の visual regression の機構（撮る・比べる・撮り直す�
 
 ### `"use client"` の有無は層で決まらない
 
-`design-system` の実装 85 ファイルのうち、`"use client"` を持つものと持たないものはほぼ半々である。層が Client かどうかを決めているのではなく、**部品ごとに native で足りるかどうか**が決めている。同じ概念に `<concept>-native` / `<concept>-client` の対があるのはそのためで、`select-native` は素の `select` を Server Component として描き、`select-client` は Radix の popup を client island で描く。**見た目が豊かに見える方を選ばない** —— 候補が静的で件数も固定なら native で、初期配置だけを理由に client へ寄せない（[`docs/rules.md`](../rules.md)「UI 部品と操作」）。
+`design-system` の実装 85 ファイルのうち、`"use client"` を持つものと持たないものはほぼ半々である。層が Client かどうかを決めているのではなく、**部品ごとに native で足りるかどうか**が決めている。同じ概念に `<concept>-native` / `<concept>-client` の対があるのはそのためで、`select-native` は素の `select` を Server Component として描き、`select-client` は Radix の popup を client island で描く。**見た目が豊かに見える方を選ばない** —— 候補が静的で件数も固定なら native で、初期配置だけを理由に client へ寄せない（[`docs/rules.md#ui-parts`](../rules.md#ui-parts)）。
 
 ### `data-surface` を本文の内側に置くと、overlay だけ既定の系統で描かれる
 

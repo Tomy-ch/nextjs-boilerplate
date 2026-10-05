@@ -74,7 +74,7 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
   「今日」「今月」を暦の上で解くのは画面の側です。
 
 **契約が定めた上限・enum・書式は、数や綴りを書き写さず生成物から再輸出します**
-（[0072](../../docs/adr/0072-api-type-generation.md)、[docs/rules.md](../../docs/rules.md)「URL と条件」）。
+（[0072](../../docs/adr/0072-api-type-generation.md)、[docs/rules.md#url](../../docs/rules.md#url)）。
 `export const <資源>_MAX: number = <生成された定数>` の形で、外へ渡すのはこの層です —— `gen/` を引けるのは
 ここまでだからです。綴りの表（並び順の名前など）は
 `as const satisfies Readonly<Record<string, Wire<資源>Query["sort"]>>` のように生成スキーマの型へ照らします。
@@ -103,7 +103,7 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
 
 ## URL の条件を契約に照らす
 
-倒すか落とすかの決め方は [docs/rules.md](../../docs/rules.md)「URL と条件」が持ちます。ここが持つのは、
+倒すか落とすかの決め方は [docs/rules.md#url](../../docs/rules.md#url)が持ちます。ここが持つのは、
 契約に照らして落とす口の形です。
 
 1. Route Handler が [`server/http/search-params.ts`](server/http/search-params.ts) の `toRawQuery()` で
@@ -178,7 +178,7 @@ serverless では要求ごとに別のインスタンスへ着地しえて再利
 user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
 代わりに、**公開の分類だけを作る接続口**（`getPublicClient()`）を引きます —— その口が作れるのは
 公開の client だけなので、キャッシュの下で分類を取り違えようがありません。検査が読むのは直接の import と
-その 1 段先までなので（[docs/rules.md](../../docs/rules.md)「データ分類と機微情報」）、user-scoped の接続口を
+その 1 段先までなので（[docs/rules.md#data-classification](../../docs/rules.md#data-classification)）、user-scoped の接続口を
 引く module も `use cache` の下からは引けません。同じ資源を主体を名乗らずに読む口が要るなら（一覧を末尾まで
 辿るサイトマップなど）、公開の接続口だけを引く別 module に置きます。
 
@@ -301,7 +301,7 @@ cookie がまだ無い session 確立の 1 往復だけは `bearerToken` とい�
   その場合も投げられた失敗を「機構が壊れている」のような別の意味へ読み替えません —— 判らないものは
   判らないままにします。
 - **client が読むだけの定数は、検証スキーマを持つ module と分けて置きます**
-  （[docs/rules.md](../../docs/rules.md)「URL と条件」）。`const` を 1 つ読む import が、zod のスキーマ一式を
+  （[docs/rules.md#url](../../docs/rules.md#url)）。`const` を 1 つ読む import が、zod のスキーマ一式を
   ブラウザの束へ載せます。
 
 ## ブラウザ発のテレメトリの中継
@@ -471,7 +471,7 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
 | 公開面が返す型は表示の型で、`gen/` の生成型を素通しにしない | 公開面の宣言が生成型を名指していれば violation。推論を経て生成型が出ていくなら suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / この README「運用」。機械は `gen/` の直接の import までを落とす |
 | `observability` を import するのは中継の受け側（`server/telemetry/`）だけ | violation | この README「ブラウザ発のテレメトリの中継」。機械は層の粒度でしか見ない |
 | client へ渡してはいけない値は取得の口で汚し、呼び出し側では汚さない。`react` の taint API は `server/taint/taint.ts` を通して呼ぶ | `taint.ts` の外で `react` の taint API を直に呼んでいれば violation。PII を含む取得の口が汚していなければ suggestion（何が PII かは 0112 が持つ） | この README「client へ渡してはいけないものを登録する」/ [0112](../../docs/adr/0112-data-classification-cache-boundary.md) |
-| 契約由来の上限・enum・書式は `gen/` から再輸出し、数や綴りを書き写さない | 生成物に同じ宣言がある数リテラルや文字列の表を別に宣言していれば violation。`satisfies` で生成型へ照らした表は通す | [0072](../../docs/adr/0072-api-type-generation.md) / [docs/rules.md](../../docs/rules.md)「URL と条件」/ この README「取得の口の形」 |
+| 契約由来の上限・enum・書式は `gen/` から再輸出し、数や綴りを書き写さない | 生成物に同じ宣言がある数リテラルや文字列の表を別に宣言していれば violation。`satisfies` で生成型へ照らした表は通す | [0072](../../docs/adr/0072-api-type-generation.md) / [docs/rules.md#url](../../docs/rules.md#url)/ この README「取得の口の形」 |
 | 自然キーを持たない作成の口は冪等キーを受け取り、`idempotent: true` は鍵と同時にだけ立てる | `idempotent: true` の要求に `Idempotency-Key` ヘッダが無ければ violation。鍵を受け取らない作成の口は suggestion（自然キーの有無は契約が持つ） | [0071](../../docs/adr/0071-bff-api-integration.md) 禁止事項 / この README「書き込みの口」 |
 
 ## 関連する ADR

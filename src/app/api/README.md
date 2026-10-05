@@ -60,7 +60,7 @@ feature の内側を落とされます（宣言は `architecture.ts` の `APP_EL
 ## 関連する ADR
 
 この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md](../../../docs/rules.md)「コメントと文書」）。層全体の一覧は
+（[docs/rules.md#comments](../../../docs/rules.md#comments)）。層全体の一覧は
 [親の README](../README.md) が持ちます。
 
 - [0025](../../../docs/adr/0025-app-layer-elements.md) — Route Handler が持てるもの（thin proxy と、その例外）

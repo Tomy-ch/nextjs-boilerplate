@@ -21,7 +21,7 @@ const CartHeaderDrawer = dynamic(() =>
 
 /**
  * 脇に常設できない幅。タブレットを含む
- * （`docs/rules.md`「レイアウトと帯」の「脇に常設する領域は `lg` 以上でだけ出す」）。
+ * （`docs/rules.md#layout`の「脇に常設する領域は `lg` 以上でだけ出す」）。
  */
 const NARROW = mediaBelow("lg");
 

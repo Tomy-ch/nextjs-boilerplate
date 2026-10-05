@@ -1586,7 +1586,7 @@ export default function NoteEditPage({ params }: { params: Promise<{ id: string 
 結果を inline・toast・redirect のどれで見せるかは [`design/forms.md`](../design/forms.md) が
 分岐を持ち、判断は [0061](../adr/0061-form-mutation-ux.md) /
 [0063](../adr/0063-mutation-result-notification.md)。確認 dialog を挟む基準は
-[`rules.md`](../rules.md)「フォームと送信」。
+[`rules.md#forms`](../rules.md#forms)。
 
 **確認:**
 

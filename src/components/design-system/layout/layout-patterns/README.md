@@ -28,7 +28,7 @@
 
 ## viewport breakpoint と container query の使い分け
 
-判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md#layout)「レイアウトと帯」が持ちます。
+判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md#layout)が持ちます。
 
 | 分岐の基準 | 使うところ |
 | --- | --- |
@@ -49,7 +49,7 @@ breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそ�
 </div>
 ```
 
-重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index は token を持たず Tailwind の段階値だけを使います（[`docs/rules.md`](../../../../../docs/rules.md#layout)「レイアウトと帯」）。段はこの実例に揃えます。
+重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index は token を持たず Tailwind の段階値だけを使います（[`docs/rules.md`](../../../../../docs/rules.md#layout)）。段はこの実例に揃えます。
 
 ## 責務境界
 

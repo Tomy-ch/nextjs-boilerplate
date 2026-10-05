@@ -9,7 +9,7 @@ import { isTest } from "./test-file";
  * UI を置いてよい層の外で DOM マークアップを書かせないルール。
  *
  * 置いてよい層は [`architecture.ts`](../architecture.ts) の `UI_KERNELS` が持ち、規約は
- * `docs/rules.md`「層境界と依存」にある。`eslint-plugin-boundaries` は import の向きしか見ない
+ * `docs/rules.md#layers`にある。`eslint-plugin-boundaries` は import の向きしか見ない
  * ため、層の中で完結するマークアップは境界検査を素通りする。
  *
  * **見るのは host 要素だけである。** 禁じられているのは「UI マークアップ」であって JSX ではない。

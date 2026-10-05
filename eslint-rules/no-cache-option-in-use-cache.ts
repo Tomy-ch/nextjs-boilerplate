@@ -6,7 +6,7 @@ import { spelledProperty } from "./property-key";
 /**
  * `use cache` の内側の取得に、個別のキャッシュ指定を置かせないルール。
  *
- * 規約そのものは `docs/rules.md`「描画とキャッシュ」が持つ。
+ * 規約そのものは `docs/rules.md#rendering`が持つ。
  *
  * **判定の単位はモジュールである。** 宣言が関数に付いていても、同じモジュールの取得は外側の寿命に
  * 従わせる設計なので、モジュール全体を対象にする（`no-user-scoped-in-cached-module` と同じ単位）。

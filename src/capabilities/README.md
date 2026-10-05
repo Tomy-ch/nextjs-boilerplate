@@ -24,7 +24,7 @@ connectivity、media query、storage、clipboard など、複数 feature が使�
 - 単一 feature 専用 hook は feature 内に置く
 - Provider を export して root layout に mount する形は [0022](../../docs/adr/0022-capabilities-kernel.md) /
   [0026](../../docs/adr/0026-layout-shell-mount.md) が定める。Provider の外で呼ばれた hook が throw するか
-  no-op になるかは hook の側が決める（[`docs/rules.md`](../../docs/rules.md)「層境界と依存」）
+  no-op になるかは hook の側が決める（[`docs/rules.md#layers`](../../docs/rules.md#layers)）
 
 ### 供給の形
 
@@ -80,7 +80,7 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 
 - **位置が動く出し分けは CSS で行い、この hook で行わない。** 使ってよいのは、DOM を残したままでは
   成立しないもの（focus trap を持つ面）と、現れても位置が動かないもの。規則は
-  [`docs/rules.md`](../../docs/rules.md)「レイアウトと帯」、hydration との関係は
+  [`docs/rules.md#layout`](../../docs/rules.md#layout)、hydration との関係は
   [`docs/design/rendering.md`](../../docs/design/rendering.md)「サーバでしか分からないこと・ブラウザでしか
   分からないことがある」が持つ
 - 幅の段を条件にするときは数値を書かず、[`model/breakpoint`](../model/breakpoint.ts) が design token

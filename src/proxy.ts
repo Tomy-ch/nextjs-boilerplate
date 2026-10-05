@@ -78,7 +78,7 @@ const PRIVATE_CACHE_CONTROL = "private, no-store";
  *
  * @remarks
  * ログインへは送りません（{@link proxy}）。403 の面を出さない理由は
- * `docs/rules.md`「認可と入口」。
+ * `docs/rules.md#authorization`。
  */
 const FALLBACK_PATH = "/";
 
@@ -96,7 +96,7 @@ const FALLBACK_PATH = "/";
  * （CDN / ロードバランサ）が前に立ちます。
  *
  * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
- * 近い所（`adapters/server` の `verifySession()`）が持ちます（`docs/rules.md`「認可と入口」）。
+ * 近い所（`adapters/server` の `verifySession()`）が持ちます（`docs/rules.md#authorization`）。
  * ここを唯一の検査にすると、Proxy を通らない経路がそのまま穴になります。
  *
  * prefetch を含む全リクエストで走るため、データ源を参照しません。cookie の復号だけに留めるのは
@@ -138,7 +138,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
   );
 
   // 許していない origin からの書き込みは、handler へ届く前に止める
-  // （`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」）。
+  // （`docs/rules.md#authorization`の「状態を変える要求の送信元を検証する」）。
   // 読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。
   if (verdict.kind === "untrusted" && isStateChanging(request.method)) {
     return new NextResponse(null, { status: 403 });
@@ -166,7 +166,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
  * **cookie を書き換えた応答は共有キャッシュへ載せません。** 資格情報を載せた要求への応答だけを
  * 外すと、**匿名で同意済みの訪問者へ計測 id を配る応答**が漏れます。固めて配れる画面は
  * `s-maxage` を伴うため、その応答を保存した CDN は以後の訪問者全員へ同じ id を配ります
- * （`docs/rules.md`「データ分類と機微情報」の「主体に紐づく応答の `Cache-Control` を個別に
+ * （`docs/rules.md#data-classification`の「主体に紐づく応答の `Cache-Control` を個別に
  * 書かない」）。
  *
  * @param request - 受信した要求

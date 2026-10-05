@@ -68,7 +68,7 @@ test-requirement: [unit, integration]
 ## 関連する ADR
 
 この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md](../../../../docs/rules.md)「コメントと文書」）。層全体の一覧は
+（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
 [親の README](../../README.md) が持ちます。
 
 - [0080](../../../../docs/adr/0080-error-handling.md) — 失敗の分類と status の対応表、応答に出す文言

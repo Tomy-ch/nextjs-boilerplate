@@ -5,7 +5,7 @@ import { withPartSpan } from "@/observability/render-span";
  * 実物と同じ 2 段組みの枠を出す、商品詳細の待機表示。
  *
  * @remarks
- * 1 本のスピナーで代用すると、届いた瞬間に段組みが立ち上がって読み始めた位置が動きます（`docs/rules.md`「状態表示と待機」の「loading は形状が近い skeleton を
+ * 1 本のスピナーで代用すると、届いた瞬間に段組みが立ち上がって読み始めた位置が動きます（`docs/rules.md#states`の「loading は形状が近い skeleton を
  * 優先する」）。
  *
  * @example

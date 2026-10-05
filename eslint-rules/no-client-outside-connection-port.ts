@@ -7,7 +7,7 @@ import { resolveModule } from "./module-resolution";
 import { isTest } from "./test-file";
 
 /**
- * 外部 API を叩く client を、接続口の外で組ませないルール（`docs/rules.md`「取得と契約」の
+ * 外部 API を叩く client を、接続口の外で組ませないルール（`docs/rules.md#fetching`の
  * 「接続口は downstream と分類の組ごとに 1 つ置き、client を組むのはそこだけにする」）。
  *
  * 組んでよいのは [`architecture.ts`](../architecture.ts) の `CONNECTION_PORTS` だけで、それ以外で

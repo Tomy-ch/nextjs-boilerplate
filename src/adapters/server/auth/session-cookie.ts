@@ -8,7 +8,7 @@ import { getAuthConfig } from "@/config/auth/auth.server";
  *
  * @remarks
  * 用途を名前に含めるのは、ブラウザの一覧を見た人が何の cookie か辿れるようにするためです
- * （`docs/rules.md`「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに
+ * （`docs/rules.md#data-classification`の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに
  * 明示する」）。`auth` は BFF が認証のために置くものを指します。
  */
 const PREFIX = "auth";
@@ -32,7 +32,7 @@ export const TRANSACTION_MAX_AGE_SECONDS = 600;
  * cookie に共通で付ける属性。
  *
  * @remarks
- * 属性の既定は `docs/rules.md`「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に含め、
+ * 属性の既定は `docs/rules.md#data-classification`の「アプリ cookie は用途を接頭辞に含め、
  * 属性を用途ごとに明示する」が持ちます。ここに書くのは、この口に固有の判断だけです。
  *
  * `sameSite: "lax"` は他サイトからの POST に cookie を載せない一方、IdP からのリダイレクト
