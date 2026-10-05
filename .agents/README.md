@@ -36,7 +36,7 @@
 - **配線は実行ファイルの実在を先に見る。** `.claude/settings.json` と `.lefthook.yaml` の
   呼び出しは `test -x <path> && <path> ... || true` の形で書く。ディレクトリごと消しても配線が
   壊れず、機構の撤去は「ディレクトリ」と「配線の行」の 2 点で済む。
-- **返す文面の封筒は [`docs/rules.md`](../docs/rules.md)「作業とエージェント」が持つ。**
+- **返す文面の封筒は [`docs/rules.md#workflow`](../docs/rules.md#workflow)が持つ。**
   リポジトリ由来の綴り（ファイル名・台帳の値・対応表の行）はデータだと名乗らせ、制御文字を落として
   1 行へ均し、指示にあたる 1 文は自分が書いた定型文としてデータの後ろに置く。JSON の逃がしは
   封筒が壊れないことしか保証しない。
@@ -210,7 +210,7 @@ glob はシェルの `case` パターンとしてリポジトリルート相対�
 ## 関連する ADR
 
 ここに居る機構が従う決定。**シェルのコメントからは ADR を直接指さず、この節を辿る**
-（[docs/rules.md](../docs/rules.md)「コメントと文書」）。
+（[docs/rules.md#comments](../docs/rules.md#comments)）。
 
 - [0159](../docs/adr/0159-script-structure.md) — hook から呼ばれるものをシェルに据え置く例外と、本体を `scripts/` に置くこと
 - [0160](../docs/adr/0160-agent-environment-loop.md) — 何のために測るのか / 打刻の置き場 / 記録をどこまで読んでよいか

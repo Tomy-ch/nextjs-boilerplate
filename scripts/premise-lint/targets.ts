@@ -12,10 +12,11 @@
  * @remarks
  * **散文だけでは足りません。**配る側の視点はコメントにも残り、そこが渡ると、コードを読んだ人が
  * 自分に効かない前提を受け取ります。拡張子は {@link SCANNED_EXTENSIONS} が決めます。
+ *
+ * 文書の翻訳のミラー（兄弟の `<name>.ja.md`）は並べません。canonical を名指せばミラーも当たります。
  */
 export const SCANNED_PATHS: readonly string[] = [
   "AGENTS.md",
-  "AGENTS.ja.md",
   "README.md",
   "SECURITY.md",
   ".agents",
@@ -59,6 +60,8 @@ const SCANNED_EXTENSIONS: readonly string[] = [".md", ".ts", ".tsx", ".mk", ".sh
  *
  * 外れるのは 2 種類だけです —— **前提と一緒に捨てられる文書**と、**マーカーの形をデータとして
  * 持つ区画**。それ以外を外すと、渡る側に前提が残ります。
+ *
+ * {@link SCANNED_PATHS} と同じく、文書を名指せばその翻訳のミラーも外れます。
  */
 export const EXCLUDED_PATHS: Readonly<Record<string, string>> = {
   "docs/adr/BACKLOG.md": "未決の待ち行列そのもの。途中であることを書くのが役目",
@@ -79,19 +82,50 @@ export const EXCLUDED_PATHS: Readonly<Record<string, string>> = {
   "docs/project/versioning.md": "テンプレートと派生の関係そのものが主題",
 };
 
+/**
+ * そのパスが、宣言したパスそのものか、その配下か、宣言した文書の翻訳のミラーか。
+ *
+ * @remarks
+ * ミラーは canonical の兄弟に `<name>.ja.md` として置くので、宣言の側で対を列挙しません。
+ * 列挙すると、ミラーを足した日に宣言の足し忘れが黙って走査の穴（または除外の穴）になります。
+ */
+function covers(declared: string, relativePath: string): boolean {
+  if (relativePath === declared || relativePath.startsWith(`${declared}/`)) {
+    return true;
+  }
+
+  return mirrorOf(declared) === relativePath;
+}
+
+/** 文書の翻訳のミラーのパス。文書でなければ null。 */
+function mirrorOf(declared: string): string | null {
+  return declared.endsWith(".md") ? `${declared.slice(0, -".md".length)}.ja.md` : null;
+}
+
+/**
+ * 走査を始める起点。{@link SCANNED_PATHS} に、名指した文書の翻訳のミラーを足したもの。
+ *
+ * @remarks
+ * ディレクトリはミラーごと配下を辿るので起点を足さない。文書を 1 本だけ名指した場合は、
+ * その兄弟を起点に加えないとミラーが辿られない。実在しない起点は入口が読み飛ばす。
+ */
+export function scanRoots(): readonly string[] {
+  return SCANNED_PATHS.flatMap((scanned) => {
+    const mirror = mirrorOf(scanned);
+
+    return mirror === null ? [scanned] : [scanned, mirror];
+  });
+}
+
 /** そのパスが走査の対象か。 */
 export function isScanned(relativePath: string): boolean {
   if (!SCANNED_EXTENSIONS.some((extension) => relativePath.endsWith(extension))) {
     return false;
   }
 
-  for (const excluded of Object.keys(EXCLUDED_PATHS)) {
-    if (relativePath === excluded || relativePath.startsWith(`${excluded}/`)) {
-      return false;
-    }
+  if (Object.keys(EXCLUDED_PATHS).some((excluded) => covers(excluded, relativePath))) {
+    return false;
   }
 
-  return SCANNED_PATHS.some(
-    (scanned) => relativePath === scanned || relativePath.startsWith(`${scanned}/`),
-  );
+  return SCANNED_PATHS.some((scanned) => covers(scanned, relativePath));
 }

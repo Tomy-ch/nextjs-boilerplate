@@ -37,13 +37,18 @@ const LINK = /\]\([^)]*\)/g;
 const ADR_PATH = /(?:^|\/)0\d{3}-[a-z0-9-]+\.md$/;
 
 /**
- * リンクの直後に続く節番号。節記号も決定の語も任意で、無ければ裸の番号として読む。
+ * リンクの直後に続く節番号。節記号も節を名指す語も任意で、無ければ裸の番号として読む。
  *
  * @remarks
  * 語のあとの空白を任意の側へ入れてあるのは、**空白の繰り返しを隣り合わせない**ためです。
  * 外に出すと、語が無いときに 2 つの繰り返しが並び、どちらがどこまで取るかが一意に決まりません。
+ *
+ * 語は英語（canonical）と日本語（翻訳のミラー）の両方を持ちます。ミラーも走査の対象だからです。
  */
-const SECTION = /^[ 　]*(?:(?:§|決定)[ 　]*)?\d+(?:\.\d+)*(?!\d)/;
+const SECTION = /^[ 　]*(?:(?:§|決定|Decision|Section|Sec\.)[ 　]*)?\d+(?:\.\d+)*(?!\d)/i;
+
+/** 節を名指す語を伴わない、裸の番号。 */
+const BARE_NUMBER = /^[ 　]*\d/;
 
 /**
  * 数でありながら節を指していないもの。
@@ -54,6 +59,16 @@ const SECTION = /^[ 　]*(?:(?:§|決定)[ 　]*)?\d+(?:\.\d+)*(?!\d)/;
  * 文が壊れる。
  */
 const COUNTER = /^[ 　]*[つ本件回点種段層人箇]/;
+
+/**
+ * 英語の助数詞。裸の番号に続くときだけ件数として読む。
+ *
+ * @remarks
+ * `Decision 3 steps …` のように節を名指す語が先にあれば、番号は節を指しており、続く語は件数では
+ * ない。日本語の助数詞と違い語の境界が要るので、空白を挟んだ語の全体で見る。
+ */
+const ENGLISH_COUNTER =
+  /^[ 　]+(?:reasons?|rules?|times|steps?|layers?|kinds?|points?|items?|ways?)\b/i;
 
 /**
  * 1 行から、リンクの直後に節番号を置いている箇所を挙げる。
@@ -73,7 +88,10 @@ function findInLine(file: string, line: number, text: string): readonly Sectione
 
     const after = text.slice(link.index + link[0].length + section[0].length);
 
-    return COUNTER.test(after) ? [] : [{ file, line, text: `${link[0]}${section[0]}`.trim() }];
+    const counted =
+      COUNTER.test(after) || (BARE_NUMBER.test(section[0]) && ENGLISH_COUNTER.test(after));
+
+    return counted ? [] : [{ file, line, text: `${link[0]}${section[0]}`.trim() }];
   });
 }
 

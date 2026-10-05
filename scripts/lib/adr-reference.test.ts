@@ -33,6 +33,33 @@ describe("findSectionedAdrReferences", () => {
     expect(found.map(({ text }) => text)).toEqual(["](0140-documentation-operations.md) 決定 4"]);
   });
 
+  it.each([
+    ["Decision 4", "Decision 4"],
+    ["decision 4", "decision 4"],
+    ["Section 2.1", "Section 2.1"],
+    ["Sec. 3", "Sec. 3"],
+  ])("英語で節を名指す形（%s）も、その綴りで挙げる", (written, expected) => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      `The steps live in [0140](0140-documentation-operations.md) ${written} of the record.`,
+    );
+
+    expect(found.map(({ text }) => text)).toEqual([
+      `](0140-documentation-operations.md) ${expected}`,
+    ]);
+  });
+
+  it("英語で節を名指したあとに助数詞の語が続いても、節番号として挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      "See [0140](0140-documentation-operations.md) Decision 3 steps for the order.",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual([
+      "](0140-documentation-operations.md) Decision 3",
+    ]);
+  });
+
   it("節記号を伴わない裸の番号も、その綴りで挙げる", () => {
     const found = findSectionedAdrReferences(
       "docs/x.md",
@@ -89,6 +116,48 @@ describe("findSectionedAdrReferences", () => {
     );
 
     expect(found).toEqual([]);
+  });
+
+  it.each([
+    "reason",
+    "reasons",
+    "rule",
+    "rules",
+    "times",
+    "step",
+    "steps",
+    "layer",
+    "layers",
+    "kind",
+    "kinds",
+    "point",
+    "points",
+    "item",
+    "items",
+    "way",
+    "ways",
+  ])("裸の番号に英語の助数詞（%s）が続くなら件数なので挙げない", (counter) => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      `[0011](0011-no-docker.md) 3 ${counter} lead to this.`,
+    );
+
+    expect(found).toEqual([]);
+  });
+
+  it("助数詞で始まるだけの別の語が続く番号は挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      "[0011](0011-no-docker.md) 3 rulesets apply.",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
+  });
+
+  it("番号と英語の助数詞が空白で離れていなければ件数として読まない", () => {
+    const found = findSectionedAdrReferences("docs/x.md", "[0011](0011-no-docker.md) 3steps");
+
+    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
   });
 
   it("ADR でないリンクの直後の番号は挙げない", () => {

@@ -3,28 +3,28 @@ import { describe, expect, it } from "vitest";
 import { collectRuleTally, renderRuleTally, replaceGeneratedBlock } from "./tally";
 
 const DOCUMENT = [
-  "# 実装規約",
+  "# Implementation Rules",
   "",
-  "前書き。節の外に居るので数えない。",
+  "Preamble. Outside any section, so not counted.",
   "",
   '<a id="layers"></a>',
   "",
-  "## 層境界と依存",
+  "## Layer Boundaries",
   "",
-  "> Rationale: [ADR 0020](adr/0020.md); enforced via ESLint boundaries。",
+  "> Rationale: [ADR 0020](adr/0020.md); enforced via ESLint boundaries.",
   "",
-  "節の導入。規約の前に居るので数えない。",
+  "Section intro. Before any rule, so not counted.",
   "",
-  "- **機械が見ている規約。** 判定を述べない。",
-  "- **他の層が握る問題を手当てしない。** 散文 —— **寄せられない**。責務の判断そのもの。",
+  "- **A rule a machine watches.** States no verdict.",
+  "- **Do not handle what another layer owns.** Prose — **not mechanizable**. A judgment of responsibility.",
   "",
   '<a id="forms"></a>',
   "",
-  "## フォームと送信",
+  "## Forms",
   "",
-  "- **確認を挟む。** 散文 —— **寄せられる**。",
-  "  続きの行にも本文がある。",
-  "- **タグは 2 段だけ。** 散文 —— **一部寄せられる**。綴りは静的に決まる。",
+  "- **Ask for confirmation.** Prose — **mechanizable**.",
+  "  The body continues on the next line.",
+  "- **Tags have two levels only.** Prose — **partly mechanizable**. The spelling is static.",
 ].join("\n");
 
 describe("collectRuleTally", () => {
@@ -42,32 +42,32 @@ describe("collectRuleTally", () => {
     expect(collectRuleTally(DOCUMENT).judged).toEqual([
       {
         anchor: "layers",
-        section: "層境界と依存",
-        summary: "他の層が握る問題を手当てしない。",
-        verdict: "寄せられない",
+        section: "Layer Boundaries",
+        summary: "Do not handle what another layer owns.",
+        verdict: "not mechanizable",
       },
       {
         anchor: "forms",
-        section: "フォームと送信",
-        summary: "確認を挟む。",
-        verdict: "寄せられる",
+        section: "Forms",
+        summary: "Ask for confirmation.",
+        verdict: "mechanizable",
       },
       {
         anchor: "forms",
-        section: "フォームと送信",
-        summary: "タグは 2 段だけ。",
-        verdict: "一部寄せられる",
+        section: "Forms",
+        summary: "Tags have two levels only.",
+        verdict: "partly mechanizable",
       },
     ]);
   });
 
   it("規約が複数行にまたがっても、続きの行の判定を拾う", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "- **規約。**", "  散文 —— **寄せられる**。"].join("\n"),
+      ['<a id="x"></a>', "## Section", "- **Rule.**", "  Prose — **mechanizable**."].join("\n"),
     );
 
     expect(tally.judged).toEqual([
-      { anchor: "x", section: "節", summary: "規約。", verdict: "寄せられる" },
+      { anchor: "x", section: "Section", summary: "Rule.", verdict: "mechanizable" },
     ]);
   });
 
@@ -79,16 +79,16 @@ describe("collectRuleTally", () => {
 
   it("錨を持たない節を violations へ載せ、その節の規約の錨を空にする", () => {
     const tally = collectRuleTally(
-      ["## 錨なし", "- **規約。** 散文 —— **寄せられる**。"].join("\n"),
+      ["## No Anchor", "- **Rule.** Prose — **mechanizable**."].join("\n"),
     );
 
-    expect(tally.violations).toEqual(["節が錨を持たない: 「錨なし」"]);
+    expect(tally.violations).toEqual(["節が錨を持たない: 「No Anchor」"]);
     expect(tally.judged[0]?.anchor).toBe("");
   });
 
   it("錨が重複した節を violations へ載せる", () => {
     const tally = collectRuleTally(
-      ['<a id="dup"></a>', "## 一つ目", '<a id="dup"></a>', "## 二つ目"].join("\n"),
+      ['<a id="dup"></a>', "## First", '<a id="dup"></a>', "## Second"].join("\n"),
     );
 
     expect(tally.violations).toEqual(["錨が重複している: 「dup」"]);
@@ -96,39 +96,41 @@ describe("collectRuleTally", () => {
 
   it("3 語の外の判定を数えず、violations へ載せる", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "- **規約。** 散文 —— **寄せられていない**。"].join("\n"),
+      ['<a id="x"></a>', "## Section", "- **Rule.** Prose — **not yet mechanizable**."].join("\n"),
     );
 
     expect(tally.judged).toEqual([]);
-    expect(tally.violations).toEqual(["判定の綴りが 3 語の外: 「寄せられていない」（規約。）"]);
+    expect(tally.violations).toEqual(["判定の綴りが 3 語の外: 「not yet mechanizable」（Rule.）"]);
   });
 
   it("規約の外に書かれた判定を、数えずに violations へ載せる", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "導入。散文 —— **寄せられる**。", "- **規約。**"].join("\n"),
+      ['<a id="x"></a>', "## Section", "Intro. Prose — **mechanizable**.", "- **Rule.**"].join(
+        "\n",
+      ),
     );
 
     expect(tally.judged).toEqual([]);
-    expect(tally.violations).toEqual(["判定が規約の外にある: 「寄せられる」（節）"]);
+    expect(tally.violations).toEqual(["判定が規約の外にある: 「mechanizable」（Section）"]);
   });
 
   it("要旨がその行で閉じていない箇条書きを、規約に数えずに violations へ載せる", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "- **規約", "  続き。**"].join("\n"),
+      ['<a id="x"></a>', "## Section", "- **Rule", "  continued.**"].join("\n"),
     );
 
     expect(tally.rules).toBe(0);
-    expect(tally.violations).toEqual(["規約の要旨がその行で閉じていない: 「- **規約」"]);
+    expect(tally.violations).toEqual(["規約の要旨がその行で閉じていない: 「- **Rule」"]);
   });
 
   it("節へ対応しない錨を violations へ載せる", () => {
-    const tally = collectRuleTally(['<a id="a"></a>', '<a id="b"></a>', "## 節"].join("\n"));
+    const tally = collectRuleTally(['<a id="a"></a>', '<a id="b"></a>', "## Section"].join("\n"));
 
     expect(tally.violations).toEqual(["錨が節へ対応していない: 「a」"]);
   });
 
   it("見出しが来ないまま文書が終わった錨も violations へ載せる", () => {
-    const tally = collectRuleTally(['<a id="x"></a>', "本文だけ"].join("\n"));
+    const tally = collectRuleTally(['<a id="x"></a>', "Body only."].join("\n"));
 
     expect(tally.sections).toBe(0);
     expect(tally.violations).toEqual(["錨が節へ対応していない: 「x」"]);
@@ -138,22 +140,24 @@ describe("collectRuleTally", () => {
     const tally = collectRuleTally(
       [
         '<a id="x"></a>',
-        "## 節",
-        "> Rationale: [ADR 0020](adr/0020.md); enforced via a。",
-        "- **規約。**",
-        "> Rationale: [ADR 0021](adr/0021.md); enforced via b。",
+        "## Section",
+        "> Rationale: [ADR 0020](adr/0020.md); enforced via a.",
+        "- **Rule.**",
+        "> Rationale: [ADR 0021](adr/0021.md); enforced via b.",
       ].join("\n"),
     );
 
     expect(tally.enforcedSections).toBe(1);
-    expect(tally.violations).toEqual(["節頭の根拠が 2 つある: 「節」"]);
+    expect(tally.violations).toEqual(["節頭の根拠が 2 つある: 「Section」"]);
   });
 
   it("`enforced via` を持たない根拠は、節頭の手段に数えない", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "> Rationale: [ADR 0020](adr/0020.md); review が見る。"].join(
-        "\n",
-      ),
+      [
+        '<a id="x"></a>',
+        "## Section",
+        "> Rationale: [ADR 0020](adr/0020.md); review watches it.",
+      ].join("\n"),
     );
 
     expect(tally.enforcedSections).toBe(0);
@@ -164,31 +168,31 @@ describe("collectRuleTally", () => {
     const tally = collectRuleTally(
       [
         '<a id="x"></a>',
-        "## 節",
-        "- **規約。** 散文 —— **寄せられる**。散文 —— **寄せられない**。",
+        "## Section",
+        "- **Rule.** Prose — **mechanizable**. Prose — **not mechanizable**.",
       ].join("\n"),
     );
 
     expect(tally.judged).toEqual([]);
-    expect(tally.violations).toEqual(["1 つの規約が判定を 2 つ述べている: 「規約。」"]);
+    expect(tally.violations).toEqual(["1 つの規約が判定を 2 つ述べている: 「Rule.」"]);
   });
 
   it("コードフェンスの中の見出しと錨を、節として数えない", () => {
     const tally = collectRuleTally(
       [
         '<a id="x"></a>',
-        "## 節",
+        "## Section",
         "```md",
         '<a id="fake"></a>',
-        "## 例として書いた見出し",
+        "## A heading written as an example",
         "```",
-        "- **規約。** 散文 —— **寄せられる**。",
+        "- **Rule.** Prose — **mechanizable**.",
       ].join("\n"),
     );
 
     expect(tally.sections).toBe(1);
     expect(tally.judged).toEqual([
-      { anchor: "x", section: "節", summary: "規約。", verdict: "寄せられる" },
+      { anchor: "x", section: "Section", summary: "Rule.", verdict: "mechanizable" },
     ]);
     expect(tally.violations).toEqual([]);
   });
@@ -197,13 +201,39 @@ describe("collectRuleTally", () => {
 describe("renderRuleTally", () => {
   // ----- 正常系 -----
 
-  it("印・件数の表・仕事が残っている一覧を、この並びで組む", () => {
-    expect(renderRuleTally(collectRuleTally(DOCUMENT))).toBe(
+  it("印・件数の表・仕事が残っている一覧を、canonical へ貼る英語でこの並びに組む", () => {
+    expect(renderRuleTally(collectRuleTally(DOCUMENT), "en")).toBe(
       [
         "<!-- generated: rules-tally -->",
         "",
-        "**節が 2、規約が 4 件。**",
-        "うち 1 節が節頭で機械の手段を名乗り、3 件の規約が自分で判定を述べる。",
+        "**2 sections, 4 rules.**",
+        "Of these, 1 sections name a mechanical means in their header, and 3 rules state their own verdict.",
+        "",
+        "| Verdict | Count |",
+        "| --- | --- |",
+        "| not mechanizable | 1 |",
+        "| partly mechanizable | 1 |",
+        "| mechanizable | 1 |",
+        "",
+        "### 2 rules with work remaining",
+        "",
+        "| Section | Rule | Verdict |",
+        "| --- | --- | --- |",
+        "| [Forms](rules.md#forms) | Ask for confirmation. | mechanizable |",
+        "| [Forms](rules.md#forms) | Tags have two levels only. | partly mechanizable |",
+        "",
+        "<!-- /generated: rules-tally -->",
+      ].join("\n"),
+    );
+  });
+
+  it("同じ集計を、ミラーへ貼る日本語で組み、リンクをミラーの実装規約へ向ける", () => {
+    expect(renderRuleTally(collectRuleTally(DOCUMENT), "ja")).toBe(
+      [
+        "<!-- generated: rules-tally -->",
+        "",
+        "**セクションが 2、規約が 4 件。**",
+        "うち 1 セクションがセクション冒頭で機械の手段を名乗り、3 件の規約が自分で判定を述べる。",
         "",
         "| 判定 | 件数 |",
         "| --- | --- |",
@@ -213,10 +243,10 @@ describe("renderRuleTally", () => {
         "",
         "### 仕事が残っている 2 件",
         "",
-        "| 節 | 規約 | 判定 |",
+        "| セクション | 規約 | 判定 |",
         "| --- | --- | --- |",
-        "| [フォームと送信](rules.md#forms) | 確認を挟む。 | 寄せられる |",
-        "| [フォームと送信](rules.md#forms) | タグは 2 段だけ。 | 一部寄せられる |",
+        "| [Forms](rules.ja.md#forms) | Ask for confirmation. | 寄せられる |",
+        "| [Forms](rules.ja.md#forms) | Tags have two levels only. | 一部寄せられる |",
         "",
         "<!-- /generated: rules-tally -->",
       ].join("\n"),
@@ -225,20 +255,20 @@ describe("renderRuleTally", () => {
 
   it("規約の文言に現れたパイプを逃がし、表の列を割らせない", () => {
     const tally = collectRuleTally(
-      ['<a id="x"></a>', "## 節", "- **`a|b` を使う。** 散文 —— **寄せられる**。"].join("\n"),
+      ['<a id="x"></a>', "## Section", "- **Use `a|b`.** Prose — **mechanizable**."].join("\n"),
     );
 
-    expect(renderRuleTally(tally)).toContain(
-      "| [節](rules.md#x) | `a\\|b` を使う。 | 寄せられる |",
+    expect(renderRuleTally(tally, "en")).toContain(
+      "| [Section](rules.md#x) | Use `a\\|b`. | mechanizable |",
     );
   });
 
   // ----- 異常系 -----
 
   it("数えられなかったものが在るときは、件数を出さずに落ちる", () => {
-    const tally = collectRuleTally("## 錨なし");
+    const tally = collectRuleTally("## No Anchor");
 
-    expect(() => renderRuleTally(tally)).toThrow("節が錨を持たない: 「錨なし」");
+    expect(() => renderRuleTally(tally, "en")).toThrow("節が錨を持たない: 「No Anchor」");
   });
 });
 

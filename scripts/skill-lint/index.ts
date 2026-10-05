@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 // エージェントへの指示面 —— `.claude/**` のスキル / エージェント定義と、その頂点に在る `AGENTS.md`
-// —— を意味的に検査する lint スクリプト。
+// —— を意味的に検査する lint スクリプト。対訳の構造の検査だけは、追跡されている全 `*.ja.md` に及ぶ。
 // markdownlint は体裁しか見ないため、「書いてある内容が実態と合っているか」は誰も検査していない。
 // スキル定義はエージェントの挙動を決める指示書であり、腐った参照はそのまま誤った手順の実行につながる。
 //
 // 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出・確定済みの採番規約から導出できる
 // ものだけに限る（判断を含めない）。node の標準ライブラリのみに依存する。
 // 1 件でも違反があれば非 0 で終了する。
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -24,6 +25,7 @@ import {
   scanInlineCode,
   WILDCARD_RE,
 } from "./reference-pattern.js";
+import { translationPairsOf } from "./translation-pairs.js";
 
 type Finding = {
   file: string;
@@ -225,9 +227,14 @@ function checkFrontmatter(
 // 対訳ペア
 // ---------------------------------------------------------------------------
 
-// 対訳（SKILL.ja.md）が canonical（SKILL.md）と 1:1 であることを検査する。
+// 対訳（`<name>.ja.md`）が canonical（`<name>.md`）と 1:1 であることを検査する。
 // ファイルの有無だけでは節の欠落・ずれを検出できないため、見出しレベル列の一致まで見る。
-function checkTranslationPair(canonicalRel: string, translationRel: string): void {
+// `frontmatterOwner` は、frontmatter を canonical 側だけが持つ理由（報告の文言に載る）。
+function checkTranslationPair(
+  canonicalRel: string,
+  translationRel: string,
+  frontmatterOwner = "スキルとして読み込まれるのは canonical 側だけです",
+): void {
   if (!fs.existsSync(path.join(REPO_ROOT, translationRel))) {
     report(
       canonicalRel,
@@ -244,7 +251,7 @@ function checkTranslationPair(canonicalRel: string, translationRel: string): voi
       translationRel,
       1,
       "translation",
-      "対訳に frontmatter があります（スキルとして読み込まれるのは canonical 側だけです）",
+      `対訳に frontmatter があります（${frontmatterOwner}）`,
     );
   }
 
@@ -677,9 +684,29 @@ for (const file of agentFiles) {
   checkFrontmatter(rel, readFile(rel), file.replace(/\.md$/, ""));
 }
 
-// `AGENTS.md` も対訳を持つ。canonical を英語で持つ文書はスキル定義とこれだけで（[README](../README.md)）、
-// 対訳が canonical から遅れたことを検出する機構は、このペア検査のほかに無い。
+// `AGENTS.md` も対訳を持つ。スキル定義と同じく、対訳の欠けもここで落とす。
 checkTranslationPair("AGENTS.md", "AGENTS.ja.md");
+
+// それ以外の対訳は、追跡されている `*.ja.md` のうち兄弟の canonical を持つものすべて。対訳が
+// canonical から遅れたことを検出する機構は、このペア検査のほかに無い。ここは**在る組**の構造だけを
+// 見て、canonical が対訳を持つかどうかは見ない（対訳を必須にするのはスキル定義と `AGENTS.md` だけ）。
+const pairedTranslations = new Set([
+  ...skillDirs.map((name) => path.join(SKILLS_DIR, name, "SKILL.ja.md")),
+  "AGENTS.ja.md",
+]);
+const trackedFiles = execFileSync("git", ["ls-files", "-z"], { cwd: REPO_ROOT, encoding: "utf8" })
+  .split("\0")
+  .filter((file) => file !== "");
+const documentPairs = translationPairsOf(trackedFiles).filter(
+  ({ translation }) => !pairedTranslations.has(translation),
+);
+for (const { canonical, translation } of documentPairs) {
+  checkTranslationPair(
+    canonical,
+    translation,
+    "frontmatter を読み書きするのは canonical 側だけです",
+  );
+}
 
 const markdownFiles = collectClaudeMarkdown();
 for (const rel of markdownFiles) checkReferences(rel);
@@ -696,13 +723,13 @@ if (findings.length > 0) {
     console.error(`    :${finding.line}  [${finding.rule}] ${finding.message}`);
   }
   console.error(
-    `\n検査 ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${markdownFiles.length} Markdown 中 ${findings.length} 件 NG`,
+    `\n検査 ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${documentPairs.length} 対訳 / ${markdownFiles.length} Markdown 中 ${findings.length} 件 NG`,
   );
   console.error(`  未検査: ${UNCHECKED.join(" / ")}`);
   process.exit(1);
 }
 
 console.log(
-  `✓ skill-lint: ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${markdownFiles.length} Markdown すべて OK`,
+  `✓ skill-lint: ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${documentPairs.length} 対訳 / ${markdownFiles.length} Markdown すべて OK`,
 );
 console.log(`  未検査: ${UNCHECKED.join(" / ")}`);

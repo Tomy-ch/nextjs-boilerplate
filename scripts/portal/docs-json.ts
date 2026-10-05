@@ -88,7 +88,24 @@ function basename(filePath: string): string {
 }
 
 function langOf(destination: string): "en" | "ja" {
-  return destination.includes("/ja/") || /\.ja\.md$/.test(destination) ? "ja" : "en";
+  return /\.ja\.md$/.test(destination) ? "ja" : "en";
+}
+
+/**
+ * 1 つのディレクトリの Markdown 一覧を、canonical（英語）と兄弟のミラー（`*.ja.md`）へ分ける。
+ *
+ * ミラーは canonical と同じディレクトリに置くので、言語は置き場ではなく接尾辞で決まる。
+ */
+export function splitByLanguage(files: readonly string[]): {
+  enFiles: string[];
+  jaFiles: string[];
+} {
+  const markdown = files.filter((file) => file.endsWith(".md"));
+
+  return {
+    enFiles: markdown.filter((file) => !file.endsWith(".ja.md")),
+    jaFiles: markdown.filter((file) => file.endsWith(".ja.md")),
+  };
 }
 
 /**
@@ -228,8 +245,8 @@ export function buildDocsJson(manifest: unknown, discovered: DiscoveredDocs) {
         section,
         {
           name: autoTitle(file),
-          path: `../ja/${directory.name}/${file}`,
-          source: `docs/ja/${directory.name}/${file}`,
+          path: `../${directory.name}/${file}`,
+          source: `docs/${directory.name}/${file}`,
           lang: "ja",
         },
         guideIdOf(file),
@@ -251,7 +268,7 @@ export function buildDocsJson(manifest: unknown, discovered: DiscoveredDocs) {
     for (const file of discovered.rootJaFiles) {
       store.add(
         section,
-        { name: autoTitle(file), path: `../ja/${file}`, source: `docs/ja/${file}`, lang: "ja" },
+        { name: autoTitle(file), path: `../${file}`, source: `docs/${file}`, lang: "ja" },
         guideIdOf(file),
       );
     }

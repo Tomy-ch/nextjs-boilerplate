@@ -16,9 +16,9 @@ name: Purge Verify
 # A repository created from this template that has already purged no longer has the
 # tooling this job drives, because the purge manifest removes it. The job then fails on
 # a missing script, which is the intended signal: the guard step below turns that into
-# an explicit instruction instead of a puzzling "file not found". Deleting this workflow
-# as part of the purge was considered and rejected — a generated repository that later
-# grows its own sample would have lost the mechanism with no trace that it ever existed.
+# an explicit instruction instead of a puzzling "file not found". The purge does not
+# delete this workflow itself: a generated repository that later grows its own sample
+# would lose the mechanism with no trace that it ever existed.
 #
 # ## What this job does NOT run
 #
@@ -92,7 +92,7 @@ jobs:
         run: |
           if [ ! -d scripts/setup/remove-sample ]; then
             echo "::error::The sample has already been purged, so this job has nothing to verify."
-            echo "::error::Delete .github/workflows/purge-verify.yaml — it only guards the boilerplate itself."
+            echo "::error::Delete .github/workflows/purge-verify.yaml — it only verifies the purge, and the purge has already run."
             exit 1
           fi
 

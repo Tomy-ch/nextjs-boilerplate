@@ -18,8 +18,8 @@ name: Bundle Budget
 # The base branch is built too. A ceiling alone lets a change spend the headroom a few KB at
 # a time until some later pull request crosses the line — the red then lands on whoever went
 # last rather than on whoever added the weight. Comparing against base also covers the routes
-# that carry no ceiling, which is every route the bundled sample owns (their names cannot be
-# written into the budget: the sample is deleted on purge and the names would dangle).
+# that carry no ceiling, which is every route a sample owns (their names cannot be written
+# into the budget: a sample is deleted on purge and the names would dangle).
 #
 # A base build that fails is not this workflow's business. It degrades to ceilings only
 # rather than reporting a failure that belongs to the base branch.
@@ -79,8 +79,8 @@ jobs:
       # What cannot change what a route downloads. Stories and tests are listed because they
       # never reach the application bundle; `.github/**` and `scripts/**` are not, because a
       # change to this workflow or to the measurement has to be measured. CSS and the design
-      # tokens are not listed either: the budget now covers stylesheets, and a diff that only
-      # moves CSS is exactly the diff that used to leave this job asleep.
+      # tokens are not listed either: the budget covers stylesheets, so a diff that only moves
+      # CSS still has to be measured.
       - name: Decide whether the diff can reach the bundle
         id: scope
         uses: ./.github/actions/diff-scope

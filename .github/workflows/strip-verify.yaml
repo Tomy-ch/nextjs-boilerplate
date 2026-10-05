@@ -1,8 +1,7 @@
 name: Strip Verify
 
 # Runs the boilerplate-only strip on a throwaway checkout and proves the repository still
-# builds and passes every gate once the prose that only the distributing side can honour
-# is gone.
+# builds and passes every gate once the boilerplate-only prose is gone.
 #
 # This job exists because the strip is a one-shot tool that deletes itself
 # (`scripts/setup/remove-boilerplate-only`). Nothing else would notice if it stopped

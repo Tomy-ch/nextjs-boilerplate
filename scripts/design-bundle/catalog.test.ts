@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   type BundleComponent,
   bundledFilesOf,
   itemTypeOf,
+  README_SECTIONS,
   renderCatalog,
   sectionOf,
   titleOf,
@@ -67,6 +70,22 @@ describe("sectionOf", () => {
   });
 });
 
+describe("README_SECTIONS", () => {
+  // component の README はすべてこの雛形の見出しで書く。見出しが食い違うと目録の欄が黙って空になる。
+  const template = readFileSync(
+    resolve(import.meta.dirname, "../../src/components/component-template.md"),
+    "utf8",
+  );
+
+  it("README の雛形から用途の節を取り出せる", () => {
+    expect(sectionOf(template, README_SECTIONS.purpose)).not.toBe("");
+  });
+
+  it("README の雛形から責務境界の節を取り出せる", () => {
+    expect(sectionOf(template, README_SECTIONS.boundary)).not.toBe("");
+  });
+});
+
 describe("titleOf", () => {
   it("先頭の見出しを表示名にする", () => {
     expect(titleOf(README, "button")).toBe("Button");
@@ -101,6 +120,10 @@ describe("bundledFilesOf", () => {
     expect(bundledFilesOf(["button.tsx", "button.test.tsx", "gen.test.ts", "README.md"])).toEqual([
       "button.tsx",
     ]);
+  });
+
+  it("README の翻訳のミラーと、その他の文書も載せない", () => {
+    expect(bundledFilesOf(["button.tsx", "README.ja.md", "notes.md"])).toEqual(["button.tsx"]);
   });
 });
 

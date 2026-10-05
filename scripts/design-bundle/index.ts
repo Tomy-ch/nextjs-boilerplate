@@ -56,6 +56,7 @@ import {
   type BundleComponent,
   bundledFilesOf,
   itemTypeOf,
+  README_SECTIONS,
   renderCatalog,
   sectionOf,
   titleOf,
@@ -110,8 +111,8 @@ async function collectComponents(): Promise<BundleComponent[]> {
       layer: entry.layer,
       as: entry.as,
       directory: entry.directory,
-      purpose: sectionOf(readme, "用途"),
-      boundary: sectionOf(readme, "責務境界"),
+      purpose: sectionOf(readme, README_SECTIONS.purpose),
+      boundary: sectionOf(readme, README_SECTIONS.boundary),
       files: files.filter((file) => !file.endsWith(".stories.tsx")),
       stories: files.flatMap((file) => storiesByImportPath.get(file) ?? []),
     });

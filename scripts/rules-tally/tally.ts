@@ -2,6 +2,10 @@
  * [実装規約](../../docs/rules.md)を読んで、[トレーサビリティ](../../docs/traceability.md)へ載せる
  * 集計を組む。
  *
+ * 読むのは英語の canonical だけで、日本語のミラーは読まない。集計ブロックは同じデータから
+ * canonical（英語）とミラー（日本語）の 2 つへ描く —— ミラーの生成ブロックを手で訳すと、
+ * 次の生成で canonical だけが進んで、ミラーの件数が黙って古くなる。
+ *
  * @remarks
  * 集計を手で書かない判断と、判定の綴りを 3 語へ閉じる判断は、[scripts](../README.md)「関連する ADR」
  * が持ちます。
@@ -13,7 +17,7 @@
  */
 
 /** 判定の綴り。この 3 語の外は数えない。 */
-const VERDICTS = ["寄せられない", "一部寄せられる", "寄せられる"] as const;
+const VERDICTS = ["not mechanizable", "partly mechanizable", "mechanizable"] as const;
 
 type Verdict = (typeof VERDICTS)[number];
 
@@ -35,8 +39,11 @@ const RULE_OPENING = "- **";
 /** コードフェンスの開閉。 */
 const FENCE = /^\s*(```|~~~)/;
 
-/** 規約が自分で述べる判定。 */
-const VERDICT = /(?<=散文 —— \*\*)[^*]+(?=\*\*)/g;
+/** 判定の前置き。判定の語はこの直後の強調に入る。 */
+export const VERDICT_PREFIX = "Prose — **";
+
+/** 規約が自分で述べる判定。前置きは {@link VERDICT_PREFIX} と同じ綴りを逃がしたもの。 */
+const VERDICT = /(?<=Prose — \*\*)[^*]+(?=\*\*)/g;
 
 /** 集計の埋め込み先を挟む印。 */
 const BLOCK = /<!-- generated: rules-tally -->[\s\S]*?<!-- \/generated: rules-tally -->/;
@@ -300,41 +307,104 @@ function cell(text: string): string {
   return text.replaceAll("|", String.raw`\|`);
 }
 
+/** 集計ブロックを描く言語。`en` は canonical、`ja` はそのミラーへ貼る。 */
+export type TallyLanguage = "en" | "ja";
+
+/** 1 つの言語で集計ブロックを描くための文言。 */
+interface TallyWording {
+  /** 判定の語の表示。 */
+  readonly verdicts: Readonly<Record<Verdict, string>>;
+  /** 規約の行から節へ張るリンクの指し先。 */
+  readonly rulesFile: string;
+  /** 節と規約の数を述べる 1 行目。 */
+  readonly totals: (tally: RuleTally) => string;
+  /** 節頭の手段と判定の数を述べる 2 行目。 */
+  readonly breakdown: (tally: RuleTally) => string;
+  /** 判定ごとの件数の表の見出し行。 */
+  readonly countHeader: string;
+  /** 仕事が残っている規約の一覧の見出し。 */
+  readonly pendingHeading: (pending: number) => string;
+  /** 仕事が残っている規約の表の見出し行。 */
+  readonly pendingHeader: string;
+}
+
+/** 言語ごとの文言。ミラーの側は、canonical の訳でありながら生成器だけが書く。 */
+const WORDINGS: Readonly<Record<TallyLanguage, TallyWording>> = {
+  en: {
+    verdicts: {
+      "not mechanizable": "not mechanizable",
+      "partly mechanizable": "partly mechanizable",
+      mechanizable: "mechanizable",
+    },
+    rulesFile: "rules.md",
+    totals: (tally) => `**${tally.sections} sections, ${tally.rules} rules.**`,
+    breakdown: (tally) =>
+      `Of these, ${tally.enforcedSections} sections name a mechanical means in their header, ` +
+      `and ${tally.judged.length} rules state their own verdict.`,
+    countHeader: "| Verdict | Count |",
+    pendingHeading: (pending) => `### ${pending} rules with work remaining`,
+    pendingHeader: "| Section | Rule | Verdict |",
+  },
+  ja: {
+    verdicts: {
+      "not mechanizable": "寄せられない",
+      "partly mechanizable": "一部寄せられる",
+      mechanizable: "寄せられる",
+    },
+    rulesFile: "rules.ja.md",
+    totals: (tally) => `**セクションが ${tally.sections}、規約が ${tally.rules} 件。**`,
+    breakdown: (tally) =>
+      `うち ${tally.enforcedSections} セクションがセクション冒頭で機械の手段を名乗り、` +
+      `${tally.judged.length} 件の規約が自分で判定を述べる。`,
+    countHeader: "| 判定 | 件数 |",
+    pendingHeading: (pending) => `### 仕事が残っている ${pending} 件`,
+    pendingHeader: "| セクション | 規約 | 判定 |",
+  },
+};
+
 /**
  * 集計を、トレーサビリティへ貼る Markdown へ組む。
  *
  * @param tally - {@link collectRuleTally} が数えた結果。
+ * @param language - 描く言語。canonical へ貼るなら `en`、ミラーへ貼るなら `ja`。
  * @returns 印を含む生成ブロック。
  * @throws 数えられなかったものが在るとき。取りこぼしたまま件数だけ出すと、集計が小さく出る。
+ *
+ * @remarks
+ * 節の見出しと規約の要旨は canonical から取ったまま描く。ミラーの側で訳すのは、生成器が持つ
+ * 固定の文言と判定の語だけである。
  */
-export function renderRuleTally(tally: RuleTally): string {
+export function renderRuleTally(tally: RuleTally, language: TallyLanguage): string {
   if (tally.violations.length > 0) {
     throw new Error(`実装規約を数えられません:\n- ${tally.violations.join("\n- ")}`);
   }
 
-  const counts = VERDICTS.map(
-    (verdict) => `| ${verdict} | ${tally.judged.filter((r) => r.verdict === verdict).length} |`,
-  );
-  const pending = tally.judged.filter((rule) => rule.verdict !== "寄せられない");
+  const wording = WORDINGS[language];
+  const counts = VERDICTS.map((verdict) => {
+    const count = tally.judged.filter((rule) => rule.verdict === verdict).length;
+
+    return `| ${wording.verdicts[verdict]} | ${count} |`;
+  });
+  const pending = tally.judged.filter((rule) => rule.verdict !== "not mechanizable");
   const rows = pending.map(
     (rule) =>
-      `| [${cell(rule.section)}](rules.md#${rule.anchor}) | ${cell(rule.summary)} | ${rule.verdict} |`,
+      `| [${cell(rule.section)}](${wording.rulesFile}#${rule.anchor}) | ${cell(rule.summary)} | ` +
+      `${wording.verdicts[rule.verdict]} |`,
   );
 
   return [
     "<!-- generated: rules-tally -->",
     "",
-    `**節が ${tally.sections}、規約が ${tally.rules} 件。**`,
-    `うち ${tally.enforcedSections} 節が節頭で機械の手段を名乗り、` +
-      `${tally.judged.length} 件の規約が自分で判定を述べる。`,
+    wording.totals(tally),
+    wording.breakdown(tally),
     "",
-    "| 判定 | 件数 |",
+    wording.countHeader,
     "| --- | --- |",
     ...counts,
     "",
-    `### 仕事が残っている ${pending.length} 件`,
+    wording.pendingHeading(pending.length),
     "",
-    "| 節 | 規約 | 判定 |",
+    wording.pendingHeader,
     "| --- | --- | --- |",
     ...rows,
     "",

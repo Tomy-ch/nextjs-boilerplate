@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { EXCLUDED_PATHS, isScanned, SCANNED_PATHS } from "./targets";
+import { EXCLUDED_PATHS, isScanned, SCANNED_PATHS, scanRoots } from "./targets";
 
 describe("SCANNED_PATHS", () => {
   // ----- 正常系 -----
@@ -16,6 +16,10 @@ describe("SCANNED_PATHS", () => {
     expect(SCANNED_PATHS).not.toContain("docs/get-started");
     expect(SCANNED_PATHS).not.toContain("docs/plan");
   });
+
+  it("翻訳のミラーを canonical と別に並べない", () => {
+    expect(SCANNED_PATHS.filter((path) => path.endsWith(".ja.md"))).toEqual([]);
+  });
 });
 
 describe("EXCLUDED_PATHS", () => {
@@ -24,6 +28,30 @@ describe("EXCLUDED_PATHS", () => {
     for (const reason of Object.values(EXCLUDED_PATHS)) {
       expect(reason).not.toBe("");
     }
+  });
+});
+
+describe("scanRoots", () => {
+  // ----- 正常系 -----
+  it("名指した文書の直後に、その翻訳のミラーを起点として足す", () => {
+    const roots = scanRoots();
+
+    expect(roots.indexOf("AGENTS.ja.md")).toBe(roots.indexOf("AGENTS.md") + 1);
+    expect(roots).toContain("docs/rules.ja.md");
+  });
+
+  it("名指したディレクトリには起点を足さない", () => {
+    expect(scanRoots().filter((root) => root.startsWith("docs/adr"))).toEqual(["docs/adr"]);
+  });
+
+  it("名指したパスをすべて起点に残す", () => {
+    expect(scanRoots()).toEqual(expect.arrayContaining([...SCANNED_PATHS]));
+  });
+
+  it("起点はミラー 1 本につき 1 つだけ足す", () => {
+    const documents = SCANNED_PATHS.filter((path) => path.endsWith(".md"));
+
+    expect(scanRoots()).toHaveLength(SCANNED_PATHS.length + documents.length);
   });
 });
 
@@ -47,10 +75,35 @@ describe("isScanned", () => {
     expect(isScanned(".github/settings/labels.json")).toBe(false);
   });
 
+  it("名指した文書の翻訳のミラーも対象にする", () => {
+    expect(isScanned("AGENTS.ja.md")).toBe(true);
+    expect(isScanned("docs/rules.ja.md")).toBe(true);
+    expect(isScanned("README.ja.md")).toBe(true);
+  });
+
+  it("名指したディレクトリの配下にあるミラーも対象にする", () => {
+    expect(isScanned("docs/adr/0011-no-docker.ja.md")).toBe(true);
+    expect(isScanned("src/features/README.ja.md")).toBe(true);
+  });
+
   it("除外したパスを対象にしない", () => {
     expect(isScanned("docs/adr/BACKLOG.md")).toBe(false);
     expect(isScanned("docs/plan/v1-implementation-plan.md")).toBe(false);
     expect(isScanned("docs/get-started/setup-repository.md")).toBe(false);
+  });
+
+  it("除外した文書の翻訳のミラーも対象にしない", () => {
+    expect(isScanned("docs/project/versioning.ja.md")).toBe(false);
+    expect(isScanned("docs/adr/BACKLOG.ja.md")).toBe(false);
+  });
+
+  it("名指した文書と名前の前半だけが同じ文書をミラーとして扱わない", () => {
+    expect(isScanned("docs/rules-extra.ja.md")).toBe(false);
+    expect(isScanned("docs/project/versioning-notes.ja.md")).toBe(true);
+  });
+
+  it("名指した文書と同名でも、別の置き場のミラーは対象にしない", () => {
+    expect(isScanned("tokens/README.ja.md")).toBe(false);
   });
 
   it("走査対象に入っていないパスを対象にしない", () => {
