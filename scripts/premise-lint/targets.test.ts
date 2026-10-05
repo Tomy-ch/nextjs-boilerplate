@@ -69,12 +69,6 @@ describe("isScanned", () => {
     expect(isScanned(".github/workflows/test.yaml")).toBe(true);
   });
 
-  // ----- 異常系 -----
-  it("コメントを持てない形式を対象にしない", () => {
-    expect(isScanned("package.json")).toBe(false);
-    expect(isScanned(".github/settings/labels.json")).toBe(false);
-  });
-
   it("名指した文書の翻訳のミラーも対象にする", () => {
     expect(isScanned("AGENTS.ja.md")).toBe(true);
     expect(isScanned("docs/rules.ja.md")).toBe(true);
@@ -84,6 +78,21 @@ describe("isScanned", () => {
   it("名指したディレクトリの配下にあるミラーも対象にする", () => {
     expect(isScanned("docs/adr/0011-no-docker.ja.md")).toBe(true);
     expect(isScanned("src/features/README.ja.md")).toBe(true);
+  });
+
+  it("除外したディレクトリと接頭辞だけが同じ隣は、除外せずに対象にする", () => {
+    expect(isScanned("scripts/setupx/index.ts")).toBe(true);
+    expect(isScanned("scripts/setup-extra/index.ts")).toBe(true);
+  });
+
+  it("除外したパスが途中に埋め込まれていても、除外せずに対象にする", () => {
+    expect(isScanned("src/docs/plan/index.ts")).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("コメントを持てない形式を対象にしない", () => {
+    expect(isScanned("package.json")).toBe(false);
+    expect(isScanned(".github/settings/labels.json")).toBe(false);
   });
 
   it("除外したパスを対象にしない", () => {
@@ -104,6 +113,16 @@ describe("isScanned", () => {
 
   it("名指した文書と同名でも、別の置き場のミラーは対象にしない", () => {
     expect(isScanned("tokens/README.ja.md")).toBe(false);
+  });
+
+  it("名指したディレクトリと接頭辞だけが同じ隣を対象にしない", () => {
+    expect(isScanned("docs/adrx/0001.md")).toBe(false);
+    expect(isScanned("docs/adr-extra/0001.md")).toBe(false);
+  });
+
+  it("名指したパスが途中に埋め込まれていても対象にしない", () => {
+    expect(isScanned("xdocs/rules.ja.md")).toBe(false);
+    expect(isScanned("sub/docs/adr/0001.md")).toBe(false);
   });
 
   it("走査対象に入っていないパスを対象にしない", () => {

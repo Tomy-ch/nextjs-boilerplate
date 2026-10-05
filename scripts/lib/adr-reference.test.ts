@@ -4,15 +4,6 @@ import { findSectionedAdrReferences, formatSectionedAdrReferences } from "./adr-
 
 describe("findSectionedAdrReferences", () => {
   // ----- 正常系 -----
-  it("節番号を伴わないリンクは挙げない", () => {
-    const found = findSectionedAdrReferences(
-      "docs/x.md",
-      "根拠は [0010](0010-standards-and-non-lockin.md) が持つ。",
-    );
-
-    expect(found).toEqual([]);
-  });
-
   it("節記号つきの番号を、綴りごと挙げる", () => {
     const found = findSectionedAdrReferences(
       "docs/x.md",
@@ -126,7 +117,31 @@ describe("findSectionedAdrReferences", () => {
     ]);
   });
 
-  // ----- 異常系・境界値 -----
+  it("助数詞で始まるだけの別の語が続く番号は挙げる", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      "[0011](0011-no-docker.md) 3 rulesets apply.",
+    );
+
+    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
+  });
+
+  it("番号と英語の助数詞が空白で離れていなければ件数として読まない", () => {
+    const found = findSectionedAdrReferences("docs/x.md", "[0011](0011-no-docker.md) 3steps");
+
+    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
+  });
+
+  // ----- 異常系 -----
+  it("節番号を伴わないリンクは挙げない", () => {
+    const found = findSectionedAdrReferences(
+      "docs/x.md",
+      "根拠は [0010](0010-standards-and-non-lockin.md) が持つ。",
+    );
+
+    expect(found).toEqual([]);
+  });
+
   it("助数詞が続く数は件数なので挙げない", () => {
     const found = findSectionedAdrReferences(
       "docs/x.md",
@@ -161,21 +176,6 @@ describe("findSectionedAdrReferences", () => {
     );
 
     expect(found).toEqual([]);
-  });
-
-  it("助数詞で始まるだけの別の語が続く番号は挙げる", () => {
-    const found = findSectionedAdrReferences(
-      "docs/x.md",
-      "[0011](0011-no-docker.md) 3 rulesets apply.",
-    );
-
-    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
-  });
-
-  it("番号と英語の助数詞が空白で離れていなければ件数として読まない", () => {
-    const found = findSectionedAdrReferences("docs/x.md", "[0011](0011-no-docker.md) 3steps");
-
-    expect(found.map(({ text }) => text)).toEqual(["](0011-no-docker.md) 3"]);
   });
 
   it("ADR でないリンクの直後の番号は挙げない", () => {

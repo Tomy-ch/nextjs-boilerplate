@@ -105,6 +105,24 @@ describe("findBrokenDocLinks", () => {
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
   });
 
+  it("ミラーからミラーへのリンクは拾わない", () => {
+    const source = "[使い方](guide.ja.md#置き場)";
+
+    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
+  });
+
+  it("ミラーから canonical へのリンクは拾わない", () => {
+    const source = "[使い方](guide.md)";
+
+    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
+  });
+
+  it("ミラーの名前をリンクにせず挙げるだけの行は拾わない", () => {
+    const source = "日本語訳は `guide.ja.md` にある。guide.ja.md も同じ。";
+
+    expect(findBrokenDocLinks("docs/x.md", source, root)).toEqual([]);
+  });
+
   // ----- 異常系 -----
   it("段数が足りない相対パスを、行番号とともに返す", () => {
     // リンクは組み立てて置く。書き下すと、このゲート自身がテスト用の壊れたリンクを拾う。
@@ -194,7 +212,6 @@ describe("findBrokenDocLinks", () => {
     ]);
   });
 
-  // ----- 異常系: ミラーへのリンク -----
   it("canonical から翻訳のミラーへのリンクを mirror として返す", () => {
     const href = "../docs/guide.ja.md";
     const source = `[使い方](${href})`;
@@ -213,22 +230,13 @@ describe("findBrokenDocLinks", () => {
     ]);
   });
 
-  it("ミラーからミラーへのリンクは拾わない", () => {
-    const source = "[使い方](guide.ja.md#置き場)";
+  it("実在するミラーの無い見出しを指すリンクは、アンカー切れより先に mirror として返す", () => {
+    const href = `../docs/guide.ja.md#${"無い節"}`;
+    const source = `[無い節](${href})`;
 
-    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
-  });
-
-  it("ミラーから canonical へのリンクは拾わない", () => {
-    const source = "[使い方](guide.md)";
-
-    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
-  });
-
-  it("ミラーの名前をリンクにせず挙げるだけの行は拾わない", () => {
-    const source = "日本語訳は `guide.ja.md` にある。guide.ja.md も同じ。";
-
-    expect(findBrokenDocLinks("docs/x.md", source, root)).toEqual([]);
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "mirror" },
+    ]);
   });
 
   it("実在しないミラーへのリンクは、ファイル切れとして返す", () => {

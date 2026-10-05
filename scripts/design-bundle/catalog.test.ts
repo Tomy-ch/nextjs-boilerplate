@@ -45,6 +45,7 @@ function component(overrides: Partial<BundleComponent> = {}): BundleComponent {
 }
 
 describe("sectionOf", () => {
+  // ----- 正常系 -----
   it("指定した見出しの本文を 1 行へ畳んで返す", () => {
     expect(sectionOf(README, "用途")).toBe("利用者の操作を開始します。");
   });
@@ -65,6 +66,7 @@ describe("sectionOf", () => {
     expect(sectionOf(markdown, "用途")).toBe("1 行目。 2 行目。");
   });
 
+  // ----- 異常系 -----
   it("見出しが無ければ空文字を返す", () => {
     expect(sectionOf(README, "利用ケース")).toBe("");
   });
@@ -77,6 +79,7 @@ describe("README_SECTIONS", () => {
     "utf8",
   );
 
+  // ----- 正常系 -----
   it("README の雛形から用途の節を取り出せる", () => {
     expect(sectionOf(template, README_SECTIONS.purpose)).not.toBe("");
   });
@@ -87,16 +90,19 @@ describe("README_SECTIONS", () => {
 });
 
 describe("titleOf", () => {
+  // ----- 正常系 -----
   it("先頭の見出しを表示名にする", () => {
     expect(titleOf(README, "button")).toBe("Button");
   });
 
+  // ----- 異常系 -----
   it("見出しが無ければ台帳の key を使う", () => {
     expect(titleOf("本文だけ", "button")).toBe("button");
   });
 });
 
 describe("itemTypeOf", () => {
+  // ----- 正常系 -----
   it("design-system は registry:ui になる", () => {
     expect(itemTypeOf("design-system")).toBe("registry:ui");
   });
@@ -109,6 +115,7 @@ describe("itemTypeOf", () => {
 });
 
 describe("bundledFilesOf", () => {
+  // ----- 正常系 -----
   it("実装ファイルを名前順で返す", () => {
     expect(bundledFilesOf(["button.tsx", "button.definition.ts"])).toEqual([
       "button.definition.ts",
@@ -116,6 +123,7 @@ describe("bundledFilesOf", () => {
     ]);
   });
 
+  // ----- 異常系 -----
   it("test と README は載せない", () => {
     expect(bundledFilesOf(["button.tsx", "button.test.tsx", "gen.test.ts", "README.md"])).toEqual([
       "button.tsx",
@@ -128,6 +136,7 @@ describe("bundledFilesOf", () => {
 });
 
 describe("renderCatalog", () => {
+  // ----- 正常系 -----
   it("層ごとに見出しを立てて component を並べる", () => {
     const catalog = renderCatalog([
       component(),

@@ -8,7 +8,7 @@ describe("isMirror", () => {
     expect(isMirror("docs/adr/0140-documentation-operations.ja.md")).toBe(true);
   });
 
-  // ----- 異常系・境界値 -----
+  // ----- 異常系 -----
   it.each([
     "docs/adr/0140-documentation-operations.md",
     "docs/ja.md",
@@ -25,7 +25,7 @@ describe("mirrorOf", () => {
     expect(mirrorOf("scripts/README.md")).toBe("scripts/README.ja.md");
   });
 
-  // ----- 異常系・境界値 -----
+  // ----- 異常系 -----
   it("Markdown でなければ null を返す", () => {
     expect(mirrorOf("scripts/setup")).toBeNull();
   });
@@ -45,7 +45,7 @@ describe("canonicalOf", () => {
     expect(canonicalOf(mirrorOf("docs/rules.md") ?? "")).toBe("docs/rules.md");
   });
 
-  // ----- 異常系・境界値 -----
+  // ----- 異常系 -----
   it("ミラーでなければ null を返す", () => {
     expect(canonicalOf("docs/rules.md")).toBeNull();
   });
