@@ -1,73 +1,74 @@
-# `/admin` 外枠（画面要件）
+# `/admin` Outer Frame (Screen Requirements)
 
-> 機能要件は [`layout.function.md`](layout.function.md)。
+> Functional requirements: [`layout.function.md`](layout.function.md).
 
-管理画面の外枠。利用者向けの外枠とは**別の器**で、導線を横ではなく脇に置く。
+The admin outer frame. It is a **separate layout shell** from the customer-facing outer frame, and places navigation at the side rather than across the top.
 
-## なぜ 1 枚にしないか
+## Why not a single frame
 
-見せる相手が違い、導線の数と深さも違う。1 枚にまとめると、相手で導線を差し替える分岐を器の中に
-抱える（[0026](../../../adr/0026-layout-shell-mount.md)）。管理の操作は対象（商品・利用者・集計）
-ごとに増え、増える方向が縦なので横並びの header には収まらない。
+The audience differs, and so do the number and depth of the links. Merging them into one means the layout shell carries a branch
+that swaps links by audience ([0026](../../../adr/0026-layout-shell-mount.md)). Admin operations grow per target (products,
+users, aggregates), and they grow vertically, so they do not fit in a horizontal header.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 脇の一覧 | 管理側の名称と、対象ごとにまとまった導線 |
-| header | 脇の一覧の開閉・サイト名・利用者向け画面へ戻る導線 |
-| 現在地までの階層 | 本文の先頭。中身は各画面が渡す |
-| 本文 | 各画面の中身。幅は絞らない |
+| Sidebar list | The admin side's name, and links grouped by target |
+| header | Opening and closing the sidebar list, the site name, and the link back to the customer-facing screens |
+| Path to the current location | The top of the main content. Each screen passes its content |
+| Main content | Each screen's content. Its width is not constrained |
 
-**3 つの名前が別の場所を指す。** 脇の先頭の「管理」は管理のホーム、header のサイト名はサイトの
-トップ、「ユーザー画面へ」は利用者向けの主画面。同じバーに同じ行き先を 2 つ置かない。
+**Three names point to different places.** "管理" at the top of the sidebar is the admin home, the site name in the header is the
+site's top page, and "ユーザー画面へ" is the customer-facing main screen. The same bar does not hold two links to the same destination.
 
-**現在地までの階層は、位置だけを器が持つ。** 画面ごとに置くと、同じものが画面ごとに違う高さへ
-現れる。左端は本文と揃える —— ずれると、現在地が本文の外側の飾りに見える。**渡された中身が空の
-ときは場所ごと詰める** —— 階層を持たない画面が上端に空白を抱えないようにする。
+**For the path to the current location, the layout shell holds only the position.** Placing it per screen makes the same thing
+appear at a different height on each screen. Its left edge aligns with the main content — if they are misaligned, the current
+location looks like decoration outside the content. **When the content passed in is empty, the space itself collapses** — so a
+screen with no hierarchy does not carry a blank strip at the top.
 
-**画面を出せなかったときも、見つからなかったときも、器の中に出す。** 脇の一覧と header は残り、
-見つからない面は管理のホームへ戻る導線を 1 本持つ。器ごと外すと、管理の中での現在地と次の行き先を
-一度に失う。
+**When a screen could not be shown, or was not found, it is still shown inside the layout shell.** The sidebar list and the header
+stay, and the not-found page has one link back to the admin home. Removing the whole layout shell loses both the current location
+within admin and the next destination at once.
 
-## 脇の一覧
+## Sidebar List
 
-**導線は対象でまとめ、まとまりには見出しを付ける。** 見出しは押しても遷移しない —— 遷移させると、
-見出しと直下の先頭項目のどちらを押せばよいかを毎回確かめることになる
-（[0053](../../../adr/0053-ui-component-interaction-seam.md)）。
+**Links are grouped by target, and each group has a heading.** Pressing a heading does not navigate — if it did, the user would
+have to check every time whether to press the heading or the first item directly beneath it
+([0053](../../../adr/0053-ui-component-interaction-seam.md)).
 
-**まとまりは畳める。** 開閉は `details` / `summary` の native の機構に乗せる。開閉のためだけに
-browser の状態を持つと、最初の描画で全部開いた姿が一度出る。
+**Groups can be collapsed.** Opening and closing rides on the native `details` / `summary` mechanism. Holding browser state just
+for opening and closing would show everything expanded once on the first render.
 
-**いま開いている画面に印を付ける。** 印が付くのは行き先が今いる場所と**完全に一致する**ときだけ。
-前方一致にすると、下に画面を足した時点で一覧と作成の両方に印が付く。
+**The screen currently open is marked.** The marker appears only when the destination **exactly matches** the current location.
+With prefix matching, adding a screen beneath marks both the list and the create screen.
 
-## 幅で変わるもの
+## What Changes with Width
 
-| 幅 | 脇の一覧 | header の操作 |
+| Width | Sidebar list | header control |
 | --- | --- | --- |
-| 脇に置ける | 常設。畳める | 畳む操作 |
-| 置けない | overlay へ畳む | 開く操作 |
+| Fits at the side | Always shown. Collapsible | A collapse control |
+| Does not fit | Collapsed into an overlay | An open control |
 
-**出す導線は幅によらず同じ。** 幅で顔ぶれを変えると、狭い画面でだけ辿り着けない場所ができる。
+**The links shown are the same at every width.** Changing the lineup by width creates places that cannot be reached only on narrow screens.
 
-**畳む操作と開く操作は別の部品にする。** 同じ位置にある操作の結果が幅によって変わらないように
-するため。段の境界は [0051](../../../adr/0051-styling-system.md) が持つ。
+**The collapse control and the open control are separate components.** This keeps the result of a control at the same position
+from changing with width. The band boundaries are held by [0051](../../../adr/0051-styling-system.md).
 
-**畳んだ状態は覚えない。** 覚える先は cookie になり、器のためだけに要求ごとの読み取りを増やす
-ことになる。画面を移っても続くのは、遷移で器が作り直されないため。
+**The collapsed state is not remembered.** It would have to be remembered in a cookie, adding a per-request read just for the
+layout shell. It persists across screens because navigation does not recreate the layout shell.
 
-## 器が持たないもの
+## What the Layout Shell Does Not Hold
 
-**本文の幅を絞らない。** 読み幅と左右余白は本文の側の責務で、両方が幅を持つと画面ごとにどちらが
-効いているのかを読まないと分からなくなる。
+**It does not constrain the content width.** Reading width and side margins are the content's responsibility; if both held a
+width, telling which one is in effect would require reading each screen.
 
-**header の右に出すものと、脇の下端に出すものの中身を知らない。** 置き場所だけを用意する。
-利用者向け画面へ戻る導線もその 1 つで、器は行き先を持たない。
+**It does not know what is shown at the right of the header or at the bottom of the sidebar.** It only provides the slots. The
+link back to the customer-facing screens is one of them; the layout shell does not hold its destination.
 
-**紙には出さない。** header・脇の一覧・skip link はいずれも画面を渡り歩くためのもので、紙の上では
-押せず場所を取るだけである。
+**Not printed.** The header, the sidebar list and the skip link all exist for moving between screens; on paper they cannot be
+pressed and only take up space.
 
-## 関連
+## Related
 
-- [`products/page.screen.md`](products/page.screen.md) — 商品一覧管理
+- [`products/page.screen.md`](products/page.screen.md) — product list management

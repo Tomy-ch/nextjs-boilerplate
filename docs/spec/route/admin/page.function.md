@@ -1,81 +1,81 @@
-# `/admin` ダッシュボード（機能要件）
+# `/admin` Dashboard (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 器の約束は [`layout.function.md`](layout.function.md) が持つ。
+> The layout shell's promises are held by [`layout.function.md`](layout.function.md).
 
-## 主体と所有
+## Actor and Ownership
 
-管理者だけが開ける。判定は器が持ち、この画面は持たない。所有者の概念は無く、誰が開いても同じ数が
-出る。
+Only administrators can open it. The layout shell owns the check; this screen does not. There is no notion of an owner, and the
+same numbers appear whoever opens it.
 
-## 何が出るか
+## What appears
 
-`GET /v1/dashboard/summary` を、今日の暦日を表す半開区間（`orderedAfter` / `orderedBefore`）で 1 回
-だけ叩き、返ってきた値をそのまま出す。
+`GET /v1/dashboard/summary` is called exactly once with the half-open interval representing today's calendar date
+(`orderedAfter` / `orderedBefore`), and the returned values are shown as is.
 
-| 値 | 意味 |
+| Value | Meaning |
 | --- | --- |
-| `salesAmount` | 期間の売上合計。最小単位の整数 |
-| `salesCount` | 売上に算入した購入の件数 |
-| `purchaseStatusCounts` | ステータス別の件数。マスタの表示順 |
-| `totalProductCount` | 登録済みの商品数。未公開を含む |
-| `publishedProductCount` | 公開済みの商品数 |
+| `salesAmount` | Total sales for the period. An integer in the smallest unit |
+| `salesCount` | Number of purchases counted toward sales |
+| `purchaseStatusCounts` | Counts by status. In the master's display order |
+| `totalProductCount` | Number of registered products. Includes unpublished ones |
+| `publishedProductCount` | Number of published products |
 
-## 集計はフロントで作らない
+## Aggregates are not built in the frontend
 
-**合成はバックエンドが済ませている。** 複数の取得口をまたいだ計算をこの画面が持つと、同じ指標が
-バックエンドと画面の 2 か所で定義される（[0070](../../../adr/0070-backend-role-separation.md)）。
+**The backend has already done the composition.** If this screen held calculations spanning several fetch endpoints, the same
+metric would be defined in two places, the backend and the screen ([0070](../../../adr/0070-backend-role-separation.md)).
 
-**合計も割合も作らない。** 足し合わせてよい組み合わせが応答の中に無い。
+**Neither totals nor ratios are built.** The response contains no combination that may be added together.
 
-- 売上（`salesAmount` / `salesCount`）はキャンセルを除き、未払いを含む
-- `purchaseStatusCounts` はキャンセルを 1 ステータスとして含む
-- 商品数は期間に依存しないマスタの現在値
+- Sales (`salesAmount` / `salesCount`) exclude cancellations and include unpaid purchases
+- `purchaseStatusCounts` includes cancellations as one status
+- Product counts are the master's current values, independent of the period
 
-**ステータス別の件数を足しても `salesCount` にはならない。** 母集団が違う。
+**Adding up the counts by status does not give `salesCount`.** The populations differ.
 
-**順位も割合も棒の長さも、画面が数え直さない。** 棒の長さは描画側が渡された件数から決める。
+**Rank, ratio and bar length are not recounted by the screen.** The rendering side decides bar length from the counts it is given.
 
-## 期間を明示して求める
+## Asking with an explicit period
 
-**今日を暦の上で解くのは画面の側である。** 契約は「今日」という語彙を持たず、受け取るのは瞬時の
-半開区間だけで、両端を省略すると全期間を集計する。区間を送らなければ、今日の数として全期間の数が
-出る。
+**Resolving "today" on the calendar is the screen's job.** The contract has no "today" in its vocabulary; it only accepts a
+half-open interval of instants, and omitting both ends aggregates the whole period. Without sending an interval, the whole
+period's numbers appear as today's numbers.
 
-## 期間別の集計とは別の口ではない
+## Not a separate endpoint from aggregates by period
 
-同じ `GET /v1/dashboard/summary` を使う。違うのは**期間を選ばせるかどうか**だけで、表示の観点が
-違うために画面が 2 つある（[`analytics/page.function.md`](analytics/page.function.md)）。
+It uses the same `GET /v1/dashboard/summary`. The only difference is **whether the user chooses a period**; there are two screens
+because the viewpoints of the display differ ([`analytics/page.function.md`](analytics/page.function.md)).
 
-## 数から一覧へ出られる条件
+## When a number may lead to a list
 
-**数と行き先の母集団が一致するものにだけ導線を添える。** 押した先の件数が数と違うと、どちらかが
-誤っているように読める。
+**A link is added only where the number and the destination share the same population.** If the count at the destination differs
+from the number, one of them reads as wrong.
 
-| 数 | 行き先 | 根拠 |
+| Number | Destination | Basis |
 | --- | --- | --- |
-| 公開中の商品 | 無し | 公開済みだけを並べる一覧が無い。admin の一覧は未公開を含めて返すため、この数より多い件数が出る |
-| 登録済みの商品 | `/admin/products` | admin の一覧は未公開を含めて返す。条件を付けない一覧がこの数と一致する |
-| 売上 / 売上の件数 | 無し | 購入を横断して並べる取得口が契約に無い。`GET /v1/purchases` は自分の購入だけを返す |
+| Published products | None | There is no list of only published products. The admin list returns unpublished ones too, so it shows more than this number |
+| Registered products | `/admin/products` | The admin list returns unpublished ones too. The unfiltered list matches this number |
+| Sales / sales count | None | The contract has no fetch endpoint that lists purchases across customers. `GET /v1/purchases` returns only one's own purchases |
 
-## 取得の失敗
+## Fetch Failures
 
-`/admin` の error 境界が受ける。境界は器の直下に 1 枚だけあり、落ちた画面の区別は届かない。
-production では本文が伏せられて境界に分類が届かないため、文言は分類を問わない汎用のものに
-なる（[0080](../../../adr/0080-error-handling.md)）。
+The `/admin` error boundary catches them. There is exactly one boundary directly beneath the layout shell, and which screen failed
+does not reach it. In production the message body is hidden and no classification reaches the boundary, so the text is generic
+regardless of classification ([0080](../../../adr/0080-error-handling.md)).
 
-## 取り直す範囲
+## Refetch Scope
 
-期間を選ばせないため、取り直す契機を持たない。待機の境界は集計の区画だけに掛かり、見出しは待機中も
-出たまま残る。
+Since the user does not choose a period, there is no trigger for a refetch. The loading boundary covers only the aggregates
+region, and the heading stays shown while loading.
 
-## 現契約でできないこと
+## What the current contract cannot do
 
-**在庫僅少の一覧は置かない。** `GET /v1/products/low-stock` は実装されているが、この画面の主題は
-「今どうなっているか」であり、補充すべき商品の一覧は別の主題である。
+**No list of low-stock products.** `GET /v1/products/low-stock` is implemented, but this screen's subject is "how things stand
+now", and a list of products to restock is a different subject.
 
-**売上の内訳（どの商品がいくら売れたか）を置かない。** 金額で並べる口
-（`GET /v1/products/ranking/amount`）は同じ半開区間を受け取るが、母集団が公開済みの商品の明細に
-限られ、`salesAmount`（購入の支払金額を公開状態に関わらず合計した値）と一致しない。並べると、
-内訳を足しても売上に届かない画面になる。
+**No sales breakdown (which product sold for how much).** The endpoint that ranks by amount
+(`GET /v1/products/ranking/amount`) accepts the same half-open interval, but its population is limited to line items of published
+products and does not match `salesAmount` (the sum of purchases' paid amounts regardless of publication state). Placing it here
+would make a screen whose breakdown does not add up to the sales.

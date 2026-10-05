@@ -1,62 +1,63 @@
-# `/admin/users` 利用者一覧（機能要件）
+# `/admin/users` User List (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 認可・器の約束は [`../layout.function.md`](../layout.function.md) が持つ。
+> The promises on authorization and the layout shell are held by [`../layout.function.md`](../layout.function.md).
 
-登録されている利用者を見渡し、退会させる。
+Surveys the registered users and closes their accounts.
 
-## ページ送りは位置で数える
+## Pagination counts by position
 
-**契約が位置（何件目から）と全件数を返すため、任意のページへ跳べる。** 商品や購入の一覧が使う
-cursor 方式は「次の位置」しか指さず、全体が何件あるかも任意の位置へ跳ぶ手段も表現しない。**同じ
-「一覧」でも、この画面だけ数え方が違う。**
+**The contract returns a position (starting from which item) and the total count, so any page can be jumped to.** The cursor
+approach the product and purchase lists use points only to "the next position", and expresses neither how many items there are in
+total nor a means of jumping to an arbitrary position. **Though both are "lists", only this screen counts differently.**
 
-**何ページあるかは全件数から導く。** 契約はページ数を返さない。
+**The number of pages is derived from the total count.** The contract does not return a page count.
 
-**1 ページの件数は画面が決める。** 契約が受け付ける上限は「これ以上は拒む」という線であって、何件
-並べると読めるかとは別の理由で動く。
+**The screen decides the number of items per page.** The limit the contract accepts is a line meaning "anything above this is
+rejected", and moves for reasons unrelated to how many items can be listed readably.
 
-## 対象の範囲は 3 通り
+## Three scopes
 
-**「すべて」「有効」「退会済み」の 3 つ。** 契約は真偽値と未指定の 3 値でこれを表す。
+**Three: 「すべて」 (all), 「有効」 (active), 「退会済み」 (closed).** The contract expresses them as three values: a boolean or unspecified.
 
-**範囲を選び直したらページ位置を捨てる。** 前の範囲の 3 ページ目は、新しい範囲では別の人たちを
-指す。
+**When the scope is chosen again, the page position is discarded.** Page 3 of the previous scope points to different people in the new scope.
 
-**URL は利用者が直接編集できる。** 読めない範囲・読めないページ番号は既定へ倒す。倒した結果は
-範囲の選択とページ送りに現在値として見えるので、倒してよい側である。契約が拒む値を
-そのまま送っても得られるのは拒否だけで、押した人にできることがない。**上限も同じ扱いとする** ——
-契約はページ番号に上限を課しており、超えた値を倒さずに送ると一覧の代わりにエラーの面が出る。
+**Users can edit the URL directly.** An unreadable scope or an unreadable page number falls back to the default. The result of the
+fallback is visible as the current value in the scope selection and the pagination, so it is the kind that may fall back. Sending a
+value the contract rejects as is yields only a rejection, leaving the person who pressed nothing to do. **The upper limit is treated
+the same way** — the contract caps page numbers, and sending a value beyond it without falling back shows an error page instead of
+the list.
 
-**既定の値は URL に載せない。** 同じ一覧に 2 つの住所ができる。
+**Default values are not put in the URL.** It would give the same list two addresses.
 
-## 退会は不可逆
+## Account closure is irreversible
 
-**確認を挟む。** 押し間違いが取り返せない。
+**A confirmation is inserted.** A mistaken press cannot be undone.
 
-**後始末は同時に終わらない。** 退会が成立しても、その人の進行中の購入の取消と在庫の戻しは後から順に
-進む。**画面はそれを終わったことにしない** —— 「退会しました」だけを出すと、一覧を見た人はもう在庫も
-戻っていると読む。
+**The cleanup does not finish at the same time.** Even after the closure succeeds, cancelling that person's in-progress purchases and
+returning their stock proceed later, in order. **The screen does not treat these as finished** — showing only 「退会しました」 (account
+closed) makes someone looking at the list read that the stock has already been returned too.
 
-**一覧を取り直させない。** 結果整合で後始末が続くため、直後に取り直しても「まだ反映されていない
-一覧」を見せるだけになる。最新の並びを見るのは、利用者が読み込み直したときである。
+**The list is not made to refetch.** The cleanup continues under eventual consistency, so refetching right afterward would only show
+"a list not yet reflecting it". The latest list is seen when the user reloads.
 
-**退会済みの利用者には退会の操作を出さない。** もう一度退会させる意味がなく、出しても契約が拒む。
+**Users whose accounts are already closed are not offered the closure action.** There is no point closing them again, and the contract
+would reject it if offered.
 
-## 自分の退会とは別の口
+## A separate endpoint from closing one's own account
 
-**この画面の退会は他人を対象に取る。** 自分の退会は操作した側の session を畳むが、こちらは畳んで
-はならない。
+**Closure on this screen targets someone else.** Closing one's own account tears down the operating side's session; this one must
+not tear it down.
 
-## 失敗
+## Failures
 
-| 起きたこと | 扱い |
+| What happened | Handling |
 | --- | --- |
-| 進行中の購入が残って拒まれた | 購入が終わるか取り消されるまで退会できないものとして扱う。**非同期の取消・在庫復元を前提にしない** |
-| 対象が送られてこなかった | 画面を開き直すものとして扱う |
-| 役割が足りない | 器が入口で止めるため、この画面には現れない |
+| Rejected because in-progress purchases remain | Treated as not closable until the purchases finish or are cancelled. **Does not assume asynchronous cancellation or stock restoration** |
+| No target was sent | Treated as something to fix by reopening the screen |
+| Insufficient role | Does not appear on this screen, because the layout shell stops it at the entry point |
 
-## 関連
+## Related
 
-- [`../layout.function.md`](../layout.function.md) —— 認可と器
+- [`../layout.function.md`](../layout.function.md) — authorization and the layout shell

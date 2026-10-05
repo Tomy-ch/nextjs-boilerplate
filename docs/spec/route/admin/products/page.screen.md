@@ -1,127 +1,130 @@
-# `/admin/products` 商品一覧管理（画面要件）
+# `/admin/products` Product List Management (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 >
-> 器の約束は [`../layout.screen.md`](../layout.screen.md) が持つ。
+> The layout shell's promises are held by [`../layout.screen.md`](../layout.screen.md).
 
-商品を並べて見比べ、そこから作成・編集・在庫の補充へ進む画面。
+A screen for listing and comparing products, and moving from there to creation, editing, or restocking.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 画面の名前と、ここから何ができるか |
-| 検索と絞り込み | キーワードの入力欄・分類・状態・いま効いている条件・条件をすべて解除する操作 |
-| 作成への導線 | 絞り込みの外の右端 |
-| 一覧 | 商品の表と、その下のページ送り |
+| Heading | The screen's name and what can be done from here |
+| Search and filtering | Keyword input, category, status, the conditions currently in effect, and an action that clears all conditions |
+| Link to creation | At the right end, outside the filters |
+| List | The product table, and the pagination below it |
 
-## なぜカードではなく表か
+## Why a table rather than cards
 
-**買う側は 1 件ずつ眺めて選び、管理側は同じ属性を件どうしで見比べる。** 利用者向けの一覧と同じ
-商品を扱うが、部品は共有しない。共有すると、どちらかの都合がもう一方へ漏れる。
+**Buyers browse and choose one item at a time; the admin side compares the same attributes across items.** It handles the same
+products as the customer-facing list but shares no components. Sharing would leak one side's concerns into the other.
 
-## 列
+## Columns
 
-| 列 | 内容 | 狭い段 |
+| Column | Content | Narrow band |
 | --- | --- | --- |
-| 商品名 | 押すと編集へ | 残す |
-| 分類 | 表示のみ | 伏せる |
-| 価格 | 契約が返す decimal 文字列をそのまま | 残す |
-| 在庫 | 押すと在庫補充へ | 残す |
-| 状態 | 区分に応じた色のバッジ | 伏せる |
-| 操作 | 名前で選ぶ menu | 残す |
+| Product name | Pressing it goes to editing | Kept |
+| Category | Display only | Hidden |
+| Price | The decimal string the contract returns, as is | Kept |
+| Stock | Pressing it goes to restocking | Kept |
+| Status | A badge colored by category | Hidden |
+| Actions | A menu to choose by name | Kept |
 
-**狭い段で残すのは、1 件を特定して操作するのに要るものだけ。** どれか・いくらか・いくつか・
-何ができるか の 4 つ。分類と状態は行を見比べるときの手がかりで、1 件を特定するのには要らない。
-表は横送りできるが、送らないと操作に届かない形は「並べて比べる」という表の役目を果たさない。
+**On the narrow band, only what is needed to identify one item and act on it is kept.** Four things: which, how much, how many, and
+what can be done. Category and status are clues for comparing rows and are not needed to identify one item. The table can scroll
+horizontally, but a shape where the actions cannot be reached without scrolling does not fulfill the table's role of "lining up and
+comparing".
 
-**列幅は列そのものではなく cell に持たせる。** `colgroup` の並びは描かれた列と位置で対応するため、
-狭い段で伏せた列に幅を持たせると、伏せた分だけ後ろの列と幅がずれる。
+**Column widths are held by cells, not by the columns themselves.** The `colgroup` sequence corresponds by position to the rendered
+columns, so giving width to a column hidden on the narrow band shifts the widths of the columns after it by the hidden amount.
 
-## 行を押せるようにする
+## Making rows clickable
 
-**行全体が編集への導線だが、行を link で包まない。** `tr` は link で包めず、包めたとしても在庫と
-行操作が link の内側に入り、操作の中に操作が居る形になる。商品名の link を行いっぱいに広げ、
-支援技術には商品名だけが遷移先として見えるようにする。
+**The whole row is the link to editing, but the row is not wrapped in a link.** A `tr` cannot be wrapped in a link, and even if it
+could, the stock and row actions would sit inside the link, putting an action inside an action. The product name's link is stretched
+across the whole row, so assistive technology sees only the product name as the destination.
 
-**在庫の数と行操作は、行の導線より上に重ねる。** 同じ場所を 2 つの導線が争わないようにする。
+**The stock number and row actions are layered above the row's link.** This keeps two links from competing for the same spot.
 
-## 状態の色
+## Status Colors
 
-**色は状態名に重ねているだけで、色だけでは区別させない。** バッジは状態名をそのまま出す
-（[0100](../../../../adr/0100-accessibility-target.md)）。区分と割り当ては
-[`page.function.md`](page.function.md) が持つ。
+**Color is only layered on the status name; color alone is never the distinction.** The badge shows the status name as is
+([0100](../../../../adr/0100-accessibility-target.md)). The categories and their assignment are held by
+[`page.function.md`](page.function.md).
 
-**廃番だけは明暗の反転で出し、区分の色とは別の軸で差を付ける。** 区分と同じ色の並びに置くと、
-admin が手で付け替えられるラベルと同じ重さに見える。扱いの判断は
-[`page.function.md`](page.function.md) が持つ。
+**Only discontinued products are shown with inverted lightness, differentiated on an axis separate from the category colors.** Placed
+in the same row of colors as the categories, it would look as weighty as a label an admin can reassign by hand. The handling decision
+is held by [`page.function.md`](page.function.md).
 
-**利用者向けの一覧・詳細では状態に色を付けない。** あちらは 1 件を見る場所で、見比べる相手が居ない。
+**The customer-facing list and detail do not color statuses.** Those are places for viewing one item, with nothing to compare against.
 
-## 絞り込み
+## Filtering
 
-### 確定の契機
+### When a Condition Takes Effect
 
-| 条件 | いつ効くか | 理由 |
+| Condition | When it takes effect | Reason |
 | --- | --- | --- |
-| キーワード | 送信の操作 | 打鍵のたびに取り直すと、読んでいる途中で行が入れ替わる |
-| 分類・状態 | 1 つ入り切りするたび | 選んだ結果が同じ画面に出るため、確定を待たせる理由がない。1 つ選ぶたびに件数が変わるのが見えるほうが、組み終えるまで結果が判らないより速く目的へ着く |
+| Keyword | On the submit action | Refetching on every keystroke swaps rows in the middle of reading |
+| Category / status | Each time one is toggled | The result of the choice appears on the same screen, so there is no reason to make the user wait to confirm. Seeing the count change with each choice reaches the goal faster than not knowing the result until the combination is complete |
 
-**空のまま送信できるのは、いま検索語が効いているときだけ。** 効いている検索語を消すには空の送信が
-要る一方、何も効いていない状態での送信は結果が変わらない。押しても何も起きない操作を残すと、
-反応が無いのか結果が同じなのかを区別できない。
+**Submitting while empty is possible only when a search term is currently in effect.** Clearing a search term in effect requires an
+empty submission, while submitting with nothing in effect does not change the result. Leaving an action that does nothing when
+pressed makes it impossible to tell whether there was no response or the result was the same.
 
-### 幅で変わるもの
+### What Changes with Width
 
-**分類と状態の入力欄を 2 つ置き、CSS の段で出し分ける。** 広い段では表の上に常設し、狭い段では
-画面下端の操作から overlay で開く。位置が動く出し分けを JavaScript の幅判定で行うと、サーバでは
-判定できないため hydration の前後で配置が動く（[0051](../../../../adr/0051-styling-system.md)）。
+**There are two sets of category and status inputs, switched by CSS bands.** On wide bands they are always shown above the table;
+on narrow bands they open in an overlay from a control at the bottom of the screen. Doing a position-changing switch with a
+JavaScript width check cannot be decided on the server, so the layout shifts before and after hydration
+([0051](../../../../adr/0051-styling-system.md)).
 
-**検索欄は幅によらず同じ場所に置く。** 確定の契機がどちらの段でも変わらず、overlay の中へ入れると
-同じ条件を 2 か所から確定できる形になる。
+**The search field stays in the same place at every width.** Its trigger is the same on either band, and putting it inside the
+overlay would create a shape where the same condition can be confirmed from two places.
 
-**overlay の中はまとめて確定する。** 表が裏に隠れて選んだ結果が見えないため、選んだ時点で反映しても
-手数が増えるだけになる。確定の操作は overlay の下端に置く。
+**Inside the overlay, everything is confirmed at once.** The table is hidden behind it and the result of a choice is not visible, so
+applying on each choice would only add steps. The confirm action sits at the bottom of the overlay.
 
-**overlay を開くたび、いま効いている条件から組み直す。** 閉じている間は条件が画面のどこにも見えない
-ため、前に開いたときの選びかけを覚えていると、次に開いた人にはそれが効いている条件に見える。
+**Each time the overlay opens, it is rebuilt from the conditions currently in effect.** While closed, the conditions are not visible
+anywhere on screen, so if it remembered a half-made selection from the last opening, the next person to open it would see that as
+the conditions in effect.
 
-**開く操作は画面下端に固定する。** 表を読み進めた先でも絞り込みへ戻れるようにする。効いている
-条件の数を操作に付けるのは、閉じている入力欄の中身が見えないため。
+**The open control is fixed to the bottom of the screen.** This keeps filtering reachable even after reading far down the table. The
+number of conditions in effect is attached to the control because the contents of the closed inputs cannot be seen.
 
-### 効いている条件
+### Conditions in Effect
 
-**効いている条件を、入力欄とは別に chip で並べる。** 狭い段では入力欄が overlay の中にあり、
-閉じている間は何で絞り込まれているかが画面から読めない。検索語も、入力欄に文字が残っているだけ
-では打ちかけと区別できない。
+**The conditions in effect are listed as chips, separately from the inputs.** On narrow bands the inputs are inside the overlay, and
+while it is closed the screen does not show what is filtering. A search term, too, cannot be told apart from half-typed text just
+because characters remain in the input.
 
-**chip は 1 つずつ外せる。** 絞り直すのに overlay を開き直す必要がなくなる。
+**Chips can be removed one at a time.** Refiltering no longer requires reopening the overlay.
 
-**chip が示すのは表示名で、URL に載っている番号ではない。** 選択肢に無い番号は条件として出さない
-—— 存在しない条件が効いているように読める。
+**A chip shows the display name, not the number in the URL.** A number not among the options is not shown as a condition — it would
+read as if a nonexistent condition were in effect.
 
-**すべてを解除する操作は右端に留める。** chip の後ろへ流すと、条件が増えて折り返すたびに操作の
-位置が動き、同じ場所を狙って押せない。**1 件しか効いていないときは出さない** —— その chip の解除と
-行き先が同じになる。
+**The clear-all action stays at the right end.** Letting it flow after the chips moves its position every time more conditions wrap,
+so the same spot cannot be aimed at. **It is not shown when only one condition is in effect** — its destination would be the same as
+removing that chip.
 
-**検索語を chip から外したら、入力欄の文字も消える。** URL だけが変わって入力欄が残ると、外した
-はずの語が効いているように見える。
+**Removing the search term's chip also clears the text in the input.** If only the URL changed and the input kept its text, the
+removed term would look as if it were still in effect.
 
-## 待機と空と失敗
+## Loading, Empty and Failure
 
-**待機表示は表と同じ行の高さで枠だけを出す。** スピナー 1 つで代用すると、描画された瞬間に表の
-高さが変わり、下に置いたページ送りの位置が動く。
+**The loading UI shows only frames with the same row height as the table.** Substituting a single spinner changes the table's height
+the moment content renders and moves the pagination placed below.
 
-**該当が無いときも表の形は保つ。** 列見出しを残したまま、無いことだけを本文に出す。
+**The table keeps its shape even with no matches.** The column headings stay, and only the absence is shown in the body.
 
-**条件が契約を外れているときは、一覧の代わりにそのことを出す。** 表の空の姿と同じに見せると、
-「該当が無い」と「条件が正しくない」を利用者が区別できない。外れた条件を名指しし、外して戻る
-導線を添える。
+**When the conditions fall outside the contract, say so instead of showing the list.** If it looked the same as the table's empty
+state, users could not tell "no matches" from "the conditions are not valid". Name the conditions that fell out and add a link that
+removes them and goes back.
 
-**取得に失敗したときは、器を残したまま本文だけを差し替える。** 脇の導線も header も残るので、
-別の画面へ移る道は塞がらない。
+**When fetching fails, only the main content is replaced, with the layout shell kept.** The side navigation and the header remain, so
+the way to other screens is not blocked.
 
-## ページ送り
+## Pagination
 
-**表の下に置き、前後の 1 ページずつを指す。** 行き先が無い向きは link ではなく操作できない control
-として描き、位置は保つ。
+**Placed below the table, pointing one page back and one forward.** A direction with no destination is rendered not as a link but as
+a control that cannot be operated, keeping its position.

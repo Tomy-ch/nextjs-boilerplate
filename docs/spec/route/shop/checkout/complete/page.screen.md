@@ -1,39 +1,39 @@
-# `/checkout/complete` 購入完了（画面要件）
+# `/checkout/complete` Purchase Complete (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-購入が成立したことを伝え、控えと内容を見せる画面。
+The screen that tells the user the purchase succeeded and shows the receipt and contents.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| 成立の知らせ | 注文を受け取ったこと |
-| ご注文の控え | 注文番号・注文日時・状況 |
-| 内訳 | 小計・税・送料・合計と、合計の参考換算額の切り替え |
-| ご購入いただいた商品 | 商品名・購入時点の単価・数量 |
-| 次の導線 | 買い物へ戻る / 控えを後から確かめる |
+| Success notice | That the order was received |
+| ご注文の控え (Order receipt) | Order number, order date and time, status |
+| 内訳 (Breakdown) | Subtotal, tax, shipping and total, and the reference converted amount toggle for the total |
+| ご購入いただいた商品 (Purchased products) | Product name, unit price at the time of purchase, quantity |
+| Next links | Back to shopping / check the receipt later |
 
-**成立したことを先に置き、控えと内容を続ける。** 最初に知りたいのは通ったかどうかで、内訳は
-その後に確かめるものである。
+**Success comes first, followed by the receipt and contents.** What the user wants to know first is whether it went through; the breakdown is
+something to check after that.
 
-## 見せない・出さないもの
+## What Is Not Shown
 
-**行ごとの金額を出さない。** 単価と数量を掛けると、画面が金額を作ることになる。合算した値は
-内訳が持つ。
+**No per-row amount.** Multiplying unit price by quantity would mean the screen creating an amount. The summed values are held
+by the breakdown.
 
-**参考換算額を添えるのは合計にだけ。** 内訳のそれぞれに添えると、どれが請求される金額なのかが
-読み取れなくなる。
+**The reference converted amount is added only to the total.** Adding it to each item in the breakdown would make it unreadable which one is
+the amount charged.
 
-**購入の識別子を出さない。** 利用者が問い合わせに持ち出せるのは注文番号であり、取得に使う値は
-画面に出さない。
+**The purchase identifier is not shown.** What the user can bring to an inquiry is the order number; the value used for fetching is not
+put on the screen.
 
-## 置き方
+## Placement
 
-内訳を脇へ貼り付けない。**この画面に送信の操作は無く**、読み進めるあいだ画面に残しておきたい
-操作が無い。控えと内訳は広い幅では横に並べ、狭い幅では縦に積む。
+The breakdown is not stuck to the side. **This screen has no submit operation**, so there is no operation to keep on screen while
+reading on. The receipt and the breakdown sit side by side on wide widths and stack on narrow widths.
 
-## 行き止まりにしない
+## Not a dead end
 
-次の導線を 2 本置く。買い物へ戻る道と、控えを後から確かめる道である。置かないと、利用者は
-戻る操作で確定前の画面へ帰ろうとする。
+Two next links are placed: a way back to shopping, and a way to check the receipt later. Without them, the user would try to
+return to the pre-confirmation screen with the back operation.

@@ -1,93 +1,93 @@
-# 置き場の決め方
+# Deciding Placement
 
-新しく作るもの（表示・hook・client 状態）を**どこへ置くか**を決めるための手順書である。
+This is a procedure for deciding **where to put** something new (display, a hook, client state).
 
-**判断そのものはここが持たない。** 層の責務は [ADR 0021](../adr/0021-frontend-responsibility.md)、物理配置は [ADR 0027](../adr/0027-directory-structure.md)、器への mount は [ADR 0026](../adr/0026-layout-shell-mount.md)、各カーネルの受け入れ範囲は層別 README が正である。ここが持つのは**それらを引くための順序**と、**引き当てを間違えやすい点**だけである。食い違う場合は ADR を優先する。
+**The decision itself is not held here.** Layer responsibilities are owned by [ADR 0021](../adr/0021-frontend-responsibility.md), physical placement by [ADR 0027](../adr/0027-directory-structure.md), mounting into the layout shell by [ADR 0026](../adr/0026-layout-shell-mount.md), and what each kernel accepts by the per-layer READMEs. What this page holds is only **the order in which to look them up** and **where the lookup is easy to get wrong**. When they disagree, the ADR wins.
 
-## 先に効く 1 つの問い
+## One Question That Comes First
 
-**題材の語彙を持つか。**
+**Does it carry the subject matter's vocabulary?**
 
-持つものは、層をどう辿っても `components` へは置けない。`components` はサンプル除去後も残る側であり、残留検査（`scripts/setup/remove-sample/sample-manifest.ts` の `DANGLING_PATTERN`）が題材の語を弾く。**この判定を最初に済ませると、以降の分岐が半分に減る。**
+If it does, it cannot go into `components` however you walk the layers. `components` is the side that survives sample removal, and the residue check (`DANGLING_PATTERN` in `scripts/setup/remove-sample/sample-manifest.ts`) rejects the subject matter's words. **Settling this first cuts the remaining branches in half.**
 
-## 表示（UI）
-
-```text
-題材の語彙を持つか？
-├─ 持たない → components
-│   ├─ 置く位置と数が決まっている（器の部品）        → shell/
-│   ├─ バックエンドの契約を知っている                → app-starter/
-│   ├─ 役割をまたぐが契約は知らない                  → patterns/
-│   └─ 役割が閉じている                              → design-system/<役割>/<部品>/
-└─ 持つ → features（カーネルへは上げられない）
-    ├─ 1 つの画面だけが使う          → features/<name>/<screen>/ui/<part>/
-    ├─ 同じ feature の複数画面が使う → features/<name>/ui/<part>/
-    └─ 他の feature も使う           → features/<name>/facade/<part>/
-```
-
-- `components` の区分は [`components/README.md`](../../src/components/README.md) が正
-- feature 内の 3 段は [ADR 0027](../adr/0027-directory-structure.md) の co-location 方針、`facade/` の条件は [ADR 0021](../adr/0021-frontend-responsibility.md)「昇格できないもの」が正
-- **上げるのは実際に使われてからである。** 「使いそう」で先に上げない。使う側が 1 つに戻ったら下ろす
-
-## hook
+## Display (UI)
 
 ```text
-何に依存するか？
-├─ ブラウザの能力（media query / storage / clipboard 等）
-│   ├─ 複数 feature が使う          → capabilities/
-│   └─ 1 つの部品に密着している      → その部品のディレクトリへ co-location
-└─ 画面の都合                        → その画面（features/<name>/<screen>/）
+Does it carry subject-matter vocabulary?
+├─ No → components
+│   ├─ Position and count are fixed (layout-shell components)    → shell/
+│   ├─ Knows the backend contract                                → app-starter/
+│   ├─ Spans roles but does not know the contract                → patterns/
+│   └─ Its role is closed                                        → design-system/<role>/<component>/
+└─ Yes → features (cannot be promoted to a kernel)
+    ├─ Used by one screen only                    → features/<name>/<screen>/ui/<part>/
+    ├─ Used by several screens of the same feature → features/<name>/ui/<part>/
+    └─ Used by other features too                 → features/<name>/facade/<part>/
 ```
 
-- `capabilities` の受け入れ範囲は [`capabilities/README.md`](../../src/capabilities/README.md) が正
-- **UI に密着した挙動 hook（focus trap、scroll 制御、gesture の観測など）は `capabilities` ではない。** その部品の隣に置く（[ADR 0022](../adr/0022-capabilities-kernel.md)）
-- `components` は `capabilities` を import できない。`components` の部品に要る hook は、その部品の隣に置く
+- The divisions of `components` are owned by [`components/README.md`](../../src/components/README.md)
+- The three levels inside a feature are owned by the co-location policy of [ADR 0027](../adr/0027-directory-structure.md), and the conditions for `facade/` by [ADR 0021](../adr/0021-frontend-responsibility.md), on UI that carries subject-matter vocabulary and so has no kernel to be promoted to
+- **Promote only once it is actually used.** Do not promote ahead of time because "it looks like it will be used". When the users drop back to one, move it back down
 
-## client 状態
+## Hooks
 
 ```text
-誰が持つか？
-├─ 複数 feature が読み書きする        → stores/
-├─ 横断 UI 自身の状態（queue、開閉）  → components（その部品が Provider ごと持つ）
-└─ 単一 feature に閉じる              → その feature の中（local state）
+What does it depend on?
+├─ A browser capability (media query / storage / clipboard, etc.)
+│   ├─ Used by several features                → capabilities/
+│   └─ Tied closely to one component           → co-located in that component's directory
+└─ A screen's own needs                        → that screen (features/<name>/<screen>/)
 ```
 
-- [ADR 0023](../adr/0023-stores-kernel.md) と [ADR 0060](../adr/0060-state-management.md) が正
-- 横断 UI が自分の状態を持つ形は [ADR 0026](../adr/0026-layout-shell-mount.md)「横断 UI 状態の帰属」で決まっている
-- **サーバの応答から組み立て直せないものは、見せていた側が持つ。** 取り消しの材料（消えた対象と、消えた時点の並び）がその典型で、消えた対象はもう応答に無く、並びは画面の見え方そのものである。応答から直前の姿を復元しようとせず、表示側の状態として覚える
+- What `capabilities` accepts is owned by [`capabilities/README.md`](../../src/capabilities/README.md)
+- **Behavior hooks tied closely to UI (focus traps, scroll control, observing gestures and the like) are not `capabilities`.** Put them next to that component ([ADR 0022](../adr/0022-capabilities-kernel.md))
+- `components` cannot import `capabilities`. A hook that a component in `components` needs goes next to that component
 
-## 引き当てを間違えやすい点
+## Client State
 
-### `components` は `stores` を import できない
+```text
+Who holds it?
+├─ Read and written by several features             → stores/
+├─ Cross-cutting UI's own state (queue, open/close)  → components (that component holds it, Provider included)
+└─ Closed within a single feature                   → inside that feature (local state)
+```
 
-依存マトリクス（`architecture.ts`）で `components` が許されているのは `model` と `errors` だけである。したがって**特定の状態を触る UI は `components` へ置けない**。「UI だから `components`」で始めると、ここで詰まる。
+- Owned by [ADR 0023](../adr/0023-stores-kernel.md) and [ADR 0060](../adr/0060-state-management.md)
+- The shape in which cross-cutting UI holds its own state is settled by [ADR 0026](../adr/0026-layout-shell-mount.md), where it decides which side owns that state together with the mount
+- **What cannot be rebuilt from the server's response is held by the side that was showing it.** The material for an undo (the item that disappeared, and the order at the moment it disappeared) is the typical case: the item that disappeared is no longer in the response, and the order is the screen's appearance itself. Do not try to restore the previous state from the response; remember it as display-side state
 
-同じ理由で `components` は `capabilities` も import できない。
+## Where the Lookup Goes Wrong
 
-### 昇格できないものがある
+### `components` cannot import `stores`
 
-[ADR 0021](../adr/0021-frontend-responsibility.md) の昇格表は「UI → `components`」と書いているが、**題材の語彙を持つ UI にはこの行が使えない**。上げ先が無いまま複数 feature が必要とした場合だけ、`facade/` を使う。
+In the dependency matrix (`architecture.ts`), `components` is allowed only `model` and `errors`. So **UI that touches a particular piece of state cannot go into `components`**. Starting from "it is UI, so `components`" gets stuck here.
 
-### 「使いそう」で上げると戻らない
+For the same reason, `components` cannot import `capabilities` either.
 
-予測で上げたものは、予測が外れても誰も下ろさない。**現に 2 つ以上が使っていること**を条件にすると、判断が観測可能になる。[ADR 0027](../adr/0027-directory-structure.md) が「再利用予定」の軸を禁じているのはこのためで、現在の事実で決めることは禁止に当たらない。
+### Some things cannot be promoted
 
-### 器へ置くものは props の口から差す
+The promotion table of [ADR 0021](../adr/0021-frontend-responsibility.md) says "UI → `components`", but **that row cannot be used for UI that carries the subject matter's vocabulary**. Only when several features need it with nowhere to promote it to is `facade/` used.
 
-横断的な操作を足したくなったとき、器そのものを client 側へ倒すと、器が import しているものが全部ブラウザへ送られる。器に口を開けて小さい部品を渡す（[rendering.md](rendering.md)、[ADR 0026](../adr/0026-layout-shell-mount.md)）。
+### Promoting on "it looks like it will be used" never comes back
 
-### 島を切り出しても、並びの見た目は 1 か所が決める
+What is promoted on a prediction is moved back down by nobody, even when the prediction misses. Making **two or more actually using it now** the condition makes the decision observable. This is why [ADR 0027](../adr/0027-directory-structure.md) forbids the "planned for reuse" axis; deciding on present facts does not fall under that prohibition.
 
-同じ並びに置く要素のうち 1 つだけが操作を持つと、その 1 つは Client Island として別ファイルへ割れる（[rendering.md](rendering.md)）。ファイルが割れても、**並びの見た目の宣言は 1 か所に残す** —— 選択肢の並びなら、その並びを定義する 1 ファイルが全要素の見た目を持ち、島はそれを読む。島の側が自分の見た目を持つと、同じ並びが 2 か所で決まり、片方だけ直した日にずれる。
+### What goes into the layout shell is inserted through a props slot
 
-### `features` 同士は直接参照しない
+When you want to add a cross-cutting interaction, flipping the layout shell itself to the client side sends everything the layout shell imports to the browser. Open a slot in the layout shell and pass a small component into it ([rendering.md](rendering.md), [ADR 0026](../adr/0026-layout-shell-mount.md)).
 
-相手の内部を import して解決してはならない。使えるのは相手の `facade/` だけで、それも上げ先のカーネルが無い場合に限る。
+### Even after an island is split out, one place decides how the row looks
 
-## 迷ったときに戻る問い
+When only one of the elements placed in the same row carries interaction, that one is split into a separate file as a Client Island ([rendering.md](rendering.md)). Even when the files split, **keep the declaration of how the row looks in one place** — for a row of options, the one file that defines the row holds the look of every element, and the island reads it. If the island holds its own look, the same row is decided in two places, and the day only one of them is fixed, they drift apart.
 
-1. **題材の語彙を持つか** — 持つなら `components` は消える
-2. **いま実際に何が使っているか** — 予測ではなく現在の事実で決める
-3. **上げ先のカーネルが受け取れるか** — 受け取れないなら、その事実が置き場を決めている
+### `features` do not reference each other directly
 
-3 つとも答えても決まらない場合、**分け方そのものが合っていない**可能性がある。置き場を増やす前に、feature の切り方か部品の粒度を疑う。
+Do not resolve it by importing the other feature's internals. Only the other feature's `facade/` may be used, and only when there is no kernel to promote it to.
+
+## Questions to Return to When Unsure
+
+1. **Does it carry the subject matter's vocabulary?** — if so, `components` drops out
+2. **What actually uses it right now?** — decide on present facts, not predictions
+3. **Can the kernel it would be promoted to accept it?** — if not, that fact is what decides the placement
+
+If answering all three still does not decide it, **the way things are divided may itself be wrong**. Before adding another location, question how the feature is cut or how fine-grained the components are.

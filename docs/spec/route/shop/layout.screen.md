@@ -1,75 +1,74 @@
-# `(shop)` 外枠（画面要件）
+# `(shop)` Outer Frame (Screen Requirements)
 
-> 機能要件は [`layout.function.md`](layout.function.md)。
+> Functional requirements are in [`layout.function.md`](layout.function.md).
 
-利用者向けの全画面が共有する枠。header・本文・脇の領域・footer で構成する。
+The frame shared by every user-facing screen. It consists of the header, the body, the sidebar and the footer.
 
 ## header
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| サイト名 | トップへの導線 |
-| nav | 商品 / 購入履歴 / マイページ / 管理（管理の役割を持つ主体にだけ） |
-| カートの入口 | 点数つき。押すと中身が出る |
+| Site name | Link to the top page |
+| nav | Products / Purchase history / My page / Admin (only for actors with the admin role) |
+| Cart entry point | With a count. Pressing it shows the contents |
 
-**管理への入口は、役割を持たない主体には出さない。** 押した先で断る作りにすると、管理の面がある
-事実だけが誰にでも伝わる（[`../admin/layout.function.md`](../admin/layout.function.md)）。
+**The entry point to admin is not shown to actors without the role.** If it were built to refuse after pressing, the mere fact that an admin
+surface exists would reach everyone ([`../admin/layout.function.md`](../admin/layout.function.md)).
 
-**点数は行数であって数量の合計ではない。** 同じ商品を 3 個入れた状態で「3」と出ると、3 種類
-あるように読める。**0 点のときは数字を出さない。** 0 を出すと、状態を伝えているのか操作できるのか
-が記号だけでは判らない。
+**The count is the number of rows, not the total quantity.** Showing "3" for three of the same product reads as if there were three
+kinds. **At zero items no number is shown.** Showing 0 leaves the symbol alone unable to say whether it conveys a state or
+can be operated.
 
-## カートの中身をどこに出すか
+## Where the Cart's Contents Appear
 
-| 幅 | 姿 | 入口の意味 |
+| Width | Form | What the entry point means |
 | --- | --- | --- |
-| `lg` 以上 | 本文の脇に常設する領域 | 領域を開け閉めする切り替え |
-| `lg` 未満 | 本文へ被せる drawer | drawer を開く引き手 |
+| `lg` and up | A region permanently beside the body | A toggle that opens and closes the region |
+| Below `lg` | A drawer over the body | A pull that opens the drawer |
 
-**要求は幅によらず 1 つ。** 広い幅では脇の領域が出るか消えるか、狭い幅では drawer が開くか閉じるか
-になるだけで、どちらも「中身を見たい」という同じ要求である。
+**The need is the same at every width.** On wide widths the sidebar either appears or disappears, and on narrow widths the drawer either opens or
+closes; both are the same need, "I want to see the contents."
 
-**本文の下へ積まない。** 内側のスクロールが外側のスクロールを奪い、本文へ戻れなくなる。
+**It is not stacked below the body.** The inner scroll would steal the outer scroll, and the user could not get back to the body.
 
-**header の入口の姿（切り替えか、drawer の引き手か）は幅の購読で選び、CSS で両方描かない。**
-これは「出し分けは CSS で行う」（[`rules.md#layout`](../../../rules.md#layout)）の例外に
-当たる —— drawer は focus を閉じ込めるため、CSS で隠しても DOM が残ると広い幅で focus が閉じ込め
-られる。その代わり**入口の初回描画は常に常設側の姿**になり、押せるようになるのは hydration の後に
-なる。
+**The form of the header's entry point (a toggle or the drawer's pull) is chosen by subscribing to the width, not by rendering both with CSS.**
+This is an exception to "the switch is done with CSS" ([docs/rules.md](../../../rules.md#layout)) — the drawer traps focus, so if CSS hid it
+while the DOM remained, focus would be trapped on wide widths. In exchange, **the entry point's initial render is always the permanent-side form**,
+and it becomes pressable only after hydration.
 
-**脇の領域そのものは CSS で出し分ける。** 本文の幅は脇の領域の有無で変わるため、hydration を
-待って出し分けると、描き終えた本文の幅が後から動く。
+**The sidebar itself is switched with CSS.** The body's width changes with the presence of the sidebar, so switching after
+hydration would move the width of an already-rendered body afterwards.
 
-### 脇の領域（`lg` 以上）
+### Sidebar (`lg` and Up)
 
-- **カートが空のあいだは枠ごと出さない。** 中身の無い枠が場所を取ると、本文の幅がカートの有無で
-  変わらないぶん空白だけが残る
-- **ただし戻せる明細を抱えているあいだは、空でも枠を残す。** 最後の 1 件を取り除いた直後に枠ごと
-  消すと、戻す手段が同時に消える
-- **閉じられる。** この領域は開いているあいだ本文の幅を削る。閉じられないと、一度カートへ入れた
-  利用者は一覧を狭いまま読み続けることになる。閉じた後は header の入口から開き直せる
-- 中身は明細を局所スクロールさせ、小計と先へ進む導線はスクロールの外に置く
+- **While the cart is empty, the frame is not shown at all.** A frame with no contents taking space leaves only blank space, since the body's width
+  does not change with the cart's presence
+- **But while returnable line items are held, the frame remains even when empty.** If the frame vanished right after removing the last item,
+  the way back would vanish with it
+- **It can be closed.** While open, this region takes width from the body. If it could not be closed, a user who once added to the cart
+  would keep reading the list narrowed. After closing, it can be reopened from the header's entry point
+- Inside, the line items scroll locally, and the subtotal and the onward link sit outside the scroll
 
-### drawer（`lg` 未満）
+### Drawer (Below `lg`)
 
-- 引き出す操作は**押下だけ**。画面端からの swipe は持たない（browser の戻る操作と競合し、どちらが
-  起きるかが端末ごとに変わる）
-- 背面の押下と「閉じる」のどちらでも閉じる
-- 何点入っているかを開いた中身の説明に添える
+- It is pulled out **only by pressing**. There is no swipe from the screen edge (it conflicts with the browser's back gesture, and which one
+  happens varies by device)
+- It closes both by pressing the backdrop and by 「閉じる」 ("Close")
+- How many items it holds is added to the description of the opened contents
 
-## 中身に出す導線
+## Links Shown in the Contents
 
-主が「購入手続きへ」、副が「カートを見る」（`/cart`）。
+The primary is 「購入手続きへ」 ("Proceed to checkout") and the secondary is 「カートを見る」 ("View cart") (`/cart`).
 
-**副を落とさない。** 購入手続きは認証の内側にあり、未ログインの利用者がカートの中身を全画面で
-確かめられる経路が `/cart` しか無い。この器は本文の脇に収まるぶんの幅しか持たず、明細が増えた
-ときの数量変更と削除もここでは辛くなる。
+**The secondary is not dropped.** Checkout is inside authentication, and the only path for a logged-out user to check the cart's contents
+full-screen is `/cart`. This container only has as much width as fits beside the body, and changing quantities or removing items gets awkward here
+once line items pile up.
 
 ## footer
 
-このリポジトリが何であるかの 1 文と、リポジトリへの導線を置く。
+One sentence on what this repository is, and a link to the repository.
 
-## 関連
+## Related
 
-- 実装 `src/app/(shop)/layout.tsx` / `src/features/cart/` — [README](../../../../src/features/cart/README.md)
-- カートの全画面 [`cart/page.screen.md`](cart/page.screen.md)
+- Implementation `src/app/(shop)/layout.tsx` / `src/features/cart/` — [README](../../../../src/features/cart/README.md)
+- The full-screen cart [`cart/page.screen.md`](cart/page.screen.md)

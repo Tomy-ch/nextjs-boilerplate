@@ -1,35 +1,35 @@
-# プロジェクト
+# Project
 
-**このリポジトリが何であって何でないか**を持つ。設計の判断は [`../adr/`](../adr/) が、主題ごとの
-解説は [`../design/`](../design/README.md) が持つのに対し、ここが答えるのはその手前の問い ——
-誰に向けて、何を含め、何を意図して含めず、どう版を進めるか —— である。
+Holds **what this repository is and what it is not**. Design decisions are held by [`../adr/`](../adr/), and per-topic
+explanations by [`../design/`](../design/README.md); what this directory answers is the question that comes before them —
+for whom, what is included, what is deliberately left out, and how versions advance.
 
-## 文書
+## Documents
 
-| 文書 | 問い |
+| Document | Question |
 | --- | --- |
-| [scope.md](scope.md) | 誰が、どんなシステムに使う前提か。向く用途と向かない用途 |
-| [out-of-scope.md](out-of-scope.md) | 何を意図して含めていないか。項ごとの理由 |
-| [policy.md](policy.md) | 何を足し、何を足さないか。受け入れの判定軸と保守の姿勢 |
-| [roadmap.md](roadmap.md) | どの方向へ維持されているか。スケジュールではない |
-| [versioning.md](versioning.md) | 版をどう付けるか |
+| [scope.md](scope.md) | Who is assumed to use it, for what kind of system. Uses it suits and uses it does not |
+| [out-of-scope.md](out-of-scope.md) | What is deliberately not included. The reason for each item |
+| [policy.md](policy.md) | What is added and what is not. Acceptance criteria and the maintenance stance |
+| [roadmap.md](roadmap.md) | In which direction it is maintained. Not a schedule |
+| [versioning.md](versioning.md) | How versions are assigned |
 
-## ここに置かないもの
+## Kept Elsewhere
 
-| 種類 | 置き場 |
+| Kind | Where it goes |
 | --- | --- |
-| 選択肢からの選定・意図的にやらない判断とその理由 | [`../adr/`](../adr/) |
-| 日々強制される禁止 | [`../rules.md`](../rules.md) |
-| 層ごとの責務と受け入れ範囲 | 各層の `README.md` |
-| 個々の作業項目 | issue トラッカー |
+| Choosing among options, decisions not to do something deliberately, and their reasons | [`../adr/`](../adr/) |
+| Prohibitions enforced day to day | [`../rules.md`](../rules.md) |
+| Per-layer responsibilities and acceptance scope | Each layer's `README.md` |
+| Individual work items | The issue tracker |
 
-## 読み方
+## How to Read This
 
-- **判断そのものはここに無い。** 各文書は決定の要約と索引であり、根拠は ADR へのリンクが指す。
-  食い違えば ADR が正である（[0140](../adr/0140-documentation-operations.md)）
-- **out-of-scope はバックログではない。** 項目がそこを出るのは、書かれた理由が成り立たなくなった
-  ときだけで、それは ADR の判断である
-- **ここは自分の文書になる場所である。** scope / out-of-scope は
-  自分のプロジェクトの線に書き換える。roadmap は方向を書き換え、ページの形だけを引き継ぐ
+- **The decisions themselves are not here.** Each document is a summary and index of decisions, and the basis is where the links to the ADRs point.
+  If they disagree, the ADR is authoritative ([0140](../adr/0140-documentation-operations.md))
+- **out-of-scope is not a backlog.** An item leaves it only when the reason written for it no longer holds,
+  and that is an ADR decision
+- **This is where your own documents go.** Rewrite scope / out-of-scope
+  to your own project's lines. For roadmap, rewrite the direction and inherit only the shape of the page
 
-policy / roadmap のうち上流にしか成り立たない節は、セットアップの剥がしで置き換わる（[boilerplate 限定の規約](../get-started/boilerplate-only-conventions.md)）。 <!-- boilerplate-only:line -->
+The sections of policy / roadmap that hold only upstream are replaced by the setup stripping ([Boilerplate-Only Conventions](../get-started/boilerplate-only-conventions.md)). <!-- boilerplate-only:line -->

@@ -1,57 +1,57 @@
-# `/mypage` マイページ（画面要件）
+# `/mypage` My Page (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-自分の登録情報と購入の集計を確かめ、編集・退会・サイトの説明へ進む画面。
+The screen where the user checks their registered information and purchase summary, and proceeds to editing, account closure or the site description.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| プロフィール | 氏名・メール・電話・住所と、編集への導線 |
-| 購入サマリ | 総件数・合計金額と、ステータス別の内訳。詳細を開く導線 |
-| 操作の列 | このサイトについて / プライバシーポリシー / 退会 |
+| Profile | Name, email, phone and address, and a link to editing |
+| Purchase summary | Total count and total amount, and the breakdown by status. A link that opens the details |
+| Operation row | About this site / Privacy policy / Account closure |
 
-## 購入サマリ詳細
+## Purchase Summary Detail
 
-集計カードの `[もっと見る]` で dialog を開く。列は**注文日時 / ステータス / 購入コード / 金額**。
+`[もっと見る]` ("See more") on the summary card opens a dialog. The columns are **注文日時 / ステータス / 購入コード / 金額** (order date and time / status / purchase code / amount).
 
-並んでいるのが全部でないときは、その旨を説明に出す。黙って切ると古い購入が無いように見える。
+When what is listed is not everything, the description says so. Cutting it silently makes it look as if older purchases do not exist.
 
-## 退会
+## Account Closure
 
-`[退会する]` は確認 dialog を開く。実行は dialog の中の submit で、`AlertDialogAction` は使わない
-（押した時点で dialog が閉じ、送信中の表示も失敗の文言も利用者が見ていない場所に出るため）。
+`[退会する]` ("Close account") opens a confirmation dialog. It runs as a submit inside the dialog, and `AlertDialogAction` is not used
+(because it closes the dialog when pressed, and the in-flight display and failure text would appear where the user is not looking).
 
-進行中の購入があって成立しなかった場合だけ、専用の文言を出す。
+Only when it did not go through because a purchase is in progress is a dedicated message shown.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 読む 2 枚 | 操作の列 |
+| Width | The two reading cards | Operation row |
 | --- | --- | --- |
-| `lg` 以上 | 横に 2 列 | 3 つを等幅で 1 行 |
-| `sm`〜`lg` | 縦積み | 3 つを等幅で 1 行 |
-| `sm` 未満 | 縦積み | 縦積み。**区切り線で 1 つずつ分ける** |
+| `lg` and up | Two columns side by side | All three at equal width in one row |
+| `sm`–`lg` | Stacked | All three at equal width in one row |
+| Below `sm` | Stacked | Stacked. **Separated one by one with divider lines** |
 
-段を 2 列までにするのは、3 列にすると 1 枚あたりの幅が住所や表の 1 行を折り返す幅まで縮み、
-広い画面のほうが読みにくくなるため。
+The columns stop at two because with three, each card's width shrinks to where an address or a table row wraps,
+making the wide screen the harder one to read.
 
-操作の列を等幅にするのは押せる範囲を揃えるため。文言の長さで決めると「プライバシーポリシー」
-だけが広く、退会が狭い並びになる。狭い幅で区切り線を入れるのは、縦に積んだだけでは隣り合った
-ボタンが 1 つの群に見えて押し間違えるため。
+The operation row is equal width to even out the pressable areas. Sizing by text length would make only 「プライバシーポリシー」 ("Privacy policy")
+wide and account closure narrow. Divider lines go in on narrow widths because merely stacking makes adjacent
+buttons look like one group and invites mispresses.
 
-## パンくず
+## Breadcrumbs
 
-置かない。global nav がこの画面を直接指しており、階層が 1 段であるため
-（[0026](../../../../adr/0026-layout-shell-mount.md)）。
+None. The global nav points directly at this screen, and the hierarchy is one level deep
+([0026](../../../../adr/0026-layout-shell-mount.md)).
 
-## 空の状態
+## Empty State
 
-購入が 1 件も無い場合、集計カードは残したまま表を「まだ購入がありません。」に置き換え、
-`[もっと見る]` を押せなくする。列だけが並んだ表は、集計が 0 であることよりも「読み込みに
-失敗した」に見える。
+When there are no purchases at all, the summary card stays and the table is replaced with 「まだ購入がありません。」 ("No purchases yet."), and
+`[もっと見る]` becomes unpressable. A table with only its columns looks more like "loading
+failed" than like a summary of 0.
 
-## 関連
+## Related
 
-- 実装 `src/features/account/mypage/` — [README](../../../../../src/features/account/README.md)
-- 隣の画面 [`/mypage/edit`](edit/page.screen.md)
+- Implementation `src/features/account/mypage/` — [README](../../../../../src/features/account/README.md)
+- Neighboring screen [`/mypage/edit`](edit/page.screen.md)

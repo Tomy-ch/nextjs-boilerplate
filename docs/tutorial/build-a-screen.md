@@ -1,80 +1,80 @@
-# チュートリアル: 画面を 1 つ、端から端まで作る
+# Tutorial: Build One Screen End to End
 
-このリポジトリで **1 つの画面を、契約から表示・送信・テスト・カタログまで通しで作る**手順書である。
-規約は [`rules.md`](../rules.md)、判断は [`adr/`](../adr/)、置き場の決め方は
-[`design/placement.md`](../design/placement.md) が持つ。この文書はそれらを写さず、**1 つの feature を
-依存の順に層を上りながら組み立て、各段の終わりに何が通るようになったかを検査コマンドで示す**。
+This is a step-by-step guide to **building one screen in this repository end to end, from the contract through display, submission, tests and the catalog**.
+The rules are held by [`rules.md`](../rules.md), the decisions by [`adr/`](../adr/), and how to decide placement by
+[`design/placement.md`](../design/placement.md). This document does not copy them; **it assembles one feature
+climbing the layers in dependency order, and at the end of each step shows with a check command what now passes**.
 
-## 誰のための文書か
+## Who This Document Is For
 
-- テンプレートからリポジトリを作り、**同梱サンプルを消したあと**に、最初の画面を書き始める人
-- 層別 README を一通り読んだが、「実際にどのファイルに何を書くのか」を 1 本の道筋で見たい人
-- `pnpm gen` や `new-feature` skill が出したものを、**正しいかどうか判断できる**ようになりたい人
+- Someone who created a repository from the template and starts writing the first screen **after deleting the bundled sample**
+- Someone who has read through the per-layer READMEs but wants to see "what to actually write in which file" as one path
+- Someone who wants to become **able to judge whether** what `pnpm gen` or the `new-feature` skill produced is correct
 
-**サンプルを消したあとにこそ読む文書である。** 同梱サンプルは実装の実例だが、テンプレートから
-作った側が最初に破棄する。破棄後に残るのは規約と ADR と層別 README で、「で、どう書くのか」を
-示すものがこの文書だけになる。だからこの文書は**消える側のコードを参照しない**。
+**This document is meant to be read precisely after the sample is deleted.** The bundled sample is a set of implementation examples, but a repository
+created from the template purges it first. What remains after the purge is the rules, the ADRs and the per-layer READMEs, and the only thing
+that shows "so how do I write it" is this document. That is why this document **does not reference the code that disappears**.
 
-## 何を作るか
+## What We Build
 
-自分の「メモ」を扱う feature `notes` を作る。題材はテンプレートから作った側が最初に差し替えるもの
-なので、意図して平凡にしてある。
+We build a feature `notes` that handles your own "notes". The subject is the first thing a repository created from the template replaces,
+so it is deliberately ordinary.
 
-| Route | 画面 | 認証 |
+| Route | Screen | Authentication |
 | --- | --- | --- |
-| `/notes` | 一覧。題名と更新日時を新しい順に並べる | 必要 |
-| `/notes/[id]` | 詳細。本文を読み、編集へ進む | 必要 |
-| `/notes/[id]/edit` | 1 件の編集。題名と本文を保存する | 必要 |
+| `/notes` | List. Lines up titles and updated times, newest first | Required |
+| `/notes/[id]` | Detail. Read the body and go on to editing | Required |
+| `/notes/[id]/edit` | Editing one note. Save the title and body | Required |
 
-3 画面とも認証の内側に置く。**主体を名乗る口と名乗らない口の違い**は Step 3 で扱い、公開の
-一覧を作りたい場合にどこが変わるかもそこで示す。
+All three screens sit behind authentication. **The difference between an endpoint that names an actor and one that does not** is covered in Step 3, which also shows
+what changes if you want to build a public list.
 
-通す層と、そこで書くもの。
+The layers we pass through, and what we write in each.
 
-| Step | 層 | 書くもの |
+| Step | Layer | What is written |
 | --- | --- | --- |
-| 0 | — | サンプルを消し、残った木を確かめる |
-| 1 | `openapi/` → `src/adapters/gen/` | 契約を取り込み、wire 型・zod・モックを生成する |
-| 2 | `src/model/note/` | 表示用の型、識別子の brand、表示検証 |
-| 3 | `src/adapters/server/api/` | 取得と更新の口。分類と資格情報 |
-| 4 | `src/features/notes/` | 一覧・詳細の合成（`page-content` / `view` / `ui/`） |
-| 5 | `src/app/notes/` | route segment・metadata・器・保護の宣言 |
-| 6 | `src/features/notes/` + `src/app/notes/` | 編集の送信（Server Action）と結果の見せ方 |
-| 7 | 各層の隣 | テスト。何をどこで見るか |
-| 8 | `*.stories.tsx` / `e2e/lib/screens.ts` | カタログと基準画像 |
-| 9 | `docs/spec/route/notes/` / `src/features/notes/README.md` | 画面の約束と slice の索引 |
+| 0 | — | Delete the sample and check the tree that remains |
+| 1 | `openapi/` → `src/adapters/gen/` | Import the contract and generate wire types, zod and mocks |
+| 2 | `src/model/note/` | Display types, identifier brands, display validation |
+| 3 | `src/adapters/server/api/` | Fetch and update endpoints. Classification and credentials |
+| 4 | `src/features/notes/` | Composing the list and the detail (`page-content` / `view` / `ui/`) |
+| 5 | `src/app/notes/` | Route segment, metadata, layout shell, protection declaration |
+| 6 | `src/features/notes/` + `src/app/notes/` | Submitting the edit (Server Action) and how the result is shown |
+| 7 | Next to each layer | Tests. What is checked where |
+| 8 | `*.stories.tsx` / `e2e/lib/screens.ts` | Catalog and baseline images |
+| 9 | `docs/spec/route/notes/` / `src/features/notes/README.md` | The screen's promises and the slice's index |
 
-## 依存の順序
+## Dependency Order
 
-依存は内向きだが、**組み立ては契約から始める**。生成物が無いと取得の口が書けず、取得の口が無いと
-画面が組めない。
+Dependencies point inward, but **assembly starts from the contract**. Without the generated artifacts the fetch endpoints cannot be written, and without the fetch endpoints
+the screens cannot be assembled.
 
 ```text
-契約（openapi/）
-  └─ 生成（src/adapters/gen/ + mocks/）
+contract (openapi/)
+  └─ generation (src/adapters/gen/ + mocks/)
        └─ model  →  adapters/server  →  features  →  app
-                                            └─ 送信（actions.ts）→ テスト → カタログ・基準画像 → 仕様書
+                                            └─ submission (actions.ts) → tests → catalog / baseline images → specification
 ```
 
-**画面を作るときの作業順は別にある。** [`playbook.md`](../playbook.md)「画面を作るときの順序」は
-ディレクション → story → レビュー → 分離 → 仕様書 → テストの順で、見た目が決まってからテストを
-書く。この文書が依存の順に並べているのは、各段の終わりに検査を通せるようにするためであって、
-作業順を置き換えるものではない。実際に画面を作るときは、Step 4 の `view` と Step 8 の story を
-先に書いてレビューを通し、そのあとで残りを埋める。
+**The order of work when building a screen is a separate thing.** [`playbook.md`](../playbook.md#order-of-work-when-building-a-screen) "Order of Work When Building a Screen" goes
+direction → story → review → separation → specification → tests, writing tests once the appearance is settled. This document is ordered by dependency
+so that a check can pass at the end of each step; it does not replace
+the order of work. When actually building a screen, write Step 4's `view` and Step 8's story
+first, get them through review, and fill in the rest after that.
 
-各 Step は **目的・触るファイル・実物のコード・迷う分岐の行き先・確認コマンド** を持つ。
+Each Step has **a purpose, the files it touches, real code, where to go at confusing branches, and check commands**.
 
-## 前提
+## Prerequisites
 
-- ツールチェーンが入っている（`make install-tools` / `pnpm install`）
-- 開発サーバとカタログは `APP_ENV=local` で起動する。`pnpm dev` / `pnpm storybook` は
-  `package.json` がこれを付ける
-- バックエンド無しで進めるなら `APP_API_MODE=mock`。契約から生成したモックが応える
-  （[`mocks/README.md`](../../mocks/README.md)）。環境変数の置き場は
+- The toolchain is installed (`make install-tools` / `pnpm install`)
+- The development server and the catalog start with `APP_ENV=local`. For `pnpm dev` / `pnpm storybook`,
+  `package.json` adds it
+- To proceed without a backend, use `APP_API_MODE=mock`. A mock generated from the contract responds
+  ([`mocks/README.md`](../../mocks/README.md)). Where environment variables go is
   [`env/README.md`](../../env/README.md)
-- 認証の内側の画面を開くには session が要る。開発では `/dev/session` が IdP を通さずに発行する
-  （[`src/features/dev-session/README.md`](../../src/features/dev-session/README.md)）
-- やり直せるよう、作業用のブランチで進める
+- Opening a screen behind authentication needs a session. In development, `/dev/session` issues one without going through the IdP
+  ([`src/features/dev-session/README.md`](../../src/features/dev-session/README.md))
+- Work on a working branch so you can start over
 
 ```bash
 git switch -c tutorial/build-a-screen
@@ -82,12 +82,12 @@ git switch -c tutorial/build-a-screen
 
 ---
 
-## Step 0 — ゼロへリセット
+## Step 0 — Reset to Zero
 
-**目的:** 同梱サンプルを消し、何が残るかを確かめる。ここが出発点である。
+**Purpose:** delete the bundled sample and see what remains. This is the starting point.
 
-消す対象は `scripts/setup/remove-sample/sample-manifest.ts` が宣言している。破棄の道具そのものも
-対象に含まれ、実行後に自分ごと消える。先に読んでおくと、残る側と消える側の線が判る。
+What gets deleted is declared by `scripts/setup/remove-sample/sample-manifest.ts`. The purge tool itself is
+included in the targets and deletes itself after running. Reading it first shows where the line between what remains and what disappears runs.
 
 ```bash
 # 何が消えるかを表示するだけ。書き換えない
@@ -97,40 +97,40 @@ DRY_RUN=1 make setup-remove-sample
 make setup-remove-sample
 ```
 
-**残るもの**（この文書が参照してよいのはこちらだけ）:
+**What remains** (this document may reference only these):
 
-| 場所 | 残る中身 |
+| Location | What remains |
 | --- | --- |
-| `src/app/` | root layout、`(auth)`、`api/auth` / `api/health` / `api/telemetry`、`dev/session`、`maintenance`、`not-found`、動作確認用の最小の `page.tsx` |
-| `src/features/` | `auth` / `dev-session` / `maintenance` と層 README |
-| `src/model/` | `action-state` / `pagination` / `datetime` / `search-params` / `session` / `authz` など題材を持たない型と関数 |
-| `src/adapters/` | `server/http`（fetch wrapper と、分類ごとの接続口 `getPublicClient()` / `getUserScopedClient()`）/ `server/auth` / `client/http` / `http/`。**`server/api/` と `gen/` は空になる** |
-| `src/components/` | 全部。題材の語を持たない部品だけが置かれている |
-| `mocks/` | 機構（`stable-responses.ts` / `node.ts` / `serve.ts`）。**`api/` は空になる** |
-| `docs/` | ADR・設計解説・規約・層の README・コア残留画面の仕様書 |
+| `src/app/` | The root layout, `(auth)`, `api/auth` / `api/health` / `api/telemetry`, `dev/session`, `maintenance`, `not-found`, and a minimal `page.tsx` for checking that things work |
+| `src/features/` | `auth` / `dev-session` / `maintenance` and the layer README |
+| `src/model/` | Types and functions with no subject, such as `action-state` / `pagination` / `datetime` / `search-params` / `session` / `authz` |
+| `src/adapters/` | `server/http` (the fetch wrapper and the per-classification connection points `getPublicClient()` / `getUserScopedClient()`) / `server/auth` / `client/http` / `http/`. **`server/api/` and `gen/` become empty** |
+| `src/components/` | All of it. Only components without the subject's vocabulary are placed here |
+| `mocks/` | The mechanism (`stable-responses.ts` / `node.ts` / `serve.ts`). **`api/` becomes empty** |
+| `docs/` | ADRs, design explanations, rules, layer READMEs, and the specifications of the screens that remain in the core |
 
-**消えるもの:** 題材の画面群（`src/app/` の下で題材が持つ route group と segment）、それに固有の `features` / `model` /
-`adapters/server/api` / `stores`、契約（`openapi/api.gen.yaml`）と生成物、題材の仕様書、
-題材の E2E ジャーニー。
+**What disappears:** the subject's screens (the route groups and segments under `src/app/` that the subject owns), the `features` / `model` /
+`adapters/server/api` / `stores` specific to them, the contract (`openapi/api.gen.yaml`) and the generated artifacts, the subject's specifications,
+and the subject's E2E journeys.
 
-**確認:** 破棄の連鎖が最後まで緑で終わること。加えて木を見る。
+**Check:** the purge chain finishes green to the end. Also look at the tree.
 
 ```bash
 git status --short
 ls src/features src/adapters/server
 ```
 
-この時点で `src/adapters/server/api/` は無い。以降の Step はこれを作り直していく。
+At this point `src/adapters/server/api/` does not exist. The following Steps rebuild it.
 
 ---
 
-## Step 1 — 契約を取り込み、生成する
+## Step 1 — Import the Contract and Generate
 
-**目的:** バックエンドの OpenAPI 契約を取り込み、wire 型・zod スキーマ・MSW ハンドラを生成する。
-**生成物は編集しない**——ここが「自分で書くもの」と「書いてはいけないもの」の線である。
+**Purpose:** import the backend's OpenAPI contract and generate wire types, zod schemas and MSW handlers.
+**Do not edit the generated artifacts** — this is the line between "what you write" and "what you must not write".
 
-**この文書が前提にする契約。** 正本はバックエンドのリポジトリにあり、ここは形を示すだけである。
-自分の契約に読み替える。
+**The contract this document assumes.** The authoritative copy lives in the backend's repository; this only shows the shape.
+Substitute your own contract.
 
 ```yaml
 paths:
@@ -206,9 +206,9 @@ components:
         body: { type: string, maxLength: 2000 }
 ```
 
-**取得座標を宣言する。** `openapi/sources.yaml` の `sources` に 1 本足す。`name` は `api` のまま使うのが
-既定で、生成の側（`orval.config.ts` / `scripts/openapi/gen-api-plan.ts`）がその綴りを持っている
-（理由は [`openapi/README.md`](../../openapi/README.md)「複数契約」）。
+**Declare the fetch coordinates.** Add one entry to `sources` in `openapi/sources.yaml`. Keeping `name` as `api` is
+the default, and the generation side (`orval.config.ts` / `scripts/openapi/gen-api-plan.ts`) holds that spelling
+(the reason is in [`openapi/README.md`](../../openapi/README.md) 「複数契約」).
 
 ```yaml
 sources:
@@ -218,40 +218,40 @@ sources:
     ref: <commit-sha>
 ```
 
-`ref` はコミット SHA で固定する。`sha` / `fetchedAt` は取得時に書き戻されるので書かない。
+Pin `ref` to a commit SHA. `sha` / `fetchedAt` are written back at fetch time, so do not write them.
 
 ```bash
 make api-fetch      # sources.yaml の座標から取得し、openapi/api.gen.yaml へ置く
 make api-gen        # 型 / zod / MSW ハンドラを生成する
 ```
 
-**現れるもの（生成物。編集しない）:**
+**What appears (generated artifacts; do not edit):**
 
-| パス | 中身 |
+| Path | Contents |
 | --- | --- |
-| `src/adapters/gen/api/model/` | wire 型。`NoteSummary` / `NotePatchRequest` など `components.schemas` に対応する |
-| `src/adapters/gen/api/endpoints.zod.ts` | operation ごとの zod。`GetNotesResponse` / `GetNotesDetailResponse` / `PatchNotesDetailResponse` / `GetNotesQueryParams` |
-| `src/adapters/gen/api/limits.ts` | 検証を伴わない定数だけ。client が引いてよいのはここだけ |
-| `mocks/api/endpoints.msw.ts` | 契約駆動の MSW ハンドラ |
+| `src/adapters/gen/api/model/` | Wire types. Correspond to `components.schemas`, such as `NoteSummary` / `NotePatchRequest` |
+| `src/adapters/gen/api/endpoints.zod.ts` | zod per operation. `GetNotesResponse` / `GetNotesDetailResponse` / `PatchNotesDetailResponse` / `GetNotesQueryParams` |
+| `src/adapters/gen/api/limits.ts` | Only constants that involve no validation. This is the only thing the client may import |
+| `mocks/api/endpoints.msw.ts` | Contract-driven MSW handlers |
 
-**zod の名前は operationId から決まる。** 上の表は前提の契約から導いた綴りで、実際の綴りは生成された
-`endpoints.zod.ts` を開いて確かめる。以降のコードはこの綴りを使う。
+**zod names are determined by the operationId.** The table above gives the spellings derived from the assumed contract; check the actual spellings by opening the generated
+`endpoints.zod.ts`. The code from here on uses these spellings.
 
-**契約を入れたときに、生成物の外で書くもの。** サンプルの破棄で空になった配線を戻す。どれも 1 行から
-数行で、置き場の理由はそれぞれの README が持つ。
+**What you write outside the generated artifacts when you add a contract.** Restore the wiring that the sample purge emptied. Each is one
+to a few lines, and the reason for each location is held by its README.
 
-| ファイル | 書くこと | 理由の在処 |
+| File | What to write | Where the reason is |
 | --- | --- | --- |
-| `mocks/handlers.ts` | 生成物を `stableHandlers` へ渡す 1 行 | [`mocks/README.md`](../../mocks/README.md) |
-| `scripts/lib/untested-modules.ts` の `GENERATED_MODULES` | `src/adapters/gen/**` と `mocks/api/**` | 書き手の居ないコードにテストを課さない（同ファイルの doc） |
-| `src/adapters/README.md` / `mocks/README.md` の frontmatter `coverage-exclusions` | 同じ 2 つのパターン | `scripts/coverage-exclusion.gate.test.ts` が所有側の README に記録を求める |
-| `orval.config.ts` の `PATTERNED_MOCK_PROPERTIES` / `operations` | `pattern` を持つ項目と、組で決まる値の指定 | 同ファイルのコメント |
+| `mocks/handlers.ts` | One line passing the generated artifact to `stableHandlers` | [`mocks/README.md`](../../mocks/README.md) |
+| `GENERATED_MODULES` in `scripts/lib/untested-modules.ts` | `src/adapters/gen/**` and `mocks/api/**` | Do not impose tests on code nobody writes (the doc in the same file) |
+| The frontmatter `coverage-exclusions` of `src/adapters/README.md` / `mocks/README.md` | The same two patterns | `scripts/coverage-exclusion.gate.test.ts` requires a record in the owning README |
+| `PATTERNED_MOCK_PROPERTIES` / `operations` in `orval.config.ts` | Fields that have a `pattern`, and values determined as a pair | The comments in the same file |
 
-**迷ったら:** 生成物を直したくなったときは契約を直して再生成する
-（[0072](../adr/0072-api-type-generation.md)）。契約の取り込み経路と生成物の読み方は
-[`design/data-fetching.md`](../design/data-fetching.md)「契約から生成物へ、生成物から表示の型へ」。
+**If in doubt:** when you want to fix a generated artifact, fix the contract and regenerate
+([0072](../adr/0072-api-type-generation.md)). How the contract is imported and how to read the generated artifacts is in
+[`design/data-fetching.md#from-contract-to-generated-artifacts-from-generated-artifacts-to-display-types`](../design/data-fetching.md#from-contract-to-generated-artifacts-from-generated-artifacts-to-display-types).
 
-**確認:**
+**Check:**
 
 ```bash
 make api-gen-check                 # 契約と生成物の版が揃っている
@@ -260,15 +260,15 @@ ls src/adapters/gen/api mocks/api  # 生成物が出ている
 
 ---
 
-## Step 2 — `model`: 表示の型と、境界での parse
+## Step 2 — `model`: Display Types and Parsing at the Boundary
 
-**目的:** 画面が持ち回る型を、契約の型とは別に定義する。**生成型はここへ来ない**。ここが持つのは
-表示のための形と、識別子の brand と、表示検証である。
+**Purpose:** define the types the screens pass around, separately from the contract's types. **Generated types do not come here**. What this holds is
+the shape for display, identifier brands, and display validation.
 
-**ファイル:**
+**Files:**
 
-- `src/model/note/note.ts` — 表示用の型と、識別子を確定させる関数
-- `src/model/note/note-schema.ts` — 編集フォームの表示検証
+- `src/model/note/note.ts` — display types and the function that settles an identifier
+- `src/model/note/note-schema.ts` — display validation for the edit form
 
 ```ts
 // src/model/note/note.ts
@@ -358,20 +358,20 @@ export function isRequiredNoteField(field: NoteField): boolean {
 }
 ```
 
-押さえること。
+Points to note.
 
-- **日時は `Date` で持つ。** 契約は ISO 文字列で運ぶが、文字列を内層へ出さない。`Date` へ写すのは
-  Step 3 の口である
-- **識別子は brand を付ける。** `toNoteId` を呼んでよいのは境界だけ。内側は `NoteId` を持ち回る
-  （[0029](../adr/0029-type-design-discipline.md)）
-- **`zod/mini` を使う。** 表示検証はブラウザにも配られるので、classic の `zod` を引くと束が膨らむ
-  （[`design/forms.md`](../design/forms.md)「検証の二層と、その正」）
+- **Hold dates and times as `Date`.** The contract carries ISO strings, but strings are not let into the inner layers. Mapping to `Date` is done by
+  Step 3's endpoint
+- **Brand identifiers.** Only the boundary may call `toNoteId`. The inside passes `NoteId` around
+  ([0029](../adr/0029-type-design-discipline.md))
+- **Use `zod/mini`.** Display validation is also shipped to the browser, so importing classic `zod` bloats the bundle
+  ([`design/forms.md#the-two-tiers-of-validation-and-which-one-is-authoritative`](../design/forms.md#the-two-tiers-of-validation-and-which-one-is-authoritative))
 
-**迷ったら:** `model` に置いてよいものは [`src/model/README.md`](../../src/model/README.md)
-「受け入れるもの / 受け入れないもの」。業務ルール（バックエンドが決めること）はここに来ない
-（[0070](../adr/0070-backend-role-separation.md)）。
+**If in doubt:** what may go in `model` is in [`src/model/README.md`](../../src/model/README.md#what-belongs-here)
+"What Belongs Here / What Does Not Belong Here". Business rules (what the backend decides) do not come here
+([0070](../adr/0070-backend-role-separation.md)).
 
-**確認:** テストを隣に置いてから回す（テストの書き方は Step 7）。
+**Check:** put the tests next to the files, then run them (how to write tests is Step 7).
 
 ```bash
 pnpm exec vitest run src/model/note
@@ -379,13 +379,13 @@ pnpm exec vitest run src/model/note
 
 ---
 
-## Step 3 — `adapters/server`: 取得と更新の口
+## Step 3 — `adapters/server`: Fetch and Update Endpoints
 
-**目的:** 契約の形を受け取り、`model` の型を返す口を作る。fetch wrapper（締切・再試行・遮断・
-応答の検証・status の分類）は `adapters/server/http/request.ts` が持つので、ここが書くのは
-**口の分類・変換・パスの組み立て**だけである。
+**Purpose:** build the endpoints that take the contract's shape and return `model` types. The fetch wrapper (deadline, retries, circuit breaking,
+response validation, status classification) is held by `adapters/server/http/request.ts`, so what is written here is
+**only the endpoint's classification, conversion and path assembly**.
 
-**ファイル:** `src/adapters/server/api/notes.ts`
+**File:** `src/adapters/server/api/notes.ts`
 
 ```ts
 // src/adapters/server/api/notes.ts
@@ -477,36 +477,36 @@ export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise
 }
 ```
 
-押さえること。
+Points to note.
 
-- **client は組まず、分類に合う接続口を引く。** 主体を名乗る口は `getUserScopedClient()` を引く。
-  資格情報の取得口を渡すのは接続口だけで、`createHttpClient` を直に引くと
-  `project-rules/no-client-outside-connection-port` が落とす
-- **`scope` は口の性質で決まる。** 資格情報を載せうる口は、載せなかった回も含めて
-  `"user-scoped"` である。この分類は型で効き、`cache` / `tags` を渡せない
-  （[0112](../adr/0112-data-classification-cache-boundary.md)）
-- **全部の口を `cache()` で包む。** 同じ描画の中で `generateMetadata` と画面が同じ口を呼んでも
-  1 往復にまとまる。ただし書き込みは包まない
-- **wire 型はここから出ない。** `toNoteSummary` / `toNote` が `model` の型へ写し、`z.infer` した型は
-  このファイルの中だけで使う（[0020](../adr/0020-adopted-architecture.md) 設計原則 3）
-- **path の可変部分は `encodeURIComponent` で包む。** `..` は符号化しても残るが、wrapper が
-  組み立ての前に `invalid-argument` で落とす
+- **Do not build a client; obtain the connection point that matches the classification.** An endpoint that names an actor obtains `getUserScopedClient()`.
+  Only connection points pass a credential fetch endpoint, and calling `createHttpClient` directly is failed by
+  `project-rules/no-client-outside-connection-port`
+- **`scope` is determined by the nature of the endpoint.** An endpoint that may carry credentials is
+  `"user-scoped"`, including the times it did not carry them. This classification takes effect through types, and `cache` / `tags` cannot be passed
+  ([0112](../adr/0112-data-classification-cache-boundary.md))
+- **Wrap every endpoint in `cache()`.** Even when `generateMetadata` and the screen call the same endpoint within the same render, it collapses
+  into one round trip. Writes, however, are not wrapped
+- **Wire types do not leave here.** `toNoteSummary` / `toNote` map to `model` types, and types obtained with `z.infer` are used
+  only inside this file ([0020](../adr/0020-adopted-architecture.md): generated and external types do not leak into inner layers)
+- **Wrap the variable parts of a path in `encodeURIComponent`.** `..` survives encoding, but the wrapper
+  rejects it with `invalid-argument` before assembly
 
-**分岐: 主体を名乗らない一覧を作りたいとき。** 誰でも読める一覧なら口は `"public"` になり、
-`server/http/public-client.ts` の `getPublicClient()` を引く。
-その口だけが `use cache` / `cacheLife` / `cacheTag` を名乗れる。書き方と、なぜ口の側が寿命を持つかは
-[`src/adapters/README.md#use-cache-is-what-persists-across-requests`](../../src/adapters/README.md#use-cache-is-what-persists-across-requests)
-と [0071](../adr/0071-bff-api-integration.md)。未ログインでも読める（契約がその operation の認証を
-任意と宣言している）要求に立てる `allowAnonymous` は、同じ README の「資格情報を載せるかは接続口が、
-送ってよいかは要求が決める」にある。
+**Branch: when you want a list that does not name an actor.** For a list anyone can read, the endpoint becomes `"public"` and
+obtains `getPublicClient()` from `server/http/public-client.ts`.
+Only that endpoint may declare `use cache` / `cacheLife` / `cacheTag`. How to write it, and why the endpoint side owns the lifetime, are in
+[`src/adapters/README.md`](../../src/adapters/README.md#use-cache-is-what-persists-across-requests) "`use cache` is what persists across requests"
+and [0071](../adr/0071-bff-api-integration.md). The `allowAnonymous` set on a request that can be read without logging in (the contract declares that operation's authentication
+optional) is in the same README, 「資格情報を載せるかは接続口が、
+送ってよいかは要求が決める」.
 
-**分岐: ブラウザから 2 ページ目以降を取りたいとき。** 初回は Server Component がこの口を直接呼び、
-続きだけを `app/api/notes/route.ts`（BFF）と `adapters/client/api/notes.ts` で取る。経路と
-持ち物の分担は [`design/data-fetching.md`](../design/data-fetching.md)「一覧の続きを取る」、判断は
-[0073](../adr/0073-pagination-fetch-boundary.md)。この文書は先頭ページだけで進める。
+**Branch: when you want to fetch the second and later pages from the browser.** The first page is fetched by a Server Component calling this endpoint directly, and
+only the rest is fetched through `app/api/notes/route.ts` (BFF) and `adapters/client/api/notes.ts`. The route and the division
+of what each holds are in [`design/data-fetching.md`](../design/data-fetching.md#fetching-the-next-page-of-a-list) "Fetching the next page of a list", and the decision is
+[0073](../adr/0073-pagination-fetch-boundary.md). This document proceeds with the first page only.
 
-**確認:** 口は HTTP 境界を持つので `integration` として MSW で確かめる（Step 7）。境界の規則は ESLint
-にしか無いものがあるので、対象を絞って掛ける。
+**Check:** the endpoint has an HTTP boundary, so it is verified as `integration` with MSW (Step 7). Some boundary rules exist only in ESLint,
+so run it on the narrowed target.
 
 ```bash
 pnpm exec vitest run src/adapters/server/api/notes.test.ts
@@ -515,34 +515,34 @@ pnpm exec eslint src/adapters/server/api/notes.ts
 
 ---
 
-## Step 4 — `features/notes`: 一覧と詳細の合成
+## Step 4 — `features/notes`: Composing the List and the Detail
 
-**目的:** 取得を編成し、画面を組む。**取得を持つ `page-content.tsx`** と、**props だけで描ける
-`view.tsx`** を分けるのがこの層の形で、`view` は取得無しで全状態を story から出せる。
+**Purpose:** orchestrate the fetching and assemble the screens. Separating **`page-content.tsx`, which holds the fetching**, from **`view.tsx`, which can render
+from props alone**, is this layer's shape, and `view` can bring out every state from a story without fetching.
 
-**ファイル:**
+**Files:**
 
 ```text
 src/features/notes/
-├── README.md                       # Step 9 で書く（雛形は docs/templates/feature-readme.md）
-├── paths.ts                        # この feature が持つ 3 つの経路
-├── load-note.ts                    # 1 件の取得と、見つからないことの扱い。詳細と編集が共有する
-├── note.fixture.ts                 # story とテストが読む固定値
+├── README.md                       # written in Step 9 (template: docs/templates/feature-readme.md)
+├── paths.ts                        # the three paths this feature owns
+├── load-note.ts                    # fetching one item and handling not-found; shared by detail and edit
+├── note.fixture.ts                 # fixed values read by stories and tests
 ├── list/
-│   ├── page-content.tsx            # 先頭ページの取得
-│   ├── view.tsx                    # 一覧の画面。空も持つ
+│   ├── page-content.tsx            # fetching the first page
+│   ├── view.tsx                    # the list screen; also owns the empty state
 │   └── ui/
-│       ├── note-list/note-list.tsx # 並び
-│       ├── empty/empty.tsx         # 1 件も無いとき
-│       └── skeleton/skeleton.tsx   # 待機表示
+│       ├── note-list/note-list.tsx # the list
+│       ├── empty/empty.tsx         # when there is not a single item
+│       └── skeleton/skeleton.tsx   # loading UI
 └── detail/
     ├── page-content.tsx
     └── view.tsx
 ```
 
-**掘り方は 2 軸だけ**——第 1 軸が画面（`list` / `detail`）、第 2 軸が性質（`ui/`）である。どの画面にも
-属さないもの（`paths.ts` / `load-note.ts`）は画面を挟まず直下へ置く
-（[0027](../adr/0027-directory-structure.md)「Co-location Policy」）。
+**There are only two axes for nesting directories** — the first axis is the screen (`list` / `detail`), the second is the nature (`ui/`). Things that belong to no
+screen (`paths.ts` / `load-note.ts`) go directly under the feature without a screen in between
+([0027](../adr/0027-directory-structure.md): related files are co-located next to the implementation).
 
 ```ts
 // src/features/notes/paths.ts
@@ -794,23 +794,23 @@ export const NoteDetailView = withScreenSpan(
 );
 ```
 
-押さえること。
+Points to note.
 
-- **画面の最上位は `withScreenSpan`、`ui/` の部品は `withPartSpan`。** 名前は `src/` からのモジュール
-  パスと一致させる（[`src/features/README.md#putting-rendering-on-spans`](../../src/features/README.md#putting-rendering-on-spans)）
-- **`view` は取得を持たない。** 取得を持たせると story で描けなくなる。`loading` は route の
-  `Suspense` が `skeleton` を出し、`error` は route の `error.tsx` が受けるので、`view` が持つ状態は
-  success と empty である
-- **文字の重さは `font-emphasis` のような意味の class で書く。** `font-bold` のような生の値は ESLint
-  が落とす（[0051](../adr/0051-styling-system.md)）
-- **他の feature が使うものが出てきたら `facade/` へ出す。** いまは無いので作らない。「使いそう」で
-  先に上げない（[`design/placement.md`](../design/placement.md)「使いそう」で上げると戻らない）
+- **The top of a screen uses `withScreenSpan`; components in `ui/` use `withPartSpan`.** The name matches the module path
+  from `src/` ([`src/features/README.md`](../../src/features/README.md#putting-rendering-on-spans) "Putting rendering on spans")
+- **`view` holds no fetching.** Giving it fetching makes it impossible to render in a story. For `loading`, the route's
+  `Suspense` shows the `skeleton`, and `error` is received by the route's `error.tsx`, so the states `view` holds are
+  success and empty
+- **Write font weight with a semantic class such as `font-emphasis`.** A raw value such as `font-bold` is failed by ESLint
+  ([0051](../adr/0051-styling-system.md))
+- **When something other features use appears, move it out to `facade/`.** There is none now, so do not create one. Do not lift things early
+  because they "might be used" ([`design/placement.md`](../design/placement.md) 「「使いそう」で上げると戻らない」)
 
-**迷ったら:** 部品を `ui/` に置くか `components` へ上げるかは
-[`design/placement.md`](../design/placement.md)「表示（UI）」の分岐。先に効くのは「題材の語彙を
-持つか」で、持つものは `components` へ行けない。
+**If in doubt:** whether to put a component in `ui/` or lift it to `components` is the branch in
+[`design/placement.md#display-ui`](../design/placement.md#display-ui). What applies first is "does it carry the subject's
+vocabulary", and anything that does cannot go to `components`.
 
-**確認:**
+**Check:**
 
 ```bash
 pnpm exec vitest run src/features/notes
@@ -819,28 +819,28 @@ pnpm check:architecture            # 層の境界（import の向き）が READM
 
 ---
 
-## Step 5 — `app/notes`: route segment と metadata、器、保護
+## Step 5 — `app/notes`: Route Segment and Metadata, Layout Shell, Protection
 
-**目的:** URL を画面に結び、metadata を宣言し、器（shell）を据え、認証の内側であることを宣言する。
-`page.tsx` は feature を薄く呼ぶだけで、判断を持たない。
+**Purpose:** bind the URL to the screen, declare the metadata, set up the layout shell, and declare that it is behind authentication.
+`page.tsx` only calls the feature thinly and holds no judgment.
 
-**ファイル:**
+**Files:**
 
 ```text
 src/app/notes/
-├── layout.tsx              # 器。header / nav / main / footer
-├── require-session.ts      # 確定認可。入れない主体をログインへ送る
+├── layout.tsx              # layout shell: header / nav / main / footer
+├── require-session.ts      # authoritative authorization; sends actors who cannot enter to login
 ├── page.tsx                # /notes
 └── [id]/
     ├── page.tsx            # /notes/[id]
-    ├── not-found.tsx       # 見つからない面
-    ├── error.tsx           # 失敗の面
+    ├── not-found.tsx       # the not-found surface
+    ├── error.tsx           # the failure surface
     └── edit/
-        └── page.tsx        # /notes/[id]/edit（Step 6）
+        └── page.tsx        # /notes/[id]/edit (Step 6)
 ```
 
-**保護を宣言する。** `src/model/authz.ts` の `ROUTE_POLICIES` に 1 行足す。入口（`src/proxy.ts`）の
-前捌きと `robots.txt` はこの宣言から採る。
+**Declare the protection.** Add one line to `ROUTE_POLICIES` in `src/model/authz.ts`. The entry point (`src/proxy.ts`)'s
+pre-screening and `robots.txt` are taken from this declaration.
 
 ```ts
 const ROUTE_POLICIES: readonly RoutePolicy[] = [
@@ -850,9 +850,9 @@ const ROUTE_POLICIES: readonly RoutePolicy[] = [
 ];
 ```
 
-**前捌きは防御線ではない。** 確定認可は画面の中で通す。`adapters/server/auth` を引けるのは `app` と
-`adapters` だけなので（`architecture.ts` の `RESTRICTED_AREAS`）、判定は feature ではなく `app` 側の
-モジュールに置く。
+**Pre-screening is not a line of defense.** The definitive authorization is passed inside the screen. Only `app` and
+`adapters` can import `adapters/server/auth` (`RESTRICTED_AREAS` in `architecture.ts`), so the check goes not in the feature but in a module
+on the `app` side.
 
 ```ts
 // src/app/notes/require-session.ts
@@ -1062,23 +1062,23 @@ export default function NoteDetailError({
 }
 ```
 
-押さえること。
+Points to note.
 
-- **`params` / `searchParams` は穴の内側で解く。** 器で `await` すると殻を配れない
-  （[0041](../adr/0041-cache-components-decision.md)）。描くモードを `dynamic` などの segment config で
-  宣言しない。殻を配れない画面だけが `export const instant = false` を理由つきで名乗る
-- **認証の要る画面は `robots: { index: false, follow: false }` を置く。** 索引させる環境でも隠す。
-  誰でも開ける画面なら代わりに `alternates.canonical` を置き、`src/app/sitemap.ts` の `PUBLIC_PATHS`
-  に載せる（[`src/app/README.md#metadata-base-and-per-route-differences`](../../src/app/README.md#metadata-base-and-per-route-differences)）
-- **動的セグメントの画面で中身に応じた `title` を出すなら `generateMetadata`。** 判定は feature 側の
-  module に置き、page は `params` を解いて渡すだけにする。取得は Step 3 の `cache()` が 1 回に
-  まとめる（[0044](../adr/0044-seo-metadata-strategy.md)）
-- **横断 UI と Provider を mount してよいのは `layout.tsx` だけ**（[0026](../adr/0026-layout-shell-mount.md)）
+- **Resolve `params` / `searchParams` inside the dynamic hole.** Awaiting them in the layout shell makes it impossible to deliver the static shell
+  ([0041](../adr/0041-cache-components-decision.md)). Do not declare the rendering mode with segment config such as `dynamic`.
+  Only a screen that cannot deliver a static shell declares `export const instant = false`, with a reason
+- **A screen that requires authentication sets `robots: { index: false, follow: false }`.** It is hidden even in environments that allow indexing.
+  For a screen anyone can open, set `alternates.canonical` instead and list it in `PUBLIC_PATHS` of `src/app/sitemap.ts`
+  ([`src/app/README.md`](../../src/app/README.md#metadata-base-and-per-route-differences) "Metadata Base and Per-Route Differences")
+- **To output a content-dependent `title` on a dynamic-segment screen, use `generateMetadata`.** Put the decision in a module on the feature side,
+  and have the page only resolve `params` and pass them on. Step 3's `cache()` collapses the fetch into
+  one ([0044](../adr/0044-seo-metadata-strategy.md))
+- **Only `layout.tsx` may mount cross-cutting UI and Providers** ([0026](../adr/0026-layout-shell-mount.md))
 
-**迷ったら:** 殻を配れるか、待ちの境界をどこに置くか、失敗と不在の面をどう分けるかは画面ごとの判断で、
-答えを書く場所は [`src/app/README.md#decisions-this-layer-owns`](../../src/app/README.md#decisions-this-layer-owns)の表にある。
+**If in doubt:** whether a static shell can be delivered, where to put the waiting boundary, and how to separate the failure and absence surfaces are per-screen judgments,
+and where to write the answers is the table in [`src/app/README.md`](../../src/app/README.md#decisions-this-layer-owns) "Decisions This Layer Owns".
 
-**確認:** 開発サーバで実際に開く。session は `/dev/session` で発行する。
+**Check:** actually open it on the development server. Issue a session with `/dev/session`.
 
 ```bash
 APP_API_MODE=mock pnpm dev
@@ -1087,11 +1087,11 @@ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' http://localhost:3000/n
 # → 307 http://localhost:3000/login?returnUrl=%2Fnotes（未認証は入口で送り返される）
 ```
 
-ブラウザで `http://localhost:3000/dev/session` を開いて `user` の session を発行し、`/notes` →
-詳細 → 存在しない ID（`/notes/00000000-0000-7000-8000-000000000000`）の順に開く。モックはどの ID にも
-応えるので、見つからない面は Step 7 のテストで確かめる。
+Open `http://localhost:3000/dev/session` in the browser, issue a `user` session, and open `/notes` →
+the detail → a nonexistent ID (`/notes/00000000-0000-7000-8000-000000000000`) in that order. The mock responds to any ID,
+so the not-found surface is verified by the tests in Step 7.
 
-build の成果物と描画の宣言の突合は、build のあとに回す。
+Reconciling the build output against the rendering declarations is run after the build.
 
 ```bash
 APP_API_MODE=mock pnpm build && pnpm render-mode
@@ -1099,20 +1099,20 @@ APP_API_MODE=mock pnpm build && pnpm render-mode
 
 ---
 
-## Step 6 — 送信: Server Action と結果の見せ方
+## Step 6 — Submission: Server Action and How the Result Is Shown
 
-**目的:** 編集画面を作り、`<form action>` → Server Action → `ActionState` → 画面の往復を通す。
-**Server Action は編成だけを持ち、解くことと分類することを隣へ出す**。
+**Purpose:** build the edit screen and get the round trip `<form action>` → Server Action → `ActionState` → screen working.
+**The Server Action holds only orchestration, and moves parsing and classification out next to it**.
 
-**ファイル（Step 4 の木に足す）:**
+**Files (added to the tree from Step 4):**
 
 ```text
 src/features/notes/
-├── actions.ts                      # 保存の Server Action
-├── form-names.ts                   # FormData の項目名。送る側と読む側が同じ綴りを引く
-├── form-state.ts                   # 戻り値の型と、この画面でしか言えない文言
-├── parse-note-form.ts              # FormData を解く。表示検証を通し直す
-├── __mocks__/actions.ts            # カタログでの差し替え
+├── actions.ts                      # the Server Action that saves
+├── form-names.ts                   # FormData field names; sender and reader use the same spelling
+├── form-state.ts                   # the return type, and wording only this screen can say
+├── parse-note-form.ts              # parses FormData; re-runs display validation
+├── __mocks__/actions.ts            # the replacement used in the catalog
 └── edit/
     ├── page-content.tsx
     ├── view.tsx
@@ -1503,16 +1503,16 @@ export const updateNoteAction = fn(
 ).mockName("updateNoteAction");
 ```
 
-差し替えの宣言を `.storybook/preview.tsx` に 1 行足す。載せないと、カタログで押した先で `config` の
-読み込みに落ちる。
+Add one line declaring the replacement to `.storybook/preview.tsx`. Without it, pressing the button in the catalog fails while loading
+`config`.
 
 ```ts
 sb.mock(import("../src/features/notes/actions.ts"));
 ```
 
-`__mocks__/` はカバレッジの母数から外す。`scripts/lib/untested-modules.ts` の `CATALOG_MOCK_MODULES` に
-`src/features/notes/__mocks__/**` を足し、同じパターンを `src/features/notes/README.md` の frontmatter
-`coverage-exclusions` にも書く（Step 9）。
+Exclude `__mocks__/` from the coverage denominator. Add `src/features/notes/__mocks__/**` to `CATALOG_MOCK_MODULES` in `scripts/lib/untested-modules.ts`,
+and write the same pattern into the frontmatter `coverage-exclusions` of `src/features/notes/README.md`
+as well (Step 9).
 
 ```tsx
 // src/app/notes/[id]/edit/page.tsx
@@ -1568,56 +1568,56 @@ export default function NoteEditPage({ params }: { params: Promise<{ id: string 
 }
 ```
 
-押さえること。
+Points to note.
 
-- **検証は 3 回起きる。** 送る前（ブラウザ。この文書では省いている）、Server Action の中
-  （`parseNoteForm` が同じスキーマを通し直す。これが正）、`adapters` の契約検証（生成スキーマ）。
-  役割が違うので省けない（[0062](../adr/0062-form-input-validation.md)）
-- **失敗は戻り値で返す。** `redirect()` だけが throw で、それは成立の合図である。`revalidatePath` と
-  `redirect()` は `try` の**外**に置く（[`design/forms.md`](../design/forms.md)「間違えやすいところ」）
-- **出し分けの合図は `kind` であって文言ではない。** 読み込み直す導線は `state.kind === ErrorKind.CONFLICT`
-  で判定する。文言を合図にすると、文言を直した瞬間に導線が黙って消える
-- **Server Action は公開 HTTP の口である。** 画面が保護されていても action は保護されない。この action
-  が主体を断言しないで済むのは、契約が本人のメモしか対象にしないからで、**主体の断言が要る action は
-  `app/**/actions.ts` に置く**（`features` から `adapters/server/auth` へ届かない。
-  [0025](../adr/0025-app-layer-elements.md)）
+- **Validation happens three times.** Before sending (the browser; omitted in this document), inside the Server Action
+  (`parseNoteForm` runs the same schema again; this one is authoritative), and the contract validation in `adapters` (the generated schema).
+  Their roles differ, so none can be omitted ([0062](../adr/0062-form-input-validation.md))
+- **Return failures as return values.** Only `redirect()` throws, and that is the signal of success. Put `revalidatePath` and
+  `redirect()` **outside** the `try` ([`design/forms.md`](../design/forms.md#common-pitfalls) "Common Pitfalls")
+- **The signal for switching what is shown is `kind`, not the text.** The reload path is decided by `state.kind === ErrorKind.CONFLICT`.
+  If the text is the signal, the path silently disappears the moment the text is fixed
+- **A Server Action is a public HTTP endpoint.** Even if the screen is protected, the action is not. This action
+  can avoid asserting the actor because the contract only covers the user's own notes; **an action that needs to assert the actor
+  goes in `app/**/actions.ts`** (`features` cannot reach `adapters/server/auth`;
+  [0025](../adr/0025-app-layer-elements.md))
 
-**迷ったら:** 入力の値を誰が持つか（ボタンと hidden だけ / react-hook-form / `useState`）、
-結果を inline・toast・redirect のどれで見せるかは [`design/forms.md`](../design/forms.md) が
-分岐を持ち、判断は [0061](../adr/0061-form-mutation-ux.md) /
-[0063](../adr/0063-mutation-result-notification.md)。確認 dialog を挟む基準は
-[`rules.md#forms`](../rules.md#forms)。
+**If in doubt:** who holds the input values (only buttons and hidden fields / react-hook-form / `useState`), and
+whether to show the result inline, as a toast or as a redirect, are branches held by [`design/forms.md`](../design/forms.md),
+and the decisions are [0061](../adr/0061-form-mutation-ux.md) /
+[0063](../adr/0063-mutation-result-notification.md). The criterion for inserting a confirmation dialog is
+[docs/rules.md](../rules.md#forms).
 
-**確認:**
+**Check:**
 
 ```bash
 pnpm exec vitest run src/features/notes/actions.test.ts src/features/notes/parse-note-form.test.ts
 ```
 
-開発サーバで `/notes/<id>/edit` を開き、題名を空にして保存する。項目の下に「題名を入力してください。」が
-出て、入力欄の中身が消えないことを見る。
+Open `/notes/<id>/edit` on the development server, empty the title and save. Check that `題名を入力してください。` appears below the field
+and that the field's content does not disappear.
 
 ---
 
-## Step 7 — テスト: 何をどこで見るか
+## Step 7 — Tests: What Is Checked Where
 
-**目的:** 各層が負う責務だけを、その層の隣で確かめる。**同じことを 2 つの層で見ない。**
+**Purpose:** check only the responsibilities each layer carries, next to that layer. **Do not check the same thing in two layers.**
 
-何をどこで見るかは [0090](../adr/0090-testing-strategy.md) の層別責務表が決め、各ディレクトリの
-README の frontmatter `test-requirement` がどの行に当たるかを宣言している。この feature で書くテストは
-次のとおり。
+What is checked where is decided by the per-layer responsibility table in [0090](../adr/0090-testing-strategy.md), and the frontmatter `test-requirement` of each directory's
+README declares which row applies. The tests written for this feature are
+as follows.
 
-| 対象 | 責務 | 見るもの | 見ないもの |
+| Subject | Responsibility | What it checks | What it does not check |
 | --- | --- | --- | --- |
-| `model/note/*.test.ts` | `unit` | brand の付与、必須判定、表示検証の文言 | 契約の形 |
-| `adapters/server/api/notes.test.ts` | `integration` | MSW で止めた HTTP 境界。URL・ヘッダ・本文・変換・分類 | 画面 |
-| `features/notes/load-note.test.ts` | `unit` | `not-found` だけが `notFound()` へ行き、他は投げ直すこと | HTTP |
-| `features/notes/**/*.test.tsx` | `feature` | 描画結果と a11y。`page-content` は `render(await Component(props))` | HTTP（adapter を `vi.mock`） |
-| `features/notes/actions.test.ts` | `unit` | 返した `ActionState` の分類、成立時の再検証 | HTTP |
-| `app/notes/require-session.test.ts` | `unit` | 未認証がログインへ、認証済みは素通り | session の復元 |
+| `model/note/*.test.ts` | `unit` | Attaching the brand, the required check, the display validation messages | The contract's shape |
+| `adapters/server/api/notes.test.ts` | `integration` | The HTTP boundary stopped by MSW. URL, headers, body, conversion, classification | The screen |
+| `features/notes/load-note.test.ts` | `unit` | That only `not-found` goes to `notFound()`, and everything else is rethrown | HTTP |
+| `features/notes/**/*.test.tsx` | `feature` | Rendered output and a11y. `page-content` is `render(await Component(props))` | HTTP (the adapter is `vi.mock`ed) |
+| `features/notes/actions.test.ts` | `unit` | The classification of the returned `ActionState`, revalidation on success | HTTP |
+| `app/notes/require-session.test.ts` | `unit` | Unauthenticated goes to login, authenticated passes through | Restoring the session |
 
-**`export` と `describe` は 1:1 に対応させる。** `scripts/one-to-one.gate.test.ts` が全 `export` に
-同名の `describe` を要求する。`page.tsx` は対象外（`scripts/lib/untested-modules.ts` の宣言）。
+**Map `export` to `describe` 1:1.** `scripts/one-to-one.gate.test.ts` requires a `describe` with the same name for every `export`.
+`page.tsx` is out of scope (declared in `scripts/lib/untested-modules.ts`).
 
 ```ts
 // src/adapters/server/api/notes.test.ts
@@ -1926,21 +1926,21 @@ describe("NoteList", () => {
 });
 ```
 
-押さえること。
+Points to note.
 
-- **最上位の `describe` は export された記号の名前**、`it` は日本語で振る舞いを書く。値を返す対象は
-  `// ----- 正常系 -----` / `// ----- 異常系 -----` で割り、描画を返す対象は割らない
-- **HTTP は MSW で止める。** `fetch` の手書きスタブや adapter のモジュール mock で代替しない。MSW を
-  立てるのは `vitest.setup.msw.ts` を import したファイルだけ
-- **async RSC は `render(await Component(props))` で描く。** サーバランタイムを模した mock を積まない
-  （[0091](../adr/0091-test-verification-methods.md)）
-- **カバレッジは 4 指標 100% が gate**なので、カバレッジは「意味を持つか」について何も語らない。
-  分岐ごとに固有の結果を見る（[`testing-conventions.md`](../testing-conventions.md)「意味網羅」）
+- **The outermost `describe` is the exported symbol's name**, and `it` describes the behavior in Japanese. Subjects that return values are
+  split with `// ----- 正常系 -----` / `// ----- 異常系 -----`; subjects that return rendering are not split
+- **Stop HTTP with MSW.** Do not substitute a hand-written `fetch` stub or a module mock of an adapter. Only files that import
+  `vitest.setup.msw.ts` start MSW
+- **Render an async RSC with `render(await Component(props))`.** Do not stack mocks that imitate the server runtime
+  ([0091](../adr/0091-test-verification-methods.md))
+- **Coverage is gated at 100% on all four metrics**, so coverage says nothing about "whether it means anything".
+  Check the result specific to each branch ([`testing-conventions.md`](../testing-conventions.md#meaning-coverage--coverage-carries-no-information) "Meaning coverage — coverage carries no information")
 
-**迷ったら:** アサーションの強さ、Testing Library の原則、jsdom に無い API の扱いは
-[`testing-conventions.md`](../testing-conventions.md)。
+**If in doubt:** assertion strength, the Testing Library principles, and how to handle APIs jsdom lacks are in
+[`testing-conventions.md`](../testing-conventions.md).
 
-**確認:** 書いたファイルだけを回す。全体のゲートは hook と CI が回すので、先回りしない。
+**Check:** run only the files you wrote. The hooks and CI run the whole-repository gates, so do not get ahead of them.
 
 ```bash
 pnpm exec vitest run src/model/note src/adapters/server/api/notes.test.ts src/features/notes src/app/notes
@@ -1949,14 +1949,13 @@ pnpm exec vitest run --config vitest.scripts.config.ts scripts/one-to-one.gate.t
 
 ---
 
-## Step 8 — カタログと基準画像
+## Step 8 — Catalog and Baseline Images
 
-**目的:** 画面と部品の見た目を story として固定し、基準画像で守る。**`ui/` の部品はすべて自分の
-story を持つ**。
+**Purpose:** pin the appearance of screens and components as stories, and protect it with baseline images. **Every component in `ui/` has its own
+story**.
 
-**story の `title`:** 画面の合成は `Page/<feature>/<画面>`、画面固有の部品は
-`Features/<feature>/<画面>/<部品>`。体系は [`src/components/README.md`](../../src/components/README.md)
-が持つ。
+**A story's `title`:** a screen composition is `Page/<feature>/<screen>`, and a screen-specific component is
+`Features/<feature>/<screen>/<component>`. The scheme is held by [`src/components/README.md`](../../src/components/README.md).
 
 ```ts
 // src/features/notes/note.fixture.ts
@@ -2060,13 +2059,13 @@ export const Default: Story = {
 };
 ```
 
-`NoteList` / `NoteListEmpty` / `NoteListSkeleton` / `NoteDetailView` / `NoteEditView` にも同じ形で
-story を置く。送信中の姿を撮るには、差し替えた action に解決しない送信先
-（`~catalog/lib/pending-action` の `neverSettlingAction`）を返させる。書き方は
-[`src/features/README.md#putting-it-in-the-catalog`](../../src/features/README.md#putting-it-in-the-catalog)。
+Put stories in the same shape for `NoteList` / `NoteListEmpty` / `NoteListSkeleton` / `NoteDetailView` / `NoteEditView` as well.
+To capture the submitting state, have the replaced action return a submission target that never resolves
+(`neverSettlingAction` from `~catalog/lib/pending-action`). How to write it is in
+[`src/features/README.md`](../../src/features/README.md#putting-it-in-the-catalog) "Putting it in the catalog".
 
-**画面単位の基準画像は、route の宣言で撮る。** `e2e/lib/screens.ts` の `SCREENS` に 3 つ足す。build が
-出す route と宣言を突き合わせるので、**宣言の無い route が現れたら落ちる**。
+**Screen-level baseline images are captured from route declarations.** Add three to `SCREENS` in `e2e/lib/screens.ts`. The routes the build
+outputs are reconciled against the declarations, so **it fails when a route with no declaration appears**.
 
 ```ts
 export const SCREENS: readonly ScreenDeclaration[] = [
@@ -2089,22 +2088,22 @@ export const SCREENS: readonly ScreenDeclaration[] = [
 ];
 ```
 
-押さえること。
+Points to note.
 
-- **story 単位（`vrt/`）と画面単位（`e2e/visual/`）は見ている対象が違う。** 前者は部品を単独で描いた姿、
-  後者は部品を組み上げた画面。どちらも基準画像は容器の中でしか撮らない
-  （[`vrt/README.md`](../../vrt/README.md) / [`e2e/README.md`](../../e2e/README.md)）
-- **意図した変更も、まずは赤くなる。** 撮り直しは PR の `baseline-retake` ラベルが既定の経路で、
-  手元から撮って送るのは `make vrt-retake` / `make e2e-retake`。撮る（`*-update`）だけでは親の
-  gitlink が古いままになり、手元は通るのに CI だけ落ちる
-- **基準画像が主張を守るのは、fixture がその主張の出る値を持つときだけ。** 折り返しを見るなら区切りの
-  無い長い語を fixture に混ぜる（[`testing-conventions.md`](../testing-conventions.md)「見た目の主張を
-  どこで見るか」）
+- **Story-level (`vrt/`) and screen-level (`e2e/visual/`) look at different subjects.** The former is a component rendered alone,
+  the latter a screen assembled from components. In both, baseline images are captured only inside the container
+  ([`vrt/README.md`](../../vrt/README.md) / [`e2e/README.md`](../../e2e/README.md))
+- **Even an intended change turns red first.** The default route for a retake is the PR's `baseline-retake` label,
+  and capturing locally and sending is `make vrt-retake` / `make e2e-retake`. Only capturing (`*-update`) leaves the parent's
+  gitlink stale, so it passes locally and fails only in CI
+- **Baseline images protect a claim only when the fixture holds the values in which that claim shows.** To check wrapping, mix long words with no
+  break points into the fixture ([`testing-conventions.md`](../testing-conventions.md#where-visual-claims-are-checked) "Where visual claims are
+  checked")
 
-**迷ったら:** overlay の探し方や docs ページの分け方など、カタログの器に由来する決まりは
-[`.storybook/README.md`](../../.storybook/README.md)。
+**If in doubt:** rules that come from the catalog's container, such as how to find an overlay or how to split docs pages, are in
+[`.storybook/README.md`](../../.storybook/README.md).
 
-**確認:**
+**Check:**
 
 ```bash
 APP_ENV=local pnpm storybook       # http://localhost:6006 で Page/Notes と Features/Notes を開く
@@ -2115,18 +2114,18 @@ make vrt-retake VRT_ONLY=<id>,<id> # 基準を置き場へ送る。CI では bas
 
 ---
 
-## Step 9 — 約束を書く: 仕様書と feature README
+## Step 9 — Write the Promises: Specification and Feature README
 
-**目的:** 画面が何を約束しているかを、実装から推定させずに文書へ置く。**仕様書を持たない route が
-残るのは埋めるべき穴である**。
+**Purpose:** put what the screen promises into documents instead of leaving it to be inferred from the implementation. **A route without a specification
+is a gap to fill**.
 
-**仕様書。** `src/app` の階層をそのまま写す。route group を使っていないので、そのままのパスになる。
+**Specification.** It mirrors the `src/app` hierarchy as is. No route group is used, so the path is the same as is.
 
 ```text
 docs/spec/route/notes/
-├── layout.screen.md               # 器の約束（nav / 脇の領域の有無）
-├── page.screen.md                 # /notes の見え方
-├── page.function.md               # /notes の機能要件
+├── layout.screen.md               # layout shell promises (nav / whether there is a sidebar)
+├── page.screen.md                 # how /notes looks
+├── page.function.md               # functional requirements of /notes
 └── [id]/
     ├── page.screen.md
     ├── page.function.md
@@ -2135,56 +2134,56 @@ docs/spec/route/notes/
         └── page.function.md
 ```
 
-機能要件と画面要件の振り分けは 1 つの問いで決める——**バックエンドの契約と利用者の目的が同じまま、
-その記述だけが違う画面があり得るか。** あり得るなら画面要件、あり得ないなら機能要件
-（[`docs/spec/README.md`](../spec/README.md)）。
+Splitting between functional requirements and screen requirements is decided by one question — **could there be a screen whose backend contract and user purpose stay the same
+and only the description differs?** If so, it is a screen requirement; if not, a functional requirement
+([`docs/spec/README.md`](../spec/README.md)).
 
 ```markdown
-# `/notes/[id]/edit` メモの編集（機能要件）
+# `/notes/[id]/edit` Editing a Note (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**認証の内側にある。** 未認証で開くと、この画面へ戻る指定を伴ってログインへ送る。判定はこの
-route が行う（外枠の前捌きは防御線ではない。[0079](../../../../../adr/0079-auth-frontend-seam.md)）。
+**Behind authentication.** Opening it unauthenticated sends the user to login with an instruction to return to this screen. This
+route makes the decision (the outer frame's pre-screening is not a line of defense; [0079](../../../../../adr/0079-auth-frontend-seam.md)).
 
-返るのは認証主体本人のメモだけで、所有権の絞り込みは契約が持つ。他人のメモも存在しないメモも、
-区別なく見つからない扱いになる。
+Only the authenticated actor's own notes are returned, and the contract owns the ownership filtering. Other people's notes and notes that do not exist
+are both treated as not found, without distinction.
 
-## 取得
+## Fetching
 
-`GET /v1/notes/{noteId}` の 1 系統だけ。詳細と同じ口で引く。
+Only `GET /v1/notes/{noteId}`. Fetched through the same endpoint as the detail.
 
-## 保存
+## Saving
 
-`PATCH /v1/notes/{noteId}` に題名と本文を絶対値で送る。差分ではないので、再送しても結果は変わらない。
+Send the title and body to `PATCH /v1/notes/{noteId}` as absolute values. It is not a diff, so resending does not change the result.
 
-**検証は送る前と受け取った後の両方で、同じ規則を通す。** 題名は必須で 100 文字以内、本文は
-2000 文字以内。項目ごとの文言は項目名を主語にする。
+**Validation runs the same rules both before sending and after receiving.** The title is required and at most 100 characters; the body is
+at most 2000 characters. Per-field wording uses the field name as its subject.
 
-**先に更新されていた場合（409）だけ、読み込み直す導線を添える。** 拒まれた理由が「読み込んでからの間に
-別の場所で変わった」ことなので、次にすべきなのは押し直しではなく、いまの内容を見ること。
+**Only when it was updated first elsewhere (409), add a path to reload.** The reason for the refusal is "it changed elsewhere
+since it was loaded", so the next thing to do is not to press again but to look at the current content.
 
-**成立しても画面を移さない。** 詳細と一覧は取り直させ、成立は留まる通知で伝える。
+**Do not move away from the screen on success.** The detail and the list are refetched, and success is conveyed by a notification that stays.
 
-## 失敗
+## Failures
 
-取得の失敗は画面全体に及び、route の失敗の面が受ける。保存の失敗は form の中に出す。
+A fetch failure affects the whole screen and is received by the route's failure surface. A save failure is shown inside the form.
 ```
 
-`docs/spec/README.md`「いま書いてある画面」の表に 3 行足す。
+Add three rows to the 「いま書いてある画面」 table in `docs/spec/README.md`.
 
-**feature README。** [`docs/templates/feature-readme.md`](../templates/feature-readme.md) を
-`src/features/notes/README.md` へ写して埋める。必須の節は雛形が宣言しており、`readme-review` が
-その一覧を読んで採点する。frontmatter には `test-requirement: [feature, component, unit]` と、`__mocks__/` の
-`coverage-exclusions` を書く。
+**Feature README.** Copy [`docs/templates/feature-readme.md`](../templates/feature-readme.md) to
+`src/features/notes/README.md` and fill it in. The required sections are declared by the template, and `readme-review` reads
+that list to score it. In the frontmatter, write `test-requirement: [feature, component, unit]` and the `coverage-exclusions` for
+`__mocks__/`.
 
-書くのは **この slice に固有の線引きと、契約・仕様・デザインへの索引だけ**である。層の役割論は
-[`src/features/README.md`](../../src/features/README.md) が持ち、画面が何を約束するかは仕様書が持ち、
-状態がどう見えるかは story が持つ。同じことを 2 か所へ書くと、片方だけが腐る。
+What you write is **only the lines drawn specifically for this slice, and the index to the contract, specification and design**. The layer's role is held by
+[`src/features/README.md`](../../src/features/README.md), what the screen promises is held by the specification, and
+how the states look is held by the stories. Writing the same thing in two places lets only one of them rot.
 
-**確認:**
+**Check:**
 
 ```bash
 pnpm lint:md
@@ -2193,42 +2192,42 @@ pnpm exec vitest run --config vitest.scripts.config.ts scripts/doc-links.gate.te
 
 ---
 
-## 最後に
+## Finally
 
-**commit して、hook と CI に判定させる。** 全体の lint・型検査・テスト・基準画像の比較は pre-commit /
-pre-push / CI が回す。手元で同じものをもう一度回しても結果はより正しくならない
-（[0151](../adr/0151-git-hooks.md)）。
+**Commit, and let the hooks and CI judge.** The whole-repository lint, type check, tests and baseline image comparison are run by pre-commit /
+pre-push / CI. Running the same thing again locally does not make the result any more correct
+([0151](../adr/0151-git-hooks.md)).
 
 ```bash
 git add -A
 git commit   # `/commit` skill があれば、それが prefix と分割を決める
 ```
 
-## まとめ
+## Summary
 
-| Step | 層 | 書いたもの | 押さえたこと | 確認 |
+| Step | Layer | What was written | What was noted | Check |
 | --- | --- | --- | --- | --- |
-| 0 | — | `make setup-remove-sample` | 残る側と消える側の線 | 破棄の連鎖が緑 |
-| 1 | 契約 / 生成 | `openapi/sources.yaml` + `make api-gen` | 生成物は編集しない。契約を直して再生成 | `make api-gen-check` |
-| 2 | `model` | `note.ts` / `note-schema.ts` | `Date` と brand。表示検証は `zod/mini` | `pnpm exec vitest run src/model/note` |
-| 3 | `adapters/server` | `api/notes.ts` | `scope` は口の性質。wire 型はここから出ない | `pnpm exec vitest run …/notes.test.ts` |
-| 4 | `features` | `list/` / `detail/` / `paths.ts` / `load-note.ts` | `page-content` と `view` の分離。span の名前 | `pnpm check:architecture` |
-| 5 | `app` | `layout.tsx` / `page.tsx` / `require-session.ts` / `authz.ts` | 穴の内側で解く。保護は宣言と確定認可の 2 段 | `pnpm dev` + `curl` / `pnpm render-mode` |
-| 6 | 送信 | `actions.ts` + `edit/` | 編成だけ。失敗は戻り値、`kind` で出し分け | `pnpm exec vitest run …/actions.test.ts` |
-| 7 | テスト | 各層の隣 | 同じことを 2 層で見ない。1:1 | `pnpm exec vitest run <対象>` |
-| 8 | カタログ | `*.stories.tsx` / `e2e/lib/screens.ts` | `ui/` は全部 story を持つ。撮り直しは送るまでが 1 手 | `make vrt` / `make e2e` |
-| 9 | 約束 | `docs/spec/route/notes/` / feature README | 仕様書は指すだけで写さない | `pnpm lint:md` |
+| 0 | — | `make setup-remove-sample` | The line between what remains and what disappears | The purge chain is green |
+| 1 | Contract / generation | `openapi/sources.yaml` + `make api-gen` | Do not edit generated artifacts. Fix the contract and regenerate | `make api-gen-check` |
+| 2 | `model` | `note.ts` / `note-schema.ts` | `Date` and brands. Display validation uses `zod/mini` | `pnpm exec vitest run src/model/note` |
+| 3 | `adapters/server` | `api/notes.ts` | `scope` is the nature of the endpoint. Wire types do not leave here | `pnpm exec vitest run …/notes.test.ts` |
+| 4 | `features` | `list/` / `detail/` / `paths.ts` / `load-note.ts` | Separating `page-content` and `view`. Span names | `pnpm check:architecture` |
+| 5 | `app` | `layout.tsx` / `page.tsx` / `require-session.ts` / `authz.ts` | Resolve inside the dynamic hole. Protection in two stages: declaration and definitive authorization | `pnpm dev` + `curl` / `pnpm render-mode` |
+| 6 | Submission | `actions.ts` + `edit/` | Orchestration only. Failures as return values, switch on `kind` | `pnpm exec vitest run …/actions.test.ts` |
+| 7 | Tests | Next to each layer | Do not check the same thing in two layers. 1:1 | `pnpm exec vitest run <target>` |
+| 8 | Catalog | `*.stories.tsx` / `e2e/lib/screens.ts` | Everything in `ui/` has a story. A retake is one move, through to sending it | `make vrt` / `make e2e` |
+| 9 | Promises | `docs/spec/route/notes/` / feature README | The specification only points; it does not copy | `pnpm lint:md` |
 
-## 次に進む先
+## Where to Go Next
 
-- **雛形に任せる。** `pnpm gen feature <name> --screen=<画面>` が feature の骨組みを（2 画面目は同じコマンドをもう一度）、`pnpm gen adapter <name>` /
-  `pnpm gen component <name>` がカーネル側の雛形を出す。この文書は雛形が何を出すべきかの
-  根拠であり、出たものを判断する物差しになる。画面を一式作るなら `new-feature` skill が
-  [`playbook.md`](../playbook.md) の作業順で進める
-- **2 ページ目以降をブラウザで取る。** BFF（`app/api/notes/route.ts`）と `adapters/client/api/notes.ts`
-  を足す。経路は [`design/data-fetching.md`](../design/data-fetching.md)「一覧の続きを取る」
-- **公開の一覧を作る。** 口を `"public"` にし、`use cache` で要求をまたいで持つ。Step 3 の分岐と
+- **Leave it to the templates.** `pnpm gen feature <name> --screen=<screen>` generates the feature skeleton (for the second screen, run the same command again), and `pnpm gen adapter <name>` /
+  `pnpm gen component <name>` generate the kernel-side templates. This document is the basis for what the templates should generate,
+  and the yardstick for judging what they produce. To build a full set of screens, the `new-feature` skill proceeds in
+  the order of work in [`playbook.md`](../playbook.md)
+- **Fetch the second and later pages in the browser.** Add the BFF (`app/api/notes/route.ts`) and `adapters/client/api/notes.ts`.
+  The route is in [`design/data-fetching.md`](../design/data-fetching.md#fetching-the-next-page-of-a-list) "Fetching the next page of a list"
+- **Build a public list.** Make the endpoint `"public"` and hold it across requests with `use cache`. See Step 3's branch and
   [`src/adapters/README.md`](../../src/adapters/README.md)
-- **入力中の検証を足す。** react-hook-form + `standardSchemaResolver` で同じ `noteSchema` をブラウザ側でも
-  通す。配線は [`design/forms.md`](../design/forms.md)「入力の値を誰が持つか」
-- **置き場に迷ったら** [`design/placement.md`](../design/placement.md) の 3 つの問いへ戻る
+- **Add validation while typing.** Run the same `noteSchema` on the browser side too with react-hook-form + `standardSchemaResolver`.
+  The wiring is in [`design/forms.md#who-holds-the-input-values`](../design/forms.md#who-holds-the-input-values)
+- **If you are unsure where something goes**, go back to the three questions in [`design/placement.md`](../design/placement.md)

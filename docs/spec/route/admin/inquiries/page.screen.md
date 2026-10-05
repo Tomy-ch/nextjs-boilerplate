@@ -1,37 +1,37 @@
-# `/admin/inquiries` 問い合わせ一覧（画面要件）
+# `/admin/inquiries` Inquiry List (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-届いた問い合わせを見比べ、対応する 1 件を選ぶ画面。
+A screen for comparing incoming inquiries and choosing the one to handle.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 画面の名前と、ここから何ができるか |
-| 受信の状態 | 更新を受け取れているかどうかの 1 語 |
-| 一覧 | 利用者・最終更新・開始（狭い段では伏せる） |
-| ページ送り | 前後の 1 ページずつ |
+| Heading | The screen's name and what can be done from here |
+| Receiving status | One word saying whether updates are being received |
+| List | Customer, last updated, started (hidden on narrow bands) |
+| Pagination | One page back and one forward |
 
-**本文を出さない。** 契約が一覧に本文を載せておらず、出すには行ごとに履歴を引くことになる。
-何が書かれているかは 1 件を開いて読む。
+**No body is shown.** The contract does not put the body in the list, so showing it would mean fetching the history per row.
+What was written is read by opening the inquiry.
 
-**題名を持たない。** 問い合わせに題名は無く、行を指す語が利用者の識別子しかない。行から開くのは
-その識別子を押す形にする。
+**No title.** Inquiries have no title, and the only word that names a row is the customer's identifier. A row is opened by
+clicking that identifier.
 
-**絞り込みを置かない。** 契約が受け付ける条件はページ送りだけで、状態も担当も持たない問い合わせに
-絞る軸が無い。
+**No filtering.** The only condition the contract accepts is pagination, and inquiries, which have neither status nor assignee,
+have no axis to filter on.
 
-## 更新の見え方
+## How Updates Look
 
-**届いた内容で行を書き換えない。** 更新の知らせが運ぶのは「どの問い合わせがどこまで進んだか」
-だけで、並び順の基準も他の列も入っていない。手元で差し替えると、取り直した一覧と食い違う。
+**Rows are not rewritten from delivered content.** An update notification carries only "which inquiry progressed how far"; it
+contains neither the sort key nor the other columns. Replacing rows locally would disagree with the refetched list.
 
-知らせが届いた時点で一覧を取り直す。取り直しの待機は一覧の中だけに掛け、受信の状態は消さない。
+The list is refetched when a notification arrives. The refetch's loading applies only inside the list, and the receiving status stays.
 
-## 待機と空
+## Loading and Empty
 
-待機表示は行の高さの枠を並べる。何件あるかは取得しないと判らないため、画面に無理なく収まる数に
-留める。
+The loading UI lines up frames of row height. How many rows exist is unknown until fetched, so the count is kept to what fits
+on screen comfortably.
 
-1 件も無いときは、その旨を一覧の枠の中に出す。
+When there are none, say so inside the list's frame.

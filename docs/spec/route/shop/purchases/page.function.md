@@ -1,93 +1,93 @@
-# `/purchases` 購入履歴（機能要件）
+# `/purchases` Purchase History (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**登録済みの利用者の内側にある。** 未認証で開くと、この画面へ戻る指定を伴ってログインへ送る。
-認証済みでも利用者として登録していない主体は、この画面へ戻る指定を伴って登録（`/onboarding`）へ
-送る。判定はこの route が行う（外枠の前捌きは防御線ではない。[0079](../../../../adr/0079-auth-frontend-seam.md)）。
+**It sits inside the registered-user area.** Opened unauthenticated, it sends the user to login with an instruction to return to this screen.
+An actor that is authenticated but not registered as a user is sent to registration (`/onboarding`) with an instruction to return to this
+screen. This route makes the decision (the outer frame's pre-check is not the line of defense; [0079](../../../../adr/0079-auth-frontend-seam.md)).
 
-返るのは認証主体本人の購入だけで、所有権の絞り込みは契約が持つ。
+Only the authenticated actor's own purchases are returned; the contract owns filtering by ownership.
 
-## 取得
+## Fetching
 
-`GET /v1/purchases` の 1 系統だけ。注文日時の降順で返り、並べ替えの条件は受け付けない。
+A single line: `GET /v1/purchases`. Results come in descending order of order date and time, and no sort condition is accepted.
 
-**一覧は概要だけを返し、明細を含まない。** 商品名も点数もこの画面には無い。明細が要るときは
-詳細を引く。
+**The list returns only summaries, without line items.** Neither product names nor item counts are on this screen. When line items are needed,
+the detail is fetched.
 
-### 期間の絞り込み
+### Filtering by Period
 
-URL は区分（全期間 / 暦月 / 期間 / 直近 N 日）と、区分ごとの値を持つ。**契約が受け取るのはそれでは
-なく、瞬時の半開区間 `[orderedAfter, orderedBefore)` だけ。** 区分を暦の上で解くのは画面の側で、
-暦とタイムゾーンは `model/time-window.ts` が持つ（[0120](../../../../adr/0120-locale-aware-formatting.md)）。
+The URL holds a period type (all time / calendar month / date range / last N days) and that type's values. **The contract accepts not that
+but only an instant half-open interval `[orderedAfter, orderedBefore)`.** Resolving the period type on the calendar is the screen side's job, and
+the calendar and time zone are owned by `model/time-window.ts` ([0120](../../../../adr/0120-locale-aware-formatting.md)).
 
-**両端はオフセット付きの RFC3339 で送る。** オフセットの無い文字列は、解釈が接続先の実装差に落ちる。
+**Both ends are sent as RFC3339 with an offset.** A string without an offset leaves its interpretation to differences in the connected implementation.
 
-**上限は含まない。** 終了日は翌日の始まりで閉じる。利用者が選ぶのは日であって瞬時ではないので、
-選んだ日の 24 時間すべてが対象になる。23:59:59 を上限に置くと、その日の最後の 1 秒に入った注文が落ちる。
+**The upper bound is exclusive.** The end date is closed at the start of the next day. What the user chooses is a day, not an instant, so
+all 24 hours of the chosen day are covered. Putting 23:59:59 as the upper bound would drop orders placed in that day's last second.
 
-**URL には区分を載せたまま残す。** 解いた区間を URL に置くと、共有したリンクが「そのとき解いた
-区間」に凍り、翌日開いても昨日の直近 30 日が出る。利用者が読める形も区分のほうにある。
+**The URL keeps the period type.** Putting the resolved interval in the URL would freeze a shared link at "the interval resolved
+then," so opening it the next day would show yesterday's last 30 days. The form the user can read is also the period type.
 
-**絞り込みは必ずクエリでサーバへ渡す。** 取得済みのページに日付の条件を掛けてはならない。
-読み込んであるのは新しいほうから数ページぶんでしかなく、そこへ条件を掛けると「条件に合う古い
-購入」が落ちた一覧になる。
+**Filtering is always passed to the server as a query.** Date conditions must not be applied to already-fetched pages.
+What is loaded is only a few pages from the newest, and applying conditions there yields a list missing "older purchases
+that match the conditions."
 
-**区分ごとの必須が欠けた要求は送らない。** 送れば契約が拒み、一覧そのものが出せない画面になる。
-組み立てが条件として成り立っているかは送る前に確かめる。
+**A request missing the required values for its period type is not sent.** Sending it would have the contract reject it, leaving a screen that cannot show the list at all.
+Whether the assembly holds up as a condition is checked before sending.
 
-**URL に載っている読めない条件は全期間へ倒す。** URL は利用者が直接編集できるため、区分だけが
-あって必須の値が無い形も、日付として読めない値も届く。そのまま渡すと一覧そのものが出せない。
-倒した結果は入力欄にそのまま現れるので、指定が効いていないことは画面から読み取れる。
+**Unreadable conditions in the URL fall back to all time.** The URL can be edited directly by the user, so a form with only the period type
+and no required value, and values unreadable as dates, both arrive. Passing them on as is would leave the list unable to show at all.
+The fallback result appears in the inputs as is, so that it can be read from the screen that the specification is not in effect.
 
-### ページ送り
+### Pagination
 
-cursor 方式で、前ページの応答に載る鍵を次の取得へ渡す。総件数は返らない。
+Cursor-based: the key carried on the previous page's response is passed to the next fetch. No total count is returned.
 
-**ページ送りのあいだは同じ区間を渡す。** 契約はそれを前提に連続性を保証しており、途中で条件が
-変わると飛ばされる購入が出る。
+**The same interval is passed throughout pagination.** The contract guarantees continuity on that premise, and if the conditions
+changed midway some purchases would be skipped.
 
-**相対の期間は 1 度だけ解く。** 「直近 N 日」は解く瞬間で答えが変わるため、ページごとに解き直すと
-境目の注文が飛ばされる。先頭ページを引く時点で解いた区間を、続きの取得へもそのまま渡す。
+**A relative period is resolved only once.** "Last N days" has a different answer at each moment of resolution, so resolving it again per page would
+skip orders at the boundary. The interval resolved when fetching the first page is passed as is to the subsequent fetches.
 
-**区間の下限と、ページ送りの鍵は別のもの。** 契約はどちらも `after` という名前を持たない —— 前者は
-`orderedAfter`、後者が `after`。取得条件を組むときに区間をそのまま展開すると、型では止まらずに鍵が
-差し替わる。
+**The interval's lower bound and the pagination key are different things.** The contract does not call both of them `after` — the former is
+`orderedAfter`, the latter `after`. Spreading the interval as is when assembling fetch conditions would swap the key without the types
+stopping it.
 
-**初回のページはサーバが取得し、続きだけを client が取りに行く。** client の増分取得は同一
-オリジンの薄い口へ限る（[0073](../../../../adr/0073-pagination-fetch-boundary.md)）。client から
-バックエンドを直接叩くと、資格情報の載せ方と timeout・再試行がもう 1 系統できる。
+**The server fetches the first page, and the client fetches only the rest.** The client's incremental fetches are limited to a thin
+same-origin endpoint ([0073](../../../../adr/0073-pagination-fetch-boundary.md)). Calling the backend directly from the client
+would create another line of credential handling and timeout / retry.
 
-1 度に読み込む件数は初回と続きで同じにする。違えると、読み進めるたびに 1 度に増える量が変わる。
+The number loaded at once is the same for the first page and the rest. If they differed, the amount added at once would change each time the user reads on.
 
-期間が変わったら積み上げを捨てて取り直す。前の条件の続きを読むと、条件に合わない購入が混ざる。
+When the period changes, the accumulation is discarded and refetched. Reading the rest of the previous conditions would mix in purchases that do not match.
 
-## 状況
+## Status
 
-状況は業務キーと名称が解決済みで届き、どちらの引き直しも要さない。
+A status arrives with its business key and name already resolved, and neither needs re-fetching.
 
-**「望ましい終端 / 取り消し / 進行中」の判定は業務キーで行う。** 名称は利用者へ見せる文言で、
-backend 側の都合で書き換わる。**知らない業務キーはどの区分にも寄せない。** 寄せると確かめていない
-意味を主張することになる。区分を持たない姿で出し、名称は文字で出るので、マスタが増えても一覧は
-読める。
+**The "successful terminal / cancelled / in progress" classification is made by business key.** The name is text shown to the user and is
+rewritten for backend reasons. **An unknown business key is not assigned to any category.** Assigning it would assert a meaning that has not been
+checked. It is shown in a form without a category, and since the name appears as text, the list stays readable even when the master
+grows.
 
-## 詳細への遷移
+## Navigating to the Detail
 
-一覧が持つ購入コードが、そのまま詳細の取得に渡る値である。利用者へ注文番号として見せている値と
-次の取得に使う値が同じなので、行の行き先を組み立てるのに別の識別子を持ち回らない。
+The purchase code the list holds is itself the value passed to the detail fetch. The value shown to the user as the order number and
+the value used for the next fetch are the same, so no separate identifier is carried around to assemble a row's destination.
 
-## 失敗
+## Failures
 
-取得の失敗は画面全体に及ぶ。分類を問わない汎用の文言と問い合わせ番号、再試行の導線を出す
-（[0080](../../../../adr/0080-error-handling.md)）。production では server で起きた失敗の本文が
-伏せられ、境界に届くのは問い合わせ番号だけで、分類を読み取れない。外枠（header・nav）は残る。
+A fetch failure affects the whole screen. A generic message regardless of classification, an inquiry number and a retry link are shown
+([0080](../../../../adr/0080-error-handling.md)). In production the body of a failure that occurred on the server is
+hidden, and only the inquiry number reaches the boundary, so the classification cannot be read. The outer frame (header, nav) remains.
 
-続きの取得の失敗は一覧全体を落とさない。読み終えた分は残したまま、末尾でだけ読み直させる。
-条件が変わったことによる打ち切りは失敗として扱わない（伝える相手がもういない）。
+A failure fetching the rest does not bring down the whole list. What has been read stays, and only the end offers a reload.
+Abortion due to changed conditions is not treated as a failure (there is no one left to tell).
 
-## 関連
+## Related
 
-- 契約 `openapi/api.gen.yaml` の `GET /v1/purchases`
-- 実装 `src/features/purchases/` — [README](../../../../../src/features/purchases/README.md)
+- Contract: `GET /v1/purchases` in `openapi/api.gen.yaml`
+- Implementation `src/features/purchases/` — [README](../../../../../src/features/purchases/README.md)

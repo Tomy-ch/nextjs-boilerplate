@@ -1,66 +1,66 @@
-# `/checkout` 購入確認（画面要件）
+# `/checkout` Purchase Confirmation (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-届け先と注文内容を確かめ、注文を確定する画面。
+The screen where the user checks the shipping address and the order contents and places the order.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| お届け先 | 氏名・住所・電話番号と、登録情報へ変えに行く導線 |
-| ご注文内容 | 明細の再掲（商品名・単価・数量・その行に立った事情）と、カートへ戻る導線 |
-| 集計 | 小計・参考換算額の切り替え・注記・確定の操作 |
+| お届け先 (Shipping address) | Name, address and phone number, and a link to go change the registered information |
+| ご注文内容 (Order contents) | The line items restated (product name, unit price, quantity, and the conditions flagged on that row), and a link back to the cart |
+| Summary | Subtotal, the reference converted amount toggle, notes, and the confirm operation |
 
-## 明細の再掲
+## Restating the Line Items
 
-**操作を持たない。** 数量を変えるのも取り除くのもカートの領分で、同じ操作を 2 つの画面に置くと、
-どちらで直したのかを利用者も実装も追えない。
+**No operations.** Changing quantities and removing items belong to the cart, and placing the same operations on two screens means
+neither the user nor the implementation can trace on which one a change was made.
 
-**多いときは 10 件で畳む。** ページで割って別の画面へ送らない —— 払う前に全部を確かめられる
-ことがこの画面の役目である。件数は畳んだままでも見出しに出す。
+**When there are many, they are collapsed at 10.** They are not split into pages and sent to another screen — being able to check all of them before
+paying is this screen's job. The count is shown in the heading even while collapsed.
 
-**開け閉めの操作は明細の下に置く。** 開いた直後にいる場所と、畳むために押す場所が同じになる。
-脇に集計を置ける幅では器の下端へ貼り付け、明細が画面の高さを超えても畳む手段が届くようにする。
-それ未満の幅では貼り付けない（画面の下端を確定の帯が占める）。
+**The expand / collapse operation is placed below the line items.** Where the user is right after expanding is then the same place they press to collapse.
+At widths where the summary fits beside, it sticks to the bottom edge of the container so that the means of collapsing stays reachable even when the line items exceed the screen height.
+At narrower widths it does not stick (the confirm band occupies the bottom edge of the screen).
 
-**買えない明細と、値が変わっただけの明細を書き分ける。** 前者は購入から外れ、後者は載る。
-どちらも落とさずに出す（カートで見た明細が黙って消えない）。事情の言い方はカートと同じものを
-使い、この画面が足すのは「外れる」「確定のときに確かめる」の一文だけである。
+**Unbuyable line items and line items whose value merely changed are written differently.** The former are excluded from the purchase; the latter are included.
+Both are shown without dropping either (line items seen in the cart do not silently vanish). Conditions are worded the same as in the cart,
+and the only thing this screen adds is a single sentence, "excluded" or "checked when placing the order."
 
-**弱めるのは商品名だけで、行ごと薄くしない。** 行に透過をかけると、載らない理由の文字まで薄く
-なり、地との比が [0100](../../../../adr/0100-accessibility-target.md) の要求を割る。
+**Only the product name is dimmed; the row is not faded as a whole.** Applying transparency to the row would also fade the text giving the reason it is not included,
+and its contrast against the background would fall below what [0100](../../../../adr/0100-accessibility-target.md) requires.
 
-## 金額の見せ方
+## How Amounts Are Shown
 
-**基準通貨の金額は常に出したままにする。** 請求されるのはその金額であり、切り替えで置き換えると
-どちらで請求されるのかが読み取れない。切り替えが足すのは参考の 1 行だけである。
+**The amount in the base currency always stays shown.** That is the amount charged, and replacing it with the toggle would make it unreadable
+which one is charged. The toggle only adds one reference row.
 
-**参考換算額が無いときは切り替えも出さない。** 押しても何も現れない操作は、失敗したのか対応して
-いないのかを利用者から区別できない。レートと基準日を添えるのは、いつの相場による目安かが判らな
-ければ参考にならないため。
+**When there is no reference converted amount, the toggle is not shown either.** An operation that makes nothing appear when pressed leaves the user unable to tell whether it failed
+or is not supported. The rate and the reference date are added because an estimate is no use as a reference unless it says which day's
+rate it is based on.
 
-## 確定の操作
+## The Confirm Operation
 
-**金額が変わっていないときはそのまま送る。** 変わっているときは押した先で確かめ、**進む・見直す・
-直す**の 3 つの出口を出す。閉じるだけの操作が無いと、確かめから元の画面へ戻る手段が無くなる。
+**When no amount has changed, it is sent as is.** When one has changed, it is checked after pressing, offering three exits: **proceed, review and
+fix**. Without an operation that just closes, there would be no way back from the check to the original screen.
 
-確かめの中では**どの操作も文言の幅に収める**。集計の中の確定は画面の主操作なので幅を占めるが、
-並ぶ操作を 1 つだけ広げると、短い文言のほうが大きく見えて重さが文言と合わない。
+Within the check, **every operation fits the width of its text**. The confirm in the summary is the screen's primary operation and so takes the full width, but
+widening just one of the side-by-side operations would make the shorter text look larger and its weight would not match its text.
 
-送信中は絵柄だけを差し替え、**見えている文言は据え置く**。文言を伸ばすと器の幅が動き、貼り付いた
-集計や固定した帯では周りの位置まで動く。
+While sending, only the glyph is swapped and **the visible text stays put**. Lengthening the text would move the container's width, and in a stuck
+summary or a fixed band even the surrounding positions would move.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 内容と集計 | 集計の置き場所 |
+| Width | Content and summary | Where the summary goes |
 | --- | --- | --- |
-| `lg` 以上 | 左右 2 列 | 本文の脇に貼り付ける（header の下端 + 余白） |
-| `lg` 未満 | 縦積み | 画面の下端に固定する帯 |
+| `lg` and up | Two columns side by side | Stuck beside the body (bottom edge of the header + margin) |
+| Below `lg` | Stacked | A band fixed to the bottom edge of the screen |
 
-出るのはどちらか一方だけで、中身は 1 つしか持たない。**出し分けは CSS で行う**。hydration を
-待つと、読み始めた後に画面の下へ器が現れて内容が動く。本文の下端には帯のぶんの余白を空ける。
+Only one of the two appears, and the content exists only once. **The switch is done with CSS**. Waiting for hydration
+would make a container appear at the bottom of the screen after the user has started reading, shifting the content. Space for the band is left at the bottom of the body.
 
-## 空の状態
+## Empty State
 
-カートに商品が無いときは、確かめる対象が無いことを伝え、商品を探す導線だけを出す。
+When the cart has no products, it says there is nothing to confirm and shows only a link to browse products.

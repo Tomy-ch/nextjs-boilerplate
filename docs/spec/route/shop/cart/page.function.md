@@ -1,85 +1,85 @@
-# `/cart` カート（機能要件）
+# `/cart` Cart (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**カートの中身はバックエンドが持つ。** この画面は足し直さず、買えるかどうかも判定しない
-（[0070](../../../../adr/0070-backend-role-separation.md)）。
+**The backend owns the cart's contents.** This screen does not re-add them and does not judge whether items can be bought
+([0070](../../../../adr/0070-backend-role-separation.md)).
 
-**認証を要さない。** 主体はゲストが httpOnly cookie の識別子、ログイン済みが session で、
-両方あればログイン済みが優先される（優先順位の判断は契約が持つ）。
+**No authentication required.** The actor is an httpOnly cookie identifier for a guest and the session when logged in;
+when both exist the logged-in one takes precedence (the contract owns that precedence decision).
 
-## 取得
+## Fetching
 
-`GET /v1/carts/me` の 1 系統だけ。
+A single line: `GET /v1/carts/me`.
 
-**取得のたびに明細ごとの再評価が入る。** 前に開いたときから買えなくなった明細や値の変わった
-明細は、この取得の結果として現れる。
+**Every fetch re-evaluates each line item.** Line items that became unbuyable since the last visit, or whose values changed,
+show up as the result of this fetch.
 
-**明細はサムネイルの元も伴う。** 契約が返すのは代表画像のオブジェクトキーで、表示 URL は
-配信元の設定と組み立てる。**明細ごとに商品を引き直さない** —— カートの取得 1 回で画面が組める。
+**Line items come with their thumbnail source.** The contract returns the object key of the representative image, and the display URL is
+assembled with the delivery origin's settings. **Products are not re-fetched per line item** — one cart fetch is enough to build the screen.
 
-外枠（脇の領域と header の点数）も同じ口からカートを読む。同じ描画のうちなら往復は 1 回で、
-本文と外枠が別々の時点のカートを見せることはない（外枠の側は
-[`../layout.function.md`](../layout.function.md)）。
+The outer frame (the sidebar and the count in the header) reads the cart from the same endpoint. Within the same render there is a single round trip,
+and the body and the outer frame never show the cart at different points in time (the outer frame's side is
+[`../layout.function.md`](../layout.function.md)).
 
-## 明細に立つ事情
+## Conditions Flagged on a Line Item
 
-事情は同時に複数立つ。買えるかどうかの区分は契約が持ち、この画面は言い方だけを決める。
-ただし `discontinued` と `unpublished` は同時に立たない —— 廃番は非公開でもあるが、より具体的な `discontinued` だけが立つ。優先順位をこの画面が決めることはない。
+Several conditions can be flagged at once. The contract owns which ones make an item unbuyable; this screen decides only the wording.
+However, `discontinued` and `unpublished` are never flagged together — a discontinued item is also unpublished, but only the more specific `discontinued` is flagged. This screen never decides a precedence.
 
-| 事情 | 買えるか |
+| Condition | Buyable |
 | --- | --- |
-| `notFound` / `unpublished` / `discontinued` / `outOfStock` / `insufficientStock` | 買えない |
-| `priceIncreased` / `priceDecreased` | 買える |
+| `notFound` / `unpublished` / `discontinued` / `outOfStock` / `insufficientStock` | No |
+| `priceIncreased` / `priceDecreased` | Yes |
 
-**小計は事情の無い明細だけの合算**で、値が変わっただけの明細も外れる。行ごとの小計は持たない
-（単価と数量を掛けることになり、金額の計算がフロントへ戻る）。
+**The subtotal sums only the line items with no condition**, so a line item whose value merely changed is also excluded. There is no per-row subtotal
+(it would multiply unit price by quantity, bringing amount calculation back to the frontend).
 
-在庫が足りない明細は、今買える上限を伴う。上限が判らないこともある。
+A line item with insufficient stock comes with the maximum that can be bought now. That maximum may be unknown.
 
-## 操作
+## Interaction
 
-いずれも `<form action>` + Server Action で送る（[0061](../../../../adr/0061-form-mutation-ux.md)）。
+All are sent with `<form action>` + Server Action ([0061](../../../../adr/0061-form-mutation-ux.md)).
 
-| 操作 | 送るもの | 契約上の意味 |
+| Operation | What is sent | Meaning in the contract |
 | --- | --- | --- |
-| 数量の変更 | 押した先の数量 | **加算ではなく設定**。同じ要求が 2 度届いても結果が変わらないため、二重送信を防ぐ鍵を要さない |
-| 明細の削除 | 商品を指す値 | 対象が既に無くても成功する。買えない明細も取り除ける |
-| カートを空にする | — | カートそのものは残る。利用者の同一性は切れない |
+| Change quantity | The resulting quantity | **A set, not an increment.** The same request arriving twice gives the same result, so no key against double submission is needed |
+| Remove a line item | A value that identifies the product | Succeeds even if the target is already gone. Unbuyable line items can be removed too |
+| Empty the cart | — | The cart itself remains. The user's identity is not severed |
 
-- 数量の範囲は **1 以上、契約の上限まで**。0 は契約の範囲外で、行を無くすのは削除の操作である
-- 在庫を超える数量そのものは拒まれない。買えるかどうかは次の取得で明細の事情として現れる
-- **購入手続きへ進めるのは、買える明細が 1 つ以上あるとき**
+- The quantity range is **1 or more, up to the contract's maximum**. 0 is outside the contract's range; removing a row is the remove operation
+- A quantity above stock is not itself rejected. Whether it can be bought shows up on the next fetch as a condition on the line item
+- **Proceeding to checkout is possible when at least one line item is buyable**
 
-**変更が成功したら、外枠まで含めて取り直す。** 明細は本文だけでなく、どの画面にも付く外枠
-（脇の領域と header の点数）にも出るため、経路を 1 つ指定しても外枠が古いまま残る。
+**When a change succeeds, refetch including the outer frame.** Line items appear not only in the body but also in the outer frame attached to every screen
+(the sidebar and the count in the header), so specifying a single path would leave the outer frame stale.
 
-## 取り消し
+## Undo
 
-削除した明細は、**取り除いた時点の数量でカートへ戻せる**。戻す口は数量の設定と同じで、専用の
-口を持たない。
+A removed line item **can be returned to the cart at the quantity it had when removed**. Returning it uses the same endpoint as setting the quantity;
+there is no dedicated endpoint.
 
-戻せる期間は**その商品がカートへ戻るまで**。取り消しの可否は「その商品がまだカートに居るか」
-から導き、操作の側から取り下げの合図を受け取らない。
+It can be returned **until that product is back in the cart**. Whether undo is possible is derived from "is that product still in the cart,"
+and no withdrawal signal is taken from the operation side.
 
-覚えているのは画面の側で、**サーバは取り除いた明細も、消える前の並びも持たない**
-（[0060](../../../../adr/0060-state-management.md) の server / client の線引き）。記憶の置き場は
-カートの器より外にあり、最後の 1 件を取り除いても残る。
+The screen side does the remembering; **the server holds neither the removed line item nor the order before it disappeared**
+(the server / client split in [0060](../../../../adr/0060-state-management.md)). Where it is remembered lies
+outside the cart's container, so it survives removing the last line item.
 
-## 引き継ぎ
+## Carry-Over
 
-ログイン時に、ゲストのカートを確立した session の主体へ併合する。**引き継げなくてもログインは
-成功する**（[0079](../../../../adr/0079-auth-frontend-seam.md)）。ログアウトではゲストの識別子
-も破棄する。
+At login, the guest's cart is merged into the actor of the established session. **Login succeeds even if it cannot be carried over**
+([0079](../../../../adr/0079-auth-frontend-seam.md)). Logout also discards the guest
+identifier.
 
-## 失敗の意味論
+## Failure Semantics
 
-| 失敗 | 及ぶ範囲 |
+| Failure | Scope |
 | --- | --- |
-| 取得 | 画面全体。route の `error` 境界が受ける（[0080](../../../../adr/0080-error-handling.md)） |
-| 操作 | その操作だけ。カートの表示は直前の状態のまま残る |
+| Fetching | The whole screen. The route's `error` boundary receives it ([0080](../../../../adr/0080-error-handling.md)) |
+| Operation | Only that operation. The cart display stays in its previous state |
 
-成功したことは通知しない。結果は更新後のカートそのものに現れる
-（[0063](../../../../adr/0063-mutation-result-notification.md)）。
+Success is not notified. The result appears in the updated cart itself
+([0063](../../../../adr/0063-mutation-result-notification.md)).

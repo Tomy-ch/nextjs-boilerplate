@@ -1,219 +1,219 @@
-# 購読と配信
+# Subscription and Delivery
 
-**購読 seam は実体を持つ。** 置き場は [`src/adapters/client/stream/`](../../src/adapters/client/stream/README.md) で、購読 1 本の状態機械と、それを組み立てる部品（封筒・順序・カーソル・待ち時間）から成る。この文書は他の設計リファレンスと同じく実装を読んで書いた。
+**The subscription seam has a real implementation.** It lives in [`src/adapters/client/stream/`](../../src/adapters/client/stream/README.md), and consists of the state machine for one subscription and the components that assemble it (envelope, ordering, cursor, wait time). Like the other design references, this document was written after reading the implementation.
 
-決定そのもの —— transport は SSE、認証は BFF 発行の ticket、stream が運ぶのは event、client が前提するのは単調増加だけ、再接続は自前、mock で差し替えない —— は [ADR 0074](../adr/0074-runtime-communication-seam.md) が持つ。家が `adapters/client` である理由は [ADR 0024](../adr/0024-adapters-server-client-split.md)、往復側の取得と正規化は [data-fetching.md](data-fetching.md)、資格情報の持ち方は [auth.md](auth.md) が持つ。ここが持つのは、それらを読むために要る前提と、実体化するときに踏むものである。
+The decisions themselves — the transport is SSE, authentication is a ticket issued by the BFF, the stream carries events, the client assumes only monotonic increase, reconnection is done in-house, and it is not swapped out in mocks — belong to [ADR 0074](../adr/0074-runtime-communication-seam.md). Why its home is `adapters/client` belongs to [ADR 0024](../adr/0024-adapters-server-client-split.md), round-trip fetching and normalization to [data-fetching.md](data-fetching.md), and how credentials are held to [auth.md](auth.md). What this page holds is the background needed to read them, and what you step on when giving it a real implementation.
 
-判断に迷ったら ADR を優先する。この文書は説明であって規約ではない。
+When in doubt, the ADR wins. This document is an explanation, not a rule.
 
-## 責務の線 —— 開いて読むが、保持しない
+## The line of responsibility — open and read, but do not hold
 
-長寿命接続を**保持する側**はバックエンドで、この層は**開いて読む側**である。ソケットを持たない、イベントを永続化しない、誰に何を配るかを決めない。持つのは次の 3 つだけである。
+The side that **holds** the long-lived connection is the backend; this layer is **the side that opens and reads**. It holds no sockets, does not persist events, and does not decide who gets what. It holds only the following three things.
 
-| 持つもの | 持たないもの |
+| Holds | Does not hold |
 | --- | --- |
-| BFF が backend から ticket を取り、ブラウザへ渡すこと | ticket の検証・失効・保管（backend） |
-| ブラウザが backend の stream を開き、届いた event を整列して feature へ渡すこと | 接続の保持・replay・fan-out（backend） |
-| event を画面の状態へ畳み込むこと（feature） | event の採番・順序の保証（backend） |
+| The BFF obtaining a ticket from the backend and handing it to the browser | Validating, expiring and storing tickets (backend) |
+| The browser opening the backend's stream, ordering the events that arrive, and passing them to the feature | Holding connections, replay, fan-out (backend) |
+| Folding events into the screen's state (feature) | Numbering events and guaranteeing their order (backend) |
 
-この非対称が可能にするのは、**backend の実装が変わっても画面が変わらない**ことである。この層が stream について知っているのは「URL を 1 つ開くと、名前と sequence を持つ event が届く」ことだけで、backend が event をどう作り、どう溜め、どう配っているかは知らない。
+What this asymmetry makes possible is that **the screens do not change when the backend's implementation changes**. All this layer knows about the stream is "open one URL, and events carrying a name and a sequence arrive"; it does not know how the backend creates, stores or delivers events.
 
-同じ非対称が不可能にするのは、**stream の中身を自分で補完すること**である。届かなかった event を推測して埋めない、順序を backend に問い合わせて直さない。整合を取り戻す手段は 1 つ —— 初期表示の取得口を取り直す —— しか持たない。
+What the same asymmetry makes impossible is **filling in the stream's contents on its own**. It does not guess and fill in events that did not arrive, and does not ask the backend to fix the order. It has only one means of restoring consistency — refetching the initial-display fetch endpoint.
 
-## 登場するもの（在り処）
+## The Pieces Involved (Locations)
 
-| 役割 | 在り処 |
+| Role | Location |
 | --- | --- |
-| 初期表示の取得口（History の projection と、購読の開始位置） | `src/adapters/server/api/<資源>.ts` |
-| 発券の取得口（backend へ Bearer 付きで ticket を求める user-scoped の口） | `src/adapters/server/api/<資源>-stream.ts` |
-| 発券の BFF | `src/app/api/<資源>/stream-ticket/route.ts` |
-| 購読 adapter（開く / 整列 / 重複排除 / 再接続 / 閉じる） | `src/adapters/client/stream/` |
-| React への束ね（購読と snapshot の 2 口を `useSyncExternalStore` へ渡す） | 使う feature が 1 つならその feature。複数なら購読 adapter の隣 |
-| event の畳み込み（どの event で何をどう変えるか） | `src/features/<feature>/` |
-| 送信（Server Action → `adapters/server` の冪等な POST） | `src/app/**/actions.ts` → `src/adapters/server/api/<資源>.ts` |
-| CSP の `connect-src` にバックエンドの origin を載せる口 | [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) |
-| status → 分類の対応（ブラウザ側） | [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) の `KIND_BY_STATUS` |
+| The initial-display fetch endpoint (the History projection, and where the subscription starts) | `src/adapters/server/api/<resource>.ts` |
+| The ticket-issuing fetch endpoint (a user-scoped endpoint that asks the backend for a ticket with a Bearer) | `src/adapters/server/api/<resource>-stream.ts` |
+| The ticket-issuing BFF | `src/app/api/<resource>/stream-ticket/route.ts` |
+| The subscription adapter (open / order / deduplicate / reconnect / close) | `src/adapters/client/stream/` |
+| The binding to React (passing the two functions, subscribe and snapshot, to `useSyncExternalStore`) | In the feature if only one feature uses it. Next to the subscription adapter if several do |
+| Folding events (which event changes what, and how) | `src/features/<feature>/` |
+| Submission (Server Action → an idempotent POST in `adapters/server`) | `src/app/**/actions.ts` → `src/adapters/server/api/<resource>.ts` |
+| The place that adds the backend's origin to the CSP's `connect-src` | [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) |
+| The status → classification mapping (browser side) | `KIND_BY_STATUS` in [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) |
 
-React への束ねの置き場は依存表から導ける。`capabilities` と `components` は `adapters` を import できず（`architecture.ts` の `DEPENDENCIES`）、stream の生死は通信機構の状態として `adapters/client` に属する（[ADR 0022](../adr/0022-capabilities-kernel.md)）。したがって hook は feature か `adapters/client` のどちらかにしか置けず、`use-media-query` と同じ `useSyncExternalStore` の形で束ねる。
+Where the binding to React goes can be derived from the dependency table. `capabilities` and `components` cannot import `adapters` (`DEPENDENCIES` in `architecture.ts`), and whether a stream is alive belongs to `adapters/client` as the state of a communication mechanism ([ADR 0022](../adr/0022-capabilities-kernel.md)). So the hook can go only in the feature or in `adapters/client`, and it binds in the same `useSyncExternalStore` shape as `use-media-query`.
 
-## 一連の流れ
+## The End-to-End Flow
 
-初期表示は往復で組み、購読はその続きから始める。送信は購読の外で行い、その結果が event として戻ってくる。
+The initial display is built from a round trip, and the subscription starts from where it left off. Submission happens outside the subscription, and its result comes back as an event.
 
 ```mermaid
 sequenceDiagram
   participant S as Server Component
-  participant F as feature（client island）
-  participant A as 購読 adapter（adapters/client）
-  participant R as BFF（app/api）
-  participant B as バックエンド
-  S->>B: History の projection を取得（adapters/server）
-  B-->>S: 一覧 + streamCursor
-  S->>F: props で渡す（初期状態と開始位置）
-  F->>A: subscribe(単位, streamCursor)
-  A->>R: POST 発券（同一オリジン）
-  R->>B: Bearer 付きで ticket を求める（user-scoped の口）
-  B-->>R: ticket（scope / TTL 付き）
+  participant F as feature (client island)
+  participant A as Subscription adapter (adapters/client)
+  participant R as BFF (app/api)
+  participant B as Backend
+  S->>B: Fetch the History projection (adapters/server)
+  B-->>S: List + streamCursor
+  S->>F: Pass via props (initial state and start position)
+  F->>A: subscribe(unit, streamCursor)
+  A->>R: POST ticket issuance (same origin)
+  R->>B: Request a ticket with the Bearer (user-scoped endpoint)
+  B-->>R: ticket (with scope / TTL)
   R-->>A: ticket
   A->>B: EventSource(stream?ticket=…&<cursor>=streamCursor)
-  B-->>A: event（名前 / sequence / 本文）
-  Note over A: 窓で溜めて sequence 昇順に整列。見た sequence は捨てる
-  A-->>F: 整列済みの event
-  Note over F: 状態へ畳み込む
+  B-->>A: event (name / sequence / body)
+  Note over A: Buffer in the window, sort by ascending sequence. Drop sequences already seen
+  A-->>F: Ordered events
+  Note over F: Fold into state
 ```
 
-**開始位置は取得の応答から来る。** projection を返す口が、その時点の stream の位置を一緒に返す。購読側がこれを引数に取るので、初期表示と購読の間に隙間は無い —— 隙間の event は「cursor より後」として stream から届く。
+**The start position comes from the fetch response.** The endpoint that returns the projection also returns the stream's position at that moment. The subscribing side takes it as an argument, so there is no gap between the initial display and the subscription — events in that gap arrive from the stream as "after the cursor".
 
-**発券は同一オリジンの BFF を叩く。** ブラウザは Access Token を持たないので（[auth.md](auth.md)）、backend の認可を通せるのは BFF だけである。発券の Route Handler は宣言した保護経路の下に無ければ前捌きの対象にならず、backend の 401 を `unauthenticated` へ写してそのまま 401 で返す —— 認証の要る取得の Route Handler と同じ形である。
+**Ticket issuance calls the same-origin BFF.** The browser holds no Access Token ([auth.md](auth.md)), so only the BFF can pass the backend's authorization. The ticket-issuing Route Handler is not subject to pre-screening unless it sits under a declared protected route, and it maps the backend's 401 to `unauthenticated` and returns it as a 401 — the same shape as a fetch Route Handler that needs authentication.
 
-**送信は購読と別の経路を通る。**
+**Submission takes a path separate from the subscription.**
 
 ```mermaid
 sequenceDiagram
-  participant F as feature（form）
+  participant F as feature (form)
   participant X as Server Action
-  participant W as fetch wrapper（adapters/server/http）
-  participant B as バックエンド
-  participant A as 購読 adapter
-  F->>X: submit（client 側で採番した id を hidden で載せる）
+  participant W as fetch wrapper (adapters/server/http)
+  participant B as Backend
+  participant A as Subscription adapter
+  F->>X: submit (carries the client-assigned id in a hidden field)
   X->>W: request({ method: "POST", idempotent: true, headers: { "Idempotency-Key": id } })
-  W->>B: 締切・再試行の下で往復
-  B-->>W: 201 / 分類済みの失敗
-  W-->>X: 結果
+  W->>B: Round trip under deadline and retry
+  B-->>W: 201 / classified failure
+  W-->>X: Result
   X-->>F: ActionState
-  B-->>A: event（本文に同じ id が echo される）
+  B-->>A: event (the same id is echoed in the body)
   A-->>F: event
-  Note over F: 楽観行を id で突合し、確定行へ置き換える
+  Note over F: Match the optimistic row by id and replace it with the confirmed row
 ```
 
-`idempotent: true` を立ててよいのは `Idempotency-Key` を付けたときだけである（[data-fetching.md](data-fetching.md)「POST / PATCH は既定で再試行されない」）。client 側の id をそのまま鍵にすれば、楽観追加の突合と再送の重複排除が同じ 1 つの値で済む。
+`idempotent: true` may be set only when an `Idempotency-Key` is attached ([data-fetching.md § POST / PATCH are not retried by default](data-fetching.md#post--patch-are-not-retried-by-default)). Using the client-side id as the key as is lets matching optimistic additions and deduplicating resends be done with one and the same value.
 
-## 順序の扱い
+## Handling Order
 
-client が前提してよいのは「単位ごとに sequence が単調増加する」ことだけで、歯抜けも到達順の乱れも正常である（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。この前提から、整列の組み立ては次の形になる。
+All the client may assume is that "sequence increases monotonically per unit"; gaps and out-of-order arrival are both normal ([ADR 0074](../adr/0074-runtime-communication-seam.md)). From this assumption, ordering is assembled as follows.
 
-| 段 | 何をするか | 持つ状態 |
+| Stage | What it does | State it holds |
 | --- | --- | --- |
-| 受信 | event を窓へ入れる | 窓（短い時間。数百 ms の桁） |
-| 整列 | 窓が閉じたら sequence 昇順に並べ、上へ流す | 上へ流した最大の sequence（= 次の cursor） |
-| 重複排除 | 流した最大の sequence 以下は捨てる | 同上 |
-| 遅延 | 窓を越えて遅れたもの（流した最大より小さい sequence）は捨て、取得口を取り直す | 取り直し中かどうか |
+| Receive | Puts the event into the window | The window (short; on the order of hundreds of ms) |
+| Order | When the window closes, sorts by ascending sequence and passes it up | The largest sequence passed up (= the next cursor) |
+| Deduplicate | Drops anything at or below the largest sequence passed up | Same as above |
+| Late | Drops anything delayed beyond the window (a sequence smaller than the largest passed up), and refetches the fetch endpoint | Whether a refetch is in progress |
 
-**「穴が埋まるまで待つ」は成立しない。** 歯抜けが正常なので、待ち続ける条件が無い。窓は「同時に届いたものの順序を直す」ためにあり、「欠けたものを待つ」ためにあるのではない。
+**"Waiting until the gap is filled" does not work.** Gaps are normal, so there is no condition under which to keep waiting. The window exists to "fix the order of what arrived at the same time", not to "wait for what is missing".
 
-**遅れて届いたものを描画済みの位置へ挿入しない。** 上へ流した最大の sequence より小さいものが窓の外から届いたら、それは重複か、窓を越えて遅れたかのどちらかで、adapter には区別が付かない。どちらでも同じ扱い —— 捨てて、初期表示の取得口を取り直す —— にしておけば、区別が要らない。取り直した応答の cursor から購読を張り直す。
+**Do not insert something that arrived late into an already-rendered position.** When something smaller than the largest sequence passed up arrives from outside the window, it is either a duplicate or something delayed beyond the window, and the adapter cannot tell which. Treating both the same — drop it and refetch the initial-display fetch endpoint — makes the distinction unnecessary. The subscription is re-established from the cursor of the refetched response.
 
-**cursor は adapter が持ち、feature へ見せない。** 次に張り直すときの開始位置は「上へ流した最大の sequence」で、これは transport の状態である。feature が持つと、feature の数だけ再開位置の正が増える。
+**The adapter holds the cursor and does not show it to the feature.** The start position for the next reconnection is "the largest sequence passed up", which is transport state. If the feature held it, there would be as many authoritative resume positions as there are features.
 
-**stream の cursor と一覧の cursor は別物である。** 一覧の cursor（[ADR 0073](../adr/0073-pagination-fetch-boundary.md)）は「次のページの位置」を指す不透明な値で、URL が覚える。stream の cursor は sequence そのもので、adapter が覚える。同じ語を使うと取り違えるので、props と型には `streamCursor` のように区別できる名前を付ける。
+**The stream's cursor and a list's cursor are different things.** A list's cursor ([ADR 0073](../adr/0073-pagination-fetch-boundary.md)) is an opaque value pointing at "the position of the next page", remembered by the URL. The stream's cursor is the sequence itself, remembered by the adapter. Using the same word invites confusion, so props and types get a distinguishable name such as `streamCursor`.
 
-## 再接続の組み立て
+## How Reconnection Is Built
 
-`EventSource` の組み込み再接続は使わず、adapter が自前で張り直す（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。状態は adapter が 1 つの機械として持つ。
+`EventSource`'s built-in reconnection is not used; the adapter reconnects on its own ([ADR 0074](../adr/0074-runtime-communication-seam.md)). The adapter holds the state as a single machine.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Issuing: subscribe(単位, cursor)
-    Issuing --> Connecting: ticket を得た
-    Issuing --> Stopped: 発券が unauthenticated（session 切れ → 再ログインへ）
-    Issuing --> Stopped: 発券が permission-denied（権限喪失）
-    Issuing --> Backoff: 発券が unavailable / internal（BFF か backend の 5xx）
-    Connecting --> Open: open が来た
-    Connecting --> Issuing: open の前に error（ticket の TTL 切れか、権限か、5xx か —— status は見えない）
-    Open --> Open: event を受け取る
-    Open --> Backoff: error（close() を即呼ぶ。cursor は流した最大の sequence）
-    Open --> Resync: 窓を越えた遅延を検出（取得口を取り直す）
-    Resync --> Connecting: 新しい cursor
-    Backoff --> Issuing: TTL 切れ
-    Backoff --> Connecting: TTL 内（同じ ticket で張り直す）
-    Open --> Closed: unsubscribe（画面を離れた）
+    [*] --> Issuing: subscribe(unit, cursor)
+    Issuing --> Connecting: ticket obtained
+    Issuing --> Stopped: issuance unauthenticated (session expired → to re-login)
+    Issuing --> Stopped: issuance permission-denied (permission lost)
+    Issuing --> Backoff: issuance unavailable / internal (5xx from the BFF or backend)
+    Connecting --> Open: open arrived
+    Connecting --> Issuing: error before open (ticket TTL expiry, permission or 5xx — the status is not visible)
+    Open --> Open: receive an event
+    Open --> Backoff: error (call close() at once. The cursor is the largest sequence passed up)
+    Open --> Resync: delay beyond the window detected (refetch the fetch endpoint)
+    Resync --> Connecting: new cursor
+    Backoff --> Issuing: TTL expired
+    Backoff --> Connecting: within TTL (reconnect with the same ticket)
+    Open --> Closed: unsubscribe (left the screen)
     Backoff --> Closed: unsubscribe
     Stopped --> [*]
     Closed --> [*]
 ```
 
-**`error` が来たら即 `close()` する。** 組み込み再接続は `error` を発火してから `retry:` の間隔で張り直すので、その前に閉じないと、自前の backoff と組み込みの再接続が同じ URL へ二重に走る。閉じた `EventSource` は再利用できないので、張り直しは新しいインスタンスになる —— だから `Last-Event-ID` は載らず、cursor を query で毎回渡す。
+**When `error` arrives, call `close()` immediately.** The built-in reconnection fires `error` and then reconnects at the `retry:` interval, so unless it is closed first, the in-house backoff and the built-in reconnection both hit the same URL twice. A closed `EventSource` cannot be reused, so reconnecting means a new instance — which is why `Last-Event-ID` is not sent, and the cursor is passed in the query every time.
 
-**backoff は 5xx と網の断だけに掛ける。** jitter を付け、上限を持つ。画面が見えていない間（`document.hidden`）は張り直しを止め、見えたときに再開する —— 見えていない画面のために backend の接続数を消費しない。
+**Backoff applies only to 5xx and network drops.** It has jitter and an upper limit. While the screen is not visible (`document.hidden`), reconnection stops and resumes when it becomes visible — the backend's connection count is not spent on a screen nobody sees.
 
-**打ち切りの分類は往復の側から来る。** `EventSource` の `error` は status を持たないので、stream 側だけを見ても「権限が無い」と「backend が落ちている」を区別できない。区別できるのは発券の往復だけである —— `open` の前に `error` が来たら発券へ戻り、そこで返る分類（`unauthenticated` / `permission-denied` / それ以外）で打ち切るか backoff するかを決める。`open` の後に落ちたものは transport の都合として backoff する。
+**The classification for giving up comes from the round-trip side.** `EventSource`'s `error` carries no status, so looking only at the stream side cannot tell "no permission" from "the backend is down". Only the ticket-issuing round trip can tell them apart — if `error` arrives before `open`, go back to issuance, and the classification returned there (`unauthenticated` / `permission-denied` / anything else) decides whether to give up or back off. Anything that drops after `open` is backed off as a transport matter.
 
-**feature が受け取るのは分類だけである。** `unauthenticated` なら再ログインへ導く（増分取得の hook が `UNAUTHENTICATED` で `router.refresh()` へ写すのと同じ形）、`permission-denied` なら購読を止めた姿を出す、backoff 中なら「切れている」姿を出す。close code も `readyState` も feature には見せない。
+**All the feature receives is the classification.** For `unauthenticated` it leads to re-login (the same shape as the incremental-fetch hook mapping `UNAUTHENTICATED` to `router.refresh()`); for `permission-denied` it shows the subscription-stopped state; during backoff it shows the "disconnected" state. Neither the close code nor `readyState` is shown to the feature.
 
-## どの層が何を持つか
+## Which Layer Holds What
 
-| 層 | 持つもの | 持たないもの |
+| Layer | Holds | Does not hold |
 | --- | --- | --- |
-| `adapters/server` | 発券の口（user-scoped）、projection の口（cursor を返す）、送信の口（`idempotent: true`） | stream を開くこと（server は購読しない） |
-| `app/api` | 発券の BFF。分類を status へ写すだけ | ticket の検証・保管 |
-| `adapters/client` | 開く / 閉じる、整列、重複排除、cursor、再接続、backoff、TTL 内の ticket の再利用、分類への正規化、event の schema 検証 | event の意味、画面の状態 |
-| `features` | event の畳み込み、楽観行の突合、切れているときの姿 | sequence、再接続、ticket |
-| `config` | CSP の `connect-src` にバックエンドの origin を載せること | — |
+| `adapters/server` | The ticket-issuing endpoint (user-scoped), the projection endpoint (returns the cursor), the submission endpoint (`idempotent: true`) | Opening the stream (the server does not subscribe) |
+| `app/api` | The ticket-issuing BFF. It only maps the classification to a status | Validating and storing tickets |
+| `adapters/client` | Open / close, ordering, deduplication, the cursor, reconnection, backoff, reusing a ticket within its TTL, normalizing into classifications, schema validation of events | The meaning of events, the screen's state |
+| `features` | Folding events, matching optimistic rows, how the disconnected state looks | Sequence, reconnection, tickets |
+| `config` | Adding the backend's origin to the CSP's `connect-src` | — |
 
-**分類への正規化は adapter の内側で 1 度だけ行う。** 往復側と同じで（[data-fetching.md](data-fetching.md)「エラーの正規化」）、ブラウザが投げた例外も `EventSource` の `error` も `errors` の分類へ写してから feature に渡す。
+**Normalization into classifications happens once, inside the adapter.** As on the round-trip side ([data-fetching.md § Error Normalization](data-fetching.md#error-normalization--where-a-raw-status-becomes-a-classification)), both exceptions thrown by the browser and `EventSource`'s `error` are mapped to the `errors` classifications before being passed to the feature.
 
-**adapter は event の形を検証してから流す。** 名前で判別する discriminated union の zod schema を持ち、契約に無い名前・形の合わない本文は落として記録する。往復側の「応答を検証せずに UI へ流さない」と同じ原則である。契約から生成した schema をそのまま当てられるかは、契約が event を component として宣言しているかで決まる（後述「バックエンド側に決めてもらうもの」）。
+**The adapter validates the shape of an event before passing it on.** It holds a zod schema of a discriminated union keyed by name, and drops and records names not in the contract and bodies whose shape does not match. It is the same principle as the round-trip side's "do not pass a response to the UI without validating it". Whether a schema generated from the contract can be applied as is depends on whether the contract declares events as components (see "What the Backend Side Needs to Decide" below).
 
-## 間違えやすいところ
+## Common Pitfalls
 
-### `EventSource` は status を見せない
+### `EventSource` does not expose the status
 
-`onerror` に届くのは `Event` で、応答の status も本文も無い。403 も 500 も網の断も同じ `error` である。標準が分けるのは後始末だけで、網の断なら `readyState` を `CONNECTING` に戻して組み込み再接続へ進み、200 以外の応答なら `CLOSED` に落として張り直さない（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。どちらでも `error` の直後に `close()` するこの adapter には、その違いも届かない。判定の材料は「`open` が来たことがあるか」と「発券の往復が返した分類」だけで、上の状態機械はそれで組んである。status を読む必要が出たなら、それは `EventSource` を使わず `fetch` で SSE を読む判断であり、[ADR 0074](../adr/0074-runtime-communication-seam.md) の既定を外れる。
+What reaches `onerror` is an `Event`, with neither the response status nor the body. A 403, a 500 and a network drop are all the same `error`. The standard distinguishes only the cleanup: on a network drop it returns `readyState` to `CONNECTING` and proceeds to built-in reconnection, and on a non-200 response it drops to `CLOSED` and does not reconnect ([WHATWG HTML "Server-sent events"](https://html.spec.whatwg.org/multipage/server-sent-events.html)). Even that difference does not reach this adapter, which calls `close()` right after either `error`. The only materials for the decision are "has `open` ever arrived?" and "the classification the ticket-issuing round trip returned", and the state machine above is built from them. If you ever need to read the status, that is a decision to read SSE with `fetch` instead of `EventSource`, which departs from the default of [ADR 0074](../adr/0074-runtime-communication-seam.md).
 
-### `KIND_BY_STATUS` は 403 と 404 を畳まない
+### `KIND_BY_STATUS` does not fold 403 and 404
 
-ブラウザ側の要求境界（`adapters/client/http/request.ts`）は、発券の BFF が返す 401 / 403 / 404 をそれぞれ `unauthenticated` / `permission-denied` / `not-found` へ写す。畳んで `internal` にすると、権限喪失も購読する対象が無いことも backoff の対象になり、直らない相手へ張り直し続ける —— 「401 を畳まない」と同じ理由である。発券口を足すときに backend が返す拒否の status がこの表に無ければ、行を足す。
+The browser-side request boundary (`adapters/client/http/request.ts`) maps the 401 / 403 / 404 returned by the ticket-issuing BFF to `unauthenticated` / `permission-denied` / `not-found` respectively. Folding them into `internal` would make both loss of permission and the absence of anything to subscribe to subject to backoff, reconnecting forever against something that will not recover — the same reason as "do not fold 401". When adding a ticket-issuing endpoint, if the rejection status the backend returns is not in this table, add a row.
 
-### `connect-src` にバックエンドの origin が要る
+### `connect-src` needs the backend's origin
 
-往復はすべて同一オリジンの BFF を通るので `'self'` で足りるが、購読はブラウザが backend へ直接開く。その origin が `connect-src` に無ければ接続はブロックされ、コンソール以外に何も出ない。購読の口は API と同じ origin に置かれる前提で、`SecurityHeaderInputs` の `apiOrigin`（`APP_API_BASE_URL` から導く）が `connect-src` に載る（[ADR 0111](../adr/0111-csp-security-headers.md)）。購読の口を API と別の origin に置く backend へ繋ぐなら、その origin を同じ形の入力として足す。開発時は backend の origin が `localhost` の別ポートになるが、同じ入力から導かれる。
+Every round trip goes through the same-origin BFF, so `'self'` is enough for those, but a subscription is opened by the browser directly to the backend. If that origin is not in `connect-src`, the connection is blocked and nothing appears anywhere but the console. The subscription endpoint is assumed to sit on the same origin as the API, and `apiOrigin` of `SecurityHeaderInputs` (derived from `APP_API_BASE_URL`) goes into `connect-src` ([ADR 0111](../adr/0111-csp-security-headers.md)). If you connect to a backend that puts the subscription endpoint on an origin different from the API, add that origin as an input of the same shape. During development the backend's origin is a different port on `localhost`, but it is derived from the same input.
 
-`EventSource` は別 origin へ CORS の要求を出す（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。応答にこの origin を許す `Access-Control-Allow-Origin` が無ければ、ブラウザは接続を失敗として扱う。これは backend の応答の側で決まり、このリポジトリの CORS（BFF の応答へ付けるもの。[ADR 0111](../adr/0111-csp-security-headers.md)）とは別物である。
+`EventSource` issues a CORS request to a different origin ([WHATWG HTML "Server-sent events"](https://html.spec.whatwg.org/multipage/server-sent-events.html)). If the response has no `Access-Control-Allow-Origin` allowing this origin, the browser treats the connection as failed. This is decided on the backend's response side, and is a different thing from this repository's CORS (what is attached to the BFF's responses; [ADR 0111](../adr/0111-csp-security-headers.md)).
 
-### ticket は URL に載る
+### The ticket travels in the URL
 
-redaction は**名前で伏せ、値の形は見ない**（[observability.md](observability.md)）。`REDACTED_FIELD_NAMES` は `authorization` / `cookie` / `password` / `token` の 4 つで、URL 文字列の中の ticket には届かない。ブラウザ側の例外は `reportClientError` が `message` をそのまま中継へ送るので、adapter が URL を含む文言を作った時点で ticket が中継に載る。
+Redaction **hides by name and does not look at the value's shape** ([observability.md](observability.md)). `REDACTED_FIELD_NAMES` is the four `authorization` / `cookie` / `password` / `token`, and does not reach a ticket inside a URL string. For browser-side exceptions, `reportClientError` sends `message` to the relay as is, so the moment the adapter builds a message containing the URL, the ticket rides along to the relay.
 
-守り方は 2 つで、両方要る。adapter は例外の文言に URL を入れない。ブラウザ由来の例外（`EventSource` の構築失敗など）を包むときは `redactMessage(message, [ticket])` で値を名指しして消してから `createAppError` へ渡す。`FetchInstrumentation` は `EventSource` を計装しないので span には載らないが、backend や edge のアクセスログには載る —— それはこの層の外である。
+There are two safeguards, and both are needed. The adapter does not put URLs into exception messages. When wrapping an exception that originates in the browser (a failure to construct `EventSource` and the like), it erases the value by naming it with `redactMessage(message, [ticket])` before passing it to `createAppError`. `FetchInstrumentation` does not instrument `EventSource`, so it does not appear in spans, but it does appear in the backend's and the edge's access logs — that is outside this layer.
 
-### heartbeat がコメント行だと client には見えない
+### A heartbeat sent as a comment line is invisible to the client
 
-`EventSource` は `:` で始まるコメント行を捨て、event を発火しない。backend が heartbeat をコメントで送ると（proxy の idle timeout を防ぐ形）、client からは何も届いていないのと同じで、「一定時間 event が無い」を切断の合図に使えない。client 側で liveness を見たいなら heartbeat は名前付きの event でなければならず、それは契約の側の決定である。heartbeat がコメント行である間は、liveness は `error` の到着だけに頼る。
+`EventSource` discards comment lines starting with `:` and fires no event. If the backend sends its heartbeat as a comment (a shape that prevents a proxy's idle timeout), from the client's side it is the same as nothing arriving, and "no event for a certain time" cannot be used as a signal of disconnection. If the client wants to watch liveness, the heartbeat must be a named event, and that is a decision on the contract's side. As long as the heartbeat is a comment line, liveness relies only on `error` arriving.
 
-### 見えない画面の購読を張ったままにしない
+### Do not keep subscriptions open for screens that are not visible
 
-`useSyncExternalStore` の subscribe は mount で張られ unmount で外れるが、タブが背面に回っても mount は続く。画面が見えていない間の backoff を止めるのは adapter の仕事で、hook の仕事ではない。逆に unsubscribe は失敗ではない —— 条件が変わったか画面を離れたかで、伝える相手がもういない。打ち切りとして記録しない（[`docs/rules.md`](../rules.md)「client 取得の打ち切り（abort）を失敗として記録しない」と同じ）。
+`useSyncExternalStore`'s subscribe is set up on mount and torn down on unmount, but the mount continues even when the tab goes to the background. Stopping backoff while the screen is not visible is the adapter's job, not the hook's. Conversely, unsubscribing is not a failure — either the conditions changed or the user left the screen, and there is no one left to tell. Do not record it as giving up (the same as [`docs/rules.md`](../rules.md) "Do not record an abort of a client fetch as a failure").
 
-### 楽観追加はロールバックを持てるときだけ
+### Optimistic additions only when a rollback is possible
 
-`useOptimistic` は同梱サンプルでは使っておらず、使うならロールバックを持てる場合に限る（[forms.md](forms.md)）。送信が分類付きで失敗したら楽観行を消し、event が echo した id と突合できたら確定行へ置き換える。突合できないまま残った楽観行は、取得口を取り直したときに消える —— 取り直しは楽観行を持たない状態から組み直す。
+`useOptimistic` is not used in the bundled sample, and if it is used, it is limited to cases where a rollback can be held ([forms.md](forms.md)). If submission fails with a classification, remove the optimistic row; if it can be matched with the id echoed by the event, replace it with the confirmed row. An optimistic row left unmatched disappears when the fetch endpoint is refetched — the refetch rebuilds from a state with no optimistic rows.
 
-### テストは構築子を差し替える
+### Tests swap the constructor
 
-購読 adapter は `EventSource` の構築子を注入で受ける（往復側の `fetchImpl` と同じ形）。テストは偽の構築子で `open` / `message` / `error` を順に起こし、整列・重複排除・打ち切り・backoff を確かめる。実行環境が `EventSource` を持つかどうかに検証を依存させない。`integration` の宣言が掛かるのは外部との往復を持つ発券の口で、adapter の判定は `unit` の形で確かめる（[`src/adapters/README.md#operations`](../../src/adapters/README.md#operations)）。
+The subscription adapter receives the `EventSource` constructor by injection (the same shape as `fetchImpl` on the round-trip side). Tests use a fake constructor to raise `open` / `message` / `error` in order, and check ordering, deduplication, giving up and backoff. Verification does not depend on whether the runtime environment has `EventSource`. The `integration` declaration applies to the ticket-issuing endpoint, which has a round trip with the outside, and the adapter's decisions are checked in the `unit` shape ([`src/adapters/README.md`](../../src/adapters/README.md) "Operations").
 
-### 購読はタブごとに張り、タブの間で共有しない
+### Subscriptions are opened per tab and not shared between tabs
 
-同じ画面を複数のタブで開けば、同じ単位の購読がタブの数だけ張られる。整列・重複排除・cursor は購読 1 本の内側で閉じており、タブを跨いで 1 本に束ねる仕組み（`BroadcastChannel` や `SharedWorker` での共有）は持たない —— 束ねると、どのタブが接続を持ちどのタブが受け取るかという、transport と別の状態が要る。これは backend が 1 主体からの複数接続を受け付けることを前提にしている。受け付ける数の上限を越えた接続は拒否され、`open` の前の `error` として張り直しの経路に乗る。
+Open the same screen in several tabs, and subscriptions for the same unit are opened as many times as there are tabs. Ordering, deduplication and the cursor are closed inside one subscription, and there is no mechanism that bundles them into one across tabs (sharing via `BroadcastChannel` or `SharedWorker`) — bundling would need a state separate from transport: which tab holds the connection and which tab receives. This assumes the backend accepts several connections from one principal. Connections beyond the accepted limit are refused, and ride the reconnection path as an `error` before `open`.
 
-### Storybook と mock は購読を持たない
+### Storybook and mocks hold no subscriptions
 
-`mocks/` に SSE のハンドラは置かない（[ADR 0074](../adr/0074-runtime-communication-seam.md)）。story が見せるのは購読の結果として feature が取る状態 —— 開いている / 切れている / 権限が無い / 楽観行がある —— で、それは props で与える。開発時に event を起こす手段は backend 側が持ち、この層は実 backend へ繋ぐ。
+No SSE handlers go into `mocks/` ([ADR 0074](../adr/0074-runtime-communication-seam.md)). What a story shows is the state the feature takes as a result of the subscription — open / disconnected / no permission / has optimistic rows — given through props. The means of raising events during development is held by the backend side, and this layer connects to the real backend.
 
-## バックエンド側に決めてもらうもの
+## What the Backend Side Needs to Decide
 
-この層の設計はここまでで閉じるが、次の値は契約の側にあり、決まると client の形が 1 つ決まる。
+The design of this layer closes here, but the following values sit on the contract's side, and once each is decided, one shape of the client is decided.
 
-| 項目 | client 側に何が決まるか |
+| Item | What it decides on the client side |
 | --- | --- |
-| 再開 cursor の query パラメータ名 | adapter が URL を組む綴り |
-| heartbeat の形式と間隔 | コメント行なら client は liveness を持たない。名前付き event なら「一定時間 event が無い」を切断の合図にできる |
-| ticket の TTL と scope | backoff 中に同じ ticket で張り直せる時間。TTL を過ぎたら発券へ戻る |
-| event の名前と本文の schema が契約（OpenAPI の component）に載るか | 載れば生成物の schema を当てられる。載らなければ adapter が手書きの schema を持つ（`adapters/client` の他の口と同じ） |
-| 権限喪失を stream の切断で伝えるか、切断前に event で伝えるか | 前者なら発券へ戻って分類を得る。後者なら adapter がその event を `permission-denied` へ写して打ち切る |
-| 開発時に event を起こす手段 | 手元で購読の姿を確かめる手順 |
+| The query parameter name of the resume cursor | The spelling the adapter uses to build the URL |
+| The format and interval of the heartbeat | If it is a comment line, the client holds no liveness. If it is a named event, "no event for a certain time" can be the signal of disconnection |
+| The ticket's TTL and scope | How long reconnection with the same ticket is possible during backoff. Past the TTL, go back to issuance |
+| Whether event names and body schemas are in the contract (as OpenAPI components) | If they are, the generated schema can be applied. If not, the adapter holds a hand-written schema (as with the other endpoints in `adapters/client`) |
+| Whether loss of permission is conveyed by dropping the stream, or by an event before dropping | If the former, go back to issuance to get the classification. If the latter, the adapter maps that event to `permission-denied` and gives up |
+| The means of raising events during development | The procedure for checking the subscription's states locally |
 
-## 自分で確かめる
+## Verify it yourself
 
 ```bash
 # 購読の実装が `adapters/client` の外に無いか
@@ -223,15 +223,15 @@ grep -rn "new EventSource\|new WebSocket" src --include='*.ts' --include='*.tsx'
 curl -sI http://localhost:3000/ | grep -i content-security-policy | tr ';' '\n' | grep connect-src
 ```
 
-## 関連する ADR
+## Related ADRs
 
-- [0074](../adr/0074-runtime-communication-seam.md) — 購読 seam の決定と却下。この文書の土台
-- [0024](../adr/0024-adapters-server-client-split.md) — `adapters/client` が家である理由
-- [0022](../adr/0022-capabilities-kernel.md) — 通信機構の状態と runtime の能力の区別
-- [0071](../adr/0071-bff-api-integration.md) — 往復側の resilience と POST 冪等性の opt-in
-- [0073](../adr/0073-pagination-fetch-boundary.md) — 一覧の cursor（stream の cursor と別物）
-- [0079](../adr/0079-auth-frontend-seam.md) — Access Token はブラウザに無い
-- [0080](../adr/0080-error-handling.md) — 401 / 403 を再試行しない
-- [0081](../adr/0081-observability-logging.md) — 名前で伏せる redaction
-- [0111](../adr/0111-csp-security-headers.md) — `connect-src` の既定
-- [0112](../adr/0112-data-classification-cache-boundary.md) — 発券口は user-scoped
+- [0074](../adr/0074-runtime-communication-seam.md) — the decisions and rejections for the subscription seam. The foundation of this document
+- [0024](../adr/0024-adapters-server-client-split.md) — why `adapters/client` is its home
+- [0022](../adr/0022-capabilities-kernel.md) — the distinction between the state of a communication mechanism and a runtime capability
+- [0071](../adr/0071-bff-api-integration.md) — resilience on the round-trip side and the opt-in to POST idempotency
+- [0073](../adr/0073-pagination-fetch-boundary.md) — a list's cursor (a different thing from the stream's cursor)
+- [0079](../adr/0079-auth-frontend-seam.md) — the Access Token is not in the browser
+- [0080](../adr/0080-error-handling.md) — do not retry 401 / 403
+- [0081](../adr/0081-observability-logging.md) — redaction that hides by name
+- [0111](../adr/0111-csp-security-headers.md) — the default of `connect-src`
+- [0112](../adr/0112-data-classification-cache-boundary.md) — the ticket-issuing endpoint is user-scoped

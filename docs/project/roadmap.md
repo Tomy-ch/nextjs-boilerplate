@@ -1,90 +1,90 @@
-# ロードマップ
+# Roadmap
 
 <!-- boilerplate-only:replace-begin -->
-このページは、このプロジェクトが維持されている**方向**を記録する。スケジュールではなく、何を受け入れる
-かを形づくる恒常的な方針である。個々の作業項目は、閉じることのできる issue トラッカーにある。ここに
-一覧を置けば、1 つ着地した瞬間に陳腐化する二重管理になる。
+This page records the **direction** in which this project is maintained. It is not a schedule but a standing policy that shapes what is
+accepted. Individual work items live in the issue tracker, where they can be closed. Listing them here
+would be duplicate management that goes stale the moment one lands.
 <!-- boilerplate-only:replace-with -->
-<!-- = このページは、このプロジェクトが維持されている**方向**を記録する。スケジュールではなく、何を -->
-<!-- = 受け入れるかを形づくる恒常的な方針である。個々の作業項目は、閉じることのできる issue トラッカーに -->
-<!-- = 置くこと。 -->
+<!-- = This page records the **direction** in which this project is maintained. It is not a schedule but a standing policy that shapes -->
+<!-- = what is accepted. Put individual work items in the issue tracker, -->
+<!-- = where they can be closed. -->
 <!-- = -->
-<!-- = 以下の節は自分のプロジェクトの方向で置き換えること。テンプレートから引き継ぐのはページの形で -->
-<!-- = あって、その中身ではない。 -->
+<!-- = Replace the sections below with your own project's direction. What is inherited from the template is the shape of the page, -->
+<!-- = not its contents. -->
 <!-- boilerplate-only:replace-end -->
 
-ここに書かれたことはいずれも期日の約束ではない。メンテナが引き受けること・引き受けないことは
-[policy.md](policy.md) にあり、それはロードマップという語が含意するより意図的に狭い。
+Nothing written here is a promise with a date. What the maintainer takes on and does not take on is in
+[policy.md](policy.md), which is deliberately narrower than the word "roadmap" implies.
 
 <!-- boilerplate-only:begin -->
-## 各リリース線が何を主題にしているか
+## What Each Release Line Is About
 
-リリース線は機能の束ではなく**主題**である。テンプレートが答えようとしている 1 つの問いを、答えが
-出るまで進める単位で、リリースごとの詳細はここへ写さず `.github/release/` のリリースノートに置く。
+A release line is not a bundle of features but a **theme**. It is the unit that advances one question the template is trying to answer until
+the answer is in; per-release detail is not copied here but kept in the release notes under `.github/release/`.
 
-### v1 —— 考えないでもフロントが組める、一般的な Next.js アプリ基盤
+### v1 — A general Next.js application foundation on which the front end can be built without thinking
 
-表示層に汎用・常用のライブラリを同梱し、置き場・書き方・接続点を決めきる線である
-（[0011](../adr/0011-no-docker.md) の 3 本柱）。層の境界は機械で守られ、部品の使い方と責務は層 README が、
-画面の約束は仕様書が答える。
+The line that bundles general-purpose, everyday libraries into the presentation layer and fully settles placement, how to write, and connection points
+(the three pillars of [0011](../adr/0011-no-docker.md)). Layer boundaries are guarded by machines, the usage and responsibilities of components are answered by layer READMEs,
+and the promises of screens by specifications.
 
-v1.0.0 は文書運用の境界でもある。ADR は living document から immutable へ切り替わる
-（[0140](../adr/0140-documentation-operations.md)）。route と仕様書の突合も
-この時点で完了する（[0143](../adr/0143-spec-driven-development.md)）。
+v1.0.0 is also the boundary for documentation operations. ADRs switch from living documents to immutable
+([0140](../adr/0140-documentation-operations.md)). Reconciling routes with specifications
+is also completed at this point ([0143](../adr/0143-spec-driven-development.md)).
 
-### v2 —— 用途に依存するものを、seam の上に局所採用する
+### v2 — Adopting what depends on the use case locally, on top of seams
 
-i18n と PWA の本体側採用は v2 に置く（[0121](../adr/0121-i18n-strategy.md) / [0130](../adr/0130-pwa-strategy.md)）。
-決済・分析・DnD のような局所ライブラリも同じ線で、それまで本体が持つのは採用時の座標だけである。
-採用しても seam は残し、ライブラリはその裏に置く（[0010](../adr/0010-standards-and-non-lockin.md)）。
+Adopting i18n and PWA in the app is placed in v2 ([0121](../adr/0121-i18n-strategy.md) / [0130](../adr/0130-pwa-strategy.md)).
+Local libraries such as payments, analytics and DnD are on the same line; until then the app holds only the coordinates for adoption.
+Even once adopted, the seam remains and the library sits behind it ([0010](../adr/0010-standards-and-non-lockin.md)).
 
 <!-- boilerplate-only:end -->
-## 恒常的な方向
+## Standing Direction
 
-**ランタイムと依存は、明示的な更新判断で追う。** `next` / `react` を含む依存はすべて exact pin で、
-メジャー更新は破壊的変更を引用した別 PR でしか入らない（[0004](../adr/0004-library-management.md)）。
-公開直後の版は cooldown で採らない。期日の判明している更新が保留に見えることがあるが、それは滞留では
-なく方針が働いている状態である。
+**Runtimes and dependencies are followed by explicit update decisions.** Every dependency, including `next` / `react`, is an exact pin,
+and major updates come in only through a separate PR that cites the breaking changes ([0004](../adr/0004-library-management.md)).
+Freshly published versions are not taken, because of the cooldown. An update with a known date may look held up, but that is not stagnation;
+it is the policy at work.
 
-**供給網の統制は深める方向にのみ動かす。** 更新の検疫、Actions の SHA ピン、補助 image の digest
-固定は下限として扱う（[0110](../adr/0110-security-operations.md) / [0153](../adr/0153-ci-configuration.md) /
-[0011](../adr/0011-no-docker.md)）。外す変更は不便さではなく脅威に対して論じる。
+**Supply-chain controls only move toward deepening.** Update quarantine, SHA pins for Actions and digest pinning of auxiliary images
+are treated as the floor ([0110](../adr/0110-security-operations.md) / [0153](../adr/0153-ci-configuration.md) /
+[0011](../adr/0011-no-docker.md)). A change that removes one is argued against the threat, not against inconvenience.
 
-**機械的に判定できる規約は、順次ツールへ移す。** レビューで守っている規約は、lint・境界検査・生成物の
-drift 検査へ移すことを優先する。そうすれば規約は寄与者にもエージェントにも同一に効き、レビューは
-自動化できない判断にだけ費やせる（[0144](../adr/0144-decision-enforcement-pairing.md)）。
+**Conventions that can be judged mechanically are moved into tools step by step.** Conventions kept by review are preferably moved into lint, boundary checks and
+drift checks on generated artifacts. Then a convention applies identically to contributors and agents, and review can be spent
+only on judgments that cannot be automated ([0144](../adr/0144-decision-enforcement-pairing.md)).
 
-**意図的な非採用は非採用のまま維持する。** [out-of-scope.md](out-of-scope.md) はバックログではない。
-項目がそこを出るのは記録された理由が成り立たなくなったときだけで、それは ADR の判断である。状態 ——
-要望が来た、点が上がる、上流が持っている —— は撤回の条件にならない。
+**Deliberate non-adoptions stay non-adopted.** [out-of-scope.md](out-of-scope.md) is not a backlog.
+An item leaves it only when the recorded reason no longer holds, and that is an ADR decision. A state —
+a request came in, votes went up, upstream has it — is not a reversal condition.
 
-**他の層が握る問題を、こちらで先回りしない。** 上流の値の網羅的な無害化やサーバが持つ判断の写しを、
-表示層の設計目標に入れない（[0020](../adr/0020-adopted-architecture.md) 設計原則 6）。
+**Do not pre-empt problems another layer owns.** Exhaustive sanitization of upstream values and copies of judgments the server owns are
+not made design goals of the presentation layer ([0020](../adr/0020-adopted-architecture.md), on not pre-emptively handling problems another layer owns).
 
 <!-- boilerplate-only:begin -->
-## ロール境界は恒久的に対象外
+## The Role Boundary Is Permanently Out of Scope
 
-表示層というロール（[0011](../adr/0011-no-docker.md)）の外側 —— 業務ロジック・永続化・資格情報の
-検証 —— をこのリポジトリが吸収することはない。0011 が再評価のトリガーに挙げるフルスタック化と
-self-host の第一級化は、**このリポジトリの製品が変わる**判断であって、線の延長ではない。
+What lies outside the presentation-layer role ([0011](../adr/0011-no-docker.md)) — business logic, persistence, credential
+validation — will never be absorbed by this repository. Going full-stack and making self-hosting first class, which 0011 lists as triggers for
+re-evaluation, are decisions that **change what this repository's product is**, not an extension of the line.
 
-- **最適化する単位が違う。** ここが最適化するのは、契約の消費者としての表示層である。契約の所有者と
-  同居した瞬間、境界検査が守っている「型を内層へ漏らさない」線は意味を失う
-- **難しい部分がリポジトリの外にある。** 永続化・認可モデル・契約の所有はバックエンドの判断であり
-  （[0070](../adr/0070-backend-role-separation.md)）、テンプレートが先に答えを焼き込むと制約を見る前に
-  選択が終わる
-- **対象外は禁止ではない。** 作った側が自分の判断でロールを広げることを妨げない。こちらの責任は、
-  そうすると決めたときに**どの前提を書き換えることになるかが辿れる状態を保つこと**であり、非採用は
-  いずれも ADR として記録してある
+- **The unit being optimized is different.** What this repository optimizes is the presentation layer as a consumer of the contract. The moment it
+  lives together with the contract's owner, the line the boundary checks guard — "do not leak types into inner layers" — loses its meaning
+- **The hard parts are outside the repository.** Persistence, the authorization model and contract ownership are backend decisions
+  ([0070](../adr/0070-backend-role-separation.md)), and if a template bakes in answers first, the choice is over before the constraints
+  are seen
+- **Out of scope is not forbidden.** It does not stop the creating side from widening the role on its own judgment. This side's responsibility is
+  **to keep it traceable which premises would have to be rewritten** when someone decides to do so, and every non-adoption
+  is recorded as an ADR
 
-## このリポジトリの外側
+## Outside This Repository
 
-バックエンドの相方は、同じ方針で書かれた別のボイラープレート（同梱サンプルの契約の出所）である。
-こちらが境界の外側に置く前提を、相手側が同じ前提として持つ。相手側に何が着地しても、ここのスコープは
-変わらない。
+The backend counterpart is a separate boilerplate written to the same policy (the source of the bundled sample's contract).
+The premises this side places outside its boundary are held as the same premises on the other side. Whatever lands on the other side, the scope here
+does not change.
 
 <!-- boilerplate-only:end -->
-## 実際の作業がある場所
+## Where the Actual Work Is
 
-計画中および進行中の作業は issue トラッカーにある。システムが今の形をしている**理由**を変えるものは、
-加えて [ADR](../adr/README.md) として記録される。このページはその現在の要約に過ぎない。
+Planned and in-progress work lives in the issue tracker. Anything that changes **why** the system has its current shape is
+additionally recorded as an [ADR](../adr/README.md). This page is no more than a current summary of that.

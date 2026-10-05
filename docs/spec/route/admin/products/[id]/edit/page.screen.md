@@ -1,75 +1,73 @@
-# `/admin/products/[id]/edit` 商品の編集（画面要件）
+# `/admin/products/[id]/edit` Editing a Product (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 >
-> 段の中身は [`../../new/page.screen.md`](../../new/page.screen.md) と同じ部品で、**器だけが違う**。
+> The steps' contents are the same components as [`../../new/page.screen.md`](../../new/page.screen.md); **only the container differs**.
 
-1 か所を直しに来る画面。
+A screen people come to in order to fix one thing.
 
-## 観点で切り替える
+## Switching by aspect
 
-**4 つの観点を切り替える。順番を持たない。**
+**Switch among four aspects. There is no order.**
 
-| 観点 | 直せるもの |
+| Aspect | What can be fixed |
 | --- | --- |
-| 基本情報 | 商品名・価格・在庫警告の閾値・分類 |
-| 説明 | 商品説明 |
-| 画像 | 商品画像 |
-| 公開 | 状態・公開日時 |
+| Basic information | Product name, price, low-stock warning threshold, category |
+| Description | Product description |
+| Images | Product images |
+| Publication | Status, publication date and time |
 
-**順番を持つ器にしないのは、編集で主なのが「1 か所を直す」ことだからである。** 順番があると、直し
-たい所へ行くのに段を踏まされる。初めての入力（作成）とは課題が違う。
+**The container has no order because the main thing in editing is "fixing one thing".** With an order, getting to the part to fix
+means stepping through the steps. The task differs from first-time input (creation).
 
-**在庫数の欄が無い。** 作成にはある。在庫は別の口が持つ。
+**There is no stock quantity field.** Creation has one. Stock is held by a different endpoint.
 
-## 選んでいない観点も残す
+## Unselected aspects are kept
 
-**選んでいない観点の入力も、送信にそのまま載る。** 観点を切り替えた時点で書きかけが消えると、
-複数の観点をまとめて直せない。
+**Input in unselected aspects is still included in the submission as is.** If switching aspects erased half-written input,
+several aspects could not be fixed together.
 
-**残したうえで、見えないようにする。** 「在る」ことと「見えている」ことは別で、見えたままだと
-切り替えが飾りになる。
+**Kept, but hidden.** "Being there" and "being visible" are different; if everything stayed visible, switching would be decoration.
 
-## 送信が弾かれたとき
+## When the submission is rejected
 
-**誤りのある観点へ移る。** 順番を持たない器は、進む前に止める仕組みを持たない。移らないと、画面の
-どこも赤くないのに送信だけが通らない状態になる。
+**Move to the aspect with the error.** A container without an order has no mechanism that stops the user before moving on.
+Without moving, the screen ends up with nothing red anywhere and yet the submission does not go through.
 
-**観点を移すか、欄への入力か説明の書き換えがあった時点で、直前の結果は下げる。** 結果は次の送信
-まで残り続けるため、出し続けると直したのに直っていないように見える。画像を外す・並べ替える操作
-では下げない。
+**Clear the previous result once the user moves to another aspect, types in a field, or rewrites the description.** The result
+persists until the next submission, so keeping it shown makes a fix look unfixed. Removing or reordering images does not clear it.
 
-**版が食い違ったときだけ、読み込み直す導線を添える。**
+**Only when the versions disagree, attach a link to reload.**
 
-## 開いた時点の内容
+## Content When Opened
 
-**各欄には保存済みの内容が入っている。** 画像も、保存済みのものが選択中の一覧に並ぶ。
+**Each field holds the saved content.** Images too: the saved ones are listed in the selection.
 
-**送信が弾かれても、書いた内容はそのまま残る。** 入力欄に任せると送信の完了時に元へ戻るため、
-値は画面が持つ。
+**Even if the submission is rejected, what was written stays as is.** Left to the input fields, values revert when the submission
+completes, so the screen holds the values.
 
-## 待機
+## Loading
 
-**保存済みの内容が届くまで、観点の切り替え・入力欄・送信の形で枠だけを出す。** 一覧の待機表示を
-流用しない。表の行が並んでからフォームが現れることになり、何を待っているかが伝わらない。
+**Until the saved content arrives, show only frames in the shape of the aspect switcher, the input fields and the submit button.**
+Do not reuse the list's loading UI. That would make a form appear after table rows, and would not convey what is being waited for.
 
-**枠の数は最初に開く観点が持つ欄と一致させない。** 待機の側は内容を知らないので、フォームの形が
-伝わる以上の意味を持たせられない。
+**The number of frames is not matched to the fields of the first aspect opened.** The loading side does not know the content, so
+it cannot carry more meaning than conveying the form's shape.
 
-## 離れるとき
+## When Leaving
 
-作成と同じ。**開いた時点の内容から変わっていなければ確認しない。**
+Same as creation. **No confirmation if nothing has changed from the content when opened.**
 
-## パンくず
+## Breadcrumbs
 
-**商品一覧管理 > 商品名 > 編集。**
+**商品一覧管理 > 商品名 > 編集** (Product list management > product name > Edit).
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook の `Page/Admin/Products/Edit` に、各観点・弾かれた状態・版の食い違い・説明が空の商品・
-タブレット・スマホを置く。待機の姿は `Features/Admin/Products/Edit/Skeleton` が持つ。
+Storybook's `Page/Admin/Products/Edit` holds each aspect, the rejected state, the version mismatch, a product with an empty
+description, tablet and smartphone. The loading appearance is held by `Features/Admin/Products/Edit/Skeleton`.
 
-## 関連
+## Related
 
-- [`../../page.screen.md`](../../page.screen.md) —— この画面へ来る一覧
-- [`../../new/page.screen.md`](../../new/page.screen.md) —— 段の中身を共有する作成の画面
+- [`../../page.screen.md`](../../page.screen.md) — the list that leads to this screen
+- [`../../new/page.screen.md`](../../new/page.screen.md) — the creation screen that shares the steps' contents

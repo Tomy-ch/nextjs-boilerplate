@@ -1,32 +1,30 @@
-# `/dev/session` 開発用 session（画面要件）
+# `/dev/session` Development Session (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| いまの session | 利用者 ID・役割・失効時刻と、捨てる操作 |
-| session を発行する | 誰として入るか・役割・失効までの秒数と、API 接続モードの切り替え |
+| Current session | User ID, role, expiry time, and the action to discard it |
+| Issue a session | Who to enter as, role, seconds until expiry, and the API connection mode toggle |
 
-**API 接続モードで、その下に出る欄が入れ替わる。** 入っていれば IdP の接続先が出て、入って
-いなければ Access Token（任意）が出る。両方を同時に見せると、どちらが効くのかを見た目から
-決められない。
+**The API connection mode swaps the fields shown below it.** When on, the IdP connection target appears; when off, Access Token
+(optional) appears. Showing both at once leaves no way to tell from the appearance which one takes effect.
 
-**いまの状態を先に置く。** 開いた人がまず知りたいのは「いま誰として入っているか」で、それが
-判ってから入り直すかどうかを決める。
+**The current state comes first.** What the person opening it wants to know first is "who am I signed in as right now", and only once
+that is known do they decide whether to sign in again.
 
-**認可の開始先として開かれても、見た目は変わらない。** 対応づける値は送信に載せるだけで、
-画面に出す理由がない。変わるのは送信先と、失敗したときに出る理由の粒度である —— その経路では
-項目ごとの理由が出ず、送信の下に分類ごとの 1 文だけが出る。
+**Even when opened as the authorization start point, the appearance does not change.** The correlating value is only put in the
+submission, and there is no reason to show it on screen. What changes is the submission target and the granularity of the reason shown
+on failure — on that path no per-field reasons appear, only one sentence per classification below the submit button.
 
-## 出さないもの
+## What It Does Not Show
 
-**Access Token を画面に出さない。** ブラウザから観測できないことが session をこの形にしている
-理由そのもので、確かめるために出すとその性質を自分で壊す。貼る欄はあっても、貼った値を読み返す
-欄は無い。
+**The Access Token is not shown on screen.** Not being observable from the browser is the very reason the session has this shape, and
+showing it to check would break that property oneself. There is a field to paste it in, but no field that reads the pasted value back.
 
-## 器
+## Layout Shell
 
-利用者向けの外枠（header の nav とその周り）の内側に置かない。利用者の導線とは別物で、nav に
-並べるものでもない。
+It is not placed inside the customer-facing outer frame (the header nav and its surroundings). It is separate from the customer's
+navigation, and not something to list in the nav either.

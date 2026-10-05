@@ -1,76 +1,77 @@
-# `/login` ログイン（機能要件）
+# `/login` Login (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 
-認証を始める場所。**この画面は資格情報を検証しない。**検証できるのはバックエンドだけで、この
-リポジトリが持てるのは中継までである（[0079](../../../../adr/0079-auth-frontend-seam.md)）。
+Where authentication starts. **This screen does not verify credentials.** Only the backend can verify them; what this repository can
+hold is the relay ([0079](../../../../adr/0079-auth-frontend-seam.md)).
 
-> **いまの実装は、資格情報の入力も認証基盤の画面へ委ねている。** 同 ADR が federation に限って
-> 認めている借り物の画面の経路で、既定の Resolver がその形を採っているためである。同 ADR の目標は
-> **`/login` が入力面を所有すること**で、本書はその手前の姿を写している。入力欄が入っても、
-> 検証を持たないことと下の受け取り・索引・境界の約束は変わらない。
+> **The current implementation also delegates credential entry to the authentication provider's screen.** This is the borrowed-screen
+> path that the same ADR allows only for federation, taken because the default Resolver has that shape. The same ADR's goal is
+> **for `/login` to own the input surface**; this document describes the state before that. Even once input fields arrive, not
+> verifying, and the promises below on what is received, indexing and the boundary, do not change.
 
-## 主体と所有
+## Actor and Ownership
 
-**誰でも入れる。** 保護された画面から弾かれた主体も、自分でこの URL を開いた主体も同じ画面を見る。
-入れるかどうかを判定する画面ではないためである。
+**Anyone can enter.** An actor bounced from a protected screen and an actor who opened this URL themselves see the same screen. This
+is not a screen that decides whether one may enter.
 
-**アカウントを作らない。** 初めての利用者もここで認証を済ませる。
+**No account is created.** First-time users also complete authentication here.
 
 <!-- sample:begin -->
-認証を済ませたあとは、登録の画面が登録情報を作る。認証と登録は別の状態で、前者はここでしか、
-後者は登録でしか解消しない。
+After authentication, the registration screen creates the registration information. Authentication and registration are separate
+states; the former is resolved only here, the latter only in registration.
 
-登録の側の機能要件は [`/onboarding`](../onboarding/page.function.md)。
+The functional requirements on the registration side are [`/onboarding`](../onboarding/page.function.md).
 <!-- sample:end -->
 
-## 受け取るもの
+## What It Receives
 
-URL から 2 つを読む。**どちらも検証してから画面へ渡す。**検証を画面の側へ持ち込むと、画面が
-URL の中身を根拠に振る舞う場所になる。
+Two values are read from the URL. **Both are validated before being passed to the screen.** Bringing validation onto the screen side
+would make the screen a place that behaves on the basis of the URL's contents.
 
-| 値 | 使い道 | 通らなかったとき |
+| Value | Use | When it fails |
 | --- | --- | --- |
-| 復帰先 | 認証が済んだあとに戻す先 | 同一 origin の相対パスでなければ出発点（`/`）へ倒す |
-| 理由 | この画面へ戻された理由の案内 | 宣言に無い値・繰り返された値・未指定なら案内を出さない |
+| Return destination | Where to return after authentication | Unless it is a same-origin relative path, fall back to the starting point (`/`) |
+| Reason | A notice about why the user was sent back to this screen | For an undeclared value, a repeated value, or none, show no notice |
 
-**知らない理由は案内しない。** URL は利用者が直接編集できるため、載っている文字列を根拠に画面を
-変えると、任意の文言を出させる導線になる。
+**Unknown reasons get no notice.** Users can edit the URL directly, so changing the screen on the basis of the string in it would be a
+way to make it show arbitrary text.
 
-**復帰先は検証した値だけを持ち回る。** 受け取った値をそのまま置くと、自サイトの導線で外部の URL へ
-送れる（open redirect）。検証は入口で 1 度だけ行う。
+**Only the validated return destination is carried around.** Placing the received value as is would let the site's own links send
+users to an external URL (open redirect). Validation is done once, at the entry point.
 
-## 認証の開始
+## Starting Authentication
 
-**開始は状態を作る操作である。** 認可要求の組み立てと、その往復に要る一時状態の保管は受け口が
-持ち、この画面はそこへ復帰先を渡すだけである。一時状態の中身は認証の方式で決まり、方式は差し替えの
-口の裏に閉じている（[0079](../../../../adr/0079-auth-frontend-seam.md)）。
+**Starting is an operation that creates state.** Building the authorization request and storing the temporary state its round trip
+needs belong to the receiving endpoint; this screen only passes the return destination to it. The temporary state's content is
+determined by the authentication method, and the method is closed behind the replacement endpoint
+([0079](../../../../adr/0079-auth-frontend-seam.md)).
 
-**したがってリンクにしない。** リンクにすると、先読みで**利用者が押していないのに認証が始まる**。
+**Therefore it is not a link.** As a link, prefetching would **start authentication without the user pressing anything**.
 
-**始められなかったときは、理由を載せてこの画面へ戻す。** 認証基盤へ到達できなかったことは利用者の
-入力では直せないので、載るのは分類だけで、IdP が返した本文もどこで落ちたかも載せない。
+**When it could not start, return to this screen carrying the reason.** Failing to reach the authentication provider cannot be fixed
+by the user's input, so only the classification is carried; neither the body the IdP returned nor where it failed is included.
 
-## 索引
+## Search Indexing
 
-**検索エンジンに拾わせない。** 復帰先を URL で受け取るため、同じ画面が復帰先の数だけ別 URL として
-索引され、そのどれもが単独では意味を持たない。
+**Not to be picked up by search engines.** The return destination is received in the URL, so the same screen would be indexed as a
+separate URL for every return destination, none of which means anything on its own.
 
 <!-- sample:begin -->
-## 認証と登録の境界
+## The Boundary between Authentication and Registration
 
-| 状態 | 解消する場所 |
+| State | Where it is resolved |
 | --- | --- |
-| 認証が済んでいない | この画面（認証基盤へ送り出す） |
-| 認証は済んだが、利用者の記録がまだ無い | 登録の画面 |
+| Not authenticated | This screen (sends the user out to the authentication provider) |
+| Authenticated, but no user record yet | The registration screen |
 
-**登録の画面が受け取るメールアドレスは連絡先であって、認証の identity ではない。** 境界がここで
-切れていることは、登録の側が欄の側で説明する。
+**The email address the registration screen receives is a contact address, not the authentication identity.** The registration side
+explains, at the field, that the boundary is cut here.
 
-境界の向こう側は [`/onboarding` の機能要件](../onboarding/page.function.md) と [画面要件](../onboarding/page.screen.md)。
+The other side of the boundary is [`/onboarding`'s functional requirements](../onboarding/page.function.md) and [screen requirements](../onboarding/page.screen.md).
 <!-- sample:end -->
 
-## 関連
+## Related
 
-- 実装 `src/features/auth/`
-- 受け口 `src/app/api/auth/`
+- Implementation: `src/features/auth/`
+- Receiving endpoint: `src/app/api/auth/`

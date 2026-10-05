@@ -1,38 +1,38 @@
-# チュートリアル
+# Tutorial
 
-**実際に動くものを、層を順に上りながら組み立てる手順書**を置く。規約（[`rules.md`](../rules.md)）と
-判断（[`adr/`](../adr/)）と主題ごとの設計解説（[`design/`](../design/README.md)）は「何が正しいか」を
-持つが、「で、実際にどう書くのか」は持たない。ここはその 1 本の道筋を持つ。
+This directory holds **a step-by-step guide that assembles something that actually works, climbing the layers in order**. The rules ([`rules.md`](../rules.md)),
+the decisions ([`adr/`](../adr/)) and the per-topic design explanations ([`design/`](../design/README.md)) hold "what is right",
+but not "so how do I actually write it". This holds that one path.
 
-## なぜここに要るか
+## Why It Is Needed Here
 
-このリポジトリの同梱サンプルは、テンプレートから作った側が最初に破棄する。そのとき実装の実例が
-まるごと消え、残るのは規約と ADR と層別 README だけになる。**ここにある文書は、破棄のあとにこそ
-読まれる**——だから消える側のコード（題材の feature と、それに固有の adapter・route・仕様書）を
-参照せず、消したあとの状態から始める。
+The bundled sample in this repository is the first thing a repository created from the template purges. At that point the implementation examples
+disappear entirely, leaving only the rules, the ADRs and the per-layer READMEs. **The documents here are read precisely after
+the purge** — so they do not reference the code that disappears (the subject feature and the adapters, routes and specifications specific to it),
+and they start from the state after the purge.
 
-## 文書
+## Documents
 
-| 文書 | 何を作るか | 通す層 |
+| Document | What it builds | Layers it passes through |
 | --- | --- | --- |
-| [build-a-screen.md](build-a-screen.md) | 1 つの画面（一覧・詳細・1 件の編集）を契約から表示・送信・テスト・カタログまで | `openapi/` → `model` → `adapters/server` → `features` → `app` → 送信 → テスト → カタログ → 仕様書 |
+| [build-a-screen.md](build-a-screen.md) | One screen (list, detail, editing one item), from the contract through display, submission, tests and the catalog | `openapi/` → `model` → `adapters/server` → `features` → `app` → submission → tests → catalog → specification |
 
-## 読み方
+## How to Read This
 
-- 各 Step は **目的・触るファイル・実物のコード・迷う分岐の行き先・確認コマンド** を持つ。判断の
-  中身は写さず、判断を持つ文書（ADR / 層の README / `design/`）を名指しする。写しは腐る
-- 依存の順（契約 → 内側の層 → 外側の層）で並べてある。**画面を作るときの作業順は別**で、
-  [`playbook.md`](../playbook.md)「画面を作るときの順序」が持つ
-- 載せている検査コマンドは、書いたファイルだけを回すものに限る。全体のゲートは hook と CI が回す
-  （[0151](../adr/0151-git-hooks.md)）
+- Each Step has **a purpose, the files it touches, real code, where to go at confusing branches, and verification commands**. The substance of
+  a judgment is not copied; the document that owns the judgment (an ADR / a layer README / `design/`) is named. Copies rot
+- The steps are ordered by dependency (contract → inner layers → outer layers). **The order of work when building a screen is different**, and is held by
+  [`playbook.md`](../playbook.md#order-of-work-when-building-a-screen) "Order of Work When Building a Screen"
+- The check commands listed are limited to ones that run only the files you wrote. The hooks and CI run the whole-repository gates
+  ([0151](../adr/0151-git-hooks.md))
 
-## ここに置かないもの
+## Kept Elsewhere
 
-| 置き場 | 何を持つか |
+| Location | What it holds |
 | --- | --- |
-| [`get-started/`](../get-started/) | テンプレートからリポジトリを作る**最初の 1 回**の手順。以降は使わない |
-| [`playbook.md`](../playbook.md) | やりたいことから置き場を引く逆引きと、画面を作るときの作業順 |
-| [`design/`](../design/README.md) | 主題ごとの設計解説。層を跨ぐ 1 つの主題を通しで説明する |
+| [`get-started/`](../get-started/) | The steps for **the one-time first** creation of a repository from the template. Not used afterwards |
+| [`playbook.md`](../playbook.md) | A reverse lookup from what you want to do to where it goes, and the order of work when building a screen |
+| [`design/`](../design/README.md) | Per-topic design explanations. Each explains one topic that crosses layers end to end |
 
-チュートリアルは**通しの実例**であって、逆引きでも解説でもない。同じ主題を 2 か所で説明したく
-なったら、解説は `design/` へ置き、ここからはリンクだけを張る。
+The tutorial is **an end-to-end worked example**, not a reverse lookup or an explanation. If you find yourself wanting to explain the same topic in two places,
+put the explanation in `design/` and only link to it from here.

@@ -1,70 +1,70 @@
-# `/products/[id]` 商品詳細（機能要件）
+# `/products/[id]` Product Detail (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**認証を要さない。** 誰が見ても同じ内容が出る。
+**No authentication required.** The same content appears whoever views it.
 
-**在庫が少ないかどうかの境界はバックエンドが供給する。** 何をもって「残りわずか」とするかは
-商品ごとに違い、この画面が持つのは境界を跨いだときに何を見せるかだけ
-（[0070](../../../../../adr/0070-backend-role-separation.md)）。
+**The backend supplies the threshold for low stock.** What counts as "only a few left" differs per
+product; what this screen owns is only what to show when the threshold is crossed
+([0070](../../../../../adr/0070-backend-role-separation.md)).
 
-## 取得
+## Fetching
 
-`GET /v1/products/{id}` の 1 件だけ。一覧とは別の口で、一覧が返す項目には商品説明も画像の全枚数も
-含まれない。
+A single item from `GET /v1/products/{id}`. It is a different endpoint from the list, and the items the list returns include neither the product description
+nor the full set of images.
 
-**存在しない ID でも成功のステータスが返る。** 応答は殻から流れるため、`notFound()` に達した
-時点でヘッダは 200 で出ている。これは書き方では解けない（Cache Components の下では動的な route が殻から流れる。ADR 0041 / ADR 0080）。見つからない
-ことは、見つからない画面と `noindex` が伝える。
+**Even a nonexistent ID returns a success status.** The response streams from the static shell, so by the time `notFound()` is reached the
+headers have already gone out with 200. This cannot be solved by how it is written (under Cache Components a dynamic route streams from the static shell; ADR 0041 / ADR 0080). That it was not
+found is conveyed by the not-found screen and `noindex`.
 
 ## metadata
 
-題は商品名、要約は商品説明から markup を落とした先頭 160 文字、正規 URL は自分の経路
-（`/products/[id]`）。要約は説明が無ければ置かない。
+The title is the product name, the summary is the first 160 characters of the product description with markup removed, and the canonical URL is its own path
+(`/products/[id]`). The summary is omitted when there is no description.
 
-**見つからない商品は `noindex` を名乗る。** ステータスでは伝えられないため（上記）、検索エンジンに
-「無い」と伝える手段はこれだけ。
+**A product that is not found declares `noindex`.** The status cannot convey it (above), so this is the only way to tell search engines
+"it does not exist."
 
-構造化データは schema.org の `Product`（名前・分類・画像・価格・在庫の有無）。説明は markup を
-持つため載せない。
+The structured data is schema.org `Product` (name, category, image, price, stock availability). The description is not included because it
+carries markup.
 
-## 存在しない商品
+## Nonexistent Products
 
-**取得の失敗のうち、見つからないものだけを別扱いする。** 公開日時が未設定（未公開）の商品と、
-そもそも存在しない商品は契約上どちらも「見つからない」で返り、存在の有無は秘匿される。この画面も
-両者を区別しない。
+**Among fetch failures, only "not found" is handled separately.** A product with no publication date set (unpublished) and
+a product that does not exist at all are both returned as "not found" by the contract, keeping existence secret. This screen does not
+distinguish the two either.
 
-それ以外の失敗はそのまま投げて `error` 境界へ委ねる。分類ごとの分岐をここで持つと、画面が増える
-たびに同じ分岐が写る（[0080](../../../../../adr/0080-error-handling.md)）。
+Other failures are thrown as is and left to the `error` boundary. Holding per-classification branches here would copy the same branches
+to every new screen ([0080](../../../../../adr/0080-error-handling.md)).
 
-## 商品説明
+## Product Description
 
-**HTML として届き、そのまま描かない。** 生の文字列としては持ち回らず、無害化を通した値としてのみ
-渡す。文字列で持つと、渡す前に無害化したかどうかが呼び出し側の規律の問題になる。
+**It arrives as HTML and is not rendered as is.** It is not carried around as a raw string; it is passed only as a value that went through sanitization.
+Holding it as a string would make whether it was sanitized before passing a matter of the caller's discipline.
 
-商品説明は無いことがある。
+A product may have no description.
 
-## 画像
+## Images
 
-契約が返す並びの順に表示する。**画像は 1 枚も無いことがある。**
+Shown in the order the contract returns them. **A product may have no images at all.**
 
-表示 URL は配信元と契約が返すパスから組み立てる。組み立てを担うのは設定を読める境界までで、
-画面側は解決済みの URL しか受け取らない。
+The display URL is assembled from the delivery origin and the path the contract returns. Assembly is done up to the boundary that can read the settings,
+and the screen side receives only resolved URLs.
 
-## カートへ入れる
+## Add to Cart
 
-**操作の持ち主はこの画面ではない。** カートへの変更であり、`cart` が公開する口を置くだけ
-（[0026](../../../../../adr/0026-layout-shell-mount.md)）。在庫が 1 つも無い商品では押せない。
+**This screen does not own the operation.** It is a change to the cart, and this screen only places the endpoint that `cart` exposes
+([0026](../../../../../adr/0026-layout-shell-mount.md)). It cannot be pressed for a product with no stock at all.
 
-**在庫を超える数量そのものは拒まれない。** 買えるかどうかの判定はバックエンドが持ち、結果は
-カートの明細の事情として現れる（[`../../cart/page.function.md`](../../cart/page.function.md)）。
+**A quantity above stock is not itself rejected.** The backend owns the decision on whether it can be bought, and the result
+appears as a condition on the cart's line item ([`../../cart/page.function.md`](../../cart/page.function.md)).
 
-## 失敗の意味論
+## Failure Semantics
 
-| 失敗 | 及ぶ範囲 |
+| Failure | Scope |
 | --- | --- |
-| 見つからない | 画面全体。route の `not-found` 境界が受ける |
-| その他の取得の失敗 | 画面全体。route の `error` 境界が受ける |
-| カートへ入れる | その操作だけ。表示は直前の状態のまま残る |
+| Not found | The whole screen. The route's `not-found` boundary receives it |
+| Other fetch failures | The whole screen. The route's `error` boundary receives it |
+| Add to cart | Only that operation. The display stays in its previous state |

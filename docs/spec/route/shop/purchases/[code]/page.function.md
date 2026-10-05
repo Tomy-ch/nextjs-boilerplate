@@ -1,103 +1,102 @@
-# `/purchases/[code]` 購入詳細（機能要件）
+# `/purchases/[code]` Purchase Detail (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**登録済みの利用者の内側にある。** 未認証で開くと、この画面へ戻る指定を伴ってログインへ送る。
-認証済みでも利用者として登録していない主体は、この画面へ戻る指定を伴って登録（`/onboarding`）へ
-送る。
+**It sits inside the registered-user area.** Opened unauthenticated, it sends the user to login with an instruction to return to this screen.
+An actor that is authenticated but not registered as a user is sent to registration (`/onboarding`) with an instruction to return to this
+screen.
 
-**他人の購入と存在しない購入を区別しない。** 契約がどちらも対象なしとして返し、存在を秘匿する。
-指し先を書き換えられても、この画面が他人の購入を映すことはない。所有者の確認を画面が行う必要は
-ない。
+**Someone else's purchase and a nonexistent purchase are not distinguished.** The contract returns both as not found, keeping existence secret.
+Even if the target is rewritten, this screen never shows someone else's purchase. The screen does not need to check the
+owner.
 
-## 取得
+## Fetching
 
-`GET /v1/purchases/{purchaseCode}` と、合計の参考換算額の 2 系統。
+Two lines: `GET /v1/purchases/{purchaseCode}` and the reference converted amount for the total.
 
-**購入を取ってから換算額を引く。** 並行にできるが、購入が見つからないときに換算の取得を始める
-のは無駄で、外部のレート提供元へ余計な要求を出すことになる。
+**The purchase is fetched first, then the converted amount.** They could run in parallel, but starting the conversion fetch when the purchase is not found
+is wasted and sends an extra request to the external rate provider.
 
-### 識別子
+### Identifiers
 
-**この画面が URL で受け取るのは購入コードである。** 利用者へ注文番号として見せている値がそのまま
-取得の鍵になるので、画面が見せている番号を控えとして突き合わせられる。
+**What this screen receives in the URL is the purchase code.** The value shown to the user as the order number is itself
+the fetch key, so the number the screen shows can be matched against as a receipt.
 
-## 金額
+## Amounts
 
-**すべて確定した請求額である。** 小計・税・送料・合計はいずれもバックエンドが決めた値で、画面は
-足し直さない（[0070](../../../../../adr/0070-backend-role-separation.md)）。
+**All are the charged amounts as confirmed.** Subtotal, tax, shipping and total are all values the backend decided, and the screen does not
+re-add them ([0070](../../../../../adr/0070-backend-role-separation.md)).
 
-**明細の単価は購入した時点の値**で、商品の現在価格が変わっても動かない。**商品名だけは現在の
-名称**で解決されて届くため、名前と単価は別の時点を指している。
+**A line item's unit price is the value at the time of purchase**, and does not move even if the product's current price changes. **Only the product name
+arrives resolved to the current name**, so the name and the unit price refer to different points in time.
 
-参考換算額は請求額ではない。保存されるのは基準通貨の金額で、この値は表示にしか使わない。
+The reference converted amount is not the charged amount. What is stored is the amount in the base currency, and this value is used only for display.
 
-## 状態を進める
+## Advancing the Status
 
-本人ができるのは支払いと取り消しの 2 つ。発送と配達完了は admin の領分で、この画面には出ない。
+The user can do two things: pay and cancel. Shipping and delivery completion belong to admin and do not appear on this screen.
 
-| 操作 | 契約 | 通る状況 |
+| Operation | Contract | Statuses where it goes through |
 | --- | --- | --- |
-| 支払う | `PATCH /v1/purchases/{purchaseCode}/pay` | 未処理 / 受付中 / 確認中 |
-| キャンセルする | `PATCH /v1/purchases/{purchaseCode}/cancel` | 未処理 / 受付中 / 確認中 / 処理中 / 支払い済み |
+| Pay | `PATCH /v1/purchases/{purchaseCode}/pay` | 未処理 / 受付中 / 確認中 (unprocessed / accepted / under review) |
+| Cancel | `PATCH /v1/purchases/{purchaseCode}/cancel` | 未処理 / 受付中 / 確認中 / 処理中 / 支払い済み (unprocessed / accepted / under review / processing / paid) |
 
-**処理中は支払えない。** 処理中は「支払いを終え、発送に向けた処理を進めている」状態で、支払日時が
-既に記録されている。ここへ支払いを送ると記録済みの日時が現在時刻へ潰れるため、契約は二重支払いと
-して拒む。取り消しは処理中からも通る。
+**Payment is not possible while processing.** Processing is the state "payment is done and processing toward shipping is under way," and the payment date and time
+are already recorded. Sending a payment here would overwrite the recorded date and time with the current time, so the contract rejects it as a double
+payment. Cancellation goes through from processing as well.
 
-**可否は業務キーで判定し、名称では判定しない。** 名称は利用者へ見せる文言で、backend 側の都合で
-書き換わる。契約はステータスに業務キーと名称の両方を載せ、分岐に使うものとして業務キーを定義して
-いる。知らない業務キーには操作を出さない（マスタが増えたとき、可否を確かめていない状態へ不可逆な
-操作を出すことになる）。
+**Eligibility is judged by business key, not by name.** The name is text shown to the user and is
+rewritten for backend reasons. The contract carries both the business key and the name on a status, and defines the business key as the one to branch on.
+No operation is shown for an unknown business key (when the master grows, that would offer an irreversible operation for a state whose eligibility has not been
+checked).
 
-**判定の正はバックエンドにある**（[0070](../../../../../adr/0070-backend-role-separation.md)）。画面が
-決めるのは操作を見せるかどうかだけで、送った結果が拒まれる余地は残る。読み込んでから押すまでの
-間に状態が進むためで、そのときは競合として返る。
+**The authority for the decision is the backend** ([0070](../../../../../adr/0070-backend-role-separation.md)). What the screen
+decides is only whether to show the operation, and room remains for the submission to be rejected. The status can advance between loading
+and pressing, and in that case it comes back as a conflict.
 
-**支払いは擬似決済である。** 決済 SDK / PSP 連携は行わず、この操作だけで支払い済みになる
-（`docs/spec/screens.md` の除外事項）。
+**Payment is simulated.** There is no payment SDK / PSP integration; this operation alone makes it paid
+(the exclusions in `docs/spec/screens.md`).
 
-### 主体の断言を置かない
+### No actor assertion
 
-契約が本人の購入だけを対象とし、他人の購入は存在ごと秘匿するため、この操作で他人の購入へ届く経路が
-無い（[0079](../../../../../adr/0079-auth-frontend-seam.md)）。役割を確かめる admin 側の操作とは
-そこが違う。
+The contract targets only the user's own purchases and keeps others' purchases secret down to their existence, so there is no path by which this operation reaches
+someone else's purchase ([0079](../../../../../adr/0079-auth-frontend-seam.md)). That is where it differs from admin-side operations, which check
+the role.
 
-### 成立したら取り直す
+### Refetch on success
 
-画面に留まる操作なので、進んだあとの状況（状況の表示と、そこからできる操作）は同じ画面が出し直す。
-取り直させないと、押した本人だけが古い状態を見続ける。
+It is an operation that stays on the screen, so the state after advancing (the status display and the operations available from it) is redrawn by the same screen.
+Without refetching, only the user who pressed would keep seeing the old state.
 
-**応答を内層へ渡さない。** 遷移の応答は明細に商品名を持たず、画面が出している購入の形に足りない。
-契約どおりの応答が返ったことだけを確かめ、中身は取り直したものを使う。
+**The response is not passed to inner layers.** The transition response carries no product names on its line items and falls short of the purchase shape the screen shows.
+Only that a response matching the contract came back is checked, and the refetched content is used.
 
-**再送しない。** 同じ要求が 2 度届くと 2 度目は競合になるため、遷移は冪等ではない。通信の途中で
-切れた要求を送り直すと、成立していた遷移が失敗として見える。
+**No resending.** If the same request arrives twice, the second is a conflict, so transitions are not idempotent. Resending a request cut off
+mid-communication would make a transition that succeeded look like a failure.
 
-### 競合（409）
+### Conflict (409)
 
-**「いまの状況では通らない」ことを画面が言い分ける。** 契約が返す本文は不正遷移と二重実行を区別
-しない（どちらも同じ分類・同じ文言）。拒まれた理由を操作ごとに言えるのはこの画面だけなので、分類
-（`conflict`）を合図に画面の文言を当てる。文言そのものを合図にすると、文言を直した瞬間に出し分けが
-黙って壊れる。
+**The screen distinguishes "it does not go through in the current status."** The body the contract returns does not distinguish an invalid transition from a double
+execution (both have the same classification and the same text). Only this screen can say why it was rejected per operation, so the classification
+(`conflict`) is the signal for applying the screen's text. Using the text itself as the signal would silently break the distinction the moment the text
+was edited.
 
-## 失敗
+## Failures
 
-対象なしは画面全体を対象なしの表示へ落とす。それ以外の取得の失敗は画面全体に及び、分類を
-問わない汎用の文言と問い合わせ番号、再試行の導線を出す（[0080](../../../../../adr/0080-error-handling.md)）。
+Not found brings the whole screen down to the not-found display. Other fetch failures affect the whole screen, showing a generic message
+regardless of classification, an inquiry number and a retry link ([0080](../../../../../adr/0080-error-handling.md)).
 
-**参考換算額の取得に失敗しても投げない。** 請求されたのは基準通貨の金額で、換算額は読み手が
-大きさを掴むための添え物である。ここで投げると、外部のレート提供元が落ちているあいだ控えその
-ものが読めなくなる（部分エラーで全体を落とさない）。読めなかったことは円の表示を出さないことで
-表す。
+**A failure to fetch the reference converted amount is not thrown.** What was charged is the amount in the base currency, and the converted amount is an accompaniment that helps
+the reader grasp the magnitude. Throwing here would make the receipt itself unreadable while the external rate provider is down
+(a partial error does not bring the whole down). That it could not be read is expressed by not showing the yen display.
 
-**存在しない購入でも成功のステータスが返る。** 応答は殻から流れるため、`notFound()` に達した
-時点でヘッダは 200 で出ている。これは書き方では解けない（Cache Components の下では動的な route が殻から流れる。[0041](../../../../../adr/0041-cache-components-decision.md) / [0080](../../../../../adr/0080-error-handling.md)）。見つからない
-ことは、見つからない画面と `noindex` が伝える。
+**Even a nonexistent purchase returns a success status.** The response streams from the static shell, so by the time `notFound()` is reached the
+headers have already gone out with 200. This cannot be solved by how it is written (under Cache Components a dynamic route streams from the static shell; [0041](../../../../../adr/0041-cache-components-decision.md) / [0080](../../../../../adr/0080-error-handling.md)). That it was not
+found is conveyed by the not-found screen and `noindex`.
 
-## 関連
+## Related
 
-- 契約 `openapi/api.gen.yaml` の `GET /v1/purchases/{purchaseCode}` / `PATCH …/pay` / `PATCH …/cancel`
-- 実装 `src/features/purchases/` — [README](../../../../../../src/features/purchases/README.md)
+- Contract: `GET /v1/purchases/{purchaseCode}` / `PATCH …/pay` / `PATCH …/cancel` in `openapi/api.gen.yaml`
+- Implementation `src/features/purchases/` — [README](../../../../../../src/features/purchases/README.md)

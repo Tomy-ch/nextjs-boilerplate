@@ -1,81 +1,81 @@
-# `/` トップ（画面要件）
+# `/` Top (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-商品を探し始めるための入口。新着・売れ筋・分類の 3 つの入り方を並べる。
+The entry point for starting to look for products. It lines up three ways in: new arrivals, best sellers and categories.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| （冒頭） | サンプルであることの断り書きと、利用規約への導線 |
-| 見出し | 画面の名前と一行の説明 |
-| 新着 | 直近の商品と、一覧へ抜ける導線 |
-| 売れ筋 | 順位の付いた行 |
-| 分類 | 分類から絞り込んだ一覧へ入る導線 |
+| (Opening) | The caveat that this is a sample, and a link to the terms of use |
+| Heading | The screen's name and a one-line description |
+| New arrivals | Recent products, and a link out to the list |
+| Best sellers | Ranked rows |
+| Categories | Links into the list filtered by category |
 
-## 断り書き
+## Caveats
 
-**見出しより前に置く。** 実在しそうな商品名と企業名を並べている以上、書かないと実在の取引と
-取り違えられる。読み始める前に目に入る位置でなければ、書いた意味が薄れる。
+**Placed before the heading.** Since it lists plausible-looking product and company names, without it the content would be
+mistaken for real transactions. Unless it is where the eye lands before starting to read, writing it means little.
 
-伝えるのは 3 つ —— サンプルであること、掲載物が実在しないこと、購入と決済が機能しないこと。
+It conveys three things — that this is a sample, that the listings do not exist, and that purchasing and payment do not work.
 
-**利用規約への導線を同じ断り書きに置く。** 閲覧した時点で同意とみなす以上、同意の対象へ最初に
-届く必要があり、フッターまで下りないと辿れない位置では成立しない。
+**The link to the terms of use is placed in the same caveat.** Since viewing is deemed consent, the user must reach what they are consenting to
+first, and a position reachable only by going down to the footer does not hold.
 
-詳しい説明はここが持たない。[`/about`](../site-info/about/page.screen.md) と [`/terms`](../site-info/terms/page.screen.md)
-が持ち、ここは短く保つ。
+This place does not hold the detailed explanation. [`/about`](../site-info/about/page.screen.md) and [`/terms`](../site-info/terms/page.screen.md)
+hold it, and this stays short.
 
-## 節の並び
+## Section Order
 
-**画像のある帯・行の帯・小さな導線の帯の順に置く。** 同じ密度の帯が続くと、どこまでが 1 つの節
-なのかが読み取りにくくなる。
+**Placed in the order: a strip with images, a strip of rows, a strip of small links.** When strips of the same density follow one another, it becomes hard to read
+where one section ends.
 
-## 節ごとの見せ方
+## How Each Section Is Shown
 
-### 新着
+### New Arrivals
 
-**格子に並べる。** 1 件は画像・名前・価格を縦に積み、件全体が商品の詳細への導線になる。
+**Laid out in a grid.** Each item stacks image, name and price vertically, and the whole item is a link to the product's detail.
 
-**列の数は器の幅で決める**（[実装規約「レイアウトと帯」](../../../rules.md#layout)の「部品の中身は帯（viewport）で分岐させない」）。狭い器では 2 列、広い器では
-4 列。数を段の名前ではなく器で決めるのは、この節が本文の幅の中に居て、画面の幅と一致しない
-ためである。
+**The number of columns is decided by the container's width** ([docs/rules.md](../../../rules.md#layout): "do not branch a component's content on the band (viewport)"). Two columns in a narrow container, four
+in a wide one. The number is decided by the container rather than by the band's name because this section sits within the body's width, which does not match
+the screen's width.
 
-**先に見える分の画像だけを先読みする。** 全件を先読みすると、画面外の画像が最初の表示と帯域を
-奪い合う。先読みする件数は、最も広い器で最初の 1 行に収まる数に合わせる。列の数は器の幅で決まり
-描く前には判らないため、どの幅でも 1 行目が欠けない側に倒す。
+**Only the images visible first are preloaded.** Preloading every item would make off-screen images compete with the first paint for
+bandwidth. The number preloaded matches what fits in the first row of the widest container. The number of columns is decided by the container's width and
+is unknown before rendering, so it errs toward the side where the first row is never short at any width.
 
-**見出しの隣に一覧への導線を置く。** 節の末尾ではなく見出しの隣なのは、並んでいるものを見て
-「もっと見たい」と思った時点で、視線が見出しの高さまで戻らずに済むため。
+**A link to the list is placed next to the heading.** Next to the heading rather than at the end of the section, so that at the moment the user
+looks at what is listed and wants "to see more," their gaze does not have to go back up to the heading.
 
-### 売れ筋
+### Best Sellers
 
-**順位・商品名・売れた数・価格を 1 行に並べる。** 商品名が行き先を持ち、詳細へ進む。
+**Rank, product name, number sold and price are laid out on one row.** The product name carries the destination and leads to the detail.
 
-**順位は数字で出す。** 上から順に並んでいることは並び順から読めるが、何位かは数字でしか伝わら
-ない。数字と数は等幅で揃え、行をまたいで桁が揃うようにする。
+**The rank is shown as a number.** That items are ordered from the top can be read from the order, but which rank each is can only be conveyed
+by a number. Numerals and counts are tabular so that digits align across rows.
 
-**行の間に区切りを入れる。** ただし先頭の行の上には入れない —— 見出しとの間に二重の線ができる。
+**Separators go between rows.** But not above the first row — that would create a double line with the heading.
 
-### 分類
+### Categories
 
-**分類の名前を並べ、押すとその分類で絞り込んだ一覧へ入る。** 件数は出さない。トップで件数を出す
-には分類の数だけ数えることになり、入口の画面が負う取得ではない。
+**Category names are listed, and pressing one leads into the list filtered by that category.** Counts are not shown. Showing counts on the top page
+would mean counting per category, which is not a fetch the entry-point screen should bear.
 
-**折り返して並べる。** 分類の数も名前の長さも契約が決めるので、1 行に収まる前提を置かない。
+**They wrap.** The contract decides both the number of categories and the length of their names, so fitting on one line is not assumed.
 
-## 失敗した節
+## Failed Sections
 
-**節の中身を知らせへ置き換える。** 見出しごと消えるので、失敗した節がどれかは知らせ自身が名乗る。
+**The section's content is replaced with a notice.** The heading vanishes with it, so the notice itself names which section failed.
 
-**知らせは警告の強さで出す。** 画面全体が壊れたわけではなく、他の節は読める。
+**The notice is shown at warning strength.** The whole screen has not broken, and the other sections are readable.
 
-**分類の節はこの扱いに入らない。** 静的な殻の側に居て、読めないまま配ることをしない
-（[`page.function.md`](page.function.md)）。
+**The categories section does not fall under this treatment.** It sits on the static shell's side and is never served unread
+([`page.function.md`](page.function.md)).
 
-## 関連
+## Related
 
-- 実装 `src/features/home/` — [README](../../../../src/features/home/README.md)
-- 外枠の約束 — [`layout.screen.md`](layout.screen.md) / [`layout.function.md`](layout.function.md)
-- 行き先 — [`/products`](products/page.screen.md) / [`/products/[id]`](<products/[id]/page.screen.md>)
+- Implementation `src/features/home/` — [README](../../../../src/features/home/README.md)
+- The outer frame's promises — [`layout.screen.md`](layout.screen.md) / [`layout.function.md`](layout.function.md)
+- Destinations — [`/products`](products/page.screen.md) / [`/products/[id]`](<products/[id]/page.screen.md>)

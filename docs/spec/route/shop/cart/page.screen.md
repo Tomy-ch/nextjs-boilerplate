@@ -1,133 +1,133 @@
-# `/cart` カート（画面要件）
+# `/cart` Cart (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-カートの中身を全画面で確かめ、数量を変え、取り除き、購入手続きへ進む画面。
+The screen where the user checks the cart's contents full-screen, changes quantities, removes items and proceeds to checkout.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| 明細 | サムネイル・商品名（詳細への導線）・単価・数量の増減・削除・その行に立った事情 |
-| 集計 | 小計・何を合算した金額かの注記・購入手続きへの導線 |
-| 取り消し | 取り除いた明細を戻す案内。消えた行が居た場所に差し込む |
+| Line items | Thumbnail, product name (a link to the detail), unit price, quantity increase / decrease, removal, and the conditions flagged on that row |
+| Summary | Subtotal, a note on what the amount sums, and the link to checkout |
+| Undo | A notice for returning a removed line item, inserted where the vanished row used to be |
 
-単価は 1 個あたりの金額として出す。
+The unit price is shown as the amount per item.
 
-**サムネイルは装飾として出す。** 代替テキストは空にし、詳細への導線も持たせない。同じ商品名を
-隣の文字が持っているため、画像にも名前を与えると読み上げで同じ名前が二度続き、導線を与えると
-同じ行き先が 1 行に 2 つ並ぶ。
+**The thumbnail is shown as decoration.** Its alternative text is empty and it carries no link to the detail. The adjacent text already
+holds the same product name, so giving the image a name too would read the same name twice in a row, and giving it a link would
+put two links to the same destination on one row.
 
-**画像を持たない明細は代替画像へ倒す。** 画像を 1 枚も持たない商品と、商品を引けなかった明細の
-どちらも「出す絵が無い」という同じ状態で、応答からも区別できない。枠ごと落とさないのは、行の
-高さが明細ごとに変わって並びが揃わなくなるためである。
+**A line item without an image falls back to a substitute image.** A product that has no image at all and a line item whose product could not be fetched
+are both the same state — "there is no picture to show" — and the response cannot tell them apart either. The frame is not dropped because the row
+height would then vary per line item and the rows would no longer align.
 
-**商品状態は出さない。** 契約が返す明細に無く、出すには明細の数だけ商品を引くことになる。
+**Product status is not shown.** It is not in the line items the contract returns, and showing it would mean fetching a product per line item.
 
-## 操作の見え方
+## How Operations Look
 
-**上限に達したら増やす操作を押せなくする。** 押しても何も起きない操作を残すと、反応が無いのか
-上限なのかが利用者から区別できない。数量が 1 のときは減らす操作も同じ。
+**At the maximum, the increase operation becomes unpressable.** Leaving an operation that does nothing when pressed means the user cannot tell
+whether it failed to respond or hit the limit. The same goes for the decrease operation when the quantity is 1.
 
-**カートを空にする操作にだけ確認を挟む。** 1 行の削除は取り消しで代えられるが、全消しは戻すのに
-入れ直す商品を思い出すことになり、押し間違いの代償が行数に比例する。確認の実行は dialog の中の
-submit で、押した時点で dialog を閉じない（送信中の表示も失敗の文言も、利用者が見ていない場所に
-出る）。
+**Only emptying the cart asks for confirmation.** Removing one row can be undone, but undoing a full clear means
+remembering which products to put back, so the cost of a mispress grows with the number of rows. The confirmation runs as a submit inside the dialog,
+and the dialog does not close when pressed (otherwise the in-flight display and the failure text would appear where the user is not
+looking).
 
-**進めない状態を link のままにしない。** link は押せば必ず移動するもので、移動しない link は
-支援技術から見ると壊れた導線になる。買える明細が無いときは押せないボタンにする。
+**A state that cannot proceed is not left as a link.** A link always navigates when pressed, and a link that does not navigate is, to
+assistive technology, a broken link. When no line item is buyable, it becomes an unpressable button.
 
-送信中はその操作を押せなくする。失敗したときは**その操作の隣**に理由を出す。カートには操作が
-複数あり、どれが通らなかったのかを離れた場所の 1 行では指せない。
+While sending, that operation is unpressable. On failure, the reason is shown **next to that operation**. The cart has
+several operations, and a single line somewhere else cannot point to which one did not go through.
 
-## 取り消しの見え方
+## How Undo Looks
 
-削除した行は、その場所が「〈商品名〉 を削除しました ［カートに戻す］」に置き換わる。
+A removed row is replaced in place by 「〈商品名〉 を削除しました ［カートに戻す］」 ("〈product name〉 was removed [Return to cart]").
 
-- **消えた行と同じ場所に出す。** 押した場所と案内の出る場所がずれると、どの行が消えたのかを目で
-  辿り直すことになる
-- **場所は番号ではなく、画面が見せていた並びで覚える。** 番号はほかの行が増減するたびに指す先が
-  変わり、続けて取り除くとずれる
-- **続けて取り除いた数だけ並ぶ。** 先の案内を後の削除で置き換えると、戻す手段が先の 1 件だけ失われる
-- **押しても自分からは消えない。** 送信の途中で自分を畳むと、投げ終える前に form ごと居なくなる
-- 案内は読み上げへ割り込まずに知らせる
-- 操作の名前に商品名を含める。案内は同時に複数並ぶため、文言だけではどれを戻す操作かを区別できない
+- **It appears in the same place as the vanished row.** If where the user pressed and where the notice appears differ, the user has to
+  trace back by eye which row vanished
+- **The place is remembered by the order the screen showed, not by an index.** An index points somewhere else every time other rows
+  are added or removed, and drifts when items are removed in succession
+- **As many appear as were removed in succession.** If a later removal replaced the earlier notice, the way back would be lost for the earlier one alone
+- **It does not remove itself when pressed.** If it collapsed itself mid-submission, the form would disappear before it finished sending
+- The notice is announced without interrupting the screen reader
+- The operation's name includes the product name. Several notices can appear at once, so the text alone cannot tell which one an operation returns
 
-## 事情の出し方
+## How Conditions Are Shown
 
-事情は畳まずに並べる。値が変わったことと在庫が足りないことは、利用者にとって別々の判断になる。
+Conditions are listed without collapsing. A changed value and insufficient stock are separate decisions for the user.
 
-| 事情 | 出す一文 |
+| Condition | Sentence shown |
 | --- | --- |
 | `notFound` | この商品は取り扱いが終了しました。 |
 | `unpublished` | この商品は現在購入できません。 |
 | `discontinued` | この商品は廃番になりました。 |
 | `outOfStock` | 在庫がありません。 |
-| `insufficientStock` | 在庫が 〈n〉 個までです。（上限が判らなければ「在庫が足りません。」） |
+| `insufficientStock` | 在庫が 〈n〉 個までです。(If the maximum is unknown, 「在庫が足りません。」) |
 | `priceIncreased` | カートに入れたときより価格が上がっています。 |
 | `priceDecreased` | カートに入れたときより価格が下がっています。 |
 
-**事情の強さは 3 段階で出す。** 買えない事情は取り消しの配色と丸の絵柄、値が変わった事情は警告の
-配色と三角の絵柄、画面が足す一文は補足として弱く出す。値の変動を補足と同じ強さにすると金額の変化が
-読み飛ばされ、買えない事情と同じ強さにするとどちらに対処すべきかが読み取れない。絵柄も分けるのは、
-配色だけの区別が色を見分けにくい利用者へ届かないためである。
+**Condition strength is shown in three levels.** Unbuyable conditions use the cancel color scheme and a circle glyph, value changes use the warning
+color scheme and a triangle glyph, and the sentence the screen adds is shown weakly as a supplement. Making a value change as weak as the supplement lets
+the amount change be skipped over; making it as strong as an unbuyable condition makes it unreadable which one to deal with. The glyphs differ too
+because a distinction by color alone does not reach users who have trouble telling colors apart.
 
-**事情が 1 つでも立っていれば、小計に入っていないことをその行に添える。** 行の金額と小計が
-合わない理由は、その行でしか説明できない。
+**If even one condition is flagged, the row notes that it is not included in the subtotal.** Why a row's amount and the subtotal
+disagree can only be explained on that row.
 
-**買えない明細は弱めて見せるが、取り除く操作は弱めない。** 買えない明細に対して利用者が取れる
-行動がそれだから。
+**An unbuyable line item is shown dimmed, but its remove operation is not dimmed.** That is the action the user can
+take on an unbuyable line item.
 
-**在庫が足りない明細には、いま買える数へ合わせる操作をその行に出す。** 利用者が知りたいのは
-「いくつなら買えるか」で、増減の操作だけだと何回押すかを数えることになる。操作の名前には
-合わせる先の数と対象の名前を含め、どの行の操作かを区別できるようにする。在庫が 1 つも無い明細
-には出さない —— 合わせる先が無く、そこで取れる行動は取り除くことである。
+**A line item with insufficient stock shows, on that row, an operation that adjusts to the quantity buyable now.** What the user wants to know is
+"how many can I buy," and with only increase / decrease operations they would have to count how many times to press. The operation's name includes
+the target quantity and the item's name so that it is clear which row the operation belongs to. It is not shown on a line item with no stock at all
+— there is nothing to adjust to, and the action available there is removal.
 
-**商品を引けなかった明細は名前も単価も欠ける。** 名前の代わりを出し、詳細へは辿らせない。操作の
-読み上げにもその代わりを使い、どの行の操作かを区別できるようにする。
+**A line item whose product could not be fetched lacks both name and unit price.** A substitute is shown in place of the name, and the detail is not reachable. The
+substitute is also used in the operations' spoken names so that it is clear which row an operation belongs to.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 明細と集計 | 集計の置き場所 |
+| Width | Line items and summary | Where the summary goes |
 | --- | --- | --- |
-| `lg` 以上 | 左右 2 列 | 本文の脇に貼り付ける |
-| `lg` 未満 | 縦積み | 画面の下から出す引き出し |
+| `lg` and up | Two columns side by side | Stuck beside the body |
+| Below `lg` | Stacked | A drawer that comes up from the bottom of the screen |
 
-出るのはどちらか一方だけで、中身は 1 つしか持たない。**出し分けは CSS で行う**。hydration を
-待つと、読み始めた後に画面の下へ器が現れて内容が動く。
+Only one of the two appears, and the content exists only once. **The switch is done with CSS**. Waiting for hydration
+would make a container appear at the bottom of the screen after the user has started reading, shifting the content.
 
-引き出しは**下へ読み進めるあいだだけ出す**。内容が増えるほど末尾の集計は画面外へ遠ざかり、
-確かめるために送ることになる。上へ戻るときに読みたいのは本文なので、置いて行かれる形で隠す。
-隠れているあいだも画面の下端につまみが残り、**つまみで開いた状態はスクロールの向きより優先する**
-（向きに任せるだけだと、下へ動かせない位置で到達する手段が無くなる）。隠れているあいだ、中身は
-送りの対象から外す。見えない場所へ focus が入ると、そこで入力を受けることになる。
+The drawer **appears only while reading downward**. The more content there is, the farther the trailing summary moves off-screen,
+and the user has to scroll to check it. When going back up, what the user wants to read is the body, so it hides by being left behind.
+While hidden, a handle stays at the bottom edge of the screen, and **a state opened with the handle takes precedence over scroll direction**
+(left to direction alone, there would be no way to reach it at a position where the page cannot scroll down). While hidden, its contents are
+removed from the tab order. If focus entered somewhere invisible, input would be received there.
 
-明細の下端には引き出しのぶんの余白を空ける。空けないと最後の行の操作が引き出しに隠れる。
+Space for the drawer is left below the line items. Without it, the last row's operations are hidden by the drawer.
 
-## 待機
+## Loading
 
-出来上がりと同じ段組みで枠だけを出す。明細が先に出て集計が後から現れる形にすると、読み始めた
-位置が動く。枠だけで見せる行数は 3 行で、多すぎると実際より入っているように見える。
+Only frames are shown, in the same column layout as the finished screen. If line items appeared first and the summary later, the reading
+position would move. The frames show three rows; too many would look like more is in the cart than there is.
 
-## 空の状態
+## Empty State
 
-「カートに商品が入っていません。」と、商品を探しに戻る導線だけを出す。明細も集計も出さない。
+Only 「カートに商品が入っていません。」 ("Your cart is empty.") and a link back to browse products are shown. Neither line items nor the summary are shown.
 
-**戻せる明細を抱えているあいだは、空でも取り消しを出す。** 最後の 1 件を取り除いた直後に案内ごと
-消えると、戻す手段が同時に消える。
+**While returnable line items are held, undo is shown even when empty.** If the notice vanished right after removing the last
+item, the way back would vanish with it.
 
-## 失敗の見え方
+## How Failure Looks
 
-取得に失敗したときは、分類を問わない汎用の文言と問い合わせ番号、再試行の導線を出す。生のエラー本文は
-出さない（production では境界に `digest` しか渡らない）。
+When fetching fails, a generic message regardless of classification, an inquiry number and a retry link are shown. The raw error body is
+not shown (in production only `digest` reaches the boundary).
 
-## パンくず
+## Breadcrumbs
 
-置かない。header の入口とカートの器の副導線（「カートを見る」）がこの画面を直接指しており、
-階層が 1 段であるため（[0026](../../../../adr/0026-layout-shell-mount.md)）。
+None. The header's entry point and the cart container's secondary link (「カートを見る」, "View cart") point directly at this screen, and
+the hierarchy is one level deep ([0026](../../../../adr/0026-layout-shell-mount.md)).
 
-## 関連
+## Related
 
-- 実装 `src/features/cart/` — [README](../../../../../src/features/cart/README.md)
-- 外枠に出るカート（脇の領域 / drawer / 点数）[`../layout.screen.md`](../layout.screen.md)
-- 進む先 `/checkout`（購入確認。認証の内側） / 戻る先 `/products`（商品一覧）
+- Implementation `src/features/cart/` — [README](../../../../../src/features/cart/README.md)
+- The cart in the outer frame (sidebar / drawer / count) [`../layout.screen.md`](../layout.screen.md)
+- Next: `/checkout` (purchase confirmation; inside authentication) / Back: `/products` (product list)

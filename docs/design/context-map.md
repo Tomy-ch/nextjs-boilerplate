@@ -1,59 +1,59 @@
-# 接触点の地図
+# Map of Touchpoints
 
-この表現層が**外と触れる場所**を 1 枚に並べ、辺ごとに 2 つだけを記録する ——
-**境界の所有**（契約を誰が決めるか）と、**翻案の有無**（相手の語彙をこちらの語彙へ写す層が挟まるか）。
+This page lays out on one sheet **where this presentation layer touches the outside**, and records only two things per edge —
+**boundary ownership** (who decides the contract) and **whether it translates** (whether a layer sits in between that maps the other side's vocabulary onto ours).
 
-## 2 つの軸を分ける理由
+## Why the two axes are kept apart
 
-この 2 つは**決まり方が違う**。混ぜると、決められないほうが決められるほうに引きずられて、
-根拠の無いラベルが表に載る。
+The two **are decided in different ways**. Mix them, and the one that cannot be decided gets dragged along by the one that can,
+and labels with no basis end up in the table.
 
-- **翻案の有無は機械が決める。**契約から生成した wire 型は `architecture.ts` の `adapters-gen` 区画に
-  在り、そこへ届くのは `adapters` だけである。つまり生成型は `adapters` を出る前に必ず写される ——
-  この事実は依存表が持っていて、人が判断する余地は無い
-- **境界の所有は機械から出てこない。**「この相手と交渉できるか、追従するしかないか」は組織の事実で、
-  コードをいくら読んでも決まらない。**この表が記録するのは人が答えたその事実**であり、
-  監査が見るのは「記録と実物が食い違っていないか」だけである
+- **Whether it translates is decided by the machine.** The wire types generated from the contract live in the `adapters-gen` zone of `architecture.ts`,
+  and only `adapters` can reach them. So the generated types are always mapped before they leave `adapters` —
+  the dependency table holds this fact, and there is no room for human judgment
+- **Boundary ownership does not come out of the machine.** "Can we negotiate with this party, or can we only follow it?" is an organizational fact,
+  and no amount of reading the code settles it. **What this table records is that fact as a human answered it**, and
+  the audit checks only "does the record disagree with what is actually there?"
 
-**関係の語彙（Customer-Supplier / Conformist など）は使わない。**この表現層は domain 層を持たず、
-DDD への整合を謳わない（[`docs/project/out-of-scope.md`](../project/out-of-scope.md)）。同じことを
-「所有」と「翻案」の 2 語で言えるなら、輸入した語彙は読む側の負担にしかならない。
+**The relationship vocabulary (Customer-Supplier / Conformist and the like) is not used.** This presentation layer has no domain layer
+and does not claim alignment with DDD ([`docs/project/out-of-scope.md`](../project/out-of-scope.md)). When the same thing
+can be said with the two words "ownership" and "translation", imported vocabulary is only a burden on the reader.
 
-## 出ていく辺
+## Outgoing Edges
 
-| 相手 | 境界の所有 | 翻案 | 契約の出所 | 機構を持つ文書 |
+| Party | Boundary ownership | Translation | Contract source | Document that holds the mechanism |
 | --- | --- | --- | --- | --- |
-| **バックエンド** | 相手（自分で定義する） | **あり** —— wire 型は `adapters` を出る前に表示用の型へ写す | 自分の契約（OpenAPI / GraphQL） | [`data-fetching.md`](data-fetching.md) |
-| **IdP** | 相手（OIDC の標準に従う） | **あり** —— 受け取った表明を、こちらの session へ封緘し直す | OpenID Connect | [`auth.md`](auth.md) |
-| **観測基盤** | 標準（OTel） | **なし** —— OTLP のまま送る | OpenTelemetry | [`observability.md`](observability.md) |
-| **メディア配信元** | 相手 | **なし** —— URL を組むだけ | 配信元の URL 規約 | [`security.md`](security.md) / [0045](../adr/0045-fonts-and-images.md) |
-| **タグマネージャ**（任意） | 相手 | **なし** —— 読み込む口だけを持つ | ベンダの埋め込み仕様 | [`security.md`](security.md) / [0131](../adr/0131-cookie-consent.md) |
+| **Backend** | The other side (it defines its own) | **Yes** — wire types are mapped to display types before they leave `adapters` | Its own contract (OpenAPI / GraphQL) | [`data-fetching.md`](data-fetching.md) |
+| **IdP** | The other side (follows the OIDC standard) | **Yes** — the assertion received is resealed into this side's session | OpenID Connect | [`auth.md`](auth.md) |
+| **Observability backend** | The standard (OTel) | **No** — sent as OTLP unchanged | OpenTelemetry | [`observability.md`](observability.md) |
+| **Media origin** | The other side | **No** — it only builds URLs | The origin's URL conventions | [`security.md`](security.md) / [0045](../adr/0045-fonts-and-images.md) |
+| **Tag manager** (optional) | The other side | **No** — it holds only the endpoint that loads it | The vendor's embedding spec | [`security.md`](security.md) / [0131](../adr/0131-cookie-consent.md) |
 
-## 入ってくる辺
+## Incoming Edges
 
-| 相手 | 境界の所有 | 翻案 | 契約の出所 | 機構を持つ文書 |
+| Party | Boundary ownership | Translation | Contract source | Document that holds the mechanism |
 | --- | --- | --- | --- | --- |
-| **`/api/*` を叩く側** | **こちら** —— 口の形をこのリポジトリが決める | **あり** —— 受けた形を検証してから内側の型にする | このリポジトリ | [`data-fetching.md`](data-fetching.md) / [`observability.md`](observability.md) |
-| **クローラ・索引** | 標準（robots / sitemap / OG） | **なし** | 各仕様 | [0044](../adr/0044-seo-metadata-strategy.md) |
+| **Callers of `/api/*`** | **This side** — this repository decides the endpoint's shape | **Yes** — the received shape is validated before it becomes an internal type | This repository | [`data-fetching.md`](data-fetching.md) / [`observability.md`](observability.md) |
+| **Crawlers and indexes** | The standard (robots / sitemap / OG) | **No** | Each spec | [0044](../adr/0044-seo-metadata-strategy.md) |
 
-**中継の口だけは所有が割れる。**同じ `/api/*` の下でも、こちらが形を決める口と、
-封筒だけ検証して読み替えずに転送する口がある。どちらなのかは
-[`observability.md` の中継の口の表](observability.md)が列ごと持っているので、ここには写さない。
+**Only the relay endpoints split on ownership.** Even under the same `/api/*`, there are endpoints whose shape this side decides, and
+endpoints that validate only the envelope and forward it without reinterpreting it. Which one is which is held column by column in
+[the relay endpoint table in `observability.md`](observability.md), so it is not copied here.
 
-## この表が持たないもの
+## What This Table Does Not Hold
 
-- **各辺の仕組み。**どう繋ぐか・何を送るか・失敗をどう畳むかは、上の表の「機構を持つ文書」が持つ。
-  ここが持つと、辺が増えたときに 2 か所が同時に古くなる
-- **設定値。**口の在り処は `src/config/` の目的別モジュールが持ち、正はそこである
-  （[0030](../adr/0030-environment-variable-management.md)）
-- **相手が実在するかどうか。**この表は**接触の形**を並べる。
-  どの相手を実際に繋ぐかは用途で決まる
+- **The mechanism of each edge.** How to connect, what to send and how to fold failures belong to the "document that holds the mechanism" in the tables above.
+  If this page held them, two places would go stale at once whenever an edge is added
+- **Configuration values.** Where each endpoint lives is held by the purpose-scoped modules in `src/config/`, which are authoritative
+  ([0030](../adr/0030-environment-variable-management.md))
+- **Whether the other party actually exists.** This table lists **the shapes of contact**.
+  Which parties are actually connected depends on the use case
 
-## 辺が増えたとき
+## When an Edge Is Added
 
-**新しい外部の口を足したら、この表に行を足す。**足さないと、`context-map-audit` が
-「接触点はあるが辺が無い」として拾う —— 拾えるのは実装の側に口が現れてからなので、
-**表の側が先に古くなる形でしか検出できない**。
+**When a new external endpoint is added, add a row to this table.** Otherwise `context-map-audit` picks it up as
+"a touchpoint exists but has no edge" — it can pick that up only once the endpoint appears on the implementation side, so
+**it can detect the gap only in the form of the table going stale first**.
 
-行を足すとき、**翻案の有無は依存表から読む。**所有は読めないので、**人に聞く。**
-「この相手と交渉できるか」に、コードは答えを持っていない。
+When adding a row, **read whether it translates from the dependency table.** Ownership cannot be read, so **ask a human.**
+The code holds no answer to "can we negotiate with this party?".

@@ -1,72 +1,72 @@
-# `/checkout` 購入確認（機能要件）
+# `/checkout` Purchase Confirmation (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**登録済みの利用者の内側にある。** 未認証で開くと、この画面へ戻る指定を伴ってログインへ送る。
-認証済みでも利用者として登録していない主体は、この画面へ戻る指定を伴って登録（`/onboarding`）へ
-送る。判定は主体の情報を描く前に行う（外枠は保護しない。[0079](../../../../adr/0079-auth-frontend-seam.md)）。
+**It sits inside the registered-user area.** Opened unauthenticated, it sends the user to login with an instruction to return to this screen.
+An actor that is authenticated but not registered as a user is sent to registration (`/onboarding`) with an instruction to return to this
+screen. The decision is made before rendering the actor's information (the outer frame does not protect; [0079](../../../../adr/0079-auth-frontend-seam.md)).
 
-**明細も金額もバックエンドが持つ。** この画面が持つのは、確定してよいかを確かめさせることと、
-確定を 1 回だけ送ることである。
+**The backend owns both the line items and the amounts.** What this screen owns is having the user confirm whether to place the order, and
+sending the confirmation exactly once.
 
-## 見せる内容はこの画面で取り直す
+## The content shown is refetched on this screen
 
-カートを見た時点の内容を持ち回らない。**取り直すたびに明細ごとの再評価が入る**ため、買えなく
-なった明細や値の変わった明細はここで初めて現れることがある。
+The content as of viewing the cart is not carried along. **Every refetch re-evaluates each line item**, so line items that became
+unbuyable or whose values changed may first appear here.
 
-届け先は登録情報から引く。**この画面では編集しない** —— 購入の作成が受け取るのは商品と数量
-だけで、届け先は購入時にバックエンドが決める。編集の口を置くと、送っていない値を編集させる
-ことになる。
+The shipping address is taken from the registered information. **It is not edited on this screen** — purchase creation receives only products and
+quantities, and the backend decides the shipping address at purchase time. Placing an editing endpoint would have the user edit a value that is never
+sent.
 
-## 購入に載せる明細
+## Line Items Included in the Purchase
 
-**買えない事情のある明細だけを外す。** 値が変わっただけの明細は載せる。外すと、利用者が買う
-つもりだったものが黙って落ちる。
+**Only line items with an unbuyable condition are excluded.** Line items whose value merely changed are included. Excluding them would silently drop
+what the user meant to buy.
 
-**金額が変わっている場合は、確定の操作で確かめる。** 承知した合図が載った送信だけが通り、
-合図の無い送信は Server Action の側でも止まる（画面を経由しない呼び出しがあるため）。
-承知したことは、その明細を今の数量で設定し直すことでバックエンドへ伝わる。設定は提示済みの
-価格を今の価格へ置き直すため、次の取得では事情が消える。
+**When an amount has changed, the confirm operation checks it.** Only a submission that carries the acknowledgment signal goes through,
+and a submission without the signal is stopped on the Server Action side too (because there are calls that do not go through the screen).
+The acknowledgment reaches the backend by setting that line item again at its current quantity. Setting it replaces the presented
+price with the current price, so the condition disappears on the next fetch.
 
-**買える明細が 1 つも無ければ確定できない。**
+**If no line item is buyable, the order cannot be placed.**
 
-## 金額
+## Amounts
 
-小計はバックエンドが返した値をそのまま出す。**事情の無い明細だけを合算した参考値**であり、
-この画面では足し直さない。
+The subtotal is shown exactly as the backend returned it. **It is a reference value summing only line items with no condition**, and
+this screen does not re-add it.
 
-**税・送料・合計は確定するまで出せない。** 購入を作った応答で初めて決まる。判らないものを 0 と
-して並べず、いつ決まるかを添える。
+**Tax, shipping and total cannot be shown until the order is placed.** They are decided only in the response that creates the purchase. What is unknown is not
+listed as 0; when it will be decided is noted instead.
 
-表示通貨での参考換算額は、**読めなくても購入を止めない**。請求されるのは基準通貨の金額で、
-換算額は読み手が大きさを掴むための添え物である。
+The reference converted amount in the display currency **does not stop the purchase even if it cannot be read**. What is charged is the amount in the base currency,
+and the converted amount is an accompaniment that helps the reader grasp the magnitude.
 
-## 確定の送信
+## Submitting the Order
 
-**送る明細は送信の時点のカートから組み直す。** 画面が見せていた内容を送り返すと、開いたまま
-放置されたあいだに在庫や価格が変わっていても、古い前提のまま確定できてしまう。
+**The line items sent are rebuilt from the cart at the moment of submission.** Sending back what the screen showed would let an order be placed on
+stale premises even if stock or prices changed while the screen was left open.
 
-**冪等キーは画面を組み立てるたびに 1 つ作る。** 二重に押しても再読み込みで送り直しても、購入は
-1 件のままになる。買い直しの意思で画面を開き直したときは別の鍵になる。
+**One idempotency key is created each time the screen is assembled.** Pressing twice or resubmitting by reloading still leaves one
+purchase. Reopening the screen with the intent to buy again gives a different key.
 
-在庫が確定の瞬間に足りなくなった場合は失敗として返る。カートの再評価を通っていても、この余地は
-残る。
+If stock runs short at the moment of placing the order, it comes back as a failure. This margin remains even after passing the cart's
+re-evaluation.
 
-## 成立したあと
+## After It Succeeds
 
-**完了画面へ送る。** 同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が確定前の画面へ
-帰る。
+**Send the user to the completion screen.** Showing completion on the same screen would make completion vanish on reload, and the back operation would
+return to the pre-confirmation screen.
 
-**購入した明細をカートから取り除く。** 購入はカートを空にしない。取り除けなかった場合も完了は
-見せる（購入は既に成立しており、後始末の失敗を理由に完了を隠すと購入できなかったように映る）。
-外枠に出るカートも取り直させる。
+**Remove the purchased line items from the cart.** A purchase does not empty the cart. Even if they cannot be removed, completion is
+still shown (the purchase has already succeeded, and hiding completion because of a cleanup failure would make it look as if the purchase failed).
+The cart shown in the outer frame is refetched too.
 
-## 失敗の意味論
+## Failure Semantics
 
-| 失敗 | 見せ方 |
+| Failure | How it is shown |
 | --- | --- |
-| 内容を取得できない | 画面全体が `error` 境界へ落ちる（確かめる対象が無い） |
-| 参考換算額を取得できない | 換算額の行だけ出ない。確定は生きている |
-| 確定が通らない | 確定の操作の隣に理由を出す。画面は保つ |
+| The content cannot be fetched | The whole screen falls to the `error` boundary (there is nothing to confirm) |
+| The reference converted amount cannot be fetched | Only the converted amount row is absent. Placing the order still works |
+| The order does not go through | The reason is shown next to the confirm operation. The screen is kept |

@@ -1,43 +1,44 @@
-# `/login` ログイン（画面要件）
+# `/login` Login (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-認証を始める操作だけを置く画面。認証の器（[`layout.screen.md`](../layout.screen.md)）に載る。
+A screen holding only the action that starts authentication. It sits in the authentication layout shell ([`layout.screen.md`](../layout.screen.md)).
 
-## 見せるもの
+## What It Shows
 
-1 枚の面を画面の中央に置き、幅を読み幅より狭く抑える。置くのは見出し・説明・（あれば）案内・
-操作の 4 つだけで、他に何も並べない。
+A single panel is placed in the center of the screen, its width kept narrower than the reading width. It holds only four things:
+the heading, the description, the notice (if any), and the action; nothing else is listed.
 
-**資格情報の入力欄は持たず、認証基盤の画面へ送り出す。** その経路を採っている理由と、入力欄が
-入る先の姿は [`page.function.md`](page.function.md) が持つ。
+**It has no credential input fields and sends the user out to the authentication provider's screen.** Why that path is taken, and
+what it will look like once input fields arrive, are held by [`page.function.md`](page.function.md).
 
-## 説明
+## Description
 
-**押す前でなければ意味がないことを 3 つ書く。**
+**Write three things that only mean something before pressing.**
 
-1. 操作を続けるには認証が要ること
-2. 認証はこのアプリの外にある認証基盤で行い、済むと元の操作に戻ること
-3. この画面ではアカウントを作らず、初めての人にもまず認証を済ませるよう案内すること
+1. That authentication is required to continue the operation
+2. That authentication happens at an authentication provider outside this app, and returns to the original operation once done
+3. That no account is created on this screen, and first-time users are also guided to complete authentication first
 
-押した先が別の見た目の画面になることも、ここでアカウントが作られないことも、押したあとに
-知らせても遅い。
+That the destination is a screen that looks different, and that no account is created here, are too late to say after pressing.
 
-**特定の認証基盤の名前も、環境ごとの案内（試用の資格情報など）も書かない。** どの認証基盤を
-繋いでも真である範囲だけを書く。
+**Write neither the name of a specific authentication provider nor per-environment guidance (trial credentials and the like).** Write
+only what is true whichever authentication provider is connected.
 
-## 案内
+## Notice
 
-始められなかったときの案内は、**認証を始める操作の手前**に置く。押した結果として戻されている
-ので、押す前に読む位置に無いと、同じ操作をもう一度押すまで理由が目に入らない。
+The notice shown when authentication could not start is placed **before the action that starts authentication**. The user was sent
+back as the result of pressing, so unless it is where it is read before pressing, the reason is not seen until the same action is
+pressed again.
 
-見た目は否定の段の警告面とし、支援技術へは即時に読み上げさせる。**案内が無いときは領域ごと
-置かない。**空の枠が常に居ると、何も起きていないことが警告のように見える。
+It looks like a warning panel of the negative tier, and assistive technology announces it immediately. **When there is no notice, the
+area itself is not placed.** An empty frame that is always present makes the fact that nothing happened look like a warning.
 
-## 操作
+## Interaction
 
-**操作は 1 つだけ**で、面の幅いっぱいに置く。選ぶものが無いので、押す先を探させる理由がない。
+**There is only one action**, spanning the full width of the panel. There is nothing to choose, so no reason to make the user look for
+what to press.
 
-## 関連
+## Related
 
-- 同じ器に載る次の画面 [`/onboarding`](../onboarding/page.screen.md) <!-- sample:line -->
+- The next screen in the same layout shell: [`/onboarding`](../onboarding/page.screen.md) <!-- sample:line -->

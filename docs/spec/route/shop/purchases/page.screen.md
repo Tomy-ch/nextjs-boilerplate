@@ -1,154 +1,154 @@
-# `/purchases` 購入履歴（画面要件）
+# `/purchases` Purchase History (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-これまでの購入を新しい順に読み進め、期間で絞り込み、1 件を選んで詳細へ進む画面。
+A screen for reading past purchases newest first, filtering them by period, and choosing one to go to its detail.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Contents |
 | --- | --- |
-| 絞り込み | 対象期間の区分・その区分が使う入力欄・絞り込む操作 |
-| 一覧 | 読み込み済みの件数・購入の行・続きの読み込み状況 |
+| Filtering | The period type, the input fields that type uses, and the action that applies the filter |
+| List | The number loaded so far, the purchase rows, and the progress of loading more |
 
-行 1 つに、注文日時・購入コード・状況・合計と、詳細へ進めることを示す目印を出す。
+Each row shows the order date and time, the purchase code, the status, the total, and an indicator that the row leads to the detail.
 
-**注文日時を先頭に置く。** 利用者が自分の購入を見分ける手がかりはまず「いつ買ったか」で、購入
-コードは控えと突き合わせるときにしか使わない。
+**Put the order date and time first.** The first clue users have for telling their purchases apart is "when did I buy it"; the purchase
+code is used only when matching against a receipt.
 
-**行そのものを行き先にする。** 日付や金額だけを行き先にすると、狙う的が文字の幅まで縮み、指で
-押す場面で外しやすくなる。
+**Make the row itself the link.** If only the date or the amount is the link, the target shrinks to the width of the text, and it is
+easy to miss when tapping with a finger.
 
-**購入コードは折り返さずに詰める。** 折り返すと 1 行の高さが倍になり、読み進める密度が落ちる。
-全文は詳細の控えにある。
+**Keep the purchase code on one line instead of wrapping it.** Wrapping doubles the height of a row and lowers the density of reading.
+The full code is in the receipt on the detail.
 
-**総数は出さない。** 契約が返すのは 1 ページと次の鍵だけで、絞り込んだ結果が全部で何件あるかは
-読み終えるまで判らない。読み込んだ数を「全体の何件中」の形に見せると、実際には知らない数を
-知っているように読める。
+**Do not show a total count.** The contract returns only one page and the next cursor, and how many results the filter yields in total is not
+known until everything has been read. Showing the number loaded as "N of a total" reads as if the screen knew a number it does
+not actually know.
 
-**総数を出すのは、契約が数える口を持ち、かつその画面で総数が判断材料になる一覧だけである。**
-両方が要る —— 口があっても、次の操作が総数で変わらない一覧には出さない。この画面は口を持たず、
-自分の購入を探す場面では探す対象が自分の記憶にあるので、どちらの条件も満たさない。cursor の応答
-から総数を組み立てることはしない。同じ判定で総数を出す側は
-[商品一覧](../products/page.function.md)。
+**A total count is shown only on a list where the contract has an endpoint that counts, and the total is decision material on that screen.**
+Both are required — even with such an endpoint, a list whose next action does not change with the total does not show it. This screen has no such endpoint,
+and when users look for their own purchases, what they are looking for is in their own memory, so it meets neither condition. The total is never assembled
+from cursor responses. The side that shows a total under the same judgment is
+[the product list](../products/page.function.md).
 
-## 状況の見え方
+## How Status Looks
 
-状況は**進行中 / 望ましい終端 / 取り消し**の 3 つに束ねて色を変える。何十件も並ぶ一覧では、
-1 行ずつ文字を読まずに目的の購入へ寄せられることのほうが効く。
+Statuses are grouped into three — **in progress / successful end / cancelled** — and colored accordingly. On a list with dozens of rows,
+being able to home in on the purchase you want without reading each row's text is what helps.
 
-| 束 | 色 |
+| Group | Color |
 | --- | --- |
-| 望ましい終端（完了・配達済み） | 成立の配色 |
-| 取り消し（キャンセル） | 取り消しの配色 |
-| 進行中（終端でも取り消しでもない、知っている状況） | 弱い配色 |
-| どれでもない（知らない状況） | 装飾を持たない |
+| Desirable end (completed, delivered) | The success color scheme |
+| Cancelled (cancellation) | The cancellation color scheme |
+| In progress (a known status that is neither an end nor a cancellation) | A muted color scheme |
+| None of these (an unknown status) | No decoration |
 
-区分の根拠はバックエンドの状態遷移が持つ（終端かどうか、取り消しかどうか）。9 つある名称に
-9 通りの色を当てないのは、利用者が知りたいのが「届いたか / 止まったか / まだ動いているか」の
-3 つだから。
+The basis for the grouping is held by the backend's state transitions (whether a status is an end, whether it is a cancellation). The reason not to give
+the nine names nine colors is that what users want to know is three things: "has it arrived / has it stopped / is it still
+moving".
 
-**色は文言の補強でしかない。** 緑と赤の区別は色覚特性によっては付かないため、状況は必ず名称を
-文字で持つ。知らない状況はどの区分にも寄せず、装飾を持たない姿で出す。
+**Color only reinforces the text.** Some color vision characteristics cannot distinguish green from red, so a status always carries its name
+as text. An unknown status is not pushed into any group and is shown without decoration.
 
-## 絞り込み
+## Filtering
 
-**区分が使う入力欄だけを出す。** 使わない入力欄を無効にして並べても、押せない欄が場所を取る
-だけで、いま何を指定すればよいのかが読み取りにくくなる。
+**Show only the input fields the period type uses.** Listing unused fields as disabled only takes up space with fields that cannot be pressed,
+and makes it harder to read what needs to be specified now.
 
-| 区分 | 指定するもの |
+| Period type | What is specified |
 | --- | --- |
-| 全期間 | なし |
-| 直近 | 遡る日数を選ぶ |
-| 月で指定 | 対象の月 |
-| 期間で指定 | 開始日と終了日 |
+| All time | Nothing |
+| Recent | Choose how many days back |
+| By month | The target month |
+| By date range | A start date and an end date |
 
-**選んだ時点では反映せず、確定の操作を置く。** 期間の指定は開始日と終了日の 2 つが揃って初めて
-条件になるため、途中で反映すると契約が受け取れない要求になる。
+**Do not apply on selection; provide a confirm action.** A date range becomes a condition only once both the start date and the end date
+are present, so applying midway produces a request the contract cannot accept.
 
-**足りていないあいだは確定を押せなくし、何が足りないかを添える。** 押せてしまうと、押した結果が
-一覧の消えた画面になり、原因が利用者から見えない。帯では理由を確定の隣に出す。確定の下へ継ぎ足すと、
-文言が出入りするたびに一覧の先頭が上下するため。overlay では理由を入力欄の下に出す。確定は
-overlay の下端に固定されており、理由が出入りしても位置が動かない。
+**While something is missing, make confirm unpressable and say what is missing.** If it can be pressed, the result is a screen whose
+list has disappeared, and the cause is invisible to the user. In the bar, show the reason next to confirm. Appending it below confirm
+would move the top of the list up and down every time the text appears or disappears. In the overlay, show the reason below the input fields. Confirm is fixed
+to the bottom edge of the overlay, so its position does not move as the reason appears and disappears.
 
-**区分を選び替えても確定の位置が動かない。** 確定は入力欄の下の段に置いて左端で揃え、入力欄の
-行はどの区分でも同じ高さにする。高さは「見出し + 操作」という同じ構造で揃え、寸法を予約しない
-（入力欄の寸法が変わっても追従する）。区分を選んでから確定を押すまでの間に狙いが外れないことを
-優先する。
+**Switching the period type does not move confirm.** Confirm sits in the row below the input fields, aligned to the left edge, and the
+input row has the same height for every period type. The height is aligned through the same structure, "label + control", without reserving dimensions
+(so it follows when the size of an input field changes). Not missing the target between choosing a period type and pressing confirm
+takes priority.
 
-終了日は開始日より前を選べない。契約が拒む組み合わせを、押した後ではなく選ぶ前に塞ぐ。
+The end date cannot be set before the start date. A combination the contract would reject is blocked before selection, not after pressing.
 
-**効いている条件を別に並べない。** 条件は期間ひとつなので、入力欄そのものが効いている条件の
-表示になる。写しを並べても同じことを 2 度言うだけで、解除も区分を全期間へ戻せば足りる。
+**Do not list the active conditions separately.** There is only one condition, the period, so the input fields themselves are the display of the active
+condition. Listing a copy only says the same thing twice, and clearing it is just a matter of setting the period type back to all time.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 絞り込み | 効いている期間の表示 |
+| Width | Filtering | Display of the active period |
 | --- | --- | --- |
-| `lg` 以上 | 帯として常設する | 入力欄がそのまま示す |
-| `lg` 未満 | 画面の下端に固定した操作から overlay を開く | **開く操作の文言に出す** |
+| `lg` and up | Always present as a bar | The input fields show it as is |
+| Below `lg` | An overlay opened from a control fixed to the bottom edge of the screen | **Shown in the label of the open control** |
 
-出るのはどちらか一方だけで、組み立て中の期間は画面で 1 つに保つ。どちらから確定しても同じ条件が
-飛び、幅が変わっても入力の途中が消えない。**出し分けは CSS で行う**（hydration を待つと配置が動く）。
+Only one of the two appears, and the period being composed is kept as one per screen. Confirming from either sends the same condition,
+and a change of width does not lose input in progress. **The switch is done in CSS** (waiting for hydration makes the layout move).
 
-**overlay を開く操作は画面の下端に固定する。** 一覧を読み進めた先でも絞り込みへ戻れるようにする
-ためで、上端に置くと古い購入を探して読み進めるほど条件を変える手段が遠ざかる。
+**Fix the control that opens the overlay to the bottom edge of the screen.** This keeps filtering reachable even after reading far down the list;
+placed at the top edge, the means to change the condition moves further away the further you read to find an old purchase.
 
-**閉じているあいだ、効いている期間は開く操作の文言が唯一の表示になる。** 件数の印だけでは「何かで
-絞られている」までしか伝わらず、何でかを見るために開くことになる。
+**While closed, the label of the open control is the only display of the active period.** A count marker alone conveys only that "something
+is filtering", and finding out what it is filtering by requires opening it.
 
-overlay の中では、確定と全期間へ戻す操作を下端に置く。期間を組んでいるあいだ一覧は overlay の
-裏に隠れており、選んだ結果が見えないため。開くときに組みかけの期間を捨てない。
+Inside the overlay, confirm and the action that returns to all time sit at the bottom edge. While the period is being composed, the list is hidden behind
+the overlay, and the result of a selection is not visible. Opening does not discard a half-composed period.
 
-**overlay は確定では閉じず、確定した期間が一覧へ届いたときに閉じる。** 閉じる操作と遷移を同時に
-撃つと、overlay が戻る操作のために積んだ履歴を戻す動きが、まだ届いていない遷移を打ち消す。期間が
-変わらないときは届くものが無いので、その場で閉じる。**確定も全期間へ戻す操作も履歴を積まずに
-差し替える** —— overlay が既に 1 つ積んでおり、そのうえで積むと戻る操作が 1 度空振りする。
+**The overlay does not close on confirm; it closes when the confirmed period reaches the list.** Firing the close and the navigation together
+means the overlay's step back through the history entry it pushed for the back action cancels the navigation that has not arrived yet. When the period does not
+change, nothing arrives, so it closes on the spot. **Both confirm and the return to all time replace without pushing history**
+— the overlay has already pushed one, and pushing another on top would make the back action miss once.
 
-一覧の下端には固定した操作のぶんの余白を空ける。空けないと最後の行が操作に隠れる。
+Leave a margin at the bottom of the list for the fixed control. Without it, the last row is hidden behind the control.
 
-## 続きの読み込み
+## Loading More
 
-末尾へ近づくと続きを継ぎ足す。ページ送りの操作は置かない。
+When the user nears the end, more is appended. No pagination control is provided.
 
-**続きを読む操作は失敗したときだけ出す。** 読み進めているあいだは末尾に近づくだけで次が始まる
-ため、同じことをする入口を並べても選ぶ手数が増えるだけ。失敗した後だけは事情が違い、末尾到達の
-検知はその場に留まる限り二度と起きないので、操作が唯一の復帰口になる。この形でも keyboard の
-scroll と支援技術の読み進めは表示位置を動かすため、scroll 以外の手段は失われない。
+**Show the load-more action only after a failure.** While reading on, simply nearing the end starts the next load,
+so placing another entry point that does the same only adds a choice. After a failure things are different: detection of reaching the end
+never fires again as long as the user stays there, so the action is the only way to recover. Even in this form, keyboard
+scrolling and assistive technology's reading move the visible position, so means other than scrolling are not lost.
 
-読み終えたら末尾に何も残さない。空の枠が残ると、まだ続きがあるように読める。
+Once everything has been read, leave nothing at the end. An empty frame left there reads as if there were more.
 
-件数は読み上げへ伝える。追加された購入は一覧の末尾に増えるだけなので、伝えないと画面を見て
-いない利用者には何も起きていないのと区別が付かない。読み込み中の報告を同じ文へまとめない
-（読み込みのたびに件数まで読み直される）。
+Announce the count to screen readers. Added purchases only grow at the end of the list, so without an announcement, users who are not looking at
+the screen cannot tell it apart from nothing happening. Do not combine the loading report into the same sentence
+(the count would be read again on every load).
 
-## 待機
+## Loading
 
-実際に並ぶ行と同じ高さ・同じ区切りで枠だけを出す。単一の回転で代用すると、描画された瞬間に
-位置が動き、読み始めた場所を見失う。
+Show only frames with the same height and the same dividers as the rows that will actually appear. Substituting a single spinner makes positions move
+the moment it is rendered, and the user loses the place where they started reading.
 
-**待機に落ちるのは一覧だけで、絞り込みの操作は残す。** 期間を変えても、続けて絞り込む操作の
-足場が消えない。
+**Only the list falls into loading; the filter controls stay.** Even when the period changes, the foothold for
+continuing to filter does not disappear.
 
-## 空の状態
+## Empty State
 
-**「まだ買っていない」と「絞り込んだ結果が無い」を分ける。**
+**Separate "has not bought anything yet" from "the filter has no results".**
 
-| 状態 | 出すもの |
+| State | What is shown |
 | --- | --- |
-| 購入が 1 件も無い | 購入がまだない旨と、商品を探しに戻る導線 |
-| 絞り込んだ結果が 0 件 | この期間に購入が無い旨と、全期間で見直す導線 |
+| No purchases at all | A note that there are no purchases yet, and a path back to browsing products |
+| Zero results for the filter | A note that there are no purchases in this period, and a path to review all time |
 
-後者を前者と同じ文言で出すと、条件を外せば出てくることが画面から読み取れない。買った覚えの
-ある利用者には、履歴が消えたようにも見える。
+Showing the latter with the same text as the former leaves the screen unable to say that removing the condition would bring results back. To a user who
+remembers buying something, it can even look as if the history has disappeared.
 
-## パンくず
+## Breadcrumbs
 
-置かない。global nav がこの画面を直接指しており、階層が 1 段であるため
-（[0026](../../../../adr/0026-layout-shell-mount.md)）。
+None. The global nav points directly at this screen, and the hierarchy is one level deep
+([0026](../../../../adr/0026-layout-shell-mount.md)).
 
-## 関連
+## Related
 
-- 実装 `src/features/purchases/` — [README](../../../../../src/features/purchases/README.md)
-- 進む先 [`/purchases/[code]`](<[code]/page.screen.md>)（購入詳細）
-- 入る経路: global nav / マイページの購入サマリ / 購入完了
+- Implementation `src/features/purchases/` — [README](../../../../../src/features/purchases/README.md)
+- Goes to [`/purchases/[code]`](<[code]/page.screen.md>) (purchase detail)
+- Entry routes: global nav / the purchase summary on My Page / purchase completion

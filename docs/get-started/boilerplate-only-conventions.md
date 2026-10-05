@@ -1,128 +1,127 @@
-# boilerplate 限定の規約
+# Boilerplate-Only Conventions
 
-**このリポジトリが上流の boilerplate である間しか成り立たない記述**を、ここ 1 本に集める。
-前提は 1 文で言える。
+**Statements that hold only while this repository is the upstream boilerplate** are gathered here, in this one file.
+The premise fits in one sentence.
 
-> ここはテンプレートである。読み手はこれを複製して自分のリポジトリを作り、同梱物を上書きしていく。
+> This is a template. Readers copy it to create their own repository and overwrite what it ships with.
 
-**セットアップはこのファイルを丸ごと削除する**（[setup-repository.md](setup-repository.md) 手順 4 /
-`make setup-remove-boilerplate-only`）。ここに書いてあることは、テンプレートから作ったリポジトリの
-規則ではない。
+**Setup deletes this file entirely** ([setup-repository.md](setup-repository.md), step 4 /
+`make setup-remove-boilerplate-only`). Nothing written here is a rule of a repository created from
+the template.
 
-## なぜ置き場に散らさず、ここへ集めるのか
+## Why gather it here instead of scattering it across locations
 
-前提が成り立つ箇所をその場で囲むと、**消えるのは区間で、壊れるのはその両側の文**になる。マーカーの
-近くを触るたびに、気づかれないまま囲みを壊す機会が増える。
+Fencing each place where the premise holds, on the spot, means **what disappears is the fenced range, and what breaks is the sentences on either side of it**. Every time
+someone touches the area around a marker, there is another chance to break a fence without noticing.
 
-1 本へ集めれば、この失敗の形そのものが無くなる —— **残る文書はそもそも前提を含まない**ので、切った
-あとに直す対象が存在しない。残る側に置くのは指し先だけで、それぞれが `boilerplate-only:line` を
-持つ自己完結した 1 行である。行ごと消えるので、前後の文に手が掛からない。
+Gathering it into one file removes this failure shape altogether — **the documents that survive contain no premise in the first place**, so after the cut
+there is nothing to fix. What sits on the surviving side is only the pointers, each a self-contained single line carrying
+`boilerplate-only:line`. The whole line disappears, so the sentences before and after it are not touched.
 
-規約の**一般形**は、それを所有する文書が持つ —— [`docs/adr/README.md`](../adr/README.md)、
-[`docs/rules.md`](../rules.md)、各層の `README.md`。ここが記録するのは、上流がその一般形から
-**逸脱している分**だけである。残る文書に逸脱を書くと、テンプレートから作られた瞬間にそれが嘘になる。
+The **general form** of each convention is held by the document that owns it — [`docs/adr/README.md`](../adr/README.md),
+[`docs/rules.md`](../rules.md), each layer's `README.md`. What this file records is only **how far upstream deviates**
+from that general form. Writing a deviation into a surviving document makes it a lie the moment a repository is made from the template.
 
-## マーカーの約束
+## Marker Contract
 
-`boilerplate-only` は「複製された時点で成り立たなくなるもの」の唯一の名前空間で、剥がしの 1 パス
-（`make setup-remove-boilerplate-only`）がこれを解決する。
+`boilerplate-only` is the single namespace for "what stops holding the moment it is copied", and one stripping pass
+(`make setup-remove-boilerplate-only`) resolves it.
 
-| マーカー | 置き方 | 効果 |
+| Marker | How it is placed | Effect |
 | --- | --- | --- |
-| `boilerplate-only:line` | 対象行の行末コメント | その行が消える |
-| `boilerplate-only:begin` / `:end` | 区間を挟む単独行コメント | 区間とマーカーの両方が消える |
-| `boilerplate-only:replace-begin` / `:replace-with` / `:replace-end` | 2 つの区間を挟む単独行コメント | 前半が消え、コメントアウトされた後半が有効化される |
+| `boilerplate-only:line` | An end-of-line comment on the target line | That line disappears |
+| `boilerplate-only:begin` / `:end` | Standalone line comments enclosing a range | Both the range and the markers disappear |
+| `boilerplate-only:replace-begin` / `:replace-with` / `:replace-end` | Standalone line comments enclosing two ranges | The first half disappears and the commented-out second half is activated |
 
-`replace-*` に手を伸ばすのは、区間を消すと見出しや規則ごと落ちてしまう場所 —— 作られたリポジトリに
-**何も言わない**のではなく**別のことを言う**必要がある場所だけである。Markdown では
-`<!-- = ... -->`、コードでは `// = ...` / `# = ...` の形で書く。
+Reach for `replace-*` only where removing the range would drop a heading or a rule along with it — places where the created repository
+needs to be told **something else** rather than **nothing**. In Markdown, write it as
+`<!-- = ... -->`; in code, as `// = ...` / `# = ...`.
 
-`sample` 族とは**入れ替えられない**。発火する瞬間が違い（`boilerplate-only` はセットアップ時、
-`sample` はサンプル破棄時）、片方だけを行う選択が成り立つ。
+It is **not interchangeable** with the `sample` family. They fire at different moments (`boilerplate-only` at setup,
+`sample` at the sample purge), and choosing to do only one of them is a valid option.
 
-**剥がしはリポジトリを走査する。** ファイル一覧から引かないのは、一覧の外側にマーカーを書けてしまい、
-しかもその取りこぼしが無言だからである —— パスは成功を報告し、前提だけが作られたリポジトリへ届く。
-除外するのは依存の取得物と生成物で、宣言は
-[`scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts)
-が持つ。
+**Stripping scans the repository.** It does not draw from a file list because markers could be written outside the list,
+and that miss would be silent — the pass reports success and only the premise reaches the created repository.
+What is excluded is fetched dependencies and generated artifacts, and the declaration is held by
+[`scripts/setup/remove-boilerplate-only/manifest.ts`](../../scripts/setup/remove-boilerplate-only/manifest.ts).
 
-## 何を推奨するか
+## What to Recommend
 
-定めるのは**推奨**であって、変更してよい範囲ではない —— それは `AGENTS.md` の `Instruction Priority`
-と `AI Modification Scope` が決める。
+What is set out here is a **recommendation**, not the scope you may change — that is decided by `AGENTS.md`'s `Instruction Priority`
+and `AI Modification Scope`.
 
-- **新しいリポジトリが受け取るスナップショットに対して比べる。** そこへ至った履歴に対してではない ——
-  このリポジトリを見たことがなく、git log を読むこともない人にとって何が筋の通った形に見えるか。
-- **品質と一貫性が、そこへ到達する費用より上に立つ。** 自ら教えている順序と食い違う採番、ここ以外の
-  どこでも守られている規約、改名が手間だから生き残っただけの名前 —— 直すことを推奨する。「もう出荷済み」
-  はほとんど重みを持たない。
-- **推奨には費用を添える** —— 触るファイル、誰の何が壊れるか、何を作り直すか。人が方向は保ったまま
-  範囲だけを断れるようにするためである。
-- **権威を持つのは 2 つだけ**: デファクトスタンダード（RFC・仕様・プラットフォーム自身の定義）と、この
-  リポジトリのアーキテクチャが導く形。そのどちらとしても述べられない推奨は、推奨の服を着た好みである。
-- **特定のデプロイの事情を、残る側へ焼き込まない。** ただしこれは上の規則に従属する —— つまみが正当化
-  されるのは、その変動が本当に状況依存であり、**かつ**標準にもアーキテクチャにも決着していないときだけ
-  である。標準が既に決めた場所につまみを置くのは標準からの逸脱であり、
-  [0010](../adr/0010-standards-and-non-lockin.md) が要求する宣言を伴うか、消える必要がある。
-- **判定基準は「抽象を増やす / 減らす」では決してない** —— 標準またはアーキテクチャが導く形へ寄せ、
-  状況のラベルを落とす。
+- **Compare against the snapshot a new repository receives**, not against the history that led to it —
+  what reads as coherent to someone who has never seen this repository and will never read its git log.
+- **Quality and consistency stand above the cost of reaching them.** A numbering that contradicts the order it itself teaches, a convention
+  kept everywhere but here, a name that survives only because renaming is work — recommend fixing them. "It already shipped"
+  carries almost no weight.
+- **Attach the cost to a recommendation** — the files touched, what breaks and for whom, what must be rebuilt — so that a person can keep the direction
+  while declining only the scope.
+- **Only two things carry authority**: a de-facto standard (an RFC, a specification, a platform's own definition), and the shape this
+  repository's architecture derives. A recommendation that cannot be stated as either is a preference dressed as a recommendation.
+- **Do not bake a particular deployment's situation into the surviving side.** But this is subordinate to the rule above — a knob is justified
+  only when the variation is genuinely situational **and** neither the standard nor the architecture has settled it.
+  A knob placed where a standard has already decided is a departure from the standard, and must either carry the declaration
+  [0010](../adr/0010-standards-and-non-lockin.md) requires or go.
+- **The criterion is never "more abstraction / less abstraction"** — move toward the shape the standard or the architecture derives,
+  and drop the situational label.
 
-## ゲートを先回りして回さない
+## Do not pre-run the gates
 
-一般形は [`docs/playbook.md`](../playbook.md)「ゲートを先回りして回さない」が持つ。上流での逸脱は
-**度合いだけ**である —— ここでは複数の worktree が 1 台のホストを共有するため、ゲートは待ち行列に
-並ぶのではなく掛け算になる。作業ツリーが 1 つなら先回りは安く、この逸脱は消える。
+The general form is held by [`docs/playbook.md`](../playbook.md#do-not-pre-run-the-gates) — "Do not pre-run the gates". Upstream's deviation is
+**only one of degree** — here several worktrees share one host, so the gates multiply rather than queue.
+With a single working tree, pre-running is cheap and this deviation disappears.
 
-## 撤去マーカーを足したら数え直す
+## Recount after adding a removal marker
 
-`sample` / `boilerplate-only` の撤去マーカーは、**発火してほしい本物**と、**規約を説明するための
-例示**とが同じ形をしている。位置でも構文でも区別は付かないので、除去側は「例示だ」という宣言
-（`setup/remove-sample/sample-manifest.ts` の `MARKER_LITERAL_FILES` と、走査から外す接頭辞）を持つ。
-宣言を忘れたときに起きることは 2 通りで、対応の取れないマーカーなら除去が中断して声が出るが、
-**閉じたペアを散文が持っていると、その区間は例外を出さずに消える**。空になったコードフェンスは
-有効な Markdown のままなので、撤去後のツリーを lint しても鳴らない。
+For the `sample` / `boilerplate-only` removal markers, **the real ones that are meant to fire** and **examples that illustrate
+the convention** have the same shape. Neither position nor syntax tells them apart, so the removing side holds a declaration that "this is an example"
+(`MARKER_LITERAL_FILES` in `setup/remove-sample/sample-manifest.ts`, and the prefixes excluded from the scan).
+Forgetting the declaration has two outcomes: an unpaired marker makes the removal abort loudly, but
+**when prose holds a closed pair, that range disappears without raising anything**. An emptied code fence
+is still valid Markdown, so linting the post-removal tree does not catch it.
 
-そこで [`scripts/marker-baseline/`](../../scripts/marker-baseline/) がファイルごとのマーカー行数を
-[`baseline.json`](../../scripts/marker-baseline/baseline.json) に固定し、[`scan.test.ts`](../../scripts/marker-baseline/scan.test.ts)
-が実ツリーと突き合わせる。マーカーを足した / 消した瞬間にしかこの数は動かないので、区間の中の散文を
-直しても差分は出ない。数が動いたら、そこが判断の場になる。
+So [`scripts/marker-baseline/`](../../scripts/marker-baseline/) pins the number of marker lines per file in
+[`baseline.json`](../../scripts/marker-baseline/baseline.json), and [`scan.test.ts`](../../scripts/marker-baseline/scan.test.ts)
+reconciles it against the real tree. The numbers move only at the moment a marker is added or removed, so editing the prose inside a range
+produces no diff. When a number moves, that is where the judgment happens.
 
-同じ入口が**表として成立していない行**も見る。Markdown の表は表の行でない行に出会った時点で終わる
-ので、コメント**行**を表の途中へ置くと、それ以降の行が表から落ちて生のパイプを含む段落になる。
-行内で完結する `:line` はセルに納まるので安全だが、`begin` / `end` / `replace-*` は行を占めるため
-表を割る。**表は 1 行 1 実体にし、消える実体は自分の行を持って `:line` で落とす。**
+The same entry point also checks **lines that do not form a valid table**. A Markdown table ends as soon as it meets a line that is not a table row,
+so placing a comment **line** in the middle of a table drops the following rows out of the table into a paragraph containing raw pipes.
+`:line`, which completes within the line, fits inside a cell and is safe, but `begin` / `end` / `replace-*` occupy a line and
+split the table. **Make a table one entity per row, and give an entity that disappears its own row and drop it with `:line`.**
 
-部分置換のために `replace` で 1 行を囲むと、変えたいのが数文字でも行が丸ごと退避側へ複製される。
-退避側は誰も読まないコメントなので、先に腐るのは必ずそちらである。こちらは行数と違って基準値を
-持たない —— 0 件が唯一の合格で、数えて固定する対象ではない。
+Enclosing one line with `replace` for a partial substitution copies the whole line to the stashed side even if only a few characters are meant to change.
+The stashed side is a comment no one reads, so it is always the one that rots first. Unlike line counts, this has no baseline
+value — zero is the only pass, and it is not something to count and pin.
 
-- 本物のマーカーを足した / 消した → `pnpm exec tsx scripts/marker-baseline --write` で引き直す
-- マーカーの形を**指示ではなくデータ**として書いた → 引き直す前に除去側へリテラルとして宣言する
+- Added / removed a real marker → regenerate with `pnpm exec tsx scripts/marker-baseline --write`
+- Wrote a marker's shape **as data, not as a directive** → declare it as a literal on the removing side before regenerating
 
-## 決定の根拠に、この木の在庫を置かない
+## Do not base a decision on what this tree currently contains
 
-**「ここにその画面／使う場所がまだ無いから置かない」を、残る文書の根拠にしない。** 在庫は複製した
-側のものであって、上流のものではない。渡った先で読めば、**読み手が現に持っているものについて「無い」
-と述べる文**になる。
+**Do not make "not placing it because that screen / place of use does not exist here yet" the basis of a surviving document.** The contents belong to
+the copying side, not upstream. Read where it lands, it becomes **a sentence that says "there is none" about something the reader
+actually has**.
 
-残る文書に書いてよいのは 2 つだけである。
+A surviving document may state only two things.
 
-- **同梱の有無そのもの** —— 何を持ち、何を持たないか
-- **採る時点の座標** —— 採ったときに何がどこへ乗るか
+- **Whether something is bundled at all** — what it has and what it does not
+- **The coordinates at the time of adoption** — what lands where when it is adopted
 
-**撤回条件も同じ。** トリガに据えてよいのは木の外側の変化である —— 道具がその機能を備えた、標準が
-それを定めた、自分が持つ機構の役割が変わった。「まだその画面が無い」は状態であって前提の変化ではなく、
-[0140](../adr/0140-documentation-operations.md) の判定がそのまま当てはまる。
+**Reversal conditions are the same.** What may be set as a trigger is a change outside the tree — a tool gained the capability, a standard
+defined it, the role of a mechanism you own changed. "That screen does not exist yet" is a state, not a change of premise,
+and the test in [0140](../adr/0140-documentation-operations.md) applies as is.
 
-**時点の名も書かない。** `v1` は上流の工程に付いた名前で、複製した側にその段は無い。
+**Do not write the name of a point in time either.** `v1` is a name attached to an upstream phase, and the copying side has no such stage.
 
-一般形は上の *何を推奨するか*「特定のデプロイの事情を、残る側へ焼き込まない」が持つ。ここが足して
-いるのは、**在庫もその「事情」に含まれる**という一点である。
+The general form is held by *What to Recommend* above — "Do not bake a particular deployment's situation into the surviving side". What this section adds
+is one point: **the contents are part of that "situation" too**.
 
-**「空のインターフェースだけを置かない」とは別の規則である。** そちらは実装の有無を見る規約で、
-複製した側でも成り立つため残る文書が持つ（[0053](../adr/0053-ui-component-interaction-seam.md)）。
-在庫を見るのはこちらだけで、上流にしか意味が無い。
+**This is a different rule from "do not place an empty interface alone".** That one is a convention about whether an implementation exists,
+and it also holds on the copying side, so a surviving document holds it ([0053](../adr/0053-ui-component-interaction-seam.md)).
+Only this one looks at the contents, and it means something only upstream.
 
-強制: [`scripts/premise-lint`](../../scripts/premise-lint) の語彙「この木の在庫を根拠にした除外」。
-**綴りで落ちるのは断定の形だけである** —— 同じことを別の言い回しで書いた文は通るので、そちらは
-純化パスの問い 1（`.agents/purity-sweep/purity-sweep.prompt`）が見る。
+Enforcement: the vocabulary 「この木の在庫を根拠にした除外」 (exclusion based on what this tree contains) in [`scripts/premise-lint`](../../scripts/premise-lint).
+**Only the assertive form fails on spelling** — a sentence that says the same thing in other words passes, so that is
+checked by question 1 of the purity pass (`.agents/purity-sweep/purity-sweep.prompt`).

@@ -1,42 +1,42 @@
-# `/admin/inquiries/[inquiryId]` 問い合わせの対応（画面要件）
+# `/admin/inquiries/[inquiryId]` Handling an Inquiry (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-1 件のやり取りを読み、回答する画面。
+A screen for reading one exchange and replying to it.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 概要 | 問い合わせの識別子と、やり取りの始まり |
-| 受信の状態 | 更新を受け取れているかどうかの 1 語 |
-| やり取り | 日付の区切りと、送り手ごとに左右へ分かれた発言 |
-| 回答欄 | 本文の入力と送信 |
+| Overview | The inquiry's identifier and the start of the exchange |
+| Receiving status | One word saying whether updates are being received |
+| Exchange | Date separators, and messages split left and right by sender |
+| Reply field | Body input and submission |
 
-**右へ寄るのは運営の発言。** 同じやり取りでも、誰が読んでいるかで「自分」が入れ替わる。利用者側の
-画面とは左右が逆になる。
+**The operator's messages sit on the right.** In the same exchange, "me" switches with who is reading. Left and right are
+reversed relative to the customer-side screen.
 
-**誰の問い合わせかを出せない。** 契約が返すやり取りは送り手の種別しか持たず、利用者の識別子は
-一覧の行だけが持つ。代わりに問い合わせの識別子を出し、一覧の行と突き合わせられるようにする。
+**It cannot show whose inquiry it is.** The exchange the contract returns carries only the sender type, and only the list row
+carries the customer's identifier. Instead it shows the inquiry's identifier, so it can be matched against the list row.
 
-## 回答の見え方
+## How Replies Look
 
-**`⌘Enter` での送信を持たない。** 運営の回答は書き上げてから送るもので、打ち終わりがそのまま
-送信になると、書きかけが利用者へ届く。
+**No submission by `⌘Enter`.** An operator's reply is sent after it is fully written; if finishing typing becomes the
+submission, a half-written reply reaches the customer.
 
-送信中・成立・失敗の見え方は利用者側の送信と同じ
-（[`../../../shop/mypage/inquiry/page.screen.md`](../../../shop/mypage/inquiry/page.screen.md)）。
+How submitting, success and failure look is the same as the customer-side submission
+([`../../../shop/mypage/inquiry/page.screen.md`](../../../shop/mypage/inquiry/page.screen.md)).
 
-## 見出し
+## Headings
 
-**画面には出さない。** 見出しを負っているのはパンくずの現在地で、重ねると同じ画面の名前が 2 度
-並ぶ。
+**Not shown on screen.** The current location in the breadcrumbs carries the heading; adding one would put the same screen name
+twice in a row.
 
-**ただし文書としては置く。** 出さないことにすると、支援技術から「いま何の画面に居るか」を得る
-手段がパンくずを辿る以外に無くなる。見えない見出しとして画面の名前を置き、画面の見え方は
-変えない。
+**But it is placed in the document.** Leaving it out would leave assistive technology no way to learn "which screen am I on"
+other than walking the breadcrumbs. The screen name is placed as an invisible heading, and the screen's appearance does not
+change.
 
-## 階層
+## Hierarchy
 
-一覧へ戻る 1 段を出す。現在地に識別子は出さない —— 問い合わせに題名が無く、識別子をそのまま
-出しても階層の名前にならない。
+Show the one level back to the list. The current location does not show the identifier — an inquiry has no title, and the raw
+identifier does not work as a name in the hierarchy.

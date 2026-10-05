@@ -1,94 +1,98 @@
-# `/admin` ダッシュボード（画面要件）
+# `/admin` Dashboard (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 >
-> 器の約束は [`layout.screen.md`](layout.screen.md) が持つ。
+> The layout shell's promises are held by [`layout.screen.md`](layout.screen.md).
 
-管理側を開いた直後に「今どうなっているか」だけを読む画面。
+A screen for reading only "how things stand now" right after opening the admin side.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 画面の名前と、ここで何が判るか |
-| 数値カード | 売上・売上の件数・公開中の商品・登録済みの商品 |
-| ステータス別の件数 | 横棒と数値表を並べたもの |
-| 期間別の集計への導線 | 一番下 |
+| Heading | The screen's name and what can be learned here |
+| Metric cards | Sales, sales count, published products, registered products |
+| Counts by status | Horizontal bars side by side with a table of numbers |
+| Link to aggregates by period | At the very bottom |
 
-## 期間を選ばせない
+## No period selection
 
-**ここは開いた直後に読む面である。** 選ぶ操作を挟むと「まず今日を見る」という最も多い用途に手数が
-増える。期間を跨いで見比べる用は [`analytics/page.screen.md`](analytics/page.screen.md) が持ち、この
-画面はそこへの導線だけを置く。
+**This is the page read right after opening.** Adding a selection step costs extra actions for the most common use, "look at
+today first". Comparing across periods belongs to [`analytics/page.screen.md`](analytics/page.screen.md), and this screen only
+places a link to it.
 
-**導線の名前は行き先の名前を語幹にする。** 脇の導線に並ぶ行き先の名前に「を見る」を添えた形
-（「期間別の集計を見る」）にする。この場で期間を選べるように読める文言にすると、押すまで遷移だと
-判らない。行き先の名前を語幹に残すと、脇の導線と同じ場所を指すことが読み取れる。
+**The link's name uses the destination's name as its stem.** It takes the destination's name as listed in the sidebar links and
+appends 「を見る」 ("view"), giving 「期間別の集計を見る」 ("view aggregates by period"). Text that reads as if a period can be chosen
+right here does not reveal it is a navigation until pressed. Keeping the destination's name as the stem shows that it points to the
+same place as the sidebar link.
 
-## 数値カードに注記を欠かさない
+## Metric cards always carry their caveats
 
-並ぶ 4 つは**母集団が 3 種類に割れている**。注記が無いと、読み手は同じ期間の同じ母集団だと読む。
+The four cards shown **split into three populations**. Without caveats, readers read them as the same population over the same period.
 
-| カード | 母集団 |
+| Card | Population |
 | --- | --- |
-| 売上 / 売上の件数 | キャンセルを除き、未払いを含む |
-| ステータス別の件数（下の区画） | キャンセルを含む |
-| 公開中の商品 / 登録済みの商品 | 期間に依存しないマスタの現在値 |
+| Sales / sales count | Excludes cancellations, includes unpaid purchases |
+| Counts by status (the region below) | Includes cancellations |
+| Published products / registered products | The master's current values, independent of the period |
 
-**注記は値と同じ枠に置く。** カードの外にあると、どの数に掛かる断りなのかが位置から読めない。
+**The caveat sits in the same frame as the value.** Outside the card, its position does not tell which number it qualifies.
 
-**合計も割合も出さない。** 足し合わせてよい組み合わせがこの中に無い。画面が作れる数は、バックエンド
-が返していない数である。
+**Neither totals nor ratios are shown.** None of these may be added together. Any number the screen could build is a number the
+backend did not return.
 
-## 押せるカードと押せないカード
+## Clickable and non-clickable cards
 
-**中身を並べた面があるカードだけが押せる。** 押した先の件数が数と違うと、どちらかが誤っているように
-読める。
+**Only cards with a page listing their contents are clickable.** If the count at the destination differs from the number, one of
+them reads as wrong.
 
-| カード | 押せるか |
+| Card | Clickable |
 | --- | --- |
-| 公開中の商品 | 押せない。公開済みだけを並べる一覧が無く、admin の一覧へ送るとこの数より多い件数が出る |
-| 登録済みの商品 | 押せる。admin の一覧は未公開を含めて返すので、条件を付けない一覧がそのままこの数になる |
-| 売上 / 売上の件数 | 押せない。購入を横断して並べる取得口が契約に無い |
+| Published products | No. There is no list of only published products, and sending to the admin list shows more than this number |
+| Registered products | Yes. The admin list returns unpublished ones too, so the unfiltered list is exactly this number |
+| Sales / sales count | No. The contract has no fetch endpoint that lists purchases across customers |
 
-**押せることは矢印で常時示す。** 枠の色が変わるだけだと、指で触るまで押せる面かどうかが判らない。
+**Clickability is always shown by an arrow.** If only the frame's color changes, whether the card is clickable is unknown until
+touched.
 
-**面ごと押せるが、link で包まない。** 包むと注記まで遷移先の名前として読み上げられる。見出しの link
-を疑似要素で面いっぱいに広げ、支援技術には見出しだけが遷移先として見えるようにする。
+**The whole card is clickable, but it is not wrapped in a link.** Wrapping it would make screen readers read even the caveat as
+the destination's name. The heading's link is stretched over the whole card with a pseudo-element, so assistive technology sees
+only the heading as the destination.
 
-## 内訳は棒と表を併置する
+## The breakdown pairs bars with a table
 
-**棒は大小を掴むためのもので、数そのものは表が持つ。** 棒だけにすると、形と色でしか読めない情報に
-なる。
+**Bars are for grasping relative size; the table holds the numbers themselves.** Bars alone make information readable only by
+shape and color.
 
-**横棒にする。** 並ぶのはステータス名という長さのまちまちな文字列で、縦棒にすると軸の目盛りが回転
-するか省略される。
+**Horizontal bars.** What is listed are status names, strings of varying length; with vertical bars the axis labels get rotated or
+truncated.
 
-**tooltip も凡例も置かない。** tooltip は pointer を合わせている間だけ現れるため touch と keyboard から
-到達できず、凡例は系列が 1 本しかない場では説明する相手がいない。数を読む手段は表の側にある。
+**No tooltip and no legend.** A tooltip appears only while the pointer is over it, so it cannot be reached by touch or keyboard;
+a legend has nothing to explain where there is only one series. The means of reading the numbers is the table.
 
-**並べ替えない。** 契約はステータスマスタの表示順で返す。件数の多い順へ組み替えると、期間を切り替える
-たびに行の位置が動き、同じステータスを追えなくなる。
+**No re-sorting.** The contract returns rows in the status master's display order. Re-sorting by count moves row positions every
+time the period changes, and the same status can no longer be followed.
 
-**登場の動きを止める。** 帯は幅 0 から伸びる動きを持つが、伸びきる前の姿も「その件数の帯」として
-読めてしまう。止めれば基準画像も撮った時点に依存しない。
+**The entrance animation is disabled.** The bars grow from zero width, but their shape before reaching full width can be read as
+"the bar for that count". Disabling it also keeps baseline images independent of capture timing.
 
-## 幅で変わるもの
+## What Changes with Width
 
-| 幅 | 数値カード | 内訳 |
+| Width | Metric cards | Breakdown |
 | --- | --- | --- |
-| 脇に一覧を置ける | 4 列 | 棒と表を横に並べる |
-| 置けない | **2 列を保つ** | 棒・表の順に積む |
+| A side list fits | 4 columns | Bars and table side by side |
+| It does not fit | **Keep 2 columns** | Bars then table, stacked |
 
-**狭い段でも 2 列を保つ。** 4 枚を縦に積むと、下に置く内訳が最初の画面から押し出され、数だけを見て
-帰る利用者にも巻き取りを強いる。値は桁を揃え、列が細くても隣と比べられるようにする。
+**Keep 2 columns even on the narrow band.** Stacking the 4 cards vertically pushes the breakdown below out of the first screen,
+forcing scrolling even on users who come only to glance at the numbers. Values are aligned by digit so they can be compared with
+their neighbor even in narrow columns.
 
-段の境界は [0051](../../../adr/0051-styling-system.md) が持つ。
+The band boundaries are held by [0051](../../../adr/0051-styling-system.md).
 
-## 待機と空
+## Loading and Empty
 
-**待機はカードの枠と、その下に続く帯の高さで出す。** スピナー 1 つで代用すると、描画された瞬間に
-高さが変わり、下に置いたものの位置が動く。
+**Loading is shown as the card frames and the height of the bars that follow.** Substituting a single spinner changes the height
+the moment content renders and moves whatever sits below.
 
-**購入がまだ無い期間では、棒も表も出さず一文で伝える。** 契約は空配列を返す。空の表を出しても読み手
-が得るものがない。
+**For a period with no purchases yet, show neither bars nor table; say so in one sentence.** The contract returns an empty array.
+An empty table gives the reader nothing.

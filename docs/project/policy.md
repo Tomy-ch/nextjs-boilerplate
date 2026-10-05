@@ -1,81 +1,81 @@
-# プロジェクトポリシー
+# Project Policy
 
-このプロジェクトを維持・運営するための方針を述べる。
+States the policy for maintaining and running this project.
 
 ## Maintainer Policy
 
 <!-- boilerplate-only:replace-begin -->
-このプロジェクトは**作者個人によって管理されている独立したプロジェクト**である。特定の企業や組織とは
-関係がない。アーキテクチャと実装に関する意思決定は、作者の設計思想に基づいて行う。
+This project is **an independent project managed by its author as an individual**. It has no affiliation with any particular company or
+organization. Decisions about architecture and implementation are made on the basis of the author's design philosophy.
 <!-- boilerplate-only:replace-with -->
-<!-- = アーキテクチャと実装に関する意思決定は、本リポジトリを保守するチームが行う。 -->
+<!-- = Decisions about architecture and implementation are made by the team that maintains this repository. -->
 <!-- = -->
-<!-- = 変更ごとの好みではなく単一の設計思想に基づいて判断されるため、読み手は設計が誰の判断を -->
-<!-- = 反映したものかを辿れる。 -->
+<!-- = Because they are judged on a single design philosophy rather than per-change preference, readers can trace whose judgment -->
+<!-- = the design reflects. -->
 <!-- boilerplate-only:replace-end -->
 
 ## Disclaimer
 
-このプロジェクトは善意のもとで提供する。特定用途への適合性・セキュリティ・運用安定性について、
-いかなる保証も行わない（MIT。[0142](../adr/0142-license.md)）。利用にあたっては、依存ライブラリの
-脆弱性・セキュリティ設定・運用環境との互換性を自ら確認すること。
+This project is provided in good faith. No warranty of any kind is given as to fitness for a particular purpose, security or operational stability
+(MIT. [0142](../adr/0142-license.md)). When using it, check for yourself the vulnerabilities of dependent libraries,
+the security settings, and compatibility with your operating environment.
 
 ## Maintenance Policy
 
 <!-- boilerplate-only:replace-begin -->
-メンテナは可能な範囲で、依存関係の更新・セキュリティ更新・アーキテクチャ改善を行う。Issue への
-対応期限、バグ修正、長期的な継続は保証しない。問題を見つけたら Issue を作成すること。
+The maintainer updates dependencies, applies security updates and improves the architecture as far as possible. No response deadline for Issues,
+no bug fixes and no long-term continuation are guaranteed. If you find a problem, open an Issue.
 
-貢献は inbound = outbound —— 投稿された貢献は成果物と同じ MIT の条件で受け取り、CLA や著作権譲渡は
-求めない（[0142](../adr/0142-license.md)）。
+Contributions are inbound = outbound — submitted contributions are accepted under the same MIT terms as the work, and no CLA or copyright assignment
+is required ([0142](../adr/0142-license.md)).
 <!-- boilerplate-only:replace-with -->
-<!-- = メンテナンスが対象とするのは、依存関係の更新・セキュリティ更新・アーキテクチャ改善である。 -->
+<!-- = Maintenance covers dependency updates, security updates and architecture improvements. -->
 <!-- = -->
-<!-- = 対象としないもの —— 対応期限、バグ修正の保証、いつまで継続するか —— は、誰がどの責任範囲で -->
-<!-- = 保守するかで決まる。暗黙に委ねず明示すること。 -->
+<!-- = What it does not cover — response deadlines, guaranteed bug fixes, how long it continues — is decided by who maintains it -->
+<!-- = and within what scope of responsibility. State it explicitly rather than leaving it implicit. -->
 <!-- boilerplate-only:replace-end -->
 
-## 受け入れの判定軸
+## Acceptance Criteria
 
-**判断の宛先は、いまこのリポジトリが在る状態であって、それを作った履歴ではない**
-（[0010](../adr/0010-standards-and-non-lockin.md)）。足すか足さないかは、このリポジトリを見たことが
-なく git log も読まない読み手に、一貫したものとして読めるかで判断する。
+**What a judgment addresses is the state this repository is in now, not the history that made it**
+([0010](../adr/0010-standards-and-non-lockin.md)). Whether to add something is judged by whether it reads as coherent to a reader who has never seen
+this repository and does not read its git log.
 
-- **品質と一貫性が、到達の費用より優先する。** ここだけ守られていない規約、直す手間だけを理由に残る
-  名前は、直す側に倒す。費用は判断に添えて示し、費用に答えを選ばせない
-- **投資するのは、迷いが発生する前に介入できる仕組みである。** 置き場と書き方を先に決める scaffold
-  と仕様書がそれで、lint と CI は事後の防波堤、playbook は迷子の救済に過ぎない。同じ費用なら前者へ
-  置く（[0143](../adr/0143-spec-driven-development.md) / [0155](../adr/0155-claude-skills-development.md)）
-- **決定には、それを守る手段を併記する。** 機械で強制できる規約はツールへ移し、散文でしか守れない
-  なら、寄せられない理由を書く（[0144](../adr/0144-decision-enforcement-pairing.md)）
-- **利用者が選ぶべき判断を、既定で下さない。** 外部へ送る値と送り先を利用者側が選んでいないなら、
-  既定は送らない。外部アカウントを要する層は、未設定なら黙って何もしない形でしか同梱しない
-  （[0010](../adr/0010-standards-and-non-lockin.md)）
-- **含めないものには理由を書く。** 理由を書けない「やらない」は判断ではなく先送りである。一覧は
+- **Quality and consistency take priority over the cost of reaching them.** A convention not kept only here, a name that survives only because fixing it is work —
+  tip toward fixing. Show the cost alongside the judgment, and do not let the cost choose the answer
+- **What is invested in is mechanisms that can intervene before confusion arises.** Scaffolds and specifications that settle placement and how to write first
+  are that; lint and CI are after-the-fact breakwaters, and the playbook is no more than a rescue for the lost. At the same cost, put it
+  in the former ([0143](../adr/0143-spec-driven-development.md) / [0155](../adr/0155-claude-skills-development.md))
+- **State with each decision the means that keeps it.** Move conventions that a machine can enforce into tools, and if one can only be kept in prose,
+  write why it cannot be mechanized ([0144](../adr/0144-decision-enforcement-pairing.md))
+- **Do not make by default a decision the user should make.** If the user has not chosen the values sent outside and where they go,
+  the default is not to send. A layer that needs an external account is bundled only in a form that silently does nothing when unconfigured
+  ([0010](../adr/0010-standards-and-non-lockin.md))
+- **Write a reason for what is not included.** A "won't do" that cannot give a reason is not a decision but a postponement. The list is
   [out-of-scope.md](out-of-scope.md)
 
 ## Library Selection Policy
 
-価値は特定のライブラリではなく、**広く使われる OSS を一貫したアーキテクチャとして統合している点**に
-ある。選定は [0004](../adr/0004-library-management.md) が定める。
+The value lies not in any particular library but in **integrating widely used OSS as a coherent architecture**.
+Selection is defined by [0004](../adr/0004-library-management.md).
 
-- **一次判定は構造。** 1 語で言える単一責務を持ち、独立にバージョニングされる 2 つの上流のあいだに
-  立たないこと。落ちたものは定量を見ない
-- **二次判定は必須と推奨。** 未修正の既知脆弱性が無いこと、TypeScript の型、Next.js / React の版整合。
-  推奨は、最悪 fork したときの負担が既知であること
-- **すべて exact pin。** 更新の入口を Dependabot の PR 1 つに保ち、版の変化を必ず `package.json` の
-  1 行に現す。メジャー更新は別 PR
-- **公開直後の版は採らない。** cooldown による検疫は、上流が乗っ取りを検知して取り消すまでの時間を
-  稼ぐ（[0110](../adr/0110-security-operations.md)）
+- **The first screen is structural.** It has a single responsibility that can be named in one word, and it does not stand between two upstreams that are
+  versioned independently. What fails here is not looked at quantitatively
+- **The second screen is required and recommended criteria.** No unfixed known vulnerabilities, TypeScript types, version alignment with Next.js / React.
+  Recommended: the burden of forking it in the worst case is known
+- **Everything is an exact pin.** Keep the entry point for updates to a single Dependabot PR, and make every version change appear as one line of
+  `package.json`. Major updates go in a separate PR
+- **Freshly published versions are not taken.** Quarantine by cooldown buys time for upstream to detect a takeover and
+  revoke it ([0110](../adr/0110-security-operations.md))
 
 ## Vendor Neutrality
 
-**接続点の形はプラットフォームのデファクトに乗り、中身の選択は固定しない**
-（[0010](../adr/0010-standards-and-non-lockin.md)）。乗ることと縛られることは別で、判定は「そのベンダーを
-正当化から抜いても、そのパターンは正当か」である。
+**The shape of connection points rides on the platform's de-facto standard, and the choice of what fills them is not fixed**
+([0010](../adr/0010-standards-and-non-lockin.md)). Riding on and being bound are different things, and the test is "is the pattern still justified with
+that vendor taken out of the justification?".
 
-- フレームワーク固有 API の使用は「Next.js を選んだ」という既決の帰結であり、機能固有のロックインではない
-- 観測性の出口は OTLP 一本で、vendor SDK を同梱しない（[0081](../adr/0081-observability-logging.md)）
-- ベンダー直参照を `features` / `components` へ散らさず、`adapters` とカーネル境界の裏で差し替え
-  可能に保つ（[0021](../adr/0021-frontend-responsibility.md)）
-- 外部のデザインツールとの依存は repo → ツールの一方向（[0055](../adr/0055-design-system-export.md)）
+- Using framework-specific APIs is a consequence of the settled decision "we chose Next.js", not feature-specific lock-in
+- The single observability outlet is OTLP, and no vendor SDK is bundled ([0081](../adr/0081-observability-logging.md))
+- Do not scatter direct vendor references into `features` / `components`; keep them replaceable behind `adapters` and the kernel
+  boundaries ([0021](../adr/0021-frontend-responsibility.md))
+- Dependence on external design tools is one way, repo → tool ([0055](../adr/0055-design-system-export.md))

@@ -1,101 +1,106 @@
-# `/admin/products/new` 商品の新規作成（画面要件）
+# `/admin/products/new` Creating a Product (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-初めての入力を、段階に分けて進める画面。
+A screen that takes first-time input forward in stages.
 
-## 段階に分ける
+## Splitting into stages
 
-**5 つの段に分け、順に進む。**
+**Split into five steps, taken in order.**
 
-| 段 | 入れるもの |
+| Step | What is entered |
 | --- | --- |
-| 基本情報 | 商品名・価格・在庫数・在庫警告の閾値・分類 |
-| 説明 | 商品説明 |
-| 画像 | 商品画像 |
-| 公開 | 状態・公開日時 |
-| 確認 | 送る内容 |
+| Basic information | Product name, price, stock quantity, low-stock warning threshold, category |
+| Description | Product description |
+| Images | Product images |
+| Publication | Status, publication date and time |
+| Confirmation | The content to send |
 
-**段階に分けるのは、初めての入力が「あとどれだけで送れるか」を知りたい課題だからである。** 進捗が
-その答えになる。1 か所を直しに来る課題（編集）とは器を分ける。
+**It is split into stages because first-time input is a task where people want to know "how much more until I can send".** The
+progress indicator answers that. It uses a different container from the task of coming to fix one thing (editing).
 
-**進捗は横に並べる。** 縦へ積むと、段の数だけ入力欄より上が伸び、入力を始める前に画面を送ることに
-なる。
+**The progress indicator is laid out horizontally.** Stacking it vertically lengthens the area above the input fields by the number
+of steps, and the user has to scroll before starting to type.
 
-## どこへ行けるか
+## Where the user can go
 
-**必須が埋まるまで、その段から先へ行けない。** 進む操作も、進捗から飛ぶ操作も同じ条件で止まる。
-片方だけを止めても、もう片方から飛べては同じことになる。
+**Until the required fields are filled, the user cannot go past that step.** Both the forward control and jumping from the progress
+indicator stop under the same condition. Stopping only one is pointless if the other still allows a jump.
 
-**前へ戻る操作は止めない。** 戻ることは、その段を済ませたと主張しない。
+**Going back is not stopped.** Going back does not claim the step is done.
 
-**一度でも到達した段へは、進捗から直接行ける。** 確認から 1 か所だけ直しに行く動きが最短で済む。
-まだ到達していない段へは行けない。飛べると、進んでよいかの判定を迂回できる。
+**Any step reached at least once can be reached directly from the progress indicator.** Going from confirmation to fix one thing
+takes the shortest path. Steps not yet reached cannot be entered; allowing a jump would bypass the check on whether moving forward
+is allowed.
 
-**済ませた印は、そこへ戻っても残す。** 済ませたことと今どこに居るかは別の事実で、印が消えると
-済ませた入力まで無かったことになったように見える。
+**The done marker stays even when the user goes back there.** Having finished a step and where one is now are separate facts; if the
+marker disappeared, even the finished input would look as if it never happened.
 
-## 誤りの出し方
+## How Errors Are Shown
 
-**誤りの文言は、その項目に触れてから出す。** 開いた直後に空欄をすべて赤くすると、まだ何もして
-いない人に落ち度を告げることになる。
+**An error message appears only after the field is touched.** Turning every empty field red right after opening tells someone who
+has done nothing yet that they are at fault.
 
-**項目のそばの文言は、画面がその場で行う判定から出す。** 送信と同じ規則を画面も通るので、その判定
-で拾える誤りは送る前に項目のそばへ出る。
+**Messages next to fields come from the check the screen runs on the spot.** The screen runs the same rules as the submission, so
+errors that check can catch appear next to the field before sending.
 
-**送信が弾かれたら、弾かれた項目を一覧にして出す。** 一覧は全体像と直しに行く導線を担う。送信の
-側でしか判らない誤りは項目のそばには出ず、この一覧にだけ現れる。
+**When the submission is rejected, show the rejected fields as a list.** The list carries the overall picture and the links to go
+fix them. Errors only the submission side can detect do not appear next to fields; they appear only in this list.
 
-**入力を直した時点で、直前の結果は下げる。** 出し続けると、直したのに直っていないように見える。
+**Once the input is corrected, the previous result is cleared.** Keeping it shown makes a fix look unfixed.
 
-## 確認の段
+## Confirmation Step
 
-**入力欄を持たない。** 同じ値を 2 か所で編集できると、どちらが送られるかを読む側が推測することに
-なる。直すときは前の段へ戻る。
+**No input fields.** If the same value could be edited in two places, the reader would have to guess which one is sent. To fix
+something, go back to the earlier step.
 
-**未入力の項目は、空欄ではなく未入力として示す。** 空欄は「入れ忘れ」と「入れないと決めた」を
-区別できない。
+**Unfilled fields are shown as unfilled, not as blank.** A blank cannot distinguish "forgot to fill it" from "decided not to".
 
-**商品説明は、買い手へ届くのと同じ形で出す。** ここで見えないものは保存しても表示されない。
+**The product description is shown in the same form buyers will see.** What is not visible here will not be displayed even if saved.
 
-**公開日時と画像は、入っていない場合の扱いを言葉で書く。** 「未公開のまま登録します」「登録しま
-せん」のように、空であることが選択の結果だと読めるようにする。
+**For publication date and time and for images, state in words what happens when they are empty.** Wording like
+「未公開のまま登録します」 (registered as unpublished) or 「登録しません」 (none will be registered) lets emptiness read as the result of
+a choice.
 
-## 画像の見せ方
+## How Images Are Shown
 
-**選ぶ受け口と、選んだ内容の一覧を分ける。** 受け口は渡し終えたら空へ戻り、選んだ内容の持ち主は
-一覧だけになる。両方が控えを持つと、1 件外したときに受け口の表示だけが古いまま残る。
+**Separate the picker that receives files from the list of what was chosen.** The picker returns to empty once it has handed the
+files over, and the list becomes the only owner of what was chosen. If both kept a copy, removing one would leave only the picker's
+display stale.
 
-**選んだ画像は横へ折り返して並べる。** 縦に積むと、枚数が増えるほど他の項目が下へ送られる。
+**Chosen images wrap horizontally.** Stacking them vertically pushes the other fields down as the number grows.
 
-**並び替えは 1 つずつ前後へ動かす操作で行う。** 端の項目は、その先へ動かす操作を押せない。
+**Reordering is done by moving one item forward or back at a time.** An item at the end cannot press the control that moves it
+further.
 
-## 待機
+## Loading
 
-**分類と状態の候補が揃うまで、段の形で枠だけを出す。** 候補は取得して揃えるもので、揃うまで段を
-描けない。スピナー 1 つで代用すると、描画された瞬間に高さが変わり、進捗と操作の位置が動く。
+**Until the category and status options are in, show only frames in the shape of the step.** The options are fetched, and the step
+cannot render until they are all in. Substituting a single spinner changes the height the moment content renders and moves the
+progress indicator and the controls.
 
-**枠の数は最初の段が持つ欄と一致させない。** 待機の側は候補の件数を知らないので、フォームの形が
-伝わる以上の意味を持たせられない。
+**The number of frames is not matched to the fields of the first step.** The loading side does not know how many options there are,
+so it cannot carry more meaning than conveying the form's shape.
 
-## 離れるとき
+## When Leaving
 
-**書きかけのまま画面を離れようとしたら確認する。** 送信するまで何も保存されておらず、離れた時点で
-入力は失われる。
+**Confirm when the user tries to leave the screen with input half-written.** Nothing is saved until submission, and the input is
+lost the moment the user leaves.
 
-**確認するのはアプリ内の移動と、再読み込み・タブを閉じる操作である。** ブラウザの戻る・進むは
-塞がない（[`navigation-guard`](../../../../../../src/components/app-starter/navigation-guard/README.md)）。
+**What is confirmed is in-app navigation, and reloading or closing the tab.** The browser's back and forward are not blocked
+([`navigation-guard`](../../../../../../src/components/app-starter/navigation-guard/README.md)).
 
-## パンくず
+## Breadcrumbs
 
-**商品一覧管理 > 新規作成。** 現在地までの階層は器が位置を持ち、この画面は中身を渡す。
+**商品一覧管理 > 新規作成** (Product list management > New). The layout shell holds the position of the path to the current location,
+and this screen passes its content.
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook の `Page/Admin/Products/Create` に、各段・弾かれた状態・確認の段・タブレット・スマホを
-置く。canvas では送信も保存も起きない。待機の姿は `Features/Admin/Products/New/Skeleton` が持つ。
+Storybook's `Page/Admin/Products/Create` holds each step, the rejected state, the confirmation step, tablet and smartphone. Neither
+submission nor saving happens in the canvas. The loading appearance is held by `Features/Admin/Products/New/Skeleton`.
 
-## 関連
+## Related
 
-- [`../page.screen.md`](../page.screen.md) —— この画面へ来る一覧
-- [`../[id]/edit/page.screen.md`](<../[id]/edit/page.screen.md>) —— 段の中身を共有する編集の画面
+- [`../page.screen.md`](../page.screen.md) — the list that leads to this screen
+- [`../[id]/edit/page.screen.md`](<../[id]/edit/page.screen.md>) — the edit screen that shares the steps' contents

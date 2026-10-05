@@ -1,46 +1,46 @@
-# `/admin/inquiries/[inquiryId]` 問い合わせの対応（機能要件）
+# `/admin/inquiries/[inquiryId]` Handling an Inquiry (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**管理者ロールを要する。** 役割の判定はバックエンドが持ち、足りない主体には `403` が返る。
+**Requires the administrator role.** The backend owns the role check, and an actor without it gets `403`.
 
-送り手の種別は**サーバが決める**。この口から入った回答は運営として記録され、送信で指定はできない。
+The **server decides** the sender type. A reply that enters through this endpoint is recorded as the operator's, and the submission cannot specify it.
 
-## 取得
+## Fetching
 
-`GET /v1/inquiries/{inquiryId}/messages` の 1 系統だけ。形も開始位置の意味も、利用者側の履歴と
-同じ。存在しない問い合わせには `404` が返る。
+A single source: `GET /v1/inquiries/{inquiryId}/messages`. Its shape and the meaning of its start position are the same as the
+customer-side history. A nonexistent inquiry returns `404`.
 
-動的セグメントは取得へ渡す前に識別子として確定させる。形が契約に合わない要求は取得が
-`not-found` として返す。
+The dynamic segment is settled as an identifier before it reaches the fetch. A request whose shape does not match the contract is
+returned by the fetch as `not-found`.
 
-## 購読
+## Subscription
 
-**この画面は会話そのものを購読しない。** 契約が持つ購読の口は「自分の問い合わせ」と
-「更新フィード」の 2 つで、運営が任意の 1 件を直接購読する口が無い。
+**This screen does not subscribe to the conversation itself.** The contract's subscription endpoints are two, "my inquiries" and
+"update feed", and there is none through which the operator subscribes directly to an arbitrary single inquiry.
 
-代わりにフィードを購読し、**開いている問い合わせが動いたときだけ**正本を取り直す。新しい 1 通は
-届いた本文としてではなく、取り直した正本として現れる。フィードが本文を運ばない以上、これは
-遠回りではなく唯一の経路である。
+Instead it subscribes to the feed and refetches the authoritative copy **only when the open inquiry moves**. A new message appears
+not as a delivered body but as the refetched authoritative copy. Since the feed carries no body, this is not a
+detour but the only path.
 
-## 送信
+## Submission
 
-`POST /v1/inquiries/{inquiryId}/messages` を Server Action の往復で送る。
+`POST /v1/inquiries/{inquiryId}/messages` is sent as a Server Action round trip.
 
-**回答先は画面が送信に載せる。** 運営は複数の問い合わせを行き来するため、「いま開いているもの」を
-サーバ側で決められない。
+**The screen puts the reply target into the submission.** The operator moves between several inquiries, so the server
+cannot decide "the one currently open".
 
-冪等キーと本文の扱いは利用者側の送信と同じ
-（[`../../../shop/mypage/inquiry/page.function.md`](../../../shop/mypage/inquiry/page.function.md)）。
+The idempotency key and the body are handled as in the customer-side submission
+([`../../../shop/mypage/inquiry/page.function.md`](../../../shop/mypage/inquiry/page.function.md)).
 
-成立したら**開いている 1 件だけ**を取り直す。一覧はフィードが知らせる。
+On success, **only the one open inquiry** is refetched. The feed tells the list.
 
-## 失敗
+## Failures
 
-| 契約の応答 | 画面 |
+| Contract response | Screen |
 | --- | --- |
-| 403 | 役割が足りない |
-| 404 | 存在しない問い合わせ |
-| 422 | 本文の項目エラー |
+| 403 | Insufficient role |
+| 404 | Nonexistent inquiry |
+| 422 | Field error on the body |

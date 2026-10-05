@@ -1,62 +1,62 @@
-# `(shop)` 外枠（機能要件）
+# `(shop)` Outer Frame (Functional Requirements)
 
-> 画面要件は [`layout.screen.md`](layout.screen.md)。
+> Screen requirements are in [`layout.screen.md`](layout.screen.md).
 >
-> ここに書くのは**配下のすべての画面に効く約束**です。個々の画面はそれぞれの `page.*.md` が持ちます。
+> What is written here are **promises that apply to every screen beneath it**. Each screen's own requirements live in its `page.*.md`.
 
-## カートの供給
+## Supplying the Cart
 
-外枠がカートを取得し、header の入口と脇の領域へ渡す。
+The outer frame fetches the cart and passes it to the header's entry point and the sidebar.
 
-**画面ごとに取得しない。** どの画面から商品をカートへ入れても同じ場所に結果が出る必要があり、
-画面側に置くと入れられる画面の数だけ取得と器が増える（[0026](../../../adr/0026-layout-shell-mount.md)）。
+**It is not fetched per screen.** Wherever a product is added to the cart from, the result must appear in the same place, and
+placing it on the screen side would multiply fetches and containers by the number of screens that can add to it ([0026](../../../adr/0026-layout-shell-mount.md)).
 
-取得口は `/cart` と同じで、同じ描画のうちなら往復は 1 回になる。したがって**外枠と本文が別々の
-時点のカートを見せることはない**。
+The fetch endpoint is the same as `/cart`, so within the same render there is a single round trip. Therefore **the outer frame and the body never show the cart
+at different points in time**.
 
-**この取得は cookie を読むので、器の殻の外に置く。** header の入口と脇の領域は、それぞれ殻から
-切り離した穴として後から届く。器の殻（header・nav・footer）と本文の殻は主体を知らないまま先に
-配られ、カートはその後に埋まる（[0041](../../../adr/0041-cache-components-decision.md)）。器が
-取得を抱えると、配下のすべての画面がその往復を待ってから描き始めることになる。
+**This fetch reads a cookie, so it is placed outside the layout shell's static shell.** The header's entry point and the sidebar each arrive later as
+dynamic holes cut out of the static shell. The layout shell's static shell (header, nav, footer) and the body's static shell are served first without knowing the actor,
+and the cart fills in afterwards ([0041](../../../adr/0041-cache-components-decision.md)). If the layout shell
+held the fetch, every screen beneath it would wait for that round trip before starting to render.
 
-**取得を持たない案内の 3 枚は、この器の外に置く。** この器を通すと、殻は先に配られても、穴を
-埋めるために要求のたびにサーバーが動く。3 枚を build 時の姿だけで配るには、器がカートも session
-も読まないところまで下がるしかなく、
-[`../site-info/layout.function.md`](../site-info/layout.function.md) が引き取っている。
+**The three informational pages, which have no fetching, are placed outside this layout shell.** Passing through this layout shell, the static shell would be served first, but
+the server would run on every request to fill the dynamic holes. Serving the three as their build-time form alone requires dropping down to a layout shell
+that reads neither the cart nor the session, which
+[`../site-info/layout.function.md`](../site-info/layout.function.md) takes on.
 
-**読めなかったときはカートを出さずに続ける。** ここで投げると、同じ段の layout を包む `error`
-境界が無いため（子の `error.tsx` は親 layout の失敗を捕まえない）、header も nav も消えた画面まで
-落ちる（[0080](../../../adr/0080-error-handling.md)）。カートが読めない状況ではカートの画面自体も
-開けないので、外枠から入口を落としても到達できる場所は減らない。
+**If it cannot be read, continue without showing the cart.** Throwing here would bring the screen down to one with neither header nor nav,
+because there is no `error` boundary wrapping a layout at the same level (a child `error.tsx` does not catch its parent layout's failure)
+([0080](../../../adr/0080-error-handling.md)). When the cart cannot be read, the cart screen itself
+cannot open either, so dropping the entry point from the outer frame does not reduce the places that can be reached.
 
-**空のカートとしては出さない。** 「空」と「読めなかった」は別の状態で、混ぜるとカートが勝手に
-空になったように見える。
+**It is not shown as an empty cart.** "Empty" and "could not be read" are different states, and mixing them makes the cart look as if
+it emptied on its own.
 
-## 取り消しの記憶
+## Remembering Undo
 
-削除した明細を戻すための記憶を、**カートの器より外**に置く。最後の 1 件を取り除くと脇の領域も
-カートの画面も空の姿へ変わるため、器の内側に持つとその切り替わりで記憶ごと失われる。
+The memory for returning a removed line item is placed **outside the cart's container**. Removing the last item changes both the sidebar and
+the cart screen to their empty form, so holding it inside the container would lose the memory along with that switch.
 
-記憶の中身と戻し方は [`cart/page.function.md`](cart/page.function.md) が持つ。
+What is remembered and how it is returned is owned by [`cart/page.function.md`](cart/page.function.md).
 
-**この器を離れると失われる。** 案内の 3 枚（[`../site-info/`](../site-info/layout.function.md)）へ
-移ると器ごと入れ替わり、記憶は残らない。買い物の内側でだけ意味を持つ便宜なので、買い物から出た
-時点で失ってよいものとして扱う（[0026](../../../adr/0026-layout-shell-mount.md)）。跨いでも残す
-必要が出たときは、2 つを親の route group でまとめる。
+**It is lost when leaving this layout shell.** Moving to the three informational pages ([`../site-info/`](../site-info/layout.function.md))
+swaps out the whole layout shell, and the memory does not remain. It is a convenience that only means something inside shopping, so it is treated as
+something that may be lost once the user leaves shopping ([0026](../../../adr/0026-layout-shell-mount.md)). If it ever needs to survive the crossing,
+the two are grouped under a parent route group.
 
-## 認証
+## Authentication
 
-**外枠は保護しない。** 商品を見る・カートに入れる・カートを確かめるまでは認証を要さない。保護が
-要る画面は、その画面自身が確定認可を行う（[0079](../../../adr/0079-auth-frontend-seam.md)）。
+**The outer frame is not protected.** Viewing products, adding to the cart and checking the cart require no authentication. A screen that
+needs protection performs the definitive authorization itself ([0079](../../../adr/0079-auth-frontend-seam.md)).
 
-## 行き先
+## Destinations
 
-global nav が指すのは商品・購入履歴・マイページの 3 つ。カートは nav ではなく header の入口が
-指す（入口が中身の開閉を兼ねるため）。
+The global nav points to three places: products, purchase history and my page. The cart is pointed to not by the nav but by the header's entry point
+(because the entry point also opens and closes the contents).
 
-**管理の役割を持つ主体には、管理画面への入口を 4 つ目として足す。** 出す・出さないの判定は管理側の
-確定認可と同じ述語を使う。判定が別々に書かれていると「入れないのに入口が出ている」状態を作れて
-しまう（[`../admin/layout.function.md`](../admin/layout.function.md)）。
+**For an actor with the admin role, an entry point to the admin screens is added as a fourth.** Whether to show it uses the same predicate as
+the admin side's definitive authorization. If the decisions were written separately, a state of "the entry point shows but you cannot get in" could be
+created ([`../admin/layout.function.md`](../admin/layout.function.md)).
 
-**この判定は session を読む。** 外枠は認証を要さないが、入口を出すかどうかを決めるために身元は
-読む。読めなくても外枠は落とさず、入口を出さないだけになる。
+**This decision reads the session.** The outer frame requires no authentication, but it reads identity to decide whether to show the entry point.
+If it cannot be read, the outer frame is not brought down; the entry point simply is not shown.

@@ -1,89 +1,89 @@
-# このプロジェクトが意図的に含めていないもの
+# What This Project Deliberately Leaves Out
 
-**含めない、で終わってよいのは 2 種だけである。** (a) 別ドメイン —— バックエンドやインフラ —— の
-責務であるもの、(b) 機能の接続点ではない、非機能のツール選択。それ以外のフロント領域の関心事は、
-切り捨てずに**名前を付けた拡張点（seam）**を持つ。名も無い省略は、線引きした痕跡を残さない。
+**Only two kinds of thing may end at "not included".** (a) What is the responsibility of another domain — the backend or
+infrastructure — and (b) non-functional tool choices that are not a functional connection point. Every other front-end concern
+is not cut off but given **a named extension point (seam)**. An unnamed omission leaves no trace that a line was drawn.
 
-ただし**空のインターフェースだけを置かない**。実装を伴わない抽象は、実装する時点で必ず書き直される。
-同梱しないものについて持つのは、採用時の座標だけである。
+However, **do not place an empty interface alone**. An abstraction without an implementation is always rewritten at the point it is implemented.
+For what is not bundled, all that is kept is the coordinates at the time of adoption.
 
-各項の理由は ADR が持ち、ここは索引に留める。
+The ADRs hold the reason for each item; this page stays an index.
 
-## 別ドメインの責務であるもの
+## What Belongs to Another Domain
 
-- **アプリ本体のコンテナ配送** —— `Dockerfile` / 本体用 compose を同梱しない。配り先は PaaS と静的
-  CDN で、コンテナに閉じ込めるべき system 依存が表示層に無い（[0011](../adr/0011-no-docker.md)）
-- **コンテナを前提とする供給網の機構** —— image scan / 署名 / SBOM。上と同じ理由（[0110](../adr/0110-security-operations.md)）
-- **DB / ORM / 永続化、ビジネスロジック、ドメインモデル** —— バックエンドが持つ。`/api/*` は薄い
-  proxy に限る（[0070](../adr/0070-backend-role-separation.md)）
-- **契約の所有** —— OpenAPI はバックエンドが所有し、こちらは生成した型と検証で消費する。手書きで
-  写さない（[0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md)）
-- **サーバが持つ判断の写し** —— 表示層は次を持たない
-  （[0070](../adr/0070-backend-role-separation.md) / [0020](../adr/0020-adopted-architecture.md) 設計原則 6）
-  - 契約が返さない値の導出。合計や差額のように計算規則がバックエンドに在る値は、契約に無ければ画面にも無い
-  - 契約が 1 つの失敗として返すものの区別。分けようとすると、サーバが持っていない判断を画面が持つ
-  - 実行時点の母集団の確定。実行前にサーバから引いた影響範囲は、古くなる前置きを添えて見せるだけで、判断には使わない
-  - 値域の保証。入力で範囲を縛るのは画面の都合であり、契約の値域はサーバが守る。縛っても拒否の経路は残す
-  - 上流由来の値の網羅的な無害化。ただし特定できる脅威への防御は、他所に在っても置く
-- **資格情報の検証と IdP の選定** —— 資格情報は検証せずに中継し、所有するのは認証画面の意匠だけ。
-  セッション方式も IdP も用途依存（[0079](../adr/0079-auth-frontend-seam.md) / [0070](../adr/0070-backend-role-separation.md)）
-- **公開エンドポイントの abuse 防御** —— レートリミット・WAF は PaaS / edge の責務。本体に残すのは
-  content-type と本体サイズのような最小防御だけ（[0077](../adr/0077-bff-abuse-protection-boundary.md)）
-- **バックエンド / IdP / ストレージを立てる compose** —— バックエンド側のスタックへ接続する。表示層が
-  起動手順を抱えると二重管理になる（[0011](../adr/0011-no-docker.md)）
-- **アプリの配信手順** —— 同梱する配信 workflow はドキュメントサイトの分だけである（[0141](../adr/0141-portal-operations.md)）
+- **Container delivery of the application itself** — no `Dockerfile` / compose for the app is bundled. Delivery targets are PaaS and static
+  CDN, and the presentation layer has no system dependency that needs confining in a container ([0011](../adr/0011-no-docker.md))
+- **Supply-chain mechanisms that presume containers** — image scanning / signing / SBOM. Same reason as above ([0110](../adr/0110-security-operations.md))
+- **DB / ORM / persistence, business logic, domain model** — owned by the backend. `/api/*` is limited to a thin
+  proxy ([0070](../adr/0070-backend-role-separation.md))
+- **Owning the contract** — the backend owns OpenAPI, and this side consumes it through generated types and validation. It is not copied
+  by hand ([0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md))
+- **Copies of judgments the server owns** — the presentation layer does not hold the following
+  ([0070](../adr/0070-backend-role-separation.md) / [0020](../adr/0020-adopted-architecture.md), on not pre-emptively handling problems another layer owns)
+  - Deriving values the contract does not return. A value whose calculation rule lives in the backend, such as a total or a difference, is absent from the screen if absent from the contract
+  - Distinguishing what the contract returns as one failure. Trying to split it makes the screen hold a judgment the server does not
+  - Settling the population at execution time. An impact range fetched from the server before execution is only shown with a caveat that it may go stale, and is not used for judgment
+  - Guaranteeing a value range. Constraining the range at input is the screen's convenience; the contract's value range is guarded by the server. Even when constrained, keep the rejection path
+  - Exhaustive sanitization of upstream-originated values. A defense against an identifiable threat is still placed, even if it also exists elsewhere
+- **Validating credentials and choosing the IdP** — credentials are relayed without validation, and only the design of the authentication screens is owned.
+  Both the session method and the IdP depend on the use case ([0079](../adr/0079-auth-frontend-seam.md) / [0070](../adr/0070-backend-role-separation.md))
+- **Abuse protection for public endpoints** — rate limiting and WAF are PaaS / edge responsibilities. All that is left in the app is
+  minimal defenses such as content-type and body size ([0077](../adr/0077-bff-abuse-protection-boundary.md))
+- **Compose that starts the backend / IdP / storage** — connect to the backend side's stack. If the presentation layer
+  carried startup procedures, they would be managed twice ([0011](../adr/0011-no-docker.md))
+- **The application's delivery procedure** — the only delivery workflow bundled is the one for the documentation site ([0141](../adr/0141-portal-operations.md))
 
-## 非機能のツール選択で、持たないもの
+## Non-Functional Tool Choices Not Held
 
-- **観測性 / RUM の vendor SDK**（Sentry / Datadog 等）—— 出口は OTLP 一本。通知やアラートは向け先の
-  OTLP 互換バックエンドで足りる（[0081](../adr/0081-observability-logging.md)）
-- **Renovate の併用** —— 依存更新は cooldown を持つ Dependabot に一本化する。cooldown は供給網検疫の
-  実装そのものである（[0110](../adr/0110-security-operations.md)）
-- **Node 特化の SAST** —— 汎用 SAST が当てているルール集合で覆われており、重なる層を足さない（同上）
-- **ファジング** —— 外から来たバイト列を自前で解くパーサを持たないため、対象が無い
-  （[0090](../adr/0090-testing-strategy.md) / [0110](../adr/0110-security-operations.md)）
-- **OpenSSF Best Practices バッジ** —— リポジトリの名前に紐づく登録で、複製では引き継がれない（[0142](../adr/0142-license.md)）
-- **仕様書から骨格を生成する scaffold** —— 仕様書の中心は「やらない理由」の散文で、生成の入力に
-  すると落ちる（[0143](../adr/0143-spec-driven-development.md)）
-- **観測ツールの MCP 登録と、実ブラウザのプロファイルへの接続** —— CLI から呼び、手元の開発サーバ
-  だけを観測する（[0156](../adr/0156-browser-observation-tooling.md)）
-- **DDD の監査** —— domain 層を持たないので DDD への整合を謳わない。集約・境界づけられたコンテキスト・
-  ユビキタス言語のどれもこのリポジトリに対象を持たず、外部の原典との差分を測っても、測った先が無い
-  （[0020](../adr/0020-adopted-architecture.md)）
+- **Vendor SDKs for observability / RUM** (Sentry / Datadog, etc.) — the single outlet is OTLP. Notifications and alerts are covered by
+  the OTLP-compatible backend it points at ([0081](../adr/0081-observability-logging.md))
+- **Running Renovate alongside** — dependency updates are consolidated on Dependabot, which has a cooldown. The cooldown is the
+  implementation of supply-chain quarantine itself ([0110](../adr/0110-security-operations.md))
+- **Node-specific SAST** — covered by the rule set general-purpose SAST applies, so an overlapping layer is not added (same as above)
+- **Fuzzing** — there is no in-house parser that decodes byte sequences from outside, so there is no target
+  ([0090](../adr/0090-testing-strategy.md) / [0110](../adr/0110-security-operations.md))
+- **The OpenSSF Best Practices badge** — a registration tied to the repository's name, not inherited by a copy ([0142](../adr/0142-license.md))
+- **A scaffold that generates a skeleton from specifications** — the core of a specification is prose about "reasons not to do", and it falls away when used
+  as generation input ([0143](../adr/0143-spec-driven-development.md))
+- **Registering observation tools with MCP, and connecting to a real browser profile** — they are called from the CLI and observe only the local
+  development server ([0156](../adr/0156-browser-observation-tooling.md))
+- **DDD audits** — there is no domain layer, so no conformance to DDD is claimed. Aggregates, bounded contexts and
+  ubiquitous language have no subject in this repository, and measuring the gap against an external source has nothing to measure
+  ([0020](../adr/0020-adopted-architecture.md))
 
-## 用途に依存し、ここでは判断しないもの
+## What Depends on the Use Case and Is Not Decided Here
 
-本体は採用時の座標だけを持つ。導入する分に、これらの除外は障害にならない。
+The app holds only the coordinates for adoption. These exclusions are no obstacle to introducing them.
 
-- **i18n** —— ライブラリ・ロケール解決・翻訳キー体系。座標は `proxy.ts` と `[locale]` セグメント（[0121](../adr/0121-i18n-strategy.md)）
-- **PWA** —— manifest / Service Worker / オフライン。座標は `app/manifest.*`（[0130](../adr/0130-pwa-strategy.md)）
-- **CMP・IAB TCF 相当の同意管理** —— 法域とベンダーに依存する。軽量な同意機構とタグマネージャの
-  読み込み口までは持つ（[0131](../adr/0131-cookie-consent.md)）
-- **プロダクト分析の発火 IF** —— 同梱するのはタグマネージャの容器を読み込む口までで、値を渡す IF は持たない（[0082](../adr/0082-client-observability.md)）
-- **決済 SDK の mount seam** —— SDK を同梱せず、記すのは採用時の座標だけ。PCI 境界（生カード情報を
-  フロントに持たせない）は採否によらず不変（[0076](../adr/0076-payment-ui-seam.md)）
-- **長寿命接続の hosting、動的 feature flag の供給 seam** —— 前者は別ドメインの責務で、購読する側は
-  `adapters/client/stream/` に実体を持つ。後者は座標だけ（[0074](../adr/0074-runtime-communication-seam.md) /
-  [0078](../adr/0078-dynamic-feature-flag-seam.md)）
-- **DnD、グローバルショートカットの実行機構、searchParams 同期ヘルパ** —— ライブラリを同梱せず、
-  任意の操作を任意のキーへ結ぶ登録機構も、URL と client 状態を同期させる層も置かない
-  （[0053](../adr/0053-ui-component-interaction-seam.md) / [0060](../adr/0060-state-management.md)）
-- **mock app の公開** —— 検証の土台としては同梱するが、人に見せる面にはしない。公開した瞬間にデモに
-  なり、示す内容の正しさに責務を持つ主体が居ない（[0056](../adr/0056-mock-app-exclusion.md)）
-- **アプリケーション自体のライセンス** —— MIT は再ライセンスを許す。boilerplate 由来部分の
-  表記の保持だけが残る（[0142](../adr/0142-license.md)）
+- **i18n** — library, locale resolution, translation key scheme. The coordinates are `proxy.ts` and the `[locale]` segment ([0121](../adr/0121-i18n-strategy.md))
+- **PWA** — manifest / Service Worker / offline. The coordinates are `app/manifest.*` ([0130](../adr/0130-pwa-strategy.md))
+- **CMP and IAB TCF-equivalent consent management** — depends on jurisdiction and vendor. A lightweight consent mechanism and the
+  hook that loads the tag manager are held ([0131](../adr/0131-cookie-consent.md))
+- **The firing interface for product analytics** — what is bundled goes only as far as the hook that loads the tag manager container; no interface for passing values is held ([0082](../adr/0082-client-observability.md))
+- **The mount seam for a payment SDK** — the SDK is not bundled; only the coordinates for adoption are recorded. The PCI boundary (not letting the
+  front end hold raw card data) is unchanged whether or not it is adopted ([0076](../adr/0076-payment-ui-seam.md))
+- **Hosting long-lived connections, the supply seam for dynamic feature flags** — the former is another domain's responsibility, and the subscribing side
+  has its implementation in `adapters/client/stream/`. The latter is coordinates only ([0074](../adr/0074-runtime-communication-seam.md) /
+  [0078](../adr/0078-dynamic-feature-flag-seam.md))
+- **DnD, an execution mechanism for global shortcuts, a searchParams sync helper** — no library is bundled,
+  and neither a registration mechanism binding arbitrary operations to arbitrary keys nor a layer syncing the URL with client state is placed
+  ([0053](../adr/0053-ui-component-interaction-seam.md) / [0060](../adr/0060-state-management.md))
+- **Publishing the mock app** — it is bundled as a basis for verification, but not made a surface shown to people. The moment it is published it becomes a demo,
+  and no one is responsible for the correctness of what it shows ([0056](../adr/0056-mock-app-exclusion.md))
+- **The license of the application itself** — MIT allows relicensing. Only retaining the notice for the parts derived from the boilerplate
+  remains ([0142](../adr/0142-license.md))
 
-### runtime 能力の置き場
+### Where Runtime Capabilities Live
 
-次の区別は置き場だけが決まっている（[0022](../adr/0022-capabilities-kernel.md)）。
+Only the placement of the following distinctions is decided ([0022](../adr/0022-capabilities-kernel.md)).
 
-- **回線の有無**と**ページの可視性**は runtime の能力であり、`capabilities` が持つ。画面に固有ではない
-- **接続が生きているか**（再接続の待ち時間を含む）は通信機構の状態であり、購読の adapter が持つ。
-  前者とは別物で、画面はどちらも要る
-- **画面内で完結するキー操作**は、登録機構を作らずに UI の内側へ置く
-- **Web Worker へ逃がす口**は置かない。置くときの家は `capabilities` である
+- **Whether there is a connection** and **page visibility** are runtime capabilities, held by `capabilities`. They are not specific to a screen
+- **Whether a connection is alive** (including the wait before reconnecting) is the state of the communication mechanism, held by the subscription adapter.
+  It is distinct from the former, and screens need both
+- **Key handling that completes within a screen** goes inside the UI, without building a registration mechanism
+- **An outlet for offloading to Web Workers** is not placed. When one is placed, its home is `capabilities`
 
-### 実行前に影響範囲を見せる形
+### The Shape That Shows the Impact Range Before Execution
 
-**「実行する前にサーバへ影響範囲を問い合わせ、見せてから実行する」形を採る場合は、上の「サーバが持つ
-判断の写し」の線に従う** —— 引いた数は判断に使わず、母集団はサーバが確定させる。
+**If you adopt the shape "query the server for the impact range before executing, show it, then execute", follow the line of
+"Copies of judgments the server owns" above** — the fetched count is not used for judgment, and the server settles the population.

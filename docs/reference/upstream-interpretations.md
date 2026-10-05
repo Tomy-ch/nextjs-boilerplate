@@ -1,58 +1,58 @@
-# 原典とその解釈の目録
+# Inventory of Sources and Their Interpretations
 
-このリポジトリの決定のうち、**外部の原典を読んで導いたもの**を、原典と対にして並べる。
-[0010](../adr/0010-standards-and-non-lockin.md) は「標準に従い、特定の実装へ縛られない」を決めて
-いるが、**従った先が動いたときに、どの決定を読み直せばよいかを答える場所が無かった。**ここが
-その索引である。
+Of this repository's decisions, those **derived by reading an external source** are listed paired with the source.
+[0010](../adr/0010-standards-and-non-lockin.md) decides "follow standards and do not get bound to a particular implementation",
+but **there was no place that answered which decisions to reread when what was followed moves.** This is
+that index.
 
-## この目録が答えないこと
+## What this inventory does not answer
 
-**裁定しない。**差異が出ても、原典に合わせるべきか、こちらの決定が正しいままかは、ここでは
-決めない。ここが持つのは「食い違っている」という観測だけで、**どちらを動かすかは人が決める**
-（[`AGENTS.md`](../../AGENTS.md) の *Where You May Stop*）。
+**It does not rule.** Even when a difference appears, whether to align with the source or whether this side's decision stays right is
+not decided here. What it holds is only the observation that "they disagree"; **which side moves is decided by a person**
+(*Where You May Stop* in [`AGENTS.md`](../../AGENTS.md)).
 
-**載っていないことは「差異なし」ではない。**この目録に在るのは**確かめた対**だけである。原典を
-読んで導いた決定は他にもあり、それらは**未判定**であって一致が確認されたのではない
-（[0157](../adr/0157-inspection-declaration-discipline.md)）。
+**Not being listed is not "No difference".** What is in this inventory is **only the pairs that were checked**. Other decisions
+were derived by reading sources, and those are **unjudged**, not confirmed to match
+([0157](../adr/0157-inspection-declaration-discipline.md)).
 
-## 判定の 3 値
+## The Three Verdict Values
 
-| 値 | 意味 |
+| Value | Meaning |
 | --- | --- |
-| **差異なし** | 原典がいま言っていることと、こちらの解釈が一致している |
-| **差異あり** | 食い違っており、**その食い違いを述べた決定がこちらに無い** |
-| **逸脱宣言あり** | 食い違っているが、**なぜ外れるかを、決定か強制手段のどちらかが明示している** |
+| **No difference** | What the source says now and this side's interpretation agree |
+| **Undeclared difference** | They disagree, and **this side has no decision that states the disagreement** |
+| **Declared deviation** | They disagree, but **either a decision or an enforcement means states why it departs** |
 
-「差異あり」と「逸脱宣言あり」を分けるのがこの目録の要点である。**外れていること自体は問題では
-ない** —— 問題なのは、外れていると誰も知らないまま外れていることである。
+Separating "Undeclared difference" from "Declared deviation" is the point of this inventory. **Departing is not itself the problem**
+— the problem is departing without anyone knowing it departs.
 
-**宣言の置き場は、読み手がその制約にぶつかる場所でよい。**必ずしも ADR ではない。標準と違う形を
-弾くのが lint なら、その設定のコメントに関係が書いてあれば、誤解する人はそこで読む —— 弾かれた
-人が開くのは設定であって ADR ではない。**決定が要るのは、外れ方そのものに別の案が在るときだけ**
-である（[`docs/README.md`](../README.md) の判定 1）。
+**The declaration may sit where the reader runs into the constraint.** It need not be an ADR. If what rejects a shape that differs from the standard
+is a lint, and the relationship is written in that configuration's comment, the person who would misunderstand reads it there — the person
+who was rejected opens the configuration, not the ADR. **A decision is needed only when the way of departing itself has alternatives**
+(route 1 in [`docs/README.md`](../README.md)).
 
-## 判定に使った前提を必ず書く
+## Always write the premise used for the verdict
 
-判定の尺度は**読み手の記憶**になりやすい。「React はこう言っているはず」で判定すると、間違って
-いても誰も反証できない。だから各行は、**原典がそう言っていると読んだ根拠**を、辿れる形で持つ。
-前提が書けない対は、この目録へ載せない。
+The measure of a verdict easily becomes **the reader's memory**. Judging by "React should be saying this" means no one can refute it
+even when it is wrong. So each row carries, in a traceable form, **the basis on which the source was read as saying so**.
+A pair whose premise cannot be written is not put in this inventory.
 
-## 目録
+## Inventory
 
-| 原典 | こちらの解釈 | 判定 | 判定に使った原典側の前提 | 確かめた日 |
+| Source | This side's interpretation | Verdict | Source-side premise used for the verdict | Date checked |
 | --- | --- | --- | --- | --- |
-| Next.js の `"use client"` ディレクティブ（同梱文書 `node_modules/next/dist/docs/01-app/04-glossary.md`） | [`docs/design/rendering.md`](../design/rendering.md) の「`"use client"` は『CSR にする指示』ではない」 | **差異なし** | 同文書が `"use client"` を "marks the boundary between server and client code ... should be included in the client bundle" と定義し、Client Component を "can also be rendered on the server during initial page generation" と述べている。**バンドル境界であって描画の場所ではない**という読みは、原典の語をそのまま採ったものである | 2026-09-09 |
-| Core Web Vitals の "good" 境界（LCP 2.5 秒） | [0101](../adr/0101-performance-budget.md) の LCP 上限 | **逸脱宣言あり** | 2.5 秒は **field（実ユーザ計測）側の定義**である。0101 はこれを lab の推定値へそのまま置かず、「床 + 実行をまたぐ振れ + アプリへ割り当てる分」で導くと本文で述べている。field の LCP は [0082](../adr/0082-client-observability.md) の RUM が別に持つ | 2026-09-09 |
-| Lighthouse が INP の lab 代替として置く TBT | [0101](../adr/0101-performance-budget.md) の TBT 上限 | **逸脱宣言あり** | TBT の 200 ms が INP の "good" 境界と一致するのは **Lighthouse のスコアリング規約の側の都合**であり、標準がその値を定めたのではない。0101 はそう明示したうえで、計測手段を変えたらこの行を置き直す、という撤去条件まで本文に持っている | 2026-09-09 |
-| Conventional Commits 1.0.0 | [0150](../adr/0150-git-workflow.md) のコミット規約と [`commitlint.config.ts`](../../commitlint.config.ts) | **逸脱宣言あり** | Conventional Commits は type を小文字で定め、`type(scope)!: description` の形を規定する。こちらは大文字始まりの 11 種（`Feat` / `CI` など）と日本語の件名を採る。**宣言は強制手段の側に在る** —— `commitlint.config.ts` のコメントが「型名は Conventional Commits と同じだが小文字へ揃えない」と関係を述べ、`type-case` を課さない理由をそこに置いている。弾かれた人が開くのは設定なので、置き場としてはそこが近い。**版の算出には使っていない** —— 0150 は版を人が選ぶと決めており、標準の機械可読性を要件にしていない | 2026-09-09 |
+| Next.js's `"use client"` directive (bundled document `node_modules/next/dist/docs/01-app/04-glossary.md`) | "`"use client"` is not 'an instruction to do CSR'" in [`docs/design/rendering.md`](../design/rendering.md) | **No difference** | The document defines `"use client"` as "marks the boundary between server and client code ... should be included in the client bundle", and says a Client Component "can also be rendered on the server during initial page generation". The reading **a bundle boundary, not the place of rendering** takes the source's words as they are | 2026-09-09 |
+| Core Web Vitals' "good" threshold (LCP 2.5 s) | The LCP ceiling in [0101](../adr/0101-performance-budget.md) | **Declared deviation** | 2.5 s is **the field (real-user measurement) definition**. 0101 states in its body that it does not put this as is onto the lab estimate, but derives it from "floor + run-to-run variance + the share allotted to the application". Field LCP is held separately by the RUM of [0082](../adr/0082-client-observability.md) | 2026-09-09 |
+| TBT, which Lighthouse places as the lab substitute for INP | The TBT ceiling in [0101](../adr/0101-performance-budget.md) | **Declared deviation** | That TBT's 200 ms coincides with INP's "good" threshold is **a matter of Lighthouse's scoring conventions**; no standard set that value. 0101 states this explicitly and its body even carries a removal condition: re-place this row if the measurement means changes | 2026-09-09 |
+| Conventional Commits 1.0.0 | The commit convention of [0150](../adr/0150-git-workflow.md) and [`commitlint.config.ts`](../../commitlint.config.ts) | **Declared deviation** | Conventional Commits defines types in lowercase and prescribes the form `type(scope)!: description`. This side adopts 11 capitalized types (`Feat` / `CI`, etc.) and Japanese subjects. **The declaration sits on the enforcement side** — a comment in `commitlint.config.ts` states the relationship, "the type names are the same as Conventional Commits but are not lowercased", and puts there the reason for not imposing `type-case`. The person who is rejected opens the configuration, so as a place it is the closer one. **It is not used to compute versions** — 0150 decides that a person chooses the version, and does not require the standard's machine readability | 2026-09-09 |
 
-## 目録が動く条件
+## Conditions Under Which the Inventory Moves
 
-- **原典が動いたとき。**依存の major 更新（`tools-upgrade` / Dependabot の major）は、その原典を
-  読んで導いた行の読み直しを要求する
-- **こちらの決定が動いたとき。**ADR の改訂で解釈が変わったなら、対の片側が変わっている
-- **対が増えたとき。**新しく原典を読んで決めたなら、その対を足す
+- **When the source moves.** A major dependency update (`tools-upgrade` / a Dependabot major) requires rereading the rows derived by
+  reading that source
+- **When this side's decision moves.** If an ADR revision changed the interpretation, one side of the pair has changed
+- **When pairs increase.** If something new was decided by reading a source, add that pair
 
-判定を入れ直すのは [`interpretation-audit`](../../.claude/skills/interpretation-audit/SKILL.md) で
-ある。行の形（解釈の指し先が実在するか、前提を持っているか、判定が 3 値のどれかか）は
-`scripts/interpretations.gate.test.ts` が見る。
+Re-entering verdicts is done by [`interpretation-audit`](../../.claude/skills/interpretation-audit/SKILL.md).
+The shape of the rows (whether the interpretation's target exists, whether it carries a premise, whether the verdict is one of the three values) is
+checked by `scripts/interpretations.gate.test.ts`.

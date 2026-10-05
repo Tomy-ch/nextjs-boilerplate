@@ -1,67 +1,67 @@
-# `/maintenance` メンテナンス中（機能要件）
+# `/maintenance` Under Maintenance (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## レンダリング
+## Rendering
 
-**build 時に固まる。** 取得を持たず、内容が変わるのはコードを書き換えたときだけである
-（[0041](../../../adr/0041-cache-components-decision.md)）。**止めているかどうかもここでは読まない**
-—— 読むと、この画面が殻を配れなくなる。判定は入口が持つ。
+**Fixed at build time.** It has no fetching, and its content changes only when the code is rewritten
+([0041](../../../adr/0041-cache-components-decision.md)). **It does not read whether the service is stopped either**
+— reading it would stop this screen from serving a static shell. The entry point owns that decision.
 
-## 差し替えの条件
+## When the Screen Is Swapped In
 
-`APP_MAINTENANCE_MODE=on` で起動しているあいだ、入口（`src/proxy.ts`）が選別を通った全リクエストを
-この route へ rewrite する（[0043](../../../adr/0043-middleware-policy.md)）。
+While the app runs with `APP_MAINTENANCE_MODE=on`, the entry point (`src/proxy.ts`) rewrites every request that
+passes its filter to this route ([0043](../../../adr/0043-middleware-policy.md)).
 
-- **差し替えるのは読み取り（`GET` / `HEAD`）だけ。** それ以外は差し替えず 503 で断る（下記）
-- **URL は動かさない。** rewrite であって redirect ではないので、復帰後に同じ URL を開けば元の画面へ戻る
-- **認可の前捌きへ進まない。** 止めているあいだに認可を先に見ると、未認証の要求だけがログインへ
-  送られ、止まっていることが経路によって見えたり見えなかったりする
+- **Only reads (`GET` / `HEAD`) are swapped.** Everything else is not swapped and is refused with 503 (below)
+- **The URL does not move.** This is a rewrite, not a redirect, so opening the same URL after recovery returns to the original screen
+- **It does not proceed to the authorization pre-check.** If authorization were checked first while stopped, only
+  unauthenticated requests would be sent to login, and whether the service is stopped would be visible or not depending on the path
 
-## 状態を変える要求は差し替えず断る
+## Requests that change state are refused, not swapped
 
-**差し替えは描く先を変えるだけで、要求そのものは後段へ流れる。** method も body も `Next-Action`
-ヘッダもそのままなので、止まっていることを要求側へ言うのは差し替えの仕事ではない。したがって
-読み取り以外は rewrite せず、入口が 503 を返して断る。
+**Swapping only changes what is rendered; the request itself still flows to the later stages.** The method, the body and the `Next-Action`
+header are unchanged, so telling the requester that the service is stopped is not the swap's job. Therefore
+anything other than a read is not rewritten; the entry point refuses it with 503.
 
-差し替えた要求で Server Action がどう扱われるかを、framework は約束していない。**この機構が
-約束したことでもない。**どう扱われるかに依存すると、それが変わった日に黙って開く。
+The framework does not promise how a Server Action is handled on a swapped request. **Nor is it something this
+mechanism promised.** Depending on how it is handled would silently open the door the day that changes.
 
-**止めていなくても URL では開ける。** 判定を持たないので、`/maintenance` を直接開けばこの画面が
-出る。閉じるには画面自身が停止の判定を読む必要があり、そうすると止まっているあいだ全ルートが
-動的になる。開けたところで出るのは固定の文面だけなので、判定を降ろす側を採らない。
+**Even when not stopped, it opens by URL.** Since it holds no decision, opening `/maintenance` directly shows this
+screen. Closing that would require the screen itself to read the stop decision, which would make every route
+dynamic while stopped. What opens is only fixed text, so the side that drops the decision is not adopted.
 
-## 停止画面の応答は 200 になる
+## The maintenance screen responds with 200
 
-**rewrite は状態を運ばない。** 差し替えに状態を添えても読まれず、応答は差し替え先を描いた
-結果になる。**したがって停止画面を描く応答は 200 である**（差し替えずに断る要求は 503。上記）。
+**A rewrite does not carry a status.** A status attached to the swap is not read, and the response is the result of
+rendering the swap target. **Therefore the response that renders the maintenance screen is 200** (a request refused rather than swapped gets 503, above).
 
-これは「503 が要らない」という判断ではない。**表示層で 503 を返す手段が無い**ということで、
-止めていることを機械へ伝えたい配備では、**配信面（CDN / ロードバランサ）が前に立つ**
-（[0011](../../../adr/0011-no-docker.md) の役割分担）。そこで止めれば Next.js まで届かないため、
-この機構と競合しない。
+This is not a judgment that "503 is unnecessary." **The presentation layer has no way to return 503**, and a
+deployment that wants to tell machines it is stopped **puts its delivery surface (CDN / load balancer) in front**
+(the division of roles in [0011](../../../adr/0011-no-docker.md)). Stopping there means nothing reaches Next.js,
+so it does not conflict with this mechanism.
 
-proxy が本体ごと組み立てれば 503 を返せるが、その本体は proxy の中の HTML 文字列になり、
-デザインシステムに乗った画面は出せない。**状態のために画面を捨てない。**
+If the proxy assembled the whole body it could return 503, but that body would be an HTML string inside the proxy, and
+a screen built on the design system could not be shown. **Do not give up the screen for the sake of a status.**
 
-`Retry-After` は、返せる場合でも付けない。終了の予定を供給する口が無く、根拠のない値を載せる
-ことになる。
+`Retry-After` is not set even where it could be. There is no endpoint that supplies the scheduled end, so it would
+carry a baseless value.
 
-## 止めていても通す経路
+## Paths that pass even while stopped
 
-| 経路 | 理由 |
+| Path | Reason |
 | --- | --- |
-| 静的アセット（`_next/static` / `_next/image` / `favicon.ico`） | 止めると、この画面自身が資材を取りに行けない。入口の選別が既に外している |
-| `/api/health` | 外形監視が計画停止と障害を区別できなくなる |
-| `/maintenance` | 差し替え先を差し替えの対象にすると、rewrite が自分を指す |
-| metadata の配信物（`icon` / `apple-icon` / `opengraph-image` / `sitemap.xml` / `robots.txt`） | 誰でも開ける配信物で、入口の選別が既に外している。止めているあいだも元の中身が返る |
+| Static assets (`_next/static` / `_next/image` / `favicon.ico`) | Stopping them would leave this screen unable to fetch its own assets. The entry point's filter already excludes them |
+| `/api/health` | External monitoring could no longer tell a planned stop from an outage |
+| `/maintenance` | Making the swap target subject to the swap would make the rewrite point at itself |
+| Metadata deliverables (`icon` / `apple-icon` / `opengraph-image` / `sitemap.xml` / `robots.txt`) | Deliverables anyone can open, which the entry point's filter already excludes. The original content is returned even while stopped |
 
-## 切り替え
+## Switching
 
-**起動し直しが要る。** ENV はプロセスに一度だけ読み込まれ、以後は同じ評価結果を配る
-（[`src/config/README.md`](../../../../src/config/README.md)）。止める / 戻すはどちらも配備先の
-環境設定を変えて立ち上げ直す操作であり、実行中のプロセスへ効かせる口は持たない。
+**A restart is required.** ENV is read into the process once and the same evaluated result is served from then on
+([`src/config/README.md`](../../../../src/config/README.md)). Both stopping and resuming are operations that change the
+deployment target's environment settings and restart it; there is no endpoint that applies it to a running process.
 
-## 認可
+## Authorization
 
-**保護の対象にしない。** 止まっていることは、ログインする前に読めなければ意味を持たない。
+**Not protected.** That the service is stopped means nothing unless it can be read before logging in.

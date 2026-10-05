@@ -1,36 +1,36 @@
-# `/checkout/complete` 購入完了（機能要件）
+# `/checkout/complete` Purchase Complete (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**認証の内側にある。** 見せるのは自分の購入 1 件だけで、他人の購入も存在しない購入も、契約は
-区別せず「見つからない」にする。指し先を書き換えられても、この画面が他人の購入を映すことはない。
+**It sits inside authentication.** It shows only one purchase of the user's own; the contract does not distinguish someone else's purchase from a nonexistent one
+and makes both "not found." Even if the target is rewritten, this screen never shows someone else's purchase.
 
-## 見せる購入は URL が指す
+## The URL points to the purchase shown
 
-確定の応答をそのまま描かず、**購入を取り直して描く**。別の URL に置いたので、再読み込みでも
-共有でも同じ内容が出て、戻る操作が確定前の画面へ帰らない。
+The response to placing the order is not rendered as is; **the purchase is refetched and rendered**. Because it lives at a separate URL, reloading and
+sharing show the same content, and the back operation does not return to the pre-confirmation screen.
 
-URL に載せるのは購入の識別子で、**利用者へ見せる注文番号とは別の値**である。形まで確かめてから
-取得へ渡す（手で書き換えられる値であり、確かめずに渡すと契約が受け付けない文字列がそのまま外へ
-出る）。指し先が読めない URL は「見つからない」にする。確定を経ずに開かれたものであり、見せる
-購入が無い。
+What the URL carries is the purchase identifier, **a value distinct from the order number shown to the user**. Its shape is checked before it is passed
+to fetching (it is a value that can be rewritten by hand, and passing it unchecked would send a string the contract does not accept straight
+out). A URL whose target cannot be read is made "not found." It was opened without placing an order, and there is no purchase
+to show.
 
-## 金額
+## Amounts
 
-小計・税・送料・合計はいずれも**確定した請求額**で、バックエンドが決めた値をそのまま出す。
-確認の画面で出せたのは小計までである。
+Subtotal, tax, shipping and total are all **the charged amounts as confirmed**, shown exactly as the backend decided them.
+The confirmation screen could show only up to the subtotal.
 
-明細の単価は**購入した時点の値**で、商品の現在価格が変わっても動かない。商品名だけは現在の
-名称で解決されて届くため、名前と単価は別の時点を指す。
+A line item's unit price is **the value at the time of purchase** and does not move even if the product's current price changes. Only the product name
+arrives resolved to the current name, so the name and the unit price refer to different points in time.
 
-表示通貨での参考換算額は合計にだけ添える。読めなくても画面は成り立つ。
+The reference converted amount in the display currency is added only to the total. The screen holds up even if it cannot be read.
 
-## 待たせ方
+## How Waiting Works
 
-待機は控えの中身だけに出す。見出しと導入は待たずに配る。
+Loading is shown only for the receipt's contents. The heading and introduction are served without waiting.
 
-**指し先の無い URL でも 200 が返る。** 応答は殻から流れるため、`notFound()` に達した時点で
-ヘッダは 200 で出ている。これは書き方では解けない（Cache Components の下では動的な route が殻から流れる。ADR 0041 / ADR 0080）。見つからないことは、
-見つからない画面と `noindex` が伝える。
+**Even a URL with no target returns 200.** The response streams from the static shell, so by the time `notFound()` is reached the
+headers have already gone out with 200. This cannot be solved by how it is written (under Cache Components a dynamic route streams from the static shell; ADR 0041 / ADR 0080). That it was not found is
+conveyed by the not-found screen and `noindex`.
