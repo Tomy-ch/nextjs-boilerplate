@@ -1,58 +1,58 @@
 # SelectionToolbar
 
-## 用途
+## Purpose
 
-一覧で選んだ対象の件数と、その選択に対して行える操作をまとめます。
+Groups the number of items selected in a list with the actions that can be taken on that selection.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SelectAllCheckbox` | 一覧の全件を選択・解除します。一部だけ選ばれているときは indeterminate になります。 |
-| `SelectionToolbar` | 選択件数と、選択した対象への操作をまとめる領域です。 |
+| `SelectAllCheckbox` | Selects or clears every item in the list. It becomes indeterminate when only some are selected. |
+| `SelectionToolbar` | Region that groups the selection count with the actions on the selected items. |
 
-## 利用ケース
+## Use Cases
 
-一覧の見出し行へ `SelectAllCheckbox` を、一覧の上へ `SelectionToolbar` を置きます。行ごとの checkbox は `CheckboxClient` を呼び出し元が並べます。選択状態はどちらも持たないため、選ばれている件数と全件数を渡します。
+Place `SelectAllCheckbox` in the list's header row and `SelectionToolbar` above the list. The caller lays out the per-row checkboxes with `CheckboxClient`. Neither holds selection state, so pass the selected count and the total count.
 
-## 一部選択の扱い
+## Handling Partial Selection
 
-`selectedCount` が 0 でも全件でもないとき、`SelectAllCheckbox` は indeterminate になります。checked と unchecked の 2 値だと「一部選択」が「未選択」と同じ見え方になり、押した結果がどちらへ転ぶか予測できません。
+When `selectedCount` is neither 0 nor the total, `SelectAllCheckbox` becomes indeterminate. With only the two values checked and unchecked, "some selected" would look the same as "none selected", and which way a press would go could not be predicted.
 
-indeterminate の状態から押すと全選択になります。一部を選んだ人が次に求めるのは、選び直しよりも残りを含めた全選択のほうが多いためです。
+Pressing it from the indeterminate state selects all. Someone who has selected some items more often wants to select all including the rest next than to start over.
 
-## 出す位置
+## Placement
 
-`position` で 3 つから選びます。
+`position` selects one of three values.
 
-| 値 | 挙動 |
+| Value | Behavior |
 | --- | --- |
-| `inline`（既定） | 一覧の流れの中に置きます。枠と面の色で区切ります。 |
-| `sticky` | scroll 領域の下端に貼り付けます。 |
-| `fixed` | viewport の下端に固定します。 |
+| `inline` (default) | Placed in the flow of the list. Separated by a border and the surface color. |
+| `sticky` | Sticks to the bottom edge of the scroll region. |
+| `fixed` | Fixed to the bottom edge of the viewport. |
 
-一覧が長い画面では、scroll しても操作へ届くよう `sticky` / `fixed` にします。どちらも内容の上へ重なるので、背景は面の色ではなく不透明な `bg-background` にし、上辺の border だけで一覧と切り分けます。
+On screens with a long list, use `sticky` / `fixed` so the actions are reachable while scrolling. Both overlap the content, so the background is the opaque `bg-background` rather than the surface color, and only a top border separates it from the list.
 
-`fixed` の重なり順は overlay（`z-50`）より下、一覧の中の重なりより上に置きます。下端の余白は iOS のホームバーを避けるため safe area と比較して大きいほうを採ります。
+The stacking order of `fixed` is below overlays (`z-50`) and above any stacking within the list. The bottom padding takes the larger of its own value and the safe area, to avoid the iOS home bar.
 
-**最後の項目が固定バーに隠れないよう、本文側に下余白を置くのは呼び出し元の責務です。** バーの高さは操作の数で変わるため、component 側では決められません。
+**Putting bottom padding on the body so the last item is not hidden behind the fixed bar is the caller's responsibility.** The bar's height changes with the number of actions, so the component cannot decide it.
 
-選択が無いときは位置に関わらず重なりません。枠も高さも持たないためです。
+With no selection it does not overlap, whatever the position, because it then has neither a frame nor a height.
 
-## 支援技術への伝え方
+## How It Reaches Assistive Technology
 
-選択が無いときも `SelectionToolbar` の要素は残ります。件数を `aria-live` で伝えるため、選択が始まってから領域ごと現れると最初の 1 件が読み上げられません。中身が空のあいだは枠も高さも持ちません。
+The `SelectionToolbar` element remains even with no selection. The count is conveyed through `aria-live`, so if the whole region appeared only once selection started, the first item would not be announced. While its contents are empty it has neither a frame nor a height.
 
-操作をまとめる領域には「選択した 3 件への操作」のように件数を含む名前を与えます。「削除」だけでは何件に対する操作か分からず、一覧のどこかにある別の削除操作と区別できません。
+The region grouping the actions gets a name that includes the count, such as "選択した 3 件への操作" ("actions on the 3 selected items"). "削除" ("Delete") alone does not say how many items it acts on, and cannot be distinguished from another delete action somewhere in the list.
 
-名前は `fieldset` の group として与えます。`role="toolbar"` は矢印キーでの移動を約束することになるため使いません。
+The name is given as a `fieldset` group. `role="toolbar"` is not used because it would promise arrow-key movement.
 
-## 責務境界
+## Responsibility Boundaries
 
-選択状態、業務操作の実行、権限の判定、実行前の確認 dialog は持ちません。呼び出し元が件数を渡し、操作を `children` として渡します。
+It does not own selection state, executing business actions, authorization decisions, or the confirmation dialog before execution. The caller passes the count and passes the actions as `children`.
 
-件数の単位は `unit` で差し替えます。母数が分かる場合は `totalCount` を渡すと「全 340 件中 3 件を選択中」と示します。選択の意味は全体との比で変わるためです。
+The count's unit is swapped with `unit`. When the total is known, passing `totalCount` shows "全 340 件中 3 件を選択中" ("3 of 340 selected"), because what a selection means depends on its ratio to the whole.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は選択がある状態、無い状態、母数が無い場合、単位を変えた場合、下端へ固定した場合、scroll 領域へ貼り付けた場合、一覧と組み合わせた場合を確認します。テストは全選択 checkbox の 3 状態と押したときの向き、選べる対象が無い場合、選択が無いときに操作を出さないこと、live region が最初から在ること、件数の文言、操作 group の名前、選択解除の有無、位置 3 種の指定と選択が無いときに重ならないことを確認します。
+Storybook covers a state with a selection, without one, without a total, with a different unit, fixed to the bottom edge, stuck to the scroll region, and combined with a list. The tests cover the three states of the select-all checkbox and the direction of a press, the case with nothing selectable, not showing actions with no selection, that the live region exists from the start, the count text, the name of the action group, whether selection can be cleared, specifying the three positions, and not overlapping with no selection.

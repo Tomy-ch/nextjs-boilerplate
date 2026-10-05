@@ -1,152 +1,152 @@
 ---
-imports-allowed: [model, errors, config] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [model, errors, config] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [adapters, components, capabilities, server-config, business-logic]
 test-requirement: unit
 ---
 
 # stores
 
-複数 feature が共有する client 状態を置く client-only カーネルです。実装時の store は Zustand を用います。
+The client-only kernel that holds client state shared by multiple features. Stores are implemented with Zustand.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 選択状態、ウィザード、グローバル UI トグルなどの横断 client 状態
-- ポリシー状態のうち、**初回描画より前に同期で要り、かつ反応的**なもの。この 2 条件が揃う値は、生の
-  読み書きごとここが持つ（[0031](../../docs/adr/0031-policy-state-supply.md)「家の決まり方」）
+- Cross-cutting client state such as selection state, wizards, and global UI toggles
+- Policy state that is **needed synchronously before the first render, and is reactive**. A value meeting both conditions is held here
+  together with its raw reads and writes ([0031](../../docs/adr/0031-policy-state-supply.md), on how the home of such a value is decided)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- server state、単一 feature の状態、UI マークアップ、secret、業務ロジック
+- Server state, single-feature state, UI markup, secrets, business logic
 
-## モジュール
+## Modules
 
-| モジュール | 役割 |
+| Module | Role |
 | --- | --- |
-| `consent-store.ts` | 任意の用途に cookie を使ってよいかという意思。選んだ結果を cookie へ残し、その場でツリーへ反映する |
+| `consent-store.ts` | The intent on whether cookies may be used for optional purposes. Persists the chosen result to a cookie and reflects it in the tree on the spot |
 
 <!-- sample:begin -->
-同梱のサンプルが加えるもの:
+What the bundled sample adds:
 
-| モジュール | 役割 |
+| Module | Role |
 | --- | --- |
-| `cart-store.ts` | サンプル画面が共有する「カートを開いているか」という要求。hook をそのまま公開し selector で読ませる形の例 |
+| `cart-store.ts` | The request "is the cart open" shared by the sample screens. An example of exposing the hook as is and having readers use a selector |
 
 <!-- sample:end -->
-## 運用
+## Operations
 
-- client-only の実装では `"use client"` を最小の境界に置く
-- 単一 feature の状態は feature 内の local state に留める
-- `create` が返す store は module に 1 つで、Provider を要しない。Provider を要する形を採るなら、その
-  mount 位置は [0026](../../docs/adr/0026-layout-shell-mount.md) が定める
+- In client-only implementations, place `"use client"` at the smallest boundary
+- Single-feature state stays as local state inside the feature
+- The store `create` returns is one per module and needs no Provider. If a shape that needs a Provider is adopted, its
+  mount position is set by [0026](../../docs/adr/0026-layout-shell-mount.md)
 
-### store の形
+### Store Shape
 
-- 1 ファイル 1 store。ファイルは `<対象>-store.ts`、型は `<対象>Store`、hook は `use<対象>Store`。テストは
-  隣に `<対象>-store.test.ts`（DOM に触るなら `.tsx`）を置く（[0027](../../docs/adr/0027-directory-structure.md)
-  フラット共置）。`pnpm gen` に store の種類は無い（`feature` / `component` / `adapter` のみ）ので手で置く
-- `create<State>()` の初期化子に、初期値と更新の操作を一緒に置く。操作は state の一部として持ち、読む側に
-  `setState` を直接叩かせない —— 更新の入口が store の中に揃う
-- 読む側は**値ごとに selector で選ぶ**（`useXStore((s) => s.field)`）。store 全体を取ると、無関係な値が変わる
-  たびに描き直る。操作だけが要る側は操作だけを選ぶ —— 操作の参照は変わらないので、状態が動いても描き直らない
-- 公開面は 2 通りある。読む側が feature で、読み書きに副作用が無いなら、hook をそのまま export する。
-  **読みや書きに副作用が伴う**（保存先から読み戻す、保存先へ書く）なら store は export せず、状態を返す hook と
-  書き込む関数だけを公開する。**書き込みと反映は 1 つの関数にまとめる** —— 別々に呼べる形にすると、書いたが
-  反映していない状態とその逆が作れる（例: [`consent-store`](consent-store.ts) の `decideConsent`）
+- One store per file. The file is `<subject>-store.ts`, the type `<subject>Store`, the hook `use<subject>Store`. The test
+  sits next to it as `<subject>-store.test.ts` (`.tsx` if it touches the DOM) (flat co-location in [0027](../../docs/adr/0027-directory-structure.md)).
+  `pnpm gen` has no store kind (only `feature` / `component` / `adapter`), so place it by hand
+- Put the initial values and the update operations together in the initializer of `create<State>()`. Operations are held as part of the state, and readers
+  are not made to call `setState` directly — the entry points for updates line up inside the store
+- Readers **select each value with a selector** (`useXStore((s) => s.field)`). Taking the whole store re-renders every time an unrelated value
+  changes. A side that needs only operations selects only operations — operation references do not change, so it does not re-render when the state moves
+- There are two shapes of public surface. If the readers are features and reads and writes have no side effects, export the hook as is.
+  **If reads or writes carry side effects** (reading back from storage, writing to storage), do not export the store; expose only a hook that returns the state and
+  a function that writes. **Writing and reflecting are combined into one function** — making them separately callable allows a state that was written but
+  not reflected, and the reverse (example: `decideConsent` in [`consent-store`](consent-store.ts))
 
-### 持つ状態の切り方
+### How to Cut the State Held
 
-- **持つのは要求で、見せ方ではない。**「中身を見たい」を持ち、drawer で本文へ被せるか脇の領域を出すかは、
-  幅を知っている器が決める。見せ方を store に持つと、器が変わるたびに store が変わる
-- サーバが所有する値の写しは持たない（[0023](../../docs/adr/0023-stores-kernel.md)）。**持ちそうに見えるものほど、
-  持たないことを doc に書く** —— 開閉を持つ store が中身を持たない、のように
-- **寿命を doc に書く**: リロードをまたぐか、またぐなら保存先はどこか。またぐ store は次項の初期値の制約に掛かる
+- **What is held is the request, not the presentation.** Hold "wants to see the contents"; whether a drawer covers the body or the sidebar appears
+  is decided by the container that knows the width. Holding the presentation in the store makes the store change every time the container changes
+- Do not hold copies of server-owned values ([0023](../../docs/adr/0023-stores-kernel.md)). **The more something looks like it would be held,
+  the more the doc should say it is not** — as in a store that holds open/closed but not the contents
+- **Write the lifetime in the doc**: whether it survives a reload, and if so, where it is stored. A store that survives is bound by the initial-value constraint in the next subsection
 
-### サーバ側の初期値と hydration
+### Server-Side Initial Values and Hydration
 
-- **初期値はサーバとブラウザで同じにする。** 初期化子で `document` / `window` / `location` / storage を読まない
-  —— サーバには無く、あっても両側で違う値になる
-- ブラウザでしか読めない値は、**「まだ読んでいない」を初期値に置き、hook の mount 後の effect で 1 回だけ読む。**
-  「読んだが無い」と分けて持つ —— どちらもゲートは閉じるが、尋ねるかどうかが逆になる（判別 union の形は
-  [`model/consent`](../model/consent.ts) の `ConsentState`）。読み終えたかを見てから読み、2 度目の mount で
-  読み直さない。以後の書き換えは書き込む関数だけが行う
-- 帰結として、サーバはその値を知らないので、**値に依る面は読み取りの後に現れる**。知らないまま出すか、知るまで
-  待つかのどちらかしかない。サーバ側で読まない根拠は [0131](../../docs/adr/0131-cookie-consent.md) が持つ
-- **Zustand の hook のサーバ側スナップショットは `getInitialState()`** で、読み終えた後も初期値を返す。Cache
-  Components の下では穴が届いた時点で subtree の hydration がもう一度走り、そのとき server snapshot が読まれて
-  「まだ読んでいない」へ巻き戻る —— 出した面が一度消えて開き直り、その消失が layout shift として数えられる。
-  **mount 後に読み戻す store は Zustand の hook を公開せず**、`useSyncExternalStore(store.subscribe, snapshot,
-  snapshot)` と、両側で同じ現在値を返す 1 つの snapshot 関数で束ねる（例: [`consent-store`](consent-store.ts) の
-  `useConsentState`）。hydration mismatch の一般論は
-  [`docs/design/rendering.md`](../../docs/design/rendering.md)「hydration mismatch は偶発的ではない」
+- **Initial values are the same on the server and in the browser.** The initializer does not read `document` / `window` / `location` / storage
+  — they do not exist on the server, and even if they did, the two sides would get different values
+- For values readable only in the browser, **put "not read yet" as the initial value, and read once in an effect after the hook mounts.**
+  Hold it separately from "read but absent" — both keep the gate closed, but whether to ask is reversed (the discriminated union shape is
+  `ConsentState` in [`model/consent`](../model/consent.ts)). Check whether reading has finished before reading, and do not
+  read again on a second mount. Subsequent rewrites are done only by the writing function
+- As a consequence, the server does not know the value, so **surfaces that depend on the value appear after it is read**. The only choices are to render without knowing or to
+  wait until it is known. The basis for not reading it on the server side is owned by [0131](../../docs/adr/0131-cookie-consent.md)
+- **The server-side snapshot of a Zustand hook is `getInitialState()`**, which returns the initial value even after reading has finished. Under Cache
+  Components, when a dynamic hole arrives, hydration of the subtree runs once more, the server snapshot is read at that moment, and the state
+  rolls back to "not read yet" — the shown surface disappears once and reopens, and that disappearance is counted as layout shift.
+  **A store that reads back after mount does not expose the Zustand hook**; it ties things together with `useSyncExternalStore(store.subscribe, snapshot,
+  snapshot)` and a single snapshot function that returns the same current value on both sides (example: `useConsentState` in [`consent-store`](consent-store.ts)).
+  The general discussion of hydration mismatches is
+  [`docs/design/rendering.md`](../../docs/design/rendering.md#hydration-mismatch-は偶発的ではない) "Hydration mismatches are not accidental"
 
-### ブラウザの保存先へ書く store
+### Stores That Write to Browser Storage
 
-- cookie の属性を用途ごとに明示すること、`HttpOnly` を付けられない帰結、綴りを `model` の 1 口に寄せること、
-  biome の `noDocumentCookie` をファイル単位の overrides で外す宣言は
-  [`docs/rules.md#data-classification`](../../docs/rules.md#data-classification)のアプリ cookie の項が持つ
-- **`secure` は `location.protocol === "https:"` のときだけ付ける。** 常に付けると `http://localhost` の開発で
-  保存されず、選んでも次の描画でまた尋ねる
-- 綴りの解釈（読めない値をどちらへ倒すか、版の突合）は `model` に置き、store は読み書きの口だけを持つ
+- Making cookie attributes explicit per purpose, the consequences of being unable to set `HttpOnly`, converging the spelling on one place in `model`,
+  and the declaration that turns off biome's `noDocumentCookie` through per-file overrides are owned by the app-cookie item of
+  [`docs/rules.md`](../../docs/rules.md#data-classification)
+- **`secure` is set only when `location.protocol === "https:"`.** Always setting it means that in development on `http://localhost` the cookie is
+  not saved, and even after choosing, the next render asks again
+- Interpreting the spelling (which way to fall for an unreadable value, matching versions) belongs in `model`; the store holds only the read/write entry
 
-### 使う側
+### The Consuming Side
 
-- `components` は `stores` を import できない（[`docs/design/placement.md`](../../docs/design/placement.md)）。
-  store を読む UI は feature か、root layout が mount する `app` の island に置く
-- 全画面に掛かる状態は、それを読む面を **1 つの island** にまとめる。同じ状態を別々の island が購読すると、
-  変えた直後に片方だけが反応する瞬間ができる
-- story は decorator の中で、描画の前に `useXStore.setState(...)` で状態を置く。story ごとに変わる値は
-  `parameters` で受ける
+- `components` cannot import `stores` ([`docs/design/placement.md`](../../docs/design/placement.md)).
+  UI that reads a store goes in a feature, or in an `app` island that the root layout mounts
+- For state that spans every screen, gather the surfaces that read it into **one island**. If separate islands subscribe to the same state,
+  there is a moment right after a change when only one of them has reacted
+- A story sets the state with `useXStore.setState(...)` inside a decorator, before rendering. Values that change per story are
+  received through `parameters`
 
-### テストの書き方
+### Writing Tests
 
-- `test-requirement` は `unit`。hook を介さない store は `getState()` / `setState()` / `subscribe()` で回し、
-  node 環境で足りる。hook を持つ store（`useSyncExternalStore` を束ねるもの）は Testing Library の
-  `renderHook` / `act` で回し、ファイル先頭に `// @vitest-environment jsdom` を置く（既定は node）
-- module に 1 つの store は前のテストの状態を持ち越す。`beforeEach` で `setState` により初期値へ戻す ——
-  読む側のテストも同じ
-- **mount 後に 1 回だけ読み戻す store は `setState` で戻せない**（読んだかどうかも module が持つ）。テストごとに
-  `vi.resetModules()` してから動的 `import` で読み直し、保存先はその前に置く
-- サーバ側スナップショットは `renderToStaticMarkup` で Probe を描いて固定する。読む前は「まだ読んでいない」を、
-  読み終えた後は読んだ値を返すことの両方
-- cookie の属性は `document.cookie` を読んでも見えない（getter が返すのは名前と値だけ）。
-  `vi.spyOn(document, "cookie", "set")` で書いた文字列を捕まえる。https 側は
-  `vi.stubGlobal("location", { protocol: "https:" })`。後片付けは `afterEach` で `vi.unstubAllGlobals()` と
-  `max-age=0` の上書き
-- 購読している側へ変化が届くことを `subscribe` で固定する
-- ケースの並びは [`docs/testing-conventions.md`](../../docs/testing-conventions.md)（store は「値を返す対象」。
-  `// ----- 正常系 -----` / `// ----- 異常系 -----`）
+- `test-requirement` is `unit`. A store without hooks is exercised with `getState()` / `setState()` / `subscribe()`, and the
+  node environment suffices. A store with hooks (one that ties in `useSyncExternalStore`) is exercised with Testing Library's
+  `renderHook` / `act`, with `// @vitest-environment jsdom` at the top of the file (the default is node)
+- A store that is one per module carries over the previous test's state. Reset it to the initial values with `setState` in `beforeEach` —
+  the same goes for tests on the reading side
+- **A store that reads back once after mount cannot be reset with `setState`** (whether it has read is also held by the module). Per test,
+  `vi.resetModules()` and then re-read with a dynamic `import`, placing the stored value beforehand
+- The server-side snapshot is pinned by rendering a Probe with `renderToStaticMarkup`. Both that it returns "not read yet" before reading,
+  and that it returns the read value after reading has finished
+- Cookie attributes are not visible by reading `document.cookie` (the getter returns only names and values).
+  Capture the written string with `vi.spyOn(document, "cookie", "set")`. For the https side,
+  `vi.stubGlobal("location", { protocol: "https:" })`. Clean up in `afterEach` with `vi.unstubAllGlobals()` and
+  an overwrite with `max-age=0`
+- Pin with `subscribe` that changes reach the subscribing side
+- The order of cases follows [`docs/testing-conventions.md`](../../docs/testing-conventions.md) (a store is a "subject that returns a value";
+  `// ----- 正常系 -----` / `// ----- 異常系 -----`)
 
-### 追加のしかた
+### How to Add One
 
-1. 昇格基準を確かめる —— 2 つ以上の feature が読み書きするか、[0031](../../docs/adr/0031-policy-state-supply.md)
-   の 2 条件が揃うか。どちらでもなければ feature 内の local state
-2. `<対象>-store.ts` を作り、`"use client"` を置く
-3. 型・初期値・操作を書く。doc に「持たない写し」「寿命」、ブラウザでしか読めない値があればその読み取りの時点を書く
-4. テストを隣に置く
-5. 上の「モジュール」表に 1 行足す。読む側の feature README の依存カーネル表に、なぜ横断になるかを書く
+1. Check the promotion criteria — whether two or more features read and write it, or whether the two conditions of [0031](../../docs/adr/0031-policy-state-supply.md)
+   both hold. If neither, it is local state inside the feature
+2. Create `<subject>-store.ts` and put `"use client"` in it
+3. Write the types, initial values and operations. In the doc, write "copies not held" and "lifetime", and, if there are values readable only in the browser, when they are read
+4. Place the test next to it
+5. Add one row to the "Modules" table above. In the kernel dependency table of the reading feature's README, write why it is cross-cutting
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: adapters` — `adapters` を import せず、`fetch` などの remote IO を持たない。server state は RSC と `adapters` が持つ | violation。import は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries |
-| `forbidden: components` — UI 部品を import せず、UI マークアップを持たない | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries と `project-rules/no-markup-outside-ui-layers` |
-| `forbidden: capabilities` — `capabilities` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: server-config` — server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。ESLint は `config` を層の粒度でしか見ない |
-| `forbidden: business-logic` — 業務ロジックを持たない。持つのは横断する client 状態とその更新だけ | violation。状態の更新か業務の判定かが読み分けられないときは suggestion | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
-| API の応答を store へ写して二重にキャッシュしない。選択の記録に含む表示値のスナップショットはこれに当たらない | suggestion（鮮度の責任を誰が持つかは store の型から決まらない） | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
-| 置いてある store は複数の feature から使われる。[0031](../../docs/adr/0031-policy-state-supply.md)「家の決まり方」で来た値（初回描画より前に同期で要り、かつ反応的）はこの数え方の対象外 | import する feature スライスが 2 つ未満なら suggestion | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 / [0031](../../docs/adr/0031-policy-state-supply.md) 家の決まり方 / この README「運用」 |
-| Zustand のストアを `src/stores/` の外で作らない | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項 |
-| 初期化子でブラウザでしか読めない値を読まず、mount 後に読み戻す store は両側で同じ現在値を返す snapshot で束ねる | 初期化子が `document` / `window` / `location` / storage に触れば violation。mount 後に読み戻す store が Zustand の hook をそのまま公開していれば violation。`renderToStaticMarkup` で固定するテストが無ければ suggestion | この README「サーバ側の初期値と hydration」 |
-| store の doc に、持たない写しと寿命が書かれている | 書かれていなければ suggestion | この README「持つ状態の切り方」 |
+| `forbidden: adapters` — does not import `adapters` and holds no remote IO such as `fetch`. Server state is held by RSC and `adapters` | violation. Imports are failed by machines, so what is checked here is calls to the global `fetch` | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md). Machine: ESLint boundaries |
+| `forbidden: components` — does not import UI components and holds no UI markup | violation | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md). Machine: ESLint boundaries and `project-rules/no-markup-outside-ui-layers` |
+| `forbidden: capabilities` — does not import `capabilities` | violation | The dependency matrix of [0021](../../docs/adr/0021-frontend-responsibility.md). Machine: ESLint boundaries |
+| `forbidden: server-config` — does not import server config (`*.server.ts`) and holds no secrets. Public `NEXT_PUBLIC_` constants (`*.client.ts`) may be read | violation | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md) / the dependency matrix of [0021](../../docs/adr/0021-frontend-responsibility.md). ESLint sees `config` only at layer granularity |
+| `forbidden: business-logic` — holds no business logic. What it holds is only cross-cutting client state and its updates | violation. suggestion when a state update cannot be told apart from a business judgment | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md) |
+| API responses are not copied into a store to cache them twice. A snapshot of display values included in a record of a selection is not such a case | suggestion (who owns freshness is not determined by the store's type) | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md) |
+| The stores placed here are used by multiple features. Values that came here by [0031](../../docs/adr/0031-policy-state-supply.md)'s rule for deciding where such a value lives (needed synchronously before the first render, and reactive) are outside this count | suggestion if fewer than two feature slices import it | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md) / [0031](../../docs/adr/0031-policy-state-supply.md), how the home of such a value is decided / this README, "Operations" |
+| Zustand stores are not created outside `src/stores/` | violation | The prohibitions in [0023](../../docs/adr/0023-stores-kernel.md) |
+| Initializers do not read browser-only values, and stores that read back after mount tie things together with a snapshot that returns the same current value on both sides | violation if an initializer touches `document` / `window` / `location` / storage. violation if a store that reads back after mount exposes the Zustand hook as is. suggestion if there is no test pinning it with `renderToStaticMarkup` | This README, "Server-Side Initial Values and Hydration" |
+| A store's doc states the copies it does not hold and its lifetime | suggestion if not stated | This README, "How to Cut the State Held" |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界
-- [0023](../../docs/adr/0023-stores-kernel.md) — このカーネルが受け持つ横断 client 状態と、server state の写しを置かない線
-- [0026](../../docs/adr/0026-layout-shell-mount.md) — Provider や全画面に掛かる island を root layout へ mount する例外
-- [0027](../../docs/adr/0027-directory-structure.md) — カーネル内のフラット共置
-- [0031](../../docs/adr/0031-policy-state-supply.md) — 同意などポリシー状態の供給の形と、`stores` が生の読み書きごと持つ条件
-- [0041](../../docs/adr/0041-cache-components-decision.md) — Cache Components の採用。root layout でサーバ側に cookie を読むと全画面が動的な穴を持つため、ブラウザで読み戻す形になる
-- [0060](../../docs/adr/0060-state-management.md) — Zustand の採用と、server state をどこが持つか
-- [0131](../../docs/adr/0131-cookie-consent.md) — 同意状態をブラウザ側で読む決定と、その帰結
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries
+- [0023](../../docs/adr/0023-stores-kernel.md) — The cross-cutting client state this kernel handles, and the line against holding copies of server state
+- [0026](../../docs/adr/0026-layout-shell-mount.md) — The exception for mounting Providers and islands that span every screen in the root layout
+- [0027](../../docs/adr/0027-directory-structure.md) — Flat co-location within a kernel
+- [0031](../../docs/adr/0031-policy-state-supply.md) — The shape of supplying policy state such as consent, and the conditions under which `stores` holds it with its raw reads and writes
+- [0041](../../docs/adr/0041-cache-components-decision.md) — Adopting Cache Components. Reading the cookie server-side in the root layout would give every screen a dynamic hole, so it is read back in the browser
+- [0060](../../docs/adr/0060-state-management.md) — Adopting Zustand, and who holds server state
+- [0131](../../docs/adr/0131-cookie-consent.md) — The decision to read consent state on the browser side, and its consequences

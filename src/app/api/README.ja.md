@@ -1,0 +1,78 @@
+> **このファイルは [`README.md`](README.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `README.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `README.md` だけです。このファイルは人間が読むための翻訳です。
+
+# api
+
+Route Handler だけを置く区画です。`app` の中にありますが、**ここは何も宣言しません** ——
+負う検証の観点も、import してよいレイヤーも、置き場ではなく element が決めるためです。
+
+## 親と違う点
+
+**検証の要求はここが宣言しません。** Route Handler が確かめるのはレンダリングではなく **HTTP 境界の型と形**
+（status・ヘッダ・本文）で、それは `api/` の下に置こうが外に置こうが変わりません。置き場ではなく
+element が決めるものなので、宣言は `architecture.ts` の `APP_ELEMENTS` が `route.ts` / `route.dev.ts`
+に対して持ちます（[0025](../../../docs/adr/0025-app-layer-elements.ja.md) / [0090](../../../docs/adr/0090-testing-strategy.ja.md)）。
+
+ここに書くと、`api/` の外へ出た同じ element が親の `route` を継いでしまいます。
+
+**境界も同じです。** ここに居るのは `route.ts` と `route.dev.ts` だけで、そのどれもが
+`app-route-handler` として `components` / `capabilities` / `stores` / `config` / `observability` と
+feature の内側を落とされます（宣言は `architecture.ts` の `APP_ELEMENTS`。feature を指すなら
+`facade/` からで、それは別の要素として通ります）。`app` のレイヤーの許可をここへ書くと、**この区画の
+どのファイルの実効許可でもない値**が、変更の上限として読まれることになります
+（[AGENTS.md](../../../AGENTS.ja.md)「Task Execution Protocol」1）。
+
+境界を宣言するのは要素の根で、この区画を含む要素の根は [`src/app/`](../README.ja.md) です。
+
+## 受け入れるもの
+
+- バックエンドへの中継と、その入出力の検証
+- 認証の往復のように、ブラウザから直接叩けない相手との通信
+
+## 失敗の返し方
+
+**応答の組み立てはここで持ちません。** 分類から status と文言を組むのは
+[`adapters/server/http/error-response.ts`](../../adapters/server/http/error-response.ts)、認証を
+要求しないエンドポイントの最小の防御（型と大きさ）は
+[`json-request.ts`](../../adapters/server/http/json-request.ts) が持ちます。エンドポイントごとに書くと、返す形が
+エンドポイントの数だけ分かれ、増えるたびに揃っているかを読んで確かめることになります。
+
+## 受け入れないもの
+
+- 業務ロジック（[0070](../../../docs/adr/0070-backend-role-separation.ja.md)）
+- 生の `fetch`（`adapters` を通す）
+- レンダリング
+
+## モジュール
+
+| モジュール | 役割 |
+| --- | --- |
+| [`auth/`](auth) | 認証の往復。IdP との認可コード交換と session cookie の発行・破棄 |
+| [`telemetry/`](telemetry) | ブラウザ発の報告（Web Vitals / 未捕捉例外）を受けるエンドポイント。**認証を要求しないので、最小の防御をここが持つ**（[0077](../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md)） |
+| [`telemetry/traces/`](telemetry/traces) | ブラウザが作った span を OTLP のまま collector へ渡すエンドポイント。契約の出所が OTel 側なので、隣とエンドポイントを分ける |
+
+<!-- sample:begin -->
+同梱のサンプルが加えるもの:
+
+| モジュール | 役割 |
+| --- | --- |
+| `products/` | 一覧の増分取得を中継する BFF |
+| `addresses/` | 郵便番号からの住所補完を中継する BFF。入力中の画面が叩く |
+<!-- sample:end -->
+
+## 関連する ADR
+
+この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、このセクションを辿ります**
+（[docs/rules.ja.md](../../../docs/rules.ja.md#comments)）。レイヤー全体の一覧は
+[親の README](../README.ja.md) が持ちます。
+
+- [0025](../../../docs/adr/0025-app-layer-elements.ja.md) — Route Handler が持てるもの（thin proxy と、その例外）
+- [0071](../../../docs/adr/0071-bff-api-integration.ja.md) — `/api/*` の範囲と、外部 API を `adapters` 経由で叩くこと
+- [0070](../../../docs/adr/0070-backend-role-separation.ja.md) — 業務ロジックを持たない責務の線
+- [0073](../../../docs/adr/0073-pagination-fetch-boundary.ja.md) — 増分取得をどの境界が受けるか
+- [0077](../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md) — 認証を要求しないエンドポイントの最小の防御
+- [0079](../../../docs/adr/0079-auth-frontend-seam.ja.md) — 認証の往復（認可コード交換 / session cookie の発行・破棄）
+- [0080](../../../docs/adr/0080-error-handling.ja.md) — 分類から status と文言への対応
+- [0081](../../../docs/adr/0081-observability-logging.ja.md) — ブラウザ発シグナルの中継と、ログに何を残すか
+- [0090](../../../docs/adr/0090-testing-strategy.ja.md) — Route Handler を `integration` として検証すること

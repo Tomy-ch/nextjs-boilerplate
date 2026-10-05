@@ -1,23 +1,23 @@
 # {{ComponentName}}
 
-## 用途
+## Purpose
 
-{{この component を使う利用者上の目的を書く}}
+{{State the user-facing purpose this component serves}}
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `{{ComponentName}}` | {{公開 API の役割を書く}} |
+| `{{ComponentName}}` | {{State the role of the public API}} |
 
-## 利用ケース
+## Use Cases
 
-- {{具体的だが業務に偏らない利用例を書く}}
+- {{Give concrete use cases that do not lean on a particular business domain}}
 
-## 責務境界
+## Responsibility Boundaries
 
-{{この component が持たない状態・取得・業務判断・layout などを書く}}
+{{State the state, fetching, business decisions, layout and so on that this component does not own}}
 
-## Storybook とテスト
+## Storybook and Tests
 
-{{Storybook で確認する状態と、test で確認する意味論・操作・a11y を書く}}
+{{State the states checked in Storybook, and the semantics, interactions and a11y checked in tests}}

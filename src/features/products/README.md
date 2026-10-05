@@ -1,218 +1,218 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # Exception: whole-screen stories
 test-requirement: [feature, component, unit]
 ---
 
 # products
 
-商品を探して眺めるための画面スライスです。
+The screen slice for finding and browsing products.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 商品一覧の取得の編成（取得条件の解釈、画像 URL の解決、ページ送り）
-- この画面専用の表示（一覧・カード・待機表示・失敗表示・検索欄・1 件の詳細）
+- Orchestrating the product list fetch (interpreting fetch conditions, resolving image URLs, pagination)
+- Display specific to this screen (list, card, loading UI, failure display, search field, single-item detail)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 他 feature への直接依存
-- 汎用に使える表示（`Card` / `Badge` / `MediaImage` などは `components` から取る）
-- 業務ロジック（在庫や価格の決定はバックエンドの領分）
+- Direct dependencies on other features
+- General-purpose display (`Card` / `Badge` / `MediaImage` and the like come from `components`)
+- Business logic (deciding stock and prices belongs to the backend)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/products` | [`screen`](../../../docs/spec/route/shop/products/page.screen.md) / [`function`](../../../docs/spec/route/shop/products/page.function.md) | 不要 |
-| `/products/[id]` | [`screen`](<../../../docs/spec/route/shop/products/[id]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/products/[id]/page.function.md>) | 不要 |
+| `/products` | [`screen`](../../../docs/spec/route/shop/products/page.screen.md) / [`function`](../../../docs/spec/route/shop/products/page.function.md) | Not required |
+| `/products/[id]` | [`screen`](<../../../docs/spec/route/shop/products/[id]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/products/[id]/page.function.md>) | Not required |
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetProducts` | 条件に一致する一覧。初回はサーバ側、続きは `/api/products` 経由 |
-| `GetProductsCount` | 条件に一致する総件数。一覧と同じ条件を渡す |
-| `GetProductsDetail` | 1 件の詳細 |
-| `GetProductCategories` | 絞り込みの選択肢。条件では変わらない |
+| `GetProducts` | The list matching the conditions. The first page on the server side, the rest through `/api/products` |
+| `GetProductsCount` | The total count matching the conditions. Receives the same conditions as the list |
+| `GetProductsDetail` | The detail of one item |
+| `GetProductCategories` | The filter options. They do not change with the conditions |
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 一覧 | success | `Page/Products/List/Default` |
+| List | success | `Page/Products/List/Default` |
 | | empty | `Page/Products/List/Empty` |
 | | loading | `Features/Products/List/Skeleton/Default` |
 | | error | `Features/Products/List/ErrorState/Default` |
-| | 続きを読んでいる | `Page/Products/List/LoadingMore` |
-| | 続きの取得に失敗 | `Page/Products/List/LoadMoreFailed` |
-| | 末尾まで読んだ | `Page/Products/List/ReachedEnd` |
-| 詳細 | success | `Page/Products/Detail/Default` |
-| | 在庫が無い | `Page/Products/Detail/OutOfStock` |
-| | 画像が無い | `Page/Products/Detail/NoImage` |
+| | loading more | `Page/Products/List/LoadingMore` |
+| | failed to load more | `Page/Products/List/LoadMoreFailed` |
+| | reached the end | `Page/Products/List/ReachedEnd` |
+| Detail | success | `Page/Products/Detail/Default` |
+| | out of stock | `Page/Products/Detail/OutOfStock` |
+| | no image | `Page/Products/Detail/NoImage` |
 
-error の面を出すのは route の境界（`error.tsx`）で、上の story はその境界が置く中身です。一覧と
-詳細は同じ表示を使い、詳細の「見つからない」だけが `not-found.tsx` の別の面になります。
+The error surface is rendered by the route's boundary (`error.tsx`), and the stories above are the contents that boundary places. The list and
+the detail use the same display, and only the detail's "not found" becomes a separate surface in `not-found.tsx`.
 
-## 構成
+## Structure
 
-画面（`list` / `detail`）ごとに掘り、その中を性質で分けます。どの画面にも属さず feature 全体が
-所有するものは、同じ決まりで画面を挟まず直下へ置きます。
+Directories are organized per screen (`list` / `detail`), and split by nature inside. What belongs to no screen and is owned by the whole feature
+sits directly here without a screen directory in between, under the same rule.
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `list/page-content.tsx` | 取得条件の解釈と画面の組み立て。条件で変わらないものだけを取得する |
-| `list/results.tsx` | 条件に一致する一覧と件数の取得。待機表示の境界がここに掛かる |
-| `facade/list-url/` | 一覧の URL 契約（パス・絞り込みのキー・URL の組み立て）。他の feature も引く |
-| `list/query.ts` | 素の `searchParams` の均し、件数、選択肢の型 |
-| `list/page-size.ts` | 1 度に読み込む件数。条件の解釈から切り離し、client へ zod を持ち込ませない |
-| `list/price-range.ts` | 価格の目盛りと、URL の下限・上限との写し |
-| `list/stock-availability.ts` | 在庫の有無と、URL の在庫数の条件との写し |
-| `list/range-label.ts` | 下限と上限の表示。価格と在庫数が同じ「指定なし」の呼び方とつなぎ方を引く |
-| `list/filter-draft.tsx` | 組み立て中の条件を持ち、画面で 1 つに保つ |
-| `list/use-filtered-count.ts` | 確定していない条件で一致する件数を数える |
-| `list/use-infinite-products.ts` | 末尾到達で続きを読む。読み進めた件数を URL へ書き戻す |
-| `list/view.tsx` | 一覧の表示。条件で取り直す範囲をここで区切る |
-| `list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
-| `list/ui/grid/` | 商品を並べる。取得も読み進めも持たず、空のときの案内もここが持つ |
-| `list/ui/card/` | 1 件の見た目。カード全体が詳細への導線になる |
-| `list/ui/contact-button/` | 在庫の無い商品について問い合わせる入口。どの商品かは引き継がない |
-| `list/ui/keyword-field/` | キーワードの入力欄。打鍵では検索せず、確定の操作で飛ばす |
-| `list/ui/sort-select/` | 並び替え。幅によらず選んだ時点で反映する |
-| `list/ui/price-field/` | 価格の入力欄。セレクトボックスとレンジスライダーが同じ目盛りを動く |
-| `list/ui/category-field/` | 分類の入力欄。複数選べる。上限は契約が決めるため受け取る |
-| `list/ui/stock-field/` | 在庫状況の入力欄。3 つの状態から 1 つ選ぶ |
-| `list/ui/filter-fields/` | 入力欄の並び。入力欄と URL のキーの対応をここだけが知る |
-| `list/ui/sticky-region/` | 読み進めたときに上端を取り合う帯と脇の領域の居場所 |
-| `list/ui/filter-sidebar/` | 脇に常設する絞り込み。選んだ時点で反映する。landmark は持たない |
-| `list/ui/filter-sheet/` | 脇に領域を持てない幅の絞り込み。overlay の中でまとめて確定する |
-| `list/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
-| `list/ui/load-more-list/` | 読み進めた一覧の見た目。件数を告知し、続きの状態は `LoadMore` が持つ |
-| `list/ui/skeleton/` | 待機表示 |
-| `list/ui/error-state/` | 取得に失敗したときの表示 |
-| `facade/detail-url/` | 商品詳細の経路。正規 URL とサイトマップが同じ綴りを名乗るための 1 か所 |
-| `detail/page-content.tsx` | 1 件の取得と組み立て。`not-found` の分類もここで受ける。構造化データもここで置く |
-| `detail/metadata.ts` | 商品ごとの題・要約・正規 URL。見つからなければ `noindex` を名乗る。page の `generateMetadata` が薄く呼ぶ |
-| `detail/structured-data.ts` | 商品を schema.org の `Product` へ写す。markup を持つ説明は載せない |
-| `detail/view.tsx` | 1 件の詳細の表示。骨格と値の表示を持ち、画像の面は下へ渡す |
-| `detail/ui/gallery/` | 画像を送りながら見る面。枚数によらず carousel に載せ、拡大は実画像だけに出す |
+| `list/page-content.tsx` | Interprets the fetch conditions and assembles the screen. Fetches only what does not change with the conditions |
+| `list/results.tsx` | Fetches the list and the count matching the conditions. The loading UI boundary is placed here |
+| `facade/list-url/` | The list URL contract (path, filter keys, URL construction). Other features use it too |
+| `list/query.ts` | Normalizes raw `searchParams`, plus the count and option types |
+| `list/page-size.ts` | How many items to load at once. Kept apart from condition interpretation so that zod is not brought into the client |
+| `list/price-range.ts` | The price scale, and the mapping to and from the URL's lower and upper bounds |
+| `list/stock-availability.ts` | Stock presence, and the mapping to and from the URL's stock-quantity condition |
+| `list/range-label.ts` | Displays the lower and upper bound. Price and stock quantity use the same wording for "unspecified" and the same joiner |
+| `list/filter-draft.tsx` | Holds the conditions being built and keeps them single on the screen |
+| `list/use-filtered-count.ts` | Counts the matches for conditions not yet confirmed |
+| `list/use-infinite-products.ts` | Loads more on reaching the end. Writes the number of items read back to the URL |
+| `list/view.tsx` | The list display. Delimits here the range refetched by conditions |
+| `list/active-filters.ts` | Maps the conditions currently in effect to a list with a removal destination for each |
+| `list/ui/grid/` | Lays out products. Holds neither fetching nor reading on, and also owns the empty-state guidance |
+| `list/ui/card/` | The look of one item. The whole card is the link to the detail |
+| `list/ui/contact-button/` | The entry for inquiring about an out-of-stock product. It does not carry over which product |
+| `list/ui/keyword-field/` | The keyword input. It does not search on keystrokes; it navigates on the confirming action |
+| `list/ui/sort-select/` | Sorting. Applied the moment it is chosen, regardless of width |
+| `list/ui/price-field/` | The price input. The select box and the range slider move over the same scale |
+| `list/ui/category-field/` | The category input. Multiple selection. The limit is set by the contract, so it is received |
+| `list/ui/stock-field/` | The stock-status input. One of three states is chosen |
+| `list/ui/filter-fields/` | The arrangement of inputs. Only this knows the mapping between inputs and URL keys |
+| `list/ui/sticky-region/` | Where the bar and the sidebar that compete for the top edge while reading on live |
+| `list/ui/filter-sidebar/` | Filters permanently placed at the side. Applied the moment they are chosen. Holds no landmark |
+| `list/ui/filter-sheet/` | Filters for widths that cannot hold a side region. Confirmed together inside an overlay |
+| `list/ui/infinite-list/` | A list that can be read on. Connects fetching to the look |
+| `list/ui/load-more-list/` | The look of a list read on. Announces the count; the state of loading more belongs to `LoadMore` |
+| `list/ui/skeleton/` | Loading UI |
+| `list/ui/error-state/` | The display when fetching fails |
+| `facade/detail-url/` | The product detail path. The one place that lets the canonical URL and the sitemap state the same spelling |
+| `detail/page-content.tsx` | Fetches and assembles one item. Also receives the `not-found` classification here. Structured data is placed here too |
+| `detail/metadata.ts` | Per-product title, summary and canonical URL. States `noindex` when not found. The page's `generateMetadata` calls it thinly |
+| `detail/structured-data.ts` | Maps a product to schema.org `Product`. A description that carries markup is not included |
+| `detail/view.tsx` | The single-item detail display. Holds the structure and value display, and passes the image surface down |
+| `detail/ui/gallery/` | The surface for flipping through images. Uses a carousel regardless of the number of images, and offers zoom only on real images |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 一覧・件数・詳細・分類の取得と、表示モデルへの変換。画像 URL の解決も含む |
-| `model` | 業務型（`Product` など）と、条件の型 |
-| `components` | 汎用の表示（`Card` / `Badge` / `MediaImage` / 入力欄の素） |
-| `capabilities` | 末尾到達の検知（`use-on-visible`）と、上端の取り合いに使う scroll の向き |
-| `errors` | 正規化済みの失敗を、画面が出す文言へ写す |
-| `logging` | 取得の失敗の記録 |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching the list, count, detail and categories, and converting them to display models. Includes resolving image URLs |
+| `model` | Business types (`Product` and so on) and condition types |
+| `components` | General-purpose display (`Card` / `Badge` / `MediaImage` / input primitives) |
+| `capabilities` | Detecting reaching the end (`use-on-visible`) and the scroll direction used to compete for the top edge |
+| `errors` | Maps a normalized failure to the message the screen shows |
+| `logging` | Recording fetch failures |
+| `observability` | Puts rendering on spans |
 
-## Action 戻り値契約
+## Action Return Contract
 
-なし。カートへ入れる操作は `cart` が持ち、この feature は
-[`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです。
+None. The add-to-cart operation belongs to `cart`; this feature only places
+[`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/).
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 条件が URL に載り、共有・戻る操作・再読み込みのいずれでも同じ結果になる
-- [ ] 契約に照らして写せなかった条件が、黙って落ちずに画面へ出る
-- [ ] 幅によって絞り込みの確定の仕方が変わる（脇では即時、overlay ではまとめて）
-- [ ] 読み進めた件数が URL へ書き戻り、契約の上限までは復元される
-- [ ] 分類の選択が上限に達したとき、未選択が `disabled` ではなく `aria-disabled` になる
-- [ ] 見つからない商品の metadata が `noindex` を名乗り、正規 URL を持たない
-- [ ] 要約と構造化データが商品説明の markup を含まない
+- [ ] The conditions are carried in the URL, giving the same result on sharing, back navigation and reload
+- [ ] A condition that could not be mapped against the contract appears on screen instead of being silently dropped
+- [ ] How filters are confirmed changes with width (immediately at the side, together in an overlay)
+- [ ] The number of items read is written back to the URL and restored up to the contract's limit
+- [ ] When category selection reaches the limit, unselected items become `aria-disabled` rather than `disabled`
+- [ ] The metadata of a product that is not found states `noindex` and has no canonical URL
+- [ ] The summary and structured data do not include the product description's markup
 
-## 運用
+## Operations
 
-- **`components` へ上げないものの線引き**: 業務型（`Product`）と遷移先に依存する表示はここに置きます。
-  在庫の見せ方はバックエンドの状態遷移に依存するため、`components` が供給できるのは `Badge` の
-  variant までです
-- **画像が無い商品には代替画像を置きます**。どの画像を代わりに置くかは対象の性質で決まるため、パスは
-  この feature が持ち、`MediaImage` の `fallbackSrc` へ渡します
-- **取得は page ではなくこの中で行います**。待機表示の境界を実際にデータを待つ部分の近くへ置くためで、
-  page 全体を 1 つの待機表示で覆うと検索欄まで消えて操作できなくなります
-- **条件で取り直す範囲を、条件で変わらないものから切り離します**。分類の一覧は絞り込みの入力欄そのもので、
-  検索条件では変わりません。`page-content.tsx` が条件に依らないものだけを取得し、条件で変わる一覧と件数は
-  `results.tsx` が持ちます。待機表示の境界と条件を鍵にした作り直しはそこにだけ掛かるため、絞り込んでも
-  検索欄・条件の chip・入力欄は待機表示に落ちません
-- **検索条件は URL に置きます**。結果を共有でき、戻る操作で前の条件に戻り、再読み込みでも同じ画面が
-  出ます。client state に持つとそのどれも成立しません
-- **カートへ入れる操作そのものは `cart` が持ちます**。カートへの変更であり、この feature は
-  [`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) を置くだけです（feature 同士は直接
-  参照しないため、口は区画として公開されています）
-- **その操作は、脇の領域が無い帯で画面下端に固定します**（[`docs/rules.md`](../../../docs/rules.md)
-  「レイアウトと帯」）。詳細は縦に長く、読み進めた位置から操作へ戻れなくなるためです。固定するかどうかは画面の
-  組み立ての判断なので `detail/view.tsx` が持ち、操作の部品は自分がどこに置かれたかを知りません
-- **カード全体を詳細への導線にしますが、link では包みません**。包むとカートへ入れる操作が link の
-  内側に入り、操作の中に操作が居る形になります。商品名の link を疑似要素でカードいっぱいに広げ、
-  操作は link より後ろに置いて `relative` で重なりの上へ出します。支援技術に見える遷移先が
-  「カード全体の文言」ではなく商品名になるのも、この形を採る理由です
-- **バックエンドが長さを決める値は 1 行に収まる前提を置きません**。分類名や状態名は上限の宣言が無く、
-  `Badge` は既定で折り返さないため、折り返しを呼び出し側で許します
-- **ページ送りは cursor 方式**です。番号付きのページ送りは作れません（総件数も任意ページへの飛び先も
-  カーソルは持たないため）。一覧は増分取得で読み進める形を採っており、これは
-  [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) が限定例外として認めた経路です。
-  初回ページは Server Component が取得し、続きだけを `adapters/client` 経由で取ります
-- **確定の操作は複数あっても、確定するものは 1 つです**。キーワードの入力欄と絞り込みの入力欄は
-  画面の別の場所にあり、幅によって後者は脇にも overlay にも現れます。下書きをそれぞれが持つと、
-  片方で確定したときにもう片方の入力途中が捨てられます（`filter-draft.tsx` が 1 つに保ちます）
-- **キーワードは打鍵では検索しません**。検索語だけが先に効くと、絞り込みを組んでいる途中で一覧が
-  入れ替わり、中途半端な条件の結果を見ることになります。空のまま送信できるのは、いま検索語が
-  効いているとき（＝外す意味があるとき）だけです
-- **絞り込みの反映は、一覧が見えているかどうかで変わります**。脇に常設できる幅では選んだ時点で反映し
-  ます（結果が隣に出るため、確定を挟むと結果を見るのにもう 1 回押させることになります）。overlay の
-  中は一覧が隠れるので、条件を組んでからまとめて確定し、**確定する前の該当件数をその操作へ添えます**
-  （`use-filtered-count.ts`）。並び替えは幅によらず即時です（単一選択は選ぶことが確定と同じため）
-- **読み進めるあいだ、画面の上端は 3 つで取り合います**（外枠の header・検索の帯・脇の絞り込み）。
-  下へ読むあいだは帯が退いて絞り込みが header の直下に止まり、上へ戻ろうとすると帯が現れて絞り込みが
-  その下へ下がります。帯の高さは効いている条件の数で変わるため、位置は書き写さず測った値から決めます
-  （`ui/sticky-region/`）。**帯の退き方は貼り付きをやめることで表します** —— 位置をずらして隠すと、
-  まだ本来の位置に居るときに見出しへ重なって上がります
-- **価格の下限と上限は目盛りの上でだけ選べます**。セレクトボックスとレンジスライダーが同じ範囲を指す
-  ため、連続値を許すと 2 つの操作面が同じ条件を別の粒度で表します。スライダーは滑らせている間は伝えず、
-  指を離した時点だけを確定として扱います
-- **在庫状況は、契約の在庫数の条件へ写して URL に載せます**。契約が持つのは数の下限と上限で、
-  「在庫あり」という状態ではありません。利用者が選ぶのは有無なので、その橋渡しを
-  `stock-availability.ts` が持ちます
-- **供給の購読者には `"use memo"` を付けています**。この画面には、1 つの state の変化が購読者へ
-  直に及ぶ供給が 2 つあります —— 組み立て中の条件
-  （`filter-draft.tsx`。1 打鍵・1 チェックで動く）と、上端の取り合いの状態（`ui/sticky-region/`。scroll の
-  向きと帯の高さで動く）です。印を付けるのは**その 2 つを購読する部品と、その子孫**に限ります。
-  購読しない部品は、供給が何度動いても再描画されません —— 部分木は `children` として受け取った同じ
-  要素のまま素通りするためで、`ui/sort-select/` と一覧本体がこれに当たります
-- **続きを読む操作は失敗したときだけ出します**。読み進めている間は末尾に近づくだけで次が始まるため、
-  同じことをする入口を並べても選ぶ手数が増えるだけです。失敗した後は末尾到達の検知がその場では二度と
-  起きないので、そこでだけ操作が唯一の復帰口になります。keyboard の scroll も支援技術の読み進めも表示
-  位置を動かすため、この形でも scroll 以外の手段は失われません
-- **読み進めた件数を URL に書き戻します**。書き戻さないと、戻る操作も再読み込みも先頭の 1 ページだけの
-  画面に戻り、読み進めた分がスクロール位置ごと失われます。契約が受け付ける件数の上限までが復元できる
-  範囲で、それを超えて読み進めた分は戻りません
-- **総件数は一覧の応答から取れません**。cursor ページネーションが返すのは次のカーソルの有無だけです。
-  総数は専用の取得口（`GET /v1/products/count`）が返し、一覧と同じ条件を渡します。条件を渡さない口に
-  すると、絞り込んだ後も絞り込む前の数が出て、一覧に並んでいる件数と食い違います
-- **状態で絞り込む口は置きません**。契約も backend も `statusCodes` を受け付け、絞り込みは実際に
-  効きます。置かないのは、状態マスタが在庫・販売の状態（在庫あり・予約受付中・廃盤・検討中など）で、
-  売り手が対象を見つけるための語彙だからです。どれを買い手へ出すかを選ばずに全部並べると、選べるのに
-  買い手にとって意味を持たない選択肢が混ざります。買い手が選ぶ軸のうち在庫の有無は
-  `stock-availability.ts` が持ちます。**公開の可否は状態マスタではなく `publishedAt` の別軸**で、
-  状態マスタでの絞り込みが効くかどうかとは関係しません
-- **分類を一度に選べる数は契約が決めます**。上限に届くまでは何も出さず、達した時点で未選択の分類を
-  `aria-disabled` にして、いくつまで選べるかを群の末尾に出します。残り数を常に出すと、多くの利用者が
-  到達しない制約のために全員の視界を占めます。数は書き写さず `adapters` から受け取ります
-- **分類と状態を指すのはマスタの `code` で、UUID ではありません**。契約が絞り込みで受け取るのは
-  `categoryCodes` / `statusCodes` であり、UUID を取る `categoryId` / `statusId` は非推奨として
-  残っているだけです。後継と同時に送ると 400 になるため、`adapters` が受け付ける口はコードの側
-  だけに寄せています（`products.ts`）
+- **Where the line is for what is not raised to `components`**: display that depends on business types (`Product`) and on destinations stays here.
+  How stock is shown depends on the backend's state transitions, so what `components` can supply goes only as far as `Badge`
+  variants
+- **Products without an image get a substitute image.** Which image substitutes depends on the nature of the subject, so the path
+  is owned by this feature and passed to `fallbackSrc` of `MediaImage`
+- **Fetching happens in here, not in the page.** This puts the loading UI boundary near the part that actually waits for data;
+  covering the whole page with one loading UI would make even the search field disappear and become unusable
+- **The range refetched by conditions is separated from what does not change with conditions.** The category list is the filter input itself
+  and does not change with the search conditions. `page-content.tsx` fetches only what is independent of conditions, and the list and count that change with
+  conditions belong to `results.tsx`. The loading UI boundary and the rebuild keyed on the conditions apply only there, so filtering does not turn
+  the search field, the condition chips or the inputs into loading UI
+- **Search conditions are placed in the URL.** Results can be shared, back navigation returns to the previous conditions, and reload shows the same screen.
+  Holding them in client state achieves none of these
+- **The add-to-cart operation itself belongs to `cart`.** It is a change to the cart, and this feature only places
+  [`cart/facade/add-to-cart/`](../cart/facade/add-to-cart/) (features do not reference each other directly,
+  so the entry is published as a section, `facade/`)
+- **That operation is fixed to the bottom of the screen on bands without the sidebar** ([`docs/rules.md`](../../../docs/rules.md#layout)).
+  The detail is vertically long, and from a position read down to, the user could not get back to the operation. Whether to fix it is a decision of
+  screen assembly, so `detail/view.tsx` owns it, and the operation component does not know where it was placed
+- **The whole card is a link to the detail, but it is not wrapped in a link.** Wrapping it would put the add-to-cart operation inside the
+  link, an operation within an operation. The product-name link is stretched over the whole card with a pseudo-element, and
+  the operation is placed after the link and lifted above the overlap with `relative`. That the destination visible to assistive technology
+  is the product name rather than "the text of the whole card" is another reason for this shape
+- **Values whose length the backend decides are not assumed to fit on one line.** Category and status names have no declared limit,
+  and `Badge` does not wrap by default, so the caller allows wrapping
+- **Pagination is cursor-based.** Numbered pagination cannot be built (the cursor has neither the total count nor
+  a jump target for an arbitrary page). The list is read on through incremental fetching, which is the path
+  [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) allows as a limited exception.
+  The first page is fetched by a Server Component, and only the rest goes through `adapters/client`
+- **There may be several confirming actions, but what is confirmed is one.** The keyword input and the filter inputs are
+  in different places on the screen, and depending on width the latter appears either at the side or in an overlay. If each held its own draft,
+  confirming one would discard the other's input in progress (`filter-draft.tsx` keeps it single)
+- **Keywords do not search on keystrokes.** If only the search term took effect first, the list would be
+  replaced while filters are being built, and the user would see results for half-built conditions. Submitting while empty is possible only while a search term
+  is in effect (that is, when removing it means something)
+- **How filters apply depends on whether the list is visible.** At widths that can hold them permanently at the side, they apply the moment they are chosen
+  (the results appear alongside, so a confirm step would make the user press once more to see them). Inside an overlay
+  the list is hidden, so conditions are built and then confirmed together, and **the match count before confirming is attached to that action**
+  (`use-filtered-count.ts`). Sorting is immediate regardless of width (for a single selection, choosing is the same as confirming)
+- **While reading on, three things compete for the top edge of the screen** (the outer frame's header, the search bar, the side filters).
+  While reading down, the bar retreats and the filters stop directly under the header; when trying to go back up, the bar appears and the filters
+  move down below it. The bar's height changes with the number of conditions in effect, so the position is not copied but decided from measured values
+  (`ui/sticky-region/`). **The bar's retreat is expressed by ending its stickiness** — hiding it by shifting its position would make it
+  overlap the heading as it rises while still in its original position
+- **The lower and upper price bounds can be chosen only on the scale.** The select box and the range slider point at the same range,
+  so allowing continuous values would have two controls express the same condition at different granularities. The slider does not report while
+  being dragged, and treats only the moment the finger is released as the confirmation
+- **Stock status is mapped to the contract's stock-quantity condition and carried in the URL.** What the contract holds is a lower and upper bound on quantity,
+  not an "in stock" state. What the user chooses is presence, so the bridging is owned by
+  `stock-availability.ts`
+- **Subscribers of the providers carry `"use memo"`.** This screen has two providers where a single state change
+  directly reaches the subscribers — the conditions being built
+  (`filter-draft.tsx`; moves on each keystroke and each check) and the state of competing for the top edge (`ui/sticky-region/`; moves with the scroll
+  direction and the bar's height). The marker goes only on **the components that subscribe to those two, and their descendants**.
+  Components that do not subscribe are not re-rendered however often the providers move — the subtree passes through as the same
+  element received as `children`, which is the case for `ui/sort-select/` and the list body
+- **The load-more action is shown only on failure.** While reading on, the next load starts just by approaching the end,
+  so lining up an entry that does the same only adds a choice. After a failure, end-of-list detection never fires again in place,
+  so only there does the action become the sole way to recover. Keyboard scrolling and reading on with assistive technology both move the displayed
+  position, so this shape loses no means other than scrolling
+- **The number of items read is written back to the URL.** Without it, both back navigation and reload return to a screen with only the first
+  page, and what was read on is lost along with the scroll position. Up to the item limit the contract accepts can be restored,
+  and what was read beyond it does not come back
+- **The total count cannot be taken from the list response.** Cursor pagination returns only whether a next cursor exists.
+  The total is returned by a dedicated fetch endpoint (`GET /v1/products/count`), which receives the same conditions as the list. Making it an endpoint that does not take
+  conditions would show the pre-filter count after filtering, contradicting the number of items listed
+- **There is no entry for filtering by status.** Both the contract and the backend accept `statusCodes`, and the filter actually
+  works. It is not placed because the status master consists of stock and sales states (in stock, accepting pre-orders, discontinued, under review and so on),
+  a vocabulary for sellers to find their items. Listing them all without choosing which to show buyers would mix in options that can be selected yet
+  mean nothing to buyers. Among the axes buyers choose by, stock presence is owned by
+  `stock-availability.ts`. **Whether an item is published is a separate axis, `publishedAt`, not the status master**, and
+  is unrelated to whether filtering by the status master works
+- **How many categories can be selected at once is decided by the contract.** Nothing is shown until the limit is reached; on reaching it, unselected categories become
+  `aria-disabled`, and how many can be chosen is shown at the end of the group. Always showing the remaining count would occupy everyone's view for
+  a constraint most users never reach. The number is not copied but received from `adapters`
+- **Categories and statuses are referred to by the master's `code`, not by UUID.** What the contract accepts for filtering is
+  `categoryCodes` / `statusCodes`; the UUID-based `categoryId` / `statusId` remain only as deprecated.
+  Sending them together with their successors yields 400, so the entry `adapters` accepts is narrowed to the code side
+  only (`products.ts`)
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。他 feature へ貸すものを `facade/` に出す
-- [0026](../../../docs/adr/0026-layout-shell-mount.md) — 殻と Provider の据え付け。画面ごとには置かない横断 UI の位置
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。画面ごとに掘り、その中を性質で分ける
-- [0042](../../../docs/adr/0042-react19-rendering-api.md) — React 19 の描画 API 規約。`"use memo"` を付ける範囲
-- [0044](../../../docs/adr/0044-seo-metadata-strategy.md) — metadata の方針。検索エンジンへ何を名乗るかの持ち場
-- [0051](../../../docs/adr/0051-styling-system.md) — デザイントークンと帯ごとの出し分け
-- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — ページ送り / 増分取得の境界。cursor 方式と client 取得の限定例外
-- [0080](../../../docs/adr/0080-error-handling.md) — エラーの扱い。`error` / `not-found` の受け持ち
-- [0101](../../../docs/adr/0101-performance-budget.md) — 性能予算。client の束に何を載せるか
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. What is lent to other features is exposed in `facade/`
+- [0026](../../../docs/adr/0026-layout-shell-mount.md) — Mounting the shell and Providers. Where cross-cutting UI that is not placed per screen goes
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical placement and co-location. Organize per screen and split by nature inside
+- [0042](../../../docs/adr/0042-react19-rendering-api.md) — React 19 rendering API conventions. The extent to which `"use memo"` is applied
+- [0044](../../../docs/adr/0044-seo-metadata-strategy.md) — Metadata policy. Who owns what is stated to search engines
+- [0051](../../../docs/adr/0051-styling-system.md) — Design tokens and per-band variation
+- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — The pagination / incremental fetching boundary. Cursor-based paging and the limited exception for client fetching
+- [0080](../../../docs/adr/0080-error-handling.md) — Error handling. Who handles `error` / `not-found`
+- [0101](../../../docs/adr/0101-performance-budget.md) — The performance budget. What goes into the client bundle

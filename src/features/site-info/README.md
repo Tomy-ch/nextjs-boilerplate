@@ -1,104 +1,104 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # Exception: whole-screen stories
 test-requirement: [feature, component, unit]
 ---
 
 # site-info
 
-このサイト自身について説明する画面スライスです。
+The screen slice that describes this site itself.
 
-## 受け入れるもの
+## What Belongs Here
 
-- サイトの目的・構成・動かない範囲の説明
-- 入力した情報の保存先の説明
-- 閲覧の同意条件と免責
-- この 3 画面のルート宣言
+- Describing the site's purpose, its composition, and what does not work
+- Describing where entered information is stored
+- The conditions of consent to browsing, and the disclaimer
+- The route declarations of these three screens
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 取得。どの画面も閲覧者によって内容が変わりません
-- 他 feature への直接依存
+- Fetching. No screen's content varies by viewer
+- Direct dependencies on other features
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/about` | [`screen`](../../../docs/spec/route/site-info/about/page.screen.md) / [`function`](../../../docs/spec/route/site-info/about/page.function.md) | 不要 |
-| `/privacy` | [`screen`](../../../docs/spec/route/site-info/privacy/page.screen.md) / [`function`](../../../docs/spec/route/site-info/privacy/page.function.md) | 不要 |
-| `/terms` | [`screen`](../../../docs/spec/route/site-info/terms/page.screen.md) / [`function`](../../../docs/spec/route/site-info/terms/page.function.md) | 不要 |
+| `/about` | [`screen`](../../../docs/spec/route/site-info/about/page.screen.md) / [`function`](../../../docs/spec/route/site-info/about/page.function.md) | Not required |
+| `/privacy` | [`screen`](../../../docs/spec/route/site-info/privacy/page.screen.md) / [`function`](../../../docs/spec/route/site-info/privacy/page.function.md) | Not required |
+| `/terms` | [`screen`](../../../docs/spec/route/site-info/terms/page.screen.md) / [`function`](../../../docs/spec/route/site-info/terms/page.function.md) | Not required |
 
-**operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。
+**No operationId is used.** This is because the slice does no fetching, and it does not change as the contract grows.
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 3 画面 | success | 画面まるごとの story は置いていない（下記） |
-| フッターの導線 | 既定 | `Features/SiteInfo/RepositoryLinks/Default` |
-| | 補足を開いた | `Features/SiteInfo/RepositoryLinks/WithHoverCard` |
+| The three screens | success | No whole-screen story is placed (see below) |
+| Footer links | default | `Features/SiteInfo/RepositoryLinks/Default` |
+| | supplement opened | `Features/SiteInfo/RepositoryLinks/WithHoverCard` |
 
-**取得が無い画面は状態を 1 つしか持たないため、画面の story を置いていません。**置いても
-`Default` 1 本になり、story が増えた分だけ VRT の実行時間だけが伸びます。3 画面の見た目は
-E2E の画面比較が受け持ちます（`e2e/lib/screens.ts` に `about` / `privacy` / `terms` があります）。
+**A screen without fetching has only one state, so no screen story is placed.** One would be
+a single `Default`, and each added story only lengthens the VRT run time. The look of the three screens is
+covered by the E2E screen comparison (`e2e/lib/screens.ts` has `about` / `privacy` / `terms`).
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `facade/paths/` | 2 つのルート。マイページ（別 feature）の導線が参照するため facade へ出す |
-| `repositories.ts` | このサイトを構成しているリポジトリ。導線とカードが同じ表を読む |
-| `about/view.tsx` | 何のためのサイトか・何で出来ているか・何が動かないか |
-| `privacy/view.tsx` | 入力した情報がどこに残るかを、起動のしかたごとに説明する |
-| `terms/view.tsx` | 閲覧の同意・セキュリティ上のリスク・サービスの提供条件・免責 |
-| `ui/site-footer/` | 利用者向けの器が出すフッター。器が 2 つあるので中身はここが 1 つだけ持つ |
-| `ui/repository-links/` | フッターへ置く 2 リポジトリへの導線。説明は補足として HoverCard に載せる |
-| `ui/repository-cards/` | このサイトについて に置く、リポジトリ 2 つの説明 |
-| `ui/repository-supplement/` | それぞれの目的とできることを畳んだ面 |
+| `facade/paths/` | Two routes. Exposed through the facade because the links on My Page (another feature) reference them |
+| `repositories.ts` | The repositories this site is built from. The links and the cards read the same table |
+| `about/view.tsx` | What the site is for, what it is made of, and what does not work |
+| `privacy/view.tsx` | Explains where entered information remains, for each way of starting the site |
+| `terms/view.tsx` | Consent to browsing, security risks, terms of service provision, and the disclaimer |
+| `ui/site-footer/` | The footer rendered by the user-facing layout shells. There are two layout shells, so this is the single owner of its contents |
+| `ui/repository-links/` | Links to the two repositories placed in the footer. The description goes in a HoverCard as a supplement |
+| `ui/repository-cards/` | The descriptions of the two repositories placed on 「このサイトについて」 ("About this site") |
+| `ui/repository-supplement/` | A collapsed surface with each repository's purpose and capabilities |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `components` | 文章を並べる器（見出し・カード・畳める面・HoverCard） |
-| `observability` | 描画を span に載せる |
+| `components` | The containers that lay out text (headings, cards, collapsible surfaces, HoverCard) |
+| `observability` | Puts rendering on spans |
 
-取得を持たないため `adapters` を引きません。`model` も持ちません —— 表示するのは自分が持つ
-文面だけで、feature をまたいで共有する表示モデルがありません。
+It does no fetching, so it does not use `adapters`. It does not hold `model` either — all it displays is the text it owns,
+and there is no display model shared across features.
 
-## Action 戻り値契約
+## Action Return Contract
 
-なし。この 3 画面に操作がありません。
+None. These three screens have no operations.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 免責が利用規約だけに出る（「このサイトについて」に写っていない）
-- [ ] フッターの導線が、補足を読めなくても行き先の判る文言を持つ
+- [ ] The disclaimer appears only on the terms of use (it does not appear on 「このサイトについて」)
+- [ ] The footer links carry text that makes the destination clear even when the supplement cannot be read
 
-## 運用
+## Operations
 
-- **どちらも静的に描画します**。取得を持たず、内容が変わるのはコードを書き換えたときだけです
-- **保護の対象にしません**。免責も保存先も、ログインする前・入力する前に読めなければ意味を
-  持ちません
-- **プライバシーの説明は一般的な体裁を採りません**。入力した情報がどこに残るかは、この
-  boilerplate をどう起動しているか（自分の Go 側と繋ぐ / モックのまま / 公開サンプル）で
-  3 通りに変わります。定型文にすると、利用者は自分がどれに当たるかを判断できません
-- **偽名を求める警告を先頭に置きます**。3 通りの説明を読み終えてから書いても、既に入力した
-  後です
-- **トップの断り書きとは役割を分けます**。あちら（`features/home` の `SampleNotice`）は
-  「実在の取引と取り違えられない」ことと利用規約への導線だけを担って短く保ち、詳しい説明は
-  ここが持ちます
-- **設計上の呼び名を利用者向けの文面に出しません**。層の分け方や責務の所在は、このサイトを
-  触りに来た利用者の判断材料になりません。読みたい人はリポジトリへ行くので、フッターの導線で
-  足ります
-- **免責は利用規約だけが持ちます**。「このサイトについて」と 2 か所に置くと、片方だけ直した
-  状態を作れます
-- **リポジトリの説明を HoverCard にしか置きません**。常時出すとフッターが本文と同じ量の文字を
-  持ちます。押した先が何かはボタンの文言だけで判るようにしてあるので、補足を読めなくても
-  導線としては成立します
+- **Both are rendered statically.** They do no fetching, and their content changes only when the code is rewritten
+- **They are not protected.** Neither the disclaimer nor the storage location means anything unless it can be read before logging in and before
+  entering anything
+- **The privacy explanation does not take the generic form.** Where entered information remains changes in three ways depending on how this
+  boilerplate is started (connected to your own Go side / still on mocks / the public sample).
+  With stock wording, users could not tell which case applies to them
+- **The warning asking for a pseudonym is placed first.** Writing it after the three explanations means it is read after the user
+  has already entered information
+- **Its role is kept separate from the top page's caveat.** That one (`SampleNotice` in `features/home`) carries only
+  "not to be mistaken for real transactions" and the link to the terms of use and stays short; the detailed explanation
+  is held here
+- **Design-level names do not appear in user-facing text.** How layers are divided or where responsibilities lie gives users
+  who came to try this site nothing to decide with. Those who want to read about it go to the repository, so the footer links
+  suffice
+- **Only the terms of use hold the disclaimer.** Placing it in two places, together with 「このサイトについて」, makes it possible to fix
+  only one of them
+- **Repository descriptions are placed only in the HoverCard.** Showing them at all times would give the footer as much text as
+  the body. The button text alone makes clear what is behind it, so the link works as a link even when the
+  supplement cannot be read
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。他 feature へ貸すものを `facade/` に出す
-- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — 描画戦略。取得を持たない面を静的に配る
-- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — 操作の a11y 継ぎ目。補足を読めなくても導線が成立する条件
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. What is lent to other features is exposed in `facade/`
+- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — Rendering strategy. A surface with no fetching is served statically
+- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — The a11y seam of interaction. The conditions under which a link works even when the supplement cannot be read

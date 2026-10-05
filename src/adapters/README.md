@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors, logging, config, observability] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [model, errors, logging, config, observability] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: integration
 coverage-exclusions:
@@ -8,391 +8,393 @@ coverage-exclusions:
 
 # adapters
 
-バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。実行文脈で
-`server/` と `client/` に分けます —— **これは置き場の分けであって、境界検査の要素の分けではありません**
-（要素の分かれ目は下記「この層の要素」）。
+The boundary adapters that hold external connections only: the backend API, BFF fetch, sending telemetry and
+the like. They are split into `server/` and `client/` by execution context — **this is a split of placement,
+not a split of the elements the boundary check sees** (where the elements divide is *Elements of This Layer*
+below).
 
-**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャは容器を読み込むだけで、送信は容器の中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.md)）。
-実行文脈を持たない規則——どちらの面が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
+**What this app does not assemble a send for does not pass through here.** The bundled tag manager only loads its container, and the container's contents do the sending, so a client island in `app` takes it on ([0082](../../docs/adr/0082-client-observability.md)).
+Rules that have no execution context — those that apply equally to requests either surface sends — go in `http/`, and the generated artifacts from the contract go in `gen/`. Both can be imported only from inside `adapters`.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 外部 API / SDK への接続、外部型から表示用型への変換
-- `server/` の secret を使う接続、`client/` のブラウザ向け接続
+- Connections to external APIs / SDKs, and conversion from external types to display types
+- Connections in `server/` that use secrets, and browser-facing connections in `client/`
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、UI、local browser API
+- Business logic, UI, local browser APIs
 
-## この層の要素
+## Elements of This Layer
 
-境界検査が見る単位です。**`server/` と `client/` はここに出てきません** —— 実行文脈の分けであって、
-import の許可はどちらも同じ `adapters` のものだからです。分かれているのは区画で、**区画は層の許可を
-継ぎません** —— 層の許可は要素の型に当たるため、切り出した時点で届かなくなります。だから区画は
-自分の依存を自分で宣言します。
+The units the boundary check sees. **`server/` and `client/` do not appear here** — they are a split by
+execution context, and the import permissions of both belong to the same `adapters`. What is split off is a
+compartment, and **a compartment does not inherit the layer's permissions** — the layer's permissions apply
+to the element type, so once carved out they no longer reach. That is why a compartment declares its own
+dependencies itself.
 
-| 要素 | 位置 | 切り出す理由 |
+| Element | Location | Reason for carving it out |
 | --- | --- | --- |
-| `adapters-gen` | `gen/` | 契約から生成した wire 型。層のまま置くと、`adapters` を引ける `app` / `features` へ素通しで届く |
-| `adapters-http` | `http/` | 両方の面が従う要求の形の規則。片方の面へ置くともう片方から届かず、規則が 2 つに割れる |
-| `adapters-auth` | [`server/auth`](server/auth) | session の封緘と復元。入口の楽観判定がここだけを必要とするため、`proxy` へ `adapters` 全体を開けずに済ませる |
+| `adapters-gen` | `gen/` | Wire types generated from the contract. Left in the layer, they would pass straight through to `app` / `features`, which can reach `adapters` |
+| `adapters-http` | `http/` | Rules for the shape of a request that both surfaces follow. Placed on one surface, they would not reach the other, and the rule would split in two |
+| `adapters-auth` | [`server/auth`](server/auth) | Sealing and restoring the session. The optimistic check at the entry point needs only this, so `proxy` is spared from opening the whole of `adapters` |
 
-**依存の値はここに写しません。** 正は `architecture.ts` の `RESTRICTED_AREAS` で、各区画の README の
-`imports-allowed` はそこから生成されます（`pnpm gen:architecture`）。区画でないディレクトリ
-——`server/http/` や `client/telemetry/` のように、この層の中で置き場を分けているだけのもの——は
-境界を宣言せず、この README の宣言を継ぎます。
+**The dependency values are not copied here.** The source of truth is `RESTRICTED_AREAS` in `architecture.ts`,
+and each compartment README's `imports-allowed` is generated from it (`pnpm gen:architecture`). A directory
+that is not a compartment — one that merely divides placement within this layer, such as `server/http/` or
+`client/telemetry/` — declares no boundary and inherits this README's declaration.
 
-## 取得の口の形
+## Shape of a Fetch Endpoint
 
-`server/api/<資源>.ts` が 1 つの資源の口を持ちます。1 つの口は 3 つの部品でできています。
+`server/api/<resource>.ts` holds the endpoints for one resource. One endpoint is made of three components.
 
-| 部品 | 形 | 役目 |
+| Component | Shape | Role |
 | --- | --- | --- |
-| wire 型 | `type Wire<資源> = z.infer<typeof <Operation>Response>` | 契約の形。**module の外へ出しません** |
-| 写し | `function to<資源>(wire: Wire<資源>): <資源>` | 契約の形から `model` の表示用の型へ。`Date` への変換、識別子の branded 型への変換、表示に使わない項目を落とすのはここ |
-| 口 | `export const get<資源> = cache(async (...) => to<資源>(await get<分類>Client().request({ ... })))` | 接続口を引いて写しを返す。公開面はこれだけ |
+| Wire type | `type Wire<Resource> = z.infer<typeof <Operation>Response>` | The contract's shape. **Never leaves the module** |
+| Mapper | `function to<Resource>(wire: Wire<Resource>): <Resource>` | From the contract's shape to `model`'s display type. Converting to `Date`, converting identifiers to branded types, and dropping fields not used for display happen here |
+| Endpoint | `export const get<Resource> = cache(async (...) => to<Resource>(await get<Kind>Client().request({ ... })))` | Takes the connection point and returns the mapped value. This is the only public surface |
 
-- **読む口は `react` の `cache()` で包み、書く口は包みません**（[0071](../../docs/adr/0071-bff-api-integration.md)「重複排除」）。
-  同じ描画の中で外枠と画面が同じ値を読むことは普通で、呼び出し側へ「1 回だけ呼ぶ」規律を要求すると、
-  木を組み替えるたびに取得の回数が変わります。
-- **無いことの表し方は接頭辞で分けます。** 無いことが正常な口（契約が空や `404` をそう定めている）は
-  `find*` で `null` か空を返し、無いことが失敗の口は `get*` で `not-found` を投げます。`find*` が畳むのは
-  `not-found` だけです —— 通信の失敗まで「無い」へ倒すと、障害が未登録に見えます。
-- **添え物の値は `read*` の口が 1 度だけ畳みます。** 無くても画面が成り立つ値（本題に添える参考値など）は、投げる口の
-  上に「読めなければ記録して `null`」の口を重ね、画面はそちらだけを引きます。落として良いかを画面ごとに
-  決めさせると、同じ判断が画面の数だけ増え、片方だけ落ちる画面が生まれます。読めなかった事実は `logging` の
-  `reportQuietly` で残します。
-- **路の可変区間は `encodeURIComponent` で包みます。** 要求境界は `.` / `..` の区間を弾きますが、それ以外は
-  包んだ側が持ちます。
-- **契約上のヘッダは要求ごとに `headers` で渡します**（冪等キー、契約が独自に持つ識別子）。優先順位を契約が
-  定めているものは、こちらで選ばず両方載せます —— 選ぶと同じ規則が 2 か所に生まれます。
-- **並びは契約が決めます。** 契約が順序を宣言している一覧は写すときに並べ替えず、並び順のためだけの番号は
-  落とします。
-- **内側の識別子を公開面へ出しません。** 更新や削除が対象を指すのに使う値は、`export` しない memo 化した口
-  （同じ描画の中で読みと書きが共有する）で解決し、画面へ渡す型には含めません。
-- **契約の語彙に無い条件は受け取りません。** 期間なら瞬時の半開区間（`model` の `TimeWindow`）だけを受け、
-  「今日」「今月」を暦の上で解くのは画面の側です。
+- **Wrap read endpoints in `react`'s `cache()`; do not wrap write endpoints** ([0071](../../docs/adr/0071-bff-api-integration.md), deduplication).
+  It is normal for the outer frame and the screen to read the same value within one render, and requiring callers to
+  "call it only once" makes the number of fetches change every time the tree is rearranged.
+- **Distinguish how absence is expressed by prefix.** An endpoint for which absence is normal (the contract defines empty
+  or `404` that way) is `find*` and returns `null` or empty; an endpoint for which absence is a failure is `get*` and
+  throws `not-found`. `find*` folds only `not-found` — fold communication failures into "absent" too and an outage
+  looks like something unregistered.
+- **A `read*` endpoint folds an auxiliary value exactly once.** For a value the screen can stand without (such as a reference value accompanying the main subject), stack an endpoint that
+  "records and returns `null` if it cannot be read" on top of the throwing endpoint, and the screen takes only that one. Letting each screen
+  decide whether it may drop the value multiplies the same judgment by the number of screens and produces screens where only one side drops. The
+  fact that it could not be read is recorded with `logging`'s `reportQuietly`.
+- **Wrap variable path segments in `encodeURIComponent`.** The request boundary rejects `.` / `..` segments, but anything
+  else is the wrapping side's responsibility.
+- **Pass contract-defined headers per request through `headers`** (idempotency keys, identifiers the contract defines on
+  its own). Where the contract defines a precedence, do not choose here; send both — choosing creates the same rule in two places.
+- **The contract decides the order.** A list whose order the contract declares is not re-sorted when mapped, and numbers that
+  exist only for sort order are dropped.
+- **Do not expose internal identifiers on the public surface.** A value that an update or delete uses to point at its target
+  is resolved by a memoized endpoint that is not `export`ed (shared by reads and writes within one render), and is not included in the type passed to the screen.
+- **Do not accept conditions outside the contract's vocabulary.** For a period, accept only a half-open interval of instants (`model`'s `TimeWindow`);
+  resolving "today" or "this month" on the calendar is the screen's job.
 
-**契約が定めた上限・enum・書式は、数や綴りを書き写さず生成物から再輸出します**
-（[0072](../../docs/adr/0072-api-type-generation.md)、[docs/rules.md#url](../../docs/rules.md#url)）。
-`export const <資源>_MAX: number = <生成された定数>` の形で、外へ渡すのはこの層です —— `gen/` を引けるのは
-ここまでだからです。綴りの表（並び順の名前など）は
-`as const satisfies Readonly<Record<string, Wire<資源>Query["sort"]>>` のように生成スキーマの型へ照らします。
-契約から値が消えると宣言が型エラーになり、手で写した一覧が再生成のあとも黙って古いまま残ることがありません。
+**Limits, enums and formats the contract defines are re-exported from the generated artifacts rather than copying their numbers or spellings**
+([0072](../../docs/adr/0072-api-type-generation.md), [docs/rules.md](../../docs/rules.md#url)).
+In the form `export const <RESOURCE>_MAX: number = <generated constant>`, this layer is what hands them outward — `gen/` can be
+reached only up to here. A table of spellings (such as the names of sort orders) is checked against the generated schema's type, as in
+`as const satisfies Readonly<Record<string, Wire<Resource>Query["sort"]>>`.
+When a value disappears from the contract the declaration becomes a type error, so a hand-copied list never silently stays stale after regeneration.
 
-## 書き込みの口
+## Write Endpoints
 
-- **本文は生成型へ `satisfies` で照らします**（`body: { ... } satisfies <Operation>Request`）。写しと同じく、
-  契約が動いたときに型で気づくためです。
-- **自然キーを持たない作成は、冪等キーを必ず受け取ります。** 契約が任意としていても、付けない再送はそのまま
-  2 件目になります。鍵を作るのは呼び出し側（画面を開いた地点）です —— 送信のたびに作ると二重送信が 2 件に
-  なり、鍵は「1 つの試み」に結び付いていなければなりません。鍵を渡した口だけが `idempotent: true` を宣言
-  します。宣言しない `POST` / `PATCH` は wrapper が再試行しません
-  （[0071](../../docs/adr/0071-bff-api-integration.md)）。鍵の無い `idempotent: true` は型も検査も落としません。
-- **再送できない操作は再送しません。** 自然キーの無い作成、加算（相対更新）、multipart の保存、状態遷移は
-  いずれも 2 度届くと 2 度起きるか `conflict` になります。応答が返らなかったときに成立したかは、取り直して
-  確かめる以外にありません。
-- **状態遷移の応答は内層へ渡しません。** 遷移の応答が画面の形に足りないなら、口が受け持つのは「契約どおりの
-  応答が返ったか」の検証までで、変わった後の値は画面が取り直します。
-- **版を添える更新と相対更新を混ぜません。** 全項目の置換は `version` を添え、食い違いは wrapper が
-  `conflict` へ正規化します。加算は版を添えません —— 並行しても失われないため、競合を検出して拒む理由が
-  ありません。
-- **部分更新で「触らない」と「消す」を分けるなら、[`server/http/patch-payload.ts`](server/http/patch-payload.ts)
-  の `PatchPayload<T>` を通します。** `JSON.stringify` は `undefined` のキーを落とすため、`{ name: undefined }`
-  と `{}` は wire 上で同じです。触らないならキーを含めず、消すなら `null` を明示します。
+- **Check the body against the generated type with `satisfies`** (`body: { ... } satisfies <Operation>Request`). As with the mapper,
+  this is so a type tells you when the contract moved.
+- **A create with no natural key always takes an idempotency key.** Even if the contract makes it optional, a resend without one simply
+  becomes a second record. The caller creates the key (at the point the screen was opened) — create it on every send and a double submit becomes two
+  records; the key must be bound to "one attempt". Only an endpoint that passes a key declares `idempotent: true`.
+  The wrapper does not retry a `POST` / `PATCH` that does not declare it
+  ([0071](../../docs/adr/0071-bff-api-integration.md)). An `idempotent: true` without a key fails neither the types nor any check.
+- **Do not resend an operation that cannot be resent.** A create with no natural key, an increment (relative update), a multipart save and a state transition
+  each either happen twice or become `conflict` if delivered twice. When no response came back, the only way to know whether it succeeded is to refetch
+  and check.
+- **Do not pass a state transition's response to the inner layers.** If the transition's response falls short of the screen's shape, the endpoint's
+  responsibility ends at verifying that "a response matching the contract came back", and the screen refetches the changed value.
+- **Do not mix updates that carry a version with relative updates.** A full replacement carries `version`, and the wrapper normalizes a mismatch to
+  `conflict`. An increment carries no version — concurrent increments are not lost, so there is no reason to detect and reject
+  a conflict.
+- **To distinguish "leave untouched" from "clear" in a partial update, go through `PatchPayload<T>` in
+  [`server/http/patch-payload.ts`](server/http/patch-payload.ts).** `JSON.stringify` drops keys whose value is `undefined`, so `{ name: undefined }`
+  and `{}` are identical on the wire. To leave a field untouched, omit the key; to clear it, send `null` explicitly.
 
-## URL の条件を契約に照らす
+## Checking URL Conditions Against the Contract
 
-倒すか落とすかの決め方は [docs/rules.md#url](../../docs/rules.md#url)が持ちます。ここが持つのは、
-契約に照らして落とす口の形です。
+How to decide between falling back and dropping is owned by [docs/rules.md](../../docs/rules.md#url). What this section holds is
+the shape of the endpoint that drops values by checking them against the contract.
 
-1. Route Handler が [`server/http/search-params.ts`](server/http/search-params.ts) の `toRawQuery()` で
-   `URLSearchParams` を素の形（同じキーの繰り返しは並び）に写す。値の解釈はしない
-2. 口の `parse<資源>Query(raw)` が、契約が数・真偽・並びで宣言しているキーだけを直す。URL の値は常に
-   文字列なので、直さないと整数の宣言に当たって落ちる。**真偽は `"true"` / `"false"` だけを直し、読めない
-   綴りは文字列のまま残す** —— 寄せると打ち間違いが黙って片方へ倒れる。並びは、1 つだけ選ばれた条件が
-   単一の文字列で届くので並びへ揃え、重複は畳む
-3. 生成スキーマ（`<Operation>QueryParams`）の `safeParse` へ通す。契約が非推奨の別名を残していて後継と
-   同時に送ると落ちる関係なら、`.omit()` で窓口を 1 つにする
-4. `{ ok: true, query } | { ok: false, invalidKeys }` を返す。外れたキーは検証ライブラリの型ではなく素の
-   名前で返し、どう見せるかは画面が決める
+1. The Route Handler maps `URLSearchParams` to its raw form (a repeated key becomes an array) with `toRawQuery()` in
+   [`server/http/search-params.ts`](server/http/search-params.ts). It does not interpret values
+2. The endpoint's `parse<Resource>Query(raw)` coerces only the keys the contract declares as numbers, booleans or arrays. URL values are always
+   strings, so without coercion they fail against an integer declaration. **Booleans coerce only `"true"` / `"false"`, and an unreadable
+   spelling stays a string** — coercing it lets a typo silently fall to one side. For arrays, a condition with only one selection
+   arrives as a single string, so it is normalized to an array, and duplicates are folded
+3. Pass it through `safeParse` of the generated schema (`<Operation>QueryParams`). If the contract keeps a deprecated alias that fails when sent
+   together with its successor, narrow to a single entry with `.omit()`
+4. Return `{ ok: true, query } | { ok: false, invalidKeys }`. Rejected keys are returned as plain names rather than the validation
+   library's types, and the screen decides how to show them
 
-**キーは利用者が決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、並びを組んで
-から `Object.fromEntries` で畳みます。
+**The user decides the keys.** Writing into an empty object by index makes `__proto__` an assignment target, so build an array
+and fold it with `Object.fromEntries`.
 
-**一致する対象を決める条件の一式は、一覧と件数で共有します。** 取り出す位置と並び順は件数に効かないので
-含めません。片方だけに条件を足すと、出ている件数と一覧の中身が食い違います。
+**The set of conditions that decides which records match is shared by the list and the count.** The offset and the sort order do not affect the count,
+so they are not included. Add a condition to only one of them and the count shown disagrees with the list's contents.
 
-## 値の分類は取得の口が宣言する
+## The fetch endpoint declares the value classification
 
-**`createHttpClient` は分類を必ず受け取ります**（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
-client を組むのは分類ごとに 1 つの接続口（[`server/http/`](server/http/README.md) の `getPublicClient()` /
-`getUserScopedClient()`）で、取得の口は分類に合う接続口を引きます。
+**`createHttpClient` always takes a classification** ([0112](../../docs/adr/0112-data-classification-cache-boundary.md)).
+A client is built by exactly one connection point per classification (`getPublicClient()` /
+`getUserScopedClient()` in [`server/http/`](server/http/README.md)), and a fetch endpoint takes the connection point that matches its classification.
 
-| 分類 | 何を運ぶか | 持てるもの |
+| Classification | What it carries | What it can hold |
 | --- | --- | --- |
-| `scope: "public"` | 主体を名乗らずに取れるもの | `cache` / `tags`。資格情報の口は**型として持ちません** |
-| `scope: "user-scoped"` | 主体に紐づくもの | 資格情報。`cache` / `tags` は**型として持ちません** |
+| `scope: "public"` | What can be fetched without naming a principal | `cache` / `tags`. **The type has no slot** for a credential source |
+| `scope: "user-scoped"` | What is tied to a principal | Credentials. **The type has no slot** for `cache` / `tags` |
 
-**資格情報を載せうる口は、載せなかった回も含めて user-scoped です。** `allowAnonymous: true` を立てても
-動きません。分類は口の性質であって要求ごとの結果ではなく、だから静的に決まり、型で塞げます。
+**An endpoint that can attach credentials is user-scoped, including the times it did not attach them.** Setting `allowAnonymous: true`
+does not change this. The classification is a property of the endpoint, not a per-request outcome, so it is decided statically and can be closed off by types.
 
-**主体を指す値は資格情報とは限りません。** 契約が独自に持つ識別子のヘッダも主体を指します。
-そういう値を載せる口も user-scoped です —— 判定は「認証されているか」ではなく「応答が主体で
-変わるか」です。
+**A value that points at a principal is not necessarily a credential.** A header carrying an identifier the contract defines on its own also points at a principal.
+An endpoint that carries such a value is also user-scoped — the test is not "is it authenticated" but "does the response vary
+by principal".
 
-分類が塞ぐのは「PII が共有キャッシュへ入る」経路です。入れ物は server 側で共有され、鍵は URL・
-method・ヘッダ・本文なので、主体ごとに割れた値がそこへ載ると、ある主体の応答が別の主体へ渡ります。
-**注意書きではなく引数の不在**にしてあるのは、注意書きが守るのは読んだ人だけだからです。
+What the classification closes off is the path by which "PII enters a shared cache". The store is shared on the server side and its key is the URL,
+method, headers and body, so if a value that varies by principal lands there, one principal's response is handed to another.
+**It is made the absence of an argument rather than a warning** because a warning protects only those who read it.
 
-user-scoped な値をキャッシュしたいときの手段は `use cache: private`（サーバへ保存されず、ブラウザの
-メモリにのみ載る）に限ります。**これは明示的な例外能力であって一般許可ではありません。**
+When a user-scoped value needs caching, the only means is `use cache: private` (not stored on the server; held only in the browser's
+memory). **This is an explicit exception capability, not a general permission.**
 
-## リクエストをまたいで残すのは `use cache` の側
+## `use cache` is what persists across requests
 
-**寿命を持つのは取得の口です**（[0071](../../docs/adr/0071-bff-api-integration.md)）。残す口の中で
-`use cache` を宣言し、寿命は `cacheLife`、捨てる印は `cacheTag` が持ちます。呼ぶ側（feature / page）へ
-置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、印の付け先が散ります。
+**The fetch endpoint owns the lifetime** ([0071](../../docs/adr/0071-bff-api-integration.md)). Declare
+`use cache` inside the endpoint that persists; `cacheLife` holds the lifetime and `cacheTag` holds the marker for discarding. Put them on the caller (feature / page)
+and the same fetch gets a different lifetime per call site, and the places markers are attached scatter.
 
-**内側の `fetch` には寿命を持たせません。** `use cache` の内側の取得はまとめて外側の寿命に従うので、
-二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴みます。
+**Do not give the inner `fetch` a lifetime.** Fetches inside `use cache` all follow the outer lifetime, so
+holding both means the inner one does not expire, and the outer one grabs the same stale response even when it refetches.
 
-**捨てる印は、変わる契機ごとに分けます。** 印の綴りは [docs/rules.md](../../docs/rules.md)「データ分類と
-機微情報」が持ちます。集計や順位は別の事象で変わるので、資源の印へ相乗りさせると、資源を触らない限り古い
-集計が残り続けます —— そういう口は印を持たず、キャッシュにも入れません。**落ちているときの形を含む応答も
-残しません。** 外部の lookup が落ちたことを空の候補で表す契約では、残すと戻ったあとも空を配り続けます。
-分類が同じ public でも、寿命の考え方は口ごとに違います。
+**Split discard markers by what triggers a change.** The spelling of markers is owned by [docs/rules.md](../../docs/rules.md#data-classification).
+Aggregates and rankings change on different events, so piggybacking them on the resource's marker leaves stale
+aggregates in place until the resource is touched — such an endpoint has no marker and is not cached either. **Do not keep a response
+that includes its shape while something is down, either.** Under a contract that represents an external lookup being down as an empty candidate list, keeping it means serving empty even after recovery.
+Even within the same public classification, how lifetime is thought about differs per endpoint.
 
-**寿命は profile の名前で名乗り、秒数は `next.config.ts` の `cacheLife` が持ちます。** 口の側は「何の
-寿命か」だけを言い、口を触らずに値を動かせます。**殻へ載る取得の profile に `expire` を置きません**
-—— `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すので、そこで取得先へ届かないと
-殻を配れていたはずの route が丸ごと失敗へ倒れます。
+**A lifetime is named by profile name; the seconds are held by `cacheLife` in `next.config.ts`.** The endpoint says only "what
+lifetime it is", so values can move without touching the endpoint. **Do not put `expire` on the profile of a fetch that lands in the static shell**
+— `expire` imposes a synchronous refetch on the one request right after traffic has been absent for that time, so if the fetch cannot reach its source there,
+a route that could have served its static shell falls entirely into failure.
 
-**確実に残るのは、組み立て時に殻へ焼かれた分だけです。** `use cache` の既定の入れ物はプロセスのメモリなので、
-serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと
-捨てられます。`fetch` の `cache: "force-cache"` が持っていた「デプロイとインスタンスをまたいで残る」性質は
-ここで失われるもので、**request 時の再利用を保証と読まないでください**。必要になったら
-`cacheHandlers` か `use cache: remote` を選びます（配備先に依存するので本体は選びません）。
+**What reliably persists is only what was baked into the static shell at build time.** The default store for `use cache` is process memory, so
+on serverless, requests can land on different instances and some times no reuse happens, and across deploys the keys are
+discarded wholesale. The "persists across deploys and instances" property that `fetch`'s `cache: "force-cache"` had is
+lost here; **do not read request-time reuse as a guarantee**. When it becomes necessary, choose
+`cacheHandlers` or `use cache: remote` (it depends on the deployment target, so the core does not choose).
 
-**`use cache` を持つモジュールは `createHttpClient` を直に引けません。** 直に引けるモジュールは
-user-scoped な client も組める状態にあり、`project-rules/no-user-scoped-in-cached-module` が止めます。
-代わりに、**公開の分類だけを作る接続口**（`getPublicClient()`）を引きます —— その口が作れるのは
-公開の client だけなので、キャッシュの下で分類を取り違えようがありません。検査が読むのは直接の import と
-その 1 段先までなので（[docs/rules.md#data-classification](../../docs/rules.md#data-classification)）、user-scoped の接続口を
-引く module も `use cache` の下からは引けません。同じ資源を主体を名乗らずに読む口が要るなら（一覧を末尾まで
-辿るサイトマップなど）、公開の接続口だけを引く別 module に置きます。
+**A module that has `use cache` cannot take `createHttpClient` directly.** A module that can take it directly is
+in a position to build a user-scoped client too, and `project-rules/no-user-scoped-in-cached-module` stops it.
+Instead, take **the connection point that builds only the public classification** (`getPublicClient()`) — that endpoint can build only
+public clients, so the classification cannot be confused under a cache. The check reads direct imports and
+one step beyond them ([docs/rules.md](../../docs/rules.md#data-classification)), so a module that takes the user-scoped connection point
+cannot be taken from under `use cache` either. If you need an endpoint that reads the same resource without naming a principal (such as a sitemap that
+walks a list to its end), put it in a separate module that takes only the public connection point.
 
-接続口が分類ごとに 1 つである理由はもう 1 つあります。retry budget と circuit breaker は client の中に
-状態として載るため、同じ downstream へ client を分けると、劣化したかどうかの判断が分けた数だけ割れます。
-**user-scoped 側も同じ理由で `getUserScopedClient()` 1 つに寄せてあり、帰結として user-scoped の口は
-すべて遮断器を共有します** —— ある口で失敗が続いて遮断されると、同じ module graph の中の他の
-user-scoped の口も接続せずに落ちます（[0071](../../docs/adr/0071-bff-api-integration.md)「fetch wrapper の
-resilience」）。
+There is one more reason for exactly one connection point per classification. The retry budget and the circuit breaker live inside the client
+as state, so splitting clients toward the same downstream splits the judgment of whether it has degraded by the number of splits.
+**The user-scoped side is consolidated into a single `getUserScopedClient()` for the same reason, and as a consequence all user-scoped endpoints
+share one circuit breaker** — when failures persist on one endpoint and it trips, the other
+user-scoped endpoints in the same module graph also fail without connecting ([0071](../../docs/adr/0071-bff-api-integration.md), the fetch wrapper's
+resilience).
 
-**client を組めるのは接続口（`architecture.ts` の `CONNECTION_PORTS`）だけです。** 外で組むと
-`project-rules/no-client-outside-connection-port` が落とします。接続先を呼び出しごとに受け取る IdP への
-要求のように寄せられない箇所は、`eslint-disable-next-line` に理由を書いて名乗ります。
+**Only a connection point (`CONNECTION_PORTS` in `architecture.ts`) can build a client.** Building one elsewhere is failed by
+`project-rules/no-client-outside-connection-port`. A place that cannot be consolidated, such as a request to an IdP that takes its destination per call,
+declares itself with `eslint-disable-next-line` and a reason.
 
-## 資格情報を載せるかは接続口が、送ってよいかは要求が決める
+## The connection point decides whether credentials are attached; the request decides whether sending is allowed
 
-**資格情報の取得口（`getBearerToken`）を渡すのは user-scoped の接続口だけです。** 取得の口ごとに
-渡させると、1 つ渡し忘れた口の要求はすべて匿名で出ていき、型も検査も落ちません。
+**Only the user-scoped connection point is given the credential source (`getBearerToken`).** Have each fetch endpoint
+pass it, and every request from an endpoint that forgot to pass it goes out anonymously, failing neither the types nor any check.
 
-**資格情報が取れなかったときに送ってよいかは、要求が `allowAnonymous` で宣言します。** 契約は認証の
-要否を operation ごとに宣言する（OpenAPI の `security`）ので、client の単位では粗すぎます。立てるのは、
-契約がその operation の `security` に `{}` を含めているものだけです。`security: []` の operation は
-公開の接続口を引きます。立てても、取れた資格情報は載せます。立てていない要求は、資格情報が取れなければ
-送らずに `unauthenticated` で落ちます。
+**Whether a request may be sent when no credential could be obtained is declared by the request through `allowAnonymous`.** The contract declares whether
+authentication is required per operation (OpenAPI's `security`), so the client is too coarse a unit. Set it only for operations whose
+`security` the contract makes include `{}`. An operation with `security: []` takes
+the public connection point. Even when set, a credential that was obtained is still attached. A request without it, when no credential can be obtained,
+is not sent and fails with `unauthenticated`.
 
-**渡すのは import した口だけです。** `Authorization` を組む値をその場で掴むと、要求のたびに
-`cookies()` を読む形が崩れ、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れます。
-cookie がまだ無い session 確立の 1 往復だけは `bearerToken` という別の綴りで渡します。
+**Pass only the imported source.** Grabbing the value that builds `Authorization` on the spot breaks the pattern of reading `cookies()`
+on every request, and the cached-scope defence (`next-request-in-use-cache`) silently drops off.
+Only the single round trip that establishes a session, before any cookie exists, passes it under a different spelling, `bearerToken`.
 
-`allowAnonymous` を付け間違えても型も検査も落ちません。認証が要る operation に立てると、資格情報が
-取れなかった回も匿名で送られ、**気づけるのはバックエンドが 401 を返したときだけ**です。
+Setting `allowAnonymous` wrongly fails neither the types nor any check. Set it on an operation that needs authentication and the times a credential
+could not be obtained are also sent anonymously, and **the only way to notice is when the backend returns 401**.
 
-**接続先と生成元が違う宛先には載せません。** 絶対 URL を渡された要求は接続先を離れるため、載せると
-資格情報がその宛先へ渡ります。宛先は Discovery のような外の応答から来ることがあり、相対パスしか渡さない
-慣習では止まらないので、要求境界が origin を比べて判定します。
+**Do not attach credentials to a destination whose origin differs from the connection target.** A request given an absolute URL leaves the connection target, so attaching
+credentials would hand them to that destination. The destination can come from an outside response such as Discovery, and a
+convention of passing only relative paths does not stop it, so the request boundary compares origins to decide.
 
-## バックエンドが発行した識別子を cookie に預かる
+## Holding a backend-issued identifier in a cookie
 
-認証とは別に、バックエンドが発行した識別子（未認証でも持てるもの）をブラウザへ預ける口を置くときの形です。
+The shape for placing an endpoint that, separately from authentication, entrusts the browser with an identifier the backend issued (one that can be held even unauthenticated).
 
-- **属性は [`server/auth/session-cookie.ts`](server/auth/session-cookie.ts) の `baseCookieOptions()` を
-  借ります。** 用途を接頭辞に含める規則と属性の既定は [docs/rules.md](../../docs/rules.md)「データ分類と
-  機微情報」が持ち、口ごとに書くのは固有の判断だけです。認証の cookie と別に置くのは、寿命も主体も session と
-  一致しないためです。
-- **寿命は発行元の期限に合わせます。** 期限が判らなければブラウザを閉じるまでとし、こちらで年数を決めません。
-  先に消えた対象を指す cookie は、何も指さない値になります。
-- **空の値は持っていないものとして扱います。** cookie は残っているが中身が空という状態は起こりえて、そのまま
-  送るとバックエンドが形の違反として拒みます。
-- **発行された値を受け取れるのは、それを作る操作の応答だけです。** 載っていない応答で手元の cookie を消さない
-  のは、既に持っている識別子が生きているためです。
-- **ログアウトの teardown で破棄します。** 次に画面を開いた利用者へ、前の利用者のものが見えないようにします。
-- **ブラウザから読める形には置きません。** その値だけが到達手段である以上、露出はそのまま他人のものへの
-  到達経路になります。
+- **Borrow the attributes from `baseCookieOptions()` in [`server/auth/session-cookie.ts`](server/auth/session-cookie.ts).** The rule of including the purpose in the prefix and the attribute defaults are owned by
+  [docs/rules.md](../../docs/rules.md#data-classification), and each endpoint writes only its own judgment. It is kept separate from the authentication cookie because neither its lifetime nor its principal
+  matches the session.
+- **Match the lifetime to the issuer's expiry.** If the expiry is unknown, keep it until the browser closes; do not pick a number of years here.
+  A cookie pointing at a target that has already disappeared becomes a value that points at nothing.
+- **Treat an empty value as not held.** A state where the cookie remains but its content is empty can occur, and sending it as is
+  makes the backend reject it as a shape violation.
+- **Only the response of the operation that creates the issued value may receive it.** A response that does not carry it does not clear the local cookie,
+  because the identifier already held is still alive.
+- **Discard it in the logout teardown.** So that the next user to open the screen does not see the previous user's data.
+- **Do not place it where the browser can read it.** Since that value is the only means of access, exposing it directly becomes a path
+  to someone else's data.
 
-## URL の予算
+## URL Budget
 
-**条件を URL へ載せる要求には、1 本ぶんの予算があります。** 経路の中継——ブラウザ / CDN /
-リバースプロキシ / backend——はどれも要求行の長さに上限を持ち、超えた要求は backend へ届く前に
-弾かれます。契約が各条件に宣言した上限は、この 1 つの予算を食い合います。
+**A request that carries conditions in its URL has a budget of one.** Every hop on the path — browser / CDN /
+reverse proxy / backend — has a limit on request-line length, and a request that exceeds it is
+rejected before reaching the backend. The limits the contract declares for each condition compete for this one budget.
 
-数えるのは **request target——path とクエリ——のバイト数**です。要求行に載る部分そのもので、
-接続先の違う経路どうしでも同じものを数えられます。文字数ではありません。全角 1 文字は UTF-8 で
-3 バイトになり、符号化すると 9 文字へ膨らみます。
+What is counted is **the byte length of the request target — the path and the query**. It is exactly the part carried on the request line,
+so the same thing can be counted across paths to different targets. It is not a character count. One full-width character is 3 bytes in UTF-8
+and expands to 9 characters when encoded.
 
-**契約の上限を広げたら、予算を計算し直してください。** 文字列条件の `maxLength`、繰り返す条件の
-`maxItems`、カーソルの長さ——どれが動いても配分が変わります。ひとつの条件が伸びた分は、他の条件が
-使える余地から引かれます。
+**When you widen a contract's limit, recompute the budget.** A string condition's `maxLength`, a repeated condition's
+`maxItems`, the cursor length — any of them moving changes the allocation. What one condition grows is subtracted from the room
+the other conditions can use.
 
 <!-- sample:begin -->
-同梱のサンプルで、商品一覧（`GET /v1/products`）に宣言上限をすべて張り付けた場合:
+In the bundled sample, with every declared limit maxed out on the product list (`GET /v1/products`):
 
-| 条件 | 上限の根拠 | バイト |
+| Condition | Basis of the limit | Bytes |
 | --- | --- | --- |
-| `categoryCodes` × 32 | `maxItems: 32` / 値は最大 5 桁 | 640 |
-| `statusCodes` × 32 | 同上 | 576 |
-| `keyword` | `maxLength: 255`。全角は 1 文字 9 バイトへ膨らむ | 2,304 |
+| `categoryCodes` × 32 | `maxItems: 32` / values up to 5 digits | 640 |
+| `statusCodes` × 32 | Same as above | 576 |
+| `keyword` | `maxLength: 255`. A full-width character expands to 9 bytes | 2,304 |
 | `minPrice` / `maxPrice` | `maxLength: 40` × 2 | 100 |
-| `minQuantity` / `maxQuantity` | int32 10 桁 × 2 | 46 |
-| `sort` / `first` | enum と 3 桁 | 28 |
+| `minQuantity` / `maxQuantity` | int32, 10 digits × 2 | 46 |
+| `sort` / `first` | enum and 3 digits | 28 |
 | `after` | `maxLength: 512` | 519 |
-| **計** | | **約 4.2 KB** |
+| **Total** | | **about 4.2 KB** |
 
-`keyword` を 4 バイト文字（絵文字など）で埋めた場合は 1 文字が 12 文字へ膨らみ、合計は約 5.0 KB に
-なります。実務上の閾値（8 KB 前後）に対して、契約を守る限りは超えられない——逆に言えば、上限を
-広げた時点でこの計算は崩れます。
+Filling `keyword` with 4-byte characters (emoji and the like) expands each character to 12 characters, and the total becomes about 5.0 KB.
+Against the practical threshold (around 8 KB), it cannot be exceeded as long as the contract is honoured — conversely, the moment a limit
+is widened this calculation breaks.
 <!-- sample:end -->
 
-**閾値は経路が最初に弾く長さで、実務上は 8 KB 前後です。** 値は `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` が
-持ちます（[env/README](../../env/README.md)）。直値で持たないのは、経路のどこが最初に弾くかが配信構成で
-決まるためです。自分の経路の最小値へ書き換えてください。`NEXT_PUBLIC_` は
-ビルド時にリテラルへ置換されるため、変更には再ビルドが要ります。
+**The threshold is the length the path rejects first; in practice it is around 8 KB.** The value is held by `NEXT_PUBLIC_HTTP_MAX_URL_BYTES`
+([env/README](../../env/README.md)). It is not a literal because which hop rejects first is decided by the delivery
+setup. Rewrite it to the minimum on your own path. `NEXT_PUBLIC_` is
+replaced with a literal at build time, so changing it requires a rebuild.
 
-判定は `http/url-budget.ts` の 1 つで、呼ぶのは 2 つの要求境界——`server/http/request.ts` と
-`client/http/request.ts`——だけです。**画面ごとの事前チェックは置きません。** 閾値は画面からは
-原理的に分からず、置けば画面の数だけ当て推量の定数が増えます。超過は `uri-too-long` として落ち、
-画面には `errors` の分類 1 つとして現れます（[0080](../../docs/adr/0080-error-handling.md)）。
+The check is a single one in `http/url-budget.ts`, and only the two request boundaries call it —
+`server/http/request.ts` and `client/http/request.ts`. **No per-screen pre-check is placed.** A screen cannot in principle know
+the threshold, and placing one would multiply guessed constants by the number of screens. An overrun fails as `uri-too-long`, and
+appears on the screen as one classification in `errors` ([0080](../../docs/adr/0080-error-handling.md)).
 
-## ブラウザ発の取得の口
+## Browser-Originated Fetch Endpoints
 
-`client/api/<資源>.ts` が持つのは、同一オリジンの BFF（`app/api/**`）を
-[`client/http/request.ts`](client/http/request.ts) の `request()` で叩く口と、購読が運ぶ本文の形だけです
-（[0073](../../docs/adr/0073-pagination-fetch-boundary.md)）。
+`client/api/<resource>.ts` holds only the endpoints that call the same-origin BFF (`app/api/**`) with `request()` in
+[`client/http/request.ts`](client/http/request.ts), and the shape of the bodies a subscription carries
+([0073](../../docs/adr/0073-pagination-fetch-boundary.md)).
 
-- **検証スキーマは手で書きます。** この経路が受け取るのはバックエンドの応答ではなく BFF が組んだ表示用の
-  形なので、契約の生成物は形が違って通りません。それでも検証するのは、応答を検証せずに UI へ流さない原則が
-  client 側にも等しく効くためです。
-- **増分取得が受け取る形は、JSON で運べる形に server 側の口が落としておきます。** 初回ページ（RSC 経由）と
-  続き（JSON）で `Date` や省略可能な値の有無が違うと、積み上げた一覧の途中から表示が壊れます。JSON を経由して
-  文字列へ落ちた日時は `z.coerce.date()` でこちらが戻します。
-- **`client/` は `zod/mini` を使います。** `request()` が受けるのは `zod/v4/core` の `$ZodType` なので、
-  流儀は問いません —— 共有層が片方の流儀を要求すると、呼び出し側の移行がその 1 箇所のために止まります。
-- **本文を載せる口を持ちません。** ブラウザから状態を作る操作は Server Action が持ちます。ここを通るのは
-  取得と、発券のように引数を持たない `POST` だけです。
-- **timeout・再試行・遮断を持ちません。** それは `adapters/server` が BFF の向こうで持っており、ここにも
-  持つと同じ要求に 2 つの再試行が別々の勘定で走ります。
-- **`401` / `403` / `404` を内部の失敗へ畳みません**（[0080](../../docs/adr/0080-error-handling.md)）。
-  読み進めている最中に session が切れた画面は入り直しを促す必要があり、張り直しを繰り返す購読は直らない
-  相手を見分けられないと止まりません。
-- **失敗を握り潰す口は、投げる口とは別名で置きます。** 引けなくても「何もしない」が正しい補完のような口だけで、
-  その場合も投げられた失敗を「機構が壊れている」のような別の意味へ読み替えません —— 判らないものは
-  判らないままにします。
-- **client が読むだけの定数は、検証スキーマを持つ module と分けて置きます**
-  （[docs/rules.md#url](../../docs/rules.md#url)）。`const` を 1 つ読む import が、zod のスキーマ一式を
-  ブラウザの束へ載せます。
+- **Write the validation schema by hand.** What this path receives is not the backend's response but the display shape the BFF built,
+  so the contract's generated artifacts have a different shape and do not pass. It is still validated because the principle of not passing an unvalidated response to the UI
+  applies equally on the client side.
+- **The server-side endpoint reduces what an incremental fetch receives to a shape JSON can carry.** If the first page (via RSC) and
+  the continuation (JSON) differ in `Date` or in whether optional values are present, the display breaks partway through the accumulated list. Dates that became
+  strings through JSON are restored here with `z.coerce.date()`.
+- **`client/` uses `zod/mini`.** `request()` accepts `zod/v4/core`'s `$ZodType`, so
+  the flavour does not matter — if a shared layer required one flavour, callers' migration would stall on that one place.
+- **No endpoint carries a body.** Operations that create state from the browser belong to Server Actions. What passes here is only
+  fetches and argument-less `POST`s such as ticket issuance.
+- **No timeout, retry or circuit breaking.** `adapters/server` holds those behind the BFF, and holding them here too
+  would run two retries with separate accounting on the same request.
+- **Do not fold `401` / `403` / `404` into internal failures** ([0080](../../docs/adr/0080-error-handling.md)).
+  A screen whose session expired while reading needs to prompt a re-entry, and a subscription that keeps reconnecting cannot stop unless it can tell
+  a counterpart that will not recover.
+- **An endpoint that swallows failures is placed under a different name from the throwing endpoint.** Only for endpoints like autocomplete, where "do nothing" is correct even when it cannot be reached,
+  and even then a thrown failure is not reinterpreted as a different meaning such as "the mechanism is broken" — what is unknown
+  stays unknown.
+- **Place constants the client only reads in a module separate from the one holding the validation schema**
+  ([docs/rules.md](../../docs/rules.md#url)). An import that reads one `const` puts the whole zod schema set
+  into the browser bundle.
 
-## ブラウザ発のテレメトリの中継
+## Relaying Browser-Originated Telemetry
 
-**ブラウザから collector を直接叩かせません**（[0081](../../docs/adr/0081-observability-logging.md)）。
-endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF が受けて OTLP へ載せます。この経路は
-3 つに分かれ、境界ごとに持ち物が違います。
+**Do not let the browser call the collector directly** ([0081](../../docs/adr/0081-observability-logging.md)).
+Neither the endpoint nor the credentials are exposed to the browser; the same-origin BFF receives it and puts it onto OTLP. This path
+splits into three, and each boundary holds something different.
 
-| 置き場 | 持つもの |
+| Location | What it holds |
 | --- | --- |
-| `http/telemetry-report.ts` | 送る側と受ける側が共有する報告の形。型と、送る前に切り詰める長さだけ |
-| `client/telemetry/report-telemetry.ts` | 測定と例外を報告へ組み、`sendBeacon` で送る |
-| `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
-| `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
-| `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+| `http/telemetry-report.ts` | The report shape shared by the sending and receiving sides. Only the types and the lengths to truncate to before sending |
+| `client/telemetry/report-telemetry.ts` | Assembles measurements and exceptions into reports and sends them with `sendBeacon` |
+| `client/telemetry/browser-tracer.ts` | Browser-side instrumentation. Loaded only through a dynamic import |
+| `server/telemetry/browser-telemetry.ts` | Validates reports and puts them onto signals |
+| `server/telemetry/browser-traces.ts` | Hands spans the browser created to the collector |
 
-**検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
-ためのもので、送信者は差し替えられます。認証を要求しない口なので、受け側が自分で確かめます
-（[0077](../../docs/adr/0077-bff-abuse-protection-boundary.md)）。
+**Validation exists only on the receiving side.** The sending side has the same length declarations, but those exist to keep traffic down,
+and the sender can be replaced. It is an endpoint that requires no authentication, so the receiving side checks for itself
+([0077](../../docs/adr/0077-bff-abuse-protection-boundary.md)).
 
-**`observability` を import できるのは受け側だけです。** Web Vitals は指標ごとのヒストグラムとして
-出すため OTel の Metrics API へ、例外は返ってきた `traceparent` の文脈で記録するため trace 相関の口へ
-触ります（[0082](../../docs/adr/0082-client-observability.md)）。
-**この許可は `client/` にも機械的に及びます。** 境界検査は `server/` と `client/` を区別しません ——
-要素を分けているのは実行文脈ではなく区画で、`server/` も `client/` も同じ `adapters` の要素に居ます
-（下記「この層の要素」）。効いているのは **`observability` の側が module ごとに `server-only` を
-名乗っていること**で、client から引いた時点でビルドが落ちます。**名乗っていないのは
-`render-span.ts` の 1 本だけ**で、それは feature が import する面なので意図的にブラウザの束へ入ります
-（[observability/README.md](../observability/README.md)）—— **そこは層検査も `server-only` も止めません。**
-同じ形は `config` にもあります —— ADR 0021 は server config を `adapters/server` だけに許しますが、
-機械強制は層の粒度で当たります。
+**Only the receiving side can import `observability`.** Web Vitals are emitted as per-metric histograms,
+so it touches OTel's Metrics API, and exceptions are recorded in the context of the returned `traceparent`, so it touches the trace-correlation API
+([0082](../../docs/adr/0082-client-observability.md)).
+**This permission mechanically extends to `client/` too.** The boundary check does not distinguish `server/` from `client/` —
+what separates elements is the compartment, not the execution context, and both `server/` and `client/` sit in the same `adapters` element
+(*Elements of This Layer* below). What actually works is **`observability` declaring `server-only` per
+module**, so the build fails the moment the client takes it. **The only one that does not declare it is
+`render-span.ts`**, a surface features import, so it intentionally enters the browser bundle
+([observability/README.md](../observability/README.md)) — **neither the layer check nor `server-only` stops that.**
+The same shape exists for `config` — ADR 0021 permits server config only to `adapters/server`, but
+mechanical enforcement applies at layer granularity.
 
-**ブラウザ側の計装は動的な import でだけ読みます。** 要求境界（`client/http/request.ts`）は画面を
-開いた時点で読まれるので、そこから OTel へ辺を張ると計装の重さが初期の読み込みに乗ります。要求を
-span にするのは `fetch` を包む計装のほうで、要求境界のコードは計装を知りません。
+**Browser-side instrumentation is loaded only through a dynamic import.** The request boundary (`client/http/request.ts`) is loaded the moment
+a screen opens, so drawing an edge from there to OTel would put the weight of instrumentation on the initial load. What turns a request into a
+span is the instrumentation that wraps `fetch`; the request boundary's code knows nothing of instrumentation.
 
-**包むのは自分が呼んでいる要求だけではありません。** router が画面遷移と先読みで出す RSC の要求も
-対象です。自分で呼んでいる場所だけを包むと、client 遷移が trace から抜けて別の trace の根になります。
-そのぶん 1 つの trace に載る span は増えます —— 先読みは見えている画面ぶんだけ出るためです。
+**It wraps more than the requests you make yourself.** RSC requests the router issues for screen transitions and prefetching are also
+covered. Wrap only the places you call yourself and client transitions drop out of the trace and become roots of separate traces.
+In exchange, more spans land in one trace — prefetches are issued for as much of the screen as is visible.
 
-## 購読は開いて読む側だけを持つ
+## A subscription holds only the opening-and-reading side
 
-長寿命接続を**保持する側**はバックエンドで、この層は**開いて読む側**です
-（[0074](../../docs/adr/0074-runtime-communication-seam.md)）。持つのは下の置き場だけで、接続の保持も
-event の採番も、誰に何を配るかも持ちません。
+The side that **holds** the long-lived connection is the backend; this layer is the side that **opens and reads**
+([0074](../../docs/adr/0074-runtime-communication-seam.md)). It holds only the locations below, and holds neither the connection,
+nor event numbering, nor who gets what.
 
-| 置き場 | 持つもの |
+| Location | What it holds |
 | --- | --- |
-| `client/stream/subscription.ts` | 購読 1 本の状態機械。発券・接続・張り直し・打ち切りの分岐 |
-| `client/stream/ordering.ts` | 到達順の乱れを直す窓と、流した位置の記憶 |
-| `client/stream/backoff.ts` | 張り直しまでの待ち時間 |
-| `client/stream/envelope.ts` | 封筒と制御指示の読み取り。**本文の形は持たない** |
-| `client/stream/cursor.ts` | 位置の表し方と比較 |
-| `client/stream/use-stream.ts` | 購読を component の寿命へ束ねる |
+| `client/stream/subscription.ts` | The state machine of one subscription. The branches for ticket issuance, connection, reconnection and giving up |
+| `client/stream/ordering.ts` | The window that fixes out-of-order arrival, and the memory of the position delivered |
+| `client/stream/backoff.ts` | The wait before reconnecting |
+| `client/stream/envelope.ts` | Reading the envelope and control directives. **Holds no body shape** |
+| `client/stream/cursor.ts` | How positions are represented and compared |
+| `client/stream/use-stream.ts` | Binds a subscription to a component's lifetime |
 
-**本文の形は資源ごとの module が宣言します**（`client/api/<資源>.ts`）。封筒は feature に依らず
-同じで、中身は event の種別ごとに違うためです。契約に無い種別はその検証で落ち、上へ流れません。
+**The body shape is declared by the per-resource module** (`client/api/<resource>.ts`). The envelope is the same regardless of feature,
+while the contents differ per event type. A type not in the contract fails that validation and does not flow upward.
 
-**ブラウザは backend の stream へ直接繋ぎます。** `EventSource` は任意のヘッダを載せられないため、
-資格情報は同一オリジンの中継（`app/api/**/stream-ticket`）が発券した短命の ticket を query に載せた
-**繋ぎ先の URL** として届きます。ticket を値として渡さないのは、ブラウザ側で組み立てと取り回しが
-増えるほど、文言やログへ写す経路が増えるためです。
+**The browser connects directly to the backend's stream.** `EventSource` cannot carry arbitrary headers, so
+the credential arrives as **the URL to connect to**, carrying in its query a short-lived ticket issued by the same-origin relay (`app/api/**/stream-ticket`).
+The ticket is not passed as a value because the more the browser side assembles and handles it, the more paths there are
+to copy it into UI text or logs.
 
-**契約駆動モックが表せない往復は、発券の口で断ります**（[mocks/README.md](../../mocks/README.md)
-「購読（SSE）は差し替えません」）。発券だけが成功すると、ブラウザは実在しない接続先へ張り直しを繰り返し
-ます。`getApiConfig().mode === "mock"` のとき発券の口が `not-found` を投げ、購読する対象が無いのと同じ姿で
-画面を止めます。
+**A round trip the contract-driven mock cannot represent is refused at the ticket endpoint** ([mocks/README.md](../../mocks/README.md#購読sseは差し替えません),
+*Subscriptions (SSE) are not replaced*). If only the ticket issuance succeeds, the browser keeps reconnecting to a destination that does not exist.
+When `getApiConfig().mode === "mock"`, the ticket endpoint throws `not-found`, stopping the screen in the same state as when there is
+nothing to subscribe to.
 
-**`integration` の宣言は掛かりません。** 購読が持つ外部との往復は、時計・乱数・待機・接続として
-引数で受け取る形にしてあり、確かめるのは状態機械の分岐です。HTTP 境界を模す相手がいないので、
-`unit` の形——入力（逆順・重複・窓を越えた遅延・制御指示）を与えて遷移を直接照合する——で検証します。
+**The `integration` declaration does not apply.** The subscription's round trips with the outside are taken as
+arguments — clock, randomness, waiting and connection — and what is checked is the state machine's branches. There is no HTTP boundary to imitate,
+so it is verified in the `unit` shape — feeding inputs (reversed order, duplicates, delays beyond the window, control directives) and matching transitions directly.
 
-## client へ渡してはいけないものを登録する
+## Register what must not be passed to the client
 
-`server/taint/taint.ts` が [0030](../../docs/adr/0030-environment-variable-management.md) の口です。
-汚した object や値を Client Component へ渡すと、**描画が実行時に落ちます**。
+`server/taint/taint.ts` is the hook for [0030](../../docs/adr/0030-environment-variable-management.md).
+Pass a tainted object or value to a Client Component and **rendering fails at runtime**.
 
-| 汚すもの | 例 | 登録する場所 | 寿命 |
+| What is tainted | Example | Where it is registered | Lifetime |
 | --- | --- | --- | --- |
-| 資格情報を含む server の object | session の記録（Access Token / ID Token を持つ） | その object が生まれる場所 | object 自身 |
-| PII を含む取得結果 | 連絡先・住所・生年月日を持つ主体の詳細 | 取得の口（契約の形から表示の型へ写した直後） | object 自身 |
-| 文字列の秘密 | 署名鍵・外部サービスのキー | その値を**読む側**（`config` は react を持ち込めない） | 値を持つ singleton |
+| Server objects containing credentials | The session record (holding an Access Token / ID Token) | Where that object is born | The object itself |
+| Fetch results containing PII | A principal's details with contact details, address and date of birth | The fetch endpoint (right after mapping the contract's shape to the display type) | The object itself |
+| String secrets | Signing keys, external service keys | The side that **reads** the value (`config` cannot bring in react) | The singleton holding the value |
 
-**何が PII かはここが決めません。** 分類とその置き場は
-[0112](../../docs/adr/0112-data-classification-cache-boundary.md) が持ち、ここはその分類を実行時の
-関所へ写すだけです。
+**This layer does not decide what is PII.** The classification and where it lives are owned by
+[0112](../../docs/adr/0112-data-classification-cache-boundary.md); this layer only carries that classification over to a
+runtime checkpoint.
 
-### 参照実装
+### Reference Implementation
 
-取得の口で、写し終えた値を汚します。**呼び出し側では汚しません** —— 口が増えるたびに同じ 1 行が
-要り、書き忘れた経路がそのまま穴になります。
+Taint the mapped value at the fetch endpoint. **Do not taint at the call site** — every new endpoint would need the same line,
+and a path where it was forgotten becomes a hole as is.
 
 ```ts
 export const getAccount = cache(async (): Promise<Account> => {
@@ -409,96 +411,96 @@ export const getAccount = cache(async (): Promise<Account> => {
 });
 ```
 
-文字列の秘密は、値そのものを登録します。参照で追えないためで、登録の寿命はその値を持つ singleton
-に握らせます。
+A string secret registers the value itself. It cannot be tracked by reference, and the registration's lifetime is held by
+the singleton that holds the value.
 
 ```ts
 taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecret);
 ```
 
-**メッセージは落ちた人が読む唯一の手掛かりです。** 「渡すな」だけでなく、代わりに何を渡すのかまで
-書きます。落ちる場所は渡した側で、そこに居る人は何を選べばよいかを知りません。
+**The message is the only clue for whoever hits the failure.** Write not only "do not pass this" but what to pass instead.
+The failure happens at the passing side, and whoever is there does not know what to choose.
 
-**主機構ではありません。** 参照でしか追えないので、コピー（`{ ...record }`）にも派生値
-（`` `Bearer ${token}` ``）にも及びません。主防御は取得範囲と Client DTO の最小化で、これはそこを
-抜けた誤送信を実行時に捕まえる補助です（[0112](../../docs/adr/0112-data-classification-cache-boundary.md)）。
+**It is not the primary mechanism.** It tracks only by reference, so it does not reach copies (`{ ...record }`) or derived values
+(`` `Bearer ${token}` ``). The primary defence is minimizing fetch scope and the Client DTO; this is an aid that catches, at runtime,
+a mis-send that got past that ([0112](../../docs/adr/0112-data-classification-cache-boundary.md)).
 
-**`react` を直接呼ばず、この口を通します。** テストはこのモジュール境界を差し替え、本物が効くことは
-`taint/taint.test.ts` が RSC の直列化器で確かめます。防御の中に「口があれば呼ぶ」分岐を置かないため
-です —— 置くと、口が消えた日に検査ごと黙って外れます。
+**Go through this hook rather than calling `react` directly.** Tests replace this module boundary, and that the real thing works is
+confirmed by `taint/taint.test.ts` with the RSC serializer. This avoids placing an "if the hook exists, call it" branch inside the defence
+— with one, the check silently drops off along with the hook the day it disappears.
 
-## 運用
+## Operations
 
-- **`integration` の宣言が掛かるのは、外部との往復を持つモジュールです**。`fetch`（または注入された
-  `fetchImpl`）を直接持つものが対象で、そこでは HTTP 境界だけを対象に、内側を mock して型と形を
-  確かめます（[0090](../../docs/adr/0090-testing-strategy.md)）。**外部 IO を持たない純粋な変換**
-  （`http/url-budget.ts` / `server/http/search-params.ts` / `server/http/retry-policy.ts` /
+- **The `integration` declaration applies to modules that make round trips with the outside**. Those that directly hold `fetch` (or an injected
+  `fetchImpl`) are covered, and there the HTTP boundary alone is the subject, mocking the inside to check types and shapes
+  ([0090](../../docs/adr/0090-testing-strategy.md)). **Pure conversions with no external IO**
+  (`http/url-budget.ts` / `server/http/search-params.ts` / `server/http/retry-policy.ts` /
   `server/http/error-status.ts` / `server/http/error-response.ts` / `server/http/json-request.ts` /
-  `client/telemetry/route-pattern.ts` / `server/telemetry/browser-telemetry.ts` など、境界の前後で
-  値を写すだけのもの）は、その変換自体を `unit` の
-  形——HTTP を模さず値を直接照合する——で検証します。境界を持たないものへ境界のテストを課しても、
-  確かめる相手が無いためです。**`http/` はこの形しか置きません**——実行文脈を持たない規則の置き場
-  なので、外部との往復を持つものは `server/` か `client/` に属します
-- **`use cache` を持つ口では、寿命 profile の名前と `cacheTag` の引数も観測の対象に含めます**。HTTP
-  境界の外側にある宣言ですが、綴りを取り違えても型検査も lint も落ちず、実行時に「無効化したのに古いまま」
-  という形でしか現れません。`next/cache` をモジュール境界で差し替え、口が何を名乗ったかを確かめます。
-  **確かめられるのはそこまでです** —— 名乗った profile 名が `next.config.ts` に実在するか、実際に
-  キャッシュが効くかは、この層では分かりません（前者は build、後者は殻の実測が持ちます）
-- **HTTP 境界を模すのは MSW です**（`vitest.setup.msw` を import したファイルだけ。
-  [docs/testing-conventions.md](../../docs/testing-conventions.md)）。`serveJson` / `serveStatus` /
-  `serveWrite` が応答を割り当て、`watchFetch` が wrapper へ渡った `fetch` の引数を見ます。資格情報は
-  `../auth/session` を、設定は `@/config/environment` を `PARSED_ENVIRONMENT` で、モジュール境界で
-  差し替えます。client 側の口は `vi.stubGlobal("fetch", ...)` で済みます
-- **`<口>.contract.test.ts` は応答を割り当てず、契約から生成したハンドラそのものを相手にします**
-  （[`scripts/lib/untested-modules.ts`](../../scripts/lib/untested-modules.ts)）。写しが公開する項目は
-  `Object.keys(...).sort()` を並びごと照合します —— 生成ハンドラは契約の全項目を返すため、数項目だけを見ると
-  写し漏れも wire の項目の漏れ出しも通ります。写しの分岐そのものを見るケースだけ応答を割り当てます。
-  抽選結果に頼ると、モックの値域を変えるたびに seed の消費列がずれて落ちます
+  `client/telemetry/route-pattern.ts` / `server/telemetry/browser-telemetry.ts` and others that only map
+  values before and after the boundary) are verified in the `unit`
+  shape — matching values directly without imitating HTTP. Imposing a boundary test on something without a boundary
+  leaves nothing to check against. **`http/` holds only this shape** — it is the place for rules with no execution context,
+  so anything with round trips to the outside belongs to `server/` or `client/`
+- **For an endpoint with `use cache`, the lifetime profile name and the `cacheTag` arguments are also observed**. They are
+  declarations outside the HTTP boundary, but getting their spelling wrong fails neither the type check nor lint, and surfaces at runtime only as
+  "invalidated but still stale". Replace `next/cache` at the module boundary and check what the endpoint declared.
+  **That is as far as it can be checked** — whether the declared profile name exists in `next.config.ts`, and whether caching
+  actually takes effect, cannot be known in this layer (the former is the build's, the latter the static shell measurement's)
+- **MSW imitates the HTTP boundary** (only in files that import `vitest.setup.msw`;
+  [docs/testing-conventions.md](../../docs/testing-conventions.md)). `serveJson` / `serveStatus` /
+  `serveWrite` assign responses, and `watchFetch` inspects the `fetch` arguments passed to the wrapper. Credentials are replaced at the module boundary through
+  `../auth/session`, and configuration through `@/config/environment` with `PARSED_ENVIRONMENT`.
+  A client-side endpoint only needs `vi.stubGlobal("fetch", ...)`
+- **`<endpoint>.contract.test.ts` assigns no responses and works against the handlers generated from the contract itself**
+  ([`scripts/lib/untested-modules.ts`](../../scripts/lib/untested-modules.ts)). The fields a mapper exposes are matched
+  as an array with `Object.keys(...).sort()` — the generated handlers return every field of the contract, so checking only a few fields
+  lets both mapping omissions and leaked wire fields pass. Only cases that look at the mapper's branches themselves assign responses.
+  Relying on randomly drawn results makes the seed's consumption sequence shift and fail every time the mock's value range changes
 
-- `server/` は server config を利用でき、`client/` は secret を利用しない
-- 外部型・生成型はここで変換し、内側へ漏らさない
+- `server/` may use server config; `client/` does not use secrets
+- External and generated types are converted here and not leaked inward
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: components` — UI 部品を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: capabilities` — `capabilities` を import しない。storage / clipboard / cookie の読みといった local ブラウザ API もここに置かない | import は violation（機械が落とす）。`localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照も violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項。機械: ESLint boundaries（import のみ） |
-| `forbidden: stores` — `stores` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: business-logic` — 持つのは接続と、外部の形から表示の型への変換だけ。契約が返さない値を計算しない | violation。変換か業務の判定かが読み分けられないときは suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」 |
-| `client/` は server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数は読んでよい | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項 / この README「ブラウザ発のテレメトリの中継」。機械は層の粒度でしか見ず、`server/` と `client/` を区別しない |
-| `server/` に client hook や `"use client"` を置かない。逆に `client/` に `server-only` の module を置かない | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) 禁止事項 |
-| 公開面が返す型は表示の型で、`gen/` の生成型を素通しにしない | 公開面の宣言が生成型を名指していれば violation。推論を経て生成型が出ていくなら suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 / この README「運用」。機械は `gen/` の直接の import までを落とす |
-| `observability` を import するのは中継の受け側（`server/telemetry/`）だけ | violation | この README「ブラウザ発のテレメトリの中継」。機械は層の粒度でしか見ない |
-| client へ渡してはいけない値は取得の口で汚し、呼び出し側では汚さない。`react` の taint API は `server/taint/taint.ts` を通して呼ぶ | `taint.ts` の外で `react` の taint API を直に呼んでいれば violation。PII を含む取得の口が汚していなければ suggestion（何が PII かは 0112 が持つ） | この README「client へ渡してはいけないものを登録する」/ [0112](../../docs/adr/0112-data-classification-cache-boundary.md) |
-| 契約由来の上限・enum・書式は `gen/` から再輸出し、数や綴りを書き写さない | 生成物に同じ宣言がある数リテラルや文字列の表を別に宣言していれば violation。`satisfies` で生成型へ照らした表は通す | [0072](../../docs/adr/0072-api-type-generation.md) / [docs/rules.md#url](../../docs/rules.md#url)/ この README「取得の口の形」 |
-| 自然キーを持たない作成の口は冪等キーを受け取り、`idempotent: true` は鍵と同時にだけ立てる | `idempotent: true` の要求に `Idempotency-Key` ヘッダが無ければ violation。鍵を受け取らない作成の口は suggestion（自然キーの有無は契約が持つ） | [0071](../../docs/adr/0071-bff-api-integration.md) 禁止事項 / この README「書き込みの口」 |
+| `forbidden: components` — do not import UI components | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. Machine: ESLint boundaries |
+| `forbidden: capabilities` — do not import `capabilities`. Local browser APIs such as reading storage / clipboard / cookies do not go here either | An import is a violation (the machine fails it). References to `localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` are also violations | [0024](../../docs/adr/0024-adapters-server-client-split.md) prohibitions. Machine: ESLint boundaries (imports only) |
+| `forbidden: stores` — do not import `stores` | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. Machine: ESLint boundaries |
+| `forbidden: business-logic` — hold only connections and the conversion from external shapes to display types. Do not compute values the contract does not return | violation. When it cannot be read whether something is a conversion or a business judgment, suggestion | [0070](../../docs/adr/0070-backend-role-separation.md) prohibitions / [0021](../../docs/adr/0021-frontend-responsibility.md), the responsibilities it assigns each kernel |
+| `client/` does not import server config (`*.server.ts`) and holds no secrets. It may read `NEXT_PUBLIC_` public constants | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) prohibitions / this README, *Relaying Browser-Originated Telemetry*. The machine sees only layer granularity and does not distinguish `server/` from `client/` |
+| No client hooks or `"use client"` in `server/`. Conversely, no `server-only` modules in `client/` | violation | [0024](../../docs/adr/0024-adapters-server-client-split.md) prohibitions |
+| The type the public surface returns is a display type; `gen/`'s generated types are not passed straight through | A violation if the public surface's declaration names a generated type. A suggestion if a generated type escapes through inference | [0070](../../docs/adr/0070-backend-role-separation.md) prohibitions / this README, *Operations*. The machine fails direct imports of `gen/` only |
+| Only the relay's receiving side (`server/telemetry/`) imports `observability` | violation | This README, *Relaying Browser-Originated Telemetry*. The machine sees only layer granularity |
+| Values that must not be passed to the client are tainted at the fetch endpoint, not at the call site. `react`'s taint API is called through `server/taint/taint.ts` | A violation if `react`'s taint API is called directly outside `taint.ts`. A suggestion if a fetch endpoint containing PII does not taint (what is PII is owned by 0112) | This README, *Register what must not be passed to the client* / [0112](../../docs/adr/0112-data-classification-cache-boundary.md) |
+| Contract-derived limits, enums and formats are re-exported from `gen/`, not copied as numbers or spellings | A violation if a numeric literal or string table is declared separately when the generated artifacts hold the same declaration. A table checked against a generated type with `satisfies` passes | [0072](../../docs/adr/0072-api-type-generation.md) / [docs/rules.md](../../docs/rules.md#url) / this README, *Shape of a Fetch Endpoint* |
+| A create endpoint with no natural key takes an idempotency key, and `idempotent: true` is set only together with a key | A violation if an `idempotent: true` request lacks the `Idempotency-Key` header. A suggestion for a create endpoint that takes no key (whether a natural key exists is owned by the contract) | [0071](../../docs/adr/0071-bff-api-integration.md) prohibitions / this README, *Write Endpoints* |
 
-## 関連する ADR
+## Related ADRs
 
-この層のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります** ——
-ADR は番号も節も動くので、動いたことに気づける場所を 1 つに寄せています（[docs/rules.md](../../docs/rules.md)
-「コメントと文書」）。子ディレクトリの README を持つ区画（[`server/auth`](server/auth) /
+The decisions this layer's code depends on. **Comments do not point at ADRs directly; they follow this section** —
+ADR numbers and sections both move, so the place where a move can be noticed is consolidated into one ([docs/rules.md](../../docs/rules.md#comments)).
+Compartments with their own child-directory README ([`server/auth`](server/auth) /
 [`server/http`](server/http) / [`server/telemetry`](server/telemetry) /
 <!-- sample:replace-begin -->
-[`client/stream`](client/stream) / [`client/telemetry`](client/telemetry) / [`gen`](gen)）は、そちらの節が持ちます。
+[`client/stream`](client/stream) / [`client/telemetry`](client/telemetry) / [`gen`](gen)) are covered by that README's section.
 <!-- sample:replace-with -->
-<!-- = [`client/stream`](client/stream) / [`client/telemetry`](client/telemetry)）は、そちらの節が持ちます。 -->
+<!-- = [`client/stream`](client/stream) / [`client/telemetry`](client/telemetry)) are covered by that README's section. -->
 <!-- sample:replace-end -->
 
-- [0024](../../docs/adr/0024-adapters-server-client-split.md) — `server/` と `client/` の分割と、client 側の外部接続境界
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界（server config を引けるのは `server/` だけ）
-- [0020](../../docs/adr/0020-adopted-architecture.md) — 内向きの依存と、外部型を内層へ漏らさないこと
-- [0070](../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務の線。業務ロジックを持たないこと
-- [0071](../../docs/adr/0071-bff-api-integration.md) — 外部 API クライアントと fetch wrapper、取得の口が寿命を持つこと
-- [0072](../../docs/adr/0072-api-type-generation.md) — 契約からの生成物と、上限・書式の定数を `gen/` から引くこと
-- [0073](../../docs/adr/0073-pagination-fetch-boundary.md) — ページングと増分取得の取得境界
-- [0075](../../docs/adr/0075-file-upload-seam.md) — ファイルアップロードの seam（署名付き直接 PUT と多重部の例外）
-- [0079](../../docs/adr/0079-auth-frontend-seam.md) — 資格情報を組む境界と、主体を名乗る要求の扱い
-- [0080](../../docs/adr/0080-error-handling.md) — バックエンド由来の失敗を分類へ正規化すること
-- [0081](../../docs/adr/0081-observability-logging.md) — ブラウザから collector を直接叩かせず、BFF が中継すること
-- [0082](../../docs/adr/0082-client-observability.md) — Web Vitals と client 例外の収集、送信面の置き場
-- [0112](../../docs/adr/0112-data-classification-cache-boundary.md) — 取得の口が分類を宣言し、キャッシュと資格情報の口を型で塞ぐこと
-- [0030](../../docs/adr/0030-environment-variable-management.md) — secret の扱いと、client へ渡せないものを登録する口
-- [0040](../../docs/adr/0040-routing-rendering-strategy.md) — 再検証の契機（取り直しが起きるまで古い値が残ること）
-- [0090](../../docs/adr/0090-testing-strategy.md) — 層別の検証責務（`integration` が掛かる範囲）
+- [0024](../../docs/adr/0024-adapters-server-client-split.md) — The `server/` / `client/` split, and the external connection boundary on the client side
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries (only `server/` can take server config)
+- [0020](../../docs/adr/0020-adopted-architecture.md) — Inward dependencies, and not leaking external types into inner layers
+- [0070](../../docs/adr/0070-backend-role-separation.md) — The line of responsibility with the backend. Holding no business logic
+- [0071](../../docs/adr/0071-bff-api-integration.md) — The external API client and fetch wrapper, and fetch endpoints owning lifetimes
+- [0072](../../docs/adr/0072-api-type-generation.md) — Generated artifacts from the contract, and taking limit and format constants from `gen/`
+- [0073](../../docs/adr/0073-pagination-fetch-boundary.md) — The fetch boundary for pagination and incremental fetching
+- [0075](../../docs/adr/0075-file-upload-seam.md) — The file upload seam (signed direct PUT and the multipart exception)
+- [0079](../../docs/adr/0079-auth-frontend-seam.md) — The boundary that builds credentials, and handling requests that name a principal
+- [0080](../../docs/adr/0080-error-handling.md) — Normalizing backend-originated failures into classifications
+- [0081](../../docs/adr/0081-observability-logging.md) — Not letting the browser call the collector directly; the BFF relays
+- [0082](../../docs/adr/0082-client-observability.md) — Collecting Web Vitals and client exceptions, and where the sending surface lives
+- [0112](../../docs/adr/0112-data-classification-cache-boundary.md) — Fetch endpoints declare their classification, and the type closes off the cache and credential slots
+- [0030](../../docs/adr/0030-environment-variable-management.md) — Handling secrets, and the hook that registers what cannot be passed to the client
+- [0040](../../docs/adr/0040-routing-rendering-strategy.md) — Revalidation triggers (stale values remain until a refetch happens)
+- [0090](../../docs/adr/0090-testing-strategy.md) — Per-layer verification responsibilities (the range the `integration` declaration covers)

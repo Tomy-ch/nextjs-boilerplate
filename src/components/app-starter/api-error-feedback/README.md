@@ -1,35 +1,35 @@
 # ApiErrorFeedback
 
-## 用途
+## Purpose
 
-client-side の API 失敗を、画面の責務に応じて Alert または Dialog で伝えます。SSR の `error.tsx` やページ単位のエラー表示を置き換えるものではありません。
+Conveys a client-side API failure with an Alert or a Dialog, according to the screen's responsibility. It does not replace SSR `error.tsx` or page-level error displays.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ApiErrorAlert` | フォームや一覧など、文脈を保ったまま失敗を表示します。 |
-| `ApiErrorDialog` | 操作の継続を止め、確認・再試行を促します。`open` は呼び出し側で管理します。 |
-| `ApiError` | `client` / `server` / `network` の分類、表示メッセージ、リクエスト ID、再試行可否を表します。 |
+| `ApiErrorAlert` | Displays the failure while keeping the context, such as in a form or a list. |
+| `ApiErrorDialog` | Stops the action from continuing and prompts confirmation or a retry. `open` is managed by the caller. |
+| `ApiError` | Represents the `client` / `server` / `network` classification, the display message, the request ID, and whether a retry is possible. |
 
-## 利用ケース
+## Use Cases
 
-- `client`: 入力内容や権限など、利用者の修正が必要な 4xx 相当の失敗です。`warning` で表示します。
-- `server`: サービス側の 5xx 相当の失敗です。再試行できる場合は `retryable` と `onRetry` を渡します。
-- `network`: 到達不能やタイムアウトです。`destructive` で表示し、操作を止める場合は Dialog、文脈内で済む場合は Alert を使います。
+- `client`: a 4xx-equivalent failure that needs the user to correct something, such as input or permissions. Displayed as `warning`.
+- `server`: a 5xx-equivalent failure on the service side. When a retry is possible, pass `retryable` and `onRetry`.
+- `network`: unreachable or a timeout. Displayed as `destructive`; use a Dialog to stop the action, or an Alert when it can be handled in context.
 
-`retryAfter` は 429 などで API が返した再試行待ち時間（秒）を表示するために使います。カウントダウンや再試行可能になったかの判定は feature 側で管理します。`retryPending` は再試行中の二重送信を防ぐために渡します。`children` にはログインや詳細画面への遷移など、feature 固有の補助操作だけを合成します。
+`retryAfter` is used to display the retry wait time (seconds) the API returned, for example with 429. The countdown and deciding whether a retry has become possible are managed on the feature side. `retryPending` is passed to prevent double submission during a retry. Into `children`, compose only feature-specific auxiliary actions such as navigating to sign-in or a details page.
 
-## 責務境界
+## Responsibility Boundaries
 
-両 component は browser の開閉・再試行操作を扱う Client Component です。Server Component からは `ApiError` のシリアライズ可能な値を props として渡し、`onRetry` や `onOpenChange` は client shell 側で接続します。
+Both components are Client Components that handle browser-side opening/closing and retry actions. From a Server Component, pass the serializable value of `ApiError` as props, and wire `onRetry` and `onOpenChange` on the client shell side.
 
-raw response の status 判定、業務固有の文言、再試行処理、request ID の取得は feature / adapter 側で行い、`ApiError` に正規化して渡します。component 自身は fetch や API client を持ちません。
+Deciding the status of the raw response, business-specific copy, retry processing and obtaining the request ID are done on the feature / adapter side, which normalizes into `ApiError` and passes it. The component itself owns no fetch or API client.
 
-## request ID の扱い
+## Handling the Request ID
 
-`requestId` はサーバーログと利用者からの連絡を結び付けるための、サーバー生成の不透明な識別子です。5xx など調査が必要な失敗でだけ渡し、画面にはリクエスト ID として表示します。token、個人情報、内部 URL などを request ID に含めてはいけません。4xx の入力エラーでは通常省略し、network error のようにサーバーへ到達していない場合は値が存在しないこともあります。
+`requestId` is an opaque, server-generated identifier for linking server logs with contact from the user. Pass it only for failures that need investigation, such as 5xx, and display it on screen as the request ID. Tokens, personal information, internal URLs and the like must not be included in the request ID. It is normally omitted for 4xx input errors, and when the server was never reached, as with a network error, the value may not exist.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook の `ClientError` / `ServerError` は文脈内 Alert、`BlockingDialog` は操作停止が必要な失敗を示します。test では Alert と Dialog の役割、再試行操作、アクセシブルな role を確認します。
+In Storybook, `ClientError` / `ServerError` show the in-context Alert, and `BlockingDialog` shows a failure that needs the action stopped. Tests check the roles of the Alert and Dialog, the retry action, and accessible roles.

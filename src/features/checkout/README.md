@@ -1,6 +1,6 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # the other feature's facade/ and whole-screen stories are the exception
 test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/checkout/__mocks__/**"
@@ -9,173 +9,177 @@ coverage-exclusions:
 
 # checkout
 
-カートの内容を確かめ、購入を確定し、成立を伝える画面スライスです。
+The screen slice that checks the cart contents, confirms the purchase and reports that it succeeded.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 確定前の確認（届け先・注文内容・小計）と、確定の送信（Server Action）の編成
-- 成立した購入の取得と、控え・内訳の表示
-- 表示通貨での参考換算額の読み取り（読めなくても購入を止めない）
-- 確定 1 回ぶんを表す冪等キーの発行
+- The check before confirmation (destination, order contents, subtotal) and orchestrating the confirming submission (Server Action)
+- Fetching the purchase that succeeded, and showing the receipt and breakdown
+- Reading the reference conversion into the display currency (the purchase is not stopped if it cannot be read)
+- Issuing the idempotency key that represents one confirmation
 
-## 借りているもの
+## What It Borrows
 
-購入の表示は自分で持ちません。控え・明細・請求額の内訳は
-[`purchases/facade/`](../purchases/facade/) から借ります。**購入完了が見せているのは、購入詳細と
-同じ購入**であり、画面ごとに別の見え方を持つと控えとして突き合わせられません。
+It does not hold the purchase display itself. The receipt, line items and billing breakdown are borrowed from
+[`purchases/facade/`](../purchases/facade/). **What the purchase completion shows is the same purchase as the
+purchase detail**; with a different appearance per screen, the two could not be compared as a receipt.
 
-金額と参考換算額の切り替えは
-[`AmountWithReference`](../../components/design-system/display/amount-with-reference/README.md) です。
-購入確認（カートの小計）と購入完了（購入の合計）の両方が使い、題材の語彙を持たないため
-`components` にあります。
+Switching between the amount and the reference conversion is
+[`AmountWithReference`](../../components/design-system/display/amount-with-reference/README.md).
+Both the purchase confirmation (the cart subtotal) and the purchase completion (the purchase total) use it, and it
+carries no subject vocabulary, so it lives in `components`.
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- カートの変更（数量・削除・全消しは `cart` の領分。この画面は戻る導線だけを持つ）
-- 届け先の編集（登録情報は `account` の領分）
-- 金額の計算（小計も税も送料も合計もバックエンドが決めます）
-- 買えるか・値が変わったかの判定（同上。届いた事情を読むだけです）
+- Changing the cart (quantity, deletion and clearing are the domain of `cart`; this screen only holds the path back)
+- Editing the destination (registration data is the domain of `account`)
+- Computing amounts (the backend decides the subtotal, tax, shipping and total)
+- Judging whether something can be bought or whether its price changed (same as above; it only reads the issues that arrive)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Specification | Authentication |
 | --- | --- | --- |
-| `/checkout` | [`screen`](../../../docs/spec/route/shop/checkout/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/page.function.md) | 必要 |
-| `/checkout/complete` | [`screen`](../../../docs/spec/route/shop/checkout/complete/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/complete/page.function.md) | 必要 |
+| `/checkout` | [`screen`](../../../docs/spec/route/shop/checkout/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/page.function.md) | Required |
+| `/checkout/complete` | [`screen`](../../../docs/spec/route/shop/checkout/complete/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/complete/page.function.md) | Required |
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetCartsMe` | 確定前のカート。確定の直前にもう一度読み、明細を組み直す |
-| `GetUsersMe` | 届け先。登録情報をそのまま使う |
-| `GetExchangeRates` | 参考換算額。読めなくても購入を止めない |
-| `PostPurchases` | 購入の確定。冪等キーを載せる |
-| `GetPurchasesDetail` | 完了画面が取り直す購入 |
-| `PutCartsMeItem` | 値の変更を承知したとき、その明細を今の数量で設定し直す |
-| `DeleteCartsMeItem` | 成立の後、購入した明細をカートから取り除く |
+| `GetCartsMe` | The cart before confirmation. Read once more right before confirming to rebuild the lines |
+| `GetUsersMe` | The destination. Uses the registration data as is |
+| `GetExchangeRates` | The reference conversion. The purchase is not stopped if it cannot be read |
+| `PostPurchases` | Confirming the purchase. Carries an idempotency key |
+| `GetPurchasesDetail` | The purchase the completion screen refetches |
+| `PutCartsMeItem` | When a price change is acknowledged, re-sets that line at its current quantity |
+| `DeleteCartsMeItem` | After success, removes the purchased lines from the cart |
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 購入確認 | success | `Page/Checkout/Confirm/Default` |
-| | empty（確定できる明細が無い） | `Page/Checkout/Confirm/Empty` |
-| | 進めない（買える明細が無い） | `Page/Checkout/Confirm/Blocked` |
-| | 外れる明細がある | `Page/Checkout/Confirm/WithExcludedLines` |
-| | 参考換算額が読めなかった | `Page/Checkout/Confirm/WithoutReference` |
+| Purchase confirmation | success | `Page/Checkout/Confirm/Default` |
+| | empty (no line can be confirmed) | `Page/Checkout/Confirm/Empty` |
+| | Cannot proceed (no line can be bought) | `Page/Checkout/Confirm/Blocked` |
+| | Some lines are excluded | `Page/Checkout/Confirm/WithExcludedLines` |
+| | The reference conversion could not be read | `Page/Checkout/Confirm/WithoutReference` |
 | | loading | `Features/Checkout/Confirm/Skeleton/PC` |
-| | 値の変更を確かめる | `Features/Checkout/Confirm/PriceChangeConfirm/Default` |
-| 購入完了 | success | `Page/Checkout/Complete/Default` |
-| | 参考換算額が読めなかった | `Page/Checkout/Complete/WithoutReference` |
+| | Checking a price change | `Features/Checkout/Confirm/PriceChangeConfirm/Default` |
+| Purchase completion | success | `Page/Checkout/Complete/Default` |
+| | The reference conversion could not be read | `Page/Checkout/Complete/WithoutReference` |
 
-error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が受けます。完了画面で指し先が
-読めない場合は `not-found.tsx` です。
+error is taken by the route's `error` boundary (`src/app/(shop)/checkout/error.tsx`). When the completion screen
+cannot read what it points at, it is `not-found.tsx`.
 
-## 構成
+## Structure
 
-画面（`confirm` / `complete`）ごとに掘り、その中を性質で分けます。
-どちらの画面にも属さないものは画面を挟まず直下へ置きます。
+Create a directory per screen (`confirm` / `complete`) and divide each by nature.
+What belongs to neither screen sits directly under the slice, not under a screen.
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `actions.ts` | 購入確定の Server Action。編成と分類だけを持ち、通信は `adapters` が行う |
-| `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
-| `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
-| `form-fields.ts` | 値の変更を承知した合図を載せるフォーム項目の名前 |
-| `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
-| `checkout.fixture.ts` | story とテストが読む固定のカートと購入 |
-| `paths.ts` | 完了画面の場所と、そこへ載せる検索条件 |
-| `facade/paths/` | 購入手続きの入口。カートが送る先に引く |
-| `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
-| `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
-| `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |
-| `confirm/ui/order-lines/` | 確定する内容の再掲と、カートへ戻る導線 |
-| `confirm/ui/order-line-row/` | 再掲の 1 行。事情の表示は `cart` の [`facade/line-issues/`](../cart/facade/line-issues/) を借りる |
-| `confirm/ui/order-summary/` | 小計・注記・確定の操作。器は呼び出し元が決める |
-| `confirm/ui/place-order-form/` | 確定の送信。そのまま送る姿 |
-| `confirm/ui/price-change-confirm/` | 金額が変わったときに確かめてから送る姿 |
-| `confirm/ui/place-order-submit/` | 送信部と失敗の表示。2 つの姿が共有する |
-| `confirm/ui/place-order-state/` | 確定の送信状態を画面に 1 つだけ置き、2 つの姿へ配る器 |
-| `confirm/ui/skeleton/` | 購入確認の待機表示 |
-| `complete/page-content.tsx` | 成立した購入の取得。指し先が読めなければ `not-found` |
-| `complete/purchase-code.ts` | 完了画面が見せる購入を検索条件から読む |
-| `complete/view.tsx` | 購入完了の表示。控え・内訳・明細・次の導線 |
+| `actions.ts` | The purchase confirmation Server Action. Holds only orchestration and classification; `adapters` does the communication |
+| `__mocks__/actions.ts` | Replacing the Server Action in the catalog |
+| `form-state.ts` | The confirmation's return type. Closes `ActionState<T>` in this screen's shape |
+| `form-fields.ts` | The name of the form field carrying the signal that a price change was acknowledged |
+| `order.ts` | Extracting the lines to put on the purchase, and judging which lines changed price |
+| `checkout.fixture.ts` | A fixed cart and purchase read by stories and tests |
+| `paths.ts` | The completion screen's location, and the search conditions put on it |
+| `facade/paths/` | The checkout entry point. The cart draws on it as its destination |
+| `confirm/page-content.tsx` | Parallel fetching of the cart and registration data, adding the reference conversion |
+| `confirm/view.tsx` | The purchase confirmation display. Splits contents and summary left and right |
+| `confirm/ui/shipping-card/` | Checking the destination, and the path to change it in the registration data |
+| `confirm/ui/order-lines/` | Restating what will be confirmed, and the path back to the cart |
+| `confirm/ui/order-line-row/` | One restated line. The issue display is borrowed from `cart`'s [`facade/line-issues/`](../cart/facade/line-issues/) |
+| `confirm/ui/order-summary/` | Subtotal, notes and the confirming operation. The caller decides the container |
+| `confirm/ui/place-order-form/` | The confirming submission. The form that sends as is |
+| `confirm/ui/price-change-confirm/` | The form that checks before sending when a price changed |
+| `confirm/ui/place-order-submit/` | The submit part and the failure display. Shared by the two forms |
+| `confirm/ui/place-order-state/` | The container that holds the confirmation's submission state once on the screen and distributes it to the two forms |
+| `confirm/ui/skeleton/` | The purchase confirmation loading UI |
+| `complete/page-content.tsx` | Fetching the purchase that succeeded. `not-found` if what it points at cannot be read |
+| `complete/purchase-code.ts` | Reads the purchase the completion screen shows from the search conditions |
+| `complete/view.tsx` | The purchase completion display. Receipt, breakdown, line items and the next paths |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | カート・登録情報・参考換算額の取得と、購入の確定 |
-| `model` | 表示モデル（`Cart` / `Purchase` / `User`）、冪等キー、`ActionState` |
-| `components` | 面を組む器（カード・確認ダイアログ・操作の帯・待機表示・金額の切り替え） |
-| `errors` | 確定の失敗を、画面が出す分類へ写す |
-| `logging` | 後始末（カートからの取り除き）が失敗したときの記録。完了は見せ続ける |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching the cart, registration data and reference conversion, and confirming the purchase |
+| `model` | Display models (`Cart` / `Purchase` / `User`), idempotency keys, `ActionState` |
+| `components` | The containers screens are built from (cards, confirmation dialogs, the operation band, loading UI, amount switching) |
+| `errors` | Maps a confirmation failure to the classification the screen shows |
+| `logging` | A record when the cleanup (removing from the cart) fails. The completion keeps being shown |
+| `observability` | Putting rendering on spans |
 
-他 feature の `facade/` も引きます —— 購入の表示（`purchases`）と、明細に立った事情の言い方
-（`cart`）。借りている理由は「借りているもの」に書いてあります。この画面から出る先（カート・
-届け先の編集・商品一覧・購入詳細）も、所有者の `facade/`（`cart` / `account` / `products` /
-`purchases`）が出しているルートを引きます。
+It also draws on other features' `facade/` — the purchase display (`purchases`) and the wording of issues raised
+on lines (`cart`). Why they are borrowed is under What It Borrows. The destinations leaving this screen (cart,
+destination editing, product list, purchase detail) are likewise drawn from the routes the owners' `facade/`
+(`cart` / `account` / `products` / `purchases`) export.
 
-## Action 戻り値契約
+## Action Return Contract
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | 完了画面へ `redirect`。購入した明細をカートから取り除く | 分類を確定の操作の隣に出す |
+| `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | `redirect` to the completion screen. Removes the purchased lines from the cart | Shows the classification next to the confirming operation |
 
-冪等キーと、承知の合図が無い送信の扱いは「設計上の判断」に書いてあります。
+How idempotency keys and submissions without the acknowledgment signal are handled is under Design Decisions.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 確定が、画面の見せていた内容ではなくその時点のカートから明細を組み直す
-- [ ] 承知の合図が無い送信を Action が止める
-- [ ] 後始末（カートからの取り除き）が失敗しても完了が出る
-- [ ] 参考換算額が読めなくても確定できる
-- [ ] 冪等キーが 1 回の画面の組み立てにつき 1 つになる
+- [ ] Confirmation rebuilds the lines from the cart at that moment, not from what the screen was showing
+- [ ] The Action stops a submission without the acknowledgment signal
+- [ ] The completion is shown even if the cleanup (removing from the cart) fails
+- [ ] Confirmation works even when the reference conversion cannot be read
+- [ ] There is one idempotency key per assembly of the screen
 
-## 設計上の判断
+## Design Decisions
 
-**外すのは買えない明細だけです。** 値が変わっただけの明細は購入に載せます。外すと、利用者が買う
-つもりだったものが黙って落ちるためです。ただし**金額が変わったことは確定の操作で確かめます** ——
-「このまま購入に進んでよいか」を問い、承知した合図が載った送信だけを通します。合図が無い送信は
-Server Action の側でも止まります（画面を経由しない呼び出しがあるため）。
+**Only lines that cannot be bought are excluded.** Lines whose price merely changed are put on the purchase.
+Excluding them would silently drop what the user meant to buy. However, **that a price changed is checked at the
+confirming operation** — it asks "may the purchase proceed as is", and only submissions carrying the
+acknowledgment signal go through. A submission without the signal is also stopped on the Server Action side
+(because there are calls that do not go through the screen).
 
-**承知したことは、その明細を今の数量で設定し直して伝えます。** 設定は提示済みの価格を今の価格へ
-置き直すため、次の取得では事情が消え、小計にも含まれます。小計は事情の無い明細だけの合算なので、
-確かめる前の画面では値の変わった明細がそこに入っていません。そのことは注記で示します。
+**Acknowledgment is conveyed by re-setting that line at its current quantity.** Setting replaces the previously
+presented price with the current one, so on the next fetch the issue disappears and the line is included in the
+subtotal. The subtotal sums only lines without issues, so on the screen before the check, the lines whose price
+changed are not in it. A note says so.
 
-**確定の送信は、この時点のカートから明細を組み直します。** 画面が見せていた内容を送り返すと、
-開いたまま放置されたあいだに在庫や価格が変わっていても、古い前提のまま確定できてしまいます。
+**The confirming submission rebuilds the lines from the cart at that moment.** Sending back what the screen was
+showing would allow confirming on stale assumptions even if stock or prices changed while the screen was left
+open.
 
-**冪等キーは画面を組み立てるたびに 1 つだけ作ります。** 二重に押しても再読み込みで送り直しても
-購入は 1 件のままで、買い直しの意思で画面を開き直したときは別の鍵になります。
+**One idempotency key is made per assembly of the screen.** Pressing twice or resending via a reload still leaves
+one purchase, and reopening the screen with the intent to buy again gives a different key.
 
-**成立したら別の URL へ送ります。** 同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が
-確定前の画面へ帰ります。完了画面は購入を取り直して描くため、共有しても再読み込みしても同じ
-内容が出ます。
+**On success, the user is sent to a different URL.** Showing the completion on the same screen would make a
+reload erase the completion and the back operation return to the pre-confirmation screen. The completion screen
+refetches the purchase to render it, so sharing it or reloading shows the same contents.
 
-**購入した明細は、成立の後にフロントがカートから取り除きます。** 購入はカートを空にしません。
-取り除けなかった場合も完了は見せます。購入は既に成立しており、後始末の失敗を理由に完了を
-隠すと、購入できなかったように映るためです。
+**The frontend removes the purchased lines from the cart after success.** A purchase does not empty the cart.
+Even if removal fails, the completion is shown. The purchase has already succeeded, and hiding the completion
+because the cleanup failed would make it look as if the purchase had failed.
 
-**参考換算額が読めなくても購入は続きます。** 請求されるのは基準通貨の金額で、換算額は読み手が
-大きさを掴むための添え物です。
+**The purchase continues even if the reference conversion cannot be read.** What is billed is the amount in the
+base currency; the conversion is an accessory that helps the reader grasp the magnitude.
 
-**参考換算額は、明細と同じ `Suspense` の境界で待ちます。** 換算額は小計が決まってから引くので
-後から届きますが、届いたかどうかで小計の下に切り替えが現れたり現れなかったりし、その下にある
-確定の操作が動きます（[`docs/rules.md#ui-parts`](../../../docs/rules.md#ui-parts)）。待ちの上乗せは、
-HTTP クライアントの再試行の予算と遮断器が上限を持ちます。**切り替えを確定の操作より後ろへ置く
-並びに変えたら、換算額だけを内側の境界へ割れます。**
+**The reference conversion waits within the same `Suspense` boundary as the lines.** The conversion is looked up
+after the subtotal is settled, so it arrives later, but whether it arrived makes a switch appear or not below the
+subtotal, which moves the confirming operation beneath it
+([`docs/rules.md`](../../../docs/rules.md#ui-parts)). The added wait is capped by the HTTP client's retry budget
+and circuit breaker. **If the order is changed so that the switch sits after the confirming operation, the
+conversion alone can be split into an inner boundary.**
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。`cart` / `purchases` の `facade/` 越しにだけ触る
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。画面ごとに掘り、その中を性質で分ける
-- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — 描画戦略。取得の境界をどこへ置くか
-- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — 操作の a11y 継ぎ目。確認と送信の継ぎ目
-- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — カタログの方針。Server Action の差し替え
-- [0063](../../../docs/adr/0063-mutation-result-notification.md) — 送信結果の伝え方。成立の知らせと戻り先
-- [0070](../../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務線。金額と成立の判定を画面で決めない
-- [0080](../../../docs/adr/0080-error-handling.md) — エラーの扱い。`error` 境界の受け持ちと部分エラー
-- [0100](../../../docs/adr/0100-accessibility-target.md) — アクセシビリティの目標水準。色だけで区別させない
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. `cart` / `purchases` are touched only through their `facade/`
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical layout and co-location. Create a directory per screen and divide each by nature
+- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — Rendering strategy. Where to place fetch boundaries
+- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — The a11y seam of interaction. The seam between confirmation and submission
+- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — Catalog policy. Replacing Server Actions
+- [0063](../../../docs/adr/0063-mutation-result-notification.md) — How submission results are reported. The success notice and where to return
+- [0070](../../../docs/adr/0070-backend-role-separation.md) — The responsibility line with the backend. The screen does not decide amounts or success
+- [0080](../../../docs/adr/0080-error-handling.md) — Error handling. What the `error` boundary takes on, and partial errors
+- [0100](../../../docs/adr/0100-accessibility-target.md) — The accessibility target level. Never distinguish by color alone

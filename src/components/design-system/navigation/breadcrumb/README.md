@@ -1,45 +1,45 @@
 # Breadcrumb
 
-## 用途
+## Purpose
 
-現在地までの階層を示し、上位階層へ戻れるようにします。
+Shows the hierarchy down to the current location and lets the user go back to higher levels.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Breadcrumb` | 名前を持つ `nav` landmark です。他の navigation と区別できるようにします。 |
-| `BreadcrumbList` | 階層を並べる `ol` です。順序に意味があることを示します。 |
-| `BreadcrumbItem` | 階層 1 段ぶんの `li` です。 |
-| `BreadcrumbLink` | 上位階層へ戻る link です。`asChild` で `next/link` を合成できます。 |
-| `BreadcrumbPage` | 現在地を示す末尾の項目です。link にはしません。 |
-| `BreadcrumbSeparator` | 項目の間に置く装飾の区切りです。`children` で記号を差し替えられます。 |
-| `BreadcrumbEllipsis` | 折り畳んだ中間階層を示す省略記号です。 |
+| `Breadcrumb` | A named `nav` landmark. Lets it be distinguished from other navigation. |
+| `BreadcrumbList` | The `ol` that lists the levels. Indicates that the order is meaningful. |
+| `BreadcrumbItem` | The `li` for one level. |
+| `BreadcrumbLink` | A link back to a higher level. `next/link` can be composed with `asChild`. |
+| `BreadcrumbPage` | The final item indicating the current location. Not made a link. |
+| `BreadcrumbSeparator` | A decorative separator placed between items. The symbol can be replaced with `children`. |
+| `BreadcrumbEllipsis` | An ellipsis indicating collapsed intermediate levels. |
 
-## 利用ケース
+## Use Cases
 
-カテゴリ階層をたどる一覧・詳細や、admin の設定画面など、サイト構造の中での現在地を示したい場面に使います。
+Use it where you want to show the current location within the site structure, such as lists and details that follow a category hierarchy, or admin settings screens.
 
-階層が 1 段しかない画面には置きません。到達経路が 1 つに定まらない画面（複数の入口から開く詳細など）では、実際にたどった経路ではなくサイト構造上の階層を示します。
+Do not place it on a screen with only one level. On a screen whose route of arrival is not unique (such as a detail opened from several entry points), show the hierarchy in the site structure rather than the path actually followed.
 
-## 責務境界
+## Responsibility Boundaries
 
-client runtime を必要としない SSR first の表示部品です。現在の route の判定、階層の組み立て、省略するかどうかの判断は呼び出し元が行います。
+It is an SSR-first display component that needs no client runtime. The caller determines the current route, builds the hierarchy and decides whether to collapse it.
 
-`BreadcrumbEllipsis` は記号を表示するだけで、それ自体は開閉しません。省略した階層へ到達させる場合は `DropdownMenu` などの操作を呼び出し元が合成します。
+`BreadcrumbEllipsis` only shows a symbol and does not open or close by itself. To let users reach the collapsed levels, the caller composes an interaction such as `DropdownMenu`.
 
-リポジトリ内の遷移には `asChild` で `next/link` の `Link` を渡します。既定の `a` は外部リンクや、遷移先が props 経由で決まる場合に使います。
+For navigation within the repository, pass `Link` from `next/link` with `asChild`. The default `a` is for external links or when the destination is decided through props.
 
-vendor は現在 Radix（`Slot`）ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendor is currently Radix (`Slot`), but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## アクセシビリティ
+## Accessibility
 
-`nav` に「パンくずリスト」という名前を与えます。同じページに複数の navigation があるとき、landmark の一覧で区別できるようにするためです。
+The `nav` gets the name 「パンくずリスト」 ("breadcrumb list"). This lets it be distinguished in the list of landmarks when the same page has several navigations.
 
-現在地は自分自身への遷移を提供しないため link にせず、`aria-current="page"` だけで現在のページであることを伝えます。shadcn の生成物は `role="link"` と `aria-disabled` を付けますが、focus できない要素に interactive role を与えることになり a11y lint（`useFocusableInteractive` / `useSemanticElements`）に反するため採っていません。ARIA APG のパンくずパターンでも、現在地は `aria-current` で示すのが正です。
+The current location offers no navigation to itself, so it is not a link; `aria-current="page"` alone conveys that it is the current page. The shadcn generated output adds `role="link"` and `aria-disabled`, but that gives an interactive role to an element that cannot receive focus and violates the a11y lint (`useFocusableInteractive` / `useSemanticElements`), so it is not adopted. In the ARIA APG breadcrumb pattern too, indicating the current location with `aria-current` is correct.
 
-区切りは装飾なので読み上げ対象から外します。階層の関係は `ol` の構造が伝えるため、区切り自体には意味を持たせません。省略記号も同様に装飾ですが、読み上げ用の文言は保持します。
+Separators are decorative, so they are excluded from screen reading. The hierarchy is conveyed by the `ol` structure, so the separators themselves carry no meaning. The ellipsis is likewise decorative, but keeps its text for screen reading.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は基本構成、`next/link` の合成、中間階層の省略、区切り記号の差し替え、狭い viewport での折り返しを確認します。テストは名前つき navigation landmark であること、`ol` と項目数、上位階層の遷移先、現在地が遷移先を持たず `aria-current` を伝えること、区切りと省略記号が装飾であること、`asChild` による合成、a11y 自動検査を確認します。
+Storybook checks the basic composition, composition with `next/link`, collapsing intermediate levels, replacing the separator symbol, and wrapping on a narrow viewport. The tests check that it is a named navigation landmark, the `ol` and item count, the destinations of higher levels, that the current location has no destination and conveys `aria-current`, that separators and the ellipsis are decorative, composition through `asChild`, and the automated a11y check.

@@ -1,64 +1,64 @@
 # SegmentedInput
 
-## 用途
+## Purpose
 
-長さの決まったコードを、桁ごとに区切った形で受け取ります。
+Takes a fixed-length code in a form split into individual characters.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SegmentedInput` | 実体となる単一の `input` です。桁数を `maxLength` で決め、桁間の focus 移動・貼り付け・削除の巻き戻しを引き受けます。 |
-| `SegmentedInputGroup` | 隣り合う桁をひとまとまりに見せる区画です。両端だけが丸くなります。 |
-| `SegmentedInputSlot` | 一桁ぶんの枠です。`index` の文字と入力位置かどうかを描きます。 |
-| `SegmentedInputSeparator` | 区画と区画の間に置く装飾の区切りです。 |
+| `SegmentedInput` | The single `input` that is the actual element. `maxLength` sets the number of characters, and it takes on focus movement between characters, pasting and rolling back deletions. |
+| `SegmentedInputGroup` | A section that makes adjacent characters look like one group. Only its two ends are rounded. |
+| `SegmentedInputSlot` | The frame for one character. Renders the character at `index` and whether it is the input position. |
+| `SegmentedInputSeparator` | A decorative separator placed between sections. |
 
-`SEGMENTED_INPUT_PATTERN` は受け付ける文字種の値集合で、`DIGITS`（数字だけ）/ `CHARS`（英字だけ）/ `DIGITS_AND_CHARS`（英数字）を持ちます。
+`SEGMENTED_INPUT_PATTERN` is the set of accepted character kinds: `DIGITS` (digits only) / `CHARS` (letters only) / `DIGITS_AND_CHARS` (alphanumeric).
 
-## 利用ケース
+## Use Cases
 
-**ワンタイムパスワード専用ではありません。** 長さが決まっていて桁の区切りに意味がある入力すべてに使います。
+**It is not specific to one-time passwords.** Use it for any input of fixed length where the split into characters is meaningful.
 
-- SMS やメールで送った確認コードを入力させる場合
-- 暗証番号や二要素認証のコードを入力させる場合
-- 招待コードやライセンスキーのように、区切りつきの英数字を入力させる場合
-- 桁数が決まっていて、どこまで入力したかを利用者に見せたい場合
+- Entering a confirmation code sent by SMS or email
+- Entering a PIN or a two-factor authentication code
+- Entering separated alphanumerics such as an invitation code or a license key
+- When the number of characters is fixed and the user should see how far they have entered
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `○` に当たります。桁間の focus 移動と入力位置の追跡に hydration が必要な client island で、Server Component からは直接 render できません。
+In the SSR-first selection it is `○`. It is a client island that needs hydration for focus movement between characters and tracking the input position, and cannot be rendered directly from a Server Component.
 
-**桁区切りの表示が要らない場合は使いません。** `Input` に `inputMode` と適切な `autoComplete` を与えれば足り、client runtime も要りません。この component が要るのは、**どこまで入力したかを桁の形で見せたい**場合です。
+**Do not use it when the per-character display is not needed.** Giving `Input` an `inputMode` and a suitable `autoComplete` is enough, and needs no client runtime either. This component is needed when you **want to show how far the user has entered in the shape of the characters**.
 
-**OTP としての検証は一切しません。** この component が引き受けるのは、桁を分割した入力面だけです。コードの発行・照合・有効期限・再送・試行回数の制限といった、「ワンタイムパスワード」という言葉を成り立たせている処理はひとつもここにありません。`Input` にパスワードを入れても `Input` が認証責務を持たないのと同じです。
+**It does no OTP validation whatsoever.** What this component takes on is only the input surface split into characters. Issuing, verifying, expiry, resending and limiting attempts of the code — the processing that makes something a "one-time password" — are all absent here. It is the same as `Input` holding no authentication responsibility even when a password is typed into it.
 
-この取り違えは実際に起きます。名前から「認証部品」と読むと、認証本体を out of scope とする ADR [0079](../../../../../docs/adr/0079-auth-frontend-seam.md) に触れる部品に見え、置いてはいけないという結論になります。実際には認証と無関係な確認コード（メールアドレスや電話番号の確認、機微操作の step-up 確認）でも使うただの入力欄です。
+This mix-up does happen. Reading it as an "authentication component" from its name makes it look like a component touching ADR [0079](../../../../../docs/adr/0079-auth-frontend-seam.md), which puts the authentication core out of scope, leading to the conclusion that it must not be placed here. In fact it is a plain input field also used for confirmation codes unrelated to authentication (confirming an email address or phone number, step-up confirmation for sensitive operations).
 
-**値の検証・送信・再送を持ちません。** `value` と `onChange` で呼び出し元が扱います。エラーの文言も持たず、`FieldError` として呼び出し元が表示します。`aria-invalid` も呼び出し元が決めます。
+**It holds no value validation, submission or resending.** The caller handles them with `value` and `onChange`. It holds no error text either; the caller shows it as `FieldError`. The caller also decides `aria-invalid`.
 
-**`autoComplete` は用途に合わせて選びます。** SMS やメールで送ったコードを受け取る場合だけ `one-time-code` を指定すると、OS と browser が補完できます。暗証番号やライセンスキーのように配信されないコードへ `one-time-code` を当てると、関係のない SMS のコードを勧められます。
+**Choose `autoComplete` to match the use.** Specify `one-time-code` only when receiving a code sent by SMS or email, so the OS and browser can autofill it. Applying `one-time-code` to a code that is not delivered, such as a PIN or license key, gets unrelated SMS codes suggested.
 
-受け付ける文字種は `pattern` に `SEGMENTED_INPUT_PATTERN` のいずれかを渡して決めます。貼り付けた文字列も同じ規則で弾かれます。指定しなければ文字種を制限しません。vendor の正規表現定数を feature から直接 import せず、この値集合を使います。
+The accepted character kinds are decided by passing one of `SEGMENTED_INPUT_PATTERN` to `pattern`. Pasted strings are rejected by the same rule. Without it, character kinds are not restricted. Features use this value set rather than importing the vendor's regular expression constants directly.
 
-**用途はこの component が決めません。** 用途ごとの差は次の四つで与えます。互いに独立した軸なので、まとめた「用途」の値は持ちません。
+**This component does not decide the use.** Differences between uses are given by the following four. They are independent axes, so there is no combined "use" value.
 
-| 軸 | 与えるもの |
+| Axis | What it gives |
 | --- | --- |
-| `pattern` | 受け付ける文字種（`SEGMENTED_INPUT_PATTERN`） |
-| `autoComplete` | 補完の手掛かり。配信されるコードのときだけ `one-time-code` |
-| `inputMode` | 呼び出す keyboard |
-| `mask` | 入力した文字を伏せるか |
+| `pattern` | The accepted character kinds (`SEGMENTED_INPUT_PATTERN`) |
+| `autoComplete` | The autofill hint. `one-time-code` only for a delivered code |
+| `inputMode` | The keyboard to bring up |
+| `mask` | Whether to hide the typed characters |
 
-**`mask` は見た目だけを伏せます。** 実体は `text` の `input` のままなので、支援技術は値をそのまま読み上げ、password manager も文字列として扱います。肩越しに覗かれることは防げますが、秘密を扱う入力そのものとしては扱いません。伏せ字は `maskChar` で差し替えられ、桁ごとに `SegmentedInputSlot` の `mask` で上書きできます。
+**`mask` hides only the appearance.** The actual element stays a `text` `input`, so assistive technology reads the value out as is and password managers treat it as a string. It prevents shoulder surfing, but the input is not treated as one that handles a secret. The mask character can be replaced with `maskChar`, and overridden per character with `mask` on `SegmentedInputSlot`.
 
-桁は見た目です。実体の `input` は一つだけで、`SegmentedInputSlot` は入力も focus も受けません。`maxLength` と `SegmentedInputSlot` の数が食い違うと、入力できるのに描かれない桁が生まれます。`SegmentedInput` の外に置いた `SegmentedInputSlot` は、何も映さない空の枠になります。
+The characters are visual. There is only one actual `input`, and `SegmentedInputSlot` receives neither input nor focus. If `maxLength` and the number of `SegmentedInputSlot` disagree, there are characters that can be typed but are not rendered. A `SegmentedInputSlot` placed outside `SegmentedInput` becomes an empty frame that shows nothing.
 
-`SegmentedInputSeparator` は支援技術から隠します。入力の値は実体の `input` が伝えるため、この記号に意味はありません。`separator` role は focus と値を持つ widget を表すので当てません。
+`SegmentedInputSeparator` is hidden from assistive technology. The input value is conveyed by the actual `input`, so this symbol has no meaning. The `separator` role is not applied because it denotes a widget with focus and a value.
 
-実装は `input-otp` です。
+The implementation is `input-otp`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は用途の組み立て方（確認コード / 暗証番号 / ライセンスキー）を、4 軸をすべて明示した形で並べます。軸が独立していることは、英数字を伏せる組み合わせで示します。あわせて伏せ字の差し替え、桁ごとの上書き、区切りを置かない場合、入力済みの状態、検証エラー、操作できない状態を確認します。
+Storybook lists how uses are assembled (confirmation code / PIN / license key), with all four axes made explicit. That the axes are independent is shown with a combination that masks alphanumerics. It also checks replacing the mask character, per-character overrides, no separators, the filled state, a validation error, and the non-operable state.
 
-テストは名前のある単一の入力として公開し補完の手掛かりを持つこと、`pattern` で文字種を絞れること、桁数ぶんの枠を描くこと、入力した値を桁ごとに映すこと、入力を `onChange` で渡すこと、入力位置の桁を `data-active` で示すこと、`SegmentedInput` の外に置かれた枠が何も映さないこと、区切りを支援技術から隠すこと、区切りを置かなくてもよいこと、`mask` で文字を伏せること、伏せ字の差し替え、桁ごとの上書き、a11y 自動検査を確認します。
+The tests check that it is exposed as a single named input carrying an autofill hint, that `pattern` restricts character kinds, that it renders one frame per character, that the typed value is reflected per character, that input is passed through `onChange`, that the character at the input position is indicated with `data-active`, that a frame placed outside `SegmentedInput` shows nothing, that separators are hidden from assistive technology, that separators may be omitted, that `mask` hides characters, replacing the mask character, per-character overrides, and the automated a11y check.

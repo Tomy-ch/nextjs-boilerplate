@@ -1,25 +1,25 @@
 # WizardForm
 
-## 用途
+## Purpose
 
-複数段階に分けた入力の枠です。申請・登録・設定のように、一度に出すと多すぎる入力を段階へ分けます。
+A frame for input split into several steps. It divides input that would be too much to show at once — an application, a registration, a setup — into steps.
 
-## 何を持つか
+## What It Holds
 
-**今どの段階に居るかと、その行き来だけ**です。
+**Only which step you are on now, and moving between steps.**
 
-| 持つ | 持たない |
+| Holds | Does not hold |
 | --- | --- |
-| 現在位置の保持、前後移動、到達済みへの直行 | 各段階の field |
-| 進捗の表示（`Stepper` を合成） | 検証規則 |
-| 段階の見出しと領域 | 送信 |
-| 最後の段階での操作の差し替え | 途中保存 |
+| Keeping the current position, moving back and forth, jumping straight to reached steps | Each step's fields |
+| Showing progress (composing `Stepper`) | Validation rules |
+| Each step's heading and region | Submission |
+| Swapping the action on the last step | Saving partway |
 
-進めてよいかは呼び出し元が判断し、結果を `blocked` として渡します。検証そのものはこの部品に入りません。
+The caller decides whether the user may proceed and passes the result as `blocked`. Validation itself does not enter this component.
 
-段階が減って現在地が並びの外へ出たら、**先頭から始め直します**。到達済みの記録も残しません —— 到達は位置で数えており、並びが変わった後の位置について、その段を通ったとは言えないためです。
+If steps are removed and the current position falls outside the sequence, **it starts over from the first step**. It also does not keep the record of reached steps — reach is counted by position, and for a position after the sequence has changed, one cannot say that step was passed through.
 
-進む操作の文言は全体で 1 つ（`nextLabel`）ですが、段階ごとに `nextLabel` を与えると、その段階からの行き先だけを言い換えられます。行き先が「次の段階」以上のことを意味する段階（最後の 1 つ手前が確認へ進む、など）でだけ与えてください。
+The text of the forward action is one for the whole wizard (`nextLabel`), but giving a step its own `nextLabel` rephrases only the destination from that step. Give it only on steps where the destination means more than "the next step" (such as the second-to-last step proceeding to confirmation).
 
 ```tsx
 <form action={submitApplication}>
@@ -34,44 +34,44 @@
 </form>
 ```
 
-## 到達した段階だけを組み立て、以後は DOM に残します
+## Only reached steps are built, and they stay in the DOM afterwards
 
-**まだ到達していない段階の中身は組み立てません。** 一度現在地になった段階は、離れても `hidden` 属性で隠すだけで **unmount しません**。
+**The contents of steps not yet reached are not built.** A step that has once been the current position is only hidden with the `hidden` attribute when left, and **is not unmounted**.
 
-組み立てを到達まで待つのは、開いた時点で全段階ぶんを払わないためです。中身に `next/dynamic` の部品がある段階では、マウントした時点でそのチャンクの取得が始まります（ADR [0101](../../../../docs/adr/0101-performance-budget.md)）。入力欄を持つ段階も読み取り専用の段階も、扱いは同じです。到達前に描いていなければ値も払うバイトも無く、到達した後は既に払っています。
+Building waits until a step is reached so that opening the wizard does not pay for every step. For a step whose contents include a `next/dynamic` component, fetching that chunk starts when it mounts (ADR [0101](../../../../docs/adr/0101-performance-budget.md)). Steps with inputs and read-only steps are treated the same. If a step was not rendered before being reached, there are no values and no bytes paid; once reached, they have already been paid.
 
-到達した段階を unmount しないのは、`<form action>` で送信したときに他の段階の入力値を落とさないためです。`hidden` なら値は form に残ったまま、支援技術と layout からは外れます。class で `display: none` を当てないのは、値を保つことが目的だからです。
+Reached steps are not unmounted so that submitting with `<form action>` does not drop the input values of other steps. With `hidden`, the values stay in the form while the step drops out of assistive technology and layout. `display: none` is not applied through a class, because the purpose is to keep the values.
 
-この性質のおかげで、送信は最後の段階で一度だけ、全段階ぶんをまとめて行えます。ADR [0061](../../../../docs/adr/0061-form-mutation-ux.md) の `<form action>` + `useActionState` をそのまま使えます。
+Thanks to this property, submission can happen once, on the last step, for all steps together. ADR [0061](../../../../docs/adr/0061-form-mutation-ux.md)'s `<form action>` + `useActionState` can be used as is.
 
-**送信に全段階の値が揃うのは、どの段階も一度は現在地を通るからです。** 「次へ」は 1 段ずつしか進まず、進捗から飛べる先も到達済みに限られます。到達していない段階へ飛べるようにすると、組み立てられていない段階の値が送られません。
+**The submission has the values of every step because every step passes through the current position at least once.** "Next" advances only one step at a time, and the steps reachable from the progress indicator are limited to those already reached. If jumping to unreached steps were allowed, the values of unbuilt steps would not be sent.
 
-## 段階が変わったら focus を移します
+## Focus moves when the step changes
 
-移動先の段階の領域へ focus を移します。移さないと押した button に focus が残り、keyboard と読み上げの利用者には何が変わったのか伝わりません。
+Focus moves to the region of the destination step. Otherwise focus stays on the pressed button, and keyboard and screen-reader users are not told what changed.
 
-**最初の表示では移しません。** 開いた直後に focus を奪うと、その前の文脈が読み飛ばされます。
+**It does not move on first display.** Taking focus right after opening would skip over the preceding context.
 
-段階は form control の集合なので `fieldset` で表し、段階名を `legend` として与えます。
+A step is a set of form controls, so it is represented as a `fieldset`, with the step name given as its `legend`.
 
-## 進捗
+## Progress
 
-`Stepper` を**横向きで**合成します。段階の並び、現在位置の `aria-current="step"`、通過済みと未到達の表し分けはそちらが持ちます。進捗の名前は「〈label〉の進捗」になります。縦へ積まないのは、段階の数だけ入力欄より上が伸び、入力を始める前に画面を送ることになるためです。
+`Stepper` is composed **horizontally**. It owns the sequence of steps, `aria-current="step"` for the current position, and distinguishing passed from unreached steps. The progress indicator's name becomes "〈label〉の進捗" ("progress of 〈label〉"). It is not stacked vertically because that would push the area above the inputs down by the number of steps, making the user scroll before starting to enter anything.
 
-**一度でも到達した段階へは、進捗から直接行けます。** 順に辿り直させる理由が無く、確認の段から 1 か所だけ直しに戻る動きが最短で済みます。まだ到達していない段階は押せません —— 進んでよいかの判定は `blocked` が持っており、飛ばして到達できるとその判定を迂回できます。
+**Any step reached at least once can be visited directly from the progress indicator.** There is no reason to make the user retrace in order, and going back from the confirmation step to fix one place takes the shortest path. Steps not yet reached cannot be pressed — `blocked` owns the decision of whether the user may proceed, and being able to skip ahead would bypass that decision.
 
-**今の段階を終えられないあいだは、先へは進捗からも行けません。** 「次へ」だけを止めても、進捗から飛べては同じことです。前へ戻る側は止めません —— 戻ることは、その段階を済ませたと主張しないためです。
+**While the current step cannot be completed, steps ahead cannot be reached from the progress indicator either.** Stopping only "Next" means nothing if the progress indicator still allows jumping. Going back is not stopped — going back does not claim the step was completed.
 
-印が付くかどうかと、押せるかどうかは別の条件です。**到達しただけで通過はしていない段階**があり、そこへは行けますが印は付きません。逆に済ませた段階へ戻ったときは、現在地になっても印を残します（`Stepper` の `passed`）。
+Whether a marker appears and whether a step can be pressed are separate conditions. **There are steps that were reached but not passed**; they can be visited but get no marker. Conversely, returning to a completed step keeps its marker even while it is the current position (`Stepper`'s `passed`).
 
-## 責務境界
+## Responsibility Boundaries
 
-送信は呼び出し元が持ちます。最後の段階では「次へ」の代わりに `submit` で渡した要素を置くだけで、この部品は送信しません。
+The caller owns submission. On the last step it only places the element passed as `submit` instead of "Next"; this component does not submit.
 
-途中保存も持ちません。必要なら呼び出し元が `blocked` の計算と同じ場所で行います。
+It also does not own saving partway. If needed, the caller does it in the same place it computes `blocked`.
 
-離脱の抑止が要る場合は [`unload-guard`](../../app-starter/unload-guard/README.md) と [`navigation-guard`](../../app-starter/navigation-guard/README.md) を併用します。
+When leave prevention is needed, use [`unload-guard`](../../app-starter/unload-guard/README.md) and [`navigation-guard`](../../app-starter/navigation-guard/README.md) together.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は 3 段階の申請、2 段階だけの場合、文言を差し替えた場合、進めてよいかを呼び出し元が決める場合を確認します。テストは初期位置、表示していない段階が支援技術から外れること、まだ到達していない段階の中身を組み立てないこと、進捗の現在位置、前後移動、最初の段階で戻れないこと、最後の段階での操作の差し替え、`blocked`、隠れた段階の値が form に残ること、focus の移動と初期表示で奪わないこと、文言の差し替えと段階ごとの `nextLabel`、到達済みの段階へ進捗から直行できること、未到達と `blocked` の先へは飛べないこと、戻った段階の印が残ること、段階が減って現在地が並びの外へ出たら先頭から始め直すこと、送信が呼び出し元にあること、a11y 自動検査を確認します。
+Storybook covers a three-step application, a case with only two steps, swapped text, and the caller deciding whether the user may proceed. The tests cover the initial position, that steps not displayed drop out of assistive technology, that the contents of steps not yet reached are not built, the current position in the progress indicator, moving back and forth, that the first step cannot go back, swapping the action on the last step, `blocked`, that the values of hidden steps stay in the form, moving focus and not taking it on first display, swapped text and per-step `nextLabel`, jumping straight to reached steps from the progress indicator, not jumping to unreached steps or past `blocked`, that a returned-to step keeps its marker, starting over from the first step when steps are removed and the current position falls outside the sequence, that submission belongs to the caller, and the automated a11y check.

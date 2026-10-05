@@ -1,51 +1,51 @@
 # KeyboardShortcut
 
-## 用途
+## Purpose
 
-キーボードで実行できる操作を、「何が起きるか」と「どのキーか」の対として案内します。キーの表記は閲覧環境に合わせ、Apple では `⌘`、それ以外では `Ctrl` を出します。
+Presents an operation that can be performed from the keyboard as a pair of "what happens" and "which keys". The key notation follows the viewing environment: `⌘` on Apple and `Ctrl` elsewhere.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `KeyboardShortcutList` | 対を並べる `dl` です。並び順・件数・どの操作を載せるかは呼び出し元が決めます。 |
-| `KeyboardShortcut` | ひと組の対です。説明を `dt`、キーを `dd` として組にします。 |
-| `KeyboardShortcutKeys` | キーだけを表示する client island です。一覧の外でも単体で使えます。 |
+| `KeyboardShortcutList` | The `dl` that lists the pairs. The caller decides the order, the count and which operations to include. |
+| `KeyboardShortcut` | One pair. Groups the description as `dt` and the keys as `dd`. |
+| `KeyboardShortcutKeys` | A client island that shows only the keys. It can also be used on its own outside a list. |
 
-`SHORTCUT_MODIFIER` / `SHORTCUT_PLATFORM` / `SHORTCUT_MODIFIER_LABEL` と `shortcutKeyLabel` を `keyboard-shortcut.definition.ts` で公開します。修飾キーに指定できる値の owner はこの定義であり、`"mod"` などの文字列を利用側で直接書きません。
+`SHORTCUT_MODIFIER` / `SHORTCUT_PLATFORM` / `SHORTCUT_MODIFIER_LABEL` and `shortcutKeyLabel` are exported from `keyboard-shortcut.definition.ts`. That definition is the owner of the values a modifier key can take; callers do not write strings such as `"mod"` directly.
 
-| 修飾キー | Apple | それ以外 |
+| Modifier key | Apple | Elsewhere |
 | --- | --- | --- |
 | `mod` | `⌘` | `Ctrl` |
 | `alt` | `⌥` | `Alt` |
 | `shift` | `⇧` | `Shift` |
 | `control` | `⌃` | `Ctrl` |
 
-`mod` は「主となる修飾キー」を表し、`control` は Control そのものを指したい場合に使い分けます。この表に無いキーは受け取った文字列をそのまま表示します。`K` や `Enter` を列挙しないのは、増やし続ける表を持たないためです。
+`mod` stands for "the primary modifier key"; use `control` when you mean Control itself. A key not in this table is shown as the string it received. Keys such as `K` or `Enter` are not enumerated so that there is no table that keeps growing.
 
-## 利用ケース
+## Use Cases
 
-- ヘルプや設定画面で、その画面のキー操作を一覧として示す場合
-- 操作ボタンの隣にキーを添えて、同じ操作をキーボードからも実行できると示す場合
-- 文中で「どのキーを押すか」を示す場合
+- Listing the key operations of a screen on a help or settings screen
+- Adding the keys next to an action button to show that the same operation can also be performed from the keyboard
+- Indicating "which key to press" within running text
 
-## 責務境界
+## Responsibility Boundaries
 
-**shortcut の登録も keydown の待ち受けも持ちません。** 実際にそのキーで操作できるようにするのは呼び出し元です。この component は案内だけを担うため、載せたキーが実際には効かない状態を防ぐのも呼び出し元の責任です。キーボードから実行できない操作は載せません。
+**It neither registers shortcuts nor listens for keydown.** Making the keys actually work is the caller's job. Because this component only presents guidance, preventing a listed key from not actually working is also the caller's responsibility. Operations that cannot be performed from the keyboard are not listed.
 
-`KeyboardShortcutList` と `KeyboardShortcut` は hydration を必要としない Server Component です。表記の出し分けにだけ閲覧環境の情報が要るため、`KeyboardShortcutKeys` を client island として分けています。
+`KeyboardShortcutList` and `KeyboardShortcut` are Server Components that need no hydration. Only the choice of notation needs information about the viewing environment, so `KeyboardShortcutKeys` is split out as a client island.
 
-**hydration までは Apple 以外の表記で描画します。** Apple 環境では hydration 後に `Ctrl` から `⌘` へ切り替わります。閲覧環境は server では判らないため、どちらかを最初に出すしかありません。読めない中立表記（`Mod` など）を出すより、多数派の表記で描いてから切り替えるほうが誤読が少ないと判断しています。表記を固定したい場合は `platform` を渡します。
+**Until hydration, it renders the non-Apple notation.** In an Apple environment it switches from `Ctrl` to `⌘` after hydration. The server cannot tell the viewing environment, so one of the two has to be shown first. Rendering the majority notation and then switching was judged to cause less misreading than showing an unreadable neutral notation (such as `Mod`). Pass `platform` to fix the notation.
 
-大文字・小文字の見せ方は持ちません。`K` を小文字で渡せば小文字のまま出ます。
+Letter case is not its concern. Pass `K` in lowercase and it is shown in lowercase.
 
-**キーだけを置きません。** キーから何が起きるかは推測できないため、`KeyboardShortcut` では説明を必ず `children` に渡します。`KeyboardShortcutKeys` を単体で使う場合も、隣接する文言が何の操作かを伝えます。
+**Never place keys alone.** What a key does cannot be guessed from the key, so `KeyboardShortcut` always takes the description in `children`. When `KeyboardShortcutKeys` is used on its own, the adjacent text says what the operation is.
 
-キー表示そのものの意味論は `Kbd` が持ちます。この component は `Kbd` / `KbdGroup` を合成し、プラットフォームごとの表記の出し分けだけを引き受けます。
+The semantics of the key display itself belong to `Kbd`. This component composes `Kbd` / `KbdGroup` and takes on only the per-platform choice of notation.
 
-**menu の中のキー表示は各 menu component が持ちます。** `DropdownMenuShortcut` / `MenubarShortcut` / `ContextMenuShortcut` / `CommandShortcut` は `KbdGroup` に menu 内での配置と字送りを与えたもので、この component とは別系統です。menu の項目にキーを添える場合はそちらを使います。
+**Key display inside a menu belongs to each menu component.** `DropdownMenuShortcut` / `MenubarShortcut` / `ContextMenuShortcut` / `CommandShortcut` give `KbdGroup` its placement and letter spacing inside a menu, and are a separate line from this component. Use them to add keys to a menu item.
 
-ただしそれらは表記の出し分けを持たず、`⌘` などの記号を呼び出し元が直接書きます。menu の中でも環境に追従させたい場合は、`*Shortcut` の代わりに `KeyboardShortcutKeys` を項目へ直接置き、同じ見た目にするための class を渡します。
+They do not choose the notation, however; the caller writes symbols such as `⌘` directly. To make a menu follow the environment too, place `KeyboardShortcutKeys` directly in the item instead of `*Shortcut`, and pass the classes that give it the same look.
 
 ```tsx
 <DropdownMenuItem>
@@ -57,10 +57,10 @@
 </DropdownMenuItem>
 ```
 
-vendor 依存はありません。
+It has no vendor dependency.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は閲覧環境から表記が決まる既定の一覧、`platform` を固定して Apple とそれ以外を並置した比較、修飾キー 4 種と表記の変わらないキー、文中や操作の隣へキーだけを添える場合を確認します。表記の切り替わりは実描画でしか確かめられないため、比較は Storybook 側の確認範囲です。
+Storybook checks the default list whose notation is decided by the viewing environment, a comparison that fixes `platform` and places Apple and non-Apple side by side, the four modifier keys and keys whose notation does not change, and adding only the keys within text or next to an action. The switch of notation can only be confirmed in real rendering, so the comparison is within Storybook's scope.
 
-テストは `dl` / `dt` / `dd` の対応付け、キーが `kbd` 要素として出ること、表記の変わらないキーがそのまま出ること、Apple とそれ以外で修飾キーの表記が変わること、`platform` が閲覧環境より優先されること、修飾キー 4 種の引き当て、押す順のまとまりが一つの `kbd` として公開されること、a11y 自動検査を確認します。server 側で Apple 以外の表記になることは `renderToStaticMarkup` で確認します。jsdom の `navigator.platform` はテスト側で差し替えています。
+The tests check the `dl` / `dt` / `dd` association, that keys come out as `kbd` elements, that keys whose notation does not change come out as given, that the modifier notation changes between Apple and non-Apple, that `platform` takes precedence over the viewing environment, the lookup of the four modifier keys, that a group of keys pressed in sequence is exposed as one `kbd`, and the automated a11y check. That the server side produces the non-Apple notation is checked with `renderToStaticMarkup`. The tests replace jsdom's `navigator.platform`.

@@ -1,30 +1,30 @@
 # RichTextContent
 
-## 用途
+## Purpose
 
-説明文や記事本文のように、書き手が構造を付けた文章を、読み手向けの本文として表示します。
+Displays text that its writer gave structure to, such as a description or an article body, as body text for readers.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `RichTextContent` | sanitize 済みのリッチテキストを React 要素として描画し、`typeset` の組版を適用します。 |
+| `RichTextContent` | Renders sanitized rich text as React elements and applies the `typeset` typography. |
 
-| props | 型 | 役割 |
+| props | Type | Role |
 | --- | --- | --- |
-| `content` | `SanitizedRichText` | 表示する内容。必須。 |
-| `className` | `string` | 外枠へ重ねる class。`typeset-docs` などの組版 preset はここで渡します。 |
-| そのほか | native `div` 属性 | `lang` / `dir` / `id` などをそのまま外枠へ渡します。 |
+| `content` | `SanitizedRichText` | The content to display. Required. |
+| `className` | `string` | Class layered onto the outer frame. Typography presets such as `typeset-docs` are passed here. |
+| Others | native `div` attributes | `lang` / `dir` / `id` and the like are passed through to the outer frame. |
 
-`children` と `dangerouslySetInnerHTML` は受け取りません。本文を決めるのは `content` だけです。
-native `div` が持つ RDFa の `content` 属性も、名前を本文の props が占めるため指定できません。
+It does not accept `children` or `dangerouslySetInnerHTML`. Only `content` determines the body.
+The RDFa `content` attribute of a native `div` cannot be specified either, because the body prop occupies the name.
 
-## 使い方
+## Usage
 
-### 最小の呼び出し
+### Minimal call
 
-`content` は HTML 文字列ではなく `SanitizedRichText` です。構築経路は `SanitizedRichText.from`
-だけで、この一段を通らない値は型として存在しません。
+`content` is a `SanitizedRichText`, not an HTML string. The only construction path is `SanitizedRichText.from`,
+and a value that has not passed through this step does not exist as the type.
 
 ```tsx
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
@@ -35,11 +35,11 @@ export function Body({ html }: { html: string }) {
 }
 ```
 
-### 編集した内容を表示するまで
+### From editing to display
 
-書く側は [`RichTextEditor`](../rich-text-editor/README.md)、表示する側がこの component です。
-editor は内容が変わるたびに HTML 文字列を返し、保存した文字列を表示のたびに `SanitizedRichText.from`
-へ通します。
+The writing side is [`RichTextEditor`](../rich-text-editor/README.md), and the displaying side is this component.
+The editor returns an HTML string whenever the content changes, and the saved string is passed through `SanitizedRichText.from`
+every time it is displayed.
 
 ```tsx
 // 書く側（client island）。受け取った文字列は hidden input などで保存側へ渡す
@@ -49,23 +49,23 @@ editor は内容が変わるたびに HTML 文字列を返し、保存した文�
 <RichTextContent content={SanitizedRichText.from(saved)} />;
 ```
 
-**editor が返した文字列を検証済みとして扱いません。** editor が出せるタグが allowlist に
-収まっているのは editor の設定が満たす性質であり、保存を経て戻ってきた文字列が満たす性質では
-ないためです。表示の直前に必ず `SanitizedRichText.from` を通します。
+**The string the editor returned is not treated as validated.** That the tags the editor can emit stay within the allowlist
+is a property the editor's configuration satisfies, not a property of the string that comes back after
+being saved. Always pass it through `SanitizedRichText.from` right before display.
 
-### 組版 preset を重ねる
+### Layering a typography preset
 
-この component は `.typeset` を付けるところまでを担い、preset は付けません。字送りを変える場合は
-[`typeset`](../../foundation/typeset/README.md) が公開する preset class を `className` へ渡します。
+This component goes as far as adding `.typeset` and adds no preset. To change the letter spacing, pass a preset class
+published by [`typeset`](../../foundation/typeset/README.md) in `className`.
 
 ```tsx
 <RichTextContent className="typeset-docs" content={content} />
 ```
 
-### 文書としての意味論を与える
+### Giving it document semantics
 
-描画するのは `div` 一つで、`article` や `section` の意味論を持ちません。本文が何の文書なのかは
-呼び出し元が外側の要素で示します。
+It renders a single `div` and carries no `article` or `section` semantics. The caller indicates what kind of document
+the body is with an outer element.
 
 ```tsx
 <article aria-labelledby="body-heading">
@@ -74,11 +74,11 @@ editor は内容が変わるたびに HTML 文字列を返し、保存した文�
 </article>
 ```
 
-### Client Component の内側に置く
+### Placing it inside a Client Component
 
-`SanitizedRichText` は class instance で serializable ではないため、Client Component の props へは
-渡せません。Client Component の内側へ本文を置く場合は、Server Component 側で描画した結果を
-`children` として渡します。
+`SanitizedRichText` is a class instance and is not serializable, so it cannot be passed to a Client Component's props.
+To place the body inside a Client Component, render it on the Server Component side and pass the result
+as `children`.
 
 ```tsx
 // Server Component
@@ -87,47 +87,47 @@ editor は内容が変わるたびに HTML 文字列を返し、保存した文�
 </ClientPanel>
 ```
 
-## 組み合わせる部品
+## Components to Combine With
 
-| 部品 | 関係 |
+| Component | Relationship |
 | --- | --- |
-| [`model/rich-text`](../../../../model/rich-text/README.md) | `content` の型と allowlist の owner。何を通し何を落とすかはここが決めます。 |
-| [`rich-text-editor`](../rich-text-editor/README.md) | 書く側の相方。出力した HTML 文字列が、保存を経てこの component の入力になります。 |
-| [`foundation/typeset`](../../foundation/typeset/README.md) | 組版の実体。`.typeset` と preset class を公開する CSS 基盤です。 |
-| [`view-state/feedback-state`](../../../app-starter/feedback-state/README.md) | 本文が無い・取得に失敗した状態の表示。この component は空の枠を描くだけです。 |
+| [`model/rich-text`](../../../../model/rich-text/README.md) | Owner of the `content` type and the allowlist. It decides what passes and what is dropped. |
+| [`rich-text-editor`](../rich-text-editor/README.md) | The writing-side counterpart. The HTML string it outputs becomes this component's input after being saved. |
+| [`foundation/typeset`](../../foundation/typeset/README.md) | The typography itself. The CSS foundation that publishes `.typeset` and the preset classes. |
+| [`view-state/feedback-state`](../../../app-starter/feedback-state/README.md) | Display for the state where there is no body or fetching failed. This component only renders an empty frame. |
 
-## 利用ケース
+## Use Cases
 
-- 編集画面で入力された説明文を、閲覧画面の本文として表示する場合
-- backend から受け取った HTML を、表示してよい範囲だけに絞って本文へ載せる場合
+- Displaying a description entered on an edit screen as the body of a viewing screen
+- Putting HTML received from the backend into the body, narrowed to what may be displayed
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。state・browser API・event handler を持たない Server
-Component であり、hydration は不要です。Server Component と Client Component のどちらからも
-利用できますが、`content` を Client Component の props として渡すことはできません。
+In the SSR-first selection it is rated `◎`. It is a Server Component with no state, browser API or event handler,
+and needs no hydration. It can be used from both Server Components and Client Components, but `content` cannot be
+passed as a Client Component's props.
 
-sanitize を持ちません。allowlist の定義も、HTML 文字列を検査して木にする処理も
-`model/rich-text` が所有し、この component は受け取った木を描画するだけです。取得・保存・編集も
-持たず、`content` をどこから得るかは呼び出し元が決めます。
+It does not own sanitizing. `model/rich-text` owns both the allowlist definition and the processing that inspects an
+HTML string and turns it into a tree; this component only renders the tree it receives. It also does not own fetching,
+saving or editing; the caller decides where `content` comes from.
 
-描画は木から React 要素を直接作るため、HTML 文字列へ戻す段がありません。`dangerouslySetInnerHTML`
-は props としても実装としても使いません。
+Rendering builds React elements directly from the tree, so there is no step that turns it back into an HTML string. `dangerouslySetInnerHTML`
+is used neither as a prop nor in the implementation.
 
-見出しの階層も `content` が持つとおりに描画します。allowlist が `h1` を落とすため、本文の見出しは
-`h2` から始まり、page の `h1` と競合しません。
+The heading hierarchy is also rendered as `content` holds it. The allowlist drops `h1`, so the body's headings
+start at `h2` and do not compete with the page's `h1`.
 
-本文中の link は native の `a` として描画します。内部 link であってもページ全体の遷移になり、
-client-side navigation にはなりません。
+Links in the body are rendered as native `a`. Even an internal link causes a full-page navigation, not a
+client-side navigation.
 
-本文が空の場合は空の枠を描画します。「本文がない」ことを伝える表示は持たず、`FeedbackState` などで
-呼び出し元が示します。
+When the body is empty it renders an empty frame. It has no display conveying "there is no body"; the caller indicates
+that with `FeedbackState` or similar.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は `Rich Text/RichTextContent` に置き、allowlist が通すブロックとインラインの全種類、
-`typeset-docs` preset を重ねた状態、本文が空の状態を確認します。
+Storybook places it at `Rich Text/RichTextContent` and covers every block and inline type the allowlist passes,
+the state with the `typeset-docs` preset layered on, and the empty-body state.
 
-テストは木の要素が対応する DOM 要素として描画されること、見出しの階層と link の `href` が保たれる
-こと、`.typeset` が付くこと、`className` を重ねても `.typeset` が残ること、本文が空の場合、native
-`div` 属性の伝播、a11y 自動検査を確認します。
+The tests cover that each tree element renders as the corresponding DOM element, that the heading hierarchy and the links' `href` are
+preserved, that `.typeset` is added, that `.typeset` remains when `className` is layered on, the empty-body case, the
+propagation of native `div` attributes, and the automated a11y check.

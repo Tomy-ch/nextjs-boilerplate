@@ -1,44 +1,44 @@
 # FormValidationSummary
 
-## 用途
+## Purpose
 
-form 全体の検証エラーを一箇所に要約し、各入力欄への link を並べます。
+Summarizes the whole form's validation errors in one place and lists links to each input.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `FormValidationSummary` | 検証エラーの要約です。エラーが無ければ何も描画しません。 |
-| `FormValidationError` | 要約に並べる 1 件ぶんの定義です。`fieldId` と `message` を持ちます。 |
+| `FormValidationSummary` | The summary of validation errors. Renders nothing when there are no errors. |
+| `FormValidationError` | The definition of one entry in the summary. It has `fieldId` and `message`. |
 
-## 利用ケース
+## Use Cases
 
-項目数の多い form で、submit 後に「どこが」「いくつ」誤っているかを辿れるようにする場面に使います。`fieldId` は対応する入力欄の `id` で、要約の各項目がその欄への link になります。
+Used in forms with many fields, so that after submit the user can trace "where" and "how many" things are wrong. `fieldId` is the `id` of the corresponding input, and each entry in the summary becomes a link to that field.
 
-## FormFeedback / FieldError との使い分け
+## FormFeedback / FieldError vs This Component
 
-| | 扱うもの |
+| | What it handles |
 | --- | --- |
-| `FormValidationSummary` | **検証エラーの一覧**。どの欄を直すかへ飛ばす |
-| [`FormFeedback`](../form-feedback/README.md) | **送信結果の要約**。成功・失敗・次の行動・request ID |
-| `FieldError` | **個々の欄**に添える文言 |
+| `FormValidationSummary` | **The list of validation errors**. Jumps to the field to fix |
+| [`FormFeedback`](../form-feedback/README.md) | **The summary of the submission result**. Success, failure, next action, request ID |
+| `FieldError` | Copy attached to **an individual field** |
 
-要約は `FieldError` を置き換えません。**両方を出します。** 要約は全体像と導線、`FieldError` は入力欄のそばでの指摘という別の役割です。送信そのものが失敗した場合（通信断・サーバ側エラー）は `FormFeedback` が扱い、この部品は検証エラーだけを扱います。成功時は描画しません。
+The summary does not replace `FieldError`. **Show both.** The summary gives the overall picture and the navigation, and `FieldError` points out the problem next to the input; these are different roles. When the submission itself fails (lost connection, server-side error), `FormFeedback` handles it; this component handles only validation errors. It renders nothing on success.
 
-## 責務境界
+## Responsibility Boundaries
 
-検証規則、エラーの分類、文言への変換は持ちません。feature が利用者に意味の通る文言へ変換して渡します。
+It does not own validation rules, classifying errors, or converting them into copy. The feature converts them into copy that makes sense to the user and passes it.
 
-**focus の移動は持ちません。** Server Component として描画されるため、`id` を受け取って呼び出し元（client 境界）が移します。要約自体は `tabIndex` を持たないので、focus させたい場合は呼び出し元が付与します。
+**It does not own moving focus.** It is rendered as a Server Component, so it receives the `id` and the caller (the client boundary) moves focus. The summary itself has no `tabIndex`, so if you want it to receive focus, the caller adds one.
 
-## アクセシビリティ
+## Accessibility
 
-`Alert` を通すため `role="alert"` を持ちます。submit 後に要約が現れると支援技術へ読み上げられます。
+It goes through `Alert`, so it has `role="alert"`. When the summary appears after submit, it is announced to assistive technology.
 
-各項目を link にしているのは、キーボードだけで該当欄へ移動できるようにするためです。文言そのものが link になるので、読み上げでも「何を直すか」と「どこへ飛ぶか」が同じ単位になります。
+Each entry is a link so the user can move to the field with the keyboard alone. The copy itself is the link, so when read aloud, "what to fix" and "where it jumps" are the same unit.
 
-なお WCAG 2.x AA はエラー要約自体を要求しません（ADR 0100 の目標水準）。この部品の根拠は適合ではなく、項目数の多い form での実務上の必要性です。
+Note that WCAG 2.x AA does not require an error summary itself (the target level in ADR 0100). The basis for this component is not conformance but the practical need in forms with many fields.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は複数エラー、単一エラー、見出しの差し替え、エラーが無い場合、form 全体での配線を確認します。テストはエラーが無ければ描画しないこと、`role="alert"` として読み上げ対象になること、各エラーが該当欄への link になること、見出しの差し替え、`id` を受け取ること、`FieldError` を置き換えないこと、a11y 自動検査を確認します。
+Storybook checks multiple errors, a single error, a replaced heading, the no-error case, and wiring across the whole form. Tests check that nothing is rendered when there are no errors, that it is announced as `role="alert"`, that each error becomes a link to its field, replacing the heading, that it receives the `id`, that it does not replace `FieldError`, and automated a11y checks.

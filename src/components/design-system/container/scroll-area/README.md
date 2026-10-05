@@ -1,41 +1,41 @@
 # ScrollArea
 
-## 用途
+## Purpose
 
-内容の一部だけを局所的にスクロールさせ、周囲の内容を視界に留めたまま長い一覧や明細を読めるようにします。
+Scrolls only part of the content locally, so long lists or statements can be read while the surrounding content stays in view.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ScrollArea` | `overflow` と keyboard 到達性・領域の意味論をまとめた scroll 領域です。方向を `orientation` で選び、大きさは `className` で与えます。 |
+| `ScrollArea` | A scroll region that combines `overflow`, keyboard reachability and region semantics. The direction is chosen with `orientation`, and the size is given through `className`. |
 
-## 利用ケース
+## Use Cases
 
-- 明細のように、見出しや操作を画面に残したまま一覧だけを送りたい場合
-- 選択肢の多い絞り込みパネルのように、操作可能な項目が縦に伸びる領域を一定の高さに収めたい場合
-- 折り返さない内容を横方向へ送りたい場合
+- When you want to scroll only the list, as in a statement, while keeping headings and actions on screen
+- When you want to fit a region whose interactive items grow vertically, such as a filter panel with many options, into a fixed height
+- When you want to scroll unwrapped content horizontally
 
-画面全体のスクロールで足りる場合は使いません。局所スクロールは、周囲の内容が視界に留まることに意味がある場合にだけ選びます。
+Not used when scrolling the whole screen is enough. Choose local scrolling only when it matters that the surrounding content stays in view.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。`overflow` と browser 標準の scrollbar だけで成り立つため、`"use client"`・React state・browser API を持ちません。
+In the SSR-first selection it falls under `◎`. It works with `overflow` and the browser's standard scrollbar alone, so it has no `"use client"`, React state or browser API.
 
-領域の大きさは持ちません。`max-h-*` や `max-w-*` を `className` で与えます。与えない場合は内容が伸びるだけでスクロールしません。内容の取得、件数の制御、末尾検知による追加読み込みも持ちません。
+It does not own the region's size. Give `max-h-*` or `max-w-*` through `className`. Without one, the content just grows and does not scroll. It does not own fetching content, controlling the count, or loading more on reaching the end either.
 
-スクロールできる領域は keyboard だけで操作する利用者も到達できる必要があるため、`tabIndex` を `0` にしています。要素は `section` で、`aria-label` か `aria-labelledby` を与えると `region` として公開されます。**アクセシブルな名前は必ず与えます**。名前がないと `section` は landmark にならず、focus したときに何の領域へ入ったのか判りません。
+A scrollable region must be reachable by users who operate with the keyboard alone, so `tabIndex` is `0`. The element is a `section`, and giving it `aria-label` or `aria-labelledby` exposes it as a `region`. **Always give it an accessible name.** Without a name, the `section` does not become a landmark, and when focused you cannot tell what region you entered.
 
-内容が focus 可能な要素だけで構成される場合は `tabIndex={-1}` を渡して外します。子を辿れば browser が自動でスクロールするため、領域自体の tab stop は増えるだけになります。逆に読み取り専用の内容で外すと、keyboard だけではスクロールできなくなります。判定は内容を知る呼び出し元が行い、既定は安全側の `0` にしています。
+When the content consists only of focusable elements, pass `tabIndex={-1}` to remove it. The browser scrolls automatically as the children are traversed, so the region's own tab stop would only add one more. Conversely, removing it for read-only content makes it impossible to scroll with the keyboard alone. The caller, who knows the content, decides; the default is the safe side, `0`.
 
-既定ではスクロールを親へ連鎖させません（`overscroll-contain`）。領域の端まで送ったあとに続けて画面全体が動くと、どちらを操作しているのか判らなくなるためです。これは背面へ重なる面や、周囲から切り離して読ませる領域を想定した既定です。
+By default, scrolling is not chained to the parent (`overscroll-contain`). If the whole screen kept moving after scrolling to the region's end, it would be unclear which one is being operated. This default assumes surfaces layered over a background, or regions meant to be read apart from their surroundings.
 
-本文の流れに置く領域は例外で、`className` に `overscroll-auto` を渡して連鎖させます（[`Table`](../../display/table/README.md) がそうしています）。本文の途中で端を止めると、その領域に指を置いているあいだページ全体が動かなくなるためです。判断の基準は、端まで送ったあとに続けて動くべきものが、下層の面か、同じ本文かです。
+Regions placed in the flow of body content are the exception: pass `overscroll-auto` in `className` to chain scrolling ([`Table`](../../display/table/README.md) does this). Stopping at the edge partway through the body content would freeze the whole page while a finger rests on that region. The criterion is whether what should keep moving after reaching the end is a lower surface or the same body content.
 
-scrollbar は browser と OS が描画するため、見た目は環境で異なります。**統一した scrollbar を描く client island は用意していません。** catalog が client island の条件として挙げるのは custom scrollbar だけで、現時点でそれを要求する画面がないためです。要件が確定した時点で `scroll-area-client` として追加し、このディレクトリを `scroll-area-native` へ改名します。
+The scrollbar is rendered by the browser and OS, so its look varies by environment. **There is no client island that draws a unified scrollbar.** The only client-island condition the catalog lists here is a custom scrollbar, and no screen requires one at present. When the requirement is settled, add it as `scroll-area-client` and rename this directory to `scroll-area-native`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は縦方向、横方向、両方向、内容が収まる場合、見出しを `aria-labelledby` で名前にする場合を確認します。
+Storybook checks vertical, horizontal, both directions, content that fits, and using a heading as the name through `aria-labelledby`.
 
-テストは `region` role として公開されること、keyboard 到達可能であること、`aria-label` と `aria-labelledby` の双方でアクセシブルな名前を与えられること、`tabIndex={-1}` で領域自体の tab stop を外せること、`orientation` による方向の切り替え、スクロールを親へ連鎖させないこと、`className` で大きさを与えられること、a11y 自動検査を確認します。
+Tests check that it is exposed with the `region` role, that it is keyboard-reachable, that an accessible name can be given through both `aria-label` and `aria-labelledby`, that `tabIndex={-1}` removes the region's own tab stop, switching direction with `orientation`, that scrolling is not chained to the parent, that the size can be given through `className`, and automated a11y checks.

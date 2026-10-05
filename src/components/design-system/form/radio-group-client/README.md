@@ -1,24 +1,24 @@
 # RadioGroupClient
 
-## 用途
+## Purpose
 
-native radio では満たせない custom interaction を client island として提供します。
+Provides, as a client island, custom interaction that native radios cannot meet.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `RadioGroupClient` | Radix を使い、排他的選択の値と keyboard 操作を管理する client-side group です。 |
-| `RadioGroupClientItem` | group 内の選択肢を表す操作要素です。選択中の表示を group の値と同期します。 |
+| `RadioGroupClient` | A client-side group built on Radix that manages the value of an exclusive selection and keyboard operation. |
+| `RadioGroupClientItem` | The interactive element representing a choice within the group. Keeps its selected display in sync with the group's value. |
 
-## 利用ケース
+## Use Cases
 
-独自の keyboard / focus 操作が実際に必要な場合だけに使います。
+Use it only when custom keyboard / focus interaction is actually needed.
 
-## 責務境界
+## Responsibility Boundaries
 
-初期表示の既定ではありません。静的な単一選択は `RadioGroupNative` を優先し、状態・業務データは feature が管理します。
+It is not the default for the initial render. Prefer `RadioGroupNative` for a static single selection; the feature manages state and business data.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は native 側と同じ項目・配置で client island と disabled を、テストは初期値と a11y を確認します。
+Storybook checks the client island and disabled with the same items and layout as the native side; the tests check the initial value and a11y.

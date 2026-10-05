@@ -1,53 +1,53 @@
 # NotificationCenter
 
-## 用途
+## Purpose
 
-永続する通知を確認する面です。未読の件数、通知の一覧、既読にする操作、通知が無い状態を扱います。
+The surface for checking persistent notifications. It handles the unread count, the list of notifications, the action to mark as read, and the state with no notifications.
 
-一時的な操作結果の通知は [`toaster`](../../shell/toaster/README.md) が担います。数秒で消えるものと、後から確認するものは別物です。
+Notifications of temporary action results are handled by [`toaster`](../../shell/toaster/README.md). Something that disappears in a few seconds and something you check later are different things.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `NotificationTrigger` | 一覧を開く操作。未読の件数を名前に含めます。 |
-| `NotificationPanel` | 未読の件数と、すべて既読にする操作をまとめます。 |
-| `NotificationList` | 通知を並べる一覧。内側だけが scroll します。 |
-| `NotificationItem` | 通知 1 件。未読を印と語で示します。 |
-| `NotificationEmpty` | 通知が 1 件も無い状態。 |
+| `NotificationTrigger` | The action that opens the list. Includes the unread count in its name. |
+| `NotificationPanel` | Gathers the unread count and the action to mark all as read. |
+| `NotificationList` | The list of notifications. Only its inside scrolls. |
+| `NotificationItem` | One notification. Shows unread with a marker and a word. |
+| `NotificationEmpty` | The state with no notifications at all. |
 
-開く器（`Popover` / `Sheet`）は持ちません。呼び出し元が組み立て、`NotificationTrigger` をその trigger として渡します。
+It does not own the container that opens (`Popover` / `Sheet`). The caller assembles it and passes `NotificationTrigger` as its trigger.
 
-## 未読の伝え方
+## How Unread Is Conveyed
 
-**trigger の名前に件数を含めます。** icon と数字だけでは、支援技術から「何の数か」が分かりません。
+**Include the count in the trigger's name.** With only an icon and a number, assistive technology cannot tell "a count of what".
 
-**trigger の件数は live region にしません。** 背景で増えるたびに読み上げると、他の操作の最中に割り込みます。件数の変化を伝えるのは一覧を開いている間だけでよく、それは `NotificationPanel` の件数表示（`aria-live="polite"`）が担います。
+**The trigger's count is not a live region.** Announcing every increase in the background interrupts other actions in progress. The change in count needs conveying only while the list is open, and that is handled by `NotificationPanel`'s count display (`aria-live="polite"`).
 
-**未読は点だけでなく読み上げ専用の語でも示します。** 色と印だけでは、その区別が支援技術へ伝わりません。
+**Unread is shown not only with a dot but also with a word for screen readers only.** With color and a marker alone, the distinction does not reach assistive technology.
 
-## すべて既読にしたあとの focus
+## Focus After Marking All as Read
 
-すべて既読にすると、その操作自身が押せなくなります。押した focus がそこへ残ると行き場を失うため、**実行の直前に focus を一覧へ移します**。
+When everything is marked as read, that action itself becomes unpressable. If the focus from the press stayed there it would have nowhere to go, so **focus is moved to the list just before running it**.
 
-捕捉段階（`onClickCapture`）で受け取るのは、呼び出し元の処理でこの操作が押せなくなるより先に focus を動かすためです。
+It is received in the capture phase (`onClickCapture`) so that focus moves before the caller's processing makes this action unpressable.
 
-## 通知が無い状態
+## The State with No Notifications
 
-一覧ごと消さずに、無いことを示します。空白のままだと、読み込みに失敗したのか本当に無いのかが区別できません。表示は `FeedbackState` の `empty` を合成します。
+It shows that there are none instead of removing the whole list. Left blank, it cannot be told whether loading failed or there really are none. The display composes `FeedbackState`'s `empty`.
 
-## 一覧の高さ
+## List Height
 
-件数が増えるため高さを抑え、内側だけを scroll させます。開いた面がページごと伸びると、通知を読むために画面全体が動きます。
+The count grows, so the height is capped and only the inside scrolls. If the opened surface stretched along with the page, the whole screen would move to read notifications.
 
-## 責務境界
+## Responsibility Boundaries
 
-配信、既読の記録、通知種別の意味、詳細への遷移は持ちません。件数と通知の内容を呼び出し元が渡し、既読の操作は callback で返します。
+It does not own delivery, recording read state, the meaning of notification types, or navigating to details. The caller passes the count and the notifications' content, and read actions are returned through callbacks.
 
-詳細へ遷移する場合は、内容として `ListItemLink` を渡すか、内容の中へ link を置きます。遷移先を決めるのは呼び出し元です。
+To navigate to details, pass `ListItemLink` as the content, or put a link inside the content. The caller decides the destination.
 
-件数の追加読み込みが要る場合は [`cursor-pagination`](../cursor-pagination/README.md) を一覧の下へ合成します。
+When additional loading is needed, compose [`cursor-pagination`](../cursor-pagination/README.md) below the list.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は未読がある状態、通知が無い状態、件数が多い場合、`Popover` と合成した実際の形を確認します。テストは trigger の名前と件数、件数の live region、すべて既読の通知と focus の移動、未読が無いときに押せないこと、一覧の名前、未読の語、通知が無い状態の文言、a11y 自動検査を確認します。
+Storybook checks the state with unread items, the state with no notifications, the case with many items, and the actual form composed with `Popover`. Tests check the trigger's name and count, the count's live region, the mark-all-as-read notification and focus movement, that it cannot be pressed when there are no unread items, the list's name, the unread word, the copy for the no-notifications state, and automated a11y checks.

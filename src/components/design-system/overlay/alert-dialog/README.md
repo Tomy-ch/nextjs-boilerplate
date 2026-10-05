@@ -1,53 +1,49 @@
 # AlertDialog
 
-## 用途
+## Purpose
 
-削除など不可逆な操作を実行前に確認します。
+Confirms an irreversible operation, such as deletion, before it runs.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `AlertDialog` | 確認 dialog の開閉状態を提供する client-side root です。 |
-| `AlertDialogTrigger` | dialog を開く操作を包む trigger です。`Button` を使う場合は `asChild` で合成します。 |
-| `AlertDialogContent` | Portal と overlay とともに dialog 本体を描画します。 |
-| `AlertDialogOverlay` | dialog の背面を覆います。`AlertDialogContent` が内部で使います。 |
-| `AlertDialogPortal` | 描画先の Portal です。`AlertDialogContent` が内部で使います。 |
-| `AlertDialogHeader` | title と説明をまとめる領域です。 |
-| `AlertDialogTitle` | dialog のアクセシブルな名前になる title です。 |
-| `AlertDialogDescription` | 操作の影響と次に取る行動を説明する本文です。 |
-| `AlertDialogFooter` | cancel と action を並べる操作領域です。 |
-| `AlertDialogAction` | 確認済みの操作を完了して dialog を閉じます。`Button` 合成で、`variant` / `size` を受け取ります。 |
-| `AlertDialogCancel` | 操作を取り消して dialog を閉じます。既定は `outline` の `Button` 合成です。 |
+| `AlertDialog` | The client-side root that provides the open state of the confirmation dialog. |
+| `AlertDialogTrigger` | The trigger that wraps the action opening the dialog. When using `Button`, compose it with `asChild`. |
+| `AlertDialogContent` | Renders the dialog body together with the Portal and overlay. |
+| `AlertDialogOverlay` | Covers what is behind the dialog. `AlertDialogContent` uses it internally. |
+| `AlertDialogPortal` | The Portal it renders into. `AlertDialogContent` uses it internally. |
+| `AlertDialogHeader` | The area that groups the title and description. |
+| `AlertDialogTitle` | The title that becomes the dialog's accessible name. |
+| `AlertDialogDescription` | The body text explaining the effect of the operation and what to do next. |
+| `AlertDialogFooter` | The action area that lays out cancel and action. |
+| `AlertDialogAction` | Completes the confirmed operation and closes the dialog. Composes `Button` and accepts `variant` / `size`. |
+| `AlertDialogCancel` | Cancels the operation and closes the dialog. By default it composes an `outline` `Button`. |
 
-## 利用ケース
+## Use Cases
 
-取り消せない操作の直前に、何が起きるかを読ませてから実行させる場面に使います。削除、退会、公開の取り下げなどが該当します。
+Use it right before an operation that cannot be undone, to make the user read what will happen before running it. Deletion, account cancellation and unpublishing are examples.
 
-補助的な詳細表示や通常の編集には使いません。それらは [`Dialog`](../dialog/README.md) の担当です。`AlertDialog` は確認のための専用の形であり、確認を要さない内容に使うと操作の妨げになります。
+Do not use it for auxiliary detail views or ordinary editing. Those belong to [`Dialog`](../dialog/README.md). `AlertDialog` is a dedicated form for confirmation, and using it for content that needs no confirmation gets in the way of the operation.
 
-破壊的な操作であることは配色だけでなく文言で示します。`AlertDialogAction` の既定は通常の `Button` なので、破壊的に見せる場合は呼び出し元が [`Button`](../../action/button/README.md) の `destructive` variant を指定します。
+Indicate that an operation is destructive not only through color but through text. The default of `AlertDialogAction` is an ordinary `Button`, so to make it look destructive the caller specifies the `destructive` variant of [`Button`](../../action/button/README.md).
 
-## 責務境界
+## Responsibility Boundaries
 
-開いているあいだは履歴を 1 つ持ち、**戻る操作で自分だけを閉じます**（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+While open it holds one history entry, and **the back action closes only itself** ([0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)).
 
-Client island として開閉・focus trap・Escape を担い、確認内容・Server Action・実行結果は feature が children として渡します。
+As a client island it handles opening / closing, the focus trap and Escape; the feature passes the confirmation content, the Server Action and the result as children.
 
-何を消すのか、実行後にどこへ遷移するのか、失敗したときに何を出すのかは持ちません。`AlertDialogAction` は dialog を閉じるところまでで、実行そのものは呼び出し元の handler または `form` の送信が担います。
+It does not own what is deleted, where to navigate after running, or what to show on failure. `AlertDialogAction` goes only as far as closing the dialog; running the operation itself is done by the caller's handler or a `form` submission.
 
-**失敗の文言は `AlertDialogContent` の内側へ置きます。** 外側は開いているあいだ overlay に覆われ、
-さらに Radix が背面すべてに `aria-hidden` を付けるため、`role="alert"` を持っていても支援技術へ
-届きません。**出すものは呼び出し元が決めますが、出す場所はこの component の作りが決めます。**
+**Place failure text inside `AlertDialogContent`.** While it is open, the outside is covered by the overlay, and Radix also sets `aria-hidden` on everything behind, so it does not reach assistive technology even with `role="alert"`. **The caller decides what to show, but where to show it is decided by how this component is built.**
 
-**送信の状態も内側で持ちます。** 閉じると Radix は中身を木ごと外すので、状態を外側に置くと
-dialog だけが作り直され、**何も送っていない dialog が前回の失敗を出します**。`useActionState` は
-`AlertDialogContent` の子で呼び、開くたびに初期状態から始めます。
+**Hold the submission state inside as well.** On close, Radix removes the content along with its tree, so if the state is outside, only the dialog is recreated, and **a dialog that has sent nothing shows the previous failure**. Call `useActionState` in a child of `AlertDialogContent` so that it starts from the initial state every time it opens.
 
-`AlertDialogTitle` と `AlertDialogDescription` は Radix が dialog のアクセシブルな名前と説明として関連付けます。title を省くと dialog が名前を持たなくなるため、必ず置きます。
+Radix associates `AlertDialogTitle` and `AlertDialogDescription` as the dialog's accessible name and description. Omitting the title leaves the dialog without a name, so always include it.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API contains no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は破壊的操作の確認という基本構成（`Default`）を確認します。テストは trigger からの開閉、`alertdialog` role と title によるアクセシブルな名前、`AlertDialogCancel` で閉じること、a11y 自動検査を確認します。
+Storybook checks the basic composition of confirming a destructive operation (`Default`). The tests check opening / closing from the trigger, the `alertdialog` role and the accessible name from the title, closing with `AlertDialogCancel`, and the automated a11y check.

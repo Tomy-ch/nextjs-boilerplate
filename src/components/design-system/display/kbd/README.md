@@ -1,34 +1,34 @@
 # Kbd
 
-## 用途
+## Purpose
 
-利用者が押すキーを、キーボード入力として表示します。
+Displays a key the user presses as keyboard input.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Kbd` | 単一のキーを `kbd` 要素として表示します。 |
-| `KbdGroup` | 複数のキーをひとまとまりの操作として並べます。 |
+| `Kbd` | Displays a single key as a `kbd` element. |
+| `KbdGroup` | Lays out several keys as one action. |
 
-## 利用ケース
+## Use Cases
 
-menu 項目の右端、検索欄の補足、操作説明の文中など、キーボードで実行できる操作の手段を示す場面に使います。
+Used where the keyboard means of running an action is shown, such as at the right end of a menu item, as a hint in a search field, or within instructional text.
 
-修飾キーとの組み合わせは、単一の `Kbd` に `⌘K` のような文字列を詰めず、`KbdGroup` で個々のキーを並べます。連続して押すキーは、組み合わせと区別できるよう間隔や文言で示します。
+For combinations with modifier keys, do not pack a string such as `⌘K` into a single `Kbd`; lay out the individual keys with `KbdGroup`. Keys pressed in sequence are shown with spacing or wording that distinguishes them from a combination.
 
-## 責務境界
+## Responsibility Boundaries
 
-表示だけを担い、shortcut の登録も keydown の待ち受けもしません。実際のキー操作は呼び出し元が用意します。プラットフォームごとの表記の出し分け（`⌘` と `Ctrl`）も持ちません。
+It only displays; it neither registers shortcuts nor listens for keydown. The caller provides the actual key handling. It does not own per-platform notation either (`⌘` vs `Ctrl`).
 
-キーから操作を推測させません。何が起きるかは隣接する文言が伝え、`Kbd` はその手段だけを示します。対応する操作がキーボードから実行できない場合は表示しません。
+It does not make users infer the action from the key. Adjacent copy conveys what happens, and `Kbd` shows only the means. When the corresponding action cannot be run from the keyboard, do not display it.
 
-## アクセシビリティ
+## Accessibility
 
-`kbd` 要素は「利用者が押すキー」という意味論を持ちます。見た目だけを整えた `span` と違い、支援技術がキー入力として扱えます。
+The `kbd` element has the semantics of "a key the user presses". Unlike a `span` styled to look the same, assistive technology can treat it as key input.
 
-`KbdGroup` が `kbd` を入れ子にするのは HTML 仕様が示す組み合わせの表し方で、外側が「一つの入力」、内側の各 `Kbd` が「個々のキー」を表します。
+`KbdGroup` nests `kbd` because that is how the HTML specification represents a combination: the outer one represents "one input" and each inner `Kbd` represents "an individual key".
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は単一キー、修飾キーとの組み合わせ、区切り記号を挟む場合、文中に置く場合、連続して押す場合を確認します。テストは `kbd` 要素として描画されること、`className` による拡張、group が `kbd` の入れ子になること、文中で前後の文言と続けて読み上げられること、a11y 自動検査を確認します。
+Storybook checks a single key, a combination with modifier keys, a separator symbol between keys, placement within text, and keys pressed in sequence. Tests check that it renders as a `kbd` element, extension through `className`, that a group becomes nested `kbd`, that it is read continuously with the surrounding text, and automated a11y checks.

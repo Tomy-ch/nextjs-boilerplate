@@ -1,5 +1,5 @@
 ---
-imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [ui, fetch, business-logic]
 test-requirement: unit
 coverage-exclusions:
@@ -8,317 +8,317 @@ coverage-exclusions:
 
 # config
 
-型付き設定を目的別に提供するカーネルです。各 config は `#` private field と getter
-だけを公開する不変の ESM singleton です。
+The kernel that provides typed configuration by purpose. Each config is an immutable ESM singleton that exposes only `#` private fields and
+getters.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 環境変数の検証、目的別 config、設定値の不変な公開面
+- Environment variable validation, per-purpose config, and the immutable public surface of setting values
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- UI、fetch、業務ロジック
+- UI, fetch, business logic
 
-## config 一覧
+## Config List
 
-| モジュール | 用途 | 種別 | 利用者 |
+| Module | Purpose | Kind | Readers |
 | --- | --- | --- | --- |
-| `application-environment.ts` | `APP_ENV` の解決と、環境変数だけから決まる判定（開発専用の口を開けてよい環境か）。Node API を使わないので `proxy.ts` から辿れる | server + build 境界 | `environment.ts` / `load-environment.ts` / `next.config.ts` / `adapters/server/auth` |
-| `load-environment.ts` | `env/.env.<環境>` の一度きりの読込。`dotenv` と `node:path` を使うため、起動 / ビルド境界だけが呼ぶ | server + build 境界 | `bootstrap.server.ts` / `next.config.ts` / build script / `playwright.e2e.config.ts` |
-| `environment.ts` | 全 purpose の validator を束ねた全量検証と、その結果のプロセス内キャッシュ | server + build 境界 | 各 `*.server.ts` / `next.config.ts` |
-| `environment.fixture.ts` | 検証を通る環境変数一式（テスト専用。並びを書く唯一の場所） | test | このカーネルのテストと、`getEnvironment` を差し替える読み手のテスト |
-| `validate-environment.server.ts` | import されると全 server Config の getter を一度ずつ呼ぶ起動用の集約入口 | server | `bootstrap.server.ts` だけ |
-| `bootstrap.server.ts` | 起動時の ENV 読込と全 config 検証 | server | `src/instrumentation.ts` |
-| `api/api.schema.ts` / `api/api.server.ts` | API base URL と接続モードの schema / Config | server | `adapters/server` と起動・ビルド境界 |
-| `auth/auth.schema.ts` / `auth/auth.server.ts` | OIDC と BFF session の schema / Config。schema は https で配信されているかの判定（`isServedOverTls`）も持つ | server | `adapters/server` と起動・ビルド境界 |
-| `clock/clock.schema.ts` / `clock/clock.server.ts` | 画面が読む「いま」の schema / Config | server | `app` と起動・ビルド境界 |
-| `maintenance/maintenance.schema.ts` / `maintenance/maintenance.server.ts` | 配信を止めているかの schema / Config | server | `proxy` と起動・ビルド境界 |
-| `media/media.schema.ts` / `media/media.server.ts` | media origin の schema / Config | server | `adapters/server` と起動・ビルド境界 |
-| `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
-| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | 要求 URL とアップロードに許すバイト数の上限、BFF を別 origin から呼ばせる相手の schema / Config | server + client | `adapters/server` / `adapters/client` / `src/proxy.ts` と起動・ビルド境界 |
-| `site/site.schema.ts` / `site/site.server.ts` | 外から見た origin と、索引させてよいかの schema / Config | server | `app`（root layout の metadata / `sitemap.ts` / `robots.ts`）と起動・ビルド境界 |
-| `analytics/analytics.schema.ts` / `analytics/analytics.client.ts` | 同意ゲートの裏で読み込むタグマネージャの容器 ID の schema / Config。**空は「読み込まない」という指定**で、Google への依存を外す口になる | client | `app` の client island |
-| `security-headers/security-headers.ts` | 全経路に付ける配信ヘッダ（CSP と同伴ヘッダ）の組み立て | build 境界 | `next.config.ts` |
+| `application-environment.ts` | Resolving `APP_ENV`, and decisions determined by environment variables alone (whether the environment may open development-only endpoints). It uses no Node API, so it is reachable from `proxy.ts` | server + build boundary | `environment.ts` / `load-environment.ts` / `next.config.ts` / `adapters/server/auth` |
+| `load-environment.ts` | One-time loading of `env/.env.<environment>`. It uses `dotenv` and `node:path`, so only the startup / build boundaries call it | server + build boundary | `bootstrap.server.ts` / `next.config.ts` / build script / `playwright.e2e.config.ts` |
+| `environment.ts` | Full validation bundling every purpose's validators, and the in-process cache of its result | server + build boundary | each `*.server.ts` / `next.config.ts` |
+| `environment.fixture.ts` | A complete set of environment variables that passes validation (test-only; the only place that writes the list) | test | This kernel's tests, and tests of readers that swap `getEnvironment` |
+| `validate-environment.server.ts` | Aggregate startup entry point that, when imported, calls every server Config getter once | server | `bootstrap.server.ts` only |
+| `bootstrap.server.ts` | ENV loading and full config validation at startup | server | `src/instrumentation.ts` |
+| `api/api.schema.ts` / `api/api.server.ts` | Schema / Config for the API base URL and the connection mode | server | `adapters/server` and the startup / build boundaries |
+| `auth/auth.schema.ts` / `auth/auth.server.ts` | Schema / Config for OIDC and the BFF session. The schema also holds the decision of whether it is served over https (`isServedOverTls`) | server | `adapters/server` and the startup / build boundaries |
+| `clock/clock.schema.ts` / `clock/clock.server.ts` | Schema / Config for the "now" that screens read | server | `app` and the startup / build boundaries |
+| `maintenance/maintenance.schema.ts` / `maintenance/maintenance.server.ts` | Schema / Config for whether serving is stopped | server | `proxy` and the startup / build boundaries |
+| `media/media.schema.ts` / `media/media.server.ts` | Schema / Config for the media origin | server | `adapters/server` and the startup / build boundaries |
+| `observability/observability.schema.ts` / `observability/observability.server.ts` | Schema / Config for the service name, the OTLP endpoint, and per-signal exporters | server | the startup / build boundaries |
+| `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | Schema / Config for the upper limits on request URL and upload byte counts, and for the parties allowed to call the BFF from another origin | server + client | `adapters/server` / `adapters/client` / `src/proxy.ts` and the startup / build boundaries |
+| `site/site.schema.ts` / `site/site.server.ts` | Schema / Config for the externally visible origin and whether indexing is allowed | server | `app` (root layout metadata / `sitemap.ts` / `robots.ts`) and the startup / build boundaries |
+| `analytics/analytics.schema.ts` / `analytics/analytics.client.ts` | Schema / Config for the container ID of the tag manager loaded behind the consent gate. **Empty is the instruction "do not load"**, and is the switch that removes the dependency on Google | client | client islands in `app` |
+| `security-headers/security-headers.ts` | Building the response headers attached to every route (CSP and its companion headers) | build boundary | `next.config.ts` |
 
-各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する
-`<purpose>.server.ts` が不変 Config を所有します。`environment.ts` は validator を呼んで全量検証を
-実行するだけで、個別の変数規則を持ちません。`next.config.ts` が build 時に、
-`src/instrumentation.ts` がサーバー起動時に検証を実行します。
+Each `config/<purpose>/<purpose>.schema.ts` owns the Zod validators belonging to its purpose, and the corresponding
+`<purpose>.server.ts` owns the immutable Config. `environment.ts` only calls the validators to run full validation,
+and holds no per-variable rules. `next.config.ts` runs validation at build time, and
+`src/instrumentation.ts` at server startup.
 
-## 目的別 module の形
+## Shape of a Purpose Module
 
-purpose は値を読む側の**サブシステム**の単位で、読み手が引きます。変数名の接頭辞
-（[0028](../../docs/adr/0028-naming-convention.md) の `{SUBSYSTEM}_{NAME}`）は命名の単位で purpose とは独立し、同じ接頭辞の
-変数が読み手の違いで別の purpose に分かれることも、外部の標準名をそのまま使う変数が purpose に
-属することもあります。1 つの purpose は次の 3 種のファイルから成り、全 purpose が同じ形をとります。
+A purpose is a unit of the **subsystem** that reads the values, and the reader looks it up. The variable-name prefix
+(`{SUBSYSTEM}_{NAME}` in [0028](../../docs/adr/0028-naming-convention.md)) is a unit of naming independent of purpose: variables with the same prefix
+can split into different purposes depending on their readers, and a variable using an external standard name as is can belong
+to a purpose. A purpose consists of the following three kinds of file, and every purpose takes the same shape.
 
-### `<purpose>.schema.ts` —— 変数ごとの validator
+### `<purpose>.schema.ts` — per-variable validators
 
-- 変数 1 つにつき validator を返す関数を 1 つ export する（`<name>Validator()`）。`environment.ts` が
-  変数名をキーにこれを並べる。
-- purpose の変数を変数名そのままのキーで持つ型 `<Purpose>Environment` を export する。値の型は
-  `z.infer<ReturnType<typeof <name>Validator>>` で validator から導き、型を二重に書かない。
-  `<purpose>.server.ts` の `fromValues()` はこの型で受ける。
-- **import するのは validator ライブラリだけ。** `process.env` も `APP_ENV` も読まない。環境に依る
-  条件（同梱の秘密値を許すか）は validator の**引数**にし、渡すのは `environment.ts` の責務にする。
-  schema が環境を読むと、validator 単体のテストが実行環境に左右される。
-- 読み手が要る純関数（`isServedOverTls` のような、検証済みの値から別の事実を導くもの）も schema に
-  置く。`server-only` を持たないので、build 境界も読める。
+- Export one function returning a validator per variable (`<name>Validator()`). `environment.ts` lays these out
+  keyed by variable name.
+- Export the type `<Purpose>Environment`, holding the purpose's variables under keys equal to their variable names. The value types
+  are derived from the validators with `z.infer<ReturnType<typeof <name>Validator>>`, so types are not written twice.
+  `fromValues()` in `<purpose>.server.ts` takes this type.
+- **Import only the validator library.** Read neither `process.env` nor `APP_ENV`. Make environment-dependent
+  conditions (whether a bundled secret value is allowed) **arguments** of the validator, and passing them is `environment.ts`'s responsibility.
+  If the schema read the environment, tests of a validator alone would depend on the execution environment.
+- Pure functions a reader needs (ones like `isServedOverTls` that derive another fact from validated values) also go in the schema.
+  It has no `server-only`, so the build boundary can read them too.
 
-### `<purpose>.server.ts` —— 不変 Config と singleton
+### `<purpose>.server.ts` — immutable Config and singleton
 
-- 先頭に `import "server-only"`。
-- `class <Purpose>Config` は `readonly #field` + `private constructor` + `static fromValues(values:
-  <Purpose>Environment)` + getter だけを持ち、**class は export しない**。
-- module 変数 `let <purpose>Config: <Purpose>Config | undefined` と
-  `export function get<Purpose>Config()` の 1 組で singleton を作る。中身は
-  `??= <Purpose>Config.fromValues(getEnvironment())` の 1 行で、ENV の読み直しも parse も
-  ここでは起きない。
-- getter は**読み手の問いに答える形**で公開する。on / off のつまみは boolean の問いに畳み
-  （`isStopped` / `isIndexable` / `tracesEnabled`）、生の `on` / `off` を配らない。名前のある選択肢
-  （接続モード、認可の開始先）はそのまま返す（`mode`）。`forbidden: business-logic` との線は
-  「その変数だけで決まる問い」までで、それを超える判定は読み手が持つ。
-- 環境変数**だけ**から決まる判定はこのカーネルが持ち（開発専用の口を開けてよい環境か、https で
-  配信されているか）、**他の状態と併せる判定は読み手が持つ**。認可の開始先が `dev` でも、実際に
-  開発用の経路を選ぶかは環境と併せて `adapters/server/auth` が決める。config はその値を運ぶだけで、
-  「この値だけでは効かない」ことを getter の文書に書く。
-- 呼ぶたびに新しい値を返す口は、返す実体を共有しない。固定された「いま」も `now()` は毎回新しい
-  `Date` を返す —— 同じ実体を配ると、受け取った側の破壊的な操作が次の呼び出し元へ伝わる。
+- `import "server-only"` at the top.
+- `class <Purpose>Config` has only `readonly #field` + `private constructor` + `static fromValues(values:
+  <Purpose>Environment)` + getters, and **the class is not exported**.
+- One pair, the module variable `let <purpose>Config: <Purpose>Config | undefined` and
+  `export function get<Purpose>Config()`, makes the singleton. Its body is the single line
+  `??= <Purpose>Config.fromValues(getEnvironment())`; neither re-reading ENV nor parsing happens
+  here.
+- Getters are exposed **in the form that answers the reader's question**. On / off switches are folded into boolean questions
+  (`isStopped` / `isIndexable` / `tracesEnabled`); raw `on` / `off` values are not handed out. Named choices
+  (connection mode, where authorization starts) are returned as they are (`mode`). The line with `forbidden: business-logic` is
+  "questions determined by that variable alone"; decisions beyond that are held by the reader.
+- Decisions determined **only** by environment variables are held by this kernel (whether the environment may open development-only endpoints, whether it is
+  served over https), and **decisions combined with other state are held by the reader**. Even when the authorization start is `dev`, whether to actually
+  choose the development path is decided by `adapters/server/auth` together with the environment. The config only carries that value,
+  and the getter's documentation states that "this value alone has no effect".
+- An accessor that returns a new value on each call does not share the returned object. Even a fixed "now" has `now()` return a new
+  `Date` each time — handing out the same object would let a destructive operation by one receiver propagate to the next caller.
 
-### `<purpose>.client.ts` —— `NEXT_PUBLIC_` の typed view
+### `<purpose>.client.ts` — typed view of `NEXT_PUBLIC_`
 
-- `export const NAME: type = <変換>(process.env["NEXT_PUBLIC_..."])` の形だけを持つ。変数名は文字列
-  リテラルで名指し、検証はしない（build 時に置換されるのは検証を通った値そのもの）。
-- server と client の両側が同じ変数を読む値（要求 URL / アップロードの上限）は、閾値の宣言を env の
-  1 行に閉じるための形である。**client 側の判定は根拠にしない** —— ブラウザ側は送信者が差し替え
-  られるので、受け口が同じ値で再び確かめる（[0075](../../docs/adr/0075-file-upload-seam.md)）。
-- ブラウザへ出て困らない値だけを置く。「困らない」の根拠（容器 ID はタグを読み込む URL に現れる）を
-  module の文書に書く。
+- It holds only the form `export const NAME: type = <transform>(process.env["NEXT_PUBLIC_..."])`. The variable name is named by a string
+  literal, and no validation is done (what gets substituted at build time is the value that passed validation itself).
+- Values whose same variable is read on both server and client (request URL / upload limits) take this form to confine the threshold declaration to one
+  line of env. **The client-side decision is not relied on** — in the browser the sender can swap it,
+  so the receiving endpoint checks again with the same value ([0075](../../docs/adr/0075-file-upload-seam.md)).
+- Place only values that are harmless to expose to the browser. Write the basis for "harmless" (the container ID appears in the URL that loads the tag)
+  in the module's documentation.
 
-### purpose か変数を足すとき
+### When adding a purpose or a variable
 
-1. `<purpose>.schema.ts` に validator 関数と `<Purpose>Environment` のキーを足す。
-2. `environment.ts` の `environmentSchema` に変数名で登録する。束ねる場所はここだけである。
-3. `<purpose>.server.ts` の field / `fromValues()` / getter、または `<purpose>.client.ts` の定数を足す。
-4. 新しい purpose なら `validate-environment.server.ts` に getter の呼出しを足す。忘れると起動時の
-   検証から漏れ、最初の要求で落ちる。
-5. `environment.fixture.ts` の `VALID_ENVIRONMENT` と `PARSED_ENVIRONMENT` の両方に足す。前者は
-   `satisfies Record<keyof Environment, string>` で、漏れを型検査が拾う。
-6. `<purpose>.schema.test.ts` と `<purpose>.server.test.ts` を置く（下記「テスト」）。
-7. `env/.env.*` と [`env/README.md`](../../env/README.md) の変数表（変数の存在の正）、この README の
-   一覧（設定値の意味の正）を更新する。分担は [0030](../../docs/adr/0030-environment-variable-management.md)。
-8. 読み手を `adapters/server` か起動 / ビルド境界に置く。読み手を増やす判断の正は「運用」を見る。
+1. Add the validator function and the `<Purpose>Environment` key to `<purpose>.schema.ts`.
+2. Register it by variable name in `environmentSchema` in `environment.ts`. This is the only place they are bundled.
+3. Add the field / `fromValues()` / getter in `<purpose>.server.ts`, or the constant in `<purpose>.client.ts`.
+4. For a new purpose, add the getter call to `validate-environment.server.ts`. Forgetting it leaves the purpose out of
+   startup validation, and it fails on the first request.
+5. Add it to both `VALID_ENVIRONMENT` and `PARSED_ENVIRONMENT` in `environment.fixture.ts`. The former uses
+   `satisfies Record<keyof Environment, string>`, so type checking catches omissions.
+6. Place `<purpose>.schema.test.ts` and `<purpose>.server.test.ts` (see Testing below).
+7. Update `env/.env.*`, the variable table in [`env/README.md`](../../env/README.md) (the source of truth for which variables exist), and this README's
+   list (the source of truth for what setting values mean). The division is [0030](../../docs/adr/0030-environment-variable-management.md).
+8. Put the reader in `adapters/server` or the startup / build boundaries. For the authority on adding readers, see Operations.
 
-`/new-env` がこの手順を辿る。
+`/new-env` follows this procedure.
 
-## 検証の語彙
+## Validation Vocabulary
 
-validator は**変数の形**を検証し、値の意味は判定しません。同じ形は同じ書き方で揃えます。
+Validators check **the shape of a variable** and do not judge what the value means. The same shape is written the same way.
 
-| 形 | 書き方 | 使う変数 |
+| Shape | How it is written | Variables using it |
 | --- | --- | --- |
-| http / https の URL | `z.url()` に protocol の `refine` | 接続先・issuer・callback・OTLP endpoint |
-| origin（scheme + host + port、パス無し） | `new URL(value).origin === value` を `refine` | `Origin` ヘッダと完全一致で比べる値、絶対 URL の base |
-| 選択肢 | `z.enum([...])` | 接続モード・認可の開始先 |
-| 省略できる選択肢 | `z.string().trim().optional().transform(空 → 既定).pipe(z.enum([...]))` | on / off のつまみ |
-| 省略できる自由値 | `.optional()` + `refine` + `transform(空 → undefined)`、または `.default("")` に空を許す `refine` | 固定する「いま」・容器 ID |
-| バイト数 | `z.coerce.number().int().positive()` | 上限 |
-| カンマ区切りの一覧 | `.default("")` → split / trim / 空要素を除去 → 各要素を `refine` | 許可 origin |
+| http / https URL | `z.url()` with a protocol `refine` | Connection targets, issuer, callback, OTLP endpoint |
+| origin (scheme + host + port, no path) | `refine` with `new URL(value).origin === value` | Values compared for exact equality with the `Origin` header, the base of absolute URLs |
+| Choice | `z.enum([...])` | Connection mode, where authorization starts |
+| Optional choice | `z.string().trim().optional().transform(empty → default).pipe(z.enum([...]))` | On / off switches |
+| Optional free value | `.optional()` + `refine` + `transform(empty → undefined)`, or `.default("")` with a `refine` that allows empty | Fixed "now", container ID |
+| Byte count | `z.coerce.number().int().positive()` | Upper limits |
+| Comma-separated list | `.default("")` → split / trim / remove empty elements → `refine` each element | Allowed origins |
 
-- **origin と URL を区別する。** 絶対 URL の base にする値（外から見た origin）にパスを許すと、
-  `new URL("/path", base)` がそのパスを捨てて意図と結果が食い違う。`Origin` ヘッダと比べる値も
-  同じ形でなければ完全一致にならない。CSP へ載せる origin は組み立て側が `new URL(value).origin`
-  に落とすので、URL として受けた値のパスやポートの有無は載る形に影響しない。
-- **省略できる変数は、未設定と空文字を同じ「指定なし」として扱う**（[0030](../../docs/adr/0030-environment-variable-management.md)）。配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証や運用のための
-  つまみの行は持たない。
-- **既定は、設定を忘れた環境が踏んで困らない側に置く** —— 止めない・索引させない・読み込まない・
-  同一 origin だけ・固定しない・IdP へ向かう。逆側を既定にすると、変数を注入し忘れた環境が全ルート
-  停止で立ち上がる、preview が検索結果に並ぶ、外したはずの第三者への依存が開く。既定が「何かを
-  する」側にあってよいのは、その値が環境によらず正しいとき（描画 span の範囲）だけで、その根拠を
-  validator の文書に書く（[docs/rules.md#config](../../docs/rules.md#config)の「根拠を言えない
-  設定値を置かない」）。
-- **省略を許すかの基準は「既定が環境によらず正しいか」。** 正しいなら必須にしない —— 全環境へ
-  必須にすると、実環境の設定に「開発用ではない」と書くだけの行が増える。環境ごとに変わる値は
-  必須にし、欠落を起動 / ビルドの失敗にする。
-- **綴りを検証するのは、誤った値が別の効果を伴って出ていくとき。** 容器 ID の形を見るのは、値が
-  違えばタグは読めないのに配信ヘッダの許可だけが開いたままになるからで、形の検証はその副作用を
-  止めるために置く。
-- **同梱の秘密値は schema がその綴りを知り、`local` / `ci` 以外では拒否する。** 設定し忘れは「値が
-  無い」ではなく「既知の値が入っている」形で現れるので、長さの検証では通り抜ける。判定は起動時に
-  置き、cookie を 1 枚でも発行する前に止める。許すかどうかは `environment.ts` が `APP_ENV` から
-  決めて引数で渡す。
-- **同じ事実を 2 つの変数で持たない。** https で配信されているかは IdP の callback URL（自分の
-  origin）から導き、cookie の `secure` と HSTS / `upgrade-insecure-requests` が同じ 1 つの判定を読む
-  （[0030](../../docs/adr/0030-environment-variable-management.md)）。
-- **検証の失敗は 1 つの Error にまとめ、欠けた / 不正な変数名を列挙する。** 読み手のテストは変数名で
-  失敗を突き合わせる。
+- **Distinguish origin from URL.** If a value used as the base of absolute URLs (the externally visible origin) allowed a path,
+  `new URL("/path", base)` would discard that path and the result would diverge from the intent. A value compared with the `Origin` header
+  must also have the same shape, or exact equality fails. Origins put into the CSP are reduced by the building side to `new URL(value).origin`,
+  so whether a value received as a URL has a path or port does not affect the form that is emitted.
+- **For optional variables, unset and empty string are treated alike as "not specified"** ([0030](../../docs/adr/0030-environment-variable-management.md)). The env files of serving environments list only the variables the platform provides, and have no
+  switch lines for validation or operations.
+- **Put the default on the side that does no harm to an environment that forgot to set it** — do not stop, do not allow indexing, do not load,
+  same origin only, do not fix, go to the IdP. With the opposite defaults, an environment that forgot to inject a variable would start up with every route
+  stopped, a preview would appear in search results, and the third-party dependency that was supposed to be removed would open. A default may be on the side that "does
+  something" only when the value is correct regardless of environment (the range of rendering spans), and the basis is written in
+  the validator's documentation ([docs/rules.md](../../docs/rules.md#config), the rule "do not put a setting value whose basis
+  cannot be stated").
+- **The criterion for allowing omission is "is the default correct regardless of environment".** If it is, do not make it required — making it required
+  in every environment adds lines to real environments' settings that only say "this is not for development". Values that change per environment are
+  required, and their absence fails startup / build.
+- **Validate the spelling when a wrong value would go out with another effect.** The container ID's shape is checked because a wrong
+  value would leave the tag unloadable while the response header permission stayed open; the shape check is there to stop that
+  side effect.
+- **The schema knows the spelling of bundled secret values and rejects them outside `local` / `ci`.** Forgetting to set one shows up not as "no
+  value" but as "a known value is present", so a length check lets it through. The check sits at startup,
+  stopping before a single cookie is issued. Whether to allow it is decided by `environment.ts` from `APP_ENV` and
+  passed as an argument.
+- **Do not hold the same fact in two variables.** Whether it is served over https is derived from the IdP callback URL (its own
+  origin), and the cookie's `secure` and HSTS / `upgrade-insecure-requests` read the same single decision
+  ([0030](../../docs/adr/0030-environment-variable-management.md)).
+- **Gather validation failures into one Error that lists the missing / invalid variable names.** Readers' tests match
+  failures by variable name.
 
-## 実行機序と評価タイミング
+## Execution Mechanics and Evaluation Timing
 
-Config の評価はリクエストごとに行いません。ENV を一度だけ読み込み、検証済みの値から目的別の
-singleton を作り、以後は import で配線します。
+Config is not evaluated per request. ENV is loaded once, per-purpose singletons are built from the validated values,
+and from then on they are wired through imports.
 
 ```text
-build / Next.js 初期化
+build / Next.js initialization
   next.config.ts
     ├─ loadEnvironment()
-    │    └─ APP_ENV (指定必須) から env/.env.<環境> を選択
+    │    └─ selects env/.env.<environment> from APP_ENV (required)
     ├─ validateEnvironment()
-    │    └─ getEnvironment() で全 ENV を一度だけ検証
-    └─ getEnvironment() の検証済みの値と schema の純関数を読み、
-       配信ヘッダ / 画像の許可 host / 本体上限 / 開発専用 route の採否を組み立てる
+    │    └─ validates all ENV once with getEnvironment()
+    └─ reads getEnvironment()'s validated values and the schema's pure functions,
+       and assembles delivery headers / allowed image hosts / body limit / whether dev-only routes are included
 
-Node.js サーバーインスタンスの起動
-  Next.js → src/instrumentation.ts の register()
-    └─ config/bootstrap.server.ts の bootstrapConfig()
+Node.js server instance startup
+  Next.js → register() in src/instrumentation.ts
+    └─ bootstrapConfig() in config/bootstrap.server.ts
          ├─ loadEnvironment()
-         └─ validate-environment.server.ts を import
-              └─ 全 purpose の get*Config() を呼び singleton を初期化
-    └─ API config から接続モードを読み、mock なら interception を立てる（検証より後）
-    └─ observability Config から signal 構成を読み、OTel SDK と logger を初期化
+         └─ imports validate-environment.server.ts
+              └─ calls every purpose's get*Config() and initializes the singletons
+    └─ reads the connection mode from the API config and, if mock, sets up interception (after validation)
+    └─ reads the signal configuration from the observability Config and initializes the OTel SDK and logger
 
-リクエスト処理
-  adapters/server → 目的別 Config singleton を import
-  （ENV 読込・schema parse は再実行しない）
+Request handling
+  adapters/server → imports the per-purpose Config singletons
+  (ENV loading and schema parse are not re-run)
 ```
 
-| 時点 | 実行するもの | 評価内容 | 回数 |
+| When | What runs | What is evaluated | How often |
 | --- | --- | --- | --- |
-| Next.js の設定評価 | `next.config.ts` | 選択済み env ファイルの読込と全 ENV の形式検証、検証済みの値からの build 設定の組み立て | build / dev 起動ごと |
-| Node.js サーバー起動 | `src/instrumentation.ts` → `bootstrap.server.ts` | server Config singleton の生成 | 新しいサーバーインスタンスごと |
-| Config singleton の生成 | `getApiConfig()` など | `getEnvironment()` の共有済み評価結果を private field へ写す | getter の初回呼出し時、プロセスごとに一度 |
-| 通常のリクエスト | `adapters/server` | singleton の getter を読む | リクエストごと。ただし parse なし |
-| unit test | `vi.stubEnv()` と `vi.resetModules()` | env スタブを設定して Config module を再評価する | テスト呼出しごと |
+| Next.js config evaluation | `next.config.ts` | Loading the selected env file, validating the shape of all ENV, and building the build settings from the validated values | Per build / dev startup |
+| Node.js server startup | `src/instrumentation.ts` → `bootstrap.server.ts` | Creating the server Config singletons | Per new server instance |
+| Config singleton creation | `getApiConfig()` and the like | Copying the shared evaluation result of `getEnvironment()` into private fields | On the first getter call, once per process |
+| Normal requests | `adapters/server` | Reading the singletons' getters | Per request, but without parsing |
+| unit test | `vi.stubEnv()` and `vi.resetModules()` | Setting env stubs and re-evaluating the Config module | Per test call |
 
-`loadEnvironment()` は `override: false` で読み込むため、CI / PaaS がすでに注入した変数を
-上書きしません。`env/.env.dev`・`.env.stg`・`.env.prd` が値を持つのは配備によらず同じ値と
-その環境の方針値だけで、接続先と秘密値は名前だけを置き、実値は PaaS の環境設定または secret
-store から供給します（行の形は [`env/README.md`](../../env/README.md) の「ファイルの書き方」）。
+`loadEnvironment()` loads with `override: false`, so it does not overwrite variables CI / PaaS has already injected.
+`env/.env.dev`, `.env.stg` and `.env.prd` hold values only for what is the same regardless of deployment and for
+that environment's policy values; connection targets and secrets get only their names, and the real values are supplied from the PaaS environment settings or a secret
+store (for the line format, see Writing the Files in [`env/README.md`](../../env/README.md#ファイルの書き方)).
 
-`APP_ENV` の未指定は `null` で返し、既定へ落としません。ファイルの選択、同梱の秘密値の許可、
-開発専用の口の開閉がすべてこの選択子を見るため、既定を持つと「未設定」を安全側へ倒せなく
-なります（[0030](../../docs/adr/0030-environment-variable-management.md)）。開発専用の口を
-開けてよい環境の一覧は `application-environment.ts` の 1 か所にだけ置き、build（開発専用 route を束に
-含めるか）と実行時（口を開けるか）が同じ判定を読みます —— 一覧が 2 か所にあると、片方だけを
-広げた変更が黙って通ります。
+An unspecified `APP_ENV` is returned as `null` and does not fall back to a default. File selection, allowing bundled secret values,
+and opening and closing development-only endpoints all look at this selector, so having a default would make it impossible to tip "unset"
+toward the safe side ([0030](../../docs/adr/0030-environment-variable-management.md)). The list of environments that may open development-only
+endpoints lives in only one place, `application-environment.ts`, and both build (whether to include development-only routes in the bundle)
+and runtime (whether to open the endpoints) read the same decision — if the list were in two places, a change widening only one of them
+would pass silently.
 
-`src/instrumentation.ts` は Next.js の規約ファイルであり、`register()` はサーバーインスタンスの
-準備時に Next.js が自動実行します。Edge runtime では Node.js のファイル読込を行えないため、
-Node.js runtime だけが `bootstrapConfig()` を呼びます。bootstrap 後は observability Config を読んで
-OTel SDK と logger へ値を注入します。Config 自身は logger / observability を import しません。
+`src/instrumentation.ts` is a Next.js convention file, and Next.js automatically runs `register()` while preparing
+a server instance. The Edge runtime cannot read files with Node.js,
+so only the Node.js runtime calls `bootstrapConfig()`. After bootstrap it reads the observability Config and
+injects the values into the OTel SDK and the logger. Config itself does not import logger / observability.
 
-**一度だけ評価する、は運用のつまみにも及びます。** 配信を止める / 戻すはどちらも配備先の環境設定を
-変えて立ち上げ直す操作で、実行中のプロセスへ効かせる口はありません。再デプロイなしで変えたい値は
-env に置きません（[0030](../../docs/adr/0030-environment-variable-management.md) 周辺ルール）。
+**Evaluating only once extends to operational switches too.** Stopping / resuming serving are both operations that change the deployment target's environment settings
+and restart; there is no endpoint that applies them to a running process. Values that must change without a redeploy
+are not put in env (the related rules in [0030](../../docs/adr/0030-environment-variable-management.md)).
 
-**プリレンダーへ焼き込まれる値は build と start に同じ ENV を渡します。** 静的に描かれる画面の
-metadata と `robots.txt` は build 時に読まれるため、配信物は環境ごとに build する前提です
-（[env/README.md](../../env/README.md)）。
+**For values baked into prerendering, pass the same ENV to build and start.** The metadata of statically rendered screens
+and `robots.txt` are read at build time, so the served artifacts assume a build per environment
+([env/README.md](../../env/README.md)).
 
-## Config の配線
+## Config Wiring
 
-- `next.config.ts` は build 境界として `loadEnvironment()` と `validateEnvironment()` を直接呼ぶ。
-  そのうえで読むのは `getEnvironment()` の検証済みの値と schema の純関数であって、`*.server.ts` の
-  singleton ではない —— `server-only` を持つ module は react-server 条件の外で評価されると throw する
-  ため、build 境界からは import できない。
-- 配信物を作る script（`pnpm build`）も、`process.env` を読む前に `loadEnvironment()` を呼ぶ。
-- `src/instrumentation.ts` は起動境界として `bootstrapConfig()` だけを呼ぶ。**接続モードで分岐する
-  処理（mock の interception）は `bootstrapConfig()` の後に置く** —— 検証より前に置くと、未検証の値で
-  本番の接続先を差し替えうる。
-- `bootstrap.server.ts` は `validate-environment.server.ts` を import し、全 server Config getter を一度呼ぶ。
-- `adapters/server` と `proxy.ts` は必要な目的の `get*Config()` だけを import し、feature / model / component は Config を import しない。`app` が直に読む server config は、**Next.js の規約が route segment に置くことを要求する値だけ**である（下記「運用」）。
-- 内側のロジックへ設定値が必要な場合は、adapter が getter から取り出した値を引数で渡す。
-- Config class と ENV parser は module 外へ export しない。通常コードが任意の ENV から Config を再生成する経路を持たせない。
-- unit test は `vi.stubEnv()` と `vi.resetModules()` で module cache を再評価し、公開 singleton を検証する。
+- `next.config.ts`, as the build boundary, calls `loadEnvironment()` and `validateEnvironment()` directly.
+  What it then reads are the validated values of `getEnvironment()` and the schema's pure functions, not the `*.server.ts`
+  singletons — a module with `server-only` throws when evaluated outside the react-server condition,
+  so it cannot be imported from the build boundary.
+- The script that produces the served artifacts (`pnpm build`) also calls `loadEnvironment()` before reading `process.env`.
+- `src/instrumentation.ts`, as the startup boundary, calls only `bootstrapConfig()`. **Processing that branches on the connection mode
+  (mock interception) goes after `bootstrapConfig()`** — placed before validation, it could swap the
+  production connection target based on unvalidated values.
+- `bootstrap.server.ts` imports `validate-environment.server.ts` and calls every server Config getter once.
+- `adapters/server` and `proxy.ts` import only the `get*Config()` of the purposes they need; feature / model / component do not import Config. The server config `app` reads directly is **only the values Next.js conventions require to be placed in a route segment** (see Operations below).
+- When inner logic needs a setting value, the adapter takes it from the getter and passes it as an argument.
+- The Config classes and the ENV parser are not exported outside the module. Ordinary code is given no path to regenerate a Config from arbitrary ENV.
+- Unit tests re-evaluate the module cache with `vi.stubEnv()` and `vi.resetModules()` and verify the public singletons.
 
-## 運用
+## Operations
 
-- `process.env` の直読はこのカーネルだけに置く（`src/` では biome `noProcessEnv` の override がこのカーネルと `src/instrumentation.ts` だけを外す）。
-- server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・入口の `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番の束に載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.md) の層定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得の口だけを増やすことになる。
-- client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側の層も `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.md)）。
-- 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.md) を正とする。
-- proxy から辿れる config は ENV ファイルを読まない。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、`dotenv` / `node:path` を使う `load-environment.ts` へは届かない。ENV ファイルは起動 / ビルド境界が先に読み込んでいる（[0043](../../docs/adr/0043-middleware-policy.md) の Edge 互換。`scripts/proxy-edge.gate.test.ts` が辿れるグラフを見る）。
+- Direct reads of `process.env` live only in this kernel (in `src/`, the biome `noProcessEnv` override exempts only this kernel and `src/instrumentation.ts`).
+- Server config is protected with `import "server-only"`. Its readers are mainly `adapters/server`, the startup / build boundaries, and the entry point `proxy.ts`; **`app` directly reads only the values Next.js conventions require to be placed in a route segment** (`config/site`, read by the root layout and metadata, and `config/clock`, read by screens as "now"). **Development-only screens that are not in the production bundle** (`page.dev.tsx` under `dev/**`) also exist in a form that reads `config/api` / `config/auth` directly (recorded in the element table of [0025](../../docs/adr/0025-app-layer-elements.md)). **The authority on readers is not here but the layer-definition mapping of [0021](../../docs/adr/0021-frontend-responsibility.md) and the prohibitions of [0025](../../docs/adr/0025-app-layer-elements.md)**; what is stated here is only their shape — a decision to add readers moves those first. Routing through `adapters` would only add a fetch endpoint for a value whose location is already set by convention.
+- Client config goes in `*.client.ts`, which holds only references naming `NEXT_PUBLIC_` variables by string literal. No validation is done there (the browser is not where validation runs). Do not pass server config values to the client as props. Client config is a public constant, not a runtime object, so it is not subject to import boundary restrictions, and client-side layers and `app` can read it ([0030](../../docs/adr/0030-environment-variable-management.md)).
+- [env/README.md](../../env/README.md) is the source of truth for the list of environment variables, the templates, and the secret-management labels.
+- Config reachable from the proxy does not read ENV files. The reachable range stops at `environment.ts` → `application-environment.ts` and does not reach `load-environment.ts`, which uses `dotenv` / `node:path`. The startup / build boundaries have already loaded the ENV files (Edge compatibility in [0043](../../docs/adr/0043-middleware-policy.md); `scripts/proxy-edge.gate.test.ts` checks the reachable graph).
 
-## 配信ヘッダの組み立て
+## Building Response Headers
 
-`security-headers/security-headers.ts` はヘッダの**内容**の根拠を持ちません（[0111](../../docs/adr/0111-csp-security-headers.md)）。
-ここが持つのは組み立ての形です。
+`security-headers/security-headers.ts` holds no rationale for the headers' **contents** ([0111](../../docs/adr/0111-csp-security-headers.md)).
+What it holds is the shape of the building.
 
-- **入力は検証済みの ENV の生値と配信の条件**（https か / 開発サーバーか）で、`next.config.ts` が
-  `getEnvironment()` から渡す。ENV 由来の origin をここへ直接書くと、環境変数と設定の 2 か所が
-  別々に動く。
-- **値の意味づけは 1 か所で行う。** 「空は読み込まない」を呼び出し側で真偽値へ潰さず、容器 ID を
-  文字列のまま受けて組み立て側が判定する。同じ意味づけが渡す側と受ける側の 2 か所に現れない。
-- **URL として受けた値は `new URL(value).origin` に落としてから載せる。** パスやポートの有無で
-  載る形が変わらない。
-- **条件で変わる部分だけに理由を持つ**: `'unsafe-eval'` は開発サーバーだけ（React が server 側の
-  エラースタックを組み直すのに使う）、HSTS と `upgrade-insecure-requests` は https で配信して
-  いるときだけ（http の開発環境で出すと副資源まで書き換えられて取得できない）、第三者の配信元は
-  容器 ID を宣言した配備だけ（読み込まないもののために攻撃面だけが残る）。
-- **要求に依らないヘッダは `next.config.ts` の `headers()` に置く。** `src/proxy.ts` で足すと
-  前捌きを通る経路にしか載らず、静的に配れる応答が漏れる。要求に依るヘッダは `src/proxy.ts` が持つ。
-- **配信構成の判断は含めない。** HSTS の `includeSubDomains` / `preload` は配信構成が決めるので付けず、
-  期間だけを preload list の下限に揃える。
-- **許可の一覧はワイルドカードだけを挙げる。** ワイルドカードが含む代表的なホストを別に並べても
-  増えるのは行数だけである。
+- **The inputs are the raw validated ENV values and the serving conditions** (https or not / dev server or not), which `next.config.ts`
+  passes from `getEnvironment()`. Writing ENV-derived origins directly here would make the environment variables and the settings two places
+  that move separately.
+- **Values are given meaning in one place.** "Empty means do not load" is not collapsed to a boolean on the calling side; the container ID is
+  received as a string and the building side decides. The same interpretation does not appear in two places, the passing side and the receiving side.
+- **A value received as a URL is reduced to `new URL(value).origin` before being emitted.** Whether it has a path or a port does not
+  change the emitted form.
+- **Only the parts that change by condition carry a reason**: `'unsafe-eval'` only on the dev server (React uses it to reassemble
+  server-side error stacks), HSTS and `upgrade-insecure-requests` only when served over
+  https (emitted on an http development environment, they rewrite even subresources so they cannot be fetched), and third-party serving origins only in
+  deployments that declared a container ID (otherwise only attack surface remains for something not loaded).
+- **Headers that do not depend on the request go in `headers()` of `next.config.ts`.** Added in `src/proxy.ts`, they would ride only on
+  routes the proxy handles, and statically servable responses would miss them. Request-dependent headers are held by `src/proxy.ts`.
+- **Serving-configuration decisions are not included.** HSTS `includeSubDomains` / `preload` are decided by the serving configuration, so they are not added;
+  only the duration is aligned with the preload list's lower bound.
+- **The allow list names only the wildcards.** Listing representative hosts the wildcard covers separately
+  only adds lines.
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-環境変数から来る値はこのカーネルが検証するだけで、**値そのものは
-[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点) が持ちます。** ここに書くのは、
-環境変数を通らずにコードへ焼いてある既定です。
+This kernel only validates values that come from environment variables; **the values themselves are held by
+[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点).** What is written here are
+the defaults baked into code without going through environment variables.
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change |
 | --- | --- | --- |
-| 配信ヘッダが許す第三者 origin | タグマネージャを読み込む配備向けに、Google の配信元と計測の送り先を `script-src` / `connect-src` / `img-src` へ載せる分岐を持つ | `security-headers/security-headers.ts`。別のタグマネージャへ替えるなら、この origin と読み込み口（`src/app/analytics.tsx`）の両方を動かす |
-| `script-src` 以下の既定 | 上記以外の第三者 origin を許さない。要求に依らないヘッダは配信側が付ける | 同上。足すときは [0111](../../docs/adr/0111-csp-security-headers.md) の判断に従う |
+| Third-party origins the response headers allow | Has a branch that, for deployments loading a tag manager, puts Google's serving origins and measurement destinations into `script-src` / `connect-src` / `img-src` | `security-headers/security-headers.ts`. To switch to another tag manager, move both these origins and the loading point (`src/app/analytics.tsx`) |
+| Defaults under `script-src` | No third-party origins other than the above are allowed. Request-independent headers are attached by the serving side | Same as above. When adding, follow the decision in [0111](../../docs/adr/0111-csp-security-headers.md) |
 
-`security-headers` は build 境界の持ち物で、`next.config.ts` が読みます。目的別 config と違って
-リクエストにも環境変数にも依らないため、差し替えはコードの変更になります。
+`security-headers` belongs to the build boundary and is read by `next.config.ts`. Unlike the per-purpose configs it depends on
+neither the request nor environment variables, so swapping it means changing code.
 
-## テスト
+## Testing
 
-- **検証を通る一式は `environment.fixture.ts` だけが持つ。** schema は全 purpose をまとめて検証する
-  ので、purpose を 1 つ確かめるテストも一式を要る。各テストが自分のぶんだけを stub すると、他の
-  purpose の欠落で落ちて検査したい判定へ到達しない。`VALID_ENVIRONMENT` は受理される形を敢えて
-  散らした生の値、`PARSED_ENVIRONMENT` は観測が信号を出さないよう exporter を落とした検証後の値で、
-  **後者は前者を parse した結果ではない**。`getEnvironment` を差し替える境界のテストは後者を読む。
-- **`*.server.test.ts` の形**: `beforeEach` で `vi.resetModules()` → `vi.unstubAllEnvs()` →
-  `stubValidEnvironment()`、`afterEach` で `vi.unstubAllEnvs()`。対象は stub のあとに
-  `await import()` で読む。1 つの変数を変えるケースは `vi.stubEnv()` を上書きし、欠落は
-  `vi.stubEnv(name, undefined)` で表す。失敗は変数名で突き合わせる（`toThrow("VAR_NAME")`）。
-  singleton であることは同一性（`toBe`）で確かめる。
-- **`*.schema.test.ts` の形**: validator を直接呼び、`safeParse().success` か `parse()` の結果で
-  受理 / 拒否を確かめる。ENV も module cache も触らない。
-- **実行環境の `APP_ENV` を前提にしない。** CI は workflow で `ci` を宣言しているため、「未指定の
-  とき」を確かめるケースは `vi.stubEnv("APP_ENV", undefined)` で明示的に外す。
-- **ファイル読込は `vi.doMock("dotenv")` で差し替える。** 読み込む path・`override: false`・
-  一度きりであることを、呼出しの引数と回数で固定する。
-- 時計を読むケースは `vi.useFakeTimers()` + `vi.setSystemTime()` で実時計を固定し、`afterEach` で
-  `vi.useRealTimers()` に戻す。
+- **Only `environment.fixture.ts` holds the complete set that passes validation.** The schema validates all purposes together,
+  so even a test checking one purpose needs the complete set. If each test stubbed only its own part, it would fail on the absence of other
+  purposes and never reach the decision it means to check. `VALID_ENVIRONMENT` is raw values deliberately scattered across the
+  accepted shapes; `PARSED_ENVIRONMENT` is post-validation values with the exporters dropped so observability emits no signals, and
+  **the latter is not the result of parsing the former**. Tests at boundaries that swap `getEnvironment` read the latter.
+- **Shape of `*.server.test.ts`**: in `beforeEach`, `vi.resetModules()` → `vi.unstubAllEnvs()` →
+  `stubValidEnvironment()`; in `afterEach`, `vi.unstubAllEnvs()`. The subject is loaded with
+  `await import()` after stubbing. A case changing one variable overrides `vi.stubEnv()`, and absence is expressed with
+  `vi.stubEnv(name, undefined)`. Failures are matched by variable name (`toThrow("VAR_NAME")`).
+  Being a singleton is checked by identity (`toBe`).
+- **Shape of `*.schema.test.ts`**: call the validator directly and check acceptance / rejection with the result of `safeParse().success` or
+  `parse()`. Touch neither ENV nor the module cache.
+- **Do not assume the execution environment's `APP_ENV`.** CI declares `ci` in the workflow, so cases checking "when
+  unspecified" remove it explicitly with `vi.stubEnv("APP_ENV", undefined)`.
+- **Swap file loading with `vi.doMock("dotenv")`.** Pin the loaded path, `override: false`, and
+  being one-time through the call's arguments and count.
+- Cases that read the clock fix the real clock with `vi.useFakeTimers()` + `vi.setSystemTime()` and restore
+  `vi.useRealTimers()` in `afterEach`.
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: ui` — 画面を描かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」。機械: `project-rules/no-markup-outside-ui-layers` |
-| `forbidden: fetch` — `fetch` などの外部 IO を持たない。持つのは環境変数の検証と、検証した値の公開だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」 |
-| `forbidden: business-logic` — 業務ロジックを持たない。値の意味の判定は読み手の側に置く | violation。検証の規則か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」 |
-| `*.server.ts` を import するのは、`adapters/server`、起動 / ビルド境界（`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`）、`app/metadata`、Next.js の規約が route segment に置くことを要求する値（`config/site` / `config/clock`）を読む route segment だけ。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | 許可の外からの import は violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスと Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / この README「運用」。機械は `config` を層の粒度でしか見ない |
-| `*.client.ts` が持つのは `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけ —— 動的アクセス（文字列リテラル以外の添字）・分割代入・`NEXT_PUBLIC_` 以外の変数・検証の呼び出しを持たない | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の client config の置き方と禁止事項 / [docs/rules.md#config](../../docs/rules.md#config) |
-| `*.schema.ts` は `process.env` も `APP_ENV` の判定も読まない。環境に依る条件は validator の引数で受け、渡すのは `environment.ts` である | violation | この README「目的別 module の形」 |
-| secret を `NEXT_PUBLIC_` に置かない | [`env/README.md`](../../env/README.md) で secret 管理のラベルを持つ変数が `NEXT_PUBLIC_` を名乗っていれば violation。ラベルは無いが署名鍵・資格情報として使われている値が `NEXT_PUBLIC_` を名乗っていれば suggestion | [0030](../../docs/adr/0030-environment-variable-management.md) 禁止事項 / [docs/rules.md#config](../../docs/rules.md#config) |
-| server config の値を props として client component へ渡さない。client が要る値は最初から `NEXT_PUBLIC_` の client config に置く | violation | [0030](../../docs/adr/0030-environment-variable-management.md) の禁止則 / この README「運用」 |
-| Config class と ENV parser を module の外へ export しない | violation | [docs/rules.md#config](../../docs/rules.md#config)/ この README「Config の配線」 |
-| 省略できる変数の既定が、設定を忘れた環境が踏んで困る側（止める・索引させる・第三者を読み込む・別 origin を許す）にある | 既定が環境によらず正しい根拠を validator の文書が持たなければ suggestion | この README「検証の語彙」/ [0030](../../docs/adr/0030-environment-variable-management.md)（任意の変数の扱い） / [docs/rules.md#config](../../docs/rules.md#config) |
+| `forbidden: ui` — renders no screens | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for). Mechanical: `project-rules/no-markup-outside-ui-layers` |
+| `forbidden: fetch` — holds no external IO such as `fetch`. It holds only environment variable validation and the publication of validated values | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for) |
+| `forbidden: business-logic` — holds no business logic. Judging what a value means sits on the reader's side | violation. suggestion when it cannot be told whether something is a validation rule or a business decision | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for) |
+| `*.server.ts` is imported only by `adapters/server`, the startup / build boundaries (`src/instrumentation.ts` / `next.config.ts` / `src/proxy.ts`), `app/metadata`, and route segments reading values Next.js conventions require to be placed in a route segment (`config/site` / `config/clock`). Direct reads by `page.dev.tsx`, which is not in the production bundle, are a known form recorded by 0025 and out of scope | An import from outside the allowed set is a violation | The dependency matrix and Enforcement of [0021](../../docs/adr/0021-frontend-responsibility.md) / the prohibitions of [0025](../../docs/adr/0025-app-layer-elements.md) / Operations in this README. The machine sees `config` only at layer granularity |
+| `*.client.ts` holds only references naming `NEXT_PUBLIC_` variables by string literal — no dynamic access (subscripts other than string literals), destructuring, non-`NEXT_PUBLIC_` variables, or validation calls | violation | How [0030](../../docs/adr/0030-environment-variable-management.md) places client config, and its prohibitions / [docs/rules.md](../../docs/rules.md#config) |
+| `*.schema.ts` reads neither `process.env` nor the `APP_ENV` decision. Environment-dependent conditions are received as validator arguments, passed by `environment.ts` | violation | Shape of a Purpose Module in this README |
+| Do not put secrets in `NEXT_PUBLIC_` | violation if a variable carrying a secret-management label in [`env/README.md`](../../env/README.md) is named `NEXT_PUBLIC_`. suggestion if a value with no label but used as a signing key or credential is named `NEXT_PUBLIC_` | The prohibitions of [0030](../../docs/adr/0030-environment-variable-management.md) / [docs/rules.md](../../docs/rules.md#config) |
+| Do not pass server config values to client components as props. Values the client needs go in a `NEXT_PUBLIC_` client config from the start | violation | The prohibition rules of [0030](../../docs/adr/0030-environment-variable-management.md) / Operations in this README |
+| Do not export the Config classes and the ENV parser outside the module | violation | [docs/rules.md](../../docs/rules.md#config) / Config Wiring in this README |
+| An optional variable's default is on the side that harms an environment that forgot to set it (stopping, allowing indexing, loading third parties, allowing other origins) | suggestion if the validator's documentation does not hold the basis for the default being correct regardless of environment | Validation Vocabulary in this README / [0030](../../docs/adr/0030-environment-variable-management.md) (handling of optional variables) / [docs/rules.md](../../docs/rules.md#config) |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 設定を読めるのがどの層までかという線
-- [0028](../../docs/adr/0028-naming-convention.md) — 環境変数の命名（`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_`）。purpose の単位はこの接頭辞
-- [0030](../../docs/adr/0030-environment-variable-management.md) — `env/` の構成、目的別 config、`NEXT_PUBLIC_` の境界、secret の扱い、code default の位置付け、`APP_ENV` の必須化
-- [0075](../../docs/adr/0075-file-upload-seam.md) — アップロードの経路と、中継に許すバイト数をどこより内側に取るか
-- [0076](../../docs/adr/0076-payment-ui-seam.md) — 決済 UI の seam。`payment` を既定で閉じる根拠
-- [0079](../../docs/adr/0079-auth-frontend-seam.md) — 認証モードと session の front 側の持ち分
-- [0111](../../docs/adr/0111-csp-security-headers.md) — CSP と同伴ヘッダの内容、要求に依らないヘッダを配信側へ置く判断、別 origin から BFF を呼ばせる条件、タグマネージャを読み込む配備で `Cross-Origin-Embedder-Policy` を降ろす判断
-- [0131](../../docs/adr/0131-cookie-consent.md) — 同意管理を採らない決定と、タグマネージャを既定で読み込まない指定
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — The line up to which layers may read settings
+- [0028](../../docs/adr/0028-naming-convention.md) — Environment variable naming (`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_`). The unit of purpose is this prefix
+- [0030](../../docs/adr/0030-environment-variable-management.md) — The structure of `env/`, per-purpose config, the `NEXT_PUBLIC_` boundary, handling secrets, the position of code defaults, making `APP_ENV` required
+- [0075](../../docs/adr/0075-file-upload-seam.md) — The upload path, and how far inside the relay the allowed byte count is taken
+- [0076](../../docs/adr/0076-payment-ui-seam.md) — The payment UI seam. The basis for closing `payment` by default
+- [0079](../../docs/adr/0079-auth-frontend-seam.md) — Authentication modes and the front end's share of the session
+- [0111](../../docs/adr/0111-csp-security-headers.md) — The contents of the CSP and its companion headers, the decision to put request-independent headers on the serving side, the conditions for letting another origin call the BFF, the decision to lower `Cross-Origin-Embedder-Policy` in deployments that load a tag manager
+- [0131](../../docs/adr/0131-cookie-consent.md) — The decision not to adopt consent management, and the instruction not to load a tag manager by default

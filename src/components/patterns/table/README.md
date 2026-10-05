@@ -1,26 +1,26 @@
 # Table Columns Sugar
 
-## 用途
+## Purpose
 
-列定義を `colgroup` と column header へ展開し、幅と alignment の SSOT を提供します。
+Expands column definitions into a `colgroup` and column headers, and provides the single source of truth (SSOT) for width and alignment.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `TableColumnGroup` | 列幅を `colgroup` に展開します。 |
-| `TableColumnHeaders` | header と alignment を column header に展開します。 |
-| `TableColumnDefinition` | static / editable sugar が共有する列設定です。 |
-| `rowActionsColumn` | 行操作の定義から操作列を組み立てます。詳細は [`row-actions/README.md`](./row-actions/README.md) を参照します。 |
+| `TableColumnGroup` | Expands column widths into a `colgroup`. |
+| `TableColumnHeaders` | Expands headers and alignment into column headers. |
+| `TableColumnDefinition` | Column settings shared by the static / editable sugar. |
+| `rowActionsColumn` | Builds the actions column from row action definitions. See [`row-actions/README.md`](./row-actions/README.md) for details. |
 
-## 利用ケース
+## Use Cases
 
-読み取り・編集の両 table で列の幅と配置を揃える場合に使います。行ごとの操作 menu は `row-actions` で組み立てます。
+Use it to align column widths and placement across both read-only and editable tables. Per-row action menus are built with `row-actions`.
 
-## 責務境界
+## Responsibility Boundaries
 
-行データ・cell の表示・保存・検証は持ちません。
+It does not own row data, cell display, saving, or validation.
 
-## Storybook とテスト
+## Storybook and Tests
 
-StaticDataTable / EditableDataTable の Story と test を通じて展開結果を確認します。
+The expanded result is checked through the stories and tests of StaticDataTable / EditableDataTable.

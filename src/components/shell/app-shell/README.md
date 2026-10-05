@@ -1,42 +1,42 @@
 # AppShell
 
-## 用途
+## Purpose
 
-利用者向け画面の外枠を組みます。header・導線・skip link・`main`・footer をまとめ、どの画面でも同じ位置に置きます。
+Builds the outer frame of user-facing screens. It groups the header, navigation, the skip link, `main` and the footer, and places them in the same position on every screen.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `AppShell` | header / nav / skip link / `main` / footer を持つ外枠です。 |
-| `AppShellMenu` | 狭い画面で header の導線を畳む side menu です。 |
-| `AppShellMenuFallback` | `AppShellMenu` が届くまで同じ大きさで場所を占める、押せない枠です。 |
-| `AppShellNavLink` | 導線 1 件を描く link です。side menu の中では履歴を積まずに移ります。 |
+| `AppShell` | Outer frame with header / nav / skip link / `main` / footer. |
+| `AppShellMenu` | Side menu that collapses the header navigation on narrow screens. |
+| `AppShellMenuFallback` | Non-pressable frame that occupies the same space at the same size until `AppShellMenu` arrives. |
+| `AppShellNavLink` | Link that renders one navigation item. Inside the side menu it navigates without pushing history. |
 
-`app-shell.definition.ts` は、導線 1 件の型（`AppShellNavItem`）と、`main` の `id` と header の高さを持ちます。
+`app-shell.definition.ts` holds the type of one navigation item (`AppShellNavItem`), the `id` of `main`, and the header height.
 
-## 利用ケース
+## Use Cases
 
-利用者向けの route group の layout で一度だけ使います。器をどこに mount するかは [0026](../../../../docs/adr/0026-layout-shell-mount.md) が決めます。
+Use it once, in the layout of the user-facing route group. Where the layout shell is mounted is decided by [0026](../../../../docs/adr/0026-layout-shell-mount.md).
 
-導線を 1 つも持たない器（`navItems` も `navSlot` も空）では、header の `nav` 自体を置きません。中身の無い landmark は、支援技術の一覧に行き先の無い項目として残るためです。
+In a layout shell with no navigation at all (both `navItems` and `navSlot` empty), the header's `nav` itself is not placed. A landmark with no contents remains in assistive technology's list as an item with no destination.
 
-主体を知らなければ決まらない導線（ログイン状態で変わる項目など）は `navItems` へ混ぜず、`navSlot` と `menuNavSlot` へ穴として渡します。`navItems` に待つものを混ぜると器そのものが待つことになり、この器を通る画面がすべて動的描画になります。
+Navigation that cannot be decided without knowing the actor (items that change with login state, for example) is not mixed into `navItems` but passed to `navSlot` and `menuNavSlot` as dynamic holes. Mixing something that waits into `navItems` would make the layout shell itself wait, and every screen going through this layout shell would become dynamically rendered.
 
-## 責務境界
+## Responsibility Boundaries
 
-**`main` は幅を絞りません。** 読み幅と左右余白は [`ContentContainer`](../content-container/README.md) の責務です。
+**`main` does not narrow its width.** Reading width and horizontal padding are the responsibility of [`ContentContainer`](../content-container/README.md).
 
-skip link を先頭に置くのは、キーボードと支援技術の利用者が header の導線を毎回辿らずに本文へ入れるようにするためです。
+The skip link is placed first so that keyboard and assistive-technology users can enter the body without going through the header navigation every time.
 
-`sidebar` と `headerActions` の中身は知りません。置き場所だけを用意し、何を出すか・いつ出すか・どれだけの幅を取るかは渡す側が決めます。
+It does not know the contents of `sidebar` and `headerActions`. It only provides the place; the passing side decides what to show, when to show it, and how much width it takes.
 
-器は紙に出しません。header・footer・skip link は画面を渡り歩くためのもので、紙の上では押せず場所を取るだけです。
+The layout shell is not printed. The header, footer and skip link are for moving between screens; on paper they cannot be pressed and only take up space.
 
-管理画面は別の器（[`AdminShell`](../admin-shell/README.md)）を持ちます。見せる相手も導線も違うため、1 枚にまとめると分岐を器の中に抱えます。
+Admin screens have a separate layout shell ([`AdminShell`](../admin-shell/README.md)). The audience and the navigation differ, so merging them into one would make the layout shell carry branches.
 
-`AppShell` は Server Component です。`AppShellMenu` だけが開閉のために hydration を要する client island です。
+`AppShell` is a Server Component. Only `AppShellMenu` is a client island that needs hydration for opening and closing.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook（`Layout/AppShell`）は既定の構成、脇に領域を並べた構成、狭い viewport、side menu を開いた状態、導線を持たない構成、side menu の導線を slot からだけ受け取る構成を確認します。テストは本文が `main` に入ること、skip link の飛び先、header の導線と footer、狭い画面で side menu から導線を開けること、side menu の導線が履歴を積まないこと、導線が無ければ header の `nav` を置かないことを確認します。
+Storybook (`Layout/AppShell`) covers the default composition, a composition with a region alongside, a narrow viewport, the side menu opened, a composition with no navigation, and a composition where the side menu's navigation comes only from the slot. The tests cover that the body goes into `main`, the skip link's target, the header navigation and the footer, that navigation can be opened from the side menu on narrow screens, that side menu navigation does not push history, and that the header's `nav` is not placed when there is no navigation.

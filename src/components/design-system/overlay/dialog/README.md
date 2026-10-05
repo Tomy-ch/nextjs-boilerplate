@@ -1,44 +1,44 @@
 # Dialog
 
-## 用途
+## Purpose
 
-内容の補助表示や通常の編集操作を、画面を覆う modal として開きます。
+Opens auxiliary content views or ordinary edit operations as a modal covering the screen.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Dialog` | 開閉状態と focus trap・Escape・背面の inert 化を管理する client-side root です。 |
-| `DialogTrigger` | Dialog を開く trigger です。`Button` や link を使う場合は `asChild` で合成します。 |
-| `DialogContent` | overlay と Portal を伴って dialog 本体を描画します。既定で右上に閉じる操作を置きます。 |
-| `DialogClose` | dialog を閉じる操作です。footer のキャンセル・閉じるに使います。 |
-| `DialogHeader` | title と説明をまとめる領域です。 |
-| `DialogTitle` | dialog のアクセシブルな名前になる title です。 |
-| `DialogDescription` | dialog の目的や影響を説明する本文です。 |
-| `DialogFooter` | 操作を並べる領域です。配置だけを担い、操作自体は持ちません。 |
-| `DialogOverlay` | 背面を覆う overlay です。`DialogContent` が内部で描画します。 |
-| `DialogPortal` | 描画先の Portal です。`DialogContent` が内部で使います。 |
+| `Dialog` | The client-side root that manages the open state, the focus trap, Escape and making the background inert. |
+| `DialogTrigger` | The trigger that opens the Dialog. When using `Button` or a link, compose it with `asChild`. |
+| `DialogContent` | Renders the dialog body together with the overlay and Portal. By default it places a close action at the top right. |
+| `DialogClose` | The action that closes the dialog. Used for cancel / close in the footer. |
+| `DialogHeader` | The area that groups the title and description. |
+| `DialogTitle` | The title that becomes the dialog's accessible name. |
+| `DialogDescription` | The body text explaining the dialog's purpose or effect. |
+| `DialogFooter` | The area that lays out actions. It handles only placement and holds no actions itself. |
+| `DialogOverlay` | The overlay covering the background. `DialogContent` renders it internally. |
+| `DialogPortal` | The Portal it renders into. `DialogContent` uses it internally. |
 
-## 利用ケース
+## Use Cases
 
-一覧から詳細を開く、名称や設定を編集する、画像を拡大するなど、画面遷移せずに内容を確認・編集したい場面に使います。
+Use it where content should be checked or edited without a screen transition, such as opening a detail from a list, editing a name or setting, or enlarging an image.
 
-退会・削除のような取り消せない操作の確認には使いません。その用途は `role="alertdialog"` の意味論を持つ `AlertDialog` を使います。
+Do not use it to confirm operations that cannot be undone, such as account cancellation or deletion. For that, use `AlertDialog`, which has the semantics of `role="alertdialog"`.
 
-## 責務境界
+## Responsibility Boundaries
 
-開いているあいだは履歴を 1 つ持ち、**戻る操作で自分だけを閉じます**（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。積むのは同じ URL の履歴 entry だけで、URL 自体は変わりません。
+While open it holds one history entry, and **the back action closes only itself** ([0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)). It pushes only a history entry for the same URL; the URL itself does not change.
 
-focus trap・Escape・開閉・背面の inert 化のため hydration が必要な client island です。表示する文言、取得、保存、業務判断、開閉を URL へ載せるかの選択は持ちません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+It is a client island that needs hydration for the focus trap, Escape, opening / closing and making the background inert. It owns no display text, fetching, saving, business decisions, or the choice of whether to put the open state in the URL. When the content itself needs no client runtime, pass elements assembled in a Server Component as `children`.
 
-`DialogFooter` は配置だけを担い、閉じる操作を自前で描画しません。閉じる操作は `DialogClose` を `Button` へ合成して呼び出し元が置きます。shadcn の生成物にある footer 側の `showCloseButton` は、`DialogContent` の閉じる操作と重複し文言を component へ持ち込むため採っていません。
+`DialogFooter` handles only placement and does not render a close action itself. The caller places the close action by composing `DialogClose` with a `Button`. The footer-side `showCloseButton` in the shadcn generated output is not adopted, because it duplicates the close action of `DialogContent` and brings text into the component.
 
-`DialogContent` はアクセシブルな名前として `DialogTitle` を必ず子に置きます。説明が要る場合は `DialogDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示します。どちらも無いと Radix が警告します。
+`DialogContent` always has a `DialogTitle` as a child for its accessible name. Add a `DialogDescription` when a description is needed, and specify `aria-describedby={undefined}` explicitly when it is not. Without either, Radix warns.
 
-面はページ内容の上へ重なるため、背景は `bg-background`、境界は `border-border` の semantic token で不透明に描画します。トークンに定義のない class は Tailwind が CSS を出力せず、面が透明のまま背後の文字と重なって contrast を失います。
+The surface overlaps the page content, so it is rendered opaque with the semantic tokens `bg-background` for the background and `border-border` for the border. For a class not defined in the tokens, Tailwind outputs no CSS, and the surface stays transparent, overlapping the text behind it and losing contrast.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendor is currently Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の開閉、開いた状態の title・説明・footer、form 部品を内容に置く場合、説明を持たない場合、右上の閉じる操作を置かない場合を確認します。テストは開くまで内容を描画しないこと、title と説明の関連付け、`alertdialog` ではなく `dialog` の意味論であること、面が不透明であること、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、`DialogPortal` / `DialogOverlay` の明示指定、a11y 自動検査を確認します。
+Storybook checks the default opening / closing, the title, description and footer in the open state, placing form components in the content, having no description, and not placing the top-right close action. The tests check that the content is not rendered until opened, the association of title and description, that the semantics are `dialog` rather than `alertdialog`, that the surface is opaque, that it can be closed from both the top right and the footer, toggling `showCloseButton`, closing with Escape, explicit `DialogPortal` / `DialogOverlay`, and the automated a11y check.

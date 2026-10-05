@@ -1,24 +1,24 @@
 # Calendar
 
-## 用途
+## Purpose
 
-日付または日付範囲を選びます。
+Selects a date or a date range.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Calendar` | 日付・日付範囲の選択、keyboard 操作、月移動を提供する client-side calendar です。 |
-| `CalendarDayButton` | 一日を表す操作要素です。通常は `Calendar` が内部で利用し、表示を置き換える場合だけ指定します。 |
+| `Calendar` | A client-side calendar that provides date and date-range selection, keyboard operation and month navigation. |
+| `CalendarDayButton` | The interactive element representing one day. Normally `Calendar` uses it internally; specify it only to replace the display. |
 
-## 利用ケース
+## Use Cases
 
-公開日などの日付、開始日・終了日の範囲を選ぶ場合に使います。日付だけを直接入力する場合は native の `input type="date"` を優先します。
+Use it to select a date such as a publication date, or a range of start and end dates. When only a date is entered directly, prefer the native `input type="date"`.
 
-## 責務境界
+## Responsibility Boundaries
 
-`react-day-picker` により hydration が必要な client island です。日時・タイムゾーンの変換、form 送信値、保存、利用可能な日の業務判断は持ちません。feature が選択結果を form や Server Action へ接続します。
+It is a client island that needs hydration because of `react-day-picker`. It owns neither date-time and time zone conversion, the form submission value, saving, nor the business decision of which days are available. The feature connects the selection to a form or a Server Action.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は単一日付・日付範囲・選択不可の日付を、テストは grid の意味論・日付の選択操作・a11y を確認します。
+Storybook checks a single date, a date range and unselectable dates; the tests check the grid semantics, date selection and a11y.

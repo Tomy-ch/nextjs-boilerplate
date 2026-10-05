@@ -1,35 +1,31 @@
 # PrintButton
 
-## 用途
+## Purpose
 
-表示中の文書を印刷する操作です。控え・明細・仕様のように、利用者が手元へ残したい画面へ添えます。
+The action that prints the document being displayed. It accompanies screens the user wants to keep a copy of, such as receipts, statements and specifications.
 
-## 役割と公開
+## Role and Public API
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `PrintButton` | `window.print()` を呼ぶ client island です。 |
+| `PrintButton` | A client island that calls `window.print()`. |
 
-props はありません。文言と見た目は固定で、押した結果は browser の印刷ダイアログです。
+It has no props. The copy and look are fixed, and the result of pressing it is the browser's print dialog.
 
-## 何を紙へ出すかは持ちません
+## It does not own what goes on paper
 
-印刷の対象を指定しません。`window.print()` は文書全体を対象にし、紙へ出す / 出さないは各要素へ付けた
-`print-hidden` / `print-only` が決めます（[`foundation/print`](../../foundation/print/README.md)）。
-ここで範囲を切ると、同じ判断が操作側と表示側の 2 か所に分かれ、片方だけを直した画面が生まれます。
+It does not specify what to print. `window.print()` targets the whole document, and whether something goes on paper is decided by the `print-hidden` / `print-only` attached to each element ([`foundation/print`](../../foundation/print/README.md)). Cutting the range here would split the same decision between the action side and the display side, producing screens where only one was fixed.
 
-この操作自身には `print-hidden` が付いています。押せない操作が紙面に残ると、その分だけ内容が押し出されます。
+This action itself carries `print-hidden`. An unpressable action left on paper pushes the content out by that much.
 
-## 責務境界
+## Responsibility Boundaries
 
-紙面の体裁は持ちません（余白・改ページ・表の見出し行の繰り返しは印刷基盤の側です）。
+It does not own the presentation on paper (margins, page breaks and repeating table header rows belong to the print base).
 
-PDF の生成も持ちません。サーバで組む場合は backend の責務です（ADR [0070](../../../../../docs/adr/0070-backend-role-separation.md)）。
+It does not own PDF generation either. Building it on a server is the backend's responsibility (ADR [0070](../../../../../docs/adr/0070-backend-role-separation.md)).
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定と、紙に出る内容の隣へ添えた場合を確認します。画面上では紙との差が見えないため、
-見え方の確認は browser の印刷プレビューで行います。
+Storybook checks the default and placing it next to content that goes on paper. The difference from paper is not visible on screen, so the look is checked in the browser's print preview.
 
-テストはアクセシブルな名前、押したときに印刷が始まること、押すまでは始まらないこと、自分自身へ
-`print-hidden` が付いていること、a11y 自動検査を確認します。
+Tests check the accessible name, that printing starts when pressed, that it does not start until pressed, that it carries `print-hidden` itself, and automated a11y checks.

@@ -1,169 +1,169 @@
 ---
-imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [business-logic, direct-config-access]
 test-requirement: unit
 ---
 
 # observability
 
-OTel を用いた server-side の trace、metrics、logs のためのカーネルです。設定値は import せず、起動側から注入されます。
+The kernel for server-side traces, metrics and logs using OTel. It does not import configuration values; they are injected from the boot side.
 
-## 受け入れるもの
+## What Belongs Here
 
-- OTel SDK の初期化、trace、signal 別の有効化
-- 描画を span へ載せる口（`features` から呼ぶ唯一の公開面）
-- 中継が受け取ったブラウザ側の測定を signal へ載せる口（`adapters/server` から呼ぶ）
-- ブラウザへ渡す trace 相関の出し入れ（root layout が書き出し、`adapters/server` が返ってきた文脈で記録する）
-- signal 別の送信先の組み立て（`getSignalEndpoint`。中継が collector へ渡す先も同じ関数で決める）
+- OTel SDK initialization, traces, per-signal enablement
+- The entry that puts rendering on spans (the only public surface called from `features`)
+- The entry that puts browser-side measurements received by the relay onto signals (called from `adapters/server`)
+- Writing out and reading back the trace correlation handed to the browser (the root layout writes it out, and `adapters/server` records in the context that comes back)
+- Building per-signal destinations (`getSignalEndpoint`; the destination the relay hands to the collector is decided by the same function)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、config の直接参照、特定 RUM SaaS への固定
+- Business logic, direct references to config, lock-in to a specific RUM SaaS
 
-## 構成
+## Structure
 
-- `initialize.server.ts` は Node.js runtime の `NodeSDK` をプロセスごとに一度だけ初期化する。resource には公式 semantic convention の `service.name` を設定し、W3C Trace Context と W3C Baggage を伝播する。HTTP instrumentation は受信 HTTP request の trace を作り、Undici instrumentation は許可された API origin への server-side `fetch` へ trace context を注入する。伝播が働くのは signal のいずれかが有効で SDK が構築されたときだけである。許可する接続先は `URL.origin` で照合する —— path は無視し、scheme・host・port の揃う origin だけに注入する。親 span の無い外向き要求は span にしない（`requireParentforSpans`）。2 度目の呼び出しは引数に関わらず何もしない —— 一度きりの判定は SDK の有無で行い、引数の同一性は見ない。
-- `trace-context.server.ts` は trace 相関を出し入れする。現在の有効な span から trace ID と span ID を抽出し（logging にはこの関数を起動境界で注入する）、同じ span を W3C の `traceparent` として書き出し、ブラウザが返してきた `traceparent` の文脈で記録を行う。
-- `render-span.ts` は描画を span にする。**feature が import する面であり、OTel を import しない。**載せる範囲も包む実装も起動境界から注入で受ける。対象と読み方は下記「描画の計装」が持つ。
-- `render-span-runner.server.ts` は span で包む実装。`@opentelemetry/api` を使うのはこちらで、起動境界が `render-span.ts` へ注入する。
-- `otlp-log-sink.server.ts` は logging が渡す正規化済みレコードを OTel Logs API へ変換する。logger 名は service 名、`severityText` はレベル名、`severityNumber` は OTel の対応値である。属性は OTLP が受け入れる形へ再帰的に正規化する —— primitive・`null`・`Uint8Array` はそのまま、object は入れ子の map として載せ、配列は全要素が載せられるときだけ載せて 1 つでも載せられない要素があれば配列ごと落とす。それ以外（`undefined` / symbol / function）は送出しない。
-- `web-vital-metric.server.ts` はブラウザが測った Web Vitals を OTel の metric として記録する。scope 名は `browser-telemetry` —— scope が指すのは計測した対象ではなく**計測した仕組み**で、サーバー自身が出す signal とは scope で見分ける。下記「ブラウザ側のシグナル」が持つ。
+- `initialize.server.ts` initializes the Node.js runtime's `NodeSDK` only once per process. It sets the official semantic convention `service.name` on the resource and propagates W3C Trace Context and W3C Baggage. The HTTP instrumentation creates traces for incoming HTTP requests, and the Undici instrumentation injects trace context into server-side `fetch` calls to allowed API origins. Propagation works only when some signal is enabled and the SDK has been constructed. Allowed destinations are matched by `URL.origin` — the path is ignored, and context is injected only into origins whose scheme, host and port all match. Outgoing requests without a parent span are not turned into spans (`requireParentforSpans`). A second call does nothing regardless of its arguments — the run-once check is based on whether the SDK exists, not on argument identity.
+- `trace-context.server.ts` writes out and reads back the trace correlation. It extracts the trace ID and span ID from the currently active span (this function is injected into logging at the boot boundary), writes the same span out as a W3C `traceparent`, and records within the context of the `traceparent` the browser sent back.
+- `render-span.ts` turns rendering into spans. **It is the surface features import, and it does not import OTel.** Both the coverage and the wrapping implementation are received by injection from the boot boundary. What it covers and how to read it are owned by "Rendering Instrumentation" below.
+- `render-span-runner.server.ts` is the implementation that wraps in a span. This is the side that uses `@opentelemetry/api`, and the boot boundary injects it into `render-span.ts`.
+- `otlp-log-sink.server.ts` converts the normalized records logging hands over into the OTel Logs API. The logger name is the service name, `severityText` is the level name, and `severityNumber` is OTel's corresponding value. Attributes are normalized recursively into the shape OTLP accepts — primitives, `null` and `Uint8Array` as is, objects as nested maps, and arrays only when every element can be carried, dropping the whole array if even one element cannot. Anything else (`undefined` / symbol / function) is not sent.
+- `web-vital-metric.server.ts` records the Web Vitals measured by the browser as OTel metrics. The scope name is `browser-telemetry` — a scope denotes not what was measured but **the mechanism that measured it**, and the scope tells these apart from the server's own signals. Owned by "Browser-Side Signals" below.
 
-## 描画の計装
+## Rendering Instrumentation
 
-`withScreenSpan(name, render)` と `withPartSpan(name, render)` は、渡されたコンポーネントを span で包んだ同じ形のコンポーネントを返す。span 名は `render <name>` で、`name` には `src/` からのモジュールパスを渡す。tracer の scope 名は `render` である。**span 名に利用者の入力を混ぜてはならない** —— 名前が要求ごとに散ると、名前を単位にした集計が成り立たなくなる。
+`withScreenSpan(name, render)` and `withPartSpan(name, render)` return a component of the same shape that wraps the given component in a span. The span name is `render <name>`, and `name` takes the module path from `src/`. The tracer's scope name is `render`. **User input must never be mixed into a span name** — if names scatter per request, aggregation by name no longer works.
 
-2 つは載せる対象が違う。`withScreenSpan` は**画面の最上位**（`features/<name>/<screen>/` の `page-content` と `view`、および殻の側で取得を持つ合成。殻と穴に割れた画面では 1 route に複数立つ）、`withPartSpan` は **feature が持つ部品**（`ui/`）である。装備の手順と対象の線引きは [features/README.md](../features/README.md) が持つ。`components` は横断 UI であり画面ごとの帰属を持たないので対象にせず、route segment は Next.js が `render route (app)` を張るので二重に持たない。
+The two differ in what they cover. `withScreenSpan` covers **the top level of a screen** (`page-content` and `view` under `features/<name>/<screen>/`, plus compositions that do fetching on the shell side; on a screen split into static shell and dynamic hole, several stand per route), and `withPartSpan` covers **components a feature owns** (`ui/`). The steps for instrumenting and the line around what is covered are owned by [features/README.md](../features/README.md). `components` is cross-cutting UI with no per-screen ownership, so it is not covered, and route segments are not covered twice because Next.js already opens `render route (app)`.
 
-### 載せる範囲
+### Which Renders Get Spans
 
-範囲と実装は `configureRenderSpans({ screens, parts, run })` で**起動境界から注入する**。注入を受けない実行（テスト・Storybook・ブラウザ）では span を作らない。
+The coverage and the implementation are **injected from the boot boundary** with `configureRenderSpans({ screens, parts, run })`. Executions that receive no injection (tests, Storybook, the browser) create no spans.
 
-**実装を注入で渡すのは、feature 向けの面に OTel を持ち込まないためである。** `render-span.ts` は feature が import するのでブラウザのバンドルにも入る。`@opentelemetry/api` を連れて行くと、Vite が取り込む CJS ビルドがブラウザに無い `__dirname` を参照し、**モジュール評価の時点で落ちる** —— その面を import した story は 1 つも描けなくなる。
+**The implementation is passed by injection to keep OTel out of the surface aimed at features.** `render-span.ts` is imported by features, so it also enters the browser bundle. If it brought `@opentelemetry/api` along, the CJS build Vite pulls in would reference `__dirname`, which the browser lacks, and **it would fail at module evaluation** — no story importing that surface could render at all.
 
-**SDK の有無を無効化の代わりに使えない。** `OBS_TRACES_EXPORTER=none` にしても、logs か metrics が有効なら `NodeSDK` は tracer provider を立てるため、span は記録されたうえで捨てられる —— 成果物だけがゼロになり、計装のコストは残る。だから範囲を独立した軸として持つ（[0081](../../docs/adr/0081-observability-logging.md)）。
+**Whether the SDK exists cannot stand in for disabling.** Even with `OBS_TRACES_EXPORTER=none`, `NodeSDK` sets up a tracer provider when logs or metrics are enabled, so spans are recorded and then discarded — only the output drops to zero while the instrumentation cost remains. That is why the coverage is held as an independent axis ([0081](../../docs/adr/0081-observability-logging.md)).
 
-供給は `OBS_RENDER_SPANS`（`none` / `screen` / `part`、既定 `screen`）で、`tracesEnabled` との合成は起動境界が行う。`part` を開けると 1 描画の span が描く部品の数だけ増えるので、常用ではなく調査のときに開ける。
+It is supplied by `OBS_RENDER_SPANS` (`none` / `screen` / `part`, default `screen`), and the boot boundary combines it with `tracesEnabled`. Opening `part` multiplies the spans of one render by the number of components rendered, so open it for investigation rather than routinely.
 
-### 注入の置き場
+### Where Injections Are Stored
 
-**注入はモジュール変数に置かず、`globalThis` の registered symbol（`Symbol.for`）を鍵にして置く。** Next は起動境界（`src/instrumentation.ts`）と RSC を別のモジュールグラフとして組むため、同じファイルが 1 プロセスの中で 2 回インスタンス化される —— `process.pid` は同じで、モジュールごとの識別子だけが異なる。モジュール変数への代入は起動境界側のインスタンスにしか残らず、描画側には届かない。realm は共有されているので、両方から見える場所として registered symbol を使う（禁止の側は [0081](../../docs/adr/0081-observability-logging.md) 禁止事項）。
+**Injections are not stored in module variables but on `globalThis`, keyed by a registered symbol (`Symbol.for`).** Next builds the boot boundary (`src/instrumentation.ts`) and RSC as separate module graphs, so the same file is instantiated twice in one process — `process.pid` is the same and only the per-module identity differs. An assignment to a module variable stays only in the boot-boundary instance and never reaches the rendering side. The realm is shared, so a registered symbol is used as the place visible from both (the prohibiting side is in the prohibitions of [0081](../../docs/adr/0081-observability-logging.md)).
 
-読む側が受け取るのは別のインスタンスが書いた値なので、**形を確かめてから使う。** 期待する field と型が揃わなければ注入なしとして扱い、包んだコンポーネントをそのまま呼ぶ。
+What the reading side receives is a value written by another instance, so **it checks the shape before using it.** If the expected fields and types do not line up, it treats this as no injection and calls the wrapped component as is.
 
-### 非同期の描画
+### Asynchronous Rendering
 
-描画が Promise を返すときは、**元の Promise をそのまま返し**、span を閉じる処理は `then` で脇に付ける。派生した Promise を返すと React が待つ対象が差し替わる。同期の描画は戻ってから閉じる。
+When rendering returns a Promise, **the original Promise is returned as is**, and closing the span is attached on the side with `then`. Returning a derived Promise would replace what React waits on. Synchronous rendering closes the span after it returns.
 
-### span が覆う範囲
+### What a Span Covers
 
-覆うのは**そのコンポーネント自身の実行だけ**である。子は戻り値を React が受け取った後に描画されるため、子の span はこの span の中に入らず、同じ親（`render route (app)`）の下に兄弟として並ぶ。したがって **span の時間は部分木の合計ではない**。画面ぜんぶの所要は `render route (app)` が持ち、最上位の span が答えるのは「そこまで到達したか」と「自分の本体で何を待ったか」である。
+A span covers **only that component's own execution**. Children are rendered after React receives the return value, so a child's span does not fall inside this span; it sits as a sibling under the same parent (`render route (app)`). Therefore **a span's duration is not the total of its subtree**. The whole screen's time is held by `render route (app)`, and what the top-level span answers is "whether execution got that far" and "what its own body waited on".
 
-入れ子にするには、子を要素として返す代わりに関数として呼ぶしかない。その部分木は Suspense 境界・streaming の単位・reconciliation を失う。**描画モデルを捨てる対価に見合わないので入れ子にしない。** React の context で親の実行文脈を配る方法は Server Component が context を持たないため採れず、`AsyncLocalStorage` も子がレンダラのタスクから呼ばれるため届かない。
+The only way to nest is to call children as functions instead of returning them as elements. That subtree loses Suspense boundaries, the streaming unit, and reconciliation. **It is not worth giving up the rendering model, so spans are not nested.** Distributing the parent's execution context through React context is unavailable because Server Components have no context, and `AsyncLocalStorage` does not reach either because children are called from the renderer's tasks.
 
-### 何が中に入るか
+### What Falls Inside
 
-**本体で待つ取得は中に入る。** 外向きの `fetch` がどの画面のどの合成から出たのかは、この入れ子で辿れる。取得を `layout` や app shell が持つ場合、その通信は最上位の span の外に出る —— 呼んでいるのが feature ではないためである。
+**Fetches awaited in the body fall inside.** Which composition of which screen an outgoing `fetch` came from can be traced through this nesting. When fetching is held by a `layout` or the app shell, that traffic falls outside the top-level span — because what calls it is not a feature.
 
-### 失敗
+### Failures
 
-描画が投げると span を `ERROR` にし、`Error` であれば例外として記録して投げ直す。**Next.js が制御に使う throw（`notFound` / `redirect` など）は失敗として扱わない。** 判定は `unstable_rethrow` に委ね、framework の内部表現を読み取らない。
+When rendering throws, the span is set to `ERROR`, recorded as an exception if it is an `Error`, and rethrown. **Throws Next.js uses for control flow (`notFound` / `redirect` and the like) are not treated as failures.** The judgment is delegated to `unstable_rethrow`, without reading the framework's internal representation.
 
-### 記録しない実行
+### Executions That Record Nothing
 
-範囲が無効な呼び出しでは span を作らず、包んだコンポーネントをそのまま呼ぶ。ブラウザでの描画も同じで、注入を受けないため何も作らない。
+A call whose coverage is disabled creates no span and calls the wrapped component as is. Rendering in the browser is the same: it receives no injection and so creates nothing.
 
-## ブラウザ側のシグナル
+## Browser-Side Signals
 
-ブラウザで測った値と、ブラウザで捕捉されなかった例外は、**同一オリジンの BFF が中継する**。ブラウザから collector を直接叩かせない ——endpoint も資格情報もブラウザへ出さないためであり、RUM の SaaS SDK を同梱しないのと同じ理由に立つ。経路は `adapters` が持ち、口は `app/api/telemetry/route.ts` である。
+Values measured in the browser, and exceptions not caught in the browser, are **relayed by the same-origin BFF**. The browser is not allowed to call the collector directly — so that neither the endpoint nor credentials are exposed to the browser, the same reason a RUM SaaS SDK is not bundled. The route is owned by `adapters`, and the endpoint is `app/api/telemetry/route.ts`.
 
-このカーネルが受け持つのは、届いた測定を signal へ載せるところと、**ブラウザへ渡す trace 相関の出し入れ**（`trace-context.server.ts`）である。
+What this kernel handles is putting arriving measurements onto signals, and **writing out and reading back the trace correlation handed to the browser** (`trace-context.server.ts`).
 
-**ブラウザは自分の trace を始めない。** root layout がアクティブな span を `traceparent` として渡し、ブラウザはそれを親に取る。こうすると SSR から、その画面が後で出した取得までが 1 本の trace になる。渡らない実行（静的生成された画面）ではブラウザ側で新しい trace が始まる。書き出しは sampled でない span でも行う —— 採取の判断は flags に乗って渡り、受け取った側の SDK が従う。サーバ側で選り分けない。ブラウザが作った span は OTLP のまま中継され、その中身はこのカーネルを通らない（`adapters/server` が collector へ渡す。送り先だけを `getSignalEndpoint` で組む）。
+**The browser does not start its own trace.** The root layout passes the active span as `traceparent`, and the browser takes it as the parent. This makes one trace run from SSR to the fetches the screen issues later. In executions where it is not passed (statically generated screens), a new trace starts on the browser side. It is written out even for spans that are not sampled — the sampling decision travels in the flags, and the receiving SDK follows it. The server does not filter. Spans created by the browser are relayed as OTLP, and their contents do not pass through this kernel (`adapters/server` hands them to the collector; only the destination is built with `getSignalEndpoint`).
 
-**Web Vitals は分布として持つ。** 指標ごとにヒストグラムを 1 つ立て、`http.route` と評価・遷移種別を属性に載せる。求めたいのは実利用者ぶんの百分位であり、1 件ずつのレコードから毎回それを組むより、計器の側が分布を持つほうが読む側の手数も保持のコストも小さい。
+**Web Vitals are held as distributions.** One histogram stands per metric, carrying `http.route`, the rating and the navigation type as attributes. What is wanted is percentiles over real users, and having the instrument hold the distribution costs the reader fewer steps and less retention than rebuilding it from individual records every time.
 
-| 計器 | 単位 | 値の刻み |
+| Instrument | Unit | Value buckets |
 | --- | --- | --- |
-| `browser.web_vital.lcp` / `.fcp` / `.ttfb` | `ms` | 読み込みの時間（0〜10,000） |
-| `browser.web_vital.inp` / `.fid` | `ms` | 操作の応答（0〜1,000。1 フレームから刻む） |
-| `browser.web_vital.cls` | `1` | ずれの量（0〜1） |
+| `browser.web_vital.lcp` / `.fcp` / `.ttfb` | `ms` | Load time (0 to 10,000) |
+| `browser.web_vital.inp` / `.fid` | `ms` | Interaction response (0 to 1,000; buckets start at one frame) |
+| `browser.web_vital.cls` | `1` | Amount of shift (0 to 1) |
 
-**刻みは指標ごとに持つ。** 既定はミリ秒の量を想定した並びなので、0 から 1 に収まる `CLS` は最初の 1 区間へ全部入り、百分位が区間の内挿だけで決まる —— 0.03 の実測から 3.75 が出る。刻みは分布をどの粗さで持つかの選択であって、good / poor の境界ではない。読み込みの時間は秒台まで伸びるので後半を粗くして端を落とさず、操作の応答は 1 フレーム（約 16 ms）から始めて数百 ms までを細かく見る。
+**Buckets are held per metric.** The default sequence assumes millisecond quantities, so `CLS`, which fits within 0 to 1, falls entirely into the first bucket and its percentiles are decided by interpolation within that bucket alone — a measured 0.03 comes out as 3.75. Buckets are a choice of how coarsely to hold the distribution, not the good / poor boundary. Load times stretch into seconds, so the upper end is coarser without cutting off the tail; interaction responses start at one frame (about 16 ms) and are fine-grained up to several hundred ms.
 
-計器は指標ごとに 1 つ、最初の測定で作って保持する（測定のたびに作り直さない）。計器を持つ指標の綴りは閉じた型で、中継の契約がこれ以外を増やすと呼び出し側が型で落ちる。**指標を足すときは**、計器の表（名前・単位・説明・刻み）と中継の契約の両方へ足す。
+One instrument per metric is created at the first measurement and kept (not recreated on every measurement). The spelling of metrics that have instruments is a closed type, and if the relay contract adds any other, callers fail at the type level. **When adding a metric**, add it both to the instrument table (name, unit, description, buckets) and to the relay contract.
 
-**記録側は signal の有効・無効を見ない。** metrics が無効なら SDK は meter provider を立てず、OTel API が何もしない実装を返すので、記録する関数は判定を持たない。判定を置くのは起動境界と SDK の構築（下記「signal の有効化」）だけである。logs の sink も起動境界が有効なときだけ注入する —— どちらも、記録側の module に有効・無効の分岐を持たない点で同じである。
+**The recording side does not check whether a signal is enabled.** When metrics are disabled, the SDK sets up no meter provider and the OTel API returns a no-op implementation, so the recording function holds no check. Checks are placed only at the boot boundary and in SDK construction ("Enabling Signals" below). The logs sink, too, is injected by the boot boundary only when enabled — both share the property that the recording-side module has no enabled/disabled branch.
 
-属性は `http.route`（公式 semconv）と `browser.web_vital.rating` / `browser.web_vital.navigation_type` である。route は 1 件ぶんのパスではなく **route の型**（`/docs/[slug]`）で、これはブラウザ側で戻している —— パスをそのまま載せると属性の値が閲覧された件数だけ増え、識別子も一緒に流れる。
+The attributes are `http.route` (official semconv) and `browser.web_vital.rating` / `browser.web_vital.navigation_type`. The route is not the path of one view but **the route's type** (`/docs/[slug]`), converted back on the browser side — carrying the path as is would grow the attribute values by the number of pages viewed and leak identifiers along with them.
 
-**log の event にはしない。** 公式 semantic convention が web vitals へ与えているのは `browser.web_vital` という event 名だけで、metric 名は定めていない。それでも event で出さないのは、そうすると **1 レコードごとに中継の POST の span が付く**ためである —— 測定はブラウザで起きており、その要求の中では起きていない。因果の無いところに親子が生まれ、trace から辿っても「beacon が届いた」以上のことは言わない。計器の名前はこのリポジトリが決めるが、下記「運用」が禁じているのは vendor 固有のスキーマを持ち込むことであり、名前空間を切って OTel の命名規則に沿わせる限り移送先を選ばない。
+**They are not log events.** The official semantic convention gives web vitals only the event name `browser.web_vital`, and defines no metric names. They are still not emitted as events because **every record would then get the relay POST's span attached** — the measurement happened in the browser, not inside that request. Parent-child links would appear where there is no causation, and tracing from the trace would say nothing more than "the beacon arrived". The instrument names are decided by this repository, but what "Operations" below forbids is bringing in a vendor-specific schema; as long as a namespace is cut and OTel's naming conventions are followed, the destination is not constrained.
 
-**dev では同じ測定が 2 回届く。** React の Strict Mode が effect を 2 度呼び、`useReportWebVitals` は購読を解除しないため、計測器への登録が 2 つ残る。production build では 1 回である。
+**In dev, the same measurement arrives twice.** React's Strict Mode calls effects twice, and `useReportWebVitals` does not unsubscribe, so two registrations with the measuring hooks remain. In a production build it is once.
 
-**閾値はここに置かない。** [0101](../../docs/adr/0101-performance-budget.md) が持つのは計測の仕組みであり、good / poor の境界をどこに引くかは用途依存である。属性の `rating` は web.dev が公表している境界による評価で、このリポジトリが引いた線ではない。
+**Thresholds are not placed here.** What [0101](../../docs/adr/0101-performance-budget.md) holds is the measurement mechanism; where to draw the good / poor boundary depends on the use case. The `rating` attribute is a rating by the boundaries web.dev publishes, not a line this repository drew.
 
-**伏せる項目は中継が伏せる。** ブラウザが作った span の属性のうち、`logging` が持つ表（`authorization` / `cookie` / `password` / `token`）に当たる名前は、collector へ渡す前に censor へ置き換わる。掛ける場所が中継なのは、そこが全部を通る唯一の場所だからである —— ブラウザ側で掛けても送信者は差し替えられる。**値の中身は見ない**（名前で持ち回っている限り効き、そうでないものは元の設計が誤っている）。
+**The relay redacts what must be redacted.** Among the attributes of spans created by the browser, names matching the table `logging` holds (`authorization` / `cookie` / `password` / `token`) are replaced with the censor before being handed to the collector. It is applied at the relay because that is the only place everything passes through — applying it on the browser side would let the sender be swapped. **Values are not inspected** (it works as long as secrets are carried by name; anything that is not has a flawed original design).
 
-例外のほうは metric ではなく `logging` の構造化ログへ載せる。1 件ずつ辿るものであり、`exception.type` / `exception.message` / `exception.stacktrace` という公式 semconv の属性がそのまま使える。**`trace_id` は画面を組んだ要求のもの**である —— ブラウザが返してきた `traceparent` の文脈で記録するためで、渡ってこなければ trace を付けない。中継要求の span を付けると、例外が起きていない要求と親子になる。
+Exceptions, on the other hand, go into `logging`'s structured logs rather than metrics. They are traced one by one, and the official semconv attributes `exception.type` / `exception.message` / `exception.stacktrace` can be used as is. **The `trace_id` is that of the request that assembled the screen** — because recording happens in the context of the `traceparent` the browser sent back; if none arrives, no trace is attached. Attaching the relay request's span would make it the parent of a request in which no exception occurred.
 
-**返ってきた `traceparent` は書式だけを確かめる。** 送ってくるのはブラウザなので真正性は確かめられず、W3C の書式（version は `00` 固定）に当たり、trace ID と span ID が全 0 でないことだけを見る。**読めない値は、渡ってこなかったのと同じに扱う** —— 文脈を空（`ROOT_CONTEXT`）にし、中継要求の span へ倒さない。相関できないなら、間違った相関よりも何も無いほうが読み違えを生まない。読めた値は remote な文脈として置く。
+**Only the format of a returned `traceparent` is checked.** It is sent by the browser, so its authenticity cannot be verified; only whether it matches the W3C format (version fixed at `00`) and that the trace ID and span ID are not all zeros is checked. **An unreadable value is treated the same as one that never arrived** — the context is set to empty (`ROOT_CONTEXT`) and does not fall back to the relay request's span. If correlation is impossible, having nothing causes fewer misreadings than having a wrong correlation. A readable value is set as a remote context.
 
-## span の属性名は出所で違う
+## Span attribute names differ by source
 
-同じ trace の中でも、span を張った計装によって HTTP の属性名が違う。**`http.request.method` で絞ると Next.js のスパンだけが引っかからない。**
+Even within the same trace, HTTP attribute names differ depending on the instrumentation that opened the span. **Filtering on `http.request.method` misses only the Next.js spans.**
 
-| scope | 属性名 |
+| scope | Attribute names |
 | --- | --- |
 | `next.js` | `http.method` / `http.target` / `http.status_code` / `http.url` |
 | `browser-telemetry` / `@opentelemetry/instrumentation-undici` | `http.request.method` / `url.path` / `http.response.status_code` |
 
-Next.js 自身の計装が v1.0 前の命名のままであり、このカーネルからは変えられない。**絞り込むときは両方の名前を見る。**
+Next.js's own instrumentation still uses pre-v1.0 naming, and this kernel cannot change it. **When filtering, check both names.**
 
 ```text
 { span.http.request.method = "GET" || span.http.method = "GET" }
 ```
 
-## signal の有効化
+## Enabling Signals
 
-`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。描画の範囲を決める `OBS_RENDER_SPANS` は signal ではないので、この gate とは別に効く（trace 自体が無効なら描画 span も出ない）。変数の一覧と環境別の供給方法は [env/README.md](../../env/README.md) を参照する。
+`OTEL_EXPORTER_OTLP_ENDPOINT` is the OTLP HTTP base endpoint, and `OBS_TRACES_EXPORTER`, `OBS_METRICS_EXPORTER` and `OBS_LOGS_EXPORTER` express per-signal enablement. Each value is `otlp`, `none` or the empty string, and only `otlp` enables. Each signal's `/v1/traces`, `/v1/metrics` and `/v1/logs` is appended to the base endpoint automatically. A disabled signal creates no exporter, batch processor or metric reader. `OBS_RENDER_SPANS`, which decides the rendering coverage, is not a signal, so it works separately from this gate (if traces themselves are disabled, no render spans are emitted either). For the list of variables and how they are supplied per environment, see [env/README.md](../../env/README.md).
 
-## 実行機序
+## Execution Mechanics
 
-Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の `register()` を自動実行する。そこで Config を bootstrap し、signal 構成を `initializeObservability()` へ注入する。続いて `OBS_LOGS_EXPORTER=otlp` の場合だけ OTLP Logs sink を logging に注入する。伝播を許す origin は API の base URL から取る。traces と logs の両方が有効なら、起動境界は `observability.initialize` span の中で初期化完了のログを 1 件出す —— trace と log の相関が通っているかを、最初の要求を待たずに確かめる 1 対になる。Edge runtime と browser ではこの SDK を初期化しない。ブラウザ側のシグナルは BFF 中継を通ってサーバー側のこの SDK に載る（上記「ブラウザ側のシグナル」）。
+When Next.js prepares the Node.js server, it automatically runs `register()` in `src/instrumentation.ts`. There Config is bootstrapped and the signal configuration is injected into `initializeObservability()`. Then, only when `OBS_LOGS_EXPORTER=otlp`, the OTLP Logs sink is injected into logging. The origins allowed for propagation are taken from the API base URL. When both traces and logs are enabled, the boot boundary emits one initialization-complete log inside the `observability.initialize` span — a pair that verifies trace-log correlation is working without waiting for the first request. This SDK is not initialized in the Edge runtime or in the browser. Browser-side signals reach this server-side SDK through the BFF relay ("Browser-Side Signals" above).
 
-## 運用
+## Operations
 
-- OTLP と公式 semconv のみを使用する
-- 実装時に設定値を注入し、vendor 固定を避ける
-- local 開発の送り先は `OTEL_EXPORTER_OTLP_ENDPOINT` の既定（手元の collector の OTLP HTTP）で、collector と閲覧面はこのリポジトリの外で立てる。値は [env/README.md](../../env/README.md) が持つ
-- バックエンドや collector に合わせて endpoint、`service.name`(`OBS_SERVICE_NAME`)、signal 有効化を設定する。`service.name` は同じ trace に載る他サービスと異なる値にする。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
-- Next.js が自前で張る `fetch` span は、span 名に query 付きの URL をそのまま載せる。名前が要求ごとに散って集計の単位にならないので、抑止するなら `NEXT_OTEL_FETCH_DISABLED=1` を使う。同じ外向き通信は Undici instrumentation の span が覆い、そちらの名前は経路だけを持つ
+- Use only OTLP and the official semconv
+- Inject configuration values at implementation time and avoid vendor lock-in
+- The destination for local development is the default of `OTEL_EXPORTER_OTLP_ENDPOINT` (the OTLP HTTP of a local collector); the collector and the viewer are set up outside this repository. The values are owned by [env/README.md](../../env/README.md)
+- Configure the endpoint, `service.name` (`OBS_SERVICE_NAME`) and signal enablement to match the backend and the collector. `service.name` must differ from the other services on the same trace. Do not lock SDKs such as Grafana, Sentry or Faro directly into this kernel
+- The `fetch` spans Next.js opens on its own put the URL with its query as is into the span name. Names scatter per request and cannot serve as an aggregation unit, so to suppress them use `NEXT_OTEL_FETCH_DISABLED=1`. The same outgoing traffic is covered by the Undici instrumentation's span, whose name carries only the route
 
-## テスト
+## Testing
 
-OTel API は provider が登録されていなければ何もしない実装を返す。何を見たいかで、差し替える場所が違う。
+The OTel API returns a no-op implementation when no provider is registered. Where to substitute depends on what you want to observe.
 
-- **SDK の構築を見る**（`initialize.server.ts`）: `NodeSDK` と計装のコンストラクタを `vi.mock` で差し替え、渡された構成を読む。一度きりの判定はモジュール変数に乗るので、ケースごとに `vi.resetModules()` してから動的 import する。
-- **記録 API への呼び出しを見る**（runner・sink・metric）: `trace.getTracer` / `metrics.getMeter` / `logs.getLogger` だけを差し替え、`importOriginal` を spread して `SpanStatusCode` や `SeverityNumber` は実物のまま使う。
-- **文脈の受け渡しを見る**（`trace-context.server.ts`）: `context.with` が効くには文脈を運ぶ実装が要る。同期の入れ子で足りるので、`ContextManager` の最小実装を `context.setGlobalContextManager` で `beforeAll` に登録し、`afterAll` で `context.disable()` する。
-- **注入の置き場**（`render-span.ts`）: registered symbol は `vi.resetModules()` で消えない。`beforeEach` で `globalThis` から鍵を削除する。逆に、注入の後に `vi.resetModules()` を挟んで読み直せば、起動境界と描画で別々に評価される状況を再現できる。
+- **Observing SDK construction** (`initialize.server.ts`): replace `NodeSDK` and the instrumentation constructors with `vi.mock`, and read the configuration passed in. The run-once check lives in a module variable, so `vi.resetModules()` per case and then import dynamically.
+- **Observing calls to the recording APIs** (runner, sink, metric): replace only `trace.getTracer` / `metrics.getMeter` / `logs.getLogger`, and spread `importOriginal` so that `SpanStatusCode` and `SeverityNumber` stay real.
+- **Observing context passing** (`trace-context.server.ts`): `context.with` only works with an implementation that carries context. Synchronous nesting suffices, so register a minimal `ContextManager` with `context.setGlobalContextManager` in `beforeAll`, and call `context.disable()` in `afterAll`.
+- **Where injections are stored** (`render-span.ts`): a registered symbol is not cleared by `vi.resetModules()`. Delete the key from `globalThis` in `beforeEach`. Conversely, re-reading with `vi.resetModules()` in between after injecting reproduces the situation where the boot boundary and rendering are evaluated separately.
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: business-logic` — 業務ロジックを持たない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Kernel Acceptance Criteria」4 |
-| `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
-| `render-span.ts` は OTel を import しない。span で包む実装は起動境界から注入で受ける | violation | この README「構成」「載せる範囲」 |
-| `render-span.ts` 以外の module は `server-only` を名乗る | 名乗っていなければ violation | [adapters/README.md](../adapters/README.md)「ブラウザ発のテレメトリの中継」。機械（`scripts/server-only.gate.test.ts`）が見るのは `*.server.ts` の綴りを持つものだけ |
-| OTLP と公式 semconv だけを使い、vendor の SDK をこのカーネルへ固定しない | vendor SDK の import は violation。公式 semconv に無い属性キーは suggestion | この README「運用」/ [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
-| 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
-| ブラウザから返ってきた trace 文脈は書式だけを確かめ、読めない値は無いものとして扱う（中継要求の span へ倒さない） | violation | [0082](../../docs/adr/0082-client-observability.md)（ブラウザ発のシグナルの中継） / この README「ブラウザ側のシグナル」。機械: `trace-context.server.test.ts` |
+| `forbidden: business-logic` — holds no business logic | violation | [0021](../../docs/adr/0021-frontend-responsibility.md), the fourth of its acceptance criteria for kernels |
+| `forbidden: direct-config-access` — does not import `config` and does not read `process.env`. Settings are received by injection from the boot boundary | violation | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md). Machine: ESLint boundaries and `NODE_RUNTIME_ACCESS` in `architecture.ts` |
+| `render-span.ts` does not import OTel. The implementation that wraps in a span is received by injection from the boot boundary | violation | This README, "Structure" and "Which Renders Get Spans" |
+| Modules other than `render-span.ts` declare `server-only` | violation if not declared | [adapters/README.md](../adapters/README.md#relaying-browser-originated-telemetry) "Relaying Browser-Originated Telemetry". The machine (`scripts/server-only.gate.test.ts`) checks only files spelled `*.server.ts` |
+| Uses only OTLP and the official semconv, and does not lock vendor SDKs into this kernel | Importing a vendor SDK is a violation. An attribute key not in the official semconv is a suggestion | This README, "Operations" / the prohibitions in [0081](../../docs/adr/0081-observability-logging.md) |
+| Injections from the boot boundary are not stored in module variables | suggestion (the path of the assigned value is not determined by the shape of the declaration) | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md) |
+| A trace context returned from the browser is checked only for format, and unreadable values are treated as absent (not falling back to the relay request's span) | violation | [0082](../../docs/adr/0082-client-observability.md) (relaying browser-originated signals) / this README, "Browser-Side Signals". Machine: `trace-context.server.test.ts` |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — config を import せず起動境界から注入を受ける層の線
-- [0081](../../docs/adr/0081-observability-logging.md) — OTLP と公式 semconv だけを使うベンダ中立の方針、伝播先と redaction
-- [0082](../../docs/adr/0082-client-observability.md) — ブラウザ側の測定と例外を同一オリジンの BFF が中継する経路
-- [0101](../../docs/adr/0101-performance-budget.md) — Core Web Vitals をどう測るか。good / poor の閾値はここに置かない
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — The layer line: do not import config, receive injections from the boot boundary
+- [0081](../../docs/adr/0081-observability-logging.md) — The vendor-neutral policy of using only OTLP and the official semconv, propagation targets, and redaction
+- [0082](../../docs/adr/0082-client-observability.md) — The path by which the same-origin BFF relays browser-side measurements and exceptions
+- [0101](../../docs/adr/0101-performance-budget.md) — How Core Web Vitals are measured. good / poor thresholds are not placed here

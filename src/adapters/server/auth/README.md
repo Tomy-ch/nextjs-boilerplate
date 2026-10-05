@@ -1,94 +1,94 @@
 ---
-imports-allowed: [adapters, model, errors, logging, config] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [adapters, model, errors, logging, config] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [components, capabilities, stores, business-logic]
 test-requirement: unit
 ---
 
 # auth
 
-認証の境界です。session の封緘と復元、IdP との往復、確定認可の入口を持ちます。
+The authentication boundary. It holds sealing and restoring the session, round trips with the IdP, and the entry point for definitive authorization.
 
-## 親と違う点
+## Differences from the Parent
 
-親（`src/adapters/`）は `integration` を宣言しています。あれは
-[0090](../../../../docs/adr/0090-testing-strategy.md) の「HTTP 境界のみを対象とし、内側は mock、
-型と形をアサートする」要求で、**外部通信を持つモジュールにだけ意味があります**。
+The parent (`src/adapters/`) declares `integration`. That is
+[0090](../../../../docs/adr/0090-testing-strategy.md)'s requirement to "target only the HTTP boundary, mock the inside, and
+assert types and shapes", and **it means something only for modules that communicate externally**.
 
-この区画で外部通信を持つのは 3 つだけです。
+Only three modules in this compartment communicate externally.
 
-| 外部通信を持つ（`integration`） | 持たない（`unit`） |
+| Communicates externally (`integration`) | Does not (`unit`) |
 | --- | --- |
 | `oidc-discovery.ts` / `default-session-resolver.ts` / `development-token.ts` | `pkce.ts` / `random-token.ts` / `seal-key.ts` / `session-cookie.ts` / `session.ts` / `resolver.ts` / `optimistic-session.ts` / `test-session.ts` / `test-session-record.ts` / `development-session-resolver.ts` / `development-authorization-code.ts` / `development-access.ts` |
 
-宣言を `unit` にしているのは、多数派がそちらであるためです。上の 3 つは HTTP 境界を持つので
-`integration` の要求も併せて満たします。判定は「そのモジュールが外へ出るか」で行い、
-ディレクトリの位置では決めません。`development-session-resolver.ts` は既定 Resolver を組み立てますが、
-自分では外へ出ません（`startAuthorization` が返すのは同じ生成元の面です）。
+The declaration is `unit` because that is the majority. The three above hold an HTTP boundary, so they
+also satisfy the `integration` requirement. The decision is made by "does the module go outside", not by
+its directory location. `development-session-resolver.ts` assembles the default Resolver, but
+does not go outside itself (what `startAuthorization` returns is a surface on the same origin).
 
-## 受け入れるもの
+## What Belongs Here
 
-- session の保管形式と、その封緘・復元
-- IdP との往復（Discovery / 認可要求 / トークン交換）と、送り出す先の組み立て（認可・ログアウト）
-- 確定認可の入口（`verifySession()`）と、Bearer の取り出し口
+- The session storage format, and sealing and restoring it
+- Round trips with the IdP (Discovery / authorization request / token exchange), and assembling where to send the user (authorization, logout)
+- The entry point for definitive authorization (`verifySession()`), and the getter for the Bearer token
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 保護ルートの判定・`returnUrl` の検証・役割による認可。方式が変わっても変わらないため、
-  Resolver の外（`model` と `proxy.ts`）が持ちます（[0079](../../../../docs/adr/0079-auth-frontend-seam.md)）
-- `SessionRecord` を外へ出すこと。Access Token を含むため、内側へ渡すのは `Session` だけです。
-  ただし **ID Token はログアウトの送り先に埋めて外へ出します** —— RP-Initiated Logout は
-  `id_token_hint` を利用者のブラウザ経由で IdP へ届ける手順で、届かないと終わらせられません。
-  出るのはこの 1 用途だけで、Access Token は今も外へ出しません
+- Deciding protected routes, validating `returnUrl`, and role-based authorization. These do not change when the method changes, so
+  they are held outside the Resolver (`model` and `proxy.ts`) ([0079](../../../../docs/adr/0079-auth-frontend-seam.md))
+- Exposing `SessionRecord`. It contains the Access Token, so only `Session` is passed inward.
+  However, **the ID Token is exposed embedded in the logout destination** — RP-Initiated Logout is a procedure that
+  delivers `id_token_hint` to the IdP via the user's browser, and it cannot finish without it.
+  This single use is the only exposure; the Access Token is still never exposed
 
-## client へ渡さないものの登録
+## Registering What Must Not Reach the Client
 
-`session.ts` が復元する記録には Access Token と ID Token が入ります。復元した時点で
-[taint](../taint/taint.ts) に登録するので、記録をそのまま Client Component へ渡すと描画が落ちます。
-署名鍵（`AUTH_SESSION_SECRET`）は読む側である `resolver.ts` が登録します —— `config` は
-`imports-allowed: []` で react を持ち込めないためです（[0030](../../../../docs/adr/0030-environment-variable-management.md)）。
+The record `session.ts` restores contains the Access Token and the ID Token. It is registered with
+[taint](../taint/taint.ts) at the moment of restoration, so passing the record as is to a Client Component makes rendering fail.
+The signing key (`AUTH_SESSION_SECRET`) is registered by `resolver.ts`, the side that reads it — `config` has
+`imports-allowed: []` and cannot bring in react ([0030](../../../../docs/adr/0030-environment-variable-management.md)).
 
-内側の層へ渡してよいのは `verifySession()` が返す身元だけ、という約束が主で、登録はそこを抜けた
-ときに実行時で捕まえる補助です。
+The primary safeguard is the promise that only the identity `verifySession()` returns may be passed to inner layers; registration is an aid that
+catches at runtime whatever gets past it.
 
-## 差し替え点
+## Replacement Points
 
-`session-resolver.ts` の `SessionResolver` が唯一の差し替え単位です。自社方式へ移るときは
-`resolver.ts` が返す実装を替えます。cookie を扱う側は封緘された文字列しか触らないため、方式が
-変わっても書き直しになりません。
+`SessionResolver` in `session-resolver.ts` is the only unit of replacement. When moving to an in-house method,
+replace the implementation `resolver.ts` returns. The side that handles cookies touches only the sealed string, so a change of method
+does not force a rewrite there.
 
-同梱するのは 2 つです。
+Two are bundled.
 
-| 実装 | いつ選ばれるか |
+| Implementation | When it is chosen |
 | --- | --- |
-| `default-session-resolver.ts` | 既定。Authorization Code + PKCE で実在の IdP と往復する |
-| `development-session-resolver.ts` | `AUTH_MODE=dev` かつ開発専用の口が開く環境。IdP の代わりに `/dev/session` へ送り出す |
+| `default-session-resolver.ts` | Default. Makes round trips with a real IdP using Authorization Code + PKCE |
+| `development-session-resolver.ts` | Environments where `AUTH_MODE=dev` and the development-only endpoints are open. Sends to `/dev/session` instead of the IdP |
 
-**開発用は面を狭めません。** 送り出す先と、認可コードの交換だけを差し替え、封緘・復元は既定
-実装をそのまま借ります。cookie の形が方式で変わると、片方で作った session をもう片方が読めなくなり、
-環境変数を切り替えただけで入り直しが要ります。
+**The development one does not narrow the surface.** It replaces only where to send and the authorization code exchange; sealing and restoring
+borrow the default implementation as is. If the cookie shape changed with the method, a session made by one could not be read by the other,
+and merely switching an environment variable would require signing in again.
 
-**選ぶ判定は環境と併せます**（`resolver.ts`）。`AUTH_MODE` だけを条件にすると、設定を誤って実環境へ
-`dev` を与えた瞬間に、IdP を通らずに任意の役割で入れる経路が公開ドメインで開きます。
+**The selection is combined with the environment** (`resolver.ts`). Conditioning only on `AUTH_MODE` means that the moment a misconfiguration
+gives a real environment `dev`, a path that enters with any role without going through the IdP opens on a public domain.
 
-**開発用の認可コードは、発行元の要求へ束ねます。** 指定だけを封緘すると、コードを持っている側が
-自分で新しい往復を始めて交換できてしまいます（一時状態の消費が止められるのは「自分の往復を自分で
-もう一度使うこと」だけ）。実在の IdP では PKCE の検証子が同じ役目を負っており、その性質を開発用の
-経路でも保ちます。
+**The development authorization code is bound to the issuing request.** Sealing only the specification would let whoever holds the code
+start a new round trip themselves and exchange it (consuming the temporary state stops only "reusing one's own round trip
+oneself"). With a real IdP the PKCE verifier carries this role, and that property is kept on the development
+path too.
 
-## 隣に置くもの
+## What Sits Alongside
 
-- 認証の往復の口は [`src/app/api/auth/`](../../../app/api/auth)
-- 入口の楽観判定は [`src/proxy.ts`](../../../proxy.ts)
+- The authentication round-trip endpoints are [`src/app/api/auth/`](../../../app/api/auth)
+- The optimistic check at the entry point is [`src/proxy.ts`](../../../proxy.ts)
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../../README.md).
 
-- [0079](../../../../docs/adr/0079-auth-frontend-seam.md) — 認証の前面の seam。IdP を検証せず資格情報を中継し、サインインの面は自分で持つこと
-- [0030](../../../../docs/adr/0030-environment-variable-management.md) — secret の読み方と、client へ渡せない値を登録する口
-- [0070](../../../../docs/adr/0070-backend-role-separation.md) — 身元の扱いと、認可の判断をバックエンドから奪わないこと
-- [0043](../../../../docs/adr/0043-middleware-policy.md) — 入口（`proxy.ts`）が持てるのは楽観判定までであること
-- [0021](../../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界
-- [0090](../../../../docs/adr/0090-testing-strategy.md) — 層別の検証責務（`integration` が掛かる範囲）
+- [0079](../../../../docs/adr/0079-auth-frontend-seam.md) — The authentication front seam. Relaying credentials without verifying the IdP, and owning the sign-in surface
+- [0030](../../../../docs/adr/0030-environment-variable-management.md) — How secrets are read, and the hook that registers values that cannot be passed to the client
+- [0070](../../../../docs/adr/0070-backend-role-separation.md) — Handling identity, and not taking authorization decisions away from the backend
+- [0043](../../../../docs/adr/0043-middleware-policy.md) — The entry point (`proxy.ts`) can hold no more than an optimistic check
+- [0021](../../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries
+- [0090](../../../../docs/adr/0090-testing-strategy.md) — Per-layer verification responsibilities (the range the `integration` declaration covers)

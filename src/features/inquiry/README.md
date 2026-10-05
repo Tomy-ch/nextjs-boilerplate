@@ -1,6 +1,6 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # Exception: whole-screen stories
 test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/inquiry/__mocks__/**"
@@ -9,130 +9,130 @@ coverage-exclusions:
 
 # inquiry
 
-利用者がサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
-設置面でもあります。
+The screen slice where the user exchanges messages with support. It is also the surface where an arriving message is put on
+screen **without waiting for a refetch**.
 
-## 受け入れるもの
+## What Belongs Here
 
-- やり取りの取得と送信の編成（取得は Server Component、送信は Server Action）
-- 届いた event を画面の状態へ畳み込むこと（正本との突合・日付の区切り）
-- 受信できているかどうかの言い方（回線の有無と購読の状態を、1 つのラベルへ写す）
+- Orchestrating the fetching and sending of the exchange (fetching in a Server Component, sending in a Server Action)
+- Folding arriving events into the screen's state (reconciling with the authoritative copy, date separators)
+- How to state whether messages are being received (mapping network presence and subscription state to one label)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 購読そのもの（接続・整列・重複排除・張り直し・打ち切りの判断は `adapters/client/stream` の領分）
-- 発券（同一オリジンの Route Handler が中継します。`src/app/api/inquiries/me/stream-ticket/`）
-- 問い合わせの状態遷移（契約が持ちません。開始と最終更新だけがあり、close も reopen もありません）
-- 運営側の一覧と回答（`admin` の領分。feature 間で直接参照しません）
+- The subscription itself (connecting, ordering, deduplication, reconnecting and giving up are decided by `adapters/client/stream`)
+- Ticket issuance (a same-origin Route Handler relays it: `src/app/api/inquiries/me/stream-ticket/`)
+- State transitions of an inquiry (the contract has none. There is only a start and a last update; neither close nor reopen exists)
+- The operator-side list and replies (owned by `admin`. Features do not reference each other directly)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/mypage/inquiry` | [`screen`](../../../docs/spec/route/shop/mypage/inquiry/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/inquiry/page.function.md) | 必要 |
+| `/mypage/inquiry` | [`screen`](../../../docs/spec/route/shop/mypage/inquiry/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/inquiry/page.function.md) | Required |
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetInquiriesMeMessages` | 履歴の取得。応答の `streamCursor` が購読の開始位置になる |
-| `PostInquiriesMeMessages` | 1 通の送信。最初の 1 通が問い合わせを作る |
-| `PostInquiriesMeStreamTicket` | 購読を開く口の発券。ブラウザは中継（`/api/`）越しに呼ぶ |
-| `GetStream` | 購読そのもの。**ブラウザが backend へ直接開く**ため、この slice は URL を組まない |
+| `GetInquiriesMeMessages` | Fetches the history. The response's `streamCursor` becomes the subscription's starting position |
+| `PostInquiriesMeMessages` | Sends one message. The first message creates the inquiry |
+| `PostInquiriesMeStreamTicket` | Issues a ticket for the endpoint that opens the subscription. The browser calls it through the relay (`/api/`) |
+| `GetStream` | The subscription itself. **The browser opens it directly against the backend**, so this slice does not build the URL |
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| お問い合わせ | success | `Page/Mypage/Inquiry/Default` |
+| Inquiry | success | `Page/Mypage/Inquiry/Default` |
 | | empty | `Page/Mypage/Inquiry/Empty` |
-| | 長い本文・連続文字列 | `Page/Mypage/Inquiry/LongBody` |
-| やり取りの並び | 送信中 | `Features/Inquiry/Thread/MessageList/Sending` |
-| | 空 | `Features/Inquiry/Thread/MessageList/Empty` |
-| 送信欄 | idle / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,Pending,Invalid}` |
-| 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
-| やり取りと送信 | success / empty / 長い本文 | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
-| 待機表示 | loading | `Features/Inquiry/Thread/Skeleton/Default` |
+| | long body, unbroken strings | `Page/Mypage/Inquiry/LongBody` |
+| Message list | sending | `Features/Inquiry/Thread/MessageList/Sending` |
+| | empty | `Features/Inquiry/Thread/MessageList/Empty` |
+| Composer | idle / pending / field error | `Features/Inquiry/Thread/Composer/{Default,Pending,Invalid}` |
+| Receiving status | 7 kinds | `Status/ConnectionStatus/*` |
+| Exchange and sending | success / empty / long body | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
+| Loading UI | loading | `Features/Inquiry/Thread/Skeleton/Default` |
 
-**error は画面としては持ちません。** 送信の失敗は送信欄の隣に出し、取得の失敗は route の
-`error` 境界（`src/app/(shop)/mypage/inquiry/error.tsx`）が受けます。
+**The screen has no error state of its own.** A send failure is shown next to the composer, and a fetch failure is caught by the route's
+`error` boundary (`src/app/(shop)/mypage/inquiry/error.tsx`).
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `actions.ts` | 送信の Server Action |
-| `form-names.ts` | 送信が持つ項目の名前。**検証を持たない** —— 入力欄が要るのは綴りだけ |
-| `parse-message-form.ts` | 送信された内容から本文と冪等キーを取り出す |
-| `connection-status.ts` | 購読の状態と回線の有無を、画面へ出す 1 語へ写す |
-| `facade/paths/` | この feature が持つルート。**他の feature が指す口** |
-| `thread/page-content.tsx` | 履歴の取得と組み立て |
-| `thread/view.tsx` | 全画面の表示。器の高さを確定させる |
-| `thread/ui/conversation/` | 購読・送信・畳み込みを束ねる client island |
-| `thread/ui/message-list/` | やり取りの並び。取得も並べ替えも持たない |
-| `thread/ui/composer/` | 送信欄。書きかけを持ち、成立したときだけ片付ける |
-| `thread/ui/skeleton/` | 待機表示。出来上がりと同じ高さの器を先に置く |
-| `inquiry.fixture.ts` | story とテストが読む固定のやり取り |
-| `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
+| `actions.ts` | The Server Action for sending |
+| `form-names.ts` | The names of the fields a send carries. **Holds no validation** — the inputs need only the spelling |
+| `parse-message-form.ts` | Extracts the body and the idempotency key from the submitted content |
+| `connection-status.ts` | Maps the subscription state and network presence to the one word shown on screen |
+| `facade/paths/` | The routes this feature owns. **The entry other features point at** |
+| `thread/page-content.tsx` | Fetches the history and assembles it |
+| `thread/view.tsx` | The full-screen display. Fixes the height of the container |
+| `thread/ui/conversation/` | The client island that ties together subscribing, sending and folding |
+| `thread/ui/message-list/` | The list of messages. Holds neither fetching nor reordering |
+| `thread/ui/composer/` | The composer. Holds the draft and clears it only when a send succeeds |
+| `thread/ui/skeleton/` | Loading UI. Places a container of the same height as the finished screen first |
+| `inquiry.fixture.ts` | A fixed exchange read by stories and tests |
+| `__mocks__/actions.ts` | Replaces the Server Action in the catalog |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 履歴の取得と送信、購読（`client/stream`）、event の検証（`client/api/inquiries`）、本文の上限（`client/api/inquiry-limits`） |
-| `model` | 表示モデル（`InquiryMessage` / `InquiryHistory`）、正本と受信分の畳み込み、`ActionState`、冪等キー |
-| `components` | 会話の面（`Message` / `Bubble` / `Marker` / `MessageScroller`）と受信の状態 |
-| `capabilities` | 回線の有無（`use-online-status`） |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching and sending the history, subscribing (`client/stream`), validating events (`client/api/inquiries`), the body limit (`client/api/inquiry-limits`) |
+| `model` | Display models (`InquiryMessage` / `InquiryHistory`), folding the authoritative copy with what was received, `ActionState`, idempotency keys |
+| `components` | The conversation surface (`Message` / `Bubble` / `Marker` / `MessageScroller`) and the receiving status |
+| `capabilities` | Network presence (`use-online-status`) |
+| `observability` | Puts rendering on spans |
 
-## Action 戻り値契約
+## Action Return Contract
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
+| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | A field message (the body; for both pre-send validation and a contract 422), or a message next to the composer. If authentication has expired, `redirect` to login with this screen as the return destination |
 
-**冪等キーを必ず載せます。** メッセージは自然キーを持たないため、応答が届かなかっただけの送信を
-送り直すと 2 通目になります。鍵は成立するまで同じ値を使い、成立した時点で作り直します。
+**An idempotency key is always attached.** A message has no natural key, so resending a send whose response merely
+did not arrive produces a second message. The key keeps the same value until a send succeeds and is regenerated at that point.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 取り直した正本に入ったぶんが、購読で受け取った控えから落ちる（同じ 1 通が二重に並ばない）
-- [ ] 届いた順が前後しても、位置の昇順に並ぶ
-- [ ] まだ 1 通も無い利用者では購読を始めない（発券の口を叩かない）
-- [ ] 送信が成立すると書きかけが消え、通らなかったときは残る
-- [ ] 送信が成立すると冪等キーが変わり、通らなかったときは変わらない
+- [ ] What has entered the refetched authoritative copy is dropped from the copies received through the subscription (the same message is not listed twice)
+- [ ] Even when messages arrive out of order, they are listed in ascending order of position
+- [ ] For a user with no messages yet, the subscription is not started (the ticket endpoint is not called)
+- [ ] When a send succeeds the draft is cleared, and when it does not the draft remains
+- [ ] When a send succeeds the idempotency key changes, and when it does not the key stays the same
 
-## 運用
+## Operations
 
-- **購読が運ぶのは「まだ取り直していない追記分」だけです。** 取得した一覧の写しではないため、
-  `stores` へは載せません。画面を離れれば次の取得が最新を返し、消えても正しさは壊れません
-- **開始位置は取得の応答から来ます。** 履歴を返す口がその時点の購読の位置を一緒に返すので、
-  取得と購読の間に隙間ができません。位置を自分で組み立てると、その隙間の event が落ちます
-- **取り直しの合図は購読から来ます。** 窓を越えて遅れた event を見つけた購読は、届いた位置へ
-  挿し込む代わりに正本の取り直しを求めます。受けた側は `router.refresh()` を呼び、新しい位置で
-  購読を再開します
-- **送信は購読の外を通ります。** 送信の失敗は分類として呼び出し側へ返る必要があり、購読には
-  その往復がありません。送った 1 通は取り直した正本に現れます
-- **楽観追加を識別子で突合しません。** 契約の送信は client 側の識別子を受け取らないため、
-  echo で突き合わせる経路がありません。代わりに送信中の本文を末尾へ置き、成立した時点で正本へ
-  入れ替えます。**確定した 1 通と同じ向き・同じ面で置く**ので、入れ替わりは目に見えません
-- **受信の状態を出したままにします。** 切れている間だけ出すと、出ていないことが「繋がっている」と
-  「そもそも購読していない」のどちらなのか画面から読めません。回線の有無を先に見るのは、
-  回線が切れているときの購読が必ず張り直しの途中にあるためです
-- **`⌘Enter` / `Ctrl+Enter` で送信できます。** この画面の中で完結する操作なので、登録の機構を
-  作らずに送信欄が直接持ちます
-- **見出しを置きません。** 画面の高さをやり取りと送信欄で使い切るためで、この画面が何かは
-  global nav とタブのタイトルが示します
+- **The subscription carries only "additions not yet refetched".** It is not a copy of the fetched list,
+  so it is not put in `stores`. Leaving the screen makes the next fetch return the latest, so losing it does not break correctness
+- **The starting position comes from the fetch response.** The endpoint that returns the history also returns the subscription position at that moment,
+  so no gap opens between fetching and subscribing. Building the position yourself drops the events in that gap
+- **The signal to refetch comes from the subscription.** A subscription that finds an event delayed beyond the window asks for the authoritative copy
+  to be refetched instead of inserting it at the position where it arrived. The receiving side calls `router.refresh()` and resumes the
+  subscription at the new position
+- **Sending goes outside the subscription.** A send failure must be returned to the caller as a classification, and the subscription
+  has no such round trip. A sent message appears in the refetched authoritative copy
+- **Optimistic additions are not reconciled by identifier.** The contract's send does not accept a client-side identifier,
+  so there is no path to match them on the echo. Instead, the body being sent is placed at the end and replaced by the authoritative copy once the send
+  succeeds. **It is placed with the same orientation and surface as a confirmed message**, so the replacement is not visible
+- **The receiving status stays shown.** If it were shown only while disconnected, its absence would not tell from the screen whether
+  it is "connected" or "not subscribed at all". Network presence is checked first because
+  a subscription while the network is down is always in the middle of reconnecting
+- **`⌘Enter` / `Ctrl+Enter` sends.** The operation is contained within this screen, so the composer holds it directly
+  without building a registration mechanism
+- **There is no heading.** The screen's height is used up by the exchange and the composer; what this screen is
+  is shown by the global nav and the tab title
 
-## mock の配備では購読しません
+## Not subscribed in mock deployments
 
-発券の取得口が `APP_API_MODE=mock` では発券を断ります（`adapters/server/api/inquiries-stream.ts`）。
-画面は「受け取る対象が無い」姿で止まり、やり取りの表示と送信は動きます。**この姿が巡回・撮影の
-対象です** —— 断らなければ張り直しが止まらず、同じ絵になりません。
+Under `APP_API_MODE=mock`, the ticket fetch endpoint refuses to issue a ticket (`adapters/server/api/inquiries-stream.ts`).
+The screen stops in the "nothing to receive" state, while displaying the exchange and sending still work. **This state is what crawling and capture
+are run against** — without the refusal, reconnecting would never stop and the image would not be the same.
 
-## 関連する ADR
+## Related ADRs
 
-- [0074](../../../docs/adr/0074-runtime-communication-seam.md) — 購読 seam の契約（transport / 認証 / 順序 / 再接続）
-- [0061](../../../docs/adr/0061-form-mutation-ux.md) — 送信は Server Action の往復
-- [0060](../../../docs/adr/0060-state-management.md) — server state の写しを client に持たない
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location
+- [0074](../../../docs/adr/0074-runtime-communication-seam.md) — The contract of the subscription seam (transport / authentication / ordering / reconnection)
+- [0061](../../../docs/adr/0061-form-mutation-ux.md) — Sending is a Server Action round trip
+- [0060](../../../docs/adr/0060-state-management.md) — Do not keep a copy of server state on the client
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical placement and co-location

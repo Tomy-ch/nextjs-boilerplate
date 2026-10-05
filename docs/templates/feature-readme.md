@@ -4,146 +4,154 @@ forbidden: [features]
 test-requirement: [feature, component, unit]
 ---
 
-# <feature 名>
+# <feature name>
 
 <!--
-src/features/<feature-name>/README.md は docs/templates/feature-readme.md の写しである。
-`pnpm gen feature` が置くか、手でコピーして記入する。
+src/features/<feature-name>/README.md is a copy of docs/templates/feature-readme.md.
+`pnpm gen feature` places it, or copy it by hand and fill it in.
 
-書く前に置き場を決める。この README が持つのは、この slice に固有の役割論と、契約・仕様・
-デザインへの索引だけである。次の 3 つはここには書かない。
+Decide where things belong before writing. This README holds only the role specific to this slice and
+an index into the contracts, specifications and designs. The following three do not go here.
 
-- 層そのものの役割・受入基準・import 境界 → src/features/README.md
-- 画面が何を約束するか（条件・遷移・失敗の意味論）→ docs/spec/route/**
-- 状態がどう見えるか → Storybook の story
+- The layer's own role, acceptance criteria and import boundaries → src/features/README.md
+- What a screen promises (conditions, transitions, failure semantics) → docs/spec/route/**
+- How a state looks → the Storybook story
 
-同じことを 2 か所へ書くと、片方だけが腐る。索引は腐っても壊れた link として現れるが、写しは
-黙って食い違う。**入れ子の README を持つ画面（例: `<route>/<child>/`）は、その画面の契約・
-状態・Action を子が持ち、親は route の地図と子への索引だけを持つ。**
+Write the same thing in two places and only one of them rots. A rotted index still surfaces as a broken
+link; a copy silently diverges. **For a screen with a nested README (e.g. `<route>/<child>/`), the child
+holds that screen's contracts, states and Actions, and the parent holds only the route map and an index
+to its children.**
 -->
 
-<!-- 必須節。readme-review の採点はこの一覧を読む。見出しの文字列で一致させる。
+<!-- Required sections. readme-review's scoring reads this list. Match the heading text exactly.
 required-sections:
-  - 受け入れるもの
-  - 受け入れないもの
-  - Route と契約
-  - 状態とデザイン参照
-  - 構成
-  - 依存カーネル
-  - Action 戻り値契約
-  - テスト観点
-  - 関連する ADR
+  - What Belongs Here
+  - What Does Not Belong Here
+  - Routes and Contracts
+  - States and Design References
+  - Structure
+  - Kernel Dependencies
+  - Action Return Contract
+  - Test Perspectives
+  - Related ADRs
 -->
 
-<!-- この slice が引き受ける画面と範囲を 1〜2 文で書く。 -->
+<!-- State in one or two sentences the screens and the scope this slice takes on. -->
 
-## 受け入れるもの
+## What Belongs Here
 
-<!-- この slice が持つもの。層の受入基準の再掲ではなく、この slice の線引きを書く。 -->
+<!-- What this slice holds. Draw this slice's line, not a restatement of the layer's acceptance criteria. -->
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-<!-- 隣へ渡すもの。渡す先（`components` / `model` / 他 feature の facade）を名前で挙げる。 -->
+<!-- What is handed to neighbours. Name where it goes (`components` / `model` / another feature's facade). -->
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Specification | Authentication |
 | --- | --- | --- |
-| `<例: /items>` | `<docs/spec/route/… の screen / function への link>` | `<不要 / 必要 / 役割: admin>` |
+| `<e.g. /items>` | `<link to the screen / function under docs/spec/route/…>` | `<not required / required / role: admin>` |
 
-使う operationId。
+The operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `<例: GetItems>` | `<例: 一覧の取得>` |
+| `<e.g. GetItems>` | `<e.g. fetching the list>` |
 
-API を使わない slice は表を置かず「使わない」と理由を書く。operationId が未確定なら、確定する
-契機を書く。
+A slice that uses no API places no table and writes "not used" with the reason. If an operationId is not
+settled yet, write what will settle it.
 
-## 状態とデザイン参照
+## States and Design References
 
 <!--
-状態が「どう見えるか」は story が持つ。ここが持つのは、どの状態にどの story が対応するかだけ。
-story の識別子は `<title>/<export 名>` で書く（title は stories.tsx の `title:`）。
+The story owns how a state looks. This section holds only which story corresponds to which state.
+Write a story identifier as `<title>/<export name>` (title is the `title:` in stories.tsx).
 -->
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| `<例: 一覧>` | success | `<例: Page/Items/List/Default>` |
-| | empty | `<例: Page/Items/List/Empty>` |
-| | loading | `<例: Features/Items/Skeleton/Default>` |
-| | error | `<例: Features/Items/ErrorState/Default>` |
+| `<e.g. list>` | success | `<e.g. Page/Items/List/Default>` |
+| | empty | `<e.g. Page/Items/List/Empty>` |
+| | loading | `<e.g. Features/Items/Skeleton/Default>` |
+| | error | `<e.g. Features/Items/ErrorState/Default>` |
 
-部分失敗があり得る場合は、成功領域を残す表示の story も行として挙げる。
+Where a partial failure is possible, also list as a row the story for the display that keeps the
+successful region.
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `<例: list/page-content.tsx>` | `<例: 取得条件の解釈と画面の組み立て>` |
+| `<e.g. list/page-content.tsx>` | `<e.g. interpreting the fetch conditions and assembling the screen>` |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `<例: adapters>` | `<例: 一覧を取得して表示モデルへ変換する>` |
+| `<e.g. adapters>` | `<e.g. fetch the list and convert it to the display model>` |
 
-`architecture.ts` と各カーネル README の import 境界に従う。generated API 型を feature /
-components へ渡さない。
+Follow the import boundaries in `architecture.ts` and each kernel's README. Do not pass generated API
+types to features / components.
 
-## Action 戻り値契約
+## Action Return Contract
 
-<!-- Server Action が無ければ「なし」と書く。置き場は feature 直下とは限らない。 -->
+<!-- If there is no Server Action, write "none". It does not necessarily live directly under the feature. -->
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `<例: addItemAction>` | `<例: actions.ts>` | `<例: ActionState<void>>` | `<例: revalidatePath("/items")>` | `<例: field error>` |
+| `<e.g. addItemAction>` | `<e.g. actions.ts>` | `<e.g. ActionState<void>>` | `<e.g. revalidatePath("/items")>` | `<e.g. field error>` |
 
-## テスト観点
+## Test Perspectives
 
 <!--
-層の宣言（`test-requirement: [feature, component, unit]`）と ADR 0090 の層別責務は再掲しない。ここへ書くのは、
-この slice でしか出てこない観点だけである。
+Do not restate the layer's declaration (`test-requirement: [feature, component, unit]`) or ADR 0090's
+per-layer responsibilities. Write here only the perspectives that arise in this slice alone.
 -->
 
-- [ ] `<例: 条件が URL へ載り、戻る操作で前の条件に戻る>`
+- [ ] `<e.g. the conditions go into the URL, and going back restores the previous conditions>`
 
-## 運用
+## Operations
 
 <!--
-必須ではない —— **見出しの名前を固定しないため**である。ここに入るのはこの slice の設計判断で、
-何を書くかによって呼び名が変わる（`運用` / `設計` / `設計上の判断` / `使い方` / `隣に置くもの`）。
-名前を 1 つに決めると、決めた名前に合わない中身が別の節へ逃げる。
+Not required — **so that the heading's name is not fixed**. What goes here is this slice's design
+judgment, and its name changes with what is written (`Operations` / `Design` / `Design Decisions` /
+`Usage` / `What Sits Alongside`). Fix one name and content that does not fit it escapes into another
+section.
 
-書くのは「なぜその線を引いたか」であって、何をしているかではない。
+Write why the line was drawn there, not what is being done.
 -->
 
 <!--
-必要なときだけ「テンプレートから作った側で変える箇所」の節を足す。テンプレートから作った側が差し替える箇所（backend 契約・デザイン・
-認証）を書く節である。**ファイルごと捨てられる slice には要らない —— 差し替える側が残らないためである。**
-残る slice で、作った側が触らざるを得ない点があるときだけ置く。
+Add a "What to change on the side created from the template" section only when needed. It is the
+section that states what the side created from the template replaces (backend contract, design,
+authentication). **A slice discarded whole does not need it — no side remains to do the replacing.**
+Place it only in a slice that survives, when there is a point the creating side cannot avoid touching.
 -->
 
-## 関連する ADR
+## Related ADRs
 
 <!--
-**この節が、この slice からの ADR 参照の唯一の受け口である。** 末尾に置く（索引なので、読む順の
-最後に来る）。
+**This section is the only place that receives ADR references from this slice.** Place it last (it
+is an index, so it comes last in reading order).
 
-- **コードのコメントから ADR を参照しない**（[`docs/rules.md#comments`](../rules.md#comments)）。ADR は番号も
-  節も決定の所在も動くが、README は slice と一緒に動くので、参照の腐りがコードへ波及しない。
-  コメントに出所が要るなら「置き方は同 feature の README」のように、隣から辿れる形で書く
-- **散文の中へ散らさない。** 節に集めていないと、そこが受け口であることが読み手にも機械にも
-  分からない。節に挙げてある ADR を本文でもう一度リンクするのは、その文の主張が ADR の記述に
-  依存しているとき（「§2 が限定例外として認めた経路」など）だけにする
-- **実際に依存している ADR だけを挙げる。** 網羅の一覧を作らない —— 全部載っている表は、どれが
-  効いているかを示さないので、無いのと同じである
-- **1 行に「番号 + その ADR が何を持っているか」**を書く。番号だけ並べても、読み手はどれを開けば
-  よいか分からない。この slice での効き方まで書きたければ、それは設計判断の節が持つ
-- 相対パスは実在を確かめる（slice 直下の README からは `../../../docs/adr/`、入れ子なら 1 段深い）
+- **Do not reference an ADR from a code comment** (`docs/rules.md#comments`).
+  An ADR's number, sections and the location of a decision all move, while the README moves with the
+  slice, so rotting references do not spread into the code. If a comment needs a source, write it in a
+  form traceable from nearby, such as "placement is in the same feature's README"
+- **Do not scatter them through the prose.** Unless they are gathered in this section, neither readers
+  nor machines can tell that this is where ADR references are received. Link an ADR listed here again in the body
+  only when that sentence's claim depends on what the ADR says (e.g. "the path §2 admits as a limited
+  exception")
+- **List only the ADRs actually depended on.** Do not build an exhaustive list — a table that lists
+  everything does not show which ones take effect, and is as good as none
+- **On one line, write "number + what that ADR holds".** A bare list of numbers does not tell the reader
+  which to open. If you want to state how it takes effect in this slice, that belongs to the design
+  judgment section
+- Confirm that relative paths resolve (`../../../docs/adr/` from a README directly under the slice, one
+  level deeper when nested)
 -->
 
 ```markdown
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location
-- [0070](../../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務線
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical placement and co-location
+- [0070](../../../docs/adr/0070-backend-role-separation.md) — The line of responsibility with the backend
 ```

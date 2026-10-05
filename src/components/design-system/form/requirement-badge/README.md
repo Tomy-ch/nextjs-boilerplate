@@ -1,43 +1,33 @@
 # RequirementBadge
 
-## 用途
+## Purpose
 
-入力項目が必須か任意かを、label の隣で示します。
+Shows next to the label whether an input item is required or optional.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `RequirementBadge` | `required` を受け取り、「必須」または「任意」の印を描画します。 |
+| `RequirementBadge` | Takes `required` and renders a 「必須」 (required) or 「任意」 (optional) mark. |
 
-## 利用ケース
+## Use Cases
 
-複数の項目を並べるフォームで、どれを埋めなければ送れないのかを一目で示す場面に使います。項目が
-1 つしかないフォームや、すべてが必須で例外の無いフォームには置きません。印が全項目に付くだけで、
-読み分ける情報になりません。
+Use it in forms that list several items, to show at a glance which must be filled in before the form can be sent. Do not place it in a form with only one item, or in a form where every item is required without exception. There the mark simply appears on every item and gives nothing to tell apart.
 
-## 責務境界
+## Responsibility Boundaries
 
-**必須かどうかを判定しません。** 呼び出し元が検証スキーマから導いて渡します。ここで判定すると、
-規則を緩めたのに画面が必須のままという状態を作れます。
+**It does not decide whether an item is required.** The caller derives that from the validation schema and passes it. Deciding it here would make it possible for a rule to be relaxed while the screen still shows the item as required.
 
-**支援技術へ必須であることを伝えません。** それは control 側の `aria-required` の仕事で、この印は
-`aria-hidden` を持ちます。両方が読まれると「姓、必須、required」のように二重になります。
-**`aria-required` を付けるのは呼び出し元です。**
+**It does not tell assistive technology that the item is required.** That is the job of `aria-required` on the control; this mark carries `aria-hidden`. If both were read, it would double up, as in 「姓、必須、required」 ("last name, required, required"). **The caller is the one who sets `aria-required`.**
 
-`label` 要素の中へ入れないでください。入れると項目のアクセシブルな名前が「姓必須」に変わり、
-名前での取得も一致しなくなります。`label` の隣へ並べます。
+Do not put it inside the `label` element. Doing so changes the item's accessible name to 「姓必須」 ("last name required"), and lookups by name no longer match. Place it next to the `label`.
 
-## 見た目の判断
+## Visual Decisions
 
-塗りつぶしません。塗ると誤りの表示と同じ強さになり、何も間違えていない画面に赤い塊が項目の数
-だけ並びます。誤りは文言と枠の色が示すので、印はそこまで強い必要がありません。
+It is not filled. A fill would give it the same weight as an error indicator, and a screen with nothing wrong would show a red block for every item. Errors are shown by their text and the border color, so the mark does not need to be that strong.
 
-任意の側にも印を出します。印の有無で読み分けさせると、印が無いのが「任意」なのか「印を付け
-忘れた」のかを区別できません。どちらの文言も 2 文字なので、`label` の前に置けば印の列と label の
-開始位置が同時に揃います。
+The mark also appears on the optional side. If presence or absence of the mark were what told them apart, there would be no way to tell whether a missing mark means "optional" or "someone forgot to add the mark". Both texts are two characters long, so placing it before the `label` aligns the column of marks and the start of the labels at the same time.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は必須と任意の 2 つを示します。テストは文言の出し分けと、読み上げから外れていること
-（`aria-hidden`）を確認します。
+Storybook shows the two cases, required and optional. The tests check that the text switches and that it is excluded from screen reading (`aria-hidden`).

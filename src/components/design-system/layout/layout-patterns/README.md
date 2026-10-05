@@ -1,47 +1,47 @@
 # LayoutPatterns
 
-## 用途
+## Purpose
 
-ページの骨格を Tailwind の utility だけで組むときの合成例を示します。**component を公開しません。** `.tsx` の export も `.css` も持たず、あるのは story と本書だけです。
+Shows composition examples for building a page's structure with Tailwind utilities alone. **It exports no component.** It has neither `.tsx` exports nor `.css`; there are only stories and this document.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| — | ありません。helper も含めて何も export しません。 |
+| — | None. It exports nothing, helpers included. |
 
-`stack` / `inline` / `grid` を component として包む案は**採りません**。`<Stack gap={4}>` と `<div className="flex flex-col gap-4">` の間に抽象の利得が無く、包んでも Tailwind の表現力は増えないためです。増えるのは「utility と component のどちらで書くか」を利用側が毎回迷う面だけです。
+The option of wrapping `stack` / `inline` / `grid` as components is **not taken**. There is no abstraction gain between `<Stack gap={4}>` and `<div className="flex flex-col gap-4">`, and wrapping does not add to Tailwind's expressiveness. All it adds is a surface where consumers have to decide every time whether to write a utility or a component.
 
-この判断は、それが見える場所に無いと守られません。次に読む人は「stack が無いから作ろう」と考えます。そこで**説明だけを story として置き**、決定の置き場にしています。
+This decision is not kept unless it sits where it can be seen. The next reader thinks "there is no stack, so let's make one". So **only an explanation is placed as a story**, serving as the home of the decision.
 
-## 利用ケース
+## Use Cases
 
-- 新しいページを組むときに、縦積み・横並び・grid をどの class で書くかを確かめる
-- breakpoint をまたぐ切り替えを、viewport と器のどちらで分岐させるか決める
-- sticky な header / footer を [`ContentContainer`](../../../shell/content-container/README.md) とどう重ねるか確かめる
+- Checking which classes to write vertical stacking, horizontal rows and grids with when building a new page
+- Deciding whether a switch across breakpoints branches on the viewport or on the container
+- Checking how a sticky header / footer layers with [`ContentContainer`](../../../shell/content-container/README.md)
 
-## 間隔の段
+## Spacing Steps
 
-`gap-*` のうち token が名前を与えている段は [`tokens/primitives.json`](../../../../../tokens/primitives.json) の `spacing` が持つので、ここには書きません。この段は `var(--spacing-N)` を経由するため、一箇所で値を変えられます。
+The `gap-*` steps that tokens give names to are held by `spacing` in [`tokens/primitives.json`](../../../../../tokens/primitives.json), so they are not written here. These steps go through `var(--spacing-N)`, so their values can be changed in one place.
 
-それ以外の段も Tailwind の基底 `--spacing` の倍数として書けますが、`calc(var(--spacing) * N)` に展開されるため token の段とは別経路になります。
+Other steps can also be written as multiples of Tailwind's base `--spacing`, but they expand to `calc(var(--spacing) * N)` and so take a different path from the token steps.
 
-## viewport breakpoint と container query の使い分け
+## viewport breakpoint vs container query
 
-判断軸は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が、守る形は [`docs/rules.md`](../../../../../docs/rules.md#layout)が持ちます。
+The criterion is held by ADR [0051](../../../../../docs/adr/0051-styling-system.md), and the shape to keep by [`docs/rules.md`](../../../../../docs/rules.md#layout).
 
-| 分岐の基準 | 使うところ |
+| What the branch is based on | Where it is used |
 | --- | --- |
-| viewport breakpoint（`sm:` / `md:` / `lg:`） | ページの骨格、レイアウトシェル |
-| container query（`@container` + `@md:`） | 置かれた場所で割り当て幅が変わる再利用 component |
+| viewport breakpoint (`sm:` / `md:` / `lg:`) | The page structure, layout shells |
+| container query (`@container` + `@md:`) | Reusable components whose allotted width changes with where they are placed |
 
-再利用 component を viewport で書くと、同じ component を本文へ置いたときと狭い脇へ置いたときで指定が食い違います。分岐の根拠を「自分が置かれた器の幅」に寄せるほうが、局所だけを見て判断できます。
+Writing a reusable component against the viewport makes its specification disagree between placing it in the body and placing it in a narrow side area. Basing the branch on "the width of the container it is placed in" lets it be judged by looking only at the local context.
 
-breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそのまま使い、**mobile-first**（無印が狭い画面、`sm:` 以降で上書き加算）で書きます。幅は [`tokens/primitives.json`](../../../../../tokens/primitives.json) の `breakpoint` が持つので、ここには書きません。
+Breakpoints use Tailwind's defaults (`sm` / `md` / `lg` / `xl` / `2xl`) as they are, written **mobile-first** (unprefixed is the narrow screen, `sm:` and up override and add). The widths are held by `breakpoint` in [`tokens/primitives.json`](../../../../../tokens/primitives.json), so they are not written here.
 
-## sticky の重ね方
+## Layering Sticky Elements
 
-**帯は全幅、中身は読み幅**にします。帯そのものを `ContentContainer` で包むと、背景と罫線まで読み幅で切れて画面の端に隙間が残ります。全幅の帯の内側へ `ContentContainer` を置けば、背景は端まで伸び、中身だけが本文と同じ縦線に乗ります。
+**The band is full width; the content is reading width.** Wrapping the band itself in `ContentContainer` cuts the background and rules to the reading width too, leaving gaps at the screen edges. Placing `ContentContainer` inside a full-width band lets the background extend to the edges while only the content sits on the same vertical line as the body.
 
 ```tsx
 <div className="sticky top-0 z-10 border-b border-border bg-background">
@@ -49,22 +49,22 @@ breakpoint は Tailwind の既定（`sm` / `md` / `lg` / `xl` / `2xl`）をそ�
 </div>
 ```
 
-重なる以上、面は不透明にします。`z-10` は一覧の中の重なりより上、overlay（`z-50`）より下に置く値で、[`SelectionToolbar`](../../../patterns/selection-toolbar/README.md) の sticky と同じ段です。z-index は token を持たず Tailwind の段階値だけを使います（[`docs/rules.md`](../../../../../docs/rules.md#layout)）。段はこの実例に揃えます。
+Since it overlaps, the surface is opaque. `z-10` is a value placed above overlaps within a list and below overlays (`z-50`), the same step as the sticky in [`SelectionToolbar`](../../../patterns/selection-toolbar/README.md). z-index has no tokens and uses only Tailwind's step values ([`docs/rules.md`](../../../../../docs/rules.md#layout)). Steps follow this example.
 
-## 責務境界
+## Responsibility Boundaries
 
-**何も供給しません。** [`foundation/`](../../foundation/) の各項目が `.css` や橋の実装という供給物を持つのに対し、ここは純粋な説明です。そのため置き場も `foundation/` ではなく、ページの骨格を扱う `layout/`（[`components/README.md`](../../../README.md)）にしています。
+**It supplies nothing.** Whereas each item in [`foundation/`](../../foundation/) has a supply such as `.css` or a bridge implementation, this is pure explanation. That is why it lives not in `foundation/` but in `layout/`, which deals with the page structure ([`components/README.md`](../../../README.md)).
 
-Tailwind 一般の使い方は網羅しません。それは Tailwind の文書が持ちます。ここが示すのは**このリポジトリが選んだ値と組み方**だけです。
+It does not cover general Tailwind usage. That belongs to Tailwind's documentation. What this shows is only **the values and composition this repository chose**.
 
-sticky な header / footer を持つ外枠そのもの（`main` 要素・skip link・navigation）は `app-shell` の責務で、ここでは指定の形だけを示します。
+The outer frame with a sticky header / footer itself (the `main` element, skip link, navigation) is the responsibility of `app-shell`; here only the shape of the specification is shown.
 
-## Storybook とテスト
+## Storybook and Tests
 
-story の title は `Layout/Layout` です。縦積みと間隔の段、折り返す横並び、等幅 grid と「内容幅と残り」の 2 列、viewport breakpoint による 1 → 2 → 3 カラム、container query による同じ切り替え、sticky header / footer、ページ 1 枚の組み立てを置いています。
+The story title is `Layout/Layout`. It contains vertical stacking and spacing steps, wrapping horizontal rows, an equal-width grid and a two-column "content width and the rest", 1 → 2 → 3 columns by viewport breakpoint, the same switch by container query, a sticky header / footer, and the assembly of one whole page.
 
-公開 component を持たないため、title の先頭セグメントは置き場の `layout/` と同じ `Layout` です（[`components/README.md` §Storybook の表示規約](../../../README.md#storybook-の表示規約)）。
+It has no public component, so the first segment of the title is `Layout`, the same as its home `layout/` ([`components/README.md` § Storybook Display Conventions](../../../README.md#storybook-display-conventions)).
 
-container query の story は枠の右下を掴んで幅を変えられます。窓の幅を変えずに切り替わることを確かめるためです。
+The container query story lets you resize the frame by grabbing its bottom-right corner. This is to confirm that it switches without changing the window width.
 
-**test はありません。** 公開する実装が無く、検証の対象になるのは合成例の見え方だけだからです。`.css` だけを供給する `foundation/` の項目が story だけを持つのと同じ形です。
+**There are no tests.** There is no public implementation, and the only thing to verify is how the composition examples look. This is the same shape as the `foundation/` items that supply only `.css` and have only stories.

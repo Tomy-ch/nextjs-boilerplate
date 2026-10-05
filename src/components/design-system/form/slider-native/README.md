@@ -1,36 +1,36 @@
 # SliderNative
 
-## 用途
+## Purpose
 
-数値を連続的な操作で指定します。値そのものを打ち込むより、範囲の中のおおよその位置を選ぶほうが自然な入力に使います。
+Specifies a number through continuous interaction. Use it for input where choosing a rough position within a range is more natural than typing the value itself.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SliderNative` | native `input type="range"` に既定の見た目を与える form 部品です。`value` / `min` / `max` / `step` を native 属性として受け取ります。 |
+| `SliderNative` | A form component that gives the native `input type="range"` its default look. Takes `value` / `min` / `max` / `step` as native attributes. |
 
-## 利用ケース
+## Use Cases
 
-- 上限価格や表示件数のように、単一の数値を大まかに選ぶ場合
-- 選んだ値を native form でそのまま送信する場合
+- Roughly choosing a single number, such as a maximum price or the number of items shown
+- Submitting the chosen value as is with a native form
 
-下限と上限を同時に指定する範囲入力には thumb が足りないため、`SliderClient` を使います。
+Range input that specifies the lower and upper bound at once lacks a thumb here, so use `SliderClient`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。native `input type="range"` で必要な意味論と操作が満たせるため、`"use client"`・React state・browser API を持ちません。値の保持、`searchParams` への反映、送信後の処理は呼び出し元が持ちます。
+In the SSR-first selection it is `◎`. The native `input type="range"` meets the needed semantics and interaction, so it has no `"use client"`, React state or browser APIs. Holding the value, reflecting it in `searchParams`, and handling after submission belong to the caller.
 
-`input type="range"` は screen reader に `slider` として公開され、値は `min` / `max` / 現在値から読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`input` は labelable 要素なので `label` の `htmlFor` が使えます（`SliderClient` では使えません）。値は読み上げられる一方で画面上には出ないため、利用者へ数値を見せたい場合はテキストを併記します。
+`input type="range"` is exposed to screen readers as a `slider`, and the value is read out from `min` / `max` / the current value. The element itself has no name, so **always give it an accessible name** with `aria-label` or by associating a `label` element with an `id`. `input` is a labelable element, so `htmlFor` on `label` works (it does not with `SliderClient`). The value is read out but not shown on screen, so add text alongside it when the user should see the number.
 
-太さや幅は `className` で上書きします。track と thumb は browser ごとに別の擬似要素で描画されるため、`::-webkit-slider-runnable-track` / `::-webkit-slider-thumb` / `::-moz-range-track` / `::-moz-range-thumb` の四つへ指定しています。track は `bg-border`、thumb は `bg-foreground` です。focus 表示は `outline` で与えます。
+Override thickness and width with `className`. The track and thumb are rendered with different pseudo-elements per browser, so the styles target four of them: `::-webkit-slider-runnable-track` / `::-webkit-slider-thumb` / `::-moz-range-track` / `::-moz-range-thumb`. The track is `bg-border` and the thumb `bg-foreground`. The focus indicator is given with `outline`.
 
-**選択済みの範囲を塗り分けません。** track は端から端まで一色で、値は thumb の位置だけが伝えます。塗りを描く擬似要素は Firefox の `::-moz-range-progress` しかなく、Chrome / Safari には対応するものがありません。片方だけ塗ると browser 間で affordance が食い違い、`linear-gradient` で代替すると値の変化を追う JavaScript が必要になって、この component が client runtime を持たない理由を失います。塗り分けが必要な場合は `SliderClient` を使います。
+**It does not fill the selected range.** The track is a single color from end to end, and only the thumb's position conveys the value. The only pseudo-element that draws a fill is Firefox's `::-moz-range-progress`; Chrome / Safari have no counterpart. Filling on only one side makes the affordance differ between browsers, and substituting `linear-gradient` needs JavaScript that tracks value changes, which removes the reason this component has no client runtime. When a fill is needed, use `SliderClient`.
 
-shadcn/ui の `slider` はこちらへ copy-in していません。生成物は Radix の client component であり、単一値の入力に hydration を要求するためです。同じ生成物は `SliderClient` として取り込んでいます。
+shadcn/ui's `slider` is not copied in here. The generated output is a Radix client component and demands hydration for single-value input. The same generated output is brought in as `SliderClient`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の範囲、`step` を指定した離散値、範囲を実単位にした場合、disabled、`label` 要素との関連付け、native form に載せた場合を確認します。
+Storybook checks the default range, discrete values with `step`, a range in real units, disabled, association with a `label` element, and placement in a native form.
 
-テストは `slider` role として公開されること、`type="range"` であること、`min` / `max` / `step` / `name` が native 属性として出ること、操作で値が変わること、`label` 要素の関連付けによるアクセシブルな名前、disabled、`className` の上書き、a11y 自動検査を確認します。
+The tests check that it is exposed with the `slider` role, that it is `type="range"`, that `min` / `max` / `step` / `name` come out as native attributes, that interaction changes the value, the accessible name via `label` element association, disabled, overriding `className`, and the automated a11y check.

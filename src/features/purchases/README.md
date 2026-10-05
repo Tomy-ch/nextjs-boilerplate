@@ -1,6 +1,6 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 相方の facade/ と、画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # Exceptions: the counterpart's facade/, and whole-screen stories
 test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/purchases/__mocks__/**"
@@ -8,189 +8,189 @@ coverage-exclusions:
 
 # purchases
 
-成立した購入を後から読むための画面スライスです。一覧（`/purchases`）と 1 件の詳細（`/purchases/[code]`）を持ちます。
+The screen slice for reading completed purchases afterwards. It holds the list (`/purchases`) and the single-item detail (`/purchases/[code]`).
 
-## 受け入れるもの
+## What Belongs Here
 
-- 購入履歴の取得の編成と、増分取得（無限スクロール）の状態
-- 期間の絞り込みを URL の条件として読み書きすること
-- この画面専用の表示（履歴の行・期間の入力欄・控え・内訳・明細）
+- Orchestrating the purchase history fetch, and the state of incremental fetching (infinite scroll)
+- Reading and writing the period filter as a URL condition
+- Display specific to this screen (history rows, period inputs, receipt, breakdown, line items)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 他 feature の内部への依存（商品一覧の URL は `products` の `facade/` から取る）
-- 購入を作ること（`checkout` の領分）
-- 金額の計算（小計・税・送料・合計はバックエンドが決めた値）
+- Depending on another feature's internals (the product list URL comes from the `facade/` of `products`)
+- Creating purchases (owned by `checkout`)
+- Calculating amounts (subtotal, tax, shipping and total are values the backend decided)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/purchases` | [`screen`](../../../docs/spec/route/shop/purchases/page.screen.md) / [`function`](../../../docs/spec/route/shop/purchases/page.function.md) | 必要 |
-| `/purchases/[code]` | [`screen`](<../../../docs/spec/route/shop/purchases/[code]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/purchases/[code]/page.function.md>) | 必要 |
+| `/purchases` | [`screen`](../../../docs/spec/route/shop/purchases/page.screen.md) / [`function`](../../../docs/spec/route/shop/purchases/page.function.md) | Required |
+| `/purchases/[code]` | [`screen`](<../../../docs/spec/route/shop/purchases/[code]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/purchases/[code]/page.function.md>) | Required |
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetPurchases` | 履歴。先頭ページはサーバ側、続きは `/api/purchases` 経由 |
-| `GetPurchasesDetail` | 1 件の詳細 |
-| `PatchPurchasesCancel` | 取り消し |
-| `PatchPurchasesPay` | 支払い |
-| `GetExchangeRates` | 参考換算額。読めなくても詳細は出す |
+| `GetPurchases` | The history. The first page on the server side, the rest through `/api/purchases` |
+| `GetPurchasesDetail` | The detail of one item |
+| `PatchPurchasesCancel` | Cancellation |
+| `PatchPurchasesPay` | Payment |
+| `GetExchangeRates` | Reference converted amounts. The detail is shown even if they cannot be read |
 
-**発送と配達（`PatchPurchasesShip` / `PatchPurchasesDeliver`）はここが呼びません。** 売り手側の
-遷移で、`admin` が持ちます。
+**Shipping and delivery (`PatchPurchasesShip` / `PatchPurchasesDeliver`) are not called here.** They are seller-side
+transitions owned by `admin`.
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 履歴 | success | `Page/Purchases/History/Default` |
-| | empty（購入が 1 件も無い） | `Page/Purchases/History/NoPurchases` |
-| | empty（その期間に無い） | `Page/Purchases/History/NoResultInPeriod` |
+| History | success | `Page/Purchases/History/Default` |
+| | empty (no purchases at all) | `Page/Purchases/History/NoPurchases` |
+| | empty (none in the period) | `Page/Purchases/History/NoResultInPeriod` |
 | | loading | `Features/Purchases/History/Skeleton/Default` |
-| | 続きを読んでいる | `Page/Purchases/History/LoadingMore` |
-| | 続きの取得に失敗 | `Page/Purchases/History/LoadMoreFailed` |
-| | 末尾まで読んだ | `Page/Purchases/History/ReachedEnd` |
-| 詳細 | success | `Page/Purchases/Detail/Default` |
-| | 支払い済み / 配達済み | `Page/Purchases/Detail/{Paid,Delivered}` |
-| | 参考換算額が読めなかった | `Page/Purchases/Detail/WithoutReference` |
+| | loading more | `Page/Purchases/History/LoadingMore` |
+| | failed to load more | `Page/Purchases/History/LoadMoreFailed` |
+| | reached the end | `Page/Purchases/History/ReachedEnd` |
+| Detail | success | `Page/Purchases/Detail/Default` |
+| | paid / delivered | `Page/Purchases/Detail/{Paid,Delivered}` |
+| | reference converted amount could not be read | `Page/Purchases/Detail/WithoutReference` |
 | | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
-**空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
-行動が違います。error は route の `error` 境界が、詳細で見つからない場合（`notFound()`）は同じ
-高さの `not-found` 境界が受けます。どちらも履歴の segment に置くので、詳細の失敗も shell の内側に
-出ます。不在の面の戻る導線は履歴への 1 本です。
+**The empty state is split in two.** "Has not bought anything yet" and "none in that period" lead the user to different next
+actions. Errors are caught by the route's `error` boundary, and a detail that is not found (`notFound()`) by the `not-found` boundary at the same
+level. Both are placed in the history segment, so a detail failure also appears inside the shell.
+The surface for absence has a single back link, to the history.
 
-## 構成
+## Structure
 
-画面（`history` / `detail`）ごとに掘り、その中を性質で分けます。
-どちらの画面にも属さないものは画面を挟まず直下へ置きます。
+Directories are organized per screen (`history` / `detail`), and split by nature inside.
+What belongs to neither screen sits directly here without a screen directory in between.
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `facade/paths/` | この feature が持つ 2 つのルート。マイページ（`account`）と購入完了（`checkout`）の導線が参照する |
-| `facade/receipt/` | 購入の控え（注文番号・注文日時・状況）。**購入完了も同じ形で出す** |
-| `facade/lines/` | 結合済みの明細。**購入完了も同じ形で出す** |
-| `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
-| `facade/status-emphasis/` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
-| `purchases.fixture.ts` | story とテストが使う固定の購入 |
-| `facade/purchase.fixture.ts` | `facade/` の 3 つと、それを借りる `checkout` が読む固定値 |
-| `actions.ts` | 状態を進める送信。契約の遷移を呼び、競合だけ言い分ける |
-| `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
-| `form-names.ts` | 送信が持つ項目の名前 |
-| `form-state.ts` | 送信の結果の器と、状況で拒まれたときの文言 |
-| `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
-| `history/period.ts` | 期間の条件。URL のキーと組み立て、利用者への言い換え |
-| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)） |
-| `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
-| `history/page-content.tsx` | 条件の解釈と、画面と待機の境界の組み立て |
-| `history/results.tsx` | 先頭ページの取得。期間が変わったときに取り直す範囲 |
-| `history/use-infinite-purchases.ts` | 2 ページ目以降の取得と末尾到達の検知 |
-| `history/view.tsx` | 一覧の画面。絞り込みと一覧本体を組む |
-| `history/ui/infinite-list/` | 読み進められる一覧。取得と見た目をつなぐ |
-| `history/filter-draft.tsx` | 組み立て中の期間の供給。幅で 2 か所に現れる入力欄を 1 つに保つ |
-| `history/ui/period-fields/` | 期間の入力欄。区分と、その区分が使う入力欄。確定は持たない |
-| `history/ui/period-bar/` | 帯の中に常設する絞り込み。一覧が隣に見えている幅で使う |
-| `history/ui/period-sheet/` | 帯を常設できない幅の絞り込み。下端に固定した操作から overlay を開く |
-| `history/ui/purchase-row/` | 履歴の 1 行。行そのものが詳細への行き先 |
-| `history/ui/purchase-list/` | 読み進めた一覧の見た目。続きの状態は `LoadMore` が持つ |
-| `history/ui/empty/` | 並べるものが無いときの表示 |
-| `history/ui/skeleton/` | 一覧の待機表示 |
-| `detail/page-content.tsx` | 1 件の取得。`not-found` の分類もここで受ける |
-| `detail/view.tsx` | 詳細の画面。パンくずと `facade` の 3 つの塊を組む |
-| `detail/available-transitions.ts` | ステータスごとにできること。バックエンドの遷移規則を写したもの |
-| `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ |
-| `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
-| `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
-| `detail/ui/skeleton/` | 詳細の待機表示 |
+| `facade/paths/` | The two routes this feature owns. Referenced by the links in My Page (`account`) and purchase completion (`checkout`) |
+| `facade/receipt/` | The purchase receipt (order number, order date and time, status). **Purchase completion shows it in the same form** |
+| `facade/lines/` | The joined line items. **Purchase completion shows them in the same form** |
+| `facade/amount-summary/` | The breakdown of the billed amount and the reference amount converted to yen. **Purchase completion shows it in the same form** |
+| `facade/status-emphasis/` | Chooses the badge look from the status name. Groups them into three |
+| `purchases.fixture.ts` | Fixed purchases used by stories and tests |
+| `facade/purchase.fixture.ts` | Fixed values read by the three in `facade/` and by `checkout`, which borrows them |
+| `actions.ts` | Sends that advance the state. Calls the contract's transitions and distinguishes only conflicts |
+| `__mocks__/actions.ts` | Replaces the Server Action in the catalog |
+| `form-names.ts` | The names of the fields a send carries |
+| `form-state.ts` | The container for the send result, and the message when refused because of the status |
+| `history/query.ts` | The raw conditions the screen receives, and the pagination dimensions (count, cursor key) |
+| `history/period.ts` | The period condition. URL keys and construction, and the rewording for users |
+| `history/read-period.ts` | The side that reads the URL. Kept apart from the side that builds it ([`rules.md`](../../../docs/rules.md#url)) |
+| `history/period-draft.ts` | The period being built. The intermediate form the inputs pass through, and the check for whether it can be confirmed |
+| `history/page-content.tsx` | Interprets the conditions and assembles the screen and the loading boundary |
+| `history/results.tsx` | Fetches the first page. The range refetched when the period changes |
+| `history/use-infinite-purchases.ts` | Fetches the second page onward and detects reaching the end |
+| `history/view.tsx` | The list screen. Assembles the filter and the list body |
+| `history/ui/infinite-list/` | A list that can be read on. Connects fetching to the look |
+| `history/filter-draft.tsx` | Provides the period being built. Keeps single the inputs that appear in two places depending on width |
+| `history/ui/period-fields/` | The period inputs. The kind, and the inputs that kind uses. Holds no confirmation |
+| `history/ui/period-bar/` | The filter placed permanently inside the bar. Used at widths where the list is visible alongside |
+| `history/ui/period-sheet/` | The filter for widths where the bar cannot be permanent. Opens an overlay from an action fixed to the bottom edge |
+| `history/ui/purchase-row/` | One row of the history. The row itself is the destination to the detail |
+| `history/ui/purchase-list/` | The look of a list read on. The state of loading more belongs to `LoadMore` |
+| `history/ui/empty/` | The display when there is nothing to list |
+| `history/ui/skeleton/` | The list's loading UI |
+| `detail/page-content.tsx` | Fetches one item. Also receives the `not-found` classification here |
+| `detail/view.tsx` | The detail screen. Assembles the breadcrumbs and the three blocks from `facade` |
+| `detail/available-transitions.ts` | What can be done per status. A copy of the backend's transition rules |
+| `detail/ui/transitions/` | The operations currently available for that purchase, and the notice of success |
+| `detail/ui/transitions/presentation.ts` | The words and look per transition. Split between the opening action and the confirming action |
+| `detail/ui/transition-button/` | The operation that advances the state by one. Opens the confirmation and reports a refusal inside it |
+| `detail/ui/skeleton/` | The detail's loading UI |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 履歴・詳細・参考換算額の取得と、状態を進める送信 |
-| `model` | 表示モデル（`Purchase` / ステータス）、期間の型、`ActionState` |
-| `components` | 面を組む器（カード・バッジ・入力欄・続きの読み込み・印刷の操作） |
-| `capabilities` | 末尾到達の検知（`use-on-visible`） |
-| `errors` | 遷移が通らなかったときの分類を文言へ写す |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching the history, detail and reference converted amounts, and the sends that advance the state |
+| `model` | Display models (`Purchase` / status), period types, `ActionState` |
+| `components` | The building blocks the surfaces are assembled from (card, badge, inputs, load more, print action) |
+| `capabilities` | Detecting reaching the end (`use-on-visible`) |
+| `errors` | Maps the classification of a refused transition to a message |
+| `observability` | Puts rendering on spans |
 
-商品一覧の URL は `products` の `facade/` から取ります（キーを写しません）。
+The product list URL comes from the `facade/` of `products` (keys are not copied).
 
-## Action 戻り値契約
+## Action Return Contract
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える |
-| `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | 同上 | 同上 |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | Keeps the confirmation open and reports inside it |
+| `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | Same as above | Same as above |
 
-**競合（409）だけ言い分けます。** ほかの誰か・別のタブが先に進めた状態で押した場合で、押した人が
-取れる行動（画面を読み直す）が他の失敗と違います。
+**Only conflicts (409) are distinguished.** This is the case where someone else or another tab advanced the state first, and the action
+the person who pressed can take (reloading the screen) differs from other failures.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 期間の絞り込みがクエリでサーバへ渡る（取得済みのページを絞らない）
-- [ ] 必須の欠けた期間の URL が全期間へ倒れ、400 にならない
-- [ ] いまできない遷移の操作が現れない
-- [ ] 遷移が通らなかったことが、開いたままの確認の中に出る
-- [ ] 知らないステータスの業務キーがどの区分にも寄らず、一覧が読める
+- [ ] The period filter is passed to the server as a query (already-fetched pages are not filtered)
+- [ ] A period URL missing a required part falls back to all periods and does not become a 400
+- [ ] Operations for transitions not currently possible do not appear
+- [ ] That a transition was refused appears inside the confirmation, which stays open
+- [ ] An unknown status business key is assigned to no category, and the list remains readable
 
-## 設計
+## Design
 
-- **絞り込みは必ずクエリでサーバへ渡します。** 取得済みのページに日付の条件を掛けると、条件に合う
-  古い購入が落ちた一覧になります。読み込んであるのは新しいほうから数ページぶんでしかないためです
-- **区分ごとの必須が欠けた条件は作れません。** 効いている条件は判別可能 union で持ち、入力欄が経由する
-  途中の姿は別の型（`period-draft.ts`）に分けています
-- **読めない条件は全期間へ倒します。** URL は利用者が直接編集できるので、必須の欠けた URL も届きます。
-  そのまま契約へ渡すと一覧そのものが 400 になり、画面に何も出せません
-- **ステータスの色は 3 つに束ねます。** 進行中 / 望ましい終端 / 取り消しで、これはバックエンドの
-  状態遷移が持つ区別（終端かどうか、取り消しかどうか）そのものです。色は文言の補強でしかなく、
-  badge は必ず名称を文字で持ちます
-- **ステータスは業務キーで引きます。** 契約はステータスに業務キー（`code`）と名称の両方を載せ、
-  分岐に使うものとして業務キーを定義しています。名称は利用者へ見せる文言で、backend 側の都合で
-  書き換わります。知らない業務キーは 3 つのどれにも寄せず装飾を持たない姿で出すので、マスタが
-  増えても確かめていない意味を主張せず、名称が文字で出るので一覧は読めます
-- **条件が 1 つなので `FilterBar` を使いません。** あの組は条件が複数あることを前提に、効いている条件を
-  chip で並べてまとめて解除する導線を持ちます。期間ひとつなら入力欄そのものが効いている条件の表示に
-  なり、chip はその写しにしかなりません。overlay の中にあって入力欄が見えない幅では、開く操作の文言に
-  効いている期間を出します
-- **overlay の確定では閉じません。** 閉じるのは確定した期間が一覧へ届いたときです。閉じる操作と遷移を
-  同時に撃つと、overlay が戻る操作のために積んだ履歴を戻す動きが、まだ届いていない遷移を打ち消します
-  （[`use-overlay-history`](../../components/design-system/overlay/use-overlay-history.ts)）。確定も
-  全期間へ戻す操作も、履歴を積まずに差し替えます。期間が変わらないときは届くものが無いので、その場で
-  閉じます
-- **購入の表示は `facade` が持ちます。** 控え・明細・内訳は購入完了（`checkout`）も同じものを出します。
-  同じ購入が画面によって違う見え方になると、控えとして突き合わせられません。`components` へ上げられない
-  のは、いずれも題材の語彙（注文・購入）を持ち、コア残留の検査に弾かれるためです
-- **できない操作は出しません。** 押せないボタンは「いつか押せる」と読めてしまいます。何ができるかは
-  業務キーから引き、その表はこの画面が持ちます。バックエンドが持つ状態遷移の規則を写したものなので、
-  カーネルへは上げません。管理側の操作が同じ判定を必要としたときに、そこで初めて共有先を決めます。
-  並べる順もこの表が持ち、進む操作が先に来ます
-- **通らなかったことは確認の中で伝えます。** 送信しても確認は開いたままなので、外へ出すと利用者が
-  見ていない場所に文言が出ます。逆に成立の知らせは操作が並ぶ段が持ちます。進んだ購入では操作ごと
-  確認が消えるためです
-- **詳細の待機の境界は route の `page.tsx` が置きます。** `page-content` ごと `Suspense` で包み、
-  fallback に `detail/ui/skeleton/` を描きます。一覧はその形に加えて `page-content` が `results` を
-  包み、期間を変えたときも操作面を待機の外に残します
-- **増分取得の部品は商品一覧と共有です。** 続きの読み込みの状態は
-  [`LoadMore`](../../components/app-starter/load-more/README.md)、目印が見えたことを知るのは
-  [`use-on-visible`](../../capabilities/use-on-visible.ts) が持ちます。積み上げの状態機械だけが
-  feature に残るのは、読み進めた位置を URL へ書き戻すかどうかも、積み直す契機も画面ごとに違うためです
+- **The filter is always passed to the server as a query.** Applying a date condition to already-fetched pages yields a list that drops
+  older purchases matching the condition. Only the newest few pages have been loaded
+- **A condition missing a per-kind requirement cannot be constructed.** The effective condition is held as a discriminated union, and the
+  intermediate form the inputs pass through is split into a separate type (`period-draft.ts`)
+- **Unreadable conditions fall back to all periods.** Users can edit the URL directly, so URLs missing a required part also arrive.
+  Passing one to the contract as is turns the list itself into a 400, and nothing can be shown on the screen
+- **Status colors are grouped into three.** In progress / desirable terminal / cancelled; this is exactly the distinction the backend's
+  state transitions hold (whether terminal, whether cancelled). Color only reinforces the text, and
+  a badge always carries the name as text
+- **Statuses are looked up by business key.** The contract carries both a business key (`code`) and a name for each status,
+  and defines the business key as the one to branch on. The name is text shown to users and is rewritten for
+  backend-side reasons. An unknown business key is assigned to none of the three and shown without decoration, so as the master
+  grows the screen asserts no meaning it has not verified, and since the name appears as text the list stays readable
+- **With a single condition, `FilterBar` is not used.** That set assumes several conditions and offers a path that lists the effective conditions
+  as chips and clears them together. With only a period, the input itself shows the effective condition,
+  and a chip would be nothing but a copy of it. At widths where it sits inside an overlay and the input is not visible, the opening action's text
+  shows the effective period
+- **Confirming in the overlay does not close it.** It closes when the confirmed period has reached the list. Firing the close action and the navigation
+  at the same time lets the overlay's undoing of the history entry it pushed for back navigation cancel the navigation that has not arrived yet
+  ([`use-overlay-history`](../../components/design-system/overlay/use-overlay-history.ts)). Both confirming and
+  the action that resets to all periods replace the entry without pushing history. When the period does not change nothing arrives, so it closes
+  on the spot
+- **The purchase display is owned by `facade`.** Purchase completion (`checkout`) shows the same receipt, line items and breakdown.
+  If the same purchase looked different on different screens, it could not be matched as a receipt. They cannot be raised to `components`
+  because each carries the subject's vocabulary (order, purchase) and would be rejected by the core-residue check
+- **Unavailable operations are not shown.** A button that cannot be pressed reads as "pressable someday". What can be done is
+  looked up from the business key, and that table is owned by this screen. It is a copy of the state transition rules the backend holds,
+  so it is not raised to a kernel. When the admin side's operations need the same decision, that is when the place to share it is decided.
+  The table also owns the order, with advancing operations first
+- **A refusal is reported inside the confirmation.** The confirmation stays open after sending, so reporting outside it would put the message
+  where the user is not looking. Conversely, the notice of success belongs to the row where the operations are listed, because on an advanced purchase
+  the confirmation disappears along with the operation
+- **The detail's loading boundary is placed by the route's `page.tsx`.** It wraps the whole `page-content` in `Suspense` and
+  renders `detail/ui/skeleton/` as the fallback. The list takes that shape and in addition has `page-content` wrap `results`,
+  keeping the controls outside the wait when the period changes
+- **The incremental fetching components are shared with the product list.** The state of loading more belongs to
+  [`LoadMore`](../../components/app-starter/load-more/README.md), and noticing that the sentinel became visible belongs to
+  [`use-on-visible`](../../capabilities/use-on-visible.ts). Only the accumulation state machine
+  stays in the feature, because whether to write the read position back to the URL and what triggers re-accumulation differ per screen
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。貸すものを `facade/` に出し、他 feature の内部は見ない
-- [0026](../../../docs/adr/0026-layout-shell-mount.md) — 殻と Provider の据え付け。画面ごとには置かない横断 UI の位置
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。画面ごとに掘り、その中を性質で分ける
-- [0029](../../../docs/adr/0029-type-design-discipline.md) — 判別可能 union と境界での parse。効いている条件と入力途中の姿を分ける
-- [0051](../../../docs/adr/0051-styling-system.md) — デザイントークンと帯ごとの出し分け
-- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — 操作の a11y 継ぎ目。確認・シート・紙面の継ぎ目
-- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — カタログの方針。Server Action の差し替え
-- [0070](../../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務線。金額と状態遷移の規則を画面で決めない
-- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — ページ送り / 増分取得の境界。続きをどこから読むか
-- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — 認証の前面の継ぎ目。他人の購入へ届く経路を画面が持たない
-- [0080](../../../docs/adr/0080-error-handling.md) — エラーの扱い。`error` / `not-found` の受け持ちと待機の置き場
-- [0100](../../../docs/adr/0100-accessibility-target.md) — アクセシビリティの目標水準。色だけで区別させない
-- [0120](../../../docs/adr/0120-locale-aware-formatting.md) — 日付・数値の書式
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. What is lent is exposed in `facade/`, and other features' internals are not looked at
+- [0026](../../../docs/adr/0026-layout-shell-mount.md) — Mounting the shell and Providers. Where cross-cutting UI that is not placed per screen goes
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical placement and co-location. Organize per screen and split by nature inside
+- [0029](../../../docs/adr/0029-type-design-discipline.md) — Discriminated unions and parsing at the boundary. Separating the effective condition from the in-progress input form
+- [0051](../../../docs/adr/0051-styling-system.md) — Design tokens and per-band variation
+- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — The a11y seam of interaction. The seams for confirmation, sheets and print
+- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — The catalog policy. Replacing Server Actions
+- [0070](../../../docs/adr/0070-backend-role-separation.md) — The line of responsibility with the backend. Screens do not decide amounts or state transition rules
+- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — The pagination / incremental fetching boundary. Where to read the rest from
+- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — The authentication front-end seam. Screens hold no path that reaches someone else's purchases
+- [0080](../../../docs/adr/0080-error-handling.md) — Error handling. Who handles `error` / `not-found`, and where the wait is placed
+- [0100](../../../docs/adr/0100-accessibility-target.md) — The accessibility target level. Do not distinguish by color alone
+- [0120](../../../docs/adr/0120-locale-aware-formatting.md) — Date and number formatting

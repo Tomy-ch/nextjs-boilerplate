@@ -1,29 +1,29 @@
 # JsonLd
 
-## 用途
+## Purpose
 
-画面が持つ構造化データ（schema.org / JSON-LD）を `<script type="application/ld+json">` として埋め込みます。
+Embeds the screen's structured data (schema.org / JSON-LD) as `<script type="application/ld+json">`.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `JsonLd` | 受け取った object を JSON-LD の script として置く。`<` を逃がし、値の中身で script が閉じないようにする |
+| `JsonLd` | Places the received object as a JSON-LD script. Escapes `<` so the value's content cannot close the script |
 
-## 利用ケース
+## Use Cases
 
-検索エンジンに画面の意味（組織・記事・イベントなど）を伝えたい画面が、schema.org の語彙で組み立てた object を渡します。何を伝えるかは画面の判断で、object を組み立てる関数は feature 側に置きます（[ADR 0044](../../../../../docs/adr/0044-seo-metadata-strategy.md)）。
+A screen that wants to tell search engines its meaning (an organization, article, event and so on) passes an object built with the schema.org vocabulary. What to convey is the screen's decision, and the function that builds the object lives on the feature side ([ADR 0044](../../../../../docs/adr/0044-seo-metadata-strategy.md)).
 
-`<head>` ではなく本文の中に置いて構いません。JSON-LD は文書のどこにあっても読まれます。読み手が人ではなく検索エンジンであるだけで、受け取った内容を読める形にして見せる `display` の部品です。
+It may be placed in the body rather than `<head>`. JSON-LD is read wherever it is in the document. Its reader is a search engine rather than a person, but it is still a `display` component that shows received content in readable form.
 
-## 責務境界
+## Responsibility Boundaries
 
-**持つのは直列化と逃がしだけ**です。schema.org の type も項目も検証しません。組み立てた object が語彙として正しいかは、組み立てる側のテストが見ます。
+**What it owns is only serialization and escaping.** It validates neither schema.org types nor properties. Whether the built object is correct as vocabulary is checked by the tests on the building side.
 
-`<` を `\u003c` へ逃がすのは、値の出所がバックエンドである以上、文字列の中に `</script>` が入らないことを前提にできないためです。JSON としての値は変わりません。
+`<` is escaped to `\u003c` because, as long as the values come from the backend, it cannot be assumed that the strings contain no `</script>`. The value as JSON does not change.
 
-Server Component として使えます。hydration は不要です。
+It can be used as a Server Component. No hydration is needed.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は見える要素を持たない component であることを示します。テストは script が置かれ JSON として読めること、見える要素を持たないこと、script を閉じる文字が逃がされ JSON の値は変わらないことを確認します。
+Storybook shows that it is a component with no visible element. Tests check that the script is placed and can be read as JSON, that it has no visible element, and that characters that would close the script are escaped without changing the JSON value.

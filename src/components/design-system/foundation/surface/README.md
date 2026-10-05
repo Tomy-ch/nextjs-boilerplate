@@ -1,60 +1,46 @@
 # Surface
 
-## 用途
+## Purpose
 
-design token の**系統**（`user` / `admin`）を部分木へ効かせるための基盤です。切替の機構そのものは
-token 側（`tokens/themes/<系統>/<配色>.json` と生成物）が持ち、ここが持つのは**属性をどこに置くか**
-だけです。
+The foundation for applying a design token **family** (`user` / `admin`) to a subtree. The switching mechanism itself belongs to the token side (`tokens/themes/<family>/<color scheme>.json` and the generated artifacts); what this holds is only **where the attribute goes**.
 
-> 綴りは `surface` ですが、呼び名は「系統」です。「面」は `bg-*` が塗る面を指す語として repo 全体で
-> 使うためで、根拠は [`tokens/README.md`](../../../../../tokens/README.md)「切替の軸は 2 本」。
+> It is spelled `surface`, but it is called a "family". "Surface" is used across the repo as the word for the surface that `bg-*` paints; the basis is [`tokens/README.md`](../../../../../tokens/README.md) "There are two switching axes".
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / type | Role |
 | --- | --- |
-| `SurfacePortalBridge` | 部分木の系統を Portal の出口（`body`）へ載せる client island です。描くものを持ちません。 |
-| `SURFACE` | 既定以外の系統の名前です。既定（`user`）は属性を持たないため含みません。 |
-| `SURFACE_ATTRIBUTE` | 系統を載せる属性の名前です。 |
+| `SurfacePortalBridge` | A client island that carries the subtree's family to the Portal's exit (`body`). It renders nothing. |
+| `SURFACE` | The names of the non-default families. The default (`user`) has no attribute, so it is not included. |
+| `SURFACE_ATTRIBUTE` | The name of the attribute that carries the family. |
 
-## 利用ケース
+## Use Cases
 
-- 管理側のように、利用者向けとは違う配色・書体で描く画面の器を作る場合
+- Building the layout shell of a screen rendered with a different color scheme and typeface from the user-facing one, such as the admin side
 
-## 責務境界
+## Responsibility Boundaries
 
-**token の値を持ちません。** どの系統がどの色・書体・発光を持つかは `tokens/themes/` が SSOT で、
-部品側は `--semantic-color-*` を引き直すだけです。**配下の部品に改修は要りません。**
+**It holds no token values.** Which family has which colors, typefaces and glow is the SSOT of `tokens/themes/`, and components only re-read `--semantic-color-*`. **The components beneath need no changes.**
 
-**属性を自分では置きません。** 部分木の外枠へ `data-surface` を置くのは器（`AdminShell` など）の
-仕事です。この基盤が引き受けるのは、その属性が**届かない場所**への橋渡しだけです。
+**It does not place the attribute itself.** Placing `data-surface` on the subtree's outer frame is the job of the layout shell (such as `AdminShell`). What this foundation takes on is only bridging to the places the attribute **does not reach**.
 
-### なぜ橋が要るのか
+### Why a bridge is needed
 
-`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` は Radix の Portal で
-**`document.body` 直下へ出ます**。器の外枠に属性を置いても、overlay の中身はその外へ落ちるため、
-系統を切り替えても既定のまま描かれます（`tokens/README.md`「属性を置く場所は、Portal を含む位置で
-なければならない」）。
+`Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` / `ContextMenu` go out **directly under `document.body`** through Radix's Portal. Even with the attribute on the layout shell's outer frame, the overlay content falls outside it, so it is rendered in the default family even after the family is switched (`tokens/README.md` 「属性を置く場所は、Portal を含む位置でなければならない」).
 
-token 側は「`body` 相当に置く」か「Portal の `container` を系統の内側へ向ける」の 2 択を示し、
-どちらを採るかを画面へ委ねています。このリポジトリは**前者**を、次の分担で採っています。
+The token side shows two options, "place it on the equivalent of `body`" or "point the Portal's `container` inside the family", and leaves the choice to the screen. This repository takes **the former**, with the following division.
 
-| 描かれるもの | 系統を与える経路 | いつ効くか |
+| What is rendered | How the family is given | When it takes effect |
 | --- | --- | --- |
-| 本文 | 器が外枠へ置く `data-surface` | server が描いた時点。切り替わりが画面に現れない |
-| overlay の中身 | `SurfacePortalBridge` が `body` へ載せる | hydration の後 |
+| Body | `data-surface` placed on the outer frame by the layout shell | When the server renders. The switch never appears on screen |
+| Overlay content | `SurfacePortalBridge` puts it on `body` | After hydration |
 
-**後者が hydration の後でも足りるのは、overlay が操作で開くものだからです。** 開けるのは hydration
-より後なので、中身が既定の系統で描かれる瞬間が存在しません。`container` を差し替える案を採らな
-かったのは、overlay 部品 6 つに口を足したうえで、呼び出し側が毎回指定することになるためです。
+**The latter is sufficient even after hydration because overlays open through interaction.** They can only be opened after hydration, so there is no moment when the content is rendered in the default family. The option of replacing `container` was not taken because it would mean adding a hook-in point to the 6 overlay components and having callers specify it every time.
 
-**外れるときに属性を消します。** 系統を持つ部分木から出ても `body` に残ると、次に開いた overlay が
-前の画面の系統で描かれます。
+**It removes the attribute when unmounted.** If it stayed on `body` after leaving the subtree that has the family, the next overlay opened would be rendered in the previous screen's family.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は系統ごとの見え方を `Tokens/*` のカタログが持ちます。この基盤は描くものを持たないため、
-単独の story を置きません。切替は preview の globals（`surface`）から行い、そちらも同じ `body` へ
-属性を置きます。
+In Storybook, the look of each family belongs to the `Tokens/*` catalog. This foundation renders nothing, so it has no story of its own. Switching is done from the preview globals (`surface`), which also place the attribute on the same `body`.
 
-テストは、出口へ系統が載ること・外れると消えること・描くものを持たないことを確認します。
+The tests check that the family is carried to the exit, that it disappears when unmounted, and that it renders nothing.

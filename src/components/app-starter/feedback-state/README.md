@@ -1,25 +1,25 @@
 # FeedbackState
 
-## 用途
+## Purpose
 
-loading / empty / error / success の表示状態を一貫して伝えます。
+Conveys the loading / empty / error / success display states consistently.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `FeedbackState` | `loading`、`empty`、`error`、`success` に対応する見出し・説明・補助操作を表示する view state component です。 |
+| `FeedbackState` | A view-state component that displays the heading, description and auxiliary actions for `loading`, `empty`, `error` and `success`. |
 
-## 利用ケース
+## Use Cases
 
-画面全体または局所領域で、次に取れる行動を伴う状態表示が必要な場面に使います。
+Used where a state display accompanied by the next available action is needed, for the whole screen or a local region.
 
-## 責務境界
+## Responsibility Boundaries
 
-状態判定・再試行・遷移・業務文言は feature が props として渡します。empty 専用部品を別に増やしません。
+State decisions, retry, navigation and business copy are passed in as props by the feature. Do not add a separate empty-only component.
 
-領域や画面全体の状態を扱う部品です。局所的な処理中表示は `Spinner`、最終コンテンツの形状が分かる待機は `Skeleton` を使い、この部品を入れ子にしません。`role="status"` / `alert` と `aria-live` を自身が持つため、状態を読み上げる責務はここに集約します。`loading` のアイコンは内部で `Spinner` を装飾として使っており、`prefers-reduced-motion` 時は回転を停止します。
+It is a component that handles the state of a region or the whole screen. Use `Spinner` for a local in-progress indicator and `Skeleton` for loading where the shape of the final content is known, and do not nest this component. It owns `role="status"` / `alert` and `aria-live` itself, so the responsibility for announcing the state is gathered here. The `loading` icon uses `Spinner` internally as decoration and stops rotating under `prefers-reduced-motion`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は各状態と補助操作を、テストは状態ごとの表示と a11y を確認します。
+Storybook checks each state and the auxiliary actions; tests check the display for each state and a11y.

@@ -1,59 +1,47 @@
 # LoadMore
 
-## 用途
+## Purpose
 
-読み進めて積み増す一覧の末尾に置き、続きの読み込みが今どうなっているかを示します。
+Placed at the end of a list that accumulates as you read on, it shows how loading the next part is going right now.
 
-## 役割と公開
+## Role and Public API
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `LoadMore` | 取得中・失敗・終端を描き分ける Server Component です。 |
-| `LoadMoreState` | 続きの読み込みの状態を表す判別可能 union です。 |
+| `LoadMore` | A Server Component that renders fetching, failure and the end differently. |
+| `LoadMoreState` | A discriminated union representing the state of loading the next part. |
 
-## 読み直す操作は失敗したときだけ出します
+## The reload action appears only after a failure
 
-読み進めている間は末尾に近づくだけで次が始まるため、同じことをする入口を並べても選ぶ手数が
-増えるだけです。失敗した後だけは事情が違い、末尾到達の検知はその場に留まる限り二度と起きないので、
-操作が唯一の復帰口になります。
+While reading on, simply approaching the end starts the next part, so placing an entry point that does the same thing only adds choices. Only after a failure is the situation different: detection of reaching the end never fires again as long as the user stays put, so the action becomes the only way to recover.
 
-この形でも scroll 以外の手段は失われません。keyboard の scroll も支援技術の読み進めも表示位置を
-動かし、末尾到達の検知はそれで発火します。**動かしても直らない失敗の場面にだけ操作を置く**のは、
-この性質と表裏です。
+Even in this form, means other than scrolling are not lost. Keyboard scrolling and reading through with assistive technology both move the display position, and detection of reaching the end fires on that. **Placing the action only where moving does not fix the failure** is the flip side of this property.
 
-終端では何も描きません。読み終えたことは一覧が尽きていることで伝わり、そこに空の枠が残ると
-まだ続きがあるように読めます。
+At the end, nothing is rendered. That reading is finished is conveyed by the list running out; an empty frame left there reads as if there were more.
 
-## `CursorPagination` との使い分け
+## `CursorPagination` vs This Component
 
 | | `LoadMore` | [`CursorPagination`](../cursor-pagination/README.md) |
 | --- | --- | --- |
-| 進み方 | 読み進めて**積み増す** | 前後へ 1 ページずつ**入れ替える** |
-| 戻れるか | 積んだぶんが残る | 前ページへ移動する |
-| 操作 | 失敗したときだけ | 常に前後 2 つ |
+| How it advances | **Accumulates** as you read on | **Replaces** one page at a time, back or forward |
+| Can you go back | What was accumulated stays | Moves to the previous page |
+| Action | Only on failure | Always two, previous and next |
 
-どちらも cursor 方式ですが、一覧の増え方が違うので片方をもう片方の代わりに使いません。
+Both are cursor-based, but the way the list grows differs, so neither is used in place of the other.
 
-## `failed` は再試行できる失敗だけを表します
+## `failed` represents only retryable failures
 
-`LoadMoreState` の `failed` が持つのは `onRetry` で、**同じ操作をやり直せば結果が変わりうる**失敗の
-ためのものです。サインインが必要（401）・権限が足りない（403）・見つからない（404）は、やり直しても
-結果が変わらないので**この状態に入れてはいけません**。押しても直らない操作を出すことになります。
+What `LoadMoreState`'s `failed` carries is `onRetry`, meant for failures where **redoing the same action can change the result**. Sign-in required (401), insufficient permission (403) and not found (404) do not change on retry, so **they must not be put in this state**. It would show an action that does not fix anything when pressed.
 
-それらは
-[`auth-state-feedback`](../auth-state-feedback/README.md) が扱います。増分取得の途中で資格情報が
-切れた場合の扱いは [0073](../../../../docs/adr/0073-pagination-fetch-boundary.md) が定めます。
+Those are handled by
+[`auth-state-feedback`](../auth-state-feedback/README.md). How credentials expiring partway through incremental fetching is handled is set by [0073](../../../../docs/adr/0073-pagination-fetch-boundary.md).
 
-## 責務境界
+## Responsibility Boundaries
 
-取得を持ちません。次のページを取りに行くのも、末尾到達を見張るのも呼び出し元です。目印を置く
-`sentinelRef` を受け取るだけで、見張り方（`IntersectionObserver` の購読）は
-[`capabilities/use-on-visible`](../../../capabilities/use-on-visible.ts) が持ちます。
+It owns no fetching. Fetching the next page and watching for reaching the end are the caller's. It only receives `sentinelRef`, where the marker is placed; how to watch (subscribing to `IntersectionObserver`) is owned by [`capabilities/use-on-visible`](../../../capabilities/use-on-visible.ts).
 
-件数の告知も持ちません。「何件を表示中」は一覧の側が出します。総数を持つかどうかが契約ごとに
-違うためです。
+It does not own announcing the count either. "Showing N items" is shown by the list side, because whether a total exists differs per contract.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は続きがある・取得中・失敗・終端の 4 つを確認します。テストは状態ごとの描き分け、
-失敗のときだけ操作が出ること、終端で何も描かないこと、文言の差し替え、a11y 自動検査を確認します。
+Storybook checks the 4 states: more to come, fetching, failed, and end. Tests check the rendering for each state, that the action appears only on failure, that nothing is rendered at the end, replacing the copy, and automated a11y checks.

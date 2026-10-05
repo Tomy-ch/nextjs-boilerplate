@@ -1,74 +1,74 @@
 # api
 
-Route Handler だけを置く区画です。`app` の中にありますが、**ここは何も宣言しません** ——
-負う検証の観点も、import してよい層も、置き場ではなく element が決めるためです。
+The compartment that holds only Route Handlers. It sits inside `app`, but **this directory declares nothing** —
+the verification perspectives it carries and the layers it may import are decided by the element, not by its location.
 
-## 親と違う点
+## Differences from the Parent
 
-**検証の要求はここが宣言しません。** Route Handler が確かめるのは描画ではなく **HTTP 境界の型と形**
-（status・ヘッダ・本文）で、それは `api/` の下に置こうが外に置こうが変わりません。置き場ではなく
-element が決めるものなので、宣言は `architecture.ts` の `APP_ELEMENTS` が `route.ts` / `route.dev.ts`
-に対して持ちます（[0025](../../../docs/adr/0025-app-layer-elements.md) / [0090](../../../docs/adr/0090-testing-strategy.md)）。
+**This directory does not declare the verification requirement.** What a Route Handler checks is not rendering but **the types and shapes of the HTTP boundary**
+(status, headers, body), and that does not change whether it is placed under `api/` or outside it. It is decided by the element,
+not the location, so the declaration is held by `APP_ELEMENTS` in `architecture.ts` for `route.ts` / `route.dev.ts`
+([0025](../../../docs/adr/0025-app-layer-elements.md) / [0090](../../../docs/adr/0090-testing-strategy.md)).
 
-ここに書くと、`api/` の外へ出た同じ element が親の `route` を継いでしまいます。
+Written here, the same element moved outside `api/` would inherit the parent's `route`.
 
-**境界も同じです。** ここに居るのは `route.ts` と `route.dev.ts` だけで、そのどれもが
-`app-route-handler` として `components` / `capabilities` / `stores` / `config` / `observability` と
-feature の内側を落とされます（宣言は `architecture.ts` の `APP_ELEMENTS`。feature を指すなら
-`facade/` からで、それは別の要素として通ります）。`app` の層の許可をここへ書くと、**この区画の
-どのファイルの実効許可でもない値**が、変更の上限として読まれることになります
-（[AGENTS.md](../../../AGENTS.md)「Task Execution Protocol」1）。
+**The same goes for boundaries.** Only `route.ts` and `route.dev.ts` live here, and each of them is,
+as `app-route-handler`, denied `components` / `capabilities` / `stores` / `config` / `observability` and
+the inside of features (declared by `APP_ELEMENTS` in `architecture.ts`; pointing at a feature goes through
+`facade/`, which passes as a separate element). Writing the `app` layer's permissions here would mean **a value that is not
+the effective permission of any file in this compartment** is read as the ceiling for changes
+([AGENTS.md](../../../AGENTS.md#task-execution-protocol), *Task Execution Protocol*, step 1).
 
-境界を宣言するのは要素の根で、この区画を含む要素の根は [`src/app/`](../README.md) です。
+Boundaries are declared at an element's root, and the root of the element containing this compartment is [`src/app/`](../README.md).
 
-## 受け入れるもの
+## What Belongs Here
 
-- バックエンドへの中継と、その入出力の検証
-- 認証の往復のように、ブラウザから直接叩けない相手との通信
+- Relaying to the backend, and validating its inputs and outputs
+- Communication with counterparts the browser cannot call directly, such as the authentication round trip
 
-## 失敗の返し方
+## How Failures Are Returned
 
-**応答の組み立てはここで持ちません。** 分類から status と文言を組むのは
-[`adapters/server/http/error-response.ts`](../../adapters/server/http/error-response.ts)、認証を
-要求しない口の最小の防御（型と大きさ）は
-[`json-request.ts`](../../adapters/server/http/json-request.ts) が持ちます。口ごとに書くと、返す形が
-口の数だけ分かれ、増えるたびに揃っているかを読んで確かめることになります。
+**Response assembly is not held here.** Building status and text from a classification is held by
+[`adapters/server/http/error-response.ts`](../../adapters/server/http/error-response.ts), and the minimal defence (type and size) for an
+endpoint that requires no authentication by
+[`json-request.ts`](../../adapters/server/http/json-request.ts). Written per endpoint, the shape returned would split by
+the number of endpoints, and every new one would have to be read to confirm they still match.
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック（[0070](../../../docs/adr/0070-backend-role-separation.md)）
-- 生の `fetch`（`adapters` を通す）
-- 描画
+- Business logic ([0070](../../../docs/adr/0070-backend-role-separation.md))
+- Raw `fetch` (go through `adapters`)
+- Rendering
 
-## モジュール
+## Modules
 
-| モジュール | 役割 |
+| Module | Role |
 | --- | --- |
-| [`auth/`](auth) | 認証の往復。IdP との認可コード交換と session cookie の発行・破棄 |
-| [`telemetry/`](telemetry) | ブラウザ発の報告（Web Vitals / 未捕捉例外）を受ける口。**認証を要求しないので、最小の防御をここが持つ**（[0077](../../../docs/adr/0077-bff-abuse-protection-boundary.md)） |
-| [`telemetry/traces/`](telemetry/traces) | ブラウザが作った span を OTLP のまま collector へ渡す口。契約の出所が OTel 側なので、隣と口を分ける |
+| [`auth/`](auth) | The authentication round trip. Authorization code exchange with the IdP, and issuing and discarding the session cookie |
+| [`telemetry/`](telemetry) | The endpoint that receives browser-originated reports (Web Vitals / uncaught exceptions). **It requires no authentication, so it holds the minimal defence itself** ([0077](../../../docs/adr/0077-bff-abuse-protection-boundary.md)) |
+| [`telemetry/traces/`](telemetry/traces) | The endpoint that hands spans the browser created to the collector as OTLP. The contract originates on the OTel side, so it is a separate endpoint from its neighbour |
 
 <!-- sample:begin -->
-同梱のサンプルが加えるもの:
+What the bundled sample adds:
 
-| モジュール | 役割 |
+| Module | Role |
 | --- | --- |
-| `products/` | 一覧の増分取得を中継する BFF |
-| `addresses/` | 郵便番号からの住所補完を中継する BFF。入力中の画面が叩く |
+| `products/` | A BFF that relays incremental fetching of a list |
+| `addresses/` | A BFF that relays address autocomplete from a postal code. Called by a screen during input |
 <!-- sample:end -->
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../README.md).
 
-- [0025](../../../docs/adr/0025-app-layer-elements.md) — Route Handler が持てるもの（thin proxy と、その例外）
-- [0071](../../../docs/adr/0071-bff-api-integration.md) — `/api/*` の範囲と、外部 API を `adapters` 経由で叩くこと
-- [0070](../../../docs/adr/0070-backend-role-separation.md) — 業務ロジックを持たない責務の線
-- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — 増分取得をどの境界が受けるか
-- [0077](../../../docs/adr/0077-bff-abuse-protection-boundary.md) — 認証を要求しない口の最小の防御
-- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — 認証の往復（認可コード交換 / session cookie の発行・破棄）
-- [0080](../../../docs/adr/0080-error-handling.md) — 分類から status と文言への対応
-- [0081](../../../docs/adr/0081-observability-logging.md) — ブラウザ発シグナルの中継と、ログに何を残すか
-- [0090](../../../docs/adr/0090-testing-strategy.md) — Route Handler を `integration` として検証すること
+- [0025](../../../docs/adr/0025-app-layer-elements.md) — What a Route Handler can hold (a thin proxy, and its exceptions)
+- [0071](../../../docs/adr/0071-bff-api-integration.md) — The scope of `/api/*`, and calling external APIs through `adapters`
+- [0070](../../../docs/adr/0070-backend-role-separation.md) — The line of responsibility that holds no business logic
+- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — Which boundary receives incremental fetching
+- [0077](../../../docs/adr/0077-bff-abuse-protection-boundary.md) — The minimal defence for an endpoint that requires no authentication
+- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — The authentication round trip (authorization code exchange / issuing and discarding the session cookie)
+- [0080](../../../docs/adr/0080-error-handling.md) — Mapping from classification to status and text
+- [0081](../../../docs/adr/0081-observability-logging.md) — Relaying browser-originated signals, and what to keep in logs
+- [0090](../../../docs/adr/0090-testing-strategy.md) — Verifying Route Handlers as `integration`

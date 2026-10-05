@@ -1,45 +1,45 @@
 # ActionBar
 
-## 用途
+## Purpose
 
-操作をまとめて置く領域です。位置と重なり順だけを持ちます。
+A region that groups actions. It owns only position and stacking order.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ActionBar` | 操作を並べる領域です。中身が何であるかは知りません。 |
+| `ActionBar` | Region that lays out actions. It does not know what its contents are. |
 
-## 利用ケース
+## Use Cases
 
-常に届く必要がある操作を画面の下端へ出すときに使います。中身は呼び出し元が渡します。
+Use it to put actions that must always be reachable at the bottom edge of the screen. The caller passes the contents.
 
-## 出す位置
+## Placement
 
-`position` で 4 つから選びます。
+`position` selects one of four values.
 
-| 値 | 挙動 |
+| Value | Behavior |
 | --- | --- |
-| `inline`（既定） | 本文の流れの中に置きます。枠と面の色で区切ります。 |
-| `sticky` | scroll 領域の下端に貼り付きます。 |
-| `fixed` | viewport の下端に固定します。 |
-| `fixed-without-aside` | 脇に領域を持てない帯だけ下端に固定し、持てる幅では流れの中へ戻します。 |
+| `inline` (default) | Placed in the flow of the body. Separated by a border and the surface color. |
+| `sticky` | Sticks to the bottom edge of the scroll region. |
+| `fixed` | Fixed to the bottom edge of the viewport. |
+| `fixed-without-aside` | Fixed to the bottom edge only on bands with no room for a side region; at widths that have room, it returns to the flow. |
 
-固定する位置は内容の上へ重なるため、背景は不透明にし、上辺の border だけで本文と切り分けます。重なり順は
-overlay より下・本文の中の重なりより上です。下端の余白は iOS のホームバーを避けるため safe area と比較して
-大きいほうを採ります。
+The fixed positions overlap the content, so the background is opaque and only a top border separates it from the body. The stacking order is
+below overlays and above any stacking within the body. The bottom padding takes the larger of its own value and the safe area,
+to avoid the iOS home bar.
 
-`fixed-without-aside` が流れの中へ戻る幅は、脇に常設する領域を出す下限と同じです
-（[`docs/rules.md`](../../../../docs/rules.md#layout)）。脇に操作が並ぶ幅では、下端に重ねる理由が
-無くなります。
+The width at which `fixed-without-aside` returns to the flow is the same as the lower bound at which a permanent side region is shown
+([`docs/rules.md`](../../../../docs/rules.md#layout)). At widths where actions line up at the side, there is no longer a reason
+to overlay them at the bottom edge.
 
-## 責務境界
+## Responsibility Boundaries
 
-中身の意味を持ちません。件数の表示や選択状態の管理は行わないため、それらが要る場合は
-[`SelectionToolbar`](../selection-toolbar/README.md) を使います。位置の値そのものは
-`action-bar.definition.ts` が単独で宣言し、`SelectionToolbar` もそこを参照します。
+It carries no meaning for its contents. It neither shows counts nor manages selection state; when those are needed, use
+[`SelectionToolbar`](../selection-toolbar/README.md). The position values themselves are declared solely by
+`action-bar.definition.ts`, and `SelectionToolbar` references them there as well.
 
-## Storybook とテスト
+## Storybook and Tests
 
-`Container/ActionBar` に 4 つの位置と、狭い幅での見え方を並べます。テストは位置ごとの重なり順・
-safe area の余白・呼び出し側の class の合成を見ます。
+`Container/ActionBar` lays out the four positions and how they look at a narrow width. The tests check the stacking order per position,
+the safe-area padding, and merging the caller's classes.

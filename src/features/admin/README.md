@@ -1,6 +1,6 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # whole-screen stories are the exception
 test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/admin/analytics/analytics.fixture.ts"
@@ -11,29 +11,29 @@ coverage-exclusions:
 
 # admin
 
-商品や利用者を管理する側の画面スライスです。
+The screen slice for the side that manages products and users.
 
-利用者向けのスライスと同じ対象を扱っても、**部品は共有しません**。買う側は 1 件を眺めて選び、
-管理側は同じ属性を件どうしで見比べます。見せ方の要求が違うものを 1 つの部品にまとめると、
-どちらかの都合がもう一方へ漏れます。
+Even when it handles the same subjects as the user-facing slices, **it shares no components**. The buying side
+looks at one item and chooses; the managing side compares the same attributes across items. Merging things
+whose presentation requirements differ into one component leaks one side's needs into the other.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 管理操作のための取得の編成（一覧の位置と検索語の解釈、ページ送りの URL の組み立て）
-- この画面専用の表示（商品の表・検索欄・待機表示）
+- Orchestrating fetches for management operations (interpreting the list position and search terms, building pagination URLs)
+- Displays dedicated to these screens (the product table, search field, loading UI)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 他 feature への直接依存
-- 汎用に使える表示（`StaticDataTable` / `Badge` / `CursorPagination` などは `components` から取る）
-- 認可の判定そのもの（役割の宣言は `model/authz`、確定認可は route の layout が持つ）
+- Direct dependencies on another feature
+- Displays usable generically (`StaticDataTable` / `Badge` / `CursorPagination` and the like come from `components`)
+- The authorization judgment itself (role declarations are held by `model/authz`, the definitive authorization by the route's layout)
 
-## Route と契約
+## Routes and Contracts
 
-**認証はすべて「役割: admin」**です。二段で守る仕組みは「認可」に書いてあります。外枠の約束は
-[`admin` の layout](../../../docs/spec/route/admin/layout.function.md) が持ちます。
+**Authentication is "role: admin" throughout**. The two-stage protection is described under Authorization. The
+outer frame's promises are held by [the `admin` layout](../../../docs/spec/route/admin/layout.function.md).
 
-| Route | 仕様書 |
+| Route | Specification |
 | --- | --- |
 | `/admin` | [`screen`](../../../docs/spec/route/admin/page.screen.md) / [`function`](../../../docs/spec/route/admin/page.function.md) |
 | `/admin/analytics` | [`screen`](../../../docs/spec/route/admin/analytics/page.screen.md) / [`function`](../../../docs/spec/route/admin/analytics/page.function.md) |
@@ -46,276 +46,283 @@ coverage-exclusions:
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
 
-**`/admin/shipments` の契約・状態・Action は [shipments/README.md](shipments/README.md) が、
-`/admin/inquiries` の分は [inquiries/README.md](inquiries/README.md) が持ちます。**
-route の地図はここが持ちますが、その画面の中身は自分の README を持つ側の担当です。以下の表に
-発送と問い合わせの行が無いのはそのためです。
+**The contracts, states and Actions of `/admin/shipments` are held by [shipments/README.md](shipments/README.md),
+and those of `/admin/inquiries` by [inquiries/README.md](inquiries/README.md).**
+This README holds the route map, but a screen's contents belong to the side that has its own README. That is
+why the tables below have no rows for shipments and inquiries.
 
-この slice の画面が通す operationId。**変更する側はこの feature が呼びません** —— Server Action が
-app 層にあるためで、理由は「Action 戻り値契約」に書いてあります。
+The operationIds this slice's screens go through. **This feature does not call the mutating ones** — the
+Server Actions live in the app layer; the reason is under Action Return Contract.
 
-| operationId | 用途 | 呼ぶ側 |
+| operationId | Purpose | Caller |
 | --- | --- | --- |
-| `GetDashboardSummary` | 入口と集計の数値 | feature |
-| `GetProductsRankingQuantity` | 売れ筋の表 | feature |
-| `GetProducts` | 商品の一覧 | feature |
-| `GetProductsDetail` | 編集・在庫補充が読む 1 件 | feature |
-| `GetProductCategories` / `GetProductStatuses` | 絞り込みとフォームの候補 | feature |
-| `GetUsers` | 利用者の一覧 | feature |
-| `PostProductsImages` | 画像の送信 | app 層の Action |
-| `PostProducts` / `PatchProductsDetail` | 商品の作成・編集 | app 層の Action |
-| `PatchProductsStock` | 在庫の増減 | app 層の Action |
-| `DeleteUsersDetail` | 利用者の退会 | app 層の Action |
+| `GetDashboardSummary` | Figures for the entry screen and analytics | feature |
+| `GetProductsRankingQuantity` | The best-seller table | feature |
+| `GetProducts` | The product list | feature |
+| `GetProductsDetail` | The single item read by edit and restock | feature |
+| `GetProductCategories` / `GetProductStatuses` | Candidates for filters and forms | feature |
+| `GetUsers` | The user list | feature |
+| `PostProductsImages` | Image upload | An app-layer Action |
+| `PostProducts` / `PatchProductsDetail` | Creating and editing products | An app-layer Action |
+| `PatchProductsStock` | Increasing and decreasing stock | An app-layer Action |
+| `DeleteUsersDetail` | Closing a user's account | An app-layer Action |
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 入口 | success | `Page/Admin/Dashboard/Default` |
-| | empty（購入が無い） | `Page/Admin/Dashboard/NoPurchases` |
+| Entry | success | `Page/Admin/Dashboard/Default` |
+| | empty (no purchases) | `Page/Admin/Dashboard/NoPurchases` |
 | | loading | `Features/Admin/Skeleton/{Default,Mobile}` |
-| 集計 | 期間を選んだ | `Page/Admin/Analytics/RangeSelected` |
-| | 両端が逆 | `Page/Admin/Analytics/RangeReversed` |
-| | 期間が読めない | `Page/Admin/Analytics/InvalidPeriod` |
-| | 売れ筋が空 | `Page/Admin/Analytics/NoRanking` |
-| | loading（下だけ取り直している間） | `Page/Admin/Analytics/SummaryPending` |
-| 商品一覧 | success（廃番の行を含む） | `Page/Admin/Products/List/Default` |
+| Analytics | Period selected | `Page/Admin/Analytics/RangeSelected` |
+| | Ends reversed | `Page/Admin/Analytics/RangeReversed` |
+| | Period unreadable | `Page/Admin/Analytics/InvalidPeriod` |
+| | No best sellers | `Page/Admin/Analytics/NoRanking` |
+| | loading (while only the lower part refetches) | `Page/Admin/Analytics/SummaryPending` |
+| Product list | success (including discontinued rows) | `Page/Admin/Products/List/Default` |
 | | empty | `Page/Admin/Products/List/Empty` |
-| | 絞り込み・検索・ページ送り | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
+| | Filtering, search, pagination | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
 | | loading | `Features/Admin/Products/List/Skeleton/Default` |
-| 商品作成 | 入力・確認・拒否 | `Page/Admin/Products/Create/{Default,Confirm,Rejected}` |
+| Product creation | Input, confirmation, rejection | `Page/Admin/Products/Create/{Default,Confirm,Rejected}` |
 | | loading | `Features/Admin/Products/New/Skeleton/Default` |
-| 商品編集 | 拒否 / 版の食い違い | `Page/Admin/Products/Edit/{Rejected,Conflicted}` |
+| Product edit | Rejection / version mismatch | `Page/Admin/Products/Edit/{Rejected,Conflicted}` |
 | | loading | `Features/Admin/Products/Edit/Skeleton/Default` |
-| 在庫補充 | 補充 / 引き落とし / 在庫切れ | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
-| | 量が読めない / 版の食い違い / 取り直せない | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
+| Restock | Replenish / deduct / out of stock | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
+| | Unreadable quantity / version mismatch / cannot refetch | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
 | | loading | `Features/Admin/Products/Stock/Skeleton/Default` |
-| 利用者 | success / empty | `Page/Admin/Users/{Default,Empty}` |
-| | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
+| Users | success / empty | `Page/Admin/Users/{Default,Empty}` |
+| | Account closure confirmation, success, conflict | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 | | loading | `Features/Admin/Users/Skeleton/Default` |
-| 配下の全画面 | error | `Features/Admin/ErrorState/{Default,WithDigest}` |
+| Every screen beneath | error | `Features/Admin/ErrorState/{Default,WithDigest}` |
 
-**loading と error は画面の合成からは届きません。**待機表示は `Suspense` の fallback、失敗表示は
-`/admin` の error 境界が描くもので、どちらも取得が成立した後の画面を撮る E2E の画面比較には
-現れません。VRT へ載せる経路は story しか無いため、部品そのものを story にしてあります。
+**loading and error cannot be reached from a screen's composition.** The loading UI is the `Suspense` fallback
+and the failure display is rendered by the `/admin` error boundary; neither appears in the E2E screen
+comparison, which captures screens after fetching has succeeded. Stories are the only path into VRT, so the
+components themselves are given stories.
 
-上の表は画面の状態と story の対応です。部品そのものが表せる状態（帯ごとの幅・契約上の最大長・
-送信中・拒まれた結果）は各部品の story（`Features/Admin/**`）が持ちます。
+The table above maps screen states to stories. The states the components themselves can express (width per
+band, the contract's maximum length, sending, a rejected result) are held by each component's story
+(`Features/Admin/**`).
 
-## 構成
+## Structure
 
-画面ごとに掘り、その中を性質で分けます。
+Create a directory per screen and divide each by nature.
 
-**商品は 4 つの画面（一覧・作成・編集・在庫補充）を持つため、画面の軸で割ってあります。**複数の画面が
-共有するものは、どの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
-利用者は画面を 1 つしか持たないため、軸を挟まず `users/` の直下に置きます。
+**Products have four screens (list, create, edit, restock), so they are split along the screen axis.** What
+several screens share belongs to none of them, so the level above (directly under `products/` and
+`products/ui/`) owns it. Users have only one screen, so files sit directly under `users/` with no axis between.
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
-| `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
-| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)） |
-| `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
-| `summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
-| `analytics/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |
-| `dashboard/page-content.tsx` | 入口（今日）の取得と組み立て |
-| `analytics/page-content.tsx` | 集計の URL 解釈と、取り直す範囲の区切り。取得は持たない |
-| `analytics/summary-section.tsx` | 期間が変わったときに取り直す区画。期間が決まっていないときの案内も持つ |
-| `analytics/ranking-section.tsx` | 期間の選択に従わない区画。別の待機に置く |
-| `dashboard/view.tsx` | 入口の画面。数値カードと内訳、期間指定への導線 |
-| `analytics/view.tsx` | 集計の画面。期間の選択の下へ、取り直す区画を slot で受ける |
-| `ui/stat-cards/` | 数値カードの並び。注記を値と同じ枠に置く |
-| `ui/status-bars/` | 横棒の描画そのもの。作図の一式を持ち込まず、要素と CSS だけで描く |
-| `ui/status-breakdown/` | 横棒と数値表の併置。合計は出さない |
-| `analytics/ui/period-switch/` | 集計対象期間の選び直し。日付の要らない 2 つは link |
-| `analytics/ui/period-caption/` | いま出ている数がどの暦日の話かを添える |
-| `analytics/ui/range-dialog/` | 期間の両端を overlay で選ぶ。中身は native の GET フォーム |
-| `analytics/ui/ranking-table/` | 売れ筋の表。期間の選択には従わず、商品名は商品の面へ出る |
-| `ui/skeleton/` | 集計の待機表示 |
-| `products/field-limits.ts` | 契約が課す上限と、受け付ける画像の形式 |
-| `products/product-rules.ts` | 入力 1 項目の判定と文言。送る側と受ける側の両方が通る |
-| `products/form-state.ts` | 商品のフォームの結果の型と、送信先の型。版の食い違いの文言もここが持つ |
-| `products/parse-product-form.ts` | 送られてきた内容の読み取り。入力欄の名前もここだけが持つ |
-| `products/form-sections.ts` | フォームが持つ段とその並び。確認は作る画面にしかないので含めない |
-| `products/master-option.ts` | マスタをフォームで選べる候補へ直す。送る値は識別子 |
-| `products/use-product-values.ts` | 入力の値・触れた印・段ごとの妥当性 |
-| `products/use-product-images.ts` | 選んだ画像の一覧と、送信・並び替え |
-| `products/use-image-rejection.ts` | 送る前に弾かれたファイルの文言 |
-| `products/use-action-result-freshness.ts` | 直前の送信の結果を、いま出してよいか |
-| `products/use-product-form.ts` | 作成と編集が共有する状態の組み立て。送信の結果の鮮度も持つ |
-| `products/form-names.ts` | 入力欄の `name`。送る側と読む側が同じ綴りを見る |
-| `products/validation-summary.ts` | 項目ごとの誤りを、要約が並べる形へ写す |
-| `products/image-rejection.ts` | 弾かれたファイルの言い方と、大きさの整形 |
-| `products/ui/text-field/` `products/ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
-| `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | 作成と編集が共有する段の中身。自分が段であることは知らない |
-| ↳ `description-editor.tsx` / `confirm-details.tsx` | 重い部品を**いつ読むか**と、**何を描くか**の分かれ目。器へ読み込みの都合を混ぜないため分けてある |
-| `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |
-| `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名。通ってきた道もここが持つ |
-| `products/list/page-size.ts` | 1 ページに並べる件数 |
-| `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからの写し |
-| `products/list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
-| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決め、廃番はラベルより先に出す |
-| `products/list/status-tone.ts` | 状態のコードと見た目の対応。契約が返さない意味づけをこの画面が持つ |
-| `products/list/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
-| `products/list/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
-| `products/list/view.tsx` | 検索欄・絞り込み・効いている条件・作成への導線。一覧本体は受け取る |
-| `products/list/ui/table/` | 商品の表。行ごとの操作は menu へ畳む |
-| `products/list/ui/keyword-field/` | 商品名・説明で探す入力欄。打鍵では検索せず、確定の操作で飛ばす |
-| `products/list/ui/filter-control/` | 分類・状態の選択欄そのもの。選ばれた値をどう扱うかは持たない |
-| `products/list/ui/filter-select/` | 選んだ時点で反映する絞り込み。広い段で使う |
-| `products/list/ui/filter-sheet/` | 狭い段の絞り込み。下端の操作から開き、overlay の中でまとめて確定する |
-| `products/list/ui/skeleton/` | 表の待機表示 |
-| `products/new/page-content.tsx` `products/new/view.tsx` | 作成。段階に分けて進み、最後に確認を置く |
-| `products/new/ui/skeleton/` | フォームの待機表示。段階の進捗を先頭に持つ |
-| `products/edit/page-content.tsx` `products/edit/view.tsx` | 編集。観点を切り替えて直す。版を持ち回る |
-| `products/edit/ui/skeleton/` | フォームの待機表示。観点の切り替えを先頭に持つ |
-| `products/stock/stock-direction.ts` | 在庫を動かす向きと、契約が受け取る符号付きの増減量への畳み方 |
-| `products/stock/stock-quantity.ts` | 動かせる量として読めるかの規則。送信を読む側と見込みを出す側が同じものを見る |
-| `products/stock/form-state.ts` | 在庫のフォームの結果の型と、送信先の型 |
-| `products/stock/form-names.ts` | 在庫のフォームの `name`。送る側と読む側が同じ綴りを見る |
-| `products/stock/parse-stock-form.ts` | 送られてきた向きと量の読み取り |
-| `products/stock/page-content.tsx` `products/stock/view.tsx` | 在庫補充。フォームの器は結果だけを見る |
-| `products/stock/breadcrumb-content.tsx` | 在庫補充の現在地までの階層。商品名のために取得する |
-| `products/stock/ui/current-stock/` | いま判っている在庫と、その鮮度・取り直す導線 |
-| `products/stock/ui/amount-fields/` | 向きと量。打っている途中の値を持ち、見込みを添える |
-| `products/stock/ui/projection/` | 送信後の見込み。参考値であることと、負のときの断り |
-| `products/stock/ui/skeleton/` | フォームの待機表示 |
-| `users/query.ts` | 利用者一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
-| `users/page-size.ts` | 1 ページに並べる件数 |
-| `users/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
-| `users/page-window.ts` | ページ送りに並べる番号の選び方。離れた範囲を省略の印へ畳む |
-| `users/row.ts` | 表に並べる 1 行の形。姓名を並べ、退会済みかを真偽値へ落とす |
-| `users/form-state.ts` `users/form-names.ts` | 退会の結果の型・送信先の型と、送信の `name` |
-| `users/results.tsx` | 1 ページ分の取得と、一覧・ページ送りの組み立て |
-| `users/view.tsx` | 絞り込み。一覧本体は受け取る |
-| `users/ui/withdrawable-list/` | 行・確認・結果を繋ぐ層。どれが同じ相手の話かをここだけが知る |
-| `users/ui/table/` | 利用者の表。退会済みの行には操作を出さない |
-| `users/ui/scope-select/` | 対象の範囲の選び直し。選んだ時点で移る |
-| `users/ui/withdraw-dialog/` | 退会の確認。不可逆であることと、後始末が同時に終わらないことを書く |
-| `users/ui/withdraw-feedback/` | 退会の結果。確認が閉じても残る場所 |
-| `users/ui/submit-button/` | 退会の送信。`useFormStatus` を読むため form の子で切り出す |
-| `users/ui/skeleton/` | 表の待機表示 |
-| `ui/error-state/` | 取得に失敗したときの表示。`/admin` の error 境界が使う。境界は 1 枚なので画面を名指ししない |
-| `shipments/` | 発送の画面。**自分の README を持つ**（[README](shipments/README.md)） |
-| `inquiries/` | 問い合わせの一覧と対応。**自分の README を持つ**（[README](inquiries/README.md)） |
+| `paths.ts` | Admin screen paths. Drawn on by the paths between screens and by the entry point from the user-facing layout shell |
+| `analytics/period.ts` | The analytics URL contract (the period kind and the dates at both ends) and the key names. Also holds the judgment of whether a selection is valid |
+| `analytics/read-period.ts` | The side that reads the URL. Kept apart from the building side ([`rules.md`](../../../docs/rules.md#url)) |
+| `analytics/period-window.ts` | The calendar days the selected period covers. The contract does not return them, so the same rule is followed |
+| `summary-cards.ts` | Maps the composed summary to the row of figure cards. Attaches a caveat about the population to the values |
+| `analytics/ranking-rows.ts` | One row of the best-seller table. The rank is the position in the order the contract returned |
+| `dashboard/page-content.tsx` | Fetching and assembling the entry screen (today) |
+| `analytics/page-content.tsx` | Interpreting the analytics URL and bounding the refetch scope. Holds no fetching |
+| `analytics/summary-section.tsx` | The section refetched when the period changes. Also holds the guidance shown when no period is set |
+| `analytics/ranking-section.tsx` | The section that does not follow the period selection. Placed in a separate wait |
+| `dashboard/view.tsx` | The entry screen. Figure cards and breakdowns, and the path to period selection |
+| `analytics/view.tsx` | The analytics screen. Receives the refetched sections through a slot, below the period selection |
+| `ui/stat-cards/` | The row of figure cards. Places notes in the same frame as the values |
+| `ui/status-bars/` | The horizontal bar rendering itself. Brings in no charting kit; renders with elements and CSS only |
+| `ui/status-breakdown/` | Horizontal bars side by side with a figure table. Shows no total |
+| `analytics/ui/period-switch/` | Re-selecting the analysis period. The two that need no dates are links |
+| `analytics/ui/period-caption/` | Notes which calendar days the figures shown refer to |
+| `analytics/ui/range-dialog/` | Selects both ends of the period in an overlay. The contents are a native GET form |
+| `analytics/ui/ranking-table/` | The best-seller table. Does not follow the period selection; product names lead to the product surface |
+| `ui/skeleton/` | The analytics loading UI |
+| `products/field-limits.ts` | The limits the contract imposes, and the accepted image formats |
+| `products/product-rules.ts` | The judgment and wording for one input field. Both the sending and receiving sides go through it |
+| `products/form-state.ts` | The product form's result type and the submission target's type. Also holds the version mismatch wording |
+| `products/parse-product-form.ts` | Reading what was sent. Also the only holder of the input field names |
+| `products/form-sections.ts` | The steps the form has and their order. Confirmation exists only on the create screen, so it is not included |
+| `products/master-option.ts` | Turns master data into candidates selectable in the form. The value sent is the identifier |
+| `products/use-product-values.ts` | Input values, touched markers, and validity per step |
+| `products/use-product-images.ts` | The list of selected images, and uploading and reordering |
+| `products/use-image-rejection.ts` | Wording for files rejected before sending |
+| `products/use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
+| `products/use-product-form.ts` | Assembling the state shared by create and edit. Also holds the freshness of submission results |
+| `products/form-names.ts` | The input fields' `name`s. The sending and reading sides see the same spelling |
+| `products/validation-summary.ts` | Maps per-field errors to the shape the summary lists |
+| `products/image-rejection.ts` | How rejected files are described, and size formatting |
+| `products/ui/text-field/` `products/ui/select-field/` | One input field. The caller holds the value |
+| `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | The step contents shared by create and edit. They do not know they are steps |
+| ↳ `description-editor.tsx` / `confirm-details.tsx` | The split between **when to load** a heavy component and **what to render**. Kept apart so loading concerns do not mix into the container |
+| `products/ui/submit-button/` `products/ui/form-feedback/` | The submit control and the submission result |
+| `products/list/query.ts` | The list URL contract (filters and pagination position) and the key names. Also holds the path the user came by |
+| `products/list/page-size.ts` | How many items one page lists |
+| `products/list/filter-option.ts` | The shape of the candidates selectable in filters, and the copy from master data |
+| `products/list/active-filters.ts` | Maps the active conditions to a list with removal destinations |
+| `products/list/row.ts` | The shape of one table row. Matches products against master data to decide the status appearance, and shows discontinued before the label |
+| `products/list/status-tone.ts` | The mapping between status codes and appearance. This screen holds the meaning the contract does not return |
+| `products/list/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
+| `products/list/results.tsx` | Fetching one page, and assembling the table and pagination |
+| `products/list/view.tsx` | Search field, filters, active conditions, path to creation. Receives the list body |
+| `products/list/ui/table/` | The product table. Per-row operations fold into a menu |
+| `products/list/ui/keyword-field/` | The input field that searches product names and descriptions. Does not search on keystrokes; fires on the confirming operation |
+| `products/list/ui/filter-control/` | The category and status selectors themselves. Holds nothing about how a selected value is handled |
+| `products/list/ui/filter-select/` | Filters applied as soon as they are selected. Used on wide bands |
+| `products/list/ui/filter-sheet/` | Filtering on narrow bands. Opens from the bottom operation and confirms everything together inside an overlay |
+| `products/list/ui/skeleton/` | The table loading UI |
+| `products/new/page-content.tsx` `products/new/view.tsx` | Creation. Proceeds in stages, with a confirmation at the end |
+| `products/new/ui/skeleton/` | The form loading UI. Has the stage progress at the top |
+| `products/edit/page-content.tsx` `products/edit/view.tsx` | Editing. Corrects by switching perspectives. Carries the version along |
+| `products/edit/ui/skeleton/` | The form loading UI. Has the perspective switch at the top |
+| `products/stock/stock-direction.ts` | The direction stock moves, and how it folds into the signed delta the contract accepts |
+| `products/stock/stock-quantity.ts` | The rule for whether a value reads as a movable quantity. The side reading the submission and the side showing the projection see the same thing |
+| `products/stock/form-state.ts` | The stock form's result type and the submission target's type |
+| `products/stock/form-names.ts` | The stock form's `name`s. The sending and reading sides see the same spelling |
+| `products/stock/parse-stock-form.ts` | Reading the submitted direction and quantity |
+| `products/stock/page-content.tsx` `products/stock/view.tsx` | Restock. The form container looks only at the result |
+| `products/stock/breadcrumb-content.tsx` | The hierarchy down to the restock screen. Fetches for the product name |
+| `products/stock/ui/current-stock/` | The stock currently known, its freshness, and the path to refetch |
+| `products/stock/ui/amount-fields/` | Direction and quantity. Holds the value being typed and adds the projection |
+| `products/stock/ui/projection/` | The projection after submission. That it is a reference value, and the caveat when negative |
+| `products/stock/ui/skeleton/` | The form loading UI |
+| `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
+| `users/page-size.ts` | How many items one page lists |
+| `users/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
+| `users/page-window.ts` | How the page numbers listed in pagination are chosen. Collapses distant ranges into an ellipsis marker |
+| `users/row.ts` | The shape of one table row. Lines up family and given names, and reduces whether the account is closed to a boolean |
+| `users/form-state.ts` `users/form-names.ts` | The account closure result type, the submission target's type, and the submission's `name`s |
+| `users/results.tsx` | Fetching one page, and assembling the list and pagination |
+| `users/view.tsx` | Filtering. Receives the list body |
+| `users/ui/withdrawable-list/` | The layer connecting rows, confirmation and result. The only place that knows which ones concern the same person |
+| `users/ui/table/` | The user table. Rows of closed accounts show no operations |
+| `users/ui/scope-select/` | Re-selecting the target scope. Navigates as soon as it is selected |
+| `users/ui/withdraw-dialog/` | The account closure confirmation. States that it is irreversible and that the cleanup does not finish at the same time |
+| `users/ui/withdraw-feedback/` | The account closure result. A place that remains after the confirmation closes |
+| `users/ui/submit-button/` | Submitting the account closure. Extracted as a child of the form to read `useFormStatus` |
+| `users/ui/skeleton/` | The table loading UI |
+| `ui/error-state/` | What is shown when fetching fails. Used by the `/admin` error boundary. There is one boundary, so it names no screen |
+| `shipments/` | The shipments screen. **Has its own README** ([README](shipments/README.md)) |
+| `inquiries/` | The inquiry list and handling. **Has its own README** ([README](inquiries/README.md)) |
 
-**`feature` の宣言が掛かるのは、画面の単位で組み上げたものです**。`page-content.tsx` / `view.tsx` /
-`*-section.tsx` が対象で、部品が揃って初めて成立する振る舞いを負います。**`ui/` の単一部品は
-`component` の形**——その部品 1 つの描画契約と、必須の a11y 自動検査——で、
-**画面を跨ぐ純関数（`summary-cards.ts` / `paths.ts` /
-`analytics/period.ts` など）は `unit` の形**——描画を持たず、戻り値と分岐を直接照合する——で
-確かめます。合成を持たないものへ合成のテストを課しても、確かめる相手が無いためです。
+**The `feature` declaration applies to what is assembled at the screen level**. `page-content.tsx` / `view.tsx` /
+`*-section.tsx` are its subjects, and carry behavior that holds only once the components come together.
+**A single component under `ui/` takes the `component` shape** — that one component's rendering contract and the
+mandatory automated a11y check — and **pure functions that cross screens (`summary-cards.ts` / `paths.ts` /
+`analytics/period.ts` and so on) take the `unit` shape** — no rendering; return values and branches are matched
+directly. Imposing composition tests on something with no composition leaves nothing to verify.
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 集計・商品・購入・利用者の取得と、画像 URL の解決 |
-| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard`）、ページ送り、期間、数の整形、`ActionState` |
-| `components` | 面を組む器（表・ページ送り・ファイル送信・離脱の警告・入力の要約） |
-| `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching analytics, products, purchases and users, and resolving image URLs |
+| `model` | Display models (`Product` / `Purchase` / `Dashboard`), pagination, periods, number formatting, `ActionState` |
+| `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
+| `errors` | Maps fetch and submission failures to the wording the screen shows |
+| `observability` | Putting rendering on spans |
 
-**他 feature の `facade/` から部品を引きません。**利用者向けの slice と同じ対象を扱っても部品を共有しない、
-という冒頭の線引きがそのまま依存にも出ています。引くのはルートの識別子だけで、商品 1 件を眺める
-利用者向けの画面は `products` の `facade/detail-url/` から取ります（`paths.ts` の `productDetailPath`）。
+**No components are drawn from other features' `facade/`.** The opening line — handling the same subjects as the
+user-facing slices without sharing components — shows up in the dependencies as is. Only route identifiers are
+drawn: the user-facing screen for viewing one product comes from `products`' `facade/detail-url/`
+(`productDetailPath` in `paths.ts`).
 
-## Action 戻り値契約
+## Action Return Contract
 
-**この slice の Server Action は feature の下ではなく app 層にあります。**
+**This slice's Server Actions live in the app layer, not under the feature.**
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `uploadProductImageAction` | `src/app/admin/products/actions.ts` | `ProductImageUploadState` | 送信済みの鍵を返す | 弾かれた理由を選んだ面に出す |
-| `createProductAction` | 同上 | `ProductFormState` | 一覧へ `redirect` | 項目ごとの誤りを段へ戻す |
-| `updateProductAction` | 同上 | `ProductFormState` | 同上 | 同上。版の食い違いは言い分ける |
-| `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
-| `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
+| `uploadProductImageAction` | `src/app/admin/products/actions.ts` | `ProductImageUploadState` | Returns the key of what was uploaded | Shows why it was rejected on the surface where it was selected |
+| `createProductAction` | Same as above | `ProductFormState` | `redirect` to the list | Returns per-field errors to their steps |
+| `updateProductAction` | Same as above | `ProductFormState` | Same as above | Same as above. A version mismatch is told apart |
+| `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
+| `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
 
-**退会だけ一覧を取り直させません。**後始末が結果整合で続くため、直後に取り直しても反映前の
-一覧を見せるだけになります。何が起きたかは送信の結果が伝えます。
+**Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
+refetching right after would only show the list before it is reflected. The submission result reports what
+happened.
 
-画面は Action を props で受け取るだけです。**`route` の器が Action を持つ形にしてあるのは、
-`page.tsx` と同じ段に置いた `actions.ts` が route の入口と 1 対 1 に対応するため**で、判定と
-組み立ては feature 側（`products/parse-product-form.ts` など）が持ちます。
+Screens only receive Actions through props. **The `route` layout shell holds the Actions because an `actions.ts`
+placed at the same level as `page.tsx` corresponds one-to-one with the route's entry point**; judgment and
+assembly are held on the feature side (`products/parse-product-form.ts` and so on).
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 役割を持たない主体に、管理の面への導線が出ない
-- [ ] 写せなかった条件が捨てられず、一覧の代わりにそのことが出る
-- [ ] 版の食い違い（409）が、ほかの失敗と言い分けられる
-- [ ] 退会済みの行に操作が出ない
+- [ ] An actor with no role sees no path to the management surface
+- [ ] Conditions that could not be mapped are not discarded; that fact is shown in place of the list
+- [ ] A version mismatch (409) is told apart from other failures
+- [ ] Rows of closed accounts show no operations
 
-層の割り当て（`feature` / `component` / `unit`）は「構成」の末尾にあります。
+The layer assignment (`feature` / `component` / `unit`) is at the end of Structure.
 
-## 認可
+## Authorization
 
-この配下の画面はすべて `/admin` の下にあり、二段で守られます。
+Every screen here sits under `/admin` and is protected in two stages.
 
-1. **前捌き** — `src/proxy.ts` が cookie の session だけを読み、役割が足りない要求を送り返す
-2. **確定認可** — `src/app/admin/layout.tsx` が `verifySession()` を通し、役割を確かめる
+1. **Pre-screening** — `src/proxy.ts` reads only the cookie session and sends back requests whose role falls short
+2. **Definitive authorization** — `src/app/admin/layout.tsx` goes through `verifySession()` and checks the role
 
-どの経路に何の役割が要るかは [`src/model/authz.ts`](../../model/authz.ts) が持ちます。確定認可も、
-利用者向けの器が admin への入口を出すかどうかも、同じ `isAdmin()` を引きます。判定が別々に書かれて
-いると「入れないのに入口が出ている」状態を作れてしまいます。
+Which role each path needs is held by [`src/model/authz.ts`](../../model/authz.ts). Both the definitive
+authorization and whether the user-facing layout shell shows an entry point to admin call the same `isAdmin()`.
+If the judgments were written separately, a state of "an entry point is shown though you cannot get in" could
+arise.
 
-**役割を持たない人には導線を出しません。** 押せる場所を作らないことが出し分けであり、押した先で
-断る作りにすると、管理の面がある事実だけが誰にでも伝わります。
+**People without the role are shown no path.** Not creating a place to press is the gating itself; refusing on
+the far side of the press would tell everyone that a management surface exists.
 
-## 条件の検証と失敗
+## Validating Conditions and Failures
 
-URL から読んだ条件は、**取得の口が持つ検証**（`adapters/server/api/products` の `parseProductQuery`）を
-通してから渡します。画面側で数値化などの写しを作ると、契約を再生成しても写し方だけが古い範囲の
-まま残ります。写せなかった条件は捨てず、
-一覧の代わりにそのことを出します。
+Conditions read from the URL are passed on after going through **the validation held by the fetch endpoint**
+(`parseProductQuery` in `adapters/server/api/products`). Making a copy such as a numeric conversion on the
+screen side leaves only the copying logic on the old range even when the contract is regenerated. Conditions
+that could not be mapped are not discarded;
+that fact is shown in place of the list.
 
-取得の失敗は `src/app/admin/error.tsx` が受けます。ここが無いと `global-error` まで抜け、脇の導線も
-header も失われた素の画面になります。
+Fetch failures are taken by `src/app/admin/error.tsx`. Without it they fall through to `global-error`, leaving
+a bare screen without the side navigation or the header.
 
-## 契約との関係で気を付けること
+## Points to Watch Against the Contract
 
-**未公開の商品を並べるのは `includeUnpublished` の指定です。** admin だけが `true` を通せ、未認証は
-401、役割が足りなければ 403 になります。**母集団が変わると並び順の軸も変わる**ため、ページ送りの
-鍵は同じ指定の中でだけ使えます（`products/list/results.tsx`）。
+**Listing unpublished products is the `includeUnpublished` option.** Only admin can pass `true`;
+unauthenticated requests get 401, and an insufficient role 403. **When the population changes, the sort axis
+changes too**, so pagination keys are usable only within the same option (`products/list/results.tsx`).
 
-商品の「状態」は在庫・販売の状態（在庫あり・在庫切れ・廃盤など）で、**公開の可否とは別の軸**です。
-公開の可否は `publishedAt` が持ち、状態マスタでの絞り込みが効くかどうかとは関係しません。
+A product's "status" is its stock and sales status (in stock, out of stock, discontinued and so on), and **is a
+separate axis from whether it is published**. Publication is held by `publishedAt` and has nothing to do with
+whether filtering by the status master applies.
 
-**廃番はマスタのラベルではなく、`discontinuedAt` が持つ事実です。** 廃番にする操作はマスタの状態を
-書き換えないため、廃番の商品は `在庫あり` のようなラベルを保ったまま届きます。一覧の状態の欄は
-ラベルより廃番を先に出します（`products/list/row.ts`）。マスタの `廃盤` は admin が手で付けられる
-表示上のラベルで、別物です。
+**Discontinuation is a fact held by `discontinuedAt`, not a master label.** The operation that discontinues a
+product does not rewrite the master status, so a discontinued product arrives still carrying a label such as
+`在庫あり`. The list's status column shows discontinuation before the label (`products/list/row.ts`). The
+master's `廃盤` is a display label admin can attach by hand, and is a different thing.
 
-**在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
-数値カードとは独立した機能です。
+**The low-stock list (`GetProductsLowStock`) is in the contract, but this slice does not use it.** It is a
+feature independent of the entry screen's figure cards.
 
-## 関連する ADR
+## Related ADRs
 
-**`shipments/` と `inquiries/` は自分の README に自分の分を持ちます。** ここに挙げるのは
-この slice 全体（分析・商品・利用者と、それらが共有する部品）が依存しているものです。
+**`shipments/` and `inquiries/` hold their own in their own READMEs.** What is listed here is what this slice as
+a whole (analytics, products, users and the components they share) depends on.
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。カーネルへ上げてよいものの線
-- [0023](../../../docs/adr/0023-stores-kernel.md) — client 状態カーネルの受入基準。1 画面の状態を上げない線
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。画面ごとに掘り、その中を性質で分ける
-- [0028](../../../docs/adr/0028-naming-convention.md) — 命名規約。フォーム項目とファイルの綴り
-- [0029](../../../docs/adr/0029-type-design-discipline.md) — 判別可能 union と境界での parse。条件の写しを画面に作らない
-- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — 描画戦略。境界の粒度と client 島の切り方
-- [0051](../../../docs/adr/0051-styling-system.md) — デザイントークンと帯ごとの出し分け
-- [0052](../../../docs/adr/0052-ui-component-policy.md) — UI 部品の方針。器の選び方と icon の閉じ方
-- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — 操作の a11y 継ぎ目。ダイアログ・シート・入力の継ぎ目
-- [0060](../../../docs/adr/0060-state-management.md) — 状態の置き場。入力途中を誰が持つか
-- [0062](../../../docs/adr/0062-form-input-validation.md) — 入力検証の UX。判定の正はバックエンドに置く
-- [0063](../../../docs/adr/0063-mutation-result-notification.md) — 送信結果の伝え方。一覧の外へ出す知らせ
-- [0070](../../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務線。集計と状態の意味を画面で決めない
-- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — ページ送り / 増分取得の境界。条件を URL に載せる
-- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — 認証の前面の継ぎ目。導線の出し分けと確定認可の関係
-- [0080](../../../docs/adr/0080-error-handling.md) — エラーの扱い。`error` 境界を管理面に置く理由
-- [0090](../../../docs/adr/0090-testing-strategy.md) — 層別のテスト責務。`feature` / `component` / `unit` の使い分け
-- [0091](../../../docs/adr/0091-test-verification-methods.md) — 検証の方法。a11y の自動検査
-- [0100](../../../docs/adr/0100-accessibility-target.md) — アクセシビリティの目標水準。色だけで区別させない
-- [0101](../../../docs/adr/0101-performance-budget.md) — 性能予算。client の束に何を載せるか
-- [0120](../../../docs/adr/0120-locale-aware-formatting.md) — 日付・数値の書式
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. The line for what may be moved up to a kernel
+- [0023](../../../docs/adr/0023-stores-kernel.md) — Acceptance criteria for the client state kernel. The line against moving up a single screen's state
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical layout and co-location. Create a directory per screen and divide each by nature
+- [0028](../../../docs/adr/0028-naming-convention.md) — Naming conventions. Spellings of form fields and files
+- [0029](../../../docs/adr/0029-type-design-discipline.md) — Discriminated unions and parsing at the boundary. No copies of conditions made on the screen
+- [0040](../../../docs/adr/0040-routing-rendering-strategy.md) — Rendering strategy. Boundary granularity and how client islands are cut
+- [0051](../../../docs/adr/0051-styling-system.md) — Design tokens and switching per band
+- [0052](../../../docs/adr/0052-ui-component-policy.md) — UI component policy. Choosing containers and how icons are closed
+- [0053](../../../docs/adr/0053-ui-component-interaction-seam.md) — The a11y seam of interaction. The seams for dialogs, sheets and input
+- [0060](../../../docs/adr/0060-state-management.md) — Where state lives. Who holds input in progress
+- [0062](../../../docs/adr/0062-form-input-validation.md) — Input validation UX. The authoritative judgment lives in the backend
+- [0063](../../../docs/adr/0063-mutation-result-notification.md) — How submission results are reported. Notices shown outside the list
+- [0070](../../../docs/adr/0070-backend-role-separation.md) — The responsibility line with the backend. The screen does not decide the meaning of aggregates and statuses
+- [0073](../../../docs/adr/0073-pagination-fetch-boundary.md) — The pagination / incremental fetch boundary. Conditions live in the URL
+- [0079](../../../docs/adr/0079-auth-frontend-seam.md) — The frontend seam of authentication. How gating the paths relates to definitive authorization
+- [0080](../../../docs/adr/0080-error-handling.md) — Error handling. Why the management surface has an `error` boundary
+- [0090](../../../docs/adr/0090-testing-strategy.md) — Test responsibilities per layer. When to use `feature` / `component` / `unit`
+- [0091](../../../docs/adr/0091-test-verification-methods.md) — Verification methods. Automated a11y checks
+- [0100](../../../docs/adr/0100-accessibility-target.md) — The accessibility target level. Never distinguish by color alone
+- [0101](../../../docs/adr/0101-performance-budget.md) — Performance budget. What goes into the client bundle
+- [0120](../../../docs/adr/0120-locale-aware-formatting.md) — Date and number formatting
 
-## 商品編集の器（tabs）
+## The Product Edit Container (Tabs)
 
-商品編集の画面は観点を切り替える tabs を器にします。編集で主なのは 1 か所を直すことなので、順番を持つ wizard を器にすると、直したい観点へ行くのに他の段を踏まされます。段の中身は作成画面と同じ部品で、器だけが違います。
+The product edit screen uses tabs that switch perspectives as its container. Editing is mainly about fixing one place, so with an ordered wizard as the container, reaching the perspective you want to fix forces you through the other steps. The step contents are the same components as on the create screen; only the container differs.

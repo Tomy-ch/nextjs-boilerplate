@@ -1,37 +1,32 @@
 # Table
 
-## 用途
+## Purpose
 
-列と行の関係が利用者の理解に必要な、構造化データを表示します。単なる layout のために使わず、情報の
-関係を表として読む場面に限定します。
+Shows structured data where the relationship between columns and rows is needed for the user to understand it. Do not use it merely for layout; limit it to cases where the relationships in the information are read as a table.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Table` | 横幅が不足した場合に横スクロールする [`ScrollArea`](../../container/scroll-area/README.md) を伴う native `table` です。 |
-| `TableHeader` | 列見出しを置く `thead` 領域です。 |
-| `TableBody` | 表の主なデータ行を置く `tbody` 領域です。 |
-| `TableFooter` | 集計などの補足行を置く `tfoot` 領域です。 |
-| `TableRow` | 一行を表す `tr` です。 |
-| `TableHead` | 列または行の見出しを表す `th` です。 |
-| `TableCell` | データを表す `td` です。 |
-| `TableCaption` | 表の目的を説明する `caption` です。 |
+| `Table` | A native `table` with a [`ScrollArea`](../../container/scroll-area/README.md) that scrolls horizontally when the width is insufficient. |
+| `TableHeader` | The `thead` area that holds the column headers. |
+| `TableBody` | The `tbody` area that holds the table's main data rows. |
+| `TableFooter` | The `tfoot` area that holds supplementary rows such as totals. |
+| `TableRow` | A `tr` representing one row. |
+| `TableHead` | A `th` representing a column or row header. |
+| `TableCell` | A `td` representing data. |
+| `TableCaption` | A `caption` describing the purpose of the table. |
 
-## 利用ケース
+## Use Cases
 
-一覧、履歴、明細、集計など、複数の属性を同じ列で比較する画面に使います。caption と column header を
-置き、`TableHead` には `scope="col"` を指定します。
+Use it for screens that compare several attributes in the same columns: lists, histories, statements, totals. Place a caption and column headers, and set `scope="col"` on `TableHead`.
 
-横スクロールする領域は keyboard だけで送れるよう focus を受け取ります。`label` に `TableCaption` と
-同じ語を渡し、focus したときに何の領域へ入ったのかが判るようにします。
+The horizontally scrolling area receives focus so it can be scrolled with the keyboard alone. Pass the same words as `TableCaption` to `label` so that on focus it is clear which area has been entered.
 
-## 責務境界
+## Responsibility Boundaries
 
-取得・並べ替え・filter・pagination・行ごとの操作・業務型は持ちません。これらは feature が Table を
-合成して実装します。横に広い内容は component の wrapper が横スクロールを扱います。
+It holds no fetching, sorting, filtering, pagination, per-row actions or business types. The feature implements these by composing Table. For wide content, the component's wrapper handles horizontal scrolling.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は基本表と集計 footer を別々に示します。テストは table / caption / column header の意味論と
-a11y 自動検査を確認します。
+Storybook shows the basic table and the totals footer separately. The tests check the table / caption / column header semantics and the automated a11y check.

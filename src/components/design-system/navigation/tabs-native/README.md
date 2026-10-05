@@ -1,53 +1,53 @@
 # TabsNative
 
-## 用途
+## Purpose
 
-同じ対象を複数の観点で見せ分けるとき、観点を URL で切り替えます。
+When showing the same subject from several views, switches the view by URL.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `TabsNative` | 観点の切り替えを表す `nav` です。`aria-label` で何の切り替えかを示します。 |
-| `TabsNativeList` | 観点を並べる `ul` です。項目数を支援技術へ伝えます。 |
-| `TabsNativeLink` | 観点へ移動する link です。現在の観点には `isActive` を指定します。 |
+| `TabsNative` | The `nav` representing the switch between views. `aria-label` states what it switches. |
+| `TabsNativeList` | The `ul` that lays out the views. Conveys the item count to assistive technology. |
+| `TabsNativeLink` | A link to a view. Specify `isActive` for the current view. |
 
-パネルに相当する component はありません。表示内容は遷移先のページがそのまま描画します。
+There is no component equivalent to a panel. The displayed content is rendered by the destination page as is.
 
-## 利用ケース
+## Use Cases
 
-- 観点ごとに取得するデータが分かれる場合
-- パネルの内容が大きく、表示していないぶんまで初期表示に載せたくない場合
-- 選択した観点を共有・再読み込み・戻る操作で保ちたい場合
+- When the data fetched differs per view
+- When panel content is large and you do not want what is not shown included in the initial render
+- When the selected view should survive sharing, reload and the back action
 
-## `TabsClient` との選び分け
+## `TabsClient` vs This Component
 
-見た目の好みではなく、**取得コストと URL で選びます**。
+Choose by **fetch cost and URL**, not by visual preference.
 
 | | `TabsNative` | `TabsClient` |
 | --- | --- | --- |
-| 取得するデータ | 表示中の観点だけ | 全観点ぶんを毎回 |
-| 初期 payload | 1 観点ぶん | 全観点ぶん |
-| パネルの描画 | server | server（`children` 経由） |
-| 共有・再読み込み・戻る | 保たれる | 失われる |
-| 切り替えの体感 | route 遷移 | 即時 |
+| Data fetched | Only the view being shown | Every view, every time |
+| Initial payload | One view | All views |
+| Panel rendering | server | server (through `children`) |
+| Sharing, reload, back | Preserved | Lost |
+| Feel of switching | route navigation | Immediate |
 
-取得済みの内容を URL に載せずに出し分けるだけなら `TabsClient` を使います。
+To merely switch between already fetched content without putting it in the URL, use `TabsClient`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。選択中の観点を URL が持つため client runtime は必要なく、初期表示も Server 側で確定します。
+In the SSR-first selection it is `◎`. The URL holds the selected view, so no client runtime is needed and the initial render is settled on the server side.
 
-**`role="tab"` は使いません。** ARIA の tab パターンは「パネルを client 側で出し分ける」ことを前提としており、遷移を伴う link へ当てると、支援技術には切り替わったように伝わったまま実際はページが変わる、という食い違いが起きます。ここは link の集合であり、`nav` と `aria-current="page"` で現在地を伝えます。この違いが `TabsClient` との本質的な差です。
+**It does not use `role="tab"`.** The ARIA tab pattern assumes "switching panels on the client side"; applying it to links that navigate creates a mismatch where assistive technology is told something switched while the page actually changes. This is a set of links, and it conveys the current location with `nav` and `aria-current="page"`. This difference is the essential difference from `TabsClient`.
 
-`href` は必須で、移動先の URL は呼び出し元が組み立てます。現在の `searchParams` を引き継ぐ責務は持たないため、絞り込みや並び順を保ったまま切り替える場合は既存の query を含めた URL を渡します。どの観点が現在かの判定も呼び出し元が行い、`isActive` として渡します。
+`href` is required, and the caller builds the destination URL. It has no responsibility for carrying over the current `searchParams`, so to switch while keeping filters and sort order, pass a URL that includes the existing query. The caller also determines which view is current and passes it as `isActive`.
 
-現在の観点は文字色だけでなく下線でも示します。色の違いだけに頼ると、色覚特性やコントラスト設定によって区別できないためです。
+The current view is indicated not only by text color but also by an underline. Relying on color difference alone makes it indistinguishable for some color vision characteristics and contrast settings.
 
-項目が収まらない場合の横スクロールは、利用側のレイアウトで扱います。
+Horizontal scrolling when the items do not fit is handled by the consumer's layout.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の構成、先頭以外を選択した場合、既存 query を保ったまま切り替える場合、項目が多く収まらない場合を確認します。
+Storybook checks the default composition, selecting other than the first, switching while keeping an existing query, and so many items that they do not fit.
 
-テストは名前を持つ `navigation` として公開されること、観点が `link` であり `tab` / `tablist` role を使わないこと、`listitem` として並ぶこと、`href` を持つこと、現在の観点だけに `aria-current="page"` が付くこと、現在の観点が下線でも示されること、a11y 自動検査を確認します。
+The tests check that it is exposed as a named `navigation`, that views are `link`s and the `tab` / `tablist` roles are not used, that they are listed as `listitem`s, that they have `href`, that only the current view gets `aria-current="page"`, that the current view is also indicated by an underline, and the automated a11y check.

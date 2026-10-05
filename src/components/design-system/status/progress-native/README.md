@@ -1,36 +1,36 @@
 # ProgressNative
 
-## 用途
+## Purpose
 
-長さの決まった処理が今どこまで進んだかを、値と最大値の関係として視覚的に示します。
+Visually shows how far a process of known length has progressed, as the relationship between a value and a maximum.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ProgressNative` | native `progress` 要素に既定の見た目を与える表示 primitive です。`value` と `max` を props として受け取り、進捗の割合だけを描画します。 |
+| `ProgressNative` | Display primitive that gives the native `progress` element a default look. It takes `value` and `max` as props and renders only the progress ratio. |
 
-## 利用ケース
+## Use Cases
 
-- 手続きの段階表示のように、進捗が URL や Server 側で確定している場合
-- 件数・段階のように、`max` が実単位を持つ処理の残りを示す場合
+- Progress that is settled in the URL or on the server, such as a step indicator for a procedure
+- Showing what remains of a process whose `max` has real units, such as a count or a number of steps
 
-browser 側の計測値を短い間隔で更新する場合は `ProgressClient` を使います。完了時期が不明な待機には使わず、骨格を見せるだけでよい場合は `Skeleton` を使います。
+When updating a value measured in the browser at short intervals, use `ProgressClient`. Do not use it for a wait whose end is unknown; when showing a skeleton is enough, use `Skeleton`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。native `progress` 要素で必要な意味論と表示が満たせるため、`"use client"`・React state・browser API を持ちません。値の取得、更新間隔、完了後の遷移、百分率の文言整形は呼び出し元が持ちます。
+In the SSR-first selection it is rated `◎`. The native `progress` element satisfies the needed semantics and display, so it has no `"use client"`, no React state, and no browser API. The caller owns fetching the value, the update interval, navigation after completion, and formatting the percentage text.
 
-`value` は必須です。進捗不明（indeterminate）は表現の対象外にしています。native `progress` は `value` を省略すると不定表示になりますが、その描画は browser 実装に依存し、待機の表現は `Skeleton` が既に担っているためです。
+`value` is required. Indeterminate progress is out of scope. Native `progress` shows an indeterminate display when `value` is omitted, but that rendering depends on the browser implementation, and `Skeleton` already handles the representation of waiting.
 
-`progress` 要素は screen reader に `progressbar` として公開され、値は `value` と `max` から百分率として読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`progress` は labelable 要素なので `label` の `htmlFor` が使えます（`ProgressClient` では使えません）。`max` に実単位を使った場合も読み上げは百分率になるため、件数などを利用者へ見せたい場合は数値テキストを併記します。
+The `progress` element is exposed to screen readers as `progressbar`, and the value is announced as a percentage derived from `value` and `max`. The element has no name of its own, so **always give it an accessible name**, with `aria-label` or by associating a `label` element through `id`. `progress` is a labelable element, so `label`'s `htmlFor` works (it does not for `ProgressClient`). Even when `max` uses real units the announcement is a percentage, so when the count or similar should be shown to the user, add numeric text alongside.
 
-太さや幅は `className` で上書きします。既定は `h-2 w-full`、track は `bg-border`、進捗部分は `bg-foreground` です。track と進捗部分は browser ごとに別の擬似要素で描画されるため、`::-webkit-progress-bar` / `::-webkit-progress-value` / `::-moz-progress-bar` の三つへ指定しています。この擬似要素の差が見た目の揺れとして問題になる場合は `ProgressClient` を使います。
+Override thickness and width with `className`. The defaults are `h-2 w-full`, `bg-border` for the track and `bg-foreground` for the progress portion. Each browser renders the track and the progress portion with different pseudo-elements, so the styles are specified on all three: `::-webkit-progress-bar` / `::-webkit-progress-value` / `::-moz-progress-bar`. If this pseudo-element difference becomes a problem as visual inconsistency, use `ProgressClient`.
 
-shadcn/ui の `progress` はこちらへ copy-in していません。生成物は Radix の client component であり、確定値の表示に hydration を要求するためです。同じ生成物は `ProgressClient` として取り込んでいます。
+shadcn/ui's `progress` is not copied in here. The generated code is a Radix client component and would require hydration to display a settled value. The same generated code is brought in as `ProgressClient`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の表示、値が `0` の状態、`max` に達した完了状態、`max` を実単位にした場合、数値テキストを併記する場合、`className` で太さを変えた場合を確認します。
+Storybook covers the default display, a value of `0`, the completed state at `max`, `max` in real units, numeric text added alongside, and changing the thickness with `className`.
 
-テストは `progressbar` role として公開されること、`value` と `max` が native 属性として出ること、`max` の既定が `100` であること、`aria-label` と `label` 要素の双方でアクセシブルな名前を与えられること、`className` の上書き、a11y 自動検査を確認します。
+The tests cover exposure with the `progressbar` role, that `value` and `max` are emitted as native attributes, that `max` defaults to `100`, that an accessible name can be given both with `aria-label` and with a `label` element, overriding `className`, and the automated a11y check.

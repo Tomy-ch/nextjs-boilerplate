@@ -4,41 +4,41 @@ test-requirement: unit
 
 # telemetry
 
-ブラウザ発のシグナルを組み立てて中継へ送る面と、ブラウザ側の計装です。
+The surface that assembles browser-originated signals and sends them to the relay, plus browser-side instrumentation.
 
-**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+**This directory does not declare the import ceiling.** Boundaries are declared at an element's root, and the root of the element containing this directory is [`adapters/`](../../README.md) ([0021](../../../../docs/adr/0021-frontend-responsibility.md)).
 
-## 親と違う点
+## Differences from the Parent
 
-**検証の要求が親と違います。** `adapters` の宣言は `integration` ですが、それが掛かるのは
-`fetch`（または注入された `fetchImpl`）を**直接持つ**モジュールです（[README](../../README.md) の
-「運用」）。ここに置くものはどれもそれを持ちません —— 報告の送信は `sendBeacon` で、要求を span に
-するのは OTel の計装であって、このディレクトリのコードは組み立てと登録だけを持ちます。
+**The verification requirement differs from the parent's.** `adapters` declares `integration`, but it applies to modules that
+**directly hold** `fetch` (or an injected `fetchImpl`) ([README](../../README.md#operations),
+*Operations*). Nothing placed here holds one — reports are sent with `sendBeacon`, and turning requests into spans
+is done by OTel's instrumentation; the code in this directory holds only assembly and registration.
 
-**判定は「そのモジュールが外へ出るか」で行い、ディレクトリの位置では決めません。**
+**The decision is made by "does the module go outside", not by its directory location.**
 
-| モジュール | 検証 | 理由 |
+| Module | Verification | Reason |
 | --- | --- | --- |
-| [`report-telemetry.ts`](report-telemetry.ts) | `unit` | 報告を組み、`sendBeacon` へ渡す |
-| [`route-pattern.ts`](route-pattern.ts) | `unit` | パスから route の型を復元する |
-| [`browser-tracer.ts`](browser-tracer.ts) | `unit` | OTel の provider と計装を組み立てて登録する。実送信は SDK が持つ |
+| [`report-telemetry.ts`](report-telemetry.ts) | `unit` | Assembles reports and hands them to `sendBeacon` |
+| [`route-pattern.ts`](route-pattern.ts) | `unit` | Restores the route pattern from a path |
+| [`browser-tracer.ts`](browser-tracer.ts) | `unit` | Assembles and registers the OTel provider and instrumentation. The SDK does the actual sending |
 
-**span の名前にクエリを含めません。** 要求ごとに条件が違うため、含めると同じ経路への要求が別の名前へ散ります（[0082](../../../../docs/adr/0082-client-observability.md)）。クエリを含む URL は既定の計装が `url.full` 属性へ残すため、1 件ずつ辿るときはそちらを読みます。
+**Span names do not include the query.** Conditions differ per request, so including them scatters requests to the same route across different names ([0082](../../../../docs/adr/0082-client-observability.md)). The default instrumentation keeps the URL including the query in the `url.full` attribute, so read that when tracing individual requests.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 報告の組み立てと送信、ブラウザ側の計装の立ち上げ
+- Assembling and sending reports, and starting browser-side instrumentation
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、受け側の検証（`server/telemetry/` が持つ）
+- Business logic, receiving-side validation (held by `server/telemetry/`)
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../../README.md).
 
-- [0082](../../../../docs/adr/0082-client-observability.md) — 何を測って何を送るか。span の名前に載せてよいもの
-- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — 受け口が持つ上限。送る側の切り詰めはその写しであること
-- [0090](../../../../docs/adr/0090-testing-strategy.md) — 層別の検証責務（`unit` として扱う理由）
+- [0082](../../../../docs/adr/0082-client-observability.md) — What is measured and what is sent. What may go into a span name
+- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — The limits the receiving endpoint holds. The sending side's truncation is a copy of them
+- [0090](../../../../docs/adr/0090-testing-strategy.md) — Per-layer verification responsibilities (why it is treated as `unit`)

@@ -1,24 +1,24 @@
 # RadioGroupNative
 
-## 用途
+## Purpose
 
-静的な候補から一つを選び、native form として送信します。
+Chooses one of a set of static options and submits it as a native form.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `RadioGroupNative` | 関連する選択肢を `fieldset` としてまとめる、SSR first の group です。 |
-| `RadioGroupNativeItem` | native `input[type="radio"]` を保持する選択肢です。同じ `name` を持つ項目から一つを送信できます。 |
+| `RadioGroupNative` | An SSR-first group that gathers related choices as a `fieldset`. |
+| `RadioGroupNativeItem` | A choice that keeps the native `input[type="radio"]`. One of the items sharing the same `name` can be submitted. |
 
-## 利用ケース
+## Use Cases
 
-並び順や表示形式など、同じ `name` を持つ排他的選択に使います。
+Use it for an exclusive selection sharing the same `name`, such as sort order or display format.
 
-## 責務境界
+## Responsibility Boundaries
 
-custom keyboard 操作や client state は持ちません。それらが必要な場合だけ `RadioGroupClient` を検討します。
+It holds no custom keyboard interaction or client state. Consider `RadioGroupClient` only when those are needed.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は client 側と同じ項目・配置で通常と disabled を、テストは選択操作と a11y を確認します。
+Storybook checks normal and disabled with the same items and layout as the client side; the tests check selection and a11y.
