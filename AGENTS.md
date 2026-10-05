@@ -3,7 +3,7 @@
 
 Repository rules for **AI coding agents** (Claude Code / Codex / Copilot / Gemini, etc.) working in this repo.
 
-This repository is a **Next.js / React presentation-layer boilerplate**: it owns the presentation layer and nothing else, ships to a PaaS or a static CDN, and expects the backend (DB / authentication / business logic) to be a separate repository or service ([0011](docs/adr/0011-no-docker.md)). [README.md](README.md) is what the repository is; this file is how to work in it. **Architecture, rules and flows are not restated here** — the table under *Canonical Documentation* says which document owns each. A Japanese reference translation is at [AGENTS.ja.md](AGENTS.ja.md); this file is canonical and the only one agents load.
+This repository is a **Next.js / React presentation-layer boilerplate**: it owns the presentation layer and nothing else, ships to a PaaS or a static CDN, and expects the backend (DB / authentication / business logic) to be a separate repository or service ([0011](docs/adr/0011-no-docker.md)). [README.md](README.md) is what the repository is; this file is how to work in it. **Architecture, rules and flows are not restated here** — the table under *Canonical Documentation* says which document owns each. A Japanese reference translation is at `AGENTS.ja.md`; this file is canonical and the only one agents load.
 
 Three constraints apply to every task:
 
@@ -35,7 +35,7 @@ Accordingly `.claude/settings.json` holds `AGENTS.md` / `LICENSE` / itself under
 
 **Not lifted**: the Git Rules below, and everything under `permissions.deny`.
 
-Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md), the permission half is [0152](docs/adr/0152-agents-md-policy.md)'s 復元手順.
+Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md), the permission half is [0152](docs/adr/0152-agents-md-policy.md#restoration-steps-at-v100)'s restoration steps.
 
 ## Instruction Priority
 
@@ -66,9 +66,13 @@ the concern it owns, not for the feature that sent you looking.
 | Every `make` target | [`.makefiles/README.md`](.makefiles/README.md) |
 | Which document owns a given statement, and where development history goes instead | [`docs/README.md`](docs/README.md) |
 
-**Canonical documents are the suffix-less paths.** Never read a `*.ja.md` — those are human-facing
-translations that follow the canonical — and never read `docs/portal/**`, which a generator rewrites
-from the canonical ([`docs/README.md`](docs/README.md)).
+**Canonical documents are the suffix-less paths, and they are written in English.** Never read a
+`*.ja.md` — those are human-facing Japanese mirrors that follow the canonical — and never read
+`docs/portal/**`, which a generator rewrites from the canonical ([`docs/README.md`](docs/README.md)).
+
+**One exception, and it is not yours to extend:** `canonicalize-doc` may read the `*.ja.md` of the
+single pair it was pointed at, for that run only — that pair is its subject, and a sync that cannot
+read the side it updates overwrites it blind. Everything else is reasoned from the English canonical.
 
 ## Task Execution Protocol
 
@@ -83,7 +87,7 @@ Before implementing any change:
    editing an existing file over creating one. When a new one is right, `pnpm gen` places it.
 4. **Move the contract before the code it generates.** An API change edits `openapi/` and regenerates
    ([0072](docs/adr/0072-api-type-generation.md)); the generated client is never hand-edited. A screen
-   change carries its spec — `docs/rules.md`, *テスト*, says when.
+   change carries its spec — [`docs/rules.md#testing`](docs/rules.md#testing) says when.
 
 5. **When a skill owns the operation, invoke it instead of re-deriving the steps.** Committing,
    opening a PR, and resolving a merge each have one — the hook handling and the ordering of
@@ -96,8 +100,8 @@ earned.** A comment produced while generating code is a by-product of generating
 that the declaration needed one — and a model that writes prose for free produces that by-product at
 every declaration it touches. So write the code bare; then run `/settle-comments` over the declarations
 you touched. That pass is **unconditional and confirms before it writes**, and until it has run the
-change is unfinished rather than unreviewed. What earns a comment is `docs/rules.md`,
-*コメントと文書*; this file only fixes when the question gets asked.
+change is unfinished rather than unreviewed. What earns a comment is
+[`docs/rules.md#comments`](docs/rules.md#comments); this file only fixes when the question gets asked.
 
 ## Review Phase Protocol
 
@@ -172,7 +176,7 @@ Each is owned by the document named; this section indexes them and restates none
 | Pushing to an existing PR branch after amending | *Git Rules* below — use its exact wording |
 | A plain cross-repository link instead of `redirect.github.com` | ADR [0159-1](docs/adr/0159-1-cross-repository-references.md). **Per case, every time**, even under a standing delegation — a standing grant does not transfer this |
 | An outward or commercial action a skill is about to take | ADR [0154](docs/adr/0154-claude-skills-operations.md) |
-| A change that removes an element the user can see | `docs/rules.md`, *作業とエージェント* |
+| A change that removes an element the user can see | [`docs/rules.md#workflow`](docs/rules.md#workflow) |
 | Adding a dependency | ADR [0004](docs/adr/0004-library-management.md) — walk its 選定基準 and paste its 採用判断のテンプレ into the PR. Silently routing around the dependency is the same decision, taken without the record |
 
 ### The trip wires
@@ -185,7 +189,7 @@ These stop the work **whatever your judgment says**. Continuing is itself the er
 3. **The next step edits a generated artifact.** `git check-attr linguist-generated -- <path>` answers
    for any path; a generated banner says the same.
 4. **Two sources that both claim authority disagree.** Noticing is the job; resolving is not
-   (`docs/rules.md`, *作業とエージェント*).
+   ([`docs/rules.md#workflow`](docs/rules.md#workflow)).
 5. **The change would make a document assert something it cannot check** — a rule with no owner, a
    claim with no evaluator ([0157](docs/adr/0157-inspection-declaration-discipline.md)).
 
@@ -362,7 +366,7 @@ the discipline is here because it binds every turn.
   ([`scripts/base-branch/README.md`](scripts/base-branch/README.md)).
 - **Catch a branch up with `make base-merge`, never by rebasing**, and take in the base the branch was
   cut from — not whatever `base-branch` resolves today, which retargets instead of catching up.
-  Whether to take it in at all is a judgment `docs/rules.md`, *作業とエージェント*, owns.
+  Whether to take it in at all is a judgment [`docs/rules.md#workflow`](docs/rules.md#workflow) owns.
 - **Commit subjects are `<Prefix>: <Japanese subject>` with no trailing `。`.** The prefix enum is
   verified by [`commitlint.config.ts`](commitlint.config.ts) through the `commit-msg` hook — read it
   there, not from a copy.
@@ -384,7 +388,6 @@ Targets:
 - Code comments
 - PR titles and bodies
 - Commit messages
-- Documentation
 - Test `it` strings. The outermost `describe` is the exported symbol's own name, so it stays as written in the source ([0090](docs/adr/0090-testing-strategy.md))
 - Inline documentation generated by the AI
 

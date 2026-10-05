@@ -1,64 +1,64 @@
-# ポータル運用
+# Portal Operations
 
-ドキュメントポータル(`docs/portal/`)の **manifest 構造 / 登録基準 / portal ↔ docs の責務分担 / 生成・配信の仕組み / 運用スキル / 実装状況** を定める。[0140](0140-documentation-operations.md) の三層戦略の第 3 層(生成 portal)を具体化する。
+Defines the documentation portal's (`docs/portal/`) **manifest structure / registration criteria / division of responsibility between portal and docs / generation and delivery mechanism / operational skills / implementation status**. It makes concrete the third tier (the generated portal) of [0140](0140-documentation-operations.md)'s three-tier strategy.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-portal は canonical ドキュメントの生成ビューである。何を載せるかの登録基準と、portal と docs の責務分担が無いと、portal は全 README の網羅辞書へ流れ、内容の SSOT が 2 つになる。本 ADR は登録基準と責務分担を定める。
+The portal is a generated view of the canonical documents. Without registration criteria for what goes on it and a division of responsibility between portal and docs, the portal drifts into an exhaustive dictionary of every README, and the content gets two SSOTs. This ADR defines the registration criteria and the division of responsibility.
 
-## 決定
+## Decision
 
-### 1. manifest = 構造の単一ソース(curated manual)
+### 1. manifest = Single Source of Structure (Curated Manual)
 
-- **`docs/portal/manifest.yaml`** を portal 構造の単一ソースとする。2 部構成:
-  - **`meta:` ブロック(可視構造)**: `groups`(サイドバー最上位ページ順・各 `sections`)/ `subgroups`(section を役割別に再分割)/ `section_titles`(表示名上書き)/ `reference_links`(生成 HTML への常設クイックリンク。例: openapi / coverage)
-  - **section エントリ(`meta` 以外)**: `{src, dst}` コピーペア。`src` = リポ内 canonical README、`dst` = `docs/portal/guides/<flat-name>.md`
-- **原則「manifest = キュレーション済み手引き であって 辞書ではない」**。portal は人間が読むキュレーション済みの叙述マニュアルであり、全 README の網羅辞書ではない。一括追加はキュレーションを壊し、概念の流れを部品単位のノイズの下に埋める
+- **`docs/portal/manifest.yaml`** is the single source of the portal's structure. It has two parts:
+  - **The `meta:` block (visible structure)**: `groups` (sidebar top-level page order, each with `sections`) / `subgroups` (subdivides a section by role) / `section_titles` (display-name overrides) / `reference_links` (permanent quick links to generated HTML; e.g. openapi / coverage)
+  - **Section entries (everything except `meta`)**: `{src, dst}` copy pairs. `src` = a canonical README in the repository, `dst` = `docs/portal/guides/<flat-name>.md`
+- **Principle: "the manifest is a curated guide, not a dictionary"**. The portal is a curated narrative manual read by humans, not an exhaustive dictionary of every README. Bulk additions break the curation and bury the conceptual flow under component-level noise
 
-### 2. 登録基準(手動登録 vs 自動発見)
+### 2. Registration Criteria (Manual Registration vs Auto-Discovery)
 
-- **コード package / 層の README(`src/**/README.md` 等)は manifest に手動登録**して `guides/` へコピーする(curation は人間判断)
-- **`docs/<dir>/*.md` 直下のドキュメントは FS スキャンで自動発見**する(配置・タイトルは `meta:` 由来、ファイル列挙のみ生成スクリプト側)
-- **未登録の on-disk README は drift ではなく「curation 判断待ちの候補」**として扱う(自動追加しない)
+- **READMEs of code packages / layers (`src/**/README.md` etc.) are registered in the manifest by hand** and copied to `guides/` (curation is a human judgment)
+- **Documents directly under `docs/<dir>/*.md` are discovered automatically by an FS scan** (placement and titles come from `meta:`; only the file enumeration is on the generation script's side). The scan splits each directory by suffix: a sibling `*.ja.md` is the Japanese mirror of its canonical ([0140](0140-documentation-operations.md)), listed with the language `ja` under the same identifier as the canonical. A manifest entry whose `dst` is a `*.ja.md` is treated the same way
+- **An unregistered on-disk README is treated not as drift but as "a candidate awaiting a curation judgment"** (it is not added automatically)
 
-### 3. portal ↔ docs の責務分担
+### 3. Division of Responsibility: portal and docs
 
-- **manifest = 構造制御のみ**(何をどのグループ / section に、どの順で置くか)。**カードの中身は README が正**([0140](0140-documentation-operations.md) canonical / [0021](0021-frontend-responsibility.md) per-package README)
-- portal は **canonical ドキュメントの生成ビュー**であり、内容の SSOT を持たない(内容は canonical README / `docs/**` 側)
+- **The manifest = structure control only** (what is placed in which group / section, and in what order). **The README is the source of truth for a card's content** ([0140](0140-documentation-operations.md) canonical / [0021](0021-frontend-responsibility.md) per-package README)
+- The portal is **a generated view of the canonical documents** and holds no SSOT of content (content lives in the canonical READMEs / `docs/**`)
 
-### 4. 生成・配信
+### 4. Generation and Delivery
 
-- **生成スクリプト(`scripts/portal/`)**: manifest の `src`→`dst` コピー(`gen-portal-docs`)/ manifest + FS スキャンから `docs.json` 出力(`gen-docs-json`)。判断はいずれも純粋関数へ寄せ、FS 入出力は CLI 側に閉じる(テスト可能性)
-- **ビューアーは独立した workspace パッケージ(`docs-viewer/`)**、ビルドは **Vite**。パッケージを分けるのは**無害化の許容範囲がアプリ本体と違う**ためで、ドキュメントに必要な広い allowlist(`table` / `pre` / `img` / `language-*` class)を **アプリから import できない位置**へ置く。分離を規約ではなくパッケージ境界で担保する。esbuild ではなく Vite なのは、デザイントークンを通すのに Tailwind のビルドが要るため
-- **配信 = GitHub Pages**。`production` への push で発火する。**Pages はリポジトリに 1 サイトしか持てない**ため、`docs/` をサイトルートへ写し、portal を `/portal/`、Storybook を `/storybook/` と兄弟に並べる。ルートは入口への転送だけを持つ
-- **deep-link は位置ハッシュ(`#/<group>/<section>`)で表すため、404 fallback を必要としない**。経路がサーバへ届かない
-- **portal を指すリンクは `make setup-replace-repository-reference` が差し替える**。既定は `<owner>/<repo>` から組み立てたサイトルートで、custom domain は `PORTAL_URL` で上書きする。置換前は汎用リンクが生きるよう、`portal` マーカー(`portal:replace-*`)で 2 本を切り替える
-- **生成物(`guides/` / `docs.json`)は追跡しない**。配信時に組み立てるため drift が発生しえず、drift 検出の仕組みを持たない
+- **Generation scripts (`scripts/portal/`)**: the manifest's `src`→`dst` copy (`gen-portal-docs`) / `docs.json` output from the manifest + FS scan (`gen-docs-json`). In both, judgments are moved into pure functions and FS I/O is confined to the CLI side (testability)
+- **The viewer is an independent workspace package (`docs-viewer/`)**, built with **Vite**. The package is separate because **its sanitization tolerance differs from the application's**: the broad allowlist documents need (`table` / `pre` / `img` / `language-*` class) is placed **where the application cannot import it**. The separation is secured by a package boundary rather than a convention. It is Vite rather than esbuild because passing the design tokens through needs a Tailwind build
+- **Delivery = GitHub Pages**. It fires on a push to `production`. **Pages allows only one site per repository**, so `docs/` is copied to the site root, with the portal at `/portal/` and Storybook at `/storybook/` side by side as siblings. The root holds only a redirect to the entry point
+- **Deep links are expressed as a location hash (`#/<group>/<section>`), so no 404 fallback is needed**. The path never reaches the server
+- **Links pointing to the portal are replaced by `make setup-replace-repository-reference`**. The default is the site root assembled from `<owner>/<repo>`, and a custom domain overrides it via `PORTAL_URL`. Before replacement, the `portal` marker (`portal:replace-*`) switches between two links so that the generic link stays live
+- **Generated artifacts (`guides/` / `docs.json`) are not tracked**. They are assembled at delivery, so drift cannot occur, and there is no drift-detection mechanism
 
-### 5. 運用スキルループ
+### 5. Operational Skill Loop
 
-- **readme-review**(内容の manual-worthy 判定 = 基準の単一ソース)→ **portal-manifest-sync**(manifest への登録キュレーション。編集は `manifest.yaml` のみ・自動追加しない)/ **sync-readme**(構造ドリフト整合)。スキル体系は [0155](0155-claude-skills-development.md)(開発系。配置・命名・frontmatter は [0154](0154-claude-skills-operations.md) と共通)
-- 判定基準は現行 manifest から runtime 参照する(基準を複製しない)。基準語彙は登録済みエントリから再導出し、**部品リファレンス README(`src/components/**` の定型)と feature slice は判定の対象外**とする —— 前者は Storybook と TSDoc が、後者は `docs/templates/feature-readme.md` の必須節検査が持つ
+- **readme-review** (manual-worthiness judgment of content = the single source of the criteria) → **portal-manifest-sync** (registration curation into the manifest; edits only `manifest.yaml`, adds nothing automatically) / **sync-readme** (structural drift alignment). The skill system is [0155](0155-claude-skills-development.md) (development skills; placement, naming, and frontmatter are shared with [0154](0154-claude-skills-operations.md))
+- The judgment criteria are referenced at run time from the current manifest (the criteria are not duplicated). The criteria vocabulary is re-derived from the registered entries, and **component reference READMEs (the fixed form under `src/components/**`) and feature slices are outside the judgment** — the former are owned by Storybook and TSDoc, the latter by the required-section check of `docs/templates/feature-readme.md`
 
-### 6. 実装状況
+### 6. Implementation Status
 
-- **Pages の有効化と、`github-pages` environment の deployment branch policy への配信元ブランチの許可は `make pages-delivery-apply` が持ち、`make setup-repo` が呼ぶ**。許可が無いと `docs-deploy` は job としては起動するが step を 1 つも実行せずに落ち、ログに理由が出ない —— 配信元は workflow の push トリガと 1 箇所で揃える必要があり、人手の手順に置くと落ちても気付けない
-- drift の機械検出は生成スクリプトが持ち(`portal:guides` は stale で非 0、`portal:docs` は構造の警告を出す)、`portal-manifest-sync` はそれを読み取ったうえで、生成側が黙って飲み込む配置(`Other` へ落ちる登録)と curation 候補の分類を担う
+- **Enabling Pages, and allowing the delivery source branch in the deployment branch policy of the `github-pages` environment, are owned by `make pages-delivery-apply`, which `make setup-repo` calls**. Without the allowance, `docs-deploy` starts as a job but fails without running a single step, and the log shows no reason — the delivery source must be kept aligned in one place with the workflow's push trigger, and as a manual step a failure would go unnoticed
+- Mechanical drift detection is owned by the generation scripts (`portal:guides` exits non-zero when stale, `portal:docs` emits structural warnings), and `portal-manifest-sync` reads that and handles classifying the placements the generation side silently swallows (registrations that fall into `Other`) and the curation candidates
 
-## 禁止事項
+## Prohibitions
 
-- ❌ manifest に内容(カードの本文)を持たせること(内容は canonical README が正。manifest は構造制御のみ)（強制: 散文 —— **一部寄せられる**。section エントリの余計なキーは `scripts/portal/portal-manifest.ts` の `copyEntrySchema` を strict にすれば落とせるが規則は無い。`meta` の表示名が本文へ膨らんでいるかは意味の判断で決まる）
-- ❌ 未登録 README を drift 扱いして自動登録すること(curation は人間判断)（強制: 持たない —— 採らない決定。未登録 README を自動登録する仕組みは置かれておらず、足す変更はスクリプトの追加として diff に現れる）
-- ❌ 生成物(`docs.json` / `dist/**`)を手編集すること
-- ❌ portal を全 README の網羅辞書にすること(キュレーション済み手引き)（強制: 散文 —— **寄せられない**。何を載せるかは curation の判断で、manifest の形からは決まらない）
+- ❌ Giving the manifest content (a card's body) (the canonical README is the source of truth for content; the manifest is structure control only) (Enforcement: Prose — **partly mechanizable**. Extra keys in a section entry could be blocked by making `copyEntrySchema` in `scripts/portal/portal-manifest.ts` strict, but there is no rule. Whether a `meta` display name is swelling into body text is decided by a judgment of meaning)
+- ❌ Treating an unregistered README as drift and registering it automatically (curation is a human judgment) (Enforcement: none — a decision not to adopt. No mechanism that registers unregistered READMEs automatically is in place, and a change adding one would show in the diff as a new script)
+- ❌ Hand-editing generated artifacts (`docs.json` / `dist/**`)
+- ❌ Making the portal an exhaustive dictionary of every README (it is a curated guide) (Enforcement: Prose — **not mechanizable**. What goes on it is a curation judgment and is not decided by the shape of the manifest)
 
-## 関連 ADR
+## Related ADRs
 
-- [0140-documentation-operations.md](0140-documentation-operations.md) — canonical / 三層戦略・per-package README(本 ADR の親決定。portal は第 3 層)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層別 README(portal カードの供給元)
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — readme-review / sync-readme / portal-manifest-sync の公認(開発系。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) と共通)
-- [0153-ci-configuration.md](0153-ci-configuration.md) — GitHub Pages 配信の workflow(Documentation グループ)
+- [0140-documentation-operations.md](0140-documentation-operations.md) — canonical / three-tier strategy, per-package README (the parent decision of this ADR; the portal is the third tier)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — per-layer READMEs (the source of portal cards)
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — sanctions readme-review / sync-readme / portal-manifest-sync (development skills; placement, naming, and frontmatter shared with [0154-claude-skills-operations.md](0154-claude-skills-operations.md))
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the GitHub Pages delivery workflow (Documentation group)

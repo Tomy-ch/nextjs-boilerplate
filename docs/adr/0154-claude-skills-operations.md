@@ -1,234 +1,234 @@
-# Claude スキル運用方針 (運用系)
+# Claude Skills Operating Policy (Operations)
 
-本プロジェクトでは、開発プロセスに付帯する **運用フロー** (コミット分割 / PR 作成 / リリースノート生成 / 依存監査 / メタ inventory 等) を Claude Code の **スキル** として `.claude/skills/` 配下に配置する。本 ADR では運用系スキルの配置 / 命名 / 構造 / カバー範囲を定義する。
+This project places the **operational flows** that accompany the development process (commit splitting / PR creation / release note generation / dependency audits / meta inventory, etc.) as Claude Code **skills** under `.claude/skills/`. This ADR defines the placement, naming, structure and coverage of operations skills.
 
-開発系スキル (scaffolding / レビュー / ドキュメント同期 等) は [0155-claude-skills-development.md](0155-claude-skills-development.md) で別途扱う。
+Development skills (scaffolding / review / documentation sync, etc.) are handled separately in [0155-claude-skills-development.md](0155-claude-skills-development.md).
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- 反復する運用作業 (コミット分割 / リリース手順 / 依存監査 等) を **手順スクリプト + ユーザ確認** の形に固定し、人間 / AI エージェント間で同じ手順を再現できるようにする
-- 各スキルの `SKILL.md` を **一次情報** とし、運用フローの「何をどの順序でやるか」を 1 ファイルで完結させる
-- 商用操作 (push / tag / release / `mise.toml` 書換 等) を伴うスキルは **必ずユーザ確認** を挟む形に統一し、暴走を構造的に防ぐ
+- Fix recurring operational work (commit splitting / release procedure / dependency audits, etc.) in the shape of **procedure script + user confirmation**, so that humans and AI agents can reproduce the same procedure
+- Make each skill's `SKILL.md` the **primary source**, so that "what to do in what order" for an operational flow is complete in one file
+- Unify skills involving commercial actions (push / tag / release / rewriting `mise.toml`, etc.) on a shape that **always inserts user confirmation**, structurally preventing runaway behavior
 
-## 対象範囲 (運用系の定義)
+## Scope (Definition of Operations Skills)
 
-「運用系」= 開発プロセスを進めるための **オペレーション** を扱うスキル。コード / ドキュメントの生成・編集を主目的としないものを指す。
+"Operations" = skills that handle **operations** that move the development process forward. It refers to those whose main purpose is not generating or editing code / documentation.
 
-具体的には:
+Concretely:
 
-- Git / GitHub 操作 (commit / PR 作成 / 更新)
-- リリース工程 (release notes / tag)
-- 依存・ツール監査 (`mise.toml` 更新 / `pnpm audit`)
-- `.claude/` 配下のメタ inventory
+- Git / GitHub operations (commit / PR creation / update)
+- The release process (release notes / tag)
+- Dependency and tool audits (`mise.toml` updates / `pnpm audit`)
+- Meta inventory under `.claude/`
 
-開発系 (コード / ドキュメントの生成・編集を主目的とするもの) は 0155 で扱う。
+Development skills (those whose main purpose is generating or editing code / documentation) are handled in 0155.
 
-## 配置と命名
+## Placement and Naming
 
-### 配置
+### Placement
 
 ```text
 .claude/
 └── skills/
     └── <slug>/
-        ├── SKILL.md         ← canonical (英語)、Claude Code が読む
-        └── SKILL.ja.md      ← 日本語翻訳 (参考用、Claude Code は読まない)
+        ├── SKILL.md         ← canonical (English), read by Claude Code
+        └── SKILL.ja.md      ← Japanese translation (for reference, not read by Claude Code)
 ```
 
-- `SKILL.md` は **英語の canonical 版**。Claude Code が読み込んでスキルを実行する
-- `SKILL.ja.md` は **人間用の翻訳** で、スキルとしてはロードされない
+- `SKILL.md` is **the English canonical version**. Claude Code loads it and runs the skill
+- `SKILL.ja.md` is **a translation for humans** and is not loaded as a skill
 
-### 命名規則
+### Naming Convention
 
-- ディレクトリ名 `<slug>` は **kebab-case**、動詞ベース
-- ユーザは `/<slug>` で起動する
-- 例: `commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `tool-map` / `design-export`
+- The directory name `<slug>` is **kebab-case**, verb-based
+- Users invoke it with `/<slug>`
+- Examples: `commit` / `submit-pr` / `release-notes` / `tools-upgrade` / `tool-map` / `design-export`
 
 ## frontmatter
 
-`SKILL.md` の冒頭に以下の YAML frontmatter を置く。
+Place the following YAML frontmatter at the top of `SKILL.md`.
 
-| キー | 必須 | 用途 |
+| Key | Required | Purpose |
 | --- | --- | --- |
-| `name` | ✓ | スキル名 (ディレクトリ名と一致) |
-| `description` | ✓ | スキルが何をするかの 1 段落説明。Claude Code の skill picker / トリガ判定に使われる |
-| `usage-class` | ✓ | 利用の型。`frequent` / `situational` / `lifecycle` / `automatic` / `safety` のいずれか |
-| `argument-hint` | 任意 | 起動引数の形式ヒント (例: `[--dry-run]`) |
-| `allowed-tools` | 任意 | 使用許可するツールの明示 (Bash の細粒度許可など) |
+| `name` | ✓ | Skill name (matches the directory name) |
+| `description` | ✓ | A one-paragraph explanation of what the skill does. Used by Claude Code's skill picker / trigger decision |
+| `usage-class` | ✓ | The usage type. One of `frequent` / `situational` / `lifecycle` / `automatic` / `safety` |
+| `argument-hint` | Optional | A format hint for invocation arguments (e.g. `[--dry-run]`) |
+| `allowed-tools` | Optional | Explicit list of tools permitted (fine-grained Bash permissions, etc.) |
 
-`usage-class` は、スキルを利用の型に対して判定すると決めた [0160](0160-agent-environment-loop.md) が定める。**判定は呼出回数ではなく型に対して行う** —— 型を持たないスキルは「呼ばれなかった」を根拠に退役させられる側へ落ちる。宣言をスキル自身に持たせるのは、別ファイルの台帳に置くと**スキルが増えた日に台帳だけが古くなる**ためで、機械強制は `scripts/skill-lint` の enum 検査が持つ（[0144](0144-decision-enforcement-pairing.md)）。ツール側が解釈しない追加キーであり、読むのはこのリポジトリの機構だけである。
+`usage-class` is set by [0160](0160-agent-environment-loop.md), which decided to judge skills against their usage type. **The judgment is made against the type, not the invocation count** — a skill without a type falls on the side that can be retired on the grounds of "never invoked". The declaration lives in the skill itself because, placed in a separate ledger file, **only the ledger goes stale on the day a skill is added**; machine enforcement is held by the enum check of `scripts/skill-lint` ([0144](0144-decision-enforcement-pairing.md)). It is an additional key the tool side does not interpret, and only this repository's mechanisms read it.
 
-`description` は **どのような状況で発火すべきか** を含めること (機能の説明ではなく「いつ使うか」)。
+`description` must include **in what situations it should fire** ("when to use", not a description of the feature).
 
-### `description` は 800 文字を上限とする
+### `description` is capped at 800 characters
 
-**本文と違い、`description` は起動していないスキルのぶんまで毎ターン読み込まれる。** 全スキルと全エージェント定義の `description` が常に前置きとして載るため、1 件の冗長さがリポジトリ全体の固定費になる —— セッションで 1 度も呼ばれなかったスキルのぶんも、最後のターンまで払い続ける。本文にはこの性質が無く、読まれるのは起動したときだけである。
+**Unlike the body, `description` is loaded every turn, including for skills that are not invoked.** The `description` of every skill and every agent definition always rides along as a preamble, so the verbosity of one becomes a fixed cost for the whole repository — paid until the last turn even for skills never invoked in the session. The body has no such property; it is read only when invoked.
 
-上限に載せるのは **いつ呼ぶか / いつ呼ばないか / 何の語で引くか** の 3 つで、**手順・判断基準・設計の理由は本文が持つ**。この 3 つは選択の役に立つが、あとの 3 つは選んだ後にしか使わないので、選ぶ前に全員へ配る意味が無い。
+What goes within the cap is three things: **when to call it / when not to call it / which words find it**; **procedures, criteria and design rationale are held by the body**. The first three help with selection, but the latter three are used only after selecting, so there is no point handing them to everyone before the choice.
 
-機械強制は `scripts/skill-lint` の `description-length` が持つ（[0144](0144-decision-enforcement-pairing.md)）。上限は `.claude/agents/**` の定義にも同じく掛かる —— そちらの `description` も同じ経路で毎ターン載る。
+Machine enforcement is held by `description-length` in `scripts/skill-lint` ([0144](0144-decision-enforcement-pairing.md)). The cap applies equally to definitions under `.claude/agents/**` — their `description` also rides along every turn by the same path.
 
-## 本文構造
+## Body Structure
 
-`SKILL.md` の本文は以下の節を持つ。
+The body of `SKILL.md` has the following sections.
 
-1. **タイトル** (`# <Skill Name>`) と冒頭 1 段落の概要
-2. **(任意) `SKILL.ja.md` への言及** — 翻訳が存在する場合、その旨を明記
-3. **When to Use** — 利用すべき状況の列挙
-4. **(任意) Contract** — 下記
-5. **Do NOT use this skill for** — 利用すべきでない状況・代替手段の列挙
-6. **Step <番号>. <タイトル>** — 番号付き手順 (前処理がある場合は Step 0 から始める)
-7. **検証 / 終了処理** — `pnpm fix` / `pnpm lint` / テスト等の最終確認
+1. **Title** (`# <Skill Name>`) and a one-paragraph overview at the top
+2. **(Optional) A mention of `SKILL.ja.md`** — when a translation exists, state so
+3. **When to Use** — an enumeration of the situations in which to use it
+4. **(Optional) Contract** — see below
+5. **Do NOT use this skill for** — an enumeration of situations not to use it in, and alternatives
+6. **Step <number>. <title>** — numbered steps (start from Step 0 when there is preprocessing)
+7. **Verification / wrap-up** — final checks such as `pnpm fix` / `pnpm lint` / tests
 
-### Contract 表 —— 隣に扉を持つスキルだけが置く
+### Contract table — only skills with a neighboring door carry one
 
-**問いの受け口になるスキル**は、`## Contract` の 2 列表を When to Use の直後に置く。同じ名詞が
-複数のスキルの description に現れ、**区別する信号が語彙ではなく意図**になる領域があり、そこでは
-「何を所有し、何を決してやらないか」を 4 行で宣言しないと、隣の扉との境界が本文の散文へ溶ける。
+**A skill that is a receiving point for questions** places a two-column `## Contract` table right after When to Use. There are areas where the same
+nouns appear in the descriptions of several skills and **the signal that distinguishes them is intent, not vocabulary**; there, unless
+"what it owns and what it never does" is declared in four rows, the boundary with the neighboring door dissolves into the prose of the body.
 
-| 行 | 何を書くか |
+| Row | What to write |
 | --- | --- |
-| **Owns** | このスキルだけが答える主題 |
-| **Never** | 主題に隣接するが、このスキルが決してやらないこと |
-| **Starts when** | 起動してよい状況 |
-| **Stops when** | 途中でも打ち切る条件 |
+| **Owns** | The subject only this skill answers |
+| **Never** | What is adjacent to the subject but this skill never does |
+| **Starts when** | Situations in which it may start |
+| **Stops when** | Conditions for stopping even midway |
 
-**持たせるのは扉だけ。**全スキルへ必須化しない —— 扉を持たないスキル（生成・同期・リリース操作）では
-4 行が `description` の Do NOT 節の写しになり、[0140](0140-documentation-operations.md) の
-「同じ判定を 2 か所に持たない」に当たる。**扉かどうかは「同じ問いが別のスキルへ行きうるか」**で決める。
+**Only doors carry it.** It is not made mandatory for every skill — in a skill without a door (generation, sync, release operations) the
+four rows become a copy of the Do NOT section of `description`, which runs into [0140](0140-documentation-operations.md)'s
+principle of not holding the same judgment in two places. **Whether a skill is a door is decided by "could the same question go to another skill?"**
 
-## カバー範囲 (既存スキル)
+## Coverage (Existing Skills)
 
-| Slug | 役割 | カバー範囲 |
+| Slug | Role | Coverage |
 | --- | --- | --- |
-| `commit` | コミット分割と実行 | 作業ツリーの変更を prefix 規約 (Feat/Fix/...) で分割し、`git commit --no-verify` で個別に積む。最後に lefthook 相当の検証を 1 回まとめて回す |
-| `submit-pr` | PR 作成・更新 | 現ブランチに既存 PR があれば update、なければ create を自動選択。push 前にベースブランチを取り込む (保護ブランチは checkout も push もしない)。PR 本文は `.github/pull_request_template.md` から生成 |
-| `release-notes` | リリースノート生成 | `AskUserQuestion` で FROM タグと NEXT_VERSION を確認し、`.github/release/<NEXT>.md` を生成 |
-| `tools-upgrade` | `mise.toml` の依存監査 | upstream の latest と比較し、backend 別の窓（[0110](0110-security-operations.md)）でサプライチェーン検疫。承認後に `mise.toml` 更新 |
-| `node-upgrade` | Node.js バージョン更新 | SSOT である `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)) を対象バージョンへ更新し、lockfile 再構築 + `pnpm install` / `pnpm lint` / `pnpm build` で検証。`@types/node` のメジャー追随は別 PR ([0004](0004-library-management.md)) |
-| `actions-pin` | GitHub Actions の SHA ピン監査 | `.github/actions-pin.toml` を SSOT に `uses:` の版を検疫付きで更新する。除外窓より新しいリリースは採らず、窓を通過済みの版へ step-back する。実体は `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
-| `dep-vuln-upgrade` | 脆弱性を名指しした依存更新 | CVE / GHSA が名指しした npm 依存だけを、同じ major の最小修正版へ動かす。直接依存は `package.json` の exact pin、推移的依存は `pnpm-workspace.yaml` の `overrides`（脆弱な範囲 → 上流の宣言範囲の内側の修正範囲）で動かし、lockfile は `pnpm install --lockfile-only` で作り直す。窓（`minimumReleaseAge`）に捕まった版は `supply-chain-triage` へ渡し、窓は下げない。major 越え・上流範囲の外への override・検疫の免除・抑止ファイルへの記載は 1 件ずつ確認する。新しい依存の追加は扱わない（[0004](0004-library-management.md)） |
-| `repo-truth` | 現状の事実回答 | 「このリポジトリはいまどうなっているか」を一次資料から答え、根拠と推論を分ける。索引を関心で先に読み、キーワード検索は最後の網にする（文書は所有する関心で名付けられるため、統べるファイルは問いの語を含まない）。**未定義**（所有索引を通読した上で無い）と**確認できず**（通読していない）を別の結論として出し、覆った前線を添える。read-only で、見つけた drift は直さない |
-| `how-to` | 目標 → 正規手順 | 実行したい操作に対し、前提 / コマンド / 成功判定 / 復旧 / 破壊性を揃えて返す。まず所有スキルへ振って止まり、無ければ make ターゲットと `package.json` の scripts の両方を索引で読む。手順が無ければ **UNDEFINED** と前線を出し、**コマンドを発明しない**。`repo-ops` が症状駆動で「手順が無い」と結論できないのに対し、こちらは目標駆動でそれを結論できる。`--mode=run` でもゲートは回さない |
-| `question` | 問いの読みの解決とルーティング | 3 軸（世界 / 意図 / 対象）で問いの読みを解き、**本当に割れた軸だけ**を `AskUserQuestion` で確認して所有スキルへ渡す。自分では答えない。行き先は `.claude/skills/*/SKILL.md` の frontmatter を実行時に読んで解決し、表をハードコードしない。**世界の軸が「この窓の差分」に解けたときは `AGENTS.md` の Review Phase Protocol へ渡す** —— レビュー 1 本へ直接振ると、3 本を対等に問う規律を迂回する |
-| `research` | 未決の選択の比較 | 評価軸を**選択肢を挙げる前に**固定し、案 / 利点欠点 / リスク / 既存構造との整合 / コストで比較して、反転条件付きの推奨を出す。案数は合わせない。まず問いを溶かす —— 現行 ADR とその本文が持つ**撤回条件** / `docs/project/out-of-scope.md` / カーネルを列挙して探す同型の前例。コストは述べるが判定に重みとして入れない。採択・ADR 執筆・起票はしない |
-| `resolve-merge` | マージの着地 | 衝突パスをクラスへ分け、クラスごとの機械的解決を当てる —— 生成物は片側を選ばず出典から作り直し、pin lockfile は resolver を回し、追記専用のレジストリは和集合にする。**衝突が無くても走る**（派生物は無衝突マージでも古くなる）。ベースの取り込みは `make base-merge` が持つ。終わり方は 2 つだけで、機械的に解けないものが 1 つでも残ればマーカーを残して打ち切りコミットしない、全部解ければコミットと push の可否を聞く。ゲートは回さない |
-| `new-issue` | issue の起票 | 前提を実装で裏取りしてから起票する。**5 つの blocker**（観測していない振る舞いの断定 / 鮮度未確認の引用 / 測っていない比較 / 部分的な探索からの影響範囲 / 既存 issue の未検索）が下書きを止める。本文の欄は `.github/ISSUE_TEMPLATE/` を実行時に読んで埋め（`scripts/issue-field-lint` が `###` の完全一致で見る）、そこへ 前提 / 論点 / やらないこと を足す。最後に「そもそも issue か」の関門を通す |
-| `supply-chain-triage` | 検疫に掛かった版の証拠採点 | 窓に捕まった 1 つの版について、[0110](0110-security-operations.md) の 4 つの問いを 4 軸 0–12 で採点する。**report-only** —— lockfile も pin も窓も触らない。成果物を読むが決して実行しない。**取れなかった証拠は `?` として報告し `0` に数えない**（`?` が 2 つ以上なら帯を出さず INSUFFICIENT-EVIDENCE）。暴露面はスコアと別の行で報告する。`actions-pin` / `images-pin` / `tools-upgrade` / `dep-vuln-upgrade` / Dependabot の連鎖先 |
-| `repo-ops` | 運用 gotcha のランブック | mise ツールチェーン / pnpm lockfile / make `DRY_RUN` / `tmp/reviews` 等の再発しやすい躓きへの対処手順集。read-only の知識スキルで、状態は変更しない。**症状駆動**であり、答えるのは自分の索引に載っているものだけ —— 載っていない症状は `how-to`（目標。手順の不在を結論できる）か `repo-truth`（現状）へ振る。**このランブックは意図的に不在を結論できない**（できるようにすると沈黙が答えと区別できなくなる） |
-| `tool-map` | `.claude/` 配下の inventory | commands / skills / agents の表 + Mermaid 依存マップを生成 |
-| `design-export` | デザインシステムの外部書き出し | `pnpm design:bundle` が作る `tmp/design-bundle`（shadcn registry / 目録 / トークン）を、送り先ごとの手順で運ぶ。依存の向きは repo → design の一本で、書き出した先の成果物を取り込む経路は持たない。特定 SaaS の手順は [0010](0010-standards-and-non-lockin.md) の非ロックインによりこのスキルの中だけに閉じる |
+| `commit` | Commit splitting and execution | Splits working-tree changes by the prefix convention (Feat/Fix/...) and stacks them one by one with `git commit --no-verify`. At the end, runs the lefthook-equivalent verification once for all of them |
+| `submit-pr` | PR creation / update | Automatically chooses update if the current branch already has a PR, create otherwise. Merges in the base branch before pushing (never checks out or pushes a protected branch). The PR body is generated from `.github/pull_request_template.md` |
+| `release-notes` | Release note generation | Confirms the FROM tag and NEXT_VERSION with `AskUserQuestion` and generates `.github/release/<NEXT>.md` |
+| `tools-upgrade` | Dependency audit of `mise.toml` | Compares against upstream latest and applies a supply-chain quarantine with a per-backend window ([0110](0110-security-operations.md)). Updates `mise.toml` after approval |
+| `node-upgrade` | Node.js version update | Updates the SSOT, `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)), to the target version, and verifies with a lockfile rebuild + `pnpm install` / `pnpm lint` / `pnpm build`. Following `@types/node` to a new major is a separate PR ([0004](0004-library-management.md)) |
+| `actions-pin` | SHA-pin audit of GitHub Actions | Updates the versions in `uses:` with quarantine, using `.github/actions-pin.toml` as the SSOT. Does not take releases newer than the exclusion window, and steps back to a version that has passed the window. The substance is `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
+| `dep-vuln-upgrade` | Dependency update named by a vulnerability | Moves only the npm dependencies a CVE / GHSA names to the smallest fixed version within the same major. A direct dependency moves by its exact pin in `package.json`, a transitive one by `overrides` in `pnpm-workspace.yaml` (vulnerable range → a fixed range inside the upstream's declared range), and the lockfile is rebuilt with `pnpm install --lockfile-only`. Versions caught by the window (`minimumReleaseAge`) are handed to `supply-chain-triage`, and the window is not lowered. Crossing a major, an override outside the upstream range, exempting from quarantine, and an entry in a suppression file are each confirmed one by one. Adding a new dependency is out of scope ([0004](0004-library-management.md)) |
+| `repo-truth` | Factual answers about the current state | Answers "how does this repository work right now" from primary sources, separating evidence from inference. Reads indexes by concern first and makes keyword search the last net (documents are named for the concern they own, so the governing file does not contain the words of the question). Gives **undefined** (read the owning index through and it is not there) and **could not confirm** (did not read it through) as separate conclusions, with the frontier covered. Read-only, and does not fix drift it finds |
+| `how-to` | Goal → canonical procedure | For an operation one wants to perform, returns prerequisites / commands / success check / recovery / destructiveness together. First routes to the owning skill and stops; if none, reads both the make targets and the `package.json` scripts through the index. If there is no procedure, gives **UNDEFINED** and the frontier, and **does not invent commands**. Whereas `repo-ops`, being symptom-driven, cannot conclude "there is no procedure", this one, being goal-driven, can. Does not run gates even with `--mode=run` |
+| `question` | Resolving the reading of a question and routing it | Resolves the reading of a question on three axes (world / intent / target), confirms **only the axes that genuinely split** with `AskUserQuestion`, and hands it to the owning skill. Does not answer by itself. Destinations are resolved by reading the frontmatter of `.claude/skills/*/SKILL.md` at runtime; no table is hardcoded. **When the world axis resolves to "the diff in this window", it hands off to the Review Phase Protocol of `AGENTS.md`** — routing straight to one review bypasses the discipline of asking about all three as peers |
+| `research` | Comparing undecided choices | Fixes the evaluation axes **before enumerating the options**, compares by option / pros and cons / risk / fit with the existing structure / cost, and gives a recommendation with reversal conditions. Does not pad the number of options. First tries to dissolve the question — current ADRs and the **reversal conditions** their bodies hold / `docs/project/out-of-scope.md` / an isomorphic precedent found by enumerating the kernels. States cost but does not weigh it into the verdict. Does not adopt, write ADRs or file issues |
+| `resolve-merge` | Landing a merge | Splits conflicted paths into classes and applies the mechanical resolution of each class — generated artifacts are rebuilt from their source rather than picking a side, pin lockfiles run their resolvers, and append-only registries take the union. **Runs even with no conflicts** (derived artifacts go stale even in a conflict-free merge). Taking in the base is held by `make base-merge`. There are only two endings: if even one thing that cannot be solved mechanically remains, it leaves the markers and stops without committing; if everything is solved, it asks whether to commit and push. Does not run gates |
+| `new-issue` | Filing an issue | Verifies premises against the implementation before filing. **Five blockers** (asserting behavior not observed / quoting without checking freshness / comparisons not measured / impact scope from a partial search / not searching existing issues) stop the draft. The body's fields are filled by reading `.github/ISSUE_TEMPLATE/` at runtime (`scripts/issue-field-lint` checks them by exact match on `###`), and 前提 / 論点 / やらないこと are added to them. Finally it passes the gate "is this an issue at all" |
+| `supply-chain-triage` | Evidence scoring of a quarantined version | For one version caught by the window, scores the four questions of [0110](0110-security-operations.md) on 4 axes, 0–12. **report-only** — touches neither the lockfile, the pin, nor the window. Reads artifacts but never executes them. **Evidence that could not be obtained is reported as `?` and not counted as `0`** (with two or more `?`, no band is given: INSUFFICIENT-EVIDENCE). Exposure is reported on a separate line from the score. The chained destination of `actions-pin` / `images-pin` / `tools-upgrade` / `dep-vuln-upgrade` / Dependabot |
+| `repo-ops` | Runbook of operational gotchas | A set of remedies for recurring stumbles such as the mise toolchain / pnpm lockfile / make `DRY_RUN` / `tmp/reviews`. A read-only knowledge skill that changes no state. **Symptom-driven**, and answers only what is in its own index — symptoms not listed are routed to `how-to` (goals; can conclude a procedure is absent) or `repo-truth` (current state). **This runbook deliberately cannot conclude absence** (if it could, silence would become indistinguishable from an answer) |
+| `tool-map` | Inventory under `.claude/` | Generates a table of commands / skills / agents + a Mermaid dependency map |
+| `design-export` | Exporting the design system | Carries `tmp/design-bundle` built by `pnpm design:bundle` (shadcn registry / inventory / tokens) with a procedure per destination. Dependency runs one way, repo → design, with no path for importing artifacts from the export destination. Under the non-lock-in of [0010](0010-standards-and-non-lockin.md), procedures for a specific SaaS are confined to this skill |
 
-新規追加は本 ADR の趣旨 (運用系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
+New additions only when they fit the intent of this ADR (the definition of operations). Adding to the list is a minor edit and requires no ADR revision.
 
-## 外部スキル (上流の配布物)
+## External Skills (Upstream Distributions)
 
-上の表は本リポジトリが **著作・保守する** スキルである。上流が配布するスキルはこれと別扱いにする。線は **「著作物か配布物か」** で引く。
+The table above lists skills this repository **authors and maintains**. Skills distributed by upstream are treated separately. The line is drawn at **"authored work or distributed artifact"**.
 
-| | 自作スキル (`.claude/skills/`) | 外部スキル |
+| | Own skills (`.claude/skills/`) | External skills |
 | --- | --- | --- |
-| 実体の置き場 | リポジトリ内 (project スコープ) | `~/.claude/skills/` (user スコープ) |
-| 配布 | 信頼済み clone で届く | マシンごとに導入が要る |
-| 対訳ペア | 必須 ([0140](0140-documentation-operations.md)) | 作らない |
-| `manage-skill` / `skill-lint` | 対象 | 対象外 |
-| 更新経路 | 直接編集 | `mise.toml` の pin bump ([0110](0110-security-operations.md) の検疫) |
+| Where the substance lives | In the repository (project scope) | `~/.claude/skills/` (user scope) |
+| Distribution | Arrives with a trusted clone | Needs installing per machine |
+| Mirror pair | Required ([0140](0140-documentation-operations.md)) | Not created |
+| `manage-skill` / `skill-lint` | Covered | Not covered |
+| Update path | Direct edit | Pin bump in `mise.toml` (quarantine of [0110](0110-security-operations.md)) |
 
-したがって**外部スキルの `SKILL.md` をリポジトリへ持ち込まない**。40KB 級のサードパーティ本文を vendoring すると、対訳ペアの要求と SSOT の二重化が同時に発生し、上流の更新のたびに両方が腐る。
+Therefore **the `SKILL.md` of an external skill is not brought into the repository**. Vendoring a 40KB-class third-party body creates the mirror-pair requirement and a duplicated SSOT at the same time, and both rot with every upstream update.
 
-リポジトリが持つのは次の 4 点だけである。
+The repository holds only the following four things.
 
-1. `mise.toml` の pin (版の SSOT)
-2. 導入スクリプト `scripts/bootstrap-external-skills`
-3. `.claude/settings.json` の権限境界
-4. 除外設定 — 出力を他ツールの走査から外す側 (`.gitignore` と md lint 3 種) と、ツールの解析対象を絞る側 (`.graphifyignore`) の両方向
+1. The pin in `mise.toml` (the SSOT for the version)
+2. The install script `scripts/bootstrap-external-skills`
+3. The permission boundary in `.claude/settings.json`
+4. Exclusion settings — in both directions: the side that keeps the output out of other tools' scans (`.gitignore` and the three md lints) and the side that narrows what the tool analyzes (`.graphifyignore`)
 
-### 権限境界はパターンで書く
+### Write the permission boundary as patterns
 
-外部スキルを配布するツールは、スキルを置く命令とは別に、**リポジトリ内のファイルを書き換える命令**を持ちうる。graphify の場合、書き換え先は `CLAUDE.md` / `AGENTS.md` / `.cursor/` / `.gemini/` / git hook — いずれも AGENTS.md が保護対象と定めるファイルである。
+A tool that distributes external skills may have, apart from the command that places skills, **commands that rewrite files inside the repository**. For graphify, the rewrite targets are `CLAUDE.md` / `AGENTS.md` / `.cursor/` / `.gemini/` / git hooks — all files AGENTS.md defines as protected.
 
-**「どのサブコマンドが user スコープか」で線を引かない。** graphify には `<name> install` という系統と `install --platform <name>` という系統があり、後者だけが user スコープに見える。実際は違う: `--project` フラグは後者を project スコープへ倒し、`--platform cursor` / `--platform gemini` はフラグ無しでもカレントディレクトリを書く。系統の名前で安全側を選り分けようとすると、この種の例外を 1 つ見落とすたびに穴が開く。**導入はスクリプト経由に一本化し、エージェントには `install` 系統を丸ごと禁じる。**
+**Do not draw the line at "which subcommands are user scope".** graphify has a `<name> install` family and an `install --platform <name>` family, and only the latter appears to be user scope. In fact it is not: the `--project` flag tips the latter into project scope, and `--platform cursor` / `--platform gemini` write to the current directory even without the flag. Trying to sort out the safe side by family name opens a hole every time one such exception is missed. **Installation goes through the script only, and agents are forbidden the whole `install` family.**
 
-これを `deny` に載せるのは、散文の禁止だけでは足りないためである。エージェントは `--help` を読んで自分で到達しうるし、そのとき参照するのは ADR ではなく CLI のヘルプになる。
+This is put in `deny` because a prohibition in prose alone is not enough. An agent can reach it on its own by reading `--help`, and what it consults then is the CLI help, not the ADR.
 
-**列挙ではなくパターンで書く。** 上流はプラットフォーム対応を継続的に足しており、名前を並べた deny は次の pin bump で黙って穴が開く。塞ぐべきは「そのとき存在した名前」ではなく「install という形」である。
+**Write patterns, not enumerations.** Upstream keeps adding platform support, and a deny listing names silently opens a hole at the next pin bump. What must be blocked is not "the names that existed at the time" but "the shape install".
 
-ただし deny が塞ぐのは正面の経路だけである。後述「外向き操作の統制をどこに置くか」のとおり、パターンは前方一致のグロブで、同じ実行は汎用インタプリタからも絶対パスからも起こせる。deny は取り違えと自走を止める第一段であって、統制の全体ではない。
+The deny, however, blocks only the front path. As *Where to govern outward actions* below explains, the patterns are prefix-match globs, and the same execution can be triggered from a general-purpose interpreter or by absolute path. The deny is the first stage that stops mix-ups and runaway behavior, not the whole of the governance.
 
-### 前提にしない
+### Do not depend on them
 
-外部スキルは **lint / CI / git hook / build のいずれのゲートにも接続しない**。導入しなくても何も壊れない状態を保つ。上流が pre-1.0 でも採れるのはこの構成が理由であり、逆に言えばゲートへ繋いだ時点でその根拠は失われる ([0110](0110-security-operations.md))。
+External skills are **not connected to any gate: lint / CI / git hook / build**. Nothing breaks without installing them. This setup is why they can be adopted even while upstream is pre-1.0; conversely, the basis is lost the moment they are connected to a gate ([0110](0110-security-operations.md)).
 
-繋げない理由はもう 1 つある。外部スキルの出力 (graphify ならグラフ) は最後に走らせた時点のスナップショットで、未コミットの変更を映さない。ゲートへ載せれば「古い出力で緑」が成立し、検査していないものを合格へ倒す ([0157](0157-inspection-declaration-discipline.md))。繋ぐ判断が起きるとすれば、本リポジトリでの価値が実測で確かめられ、かつ鮮度をゲートの中で保証する機構が入ったときだけで、導入済みであることも上流が pre-1.0 を抜けたことも理由にならない —— 成熟度が上がっても鮮度の問題は消えない。
+There is one more reason not to connect them. An external skill's output (the graph, for graphify) is a snapshot as of its last run and does not reflect uncommitted changes. Put on a gate, "green on stale output" becomes possible, tipping something unchecked into a pass ([0157](0157-inspection-declaration-discipline.md)). A decision to connect could arise only when its value in this repository has been confirmed by measurement and a mechanism guaranteeing freshness inside the gate has been introduced; neither being installed nor upstream leaving pre-1.0 is a reason — maturity rising does not make the freshness problem go away.
 
-現在の外部スキルは graphify (コードベース知識グラフ) 1 件。導入手順と運用上の注意は [`.claude/README.md`](../../.claude/README.md) が持つ。
+The current external skill is one: graphify (a codebase knowledge graph). Installation steps and operational notes are held by [`.claude/README.md`](../../.claude/README.md).
 
-**導入対象は Claude Code のみとする。撤回条件は、他プラットフォームの器がこのリポジトリへ着地したとき** —— 器が無いプラットフォームへ入れても、着地したかを検証する先が無い。**「上流が対応している」「輸入元が入れている」は条件にならない。**
+**Installation targets Claude Code only. The reversal condition is when another platform's container lands in this repository** — installing for a platform with no container leaves nowhere to verify whether it landed. **"Upstream supports it" and "the import source installs it" are not conditions.**
 
-**`pipx:graphifyy` に `[sql]` extra は付けない。撤回条件は、SQL ソースが追跡対象に入ったとき** —— 表示層に DB を持たない現行のロール定義（[0070](0070-backend-role-separation.md)）では通常発生しない。**「輸入元が付けているから」は条件にならない** —— extra は依存面積、すなわち供給網上の露出そのものである。
+**`pipx:graphifyy` does not get the `[sql]` extra. The reversal condition is when SQL sources become tracked** — this does not normally happen under the current role definition, where the presentation layer has no DB ([0070](0070-backend-role-separation.md)). **"The import source adds it" is not a condition** — an extra is dependency surface, that is, supply-chain exposure itself.
 
-## 商用操作前のユーザ確認
+## User Confirmation Before Commercial Actions
 
-以下の操作を含むスキルは **実行前にユーザ確認を必須** とする:
+Skills containing the following operations **must obtain user confirmation before execution**:
 
 - `git push` / `gh pr create` / `gh pr edit` (`submit-pr`)
-- `git tag` / `gh release create` (`release-notes` の後続)
-- `mise.toml` の書き換え (`tools-upgrade`)
-- `git reset --hard` 系の破壊的操作
+- `git tag` / `gh release create` (following `release-notes`)
+- Rewriting `mise.toml` (`tools-upgrade`)
+- Destructive operations of the `git reset --hard` kind
 
-確認には `AskUserQuestion` または AGENTS.md `Git Rules > Critical Rules` が定める確認文言 (`変更はローカルにコミット済みです。これらの変更をプルリクエストにプッシュしますか？`) を用いる。
+Confirmation uses `AskUserQuestion` or the confirmation message defined in AGENTS.md `Git Rules > Critical Rules` (`変更はローカルにコミット済みです。これらの変更をプルリクエストにプッシュしますか？`).
 
-### 外向き操作の統制をどこに置くか
+### Where to govern outward actions
 
-**統制はスキル本文の確認に置き、`permissions` のパターン規則には置かない。**
+**Governance lives in the confirmations in skill bodies, not in pattern rules in `permissions`.**
 
-`permissions` は `deny` → `ask` → `allow` の順に評価され、[deny は allowlist 例外を持てない](https://code.claude.com/docs/en/permissions)。したがって「`gh api` は原則禁止、レビュー投稿だけ許可」という形は表現できず、コマンド名で線を引く限り「全部塞いで機能を殺す」か「開ける」かの二択になる。
+`permissions` are evaluated in the order `deny` → `ask` → `allow`, and [deny cannot have allowlist exceptions](https://code.claude.com/docs/en/permissions). So a shape like "`gh api` is forbidden in principle, only posting reviews is allowed" cannot be expressed, and as long as the line is drawn by command name, it is a binary choice between "block everything and kill the feature" and "open it".
 
-加えてパターンは前方一致のグロブであり、同じ HTTP 呼び出しは `python3` や `pnpm exec tsx` からも送れる。汎用インタプリタを許可したまま特定コマンドを塞いでも、防げるのは素直な経路だけで、統制としては成立しない。
+In addition, patterns are prefix-match globs, and the same HTTP call can be sent from `python3` or `pnpm exec tsx`. Blocking a specific command while allowing a general-purpose interpreter prevents only the straightforward path and does not hold up as governance.
 
-そこで `permissions.deny` に残すのは **コミット済みの作業を失い、取り戻す手段が無い操作** に限る。`gh api` について具体的には `DELETE` を含む呼び出しと ref 操作 (`git/refs`。その `force` 更新は API 側の force push にあたり、[0150](0150-git-workflow.md) の force push 禁止を素通りする経路になる)。それ以外の外向き書き込みは、実行前の 1 度の確認で担保する。
+So what remains in `permissions.deny` is limited to **operations that lose committed work with no means of recovery**. For `gh api`, concretely, calls containing `DELETE` and ref operations (`git/refs`; a `force` update there is a force push on the API side, a path that slips past the force-push prohibition of [0150](0150-git-workflow.md)). Every other outward write is guaranteed by one confirmation before execution.
 
-この帰結として、**スキルは「コマンドが許可されているから」を理由に確認を省いてはならない**。許可は「機械が止めない」ことしか意味せず、止めるのは人間の判断である。
+As a consequence, **a skill must not skip confirmation on the grounds that "the command is allowed"**. Being allowed means only "the machine does not stop it"; what stops it is human judgment.
 
-## `AskUserQuestion` の利用
+## Using `AskUserQuestion`
 
-スキル内で **確認が必要な入力** (FROM タグ / バージョン番号 / 検疫日数 / 出力形式等) は `AskUserQuestion` ツールで明示的に確認する。
+**Inputs that need confirmation** within a skill (FROM tag / version number / quarantine days / output format, etc.) are confirmed explicitly with the `AskUserQuestion` tool.
 
-- 引数 / 直近メッセージの値を **暗黙に採用しない**
-- 確認は実行直前に行い、ドリフトを避ける
+- Do **not implicitly adopt** values from arguments / the latest message
+- Confirm right before execution to avoid drift
 
-## 共通参照
+## Shared References
 
-すべての運用系スキルは以下を共通参照する:
+All operations skills share the following references:
 
-- **Git 規約**: [0150](0150-git-workflow.md) — ブランチ・コミット・PR の規約
-- **hook 方針**: [0151](0151-git-hooks.md) — `--no-verify` を用いる場合の例外運用と最終検証
-- **mise.toml の SSOT**: [ADR 0003](0003-version-manager.md) — `tools-upgrade` が監査対象とする
-- **ライブラリ運用**: [0004](0004-library-management.md) — 依存更新時の exact pin / メジャー更新分離の原則
-- **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.md)
+- **Git conventions**: [0150](0150-git-workflow.md) — conventions for branches, commits and PRs
+- **Hook policy**: [0151](0151-git-hooks.md) — exception handling and final verification when using `--no-verify`
+- **The SSOT of mise.toml**: [ADR 0003](0003-version-manager.md) — what `tools-upgrade` audits
+- **Library operations**: [0004](0004-library-management.md) — the principles of exact pins / separating major updates when updating dependencies
+- **AGENTS.md's Instruction Priority and Language Rules**: [0152](0152-agents-md-policy.md)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 運用系スキルから業務ロジックを直接編集すること (コード編集は開発系 = 0155 の領域)（強制: 散文 —— **寄せられない**。スキルの手順が何を編集するかは実行時の判断で決まり、`SKILL.md` の形からは決まらない）
-- ❌ `SKILL.md` の frontmatter `description` を「機能説明」のみで書くこと (発火条件を含めること)（強制: 散文 —— **寄せられない**。`description` が発火条件を含むかは文の意味で決まる（`skill-lint` の `description-length` が見るのは長さだけ））
-- ❌ 商用操作 (push / tag / release) を確認なしで実行すること
-- ❌ `SKILL.md` を翻訳ファイル (`SKILL.ja.md`) で上書きすること (canonical は英)（強制: `scripts/skill-lint` が対訳で上書きされた `SKILL.md`（frontmatter の欠落）を落とす。本文が英語で書かれているかは散文 —— **寄せられない**。日本語のトリガ語句を含めるのは正当で、canonical が英語かの閾値がコードに無い）
-- ❌ skill 名 / ディレクトリ名に空白・大文字・日本語を含めること（強制: 散文 —— **寄せられる**（`scripts/skill-lint` で `.claude/skills/` のディレクトリ名を kebab-case の正規表現と照合する。`name` と配置名の一致は既に見ている。規則は無い））
+- ❌ Editing business logic directly from an operations skill (code editing is the domain of development = 0155) (Enforcement: Prose — **not mechanizable**. What a skill's procedure edits is decided by runtime judgment, not by the shape of `SKILL.md`)
+- ❌ Writing the frontmatter `description` of `SKILL.md` as a "feature description" only (include the firing conditions) (Enforcement: Prose — **not mechanizable**. Whether `description` includes firing conditions is decided by the meaning of the sentence (`description-length` in `skill-lint` looks only at length))
+- ❌ Executing commercial actions (push / tag / release) without confirmation
+- ❌ Overwriting `SKILL.md` with the translation file (`SKILL.ja.md`) (the canonical is English) (Enforcement: `scripts/skill-lint` fails a `SKILL.md` overwritten by the mirror (missing frontmatter). Whether the body is written in English is Prose — **not mechanizable**. Including Japanese trigger phrases is legitimate, and there is no threshold in code for whether the canonical is English)
+- ❌ Including spaces, uppercase or Japanese in a skill name / directory name (Enforcement: Prose — **mechanizable** (match the directory names under `.claude/skills/` against a kebab-case regular expression in `scripts/skill-lint`. Matching `name` against the placement name is already checked. No rule exists))
 
-## 補足
+## Notes
 
-- スキルは Claude Code 専用。Codex / Cursor 等の他エージェントへは展開していない
-- スキルの粒度は「1 起動 = 1 オペレーション」を原則とする。複数オペレーションを束ねたい場合は別スキルとして分けるか、メタスキルから個別スキルを呼ぶ形にする
-- スキル数の上限は設けないが、似た役割の重複は避ける
+- Skills are Claude Code only. They are not deployed to other agents such as Codex / Cursor
+- A skill's granularity is, in principle, "one invocation = one operation". To bundle several operations, split them into separate skills or have a meta-skill call the individual skills
+- There is no cap on the number of skills, but duplicates with similar roles are avoided
 
-## 関連 ADR
+## Related ADRs
 
-- [0003-version-manager.md](0003-version-manager.md) — `tools-upgrade` が監査対象とする `mise.toml`
-- [0004-library-management.md](0004-library-management.md) — 依存更新時の規約
-- [0150-git-workflow.md](0150-git-workflow.md) — `commit` / `submit-pr` の Git 規約
-- [0151-git-hooks.md](0151-git-hooks.md) — `commit` が回避する lefthook の取り扱い
-- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md と本 ADR の関係
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — 開発系スキル方針 (本 ADR と対をなす)
+- [0003-version-manager.md](0003-version-manager.md) — `mise.toml`, which `tools-upgrade` audits
+- [0004-library-management.md](0004-library-management.md) — Conventions for updating dependencies
+- [0150-git-workflow.md](0150-git-workflow.md) — The Git conventions for `commit` / `submit-pr`
+- [0151-git-hooks.md](0151-git-hooks.md) — Handling of the lefthook that `commit` bypasses
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — The relationship between AGENTS.md and this ADR
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — Development-skill policy (the counterpart of this ADR)

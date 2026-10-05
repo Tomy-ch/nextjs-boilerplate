@@ -1,87 +1,87 @@
-# 規約の参照と集計の生成
+# Rule References and Generated Tallies
 
-決定を**指す側**が指し先を失わないための規律を定める。対象は [`docs/rules.md`](../rules.md) の規約と ADR の決定、そしてそれらを指すすべての文書 —— 設計文書、画面仕様、ADR どうし、集計である [`docs/traceability.md`](../traceability.md)。
+Defines the discipline by which **the referring side** does not lose what it points at. It covers the rules in [`docs/rules.md`](../rules.md) and ADR decisions, and every document that points at them — design documents, screen specs, ADRs referring to one another, and [`docs/traceability.md`](../traceability.md), which is a tally.
 
-[0144](0144-decision-enforcement-pairing.md) は決定と強制手段を切り離さないことを定め、**書き方の様式は文書ごとに委ねた**。本 ADR が定めるのはその隣にある別の問題、すなわち**決定をどう指すか**である。0144 の改定ではない。
+[0144](0144-decision-enforcement-pairing.md) defines not separating a decision from its enforcement, and **left the format of writing to each document**. What this ADR defines is a separate problem next to it, namely **how to point at a decision**. It is not a revision of 0144.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **参照は、指し先が書き換わると黙って死ぬ。** 規約の表を節構成へ組み替えたとき、指していた 10 項目が一度に参照先を失った。リンクの形で切れれば機械が気付くが、「節の名前 + 文言の引用」で指していると**形だけ残って別のものを指す**
-- **手で数えた件数は、後から検証できない。** 集計が述べた「規約 63 件」は、どの粒度で 63 だったかを再現できない。数え直すと綴りの揺れで 8 件と 13 件にずれた。**手で数えた数は、次に読む人にとって根拠を持たない**
-- **指し直せない集計は、同じ仕事を二度させる。** 前回の集計を現在の文書へ突き合わせる手段が無いと、次の人は最初から数える
+- **A reference dies silently when its target is rewritten.** When the rules table was reorganized into a section structure, the 10 items pointing at it lost their targets at once. If it breaks as a link, a machine notices, but when it points by "section name + a quote of the wording", **only the shape survives and it points at something else**
+- **A hand-counted number cannot be verified later.** The "63 rules" the tally stated cannot be reproduced as to what granularity made it 63. Recounting drifted to 8 and 13 because of spelling variations. **A hand-counted number has no basis for the next reader**
+- **A tally that cannot be re-pointed makes the same work be done twice.** Without a way to reconcile the previous tally against the current documents, the next person counts from scratch
 
-## 規約は節の錨で指す
+## Point to rules by section anchor
 
-**`rules.md` の各節は明示の錨を持ち、指す側はその錨へリンクする。** 見出しの直前に `<a id="…"></a>` を置く。
+**Each section of `rules.md` has an explicit anchor, and the referring side links to that anchor.** Place `<a id="…"></a>` just before the heading.
 
-- **錨の綴りは英語の固定語とし、見出しの文言から導かない。** 導くと、見出しを訳した時点（[0140](0140-documentation-operations.md) が canonical 言語を移す）と、言い回しを変えた時点の両方で消える。GitHub が見出しから自動で作る slug は、まさにその形をしている
-- **錨は一度付けたら変えない。** 節を分けるときは消える側の錨をどちらかに残し、残せないなら指している側を同じ変更で付け替える
-- **指す粒度は節である。** 規約 1 件を名指しする識別子は与えない（「この規律が答えないこと」）
+- **The anchor's spelling is a fixed English word and is not derived from the heading's wording.** A fixed anchor keeps a reference stable across rewording and translation: the English canonical and its Japanese mirror ([0140](0140-documentation-operations.md)) carry the same `<a id>` under headings in different languages, and a heading can be reworded without moving it. A spelling derived from the heading vanishes in both cases — the slug GitHub generates automatically from a heading has exactly that shape
+- **Once an anchor is set it does not change.** When splitting a section, keep the disappearing side's anchor on one of them; if it cannot be kept, re-point the referring side in the same change
+- **The granularity of pointing is the section.** No identifier naming a single rule is given (see *What this discipline does not answer*)
 
-## ADR は番号だけで指す
+## Point to ADRs by number only
 
-**ADR を指す形は `[NNNN](path)` だけとし、節番号を添えない。** `§2` も `決定 4` も、節を足す・並べ替える・畳むと動く。リンクの形で切れれば検査が気付くが、**番号は形が残るので気付けない** —— 綴りを変えないまま別の節を指す。
+**The only form for pointing at an ADR is `[NNNN](path)`, with no section number added.** Both `§2` and `Decision 4` move when sections are added, reordered, or folded. If it breaks as a link, the check notices, but **a number keeps its shape, so nothing notices** — it points at a different section without its spelling changing.
 
-- **どの節かは、指す側が要旨を書いて示す。** 相手の節名を写すのではなく、**自分が使っている中身**を書く。訳しても言い換えても指す先が変わらないのは、要旨が自分の文だからである
-- **錨を打たないのは `rules.md` と役割が違うため。** あちらは 1 つの文書へ全規約が集まるので、節を名指しできないと粒度を失う。ADR は 1 決定 1 ファイルで、ファイルを指せば粒度が足りる
-- **公開標準の節参照は対象外**（[`docs/rules.md`](../rules.md)「コメントと文書」）。RFC や仕様の節番号は、こちらが動かせない代わりに向こうが動かさない
+- **Which section is meant, the referring side shows by writing a summary.** Do not copy the other side's section name; write **the content you are using**. It points at the same thing whether translated or reworded because the summary is your own sentence
+- **No anchors are set because the role differs from `rules.md`.** There, every rule gathers into one document, so without being able to name a section the granularity is lost. An ADR is one decision per file, and pointing at the file gives enough granularity
+- **Section references to public standards are out of scope** ([`docs/rules.md`](../rules.md#comments)). The section numbers of an RFC or a specification cannot be moved by us, but in exchange the other side does not move them
 
-## 集計は生成する
+## Generate the tally
 
-**`traceability.md` の規約の集計は、`rules.md` から機械が書き出す。** 手で数えた件数と手で書いた表を置かない。
+**The rules tally in `traceability.md` is written out by a machine from `rules.md`.** No hand-counted numbers and no hand-written tables are placed there.
 
-- **0144「集計は決定を持たない」の帰結である。** 決定を持たないものは決定の側から導けるのだから、導く
-- **生成された表は陳腐化しない。** 陳腐化に人が気付く必要も無い —— 生成し直して差分が出た時点でゲートが落ちる
-- **生成の範囲は `rules.md` に閉じる。** ADR の集計は同じ形にできない（「この規律が答えないこと」）
+- **It is a consequence of 0144's point that a tally holds no decisions.** What holds no decisions can be derived from the decisions' side, so derive it
+- **A generated table does not go stale.** Nor does a person need to notice it going stale — the gate fails as soon as regeneration produces a diff
+- **The generation's scope is confined to `rules.md`.** The ADR tally cannot take the same form (see *What this discipline does not answer*)
 
-### 生成できるのは、判定が閉じた語彙で書かれているから
+### Generation works because verdicts use a closed vocabulary
 
-`rules.md` の各規約が持つ「機械へ寄せられるか」の判定は、[0144](0144-decision-enforcement-pairing.md)「散文には理由を付ける」が**寄せられない / 一部寄せられる / 寄せられる**の 3 語に定めている。**この 3 語の外を作らない。**
+The verdict each rule in `rules.md` holds on "can it be moved to a machine" is fixed by [0144](0144-decision-enforcement-pairing.md), in what it requires a prose enforcement to state, as the three words **not mechanizable / partly mechanizable / mechanizable**. **Do not create anything outside these three words.**
 
-綴りを増やすと一致では数えられなくなり、数えるために本文を読む必要が生じ、そこで読み落としが入る。実際に 6 通りへ散り、集計が 5 件取りこぼした。**語彙が閉じていることが、集計を機械にできる唯一の理由である。**
+Adding spellings makes them uncountable by matching, reading the body becomes necessary to count, and that is where misses come in. In practice they scattered into six forms and the tally missed 5. **The vocabulary being closed is the only reason the tally can be a machine.**
 
-## 強制手段
+## Enforcement
 
-| 何を | 何が落とすか |
+| What | What fails it |
 | --- | --- |
-| 錨の実在（指した先が在るか） | `scripts/doc-links.gate.test.ts` —— `#錨` を解決する既存のゲート |
-| 錨の網羅（節が錨を持つか） | `pnpm docs:tally` —— 錨の無い節があれば件数を出さずに落ちる |
-| 判定の語彙（3 語の外が無いか） | 同上 —— 未知の綴りは数えずに落ちる |
-| 読めなかった規約（要旨が閉じない / 判定が規約の外 / 錨が節へ対応しない） | 同上 —— **黙って 0 件へ縮退させない**（[0157](0157-inspection-declaration-discipline.md)） |
-| 集計の陳腐化 | `scripts/rules-tally.gate.test.ts` —— 生成し直して差分が出れば赤 |
+| Anchor existence (does the target exist) | `scripts/doc-links.gate.test.ts` — the existing gate that resolves `#anchor` |
+| Anchor coverage (does every section have an anchor) | `pnpm docs:tally` — fails without emitting counts if any section lacks an anchor |
+| Verdict vocabulary (nothing outside the three words) | Same as above — an unknown spelling fails without being counted |
+| Unreadable rules (the summary does not close / the verdict is outside a rule / an anchor does not correspond to a section) | Same as above — **do not silently degrade to 0** ([0157](0157-inspection-declaration-discipline.md)) |
+| The tally going stale | `scripts/rules-tally.gate.test.ts` — red if regeneration produces a diff |
 
-## この規律が答えないこと
+## What this discipline does not answer
 
-- **規約 1 件を名指しする手段。** 節までしか指せない。散文から 1 件を指すときは、節の錨へリンクしたうえで規約の要旨を引用する。**引用は識別子ではない**ので、言い換えれば一致しなくなる —— それを承知で採っている（「不採用」）
-- **ADR の決定の集計。** 強制手段の在り処が文書ごとに 4 通りへ散っており（0144 が様式を委ねた結果である）、綴りが閉じていない。機械で数えられないため、`traceability.md` の ADR の章は手で書いたままになる
-- **リンクから離れた位置に書いた節番号。** 検査が見るのはリンクに隣接する形だけで、「0079 の 8 節」のように語を挟んだ綴りは通る。閉じているのは**リンクの直後**という位置であって、番号という語そのものではない
-- **錨が指す先が妥当か。** 錨が実在することしか見ていない。節を取り違えて指しても落ちない
+- **A means of naming a single rule.** Pointing reaches only the section. To point at one rule from prose, link to the section anchor and quote the rule's summary. **A quote is not an identifier**, so rewording breaks the match — this is adopted knowing that (see *Rejected Alternatives*)
+- **A tally of ADR decisions.** Where enforcement lives is scattered four ways across documents (a result of 0144 leaving the format to them), and the spelling is not closed. It cannot be counted by a machine, so the ADR chapter of `traceability.md` stays hand-written
+- **A section number written away from the link.** The check sees only the shape adjacent to a link, and a spelling with words in between, such as "section 8 of 0079", passes. What is closed is the position **right after the link**, not the word "number" itself
+- **Whether the target an anchor points at is appropriate.** Only the anchor's existence is checked. Pointing at the wrong section does not fail
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **見出しの slug で指す** | 翻訳と言い換えの両方で消える。現に散文からの参照 8 箇所がこの形で、canonical 言語の移行で一斉に切れる |
-| **規約すべてへ永続 id を振る** | 規約は 250 件あり、指されているのは 21 件である。229 件分の採番と維持が、誰も使わない識別子のための仕事になる。1 件を指す必要が繰り返し出てから、節を割って錨を増やすほうが安い |
-| **集計を手で書き続ける** | 件数を検証できない。検証できない数は、次の人に同じ集計をやり直させる |
-| **錨を HTML コメントで置く** | 人がリンクとして踏めない。機械だけが読める識別子は、人が辿る経路を別に持つことになり二重管理になる |
-| **0144 を改定してここへ畳む** | 0144 が定めるのは決定と強制手段の関係で、本 ADR が定めるのは決定の指し方である。様式を文書へ委ねた 0144 の判断は今も正しく、覆す理由が無い |
+| **Pointing by a heading slug** | It vanishes on both translation and rewording. The slug of an English heading does not exist in the Japanese mirror, and rewording the heading breaks every reference to it at once |
+| **Assigning permanent ids to every rule** | There are 250 rules, and 21 are pointed at. Numbering and maintaining 229 becomes work for identifiers nobody uses. Splitting a section and adding anchors once the need to point at one rule recurs is cheaper |
+| **Keeping the tally hand-written** | The counts cannot be verified. An unverifiable number makes the next person redo the same tally |
+| **Placing anchors as HTML comments** | A person cannot follow them as links. An identifier only a machine can read means holding a separate path for people to follow, which is double management |
+| **Revising 0144 to fold this in** | What 0144 defines is the relation between a decision and its enforcement; what this ADR defines is how to point at a decision. 0144's judgment to leave the format to documents is still correct, and there is no reason to overturn it |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 見出しから導いた slug で `rules.md` の節を指すこと（強制: 散文 —— **寄せられる**（`docs/rules.md#…` を指すリンクの断片が、見出しの slug ではなく明示の `<a id>` の集合に在るかを見る。規則は無い））
-- ❌ `rules.md` の集計を手で書くこと。手で数えた件数を文書へ置くこと
-- ❌ 0144 の 3 語の外に判定の綴りを作ること
-- ❌ 錨の綴りを変えること。変えるなら、指している側をすべて同じ変更で付け替えること
-- ❌ 節を足して錨を付けないこと
+- ❌ Pointing at a section of `rules.md` by a slug derived from a heading (Enforcement: Prose — **mechanizable** (check that the fragment of a link pointing at `docs/rules.md#…` is in the set of explicit `<a id>`s, not a heading slug. There is no rule))
+- ❌ Writing the `rules.md` tally by hand. Placing hand-counted numbers in a document
+- ❌ Creating a verdict spelling outside 0144's three words
+- ❌ Changing an anchor's spelling. If you change it, re-point every referring side in the same change
+- ❌ Adding a section without giving it an anchor
 
-## 関連 ADR
+## Related ADRs
 
-- [0140-documentation-operations.md](0140-documentation-operations.md) — 文書の 4 分類と canonical 言語の移行（錨が言語から独立している理由）
-- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) — 決定と強制手段の併記、判定の 3 語、「集計は決定を持たない」
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — 成立しない検査を「違反なし」へ倒さない（生成が落ちる条件を持つ理由）
-- [0159-script-structure.md](0159-script-structure.md) — 補助スクリプトの構造（`rules-tally` の置き方）
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the four document categories and the canonical language model (an English canonical and a Japanese mirror carry headings in different languages, which is why anchors are independent of language)
+- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) — pairing decisions with enforcement, the three verdict words, and that a tally holds no decisions
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — not collapsing a check that cannot hold into "no violations" (why generation has conditions under which it fails)
+- [0159-script-structure.md](0159-script-structure.md) — helper script structure (how `rules-tally` is placed)

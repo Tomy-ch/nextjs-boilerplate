@@ -1,94 +1,94 @@
-# 決定と強制手段の併記
+# Pairing Decisions with Enforcement
 
-本プロジェクトでは、決定を書くときに**それが何によって守られるか**を同じ場所に書く。対象は ADR の決定、[`docs/rules.md`](../rules.md) の規約、実装タスクの issue、**コードのコメント**のいずれも同じで、文書の種類によって免除しない。
+In this project, when a decision is written, **what keeps it** is written in the same place. This applies equally to ADR decisions, the rules in [`docs/rules.md`](../rules.md), implementation-task issues, and **code comments**; no kind of document is exempt.
 
-強制手段の書き方（表の列か、節の冒頭か、issue の欄か）は文書ごとの様式が決める。本 ADR が定めるのは様式ではなく、**決定と強制手段を切り離さない**という規律と、散文で残すときに何を書くかである。
+How enforcement is written (a table column, the head of a section, a field in an issue) is decided by each document's format. What this ADR defines is not the format but the discipline of **not separating a decision from its enforcement**, and what to write when it remains prose.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **守られたかどうかが見える状態にする。** 散文で書いた決定は、誰かが読み直さない限り守られたかどうかが分からない。機械が見ているものとそうでないものを混ぜると、全体としてどれだけ守られているかが誰にも見えなくなる
-- **散文へ逃がす前に機械強制を検討させる。** 強制手段を決定と同時に書かせると「散文のみ」がその場で見え、型や lint やゲートへ寄せる余地をレビューの時点で検討できる。lint と CI は事後の防波堤であり、寄せるかどうかの判断は決定を書く時点にしか無い
-- **散文のままでよいものと、寄せ忘れているものを分ける。** 区別する意味は散文を減らすことではない。前者は理由を持ち、後者は仕事が残っている
+- **Make it visible whether a decision was kept.** A decision written in prose cannot be known to have been kept unless someone rereads it. Mixing what a machine watches with what it does not leaves nobody able to see how well the whole is kept
+- **Make machine enforcement be considered before falling back to prose.** Requiring enforcement to be written together with the decision makes "prose only" visible on the spot, so the room to move it into types, lint, or gates can be considered at review time. Lint and CI are after-the-fact breakwaters; the judgment of whether to mechanize exists only at the time the decision is written
+- **Separate what may stay prose from what was forgotten.** The point of the distinction is not to reduce prose. The former has a reason; the latter has work remaining
 
-## 決定と同じ場所に書く
+## Write it where the decision is
 
-- **ADR** は決定ごとに強制手段を持つ。機械で守る決定は何が落とすか（型 / biome / ESLint の規則名 / CI の job / テスト）を名指し、人が守る決定はそう書く。[0021](0021-frontend-responsibility.md) の Enforcement 節、[0090](0090-testing-strategy.md) の禁止事項に添えた `強制:` がこの形である
-- **`rules.md`** は規約ごとに強制手段を持ち、規約を変えた実装 PR は強制手段も同時に更新する
-- **実装タスクの issue** は起票時に強制手段を持つ。後から台帳をまとめて作る形は採らない —— その時点で散文が溜まっており、書き忘れと「散文しか無い」を区別できない
-- **コードのコメント**は、書く前に強制手段を問う。コメントが述べる制約は決定と同型であり、守られたかどうかが見えるべきものだからである。置き場と書き方の規律は [`docs/rules.md`](../rules.md)「コメントと文書」が持つ
+- An **ADR** holds enforcement per decision. A decision kept by a machine names what fails it (types / biome / ESLint rule names / a CI job / tests), and a decision kept by people says so. [0021](0021-frontend-responsibility.md)'s per-decision enforcement statements and the `Enforcement:` attached to [0090](0090-testing-strategy.md)'s prohibitions are this form
+- **`rules.md`** holds enforcement per rule, and an implementation PR that changes a rule updates its enforcement at the same time
+- An **implementation-task issue** holds enforcement when it is filed. Building a ledger in bulk afterwards is not adopted — by then prose has piled up, and a forgotten entry cannot be told apart from "there is only prose"
+- For a **code comment**, ask about enforcement before writing it. The constraint a comment states has the same shape as a decision, and whether it was kept should be visible. The discipline of where and how to write is owned by [`docs/rules.md`](../rules.md#comments)
 
-強制手段は次の語彙で書き、複数を併記してよい。どれへ寄せるかは [0002](0002-formatter-linter.md) の能力ベース分担に従う —— biome が表現できる検査を ESLint に書かず、ESLint にしか無い検査（import する側の層を文脈に取る境界）を散文に残さない。
+Enforcement is written in the following vocabulary, and several may be listed together. Which one to move it into follows [0002](0002-formatter-linter.md)'s capability-based division — do not write in ESLint a check biome can express, and do not leave in prose a check only ESLint has (a boundary that takes the importing layer as context).
 
-| 手段 | 落ちる時点 | 届かない範囲 |
+| Means | When it fails | What it does not reach |
 | --- | --- | --- |
-| 型 | 書いた時点（`tsc`） | 型に現れない性質 |
-| biome / ESLint | commit（`lint:ci`） | 静的に決まらない判断 |
-| CI ゲート | push / PR | ゲートが数えていないもの |
-| テスト | テストが書かれた範囲 | 書かれていない分岐 |
-| scaffold 生成 | 生成した時点だけ | 生成後の手編集 |
-| 散文 | レビューで読まれたとき | 読まれなかった変更 |
+| types | At writing time (`tsc`) | Properties that do not appear in types |
+| Biome / ESLint | commit (`lint:ci`) | Judgments not decidable statically |
+| CI gate | push / PR | What the gate does not count |
+| tests | Within the range tests are written | Branches not written |
+| scaffold generation | Only at generation time | Hand edits after generation |
+| prose | When read in review | Changes nobody read |
 
-**コメントはこの表の「散文」の行に居る。** したがってコメントを書くことは、上の行へ寄せられなかったことの表明である。型とテストは読まれなくても効き、散文は読まれて初めて効く —— この差はコメントが読まれなかったときにだけ現れ、そのとき散文は負ける。
+**Comments sit on the "prose" row of this table.** Writing a comment is therefore a statement that it could not be moved to an upper row. Types and tests work even when unread; prose works only once read — this difference appears only when a comment goes unread, and then prose loses.
 
-## 散文には理由を付ける
+## Give prose a reason
 
-「散文」と書くだけでは強制手段を書いたことにならない。**機械へ寄せられるかどうかを、その決定自身が述べる。**
+Writing "prose" alone does not count as writing enforcement. **The decision itself states whether it can be moved to a machine.**
 
-- **寄せられない** —— コードの形から決まらない理由を持つ。閾値がコードに無い（「大量のリンク」）、層の責務の判断そのもの、測り方の手順であってコードに現れない、など。散文のままでよく、仕事は残っていない
-- **一部寄せられる** —— 静的に決まる部分（綴り、呼び出し場所）と、決まらない部分（契約との整合）を分けて書く
-- **寄せられる** —— 検出の形が書けるが、規則がまだ無い。**「未実装」であって「機械化できない」ではない。** 仕事が残っている状態として見える
+- **not mechanizable** — it has a reason not decided by the shape of the code. The threshold is not in the code ("a large number of links"), it is a judgment of a layer's responsibility itself, it is a measurement procedure that does not appear in code, and so on. It may stay prose, and no work remains
+- **partly mechanizable** — write the statically decidable part (spelling, call site) and the undecidable part (consistency with the contract) separately
+- **mechanizable** — the shape of the detection can be written, but the rule does not exist yet. **It is "not implemented", not "cannot be mechanized".** It is visible as a state with work remaining
 
-「未実装」と「原理的に機械化できない」は別の状態であり、同じ「散文」の一語へ畳むと、後から読む側が両者を区別できない。
+"Not implemented" and "cannot in principle be mechanized" are different states, and folding them into the single word "prose" leaves later readers unable to tell them apart.
 
-**寄せる作業そのものは、判定と別の変更で行う。** 判定を持つことと規則を書くことは別で、判定だけを先に書けることが、決定を書く時点で強制手段を要求できる理由である。
+**The work of mechanizing itself is done in a change separate from the verdict.** Holding a verdict and writing a rule are separate; being able to write only the verdict first is why enforcement can be required at the time a decision is written.
 
-## 宣言だけでは担保にならない
+## A declaration alone guarantees nothing
 
-強制手段の記入そのものにも、それを守る仕組みが要る。
+Filling in enforcement itself also needs a mechanism that keeps it.
 
-**宣言的な必須は経路を選ぶ。** issue テンプレートの `required: true` が縛るのは Web フォームだけで、`gh issue create --body-file` は素通りする —— そしてそれがエージェントの起票する経路である。欄の有無は起票の時期ではなく経路で決まる。したがって issue が作られた / 編集された時点で本文を見て、欠けている欄を issue へ指摘する（`issue-field-lint`）。PR のゲートにしないのは、PR は issue を作らないためである。閉じた issue の欄は埋めない —— そこから読む人はもう居らず、埋めても着地済みの実装は変わらない。
+**A declarative requirement chooses its path.** `required: true` in an issue template binds only the web form, and `gh issue create --body-file` passes straight through — and that is the path agents file by. Whether a field is present is decided by the path, not by when the issue was filed. Therefore, when an issue is created / edited, its body is checked and missing fields are pointed out on the issue (`issue-field-lint`). It is not a PR gate because a PR does not create issues. Fields on closed issues are not filled — nobody reads from them anymore, and filling them does not change the implementation that has already landed.
 
-同じことは他の宣言にも言える。エージェントの実行許可の前方一致、テンプレートの必須、README に書いた規約 —— **「書いてある」と「守られる」を区別し、強制手段を書くときはその手段自身がどの経路で素通りされるかを言う。** [0156](0156-browser-observation-tooling.md) の「宣言だけでは担保にならない」は、この規律の 1 適用である。
+The same holds for other declarations. Prefix matching in agent execution permissions, template requirements, rules written in a README — **distinguish "it is written" from "it is kept", and when writing enforcement, say by which path that means itself is bypassed.** [0156](0156-browser-observation-tooling.md)'s treatment of declarations that do not by themselves secure anything is one application of this discipline.
 
-## 集計は決定を持たない
+## The tally holds no decisions
 
-決定が何によって守られているかの一覧（[`docs/traceability.md`](../traceability.md)）は集計であって決定ではない。各項目の強制手段は決定の側（ADR / `rules.md` / issue）が持ち、一覧はそれを並べて「散文のみ」に決着が付いているかを見る場所である。件数はコードに追随して漂うため ADR には書かない（[0140](0140-documentation-operations.md) の inventory）。
+The list of what keeps each decision ([`docs/traceability.md`](../traceability.md)) is a tally, not a decision. Each item's enforcement is owned by the decision's side (ADR / `rules.md` / issue), and the list is the place to line them up and see whether "prose only" has been settled. Counts drift with the code, so they are not written in an ADR ([0140](0140-documentation-operations.md)'s inventory).
 
-## この規律が答えないこと
+## What this discipline does not answer
 
-- **書かれた強制手段が妥当か。** 「テスト」と書いてあってテストが無い、は併記の有無からは分からない。記述が実体と合っているかはレビュー（`doc-reviewer` の accuracy）が見る
-- **散文のままでよいという判断が正しいか。** 理由が書かれているかまでを見る
+- **Whether the written enforcement is valid.** A pairing that names "tests" when no test exists looks the same as a correct one. Whether the description matches reality is checked by review (`doc-reviewer`'s accuracy)
+- **Whether the judgment that it may stay prose is correct.** It checks only that a reason is written
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **強制手段を書かない** | 守られたかどうかが誰にも見えない。散文と機械の区別が付かず、寄せ忘れが仕事として残らない |
-| **後から台帳をまとめて作る** | 作る時点で散文が溜まっており、書き忘れと「散文しか無い」を区別できない |
-| **「散文」を理由なしに認める** | 未実装と機械化不能が同じ一語になる |
-| **Web フォームの必須宣言だけで記入を担保する** | エージェントの起票経路を素通りする |
-| **強制手段の欄を PR のゲートで検査する** | PR は issue を作らない。欄が欠けた瞬間を見られない |
+| **Not writing enforcement** | Nobody can see whether a decision was kept. Prose and machine cannot be told apart, and forgotten mechanization does not remain as work |
+| **Building a ledger in bulk afterwards** | By the time it is built prose has piled up, and a forgotten entry cannot be told apart from "there is only prose" |
+| **Accepting "prose" without a reason** | Not-implemented and not-mechanizable become the same single word |
+| **Securing the entry with only the web form's required declaration** | It passes straight through the path agents file by |
+| **Checking the enforcement field with a PR gate** | A PR does not create issues. It cannot see the moment a field goes missing |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 決定を書いて、強制手段を書かないこと
-- ❌ 「散文」と書いて、機械へ寄せられない理由（または寄せられるが未着手であること）を添えないこと
-- ❌ 「未実装」を「機械化できない」と書くこと。逆も同じ（強制: 散文 —— **寄せられない**。検出の形が書けるかは決定の意味から判断することで、書かれた語の形からは決まらない）
-- ❌ 強制手段の宣言（必須・許可・規約）を、宣言だけで担保されていると見なすこと（強制: 散文 —— **寄せられない**。宣言がどの経路で素通りされるかは宣言ごとに経路を調べる判断で、コードの形からは決まらない）
-- ❌ 集計の文書に決定を書くこと。件数を ADR に書くこと（強制: `scripts/rules-tally.gate.test.ts` が `docs/traceability.md` の生成ブロックを実装規約からの集計と一致させる。生成ブロックの外に決定を書くことと ADR 本文の件数は散文 —— **寄せられない**。文が決定か、数が件数かは意味で決まる）
-- ❌ 規約を変えて強制手段を据え置くこと
+- ❌ Writing a decision without writing its enforcement
+- ❌ Writing "prose" without adding the reason it cannot be moved to a machine (or that it can but has not been started)
+- ❌ Writing "not implemented" as "cannot be mechanized", and the reverse (Enforcement: Prose — **not mechanizable**. Whether the shape of a detection can be written is judged from the meaning of the decision, not decided by the shape of the written words)
+- ❌ Treating a declaration of enforcement (a requirement, a permission, a rule) as secured by the declaration alone (Enforcement: Prose — **not mechanizable**. By which path a declaration is bypassed is a judgment that investigates the path per declaration, and is not decided by the shape of the code)
+- ❌ Writing a decision in a tally document. Writing counts in an ADR (Enforcement: `scripts/rules-tally.gate.test.ts` makes the generated block of `docs/traceability.md` match the tally from the implementation rules. Writing a decision outside the generated block, and counts in an ADR body, are Prose — **not mechanizable**. Whether a sentence is a decision, or a number is a count, is decided by meaning)
+- ❌ Changing a rule while leaving its enforcement as it was
 
-## 関連 ADR
+## Related ADRs
 
-- [0002-formatter-linter.md](0002-formatter-linter.md) — biome / ESLint の能力ベース分担（どの機械へ寄せるか）
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 層の依存方向を文書だけで守らない（併記の実例）
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — Enforcement 節（決定ごとに強制手段を持つ形）
-- [0090-testing-strategy.md](0090-testing-strategy.md) — テストゲートと、禁止事項に添える強制手段
-- [0140-documentation-operations.md](0140-documentation-operations.md) — 4 分類（rule と inventory の置き場）、理由の単独所有
-- [0150-git-workflow.md](0150-git-workflow.md) — PR の運用
-- [0153-ci-configuration.md](0153-ci-configuration.md) — CI の job 分割（CI ゲートとして名指す先）
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — 宣言だけでは担保にならない
+- [0002-formatter-linter.md](0002-formatter-linter.md) — biome / ESLint capability-based division (which machine to move it into)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — not keeping the layers' dependency direction by documents alone (an example of pairing)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — Enforcement section (the form that holds enforcement per decision)
+- [0090-testing-strategy.md](0090-testing-strategy.md) — the test gate, and enforcement attached to prohibitions
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the four categories (where rule and inventory live), sole ownership of rationale
+- [0150-git-workflow.md](0150-git-workflow.md) — PR operations
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the CI job split (what is named as a CI gate)
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — a declaration alone guarantees nothing
