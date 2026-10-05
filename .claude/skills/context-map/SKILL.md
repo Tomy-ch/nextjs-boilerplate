@@ -141,8 +141,10 @@ stale in two places at once**, and the map is the copy that nobody re-reads.
 **Do not edit those subject references.** When the mechanism has changed, that is their maintainer's
 change, not this skill's.
 
-The document is Japanese on the suffix-less path with **no `.ja.md` pair**
-([0140](../../../docs/adr/0140-documentation-operations.md)). Then format only what was written:
+The map is the English canonical on the suffix-less path, and its Japanese mirror is
+the sibling `context-map.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md)
+Decision 1). Write the canonical, then chain `canonicalize-doc` to sync the mirror in the same
+change. Then format only what this skill wrote:
 
 ```bash
 pnpm exec markdownlint-cli2 --no-globs --fix docs/design/context-map.md
@@ -155,8 +157,8 @@ and **which edges were sample-only and therefore not recorded**. Name the scope.
 
 ## AI Modification Scope
 
-Invoking this skill relaxes `AGENTS.md`'s modification scope to `docs/design/context-map.md` alone,
-for the duration of this run. The subject references, the ADRs, and `src/config/` stay protected.
+Invoking this skill relaxes `AGENTS.md`'s modification scope to `docs/design/context-map.md` alone
+(its mirror is written by the chained `canonicalize-doc`), for the duration of this run. The subject references, the ADRs, and `src/config/` stay protected.
 
 ## Do / Do NOT
 
@@ -173,7 +175,7 @@ for the duration of this run. The subject references, the ADRs, and `src/config/
 - ❌ Restate a mechanism the subject reference owns.
 - ❌ Edit a subject reference, an ADR, or `src/config/`.
 - ❌ Use the relationship vocabulary of a modelling method this repository does not adopt.
-- ❌ Create a `.ja.md`; run a gate.
+- ❌ Edit the `.ja.md` mirror by hand; run a gate.
 
 ## Checklist
 
@@ -184,6 +186,6 @@ for the duration of this run. The subject references, the ADRs, and `src/config/
 - [ ] 翻案 settled from `architecture.ts`, with the rule cited.
 - [ ] 所有 presented as evidenced candidates and chosen by the user; 未確定 recorded where chosen.
 - [ ] Map written with the owning document named per edge; no mechanism restated.
-- [ ] No subject reference, ADR, or config touched; no `.ja.md` created.
+- [ ] No subject reference, ADR, or config touched; the mirror synced through `canonicalize-doc`.
 - [ ] Only the written file formatted; no gate run.
 - [ ] Closing report names the scope and the unsettled edges.

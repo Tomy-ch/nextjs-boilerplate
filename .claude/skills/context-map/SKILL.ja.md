@@ -121,8 +121,9 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 **それらの主題の文書を編集しない。**仕組みが変わったのなら、それはその保守者の変更であって、
 このスキルの変更ではない。
 
-文書はサフィックス無しのパスの日本語で、**`.ja.md` の対を持たない**
-（[0140](../../../docs/adr/0140-documentation-operations.md)）。書いたものだけを整形する。
+地図はサフィックス無しのパスの英語の canonical で、その日本語ミラーは兄弟の `context-map.ja.md`
+である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。canonical を書き、同じ変更で
+`canonicalize-doc` へ連鎖させてミラーを同期する。そのうえで、このスキルが書いたものだけを整形する。
 
 ```bash
 pnpm exec markdownlint-cli2 --no-globs --fix docs/design/context-map.md
@@ -135,8 +136,8 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/design/context-map.md
 
 ## AI 変更範囲
 
-このスキルの起動は、`AGENTS.md` の変更範囲を `docs/design/context-map.md` **だけ**へ、
-**この実行の間だけ**緩める。主題ごとの文書、ADR、`src/config/` は保護されたままである。
+このスキルの起動は、`AGENTS.md` の変更範囲を `docs/design/context-map.md` **だけ**へ（ミラーは連鎖した
+`canonicalize-doc` が書く）、**この実行の間だけ**緩める。主題ごとの文書、ADR、`src/config/` は保護されたままである。
 
 ## やる / やらない
 
@@ -153,7 +154,7 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/design/context-map.md
 - ❌ 主題の文書が所有する仕組みを書き直す。
 - ❌ 主題の文書・ADR・`src/config/` を編集する。
 - ❌ このリポジトリが採用していないモデリング手法の関係語彙を使う。
-- ❌ `.ja.md` を作る / ゲートを回す。
+- ❌ `.ja.md` ミラーを手で編集する / ゲートを回す。
 
 ## チェックリスト
 
@@ -164,6 +165,6 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/design/context-map.md
 - [ ] 翻案を `architecture.ts` から決め、規則を引いた。
 - [ ] 所有を証拠つきの候補として提示し、user が選んだ。未確定はそう記録した。
 - [ ] 地図を書き、辺ごとに所有する文書を名指した。仕組みを書き直していない。
-- [ ] 主題の文書・ADR・設定に触れていない。`.ja.md` を作っていない。
+- [ ] 主題の文書・ADR・設定に触れていない。ミラーは `canonicalize-doc` で同期した。
 - [ ] 書いたファイルだけを整形した。ゲートを回していない。
 - [ ] 完了報告がスコープと未確定の辺を名指している。

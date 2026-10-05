@@ -58,7 +58,7 @@ assertion split to enforce), and the mock boundary is MSW rather than generated 
 **Where the rule sources are silent, say so rather than inventing a rule.** `docs/testing-conventions.md`
 carries the semantic-quality standard, so Lens 3 applies *it* rather than a general principle — but
 where it does not reach, report the gap in 補遺 instead of smuggling in a rule as if it were repository
-policy (`docs/rules.md`, *作業とエージェント*: do not introduce conventions on your own where nothing derives them).
+policy ([`docs/rules.md#workflow`](../../../docs/rules.md#workflow): do not introduce conventions on your own where nothing derives them).
 
 ## Writes
 

@@ -53,7 +53,7 @@
 1. **feature 名**（kebab-case）と、置かれる route。
 2. **ディレクション** —— 画面が何を出すか、またはそれが決まった場所への参照。アイデアしか無い場合は
    そう言って Step 2 を回す。プロダクトの中身を勝手に作らない。
-3. その route の**仕様書が既に `docs/spec/route/**` にあるか**。
+3. その route の**仕様書が既に `docs/spec/route/**` にあるか** —— 英語の canonical を見て、`*.ja.md` ミラーはすべて無視する。
 
 ここで `docs/playbook.md` を読み、そこに書かれた順序に従う。以下の順序は執筆時点のそれを写したもの
 なので、**食い違ったら playbook が正である**。
@@ -69,8 +69,8 @@
 ## Step 2. ディレクション（工程 1）
 
 `docs/templates/feature-readme.md` を `src/features/<name>/README.md` へ埋める —— route と消費する
-契約、状態表、依存カーネル、Server Action の戻り値契約、テスト観点。状態表が次の工程を動かすので、
-部品が 1 つも無いうちに書く。
+契約、状態表、依存カーネル、Server Action の戻り値契約、テスト観点。README は英語の canonical である。
+状態表が次の工程を動かすので、コンポーネントが 1 つも無いうちに書く。
 
 ディレクションが本当に決まっていないところは、プロダクトの振る舞いを選ばずに `AskUserQuestion` で
 訊く。画面が何を約束するかの著者は user である。
@@ -120,6 +120,10 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / 部品
 カタログ / ADR は**指すだけ**で、写さない。
 
+仕様書と slice の README は英語の canonical で、それぞれ兄弟の `.ja.md` ミラーを持つ
+（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。この実行で書いた canonical すべてに
+対して `canonicalize-doc` を一括モードで 1 回連鎖させ、ミラーを同じ変更で追従させる。
+
 ## Step 7. テスト（工程 6）とコメント
 
 揃った対象について `scaffold-test` スキルを連鎖させる。観点は対象自身の分岐と最近傍 README の
@@ -151,7 +155,7 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 - ❌ ディレクションが決まっていないところでプロダクトの振る舞いを作る —— 訊く。
 - ❌ ゲートを先回りして lint 全体 / テスト全体を手元で回す。
 - ❌ `docs/playbook.md` / カーネル README / ADR が所有する規則をこのファイルへ書き写す。
-- ✅ スキルが出力しリポジトリへ書くものはすべて日本語。
+- ✅ スキルの報告とコードコメントは日本語。文書は英語の canonical として書き、その `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する。
 - ✅ 失敗した工程で停止して表に出す。先行する書き込みを自動で巻き戻さない。
 - ✅ 既存の `Explore` / `Plan` エージェント型を再利用する。
 - ✅ 触れた宣言に対して `/settle-comments` を 1 回、実装の最後の段として回す。
@@ -163,6 +167,6 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 - [ ] 部品が 1 つも無いうちに、テンプレートから feature README を埋めた（Step 2）
 - [ ] ファイルは `pnpm gen` が置いた。4 状態の story を書いた（Step 3）
 - [ ] テストを 1 行も書く前に、Storybook を立てて人が見た目を確定させた（Step 4）
-- [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書いた（Step 5〜6）
+- [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書き、仕様書と README のミラーを `canonicalize-doc` で同期した（Step 5〜6）
 - [ ] `scaffold-test` でテストを作り、触れた宣言に `/settle-comments` を回した（Step 7）
 - [ ] 手元で全体を回していない / commit していない / push していない / レビュースキルを呼んでいない（Step 8）

@@ -118,6 +118,9 @@ and nothing else. Specifically:
 - Update the verdict, the premise, and the date **together**. A refreshed date beside a stale premise
   claims a check that did not happen.
 - Rows whose source you could not reach keep their previous verdict **and their previous date**.
+- The ledger is the English canonical; its Japanese mirror `upstream-interpretations.ja.md` follows
+  it ([0140](../../../docs/adr/0140-documentation-operations.md) Decision 1). Chain
+  `canonicalize-doc` to sync the mirror in the same change, rather than editing it by hand.
 
 Then run the gate over the shape:
 
@@ -154,7 +157,7 @@ them; if you find yourself explaining why one of them is better, you have left t
 - ✅ Read both sides this run, from something you opened
 - ✅ Premise before verdict, every row
 - ✅ Three values only — never invent a fourth to soften a finding
-- ✅ Write only the ledger
+- ✅ Write only the ledger, and sync its mirror through `canonicalize-doc`
 - ❌ Never edit an ADR, a design document, or a configuration file
 - ❌ Never recommend which side moves
 - ❌ Never let an unreachable source become 差異なし

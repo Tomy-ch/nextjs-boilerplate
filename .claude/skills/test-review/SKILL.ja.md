@@ -29,7 +29,7 @@
 | [ADR 0090](../../../docs/adr/0090-testing-strategy.md) | フレームワークの分担（Vitest / RTL / MSW / Playwright）、export 名の `describe`、`正常系` / `異常系` のコメント区切り、ケースごとの命名、1 対象 1 テスト、skip / todo の規律、層別責務、integration = HTTP 境界のみ |
 | [ADR 0091](../../../docs/adr/0091-test-verification-methods.md) | 非同期 RSC テストの置き場、a11y 自動検査の組込 |
 | カーネル `README.md` の frontmatter（`test-requirement: unit \| component \| integration \| route \| feature`） | 対象がどのテスト層に属するか |
-| [AGENTS.md](../../../AGENTS.md) | `describe` / `it` の文字列は日本語 |
+| [AGENTS.md](../../../AGENTS.ja.md) | `describe` / `it` の文字列は日本語 |
 | 同じディレクトリの sibling テスト | その場所で確立している書き方（fixture の形、helper の signature、MSW の配線） |
 | subject のソース | コード起点の 2 レンズが必要とする |
 

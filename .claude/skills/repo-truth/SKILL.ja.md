@@ -111,10 +111,10 @@ Procedure、「なぜこの検証は CI 側なのか」は Rationale で、解�
 
 | 索引 | 何を覆うか |
 | --- | --- |
-| [`docs/README.md`](../../../docs/README.md) | **どの文書がその判断を所有するか** —— 4 分類と行き先の判定。どのコーパスが統べるか分からないときは、まずここ |
+| [`docs/README.md`](../../../docs/README.ja.md) | **どの文書がその判断を所有するか** —— 4 分類と行き先の判定。どのコーパスが統べるか分からないときは、まずここ |
 | [`docs/adr/README.md`](../../../docs/adr/README.md) | なぜその決定になったか。どれが意図的な除外か |
 | [`docs/design/README.md`](../../../docs/design/README.md) | 層を跨ぐ 1 つの主題がどう動くか |
-| [`docs/rules.md`](../../../docs/rules.md) | 日々強制される制約。各項が Rationale のリンクを持つ |
+| [`docs/rules.md`](../../../docs/rules.ja.md) | 日々強制される制約。各項が Rationale のリンクを持つ |
 | [`.makefiles/README.md`](../../../.makefiles/README.md) | 全 make ターゲット、領域別 |
 | [`docs/playbook.md`](../../../docs/playbook.md) | 逆引き —— 「X をやりたい」→ 置き場 |
 | 対象パスから `src/<kernel>/README.md` まで辿る README 連鎖 | 責務・禁止・frontmatter の `imports-allowed` / `test-requirement` |
@@ -128,7 +128,7 @@ Procedure、「なぜこの検証は CI 側なのか」は Rationale で、解�
 
 - **`SKILL.ja.md` は翻訳であって出典ではない。**当たったこと自体は**在り処の手がかり**として有用だが
   （その主題が文書化されている証拠になる）、引くのは隣の正典 `SKILL.md` のほう。0140 が日本語を
-  サフィックス無しのパスの canonical に置いている間、これがリポジトリ内で唯一の `*.ja.md` である（[0140](../../../docs/adr/0140-documentation-operations.md)）。
+  サフィックス無しのパスの canonical に置いている間、これがリポジトリ内で唯一の `*.ja.md` である（[0140](../../../docs/adr/0140-documentation-operations.ja.md)）。
 - **生成ビューは権威ではない。**`docs/portal/` はそれが列挙する出典から組み立てられ、`graphify-out/` は
   派生した索引である。引くのは、それらが組み立てられた元のほう。
 
@@ -186,7 +186,7 @@ Procedure、「なぜこの検証は CI 側なのか」は Rationale で、解�
 - **鮮度。**統べるファイルは今週動いたかもしれない。答えが最新であることに懸かっているなら、
   引くパスの履歴を見る（`git log --oneline -10 -- <paths>`）。
 - **矛盾。**ここでの食い違いの多くは既に決着している —— `AGENTS.md` § Instruction Priority が権威の順を
-  決め、[0140](../../../docs/adr/0140-documentation-operations.md) が `rules.md` / `docs/design/` と
+  決め、[0140](../../../docs/adr/0140-documentation-operations.ja.md) が `rules.md` / `docs/design/` と
   食い違えば ADR を上に置く。**リポジトリが既に決めている矛盾を報告せず、その順位を当てる。**
   止まるのは**同格どうし**の食い違い —— ADR 同士、層 README 同士、規則とその Rationale 先 ——
   順位を付けるものが無い場合である。両方を鮮度付きで出して止まる。

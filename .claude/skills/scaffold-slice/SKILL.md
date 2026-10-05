@@ -109,7 +109,8 @@ pnpm gen feature <name> --screen=<screen>
 
 Skip it when Step 0 found the screen directory already there. Do not fill the generated view, stories or
 page composition — the look is not settled yet, and `docs/playbook.md` puts tests and the split after the
-look is reviewed. The slice's README is placed from the template; `new-feature` fills it.
+look is reviewed. The slice's README is placed from the template as the English canonical only;
+`new-feature` fills it and syncs its `README.ja.md` mirror through `canonicalize-doc`.
 
 ## Step 5. Entry points — `scaffold-route`
 
@@ -164,7 +165,8 @@ within its own declared scope.
 - ✅ Halt on the first step that stops, and surface its hand-off; never roll back earlier writes
 - ✅ Let each child confirm its own plan
 - ✅ Run `arch-check` in its changed-files mode and relay its report unfiltered
-- ✅ Japanese for everything the skill emits or writes to the repository
+- ✅ Japanese for what the skill reports and for code comments; a document is written as the English
+  canonical, and its `.ja.md` mirror is synced through `canonicalize-doc`
 - ❌ Write source directly — every file comes from a child or a generator
 - ❌ Edit a generated file, or move the contract `ref` without confirmation
 - ❌ Fill the screen's look, stories, specification or screen tests — `new-feature` owns them

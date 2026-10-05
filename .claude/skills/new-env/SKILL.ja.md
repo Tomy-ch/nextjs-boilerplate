@@ -114,7 +114,7 @@ ls src/config/ 2>/dev/null
 
 ### 質問 6: 説明
 
-自由入力。`env/README.md` が書かれている言語で受ける —— 変数表は 1 言語の 1 枚である（[0140](../../../docs/adr/0140-documentation-operations.md)）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
+自由入力。英語で受ける —— `env/README.md` は英語の canonical で、その兄弟の `README.ja.md` ミラーは Step 3 で canonical から同期する（[0140](../../../docs/adr/0140-documentation-operations.ja.md) 決定 1）。別の言語で答えられたら訳し、書き込み前に Step 2 の計画へ出してレビューを受ける。
 
 - 「説明」
 - Notes 欄（任意） — Secret 管理 / 環境依存等の注記
@@ -204,6 +204,7 @@ config のテスト方針は **env スタブ + factory 再生成**（`vi.stubEnv
 4. env ファイル（1 ファイル 1 編集）
 5. `env/README.md`
 6. `src/config/README.md` — config 経由の経路のみ
+7. 5〜6 で編集した README に対して `canonicalize-doc` を（一括モードで）連鎖させ、その `.ja.md` ミラーを同じ変更で追従させる
 
 いずれかの編集が失敗したら停止して報告する。残りのファイルへ進まない。
 
@@ -266,7 +267,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] server / client を確認し、`NEXT_PUBLIC_` の有無と整合している
 - [ ] secret ラベルを確認した。secret を `NEXT_PUBLIC_` に置いておらず、実 secret 値をコミット対象へ書いていない
 - [ ] 型と required / code default を確認した
-- [ ] 説明を `env/README.md` の言語で確定した（訳したなら計画に提示しレビューを受けた）
+- [ ] 説明を canonical の `env/README.md` の言語である英語で確定した（訳したなら計画に提示しレビューを受けた）
 - [ ] 環境別の値を確定した
 - [ ] 計画全体を提示し、ユーザが承認した
 - [ ] config 経由の経路: purpose を 1 つだけ更新した（スキーマ項目 + runtime モジュールの既存の形での値。setter なし）
@@ -274,6 +275,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] 変数が属する env ファイルすべてを、表の順序の位置へ、`env/README.md` が割り当てる行の形で更新した
 - [ ] `env/README.md` の変数表に行を足した（常に）
 - [ ] config 経由の経路では `src/config/README.md` を更新した（env 行の再掲なし）
+- [ ] 編集した README の `.ja.md` ミラーを `canonicalize-doc` で同期した
 - [ ] config 経由の経路: `src/config/environment.fixture.ts` にも鍵を足した
 - [ ] config テストを更新した、または不在を明示した
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` を実行し結果を報告した

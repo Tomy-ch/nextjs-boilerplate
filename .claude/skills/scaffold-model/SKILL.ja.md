@@ -41,7 +41,8 @@
 | `src/model/` の隣のモジュール | その場の形 —— brand と構築関数の書き方、union の判別のさせ方 |
 | [`type-design-reviewer`](../../agents/type-design-reviewer.md) | 書いた型を採点する。基準は `.claude/skills/impl-review/prompts/type-design.md` |
 
-書くのは `src/model/` の下のモジュール 1 つと、カーネル README がモジュール表を持っていればその行だけ。
+書くのは `src/model/` の下のモジュール 1 つと、カーネル README がモジュール表を持っていればその行だけ
+（その後、`canonicalize-doc` を通してその `README.ja.md` ミラー）。
 それ以外は書かない。
 
 ## Step 0. 対象を決める
@@ -98,7 +99,8 @@
 - **依存を足さない。** 依存なしにモジュールが書けないなら止まる。依存の追加は
   [ADR 0004](../../../docs/adr/0004-library-management.md) が持つ停止点である。
 
-README がモジュール表を持っていれば、その表の言い回しでモジュールの行を足す。
+README がモジュール表を持っていれば、その表の言い回しでモジュールの行を足す —— README は canonical なので英語で書く。
+そのうえで `canonicalize-doc` へ連鎖させ、その `README.ja.md` ミラーを同じ変更で同期する。
 
 ## Step 4. `type-design-reviewer` で型を採点する
 
@@ -146,7 +148,7 @@ README がモジュール表を持っていれば、その表の言い回しで�
 - [ ] 名前・参照元・形を決めた。どれも作っていない
 - [ ] 受け入れを README から決めた。断られたら止まった
 - [ ] 計画が監査の全行に答えている。README の欠けを報告した。計画を確認した
-- [ ] コメント無しで、`imports-allowed` の内側でモジュールを書いた。モジュール表があれば行を足した
+- [ ] コメント無しで、`imports-allowed` の内側でモジュールを書いた。モジュール表があれば行を足し、README のミラーを同期した
 - [ ] 書いたファイルに `type-design-reviewer` を走らせた。所見は承認されたものだけ適用した
 - [ ] `scaffold-test` を連鎖させた（単独）か、`scaffold-slice` に任せた
 - [ ] `/settle-comments` を回した（単独）か、`scaffold-slice` に任せた。commit していない
