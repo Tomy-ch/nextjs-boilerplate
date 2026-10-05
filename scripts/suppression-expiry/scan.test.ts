@@ -329,6 +329,15 @@ describe("scanSuppressions", () => {
     ]);
   });
 
+  it("時刻の後ろにオフセットでない文字が続く期限は、読めない期限として書かれたまま残す", () => {
+    place(
+      ".trivyignore.yaml",
+      'vulnerabilities:\n  - id: CVE-2026-0006\n    statement: "理由"\n    expired_at: "2026-11-02T10:00 頃"\n',
+    );
+
+    expect(scanSuppressions(root)[0]?.unreadableUntil).toBe("2026-11-02T10:00 頃");
+  });
+
   it("理由を持たない trivy の宣言も、条件を空にして一覧へ載せる", () => {
     place(".trivyignore.yaml", "vulnerabilities:\n  - id: CVE-2026-0002\n");
 

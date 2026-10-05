@@ -86,19 +86,30 @@ function parsed<T>(text: string, parse: (source: string) => unknown): T | undefi
   }
 }
 
+/** 期限の先頭の暦日（`YYYY-M-D`）と、それに続く残り。 */
+const CALENDAR_DAY = /^(\d{4})-(\d{1,2})-(\d{1,2})(.*)$/;
+
+/** 暦日に続く時刻。秒と小数秒は省ける。 */
+const TIME_OF_DAY = /^[Tt ]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?/;
+
+/** 時刻に続くオフセット。省ける。 */
+const UTC_OFFSET = /^\s*(?:[Zz]|[+-]\d{1,2}(?::?\d{2})?)?$/;
+
 /**
- * 期限の項目として読む文字列の形。暦日（`YYYY-MM-DD`）だけか、それに時刻とオフセットが続くもの。
+ * 暦日に続く残りが、時刻とオフセットとして読めるか。
  *
- * @remarks
- * 形を見るのは文字列で届く値（YAML の面）だけです。TOML の面はパーサが日時として通した値を `Date`
- * で渡すので、ここへは正規化された形しか来ません。暦日を `YYYY-MM-DD` で書くのは抑止の撤回条件と
- * 同じ様式です。
- *
- * 全体で照合し、合わない値は期限として数えず、読めない期限として様式の欠けに回します（`withUntil`）。
- * スキャナが受け付ける形より狭くても、黙って期限の無い宣言にはなりません。
+ * @param rest - 暦日の後ろに書かれていた文字列
+ * @returns 何も続かないか、時刻（とオフセット）だけが続くなら `true`
  */
-const WRITTEN_DATE =
-  /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[Tt ]\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(?:[Zz]|[+-]\d{1,2}(?::?\d{2})?)?)?$/;
+function isTimeOfDay(rest: string): boolean {
+  if (rest === "") {
+    return true;
+  }
+
+  const time = TIME_OF_DAY.exec(rest);
+
+  return time !== null && UTC_OFFSET.test(rest.slice(time[0].length));
+}
 
 /**
  * 期限の項目を、書かれた暦日（`YYYY-MM-DD`）にする。
@@ -108,14 +119,23 @@ const WRITTEN_DATE =
  * 2 桁に揃えます —— `smol-toml` の `Date` は書かれたオフセットのまま `toISOString` を返すので、
  * 時刻とオフセットを付けて書かれても暦日はずれません。
  *
+ * 形を見るのは文字列で届く値（YAML の面）だけです。暦日を `YYYY-MM-DD` で書くのは抑止の撤回条件と
+ * 同じ様式で、全体が暦日か日時でなければ読めない期限として様式の欠けに回します（`withUntil`）。
+ * スキャナが受け付ける形より狭くても、黙って期限の無い宣言にはなりません。
+ *
  * @param value - 期限の項目に書かれていた値
  * @returns 暦日。日付として読めなければ `undefined`
  */
 function writtenDay(value: unknown): string | undefined {
   const text = value instanceof Date ? value.toISOString() : value;
-  const [, year, month, day] = typeof text === "string" ? (WRITTEN_DATE.exec(text) ?? []) : [];
+  const [, year, month, day, rest] =
+    typeof text === "string" ? (CALENDAR_DAY.exec(text) ?? []) : [];
 
-  return year === undefined || month === undefined || day === undefined
+  return year === undefined ||
+    month === undefined ||
+    day === undefined ||
+    rest === undefined ||
+    !isTimeOfDay(rest)
     ? undefined
     : `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
 }
@@ -147,7 +167,12 @@ function withUntil(
   const day = writtenDay(until);
 
   return day === undefined
-    ? { source, subject, condition, unreadableUntil: String(until) }
+    ? {
+        source,
+        subject,
+        condition,
+        unreadableUntil: typeof until === "string" ? until : JSON.stringify(until),
+      }
     : { source, subject, condition, until: day };
 }
 
