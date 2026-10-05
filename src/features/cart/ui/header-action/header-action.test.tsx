@@ -22,7 +22,7 @@ import { CART } from "../../cart.fixture";
 import { CartHeaderAction } from "./header-action";
 
 // 被せる姿は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
-// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+// 読み込みが入る（`docs/testing-conventions.md#rendering-a-tree-that-contains-nextdynamic`）。
 beforeAll(async () => {
   await import("../header-drawer/header-drawer");
 });

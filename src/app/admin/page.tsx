@@ -33,11 +33,11 @@ async function AdminDashboardContent() {
  * 管理の入口。
  *
  * @remarks
- * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。器の下の
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md#keep-out-of-search-indexes`。器の下の
  * すべての画面に効きます。
  *
  * 集計はバックエンドが合成したものをそのまま出します。画面が計算を持たない理由は
- * `docs/spec/route/admin/page.function.md`「集計はフロントで作らない」、値の母集団は
+ * `docs/spec/route/admin/page.function.md#aggregates-are-not-built-in-the-frontend`、値の母集団は
  * `model/dashboard` の `DashboardSummary`。
  *
  * **「いま」をここで読んで渡します。** 暦日の区切りは要求のクエリに載るため、実時計を読む場所が

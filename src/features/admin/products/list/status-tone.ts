@@ -9,7 +9,7 @@ import {
  * @remarks
  * **契約は状態の意味を返しません。** マスタが持つのは `code` と表示名だけなので、意味づけはこの
  * 画面が持ちます。色は 1 件の状態ではなく扱いの区分に付けます。区分と割り当ての理由は
- * `docs/spec/route/admin/products/page.function.md`「状態に色を割り当てるのはこの画面」。
+ * `docs/spec/route/admin/products/page.function.md#this-screen-assigns-colors-to-statuses`。
  *
  * バッジは状態名も出すので、色だけで区別させません。
  */

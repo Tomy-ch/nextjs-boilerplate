@@ -75,7 +75,7 @@
   **mount 後に読み戻す store は Zustand の hook を公開せず**、`useSyncExternalStore(store.subscribe, snapshot,
   snapshot)` と、両側で同じ現在値を返す 1 つの snapshot 関数で束ねる（例: [`consent-store`](consent-store.ts) の
   `useConsentState`）。hydration mismatch の一般論は
-  [`docs/design/rendering.ja.md`](../../docs/design/rendering.md#hydration-mismatch-は偶発的ではない)「hydration mismatch は偶発的ではない」
+  [`docs/design/rendering.ja.md`](../../docs/design/rendering.ja.md#hydration-mismatch-は偶発的ではない)「hydration mismatch は偶発的ではない」
 
 ### ブラウザの保存先へ書く store
 
@@ -88,7 +88,7 @@
 
 ### 使う側
 
-- `components` は `stores` を import できない（[`docs/design/placement.ja.md`](../../docs/design/placement.md)）。
+- `components` は `stores` を import できない（[`docs/design/placement.ja.md`](../../docs/design/placement.ja.md)）。
   store を読む UI は feature か、root layout が mount する `app` の island に置く
 - 全画面に掛かる状態は、それを読む面を **1 つの island** にまとめる。同じ状態を別々の island が購読すると、
   変えた直後に片方だけが反応する瞬間ができる
@@ -111,7 +111,7 @@
   `vi.stubGlobal("location", { protocol: "https:" })`。後片付けは `afterEach` で `vi.unstubAllGlobals()` と
   `max-age=0` の上書き
 - 購読している側へ変化が届くことを `subscribe` で固定する
-- ケースの並びは [`docs/testing-conventions.ja.md`](../../docs/testing-conventions.md)（store は「値を返す対象」。
+- ケースの並びは [`docs/testing-conventions.ja.md`](../../docs/testing-conventions.ja.md)（store は「値を返す対象」。
   `// ----- 正常系 -----` / `// ----- 異常系 -----`）
 
 ### 追加のしかた

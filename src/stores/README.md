@@ -77,7 +77,7 @@ What the bundled sample adds:
   **A store that reads back after mount does not expose the Zustand hook**; it ties things together with `useSyncExternalStore(store.subscribe, snapshot,
   snapshot)` and a single snapshot function that returns the same current value on both sides (example: `useConsentState` in [`consent-store`](consent-store.ts)).
   The general discussion of hydration mismatches is
-  [`docs/design/rendering.md`](../../docs/design/rendering.md#hydration-mismatch-は偶発的ではない) "Hydration mismatches are not accidental"
+  [`docs/design/rendering.md`](../../docs/design/rendering.md#hydration-mismatches-are-not-accidental) "Hydration mismatches are not accidental"
 
 ### Stores That Write to Browser Storage
 

@@ -257,7 +257,7 @@ make e2e-metadata   # 索引させる設定で build して起動し、公開面
 | 画素が違う | `toHaveScreenshot` / `A snapshot doesn't exist` | 変化が意図したものか確かめてから撮り直す（後述「基準画像は story 単位と同じ置き場に入る」） |
 
 CI の失敗コメントもこの 3 つで出し分ける。**落ちた画面それぞれについて、なぜ変わったかを言える
-までは撮り直さない**（[docs/design/vrt.md](../docs/design/vrt.md) の「限界」）。
+までは撮り直さない**（[docs/design/vrt.md#limitations](../docs/design/vrt.md#limitations)）。
 
 **再試行はしない**（`retries: 0`）。撮り直して通る差分が無いのと同じで、ジャーニーの再試行も不安定な
 経路を隠すだけである。1 つのエンジンだけで落ちる経路は、engine 固有の挙動か実行環境のゆらぎかを

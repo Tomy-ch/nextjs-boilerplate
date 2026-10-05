@@ -52,8 +52,8 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 [0027](../../docs/adr/0027-directory-structure.ja.md) が持つ。**ここが持つのは、その下で同じ名前が同じ
 役割を負う module の一覧** —— どの slice でも綴りと持ち物を揃える語彙 —— である。名前が揃っていれば、
 開かずに「何を呼べて、何で検証されるか」が決まる。コンポーネントを `ui/` に置くか `components` へ上げるかの
-分岐は [`docs/design/placement.md`](../../docs/design/placement.md)、手を動かす順は
-[画面を 1 つ作る tutorial](../../docs/tutorial/build-a-screen.md) が持つ。
+分岐は [`docs/design/placement.md`](../../docs/design/placement.ja.md)、手を動かす順は
+[画面を 1 つ作る tutorial](../../docs/tutorial/build-a-screen.ja.md) が持つ。
 
 | module | 持ち物 | 持たないもの |
 | --- | --- | --- |
@@ -238,7 +238,7 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 ## テストの取り方
 
 手段は [0091](../../docs/adr/0091-test-verification-methods.ja.md)（async RSC は `render(await X(props))`）、
-書き方は [docs/testing-conventions.md](../../docs/testing-conventions.md) が持つ。このレイヤーで繰り返す形は
+書き方は [docs/testing-conventions.md](../../docs/testing-conventions.ja.md) が持つ。このレイヤーで繰り返す形は
 次の 3 つである。
 
 - **`page-content` のテストは境界を見る。** `adapters` を `vi.hoisted` + `vi.mock` で差し替え、

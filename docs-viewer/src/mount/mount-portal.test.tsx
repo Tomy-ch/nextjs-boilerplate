@@ -12,7 +12,7 @@ import { mountPortal, PORTAL_LOAD_ERROR_MESSAGE } from "./mount-portal";
 const { mountedRoots } = vi.hoisted(() => ({ mountedRoots: [] as Root[] }));
 
 // `mountPortal` は root を返さないので、`createRoot` を差し替えて生成物を捕まえる。畳む理由は
-// `docs/testing-conventions.md` の「テストが起こしたものはテストが畳む」が持つ。
+// `docs/testing-conventions.md#tests-clean-up-what-they-start`が持つ。
 vi.mock("react-dom/client", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-dom/client")>();
 

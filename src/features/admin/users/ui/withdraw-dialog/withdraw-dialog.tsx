@@ -34,7 +34,7 @@ export type UserWithdrawDialogProps = {
  * 明示的に選ばせます（背景を押しても閉じません）。
  *
  * 本文が何を書くか（戻せないこと / 後始末が同時には終わらないこと）は
- * [画面要件](../../../../../../docs/spec/route/admin/users/page.screen.md)「退会の確認」。
+ * [画面要件](../../../../../../docs/spec/route/admin/users/page.screen.md#confirming-account-closure)。
  *
  * 送信は dialog の中の form が担い、結果は外側が受けます。成立すれば dialog は閉じ、そこに
  * 出した結果ごと消えるためです。

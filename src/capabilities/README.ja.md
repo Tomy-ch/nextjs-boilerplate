@@ -79,7 +79,7 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 - **位置が動く出し分けは CSS で行い、この hook で行わない。** 使ってよいのは、DOM を残したままでは
   成立しないもの（focus trap を持つ面）と、現れても位置が動かないもの。規則は
   [`docs/rules.ja.md`](../../docs/rules.ja.md#layout)、hydration との関係は
-  [`docs/design/rendering.md`](../../docs/design/rendering.md#サーバでしか分からないことブラウザでしか分からないことがある)
+  [`docs/design/rendering.md`](../../docs/design/rendering.ja.md#サーバでしか分からないことブラウザでしか分からないことがある)
   が持つ
 - 幅の段を条件にするときは数値を書かず、[`model/breakpoint`](../model/breakpoint.ts) が design token
   から組む文字列を渡す。JS 側に数値を書くと、段を差し替えたときに CSS 側の境界とずれる
@@ -95,7 +95,7 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 
 - ファイル先頭に `// @vitest-environment jsdom` を置く。デフォルトの環境は node（`vitest.config.ts`）
 - hook を呼ぶだけの Probe component を書き、返り値をレンダリング結果に映して読む
-  （[`docs/testing-conventions.md`](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則) の「利用者が観測するものをアサートする」）
+  （[`docs/testing-conventions.md`](../../docs/testing-conventions.ja.md#component--hook-のテスト--testing-library-の原則) の「利用者が観測するものをアサートする」）
 - jsdom に無い browser API は `vitest.setup.ts` が補う（補いの一覧はそのファイルが持つ）。**変化を起こす
   必要があるテストは、そのファイルで `vi.stubGlobal` に制御できる最小の実装を置く** —— listener の集合と、
   それを発火させる `change` / `fire` を返す形。読み取り専用の値（`navigator.onLine` / `window.scrollY`）は

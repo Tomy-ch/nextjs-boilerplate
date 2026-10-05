@@ -22,9 +22,9 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/about` | [`screen`](../../../docs/spec/route/site-info/about/page.screen.md) / [`function`](../../../docs/spec/route/site-info/about/page.function.md) | 不要 |
-| `/privacy` | [`screen`](../../../docs/spec/route/site-info/privacy/page.screen.md) / [`function`](../../../docs/spec/route/site-info/privacy/page.function.md) | 不要 |
-| `/terms` | [`screen`](../../../docs/spec/route/site-info/terms/page.screen.md) / [`function`](../../../docs/spec/route/site-info/terms/page.function.md) | 不要 |
+| `/about` | [`screen`](../../../docs/spec/route/site-info/about/page.screen.ja.md) / [`function`](../../../docs/spec/route/site-info/about/page.function.ja.md) | 不要 |
+| `/privacy` | [`screen`](../../../docs/spec/route/site-info/privacy/page.screen.ja.md) / [`function`](../../../docs/spec/route/site-info/privacy/page.function.ja.md) | 不要 |
+| `/terms` | [`screen`](../../../docs/spec/route/site-info/terms/page.screen.ja.md) / [`function`](../../../docs/spec/route/site-info/terms/page.function.ja.md) | 不要 |
 
 **operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。
 

@@ -5,7 +5,7 @@ import { afterEach, beforeAll, vi } from "vitest";
 // テストから外へ出る取得を、宛先を名指しして落とす。**応答は作らない。**
 //
 // HTTP を止めるのは MSW で、立てるのは要るファイルだけである（`vitest.setup.msw.ts`）。誰が読み込み、
-// なぜ全ファイルへ掛けないかは `docs/testing-conventions.md`「mock の境界」が持つ。
+// なぜ全ファイルへ掛けないかは `docs/testing-conventions.md#mock-boundaries`が持つ。
 //
 // 据えるのが hook なのは、`vitest.setup.msw.ts` を読み込んだファイルでは MSW が module の評価時に
 // 先に席を取り、ここが何もしないで済むようにするためである。応答を自分で作るテスト

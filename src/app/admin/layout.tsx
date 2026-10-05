@@ -68,7 +68,7 @@ export const instant = false;
  *
  * 入れない主体はサイトのトップへ戻します。layout は今いる URL を受け取らないので、元の行き先を
  * 伴うログインへの送り出しは前捌き（`proxy.ts`）が持ちます。行き先とその理由、403 の面を出さない
- * 理由は `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
+ * 理由は `docs/spec/route/admin/layout.function.md#where-to-send-actors-who-cannot-enter`。
  *
  * **現在地までの階層は並行の route から受け取ります**（`@breadcrumb`）。器へ渡すのはこの層です
  * が、何段目に何を出すかは画面ごとに違うため、画面と同じ形の route に持たせます。page から

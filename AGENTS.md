@@ -149,7 +149,7 @@ and marker checks, and `permissions.deny` in `.claude/settings.json`. The rest i
 **A rule this file does not repeat is still a rule.** Not finding a prohibition here is evidence about
 this file, not about the prohibition.
 
-**A decision's grounds are never this tree's own inventory.** "There is no such screen here yet" reads, in a repository created from this template, as a claim about *its* screens — see [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md), *決定の根拠に、この木の在庫を置かない*. <!-- boilerplate-only:line -->
+**A decision's grounds are never this tree's own inventory.** "There is no such screen here yet" reads, in a repository created from this template, as a claim about *its* screens — see [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md#do-not-base-a-decision-on-what-this-tree-currently-contains). <!-- boilerplate-only:line -->
 
 **Two responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: neither
 is decidable from the shape of the code. Hold them yourself:
@@ -312,7 +312,7 @@ always; reach for `--log` only when the failure is genuinely not in a failed ste
 narrowed it with. **Never report a gate's verdict through a lossy filter**
 ([0157](docs/adr/0157-inspection-declaration-discipline.md)).
 
-The gates belong to the hooks and CI, and **CI is the authority** — [`docs/playbook.md`](docs/playbook.md), *ゲートを先回りして回さない*. What deviates upstream is in [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md). <!-- boilerplate-only:line -->
+The gates belong to the hooks and CI, and **CI is the authority** — [`docs/playbook.md#do-not-pre-run-the-gates`](docs/playbook.md#do-not-pre-run-the-gates). What deviates upstream is in [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md). <!-- boilerplate-only:line -->
 
 ### Two tools that only change what reaches your context
 

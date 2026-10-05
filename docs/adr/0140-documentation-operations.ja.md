@@ -67,7 +67,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 | **decision** | `docs/adr/` |
 | **exclusion** | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.ja.md) / [0130](0130-pwa-strategy.ja.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.ja.md) / [0110](0110-security-operations.ja.md) / [0131](0131-cookie-consent.ja.md)) |
 | **rule** | **`docs/rules.md`**(下記 3) |
-| **inventory** | ADR には入れない。家は [`docs/reference/`](../reference/README.md) —— コードに追随して変わるインベントリで、正はコード側、書き換えは対象のコードと同じ変更の中で行う。インベントリは根拠を持たず、選定の理由は ADR へリンクするだけ |
+| **inventory** | ADR には入れない。家は [`docs/reference/`](../reference/README.ja.md) —— コードに追随して変わるインベントリで、正はコード側、書き換えは対象のコードと同じ変更の中で行う。インベントリは根拠を持たず、選定の理由は ADR へリンクするだけ |
 
 - **exclusion** はセットアップ時に直接編集して独自ベースラインを敷けるものとする(supersede-by-new-ADR モデルは setup 後の変更にのみ適用)
 - **ADR の decision から自然に決まるものを、別の ADR で二重に決定しない。** tooling や reference は ADR を要さず、規約に昇格するものだけを ADR 化する
@@ -148,4 +148,4 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 - [0121-i18n-strategy.md](0121-i18n-strategy.ja.md) / [0130-pwa-strategy.md](0130-pwa-strategy.ja.md) — exclusion ADR の実例(`Accepted (exclusion)`)
 - [0082-client-observability.md](0082-client-observability.ja.md) / [0110-security-operations.md](0110-security-operations.ja.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
 - [`docs/README.md`](../README.ja.md) — 4 分類の判定と行き先
-- [`docs/reference/README.md`](../reference/README.md) — inventory の家(コードに追随するインベントリの契約)
+- [`docs/reference/README.md`](../reference/README.ja.md) — inventory の家(コードに追随するインベントリの契約)

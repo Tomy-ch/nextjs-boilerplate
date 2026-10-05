@@ -4,7 +4,7 @@
 
 # logging
 
-構造化ログを提供するカーネルです。設定値と observability は import せず、起動境界から注入されます。この README はカーネルの窓口で、書く側の契約と、実装を消しても残す形を持つ。起動境界の結線順、ブラウザからサーバ、collector までの 1 本の線、registered symbol で注入を渡す機序は [観測](../../docs/design/observability.md) が持つ。
+構造化ログを提供するカーネルです。設定値と observability は import せず、起動境界から注入されます。この README はカーネルの窓口で、書く側の契約と、実装を消しても残す形を持つ。起動境界の結線順、ブラウザからサーバ、collector までの 1 本の線、registered symbol で注入を渡す機序は [観測](../../docs/design/observability.ja.md) が持つ。
 
 ## 受け入れるもの
 
@@ -58,7 +58,7 @@ try {
 }
 ```
 
-- **失敗の原因は `cause` に文字列で載せる。** `Error` をそのまま置くと OTLP sink では `{}` になる（理由は [観測](../../docs/design/observability.md#error-や-date-をそのままフィールドに載せると空になる)「`Error` や `Date` をそのままフィールドに載せると空になる」）。公式 semconv に名前がある項目（`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`）はその名前を使う。
+- **失敗の原因は `cause` に文字列で載せる。** `Error` をそのまま置くと OTLP sink では `{}` になる（理由は [観測](../../docs/design/observability.ja.md#error-や-date-をそのままフィールドに載せると空になる)「`Error` や `Date` をそのままフィールドに載せると空になる」）。公式 semconv に名前がある項目（`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`）はその名前を使う。
 - **レベルは [0080](../../docs/adr/0080-error-handling.ja.md) の線で選び、同じ失敗は境界で 1 回だけ記録する。**
 - **フィールドは平らに持つ。** 伏せるのは最上位のフィールド名だけで、ネストした object の中の名前は見ない。一方 sink はネストを再帰的に送る。秘密を持ち回る名前は最上位に置く。
 - **`console.*` は使わない。** biome の `noConsole` が見る（[0002](../../docs/adr/0002-formatter-linter.ja.md)）。
@@ -67,7 +67,7 @@ try {
 
 `src/instrumentation.ts` が Node.js サーバー起動時に `initializeLogger()` を呼ぶ。ここで stdout 用 Pino logger が必ず初期化され、レベルと trace 抽出器はここで注入され、`OBS_LOGS_EXPORTER=otlp` のときだけ OTLP sink も注入される。リクエストごとの再初期化は行わない。
 
-注入した logger の置き場はモジュール変数ではなく、`Symbol.for` の registered symbol をキーにした `globalThis` である。読む側は別のモジュールインスタンスが書いた値として、`Logger` の形を確かめてから使う。同じファイルが 1 プロセスで 2 回インスタンス化される事情と、モジュール変数で足りる場合との線引きは [観測](../../docs/design/observability.md#注入は-registered-symbol-で渡す)「注入は registered symbol で渡す」が持つ。
+注入した logger の置き場はモジュール変数ではなく、`Symbol.for` の registered symbol をキーにした `globalThis` である。読む側は別のモジュールインスタンスが書いた値として、`Logger` の形を確かめてから使う。同じファイルが 1 プロセスで 2 回インスタンス化される事情と、モジュール変数で足りる場合との線引きは [観測](../../docs/design/observability.ja.md#注入は-registered-symbol-で渡す)「注入は registered symbol で渡す」が持つ。
 
 ## 運用
 
@@ -90,7 +90,7 @@ try {
 | `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.ja.md) の禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
 | アプリケーションの server 側コードは `getLogger()` を使い、Pino を直に import しない | `pino.server.ts` の外で `pino` を import していれば violation | この README「構成」 |
 | 伏せる項目の名前の表は `logger.ts` の 1 つだけで、ログと span の双方がそれを見る | 別の場所に伏せる名前の表を持っていれば violation | この README「構成」/ [0081](../../docs/adr/0081-observability-logging.ja.md) |
-| 成否が利用者へ見える処理の中の記録は `reportQuietly()` で包む | suggestion（処理の成否が利用者へ見えるかは呼び出しの形から決まらない） | この README「書く側の形」/ [観測](../../docs/design/observability.md#getlogger-は初期化前に投げる)「`getLogger()` は初期化前に投げる」 |
+| 成否が利用者へ見える処理の中の記録は `reportQuietly()` で包む | suggestion（処理の成否が利用者へ見えるかは呼び出しの形から決まらない） | この README「書く側の形」/ [観測](../../docs/design/observability.ja.md#getlogger-は初期化前に投げる)「`getLogger()` は初期化前に投げる」 |
 | 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.ja.md) の禁止事項 |
 
 ## 関連する ADR

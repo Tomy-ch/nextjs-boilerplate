@@ -35,8 +35,8 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/checkout` | [`screen`](../../../docs/spec/route/shop/checkout/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/page.function.md) | 必要 |
-| `/checkout/complete` | [`screen`](../../../docs/spec/route/shop/checkout/complete/page.screen.md) / [`function`](../../../docs/spec/route/shop/checkout/complete/page.function.md) | 必要 |
+| `/checkout` | [`screen`](../../../docs/spec/route/shop/checkout/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/checkout/page.function.ja.md) | 必要 |
+| `/checkout/complete` | [`screen`](../../../docs/spec/route/shop/checkout/complete/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/checkout/complete/page.function.ja.md) | 必要 |
 
 使う operationId。
 

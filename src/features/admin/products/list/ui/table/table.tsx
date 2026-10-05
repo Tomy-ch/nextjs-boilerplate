@@ -149,7 +149,7 @@ function rowKey(item: AdminProductRow): string {
  * 区別させません。
  *
  * **行を押す・在庫を押すのどちらも、明示的に選ぶ道を menu が残します**（理由は `docs/spec/route/admin/products/page.function.md`
- * 「行から進める先」）。
+ * "Where a Row Leads"）。
  *
  * @param props - {@link AdminProductTableProps} を受け取る。
  *

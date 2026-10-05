@@ -26,8 +26,8 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/admin/inquiries` | [`screen`](../../../../docs/spec/route/admin/inquiries/page.screen.md) / [`function`](../../../../docs/spec/route/admin/inquiries/page.function.md) | 役割: admin |
-| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) | 役割: admin |
+| `/admin/inquiries` | [`screen`](../../../../docs/spec/route/admin/inquiries/page.screen.ja.md) / [`function`](../../../../docs/spec/route/admin/inquiries/page.function.ja.md) | 役割: admin |
+| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.ja.md>) | 役割: admin |
 
 親（[`admin`](../README.ja.md)）の「認可」がこの画面にもそのまま掛かります。
 

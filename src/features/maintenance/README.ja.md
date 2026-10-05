@@ -15,7 +15,7 @@
 - **止めるかどうかの判定**。エントリポイント（`src/proxy.ts`）が `config/maintenance` を読んで決めます。ここが
   判定を持つと、止まっているあいだ全ルートが動的になります
 - **状態を変えるリクエストを断ること**。差し替えはレンダリングする先を変えるだけなので、断るのはエントリポイントの仕事です
-  （[仕様書](../../../docs/spec/route/maintenance/page.function.md)）
+  （[仕様書](../../../docs/spec/route/maintenance/page.function.ja.md)）
 - **復旧の見込み**。予定を出すには運用チームがそれを供給する必要があり、供給が無いまま文面へ書くと
   当たらない予定が画面に残ります
 
@@ -23,7 +23,7 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/maintenance` | [`screen`](../../../docs/spec/route/maintenance/page.screen.md) / [`function`](../../../docs/spec/route/maintenance/page.function.md) | 不要 |
+| `/maintenance` | [`screen`](../../../docs/spec/route/maintenance/page.screen.ja.md) / [`function`](../../../docs/spec/route/maintenance/page.function.ja.md) | 不要 |
 
 **operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。止まっている
 あいだにバックエンドを引くと、止めた理由がバックエンド側にあるとき応答が返りません。

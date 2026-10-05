@@ -9,7 +9,7 @@ const PLACEHOLDER_GROUPS = 3;
  *
  * @remarks
  * 代用で高さが変わると読み始めた位置が動く理由は
- * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md)「待機」。
+ * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md#loading)。
  */
 export const ShipmentQueueSkeleton = withPartSpan(
   "features/admin/shipments/ui/skeleton/skeleton",

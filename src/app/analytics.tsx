@@ -111,7 +111,7 @@ function MeasurementId(): null {
  * **読み込んだ容器は unmount では降りません。** `afterInteractive` は effect で `document.body` へ
  * script を足し、unmount で外しません。React も `async` の付いた `<script src>` を資源として扱い、
  * 木から消えても `<head>` から外しません。同意の取り消しが効くのは次の読み込みからです
- * （`docs/spec/route/layout.function.md`「同意が無いものは読み込まない」）。
+ * （`docs/spec/route/layout.function.md#load-nothing-without-consent`）。
  *
  * 計測 id はこの経路以外へ渡しません。運用テレメトリ（`telemetry.tsx`）とは主体を分けます。
  */

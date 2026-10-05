@@ -81,7 +81,7 @@ width or order). The display shifts at hydration by however much the initial val
 - **Conditional rendering that moves positions is done in CSS, not with these hooks.** What may use them is what cannot work
   with the DOM left in place (a surface with a focus trap), and what does not move positions when it appears. The rule is held by
   [`docs/rules.md`](../../docs/rules.md#layout), and the relationship with hydration by
-  [`docs/design/rendering.md`](../../docs/design/rendering.md#サーバでしか分からないことブラウザでしか分からないことがある)
+  [`docs/design/rendering.md`](../../docs/design/rendering.md#some-things-only-the-server-knows-and-some-only-the-browser-knows)
 - When a width step is the condition, do not write numbers; pass the string [`model/breakpoint`](../model/breakpoint.ts) builds from
   design tokens. Write numbers on the JS side and they drift from the CSS boundaries when the steps are replaced
 - **A capability and whether what follows succeeds are separate.** Having a connection is separate from communication succeeding; the liveness of a connection is held by
@@ -96,7 +96,7 @@ pure logic (the selection criterion is "does the subject use the hook API"; [009
 
 - Put `// @vitest-environment jsdom` at the top of the file. The default environment is node (`vitest.config.ts`)
 - Write a Probe component that only calls the hook, and read the return value reflected in the rendered output
-  ([`docs/testing-conventions.md`](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則), "Assert what the user observes")
+  ([`docs/testing-conventions.md`](../../docs/testing-conventions.md#component-and-hook-tests--testing-library-principles), "Assert what the user observes")
 - `vitest.setup.ts` supplies browser APIs jsdom lacks (that file holds the list of what it supplies). **A test that needs to cause a
   change places, in that file, a minimal implementation it can control via `vi.stubGlobal`** — the shape that returns a set of listeners
   and `change` / `fire` to trigger them. Read-only values (`navigator.onLine` / `window.scrollY`) are

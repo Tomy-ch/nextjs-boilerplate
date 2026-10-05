@@ -5,7 +5,7 @@ import { withScreenSpan } from "@/observability/render-span";
  *
  * @remarks
  * **戻る導線と終了の予定は出しません。** 理由は [README](./README.md#what-does-not-belong-here)と
- * `docs/spec/route/maintenance/page.screen.md` の「書かないこと」。
+ * `docs/spec/route/maintenance/page.screen.md#what-not-to-write`。
  */
 export const MaintenanceView = withScreenSpan("features/maintenance/view", () => {
   return (

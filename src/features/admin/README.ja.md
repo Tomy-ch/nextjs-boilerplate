@@ -24,20 +24,20 @@
 ## Route と契約
 
 **認証はすべて「役割: admin」**です。二段で守る仕組みは「認可」に書いてあります。外枠の約束は
-[`admin` の layout](../../../docs/spec/route/admin/layout.function.md) が持ちます。
+[`admin` の layout](../../../docs/spec/route/admin/layout.function.ja.md) が持ちます。
 
 | Route | 仕様書 |
 | --- | --- |
-| `/admin` | [`screen`](../../../docs/spec/route/admin/page.screen.md) / [`function`](../../../docs/spec/route/admin/page.function.md) |
-| `/admin/analytics` | [`screen`](../../../docs/spec/route/admin/analytics/page.screen.md) / [`function`](../../../docs/spec/route/admin/analytics/page.function.md) |
-| `/admin/products` | [`screen`](../../../docs/spec/route/admin/products/page.screen.md) / [`function`](../../../docs/spec/route/admin/products/page.function.md) |
-| `/admin/products/new` | [`screen`](../../../docs/spec/route/admin/products/new/page.screen.md) / [`function`](../../../docs/spec/route/admin/products/new/page.function.md) |
-| `/admin/products/[id]/edit` | [`screen`](<../../../docs/spec/route/admin/products/[id]/edit/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/edit/page.function.md>) |
-| `/admin/products/[id]/stock` | [`screen`](<../../../docs/spec/route/admin/products/[id]/stock/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/stock/page.function.md>) |
-| `/admin/inquiries` | [`screen`](../../../docs/spec/route/admin/inquiries/page.screen.md) / [`function`](../../../docs/spec/route/admin/inquiries/page.function.md) |
-| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) |
-| `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
-| `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
+| `/admin` | [`screen`](../../../docs/spec/route/admin/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/page.function.ja.md) |
+| `/admin/analytics` | [`screen`](../../../docs/spec/route/admin/analytics/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/analytics/page.function.ja.md) |
+| `/admin/products` | [`screen`](../../../docs/spec/route/admin/products/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/products/page.function.ja.md) |
+| `/admin/products/new` | [`screen`](../../../docs/spec/route/admin/products/new/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/products/new/page.function.ja.md) |
+| `/admin/products/[id]/edit` | [`screen`](<../../../docs/spec/route/admin/products/[id]/edit/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/edit/page.function.ja.md>) |
+| `/admin/products/[id]/stock` | [`screen`](<../../../docs/spec/route/admin/products/[id]/stock/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/stock/page.function.ja.md>) |
+| `/admin/inquiries` | [`screen`](../../../docs/spec/route/admin/inquiries/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/inquiries/page.function.ja.md) |
+| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.ja.md>) |
+| `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.ja.md) |
+| `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/users/page.function.ja.md) |
 
 **`/admin/shipments` の契約・状態・Action は [shipments/README.md](shipments/README.ja.md) が、
 `/admin/inquiries` の分は [inquiries/README.md](inquiries/README.ja.md) が持ちます。**

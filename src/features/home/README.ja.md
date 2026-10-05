@@ -21,9 +21,9 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/` | [`screen`](../../../docs/spec/route/shop/page.screen.md) / [`function`](../../../docs/spec/route/shop/page.function.md) | 不要 |
+| `/` | [`screen`](../../../docs/spec/route/shop/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/page.function.ja.md) | 不要 |
 
-外枠の約束は [`(shop)` の layout](../../../docs/spec/route/shop/layout.function.md) が持ちます。
+外枠の約束は [`(shop)` の layout](../../../docs/spec/route/shop/layout.function.ja.md) が持ちます。
 
 使う operationId。
 

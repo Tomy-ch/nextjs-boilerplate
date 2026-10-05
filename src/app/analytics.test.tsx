@@ -20,8 +20,8 @@ async function loadIsland(containerId: string) {
   vi.stubEnv("NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID", containerId);
   vi.resetModules();
 
-  // 島が動的に読む module を先に解決する（`docs/testing-conventions.md`「`next/dynamic` を含む
-  // 木を描くとき」）。`beforeAll` に置けないのは、ここで毎回 registry を作り直して先読みが
+  // 島が動的に読む module を先に解決する（`docs/testing-conventions.md` の
+  // "Rendering a tree that contains `next/dynamic`"）。`beforeAll` に置けないのは、ここで毎回 registry を作り直して先読みが
   // 捨てられるためで、作り直した直後に読む。
   await import("@next/third-parties/google");
 

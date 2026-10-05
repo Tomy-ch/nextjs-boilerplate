@@ -49,7 +49,7 @@ v1.0.0 未満の間、以下を**一時的に解除する**。
 3. **`.github/copilot-instructions.md`** その他エージェント固有の設定
 4. ユーザの指示
 
-上流の boilerplate である間しか成り立たない記述は [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.md) が持つ。 <!-- boilerplate-only:line -->
+上流の boilerplate である間しか成り立たない記述は [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.ja.md) が持つ。 <!-- boilerplate-only:line -->
 
 ## canonical な文書
 
@@ -61,11 +61,11 @@ v1.0.0 未満の間、以下を**一時的に解除する**。
 | --- | --- |
 | 確定した決定の全件、1 行要約つき | [`docs/adr/README.md`](docs/adr/README.ja.md) —— ADR の台帳であり、一覧が在るのはここだけである |
 | すべての変更を縛る規約 —— レイヤー境界、データ分類、フォーム、コメント、作業の進め方 | [`docs/rules.md`](docs/rules.ja.md) |
-| 個別のケースをどう決めるかの基準 —— レンダリング、データ取得、認証、フォーム、可観測性 | [`docs/design/README.md`](docs/design/README.md)。インデックスを開くこと。ここに挙げた例はインベントリではない |
-| **Next.js 16 / React 19 は学習データと食い違う** | [`docs/design/rendering.md`](docs/design/rendering.md) —— 用語と、古い前提が招く誤り。`"use client"` は**バンドル境界**であって「クライアントでレンダリングせよ」ではない。コードを書く前に `node_modules/next/dist/docs/` を読む |
-| テストの規約 | [`docs/testing-conventions.md`](docs/testing-conventions.md) |
+| 個別のケースをどう決めるかの基準 —— レンダリング、データ取得、認証、フォーム、可観測性 | [`docs/design/README.md`](docs/design/README.ja.md)。インデックスを開くこと。ここに挙げた例はインベントリではない |
+| **Next.js 16 / React 19 は学習データと食い違う** | [`docs/design/rendering.md`](docs/design/rendering.ja.md) —— 用語と、古い前提が招く誤り。`"use client"` は**バンドル境界**であって「クライアントでレンダリングせよ」ではない。コードを書く前に `node_modules/next/dist/docs/` を読む |
+| テストの規約 | [`docs/testing-conventions.md`](docs/testing-conventions.ja.md) |
 | レイヤーごとの責務と import 境界 | 触っているレイヤーの `README.md`（`src/**` 配下） |
-| 画面要件・機能要件 | [`docs/spec/`](docs/spec/README.md) |
+| 画面要件・機能要件 | [`docs/spec/`](docs/spec/README.ja.md) |
 | `make` の全ターゲット | [`.makefiles/README.md`](.makefiles/README.md) |
 | ある記述をどの文書が所有するか、そして開発の経緯はどこへ行くか | [`docs/README.md`](docs/README.ja.md) |
 
@@ -151,7 +151,7 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 **このファイルが繰り返さない規則も、規則である。** ここに禁止が見つからないことは、このファイルについての
 証拠であって、その禁止についての証拠ではない。
 
-**決定の根拠に、この木の在庫を置かない。**「ここにその画面がまだ無い」は、テンプレートから作ったリポジトリで読めば*そちらの*画面についての主張になる —— [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.md)「決定の根拠に、この木の在庫を置かない」。 <!-- boilerplate-only:line -->
+**決定の根拠に、この木の在庫を置かない。**「ここにその画面がまだ無い」は、テンプレートから作ったリポジトリで読めば*そちらの*画面についての主張になる —— [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.ja.md)「決定の根拠に、この木の在庫を置かない」。 <!-- boilerplate-only:line -->
 
 **責務の規約が 2 つ、ゲートを 1 つも持たない。** どちらもコードの形からは決まらず、`docs/rules.md` は
 それぞれの箇所でそう述べている。自分で持つこと。
@@ -311,7 +311,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
 失敗ステップの中に無いときだけ `--log` へ手を伸ばし、何で絞ったかを述べる。**ゲートの判定を欠損する
 フィルタ越しに報告しない**（[0157](docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
-ゲートは hook と CI が持ち、**判定は CI が正**である —— [`docs/playbook.md`](docs/playbook.md)「ゲートを先回りして回さない」。上流での逸脱は [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.md) が持つ。 <!-- boilerplate-only:line -->
+ゲートは hook と CI が持ち、**判定は CI が正**である —— [`docs/playbook.md`](docs/playbook.ja.md)「ゲートを先回りして回さない」。上流での逸脱は [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.ja.md) が持つ。 <!-- boilerplate-only:line -->
 
 ### 文脈へ届くものだけを変える 2 つの道具
 

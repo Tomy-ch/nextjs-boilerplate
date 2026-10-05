@@ -95,7 +95,7 @@ Accepted
 ### boilerplate 限定の記述
 
 **この template を配る側にしか意味を持たない記述は、1 本の文書へ集めて丸ごと消す。** 置き場は
-[`docs/get-started/boilerplate-only-conventions.md`](../get-started/boilerplate-only-conventions.md)
+[`docs/get-started/boilerplate-only-conventions.md`](../get-started/boilerplate-only-conventions.ja.md)
 で、剥がし（`make setup-remove-boilerplate-only`）がファイルごと削除する。
 
 **集めるのは、囲みを散らすと壊れるのが囲みの外だからである。** セクションの途中を切り抜く形にすると、消える
@@ -139,7 +139,7 @@ AI エージェントは以下の優先度で指示に従う。矛盾時は上�
 
 ## 未策定領域の扱い
 
-ADR 化されていない決定領域の一覧を AGENTS.md は持たない。追跡先は issue トラッカー —— **閉じることのできる単位**である。AGENTS.md や ADR に一覧をコピーすれば、1 つ着地した瞬間に陳腐化する二重管理になる([`docs/project/roadmap.md`](../project/roadmap.md) が作業項目を持たないのと同じ理由)。**踏み込んだときの振る舞いは AGENTS.md が持たない。** 「導出できない領域で規約・パターン・ライブラリを持ち込まない / 暫定実装は着手前に明示する」は日常強制される rule であり、置き場は [`docs/rules.md`](../rules.ja.md#workflow) である([0140](0140-documentation-operations.ja.md))。AGENTS.md 側は `Where You May Stop` の停止点表から 1 行で指すだけにする —— セクションを立てると、停止点の一覧が自分の内側を指すことになり、閉じた一覧である意味が消える。
+ADR 化されていない決定領域の一覧を AGENTS.md は持たない。追跡先は issue トラッカー —— **閉じることのできる単位**である。AGENTS.md や ADR に一覧をコピーすれば、1 つ着地した瞬間に陳腐化する二重管理になる([`docs/project/roadmap.md`](../project/roadmap.ja.md) が作業項目を持たないのと同じ理由)。**踏み込んだときの振る舞いは AGENTS.md が持たない。** 「導出できない領域で規約・パターン・ライブラリを持ち込まない / 暫定実装は着手前に明示する」は日常強制される rule であり、置き場は [`docs/rules.md`](../rules.ja.md#workflow) である([0140](0140-documentation-operations.ja.md))。AGENTS.md 側は `Where You May Stop` の停止点表から 1 行で指すだけにする —— セクションを立てると、停止点の一覧が自分の内側を指すことになり、閉じた一覧である意味が消える。
 
 ADR が策定されたら、[`docs/adr/README.md`](README.ja.md) の一覧へ追加する。AGENTS.md は触らない。
 

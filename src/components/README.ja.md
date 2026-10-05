@@ -77,7 +77,7 @@ git diff --check
 
 ### テストの形
 
-観点は [docs/testing-conventions.ja.md](../../docs/testing-conventions.md) と、各 README の「Storybook とテスト」が持つ。このレイヤーで揃えている形は次の 4 つである。
+観点は [docs/testing-conventions.ja.md](../../docs/testing-conventions.ja.md) と、各 README の「Storybook とテスト」が持つ。このレイヤーで揃えている形は次の 4 つである。
 
 - `vitest.config.ts` のデフォルト環境は `node` なので、レンダリングするテストは先頭に `// @vitest-environment jsdom` を置く。レンダリングを持たない `scripts/` はこの行を持たない
 - レンダリングを返す対象のテストは `vitest-axe` の `axe()` を必ず 1 件持つ（[0091](../../docs/adr/0091-test-verification-methods.ja.md)）
@@ -193,7 +193,7 @@ grep -ohE 'var\(--[a-z0-9-]+\)' src/components/<層>/**/<component>/*.tsx \
 
 ### `data-slot`
 
-- **レンダリングする要素には `data-slot` を付ける。** 値は kebab-case で、root はそのコンポーネントの概念名（`dialog`）、subcomponent は `<概念>-<部位>`（`dialog-content`）。親が子の部位へ style を当てる選択子（`*:data-[slot=alert-title]:text-warning`）と、role から引けない要素をテストで取る手掛かり（[docs/testing-conventions.ja.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)）の両方がこの値を読む
+- **レンダリングする要素には `data-slot` を付ける。** 値は kebab-case で、root はそのコンポーネントの概念名（`dialog`）、subcomponent は `<概念>-<部位>`（`dialog-content`）。親が子の部位へ style を当てる選択子（`*:data-[slot=alert-title]:text-warning`）と、role から引けない要素をテストで取る手掛かり（[docs/testing-conventions.ja.md](../../docs/testing-conventions.ja.md#component--hook-のテスト--testing-library-の原則)）の両方がこの値を読む
 - `pnpm check:classes` は `className` と `cn()` / `cva()` の引数だけを候補に取るため、`data-slot` の値が class と誤認されることはない
 
 ### variant の定義
@@ -338,7 +338,7 @@ components/
 - **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、そのコンポーネントが何のためにあるかと、**隣の似たコンポーネントとの使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違うコンポーネントは、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く
 - 説明の置き場は 2 つある。component 全体は `parameters.docs.description.component`、story ごとは export の直前の JSDoc（または `parameters.docs.description.story`）である。**どちらも Docs ページにしかレンダリングされない。** [`.storybook/preview.tsx`](../../.storybook/preview.tsx) が `tags: ["autodocs"]` を付けているのはこのためで、外すと書いた説明がどこにも出なくなる
 - 幅を持たないコンポーネント（入力欄、card、menu の trigger）は、story の `decorators` で幅を与えた `div` に包む。幅は story 側の表示指定であり、コンポーネントにもアプリの layout にも属さない。狭い画面で見切れないよう `max-w-[calc(100vw-2rem)]` を併記する
-- 操作しないと現れない状態（開いた menu、選び終えた候補、送った後の一覧）は `play` で操作して story に固定する。閉じた姿しか story に無いと、そのコンポーネントの主な姿がカタログにも visual regression にも載らない。Portal で `body` 直下へ出た面の引き方は [docs/testing-conventions.ja.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)が持つ
+- 操作しないと現れない状態（開いた menu、選び終えた候補、送った後の一覧）は `play` で操作して story に固定する。閉じた姿しか story に無いと、そのコンポーネントの主な姿がカタログにも visual regression にも載らない。Portal で `body` 直下へ出た面の引き方は [docs/testing-conventions.ja.md](../../docs/testing-conventions.ja.md#component--hook-のテスト--testing-library-の原則)が持つ
 
 ## 監査の観点
 
