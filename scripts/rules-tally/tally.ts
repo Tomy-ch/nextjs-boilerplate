@@ -44,7 +44,7 @@ const VERDICT_PREFIX = "Prose — **";
 
 /** 規約が自分で述べる判定。前置きは {@link VERDICT_PREFIX} を逃がして組む —— 綴りの出所は 1 つ。 */
 const VERDICT = new RegExp(
-  `(?<=${VERDICT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[^*]+(?=\\*\\*)`,
+  String.raw`(?<=${VERDICT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`)})[^*]+(?=\*\*)`,
   "g",
 );
 
