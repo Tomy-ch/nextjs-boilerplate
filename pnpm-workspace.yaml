@@ -94,6 +94,39 @@ overrides:
   # 出てプロセスが落ちる。宣言は ^7.24.5 / ^7.27.2 / ^7.11.0 で 7.29.1 はいずれの内側でもある。
   # 3 つがすべて 7.29.1 以上を要求したら撤去する。
   "undici@>=7.28.0 <7.29.1": ">=7.29.1 <8"
+  # shadcn CLI の推移的依存。
+  # GHSA-6qxp-vccf-f47h (high): OAuth クライアントが資格情報を、MCP サーバが名指しした認可サーバへ
+  # 送ってしまう。shadcn の宣言は ^1.26.0 で 1.31.0 はその内側。shadcn が 1.31.0 以上を要求したら撤去する。
+  "@modelcontextprotocol/sdk@>=1.12.0 <1.31.0": ">=1.31.0 <2"
+  # shadcn CLI の推移的依存。
+  # GHSA-rj75-hqrm-r3gf (moderate): `.a.a.a…` のような平たいセレクタの解析がクラス数に対して二次で伸びる。
+  # shadcn の宣言は ^7.1.0 で 7.1.6 はその内側。shadcn が 7.1.6 以上を要求したら撤去する。
+  "postcss-selector-parser@>=7 <7.1.6": ">=7.1.6 <8"
+  # @tiptap/pm ほか prosemirror の各パッケージが引く。リッチテキストの編集面で browser 上を走る。
+  # GHSA-c8x8-7fp4-3x9w (high): 攻撃者が用意した HTML を貼り付けると、編集面のある window で
+  # スクリプトが走る。宣言は最も狭い @tiptap/pm でも ^1.41.9 で 1.42.3 はその内側。
+  # @tiptap/pm が 1.42.3 以上を要求したら撤去する。
+  "prosemirror-view@<1.42.3": ">=1.42.3 <2"
+  # express（shadcn CLI > @modelcontextprotocol/sdk が引く）の推移的依存。
+  # GHSA-jqcg-44mw-7w3h (critical): IPv4-mapped IPv6 で短い prefix の信頼サブネットを書くと、
+  # 先頭のビットが 0 のまま組まれて任意のアドレスを信頼する。
+  # express の宣言は ^2.0.7 で 2.0.8 はその内側。express が 2.0.8 以上を要求したら撤去する。
+  "proxy-addr@>=1.1.0 <2.0.8": ">=2.0.8 <3"
+  # next の optional な依存。画像最適化でサーバ側を走る。
+  # GHSA-wq5f-xc86-pv6w (high): 同梱の librsvg のメモリ破壊で、glibc の Linux では RCE になりうる。
+  # next の宣言は ^0.35.4 で 0.35.5 はその内側。next が 0.35.5 以上を要求したら撤去する。
+  "sharp@<0.35.5": ">=0.35.5 <0.36"
+  # postcss / @tailwindcss/node / css-tree / magicast の推移的依存。
+  # GHSA-68fv-2mgg-jv7q (high): indexed source map の section の行オフセットを検証せず、巨大な値で
+  # event loop を長時間塞ぐ。宣言はいずれも ^1.2.1 で 1.2.2 はその内側。
+  # 4 つがすべて 1.2.2 以上を要求したら撤去する。
+  "source-map-js@>=1.0.0 <1.2.2": ">=1.2.2 <2"
+  # markdownlint-cli2 / knip の推移的依存で、直接依存でもある。lint と未使用検査の実行時にしか走らない。
+  # GHSA-r4xh-jqrq-34v2 (moderate): parse() が鍵の行ごとに文書の末尾まで走査し直し、二次で伸びる。
+  # **この宣言は上流の宣言範囲の内側から外れる。** markdownlint-cli2 は範囲ではなく 1.8.0 の完全
+  # 固定で、最新の 0.23.3 でも同じなので、内側に留まると塞げない。組み合わせの検証は、markdown を
+  # 触る変更ごとに走る pnpm lint:md で代える。markdownlint-cli2 が 1.9.0 以上を要求したら撤去する。
+  "smol-toml@<1.9.0": ">=1.9.0 <2"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。

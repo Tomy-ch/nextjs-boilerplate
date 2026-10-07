@@ -11,3 +11,8 @@
 id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2026-11-02
 reason = "braces の展開が深く入れ子になったパターンでスタックを使い切る。修正版は無い（全版が影響範囲で、3.0.3 が最終の影響版）。経路は micromatch を通じた eslint-plugin-boundaries / fast-glob（shadcn CLI・ts-morph）/ globby / markdownlint-cli2 で、開発時の lint と CLI にしか現れず、本番の依存（pnpm why --prod）にも配信物にも入らない。展開するパターンはリポジトリの設定が書いたもので、外からの入力を受けない。修正版が公開され依存更新で取り込めた時点、または助言が取り下げられた時点で削除する。期限を過ぎたら、修正版の有無を確かめて延ばすか外すかを決める。"
+
+[[IgnoredVulns]]
+id = "GHSA-238p-pmpm-9mq7"
+ignoreUntil = 2026-11-07
+reason = "KaTeX が、既に汚染された Object.prototype の継承プロパティを描画の設定（trust など）として読む。KaTeX 自身は汚染を起こさず、別の脆弱性で汚染が起きたときの増幅器にとどまる（low）。修正版の 0.18.2 は引き元の宣言範囲（mermaid ^0.16.47 / micromark-extension-math ^0.16.0）の外にあり、mermaid は最新の 12.x でも ^0.16 を宣言している。間の 0.18.0 は CSS クラス名に接頭辞を付ける破壊的変更で、mermaid の数式描画と組み合わせが崩れるため、固定で範囲の外へ動かさない。mermaid が 0.18.2 以上を引けるようになった時点で依存更新で取り込み、ここを削除する。期限を過ぎたら、mermaid の宣言を確かめて延ばすか外すかを決める。"
