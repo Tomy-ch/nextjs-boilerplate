@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/design-system/overlay/dialog/dialog";
 
-import type { DocsJson, PortalItem } from "../docs-json/docs-json";
+import type { DocsJson, PortalGroup, PortalItem } from "../docs-json/docs-json";
 import { DocumentContent } from "../document-content/document-content";
 import { parseHashRoute, resolveActiveGroupSlug } from "../hash-route/hash-route";
 import { applyLangFilter, type PortalLang } from "../lang-filter/lang-filter";
@@ -158,45 +158,12 @@ export function PortalApp({ docs }: PortalAppProps) {
         </aside>
 
         <main className="min-w-0 flex-1">
-          {results ? (
-            <section aria-labelledby={searchResultsHeadingId} className="flex flex-col gap-4">
-              <h2 className="font-semibold text-xl" id={searchResultsHeadingId}>
-                Search results ({results.length})
-              </h2>
-              {results.length === 0 ? (
-                <p className="text-muted-foreground">No matching items.</p>
-              ) : (
-                <PortalCardGrid items={results} onOpenDocument={onOpenDocument} />
-              )}
-            </section>
-          ) : activeGroup ? (
-            <div className="flex flex-col gap-8">
-              <h2 className="font-semibold text-xl">{activeGroup.title}</h2>
-              {activeGroup.sections.map((section) => (
-                <section
-                  aria-labelledby={`section-${section.slug}-heading`}
-                  className="flex flex-col gap-4"
-                  id={`section-${section.slug}`}
-                  key={section.slug}
-                >
-                  <h3 className="font-medium text-lg" id={`section-${section.slug}-heading`}>
-                    {section.title}
-                  </h3>
-                  <PortalCardGrid items={section.items} onOpenDocument={onOpenDocument} />
-                  {(section.subgroups ?? []).map((subgroup) => (
-                    <div className="flex flex-col gap-3" key={subgroup.title}>
-                      <h4 className="font-medium text-muted-foreground text-sm">
-                        {subgroup.title}
-                      </h4>
-                      <PortalCardGrid items={subgroup.items} onOpenDocument={onOpenDocument} />
-                    </div>
-                  ))}
-                </section>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">No items to display.</p>
-          )}
+          <PortalMain
+            group={activeGroup}
+            onOpenDocument={onOpenDocument}
+            results={results}
+            searchResultsHeadingId={searchResultsHeadingId}
+          />
         </main>
       </div>
 
@@ -213,6 +180,60 @@ export function PortalApp({ docs }: PortalAppProps) {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+type PortalMainProps = {
+  group: PortalGroup | null;
+  onOpenDocument: (item: PortalItem) => void;
+  results: SearchEntry[] | null;
+  searchResultsHeadingId: string;
+};
+
+/** 本文の領域。検索語があれば検索結果を、無ければハッシュが指す group を描く。 */
+function PortalMain({ group, onOpenDocument, results, searchResultsHeadingId }: PortalMainProps) {
+  if (results) {
+    return (
+      <section aria-labelledby={searchResultsHeadingId} className="flex flex-col gap-4">
+        <h2 className="font-semibold text-xl" id={searchResultsHeadingId}>
+          Search results ({results.length})
+        </h2>
+        {results.length === 0 ? (
+          <p className="text-muted-foreground">No matching items.</p>
+        ) : (
+          <PortalCardGrid items={results} onOpenDocument={onOpenDocument} />
+        )}
+      </section>
+    );
+  }
+
+  if (!group) {
+    return <p className="text-muted-foreground">No items to display.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <h2 className="font-semibold text-xl">{group.title}</h2>
+      {group.sections.map((section) => (
+        <section
+          aria-labelledby={`section-${section.slug}-heading`}
+          className="flex flex-col gap-4"
+          id={`section-${section.slug}`}
+          key={section.slug}
+        >
+          <h3 className="font-medium text-lg" id={`section-${section.slug}-heading`}>
+            {section.title}
+          </h3>
+          <PortalCardGrid items={section.items} onOpenDocument={onOpenDocument} />
+          {(section.subgroups ?? []).map((subgroup) => (
+            <div className="flex flex-col gap-3" key={subgroup.title}>
+              <h4 className="font-medium text-muted-foreground text-sm">{subgroup.title}</h4>
+              <PortalCardGrid items={subgroup.items} onOpenDocument={onOpenDocument} />
+            </div>
+          ))}
+        </section>
+      ))}
     </div>
   );
 }
