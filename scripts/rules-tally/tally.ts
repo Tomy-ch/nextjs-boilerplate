@@ -42,11 +42,10 @@ const FENCE = /^\s*(```|~~~)/;
 /** 判定の前置き。判定の語はこの直後の強調に入る。 */
 const VERDICT_PREFIX = "Prose — **";
 
+const ESCAPED_VERDICT_PREFIX = VERDICT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+
 /** 規約が自分で述べる判定。前置きは {@link VERDICT_PREFIX} を逃がして組む —— 綴りの出所は 1 つ。 */
-const VERDICT = new RegExp(
-  `(?<=${VERDICT_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[^*]+(?=\\*\\*)`,
-  "g",
-);
+const VERDICT = new RegExp(String.raw`(?<=${ESCAPED_VERDICT_PREFIX})[^*]+(?=\*\*)`, "g");
 
 /** 集計の埋め込み先を挟む印。 */
 const BLOCK = /<!-- generated: rules-tally -->[\s\S]*?<!-- \/generated: rules-tally -->/;

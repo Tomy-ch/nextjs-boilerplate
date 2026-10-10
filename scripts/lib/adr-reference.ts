@@ -69,8 +69,34 @@ const COUNTER = /^[ 　]*[つ本件回点種段層人箇]/;
  * `Decision 3 steps …` のように節を名指す語が先にあれば、番号は節を指しており、続く語は件数では
  * ない。日本語の助数詞と違い語の境界が要るので、空白を挟んだ語の全体で見る。
  */
-const ENGLISH_COUNTER =
-  /^[ 　]+(?:reasons?|rules?|times|steps?|layers?|kinds?|points?|items?|ways?)\b/i;
+const ENGLISH_COUNTERS: ReadonlySet<string> = new Set([
+  "reason",
+  "reasons",
+  "rule",
+  "rules",
+  "times",
+  "step",
+  "steps",
+  "layer",
+  "layers",
+  "kind",
+  "kinds",
+  "point",
+  "points",
+  "item",
+  "items",
+  "way",
+  "ways",
+]);
+
+/** 空白を挟んで続く英語の語の全体。助数詞かどうかは {@link ENGLISH_COUNTERS} で引く。 */
+const FOLLOWING_WORD = /^[ 　]+(\w+)/;
+
+function isEnglishCounter(after: string): boolean {
+  const word = FOLLOWING_WORD.exec(after)?.[1];
+
+  return word !== undefined && ENGLISH_COUNTERS.has(word.toLowerCase());
+}
 
 /**
  * 1 行から、リンクの直後に節番号を置いている箇所を挙げる。
@@ -95,7 +121,7 @@ function findInLine(file: string, line: number, text: string): readonly Sectione
     const after = text.slice(link.index + link[0].length + section[0].length);
 
     const counted =
-      COUNTER.test(after) || (BARE_NUMBER.test(section[0]) && ENGLISH_COUNTER.test(after));
+      COUNTER.test(after) || (BARE_NUMBER.test(section[0]) && isEnglishCounter(after));
 
     return counted ? [] : [{ file, line, text: `${link[0]}${section[0]}`.trim() }];
   });
