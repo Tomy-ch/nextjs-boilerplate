@@ -65,7 +65,7 @@ export function survivingText(content: string): string {
 }
 
 /** 英語の語を組む文字。綴りの直前がこれなら、より長い語の途中に居る。 */
-const WORD_CHARACTER = /[A-Za-z0-9_]/;
+const WORD_CHARACTER = /\w/;
 
 /**
  * 綴りが語の頭から始まる位置に現れるか。
