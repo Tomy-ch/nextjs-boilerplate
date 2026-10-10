@@ -1,56 +1,56 @@
-# フォーム送信フローの canonical 機構(`<form action>` + `useActionState` + `useFormStatus`)
+# The Canonical Mechanism for Form Submission Flows (`<form action>` + `useActionState` + `useFormStatus`)
 
-変更系フローの **送信メカニクス**を 1 本に定める。`<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を canonical な送信フローの既定形とし、戻り値契約 `ActionState<T>` を「入力検証 UX / 結果通知 UX が共通に依拠する器」として敷く。[0060](0060-state-management.md) は form state に react-hook-form + zod を採用するが、rhf はクライアント入力検証を担い、**送信そのものは本 ADR の Server Actions 機構に合流させる**(送信機構は 1 本)。標準([0010](0010-standards-and-non-lockin.md))に乗る送信メカニクスの土台を提供する。
+This ADR unifies the **submission mechanics** of mutation flows into one. `<form action={serverAction}>` + `useActionState` (result state) + `useFormStatus` (pending) is the default form of the canonical submission flow, and the return-value contract `ActionState<T>` is laid down as "the vessel that input validation UX and result notification UX both rely on". [0060](0060-state-management.md) adopts react-hook-form + zod for form state, but rhf handles client input validation, and **submission itself merges into this ADR's Server Actions mechanism** (one submission mechanism). It provides the foundation of submission mechanics that rides on standards ([0010](0010-standards-and-non-lockin.md)).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0060](0060-state-management.md) は form state に **react-hook-form + zod を採用**し、[0052](0052-ui-component-policy.md) は UI / form 部品(shadcn 系)を採用しているが、rhf が担うのは**クライアントの入力状態・検証**であって「**サーバへどう送信し、結果を返すか**」という送信メカニクスは別レイヤである。boilerplate で最頻出の UI であるフォームが、送信の骨格すら規約なしでは feature ごとに発明され(`onSubmit` 内での手 fetch / rhf の `handleSubmit` から独自 POST 等に分岐)、[0062](0062-form-input-validation.md) の入力検証も [0063](0063-mutation-result-notification.md) の結果通知も、乗る先の器がなければ統一できない。
+[0060](0060-state-management.md) **adopts react-hook-form + zod** for form state, and [0052](0052-ui-component-policy.md) adopts UI / form components (shadcn family), but what rhf handles is **client input state and validation**; the submission mechanics of "**how to send to the server and return the result**" are a separate layer. Forms, the most frequent UI in a boilerplate, would without conventions have even the skeleton of submission invented per feature (branching into a hand-written fetch inside `onSubmit` / an ad-hoc POST from rhf's `handleSubmit`, etc.), and neither the input validation of [0062](0062-form-input-validation.md) nor the result notification of [0063](0063-mutation-result-notification.md) could be unified without a vessel to ride on.
 
-送信メカニクスは入力検証・結果通知の**共通の土台**である。両者は戻り値契約(`ActionState`)を入力に選ぶため、まず「送ってから結果が返るまでの骨格」を 1 本に固定する必要がある。本 ADR はその骨格のみを担い、送信前の入力検証 UX は [0062](0062-form-input-validation.md)、送信後の結果通知 UX は [0063](0063-mutation-result-notification.md) が担う。rhf との関係は「rhf = クライアント入力検証 / 送信 = 本 ADR の `<form action>` + Server Action」に切り分け、送信機構を二重化しない。
+Submission mechanics are **the common foundation** of input validation and result notification. Both choose based on the return-value contract (`ActionState`), so first the "skeleton from sending until the result returns" needs to be fixed as one. This ADR handles only that skeleton; input validation UX before submission is handled by [0062](0062-form-input-validation.md), and result notification UX after submission by [0063](0063-mutation-result-notification.md). The relationship with rhf is split as "rhf = client input validation / submission = this ADR's `<form action>` + Server Action", without duplicating the submission mechanism.
 
-[0010](0010-standards-and-non-lockin.md) の標準準拠に従い、送信フローは React 19 / App Router のデファクト(`<form action>` + `useActionState` + `useFormStatus`)に乗り、標準に乗る決定として vendor-independent な正当性材料を本体に添える。
+Following [0010](0010-standards-and-non-lockin.md)'s standards conformance, the submission flow rides on the de facto of React 19 / the App Router (`<form action>` + `useActionState` + `useFormStatus`), and as a decision that rides on a standard, it attaches vendor-independent justification in the body.
 
-## 決定
+## Decision
 
-### 1. 送信フローの canonical 形(デファクトに乗る)
+### 1. The canonical form of the submission flow (riding on the de facto)
 
-- `<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を送信フローの**既定形**とする。Server Action は feature 内 `actions.ts` に置き、編成のみを行う([0021](0021-frontend-responsibility.md) / [0040](0040-routing-rendering-strategy.md))。`"use client"` は入力を扱う葉へ押し下げる([0040](0040-routing-rendering-strategy.md))
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)):progressive enhancement(JS 無効でも `<form>` が送信される)/ PRG(Post-Redirect-Get は web-platform の確立パターン)/ pending・結果 state の一元化。運用テスト =「React / Next.js を正当化から抜いても、サーバ往復する form は『標準 HTTP form + 進捗表示 + 結果表示』として成立するか?」→ Yes。ゆえにデファクトに乗っても縛られていない
+- `<form action={serverAction}>` + `useActionState` (result state) + `useFormStatus` (pending) is the **default form** of the submission flow. Server Actions live in `actions.ts` inside a feature and only orchestrate ([0021](0021-frontend-responsibility.md) / [0040](0040-routing-rendering-strategy.md)). `"use client"` is pushed down to the leaves that handle input ([0040](0040-routing-rendering-strategy.md))
+- **Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): progressive enhancement (the `<form>` submits even with JS disabled) / PRG (Post-Redirect-Get is an established web-platform pattern) / centralizing pending and result state. Operational test = "with React / Next.js taken out of the justification, does a form that makes a server round trip hold as 'a standard HTTP form + progress display + result display'?" → Yes. Hence riding on the de facto without being bound by it
 
-### 2. 戻り値契約 `ActionState<T>`(入力検証・通知が共通に依拠する器)
+### 2. The return-value contract `ActionState<T>` (the vessel input validation and notification both rely on)
 
-- 戻り値契約 `ActionState<T>`(フィールドエラー / フォームエラー / 成功値)は `model` が所有する**表示結果型**([0021](0021-frontend-responsibility.md)。実体は [`src/model/action-state.ts`](../../src/model/action-state.ts))であり、[0080](0080-error-handling.md) の sentinel を Server Action 境界越しにシリアライズして client へ渡す器である
-- **Server Action ごとに戻り値形状を発明せず、共通の `ActionState<T>` 契約に従う**。入力検証([0062](0062-form-input-validation.md))が返すフィールドエラー、結果通知([0063](0063-mutation-result-notification.md))が選ぶ通知手段は、いずれもこの契約を入力に選ぶ
+- The return-value contract `ActionState<T>` (field errors / form error / success value) is **a display result type** owned by `model` ([0021](0021-frontend-responsibility.md); the implementation is [`src/model/action-state.ts`](../../src/model/action-state.ts)), and is the vessel that serializes [0080](0080-error-handling.md)'s sentinels across the Server Action boundary and hands them to the client
+- **Do not invent a return-value shape per Server Action; follow the common `ActionState<T>` contract**. The field errors that input validation ([0062](0062-form-input-validation.md)) returns, and the notification means that result notification ([0063](0063-mutation-result-notification.md)) chooses, both take this contract as input
 
-### 3. pending 表示
+### 3. Pending display
 
-- pending 表示は `useFormStatus`(submit 中の disabled / スピナー)を既定とし、送信フローの一部として要求する
-- 二重送信防止(submit disabled + 冪等キー)・楽観的更新(`useOptimistic`)の規約は [docs/rules.md](../rules.md) が持ち、[0071](0071-bff-api-integration.md) の POST 冪等性と表裏をなす。本 ADR は pending の要求までに留める
+- Pending display defaults to `useFormStatus` (disabled / spinner during submit) and is required as part of the submission flow
+- The conventions for preventing double submission (submit disabled + idempotency key) and for optimistic updates (`useOptimistic`) are held by [docs/rules.md](../rules.md) and are two sides of the same coin with [0071](0071-bff-api-integration.md)'s POST idempotency. This ADR stops at requiring pending
 
-## 禁止事項
+## Prohibitions
 
-- ❌ Server Action ごとに戻り値形状を発明すること(`ActionState<T>` 契約に従い、[0062](0062-form-input-validation.md) の入力検証・[0063](0063-mutation-result-notification.md) の共通通知を可能にする)（強制: 散文 —— **寄せられる**（`"use server"` の module が export する関数の戻り値型が `ActionState<T>` かを型付きの lint で見られる。規則は無い））
-- ❌ 送信フローを `<form action>` + `useActionState` 以外の自前機構で発明すること(標準デファクトに乗る = [0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **一部寄せられる**。画面からの生 `fetch` による送信は `adapters` の外の `fetch` 呼び出しを落とす `no-restricted-syntax` で落とせるが規則は無い。`onSubmit` を持つ form が server への変更か URL・局所の操作かは用途で決まる）
-- ❌ react-hook-form 等の form state ライブラリで**送信機構そのものを置換して二重化**すること(rhf はクライアント入力検証に用い、送信は本 ADR の `<form action>` + Server Action に合流させる。[0060](0060-state-management.md) の rhf 採用と整合)（強制: 散文 —— **寄せられない**。rhf の API を呼ぶ形は送信を合流させる場合と置き換える場合で同じで、どこへ送るかはコールバックの中身の意味で決まる）
-- ❌ pending 表示を伴わない送信(`useFormStatus` を既定として要求する)
+- ❌ Inventing a return-value shape per Server Action (follow the `ActionState<T>` contract, enabling [0062](0062-form-input-validation.md)'s input validation and [0063](0063-mutation-result-notification.md)'s common notification) (Enforcement: Prose — **mechanizable** (a typed lint could check whether the return type of functions exported by a `"use server"` module is `ActionState<T>`; no rule exists))
+- ❌ Inventing the submission flow with a mechanism of our own other than `<form action>` + `useActionState` (ride on the standard de facto = [0010](0010-standards-and-non-lockin.md)) (Enforcement: Prose — **partly mechanizable**. Submission by a raw `fetch` from a screen could be rejected with `no-restricted-syntax` rejecting `fetch` calls outside `adapters`, but no rule exists. Whether a form with `onSubmit` is a mutation to the server or a URL / local operation is decided by its use)
+- ❌ **Replacing the submission mechanism itself, duplicating it,** with a form state library such as react-hook-form (rhf is used for client input validation, and submission merges into this ADR's `<form action>` + Server Action; consistent with [0060](0060-state-management.md)'s adoption of rhf) (Enforcement: Prose — **not mechanizable**. The shape of calling rhf's API is the same whether submission is merged or replaced, and where it sends is decided by the meaning of the callback's contents)
+- ❌ Submission without pending display (`useFormStatus` is required as the default)
 
-## 補足
+## Notes
 
-- 本 ADR・[0062](0062-form-input-validation.md)・[0063](0063-mutation-result-notification.md) の 3 本は「フォームを送って結果が返るまで」の 1 UX を構成するが、主題(メカニクス / 入力検証 / 結果通知)が異なるため per-subject に分けている
-- 日常強制の細則(pending スピナーの表示閾値等)は [docs/rules.md](../rules.md) が持つ
+- This ADR, [0062](0062-form-input-validation.md) and [0063](0063-mutation-result-notification.md) together make up the single UX "from submitting a form until the result returns", but they are split per subject because their subjects (mechanics / input validation / result notification) differ
+- Day-to-day detailed rules (the display threshold of the pending spinner, etc.) are held by [docs/rules.md](../rules.md)
 
-## 関連 ADR
+## Related ADRs
 
-- [0062-form-input-validation.md](0062-form-input-validation.md) — 送信前の入力検証 UX(`ActionState` のフィールドエラーを供給)
-- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) — 変更結果の通知 UX(`ActionState` を入力に通知手段を選ぶ)
-- [0060-state-management.md](0060-state-management.md) — form state = react-hook-form + zod 採用。rhf = クライアント入力検証 / 送信は本 ADR の Server Actions 機構に合流
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI / form 部品(shadcn 系)採用。本 ADR は送信メカニクスを担い、UI 部品と対で機能する
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — Server Action / POST 冪等性(pending・二重送信の連動)
-- [0080-error-handling.md](0080-error-handling.md) — errors sentinel(`ActionState` が運ぶエラーの供給元)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `model`(`ActionState` 所有)/ `actions.ts` 編成
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions / `actions.ts` 配置 / `"use client"` 押し下げ
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠・非ロックイン(送信フローがデファクトに乗る正当化の土台)
+- [0062-form-input-validation.md](0062-form-input-validation.md) — input validation UX before submission (supplies the field errors of `ActionState`)
+- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) — notification UX for mutation results (chooses the notification means with `ActionState` as input)
+- [0060-state-management.md](0060-state-management.md) — adopting form state = react-hook-form + zod. rhf = client input validation / submission merges into this ADR's Server Actions mechanism
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adopting UI / form components (shadcn family). This ADR handles submission mechanics and works paired with the UI components
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — Server Action / POST idempotency (linked with pending and double submission)
+- [0080-error-handling.md](0080-error-handling.md) — errors sentinel (the supplier of the errors `ActionState` carries)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `model` (owns `ActionState`) / orchestration in `actions.ts`
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions / placement of `actions.ts` / pushing `"use client"` down
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance and non-lock-in (the foundation for justifying that the submission flow rides on the de facto)

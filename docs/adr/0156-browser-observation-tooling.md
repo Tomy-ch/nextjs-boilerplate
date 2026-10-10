@@ -1,186 +1,186 @@
-# ブラウザ実測ツール
+# Browser Observation Tooling
 
-本プロジェクトでは、動いているアプリを**ゲートの外で観測する**ための道具立てを定める。対象は開発中の画面確認・動作確認・原因調査であり、退行を判定するゲート（`make vrt` / `make e2e` / `make lighthouse`）そのものは [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) が持つ。
+This project defines the tooling for **observing the running application outside the gates**. The subjects are checking screens during development, confirming behavior and investigating causes; the gates that judge regressions themselves (`make vrt` / `make e2e` / `make lighthouse`) are owned by [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md).
 
-観測は 1 つの道具では足りない。問いが「今どう見えるか」「数値はいくつか」「なぜそうなるか」の 3 つに分かれ、必要な機構がそれぞれ違うためである。本 ADR はその分担と、各レーンの採否を定義する。
+One tool is not enough for observation. The questions split into three — "how does it look now", "what are the numbers", "why is it so" — and each needs a different mechanism. This ADR defines that division of labor and whether each lane is adopted.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **基準がまだ無い段階を埋める。** ゲートはすべて基準画像との比較で成り立つため、新しい画面や実装途中の画面については何も言わない。人間の目に届く前に機械で潰せる不整合を潰すには、ゲートとは別の観測手段が要る
-- **問いごとに道具を固定する。** 同じ問いに複数の道具が並ぶと、実行者ごとに違う手順が育ち、結果の比較ができなくなる
-- **観測が repo の判定に混ざらないようにする。** ゲートの権威は CI にあり、手元の観測はそれを置き換えない
+- **Fill the stage where no baseline exists yet.** Every gate works by comparison with baseline images, so they say nothing about new screens or screens mid-implementation. Clearing up inconsistencies a machine can catch before they reach human eyes needs a means of observation separate from the gates
+- **Fix one tool per question.** When several tools line up for the same question, each person grows a different procedure, and results can no longer be compared
+- **Keep observation from mixing into the repository's verdicts.** The gates' authority lies in CI, and local observation does not replace it
 
-## 3 つのレーン
+## Three Lanes
 
-| レーン | 問い | 道具 |
+| Lane | Question | Tool |
 | --- | --- | --- |
-| **見る・触る** | 今どう見えるか。押すとどうなるか | `agent-browser`（`mise.toml`） |
-| **測る** | 数値はいくつか。負荷を掛けるとどうか | `@playwright/test` の `chromium` を library として直起動 |
-| **掘る** | なぜ遅いか。どこで落ちたか | `chrome-devtools`（`chrome-devtools-mcp` の CLI） |
+| **Look and touch** | How does it look now? What happens when pressed? | `agent-browser` (`mise.toml`) |
+| **Measure** | What are the numbers? What happens under load? | `chromium` from `@playwright/test`, launched directly as a library |
+| **Dig** | Why is it slow? Where did it fail? | `chrome-devtools` (the CLI of `chrome-devtools-mcp`) |
 
-「見る・触る」と「掘る」は **CLI から呼ぶ。** 結果が標準出力に出るため、フィルタでき、ファイルへ逃がせ、人間が同じコマンドで再現でき、シェルを持つ subagent へも渡せる。「測る」だけは library で、使い捨ての計測台を書いて走らせる —— 負荷条件と採る指標が観測ごとに違い、固定した副コマンドでは表現できないためである。
+"Look and touch" and "Dig" are **called from the CLI.** Results go to standard output, so they can be filtered, saved to files, reproduced by a person with the same command, and handed to a subagent that has a shell. Only "Measure" is a library, used by writing and running a throwaway measurement rig — load conditions and the metrics taken differ per observation and cannot be expressed with fixed subcommands.
 
-### 描画エンジンをゲートに揃える
+### Align the rendering engine with the gates
 
-**観測に使うブラウザは、ゲートが使うものと同じ実体を指す。** 道具はいずれも実行環境に入っているブラウザを自動検出するため、指定しなければ利用者ごとに違う版を掴む。余白や折り返しはテキストの描画で決まるので、そこがずれると**手元で「揃っている」と見たものが CI で崩れる**。
+**The browser used for observation points at the same binary the gates use.** Every tool auto-detects a browser installed in the environment, so without specifying, each user grabs a different version. Spacing and line wrapping are decided by text rendering, so if that differs, **what looked "aligned" locally breaks in CI**.
 
-したがって観測ツールには、ゲートが使う `@playwright/test` の chromium を実行ファイルとして明示的に渡す。自動検出に委ねない。
+So the observation tools are explicitly given the chromium of `@playwright/test`, which the gates use, as the executable. It is not left to auto-detection.
 
-**値の置き場は `pnpm exec tsx scripts/chromium-path` の 1 か所である。** 答えは `chromium.executablePath()` そのもので、`make lighthouse` も同じ関数で起動する実体を決めている。実体が入っていなければ何も出さずに 2 で終わる。コミットされた設定（`.claude/settings.json` の `env`、`mise.toml` の `[env]`）には書かない —— パスは機械ごとに違い、lockfile の `@playwright/test` の版が動くと黙って古くなる。
+**The value lives in one place, `pnpm exec tsx scripts/chromium-path`.** The answer is `chromium.executablePath()` itself, and `make lighthouse` decides the binary it launches with the same function. If the binary is not installed, it prints nothing and exits with 2. It is not written into committed configuration (`env` in `.claude/settings.json`, `[env]` in `mise.toml`) — the path differs per machine and silently goes stale when the version of `@playwright/test` in the lockfile moves.
 
-受け口は道具ごとに違い、この差は道具の側の事実なので吸収する層を作らない。
+How it is received differs per tool, and that difference is a fact of the tools, so no layer is built to absorb it.
 
-| 道具 | 受け口 |
+| Tool | How it receives it |
 | --- | --- |
-| `agent-browser` | `--executable-path`（または環境変数 `AGENT_BROWSER_EXECUTABLE_PATH`） |
-| `chrome-devtools` | `start --executablePath` だけ。対応する環境変数は無い |
+| `agent-browser` | `--executable-path` (or the environment variable `AGENT_BROWSER_EXECUTABLE_PATH`) |
+| `chrome-devtools` | Only `start --executablePath`. There is no corresponding environment variable |
 
-**受け取りは変数へ代入してから渡す。**
+**Assign it to a variable first, then pass it.**
 
 ```sh
 p=$(pnpm exec tsx scripts/chromium-path) && agent-browser --executable-path "$p" open <url>
 ```
 
-`"$(…)"` を引数へ直に埋めると、置換の失敗が空文字として渡り、道具は自動検出へ落ちて別のブラウザを黙って掴む。
+Embedding `"$(…)"` directly in the argument passes a failed substitution as an empty string, and the tool falls back to auto-detection and silently grabs a different browser.
 
-### 見る・触る — agent-browser
+### Look and Touch — agent-browser
 
-ref 付きの a11y snapshot と、その差分。要素の bounding box と computed styles。axe を同梱した a11y 監査。React の fiber 内省（component tree / props / 再描画 / Suspense 境界の分類）。
+An a11y snapshot with refs, and its diff. Element bounding boxes and computed styles. An a11y audit with axe bundled. React fiber introspection (component tree / props / re-renders / classification of Suspense boundaries).
 
-最後の 1 つは他のどの候補も持たない。React の描画が意図どおりかを、DOM の結果からではなく描画側から確かめられる唯一の経路である。
+The last of these is something no other candidate has. It is the only path to confirming that React's rendering is as intended from the rendering side rather than from the resulting DOM.
 
-computed styles を画面をまたいで引き比べられることも、この repo では意味が大きい。ゲートは各対象を**自分の過去**とだけ比べるため、画面 A と画面 B で同じ役割の余白が食い違っていても永久に緑になる。その不整合を機械で列挙できるのはこのレーンだけである。
+Being able to compare computed styles across screens also matters a great deal in this repository. The gates compare each target only with **its own past**, so even if spacing in the same role disagrees between screen A and screen B, it stays green forever. Only this lane can enumerate that inconsistency by machine.
 
-### 測る — playwright を library として直起動
+### Measure — launching playwright directly as a library
 
-`playwright.config.ts` は Linux 以外で意図的に失敗する（基準画像を撮影環境ごと固定するため）。したがって手元で数値を採るときは config を通さず `chromium` を直接起動する。CPU 絞りは CDP の `Emulation.setCPUThrottlingRate`、INP の素は `PerformanceObserver` の `event` を採る。
+`playwright.config.ts` deliberately fails on anything other than Linux (to fix baseline images together with their capture environment). So when taking numbers locally, `chromium` is launched directly without going through the config. CPU throttling uses CDP's `Emulation.setCPUThrottlingRate`, and the raw material for INP is taken from `event` entries of `PerformanceObserver`.
 
-**ゲートと同じ chromium** を使うため、ここで採った数値は CI の判定と同じ描画から出る。
+Because it uses **the same chromium as the gates**, the numbers taken here come from the same rendering as CI's verdicts.
 
-### 掘る — chrome-devtools CLI
+### Dig — the chrome-devtools CLI
 
-DevTools の trace を採り、Insight を名指しで展開する。source map を適用した stack trace。ページの現在の状態に対する Lighthouse 監査。heap snapshot。CPU とネットワーク帯域の絞り込み。
+Takes DevTools traces and expands Insights by name. Stack traces with source maps applied. A Lighthouse audit of the page's current state. Heap snapshots. Throttling CPU and network bandwidth.
 
-ゲートは Core Web Vitals の数値と予算の照合までを担うが、**なぜその数値になるかには答えない。** バンドルされたコードで例外が出たときに元のソース位置を得る経路も、道具の宣言の上ではここにしかない。本番 build はブラウザ向けの source map を出さない（`next.config.ts` に `productionBrowserSourceMaps` が無い）ので、この経路が働くのは開発サーバに対してだけである。
+The gates go as far as Core Web Vitals numbers and checking them against budgets, but **do not answer why the numbers are what they are.** The path to the original source location when an exception occurs in bundled code is also, as far as the tools' declarations go, only here. The production build does not emit source maps for the browser (`next.config.ts` has no `productionBrowserSourceMaps`), so this path works only against the development server.
 
-**道具より先に `start` を明示して呼ぶ。**
+**Call `start` explicitly before the tools.**
 
 ```sh
 p=$(pnpm exec tsx scripts/chromium-path) && pnpm exec chrome-devtools start --executablePath "$p" --no-performance-crux
 ```
 
-daemon が居ない状態で道具（`navigate_page` など）を呼ぶと、daemon は暗黙に起動する。道具の引数は起動の指定を受けないので、そのとき掴むのは system の Chrome（stable channel）で、窓が開き、道具自身の永続プロファイル（`~/.cache/chrome-devtools-mcp-cli/chrome-profile`）を使い、下の CrUX 照会も有効のままになる。明示の `start` は headless と使い捨てプロファイル（`--isolated`）を既定にする。どちらで起動したかは `pnpm exec chrome-devtools status` の `args` に出る。
+Calling a tool (`navigate_page`, etc.) with no daemon running starts the daemon implicitly. Tool arguments do not take launch options, so what it grabs then is the system Chrome (stable channel): a window opens, it uses the tool's own persistent profile (`~/.cache/chrome-devtools-mcp-cli/chrome-profile`), and the CrUX query below stays enabled. An explicit `start` defaults to headless and a throwaway profile (`--isolated`). Which way it was started shows in `args` of `pnpm exec chrome-devtools status`.
 
-呼び出しの形が持つ制約は 3 つ。
+The shape of the calls carries three constraints.
 
-- **daemon は利用者ごとにホストで 1 つ**で、`start` は既に居る daemon を止めてから起動する。並行する作業ツリーは互いの daemon を止めうる
-- **ファイルへの書き出し（`--filePath` / `--outputDirPath`）は OS の一時ディレクトリの内側に限られる。** CLI は書き出し先の範囲を道具へ伝えないためで、範囲外は `Access denied` を返すが終了コードは 0 のままである。範囲を外す `--allow-unrestricted-paths` は使わない
-- 道具の Lighthouse 監査は Performance の区分を持たない。数値はこのレーンの trace と「測る」レーンが持つ
+- **There is one daemon per user per host**, and `start` stops an existing daemon before starting. Parallel working trees can stop each other's daemons
+- **Writing to files (`--filePath` / `--outputDirPath`) is limited to inside the OS temporary directory.** This is because the CLI does not tell the tool the allowed range for output; outside it returns `Access denied` while the exit code stays 0. `--allow-unrestricted-paths`, which removes the range, is not used
+- The tool's Lighthouse audit has no Performance category. The numbers are held by this lane's trace and by the "Measure" lane
 
-**確かめてある能力**は、本番 build（`APP_ENV=ci`、mock API）に対する trace の採取と Insight の展開、Lighthouse 監査、ネットワークとコンソールの一覧である。source map を当てた stack trace は確かめていない。
+**Capabilities confirmed** are taking traces and expanding Insights against a production build (`APP_ENV=ci`, mock API), the Lighthouse audit, and listing network and console. Stack traces with source maps applied have not been confirmed.
 
-## 裏取り
+## Cross-Checking
 
-`@playwright/test` は agent 向けの CLI を同梱している（`pnpm exec playwright cli`）。依存を増やさず、**ゲートと同一のエンジン**で観測できるため、手元の観測がゲートの判定と食い違うかを確かめる用途に使う。
+`@playwright/test` bundles a CLI for agents (`pnpm exec playwright cli`). Since it adds no dependency and observes with **the same engine as the gates**, it is used to confirm whether local observation disagrees with the gates' verdicts.
 
-これは 4 本目のレーンではない。既定の観測経路は上の 3 つで、こちらは照合のために使う。
+This is not a fourth lane. The default observation paths are the three above; this one is used for cross-checking.
 
-## 取得経路
+## How tools are obtained
 
-**成果物が何であるかで分ける。公開先で分けない** —— 同じ道具がネイティブバイナリと npm の両方で配られていることがあり、公開先を基準にすると同じ道具が 2 つの経路を持つ。
+**Split by what the artifact is, not by where it is published** — the same tool is sometimes distributed both as a native binary and on npm, and splitting by publisher would give the same tool two paths.
 
-| 成果物 | 経路 |
+| Artifact | Path |
 | --- | --- |
-| 単体で動くバイナリ | `mise.toml`（backend を明示） |
-| Node で動くパッケージ | `pnpm add -DE` |
+| A standalone binary | `mise.toml` (backend stated explicitly) |
+| A package that runs on Node | `pnpm add -DE` |
 
-**npm パッケージを `mise` の `npm:` backend で取らない。** `pnpm` 側は公開からの冷却期間を強制し（期間を満たす版が無ければ解決を失敗させ、公開日時を返さないレジストリを拒否する）、lockfile で版を固定する。取得にかかる負荷は同じでも、**取得の安全性が違う**。[0001](0001-package-manager.md) の npm 禁止とも整合する。
+**npm packages are not taken through `mise`'s `npm:` backend.** The `pnpm` side enforces a cooldown since publication (it fails resolution if no version satisfies the period, and rejects registries that do not return publication times) and pins versions in the lockfile. The effort of obtaining is the same, but **the safety of obtaining differs**. It is also consistent with the npm ban in [0001](0001-package-manager.md).
 
-どちらの経路でも、版の検疫は [0110](0110-security-operations.md) に従う。
+On either path, version quarantine follows [0110](0110-security-operations.md).
 
-## MCP サーバとして登録しない
+## Do not register them as MCP servers
 
-観測ツールは CLI として呼び、MCP サーバとしてエージェントの設定へ登録しない。
+Observation tools are called as CLIs and are not registered in the agent's configuration as MCP servers.
 
-- **使い方が降ってこない。** repo に MCP の登録を置くと、エージェントが起動のたびにそのサーバを立てる。本リポジトリが配るのは道具の pin であって、エージェントの構成ではない
-- **文脈を常時消費しない。** MCP はツール定義がセッション中ずっと載る
-- **既定が安全側に倒れている。** CLI は明示の `start` で起動したとき使い捨てプロファイルが既定で、MCP サーバ側は永続プロファイルが既定である（暗黙の起動は「掘る」の節）
+- **No usage is pushed down.** Placing an MCP registration in the repository makes the agent start that server on every launch. What this repository distributes is tool pins, not agent configuration
+- **It does not consume context constantly.** With MCP, tool definitions stay loaded for the whole session
+- **The defaults lean to the safe side.** The CLI defaults to a throwaway profile when started with an explicit `start`, while the MCP server side defaults to a persistent profile (implicit startup is in the "Dig" section)
 
-代償として、CLI に生成されないツールがある（待機と一括入力）。待機が要るのは「見る・触る」レーンであり、そこは別の道具が担うため成立する。
+As the price, some tools are not generated for the CLI (waiting and bulk input). Waiting is needed in the "Look and touch" lane, which another tool covers, so it holds.
 
-エージェント個人の作業でどうしても MCP が要る場合は、利用者のホーム側の設定に置く。repo には残さない。
+If an agent's individual work really needs MCP, it goes in the configuration on the user's home side. Nothing is left in the repository.
 
-**撤回条件は、CLI に生成されない道具でしか答えられない問いが実測で現れたとき。** 待機と一括入力は CLI へ生成されないが、待機が要る観測は別レーンが担うため現状は成立している。登録する場合も置き場は利用者のホーム側で、リポジトリには残さない。**「MCP のほうが呼びやすい」ことは条件にならない** —— 文脈の常時消費と、エージェントの構成がリポジトリの側へ降ることが対価である。
+**The reversal condition is when a question appears, by measurement, that can only be answered by a tool not generated for the CLI.** Waiting and bulk input are not generated for the CLI, but observations that need waiting are covered by another lane, so it holds today. Even if registered, its place is the user's home side, and nothing is left in the repository. **"MCP is easier to call" is not the condition** — the price is constant context consumption and agent configuration being pushed down onto the repository.
 
-## 実ブラウザのプロファイルへ接続しない
+## Do not connect to a real browser profile
 
-利用者がログイン済みの実ブラウザ、およびそのプロファイルへ接続する経路（拡張機能としての常駐、起動中のブラウザへの remote debugging 接続、実プロファイルの読み込み）を既定にしない。
+Paths that connect to a real browser the user is logged into, or to its profile (staying resident as an extension, a remote-debugging connection to a running browser, loading a real profile), are not made the default.
 
-この repo の観測対象は手元の開発サーバであり、認証は開発時だけ有効なセッション発行の口で足りる。実ブラウザの権限は要らないうえ、接続した時点でそのプロファイルの全ウィンドウが観測側へ開く。
+What this repository observes is the local development server, and authentication is covered by the session-issuing endpoint that is enabled only during development. The real browser's privileges are not needed, and the moment it connects, every window of that profile opens to the observing side.
 
-**撤回条件は、観測対象が手元の開発サーバの外へ出たとき。「そのほうが手数が少ない」ことは条件にならない** —— 接続した時点でそのプロファイルの全ウィンドウが観測側へ開く。
+**The reversal condition is when the observation target moves outside the local development server. "It takes fewer steps" is not the condition** — the moment it connects, every window of that profile opens to the observing side.
 
-### 禁止をどう担保するか
+### How the prohibition is guaranteed
 
-**エージェントの実行許可は、これを単独では担保できない。** 許可の判定はコマンド文字列の前方一致であって引数の位置を解釈せず、接続を指示するフラグは道具の側でサブコマンドの前後どちらにも置ける。したがって「危険なフラグを拒否する」形の宣言は、末尾に自由な入力を許す許可が 1 つでもあれば素通りする。**同じ指示を環境変数でも渡せる道具があり、そちらは文字列に現れない。**
+**The agent's execution permissions cannot guarantee this on their own.** The permission check is a prefix match on the command string that does not interpret argument positions, and the tool lets the flag instructing a connection be placed either before or after the subcommand. So a declaration of the form "reject the dangerous flag" passes straight through if even one permission allows free input at the end. **Some tools can receive the same instruction through an environment variable, which does not appear in the string.**
 
-担保は 3 つの重ねで作る。
+The guarantee is built from three layers.
 
-1. **末尾に自由な入力を残す許可を、この種の道具に与えない。** 引数を取る呼び出しは都度の確認へ落ちる
-2. **フラグと等価な環境変数を、エージェントの設定で空に固定する**
-3. 素直な形のフラグと、接続を名乗るサブコマンドを、**確認（`ask`）として明示する**（1 と 2 を抜けた場合の網）
+1. **Do not give tools of this kind a permission that leaves free input at the end.** Calls that take arguments fall to per-call confirmation
+2. **Fix the environment variables equivalent to the flags to empty in the agent's configuration**
+3. **Explicitly mark** the plain forms of the flags, and subcommands that announce a connection, **for confirmation (`ask`)** (the net for whatever gets past 1 and 2)
 
-宣言だけでは担保にならない。**この 3 つのうち 1 つでも欠けたら、禁止は書いてあるだけの状態になる。**
+A declaration alone is not a guarantee. **If even one of these three is missing, the prohibition is merely written down.**
 
-**3 を拒否（`deny`）にしない。** 1 が既に引数を取る呼び出しを確認へ落としているので、拒否にして増える効果は「**人が使うと決める余地を消すこと**」だけである。この節が禁じているのは接続そのものではなく**確認なしの接続**で（下の禁止事項）、拒否はその線より厳しい。実ブラウザでしか再現しない事象を裏取りする場面は実在し、そこを塞ぐと観測が単独で根拠にならないまま止まる。
+**3 is not made a rejection (`deny`).** 1 already drops calls that take arguments into confirmation, so the only effect rejection would add is **erasing the room for a person to decide to use it**. What this section forbids is not the connection itself but **connecting without confirmation** (the prohibition below), and rejection is stricter than that line. Situations that need cross-checking an event reproducible only in a real browser do exist, and closing them would leave observation stuck without being able to stand as evidence on its own.
 
-**外部の言語モデルを呼ぶサブコマンドだけは拒否のままにする。** あれは接続の可否ではなく採否の問題で、この ADR は不採用と決めている（下の「不採用」）。確認へ落とすと、決めたはずの採否が呼び出しのたびに開き直る。
+**Only subcommands that call an external language model stay rejected.** That is not a question of whether connecting is allowed but of adoption, and this ADR has decided not to adopt them (the "Rejected Alternatives" below). Dropping them to confirmation would reopen the decided adoption on every call.
 
-## 送信を既定で止める
+## Stop outbound sending by default
 
-観測ツールは開発者の権限で動き、何をマシン外へ送るかを自分で決める（[0110](0110-security-operations.md)）。次の 3 つは、既定で有効なら止める。
+Observation tools run with the developer's privileges and decide for themselves what to send off the machine ([0110](0110-security-operations.md)). The following four are stopped if enabled by default.
 
-- 利用統計の送信
-- 更新確認のためのレジストリ照会
-- 外部の言語モデルを呼ぶサブコマンド
-- 性能 trace の URL を外部の実測データ API へ照会すること
+- Sending usage statistics
+- Registry queries for update checks
+- Subcommands that call an external language model
+- Querying an external field-data API with the URL of a performance trace
 
-**止める先は環境変数であって、呼び出しごとのフラグではない。** 道具は最初の呼び出しで常駐プロセスを自分で起動することがあり、そのとき使われるのはライブラリの既定値である。個々のサブコマンドが送信の可否を引数として受け取らない作りなら、**呼び出し側からフラグで止める経路は存在しない。**
+**What stops them is environment variables, not per-call flags.** A tool may start its resident process on its own at the first call, and what is used then is the library's defaults. If the individual subcommands are built not to take whether to send as an argument, **there is no path for the caller to stop it with a flag.**
 
-例外は `chrome-devtools` の CrUX 照会で、環境変数が無く、`start --no-performance-crux` だけが止める経路である。暗黙の起動ではこれが有効のまま残るが、道具は `localhost` / `127.0.0.1` の URL を照会から外すので、手元の開発サーバを観測する限り URL は外へ出ない。
+The exception is `chrome-devtools`'s CrUX query, which has no environment variable; `start --no-performance-crux` is the only path to stop it. With implicit startup it stays enabled, but the tool excludes `localhost` / `127.0.0.1` URLs from the query, so as long as the local development server is being observed, no URL leaves.
 
-なお本節が対象にするのは道具自身の既定の送信であって、エージェントが `eval` 相当のサブコマンドへ明示的に渡すコードの送信先までは含まない。
+Note that what this section covers is the tools' own default sending, not where code an agent explicitly passes to an `eval`-like subcommand is sent.
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **拡張機能として実ブラウザに常駐する操作系** | streaming した境界の中身が解決せず、スクロールのイベントが発火しない。素のブラウザでは再現しないため、**観測が単独で根拠にならない**。裏取りが必須になる時点で経路として成立していない |
-| **自然言語で操作する系**（外部の言語モデルを呼ぶもの） | 操作のたびに外部モデルへ課金が発生し、画面の内容が repo の外へ出る |
-| **クラウド実行前提の系** | 観測対象が手元の開発サーバであり、外から到達できない |
-| **エージェント本体を内蔵する系** | 判断は呼び出す側が持つ。道具の中に第 2 の判断主体を置かない |
-| **`mise` の `npm:` backend** | 上記「取得経路」のとおり |
+| **Operation tools that stay resident in a real browser as an extension** | The contents of streamed boundaries do not resolve, and scroll events do not fire. This does not reproduce in a plain browser, so **observation cannot stand as evidence on its own**. Once cross-checking becomes mandatory, it no longer works as a path |
+| **Tools operated in natural language** (those that call an external language model) | Every operation incurs charges to an external model, and screen contents leave the repository |
+| **Tools that presuppose cloud execution** | What is observed is the local development server, unreachable from outside |
+| **Tools that embed an agent of their own** | Judgment belongs to the caller. No second judging subject is placed inside a tool |
+| **`mise`'s `npm:` backend** | As described in "How tools are obtained" above |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ここで定めた道具で撮った画像を**基準画像として採用**すること。撮影環境の固定は [0091](0091-test-verification-methods.md) が持つ（強制: `vrt` job の比較（digest 固定コンテナ・`maxDiffPixels: 0`）が別環境で撮った画素を差分として落とし、`baseline-approval` job が基準画像を動かす PR に承認ラベルを要求する）
-- ❌ ここで定めた道具を CI・git hook・build のいずれかのゲートに接続すること。ゲートの権威は既存の検査にある（強制: 散文 —— **寄せられる**（`.github/workflows/**`・`.lefthook.yaml`・`package.json` の scripts に `agent-browser` / `chrome-devtools` / `playwright cli` の呼び出しが現れないことを走査で見る。規則は無い））
-- ❌ 観測ツールに実行ファイルを渡さずにブラウザを起動させること（強制: 散文 —— **一部寄せられる**。`agent-browser` の起動行に `--executable-path` が無いことは綴りから落とせるが規則は無く、環境変数で渡した指定は綴りに現れない。`chrome-devtools` の暗黙の起動は daemon が居るかどうかで決まり、呼び出しの綴りからは決まらない）
-- ❌ 同じ問いに 2 つのレーンを充てること（強制: 散文 —— **寄せられない**。2 つの道具が同じ問いに充てられているかは、観測の目的で決まる）
-- ❌ 実ブラウザのプロファイルへ接続する経路を、確認なしに使うこと
+- ❌ **Adopting images captured with the tools defined here as baseline images**. Fixing the capture environment is owned by [0091](0091-test-verification-methods.md) (Enforcement: the comparison of the `vrt` job (digest-pinned container, `maxDiffPixels: 0`) rejects pixels captured in another environment as differences, and the `baseline-approval` job requires an approval label on PRs that move baseline images)
+- ❌ Connecting the tools defined here to any CI, git hook or build gate. The gates' authority lies in the existing checks (Enforcement: Prose — **mechanizable** (scan that no calls to `agent-browser` / `chrome-devtools` / `playwright cli` appear in `.github/workflows/**`, `.lefthook.yaml` or the scripts of `package.json`. No rule exists))
+- ❌ Letting an observation tool launch a browser without passing it the executable (Enforcement: Prose — **partly mechanizable**. A launch line of `agent-browser` lacking `--executable-path` can be rejected by spelling, but no rule exists, and a value passed through an environment variable does not appear in the spelling. The implicit startup of `chrome-devtools` is decided by whether the daemon is running, not by the spelling of the call)
+- ❌ Assigning two lanes to the same question (Enforcement: Prose — **not mechanizable**. Whether two tools are assigned to the same question is decided by the purpose of the observation)
+- ❌ Using a path that connects to a real browser profile without confirmation
 
-## 関連 ADR
+## Related ADRs
 
-- [0001-package-manager.md](0001-package-manager.md) — npm パッケージの取得経路
-- [0003-version-manager.md](0003-version-manager.md) — バイナリの pin を `mise.toml` が持つこと
-- [0004-library-management.md](0004-library-management.md) — 依存の選定・固定
-- [0090-testing-strategy.md](0090-testing-strategy.md) — ゲート側の責務
-- [0091-test-verification-methods.md](0091-test-verification-methods.md) — 基準画像と撮影環境
-- [0101-performance-budget.md](0101-performance-budget.md) — 「測る」レーンが照らす予算
-- [0110-security-operations.md](0110-security-operations.md) — 冷却期間と、エージェント向けツールの審査
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — エージェントの道具立て（運用系）
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — エージェントの道具立て（開発系）
+- [0001-package-manager.md](0001-package-manager.md) — how npm packages are obtained
+- [0003-version-manager.md](0003-version-manager.md) — `mise.toml` holding the pins of binaries
+- [0004-library-management.md](0004-library-management.md) — choosing and pinning dependencies
+- [0090-testing-strategy.md](0090-testing-strategy.md) — the gates' responsibilities
+- [0091-test-verification-methods.md](0091-test-verification-methods.md) — baseline images and the capture environment
+- [0101-performance-budget.md](0101-performance-budget.md) — the budget the "Measure" lane checks against
+- [0110-security-operations.md](0110-security-operations.md) — cooldown, and vetting tools for agents
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — agent tooling (operations)
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — agent tooling (development)

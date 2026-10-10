@@ -150,7 +150,7 @@ const meta = resolveErrorMeta(error);
 | 観点 | 判定の形 | 根拠 |
 | --- | --- | --- |
 | `forbidden: http-vocabulary` — HTTP status・レスポンスの形・transport 固有の語彙を持たない。分類から status への変換は `adapters` の境界が持つ | violation。数値や型が transport 由来かが綴りから読み分けられないときは suggestion | [0080](../../docs/adr/0080-error-handling.md) 禁止事項 / この README「境界」。機械: ESLint `no-restricted-syntax` が `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルまでを落とす |
-| `forbidden: external-dependencies` — 他のカーネルも外部パッケージも import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「各カーネルの責務」。他のカーネルの import は機械: ESLint boundaries。外部パッケージの import は機械が届かない |
+| `forbidden: external-dependencies` — 他のカーネルも外部パッケージも import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」。他のカーネルの import は機械: ESLint boundaries。外部パッケージの import は機械が届かない |
 | errors 自身はログを出力しない | `console` や logger の呼び出しがあれば violation | この README「境界」 |
 | 表示用の code と文言は分類ごとのカタログだけが持ち、`AppError` と `ErrorKind` には持たせない | `AppError` や分類の定義に code・文言の項目があれば violation | [0080](../../docs/adr/0080-error-handling.md)（表示用の code と文言の置き場） / この README「表示メタ情報の解決」 |
 | wrap は `cause` を切らない | `{ cause }` を渡さずに元エラーを包み直す箇所があれば violation | [0080](../../docs/adr/0080-error-handling.md)（wrap と置換の順序） / この README「分類とメタ情報の重ね方」 |

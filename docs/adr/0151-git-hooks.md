@@ -1,192 +1,192 @@
-# Pre-commit / Pre-push hook 運用方針
+# Pre-commit / Pre-push Hook Policy
 
-本プロジェクトでは、ローカル開発における自動検査の枠組みとして **lefthook** を採用する。
-hook の役割は「壊れた状態を CI に到達させない第一段の防御」とし、CI を権威ある最終ガードとする二重化構造を取る。
+This project adopts **lefthook** as the framework for automatic checks in local development.
+The role of hooks is "the first line of defense that keeps a broken state from reaching CI", in a two-tier structure where CI is the authoritative final guard.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- ローカルで lint / format / 型エラーを早期検出し、CI 失敗による待ち時間を削減する
-- 「commit / push してから気づく」を構造的に減らす
-- 設定ファイル (`.lefthook.yaml`) で hook の挙動を SSOT 化し、`.git/hooks/` への直接書き込みや個別 shell スクリプトの散在を避ける
-- 「最初から品質ゲートが動く」状態を引き継げるようにする
+- Detect lint / format / type errors early and locally, cutting the waiting time caused by CI failures
+- Structurally reduce "noticing only after commit / push"
+- Make a configuration file (`.lefthook.yaml`) the SSOT for hook behavior, avoiding direct writes to `.git/hooks/` and scattered individual shell scripts
+- Make it possible to inherit a state where "the quality gates run from the start"
 
-## 採用ツール
+## Tool Adopted
 
-[lefthook](https://github.com/evilmartians/lefthook) を採用する。
+[lefthook](https://github.com/evilmartians/lefthook) is adopted.
 
-インストールは npm devDependency 経由 (`pnpm add -D lefthook`)。バージョンは exact pin とする ([0004](0004-library-management.md) のコア dev ツール扱い)。
+It is installed as an npm devDependency (`pnpm add -D lefthook`). The version is an exact pin (treated as a core dev tool under [0004](0004-library-management.md)).
 
-### lefthook を選んだ理由
+### Why lefthook
 
-| 観点 | lefthook | husky |
+| Aspect | lefthook | husky |
 | --- | --- | --- |
-| 設定 | YAML 1 ファイル | shell script ファイル群 |
-| 並列実行 | `parallel: true` で標準対応 | 自前で実装 |
-| 配布 | npm package 内に単一バイナリ同梱 | node スクリプト |
-| 起動コスト | Go 実装で高速 | shell + node |
+| Configuration | One YAML file | A set of shell script files |
+| Parallel execution | Supported out of the box with `parallel: true` | Implement it yourself |
+| Distribution | A single binary bundled in the npm package | Node scripts |
+| Startup cost | Fast, implemented in Go | shell + node |
 
-設定の集約と起動コストの観点で lefthook を採る。`.git/hooks/` への symlink 配置は `pnpm exec lefthook install` で行い、配置自体も再現可能にする。
+lefthook is chosen for consolidated configuration and startup cost. The symlinks into `.git/hooks/` are placed with `pnpm exec lefthook install`, making the placement itself reproducible too.
 
-## hook 段階の責務分担
+## Division of Responsibilities by Hook Stage
 
-| 段階 | 目的 | 想定処理 | 速度目標 |
+| Stage | Purpose | Expected processing | Speed target |
 | --- | --- | --- | --- |
-| pre-commit | 「壊れた diff を commit に乗せない」 | 静的検査 — lint (`pnpm lint:ci` = biome + ESLint 境界検査 + 境界宣言の突合。[0002](0002-formatter-linter.md)) / Markdown 検査 (`pnpm lint:md` = markdownlint + mermaid 構文 + `.claude/**` の意味検査) / ワークフロー・composite action 定義の検査とピンの突合 ([0153](0153-ci-configuration.md)) / 生成物の版の突合 ([0072](0072-api-type-generation.md)) — と、キャッシュ付きのテスト (`make test-cached`)。各検査は対象ファイルが staged のときのみ走る | < 5 秒 |
-| commit-msg | 「規約外のコミットメッセージを積ませない」 | commitlint ([0150](0150-git-workflow.md) の prefix 11 種を検証) | < 5 秒 |
-| pre-push | 「壊れた push・秘密を含む push を上げない」 | 型チェック (`pnpm typecheck` = `tsc --noEmit`) / キャッシュ無しの完全テスト (`make test-full`) / 秘密スキャン (`make secret-scan` = push 予定コミット範囲) | < 30 秒 |
-| post-checkout / post-merge | 「基準画像の実体を、指し先から取り残さない」 | サブモジュールの同期 (`make baseline-sync`)。移動と pull のたび | < 1 秒 |
-| post-commit | 「実装が形になった瞬間を、後から言えるようにする」 | 開発の窓への打刻 ([0161](0161-development-window-as-feedback-unit.md))。追跡外の `tmp/` へ 1 行書くだけ | < 0.1 秒 |
-| (CI) | 権威ある検査 | lint / 型 / test / build / e2e 等 | 制約なし |
+| pre-commit | "Do not put a broken diff into a commit" | Static checks — lint (`pnpm lint:ci` = biome + ESLint boundary checks + reconciliation of boundary declarations. [0002](0002-formatter-linter.md)) / Markdown checks (`pnpm lint:md` = markdownlint + mermaid syntax + semantic checks on `.claude/**`) / checks of workflow and composite action definitions and reconciliation of pins ([0153](0153-ci-configuration.md)) / reconciliation of generated-artifact versions ([0072](0072-api-type-generation.md)) — plus cached tests (`make test-cached`). Each check runs only when its target files are staged | < 5 s |
+| commit-msg | "Do not stack off-convention commit messages" | commitlint (validates the 11 prefixes of [0150](0150-git-workflow.md)) | < 5 s |
+| pre-push | "Do not push something broken or containing secrets" | Type check (`pnpm typecheck` = `tsc --noEmit`) / full test run without cache (`make test-full`) / secret scan (`make secret-scan` = the range of commits about to be pushed) | < 30 s |
+| post-checkout / post-merge | "Do not leave the baseline images' actual content behind what they point at" | Submodule sync (`make baseline-sync`), on every switch and pull | < 1 s |
+| post-commit | "Make it possible to say later when the implementation took shape" | A timestamp in the development window ([0161](0161-development-window-as-feedback-unit.md)). It only writes one line to the untracked `tmp/` | < 0.1 s |
+| (CI) | Authoritative checks | lint / types / test / build / e2e, etc. | No constraint |
 
-- **biome の設定は 1 枚で、保存時も pre-commit も CI も同じ規則が掛かる**（[0002](0002-formatter-linter.md)）。プロファイルを分けないので、hook が「保存時には出なかった指摘」で落ちることがない
-- biome は Rust 実装で速く、`noImportCycles`（複数ファイル走査）を含む全ファイル走査でも実測 3 秒前後に収まり、速度目標を満たす
-- pre-push の commands は `parallel: true` で並列実行する。秘密スキャンは型チェックと独立しており、直列化すると速度目標を割るため
-- **飽和したホストでは、CI が同じコマンドを持つゲートを CI へ委ねる**。`make load-status` が帯を出し、pre-push の各 command は `gate-*` ターゲット越しに走る(実体は `scripts/load-band/`)。委ねるのは型チェックとテストで、秘密スキャンは帯に関わらず必ず走る(push は不可逆で、CI に対応ワークフローが無い)
-  - **帯は実測の使用率(load average / CPU 数)で決める**。飽和したホストではゲートの**失敗自体が信用できなくなる**ため — カバレッジの中間ファイルの取り合いのように、変更とは無関係な理由で落ちる経路が開く。信用できない判定を出すより、権威である CI へ渡すほうが速く、答えも正しい
-  - 帯を作業ツリーの数で決めない。放置された古い窓が数に入り、実際には空いているホストを飽和と誤判定する。窓数は **1 窓あたりの CPU 配分**(`LOAD_CPU_SHARE`)の算出にだけ使う
-  - **委ねた事実と根拠は必ず出力する**。黙って飛ばすと「検査したつもり」が残る
-  - **設定はどの環境でも同一**である。並列数の低い環境や単独の作業ツリーでは帯が `full` に解決され、すべてのゲートが手元で走る。この機構が適応させるのは挙動だけで、設定へ特定の作業環境の事情を焼き込まない
-- **秘密スキャンを pre-push に置く理由**は、秘密が push された時点で「リモートに残る」不可逆な事故になるためである。**この段階でしか「送られるコミット範囲」が確定しない**点も pre-push を選ぶ根拠になる。commit 段階では、その commit が最終的に push されるか・後続 commit で消されるかがまだ決まらない（走査対象の決め方そのものは [0110](0110-security-operations.md) が正）
-- **依存脆弱性スキャン (`make trivy-fs`) は hook に接続しない**。hook に載せてよいのは「当事者がその場で解消でき、かつ変更と共に結果が決まる」検査に限られる。依存の脆弱性はどちらも満たさない（上流待ちで解消できず、CVE の公開だけで結果が変わる）ため、報告は PR コメント・ブロックは昇格ゲートが持つ（判断の全文は [0110](0110-security-operations.md)）
-- 速度目標は**定常状態の実測**で判断する。各ツールのコールドスタートは初回に限って目標を超えるが、これを理由に目標を緩めない
+- **There is one biome configuration, and the same rules apply on save, in pre-commit and in CI** ([0002](0002-formatter-linter.md)). Profiles are not split, so a hook never fails with "a finding that did not appear on save"
+- biome is implemented in Rust and fast; even a full-file scan including `noImportCycles` (a multi-file scan) measures around 3 seconds, meeting the speed target
+- The pre-push commands run in parallel with `parallel: true`. The secret scan is independent of the type check, and serializing them would miss the speed target
+- **On a saturated host, gates whose command CI also runs are delegated to CI**. `make load-status` outputs the band, and each pre-push command runs through a `gate-*` target (the implementation is `scripts/load-band/`). What is delegated is the type check and tests; the secret scan always runs regardless of the band (a push is irreversible, and CI has no corresponding workflow)
+  - **The band is decided by measured utilization (load average / number of CPUs)**. On a saturated host, **a gate's failure itself becomes untrustworthy** — paths open to failures unrelated to the change, such as contention over intermediate coverage files. Handing it to CI, the authority, is faster and gives the right answer, rather than producing an untrustworthy verdict
+  - The band is not decided by the number of working trees. Abandoned old windows would be counted, misjudging an actually idle host as saturated. The window count is used only to compute **the CPU allotment per window** (`LOAD_CPU_SHARE`)
+  - **The fact of delegation and its basis are always printed**. Skipping silently leaves an "I thought it was checked"
+  - **The configuration is identical in every environment**. In an environment with low parallelism or a single working tree, the band resolves to `full` and every gate runs locally. What this mechanism adapts is only behavior; it does not bake the circumstances of a particular working environment into the configuration
+- **The reason the secret scan sits in pre-push** is that once a secret is pushed it becomes an irreversible accident — it "remains on the remote". That **"the range of commits being sent" is settled only at this stage** is also a basis for choosing pre-push. At commit time it is not yet decided whether that commit will eventually be pushed or erased by a later commit (how the scan target is decided is itself owned by [0110](0110-security-operations.md))
+- **The dependency vulnerability scan (`make trivy-fs`) is not connected to hooks**. Hooks may carry only checks that "the person involved can resolve on the spot, and whose result is decided together with the change". Dependency vulnerabilities meet neither (they cannot be resolved while waiting on upstream, and their result changes merely because a CVE is published), so reporting is held by PR comments and blocking by the promotion gate (the full judgment is in [0110](0110-security-operations.md))
+- The speed target is judged by **steady-state measurements**. Each tool's cold start exceeds the target only the first time, and the target is not loosened on that account
 
-### 設計原則
+### Design Principles
 
-- **post-checkout / post-merge は検査ではない。** 壊れを止めるのではなく、git が動かさない実体をブランチの記録へ合わせるだけである。落ちる余地を持たせない —— 取り込んでいない作業ツリーでは何もせず、撮影の前提検査が名指しで案内する側に任せる
-- **post-commit も検査ではない。** 記録するだけで、何も止めない。**段の境界はそれを越えた側にしか存在しない**ので、コミットという境界をここで刻む（[0161](0161-development-window-as-feedback-unit.md)）。スクリプトが無い checkout —— 剥がした後のテンプレート —— でも成立するよう存在確認を挟み、**常に成功で抜ける**。打刻が失敗して作業が止まる形にしない
-- **pre-commit は速さ優先**。重い処理 (テスト全件 / `pnpm build` / e2e) は入れない
-- **pre-push は中速まで許容**。push の機会は commit より少ないため
-- **CI が権威**。hook は「早く気づく」ための補助層であり、hook 通過 = 正しい状態ではない
-- **重複は意図的**。hook と CI で同じ lint を走らせる二重化は冗長ではなく仕様
+- **post-checkout / post-merge are not checks.** They do not stop breakage; they only align content git does not move with what the branch records. They are given no room to fail — in a working tree that has not taken it in they do nothing, leaving it to the capture prerequisite check, which points it out by name
+- **post-commit is not a check either.** It only records and stops nothing. **A stage boundary exists only on the side that has crossed it**, so the boundary called a commit is stamped here ([0161](0161-development-window-as-feedback-unit.md)). It checks for existence so that it holds in a checkout without the script — the template after stripping — and **always exits successfully**. A failed timestamp is never allowed to stop the work
+- **pre-commit prioritizes speed**. Heavy processing (the full test run / `pnpm build` / e2e) is not put in it
+- **pre-push tolerates up to medium speed**. There are fewer opportunities to push than to commit
+- **CI is the authority**. Hooks are an auxiliary layer for "noticing early"; passing the hooks ≠ a correct state
+- **Duplication is intentional**. Running the same lint in hooks and CI is by design, not redundancy
 
-### なぜ pre-commit に build を入れないか
+### Why pre-commit does not run the build
 
-Next.js の build (`pnpm build`) はキャッシュが効いても数秒〜数十秒かかる。commit のたびにこれを走らせると hook が「邪魔」となり、`--no-verify` の常用を誘発する。build 相当の最終検査は CI に委ねる。
+The Next.js build (`pnpm build`) takes seconds to tens of seconds even with caching. Running it on every commit makes the hook "in the way" and induces habitual `--no-verify`. The build-equivalent final check is left to CI.
 
-### ESLint 境界検査の pre-commit 組込みと速度目標
+### ESLint Boundary Checks in pre-commit and the Speed Target
 
-[0002](0002-formatter-linter.md) の「biome 優先 + ESLint 補完」方針に基づき、ESLint の層境界検査は `pnpm lint:ci` の一部として **pre-commit に glob スコープで組み込む**（変更ファイルに関係する層のみを対象にし、リポジトリ全体走査を避ける）。ESLint（TS resolver を伴う boundaries 検査）が pre-commit の速度目標（< 5 秒）を超える場合は、ESLint 実行のみを **pre-push 側へ退避してよい**。これは commands 粒度の調整であり本 ADR の改訂を要しない（後述「改変ルール」）。なお速度目標そのものの引き上げは ADR 改訂を要する。
+Based on the "biome first + ESLint as a complement" policy of [0002](0002-formatter-linter.md), ESLint's layer-boundary checks are **built into pre-commit with glob scoping** as part of `pnpm lint:ci` (targeting only the layers related to the changed files, avoiding a whole-repository scan). If ESLint (the boundaries check with the TS resolver) exceeds the pre-commit speed target (< 5 s), **only the ESLint run may be moved to the pre-push side**. That is an adjustment at the granularity of commands and does not require revising this ADR (see "Modification Rules" below). Raising the speed target itself, however, requires revising the ADR.
 
-## bypass ポリシー
+## Bypass Policy
 
-### 通常運用
+### Normal Operation
 
-- `git commit --no-verify` / `git push --no-verify` の **常用は禁止**
-- やむを得ず bypass した場合は、**直後に同等の検査を手動で実行** する (`pnpm lint:ci` / `pnpm typecheck`)
+- **Habitual use** of `git commit --no-verify` / `git push --no-verify` **is forbidden**
+- If bypassing is unavoidable, **run the equivalent checks manually right afterwards** (`pnpm lint:ci` / `pnpm typecheck`)
 
-### 例外: 関連コミットの分割時
+### Exception: Splitting Related Commits
 
-1 PR に複数の論理変更を分けて積む過程で「ロジック未完了の中間 commit を一時的に乗せたい」場合は、各個別 commit で `--no-verify` を使ってよい。
+When stacking several logical changes separately within one PR and you "want to temporarily put in an intermediate commit whose logic is unfinished", `--no-verify` may be used on each individual commit.
 
-ただし以下を守る:
+Provided the following is kept:
 
-- PR 内のすべての commit を積み終わった時点で、**必ず 1 回 hook 相当の検査をローカルで通す** (`pnpm lint:ci && pnpm typecheck`)
-- 「途中の commit が壊れていてもよい」のはあくまでローカル中間状態。push の時点では pre-push が動くため、最終的に検査される
+- Once all the commits in the PR are stacked, **always pass the hook-equivalent checks locally once** (`pnpm lint:ci && pnpm typecheck`)
+- "Intermediate commits may be broken" applies only to the local intermediate state. pre-push runs at push time, so it is ultimately checked
 
-`commit` スキルはこの例外の機械化である。分割した commit ごとに hook を通さず、最後に pre-commit の各 command を直接 1 回ずつ呼んで検証する。`lefthook run pre-commit` を経由しないのは、全 commit を積み終えた時点では staged が無く、lefthook が command を飛ばすためである。
+The `commit` skill is the mechanization of this exception. It does not run the hook on each split commit, and at the end it validates by calling each pre-commit command directly, once each. It does not go through `lefthook run pre-commit` because once all commits are stacked nothing is staged, and lefthook skips the commands.
 
-### 例外: 機械が導いた 1 行のコミット
+### Exception: A One-Line Commit Derived by a Machine
 
-自動化が焼き込んだ値をコミットへ落とすとき (ブランチ名から導いた版数の stamp) は hook を通さない。載るのは規則から機械的に導いた 1 行であり、pre-commit が回す検査は派生元の保護ブランチが既に通している。同じ規則で導き直す突合は CI が持つ。
+When committing a value baked in by automation (stamping the version number derived from the branch name), hooks are not run. What lands is one line derived mechanically from a rule, and the checks pre-commit runs have already been passed by the protected branch it was derived from. The reconciliation that re-derives it with the same rule is held by CI.
 
-### 例外: 変更の外の理由で落ちたゲート
+### Exception: A Gate That Failed for Reasons Outside the Change
 
-hook の失敗が変更の証拠になるのは、その失敗を**変更が引き起こした**ときだけである。次の 3 つはそれに当たらない。
+A hook failure is evidence about the change only when **the change caused** that failure. The following three are not such cases.
 
-- **別のセッションのファイル**。型チェックと完全テストはコミット範囲ではなく作業ツリー全体を読むため、別の窓が編集中の未コミットファイルが、それを含まない push のゲートを落とす
-- **出力先を共有する 2 つの実行**。テストの実行が重なると、互いの中間ファイルを消し合って落ちる。コードには何も問題が無い
-- **ベースブランチが既に落ちている**。ベースへ `git switch` して同じゲートを回せば確かめられる
+- **Files from another session**. The type check and the full test run read the whole working tree rather than the commit range, so uncommitted files that another window is editing fail the gate for a push that does not contain them
+- **Two runs sharing an output location**. When test runs overlap, they delete each other's intermediate files and fail. Nothing is wrong with the code
+- **The base branch is already failing**. This can be confirmed by `git switch`ing to the base and running the same gate
 
-この 3 つでは `--no-verify` が正しく、原因は別に直す。ゲートを満たすために変更の形を変えると、壊していないゲートのために変更が悪くなる。ただし 2 つの条件が付く。
+In these three, `--no-verify` is correct, and the cause is fixed separately. Changing the shape of the change to satisfy the gate makes the change worse for the sake of a gate it did not break. Two conditions apply, however.
 
-- **どのゲートが落ち、なぜ変更の外なのかを、報告と PR に書く**。黙って取った例外は、本物の失敗を飛ばしたのと見分けが付かない
-- **push 自体が取り返しを失わせるゲートには適用しない**。秘密スキャンは push された秘密を取り消せず、commitlint は件名が既に履歴に載っている。この 2 つは直すものであって、飛ばすものではない
+- **Write in the report and the PR which gate failed and why it is outside the change**. An exception taken silently cannot be told apart from skipping a real failure
+- **It does not apply to gates where the push itself makes things unrecoverable**. The secret scan cannot take back a pushed secret, and for commitlint the subject is already in history. These two are things to fix, not to skip
 
-ゲートを手で先回りして回さない。同じ検査を手元でもう一度掛けても結果はより正しくならず、飽和したホストではその二重実行そのものが上の 2 番目の失敗を作る。push が検証の段である。
+Do not pre-run the gates by hand. Running the same check locally again does not make the result any more correct, and on a saturated host that double run itself creates the second failure above. The push is the verification stage.
 
-### 禁止される bypass
+### Forbidden Bypasses
 
-- ❌ `--no-verify` を shell alias / git alias / IDE デフォルトに組み込むこと
-- ❌ CI で hook 相当の検査をスキップすること (CI は権威であり、bypass されてはならない)
-- ❌ `.lefthook.yaml` の commands を一時的にコメントアウトして commit すること
+- ❌ Building `--no-verify` into a shell alias / git alias / IDE default
+- ❌ Skipping hook-equivalent checks in CI (CI is the authority and must not be bypassed)
+- ❌ Temporarily commenting out commands in `.lefthook.yaml` and committing
 
-## CI との関係
+## Relationship with CI
 
-| 役割 | hook | CI |
+| Role | hook | CI |
 | --- | --- | --- |
-| 失敗時の挙動 | ローカルで止まる | PR が merge できない |
-| 権威性 | 補助 | 権威 |
-| 設定の所在 | `.lefthook.yaml` | `.github/workflows/` |
-| skip 可否 | bypass 可 (例外運用のみ) | bypass 不可 |
+| Behavior on failure | Stops locally | The PR cannot be merged |
+| Authority | Auxiliary | Authoritative |
+| Where configured | `.lefthook.yaml` | `.github/workflows/` |
+| Can be skipped | Can be bypassed (exceptions only) | Cannot be bypassed |
 
-- hook と CI で **同じコマンド** (例: `pnpm lint:ci`) を呼ぶ。ローカル ↔ CI で振る舞いを揃える
-- hook がローカルでスキップされても CI が拾うため、最終的な品質ガードは CI 側に依拠する
-- hook が「うざくて誰も使わない」状態は CI 単独運用と同義であり、避けるべき。本 ADR の速度目標を守ること
+- Hooks and CI call **the same commands** (e.g. `pnpm lint:ci`). Behavior is aligned between local ↔ CI
+- Even if hooks are skipped locally, CI catches it, so the final quality guard relies on the CI side
+- A state where hooks are "so annoying nobody uses them" is equivalent to running CI alone and is to be avoided. Keep to this ADR's speed targets
 
-## インストールと初期化
+## Installation and Initialization
 
 ```bash
 pnpm install                  # devDependency として lefthook が入る
 pnpm exec lefthook install    # .git/hooks/ に symlink を配置
 ```
 
-`postinstall` で `lefthook install` を自動実行する選択肢もあるが、CI ビルド時に不要な hook 配置を避けるため、本リポジトリでは **明示的に `lefthook install` を呼ぶ** 設計とする。README に手順を記載すること。
+Running `lefthook install` automatically in `postinstall` is an option, but to avoid placing unneeded hooks during CI builds, this repository is designed to **call `lefthook install` explicitly**. The steps are to be documented in the README.
 
-## 設定の最小構成
+## Minimal Configuration
 
-**`.lefthook.yaml` が唯一の正**。本 ADR は骨格 (どの段に、どういう関心の command を置くか) だけを定め、各 command が実際に実行するコマンド行は転記しない。転記は写しがずれる場所を増やすだけで、hook の挙動を知りたい者は必ず `.lefthook.yaml` を読む。
+**`.lefthook.yaml` is the single source of truth**. This ADR defines only the skeleton (which stage holds commands of which concern) and does not transcribe the command lines each command actually runs. Transcription only adds places where a copy can drift, and anyone wanting to know a hook's behavior always reads `.lefthook.yaml`.
 
 ```yaml
 pre-commit:
   parallel: true
   commands:
-    <関心事ごとに 1 command>: ...
+    <one command per concern>: ...
 commit-msg:
   commands:
     commitlint: ...
 pre-push:
   parallel: true
   commands:
-    <関心事ごとに 1 command>: ...
+    <one command per concern>: ...
 ```
 
-- 各段の責務と、そこで走らせる検査は上の「hook 段階の責務分担」表が定める
-- **1 command = 1 つの関心**。1 つの `run:` に複数の検査をつなげず、command を分けて名前で識別できるようにする (失敗時にどの検査が落ちたか lefthook の出力で分かる)
-- pre-commit は `parallel: true`。command 間に順序依存を作らない
-- **全 command を素で書く**。`mise exec --` での包み込みは [0003](0003-version-manager.md) で全面禁止しており、hook も例外にしない。ツールは activate 済みの PATH から解決する前提とし、`❌ <tool> が PATH にありません` で落ちた場合は hook の書き方ではなく環境を直す (`make install-tools` + activate)
+- The responsibilities of each stage, and the checks run there, are defined by the "Division of Responsibilities by Hook Stage" table above
+- **1 command = 1 concern**. Do not chain several checks in one `run:`; split them into commands identifiable by name (on failure, lefthook's output shows which check failed)
+- pre-commit is `parallel: true`. Do not create ordering dependencies between commands
+- **Write every command bare**. Wrapping in `mise exec --` is forbidden entirely by [0003](0003-version-manager.md), and hooks are no exception. Tools are assumed to resolve from the activated PATH; if it fails with `❌ <tool> が PATH にありません`, fix the environment (`make install-tools` + activate), not how the hook is written
 
-### 改変ルール
+### Modification Rules
 
-具体的な commands の追加・更新は本 ADR の改訂を伴わずに行ってよい (粒度的な調整であり、方針そのものではないため)。ただし以下の改変は **ADR 改訂を要する** :
+Concrete commands may be added or updated without revising this ADR (they are adjustments of granularity, not the policy itself). However, the following changes **require revising the ADR**:
 
-- 段階責務 (pre-commit / commit-msg / pre-push) の再定義
-- bypass ポリシーの緩和
-- lefthook 以外のツールへの移行
-- 速度目標 (pre-commit < 5 秒、pre-push < 30 秒) の引き上げ
+- Redefining stage responsibilities (pre-commit / commit-msg / pre-push)
+- Relaxing the bypass policy
+- Migrating to a tool other than lefthook
+- Raising the speed targets (pre-commit < 5 s, pre-push < 30 s)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ pre-commit に重い処理 (`pnpm build` / e2e / 全テスト) を入れること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の pre-commit の `run:` に `pnpm build` / e2e / `make test-full` が現れることは綴りで落とせるが規則は無い。それ以外の処理が重いかは実行時間で決まり、設定の形からは決まらない）
-- ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること（強制: 散文 —— **寄せられない**。alias と IDE の設定は利用者の環境に在り、リポジトリの差分に現れない）
-- ❌ CI 側で hook 相当の検査をスキップすること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の各 command が呼ぶ入口がいずれかの workflow の `run:` に在ることは突き合わせで落とせるが規則は無い。そのステップが実際に走るかは `if:` の評価で決まり実行時にしか分からない）
-- ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)（強制: 散文 —— **寄せられない**。`.git/hooks/` は追跡外で、書き込みがリポジトリの差分に現れない）
-- ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行入口を 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の `run:` が既存の入口を 1 行で呼ぶ形であることは YAML を読めば落とせるが規則は無い。呼ばれた script や target が段の選択を抱え込んでいるかは中身の意味で決まる）
-- ❌ lefthook 自体のバージョンを caret (`^`) で指定すること ([0004](0004-library-management.md) のコア dev ツール方針に従い exact pin)（強制: 散文 —— **寄せられる**（`package.json` の `lefthook` の値が範囲指定子を持たない完全な版かを見る。規則は無い））
+- ❌ Putting heavy processing (`pnpm build` / e2e / the full test run) in pre-commit (Enforcement: Prose — **partly mechanizable**. `pnpm build` / e2e / `make test-full` appearing in a pre-commit `run:` of `.lefthook.yaml` can be rejected by spelling, but no rule exists. Whether other processing is heavy is decided by run time, not by the shape of the configuration)
+- ❌ Making `--no-verify` permanent through a git alias / shell alias / IDE setting (Enforcement: Prose — **not mechanizable**. Aliases and IDE settings live in the user's environment and do not appear in the repository's diff)
+- ❌ Skipping hook-equivalent checks on the CI side (Enforcement: Prose — **partly mechanizable**. That the entry point each command in `.lefthook.yaml` calls appears in some workflow's `run:` can be checked by reconciliation, but no rule exists. Whether that step actually runs is decided by evaluating `if:` and is known only at run time)
+- ❌ Writing shell scripts directly under `.git/hooks/` (via lefthook only) (Enforcement: Prose — **not mechanizable**. `.git/hooks/` is untracked, and writes there do not appear in the repository's diff)
+- ❌ Scattering hook configuration (which command runs at which stage) across files other than `.lefthook.yaml` (scripts / Makefile, etc.). Calling an existing entry point such as `pnpm <script>` / `make <target>` in one line from `run:` is not scattering (it is also a requirement for calling the same command locally and in CI) (Enforcement: Prose — **partly mechanizable**. That each `run:` in `.lefthook.yaml` calls an existing entry point in one line can be checked by reading the YAML, but no rule exists. Whether the called script or target takes over the choice of stage is decided by the meaning of its content)
+- ❌ Specifying lefthook's own version with a caret (`^`) (exact pin, following the core dev tool policy of [0004](0004-library-management.md)) (Enforcement: Prose — **mechanizable** (check that the `lefthook` value in `package.json` is a complete version with no range specifier. No rule exists))
 
-## 補足
+## Notes
 
-- 「hook はあると邪魔、ないと事故」のジレンマを、**速い hook + 権威ある CI** の二重化で解く方針
-- lefthook 設定の具体内容 (どの段階でどの command を走らせるか) はリポジトリの肥大化に応じて調整する
-- hook の存在は README で利用者向けに案内する (`pnpm exec lefthook install` の必要性)
+- The policy resolves the dilemma "hooks get in the way when present, accidents happen when absent" with the two tiers of **fast hooks + authoritative CI**
+- The concrete content of the lefthook configuration (which command runs at which stage) is adjusted as the repository grows
+- The existence of hooks is announced to users in the README (that `pnpm exec lefthook install` is needed)
 
-## 関連 ADR
+## Related ADRs
 
-- [0002-formatter-linter.md](0002-formatter-linter.md) — `pnpm lint:ci` が直列に回す 3 段と、biome の設定を 1 枚に保つ決定
-- [0004-library-management.md](0004-library-management.md) — lefthook を devDependency として exact pin する根拠
-- [0110-security-operations.md](0110-security-operations.md) — pre-push で走る秘密スキャンの内容、および脆弱性スキャンを hook に載せない判断
-- [0150-git-workflow.md](0150-git-workflow.md) — hook 通過後の commit / PR / リリース運用フロー
-- [0153-ci-configuration.md](0153-ci-configuration.md) — hook と同じコマンドを回す CI 側 (hooks mirror CI)
+- [0002-formatter-linter.md](0002-formatter-linter.md) — the three stages `pnpm lint:ci` runs in series, and the decision to keep a single biome configuration
+- [0004-library-management.md](0004-library-management.md) — the basis for exact-pinning lefthook as a devDependency
+- [0110-security-operations.md](0110-security-operations.md) — what the secret scan run in pre-push does, and the judgment not to put the vulnerability scan in hooks
+- [0150-git-workflow.md](0150-git-workflow.md) — the commit / PR / release flow after hooks pass
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the CI side that runs the same commands as the hooks (hooks mirror CI)

@@ -1,57 +1,57 @@
-# ポリシー状態(consent / feature-flag)の供給方針
+# Supply Policy for Policy State (consent / feature-flag)
 
-[0022](0022-capabilities-kernel.md) は「ポリシー状態(consent / feature-flag)は `capabilities` に置かず各 seam が所有」と定めるが、その供給点 —— `useConsent()` 相当(サードパーティスクリプトの同意ゲートと analytics の consent gating が消費する)・`useFlag()` 相当 —— は、`capabilities`(runtime 限定)にも `components`(純 UI)にも `model`(表示ロジック)にも `feature`(単一・`features↔features` 禁止)にも座らない。
+[0022](0022-capabilities-kernel.md) states that "policy state (consent / feature-flag) is not placed in `capabilities`; each seam owns it", but its supply points — the `useConsent()` equivalent (consumed by the consent gate for third-party scripts and by analytics consent gating) and the `useFlag()` equivalent — sit in neither `capabilities` (runtime only), `components` (pure UI), `model` (display logic), nor a `feature` (single; `features↔features` forbidden).
 
-本 ADR は、この供給を **新カーネルを立てずに既存カーネルの合成で** 定める([0024](0024-adapters-server-client-split.md) の adapters/client を土台とする)。
+This ADR defines this supply **by composing existing kernels, without standing up a new kernel** (built on the adapters/client of [0024](0024-adapters-server-client-split.md)).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-server 側の供給([0071](0071-bff-api-integration.md) の adapters)だけでは、client 供給の半面が残る。`features/consent` のような feature 化は `features↔features` 禁止([0021](0021-frontend-responsibility.md))で他 feature から参照できず不成立。[0024](0024-adapters-server-client-split.md) が adapters に client 面を持つことで、本 ADR の解決が成立する。
+Server-side supply alone (the adapters of [0071](0071-bff-api-integration.md)) leaves the client-supply half. Making it a feature such as `features/consent` does not work: with `features↔features` forbidden ([0021](0021-frontend-responsibility.md)), other features cannot reference it. Because [0024](0024-adapters-server-client-split.md) gives adapters a client side, this ADR's resolution holds.
 
-## 決定: 3 分解して既存カーネルへ(新カーネル不要)
+## Decision: Split into Three and Place in Existing Kernels (No New Kernel)
 
-consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置く:
+Consent / flag supply is split into three parts, each placed in an existing home:
 
-| 分解要素 | 家 | 内容 |
+| Part | Home | Contents |
 | --- | --- | --- |
-| **① 生の値の読み** | `adapters` source 境界 | server は `cookies()`([0025](0025-app-layer-elements.md) の route-segment / route-handler)/ client raw は `capabilities`([0022](0022-capabilities-kernel.md))。**反応的な横断ケースだけは ③ の `stores` が自分で読む**(下記「家の決まり方」) |
-| **② セマンティクス + no-op 既定** | `adapters` の source adapter に同居 | **seam 成果物** = 「未同意で全 gate」の consent 既定(同意ゲートと analytics の consent gating が消費)/ flag の既定。gate 述語は純関数。**起動 / ビルド境界も消費する場合は `model`**(下記) |
-| **③ ツリーへの供給** | 既定 = **stateless**(RSC が読み props で配る) | [0060](0060-state-management.md)(Server state = RSC fetch 既定)に忠実。反応的が要る横断ケース(同意バナー操作の即時反映等)は横断 client 状態として `stores`([0023](0023-stores-kernel.md) / Zustand)に置く(Provider を要する形を採るときの mount は [0026](0026-layout-shell-mount.md)。store は Provider を要さない module singleton である) |
+| **① Reading the raw value** | `adapters` source boundary | Server uses `cookies()` (route-segment / route-handler of [0025](0025-app-layer-elements.md)) / client raw uses `capabilities` ([0022](0022-capabilities-kernel.md)). **Only for reactive cross-cutting cases does ③'s `stores` read it itself** ("How the home is decided" below) |
+| **② Semantics + no-op default** | Co-located in the `adapters` source adapter | **The seam deliverable** = the consent default "gate everything without consent" (consumed by the consent gate and analytics consent gating) / the flag default. Gate predicates are pure functions. **When the startup / build boundary also consumes it, `model`** (below) |
+| **③ Supply to the tree** | Default = **stateless** (RSC reads and hands out via props) | Faithful to [0060](0060-state-management.md) (Server state = RSC fetch by default). Cross-cutting cases that need reactivity (immediate reflection of consent-banner actions, etc.) are placed in `stores` ([0023](0023-stores-kernel.md) / Zustand) as cross-cutting client state (when a form that needs a Provider is taken, the mount is [0026](0026-layout-shell-mount.md); a store is a module singleton that needs no Provider) |
 
-### 家の決まり方(依存マトリクスが先に決める)
+### How the home is decided (the dependency matrix decides first)
 
-上の表は既定であり、**`architecture.ts` の依存マトリクスが許さない組み合わせは既定より優先して次の形を採る**。マトリクスは強制される側なので、表がそれと食い違えば表に従える実装が存在しない。
+The table above is the default; **for combinations the dependency matrix in `architecture.ts` does not allow, the following forms take precedence over the default**. The matrix is the enforced side, so if the table disagrees with it, no implementation could follow the table.
 
-- **① が `stores` へ移る条件**: 値が「**初回描画より前に同期で要る**」かつ「**反応的**」の両方を満たすとき。`stores` は `capabilities` を import できず(`stores → model / errors / config`)、`capabilities` が公開するのは hook なので Zustand の初期化子から呼べない。この 2 条件が揃う値は `stores` が生の読み書きごと持つ(consent がこれにあたる)
-- **② が `model` へ移る条件**: **起動 / ビルド境界**(`proxy.ts` 等)も同じ述語を消費するとき。それらは `adapters` を import できないため(`proxy → model / config / errors`)、`adapters` へ置くと [0131](0131-cookie-consent.md) が cookie 操作を置けと定める場所から届かない。判定と綴りを 1 か所に保つには `model` が唯一の交点になる(`model/session.ts` / `model/authz.ts` と同型)
-- どちらの条件も満たさない値は表の既定どおり `adapters` / `capabilities` に置く
+- **When ① moves to `stores`**: when the value is both "**needed synchronously before the first render**" and "**reactive**". `stores` cannot import `capabilities` (`stores → model / errors / config`), and what `capabilities` exposes is hooks, which cannot be called from a Zustand initializer. A value meeting both conditions is held by `stores` together with its raw reads and writes (consent is such a value)
+- **When ② moves to `model`**: when the **startup / build boundary** (`proxy.ts`, etc.) also consumes the same predicate. Those cannot import `adapters` (`proxy → model / config / errors`), so placing it in `adapters` makes it unreachable from the place where [0131](0131-cookie-consent.md) says cookie operations go. To keep the decision and its spelling in one place, `model` is the only intersection (the same shape as `model/session.ts` / `model/authz.ts`)
+- A value meeting neither condition is placed in `adapters` / `capabilities`, per the table's default
 
-これにより [0022](0022-capabilities-kernel.md) の「seam が所有」の**物理 = `adapters` source adapter + no-op 既定 + stateless props(反応的な横断ケースのみ `stores`)** が確定する。consent は [0131](0131-cookie-consent.md) が**軽量機構 + スクリプトゲート + ゲートの裏のタグマネージャを本体同梱**とし(CMP 本体は非同梱。計測製品そのものは容器の中身として選ぶ —— ゲートの先に同梱するのはタグマネージャという容器だけである)、flag ライブラリ本体は同梱しない([0078](0078-dynamic-feature-flag-seam.md))。本 ADR は**その供給方針(seam)**を定める。0131 の gate 述語はこの供給経路に乗る。
+This fixes the **physical form of [0022](0022-capabilities-kernel.md)'s "the seam owns it" = `adapters` source adapter + no-op default + stateless props (`stores` only for reactive cross-cutting cases)**. For consent, [0131](0131-cookie-consent.md) **bundles a lightweight mechanism + a script gate + a tag manager behind the gate in the core** (the CMP itself is not bundled; the measurement product itself is chosen as the contents of a container — what is bundled beyond the gate is only the container called a tag manager), and the flag library itself is not bundled ([0078](0078-dynamic-feature-flag-seam.md)). This ADR defines **that supply policy (the seam)**. The gate predicates of 0131 ride on this supply path.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ポリシー状態を **既定で** client store に持つこと(既定は stateless props = RSC が読み props で配る。[0060](0060-state-management.md))。反応的な横断ケース(同意バナー操作の即時反映等)に限り `stores`([0023](0023-stores-kernel.md) / Zustand)を用いてよい（強制: 散文 —— **寄せられない**。反応的な横断ケースかどうかは要件の判断で、store の形からは決まらない）
-- ❌ 依存マトリクスが許さない配置を、表の既定を理由に実装へ要求すること(「家の決まり方」。表とマトリクスが食い違うときはマトリクスが勝ち、表の側を直す)
-- ❌ consent / flag の値取得を各 feature / component に直書きすること(source adapter へ集約)（強制: 散文 —— **一部寄せられる**。`document.cookie` の読みと `next/headers` の `cookies` の import を `features` / `components` で落とす形は書けるが規則は無い。flag の出所は用途依存で、取得の形が決まらない）
-- ❌ ポリシー状態を `capabilities` に置くこと(runtime 能力に限る。[0022](0022-capabilities-kernel.md))（強制: 散文 —— **寄せられない**。値がポリシー状態か runtime 能力かは意味で決まり、hook の形からは決まらない）
+- ❌ Holding policy state in a client store **by default** (the default is stateless props = RSC reads and hands out via props; [0060](0060-state-management.md)). Only for reactive cross-cutting cases (immediate reflection of consent-banner actions, etc.) may `stores` ([0023](0023-stores-kernel.md) / Zustand) be used (Enforcement: Prose — **not mechanizable**. Whether something is a reactive cross-cutting case is a judgment about requirements, not decided by the shape of the store)
+- ❌ Demanding of the implementation a placement the dependency matrix does not allow, on the grounds of the table's default ("How the home is decided": when the table and the matrix disagree, the matrix wins and the table is fixed)
+- ❌ Writing consent / flag value retrieval directly in each feature / component (aggregate it in a source adapter) (Enforcement: Prose — **partly mechanizable**. A form that rejects reads of `document.cookie` and imports of `cookies` from `next/headers` in `features` / `components` can be written, but no rule exists. The origin of flags is use-case dependent, so the shape of retrieval is not fixed)
+- ❌ Placing policy state in `capabilities` (limited to runtime capabilities; [0022](0022-capabilities-kernel.md)) (Enforcement: Prose — **not mechanizable**. Whether a value is policy state or a runtime capability is decided by meaning, not by the shape of the hook)
 
-## 補足
+## Notes
 
-- 本 ADR は供給の**方針**を定める。flag の具体実装(どのソース・どの gate 粒度)は用途依存であり、本体が備えるのは供給経路と gate 述語まで。**consent はこれに当たらない** —— [0131](0131-cookie-consent.md) が軽量機構そのもの(保持・バナー・ゲート・計測 id の発行)を本体同梱と定めており、供給経路だけを置く対象ではない
+- This ADR defines the **policy** of supply. The concrete implementation of flags (which source, what gate granularity) is use-case dependent, and the core provides only the supply path and the gate predicates. **Consent is not such a case** — [0131](0131-cookie-consent.md) makes the lightweight mechanism itself (retention, banner, gate, issuing the measurement id) part of the core bundle, so it is not something for which only a supply path is placed
 
-## 関連 ADR
+## Related ADRs
 
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — adapters/server・adapters/client(source adapter の土台)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — ポリシー状態を退去させた元(client raw 読みの家)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `features↔features` 禁止(feature 化不成立の根拠)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — server 面の供給先(adapters・runtime config の逃し先)
-- [0131-cookie-consent.md](0131-cookie-consent.md) — consent の軽量機構 + スクリプトゲート(本 ADR はその状態供給の seam)
-- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — 動的 feature flag seam(本 ADR の供給の物理を土台に結線)
-- [0082-client-observability.md](0082-client-observability.md) — consent gate の主消費者(プロダクト分析は本 ADR の gate 述語で gate)
-- [0060-state-management.md](0060-state-management.md) — stateless 供給既定の根拠
-- [0023-stores-kernel.md](0023-stores-kernel.md) — 反応的な横断 consent / flag 状態の置き場(Zustand)
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 反応的供給で Provider を要する形を採るときの mount
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — adapters/server and adapters/client (the foundation of the source adapter)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — where policy state was evicted from (the home of client raw reads)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `features↔features` forbidden (why making it a feature does not work)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the destination of server-side supply (adapters; where runtime config escapes to)
+- [0131-cookie-consent.md](0131-cookie-consent.md) — the lightweight consent mechanism + script gate (this ADR is the seam that supplies its state)
+- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — the dynamic feature flag seam (wired on top of this ADR's physical supply)
+- [0082-client-observability.md](0082-client-observability.md) — the main consumer of the consent gate (product analytics is gated by this ADR's gate predicates)
+- [0060-state-management.md](0060-state-management.md) — the basis for the stateless-supply default
+- [0023-stores-kernel.md](0023-stores-kernel.md) — where reactive cross-cutting consent / flag state lives (Zustand)
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — the mount when reactive supply takes a form that needs a Provider

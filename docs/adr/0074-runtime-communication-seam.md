@@ -1,133 +1,133 @@
-# 双方向/ストリーム通信 seam(WebSocket / SSE)
+# Bidirectional / Streaming Communication Seam (WebSocket / SSE)
 
-[0071](0071-bff-api-integration.md) の fetch wrapper は **request/response(単発の往復)前提**で resilience(dual timeout / retry / retry budget / circuit breaker)を組んでいる。本 ADR は、その往復モデルが構造的に扱わない **双方向/ストリーム通信(WebSocket / SSE)** を、**サービス非同梱(exclusion)+ 名前付き拡張点(seam)** として明文化し、seam を実体化するときの契約 —— transport / 認証 / event の粒度 / 順序の前提 / 再接続 / mock の線引き —— を確定する。seam の物理的な「家」は既に [0024](0024-adapters-server-client-split.md)(`adapters/client`)が持つため、本 ADR はそれを**再決定せず結線**する。
+The fetch wrapper in [0071](0071-bff-api-integration.md) builds its resilience (dual timeout / retry / retry budget / circuit breaker) on the **request/response (single round trip) assumption**. This ADR makes explicit **bidirectional / streaming communication (WebSocket / SSE)**, which that round-trip model structurally does not handle, as **a service not bundled (exclusion) + a named extension point (seam)**, and settles the contract for materializing the seam — transport / authentication / event granularity / ordering assumptions / reconnection / where mocks stop. The seam's physical "home" is already owned by [0024](0024-adapters-server-client-split.md) (`adapters/client`), so this ADR **wires it without re-deciding it**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0071](0071-bff-api-integration.md) の fetch wrapper は **request/response 前提**であり、**双方向・ストリームの口を持たない**。これは「0071 の既定モデルの外側にある runtime 関心事」であり、seam なしで後入れすると [0021](0021-frontend-responsibility.md) の依存マトリクスに収まらない。
+The fetch wrapper in [0071](0071-bff-api-integration.md) **assumes request/response** and **has no endpoint for bidirectional or streaming communication**. This is "a runtime concern outside 0071's default model", and adding it later without a seam does not fit the dependency matrix of [0021](0021-frontend-responsibility.md).
 
-この seam の**物理的な置き場**は既に確定している: client の購読 IO は [0024](0024-adapters-server-client-split.md) の **`adapters/client` element**(remote 外部システム × client)が明示的に受け持つ(0024 決定表が「WebSocket・SSE」を列挙)。stream の生死や再接続 backoff の残りといった**通信機構の状態**も同じ場所に属し、回線の有無(runtime の能力)とは別物である([0022](0022-capabilities-kernel.md))。
+The **physical placement** of this seam is already settled: client-side subscription IO is explicitly taken on by the **`adapters/client` element** of [0024](0024-adapters-server-client-split.md) (remote external system × client); 0024's decision table lists "WebSocket / SSE". **The state of the communication mechanism**, such as whether a stream is alive and the remaining reconnect backoff, belongs in the same place, and it is distinct from whether a line exists at all (a runtime capability) ([0022](0022-capabilities-kernel.md)).
 
-したがって本 ADR は**新カーネルも新しい家も立てない**。既存の家を結線したうえで、なお未確定だった点 —— **長寿命接続の hosting をどこが持つか([0011](0011-no-docker.md) PaaS 制約下の境界判定)** と、**実体化するときに毎回選び直すことになる契約** —— を、設計思想([0010](0010-standards-and-non-lockin.md) 標準準拠・非ロックイン)から確定する。同じ「往復モデルの外側」に見える動的 feature flag / 段階的配信は subject が異なり、[0078](0078-dynamic-feature-flag-seam.md) が持つ。
+This ADR therefore **sets up neither a new kernel nor a new home**. Having wired the existing home, it settles what was still open — **who owns the hosting of long-lived connections (the boundary call under the PaaS constraint of [0011](0011-no-docker.md))** and **the contract that would otherwise be re-chosen at every materialization** — from the design principles ([0010](0010-standards-and-non-lockin.md): standards conformance, no lock-in). Dynamic feature flags / progressive delivery, which also look like they sit "outside the round-trip model", have a different subject and are owned by [0078](0078-dynamic-feature-flag-seam.md).
 
-seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**であり、満たすべき形の通し説明 —— 一連の流れ・順序の扱い・再接続の組み立て・どの層が何を持つか・踏みやすい点 —— は [docs/design/realtime-delivery.md](../design/realtime-delivery.md) が持つ。
+The seam has a concrete implementation (§Notes). What this ADR owns is **the choices and the rejections**; the end-to-end explanation of the shape to satisfy — the overall flow, how ordering is handled, how reconnection is assembled, which layer owns what, the easy-to-hit pitfalls — is owned by [docs/design/realtime-delivery.md](../design/realtime-delivery.md).
 
-## 決定
+## Decision
 
-### 1. 長寿命接続の hosting は同梱しない(exclusion)
+### 1. Hosting of long-lived connections is not bundled (exclusion)
 
-**境界判定(別ドメインか?の一問)で 2 分する**:
+**Split in two by the boundary call (the single question: is it another domain?)**:
 
-- **長寿命接続の hosting(ソケットを開いたまま保持するサーバ)= 別ドメイン(infra/backend)責務 → 境界 seam で切る(非同梱)**。[0011](0011-no-docker.md) の PaaS / サーバレス前提では長寿命接続を本体で保持できない。realtime の供給元は **バックエンド直結 or 外部 managed サービス**(例: Pusher / Ably / Supabase Realtime / managed WebSocket / SSE ゲートウェイ)であり、本リポジトリは realtime transport サーバを**同梱しない**。これは [0070](0070-backend-role-separation.md)(業務・接続ホスティングは backend)/ [0011](0011-no-docker.md) の帰結であって、新たな制約ではない。
-- **client 側の購読/消費 = フロント領域 → 名前付き拡張点(seam)**。家は既に [0024](0024-adapters-server-client-split.md) の **`adapters/client`**。
+- **Hosting of long-lived connections (a server that keeps sockets open) = another domain's responsibility (infra/backend) → cut at a boundary seam (not bundled)**. Under the PaaS / serverless assumption of [0011](0011-no-docker.md), the core cannot hold long-lived connections. The source of realtime is **a direct backend connection or an external managed service** (e.g. Pusher / Ably / Supabase Realtime / managed WebSocket / SSE gateway), and this repository **does not bundle** a realtime transport server. This is a consequence of [0070](0070-backend-role-separation.md) (business logic and connection hosting belong to the backend) / [0011](0011-no-docker.md), not a new constraint.
+- **Client-side subscription / consumption = frontend territory → a named extension point (seam)**. Its home is already [0024](0024-adapters-server-client-split.md)'s **`adapters/client`**.
 
-強制: 散文 —— **寄せられない**。同梱しているかどうかは依存とディレクトリの有無で決まり、規則にする対象が無い。
+Enforcement: Prose — **not mechanizable**. Whether something is bundled is decided by the presence of dependencies and directories; there is nothing to turn into a rule.
 
-### 2. 購読 seam の契約と責務分界
+### 2. The subscription seam's contract and division of responsibility
 
-`adapters/client` に置く **購読 seam の契約**を定める: connect / subscribe / message ハンドラ / close を持つ client subscription adapter とし、[0071](0071-bff-api-integration.md) の request/response wrapper と同じく **`errors` 分類へ正規化**する(生の接続エラー・close code を上位 feature へ漏らさない。[0021](0021-frontend-responsibility.md))。
+Define **the subscription seam's contract** placed in `adapters/client`: a client subscription adapter with connect / subscribe / message handlers / close, which, like the request/response wrapper of [0071](0071-bff-api-integration.md), **normalizes into the `errors` classification** (raw connection errors and close codes are not leaked to upper features; [0021](0021-frontend-responsibility.md)).
 
-**責務分界**: 順序・重複・再接続・cursor・接続状態は transport 都合であり `adapters/client` が持つ。ドメインイベント(どの通知で何の表示をどう変えるか)の畳み込みは feature が持つ。`adapters` は境界であって業務状態の所有者ではない([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))。
+**Division of responsibility**: ordering, duplicates, reconnection, cursor and connection state are transport concerns and are owned by `adapters/client`. Folding domain events (which notification changes which display, and how) is owned by the feature. `adapters` is a boundary, not the owner of business state ([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md)).
 
-強制: ESLint boundaries(`architecture.ts` の依存表)が、`features` / `components` から購読の**実装**(vendor client を含む)を import する経路を落とす。**ブラウザ組み込みの `EventSource` / `WebSocket` は import を持たない global なので boundaries には掛からない** —— こちらは `process` と同じ形で `no-restricted-syntax` が落とす(`eslint.config.ts` の `SUBSCRIPTION_CONSTRUCTION_SELECTOR`。`src/adapters/client/stream/` の外での構築を禁じる)。見るのは**組み立てだけ**で、型としての参照は落とさない —— 型は接続を開かない。
+Enforcement: ESLint boundaries (the dependency table in `architecture.ts`) rejects paths that import a subscription **implementation** (including vendor clients) from `features` / `components`. **The browser built-ins `EventSource` / `WebSocket` are globals with no import, so boundaries does not catch them** — these are rejected by `no-restricted-syntax` in the same shape as `process` (`SUBSCRIPTION_CONSTRUCTION_SELECTOR` in `eslint.config.ts`, which forbids construction outside `src/adapters/client/stream/`). It looks **only at construction**; references as a type are not rejected — a type does not open a connection.
 
-### 3. transport は SSE を既定とし、WebSocket は真に双方向のときだけ
+### 3. Transport defaults to SSE; WebSocket only when truly bidirectional
 
-**手段の優先順位(標準に乗る。[0010](0010-standards-and-non-lockin.md))**: server→client の一方向 push は **SSE(`EventSource`)を既定**とし、**真に双方向が必要な場合のみ WebSocket** を採る。定期再取得(polling)は [0060](0060-state-management.md) の Server state 既定を破らない範囲での例外であり、その規約は [docs/rules.md](../rules.md) が持つ。
+**Priority of means (ride on standards; [0010](0010-standards-and-non-lockin.md))**: one-way server→client push **defaults to SSE (`EventSource`)**, and **WebSocket is adopted only when true bidirectionality is required**. Periodic refetching (polling) is an exception within the bounds of not breaking [0060](0060-state-management.md)'s Server state default, and its convention is owned by [docs/rules.md](../rules.md).
 
-**vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: `EventSource` / `WebSocket` は WHATWG / W3C の **web プラットフォーム標準**であり Next.js 固有 API ではない(= フレームワーク・ロックインを構成しない)。SSE を既定に置く独立根拠 = ① HTTP 上で動き既存の proxy / CDN / 認証基盤をそのまま通る、② ブラウザ組み込みで依存を足さず、購読の口が「URL を 1 つ開く」だけの形に収まる、③ 供給元が無くてもバックエンド直結へ素直に degrade する —— いずれも「Next.js が推奨するから」ではない web 標準の性質。**`EventSource` が再接続を内蔵することは根拠に数えない** —— 決定 8 でそれを使わないと決めているため。
+**Vendor-independent justification ([0010](0010-standards-and-non-lockin.md))**: `EventSource` / `WebSocket` are WHATWG / W3C **web platform standards**, not Next.js-specific APIs (= they do not constitute framework lock-in). The independent grounds for defaulting to SSE = (1) it runs over HTTP and passes through existing proxies / CDNs / authentication infrastructure as is, (2) it is built into the browser, adds no dependency, and keeps the subscription endpoint to the shape of "open one URL", (3) without a source it degrades plainly to a direct backend connection — all properties of web standards, not "because Next.js recommends it". **That `EventSource` has built-in reconnection is not counted as a reason** — because Decision 8 decides not to use it.
 
-強制: 散文 —— **寄せられない**。「真に双方向か」は用途の判断で、コードの形からは決まらない。
+Enforcement: Prose — **not mechanizable**. "Is it truly bidirectional" is a judgment about the use case and is not determined by the shape of the code.
 
-### 4. 認証は BFF が発行する短命 ticket。one-time にはしない
+### 4. Authentication is a short-lived ticket issued by the BFF, not one-time
 
-- **ブラウザは backend の stream endpoint を直接叩く。** [0079](0079-auth-frontend-seam.md) により Access Token はブラウザに無く、`EventSource` は任意のヘッダを載せられないので、資格情報は **BFF(Route Handler)が発行する短命の ticket** として **query に載せる**。発券の口は主体を名乗る要求なので user-scoped の口である([0112](0112-data-classification-cache-boundary.md))
-- **標準の上に、資格情報をヘッダで載せる経路は無い。** `EventSource` の構築子が受けるのは URL と `withCredentials` だけで([WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html) の `EventSourceInit`)、ブラウザの `WebSocket` も URL とサブプロトコルしか受けない([WHATWG WebSockets Standard](https://websockets.spec.whatwg.org/))。**WebSocket へ倒しても資格情報の載せ方は変わらない**ので、認証の都合は transport の選択(決定 3)を動かさない
-- **BFF が stream を中継して Bearer を付ける形は採らない。** 中継点が長寿命接続を保持することになり、それは決定 1 が本体に持たせないものである([0011](0011-no-docker.md))。BFF が中継するのは発券の往復だけで、購読はブラウザが直接開く
-- **ticket は主体 × 購読の単位 × stream の scope に束縛し、寿命(TTL)を持つ。** 束縛と TTL が再利用の範囲を限る
-- **one-time にはしない。** one-time にすると、再接続のたびに BFF → backend の発券往復が要る。再接続を起こすのは stream 側の都合(5xx / 網の断)なので、そちらの障害が再接続の回数だけ発券口の負荷へ転化する。ブラウザ組み込みの再接続も同じ URL の再利用を前提に作られており、one-time はその前提と衝突する。TTL の内側は同じ ticket で張り直し、越えた分だけ発券し直す
-- **ticket は URL に載るので、URL を文言・ログ・span の属性へ載せない。** `logging` の redaction は**名前で伏せ、値の形は見ない**([0081](0081-observability-logging.md))ため、URL 文字列の中の ticket には届かない。ブラウザ由来の例外文言を包むときは `errors` の `redactMessage` で値を名指しして消す
+- **The browser calls the backend's stream endpoint directly.** Under [0079](0079-auth-frontend-seam.md) the Access Token is not in the browser, and `EventSource` cannot carry arbitrary headers, so the credential is **put in the query** as **a short-lived ticket issued by the BFF (Route Handler)**. The ticket-issuing endpoint is a request that names a principal, so it is a user-scoped endpoint ([0112](0112-data-classification-cache-boundary.md))
+- **Within the standards, there is no path to carry a credential in a header.** The `EventSource` constructor accepts only a URL and `withCredentials` (`EventSourceInit` in [WHATWG HTML "Server-sent events"](https://html.spec.whatwg.org/multipage/server-sent-events.html)), and the browser `WebSocket` also accepts only a URL and subprotocols ([WHATWG WebSockets Standard](https://websockets.spec.whatwg.org/)). **Falling back to WebSocket does not change how the credential is carried**, so authentication concerns do not move the transport choice (Decision 3)
+- **The shape where the BFF relays the stream and attaches a Bearer is not adopted.** The relay point would end up holding a long-lived connection, which is exactly what Decision 1 keeps out of the core ([0011](0011-no-docker.md)). The BFF relays only the ticket-issuing round trip; the subscription is opened directly by the browser
+- **The ticket is bound to principal × subscription unit × stream scope and has a lifetime (TTL).** The binding and the TTL limit the scope of reuse
+- **It is not one-time.** One-time tickets would require a BFF → backend issuing round trip on every reconnection. What causes reconnection is the stream side (5xx / network drop), so failures there would convert into load on the issuing endpoint, multiplied by the number of reconnections. The browser's built-in reconnection is also designed on the premise of reusing the same URL, and one-time tickets collide with that premise. Within the TTL, reconnect with the same ticket; issue a new one only once it is exceeded
+- **The ticket rides in the URL, so the URL is not put into messages, logs or span attributes.** `logging` redaction **masks by name and does not look at the shape of values** ([0081](0081-observability-logging.md)), so it does not reach a ticket inside a URL string. When wrapping an exception message from the browser, name the value and remove it with `errors`' `redactMessage`
 
-強制: 発券口の user-scoped は `createHttpClient` の分類引数(型。[0112](0112-data-classification-cache-boundary.md))。URL を文言へ載せないことは散文 —— **寄せられない**。文言の中身は静的に決まらない。
+Enforcement: the issuing endpoint being user-scoped is `createHttpClient`'s classification argument (types; [0112](0112-data-classification-cache-boundary.md)). Not putting the URL into messages is Prose — **not mechanizable**. The content of a message is not determined statically.
 
-### 5. stream が運ぶのは message ではなく event
+### 5. A stream carries events, not messages
 
-**stream が運ぶのは意味ごとに名前を持つ event**(`<資源>.created` のような形)であり、「message」のような**運搬の語**でも、本文の変更と状態の変更を同居させる**広い名前**(`<資源>.updated` 1 つで両方を運ぶ)でもない。広い名前は、受け取った側が本文を見て何が起きたかを判定し直すことになり、その判定が feature ごとに発明される。
+**A stream carries events that each have a name per meaning** (a shape like `<resource>.created`), not a **transport word** like "message", nor a **broad name** that mixes body changes and state changes (one `<resource>.updated` carrying both). A broad name makes the receiver re-decide what happened by looking at the body, and that decision gets invented per feature.
 
-強制: 一部寄せられる。event の型は契約側が宣言し、`adapters/client` は受け取った event を型名で判別する zod schema(discriminated union)で検証する —— 契約に無い名前は検証で落ちる。名前の粒度そのものは契約の設計で、散文 —— **寄せられない**。
+Enforcement: partly mechanizable. The event types are declared by the contract side, and `adapters/client` validates received events with a zod schema (discriminated union) that discriminates by type name — a name not in the contract fails validation. The granularity of names itself is contract design: Prose — **not mechanizable**.
 
-### 6. client が stream に前提するのは、単位ごとの単調増加だけ
+### 6. The only thing the client assumes of a stream is monotonic increase per unit
 
-- sequence は購読の単位ごとに単調増加する。**歯抜けは正常であり、SSE の到達順も保証されない** —— client はこの 2 つを前提しない
-- **整列と重複排除は `adapters/client` が持ち**、上へ流すのは整列済みの event だけである。**「穴が埋まるまで待つ」は却下する** —— 歯抜けが正常である以上、待ち続ける条件が成立しない。連続性を要求する側へ倒すと、backend の実装(別ドメイン)に対する仮定が client の待ち条件へ焼き込まれる
-- 整列の窓を越えて遅れた event は描画済みの位置へ挿入せず、**初期表示の取得口(決定 7)を取り直して整合させる**
+- The sequence increases monotonically per subscription unit. **Gaps are normal, and SSE delivery order is not guaranteed either** — the client assumes neither
+- **Ordering and deduplication are owned by `adapters/client`**, and only ordered events flow upward. **"Wait until the gap fills" is rejected** — since gaps are normal, the condition to keep waiting never holds. Leaning toward requiring continuity would bake an assumption about the backend implementation (another domain) into the client's wait condition
+- An event delayed beyond the ordering window is not inserted into an already-rendered position; instead, **refetch the initial-display fetch endpoint (Decision 7) to reconcile**
 
-強制: `adapters/client` の購読 adapter の単体テスト(逆順・重複・窓を越えた遅延を入力にする)。前提の側は散文 —— **寄せられない**。backend が何を保証するかはこのリポジトリのコードに現れない。
+Enforcement: unit tests of the subscription adapter in `adapters/client` (with reversed order, duplicates and delays beyond the window as input). The assumption side is Prose — **not mechanizable**. What the backend guarantees does not appear in this repository's code.
 
-### 7. 初期表示は取得、送信は往復。stream はどちらにも使わない
+### 7. Initial display is a fetch, submission is a round trip; the stream is used for neither
 
-- **初期表示**は Server Component の取得口(History の projection)が組み、**その応答が返す cursor が購読の開始位置**になる。stream の replay で初期状態を組み立てる形は採らない —— 初期表示が購読の成立に依存し、stream が落ちている間は画面が出ない
-- **送信**は Server Action → `adapters/server` の往復([0061](0061-form-mutation-ux.md))で行い、**`Idempotency-Key` を付けて `idempotent: true` を宣言する**([0071](0071-bff-api-integration.md) の POST 冪等性)。stream を送信の経路にしない —— 送信の失敗は分類として呼び出し側へ返る必要があり、stream にはその往復が無い
-- 楽観追加は **client 側で採番した id を送信に載せ、event に echo された id で突合する**。突合できない楽観行は残さない
+- **The initial display** is assembled by a Server Component's fetch endpoint (the History projection), and **the cursor returned in that response becomes the subscription's starting position**. The shape that assembles the initial state by replaying the stream is not adopted — the initial display would depend on the subscription succeeding, and the screen would not appear while the stream is down
+- **Submission** is done by a Server Action → `adapters/server` round trip ([0061](0061-form-mutation-ux.md)), **attaching an `Idempotency-Key` and declaring `idempotent: true`** (POST idempotency in [0071](0071-bff-api-integration.md)). The stream is not made a submission path — a submission failure has to return to the caller as a classification, and a stream has no such round trip
+- An optimistic addition **carries a client-assigned id in the submission and is matched by the id echoed back in the event**. Optimistic rows that cannot be matched are not kept
 
-強制: `idempotent: true` の宣言は `retry-policy.ts` の `isRetryableMethod` が読む(型と単体テスト)。`Idempotency-Key` を付けずに `idempotent` を立てないことは散文 —— **寄せられない**。ヘッダの意味は wrapper には見えない。
+Enforcement: the `idempotent: true` declaration is read by `isRetryableMethod` in `retry-policy.ts` (types and unit tests). Not setting `idempotent` without attaching `Idempotency-Key` is Prose — **not mechanizable**. The meaning of the header is invisible to the wrapper.
 
-### 8. 再接続は自前。`EventSource` の組み込み再接続と `Last-Event-ID` は使わない
+### 8. Reconnection is our own; `EventSource`'s built-in reconnection and `Last-Event-ID` are not used
 
-- [0071](0071-bff-api-integration.md) の resilience(dual timeout / idempotent retry / breaker)は**単発の往復**に効くもので、長寿命ストリームには**そのまま適用できない**。ストリーム側の resilience は形が異なる —— **再接続 backoff + jitter / liveness / resume-from-cursor** —— であり、`adapters/client` の購読 seam が持つ
-- **`EventSource` の組み込み再接続は使わない。** 組み込み再接続が張り直すのは網の断のときだけで、応答が 200 以外なら接続を失敗として `CLOSED` に落とし、張り直さない([WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html))。ticket の期限切れで拒否された接続はこちらに落ちるので、発券へ戻る経路は組み込み再接続の外にしか作れない。張り直すまでの待ちは `retry:` で決まる reconnection time で、それ以上の backoff を足すかは user agent の任意であり、page から jitter を掛ける口は無い —— サーバが接続を一斉に閉じると、全 client がほぼ同時に戻ってくる。発券への復帰も散らしも組み込み再接続とは共存できないので、`onerror` で即 `close()` して自前で張り直す
-- **`Last-Event-ID` は使わず、cursor を毎回明示する。** `Last-Event-ID` を送るのは組み込み再接続だけで、自前で張り直した接続には載らない。再開位置の経路が 2 つあると、どちらが正か決める規則が要る
-- **backoff の対象は 5xx と網の断だけ。** 発券の 401(`unauthenticated`)は session 切れとして打ち切り再ログインへ、stream 側の 403(`permission-denied`)は権限喪失として打ち切る。再試行が 401 / 403 で誤りであることは [0080](0080-error-handling.md) と同じ
+- The resilience of [0071](0071-bff-api-integration.md) (dual timeout / idempotent retry / breaker) works for **single round trips** and **cannot be applied as is** to long-lived streams. Stream-side resilience has a different shape — **reconnect backoff + jitter / liveness / resume-from-cursor** — and is owned by the subscription seam in `adapters/client`
+- **`EventSource`'s built-in reconnection is not used.** Built-in reconnection reconnects only on a network drop; if the response is anything other than 200, it fails the connection to `CLOSED` and does not reconnect ([WHATWG HTML "Server-sent events"](https://html.spec.whatwg.org/multipage/server-sent-events.html)). A connection rejected for an expired ticket lands there, so the path back to issuing can only be built outside built-in reconnection. The wait before reconnecting is the reconnection time set by `retry:`, adding further backoff is optional for the user agent, and there is no hook for the page to apply jitter — when the server closes connections all at once, every client comes back almost simultaneously. Neither the return to issuing nor the spreading can coexist with built-in reconnection, so `onerror` immediately calls `close()` and we reconnect ourselves
+- **`Last-Event-ID` is not used; the cursor is made explicit every time.** Only built-in reconnection sends `Last-Event-ID`; it is not carried on a connection we reopen ourselves. Two paths for the resume position would require a rule deciding which one is correct
+- **Backoff applies only to 5xx and network drops.** A 401 (`unauthenticated`) from issuing is treated as an expired session and ends in re-login; a 403 (`permission-denied`) from the stream side is treated as lost permission and ends. That retrying is wrong for 401 / 403 is the same as in [0080](0080-error-handling.md)
 
-- **レスポンスが確定した後の指示は in-band の制御 event で届く。** 確定後は status を変えられないため、送り手が「どうしてほしいか」を伝える経路はこれしかない。**client が分岐に使うのは指示された動作だけ**で、理由は記録のための安定値として扱う —— 理由で分岐すると、増えた理由を知らない client が既定の枝へ落ち、どちらへ倒れるかが宣言から読めない。打ち切り・再認証・再同期の指示は**サーバの切断を待たず client 側から閉じてから**遷移する。閉じずに待つと、組み込み再接続が同じ URL へ走る
-- **制御の指示が来ないまま切れることを前提にする。** 指示の配送は保証されず、裸の切断からも回復できなければならない。指示は速く正しく動くための手がかりであって、回復の前提ではない
+- **Instructions after the response is committed arrive as in-band control events.** After commit the status cannot change, so this is the only path for the sender to say "what it wants done". **The client branches only on the instructed action**, treating the reason as a stable value for the record — branching on the reason makes a client unaware of a newly added reason fall to the default branch, and which way it falls cannot be read from the declaration. Instructions to stop, re-authenticate or resynchronize transition **after the client closes from its side, without waiting for the server to disconnect**. Waiting without closing lets built-in reconnection run to the same URL
+- **Assume the connection may drop without any control instruction arriving.** Delivery of instructions is not guaranteed, and recovery must also work from a bare disconnect. Instructions are a cue for acting quickly and correctly, not a precondition for recovery
 
-強制: 打ち切りの分類と制御指示ごとの遷移は `adapters/client/stream` の購読 adapter の単体テスト。組み込み再接続を使わないことは散文 —— **寄せられる**(`onerror` で `close()` を呼ばない実装を検出する形は書けるが、規則は無い)。
+Enforcement: the classification of termination and the transition per control instruction are unit tests of the subscription adapter in `adapters/client/stream`. Not using built-in reconnection is Prose — **mechanizable** (a check detecting an implementation that does not call `close()` in `onerror` can be written, but no rule exists).
 
-### 9. mock で差し替えない
+### 9. Not swapped with mocks
 
-`mocks/` は契約から生成した MSW ハンドラだけを置く一方向の場所であり、SSE は契約から生成できない。手書きのハンドラを足すとその一方向が破れる。**開発時は実バックエンドへ繋ぎ、イベントを起こす手段は backend 側が持つ。** Storybook が見せるのは購読の結果として feature が取る状態であり、それは props で与える([0054](0054-ui-catalog-storybook.md))。
+`mocks/` is a one-way place holding only MSW handlers generated from the contract, and SSE cannot be generated from the contract. Adding hand-written handlers would break that one-way flow. **During development, connect to the real backend; the means of raising events is owned by the backend side.** What Storybook shows is the state a feature takes as the result of a subscription, and that is given via props ([0054](0054-ui-catalog-storybook.md)).
 
-強制: `mocks/` の README が「手で編集しません」を持ち、`mocks` 区画は起動境界からしか届かない(`architecture.ts` の `RESTRICTED_AREAS`)。SSE のハンドラを置かないことは散文 —— **寄せられない**。
+Enforcement: the `mocks/` README states that its files are not edited by hand, and the `mocks` area is reachable only from the boot boundary (`RESTRICTED_AREAS` in `architecture.ts`). Not placing an SSE handler is Prose — **not mechanizable**.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ realtime transport サーバ(長寿命接続の hosting)を本体に同梱すること([0011](0011-no-docker.md) PaaS 前提 = 別ドメイン。バックエンド直結 or 外部サービス)
-- ❌ WebSocket / SSE の購読を `features` / `components` に直書きすること([0071](0071-bff-api-integration.md) の生 fetch 禁止と同型。購読 seam = `adapters/client`。[0024](0024-adapters-server-client-split.md)。強制: boundaries は import を、`no-restricted-syntax` は global の構築を落とす —— 後者は実体化と同時に置く)
-- ❌ 生の接続エラー / close code / ストリーム例外を上位へ漏らすこと(`errors` 分類へ正規化。[0021](0021-frontend-responsibility.md))（強制: `src/adapters/client/stream/subscription.test.ts`（発券が unauthenticated / permission-denied なら打ち切る 等）が購読 adapter の分類を落とす。例外の文言に生の値が混ざるかは散文 —— **寄せられない**。文言の中身は実行時に決まる）
-- ❌ transport 都合の状態(順序 / 重複 / 再接続 / cursor)を feature に持たせ、ドメインイベントの畳み込みを `adapters` に持たせること(責務分界を跨ぐ)（強制: 散文 —— **寄せられない**。どの状態が transport 都合でどれがドメインの畳み込みかは責務の判断で、コードの形からは決まらない）
-- ❌ [0071](0071-bff-api-integration.md) の request/response resilience(dual timeout / retry / breaker)をそのまま長寿命ストリームに適用すること(別形 = 再接続 backoff / liveness / resume)
-- ❌ Access Token を stream の資格情報にすること(ブラウザに無い。[0079](0079-auth-frontend-seam.md)。資格情報は BFF 発行の ticket)
-- ❌ ticket を含む URL を例外の文言・ログ・span の属性へ載せること(名前で伏せる redaction には届かない。[0081](0081-observability-logging.md))
-- ❌ 401 / 403 を backoff の対象にすること([0080](0080-error-handling.md)。再試行しても同じ経路を辿る)
-- ❌ `Last-Event-ID` と cursor の query を併用すること(再開位置の正が 2 つになる)
-- ❌ `mocks/` に SSE のハンドラを手書きすること(契約からの生成という一方向を破る)
+- ❌ Bundling a realtime transport server (hosting of long-lived connections) in the core (the PaaS assumption of [0011](0011-no-docker.md) = another domain; a direct backend connection or an external service)
+- ❌ Writing WebSocket / SSE subscriptions directly in `features` / `components` (same shape as the raw-fetch prohibition of [0071](0071-bff-api-integration.md); subscription seam = `adapters/client`; [0024](0024-adapters-server-client-split.md). Enforcement: boundaries rejects the import, and `no-restricted-syntax` rejects construction of the globals — the latter is put in place at materialization)
+- ❌ Leaking raw connection errors / close codes / stream exceptions upward (normalize into the `errors` classification; [0021](0021-frontend-responsibility.md)) (Enforcement: `src/adapters/client/stream/subscription.test.ts` (end when issuing returns unauthenticated / permission-denied, etc.) rejects the subscription adapter's classification. Whether raw values get mixed into an exception message is Prose — **not mechanizable**. The content of a message is decided at runtime)
+- ❌ Giving transport-concern state (ordering / duplicates / reconnection / cursor) to a feature, and giving domain-event folding to `adapters` (crossing the division of responsibility) (Enforcement: Prose — **not mechanizable**. Which state is a transport concern and which is domain folding is a judgment of responsibility and is not determined by the shape of the code)
+- ❌ Applying the request/response resilience of [0071](0071-bff-api-integration.md) (dual timeout / retry / breaker) as is to long-lived streams (different shape = reconnect backoff / liveness / resume)
+- ❌ Using the Access Token as the stream credential (it is not in the browser; [0079](0079-auth-frontend-seam.md). The credential is a BFF-issued ticket)
+- ❌ Putting a URL containing a ticket into exception messages, logs or span attributes (redaction that masks by name does not reach it; [0081](0081-observability-logging.md))
+- ❌ Subjecting 401 / 403 to backoff ([0080](0080-error-handling.md); retrying follows the same path)
+- ❌ Using `Last-Event-ID` together with a cursor query (there would be two sources of truth for the resume position)
+- ❌ Hand-writing SSE handlers in `mocks/` (breaks the one-way flow of generation from the contract)
 
-## 補足
+## Notes
 
-- **購読 seam は実体を持つ。** 置き場は `src/adapters/client/stream/` で、中身は native `EventSource` + 薄い client である(§手段の優先順位=標準準拠は不変)。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。
-- **発券の中継と購読の家は別である。** 発券は同一オリジンの Route Handler(`src/app/api/<資源>/…/stream-ticket/`)が中継し、購読そのものはブラウザが backend へ直接開く。中継が返すのは ticket の生値ではなく**繋ぎ先の URL** で、ブラウザ側で組み立てと取り回しを増やさないためである(URL を文言・ログ・span へ載せない制約は 決定 4 が持つ)。
-- **契約側に属するものは決めない。** 再開 cursor の query パラメータ名 / heartbeat の形式と間隔 / 開発時にイベントを起こす手段 / ticket の TTL は backend の契約が持つ。それらが client 側の設計に何を要求するかは [docs/design/realtime-delivery.md](../design/realtime-delivery.md) が列挙する。
-- 本 ADR は exclusion(非同梱宣言 + named seam を併記する)である。polling / 相対時刻更新等の周期 client 取得の rule は本 ADR の対象外([docs/rules.md](../rules.md))。本 ADR は**双方向/ストリーム**の seam のみを扱う(動的配信フラグは [0078](0078-dynamic-feature-flag-seam.md))。
+- **The subscription seam has a concrete implementation.** It lives in `src/adapters/client/stream/`, and consists of native `EventSource` + a thin client (the priority of means = standards conformance, is unchanged). Even if native is not enough and an external client is adopted, the core keeps the seam and places it within the frame of [0010](0010-standards-and-non-lockin.md) (vendor-independent justification + swappable behind the adapters/kernel boundary, no direct vendor references scattered through features/components) / [0004](0004-library-management.md) (exact pin / `pnpm audit`).
+- **The ticket-issuing relay and the subscription's home are separate.** Issuing is relayed by a same-origin Route Handler (`src/app/api/<resource>/…/stream-ticket/`), and the subscription itself is opened by the browser directly to the backend. What the relay returns is not the raw ticket value but **the URL to connect to**, so that the browser side does not gain assembly and handling (the constraint of not putting the URL into messages, logs or spans is owned by Decision 4).
+- **What belongs to the contract side is not decided here.** The query parameter name for the resume cursor / the format and interval of heartbeats / the means of raising events during development / the ticket TTL are owned by the backend contract. What they require of the client-side design is enumerated by [docs/design/realtime-delivery.md](../design/realtime-delivery.md).
+- This ADR is an exclusion (a not-bundled declaration written alongside a named seam). Rules for periodic client fetching such as polling / relative-time updates are out of this ADR's scope ([docs/rules.md](../rules.md)). This ADR handles only the **bidirectional / streaming** seam (dynamic delivery flags are [0078](0078-dynamic-feature-flag-seam.md)).
 
-## 関連 ADR
+## Related ADRs
 
-- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md)— 動的 feature flag / 段階的配信 seam(往復モデルの外側にある別主題)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md)— request/response fetch wrapper と resilience(本 ADR が「扱わない領域」を名指す親。POST 冪等性の opt-in)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)— `adapters/client`(WebSocket・SSE の物理的な家。本 ADR は購読 seam の契約を結線)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md)— 通信機構の状態と runtime の能力の区別
-- [0011-no-docker.md](0011-no-docker.md)— PaaS / サーバレス前提(長寿命接続 hosting = 別ドメインの根拠)
-- [0070-backend-role-separation.md](0070-backend-role-separation.md)— 業務・接続ホスティングは backend(realtime 供給元 = 別ドメインの根拠)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠(EventSource / WebSocket = web 標準に乗る)+ 非ロックインの vendor-independent 正当化
-- [0060-state-management.md](0060-state-management.md)— Server state 既定(polling / 反応的供給の抑制根拠)
-- [0061-form-mutation-ux.md](0061-form-mutation-ux.md)— 送信は Server Action の往復
-- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md)— Access Token はブラウザに無い(ticket 方式の根拠)
-- [0080-error-handling.md](0080-error-handling.md)— 401 / 403 を再試行しない
-- [0081-observability-logging.md](0081-observability-logging.md)— redaction は名前で伏せる(URL の ticket に届かない根拠)
-- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md)— 発券口は user-scoped
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md)— 購読の結果は props で見せる
-- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md)— 決定ごとの強制手段の書き方
+- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) — dynamic feature flag / progressive delivery seam (a separate subject outside the round-trip model)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — request/response fetch wrapper and resilience (the parent that names the "area not handled" this ADR covers; POST idempotency opt-in)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/client` (the physical home of WebSocket / SSE; this ADR wires the subscription seam's contract)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the distinction between communication-mechanism state and runtime capability
+- [0011-no-docker.md](0011-no-docker.md) — PaaS / serverless assumption (grounds for long-lived connection hosting = another domain)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — business logic and connection hosting belong to the backend (grounds for realtime source = another domain)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance (EventSource / WebSocket = riding on web standards) + vendor-independent justification for no lock-in
+- [0060-state-management.md](0060-state-management.md) — Server state default (grounds for restraining polling / reactive supply)
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) — submission is a Server Action round trip
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — the Access Token is not in the browser (grounds for the ticket approach)
+- [0080-error-handling.md](0080-error-handling.md) — 401 / 403 are not retried
+- [0081-observability-logging.md](0081-observability-logging.md) — redaction masks by name (grounds for it not reaching a ticket in a URL)
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — the issuing endpoint is user-scoped
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — subscription results are shown via props
+- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) — how to write the enforcement for each decision

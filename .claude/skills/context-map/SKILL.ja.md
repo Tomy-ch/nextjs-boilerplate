@@ -60,7 +60,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 | どこを見るか | 何が出るか |
 | --- | --- |
-| `src/config/` | 目的別のモジュール。**外の宛先を名乗るものはそれぞれ 1 つの辺**であり、住所が実際に住んでいるのはそのモジュールである（[0030](../../../docs/adr/0030-environment-variable-management.md)） |
+| `src/config/` | 目的別のモジュール。**外の宛先を名乗るものはそれぞれ 1 つの辺**であり、住所が実際に住んでいるのはそのモジュールである（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)） |
 | `src/adapters/` | 外向きのクライアントと transport、そして生成型が関わるかどうか |
 | `src/app/api/**` | このリポジトリが所有する入ってくる口 |
 | `src/app` の metadata / `robots` / `sitemap` | 呼び出し元ではなく**標準**である入りの辺 |

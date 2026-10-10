@@ -1,85 +1,85 @@
-# コード検索・影響解析ツール
+# Code Search and Impact Analysis Tooling
 
-本プロジェクトでは、エージェントがリポジトリの構造を**関係として辿る**ための道具立てを定める。対象は「この変更はどこまで届くか」「この記号は誰から参照されるか」という問いであり、文字列の一致で答えられる問いは既存の grep が持つ。
+This project defines the tooling agents use to **traverse the repository's structure as relationships**. The subjects are questions such as "how far does this change reach" and "who references this symbol"; questions answerable by string matching are owned by the existing grep.
 
-採用するのは graphify である。リポジトリを tree-sitter でローカルに構文解析して知識グラフへ写し、その上で問い合わせを受ける。[0156](0156-browser-observation-tooling.md) が動いているアプリの観測について定めたのと同じ形で、本 ADR は静的な構造の観測について、採用範囲・取得経路・導入経路・外へ出るものの扱いを定める。
+graphify is adopted. It parses the repository locally with tree-sitter, maps it into a knowledge graph, and answers queries on top of it. In the same shape in which [0156](0156-browser-observation-tooling.md) set out observing the running application, this ADR sets out, for observing static structure, the scope of adoption, how it is obtained, how it is installed, and the handling of what leaves the machine.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **推移的な変更影響を機械が答える。** 変更したモジュールを直接読む相手は grep で列挙できるが、そこからさらに辿る先は人が繰り返すしかない。関係を持った状態で辿れる道具が 1 つ要る
-- **問いごとに道具を固定する。** 「どこへ届くか」に grep と関係グラフの両方を充てると、実行者ごとに違う手順が育つ。関係を辿る問いはこのレーン、文字列の問いは grep と分ける
-- **任意であることを保つ。** 導入しなくてもビルド・lint・CI は何も変わらない。エージェントの道具はゲートの権威を置き換えない（[0156](0156-browser-observation-tooling.md) と同じ線）
+- **Have a machine answer transitive change impact.** The direct readers of a changed module can be enumerated with grep, but going further from there is something a person can only repeat by hand. One tool that can traverse while holding relationships is needed
+- **Fix one tool per question.** Assigning both grep and a relationship graph to "where does it reach" grows a different procedure per person. Questions that traverse relationships go to this lane, string questions to grep
+- **Keep it optional.** Not installing it changes nothing in the build, lint or CI. Agent tools do not replace the gates' authority (the same line as [0156](0156-browser-observation-tooling.md))
 
-## 採用範囲
+## Scope of Adoption
 
-価値が確認できたのは **`affected`**（関係付きの推移的な変更影響）である。これを中心に、ローカルで完結する問い合わせの副コマンド一式を使う。
+What was confirmed to have value is **`affected`** (transitive change impact with relationships). Centered on it, the full set of query subcommands that complete locally is used.
 
-**grep の置き換えとしては採らない。** 狙って書いた grep に対する文脈量の削減は、実測では再現しなかった。小さな差分では grep のほうが安く、関係グラフへ問うのは辿る段数が 2 を超えるときに限る。
+**It is not adopted as a replacement for grep.** A reduction in context volume compared with a targeted grep did not reproduce in measurements. For small diffs grep is cheaper, and the relationship graph is queried only when the traversal exceeds 2 hops.
 
-道具の性質として、次の 2 つを踏まえて使う。
+As properties of the tool, it is used with the following two in mind.
 
-- **問い合わせは既定の予算で答えを切り詰める。** 切り捨てた側に答えがある場合があり、道具自身がその旨を警告する。網羅性が要る問いには向かず、網羅が要るなら grep へ戻る
-- **グラフは最後に抽出した時点のスナップショットである。** 未コミットの変更は映らない。判断の前に再抽出する
+- **Queries truncate answers at a default budget.** The answer may lie on the truncated side, and the tool itself warns about it. It is unsuited to questions that need exhaustiveness; when exhaustiveness is needed, go back to grep
+- **The graph is a snapshot from the last extraction.** Uncommitted changes are not reflected. Re-extract before judging
 
-出力はリポジトリで追跡しない。コードの変更ごとに動く派生物であり、Markdown 系の lint の走査からも外す（これらの lint は `.gitignore` を読まない）。
+The output is not tracked in the repository. It is a derivative that moves with every code change, and it is also excluded from the scans of the Markdown lints (these lints do not read `.gitignore`).
 
-## 取得経路
+## How tools are obtained
 
-成果物が何であるかで経路を分ける（[0156](0156-browser-observation-tooling.md) 取得経路）。graphify は Python の CLI であり、単体で動く実行ファイルとして `mise.toml` が pin を持つ。版の検疫は [0110](0110-security-operations.md) に従い、**エージェントスキルを配布するツールとして、bump のたびに「何をマシンの外へ送るか」をレビューする。**
+The path is split by what the artifact is (as [0156](0156-browser-observation-tooling.md) splits tool acquisition by artifact kind). graphify is a Python CLI, and `mise.toml` holds its pin as a standalone executable. Version quarantine follows [0110](0110-security-operations.md), and **as a tool that distributes agent skills, each bump is reviewed for "what it sends off the machine".**
 
-**配布名と CLI 名が違う。** パッケージの綴りを取り違えると別の（空き名の）パッケージを掴むため、手順を書くときは pin にある綴りをそのまま使う。
+**The distribution name and the CLI name differ.** Getting the package spelling wrong grabs a different (free-name) package, so procedures use the spelling in the pin as is.
 
-## 導入経路を bootstrap 1 本に限る
+## Limit installation to the single bootstrap path
 
-導入は、リポジトリが持つ bootstrap スクリプトを経由する経路だけを許す。
+Installation is allowed only through the bootstrap script the repository holds.
 
-道具の `install` 系統は、綴り次第でリポジトリの `CLAUDE.md` / `AGENTS.md` / 他のエージェントの設定ディレクトリ / git hook を書き換える。これらは AGENTS.md が保護対象と定めるファイル群であり、**導入の副作用として書き換わってよいものではない。**
+Depending on spelling, the tool's `install` family rewrites the repository's `CLAUDE.md` / `AGENTS.md` / other agents' configuration directories / git hooks. These are files AGENTS.md designates as protected, and **are not something that may be rewritten as a side effect of installation.**
 
-**`--platform` でスコープを切り分ける案は採らない。** プラットフォームを指定すれば user スコープに閉じる、という切り分けは成立しない —— `--project` を足せば project スコープへ倒れ、プラットフォームによってはフラグ無しでもカレントディレクトリへ書く。フラグの組み合わせで安全側を保証しようとすると、許してよい綴りと許してはいけない綴りの境界を、道具の版ごとに追い続けることになる。
+**Splitting scope with `--platform` is not adopted.** The split "specifying a platform keeps it to user scope" does not hold — adding `--project` tips it into project scope, and some platforms write to the current directory even without a flag. Trying to guarantee the safe side through flag combinations would mean tracking, for every version of the tool, the boundary between spellings that may be allowed and spellings that must not.
 
-したがって、
+Therefore,
 
-- bootstrap スクリプトが固定した引数（user スコープへの導入）だけを叩く。**引数を外から動かさない**
-- エージェントの実行許可では `install` / `uninstall` 系統を **deny** に載せ、確認を挟まず拒否する。この経路だけが例外で、スクリプトの外から叩かせない
-- 導入後の着地は、インストーラと同じ優先順位で解決した置き場を見て検証する。解決の順を揃えないと、導入は成功しているのに検証だけが別の場所を見て失敗する
-- 再実行は上書きにする。**導入済みマーカーを見て skip する冪等化は採らない** —— 導入が成功するとディスク上の全プラットフォーム分のマーカーが一括で書き換わるため、マーカーの一致はスキル本体が更新された証明にならない
+- Only the arguments fixed by the bootstrap script (installation into user scope) are run. **The arguments are not moved from outside**
+- In the agent's execution permissions, the `install` / `uninstall` family is put on **deny**, rejected without confirmation. This path alone is the exception, and it is not to be run from outside the script
+- Where installation lands is verified by looking at the location resolved with the same precedence as the installer. Unless the order of resolution is aligned, installation succeeds while only the verification looks elsewhere and fails
+- Re-running overwrites. **Idempotence by skipping on an installed marker is not adopted** — a successful installation rewrites the markers for every platform on disk at once, so matching markers do not prove the skill itself was updated
 
-撤去は人間が自分の端末で直接叩く。deny に載っている以上、エージェントからは実行できない。リポジトリ側の設定を含めて戻すなら、導入したコミットを revert すれば足りる。
+Removal is run by a person directly on their own machine. Since it is on deny, an agent cannot run it. To revert including the repository-side configuration, reverting the commit that installed it is enough.
 
-対象は Claude Code だけである。本リポジトリは他のアシスタント向けの器を持たず、着地の検証ができない。器を用意した時点でプラットフォームを足す。
+The target is Claude Code only. This repository has no container for other assistants and cannot verify where installation lands. Platforms are added once such a container is prepared.
 
-## 外部 LLM API を呼ぶ操作は都度確認へ倒す
+## Operations that call an external LLM API fall to per-call confirmation
 
-道具の既定はローカル完結で、API キーを必要としない。一方で、文書・PDF・画像の意味抽出、深い解析モード、wiki の生成、コミュニティの命名は外部の言語モデルを呼ぶ。
+The tool's default completes locally and needs no API key. On the other hand, semantic extraction from documents, PDFs and images, the deep analysis mode, wiki generation and community naming call an external language model.
 
-**ローカル完結の副コマンドだけを実行許可の allow に載せ、外部 LLM を呼ぶ操作は opt-in として都度の確認を通す。** すべてを allow に載せる案は採らない —— 呼ぶたびに外部モデルへ課金が発生し、コードの内容がリポジトリの外へ出る。どちらもエージェントが黙って選んでよいことではなく、確認を挟む場所として実行許可がある（[0156](0156-browser-observation-tooling.md) 送信を既定で止める、と同じ判断）。
+**Only the subcommands that complete locally are put on the allow list of execution permissions; operations that call an external LLM go through per-call confirmation as opt-in.** Putting everything on allow is not adopted — every call incurs charges to an external model, and code content leaves the repository. Neither is something an agent may choose silently, and execution permissions exist as the place to insert confirmation (the same judgment as [0156](0156-browser-observation-tooling.md) stopping outbound sending by default).
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **grep の置き換えとして全面採用する** | 文脈量の削減は再現しなかった。価値があるのは関係付きの推移的な影響解析だけ |
-| **`--platform` によるスコープの切り分け** | 上記「導入経路を bootstrap 1 本に限る」。フラグでは安全側を保証できない |
-| **外部 LLM を呼ぶ操作まで allow に載せる** | 課金とコードの流出をエージェントが黙って選ぶことになる |
-| **導入済みマーカーによる skip** | マーカーの一致がスキルの更新を証明しない |
-| **出力をリポジトリで追跡する** | コードの変更ごとに動く派生物で、差分のノイズにしかならない |
+| **Adopting it wholesale as a replacement for grep** | The reduction in context volume did not reproduce. Only transitive impact analysis with relationships has value |
+| **Splitting scope with `--platform`** | See "Limit installation to the single bootstrap path" above. Flags cannot guarantee the safe side |
+| **Putting operations that call an external LLM on allow too** | It would have the agent silently choose charges and code leaving the repository |
+| **Skipping on an installed marker** | Matching markers do not prove the skill was updated |
+| **Tracking the output in the repository** | It is a derivative that moves with every code change, and would only be diff noise |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ bootstrap スクリプトの外から `install` / `uninstall` 系統を叩くこと。エージェントは deny で塞がれ、人間も導入は bootstrap 経由に限る
-- ❌ 外部 LLM API を呼ぶ操作を、確認なしに実行できる許可へ載せること（強制: 散文 —— **一部寄せられる**。既知の外部 LLM を呼ぶ副コマンドの綴りが `.claude/settings.json` の `allow` に載っていないかはテストで落とせるが規則は無い。どの副コマンドが外部 LLM を呼ぶかは道具の版で変わる）
-- ❌ グラフの答えを網羅性の根拠にすること。網羅が要る問いは grep で裏を取る（強制: 散文 —— **寄せられない**。グラフの答えを網羅の根拠にしたかは、エージェントの推論の中にしか現れない）
-- ❌ 出力ディレクトリをリポジトリで追跡すること、および lint の走査へ含めること（強制: 散文 —— **寄せられる**（`git ls-files graphify-out` が空であることと、各走査の除外一覧に `graphify-out` が在ることをゲートテストで見る。規則は無い））
-- ❌ この道具を CI・git hook・build のいずれかのゲートに接続すること。ゲートの権威は既存の検査にある（強制: 散文 —— **寄せられる**（`.github/workflows/**`・`.lefthook.yaml`・`package.json` の scripts に `graphify` の呼び出しが現れないことを走査で見る。規則は無い））
+- ❌ Running the `install` / `uninstall` family from outside the bootstrap script. Agents are blocked by deny, and people too install only through bootstrap
+- ❌ Putting operations that call an external LLM API on permissions that let them run without confirmation (Enforcement: Prose — **partly mechanizable**. Whether the spellings of known subcommands that call an external LLM are on the `allow` of `.claude/settings.json` can be checked in a test, but no rule exists. Which subcommands call an external LLM changes with the tool's version)
+- ❌ Using the graph's answer as grounds for exhaustiveness. Questions that need exhaustiveness are cross-checked with grep (Enforcement: Prose — **not mechanizable**. Whether the graph's answer was taken as grounds for exhaustiveness appears only inside the agent's reasoning)
+- ❌ Tracking the output directory in the repository, or including it in lint scans (Enforcement: Prose — **mechanizable** (check in a gate test that `git ls-files graphify-out` is empty and that `graphify-out` is in each scan's exclusion list. No rule exists))
+- ❌ Connecting this tool to any CI, git hook or build gate. The gates' authority lies in the existing checks (Enforcement: Prose — **mechanizable** (scan that no calls to `graphify` appear in `.github/workflows/**`, `.lefthook.yaml` or the scripts of `package.json`. No rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0003-version-manager.md](0003-version-manager.md) — 単体で動く実行ファイルの pin を `mise.toml` が持つこと
-- [0110-security-operations.md](0110-security-operations.md) — 冷却期間と、エージェント向けツールの審査
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — エージェントの道具立て（運用系）
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — エージェントの道具立て（開発系）
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — 同型の道具立て（動いているアプリの観測）。取得経路と送信の扱いはこちらが正
+- [0003-version-manager.md](0003-version-manager.md) — `mise.toml` holding the pins of standalone executables
+- [0110-security-operations.md](0110-security-operations.md) — cooldown, and vetting tools for agents
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — agent tooling (operations)
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — agent tooling (development)
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — tooling of the same shape (observing the running application). It is authoritative for how tools are obtained and how sending is handled

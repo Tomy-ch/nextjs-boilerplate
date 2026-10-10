@@ -1,30 +1,30 @@
-# i18n 戦略(exclusion)
+# i18n Strategy (Exclusion)
 
-国際化(i18n)ライブラリ・ロケール解決・翻訳キー設計を **同梱しない** ことを意図的な除外(exclusion)として記録し、採用する場合の App Router 上の seam のみ示す。
+Records **not bundling** an internationalization (i18n) library, locale resolution or a translation-key design as a deliberate exclusion, and shows only the seams on the App Router for when one is adopted.
 
 ## Status
 
 Accepted (exclusion)
 
-## 背景
+## Context
 
-i18n は**必要ロケール・翻訳運用が用途に強く依存**するため、ここで一律に決めると選択を狭める。ライブラリを同梱せず、本 ADR が記すのは**採用時の拡張点の座標**である。
+i18n **depends heavily on the use case — which locales are needed and how translation is operated** — so deciding it uniformly here would narrow the choice. No library is bundled; what this ADR records is **the coordinates of the extension points for when it is adopted**.
 
-## 決定: 同梱しない(用途依存)
+## Decision: Not Bundled (Use-Case Dependent)
 
-- **i18n ライブラリ(next-intl 等)・ロケール解決・翻訳キー体系を 同梱しない**。用途依存のため、必要になった時点で判断する（強制: 持たない —— 採らない決定。i18n ライブラリ・ロケール解決・翻訳キーは同梱されておらず、入れる変更は依存とファイルの追加として diff に現れる）
-- 導出根拠: [0011](0011-no-docker.md) の「用途未定の表示層」ロール —— 用途依存の判断を本体で先取りしない
-- **採用するときは、局所ライブラリ(next-intl)を下記 seam に置く形を採る。** その場合も本体は seam を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 / adapters・カーネル境界の裏で差替可能 / vendor 直参照を feature・component に散らさない)と [0004](0004-library-management.md)(exact pin / `pnpm audit`)の枠内で置く
-- **i18n を採用する場合の seam**(参考): App Router のロケール解決は **`proxy.ts`(ロケール検出・リダイレクト。[0043](0043-middleware-policy.md))** と **route セグメント(`[locale]`。[0040](0040-routing-rendering-strategy.md) / [0028](0028-naming-convention.md))** で行うのが Next.js 慣行。導入時も [0021](0021-frontend-responsibility.md)(カーネル配置・命名規律)・[0004](0004-library-management.md)(exact pin / audit)の枠内で行う
-- 単一ロケールでも初日から要る**日付・数値のフォーマットと日付演算は本 ADR の射程外**であり、[0120](0120-locale-aware-formatting.md) が所有する。既定 locale を `model` の単一定数に集約する 0120 の seam が、採用時にアクティブ locale を上記 seam から受け取る差し替え点になる
+- **No i18n library (next-intl, etc.), locale resolution or translation-key scheme is bundled**. It depends on the use case, so it is decided when it becomes necessary (Enforcement: none — a decision not to adopt. No i18n library, locale resolution or translation keys are bundled, and a change adding them shows up in the diff as added dependencies and files)
+- Derivation: the "presentation layer whose use case is undecided" role of [0011](0011-no-docker.md) — the core does not pre-empt use-case-dependent judgments
+- **When it is adopted, a local library (next-intl) is placed at the seams below.** Even then the core keeps the seams, and the library is placed within the bounds of [0010](0010-standards-and-non-lockin.md) (vendor-independent justification / replaceable behind the adapters and kernel boundaries / no direct vendor references scattered across features and components) and [0004](0004-library-management.md) (exact pin / `pnpm audit`)
+- **Seams when i18n is adopted** (for reference): Next.js practice is to resolve the locale on the App Router in **`proxy.ts` (locale detection and redirects; [0043](0043-middleware-policy.md))** and in **a route segment (`[locale]`; [0040](0040-routing-rendering-strategy.md) / [0028](0028-naming-convention.md))**. Introducing it likewise stays within the bounds of [0021](0021-frontend-responsibility.md) (kernel placement, naming discipline) and [0004](0004-library-management.md) (exact pin / audit)
+- **Formatting of dates and numbers and date arithmetic**, needed from day one even with a single locale, **are outside the reach of this ADR** and are owned by [0120](0120-locale-aware-formatting.md). 0120's seam, which consolidates the default locale in a single `model` constant, becomes the replacement point that receives the active locale from the seams above once i18n is adopted
 
-## exclusion の扱い
+## Handling Exclusions
 
-- 本 ADR は「意図的にやらない」判断の記録である([0140](0140-documentation-operations.md) タクソノミー: exclusion = ADR)。導入する分にはこの exclusion は障害にならない
+- This ADR records a "deliberately not doing it" judgment ([0140](0140-documentation-operations.md) taxonomy: exclusion = ADR). This exclusion is no obstacle to introducing it
 
-## 関連 ADR
+## Related ADRs
 
-- [0011-no-docker.md](0011-no-docker.md) — 用途未定の表示層ロール(用途依存とする根拠)
-- [0043-middleware-policy.md](0043-middleware-policy.md) / [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — ロケール解決の seam(採用時)
-- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) — `Intl` フォーマット・`date-fns` 演算の所有 / 既定 locale の seam
-- [0130-pwa-strategy.md](0130-pwa-strategy.md) — 用途依存を exclusion 記録する同型の判断
+- [0011-no-docker.md](0011-no-docker.md) — the role of a presentation layer whose use case is undecided (the basis for treating it as use-case dependent)
+- [0043-middleware-policy.md](0043-middleware-policy.md) / [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the locale-resolution seams (when adopted)
+- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) — ownership of `Intl` formatting and `date-fns` arithmetic / the default-locale seam
+- [0130-pwa-strategy.md](0130-pwa-strategy.md) — the same kind of judgment, recording a use-case dependency as an exclusion

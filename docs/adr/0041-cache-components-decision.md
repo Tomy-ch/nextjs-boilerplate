@@ -1,59 +1,59 @@
-# Cache Components(PPR)有効化判断
+# Decision on Enabling Cache Components (PPR)
 
-`Cache Components`(PPR 既定化 = `next.config.ts` の `cacheComponents: true`)の採否を、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で定める。レンダリングモードの選択は [0040](0040-routing-rendering-strategy.md) が、データ取得のキャッシュ・再検証は [0071](0071-bff-api-integration.md) が、Suspense 境界の配置は同じ [0040](0040-routing-rendering-strategy.md) が、待機表示は [0080](0080-error-handling.md) が持ち、本 ADR はそれらの上で **PPR を採るかどうか** の 1 点だけを持つ。
+This ADR decides whether to adopt `Cache Components` (making PPR the default = `cacheComponents: true` in `next.config.ts`), under the standards-conformance and non-lock-in decision axis of [0010](0010-standards-and-non-lockin.md). The choice of rendering mode is held by [0040](0040-routing-rendering-strategy.md), caching and revalidation of data fetching by [0071](0071-bff-api-integration.md), placement of Suspense boundaries by the same [0040](0040-routing-rendering-strategy.md), and the loading UI by [0080](0080-error-handling.md); on top of those, this ADR holds only one point: **whether to adopt PPR**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-この判断は、データ取得のキャッシュ設計([0071](0071-bff-api-integration.md))・env のプリレンダー凍結([0030](0030-environment-variable-management.md))・Suspense 境界の配置([0040](0040-routing-rendering-strategy.md))と交差する。いずれも確定しているため、本 ADR は採否だけを扱う。
+This decision intersects with the caching design of data fetching ([0071](0071-bff-api-integration.md)), env freezing during prerendering ([0030](0030-environment-variable-management.md)) and the placement of Suspense boundaries ([0040](0040-routing-rendering-strategy.md)). All of them are settled, so this ADR deals only with adoption.
 
-裏取り(`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/cacheComponents.md`): `cacheComponents` は 16.0.0 で導入され、従来の `ppr` / `useCache` / `dynamicIO` を **1 つに統合**した設定である。有効化するとデータ取得は明示 `use cache` しない限りプリレンダーから除外され、`use cache` を page / function / component 粒度で置く運用が前提になる。さらに有効時は client-side navigation で React `<Activity>` により旧ルートを unmount せず **state を保存**する(遷移意味論そのものが変わる)。
+Verification (`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/cacheComponents.md`): `cacheComponents` was introduced in 16.0.0 and is a setting that **unifies** the earlier `ppr` / `useCache` / `dynamicIO` **into one**. When enabled, data fetching is excluded from prerendering unless explicitly marked `use cache`, and placing `use cache` at page / function / component granularity becomes the working premise. Furthermore, when enabled, client-side navigation uses React `<Activity>` to **preserve state** without unmounting the old route (the navigation semantics themselves change).
 
-## 決定
+## Decision
 
-### Cache Components(PPR)を採用する(`cacheComponents: true`)
+### Adopt Cache Components (PPR) (`cacheComponents: true`)
 
-- **有効化する。** [0040](0040-routing-rendering-strategy.md) はモードを強制しないことだけを持ち、有効化の判断を本 ADR へ委ねる。本 ADR はこれを「採用」に確定する。
-- **根拠は実測である。** 器の layout で cookie を読む 2 つの取得(利用者ごとの状態とセッション)を `<Suspense>` の穴へ落とすと、静的な本文だけの画面・識別子で 1 件を引く画面を含む 8 枚が**部分プリレンダーへ入る**。取得を持たない画面の静的な殻は header・nav・footer・本文を含む 12.4 KB の HTML で、**バックエンドへ 1 度も行かずに配れる**。この分割を持たない限り、同じ画面は器が読む 2 つの往復を待ってから 1 バイト目を返す。**入口の画面は追加の分割なしにこの形へ入る** —— 見出しを `Suspense` の外、取得を内に置く形で書かれているためである。
-- **待つコストが実在する。** 殻と穴の分割・`use cache` の粒度は route の構造そのものであり、後から入れることは同じ画面を二度書くことを意味する。
-- **有効化の前提は [0112](0112-data-classification-cache-boundary.md)** のデータ分類とキャッシュ境界である。PPR は「何が静的な殻へ入るか」を決める機構であり、**分類が無いまま有効化すると事故の面だけが先に開く**。
-- **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.md) 不変条件 1 / 2)。
-- **器の形が殻と穴の分かれ目そのものになり**、次が実装の作法として効く。
-  - **描くモードを画面が宣言しない。** segment config は併存しない。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、すべて穴の内側で解く(実時計はさらに `connection()` を待ってから読む)
-  - **殻を配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る
-  - **現在地を読む client 部品も穴を要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route の殻では解決できない
-  - **認可で殻を配れない区画は、区画ごと名乗る。** 判定を穴へ落とすと、確かめる前にその面の殻が誰にでも配られる([0079](0079-auth-frontend-seam.md))
-  - **一次資源が見つからないことは 200 で伝わる。** 殻を配り始めた時点でヘッダは 200 で出ており、その後 `notFound()` / `redirect()` に達してもステータスは変えられない。`instant = false` でも変わらない —— 有効時は動的な route が必ず殻から流れるためである。見つからないことは `noindex` と見つからない画面が伝える([0080](0080-error-handling.md))
-- **引き受ける代償**(採用によって発生し、消えないもの):
-  - **可逆性の低下**: 無効 → 有効は `use cache` を足す前進移行だが、有効前提で書いたツリー(静的な殻 / 動的な穴の分割・`use cache` の粒度)を無効へ戻すのは書き直しになる。採用はこれを引き受ける。
-  - **キャッシュ設計の骨格を本体が持つこと**: 「何を `use cache` するか / どの粒度で」は [0071](0071-bff-api-integration.md) が具体値を開けてある領域である。**具体値は開けたまま、寿命をどこへ置くかの骨格だけを本体が決める**。
-  - **一次資源の不在を示すステータスを失うこと**: `notFound()` / `redirect()` は殻が流れた後に達するため、応答は 200 のままとなり、`noindex` メタタグと meta refresh へ落ちる。索引は `noindex` が防ぐが、**ステータスで判定する監視・DAST・非 JS クライアントからは成功と区別できない**。Next 自身が案内する回避は `proxy` での事前確認だが、それは [0043](0043-middleware-policy.md)(cookie を読むだけの前捌き)と [0079](0079-auth-frontend-seam.md)(防御線ではない)に反するため採らない。この代償を引き受ける([0080](0080-error-handling.md))。
-  - **組み立てがバックエンドへの到達性を要求すること**: `use cache` を持つ口はキャッシュの中身を作るために build 中にも呼ばれる。取得先へ到達できない環境では build が落ちる —— 取得がすべて穴に居るなら落ちない。**フロントとバックエンドを別に運ぶ構成([0011](0011-no-docker.md))では、build を回す場所から取得先へ届くかどうかが前提になる**。`APP_API_MODE=mock` のときは `pnpm build` が契約から生成したハンドラを HTTP の口として立てて自給する —— プリレンダーは別の worker プロセスで走るので、プロセス内の interception(`src/instrumentation.ts` / `next.config.ts`)では届かない(どちらも実測で確認した)。request 時の往復を減らすことと引き換えに受け取る([0071](0071-bff-api-integration.md))。
-  - **キャッシュの永続性が配備先次第になること**: `use cache` の既定の入れ物はプロセスのメモリで、デプロイをまたがない(鍵に build ID が入る)。[0011](0011-no-docker.md) が挙げる配備先はいずれも serverless 側にあたるため、**request 時の再利用は起きる回と起きない回がある**。確実に残るのは組み立て時に殻へ焼かれた分だけであり、これは `fetch` の Data Cache(デプロイとインスタンスをまたいで残る)から失うものである。埋め合わせる手段(`cacheHandlers` / `use cache: remote`)は配備先に依存するので本体では選ばない([0010](0010-standards-and-non-lockin.md))。
-  - **遷移意味論の変更**: 全ルートの client-side navigation が `<Activity>` により状態保存挙動へ変わる(前の route を unmount せず hidden にする)。dropdown / dialog / 一覧の位置復元への影響は E2E と VRT で見る。
-- **有効化後のキャッシュモデル**は `use cache` + `cacheLife` / `cacheTag` を正とする。キャッシュ指定の所有層(`adapters` / 呼び出す RSC)・tag 命名・profile の形(殻へ載る取得の profile に `expire` を置かず、取り直しを背後で起こす)・ミューテーション後 revalidate の規約は [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」節が正であり、**user-scoped な値は [0112](0112-data-classification-cache-boundary.md) に従い既定で uncached** とする。
+- **Enable it.** [0040](0040-routing-rendering-strategy.md) holds only that no mode is enforced and delegates the enabling decision to this ADR. This ADR settles it as "adopted".
+- **The basis is measurement.** Dropping the two fetches that read cookies in the layout shell's layout (per-user state and the session) into a `<Suspense>` dynamic hole puts 8 screens — including screens with only static body text and screens that look up one item by identifier — **into partial prerendering**. The static shell of a screen with no fetch is 12.4 KB of HTML including header, nav, footer and body, and **can be served without going to the backend even once**. Without this split, the same screen waits for the two round trips the layout shell reads before returning its first byte. **The entry-point screens fall into this shape with no additional splitting** — because they are written with the heading outside `Suspense` and the fetch inside.
+- **The cost of waiting is real.** The static-shell / dynamic-hole split and the granularity of `use cache` are the structure of the route itself; adding them later means writing the same screen twice.
+- **The precondition for enabling it is [0112](0112-data-classification-cache-boundary.md)**'s data classification and cache boundary. PPR is the mechanism that decides "what goes into the static shell", and **enabling it with no classification opens only the surface for accidents first**.
+- **PPR is treated as a performance optimization for public data.** For user-scoped values, confidentiality takes priority over the benefit of shared / static caching ([0112](0112-data-classification-cache-boundary.md) invariants 1 / 2).
+- **The shape of the layout shell becomes the very split between static shell and dynamic hole**, and the following take effect as implementation practice.
+  - **A screen does not declare the mode it renders in.** Segment config does not coexist. `params` / `searchParams` / cookies / authorization decisions / the real clock are all resolved inside the dynamic hole (the real clock is additionally read only after awaiting `connection()`)
+  - **Only a screen that cannot serve a static shell names itself with `export const instant = false`, with a reason.** Declaration and reality are cross-checked by `scripts/render-mode` against `compute` in `prerender-manifest.json`, looking both at routes that block without a declaration and at routes with a surplus declaration
+  - **Client components that read the current location also need a dynamic hole.** `usePathname` / `useSearchParams` cannot be resolved in the static shell of a route that has dynamic segments
+  - **An area whose static shell cannot be served because of authorization names itself as a whole area.** Dropping the decision into a dynamic hole means that surface's static shell is served to anyone before the check ([0079](0079-auth-frontend-seam.md))
+  - **That a primary resource is not found is conveyed with a 200.** By the time the static shell starts streaming, the headers have gone out as 200, and reaching `notFound()` / `redirect()` afterwards cannot change the status. `instant = false` does not change this either — when enabled, a dynamic route always streams from a static shell. Not-found is conveyed by `noindex` and the not-found screen ([0080](0080-error-handling.md))
+- **Costs accepted** (arising from adoption and not going away):
+  - **Reduced reversibility**: disabled → enabled is a forward migration that adds `use cache`, but returning to disabled a tree written on the enabled premise (the static-shell / dynamic-hole split, the granularity of `use cache`) means rewriting. Adoption accepts this.
+  - **The core holds the skeleton of the caching design**: "what to `use cache`, at what granularity" is an area where [0071](0071-bff-api-integration.md) leaves concrete values open. **The concrete values stay open; the core decides only the skeleton of where lifetimes are placed**.
+  - **Losing the status that signals an absent primary resource**: `notFound()` / `redirect()` are reached after the static shell has streamed, so the response stays 200 and falls back to a `noindex` meta tag and meta refresh. `noindex` prevents indexing, but **monitoring, DAST and non-JS clients that judge by status cannot distinguish it from success**. The workaround Next itself recommends is a prior check in `proxy`, but that contradicts [0043](0043-middleware-policy.md) (pre-processing that only reads cookies) and [0079](0079-auth-frontend-seam.md) (not a line of defense), so it is not taken. This cost is accepted ([0080](0080-error-handling.md)).
+  - **Building requires reachability of the backend**: an endpoint that has `use cache` is also called during the build to produce the cache contents. In an environment that cannot reach the fetch target, the build fails — it would not fail if every fetch lived in a dynamic hole. **In a setup that ships the frontend and the backend separately ([0011](0011-no-docker.md)), whether the place that runs the build can reach the fetch target becomes a premise**. With `APP_API_MODE=mock`, `pnpm build` is self-sufficient by standing up the handlers generated from the contract as an HTTP endpoint — prerendering runs in a separate worker process, so in-process interception (`src/instrumentation.ts` / `next.config.ts`) does not reach it (both confirmed by measurement). This is accepted in exchange for fewer request-time round trips ([0071](0071-bff-api-integration.md)).
+  - **Cache persistence depends on the deployment target**: the default store of `use cache` is process memory and does not span deployments (the key includes the build ID). The deployment targets [0011](0011-no-docker.md) lists are all on the serverless side, so **request-time reuse happens on some occasions and not on others**. What reliably remains is only what was baked into the static shell at build time, and this is what is lost relative to the `fetch` Data Cache (which survives across deployments and instances). The means to make up for it (`cacheHandlers` / `use cache: remote`) depend on the deployment target, so the core does not choose one ([0010](0010-standards-and-non-lockin.md)).
+  - **Changed navigation semantics**: client-side navigation of every route changes to state-preserving behavior via `<Activity>` (the previous route is hidden rather than unmounted). The effect on dropdowns / dialogs / list position restoration is checked with E2E and VRT.
+- **The caching model after enabling** is governed by `use cache` + `cacheLife` / `cacheTag`. The owning layer of cache directives (`adapters` / the calling RSC), tag naming, the shape of profiles (no `expire` on the profile of fetches that land in the static shell, so refetching happens in the background) and the convention for revalidating after mutations are governed by [0071](0071-bff-api-integration.md)'s caching and revalidation design, and **user-scoped values are uncached by default per [0112](0112-data-classification-cache-boundary.md)**.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ [0112](0112-data-classification-cache-boundary.md) の分類とキャッシュ境界が無い状態で有効化すること（強制: 散文 —— **寄せられない**。有効化と分類の順序の判断であって、有効化した後のコードには現れない）
-- ❌ キャッシュヒット率や PPR 適用率を理由に、user-scoped な値を静的な殻・共有キャッシュへ載せること([0112](0112-data-classification-cache-boundary.md))
-- ❌ `export const instant = false` を、応答ステータスを 404 / 3xx へ戻す手段として使うこと(戻らない。有効時は動的な route が必ず殻から流れる)（強制: 散文 —— **寄せられない**。`instant = false` を名乗る動機は理由文にしか現れず、宣言の形からは決まらない）
+- ❌ Enabling it without [0112](0112-data-classification-cache-boundary.md)'s classification and cache boundary in place (Enforcement: Prose — **not mechanizable**. It is a judgment about the order of enabling and classifying, and does not appear in the code after enabling)
+- ❌ Putting user-scoped values into the static shell or a shared cache on the grounds of cache hit rate or PPR coverage ([0112](0112-data-classification-cache-boundary.md))
+- ❌ Using `export const instant = false` as a means of returning the response status to 404 / 3xx (it does not return; when enabled, a dynamic route always streams from a static shell) (Enforcement: Prose — **not mechanizable**. The motive for naming `instant = false` appears only in the reason text and is not decided by the shape of the declaration)
 
-## 補足
+## Notes
 
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する。
-- `use cache` の粒度は [0071](0071-bff-api-integration.md) のキャッシュ節が、[0030](0030-environment-variable-management.md) の env プリレンダー凍結との整合は同 ADR が、静的な殻 / 動的な穴を分ける `<Suspense>` 境界の位置は [0040](0040-routing-rendering-strategy.md) が、殻から流れる応答のステータスは [0080](0080-error-handling.md) が持つ。
-- ページネーション / 無限スクロールのデータ取得境界は本 ADR の対象外であり、[0073](0073-pagination-fetch-boundary.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは本 ADR の確定に従う。
+- In the taxonomy of [0140](0140-documentation-operations.md), this ADR belongs to the **decision** class.
+- The granularity of `use cache` is held by [0071](0071-bff-api-integration.md)'s caching section, consistency with [0030](0030-environment-variable-management.md)'s env freezing during prerendering by that same ADR, the position of `<Suspense>` boundaries that split static shell / dynamic hole by [0040](0040-routing-rendering-strategy.md), and the status of responses streamed from a static shell by [0080](0080-error-handling.md).
+- The data-fetching boundary of pagination / infinite scroll is outside this ADR's scope and is owned by [0073](0073-pagination-fetch-boundary.md). The caching model that infinite scroll's initial RSC fetch relies on follows what this ADR settles.
 
-## 関連 ADR
+## Related ADRs
 
-- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) — ページネーション / 無限スクロールのデータ取得境界(本 ADR のキャッシュモデルの上に乗る)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — レンダリングモード非強制(本 ADR が `Cache Components` の採用を確定)/ `<Suspense>` 境界の位置と粒度
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — データ取得のキャッシュ・再検証(既定 uncached・opt-in・所有層・profile)
-- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — データ分類とキャッシュ境界(本 ADR の有効化の前提)
-- [0080-error-handling.md](0080-error-handling.md) — 殻から流れる応答のステータスと、fallback の待機表示
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env プリレンダー凍結(Cache Components 判断との交差)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)
+- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) — the data-fetching boundary of pagination / infinite scroll (rides on this ADR's caching model)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — no rendering mode enforced (this ADR settles the adoption of `Cache Components`) / the position and granularity of `<Suspense>` boundaries
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — caching and revalidation of data fetching (uncached by default, opt-in, owning layer, profiles)
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) — data classification and cache boundary (the precondition for this ADR's enabling)
+- [0080-error-handling.md](0080-error-handling.md) — the status of responses streamed from a static shell, and the loading UI of fallbacks
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — env freezing during prerendering (intersection with the Cache Components decision)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the standards-conformance and non-lock-in decision axis (the basis of this ADR's vendor-independent justification)

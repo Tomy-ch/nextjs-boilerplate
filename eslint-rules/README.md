@@ -8,7 +8,7 @@ biome が表現できない検査だけを持つ自作 ESLint ルールの置き
 （[0002](../docs/adr/0002-formatter-linter.md) の能力ベース分担）。適用は
 [`eslint.config.ts`](../eslint.config.ts) が `project-rules/<ルール名>` として行う。ここに置いた
 ルールは `pnpm lint`（biome のみ）では走らず、`pnpm lint:ci` と `pnpm exec eslint <path>` で走る
-（[0002](../docs/adr/0002-formatter-linter.md)「基本コマンド」）。
+（[0002](../docs/adr/0002-formatter-linter.md)「Basic Commands」）。
 
 **ルールは検査だけを持ち、規約は持たない。** 何を禁じるかとその理由は `docs/rules.md` の節か層の
 README が持ち、ルールの先頭コメントはその所有者を名指す。逆に、所有する側の「enforced via」は

@@ -53,7 +53,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
   `SKILL.ja.md` と `AGENTS.ja.md` は、3 行目でスキルや規約として読み込まれるものを述べる、それぞれの 3 行の注記を使う
 - **翻訳は canonical に追従する**: canonical を先に更新し、ミラーを同じ変更で追従させる。canonical が常に権威である。知識を探すのも判定を当てるのも書き換えるのも canonical に対して行い、ミラーを inline で直さない。ペアの生成と同期は **`canonicalize-doc` スキル**で行う
 - **ミラーは Web と開発一般の用語をカタカナか英語で書き、漢字の直訳語にしない**(`索引` ではなく `インデックス`。`canonical` は英語のまま)。用語表は `canonicalize-doc` が持つ
-- **ワークフロー定義(`.github/workflows/**` と `.github/actions/**`)のコメントは英語で書く**(日本語規則の例外)。ワークフローは公開リポジトリのうち**外から最も読まれる部分**である —— 上流のバグ報告へ貼られ、最初に手を入れる場所であり、外の読み手が判断に使うハードニングの根拠(SHA ピン / 最小 permissions / fail-closed。[0153](0153-ci-configuration.md))を載せている。加えて英語しか出さない道具の出力(`actionlint` / `shellcheck`)と直に並ぶ。`.github/` のそれ以外(issue / PR テンプレート・`settings/`・道具の設定)は日本語規則に従う —— 定義ではないものは道具の出力と並ばない
+- **ワークフロー定義(`.github/workflows/**` と `.github/actions/**`)のコメントは英語で書く**(日本語規則の例外)。ワークフローは公開リポジトリのうち**外から最も読まれる部分**である —— 上流のバグ報告へ貼られ、最初に手を入れる場所であり、外の読み手が判断に使うハードニングの根拠(SHA ピン / 最小 permissions / fail-closed。[0153](0153-ci-configuration.ja.md))を載せている。加えて英語しか出さない道具の出力(`actionlint` / `shellcheck`)と直に並ぶ。`.github/` のそれ以外(issue / PR テンプレート・`settings/`・道具の設定)は日本語規則に従う —— 定義ではないものは道具の出力と並ばない
 - AGENTS.md Language Rules の日本語出力の一覧に「Documentation」が無いのは、このモデルによる: canonical は英語であり、日本語ミラーはそれに追従する翻訳である
 
 強制: 既存のすべてのペアの構造は skill-lint が見る —— canonical との見出しレベルの一致、ミラーの 1 行目の同期の注記、ミラーに frontmatter が無いこと。doc-links は canonical からミラーへのリンクを落とす(reason `mirror`)。ミラーの存在を見るのは `SKILL.md` と `AGENTS.md` だけで(skill-lint)、それ以外の canonical については散文 —— **寄せられない** —— 存在の検査は空のミラーを通し、ミラーが canonical と同じことを言っているかは意味の判断である。
@@ -65,7 +65,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 | 分類 | 置き場 |
 | --- | --- |
 | **decision** | `docs/adr/` |
-| **exclusion** | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
+| **exclusion** | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.ja.md) / [0130](0130-pwa-strategy.ja.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.ja.md) / [0110](0110-security-operations.ja.md) / [0131](0131-cookie-consent.ja.md)) |
 | **rule** | **`docs/rules.md`**(下記 3) |
 | **inventory** | ADR には入れない。家は [`docs/reference/`](../reference/README.md) —— コードに追随して変わるインベントリで、正はコード側、書き換えは対象のコードと同じ変更の中で行う。インベントリは根拠を持たず、選定の理由は ADR へリンクするだけ |
 
@@ -109,7 +109,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 
 ### 5. per-package README 運用
 
-- 各パッケージ / レイヤーの **README(canonical)を正**とし、監査・実装の実行時読込元とする([0021](0021-frontend-responsibility.md) が各レイヤーの README を運用の正と定める規則と接続)
+- 各パッケージ / レイヤーの **README(canonical)を正**とし、監査・実装の実行時読込元とする([0021](0021-frontend-responsibility.ja.md) が各レイヤーの README を運用の正と定める規則と接続)
 - README も canonical 言語モデル(上記 1)に従う: README が英語 canonical で、その日本語ミラーは兄弟の `README.ja.md` である
 - **README は親子で境界を持つ。** 子ディレクトリが自分の README を持つなら、親はその子を 1 行の digest と参照リンクに留め、中身を再帰的に展開しない。展開すると同じ内容が 2 か所に住み、片方が遅れる
 - **README の実ファイル列挙をゲートにしない。** README が並べたファイル名をパースして実体と突合する検査は、README の書き方を縛るだけで腐りを防げない。構造ドリフトは `sync-readme` の判断に委ねる(下記 6)
@@ -143,9 +143,9 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 
 - [0152-agents-md-policy.md](0152-agents-md-policy.ja.md) — AGENTS.md 構成方針(運用規約の集約ファイル。rule の置き場は `rules.md` に分ける)
 - [0155-claude-skills-development.md](0155-claude-skills-development.ja.md) — Claude スキル運用・開発系(canonicalize-doc / readme-review / sync-readme / portal-manifest-sync の公認。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.ja.md) と共通)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — レイヤー別 README 運用(per-package README = 正)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — レイヤー別 README 運用(per-package README = 正)
 - [0141-portal-operations.md](0141-portal-operations.ja.md) — 生成 portal(本 ADR の三層戦略の第 3 層)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — exclusion ADR の実例(`Accepted (exclusion)`)
-- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
+- [0121-i18n-strategy.md](0121-i18n-strategy.ja.md) / [0130-pwa-strategy.md](0130-pwa-strategy.ja.md) — exclusion ADR の実例(`Accepted (exclusion)`)
+- [0082-client-observability.md](0082-client-observability.ja.md) / [0110-security-operations.md](0110-security-operations.ja.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
 - [`docs/README.md`](../README.ja.md) — 4 分類の判定と行き先
 - [`docs/reference/README.md`](../reference/README.md) — inventory の家(コードに追随するインベントリの契約)

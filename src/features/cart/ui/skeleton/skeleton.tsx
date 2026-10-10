@@ -12,8 +12,9 @@ const ROWS = Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index);
  * @remarks
  * 明細と、脇に貼り付く集計の 2 段を、帯ごとの並び方まで揃えます。縦 1 列で待つと、届いた瞬間に
  * 段組みが立ち上がって明細の位置が動きます
- * （`docs/rules.md#states`の「loading は形状が近い skeleton を優先する」と
- * 「UI 部品と操作」の「状態で出入りする表示で操作の位置を動かさない」）。
+ * （`docs/rules.md#states` の
+ * "Loading prefers a skeleton close in shape, and suppresses CLS with delayed display and `aspect-ratio`" と
+ * `docs/rules.md#ui-parts` の "Do not let a display that comes and goes with state move the position of controls"）。
  *
  * **高さは 1 画面ぶん確保します。** 枠だけの明細は実物より短く、その差ぶん footer が画面の中から
  * 下へ押し出されて layout shift になります。footer を最初から画面の外に置いておけば、中身が

@@ -1,70 +1,70 @@
-# スタイリング戦略
+# Styling Strategy
 
-Tailwind CSS を主軸に据えつつ、**CSS Modules をエスケープハッチとして限定許可し(styled-components / emotion は非採用)/ `cn()` ヘルパの置き場 / design token の管理 / global と local の境界** を定める。
+With Tailwind CSS as the main axis, this ADR defines **a limited allowance for CSS Modules as an escape hatch (styled-components / emotion not adopted) / where the `cn()` helper lives / design token management / the boundary between global and local**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-`package.json` に `tailwindcss` / `@tailwindcss/postcss` があり、`postcss.config.mjs` と `src/app/globals.css` が存在するため **Tailwind v4 は事実上採用済み**である。design token 管理・`cn()` ヘルパ・global vs local 境界・代替手段の非採用方針を、本 ADR が確定する。
+`package.json` has `tailwindcss` / `@tailwindcss/postcss`, and `postcss.config.mjs` and `src/app/globals.css` exist, so **Tailwind v4 is effectively already adopted**. This ADR settles design token management, the `cn()` helper, the global vs local boundary, and the policy of not adopting alternatives.
 
-## 決定
+## Decision
 
-### Tailwind CSS を主軸に、CSS Modules をエスケープハッチとして限定許可
+### Tailwind CSS as the main axis, CSS Modules allowed in a limited way as an escape hatch
 
-- スタイリングは **Tailwind CSS(v4)のユーティリティクラスを既定(主軸)**とする
-- **CSS Modules は、Tailwind ユーティリティでは記述しづらい複雑スタイル(高度な `:has()` / 複雑な擬似要素連鎖 / keyframes など)に限り、エスケープハッチとして限定許可**する。まず Tailwind で賄えるかを確認し、賄えない場合のみ CSS Modules を用いる
-  - 採用理由(vendor-independent / [0010](0010-standards-and-non-lockin.md)): CSS Modules は **ビルド時にスコープ化される純 CSS で、ランタイム CSS-in-JS を持たない**。したがって RSC 既定([0040](0040-routing-rendering-strategy.md))と衝突せず、Server Component でもそのまま使える。加えて **Next.js / バンドラが標準機能として同梱**する(特定ライブラリへの依存が発生しない)ため、「ベンダーを正当化から抜いてもパターンが成立する」= 非ロックインの運用テストを満たす。プラットフォーム標準に乗る([0010](0010-standards-and-non-lockin.md))選択であり、追加ライブラリ・追加ランタイムを伴わない
-  - CSS Modules はプラットフォーム標準機能であり **追加依存を導入しない**ため exact-pin 対象は生じない。将来 `cn()` 実装等でライブラリを足す場合のみ [0004](0004-library-management.md)(exact pin + `pnpm audit`)に従う
-- **styled-components / emotion 等のランタイム CSS-in-JS は非採用**とする
-  - 非採用理由: これらは **ランタイムでスタイルを生成する CSS-in-JS** であり、Server Component 既定([0040](0040-routing-rendering-strategy.md))と衝突する(`"use client"` 強制・ランタイムコスト・SSR ハイドレーション複雑化)。CSS Modules の「ビルド時スコープ化・ランタイム無し」という利点を欠くため、エスケープハッチとしても採らない
+- Styling uses **Tailwind CSS (v4) utility classes by default (as the main axis)**
+- **CSS Modules are allowed in a limited way, as an escape hatch, only for complex styles that are hard to express with Tailwind utilities (advanced `:has()` / complex pseudo-element chains / keyframes, etc.)**. First check whether Tailwind can cover it, and use CSS Modules only when it cannot
+  - Rationale (vendor-independent / [0010](0010-standards-and-non-lockin.md)): CSS Modules are **plain CSS scoped at build time, with no runtime CSS-in-JS**. They therefore do not conflict with the RSC default ([0040](0040-routing-rendering-strategy.md)) and work as-is in Server Components. In addition, **Next.js / the bundler ship them as a standard feature** (no dependency on a particular library arises), so they pass the non-lock-in operational test "the pattern holds even with the vendor taken out of the justification". It is a choice that rides on the platform standard ([0010](0010-standards-and-non-lockin.md)) and brings no additional library or runtime
+  - CSS Modules are a standard platform feature and **introduce no additional dependency**, so nothing becomes subject to exact pinning. Only if a library is added in the future, for the `cn()` implementation or the like, is [0004](0004-library-management.md) (exact pin + `pnpm audit`) followed
+- **Runtime CSS-in-JS such as styled-components / emotion is not adopted**
+  - Why not: these are **CSS-in-JS that generates styles at runtime** and conflict with the Server Component default ([0040](0040-routing-rendering-strategy.md)) (forced `"use client"`, runtime cost, more complex SSR hydration). They lack the CSS Modules advantage of "scoped at build time, no runtime", so they are not adopted even as an escape hatch
 
-### `cn()` ヘルパ
+### The `cn()` helper
 
-- クラス結合ヘルパ **`cn()` を採用**する。置き場は **`components` カーネル内**([0021](0021-frontend-responsibility.md) 命名規律により `utils/` 等の汎用置き場は作らない)
-- 実装ライブラリは **`clsx` + `tailwind-merge`** とする([0052](0052-ui-component-policy.md) が shadcn の実 npm 依存として既に名指ししているものと同一)。責務が join / 衝突解決に 1 対 1 対応し、[0004](0004-library-management.md) の一次判定(単一責務 × 単一 upstream)を各々単独で通る。exact pin + `pnpm audit` は [0004](0004-library-management.md) に従う
-- `tailwind-variants` は**採らない**。variant + slots + responsive + merge の束であり責務を 1 語で言えず、下記 `cva` とも責務が衝突する
+- The class-joining helper **`cn()` is adopted**. Its home is **inside the `components` kernel** (per the naming discipline of [0021](0021-frontend-responsibility.md), no general-purpose home such as `utils/` is created)
+- The implementation libraries are **`clsx` + `tailwind-merge`** (the same ones [0052](0052-ui-component-policy.md) already names as shadcn's real npm dependencies). Their responsibilities map 1:1 to joining and conflict resolution, and each passes [0004](0004-library-management.md)'s primary check (single responsibility × single upstream) on its own. Exact pin + `pnpm audit` follow [0004](0004-library-management.md)
+- `tailwind-variants` is **not adopted**. It is a bundle of variants + slots + responsive + merge whose responsibility cannot be named in one word, and its responsibility also conflicts with `cva` below
 
-### variant 定義 = `class-variance-authority`(cva)
+### Variant definitions = `class-variance-authority` (cva)
 
-- コンポーネントの variant 定義には **`cva` を採用**する。[0052](0052-ui-component-policy.md) が採る shadcn/ui の公式コンポーネントが cva を使った状態で配布されるため、採らなければ配布物を毎回書き換えることになる([0010](0010-standards-and-non-lockin.md)「独自に機構を発明しない」)
-- 置き場は `cn()` と同じく **`components` カーネル内**。variant 定義を feature 側へ散らさない
+- **`cva` is adopted** for component variant definitions. The official shadcn/ui components that [0052](0052-ui-component-policy.md) adopts are distributed already using cva, so not adopting it would mean rewriting the distributed code every time (per [0010](0010-standards-and-non-lockin.md), do not invent mechanisms of our own)
+- Like `cn()`, its home is **inside the `components` kernel**. Variant definitions are not scattered into features
 
-### design token = CSS 変数
+### Design tokens = CSS variables
 
-- design token は **CSS 変数**で管理する(Tailwind v4 の CSS-first 設定と整合)。token の定義は `globals.css`(またはそれが import する CSS)に集約する
+- Design tokens are managed as **CSS variables** (consistent with Tailwind v4's CSS-first configuration). Token definitions are gathered in `globals.css` (or the CSS it imports)
 
-### global と local の境界
+### Boundary between global and local
 
-- **グローバル CSS は `src/app/globals.css` に集約**する。まずユーティリティで賄えるかを確認し、`globals.css` に個別規則を積み増さない([0027](0027-directory-structure.md) co-location 方針)
-- コンポーネント固有のスタイルはユーティリティクラスで各コンポーネントに co-location する。別ファイルの CSS は最小化する
-- CSS Modules を用いる場合も **その対象コンポーネントに co-location**([0027](0027-directory-structure.md))し、`*.module.css` として局所化する。グローバルへ漏らさず、エスケープハッチの適用範囲を最小に留める
+- **Global CSS is gathered in `src/app/globals.css`**. First check whether utilities can cover it, and do not pile individual rules onto `globals.css` (the co-location policy of [0027](0027-directory-structure.md))
+- Component-specific styles are co-located in each component as utility classes. CSS in separate files is minimized
+- When CSS Modules are used, they too are **co-located with the target component** ([0027](0027-directory-structure.md)) and localized as `*.module.css`. They do not leak into the global scope, keeping the escape hatch's range of application minimal
 
-### テーマ / ダークモード
+### Theme / dark mode
 
-- テーマ(ライト / ダーク等)は **CSS 変数の design token(上記)を切り替える**方式を既定とする。色を各所にハードコードせず token 経由で参照することで、テーマ切替が token 差し替えに閉じる
-- ダークモードは **`prefers-color-scheme`(OS 設定追従)を既定の土台**とし、Tailwind v4 の `dark` variant で表現する。ユーザ明示切替(トグル)を足す場合も、切替状態は最小の状態管理に留める(局所は local state、横断的に共有する場合は [0060](0060-state-management.md) が採用した `stores`(Zustand。家は [0023](0023-stores-kernel.md))に置く。Context 濫用は避ける)
-- **系統(`data-surface`)の属性は、Portal の出口を含む位置へ置く。** overlay 部品(Dialog / Popover / DropdownMenu / Sheet / Tooltip / ContextMenu)は `document.body` 直下へ出るため、器の外枠に置いた属性は overlay の中身へ届かない。本文は器が外枠へ置く属性で server 描画の時点から効かせ、overlay の中身は `body` へ橋渡しした属性で hydration 後に効かせる —— overlay は操作で開くものなので、開く時点は常に hydration より後であり、既定の系統で描かれる瞬間が無い。Portal の `container` を系統の内側へ向ける案は採らない(overlay 部品の全てに口を足したうえで、呼び出し側が毎回指定することになる)。系統の軸そのものは [0051](0051-styling-system.md)
-- **具体的なカラーパレット・提供するテーマの種類・トグル UI の有無は用途依存**のため、ここでは決めない。本リポジトリは「token 切替 + `prefers-color-scheme` 追従」という仕組みの枠を定める
+- The default approach for themes (light / dark, etc.) is **switching the CSS-variable design tokens (above)**. By referencing colors through tokens rather than hard-coding them everywhere, switching themes stays closed within swapping tokens
+- Dark mode has **`prefers-color-scheme` (following the OS setting) as its default base**, expressed with Tailwind v4's `dark` variant. If an explicit user switch (toggle) is added, the switch state is kept to minimal state management (local state for local use; when shared across, in `stores` adopted by [0060](0060-state-management.md) (Zustand; its home is [0023](0023-stores-kernel.md)). Avoid overusing Context)
+- **The family (`data-surface`) attribute is placed at a position that includes the Portal's exit.** Overlay components (Dialog / Popover / DropdownMenu / Sheet / Tooltip / ContextMenu) are emitted directly under `document.body`, so an attribute placed on the layout shell's outer frame does not reach the overlay contents. The body text takes effect from server rendering via the attribute the layout shell puts on the outer frame, and overlay contents take effect after hydration via the attribute bridged to `body` — an overlay is opened by interaction, so the moment it opens is always after hydration, and there is no instant when it is rendered in the default family. Pointing the Portal's `container` inside the family is not adopted (it would mean adding an endpoint to every overlay component and having the caller specify it every time). The family axis itself is [0051](0051-styling-system.md)
+- **The concrete color palette, the kinds of themes provided and whether there is a toggle UI are use-case dependent**, so they are not decided here. This repository defines the frame of the mechanism: "token switching + following `prefers-color-scheme`"
 
-## 禁止事項
+## Prohibitions
 
-- ❌ styled-components / emotion 等の**ランタイム CSS-in-JS** を導入すること([0040](0040-routing-rendering-strategy.md) RSC 既定と衝突)（強制: 持たない —— 採らない決定。ランタイム CSS-in-JS の依存を置いていないこと自体が状態で、入れれば `package.json` の依存追加として差分に現れる）
-- ❌ Tailwind ユーティリティで賄える規則を CSS Modules や `globals.css` へ逃がすこと(CSS Modules はあくまで賄えない複雑スタイルのエスケープハッチであり、既定は Tailwind)（強制: 散文 —— **寄せられない**。ユーティリティで賄えるかは表現したいスタイルの判断で、CSS の形からは決まらない）
-- ❌ CSS Modules をグローバルスコープ(`:global` の濫用)で用い、co-location の局所性を崩すこと（強制: 散文 —— **一部寄せられる**。`*.module.css` の `:global` の出現は静的に検出できるが規則は無い。濫用かどうかは局所化の判断で決まる）
-- ❌ `cn()` を `components` 以外の汎用置き場(`utils/` / `lib/` 等)に置くこと([0021](0021-frontend-responsibility.md) 命名規律)（強制: ESLint `boundaries/no-unknown-files` が `src/utils` / `src/lib` のような層外の置き場を落とす。層の内側（feature 配下の `lib/` 等）へ `cn()` を置くことは散文 —— **寄せられる**（`clsx` / `tailwind-merge` の import を `components` の外で `no-restricted-imports` で落とす形。規則は無い））
-- ❌ ユーティリティで賄える規則を `globals.css` に積み増すこと（強制: 散文 —— **寄せられない**。ユーティリティで賄えるかは表現したいスタイルの判断で、CSS の形からは決まらない）
-- ❌ 系統の属性を Portal の出口より内側にだけ置くこと(overlay が既定の系統で描かれる)（強制: `surface-portal-bridge.test.tsx` が橋渡しで Portal の出口へ系統を載せることを固定する。系統を置く器が橋渡しを mount しているかは散文 —— **寄せられる**（`data-surface` を置くファイルが `SurfacePortalBridge` を描くことを gate で見る形。規則は無い））
+- ❌ Introducing **runtime CSS-in-JS** such as styled-components / emotion (conflicts with the RSC default of [0040](0040-routing-rendering-strategy.md)) (Enforcement: none — a decision not to adopt. Not having a runtime CSS-in-JS dependency is itself the state; bringing one in shows up in the diff as a dependency added to `package.json`)
+- ❌ Escaping rules that Tailwind utilities can cover into CSS Modules or `globals.css` (CSS Modules are strictly an escape hatch for complex styles that cannot be covered; the default is Tailwind) (Enforcement: Prose — **not mechanizable**. Whether utilities can cover it is a judgment about the style to express, not decided by the shape of the CSS)
+- ❌ Using CSS Modules in global scope (overusing `:global`), breaking the locality of co-location (Enforcement: Prose — **partly mechanizable**. Occurrences of `:global` in `*.module.css` can be detected statically, but no rule exists. Whether it is overuse is decided by the judgment of localization)
+- ❌ Placing `cn()` in a general-purpose home other than `components` (`utils/` / `lib/`, etc.) (the naming discipline of [0021](0021-frontend-responsibility.md)) (Enforcement: ESLint `boundaries/no-unknown-files` rejects homes outside the layers, such as `src/utils` / `src/lib`. Placing `cn()` inside a layer (such as a `lib/` under a feature) is Prose — **mechanizable** (the form that rejects imports of `clsx` / `tailwind-merge` outside `components` with `no-restricted-imports`; no rule exists))
+- ❌ Piling rules that utilities can cover onto `globals.css` (Enforcement: Prose — **not mechanizable**. Whether utilities can cover it is a judgment about the style to express, not decided by the shape of the CSS)
+- ❌ Placing the family attribute only inside the Portal's exit (overlays get rendered in the default family) (Enforcement: `surface-portal-bridge.test.tsx` pins that the bridge puts the family on the Portal's exit. Whether the layout shell that sets the family mounts the bridge is Prose — **mechanizable** (the form where a gate checks that a file setting `data-surface` renders `SurfacePortalBridge`; no rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — CSS Modules 採用の正当化軸(§1 プラットフォーム標準に乗る / §2 vendor-independent = 追加依存もランタイムも伴わない)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — RSC 既定。CSS Modules(ビルド時・ランタイム無し)を許容し、ランタイム CSS-in-JS(styled-components / emotion)を非採用とする根拠
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `cn()` の置き場(`components` カーネル / 汎用置き場禁止の命名規律)
-- [0027-directory-structure.md](0027-directory-structure.md) — スタイルの co-location 方針(`globals.css` 集約 / ユーティリティ既定 / `*.module.css` の局所化)
-- [0004-library-management.md](0004-library-management.md) — `cn()` 実装ライブラリ等の採用フロー(exact pin / audit)。CSS Modules 自体は標準機能のため追加 pin は生じない
-- [0051-styling-system.md](0051-styling-system.md) — 本 ADR が定めた器の中身(デザイントークン体系 / レスポンシブ / モーション / 印刷)。token の SSOT と semantic 層の規律・系統と配色の 2 軸は 0051 側が持つ
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI ライブラリ(shadcn/ui + Tabler アイコン)採用(本 ADR の Tailwind 主軸と接続)
-- [0060-state-management.md](0060-state-management.md) — テーマ切替状態の置き場(local state 既定 / 横断状態は `stores`)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the justification axis for adopting CSS Modules (§1 ride on the platform standard / §2 vendor-independent = no additional dependency and no runtime)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the RSC default. The basis for allowing CSS Modules (build time, no runtime) and not adopting runtime CSS-in-JS (styled-components / emotion)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — where `cn()` lives (the `components` kernel / the naming discipline that forbids general-purpose homes)
+- [0027-directory-structure.md](0027-directory-structure.md) — the co-location policy for styles (gathering in `globals.css` / utilities by default / localizing `*.module.css`)
+- [0004-library-management.md](0004-library-management.md) — the adoption flow for the `cn()` implementation libraries and the like (exact pin / audit). CSS Modules themselves are a standard feature, so no additional pin arises
+- [0051-styling-system.md](0051-styling-system.md) — the contents of the frame this ADR defined (design token system / responsive / motion / print). The SSOT of tokens, the discipline of the semantic layer, and the two axes of family and color scheme are held on 0051's side
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adopting the UI library (shadcn/ui + Tabler icons) (connects to this ADR's Tailwind main axis)
+- [0060-state-management.md](0060-state-management.md) — where the theme-switch state lives (local state by default / cross-cutting state in `stores`)

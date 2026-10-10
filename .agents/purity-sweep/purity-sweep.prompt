@@ -75,7 +75,7 @@ diff ではなくファイル全体**で、コメントだけでなく散文・�
 
 **分類（decision / exclusion / rule / inventory）・行き先の判定・2 つのテスト・既定は
 [`docs/README.md`](../../docs/README.md) が持ち、拒む誤配 2 種は
-../../docs/rules.md#commentsの「設計判断を、それを所有しない文書へ置かない」が持つ。** **ここに写しを置かない** —— 同じ規則が
+[`docs/rules.md#comments`](../../docs/rules.md#comments) の "Do not place a design judgment in a document that does not own it" が持つ。** **ここに写しを置かない** —— 同じ規則が
 2 か所に在ると、片方だけが改訂された日に、純化パスと `/settle-comments` が同じコメントへ違う行き先を
 答えるようになる。
 

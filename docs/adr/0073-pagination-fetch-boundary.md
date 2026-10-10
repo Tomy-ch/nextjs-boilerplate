@@ -1,71 +1,71 @@
-# ページネーション・無限スクロールのデータ取得境界
+# Data-Fetching Boundary for Pagination and Infinite Scroll
 
-一覧画面の **ページネーション / 無限スクロール** のデータ取得境界を定める。[0040](0040-routing-rendering-strategy.md) は「レンダリングモードを強制しない」までを持ち、データ取得のキャッシュ設計は [0071](0071-bff-api-integration.md)、Suspense 境界の置き方は同じ [0040](0040-routing-rendering-strategy.md)、`loading.tsx` の待機表示は [0080](0080-error-handling.md) が持つ。その上で、無限スクロールが必然的に伴う client 追加取得は、[0060](0060-state-management.md) の「Server state = RSC fetch 既定 / クライアントでのデータ取得を本体で前提にしない」と正面から緊張し、[0071](0071-bff-api-integration.md) の fetch wrapper(resilience は主に `adapters/server` に適用 = server 前提)でもカバーされない。本 ADR はこの取得境界の所有者を明示し、[0010](0010-standards-and-non-lockin.md) の標準準拠・非ロックイン判断軸の下で確定する。
+This ADR defines the data-fetching boundary for **pagination / infinite scroll** on list screens. [0040](0040-routing-rendering-strategy.md) holds only "no rendering mode is enforced"; the caching design of data fetching is held by [0071](0071-bff-api-integration.md), the placement of Suspense boundaries by the same [0040](0040-routing-rendering-strategy.md), and the loading UI of `loading.tsx` by [0080](0080-error-handling.md). On top of that, the additional client fetching that infinite scroll inevitably brings is in direct tension with [0060](0060-state-management.md)'s "Server state = RSC fetch by default / client-side data fetching is not presupposed in the core", and is not covered by [0071](0071-bff-api-integration.md)'s fetch wrapper either (resilience applies mainly to `adapters/server` = server premise). This ADR makes explicit the owner of this fetching boundary and settles it under [0010](0010-standards-and-non-lockin.md)'s standards-conformance and non-lock-in decision axis.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-一覧画面の頁送り・無限スクロールの UI 側扱い(offset vs cursor、ページ状態の表現、client 追加取得の可否)は、所有者を明示しなければ feature ごとに発明される。とりわけ無限スクロールは `IntersectionObserver` + client fetch を必然的に伴い、[0060](0060-state-management.md) の既定と緊張する。加えて、その client fetch 経路は [0071](0071-bff-api-integration.md) の fetch wrapper(server 前提)ではカバーされず、所有者が無いままだと生 `fetch` がコンポーネントへ散る。本 ADR は、大半の一覧を RSC 駆動の既定の内側に収めたうえで、無限スクロールの増分取得だけを限定した例外として所有者付きで置く。
+How the UI side handles paging and infinite scroll on list screens (offset vs cursor, how page state is represented, whether additional client fetching is allowed) gets invented per feature unless an owner is made explicit. Infinite scroll in particular inevitably involves `IntersectionObserver` + client fetch, in tension with [0060](0060-state-management.md)'s default. In addition, that client fetch path is not covered by [0071](0071-bff-api-integration.md)'s fetch wrapper (server premise), and with no owner, raw `fetch` scatters across components. This ADR keeps most lists inside the RSC-driven default, and places only the incremental fetching of infinite scroll as a limited exception with an owner.
 
-## 決定
+## Decision
 
-### 1. ページネーションは cursor 既定・ページ状態は searchParams(RSC 駆動 = 0060 の内側)
+### 1. Pagination is cursor by default, page state is searchParams (RSC-driven = inside 0060)
 
-- **cursor ページネーションを既定**とする。offset は「小さく安定した集合」または「ページ番号ジャンプが要件」の場合に限り許容する。
-  - **vendor-independent な正当性材料**: cursor はデータの挿入 / 削除に対して安定(境界がずれても行のスキップ・重複が起きない)であり、offset は挿入 / 削除でページ境界がずれる。これは一般的なデータ整合の性質であって Next.js 非依存の根拠である。
-- **cursor で移動できるのは前後 1 ページずつ**である。cursor は「次の位置」を指す不透明な値で、任意の位置へ跳ぶ手段を表さない。**戻る先は URL が覚える** —— cursor は次の位置しか指さないため、通ってきたページの起点を URL 以外の場所が持つと前へ戻れない。
-- **ページ状態(現在ページ / cursor)は searchParams で表現**する([0060](0060-state-management.md) の「URL state は Next.js 標準機構」に乗る)。ブックマーク・共有・戻る操作が正しく復元できる。
-- **条件が変われば、読み進めた位置は捨てる。** 絞り込み・並び順が変わったとき、ページ位置(ページ / cursor)を持ち越さない。前の条件の途中の位置は、新しい条件では別の場所を指す。母集団が変われば位置が意味を失うのは業務ではなくページングの性質であり、どの一覧にも同じように効く。
-- 頁送り(前 / 次)は **searchParams 駆動で RSC が再取得する既定経路**とする。これは 0060 の「Server state = Server Component fetch 既定」の**内側**であり、例外を要さない。したがって**大半の一覧は client 追加取得を持たずに成立する**。
+- **Cursor pagination is the default**. Offset is allowed only for "a small, stable set" or when "jumping to a page number is a requirement".
+  - **Vendor-independent justification**: cursor is stable against inserts / deletes in the data (rows are not skipped or duplicated even if boundaries shift), whereas offset shifts page boundaries on inserts / deletes. This is a general property of data consistency, a basis independent of Next.js.
+- **A cursor can move only one page forward or back at a time**. A cursor is an opaque value pointing at "the next position" and does not express a way to jump to an arbitrary position. **The URL remembers where to go back to** — a cursor points only at the next position, so if something other than the URL holds the starting points of pages already passed, there is no going back.
+- **Page state (current page / cursor) is expressed in searchParams** (riding on [0060](0060-state-management.md)'s "URL state uses Next.js's standard mechanisms"). Bookmarks, sharing and the back action restore correctly.
+- **When the conditions change, the position read so far is discarded.** When filters or sort order change, the page position (page / cursor) is not carried over. A position partway through the previous conditions points somewhere else under the new conditions. That a position loses its meaning when the population changes is a property of paging, not of the business, and it applies the same way to every list.
+- Paging (previous / next) uses **the default path where searchParams drive an RSC refetch**. This is **inside** 0060's "Server state = Server Component fetch by default" and needs no exception. Therefore **most lists work without additional client fetching**.
 
-### 2. 無限スクロールの client 追加取得は限定した明示例外・所有は `adapters/client`
+### 2. Additional client fetching for infinite scroll is a limited, explicit exception, owned by `adapters/client`
 
-- 無限スクロール(`IntersectionObserver` による末尾到達検知 + 追加取得)は client fetch を必然的に伴うため、[0060](0060-state-management.md) の「クライアントでのデータ取得を本体で前提にしない」既定に対する **明示的で限定された例外**として扱う。例外は狭く保つ:
-  - **初回ページは RSC 取得**(§1)。client fetch は「もっと見る」の**増分取得だけ**に限る。
-  - **所有 = `adapters/client`**: client の追加取得は生 `fetch` をコンポーネントに散らさず、必ず **`adapters/client`([0024](0024-adapters-server-client-split.md) = client 側 remote IO の所有境界。同一オリジン BFF fetch が主で、ADR が明示に許す同一オリジン外への送信も同層が所有)経由**で行う。resilience(dual timeout / retry / breaker)は server 側 = `adapters/server`([0071](0071-bff-api-integration.md))が持ち、本 ADR の client 追加取得は same-origin(`/api/*` BFF / Route Handler)への薄い fetch に留める。これにより **0071 wrapper が server 前提でカバーしない client 経路の所有者を明示**する。
-  - **トリガー hook**(末尾到達を検知する reactive client hook)は既定で **feature ローカル**([0060](0060-state-management.md) client state = local から)。複数 feature を跨ぐ横断が生じた時点で **`capabilities` カーネル([0022](0022-capabilities-kernel.md))へ昇格**する([0021](0021-frontend-responsibility.md) 昇格ルール)。
-  - **URL 復元性の優先**: 可能な限り searchParams 駆動の「もっと見る」ボタン(RSC 再取得)を優先し、真の無限スクロールは体感上それが要る箇所に限定する。無限スクロール採用時も、読み進めた件数を URL へ書き戻し、現在 cursor を URL / state から復元可能に保つ。書き戻さないと、戻る操作も再読み込みも先頭の 1 ページだけの画面に戻り、読み進めた分がスクロール位置ごと失われる。復元できるのは契約が受け付ける件数の上限までであり、書き戻しは履歴を積まない(戻る操作は一覧より前の画面へ抜ける)。
-- client 追加取得の response も **`adapters` 境界で runtime validation・エラー正規化**を通す([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md))。生 status・生エラーを UI へ漏らさない原則は client 経路でも同じである。
-- **積み上げを捨てる判断は、取得する hook が持たない。** 別の一覧になったかどうかは、置く側が
-  React の鍵で表し、フレームワークに作り直させる。hook が初回ページの差し替えを見張ると、内容が
-  同じまま作り直されただけ(サーバが同じ結果を返し直したとき)でも巻き戻り、読み進めた分と
-  スクロール位置が失われる。**参照同一性で見張るのは特に誤りで、サーバが毎回新しい値を組む以上
-  常に真になる。**
-- **資格情報切れは「続きの取得の失敗」として扱わない。** 認証の内側にある一覧では、読み進めて
-  いる最中に session が切れうる。これを再試行できる失敗と同じ状態に畳むと、画面に出せるのは
-  読み直す操作だけになり、押しても同じ経路を辿るので利用者は抜け出せない。**未認証のとき
-  どこへ送るかは route の確定認可([0079](0079-auth-frontend-seam.md))が既に持っているので、
-  サーバへ描き直しを頼んでその判断へ委ねる**(`router.refresh()`)。ここで送り先を決めると
-  同じ決定が 2 か所に増える。
-- **データ取得ライブラリ(TanStack Query 等)は同梱しない**([0060](0060-state-management.md) exclusion を破らない)。増分取得の状態は local state / `adapters/client` の薄い呼び口で足りる範囲に留める。
+- Infinite scroll (detecting reaching the end with `IntersectionObserver` + additional fetching) inevitably involves client fetching, so it is treated as **an explicit, limited exception** to [0060](0060-state-management.md)'s default "client-side data fetching is not presupposed in the core". The exception is kept narrow:
+  - **The first page is fetched by RSC** (§1). Client fetching is limited to **only the incremental fetching** of "show more".
+  - **Owner = `adapters/client`**: additional client fetching does not scatter raw `fetch` across components and always goes **through `adapters/client` ([0024](0024-adapters-server-client-split.md) = the owning boundary of client-side remote IO; mainly same-origin BFF fetch, and the same layer also owns sends outside the same origin that an ADR explicitly allows)**. Resilience (dual timeout / retry / breaker) is held by the server side = `adapters/server` ([0071](0071-bff-api-integration.md)), and this ADR's additional client fetching stays a thin fetch to the same origin (`/api/*` BFF / Route Handler). This **makes explicit the owner of the client path that the 0071 wrapper, on its server premise, does not cover**.
+  - **The trigger hook** (a reactive client hook that detects reaching the end) is **feature-local** by default (from [0060](0060-state-management.md) client state = local). The moment cross-cutting use across several features arises, it is **promoted to the `capabilities` kernel ([0022](0022-capabilities-kernel.md))** (the promotion rule of [0021](0021-frontend-responsibility.md)).
+  - **Priority on URL restorability**: wherever possible, prefer a searchParams-driven "show more" button (RSC refetch), and limit true infinite scroll to places that perceptibly need it. Even when infinite scroll is adopted, write the number of items read so far back to the URL, keeping the current cursor restorable from the URL / state. Without writing back, both the back action and a reload return to a screen with only the first page, losing what was read along with the scroll position. What can be restored goes up to the item limit the contract accepts, and writing back does not push history (the back action exits to the screen before the list).
+- Responses of additional client fetches also go through **runtime validation and error normalization at the `adapters` boundary** ([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md)). The principle of not leaking raw status or raw errors to the UI is the same on the client path.
+- **The decision to discard what has accumulated is not held by the fetching hook.** Whether it has become a different list is expressed by the placing side
+  with a React key, letting the framework rebuild it. If the hook watches for the first page being swapped, it rolls back even when the content
+  is the same and it was merely rebuilt (when the server returned the same result again), losing what was read and
+  the scroll position. **Watching by referential identity is especially wrong: since the server builds a new value every time, it
+  is always true.**
+- **Expired credentials are not treated as "a failure to fetch the continuation".** In a list behind authentication, the session can expire while the user is
+  reading. Folding this into the same state as a retryable failure leaves the screen able to offer only
+  a re-read action, and since pressing it follows the same path, the user cannot get out. **Where to send the user when unauthenticated
+  is already held by the route's definitive authorization ([0079](0079-auth-frontend-seam.md)),
+  so ask the server to re-render and defer to that decision** (`router.refresh()`). Deciding the destination here would
+  multiply the same decision into two places.
+- **No data-fetching library (TanStack Query, etc.) is bundled** (does not break [0060](0060-state-management.md)'s exclusion). The state of incremental fetching stays within what local state / a thin call site in `adapters/client` can cover.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ページ状態(現在ページ / cursor)を searchParams 以外(コンポーネント state のみ 等)に閉じ込め、ブックマーク・共有・戻る操作で復元不能にすること(§1)
-- ❌ 挿入 / 削除が起きるデータで安易に offset ページネーションを既定にすること(cursor 既定。offset は限定条件のみ)（強制: 散文 —— **寄せられない**。データに挿入・削除が起きるかは契約とデータの性質で決まり、コードの形からは決まらない）
-- ❌ 絞り込み・並び順を変えたときにページ位置を持ち越すこと(§1。前の条件の位置は新しい条件では別の場所を指す)（強制: 散文 —— **寄せられない**。どのキーが位置でどれが条件かは一覧ごとの意味で決まり、一覧ごとのテストでしか見えない）
-- ❌ 無限スクロール / 追加取得の client fetch を**生 `fetch` でコンポーネントに直接書く**こと(必ず `adapters/client` 経由。§2 / [0024](0024-adapters-server-client-split.md))（強制: 散文 —— **寄せられる**（`adapters` の外での `fetch` の呼び出しを、購読の `SUBSCRIPTION_CONSTRUCTION_SELECTOR` と同じ `no-restricted-syntax` で落とせる。規則は無い））
-- ❌ client 追加取得に resilience(timeout / retry / breaker)を **client 側で独自実装**すること(resilience は server = `adapters/server` が持つ。client は same-origin の薄い fetch)（強制: 散文 —— **寄せられない**。打ち切りや再試行を独自に持つかは制御の流れの意味で決まり、形からは決まらない）
-- ❌ client 追加取得の response を検証・正規化せず UI へ流すこと([0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md) の境界原則は client 経路にも適用)（強制: 型（`src/adapters/client/http/request.ts` の `request` は `schema` を必須引数に取る）と `request.test.ts`（契約と違う応答を internal として落とす）。wrapper を通らない生 `fetch` は散文 —— **寄せられる**（`adapters` の外の `fetch` を落とす規則が無い））
-- ❌ 増分取得の hook が初回ページの差し替えを見張って積み上げを捨てること(§2。置く側の鍵が持つ)（強制: 散文 —— **寄せられない**。見張っているかは effect の依存の意味で決まり、hook ごとのテストでしか見えない）
-- ❌ 資格情報切れ(401)を、再試行できる失敗と同じ状態へ畳むこと(§2。再試行導線は 401 では誤り)（強制: `src/adapters/client/http/request.test.ts` が 401 を unauthenticated へ写し、内部の失敗へ畳まないことを落とす。増分取得の hook が分類ごとに状態を分けているかは散文 —— **寄せられない**。hook の分岐の意味で決まる）
-- ❌ 無限スクロールを理由にデータ取得ライブラリを持ち込むこと([0060](0060-state-management.md) exclusion)（強制: 持たない —— 採らない決定。データ取得ライブラリは依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
+- ❌ Confining page state (current page / cursor) to something other than searchParams (component state only, etc.), making it unrestorable through bookmarks, sharing and the back action (§1)
+- ❌ Casually making offset pagination the default for data where inserts / deletes happen (cursor by default; offset only under limited conditions) (Enforcement: Prose — **not mechanizable**. Whether inserts and deletes happen in the data is decided by the nature of the contract and the data, not by the shape of the code)
+- ❌ Carrying the page position over when filters or sort order change (§1; a position under the previous conditions points somewhere else under the new ones) (Enforcement: Prose — **not mechanizable**. Which keys are positions and which are conditions is decided by each list's meaning and is visible only in per-list tests)
+- ❌ Writing the client fetch for infinite scroll / additional fetching **directly in components with raw `fetch`** (always through `adapters/client`; §2 / [0024](0024-adapters-server-client-split.md)) (Enforcement: Prose — **mechanizable** (calls to `fetch` outside `adapters` could be rejected with the same `no-restricted-syntax` as the subscription `SUBSCRIPTION_CONSTRUCTION_SELECTOR`; no rule exists))
+- ❌ Implementing resilience (timeout / retry / breaker) for additional client fetches **on our own on the client side** (resilience is held by the server = `adapters/server`; the client is a thin same-origin fetch) (Enforcement: Prose — **not mechanizable**. Whether it carries its own cutoffs or retries is decided by the meaning of the control flow, not by shape)
+- ❌ Passing responses of additional client fetches to the UI without validation and normalization (the boundary principles of [0071](0071-bff-api-integration.md) / [0080](0080-error-handling.md) also apply to the client path) (Enforcement: types (`request` in `src/adapters/client/http/request.ts` takes `schema` as a required argument) and `request.test.ts` (rejecting responses that differ from the contract as internal). Raw `fetch` that does not go through the wrapper is Prose — **mechanizable** (no rule rejects `fetch` outside `adapters`))
+- ❌ An incremental-fetching hook watching for the first page being swapped and discarding what has accumulated (§2; it is held by the placing side's key) (Enforcement: Prose — **not mechanizable**. Whether it watches is decided by the meaning of the effect's dependencies and is visible only in per-hook tests)
+- ❌ Folding expired credentials (401) into the same state as a retryable failure (§2; a retry path is wrong for a 401) (Enforcement: `src/adapters/client/http/request.test.ts` maps 401 to unauthenticated and rejects folding it into an internal failure. Whether the incremental-fetching hook separates states by classification is Prose — **not mechanizable**. It is decided by the meaning of the hook's branches)
+- ❌ Bringing in a data-fetching library on account of infinite scroll ([0060](0060-state-management.md) exclusion) (Enforcement: none — a decision not to adopt. A data-fetching library shows up as an added dependency in the `package.json` diff, and not bundling one is itself the state)
 
-## 補足
+## Notes
 
-- 日常強制される rule(頁送り UI の細部・スケルトン等)は [docs/rules.md](../rules.md) が持つ。
-- Cache Components(PPR)有効化判断は本 ADR の対象外であり、[0041](0041-cache-components-decision.md) が所有する。無限スクロールの初回 RSC 取得が拠って立つキャッシュモデルは 0041 と [0071](0071-bff-api-integration.md)「データ取得のキャッシュ・再検証」に従う。
+- Rules enforced day to day (details of the paging UI, skeletons, etc.) are held by [docs/rules.md](../rules.md).
+- The decision to enable Cache Components (PPR) is outside this ADR's scope and owned by [0041](0041-cache-components-decision.md). The caching model that infinite scroll's initial RSC fetch relies on follows 0041 and [0071](0071-bff-api-integration.md)'s caching and revalidation design for data fetching.
 
-## 関連 ADR
+## Related ADRs
 
-- [0041-cache-components-decision.md](0041-cache-components-decision.md)— Cache Components(PPR)有効化判断(初回 RSC 取得が乗るキャッシュモデルの所有者)
-- [0060-state-management.md](0060-state-management.md)— Server state = RSC fetch 既定 / URL state = Next 標準機構(本 ADR §1 の土台)/ client 取得非前提(本 ADR §2 が限定例外を追加)/ データ取得ライブラリ非同梱
-- [0071-bff-api-integration.md](0071-bff-api-integration.md)— データ取得のキャッシュ・再検証 / fetch wrapper resilience は `adapters/server` 前提(本 ADR §2 の client 経路の対)
-- [0080-error-handling.md](0080-error-handling.md)— `adapters` 境界のエラー正規化(本 ADR §2 の client 追加取得 response にも適用)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md)— `adapters/client`(client 側 remote IO の所有境界。同一オリジン BFF fetch が主。本 ADR §2 の client 追加取得の所有者)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md)— 横断 client hook の昇格先(無限スクロールのトリガー hook が cross-feature 化した時の家)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠・非ロックイン判断軸(本 ADR の vendor-independent 正当性材料の根拠)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md)— 昇格ルール(feature ローカル → capabilities)
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — the decision to enable Cache Components (PPR) (the owner of the caching model the initial RSC fetch rides on)
+- [0060-state-management.md](0060-state-management.md) — Server state = RSC fetch by default / URL state = Next's standard mechanisms (the foundation of this ADR's §1) / client fetching not presupposed (this ADR's §2 adds a limited exception) / no data-fetching library bundled
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — caching and revalidation of data fetching / fetch wrapper resilience on the `adapters/server` premise (the counterpart of this ADR's §2 client path)
+- [0080-error-handling.md](0080-error-handling.md) — error normalization at the `adapters` boundary (also applied to the responses of this ADR's §2 additional client fetches)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/client` (the owning boundary of client-side remote IO; mainly same-origin BFF fetch; the owner of this ADR's §2 additional client fetching)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — where cross-cutting client hooks are promoted to (the home of the infinite-scroll trigger hook once it becomes cross-feature)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the standards-conformance and non-lock-in decision axis (the basis of this ADR's vendor-independent justification)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the promotion rule (feature-local → capabilities)

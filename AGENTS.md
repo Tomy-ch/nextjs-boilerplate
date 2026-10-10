@@ -177,7 +177,7 @@ Each is owned by the document named; this section indexes them and restates none
 | A plain cross-repository link instead of `redirect.github.com` | ADR [0159-1](docs/adr/0159-1-cross-repository-references.md). **Per case, every time**, even under a standing delegation — a standing grant does not transfer this |
 | An outward or commercial action a skill is about to take | ADR [0154](docs/adr/0154-claude-skills-operations.md) |
 | A change that removes an element the user can see | [`docs/rules.md#workflow`](docs/rules.md#workflow) |
-| Adding a dependency | ADR [0004](docs/adr/0004-library-management.md) — walk its 選定基準 and paste its 採用判断のテンプレ into the PR. Silently routing around the dependency is the same decision, taken without the record |
+| Adding a dependency | ADR [0004](docs/adr/0004-library-management.md) — walk its [Selection Criteria](docs/adr/0004-library-management.md#selection-criteria) and paste its [Adoption Decision Template](docs/adr/0004-library-management.md#adoption-decision-template-paste-into-the-pr-body) into the PR. Silently routing around the dependency is the same decision, taken without the record |
 
 ### The trip wires
 

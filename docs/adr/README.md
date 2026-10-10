@@ -1,107 +1,107 @@
 # Architecture Decision Records (ADR)
 
-このディレクトリには、本プロジェクトにおける重要な技術的意思決定を記録する。
+This directory records the important technical decisions of this project.
 
-## ルール
+## Rules
 
-- 1ファイル = 1意思決定
-- トピック順ブロック帯で採番する（10 番台 = 主題ブロック。例: `002x` アーキ / `004x` ルーティング / `007x` データ・BFF / `015x` プロセス）
-- Status を必ず記載する。綴りは `Accepted` / `Accepted (exclusion)` / `Accepted (一部 exclusion)` / `Superseded by NNNN` のいずれか（exclusion の区別と Superseded への移り方は [0140](0140-documentation-operations.md)）
-- 本文は次の骨格で書く。決定の中身に応じて節を足してよいが、並びは崩さない
-  1. 見出し直下の前文 —— 何を決める ADR か、隣の ADR とどこで線を引くか
+- 1 file = 1 decision
+- Numbers are assigned in topic-ordered blocks (each block of ten = a subject block. e.g. `002x` architecture / `004x` routing / `007x` data and BFF / `015x` process)
+- Status is always stated. Its spelling is one of `Accepted` / `Accepted (exclusion)` / `Accepted (partial exclusion)` / `Superseded by NNNN` (the exclusion distinction and how a decision moves to Superseded are in [0140](0140-documentation-operations.md))
+- The body is written in the following skeleton. Sections may be added according to the content of the decision, but the order is not broken
+  1. A preamble directly under the heading — what the ADR decides, and where it draws the line with neighboring ADRs
   2. `## Status`
-  3. `## 背景` または `## 採用理由 / 目的`
-  4. 決定 —— `## 決定` の下に `### 1.` から番号を振るか、決定ごとに `##` を立てる
-  5. 必要なときだけ `## 不採用`（比べて採らなかったものと理由）と `## 補足`
-  6. `## 禁止事項` —— 1 行 1 項目を `❌` で始め、行末に `（強制: …）` で何が落とすかを添える。機械が落とさないものは `散文 ——` の後に判定の 3 語（**寄せられない** / **一部寄せられる** / **寄せられる**）のどれかと理由を書き、採らない決定は `持たない ——` と書く（[0144](0144-decision-enforcement-pairing.md)）。何も禁じない exclusion は節ごと持たない
-  7. `## 関連 ADR` —— 1 行 1 本で、その ADR から何を受け取るかを添える
-- 他の ADR は `[NNNN](path)` の番号だけで指し、節番号（`§2` / `決定 4`）を添えない。どの節かは、自分が使っている中身を要旨として書く（[0146](0146-rule-reference-stability.md)）
+  3. `## Context` or `## Rationale / Purpose`
+  4. Decisions — either numbered from `### 1.` under `## Decision`, or one `##` per decision
+  5. Only when needed, `## Rejected Alternatives` (what was compared and not adopted, with reasons) and `## Notes`
+  6. `## Prohibitions` — one item per line starting with `❌`, with `(Enforcement: …)` at the end of the line saying what rejects it. For what a machine does not reject, write `Prose —` followed by one of the three verdicts (**not mechanizable** / **partly mechanizable** / **mechanizable**) and the reason; for a decision not to adopt, write `none —` ([0144](0144-decision-enforcement-pairing.md)). An exclusion that forbids nothing has no such section at all
+  7. `## Related ADRs` — one per line, stating what is taken from that ADR
+- Other ADRs are pointed at only by number, `[NNNN](path)`, without adding a section number (`§2` / `Decision 4`). Which section is meant is conveyed by writing, as a summary, the content you are using ([0146](0146-rule-reference-stability.md))
 
-## 今後定義する ADR
+## ADRs to Be Defined
 
-未着手の意思決定領域は issue トラッカーが追う。一覧をこのディレクトリに写さないのは、1 つ着地した瞬間に古くなる二重管理になるためである（[0152](0152-agents-md-policy.md)「Handling Undecided Areas」）。新規 ADR は issue で内容を合意してから、上の採番規則で番号を付けて起票する。
+Decision areas not yet started are tracked by the issue tracker. The list is not copied into this directory because it would be double bookkeeping that goes stale the moment one lands ([0152](0152-agents-md-policy.md) on how areas not yet decided are handled). A new ADR is filed once its content is agreed in an issue, numbered by the numbering rule above.
 
-## 一覧
+## Index
 
-- [0001-package-manager.md](0001-package-manager.md) - パッケージマネージャの選定（pnpm 採用 / lockfile commit / npm・yarn 禁止）
-- [0002-formatter-linter.md](0002-formatter-linter.md) - フォーマッタ・リンタの選定（Biome 優先 + 隙間補完 ESLint）
-- [0003-version-manager.md](0003-version-manager.md) - Node.js / pnpm のバージョンマネージャ選定（mise 採用）
-- [0004-library-management.md](0004-library-management.md) - ライブラリ選定・運用方針（npm 依存のメタ方針 / exact pin / 監査）
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) - 標準準拠と非ロックイン（設計判断の恒久メタ軸 = デファクト seam に乗る / 非ロックイン判定）
-- [0011-no-docker.md](0011-no-docker.md) - Docker を採用しない方針（表示層 → アプリ基盤ロール定義）
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) - 採用アーキテクチャ（機能スライス × 表示層カーネル / 設計原則 / 不採用パターン）
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) - フロント内責務分離方針（カーネル責務 / 依存マトリクス / 命名規律 / Enforcement）
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) - `capabilities` カーネル（横断 client hook の家 / runtime 能力供給 / use client 固定）
-- [0023-stores-kernel.md](0023-stores-kernel.md) - `stores` カーネル（横断 client 状態 = Zustand の家 / 昇格基準）
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) - adapters の server/client 分割（2 軸モデル / client 側外部接続境界 = 構造ブロッカー S1）
-- [0025-app-layer-elements.md](0025-app-layer-elements.md) - app レイヤの element 構成（Route Handler / metadata / 3 element = S2）
-- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) - layout の横断 UI / Provider mount（app シェル合成 = S4）
-- [0027-directory-structure.md](0027-directory-structure.md) - ディレクトリ構造（物理配置 / `@/*` alias / co-location / 共有粒度）
-- [0028-naming-convention.md](0028-naming-convention.md) - 命名規則（ファイル名 / 識別子 / route セグメント / 環境変数 / ADR ファイル）
-- [0029-type-design-discipline.md](0029-type-design-discipline.md) - 型設計の規律（判別可能 union / 境界での確定 / branded type / `satisfies`）
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) - 環境変数管理（目的別 config / server・client 分割 / `NEXT_PUBLIC_` 境界 / secret）
-- [0031-policy-state-supply.md](0031-policy-state-supply.md) - ポリシー状態（consent / feature-flag）の供給方針（source adapter + no-op 既定 + stateless props = S3）
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) - ルーティング・レンダリング戦略（App Router / Server Components 既定 / Server Actions / route-as-modal / Suspense 境界の粒度）
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) - Cache Components（PPR）有効化判断
-- [0042-react19-rendering-api.md](0042-react19-rendering-api.md) - React 19 レンダリング API 規約（`use()` 等の書き方）
-- [0043-middleware-policy.md](0043-middleware-policy.md) - Middleware（Proxy）方針（Next.js 16 proxy.ts / thin・last resort / 認証は対象外）
-- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md) - SEO / メタデータ戦略（Metadata API / sitemap・robots / canonical / JSON-LD / アイコン体系）
-- [0045-fonts-and-images.md](0045-fonts-and-images.md) - フォント・画像（next/font / next/image / public/ / 動的 OG）
-- [0050-styling-strategy.md](0050-styling-strategy.md) - スタイリング戦略（Tailwind 主軸 + CSS Modules 限定許可 / `cn()` / design token = CSS 変数）
-- [0051-styling-system.md](0051-styling-system.md) - スタイリング体系（デザイントークン / レスポンシブ / モーション = Framer Motion / 印刷 / 重なり順の帯）
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) - UI コンポーネント方針（shadcn/ui + Tabler アイコン採用）
-- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) - UI コンポーネント方針とインタラクション a11y seam
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) - UI カタログ（Storybook）方針
-- [0055-design-system-export.md](0055-design-system-export.md) - デザインシステムの外部書き出し（成果物は tool 非依存 / 配送だけが vendor を知る / 取り込みは一方向）
-- [0056-mock-app-exclusion.md](0056-mock-app-exclusion.md) - mock app を公開しない（exclusion）
-- [0060-state-management.md](0060-state-management.md) - 状態管理方針（Server state = fetch 既定 / Client = local 既定 / react-hook-form・Zustand 採用）
-- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) - フォーム送信フローの canonical 機構（`<form action>` + `useActionState` + `useFormStatus`）
-- [0062-form-input-validation.md](0062-form-input-validation.md) - フォーム入力検証 UX（client 検証 / 生成 zod の再利用境界）
-- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) - 変更結果の通知 UX（インライン / トースト / redirect + live region）
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) - バックエンドとの役割分離（BFF = thin proxy / 契約 SSOT / 境界値所有）
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) - BFF / API 統合（adapters の fetch wrapper / resilience 翻案 / エラー正規化 / キャッシュ）
-- [0072-api-type-generation.md](0072-api-type-generation.md) - 型生成（orval + zod 生成 / gh 取込 + short SHA / do-not-edit / drift ゲート）
-- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) - ページネーション・無限スクロールのデータ取得境界
-- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) - 双方向 / ストリーム通信 seam（WebSocket / SSE）
-- [0075-file-upload-seam.md](0075-file-upload-seam.md) - ファイルの受け取りと配信（受け口は Server Action / 配信は公開の配信元 / 署名付き URL への直接送信は不採用）
-- [0076-payment-ui-seam.md](0076-payment-ui-seam.md) - 決済 UI seam（mount seam と PCI 境界）
-- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) - BFF abuse 保護境界（infra / edge seam）
-- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) - 動的 feature flag・段階的配信 seam（A-B / 段階的公開）
-- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) - 認証のフロント側 seam
-- [0080-error-handling.md](0080-error-handling.md) - エラーハンドリング（errors カーネル / sentinel 分類 / 境界正規化 / error.tsx 階層 / loading と待機表示）
-- [0081-observability-logging.md](0081-observability-logging.md) - 観測性・ロギング（logging/observability カーネル / OTLP-only / signal gating / RUM は非同梱）
-- [0082-client-observability.md](0082-client-observability.md) - クライアント観測性（Web Vitals RUM / client エラー収集 / プロダクト分析 seam）
-- [0090-testing-strategy.md](0090-testing-strategy.md) - テスト戦略（Vitest + RTL + MSW + Playwright / go 準拠戦略 / 90% ゲート）
-- [0091-test-verification-methods.md](0091-test-verification-methods.md) - テスト検証手段方針（async RSC テストの寄せ先 / a11y 自動テスト = axe 組込）
-- [0100-accessibility-target.md](0100-accessibility-target.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
-- [0101-performance-budget.md](0101-performance-budget.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・閾値は用途依存）
-- [0102-browser-support.md](0102-browser-support.md) - ブラウザサポート行列（Next.js 既定 browserslist 追認 / 切り捨ては用途依存）
-- [0110-security-operations.md](0110-security-operations.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
-- [0111-csp-security-headers.md](0111-csp-security-headers.md) - CSP・セキュリティヘッダ（実行時）
-- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) - データ分類とキャッシュ境界（PII / user-scoped / secret の置き場と段ごとの関所）
-- [0113-development-access-surface.md](0113-development-access-surface.md) - 開発用の口の制御面（到達したい状態で決める / build 除外と実行時判定は別の保証）
-- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
-- [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
-- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものは容器の中身として選ぶ）
-- [0140-documentation-operations.md](0140-documentation-operations.md) - ドキュメント運用ポリシー（EN canonical 方向 / タクソノミー / rules.md 新設 / ADR 不可変性）
-- [0141-portal-operations.md](0141-portal-operations.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages）
-- [0142-license.md](0142-license.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / private:true との関係）
-- [0143-spec-driven-development.md](0143-spec-driven-development.md) - 仕様書駆動（画面要件を仕様書として持つ / 生成 scaffold を持たない / 実装との突合は存在（機械）と内容（読み合わせ）の 2 つ）
-- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) - 決定と強制手段の併記（散文へ逃がす前に機械強制を検討する / 寄せられない理由を書く）
-- [0145-docs-viewer-package-boundary.md](0145-docs-viewer-package-boundary.md) - docs-viewer のパッケージ境界（依存分離をパッケージ境界で担保する）
-- [0146-rule-reference-stability.md](0146-rule-reference-stability.md) - 規約の参照と集計の生成（節の錨で指す / 手で数えない / 判定は 3 語）
-- [0150-git-workflow.md](0150-git-workflow.md) - Git ブランチ・コミット運用方針
-- [0151-git-hooks.md](0151-git-hooks.md) - Pre-commit / Pre-push hook 運用方針（lefthook 採用）
-- [0152-agents-md-policy.md](0152-agents-md-policy.md) - AGENTS.md 運用方針
-- [0153-ci-configuration.md](0153-ci-configuration.md) - CI 構成（job 分割 / SHA ピン / 最小 permissions / hooks mirror / matrix 非採用）
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) - Claude スキル運用方針（運用系）
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) - Claude スキル運用方針（開発系）
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) - ブラウザ実測ツール（3 レーンの分担 / CLI 前提・MCP 登録なし / 実プロファイル非接続 / 取得経路は pnpm と mise の使い分け）
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) - 検査の宣言規律（成立しない検査を「違反なし」へ倒さない / 抑止は理由と撤去条件を持つ）
-- [0158-code-search-tooling.md](0158-code-search-tooling.md) - コード検索・影響解析ツール（採用範囲 / 導入経路 / allow・deny 境界）
-- [0159-script-structure.md](0159-script-structure.md) - 補助スクリプトの言語と構造（TypeScript / 1 ツール 1 ディレクトリ / 入口と判定の分離）
-- [0159-1-cross-repository-references.md](0159-1-cross-repository-references.md) - 他リポジトリへの参照（既定は `redirect.github.com` / 素のリンクは留保 / 使う判断は人のもの）
-- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) - エージェント環境の改善をループにする（観測 → 改善 → 再計測 / 利用の型で判定する / 状態の 3 つの置き場）
-- [0161-development-window-as-feedback-unit.md](0161-development-window-as-feedback-unit.md) - 開発の窓をフィードバックの単位とする（セッション・コミット・PR を母数にしない理由 / 打刻が第一で記録は補完）
-- [0162-application-independence-from-ai.md](0162-application-independence-from-ai.md) - アプリケーションは AI に依存しない（成立の条件にエージェントを置かない / 依存は開発の流れに閉じる / 経路に自分を置く道具を採らない）
+- [0001-package-manager.md](0001-package-manager.md) - Choice of package manager (pnpm adopted / lockfile committed / npm and yarn forbidden)
+- [0002-formatter-linter.md](0002-formatter-linter.md) - Choice of formatter and linter (Biome first + ESLint filling the gaps)
+- [0003-version-manager.md](0003-version-manager.md) - Choice of version manager for Node.js / pnpm (mise adopted)
+- [0004-library-management.md](0004-library-management.md) - Library selection and operating policy (meta-policy for npm dependencies / exact pin / audit)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) - Standards compliance and no lock-in (the permanent meta-axis of design judgments = ride on de-facto seams / the no-lock-in test)
+- [0011-no-docker.md](0011-no-docker.md) - Policy of not adopting Docker (defining the presentation layer → application foundation role)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) - Adopted architecture (feature slices × presentation-layer kernels / design principles / rejected patterns)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) - Separation of responsibilities within the frontend (kernel responsibilities / dependency matrix / naming discipline / Enforcement)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) - The `capabilities` kernel (home of cross-cutting client hooks / supplying runtime capabilities / fixed use client)
+- [0023-stores-kernel.md](0023-stores-kernel.md) - The `stores` kernel (cross-cutting client state = home of Zustand / promotion criteria)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) - The server/client split of adapters (two-axis model / client-side external connection boundary = structural blocker S1)
+- [0025-app-layer-elements.md](0025-app-layer-elements.md) - Element composition of the app layer (Route Handler / metadata / 3 elements = S2)
+- [0026-layout-shell-mount.md](0026-layout-shell-mount.md) - Mounting cross-cutting UI / Providers in layouts (app shell composition = S4)
+- [0027-directory-structure.md](0027-directory-structure.md) - Directory structure (physical placement / `@/*` alias / co-location / sharing granularity)
+- [0028-naming-convention.md](0028-naming-convention.md) - Naming conventions (file names / identifiers / route segments / environment variables / ADR files)
+- [0029-type-design-discipline.md](0029-type-design-discipline.md) - Type design discipline (discriminated unions / settling at the boundary / branded types / `satisfies`)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) - Environment variable management (config per purpose / server and client split / the `NEXT_PUBLIC_` boundary / secrets)
+- [0031-policy-state-supply.md](0031-policy-state-supply.md) - Policy for supplying policy state (consent / feature-flag) (source adapter + no-op by default + stateless props = S3)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) - Routing and rendering strategy (App Router / Server Components by default / Server Actions / route-as-modal / granularity of Suspense boundaries)
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) - The judgment to enable Cache Components (PPR)
+- [0042-react19-rendering-api.md](0042-react19-rendering-api.md) - Conventions for React 19 rendering APIs (how to write `use()`, etc.)
+- [0043-middleware-policy.md](0043-middleware-policy.md) - Middleware (Proxy) policy (Next.js 16 proxy.ts / thin, last resort / authentication out of scope)
+- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md) - SEO / metadata strategy (Metadata API / sitemap and robots / canonical / JSON-LD / icon scheme)
+- [0045-fonts-and-images.md](0045-fonts-and-images.md) - Fonts and images (next/font / next/image / public/ / dynamic OG)
+- [0050-styling-strategy.md](0050-styling-strategy.md) - Styling strategy (Tailwind as the main axis + CSS Modules allowed in limited cases / `cn()` / design tokens = CSS variables)
+- [0051-styling-system.md](0051-styling-system.md) - Styling system (design tokens / responsive / motion = Framer Motion / print / stacking-order bands)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) - UI component policy (shadcn/ui + Tabler icons adopted)
+- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) - UI component policy and the interaction a11y seam
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) - UI catalog (Storybook) policy
+- [0055-design-system-export.md](0055-design-system-export.md) - Exporting the design system externally (the artifact is tool-independent / only delivery knows the vendor / import is one way)
+- [0056-mock-app-exclusion.md](0056-mock-app-exclusion.md) - Not publishing the mock app (exclusion)
+- [0060-state-management.md](0060-state-management.md) - State management policy (server state = fetch by default / client = local by default / react-hook-form and Zustand adopted)
+- [0061-form-mutation-ux.md](0061-form-mutation-ux.md) - The canonical mechanism for the form submission flow (`<form action>` + `useActionState` + `useFormStatus`)
+- [0062-form-input-validation.md](0062-form-input-validation.md) - Form input validation UX (client validation / the reuse boundary of generated zod)
+- [0063-mutation-result-notification.md](0063-mutation-result-notification.md) - UX for notifying mutation results (inline / toast / redirect + live region)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) - Role separation from the backend (BFF = thin proxy / contract SSOT / ownership of boundary values)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) - BFF / API integration (the fetch wrapper in adapters / resilience adaptation / error normalization / caching)
+- [0072-api-type-generation.md](0072-api-type-generation.md) - Type generation (orval + zod generation / gh import + short SHA / do-not-edit / drift gate)
+- [0073-pagination-fetch-boundary.md](0073-pagination-fetch-boundary.md) - The data-fetching boundary for pagination and infinite scroll
+- [0074-runtime-communication-seam.md](0074-runtime-communication-seam.md) - Bidirectional / streaming communication seam (WebSocket / SSE)
+- [0075-file-upload-seam.md](0075-file-upload-seam.md) - Receiving and delivering files (the receiving endpoint is a Server Action / delivery from a public origin / direct upload to a signed URL not adopted)
+- [0076-payment-ui-seam.md](0076-payment-ui-seam.md) - Payment UI seam (mount seam and the PCI boundary)
+- [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.md) - BFF abuse protection boundary (infra / edge seam)
+- [0078-dynamic-feature-flag-seam.md](0078-dynamic-feature-flag-seam.md) - Dynamic feature flag and progressive delivery seam (A-B / gradual rollout)
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) - The frontend-side seam for authentication
+- [0080-error-handling.md](0080-error-handling.md) - Error handling (errors kernel / sentinel classification / boundary normalization / error.tsx hierarchy / loading and loading UI)
+- [0081-observability-logging.md](0081-observability-logging.md) - Observability and logging (logging/observability kernels / OTLP-only / signal gating / RUM not bundled)
+- [0082-client-observability.md](0082-client-observability.md) - Client observability (Web Vitals RUM / client error collection / product analytics seam)
+- [0090-testing-strategy.md](0090-testing-strategy.md) - Testing strategy (Vitest + RTL + MSW + Playwright / strategy aligned with go / 90% gate)
+- [0091-test-verification-methods.md](0091-test-verification-methods.md) - Policy on test verification methods (where async RSC tests go / automated a11y tests = axe built in)
+- [0100-accessibility-target.md](0100-accessibility-target.md) - Accessibility target (WCAG AA / biome a11y / manual checks)
+- [0101-performance-budget.md](0101-performance-budget.md) - Performance budget (Core Web Vitals / the mechanism is defined, thresholds are use-case dependent)
+- [0102-browser-support.md](0102-browser-support.md) - Browser support matrix (endorsing the Next.js default browserslist / dropping support is use-case dependent)
+- [0110-security-operations.md](0110-security-operations.md) - Security operations (Dependabot cooldown / gitleaks / two-stage Trivy / CodeQL / image-scan is an exclusion)
+- [0111-csp-security-headers.md](0111-csp-security-headers.md) - CSP and security headers (runtime)
+- [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.md) - Data classification and the cache boundary (where PII / user-scoped / secrets live, and the checkpoints at each stage)
+- [0113-development-access-surface.md](0113-development-access-surface.md) - The control surface for development endpoints (decided by the state you want to reach / build exclusion and run-time judgment are separate guarantees)
+- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.md) - Locale-aware formatting (dates and numbers + Intl / date-fns date arithmetic)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) - i18n strategy (not bundled in the core = exclusion / seams when adopted)
+- [0130-pwa-strategy.md](0130-pwa-strategy.md) - PWA strategy (Manifest / SW / offline not bundled in the core = exclusion)
+- [0131-cookie-consent.md](0131-cookie-consent.md) - Cookie consent (lightweight consent mechanism + script gate + a tag manager behind the gate are bundled / CMP and IAB TCF are not. The measurement products themselves are chosen as the contents of the container)
+- [0140-documentation-operations.md](0140-documentation-operations.md) - Documentation operations policy (EN canonical direction / taxonomy / creating rules.md / ADR immutability)
+- [0141-portal-operations.md](0141-portal-operations.md) - Portal operations (manifest = structural control / registration criteria / GitHub Pages)
+- [0142-license.md](0142-license.md) - License choice (basis for adopting MIT / OSS contributions = inbound=outbound / relation to private:true)
+- [0143-spec-driven-development.md](0143-spec-driven-development.md) - Spec-driven development (screen requirements held as specifications / no generating scaffold / reconciliation with the implementation in two forms: existence (machine) and content (reading side by side))
+- [0144-decision-enforcement-pairing.md](0144-decision-enforcement-pairing.md) - Stating decisions together with enforcement (consider machine enforcement before escaping to prose / write why it is not mechanizable)
+- [0145-docs-viewer-package-boundary.md](0145-docs-viewer-package-boundary.md) - The docs-viewer package boundary (guaranteeing dependency separation with a package boundary)
+- [0146-rule-reference-stability.md](0146-rule-reference-stability.md) - Referencing rules and generating the tally (point with section anchors / do not count by hand / three verdicts)
+- [0150-git-workflow.md](0150-git-workflow.md) - Git branch and commit policy
+- [0151-git-hooks.md](0151-git-hooks.md) - Pre-commit / pre-push hook policy (lefthook adopted)
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) - AGENTS.md policy
+- [0153-ci-configuration.md](0153-ci-configuration.md) - CI configuration (job split / SHA pins / minimal permissions / hooks mirror / matrix not adopted)
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) - Claude skills policy (operations)
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) - Claude skills policy (development)
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) - Browser observation tooling (division of labor across 3 lanes / CLI-based, no MCP registration / no connection to real profiles / how tools are obtained split between pnpm and mise)
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) - Inspection declaration discipline (do not fall to "no violations" when an inspection does not hold / suppressions carry a reason and a removal condition)
+- [0158-code-search-tooling.md](0158-code-search-tooling.md) - Code search and impact analysis tooling (scope of adoption / installation path / allow and deny boundary)
+- [0159-script-structure.md](0159-script-structure.md) - Language and structure of helper scripts (TypeScript / 1 tool 1 directory / separating entry points from judgments)
+- [0159-1-cross-repository-references.md](0159-1-cross-repository-references.md) - References to other repositories (the default is `redirect.github.com` / plain links are reserved / the judgment to use one belongs to a person)
+- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) - Improving the agent environment as a loop (observe → improve → re-measure / judge by usage type / three places for state)
+- [0161-development-window-as-feedback-unit.md](0161-development-window-as-feedback-unit.md) - The development window as the unit of feedback (why sessions, commits and PRs are not the denominator / timestamps first, records as a complement)
+- [0162-application-independence-from-ai.md](0162-application-independence-from-ai.md) - The application does not depend on AI (no agent among the conditions for holding / dependence confined to the development flow / no tools that put themselves on the path)

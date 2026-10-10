@@ -159,7 +159,7 @@ pnpm exec vitest run <触った対象のテストファイル>
 ```
 
 修正の影響範囲を見えるようにしているのがカバレッジゲートであり、ADR
-[0090](../../../docs/adr/0090-testing-strategy.md) は呼べる export すべてに 1:1 の `describe` を要求する。
+[0090](../../../docs/adr/0090-testing-strategy.ja.md) は呼べる export すべてに 1:1 の `describe` を要求する。
 分岐を未カバーのまま残した修正は、黙って通らず hook で落ちる。その判定は hook(Step 6)か CI から読み、ここで
 再現しない。ゲートで拾えないランタイム UI 挙動に触れる変更なら、`run` スキルで実際に動かすか、残存リスクを台帳に記す。
 

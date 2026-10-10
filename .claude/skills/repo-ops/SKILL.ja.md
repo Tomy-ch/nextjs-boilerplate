@@ -7,7 +7,7 @@
 `AGENTS.md` に従い先にユーザへ伝える。
 
 > **スコープ注記。** この runbook は意図的に薄く、実在する落とし穴だけを載せる。本リポジトリは Docker
-> ツールランナーも DB も持たない表示層なので([0011](../../../docs/adr/0011-no-docker.md))、その種の項目は
+> ツールランナーも DB も持たない表示層なので([0011](../../../docs/adr/0011-no-docker.ja.md))、その種の項目は
 > ここに属さない。新たに踏んだら項目を足すこと。
 
 ## Contract
@@ -148,7 +148,7 @@ git add package.json pnpm-lock.yaml
 ```
 
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
-保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.md)
+保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.ja.md)
 により依存メジャーは別 PR。)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
@@ -300,7 +300,7 @@ make actions-mise-pin-lint
 どちらも fail-closed(違うバイナリは実行されない)だが、どちらのメッセージも原因を名指ししない。検査を
 置いてあるのはそのため。digest は取得したものだけでなく**復元したものにも**照合する ── Actions の
 キャッシュはブランチを跨いで共有され、push 権限があれば書けるので、信頼境界ではない
-([0153](../../../docs/adr/0153-ci-configuration.md))。
+([0153](../../../docs/adr/0153-ci-configuration.ja.md))。
 
 `mise.toml` の中のツールの版は別件で、`tools-upgrade` が担当し、mise 自身は意図的に触らない。
 

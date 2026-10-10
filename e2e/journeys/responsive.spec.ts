@@ -2,7 +2,8 @@ import { expect, test } from "../lib/test";
 import { loadBands, loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
 
 /**
- * 帯ごとの出し分け（`docs/rules.md#layout`の「脇に常設する領域は `lg` 以上でだけ出す」）。
+ * 帯ごとの出し分け（`docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above"）。
  *
  * @remarks
  * 規約が決めているのは「本文の脇に常設する領域は `lg` 以上でだけ出す」ことです。幅は design token

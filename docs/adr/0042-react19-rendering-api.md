@@ -1,125 +1,125 @@
-# React 19 レンダリング API 規約
+# React 19 Rendering API Conventions
 
-React 19 のレンダリング関連 API —— **ref as prop(`forwardRef` 廃止方向)/ `use()` / `useEffect` 抑制 / React Compiler の採否** —— の使用規約を定める。本 ADR は [0040](0040-routing-rendering-strategy.md) が定めた **App Router のレンダリング機構・RSC / Client 境界の置き方** の上で、コンポーネント内部で **React そのものをどう書くか** を確定する。
+This ADR defines the usage conventions for React 19's rendering-related APIs — **ref as prop (toward retiring `forwardRef`) / `use()` / restraining `useEffect` / whether to adopt the React Compiler**. On top of **the App Router rendering mechanisms and the placement of the RSC / Client boundary** defined by [0040](0040-routing-rendering-strategy.md), it fixes **how React itself is written** inside components.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0040](0040-routing-rendering-strategy.md) は「Server / Client 境界を **どこに置くか**(WHERE)」を定めるルーティング ADR であり、「境界の内側で React API を **どう書くか**(HOW)」は射程外である。本 ADR がその HOW を持つ。
+[0040](0040-routing-rendering-strategy.md) is the routing ADR that defines "**where** to place the Server / Client boundary" (WHERE); "**how** to write React APIs inside the boundary" (HOW) is out of its range. This ADR holds that HOW.
 
-本リポジトリは **React 19.2 / Next.js 16** を採用しており([0011](0011-no-docker.md) / App Router de facto の帰結)、この領域は AI エージェントの訓練データと乖離が大きい([`docs/design/rendering.md`](../design/rendering.md) が用語と誤りを持つ)。規約が無いと、新旧パターン(`forwardRef` / 手書き `memo` / `useCallback` と、ref as prop / React Compiler)が実装者ごとに混在する。本 ADR はレンダリング関連 React API の使用規約を成文化する。
+This repository adopts **React 19.2 / Next.js 16** (a consequence of [0011](0011-no-docker.md) / the App Router being de facto), an area that diverges widely from AI agents' training data ([`docs/design/rendering.md`](../design/rendering.md) holds the terms and the mistakes). Without conventions, old and new patterns (`forwardRef` / hand-written `memo` / `useCallback`, versus ref as prop / the React Compiler) get mixed from one implementer to the next. This ADR codifies the usage conventions for rendering-related React APIs.
 
-裏取り元(実装前確認・[0010](0010-standards-and-non-lockin.md) の「乗る」先): `node_modules/react`(v19.2.4)/ `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/reactCompiler.md` / 同 `01-getting-started/06-fetching-data.md`(`use()` の Promise / Context 解決例)。
+Sources verified (checked before implementation; what [0010](0010-standards-and-non-lockin.md) says to "ride on"): `node_modules/react` (v19.2.4) / `node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/reactCompiler.md` / likewise `01-getting-started/06-fetching-data.md` (examples of resolving a Promise / Context with `use()`).
 
-### 射程宣言(0040 と重複しない)
+### Range declaration (no overlap with 0040)
 
-本 ADR は **レンダリング関連の React API に限る**。以下は本 ADR の射程外であり、既存 ADR が所有する(局所推論の起点を分けるための明示分界):
+This ADR is **limited to rendering-related React APIs**. The following are outside this ADR's range and owned by existing ADRs (an explicit demarcation to separate the starting points of local reasoning):
 
-| 関心 | 所有 ADR | 本 ADR との分界 |
+| Concern | Owning ADR | Demarcation from this ADR |
 | --- | --- | --- |
-| RSC / Client 境界を **どこに置くか**・`"use client"` の押し下げ | [0040](0040-routing-rendering-strategy.md) | 本 ADR は境界の内側の **API の書き方** のみ |
-| `use()` を使った **データ取得の編成・キャッシュ・重複排除** | [0071](0071-bff-api-integration.md) | 本 ADR は `use()` を **レンダリングのプリミティブ** としてどう書くかのみ |
-| `<Suspense>` の **境界配置・粒度** | [0040](0040-routing-rendering-strategy.md)(`loading.tsx` / fallback の待機表示は [0080](0080-error-handling.md)) | 本 ADR は `use()` が Suspense を前提にする **不変条件** のみ |
-| 横断的な reactive client hook(runtime 能力)の **家** | [0022](0022-capabilities-kernel.md) | 本 ADR は `useEffect` の **書き方の抑制方針** のみ |
+| **Where to place** the RSC / Client boundary, pushing `"use client"` down | [0040](0040-routing-rendering-strategy.md) | This ADR covers only **how APIs are written** inside the boundary |
+| **Orchestration, caching and deduplication of data fetching** with `use()` | [0071](0071-bff-api-integration.md) | This ADR covers only how `use()` is written **as a rendering primitive** |
+| **Boundary placement and granularity** of `<Suspense>` | [0040](0040-routing-rendering-strategy.md) (the loading UI of `loading.tsx` / fallbacks is [0080](0080-error-handling.md)) | This ADR covers only the **invariant** that `use()` presupposes Suspense |
+| The **home** of cross-cutting reactive client hooks (runtime capabilities) | [0022](0022-capabilities-kernel.md) | This ADR covers only the **policy of restraining how `useEffect` is written** |
 
-## 決定
+## Decision
 
-### 1. ref as prop を採用し、新規コードで `forwardRef` を使わない
+### 1. Adopt ref as prop; do not use `forwardRef` in new code
 
-- React 19 では ref を **通常の prop** として関数コンポーネントで受け取れる。新規コンポーネントはこれを用い、**`forwardRef` を新規に書かない**。
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): `forwardRef` は wrapper による余分な間接層を生み、型(`ForwardRefRenderFunction` 等)を複雑化させる。ref as prop は素の関数シグネチャで済み、props と ref の型付けが一様になる。これは React の権威を抜いても成立する API 設計上の単純化根拠であり、「React が deprecate したから」に留まらない。React 19 は `forwardRef` を deprecation 方向に置いており([0010](0010-standards-and-non-lockin.md) の「デファクトに乗る」= React 規約への準拠)、乗ることは車輪の再発明の回避でもある。
+- In React 19 a function component can receive ref as **an ordinary prop**. New components use this and **do not newly write `forwardRef`**.
+- **Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): `forwardRef` creates an extra layer of indirection through a wrapper and complicates the types (`ForwardRefRenderFunction`, etc.). Ref as prop needs only a plain function signature, and the typing of props and ref becomes uniform. This is a simplification grounded in API design that holds even with React's authority taken out, and goes beyond "because React deprecated it". React 19 places `forwardRef` on the path to deprecation ([0010](0010-standards-and-non-lockin.md)'s "ride on the de facto" = conforming to React's conventions), and riding on it also avoids reinventing the wheel.
 
-### 2. `use()` を条件付きの読取プリミティブとして許容する
+### 2. Allow `use()` as a conditional read primitive
 
-- `use()` を **Promise / Context の読取**に用いてよい。`useContext` に代えて `use()` で Context を読むことを許容する(`use()` は条件分岐・早期 return の内側でも呼べる —— Hook のトップレベル制約を受けない読取であるため)。
-- **正道**: Server Component で開始した fetch の Promise を Client Component へ **props で渡し**、`<Suspense>` 境界の下で `use()` により解決する(`fetching-data.md` の文書化パターン。0040「`"use client"` は葉へ押し下げ」と整合し、fetch 自体は server に留めつつ待機のみ client へ寄せる)。
-- **委譲**: `use()` を **どのデータで使うか / キャッシュ・再検証・重複排除をどう設計するか** は [0071](0071-bff-api-integration.md)、`<Suspense>` 境界の **配置・粒度** は [0040](0040-routing-rendering-strategy.md) が所有する。本 ADR は「`use()` は Suspense / error boundary を前提とする」という **不変条件** のみを敷く(裸の `use()` を境界なしで置かない)。
+- `use()` may be used **to read a Promise / Context**. Reading Context with `use()` instead of `useContext` is allowed (`use()` can be called even inside conditionals and after an early return — because it is a read that is not bound by the top-level constraint of Hooks).
+- **The main path**: pass the Promise of a fetch started in a Server Component **as props** to a Client Component and resolve it with `use()` under a `<Suspense>` boundary (the documented pattern of `fetching-data.md`; consistent with 0040's rule of pushing `"use client"` down to the leaves, it keeps the fetch itself on the server and moves only the waiting to the client).
+- **Delegation**: **which data to use `use()` with / how to design caching, revalidation and deduplication** is owned by [0071](0071-bff-api-integration.md), and **placement and granularity** of `<Suspense>` boundaries by [0040](0040-routing-rendering-strategy.md). This ADR lays down only the **invariant** "`use()` presupposes Suspense / an error boundary" (do not place a bare `use()` without a boundary).
 
-### 3. `useEffect` を外部システム同期に限定する(抑制)
+### 3. Limit `useEffect` to synchronizing with external systems (restraint)
 
-- `useEffect` は **React 外の外部システムとの同期**(subscription / 非 React DOM 操作 / ブラウザ API 購読)に限って用いる。
-- **禁止方向**: props / state から導出できる **派生値** を effect + state で同期しない(render 中の計算、または event handler で求める)。React 公式「You Might Not Need an Effect」の方針に乗る。**vendor-independent 根拠**: 派生値の effect 同期は余分な再レンダリングと同期ズレのバグ源であり、これは React の版に依らない状態管理上の一般原則である。
-- **昇格**: 複数 feature から使う reactive な横断 client hook(runtime 能力)へ育つ `useEffect` は、feature 内に留めず **`capabilities` カーネル**([0022](0022-capabilities-kernel.md))へ昇格させる([0021](0021-frontend-responsibility.md) 昇格ルール)。effect は client 実行であり、RSC 既定([0040](0040-routing-rendering-strategy.md))の葉への押し下げと整合する。
+- `useEffect` is used only for **synchronizing with external systems outside React** (subscriptions / non-React DOM operations / subscribing to browser APIs).
+- **Forbidden direction**: do not synchronize **derived values** that can be computed from props / state via effect + state (compute them during render or in an event handler). This rides on the React docs' "You Might Not Need an Effect" policy. **Vendor-independent basis**: synchronizing derived values with effects causes extra re-renders and out-of-sync bugs, which is a general principle of state management independent of React's version.
+- **Promotion**: a `useEffect` that grows into a reactive cross-cutting client hook (a runtime capability) used by several features is not kept inside the feature but **promoted to the `capabilities` kernel** ([0022](0022-capabilities-kernel.md)) (the promotion rule of [0021](0021-frontend-responsibility.md)). An effect runs on the client, consistent with pushing down to the leaves under the RSC default ([0040](0040-routing-rendering-strategy.md)).
 
-### 4. React Compiler は基盤の必須機能にしない(annotation で opt-in する性能最適化手段)
+### 4. The React Compiler is not a required capability of the foundation (a performance optimization opted into by annotation)
 
-- **本体は React Compiler を前提にしない。** Compiler が無くても通常の React / Next.js 実装がそのまま成立する状態を保つ。Compiler を使わない component を劣った実装として扱わない。
-- **全体適用(full-auto / infer)は採らない。** 採るのは `compilationMode: "annotation"` と `"use memo"` による opt-in である。この設定は常設し、`babel-plugin-react-compiler` を exact pin の開発依存として持つ([0004](0004-library-management.md))。`"use no memo"` は escape hatch であって、恒常運用の前提には置かない。
-- **`"use memo"` は実装詳細ではなく performance annotation** である。「この component / hook について Compiler による最適化を許可する」という明示の宣言であり、**1 つの client state の変化が広い部分木へ及ぶ経路**に対して付ける。撒くのではなく、その経路を構成する component を数えて付ける。
-- **経路は購読で決まり、画面上の位置では決まらない。** state の変化が届くのは、その供給を購読している component と、そこから props で作り直される子孫だけである。**供給の祖先は届かない**(子から親へは伝わらない)し、**`children` として受け取った部分木も届かない**(同じ要素の参照がそのまま渡るので React が素通りする)。**子が持つ state も届かない** —— overlay の開閉のように状態が子の内側にあるなら、その JSX を組んだ親は開閉のたびに再実行されない。したがって「同じ帯に並んでいる」「その操作の画面に居る」は印の根拠にならない。数える前に、その component が何を `use()` しているかを見ること。
-- **Compiler-ready は全体で維持し、Compiler execution だけを opt-in にする。** Rules of React への適合と `eslint-plugin-react-hooks` の Compiler 由来ルールは、Compiler の利用有無に関わらず維持する。これらは Compiler のための検査ではなく、effect で state を導出する形・描画中の副作用・ref の扱いといった**通常実装のバグを止める検査**だからである([0002](0002-formatter-linter.md))。
-- **手書きの `memo` / `useMemo` / `useCallback` を一律に Compiler へ置き換えない。** 既存のメモ化を機械的に削除しない。
-- **予防的なメモ化そのものは禁じない。** 起こりうる費用を先に潰すことは止めない。禁じるのは [0020](0020-adopted-architecture.md) 設計原則 6 の**責務を超えた手当て**と、**意味を持たないメモ化**である。
-  - **その下の層が握るもの** —— メモ化した値はそのまま下へ渡る。その値が妥当かを確かめるのは受け取る側(feature / `adapters` / 契約 / バックエンド)であって、渡す側で先回りしない
-  - **同一性に依存する先が無い** —— その値が依存配列にも、メモ化された子にも渡らない(素の DOM 属性へ渡すだけの handler など)
-  - **再描画が起きても費用が問題にならない** —— エッジケースのさらにエッジケースだけを捕まえるもの
-- **計測は「書いてよいかの条件」ではない。** 意味があるかを言えないときの決め手である。逆に、意味があると言えるものを書くのに計測は要らない。
-- **理由は成熟度ではなく blast radius**: Compiler は stable であり、実装も React 本体である。問題は品質ではなく**壊れ方が fail-fast でない**ことにある。[0030](0030-environment-variable-management.md) の taint は違反時に throw し、[0041](0041-cache-components-decision.md) の Cache Components は前提を満たさなければ build が落ちる。Compiler は落ちない —— build 時に component を自動変換してメモ化を導入するため、**値の参照同一性・effect の依存・購読・第三者ライブラリとの相互作用**に、fail-fast でない静かな挙動差分が出うる。lint / E2E / VRT / a11y の網は持っているが、それを**全体自動適用を正当化する根拠にはしない**。
-- **コストの及ぶ範囲は適用範囲に一致させる**: full-auto は共有 chunk +16.4 KB gzip・各 route の初期 JS +4〜15 KB を全 route へ乗せる。`annotation` は共有 chunk を増やさず、印を付けた component が乗る route だけが増える —— 実測で、供給の購読者 13 個を付けた 1 つの画面が +2.4 KB、印を 1 つも持たない他の route は増分 0(`pnpm bundle-budget <現行の .next> <比較先の .next>`)。
-- **利益は TBT ではなく INP に出る。** JS の増加は TBT(実行時間)を悪化させる側であり、Compiler が縮めるのは再描画で、これは実ユーザーの操作からしか観測できない。したがって**測れているコストを払って、まだ測れていない利益を全 route へ先行適用することはしない**。
-- **採用条件は「stable 化」ではない**(既に stable である)。**再描画が集中する経路であると言えること**、および**払う費用がその route に収まっていることを実測で示せること**が条件である。
-- **効果の実測を印の条件にしない。** Compiler が縮めるのは event の processing(handler の中で React が同期に行う仕事)であり、体感を決める interaction latency のうち presentation(style / layout / paint)は縮めない。実測では、CPU を 4 倍に絞っても processing は全操作で中央値 0〜4 ms・最悪 94 ms(8 倍絞り)で、**同一 build を 2 度測った差(+12〜+63%)のほうが Compiler の差より大きい**(測り方: build 済みのアプリを実ブラウザで操作し、`event` と `long-animation-frame` の `PerformanceObserver` を CPU 絞りのもとで反復して読む。`processingEnd - processingStart` が Compiler の縮める部分で、`duration` の残りは縮まない)。ここで「効果が測れないから付けない」と決めると、本リポジトリが配るのは題材の画面が軽いという事情であって、実際の画面の話ではなくなる。**本リポジトリが持つのは機構と、印を置く場所の実例**であり、自分の画面で釣り合うかは RUM([0082](0082-client-observability.md))の INP で決め直す。
+- **The core does not presuppose the React Compiler.** It keeps ordinary React / Next.js implementations working as-is without the Compiler. A component that does not use the Compiler is not treated as an inferior implementation.
+- **Whole-app application (full-auto / infer) is not adopted.** What is adopted is opt-in via `compilationMode: "annotation"` and `"use memo"`. This setting is permanent, and `babel-plugin-react-compiler` is held as an exact-pinned dev dependency ([0004](0004-library-management.md)). `"use no memo"` is an escape hatch and is not a premise of standing operation.
+- **`"use memo"` is a performance annotation, not an implementation detail**. It is an explicit declaration that "Compiler optimization is permitted for this component / hook", placed on **paths where a change in one piece of client state reaches a wide subtree**. It is not sprinkled; it is placed by counting the components that make up that path.
+- **The path is decided by subscriptions, not by position on screen.** A state change reaches only the components that subscribe to its supply and the descendants rebuilt from them via props. **It does not reach the supply's ancestors** (it does not propagate from child to parent), and **it does not reach a subtree received as `children`** (the same element reference is passed through, so React skips it). **Nor does it reach state held by a child** — if the state is inside the child, like opening and closing an overlay, the parent that assembled that JSX is not re-run on each open and close. Therefore "sitting in the same band" or "being on the screen of that interaction" is not a basis for the marker. Before counting, look at what that component `use()`s.
+- **Keep Compiler-readiness everywhere and make only Compiler execution opt-in.** Conformance to the Rules of React and the Compiler-derived rules of `eslint-plugin-react-hooks` are kept whether or not the Compiler is used. These are not checks for the Compiler but **checks that stop bugs in ordinary implementations** — deriving state in effects, side effects during render, the handling of refs ([0002](0002-formatter-linter.md)).
+- **Do not uniformly replace hand-written `memo` / `useMemo` / `useCallback` with the Compiler.** Do not mechanically delete existing memoization.
+- **Preventive memoization itself is not forbidden.** Heading off a possible cost in advance is not stopped. What is forbidden is **handling beyond one's responsibility** under [0020](0020-adopted-architecture.md) design principle 6, and **memoization that carries no meaning**.
+  - **What the layer below holds** — a memoized value is passed down as-is. Checking whether that value is valid belongs to the receiving side (feature / `adapters` / the contract / the backend), and the passing side does not get ahead of it
+  - **Nothing depends on identity** — the value goes neither into a dependency array nor to a memoized child (such as a handler passed only to a plain DOM attribute)
+  - **The cost does not matter even if a re-render happens** — something that catches only an edge case of an edge case
+- **Measurement is not "the condition for being allowed to write it".** It is the deciding factor when you cannot say whether it has meaning. Conversely, writing something that can be said to have meaning needs no measurement.
+- **The reason is blast radius, not maturity**: the Compiler is stable, and its implementation is React itself. The problem is not quality but that **the way it breaks is not fail-fast**. [0030](0030-environment-variable-management.md)'s taint throws on violation, and [0041](0041-cache-components-decision.md)'s Cache Components fails the build if its premises are not met. The Compiler does not fail — because it transforms components automatically at build time to introduce memoization, **silent, non-fail-fast behavioral differences can appear in referential identity of values, effect dependencies, subscriptions and interaction with third-party libraries**. We have the nets of lint / E2E / VRT / a11y, but **they are not used as grounds to justify automatic whole-app application**.
+- **Match the reach of the cost to the scope of application**: full-auto puts +16.4 KB gzip on the shared chunk and +4–15 KB on each route's initial JS, across every route. `annotation` does not grow the shared chunk; only the routes that carry a marked component grow — measured, one screen with markers on 13 subscribers of a supply is +2.4 KB, and other routes with no marker grow by 0 (`pnpm bundle-budget <current .next> <comparison .next>`).
+- **The benefit shows up in INP, not TBT.** Growth in JS is on the side that worsens TBT (execution time), and what the Compiler shrinks is re-rendering, which can only be observed from real user interactions. Therefore **we do not pay a cost that is measured to apply in advance, across every route, a benefit that is not yet measured**.
+- **The condition for adoption is not "becoming stable"** (it already is stable). The conditions are **being able to say it is a path where re-rendering concentrates**, and **being able to show by measurement that the cost paid stays within that route**.
+- **Do not make measuring the effect a condition for the marker.** What the Compiler shrinks is event processing (the work React does synchronously inside a handler), and of the interaction latency that decides perceived responsiveness it does not shrink presentation (style / layout / paint). Measured, even with the CPU throttled 4x, processing had a median of 0–4 ms across all interactions and a worst case of 94 ms (8x throttle), and **the difference between two measurements of the same build (+12 to +63%) was larger than the Compiler's difference** (method: operate the built app in a real browser and repeatedly read `PerformanceObserver` for `event` and `long-animation-frame` under CPU throttling. `processingEnd - processingStart` is the part the Compiler shrinks; the rest of `duration` does not shrink). Deciding here that "the effect cannot be measured, so do not mark" would make what this repository ships reflect the circumstance that its subject screens are light, not real screens. **What this repository holds is the mechanism and worked examples of where to place markers**; whether it pays off on your own screens is decided anew by INP in RUM ([0082](0082-client-observability.md)).
 
-### 4-1. 性能改善の順序(Compiler はその一手段)
+### 4-1. Order of performance improvement (the Compiler is one means)
 
-性能問題は、原因を特定してから手段を選ぶ。Compiler は選択肢の 1 つであって、既定の入口ではない。
-
-```text
-性能問題を検出
-  ↓
-原因分析
-  ↓
-適切な改善策を選択
-  ├─ Server Component 化
-  ├─ client JS 削減
-  ├─ component / state 境界の見直し
-  ├─ データ取得 / キャッシュの見直し
-  ├─ 手動メモ化
-  └─ React Compiler の opt-in
-```
-
-**SSR-First との関係を取り違えない。**
+For a performance problem, identify the cause before choosing the means. The Compiler is one option, not the default entry point.
 
 ```text
-SSR-First       → client で実行する必要そのものを減らす
-React Compiler  → client で実行する必要が残った箇所に対する最適化候補
+Detect the performance problem
+  ↓
+Analyze the cause
+  ↓
+Choose the appropriate improvement
+  ├─ Move to Server Components
+  ├─ Reduce client JS
+  ├─ Revisit component / state boundaries
+  ├─ Revisit data fetching / caching
+  ├─ Manual memoization
+  └─ Opt in to React Compiler
 ```
 
-Compiler を SSR-First の前提や標準挙動には置かない。Compiler を使うためにアーキテクチャを歪めない。
+**Do not mistake the relationship with SSR-First.**
 
-## 禁止事項
+```text
+SSR-First       → reduces the need to run on the client at all
+React Compiler  → an optimization candidate for what still has to run on the client
+```
 
-- ❌ 新規コンポーネントで `forwardRef` を使うこと(ref as prop に乗る。決定 1)（強制: biome `noReactForwardRef`（`--error-on-warnings` で `forwardRef` の使用を落とす））
-- ❌ `use()` を `<Suspense>` / error boundary の外に裸で置くこと(決定 2 の不変条件)（強制: 散文 —— **寄せられない**。境界は別ファイルの祖先に置かれ、`use()` を呼ぶファイルの形からは決まらない）
-- ❌ props / state から導出できる派生値を `useEffect` + `useState` で同期すること(render 中計算 or event handler。決定 3)（強制: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect`）
-- ❌ `reactCompiler` を `compilationMode` の指定なしに設定し、全 component へ暗黙に適用すること(決定 4)（強制: 散文 —— **寄せられる**（`next.config.ts` が返す設定の `reactCompiler.compilationMode` が `annotation` であることを単体テストで確かめる形。検査は無い））
-- ❌ 再描画が集中する経路であると言えないまま `"use memo"` を撒くこと、および費用の増分をその route で測らずに付けること(決定 4)（強制: `bundle-budget` job が印を付けた route の増分の上限を落とす。再描画が集中する経路かどうかは散文 —— **寄せられない**。購読の広がりの判断で、印の有無からは決まらない）
-- ❌ `"use no memo"` を恒常的な運用の前提に置くこと(escape hatch に留める。決定 4)（強制: 散文 —— **一部寄せられる**。`"use no memo"` の出現は静的に数えられるが規則は無い。恒常の前提か一時の退避かは運用の意図で決まる）
-- ❌ 既存の手書き `memo` / `useMemo` / `useCallback` を一律に削除して Compiler へ委ねること(決定 4)（強制: 散文 —— **寄せられない**。一律に削除したかどうかは変更の意図であって、残ったコードの形には現れない）
-- ❌ Compiler による性能上の利益を理由に、PII / キャッシュ / セキュリティ境界を緩めること([0112](0112-data-classification-cache-boundary.md) 不変条件 6)（強制: 散文 —— **寄せられない**。緩める理由は変更の動機でコードに現れない。境界そのものは 0112 の側の機械が見る）
-- ❌ **責務を超えた手当て**、および**意味を持たないメモ化**を撒くこと —— 下の層が握るもの / 同一性に依存する先が無い / 再描画の費用が問題にならない([0020](0020-adopted-architecture.md) 設計原則 6・決定 4)（強制: 散文 —— **寄せられない**。手当てが下の層と重なるか、メモ化の先に同一性へ依存する相手が居るかは責務と購読の判断で、コードの形からは決まらない。責務の側は [`docs/rules.md#layers`](../rules.md#layers)が持つ）
-- ❌ 本 ADR で **RSC / Client 境界の置き方**(0040)・**データ取得のキャッシュ設計**(0071)・**Suspense 境界の配置**(0040)を再決定すること(射程外)（強制: 散文 —— **寄せられない**。ある記述が射程外の再決定かどうかは内容の意味で決まり、文書の形からは決まらない）
+The Compiler is not placed as a premise or standard behavior of SSR-First. Do not distort the architecture in order to use the Compiler.
 
-## 補足
+## Prohibitions
 
-- **decision と rule の分界**([0140](0140-documentation-operations.md) タクソノミー): 本 ADR は React Compiler の**採否**(decision)と各 API の**採用方針**(decision)を確定する。他方、日常強制される制約 —— 「`forwardRef` を書かない」「派生値を effect 同期しない」「意味を持たないメモ化を撒かない」 —— は **rule 分類**であり、機械で決まる前 2 つは禁止事項に名指しした lint 規則が持つ。形から決まらない 3 つ目は、責務の判断として [`docs/rules.md#layers`](../rules.md#layers)が持つ。本 ADR 本文には rule の芯(なぜ)のみを残す。
-- **「手書き memo 禁止」という連動規約は発生しない**: 決定 4 が全体適用を採らないため、Compiler にメモ化を委ねることを前提にした手書き禁止規約は生じない。`compilationMode` の選択も決定 4 が `annotation` として持つ。
-- **React Compiler は correctness / architecture / runtime の前提ではない**: 本体の実装・レビュー・テストは Compiler の有無に依存しない。opt-in された箇所は、E2E が退行していないことと、費用の増分がその route に収まっていることを確かめたうえで維持する。**VRT はこの確認に使えない** —— story の撮影は Storybook の build を撮り、そちらは `next.config.ts` を読まないので Compiler が走らない。撮っているのは常に印の無い側の描画であり、Compiler が変換した結果を通るのは `next build` を経る経路だけである。
+- ❌ Using `forwardRef` in a new component (ride on ref as prop; Decision 1) (Enforcement: biome `noReactForwardRef` (`--error-on-warnings` rejects uses of `forwardRef`))
+- ❌ Placing a bare `use()` outside `<Suspense>` / an error boundary (the invariant of Decision 2) (Enforcement: Prose — **not mechanizable**. The boundary is placed in an ancestor in another file and is not decided by the shape of the file that calls `use()`)
+- ❌ Synchronizing derived values computable from props / state with `useEffect` + `useState` (compute during render or in an event handler; Decision 3) (Enforcement: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect`)
+- ❌ Configuring `reactCompiler` without specifying `compilationMode`, implicitly applying it to every component (Decision 4) (Enforcement: Prose — **mechanizable** (the form where a unit test checks that `reactCompiler.compilationMode` in the config `next.config.ts` returns is `annotation`; no check exists))
+- ❌ Sprinkling `"use memo"` without being able to say it is a path where re-rendering concentrates, and placing it without measuring the cost increase on that route (Decision 4) (Enforcement: the `bundle-budget` job rejects increases on marked routes above the limit. Whether it is a path where re-rendering concentrates is Prose — **not mechanizable**. It is a judgment about how far subscriptions spread, not decided by the presence of the marker)
+- ❌ Making `"use no memo"` a premise of standing operation (keep it as an escape hatch; Decision 4) (Enforcement: Prose — **partly mechanizable**. Occurrences of `"use no memo"` can be counted statically, but no rule exists. Whether it is a standing premise or a temporary retreat is decided by operational intent)
+- ❌ Uniformly deleting existing hand-written `memo` / `useMemo` / `useCallback` and leaving it to the Compiler (Decision 4) (Enforcement: Prose — **not mechanizable**. Whether something was deleted uniformly is the intent of the change and does not appear in the shape of the remaining code)
+- ❌ Loosening PII / caching / security boundaries on the grounds of the Compiler's performance benefit ([0112](0112-data-classification-cache-boundary.md) invariant 6) (Enforcement: Prose — **not mechanizable**. The reason for loosening is the motive of the change and does not appear in code. The boundaries themselves are watched by the machinery on 0112's side)
+- ❌ Sprinkling **handling beyond one's responsibility** and **memoization that carries no meaning** — what the layer below holds / nothing depends on identity / the cost of re-rendering does not matter ([0020](0020-adopted-architecture.md) design principle 6, Decision 4) (Enforcement: Prose — **not mechanizable**. Whether the handling overlaps with the layer below, and whether something downstream of the memoization depends on identity, are judgments about responsibility and subscriptions, not decided by the shape of the code. The responsibility side is held by [docs/rules.md](../rules.md#layers))
+- ❌ Re-deciding in this ADR **the placement of the RSC / Client boundary** (0040), **the caching design of data fetching** (0071) or **the placement of Suspense boundaries** (0040) (out of range) (Enforcement: Prose — **not mechanizable**. Whether a statement re-decides something out of range is decided by the meaning of its content, not by the shape of the document)
 
-## 関連 ADR
+## Notes
 
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router のレンダリング機構 / RSC・Client 境界の置き方(本 ADR の親。WHERE を所有、本 ADR は HOW を所有)
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 機能スライス × 表示層カーネル(`"use client"` 葉押し下げ・昇格の親原則)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 昇格ルール(横断 client hook → `capabilities`)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — reactive な横断 client hook の家(`useEffect` 昇格先)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — `use()` を用いるデータ取得の編成・キャッシュ・重複排除(本 ADR から委譲)
-- [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components の採否(前提を満たさなければ build が落ちる fail-fast 型の機構。決定 4 の blast radius の対比先)
-- [0080-error-handling.md](0080-error-handling.md) — `loading.tsx` / `<Suspense fallback>` の待機表示と error boundary(`use()` の前提)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(React 規約に乗る)+ vendor-independent 正当性材料の必須化
-- [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(本 ADR = decision / 連動制約 = rule → lint 規則 / rules.md)
-- [0004-library-management.md](0004-library-management.md) — `babel-plugin-react-compiler` の exact pin + `pnpm audit` フロー
-- [0101-performance-budget.md](0101-performance-budget.md) — 性能予算(Compiler の適用可否を判断する計測の側)
-- [0082-client-observability.md](0082-client-observability.md) — INP を含む Web Vitals の RUM(効果測定の前提)
+- **The demarcation between decision and rule** (the taxonomy of [0140](0140-documentation-operations.md)): this ADR settles **whether to adopt** the React Compiler (decision) and **the adoption policy** for each API (decision). On the other hand, the constraints enforced day to day — "do not write `forwardRef`", "do not synchronize derived values with effects", "do not sprinkle memoization that carries no meaning" — are of the **rule class**; the first two, which machines decide, are held by the lint rules named in Prohibitions. The third, not decided by shape, is held by [docs/rules.md](../rules.md#layers) as a judgment about responsibility. Only the core of the rule (why) remains in this ADR's body.
+- **No linked convention "hand-written memo is forbidden" arises**: because Decision 4 does not adopt whole-app application, no convention forbidding hand-written memoization on the premise of leaving memoization to the Compiler arises. The choice of `compilationMode` is also held by Decision 4, as `annotation`.
+- **The React Compiler is not a premise of correctness / architecture / runtime**: the core's implementation, review and tests do not depend on whether the Compiler is present. Opted-in places are kept after confirming that E2E has not regressed and that the cost increase stays within that route. **VRT cannot be used for this confirmation** — story captures shoot the Storybook build, which does not read `next.config.ts`, so the Compiler does not run. What is captured is always the rendering of the unmarked side; only paths that go through `next build` pass through the Compiler's transformed output.
+
+## Related ADRs
+
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the App Router rendering mechanisms / placement of the RSC and Client boundary (this ADR's parent; it owns WHERE, this ADR owns HOW)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — feature slices × presentation-layer kernels (the parent principles of pushing `"use client"` to the leaves and of promotion)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the promotion rule (cross-cutting client hook → `capabilities`)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the home of reactive cross-cutting client hooks (where `useEffect` is promoted to)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — orchestration, caching and deduplication of data fetching with `use()` (delegated from this ADR)
+- [0041-cache-components-decision.md](0041-cache-components-decision.md) — whether to adopt Cache Components (a fail-fast mechanism whose build fails if its premises are not met; the contrast for Decision 4's blast radius)
+- [0080-error-handling.md](0080-error-handling.md) — the loading UI of `loading.tsx` / `<Suspense fallback>` and error boundaries (the premise of `use()`)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance (ride on React's conventions) + mandatory vendor-independent justification
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the decision / rule taxonomy (this ADR = decision / linked constraints = rule → lint rules / rules.md)
+- [0004-library-management.md](0004-library-management.md) — exact pin of `babel-plugin-react-compiler` + the `pnpm audit` flow
+- [0101-performance-budget.md](0101-performance-budget.md) — the performance budget (the measuring side that judges whether to apply the Compiler)
+- [0082-client-observability.md](0082-client-observability.md) — RUM of Web Vitals including INP (the premise for measuring effect)

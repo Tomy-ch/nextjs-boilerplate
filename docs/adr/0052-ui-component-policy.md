@@ -1,115 +1,115 @@
-# UI コンポーネント方針(採用)
+# UI Component Policy (Adopted)
 
-UI コンポーネント基盤として **shadcn/ui**(Radix primitives + Tailwind の copy-in 方式)+ **@tabler/icons-react**(アイコン)+ shadcn 系の複雑入力部品(日付ピッカー等)を **本リポジトリに採用**する。置き場は `components` カーネル([0021](0021-frontend-responsibility.md))。
+As the UI component foundation, this repository **adopts** **shadcn/ui** (the copy-in approach of Radix primitives + Tailwind) + **@tabler/icons-react** (icons) + shadcn-family complex input components (date pickers, etc.). Their home is the `components` kernel ([0021](0021-frontend-responsibility.md)).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-本リポジトリは「一般的な Next.js アプリケーション基盤」である。UI コンポーネント・アイコン・複雑入力部品は、一般的なアプリ基盤に **汎用・常用** で必要な要素であり、用途依存として委ねる対象ではない。したがって本体に採用し、shadcn/ui の採否・アイコンライブラリ・form コンポーネント・Headless UI 系の扱いをここで確定する。
+This repository is "a general Next.js application foundation". UI components, icons and complex input components are elements that a general application foundation needs for **general, everyday** use, not things to leave as use-case dependent. They are therefore adopted in the core, and the adoption of shadcn/ui, the icon library, form components and the handling of Headless UI-family libraries are settled here.
 
-## 決定: shadcn/ui + @tabler/icons-react + 複雑入力を採用
+## Decision: Adopt shadcn/ui + @tabler/icons-react + Complex Inputs
 
-- **UI コンポーネント = shadcn/ui**(Radix UI primitives + Tailwind、**copy-in** 方式)。生成コンポーネントは `components` カーネル([0021](0021-frontend-responsibility.md):横断 UI = デザインシステム的な純 UI)に配置する
-- **アイコン = @tabler/icons-react**。供給元を名指しできるのは [`src/components/icon.ts`](../../src/components/icon.ts) 1 ファイルだけで、feature も `components` の各部品もそこを参照する。締め出しは `eslint.config.ts` の `no-restricted-imports` が持つ。採る理由は語彙の広さで、outline だけで 5,000 種を超える。**アイコンが足りないことを理由に 2 つ目のセットを採らせない**ことがこの選択の目的である
-- **アイコンの公開面は名前付き再輸出に限る**。名前から component を引く表を置くと、その表がセット全体への静的な参照になり、使っていないアイコンまで束へ乗る。再輸出なら呼び出し側が import したものだけが残り、量は `pnpm bundle-budget` の予算([0101](0101-performance-budget.md))が受ける
-- **公開名は供給元の綴りではなく、この面の語彙**。供給元が別の名前で同じ字面を配っていても公開名は変えない。差し替えたときに呼び出し側が動かないことが、閉じ込めの目的そのものである
-- **複雑入力(日付ピッカー等)= shadcn 系部品**(`react-day-picker` などを Radix/Tailwind でラップした shadcn レシピ)。`components` に配置する。既定は控えめ(Medium)= 必要時に使う位置づけ
-- 本リポジトリの UI は、これら採用部品に加えて **Tailwind ユーティリティ**([0050](0050-styling-strategy.md))と feature 内 UI([0021](0021-frontend-responsibility.md))で構成する。**utility で足りる配置(stack / inline / grid)は component で包まない。** `<Stack gap={4}>` と `<div className="flex flex-col gap-4">` の間に抽象の利得は無く、包んでも Tailwind の表現力は増えない。増えるのは「utility と component のどちらで書くか」を利用側が毎回迷う面だけである。骨格を utility だけで組む合成例はカタログ([0054](0054-ui-catalog-storybook.md))が示す
-- **variant 定義 = `class-variance-authority`(cva)**。shadcn/ui の公式コンポーネントが cva を使った状態で配布されるため採用する(採らなければ配布物を毎回書き換えることになる)。置き場・使い方の規約は [0050](0050-styling-strategy.md) が持つ。**`tailwind-variants` は採らない** —— variant / slots / responsive / merge を束ねて責務を 1 語で言えず([0004](0004-library-management.md) の一次判定)、cva と責務が重なる
-- **リッチテキスト(TipTap)を採用する**。エディタ本体と表示側 sanitizer の a11y 契約・seam は [0053](0053-ui-component-interaction-seam.md) が所有し、本 ADR は `components` カーネルへの配置と exact-pin 要件のみを持つ
-- **本体スコープの線引き**: 本体が抱えるのは上記の汎用 UI 基盤 + リッチテキストまで。これを超える局所的な UI 要件(並べ替え等のライブラリを要する DnD = dnd-kit 等)は本体に同梱せず、[0053](0053-ui-component-interaction-seam.md) が seam と a11y 契約を持つ。それらは **必要時に追加**する
+- **UI components = shadcn/ui** (Radix UI primitives + Tailwind, the **copy-in** approach). Generated components are placed in the `components` kernel ([0021](0021-frontend-responsibility.md): cross-cutting UI = design-system-like pure UI)
+- **Icons = @tabler/icons-react**. Only one file, [`src/components/icon.ts`](../../src/components/icon.ts), may name the supplier, and both features and each component in `components` reference it. The lockout is held by `no-restricted-imports` in `eslint.config.ts`. The reason for adopting it is the breadth of its vocabulary: outline alone exceeds 5,000 icons. **Not letting "an icon is missing" be a reason to adopt a second set** is the purpose of this choice
+- **The public surface of icons is limited to named re-exports**. A table that looks up a component by name becomes a static reference to the whole set, putting even unused icons into the bundle. With re-exports, only what callers import remains, and the volume is absorbed by the `pnpm bundle-budget` budget ([0101](0101-performance-budget.md))
+- **Public names are this surface's vocabulary, not the supplier's spelling**. Even if the supplier ships the same glyph under a different name, the public name does not change. That callers do not move when it is swapped is the very purpose of the confinement
+- **Complex inputs (date pickers, etc.) = shadcn-family components** (shadcn recipes that wrap `react-day-picker` and the like with Radix/Tailwind). Placed in `components`. The default is restrained (Medium) = used when needed
+- This repository's UI consists of these adopted components plus **Tailwind utilities** ([0050](0050-styling-strategy.md)) and in-feature UI ([0021](0021-frontend-responsibility.md)). **Layout that utilities cover (stack / inline / grid) is not wrapped in a component.** There is no abstraction gain between `<Stack gap={4}>` and `<div className="flex flex-col gap-4">`, and wrapping does not add to Tailwind's expressiveness. What it adds is only a surface where users hesitate every time over "write it with a utility or a component". The catalog ([0054](0054-ui-catalog-storybook.md)) shows composition examples that build the skeleton with utilities only
+- **Variant definitions = `class-variance-authority` (cva)**. Adopted because the official shadcn/ui components are distributed already using cva (not adopting it would mean rewriting the distributed code every time). The conventions for where it lives and how it is used are held by [0050](0050-styling-strategy.md). **`tailwind-variants` is not adopted** — it bundles variant / slots / responsive / merge so its responsibility cannot be named in one word ([0004](0004-library-management.md)'s primary check), and its responsibility overlaps with cva
+- **Rich text (TipTap) is adopted**. The a11y contract and seam of the editor itself and the display-side sanitizer are owned by [0053](0053-ui-component-interaction-seam.md); this ADR holds only the placement in the `components` kernel and the exact-pin requirement
+- **Drawing the line on the core's scope**: what the core carries stops at the general UI foundation above + rich text. Local UI requirements beyond this (DnD that needs a library, such as reordering = dnd-kit, etc.) are not bundled in the core; [0053](0053-ui-component-interaction-seam.md) holds the seam and a11y contract. They are **added when needed**
 
-### 部品を得るために上流を増やさない
+### Do not add upstreams to obtain a component
 
-registry は、本リポジトリが採るものとは別の headless 上流を前提とする item を配ることがある。**この場合その item は copy-in しない。**同一責務に 2 つ目の上流を抱える判断になり、1 部品のために同規模の下地を丸ごと引き受けることになるためである([0010](0010-standards-and-non-lockin.md) 非ロックイン)。Base UI を前提とする item がこれに当たり、**`@base-ui/react` は採らない**。registry に item が無い UI 概念も同じ扱いとする。取り得る道は 2 つで、いずれも `components` の公開 API を変えない。
+The registry sometimes ships items that presuppose a headless upstream other than the one this repository adopts. **In that case the item is not copied in.** Doing so would mean carrying a second upstream for the same responsibility and taking on an entire foundation of similar size for one component ([0010](0010-standards-and-non-lockin.md) non-lock-in). Items that presuppose Base UI fall under this, and **`@base-ui/react` is not adopted**. A UI concept for which the registry has no item is treated the same way. There are two possible paths, and neither changes the public API of `components`.
 
-- **既に持つ部品の合成で組む**
-- **合成で届かない場合は、必要な機構だけを抽出して自前で実装する**
+- **Build it by composing components already held**
+- **When composition does not reach, extract only the mechanism needed and implement it ourselves**
 
-CLI が案内する代替 item が、既に持つ部品と責務を重ねることもある。その場合も copy-in せず、足りない機能だけを既存の部品へ取り込む(vendor は増やさない)。
+An alternative item the CLI suggests may overlap in responsibility with a component already held. In that case too it is not copied in; only the missing features are brought into the existing component (no vendor is added).
 
-上流を増やす判断へ倒せるのは、**複数の部品が同じ上流を要求し始めたとき**か、**自前合成では満たせない要件が実使用面で確定したとき**である。この 2 つは別々に処理せず、**「今の上流をそちらへ置き換えるか」という 1 つの移行判断**としてまとめて評価する。**併存は選ばない** —— 依存表面が純増し、同じ責務の部品が 2 系統に割れる。
+The decision can tip toward adding an upstream only **when several components start to require the same upstream**, or **when a requirement that our own composition cannot meet is confirmed in actual use**. These two are not processed separately but evaluated together as **one migration decision: "should the current upstream be replaced with that one?"**. **Coexistence is not chosen** — the dependency surface grows net, and components with the same responsibility split into two lines.
 
-供給網の弱さは、この判断の論拠にならない。それは移行判断の論拠であって、併存の論拠にはならないためである。
+Weakness of the supply chain is not an argument in this decision. It is an argument for a migration decision, not for coexistence.
 
-### variant は排他の見た目にだけ使う
+### Use variants only for mutually exclusive looks
 
-`variant` / `size` が表すのは**同時に成り立たない見た目**である。状態の有無・構造の差し替え・振る舞いの切り替えを variant で表さない。真偽値の props が増える形になったら、それは合成([0053](0053-ui-component-interaction-seam.md) の slot)か部品の分割([0021](0021-frontend-responsibility.md))へ直す合図である。
+What `variant` / `size` express is **looks that cannot hold at the same time**. Do not express the presence of a state, a swap of structure or a switch of behavior as a variant. When boolean props start to multiply, that is the sign to rework it into composition (the slots of [0053](0053-ui-component-interaction-seam.md)) or a component split ([0021](0021-frontend-responsibility.md)).
 
-### 部品の層と置き場所は README が正
+### The README is the authority on component layers and placement
 
-`components` の 4 層(`design-system` / `patterns` / `shell` / `app-starter`)の受け持ちと、目的別ディレクトリの割り方は [`src/components/README.md`](../../src/components/README.md) が所有する。層は「誰が書き換えるか」、目的は「何のための部品か」で軸が違う。
+The responsibilities of the four layers of `components` (`design-system` / `patterns` / `shell` / `app-starter`) and the division into purpose-based directories are owned by [`src/components/README.md`](../../src/components/README.md). Layers and purposes are on different axes: layers by "who rewrites it", purposes by "what the component is for".
 
-### 上流は参照実装であり、追従先ではない
+### Upstream is a reference implementation, not something to track
 
-shadcn/ui から取り込んだ実装は**参照実装**として持つ。取り込む理由は、Next.js 上での最適化と機構の一般化を済ませた形をそのまま出発点にできることであり、上流の版に追従し続けるためではない。取り込んだ後の所有者はこのリポジトリで、改変してよい。
+Implementations taken in from shadcn/ui are held as **reference implementations**. The reason for taking them in is to start from a form that has already been optimized on Next.js and had its mechanisms generalized, not to keep tracking the upstream's versions. After intake the owner is this repository, and it may modify them.
 
-**これは重複の許可ではない。** 重複を 2 箇所目で統合する規律([0021](0021-frontend-responsibility.md))は `components` の内側にも等しく効く。
+**This is not permission to duplicate.** The discipline of consolidating a duplicate at its second occurrence ([0021](0021-frontend-responsibility.md)) applies equally inside `components`.
 
-### 台帳と上流追従
+### Ledger and upstream tracking
 
-**`components` 配下の部品は 1 つ残らず台帳([`src/components/shadcn-manifest.yaml`](../../src/components/shadcn-manifest.yaml))に名指しで載せ、上流との関係を `kind` で持つ。** copy-in した部品だけを記録する形は採らない —— 「台帳に無い」が自前実装なのか記録漏れなのかを区別できず、記録漏れが見過ごされる。上流を持つ行は取り込んだ時点の上流 commit を持つ。上流を参照実装として所有する(前節)以上、後で上流の差分を読むための base がこちら側に要るためである。**取り込みの入口は `pnpm add:ui` に限り、shadcn CLI を直接叩かない。** 台帳へ載せる操作が CLI の外にあるため、直接叩いた部品は台帳に載らない。台帳の項目の意味と取り込み手順は層 README が持ち、本 ADR は再掲しない。強制: `pnpm check:ui`(台帳と実配置の突合。記録の無い部品・実体を失った行・置き場の不一致で落ちる)。CLI の直接実行そのものは機械で止めていないが、その結果は同じ検査が「記録の無い部品」として落とす。
+**Every single component under `components` is listed by name in the ledger ([`src/components/shadcn-manifest.yaml`](../../src/components/shadcn-manifest.yaml)), which holds its relationship to upstream as `kind`.** A form that records only copied-in components is not adopted — it cannot distinguish whether "not in the ledger" means self-implemented or unrecorded, so omissions go unnoticed. Rows with an upstream hold the upstream commit at the time of intake. Since the upstream is owned as a reference implementation (previous section), a base for later reading the upstream's diff is needed on this side. **The only intake entry point is `pnpm add:ui`; the shadcn CLI is not invoked directly.** Listing in the ledger happens outside the CLI, so a component brought in by invoking the CLI directly is not listed. The meaning of the ledger's fields and the intake procedure are held by the layer README, and this ADR does not restate them. Enforcement: `pnpm check:ui` (cross-checks the ledger against the actual placement; fails on unrecorded components, rows that lost their file, and placement mismatches). Running the CLI directly is not stopped by a machine itself, but the same check rejects the result as "an unrecorded component".
 
-**drift の検査は二段に分け、required にするのは前段だけとする。** 台帳と実配置の不一致は通信を要さず、原因はレビュー中の変更にあるため、PR のゲートにする。上流の変化は通信を要し、原因はレビュー中の変更に無いため、定期実行で報告するに留め、**required check に登録しない** —— 著者に直せない理由で PR が止まり、報告が途切れうる job を必須に載せると PR が永久に待たれる([0153](0153-ci-configuration.md))。上流が動いたときに何をするか(差分を読んで取り込むか、据え置くか)は人の判断であり、bot が書き換えない([0072](0072-api-type-generation.md) の drift 検査と同じ形)。強制: `.github/workflows/shadcn-drift.yaml` の job 分割(`shadcn-manifest` は PR で走り required、`upstream` は schedule のみ)/ required の登録は `.github/settings/branch-protection.json` / PR で走らない job を required に載せないことは `make actions-required-check-lint`([0153](0153-ci-configuration.md))。
+**Drift checks are split into two stages, and only the first is required.** A mismatch between the ledger and the actual placement needs no network, and its cause lies in the change under review, so it is a PR gate. Upstream changes need the network, and their cause does not lie in the change under review, so they are only reported by a scheduled run and **not registered as a required check** — a PR would stop for a reason its author cannot fix, and putting a job whose reporting can be interrupted on the required list makes PRs wait forever ([0153](0153-ci-configuration.md)). What to do when the upstream moves (read the diff and take it in, or leave it) is a human judgment, and no bot rewrites it (the same shape as [0072](0072-api-type-generation.md)'s drift check). Enforcement: the job split in `.github/workflows/shadcn-drift.yaml` (`shadcn-manifest` runs on PRs and is required, `upstream` is schedule-only) / required registration in `.github/settings/branch-protection.json` / not putting jobs that do not run on PRs on the required list is `make actions-required-check-lint` ([0153](0153-ci-configuration.md)).
 
-**`components` 配下に書かれた class は、実 CSS を build して出力と照合する。** Tailwind は知らない class に何も出力せず、何も失敗しない —— 面が透明になる、focus ring が出ない、選択状態が見えない、という欠陥が browser で見るまで現れない。copy-in は上流の theme が定義する token 前提の class を持ち込むため、これは取り込みのたびに起きうる常態であり、参照実装として改変する(前節)側の義務である。**出力が無いことと、書いてはいけないことは別とする** —— 意図して CSS を持たない class(animation plugin を採らないための装飾指定等)は検査側で理由付きで除外し、実装からは消さない。消すと生成物が持っていた情報が失われる。範囲は copy-in が着地する `components` 配下である。強制: `pnpm check:classes`(`component-classes` job。通信を要さず変更起因なので PR のゲート・required)。検査が見るのは class だけで、接頭辞の無い CSS 変数の混入には届かない —— そちらは取り込み時に人が見る(手順は層 README)。
+**Classes written under `components` are checked by building the real CSS and matching against the output.** Tailwind emits nothing for a class it does not know, and nothing fails — defects such as a transparent surface, a missing focus ring or an invisible selected state do not appear until seen in a browser. Copy-in brings in classes that presuppose tokens defined by the upstream's theme, so this is a normal condition that can arise with every intake, and an obligation of the side that modifies it as a reference implementation (previous section). **Having no output and being forbidden to write are separate** — classes that deliberately have no CSS (decorative specifications kept because no animation plugin is adopted, etc.) are excluded on the check side with a reason and not removed from the implementation. Removing them would lose information the generated code carried. The range is under `components`, where copy-in lands. Enforcement: `pnpm check:classes` (the `component-classes` job; it needs no network and is caused by changes, so it is a PR gate and required). The check looks only at classes and does not reach CSS variables without a prefix slipping in — those are looked at by a person at intake (the procedure is in the layer README).
 
-### 振る舞いと見た目を分けるのは、振る舞いが 2 箇所目で要るときだけ
+### Separate behavior from looks only when the behavior is needed in a second place
 
-振る舞いだけを hook や headless な部品へ出すのは、**同じ振る舞いを別の見た目で使う必要が実際に生じたとき**に限る。先回りして分けると、1 つの部品が 2 ファイルに割れるだけで、読む側は両方を追うことになる。
+Moving only the behavior out into a hook or a headless component is limited to **when the need to use the same behavior with a different look actually arises**. Splitting ahead of time just splits one component into two files, and readers have to follow both.
 
-## 0010 準拠(vendor-independent 正当性 + 非ロックイン)
+## Conformance with 0010 (Vendor-Independent Justification + Non-Lock-In)
 
-本採用は [0010](0010-standards-and-non-lockin.md) の 2 原則(標準に乗る / 選択主体は設計者)を満たす。
+This adoption satisfies the two principles of [0010](0010-standards-and-non-lockin.md) (ride on standards / the designer is the one who chooses).
 
-**§1 標準・デファクトへの準拠**:
+**§1 Conformance to standards and the de facto**:
 
-- Radix UI primitives は **WAI-ARIA Authoring Practices**(業界標準のアクセシビリティパターン)を実装した headless primitive であり、独自発明ではなく標準に乗っている
-- @tabler/icons-react は 24px グリッド・`currentColor`・stroke という SVG アイコンの一般的な構成に乗っており、独自の描画機構を持たない。React component として配られるため、束ね方も他の SVG アイコンセットと同じである
+- Radix UI primitives are headless primitives that implement the **WAI-ARIA Authoring Practices** (the industry-standard accessibility patterns), riding on a standard rather than being an invention of their own
+- @tabler/icons-react rides on the common composition of SVG icons — a 24px grid, `currentColor` and strokes — and has no rendering mechanism of its own. It is distributed as React components, so it is bundled the same way as other SVG icon sets
 
-**§2 vendor-independent 正当性材料**(「そのベンダーを正当化から抜いても成立するか?」):
+**§2 Vendor-independent justification** ("does it hold with that vendor taken out of the justification?"):
 
-- **shadcn/ui は copy-in(コードを本体に取り込む)方式**であり、npm 依存としての**バージョンロックが構造的に存在しない**。取り込んだ後は自リポジトリのコードであり、shadcn という配布元が消えても、更新を止めても、任意に改変しても成立する(可搬性 = 十分)。これは「shadcn だから」ではなく「**Radix の WAI-ARIA 準拠 primitive + Tailwind の組み合わせを、自コードとして所有できる**」という独立根拠で選んでいる(正当性材料 = 十分)
-- アイコンセットは他の SVG アイコン(Heroicons / Phosphor 等)へ差し替え可能であり、参照は `src/components/icon.ts` 1 ファイルに閉じる。差し替えはこのファイルの右辺だけで完結し、呼び出し側の綴りは動かない
-- 運用テスト([0010](0010-standards-and-non-lockin.md) の非ロックインの判定): 「shadcn / Tabler を正当化から抜いても、Radix primitive + Tailwind + SVG アイコンで純 UI を組む、というパターンは正当か?」→ Yes。乗っても縛られていない
+- **shadcn/ui is the copy-in approach (bringing the code into the core)**, so **version lock as an npm dependency structurally does not exist**. After intake it is our own repository's code, and it holds even if the distributor shadcn disappears, stops updating, or is modified at will (portability = sufficient). It is chosen not "because it is shadcn" but on the independent ground of "**being able to own, as our own code, the combination of Radix's WAI-ARIA-conformant primitives + Tailwind**" (justification = sufficient)
+- The icon set can be swapped for other SVG icons (Heroicons / Phosphor, etc.), and references are closed in the single file `src/components/icon.ts`. A swap is completed with only the right-hand side of this file, and the callers' spelling does not move
+- Operational test (the non-lock-in judgment of [0010](0010-standards-and-non-lockin.md)): "with shadcn / Tabler taken out of the justification, is the pattern of building pure UI with Radix primitives + Tailwind + SVG icons justified?" → Yes. Riding on them without being bound
 
-**非ロックイン境界(adapters/カーネル境界)**:
+**Non-lock-in boundary (adapters / kernel boundary)**:
 
-- UI ライブラリへの依存は `components` カーネルに閉じ込める。feature / 各画面は `components` の公開 UI を参照し、Radix の import を feature 内に直接散らさない([0021](0021-frontend-responsibility.md) 昇格ルール:横断 UI → `components`)。これにより UI ライブラリの差し替えが `components` 内で完結する。アイコンの供給元はさらに狭く、`components` の内側でも `icon.ts` 以外から名指しできない
+- Dependence on UI libraries is confined to the `components` kernel. Features and screens reference the public UI of `components` and do not scatter Radix imports directly inside features (the promotion rule of [0021](0021-frontend-responsibility.md): cross-cutting UI → `components`). This makes swapping a UI library complete within `components`. The icon supplier is narrower still: even inside `components`, nothing other than `icon.ts` may name it
 
-**exact-pin + audit**([0004](0004-library-management.md)):
+**exact-pin + audit** ([0004](0004-library-management.md)):
 
-- shadcn が引き込む実 npm 依存は **exact-pin** で追加(`pnpm add -E`)し、追加時に `pnpm audit` を実行する。メジャー更新は別 PR(0004)
-- copy-in された shadcn コンポーネント本体はソースコードとして本体に取り込まれ、依存パッケージではない(pin 対象は上記の実依存のみ)
-- **部品ごとの実依存は、copy-in の前に 0004 の様式で評価する。** registry item を取り込む判断は、その item が引く vendor を採る判断でもある。どの部品がどの vendor を引いたかという結果の一覧は本 ADR ではなく取り込みの記録が持つ
+- The real npm dependencies shadcn pulls in are added **exact-pinned** (`pnpm add -E`), and `pnpm audit` is run when adding them. Major updates go in a separate PR (0004)
+- The copied-in shadcn component bodies are taken into the core as source code and are not dependency packages (only the real dependencies above are pinned)
+- **The real dependencies of each component are evaluated in 0004's format before copy-in.** The decision to take in a registry item is also the decision to adopt the vendors that item pulls in. The resulting list of which component pulled in which vendor is held not by this ADR but by the intake records
 
-## 禁止事項
+## Prohibitions
 
-- ❌ Radix / react-day-picker を feature 内・各画面から直接 import すること(UI ライブラリ依存は `components` カーネルに閉じ込める。[0021](0021-frontend-responsibility.md) 昇格ルール)（強制: 散文 —— **寄せられる**（`iconVendorImports` と同じ形で、`radix-ui` / `react-day-picker` の import を `src/components` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
-- ❌ アイコンの供給元を `src/components/icon.ts` 以外から import すること(`components` の内側も含む)
-- ❌ アイコンの公開面に、名前から component を引く表を置くこと(セット全体が束へ乗る)
-- ❌ shadcn/ui 以外の UI コンポーネントライブラリ(MUI / Chakra / Ant Design 等、ランタイム同梱型)を並行採用すること([0050](0050-styling-strategy.md) の Tailwind 主軸 + CSS Modules 限定許可(ランタイム CSS-in-JS = styled-components / emotion は非採用)および copy-in 方針と衝突。必要なら ADR 改定)（強制: 持たない —— 採らない決定。ランタイム同梱型の UI ライブラリは依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
-- ❌ @tabler/icons-react 以外のアイコンライブラリを追加同梱すること(差し替えは可だが並行同梱はしない)（強制: 持たない —— 採らない決定。2 つ目のアイコンセットは依存に無く、足せば `package.json` の diff として現れる）
-- ❌ 別の headless 上流を、registry item が要求するという理由だけで併存させること(合成か自前実装で組む。上流の追加は現行からの移行判断としてのみ扱う)（強制: 持たない —— 採らない決定。`@base-ui/react` などの別の headless 上流は依存に無く、足せば `package.json` の diff と移行判断として現れる）
-- ❌ 採用ライブラリを exact-pin / `pnpm audit` を経ずに追加すること([0004](0004-library-management.md))（強制: `dependency-audit` job（`make audit`）が lockfile に届く PR で `pnpm audit` を走らせ、修正版のある high / critical を落とす。exact-pin は散文 —— **寄せられる**（`package.json` の版指定に `^` / `~` などの範囲があるかで落とせる。規則は無い））
-- ❌ 本体スコープを超える局所的な UI 要件(ライブラリを要する DnD 等)を本 ADR の範囲で本体へ持ち込むこと(seam と契約は [0053](0053-ui-component-interaction-seam.md) / ライブラリは用途依存)（強制: 持たない —— 採らない決定。DnD などのライブラリは本体の依存に無く、持ち込めば `package.json` の diff として現れる）
-- ❌ リッチテキストの表示を sanitizer を通さずに行うこと(生の `dangerouslySetInnerHTML` は禁止。sanitizer port は [0053](0053-ui-component-interaction-seam.md))
-- ❌ `components` 配下に台帳に無い部品を置くこと / shadcn CLI を直接叩いて取り込むこと(強制: `pnpm check:ui`)
-- ❌ 上流追従の検査を required check に登録すること(著者に直せない理由で PR が止まる。[0153](0153-ci-configuration.md))
+- ❌ Importing Radix / react-day-picker directly inside features or screens (dependence on UI libraries is confined to the `components` kernel; the promotion rule of [0021](0021-frontend-responsibility.md)) (Enforcement: Prose — **mechanizable** (could be rejected by putting imports of `radix-ui` / `react-day-picker` into `no-restricted-imports` outside `src/components`, the same way as `iconVendorImports`; no rule exists))
+- ❌ Importing the icon supplier from anywhere other than `src/components/icon.ts` (including inside `components`)
+- ❌ Placing a table that looks up a component by name on the public surface of icons (the whole set lands in the bundle)
+- ❌ Adopting in parallel a UI component library other than shadcn/ui (MUI / Chakra / Ant Design, etc., which ship with a runtime) (conflicts with [0050](0050-styling-strategy.md)'s Tailwind main axis + limited allowance for CSS Modules (runtime CSS-in-JS = styled-components / emotion not adopted) and with the copy-in policy; revise the ADR if needed) (Enforcement: none — a decision not to adopt. UI libraries that ship with a runtime are not among the dependencies; adding one shows up as a `package.json` diff and an ADR revision)
+- ❌ Bundling an additional icon library besides @tabler/icons-react (swapping is allowed, bundling in parallel is not) (Enforcement: none — a decision not to adopt. A second icon set is not among the dependencies; adding one shows up as a `package.json` diff)
+- ❌ Letting another headless upstream coexist solely because a registry item requires it (build with composition or our own implementation; adding an upstream is treated only as a migration decision away from the current one) (Enforcement: none — a decision not to adopt. Other headless upstreams such as `@base-ui/react` are not among the dependencies; adding one shows up as a `package.json` diff and a migration decision)
+- ❌ Adding an adopted library without exact-pin / `pnpm audit` ([0004](0004-library-management.md)) (Enforcement: the `dependency-audit` job (`make audit`) runs `pnpm audit` on PRs that reach the lockfile and rejects high / critical findings that have a fixed version. Exact-pin is Prose — **mechanizable** (could be rejected by whether a version specifier in `package.json` has a range such as `^` / `~`; no rule exists))
+- ❌ Bringing local UI requirements beyond the core's scope (DnD that needs a library, etc.) into the core within this ADR's range (the seam and contract are [0053](0053-ui-component-interaction-seam.md) / libraries are use-case dependent) (Enforcement: none — a decision not to adopt. Libraries such as DnD are not among the core's dependencies; bringing one in shows up as a `package.json` diff)
+- ❌ Displaying rich text without passing it through the sanitizer (raw `dangerouslySetInnerHTML` is forbidden; the sanitizer port is [0053](0053-ui-component-interaction-seam.md))
+- ❌ Placing a component not in the ledger under `components` / taking one in by invoking the shadcn CLI directly (Enforcement: `pnpm check:ui`)
+- ❌ Registering the upstream-tracking check as a required check (PRs would stop for reasons their authors cannot fix; [0153](0153-ci-configuration.md))
 
-## 関連 ADR
+## Related ADRs
 
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + 非ロックインの判断軸(本採用の正当化根拠)
-- [0004-library-management.md](0004-library-management.md) — exact-pin / `pnpm audit` / メジャー更新は別 PR
-- [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用。shadcn/ui のスタイル手段)
-- [0051-styling-system.md](0051-styling-system.md) — デザイントークン体系 / レスポンシブ / モーション / 印刷(採用 UI が参照する semantic token の供給元。モーションライブラリの採用帰属も 0051 側)
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — UI カタログ(採用部品の視覚的仕様の置き場)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `components` カーネル(採用 UI の配置先)・昇格規律(vendor 依存の閉じ込め)
-- [0011-no-docker.md](0011-no-docker.md) — 表示層ロール
-- [0060-state-management.md](0060-state-management.md) — form state(react-hook-form + zod)採用。form 部品と対で機能する
-- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — リッチテキスト(TipTap)の a11y 契約 / sanitizer port、および DnD(dnd-kit)等、本体に同梱しない局所 UI の seam
-- [0153-ci-configuration.md](0153-ci-configuration.md) — required check の登録条件(上流追従の検査を必須に載せない根拠)
-- [0072-api-type-generation.md](0072-api-type-generation.md) — 陳腐化した写しは drift 検査が赤くして人が回す(台帳の上流追従と同じ形)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the decision axis of standards conformance + non-lock-in (the justification for this adoption)
+- [0004-library-management.md](0004-library-management.md) — exact-pin / `pnpm audit` / major updates in a separate PR
+- [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind main axis + limited allowance for CSS Modules (styled-components / emotion not adopted; the styling means of shadcn/ui)
+- [0051-styling-system.md](0051-styling-system.md) — design token system / responsive / motion / print (the supplier of the semantic tokens the adopted UI references; where the adoption of a motion library belongs is also on 0051's side)
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — the UI catalog (where the visual specification of adopted components lives)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the `components` kernel (where adopted UI is placed) and the promotion discipline (confining vendor dependence)
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role
+- [0060-state-management.md](0060-state-management.md) — adopting form state (react-hook-form + zod). Works paired with the form components
+- [0053-ui-component-interaction-seam.md](0053-ui-component-interaction-seam.md) — the a11y contract / sanitizer port of rich text (TipTap), and the seams of local UI not bundled in the core, such as DnD (dnd-kit)
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the conditions for registering a required check (why the upstream-tracking check is not made mandatory)
+- [0072-api-type-generation.md](0072-api-type-generation.md) — a stale copy is turned red by a drift check and a person handles it (the same shape as the ledger's upstream tracking)

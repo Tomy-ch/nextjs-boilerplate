@@ -36,7 +36,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 **軸を先に固定することだけが防御**であり、それは**どの案を挙げるより前**に起きなければならない。
 
 **コストが答えを選ぶ。**「30 ファイル触ることになる」が、いつのまにか決め手の論拠になる。
-[0010](../../../docs/adr/0010-standards-and-non-lockin.md) は、**品質と一貫性がそこへ到達するコストに優る**こと、
+[0010](../../../docs/adr/0010-standards-and-non-lockin.ja.md) は、**品質と一貫性がそこへ到達するコストに優る**こと、
 そしてコストは「人が方向を保ったまま範囲を断れるように」述べるものだと明言している。
 **コストを述べることは必須で、コストに選ばせることは違う。**
 
@@ -77,7 +77,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 | どこ | 何を決着させるか |
 | --- | --- |
-| [`docs/adr/`](../../../docs/adr/README.md) | 現行の決定。意図的な除外と、それぞれが本文に持つ **撤回条件**（何が真になれば見直すか）も含む |
+| [`docs/adr/`](../../../docs/adr/README.ja.md) | 現行の決定。意図的な除外と、それぞれが本文に持つ **撤回条件**（何が真になれば見直すか）も含む |
 | [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | このリポジトリが意図して持たないもの。どの条件なら持つか |
 
 **この 2 つが揃って「やらない」を不在ではなく決定にしている。**開いて見える問いは、たいてい
@@ -138,10 +138,10 @@ graphify affected <symbol>                             # その前例に何が�
 
 | 軸 | 所有者 |
 | --- | --- |
-| デファクトへの適合 / 非ロックイン | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
-| 採用アーキテクチャからの導出 | [0020](../../../docs/adr/0020-adopted-architecture.md) / [0021](../../../docs/adr/0021-frontend-responsibility.md) / `architecture.ts` |
-| いまの状態としての純粋さ | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
-| 依存を足す問いなら、選定基準 | [0004](../../../docs/adr/0004-library-management.md) と [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) の依存欄 |
+| デファクトへの適合 / 非ロックイン | [0010](../../../docs/adr/0010-standards-and-non-lockin.ja.md) |
+| 採用アーキテクチャからの導出 | [0020](../../../docs/adr/0020-adopted-architecture.ja.md) / [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) / `architecture.ts` |
+| いまの状態としての純粋さ | [0010](../../../docs/adr/0010-standards-and-non-lockin.ja.md) |
+| 依存を足す問いなら、選定基準 | [0004](../../../docs/adr/0004-library-management.ja.md) と [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) の依存欄 |
 
 CI のゲートについての問いはアーキテクチャの軸で決まらない。ライブラリを足す問いはほとんど最後の行で
 決まる。**その問いが実際に何で決まるか**を選び、**なぜその軸なのか**を述べる。

@@ -1,98 +1,98 @@
-# 型生成(API スキーマ)
+# Type Generation (API Schemas)
 
-バックエンドの `openapi.gen.yaml` から **型 + runtime validation(zod)を生成**する方針、**生成器 / 生成物の配置 / do-not-edit / 型漏洩禁止 / 取り込みパイプライン(gh 取得 + short SHA スタンプ)/ 生成物 drift ゲート** を定める。
+This ADR defines the policy of **generating types + runtime validation (zod)** from the backend's `openapi.gen.yaml`, and **the generator / placement of generated artifacts / do-not-edit / the ban on type leaks / the intake pipeline (fetching with gh + short SHA stamp) / the generated-artifact drift gate**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-API 型を OpenAPI から生成するか手書きか・生成器の選定・生成物の扱いを、本 ADR が確定する。前提は「API 型を複数箇所で複製しない / 生成扱いすべきファイルを手書きしない」である。
+This ADR settles whether API types are generated from OpenAPI or hand-written, the choice of generator, and the handling of generated artifacts. The premise is "do not duplicate API types in several places / do not hand-write files that should be treated as generated".
 
-バックエンドはモジュラーな spec をバンドルした `openapi.gen.yaml` を**クロスリポ契約成果物としてコミット**する([0070](0070-backend-role-separation.md) 契約 SSOT)。フロントはその消費者であり、コミット済みファイルを GitHub API(`gh` CLI)で取得し、自前で生成を行う。本 ADR はこの消費者側を定める。
+The backend **commits `openapi.gen.yaml`, a bundle of its modular spec, as a cross-repo contract artifact** ([0070](0070-backend-role-separation.md) contract SSOT). The frontend is its consumer; it fetches the committed file through the GitHub API (the `gh` CLI) and does the generation itself. This ADR defines this consumer side.
 
-**型のみ(openapi-typescript)ではなく、型 + runtime validation(zod)を生成する。** 境界値所有([0070](0070-backend-role-separation.md))の下では response に server 側の runtime 検証が無く、フロントの生成 validation が契約破れの最後の砦になるためである。型だけでは実行時に契約破れを検知できない。
+**Not types only (openapi-typescript) but types + runtime validation (zod) are generated.** Under the ownership of boundary values ([0070](0070-backend-role-separation.md)), responses have no server-side runtime validation, and the frontend's generated validation becomes the last line of defense against contract breaches. Types alone cannot detect contract breaches at runtime.
 
-## 決定
+## Decision
 
-### 型 + runtime validation を生成(生成器 = orval)
+### Generate types + runtime validation (generator = orval)
 
-- API 型は**バックエンドの `openapi.gen.yaml` から生成**する(手書き複製禁止)。生成物は **zod スキーマ + `z.infer` 由来の型**とする
-- **生成器 = orval**(zod スキーマ + TS 型を 1 つの生成器で出す)。exact pin / `pnpm audit` は [0004](0004-library-management.md) の採用フローに従う
-- response は `adapters` 境界で zod `.parse()` により runtime validation する([0070](0070-backend-role-separation.md) 境界値所有 / [0071](0071-bff-api-integration.md) が受け取り点)
+- API types are **generated from the backend's `openapi.gen.yaml`** (hand-written duplication forbidden). The generated artifacts are **zod schemas + types derived via `z.infer`**
+- **Generator = orval** (outputs zod schemas + TS types with one generator). Exact pin / `pnpm audit` follow [0004](0004-library-management.md)'s adoption flow
+- Responses get runtime validation with zod `.parse()` at the `adapters` boundary ([0070](0070-backend-role-separation.md) ownership of boundary values / [0071](0071-bff-api-integration.md) is the receiving point)
 
-### 生成物の配置 / do-not-edit
+### Placement of generated artifacts / do-not-edit
 
-- 生成物は **`src/adapters/gen/`** に配置する。生成 wire 型・zod スキーマは `adapters`(外部接続・変換の所有境界。[0021](0021-frontend-responsibility.md))が所有するため、その内側に colocate する。生成物は所有層の内側に置き、`src/` 直下に生成物専用の場所を立てない。ディレクトリ名 `gen/` は生成物置き場の業界慣行名
-- これは **`adapters` カーネル内の生成専用サブディレクトリ**であり、[0027](0027-directory-structure.md) が追補を要求する「11 カーネル構成に対する `src/` 直下の新規カーネル増設」には当たらない(追補不要)
-- **生成物はコミットする。** 契約の変更が生成物の差分としてレビューに現れるためであり、その代わりに drift ゲート(下記)が手編集と生成漏れを拒む
-- **手編集禁止(do-not-edit)**。`src/adapters/gen/` は生成入力(`openapi.gen.yaml`)からの再生成で常に上書きされる。人間・AI は編集しない
+- Generated artifacts are placed in **`src/adapters/gen/`**. Generated wire types and zod schemas are owned by `adapters` (the owning boundary of external connection and conversion; [0021](0021-frontend-responsibility.md)), so they are colocated inside it. Generated artifacts are placed inside the owning layer, and no dedicated place for generated artifacts is set up directly under `src/`. The directory name `gen/` is the industry-customary name for a home of generated artifacts
+- This is **a generation-only subdirectory inside the `adapters` kernel**, and does not count as "adding a new kernel directly under `src/` to the 11-kernel structure", for which [0027](0027-directory-structure.md) requires an amendment (no amendment needed)
+- **Generated artifacts are committed.** That way contract changes appear in review as diffs of the generated artifacts, and in exchange the drift gate (below) rejects hand edits and missed generation
+- **Hand editing is forbidden (do-not-edit)**. `src/adapters/gen/` is always overwritten by regeneration from the generation input (`openapi.gen.yaml`). Neither humans nor AI edit it
 
-### 型漏洩禁止
+### Ban on type leaks
 
-- 生成型・zod スキーマ(生成された wire 型)を**内層(`model` / feature のドメインロジック)に漏らさない**([0020](0020-adopted-architecture.md) 設計原則 3)
-- 変換は所有境界 = **`adapters`** で行い、自前の表示用 view 型([0021](0021-frontend-responsibility.md) `model`)へ変換する。「OpenAPI 制約 = wire contract であって domain rule ではない」を維持([0070](0070-backend-role-separation.md))
+- Generated types and zod schemas (generated wire types) are **not leaked into inner layers (`model` / feature domain logic)** ([0020](0020-adopted-architecture.md) design principle 3)
+- Conversion happens at the owning boundary = **`adapters`**, into our own display view types ([0021](0021-frontend-responsibility.md) `model`). "OpenAPI constraints = a wire contract, not a domain rule" is maintained ([0070](0070-backend-role-separation.md))
 
-### 取り込みパイプライン(gh 取得 + short SHA スタンプ)
+### Intake pipeline (fetching with gh + short SHA stamp)
 
-1. **セットアップ時(一度)**: **バックエンドのリポジトリ名** と **リポジトリルートからの `openapi.gen.yaml` へのパス** と **取得する ref** を、**静的なマニフェスト(設定ファイル)**として本リポに保存する。マニフェストは**複数の契約を宣言できる**。バックエンドが 1 リポジトリでも契約が 1 本とは限らず(例: 本体 API と、別サービスとして独立に版を重ねる API)、契約ごとに版が独立して動くためである
-2. **取得時(`make` または `pnpm` コマンド)**: マニフェストの座標から **`gh` 経由で契約を取得**し本リポへコピーする。版の根拠には **GitHub Contents API が返す blob SHA** を使い、**full SHA をマニフェストへ、short SHA を取得した spec の `info.version` 末尾へ**スタンプする。blob SHA は契約ファイルの内容そのもののハッシュであり、内容が変われば変わり同じなら同じであるため、取り込み側でハッシュを計算し直さずに「どの契約を取り込んだか」が一意に定まる。**この SHA が指すのは契約の内容であってバックエンドのコミットではない**。どのコミットから取ったかはマニフェストの `ref` が持つ
-3. 取得した spec を入力に **orval で zod + 型を `src/adapters/gen/<契約名>/` に生成**する。契約ごとに階層を切り、突合と再生成を契約単位で回せるようにする。生成後に整形 / typecheck / lint を連鎖させる
-4. 生成器は HTTP client の出力先を必須とするが、**生成された client は採用しない**。outbound の resilience は `adapters/server` の手書き wrapper が所有する([0071](0071-bff-api-integration.md))ため、生成 client は契約駆動モックと同じ `mocks/` 側へ置き、本番が参照する `src/adapters/gen/` には wire 型と zod スキーマだけを置く
-5. **生成物は linter の対象外とし、整形のみを掛ける**。書き手が居ないコードに規約を課すと、契約が変わるたびに生成器の出力作風で CI が止まり、直す手段が生成器へのパッチしか無くなる。生成物の正しさは drift ゲート(下記)が担保する
+1. **At setup (once)**: the **backend repository name**, the **path to `openapi.gen.yaml` from the repository root** and the **ref to fetch** are stored in this repo as **a static manifest (configuration file)**. The manifest **can declare several contracts**. Even with one backend repository there is not necessarily one contract (e.g. the core API, and an API versioned independently as a separate service), and each contract's version moves independently
+2. **At fetch time (a `make` or `pnpm` command)**: **the contract is fetched via `gh`** from the manifest's coordinates and copied into this repo. The basis for the version is **the blob SHA the GitHub Contents API returns**; **the full SHA is stamped into the manifest, and the short SHA at the end of `info.version` of the fetched spec**. The blob SHA is a hash of the contract file's content itself — it changes when the content changes and stays the same when it does not — so "which contract was taken in" is uniquely determined without recomputing a hash on the intake side. **What this SHA points to is the content of the contract, not a backend commit**. Which commit it was taken from is held by the manifest's `ref`
+3. With the fetched spec as input, **orval generates zod + types into `src/adapters/gen/<contract-name>/`**. A level is cut per contract so that cross-checking and regeneration can run per contract. After generation, formatting / typecheck / lint are chained
+4. The generator requires an output destination for an HTTP client, but **the generated client is not adopted**. Outbound resilience is owned by the hand-written wrapper in `adapters/server` ([0071](0071-bff-api-integration.md)), so the generated client is placed on the `mocks/` side together with the contract-driven mocks, and `src/adapters/gen/`, which production references, holds only wire types and zod schemas
+5. **Generated artifacts are excluded from linting; only formatting is applied**. Imposing conventions on code that has no writer would stop CI on the generator's output style every time the contract changes, leaving a patch to the generator as the only fix. The correctness of generated artifacts is guaranteed by the drift gate (below)
 
-### 生成物 drift の CI ゲート
+### CI gate for generated-artifact drift
 
-検出したい失敗は 2 つあり、**再取得はしない**(契約の取得は意図した行為であり、ゲートが勝手に進めない)。
+There are two failures to detect, and **there is no refetch** (fetching the contract is a deliberate act; the gate does not advance it on its own).
 
-1. **生成物が手編集された / 取り込んだ契約以外から生成された / 契約から消えたのに残っている** — 取得済み契約から**再生成し、差分が出たら fail**
-2. **契約を取得したのに生成していない** — マニフェストの blob SHA と、生成器が生成物のヘッダへ書き写す版スタンプを突合する。生成を伴わないため hook でも回せる
+1. **Generated artifacts were hand-edited / generated from something other than the contract taken in / still present after disappearing from the contract** — **regenerate from the fetched contract and fail if a diff appears**
+2. **The contract was fetched but not generated** — cross-check the manifest's blob SHA with the version stamp the generator copies into the generated artifacts' headers. It involves no generation, so it can also run in a hook
 
-1 は 2 を包含するが、2 は失敗の所在を名指しできる。両方を持つ。
+1 subsumes 2, but 2 can name where the failure is. Both are kept.
 
-**陳腐化した生成物は bot が再生成して commit するのではなく、drift 検査が赤くして人が回す。**本リポジトリの生成物はこの型に限らず（token や UI 部品の写しも）いずれも drift 検査が落とす側で守っている。再生成を commit する workflow は `contents: write` を要し、トップレベルを `contents: read` に絞る [0153](0153-ci-configuration.md) の形を破る。加えて「人が再生成するまで赤」の上に「bot が再生成する」を重ねると、drift 検査が何を検査しているのか答えられなくなる。見直すのは生成物が人の手で追随できない量や頻度になったときだけで、生成物が増えたこと自体は理由にならない —— 赤くして人が回せる限り、drift 検査の側で足りる。
+**Stale generated artifacts are not regenerated and committed by a bot; the drift check turns them red and a person handles it.** Not only these types but every generated artifact in this repository (tokens and copies of UI components too) is guarded by the drift check failing. A workflow that commits regeneration needs `contents: write`, breaking the shape of [0153](0153-ci-configuration.md), which narrows the top level to `contents: read`. In addition, stacking "a bot regenerates" on top of "red until a person regenerates" makes it impossible to answer what the drift check is checking. This is reconsidered only when generated artifacts reach a volume or frequency that people cannot keep up with by hand; the growth of generated artifacts itself is not a reason — as long as it can turn red and a person can handle it, the drift-check side is enough.
 
-1 が見るのは **追加・変更・削除の 3 つすべて**であり、そのために 2 つの条件を置く。
+What 1 looks at is **all three of additions, changes and deletions**, and for that two conditions are set.
 
-- **突合は `git diff` ではなく `git status`。** 契約にスキーマが増えると生成器は**新しいファイル**を書き、untracked なそれは `git diff` から見えない。ゲートが存在する理由そのものの変更を素通りする
-- **再生成は置き場を空にしてから行う**(`make api-gen`)。上書きだけだと、契約から消えたスキーマに対応するファイルは触られずに残り、中身が変わらないので突合も通る。**契約に無いものが生成物の顔をして居座る**。生成器側の clean 機能へ委ねないのは、それが project ごとの設定であり、単一ファイルへ出す project では同じ階層の別 project の出力ごと消してしまうため —— **孤児の始末を出力の形から独立させる**
+- **Cross-checking uses `git status`, not `git diff`.** When a schema is added to the contract, the generator writes **a new file**, and being untracked it is invisible to `git diff`. That would let through the very change the gate exists for
+- **Regeneration is done after emptying the output** (`make api-gen`). With overwriting alone, files corresponding to schemas that disappeared from the contract are left untouched, and since their contents do not change, the cross-check passes too. **Things not in the contract squat while posing as generated artifacts**. It is not left to the generator's clean feature because that is a per-project setting, and in a project that outputs to a single file it would also wipe the output of another project at the same level — **cleaning up orphans is made independent of the shape of the output**
 
-### 制約の定数は、検証と別の module へ出す
+### Constraint constants go into a module separate from validation
 
-生成した zod スキーマには、契約が定める上限・書式が `export const` の定数としても現れる(`...Max` / `...RegExp` など)。**client はこの定数を要る** —— 入力欄の上限や取得件数がそれで決まる —— が、**検証は要らない**。
+In the generated zod schemas, the limits and formats the contract defines also appear as `export const` constants (`...Max` / `...RegExp`, etc.). **The client needs these constants** — they decide input field limits and fetch counts — but **does not need validation**.
 
-生成物は 1 ファイルに全エンドポイントのスキーマと説明文を持つため、**定数を 1 つ import するとその全体がブラウザへ配られる**(実測で、生成スキーマと `.describe()` の文言だけで 14.8 KB gzip、加えて classic の `zod` が 63.5 KB)。
+The generated artifact holds the schemas and descriptions of every endpoint in one file, so **importing one constant ships the whole thing to the browser** (measured: 14.8 KB gzip for the generated schemas and `.describe()` text alone, plus 63.5 KB for classic `zod`).
 
-したがって、**生成の最後に定数だけの module (`limits.ts`) を作り、client はそちらだけを引く**。
+Therefore, **at the end of generation, a constants-only module (`limits.ts`) is produced, and the client pulls only that**.
 
-- **写すのは zod を参照しない宣言だけ。** 受ける形を列挙せず、「zod を引くか」だけで落とす。生成器は制約を数値・文字列・テンプレート literal・`new RegExp(...)` と様々な形で出すため、列挙で受けると形が変わるたびに定数が黙って落ちる
-- **契約の版スタンプを書き写す。** 版の突合は生成物のディレクトリ全体を見るため、版を持たないファイルが 1 つでもあると「生成器が版を書かなくなった」として落ちる
-- **出所は生成器ではなくこの手順だと名乗る。** orval のヘッダを写すと、再生成しても orval からは現れないファイルが orval の出力を名乗ることになる
-- **定数が 1 つも無い契約では書き出さない。** ヘッダだけのファイルが残ると、読む人が「抽出が壊れているのか、契約に持たないのか」を判じることになる。**存在するファイルは必ず中身を持つ**側へ倒す
-- **再発は機械が見る。** client の島から辿って、`zod` の既定の入口と生成 zod スキーマのどちらかを引く module があれば落ちる(`scripts/client-schema-weight.gate.test.ts`)。予算([0101](0101-performance-budget.md))は総量で捕まえるが**なぜ増えたかを答えない**ため、原因の側にも置く
+- **Only declarations that do not reference zod are copied.** The accepted shapes are not enumerated; the only filter is "does it pull zod". The generator emits constraints in various shapes — numbers, strings, template literals, `new RegExp(...)` — so accepting by enumeration would silently drop constants every time a shape changes
+- **The contract's version stamp is copied over.** The version cross-check looks at the whole directory of generated artifacts, so a single file without a version fails as "the generator stopped writing the version"
+- **It names this procedure, not the generator, as its origin.** Copying orval's header would make a file that does not come out of orval on regeneration claim to be orval's output
+- **Contracts with no constants at all do not get the file written.** If a header-only file remained, readers would have to judge "is extraction broken, or does the contract hold none". Lean toward **every file that exists always has contents**
+- **Recurrence is watched by a machine.** Tracing from client islands, it fails if any module pulls either `zod`'s default entry point or the generated zod schemas (`scripts/client-schema-weight.gate.test.ts`). The budget ([0101](0101-performance-budget.md)) catches the total but **does not answer why it grew**, so the check is also placed on the cause side
 
-### 境界で型を確定させる
+### Fix the type at the boundary
 
-生成スキーマの `parse` を境界で 1 度だけ通し、以降は**確定した型**として内側へ渡す。この規律そのものは [0029](0029-type-design-discipline.md) が持ち、本 ADR は生成スキーマがその実行者であることを定める。
+The generated schema's `parse` is passed once at the boundary, and from then on the value is passed inward **as a fixed type**. This discipline itself is held by [0029](0029-type-design-discipline.md); this ADR defines that the generated schemas are its executor.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ API 型を手書きで複製すること(SSOT = バックエンドの `openapi.gen.yaml`)（強制: 散文 —— **寄せられない**。手書きの型が契約の写しかは形の一致ではなく意味で決まり、偶然同じ形の自前の view 型と区別できない）
-- ❌ `gen/` 配下の生成物を手編集すること(do-not-edit)
-- ❌ 生成型・zod スキーマを `model` 等の内層へ漏らすこと(変換は `adapters` 境界)（強制: ESLint boundaries（`architecture.ts` の `RESTRICTED_AREAS` の `adapters-gen`）が `model` / `features` からの生成物の直接 import を落とす。`adapters` の公開面を経由した素通しは散文 —— **寄せられない**。公開面が返す型が生成型か自前の view 型かは推論を経た型の出所で決まり、import の形からは決まらない）
-- ❌ 取得座標をマニフェスト外にハードコードすること(座標は静的マニフェストで管理)（強制: 散文 —— **寄せられる**（契約の座標（リポジトリ名と `openapi.gen.yaml` のパス）の literal が `openapi/sources.yaml` の外に現れることを走査で落とせる。規則は無い））
-- ❌ drift ゲートなしに生成物をコミット運用すること
+- ❌ Duplicating API types by hand (SSOT = the backend's `openapi.gen.yaml`) (Enforcement: Prose — **not mechanizable**. Whether a hand-written type is a copy of the contract is decided by meaning, not by matching shape, and it cannot be told apart from a view type of our own that happens to have the same shape)
+- ❌ Hand-editing generated artifacts under `gen/` (do-not-edit)
+- ❌ Leaking generated types or zod schemas into inner layers such as `model` (conversion is at the `adapters` boundary) (Enforcement: ESLint boundaries (`adapters-gen` in `RESTRICTED_AREAS` of `architecture.ts`) rejects direct imports of generated artifacts from `model` / `features`. Passing them through via the public surface of `adapters` is Prose — **not mechanizable**. Whether the type the public surface returns is a generated type or our own view type is decided by the origin of the inferred type, not by the shape of the import)
+- ❌ Hard-coding fetch coordinates outside the manifest (coordinates are managed in the static manifest) (Enforcement: Prose — **mechanizable** (a scan could reject literals of the contract's coordinates (repository name and the path of `openapi.gen.yaml`) appearing outside `openapi/sources.yaml`; no rule exists))
+- ❌ Running with committed generated artifacts without a drift gate
 
-## 補足
+## Notes
 
-- 境界値所有([0070](0070-backend-role-separation.md))の方向不変条件「request ⊆ domain ⊆ response」のうち、フロントが担保するのは response 側の検証(最後の砦)である
+- Of the directional invariant "request ⊆ domain ⊆ response" in the ownership of boundary values ([0070](0070-backend-role-separation.md)), what the frontend guarantees is validation on the response side (the last line of defense)
 
-## 関連 ADR
+## Related ADRs
 
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — 契約 SSOT / 境界値所有 / runtime validation を担う根拠(本 ADR の親決定)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — 生成した zod スキーマの使用点(adapters 境界での `.parse()`)
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 型漏洩禁止(設計原則 3)/ [0021](0021-frontend-responsibility.md) — `adapters` 変換境界・`model` view 型
-- [0004-library-management.md](0004-library-management.md) — orval 等生成器の exact pin / audit
-- [0153-ci-configuration.md](0153-ci-configuration.md) — 生成物 drift ゲートのワークフロー・CI 組込み
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — setup スクリプト系スキルの置き場(本パイプラインの setup 部)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — contract SSOT / ownership of boundary values / the basis for carrying runtime validation (this ADR's parent decision)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — where the generated zod schemas are used (`.parse()` at the adapters boundary)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — the ban on type leaks (design principle 3) / [0021](0021-frontend-responsibility.md) — the `adapters` conversion boundary, `model` view types
+- [0004-library-management.md](0004-library-management.md) — exact pin / audit of generators such as orval
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the workflow and CI wiring of the generated-artifact drift gate
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — where setup-script skills live (the setup part of this pipeline)

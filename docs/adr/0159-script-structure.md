@@ -1,96 +1,96 @@
-# 補助スクリプトの言語と構造
+# Language and Structure of Helper Scripts
 
-本プロジェクトでは、リポジトリを**検査・生成・操作する道具** —— ゲート、lint、生成器、pin の解決、セットアップ —— の言語と構造を定める。アプリの振る舞いではないので、[0027](0027-directory-structure.md) が定める `src/` の物理配置には乗らず、[0153](0153-ci-configuration.md) が定める CI の配線からは呼ばれる側にある。本 ADR はその間を埋める。
+This project defines the language and structure of the **tools that inspect, generate and operate the repository** — gates, lint, generators, pin resolution, setup. They are not application behavior, so they do not ride on the physical placement of `src/` defined by [0027](0027-directory-structure.md), and they are on the called side of the CI wiring defined by [0153](0153-ci-configuration.md). This ADR fills the gap between them.
 
-対象はリポジトリ直下の `scripts/` と、システム・カーネル・機能の近くに置く `**/scripts/` の両方である。
+The scope is both `scripts/` directly under the repository and `**/scripts/` placed near a system, kernel or feature.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **補助スクリプトは、壊れても静かに緑になる。** ここに居るのは lint とゲートそのもので、壊れると「違反なし」を報告する向きに倒れる（[0157](0157-inspection-declaration-discipline.md)）。アプリのコードより検査を厳しくする理由はあっても、緩める理由は無い
-- **判定が入口に埋まっていると検査が効かない。** 引数の受け取りと子プロセスの呼び出しに判定が混ざったスクリプトは、単体で回せず、回しても「差し替えたものを呼んだ」しか確かめられない
-- **次に同種のものが来たときの置き場を答える。** リポジトリ直下に置くか、責務の近くに置くかを、そのつど裁かない
+- **Helper scripts turn silently green when they break.** What lives here is the lint and gates themselves, and when broken they fall toward reporting "no violations" ([0157](0157-inspection-declaration-discipline.md)). There is reason to inspect them more strictly than application code, but none to inspect them more loosely
+- **Inspection does not work when judgments are buried in the entry point.** A script whose judgments are mixed into receiving arguments and calling child processes cannot be run in isolation, and even when run, can only confirm "it called the substituted thing"
+- **Answer where the next one of the same kind goes.** Whether to place it directly under the repository or near its responsibility is not adjudicated each time
 
-## TypeScript で書く
+## Write them in TypeScript
 
-補助スクリプトは TypeScript で書き、`tsx` で実行する。呼び出し側（`package.json` の scripts / `.makefiles/` のレシピ / git hook / workflow）も `tsx` 実行に揃える。
+Helper scripts are written in TypeScript and run with `tsx`. Callers (scripts in `package.json` / recipes in `.makefiles/` / git hooks / workflows) are also aligned on running with `tsx`.
 
-- **検査の対象に入る。** シェルや素の JS を混在させると、`pnpm typecheck` と biome の検査対象から外れる。検査するための道具が検査の外に居る状態を作らない
-- **実行系が 1 つになる。** 実行に要るのは Node と `tsx` だけで、どの環境でも同じ綴りで呼べる
-- **シェルの環境差を持ち込まない。** mise 管理外のシェル依存（coreutils の差異など）は、手元と CI で結果が食い違う原因になる
+- **They fall within inspection.** Mixing in shell or plain JS takes them out of what `pnpm typecheck` and biome inspect. Do not create a state where the tools for inspecting sit outside inspection
+- **There is one execution system.** Running needs only Node and `tsx`, called with the same spelling in every environment
+- **Do not bring in shell environment differences.** Shell dependencies outside mise management (differences in coreutils, etc.) cause results to disagree between local and CI
 
-### シェルに据え置く例外
+### Exceptions kept in shell
 
-次の要件を持つものはシェルのまま置く。当たるかどうかは個別に判断し、当たらないものは TypeScript へ変換する。
+Things with the following requirements stay in shell. Whether something qualifies is judged case by case, and what does not qualify is converted to TypeScript.
 
-- **依存インストール前に単体で動くこと**が要件のもの。他リポジトリへ無編集でコピーして使う前提の headless 駆動系がこれに当たる
-- **エージェントの hook から呼ばれ、常に即答することが要件のもの。** 判定は編集者への助言であり、実行系の起動を待たせない
+- Things whose requirement is **to run standalone before dependencies are installed**. Headless drivers meant to be copied unedited into other repositories fall here
+- **Things called from an agent's hook whose requirement is to always answer immediately.** The judgment is advice to the editor and must not wait for an execution system to start
 
-例外はエージェントの道具立ての中（`.claude/` / `.agents/`）に閉じ、`scripts/` には置かない。
+The exceptions stay within the agent tooling (`.claude/` / `.agents/`) and are not placed in `scripts/`.
 
-## 1 ツール = 1 ディレクトリ
+## 1 tool = 1 directory
 
-`scripts/` 直下は **1 ツール = 1 ディレクトリ**とし、`scripts/<tool>/index.ts` を入口にする。呼び出しはディレクトリ単位（`tsx scripts/<tool>`）で、ファイル名を綴らない。
+Directly under `scripts/` is **1 tool = 1 directory**, with `scripts/<tool>/index.ts` as the entry point. Calls are per directory (`tsx scripts/<tool>`), without spelling out the file name.
 
-- 複数のツールが共有する判定は `scripts/lib/` へ置く。**ツール 1 つからしか呼ばれないものは共有へ上げない**
-- 初期化に使うツール群は `scripts/setup/<tool>/` へまとめ、その群だけが共有する判定は `scripts/setup/lib/` が持つ
-- 1 ディレクトリに入口が複数要るツール群は例外として認めるが、入口ファイルの除外宣言にその旨を書く（下記「export と test の 1:1 対応をゲートにする」）
+- Judgments shared by several tools go in `scripts/lib/`. **What is called from only one tool is not promoted to shared**
+- Tools used for initialization are grouped under `scripts/setup/<tool>/`, and judgments shared only by that group are held by `scripts/setup/lib/`
+- A group of tools needing several entry points in one directory is allowed as an exception, but this is stated in the entry-file exclusion declaration (see "Make the 1:1 export-to-test mapping a gate" below)
 
-## 入口と判定を分ける
+## Separate entry points from judgments
 
-入口ファイルは **CLI 引数の受け取り・外との遣り取り・終了コード**を担い、それ無しでも下せる判定は同じディレクトリの判定モジュールへ切り出す。テストは判定モジュールに付ける。
+The entry file handles **receiving CLI arguments, exchanges with the outside, and the exit code**, and judgments that can be made without those are cut out into a judgment module in the same directory. Tests are attached to the judgment module.
 
-**線を引くのは「遣り取りをせずに答えを出せるか」で、分量でも分岐の数でもない。** 子プロセスの結果やソケットの応答から次を決める形は、純粋にしても「差し替えたものを呼んだ」しか確かめられないので入口に残す。逆に、読み取り済みの文字列や構文木から違反を導く部分は、fs もプロセスも持たない形にして判定モジュールへ置く。
+**The line is drawn at "can the answer be produced without an exchange", not at size or number of branches.** A shape that decides the next step from a child process's result or a socket's response can, even made pure, only confirm "it called the substituted thing", so it stays in the entry point. Conversely, the part that derives violations from an already-read string or syntax tree is shaped to have neither fs nor processes and placed in the judgment module.
 
-外から来る文書（道具の出力、レジストリの応答、git の出力）を読む判定は、形が崩れた入力を観点に含める。0 件へ縮退させると「失敗なし」と読めてしまう（[0157](0157-inspection-declaration-discipline.md)）。
+Judgments that read documents coming from outside (tool output, registry responses, git output) include malformed input among their perspectives. Degrading to 0 items would read as "no failures" ([0157](0157-inspection-declaration-discipline.md)).
 
-## export と test の 1:1 対応をゲートにする
+## Make the 1:1 export-to-test mapping a gate
 
-[0090](0090-testing-strategy.md) の 1 対象 1 テスト —— 呼べる export はすべて、自分の名前の最上位 `describe` を 1 つだけ持つ —— を補助スクリプトにも課し、機械判定する。
+The one-subject-one-test rule of [0090](0090-testing-strategy.md) — every callable export has exactly one top-level `describe` with its own name — is imposed on helper scripts too and judged by machine.
 
-- **suite はアプリ本体と分ける。** 落ちたときにアプリの退行と読み違えないよう、実行も CI のジョブも分ける。カバレッジは 100% を課し、母数はディレクトリの列挙ではなく `scripts/` 配下の全 `.ts` に取る —— ツールのディレクトリを足したとき、黙って母数から漏れるのを避ける
-- **ゲートの走査は `scripts/` に限らない。** 判定を持つ TypeScript が居るディレクトリ（`src/`、`tokens/`、`mocks/`、`vrt/`、`e2e/`、ESLint の自作ルール、カタログの設定）を同じゲートが歩く。走査範囲をスクリプトに絞ると、他の場所に置いた判定が一度も検査に掛からない
-- **入口が持てないものは除外理由ごと宣言する。** 入口ファイル・契約からの生成物・判定を持たないモジュールは、カバレッジの母数と 1:1 ゲートが同じ配列を読む 1 箇所の宣言へ、理由と撤去条件つきで並べる。外すのは検査が意味を持たないものだけで、「いまは書けていない」は理由にならない（[0157](0157-inspection-declaration-discipline.md)）
-- **ゲートは両側から歩く。** ソース側から歩くだけだと、対応するソースを持たないテストファイルに入口が無く、そこに置かれたものは一度も検査に掛からない。主語を持たないテスト（契約から生成したハンドラを相手にする検査、開発機構そのもののゲート）は在ってよいが、宣言を求める
+- **The suite is separate from the application's.** So that a failure is not misread as an application regression, both the run and the CI job are separate. Coverage is required at 100%, and the population is all `.ts` under `scripts/`, not a directory listing — to avoid a tool directory silently falling out of the population when added
+- **The gate's scan is not limited to `scripts/`.** The same gate walks the directories where TypeScript with judgments lives (`src/`, `tokens/`, `mocks/`, `vrt/`, `e2e/`, the custom ESLint rules, the catalog configuration). Narrowing the scan to scripts would leave judgments placed elsewhere never inspected
+- **What cannot have an entry point is declared together with the reason for its exclusion.** Entry files, artifacts generated from contracts, and modules with no judgments are listed, with a reason and removal condition, in the single declaration that the coverage population and the 1:1 gate read as the same array. Only what the inspection is meaningless for is excluded, and "not written yet" is not a reason ([0157](0157-inspection-declaration-discipline.md))
+- **The gate walks from both sides.** Walking only from the source side leaves test files with no corresponding source without an entry point, and what is placed there is never inspected. Tests without a subject (checks against handlers generated from contracts, gates for the development machinery itself) may exist, but require a declaration
 
-## `scripts/` と `**/scripts/` の使い分け
+## Using `scripts/` versus `**/scripts/`
 
-| 置き場 | 置くもの |
+| Location | What goes there |
 | --- | --- |
-| `scripts/` | リポジトリ全体に関わるが、**特定のシステム・カーネル・機能の責務には属さない**補助スクリプト |
-| `**/scripts/` | 特定のシステム・カーネル・機能が守る生成・検査・変換のスクリプト。**その責務の近くに co-location する** |
+| `scripts/` | Helper scripts that concern the whole repository but **do not belong to the responsibility of a particular system, kernel or feature** |
+| `**/scripts/` | Scripts for generation, inspection and conversion that a particular system, kernel or feature protects. **Co-located near that responsibility** |
 
-判定は「壊れたとき、誰が直すか」で行う。token の生成と検査は token の SSOT と生成物を扱う token システム自身の責務なので `tokens/scripts/` に、UI 部品の copy-in と来歴の検査は `components` カーネルの責務なので `src/components/scripts/` に置く。リポジトリ全体のゲート（1:1 対応、リンク切れ、pin の突合）は、どの責務にも属さないので `scripts/` に置く。
+The judgment is made by "when it breaks, who fixes it". Generating and inspecting tokens is the responsibility of the token system itself, which handles the token SSOT and generated artifacts, so it goes in `tokens/scripts/`; copying in UI components and inspecting their provenance is the responsibility of the `components` kernel, so it goes in `src/components/scripts/`. Repository-wide gates (the 1:1 mapping, broken links, reconciling pins) belong to no responsibility, so they go in `scripts/`.
 
-co-location したスクリプトは、責務の側の README が観点（`test-requirement`）を持ち、判定モジュールとテストを同じディレクトリに並べる。**1 ツール = 1 ディレクトリはリポジトリ直下の規約であり、責務の近くでは入口とテストをフラットに置いてよい** —— そこにあるのは責務 1 つ分のスクリプトであって、ツールの群ではない。呼び出しは `package.json` の scripts 名を通す。
+For co-located scripts, the README on the responsibility's side holds the perspectives (`test-requirement`), and judgment modules and tests sit side by side in the same directory. **1 tool = 1 directory is a convention directly under the repository; near a responsibility, entry points and tests may be placed flat** — what is there is the scripts of one responsibility, not a group of tools. Calls go through the script names in `package.json`.
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **シェル / 素の JS で書く** | 型検査と lint の対象から外れる。上記「シェルに据え置く例外」に当たるものだけ |
-| **判定を入口に埋める** | 単体で回せず、回しても差し替えたものを呼んだことしか確かめられない |
-| **ゲートの走査範囲を `scripts/` に絞る** | 他の場所に置いた判定が検査に掛からない |
-| **README の実ファイル列挙をゲートにする** | README の書き方を縛るだけで、腐りを防げない。構造のずれは README の同期の判断に委ねる |
-| **ツールごとに suite を持つ** | 1 本の suite でカバレッジの母数を全件に取ることが、母数からの漏れを防ぐ |
+| **Writing them in shell / plain JS** | They fall out of type checking and lint. Only things that fall under "Exceptions kept in shell" above |
+| **Burying judgments in the entry point** | They cannot be run in isolation, and even when run can only confirm that the substituted thing was called |
+| **Narrowing the gate's scan to `scripts/`** | Judgments placed elsewhere are not inspected |
+| **Making a README's listing of actual files a gate** | It only constrains how the README is written and does not prevent rot. Structural drift is left to the judgment of README synchronization |
+| **Having a suite per tool** | Taking the coverage population as everything in one suite is what prevents leaks from the population |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `scripts/` 配下にシェルや素の JS を置くこと（強制: 散文 —— **寄せられる**（`scripts/**` 配下の `.sh` / `.js` / `.mjs` を列挙するゲートテストで落とせる。規則は無い））
-- ❌ 入口ファイルへ、遣り取り無しで下せる判定を書くこと（強制: 散文 —— **寄せられない**。判定が遣り取り無しで下せるかは処理の意味で決まる）
-- ❌ 判定モジュールを、対応するテスト無しで置くこと
-- ❌ 入口ファイル以外を、理由と撤去条件を持たない形で検査から外すこと（強制: 散文 —— **寄せられる**（`scripts/lib/untested-modules.ts` の各配列が理由と撤去条件を述べる doc comment を持つかを構文木で見る。規則は無い））
-- ❌ 特定の責務が守るスクリプトを `scripts/` へ置くこと、およびその逆（強制: 散文 —— **寄せられない**。どの責務が守るスクリプトかは「壊れたとき誰が直すか」の判断で決まる）
-- ❌ 呼び出し側でファイル名を綴ること（`tsx scripts/<tool>/index.ts`）。ディレクトリ単位で呼ぶ（強制: 散文 —— **寄せられる**（`package.json` の scripts・`.makefiles/`・`.lefthook.yaml`・workflow で `scripts/<tool>/index.ts` の綴りを走査で落とす。規則は無い））
+- ❌ Placing shell or plain JS under `scripts/` (Enforcement: Prose — **mechanizable** (a gate test enumerating `.sh` / `.js` / `.mjs` under `scripts/**` can reject them. No rule exists))
+- ❌ Writing judgments into an entry file that can be made without an exchange (Enforcement: Prose — **not mechanizable**. Whether a judgment can be made without an exchange is decided by the meaning of the processing)
+- ❌ Placing a judgment module without a corresponding test
+- ❌ Excluding anything other than entry files from inspection in a form lacking a reason and removal condition (Enforcement: Prose — **mechanizable** (check in the syntax tree whether each array in `scripts/lib/untested-modules.ts` has a doc comment stating the reason and removal condition. No rule exists))
+- ❌ Placing a script that a particular responsibility protects in `scripts/`, or the reverse (Enforcement: Prose — **not mechanizable**. Which responsibility protects a script is decided by the judgment "who fixes it when it breaks")
+- ❌ Spelling out the file name on the calling side (`tsx scripts/<tool>/index.ts`). Call per directory (Enforcement: Prose — **mechanizable** (scanning the scripts of `package.json`, `.makefiles/`, `.lefthook.yaml` and workflows for the spelling `scripts/<tool>/index.ts` can reject it. No rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0002-formatter-linter.md](0002-formatter-linter.md) — biome / ESLint の検査対象
-- [0003-version-manager.md](0003-version-manager.md) — 実行系（Node / `tsx`）の pin
-- [0027-directory-structure.md](0027-directory-structure.md) — `src/` の物理配置と co-location
-- [0090-testing-strategy.md](0090-testing-strategy.md) — 1 対象 1 テスト、カバレッジゲート、suite の分離
-- [0153-ci-configuration.md](0153-ci-configuration.md) — 補助スクリプトを呼ぶ CI の側
-- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — 検査の fail-closed と除外の宣言
+- [0002-formatter-linter.md](0002-formatter-linter.md) — what biome / ESLint inspect
+- [0003-version-manager.md](0003-version-manager.md) — pins for the execution system (Node / `tsx`)
+- [0027-directory-structure.md](0027-directory-structure.md) — the physical placement of `src/` and co-location
+- [0090-testing-strategy.md](0090-testing-strategy.md) — one subject one test, the coverage gate, separation of suites
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the CI side that calls helper scripts
+- [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.md) — fail-closed inspection and exclusion declarations

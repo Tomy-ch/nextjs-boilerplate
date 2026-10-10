@@ -1,59 +1,59 @@
-# BFF abuse 保護境界(infra / edge seam)
+# BFF Abuse-Protection Boundary (Infra / Edge Seam)
 
-`/api/*`(テレメトリ中継を含む公開エンドポイント)への abuse 保護を、**infra(PaaS / edge)ドメインの境界 seam**(レート制限 / DDoS 緩和 / WAF = 名前付きで残して切る)と、**本体に最小限残す防御**(Route Handler のボディサイズ上限・content-type 検証・入力バリデーション)に分けて明文化する。
+Makes explicit the abuse protection of `/api/*` (public endpoints, including the telemetry relay), split into **a boundary seam of the infra (PaaS / edge) domain** (rate limiting / DDoS mitigation / WAF = cut off while kept by name) and **the minimal defenses left in the core** (Route Handler body size limit, content-type validation, input validation).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0070](0070-backend-role-separation.md) が `/api/*` を **thin proxy** に限定し、[0081](0081-observability-logging.md) が「ブラウザ → BFF 中継」をテレメトリの seam にした結果、本体構成に**認証を要求しない公開エンドポイント**が生じる:
+As a result of [0070](0070-backend-role-separation.md) limiting `/api/*` to a **thin proxy** and [0081](0081-observability-logging.md) making "browser → BFF relay" the telemetry seam, the core configuration gains **public endpoints that require no authentication**:
 
-- `/api/*`(テレメトリ中継含む)へのレート制限・ボディサイズ上限・認証なしエンドポイントの保護を、本体で持つか PaaS 側へ委ねるかの線引きが要る。
-- [0081](0081-observability-logging.md) の中継 seam が生む無防備な公開エンドポイントに、防御方針が無いままでは置けない。
+- A line is needed on whether rate limiting, body size limits and protection of unauthenticated endpoints for `/api/*` (including the telemetry relay) are held in the core or delegated to the PaaS side.
+- The unprotected public endpoint produced by the relay seam of [0081](0081-observability-logging.md) cannot be left without a defense policy.
 
-本 ADR は [0010](0010-standards-and-non-lockin.md) の 2 原則(§1 デファクトへの準拠 / §2 vendor-independent な正当性材料の必須化)と、**境界判定**(「別ドメイン(infra / backend)の責務か?」の一問)を適用して abuse 保護を仕分ける。
+This ADR sorts abuse protection by applying the two principles of [0010](0010-standards-and-non-lockin.md) (§1 conformance to the de facto standard / §2 mandatory vendor-independent justification) and the **boundary call** (the single question "is it another domain's (infra / backend) responsibility?").
 
-## 決定
+## Decision
 
-**境界判定 = Yes(別ドメイン)**。レート制限・DDoS 緩和・WAF は **infra(PaaS / edge)ドメインの責務**であり、本リポジトリに実装を抱えず、**名前付きの境界 seam を残して切る**。
+**Boundary call = Yes (another domain)**. Rate limiting, DDoS mitigation and WAF are **the responsibility of the infra (PaaS / edge) domain**; this repository holds no implementation of them and **cuts them off, leaving a named boundary seam**.
 
-### 1. PaaS / edge へ委譲する防御(infra 境界 seam)
+### 1. Defenses delegated to the PaaS / edge (infra boundary seam)
 
-レート制限・IP / bot フィルタ・DDoS 緩和・大域的な WAF は Vercel / Cloudflare / AWS 等の edge / WAF 機能で敷く。本体はこれを前提とし、PaaS 側で設定する拡張点として明示する([0081](0081-observability-logging.md) が生む無防備エンドポイント = テレメトリ中継 `/api/*` の保護もここに載る)。
+Rate limiting, IP / bot filtering, DDoS mitigation and a global WAF are laid down with the edge / WAF features of Vercel / Cloudflare / AWS and the like. The core assumes them and makes them explicit as an extension point configured on the PaaS side (protection of the unprotected endpoint produced by [0081](0081-observability-logging.md) = the telemetry relay `/api/*` also rides here).
 
-- **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: 公開エンドポイントを edge で多層防御する構造は OWASP / 一般的 web セキュリティの原則であって特定 PaaS 機能に依存しない(Vercel / Cloudflare / AWS WAF いずれでも成立)。
+- **Vendor-independent justification ([0010](0010-standards-and-non-lockin.md))**: the structure of defending public endpoints in depth at the edge is a principle of OWASP / general web security and does not depend on any particular PaaS feature (it holds with any of Vercel / Cloudflare / AWS WAF).
 
-### 2. 本体に最小限残す防御(フロント領域で表現可能な防御)
+### 2. Minimal defenses left in the core (defenses expressible in frontend territory)
 
-個々の Route Handler が **ボディサイズ上限・content-type 検証・入力バリデーション** を forwarding 前に行うことは、Next.js 公式 BFF ガイドの「proxy する前に validation を足す」パターンに乗る範囲であり、edge の有無に関わらず本体が持つ最小防御として Route Handler 規約([`docs/rules.md#layers`](../rules.md#layers)の「Route Handler は Node runtime の薄い proxy に留める」)側で受ける。
+Each Route Handler performing **body size limits, content-type validation and input validation** before forwarding falls within the pattern of the official Next.js BFF guide, "add validation before proxying", and is taken on by the Route Handler convention (the rule "Route Handlers stay thin proxies on the Node runtime" in `docs/rules.md` *Layer Boundaries and Dependencies*) as the minimal defense the core holds regardless of whether an edge exists.
 
-本体が同梱するテレメトリ中継(`/api/telemetry`)がその参照形である:
+The telemetry relay the core bundles (`/api/telemetry`) is its reference shape:
 
-- content-type が JSON を名乗らない要求は **415** で落とす
-- 契約が許す最大の報告(約 15.7 KB)を超える本体は **413** で落とす。**宣言された長さで先に落とし、宣言の無い要求は読んだ後の実測で落とす** —— 宣言だけを信じると、長さを名乗らない要求が素通りする
-- レート制限と大域的な遮断は §1 のとおり edge / WAF の責務であり、この Route Handler には置かない
+- A request whose content-type does not claim JSON is rejected with **415**
+- A body exceeding the largest report the contract allows (about 15.7 KB) is rejected with **413**. **Reject first by the declared length, and reject a request without a declaration by the measured size after reading** — trusting only the declaration lets a request that does not state its length pass straight through
+- Rate limiting and global blocking are the edge / WAF's responsibility as in §1, and are not placed in this Route Handler
 
-### 3. 線引きの範囲
+### 3. Scope of the line
 
-本 ADR が確定するのは「rate limit / DDoS / WAF = infra 境界 seam で切る」「入力・サイズ検証の最小防御 = 本体 Route Handler 規約」という **帰属の骨格**と、同梱する中継の参照形(§2)に留める。他の公開エンドポイントの具体値(上限・許容する content-type)は用途 / PaaS 依存であり、§2 の形に倣って Route Handler ごとに置く。
+What this ADR settles is limited to **the skeleton of ownership** — "rate limit / DDoS / WAF = cut at the infra boundary seam" and "minimal defense of input and size validation = the core's Route Handler convention" — and the reference shape of the bundled relay (§2). Concrete values for other public endpoints (limits, accepted content-types) depend on the use case / PaaS, and are placed per Route Handler following the shape of §2.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ レート制限 / DDoS 緩和 / WAF を本リポジトリのアプリコードに実装すること(infra 境界 seam = PaaS / edge へ委譲)（強制: 持たない —— 採らない決定。レート制限・DDoS 緩和・WAF は edge の設定であり、アプリコードに置いていないこと自体が状態である）
-- ❌ 公開 `/api/*`(テレメトリ中継含む)にボディサイズ上限・content-type / 入力検証を一切設けず forwarding すること(本体が持つ最小防御)（強制: `src/app/api/telemetry/route.test.ts`（415 / 413 / 400 で落とす）が同梱の中継で落とす。ほかの公開 `/api/*` は散文 —— **寄せられない**。どこまで検査すれば足りるかは受け取る値と用途で決まる）
+- ❌ Implementing rate limiting / DDoS mitigation / WAF in this repository's application code (infra boundary seam = delegated to the PaaS / edge) (Enforcement: none — a decision not to adopt. Rate limiting, DDoS mitigation and WAF are edge configuration, and not having them in the application code is itself the state)
+- ❌ Forwarding public `/api/*` (including the telemetry relay) with no body size limit and no content-type / input validation at all (the minimal defense the core holds) (Enforcement: `src/app/api/telemetry/route.test.ts` (rejects with 415 / 413 / 400) rejects it on the bundled relay. Other public `/api/*` are Prose — **not mechanizable**. How much checking is enough is decided by the received values and the use case)
 
-## 補足
+## Notes
 
-- **タクソノミー**([0140](0140-documentation-operations.md)): 本 ADR は decision(abuse 保護の帰属確定)に属する。日常強制される rule(Route Handler 実装規約)は [`docs/rules.md#layers`](../rules.md#layers)の「Route Handler は Node runtime の薄い proxy に留める」が持ち、本 ADR から逆参照する。
-- **トピック上の関連**: 本 ADR(infra abuse 保護)は観測性 ADR([0081](0081-observability-logging.md))の中継 seam と密接に関連する(0081 が保護対象の無防備エンドポイントを生む起点であるため)。関連は索引・相互参照で表現する。
+- **Taxonomy** ([0140](0140-documentation-operations.md)): this ADR belongs to decision (settling the ownership of abuse protection). The rule enforced day to day (the Route Handler implementation convention) is owned by "Route Handlers stay thin proxies on the Node runtime" in `docs/rules.md` *Layer Boundaries and Dependencies*, which this ADR references back to.
+- **Topical relation**: this ADR (infra abuse protection) is closely related to the relay seam of the observability ADR ([0081](0081-observability-logging.md)) (because 0081 is where the unprotected endpoint to be protected originates). The relation is expressed through the index and cross-references.
 
-## 関連 ADR
+## Related ADRs
 
-- [0075-file-upload-seam.md](0075-file-upload-seam.md)— ファイルアップロード seam(同じ境界判定で仕分けた隣接主題)
-- [0076-payment-ui-seam.md](0076-payment-ui-seam.md)— 決済 UI seam(mount seam と PCI 境界。同じ境界判定の兄弟)
-- [0070-backend-role-separation.md](0070-backend-role-separation.md)— `/api/*` = thin proxy(無防備エンドポイントを生む起点の親決定)
-- [0081-observability-logging.md](0081-observability-logging.md)— ブラウザ → BFF 中継 seam(無防備エンドポイントを生む起点。本 ADR の保護対象)
-- [0082-client-observability.md](0082-client-observability.md)— 中継の口(`/api/telemetry`)の送信内容(§2 の参照形が守る対象)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md)— 標準準拠 + vendor-independent 正当性(edge 多層防御の正当化の土台)
+- [0075-file-upload-seam.md](0075-file-upload-seam.md) — file upload seam (a neighbouring subject sorted by the same boundary call)
+- [0076-payment-ui-seam.md](0076-payment-ui-seam.md) — payment UI seam (mount seam and PCI boundary; a sibling under the same boundary call)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — `/api/*` = thin proxy (the parent decision where the unprotected endpoint originates)
+- [0081-observability-logging.md](0081-observability-logging.md) — browser → BFF relay seam (where the unprotected endpoint originates; what this ADR protects)
+- [0082-client-observability.md](0082-client-observability.md) — what is sent through the relay endpoint (`/api/telemetry`) (what the reference shape of §2 guards)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance + vendor-independent justification (the foundation for justifying defense in depth at the edge)

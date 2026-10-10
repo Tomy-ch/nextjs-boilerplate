@@ -1,162 +1,162 @@
-# UI コンポーネント方針とインタラクション a11y seam
+# UI Component Policy and the Interaction a11y Seam
 
-[0052](0052-ui-component-policy.md) は UI コンポーネント基盤(shadcn/ui + @tabler/icons-react + 複雑入力部品)を採用し、複雑入力(日付ピッカー等)は `components` カーネルの shadcn 系部品として同梱しているが、そこで扱うのは「どの部品を持つか(同梱可否)」であって、**インタラクションを持つ UI の相互作用品質**(キーボード操作・フォーカス管理・ARIA・live region・ドラッグ代替等の a11y seam)は別主題として残る。本 ADR は 0052 とは主題を分け、interaction UI の **a11y interaction seam**(sanitizer port / WCAG 2.2 ドラッグ代替 IF・モーダルの focus/scroll 契約等)を 1 本に束ねる。0052 が採る部品(複雑入力 / リッチテキスト = TipTap)にも、本体に同梱しない局所ライブラリ(DnD = dnd-kit 等)にも共通して要求される相互作用 a11y 契約を、本 ADR が所有する。
+[0052](0052-ui-component-policy.md) adopts the UI component foundation (shadcn/ui + @tabler/icons-react + complex input components) and bundles complex inputs (date pickers, etc.) as shadcn-family components in the `components` kernel, but what it deals with is "which components to have (whether to bundle)"; **the interaction quality of UI that has interaction** (the a11y seams of keyboard operation, focus management, ARIA, live regions, drag alternatives, etc.) remains a separate subject. This ADR separates its subject from 0052 and bundles into one the **a11y interaction seams** of interaction UI (sanitizer port / WCAG 2.2 drag-alternative interface / the focus and scroll contract of modals, etc.). This ADR owns the interaction a11y contract required in common both of the components 0052 adopts (complex inputs / rich text = TipTap) and of local libraries not bundled in the core (DnD = dnd-kit, etc.).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-interaction UI は次の 5 つに分かれ、それぞれ本 ADR が持つものが違う。
+Interaction UI divides into the following five, and what this ADR holds differs for each.
 
-- **複雑入力 UI**(0052 で採用済み)= 日付ピッカー等は 0052 が shadcn 系部品として `components` に置く。本 ADR は「入れてよいか」ではなく、採用部品の **キーボード操作 / フォーカス順序 / ARIA という相互作用 a11y 契約** を敷く
-- **リッチテキスト/エディタ**(採用)= 本体は **sanitize IF + 表示 seam**(sanitizer は差し替え可能な port として名前を付ける)。エディタ本体(TipTap)を実使用する
-- **モーダル/ダイアログ** = a11y 契約(focus trap・Escape・scroll lock 必須。[0100](0100-accessibility-target.md))を既定とし、route-as-modal(intercepting routes)の採否は [0040](0040-routing-rendering-strategy.md) 管轄
-- **キーボードショートカット**(除外)= 採らず、登録機構も置かない
-- **ドラッグ&ドロップ**(ライブラリ非同梱)= 本体は **WCAG 2.2 ドラッグ代替を満たす a11y 準拠 DnD seam/IF**。DnD ライブラリ(dnd-kit 等)は本体に同梱しない
+- **Complex input UI** (already adopted by 0052) = date pickers and the like are placed in `components` by 0052 as shadcn-family components. This ADR lays down not "may it be included" but the **interaction a11y contract of keyboard operation / focus order / ARIA** for the adopted components
+- **Rich text / editor** (adopted) = the core provides a **sanitize interface + display seam** (the sanitizer is named as a swappable port). The editor itself (TipTap) is in actual use
+- **Modal / dialog** = the a11y contract (focus trap, Escape and scroll lock mandatory; [0100](0100-accessibility-target.md)) is the default, and whether to adopt route-as-modal (intercepting routes) is under [0040](0040-routing-rendering-strategy.md)
+- **Keyboard shortcuts** (excluded) = not adopted, and no registration mechanism is placed either
+- **Drag and drop** (library not bundled) = the core provides **an a11y-conformant DnD seam / interface that satisfies the WCAG 2.2 drag alternative**. DnD libraries (dnd-kit, etc.) are not bundled in the core
 
-これらはいずれも **インタラクションが a11y 事故の最頻発地点**(モーダルの focus / DnD のドラッグ代替 / ショートカットの誤発火)であり、[0100](0100-accessibility-target.md) の WCAG 2.x AA 目標と直結するという共通性を持つ。0052 が採る部品も、局所採用のライブラリも、相互作用 a11y 契約なしに実装される余地を残さないため、本 ADR は **a11y 拡張点(名前付き seam + a11y 契約)を必ず敷く**。
+What these have in common is that **interaction is where a11y accidents occur most often** (focus in modals / drag alternatives in DnD / misfiring shortcuts), tying directly into [0100](0100-accessibility-target.md)'s WCAG 2.x AA target. To leave no room for either the components 0052 adopts or locally adopted libraries to be implemented without an interaction a11y contract, this ADR **always lays down a11y extension points (named seams + a11y contracts)**.
 
-## 決定
+## Decision
 
-### 1. 貫く原則: プラットフォーム標準・built-in 優先(0010 標準準拠)
+### 1. The guiding principle: platform standards and built-ins first (0010 standards conformance)
 
-interaction UI は、**ライブラリより先にプラットフォーム標準(HTML/CSS/DOM の built-in)を第一候補とする**([0010](0010-standards-and-non-lockin.md) 標準準拠)。built-in で要件を満たせないと判明した時にのみ、用途依存の判断としてライブラリを足す。
+For interaction UI, **the platform standard (HTML/CSS/DOM built-ins) is the first candidate, ahead of libraries** ([0010](0010-standards-and-non-lockin.md) standards conformance). A library is added, as a use-case-dependent judgment, only when it turns out that built-ins cannot meet the requirement.
 
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): built-in 優先は「フレームワークが推奨するから」ではなく、web プラットフォーム標準に固有の独立根拠で正当化する ——(a) top-layer / focus / `inert` / `::backdrop` 等の a11y 機構を**ブラウザが既定で供給**する(自前 focus-trap の車輪の再発明を避ける)、(b) **JS ライブラリ依存ゼロ = 任意フレームワークへ可搬**(0010 の運用テスト「ベンダーを正当化から抜いても正当か」= Yes)、(c) **最小依存**(バンドル増を伴わない)。これは 0052 が採る shadcn/ui(Radix = WAI-ARIA 準拠 primitive)とも整合する —— built-in で満たせる相互作用は built-in を先に使い、built-in で足りない範囲を shadcn 系部品 / 局所ライブラリで補う、という優先順である
+- **Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): built-ins first is justified not "because the framework recommends it" but on independent grounds specific to the web platform standard — (a) **the browser supplies a11y mechanisms by default**, such as top-layer / focus / `inert` / `::backdrop` (avoiding reinventing the wheel of a homemade focus trap), (b) **zero JS library dependencies = portable to any framework** (0010's operational test "is it justified with the vendor taken out of the justification" = Yes), (c) **minimal dependencies** (no bundle growth). This is also consistent with the shadcn/ui 0052 adopts (Radix = WAI-ARIA-conformant primitives) — the order of priority is to use built-ins first for interactions they can satisfy, and to fill the range built-ins cannot cover with shadcn-family components / local libraries
 
-### 2. 複雑入力 UI の相互作用 a11y 契約
+### 2. The interaction a11y contract for complex input UI
 
-- **日付ピッカー・コンボボックス・オートコンプリート等の複雑入力 UI は、[0052](0052-ui-component-policy.md) が shadcn 系部品として `components` カーネルに採用済み**である。本 ADR は同梱可否ではなく、これら採用部品が満たすべき **相互作用 a11y 契約** を敷く
-- built-in 優先(§1)により、要件を満たせる範囲では native input(`<input type="date">` / `<datalist>` / `<select>` 等)を第一候補とし、native で足りない複雑入力にのみ shadcn 系部品(0052)を用いる
-- 採用部品・自前実装のいずれでも、**a11y 準拠(キーボード操作 / フォーカス順序 / ARIA / [0100](0100-accessibility-target.md) の WCAG 2.x AA)を必須**とし、[0050](0050-styling-strategy.md)(Tailwind 主軸 + CSS Modules 限定許可・styled-components / emotion は非採用)・[0021](0021-frontend-responsibility.md)(カーネル配置・命名規律)・[0004](0004-library-management.md)(exact pin / audit)の枠内で行う(0052 の採用時条件と同一)
+- **Complex input UI such as date pickers, comboboxes and autocomplete is already adopted by [0052](0052-ui-component-policy.md) in the `components` kernel as shadcn-family components**. This ADR lays down not whether to bundle them but the **interaction a11y contract** these adopted components must satisfy
+- Under built-ins first (§1), where they can meet the requirement, native inputs (`<input type="date">` / `<datalist>` / `<select>`, etc.) are the first candidate, and shadcn-family components (0052) are used only for complex inputs that native cannot cover
+- Whether adopted components or our own implementations, **a11y conformance (keyboard operation / focus order / ARIA / [0100](0100-accessibility-target.md)'s WCAG 2.x AA) is mandatory**, done within the frames of [0050](0050-styling-strategy.md) (Tailwind main axis + limited allowance for CSS Modules; styled-components / emotion not adopted), [0021](0021-frontend-responsibility.md) (kernel placement, naming discipline) and [0004](0004-library-management.md) (exact pin / audit) (the same as 0052's conditions for adoption)
 
-### 3. リッチテキスト/エディタ = TipTap を採用 + sanitizer port + 表示 seam
+### 3. Rich text / editor = adopt TipTap + sanitizer port + display seam
 
-- **WYSIWYG エディタは TipTap を採用**する。エディタ本体は `components` カーネルに置き、[0052](0052-ui-component-policy.md) の配置・exact-pin 要件に従う
-- **採る理由はエディタ本体ではなく、その隣に要る表示側の継ぎ目にある。** 利用者が書いた内容を安全に表示する経路は、**後から足すと「通し忘れ」が既に散った後**になる。同梱するのは、その経路を型で塞いだ形(下記の port と nominal type)を実物として置くためであり、エディタ本体を差し替えてもこの形は残る
-- **エディタ本体が要るのは、利用者が書いた長文が他の利用者へ表示される欄を持つときだけ**である。そういう欄を持たないなら、エディタごと落として sanitizer port だけを残してよい。差し替えても落としても、残るべき形(port と nominal type)は変わらない
-- 「表示」側の拡張点(seam): **信頼できない HTML を安全な表示へ変換する sanitizer を、差し替え可能な named port(seam)として扱う**(rehype/rehype-sanitize / DOMPurify 等は port の実装であって本体前提ではない)。リッチテキスト表示は、この sanitizer port を必ず通す
-- sanitizer port は外部ライブラリの wrap であり、[0021](0021-frontend-responsibility.md) のカーネル受入基準(複数箇所参照 or 外部ライブラリ wrap → カーネル)に従って **`model` カーネル**に置く。表示 seam(sanitize 済みコンテンツの描画)は `components` に置く
-- **port は sanitize 済みであることを型で表す。** 通過後の値を nominal type として返し、表示側はその型だけを受け取る。生の HTML 文字列を props に取らないため、**sanitizer を迂回する経路が公開 API にも実装にも存在しない**。「通し忘れ」を規約ではなく型で塞ぐ形である
-- **描画は HTML 文字列を経由しない。** 仕様準拠のパーサで HTML を木(hast)にし、木を allowlist で検査し、その木から直接 React 要素を組み立てる。文字列のまま検査する方式は採らない —— パーサが補正する崩れた markup を、文字列上の検査はすり抜けさせる。これにより `dangerouslySetInnerHTML` を使う箇所自体が無くなり、[0110](0110-security-operations.md) の禁止規定に対して「使っていない」ではなく「使える形になっていない」状態を作る
-- **sanitizer の許可リストは inline `style` 属性を落とす。** 太字 / 斜体 / リスト / 見出し / リンクはいずれもクラスへ写像できるため、`style` を通す理由が無い。**この設計が成立することは実装で確認済みであり、リッチテキストを理由に CSP の `style-src-attr` へ `'unsafe-inline'` を開ける必要はない**([0111](0111-csp-security-headers.md) の enforce seam 判断の入力)。`class` / `id` も同様に落とす
-- **editor が出せるタグ ⊆ sanitizer が通すタグ**を保つ。この包含関係が崩れると、入力できるのに保存後に落ちるという不整合が生じる。エディタの extension 集合は allowlist から導出し、**包含関係を test で固定して extension の追加が検知されるようにする**。したがって **`@tiptap/starter-kit` は採らず、extension を個別に入れる** —— starter-kit は allowlist に無いタグを出す extension まで束で引くため、包含関係を保てない
-- **許容範囲の異なる sanitizer を同じパッケージへ同居させない。** リポジトリ自身のコミット済み文書を描く viewer([`docs-viewer/`](../../docs-viewer/README.md))は表・コードブロック・`class` を通す広い allowlist を要るが、それをアプリ本体と同じパッケージに置くと、広い方を本体から import することを止めるものが規約しか無くなる。別パッケージに置き、構造として到達不能にする([0020](0020-adopted-architecture.md))
-- **XSS 規約との接続**: `dangerouslySetInnerHTML` の原則禁止と sanitizer 必須の**規約(rule)自体は [0110](0110-security-operations.md) が所有**する。本 ADR は「sanitizer を差し替え可能な port として名前を付ける」構造側を敷き、規約は 0110 を正とする(二重決定しない)
+- **TipTap is adopted as the WYSIWYG editor**. The editor itself is placed in the `components` kernel and follows [0052](0052-ui-component-policy.md)'s placement and exact-pin requirements
+- **The reason for adopting it lies not in the editor itself but in the display-side seam needed next to it.** If the path that safely displays what users wrote is **added later, "forgetting to pass through it" has already spread**. It is bundled to put in place, as a real thing, the form that closes that path with types (the port and nominal type below), and this form remains even if the editor itself is swapped
+- **The editor itself is needed only when there are fields where long text written by a user is displayed to other users**. Without such fields, you may drop the editor altogether and keep only the sanitizer port. Whether swapped or dropped, the form that must remain (the port and nominal type) does not change
+- The extension point (seam) on the "display" side: **the sanitizer that turns untrusted HTML into safe display is treated as a swappable named port (seam)** (rehype/rehype-sanitize / DOMPurify, etc. are implementations of the port, not premises of the core). Rich text display always passes through this sanitizer port
+- The sanitizer port is a wrap of an external library and is placed in **the `model` kernel**, following [0021](0021-frontend-responsibility.md)'s criteria for what a kernel accepts (referenced from several places, or wrapping an external library → kernel). The display seam (rendering sanitized content) is placed in `components`
+- **The port expresses being sanitized in the type.** It returns the passed value as a nominal type, and the display side accepts only that type. Because it takes no raw HTML string as props, **no path that bypasses the sanitizer exists in either the public API or the implementation**. It is a form that closes "forgetting to pass through it" with types rather than conventions
+- **Rendering does not go through an HTML string.** A spec-conformant parser turns the HTML into a tree (hast), the tree is checked against an allowlist, and React elements are built directly from that tree. Checking while still a string is not adopted — malformed markup that the parser corrects slips past checks on the string. This removes the very places that use `dangerouslySetInnerHTML`, creating a state that is not "not used" but "not in a usable form" with respect to [0110](0110-security-operations.md)'s prohibition
+- **The sanitizer's allowlist drops the inline `style` attribute.** Bold / italic / lists / headings / links can all be mapped to classes, so there is no reason to let `style` through. **That this design holds has been confirmed in the implementation, and there is no need to open `'unsafe-inline'` in CSP's `style-src-attr` on account of rich text** (an input to [0111](0111-csp-security-headers.md)'s enforce-seam judgment). `class` / `id` are dropped likewise
+- Keep **tags the editor can emit ⊆ tags the sanitizer lets through**. If this inclusion breaks, an inconsistency arises where something can be entered but is dropped after saving. The editor's extension set is derived from the allowlist, and **the inclusion is pinned in a test so that adding an extension is detected**. Therefore **`@tiptap/starter-kit` is not adopted and extensions are added individually** — starter-kit pulls in, as a bundle, extensions that emit tags not in the allowlist, so the inclusion cannot be kept
+- **Do not co-locate sanitizers with different tolerances in the same package.** The viewer that renders the repository's own committed documents ([`docs-viewer/`](../../docs-viewer/README.md)) needs a broad allowlist that lets tables, code blocks and `class` through, but placing it in the same package as the app would leave only conventions to stop the app from importing the broader one. It is placed in a separate package, making it structurally unreachable ([0020](0020-adopted-architecture.md))
+- **Connection with the XSS rules**: **the rule itself** — `dangerouslySetInnerHTML` forbidden in principle and the sanitizer mandatory — **is owned by [0110](0110-security-operations.md)**. This ADR lays down the structural side, "name the sanitizer as a swappable port", and 0110 is the authority for the rule (no double decision)
 
-### 4. モーダル/ダイアログ = a11y 契約が既定 + 実装手段は WAI-ARIA 準拠 primitive
+### 4. Modal / dialog = the a11y contract by default + WAI-ARIA-conformant primitives as the means
 
-- **modal が満たすべき a11y 契約を既定とする**([0100](0100-accessibility-target.md) WCAG 2.x AA):focus trap / Escape 閉じ / 背景 scroll lock / フォーカス復帰 / 名前と説明の関連付け。**実装手段ではなく契約を固定する**のは、契約が満たされるなら手段は差し替え可能だからである
-- **overlay は、§1 の built-in 優先が届かない領域である。** native の modal 要素は top-layer と backdrop を供給するが、**背景の scroll lock・フォーカス復帰・開閉の宣言的な制御**は結局 component 側で補うことになり、補った結果は [0052](0052-ui-component-policy.md) が採る WAI-ARIA 準拠 primitive が既に供給しているものと同じになる。**契約を満たすために自前で補い直すのは再発明である**
-- **これは built-in 優先の例外ではなく、その適用結果である。**「built-in で要件を満たせないと判明した時にのみライブラリ」(§1)という順序を実際に踏んだ結果が overlay の判定であり、単一 control・開閉・局所スクロールでは逆に built-in が勝つ。**領域ごとに判定し、片方の結論を全体へ広げない**
-- 判定軸は「契約を満たすためにどれだけ補うか」である。補う量が無視できる面では native を採る
-- **focus-trap / scroll-lock 等の UI 密着の挙動 hook は `capabilities` に上げず、その component に co-location する**([0022](0022-capabilities-kernel.md):runtime 能力ではなく UI 挙動のため)
-- **route-as-modal(intercepting routes `(.)` / parallel routes `@modal`)の採否は本 ADR で確定しない**。これは URL 設計に波及するルーティング判断であり [0040](0040-routing-rendering-strategy.md) の管轄である
+- **The a11y contract a modal must satisfy is the default** ([0100](0100-accessibility-target.md) WCAG 2.x AA): focus trap / close on Escape / background scroll lock / focus return / association of name and description. **The contract is fixed rather than the means** because, as long as the contract is satisfied, the means can be swapped
+- **Overlays are an area that §1's built-ins first does not reach.** The native modal element supplies top-layer and backdrop, but **background scroll lock, focus return and declarative control of opening and closing** end up being filled in on the component side, and the result of filling them in is the same as what the WAI-ARIA-conformant primitives [0052](0052-ui-component-policy.md) adopts already supply. **Re-filling them ourselves to satisfy the contract is reinvention**
+- **This is not an exception to built-ins first but the result of applying it.** The overlay verdict is the result of actually following the order "a library only when it turns out that built-ins cannot meet the requirement" (§1); for a single control, opening and closing, and local scrolling, built-ins win instead. **Judge per area, and do not extend one conclusion to everything**
+- The decision axis is "how much has to be filled in to satisfy the contract". Where the amount to fill in is negligible, native is taken
+- **UI-bound behavioral hooks such as focus-trap / scroll-lock are not promoted to `capabilities` but co-located with their component** ([0022](0022-capabilities-kernel.md): they are UI behavior, not runtime capabilities)
+- **Whether to adopt route-as-modal (intercepting routes `(.)` / parallel routes `@modal`) is not settled in this ADR**. It is a routing decision that ripples into URL design and falls under [0040](0040-routing-rendering-strategy.md)
 
-### 5. キーボードショートカット = 除外
+### 5. Keyboard shortcuts = excluded
 
-- **グローバルキーボードショートカットは採らない**(exclusion)。後付けで散在実装すると input フォーカス時の誤発火等の事故が起きるが、それは採る場合の話であり、本体は機構も置かない
-- 個々の UI のキーボード操作性(タブ順序 / Enter・Escape 等)は a11y 契約の一部であり、[0100](0100-accessibility-target.md)(WCAG 2.x AA)を正とする。本項が除外するのは**グローバルショートカット機構**のみ
-- **その component 自身の UI 内で完結するキー操作は例外で、component に置いてよい**(自身が出した領域へ focus を移す hotkey 等)。除外するのは、任意の操作を任意のキーへ結び付ける汎用の登録機構である
-- **キー操作の「案内」を表示する部品は持てる。** 何が起きるかとどのキーかの対を表示する UI は、登録も `keydown` の待ち受けも持たない純粋な表示 primitive であり、機構ではない。ただし **`components` はこの案内が実際に効くことを担保できない** —— 案内部品と結線は層が違い(`components` は `capabilities` を import できない)、キーと handler を結ぶのは両方を import できる `features` 以上である。したがって**案内を載せた側が、そのキーで実行できることまでを負う**。キーボードから実行できない操作を案内に載せない
+- **Global keyboard shortcuts are not adopted** (exclusion). Scattered after-the-fact implementations cause accidents such as misfiring while an input has focus, but that concerns the case of adopting them; the core does not place the mechanism either
+- The keyboard operability of individual UI (tab order / Enter, Escape, etc.) is part of the a11y contract, with [0100](0100-accessibility-target.md) (WCAG 2.x AA) as the authority. What this item excludes is only **a global shortcut mechanism**
+- **Key operations that complete within the component's own UI are an exception and may be placed in the component** (a hotkey that moves focus into a region the component itself emitted, etc.). What is excluded is a general-purpose registration mechanism that binds arbitrary operations to arbitrary keys
+- **A component that displays a "hint" for key operations may exist.** UI that displays pairs of what happens and which key is a pure display primitive with neither registration nor `keydown` listening, not a mechanism. However, **`components` cannot guarantee that this hint actually works** — the hint component and the wiring are in different layers (`components` cannot import `capabilities`), and what binds a key to a handler is `features` or above, which can import both. Therefore **the side that puts up the hint bears responsibility for it being executable with that key**. Do not put operations that cannot be executed from the keyboard into a hint
 
-### 6. ドラッグ&ドロップ = ライブラリ非同梱 + WCAG 2.2 ドラッグ代替 seam
+### 6. Drag and drop = library not bundled + WCAG 2.2 drag-alternative seam
 
-- **DnD ライブラリ(dnd-kit 等)は本体に同梱しない**([0052](0052-ui-component-policy.md) の本体スコープ)。まず native HTML Drag and Drop API を第一候補とする(§1)
-- **ファイルのドロップは native API で満たせるため本体で実装する。** 受け口を `input type="file"` の `label` として組めば、ドロップは加速手段になり、押下でも選択でき、`input` は tab で到達して Enter で開ける。落としたファイルは `input` の `files` へ書き戻し、native form の送信にも載せる。**ライブラリを要さずドラッグ代替を構造的に満たす**形であり、ライブラリを待つ対象ではない。ライブラリを要するのは並べ替え等の複雑な DnD である
-- 採用する DnD は **WCAG 2.2 の Dragging Movements(SC 2.5.7)を満たす a11y 契約**を必須とする = **ドラッグ以外の単一ポインタ / キーボードによる代替操作を必ず提供する**。この「ドラッグ代替」を named seam として扱い、DnD を採る feature は代替経路の実装を伴う(a11y 契約なしの DnD は禁止。§禁止事項)
-- DnD の挙動は UI 密着のため、focus-trap 同様に component co-location + feature 合成に置く([0022](0022-capabilities-kernel.md) の UI 挙動 hook 方針と同型)。a11y 目標は [0100](0100-accessibility-target.md)
+- **DnD libraries (dnd-kit, etc.) are not bundled in the core** (the core scope of [0052](0052-ui-component-policy.md)). The native HTML Drag and Drop API is the first candidate (§1)
+- **File drop can be satisfied with the native API, so it is implemented in the core.** If the receiving endpoint is built as the `label` of an `input type="file"`, dropping becomes an accelerator, selection is also possible by pressing, and the `input` is reachable by tab and opens with Enter. Dropped files are written back to the `input`'s `files` and ride on native form submission too. It is **a form that structurally satisfies the drag alternative without needing a library**, not something to wait on a library for. What needs a library is complex DnD such as reordering
+- Any DnD adopted must have **an a11y contract that satisfies WCAG 2.2 Dragging Movements (SC 2.5.7)** = **always provide an alternative operation by a single pointer / keyboard other than dragging**. This "drag alternative" is treated as a named seam, and a feature that adopts DnD comes with an implementation of the alternative path (DnD without an a11y contract is forbidden; §Prohibitions)
+- DnD behavior is UI-bound, so like focus-trap it is placed in component co-location + feature composition (the same shape as [0022](0022-capabilities-kernel.md)'s policy on UI behavior hooks). The a11y target is [0100](0100-accessibility-target.md)
 
-### 7. 拡張点のコード実体化スコープ
+### 7. Scope of materializing extension points in code
 
-拡張点は**実装を伴う形でのみコードに置く**。空の IF / port 定義だけを置かない —— 実装の無い抽象は、実装する時点で必ず書き直されるためである。
+Extension points are **placed in code only in a form accompanied by an implementation**. Do not place only an empty interface / port definition — an abstraction without an implementation is always rewritten at the point it gets implemented.
 
-- **sanitizer port は `model` カーネルに実体化済み**(§3)。エディタを採ったため、表示側も実装を伴う
-- **shortcut registry は置かない**(§5)。本 ADR は「名前 + 家 + a11y 契約」を記録し、採用する時点で実体化する
-- **DnD のドラッグ代替は、ライブラリを要さない範囲では component の実装として実体化済み**(§6)。ライブラリを要する DnD の代替 IF は、ライブラリを採る時点で実装ごと置く
+- **The sanitizer port is already materialized in the `model` kernel** (§3). Because the editor was adopted, the display side also comes with an implementation
+- **No shortcut registry is placed** (§5). This ADR records "name + home + a11y contract", and it is materialized at the point of adoption
+- **The DnD drag alternative is already materialized as a component implementation within the range that needs no library** (§6). The alternative interface for DnD that needs a library is placed together with its implementation at the point the library is adopted
 
-### 部品が持つ状態と、外から渡すもの
+### State a component holds, and what is passed from outside
 
-境界は **WAI-ARIA APG** が定める責務に合わせる。APG は role ごとに、キーボード操作と focus 管理を**部品の責務**として規定している。
+The boundary is aligned with the responsibilities **WAI-ARIA APG** defines. APG specifies, per role, keyboard operation and focus management as **the component's responsibility**.
 
-| 部品が持つ | 外から渡す |
+| The component holds | Passed from outside |
 | --- | --- |
-| 開閉 / ハイライトの位置 / focus の所在 / 入力途中の値 / 遷移中かどうか | 何を出すか(データ)/ できるか(可否)/ 押した結果に何が起きるか(action・callback) |
+| Open/closed / position of the highlight / where focus is / a value mid-input / whether a transition is in progress | What to show (data) / whether it can be done (permission) / what happens as a result of pressing (action, callback) |
 
-判定は **「見た目と操作の連続性のためだけに要る状態か」**である。業務の結果でしか決まらない値は外から渡す([0070](0070-backend-role-separation.md))。
+The test is **"is it state needed only for the continuity of look and interaction?"**. Values decided only by business outcomes are passed from outside ([0070](0070-backend-role-separation.md)).
 
-**制御は既定で部品が持ち、必要になった呼び出しにだけ開ける。** `value` / `onChange` を最初から要求しない。これは HTML の入力要素が取る形であり、Control Props として定式化されている。挙動そのものを差し替える口(State Reducer)は設けない —— ライブラリ向けの機構であり、アプリ内の部品には過剰である。
+**Control is held by the component by default and opened only to the calls that come to need it.** `value` / `onChange` are not required from the start. This is the form HTML input elements take, formalized as Control Props. No endpoint for swapping the behavior itself (State Reducer) is provided — it is a mechanism for libraries and excessive for in-app components.
 
-### 1 つの操作に 1 つの role
+### One role per operation
 
-**部品の粒度は role で決まる。** 1 つの要素が 2 つの操作を兼ねるなら、それは 2 つの部品である。支援技術から見えるのは role と accessible name だけであり、兼ねた操作は名前を 1 つしか持てない。
+**A component's granularity is decided by role.** If one element serves two operations, it is two components. Assistive technology sees only the role and the accessible name, and combined operations can have only one name.
 
-- **押しても移動しない `link` を作らない。** 移動しないなら `button` である(進めない導線は `button` の無効状態で表す)
-- **押すと別の場所が開くものは `aria-expanded` を持つ。** 開閉の対象が自分の外にあるとき、それは操作であって表示ではない
-- **記号だけの操作には accessible name を与える。** 同じ記号が並ぶ一覧では、名前に対象を含めて区別する
+- **Do not make a `link` that does not navigate when pressed.** If it does not navigate, it is a `button` (a path that cannot proceed is expressed by a disabled `button`)
+- **Something that opens another place when pressed has `aria-expanded`.** When what opens and closes is outside itself, it is an operation, not a display
+- **Give an accessible name to symbol-only operations.** In a list where the same symbol repeats, include the target in the name to distinguish them
 
-### 一度に見せる量は段階で絞る
+### Narrow how much is shown at once, in stages
 
-情報と操作は**その時点で判断に要るものだけ**を出し、残りは次の段へ送る(progressive disclosure)。開閉・段階送り・詳細の展開はこの原則の実装であって、装飾ではない。
+Information and operations show **only what is needed for the judgment at that moment**, sending the rest to the next stage (progressive disclosure). Opening and closing, stepping through stages and expanding details are implementations of this principle, not decoration.
 
-**隠してよいのは「後で決めればよいもの」だけ**である。可否・料金・取り消せるかどうかのように、**その場の判断を変える情報は隠さない**。折りたたむ場合も、閉じたままで判断が終わる要約を見出しに残す。
+**Only "things that can be decided later" may be hidden**. Information that **changes the judgment on the spot** — such as whether it is possible, the price, or whether it can be undone — is not hidden. Even when collapsing, leave in the heading a summary that lets the judgment be completed while it stays closed.
 
-### 閉じるまで留まる overlay は、戻る操作で閉じる
+### Overlays that stay until closed are closed by the back action
 
-被せたまま閉じるまで留まるもの(dialog / alert dialog / sheet / drawer)は、**開いた時点で履歴を 1 つ積み、戻る操作で自分だけを閉じる**。閉じる操作で閉じたときは、積んだぶんを戻して履歴の増減を打ち消す。
+Things that overlay and stay until closed (dialog / alert dialog / sheet / drawer) **push one history entry when opened and close only themselves on the back action**. When closed by the close action, the pushed entry is popped to cancel out the change in history.
 
-理由は、**戻る操作の意味が「いま被さっているものを外す」だから**である。積まないと、被せたまま戻ったときに画面ごと前のページへ移る。読んでいた画面が消えるうえ、被せた側で入力していれば失われる。とくに触る操作の環境では、overlay を閉じる手段として最初に試されるのが戻る操作である。
+The reason is that **the meaning of the back action is "remove what is currently overlaid"**. Without pushing, going back while something is overlaid moves the whole screen to the previous page. The screen being read disappears, and anything being entered on the overlay is lost. Especially in touch environments, the back action is the first thing tried as a way to close an overlay.
 
-**対象は閉じるまで留まるものだけ**とする。popover / dropdown / tooltip / hover card は次の操作で閉じるため、戻る操作をまたがない。これらまで履歴を積むと、戻る操作 1 回の意味が「どれか 1 つを閉じる」に薄まり、画面を戻れなくなる。
+**The targets are only things that stay until closed**. popover / dropdown / tooltip / hover card close on the next operation, so they do not span a back action. Pushing history for these too would dilute the meaning of one back action to "close one of them", and the screen could no longer go back.
 
-**画面を移す操作で閉じたときは、積んだぶんを戻さない。** 移った先から戻ったときに、閉じたはずの overlay が復活する。判定は積んだ時点の URL と履歴の印で行う。
+**When closed by an operation that moves the screen, the pushed entry is not popped.** Otherwise, when going back from the destination, the overlay that was supposed to be closed would reappear. The decision is made with the URL at the time of pushing and a marker in the history.
 
-**代わりに、overlay の中から画面を移すときは積み増しではなく置き換えで移る。** 積んだ 1 件は現在地の複製であり、戻り先として残すと戻る操作が 1 回空回りする(URL が変わらないため画面も動かない)。移る側が置き換えれば、その 1 件は移り先に上書きされて消える。link は `replace`、Server Action の `redirect` は `RedirectType.replace` を指定する。
+**Instead, when moving the screen from inside an overlay, move by replacing rather than pushing more.** The one pushed entry is a duplicate of the current location, and leaving it as a back destination makes one back action spin idle (the URL does not change, so the screen does not move either). If the moving side replaces, that one entry is overwritten by the destination and disappears. Links specify `replace`, and a Server Action's `redirect` specifies `RedirectType.replace`.
 
-### dropdown の menu は modal を既定とする
+### A dropdown's menu is modal by default
 
-`DropdownMenu` は開いている間、背面へ `aria-hidden` を当て、pointer-events とスクロールを止める(Radix の `modal` 既定)。**この既定をこのリポジトリの決定として採る。**
+While open, `DropdownMenu` applies `aria-hidden` to the background and stops pointer-events and scrolling (Radix's `modal` default). **This default is adopted as this repository's decision.**
 
-非 modal にすると失われるのは 3 つで、いずれも [0100](0100-accessibility-target.md) が要求する a11y 契約に属する —— menu を開いている間の焦点の閉じ込め、背面のスクロール固定、そして**外側を押して閉じたときに trigger へ焦点を戻すこと**である。最後の 1 つは非 modal でだけ落ちる(Radix は外側の操作で閉じた場合に焦点を戻さない)。
+Making it non-modal loses three things, all belonging to the a11y contract [0100](0100-accessibility-target.md) requires — confining focus while the menu is open, fixing the background scroll, and **returning focus to the trigger when closed by pressing outside**. The last one is lost only in non-modal (Radix does not return focus when closed by an outside interaction).
 
-**塞ぐかどうかと、履歴を積むかどうかは別の軸である。** modal は焦点とスクロールの扱いを決めるもので、履歴を積む対象を決めるのは上の節の「閉じるまで留まるか」の方である。menu は背面を塞ぐが次の操作で閉じるので、履歴は積まない。
+**Whether to block and whether to push history are separate axes.** Modal decides the handling of focus and scrolling; what decides the targets that push history is the previous section's "does it stay until closed". A menu blocks the background but closes on the next operation, so it does not push history.
 
-その帰結として、`aria-hidden` の下に焦点を持てる要素が残る。axe の `aria-hidden-focus` はこれを違反として報告するが、焦点は focus scope が閉じ込めるため実際には到達できない。**この決定を根拠とする無効化の宣言と撤回条件は [`vrt/lib/a11y-rules.ts`](../../vrt/lib/a11y-rules.ts) が持つ。**
+As a consequence, focusable elements remain under `aria-hidden`. axe's `aria-hidden-focus` reports this as a violation, but focus is confined by the focus scope, so it cannot actually be reached. **The declaration disabling it on the basis of this decision, and its reversal conditions, are held by [`vrt/lib/a11y-rules.ts`](../../vrt/lib/a11y-rules.ts).**
 
-### 構造の差し替えは props ではなく slot で受ける
+### Swapping structure is received through slots, not props
 
-利用側が中の構造を組み替える必要があるとき、**組み替えを props の分岐で表さない**。差し替える箇所を `children` か `asChild` として開ける。分岐で表すと、想定した組み合わせしか作れず、想定外が来るたびに props が増える。
+When the using side needs to rearrange the inner structure, **do not express the rearrangement as branches in props**. Open the place to swap as `children` or `asChild`. Expressing it as branches allows only the anticipated combinations, and props grow every time something unanticipated comes along.
 
-**部品を親子に分ける(compound)のは、子が単独では意味を持たず、親が並び順と状態を決めるときだけ**である。子が単独で成立するなら、それは独立した部品であり、親は要らない。
+**Splitting a component into parent and children (compound) is only for when the children have no meaning on their own and the parent decides their order and state**. If a child stands on its own, it is an independent component, and no parent is needed.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ ライブラリを要する局所 interaction UI(並べ替え等の DnD)を、使う実装を伴わないまま本体へ同梱すること([0052](0052-ui-component-policy.md) の本体スコープに従う。複雑入力とリッチテキストは採用済みのため本項の対象外)（強制: `dead-code` job（`pnpm knip`）がどこからも import されない依存を落とす。`src/components` の部品で包んだだけで使う画面の無いものは散文 —— **寄せられない**。`src/components` は公開面として未使用が正常であり、使う実装を伴うかは形からは決まらない）
-- ❌ native / built-in(native input / `details` / `overflow` / native DnD API)で要件を満たせるのに、自前実装 / ライブラリで**再発明**すること(§1 built-in 優先を破る)（強制: 散文 —— **寄せられない**。built-in で要件を満たせるかは要件の判断そのもので、コードの形からは決まらない）
-- ❌ 逆に、built-in で要件を満たせないと判明した領域で、契約を自前で補い直すこと(overlay の focus / scroll lock がこれに当たる。§4)（強制: 散文 —— **一部寄せられる**。body の scroll 固定や Tab の捕捉を手で書く形（`document.body.style.overflow` への代入など）は静的に拾えるが規則は無い。どの領域が built-in で足りないかは領域ごとの判定で、形からは決まらない）
-- ❌ 採用した interaction を **a11y 契約([0100](0100-accessibility-target.md))なしで実装**すること(modal の focus / scroll-lock / Escape、DnD の WCAG 2.2 ドラッグ代替、複雑入力のキーボード / ARIA)（強制: Biome の a11y 規則と、story 全数へ axe を当てる `a11y` job（`make a11y`）が ARIA と role の静的な違反を落とす。focus の閉じ込め・Escape・ドラッグ代替などの挙動は散文 —— **寄せられない**。操作への振る舞いは描画の形に現れず、interaction テストを書くかは部品ごとの判断に残る）
-- ❌ リッチテキスト表示で **sanitizer port を通さず** `dangerouslySetInnerHTML` を使うこと(規約の正は [0110](0110-security-operations.md))
-- ❌ **route-as-modal(intercepting / parallel routes)の採否を本 ADR で確定**すること(ルーティング判断 = [0040](0040-routing-rendering-strategy.md) 管轄)（強制: 散文 —— **寄せられない**。ADR の文が採否を確定しているかは文の意味で決まり、形からは決まらない）
-- ❌ focus-trap・scroll-lock・DnD 等の UI 密着挙動 hook を `capabilities` に上げること([0022](0022-capabilities-kernel.md):UI 挙動は component co-location)（強制: 散文 —— **寄せられない**。hook が runtime 能力か UI 挙動かは振る舞いの意味で決まり、置き場の形からは決まらない）
-- ❌ 記録するに留めた拡張点(shortcut registry / DnD ドラッグ代替 IF)を、空の IF 定義としてコードに置くこと(§7)（強制: `dead-code` job（`pnpm knip`）が内部の層で呼ばれない export を落とす。公開面の `src/components` に置いた空の IF は散文 —— **寄せられない**。公開面は未使用が正常であり、実装を伴うかは使う側が現れるまで決まらない）
+- ❌ Bundling in the core local interaction UI that needs a library (DnD such as reordering) without an implementation that uses it (follow the core scope of [0052](0052-ui-component-policy.md); complex inputs and rich text are already adopted and outside this item) (Enforcement: the `dead-code` job (`pnpm knip`) rejects dependencies imported from nowhere. Something merely wrapped in a `src/components` component with no screen that uses it is Prose — **not mechanizable**. Being unused is normal for `src/components` as a public surface, and whether it comes with an implementation that uses it is not decided by shape)
+- ❌ **Reinventing** with our own implementation / a library what native / built-ins (native input / `details` / `overflow` / the native DnD API) can satisfy (breaks §1 built-ins first) (Enforcement: Prose — **not mechanizable**. Whether built-ins can satisfy the requirement is the judgment of the requirement itself, not decided by the shape of the code)
+- ❌ Conversely, in an area where built-ins turned out unable to meet the requirement, re-filling the contract ourselves (focus / scroll lock for overlays falls under this; §4) (Enforcement: Prose — **partly mechanizable**. Hand-written forms of fixing body scroll or capturing Tab (such as assigning to `document.body.style.overflow`) can be picked up statically, but no rule exists. Which areas built-ins fall short in is a per-area verdict, not decided by shape)
+- ❌ **Implementing** an adopted interaction **without the a11y contract ([0100](0100-accessibility-target.md))** (focus / scroll-lock / Escape for modals, the WCAG 2.2 drag alternative for DnD, keyboard / ARIA for complex inputs) (Enforcement: Biome's a11y rules and the `a11y` job (`make a11y`), which runs axe on every story, reject static ARIA and role violations. Behaviors such as focus confinement, Escape and drag alternatives are Prose — **not mechanizable**. Behavior in response to interaction does not appear in the shape of rendering, and whether to write an interaction test remains a per-component judgment)
+- ❌ Using `dangerouslySetInnerHTML` for rich text display **without passing through the sanitizer port** (the authority for the rule is [0110](0110-security-operations.md))
+- ❌ **Settling in this ADR whether to adopt route-as-modal (intercepting / parallel routes)** (a routing decision = under [0040](0040-routing-rendering-strategy.md)) (Enforcement: Prose — **not mechanizable**. Whether a sentence in the ADR settles adoption is decided by the sentence's meaning, not its shape)
+- ❌ Promoting UI-bound behavioral hooks such as focus-trap, scroll-lock and DnD to `capabilities` ([0022](0022-capabilities-kernel.md): UI behavior is co-located with the component) (Enforcement: Prose — **not mechanizable**. Whether a hook is a runtime capability or UI behavior is decided by the meaning of the behavior, not by the shape of where it lives)
+- ❌ Placing extension points that were only to be recorded (shortcut registry / DnD drag-alternative interface) in code as empty interface definitions (§7) (Enforcement: the `dead-code` job (`pnpm knip`) rejects exports not called in internal layers. An empty interface placed in the public surface `src/components` is Prose — **not mechanizable**. Being unused is normal for a public surface, and whether it comes with an implementation is not decided until a using side appears)
 
-## 補足
+## Notes
 
-- **0052 との主題分担**: [0052](0052-ui-component-policy.md) は「どの UI 部品を持つか(採用・同梱可否)」を所有し、本 ADR は「持った interaction UI の相互作用 a11y 品質(seam + 契約)」を所有する。両者は主題が重複しない。日常強制の粒度規約(rule)は 0110(XSS)/ 0100(a11y チェック)/ [docs/rules.md](../rules.md) が持つ
-- **採用区分**: リッチテキスト(TipTap)= 採用(§3)。DnD(dnd-kit)= 本体非同梱・局所採用。キーボードショートカット = 除外(§5)。いずれの場合も本体は seam と a11y 契約を保持し、ライブラリは [0010](0010-standards-and-non-lockin.md)(vendor-independent 正当化 + カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.md)(exact-pin / `pnpm audit`)の枠内で置く。§1 built-in 優先と §3〜6 の a11y 契約は採用区分によらず不変
+- **Division of subjects with 0052**: [0052](0052-ui-component-policy.md) owns "which UI components to have (adoption, whether to bundle)", and this ADR owns "the interaction a11y quality of the interaction UI we have (seams + contracts)". The two subjects do not overlap. Granular day-to-day rules are held by 0110 (XSS) / 0100 (a11y checks) / [docs/rules.md](../rules.md)
+- **Adoption categories**: rich text (TipTap) = adopted (§3). DnD (dnd-kit) = not bundled in the core, adopted locally. Keyboard shortcuts = excluded (§5). In every case the core keeps the seams and a11y contracts, and libraries are placed within the frames of [0010](0010-standards-and-non-lockin.md) (vendor-independent justification + swappable behind a kernel boundary, no direct vendor references scattered across features/components) / [0004](0004-library-management.md) (exact-pin / `pnpm audit`). §1 built-ins first and the a11y contracts of §3–6 do not change by adoption category
 
-## 関連 ADR
+## Related ADRs
 
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI 部品の採用・同梱可否(shadcn/ui + Tabler アイコン + 複雑入力 + リッチテキスト = 採用 / DnD ライブラリ = 非同梱)。本 ADR はその部品が満たす相互作用 a11y 品質を別主題として所有する
-- [0100-accessibility-target.md](0100-accessibility-target.md) — WCAG 2.x AA / biome a11y / 手動チェック(全 interaction の a11y 契約の正)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — route-as-modal(intercepting / parallel routes)採否の管轄(本 ADR では確定しない)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 + 非ロックイン(§1 built-in 優先の vendor-independent 正当化の土台)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — UI 挙動 hook は component co-location という方針(グローバルショートカット機構は §5 で除外)
-- [0111-csp-security-headers.md](0111-csp-security-headers.md) — sanitizer が `style` 属性を落とせるかが CSP enforce seam の判断入力になる(§3)
-- [0110-security-operations.md](0110-security-operations.md) — XSS / sanitize 規約(`dangerouslySetInnerHTML` 禁止 + sanitizer 必須。sanitizer port の規約の正)
-- [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用。採用 UI のスタイル手段)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — カーネル配置・命名規律・受入基準(sanitizer port / 表示 seam の物理配置の根拠)
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 構造で担保する原則(許容範囲の異なる sanitizer をパッケージ境界で隔てる根拠)
-- [0004-library-management.md](0004-library-management.md) — exact pin / audit(interaction UI ライブラリを採る際の枠)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adoption of UI components and whether to bundle them (shadcn/ui + Tabler icons + complex inputs + rich text = adopted / DnD libraries = not bundled). This ADR owns, as a separate subject, the interaction a11y quality those components satisfy
+- [0100-accessibility-target.md](0100-accessibility-target.md) — WCAG 2.x AA / biome a11y / manual checks (the authority for the a11y contracts of all interactions)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — jurisdiction over adopting route-as-modal (intercepting / parallel routes) (not settled in this ADR)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance + non-lock-in (the foundation of the vendor-independent justification for §1 built-ins first)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the policy that UI behavior hooks are co-located with components (a global shortcut mechanism is excluded in §5)
+- [0111-csp-security-headers.md](0111-csp-security-headers.md) — whether the sanitizer can drop the `style` attribute becomes an input to the CSP enforce-seam judgment (§3)
+- [0110-security-operations.md](0110-security-operations.md) — the XSS / sanitize rules (`dangerouslySetInnerHTML` forbidden + sanitizer mandatory; the authority for the sanitizer port's rules)
+- [0050-styling-strategy.md](0050-styling-strategy.md) — Tailwind main axis + limited allowance for CSS Modules (styled-components / emotion not adopted; the styling means of the adopted UI)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — kernel placement, naming discipline, acceptance criteria (the basis for the physical placement of the sanitizer port / display seam)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — the principle of guaranteeing through structure (the basis for separating sanitizers with different tolerances by a package boundary)
+- [0004-library-management.md](0004-library-management.md) — exact pin / audit (the frame when adopting interaction UI libraries)

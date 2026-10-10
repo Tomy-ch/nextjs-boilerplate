@@ -1,61 +1,61 @@
-# フォント・画像
+# Fonts and Images
 
-フォントと画像の **`next/font` / `next/image` の使い方 / `public/` の扱い / 動的 OG 画像** の規約を定める。Next.js 組込み機構を追認し、最小の運用ルールを敷く。
+This ADR defines the conventions for fonts and images: **how to use `next/font` / `next/image` / how `public/` is handled / dynamic OG images**. It ratifies the mechanisms built into Next.js and lays down minimal operating rules.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-`next/font` / `next/image` の使い方・`public/` の扱い・動的 OG 画像は、いずれも Next.js が組込み機構を持つ領域である。本 ADR はその組込み機構を既定とする方針を定め、独自の代替を持ち込まない。
+How to use `next/font` / `next/image`, how `public/` is handled, and dynamic OG images are all areas where Next.js has built-in mechanisms. This ADR defines the policy of making those built-in mechanisms the default, and brings in no alternatives of our own.
 
-## 決定
+## Decision
 
-### 1. フォント = `next/font`
+### 1. Fonts = `next/font`
 
-- Web フォントは **`next/font`** で読み込む(セルフホスト・レイアウトシフト抑制・`preload`)。外部 CDN からの直接読み込みや手動 `@font-face` は避ける
-- フォント定義の適用は `src/app/layout.tsx`(ルート)を基点とする([0027](0027-directory-structure.md))。定義そのものは同階層へ切り出し、**カタログ(Storybook)からも同じ定義を読む**。二重に書くと、カタログだけが素の書体で表示され基準画像が実物と一致しない
-- **書体の役割(本文 / 銘 / 等幅)は design token の semantic 層が持つ**([0051](0051-styling-system.md))。`next/font` が配る変数は素性を表す primitive として受け、部品は役割の名前だけを参照する。**本文の和文書体は Web フォントで持たず、OS 同梱の書体へ委ねる**([0051](0051-styling-system.md))。系統(`data-surface`)ごとに替えられる仕組みは残すが、本文書体はその軸に含めない
+- Web fonts are loaded with **`next/font`** (self-hosting, layout-shift suppression, `preload`). Avoid loading directly from an external CDN or writing `@font-face` by hand
+- Font definitions are applied from `src/app/layout.tsx` (the root) as the base point ([0027](0027-directory-structure.md)). The definitions themselves are extracted to the same level, and **the catalog (Storybook) reads the same definitions too**. Writing them twice makes only the catalog display in the plain typeface, and baseline images no longer match the real thing
+- **The roles of typefaces (body / display / monospace) are held by the semantic layer of design tokens** ([0051](0051-styling-system.md)). The variables `next/font` hands out are received as primitives that express identity, and components reference only the role names. **The Japanese body typeface is not held as a web font but left to the typefaces bundled with the OS** ([0051](0051-styling-system.md)). The mechanism for switching per family (`data-surface`) remains, but the body typeface is not part of that axis
 
-### 2. 画像 = `next/image`
+### 2. Images = `next/image`
 
-- ラスター画像は **`next/image`** を用いる(最適化・遅延読み込み・レイアウトシフト抑制)。生の `<img>` は原則使わない(装飾的 SVG 等の例外は可)
-- 配送前提([0011](0011-no-docker.md))に応じて画像最適化の loader を選ぶ(PaaS の組込み最適化か、静的書き出し時の loader かは配備先で決める)
+- Raster images use **`next/image`** (optimization, lazy loading, layout-shift suppression). Raw `<img>` is not used as a rule (exceptions such as decorative SVG are allowed)
+- The image-optimization loader is chosen according to the delivery premise ([0011](0011-no-docker.md)) (whether the PaaS's built-in optimization or a loader for static export is decided by the deployment target)
 
-### 2.1 バックエンド由来画像 = public storage 前提・自前の配信レイヤを持たない
+### 2.1 Backend-originated images = public storage assumed, no serving layer of our own
 
-- バックエンドが返すのは**オブジェクトキー**(例: `{資源}/{uuid}.{ext}`)であり、**表示 URL の組み立てはフロントの責務**とする(backend にフル URL を保存させない)
-- ストレージは **public storage**(匿名 read 可 / listing 不可)を前提とする。したがって本リポジトリに**配信プロキシ(Route Handler)を置かない**。持つのは配信オリジンを前置する純関数(`mediaUrl()`)と `next.config.ts` の `images.remotePatterns` のみで、最適化は `next/image` が単独で担う
-- 配信オリジンは env(`MEDIA_ORIGIN`)で供給する([0030](0030-environment-variable-management.md))。`remotePatterns` と CSP の `img-src`([0111](0111-csp-security-headers.md))の**両方**に同一オリジンを登録し、**ワイルドカードは使わない**
-- **`mediaUrl()` はオリジンの前置ではなく閉じ込めである。** キーは検証されないまま届くため、`data:` のように自分でスキームを持つ値は前置をすり抜けて配信元の外を指す。`next/image` はスキームを持つ値を最適化の経路から外すので、`remotePatterns` の許可はこの経路に効かない。**組み立てた URL が配信元の下に収まらなければ表示 URL を作らない**(代替画像へ倒す)
-- **配信 host は、ブラウザではなく Next.js を動かすホストが解決できなければならない。** `next/image` の最適化は**サーバ側の fetch** なので、名前解決はブラウザ側では済まない。`*.localhost` のように、ブラウザと一部の OS だけが自前で解決する名前を配信 origin に採ると、glibc の Linux コンテナや CI では解決せず、そこでだけ画像が出ない。採るなら実行ホスト側の解決を併せて用意する
-- private なオブジェクトを扱う必要が生じた場合は、署名付き URL の発行を backend の責務とする([0075](0075-file-upload-seam.md) と同型)。フロントに配信レイヤを生やして解決しない
-- **通常の API 契約に blur プレースホルダ(`blurDataURL`)は載せない** — バックエンド由来画像では自前供給が必要で、一覧レスポンスが件数分肥大するため。`MediaImage` は `next/image` 標準の `placeholder` / `blurDataURL` を明示的に渡す利用(静的 import を含む)は妨げない。一方、既定は `components` カーネルの**アスペクト比固定 + CSS Skeleton**によるローディングとし、`"use client"` を要しない。LCP になる画像(一覧先頭・詳細のメイン)は `preload` を指定して Skeleton を挟まない
+- What the backend returns is an **object key** (e.g. `{resource}/{uuid}.{ext}`), and **assembling the display URL is the frontend's responsibility** (the backend is not made to store full URLs)
+- Storage is assumed to be **public storage** (anonymous read allowed / listing not allowed). Therefore this repository **places no serving proxy (Route Handler)**. What it holds is only a pure function that prefixes the serving origin (`mediaUrl()`) and `images.remotePatterns` in `next.config.ts`; `next/image` alone handles optimization
+- The serving origin is supplied by env (`MEDIA_ORIGIN`) ([0030](0030-environment-variable-management.md)). The same origin is registered in **both** `remotePatterns` and the CSP `img-src` ([0111](0111-csp-security-headers.md)), and **no wildcard is used**
+- **`mediaUrl()` is confinement, not prefixing the origin.** Keys arrive unvalidated, so a value that carries its own scheme, such as `data:`, slips past the prefix and points outside the serving origin. `next/image` takes values with a scheme off the optimization path, so the `remotePatterns` allowance has no effect on this path. **If the assembled URL does not fall under the serving origin, no display URL is produced** (it falls back to a substitute image)
+- **The serving host must be resolvable by the host running Next.js, not by the browser.** `next/image` optimization is **a server-side fetch**, so name resolution is not settled on the browser side. If a name that only browsers and some OSes resolve on their own, such as `*.localhost`, is taken as the serving origin, it does not resolve in glibc Linux containers or CI, and images fail to appear only there. If you take one, also provide resolution on the execution host side
+- If private objects need to be handled, issuing signed URLs is the backend's responsibility (the same shape as [0075](0075-file-upload-seam.md)). It is not solved by growing a serving layer on the frontend
+- **No blur placeholder (`blurDataURL`) is put in the ordinary API contract** — backend-originated images would need it supplied by us, and list responses would bloat by the number of items. `MediaImage` does not prevent usage that explicitly passes `next/image`'s standard `placeholder` / `blurDataURL` (including static imports). Meanwhile, the default is loading via **a fixed aspect ratio + CSS Skeleton** in the `components` kernel, which needs no `"use client"`. Images that become the LCP (the top of a list, the main image of a detail page) specify `preload` and do not put a Skeleton in between
 
-### 3. `public/` の扱い
+### 3. Handling `public/`
 
-- `public/` は **静的アセット(favicon / 装飾画像 / 静的ファイル)** の置き場とする([AGENTS.md](../../AGENTS.md) AI Modification Scope で追加が許可される数少ないルート外パス)。ビルドを要さず配信されるものに限る
-- コンポーネントに結合する画像は **static import して `next/image` に渡す**のを推奨する(幅・高さ・`blurDataURL` が自動決定され CLS 防止に載る)。`public/` のパス文字列を `next/image` に渡す場合も最適化自体はされるが、`width` / `height` の手動指定が必要になる。`next/image` を介さない直リンク参照は最適化に載らない
+- `public/` is the home of **static assets (favicon / decorative images / static files)** (one of the few paths outside the source root where [AGENTS.md](../../AGENTS.md) AI Modification Scope permits additions). It is limited to what is served without a build
+- For images tied to a component, **static import and passing to `next/image`** is recommended (width, height and `blurDataURL` are determined automatically, feeding CLS prevention). Passing a `public/` path string to `next/image` is still optimized, but `width` / `height` must be specified by hand. A direct-link reference that does not go through `next/image` gets no optimization
 
-### 4. 動的 OG 画像
+### 4. Dynamic OG images
 
-- 動的 OG 画像は Next.js の **`ImageResponse`(`opengraph-image` 特殊ファイル)** で生成する([0028](0028-naming-convention.md) の特殊ファイル命名)。メタデータ全般は [0044](0044-seo-metadata-strategy.md) が所有する App Router の Metadata API で扱う
+- Dynamic OG images are generated with Next.js's **`ImageResponse` (the `opengraph-image` special file)** (special-file naming of [0028](0028-naming-convention.md)). Metadata in general is handled with the App Router Metadata API, owned by [0044](0044-seo-metadata-strategy.md)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ Web フォントを外部 CDN 直参照 / 手動 `@font-face` で読むこと(`next/font` を使う)（強制: CSP の `font-src 'self'` と E2E の `securitypolicyviolation` の見張りが外部 CDN からの読み込みを落とす。自前配信の手動 `@font-face` は散文 —— **寄せられる**（`src/**/*.css` の `@font-face` を gate で落とす形。規則は無い））
-- ❌ ラスター画像に生の `<img>` を使うこと(`next/image`。装飾 SVG 等は例外)（強制: biome `noImgElement`（next ドメイン。`--error-on-warnings` で生の `<img>` を落とす））
-- ❌ `public/` にビルドを要する / 秘匿すべきファイルを置くこと(静的公開アセットのみ)（強制: gitleaks（`gitleaks` workflow と `make secret-scan`）が `public/` を含む秘密値の形を落とす。ビルドを要するファイルは散文 —— **寄せられる**（`public/` 配下の拡張子を許可リストで gate する形。規則は無い））
-- ❌ バックエンド由来画像のために自前の配信経路(`/cdn` 等の Route Handler プロキシ)を作ること(§2.1。public storage + `next/image` で賄う)（強制: 持たない —— 採らない決定。画像の配信用 Route Handler を置いていないこと自体が状態で、足せば `route.ts` の追加として差分に現れる）
-- ❌ `images.remotePatterns` にワイルドカードのオリジンを登録すること(配信元は明示的に列挙する)（強制: 散文 —— **寄せられる**（`MEDIA_ORIGIN` の検証器で host に `*` を含む値を拒む形。検査は無い））
+- ❌ Loading web fonts by direct reference to an external CDN / a hand-written `@font-face` (use `next/font`) (Enforcement: the CSP `font-src 'self'` and the E2E `securitypolicyviolation` watch reject loading from external CDNs. A hand-written `@font-face` served by ourselves is Prose — **mechanizable** (the form where a gate rejects `@font-face` in `src/**/*.css`; no rule exists))
+- ❌ Using raw `<img>` for raster images (`next/image`; decorative SVG and the like are exceptions) (Enforcement: biome `noImgElement` (next domain; `--error-on-warnings` rejects raw `<img>`))
+- ❌ Placing files that need a build / must be kept secret in `public/` (static public assets only) (Enforcement: gitleaks (the `gitleaks` workflow and `make secret-scan`) rejects secret-shaped values, including in `public/`. Files that need a build are Prose — **mechanizable** (the form where a gate checks the extensions under `public/` against an allow list; no rule exists))
+- ❌ Building a serving path of our own for backend-originated images (a Route Handler proxy such as `/cdn`) (§2.1; covered by public storage + `next/image`) (Enforcement: none — a decision not to adopt. Not having a Route Handler for serving images is itself the state; adding one shows up in the diff as the addition of a `route.ts`)
+- ❌ Registering a wildcard origin in `images.remotePatterns` (serving origins are enumerated explicitly) (Enforcement: Prose — **mechanizable** (the form where the `MEDIA_ORIGIN` validator rejects values whose host contains `*`; no check exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md) — SEO / メタデータ戦略(OG 画像・メタデータの所有者。責務境界を共有)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router / Metadata API / 特殊ファイル
-- [0027-directory-structure.md](0027-directory-structure.md) — `src/app/` / `public/` 配置
-- [0028-naming-convention.md](0028-naming-convention.md) — `opengraph-image` 等の特殊ファイル命名
-- [0011-no-docker.md](0011-no-docker.md) — 配送前提(画像最適化 loader の選択)
-- [0051-styling-system.md](0051-styling-system.md) — 書体の役割(semantic 層)と和文本文書体の扱い
-- [0101-performance-budget.md](0101-performance-budget.md) — フォント / 画像は CWV(LCP / CLS)に直結
+- [0044-seo-metadata-strategy.md](0044-seo-metadata-strategy.md) — SEO / metadata strategy (owner of OG images and metadata; shares responsibility boundaries)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — App Router / Metadata API / special files
+- [0027-directory-structure.md](0027-directory-structure.md) — placement of `src/app/` / `public/`
+- [0028-naming-convention.md](0028-naming-convention.md) — special-file naming such as `opengraph-image`
+- [0011-no-docker.md](0011-no-docker.md) — delivery premise (choosing the image-optimization loader)
+- [0051-styling-system.md](0051-styling-system.md) — typeface roles (semantic layer) and the handling of the Japanese body typeface
+- [0101-performance-budget.md](0101-performance-budget.md) — fonts / images tie directly into CWV (LCP / CLS)

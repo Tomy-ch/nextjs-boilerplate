@@ -31,7 +31,7 @@ portal は canonical ドキュメントの生成ビューである。何を載�
 
 ### 3. portal ↔ docs の責務分担
 
-- **manifest = 構造制御のみ**(何をどのグループ / section に、どの順で置くか)。**カードの中身は README が正**([0140](0140-documentation-operations.ja.md) canonical / [0021](0021-frontend-responsibility.md) per-package README)
+- **manifest = 構造制御のみ**(何をどのグループ / section に、どの順で置くか)。**カードの中身は README が正**([0140](0140-documentation-operations.ja.md) canonical / [0021](0021-frontend-responsibility.ja.md) per-package README)
 - portal は **canonical ドキュメントの生成ビュー**であり、内容の SSOT を持たない(内容は canonical README / `docs/**` 側)
 
 ### 4. 生成・配信
@@ -63,6 +63,6 @@ portal は canonical ドキュメントの生成ビューである。何を載�
 ## 関連 ADR
 
 - [0140-documentation-operations.md](0140-documentation-operations.ja.md) — canonical / 三層戦略・per-package README(本 ADR の親決定。portal は第 3 層)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — レイヤー別 README(portal カードの供給元)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — レイヤー別 README(portal カードの供給元)
 - [0155-claude-skills-development.md](0155-claude-skills-development.ja.md) — readme-review / sync-readme / portal-manifest-sync の公認(開発系。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.ja.md) と共通)
-- [0153-ci-configuration.md](0153-ci-configuration.md) — GitHub Pages 配信の workflow(Documentation グループ)
+- [0153-ci-configuration.md](0153-ci-configuration.ja.md) — GitHub Pages 配信の workflow(Documentation グループ)

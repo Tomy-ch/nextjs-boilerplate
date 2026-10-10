@@ -1,146 +1,121 @@
-# エラーハンドリング
+# Error Handling
 
-[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) で枠を予約した **`errors` カーネル** の中身を確定する。**protocol-agnostic なエラー分類(sentinel)/ 境界での HTTP status 正規化 / App Router のエラー特殊ファイル階層 / `loading.tsx`・Suspense fallback の待機表示 / swallow 禁止・cause chain / ログ出力タイミング** を定める。
+Settles the contents of the **`errors` kernel**, whose frame was reserved by [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md). It defines **a protocol-agnostic error classification (sentinels) / HTTP status normalization at the boundary / the App Router special-file hierarchy for errors / loading UI in `loading.tsx` and Suspense fallbacks / no swallowing and cause chains / when logs are emitted**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Error Boundary 階層・バックエンドエラーの正規化・ログ出力タイミングは、決めずに置くと feature ごとに別の形で書かれる。本 ADR がこれらを確定する。
+Left undecided, the responsibilities of App Router's `error.tsx` / `not-found.tsx` / `global-error.tsx`, the Error Boundary hierarchy, normalization of backend errors and the timing of log output get written in a different shape per feature. This ADR settles them.
 
-エラー分類を **transport に依存しない sentinel** として定義し、**プロトコルへの写像は境界(edge)でのみ**行い、**swallow 禁止 / cause chain 優先 / redact** を規約化する —— 分類が HTTP を知ると `model` が HTTP を知ることになり、写像が散ると同じ status が場所ごとに別の分類へ落ちる。本 ADR はこの構造を表示層へ敷く。
+The error classification is defined as **transport-independent sentinels**, **mapping to a protocol is done only at the boundary (edge)**, and **no swallowing / cause chains first / redaction** are made conventions — if the classification knew HTTP, `model` would know HTTP, and if the mapping were scattered, the same status would fall into a different classification depending on where it happened. This ADR lays this structure over the presentation layer.
 
-## 決定
+## Decision
 
-### 1. `errors` カーネル: protocol-agnostic な sentinel 分類
+### 1. The `errors` kernel: protocol-agnostic sentinel classification
 
-- `errors` カーネルに **transport 非依存のエラー分類(sentinel)** を定義する。HTTP status やレスポンス形式はここに持たない
-- 分類は全層から参照可([0021](0021-frontend-responsibility.md) errors。`model` が依存してよい唯一のカーネル)
-- HTTP に関連する分類(表示層で扱うもの)。sentinel の一次キーは **HTTP status**(曖昧さがない)とし、安定エラーコードは分類ごとに `errors` カタログが持つ(下記「エラーコード語彙」参照):
+- Define **a transport-independent error classification (sentinels)** in the `errors` kernel. HTTP statuses and response formats are not held here
+- The classification is referable from every layer ([0021](0021-frontend-responsibility.md) errors; the only kernel `model` may depend on)
+- The HTTP-related classifications (those the presentation layer handles). The primary key of a sentinel is the **HTTP status** (unambiguous), and the stable error code per classification is held by the `errors` catalog (see "error code vocabulary" below):
 
-| sentinel(分類) | 安定エラーコード | HTTP status | 系統 |
+| Sentinel (classification) | Stable error code | HTTP status | Origin |
 | --- | --- | --- | --- |
-| InvalidArgument | `BAD_REQUEST` | 400 | ユーザ起因 |
-| Unauthenticated | `UNAUTHENTICATED` | 401 | ユーザ起因 |
-| PermissionDenied | `FORBIDDEN` | 403 | ユーザ起因 |
-| NotFound | `NOT_FOUND` | 404 | ユーザ起因 |
-| Conflict | `RESOURCE_CONFLICT` | 409 | ユーザ起因 |
-| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | ユーザ起因 |
-| UriTooLong | `URI_TOO_LONG` | 414 | ユーザ起因 |
-| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | ユーザ起因 |
-| Validation | `VALIDATION_FAILED` | 422 | ユーザ起因 |
-| TooManyRequests | `TOO_MANY_REQUESTS` | 429 | ユーザ起因 |
-| Canceled | `CANCELED` | 499 | ユーザ起因 |
-| Unavailable | `SERVICE_UNAVAILABLE` | 503 | システム起因(リトライ含意) |
-| Unimplemented | `NOT_IMPLEMENTED` | 501 | システム起因 |
-| Internal | `INTERNAL` | 500 | システム起因 |
+| InvalidArgument | `BAD_REQUEST` | 400 | User-caused |
+| Unauthenticated | `UNAUTHENTICATED` | 401 | User-caused |
+| PermissionDenied | `FORBIDDEN` | 403 | User-caused |
+| NotFound | `NOT_FOUND` | 404 | User-caused |
+| Conflict | `RESOURCE_CONFLICT` | 409 | User-caused |
+| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | User-caused |
+| UriTooLong | `URI_TOO_LONG` | 414 | User-caused |
+| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | User-caused |
+| Validation | `VALIDATION_FAILED` | 422 | User-caused |
+| TooManyRequests | `TOO_MANY_REQUESTS` | 429 | User-caused |
+| Canceled | `CANCELED` | 499 | User-caused |
+| Unavailable | `SERVICE_UNAVAILABLE` | 503 | System-caused (implies retry) |
+| Unimplemented | `NOT_IMPLEMENTED` | 501 | System-caused |
+| Internal | `INTERNAL` | 500 | System-caused |
 
-表の sentinel 名は分類の概念名である。コード上は、値を kebab-case の文字列(`"invalid-argument"`)、名前付き定数を UPPER_SNAKE_CASE(`ErrorKind.INVALID_ARGUMENT`。定数の形は [0028](0028-naming-convention.md))で持ち、どちらも同じ分類を指す。
+The sentinel names in the table are the conceptual names of the classifications. In code, the value is held as a kebab-case string (`"invalid-argument"`) and the named constant as UPPER_SNAKE_CASE (`ErrorKind.INVALID_ARGUMENT`; the shape of constants is [0028](0028-naming-convention.md)), and both point at the same classification.
 
-- **worker 向けの分類(再試行可能 / 恒久 / 致命)は採らない**。メッセージング worker 固有の軸であり、表示層は HTTP taxonomy のみを持つ
-- **エラーコード語彙はこの repo が持つ**: 上表のコードは分類ごとに `errors` カタログが生成する**この repo の語彙**であり、**wire へ出ることは無い**(route が返す失敗は文言だけを載せる)。境界も接続先の `code` を読まない(下記 2)。**契約は `ErrorResponse.code` の値域を宣言していない**(`type: string`)ため、生成物から突き合わせる手段も無い。したがってバックエンドの綴りへ機械的に寄せることはせず、**分類の意味に対して正しい名前を選ぶ**(401 は認証が成立していないので `UNAUTHENTICATED`、403 は認可の拒否なので `FORBIDDEN`)。エラーコードは wire contract の値ではないため、[0028](0028-naming-convention.md) の「命名の権威をバックエンドに置かない」がそのまま効く。人がログを突き合わせるときの対応は HTTP status で取れる —— 一次キーが status であることが、綴りの一致より確実な対応づけになる。フロント内部で追加の分類ラベルが要る場合も、この語彙と競合させない
-- **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる
-- **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。要求の本体が大きいのと、条件を載せた URL が長いのとでは、利用者が減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
+- **Worker-oriented classifications (retryable / permanent / fatal) are not adopted**. That is an axis specific to messaging workers; the presentation layer holds only the HTTP taxonomy
+- **The error code vocabulary is owned by this repo**: the codes in the table above are **this repo's vocabulary**, generated per classification by the `errors` catalog, and **never go out on the wire** (a failure a route returns carries only the message). The boundary does not read the connected service's `code` either (2 below). **The contract does not declare the value range of `ErrorResponse.code`** (`type: string`), so there is no means of matching it against the generated artifacts either. We therefore do not mechanically align with the backend's spelling, and instead **choose the name that is correct for the meaning of the classification** (401 is `UNAUTHENTICATED` because authentication has not been established, 403 is `FORBIDDEN` because authorization was refused). Error codes are not values of the wire contract, so [0028](0028-naming-convention.md)'s rule of not placing naming authority in the backend applies as is. When people match up logs, the correspondence can be taken by HTTP status — the primary key being the status is a more reliable correspondence than matching spellings. If an additional classification label is needed inside the frontend, it is not made to compete with this vocabulary either
+- **`Canceled` (status 499, non-standard) is adopted as an independent classification**. Aborting a fetch (the dual timeout / `AbortSignal` of [0071](0071-bff-api-integration.md)) is a cut-off, not a failure, and folding it into a system-caused failure would make it a retry target
+- **`UriTooLong` (414) is held separately from `PayloadTooLarge` (413)**. A large request body and a long URL carrying conditions differ in what the user should reduce. Folding them together can only say "the data being sent is too large", and does not convey that reducing the conditions would do
 
-### 2. 境界での HTTP status 正規化(1 回のみ)
+### 2. HTTP status normalization at the boundary (once only)
 
-- バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.md) の「生 status を errors へ正規化」の詳細 = 本 ADR)
-- **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.md) と一致)。未知エラーは `Internal`(500)へ矯正する
-- ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は分類ごとにカタログが持つ(本 ADR は分類とコードの対応表を定める)
-- **失敗した応答の本文から読むのは `details` だけ。** 契約が詳細識別子を宣言した status（`ErrorResponseWithDetails`
-  を宣言した口）に限って本文を読み、`ErrorMeta.details` へ載せる。項目名を表示名へ写すのは feature / form の側。
-  **`message` は読まない** —— 接続先が選んだ文言をそのまま出すことになり、こちらが選んでいない文字列が利用者へ
-  出る（文言は分類ごとにカタログが持つ）。**`code` も読まない** —— `ErrorResponse.code` に値域の宣言が無いため、
-  綴りで分岐しても契約を再生成して食い違いを検出できない。分類の一次キーは HTTP status のままとする
-- **失敗応答の追加情報として境界が持つのは `requestId` と `details` の 2 つ**とする。`traceId` / `correlationId`、
-  `fieldErrors` のようなオブジェクト配列、その他の形は採らない。接続先がそれらを採る場合は、`adapters` の応答変換と
-  `ErrorMeta` を契約に合わせて変える —— 内層は `ErrorMeta` しか見ないので、変える場所はそこに閉じる
-- **本文を読めなかったことで、元の失敗をすり替えない。** 本文が JSON でない・契約と違う形であることは経路上
-  起こり得るが、いずれも「詳細が無い」に畳む。応答を得られなかった試行は、前の試行が名指しした項目を
-  引き継がない（分類と詳細が別々の試行のものになる）
-- **クライアント経路も同じ境界で分類する。** 同一オリジンの BFF を叩く `adapters/client` も生 status を
-  そのまま投げ直さず、この対応表へ写す。特に `Unauthenticated`(401)を `Internal` へ畳まないこと ——
-  畳むと呼び出し側は「再試行できる失敗」としか扱えず、資格情報が切れているのに読み直す操作しか
-  出せない画面になる(再試行は 401 / 403 / 404 では誤り。`components/app-starter/auth-state-feedback`)
-- **補助的な値の degrade は、画面ごとに決めさせず境界で 1 度畳む。** 表示のためだけにあり、
-  読めなくても画面が成り立つ値(別の口から引く補足表示のような添え物)は、`adapters` に「読めなければ `null`」を
-  返す口を置き、投げる口も残す。画面ごとに try / catch を書かせると、同じ判断が画面の数だけ増え、
-  片方だけが落ちる画面が生まれる。**逆に、落として良いかどうかが画面で割れる値は畳まない** ——
-  畳めるのは「どの画面も同じ扱いをする」ことが言い切れるときだけである
+- The conversion from the backend response's raw HTTP status → sentinel classification + stable error code + user-facing message is done **exactly once, at the `adapters` boundary** (the details of [0071](0071-bff-api-integration.md)'s normalization of raw statuses into `errors` = this ADR)
+- **Raw HTTP statuses and raw errors are not leaked to inner layers / the UI** (consistent with [0071](0071-bff-api-integration.md)). Unknown errors are coerced to `Internal` (500)
+- User-facing messages are in Japanese (AGENTS.md Language Rules). The message text is held by the catalog per classification (this ADR defines the correspondence table between classifications and codes)
+- **From the body of a failed response, only `details` is read.** The body is read only for statuses for which the contract declared detail identifiers (endpoints that declared `ErrorResponseWithDetails`), and put into `ErrorMeta.details`. Mapping field names to display names is on the feature / form side. **`message` is not read** — it would show the wording the connected service chose as is, so a string we did not choose would reach the user (messages are held by the catalog per classification). **`code` is not read either** — `ErrorResponse.code` has no declared value range, so even if we branched on its spelling, regenerating the contract could not detect a mismatch. The primary key of the classification stays the HTTP status
+- **The additional information the boundary holds for a failed response is two items: `requestId` and `details`**. `traceId` / `correlationId`, arrays of objects such as `fieldErrors`, and other shapes are not adopted. If the connected service adopts them, change the response conversion in `adapters` and `ErrorMeta` to match the contract — inner layers see only `ErrorMeta`, so the place to change is closed there
+- **Failing to read the body does not substitute for the original failure.** A body that is not JSON or has a shape different from the contract can occur on the path, but either case is folded into "no details". An attempt that got no response does not inherit the fields a previous attempt named (the classification and the details would come from different attempts)
+- **The client path is classified at the same boundary too.** `adapters/client`, which calls the same-origin BFF, does not rethrow raw statuses as is either, and maps them to this correspondence table. In particular, do not fold `Unauthenticated` (401) into `Internal` — folding it lets the caller treat it only as "a failure that can be retried", producing a screen that can offer only a reload while the credential has expired (retrying is wrong for 401 / 403 / 404; `components/app-starter/auth-state-feedback`)
+- **Degrading auxiliary values is folded once at the boundary instead of being decided per screen.** For a value that exists only for display and without which the screen still works (an accessory such as supplementary display pulled from another endpoint), place in `adapters` a variant that returns `null` when unreadable, and keep the throwing variant too. Making each screen write try / catch multiplies the same judgment by the number of screens, and produces screens where only one side fails. **Conversely, a value where screens disagree on whether it may be dropped is not folded** — folding is possible only when it can be asserted that "every screen treats it the same way"
 
-### 3. App Router のエラー特殊ファイル階層
+### 3. The App Router special-file hierarchy for errors
 
-- `error.tsx`(セグメント境界の recovery UI)/ `global-error.tsx`(root layout のエラー)/ `not-found.tsx`(404)は、**正規化済みのエラーコード / メッセージを表示するだけ**の薄い境界とする。生エラー・スタックを画面へ漏らさない
-- **production の redact 挙動に注意**(Next.js 公式 `error.js` file convention): production では **Server Component から throw されたエラーの `message` は redact され**、client の error boundary(`error.tsx`)には**汎用メッセージ + `error.digest`(サーバログ突合用の自動生成ハッシュ)のみ**が伝播する(Client Component 由来の throw は原文メッセージが渡る)。したがって「正規化済みメッセージの表示」を **throw 経路に頼らない**こと。ユーザ向けメッセージは次のいずれかで解決する:
-  - (a) **期待エラー(主にユーザ起因 4xx 系)**: throw せず **Server Action の戻り値(ActionState / `useActionState`)として値で渡す**(公式ガイド「expected errors は return value でモデル化」。[0040](0040-routing-rendering-strategy.md) の Server Actions 採用と整合)
-  - (b) **予期しないエラー(システム起因 5xx 系)**: `error.tsx` は汎用文言 + `digest` の表示にとどめ、`digest` と境界ログ(下記 6)の突合で原因を解決する
+- `error.tsx` (recovery UI at a segment boundary) / `global-error.tsx` (errors in the root layout) / `not-found.tsx` (404) are thin boundaries that **only display the normalized error code / message**. Raw errors and stacks are not leaked to the screen
+- **Mind the production redaction behaviour** (the official Next.js `error.js` file convention): in production, **the `message` of an error thrown from a Server Component is redacted**, and the client error boundary (`error.tsx`) receives **only a generic message + `error.digest` (an auto-generated hash for matching against server logs)** (a throw originating in a Client Component passes the original message). Therefore **do not rely on the throw path** for "displaying the normalized message". User-facing messages are resolved by one of the following:
+  - (a) **Expected errors (mainly user-caused 4xx)**: do not throw; **pass them as values in the Server Action's return value (ActionState / `useActionState`)** (the official guide's "model expected errors as return values"; consistent with [0040](0040-routing-rendering-strategy.md)'s adoption of Server Actions)
+  - (b) **Unexpected errors (system-caused 5xx)**: `error.tsx` stays at displaying generic wording + `digest`, and the cause is resolved by matching `digest` against the boundary log (6 below)
 
-  いずれも本 ADR の分類(上記 1 の系統列)・境界正規化(上記 2)と両立する。どの feature がどちらを使うかは feature ごとに決める
-- 配置は **`src/app/` 配下の route セグメント単位**(App Router の規約上、特殊ファイルは `app/` 配下でのみ機能する — [0027](0027-directory-structure.md)。特殊ファイル命名は [0028](0028-naming-convention.md))。Error Boundary の粒度はセグメント階層に従う。エラー表示の中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する([0040](0040-routing-rendering-strategy.md) driving adapter 原則)
-- `error.tsx` 等に**業務ロジックを書かない**([0040](0040-routing-rendering-strategy.md) driving adapter)
+  Both are compatible with this ADR's classification (the origin column in 1 above) and boundary normalization (2 above). Which one a feature uses is decided per feature
+- Placement is **per route segment under `src/app/`** (by App Router convention, special files work only under `app/` — [0027](0027-directory-structure.md); special-file naming is [0028](0028-naming-convention.md)). The granularity of Error Boundaries follows the segment hierarchy. The component for the error display's contents is placed on the feature side, and the special file delegates to it thinly ([0040](0040-routing-rendering-strategy.md) driving adapter principle)
+- **No business logic is written** in `error.tsx` and the like ([0040](0040-routing-rendering-strategy.md) driving adapter)
 
-### 4. `loading.tsx` / Suspense fallback の待機表示
+### 4. Loading UI in `loading.tsx` / Suspense fallbacks
 
-異常系 = `error.tsx`(上記 3)と対になる **正常系の待機表示 = `loading.tsx` / `<Suspense fallback>`** を、同じ「薄い表示境界」の規律に載せる:
+The **loading UI of the normal path = `loading.tsx` / `<Suspense fallback>`**, the counterpart of the abnormal path = `error.tsx` (3 above), is put under the same discipline of a "thin display boundary":
 
-- `loading.tsx`(セグメントの pending UI)と `<Suspense fallback>` は、**待機表示を担う薄い表示境界**とする。`error.tsx` と対をなし、いずれも業務ロジックを持たない。中身のコンポーネントは feature 側に置き、特殊ファイルからは薄く委譲する(error.tsx と同じ / [0040](0040-routing-rendering-strategy.md) driving adapter 原則)
-- **`<Suspense>` 境界をどこへ置くか(粒度)は [0040](0040-routing-rendering-strategy.md)「境界の粒度」が持つ。** ここで定めるのは、置かれた境界の fallback が業務ロジックを持たない薄い表示境界であることまでである
-- `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))である
-- **一次資源が見つからないことは 200 で配信される。** [0041](0041-cache-components-decision.md) により
-  `Cache Components` が有効な間、動的な route は必ず殻から流れる。本文より先にヘッダが出るため、その後で
-  `notFound()` に達しても status はもう 200 で、存在しない 1 件を指す URL が 200 として配信される。
-  **これは route 側の書き方では解けない** —— `loading.tsx` を置かなくても、`<Suspense>` を使わなくても、
-  `export const instant = false` を名乗っても変わらない。Next 自身が案内する回避は `proxy` での事前確認だが、
-  [0043](0043-middleware-policy.md) は `proxy` を cookie を読むだけの前捌きに限っており、採らない
-- **見つからないことは `noindex` と画面が伝える。** status で伝えられない以上、伝える手段は
-  `not-found.tsx` が返す画面と、`notFound()` が挿す `<meta name="robots" content="noindex">` である。
-  索引はこれで防げる。**防げないのは status で判定する読み手** —— 外形監視・DAST・非 JS クライアントからは
-  成功と区別できない。この代償は [0041](0041-cache-components-decision.md) で引き受けた
-- **その結果、待機の状態を持たない画面がある。** [`docs/rules.md#states`](../rules.md#states)の「各画面は loading、empty、error、success の 4 状態を設計する」は「4 つ必ず作る」ではなく
-  「4 つを設計して、所有するものを実装・テストする」である。所有しない状態の部品を作ると、
-  どこからも参照されない skeleton が残る。**所有しないと決めたことと、その理由を README に書く**
-- **Suspense × PPR の相互作用**: `Cache Components` は有効なので([0041](0041-cache-components-decision.md))、`<Suspense>` の位置は**静的な殻と動的な穴の境界そのもの**であり、その置き方は [0040](0040-routing-rendering-strategy.md) が持つ。fallback は、その穴が埋まるまでの殻の一部として配られる
-- **fallback は場所を取る。** 穴が埋まる瞬間に周りが動かないよう、待機表示は実物と同じ大きさの枠を出す([`docs/rules.md#states`](../rules.md#states)の「loading は形状が近い skeleton を優先する」と、「UI 部品と操作」の「状態によって出入りする表示のせいで、操作の位置を動かさない」)。描くものを持たない穴(計測など)だけが `null` を fallback にしてよい
-- fallback の**見た目(スケルトン / スピナー)の UI 規約**は用途依存であり、ここでは確定しない
+- `loading.tsx` (a segment's pending UI) and `<Suspense fallback>` are **thin display boundaries responsible for the loading UI**. They pair with `error.tsx`, and none of them holds business logic. The content component is placed on the feature side, and the special file delegates to it thinly (same as error.tsx / [0040](0040-routing-rendering-strategy.md) driving adapter principle)
+- **Where to place `<Suspense>` boundaries (their granularity) is owned by [0040](0040-routing-rendering-strategy.md)'s rule on boundary granularity.** What is defined here goes only as far as the fallback of a placed boundary being a thin display boundary with no business logic
+- `loading.tsx` is also an App Router special file under `app/` ([0027](0027-directory-structure.md) / [0028](0028-naming-convention.md))
+- **A missing primary resource is served with 200.** Under [0041](0041-cache-components-decision.md), while `Cache Components` is enabled, a dynamic route always streams from the static shell. Headers go out before the body, so even if `notFound()` is reached afterwards the status is already 200, and a URL pointing at a nonexistent item is served as 200. **This cannot be solved by how the route is written** — it does not change without `loading.tsx`, without `<Suspense>`, or by declaring `export const instant = false`. The workaround Next itself suggests is a pre-check in `proxy`, but [0043](0043-middleware-policy.md) limits `proxy` to a pre-filter that only reads cookies, so it is not adopted
+- **Not-found is conveyed by `noindex` and the screen.** Since the status cannot convey it, the means of conveying it are the screen `not-found.tsx` returns and the `<meta name="robots" content="noindex">` that `notFound()` inserts. This prevents indexing. **What it cannot prevent is readers that judge by status** — external monitoring, DAST and non-JS clients cannot distinguish it from success. This cost was accepted in [0041](0041-cache-components-decision.md)
+- **As a result, some screens have no loading state.** "Each screen designs the four states loading, empty, error and success" in `docs/rules.md` *State Display and Loading* does not mean "always build all four" but "design the four, and implement and test the ones it owns". Building components for states it does not own leaves skeletons referenced from nowhere. **Write in the README that you decided not to own it, and why**
+- **Suspense × PPR interaction**: `Cache Components` is enabled ([0041](0041-cache-components-decision.md)), so the position of `<Suspense>` **is the boundary between the static shell and a dynamic hole itself**, and how to place it is owned by [0040](0040-routing-rendering-strategy.md). The fallback is served as part of the static shell until that dynamic hole fills
+- **A fallback takes up space.** So that the surroundings do not move the moment the dynamic hole fills, the loading UI renders a frame the same size as the real thing ("loading prefers a skeleton close in shape" in `docs/rules.md` *State Display and Loading*, and "do not move the position of controls because of displays that come and go with state" in *UI Components and Interaction*). Only a dynamic hole with nothing to render (measurement and the like) may use `null` as its fallback
+- **The UI convention for the fallback's look (skeleton / spinner)** depends on the use case and is not settled here
 
-### 5. swallow 禁止・cause chain・redact
+### 5. No swallowing, cause chains, redaction
 
-- **エラーを握り潰さない(swallow 禁止)**。各エラーは handle / wrap して伝播するか、論理的到達不能なら明示的に throw する
-- 原エラーの型・情報を鎖に残す。TypeScript の **`Error` の `cause`(`new Error(msg, { cause })`)で chain を保持**する
-- **秘匿情報を含むエラーは redact してから wrap** する。ログ・レスポンスに PII / token / password を出さない
+- **Errors are not swallowed (no swallowing)**. Each error is either handled / wrapped and propagated, or, if logically unreachable, thrown explicitly
+- The original error's type and information are kept in the chain. **The chain is kept with TypeScript's `Error` `cause` (`new Error(msg, { cause })`)**
+- **Errors containing confidential information are redacted before being wrapped**. PII / tokens / passwords are not put in logs or responses
 
-### 6. ログ出力タイミング
+### 6. When logs are emitted
 
-- エラーのログは **境界で 1 回**(`adapters` の正規化点 / route の error 境界)出力し、二重ログを抑止する
-- **5xx(システム起因)= error レベル / 4xx(ユーザ起因)= warn レベル**。ログの具体(スキーマ・出力先・trace 相関)は **[0081](0081-observability-logging.md)** が正
+- An error is logged **once at the boundary** (the normalization point in `adapters` / the route's error boundary), suppressing double logging
+- **5xx (system-caused) = error level / 4xx (user-caused) = warn level**. The specifics of logging (schema, destination, trace correlation) are authoritative in **[0081](0081-observability-logging.md)**
 
-### 境界の粒度
+### Boundary Granularity
 
-`error.tsx` は**失われて困る範囲の外側**に置く。境界の内側は丸ごと差し替わるため、境界が広いほど、1 つの取得の失敗で消える導線が増える。route 直下に置くのは、その route の本文が失敗しても header・nav・footer を残すためである。
+`error.tsx` is placed **outside the range whose loss would hurt**. Everything inside a boundary is swapped out wholesale, so the wider the boundary, the more paths disappear on a single fetch failure. It is placed directly under the route so that the header, nav and footer remain even if that route's body fails.
 
-**部分的な失敗を許す画面では、境界ではなく表示で受ける。** 落ちてよい 1 系統のために画面全体を差し替えない([0063](0063-mutation-result-notification.md) の通知手段を使う)。
+**On screens that tolerate partial failure, take it in the display rather than at a boundary.** Do not swap out the whole screen for one line of content that is allowed to fail (use the notification means of [0063](0063-mutation-result-notification.md)).
 
-**境界の文言が名指しできるのは、境界を置いた粒度までである。** 配下の画面をまとめて 1 枚で覆う境界には、どの画面が落ちたかが届かない。そこに置く文言は対象を言わない形にする。落ちた対象を名指しする文言が要るなら、境界をその画面ごとに置く —— 文言の要求が境界の粒度を決める。
+**A boundary's message can name only down to the granularity at which the boundary was placed.** A boundary that covers the screens beneath it with one sheet does not learn which screen failed. The message placed there takes a form that does not name the target. If a message naming the failed target is needed, place a boundary per such screen — the message's requirement decides the boundary's granularity.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `errors` カーネルに HTTP status / レスポンス形式を持たせること(分類は transport 非依存。変換は境界)（強制: ESLint `no-restricted-syntax`（`src/errors/**` で `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルを落とす）。数値の status やレスポンス形を別名で持つことは散文 —— **寄せられない**。数値や型の意味が transport 由来かは綴りからは決まらない）
-- ❌ 生 HTTP status・生エラー・スタックを内層 / UI へ漏らすこと(境界で正規化)
-- ❌ エラーを握り潰すこと(swallow 禁止)/ 秘匿情報を redact せずログ・レスポンスに出すこと（強制: `src/logging` の名前の表（`pino.server.test.ts` が固定）がログの秘匿項目を名前で伏せる。握り潰しは散文 —— **寄せられない**。値へ畳む `catch` が握り潰しか §2 の degrade かは意図で決まる）
-- ❌ `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallback に業務ロジックを書くこと(薄い表示境界)（強制: 散文 —— **寄せられない**。何が業務ロジックかは処理の意味で決まり、特殊ファイルの形からは決まらない）
-- ❌ 同一エラーを複数箇所で重複ログすること(境界で 1 回)（強制: 散文 —— **寄せられない**。同じエラーが複数回記録されるかは実行時の経路で決まり、1 箇所のコードの形からは決まらない）
-- ❌ `Unauthenticated`(401)を `Internal` へ畳むこと(§2。再試行できる失敗と混ざる)（強制: 散文 —— **寄せられない**。どの分類へ写すかは写像の中身で決まり、書かれたテストの範囲でしか見えない）
-- ❌ 画面が成り立つために要らない値の degrade を、画面ごとの try / catch で書くこと(§2。境界で畳む)（強制: 散文 —— **寄せられない**。値が画面の成立に要らないかは画面の意味で決まり、`try` / `catch` の形からは決まらない）
-- ❌ 一次資源の不在を status で伝えられる前提で設計すること(§4。有効な `Cache Components` の下では 200 で配信される)（強制: 散文 —— **寄せられない**。設計の前提であってコードに現れない）
-- ❌ 画面が所有しない状態の部品を作ること(§4。参照されない skeleton が残る)
+- ❌ Giving the `errors` kernel HTTP statuses / response formats (the classification is transport-independent; conversion is at the boundary) (Enforcement: ESLint `no-restricted-syntax` (rejects the identifiers `http` / `status` / `response` and `http(s)` string literals in `src/errors/**`). Holding numeric statuses or response shapes under other names is Prose — **not mechanizable**. Whether the meaning of a number or a type comes from the transport is not determined by its spelling)
+- ❌ Leaking raw HTTP statuses, raw errors or stacks to inner layers / the UI (normalize at the boundary)
+- ❌ Swallowing errors (no swallowing) / putting confidential information in logs or responses without redaction (Enforcement: the name table in `src/logging` (pinned by `pino.server.test.ts`) masks confidential log fields by name. Swallowing is Prose — **not mechanizable**. Whether a `catch` that folds into a value is swallowing or the degrade of §2 is decided by intent)
+- ❌ Writing business logic in `error.tsx` / `global-error.tsx` / `not-found.tsx` / `loading.tsx` / Suspense fallbacks (thin display boundaries) (Enforcement: Prose — **not mechanizable**. What is business logic is decided by the meaning of the processing, not by the shape of the special file)
+- ❌ Logging the same error in multiple places (once at the boundary) (Enforcement: Prose — **not mechanizable**. Whether the same error is recorded several times is decided by the runtime path, not by the shape of the code at one place)
+- ❌ Folding `Unauthenticated` (401) into `Internal` (§2; it gets mixed with retryable failures) (Enforcement: Prose — **not mechanizable**. Which classification it maps to is decided by the content of the mapping and is visible only within the range of written tests)
+- ❌ Writing the degrade of values the screen does not need in order to work as per-screen try / catch (§2; fold at the boundary) (Enforcement: Prose — **not mechanizable**. Whether a value is not needed for the screen to work is decided by the meaning of the screen, not by the shape of `try` / `catch`)
+- ❌ Designing on the premise that the absence of a primary resource can be conveyed by status (§4; under enabled `Cache Components` it is served with 200) (Enforcement: Prose — **not mechanizable**. It is a design premise and does not appear in code)
+- ❌ Building components for states the screen does not own (§4; leaves unreferenced skeletons)
 
-## 関連 ADR
+## Related ADRs
 
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `errors` カーネル(全層参照可 / `model` が依存してよい唯一)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — 生 status を errors 分類へ正規化する境界(本 ADR が対応表の詳細を定める)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — `Suspense` 境界の位置と粒度 / driving adapter 原則(`error.tsx` / `loading.tsx` の配置・責務は本 ADR が確定)
-- [0028-naming-convention.md](0028-naming-convention.md) — App Router 特殊ファイルの命名
-- [0081-observability-logging.md](0081-observability-logging.md) — エラーログのスキーマ・出力先・trace 相関
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — バックエンドエラーの契約(境界での正規化の前提)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the `errors` kernel (referable from every layer / the only one `model` may depend on)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — the boundary that normalizes raw statuses into the errors classification (this ADR defines the details of the correspondence table)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — the position and granularity of `Suspense` boundaries / the driving adapter principle (the placement and responsibilities of `error.tsx` / `loading.tsx` are settled by this ADR)
+- [0028-naming-convention.md](0028-naming-convention.md) — naming of App Router special files
+- [0081-observability-logging.md](0081-observability-logging.md) — schema, destination and trace correlation for error logs
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — the contract for backend errors (the premise of normalization at the boundary)

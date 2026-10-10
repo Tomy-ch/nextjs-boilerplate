@@ -1,70 +1,70 @@
-# デザインシステムの外部書き出し
+# Exporting the Design System
 
-本プロジェクトのデザインシステム(design token と `components` の在庫)を、**リポジトリの外にあるデザインツールへ渡す**ときの形を定める。対象は、デザインシステム全体を見渡して批評する・一部を作り直す・その上に新しい画面を設計する、といった repo の外で行う設計作業である。部品を変える作業そのものは対象にしない —— それは `src/components/` に対する通常の実装作業である。
+This ADR defines the shape in which this project's design system (design tokens and the contents of `components`) is **handed to design tools outside the repository**. The target is design work done outside the repo, such as surveying and critiquing the whole design system, remaking part of it, or designing new screens on top of it. Work that changes components itself is not the target — that is ordinary implementation work against `src/components/`.
 
-書き出しは 2 つの段に分かれる。**何を渡すか**(成果物)と、**どこへどう渡すか**(配送)である。前者はどの送り先でも同じものが要るのに対し、後者は送り先ごとに手順も到達経路も違う。本 ADR はこの 2 段をどこで切るか、そして書き出したものが repo へ戻ってくるかどうかを決める。[0010](0010-standards-and-non-lockin.md) が原則として置く「デザインツールとの依存は repo → ツールの一方向」の、決定本体がここである。
+Export is split into two stages: **what to hand over** (the deliverables) and **where and how to hand it over** (delivery). The former is the same for every destination, whereas the latter differs in procedure and reach per destination. This ADR decides where to cut between these two stages, and whether what was exported comes back into the repo. This is the decision body for "dependence on design tools is one-way, repo → tool", which [0010](0010-standards-and-non-lockin.md) sets as a principle.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **設計作業を実物の上で行わせる。** token も部品の在庫も repo にしか無いため、外で設計する側は推測で近いものを組み立てることになる。実物を渡せば、色・余白・部品の名前が repo と食い違わない
-- **送り先の固有名を恒久文書から締め出す。** 特定のデザインツールの手順や API の癖を ADR や script に書くと、そのツールを差し替えたときに repo の恒久部分を書き換えることになる([0010](0010-standards-and-non-lockin.md) 非ロックイン)
-- **デザインシステムの正を 1 つに保つ。** 外へ出した写しが repo へ流れ戻る経路を持つと、正がどちらにあるか分からなくなる
+- **Have design work done on the real thing.** Tokens and the contents of components exist only in the repo, so the side designing outside ends up assembling something close by guesswork. Handing over the real thing keeps colors, spacing and component names from diverging from the repo
+- **Keep destinations' proper names out of permanent documents.** Writing a particular design tool's procedures or API quirks in an ADR or script means rewriting permanent parts of the repo when that tool is swapped ([0010](0010-standards-and-non-lockin.md) non-lock-in)
+- **Keep a single authority for the design system.** If there is a path for a copy sent outside to flow back into the repo, it becomes unclear which side holds the authority
 
-## 成果物は tool 非依存で、配送だけが vendor を知る
+## The deliverables are tool-independent; only delivery knows the vendor
 
-書き出しの script(`pnpm design:bundle`)は**どの送り先も知らない**。出すのは、どの送り先でも入力になりうる 3 つだけである。
+The export script (`pnpm design:bundle`) **knows no destination**. It emits only three things that can be input to any destination.
 
-| 成果物 | 中身 | 何の入力になるか |
+| Deliverable | Contents | What it is input to |
 | --- | --- | --- |
-| `r/*.json` | shadcn registry の item。部品ごとのソースを inline し、題と用途を添える | registry を読めるツールはそのまま取り込む。読めないツールもソースとして読める |
-| `catalog.md` | 部品の目録。層・見出し・用途・その部品が**持たないもの**・story 名 | 最初に渡す 1 枚。デザインシステム全体を 1 ファイルで読める |
-| `tokens.css` | 生成済みの semantic token | 色・余白・書体。自前の変数体系を持つツールはこちらを読む |
+| `r/*.json` | shadcn registry items. Each component's source is inlined, with its title and purpose attached | Tools that can read a registry take it in as-is. Tools that cannot can still read it as source |
+| `catalog.md` | The inventory of components: layer, heading, purpose, what the component **does not hold**, story names | The first sheet to hand over. The whole design system can be read in one file |
+| `tokens.css` | The generated semantic tokens | Colors, spacing, typefaces. Tools with their own variable system read this |
 
-registry の形式を採るのは、部品を取り込むときに使っている形式をそのまま逆向きに出すためである([0052](0052-ui-component-policy.md))。目録の用途と責務境界は各部品の README から、story 名は Storybook の index から引く。README が部品の説明の正であり([0052](0052-ui-component-policy.md))、Storybook が部品の唯一の在庫リストである([0054](0054-ui-catalog-storybook.md))ため、目録のために別の説明を書かない。token は [0051](0051-styling-system.md) の生成物をそのまま載せる。
+The registry format is adopted to emit, in reverse, exactly the format used when taking components in ([0052](0052-ui-component-policy.md)). The inventory's purposes and responsibility boundaries are drawn from each component's README, and story names from the Storybook index. The README is the authority on component descriptions ([0052](0052-ui-component-policy.md)), and Storybook is the single list of what components exist ([0054](0054-ui-catalog-storybook.md)), so no separate description is written for the inventory. Tokens carry [0051](0051-styling-system.md)'s generated artifacts as-is.
 
-**送り先ごとに違う部分は、すべてエージェントの skill が持つ**([0154](0154-claude-skills-operations.md))。ファイルを読む assistant には bundle をそのまま渡し、editor の中でしか design content を作れないツールには、そのツールを操作できるエージェントへ bundle を正として渡す —— どちらの経路を採るかも、その手順も、skill の側にある。skill は repo の恒久部分に触れずに差し替えられる位置にあり、vendor の形をしたものはそこへ閉じ込める。
+**Everything that differs per destination is held by agent skills** ([0154](0154-claude-skills-operations.md)). An assistant that reads files is handed the bundle as-is; for a tool that can create design content only inside its editor, the bundle is handed as the authority to an agent that can operate that tool — which path to take, and its procedure, are on the skill's side. Skills sit where they can be swapped without touching permanent parts of the repo, and anything shaped like a vendor is confined there.
 
-**却下した案: script に送り先を書く。** `--target=<vendor>` のような分岐を script に持たせると、送り先が 1 つ増えるたびに script が増え、その vendor 名が `scripts/` と `package.json` に残る。送り先の手順は script より速く変わり、書き出しの形は変わらない。変わる速さが違うものを同じ場所に置かない。
+**Rejected: write destinations into the script.** Giving the script a branch such as `--target=<vendor>` makes the script grow every time a destination is added, and leaves that vendor's name in `scripts/` and `package.json`. Destination procedures change faster than scripts, while the shape of the export does not change. Do not put things that change at different speeds in the same place.
 
-**却下した案: 送り先ごとに専用の書き出しを持つ。** 「このツール向けの token 形式」「あのツール向けの部品一覧」と分けると、写しの数だけ drift の口が増える。成果物は 1 組にし、変換が要るならそれは配送の側で行う。
+**Rejected: a dedicated export per destination.** Splitting into "a token format for this tool" and "a component list for that tool" adds an endpoint for drift for every copy. The deliverables are one set, and if conversion is needed it is done on the delivery side.
 
-## 依存の向きは repo → design の一本
+## Dependence runs one way, repo → design
 
-**デザインツールが生成したものを、書き出しの経路から repo へ書き戻さない。** token も、部品のソースも、screenshot も戻さない。ツールの出力は**こう見えるべきという提案**であり、repo は**実際に出荷されるもの**である。提案を実装するなら、それは人が読んで何を採るかを決める、通常の実装作業である。
+**Do not write what a design tool generated back into the repo via the export path.** Not tokens, not component sources, not screenshots. A tool's output is **a proposal of how it should look**, and the repo is **what actually ships**. Implementing a proposal is ordinary implementation work in which a person reads it and decides what to take.
 
-提案を自動で流し込む経路を置くと、コードが誰も検証しないツールの出力を追い始め、そのツールがリポジトリの上流になる。そのとき正はツール側へ移っており、[0010](0010-standards-and-non-lockin.md) の「デザインシステムの正は repo にある」が崩れる。
+Placing a path that flows proposals in automatically makes the code start following the output of a tool nobody verifies, and that tool becomes the repository's upstream. At that point the authority has moved to the tool side, and [0010](0010-standards-and-non-lockin.md)'s "the authority for the design system is in the repo" breaks.
 
-**却下した案: 自動で取り込む(design tool → token の同期パイプ)。** token の値をツール側で編集し、それを `tokens/` へ同期させる案は、編集の場をツールへ移すことで一見便利に見える。しかし token の SSOT は `tokens/primitives.json` と系統ごとの semantic 定義であり([0051](0051-styling-system.md))、生成物の整合はそこから生成することで強制している。ツールから逆向きに流すと、その整合をツール側の制約で表現し直すことになり、表現できない部分から黙って壊れる。
+**Rejected: automatic intake (a design tool → token sync pipe).** Editing token values on the tool side and syncing them into `tokens/` looks convenient at first glance by moving the place of editing to the tool. But the SSOT of tokens is `tokens/primitives.json` and the per-family semantic definitions ([0051](0051-styling-system.md)), and the consistency of the generated artifacts is enforced by generating from there. Flowing in reverse from the tool would mean re-expressing that consistency in the tool's constraints, and things would silently break from the parts that cannot be expressed.
 
-[0051](0051-styling-system.md) が「デザインツールとの同期方式はここでは確定しない」と射程外に置いているのは、この向きの決定と矛盾しない。本体は逆向きの経路を持たない。それを敷くのは別の判断であり、本体の書き出しがそれを前提にすることはない。
+That [0051](0051-styling-system.md) places "the synchronization method with design tools is not settled here" out of its range does not contradict this decision on direction. The core has no reverse path. Laying one down is a separate judgment, and the core's export never presupposes it.
 
-## bundle は生成物であり、追跡しない
+## The bundle is a generated artifact and is not tracked
 
-書き出し先は `tmp/design-bundle/` で、gitignore の下にある。**bundle を commit しない。** bundle はデザインシステムの写しであり、commit した時点で 2 つ目のデザインシステムが repo に生まれ、部品を変えるたびに写しが取り残される。要るときにその場で作る。
+The export destination is `tmp/design-bundle/`, under gitignore. **Do not commit the bundle.** The bundle is a copy of the design system; the moment it is committed, a second design system is born in the repo, and the copy is left behind every time a component changes. Produce it on the spot when needed.
 
-story 名を引くために Storybook の build 済み index を読む。index が無ければ script は止まり、Storybook の build を促す。index が無い状態で story 名を空のまま出さないのは、目録が「story を持たない部品」を実在するかのように見せるためである。
+To look up story names, the script reads Storybook's built index. If there is no index, the script stops and prompts a Storybook build. Story names are not emitted as empty when there is no index because the inventory would then present "components without stories" as if they existed.
 
-## 書き出しが運べないもの
+## What the export cannot carry
 
-bundle に**描画した HTML も screenshot も入らない**。story は JavaScript が描くため、どちらを作るにも headless のブラウザが要り、書き出しの script はそれを持たない。送り先が部品を**読む**のではなく**見る**必要があるときは、bundle がそれを賄ったかのように振る舞わず、運べていないことをそのまま伝える。見る手段は [0156](0156-browser-observation-tooling.md) の観測レーンが持つ。
+The bundle contains **neither rendered HTML nor screenshots**. Stories are rendered by JavaScript, so producing either needs a headless browser, which the export script does not have. When a destination needs to **see** components rather than **read** them, do not act as though the bundle covered it; convey as-is that it was not carried. The means of seeing is held by the observation lane of [0156](0156-browser-observation-tooling.md).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 書き出しの script(`scripts/design-bundle`)や `package.json` に、特定のデザインツールの名前・API・手順を書くこと(vendor の形をしたものは skill へ)（強制: 散文 —— **一部寄せられる**。既知のデザインツールの名前は `scripts/design-bundle` と `package.json` の文字列走査で落とせるが規則は無い。手順や API の癖は名前を持たず、形からは決まらない）
-- ❌ デザインツールの出力(token / 部品のソース / screenshot)を、書き出しの経路から repo へ書き戻すこと。実装するなら人が読んで決める通常の実装作業として行う（強制: 持たない —— 採らない決定。書き出しの script は repo へ書き戻す経路を持たず、逆向きの同期を足せば script と依存の追加として diff に現れる）
-- ❌ `tmp/design-bundle/` を commit すること、または bundle の写しを `src/` や `docs/` に置くこと（強制: `.gitignore` の `/tmp` が `tmp/design-bundle/` を追跡の外に置く（`git add -f` は素通りする）。写しを `src/` や `docs/` に置くことは散文 —— **寄せられない**。写しかどうかは中身の出所で決まり、`tokens.css` のように生成物と同じ名前も持つため形からは決まらない）
-- ❌ 目録のために部品の説明を書き足すこと(用途と責務境界は各部品の README が正。story 名は Storybook の index が正)（強制: 散文 —— **寄せられない**。書き足した文が README の写しか新しい説明かは文の意味で決まる）
-- ❌ bundle に無いもの(描画結果)を、送り先が受け取ったかのように報告すること（強制: 散文 —— **寄せられない**。報告はエージェントの出力であり、コードに現れない）
+- ❌ Writing a particular design tool's name, API or procedures into the export script (`scripts/design-bundle`) or `package.json` (anything shaped like a vendor goes to skills) (Enforcement: Prose — **partly mechanizable**. Names of known design tools could be rejected by a string scan of `scripts/design-bundle` and `package.json`, but no rule exists. Procedures and API quirks have no name and are not decided by shape)
+- ❌ Writing a design tool's output (tokens / component sources / screenshots) back into the repo via the export path. If it is to be implemented, do it as ordinary implementation work in which a person reads and decides (Enforcement: none — a decision not to adopt. The export script has no path that writes back into the repo; adding a reverse sync shows up in the diff as added scripts and dependencies)
+- ❌ Committing `tmp/design-bundle/`, or placing copies of the bundle in `src/` or `docs/` (Enforcement: `/tmp` in `.gitignore` keeps `tmp/design-bundle/` out of tracking (`git add -f` passes straight through). Placing copies in `src/` or `docs/` is Prose — **not mechanizable**. Whether something is a copy is decided by the origin of its contents, and since it can also bear the same name as a generated artifact, like `tokens.css`, it is not decided by shape)
+- ❌ Writing additional component descriptions for the inventory (each component's README is the authority for purpose and responsibility boundaries; the Storybook index is the authority for story names) (Enforcement: Prose — **not mechanizable**. Whether an added sentence is a copy of the README or a new description is decided by the sentence's meaning)
+- ❌ Reporting what is not in the bundle (rendered output) as though the destination received it (Enforcement: Prose — **not mechanizable**. Reports are agent output and do not appear in code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 依存の向き(repo → ツールの一方向)と、ツール固有の手順を恒久文書へ書かない原則。本 ADR はその決定本体
-- [0050-styling-strategy.md](0050-styling-strategy.md) / [0051-styling-system.md](0051-styling-system.md) — token の器と体系。`tokens.css` の出所と、同期方式をここでは定めない位置づけ
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — shadcn registry の形式と、部品の層・置き場・説明の正が README にあること
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — Storybook が部品の唯一の在庫リストであること(目録の story 名の出所)
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — 送り先ごとの配送手順を持つ skill の置き場
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — bundle が運べない「見る」手段
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the direction of dependence (one-way, repo → tool) and the principle of not writing tool-specific procedures into permanent documents. This ADR is the decision body
+- [0050-styling-strategy.md](0050-styling-strategy.md) / [0051-styling-system.md](0051-styling-system.md) — the frame and system of tokens. Where `tokens.css` comes from, and the positioning that the synchronization method is not defined there
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — the shadcn registry format, and that the authority for component layers, placement and descriptions is in the README
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — that Storybook is the single list of what components exist (where the inventory's story names come from)
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — where the skills that hold per-destination delivery procedures live
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — the means of "seeing" that the bundle cannot carry

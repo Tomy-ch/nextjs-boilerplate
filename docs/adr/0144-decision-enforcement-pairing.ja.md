@@ -20,12 +20,12 @@ Accepted
 
 ## 決定と同じ場所に書く
 
-- **ADR** は決定ごとに強制手段を持つ。機械で守る決定は何が落とすか（型 / biome / ESLint の規則名 / CI の job / テスト）を名指し、人が守る決定はそう書く。[0021](0021-frontend-responsibility.md) が決定ごとに書く強制手段の記述と、[0090](0090-testing-strategy.md) の禁止事項に添えた `強制:` がこの形である
+- **ADR** は決定ごとに強制手段を持つ。機械で守る決定は何が落とすか（型 / biome / ESLint の規則名 / CI の job / テスト）を名指し、人が守る決定はそう書く。[0021](0021-frontend-responsibility.ja.md) が決定ごとに書く強制手段の記述と、[0090](0090-testing-strategy.ja.md) の禁止事項に添えた `強制:` がこの形である
 - **`rules.md`** は規約ごとに強制手段を持ち、規約を変えた実装 PR は強制手段も同時に更新する
 - **実装タスクの issue** は起票時に強制手段を持つ。後から台帳をまとめて作る形は採らない —— その時点で散文が溜まっており、書き忘れと「散文しか無い」を区別できない
 - **コードのコメント**は、書く前に強制手段を問う。コメントが述べる制約は決定と同型であり、守られたかどうかが見えるべきものだからである。置き場と書き方の規律は [`docs/rules.md`](../rules.ja.md#comments) が持つ
 
-強制手段は次の語彙で書き、複数を併記してよい。どれへ寄せるかは [0002](0002-formatter-linter.md) の能力ベース分担に従う —— biome が表現できる検査を ESLint に書かず、ESLint にしか無い検査（import する側のレイヤーを文脈に取る境界）を散文に残さない。
+強制手段は次の語彙で書き、複数を併記してよい。どれへ寄せるかは [0002](0002-formatter-linter.ja.md) の能力ベース分担に従う —— biome が表現できる検査を ESLint に書かず、ESLint にしか無い検査（import する側のレイヤーを文脈に取る境界）を散文に残さない。
 
 | 手段 | 落ちる時点 | 届かない範囲 |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ Accepted
 
 **宣言的な必須は経路を選ぶ。** issue テンプレートの `required: true` が縛るのは Web フォームだけで、`gh issue create --body-file` は素通りする —— そしてそれがエージェントの起票する経路である。欄の有無は起票の時期ではなく経路で決まる。したがって issue が作られた / 編集された時点で本文を見て、欠けている欄を issue へ指摘する（`issue-field-lint`）。PR のゲートにしないのは、PR は issue を作らないためである。閉じた issue の欄は埋めない —— そこから読む人はもう居らず、埋めても着地済みの実装は変わらない。
 
-同じことは他の宣言にも言える。エージェントの実行許可の前方一致、テンプレートの必須、README に書いた規約 —— **「書いてある」と「守られる」を区別し、強制手段を書くときはその手段自身がどの経路で素通りされるかを言う。** [0156](0156-browser-observation-tooling.md) が、それだけでは何も担保しない宣言を扱っているのは、この規律の 1 適用である。
+同じことは他の宣言にも言える。エージェントの実行許可の前方一致、テンプレートの必須、README に書いた規約 —— **「書いてある」と「守られる」を区別し、強制手段を書くときはその手段自身がどの経路で素通りされるかを言う。** [0156](0156-browser-observation-tooling.ja.md) が、それだけでは何も担保しない宣言を扱っているのは、この規律の 1 適用である。
 
 ## 集計は決定を持たない
 
@@ -88,11 +88,11 @@ Accepted
 
 ## 関連 ADR
 
-- [0002-formatter-linter.md](0002-formatter-linter.md) — biome / ESLint の能力ベース分担（どの機械へ寄せるか）
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — レイヤーの依存方向を文書だけで守らない（併記の実例）
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — Enforcement セクション（決定ごとに強制手段を持つ形）
-- [0090-testing-strategy.md](0090-testing-strategy.md) — テストゲートと、禁止事項に添える強制手段
+- [0002-formatter-linter.md](0002-formatter-linter.ja.md) — biome / ESLint の能力ベース分担（どの機械へ寄せるか）
+- [0020-adopted-architecture.md](0020-adopted-architecture.ja.md) — レイヤーの依存方向を文書だけで守らない（併記の実例）
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — Enforcement セクション（決定ごとに強制手段を持つ形）
+- [0090-testing-strategy.md](0090-testing-strategy.ja.md) — テストゲートと、禁止事項に添える強制手段
 - [0140-documentation-operations.md](0140-documentation-operations.ja.md) — 4 分類（rule と inventory の置き場）、理由の単独所有
-- [0150-git-workflow.md](0150-git-workflow.md) — PR の運用
-- [0153-ci-configuration.md](0153-ci-configuration.md) — CI の job 分割（CI ゲートとして名指す先）
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) — 宣言だけでは担保にならない
+- [0150-git-workflow.md](0150-git-workflow.ja.md) — PR の運用
+- [0153-ci-configuration.md](0153-ci-configuration.ja.md) — CI の job 分割（CI ゲートとして名指す先）
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) — 宣言だけでは担保にならない

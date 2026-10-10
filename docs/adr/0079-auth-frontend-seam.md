@@ -1,195 +1,172 @@
-# 認証のフロント側 seam
+# Frontend-Side Authentication Seam
 
-**認証本体(IdP・ユーザDB・資格情報検証・トークン発行・session の永続実装)は本リポジトリの out of scope である**([0070](0070-backend-role-separation.md))。この宣言を前提に本 ADR は、どの認証プロバイダを選んでも変わらない **フロント側の seam(接続点)の形** のみを定める。すなわち session の保管場所規約 / 認可 2 層(optimistic + 確定認可)の分担 / 保護ルートの表現 / 未認証時リダイレクトと `returnUrl` / ログアウト時の状態破棄を、[0021](0021-frontend-responsibility.md) のカーネル上の座標として確定する。seam の形は発明せず、**Next.js 公式 auth ガイドの文書化パターンに乗る**([0010](0010-standards-and-non-lockin.md))。
+**The authentication core (IdP, user DB, credential verification, token issuance, persistent session implementation) is out of scope for this repository** ([0070](0070-backend-role-separation.md)). On that premise, this ADR defines only **the shape of the frontend-side seam (connection point)**, which does not change whichever authentication provider is chosen: namely, it settles the session storage convention / the division of two-layer authorization (optimistic + authoritative authorization) / how protected routes are expressed / unauthenticated redirects and `returnUrl` / discarding state at logout, as coordinates on the kernels of [0021](0021-frontend-responsibility.md). The seam's shape is not invented; it **rides on the documented patterns of the official Next.js auth guide** ([0010](0010-standards-and-non-lockin.md)).
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-認証は out of scope でありながら、**seam なしでは保護ページが 1 枚も書けない**という点で、out-of-scope 領域の中で最も「seam の欠落」が濃い。関連する断片は複数 ADR に散っている:
+Although authentication is out of scope, it is the out-of-scope area where "the missing seam" is most acute, in that **without a seam not a single protected page can be written**. The related fragments are scattered over several ADRs:
 
-- [0070](0070-backend-role-separation.md) — 「認証・セッションの具体モデルは対象外」「thin proxy / token 交換の seam は許す」「確定的な認可はデータ境界」
-- [0043](0043-middleware-policy.md) — 「`proxy.ts` は optimistic チェックのみ / 確定認可はデータ境界 / Node.js runtime / 唯一の防御線にしない」
-- [0021](0021-frontend-responsibility.md) — `adapters/server`(secret 可・`server-only`)/ `model`(表示用 VO)/ app の thin 原則
-- [0040](0040-routing-rendering-strategy.md) — Server Component 既定 / `"use client"` を葉へ / Server Action は編成のみ
+- [0070](0070-backend-role-separation.md) — "the concrete authentication / session model is out of scope", "a thin proxy / token exchange seam is allowed", "authoritative authorization is at the data boundary"
+- [0043](0043-middleware-policy.md) — "`proxy.ts` does optimistic checks only / authoritative authorization is at the data boundary / Node.js runtime / never the only line of defense"
+- [0021](0021-frontend-responsibility.md) — `adapters/server` (secrets allowed, `server-only`) / `model` (display VOs) / the thin principle for app
+- [0040](0040-routing-rendering-strategy.md) — Server Component by default / `"use client"` pushed to the leaves / Server Actions only orchestrate
 
-これらは各 ADR の関心の副産物として断片化しており、「保護ページをどう書くか」を問う読み手は 4 本を横断せねばならず **局所推論が崩れている**。本 ADR はこの断片を **Next.js 文書化パターン**として 1 本に束ね、認証 seam の推論起点を一本化する。
+These are fragmented as by-products of each ADR's concerns, and a reader asking "how do I write a protected page" has to cut across four of them, so **local reasoning breaks down**. This ADR **bundles these fragments into one as the documented Next.js pattern**, giving the authentication seam a single starting point for reasoning.
 
-**裏取り元**: `node_modules/next/dist/docs/01-app/02-guides/authentication.md`(実装前確認。Next.js 16 —— [AGENTS.md](../../AGENTS.md)「Canonical Documentation」が実装前の確認を要求している)。同ガイドの Authorization 節は (1) httpOnly session cookie に最小 payload を格納、(2) 認可を 2 層(optimistic checks with Proxy〈optional〉+ Data Access Layer の `verifySession()` を React `cache()` で memo 化した確定認可)、(3) DTO で必要データのみ返す、を推奨形として文書化している。
+**Source checked**: `node_modules/next/dist/docs/01-app/02-guides/authentication.md` (checked before implementation; Next.js 16 — [AGENTS.md](../../AGENTS.md) *Canonical Documentation* requires checking before implementation). That guide's Authorization section documents as the recommended shape: (1) store a minimal payload in an httpOnly session cookie, (2) two-layer authorization (optimistic checks with Proxy (optional) + authoritative authorization by a Data Access Layer `verifySession()` memoized with React `cache()`), (3) return only the needed data through DTOs.
 
-**0070 の中立との整合**: 0070 が守る中立は **プロバイダ中立**であって **seam の形の中立ではない**。Next.js 自身が httpOnly cookie を標準推奨している以上、それに乗るのは特定方式の先取りではなく **プラットフォーム標準準拠**([0010](0010-standards-and-non-lockin.md))であり、0070 の「特定の認証・セッションモデルを本体に前提として組み込まない」とは衝突しない。本 ADR が固定するのは seam の形(座標)のみで、プロバイダ・session 実装詳細(stateless vs DB / 暗号化方式)は固定しない。
+**Consistency with 0070's neutrality**: the neutrality 0070 protects is **provider neutrality**, **not neutrality of the seam's shape**. Since Next.js itself recommends httpOnly cookies as the standard, riding on that is not pre-empting a particular scheme but **conforming to the platform standard** ([0010](0010-standards-and-non-lockin.md)), and it does not collide with 0070's "do not build a particular authentication / session model into the core as an assumption". What this ADR fixes is only the seam's shape (coordinates); the provider and session implementation details (stateless vs DB / encryption scheme) are not fixed.
 
-## 決定
+## Decision
 
-### 1. session の保管 = httpOnly cookie / payload 最小
+### 1. Session storage = httpOnly cookie / minimal payload
 
-- session の保管場所の seam は **httpOnly cookie**(Next.js `cookies()` API)とする。cookie は **server で set** し、`httpOnly` / `Secure` / `SameSite` / `Max-Age`(or `Expires`)/ `Path` を既定属性とする(具体既定値・アプリ cookie 規約は [`docs/rules.md#data-classification`](../rules.md#data-classification)の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに明示する」が保持)。
-- **payload は最小**(id / role 等の後続リクエストで使う一意データのみ)。PII(電話番号・メール・カード情報)や機微情報(パスワード)を **cookie に入れない**。
-- **vendor-independent 正当性材料**(標準に乗る決定が必ず添えるもの。[0010](0010-standards-and-non-lockin.md)):
-  - **httpOnly = XSS によるトークン窃取の緩和** — client-side JS から cookie を読めなくすることで、XSS 起点の session 窃取という web 一般の攻撃面を塞ぐ。これは Next.js 固有の話でなく MDN / OWASP 由来の web セキュリティ基本原理である。
-  - **最小 payload = 最小権限(least privilege)/ 最小データ露出** — cookie は各リクエストで送出され改竄面でもあるため、載せる情報を必要最小に絞ることは attack surface と情報漏洩を減らす一般原則である。
-- session 実装詳細(stateless JWT 風 vs DB session id / 暗号化・署名方式)は **ここでは定めない**([0070](0070-backend-role-separation.md))。特定方式を組み込まない。
+- The seam for where the session is stored is the **httpOnly cookie** (the Next.js `cookies()` API). The cookie is **set on the server**, with `httpOnly` / `Secure` / `SameSite` / `Max-Age` (or `Expires`) / `Path` as default attributes (the concrete defaults and the app cookie convention are held by "app cookies carry their purpose in a prefix and state their attributes per purpose" in `docs/rules.md` *Data Classification and Sensitive Data*).
+- **The payload is minimal** (only unique data used by subsequent requests, such as id / role). PII (phone number, email, card data) and sensitive data (passwords) are **not put in the cookie**.
+- **Vendor-independent justification** (what a decision riding on a standard must always carry; [0010](0010-standards-and-non-lockin.md)):
+  - **httpOnly = mitigation of token theft via XSS** — by making the cookie unreadable from client-side JS, it closes the general web attack surface of session theft originating from XSS. This is not Next.js-specific but a basic web security principle from MDN / OWASP.
+  - **Minimal payload = least privilege / minimal data exposure** — the cookie is sent with every request and is also a tampering surface, so narrowing what it carries to the minimum is a general principle that reduces attack surface and information leakage.
+- Session implementation details (stateless JWT-like vs DB session id / encryption and signing scheme) are **not defined here** ([0070](0070-backend-role-separation.md)). No particular scheme is built in.
 
-### 2. 認可は 2 層(optimistic + 確定)/ 確定認可はデータ源に最も近い所
+### 2. Two-layer authorization (optimistic + authoritative) / authoritative authorization closest to the data source
 
-Next.js 文書化パターンに乗り、認可を **2 層**に分ける:
+Riding on the documented Next.js pattern, authorization is split into **two layers**:
 
-- **optimistic(楽観)層 = `proxy.ts`**(optional・[0043](0043-middleware-policy.md))— cookie の session のみを読み、権限ベースの **リダイレクト / UI 出し分け**に使う。**DB / データ源参照は禁止**(Proxy は prefetch 含む全 route で走るため。cookie 読みは `req.cookies.get(...)` に留める)。**唯一の防御線にしない**。Node.js runtime([0043](0043-middleware-policy.md))。
-- **確定認可層 = Data Access Layer(DAL)**— session を検証する `verifySession()` を **`adapters/server`**([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md))に置き、**React `cache()` で 1 render pass 内を memo 化**する。app 層の入口(route-segment / Route Handler / Server Action)は必ずこの `verifySession()` を通してから feature へ進む。「security checks はデータ源に最も近い所で行う」= **確定認可の本丸はデータ境界**([0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md) と一貫)。
-- **カーネル座標の導出**(べき論): `verifySession()` は session cookie(`server-only`)と secret を扱う **remote/runtime 境界 = `adapters/server`** に属する(secret を持てる唯一の実行層 = `adapters/server`。[0021](0021-frontend-responsibility.md) 依存マトリクス / [0024](0024-adapters-server-client-split.md))。DAL を `adapters/server` に置くことで「session verify は境界アダプタが所有し、内側の層(`model` / feature 純粋ロジック)は session を知らない」が保たれる(型漏洩禁止・[0020](0020-adopted-architecture.md))。
-- **vendor-independent 正当性材料**(標準に乗る決定が必ず添えるもの。[0010](0010-standards-and-non-lockin.md)):
-  - **データ境界での確定認可 = 多層防御(defense in depth)** — Proxy(edge/入口)の楽観チェックは最適化配置(CDN)や prefetch の都合で信頼の単一点にできないため、検査を **データ源直近**に置いて最終防御線とする。これは「認可はリソースアクセス直前に行う」という web セキュリティ一般原則であり、Next.js を正当化から抜いても成立する(0010 運用テスト: Yes)。
+- **Optimistic layer = `proxy.ts`** (optional; [0043](0043-middleware-policy.md)) — reads only the session in the cookie and is used for permission-based **redirects / UI switching**. **Querying the DB / data source is forbidden** (Proxy runs on every route, including prefetches; cookie reads stay at `req.cookies.get(...)`). **It is never the only line of defense**. Node.js runtime ([0043](0043-middleware-policy.md)).
+- **Authoritative authorization layer = Data Access Layer (DAL)** — `verifySession()`, which verifies the session, is placed in **`adapters/server`** ([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md)) and **memoized within one render pass with React `cache()`**. The app layer's entry points (route-segment / Route Handler / Server Action) always go through this `verifySession()` before proceeding to a feature. "Do security checks closest to the data source" = **the heart of authoritative authorization is the data boundary** (consistent with [0070](0070-backend-role-separation.md) / [0043](0043-middleware-policy.md)).
+- **Deriving the kernel coordinate** (as a matter of principle): `verifySession()` handles the session cookie (`server-only`) and secrets, so it belongs to the **remote/runtime boundary = `adapters/server`** (the only execution layer that may hold secrets = `adapters/server`; the [0021](0021-frontend-responsibility.md) dependency matrix / [0024](0024-adapters-server-client-split.md)). Placing the DAL in `adapters/server` preserves "session verification is owned by the boundary adapter, and the inner layers (`model` / pure feature logic) do not know about the session" (no type leakage; [0020](0020-adopted-architecture.md)).
+- **Vendor-independent justification** (what a decision riding on a standard must always carry; [0010](0010-standards-and-non-lockin.md)):
+  - **Authoritative authorization at the data boundary = defense in depth** — the optimistic check in Proxy (edge / entry point) cannot be made a single point of trust because of optimized placement (CDN) and prefetching, so the check is placed **right next to the data source** as the last line of defense. This is the general web security principle "authorize immediately before accessing the resource", and it holds with Next.js removed from the justification (0010's operational test: Yes).
 
-### 3. DTO / 露出データの最小化
+### 3. DTOs / minimizing exposed data
 
-- session / user データを内側(Client Component / view)へ渡す際は、**DTO で必要フィールドのみを返す**。user オブジェクト全体(パスワード・電話番号等を含み得る)を渡さない。
-- **カーネル座標**: DTO の形(公開してよい view 用の型)は **`model`**(表示用 VO / view 型)が所有し、DTO への変換(shaping・可視性判定)は所有境界 = **`adapters/server`** で行う(生成型・外部型を内層へ漏らさない変換の所有境界。[0070](0070-backend-role-separation.md) 境界値所有 / [0020](0020-adopted-architecture.md))。
-- **vendor-independent 正当性材料**: **DTO = 最小権限 / 最小露出** — client に渡るのは「表示に必要な安全なフィールド」に限定され、over-fetch した機微データの client 漏洩を構造的に防ぐ。これも web 一般原則で Next.js 非依存。
+- When passing session / user data inward (Client Component / view), **return only the needed fields through a DTO**. Do not pass the whole user object (which may contain passwords, phone numbers and so on).
+- **Kernel coordinate**: the shape of the DTO (the type for views that may be exposed) is owned by **`model`** (display VOs / view types), and conversion to the DTO (shaping, visibility decisions) is done at the ownership boundary = **`adapters/server`** (the ownership boundary of conversions that do not leak generated or external types into inner layers; boundary-value ownership in [0070](0070-backend-role-separation.md) / [0020](0020-adopted-architecture.md)).
+- **Vendor-independent justification**: **DTO = least privilege / minimal exposure** — what reaches the client is limited to "the safe fields needed for display", structurally preventing over-fetched sensitive data from leaking to the client. This too is a general web principle, independent of Next.js.
 
-### 4. 保護ルートの表現 / チェックの各所配置
+### 4. Expressing protected routes / placing checks at each point
 
-- 保護は **入口ごとにチェック**する(`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`)。`proxy.ts` の optimistic リダイレクトは入口の pre-filter に過ぎず、app 層の各入口で `verifySession()`(DAL)か、`adapters` が分類した結果を通すことを既定とする。Server Action は route を経由せずに呼べる独立した入口なので、画面が保護されていることを理由に断言を省かない([0021](0021-frontend-responsibility.md)「Server Action の置き場」)。
-- **session に基づく保護の編成は app 層が行う。** `verifySession()` を呼び、結果で分岐し、リダイレクトするか feature を呼ぶ —— これは driving adapter の合成であって業務ロジックではない([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md))。`features` がこれを持てないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけだからで(`architecture.ts` の `adapters-auth`)、依存マトリクスの帰結であって例外規定ではない([0021](0021-frontend-responsibility.md))。
-- **feature が受け取ってよいのは `adapters` が分類した結果であって、session そのものではない。** 「未認証 / 認証済み」や、それをバックエンドが返す状態でさらに分けた列挙は表示用の値であり、session の型も secret も内側の層へ渡らない([0020](0020-adopted-architecture.md) 型漏洩禁止)。この形なら入口ガードを feature に 1 つ置いて、同じ判定を画面ごとに書き写さずに済む。**分類を作るのは `adapters` の仕事**であり、feature のために session を素通しする関数を `adapters` へ足してはならない —— それは依存マトリクスを迂回して session の分岐を feature へ持ち込む経路になる。判定に使う規則そのものはバックエンドが持つ([0070](0070-backend-role-separation.md))。
-- **判定の述語は `model` が持つ。** 「この session が役割を満たすか」は session を入力に取る純粋な判定であり、app 層にも feature にも書かない。前捌き(`proxy.ts`)と確定認可が同じ述語を引くことで、2 層の判定がずれない。
-- **保護は保護される側を列挙して宣言する。** 公開側を列挙する書き方だと、新しく足した画面が既定で公開になり、書き忘れがそのまま漏洩になる。**経路の接頭辞は入れ子にしない** —— 入れ子を許すと、どちらの宣言が勝つかを決める規則が要り、宣言の並べ替えだけで認可が変わる状態を作れる。1 つの経路に 2 通りの役割を求めたくなったときは、規則を足す前にその設計を見直す。経路の一覧そのものはコード(`src/model/authz.ts`)が持つ
-- **静的ルートの注意**: build 時に取得され全ユーザで共有される静的 route は DAL(request 時検証)が効かないため、その保護は `proxy.ts`(optimistic)側で行う(Next.js ガイド注記)。
+- Protection is **checked at each entry point** (`layout.tsx` / `page.tsx` / `route.ts` / `actions.ts`). The optimistic redirect in `proxy.ts` is only a pre-filter for entry points; by default every entry point in the app layer goes through `verifySession()` (DAL) or a result classified by `adapters`. A Server Action is an independent entry point that can be called without going through a route, so the assertion is not skipped on the grounds that the screen is protected ([0021](0021-frontend-responsibility.md) on where Server Actions live).
+- **Orchestrating session-based protection is done by the app layer.** Calling `verifySession()`, branching on the result, and redirecting or calling a feature — this is composition by a driving adapter, not business logic ([0040](0040-routing-rendering-strategy.md) / [0021](0021-frontend-responsibility.md)). `features` cannot hold it because only `app` and `adapters` may touch `adapters/server/auth`, which contains the DAL (`adapters-auth` in `architecture.ts`); this is a consequence of the dependency matrix, not an exception rule ([0021](0021-frontend-responsibility.md)).
+- **What a feature may receive is the result classified by `adapters`, not the session itself.** "Unauthenticated / authenticated", or an enumeration that further splits it by state the backend returns, is a display value; neither the session's type nor secrets reach the inner layers (no type leakage in [0020](0020-adopted-architecture.md)). In this shape, one entry guard can be placed in a feature, without copying the same check into each screen. **Producing the classification is the job of `adapters`**, and a function that passes the session through for a feature must not be added to `adapters` — that would be a path that bypasses the dependency matrix and brings session branching into the feature. The rules used for the decision themselves are owned by the backend ([0070](0070-backend-role-separation.md)).
+- **The decision predicate is owned by `model`.** "Does this session satisfy the role" is a pure decision taking the session as input, and is written neither in the app layer nor in a feature. Having the pre-filter (`proxy.ts`) and authoritative authorization draw on the same predicate keeps the two layers' decisions from drifting apart.
+- **Protection is declared by enumerating the protected side.** Writing it by enumerating the public side makes a newly added screen public by default, and a forgotten entry becomes a leak as is. **Route prefixes are not nested** — allowing nesting requires a rule deciding which declaration wins, and makes it possible for merely reordering declarations to change authorization. When you want one route to require two kinds of roles, review that design before adding a rule. The route list itself is owned by code (`src/model/authz.ts`)
+- **Note on static routes**: a static route fetched at build time and shared by all users is not reached by the DAL (request-time verification), so its protection is done on the `proxy.ts` (optimistic) side (a note in the Next.js guide).
 
-### 5. 未認証リダイレクト / `returnUrl` / ログアウト時の状態破棄
+### 5. Unauthenticated redirect / `returnUrl` / discarding state at logout
 
-- 未認証時のリダイレクト先(サインイン route)と復帰用 `returnUrl`(元 URL の保持・検証)の規約は seam として名前を付けて残す。**open redirect を避けるため `returnUrl` は同一 origin の相対パスに限定検証する**(web 一般の入力検証)。
-- ログアウトは **session cookie の破棄(server)+ client 側の派生状態・キャッシュの teardown** を伴う。破棄の起点は `adapters/server`(cookie 削除)に置く。
-- **利用者のブラウザが IdP の session を持っている場合は、加えてブラウザを IdP の終了口へ遷移させる。** IdP 側の session を保持しているのは利用者のブラウザが持つ cookie であり、サーバから発した要求にそれは載らない —— 要求は成功を返しながら、IdP 側は何も終わらない。**この機構をここが持つ**ので、実装側は繰り返さずに本節を指す(呼び出しの連鎖に沿って同じ根拠が何度も書かれることになるため)。
-- **遷移が要るかどうかは、ログインが借り物の画面を経由したかで決まる。** 所有画面から資格情報を渡した経路(§6)では、ブラウザは IdP を一度も訪れておらず、破棄すべき IdP 側 cookie が存在しない。federation の経路(§6)だけがブラウザに IdP の session を残すため、終了口への遷移もその経路に限る。**どちらで確立したかは session 側が保持する** —— ログアウト時に推測すると、破棄漏れか無駄な往復のどちらかが必ず出る。
-- **client 側の取得が資格情報切れ(401)を受けたときは、その取得の失敗として扱わず、サーバへ描き直しを頼む。** 続きを読めなかった失敗として画面に出すと、利用者にできるのは読み直しだけで、サインインへ導く経路が無い。描き直せば各入口の判定(§4)が走り、未認証のリダイレクトへ倒れる([0080](0080-error-handling.md) の「`Unauthenticated` を `Internal` へ畳まない」が前提)。
-- サインイン UI・session 更新(refresh)の具体は §6 の Resolver に閉じる。本 ADR は座標(どの層が何を所有するか)と拡張点の名前を敷く。
+- The convention for the redirect target when unauthenticated (the sign-in route) and the return `returnUrl` (keeping and validating the original URL) is left named as a seam. **To avoid open redirects, `returnUrl` is validated to be restricted to a same-origin relative path** (general web input validation).
+- Logout comes with **discarding the session cookie (server) + tearing down client-side derived state and caches**. The origin of the discard is placed in `adapters/server` (cookie deletion).
+- **If the user's browser holds an IdP session, additionally navigate the browser to the IdP's end-session endpoint.** What holds the IdP-side session is a cookie in the user's browser, and it is not carried on a request issued from the server — the request returns success while nothing ends on the IdP side. **This mechanism is owned here**, so implementations point at this section instead of repeating it (because otherwise the same grounds get written again and again along the call chain).
+- **Whether the navigation is needed depends on whether the login went through a borrowed screen.** On the path that passed credentials from an owned screen (§6), the browser never visited the IdP, and there is no IdP-side cookie to discard. Only the federation path (§6) leaves an IdP session in the browser, so navigation to the end-session endpoint is limited to that path. **Which path established it is held on the session side** — guessing at logout inevitably produces either a missed discard or a wasted round trip.
+- **When a client-side fetch receives an expired credential (401), do not treat it as that fetch's failure; ask the server to re-render.** Showing it on screen as a failure to load more leaves the user only able to reload, with no path leading to sign-in. Re-rendering runs the check at each entry point (§4), which falls to the unauthenticated redirect (premised on [0080](0080-error-handling.md) not folding `Unauthenticated` into `Internal`).
+- The specifics of the sign-in UI and session refresh are closed inside the Resolver of §6. This ADR lays down the coordinates (which layer owns what) and the names of the extension points.
 
-### 6. 動く最小 session 機構を本体へ同梱する(Resolver IF 方式)
+### 6. Bundle a working minimal session mechanism in the core (Resolver IF approach)
 
-**IF 定義だけを置いて実装を丸投げしない。** 使われない IF は腐り、実装時に必ず書き直されるため、**既定実装を 1 つ同梱して実際に動かす**。禁止事項の「特定の session 実装詳細を本体に前提として組み込まない」は、次の切り分けで満たす。
+**Do not just place an IF definition and throw the implementation over the wall.** An unused IF rots and is always rewritten at implementation time, so **one default implementation is bundled and actually runs**. The prohibition "do not build particular session implementation details into the core as an assumption" is satisfied by the following split.
 
-- **コアに残すもの(書き直さない部分)** — seam の座標 / 保護ルート判定 / `returnUrl` の検証 / ログアウト時の状態破棄 / RBAC ヘルパ / `verifySession()` の呼び出し規約
-- **Resolver の裏に隠すもの(各社の事情が入る部分)** — session の暗号化・署名方式 / バックエンドの認証エンドポイントの叩き方 / federation の開始と復帰 / トークンの保管形式。これらは **Resolver IF** の内部処理とし、Resolver を差し替えるだけで自社方式へ移行できる
-- **既定実装を 1 つ同梱する**。IF と一緒に動く実装が載るため、空の IF 定義にはならない
-- 認証フローは **所有画面 + バックエンド仲介**とする。資格情報とチャレンジ応答は所有画面が受け取り、**Route Handler(`/api/auth/*`)がバックエンドへ中継する**。**IdP の API をこのリポジトリから直接叩かない** —— IdP 固有 SDK も IdP の資格情報もこのリポジトリの依存に入らない。ブラウザが持つのは httpOnly の BFF session cookie のみで、**Access Token をブラウザへ露出しない**
-- **バックエンドが返すチャレンジは正規化された形とする。** 追加入力が要るとき、バックエンドは「どの種類の入力が要るか」を中立の列挙で返し、このリポジトリは種類から画面を選ぶ。IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面と `features` へ持ち込まない([0070](0070-backend-role-separation.md) / [0020](0020-adopted-architecture.md) 型漏洩禁止)。**この正規化が無いと、IdP の語彙が画面まで到達する** —— 認証の本流が特定プロバイダへ結合し、差し替え可能性(0010)が Resolver の外で壊れる
-- **federation(ソーシャル / 企業 IdP 連携)だけは借り物の画面へ遷移する。** 連携先での認可は利用者のブラウザの遷移でしか成立せず、サーバ間 API では代替できない。この経路の意匠は §8 の供給が扱う
-- 認証が要る API 呼び出しは、**BFF 経由で Bearer が自動付与される前提**で実装する(個別に Authorization ヘッダを組み立てない)
-- **401 = 未ログイン / セッション切れ → サインインへ**、**403 = 権限不足 → 導線ごと出し分け**([0080](0080-error-handling.md) の分類に対応させる)
-- Resolver の IF 形状 / 既定実装のライブラリ選定 / refresh の扱いは本 ADR では定めず、既定 Resolver(`src/adapters/server/auth/session-resolver.ts`)が持つ
-- **role の取得元はバックエンドとする。** IdP が持つのは身元（誰であるか）で、何をしてよいかは業務側のデータである([0070](0070-backend-role-separation.md))。ID Token の claim から読むと、IdP を差し替えるたびに役割の出所が変わり、IdP 側に業務の役割体系を持たせる圧力が生まれる。既定 Resolver は取得口を依存として受け取り、session を確立する途中で 1 度だけ引く。役割が 1 つも無い主体は権限を持たない側へ倒す。**本体が敷く役割の集合は「特権を持つ側」と「持たない側」の 2 つだけ**とする —— 実際の役割体系はバックエンドが所有するため、本体が持つのは機構を動かして確かめられる最小の集合であり、これは自分の体系へ置き換える
+- **What stays in the core (the part not rewritten)** — the seam's coordinates / protected-route decisions / `returnUrl` validation / discarding state at logout / RBAC helpers / the calling convention of `verifySession()`
+- **What is hidden behind the Resolver (the part where each organization's circumstances come in)** — the session encryption and signing scheme / how the backend's authentication endpoints are called / starting and returning from federation / the token storage format. These are internal processing of the **Resolver IF**, and moving to your own scheme only requires swapping the Resolver
+- **One default implementation is bundled**. An implementation that runs ships together with the IF, so it is never an empty IF definition
+- The authentication flow is **owned screens + backend mediation**. Credentials and challenge responses are received by owned screens, and **a Route Handler (`/api/auth/*`) relays them to the backend**. **IdP APIs are not called directly from this repository** — neither IdP-specific SDKs nor IdP credentials enter this repository's dependencies. The browser holds only the httpOnly BFF session cookie, and **the Access Token is not exposed to the browser**
+- **The challenge the backend returns has a normalized shape.** When additional input is needed, the backend returns "what kind of input is needed" as a neutral enumeration, and this repository chooses the screen from the kind. IdP-specific challenge names, continuation strings and error codes are not brought into screens or `features` ([0070](0070-backend-role-separation.md) / no type leakage in [0020](0020-adopted-architecture.md)). **Without this normalization, the IdP's vocabulary reaches all the way to the screens** — the main line of authentication couples to a particular provider, and swappability (0010) breaks outside the Resolver
+- **Only federation (social / enterprise IdP linking) navigates to a borrowed screen.** Authorization at the linked provider is established only through navigation of the user's browser and cannot be replaced by a server-to-server API. The design of this path is handled by the supply in §8
+- API calls that require authentication are implemented **on the assumption that a Bearer is attached automatically via the BFF** (Authorization headers are not assembled individually)
+- **401 = not logged in / session expired → to sign-in**, **403 = insufficient permission → switch out the whole path** (mapped to the classification of [0080](0080-error-handling.md))
+- The shape of the Resolver IF / the library choice for the default implementation / the handling of refresh are not defined in this ADR; they are owned by the default Resolver (`src/adapters/server/auth/session-resolver.ts`)
+- **The source of roles is the backend.** What the IdP holds is identity (who someone is); what they may do is business-side data ([0070](0070-backend-role-separation.md)). Reading it from ID Token claims would change where roles come from every time the IdP is swapped, and creates pressure to give the IdP side the business role system. The default Resolver receives the fetch endpoint as a dependency and pulls from it exactly once during session establishment. A principal with no role at all falls to the side without permission. **The set of roles the core lays down is only two: "the privileged side" and "the unprivileged side"** — the actual role system is owned by the backend, so what the core holds is the minimal set that makes the mechanism run and verifiable, and this is replaced with your own system
 
-### 7. 未認証時の状態を、ログイン成立の時点で引き継ぐ
+### 7. Carry over unauthenticated state at the moment login succeeds
 
-未認証のまま操作を始められる機能は、ログイン成立の時点でその状態を認証済みの主体へ**引き継ぐ**必要がある。§5 がログアウト時の破棄を扱うのに対し、本節は逆向きの接続点を敷く。
+A feature whose operation can begin while unauthenticated needs to **carry over** that state to the authenticated principal at the moment login succeeds. Where §5 handles discarding at logout, this section lays down the connection point in the opposite direction.
 
-- **引き継ぎ元の識別子は httpOnly cookie に置き、BFF が持つ**。ブラウザへ露出させない理由は §1 の session と同じ(XSS 起点の窃取の緩和)。**session cookie とは別の cookie** にする — 未認証でも発行され、寿命も主体も session と一致しないため、session payload へ混ぜると §1 の「payload は最小」に反する。用途接頭辞と `Secure` / `HttpOnly` / `SameSite` / `Max-Age` の明示は [`docs/rules.md#data-classification`](../rules.md#data-classification)の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに明示する」に従う。
-- **引き継ぎを起こすのは `/api/auth/*` の callback ただ 1 箇所**。未認証時の識別子と確立直後の session が同時に手元にあるのはここだけで、1 回の認証往復につき 1 回だけ走る。`proxy.ts` は不可(§2 / [0043](0043-middleware-policy.md) — optimistic 層に副作用を置かない)。画面側からも呼ばない(ブラウザは Access Token を持たない。§6)。
-- **引き継ぎの失敗でログインを失敗させない**。ログインの成否は認証の成否で決まる。引き継ぎは付随する処理であり、失敗はログに残して利用者にはログイン成功として見せる。
-- **引き継ぎの規則はバックエンドが持つ**([0070](0070-backend-role-separation.md))。合算・上限・優先といった判断は業務ロジックであり、BFF は起点を与えるだけで規則を実装しない。
-- **引き継ぎの結果は BFF が受け取れる形にする**。切り捨てや丸めなど利用者へ知らせるべき結果が生じうる場合、バックエンド内部の認証完了フックに寄せると報告先が無くなる。表示するかどうかは画面の判断に残す。
-- **引き継ぎ後、元の識別子の cookie は破棄する**。引き継ぎ済みの識別子が残ると、二重適用の経路になり、引き継ぎ先が他者の主体である場合には到達経路にもなる。ログアウト時の teardown(§5)にも含める。
+- **The identifier of the carry-over source is placed in an httpOnly cookie and held by the BFF**. The reason for not exposing it to the browser is the same as for the session in §1 (mitigating theft originating from XSS). It is **a cookie separate from the session cookie** — it is issued even when unauthenticated, and neither its lifetime nor its principal matches the session's, so mixing it into the session payload violates §1's "the payload is minimal". The purpose prefix and the explicit `Secure` / `HttpOnly` / `SameSite` / `Max-Age` follow "app cookies carry their purpose in a prefix and state their attributes per purpose" in `docs/rules.md` *Data Classification and Sensitive Data*.
+- **The carry-over is triggered at exactly one place: the callback in `/api/auth/*`**. This is the only place where the unauthenticated identifier and the just-established session are at hand at the same time, and it runs exactly once per authentication round trip. `proxy.ts` is not allowed (§2 / [0043](0043-middleware-policy.md) — no side effects in the optimistic layer). It is not called from the screen side either (the browser does not hold the Access Token; §6).
+- **A failed carry-over does not fail the login**. Whether login succeeds is decided by whether authentication succeeds. The carry-over is an accompanying process; a failure is logged and the user sees the login as successful.
+- **The carry-over rules are owned by the backend** ([0070](0070-backend-role-separation.md)). Decisions such as merging, limits and precedence are business logic; the BFF only provides the trigger and does not implement the rules.
+- **The result of the carry-over is put in a shape the BFF can receive**. Where results the user should be told about may arise, such as truncation or rounding, moving it into an authentication-completion hook inside the backend leaves nowhere to report to. Whether to display it is left to the screen's judgment.
+- **After carry-over, the cookie holding the original identifier is discarded**. A leftover carried-over identifier becomes a path for double application, and, if the carry-over target is someone else's principal, also a path of reach. It is also included in the teardown at logout (§5).
 
-**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): 引き継ぎを認証往復の**片側 1 箇所**に閉じるのは、同じ状態遷移を複数の起点から起こすと二重適用と競合の面が増えるという一般原則(単一の書き込み経路)による。失敗でログインを落とさないのは、**関心の分離** — 認証の可否を、認証と無関係な処理の成否に従属させないこと。
+**Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): closing the carry-over to **one place on one side** of the authentication round trip follows the general principle (a single write path) that triggering the same state transition from multiple origins increases the surface for double application and races. Not failing the login on failure is **separation of concerns** — not making the success of authentication subordinate to the success of processing unrelated to authentication.
 
-### 8. 資格情報を検証しない / 認証画面は意匠ごと所有する
+### 8. Credentials are not verified / authentication screens are owned, design included
 
-**入力面の所有と、検証機構の所有は別の話であり、畳むと必ず片方を落とす。** 「検証が向こうだから
-画面も向こうのもの」も、「画面がこちらだから検証もこちらでよい」も、同じ畳み方の裏表である。
-本 ADR が禁じているのは**このリポジトリが資格情報を検証・保持すること**であって、入力を受け取る
-画面を持つことではない。
+**Owning the input surface and owning the verification mechanism are separate matters, and folding them together always drops one of them.** "Verification is over there, so the screen is theirs too" and "the screen is ours, so verification can be ours too" are two sides of the same folding. What this ADR forbids is **this repository verifying or holding credentials**, not having a screen that receives the input.
 
-#### 用語
+#### Terminology
 
-| 呼び名 | 意味 |
+| Term | Meaning |
 | --- | --- |
-| **所有画面** | このリポジトリが実装し、配信する画面。`/login`・チャレンジ画面・ログイン成立後に続く画面など |
-| **借り物の画面** | IdP が実装し、IdP が配信する画面。サインイン・MFA・パスワード再設定など |
+| **Owned screen** | A screen this repository implements and serves. `/login`, challenge screens, the screens that follow successful login, and so on |
+| **Borrowed screen** | A screen the IdP implements and the IdP serves. Sign-in, MFA, password reset, and so on |
 
-本 ADR で **`面` は接続点(差し替え境界)の意味**で使い、画面の意味では使わない。同じ語を両方に
-使うと、`session-resolver.ts` の「この面の内側」が画面の話に読める。
+In this ADR **`面` is used in the sense of a connection point (swap boundary)** (surface), and not in the sense of a screen. Using the same word for both would make `この面の内側` ("inside this surface") in `session-resolver.ts` read as talk about a screen.
 
-#### 所有の線
+#### The Ownership Line
 
-| | 入力面 | 検証機構 | 意匠 |
+| | Input surface | Verification mechanism | Design |
 | --- | --- | --- | --- |
-| `/login`・チャレンジ画面(所有画面) | **所有** | **持たない(中継のみ)** | 所有 |
-| federation の連携先(借り物) | 借り物 | 借り物 | **所有(供給する)** |
-| IdP の終了口(借り物) | — | 借り物 | **所有(供給する)** |
-| ログイン成立後に続く画面(所有画面) | 所有 | — | 所有 |
+| `/login`, challenge screens (owned screens) | **Owned** | **Not held (relay only)** | Owned |
+| Federation partner (borrowed) | Borrowed | Borrowed | **Owned (supplied)** |
+| IdP end-session endpoint (borrowed) | — | Borrowed | **Owned (supplied)** |
+| Screens that follow successful login (owned screens) | Owned | — | Owned |
 
-**主たる経路に借り物の画面は現れない。** `/login`(所有)→ 必要ならチャレンジ画面(所有)→
-ログイン成立後に続く画面(所有)で、利用者は最後まで自分のドメインを離れない。借り物の画面が現れるのは
-federation の連携先と IdP の終了口だけであり、そこには意匠を供給する(§6 / §5)。
+**Borrowed screens do not appear on the main path.** `/login` (owned) → a challenge screen if needed (owned) → the screens that follow successful login (owned): the user never leaves their own domain to the end. Borrowed screens appear only at the federation partner and the IdP end-session endpoint, and design is supplied there (§6 / §5).
 
-- **資格情報の入力面は所有する。** ID / パスワード / MFA コードの入力欄を所有画面へ置く。利用者から
-  見た認証は、遷移の途中で見知らぬドメインへ着地しない 1 本の導線になる
-- **入力面だけを持つ部品は、本 ADR の射程に入らない。** 桁を分割したコード入力欄のような部品は、名前に
-  「OTP」と付いていても値の種類を指しているだけで、発行・照合・有効期限・試行回数の制限といった検証の
-  責務を持たない。`Input` にパスワードを入れても `Input` が認証責務を持たないのと同じで、認証と無関係な
-  確認コード(メールアドレスの確認・機微操作の step-up)にも使う。名前から認証部品と読んで置き場を誤らない
-- **このリポジトリは資格情報を検証しない。** できるのは**バックエンドへの中継だけ**である。受け取った
-  資格情報を保存しない / ログへ出さない / session payload へ載せない(§1)/ 中継以外の判断へ使わない。
-  正しさの判定・試行回数の制限・ロックアウトはすべてバックエンドが持つ([0070](0070-backend-role-separation.md))
-- **IdP の API を直接叩かない。** IdP 固有 SDK をこのリポジトリの依存に入れず、IdP の資格情報も持たない。
-  叩けば、認証の本流がその IdP へ結合し、Resolver の外で差し替え可能性が壊れる(§6 / [0010](0010-standards-and-non-lockin.md))。
-  **IdP の選択に依存しない恒久の線**はここに引く —— 入力欄の有無ではなく、**IdP を知っているかどうか**が線である
-- **認証画面の意匠は所有する。** 所有画面は design token が直接効く。借り物なのは federation の連携先と
-  終了口だけなので、そこへは IdP のブランディング機構を通して token から供給する。**手で二重管理しない**
-  —— 色や書体を IdP の管理画面へ書き写すと、token を動かしてもその画面だけが古い姿で残る
-- **供給できる範囲は IdP のブランディング機構が決める。** 供給しきれない部分が残ることは、意匠を
-  所有しないことを意味しない —— 供給できる範囲を供給し、できない範囲を分かって残すのと、何も
-  供給しないのは別である
+- **The credential input surface is owned.** The ID / password / MFA code input fields are placed on owned screens. Authentication, as the user sees it, becomes one path that never lands on an unfamiliar domain partway through
+- **A component that holds only an input surface is outside the reach of this ADR.** A component like a code input split into digits only names the kind of value even if its name says "OTP"; it does not carry verification responsibilities such as issuance, matching, expiry or limiting attempts. Just as `Input` does not carry an authentication responsibility when you type a password into it, it is also used for confirmation codes unrelated to authentication (email address confirmation, step-up for sensitive operations). Do not read it as an authentication component from its name and misplace it
+- **This repository does not verify credentials.** All it can do is **relay them to the backend**. Received credentials are not stored / not logged / not put in the session payload (§1) / not used for any decision other than relaying. Judging correctness, limiting attempts and lockout are all owned by the backend ([0070](0070-backend-role-separation.md))
+- **IdP APIs are not called directly.** IdP-specific SDKs are not put in this repository's dependencies, and IdP credentials are not held either. Calling them would couple the main line of authentication to that IdP and break swappability outside the Resolver (§6 / [0010](0010-standards-and-non-lockin.md)). **The permanent line, independent of the choice of IdP**, is drawn here — the line is not whether there are input fields but **whether it knows about the IdP**
+- **The design of authentication screens is owned.** Design tokens apply directly to owned screens. Only the federation partner and the end-session endpoint are borrowed, so design is supplied to them from tokens through the IdP's branding mechanism. **Do not maintain it twice by hand** — copying colours and typefaces into the IdP's admin console leaves only that screen in its old look when the tokens move
+- **The suppliable range is decided by the IdP's branding mechanism.** That some part cannot be supplied does not mean the design is not owned — supplying what can be supplied and knowingly leaving what cannot is different from supplying nothing
 
-**vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.md)): 中継に留めて検証も
-保持もしないのは、**扱わないデータは漏らせない**という一般原則(最小露出)による。通過するだけの値に
-対して責任範囲が広がるのは、保存・ログ・派生を始めた時点である。IdP を知らないままにするのは、
-**依存は差し替えられる形で持つ**という一般原則であり、IdP を替えてもこの線は動かない。意匠を供給元
-1 つに寄せるのは、同じ値を 2 箇所で持つと必ず片方がずれるという、この repo が token の SSOT でも
-採っている一般原則である。
+**Vendor-independent justification** ([0010](0010-standards-and-non-lockin.md)): staying at relaying and neither verifying nor holding follows the general principle that **data you do not handle cannot be leaked** (minimal exposure). The scope of responsibility for a value that only passes through widens the moment you start storing, logging or deriving from it. Keeping the IdP unknown is the general principle that **dependencies are held in a swappable shape**, and this line does not move when the IdP is replaced. Gathering design into one supply source is the general principle, also adopted by this repo for the SSOT of tokens, that holding the same value in two places always lets one of them drift.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 認証 seam の形を独自発明・中立化すること(Next.js 文書化パターン = httpOnly cookie / optimistic + DAL / DTO に乗る。[0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられない**。seam の形が文書化パターンに乗っているかは設計の判断そのもので、コードの形からは決まらない）
-- ❌ 本 ADR の決定を「Next.js が推奨するから」だけで正当化すること(vendor-independent 材料 = httpOnly:XSS 緩和 / データ境界:多層防御 / DTO・最小 payload:最小権限 を本体に添える。[0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられない**。正当化の材料が添えられているかは ADR 本文の論証の中身で、コードに現れない）
-- ❌ 特定の認証プロバイダ・IdP・session 実装詳細(暗号化方式 / stateless vs DB)を **Resolver の外**へ組み込むこと(§6。既定実装は Resolver の裏に閉じ、差し替え可能に保つ。[0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。何がプロバイダ・session 実装の詳細かは処理の意味で決まり、置き場の形からは決まらない）
-- ❌ Access Token をブラウザ(client JS / localStorage / 非 httpOnly cookie)へ露出させること(§6)
-- ❌ 空の IF / port 定義だけを置いて実装を持たないこと(§6)（強制: 散文 —— **寄せられない**。IF が動く既定実装を伴っているかは実装が役目を果たすかの判断で、宣言の形からは決まらない）
-- ❌ 受け取った資格情報を保存・ログ出力・session payload へ載せること / 中継以外の判断へ使うこと(§8)（強制: `src/logging` の名前の表（`REDACTED_FIELD_NAMES`。`pino.server.test.ts` が固定）が `password` / `token` の名前で持ち回るログ項目を伏せる。保存・session payload への積載・中継以外の判断は散文 —— **寄せられない**。値が資格情報かどうかは経路の意味で決まり、型からは決まらない）
-- ❌ 資格情報の正しさの判定・試行回数の制限・ロックアウトをこのリポジトリで実装すること(バックエンドが持つ。§8 / [0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。処理が資格情報の判定・試行制限にあたるかは業務上の意味で決まり、コードの形からは決まらない）
-- ❌ IdP の API を直接叩くこと / IdP 固有 SDK・IdP の資格情報をこのリポジトリの依存に入れること(§6 / §8)（強制: 持たない —— 採らない決定。IdP 固有 SDK も IdP の資格情報も依存に無いこと自体が状態で、入れる変更は `package.json` と設定の差分に現れる）
-- ❌ IdP 固有のチャレンジ名・継続用の文字列・エラーコードを画面や `features` へ持ち込むこと(バックエンドが正規化した列挙のみを受け取る。§6)（強制: 散文 —— **寄せられない**。文字列が IdP 固有の語彙かどうかは綴りからは決まらない）
-- ❌ 借り物の画面の意匠を放棄すること / ブランディングの設定を design token と別に手で持つこと(§8)（強制: 散文 —— **寄せられない**。供給先は IdP の管理画面でありリポジトリの外に在るため、token と手書き設定の二重管理はコードに現れない）
-- ❌ `面` を画面の意味で使うこと(接続点の意味で予約済み。§8 の用語)（強制: 散文 —— **寄せられない**。`面` がどちらの意味で使われたかは文脈で決まり、綴りからは決まらない）
-- ❌ `proxy.ts` を確定認可の主機構・唯一の防御線にすること / Proxy 内で DB・データ源を参照すること(optimistic・cookie 読みのみ。[0043](0043-middleware-policy.md))（強制: ESLint boundaries（`architecture.ts` の `ENTRY_POINTS` の `proxy` は `model` / `config` / `errors` と `adapters-auth` だけへ届く）が `proxy.ts` から取得を持つ `adapters` への import を落とす。生の `fetch` と「唯一の防御線にしない」は散文 —— **寄せられない**。防御の層の数は配置全体の設計判断で、1 ファイルの形からは決まらない）
-- ❌ 確定認可(`verifySession()` / DAL)を `adapters/server` 以外に置くこと / session・secret を内側の層(`model` / feature 純粋ロジック / client)へ漏らすこと([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md))（強制: ESLint boundaries（`architecture.ts` の `DEPENDENCIES` と `adapters-auth`）が `model` などの内側から session 区画への import を落とし、`scripts/server-only.gate.test.ts` と `server-only` の build-time failure が client への混入を落とす。`verifySession()` を `adapters/server` の外に置くことは散文 —— **一部寄せられる**。名前での置き場は静的に見られるが規則は無い。同じ役目を別名で持つことは意味で決まる）
-- ❌ cookie payload に PII・機微情報を載せること / user オブジェクト全体を DTO なしで client へ渡すこと
-- ❌ 認可の**判定規則**(どの役割が何を満たすか)を app 層 / `features` / `proxy.ts` へ直書きすること(述語は `model`。app が持つのは編成のみ。§4)
-- ❌ `features` から `adapters/server/auth`(DAL / session)を import すること / session の型を `features` へ渡すこと(依存マトリクスの帰結と型漏洩禁止。[0021](0021-frontend-responsibility.md) / [0020](0020-adopted-architecture.md) / `architecture.ts` の `adapters-auth`)
-- ❌ `returnUrl` を検証せず外部 URL へリダイレクトすること(open redirect。同一 origin 相対パスに限定)
-- ❌ 未認証時の識別子をブラウザから読める形(localStorage / 非 httpOnly cookie)で持つこと / session cookie の payload へ混ぜること(§7)
-- ❌ 引き継ぎを callback 以外(`proxy.ts` / 画面 / 複数の起点)から起こすこと / 引き継ぎの失敗でログインを失敗させること(§7)（強制: 散文 —— **一部寄せられる**。起点が callback 1 箇所であることは、引き継ぎを起こす関数の import 元を callback の `route.ts` に限る `no-restricted-imports` で落とせるが規則は無い。失敗でログインを落とさないことは実行時の分岐で、書かれたテストの範囲でしか見えない）
-- ❌ 引き継ぎの規則(合算・上限・優先)をフロントに実装すること(業務ロジックはバックエンド。§7 / [0070](0070-backend-role-separation.md))（強制: 散文 —— **寄せられない**。処理が合算・上限・優先の業務規則にあたるかは意味で決まり、コードの形からは決まらない）
+- ❌ Inventing or neutralizing the shape of the authentication seam on our own (ride on the documented Next.js pattern = httpOnly cookie / optimistic + DAL / DTO; [0010](0010-standards-and-non-lockin.md)) (Enforcement: Prose — **not mechanizable**. Whether the seam's shape rides on the documented pattern is the design judgment itself and is not determined by the shape of the code)
+- ❌ Justifying this ADR's decisions only by "because Next.js recommends it" (attach the vendor-independent material = httpOnly: XSS mitigation / data boundary: defense in depth / DTO and minimal payload: least privilege, in the body; [0010](0010-standards-and-non-lockin.md)) (Enforcement: Prose — **not mechanizable**. Whether justifying material is attached is the substance of the argument in the ADR body and does not appear in code)
+- ❌ Building a particular authentication provider, IdP or session implementation detail (encryption scheme / stateless vs DB) **outside the Resolver** (§6; the default implementation is closed behind the Resolver and kept swappable; [0070](0070-backend-role-separation.md)) (Enforcement: Prose — **not mechanizable**. What counts as a provider or session implementation detail is decided by the meaning of the processing, not by the shape of where it is placed)
+- ❌ Exposing the Access Token to the browser (client JS / localStorage / non-httpOnly cookie) (§6)
+- ❌ Placing only an empty IF / port definition with no implementation (§6) (Enforcement: Prose — **not mechanizable**. Whether the IF comes with a working default implementation is a judgment of whether the implementation does its job, and is not determined by the shape of the declaration)
+- ❌ Storing or logging received credentials, or putting them in the session payload / using them for any decision other than relaying (§8) (Enforcement: the name table in `src/logging` (`REDACTED_FIELD_NAMES`, pinned by `pino.server.test.ts`) masks log fields carried under the names `password` / `token`. Storing, putting into the session payload and decisions other than relaying are Prose — **not mechanizable**. Whether a value is a credential is decided by the meaning of the path, not by its type)
+- ❌ Implementing credential correctness checks, attempt limiting or lockout in this repository (owned by the backend; §8 / [0070](0070-backend-role-separation.md)) (Enforcement: Prose — **not mechanizable**. Whether processing amounts to credential checking or attempt limiting is decided by its business meaning, not by the shape of the code)
+- ❌ Calling IdP APIs directly / putting IdP-specific SDKs or IdP credentials into this repository's dependencies (§6 / §8) (Enforcement: none — a decision not to adopt. That neither IdP-specific SDKs nor IdP credentials are among the dependencies is itself the state, and a change adding them appears in the `package.json` and configuration diffs)
+- ❌ Bringing IdP-specific challenge names, continuation strings or error codes into screens or `features` (receive only the enumeration the backend normalized; §6) (Enforcement: Prose — **not mechanizable**. Whether a string is IdP-specific vocabulary is not determined by its spelling)
+- ❌ Abandoning the design of borrowed screens / holding branding settings by hand separately from design tokens (§8) (Enforcement: Prose — **not mechanizable**. The supply target is the IdP's admin console, outside the repository, so double maintenance of tokens and hand-written settings does not appear in code)
+- ❌ Using `面` in the sense of a screen (reserved for the sense of connection point; §8 Terminology) (Enforcement: Prose — **not mechanizable**. Which sense `面` was used in is decided by context, not by spelling)
+- ❌ Making `proxy.ts` the main mechanism of authoritative authorization or the only line of defense / querying the DB or data source inside Proxy (optimistic, cookie reads only; [0043](0043-middleware-policy.md)) (Enforcement: ESLint boundaries (`proxy` in `ENTRY_POINTS` of `architecture.ts` reaches only `model` / `config` / `errors` and `adapters-auth`) rejects imports from `proxy.ts` into fetch-holding `adapters`. Raw `fetch` and "never the only line of defense" are Prose — **not mechanizable**. The number of defense layers is a design judgment over the whole placement and is not determined by the shape of one file)
+- ❌ Placing authoritative authorization (`verifySession()` / DAL) anywhere other than `adapters/server` / leaking the session or secrets to inner layers (`model` / pure feature logic / client) ([0021](0021-frontend-responsibility.md) / [0024](0024-adapters-server-client-split.md) / [0020](0020-adopted-architecture.md)) (Enforcement: ESLint boundaries (`DEPENDENCIES` and `adapters-auth` in `architecture.ts`) rejects imports into the session area from inner places such as `model`, and `scripts/server-only.gate.test.ts` and the build-time failure of `server-only` reject leakage into the client. Placing `verifySession()` outside `adapters/server` is Prose — **partly mechanizable**. Placement by name can be checked statically, but no rule exists. Holding the same role under another name is decided by meaning)
+- ❌ Putting PII or sensitive data in the cookie payload / passing the whole user object to the client without a DTO
+- ❌ Writing authorization **decision rules** (which role satisfies what) directly in the app layer / `features` / `proxy.ts` (the predicate is in `model`; the app holds only orchestration; §4)
+- ❌ Importing `adapters/server/auth` (DAL / session) from `features` / passing the session's type to `features` (a consequence of the dependency matrix and the no-type-leakage rule; [0021](0021-frontend-responsibility.md) / [0020](0020-adopted-architecture.md) / `adapters-auth` in `architecture.ts`)
+- ❌ Redirecting to an external URL without validating `returnUrl` (open redirect; restricted to same-origin relative paths)
+- ❌ Holding the unauthenticated identifier in a form readable from the browser (localStorage / non-httpOnly cookie) / mixing it into the session cookie's payload (§7)
+- ❌ Triggering the carry-over from anywhere other than the callback (`proxy.ts` / a screen / multiple origins) / failing the login on a failed carry-over (§7) (Enforcement: Prose — **partly mechanizable**. That the origin is the single callback could be rejected with `no-restricted-imports` restricting the import sites of the carry-over function to the callback's `route.ts`, but no rule exists. Not failing the login on failure is a runtime branch, visible only within the range of written tests)
+- ❌ Implementing carry-over rules (merging, limits, precedence) in the frontend (business logic belongs to the backend; §7 / [0070](0070-backend-role-separation.md)) (Enforcement: Prose — **not mechanizable**. Whether processing amounts to business rules of merging, limits or precedence is decided by meaning, not by the shape of the code)
 
-## 補足
+## Notes
 
-- 本 ADR は **seam の座標(どの層が session verify / DTO / cookie を所有するか)** に加えて、**動く最小 session 機構の同梱**(§6 Resolver IF + 既定実装 1 本)を確定する。持つのは既定実装であって「唯一の実装」ではない。
-- **CSRF / origin 検証は本 ADR に同居させない。** それは日常強制される rule であり、[`docs/rules.md#authorization`](../rules.md#authorization)の「状態を変える要求の送信元を検証する」が持つ。本 ADR の httpOnly / SameSite cookie 前提がその rule の土台を提供する関係のみを明記する([0140](0140-documentation-operations.md) 「decision と rule を分ける」タクソノミー)。
-- **CSP / セキュリティヘッダ([0111](0111-csp-security-headers.md))との境界**: 認証 seam(本 ADR)と CSP 実行時本体は別関心。cookie 属性・認可分担は本 ADR、`Content-Security-Policy` / `X-Frame-Options` 等のヘッダ配置は 0111 が所有する。両者を同居させない(局所推論の維持)。
-- **外部の認証基盤へ繋ぐ経路は、前提の連鎖に従属する。** 着手できる順は **IdP の構築 → バックエンドが正規化されたチャレンジを返す機構 → この層の画面**であり、逆順には進められない。正規化されたチャレンジの契約が無いまま画面を書くと、契約が決まった時点で必ず書き直しになる。
-- 本 ADR は [0140](0140-documentation-operations.md) タクソノミーにおいて **decision**(seam 定義)分類に属する。日常強制される rule(cookie 属性既定値 = 「データ分類と機微情報」の「アプリ cookie は用途を接頭辞に含め、属性を用途ごとに明示する」/ CSRF = 「認可と入口」の「状態を変える要求の送信元を検証する」)は `docs/rules.md` 側が持つ。
+- This ADR settles, in addition to **the seam's coordinates (which layer owns session verification / DTOs / cookies)**, **bundling a working minimal session mechanism** (§6 Resolver IF + one default implementation). What it holds is a default implementation, not "the only implementation".
+- **CSRF / origin verification does not live in this ADR.** It is a rule enforced day to day, owned by "verify the origin of requests that change state" in `docs/rules.md` *Authorization and Entry Points*. Only the relationship that this ADR's httpOnly / SameSite cookie premise provides the foundation for that rule is stated (the taxonomy of [0140](0140-documentation-operations.md) that separates decisions from rules).
+- **Boundary with CSP / security headers ([0111](0111-csp-security-headers.md))**: the authentication seam (this ADR) and the CSP runtime body are separate concerns. Cookie attributes and the division of authorization are owned by this ADR; placement of headers such as `Content-Security-Policy` / `X-Frame-Options` is owned by 0111. The two are not housed together (keeping local reasoning).
+- **The path for connecting to an external authentication platform is subordinate to a chain of prerequisites.** The order in which work can start is **building the IdP → a mechanism for the backend to return normalized challenges → the screens of this layer**, and it cannot proceed in reverse. Writing screens without a contract for normalized challenges always means rewriting them once the contract is settled.
+- Under the taxonomy of [0140](0140-documentation-operations.md), this ADR belongs to the **decision** (seam definition) classification. The rules enforced day to day (cookie attribute defaults = "app cookies carry their purpose in a prefix and state their attributes per purpose" in *Data Classification and Sensitive Data* / CSRF = "verify the origin of requests that change state" in *Authorization and Entry Points*) are owned by `docs/rules.md`.
 
-## 関連 ADR
+## Related ADRs
 
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠(§1 seam はデファクトに乗る)/ 非ロックイン判定(§2 vendor-independent 正当性材料の必須化)。本 ADR の 2 原則の土台
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — 認証は out of scope / thin proxy・token 交換の seam / 確定認可はデータ境界(プロバイダ中立の意味 = 本 ADR の前提)
-- [0043-middleware-policy.md](0043-middleware-policy.md) — `proxy.ts` = optimistic のみ / Node.js runtime / 唯一の防御線にしない(認可 optimistic 層の所有)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `adapters/server`(DAL / secret / `server-only`)/ `model`(DTO view 型)/ app の thin 原則(カーネル座標の SSOT)
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/server`(secret 可)vs `adapters/client`(secret 不可)。DAL が server 面に属する根拠
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Component 既定 / `page.tsx` thin / Server Action 編成のみ(各所チェックの配置根拠)
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) — 型漏洩禁止(session・secret を内層へ漏らさない)
-- [0111-csp-security-headers.md](0111-csp-security-headers.md) — CSP / セキュリティヘッダ(本 ADR と同居させない別関心)
-- [0080-error-handling.md](0080-error-handling.md) — 401 / 403 の分類(§5 / §6 が対応させる先)
-- [0140-documentation-operations.md](0140-documentation-operations.md) — decision / rule タクソノミー(cookie 属性は [`docs/rules.md#data-classification`](../rules.md#data-classification)・CSRF は「認可と入口」の側)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — standards conformance (§1: the seam rides on the de facto standard) / the no-lock-in test (§2: mandatory vendor-independent justification). The foundation of this ADR's two principles
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — authentication is out of scope / the thin proxy and token exchange seam / authoritative authorization at the data boundary (the meaning of provider neutrality = this ADR's premise)
+- [0043-middleware-policy.md](0043-middleware-policy.md) — `proxy.ts` = optimistic only / Node.js runtime / never the only line of defense (ownership of the optimistic authorization layer)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `adapters/server` (DAL / secrets / `server-only`) / `model` (DTO view types) / the thin principle for app (the SSOT for kernel coordinates)
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters/server` (secrets allowed) vs `adapters/client` (secrets not allowed). Grounds for the DAL belonging to the server side
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Component by default / thin `page.tsx` / Server Actions only orchestrate (grounds for placing checks at each point)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) — no type leakage (the session and secrets are not leaked to inner layers)
+- [0111-csp-security-headers.md](0111-csp-security-headers.md) — CSP / security headers (a separate concern not housed with this ADR)
+- [0080-error-handling.md](0080-error-handling.md) — the classification of 401 / 403 (what §5 / §6 map to)
+- [0140-documentation-operations.md](0140-documentation-operations.md) — the decision / rule taxonomy (cookie attributes on the side of *Data Classification and Sensitive Data* in `docs/rules.md`, CSRF on the side of *Authorization and Entry Points*)

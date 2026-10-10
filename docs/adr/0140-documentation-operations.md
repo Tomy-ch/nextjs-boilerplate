@@ -61,7 +61,7 @@ The meaning and judgment of the categories are owned by [`docs/README.md`](../RE
 | Category | Location |
 | --- | --- |
 | **decision** | `docs/adr/` |
-| **exclusion** | `docs/adr/` (state `Accepted (exclusion)` in Status, or `Accepted (一部 exclusion)` when mixed with decisions. Examples: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md), `Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
+| **exclusion** | `docs/adr/` (state `Accepted (exclusion)` in Status, or `Accepted (partial exclusion)` when mixed with decisions. Examples: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md), `Accepted (partial exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
 | **rule** | **`docs/rules.md`** (3 below) |
 | **inventory** | Not put in ADRs. Its home is [`docs/reference/`](../reference/README.md) — an inventory that changes following the code; the code side is the source of truth, and rewrites happen in the same change as the target code. An inventory holds no rationale and only links to the ADR for the reason of a choice |
 
@@ -142,6 +142,6 @@ Enforcement: 3 is Claude Code's `deny` (for what it does not reach, see [0152](0
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — per-layer README operation (per-package README = source of truth)
 - [0141-portal-operations.md](0141-portal-operations.md) — the generated portal (the third tier of this ADR's three-tier strategy)
 - [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — examples of exclusion ADRs (`Accepted (exclusion)`)
-- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — examples of partial-exclusion ADRs (`Accepted (一部 exclusion)`)
+- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — examples of partial-exclusion ADRs (`Accepted (partial exclusion)`)
 - [`docs/README.md`](../README.md) — the judgment and destinations of the four categories
 - [`docs/reference/README.md`](../reference/README.md) — the home of inventory (the contract of an inventory that follows the code)

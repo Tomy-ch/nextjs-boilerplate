@@ -1,68 +1,68 @@
-# アプリケーションは AI に依存しない
+# The Application Does Not Depend on AI
 
-このリポジトリが配るアプリケーション —— 実行時・ビルド・テスト・通常の CI 検査 —— は、**AI エージェントが 1 つも居ない状態で成立する**。AI への依存は開発の流れの側に閉じる。[0160](0160-agent-environment-loop.md) がエージェント環境を改善する対象として扱うのに対し、本 ADR はその環境が**どこまで踏み込めないか**の線を引く。
+The application this repository distributes — runtime, build, tests and the ordinary CI checks — **holds with not a single AI agent present**. Dependence on AI is confined to the development flow. Where [0160](0160-agent-environment-loop.md) treats the agent environment as something to improve, this ADR draws the line of **how far that environment may not reach**.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **配る相手が同じ道具立てを持つとは限らない。** Claude Code を使うかは分からず、CI の runner にエージェントは居ない。アプリの成立をそこへ乗せると、道具を持たない利用者にはビルドできないリポジトリが渡る
-- **道具は入れ替わる。** モデルも CLI も年単位で置き換わる。入れ替えのたびにアプリが止まる形にすると、道具の選定が可逆でなくなる（[0010](0010-standards-and-non-lockin.md) の非ロックイン判定）
-- **依存の向きが逆だと、検査が自分を検査できない。** ゲートの成立にエージェントが要ると、エージェントの不調とコードの不備が同じ赤で返る。どちらが原因かを分ける手段が無くなる
+- **Those it is distributed to do not necessarily have the same tooling.** Whether they use Claude Code is unknown, and there is no agent on a CI runner. Resting the application's viability on that would hand users without the tools a repository they cannot build
+- **Tools get replaced.** Models and CLIs are replaced on a scale of years. A shape where the application stops on every replacement makes the choice of tools irreversible (the no-lock-in test of [0010](0010-standards-and-non-lockin.md))
+- **With the dependency pointing the wrong way, inspections cannot inspect themselves.** If a gate needs an agent to hold, an agent malfunction and a code defect come back as the same red. There is no longer a way to separate which is the cause
 
-## 決定 1: 成立の条件にエージェントを置かない
+## Decision 1: No agent among the conditions for holding
 
-次のいずれも、エージェントが居ない環境で通らなければならない。
+Each of the following must pass in an environment with no agent.
 
-- **実行時** —— `pnpm build` の成果物が動くこと
-- **ビルド** —— `pnpm build` / 生成（`make gen-api` 等）
-- **テスト** —— `pnpm test` と、そこから呼ばれるすべて
-- **通常の CI 検査** —— 必須チェックに登録された job
+- **Runtime** — the output of `pnpm build` works
+- **Build** — `pnpm build` / generation (`make gen-api`, etc.)
+- **Tests** — `pnpm test` and everything called from it
+- **Ordinary CI checks** — jobs registered as required checks
 
-**`.claude/` が丸ごと無い checkout でも、上のすべてが通る。** エージェント資産を検査する側（`skill-lint` など）は、対象が無ければ 0 件として通り、失敗にしない。
+**Even a checkout with no `.claude/` at all passes everything above.** The side that inspects agent assets (`skill-lint`, etc.) passes with 0 items when there is no target, and does not fail.
 
-## 決定 2: AI への依存は開発の流れに閉じる
+## Decision 2: Dependence on AI is confined to the development flow
 
-閉じてよい先は、**成果物に現れないもの**である。
+What it may be confined to is **what does not appear in the deliverable**.
 
-| 依存してよい | 依存してはならない |
+| May depend on | Must not depend on |
 | --- | --- |
-| `.claude/` のスキル・エージェント定義・権限 | アプリの実行経路 |
-| `make ai-<target>` の静音実行 | ゲートの判定そのもの |
-| レビュー・調査・コードの辿り方 | 生成物の生成手順 |
-| 文脈量だけを変える道具（`rtk` / `graphify`） | 必須チェックの成立 |
+| Skills, agent definitions and permissions in `.claude/` | The application's execution path |
+| Quiet runs via `make ai-<target>` | The verdicts of gates themselves |
+| Review, investigation, ways of tracing code | The procedure for producing generated artifacts |
+| Tools that change only context volume (`rtk` / `graphify`) | Required checks holding |
 
-**判定は「その道具が入っていない checkout で挙動が変わるか」の一問による。** 変わるなら、それは開発の流れではなくアプリの一部である。
+**The judgment is the single question "does behavior change in a checkout without that tool".** If it does, it is part of the application, not the development flow.
 
-## 決定 3: 経路に自分を置く道具を採らない
+## Decision 3: Do not adopt tools that put themselves on the path
 
-`pnpm build` / `pnpm test` / 必須チェックの経路へ自分を挿す道具は、コードを書く間どれだけ助けになっても採用しない。**採否の判定は利便性ではなく、依存の向きで行う。**
+A tool that inserts itself into the path of `pnpm build` / `pnpm test` / required checks is not adopted, however much it helps while writing code. **Adoption is judged by the direction of dependency, not convenience.**
 
-- 静音実行（`make ai-<target>`）は `make <target>` を包むだけで、包まれた側の判定を変えない
-- `rtk` は文脈へ届く前の出力を圧縮するだけで、build / test / CI のどの経路も呼ばない
-- `graphify` はローカルの解析で、`graphify-out/` は追跡外かつどの検査からも読まれない
+- Quiet runs (`make ai-<target>`) only wrap `make <target>` and do not change the wrapped side's verdict
+- `rtk` only compresses output before it reaches the context, and calls none of the build / test / CI paths
+- `graphify` is local analysis, and `graphify-out/` is untracked and read by no check
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **生成のためにエージェントを呼ぶ** | 生成物はソースから決定的に導けなければならない（[0072](0072-api-type-generation.md) の drift ゲートが成立しなくなる） |
-| **ゲートの判定にモデルを使う** | 同じ入力で違う答えが出る検査は、赤の原因を分けられない。所見を出すところまでが機械の仕事である（[0160](0160-agent-environment-loop.md)） |
-| **エージェント資産の存在を前提にした検査** | 資産が無い checkout で赤になる。検査は対象が無ければ 0 件で通す |
+| **Calling an agent for generation** | Generated artifacts must be derivable deterministically from source (the drift gate of [0072](0072-api-type-generation.md) would stop holding) |
+| **Using a model for gate verdicts** | An inspection that gives different answers for the same input cannot separate the cause of a red. The machine's job ends at producing findings ([0160](0160-agent-environment-loop.md)) |
+| **Inspections that presuppose agent assets exist** | They go red in a checkout without the assets. An inspection passes with 0 items when there is no target |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `pnpm build` / `pnpm test` / 必須チェックの経路に、エージェント向けの道具を挿すこと（強制: 散文 —— **一部寄せられる**。`package.json` の scripts と必須 job の workflow に `rtk` / `graphify` / `claude` 等の綴りが現れるかは走査で落とせるが規則は無い。名の無い道具がエージェント向けかは道具の性質で決まる）
-- ❌ 生成物の生成や、ゲートの判定にモデルを呼ぶこと（強制: CI の harden-runner（`egress-policy: block`、許可先は `.github/egress.yaml`・一致は `make egress-check`）がゲートと生成の job からモデル API への通信を落とす。手元でだけ走る判定と、許可先へモデル API を足す変更は散文 —— **寄せられない**。宛先がモデル API かは値の意味で決まる）
-- ❌ `.claude/` の存在を前提にして、無い checkout で失敗する検査を書くこと（強制: 散文 —— **寄せられる**（`.claude/` を削除した checkout で必須チェックを走らせる job を置けば落とせる。規則は無い））
-- ❌ 道具の採否を、依存の向きではなく利便性で決めること（強制: 散文 —— **寄せられない**。採否を何で決めたかは判断の理由であってコードに現れない）
+- ❌ Inserting agent-oriented tools into the path of `pnpm build` / `pnpm test` / required checks (Enforcement: Prose — **partly mechanizable**. Whether spellings such as `rtk` / `graphify` / `claude` appear in the scripts of `package.json` and in the workflows of required jobs can be rejected by a scan, but no rule exists. Whether an unnamed tool is agent-oriented is decided by the tool's nature)
+- ❌ Calling a model for producing generated artifacts or for gate verdicts (Enforcement: CI's harden-runner (`egress-policy: block`, allowed destinations in `.github/egress.yaml`, agreement checked by `make egress-check`) blocks traffic to model APIs from gate and generation jobs. Verdicts that run only locally, and changes adding a model API to the allowed destinations, are Prose — **not mechanizable**. Whether a destination is a model API is decided by the meaning of the value)
+- ❌ Writing an inspection that presupposes `.claude/` exists and fails in a checkout without it (Enforcement: Prose — **mechanizable** (placing a job that runs the required checks in a checkout with `.claude/` deleted would reject it. No rule exists))
+- ❌ Deciding whether to adopt a tool by convenience rather than by the direction of dependency (Enforcement: Prose — **not mechanizable**. What the adoption was decided by is the reason for a judgment and does not appear in code)
 
-## 関連 ADR
+## Related ADRs
 
-- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) — エージェント環境の改善ループ。本 ADR はその環境が踏み込めない線を引く
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 非ロックイン判定（道具の入れ替えが可逆であること）
-- [0072-api-type-generation.md](0072-api-type-generation.md) — 生成物はソースから決定的に導ける
-- [0153-ci-configuration.md](0153-ci-configuration.md) — 必須チェックの構成
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) / [0158-code-search-tooling.md](0158-code-search-tooling.md) — 観測・検索の道具。いずれもゲートの外に置く
+- [0160-agent-environment-loop.md](0160-agent-environment-loop.md) — the improvement loop for the agent environment. This ADR draws the line that environment may not cross
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the no-lock-in test (that replacing tools is reversible)
+- [0072-api-type-generation.md](0072-api-type-generation.md) — generated artifacts derivable deterministically from source
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the configuration of required checks
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.md) / [0158-code-search-tooling.md](0158-code-search-tooling.md) — tools for observation and search. Both are placed outside the gates

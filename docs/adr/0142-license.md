@@ -1,51 +1,51 @@
-# ライセンス選定(MIT)
+# License Choice (MIT)
 
-本リポジトリのライセンスを **MIT** とする根拠、**OSS 寄与ポリシー**、および `package.json` の `private` フラグとの関係を定める。
+Sets out the basis for licensing this repository under **MIT**, the **OSS contribution policy**, and how the license relates to the `private` flag in `package.json`.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-前提:
+Premise:
 
-- 本リポジトリは **テンプレートとして複製されることを目的とした表示層 boilerplate**([0011](0011-no-docker.md))であり、npm パッケージとして配布・`install` される性質ではない
+- This repository is **a presentation-layer boilerplate meant to be copied as a template** ([0011](0011-no-docker.md)); it is not something distributed and `install`ed as an npm package
 
-## 決定
+## Decision
 
-### 1. ライセンス = MIT
+### 1. License = MIT
 
-- 本リポジトリのライセンスは **MIT** とする(`LICENSE`: Copyright (c) 2026 Tomy-ch)。根拠:
-  - **最大限の許容性**: 商用・改変・再配布・sublicense を制約なく許可し、本リポジトリを複製して任意の用途(商用含む)に使う目的に最も適う
-  - **エコシステム標準**: Next.js・React をはじめ本リポの依存の大半が MIT / permissive であり、フレームワーク文化と摩擦がない
-  - **低儀式性**: CLA・コピーレフトの義務を持ち込まず、テンプレート用途の障壁を最小化する
-- Apache-2.0(特許条項)や BSD 系との比較でも、追加条項の要否がない本用途では MIT の簡潔さを優先する
+- This repository is licensed under **MIT** (`LICENSE`: Copyright (c) 2026 Tomy-ch). Basis:
+  - **Maximum permissiveness**: it permits commercial use, modification, redistribution and sublicensing without restriction, which best fits the purpose of copying this repository for any use (including commercial)
+  - **Ecosystem standard**: most of this repository's dependencies, starting with Next.js and React, are MIT / permissive, so there is no friction with the framework culture
+  - **Low ceremony**: it brings in no CLA or copyleft obligations, minimizing barriers for template use
+- Compared with Apache-2.0 (patent clause) or the BSD family as well, MIT's simplicity is preferred for this use, which needs no additional clauses
 
-### 2. OSS 寄与ポリシー = inbound = outbound(CLA なし)
+### 2. OSS contribution policy = inbound = outbound (no CLA)
 
-- コントリビューションは **inbound = outbound**(投稿された貢献は成果物と同じ **MIT** の条件でライセンスされる)を既定とする。**別途の CLA / 著作権譲渡は要求しない**
-- 著作権はコントリビュータが保持し、MIT の許諾のもとにリポジトリへ提供される形とする。`LICENSE` の Copyright 表記(`Tomy-ch`)は原著作者表記であり、貢献者の著作権を否定しない
-- DCO(Developer Certificate of Origin)署名は必須化しない(必要になれば別途 `CONTRIBUTING.md` で規定 = 用途依存の運用強化)
+- Contributions default to **inbound = outbound** (a submitted contribution is licensed under the same **MIT** terms as the work). **No separate CLA or copyright assignment is required**
+- Contributors keep their copyright and provide their work to the repository under the MIT grant. The copyright notice in `LICENSE` (`Tomy-ch`) names the original author and does not deny contributors' copyright
+- A DCO (Developer Certificate of Origin) sign-off is not made mandatory (if it becomes necessary, it is defined separately in `CONTRIBUTING.md` = a use-case-dependent strengthening of operations)
 
-### 3. `package.json` の `private: true` と MIT の関係
+### 3. How `private: true` in `package.json` relates to MIT
 
-- `package.json` は **`"private": true`** であり、これは **npm レジストリへの誤 publish を防ぐガード**である。本リポジトリは npm 配布物ではなく、テンプレートとして複製して使うものであるため、publish を意図的に無効化している
-- `private: true`(npm 公開の抑止)と MIT(ソースの複製・改変・再配布の許諾)は**別レイヤの関心事**であり両立する。MIT は本リポのソースを複製・改変・再配布する権利を付与し、`private` は npm パッケージとしての配布経路を閉じるだけである
-- `package.json` は SPDX 準拠のツール可読性のため **`"license": "MIT"`** を持つ。`private: true` と併記して矛盾しない(上記のとおり別レイヤ)
+- `package.json` has **`"private": true`**, which is **a guard against accidentally publishing to the npm registry**. This repository is not an npm distributable but something copied and used as a template, so publishing is deliberately disabled
+- `private: true` (preventing npm publication) and MIT (permission to copy, modify and redistribute the source) are **concerns of different layers** and coexist. MIT grants the right to copy, modify and redistribute this repository's source; `private` only closes the distribution path as an npm package
+- `package.json` carries **`"license": "MIT"`** so SPDX-compliant tools can read it. Stating it alongside `private: true` is not a contradiction (different layers, as above)
 
-### 4. application 自体のライセンス
+### 4. The license of the application itself
 
-- ここを土台に構築する **application 自体のライセンスは用途依存**とする(out of scope)。MIT は派生物の再ライセンスを許すため、自プロジェクトに任意のライセンスを付与できる。ただし MIT の条件により、**boilerplate 由来部分の著作権表記・許諾表記の保持**が求められる点は Next.js 等の依存と同様に扱う
+- **The license of an application built on this foundation is use-case dependent** (out of scope). MIT permits relicensing derivative works, so any license can be applied to your own project. However, under the MIT terms, **keeping the copyright and permission notices of the parts derived from the boilerplate** is required, which is handled the same way as for dependencies such as Next.js
 
-## 禁止事項
+## Prohibitions
 
-- ❌ CLA / 著作権譲渡を貢献の必須条件として持ち込むこと(inbound = outbound を既定とする。強化は `CONTRIBUTING.md` で別途合意)（強制: 持たない —— 採らない決定。CLA・著作権譲渡の仕組みは置かれておらず、入れる変更は `CONTRIBUTING.md` と運用の追加として diff に現れる）
-- ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤ)（強制: 散文 —— **寄せられない**。フラグの解釈は読み手の理解の問題で、コードに現れない）
-- ❌ `LICENSE` の Copyright 表記・許諾文を無断で除去・改変すること(Protected Documentation。[0152](0152-agents-md-policy.md) / AGENTS.md)
+- ❌ Introducing a CLA / copyright assignment as a mandatory condition for contributing (inbound = outbound is the default; any strengthening is agreed separately in `CONTRIBUTING.md`) (Enforcement: none — a decision not to adopt. No CLA or copyright-assignment mechanism is in place, and a change adding one shows up in the diff as added `CONTRIBUTING.md` content and operations)
+- ❌ Interpreting `private: true` as "something that disables MIT" (the publish guard and the license grant are different layers) (Enforcement: Prose — **not mechanizable**. How the flag is interpreted is a matter of the reader's understanding and does not appear in code)
+- ❌ Removing or altering the copyright notice or permission text in `LICENSE` without authorization (Protected Documentation. [0152](0152-agents-md-policy.md) / AGENTS.md)
 
-## 関連 ADR
+## Related ADRs
 
-- [0011-no-docker.md](0011-no-docker.md) — テンプレート用途の表示層ロール(MIT 選定の背景)
-- [0152-agents-md-policy.md](0152-agents-md-policy.md) / AGENTS.md — `LICENSE` は Protected Documentation(直接編集禁止)
-- [0140-documentation-operations.md](0140-documentation-operations.md) — per-package README 運用
+- [0011-no-docker.md](0011-no-docker.md) — the presentation-layer role for template use (the background for choosing MIT)
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) / AGENTS.md — `LICENSE` is Protected Documentation (no direct edits)
+- [0140-documentation-operations.md](0140-documentation-operations.md) — per-package README operations

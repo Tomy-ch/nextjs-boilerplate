@@ -23,7 +23,7 @@
 
 - **1 つの feature しか使わない型** —— その feature の内側に置く。Step 1 がこれを決めて止まる。
 - **契約の型の写し** —— wire の形は `src/adapters/gen/` に留まり、そこから表示用の型への写しは adapter の <!-- skill-lint-ignore -->
-  ものである。契約を手で写すことは [ADR 0072](../../../docs/adr/0072-api-type-generation.md) が断っている。
+  ものである。契約を手で写すことは [ADR 0072](../../../docs/adr/0072-api-type-generation.ja.md) が断っている。
 - **既存の model モジュールの変更** —— 直接編集する。
 - **テストを書くこと** —— `scaffold-test`。単独で走るときはこのスキルが連鎖させる。
 
@@ -36,8 +36,8 @@
 | `src/model/README.md` の frontmatter | `forbidden` タグ / `test-requirement` / `imports-allowed` |
 | `src/model/README.md` の `## 受け入れるもの` / `## 受け入れないもの` / `## 運用` | そのモジュールがここに属するか、ファイル・型・関数の命名 |
 | `src/model/README.md` の `## 監査の観点` | 書いたモジュールが満たすべき行。計画はその 1 行ずつに答える |
-| [ADR 0029](../../../docs/adr/0029-type-design-discipline.md) | 判別可能 union / branded な識別子 / 境界で 1 度だけ parse / `satisfies` |
-| [ADR 0027](../../../docs/adr/0027-directory-structure.md) / [ADR 0028](../../../docs/adr/0028-naming-convention.md) | 平置きかサブディレクトリか、綴り |
+| [ADR 0029](../../../docs/adr/0029-type-design-discipline.ja.md) | 判別可能 union / branded な識別子 / 境界で 1 度だけ parse / `satisfies` |
+| [ADR 0027](../../../docs/adr/0027-directory-structure.ja.md) / [ADR 0028](../../../docs/adr/0028-naming-convention.ja.md) | 平置きかサブディレクトリか、綴り |
 | `src/model/` の隣のモジュール | その場の形 —— brand と構築関数の書き方、union の判別のさせ方 |
 | [`type-design-reviewer`](../../agents/type-design-reviewer.md) | 書いた型を採点する。基準は `.claude/skills/impl-review/prompts/type-design.md` |
 
@@ -97,7 +97,7 @@
   ADR 0029 と README が監査する行であり、計画が既に答えている。
 - **`imports-allowed` を越えて import しない。** `config` から要りそうな値は引数で受け取る。
 - **依存を足さない。** 依存なしにモジュールが書けないなら止まる。依存の追加は
-  [ADR 0004](../../../docs/adr/0004-library-management.md) が持つ停止点である。
+  [ADR 0004](../../../docs/adr/0004-library-management.ja.md) が持つ停止点である。
 
 README がモジュール表を持っていれば、その表の言い回しでモジュールの行を足す —— README は canonical なので英語で書く。
 そのうえで `canonicalize-doc` へ連鎖させ、その `README.ja.md` ミラーを同じ変更で同期する。

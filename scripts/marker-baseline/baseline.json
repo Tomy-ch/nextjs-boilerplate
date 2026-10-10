@@ -28,6 +28,7 @@
   "docs/adr/0140-documentation-operations.md": 2,
   "docs/adr/0152-agents-md-policy.ja.md": 3,
   "docs/adr/0152-agents-md-policy.md": 3,
+  "docs/adr/0153-ci-configuration.ja.md": 1,
   "docs/adr/0153-ci-configuration.md": 1,
   "docs/adr/BACKLOG.md": 1,
   "docs/design/auth.md": 2,

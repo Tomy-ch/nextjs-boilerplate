@@ -9,8 +9,8 @@
 セキュリティの変更としてレビューできない。たまたま古い隣の依存は、報告に 1 行書いて触らない。
 
 変更はすべて、このリポジトリが既に宣言している方針を通る ——
-[0004](../../../docs/adr/0004-library-management.md) の exact pin、
-[0110](../../../docs/adr/0110-security-operations.md) の公開経過の窓と抑止の様式、
+[0004](../../../docs/adr/0004-library-management.ja.md) の exact pin、
+[0110](../../../docs/adr/0110-security-operations.ja.md) の公開経過の窓と抑止の様式、
 `pnpm-workspace.yaml` の `overrides` ブロック冒頭に書かれた規約。**実行時にそれらを読むこと。
 このファイルはその値をひとつも再掲しない。**
 
@@ -33,7 +33,7 @@
 - **`mise.toml` の pin** —— mise 経由で npm レジストリから引くツールを含む —— は `/tools-upgrade`。
   Node.js 本体は `/node-upgrade`。SHA で固定した Actions は `/actions-pin`。
 - **依存の追加。** 脆弱なパッケージを別のものへ置き換えるのは新しい依存であり、`AGENTS.md` の
-  停止点である。[0004](../../../docs/adr/0004-library-management.md) の選定基準を通し、その
+  停止点である。[0004](../../../docs/adr/0004-library-management.ja.md) の選定基準を通し、その
   テンプレを PR に貼る。このスキルは「修正版が無い」で終わり、そう報告する。
 - **窓の内側の版が安全かの判定。** それは `/supply-chain-triage` が持つ。このスキルはそこへ連鎖し、
   返った帯を判断へ運ぶだけである。
@@ -82,7 +82,7 @@
    1440 で割ると日数）、`minimumReleaseAgeStrict`、現在の `minimumReleaseAgeExclude`、`overrides:` の
    上のコメントと既存の override の全項目。候補を既に名指しする除外があれば、その版のために窓が
    意図して開けられている。
-4. [0110](../../../docs/adr/0110-security-operations.md) のツールの cooldown、直接証拠で解除できる代理としての窓、抑止のポリシーを読む。**workspace が
+4. [0110](../../../docs/adr/0110-security-operations.ja.md) のツールの cooldown、直接証拠で解除できる代理としての窓、抑止のポリシーを読む。**workspace が
    公開経過の窓を宣言していない、または ADR が定める npm の窓と食い違うなら、止まって 2 つの出典を
    報告する** —— 権威を主張する 2 つの出典の食い違いは `AGENTS.md` の trip wire であって、どちらかを
    選ぶ値ではない。
@@ -116,7 +116,7 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
 - **既定: 導入済みの major 系列で最も低い修正版。** 候補が複数ある advisory からは、導入済みの
   major に合うものを採る。
 - **major 越え**（導入済みの系列に修正が無い）: 破壊的変更の可能性として印を付ける。1 件ずつ問い
-  （Step 5）、[0004](../../../docs/adr/0004-library-management.md) により単独の PR にして CHANGELOG
+  （Step 5）、[0004](../../../docs/adr/0004-library-management.ja.md) により単独の PR にして CHANGELOG
   の破壊的変更を引用する。
 - **ダウングレード防止:** 導入済みより低い版は選ばない。そうなる項目は `needs-manual` とする。
 - **修正版が存在しない:** 動かすものが無い。`no-fix` として Step 5 へ運ぶ。
@@ -143,7 +143,7 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
 pnpm view <pkg> time --json
 ```
 
-ここで `npm` そのものは使わない（[0001](../../../docs/adr/0001-package-manager.md)）。
+ここで `npm` そのものは使わない（[0001](../../../docs/adr/0001-package-manager.ja.md)）。
 
 | 区分 | 条件 | 効果 |
 | --- | --- | --- |
@@ -164,7 +164,7 @@ pnpm view <pkg> time --json
 
 トリアージは報告のみで、帯（`LOW` / `MEDIUM` / `HIGH` / `CRITICAL` /
 `INSUFFICIENT-EVIDENCE`）を返す。窓か証拠かの判断はすべてあちらのもので
-（[0110](../../../docs/adr/0110-security-operations.md)：窓は直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
+（[0110](../../../docs/adr/0110-security-operations.ja.md)：窓は直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
 そこから何も決めない。**LOW の帯は利用者への証拠であって、除外してよいという許可ではない。**
 
 blocked が無ければこの手順は飛ばす。
@@ -200,7 +200,7 @@ blocked が無ければこの手順は飛ばす。
     選択肢の説明にトリアージの帯を入れ、項目の費用を述べる: 誰かがその行を消すまで、すべての
     checkout が方針の免除を抱える。
   - **修正版なし** —— 理由を添えて `osv-scanner.toml` / `.trivyignore.yaml` に抑止を記すか、開いた
-    ままにするか。[0004](../../../docs/adr/0004-library-management.md) は、すぐ直せない high に
+    ままにするか。[0004](../../../docs/adr/0004-library-management.ja.md) は、すぐ直せない high に
     ついて、暴露と緩和策を記した issue を求める。`/new-issue` を通した下書きを申し出る（起票は
     あちら自身の確認の後に限る）。
 
@@ -257,7 +257,7 @@ minimumReleaseAgeExclude:
   比べ、窓が明ける前に行を消すとすべての install が壊れる。
 
 **承認された抑止。** `osv-scanner.toml` / `.trivyignore.yaml` の冒頭と
-[0110](../../../docs/adr/0110-security-operations.md) の抑止のポリシーが述べる形で書く —— 脆弱性 ID 1 件、
+[0110](../../../docs/adr/0110-security-operations.ja.md) の抑止のポリシーが述べる形で書く —— 脆弱性 ID 1 件、
 ここでなぜ許容できるかの理由、それを退役させる条件。
 
 ## Step 7. 検証する

@@ -21,7 +21,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 ## このスキルを使わないとき
 
 - **契約の変更。** 契約はバックエンドのものであり、`openapi/` は取得して固定するだけで、生成物は手で直さない
-  （[ADR 0072](../../../docs/adr/0072-api-type-generation.md)）。Step 0 が operation の在否を確かめ、無ければ
+  （[ADR 0072](../../../docs/adr/0072-api-type-generation.ja.md)）。Step 0 が operation の在否を確かめ、無ければ
   引き渡す。
 - **既存の adapter モジュールへの関数の追加** —— そのモジュールを編集する。生成器は既に在るパスを拒み、
   このスキルはそれを迂回しない。
@@ -122,7 +122,7 @@ pnpm gen adapter <name>
   テストファイルを消す。1:1 ゲートはそれを `missing-test-file` として報告し、Step 6 が口の実際の分岐から
   書く。
 - **依存を足さない。** 依存なしに口が書けないなら止まる。依存の追加は
-  [ADR 0004](../../../docs/adr/0004-library-management.md) が持つ停止点である。
+  [ADR 0004](../../../docs/adr/0004-library-management.ja.md) が持つ停止点である。
 
 ## Step 5. 書いた口を計画と突き合わせる
 

@@ -1,189 +1,189 @@
-# スタイリング体系(デザイントークン・レスポンシブ・モーション・印刷)
+# Styling System (Design Tokens, Responsive, Motion, Print)
 
-[0050](0050-styling-strategy.md) が定めた **Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用)/ token = CSS 変数 / global と local の境界 / ダークモード = token 切替 + `prefers-color-scheme` 追従** という「器」を受けて、本 ADR はその中身 —— **デザイントークン体系(命名層とスケール)/ ブレークポイント・コンテナクエリ / モーション方針 / 印刷** —— を具体化する。0050 が「design token は CSS 変数」という枠のみを定めたのに対し、本 ADR は「その CSS 変数をどう構造化し、レスポンシブ・モーション・印刷という表現軸にどう展開するか」を定める。
+Taking the "frame" defined by [0050](0050-styling-strategy.md) — **Tailwind as the main axis + a limited allowance for CSS Modules (styled-components / emotion not adopted) / token = CSS variable / the boundary between global and local / dark mode = token switching + following `prefers-color-scheme`** — this ADR makes its contents concrete: **the design token system (naming layers and scales) / breakpoints and container queries / motion policy / print**. Where 0050 defined only the frame "design tokens are CSS variables", this ADR defines "how those CSS variables are structured and how they unfold into the expressive axes of responsive, motion and print".
 
-[0010](0010-standards-and-non-lockin.md) の 2 原則(標準準拠 / 非ロックイン)に従い、ここで下す決定はいずれも **Tailwind を正当化から抜いても成立する CSS 標準・業界パターン**に乗る。本リポジトリが固定するのは体系の「形」であって、具体的なパレット値・スケール刻み・モーションの見た目は固定しない。
+Following the two principles of [0010](0010-standards-and-non-lockin.md) (standards conformance / non-lock-in), every decision made here rides on **CSS standards and industry patterns that hold even with Tailwind taken out of the justification**. What this repository fixes is the "shape" of the system; it does not fix concrete palette values, scale steps or how motion looks.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-0050 は Tailwind v4 採用・`cn()` 置き場・design token = CSS 変数・ダークモード = token 切替を確定するが、**token の中身(命名層 semantic vs raw / spacing・typography・radius・shadow のスケール / `@theme` との対応)は器のみで空白**である。同様に **ブレークポイント体系**・**モーション方針**・**印刷/PDF** も 0050 の射程外にある。本 ADR はこの 4 項目を 1 本に束ねる。
+0050 settles adopting Tailwind v4, where `cn()` lives, design token = CSS variable, and dark mode = token switching, but **the contents of the tokens (naming layers semantic vs raw / the scales of spacing, typography, radius and shadow / the correspondence with `@theme`) are only a frame and blank**. Likewise **the breakpoint system**, **the motion policy** and **print / PDF** are outside 0050's range. This ADR bundles these four items into one.
 
-`src/app/globals.css` は **2 層構造**(`:root` に生の色変数 → `@theme inline` で Tailwind の色トークンへ別名付け → `prefers-color-scheme: dark` で生変数を再束縛)を持ち、本 ADR はこれを一般化する。命名層を決めずに書き始めると、0050 が採用したダークモード(semantic な意味で色を参照し、テーマ切替を token 差し替えに閉じる)が破綻するため、体系の確定は feature 実装に先行して効く。
+`src/app/globals.css` has a **two-layer structure** (raw color variables on `:root` → aliased to Tailwind color tokens with `@theme inline` → raw variables rebound under `prefers-color-scheme: dark`), and this ADR generalizes it. Starting to write without deciding the naming layers would break the dark mode 0050 adopted (referencing colors by semantic meaning, keeping theme switching closed within swapping tokens), so settling the system takes effect ahead of feature implementation.
 
-## 決定
+## Decision
 
-### 1. デザイントークン体系 = 2 層(primitive / semantic)
+### 1. Design token system = two layers (primitive / semantic)
 
-- token を **2 層**に分ける。この分離は [W3C Design Tokens](https://www.w3.org/community/design-tokens/) が標準化を進める業界パターンであり、CSS custom properties だけで成立する(**Tailwind を抜いても成立する** = [0010](0010-standards-and-non-lockin.md) の「ベンダーを正当化から抜いても成立するか」に対する非ロックインの正当性材料)。
-  - **primitive(生スケール)**: 意味を持たない生の値。**どの系統を primitive として持つかの一覧は `tokens/primitives.json` が持ち**、本 ADR は写さない。**Tailwind v4 の `@theme` に登録**し、ユーティリティを自動生成させる。
-  - **Tailwind の既定スケールをそのまま使う系統は SSOT の primitive ではない。** font-size / line-height(`--text-*`)と影の段階(`--shadow-sm` 等の `--shadow-*`)は Tailwind v4 の既定値であり、`tokens/*.json` は持たない。名前で意味を持つ影(パネルの影・発光)は semantic 層の token として `tokens/themes/**` が持ち、`@theme` の `--shadow-*` に別名として登録される。
-  - **semantic(意味別名)**: 用途を名指しした別名。接頭辞は `--semantic-color-*`(`background` / `foreground` / `muted` / `border` / `accent` 等)とし、primitive を `var()` で参照する。**参照面(コンポーネント)の既定は semantic 層**とする。接頭辞を分けるのは、生成した CSS に対する検出で primitive 直参照と semantic 参照を機械的に見分けるためである。
-- **色は semantic 経由でのみ参照**する(0050「色をハードコードせず token 経由」の具体化)。primitive を直接コンポーネントに撒かない。
-- **token の SSOT は `tokens/*.json`**([W3C Design Tokens](https://www.w3.org/community/design-tokens/) 形式・手書き)であり、デザインツールからの生成物ではない。`tokens/scripts/gen-tokens.ts` が primitive の `@theme` 登録と semantic 別名を含む CSS を生成し、`src/app/globals.css` がそれを import する。**生成物は編集しない**([0072](0072-api-type-generation.md) の生成物規律と同型)。CSS を直接書き換えると SSOT が二重化するため、token の追加・変更は必ず `tokens/*.json` に対して行う。
-- **テーマ切替(ライト/ダーク等)は semantic 別名の再束縛だけで完結**させる。これが 0050 のダークモード決定を体系として成立させる要である。切替の経路は 2 つで、既定は OS 設定(`prefers-color-scheme`)、`data-theme` 属性が置かれている場合はそちらを優先する。**Tailwind の `dark:` variant も同じ 2 経路で発火させる**(`@custom-variant`)。片方だけを見る条件にすると、塗りの色だけが切り替わって `dark:` 付きの class が追従しない状態になる。
-- **発光を状態の唯一の手掛かりにしない。** forced-colors モードでは UA が `box-shadow` を `none` にするため、影で作った発光は完全に消える。状態は色か文言と併せて示す。
-- **既定以外の theme は `screen` メディアへ限定する。** 限定しないと dark の配色が印刷にも一致し、紙面が読めなくなる(§4)。
-- **切替の軸は配色と系統の 2 本とする。** 配色(light / dark)は文書全体の軸で `:root` に出し、**系統**(利用者向け / 管理向け等)は部分木の軸で `[data-surface]` に出す。系統を分けるのは、同じ semantic token に対して置かれた場所ごとに別の値を当てる関心が、配色とは独立に立つためである。両者は直交するので、片方を選ぶともう片方が決まる形(4 通りを平置きする等)にはしない。
-  - **系統は semantic 別名の再束縛だけで完結させる**(配色と同じ機構)。部品は自分がどの系統に置かれたかを知らない。系統ごとに別の部品を持つと、系統の数だけ同じ部品が増える。
-  - **系統は `:root` ではなく部分木に置く。** App Router では入れ子の layout から `<html>` の属性を触れないため、経路として成立するのは部分木だけである。ただし **Portal の出口を含む位置でなければならない** —— overlay は `document.body` 直下へ出るため、本文の内側に置くと overlay だけ既定の系統で描かれる(経路の分担は [0050](0050-styling-strategy.md))。
-  - **既定の系統は属性を置かない木に出す。** 詳細度は系統が `(0,1,0)`、配色が `(0,2,0)`、両方揃った範囲が `(0,3,0)` と積み上がり、同じ木では系統と配色の両方を指定した宣言が勝つ。
-  - **`color-scheme` は配色の軸だけが宣言する。** 系統の側にも出すと同じ条件を二重に持ち、片方だけがずれる。
-- **スケールの対象軸**: color / spacing / typography(size・line-height・weight・tracking)/ radius / shadow / text-shadow / blur。z-index は token 化していない。段階値のどれがどの帯を意味するかは本 ADR の「重なり順の帯」が持ち、段階値だけを使う日常 rule は `docs/rules.md` 側にある。
+- Tokens are split into **two layers**. This separation is an industry pattern that [W3C Design Tokens](https://www.w3.org/community/design-tokens/) is standardizing, and it holds with CSS custom properties alone (**it holds even with Tailwind taken out** = the non-lock-in justification against [0010](0010-standards-and-non-lockin.md)'s "does it hold with the vendor taken out of the justification").
+  - **primitive (raw scale)**: raw values with no meaning. **The list of which families are held as primitives is held by `tokens/primitives.json`**, and this ADR does not copy it. They are **registered in Tailwind v4's `@theme`** so that utilities are generated automatically.
+  - **Families that use Tailwind's default scale as-is are not SSOT primitives.** font-size / line-height (`--text-*`) and the shadow steps (`--shadow-*` such as `--shadow-sm`) are Tailwind v4 defaults, and `tokens/*.json` does not hold them. Shadows that carry meaning by name (panel shadows, glows) are held by `tokens/themes/**` as semantic-layer tokens and registered as aliases in `@theme`'s `--shadow-*`.
+  - **semantic (meaning aliases)**: aliases that name a use. The prefix is `--semantic-color-*` (`background` / `foreground` / `muted` / `border` / `accent`, etc.), and they reference primitives with `var()`. **The default reference surface (components) is the semantic layer**. The prefixes are separated so that detection on the generated CSS can mechanically tell direct primitive references from semantic references.
+- **Colors are referenced only through semantic** (a concrete form of 0050's "reference colors through tokens rather than hard-coding them"). Primitives are not sprinkled directly into components.
+- **The SSOT of tokens is `tokens/*.json`** ([W3C Design Tokens](https://www.w3.org/community/design-tokens/) format, hand-written), not an artifact generated from a design tool. `tokens/scripts/gen-tokens.ts` generates CSS containing the `@theme` registration of primitives and the semantic aliases, and `src/app/globals.css` imports it. **Generated artifacts are not edited** (the same shape as [0072](0072-api-type-generation.md)'s generated-artifact discipline). Rewriting the CSS directly would double the SSOT, so adding or changing tokens is always done against `tokens/*.json`.
+- **Theme switching (light / dark, etc.) is completed solely by rebinding semantic aliases**. This is the linchpin that makes 0050's dark-mode decision hold as a system. There are two switching paths: the default is the OS setting (`prefers-color-scheme`), and when a `data-theme` attribute is present it takes precedence. **Tailwind's `dark:` variant also fires on the same two paths** (`@custom-variant`). A condition that looks at only one of them leaves a state where only fill colors switch and classes with `dark:` do not follow.
+- **Do not make a glow the only cue for a state.** In forced-colors mode the UA sets `box-shadow` to `none`, so a glow made from shadows disappears completely. Show the state together with color or wording.
+- **Themes other than the default are limited to `screen` media.** Without the limit, the dark color scheme also matches print and the page becomes unreadable (§4).
+- **There are two switching axes: color scheme and family.** The color scheme (light / dark) is an axis of the whole document, put on `:root`, and the **family** (user-facing / admin-facing, etc.) is an axis of a subtree, put on `[data-surface]`. The family is separated because the concern of assigning different values to the same semantic token depending on where it is placed stands independently of the color scheme. The two are orthogonal, so they are not shaped so that choosing one decides the other (laying out the four combinations flat, etc.).
+  - **The family is completed solely by rebinding semantic aliases** (the same mechanism as the color scheme). A component does not know which family it has been placed in. Holding separate components per family would multiply the same component by the number of families.
+  - **The family is placed on a subtree, not on `:root`.** In the App Router, nested layouts cannot touch attributes of `<html>`, so the only path that works is a subtree. However, **it must be at a position that includes the Portal's exit** — overlays are emitted directly under `document.body`, so placing it inside the body content makes only overlays render in the default family (the division of paths is [0050](0050-styling-strategy.md)).
+  - **The default family is emitted for the tree without the attribute.** Specificity stacks up: `(0,1,0)` for the family, `(0,2,0)` for the color scheme, and `(0,3,0)` where both apply, and in the same tree the declaration that specifies both family and color scheme wins.
+  - **`color-scheme` is declared only by the color-scheme axis.** Emitting it on the family side too would hold the same condition twice, and only one of them would drift.
+- **The axes that get scales**: color / spacing / typography (size, line-height, weight, tracking) / radius / shadow / text-shadow / blur. z-index is not tokenized. Which step value means which band is held by this ADR's "Stacking-Order Bands", and the day-to-day rule of using only step values lives on the `docs/rules.md` side.
 
-### 2. レスポンシブ = viewport ブレークポイント(mobile-first)+ コンテナクエリ
+### 2. Responsive = viewport breakpoints (mobile-first) + container queries
 
-- **Tailwind v4 の既定ブレークポイント**(`sm` / `md` / `lg` / `xl` / `2xl`)を追認する。**境界の値は design token が持ち、本 ADR は持たない** —— SSOT は `tokens/primitives.json` の `breakpoint` であり、そこから `@theme` の `--breakpoint-*` と `BREAKPOINT`(`src/model/generated/breakpoint.ts`)が生成される(§1 の生成物規律)。カスタムスケールへ差し替える場合も token に対して行う(値の選択は用途依存)。
-- **mobile-first(min-width 基準)を明文化**する。これは Tailwind の既定挙動であると同時に CSS の一般作法であり、Tailwind 固有ではない(ベンダーを抜いても成立する。[0010](0010-standards-and-non-lockin.md))。無印がモバイル、`md:` 等で上書き加算していく。
-- **段の呼び名を 3 つに固定する**: `md` 未満をモバイル、`md` 以上 `lg` 未満をタブレット、`lg` 以上を PC とする。境界は上の既定をそのまま使い、ここでは既定のどこに段の名前を割り当てるかだけを決める。
-  - **`md` ではなく `lg` を PC の下限に置く**根拠は、タブレットの縦持ち幅が `md` 以上 `lg` 未満の帯に集中することと、Storybook の既定 viewport が tablet をその帯に置いていることの 2 点。`md` を PC の下限にすると、その帯の実機が「脇に領域を持てる幅」として扱われる。
-  - **`lg` 未満は、本文の脇に幅を割けない帯である。** 幅を占める領域をこの帯から出すと、本文に残る幅がモバイルとほとんど変わらなくなり、本文側が先に破綻する。脇に常設できる帯とそうでない帯を分ける根拠はここにあり、そこから導かれる出し分け(常設か overlay か / 通常配置か下端固定か)は行動規約として [`docs/rules.md`](../rules.md) が持つ。
-- **コンテナクエリ(`@container`)を採用**する。これは Tailwind v4 のコア機能(プラグイン不要)であり、実体は **CSS 標準の `@container` / `container-type`**(Tailwind を抜いても成立 = [0010](0010-standards-and-non-lockin.md) の非ロックイン)。
-  - **使い分け**: ページ骨格・レイアウトシェル([0026](0026-layout-shell-mount.md))は **viewport ブレークポイント**、feature スライス内の再利用コンポーネントは **コンテナクエリ既定**。理由 = 機能スライスのコンポーネントは再利用文脈で割り当て幅が変わるため、viewport より「自分が置かれた器の幅」で分岐する方が局所推論に合う([0020](0020-adopted-architecture.md) の局所性原則)。
+- **Tailwind v4's default breakpoints** (`sm` / `md` / `lg` / `xl` / `2xl`) are ratified. **The boundary values are held by design tokens, not by this ADR** — the SSOT is `breakpoint` in `tokens/primitives.json`, from which `@theme`'s `--breakpoint-*` and `BREAKPOINT` (`src/model/generated/breakpoint.ts`) are generated (the generated-artifact discipline of §1). Switching to a custom scale is also done against the tokens (choosing the values is use-case dependent).
+- **Mobile-first (min-width based) is stated explicitly**. It is Tailwind's default behavior and at the same time general CSS practice, not Tailwind-specific (it holds with the vendor taken out; [0010](0010-standards-and-non-lockin.md)). Unprefixed is mobile, and `md:` etc. override additively.
+- **The tiers are fixed to three names**: below `md` is mobile, from `md` up to below `lg` is tablet, and `lg` and above is PC. The boundaries use the defaults above as-is; here we decide only where in the defaults the tier names are assigned.
+  - The basis for **putting the lower bound of PC at `lg` rather than `md`** is twofold: tablet portrait widths concentrate in the band from `md` up to below `lg`, and Storybook's default viewport places tablet in that band. Making `md` the lower bound of PC would treat real devices in that band as "wide enough to hold a region at the side".
+  - **Below `lg` is a band where no width can be spared beside the body.** Bringing out a region that takes width in this band leaves the body with hardly more width than mobile, and the body side breaks first. This is the basis for separating bands where something can sit permanently at the side from bands where it cannot, and the presentation choices derived from it (permanent or overlay / normal placement or fixed to the bottom edge) are held by [`docs/rules.md`](../rules.md) as behavioral rules.
+- **Container queries (`@container`) are adopted**. This is a core feature of Tailwind v4 (no plugin needed), and its substance is **the CSS-standard `@container` / `container-type`** (holds with Tailwind taken out = the non-lock-in of [0010](0010-standards-and-non-lockin.md)).
+  - **Which to use**: page skeletons and layout shells ([0026](0026-layout-shell-mount.md)) use **viewport breakpoints**, and reusable components inside feature slices **default to container queries**. Reason = feature-slice components get different allotted widths in different reuse contexts, so branching on "the width of the container I am placed in" rather than the viewport fits local reasoning (the locality principle of [0020](0020-adopted-architecture.md)).
 
-### 3. モーション = CSS / View Transitions 既定 + 複雑モーションに Framer Motion + reduced-motion 尊重
+### 3. Motion = CSS / View Transitions by default + Framer Motion for complex motion + respecting reduced-motion
 
-- **既定手段(不変)**: モーションの既定手段は **CSS transition / animation** と **View Transitions API**(ブラウザ標準 / Next.js は experimental フラグ〈`experimental.viewTransition`〉+ React 実験的 API で対応)とする。いずれもブラウザ標準機構であり、特定ライブラリに縛られない([0010](0010-standards-and-non-lockin.md) の非ロックイン)。単純な hover / focus / enter・状態遷移・ページ遷移アニメーションはまずこの標準手段で書く。
-- **既定手段の上に animation plugin(ユーティリティ生成の `tw-animate-css` 等)を足さない。** 標準手段で足りる範囲に plugin を重ねると、同じ動きの語彙が 2 系統になる。その帰結として、**待機を動きで伝える手段を体系に持たない** —— 進捗が判らない待機(indeterminate)は進捗部品では表現せず、骨格表示(`Skeleton` / `Shimmer`)が担い、進捗部品は値の判っている進捗だけを引き受ける。
-- **複雑モーションに Framer Motion(`motion` パッケージ)を採用**: 標準の CSS / View Transitions では表現が破綻する複雑ケース —— **exit アニメーション(`AnimatePresence`)/ layout アニメーション(FLIP)/ ジェスチャ(drag・pan)/ 複数要素のオーケストレーション(stagger)/ 物理ベース(spring)** —— に限り、Framer Motion(現行パッケージ名 `motion`)を用いる。
-  - **標準・デファクトへの準拠([0010](0010-standards-and-non-lockin.md))**: Framer Motion は React エコシステムにおける宣言的モーションのデファクトであり、命名優先順位(React 規約 > 業界スタンダード)に沿う選択である。
-  - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.md))**: 採用根拠は「Framer が推奨するから」ではない。上記の複雑ケース(特に **exit アニメーション** = 要素がアンマウントされる前の退場遷移)は **CSS / View Transitions だけでは構造的に表現できない**(React のアンマウント制御と DOM 生存期間の噛み合わせが必要)。この「標準では届かない具体的欠落を、宣言的 API で埋める」という根拠は Framer という固有ベンダーを抜いても成立する(同種の代替 = React Spring / GSAP / Motion One 等の中から、宣言的・React 統合・a11y 配慮という独立根拠で Framer を 1 要因として選択した)。既定を標準手段に置き Framer を複雑ケースに限定する境界そのものが、非ロックインの運用テスト(「Framer を抜いても既定モーションは成立するか」= Yes)を満たす。
-  - **置き場 = `components`**: Framer Motion(`motion.*` コンポーネント / `AnimatePresence` / `useAnimate` 等)への **vendor 直参照は `components` 層に閉じる**。feature スライス側に `motion` を直接撒かず、モーション付き UI は再利用可能なコンポーネントとして `components` にラップして提供する(vendor を差し替え可能な境界の裏に置くという [0010](0010-standards-and-non-lockin.md) の非ロックインの具体化 = vendor 差し替え時の影響面を `components` に局所化)。
-  - **依存管理**: `motion` は core dep として **exact-pin**(`pnpm add -E`)し、追加時に **`pnpm audit`** を実施する([0004](0004-library-management.md))。major 更新は別 PR で扱う。
-  - **使う時点で依存へ追加する**([0053](0053-ui-component-interaction-seam.md) の「実装を伴う形でのみコードに置く」と同型)。既定手段で足りている間に先回りで入れると、使われないまま major 更新の追随コストだけが残る。
-- **`prefers-reduced-motion` の尊重を必須**とする(Tailwind の `motion-reduce:` / `motion-safe:` variant、`@media (prefers-reduced-motion)`、または Framer Motion の `useReducedMotion` フックで実装)。reduced-motion の尊重は WCAG SC 2.3.3 Animation from Interactions(**Level AAA**)に対応する。AA には該当を直接義務付ける SC はないが、本プロジェクトはユーザ体験配慮として `prefers-reduced-motion` を尊重する。**この強制の根拠水準(AAA)は本 ADR で明記**し、本 ADR は「モーション実装時に reduced-motion 分岐を欠かさない」という体系側の帰結を持つ。Framer Motion を用いる場合も reduced-motion 尊重は同じく必須(退場・layout・spring も低減対象)。
+- **Default means (fixed)**: the default means of motion are **CSS transition / animation** and **the View Transitions API** (a browser standard / Next.js supports it with an experimental flag (`experimental.viewTransition`) + React experimental APIs). Both are browser-standard mechanisms, not bound to a particular library (the non-lock-in of [0010](0010-standards-and-non-lockin.md)). Simple hover / focus / enter, state transitions and page transition animations are written with these standard means first.
+- **Do not add an animation plugin (utility-generating `tw-animate-css`, etc.) on top of the default means.** Layering a plugin over what the standard means already cover creates two vocabularies for the same motion. As a consequence, **the system has no means of conveying waiting through motion** — waiting whose progress is unknown (indeterminate) is not expressed with progress components but handled by skeleton displays (`Skeleton` / `Shimmer`), and progress components take on only progress whose value is known.
+- **Adopt Framer Motion (the `motion` package) for complex motion**: only for complex cases where standard CSS / View Transitions break down — **exit animations (`AnimatePresence`) / layout animations (FLIP) / gestures (drag, pan) / orchestrating multiple elements (stagger) / physics-based (spring)** — is Framer Motion (current package name `motion`) used.
+  - **Conformance to standards and the de facto ([0010](0010-standards-and-non-lockin.md))**: Framer Motion is the de facto declarative motion library in the React ecosystem, a choice that follows the naming precedence (React conventions > industry standards).
+  - **Vendor-independent justification ([0010](0010-standards-and-non-lockin.md))**: the basis for adoption is not "because Framer recommends it". The complex cases above (especially **exit animations** = the leaving transition before an element unmounts) **cannot be expressed structurally with CSS / View Transitions alone** (they need React's unmount control to mesh with the DOM's lifetime). This basis — "filling a concrete gap the standards cannot reach with a declarative API" — holds even with the particular vendor Framer taken out (among similar alternatives = React Spring / GSAP / Motion One, etc., Framer was chosen as one factor on the independent grounds of being declarative, integrated with React and attentive to a11y). The boundary itself — putting the default on the standard means and limiting Framer to complex cases — satisfies the non-lock-in operational test ("does default motion hold with Framer taken out?" = Yes).
+  - **Home = `components`**: **direct vendor references** to Framer Motion (`motion.*` components / `AnimatePresence` / `useAnimate`, etc.) **are closed inside the `components` layer**. `motion` is not sprinkled directly into feature slices; UI with motion is wrapped and provided as reusable components in `components` (a concrete form of [0010](0010-standards-and-non-lockin.md)'s non-lock-in of putting the vendor behind a boundary where it can be swapped = localizing to `components` the surface affected when the vendor is swapped).
+  - **Dependency management**: `motion` is **exact-pinned** as a core dep (`pnpm add -E`), and **`pnpm audit`** is run when adding it ([0004](0004-library-management.md)). Major updates are handled in a separate PR.
+  - **Add it to the dependencies at the point of use** (the same shape as [0053](0053-ui-component-interaction-seam.md)'s "place it in code only in a form accompanied by an implementation"). Bringing it in ahead of time while the default means suffice leaves only the cost of following major updates, with nothing using it.
+- **Respecting `prefers-reduced-motion` is mandatory** (implemented with Tailwind's `motion-reduce:` / `motion-safe:` variants, `@media (prefers-reduced-motion)`, or Framer Motion's `useReducedMotion` hook). Respecting reduced-motion corresponds to WCAG SC 2.3.3 Animation from Interactions (**Level AAA**). No SC at AA directly mandates it, but this project respects `prefers-reduced-motion` out of consideration for user experience. **The level of authority behind this enforcement (AAA) is stated explicitly in this ADR**, and this ADR holds the system-side consequence "never omit the reduced-motion branch when implementing motion". When Framer Motion is used, respecting reduced-motion is equally mandatory (exit, layout and spring are also subject to reduction).
 
-### 4. 印刷 / PDF = print CSS(フロント拡張点)/ PDF 生成(backend 境界 seam)
+### 4. Print / PDF = print CSS (a frontend extension point) / PDF generation (a backend boundary seam)
 
-- **境界判定(「別ドメインか?」)** により、印刷関心を 2 分する。
-  - **print CSS = フロント領域の拡張点**。Tailwind の **`print:` variant / `@media print`**(CSS 標準)を、印刷体裁を与える**名前付きの拡張点**として定義する。0050 の global 集約に従い、print 用のグローバル調整が要る場合は `globals.css` に置く。
-  - **PDF 生成 = backend ドメイン = 境界 seam で切る**。サーバサイド PDF レンダリング(Puppeteer / 帳票エンジン等)はバックエンド責務([0070](0070-backend-role-separation.md))であり、フロントは「印刷可能な HTML/CSS を提供する」ところまでを担い、その先は境界 seam として名前を付けて切る(表示層で PDF を生成しない)。
-- **最小の print 実装を同梱する。** 紙面の余白・見出しと段落の分断抑止・表の見出し行の繰り返しという、出力対象によらず効く体裁だけを CSS 基盤として持つ。**何を紙に出すかは持たない** —— 出す / 出さないの指定は呼び出し元が class で与え、tag からは自動判定しない。`window.print()` の実行と PDF 生成もこの基盤の外である。
-- **紙に出さないものを決める主体は 2 つに分かれる。** 器(shell)は自分の header・footer・skip link を紙に出さない —— いずれも画面を渡り歩くためのもので、紙の上では押せず場所を取るだけである。どの画面を印刷しても器の判断は同じなので器が決め、中身の何を落とすかは画面ごとに違うので画面が決める。
-- **dark 配色を print へ持ち込まない。** 既定以外の theme を `screen` メディアへ限定することで担保する(§1)。限定しないと、暗い面に明るい文字という配色がそのまま紙面に出て読めなくなる。
+- The concern of printing is split in two by **boundary judgment ("is it a separate domain?")**.
+  - **Print CSS = an extension point of the frontend area**. Tailwind's **`print:` variant / `@media print`** (CSS standard) is defined as a **named extension point** that gives print layout. Following 0050's global consolidation, global adjustments for print, when needed, go in `globals.css`.
+  - **PDF generation = the backend domain = cut at a boundary seam**. Server-side PDF rendering (Puppeteer / reporting engines, etc.) is a backend responsibility ([0070](0070-backend-role-separation.md)); the frontend handles up to "providing printable HTML/CSS", and beyond that it is cut with a name as a boundary seam (the presentation layer does not generate PDFs).
+- **A minimal print implementation is bundled.** As the CSS foundation, it holds only the layout that applies regardless of what is output: page margins, avoiding breaks between headings and paragraphs, and repeating table header rows. **It does not hold what goes on paper** — whether something is output is specified by the caller with a class and is not judged automatically from tags. Running `window.print()` and PDF generation are also outside this foundation.
+- **Two parties decide what does not go on paper.** The layout shell (shell) keeps its own header, footer and skip link off paper — they are all for moving between screens; on paper they cannot be pressed and only take up space. The layout shell's judgment is the same whichever screen is printed, so the layout shell decides; what to drop from the contents differs per screen, so the screen decides.
+- **Do not bring the dark color scheme into print.** This is guaranteed by limiting themes other than the default to `screen` media (§1). Without the limit, the color scheme of light text on a dark surface comes out on paper as-is and becomes unreadable.
 
-### 5. 和文の本文書体 = OS 同梱の書体へ委ねる(Web フォントはラテンの銘と等幅に限る)
+### 5. Japanese body typeface = left to the typefaces bundled with the OS (web fonts limited to Latin display and monospace)
 
-**和文の Web フォントは、ラテンの書体とは費用の桁が違う。** 字数が多いため実体は数 MB になり、配信は
-`unicode-range` で 100 以上のスライスへ割られる。取得はブラウザが必要な分だけに絞るが、**`@font-face`
-の宣言は全スライスぶんが CSS に載り、それは描画をブロックする**。実測で、`@font-face`
-865 個 = 661 KB(gzip 233 KB)。同じ CSS に入っているアプリ本体の宣言は gzip 25 KB で、**重さの 9 割は
-書体の宣言**だった。
+**Japanese web fonts differ in cost from Latin typefaces by orders of magnitude.** Because of the number of characters, the files run to several MB, and serving is split into more than 100 slices by
+`unicode-range`. The browser narrows fetching to what it needs, but **the `@font-face`
+declarations for every slice land in the CSS, and that blocks rendering**. Measured: `@font-face`
+865 declarations = 661 KB (233 KB gzip). The app's own declarations in the same CSS were 25 KB gzip, and **90% of the weight was
+typeface declarations**.
 
-`next/font` はこの CSS を**セルフホストへ引き取る**のが利点だが、和文ではその引き取りが上の代償を生む。
-`subsets` で絞れるのは名前付きサブセット(latin / cyrillic 等)だけで、番号付きスライスには効かない
-(`unicode-range` を指定する口を `next/font/google` は持たない)。
+The advantage of `next/font` is that it **takes this CSS into self-hosting**, but for Japanese that takeover produces the cost above.
+`subsets` can narrow only named subsets (latin / cyrillic, etc.), and has no effect on numbered slices
+(`next/font/google` has no option for specifying `unicode-range`).
 
-#### 取りうる手立てと、boilerplate での成否
+#### Available measures and how they fare in a boilerplate
 
-| 手立て | 中身 | 本リポジトリでの成否 |
+| Measure | Contents | Outcome in this repository |
 | --- | --- | --- |
-| **① OS 同梱の書体へ委ねる** | 和文の Web フォントを使わず、ヒラギノ角ゴ / 游ゴシック / Noto Sans JP 等へ落とす | **採用**。転送も宣言も 0 |
-| ② サブセット化してセルフホスト | 実際に使う字だけを抜いた実体を作る。数 MB → 数十 KB | **不可**。文言が未知で「使う字」を確定できない。更新の多いサイトで効果が薄いのは一般に知られた限界でもある |
-| ③ `unicode-range` の分割配信を維持 | Google Fonts の既定。ブラウザが必要なスライスだけ取る | **部分採用**。取得は絞れるが宣言が載る問題が残るため、載せてよい範囲を限る(下記) |
-| ④ 用途を限る | ラテンの銘・等幅だけ Web フォント、和文は OS 同梱 | **採用**。①と組で使う |
+| **① Leave it to the typefaces bundled with the OS** | Use no Japanese web font; fall back to Hiragino Kaku Gothic / Yu Gothic / Noto Sans JP, etc. | **Adopted**. Zero transfer and zero declarations |
+| ② Subset and self-host | Produce files containing only the characters actually used. Several MB → tens of KB | **Not possible**. The wording is unknown, so "the characters used" cannot be fixed. That it is less effective on frequently updated sites is also a generally known limitation |
+| ③ Keep `unicode-range` split serving | The Google Fonts default. The browser fetches only the slices it needs | **Partly adopted**. Fetching can be narrowed, but the problem of the declarations landing remains, so the range where they may land is limited (below) |
+| ④ Limit the use | Web fonts only for Latin display and monospace; Japanese from the OS | **Adopted**. Used together with ① |
 
-#### この repository の決定
+#### This repository's decision
 
-- **和文の Web フォントを読まない。** どの系統の本文も OS 同梱の書体へ委ねる。実測で、
-  利用者向けの面は CSS 260 KB → 26 KB(gzip)・`@font-face` 865 → 10、管理面は 158 KB → 25 KB・493 → 10。
-  LCP は、取得を持たない静的な画面で 5.52 → 2.94 秒、入力欄の多い管理面で 4.34 → 2.79 秒だった
-- **銘(ラテン)と等幅は Web フォントのままとする。** ラテンはスライスが数個で、費用が桁で違う
-- **本文書体を系統(`data-surface`)の軸に含めない**([0045](0045-fonts-and-images.md))。系統ごとに
-  差し替える仕組み(`globals.css` の `[data-surface]`)は残すが、既定ではどちらも同じスタックを指す。
-  **面を分けても費用は消えない** —— 管理の書体を管理の面だけで読んでも、管理を開く人はやはり
-  宣言を読まされる。系統の差は配色・発光・余白・強調の段が担う
-- **強調の段は 1 つに畳む。** 実測(macOS / Chromium、同じ文字列のインク量で比較)では、ヒラギノ角ゴシックは
-  400/500/600/700/800 のすべてを描き分けるが、**游ゴシックは 400 とそれ以外しか区別せず**(500・600・700・800
-  が同じ字面)、`system-ui` は 500 と 600 が同じになる。したがって本文(400)との差はどこでも残るが、**その上を
-  さらに分けても多くの環境では消える**。部品が選び分けているのに利用者には届かない区別を体系に持たせない
-  ため、`strong` を落として `emphasis` だけを持つ
-- **見出しと本文の差は寸法と位置が作る。** 太さで階層をもう 1 段作らない。実測でも、落とした
-  `font-strong` の 37 箇所のうち 30 箇所は `text-lg` / `text-xl` と組で使われており、階層は既に寸法が
-  担っていた。太さの 2 段目を戻せるのは、その差が対応環境のすべてで描き分けられるようになったときだけ
-  で、和文を OS 同梱の書体へ委ねている限りそれは起きない —— 戻す前提は本文へ和文の Web フォントを
-  置くことであり、上で数えた宣言の費用がそのまま返ってくる。「見出しをもっと強く見せたい」は理由に
-  ならない
-- 和文の Web フォントを本文へ戻すときは、②(文言が確定しているなら)か、③を系統ごとの面に
-  限る形で行う。**どこへ足しても、その面を開く人はスライス全ぶんの宣言を読む**
+- **Do not load Japanese web fonts.** The body text of every family is left to the typefaces bundled with the OS. Measured,
+  the user-facing surface went from CSS 260 KB → 26 KB (gzip) and `@font-face` 865 → 10, and the admin surface from 158 KB → 25 KB and 493 → 10.
+  LCP went from 5.52 → 2.94 seconds on a static screen with no fetch, and from 4.34 → 2.79 seconds on an admin surface with many input fields
+- **Display (Latin) and monospace stay as web fonts.** Latin has only a few slices, and the cost differs by orders of magnitude
+- **The body typeface is not part of the family (`data-surface`) axis** ([0045](0045-fonts-and-images.md)). The mechanism for swapping
+  per family (`[data-surface]` in `globals.css`) remains, but by default both point at the same stack.
+  **Splitting surfaces does not make the cost disappear** — even if the admin typeface is loaded only on the admin surface, the people who open admin are still
+  made to read the declarations. Differences between families are carried by color scheme, glow, spacing and emphasis steps
+- **Emphasis is collapsed into one step.** Measured (macOS / Chromium, comparing the ink of the same string), Hiragino Kaku Gothic
+  renders 400/500/600/700/800 all distinctly, but **Yu Gothic distinguishes only 400 from everything else** (500, 600, 700 and 800
+  look the same), and `system-ui` renders 500 and 600 the same. So the difference from body text (400) survives everywhere, but **splitting
+  further above it disappears in many environments**. To keep the system from holding distinctions that components choose between yet never reach users,
+  `strong` is dropped and only `emphasis` is held
+- **The difference between headings and body is made by size and position.** Weight does not create another step of hierarchy. Measured as well: of the 37 places using the dropped
+  `font-strong`, 30 were used together with `text-lg` / `text-xl`, so size was already carrying
+  the hierarchy. A second weight step can come back only when that difference can be rendered distinctly in every supported environment,
+  and as long as Japanese is left to the typefaces bundled with the OS that does not happen — the premise for bringing it back is putting a Japanese web font
+  in the body, and the declaration cost counted above returns as-is. "I want headings to look stronger" is not a
+  reason
+- When bringing a Japanese web font back to the body, do it with ② (if the wording is fixed) or with ③ limited
+  to a per-family surface. **Wherever it is added, the people who open that surface read the declarations for every slice**
 
-### token は 3 層
+### Tokens have three layers
 
-- **primitive**(`tokens/primitives.json`) —— 生の値。部品から直接参照しない
-- **semantic**(`tokens/themes/<系統>/<配色>.json`) —— primitive を指す別名。部品が参照するのはこの層
-- **component** —— 1 つの部品でしか意味を持たない値。**semantic を参照して定義する**(primitive を直接参照しない)
+- **primitive** (`tokens/primitives.json`) — raw values. Not referenced directly from components
+- **semantic** (`tokens/themes/<family>/<color-scheme>.json`) — aliases that point at primitives. This is the layer components reference
+- **component** — values that carry meaning only for a single component. **Defined by referencing semantic** (not referencing primitives directly)
 
-semantic 層は系統と配色の組ごとに 1 枚を持ち、**すべての組が同じ token を宣言する**。欠けた token は宣言が無いだけでは済まず、カスケードにより隣の組の値を引き継ぐため、系統を切り替えたつもりの箇所だけが元のまま残る。この一致は生成時に強制する。
+The semantic layer has one sheet per combination of family and color scheme, and **every combination declares the same tokens**. A missing token is not merely a missing declaration: through the cascade it inherits the neighboring combination's value, so only the places that were supposed to switch family stay as they were. This agreement is enforced at generation time.
 
-### 幅で決めるものと、器で決めるもの
+### What width decides, and what the container decides
 
-レスポンシブの判断軸を 2 つ持つ。**どちらを使うかは対象で決まる**ので、画面ごとに選ばない。
+Responsive judgment has two axes. **Which to use is decided by the target**, so it is not chosen per screen.
 
-| 判断軸 | 使う対象 | 例 |
+| Axis | Used for | Examples |
 | --- | --- | --- |
-| **帯(viewport)** | 画面の骨格。どこに何を置くか、出すか出さないか | 脇の領域の有無、段組みの向き、被せるか並べるか |
-| **器の幅(container query)** | 部品の中身。同じ部品が広い場所にも狭い場所にも置かれるとき | カードの内部配置、行の折り返し |
+| **Band (viewport)** | The screen skeleton: what goes where, whether it is shown | Whether there is a sidebar, the direction of columns, overlaying vs side by side |
+| **Container width (container query)** | The inside of a component: when the same component is placed in both wide and narrow places | Internal layout of a card, wrapping of rows |
 
-対象で決まるとしたのは、同じ部品が本文にも脇の狭い領域にも並ぶためである。部品の中身を viewport で分けると、置かれた場所によらず同じ形になる。逆に骨格を器の幅へ従わせると、帯の定義(§2)と器の宣言で境界が二重になる。**この 2 つを行動規約の形で持つのは [`docs/rules.md`](../rules.md) である。**
+It is decided by the target because the same component appears both in the body and in a narrow region at the side. If a component's inside were split by viewport, it would take the same shape wherever it is placed. Conversely, making the skeleton follow the container width would double the boundaries between the band definition (§2) and the container declaration. **What holds these two as behavioral rules is [`docs/rules.md`](../rules.md).**
 
-器の幅で決める部品は、**親が `container-type` を持つことを前提にする**。その前提は story でも満たすこと(器を固定せずに撮った基準画像は実物と一致しない)。
+A component decided by container width **presupposes that its parent has `container-type`**. Satisfy that premise in stories too (a baseline image captured without fixing the container does not match the real thing).
 
-### 重なり順の帯
+### Stacking-Order Bands
 
-z-index は Tailwind の段階値だけを使い、任意値で段を増やさない(日常 rule は [`docs/rules.md`](../rules.md))。ここが持つのは、**どの段階値がどの帯を意味するか**である。帯は 4 つで、帯の間の値(`z-20`)は空けておく。
+z-index uses only Tailwind's step values and does not add steps with arbitrary values (the day-to-day rule is [`docs/rules.md`](../rules.md)). What this section holds is **which step value means which band**. There are four bands, and the value between bands (`z-20`) is left empty.
 
-| 帯 | 値 | 何が乗るか |
+| Band | Value | What sits on it |
 | --- | --- | --- |
-| **本文の中の重なり** | `z-10` | 本文の流れの中で貼り付くもの。内容の中の sticky な header / footer、表の固定列、scroll 領域の下端に貼り付ける操作(`sticky`) |
-| **画面が自分で貼る帯** | `z-30` | 1 つの画面が骨格の内側に置く貼り付き。header の直下へ貼る補助の帯(絞り込み等)、下端から出し入れする要約の器 |
-| **画面の骨格** | `z-40` | shell の header と、viewport の下端に固定する操作(`fixed`) |
-| **overlay** | `z-50` | `document.body` へ出るものすべて。dialog / sheet / menu / popover / tooltip、toast の領域、同意を尋ねる面、focus で現れる skip link、引き下げ更新の表示 |
+| **Overlaps within the body** | `z-10` | Things that stick within the flow of the body. Sticky headers / footers within content, fixed table columns, actions stuck to the bottom edge of a scroll region (`sticky`) |
+| **Bands a screen pins itself** | `z-30` | Sticky elements a single screen places inside the skeleton. An auxiliary band pinned just below the header (filters, etc.), a summary container that slides in and out from the bottom edge |
+| **Screen skeleton** | `z-40` | The shell's header, and actions fixed to the bottom edge of the viewport (`fixed`) |
+| **overlay** | `z-50` | Everything emitted to `document.body`. dialog / sheet / menu / popover / tooltip, the toast region, the consent prompt, the skip link that appears on focus, the pull-to-refresh indicator |
 
-上の帯は下の帯の**全部**より上に来る。**帯の中の前後は DOM 順が決め、値では解かない** —— 同じ帯で「こちらを上に」が要るなら、それは帯の割り当てが違う合図である。
+A higher band comes above **all** of the lower bands. **Order within a band is decided by DOM order, not resolved with values** — if "put this one on top" is needed within the same band, that is a sign the band assignment is wrong.
 
-**部品の内側の重なりは帯ではない。** 重なる avatar、focus で持ち上げる境界線、上へ被せる押下面のような部品の内側の重なりは、部品自身が作る stacking context の中で閉じる。その中の値は帯と競合しないため `z-10` / `z-20` を使ってよいが、部品の外へ効かせない。
+**Overlaps inside a component are not bands.** Overlaps inside a component — overlapping avatars, a border raised on focus, a pressed surface laid over the top — are closed within the stacking context the component itself creates. Values inside it do not compete with the bands, so `z-10` / `z-20` may be used, but they must not take effect outside the component.
 
-**重なる面は不透明にする。** どの帯でも、貼り付いているあいだ本文がその下を通る。透けると文字が重なって読めない。
+**Overlapping surfaces are opaque.** In every band, the body passes underneath while something is stuck. If it shows through, text overlaps and becomes unreadable.
 
-**safe area は、viewport の下端に固定する面が取る。** `z-40` で下端に固定する操作は、下端の余白を通常の余白と `env(safe-area-inset-bottom)` の大きいほうにする。scroll 領域に貼り付けるだけの面(`z-10` の `sticky`)は取らない —— 文書の下端は system UI の手前で終わり、貼り付く面がその下へ入らない。`env()` が 0 でない値を返すかは viewport の宣言(`viewport-fit`)が決め、その宣言は画面の側が持つ。部品はどちらでも成立する形で余白を書き、宣言の有無で部品を変えない。
+**The safe area is taken by surfaces fixed to the bottom edge of the viewport.** An action fixed to the bottom edge at `z-40` sets its bottom padding to the larger of the normal padding and `env(safe-area-inset-bottom)`. A surface merely stuck to a scroll region (`sticky` at `z-10`) does not take it — the bottom of the document ends before the system UI, and the stuck surface does not go under it. Whether `env()` returns a non-zero value is decided by the viewport declaration (`viewport-fit`), and that declaration is held by the screen side. Components write their padding in a form that works either way and do not change with whether the declaration is present.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ semantic 層を飛ばして primitive(生スケール)や色リテラルをコンポーネントに直接撒くこと(テーマ切替が token 差し替えに閉じなくなる。§1)（強制: 散文 —— **寄せられる**（class 文字列の primitive 色 utility・`--color-*` の直参照・色リテラルを、`project-rules/no-raw-font-weight` と同じ文字列リテラルの走査で拾えば落とせる。規則は無い））
-- ❌ 系統ごとに別の部品を持つこと、および部品に自分の置かれた系統を判定させること(系統は semantic 別名の再束縛だけで完結する。§1)（強制: 散文 —— **一部寄せられる**。部品に系統を判定させることは `src/components` での `data-surface` の参照を拾えば落とせるが規則は無い。系統ごとに別の部品を持つかは部品どうしの対応の判断で、形からは決まらない）
-- ❌ 系統と配色を掛け合わせた組を平置きして 1 本の軸として扱うこと(直交する 2 軸を畳むと、片方を足すたびに組が掛け算で増える。§1)（強制: 散文 —— **寄せられない**。組を 1 本の軸として扱っているかは名前の意味で決まり、`tokens/themes/` の構造からは決まらない（系統の名前に配色を含めても生成は通る））
-- ❌ token 命名層(primitive / semantic)を無視した ad-hoc な CSS 変数を各所に増やすこと。新規 token は `@theme` の primitive か semantic 別名として定義する（強制: `tokens-drift` job（`pnpm check:tokens`）が生成物 `tokens.css` への手書きの変数を落とす。生成物の外で増やす変数は散文 —— **寄せられる**（`tokens.css` の外の `--*` 宣言のうち semantic を参照しないものを拾えば落とせる。規則は無い））
-- ❌ ブレークポイントの値(`rem` / `px`)を本 ADR 本文へ書くこと。段は名前(`sm` 〜 `2xl`)でだけ指し、値は design token を正とする(併記した時点で token を差し替えても ADR だけが取り残される。§2)（強制: 散文 —— **寄せられる**（本 ADR の本文で数値を伴う `rem` / `px` を拾えば落とせる。規則は無い））
-- ❌ レスポンシブの**日常 rule**(脇に常設する領域を出す帯・常時到達させる操作の置き場・帯と器の使い分けを実装でどう守るか 等)を本 ADR や ADR 本文へ書き込むこと(rule は `rules.md` へ。[0140](0140-documentation-operations.md))（強制: 散文 —— **寄せられない**。rule か decision かは記述の役割で決まり、文の形からは決まらない）
-- ❌ モーションを `prefers-reduced-motion` 分岐なしで実装すること(§3 / [0100](0100-accessibility-target.md))（強制: 散文 —— **一部寄せられる**。`animate-*` / `transition*` を含む class 文字列に `motion-safe:` / `motion-reduce:` が並ぶかは文字列リテラルの走査で落とせるが規則は無い。`@media` や `useReducedMotion` で分岐したときに低減が足りているかは動きの意味で決まる）
-- ❌ CSS transition / animation / View Transitions で足りる単純モーションに Framer Motion を持ち出すこと(既定は標準手段。Framer は exit / layout / gesture / orchestration / spring の複雑ケースに限る。§3)（強制: 散文 —— **寄せられない**。標準手段で足りるかは動きの要件で決まり、コードの形からは決まらない）
-- ❌ 既定手段の上に animation plugin を足すこと、および進捗部品で indeterminate を表現すること(待機は骨格表示が担う。§3)（強制: 型（`ProgressNative` / `ProgressClient` の `value` が `number` 必須）が進捗部品の indeterminate を落とす。animation plugin の側は持たない —— 採らない決定。足せば依存と CSS の `@import` が diff に現れる）
-- ❌ Framer Motion(`motion.*` / `AnimatePresence` 等)の vendor 直参照を feature スライスに散らすこと(vendor 参照は `components` 層に閉じ、差し替え可能に保つ。§3 / [0010](0010-standards-and-non-lockin.md))（強制: 散文 —— **寄せられる**（`iconVendorImports` と同じ形で、`motion` / `framer-motion` の import を `src/components` の外の `no-restricted-imports` に載せれば落とせる。規則は無い））
-- ❌ Framer Motion 以外の別モーションライブラリ(GSAP / React Spring 等)を勝手に併存させること(採用は Framer Motion に一本化。追加が必要なら ADR 改定でユーザ確定)（強制: 持たない —— 採らない決定。GSAP / React Spring 等は依存に無く、足せば `package.json` の diff と ADR の改定として現れる）
-- ❌ 表示層で PDF をサーバ生成する実装を持ち込むこと(backend 境界 seam を越える。§4)（強制: 持たない —— 採らない決定。表示層は PDF をサーバ生成する依存も口も持たず、足せば依存と Route Handler の追加として diff に現れる）
-- ❌ 器の導線(header / footer / skip link)を紙に出すこと、および画面が落とす中身を器に判定させること(§4)（強制: 散文 —— **一部寄せられる**。器の header / footer / skip link が `print-hidden` を持つことは shell の component テストで固定できるがテストは無い。画面が落とす中身を器に判定させないかは責務の判断で、形からは決まらない）
-- ❌ 同じ帯の中の前後関係を新しい段階値で解くこと、および部品の内側の重なりに使う値を部品の外へ効かせること(§重なり順の帯)（強制: ESLint `project-rules/no-arbitrary-z-index` が任意値（`z-[…]`）の段を落とす。既存の段階値を帯の外の意味で使うことと、部品の内側の値を外へ効かせることは散文 —— **寄せられない**。どの帯に属するかは置かれる面の意味で決まり、class の形からは決まらない）
-- ❌ viewport の下端に固定する面から safe area の余白を落とすこと、または viewport の宣言の有無で部品を変えること(§重なり順の帯)
+- ❌ Skipping the semantic layer and sprinkling primitives (raw scale) or color literals directly into components (theme switching would no longer be closed within swapping tokens; §1) (Enforcement: Prose — **mechanizable** (primitive color utilities in class strings, direct references to `--color-*` and color literals could be rejected by picking them up with the same string-literal scan as `project-rules/no-raw-font-weight`; no rule exists))
+- ❌ Holding separate components per family, and having a component judge which family it is placed in (the family is completed solely by rebinding semantic aliases; §1) (Enforcement: Prose — **partly mechanizable**. Having a component judge its family could be rejected by picking up references to `data-surface` in `src/components`, but no rule exists. Whether separate components are held per family is a judgment about the correspondence between components, not decided by shape)
+- ❌ Laying out the combinations of family and color scheme flat and treating them as one axis (collapsing two orthogonal axes multiplies the combinations every time one side is added; §1) (Enforcement: Prose — **not mechanizable**. Whether the combinations are treated as one axis is decided by the meaning of the names, not by the structure of `tokens/themes/` (generation passes even if a family's name includes a color scheme))
+- ❌ Multiplying ad-hoc CSS variables everywhere that ignore the token naming layers (primitive / semantic). New tokens are defined as `@theme` primitives or semantic aliases (Enforcement: the `tokens-drift` job (`pnpm check:tokens`) rejects hand-written variables in the generated `tokens.css`. Variables added outside the generated artifact are Prose — **mechanizable** (could be rejected by picking up `--*` declarations outside `tokens.css` that do not reference semantic; no rule exists))
+- ❌ Writing breakpoint values (`rem` / `px`) in this ADR's body. Tiers are referred to only by name (`sm` to `2xl`), and the design tokens are the authority for the values (once both are written, swapping the tokens leaves only the ADR behind; §2) (Enforcement: Prose — **mechanizable** (could be rejected by picking up `rem` / `px` with numbers in this ADR's body; no rule exists))
+- ❌ Writing the **day-to-day rules** of responsive (which band brings out the region permanently at the side, where always-reachable actions go, how the band vs container split is upheld in implementation, etc.) into this ADR or ADR bodies (rules go to `rules.md`; [0140](0140-documentation-operations.md)) (Enforcement: Prose — **not mechanizable**. Whether something is a rule or a decision is decided by the role of the statement, not by the shape of the sentence)
+- ❌ Implementing motion without a `prefers-reduced-motion` branch (§3 / [0100](0100-accessibility-target.md)) (Enforcement: Prose — **partly mechanizable**. Whether `motion-safe:` / `motion-reduce:` sit alongside class strings containing `animate-*` / `transition*` could be rejected by a string-literal scan, but no rule exists. Whether the reduction is sufficient when branching with `@media` or `useReducedMotion` is decided by the meaning of the motion)
+- ❌ Bringing out Framer Motion for simple motion that CSS transition / animation / View Transitions can handle (the default is the standard means; Framer is limited to the complex cases of exit / layout / gesture / orchestration / spring; §3) (Enforcement: Prose — **not mechanizable**. Whether the standard means suffice is decided by the requirements of the motion, not by the shape of the code)
+- ❌ Adding an animation plugin on top of the default means, and expressing indeterminate with progress components (waiting is handled by skeleton displays; §3) (Enforcement: types (`value` of `ProgressNative` / `ProgressClient` is a required `number`) reject indeterminate on progress components. The animation-plugin side has none — a decision not to adopt. Adding one shows up in the diff as a dependency and a CSS `@import`)
+- ❌ Scattering direct vendor references to Framer Motion (`motion.*` / `AnimatePresence`, etc.) across feature slices (vendor references are closed in the `components` layer, kept swappable; §3 / [0010](0010-standards-and-non-lockin.md)) (Enforcement: Prose — **mechanizable** (could be rejected by putting imports of `motion` / `framer-motion` into `no-restricted-imports` outside `src/components`, the same way as `iconVendorImports`; no rule exists))
+- ❌ Letting another motion library besides Framer Motion (GSAP / React Spring, etc.) coexist on one's own initiative (adoption is unified on Framer Motion; if an addition is needed, the user settles it through an ADR revision) (Enforcement: none — a decision not to adopt. GSAP / React Spring, etc. are not among the dependencies; adding one shows up as a `package.json` diff and an ADR revision)
+- ❌ Bringing in an implementation that generates PDFs on the server in the presentation layer (crosses the backend boundary seam; §4) (Enforcement: none — a decision not to adopt. The presentation layer has neither a dependency nor an endpoint for server-generating PDFs; adding them shows up in the diff as a dependency and a Route Handler)
+- ❌ Putting the layout shell's navigation (header / footer / skip link) on paper, and having the layout shell judge which contents a screen drops (§4) (Enforcement: Prose — **partly mechanizable**. That the layout shell's header / footer / skip link carry `print-hidden` could be pinned by component tests of the shell, but no test exists. Not having the layout shell judge which contents a screen drops is a judgment about responsibility, not decided by shape)
+- ❌ Resolving order within the same band with a new step value, and letting values used for overlaps inside a component take effect outside it (§Stacking-Order Bands) (Enforcement: ESLint `project-rules/no-arbitrary-z-index` rejects steps with arbitrary values (`z-[…]`). Using an existing step value with a meaning outside its band, and letting a component's inner values take effect outside, are Prose — **not mechanizable**. Which band something belongs to is decided by the meaning of the surface it is placed on, not by the shape of the class)
+- ❌ Dropping the safe-area padding from a surface fixed to the bottom edge of the viewport, or changing a component depending on whether the viewport declaration is present (§Stacking-Order Bands)
 
-## 補足
+## Notes
 
-- **Figma → CSS 変数 同期は本 ADR の射程外**。token の**体系(命名層・スケール軸)**のみを本 ADR が定め、デザインツールとの**同期方式**(Figma variables → CSS の生成/取り込み)はここでは確定せず、本 ADR の射程外とする。本 ADR で同期方式に踏み込むと後続決定と矛盾しうるため、意図的に体系のみへ限定した。
-- **モーションライブラリ採用の帰属**は 0050 系(本 ADR)と [0052](0052-ui-component-policy.md)(UI ライブラリ)で射程が重なる。モーション手段(既定 = CSS / View Transitions、複雑ケース = Framer Motion)の**採用決定は本 ADR が所有**する。0052 が扱う UI コンポーネントライブラリ(shadcn/ui 等)とは関心が別のため、モーションは本 ADR 側で一元管理する。
-- **`prefers-reduced-motion` 必須化の根拠水準**は本 ADR で明記する。reduced-motion 尊重は WCAG SC 2.3.3(**Level AAA**)に対応し、AA には直接の該当 SC がない —— したがって [0100](0100-accessibility-target.md)(a11y AA 目標)は motion 尊重を直接の義務としては持たない。本 ADR は AA 準拠とは独立に、ユーザ体験配慮として `prefers-reduced-motion` を必須とする立場を採り、その強制根拠水準(AAA)は本 ADR 側で明記して齟齬を残さない。
-- **reduced-motion で「止める」と決めた表現は、止めた状態で何も伝わらなくならないことまでを含む。** 動きだけで進行中を示す表現(帯の流れ等)は、停止時に代替の手掛かり(骨格表示・待機文言)を併用する前提で設計する。
-- 本 ADR は [0140](0140-documentation-operations.md) のタクソノミーにおいて **decision** 分類に属する(体系の決定であり、日常強制される rule = Tailwind クラス順序・帯ごとの出し分け等は [`docs/rules.md`](../rules.md) 側)。**value** はさらに別で、ブレークポイントの幅は `tokens/primitives.json` が持つ。3 者を同じ本文に同居させると、token を差し替えたときに ADR の記述だけが取り残される。
+- **Figma → CSS variable synchronization is outside this ADR's range**. This ADR defines only the **system** of tokens (naming layers, scale axes); the **synchronization method** with design tools (generating / importing Figma variables → CSS) is not settled here and is outside this ADR's range. Stepping into the synchronization method in this ADR could contradict later decisions, so it was deliberately limited to the system.
+- **Where the adoption of a motion library belongs**: the ranges of the 0050 line (this ADR) and [0052](0052-ui-component-policy.md) (UI library) overlap. **This ADR owns the adoption decision** for the means of motion (default = CSS / View Transitions, complex cases = Framer Motion). Its concern differs from the UI component libraries 0052 handles (shadcn/ui, etc.), so motion is managed in one place on this ADR's side.
+- **The level of authority behind making `prefers-reduced-motion` mandatory** is stated explicitly in this ADR. Respecting reduced-motion corresponds to WCAG SC 2.3.3 (**Level AAA**), and there is no directly applicable SC at AA — therefore [0100](0100-accessibility-target.md) (the a11y AA target) does not hold respecting motion preferences as a direct obligation. Independently of AA conformance, this ADR takes the position of making `prefers-reduced-motion` mandatory out of consideration for user experience, and states the level of authority behind that enforcement (AAA) on this ADR's side, leaving no inconsistency.
+- **An expression that reduced-motion decides to "stop" includes ensuring it still conveys something when stopped.** An expression that shows progress only through motion (a flowing band, etc.) is designed on the premise of pairing it with an alternative cue when stopped (a skeleton display, waiting text).
+- In the taxonomy of [0140](0140-documentation-operations.md), this ADR belongs to the **decision** class (it is a decision about the system; the rules enforced day to day = Tailwind class order, what to show per band, etc. are on the [`docs/rules.md`](../rules.md) side). **Values** are separate again: breakpoint widths are held by `tokens/primitives.json`. Putting the three in the same body would leave only the ADR's text behind when the tokens are swapped.
 
-## 関連 ADR
+## Related ADRs
 
-- [0050-styling-strategy.md](0050-styling-strategy.md) — 本 ADR の親。Tailwind 主軸 + CSS Modules 限定許可(styled-components / emotion は非採用)/ token = CSS 変数 / ダークモード = token 切替という器を定める(本 ADR がその中身を具体化)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — 標準準拠 / 非ロックインのメタ判断軸(token 2 層・`@container`・View Transitions・`@media print` はいずれも Tailwind を抜いて成立する CSS 標準に乗る / Framer Motion 採用も §1 デファクト準拠 + §2 vendor-independent 正当性 + `components` 局所化で担保)
-- [0004-library-management.md](0004-library-management.md) — ライブラリ方針(`motion` は exact-pin + `pnpm audit` / major 更新は別 PR。§3)
-- [0100-accessibility-target.md](0100-accessibility-target.md) — a11y 目標(WCAG AA)。reduced-motion 尊重は WCAG SC 2.3.3(AAA)に対応し AA 直接義務ではないため、その根拠水準は本 ADR §3 側で明記(Framer Motion 使用時も同じく必須)
-- [0052-ui-component-policy.md](0052-ui-component-policy.md) — UI コンポーネントライブラリの採用(shadcn/ui 等)。モーションライブラリの採用帰属は本 ADR 側に一元化(補足参照)
-- [0045-fonts-and-images.md](0045-fonts-and-images.md) — `next/font` の読み方(§5 の和文本文書体の相方)
-- [0055-design-system-export.md](0055-design-system-export.md) — token と部品をデザインツールへ渡す向き(repo → ツールの一方向。補足の「同期方式は射程外」の相方)
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — 局所性原則 / レイアウトシェル(§2 の viewport vs コンテナクエリ使い分けの土台。§4 の器が紙に出さない判断の主体)
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — PDF サーバ生成を切り出す backend 境界(§4)
+- [0050-styling-strategy.md](0050-styling-strategy.md) — this ADR's parent. Defines the frame: Tailwind as the main axis + a limited allowance for CSS Modules (styled-components / emotion not adopted) / token = CSS variable / dark mode = token switching (this ADR makes its contents concrete)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — the meta decision axis of standards conformance / non-lock-in (the two token layers, `@container`, View Transitions and `@media print` all ride on CSS standards that hold with Tailwind taken out / adopting Framer Motion is also backed by §1 de facto conformance + §2 vendor-independent justification + localization to `components`)
+- [0004-library-management.md](0004-library-management.md) — library policy (`motion` is exact-pinned + `pnpm audit` / major updates in a separate PR; §3)
+- [0100-accessibility-target.md](0100-accessibility-target.md) — the a11y target (WCAG AA). Respecting reduced-motion corresponds to WCAG SC 2.3.3 (AAA) and is not a direct AA obligation, so its level of authority is stated on this ADR's §3 side (equally mandatory when Framer Motion is used)
+- [0052-ui-component-policy.md](0052-ui-component-policy.md) — adopting UI component libraries (shadcn/ui, etc.). Where the adoption of a motion library belongs is unified on this ADR's side (see Notes)
+- [0045-fonts-and-images.md](0045-fonts-and-images.md) — how `next/font` is loaded (the counterpart of §5's Japanese body typeface)
+- [0055-design-system-export.md](0055-design-system-export.md) — the direction in which tokens and components are handed to design tools (one-way, repo → tool; the counterpart of "the synchronization method is out of range" in Notes)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0026-layout-shell-mount.md](0026-layout-shell-mount.md) — the locality principle / the layout shell (the foundation for §2's viewport vs container query split; the party in §4 whose layout shell keeps things off paper)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — the backend boundary that cuts out server-side PDF generation (§4)

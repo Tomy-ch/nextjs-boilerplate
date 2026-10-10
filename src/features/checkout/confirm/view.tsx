@@ -35,8 +35,11 @@ export type CheckoutConfirmViewProps = {
  *
  * @remarks
  * 脇に置けない幅では、画面の下端に固定した帯が同じ役割を持ちます
- * （`docs/rules.md#layout`の「脇に常設する領域は `lg` 以上でだけ出す」と
- * 「常に届く操作は `lg` 未満で画面下端に固定する」）。
+ * （`docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above" と
+ * "An action that must always be reachable is pinned to the bottom edge of the screen in the band
+ * without a sidebar (below `lg`), and returns to normal placement at widths where a sidebar can be
+ * permanent"）。
  *
  * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で
  * 行い、hydration を待ちません。待つと、読み始めた後に画面の下へ器が現れて内容が動きます。

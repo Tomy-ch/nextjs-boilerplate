@@ -78,7 +78,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 | `<範囲>.fixture.ts` | story と test が読む固定値。`satisfies` で表示モデルに合わせ、画像は `~catalog/lib/sample-asset` から取る。長い名前・画像の無いもの・事情の立ったものを混ぜ、器の幅と分岐が story に現れるようにする | 判定 |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え。`fn(async () => succeededActionState(...))` に `.mockName` を付ける | 本番経路からの import |
 | `facade/<part>/` | 他 feature に貸す面 —— ルート、URL 契約、題材の語彙を持つ UI、他 feature から起こす Action と、その `__mocks__` | feature 内部への参照（`architecture.ts` の `features-facade` が止める） |
-| `use-<対象>.ts` | 状態や購読を伴う方針。hook に切るかどうかの基準は [0021](../../docs/adr/0021-frontend-responsibility.md)「feature 内で部品を分ける基準」 | 純粋な計算（関数で足りる） |
+| `use-<対象>.ts` | 状態や購読を伴う方針。hook に切るかどうかの基準は [0021](../../docs/adr/0021-frontend-responsibility.md)「Criteria for Splitting Components within a Feature」 | 純粋な計算（関数で足りる） |
 
 - **画面が 1 つの間は `<screen>/` を省いて直下へ置いてよい**（[0027](../../docs/adr/0027-directory-structure.md)）。
   `pnpm gen feature` は最初から画面ディレクトリを掘る —— 2 つ目の画面が来たときに 1 つ目を移す
@@ -143,7 +143,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 ## 送信の形
 
 `<form action>` + Server Action + `ActionState` の正機構は [0061](../../docs/adr/0061-form-mutation-ux.md)、
-Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」、
+Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.md)「Where Server Actions live」、
 冪等キー・409・確認 dialog の規則は [docs/rules.md#forms](../../docs/rules.md#forms)が持つ。
 ここが持つのは、それを slice の中でどう割るかである。
 
@@ -275,12 +275,12 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 
 | 観点 | 判定の形 | 根拠 |
 | --- | --- | --- |
-| `forbidden: features` — 他の feature の内側を import しない。通るのは相手の `facade/` と、画面まるごとの story だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「`features ↔ features` 禁止と昇格ルール」。機械: ESLint boundaries（`architecture.ts` の `features-facade` / `feature-story`） |
-| `facade/` に置いたものは、どのカーネルも受け取れないもの（特定ドメインの語彙を持つ UI、所有するルートの識別子と組み立て）で、2 つ目の feature が実際に使っている | カーネルへ昇格できる形のもの、使う feature が 1 つしか無いものは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「昇格できないもの — feature の `facade/`」 |
+| `forbidden: features` — 他の feature の内側を import しない。通るのは相手の `facade/` と、画面まるごとの story だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「No `features ↔ features` Imports, and the Promotion Rule」。機械: ESLint boundaries（`architecture.ts` の `features-facade` / `feature-story`） |
+| `facade/` に置いたものは、どのカーネルも受け取れないもの（特定ドメインの語彙を持つ UI、所有するルートの識別子と組み立て）で、2 つ目の feature が実際に使っている | カーネルへ昇格できる形のもの、使う feature が 1 つしか無いものは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「What cannot be promoted — the feature's `facade/`」 |
 | 他の feature が所有するルートのパスや URL を書き写さず、所有者の `facade/` から取る | 相手の `facade/` が出している綴りと同じ文字列を書いていれば violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「昇格できないもの」/ [docs/rules.md#url](../../docs/rules.md#url) |
-| 複数の feature が同じ表示ロジック・UI・hook を別々に持たない。2 つ目が現れた時点で責務に応じたカーネルへ上げる | suggestion（同じ理由で変わるかは人が裁く） | [0021](../../docs/adr/0021-frontend-responsibility.md)「feature 内で部品を分ける基準」/ この README「運用」 |
-| バックエンドの業務ロジックを持たない。契約が返さない値を計算して出さない | violation。表示のための整形か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 |
-| feature の `actions.ts` は編成だけを持ち、主体の断言が要らないものに限る。断言が要る変更は `src/app/**/actions.ts` に住む | 業務ロジックを持っていれば violation。主体に紐づく変更を断言なしで送っていれば suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」/ この README「運用」 |
+| 複数の feature が同じ表示ロジック・UI・hook を別々に持たない。2 つ目が現れた時点で責務に応じたカーネルへ上げる | suggestion（同じ理由で変わるかは人が裁く） | [0021](../../docs/adr/0021-frontend-responsibility.md)「Criteria for Splitting Components within a Feature」/ この README「運用」 |
+| バックエンドの業務ロジックを持たない。契約が返さない値を計算して出さない | violation。表示のための整形か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Kernel Acceptance Criteria」4 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 |
+| feature の `actions.ts` は編成だけを持ち、主体の断言が要らないものに限る。断言が要る変更は `src/app/**/actions.ts` に住む | 業務ロジックを持っていれば violation。主体に紐づく変更を断言なしで送っていれば suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Where Server Actions live」/ この README「運用」 |
 | 画面の最上位（`page-content` / `view`、殻の側で取得を持つ合成）は `withScreenSpan`、`<screen>/ui/**` は `withPartSpan` で包む。span 名は `src/` からのモジュールパスと一致させ、利用者の入力を混ぜない。`"use client"` を持つファイルは包まない | 最上位が包まれていない、名前がパスと一致しない、client component を包んでいる、はいずれも violation | この README「描画を span に載せる」/ [docs/rules.md#layers](../../docs/rules.md#layers) |
 | `<screen>/ui/**` と `facade/**` の描画する部品は自分の story を持つ。持てないのはブラウザで描けない部品だけで、その理由と中身の見られる場所を本体の doc に書く | story が無く、doc にも理由が無ければ violation。取得を持つ合成と見た目を持つ部品が 1 つに束ねられていれば suggestion | この README「カタログに載せる」/ [0054](../../docs/adr/0054-ui-catalog-storybook.md) |
 

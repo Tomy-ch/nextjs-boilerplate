@@ -1,111 +1,111 @@
-# 検査の宣言規律
+# Inspection Declaration Discipline
 
-本プロジェクトでは、リポジトリが持つあらゆる検査 —— lint・ゲート・スキャナ・基準との比較 —— に共通する 3 つの面を、**検査の種類によらない 1 つの規律**として定める。検査が成立しなかったときにどちらへ倒すか、検査から外すものをどう宣言するか、外したことをどう見えるようにするか、の 3 つである。
+This project defines three aspects common to every inspection the repository has — lint, gates, scanners, comparison against baselines — as **one discipline independent of the kind of inspection**: which way to fall when an inspection does not hold, how to declare what is excluded from an inspection, and how to make the exclusion visible.
 
-個々の検査が何を見るかは、それぞれの ADR が持つ（依存監査とスキャナは [0110](0110-security-operations.md)、カバレッジと 1:1 対応は [0090](0090-testing-strategy.md)、基準画像は [0091](0091-test-verification-methods.md)、a11y は [0100](0100-accessibility-target.md)、CI の配線は [0153](0153-ci-configuration.md)）。本 ADR はそれらの中身に踏み込まず、**検査であるかぎり従う形**だけを持つ。
+What each inspection looks at is owned by its own ADR (dependency audits and scanners by [0110](0110-security-operations.md), coverage and the 1:1 mapping by [0090](0090-testing-strategy.md), baseline images by [0091](0091-test-verification-methods.md), a11y by [0100](0100-accessibility-target.md), CI wiring by [0153](0153-ci-configuration.md)). This ADR does not go into their content and holds only **the shape any inspection follows as long as it is an inspection**.
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **一般形の持ち主を作る。** 同じ規律がスキャナの抑止ポリシー・カバレッジの除外宣言・基準画像の除外・a11y ルールの無効化のそれぞれで、自分の検査の中だけを射程にして独立に述べられている。次に新しい検査が来たとき、どれを写せばよいかを答える文書が無い
-- **検査は壊れると「違反なし」を報告する向きに倒れる。** 検査が動かなかったことと、動いて綺麗だったことを同じ緑にすると、その検査は壊れた瞬間から永久に通り続ける。検査の中身を正しく書くだけでは防げず、成立しなかったときの倒し方を規律として持つ必要がある
-- **除外は在ってよいが、黙って在ってはならない。** 外した記録がどこにも残らない形は、新しい違反を無言で許す。宣言の置き場と中身を決めておかないと、検査ごとに別の逃げ道が育つ
+- **Give the general form an owner.** The same discipline is stated independently in the scanner suppression policy, the coverage exclusion declarations, the baseline-image exclusions and the disabling of a11y rules, each scoped only to its own inspection. When the next new inspection comes, there is no document answering which of them to copy
+- **A broken inspection falls toward reporting "no violations".** If an inspection that did not run and one that ran and was clean show the same green, that inspection keeps passing forever from the moment it breaks. Writing the inspection's content correctly cannot prevent this; how it falls when it does not hold must be held as a discipline
+- **Exclusions may exist, but must not exist silently.** A form that leaves no record of the exclusion anywhere silently permits new violations. Unless the place and content of declarations are decided, a different escape route grows for each inspection
 
-## 成立しなかった検査を「違反なし」へ倒さない
+## Do not fall to "no violations" when an inspection does not hold
 
-検査は **fail-closed** を既定にする。前提が取れない・対象が列挙できない・抽出が空になる、のいずれも「違反なし」ではなく**失敗**として報告する。
+Inspections default to **fail-closed**. A prerequisite that cannot be obtained, targets that cannot be enumerated, an extraction that comes back empty — each is reported as a **failure**, not as "no violations".
 
-成立しない形は 3 つあり、それぞれ倒し方が違う。
+There are three ways an inspection fails to hold, and each falls differently.
 
-| 成立しない形 | 倒し方 |
+| How it fails to hold | How it falls |
 | --- | --- |
-| **前提が取れない**（道具の出力が読めない、配信の根が分からない、manifest が無い） | 例外にして落とす。空の結果で続行しない |
-| **抽出が 0 件へ落ちる**（成果物の形式が変わった、走査対象の読み方が壊れた） | 件数を別の経路と突き合わせる —— 期待する件数との一致、または基準側で引けていたものが今回 1 件も引けないことを、量の判定より先に失敗にする |
-| **対象外が生じる**（検査できない方言、走らないルール） | 件数だけでなく位置と理由を添えて個別に出す。「検査した」に数えない |
+| **A prerequisite cannot be obtained** (the tool's output cannot be read, the delivery root is unknown, there is no manifest) | Raise and fail. Do not continue with an empty result |
+| **Extraction drops to 0** (the output format changed, the way scan targets are read broke) | Reconcile the count against a separate path — fail on a mismatch with the expected count, or on finding nothing this time where the baseline side found something, before any volume judgment |
+| **Out-of-scope items arise** (a dialect that cannot be checked, a rule that does not run) | Report them individually with location and reason, not just a count. Do not count them as "checked" |
 
-件数の突き合わせは**単位ごと**に行う。合計で比べると、1 つの対象の抽出失敗が他の対象の成功に隠れる。
+Count reconciliation is done **per unit**. Compared in total, one target's extraction failure hides behind other targets' success.
 
-**走査範囲を狭めて時間を縮めない。** 縮めたぶんだけ無検査の範囲が増え、検査は「違反なし」を報告する。母数はディレクトリの列挙ではなく対象の全件に取り、外すのは下記の宣言だけとする。
+**Do not shorten time by narrowing the scan range.** The unchecked range grows by exactly the amount narrowed, and the inspection reports "no violations". The population is taken as all targets, not a directory listing, and only the declarations below exclude anything.
 
-**パスの宣言から検査の要否を決める機構を、ゲートや必須チェックにしない。** 差分のパスを見て「この検査は要る / 要らない」を決める宣言は、対象が動いた瞬間に実態から剥がれる。剥がれても宣言自身は成立したままなので、**検査が回らなかったことが「違反なし」として緑で返る**。助言（回すことを勧めるコメント）に留めるなら死んだ規則の代償はその欠落だけで済むが、ゲートにすると代償は「検査が回らないまま merge される」に変わる。ゲートにするなら、宣言が実態から剥がれたことを検出する側を先に持つ。
+**Do not make a mechanism that decides from path declarations whether an inspection is needed into a gate or a required check.** A declaration that looks at the paths in a diff and decides "this inspection is needed / not needed" drifts from reality the moment its targets move. Even when it drifts, the declaration itself still holds, so **the inspection not running comes back green as "no violations"**. Kept as advice (a comment recommending a run), the cost of a dead rule is only that omission, but as a gate the cost becomes "merged without the inspection running". To make it a gate, first have something that detects the declaration drifting from reality.
 
-**成立の条件が道具の側にあるものは、それを検査で固定する。** 範囲をタグや既定値で宣言する道具は、宣言した範囲の外にあるものを黙って評価しない。有効にしたつもりのものが走っていることを、道具本体と突き合わせて確かめる。
+**Where the condition for holding lies on the tool's side, pin it with an inspection.** A tool that declares its scope with tags or defaults silently does not evaluate anything outside the declared scope. Confirm, by reconciling against the tool itself, that what you believe you enabled is actually running.
 
-## 検査の結果を、欠損するフィルタ越しに報告しない
+## Do not report inspection results through a lossy filter
 
-検査が成立して、報告のほうが欠ける経路がある。**出力を圧縮する道具は、通過を捨てて失敗だけを残す**ように作られている。件数・網羅率・「0 件だった」という事実は通過の側にあるので、圧縮を通した時点でそれらは消える。読み手には、検査が何を見たのかも、どこまで見たのかも残らない。
+There are paths where the inspection holds and the report is what goes missing. **Tools that compress output are built to discard passes and keep only failures**. Counts, coverage rates and the fact that "it was 0" are on the side of passes, so they vanish the moment output goes through compression. The reader is left with neither what the inspection looked at nor how far it looked.
 
-なので **ゲート・テスト・lint の結果は、その道具が出したままの形で読み、報告する**。速いから・短いからは理由にならない。とくに次の 2 つは、欠けていることが出力から分からない。
+So **the results of gates, tests and lint are read and reported in the form the tool produced**. Being faster or shorter is no reason. In particular, for the following two, nothing in the output shows that something is missing.
 
-- **要約器**（失敗行だけを拾う / 見出しだけを残す）—— 分類が語彙に依存するため、**失敗の理由そのものが「通過行」に分類されて消えうる**。実測では、失敗した CI 実行の全文に要約器を掛けたとき、残ったのはファイル名に `error` を含む通過行の列で、実際の失敗理由は出力に無かった
-- **部分読み**（先頭 / 末尾 / 行数上限）—— 打ち切った側に判定があるかどうかは、打ち切ったあとの出力からは分からない
+- **Summarizers** (picking up only failure lines / keeping only headings) — classification depends on vocabulary, so **the reason for the failure itself can be classified as a "pass line" and disappear**. Measured, when a summarizer was applied to the full text of a failed CI run, what remained was a column of pass lines whose file names contained `error`, and the actual reason for the failure was not in the output
+- **Partial reads** (head / tail / line limit) — whether a verdict lies on the cut-off side cannot be known from the output after cutting
 
-避け方は圧縮の禁止ではなく、**欠損しない絞り込みを先に使う**ことである。実行系が自分で分けている出口（失敗したステップだけを返す、失敗したファイルだけを返す）は、選別を実行系が行っているので語彙に依存しない。それで足りないときだけ全文へ落ち、何で絞ったかを報告に書く。
+The way to avoid this is not banning compression but **using lossless narrowing first**. Outputs the runner itself separates (returning only failed steps, only failed files) do not depend on vocabulary because the runner does the selection. Fall back to the full text only when that is not enough, and write in the report what you narrowed with.
 
-機械で塞げるものは塞ぐ（[0144](0144-decision-enforcement-pairing.md)）。エージェントが呼ぶ経路にある要約器は、散文の禁止ではなく実行権限の側で拒否する。
+What a machine can close is closed ([0144](0144-decision-enforcement-pairing.md)). Summarizers on paths an agent calls are rejected on the side of execution permissions, not by a prose prohibition.
 
-## 除外・抑止は宣言し、理由と撤去条件を持たせる
+## Declare exclusions and suppressions, with a reason and a removal condition
 
-検査から外すもの —— カバレッジと 1:1 対応から外すモジュール、比較から外す story、無効にするルール、解決しないことが正しい参照、スキャナが許容する所見 —— は、すべて次の 3 つを持つ宣言として書く。
+What is excluded from inspection — modules excluded from coverage and the 1:1 mapping, stories excluded from comparison, rules disabled, references that are correct not to resolve, findings a scanner tolerates — is all written as declarations holding the following three.
 
-1. **対象。** 外す単位は最小に絞る。ルールを外すならどの story・どの画面で外すかまで名指しし、名指しの外では同じルールが生きたままにする
-2. **理由。** 「いまは直せない」は理由にならない。違反は実装を直して消すのが既定で、外してよいのは検査そのものが成立しない場合（単独描画の副作用、取り除けない上流の実装かつ実際には到達しない、404 そのものが被写体である）に限る
-3. **撤去条件。** どうなったら宣言を落とせるかを書く。条件を書けない宣言は置かず、値を消すか実装を直す
+1. **Target.** Narrow the unit excluded to the minimum. When excluding a rule, name down to which story and which screen it is excluded on, and keep the same rule alive outside what is named
+2. **Reason.** "It cannot be fixed right now" is not a reason. The default is to fix the implementation so the violation disappears, and exclusion is allowed only where the inspection itself does not hold (a side effect of isolated rendering; an upstream implementation that cannot be removed and is not actually reached; a 404 that is itself the subject)
+3. **Removal condition.** Write what has to happen for the declaration to be dropped. A declaration whose condition cannot be written is not placed; remove the value or fix the implementation
 
-理由と撤去条件は**機械が有無を判定する**。空の宣言は検査を落とす。妥当性そのものはレビューの人間判断に残るが、様式に載っていることまでは機械が強制する。
+**A machine judges whether** the reason and removal condition are present. An empty declaration fails the inspection. Validity itself remains a human judgment in review, but a machine enforces as far as being in the required form.
 
-### 宣言は 1 箇所へ集める
+### Gather declarations in one place
 
-同じ検査の宣言は 1 つの置き場が持つ。**書き手の側に無効化のマーカーを置く形は採らない** —— story や画面の spec で `rules: { ... }` を書けるようにすると、足した人がその場で黙らせられ、写した先へマーカーも一緒に渡って新しい違反が無言で許される。
+Declarations for the same inspection are held by one place. **Forms that put a disabling marker on the writer's side are not adopted** — letting a story or a screen's spec write `rules: { ... }` lets whoever added something silence it on the spot, and the marker travels along to wherever it is copied, silently permitting new violations.
 
-読み手が 2 つある宣言も 1 箇所に置く。カバレッジの母数と 1:1 ゲートのように同じ理由で同じものを外す検査は、同じ配列を読む。2 箇所に書くと片方だけを直したときに黙ってずれ、「ゲートからは外れているのに検査は要求する」向きのずれは気づかれないまま進む。
+A declaration with two readers is also put in one place. Inspections that exclude the same thing for the same reason, such as the coverage population and the 1:1 gate, read the same array. Written in two places, fixing only one makes them silently diverge, and divergence in the direction of "excluded from the gate yet still required by the inspection" proceeds unnoticed.
 
-**書き手の側の抑止を許すのは、道具が宣言ファイルを持たず、かつ規則 1 件 × 行 1 件まで絞れるときに限る**（[0110](0110-security-operations.md) のスキャナ）。位置で許すのではなく、粒度で許す。ルールやスキャナの一括無効化は、どの置き場であっても採らない。
+**Suppression on the writer's side is allowed only when the tool has no declaration file and it can be narrowed to 1 rule × 1 line** (the scanners of [0110](0110-security-operations.md)). It is allowed by granularity, not by location. Bulk disabling of rules or scanners is not adopted, wherever it would live.
 
-### 宣言が増えたら規則を疑う
+### When declarations increase, suspect the rule
 
-1 つの置き場が数件を超えるなら、それは規則そのものが広すぎる合図である。逃がす先を増やすのではなく、何を対象と見るかを狭める。宣言の一覧は成果物ではなく、空になることが目標である。
+If one place grows beyond a few entries, that signals the rule itself is too broad. Rather than adding more places to escape to, narrow what is treated as a target. The list of declarations is not a deliverable; the goal is for it to be empty.
 
-## 抑止を足したことを差分へ出す
+## Make adding a suppression show up in the diff
 
-宣言を足した事実は、**宣言のファイルだけでなく差分に出る**ようにする。
+The fact that a declaration was added is made to show up **in the diff, not only in the declaration file**.
 
-- **件数を固定する。** 宣言の数をテストで固定し、足すときはその数も更新する。更新が要ること自体が、除外を足した事実を差分へ出す。中の散文を直しても数は動かず、数が動いたところが判断の場になる
-- **日付を持つ条件は定期的に突き合わせる。** 機械が決められる撤去条件は日付だけであり、期限を過ぎた宣言を見る機構が無いと、それは残り続け、次に同じ枠を使う人が期限そのものを軽く扱う
-- **決められない条件は一覧に伴わせる。** 「上流が対応したら」のような条件を黙って落とすと、条件を書いた意味が消える
+- **Pin the count.** Pin the number of declarations in a test, and update the number too when adding one. That an update is required itself puts the fact of adding an exclusion into the diff. Editing the prose inside does not move the number, and where the number moves becomes the place for judgment
+- **Reconcile date-based conditions periodically.** The only removal condition a machine can decide is a date, and without a mechanism that looks at declarations past their deadline, they keep remaining, and the next person using the same slot takes deadlines themselves lightly
+- **Conditions that cannot be decided accompany the list.** Silently dropping a condition such as "once upstream supports it" erases the point of having written the condition
 
-## 不採用
+## Rejected Alternatives
 
-| 対象 | 理由 |
+| Option | Reason |
 | --- | --- |
-| **書き手の側の無効化マーカー**（spec や story のオプションで黙らせる） | 外した記録がどこにも残らず、写した先へ渡る。上記「宣言は 1 箇所へ集める」 |
-| **走査範囲を狭めて回避する** | 外した記録が残らない。範囲を狭めるのではなく、宣言で外す |
-| **取れなかった結果を空の結果として続行する** | 検査が動かなかったことと綺麗だったことが同じ緑になり、壊れた瞬間から永久に通る |
-| **ルール・スキャナの一括無効化** | 同じ検知を踏む新規の対象まで素通りする |
-| **恒久の allowlist**（撤去条件を持たない宣言） | 条件が変わっても誰も落とさない。条件を書けないものは抑止せず、実装を直す |
-| **要約器を通して検査の結果を読む** | 分類が語彙に依存するため、失敗の理由そのものが通過行として捨てられうる。欠損しない絞り込みを先に使う |
-| **README の実ファイル列挙をゲートにする** | README の書き方を縛るだけで、腐りを防げない。宣言は検査が読む形式で持つ |
+| **Disabling markers on the writer's side** (silencing through spec or story options) | No record of the exclusion remains anywhere, and it travels to wherever it is copied. See "Gather declarations in one place" above |
+| **Avoiding by narrowing the scan range** | No record of the exclusion remains. Exclude by declaration rather than narrowing the range |
+| **Continuing with an unobtainable result as an empty result** | An inspection that did not run and one that was clean show the same green, and it passes forever from the moment it breaks |
+| **Bulk disabling of rules or scanners** | New targets that trip the same detection pass straight through too |
+| **Permanent allowlists** (declarations without a removal condition) | No one drops them even when conditions change. What cannot have a condition written is not suppressed; fix the implementation |
+| **Reading inspection results through a summarizer** | Classification depends on vocabulary, so the reason for the failure itself can be discarded as a pass line. Use lossless narrowing first |
+| **Making a README's listing of actual files a gate** | It only constrains how a README is written and does not prevent rot. Declarations are held in a format the inspection reads |
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 検査の前提が取れなかったとき、または抽出が 0 件へ落ちたときに、「違反なし」として緑を返すこと（強制: 散文 —— **寄せられない**。前提が取れないときの倒し方は各検査の実装の分岐で決まり、検査を横断する静的な形を持たない）
-- ❌ ゲート・テスト・lint の結果を、通過を捨てる要約器や打ち切りを通して報告すること
-- ❌ 理由または撤去条件を欠いた除外・抑止の宣言を置くこと
-- ❌ 「いまは直せない」を理由にして検査から外すこと
-- ❌ 宣言の置き場の外（spec・story・書き手側のマーカー）で検査を黙らせること。行単位の抑止は [0110](0110-security-operations.md) の様式に限る（強制: 散文 —— **一部寄せられる**。書き手側のマーカーの綴り（story の `parameters.a11y`、spec の `rules:`、行単位の抑止コメント）は差分の走査で落とせるが規則は無い。その抑止が 0110 の様式に適うかは面ごとの様式で決まる）
-- ❌ 同じ検査の除外宣言を 2 箇所に持つこと（強制: `scripts/markdown-exclusions.gate.test.ts` が Markdown 走査の除外 2 箇所の食い違いを落とす。他の検査で除外が 2 箇所に分かれたことは散文 —— **寄せられない**。どの宣言が同じ検査の除外かは宣言の意味で決まる）
-- ❌ 走査範囲を狭めることで違反を検査から外すこと（強制: 散文 —— **寄せられない**。走査範囲の縮小が違反を外すためのものかは変更の意図で決まる）
-- ❌ パスの宣言から検査の要否を決める機構を、剥がれの検出を持たないままゲートや必須チェックにすること（強制: `make actions-required-check-lint` が `paths:` で絞った workflow を必須チェックに載せることを落とす。job の中でパスから要否を決める機構が剥がれの検出を持つかは散文 —— **寄せられない**。検出の有無は機構の意味で決まる）
+- ❌ Returning green as "no violations" when an inspection's prerequisite could not be obtained or extraction dropped to 0 (Enforcement: Prose — **not mechanizable**. How it falls when a prerequisite cannot be obtained is decided by branches in each inspection's implementation, and has no static shape across inspections)
+- ❌ Reporting the results of gates, tests or lint through a summarizer that discards passes or through truncation
+- ❌ Placing an exclusion or suppression declaration lacking a reason or removal condition
+- ❌ Excluding something from inspection on the grounds that "it cannot be fixed right now"
+- ❌ Silencing an inspection outside the place for declarations (spec, story, writer-side markers). Line-level suppression is limited to the form of [0110](0110-security-operations.md) (Enforcement: Prose — **partly mechanizable**. The spellings of writer-side markers (`parameters.a11y` in stories, `rules:` in specs, line-level suppression comments) can be rejected by scanning the diff, but no rule exists. Whether a suppression fits the form of 0110 is decided by each surface's form)
+- ❌ Holding exclusion declarations for the same inspection in two places (Enforcement: `scripts/markdown-exclusions.gate.test.ts` rejects divergence between the two exclusion places for Markdown scanning. Exclusions for other inspections being split across two places is Prose — **not mechanizable**. Which declarations are exclusions for the same inspection is decided by their meaning)
+- ❌ Excluding violations from inspection by narrowing the scan range (Enforcement: Prose — **not mechanizable**. Whether narrowing the scan range is meant to exclude violations is decided by the intent of the change)
+- ❌ Making a mechanism that decides from path declarations whether an inspection is needed into a gate or required check without detection of drift (Enforcement: `make actions-required-check-lint` rejects putting a workflow narrowed by `paths:` on the required checks. Whether a mechanism inside a job that decides necessity from paths has drift detection is Prose — **not mechanizable**. Whether detection exists is decided by the meaning of the mechanism)
 
-## 関連 ADR
+## Related ADRs
 
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — カタログの資材参照の検査
-- [0090-testing-strategy.md](0090-testing-strategy.md) — カバレッジ除外と 1:1 対応の宣言
-- [0091-test-verification-methods.md](0091-test-verification-methods.md) — 基準画像の比較から外す story
-- [0100-accessibility-target.md](0100-accessibility-target.md) — a11y 検査の適合目標と、ルール無効化の上限
-- [0110-security-operations.md](0110-security-operations.md) — スキャナの抑止ポリシー（本 ADR の様式をスキャナへ適用した形）
-- [0153-ci-configuration.md](0153-ci-configuration.md) — 検査を CI へ配線する側
-- [0159-script-structure.md](0159-script-structure.md) — ゲートを実装する補助スクリプトの構造
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.md) — inspection of the catalog's asset references
+- [0090-testing-strategy.md](0090-testing-strategy.md) — declarations of coverage exclusions and the 1:1 mapping
+- [0091-test-verification-methods.md](0091-test-verification-methods.md) — stories excluded from baseline-image comparison
+- [0100-accessibility-target.md](0100-accessibility-target.md) — the conformance target of a11y inspection, and the cap on disabling rules
+- [0110-security-operations.md](0110-security-operations.md) — the scanner suppression policy (this ADR's form applied to scanners)
+- [0153-ci-configuration.md](0153-ci-configuration.md) — the side that wires inspections into CI
+- [0159-script-structure.md](0159-script-structure.md) — the structure of the helper scripts that implement gates

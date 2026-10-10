@@ -1,47 +1,47 @@
-# パッケージマネージャー管理方針
+# Package Manager Policy
 
-本プロジェクトでは、Node.js のパッケージマネージャとして **pnpm** を採用する。
+This project adopts **pnpm** as the Node.js package manager.
 
-本ドキュメントでは、パッケージマネージャの利用方針および運用ルールを定義する。
+This document defines the usage policy and operating rules for the package manager.
 
 ## Status
 
 Accepted
 
-## 採用理由
+## Rationale
 
-### 1. 再現性の担保
+### 1. Guaranteed Reproducibility
 
-pnpm は lockfile（pnpm-lock.yaml）の決定性が高く、以下の環境で同一の依存関係を再現できる。
+pnpm's lockfile (pnpm-lock.yaml) is highly deterministic, so the same dependency set can be reproduced in the following environments.
 
-- ローカル開発環境
+- Local development environments
 - CI/CD
-- AIエージェントによる実行環境
+- Execution environments run by AI agents
 
-### 2. 厳格な依存関係管理
+### 2. Strict Dependency Management
 
-pnpm はフラットではない node_modules 構造を採用しており、未宣言依存の利用を防ぐ。
+pnpm uses a non-flat node_modules structure, which prevents the use of undeclared dependencies.
 
-これにより：
+This:
 
-- 意図しない依存関係の混入を防止
-- モジュール境界の明確化
-- 設計品質の向上
+- Prevents unintended dependencies from creeping in
+- Makes module boundaries explicit
+- Improves design quality
 
-### 3. パフォーマンス
+### 3. Performance
 
-- グローバルストアによる高速インストール
-- 重複依存の排除によるディスク効率向上
+- Fast installs through the global store
+- Better disk efficiency by eliminating duplicate dependencies
 
-### 4. モノレポ対応
+### 4. Monorepo Support
 
-pnpm workspace により、将来的な構成拡張（モノレポ化）にも対応可能。
+pnpm workspace also accommodates future structural expansion (moving to a monorepo).
 
-## バージョン管理
+## Version Management
 
-Node.js および pnpm のバージョンは `mise.toml` で **単一ソース (SSOT)** として宣言する。
-ローカル開発では [mise](https://mise.jdx.dev/) を用いてこの宣言通りのバージョンを取得する。
-CI の配送方針はそのレイヤのネイティブ手段に委ねる（配送層に Docker は用いない。[0011-no-docker.md](0011-no-docker.md)。詳細は [0003-version-manager.md](0003-version-manager.md) を参照）。
+The Node.js and pnpm versions are declared in `mise.toml` as the **single source of truth (SSOT)**.
+Local development uses [mise](https://mise.jdx.dev/) to obtain exactly the declared versions.
+How CI delivers them is left to that layer's native means (the delivery layer does not use Docker: [0011-no-docker.md](0011-no-docker.md). See [0003-version-manager.md](0003-version-manager.md) for details).
 
 ```toml
 # mise.toml
@@ -50,7 +50,7 @@ node = "24.14.1"
 pnpm = "10.33.0"
 ```
 
-ローカルへのインストールは以下のコマンドで一括実行する。
+Local installation is done in one go with the following command.
 
 ```bash
 mise install
@@ -58,54 +58,54 @@ mise install
 make install-tools
 ```
 
-## 基本コマンド
+## Basic Commands
 
-### 依存関係インストール
+### Installing Dependencies
 
 ```bash
 pnpm install
 ```
 
-### lockfile を厳密に使用する（CI）
+### Using the Lockfile Strictly (CI)
 
 ```bash
 pnpm install --frozen-lockfile
 ```
 
-### 依存関係追加
+### Adding Dependencies
 
 ```bash
 pnpm add <package>
 pnpm add -D <package>
 ```
 
-## CI における利用
+## Usage in CI
 
-CI では、再現性と速度を重視し以下の方式を採用する。
+CI prioritizes reproducibility and speed and adopts the following approach.
 
 ```bash
 pnpm fetch
 pnpm install --offline --frozen-lockfile
 ```
 
-> 配送層に Docker は用いない（[0011-no-docker.md](0011-no-docker.md)）。本リポジトリは表示層 アプリケーション基盤として PaaS / 静的 CDN 配送を主想定とし、アプリ本体配送用の `Dockerfile` は同梱しない。
+> The delivery layer does not use Docker ([0011-no-docker.md](0011-no-docker.md)). This repository is a presentation-layer application foundation that primarily assumes PaaS / static CDN delivery, and does not bundle a `Dockerfile` for delivering the application itself.
 
-## 禁止事項
+## Prohibitions
 
-- npm / yarn の使用は禁止（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が npm / yarn で足した依存による lockfile の不整合を落とす。package-lock.json / yarn.lock のコミットと scripts・workflow 内の npm / yarn 呼び出しは綴りで落とせるが規則は無い。手元で打つ npm / yarn は散文 —— **寄せられない**。コードに現れない）
-- lockfile（pnpm-lock.yaml）の手動編集は禁止（強制: `lockfile-drift` job（`pnpm install --frozen-lockfile`）が package.json と食い違う手編集を落とす。package.json の範囲を満たしたままの手編集は散文 —— **寄せられない**。pnpm が解決した行と区別できない）
-- 未宣言依存に依存した実装は禁止
+- Using npm / yarn is prohibited (Enforcement: the `lockfile-drift` job (`pnpm install --frozen-lockfile`) fails on lockfile inconsistencies caused by dependencies added with npm / yarn. Committing package-lock.json / yarn.lock and calling npm / yarn inside scripts or workflows could be caught by spelling, but no rule exists. npm / yarn typed by hand locally is Prose — **not mechanizable**: it never appears in code)
+- Editing the lockfile (pnpm-lock.yaml) by hand is prohibited (Enforcement: the `lockfile-drift` job (`pnpm install --frozen-lockfile`) fails on hand edits that disagree with package.json. A hand edit that still satisfies the ranges in package.json is Prose — **not mechanizable**: it cannot be distinguished from lines pnpm resolved)
+- Implementations that depend on undeclared dependencies are prohibited
 
-## 補足
+## Notes
 
-pnpm は厳格な依存関係管理を行うため、npm や yarn で動作していたコードがエラーになる場合がある。
+Because pnpm manages dependencies strictly, code that worked under npm or yarn may fail.
 
-その場合は：
+In that case:
 
-- 必要な依存関係を明示的に追加する
-- パッケージの依存構造を見直す
+- Add the required dependency explicitly
+- Revisit the package's dependency structure
 
-## 今後の拡張
+## Future Extensions
 
-- モノレポ構成時は `pnpm workspace` を利用する
-- Turborepo / Nx との統合を検討可能
+- Use `pnpm workspace` when moving to a monorepo
+- Integration with Turborepo / Nx can be considered

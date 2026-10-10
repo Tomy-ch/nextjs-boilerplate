@@ -119,7 +119,7 @@ auditor を立てない。それらに関わる行は、それらが import す�
 ## Step 2 — 静的判定を 1 度だけ決める
 
 ゲートの出力は `tmp/arch-check/`（追跡外）へ保存してそのパスを渡す。行を落とすフィルタ越しに auditor が
-読むことが無いようにするためである（[0157](../../../docs/adr/0157-inspection-declaration-discipline.md)）。
+読むことが無いようにするためである（[0157](../../../docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
 - **PR の Lint の結果。** `Lint` workflow（[`.github/workflows/lint.yaml`](../../../.github/workflows/lint.yaml)）
   は `pnpm lint:ci` —— biome・ESLint・`pnpm check:architecture` —— を回し、ログ全体を

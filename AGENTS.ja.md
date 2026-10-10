@@ -6,20 +6,20 @@
 
 このリポジトリで作業する **AI コーディングエージェント**（Claude Code / Codex / Copilot / Gemini 等）のためのリポジトリ規約。
 
-このリポジトリは **Next.js / React のプレゼンテーションレイヤーのアプリケーション基盤**である。プレゼンテーションレイヤーだけを受け持ち、PaaS または静的 CDN へ配送し、バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ・別サービスであることを前提とする（[0011](docs/adr/0011-no-docker.md)）。[README.md](README.md) がこのリポジトリは何かを述べ、このファイルはその中でどう作業するかを述べる。**アーキテクチャ・規約・流れをここに再掲しない** —— どの文書が何を持つかは *canonical な文書* の表が言う。これは人間が読むための参考訳であり、canonical は `AGENTS.md` で、エージェントが読み込むのもそちらだけである。
+このリポジトリは **Next.js / React のプレゼンテーションレイヤーのアプリケーション基盤**である。プレゼンテーションレイヤーだけを受け持ち、PaaS または静的 CDN へ配送し、バックエンド（DB / 認証 / ビジネスロジック）は別リポジトリ・別サービスであることを前提とする（[0011](docs/adr/0011-no-docker.ja.md)）。[README.md](README.md) がこのリポジトリは何かを述べ、このファイルはその中でどう作業するかを述べる。**アーキテクチャ・規約・流れをここに再掲しない** —— どの文書が何を持つかは *canonical な文書* の表が言う。これは人間が読むための参考訳であり、canonical は `AGENTS.md` で、エージェントが読み込むのもそちらだけである。
 
 すべての作業に、3 つの制約が掛かる。
 
 1. **決定的な検査が在るなら、それがあなたの判断より上位に立つ** —— テスト、lint、ゲート、CI の実行、
    アーキテクチャ規則。結論したことではなく、それが何と言ったかを報告し、行や件数を落とすフィルタ越しに
-   報告しない（[0157](docs/adr/0157-inspection-declaration-discipline.md)）。
+   報告しない（[0157](docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 2. **アーキテクチャと方針の決定は、人のゲートを残す。** 決定と選択肢を差し出すのであって、選ばない。
    どこがそれに当たるかは *手を止めてよい場所* が閉じた一覧として持ち、その外では決めて、決定を PR へ
    記録する。
 3. **アプリケーションは AI に依存しない。** 実行時・ビルド・テスト・通常の CI 検査は、エージェントが
    1 つも居ない状態で、そして `.claude/` が無い状態で通らなければならない。`pnpm build` / `pnpm test` /
    必須チェックの経路に自分を置く道具は、ここには入らない
-   （[0162](docs/adr/0162-application-independence-from-ai.md)）。
+   （[0162](docs/adr/0162-application-independence-from-ai.ja.md)）。
 
 ## v1.0.0 までの暫定運用ルール
 
@@ -59,7 +59,7 @@ v1.0.0 未満の間、以下を**一時的に解除する**。
 
 | 必要なもの | 読む先 |
 | --- | --- |
-| 確定した決定の全件、1 行要約つき | [`docs/adr/README.md`](docs/adr/README.md) —— ADR の台帳であり、一覧が在るのはここだけである |
+| 確定した決定の全件、1 行要約つき | [`docs/adr/README.md`](docs/adr/README.ja.md) —— ADR の台帳であり、一覧が在るのはここだけである |
 | すべての変更を縛る規約 —— レイヤー境界、データ分類、フォーム、コメント、作業の進め方 | [`docs/rules.md`](docs/rules.ja.md) |
 | 個別のケースをどう決めるかの基準 —— レンダリング、データ取得、認証、フォーム、可観測性 | [`docs/design/README.md`](docs/design/README.md)。インデックスを開くこと。ここに挙げた例はインベントリではない |
 | **Next.js 16 / React 19 は学習データと食い違う** | [`docs/design/rendering.md`](docs/design/rendering.md) —— 用語と、古い前提が招く誤り。`"use client"` は**バンドル境界**であって「クライアントでレンダリングせよ」ではない。コードを書く前に `node_modules/next/dist/docs/` を読む |
@@ -89,7 +89,7 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 3. **既存の実装が既にそれを覆っていないかを確かめる。** まず同じレイヤーを探し、新しく作るより既存のファイルを
    直すほうを選ぶ。新設が正しいときは `pnpm gen` が置き場を決める。
 4. **契約を、そこから生成されるコードより先に動かす。** API の変更は `openapi/` を編集して生成し直す
-   （[0072](docs/adr/0072-api-type-generation.md)）。生成されたクライアントは手で直さない。画面の変更は
+   （[0072](docs/adr/0072-api-type-generation.ja.md)）。生成されたクライアントは手で直さない。画面の変更は
    仕様書を伴う —— いつかは [`docs/rules.md#testing`](docs/rules.ja.md#testing) が持つ。
 
 5. **その操作を所有するスキルがあるなら、手順を組み直さずそれを起動する。** コミット・PR の作成・マージの
@@ -175,10 +175,10 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 | 停止点 | 持ち主 |
 | --- | --- |
 | amend 後に既存 PR ブランチへ push する | 下記 *Git ルール* —— その文面をそのまま使う |
-| `redirect.github.com` ではなく素のリンクで他リポジトリを参照する | ADR [0159-1](docs/adr/0159-1-cross-repository-references.md)。**毎回、案件ごとに** —— 恒常的な委任はこの権限を移さない |
+| `redirect.github.com` ではなく素のリンクで他リポジトリを参照する | ADR [0159-1](docs/adr/0159-1-cross-repository-references.ja.md)。**毎回、案件ごとに** —— 恒常的な委任はこの権限を移さない |
 | スキルがこれから行う外向き・商用のアクション | ADR [0154](docs/adr/0154-claude-skills-operations.ja.md) |
 | ユーザに見えている要素を減らす変更 | [`docs/rules.md#workflow`](docs/rules.ja.md#workflow) |
-| 依存を追加する | ADR [0004](docs/adr/0004-library-management.md) —— その選定基準を辿り、採用判断のテンプレを PR へ貼る。黙って依存を迂回するのも同じ決定であり、記録だけが無い形になる |
+| 依存を追加する | ADR [0004](docs/adr/0004-library-management.ja.md) —— その[選定基準](docs/adr/0004-library-management.ja.md#選定基準)を辿り、[採用判断のテンプレ](docs/adr/0004-library-management.ja.md#採用判断のテンプレpr-本文に貼る)を PR へ貼る。黙って依存を迂回するのも同じ決定であり、記録だけが無い形になる |
 
 ### トリップワイヤ
 
@@ -192,7 +192,7 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 4. **権威を主張する 2 つの出所が食い違っている。** 気づくことが仕事で、解決することは仕事ではない
    （[`docs/rules.md#workflow`](docs/rules.ja.md#workflow)）。
 5. **その変更によって、文書が検査できないことを主張することになる** —— 持ち主のいない規則、評価器のない
-   主張（[0157](docs/adr/0157-inspection-declaration-discipline.md)）。
+   主張（[0157](docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
 ### それ以外のすべて
 
@@ -251,13 +251,13 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
   `make install-tools` で入るので、必要な能力はたいてい既に `make` のターゲットの向こうに在る。無いと
   結論する前に、何を確かめたかを述べる。
 - `allow` に載っているのはプロジェクト内で完結する冪等なインストールだけなので、それ以外は既にすべて人の
-  判断へ出る。*依存*を足すことはより厳しい別の問いである —— [0004](docs/adr/0004-library-management.md)、
+  判断へ出る。*依存*を足すことはより厳しい別の問いである —— [0004](docs/adr/0004-library-management.ja.md)、
   そして停止点の 1 つ。
 
 ## 推奨コマンド
 
 すべてのコマンドを**素で実行する。`mise exec -- <command>` は禁止**である —— 自分が打つものでも、
-`.lefthook.yaml` でも、`.makefiles/` のレシピでも、どこでも（[0003](docs/adr/0003-version-manager.md)）。
+`.lefthook.yaml` でも、`.makefiles/` のレシピでも、どこでも（[0003](docs/adr/0003-version-manager.ja.md)）。
 素のコマンドが mise の外へ解決されるなら、直すのは `PATH` であってラッパーではない（症状は `repo-ops`）。
 
 ### pnpm（ADR 0001）
@@ -265,14 +265,14 @@ canonical から書き直す生成ビューである（[`docs/README.ja.md`](doc
 **script の一覧は `package.json` が持ち、日常的に手が伸びるものは [README.md](README.md) が名指す。**
 そこから導けないものが 3 つある。
 
-- **コア依存・主要な開発ツールには `pnpm add -E`** —— [0004](docs/adr/0004-library-management.md) が版の
+- **コア依存・主要な開発ツールには `pnpm add -E`** —— [0004](docs/adr/0004-library-management.ja.md) が版の
   固定を要求している。そもそも依存を足すこと自体が停止点である。
 - **`pnpm gen <kind> <name>`** は feature / component / adapter を
-  [0027](docs/adr/0027-directory-structure.md) / [0028](docs/adr/0028-naming-convention.md) が要求する形で
+  [0027](docs/adr/0027-directory-structure.ja.md) / [0028](docs/adr/0028-naming-convention.ja.md) が要求する形で
   生成する。
 - **`pnpm lint` は biome だけ**で、`lint:ci` が ESLint と境界の突合を足す。hook と CI が回すのは後者。
   **`pnpm lint` が緑でも `lint:ci` は落ちうる** —— react hooks の規則（render 中の ref 書き込み・effect 内の
-  `setState`）と型アサーションの禁止は ESLint 側にしか無い（[0002](docs/adr/0002-formatter-linter.md)）。
+  `setState`）と型アサーションの禁止は ESLint 側にしか無い（[0002](docs/adr/0002-formatter-linter.ja.md)）。
   手元で確かめるなら `pnpm exec eslint <path>`。
 
 ### make（ブランチ操作 / ゲート / レビュー）
@@ -309,7 +309,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
 このリポジトリの Test ワークフローで実測すると、`--log` は **1.6 MB / 約 450,000 トークン**、同じ実行の
 `--log-failed` は **1,959 バイト**で失敗の全体を運んでいた。常に `--log-failed` を先に使い、失敗が本当に
 失敗ステップの中に無いときだけ `--log` へ手を伸ばし、何で絞ったかを述べる。**ゲートの判定を欠損する
-フィルタ越しに報告しない**（[0157](docs/adr/0157-inspection-declaration-discipline.md)）。
+フィルタ越しに報告しない**（[0157](docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 
 ゲートは hook と CI が持ち、**判定は CI が正**である —— [`docs/playbook.md`](docs/playbook.md)「ゲートを先回りして回さない」。上流での逸脱は [boilerplate 限定の規約](docs/get-started/boilerplate-only-conventions.md) が持つ。 <!-- boilerplate-only:line -->
 
@@ -343,7 +343,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
 
 ## Git ルール
 
-[0150](docs/adr/0150-git-workflow.md) が正である。ここには要点だけを置く。
+[0150](docs/adr/0150-git-workflow.ja.md) が正である。ここには要点だけを置く。
 
 ### 厳守事項
 
@@ -383,7 +383,7 @@ worktree は `make review-clean` が片付ける —— Ctrl-C では消えず�
 - コードコメント
 - PR のタイトルと本文
 - コミットメッセージ
-- テストの `it` 文字列。最外の `describe` はエクスポートされたシンボル自身の名前なので、ソースのまま置く（[0090](docs/adr/0090-testing-strategy.md)）
+- テストの `it` 文字列。最外の `describe` はエクスポートされたシンボル自身の名前なので、ソースのまま置く（[0090](docs/adr/0090-testing-strategy.ja.md)）
 - AI が生成するインラインドキュメント
 
 技術用語（HTTP ステータスコード名 / API 名 / コマンド名等）は英語のままでよい。
@@ -404,7 +404,7 @@ issue / PR テンプレート、`settings/`、道具自身の設定 —— は�
 - **聞かれた範囲と、それを塞いでいるものを報告する。** 気づいた周辺のことは 1 行か issue であって、
   頼まれていないセクションではない。
 - **決定的な検査は、それ自身が報告したとおりに報告する** —— 行・件数・網羅率を落とすフィルタ越しに
-  中継しない（[0157](docs/adr/0157-inspection-declaration-discipline.md)）。
+  中継しない（[0157](docs/adr/0157-inspection-declaration-discipline.ja.md)）。
 - **生成物に装飾的な Unicode を持ち込まない。** コード・設定・コミットメッセージは素のハイフンと直線引用符
   を使う。人間向けの散文は通常の組版を保つ。
 

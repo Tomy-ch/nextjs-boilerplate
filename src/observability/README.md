@@ -153,7 +153,7 @@ OTel API は provider が登録されていなければ何もしない実装を�
 
 | 観点 | 判定の形 | 根拠 |
 | --- | --- | --- |
-| `forbidden: business-logic` — 業務ロジックを持たない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 |
+| `forbidden: business-logic` — 業務ロジックを持たない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Kernel Acceptance Criteria」4 |
 | `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
 | `render-span.ts` は OTel を import しない。span で包む実装は起動境界から注入で受ける | violation | この README「構成」「載せる範囲」 |
 | `render-span.ts` 以外の module は `server-only` を名乗る | 名乗っていなければ violation | [adapters/README.md](../adapters/README.md)「ブラウザ発のテレメトリの中継」。機械（`scripts/server-only.gate.test.ts`）が見るのは `*.server.ts` の綴りを持つものだけ |

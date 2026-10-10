@@ -7,7 +7,7 @@
 画面ではなく入口である `app` の element を 1 つ置き、`app` の監査が何も挙げない形にする。
 
 `app` は権限の違う element をいくつも持ち、element はパスとファイル名の組で決まる
-（[ADR 0025](../../../docs/adr/0025-app-layer-elements.md)）。このスキルが扱うのは、要求を木の残りへ運ぶ 2 つ
+（[ADR 0025](../../../docs/adr/0025-app-layer-elements.ja.md)）。このスキルが扱うのは、要求を木の残りへ運ぶ 2 つ
 —— **Route Handler** と **`app` 側の Server Action** —— である。`pnpm gen` はどちらの kind も持たないので、
 置き場はここで README から導く —— そして最初に導くのは、その element がそもそも要るかどうかである。
 
@@ -22,7 +22,7 @@
 ## このスキルを使わないとき
 
 - **route segment**（`page.tsx` / `layout.tsx` / `loading.tsx` / `error.tsx`） —— 画面は見た目を確定させ、仕様書を
-  伴う（[ADR 0143](../../../docs/adr/0143-spec-driven-development.md)）。その順序は `new-feature` が持つ。
+  伴う（[ADR 0143](../../../docs/adr/0143-spec-driven-development.ja.md)）。その順序は `new-feature` が持つ。
 - **主体の断言が要らない Server Action** —— feature に留まり
   （`src/features/<name>/<screen>/actions.ts`）、feature の書き手が書く。どちらかは Step 1 が決める。
 - **metadata ファイル**（`sitemap.ts` / `robots.ts` / 画像） —— 権限の違う別の element である。
@@ -35,7 +35,7 @@
 
 | 出所 | そこが決めるもの |
 | --- | --- |
-| [ADR 0025](../../../docs/adr/0025-app-layer-elements.md) | element の表 —— どのファイルがどの element か、それぞれが何を import してよいか、どの行を機械が強制するか |
+| [ADR 0025](../../../docs/adr/0025-app-layer-elements.ja.md) | element の表 —— どのファイルがどの element か、それぞれが何を import してよいか、どの行を機械が強制するか |
 | `src/app/README.md` の frontmatter / `## 運用` / `## 監査の観点` | `forbidden` タグ、各 element がどの `test-requirement` で検証されるか、element が満たすべき行 |
 | `src/app/api/README.md` | Route Handler が受け入れるものと断るもの、失敗の応答をどこで組むか |
 | `architecture.ts` の `APP_ELEMENTS` | 境界検査が element ごとに掛ける import の制限 |
@@ -94,7 +94,7 @@ ADR 0025、`src/app/README.md`、`src/app/api/README.md` を通読し、Server A
   結果の形を返す。
 - **コメントを書かない。** element がどれを得たかは Step 7 が決める。
 - **依存を足さない。** 依存なしに element が書けないなら止まる。依存の追加は
-  [ADR 0004](../../../docs/adr/0004-library-management.md) が持つ停止点である。
+  [ADR 0004](../../../docs/adr/0004-library-management.ja.md) が持つ停止点である。
 - **利用者に見えるものを消さない。** 既存の見える流れを置き換える・組み替える入口は停止点である
   （`docs/rules.md` の *作業とエージェント*）。止まって訊く。
 

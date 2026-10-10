@@ -1,75 +1,75 @@
-# `stores` カーネル(横断 client 状態)
+# The `stores` Kernel (Cross-Cutting Client State)
 
-[0020](0020-adopted-architecture.md) の **機能スライス × 表示層カーネル** アーキテクチャにおけるカーネル **`stores`** について、その **責務 / 依存 / `"use client"` 不変条件 / 採用ライブラリ / 昇格基準** を定める。
+For the kernel **`stores`** in [0020](0020-adopted-architecture.md)'s **feature slices × presentation-layer kernels** architecture, this ADR sets its **responsibilities / dependencies / `"use client"` invariant / adopted library / promotion criterion**.
 
-[0060](0060-state-management.md) は「Server state = RSC fetch 既定 / Client state = local から」を定める。横断する client 状態を扱うライブラリとして **Zustand** を採用するにあたり、**複数 feature が共有する横断 client 状態を置く家**が要る(`capabilities` の横断 hook と同型のギャップ)。「実質のあるカーネルは自前 ADR を持つ」定石([0022](0022-capabilities-kernel.md) capabilities と同型)に従い独立させる。
+[0060](0060-state-management.md) sets "server state = RSC fetch by default / client state = start local". In adopting **Zustand** as the library for cross-cutting client state, **a home for cross-cutting client state shared by multiple features** is needed (a gap of the same shape as the cross-cutting hooks of `capabilities`). Following the established practice that "a kernel with real substance has its own ADR" (the same shape as [0022](0022-capabilities-kernel.md) capabilities), it is made independent.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-[0021](0021-frontend-responsibility.md) の**昇格ルール**(横断要素を `model` / `components` / `adapters` / `capabilities` のいずれかへ)には、それだけでは**横断する client *状態*(stateful store)の出口が無い**。`capabilities` は runtime 能力を供給する reactive hook 限定で、アプリ状態ストアの家ではない。**横断性(複数 feature が共有)がある client 状態 → `stores` カーネル / 非横断(単一 feature 内)→ feature 内**([0021](0021-frontend-responsibility.md) 昇格ルールと同型)とする。
+[0021](0021-frontend-responsibility.md)'s **promotion rule** (promote cross-cutting elements to one of `model` / `components` / `adapters` / `capabilities`) on its own **has no exit for cross-cutting client *state* (stateful stores)**. `capabilities` is limited to reactive hooks that supply runtime capabilities and is not a home for application state stores. **Client state that is cross-cutting (shared by multiple features) → the `stores` kernel / non-cross-cutting (within a single feature) → inside the feature** (the same shape as [0021](0021-frontend-responsibility.md)'s promotion rule).
 
-## 決定
+## Decision
 
-### 責務
+### Responsibilities
 
-`stores` は、**複数 feature が共有する横断 client 状態**(Zustand ストア)を置くカーネルである。
+`stores` is the kernel that holds **cross-cutting client state shared by multiple features** (Zustand stores).
 
-- **既定は [0060](0060-state-management.md) のまま**: server state = RSC fetch / 単一 feature の client 状態 = feature 内 local state(`useState` / `useReducer`)。**真に横断する client 状態のみ `stores` へ昇格**する(受入基準 = 複数 feature 参照)。
-- 採用ライブラリ = **Zustand**(軽量・de-facto。[0010](0010-standards-and-non-lockin.md) 標準準拠)。ストアは `"use client"`。
+- **The default stays as in [0060](0060-state-management.md)**: server state = RSC fetch / client state of a single feature = local state inside the feature (`useState` / `useReducer`). **Only truly cross-cutting client state is promoted to `stores`** (acceptance criterion = referenced by multiple features).
+- The adopted library = **Zustand** (lightweight, de facto; [0010](0010-standards-and-non-lockin.md)'s conformance to standards). Stores are `"use client"`.
 
-### `"use client"` 不変条件
+### The `"use client"` Invariant
 
-`stores` は **client-only(`"use client"`)固定**。server state([0071](0071-bff-api-integration.md) の RSC/adapters)とは別軸で、ブラウザ上のセッション/UI 横断状態(選択状態・ウィザード・グローバル UI トグル等)を扱う。server から来たデータは RSC が props で渡し、store は client の相互作用状態を保持する(server state を store に二重持ちしない)。
+`stores` is **fixed as client-only (`"use client"`)**. On a separate axis from server state (RSC/adapters in [0071](0071-bff-api-integration.md)), it handles session / cross-UI state in the browser (selection state, wizards, global UI toggles, etc.). Data coming from the server is passed by RSC as props, and stores hold the client's interaction state (server state is not held twice in a store).
 
-### 受け入れないもの
+### What Does Not Belong Here
 
-- **server state**(→ RSC fetch / [0071](0071-bff-api-integration.md) adapters)。store に API レスポンスを二重キャッシュしない。**ただし「利用者が何を選んだか」自体を表す記録は例外**(下記)
-- **単一 feature の状態**(→ feature 内 local state。昇格しない)
-- **UI マークアップ**(→ `components`)/ `serverConfig` / secret / 業務ロジック(バックエンド責務。[0011](0011-no-docker.md))
-- **ポリシー状態**(consent/flag は既定では `stores` のものではなく各 seam が持つ。ただし [0031](0031-policy-state-supply.md) の条件 —— 初回描画より前に同期で要る、かつ反応的 —— を満たす値(consent がこれにあたる)は `stores` が持つ)
+- **Server state** (→ RSC fetch / [0071](0071-bff-api-integration.md) adapters). API responses are not cached a second time in a store. **However, a record that itself represents "what the user chose" is an exception** (below)
+- **State of a single feature** (→ local state inside the feature; not promoted)
+- **UI markup** (→ `components`) / `serverConfig` / secrets / business logic (a backend responsibility; [0011](0011-no-docker.md))
+- **Policy state** (consent/flags by default do not belong to `stores` and are held by each seam. However, a value that meets [0031](0031-policy-state-supply.md)'s condition — needed synchronously before the first render, and reactive — is held by `stores` (consent is such a value))
 
-### 選択の記録に含む表示値のスナップショット
+### Display-Value Snapshots Included in a Record of Choices
 
-**利用者の選択そのものを表す記録**(選んで溜めた項目の一覧、比較対象に選んだ項目、下書きに引いてきた値など)は、選択した時点の表示値を **スナップショットとして store に持ってよい**。これは前項の二重キャッシュ禁止の例外ではなく、そもそも射程外である。
+**A record that represents the user's choices themselves** (a list of items the user picked and accumulated, items chosen for comparison, values pulled into a draft, etc.) **may hold, in the store, a snapshot** of the display values at the time of choosing. This is not an exception to the ban on double caching in the previous item; it is outside its reach in the first place.
 
-禁じているのは **サーバが所有する最新値の写しを store に置き、鮮度管理を client 側で二重に持つこと**(= [0060](0060-state-management.md) が既定で外している client 取得・キャッシュ層の再発明)である。選択の記録は次の 3 点を満たす限りこれに当たらない。
+What is prohibited is **placing a copy of the latest value the server owns in a store and holding freshness management a second time on the client side** (= reinventing the client fetching and caching layer that [0060](0060-state-management.md) leaves out by default). A record of choices does not fall under this as long as it meets the following three points.
 
-1. **再取得しない**。store は鮮度を追わず、無効化も購読も持たない
-2. **確定はバックエンドに委ねる**。値の妥当性と可否の最終判断は送信の時点でバックエンドが行い、store の値は表示と入力の材料にとどまる
-3. **記録の主体が利用者である**。サーバの状態を映すのではなく、利用者の操作の結果として増減する
+1. **It does not refetch.** The store does not track freshness and holds neither invalidation nor subscriptions
+2. **Confirmation is left to the backend.** The final judgment on the validity and acceptability of values is made by the backend at the time of submission; the store's values remain material for display and input
+3. **The user is the subject of the record.** It does not mirror server state; it grows and shrinks as a result of the user's operations
 
-この 3 点のいずれかを外した時点で二重キャッシュになる。判定は store の型ではなく **鮮度の責任を誰が持つか** で行う。
+Dropping any one of these three points makes it double caching. The decision is made not by the store's type but by **who is responsible for freshness**.
 
-### 依存
+### Dependencies
 
-| 層(import する側) | 許可される import 先 |
+| Layer (importing side) | Allowed import targets |
 | --- | --- |
-| `stores` | `model` / `errors`(`config/client` の NEXT_PUBLIC リテラルは可)。`"use client"` |
-| `features` | 既存 + **`stores`** |
+| `stores` | `model` / `errors` (NEXT_PUBLIC literals of `config/client` are allowed). `"use client"` |
+| `features` | Existing + **`stores`** |
 
-- **`components` は `stores` を import しない**(純 UI・props-in を維持。合成は feature)
-- **昇格ルールの 5 つ目の出口**: 横断する client 状態 → `stores`([0021](0021-frontend-responsibility.md))
+- **`components` does not import `stores`** (keeps pure UI, props-in; the feature does composition)
+- **The fifth exit of the promotion rule**: cross-cutting client state → `stores` ([0021](0021-frontend-responsibility.md))
 
-### 移植性 / 非ロックイン([0010](0010-standards-and-non-lockin.md))
+### Portability / Non-Lock-in ([0010](0010-standards-and-non-lockin.md))
 
-Zustand は de-facto の軽量 store で、`create()` + hook の標準形に乗る(vendor-independent = ストア API は React 慣用の hook で、Zustand を抜いても「横断 client 状態を hook で読む」構造は可搬)。ストアを feature/component に直書きせず `stores` に集約することで差し替え可能に保つ。exact-pin + `pnpm audit`([0004](0004-library-management.md))。
+Zustand is the de facto lightweight store and rides on the standard shape of `create()` + hooks (vendor-independent = the store API is React's idiomatic hook, so the structure "read cross-cutting client state through a hook" stays portable even without Zustand). Keeping stores consolidated in `stores` rather than written directly in features/components keeps them replaceable. Exact pin + `pnpm audit` ([0004](0004-library-management.md)).
 
-## 禁止事項
+## Prohibitions
 
-- ❌ `stores` に server state(API レスポンス)を二重キャッシュすること(server state は RSC/adapters)。**選択の記録に含む表示値のスナップショットはこれに当たらない**(§選択の記録)（強制: 散文 —— **寄せられない**。二重キャッシュか選択の記録かは鮮度の責任を誰が持つかで決まり、store の型からは決まらない）
-- ❌ 単一 feature の状態を `stores` へ上げること(横断性が無ければ feature 内 local)（強制: 散文 —— **寄せられる**（`src/stores/` の各ストアを import する feature スライスが 2 つ未満なら落とす形。規則は無い））
-- ❌ `components` が `stores` を import すること(合成は feature 経由)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `DEPENDENCIES.components` に `stores` が無い））
-- ❌ `stores` に UI マークアップ / secret / `serverConfig` / 業務ロジックを置くこと（強制: ESLint `project-rules/no-markup-outside-ui-layers` が UI マークアップを、`server-only` の build-time failure と `scripts/server-only.gate.test.ts` が `serverConfig` を落とす。secret と業務ロジックは散文 —— **寄せられない**。値の意味と判断の所在で決まる）
-- ❌ Zustand ストアを feature/component に直書きして横断参照させること(横断は `stores` へ集約)（強制: ESLint boundaries が feature 内のストアを他 feature から参照する形を落とす。`src/stores/` の外での `zustand` の利用は散文 —— **寄せられる**（`no-restricted-imports` で `zustand` を `src/stores/` 以外から落とす形。規則は無い））
+- ❌ Caching server state (API responses) a second time in `stores` (server state belongs to RSC/adapters). **Display-value snapshots included in a record of choices do not fall under this** (§Display-Value Snapshots Included in a Record of Choices) (Enforcement: Prose — **not mechanizable**. Whether it is double caching or a record of choices is decided by who is responsible for freshness, not by the store's type)
+- ❌ Promoting state of a single feature to `stores` (without cross-cutting use it stays local inside the feature) (Enforcement: Prose — **mechanizable** (fail when fewer than two feature slices import a store in `src/stores/`. No rule exists))
+- ❌ `components` importing `stores` (composition goes through the feature) (Enforcement: ESLint `boundaries/dependencies` (`DEPENDENCIES.components` in `architecture.ts` has no `stores`))
+- ❌ Placing UI markup / secrets / `serverConfig` / business logic in `stores` (Enforcement: ESLint `project-rules/no-markup-outside-ui-layers` fails on UI markup, and the build-time failure of `server-only` and `scripts/server-only.gate.test.ts` fail on `serverConfig`. Secrets and business logic are Prose — **not mechanizable**: they are decided by the meaning of the value and where the judgment lives)
+- ❌ Writing a Zustand store directly in a feature/component and having it referenced across features (cross-cutting state is consolidated in `stores`) (Enforcement: ESLint boundaries fails on another feature referencing a store inside a feature. Using `zustand` outside `src/stores/` is Prose — **mechanizable** (fail `zustand` imports from outside `src/stores/` with `no-restricted-imports`. No rule exists))
 
-## 関連 ADR
+## Related ADRs
 
-- [0060-state-management.md](0060-state-management.md) — 状態管理方針(server=RSC / client=local 既定。本 ADR が横断 client 状態の家を持つ)
-- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — 横断 client hook カーネル(本 ADR と同型の独立カーネル)
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — server state(RSC/adapters。store と二重にしない境界)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 昇格ルール(横断 client 状態 → stores の出口)
-- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — Zustand 標準準拠 + 差し替え可能性
+- [0060-state-management.md](0060-state-management.md) — the state-management policy (server=RSC / client=local by default; this ADR holds the home for cross-cutting client state)
+- [0022-capabilities-kernel.md](0022-capabilities-kernel.md) — the cross-cutting client hook kernel (an independent kernel of the same shape as this ADR)
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — server state (RSC/adapters; the boundary that is not duplicated with stores)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the promotion rule (the cross-cutting client state → stores exit)
+- [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.md) — Zustand's conformance to standards + replaceability

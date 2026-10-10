@@ -1,112 +1,112 @@
-# BFF / API 統合
+# BFF / API Integration
 
-バックエンド API を呼ぶ **API クライアントの配置 / fetch wrapper の resilience(timeout / retry / retry budget / circuit breaker)/ エラー正規化 / response の runtime 検証の受け取り点** を定める。[0070](0070-backend-role-separation.md) の thin proxy・境界値所有を、実際の HTTP 呼び出し層としてどう実装するかを確定する。
+This ADR defines **the placement of the API client that calls the backend API / the resilience of the fetch wrapper (timeout / retry / retry budget / circuit breaker) / error normalization / the receiving point of runtime response validation**. It settles how [0070](0070-backend-role-separation.md)'s thin proxy and ownership of boundary values are implemented as the actual HTTP calling layer.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-`/api/*` の責務範囲・外部 API クライアントの場所・fetch wrapper(retry / timeout / error 変換 / logging)を本 ADR が確定する。コンポーネントに ad-hoc な fetch を散らさず、retry・timeout を各所で独自に実装しないことが前提であり、その代わりに outbound を 1 つの wrapper へ集約して、そこに resilience を持たせる。
+This ADR settles the scope of responsibility of `/api/*`, where external API clients live, and the fetch wrapper (retry / timeout / error conversion / logging). The premise is not scattering ad-hoc fetches across components and not implementing retry and timeout independently in each place; instead, outbound calls are gathered into one wrapper, which carries the resilience.
 
-outbound HTTP が持つべき resilience は **dual timeout / idempotent retry / retry budget / circuit breaker** の 4 つである。timeout が 1 段だと「1 回の試行を諦める」と「呼び出し全体を諦める」を区別できず、retry は非冪等な要求を重複させ、budget が無い retry は劣化した下流へ負荷を積み増し(retry storm)、breaker が無いと劣化中も叩き続けて fail-fast できない。本 ADR はこの 4 つを既定値付きで wrapper に持たせる。
+The resilience outbound HTTP should have is four things: **dual timeout / idempotent retry / retry budget / circuit breaker**. With a single-stage timeout, "give up one attempt" cannot be distinguished from "give up the whole call"; retry duplicates non-idempotent requests; retry without a budget piles load onto a degraded downstream (retry storm); and without a breaker, calls keep hammering during degradation and cannot fail fast. This ADR gives the wrapper these four, with default values.
 
-## 決定
+## Decision
 
-### API クライアントの配置 = `adapters` カーネル
+### Placement of the API client = the `adapters` kernel
 
-- バックエンド API クライアント(fetch wrapper)は **`adapters` カーネル**に置く([0021](0021-frontend-responsibility.md)。`config` を import できる唯一の層 / 外部接続の所有境界)。生の `fetch` をコンポーネント・feature に散らさない。**`adapters` は server / client の 2 面に分割される**(server = backend client・secret 有・config 可 / client = 同一オリジン BFF fetch・WebSocket・telemetry 送信・secret 不可)。詳細は [0024](0024-adapters-server-client-split.md) が正。本 ADR の resilience(dual timeout / retry / breaker)は主に `adapters/server` に適用する
-- 生成型・zod スキーマ([0072](0072-api-type-generation.md))の**変換もこの境界で所有**する([0070](0070-backend-role-separation.md) 型漏洩禁止)
+- The backend API client (fetch wrapper) is placed in **the `adapters` kernel** ([0021](0021-frontend-responsibility.md); the only layer that can import `config` / the owning boundary of external connections). Raw `fetch` is not scattered across components and features. **`adapters` is split into two sides, server and client** (server = backend client, has secrets, may use config / client = same-origin BFF fetch, WebSocket, sending telemetry, no secrets). The details are governed by [0024](0024-adapters-server-client-split.md). This ADR's resilience (dual timeout / retry / breaker) applies mainly to `adapters/server`
+- **The conversion** of generated types and zod schemas ([0072](0072-api-type-generation.md)) **is also owned at this boundary** ([0070](0070-backend-role-separation.md) ban on type leaks)
 
-### fetch wrapper の resilience
+### Resilience of the fetch wrapper
 
-すべての outbound を fetch wrapper 経由に集約し(生 `fetch` を直接使わない)、以下を備える:
+All outbound calls are gathered through the fetch wrapper (raw `fetch` is not used directly), which provides the following:
 
-- **dual timeout**: **per-attempt timeout** と **overall timeout** の二段を `AbortSignal` / `AbortController`(`AbortSignal.timeout()`)で表現する。backoff が overall を超える場合は retry を skip(deadline 尊重)。既定値は per-attempt 3s / overall 10s とし、per-downstream に調整可能とする。**試行回数の上限は 3** —— overall 10s は per-attempt 3s の 3 倍を少し超える値であり、それ以上の試行は overall に阻まれて実行されない
-- **retry**: **idempotent メソッド(GET / PUT / DELETE)は retryable**、**POST / PATCH は明示 opt-in**(idempotency key 付与時のみ)。retryable 条件 = 5xx / 429 / transport error。**exponential backoff + full jitter**、`Retry-After` ヘッダを尊重する
-- **retry budget**: per-downstream の token bucket(既定 10%)で retry storm を防ぐ
-- **circuit breaker**: closed / half-open / open の状態機械(既定: 失敗率 0.5 / サンプル 20 / open 5s / half-open probe 3)。単一バックエンドでも、劣化時に叩き続けず fail-fast するために持つ
-- per-downstream の **Profile**(timeout / retry / breaker 設定)で調整し、未指定は既定 Profile を使う
+- **dual timeout**: two stages, a **per-attempt timeout** and an **overall timeout**, expressed with `AbortSignal` / `AbortController` (`AbortSignal.timeout()`). If backoff would exceed overall, the retry is skipped (respecting the deadline). Defaults are per-attempt 3s / overall 10s, adjustable per downstream. **The maximum number of attempts is 3** — overall 10s is slightly more than three times per-attempt 3s, so further attempts are blocked by overall and never run
+- **retry**: **idempotent methods (GET / PUT / DELETE) are retryable**, and **POST / PATCH are explicit opt-in** (only when an idempotency key is attached). Retryable conditions = 5xx / 429 / transport error. **Exponential backoff + full jitter**, respecting the `Retry-After` header
+- **retry budget**: a per-downstream token bucket (default 10%) prevents retry storms
+- **circuit breaker**: a closed / half-open / open state machine (defaults: failure rate 0.5 / sample 20 / open 5s / half-open probe 3). Held even with a single backend, so as to fail fast instead of hammering during degradation
+- Adjusted with a per-downstream **Profile** (timeout / retry / breaker settings); when unspecified, the default Profile is used
 
-**接続口は downstream と分類([0112](0112-data-classification-cache-boundary.md))の組ごとに 1 つ置く。** retry budget と circuit breaker は client の中に状態として載るため、同じ downstream へ client を複数組むと、劣化したかどうかの判断が分けた数だけ割れ、budget も breaker も設計値どおりに働かない。接続口は `src/adapters/server/http/` に分類ごとに 1 つずつ(`getPublicClient()` / `getUserScopedClient()`)置き、取得の口はどちらかを引く。「データ取得のキャッシュ・再検証」節の、分類ごとに 1 つ置いた接続口はこれである。
+**One connection point is placed per combination of downstream and classification ([0112](0112-data-classification-cache-boundary.md)).** The retry budget and circuit breaker live as state inside the client, so building several clients for the same downstream splits the judgment of whether it has degraded by however many there are, and neither budget nor breaker works as designed. Connection points are placed in `src/adapters/server/http/`, one per classification (`getPublicClient()` / `getUserScopedClient()`), and fetch endpoints pull one of them. The connection points placed one per classification in the "Caching and Revalidation of Data Fetching" section are these.
 
-**資格情報の取得口を渡すのは user-scoped の接続口の 1 か所だけである。** [0112](0112-data-classification-cache-boundary.md) が資格情報の解決に置く検査(`project-rules/no-captured-bearer-token`: 取得口には import した口だけを渡せる)が求める「宣言が 1 か所にあり、そこを読めば解決の経路が分かる」は、接続口が import した取得口を渡すことで満たす。取得口は要求のたびに session から解決され、接続口は資格情報を保持しない。
+**Only one place, the user-scoped connection point, is handed the credential fetch endpoint.** The "the declaration is in one place, and reading it shows the resolution path" that the check [0112](0112-data-classification-cache-boundary.md) places on credential resolution requires (`project-rules/no-captured-bearer-token`: only an imported endpoint may be passed as the fetch endpoint) is satisfied by the connection point passing the fetch endpoint it imported. The fetch endpoint resolves from the session on every request, and the connection point holds no credentials.
 
-**帰結として、user-scoped の要求は遮断器と retry budget を共有する。** ある口で失敗が続いて遮断されると、他の user-scoped の口も同じく fail-fast で落ちる。downstream を単位とする resilience の設計値そのものである。共有されるのは同じ module graph の中で、framework が graph を分けて組む境界(起動境界と描画など)ごとに接続口も別に組まれる。
+**As a consequence, user-scoped requests share the circuit breaker and retry budget.** When failures continue on one endpoint and it is tripped, other user-scoped endpoints also fail fast. This is exactly the design value of resilience with the downstream as its unit. Sharing happens within the same module graph; at boundaries where the framework builds separate graphs (such as the startup boundary and rendering), connection points are built separately too.
 
-**資格情報が無いときに送ってよいかは、要求が宣言する(`allowAnonymous`)。** 契約は認証の要否を operation ごとに宣言する(OpenAPI の `security`)ため、client の単位では粗い。立ててよいのは、契約がその operation の `security` に `{}` を含めているものだけで、`security: []`(認証を要しない)の operation は公開の接続口を引く。付け間違えても、資格情報の無い要求がバックエンドで 401 になるだけで漏洩にはならない。強制: 散文 —— **寄せられる**(契約の `security` と要求の `allowAnonymous` を operation ごとに突き合わせられる。規則は無い)。
+**Whether a request may be sent without credentials is declared by the request (`allowAnonymous`).** The contract declares per operation whether authentication is required (OpenAPI's `security`), so the client unit is too coarse. It may be set only where the contract includes `{}` in that operation's `security`; operations with `security: []` (no authentication required) pull the public connection point. Setting it by mistake only makes the request without credentials a 401 at the backend, not a leak. Enforcement: Prose — **mechanizable** (the contract's `security` and the request's `allowAnonymous` can be cross-checked per operation; no rule exists).
 
-**接続口の外で client を組む箇所は、理由をその場に書く。** 接続先(issuer)を呼び出しごとに、または注入で受け取る IdP への要求と、session を確立する 1 往復が該当する。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` が宣言する。
+**Places that build a client outside a connection point write the reason on the spot.** This covers requests to an IdP that receive the connection target (issuer) per call or by injection, and the single round trip that establishes a session. Where building is allowed is declared by `CONNECTION_PORTS` in `architecture.ts`.
 
-### エラー正規化(生 status を漏らさない)
+### Error normalization (do not leak raw status)
 
-- 生の HTTP status を上位(feature / UI)に漏らさず、**`errors` カーネルの分類(sentinel)へ正規化**する([0021](0021-frontend-responsibility.md) errors)。HTTP status → 安定エラーコード(`NOT_FOUND` / `VALIDATION_FAILED` 等)の対応表を wrapper が持つ
-- **正規化テーブル・ユーザ向けメッセージ変換の詳細は [0080](0080-error-handling.md) が正**。本 ADR は「adapters が生 status を正規化して errors 分類で返す」境界の存在を定める
-- ログは `logging` カーネル([0021](0021-frontend-responsibility.md)。config 値は注入で受ける)
+- Raw HTTP status is not leaked upward (feature / UI); it is **normalized into the classification (sentinels) of the `errors` kernel** ([0021](0021-frontend-responsibility.md) errors). The wrapper holds the mapping table HTTP status → stable error code (`NOT_FOUND` / `VALIDATION_FAILED`, etc.)
+- **The details of the normalization table and conversion into user-facing messages are governed by [0080](0080-error-handling.md)**. This ADR defines the existence of the boundary "adapters normalize raw status and return it as an errors classification"
+- Logging uses the `logging` kernel ([0021](0021-frontend-responsibility.md); config values are received by injection)
 
-### response の runtime 検証の受け取り点
+### The receiving point of runtime response validation
 
-- response は **`adapters` 境界で runtime validation**(zod `.parse()`)する。これは [0070](0070-backend-role-separation.md)(境界値所有 = フロントが契約破れの最後の砦)を実装する点であり、検証スキーマの生成は [0072](0072-api-type-generation.md)(orval + zod)が正
-- 検証に失敗した response(契約破れ)は正規化エラー(上記)として扱う
+- Responses get **runtime validation at the `adapters` boundary** (zod `.parse()`). This is the point that implements [0070](0070-backend-role-separation.md) (ownership of boundary values = the frontend is the last line of defense against contract breaches), and generating the validation schemas is governed by [0072](0072-api-type-generation.md) (orval + zod)
+- A response that fails validation (a contract breach) is treated as a normalized error (above)
 
-### SSRF guard(条件付き)
+### SSRF guard (conditional)
 
-- フロント → 自社バックエンドの通常経路では SSRF guard は**不要**。`/api/*` BFF が**外部(信頼できない URL)を叩く**場合のみ、egress guard(宛先 allowlist)を検討する。本 ADR は「本体では不要・外部叩き時のみ」の方針のみ記す
+- On the normal path from the frontend to our own backend, an SSRF guard is **unnecessary**. Only when the `/api/*` BFF **calls external (untrusted) URLs** is an egress guard (destination allowlist) considered. This ADR records only the policy "unnecessary in the core; only when calling external URLs"
 
 ### Server Actions
 
-- 変更系の呼び出しは Server Action([0040](0040-routing-rendering-strategy.md)。feature 内 `actions.ts`)から adapters のクライアント経由で行う。Server Action は編成のみ・業務ロジックを持たない
+- Mutating calls are made from Server Actions ([0040](0040-routing-rendering-strategy.md); `actions.ts` inside a feature) through the adapters' client. Server Actions only orchestrate and hold no business logic
 
-### データ取得のキャッシュ・再検証
+### Caching and Revalidation of Data Fetching
 
-[0040](0040-routing-rendering-strategy.md) は「レンダリングモードを強制しない」までを定め、データ取得のキャッシュ設計は本 ADR が持つ。その**データ層のキャッシュ・再検証規約**を確定する(resilience とは別軸。Next.js のデータキャッシュの所有をここに置く):
+[0040](0040-routing-rendering-strategy.md) defines only "no rendering mode is enforced", and the caching design of data fetching is held by this ADR. It settles **the caching and revalidation conventions of the data layer** (an axis separate from resilience; ownership of Next.js's data cache is placed here):
 
-- **既定は uncached**([0040](0040-routing-rendering-strategy.md) の Next.js 16 事実 = `fetch` は既定でキャッシュされない)を土台とし、**キャッシュは opt-in**。用途を問わないグローバルキャッシュを既定で敷かない
-- **キャッシュ指定の所有層**: 何をキャッシュするかの宣言(`use cache` / `cache: 'force-cache'` 等)と再検証(`revalidateTag` / `revalidatePath` / `cacheLife` / `cacheTag`)は、**データ取得を所有する層 = `adapters`(fetch wrapper)と、それを呼ぶ Server Component / feature** が持つ。resilience 同様、コンポーネント各所に散らさず境界へ集約する
-- **cache tag 命名**は wire リソース(operationId / エンティティ)に対応させ、[0072](0072-api-type-generation.md) の生成境界と一貫させる。**体系は `<資源>` と `<資源>:<識別子>` の 2 段**とし、資源名はバックエンド契約の集合名に揃える。画面名や feature 名は使わない。**印を付けるのは取得を所有する `adapters` の 1 か所**で、その module が定数として公開し、`features` / `app` はその定数だけを使う。文字列を書く側が増えるほど、綴りの食い違いが「無効化したのに古いまま」という形で現れる
-- **ミューテーション後の再検証**: 変更系 Server Action(上記 / [0040](0040-routing-rendering-strategy.md) `actions.ts`)成功後は、影響する tag / path を `revalidateTag` / `revalidatePath` で無効化する(または `router.refresh()`)。「更新したのに画面が古い / 二重に再取得する」を防ぐ既定経路をこの層が定める。**単位はそのデータを所有する取得口**で、所有口がキャッシュに居るなら印を無効化し、居ないなら描き直す。アプリ全体を捨てる呼び方(`revalidatePath("/", "layout")`)は所有境界ではない —— 更新した値がどの画面にも付く外枠に出るときだけの例外とし、理由をその場に書く。**例外は `eslint-disable-next-line project-rules/no-app-wide-revalidate` で名乗る** —— 印が要るならエコシステム標準の綴りへ揃え、独自の接頭辞を作らない([`docs/rules.md#comments`](../rules.md#comments))。**専用の口を `adapters` へ置く形は採らない** —— 例外が要るかは画面側の事情で決まるのに、口は `adapters` の公開面になる。`adapters` は内部と宣言されているので(`knip.ts`)、その口を引く画面が無い構成では、呼ばれない export として死んだコードの検査に挙がる
-- **キャッシュへ入れてよいのは、主体を名乗らずに取れるものだけ**。Data Cache は server 側で共有され、鍵は URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、鍵が主体ごとに割れて再利用はほとんど起きない一方、入れ物だけが主体の数だけ増える。**入れないものへ印(`next.tags`)を付けない** —— 印は入っているものにしか付かないため、付けた側も無効化する側も、動いていないのに動いて見える
-- **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
-- **`Cache Components` は有効である**([0041](0041-cache-components-decision.md))。上の既定 uncached はそのまま効き、残したいものに `use cache` を付け、寿命は `cacheLife`、捨てる印は `cacheTag` で持つ。所有層(取得の口とそれを呼ぶ RSC)も、タグの綴りも、ミューテーション連動も変わらない
-- **`use cache` を置ける粒度は 3 つ**(page / 関数 / component)。**取得の口の側へ寄せる。** 呼ぶ側へ置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、捨てる印の付け先が散る
-- **寿命は profile の名前で名乗る。** 秒数は `next.config.ts` の `cacheLife` に定義した profile が持ち、口の側は「何の寿命か」だけを言う。口を 1 つも触らずにその値だけを動かせる
-- **殻へ載る取得の profile に `expire` を置かない。** `expire` はその時間トラフィックが途絶えた直後の 1 要求へ同期の取り直しを課すため、そこで取得先へ届かないと、殻を配れていたはずの route が丸ごと失敗へ倒れる。置かなければ取り直しは常に背後で起き、失敗しても最後に読めた内容が出続ける
-- **`use cache` が確実に残すのは、組み立て時に殻へ焼かれた分だけである。** 既定の入れ物はプロセスのメモリなので、serverless では要求ごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐと鍵ごと捨てられる。これは `fetch` の `cache: "force-cache"`(Data Cache。デプロイとインスタンスをまたいで残る)から失うもので、**request 時の再利用を保証と読んではならない**。インスタンスをまたいで残す必要が出たときは `cacheHandlers` か `use cache: remote` を選ぶ —— どちらも配備先に依存するため、本体は選ばない([0010](0010-standards-and-non-lockin.md))
-- **`use cache` の内側の取得に個別のキャッシュ指定(`cache` / `next.tags`)を置かない。** 内側はまとめて外側の寿命に従うため、二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴む
-- **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** **分類ごとに 1 つ置いた接続口**を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.md) の「キャッシュ投入前」の段がその import を落とす
-- **`use cache` を持つ口は組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.md) の環境定義) —— そのとき build は契約から生成したハンドラを HTTP の口として立て、取得先を自給する。これは request 時の往復を減らすことと引き換えに受け取る制約である
-- **user-scoped な値は `use cache` の下へ置かない**([0112](0112-data-classification-cache-boundary.md))。手段は `use cache: private` に限り、それは明示的な例外能力である。強制は `project-rules/no-user-scoped-in-cached-module` と framework の `next-request-in-use-cache` が持つ
-- 具体値(何を・どれだけ・どの tag で)は用途依存のため、ここでは確定しない(本 ADR は所有層と既定方針 = opt-in・境界集約・ミューテーション連動を定める)
+- **Built on uncached by default** (the Next.js 16 fact in [0040](0040-routing-rendering-strategy.md) = `fetch` is not cached by default), **caching is opt-in**. No global cache regardless of use is laid down by default
+- **The owning layer of cache directives**: declaring what to cache (`use cache` / `cache: 'force-cache'`, etc.) and revalidation (`revalidateTag` / `revalidatePath` / `cacheLife` / `cacheTag`) are held by **the layer that owns data fetching = `adapters` (the fetch wrapper) and the Server Components / features that call it**. Like resilience, they are gathered at the boundary rather than scattered across components
+- **Cache tag naming** corresponds to wire resources (operationId / entities), consistent with [0072](0072-api-type-generation.md)'s generation boundary. **The scheme has two levels, `<resource>` and `<resource>:<identifier>`**, and resource names are aligned with the collection names of the backend contract. Screen names and feature names are not used. **Tags are attached in one place, the `adapters` that owns the fetch**; that module exposes them as constants, and `features` / `app` use only those constants. The more sides write the strings, the more spelling mismatches appear as "invalidated, yet still stale"
+- **Revalidation after mutations**: after a mutating Server Action (above / [0040](0040-routing-rendering-strategy.md) `actions.ts`) succeeds, the affected tags / paths are invalidated with `revalidateTag` / `revalidatePath` (or `router.refresh()`). This layer defines the default path that prevents "updated, yet the screen is stale / refetched twice". **The unit is the fetch endpoint that owns that data**: if the owning endpoint is in the cache, invalidate its tag; if not, re-render. A call that discards the whole app (`revalidatePath("/", "layout")`) is not an ownership boundary — it is an exception only when the updated value appears in the outer frame attached to every screen, with the reason written on the spot. **The exception names itself with `eslint-disable-next-line project-rules/no-app-wide-revalidate`** — if a marker is needed, align with the ecosystem's standard spelling and do not invent a prefix of our own (`docs/rules.md#comments`). **A form that places a dedicated endpoint in `adapters` is not adopted** — whether the exception is needed is decided by the screen side's circumstances, yet the endpoint would become part of the public surface of `adapters`. `adapters` is declared internal (`knip.ts`), so in a configuration with no screen pulling that endpoint, it would show up in the dead-code check as an export never called
+- **Only what can be fetched without naming a principal may go into the cache**. The Data Cache is shared on the server side, and its key is URL, method, headers and body. Putting in a fetch that carries credentials splits the key per principal, so reuse hardly happens while only the stored entries multiply by the number of principals. **Do not attach tags (`next.tags`) to what is not put in** — tags attach only to what is in the cache, so both the side that attached them and the side that invalidates them appear to work while doing nothing
+- **Deduplication**: duplicate fetches within the same request are eliminated with React `cache()` / fetch memoization, suppressing duplicate calls to the BFF and backend
+- **`Cache Components` is enabled** ([0041](0041-cache-components-decision.md)). The uncached default above still applies; `use cache` is attached to what should be kept, the lifetime is held by `cacheLife`, and the tag for discarding by `cacheTag`. The owning layer (the fetch endpoint and the RSC that calls it), the spelling of tags, and the link to mutations do not change
+- **`use cache` can be placed at three granularities** (page / function / component). **Lean it toward the fetch endpoint side.** Placing it on the calling side gives the same fetch a separate lifetime per call, scattering where the discard tags attach
+- **Lifetimes are named by profile name.** The seconds are held by profiles defined in `cacheLife` in `next.config.ts`, and the endpoint side says only "what it is the lifetime of". The values alone can be moved without touching a single endpoint
+- **Do not put `expire` on the profile of fetches that land in the static shell.** `expire` imposes a synchronous refetch on the single request right after traffic has stopped for that time, so if the fetch target cannot be reached then, a route that should have served its static shell falls entirely into failure. Without it, refetching always happens in the background, and even on failure the last content read keeps being served
+- **What `use cache` reliably keeps is only what was baked into the static shell at build time.** The default store is process memory, so on serverless each request may land on a different instance and there are occasions when no reuse happens, and across deployments everything is discarded along with the keys. This is what is lost relative to `fetch`'s `cache: "force-cache"` (the Data Cache, which survives across deployments and instances), and **request-time reuse must not be read as a guarantee**. When there is a need to keep things across instances, choose `cacheHandlers` or `use cache: remote` — both depend on the deployment target, so the core does not choose ([0010](0010-standards-and-non-lockin.md))
+- **Do not put individual cache directives (`cache` / `next.tags`) on fetches inside `use cache`.** The inside follows the outer lifetime as a whole, so holding it twice means the inside does not expire and the outside grabs the same stale response even when it refetches
+- **A module that has `use cache` does not pull the kernel that builds clients directly.** It goes through **the connection point placed one per classification**. A module that can pull it directly is also in a position to build a user-scoped client, and the "before putting into the cache" stage of [0112](0112-data-classification-cache-boundary.md) rejects that import
+- **An endpoint that has `use cache` is also called at build time.** The cache contents are produced during the build, so **reachability from the build environment to the fetch target becomes a premise**. When building in an environment that cannot reach it, choose `APP_API_MODE=mock` (the environment definitions of [0011](0011-no-docker.md)) — then the build stands up the handlers generated from the contract as an HTTP endpoint and is self-sufficient for the fetch target. This is a constraint accepted in exchange for fewer request-time round trips
+- **User-scoped values are not placed under `use cache`** ([0112](0112-data-classification-cache-boundary.md)). The only means is `use cache: private`, and it is an explicit exceptional capability. Enforcement is held by `project-rules/no-user-scoped-in-cached-module` and the framework's `next-request-in-use-cache`
+- Concrete values (what, how much, with which tag) are use-case dependent and not settled here (this ADR defines the owning layer and the default policy = opt-in, gathered at the boundary, linked to mutations)
 
-### 実装ライブラリ
+### Implementation libraries
 
-- retry / backoff / circuit breaker の実装は、標準 `fetch` + `AbortSignal` を土台に自前で持つ。ユーティリティを足す場合は [0004](0004-library-management.md) の採用フロー(exact pin / `pnpm audit`)を通す
+- Retry / backoff / circuit breaker are implemented ourselves on top of standard `fetch` + `AbortSignal`. Adding a utility goes through [0004](0004-library-management.md)'s adoption flow (exact pin / `pnpm audit`)
 
-## 禁止事項
+## Prohibitions
 
-- ❌ コンポーネント・feature に生 `fetch` を散らすこと(adapters の wrapper 経由)（強制: 散文 —— **寄せられる**（`adapters` の外での `fetch` の呼び出しを、購読の `SUBSCRIPTION_CONSTRUCTION_SELECTOR` と同じ `no-restricted-syntax` で落とせる。規則は無い））
-- ❌ 生の HTTP status を上位へ漏らすこと(errors 分類へ正規化)（強制: `src/adapters/server/http/request.test.ts` と `src/adapters/client/http/request.test.ts` が wrapper の status の分類への写しを、ESLint `no-restricted-syntax`（`src/errors/**`）が errors カーネルへの transport 語彙の持ち込みを落とす。wrapper を通らない経路は散文 —— **寄せられる**（`adapters` の外の生 `fetch` を落とす規則が無い））
-- ❌ 非 idempotent メソッド(POST / PATCH)を idempotency key なしに無条件 retry すること（強制: `src/adapters/server/http/retry-policy.test.ts` と `request.test.ts`（宣言の無い POST / PATCH を再試行しない）が wrapper の既定を落とす。`idempotent: true` の宣言に idempotency key が伴うかは散文 —— **寄せられない**。ヘッダの意味は wrapper には見えない）
-- ❌ retry budget / circuit breaker なしに retry すること(retry storm 防止)（強制: `src/adapters/server/http/request.test.ts`（遮断中は接続せずに落とす / 予算を使い切ったら再試行しない）と `retry-budget.test.ts` / `circuit-breaker.test.ts` が wrapper の再試行を落とす。wrapper の外に書いた再試行は散文 —— **寄せられない**。再試行かどうかは制御の流れの意味で決まり、形からは決まらない）
-- ❌ `adapters` の fetch wrapper に業務ロジックを書くこと(外部接続と変換のみ。[0021](0021-frontend-responsibility.md))（強制: 散文 —— **寄せられない**。業務ロジックか外部接続の変換かは層の責務の判断で、コードの形からは決まらない）
-- ❌ 接続口の外で client を組むこと(downstream と分類の組ごとに 1 つ)（強制: ESLint `project-rules/no-client-outside-connection-port`。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` で、寄せられない箇所は `eslint-disable-next-line` に理由を書いて名乗る）
-- ❌ response を検証せず内層へ流すこと(adapters 境界で zod 検証。[0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md))（強制: 型（server / client の wrapper は `schema` を必須引数に取る）と両 wrapper の `request.test.ts`（契約と違う応答を internal として落とす）。wrapper を通らない生 `fetch` は散文 —— **寄せられる**（`adapters` の外の `fetch` を落とす規則が無い））
-- ❌ キャッシュ / 再検証の指定をコンポーネント各所へ散らすこと(データ取得の所有層 = adapters / 呼び出す RSC に集約)
-- ❌ `use cache` の内側の `fetch` へ `cache` / `next.tags` を置くこと(寿命が二重になり、外側の再取得が古い応答を掴む)
-- ❌ 用途を問わないグローバルキャッシュを既定で敷くこと(既定 uncached・opt-in)/ ミューテーション後に影響 tag / path を再検証せず古い表示を放置すること
+- ❌ Scattering raw `fetch` across components and features (go through the adapters' wrapper) (Enforcement: Prose — **mechanizable** (calls to `fetch` outside `adapters` could be rejected with the same `no-restricted-syntax` as the subscription `SUBSCRIPTION_CONSTRUCTION_SELECTOR`; no rule exists))
+- ❌ Leaking raw HTTP status upward (normalize into the errors classification) (Enforcement: `src/adapters/server/http/request.test.ts` and `src/adapters/client/http/request.test.ts` reject the wrapper's mapping of status to classification, and ESLint `no-restricted-syntax` (`src/errors/**`) rejects bringing transport vocabulary into the errors kernel. Paths that do not go through the wrapper are Prose — **mechanizable** (no rule rejects raw `fetch` outside `adapters`))
+- ❌ Unconditionally retrying non-idempotent methods (POST / PATCH) without an idempotency key (Enforcement: `src/adapters/server/http/retry-policy.test.ts` and `request.test.ts` (no retry for POST / PATCH without a declaration) reject the wrapper's default. Whether an `idempotent: true` declaration comes with an idempotency key is Prose — **not mechanizable**. The meaning of headers is not visible to the wrapper)
+- ❌ Retrying without a retry budget / circuit breaker (preventing retry storms) (Enforcement: `src/adapters/server/http/request.test.ts` (fails without connecting while tripped / no retry once the budget is exhausted) and `retry-budget.test.ts` / `circuit-breaker.test.ts` reject the wrapper's retries. Retries written outside the wrapper are Prose — **not mechanizable**. Whether something is a retry is decided by the meaning of the control flow, not by shape)
+- ❌ Writing business logic in the `adapters` fetch wrapper (external connection and conversion only; [0021](0021-frontend-responsibility.md)) (Enforcement: Prose — **not mechanizable**. Whether something is business logic or conversion for an external connection is a judgment about the layer's responsibility, not decided by the shape of the code)
+- ❌ Building a client outside a connection point (one per combination of downstream and classification) (Enforcement: ESLint `project-rules/no-client-outside-connection-port`. Where building is allowed is `CONNECTION_PORTS` in `architecture.ts`; places that cannot be brought in line name themselves with a reason in `eslint-disable-next-line`)
+- ❌ Passing responses into inner layers without validation (zod validation at the adapters boundary; [0070](0070-backend-role-separation.md) / [0072](0072-api-type-generation.md)) (Enforcement: types (the server / client wrappers take `schema` as a required argument) and both wrappers' `request.test.ts` (rejecting responses that differ from the contract as internal). Raw `fetch` that does not go through the wrapper is Prose — **mechanizable** (no rule rejects `fetch` outside `adapters`))
+- ❌ Scattering cache / revalidation directives across components (gather them in the owning layer of data fetching = adapters / the calling RSC)
+- ❌ Putting `cache` / `next.tags` on a `fetch` inside `use cache` (the lifetime becomes double, and the outer refetch grabs a stale response)
+- ❌ Laying down a global cache regardless of use by default (uncached by default, opt-in) / leaving stale display by not revalidating affected tags / paths after a mutation
 
-## 補足
+## Notes
 
-- 再デプロイなしで変えたい値の BFF runtime config 逃し先([0030](0030-environment-variable-management.md) が引き渡した責務)は、本層(BFF / API 統合)で扱う。キャッシュ必須・ユーザー体感レイテンシに載せない。具体設計(エンドポイント / キャッシュ方式)は本 ADR の方針の下で用途依存が確定する(設計上の分岐が生じたら本 ADR を追補する)
+- The BFF runtime config destination for values to change without redeploying (the responsibility [0030](0030-environment-variable-management.md) handed over) is handled in this layer (BFF / API integration). Caching is mandatory, and it is kept off user-perceived latency. The concrete design (endpoint / caching scheme) is settled per use case under this ADR's policy (if a design branch arises, this ADR is amended)
 
-## 関連 ADR
+## Related ADRs
 
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / 契約 SSOT / 境界値所有(本 ADR の親決定)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `adapters` / `errors` / `logging` カーネルの責務・依存
-- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — `adapters` の server/client 2 面分割・client 側外部接続境界(本 ADR の adapters を細分)
-- [0072-api-type-generation.md](0072-api-type-generation.md) — 型 + zod 生成(response 検証スキーマの供給元)
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions(変更系の呼び口)/ レンダリングモード(データ取得のキャッシュ設計は本 ADR「データ取得のキャッシュ・再検証」節が持つ)
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — BFF runtime config の逃し先
-- [0080-error-handling.md](0080-error-handling.md) — HTTP status → エラー分類・ユーザ向けメッセージの正規化テーブル(本 ADR の error 正規化の詳細)
-- [0081-observability-logging.md](0081-observability-logging.md) — fetch wrapper のログ / トレース伝播
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) — thin proxy / contract SSOT / ownership of boundary values (this ADR's parent decision)
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — responsibilities and dependencies of the `adapters` / `errors` / `logging` kernels
+- [0024-adapters-server-client-split.md](0024-adapters-server-client-split.md) — the two-sided server/client split of `adapters` and the client-side external connection boundary (subdivides this ADR's adapters)
+- [0072-api-type-generation.md](0072-api-type-generation.md) — type + zod generation (the supplier of response validation schemas)
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) — Server Actions (the call site for mutations) / rendering modes (the caching design of data fetching is held by this ADR's "Caching and Revalidation of Data Fetching" section)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — where BFF runtime config escapes to
+- [0080-error-handling.md](0080-error-handling.md) — the normalization table HTTP status → error classification and user-facing messages (the details of this ADR's error normalization)
+- [0081-observability-logging.md](0081-observability-logging.md) — logging / trace propagation for the fetch wrapper

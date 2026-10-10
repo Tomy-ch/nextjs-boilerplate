@@ -1,131 +1,131 @@
-# Git ブランチ・コミット運用方針
+# Git Branch and Commit Policy
 
-本プロジェクトの Git ブランチ戦略、コミット規約、Pull Request 運用、リリース運用を定義する。
+Defines this project's Git branch strategy, commit conventions, pull request operations and release operations.
 
-リポジトリ設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) によりブランチ保護を機械的に強制しているが、本 ADR はその根拠と、人間が日常的に従うべき運用ルール全体を「意思決定」として明文化したものである。
+Branch protection is enforced mechanically by repository settings (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`); this ADR states their rationale, together with the full set of operating rules people follow day to day, as a "decision".
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- **環境とブランチを 1:1 で対応** させ、「どのブランチが何に出ているか」を一意にする (production / staging / develop)
-- **保護ブランチをリポジトリ設定で機械的に保護** することで、直 push / force push / レビュー忘れの事故を構造的に排除する
-- **コミット粒度と PR テンプレートを揃える** ことで、後追いレビューおよびリリースノート生成 (`.github/release/`) のコストを下げる
-- 「最初から踏むべきレール」を辿れるよう、暗黙運用を成文化する
+- **Map environments and branches 1:1** so that "which branch is deployed to what" is unambiguous (production / staging / develop)
+- **Protect the protected branches mechanically through repository settings**, structurally eliminating accidents such as direct pushes, force pushes and forgotten reviews
+- **Align commit granularity and the PR template** to lower the cost of after-the-fact review and of release-note generation (`.github/release/`)
+- Codify implicit operations so that "the rails to follow from the start" can be traced
 
-## ブランチ構造
+## Branch Structure
 
-### 環境マッピング
+### Environment Mapping
 
-| ブランチ | デプロイ環境 | 役割 |
+| Branch | Deployment environment | Role |
 | --- | --- | --- |
-| `production` | 本番環境 | 本番にリリース済みのコード |
-| `staging` | 検証環境 | 本番投入前の最終検証 |
-| `develop` | 開発環境 | 次回リリースに含める変更の統合先 (PR の base 既定) |
-| `release/vX.Y.Z` | (デプロイなし) | リリース単位の作業集約ブランチ |
-| `feature/*` | (デプロイなし) | 機能追加の作業ブランチ |
-| `bugfix/*` | (デプロイなし) | 通常のバグ修正の作業ブランチ |
-| `hotfix/*` | (緊急時のみ) | 本番障害の緊急修正 |
+| `production` | Production | Code released to production |
+| `staging` | Staging | Final verification before going to production |
+| `develop` | Development | Integration target for changes in the next release (default PR base) |
+| `release/vX.Y.Z` | (no deployment) | Branch gathering the work of one release |
+| `feature/*` | (no deployment) | Working branch for adding features |
+| `bugfix/*` | (no deployment) | Working branch for ordinary bug fixes |
+| `hotfix/*` | (emergencies only) | Emergency fixes for production incidents |
 
-### 派生と昇格のフロー
+### Branching and Promotion Flow
 
 ```text
 production  ←(merge)  staging  ←(merge)  develop  ←(merge)  release/vX.Y.Z  ←(merge)  feature/*
                                                                                       bugfix/*
      ↑
-     └────────── hotfix/* (本番から派生・本番へ戻す。develop へも反映)
+     └────────── hotfix/* (branched from production, merged back into production; also brought into develop)
 ```
 
-| ブランチ | 派生元 | merge 先 |
+| Branch | Branched from | Merged into |
 | --- | --- | --- |
 | `release/vX.Y.Z` | `production` | `develop` |
-| `feature/*` | **最新の `release/vX.Y.Z`** | 派生元の `release/*` |
-| `bugfix/*` | **最新の `release/vX.Y.Z`** | 派生元の `release/*` |
-| `hotfix/*` | `production` | `production` (＋ `develop` にも反映) |
+| `feature/*` | **the latest `release/vX.Y.Z`** | the `release/*` it branched from |
+| `bugfix/*` | **the latest `release/vX.Y.Z`** | the `release/*` it branched from |
+| `hotfix/*` | `production` | `production` (+ also applied to `develop`) |
 
-### 重要な派生ルール
+### Key Branching Rules
 
-- `release/*` は **`production` から派生** させる。出荷済みの断面から始めないと、まだ出していない変更をリリース版へ引き連れる。`develop` は統合先であり、作業起点として使わない
-- `feature/*` / `bugfix/*` は **`develop` からではなく、現行の `release/vX.Y.Z` から派生** させる
-- 1 リリースにつき 1 本の `release/*` ブランチを使う。リリース番号が確定した時点でブランチ名にバージョンを含める (`release/v0.1.0`)
-- `hotfix/*` は本番障害の緊急修正専用。`production` へ戻した後、`develop` にも反映して履歴を一致させる
+- `release/*` is **branched from `production`**. Unless it starts from the shipped snapshot, it drags changes not yet shipped into the release version. `develop` is an integration target and is not used as a starting point for work
+- `feature/*` / `bugfix/*` are **branched from the current `release/vX.Y.Z`, not from `develop`**
+- One `release/*` branch is used per release. Once the release number is settled, the version goes into the branch name (`release/v0.1.0`)
+- `hotfix/*` is only for emergency fixes to production incidents. After it is merged back into `production`, it is also applied to `develop` to keep histories consistent
 
-## 保護ブランチ
+## Protected Branches
 
-`.github/settings/branch-protection.json` で対象 (`production` / `staging` / `develop` / `release/**` / `hotfix/**`) に対し、以下を機械的に強制している。
+`.github/settings/branch-protection.json` mechanically enforces the following on its targets (`production` / `staging` / `develop` / `release/**` / `hotfix/**`).
 
-| ルール | 内容 |
+| Rule | Content |
 | --- | --- |
-| Pull Request 必須 | 直接 push 禁止。すべての変更は PR 経由 |
-| 必要承認数 | 最低 1 件の approve |
-| 古い approve の無効化 | 新しい push が入ると過去の approve は自動的に dismiss される |
-| 最終 push の承認必須 | 最後の push に approve が乗っていないと merge できない |
-| review thread の resolve 必須 | 未解決の review コメントがあると merge できない |
-| force push / 非 fast-forward 禁止 | 履歴書き換えを全面禁止 |
-| ブランチ削除禁止 | 保護対象ブランチは削除不可 |
-| code quality | `errors` 重大度のチェック失敗で merge ブロック |
-| 許可される merge 戦略 | `merge` (merge commit) / `squash` |
+| Pull request required | No direct pushes. Every change goes through a PR |
+| Required approvals | At least 1 approve |
+| Dismiss stale approvals | A new push automatically dismisses earlier approvals |
+| Approval of the last push required | Cannot merge unless the last push carries an approve |
+| Review threads must be resolved | Cannot merge with unresolved review comments |
+| No force push / non-fast-forward | Rewriting history is forbidden entirely |
+| No branch deletion | Protected branches cannot be deleted |
+| code quality | A failed check of `errors` severity blocks the merge |
+| Allowed merge strategies | `merge` (merge commit) / `squash` |
 
-これらは「リポジトリが拒否するから守る」のではなく **「運用としてもこの方針が正しいから設定で固めている」** という建付け。設定を緩める変更は本 ADR の改訂と同期させる。
+These are framed not as "followed because the repository refuses otherwise" but as **"locked in by settings because this policy is also right as an operating practice"**. A change that loosens the settings is synchronized with a revision of this ADR.
 
-## ブランチ命名規則
+## Branch Naming Rules
 
 ```text
-feature/<issue-no>-<kebab-description>   例: feature/1234-add-login-form
-bugfix/<issue-no>-<kebab-description>    例: bugfix/5678-fix-route-handler
-hotfix/<issue-no>-<kebab-description>    例: hotfix/9012-cache-invalidation
-release/v<major>.<minor>.<patch>          例: release/v0.1.0
+feature/<issue-no>-<kebab-description>   e.g. feature/1234-add-login-form
+bugfix/<issue-no>-<kebab-description>    e.g. bugfix/5678-fix-route-handler
+hotfix/<issue-no>-<kebab-description>    e.g. hotfix/9012-cache-invalidation
+release/v<major>.<minor>.<patch>          e.g. release/v0.1.0
 ```
 
-- issue 番号が無い場合は省略可。代わりにハイフン区切りの説明的な名称にする (例: `feature/restructure-config`)
-- 説明部分は **英小文字 + ハイフン区切り**。コロン・大文字・空白・日本語は含めない
-- `release/*` は SemVer (パッチまで) を必ず含める
+- If there is no issue number it may be omitted; use a descriptive hyphen-separated name instead (e.g. `feature/restructure-config`)
+- The description part is **lowercase English with hyphens**. No colons, uppercase, spaces or Japanese
+- `release/*` always includes the SemVer (down to the patch)
 
-## コミット規約
+## Commit Conventions
 
-### プレフィックス
+### Prefixes
 
-すべてのコミット件名は以下のいずれかのプレフィックスで始める。形式は **`<Prefix>: <日本語の件名>`** で統一する。
+Every commit subject starts with one of the following prefixes. The format is uniformly **`<Prefix>: <Japanese subject>`**.
 
-| Prefix | 用途 |
+| Prefix | Use |
 | --- | --- |
-| `Feat` | 新機能の追加 |
-| `Fix` | バグ修正 |
-| `Refactor` | 振る舞いを変えない内部改善 |
-| `Perf` | パフォーマンス改善 |
-| `Docs` | ドキュメントのみの変更 |
-| `Test` | テスト追加・修正のみ |
-| `Build` | ビルド構成・依存関係の変更 (`package.json` / `mise.toml` 等) |
-| `CI` | CI / GitHub Actions の変更 |
-| `Chore` | その他雑務 (ファイル移動・コメント整理など) |
-| `Style` | フォーマッタ自動修正など、ロジックに影響しない整形 |
-| `Revert` | コミットの取り消し |
+| `Feat` | Adding a new feature |
+| `Fix` | Bug fix |
+| `Refactor` | Internal improvement that does not change behavior |
+| `Perf` | Performance improvement |
+| `Docs` | Documentation-only change |
+| `Test` | Adding or fixing tests only |
+| `Build` | Change to the build configuration or dependencies (`package.json` / `mise.toml`, etc.) |
+| `CI` | Change to CI / GitHub Actions |
+| `Chore` | Other chores (moving files, tidying comments, etc.) |
+| `Style` | Formatting that does not affect logic, such as formatter auto-fixes |
+| `Revert` | Reverting a commit |
 
-### メッセージ規則
+### Message Rules
 
-- 件名は **日本語** で書く。本文も日本語を基本とする (技術用語の英表記は許容)
-- 件名は 1 行で完結させ、句点 (`。`) は打たない
-- 件名だけで why が伝わらないコミットは本文に背景を残す
-- **本文が残すのは、その変更の背景であって作業の足取りではない。** 「前は壊れていた」「〜を直した」は diff が既に持っている。まして同じ PR の中で自分が作った状態を指すなら、ベースから見ればその事実は起きていない。本文は変更後の現在形で書く —— 何がどういう状態になり、なぜその形なのか
-- 件名は概ね 72 文字以内を目安にする
+- The subject is written **in Japanese**. The body is also Japanese by default (English spellings of technical terms are allowed)
+- The subject is complete on one line and has no full stop (`。`)
+- A commit whose subject alone does not convey the why leaves the background in the body
+- **What the body records is the background of the change, not the footsteps of the work.** "It used to be broken" or "fixed X" is already in the diff. Even more so, if it refers to a state you yourself created within the same PR, from the base's point of view that fact never happened. The body is written in the present tense of the state after the change — what ended up in what state, and why it has that shape
+- As a rough guide, the subject stays within about 72 characters
 
-#### 機械強制の範囲
+#### Scope of Mechanical Enforcement
 
-commit-msg hook ([0151](0151-git-hooks.md)) が機械強制するのは次の 3 点に限る。
+The commit-msg hook ([0151](0151-git-hooks.md)) mechanically enforces only the following three points.
 
-- プレフィックスが上表の 11 種のいずれかであること
-- 件名が空でないこと
-- 件名が句点 (`。`) で終わらないこと
+- The prefix is one of the 11 in the table above
+- The subject is not empty
+- The subject does not end with a full stop (`。`)
 
-**残りは散文の指針にとどめ、機械強制しない**。日本語であること・72 文字の目安・why を本文に残すこと・背景と作業の足取りの区別は、いずれも判定が主観に依存するか、機械的に判定すると誤検知が出る。誤検知する hook は `--no-verify` の常用を招き、機械強制していた 3 点まで一緒に無効化される。**強制範囲を広げることは、強制の実効性を下げうる**。
+**The rest stays prose guidance and is not mechanically enforced**. Being in Japanese, the 72-character guide, recording the why in the body, and the distinction between background and work footsteps all either depend on subjective judgment or produce false positives when judged mechanically. A hook that gives false positives invites habitual use of `--no-verify`, which disables the three mechanically enforced points along with it. **Widening the scope of enforcement can lower the effectiveness of enforcement**.
 
-**撤回条件**: commitlint が、**件名の形を正規表現で定義させずに**「空白のみ」を判定できる標準ルールを提供したとき。いま塞ぐ手段が `parserOpts` の `headerPattern` 自前定義しかなく、それが「日本語であること・長さ・体裁は機械強制しない」という上の指針と衝突することが、やらない理由そのものである。**「規約外の件名が実際に混入した」ことは条件にならない**。
+**Reversal condition**: when commitlint provides a standard rule that can detect "whitespace only" **without having the subject's shape defined by a regular expression**. The only way to close it today is defining `headerPattern` in `parserOpts` ourselves, and that conflicting with the guidance above — "being Japanese, length and formatting are not mechanically enforced" — is the very reason not to do it. **"An off-convention subject actually slipped in" is not the condition**.
 
-同じ理由で、件名の内容そのもの (空白のみ・意味を持たない文字列など) は規約化しない。`Feat:` の後ろが空白のみの件名は現行の検査を通過するが、これを塞ぐには件名の形を正規表現で定義することになり、上の指針と衝突する。この範囲を変えるときは本 ADR を先に改訂し、`commitlint.config.ts` はそれに従わせる (逆順にしない)。
+For the same reason, the content of the subject itself (whitespace only, meaningless strings, etc.) is not made a convention. A subject that is only whitespace after `Feat:` passes the current check, but closing that would mean defining the subject's shape with a regular expression, which conflicts with the guidance above. When changing this scope, revise this ADR first and make `commitlint.config.ts` follow it (not the reverse).
 
-例:
+Examples:
 
 ```text
 Docs: ADR 0011 を Type A / Type B 区別で補強
@@ -133,107 +133,107 @@ Build: Dockerfile を削除し pnpm 採用方針と整合させる
 Fix: route handler の query 取得を Next.js 16 API に合わせる
 ```
 
-### スコープ分割の原則
+### Principles for Splitting Scope
 
-- **1 つの意味変更 = 1 コミット、プレフィックスは 1 つ。** 1 PR に複数の論理変更が混ざる場合はコミットを分割する (例: Refactor + Feat、Docs + Fix)。プレフィックスを 2 つ書きたくなったら、分割の単位が違う
-- テストは、それが検証する実装と同じコミットに置いてよい (実装と切り離した `Test:` に分けることを強制しない)
-- メジャー依存の更新 (`next` / `react` / `@biomejs/biome` 等のメジャーアップ) は他の機能変更と同じコミット・PR に混ぜない (0004 と整合)
-- フォーマッタ起因の大量変更は `Style:` で別コミットに切り出し、レビュアーがロジック差分に集中できるようにする
-- 生成物 (`pnpm-lock.yaml` 等) の変更は原因コミットと同じコミットに含める (lockfile だけ別コミットにしない)
+- **One semantic change = one commit, with one prefix.** When one PR mixes several logical changes, split the commits (e.g. Refactor + Feat, Docs + Fix). If you want to write two prefixes, the unit of splitting is wrong
+- Tests may go in the same commit as the implementation they verify (splitting them into a separate `Test:` commit apart from the implementation is not enforced)
+- Major dependency updates (major bumps of `next` / `react` / `@biomejs/biome`, etc.) are not mixed into the same commit or PR as other feature changes (consistent with 0004)
+- Mass changes caused by the formatter are cut into a separate `Style:` commit so reviewers can focus on the logic diff
+- Changes to generated artifacts (`pnpm-lock.yaml`, etc.) are included in the same commit as the change that caused them (the lockfile is not split into its own commit)
 
-## Pull Request 運用
+## Pull Request Operations
 
-### テンプレート
+### Template
 
-`.github/pull_request_template.md` の以下セクションは固定で残す。空欄のままでは merge しない。
+The following sections of `.github/pull_request_template.md` are kept fixed. A PR is not merged with them left empty.
 
-| セクション | 記載内容 |
+| Section | Content |
 | --- | --- |
-| `概要` | この PR で何を追加・変更・修正したか (1〜3 行) |
-| `変更内容` | 主要な diff の論理単位を箇条書き |
-| `動作確認方法` | 再現手順 (例: `pnpm dev` で起動して X を確認) |
+| `概要` | What this PR added, changed or fixed (1–3 lines) |
+| `変更内容` | The main logical units of the diff as bullets |
+| `動作確認方法` | Reproduction steps (e.g. start with `pnpm dev` and confirm X) |
 
-PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記載する。
+The PR title is also written in Japanese, and related issues / ADRs are listed at the end of the body.
 
-### Merge 戦略
+### Merge Strategy
 
-- **既定: merge commit** (`Create a merge commit`)
-  - 履歴に PR 単位の境界が残るため、後追いの reviewer / リリースノート生成側で「どこからどこまでが 1 つの変更か」を辿りやすい
-- **`squash merge` は例外運用** — 履歴を 1 行に潰す必要が明確な場合 (機械生成物の大量更新 PR など) のみ、PR 本文で明示してから使う
-- **`rebase merge` は使用しない** (保護設定でも未許可)
-- 既存 PR ブランチに新たな push を入れた場合、保護設定により approve は自動的に dismiss されるため、改めてレビューを依頼する
+- **Default: merge commit** (`Create a merge commit`)
+  - The PR-level boundary remains in history, so after-the-fact reviewers and release-note generation can easily trace "where one change starts and ends"
+- **`squash merge` is an exception** — used only when there is a clear need to collapse history into one line (e.g. a PR mass-updating machine-generated artifacts), after stating so in the PR body
+- **`rebase merge` is not used** (not allowed by the protection settings either)
+- When a new push lands on an existing PR branch, the protection settings automatically dismiss approvals, so request review again
 
-### 既存 PR ブランチの更新フロー
+### Flow for Updating an Existing PR Branch
 
-承認済み PR ブランチに対して追加修正を入れる場合は次の順序を守る。
+When adding fixes to an approved PR branch, keep to the following order.
 
-1. ローカルで修正・コミットする
-2. push する前に PR 上にコメントで「何を直したか」を簡潔に追記する
-3. push する (古い approve は dismiss される)
-4. レビュアーに再 review を依頼する
+1. Fix and commit locally
+2. Before pushing, briefly add a comment on the PR saying "what was fixed"
+3. Push (stale approvals are dismissed)
+4. Ask the reviewers to review again
 
-履歴書き換え (`git commit --amend` 後の force push、`git rebase`) は、保護ブランチでは `branch-protection.json` が、`feature/**` / `bugfix/**` では `work-branch-history.json` が非 fast-forward の push として拒否するため、追加修正は **常に新規コミット** で積む。作業ブランチの ruleset は非 fast-forward の禁止だけを持ち、PR の要求・削除の禁止は持たない —— マージ後の自動削除と、PR を開く前の直接 push を止めないため。PR を開く前の force push も同じく拒否される —— ruleset は PR の有無でブランチを分けられず、開く前だけ許すと、開いた後に止める手段が残らない
+Rewriting history (force push after `git commit --amend`, `git rebase`) is rejected as a non-fast-forward push — by `branch-protection.json` on protected branches and by `work-branch-history.json` on `feature/**` / `bugfix/**` — so additional fixes are **always stacked as new commits**. The ruleset for working branches holds only the ban on non-fast-forward and not the PR requirement or the deletion ban — so as not to stop automatic deletion after merge or direct pushes before a PR is opened. A force push before a PR is opened is rejected as well — a ruleset cannot tell branches apart by whether a PR exists, and if it were allowed only before opening, nothing would remain to stop it after opening
 
-## リリース運用
+## Release Operations
 
-1. 次バージョン (`v<X.Y.Z>`) を決め、`production` から `release/v<X.Y.Z>` を作る (`make branch-patch` / `branch-minor` / `branch-major`)
-2. このブランチに `feature/*` / `bugfix/*` を PR 経由で merge していく
-3. リリース対象が揃ったら `release/v<X.Y.Z>` → `develop` の PR を作る (タイトル例: `Release v<X.Y.Z>`)
-4. `.github/release/` に該当バージョンのリリースノートを Markdown で追加する (本リポの慣例。フォーマットは既存ファイルを参照)
-5. `develop` → `staging` → `production` の昇格はそれぞれ別 PR で行い、保護ルールに従う
-6. `production` HEAD で `make tag-patch` / `tag-minor` / `tag-major` を実行する
-   - 直近のリリースタグから SemVer の次バージョンを計算し、`production` HEAD にタグを打つ
-   - `.github/release/<v>.md` を `--notes-file` として `gh release create` を行い、GitHub Release を生成する
-   - 対応するリリースノート Markdown が存在しない場合、コマンドは失敗する (タグ・Release の整合性担保のため)
+1. Decide the next version (`v<X.Y.Z>`) and create `release/v<X.Y.Z>` from `production` (`make branch-patch` / `branch-minor` / `branch-major`)
+2. Merge `feature/*` / `bugfix/*` into this branch through PRs
+3. When the release content is complete, open a PR `release/v<X.Y.Z>` → `develop` (example title: `Release v<X.Y.Z>`)
+4. Add the release notes for that version as Markdown under `.github/release/` (this repository's convention; see the existing files for the format)
+5. Promotions `develop` → `staging` → `production` are each a separate PR and follow the protection rules
+6. Run `make tag-patch` / `tag-minor` / `tag-major` at the `production` HEAD
+   - It computes the next SemVer version from the latest release tag and tags the `production` HEAD
+   - It runs `gh release create` with `.github/release/<v>.md` as `--notes-file`, producing the GitHub Release
+   - If the corresponding release-note Markdown does not exist, the command fails (to keep tags and Releases consistent)
 
-**`package.json` の `version` はリリースブランチ名から導く。**`package.json` は版を決める側ではなく、
-ブランチ名の名乗りに従う側に置く。人が両方を書くと、出荷した版と名乗る版が黙ってずれる。焼き込むのは
-上の手順 1 の `make branch-*` で、切ったブランチの上に version を合わせるコミットが 1 本乗る (既に
-名乗りどおりなら何も書かず、コミットも作らない)。PR の base が名乗る版と一致するかは CI
-(`package-version`) が同じ規則で導き直して見る。手で直すときは `make version-stamp`。
+**The `version` in `package.json` is derived from the release branch name.** `package.json` is placed on the side that
+follows what the branch name claims, not on the side that decides the version. When people write both, the shipped version and the claimed version drift
+silently. The stamping is done by `make branch-*` in step 1 above, which puts one commit aligning the version on top of the branch it cut (if it
+already matches the claim, it writes nothing and creates no commit). Whether the version claimed by a PR's base matches is re-derived by CI
+(`package-version`) with the same rule. To fix it by hand, use `make version-stamp`.
 
-**検査が届くのは「ブランチ名と `package.json` の一致」までで、ブランチ名そのものの正しさではない。**
-ブランチ名が最新タグから 1 段進んだ版であることを保証するのは `make branch-*` が切る瞬間だけで、手で
-切った `release/v9.9.9` は誰も咎めない。同じ理由で、`hotfix/<issue>-<desc>` の形で切った hotfix には
-版が含まれないため焼き込みは何もせず、CI も据え置きとして緑を返す。版を載せたい hotfix は
-`make hotfix-patch` (`hotfix/v<X.Y.Z>`) で切る。
+**The check reaches only as far as "the branch name and `package.json` agree", not the correctness of the branch name itself.**
+That the branch name is one step ahead of the latest tag is guaranteed only at the moment `make branch-*` cuts it; a hand-cut
+`release/v9.9.9` is challenged by no one. For the same reason, a hotfix cut in the form `hotfix/<issue>-<desc>` contains
+no version, so stamping does nothing and CI returns green as unchanged. A hotfix that should carry a version is
+cut with `make hotfix-patch` (`hotfix/v<X.Y.Z>`).
 
-### Hotfix 運用
+### Hotfix Operations
 
-1. `production` から `hotfix/<issue>-<desc>` を切る (`make hotfix-patch` を使うと `hotfix/v<X.Y.Z>` になり、`version` の焼き込みもリリースブランチと同じに揃う)
-2. 修正・テストの上、`hotfix/*` → `production` の PR を作る
-3. merge 後、同じ修正を `develop` にも反映する PR を作る (cherry-pick または同等の変更)
-4. 必要に応じて `staging` にも反映し、3 環境間の差分を解消する
+1. Cut `hotfix/<issue>-<desc>` from `production` (using `make hotfix-patch` gives `hotfix/v<X.Y.Z>`, and the `version` stamping matches that of a release branch)
+2. After fixing and testing, open a PR `hotfix/*` → `production`
+3. After merging, open a PR applying the same fix to `develop` as well (cherry-pick or an equivalent change)
+4. Apply it to `staging` too as needed, resolving the differences among the three environments
 
-## 他リポジトリへのリンク
+## Links to Other Repositories
 
-**[0159-1](0159-1-cross-repository-references.md) が持つ。** 既定は `redirect.github.com` を通すこと、素のリンクは留保であること、使う判断が例外なく人間のものであること —— いずれも本 ADR の射程（git の操作手順）ではなく、エージェントが書いた文字列が GitHub へ届く場所すべてに掛かる。
+**Owned by [0159-1](0159-1-cross-repository-references.md).** That the default is to go through `redirect.github.com`, that a plain link is held in reserve, and that the judgment to use one belongs to a human without exception — none of these is within the reach of this ADR (git operating procedures); they apply to every place where a string an agent wrote reaches GitHub.
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 保護ブランチ (`production` / `staging` / `develop` / `release/**` / `hotfix/**`) への直接 push
-- ❌ 保護ブランチへの force push / 非 fast-forward push / ブランチ削除
-- ❌ `feature/*` / `bugfix/*` を `develop` / `staging` / `production` から派生させること (必ず最新の `release/*` から)
-- ❌ プレフィックスなしの commit メッセージ (`update`, `wip` 等)
-- ❌ メジャー依存更新を他のコミット (機能追加 / バグ修正等) と同じコミット・PR に混ぜること（強制: 散文 —— **一部寄せられる**。PR の差分が `package.json` の major 版の繰り上げとそれ以外の変更を併せ持つことは差分で落とせるが規則は無い。併せ持った変更が更新への追従か別の機能かは変更の意味で決まる）
-- ❌ 既存 PR ブランチへの履歴書き換え (`commit --amend` + force push、`rebase` 等)。追加修正は常に新規コミットで積む（強制: `feature/**` / `bugfix/**` は `work-branch-history.json` の `non_fast_forward`、保護ブランチは `branch-protection.json`。手元の `commit --amend` / `rebase` そのものは push されるまで現れない）
-- ❌ PR テンプレートのセクション (`概要` / `変更内容` / `動作確認方法`) を削除・空欄のまま merge すること（強制: 散文 —— **一部寄せられる**。PR 本文に 3 つの見出しが在り中身が空でないことは `pull_request` の本文を読めば落とせるが規則は無い。中身が変更を説明しているかは読んで決まる）
-- ❌ コミット・PR メッセージで英語を既定とすること (日本語が既定。技術用語の英表記は許容)
-- ❌ ブランチ保護設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) を本 ADR の改訂なしに緩めること（強制: 散文 —— **一部寄せられる**。両ファイルの規則の削除や数値の引き下げを、`0150` の本文を伴わない PR で落とす形は書けるが規則は無い。リポジトリ設定を UI から直接緩めた場合はファイルに現れない）
+- ❌ Pushing directly to a protected branch (`production` / `staging` / `develop` / `release/**` / `hotfix/**`)
+- ❌ Force pushing / non-fast-forward pushing to, or deleting, a protected branch
+- ❌ Branching `feature/*` / `bugfix/*` from `develop` / `staging` / `production` (always from the latest `release/*`)
+- ❌ Commit messages without a prefix (`update`, `wip`, etc.)
+- ❌ Mixing a major dependency update into the same commit or PR as other commits (feature additions / bug fixes, etc.) (Enforcement: Prose — **partly mechanizable**. A PR diff that combines a major version bump in `package.json` with other changes can be rejected from the diff, but no rule exists. Whether the combined changes are follow-ups to the update or a separate feature is decided by the meaning of the change)
+- ❌ Rewriting history on an existing PR branch (`commit --amend` + force push, `rebase`, etc.). Additional fixes are always stacked as new commits (Enforcement: `non_fast_forward` in `work-branch-history.json` for `feature/**` / `bugfix/**`, and `branch-protection.json` for protected branches. A local `commit --amend` / `rebase` itself does not show up until pushed)
+- ❌ Deleting the PR template sections (`概要` / `変更内容` / `動作確認方法`) or merging with them left empty (Enforcement: Prose — **partly mechanizable**. That the PR body has the three headings with non-empty content could be checked by reading the `pull_request` body, but no rule exists. Whether the content explains the change is decided by reading it)
+- ❌ Making English the default for commit and PR messages (Japanese is the default; English spellings of technical terms are allowed)
+- ❌ Loosening the branch protection settings (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) without revising this ADR (Enforcement: Prose — **partly mechanizable**. A check rejecting a PR that deletes rules in either file or lowers numbers without touching the body of `0150` could be written, but no rule exists. Loosening the repository settings directly from the UI does not show up in the files)
 
-## 補足
+## Notes
 
-- 「最新の `release/*` から派生する」ルールがあるため、複数の `release/*` が並行する期間は **どの release に乗せるかを issue / PR 段階で決める**。曖昧な場合は最新の `release/*` を採る
-- **GitHub のデフォルトブランチは最新の `release/vX.Y.Z`** とする。リポジトリを開いた人が「現在作業中のリリース」を最初に見る形にするためである。デフォルトブランチはリリースを切るたびに新しい `release/*` へ張り替える
-- **派生元と PR の base は、どちらも最新の `release/vX.Y.Z`。** 引くのは `make base-branch` で、**origin の生の状態**（`ls-remote`）から版を数値で比べて決める。**ローカルの参照とデフォルトブランチを基準にしない** —— `refs/remotes/origin/HEAD` は clone 時に固定されて `git fetch` では動かず、デフォルトブランチの張り替えも人の操作なので、どちらも古いラインを指したまま黙って外れる。**release ラインが 1 本も無い remote では答えを返さず落ちる**（[0157](0157-inspection-declaration-discipline.md)）。
-  > 強制: `make base-branch`。`commit` / `submit-pr` の両スキルがこの口を通す
-- **`develop` を base に取ってよいのは `release/*` → `develop` の統合 PR だけ。** `feature/*` / `bugfix/*` の PR が `develop` を向いていたら、派生元を取り違えている。`develop` は統合先であり、開いている `release/*` より必ず後ろにいるため、そこを起点にすると既に載っている変更を差分として引き連れる
-- 本 ADR ではブランチ命名・保護対象・コミット粒度のみを宣言する。CI ジョブの具体構成 (どの job をどのブランチで走らせるか) や自動デプロイ連携の詳細は [0153](0153-ci-configuration.md) が扱う
-- **worktree はリポジトリの外へ出さず、`.claude/worktrees/` に置き、ツリーを走査する各ツールで個別に除外する。撤回条件は、エージェントの道具が worktree の生成先を設定で受け取るようになったとき** —— 現状は生成先が固定で、リポジトリ外に置く規約を敷いても人手で作った分にしか効かず、両流儀が併存して除外の要否が読めなくなる。**除外箇所が増えて煩わしいことは条件にならない** —— 煩わしさは同期漏れの検査で減らす話であり、実体の置き場所とは別である
+- Because of the "branch from the latest `release/*`" rule, during periods when several `release/*` branches run in parallel, **which release to target is decided at the issue / PR stage**. If unclear, take the latest `release/*`
+- **GitHub's default branch is the latest `release/vX.Y.Z`**. This is so that someone opening the repository sees "the release currently being worked on" first. The default branch is switched to the new `release/*` each time a release is cut
+- **Both the branch source and the PR base are the latest `release/vX.Y.Z`.** It is obtained with `make base-branch`, which decides by comparing versions numerically against **origin's live state** (`ls-remote`). **Local references and the default branch are not used as the basis** — `refs/remotes/origin/HEAD` is fixed at clone time and does not move on `git fetch`, and switching the default branch is a manual operation, so both silently go stale while still pointing at an old line. **On a remote with no release line at all, it fails instead of returning an answer** ([0157](0157-inspection-declaration-discipline.md)).
+  > Enforcement: `make base-branch`. Both the `commit` and `submit-pr` skills go through this entry point
+- **Only the integration PR `release/*` → `develop` may take `develop` as its base.** If a `feature/*` / `bugfix/*` PR points at `develop`, its branch source was mistaken. `develop` is an integration target and is always behind any open `release/*`, so starting from it drags already-landed changes along as diff
+- This ADR declares only branch naming, protection targets and commit granularity. The concrete CI job layout (which job runs on which branch) and the details of automatic-deployment integration are handled by [0153](0153-ci-configuration.md)
+- **Worktrees are not taken outside the repository; they are placed in `.claude/worktrees/`, and each tool that scans the tree excludes them individually. The reversal condition is when agent tools accept the worktree destination as a setting** — today the destination is fixed, so a convention of placing them outside the repository would only apply to those made by hand, the two styles would coexist, and whether exclusion is needed would become unreadable. **The exclusions growing tedious is not the condition** — the tedium is a matter of reducing it with a check for missed synchronization, separate from where the things actually live
 
-## 関連 ADR
+## Related ADRs
 
-- [0001-package-manager.md](0001-package-manager.md) — `pnpm-lock.yaml` を commit する方針 (lockfile の手動編集禁止)
-- [0004-library-management.md](0004-library-management.md) — 依存ライブラリ更新 PR の粒度 (メジャー更新は別 PR)
-- [0151-git-hooks.md](0151-git-hooks.md) — pre-commit / pre-push hook の運用方針
-- [0153-ci-configuration.md](0153-ci-configuration.md) — CI ジョブの構成と required check
+- [0001-package-manager.md](0001-package-manager.md) — the policy of committing `pnpm-lock.yaml` (no manual edits to the lockfile)
+- [0004-library-management.md](0004-library-management.md) — granularity of dependency-update PRs (major updates in a separate PR)
+- [0151-git-hooks.md](0151-git-hooks.md) — operating policy for the pre-commit / pre-push hooks
+- [0153-ci-configuration.md](0153-ci-configuration.md) — CI job layout and required checks

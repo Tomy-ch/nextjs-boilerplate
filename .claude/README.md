@@ -6,7 +6,7 @@ Claude Code 向けの設定資産を置く。
 | --- | --- |
 | `skills/` | 本リポジトリが著作・保守するスキル。`/<slug>` で起動する（[ADR 0154](../docs/adr/0154-claude-skills-operations.md) / [0155](../docs/adr/0155-claude-skills-development.md)）。配置・命名・frontmatter・必須の節は ADR が持ち、下の「`skills/` — ADR が定めない共通形」は既存のスキルが揃えている残りを述べる |
 | `agents/` | スキルが呼び出すサブエージェントの定義。read-only / `sonnet` 既定 / 基準は `skills/<slug>/prompts/` の 1 ファイル、という規約は [0155](../docs/adr/0155-claude-skills-development.md) が持ち、下の「`agents/` — 定義の共通形」はそれ以外を述べる |
-| `settings.json` | `env`（道具の既定を環境変数で固定する。[0156](../docs/adr/0156-browser-observation-tooling.md)「送信を既定で止める」。機械ごとに違う観測ブラウザの実行ファイルはここに置かず、0156「描画エンジンをゲートに揃える」の `scripts/chromium-path` が答える）/ `permissions`（`allow` / `ask` / `deny`）/ `hooks`（登録だけ。下記）/ プラグイン宣言 |
+| `settings.json` | `env`（道具の既定を環境変数で固定する。[0156](../docs/adr/0156-browser-observation-tooling.md)「Stop outbound sending by default」。機械ごとに違う観測ブラウザの実行ファイルはここに置かず、0156「Align the rendering engine with the gates」の `scripts/chromium-path` が答える）/ `permissions`（`allow` / `ask` / `deny`）/ `hooks`（登録だけ。下記）/ プラグイン宣言 |
 | `worktrees/` | 追跡外。並行作業の git worktree が置かれる。`skill-lint` の索引からも外れる —— 別ブランチの木なので、ここに在るファイルは「このブランチのソース」ではない |
 
 個々のスキル・エージェントの棚卸しはここに手書きしない。`/tool-map` が実体から生成する。

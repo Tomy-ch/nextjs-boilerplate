@@ -1,162 +1,162 @@
-# 環境変数管理
+# Environment Variable Management
 
-[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) で枠を予約した **`config` カーネル** の中身を確定する。環境変数の **検証(いつ・どこで)/ 型付き config の形(目的別・単一オブジェクトを作らない)/ 配布メカニズム / `NEXT_PUBLIC_` 境界(server / client 分割)/ 受け手側の実装パターン / 周辺ルール** を定める。
+This ADR fixes the contents of the **`config` kernel** whose slot [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) reserved. It defines environment-variable **validation (when and where) / the shape of typed config (per purpose, no single object) / the distribution mechanism / the `NEXT_PUBLIC_` boundary (server / client split) / the receiver-side implementation patterns / peripheral rules**.
 
 ## Status
 
 Accepted
 
-## 背景
+## Context
 
-env の基本形は、**起動時に一度だけ読み込んで検証し、以後は setter を持たない不変の typed config として配る**(immutable fail-fast)ことである。変数は **code default と required に二分**し、secret には管理ラベルを付け、**サブシステムごとの typed loader が必要なフィールドだけを注入する**。バックエンド側と揃えたこの形をフロントへそのまま持ち込むと、**エンドユーザーに env 検証・焼き込みのリードタイムを払わせる**懸念、および **既定の env 取得結果が書き換え可能なオブジェクトになる**懸念が生じる。本 ADR はこの 2 点を解いた設計を定める。
+The basic form of env handling is to **read and validate once at startup, then distribute it as an immutable typed config with no setters** (immutable fail-fast). Variables are **split into code default and required**, secrets carry a management label, and **a typed loader per subsystem injects only the fields it needs**. Carrying this form, aligned with the backend, straight into the frontend raises two concerns: **making end users pay the lead time of env validation and baking**, and **the default env lookup result being a mutable object**. This ADR defines a design that resolves both.
 
-## 決定
+## Decision
 
-### 1. 検証(全量・ユーザ非負担)
+### 1. Validation (complete, no cost to users)
 
-- **全 ENV を検証対象にする(`NEXT_PUBLIC_` か否かを問わず)**。スキーマは**目的別**に定義し(§2)、server / client 両変数を含めて**全量を**検証する(目的別でも検証漏れを作らない)
-- 検証の実行点は **2 箇所のみ**:
-  - **ビルド時** — `next.config.ts` からスキーマを import して全量評価する。欠落・不正はビルド失敗とする
-  - **サーバ起動時 1 回** — `instrumentation.ts` の `register()` で config モジュールを import する(= モジュール評価 = 検証)。serverless ではインスタンスのコールドスタート毎に 1 回走る
-- **リクエスト経路・ブラウザでは検証を実行しない**。リクエストハンドラ内での parse、Client Component での実行時 config fetch は**アンチパターンとして禁止**する。これによりエンドユーザーに検証・焼き込みのコストを載せない(「起動時に一度だけ」の原則を、フロントでは起動 / ビルド境界に置く)
+- **Validate every ENV (whether `NEXT_PUBLIC_` or not)**. Schemas are defined **per purpose** (§2), and the **complete set**, server and client variables alike, is validated (per purpose, yet nothing escapes validation)
+- Validation runs at **two points only**:
+  - **At build time** — `next.config.ts` imports the schemas and evaluates the complete set. Missing or invalid values fail the build
+  - **Once at server startup** — `register()` in `instrumentation.ts` imports the config modules (= module evaluation = validation). On serverless it runs once per instance cold start
+- **Validation does not run on the request path or in the browser**. Parsing inside a request handler and fetching config at runtime in a Client Component are **forbidden as anti-patterns**. This keeps the cost of validation and baking off end users (the "only once at startup" principle is placed, on the frontend, at the startup / build boundary)
 
-### 2. 型付き config(不変・目的別 / 単一オブジェクトを作らない)
+### 2. Typed config (immutable, per purpose / no single object)
 
-- **単一の巨大 Config オブジェクトは作らない**。config は**目的(サブシステム)ごと**に独立した typed・不変モジュールとして作る(例: `authConfig` / `apiConfig` / `analyticsConfig`)。各受け手は**自分の目的の config だけ**を import する。必要なフィールドだけを注入する原則の徹底であり、「1 つの Config を getter でスライス」ではなく **目的ごとに独立モジュール**とする(blast radius 最小化・tree-shaking・composition-root の明確化)
-- **purpose は読み手が引く。** purpose は値を読むサブシステムの単位であり、どの purpose に属するかはその値を誰が読むかで決まる。環境変数名の接頭辞は [0028](0028-naming-convention.md) の命名の単位であって purpose とは独立する —— 同じ接頭辞の変数が読み手の違いで別の purpose に分かれることも、外部の標準名をそのまま使う変数が purpose に属することもある
-- 各 config は **`#` private フィールド + getter のみの不変オブジェクト**とする。`#` private は実行時にも不可触なので `Object.freeze` 不要。setter は持たない。テスト以外での再生成を禁止する(plain object を公開面にする場合のみ deep freeze を必須)
-- **`process.env` の直読は `src/config/` 配下(目的別 config モジュール群)のみ**に限る。**biome の `noProcessEnv` で機械強制**する([0002](0002-formatter-linter.md) の能力ベース原則。config ディレクトリのみ override で除外)。env の出所を config カーネルに閉じる
-- **各目的 × server / client の分割**: 各目的 config は、含むフィールドの種別で **server config**(secret を含む)と **client config**(NEXT_PUBLIC のみ)に分ける。1 目的は server / client の**片方または両方**を持つ(例: `analytics` = 公開 ID〈client〉+ 送信キー〈server〉)
-  - server config(`<purpose>.server.ts`)— 先頭に `import "server-only"` を置き、client バンドルへの混入をビルド時に遮断する。secret を含む runtime object
-  - client config(`<purpose>.client.ts`)— **`NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照のみ**で構成する(`process.env["NEXT_PUBLIC_FOO"]` の形。ドット記法も置換されるが、[0002](0002-formatter-linter.md) の `noPropertyAccessFromIndexSignature` が型検査で落とす)。動的アクセス(文字列リテラル以外の添字)・分割代入はビルド時のリテラル置換が効かないため**禁止**する
-- `NEXT_PUBLIC_` はビルド時に参照箇所ごとの**リテラルへインライン置換**される(公開定数。ブラウザ側は構造的に書き換え不能)。client config は「インラインリテラルの typed view」であって **runtime object ではない**。したがって import 境界の制限(§3)がかかるのは **server config(runtime object・secret)のみ**で、client config は client 側の層が自由に import してよい
+- **Do not build a single giant Config object**. Config is built as independent, typed, immutable modules **per purpose (subsystem)** (e.g. `authConfig` / `apiConfig` / `analyticsConfig`). Each receiver imports **only the config of its own purpose**. This carries through the principle of injecting only the fields needed: not "slice one Config with getters" but **an independent module per purpose** (minimal blast radius, tree-shaking, a clear composition root)
+- **The reader determines the purpose.** A purpose is the unit of the subsystem that reads a value, and which purpose a value belongs to is decided by who reads it. The prefix of an environment variable name is the naming unit of [0028](0028-naming-convention.md) and is independent of purpose — variables with the same prefix may split into different purposes by reader, and a variable that uses an external standard name as-is may still belong to a purpose
+- Each config is **an immutable object with `#` private fields and getters only**. `#` private is untouchable at runtime too, so `Object.freeze` is unnecessary. It has no setters. Re-creating it outside tests is forbidden (deep freeze is mandatory only when a plain object is the public surface)
+- **Reading `process.env` directly is limited to `src/config/` (the per-purpose config modules)**. **It is mechanically enforced by biome's `noProcessEnv`** (the capability-based principle of [0002](0002-formatter-linter.md); only the config directory is excluded by an override). The origin of env is closed inside the config kernel
+- **Split each purpose × server / client**: each purpose config is split by the kind of fields it contains into **server config** (contains secrets) and **client config** (NEXT_PUBLIC only). A purpose has **one or both** of server / client (e.g. `analytics` = public ID <client> + sending key <server>)
+  - server config (`<purpose>.server.ts`) — puts `import "server-only"` at the top, blocking it from the client bundle at build time. A runtime object that contains secrets
+  - client config (`<purpose>.client.ts`) — consists **only of references that name a `NEXT_PUBLIC_` variable by string literal** (the form `process.env["NEXT_PUBLIC_FOO"]`; dot notation is also replaced, but [0002](0002-formatter-linter.md)'s `noPropertyAccessFromIndexSignature` rejects it in type checking). Dynamic access (a subscript other than a string literal) and destructuring are **forbidden**, because the build-time literal replacement does not apply to them
+- `NEXT_PUBLIC_` is **inlined as a literal at each reference** at build time (a public constant; structurally unwritable on the browser side). A client config is "a typed view of inline literals" and **not a runtime object**. Therefore the import-boundary restriction (§3) applies **only to server config (runtime object, secrets)**, and client-side layers may import client config freely
 
-### 3. 配布(DI コンテナの代替)
+### 3. Distribution (instead of a DI container)
 
-- 配布メカニズム = **ESM モジュールキャッシュによるシングルトン**(1 プロセス 1 評価。import した全員が同一の不変インスタンスを取得)。DI コンテナの provide / inject に相当するものを、モジュールスコープでの組み立て + import で行う
-- DI の統制部分 = **import 境界ルール**。**server config(secret を持つ runtime object)を import してよいのは、その目的の `adapters/server`(+ 起動 / ビルド境界)のみ**([0021](0021-frontend-responsibility.md) 依存マトリクスと一致)。内側の層は server config でなく**値を引数で受け取る**(内側の層は config を知らない)。※ client config(NEXT_PUBLIC インラインリテラル)は runtime object でなく公開定数のため、client 側の層(`adapters/client` / `capabilities` / Client Component)も import 可
-- 起動 / ビルド境界(`instrumentation.ts` / `next.config.ts` / `app/metadata`〈[0025](0025-app-layer-elements.md)〉/ `proxy.ts`〈辿れる config は `environment.ts` → `application-environment.ts` まで。[0043](0043-middleware-policy.md)〉)は 11 カーネルの外側の専用 element として server config import を許す([0021](0021-frontend-responsibility.md) 起動 / ビルド境界の例外)
-- 各 adapter の factory は自分の目的の config だけを import して singleton を組む(mini composition root)。全目的 config の集約入口(`config.auth` 等の単一 facade)は**作らない**
+- Distribution mechanism = **a singleton via the ESM module cache** (one evaluation per process; everyone who imports gets the same immutable instance). What a DI container's provide / inject does is done with assembly at module scope + import
+- The governing part of DI = **import-boundary rules**. **Only that purpose's `adapters/server` (+ the startup / build boundary) may import a server config (a runtime object holding secrets)** (consistent with the [0021](0021-frontend-responsibility.md) dependency matrix). Inner layers **receive values as arguments** rather than a server config (inner layers do not know config). Note: client config (NEXT_PUBLIC inline literals) is a public constant, not a runtime object, so client-side layers (`adapters/client` / `capabilities` / Client Components) may also import it
+- The startup / build boundary (`instrumentation.ts` / `next.config.ts` / `app/metadata` <[0025](0025-app-layer-elements.md)> / `proxy.ts` <the config it can reach stops at `environment.ts` → `application-environment.ts`; [0043](0043-middleware-policy.md)>) is allowed to import server config as dedicated elements outside the 11 kernels (the startup / build boundary exception of [0021](0021-frontend-responsibility.md))
+- Each adapter's factory imports only its own purpose's config and assembles a singleton (a mini composition root). An aggregated entry point over all purpose configs (a single facade such as `config.auth`) is **not built**
 
-### 4. default-vs-required 統治
+### 4. Default-vs-required governance
 
-- **Code default(immutable)** — スキーマ側にデフォルト値を持つ変数。env ファイルから省略でき、フレームワーク的な普遍値に用いる
-- **Required(variable)** — 各環境で必ず与える変数。欠落は検証失敗(起動 / ビルド abort)とする
-- 選択ルール: プロジェクト固有・環境ごとに変わる値 → required / 普遍的な値 → code default
-- **任意の変数は、未設定と空文字を同じ「指定なし」として扱う。** 配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証のための上書き(時計の固定等)の行を持たない —— `#` で名前だけを置く行も「供給側が与える」と読まれるので、持たない行に含む。欠落を不正として落とすと本番の起動が通らず、空文字だけを別扱いにすると env ファイルの書き方で意味が変わる
-- **同じ事実を 2 つの変数で持たない。** 配信の scheme(https か)は「環境の種類」を表す変数を別に立てて知るのではなく、IdP の callback URL —— IdP がブラウザを戻す先、すなわち自分の origin —— から導く。cookie の `secure` と配信ヘッダ(HSTS / `upgrade-insecure-requests`)が同じ答えを要るため、判定は config の 1 か所に置く
+- **Code default (immutable)** — a variable whose default value lives on the schema side. It may be omitted from env files and is used for framework-like universal values
+- **Required (variable)** — a variable every environment must supply. A missing one fails validation (startup / build abort)
+- Selection rule: a project-specific value that changes per environment → required / a universal value → code default
+- **An optional variable treats unset and the empty string as the same "not specified".** The env file of a serving environment lists only the variables the platform supplies and has no override lines for verification (pinning the clock, etc.) — a line that only puts a name behind `#` is also read as "the supplier provides it", so it counts among the lines it does not have. Failing a missing value as invalid stops production from starting, and treating only the empty string differently makes the meaning depend on how the env file is written
+- **Do not hold the same fact in two variables.** The serving scheme (whether https) is not learned from a separate variable that represents "the kind of environment"; it is derived from the IdP callback URL — where the IdP sends the browser back, that is, our own origin. Cookie `secure` and the serving headers (HSTS / `upgrade-insecure-requests`) need the same answer, so the decision lives in one place in config
 
-### 5. Secret 境界
+### 5. Secret boundary
 
-- 変数に **Secret 管理ラベル**を付す:
-  - **Secret management required** — 本番では secret manager / PaaS の secret store から供給する。平文 `.env` にコミットしない
-  - **Secret management recommended** — 定期ローテーション推奨
-- **secret を `NEXT_PUBLIC_` に置くことを禁止**する(`NEXT_PUBLIC_` はブラウザへ露出する)。secret は必ず server 専用変数とする
+- Variables carry a **Secret management label**:
+  - **Secret management required** — supplied in production from a secret manager / the PaaS secret store. Never committed in a plaintext `.env`
+  - **Secret management recommended** — periodic rotation recommended
+- **Putting a secret in `NEXT_PUBLIC_` is forbidden** (`NEXT_PUBLIC_` is exposed to the browser). A secret is always a server-only variable
 
-### 6. env ファイルと供給(0011 no-Docker との整合)
+### 6. Env files and supply (consistency with 0011 no-Docker)
 
-配信物へ env を焼き込む機構は持たない([0011](0011-no-docker.md) no-Docker / PaaS・静的 CDN 配送)。したがって:
+There is no mechanism that bakes env into the served artifact ([0011](0011-no-docker.md) no-Docker / PaaS and static CDN delivery). Therefore:
 
-- **`process.env` への供給は、`APP_ENV` が選ぶ `env/.env.<環境>` を起動 / ビルド境界で 1 度だけ読み込む形**に揃える(`load-environment.ts`)。それ以外の場所は `.env*` を直読しない。config モジュールがその `process.env` を読む唯一の場所となる(決定 2)
-- **本番の secret / 環境別値は PaaS(Vercel / Amplify 等)の env・secret store から供給**する([0011](0011-no-docker.md) の配送前提)。平文ファイルへコミットしない
-- ドキュメントは **2 本立て**とし、正の範囲を分ける。同じ内容を二重に書かない:
-  - **`env/README.md` = 環境変数の存在の正**。この環境で定義される全変数を **変数表**(`Variable Name | Description | Type | Example | Notes`)で維持する。値がプレースホルダのみの変数も、アプリが config 経由で読まない変数(標準名で外部 SDK が直接読むもの等)も、存在する限りここに載る
-  - **`config` カーネルの README = 設定値の解説の正**([0021](0021-frontend-responsibility.md) 層別 README 運用)。**ビルド時に検証され、構築時に各 purpose モジュールへ流し込まれる設定値**について、purpose 区分・server / client 境界・required と code default の別・受け手側の使い方を説明する
-  - 変数の**存在**は env 側、設定値の**意味と扱い**は config 側が持つ。config に載るのは env 側の部分集合である
-- **env 変数の追加はユーザ確認を要する**
-- **環境の選択子 `APP_ENV` は指定を必須とする**。未指定は「読み込むファイルを選べない」状態として起動 / ビルドを失敗させ、**既定値へ落とさない**。既定を持たせると、`APP_ENV` の設定を忘れた実環境が同梱の `env/.env.local` を読み、注入し忘れた変数だけが手元向けの値で埋まった状態で起動する。同梱の秘密値を許すか、開発専用の口を開くかという判断も同じ選択子を見るため、既定値は「未設定」を安全側へ倒せなくする
-- **`local` を渡すのは開発の入口だけ**とする(`pnpm dev` / `pnpm storybook` / `pnpm build-storybook` の script)。配信物を作る `pnpm build` / `pnpm start` は既定を持たず、供給側(PaaS / CI)が必ず宣言する
-- **開発専用の口(任意の役割の session を発行する等)を開けてよいかは、API の接続モードではなく `APP_ENV` そのもので判定する。** 開けるのは `local` / `ci` だけである。接続モードを条件にすると、「mock を実環境に置かない」という散文の約束だけが実環境の口を閉じることになる
+- **Supply to `process.env` is unified into reading `env/.env.<environment>`, selected by `APP_ENV`, exactly once at the startup / build boundary** (`load-environment.ts`). No other place reads `.env*` directly. The config modules become the only place that reads that `process.env` (Decision 2)
+- **Production secrets and per-environment values are supplied from the env / secret store of the PaaS (Vercel / Amplify, etc.)** (the delivery premise of [0011](0011-no-docker.md)). They are not committed to plaintext files
+- Documentation is **two documents** with separate scopes of authority. The same content is not written twice:
+  - **`env/README.md` = the authority on which environment variables exist**. It maintains every variable defined in this environment in a **variable table** (`Variable Name | Description | Type | Example | Notes`). A variable whose value is only a placeholder, and a variable the app does not read through config (one an external SDK reads directly by its standard name, etc.), are listed here as long as they exist
+  - **The `config` kernel README = the authority on explaining configuration values** ([0021](0021-frontend-responsibility.md), which has each layer keep its own README). For **configuration values that are validated at build time and fed into each purpose module at construction**, it explains the purpose division, the server / client boundary, required vs code default, and how receivers use them
+  - The **existence** of a variable belongs to the env side; the **meaning and handling** of a configuration value belong to the config side. What config lists is a subset of the env side
+- **Adding an env variable requires user confirmation**
+- **The environment selector `APP_ENV` must be specified**. Leaving it unspecified is the state "cannot choose which file to read" and fails startup / build; it **does not fall back to a default**. With a default, a real environment that forgot to set `APP_ENV` reads the bundled `env/.env.local` and starts with only the variables it forgot to inject filled with local values. The decisions whether to allow the bundled secret values and whether to open development-only endpoints look at the same selector, so a default makes it impossible to tip "unset" toward the safe side
+- **Only the development entry points pass `local`** (the `pnpm dev` / `pnpm storybook` / `pnpm build-storybook` scripts). `pnpm build` / `pnpm start`, which produce the served artifact, have no default; the supplier (PaaS / CI) always declares it
+- **Whether a development-only endpoint (issuing a session for an arbitrary role, etc.) may be opened is decided by `APP_ENV` itself, not by the API connection mode.** It may be opened only for `local` / `ci`. If the connection mode were the condition, only the prose promise "do not put mocks in real environments" would be closing the endpoint in real environments
 
-### 7. 受け手側の実装パターン(目的別 config の受け手)
+### 7. Receiver-side implementation patterns (receivers of per-purpose config)
 
-「コンストラクタが SubConfig を受け取る」1 パターンは、Next.js では受け手により分かれる(目的別 config = §2):
+The single pattern "the constructor receives a SubConfig" splits by receiver in Next.js (per-purpose config = §2):
 
-| 受け手 | 受け取り方 | config 型への依存 |
+| Receiver | How it receives | Dependency on config types |
 | --- | --- | --- |
-| 境界アダプタ(`adapters/server` の fetch wrapper / API クライアント等。[0024](0024-adapters-server-client-split.md)) | モジュールスコープで**その目的の server config**を factory に注入し singleton を組む(mini composition root)。factory は自前の引数型のみ知り config 非依存 | あり(server config の**唯一の許可層**) |
-| feature 内の画面 RSC / Route Handler(`app/route-handler`)/ Server Action(`features/*/actions.ts`) | 組み立て済みアダプタ(`adapters/server`)を import して使うだけ。server config 直接参照禁止(`app/route-segment` = `page.tsx` は features を呼ぶ薄い呼び口で adapters も直接触らない) | なし |
-| **metadata routes**(`app/metadata` = `robots.ts` / `sitemap.ts` / `manifest.ts` 等。[0025](0025-app-layer-elements.md)) | 起動 / ビルド境界の element として **その目的の config を直接 import 可**(site URL / env 別 noindex 等) | あり(起動 / ビルド境界) |
-| 内側ロジック(`model` / feature 内の編成部) | 値を引数で受領(出所 = env を知らない)。呼び出し側が server config から値を剥がして渡す | なし |
-| Client Component / hooks / `adapters/client` / `capabilities`([0024](0024-adapters-server-client-split.md) / [0022](0022-capabilities-kernel.md)) | **その目的の client config**(NEXT_PUBLIC インラインリテラル)を import(secret 不可・runtime object でないため境界制限なし) | client 側のみ |
+| Boundary adapters (fetch wrappers / API clients in `adapters/server`, etc.; [0024](0024-adapters-server-client-split.md)) | Injects **that purpose's server config** into a factory at module scope and assembles a singleton (a mini composition root). The factory knows only its own argument types and is config-independent | Yes (the **only permitted layer** for server config) |
+| Screen RSC inside a feature / Route Handler (`app/route-handler`) / Server Action (`features/*/actions.ts`) | Only imports and uses assembled adapters (`adapters/server`). Referencing server config directly is forbidden (`app/route-segment` = `page.tsx` is a thin call site that calls features and does not touch adapters directly either) | No |
+| **metadata routes** (`app/metadata` = `robots.ts` / `sitemap.ts` / `manifest.ts`, etc.; [0025](0025-app-layer-elements.md)) | As elements of the startup / build boundary, **may import that purpose's config directly** (site URL / per-env noindex, etc.) | Yes (startup / build boundary) |
+| Inner logic (`model` / the orchestrating part inside a feature) | Receives values as arguments (does not know the origin = env). The caller strips the values off the server config and passes them | No |
+| Client Components / hooks / `adapters/client` / `capabilities` ([0024](0024-adapters-server-client-split.md) / [0022](0022-capabilities-kernel.md)) | Imports **that purpose's client config** (NEXT_PUBLIC inline literals) (no secrets; not a runtime object, so no boundary restriction) | Client side only |
 
-- 対応関係: provide → inject = モジュールスコープでの組み立て → import。「内側は config 不可視」= 引数渡し + import 境界強制([0021](0021-frontend-responsibility.md) の Enforcement で機械化)
-- **禁止則**: RSC から Client Component へ **server config の値を props で渡さない**(RSC ペイロードとして HTML に直列化されブラウザへ漏れる)。client が要る値は最初から `NEXT_PUBLIC_` で**その目的の client config** に置く
+- Correspondence: provide → inject = assembly at module scope → import. "Inner layers cannot see config" = passing as arguments + enforced import boundaries (mechanized by the Enforcement of [0021](0021-frontend-responsibility.md))
+- **Prohibition**: **do not pass server config values as props** from an RSC to a Client Component (they are serialized into the HTML as the RSC payload and leak to the browser). A value the client needs is placed from the start in `NEXT_PUBLIC_`, in **that purpose's client config**
 
-### 8. 漏洩防御(2 段構え)
+### 8. Leak defense (two layers)
 
-- **`import "server-only"`** を server config の必須ガードとする(確実・安定)
-- **React taint API**(`experimental_taintObjectReference` / `experimental_taintUniqueValue`)を採用する。有効化範囲は全環境とする
+- **`import "server-only"`** is the mandatory guard of server config (reliable, stable)
+- **The React taint API** (`experimental_taintObjectReference` / `experimental_taintUniqueValue`) is adopted. It is enabled in every environment
 
-#### taint を experimental のまま採る根拠(例外)
+#### Why taint is adopted while still experimental (exception)
 
-有効化(`next.config.ts` の `experimental.taint`)は、Next.js が client へ配る React を stable から **experimental チャンネルのビルドへ差し替える**(`needsExperimentalReact()`)。実測では client chunk の React が `19.3.0` から `19.3.0-experimental-<date>` へ変わり、呼び出しを 1 つも書かない状態で**全 route 一律 +6.3 KB gzip** になる。それでも採るのは次の 2 点による。
+Enabling it (`experimental.taint` in `next.config.ts`) makes Next.js **swap the React it ships to the client from stable to an experimental-channel build** (`needsExperimentalReact()`). Measured, the React in client chunks changes from `19.3.0` to `19.3.0-experimental-<date>`, and **every route uniformly gains +6.3 KB gzip** even with no call written. It is adopted anyway for these two reasons.
 
-- **実装が React 本体そのものである**(第三者の実験的ライブラリではない)
-- **本体側に taint を明示的に扱う資料がある**(react.dev の両 API のリファレンス、および Next.js の `data-security` ガイドが利用を案内している)
+- **The implementation is React itself** (not an experimental third-party library)
+- **The upstream side has material that explicitly covers taint** (the react.dev references for both APIs, and the Next.js `data-security` guide recommends its use)
 
-**dev / CI だけで有効化する道は採らない。** 本番から experimental を外せる代わりに「検証する React と配る React が違う」という別の不整合を作るためである。
+**Enabling it only in dev / CI is not adopted.** It would remove experimental from production, but at the price of a different inconsistency: "the React that is verified differs from the React that is shipped".
 
-#### 構造では代替できない理由
+#### Why structure cannot replace it
 
-取得の口を投影必須の形にしても、**恒等射影(`to: (w) => w`)が残る**。これは逸脱ではなく「画面が欲しい形と応答が同じ」ときに書かれる自然な形であり、構造でできるのは「正しく書けば守れる」までで機構ではない。
+Even if the fetch endpoint is made to require a projection, **the identity projection (`to: (w) => w`) remains**. That is not a deviation but the natural form written when "the shape the screen wants equals the response", and what structure can achieve stops at "protected if written correctly" — it is not a mechanism.
 
-#### 位置づけ —— 主機構ではなく補助防御
+#### Position — a supplementary defense, not the primary mechanism
 
-taint は [0112](0112-data-classification-cache-boundary.md) の**段 4(client 送信前)**であり、PII 防御の主機構ではない。主防御は取得範囲の最小化・キャッシュ能力の制限・request scope・Client DTO の最小化であり、taint はそれらを抜けた誤送信を実行時に捕まえる。**参照でしか追えず、コピーと派生値には及ばない**。
+Taint is **stage 4 (before sending to the client)** of [0112](0112-data-classification-cache-boundary.md) and not the primary mechanism of PII defense. The primary defenses are minimizing the fetch scope, restricting cache capability, request scope, and minimizing Client DTOs; taint catches, at runtime, a mis-send that slipped through them. **It can only track by reference and does not reach copies or derived values**.
 
-#### 実装
+#### Implementation
 
-- **口は `adapters/server/taint/taint.ts` の 1 つ**。アプリのコードは `react` の experimental API を直接呼ばない。テストはこのモジュール境界を差し替え、**本物が効くことはこの口自身のテスト**が Next.js 同梱の experimental React と RSC 直列化器で確かめる。防御の中に「口があれば呼ぶ」分岐は置かない(口が消えた日に検査ごと黙って外れるため)
-- **テストの React 解決** —— 全体の alias は動かさない(client 側のテストが stable を要る)。taint の口のテストだけが、Next.js 同梱の experimental build を CJS の名前解決ごと差し替えて読む。位置は `next` の package から辿る(`experimental-react.fixture.ts`)
-- **文字列の秘密の登録場所** —— 読む側に置く。`config` は `imports-allowed: []` を宣言しており react を持ち込めない。署名鍵は `adapters/server/auth/resolver.ts` が登録し、登録の寿命は値を持つ singleton(`AuthConfig`)が握る
-- **汚す対象と粒度** —— **値が生まれる場所で、その object 1 つを汚す**。session の記録は復元した直後に汚す。入れ子は追わない —— 参照でしか追えない以上、粒度を細かくしても抜ける経路(コピー・派生値)は塞がらず、主防御は取得範囲と Client DTO の最小化が持つ
+- **The endpoint is the single `adapters/server/taint/taint.ts`**. Application code does not call `react`'s experimental API directly. Tests swap this module boundary, and **that the real thing works is confirmed by this endpoint's own tests** against the experimental React bundled with Next.js and the RSC serializer. No "call it if the endpoint exists" branch is placed inside the defense (the day the endpoint disappears, the check would silently drop out with it)
+- **React resolution in tests** — the global alias is not moved (client-side tests need stable). Only the taint endpoint's tests load the experimental build bundled with Next.js, swapping it together with CJS name resolution. Its location is traced from the `next` package (`experimental-react.fixture.ts`)
+- **Where string secrets are registered** — on the reading side. `config` declares `imports-allowed: []` and cannot bring in react. The signing key is registered by `adapters/server/auth/resolver.ts`, and the lifetime of the registration is held by the singleton that holds the value (`AuthConfig`)
+- **What is tainted, and at what granularity** — **taint that one object where the value is born**. A session record is tainted right after it is restored. Nesting is not followed — since tracking is by reference only, a finer granularity does not close the escape routes (copies, derived values); the primary defense is held by minimizing the fetch scope and Client DTOs
 
-#### 例外の解消条件
+#### When the exception ends
 
-`experimental_taint*` が stable の React に入り、有効化が channel 切替を伴わなくなったとき、本 ADR から例外の記述を落とす。判定は機械的に行える。
+When `experimental_taint*` lands in stable React and enabling it no longer involves a channel switch, the exception text is dropped from this ADR. The check can be done mechanically.
 
 ```text
 node -e "console.log(Object.keys(require('react')).filter(k=>/taint/i.test(k)))"
-[]                                               → 例外の適用中
-[ 'taintObjectReference', 'taintUniqueValue' ]   → 例外の解消
+[]                                               → exception in effect
+[ 'taintObjectReference', 'taintUniqueValue' ]   → exception resolved
 ```
 
-## 周辺ルール(他 ADR への引き渡し)
+## Peripheral Rules (Handed to Other ADRs)
 
-- **再デプロイなしで変えたい値**は env に置かず **BFF runtime config へ逃がす**(例外扱い・キャッシュ必須・ユーザー体感レイテンシに載せない)。逃し先の具体設計(エンドポイント / キャッシュ方式)は **[0071](0071-bff-api-integration.md)(BFF / API 統合)の責務**とする
-- **`NEXT_PUBLIC_` の表面積は最小化**する(変更 = 再ビルドのリードタイムが必ず発生するため)
-- **SSG / ISR ページ内で読んだ server env はプリレンダー結果に凍結**される([0040](0040-routing-rendering-strategy.md) / [0041](0041-cache-components-decision.md))
-- **`proxy.ts`**(Next.js 16 の旧 Middleware)は既定 Node.js runtime だが、最適化時に CDN(Edge 相当)配置され得るため、**`proxy.ts` から辿れる config は ENV ファイルを読まない**。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、Node API と `dotenv` を使う ENV ファイルの読み込み(`load-environment.ts`)は起動 / ビルド境界だけが呼ぶ([0043](0043-middleware-policy.md))。**この境界の引き方の所有は本 ADR(config カーネル)** にある
-- **テスト**: 凍結インスタンスの変異ではなく **env スタブ + factory 再生成**(`new ServerConfig(stubEnv)`)で行う(本番コードでの使用は禁止)。具体 API は [0090](0090-testing-strategy.md) の **Vitest `vi.stubEnv`**
+- **A value you want to change without redeploying** is not placed in env but **escaped to the BFF runtime config** (treated as an exception, caching mandatory, kept off user-perceived latency). The concrete design of where it escapes to (endpoint / caching scheme) is **the responsibility of [0071](0071-bff-api-integration.md) (BFF / API integration)**
+- **Minimize the surface area of `NEXT_PUBLIC_`** (a change always incurs the lead time of a rebuild)
+- **A server env read inside an SSG / ISR page is frozen into the prerender result** ([0040](0040-routing-rendering-strategy.md) / [0041](0041-cache-components-decision.md))
+- **`proxy.ts`** (the former Middleware in Next.js 16) runs on the Node.js runtime by default, but may be placed on the CDN (Edge-equivalent) when optimized, so **the config reachable from `proxy.ts` does not read ENV files**. The reachable range stops at `environment.ts` → `application-environment.ts`, and reading ENV files with Node APIs and `dotenv` (`load-environment.ts`) is called only by the startup / build boundary ([0043](0043-middleware-policy.md)). **Ownership of where this boundary is drawn lies with this ADR (the config kernel)**
+- **Tests**: done with **an env stub + re-creating via the factory** (`new ServerConfig(stubEnv)`), not by mutating the frozen instance (use in production code is forbidden). The concrete API is [0090](0090-testing-strategy.md)'s **Vitest `vi.stubEnv`**
 
-## 禁止事項
+## Prohibitions
 
-- ❌ リクエストハンドラ内 / Client Component での実行時 env 検証・parse（強制: ESLint `no-restricted-syntax`（`process` の直読）と biome `noProcessEnv` が config カーネルと起動境界の外で env を読んで parse する形を落とす。config の検証関数を要求経路や client から呼ぶことは散文 —— **寄せられる**（`@/config/environment` と `*.schema` の import を起動 / ビルド境界の外で落とす形。規則は無い））
-- ❌ `process.env` を config モジュール以外から直読すること(biome `noProcessEnv` で強制)
-- ❌ 各 config オブジェクトに setter を持たせる / テスト外で再生成すること / 全目的を束ねる単一 facade を作ること（強制: 散文 —— **一部寄せられる**。setter の宣言と Config class の export は `src/config/**` の class の `set` accessor と export を見る形で落とせるが規則は無い。単一 facade かどうかは束ねる範囲の意味で決まる）
-- ❌ `client.ts` での `NEXT_PUBLIC_` 変数の動的アクセス・分割代入(ビルド時置換が効かない)（強制: 散文 —— **寄せられる**（`src/config/**/*.client.ts` で `process.env` の計算プロパティ参照（文字列リテラル以外の添字）と分割代入を ESLint `no-restricted-syntax` で落とす形。規則は無い））
-- ❌ secret を `NEXT_PUBLIC_` に置くこと（強制: 散文 —— **一部寄せられる**。Secret management ラベルを持つ変数が `NEXT_PUBLIC_` を名乗らないことは `env/README.md` の変数表の突合で落とせるが規則は無い。ラベルの無い値が秘密かどうかは値の意味で決まる）
-- ❌ `APP_ENV` の未指定を既定値へ落とすこと(ファイル選択・秘密値の判定・開発専用の口のいずれにおいても)（強制: `src/config/application-environment.test.ts` が判定関数の未指定を口を閉じる側へ、`src/config/load-environment.test.ts` が ENV ファイルの選択での未指定を起動エラーへ固定する。判定関数を通らずに `APP_ENV` の既定を書く箇所（配信用の script や新しい読み手）は散文 —— **寄せられる**（`package.json` の `build` / `start` に `APP_ENV` の既定が無いこと、`APP_ENV` の直読が `application-environment.ts` だけであることを gate で見る形。規則は無い））
-- ❌ 開発専用の口の開閉を、環境ではなく API の接続モードで判定すること（強制: `src/config/application-environment.test.ts` が共有の判定を `APP_ENV` の値で開閉するよう固定する。新しい口がその判定を通らず接続モードで分岐することは散文 —— **寄せられる**（開発専用の口（`*.dev.ts` / `page.dev.tsx`）が `isDevelopmentAccessAllowed` を通り、`APP_API_MODE` を条件にしないことを gate で見る形。規則は無い））
-- ❌ RSC から Client Component へ server config 値を props で渡すこと
-- ❌ **server config**(secret を含む runtime object)を `adapters/server`・起動 / ビルド境界以外の層から import すること([0021](0021-frontend-responsibility.md)。client config〈NEXT_PUBLIC インラインリテラル〉は client 側の層から import 可 — §2 / §3)
+- ❌ Runtime env validation / parsing inside a request handler / in a Client Component (Enforcement: ESLint `no-restricted-syntax` (direct reads of `process`) and biome `noProcessEnv` reject the forms that read and parse env outside the config kernel and the startup boundary. Calling config validation functions from the request path or the client is Prose — **mechanizable** (the form that rejects imports of `@/config/environment` and `*.schema` outside the startup / build boundary; no rule exists))
+- ❌ Reading `process.env` directly from anywhere other than the config modules (enforced by biome `noProcessEnv`)
+- ❌ Giving a config object a setter / re-creating it outside tests / building a single facade that bundles every purpose (Enforcement: Prose — **partly mechanizable**. Setter declarations and exports of a Config class can be rejected by looking at `set` accessors and exports of classes in `src/config/**`, but no rule exists. Whether something is a single facade is decided by the meaning of what it bundles)
+- ❌ Dynamic access to / destructuring of `NEXT_PUBLIC_` variables in `client.ts` (build-time replacement does not apply) (Enforcement: Prose — **mechanizable** (the form that rejects computed-property references to `process.env` (subscripts other than string literals) and destructuring in `src/config/**/*.client.ts` with ESLint `no-restricted-syntax`; no rule exists))
+- ❌ Putting a secret in `NEXT_PUBLIC_` (Enforcement: Prose — **partly mechanizable**. That a variable with a Secret management label does not carry `NEXT_PUBLIC_` can be rejected by cross-checking the variable table in `env/README.md`, but no rule exists. Whether a value without a label is a secret is decided by the meaning of the value)
+- ❌ Letting an unspecified `APP_ENV` fall back to a default (in any of file selection, the decision on secret values, or development-only endpoints) (Enforcement: `src/config/application-environment.test.ts` pins an unspecified value in the decision function to the side that closes the endpoint, and `src/config/load-environment.test.ts` pins an unspecified value in ENV file selection to a startup error. Places that write a default for `APP_ENV` without going through the decision function (serving scripts or new readers) are Prose — **mechanizable** (the form where a gate checks that `package.json`'s `build` / `start` have no default for `APP_ENV`, and that only `application-environment.ts` reads `APP_ENV` directly; no rule exists))
+- ❌ Deciding whether a development-only endpoint is open by the API connection mode rather than the environment (Enforcement: `src/config/application-environment.test.ts` pins the shared decision to open and close by the value of `APP_ENV`. A new endpoint branching on the connection mode without going through that decision is Prose — **mechanizable** (the form where a gate checks that development-only endpoints (`*.dev.ts` / `page.dev.tsx`) go through `isDevelopmentAccessAllowed` and do not condition on `APP_API_MODE`; no rule exists))
+- ❌ Passing server config values as props from an RSC to a Client Component
+- ❌ Importing a **server config** (a runtime object containing secrets) from any layer other than `adapters/server` and the startup / build boundary ([0021](0021-frontend-responsibility.md); client config <NEXT_PUBLIC inline literals> may be imported from client-side layers — §2 / §3)
 
-## 補足
+## Notes
 
-- 本 ADR は「目的別スキーマで全 ENV を型定義・検証する(目的別でも全量検証)」という**アーキテクチャ**を確定し、スキーマライブラリ名で固定しない。ライブラリの採用は [0004](0004-library-management.md) の採用フロー(exact pin + `pnpm audit`)に従う
-- 本 ADR は `config` カーネルの**方針**を定める。物理実装(目的別 config モジュール + スキーマ + 変数表 README + `instrumentation.ts` / `next.config.ts` の検証呼び出し + biome `noProcessEnv` と config モジュールの override 除外([0002](0002-formatter-linter.md)))はこの方針に従う。スキル `new-env` はこの構造(`src/config/` の目的別 config モジュール + 変数表)を対象とする([0155](0155-claude-skills-development.md))
+- This ADR fixes the **architecture** "type-define and validate every ENV with per-purpose schemas (per purpose, yet the complete set is validated)" and does not pin it to a schema library name. Adopting a library follows the adoption flow of [0004](0004-library-management.md) (exact pin + `pnpm audit`)
+- This ADR defines the **policy** of the `config` kernel. The physical implementation (per-purpose config modules + schemas + a variable-table README + validation calls in `instrumentation.ts` / `next.config.ts` + biome `noProcessEnv` with the override excluding the config modules ([0002](0002-formatter-linter.md))) follows this policy. The `new-env` skill targets this structure (the per-purpose config modules in `src/config/` + the variable table) ([0155](0155-claude-skills-development.md))
 
-## 関連 ADR
+## Related ADRs
 
-- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — `config` カーネルの枠予約・依存マトリクス(config import の唯一の許可層 = `adapters`)。本 ADR はその中身を確定
-- [0011-no-docker.md](0011-no-docker.md) — no-Docker / PaaS 配送(焼き込み不成立 → `env/.env.<環境>` + PaaS secret store)
-- [0027-directory-structure.md](0027-directory-structure.md) — `config` カーネルの物理配置
-- [0028-naming-convention.md](0028-naming-convention.md) — 環境変数の命名形式(`{SUBSYSTEM}_{NAME}` / `NEXT_PUBLIC_` プレフィックス)。接頭辞は purpose と独立する。本 ADR は境界・検証・型付けを定める
-- [0002-formatter-linter.md](0002-formatter-linter.md) — `process.env` 直読禁止の機械強制(biome `noProcessEnv`)の能力ベース分担
-- [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0071-bff-api-integration.md](0071-bff-api-integration.md) — runtime config の逃し先・受け手アダプタの接続先
-- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) / [0041-cache-components-decision.md](0041-cache-components-decision.md) — プリレンダーでの env 凍結
-- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — 開発専用の session 発行口(環境で開閉する対象)
-- [0090-testing-strategy.md](0090-testing-strategy.md) — env スタブの具体 API(`vi.stubEnv`)
-- [0153-ci-configuration.md](0153-ci-configuration.md) — ビルド時検証の CI 組込み
-- [0043-middleware-policy.md](0043-middleware-policy.md) — proxy から辿れる config の範囲(本文「周辺ルール」参照)
+- [0020-adopted-architecture.md](0020-adopted-architecture.md) / [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — the slot reservation for the `config` kernel and the dependency matrix (the only layer permitted to import config = `adapters`). This ADR fixes its contents
+- [0011-no-docker.md](0011-no-docker.md) — no-Docker / PaaS delivery (baking does not work → `env/.env.<environment>` + PaaS secret store)
+- [0027-directory-structure.md](0027-directory-structure.md) — the physical location of the `config` kernel
+- [0028-naming-convention.md](0028-naming-convention.md) — the naming format of environment variables (`{SUBSYSTEM}_{NAME}` / the `NEXT_PUBLIC_` prefix). The prefix is independent of purpose. This ADR defines the boundary, validation and typing
+- [0002-formatter-linter.md](0002-formatter-linter.md) — the capability-based division for mechanically enforcing the ban on reading `process.env` directly (biome `noProcessEnv`)
+- [0070-backend-role-separation.md](0070-backend-role-separation.md) / [0071-bff-api-integration.md](0071-bff-api-integration.md) — where runtime config escapes to, and what receiver adapters connect to
+- [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.md) / [0041-cache-components-decision.md](0041-cache-components-decision.md) — env freezing during prerendering
+- [0079-auth-frontend-seam.md](0079-auth-frontend-seam.md) — the development-only session-issuing endpoint (what is opened and closed by environment)
+- [0090-testing-strategy.md](0090-testing-strategy.md) — the concrete API of env stubbing (`vi.stubEnv`)
+- [0153-ci-configuration.md](0153-ci-configuration.md) — wiring build-time validation into CI
+- [0043-middleware-policy.md](0043-middleware-policy.md) — the range of config reachable from proxy (see "Peripheral Rules" above)
