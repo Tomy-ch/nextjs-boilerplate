@@ -131,7 +131,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 
 | 指す先 | そこが持つもの |
 | --- | --- |
-| `openapi/<name>.gen.yaml`（[`openapi/README.md`](../../openapi/README.md)） | 契約（型・エラー・上限値） |
+| `openapi/<name>.gen.yaml`（[`openapi/README.md`](../../openapi/README.ja.md)） | 契約（型・エラー・上限値） |
 | `tokens/primitives.json` | 値（段の幅など） |
 | [`rules.md`](../rules.ja.md) | 日常的に強制される規約 |
 | `components/**/README.md` + Storybook | コンポーネントの語彙 |

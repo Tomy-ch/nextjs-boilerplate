@@ -1,65 +1,65 @@
-# セキュリティポリシー
+# Security Policy
 
-## 脆弱性の報告
+## Reporting a Vulnerability
 
-**公開の issue で報告しないでください。** issue は誰でも読めるため、報告そのものが未修正の
-脆弱性の公表になります。
+**Do not report in a public issue.** Anyone can read an issue, so the report itself becomes the
+disclosure of an unfixed vulnerability.
 
-報告は GitHub の **Private Vulnerability Reporting** を使ってください。リポジトリの
-**Security** タブ → **Report a vulnerability** から、メンテナだけが読める形で送れます。
+Report through GitHub's **Private Vulnerability Reporting**. From the repository's
+**Security** tab → **Report a vulnerability**, you can send it in a form only the maintainers can read.
 
 <!-- boilerplate-only:replace-begin -->
-この機能が無効な場合は、リポジトリのオーナーへ直接連絡してください。
+If that feature is disabled, contact the repository owner directly.
 <!-- boilerplate-only:replace-with -->
-<!-- = 連絡先: <security@example.com>（差し替えてください） -->
+<!-- = Contact: <security@example.com> (replace this) -->
 <!-- boilerplate-only:replace-end -->
 
-報告に含めてほしいもの:
+What to include in the report:
 
-- 影響を受けるバージョン、または commit
-- 再現手順（最小の再現コードがあれば添えてください）
-- 想定される影響（何が読めるか / 何が書けるか / 何が止まるか）
+- The affected version, or commit
+- Steps to reproduce (attach minimal reproduction code if you have it)
+- The expected impact (what can be read / what can be written / what can be stopped)
 
-## 対応の流れ
+## Response Process
 
-| 段階 | 目安 |
+| Stage | Target |
 | --- | --- |
-| 受領の連絡 | 3 営業日以内 |
-| 一次評価（影響範囲と severity の判断） | 7 営業日以内 |
-| 修正版の公開 | 評価の結果に応じて調整し、報告者へ都度連絡します |
+| Acknowledgement of receipt | Within 3 business days |
+| Initial assessment (scope of impact and severity) | Within 7 business days |
+| Release of a fixed version | Adjusted according to the assessment, with updates to the reporter as it progresses |
 
-`high` 以上は 48 時間以内に対応へ着手します（[ADR 0004](docs/adr/0004-library-management.md)）。
+Work on anything `high` or above starts within 48 hours ([ADR 0004](docs/adr/0004-library-management.md)).
 
-## サポート対象
+## Supported Versions
 
-| バージョン | サポート |
+| Version | Supported |
 | --- | --- |
-| 最新のリリース | ✅ |
-| それ以前 | ❌ |
+| Latest release | ✅ |
+| Earlier | ❌ |
 
-これは**テンプレートリポジトリ**であり、配信される成果物を持ちません。自分の運用に
-合わせて上の表を書き替えてください。
+This is a **template repository** and has no distributed artifacts. Rewrite the table above to fit
+your own operations.
 
-## このリポジトリが自分に掛けている検査
+## Checks this repository runs on itself
 
-多層防御の構成は [ADR 0110](docs/adr/0110-security-operations.md) が持ちます。
+The defense-in-depth setup is owned by [ADR 0110](docs/adr/0110-security-operations.md).
 
-| 層 | 手段 | どこで走るか |
+| Layer | Means | Where it runs |
 | --- | --- | --- |
-| 秘密の混入 | gitleaks | pre-push hook と CI（PR は差分、週次で履歴全体） |
-| 依存の脆弱性 | Trivy fs / `pnpm audit` / OSV | CI。PR は報告、保護ブランチ宛 PR で止める |
-| **この PR が増やした依存** | Dependency Review | CI（PR の差分だけを見る） |
-| 自分が書いたコード | Opengrep | CI。GitHub の外へ持ち出せる実体なので、どの環境でも層が残る |
-| 自分が書いたコード | CodeQL | CI。GitHub の中でだけ走る層 |
-| 値が外へ出る地点 | Bearer | CI（所見は code scanning へ） |
-| 言語を問わない文字列の検査 | DevSkim | CI（所見は code scanning へ） |
-| ワークフロー定義 | zizmor / actionlint | pre-commit hook と CI |
-| リポジトリ自身の設定 | OpenSSF Scorecard | CI（既定ブランチへの push と週次） |
-| **配信されている応答** | OWASP ZAP（baseline） | CI。アプリを立てて撃つ、唯一の動的検査 |
-| 依存の更新 | Dependabot + cooldown | 週次 |
+| Leaked secrets | gitleaks | pre-push hook and CI (PRs: the diff; weekly: the whole history) |
+| Dependency vulnerabilities | Trivy fs / `pnpm audit` / OSV | CI. Reported on PRs; blocks PRs targeting protected branches |
+| **Dependencies this PR added** | Dependency Review | CI (looks only at the PR's diff) |
+| Code we wrote | Opengrep | CI. A tool that can be taken outside GitHub, so the layer remains in any environment |
+| Code we wrote | CodeQL | CI. A layer that runs only inside GitHub |
+| Points where values leave | Bearer | CI (findings go to code scanning) |
+| Language-agnostic string checks | DevSkim | CI (findings go to code scanning) |
+| Workflow definitions | zizmor / actionlint | pre-commit hook and CI |
+| The repository's own settings | OpenSSF Scorecard | CI (push to the default branch, and weekly) |
+| **Responses being served** | OWASP ZAP (baseline) | CI. The only dynamic check: it starts the app and attacks it |
+| Dependency updates | Dependabot + cooldown | Weekly |
 
-**すべてがゲートではありません。** baseline を 0 件に保てる層と「この変更が増やしたか」を問う層だけを赤にし、
-それ以外は所見を見せるだけにしています。赤が常態になると、赤を見て手を止める習慣のほうが先に壊れるためです。
+**Not everything is a gate.** Only layers whose baseline can be kept at zero and layers that ask "did this change add it"
+go red; the rest only show findings. Once red becomes the normal state, the habit of stopping at red breaks first.
 
-**検出を許容する場合は、抑止ファイルに理由と撤回条件を書きます。** 一括無効化はしません
-（[ADR 0110](docs/adr/0110-security-operations.md)）。
+**When a detection is accepted, write the reason and the reversal condition in the suppression file.** No blanket disabling
+([ADR 0110](docs/adr/0110-security-operations.md)).

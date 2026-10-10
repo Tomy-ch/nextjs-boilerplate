@@ -29,7 +29,7 @@ canonical は同じディレクトリの `SKILL.md`（英語）です。規約�
 ### 1. manifest は手引きであって辞書ではない
 
 portal は人間が読むキュレーション済みの叙述です。未登録の README は **drift ではなく**、キュレーション
-判断待ちの候補です（ADR 0141）。一括追加はキュレーションを壊し、概念の流れを部品単位のノイズで埋めます。
+判断待ちの候補です（ADR 0141）。一括追加はキュレーションを壊し、概念の流れをコンポーネント単位のノイズで埋めます。
 
 ### 2. 答えの一部は既に 2 つの生成スクリプトが持っている
 
@@ -48,7 +48,7 @@ portal は人間が読むキュレーション済みの叙述です。未登録�
 - **`Other` へ落ちる登録。** section が `meta.subgroups` を持つとき、どの subgroup の items にも無い
   guide id は自動生成の `Other` へ掃き寄せられます。警告は出ません。`subgroups` を伴わずに `layers` へ
   足したエントリは、生きてはいるが誤った場所に置かれています
-- **部品リファレンス README。** 1 つの component の表面を書いたもので、portal の答えはそれではなく
+- **コンポーネントリファレンス README。** 1 つの component の表面を書いたもので、portal の答えはそれではなく
   Storybook（既に `meta.reference_links` の常設項目）と component 自身の TSDoc です。これを全部候補として
   並べるとレポートが読めなくなります
 - **ミラーが未登録の、登録済み canonical。** README のペアは 2 つのエントリとして公開します ——
@@ -63,7 +63,7 @@ portal は人間が読むキュレーション済みの叙述です。未登録�
 
 manual-worthy の定義を**ここへ複製しないこと**。実行時に
 [`.claude/skills/readme-review/SKILL.md`](../readme-review/SKILL.ja.md) を読み、その Step 2（positive /
-negative の基準と 4 クラスの閾値）と、`src/features/` 配下なら Step 2b の必須節検査を適用します。
+negative の基準と 4 クラスのしきい値）と、`src/features/` 配下なら Step 2b の必須セクション検査を適用します。
 基準が変われば向こう 1 つを直すだけで、このスキルは自動的に追随します。
 
 ## Step 0. モードを確認する
@@ -126,9 +126,9 @@ git ls-files '*README*.md'
 
 順に適用します。以下の規約は変わりうるので、形を仮定せず、それぞれ**所有する文書から基準を読み**ます。
 
-### 4a. 部品リファレンス
+### 4a. コンポーネントリファレンス
 
-`readme-review` の N1 を、そこに書かれているとおりに適用します —— N1 が名指しする節の形と、
+`readme-review` の N1 を、そこに書かれているとおりに適用します —— N1 が名指しするセクションの形と、
 役割・設計・実行機序の内容が実質的にあれば外れる、という但し書きの両方です。ここで形を書き写したり、
 木から導き直したりしないこと。定義の場所は N1 であり、2 つ目の導出を持つと、同じファイルが
 どちらのスキルから入ったかで違う分類になります。
@@ -138,10 +138,10 @@ TSDoc を名指しします。内容が弱いのではなく、別の面が持�
 
 ### 4b. feature slice
 
-`src/features/` 配下の README（層 README である `src/features/README.md` を除く）は、
-[`docs/templates/feature-readme.md`](../../../docs/templates/feature-readme.ja.md) が宣言する必須節に対して
-`readme-review` の Step 2b で採点します。必須節の欠落・薄さがあれば `borderline` が上限です。
-節の一覧を焼き込まず、テンプレートを読みます。
+`src/features/` 配下の README（レイヤー README である `src/features/README.md` を除く）は、
+[`docs/templates/feature-readme.md`](../../../docs/templates/feature-readme.ja.md) が宣言する必須セクションに対して
+`readme-review` の Step 2b で採点します。必須セクションの欠落・薄さがあれば `borderline` が上限です。
+セクションの一覧を焼き込まず、テンプレートを読みます。
 
 ### 4c. それ以外
 

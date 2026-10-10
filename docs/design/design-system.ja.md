@@ -12,7 +12,7 @@ design token から feature の画面コンポーネントまで、見た目を�
 
 | 段 | 在り処 | 決めるもの | 決めないもの |
 | --- | --- | --- | --- |
-| **token** | [`tokens/`](../../tokens/README.md) → `src/app/generated/tokens.css` | 色・余白・角丸・書体・影・段の**値**と、配色（light / dark）× 系統（`user` / `admin`）ごとの引き当て | どのコンポーネントがどの token を使うか |
+| **token** | [`tokens/`](../../tokens/README.ja.md) → `src/app/generated/tokens.css` | 色・余白・角丸・書体・影・段の**値**と、配色（light / dark）× 系統（`user` / `admin`）ごとの引き当て | どのコンポーネントがどの token を使うか |
 | **foundation** | `src/components/design-system/foundation/` | コンポーネントを横断して効く CSS 基盤（scrollbar・組版・印刷・shimmer・scroll-fade）と、系統を Portal の出口へ届けるブリッジ | React component の公開（`surface` のブリッジを除き何も export しない） |
 | **design-system のコンポーネント** | `src/components/design-system/<目的>/<部品>/` | 1 つの役割の中で閉じた見た目と操作。variant・size・a11y 契約 | 何を起こすか・何を出すか・どこに置かれるか（呼び出し元が渡す） |
 | **patterns** | `src/components/patterns/` | 複数の役割を合成した形（項目の外枠、絞り込みの帯、表の列定義） | バックエンドの契約・mount 位置 |

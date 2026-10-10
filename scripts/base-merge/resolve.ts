@@ -24,7 +24,7 @@ export const USAGE_MESSAGE = "使い方: base-merge [--base=<ref>] [--dry-run]";
  *
  * @remarks
  * マージしてから気付くと、作業ツリーが MERGING のまま行き場を失います。理由は
- * [README](README.md)「拒む 2 つの状態」。
+ * [README](README.md#two-states-it-refuses)。
  */
 export const PROTECTED_BRANCH_MESSAGE =
   "保護ブランチの上ではベースを取り込みません。フィーチャーブランチへ切り替えてください";
@@ -86,7 +86,7 @@ export function refuseProtectedBranch(branch: string): string | null {
  *
  * @remarks
  * 混ざると、どちらが衝突由来かを後から見分けられません。理由は
- * [README](README.md)「拒む 2 つの状態」。
+ * [README](README.md#two-states-it-refuses)。
  */
 export function refuseDirtyTree(statusOutput: string): string | null {
   return statusOutput.trim() === "" ? null : DIRTY_TREE_MESSAGE;

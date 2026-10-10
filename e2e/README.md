@@ -7,120 +7,131 @@ coverage-exclusions:
 
 # e2e
 
-**画面を通した検証**。組み上げたアプリを実際のブラウザで動かし、部品単体では
-見えないものだけを見る。
+**Verification through screens.** Runs the assembled application in a real browser and checks only what
+cannot be seen from a component on its own.
 
-story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象が違う**。あちらは部品を単独で
-描いた姿で、ここは部品を組み上げた画面と、画面をまたぐ経路である。部品が個別に緑でも、並べた
-ときに崩れる形も、遷移が繋がっていない状態も作れる。
+It **looks at a different subject** from story-level checks ([`vrt/`](../vrt/README.md)). Those see a
+component rendered on its own; this sees the screens assembled from components, and the paths across
+screens. Components can each be green and still produce a layout that breaks when they are placed together,
+or transitions that do not connect.
 
-## 何を見ているか
+## What it checks
 
-| | 見ているもの | ここでしか見えない理由 |
+| | What it checks | Why only here |
 | --- | --- | --- |
-| ジャーニー | 画面をまたぐ遷移・絞り込み・認証の前捌き | 経路が繋がっているかは、画面 1 枚では答えられない |
-| Browser Errors | hydration の不一致・描画中の例外・通信の失敗・CSP 違反 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない。CSP の違反も同じで、ヘッダを読む検査（DAST）は enforce の結果を見ない |
-| Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md#layout)） | 帯は viewport の関数であり、jsdom には幅が無い |
-| 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
-| Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
-| 別 origin | 宣言した origin から BFF が読めること・宣言に無い origin からの書き込みが止まること | preflight の自動発行と CORS の読み取り制限は実ブラウザにしか無い。宣言した origin の文書は起動側が別ポートに立てる（`scripts/e2e/partner-origin.ts`。偽装すると Chromium の Private Network Access に止められる） |
-| 画面単位の見た目 | 画面 1 枚ぶんの基準画像との比較 | 部品の比較を全部足しても、並べた結果にはならない |
-| 画面単位の a11y | landmark・`main`・h1 と、配信される document（[`lib/a11y-rules.ts`](lib/a11y-rules.ts)） | story は部品を単独で描くのでこの 4 つが成立せず、Storybook の iframe document を評価してしまう |
-| 不在の面 | 1 件が見つからないとき、器の内側の not-found 境界が受け、導線を保ったまま不在を伝えるか | **どの境界が受けるかは segment の木が決める。**描画テストは部品を単独で描くので segment を持たない |
-| フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
-| 配信の停止 | `APP_MAINTENANCE_MODE=on` で起動したプロセスが、実際に全ルートを差し替えるか | **入口の分岐も設定も、層ごとには mock 越しにしか確かめていない。**結線は起動してみないと分からない |
-| 公開面 | `robots.txt` / `sitemap.xml` / 各画面の canonical / アイコンと OG 画像が、クローラが読む形で成立しているか。索引させる設定と索引させない設定の両方（[`docs/rules.md`](../docs/rules.md#config)） | **metadata は中身が壊れていても画面が壊れない。**空の sitemap・他人を指す canonical・実行時に落ちる `ImageResponse` は build も単体テストも通る |
+| Journeys | Transitions across screens, filtering, authentication pre-handling | Whether a path connects cannot be answered by a single screen |
+| Browser Errors | Hydration mismatches, exceptions during rendering, network failures, CSP violations | **A hydration mismatch passes both the build and type checking.** It appears only when rendered on a real browser. CSP violations are the same: a check that reads headers (DAST) does not see the result of enforcement |
+| Responsive | Per-band variation ([`docs/rules.md`](../docs/rules.md#layout)) | Bands are a function of the viewport, and jsdom has no width |
+| History | Whether an overlaid surface and screen navigation fight over the same history | The conflict is between real browser history operations; jsdom has no counterpart |
+| Cross Browser | Breakage specific to a rendering engine | Passing on one engine does not mean passing on the other two |
+| Cross-origin | That the BFF can be read from a declared origin, and that writes from an undeclared origin are stopped | Automatic preflight and CORS read restrictions exist only in a real browser. The document of the declared origin is served on a separate port by the launcher (`scripts/e2e/partner-origin.ts`; faking it gets stopped by Chromium's Private Network Access) |
+| Screen-level appearance | Comparison against a whole-screen baseline image | Adding up every component comparison does not give the result of placing them together |
+| Screen-level a11y | Landmarks, `main`, h1, and the served document ([`lib/a11y-rules.ts`](lib/a11y-rules.ts)) | A story renders a component on its own, so these four do not hold, and it would evaluate Storybook's iframe document |
+| Not-found surface | When an item is not found, whether the not-found boundary inside the layout shell catches it and conveys the absence while keeping navigation | **Which boundary catches it is decided by the segment tree.** Rendering tests render components on their own and have no segments |
+| Focus | Whether an overlaid surface receives focus, traps it, and returns it on close | **jsdom has no focus implementation.** It has neither `inert` nor a focus trap, and the `Tab` order is an approximation |
+| Service suspension | Whether a process started with `APP_MAINTENANCE_MODE=on` actually replaces every route | **Both the entry point branch and the configuration are verified per layer only through mocks.** The wiring is unknown until it is started |
+| Public surface | Whether `robots.txt` / `sitemap.xml` / each screen's canonical / icons and OG images hold in the form crawlers read. Both the indexable and the non-indexable settings ([`docs/rules.md`](../docs/rules.md#config)) | **Metadata can be broken without the screen breaking.** An empty sitemap, a canonical pointing at someone else, an `ImageResponse` that fails at runtime all pass the build and unit tests |
 
-**観点は spec より長く生きる。** 上の表は、spec を自分の画面へ書き換えたあとも成り立つ。**書き換える
-ときは、観点ごと落とさないこと** —— どれも単体テストが原理的に届かない観点で、落としても他の観点が
-代わりに拾わない。とくに履歴を落とすと、「押しても移らない導線」を誰も見張らなくなる。
+**The perspectives outlive the specs.** The table above still holds after the specs are rewritten for your
+own screens. **When rewriting, do not drop a perspective** — each is one unit tests cannot reach in
+principle, and dropping one is not picked up by another. Dropping History in particular leaves nobody
+watching for "navigation that does not move when pressed".
 
-## 観点ごとの書き方
+## Writing each perspective
 
-観点は上の表が持ち、ここはそれぞれを spec にするときに効く判断を持つ。書き換えた spec でも
-同じ形が成り立つ。
+The perspectives are owned by the table above; this section holds the decisions that matter when turning
+each into a spec. The same shapes hold in rewritten specs.
 
-### 機構を見る spec は、題材に依らず取得を持たない画面を指す
+### Specs that check a mechanism point at a screen with no fetch, independent of the sample
 
-同意・CSP・別 origin・公開面・認証の前捌き・配信の停止は、どれも root layout や入口が全画面へ
-掛けるものなので、指す画面に題材は要らない。**バックエンドから何も取らない画面**を選ぶ ——
-取得を持つ画面を指すと、機構の検査がその取得と一緒に落ちる。見たい性質があるときはそれで選ぶ。
+Consent, CSP, cross-origin, the public surface, authentication pre-handling and service suspension are all
+applied to every screen by the root layout or the entry point, so the screen they point at needs no sample.
+Choose **a screen that fetches nothing from the backend** — pointing at a screen with a fetch makes the
+mechanism check fail together with that fetch. When a property is needed, choose by it.
 
-| 要る性質 | 理由 |
+| Property needed | Why |
 | --- | --- |
-| 静的に配れる画面 | 前捌きが付けた `cache-control` が配信まで残った証拠になるのは静的な画面だけである。動的な画面は framework が自分で `no-store` を付ける |
-| 索引を断らない画面 | ログインと停止画面は自分で `noindex` を名乗るので、サイトマップが挙げる公開面にはならない |
-| 実在しない経路 | 保護の判定が接頭辞だけで決まること、停止中は経路の有無に関わらず差し替わることは、画面の無い経路でこそ確かめられる（後述のゲートへ理由を添えて宣言する） |
+| A screen that can be served statically | Only a static screen proves that the `cache-control` set by pre-handling survived to serving. On a dynamic screen the framework sets `no-store` itself |
+| A screen that does not refuse indexing | Login and the maintenance screen declare `noindex` themselves, so they are not part of the public surface the sitemap lists |
+| A path that does not exist | That protection is decided by prefix alone, and that during suspension everything is replaced regardless of whether the path exists, can be verified precisely on a path with no screen (declared, with a reason, to the gate described below) |
 
-### 履歴
+### History
 
-行き先には**自分で URL を書き換えない画面**を選ぶ。一覧のように状態を URL へ載せる画面は
-着いた直後に履歴を 1 つ積むため、戻る操作の判定がその 1 件に吸われる。判定は「戻る操作 1 回で
-面を開く前の画面へ帰る」こと —— 面が積んだ 1 件が残っていると、1 回目が同じ URL の何も起きない
-1 回になり、元の画面へは 2 回目でしか帰れない。
+For the destination, choose **a screen that does not rewrite its own URL**. A screen that puts state in the
+URL, such as a list, pushes one history entry right after arriving, and the back-navigation check is
+absorbed by that entry. The check is "one back navigation returns to the screen before the surface was
+opened" — if the entry the surface pushed remains, the first back is a no-op on the same URL, and the
+original screen is reached only on the second.
 
-### 不在の面
+### Not-found surface
 
-**指し先を `absent` にして開く。** 契約駆動のモックはどの識別子にも応えるので、見つからない状態へは
-予約した識別子でしか届かない（[`mocks/absent.ts`](../mocks/absent.ts)）。判定は「不在の面が出た」
-だけでは足りない —— 器の外の面へ抜けても同じ文言は出るので、**器が残っていること**（header）まで
-見る。
+**Open it with the target set to `absent`.** The contract-driven mock answers any identifier, so the
+not-found state is reachable only through a reserved identifier ([`mocks/absent.ts`](../mocks/absent.ts)).
+"The not-found surface appeared" is not enough as a check — falling through to a surface outside the layout
+shell shows the same text, so it also checks **that the layout shell remains** (header).
 
-### フォーカス
+### Focus
 
-見るのは 3 点 —— 開いたときに焦点が面へ入る・開いている間 `Tab` が背面へ抜けない・閉じたら
-開いた導線へ戻る。網羅はせず、**機構（ドロワー / モーダル / メニュー）ごとに 1 本**の形を残す。
+Three things are checked — focus enters the surface when it opens, `Tab` does not escape to the background
+while it is open, and focus returns to the opener when it closes. It is not exhaustive; **one spec per
+mechanism (drawer / modal / menu)** is kept.
 
-- **入ると戻るは 1 本にまとめる。**順序そのものが検査で、焦点が入っていない状態で戻り先を見ても、
-  戻ったのか一度も動いていないのかが区別できない
-- **`Tab` は周回の途中で毎回見る。**一度でも外へ出れば、そこから先は背面を触れてしまう
-- **menu も閉じ込める側に数える。**確かめるのは作法への適合ではなく「開いている面の外へ焦点が
-  漏れないこと」なので、実装が現に約束している形を当てる
-- 被せる姿の入口が出る幅（`md - 1`）で回す。脇に常設できる幅では、そもそもその面が無い
+- **Entering and returning are one spec.** The order itself is the check; looking at the return target
+  without focus having entered cannot tell whether it returned or never moved
+- **`Tab` is checked at every step of the cycle.** Once it escapes even once, everything after can touch
+  the background
+- **Menus count as trapping too.** What is verified is not conformance to a pattern but "focus does not
+  leak outside the open surface", so the check applies the shape the implementation actually promises
+- Run at the width where the trigger for the overlaid form appears (`md - 1`). At widths where the content
+  can sit permanently at the side, that surface does not exist at all
 
-### 帯ごとの出し分け
+### Per-band variation
 
-見た目の比較（`visual/`）とは別に持つ。あちらが答えるのは「前と変わったか」で、こちらは「決めた
-とおりに出し分けているか」である。基準画像を撮り直せば前者は通るが、出し分けが壊れたことは
-後者でしか分からない。帯は宣言（[`lib/viewports.ts`](lib/viewports.ts)）から回し、spec に数値を
-書かない。
+Kept separate from the appearance comparison (`visual/`). That answers "did it change from before"; this
+answers "does it vary as decided". Retaking baseline images makes the former pass, but a broken variation
+shows up only in the latter. Bands are run from the declaration ([`lib/viewports.ts`](lib/viewports.ts));
+specs contain no numbers.
 
 ### CSP
 
-描画エンジンによって、割った側（`script-src-elem`）で報告するか元のディレクティブ（`script-src`）で
-報告するかが違う。両方を受ける。
+Rendering engines differ on whether they report with the split directive (`script-src-elem`) or the
+original one (`script-src`). Both are accepted.
 
-### 別 origin
+### Cross-origin
 
-Node 側の client（`page.request`）では開く側を通せない —— preflight の自動発行と読み取りの制限は
-実ブラウザにしか無い。宣言した origin の文書を開き、**その中から** `fetch` する。閉じる側は
-`page.request` に `origin` ヘッダを差して確かめる。届いた証拠は、CORS で読めないときに `fetch` が
-投げる `TypeError` ではなく、handler の返した状態が読めることである。
+A Node-side client (`page.request`) cannot exercise the opening side — automatic preflight and read
+restrictions exist only in a real browser. Open the declared origin's document and `fetch` **from inside
+it**. The closing side is verified by setting an `origin` header on `page.request`. The proof of arrival is
+being able to read the status the handler returned, not the `TypeError` that `fetch` throws when CORS
+blocks reading.
 
-### 公開面
+### Public surface
 
-応答は DOM に組み立てず**文字列のまま読む**。metadata は殻の後から流れて `<body>` の末尾に足される
-ことがあり（`generateMetadata` のストリーミング）、`<head>` だけを見ると取りこぼす。URL の一致は
-綴りではなく解決した形で比べる —— sitemap は root を `https://a.test/` と書き、canonical は
-`metadataBase` に `/` を足した結果を `https://a.test` と出すので、文字列では一致しない。
+Responses are **read as strings**, not built into a DOM. Metadata can stream in after the static shell and
+be appended to the end of `<body>` (`generateMetadata` streaming), and looking only at `<head>` misses it.
+URLs are compared in resolved form rather than by spelling — the sitemap writes the root as
+`https://a.test/`, while the canonical outputs `metadataBase` plus `/` as `https://a.test`, so the strings
+do not match.
 
-### 認証の前捌き
+### Authentication pre-handling
 
-ログアウトは転送を追わない（`maxRedirects: 0`）。確かめるのは戻り先ではなく「戻れなくなったこと」
-である。
+Logout does not follow redirects (`maxRedirects: 0`). What is verified is not the return destination but
+"that you can no longer go back".
 
-### 一覧から 1 件へ移る遷移
+### Navigating from a list to a single item
 
-行き先は一覧が組み立てた `href` そのもので照合し、**名前では照合しない**。モックは口ごとに独立して
-応答を組み立てるので、一覧の 1 件と詳細の 1 件が同じ実体を指す保証は契約の側に無い。
+The destination is matched against the `href` the list built itself, **not by name**. The mock builds
+responses independently per endpoint, so nothing in the contract guarantees that an item in the list and an
+item in the detail refer to the same entity.
 
-## テストの責務
+## Test Responsibilities
 
-frontmatter の `test-requirement: unit` が掛かるのは、**Vitest から回る `lib/` の判定**である。
-`*.spec.ts` は Playwright が実行する本体で Vitest からは呼べない。何を異常と数えるか・どの画面を
-開くかといった判定を `lib/` へ切り出してあるのは、spec の中に置くと 1:1 の対象にできないためである。
+The frontmatter's `test-requirement: unit` applies to **the checks in `lib/` that run from Vitest**.
+`*.spec.ts` is the body Playwright runs and cannot be called from Vitest. Checks such as what counts as an
+anomaly and which screens to open are split out into `lib/` because inside a spec they could not be a 1:1
+subject.
 
-## 使い方
+## Usage
 
 ```bash
 make e2e          # 主要ジャーニーを回し、画面の見た目を基準画像と比較する
@@ -129,514 +140,565 @@ make e2e-metadata # 索引させる設定で build して起動し、公開面�
 make e2e-update   # 画面の基準画像を撮り直す（置き場へ送るのは make baseline-push）
 make e2e-retake   # 撮り直して置き場へ送る（e2e-update → baseline-push）。手元から撮り直す入口
 make e2e-report   # 直前の実行の HTML レポートを開く
-make e2e-review   # CI が落とした画面を手元で開く（後述「落ちた画面を手元で開く」）
+make e2e-review   # CI が落とした画面を手元で開く（後述 "Opening failed screens locally"）
 make review-clean # 見直しで生やした作業ツリーを片付ける
 ```
 
-`E2E_ARGS` で Playwright へそのまま引数を渡せる。
+`E2E_ARGS` passes arguments straight to Playwright.
 
 ```bash
 make e2e E2E_ARGS='--project=chromium --grep "ログイン"'
 ```
 
-`E2E_PORT` でアプリを待ち受けるポートを変えられる（既定 `3100`）。既に何かが待ち受けている
-ポートを指定すると、実行の手前で落ちる —— 起動待ちが他人のサーバへの疎通で満たされると、
-その相手に対してテストが走ってしまうためである。
+`E2E_PORT` changes the port the application listens on (default `3100`). Specifying a port something is
+already listening on fails before the run — if the startup wait were satisfied by reaching someone else's
+server, the tests would run against it.
 
-**待ち受けるアドレスは、コンテナが到達に使う経路 1 本だけに絞ってある。**この起動は
-`APP_ENV=ci` を使い、その環境ではテスト専用の session 発行の口が開いている（後述）。全ての
-インターフェースで待ち受けると、その口が同じ LAN の他のホストから叩ける状態になる。宛先は
-`make e2e` が解決する（Docker Desktop はホストの loopback、Linux は bridge の gateway）。
-明示したいときは `E2E_HOSTNAME` を渡す。
+**The listening address is narrowed to the single route the container uses to reach it.** This startup
+uses `APP_ENV=ci`, where the test-only session issuing endpoint is open (see below). Listening on every
+interface would let other hosts on the same LAN hit that endpoint. The address is resolved by `make e2e`
+(the host's loopback on Docker Desktop, the bridge gateway on Linux). To set it explicitly, pass
+`E2E_HOSTNAME`.
 
-### 落ちた画面を手元で開く
+### Opening failed screens locally
 
-画素が違った PR のコメントには、**落ちた画面をそのまま開く 1 行**が付く。別の端末へ貼るだけでよい。
+A PR comment for differing pixels carries **one line that opens the failed screens as they are**. Paste it
+into another terminal.
 
-**撮り直しのコメントにも同じ 1 行が付く。**並べるのは**画素が実際に動いた画面**だけで、撮り直しの
-範囲もそれと同じ集合である（story 単位の側と同じ扱い —— [`vrt/README.md`](../vrt/README.md)）。
+**The retake comment carries the same line.** It lists only **the screens whose pixels actually moved**,
+and the retake scope is the same set (the same treatment as the story-level side —
+[`vrt/README.md`](../vrt/README.md)).
 
 ```bash
-make e2e-review BRANCH=<ブランチ> RUN=<run-id> E2E_ONLY=<画面名>,<画面名>
+make e2e-review BRANCH=<branch> RUN=<run-id> E2E_ONLY=<screen-name>,<screen-name>
 ```
 
-| 項目 | 値 |
+| Item | Value |
 | --- | --- |
-| `BRANCH` | 見る対象のブランチ。**必須** |
-| `E2E_ONLY` | 落ちた画面の名前をカンマで並べる。**必須** |
-| `RUN` | CI の実行 id。渡すとその実行の `e2e-diff` を落として隣のポートで配る（`gh` が要る） |
-| `E2E_REVIEW_PORT` | アプリを待ち受けるポート。既定 `3200`（`make e2e` の `3100` とも開発サーバの `3000` とも別にする） |
+| `BRANCH` | The branch to look at. **Required** |
+| `E2E_ONLY` | Comma-separated names of the failed screens. **Required** |
+| `RUN` | CI run id. When given, downloads that run's `e2e-diff` and serves it on the neighboring port (requires `gh`) |
+| `E2E_REVIEW_PORT` | The port the application listens on. Default `3200` (distinct from both `make e2e`'s `3100` and the dev server's `3000`) |
 
-`tmp/review/e2e/<ブランチ>` に使い捨ての作業ツリーを生やし、`origin/<ブランチ>` の先端へ合わせて
-依存を入れ、**本番ビルドを起動して**落ちた画面の URL を並べる。開発サーバで見ないのは、基準画像が
-本番ビルドで撮られているためである。**手元の作業ツリーは動かさない**ので、編集中の変更を抱えたまま
-呼べる。見終わったら Ctrl-C で止める。
+It creates a throwaway working tree at `tmp/review/e2e/<branch>`, aligns it with the tip of
+`origin/<branch>`, installs dependencies, **starts a production build**, and lists the URLs of the failed
+screens. It does not use the dev server because the baseline images are captured from a production build.
+**Your local working tree is not touched**, so it can be called with edits in progress. Stop it with Ctrl-C
+when done.
 
-役割の要る画面（`signedIn` を宣言した画面）は、直接開くとログインへ送られる。並ぶのは行き先を
-持たせた開発用 session の面の URL なので、役割を選べばそのまま目的の画面へ着く。
+Screens that need a role (screens that declare `signedIn`) redirect to login when opened directly. The URLs
+listed are those of the dev session surface with a destination attached, so choosing a role lands you on
+the intended screen.
 
-**作業ツリーは残る。**`node_modules` と本番ビルドを抱えたまま `tmp/review/` に溜まっていくので、
-片付けるときは **`make review-clean`**（story 単位の側で生やしたものも一緒に片付く）。ディレクトリを
-直接消すと実体を失った登録が `.git` に残るため、この入口を使う。
+**The working tree remains.** They accumulate in `tmp/review/` with their `node_modules` and production
+builds, so clean up with **`make review-clean`** (which also cleans up those created by the story-level
+side). Deleting the directories directly leaves registrations without their files in `.git`, so use this
+entry point.
 
-この起動も `APP_ENV=ci` なので、待ち受けは loopback へ絞ってある（理由は前述のとおり、テスト専用の
-session 発行の口が開いているため）。
+This startup also uses `APP_ENV=ci`, so listening is narrowed to loopback (for the reason given above: the
+test-only session issuing endpoint is open).
 
-> **story 単位の側（[`vrt/README.md`](../vrt/README.md)）と同じ限界がある。**ここで見えるのは
-> 「なぜ変わったか」であって、画素の一致ではない。手元のブラウザとホストのフォントで描くので、
-> CI が撮った画像とは元から一致しない。
+> **It has the same limits as the story-level side ([`vrt/README.md`](../vrt/README.md)).** What you can
+> see here is "why it changed", not pixel equality. It renders with your local browser and the host's
+> fonts, so it never matched the images CI captured in the first place.
 
-## 停止中だけは別の起動で回る
+## Maintenance mode runs in a separate startup
 
-`APP_MAINTENANCE_MODE` は**全ルートに効き、切り替えに起動し直しが要る**
-（[仕様書](../docs/spec/route/maintenance/page.function.md)）。1 回の起動の中に「止まっている画面」
-と「止まっていない画面」を同居させられないので、`maintenance/` だけは自分の設定
-（`playwright.maintenance.config.ts`）と自分の起動を持つ。
+`APP_MAINTENANCE_MODE` **applies to every route and needs a restart to switch**
+([specification](../docs/spec/route/maintenance/page.function.md)). "Suspended screens" and "non-suspended
+screens" cannot coexist within one startup, so `maintenance/` alone has its own configuration
+(`playwright.maintenance.config.ts`) and its own startup.
 
 ```bash
 make e2e-maintenance   # 止めた状態で起動し、3 つの応答を確かめる
 ```
 
-見るのは応答の成立だけで、**基準画像を撮らない**。停止画面の見た目は通常の巡回が `/maintenance`
-を開いて撮っている —— この画面は止めていなくても URL で開けるためである。
+It checks only that the responses hold, and **captures no baseline images**. The maintenance screen's
+appearance is captured by the regular run, which opens `/maintenance` — this screen can be opened by URL
+even when nothing is suspended.
 
-ここも `lib/test.ts` の `test` を使わない（一覧は後述「見張りと前提の外に置く spec」）。あれは
-サーバ側の 5xx を異常として数えるが、停止中の 503 は意図した応答なので、見張りに掛けると成立が
-失敗として現れる。
+This also does not use `test` from `lib/test.ts` (the list is in "Specs placed outside the watcher and the
+preconditions" below). That one counts server-side 5xx as anomalies, but a 503 during suspension is the
+intended response, so under the watcher success would show up as failure.
 
-## 索引させる側だけは別の build で回る
+## The indexable side runs in a separate build
 
-`SITE_INDEXABLE` は **build 時に読まれ、静的に描かれる画面の metadata と `robots.txt` へ焼き込まれる**
-（`src/config/site/site.server.ts`）。通常の巡回は既定（`off` = 索引させない）で build するので、
-索引させる側の公開面はその build には存在しない。`metadata/` だけは自分の設定
-（`playwright.metadata.config.ts`）と、`SITE_INDEXABLE=on` を build から渡す自分の起動を持つ。
+`SITE_INDEXABLE` is **read at build time and baked into the metadata of statically rendered screens and
+into `robots.txt`** (`src/config/site/site.server.ts`). The regular run builds with the default (`off` =
+not indexable), so the public surface of the indexable side does not exist in that build. `metadata/`
+alone has its own configuration (`playwright.metadata.config.ts`) and its own startup that passes
+`SITE_INDEXABLE=on` from the build.
 
 ```bash
 make e2e-metadata   # 索引させる設定で build して起動し、公開面を読む
 ```
 
-見るのはクローラが読む応答だけで、**基準画像を撮らない**。`robots.txt` が巡回を許しサイトマップの
-場所を知らせること、`sitemap.xml` が挙げる URL がすべて実在して自分を正規 URL として名乗り索引を
-断っていないこと、画面が名乗るアイコンと OG 画像が絵として返ることを確かめる。外から見た origin
-（`SITE_PUBLIC_ORIGIN`）にはコンテナから見たアプリの場所を渡すので、画面が名乗る URL と spec が
-開く URL は同じ綴りになる。
+It checks only the responses crawlers read, and **captures no baseline images**. It verifies that
+`robots.txt` allows crawling and announces the sitemap location, that every URL `sitemap.xml` lists exists,
+declares itself as its canonical URL and does not refuse indexing, and that the icons and OG images screens
+declare come back as pictures. The externally visible origin (`SITE_PUBLIC_ORIGIN`) is given the location
+of the app as seen from the container, so the URLs screens declare and the URLs the spec opens have the
+same spelling.
 
-索引させない側は通常の巡回が見る（`journeys/metadata.spec.ts`）。`robots.txt` が全経路を断り、
-画面が `noindex` を名乗ること。両方が通ってはじめて、切り替えが設定で効いていると言える。
+The non-indexable side is checked by the regular run (`journeys/metadata.spec.ts`): `robots.txt` refuses
+every path, and screens declare `noindex`. Only when both pass can the switch be said to work through
+configuration.
 
-`lib/test.ts` の `test` を使わないのは停止中の検証と同じ理由に加えて、あれが画像の要求を 1 枚の
-代替に差し替えるためである。絵として返るかを見たい相手を、絵に差し替えた上では確かめられない。
+It does not use `test` from `lib/test.ts` for the same reason as the suspension check, and also because
+that `test` replaces image requests with a single stand-in. What you want to see come back as a picture
+cannot be verified once it has been replaced with a picture.
 
-## 最初の一式から外した島は、描き終わりを待ってから撮る
+## Islands split out of the initial bundle are captured after they finish rendering
 
-`next/dynamic` で最初の読み込みから外した島（作図など）は、**枠だけを置いて後から描かれる**。
-届く前に撮ると枠のまま写り、しかも**枠は連続して撮っても同じ絵**なので、Playwright の
-「同じ絵が 2 回続いたら撮る」判定では待てない。届いた日と届かなかった日の絵が交互に基準へ入る。
+An island split out of the initial load with `next/dynamic` (charts and the like) **places only a frame and
+renders later**. Capturing before it arrives records just the frame, and **the frame is the same picture
+across consecutive captures**, so Playwright's "capture when the same picture appears twice in a row"
+cannot wait for it. Pictures from days it arrived and days it did not alternate into the baseline.
 
-撮る側が待つ相手を知っている必要があるので、画面の宣言（[`lib/screens.ts`](lib/screens.ts)）へ
-`settled` として**中身にしか現れない要素**を書く。枠そのものを指しても意味がない。
+The capturing side has to know what to wait for, so the screen declaration
+([`lib/screens.ts`](lib/screens.ts)) gets, as `settled`, **an element that appears only in the content**.
+Pointing at the frame itself is meaningless.
 
 ```ts
-{ route: "/<route>", name: "<画面名>", path: "/<開く URL>", settled: "<中身にしか現れない要素>" }
+{ route: "/<route>", name: "<screen-name>", path: "/<URL to open>", settled: "<element that appears only in the content>" }
 ```
 
-**待つのは画面を丸ごと評価する検査 —— 撮影と画面単位の a11y —— である。** 巡回（journeys）は
-操作の前に対象を待つので、この宣言は要らない。a11y が待つ理由は撮影と逆向きで、届く前に評価すると
-`Suspense` の fallback（skeleton）を画面として見る。skeleton は landmark も見出しも持たないことが
-多く、**違反が出ない方向へ倒れる**ので、待ち漏れは結果からは判らない。
+**What waits is the checks that evaluate the whole screen — capture and screen-level a11y.** Journeys wait
+for their target before interacting, so they do not need this declaration. a11y waits for the opposite
+reason to capture: evaluating before arrival sees the `Suspense` fallback (skeleton) as the screen.
+Skeletons often have neither landmarks nor headings, and **it fails in the direction of no violations**, so
+a missed wait cannot be seen in the result.
 
-## 落ちたときにどれをやるか
+## What to do when it fails
 
-**落ち方は 3 つあり、次にやることが違う。**撮り直しが直すのは画素だけで、残る 2 つは撮り直しても
-直らない。宣言が足りていないまま撮り直すと、その状態が次の正になる。
+**There are three ways to fail, and each calls for a different next step.** A retake fixes only pixels;
+the other two are not fixed by retaking. Retaking while a declaration is missing makes that state the next
+truth.
 
-| 落ち方 | 目印 | やること |
+| Failure | Marker | What to do |
 | --- | --- | --- |
-| 画面の宣言が足りない | `画面の宣言がありません` | [`lib/screens.ts`](lib/screens.ts) へ宣言を足す（後述「何を開くか」） |
-| ジャーニーが落ちた | `✘ … e2e/journeys/…` | trace を開いて原因を特定する。1 つの描画エンジンだけなら engine 固有の挙動か実行環境のゆらぎ |
-| 画素が違う | `toHaveScreenshot` / `A snapshot doesn't exist` | 変化が意図したものか確かめてから撮り直す（後述「基準画像は story 単位と同じ置き場に入る」） |
+| A screen declaration is missing | `画面の宣言がありません` | Add the declaration to [`lib/screens.ts`](lib/screens.ts) (see "What to open" below) |
+| A journey failed | `✘ … e2e/journeys/…` | Open the trace and pin down the cause. If only one rendering engine fails, it is engine-specific behavior or runtime flakiness |
+| Pixels differ | `toHaveScreenshot` / `A snapshot doesn't exist` | Confirm the change is intended, then retake (see "Baseline images go in the same store as story-level ones" below) |
 
-CI の失敗コメントもこの 3 つで出し分ける。**落ちた画面それぞれについて、なぜ変わったかを言える
-までは撮り直さない**（[docs/design/vrt.md#limitations](../docs/design/vrt.md#limitations)）。
+The CI failure comment is also split by these three. **Do not retake until you can say, for each failed
+screen, why it changed** (Limitations in [docs/design/vrt.md](../docs/design/vrt.md)).
 
-**再試行はしない**（`retries: 0`）。撮り直して通る差分が無いのと同じで、ジャーニーの再試行も不安定な
-経路を隠すだけである。1 つのエンジンだけで落ちる経路は、engine 固有の挙動か実行環境のゆらぎかを
-trace（`retain-on-failure`）で切り分ける。
+**No retries** (`retries: 0`). Just as there is no diff that passes by retaking, retrying a journey only
+hides an unstable path. A path that fails on only one engine is triaged with the trace
+(`retain-on-failure`) into engine-specific behavior or runtime flakiness.
 
-## アプリはホスト、ブラウザはコンテナ
+## The app on the host, the browser in the container
 
-ブラウザとフォントは digest を固定した Playwright 公式イメージが持つ
-（[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner`）。基準画像が
-一意なのは**どのイメージで撮ったか**によってであり、撮った人の環境によってではない
-（[vrt/README.md](../vrt/README.md#コンテナの中でしか撮らない)）。3 つの描画エンジンが揃った版で
-入っているのも、このイメージだけである。
+Browsers and fonts come from the official Playwright image pinned by digest (`browser_runner` in
+[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml)). Baseline images are unique **by which
+image captured them**, not by the environment of whoever captured them
+([vrt/README.md](../vrt/README.md#capture-only-inside-the-container)). This image is also the only one that ships
+all three rendering engines at matching versions.
 
-一方で**アプリはホストで起動する**。`node_modules` は入れた OS と CPU 向けに解決されるので、
-コンテナの中で `next start` を起動すると linux 向けのネイティブモジュールが無い。イメージの役目は
-ブラウザとフォントを固定することであって、アプリの実行環境を固定することではない。
+**The application, on the other hand, starts on the host.** `node_modules` is resolved for the OS and CPU
+it was installed on, so starting `next start` inside the container lacks the Linux native modules. The
+image's job is to pin browsers and fonts, not the application's runtime environment.
 
-起動と後片付けは `make e2e` が持つ。Playwright の `webServer` では起動できない —— コンテナの中から
-見た `127.0.0.1` はコンテナ自身である。コンテナの中から見たアプリの場所は `E2E_BASE_URL` で渡る。
+Startup and teardown are owned by `make e2e`. Playwright's `webServer` cannot start it — `127.0.0.1` seen
+from inside the container is the container itself. The app's location as seen from inside the container is
+passed as `E2E_BASE_URL`.
 
-**build の前に取得結果のキャッシュ（`.next/cache/fetch-cache`）を捨てる。**`cache: "force-cache"` を
-指定した取得はそこへ残り、CI では別のブランチの build が作ったものが復元される。残したまま撮ると、
-絵が木の状態ではなく「前の build が何をキャッシュしたか」で決まる。
+**The fetch result cache (`.next/cache/fetch-cache`) is discarded before the build.** Fetches specified
+with `cache: "force-cache"` remain there, and in CI the ones created by another branch's build are
+restored. Capturing with them left in place makes the picture depend on "what the previous build cached"
+rather than on the state of the tree.
 
-## バックエンドは要らない
+## No backend required
 
-`APP_API_MODE=mock` で起動する（`make e2e` は `APP_ENV=ci` を使う）。相手が実物のバックエンドだと、
-向こうのデータが変わるたびに落ち、落ちた理由が退行なのか向こうの都合なのか区別できない。
-設定がモードを指していなければ、実行の手前で落ちる（[`playwright.e2e.config.ts`](../playwright.e2e.config.ts)）。
+It starts with `APP_API_MODE=mock` (`make e2e` uses `APP_ENV=ci`). Against a real backend it would fail
+every time the data over there changed, and whether a failure is a regression or the other side's doing
+could not be told apart. If the configuration does not point at the mode, it fails before the run
+([`playwright.e2e.config.ts`](../playwright.e2e.config.ts)).
 
-**モックは同じ要求へ同じ応答を返す**（[`mocks/stable-responses.ts`](../mocks/stable-responses.ts)）。
-呼ぶたびに中身の変わるモックの上には、見た目の比較も中身の検証も載らない。
+**The mock returns the same response to the same request**
+([`mocks/stable-responses.ts`](../mocks/stable-responses.ts)). Neither appearance comparison nor content
+verification can stand on a mock whose content changes with every call.
 
-**固定の単位は要求 URL である。**一覧の取り方（頁の大きさ・絞り込み）を変えると別の要求になり、
-行の顔ぶれが入れ替わる。行の中の要素を待つ spec が要素なしで落ちたときは、まず一覧側の変更を
-疑う。動的区間へ入れる ID は実在する必要がない —— 契約駆動のモックはどの ID にも応える。
+**The unit of stability is the request URL.** Changing how a list is fetched (page size, filtering) makes a
+different request, and the set of rows changes. When a spec that waits for an element inside a row fails
+with no element, suspect a change on the list side first. IDs put in dynamic segments need not exist — the
+contract-driven mock answers any ID.
 
-**「いま」も固定する**（`CLOCK_FIXED_NOW` / [`src/config/clock`](../src/config/clock)）。応答を決める
-seed は要求の URL から導かれるので、暦日で区切る画面が実時計から区間を組み立てると、**URL が日ごとに
-変わり、その画面の値が総入れ替えになる**。撮った暦日のあいだしか一致しない基準画像になり、撮り直しても
-翌日また落ちる。日付を描く場所を `mask` で外しても届かない —— 外れるのは日付の表示であって、seed から
-生まれる値そのものは画面じゅうに散っている。
+**"Now" is pinned as well** (`CLOCK_FIXED_NOW` / [`src/config/clock`](../src/config/clock)). The seed that
+decides responses derives from the request URL, so if a screen that divides by calendar day builds its range
+from the real clock, **the URL changes every day and every value on that screen is replaced**. The baseline
+image then matches only during the calendar day it was captured, and even after a retake it fails again the
+next day. Masking where dates are rendered does not reach it — what is masked is the date display, while
+the values born from the seed are scattered across the whole screen.
 
-実時計を読む場所は `app` に置く。`features` は `config` を参照できないため（`architecture.ts`）、
-「いま」は合成の入口が解決して props で配る。
+The real clock is read in `app`. `features` cannot reference `config` (`architecture.ts`), so "now" is
+resolved by the composition entry point and passed down as props.
 
-ログイン済みの状態は、テスト専用の session 発行の口
-（`src/app/api/auth/test-session/route.dev.ts`）から作る。認証は OpenAPI 契約の外にあり、契約から
-生成したモックでは偽装できないためである。口が開くのは `local` / `ci` だけで、開いていない環境では
-`signIn` が落ちる —— 発行できたときの状態（204）以外を受け付けない。ログインできないまま先へ進むと、
-保護ルートの検証が「ログインへ飛ばされた」を正常として読む。
+The signed-in state is created through the test-only session issuing endpoint
+(`src/app/api/auth/test-session/route.dev.ts`). Authentication is outside the OpenAPI contract and cannot
+be faked by mocks generated from the contract. The endpoint opens only on `local` / `ci`; in environments
+where it is closed, `signIn` fails — it accepts nothing but the issued state (204). Proceeding without
+being able to sign in makes protected-route checks read "redirected to login" as correct.
 
-口の経路はアプリ側の宣言を [`lib/dev-session.ts`](lib/dev-session.ts) へ**写す**。読み込まないのは、
-feature と Route Handler の内部へ触れてよいのが app 層だけであり、検査の側がその境界を越えても
-eslint の境界検査は `src/**` しか見ないためである（[0021](../docs/adr/0021-frontend-responsibility.md)）。
-**写した先は 1 つに保つ。**叩く側が複数あり（ブラウザから叩く `lib/test.ts`、ホストのプロセスから
-叩く `scripts/lighthouse/`）、別々に写すと path を変えたときに片方だけが古い綴りを送り続ける。
-そのとき起きるのは「ログインへ送られた画面を計測して緑になる」ことで、赤くならない。面の経路の
-ずれは、宣言を build の出力と突き合わせる [`lib/screens.ts`](lib/screens.ts) が捕まえる。
+The endpoint's path **copies** the application-side declaration into
+[`lib/dev-session.ts`](lib/dev-session.ts). It is not imported because only the app layer may touch the
+internals of features and Route Handlers, and even if the checking side crossed that boundary, eslint's
+boundary check looks only at `src/**` ([0021](../docs/adr/0021-frontend-responsibility.md)). **Keep the copy
+in one place.** There are several callers (`lib/test.ts` from the browser, `scripts/lighthouse/` from a host
+process), and copying separately means that when the path changes, one of them keeps sending the old
+spelling. What happens then is "it measures the screen that was redirected to login and goes green"; it
+does not turn red. Drift in surface paths is caught by [`lib/screens.ts`](lib/screens.ts), which reconciles
+the declarations with the build output.
 
-## 画像は差し替える
+## Images are replaced
 
-配信元（`MEDIA_ORIGIN`）はモックしない。素通しにすると `next/image` の最適化が取得に失敗して
-500 を返し、見張りが全ての画面で鳴る。代わりに、**画像として要求されたもの**（`resourceType` が
-`image`）へ一律に 1×1 の絵を返している（[`lib/test.ts`](lib/test.ts)）。宛先ではなく絵であることで
-判るので、最適化を通す経路も通さない経路も同じ扱いになる。配信元の宛先を書き写して合わせないのは、
-設定の値を変えたときに古い宛先だけを見張り続けるためである。
+The media origin (`MEDIA_ORIGIN`) is not mocked. Passing it through makes `next/image` optimization fail to
+fetch and return 500, and the watcher fires on every screen. Instead, **anything requested as an image**
+(`resourceType` of `image`) gets a uniform 1×1 picture ([`lib/test.ts`](lib/test.ts)). It is identified by
+being a picture rather than by destination, so paths through the optimizer and paths that bypass it are
+treated alike. The origin's destination is not copied in to match, because changing the configured value
+would then leave it watching only the old destination.
 
-**画像の取得経路はここの射程外である。** 配信元が在るときの挙動は、ここでは確かめられない。
+**The image fetch path is out of scope here.** Behavior when a media origin exists cannot be verified here.
 
-## 何を異常と数えるか
+## What counts as an anomaly
 
-見張りは全ての spec に効く。spec ごとに書かせると、書き忘れた spec だけが「異常があっても緑」に
-なり、その状態は結果にも見た目にも現れない。
+The watcher applies to every spec. Having each spec write it would make only the specs that forgot it
+"green despite anomalies", and that state would show up in neither results nor appearance.
 
-| 出所 | 数える | 数えない |
+| Source | Counted | Not counted |
 | --- | --- | --- |
-| console の error | JavaScript が書いた行（React の hydration 不一致はこれ） | ブラウザ自身が書いた行（副資源の取得失敗の narration） |
-| 描画中の例外 | すべて | — |
-| 通信 | 5xx と transport の失敗 | 打ち切り（`net::ERR_ABORTED` など。綴りは描画エンジンごとに違う）と 4xx |
-| CSP 違反 | すべて（`securitypolicyviolation`） | — |
+| console error | Lines written by JavaScript (React's hydration mismatch is one) | Lines written by the browser itself (narration of subresource fetch failures) |
+| Exceptions during rendering | All | — |
+| Network | 5xx and transport failures | Aborts (`net::ERR_ABORTED` and the like; the spelling varies by rendering engine) and 4xx |
+| CSP violations | All (`securitypolicyviolation`) | — |
 
-**4xx を数えないのは、それがアプリの設計された結果だから**である。存在しない資源は 404 を返し、
-未認証は 401 を返す。どれも spec が名指しで確かめる対象であり、横断の見張りが一律に落とすと、
-確かめたい経路そのものを通せなくなる。5xx と transport の失敗は設計された結果になり得ないので、
-個別の spec ではなく見張りが持つ。
+**4xx is not counted because it is a designed result of the application.** A nonexistent resource returns
+404, an unauthenticated request returns 401. Each is something a spec verifies by name, and if a
+cross-cutting watcher failed them uniformly, the very paths you want to verify could not pass. 5xx and
+transport failures cannot be designed results, so the watcher owns them rather than individual specs.
 
-判定は [`lib/browser-errors.ts`](lib/browser-errors.ts) が持つ。見分け方の向きは 2 つある。
+The decision is owned by [`lib/browser-errors.ts`](lib/browser-errors.ts). There are two directions of
+discrimination.
 
-- **通信の打ち切りは文言で見分ける。**Playwright は打ち切りとそれ以外を区別して渡さず、残る手掛かりが
-  `errorText` しかない。文言に頼れるのは、**綴りを取りこぼしたときに出るのが偽陽性（赤くなる）で
-  あって見逃し（緑のまま）ではない**からで、沈黙に倒れない向きにだけ許す。一覧は回す描画エンジンに
-  閉じ、増えるのはエンジンを足したときだけである
-- **console の行は文言ではなく、引数を持つかで見分ける。**`console.error(...)` は引数を持ち、ブラウザ
-  自身が書いた行は持たない。ブラウザ自身の行を数えると、通信の側で既に判定した同じ出来事を 2 度
-  数えるうえ、そこで外したはずの 4xx が裏口から戻る
+- **Network aborts are discriminated by text.** Playwright does not pass aborts distinguished from other
+  failures, and `errorText` is the only clue left. Relying on text is allowed because **a missed spelling
+  produces a false positive (red), not a miss (still green)** — it is allowed only in the direction that
+  does not fall into silence. The list is confined to the rendering engines that are run, and grows only
+  when an engine is added
+- **console lines are discriminated not by text but by whether they carry arguments.** `console.error(...)`
+  carries arguments; lines the browser writes itself do not. Counting the browser's own lines would count
+  the same event already judged on the network side twice, and the 4xx excluded there would come back
+  through the back door
 
-**見張りの判定は、画面の検証が通ったあとに置く。**先に見ると、確かめたかった失敗が異常の報告に
-覆われる。失敗の文言には経路（console / 例外 / 通信 / CSP）を頭に出す —— 同じ症状でも直す場所が
-違う。
+**The watcher's verdict is placed after the screen's verification passes.** Looking first would bury the
+failure you wanted to verify under anomaly reports. The failure text leads with the path (console /
+exception / network / CSP) — the same symptom needs fixing in different places.
 
-**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行なので引数を持たず、上の
-規則で外される。document の `securitypolicyviolation` で受け、経路を分けて数える。購読は文書ごとに
-張り直す必要があるので初期化 script（`addInitScript`）に置き、`exposeBinding` で Node 側へ渡す
-（イベントそのものはブラウザの外へ持ち出せないため、直す場所を指すのに要る項目だけを読み出す）。見張りの外で
-書く spec が 1 つだけある —— [`journeys/csp.spec.ts`](journeys/csp.spec.ts) は宣言に無い配信元を
-自分で差して違反が報告されることを確かめるため、見張りの内側に置くと確かめた違反で落ちる。
+**CSP violations are not caught by the console watcher.** They are lines the browser writes itself, carry no
+arguments, and are excluded by the rule above. They are received via the document's
+`securitypolicyviolation` and counted as a separate path. The subscription has to be re-established per
+document, so it goes in an init script (`addInitScript`) and is passed to the Node side with
+`exposeBinding` (the event itself cannot be taken out of the browser, so only the fields needed to point at
+the place to fix are read out). One spec is written outside the watcher —
+[`journeys/csp.spec.ts`](journeys/csp.spec.ts) inserts an undeclared origin itself to verify that the
+violation is reported, so inside the watcher it would fail on the very violation it verified.
 
-## 同意は選び終えた状態から始める
+## Consent starts already chosen
 
-同意を尋ねる面は、選び終えるまで画面を覆う。
-[`lib/test.ts`](lib/test.ts) はこれを**拒否の側で選んだ状態**にしてから spec へ渡す。ジャーニーが
-確かめたいのはその先の画面であり、全ての spec が最初に同意を押すことになると、押し忘れた spec
-だけが「面に覆われたまま緑」になる。同意ではなく拒否から始めるのは、同意すると計測 id が配られ、
-どのジャーニーも本題と関係のない cookie を持つことになるためである。
+The consent surface covers the screen until a choice is made.
+[`lib/test.ts`](lib/test.ts) hands the spec a state where **the refusal side has been chosen**. Journeys want
+to verify the screens beyond it, and if every spec had to press consent first, only the specs that forgot
+would be "green while covered by the surface". It starts from refusal rather than consent because
+consenting hands out a measurement id, and every journey would carry a cookie unrelated to its subject.
 
-**この状態は `lib/test.ts` の便宜ではなく、画面を見る spec 全部の前提である。** 別の理由で
-`lib/test.ts` を使えない spec は、同じ状態を自分で作る —— [`maintenance/stopped.spec.ts`](maintenance/stopped.spec.ts)
-は 503 を意図した応答として確かめるため見張りの内側に置けないが、停止画面も器を通る以上、覆われる
-側は同じである。作らないと、面が周囲を `aria-hidden` にするため役割で引く問い合わせが空になる。
+**This state is not a convenience of `lib/test.ts` but a precondition of every spec that looks at
+screens.** A spec that cannot use `lib/test.ts` for another reason creates the same state itself —
+[`maintenance/stopped.spec.ts`](maintenance/stopped.spec.ts) verifies a 503 as the intended response and so
+cannot sit inside the watcher, but the maintenance screen also passes through the layout shell, so it is
+covered just the same. Without the state, the surface sets its surroundings to `aria-hidden`, and queries
+by role come back empty.
 
-**尋ねる面そのものを見る spec だけが、状態を作らない。**
-[`journeys/consent.spec.ts`](journeys/consent.spec.ts) は選ぶ前の状態を確かめるので、`lib/test.ts`
-ではなく Playwright の `test` を直接使う。CSP の spec と同じ理由で、見張りの内側に置けない側では
-なく**前提の内側に置けない**側である。
+**Only specs that look at the consent surface itself do not create the state.**
+[`journeys/consent.spec.ts`](journeys/consent.spec.ts) verifies the state before a choice, so it uses
+Playwright's `test` directly rather than `lib/test.ts`. Like the CSP spec, but it is the side that **cannot
+sit inside the preconditions**, not the side that cannot sit inside the watcher.
 
-### 見張りと前提の外に置く spec
+### Specs placed outside the watcher and the preconditions
 
-`lib/test.ts` の `test` は見張り（異常の判定）と前提（同意を選び終えた状態・画像の差し替え）を
-まとめて積む。**外に置けるのは、その内側では確かめたいものが確かめられない spec だけ**で、
-どれも Playwright の `test` を直接使い、冒頭でこの README の該当する節を指す。
+`test` in `lib/test.ts` stacks the watcher (anomaly detection) and the preconditions (consent already
+chosen, image replacement) together. **Only specs that cannot verify what they want to verify inside it may
+be placed outside**, and each uses Playwright's `test` directly and points at the relevant section of this
+README at the top.
 
-| spec | 外れるもの | 内側に置けない理由 |
+| spec | What it leaves out | Why it cannot sit inside |
 | --- | --- | --- |
-| CSP の enforce | 見張り | 宣言に無い配信元を自分で差して違反が報告されることを確かめる |
-| 同意を尋ねる面 | 前提 | 選ぶ前の状態を確かめる |
-| 配信の停止 | 見張り | 503 が意図した応答である。前提の側（同意の状態）は自分で作る |
-| 公開面（索引させる側） | 見張り・前提 | 絵として返るかを見たい相手を、絵に差し替えた上では確かめられない。開くのは画面ではなく応答なので、見張りも要らない |
+| CSP enforcement | Watcher | It inserts an undeclared origin itself to verify that the violation is reported |
+| Consent surface | Preconditions | It verifies the state before a choice |
+| Service suspension | Watcher | A 503 is the intended response. It creates the precondition side (the consent state) itself |
+| Public surface (indexable side) | Watcher, preconditions | What you want to see come back as a picture cannot be verified once replaced with a picture. It opens responses, not screens, so it needs no watcher either |
 
-### タグマネージャを読み込む側は、ここでは通らない
+### The tag-manager-loading branch is not exercised here
 
-`env/.env.ci` の容器 ID は空である。したがって **`script-src` に配信元を足し
-`Cross-Origin-Embedder-Policy` を降ろす分岐は、e2e でも DAST でも一度も踏まれない**。
+The container ID in `env/.env.ci` is empty. So **the branch that adds the origin to `script-src` and lowers
+`Cross-Origin-Embedder-Policy` is never taken, neither in e2e nor in DAST**.
 
-**CI から Google を叩かせないための選択である。** ここは画像を差し替え API をモックして、外部の
-状態で赤くならないようにしてある。実在の容器を撃つ spec を置くと、その原則をこの 1 本だけが破り、
-外部の可用性と容器の中身の変更が CI の色に混ざる。
+**This is a choice to keep CI from hitting Google.** Here images are replaced and the API is mocked so that
+external state cannot turn things red. A spec that hits a real container would make it the only one
+breaking that principle, mixing external availability and changes to the container's contents into CI's
+color.
 
-**代わりに担保しているもの**：ヘッダの組み立ては
-[`security-headers.test.ts`](../src/config/security-headers/security-headers.test.ts) が両方の配備で
-確かめ、読み込みの strategy は
-[`analytics.test.tsx`](../src/app/analytics.test.tsx) が固定する。**担保されていないのは、組み立てた
-ヘッダが実ブラウザで宣言どおり効くこと**だけである。
+**What covers it instead**: header assembly is verified for both deployments by
+[`security-headers.test.ts`](../src/config/security-headers/security-headers.test.ts), and the loading
+strategy is pinned by
+[`analytics.test.tsx`](../src/app/analytics.test.tsx). **The only thing not covered is that the assembled
+headers take effect as declared in a real browser.**
 
-**撤去条件**：外部へ出ずに CSP の enforce を確かめる手段が入ったとき（配信元を差し替えられる形の
-検査など）。そのときはこの節を消し、容器 ID を宣言した起動を 1 つ足す。
+**Removal condition**: when a way to verify CSP enforcement without going outside is introduced (a check
+whose origin can be swapped, for example). At that point, delete this section and add one startup that
+declares a container ID.
 
-## 帯とエンジンは宣言から引く
+## Bands and engines come from declarations
 
-**どちらもここに数値や銘柄を書かない。**
+**Neither has numbers or brand names written here.**
 
-- **帯**は [0051](../docs/adr/0051-styling-system.md) が 3 つに固定し、境界の値は design token
-  （`tokens/primitives.json`）が持つ。撮るのは**帯の下端** —— `min-width` で切り替わる以上、その帯の
-  指定が初めて効く幅であり、崩れるならまずそこで崩れる。モバイルだけは下端を token が持たない
-  （下限は [0102](../docs/adr/0102-browser-support.md) が用途依存としている）ので、上端（`md - 1`）を
-  撮る。組み立ては [`lib/viewports.ts`](lib/viewports.ts)
-- **エンジン**は [0102](../docs/adr/0102-browser-support.md) の「Next.js の既定 browserslist を追認
-  （モダンブラウザ）」から引く。モダンブラウザは実装としては 3 つの描画エンジンに畳まれ、
-  Playwright の `chromium` / `firefox` / `webkit` がそれぞれに対応する。**見ているのは 3 つだけで、
-  ブラウザの銘柄も版も見ていない。**版はイメージが決める。宣言は [`lib/browsers.ts`](lib/browsers.ts)
+- **Bands** are fixed at three by [0051](../docs/adr/0051-styling-system.md), and the boundary values are
+  held by the design tokens (`tokens/primitives.json`). Capture happens at **the lower edge of each band** —
+  since switching happens on `min-width`, that is the first width where the band's styling applies, and if
+  anything breaks it breaks there first. Only mobile has no lower edge in the tokens (the lower limit is
+  left use-case dependent by [0102](../docs/adr/0102-browser-support.md)), so its upper edge (`md - 1`) is
+  captured. Assembled in [`lib/viewports.ts`](lib/viewports.ts)
+- **Engines** derive from [0102](../docs/adr/0102-browser-support.md), which adopts Next.js's default
+  browserslist (modern browsers). Modern browsers collapse, as implementations, into three rendering
+  engines, each corresponding to Playwright's `chromium` / `firefox` / `webkit`. **Only those three are
+  checked; neither browser brands nor versions are.** The version is decided by the image. Declared in
+  [`lib/browsers.ts`](lib/browsers.ts)
 
-見た目を撮るのは 1 つのエンジンだけで、他の 2 つで見るのは**見た目ではなく成立**である。1 つに
-絞る理由と選んだエンジンは [`lib/browsers.ts`](lib/browsers.ts) の `SHOT_ENGINE` が持つ。
+Appearance is captured on one engine only; the other two check **that things hold, not how they look**.
+Why it is narrowed to one, and which engine was chosen, are owned by `SHOT_ENGINE` in
+[`lib/browsers.ts`](lib/browsers.ts).
 
-宣言から引くときに効いていること。
+What matters when deriving from declarations.
 
-- **`rem` は根の font-size 16px で px へ直す。**CSS の初期値であり、`html` の `font-size` を上書きして
-  いない限りこの値になる。上書きすると Tailwind のブレークポイントも一緒に動くので、上書きする側が
-  ここも動かす。受け付ける単位は `rem` と `px` だけで、他の単位は viewport の幅として比べられる値では
-  ないので落とす
-- **帯を決めるのは幅だけである。**高さは story 単位の撮影と同じ値に揃え、画面は全体を撮るので収まらない
-  分は縦に伸びる
-- **エンジンと Playwright のデバイス名の対応も宣言側（`lib/browsers.ts`）が持ち、テストがそのデバイスの
-  `defaultBrowserType` と突き合わせる。**設定ファイルに置かないのは、取り違えても実行が緑のままだから
-  である —— project 名が `firefox` でも渡すデバイスが別のエンジンなら、別のエンジンで回した結果がその
-  名前で報告され、cross browser で見たいものがそこで消える。綴りを誤ったエンジンも project の宣言では
-  通り実行時に初めて落ちるので、Playwright が起動できる名前であることもテストが固定する
+- **`rem` converts to px with a root font-size of 16px.** It is the CSS initial value and holds unless the
+  `font-size` of `html` is overridden. Overriding it moves Tailwind's breakpoints too, so whoever overrides
+  it also moves this. Only `rem` and `px` are accepted; other units are not values comparable as viewport
+  widths and are rejected
+- **Only width decides the band.** Height is aligned with story-level capture, and screens are captured
+  whole, so anything that does not fit extends vertically
+- **The mapping from engines to Playwright device names is also owned by the declaration side
+  (`lib/browsers.ts`), and a test reconciles it with each device's `defaultBrowserType`.** It is not put in
+  the configuration file because a mix-up would leave the run green — if the project name is `firefox` but
+  the device passed belongs to another engine, results from another engine are reported under that name,
+  and what cross browser was meant to check disappears right there. A misspelled engine also passes the
+  project declaration and fails only at runtime, so the test also pins that it is a name Playwright can launch
 
-## 画面単位の a11y は axe を 2 度掛ける
+## Screen-level a11y runs axe twice
 
-landmark・`main`・h1（`region` / `landmark-one-main` / `page-has-heading-one`）は axe では
-`best-practice` タグしか持たず、適合目標のタグ集合では走らない。**タグで範囲を宣言する限り、有効に
-したつもりでも評価されないままになる**ので、この 3 つは規則名で名指しして別に走らせる
-（[`lib/a11y-rules.ts`](lib/a11y-rules.ts) の `SCREEN_ONLY_RULES`）。タグで走る規則をこの列へ入れると
-同じ違反が 2 度並び、タグで走らない規則をこの列から落とすと一度も評価されない状態が黙って戻る ——
-どちらもテストが axe の登録と突き合わせて確かめる。配信される document 水準（`html-has-lang` /
-`document-title`）は `wcag2a` なのでタグの側で走り、story との違いは規則ではなく評価される document
-である。
+Landmarks, `main` and h1 (`region` / `landmark-one-main` / `page-has-heading-one`) carry only the
+`best-practice` tag in axe and do not run under the conformance target's tag set. **As long as the scope is
+declared by tags, they stay unevaluated even when you think they are enabled**, so these three are named by
+rule and run separately (`SCREEN_ONLY_RULES` in [`lib/a11y-rules.ts`](lib/a11y-rules.ts)). Putting a rule
+that runs by tag into this list makes the same violation appear twice, and dropping a rule that does not
+run by tag from this list silently restores the never-evaluated state — a test verifies both against axe's
+registry. The served-document level (`html-has-lang` / `document-title`) is `wcag2a` and runs on the tag
+side; the difference from stories is not the rules but the document that is evaluated.
 
-**適合目標と、タグ指定の副作用で有効化される規則の打ち消しは story 側（`vrt/lib/a11y-rules.ts`）から
-直に借りる。**目標は 1 つの決定で、検査地点ごとに別の水準を持つとどちらが正か読めなくなる。中立の
-置き場は作らない —— 借り手が 2 つのうちは共有の器を新設する代価に見合わず、3 つ目の検査地点が
-現れたら見直す。
+**The conformance target, and the cancellation of rules enabled as a side effect of tag selection, are
+borrowed directly from the story side (`vrt/lib/a11y-rules.ts`).** The target is one decision; with a
+different level per check point, nobody could tell which is correct. No neutral location is created — with
+two borrowers, setting up a shared container is not worth the cost; revisit when a third check point appears.
 
-**画面を名指しして外す規則の宣言は `lib/` だけが持ち、spec 側で `rules` を書けるようにしない** ——
-画面を足した人がその場で黙らせられる。置けるのは、取り除けない上流の実装が原因で、かつ実際には
-到達できないものだけで、宣言は理由・撤去条件・対象の画面を持つ。**「いまは直せない」は理由に
-ならない** —— 画面の違反は画面を直して消す。対象の数はテストが固定しており、増やすにはその数を
-更新する。更新が要ること自体が、無効化を足した事実を差分へ出す。
+**Declarations of rules excluded for named screens are held only by `lib/`, and specs are not allowed to
+write `rules`** — otherwise whoever added a screen could silence it on the spot. Only things caused by an
+upstream implementation that cannot be removed, and that are in fact unreachable, may be declared, and each
+declaration holds a reason, a removal condition and the target screens. **"It cannot be fixed right now" is
+not a reason** — a violation on a screen is removed by fixing the screen. The number of targets is pinned by
+a test, and adding one means updating that number. The need to update it puts the fact of adding a
+disablement into the diff.
 
-評価の手順で効いていること。
+What matters in the evaluation procedure.
 
-- **評価の前に遷移とアニメーションを止める。**色は遷移の途中にも存在し、`transition-colors` を持つ
-  部品が状態を変えると、変わり切るまでのあいだ前後のどちらでもない色が計算値として読める。
-  `color-contrast` はその値を測るので、止めずに掛けると設計が持たない色で落ち、同じ画面でも出たり
-  出なかったりする。撮影の側は Playwright が同じことを自前でやるので、こちらは明示して揃える
-- **DOM が静止するのは待たない。**受信の続く画面は書き換えが止まらず、待てば必ず時間切れになる。
-  止めるのは動きだけで、どの状態を測るかは `settled` が決める（前述）
-- **回すエンジンは 1 つである。**見ているのは DOM の構造で、描画エンジンでは変わらない。他のエンジンから
-  外すのは実行時の skip ではなく収集の段（`testIgnore`）で、実行時に飛ばすと飛ばす回数だけブラウザの
-  器が立つ
-- **違反は件数ではなく違反そのもの（規則・要素）を並べる。**出ないと、落ちた人は画面を開いて探し直す
+- **Transitions and animations are stopped before evaluation.** Colors exist mid-transition too, and when a
+  component with `transition-colors` changes state, a color that is neither before nor after can be read as
+  the computed value until it finishes. `color-contrast` measures that value, so running without stopping
+  fails on colors the design never had, and the same screen sometimes fails and sometimes does not. On the
+  capture side Playwright does the same thing itself, so here it is done explicitly to match
+- **It does not wait for the DOM to settle.** A screen that keeps receiving never stops being rewritten, and
+  waiting always times out. Only motion is stopped; which state is measured is decided by `settled` (above)
+- **It runs on one engine.** What it looks at is DOM structure, which does not vary by rendering engine.
+  Other engines are excluded at the collection stage (`testIgnore`) rather than with a runtime skip;
+  skipping at runtime starts a browser container as many times as it skips
+- **Violations are listed as the violations themselves (rule, element), not as counts.** Otherwise whoever
+  hits the failure has to open the screen and search again
 
-## 何を開くか
+## What to open
 
-開く画面は **build の出力から列挙し**、URL は **route ごとの宣言**から決める。一覧を手で持たない
-理由と、宣言の無い route・実体を失った宣言が落ちることは [`lib/screens.ts`](lib/screens.ts) の冒頭が
-持つ。
+The screens to open are **enumerated from the build output**, and URLs are decided by **per-route
+declarations**. Why the list is not held by hand, and that routes without declarations and declarations
+that lost their target fail, are owned by the top of [`lib/screens.ts`](lib/screens.ts).
 
-外してよいのは**開く手段が無い**画面だけである。「まだ書けていない」は理由にならない。
+Only screens with **no way to open them** may be excluded. "Not written yet" is not a reason.
 
-宣言 1 つは、開く画面なら `route` / `name` / `path` に、要るときだけ `signedIn` / `mask` / `settled` を
-添える。開かない route は `route` と `skip`（理由と、その理由が消える撤去条件）を持つ。
+A declaration for a screen to open has `route` / `name` / `path`, plus `signedIn` / `mask` / `settled` only
+when needed. A route not opened has `route` and `skip` (a reason, and a removal condition under which that
+reason disappears).
 
-- **保護された画面は撮れないのではなく、開き方が違うだけである。**session を持たずに開くとログインへ
-  送られ、撮れるのはログイン画面になる。`signedIn` に**役割まで**宣言するのは、認証だけでは足りない
-  経路があり、役割が足りないまま開くと送り返されてやはり目的の画面が撮れないためである
-- **外す宣言は理由と撤去条件を持つ。**同じ形は a11y の名指しの無効化（前述）と、実在しないことが
-  意図の経路（後述のゲート）にもある。外した状態が居座らないための共通の形で、理由の無い外しは
-  テストが落とす
-- **画面の名前は小文字・数字・ハイフンに限る**（[0028](../docs/adr/0028-naming-convention.md)）。効いて
-  いる先は命名規約だけではない —— 名前は基準画像のファイル名と、CI が PR へ書く表のセルへそのまま
-  出る。前者では区切りや `..` がパスを外れさせ、後者ではバッククォートや角括弧が Markdown を作る。
-  入口で狭めておけば、その先のどこでも濾し直さずに済む
-- **build の出力（対応表）の読み込みは spec の側に置く。**`lib/` が module の読み込み時に読むと、build
-  していない木では存在せず、Vitest から `lib/` を検査できない
-- **空への縮退は例外にする。**画面が 1 つも取れない対応表・段が 1 つも読めない token・1 件も該当しない
-  `E2E_ONLY` は、どれも 0 件で続けずに落とす。0 件で続けると、何も開かない実行・帯を持たない実行・
-  撮る対象の無い撮り直しが「異常なし」として緑で通る。経路のゲートも同じで、走査が空へ縮退して
-  いないことを先に見る
+- **Protected screens are not uncapturable; they are just opened differently.** Opened without a session,
+  they redirect to login, and what gets captured is the login screen. `signedIn` declares **down to the
+  role** because some paths need more than authentication, and opening with an insufficient role gets sent
+  back, again failing to capture the intended screen
+- **Exclusion declarations carry a reason and a removal condition.** The same shape exists for the named
+  a11y disablements (above) and for paths whose nonexistence is intended (the gate below). It is a shared
+  shape so that exclusions do not linger, and a test fails an exclusion without a reason
+- **Screen names are limited to lowercase letters, digits and hyphens**
+  ([0028](../docs/adr/0028-naming-convention.md)). The effect is not only the naming convention — names go
+  straight into baseline image file names and into the table cells CI writes to PRs. In the former,
+  separators and `..` escape the path; in the latter, backquotes and square brackets create Markdown.
+  Narrowing at the entry point means nothing downstream has to filter again
+- **Reading the build output (the mapping table) is placed on the spec side.** If `lib/` read it at module
+  load, it would not exist in an unbuilt tree, and `lib/` could not be checked from Vitest
+- **Degrading to empty is an exception.** A mapping table that yields no screens, tokens from which no step
+  can be read, and an `E2E_ONLY` that matches nothing all fail rather than continuing with zero. Continuing
+  with zero would let a run that opens nothing, a run with no bands, and a retake with nothing to capture
+  pass green as "no anomalies". The path gate is the same: it first checks that the scan has not degraded
+  to empty
 
-### URL で決まらないものが絵に出ていれば、そこが食い違いになる
+### Anything in the picture not determined by the URL becomes a mismatch
 
-同じ URL には同じ応答が返る（[`mocks/stable-responses.ts`](../mocks/stable-responses.ts)）。動的区間の
-ID を宣言で固定しているのはそのためである。**裏を返すと、URL で決まらない値が絵に出ていれば、基準
-画像はそれが変わった時点で合わなくなる。**要求時刻から導く値がその代表で、放っておくと撮った日を
-過ぎた画面が毎日落ちる。
+The same URL gets the same response ([`mocks/stable-responses.ts`](../mocks/stable-responses.ts)). That is
+why the IDs of dynamic segments are pinned in declarations. **Conversely, if a value not determined by the
+URL appears in the picture, the baseline image stops matching the moment it changes.** Values derived from
+the request time are the typical case; left alone, the screen fails every day after the day it was captured.
 
-**ブラウザ側の時計を固定しても届かない。**描いているのはサーバであり、story 単位の側が使う手立て
-（[`vrt/lib/clock.ts`](../vrt/lib/clock.ts)）はページの中の `Date` しか差し替えない。手立ては 2 つで、
-上から順に当てる。
+**Pinning the browser-side clock does not reach it.** What renders is the server, and the means the
+story-level side uses ([`vrt/lib/clock.ts`](../vrt/lib/clock.ts)) replaces only the `Date` inside the page.
+There are two means, applied in order from the top.
 
-1. **URL で条件を名指しできるなら、そうする。**それで応答も表示も決まるなら、絵は全面を検証できる
-2. **名指しできないなら、値を描く場所を `mask` で撮影から外す**（[`lib/screens.ts`](lib/screens.ts) の
-   `Screen.mask`）。**外すのは最小の範囲に留める** —— 広く覆うほど、崩れても気づけない面が増える
+1. **If the URL can name the condition, do that.** If that decides both response and display, the picture
+   can verify the whole screen
+2. **If it cannot be named, exclude the places that render the value from capture with `mask`**
+   (`Screen.mask` in [`lib/screens.ts`](lib/screens.ts)). **Keep the excluded area to a minimum** — the more
+   is covered, the more surface can break unnoticed
 
-利用者が実際に降り立つ状態を撮ることに意味があるなら、1 は使えない。そうした画面は既定の日付で
-開いたまま、日付の升目だけを外す。
+If capturing the state users actually land on matters, 1 cannot be used. Such screens stay opened at the
+default date, and only the date cells are excluded.
 
-## 基準画像は story 単位と同じ置き場に入る
+## Baseline images go in the same store as story-level ones
 
-置き場（サブモジュール `baseline/images`）は 2 種類の撮影が共有し、画面単位は `screen/` 区画に
-閉じる（[`baseline/`](../baseline/README.md)）。共有するのは、掃除も撮り直しも
-置き場 1 つに対して働くためで、分けると同じ機構を 2 組持つことになる。
+The store (the submodule `baseline/images`) is shared by both kinds of capture, with screen-level confined to
+the `screen/` area ([`baseline/`](../baseline/README.md)). It is shared because cleanup and retakes both act
+on one store; splitting it would mean holding two sets of the same mechanism.
 
-撮り直しの経路も同じである。**`baseline-retake` ラベルは story と画面の両方を撮り直す** —— 置き場も
-承認ラベルも 1 つである以上、撮り直しだけを 2 つに分ける理由が無い。範囲の決め方も同じで、E2E が
-出したレポート（artifact `e2e-report`）が報告した画面だけを撮り直す。**報告した集合と撮り直す集合を
-同じ出所から取る**のは、PR コメントが見せなかった画素が黙って置き場へ入らないようにするためで、
-E2E の報告が無い commit では画面を 1 枚も撮り直さない。1 対 1 の対応が落ちたときだけ全数へ倒れる
-——孤児は範囲を絞った撮り直しでは消えないため。
+The retake path is the same too. **The `baseline-retake` label retakes both stories and screens** — with one
+store and one approval label, there is no reason to split only the retake in two. The scope is decided the
+same way: only the screens reported by E2E's report (artifact `e2e-report`) are retaken. **The reported set
+and the retaken set come from the same source** so that pixels the PR comment never showed do not silently
+enter the store; on a commit with no E2E report, not a single screen is retaken. Only when the 1:1
+correspondence fails does it fall to a full retake — because orphans do not disappear in a narrowed retake.
 
-撮り直しと承認の関係も story 単位と同じである —— **撮り直しは承認ではない**。詳細は
-[vrt/README.md](../vrt/README.md#撮り直しと承認は別の操作)。
+The relationship between retake and approval is also the same as at the story level — **retaking is not
+approval**. Details in [vrt/README.md](../vrt/README.md#retaking-and-approving-are-separate-operations).
 
-撮る側で効いていること。
+What matters on the capturing side.
 
-- **撮る前に `document.fonts.ready` を待つ。**フォントは差し替わった瞬間に字形が変わり、待たずに撮ると
-  同じ画面が撮るたび違う絵になる
-- **`toHaveScreenshot` へは名前を配列（帯 / ファイル名）で渡す。**1 本の文字列にすると Playwright が
-  `/` をファイル名として無害化し、帯ごとに分かれず 1 階層へ平置きされる
-- **1 対 1 の対応の判定は story 単位と同じ問い**（在るべきものが在るか / 対応を失った画像が残って
-  いないか）なので [`baseline/lib/orphans`](../baseline/lib/orphans.ts) をそのまま使い、ここが持つのは
-  画面と帯から在るべきパスを組み立てる所だけである（[`lib/screen-baselines.ts`](lib/screen-baselines.ts)）。
-  区画の並びは `toHaveScreenshot` へ渡すものと一致していなければならず、食い違うと全数が孤児として
-  上がる
-- **対応は置き場に対して 1 回見れば足りる。**帯ごとの project すべてで走らせると同じ失敗が帯の数だけ
-  並ぶので、帯を 1 つ選んで走らせる。撮り直しの最中と、`E2E_ONLY` で範囲を絞った実行では見ない ——
-  在るべき画像の集合が絞った側に縮み、対象外の画像がすべて孤児として上がる
+- **Wait for `document.fonts.ready` before capturing.** Glyphs change the moment a font is swapped, and
+  capturing without waiting gives the same screen a different picture every time
+- **Pass names to `toHaveScreenshot` as an array (band / file name).** As a single string, Playwright
+  sanitizes `/` as part of the file name, and everything lands flat in one level instead of per band
+- **The 1:1 correspondence check asks the same question as at the story level** (does what should exist
+  exist / are there images left that lost their counterpart), so
+  [`baseline/lib/orphans`](../baseline/lib/orphans.ts) is used as is, and this side holds only the part that
+  builds the paths that should exist from screens and bands ([`lib/screen-baselines.ts`](lib/screen-baselines.ts)).
+  The order of areas must match what is passed to `toHaveScreenshot`; if they disagree, everything surfaces
+  as orphans
+- **Checking the correspondence once against the store is enough.** Running it in every per-band project
+  lists the same failure once per band, so one band is chosen to run it. It does not look during a retake or
+  in runs narrowed with `E2E_ONLY` — the set of images that should exist shrinks to the narrowed side, and
+  every out-of-scope image surfaces as an orphan
 
-## 構成
+## Structure
 
-| パス | 役割 |
+| Path | Role |
 | --- | --- |
-| [`lib/test.ts`](lib/test.ts) | 全 spec が使う `test`。異常の見張りと、ログイン済みの状態を作る手立て |
-| [`lib/browser-errors.ts`](lib/browser-errors.ts) | 何を異常と数えるかの判定 |
-| [`lib/browsers.ts`](lib/browsers.ts) | 回す描画エンジンと、見た目を撮るエンジンの宣言 |
-| [`lib/viewports.ts`](lib/viewports.ts) | design token から帯を組み立てる |
-| [`lib/screens.ts`](lib/screens.ts) | build の出力と宣言を突き合わせ、開く画面を決める |
-| [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | 画面と帯から、在るべき基準画像のパスを組み立てる |
-| [`lib/a11y-rules.ts`](lib/a11y-rules.ts) | 画面単位でだけ見る axe の規則と、画面を名指しして外す規則の宣言 |
-| [`lib/public-surface.ts`](lib/public-surface.ts) | 公開面の応答（robots / sitemap / 画面の本文）から確かめたい値を取り出す |
-| [`lib/dev-session.ts`](lib/dev-session.ts) | session 発行の口の経路。アプリ側の宣言の写し（写しは 1 つ） |
-| `journeys/` | ジャーニー・認証の前捌き・履歴・フォーカス・帯ごとの出し分け・CSP の enforce・別 origin・同意の面・索引させない側の公開面。3 つのエンジンで回る |
-| `visual/` | 画面単位の比較。1 つのエンジンで、帯の数だけ回る |
-| `a11y/` | 画面単位の a11y。1 つのエンジンで回る |
-| `maintenance/` | 配信を止めた状態の成立。**別の起動で回る**（前述） |
-| `metadata/` | 索引させる側の公開面。**別の build で回る**（前述） |
-| [`../playwright.e2e.config.ts`](../playwright.e2e.config.ts) | 実行環境と比較条件 |
-| [`../playwright.maintenance.config.ts`](../playwright.maintenance.config.ts) / [`../playwright.metadata.config.ts`](../playwright.metadata.config.ts) | 別の起動・別の build で回る側の設定。基準画像を撮らないのでエンジンは 1 つ |
-| [`../.makefiles/testing/e2e.mk`](../.makefiles/testing/e2e.mk) | build・起動・後片付け。画面ごとの Core Web Vitals（`make lighthouse`）も同じ起動に相乗りする |
+| [`lib/test.ts`](lib/test.ts) | The `test` every spec uses. The anomaly watcher, and the means to create the signed-in state |
+| [`lib/browser-errors.ts`](lib/browser-errors.ts) | The decision of what counts as an anomaly |
+| [`lib/browsers.ts`](lib/browsers.ts) | Declaration of the rendering engines run and the engine that captures appearance |
+| [`lib/viewports.ts`](lib/viewports.ts) | Builds the bands from the design tokens |
+| [`lib/screens.ts`](lib/screens.ts) | Reconciles the build output with the declarations and decides which screens to open |
+| [`lib/screen-baselines.ts`](lib/screen-baselines.ts) | Builds the paths of the baseline images that should exist from screens and bands |
+| [`lib/a11y-rules.ts`](lib/a11y-rules.ts) | The axe rules checked only at screen level, and the declarations of rules excluded for named screens |
+| [`lib/public-surface.ts`](lib/public-surface.ts) | Extracts the values to verify from public surface responses (robots / sitemap / screen bodies) |
+| [`lib/dev-session.ts`](lib/dev-session.ts) | The path of the session issuing endpoint. A copy of the application-side declaration (one copy only) |
+| `journeys/` | Journeys, authentication pre-handling, history, focus, per-band variation, CSP enforcement, cross-origin, the consent surface, the public surface of the non-indexable side. Runs on three engines |
+| `visual/` | Screen-level comparison. Runs on one engine, once per band |
+| `a11y/` | Screen-level a11y. Runs on one engine |
+| `maintenance/` | That service suspension holds. **Runs in a separate startup** (above) |
+| `metadata/` | The public surface of the indexable side. **Runs in a separate build** (above) |
+| [`../playwright.e2e.config.ts`](../playwright.e2e.config.ts) | Runtime environment and comparison conditions |
+| [`../playwright.maintenance.config.ts`](../playwright.maintenance.config.ts) / [`../playwright.metadata.config.ts`](../playwright.metadata.config.ts) | Configuration for the sides that run in a separate startup / separate build. They capture no baseline images, so one engine |
+| [`../.makefiles/testing/e2e.mk`](../.makefiles/testing/e2e.mk) | Build, startup, teardown. Per-screen Core Web Vitals (`make lighthouse`) ride on the same startup |
 
-## spec が指す経路は、実在する route でなければならない
+## Paths a spec points at must be real routes
 
-spec は開く先を文字列で書くので、**指す先が消えても型検査には掛からない**。実物で落ちるのは
-E2E だが、E2E は費用のため PR ごとには回らない（`.github/workflows/e2e.yaml`）。
-[`scripts/e2e-routes.gate.test.ts`](../scripts/e2e-routes.gate.test.ts) が、`*.spec.ts` の中の経路を
-`src/app` の実在する route と突き合わせてこの隙間を埋める。ゲートが拾うのは **`/` で始まる文字列
-リテラル**だけで、クエリとフラグメントと末尾の区切りを落として route と突き合わせる
-（[`scripts/lib/e2e-routes.ts`](../scripts/lib/e2e-routes.ts)）。経路はリテラルで書く。
+Specs write their destinations as strings, so **a destination that disappears is not caught by type
+checking**. The real failure is in E2E, but E2E does not run on every PR because of cost
+(`.github/workflows/e2e.yaml`). [`scripts/e2e-routes.gate.test.ts`](../scripts/e2e-routes.gate.test.ts)
+fills that gap by reconciling the paths in `*.spec.ts` with the real routes in `src/app`. The gate picks up
+only **string literals starting with `/`**, and matches them against routes after dropping the query, the
+fragment and any trailing separator ([`scripts/lib/e2e-routes.ts`](../scripts/lib/e2e-routes.ts)). Write
+paths as literals.
 
-実在しないことが**意図**である経路（保護の判定が接頭辞だけで決まることを見る `/account`、
-経路の有無に関わらず差し替わることを見る `/help`）は、理由を添えてそのゲートへ宣言する。
-「まだ画面が無い」は理由にならない。どの spec も指さなくなった宣言と、画面が置かれて実在する
-ようになった宣言は、どちらもゲートが落とす。
+Paths whose nonexistence is **intended** (`/account`, which checks that protection is decided by prefix alone,
+and `/help`, which checks replacement regardless of whether the path exists) are declared to that gate with
+a reason. "No screen yet" is not a reason. Declarations no spec points at any more, and declarations whose
+screen has since been placed and now exists, are both failed by the gate.
 
-`lib/` の宣言はこのゲートの対象ではない。あちらは build の出力と突き合わせる判定を自分で持ち、
-宣言の無い route も実体の無い宣言もそこで落ちる（[`lib/screens.ts`](lib/screens.ts)）。
+Declarations in `lib/` are not subject to this gate. They have their own check against the build output,
+where routes without declarations and declarations without a target both fail ([`lib/screens.ts`](lib/screens.ts)).
 
 <!-- sample:begin -->
-## 同梱サンプルを破棄すると何が消えるか
+## What disappears when the bundled sample is purged
 
-**消えるのは、確かめる相手が題材と一緒に居なくなる spec だけである。**該当するのは 5 本で、
-いずれも `journeys/` に居る。
+**Only specs whose subject disappears together with the sample disappear.** There are five, all in
+`journeys/`.
 
-| spec | 消える理由 |
+| spec | Why it disappears |
 | --- | --- |
-| `journeys/browse` | 通す遷移そのものが題材の画面である |
-| `journeys/responsive` | 残る画面に脇へ常設する領域が無い。帯そのものの組み立て（[`lib/viewports.ts`](lib/viewports.ts)）は残るので、そういう画面を置いた時点で書き足せる |
-| `journeys/overlay` | 被せた面と履歴が競合する画面が残らない |
-| `journeys/focus` | ドロワー・モーダル・メニューを持つ画面が残らない |
-| `journeys/not-found` | 1 件を指す取得を持ち、器の内側で不在を受ける画面が残らない |
+| `journeys/browse` | The transitions it runs through are the sample's screens themselves |
+| `journeys/responsive` | No remaining screen has a region permanently placed at the side. The band assembly itself ([`lib/viewports.ts`](lib/viewports.ts)) remains, so it can be written again once such a screen is placed |
+| `journeys/overlay` | No screen remains where an overlaid surface conflicts with history |
+| `journeys/focus` | No screen with a drawer, modal or menu remains |
+| `journeys/not-found` | No screen remains that fetches a single item and receives the absence inside the layout shell |
 
-**残る spec は、残る画面しか指してはならない。**機構を見る spec（同意・CSP・別 origin・公開面・
-認証の前捌き）はどれも題材を要求していないので、入口（`/`）・停止画面・ログインのいずれかを
-指す。破棄した木でこれが守られているかは、上のゲートが `purge-verify` の中で見る。
+**Remaining specs must point only at remaining screens.** The specs that check mechanisms (consent, CSP,
+cross-origin, public surface, authentication pre-handling) require no sample, so they point at the entry
+(`/`), the maintenance screen or login. Whether this holds in the purged tree is checked by the gate above
+inside `purge-verify`.
 
-**入口（`/`）は破棄後も残る。**題材の画面が占めているので削除の対象だが、破棄の最後に動作確認用の
-最小ページが置き直される（`scripts/setup/remove-sample/sample-manifest.ts` の
-`SAMPLE_RESTORATIONS`）。不在の面から戻る導線・役割の足りない要求の戻り先・サイトマップが挙げる
-公開経路が、いずれもこの経路を指しているためである。
+**The entry (`/`) remains after the purge.** The sample's screen occupies it, so it is a deletion target,
+but a minimal page for checking operation is placed back at the end of the purge (`SAMPLE_RESTORATIONS` in
+`scripts/setup/remove-sample/sample-manifest.ts`). The way back from the not-found surface, the return
+destination for requests lacking a role, and the public paths the sitemap lists all point at this path.
 <!-- sample:end -->
 
-`tmp/e2e/` に出る実行結果（trace / HTML レポート / サーバのログ）は追跡しない。
+The run results written to `tmp/e2e/` (traces / HTML report / server logs) are not tracked.
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../docs/adr/0021-frontend-responsibility.md) — アプリ側の宣言を写すときに越えている境界
-- [0028](../docs/adr/0028-naming-convention.md) — 画面の名前に許す綴り
-- [0043](../docs/adr/0043-middleware-policy.md) — 認証の前捌きが立つ位置
-- [0044](../docs/adr/0044-seo-metadata-strategy.md) — 公開面（metadata / robots / sitemap / アイコン）の規約
-- [0051](../docs/adr/0051-styling-system.md) — 帯の段数と、動きを止めて撮る根拠
-- [0053](../docs/adr/0053-ui-component-interaction-seam.md) — 被せた面の焦点と履歴
-- [0073](../docs/adr/0073-pagination-fetch-boundary.md) — 読み進めた件数が URL へ出ること
-- [0079](../docs/adr/0079-auth-frontend-seam.md) — 認証の front 側の受け持ち
-- [0090](../docs/adr/0090-testing-strategy.md) — 層別責務と、相手をモックに固定する理由
-- [0091](../docs/adr/0091-test-verification-methods.md) — 実ブラウザでしか負えない観点
-- [0100](../docs/adr/0100-accessibility-target.md) — 適合目標（WCAG 2.x レベル AA）
-- [0102](../docs/adr/0102-browser-support.md) — 回す描画エンジンの引き出し元
-- [0111](../docs/adr/0111-csp-security-headers.md) — CSP の enforce と別 origin の前捌き
-- [0131](../docs/adr/0131-cookie-consent.md) — 同意を尋ねる面の扱い
-- [0153](../docs/adr/0153-ci-configuration.md) — 公開の面へ出す文字集合
+- [0021](../docs/adr/0021-frontend-responsibility.md) — the boundary crossed when copying the application-side declaration
+- [0028](../docs/adr/0028-naming-convention.md) — the spellings allowed in screen names
+- [0043](../docs/adr/0043-middleware-policy.md) — where authentication pre-handling stands
+- [0044](../docs/adr/0044-seo-metadata-strategy.md) — conventions for the public surface (metadata / robots / sitemap / icons)
+- [0051](../docs/adr/0051-styling-system.md) — the number of bands, and the basis for stopping motion before capture
+- [0053](../docs/adr/0053-ui-component-interaction-seam.md) — focus and history of overlaid surfaces
+- [0073](../docs/adr/0073-pagination-fetch-boundary.md) — the number of items loaded appearing in the URL
+- [0079](../docs/adr/0079-auth-frontend-seam.md) — what the front end owns in authentication
+- [0090](../docs/adr/0090-testing-strategy.md) — per-layer responsibilities, and why the counterpart is pinned to a mock
+- [0091](../docs/adr/0091-test-verification-methods.md) — the perspectives only a real browser can carry
+- [0100](../docs/adr/0100-accessibility-target.md) — the conformance target (WCAG 2.x Level AA)
+- [0102](../docs/adr/0102-browser-support.md) — where the rendering engines to run come from
+- [0111](../docs/adr/0111-csp-security-headers.md) — CSP enforcement and cross-origin pre-handling
+- [0131](../docs/adr/0131-cookie-consent.md) — handling of the consent surface
+- [0153](../docs/adr/0153-ci-configuration.md) — the character set allowed on public surfaces

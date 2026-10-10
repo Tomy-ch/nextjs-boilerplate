@@ -32,4 +32,4 @@ Read `.claude/skills/full-verify/prompts/verify-impl.md` and apply it verbatim. 
 
 ## Output
 
-Exactly as `prompts/verify-impl.md` 「出力要件」 specifies: Japanese markdown body only, severity-ordered findings (重大度 / ファイル:行 / 問題 / 根拠 / 修正案), target + basis location on line 1, no preamble / summary / praise. **If the unit has zero findings, output the single line `問題なし`** (never empty — this is the completion marker the orchestrator uses for resume/skip). Your final message **is** the `mod_<id>.md` body the orchestrator writes — return it directly.
+Exactly as the "Output Requirements" section of `prompts/verify-impl.md` specifies: Japanese markdown body only, severity-ordered findings (重大度 / ファイル:行 / 問題 / 根拠 / 修正案), target + basis location on line 1, no preamble / summary / praise. **If the unit has zero findings, output the single line `問題なし`** (never empty — this is the completion marker the orchestrator uses for resume/skip). Your final message **is** the `mod_<id>.md` body the orchestrator writes — return it directly.

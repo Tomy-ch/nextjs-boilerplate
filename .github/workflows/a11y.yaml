@@ -23,7 +23,7 @@ name: Accessibility
 # ## Deferred, and the three layers below it
 #
 # The expensive steps stand down on an ordinary pull request; the cadence that replaces them
-# is README.md § 先送りにする検査. Both questions this job asks have to say yes, and a third
+# is README.md § Deferred Checks. Both questions this job asks have to say yes, and a third
 # layer sits below them — the input hash `make a11y` computes. What each layer decides is in
 # `vrt/README.md`.
 
@@ -189,7 +189,7 @@ jobs:
           path: tmp/a11y/verified-inputs.sha256
           key: a11y-verified-${{ github.run_id }}
 
-      # A job that stood down still owes the pull request a verdict (README § PR コメント,
+      # A job that stood down still owes the pull request a verdict (README § PR Comments,
       # the `diff-scope` bullet). The body file is the one the comment job reads, so it has
       # to be written here too.
       - name: Note that axe did not run
@@ -198,7 +198,8 @@ jobs:
         shell: bash
         env:
           # Compared in the shell rather than interpolated into it. Why the two stand-down
-          # reasons stay distinguishable: README.md, "降りた理由は 2 つあり、書き分ける".
+          # reasons stay distinguishable: README.md,
+          # "Two reasons for skipping, reported separately".
           DEFERRED: ${{ steps.trigger.outputs.run != 'true' }}
         run: |
           if [ "${DEFERRED}" = "true" ]; then
@@ -233,7 +234,7 @@ jobs:
           if-no-files-found: error
 
       # One issue per branch, reopened rather than duplicated — README.md,
-      # "PR の外で落ちたら、issue にする".
+      # "A failure outside a PR becomes an issue".
       #
       # This is what the deferred cadence costs. A violation now lands and is found after the
       # merge, so the finding has to arrive somewhere a human looks rather than in a run nobody
@@ -273,7 +274,7 @@ jobs:
 
           # Degrades to a fixed body rather than failing: the step that raises the issue does
           # not gate on this one, so a failure here would file an empty issue (README.md,
-          # "PR の外で落ちたら、issue にする").
+          # "A failure outside a PR becomes an issue").
           pnpm exec tsx scripts/ci-report issue-body \
             --heading '違反の詳細:' \
             --kind authored \
@@ -283,7 +284,7 @@ jobs:
             printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/a11y-guard.md
 
       # Minted rather than using `GITHUB_TOKEN` for its rate limit; falls back when the app
-      # is absent (README § PR コメント).
+      # is absent (README § PR Comments).
       - name: Mint a token for the issue
         id: api-token
         if: env.BASELINE_APP_ID != ''

@@ -37,7 +37,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 | --- | --- |
 | `src/adapters/README.md` の frontmatter | `forbidden` タグ / `test-requirement` / `imports-allowed` |
 | `src/adapters/README.md` の `## Audit Criteria` | 口が満たすべき行。計画はその 1 行ずつに答える |
-| `src/adapters/README.md` の分類・寿命・資格情報・URL の予算・taint の節 | どの接続口か、`allowAnonymous` を立てるか、寿命を持つか・どう持つか、結果を汚すか |
+| `src/adapters/README.md` の分類・寿命・資格情報・URL の予算・taint のセクション | どの接続口か、`allowAnonymous` を立てるか、寿命を持つか・どう持つか、結果を汚すか |
 | `src/adapters/server/http/README.md` | 口が通る接続口と要求境界 |
 | `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメータ・宣言された応答・生成スキーマ <!-- skill-lint-ignore --> |
 | `scripts/gen/` | `pnpm gen adapter` が何を置き、どんな次の手順を出すか |
@@ -72,12 +72,12 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 
 | 問い | 導く元 |
 | --- | --- |
-| 分類と接続口 | README の分類の節を、operation の `security` と、応答が主体で変わるかに当てる |
-| 要求の `allowAnonymous` | README の資格情報の節を、operation の `security` に当てる |
-| 寿命（`use cache`・profile 名・tag）か、寿命なし | README の寿命の節と、`next.config.ts` が宣言する profile |
-| 結果の taint | README の taint の節と、表示用の型が運ぶ項目についての ADR 0112 の分類 |
+| 分類と接続口 | README の分類のセクションを、operation の `security` と、応答が主体で変わるかに当てる |
+| 要求の `allowAnonymous` | README の資格情報のセクションを、operation の `security` に当てる |
+| 寿命（`use cache`・profile 名・tag）か、寿命なし | README の寿命のセクションと、`next.config.ts` が宣言する profile |
+| 結果の taint | README の taint のセクションと、表示用の型が運ぶ項目についての ADR 0112 の分類 |
 | 表示用の型と写し | Step 0 の表示用の型と、生成された応答の型 |
-| URL の予算 | operation が条件を query に載せるときの、README の URL の予算の節 |
+| URL の予算 | operation が条件を query に載せるときの、README の URL の予算のセクション |
 
 **出所から答えられない問いがあれば、止まって引き渡す** —— 問い、読んだ出所、何が決まれば答えられるかを
 名指す。好みで選んだ寿命、パスから当て推量した分類、`security` を読まずに立てた `allowAnonymous`、PII かが

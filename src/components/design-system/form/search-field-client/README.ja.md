@@ -34,7 +34,7 @@
 - 一覧の主導線で、打鍵しながら結果を絞り込みたい場合（`commit` はデフォルトのまま）
 - 取得が重く、打鍵ごとの呼び出しを待ち時間でまとめたい場合
 - 検索語がほかの条件と並び、まとめて確定する場合（`commit` に `submit` を選ぶ）
-- server を持たない利用側（静的サイトとして配信する [`docs-viewer`](../../../../../docs-viewer/README.md) など）で、検索語を client の state に持って結果をその場で絞る場合。`searchParams` を読み直す server が居ないので、下の「結果は Server Component でレンダリングする」はこの場合には当たりません
+- server を持たない利用側（静的サイトとして配信する [`docs-viewer`](../../../../../docs-viewer/README.ja.md) など）で、検索語を client の state に持って結果をその場で絞る場合。`searchParams` を読み直す server が居ないので、下の「結果は Server Component でレンダリングする」はこの場合には当たりません
 
 JavaScript が無くても送信できる形が要る場合や、検索が主導線でない場合は `SearchFieldNative` を使います。候補集合から選ぶことがゴールの UI には `Command` を使います。
 

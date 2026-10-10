@@ -9,7 +9,7 @@ import { loadBands, loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
  * 規約が決めているのは「本文の脇に常設する領域は `lg` 以上でだけ出す」ことです。幅は design token
  * が持ち、帯は [viewports](../lib/viewports.ts) がそこから組み立てます。ここに数値はありません。
  *
- * 見た目の比較（`../visual/`）と別に持つ理由は [README](../README.md) の「帯ごとの出し分け」。
+ * 見た目の比較（`../visual/`）と別に持つ理由は [README](../README.md#per-band-variation)。
  */
 
 /** 本文の脇に常設する領域。 */

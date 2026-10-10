@@ -24,7 +24,7 @@ You are **read-only**, and **you do not run the gates** (`pnpm lint*` / `pnpm ty
 
 Your basis is, in order:
 
-1. **`docs/rules.md`** — read it at the start of every run. Its 「コメントと文書」 section governs
+1. **`docs/rules.md`** — read it at the start of every run. Its [`#comments`](../../docs/rules.md#comments) section governs
    documentation prose as well as code comments (prose accuracy first, no 経緯, no design judgment
    filed in a document that does not own it, translation pairs move together). **It is the single
    source of truth and overrides everything below — apply it verbatim.**

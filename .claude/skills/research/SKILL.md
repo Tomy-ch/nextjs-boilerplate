@@ -271,8 +271,8 @@ This skill produces `決めるべきこと` and stops. It does not adopt an opti
 issue, or start implementing — and it does not invoke `new-issue` for you.
 
 **The gap between a recommendation and a decision is the whole point of the step.** A recommendation
-that flows straight into implementation was never reviewed by anyone; `docs/rules.md`
-(*作業とエージェント*) puts the areas no Accepted ADR decides behind a human gate precisely so that
+that flows straight into implementation was never reviewed by anyone; [`docs/rules.md#workflow`](../../../docs/rules.md#workflow)
+puts the areas no Accepted ADR decides behind a human gate precisely so that
 the option surviving to code is one somebody chose. The route onward is human approval, then `new-issue`.
 
 ## Do / Do NOT

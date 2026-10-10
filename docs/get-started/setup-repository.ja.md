@@ -15,7 +15,7 @@
 | --- | --- |
 | [mise](https://mise.jdx.dev) | ツール / ランタイムのバージョン管理。**シェルで activate しておくこと**（[0003](../adr/0003-version-manager.ja.md)） |
 | GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
-| Docker | 手順 8 でのみ使う。ベースライン画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.md)） |
+| Docker | 手順 8 でのみ使う。ベースライン画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.ja.md)） |
 
 ## 1. 手元を用意する
 
@@ -45,7 +45,7 @@ make setup-repo
 **破壊的**。既存タグをローカルと `origin` の両方から全削除し、`v0.0.0` を打ち直す。
 `develop` / `staging` / `production` を作り、デフォルトブランチ・ルールセット・ラベル、および
 ドキュメントサイトの配信設定（Pages を Actions 配信にし、`production` からの配信を許可する）を
-入れる。中身は [`.makefiles/README.md`](../../.makefiles/README.md) を参照。
+入れる。中身は [`.makefiles/README.md`](../../.makefiles/README.ja.md) を参照。
 
 **配信の許可は、忘れると原因が読めない形で落ちる。** `github-pages` environment が配信元ブランチを
 許可していないと、`docs-deploy` は job としては起動するが step を 1 つも実行せずに失敗する。
@@ -62,7 +62,7 @@ make setup-repo
    読むのに要る（[0110](../adr/0110-security-operations.ja.md)）。有効化そのものに課金は無い
    （**このリポジトリでは `dependency-review` job もこれを読む**ため、無効のままだと「このリポジトリでは使えない」で落ちる。設定を入れるまでコード側では直せない）
 3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
-   1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
+   1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.ja.md)）
 
 ## 4. 自分のリポジトリの姿にする
 
@@ -146,7 +146,7 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 **破棄の変更は、手順 7 で自分の契約を入れるまで commit しない。** 破棄は題材の契約の宣言も消すため、
 直後の `openapi/sources.yaml` は宣言が 0 本になり、読み取りで拒否される。同じ読み取りを通る
 `make api-gen-check` は commit 時の hook（`openapi/**` を触った commit）と CI の両方で落ちるので、
-破棄だけを先に commit・push することはできない（[`openapi/README.md`](../../openapi/README.md)）。
+破棄だけを先に commit・push することはできない（[`openapi/README.md`](../../openapi/README.ja.md)）。
 
 ### 破棄後に自分で書き換えるもの
 
@@ -163,7 +163,7 @@ make setup-remove-sample   # DRY_RUN=1 でプレビュー
 
 `env/.env.local` と `env/.env.ci` の接続先は、破棄すると**どれも実在しない置き場所**になる
 （`APP_API_BASE_URL` / `MEDIA_ORIGIN` / `AUTH_ISSUER` / `AUTH_CLIENT_ID`）。値の意味と、どこまでが
-必須かは [`env/README.md`](../../env/README.md)。`MEDIA_ORIGIN` は画像を 1 枚も置かない間も必須で、
+必須かは [`env/README.md`](../../env/README.ja.md)。`MEDIA_ORIGIN` は画像を 1 枚も置かない間も必須で、
 `next/image` の許可 host と CSP の `img-src` をこの値だけが決める。
 
 **破棄とは別に、供給されているデフォルトそのものを見直す。** ここが挙げるのは破棄が直接壊すものだけで、
@@ -179,7 +179,7 @@ make api-gen
 ```
 
 座標の書き方と、`name` を変えたときに一緒に動く綴りは
-[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点) が持つ。
+[`openapi/README.md`](../../openapi/README.ja.md#boilerplate-導入時の変更点) が持つ。
 
 **ベースライン画像を撮る前に済ませる。** 画面単位の撮影は契約から生成したモックの応答でレンダリングするため、契約より先に撮ると、入れ替えた時点で全数を撮り直すことになる。
 
@@ -243,7 +243,7 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
 `Pull requests` が要るのは、保護されたブランチ（`release/**` / `hotfix/**` と各環境のブランチ）では
-撮り直しがポインタを直接 push できず、PR で入れるためである（[`vrt/README.md`](../../vrt/README.md)）。
+撮り直しがポインタを直接 push できず、PR で入れるためである（[`vrt/README.md`](../../vrt/README.ja.md)）。
 
 > **後から権限を足したときは、installation 側で承認するまで効かない。** App の設定を変えただけでは
 > 足りず、`https://github.com/settings/installations/<id>` に出る "Review request" を通す。承認して
@@ -278,7 +278,7 @@ gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
 ### 8-4. 最初のベースライン画像を撮る
 
 Docker が要る。**2 つある。**置き場は story 単位と画面単位で共有し、区画だけが分かれる
-（[`baseline/README.md`](../../baseline/README.md)）。片方だけ撮ると、もう片方は「ベースライン画像が無い」で
+（[`baseline/README.md`](../../baseline/README.ja.md)）。片方だけ撮ると、もう片方は「ベースライン画像が無い」で
 全数落ちる。全数を撮るので時間がかかる。
 
 ```bash
@@ -295,8 +295,8 @@ after=<撮影したコミット>
 count=<動いた枚数>
 ```
 
-以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。画面単位の側は
-[`e2e/README.md`](../../e2e/README.md) を見る。
+以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.ja.md) が正。画面単位の側は
+[`e2e/README.md`](../../e2e/README.ja.md) を見る。
 
 ## 9. 認証済みの画面を手元で見る
 
@@ -320,5 +320,5 @@ pnpm lint:ci && pnpm typecheck && APP_ENV=local pnpm build && pnpm test
 ```
 
 CI 側は PR を 1 本立てれば全ジョブが回る。落ちたジョブの引き先は
-[`.github/workflows/README.md`](../../.github/workflows/README.md)、詰まったときは
+[`.github/workflows/README.md`](../../.github/workflows/README.ja.md)、詰まったときは
 [`.claude/skills/repo-ops`](../../.claude/skills/repo-ops/SKILL.ja.md)。

@@ -137,7 +137,7 @@ jobs:
           sarif_file: devskim.sarif
           category: devskim
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: devskim
     if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.devskim.result) }}

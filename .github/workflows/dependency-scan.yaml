@@ -388,7 +388,7 @@ jobs:
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: [dependency-scan, dependency-audit, dependency-gate]
     if: >-

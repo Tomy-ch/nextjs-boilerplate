@@ -21,7 +21,7 @@ name: Lighthouse
 #
 # The measurement does not run on an ordinary pull request. The cost that forces that, the
 # cadence that replaces it, and the two diff shapes that measure without a label are in
-# README.md § 先送りにする検査 and the Lighthouse row of the workflow table. What is specific
+# README.md § Deferred Checks and the Lighthouse row of the workflow table. What is specific
 # here: a screen added on this branch has no earlier number for the release run to compare
 # against, so deferring it defers the comparison and not only the detection.
 #
@@ -48,8 +48,8 @@ on:
 # ## How the measurement is split across machines
 #
 # `lighthouse-shard` is the fan-out and `lighthouse` collects what came back (README.md,
-# 「並列度に台数を書かない」, owns when a matrix may divide work at all). Four properties are
-# this job's own:
+# "Do not write a machine count into parallelism", owns when a matrix may divide work at
+# all). Four properties are this job's own:
 #
 # **Never inside one machine.** What is measured is CPU-bound (TBT, LCP), so two measurements
 # on one runner take each other's CPU and the numbers stop meaning anything against the budget.
@@ -472,7 +472,7 @@ jobs:
 
           # Degrades to a fixed body rather than failing: the step that raises the issue does
           # not gate on this one, so a failure here would file an empty issue (README.md,
-          # "PR の外で落ちたら、issue にする").
+          # "A failure outside a PR becomes an issue").
           pnpm exec tsx scripts/ci-report issue-body \
             --kind "${kind}" \
             --evidence /tmp/lighthouse-evidence.md \

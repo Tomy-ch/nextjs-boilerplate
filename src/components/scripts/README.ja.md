@@ -8,7 +8,7 @@
 
 **レンダリングを持たない Node 側のツーリングは `unit` である。** 宣言を自分で持たないと、機械の解決は親の
 `src/components/README.md` の `component` を継ぎ、レンダリングも a11y も持たないここへ、レンダリングを前提にした
-観点が当たる（[`scripts/README.md`](../../../scripts/README.md) も同じ理由で `unit` を宣言する）。
+観点が当たる（[`scripts/README.md`](../../../scripts/README.ja.md) も同じ理由で `unit` を宣言する）。
 
 ## 実行
 

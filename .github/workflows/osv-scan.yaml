@@ -236,7 +236,7 @@ jobs:
         run: exit 1
 
   # Report-only by design, so a finding leaves the job green and the failure notification
-  # below can never fire for one. Why only the weekly run notifies is in README.md § 通知.
+  # below can never fire for one. Why only the weekly run notifies is in README.md § Notifications.
   notify-detection:
     needs: osv-scan
     if: ${{ github.event_name == 'schedule' && needs.osv-scan.outputs.status == 'findings' }}
@@ -247,7 +247,7 @@ jobs:
     secrets:
       slack-webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: [osv-scan, osv-gate]
     if: >-

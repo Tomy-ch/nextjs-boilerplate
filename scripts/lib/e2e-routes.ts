@@ -1,6 +1,6 @@
 // E2E の spec が指す経路と、実在する route を突き合わせる判定。走査と宣言は
 // [`../e2e-routes.gate.test.ts`](../e2e-routes.gate.test.ts) が持ち、なぜこの検査が要るかは
-// [`e2e/README.md`](../../e2e/README.md)「spec が指す経路は、実在する route でなければならない」。
+// [`e2e/README.md#paths-a-spec-points-at-must-be-real-routes`](../../e2e/README.md#paths-a-spec-points-at-must-be-real-routes)。
 //
 // ソースから文字列リテラルを拾う字句走査は [`string-literals.ts`](string-literals.ts) が持つ。
 // あちらが追うのは TypeScript の綴り方で、ここが追うのは App Router の route 規約である。

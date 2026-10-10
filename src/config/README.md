@@ -193,7 +193,7 @@ Request handling
 `loadEnvironment()` loads with `override: false`, so it does not overwrite variables CI / PaaS has already injected.
 `env/.env.dev`, `.env.stg` and `.env.prd` hold values only for what is the same regardless of deployment and for
 that environment's policy values; connection targets and secrets get only their names, and the real values are supplied from the PaaS environment settings or a secret
-store (for the line format, see Writing the Files in [`env/README.md`](../../env/README.md#ファイルの書き方)).
+store (for the line format, see Writing the Files in [`env/README.md`](../../env/README.md#writing-the-files)).
 
 An unspecified `APP_ENV` is returned as `null` and does not fall back to a default. File selection, allowing bundled secret values,
 and opening and closing development-only endpoints all look at this selector, so having a default would make it impossible to tip "unset"
@@ -265,7 +265,7 @@ What it holds is the shape of the building.
 ## What to Change When Adopting
 
 This kernel only validates values that come from environment variables; **the values themselves are held by
-[`env/README.md`](../../env/README.md#boilerplate-導入時の変更点).** What is written here are
+[`env/README.md`](../../env/README.md#what-to-change-when-adopting).** What is written here are
 the defaults baked into code without going through environment variables.
 
 | What | Default | Where to change |

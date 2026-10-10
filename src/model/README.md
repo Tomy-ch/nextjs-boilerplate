@@ -194,7 +194,7 @@ lacking the role). Rewrite them to the routes you protect.
 (it would match every path, the login route itself would become protected, and navigation would loop). The reason is held by
 the doc comment of `ROUTE_POLICIES`.
 
-The two files in `generated/` are generated artifacts from `tokens/` and are not fixed by hand ([`tokens/README.md`](../../tokens/README.md#boilerplate-導入時の変更点)).
+The two files in `generated/` are generated artifacts from `tokens/` and are not fixed by hand ([`tokens/README.md`](../../tokens/README.md#what-to-change-when-adopting)).
 
 ## Operations
 

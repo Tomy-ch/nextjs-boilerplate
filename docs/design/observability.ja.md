@@ -47,7 +47,7 @@ Edge runtime とブラウザでは 1〜6 のどれも走らない（`NEXT_RUNTIM
 
 `OBS_TRACES_EXPORTER` / `OBS_METRICS_EXPORTER` / `OBS_LOGS_EXPORTER` は **`otlp` だけが有効**で、`none` と空文字列は無効である。無効な signal は exporter も batch processor も metric reader も作らない。endpoint は `OTEL_EXPORTER_OTLP_ENDPOINT` の base に `/v1/<signal>` を足して組む（`getSignalEndpoint`）。
 
-`OBS_RENDER_SPANS`（`none` / `screen` / `part`）は signal ではなく、**何を計装するか**の軸である。`OBS_TRACES_EXPORTER=none` にしても、他の signal が有効なら `NodeSDK` は tracer provider を立て、span は記録されたうえで捨てられる —— 出力がゼロになるだけで計装のコストは残る。だから範囲を独立に持つ。値の一覧は [`env/README.md`](../../env/README.md) が持つ。
+`OBS_RENDER_SPANS`（`none` / `screen` / `part`）は signal ではなく、**何を計装するか**の軸である。`OBS_TRACES_EXPORTER=none` にしても、他の signal が有効なら `NodeSDK` は tracer provider を立て、span は記録されたうえで捨てられる —— 出力がゼロになるだけで計装のコストは残る。だから範囲を独立に持つ。値の一覧は [`env/README.md`](../../env/README.ja.md) が持つ。
 
 ## 注入は registered symbol で渡す
 

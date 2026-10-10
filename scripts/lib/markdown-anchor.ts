@@ -22,7 +22,7 @@ const CLOSING_HASHES = /[ \t]#+$/;
  * GitHub は `id` を `user-content-` 付きで描き、断片の解決も同じ規則で行うため、指す側は接頭辞を
  * 書きません。ここもそれに合わせて綴りをそのまま採ります。
  *
- * 見出しの slug ではなく明示の錨を正とする判断は、[scripts](../README.md)「関連する ADR」が持ちます。
+ * 見出しの slug ではなく明示の錨を正とする判断は、[scripts](../README.md#related-adrs)が持ちます。
  */
 const EXPLICIT_ANCHOR = /(?<=<a\s[^<>]*\bid=")[^"]+/gi;
 

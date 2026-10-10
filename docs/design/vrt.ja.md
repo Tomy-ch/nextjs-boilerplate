@@ -5,7 +5,7 @@
 # VRT の機構
 
 story 単位の visual regression が、どのコンポーネントでどう組み上がっているか。決定は
-[ADR 0091](../adr/0091-test-verification-methods.ja.md)、使い方は [`vrt/README.md`](../../vrt/README.md)、
+[ADR 0091](../adr/0091-test-verification-methods.ja.md)、使い方は [`vrt/README.md`](../../vrt/README.ja.md)、
 初回の用意（ベースライン画像の置き場・GitHub App・最初の撮影）は [セットアップ手順](../get-started/setup-repository.ja.md) が正。ここは**全体の composition**
 だけを持つ。
 
@@ -183,7 +183,7 @@ PR のレビューではなくラベルに取るのは、判断の対象が PR �
 
 **本番を見ない。** 比較は story のレンダリングで閉じているので、実行時の設定や feature flag で見た目が変わる
 コンポーネントは、story が与えた props の姿しか撮られない。「本番でだけ崩れている」は検知できない。これは
-赤くなる側ではなく**沈黙する側**の穴で、画面単位の比較（[e2e](../../e2e/README.md)）を足しても、
+赤くなる側ではなく**沈黙する側**の穴で、画面単位の比較（[e2e](../../e2e/README.ja.md)）を足しても、
 モックで回す以上は残る。
 
 **pointer を持たない。** hover でだけ現れる面は、story の play が focus まで進めていなければ一度も

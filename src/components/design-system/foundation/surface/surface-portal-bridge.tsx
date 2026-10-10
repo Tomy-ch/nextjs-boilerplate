@@ -20,8 +20,9 @@ export type SurfacePortalBridgeProps = {
  * @remarks
  * **描画するものを持ちません。** `Dialog` / `Popover` / `DropdownMenu` / `Sheet` / `Tooltip` /
  * `ContextMenu` は Radix の Portal で `document.body` 直下へ出るため、系統の属性を本文の内側に
- * 置くだけでは overlay の中身が属性の外へ落ちます（`tokens/README.md`「属性を置く場所は、Portal
- * を含む位置でなければならない」）。この component はその出口にも同じ系統を載せます。
+ * 置くだけでは overlay の中身が属性の外へ落ちます
+ * （[`tokens/README.md`](../../../../../tokens/README.md#where-the-attribute-goes-must-contain-the-portal)）。
+ * この component はその出口にも同じ系統を載せます。
  *
  * **本文の側の属性を置き換えるものではありません。** 本文は server が描いた時点で正しい系統を
  * 持ち、初回の描画に切り替わりが現れません。ここが受け持つのは、**hydration より前には存在

@@ -168,7 +168,7 @@ done
 if [ -n "$PRIMARY_BASIS_DOCS" ]; then
   BASIS="設計文書あり（意図の正）: ${PRIMARY_BASIS_DOCS}"
 else
-  BASIS="一般原則のみ（意図未文書化）。構造起因の指摘は全てこの基準前提で読むこと。検証不能な点は『検証不能（基準欠如）』と記す。"
+  BASIS="一般原則のみ（意図未文書化）。構造起因の指摘は全てこの基準前提で読むこと。検証不能な点は「検証不能(基準欠如)」と記す。"
 fi
 echo "$BASIS" > "$STRUCT/basis.txt"
 log "基準: $BASIS"

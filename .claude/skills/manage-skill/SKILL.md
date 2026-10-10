@@ -129,8 +129,8 @@ The current members of each family are the coverage table of that ADR — read i
 than a list kept here.
 
 If the proposed skill would establish a new convention, pattern, or library in an area no Accepted
-ADR decides yet, **stop and defer the ADR decision to the user** (`docs/rules.md`,
-*作業とエージェント*). Do not let a skill become the place a convention gets decided implicitly.
+ADR decides yet, **stop and defer the ADR decision to the user** ([`docs/rules.md#workflow`](../../../docs/rules.md#workflow)). Do not let a skill become
+the place a convention gets decided implicitly.
 
 Prefer extending an existing skill over adding a near-duplicate. Granularity is
 "one invocation = one operation" (ADR 0154).

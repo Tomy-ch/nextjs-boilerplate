@@ -4,7 +4,7 @@
 
 # デザインシステムの書き出し
 
-このスキルは、デザインシステムをリポジトリの外へ取り出し、デザインツールの前に置く。デザイン作業を、推測ではなく実際のトークンと実際の component 目録の上で行わせるためである。
+このスキルは、デザインシステムをリポジトリの外へ取り出し、デザインツールの前に置く。デザイン作業を、推測ではなく実際のトークンと実際の component インベントリの上で行わせるためである。
 
 script ではなくスキルとして存在する理由は、ADR [0055](../../../docs/adr/0055-design-system-export.ja.md) が引いている線にある。**成果物はツール非依存で、運び方はそうではない。** `scripts/design-bundle` はどの SaaS も知らないし、その状態を保たなければならない。特定の vendor 名をリポジトリの恒久文書へ持ち込むことは ADR [0010](../../../docs/adr/0010-standards-and-non-lockin.ja.md)（標準準拠と非ロックイン）に反する。したがって vendor の形をしたものはすべてここに置く。ここだけを差し替えれば、リポジトリに触れずに送り先を替えられる。
 
@@ -20,7 +20,7 @@ script ではなくスキルとして存在する理由は、ADR [0055](../../..
 
 - **component を変更する場合。** 編集は `src/components/` の下で行い、[`components/README.md`](../../../src/components/README.ja.md) が規約を持つ。このスキルは読むだけである
 - **story や component のドキュメントを書く場合。** それは通常の component 作業である
-- **何かをリポジトリへ戻す場合。** 依存の向きは repo → design で固定されている — 「一方向の規律」節を参照
+- **何かをリポジトリへ戻す場合。** 依存の向きは repo → design で固定されている — 「一方向の規律」セクションを参照
 
 ## 一方向の規律
 
@@ -49,7 +49,7 @@ pnpm design:bundle
 | パス | 何か | 何に効くか |
 | --- | --- | --- |
 | `r/*.json` | shadcn registry の item。各 component のソースを inline で持ち、title と用途が付く | registry を読めるツールはこれを直接取り込む。それ以外でもソースとして読める |
-| `catalog.md` | 目録。層・見出し・用途・その component が**持たない**もの・story 名 | どの assistant にもまず渡すもの。デザインシステム全体が 1 ファイルで読める |
+| `catalog.md` | インベントリ。層・見出し・用途・その component が**持たない**もの・story 名 | どの assistant にもまず渡すもの。デザインシステム全体が 1 ファイルで読める |
 | `tokens.css` | 生成済みの semantic token | 色と余白。自前で変数を組むデザインツールに要るのは component のソースではなくこちら |
 
 `tmp/` は gitignore されている。**bundle を commit しない。** 派生物であり、commit するとデザインシステムの写しが 2 つになり、component から乖離していく。
@@ -64,14 +64,14 @@ Claude・v0・Lovable などにデザインシステムの取り込み API は�
 
 1. `catalog.md` から渡す。これが地図であり、先に読んだ assistant は他のすべてについて良い問いを立てる
 2. 色・余白・組版に触れる作業なら `tokens.css` を足す
-3. その作業が関係する `r/<component>.json` を足す。レジストリを丸ごと添付しない。目録は `catalog.md` にあり、ソースの壁は肝心の問いを押し流す
-4. 受け取り側へ制約を明示する。**出力は提案であって、そこからリポジトリを編集することはない。** ツールは貼り戻すためのコードを出そうとするのが既定なので、先に言うと答えがデザインに集中する
+3. その作業が関係する `r/<component>.json` を足す。レジストリを丸ごと添付しない。インベントリは `catalog.md` にあり、ソースの壁は肝心の問いを押し流す
+4. 受け取り側へ制約を明示する。**出力は提案であって、そこからリポジトリを編集することはない。** ツールは貼り戻すためのコードを出そうとするのがデフォルトなので、先に言うと答えがデザインに集中する
 
 ### 送り先 B — Figma
 
 Figma はファイルを渡して届く相手ではない。REST API はデザイン内容を作らない。frame・component・variable を作るのは Plugin API で、実行主体は Figma エディタの中である。したがって経路は script ではなく、Figma へ届くエージェントになる。
 
-作り直さず委譲する。`figma-generate-library` plugin skill がまさにこの仕事のためにあり、コードベースから Figma のデザインシステムを作る（variable・component の variant・トークンの束縛を含む）。`figma-use` は下回りの操作を扱う。両者を読み込み、bundle を正として渡す。
+作り直さず委譲する。`figma-generate-library` plugin skill がまさにこの仕事のためにあり、コードベースから Figma のデザインシステムを作る（variable・component の variant・トークンのバインドを含む）。`figma-use` は下回りの操作を扱う。両者を読み込み、bundle を正として渡す。
 
 - `tokens.css` が Figma variable の入力になる。semantic token が variable collection に対応し、primitive がその値になる
 - `catalog.md` が何をどの順で作るかを決める。層ごとに、他の層が合成する `design-system` から先に作る
@@ -86,7 +86,7 @@ Figma ファイルへ書き込む前に利用者へ確認する。library の作
 - bundle の場所と、対象になった component の件数
 - 送り先へ実際に渡したものと、意図して渡さなかったもの
 - Figma の場合、どのファイルへ書き、そこに何を作ったか
-- bundle が運べないもの。描画済みの HTML もスクリーンショットも持たない。story は JavaScript が描くため、どちらを作るにも headless browser が要り、このリポジトリはそれを導入していない。送り先が component を読むのではなく**見る**必要がある場合は、bundle で足りたかのように書かず、そのまま伝える
+- bundle が運べないもの。レンダリング済みの HTML もスクリーンショットも持たない。story は JavaScript が描くため、どちらを作るにも headless browser が要り、このリポジトリはそれを導入していない。送り先が component を読むのではなく**見る**必要がある場合は、bundle で足りたかのように書かず、そのまま伝える
 
 ## 検証
 

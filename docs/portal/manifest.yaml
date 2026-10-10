@@ -98,17 +98,33 @@ layers:
 operations:
   - src: .github/workflows/README.md
     dst: docs/portal/guides/workflows.md
+  - src: .github/workflows/README.ja.md
+    dst: docs/portal/guides/workflows.ja.md
   - src: .makefiles/README.md
     dst: docs/portal/guides/makefiles.md
+  - src: .makefiles/README.ja.md
+    dst: docs/portal/guides/makefiles.ja.md
   - src: env/README.md
     dst: docs/portal/guides/env.md
+  - src: env/README.ja.md
+    dst: docs/portal/guides/env.ja.md
   - src: tokens/README.md
     dst: docs/portal/guides/tokens.md
+  - src: tokens/README.ja.md
+    dst: docs/portal/guides/tokens.ja.md
   - src: docs-viewer/README.md
     dst: docs/portal/guides/docs-viewer.md
+  - src: docs-viewer/README.ja.md
+    dst: docs/portal/guides/docs-viewer.ja.md
   - src: vrt/README.md
     dst: docs/portal/guides/vrt.md
+  - src: vrt/README.ja.md
+    dst: docs/portal/guides/vrt.ja.md
   - src: e2e/README.md
     dst: docs/portal/guides/e2e.md
+  - src: e2e/README.ja.md
+    dst: docs/portal/guides/e2e.ja.md
   - src: mocks/README.md
     dst: docs/portal/guides/mocks.md
+  - src: mocks/README.ja.md
+    dst: docs/portal/guides/mocks.ja.md

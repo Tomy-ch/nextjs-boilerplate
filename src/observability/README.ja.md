@@ -124,7 +124,7 @@ Next.js 自身の計装が v1.0 前の命名のままであり、このカーネ
 
 ## signal の有効化
 
-`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。レンダリングの範囲を決める `OBS_RENDER_SPANS` は signal ではないので、この gate とは別に効く（trace 自体が無効ならレンダリング span も出ない）。変数の一覧と環境別の供給方法は [env/README.ja.md](../../env/README.md) を参照する。
+`OTEL_EXPORTER_OTLP_ENDPOINT` は OTLP HTTP の base endpoint を、`OBS_TRACES_EXPORTER`、`OBS_METRICS_EXPORTER`、`OBS_LOGS_EXPORTER` は signal ごとの有効化を表す。各値は `otlp`、`none`、または空文字列であり、`otlp` だけが有効である。base endpoint には各 signal の `/v1/traces`、`/v1/metrics`、`/v1/logs` を自動付与する。無効な signal は exporter、batch processor、metric reader を生成しない。レンダリングの範囲を決める `OBS_RENDER_SPANS` は signal ではないので、この gate とは別に効く（trace 自体が無効ならレンダリング span も出ない）。変数の一覧と環境別の供給方法は [env/README.ja.md](../../env/README.ja.md) を参照する。
 
 ## 実行機序
 
@@ -134,7 +134,7 @@ Next.js は Node.js サーバーを準備すると `src/instrumentation.ts` の 
 
 - OTLP と公式 semconv のみを使用する
 - 実装時に設定値を注入し、vendor 固定を避ける
-- local 開発の送り先は `OTEL_EXPORTER_OTLP_ENDPOINT` のデフォルト（手元の collector の OTLP HTTP）で、collector と閲覧面はこのリポジトリの外で立てる。値は [env/README.ja.md](../../env/README.md) が持つ
+- local 開発の送り先は `OTEL_EXPORTER_OTLP_ENDPOINT` のデフォルト（手元の collector の OTLP HTTP）で、collector と閲覧面はこのリポジトリの外で立てる。値は [env/README.ja.md](../../env/README.ja.md) が持つ
 - バックエンドや collector に合わせて endpoint、`service.name`(`OBS_SERVICE_NAME`)、signal 有効化を設定する。`service.name` は同じ trace に載る他サービスと異なる値にする。Grafana、Sentry、Faro などの SDK をこのカーネルへ直接固定しない
 - Next.js が自前で張る `fetch` span は、span 名に query 付きの URL をそのまま載せる。名前がリクエストごとに散って集計の単位にならないので、抑止するなら `NEXT_OTEL_FETCH_DISABLED=1` を使う。同じ外向き通信は Undici instrumentation の span が覆い、そちらの名前は経路だけを持つ
 

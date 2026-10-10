@@ -4,155 +4,165 @@ test-requirement: unit
 
 # baseline
 
-基準画像の置き場と、その置き場に対して働く操作（撮り直し・送出・承認・掃除）を持つ。
-**story 単位の撮影（[vrt](../vrt/README.md)）と画面単位の撮影（[e2e](../e2e/README.md)）が
-1 つを共有する**ため、どちらにも属さないここに置いてある。
+Holds the store of baseline images and the operations that act on it (retake, push, approve, clean up).
+**Story-level capture ([vrt](../vrt/README.md)) and screen-level capture ([e2e](../e2e/README.md)) share
+one store**, so it lives here, belonging to neither.
 
-| どこ | 何 |
+| Where | What |
 | --- | --- |
-| `images/` | **サブモジュール**。基準画像の置き場を指す gitlink |
-| [`lib/store.ts`](lib/store.ts) | 置き場の区画割り。2 種類の撮影の住み分け、撮り直し中かの判定、全数撮り直しの前に消す範囲 |
-| [`lib/orphans.ts`](lib/orphans.ts) | 置き場にある画像と、在るべき画像の突き合わせ。ずれをレポートへ運ぶ注記の型 |
-| [`lib/report-gap.ts`](lib/report-gap.ts) | 突き合わせの結果を、Playwright の注記へ載せる |
-| [`lib/targets.ts`](lib/targets.ts) | 置き場へ積んだ差分から、見直しの入口が取る対象名への逆変換 |
+| `images/` | **Submodule.** The gitlink pointing at the baseline image store |
+| [`lib/store.ts`](lib/store.ts) | The store's area layout: how the two kinds of capture divide it, whether a retake is in progress, and what is cleared before a full retake |
+| [`lib/orphans.ts`](lib/orphans.ts) | Reconciling the images in the store with the images that should exist. The annotation type that carries mismatches into the report |
+| [`lib/report-gap.ts`](lib/report-gap.ts) | Puts the reconciliation result into Playwright annotations |
+| [`lib/targets.ts`](lib/targets.ts) | The reverse mapping from the diff pushed to the store back to the target names the review entry points take |
 
-**ここに置くのは、2 種類の撮影が同じ答えを出す問いだけである。** 在るべき一覧の組み立ては撮影
-対象の数え方が違うので、それぞれが持つ
-（[vrt](../vrt/lib/expected-baselines.ts) / [e2e](../e2e/lib/screen-baselines.ts)）。対応の検査に
-付ける tag も同じ理由で各側が持つ。逆に、置き場のパスから対象名を取る向きは区画割りだけで
-決まるので、ここが 1 つ持つ。
+**Only questions to which both kinds of capture give the same answer live here.** Building the list of what
+should exist differs because each counts its capture targets differently, so each side owns it
+([vrt](../vrt/lib/expected-baselines.ts) / [e2e](../e2e/lib/screen-baselines.ts)). The tag attached to the
+reconciliation check is owned by each side for the same reason. Conversely, deriving a target name from a
+store path is decided by the area layout alone, so this directory holds the single copy.
 
-## 置き場を 1 つにしている理由
+## Why there is one store
 
-承認の単位が**置き場のポインタ 1 つ**だからである。撮り直しだけを 2 つに割ると、1 つのラベルで
-承認する範囲を 2 つのラベルで撮り直すことになり、承認と撮影の粒度がずれる。掃除も同じで、
-生きた ref から到達しない一式を落とす操作は置き場 1 つに対して働く。
+Because the unit of approval is **one store pointer**. Splitting only the retake in two would mean retaking
+under two labels what is approved under one, and the granularity of approval and capture would diverge.
+Cleanup is the same: dropping the sets unreachable from live refs is an operation on one store.
 
-区画は `screen/` が画面単位、それ以外が story の系統である。story の系統がこの予約区画を
-名乗っていないことは撮影のたびに、撮る前に検査する（[`lib/store.ts`](lib/store.ts) の
-`assertAreaUnclaimed`）。撮った後では両者の画像が同じ場所に混ざり、分けられない。
+The `screen/` area is screen-level; everything else is story groups. That no story group claims this
+reserved area is checked on every capture, before capturing (`assertAreaUnclaimed` in
+[`lib/store.ts`](lib/store.ts)). After capture, both kinds of image would be mixed in one place and could
+not be separated.
 
-## 置き場の形
+## Shape of the store
 
 ```text
-<区画>/…/<対象名>.png
+<area>/…/<subject>.png
 ```
 
-置き場の中身が満たす条件は 3 つで、`lib/` の関数はすべてこの上に立っている。
+The store's contents satisfy three conditions, and every function in `lib/` stands on them.
 
-- **ファイル名は撮影対象の名前そのもの**である。story の id も画面の名前も、拡張子を外した
-  basename がそのまま撮り直しの範囲（`VRT_ONLY` / `E2E_ONLY`）や見直しの入口に渡せる名前になる。
-  逆変換（`baselineName` / `retakenTargets`）が basename しか見ないのはこのためで、名前を変換して
-  ファイル名にすると、逆変換に写しの表が要る。
-- **区画の並びは、撮影が `toHaveScreenshot` へ渡す配列と、在るべき一覧を組み立てる側とで一致
-  させる。** 食い違うと全数が孤児として上がる。`toHaveScreenshot` には配列で渡す —— 1 本の
-  文字列にすると Playwright が `/` をファイル名として無害化し、区画に分かれず 1 階層へ平置きされる。
-- **置き場の直下には画像の区画以外の要素がある。** 根の `README.md`
-  （[置き場の README](../.github/settings/baseline-store/readme-template.md)）と、絵を決める入力の
-  ハッシュ `render-inputs.sha256`（[vrt](../vrt/README.md)）である。だから数えるときは拡張子で
-  絞り、消すときは残す側を列挙する。
+- **The file name is the capture target's name itself.** For both story ids and screen names, the basename
+  without the extension is directly a name that can be passed to the retake scope (`VRT_ONLY` / `E2E_ONLY`)
+  or to a review entry point. This is why the reverse mapping (`baselineName` / `retakenTargets`) looks only
+  at the basename; if names were transformed into file names, the reverse mapping would need a copy of the
+  mapping table.
+- **The order of areas must match between the array capture passes to `toHaveScreenshot` and the side that
+  builds the list of what should exist.** If they disagree, everything surfaces as orphans. Pass an array to
+  `toHaveScreenshot` — as a single string, Playwright sanitizes `/` as part of the file name, and everything
+  lands flat in one level instead of in areas.
+- **The store's top level holds elements other than image areas.** The root `README.md`
+  ([the store's README](../.github/settings/baseline-store/readme-template.md)) and
+  `render-inputs.sha256`, the hash of the inputs that decide the pictures ([vrt](../vrt/README.md)). So
+  counting filters by extension, and deleting enumerates what to keep.
 
-## 対応の検査は両方向
+## The reconciliation check runs both ways
 
-置き場の整合は、**孤児**（撮影対象を失った基準画像）と**欠け**（基準画像を持たない撮影対象）の
-両方向で見る。片方向では足りない —— 比較を省いた実行では Playwright が「画像を持たない撮影
-対象」を落とさないので、孤児だけを見ると基準画像が欠けたまま緑で通る。
+Store consistency is checked in both directions: **orphans** (baseline images whose capture target is gone)
+and **gaps** (capture targets without a baseline image). One direction is not enough — in a run that skips
+comparison, Playwright does not fail "a capture target without an image", so checking only orphans lets a
+missing baseline image pass green.
 
-見つけたずれは、落とすだけでなく**Playwright の注記へ載せる**（`baseline-orphan` /
-`baseline-missing`、[`lib/report-gap.ts`](lib/report-gap.ts)）。撮り直しはレポートしか読めないため、
-名前が載っていないと孤児と範囲外を区別できず全数へ落ち、報告されていない画像まで置き直される。
+Mismatches found are not only failed but **put into Playwright annotations** (`baseline-orphan` /
+`baseline-missing`, [`lib/report-gap.ts`](lib/report-gap.ts)). The retake can read only the report, so
+without the names it cannot tell orphans from out-of-scope images, falls back to a full retake, and
+re-places even images nobody reported.
 
-| 注記 | 撮り直しが取る行動 | 載せる理由 |
+| Annotation | What the retake does | Why it is recorded |
 | --- | --- | --- |
-| `baseline-orphan` | **消す**。撮る相手が居ないので、撮り直しでは直らない | 消す相手を名指しできないと、全数の撮り直しに落ちる |
-| `baseline-missing` | **撮る**。報告された差分と合わせて範囲にする | 比較を省いた実行のため。比較した実行では撮影そのものが落ちて一覧に載る |
+| `baseline-orphan` | **Deletes it.** There is nothing to capture, so a retake does not fix it | Without naming what to delete, it falls back to a full retake |
+| `baseline-missing` | **Captures it.** Added to the scope together with the reported diffs | For runs that skip comparison. In a run that compares, the capture itself fails and appears in the list |
 
-検査は全数実行のときだけ走る。範囲を絞った実行では、対象外の画像と孤児を区別できない
-（[vrt/README.md](../vrt/README.md)）。置き場に対して 1 回見れば足りるので、帯や台を複数持つ側は
-1 つだけを選んで走らせる。
+The check runs only on full runs. A narrowed run cannot tell out-of-scope images from orphans
+([vrt/README.md](../vrt/README.md)). Checking the store once is enough, so a side with several bands or
+rigs picks just one to run it.
 
-**撮り直しの最中は見ない。** 撮影は並行して走るので、検査は他の撮影の途中経過を欠けとして読む。
-守るのはコミットされた状態であって、書き込み中の置き場ではない。最中かどうかは**撮り直しを
-起こした側が `BASELINE_RETAKE=1` で明示する**（`make vrt-update` / `make e2e-update`）。Playwright の
-`updateSnapshots` は読まない —— 既定値が `none` ではないため、撮り直していない実行まで撮り直し
-扱いになり、検査が黙って消える。撮り直しかどうかの合図は、この 2 つの機構のうち片方しか持てない。
+**It does not look during a retake.** Captures run in parallel, so the check would read other captures'
+progress as gaps. What it protects is the committed state, not a store being written to. Whether a retake
+is in progress is **stated explicitly by the side that started it, with `BASELINE_RETAKE=1`**
+(`make vrt-update` / `make e2e-update`). Playwright's `updateSnapshots` is not read — its default value is
+not `none`, so even runs that are not retaking would be treated as retakes, and the check would silently
+disappear. Only one of these two mechanisms can carry the retake signal.
 
-## 撮り直しは stale なファイルを消さない
+## Retakes do not delete stale files
 
-Playwright の `--update-snapshots` は撮ったぶんを書くだけである。story や画面を改名・削除すると
-旧名の画像が置き場に残り、対応の検査が孤児として落とす。撮り直しても直らないので、**全数の
-撮り直しのときだけ、撮る前に区画を空にする**（story は `clearableStoryEntries`、画面は区画ごと）。
+Playwright's `--update-snapshots` only writes what it captured. Renaming or deleting a story or screen
+leaves images under the old name in the store, and the reconciliation check fails them as orphans. A
+retake does not fix that, so **only on a full retake is the area emptied before capture**
+(`clearableStoryEntries` for stories, the whole area for screens).
 
-- **範囲を絞った撮り直しでは空にしない。** 撮らない対象の画像まで消え、報告されていない差分が
-  置き場へ入る。絞り込みが起きていないことの判定は呼ぶ側（make の側）が持ち、知らない引数は
-  消さない側へ倒す（[vrt/README.md](../vrt/README.md)）。
-- **CI の撮り直しは区画を空にせず、孤児を名指しで消す。** 範囲が報告に絞られているので、注記に
-  載った孤児だけを落とし、報告された対象と欠けだけを撮る。
-- **消す側ではなく残す側を列挙する。** story の系統名は story の見出しから決まり、増減を置き場の
-  側から知る手段が無い。そのため**置き場の直下へ画像の区画以外の要素を足すときは、`lib/store.ts`
-  の残す一覧も更新する**。足し忘れると、全数の撮り直しのたびに黙って消える。`.` で始まる要素
-  （git の管理下）は常に残す。
+- **A narrowed retake does not empty anything.** Images of targets not being captured would vanish too,
+  and unreported diffs would enter the store. Deciding that no narrowing happened belongs to the caller
+  (the make side), and unknown arguments fall to the not-deleting side ([vrt/README.md](../vrt/README.md)).
+- **The CI retake does not empty the area; it deletes orphans by name.** Its scope is narrowed to the
+  report, so it drops only the orphans in the annotations and captures only the reported targets and gaps.
+- **Enumerate what to keep, not what to delete.** Story group names are determined by story titles, and
+  the store side has no way to learn of additions or removals. So **when adding an element other than an
+  image area to the store's top level, also update the keep list in `lib/store.ts`**. Forget it, and it
+  silently disappears on every full retake. Elements starting with `.` (under git's control) are always kept.
 
-## 差分から対象名へ戻す
+## From diff back to target names
 
-撮り直しのコメントが出す「手元で見る 1 行」は、見直しの入口（`make vrt-review` /
-`make e2e-review`）が取る**名前**を引数にする。置き場へ積んだ差分（`git diff --name-status`）から
-名前へ戻す規則は [`lib/targets.ts`](lib/targets.ts) が持つ。
+The "one line to view locally" that the retake comment outputs takes as its argument the **names** the
+review entry points (`make vrt-review` / `make e2e-review`) accept. The rules for turning the diff pushed to
+the store (`git diff --name-status`) back into names are owned by [`lib/targets.ts`](lib/targets.ts).
 
-- **消えた画像は落とす。** 全数の撮り直しは区画を先に空にするので、改名・削除された対象は削除
-  として差分に載る。開けない名前を案内に並べない。
-- **改名は行き先で数える。** 絵が変わらない改名は git が改名として畳むので、消えた側だけを見ると
-  対象ごと落ちる。
-- **前の一式に同じパスが無いもの（新規と改名の行き先）は「前を引けないもの」として別に返す。**
-  前後を並べる側は、この集合を前の無いものとして扱う。
-- **名前は畳み、画像は畳まない。** 同じ対象がテーマごと・帯ごとに 1 枚ずつ持つので、名前は
-  最初の 1 つだけ残して受け取った順序を保つ。枚数を数え、1 枚ずつ並べるのは画像の側である。
-- **状態ごと受け取る。** 何を含めるかの判定を `git` の旗ではなくここへ置くためで、呼ぶ側は
-  差分を加工せずに渡す。
+- **Images that disappeared are dropped.** A full retake empties the area first, so renamed or deleted
+  targets appear in the diff as deletions. Names that cannot be opened are not listed in the guidance.
+- **Renames count by destination.** A rename that leaves the picture unchanged is collapsed by git into a
+  rename, so looking only at the deleted side drops the target altogether.
+- **Entries with no identical path in the previous set (new files and rename destinations) are returned
+  separately as "no previous to look up".** The side that shows before and after treats this set as having
+  no before.
+- **Names are collapsed; images are not.** The same target has one image per theme and per band, so only
+  the first name is kept, preserving the order received. Counting images and laying them out one by one is
+  the image side's job.
+- **Statuses are received as is.** So that the decision of what to include lives here rather than in `git`
+  flags; the caller passes the diff unprocessed.
 
-## 操作
+## Operations
 
-| したいこと | 手元 | CI |
+| What you want to do | Locally | CI |
 | --- | --- | --- |
-| story を撮り直して送る | `make vrt-retake` | `baseline-retake` ラベル |
-| 画面を撮り直して送る | `make e2e-retake` | 同上（1 つのラベルが両方を撮る） |
-| 撮ったものを送る | `make baseline-push` | 撮り直しに含まれる |
-| ブランチを移った後に実体を指し先へ合わせる | hook が `make baseline-sync` を呼ぶ（`post-checkout` / `post-merge`） | 記録されたコミットだけを取る |
-| 履歴を掃除する | `make baseline-prune` | 月次で促す issue が立つのみ。**実行は必ず人が起こす** |
+| Retake stories and push | `make vrt-retake` | `baseline-retake` label |
+| Retake screens and push | `make e2e-retake` | Same as above (one label captures both) |
+| Push what was captured | `make baseline-push` | Included in the retake |
+| After switching branches, align the files with the pointer | A hook calls `make baseline-sync` (`post-checkout` / `post-merge`) | Fetches only the recorded commit |
+| Clean up history | `make baseline-prune` | Only an issue prompting it is opened monthly. **A human always triggers the run** |
 
-CI 側の撮り直しは story と画面をまとめて行う。**範囲はどちらも、その commit に対する比較の報告に
-絞られる** —— story は VRT の、画面は E2E の報告である。報告に載った対象と欠けを撮り、孤児を
-消す。報告が無いときの扱い（差分が無いのか、比較していないのか）と、全数になる場合は
-[docs/design/vrt.md](../docs/design/vrt.md) が持つ。
+The CI retake handles stories and screens together. **Both scopes are narrowed to the comparison report for
+that commit** — VRT's report for stories, E2E's for screens. It captures the targets and gaps in the report
+and deletes orphans. What happens when there is no report (no diff, or no comparison) and when it becomes a
+full retake are owned by [docs/design/vrt.md](../docs/design/vrt.md).
 
-**送るのは `make baseline-push` だけ**である。サブモジュールの中で直接コミットすると撮り直し
-どうしが繋がり、掃除でどれも落とせなくなる。撮って送らないと、親の gitlink が古いまま作業
-ツリーだけ新しい状態になり、手元の撮影は通るのに CI だけ落ちる。
+**Only `make baseline-push` pushes.** Committing directly inside the submodule chains retakes together so
+that cleanup can drop none of them. Capturing without pushing leaves the parent's gitlink stale while only
+the working tree is new, so local capture passes and only CI fails.
 
-## 撮影の種類を足すとき
+## Adding a kind of capture
 
-3 つ目の撮影を同じ置き場に乗せるなら、次を揃える。
+To put a third kind of capture on the same store, line up the following.
 
-1. **区画を予約する。** `lib/store.ts` に区画名を置き、`assertAreaUnclaimed` が story の系統と
-   衝突を見られるようにする。残す一覧にも足す —— story の全数撮り直しがその区画を消さないため。
-   story の側は「予約区画以外の全部」を数えるので、`listBaselines` の除外にも足す。
-2. **在るべき一覧と tag を自分の側に持つ。** 区画の並びは `toHaveScreenshot` へ渡す配列と一致
-   させ、ファイル名は対象名そのものにする。
-3. **spec で 3 つを呼ぶ。** 撮る前に `assertAreaUnclaimed`、対応の検査で `isRetaking` による
-   見送りと `noteBaselineGap`。検査は全数実行のときだけ、置き場に対して 1 回。
-4. **撮る側の make に `BASELINE_RETAKE=1` を立てさせ、全数のときだけ区画を空にする。**
-   絞り込みの判定は make の側に置く。
-5. **逆変換に区画を教える。** `retakenTargets` は区画名で story と画面を振り分けるので、
-   見直しの入口が増えるならそこも分ける。
+1. **Reserve an area.** Put the area name in `lib/store.ts` so that `assertAreaUnclaimed` can check it for
+   collisions with story groups. Add it to the keep list too — so a full story retake does not delete that
+   area. The story side counts "everything except reserved areas", so add it to the exclusions of
+   `listBaselines` as well.
+2. **Hold the list of what should exist and the tag on your own side.** Match the order of areas with the
+   array passed to `toHaveScreenshot`, and make the file name the target name itself.
+3. **Call three things from the spec.** `assertAreaUnclaimed` before capture; for the reconciliation check,
+   skipping via `isRetaking` and `noteBaselineGap`. The check runs only on full runs, once against the store.
+4. **Have the capturing make target set `BASELINE_RETAKE=1`, and empty the area only on full runs.**
+   The narrowing decision lives on the make side.
+5. **Teach the reverse mapping the area.** `retakenTargets` routes stories and screens by area name, so if
+   review entry points multiply, split them there too.
 
-## 撮り直しは承認ではない
+## Retaking is not approval
 
-`baseline-retake` は画素を**見られる形にするだけ**で、見た目を受け入れたことは `baseline-approve`
-が表す。承認をラベルに取る理由と、承認が今の一式にだけ効く仕組みは
-[docs/design/vrt.md](../docs/design/vrt.md) の「撮り直しは承認ではない」以降が持つ。
+`baseline-retake` only **makes the pixels viewable**; accepting the look is expressed by
+`baseline-approve`. Why approval is taken as a label, and how approval applies only to the current set, are
+owned by [docs/design/vrt.md](../docs/design/vrt.md) from "A retake is not an approval." onward.
 
-機構の全体像は [docs/design/vrt.md](../docs/design/vrt.md) にある。
+The overall mechanism is in [docs/design/vrt.md](../docs/design/vrt.md).
 
-## 関連する ADR
+## Related ADRs
 
-- [ADR 0091](../docs/adr/0091-test-verification-methods.md) — visual regression の決定。置き場を別リポジトリに取ること、撮り直しと承認の経路
+- [ADR 0091](../docs/adr/0091-test-verification-methods.md) — the visual regression decision: keeping the store in a separate repository, and the paths for retake and approval

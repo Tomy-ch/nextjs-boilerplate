@@ -1,38 +1,38 @@
-# GitHub Copilot への指示
+# Instructions for GitHub Copilot
 
-本リポジトリでの Copilot の動き方を定める。
+Defines how Copilot works in this repository.
 
-## 正は AGENTS.md 1 本
+## AGENTS.md is the single authority
 
-**規約・アーキテクチャ制約・変更してよい範囲・Git 運用・出力言語は、すべて
-[`AGENTS.md`](../AGENTS.md) が持つ。**本書はそれを指すだけで、内容を持たない。
+**Conventions, architecture constraints, the scope you may change, Git operations, and the output language are all
+held by [`AGENTS.md`](../AGENTS.md).** This file only points at it and holds no content of its own.
 
-内容を持たないのは体裁の話ではない。**同じ規則を 2 箇所に書くと、片方だけが古くなる。**しかも
-ずれた側は「Copilot だけが読む規約」として生き残り、[0027](../docs/adr/0027-directory-structure.md)
-が禁じる汎用フォルダを許可するような、ADR と正面から食い違う指示になる。参照に徹する形なら、
-この種のずれは構造的に起こらない。
+Holding no content is not a matter of form. **When the same rule is written in two places, only one of them goes stale.** And
+the drifted side survives as "conventions only Copilot reads", becoming instructions that contradict an ADR head-on — such as permitting
+the generic folders that [0027](../docs/adr/0027-directory-structure.md) forbids. In a form that only points,
+this kind of drift structurally cannot occur.
 
-したがって **本書に規約を書き足さない。** 書きたくなったものは AGENTS.md か ADR へ置く。
+Therefore **do not add conventions to this file.** Whatever you want to write goes in AGENTS.md or an ADR.
 
-## 読む順
+## Reading Order
 
-`AGENTS.md`「Instruction Priority」が定める順に従う。本書はその 3 番目であり、
-上位（`AGENTS.md` / `docs/adr/**`）と食い違ったときは上位が勝つ。
+Follow the order that `AGENTS.md` § Instruction Priority defines. This file is the third in it, and
+when it disagrees with a higher source (`AGENTS.md` / `docs/adr/**`), the higher source wins.
 
-読む先は次の 4 つで足りる。
+These four places are enough to read.
 
-| 何を知りたいか | 読む先 |
+| What you want to know | Where to read |
 | --- | --- |
-| 層の責務・依存の向き・カーネルの置き場 | [`docs/adr/README.md`](../docs/adr/README.md) の ADR 一覧から該当 ADR |
-| 変更してよいパス | `AGENTS.md`「AI Modification Scope」 |
-| ブランチ・コミット・PR の作法 | `AGENTS.md`「Git Rules」と [0150](../docs/adr/0150-git-workflow.md) |
-| 日常的に守る実装規則 | [`docs/rules.md`](../docs/rules.md) |
+| Layer responsibilities, dependency direction, where kernels live | The relevant ADR from the ADR index in [`docs/adr/README.md`](../docs/adr/README.md) |
+| Paths you may change | `AGENTS.md` § AI Modification Scope |
+| Branch, commit, and PR practice | `AGENTS.md` § Git Rules and [0150](../docs/adr/0150-git-workflow.md) |
+| Implementation rules followed day to day | [`docs/rules.md`](../docs/rules.md) |
 
-## Copilot 固有の運用
+## Copilot-Specific Operations
 
-AGENTS.md に書かれていない、この器だけの事情を置く。
+Holds the circumstances specific to this tool that AGENTS.md does not cover.
 
-- **ブランチ保護の実体は [`settings/branch-protection.json`](settings/branch-protection.json) が持つ。**
-  Copilot は保護ブランチへ直接コミットせず、必ず feature ブランチを切る。承認を待たずに merge しない
-- **PR ブランチへ積んだ後は止まる。** push するかは人が決める（`AGENTS.md`「Git Rules」）
-- **コードレビューのコメントも日本語で書く**（`AGENTS.md`「Language Rules」）
+- **The actual branch protection is held by [`settings/branch-protection.json`](settings/branch-protection.json).**
+  Copilot does not commit directly to a protected branch and always cuts a feature branch. It does not merge without waiting for approval
+- **Stop after stacking commits on a PR branch.** Whether to push is decided by a human (`AGENTS.md` § Git Rules)
+- **Write code review comments in Japanese as well** (`AGENTS.md` § Language Rules)

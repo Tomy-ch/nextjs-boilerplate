@@ -1,510 +1,505 @@
-# Make コマンド一覧
+# Make Command Reference
 
-## 役割
+## Role
 
-`.makefiles/` は本リポジトリで使用するすべての `make` ターゲットの中央レジストリです。各 `.mk` ファイルは関連
-ターゲットを領域別にグルーピングし、トップレベルの `Makefile` はそれらを `include` するだけなので、既存領域への
-ターゲット追加はトップレベル編集なしで完結します。
+`.makefiles/` is the central registry of every `make` target used in this repository. Each `.mk` file groups related
+targets by area, and the top-level `Makefile` only `include`s them, so adding a target to an existing area
+is complete without editing the top level.
 
-ターゲットは以下の単位で整理されています。
+Targets are organized in the following units.
 
-- `.makefiles/github` : GitHub 初期設定 / リリース / ラベル / ルール設定 / ワークフロー Lint / 基準画像の置き場
-- `.makefiles/tools` : 開発ツールの管理（mise）/ コミットメッセージ検証 / 供給網の固定（Actions の SHA ピン・
-  container image の digest ピン・runner の外向き通信）/ API 契約の取り込み
-- `.makefiles/security` : シークレット / 依存脆弱性 / 自分が書いたコード（SAST・データフロー）/ 配信面（DAST）の
-  スキャンと、抑止や pin の冷却期間の棚卸し
-- `.makefiles/testing` : テストの高速実行とカバレッジ付き完全実行 / 分割実行 / 負荷帯によるゲートの委譲 /
-  story と画面の撮影・比較 / Core Web Vitals / 落ちた画像の見直し
-- `.makefiles/agents` : エージェントが呼ぶときの静音実行と、開発の窓の観測
+- `.makefiles/github` : GitHub initial setup / releases / labels / ruleset settings / workflow lint / the baseline image store
+- `.makefiles/tools` : development tool management (mise) / commit message validation / supply-chain pinning (Actions SHA pins,
+  container image digest pins, runner egress) / importing API contracts
+- `.makefiles/security` : scanning secrets / dependency vulnerabilities / the code we wrote (SAST, data flow) / the delivered surface (DAST),
+  and inventories of suppressions and pin cooldown periods
+- `.makefiles/testing` : fast test runs and full runs with coverage / sharded runs / delegating gates by load band /
+  capturing and comparing stories and screens / Core Web Vitals / reviewing failed images
+- `.makefiles/agents` : silent execution for agent calls, and observing development windows
 
-アプリケーション側のコマンド（`dev` / `build` / `lint` / `typecheck`）は make ターゲットでは**なく**、
-`package.json` の scripts に置き pnpm から実行します（[ADR 0001](../docs/adr/0001-package-manager.md)）。テストだけは
-hook / CI の二層実行を明示するため `make` が入口となり、内部で pnpm script を呼びます。
+Application-side commands (`dev` / `build` / `lint` / `typecheck`) are **not** make targets; they
+live in `package.json` scripts and run through pnpm ([ADR 0001](../docs/adr/0001-package-manager.md)). Only tests
+use `make` as the entry point, to make the two-tier hook / CI execution explicit, and call pnpm scripts internally.
 
-## 規約
+## Conventions
 
-- ターゲット名はハイフン区切りの小文字（`make install-tools`、`make setup-repo`）
-- すべて `.PHONY` 指定し、末尾 `## <説明>` コメントを付けて `make help` の一覧に載せること。説明コメントの無い
-  `.PHONY` 行は `make help` が警告する（一覧に出ないターゲットは利用者から見えないため）
-- 自明でないロジックはインラインシェルではなく `scripts/*.ts` に置き `pnpm exec tsx` から実行する。TypeScript に
-  置けば `pnpm typecheck` と biome の検査対象に入り、実行環境ごとのシェル差異も持ち込まずに済む
-- **外から来る値を make の変数として recipe 行へ展開しない。**`$(VAR)` はシェルへ渡る前にテキスト置換されるので、
-  `"` や `;` を含む値でクォートが破れ、任意のコマンドが走る。ブランチ名は `git check-ref-format` が両方の文字を
-  許すため、これは想定上の入力ではなく実在する入力である。`export <NAME>` で環境変数として渡し、受け取る側が
-  `process.env` から読む形にすれば、値はシェルの構文解析を一度も通らない。**この規約を機械検査するものは無い**
-  —— `make actions-shellcheck` が見るのは composite action の `run:` で、`make shellcheck` が見るのは追跡下の
-  `*.sh` であり、どちらも `.mk` の recipe を読まない
-- **シェル変数を全角文字の直前に裸で置かない。**`echo "…（配信元: $$BRANCH）"` と書くと、シェルが全角文字の
-  先頭バイト（`0xEF`）を変数名の一部として食い、空へ展開したうえで壊れたバイト列を出す。`$${BRANCH}` と
-  囲む。recipe の説明文は日本語なので、変数を差し込む位置はたいてい全角文字の隣になる。**壊れるのは表示
-  だけで終了コードは変わらない**ため、検査でも人の目でも素通りしやすい
-- 一回限りのリポジトリ運用コマンド（`make setup-repo` とその補助）は `.makefiles/github/operation/` 配下に置き、
-  開発者向けターゲットと分離する。GitHub 設定を**適用する**ターゲットは `setting/`、何も変更せずファイルを
-  **検査する**ターゲットは `lint/` へ置く
-- **GitHub 設定の宣言は `.github/settings/*.json` に置き、`setting/` のターゲットはそれを API へ渡すだけにする。**
-  1 つの payload に収まらず複数のエンドポイントへ分かれる設定（Pages の配信設定）だけが値を `.mk` に直接持ち、
-  その理由をコメントに書く。いずれも現状を読んでから書き、適用済みのリポジトリで再実行しても何も変えない
-- **利用者が渡す真偽の切り替えは `$(filter 1,$(VAR))` で判定する。**`$(if $(VAR),…)` は空文字列判定なので、
-  `DRY_RUN=0` を「有効」と読む。有効値を `1` だけに揃えてあるのはこのため
-- **`$(shell …)` を変数の定義に置かない。**トップレベルの `Makefile` は全 `.mk` を `include` するため、
-  即時展開の `$(shell …)` はどのターゲットを叩いても走る。外部への問い合わせ（負荷帯の解決、docker の
-  bridge の取得）は recipe の中で行う。`?=` で定義した `$(shell …)` は参照時まで遅延するので、`id -u` の
-  ように軽く副作用の無いものに限って許す
-- **各 `.mk` は自分が読む変数を自分で宣言する（`?=` と `export`）。**同じ名前を隣のファイルも宣言していても
-  省かない。他ファイルの宣言に暗黙依存すると、`include` の順序を変えただけで静かに空になる。別ファイルの
-  値を意図して既定にするとき（冷却期間が Actions の検疫日数を読む）は、その旨と理由をコメントに書く
-- **順序が要る手順は prerequisite に並べず recipe の中で繋ぐ。**prerequisite は `-j` 付きの呼び出しで順序を
-  持たない。`$(MAKE) a` → `$(MAKE) b` と recipe で順に呼ぶ（撮り直して送る）か、recipe の本文に置く（撮る
-  直前に区画を空にする）。プロセスを起動して片付けるまでも 1 つの recipe に閉じ、`trap … EXIT INT TERM` で
-  片付ける —— 生死を跨いだ状態を依存関係で表そうとすると、失敗した実行がサーバを残す
-- **派生ターゲットは recipe を写さず、target-specific variable で差し替える。**`e2e-maintenance: E2E_PRECHECK := true`
-  のように、共通の recipe（起動・待ち受け・片付け）は 1 つだけ持ち、変えたい環境・当てる設定・前提検査を
-  変数で上書きする。同じ立て付けを 2 組持つと、片方だけを直した状態が生まれる
-- **終了コードが成否を表さないツールは、生成物を見て判定する。**`storybook build` は preview の build が
-  非同期で失敗しても 0 を返し、その木を下流へ渡すと story の全数が `iframe.html` を待って上限まで待つため、
-  build の失敗が全数のタイムアウトとして現れる。build を包むターゲットは、生成物の存在
-  （`storybook-static/iframe.html` / `.next/server/app`）を確かめてから成功を返す
-- **検査ツール（lint / scanner）を直接呼ぶ recipe は、先頭で `command -v <tool>` を確かめ、無ければ
-  `make install-tools` を案内して exit 1 にする。**「無ければ落ちる」側に振るのは、黙って飛ばすと検査範囲が
-  縮んだまま緑になるため（actionlint は shellcheck が無いとシェル検査を黙って飛ばすので、`actions-shellcheck` /
-  `shellcheck` は自分で落とす）。走査対象のディレクトリが無いだけなら 🟡 を出してスキップしてよい
-- **`$(if …)` / `$(call …)` の引数にカンマを直に書かない。**引数の区切りと同じ文字なのでそこで切られる。
-  `COMMA := ,` を定義して `$(COMMA)` で差し込む（`--reporter=list$(COMMA)blob`）
-- **静音実行のパターンルールは接頭辞 `ai-%` であり、他のターゲット名を `ai-` で始めない。**`%-ai` のような
-  接尾辞にすると、基底が既にパターンルールのターゲットのとき一致先が二つに割れ、外れたほうは失敗せず黙って
-  別のことをする。`ai-%` なら他のパターンのリテラル接頭辞と一致しない
-- **サーバを立てるターゲットは自分の既定ポートを持ち、他と重ねない。**開発サーバ（3000）/ Storybook（6006）と
-  も互いとも別にし、起動前に空いていることを確かめる。同じポートを使うと、既に何かが待ち受けている環境で
-  「起動を待つ」が他人のサーバへの疎通で満たされ、その相手に対してテストが走る。CI が同じ機械で複数の
-  起動を続けて回すときも、段ごとに別のポートを渡す
-- **コンテナで走らせるターゲットは `RUNNER_UID` / `RUNNER_GID` を `id -u` / `id -g` で渡す。**生成物をホストの
-  所有者で書き出すためで、compose 側の既定（1000）は Linux の初回ユーザであって、実行者と一致する保証が無い
-- **`.gitignore` を読まないスキャナには、走査から外す場所を明示する。**`node_modules`（lockfile と同じ依存の
-  二重計上）と `.claude/worktrees`（別ブランチの実体）は ignore 済みでも指定しないと走査される
-- **報告専用の走査とゲートは別ターゲットにする。**報告専用は exit code で落とさず、CI だけが
-  `<TOOL>_DETECT_EXIT=1` を渡して検出の有無を受け取る —— 「走らなかった」と「見つかった」が同じ緑になると
-  コメントの要否を決められない。これは報告専用をゲートへ変える設定ではなく、ジョブを落とすかは呼び出し側が
-  決める。ゲートは昇格（保護ブランチ宛 PR）の一点に置く（[ADR 0110](../docs/adr/0110-security-operations.md)）
-- **同じ検査を別の形式で書き出すターゲットは、検査条件を 1 箇所に持つ。**フラグを変数に括り出して両方が
-  読む（`OPENGREP_FLAGS`）か、元のターゲットを `$(MAKE) <target> <ARGS>="…"` で呼び直す（`bearer-sarif`）。
-  ゲートと Security タブの一覧が別の走査を指すと、どちらも信用できなくなる
-- **自分を消すターゲットはマーカー（`sample:begin` などの開始と、対応する `end` を `#` コメントで書く）で囲む。**
-  make は起動時に makefile を全読込するため、recipe の中のスクリプトがこの `.mk` から自分のターゲットを消しても
-  実行中の recipe は続く。後段の整形・検査は `&&` で連鎖させ、途中の失敗が完了メッセージに隠れないようにする
+- Target names are hyphen-separated lowercase (`make install-tools`, `make setup-repo`)
+- Declare everything `.PHONY` and add a trailing `## <description>` comment so it appears in the `make help` list. `make help` warns about
+  `.PHONY` lines without a description comment (a target missing from the list is invisible to users)
+- Non-obvious logic goes in `scripts/*.ts`, not inline shell, and runs through `pnpm exec tsx`. Put in TypeScript,
+  it falls under `pnpm typecheck` and the biome checks, and brings in no shell differences between environments
+- **Do not expand values that come from outside as make variables into recipe lines.** `$(VAR)` is textually substituted before reaching the shell, so
+  a value containing `"` or `;` breaks the quoting and runs arbitrary commands. `git check-ref-format` allows both characters
+  in branch names, so this is a real input, not a hypothetical one. Pass it as an environment variable with `export <NAME>` and have the receiver
+  read it from `process.env`, and the value never goes through shell parsing. **Nothing checks this convention mechanically**
+  — `make actions-shellcheck` looks at composite actions' `run:`, and `make shellcheck` looks at tracked
+  `*.sh`; neither reads `.mk` recipes
+- **Do not put a shell variable bare right before a full-width character.** Writing `echo "…（配信元: $$BRANCH）"` makes the shell eat the
+  first byte of the full-width character (`0xEF`) as part of the variable name, expand it to empty, and print a broken byte sequence. Wrap it as
+  `$${BRANCH}`. Recipe messages are in Japanese, so the place a variable is inserted is usually next to a full-width character. **Only the display
+  breaks and the exit code does not change**, so it easily slips past both checks and human eyes
+- One-time repository operation commands (`make setup-repo` and its helpers) go under `.makefiles/github/operation/`,
+  separated from developer targets. Targets that **apply** GitHub settings go in `setting/`; targets that change nothing and
+  **check** files go in `lint/`
+- **GitHub setting declarations live in `.github/settings/*.json`, and `setting/` targets only pass them to the API.**
+  Only settings that do not fit into one payload and split across several endpoints (Pages delivery settings) hold values directly in `.mk`,
+  with the reason written in a comment. All of them read the current state before writing, and re-running on an already-applied repository changes nothing
+- **Boolean toggles passed by users are tested with `$(filter 1,$(VAR))`.** `$(if $(VAR),…)` is an empty-string test, so it
+  reads `DRY_RUN=0` as "enabled". This is why the enabled value is uniformly `1` only
+- **Do not put `$(shell …)` in a variable definition.** The top-level `Makefile` `include`s every `.mk`, so
+  an immediately expanded `$(shell …)` runs no matter which target is invoked. External queries (resolving the load band, getting docker's
+  bridge) are done inside recipes. A `$(shell …)` defined with `?=` is deferred until referenced, so it is allowed only for things
+  light and side-effect free, like `id -u`
+- **Each `.mk` declares the variables it reads itself (`?=` and `export`).** Do not omit them even if a neighboring file declares
+  the same name. An implicit dependency on another file's declaration quietly becomes empty just by changing the `include` order. When deliberately
+  defaulting to another file's value (the cooldown period reading the Actions quarantine days), write that fact and the reason in a comment
+- **Steps that need ordering are chained inside the recipe, not listed as prerequisites.** Prerequisites have no order
+  under a `-j` invocation. Call `$(MAKE) a` → `$(MAKE) b` in sequence in the recipe (retake then send), or put it in the recipe body (clear the
+  area just before capturing). Starting a process and cleaning it up also stays within one recipe, cleaned up with `trap … EXIT INT TERM`
+  — trying to express state spanning life and death through dependencies leaves a server behind after a failed run
+- **Derived targets do not copy the recipe; they swap values with target-specific variables.** As in `e2e-maintenance: E2E_PRECHECK := true`,
+  keep only one common recipe (start, wait, clean up) and override the environment, the configuration applied, and the precondition checks
+  with variables. Holding the same setup twice creates a state where only one copy was fixed
+- **For tools whose exit code does not represent success, judge by the generated artifacts.** `storybook build` returns 0 even when the preview build
+  fails asynchronously, and passing that tree downstream makes every story wait for `iframe.html` until the limit,
+  so a build failure shows up as a timeout of everything. Targets wrapping a build confirm the generated artifacts exist
+  (`storybook-static/iframe.html` / `.next/server/app`) before returning success
+- **Recipes that call a check tool (lint / scanner) directly check `command -v <tool>` first, and if it is missing,
+  point to `make install-tools` and exit 1.** They lean toward "fail if missing" because skipping silently would turn green with the check scope
+  shrunk (actionlint silently skips shell checks without shellcheck, so `actions-shellcheck` /
+  `shellcheck` fail on their own). If only the directory to scan is missing, printing 🟡 and skipping is fine
+- **Do not write a comma directly in the arguments of `$(if …)` / `$(call …)`.** It is the same character as the argument separator, so it splits there.
+  Define `COMMA := ,` and insert it with `$(COMMA)` (`--reporter=list$(COMMA)blob`)
+- **The silent-execution pattern rule uses the prefix `ai-%`; no other target name starts with `ai-`.** With a suffix like `%-ai`,
+  when the stem is already a pattern rule's target the match splits two ways, and the one that loses does not fail but silently
+  does something else. `ai-%` matches no literal prefix of other patterns
+- **Targets that start a server have their own default port that overlaps no other.** Keep them distinct from the dev server (3000) / Storybook (6006)
+  and from each other, and confirm the port is free before starting. With the same port, in an environment where something is already listening,
+  "wait for startup" is satisfied by reaching someone else's server, and the tests run against it. When CI runs several
+  startups in a row on the same machine, it also passes a different port per stage
+- **Targets that run in a container pass `RUNNER_UID` / `RUNNER_GID` from `id -u` / `id -g`.** This writes generated artifacts with the host's
+  owner; the compose-side default (1000) is Linux's first user and is not guaranteed to match whoever runs it
+- **For scanners that do not read `.gitignore`, state explicitly what to exclude from the scan.** `node_modules` (double-counting the same dependencies
+  as the lockfile) and `.claude/worktrees` (the contents of other branches) get scanned unless specified, even though they are ignored
+- **Report-only scans and gates are separate targets.** Report-only targets do not fail on exit code, and only CI
+  passes `<TOOL>_DETECT_EXIT=1` to receive whether something was detected — if "did not run" and "found something" are the same green,
+  whether a comment is needed cannot be decided. This is not a setting that turns report-only into a gate; whether to fail the job is decided by
+  the caller. The gate is placed at the single point of promotion (a PR targeting a protected branch) ([ADR 0110](../docs/adr/0110-security-operations.md))
+- **Targets that write the same check in a different format hold the check conditions in one place.** Either factor the flags into a variable both
+  read (`OPENGREP_FLAGS`), or re-invoke the original target with `$(MAKE) <target> <ARGS>="…"` (`bearer-sarif`).
+  If the gate and the Security tab list point at different scans, neither can be trusted
+- **Targets that delete themselves are enclosed in markers (the start, such as `sample:begin`, and its matching `end`, written as `#` comments).**
+  make reads all makefiles at startup, so even if a script in the recipe deletes its own target from this `.mk`,
+  the running recipe continues. Chain the subsequent formatting and checks with `&&` so a failure along the way is not hidden behind the completion message
 
-## ターゲットの一覧表示
+## Listing Targets
 
 ```bash
 make help
 ```
 
-`make help` は `.makefiles/` 配下の `.PHONY: <target> ## <説明>` 行を収集し、各ファイルの `## <カテゴリ>` 見出し
-ごとにグルーピングして出力します。
+`make help` collects the `.PHONY: <target> ## <description>` lines under `.makefiles/` and prints them grouped by each file's `## <category>` heading.
 
-## `.makefiles/github` 系
+## `.makefiles/github` Targets
 
-### GitHub 設定関連
+### GitHub Settings
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザ認証方式でログインを行います。 |
-| `make labels-delete-all` | GitHub リポジトリ上の既存ラベルをすべて削除します。 | なし |
-| `make labels-create-default` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | 宣言の読み取りと、宣言と実在の差分は [`scripts/github-settings/labels.ts`](../scripts/github-settings/labels.ts) が持ちます。名前が実在するラベルは色や説明が宣言と違っても触りません。 |
-| `make branch-protection-apply` | `.github/settings/` のルールセット（`branch-protection.json` / `work-branch-history.json`）を、対象リポジトリへ順に POST します。 | 1 件でも API が拒めば応答を全文出して止まります。`gh` の版が古くて API と噛み合わないときも同じ形で現れます。 |
-| `make pages-delivery-apply [PAGES_DELIVERY_BRANCH=<branch>]` | GitHub Pages を Actions 配信にし、`github-pages` environment へ配信元ブランチを許可します。 | 既定の配信元は `production` で、[`deploy-docs.yaml`](../.github/workflows/deploy-docs.yaml) の push トリガと揃える必要があります。3 段とも現状を読んでから書くため、適用済みのリポジトリで実行しても何も変えません。environment への PUT を「まだ名指し方式でないとき」に限るのは、この PUT が body に無い項目（レビュアー・待ち時間）を消すためです。**許可が無いと `docs-deploy` は step を 1 つも実行せずに落ちます**（job 自体は起動するので、失敗の理由がログに出ません）。 |
+| `make gh-login` | Logs in to GitHub with the `gh` command. | Logs in with browser authentication. |
+| `make labels-delete-all` | Deletes all existing labels on the GitHub repository. | None |
+| `make labels-create-default` | Creates the default labels from `.github/settings/labels.json`. | Reading the declarations and the difference between declared and existing are held by [`scripts/github-settings/labels.ts`](../scripts/github-settings/labels.ts). A label whose name exists is not touched, even if its color or description differs from the declaration. |
+| `make branch-protection-apply` | POSTs the rulesets in `.github/settings/` (`branch-protection.json` / `work-branch-history.json`) to the target repository in order. | If the API rejects even one, it prints the full response and stops. The same shape appears when an old `gh` version does not mesh with the API. |
+| `make pages-delivery-apply [PAGES_DELIVERY_BRANCH=<branch>]` | Switches GitHub Pages to Actions delivery and allows the delivering branch on the `github-pages` environment. | The default delivering branch is `production`, which must match the push trigger in [`deploy-docs.yaml`](../.github/workflows/deploy-docs.yaml). All three stages read the current state before writing, so running it on an already-applied repository changes nothing. The PUT to the environment is limited to "when it is not yet by-name" because this PUT erases fields not in the body (reviewers, wait time). **Without the permission, `docs-deploy` fails without running a single step** (the job itself starts, so the reason for the failure does not appear in the log). |
 
-### GitHub リポジトリ初期化関連
+### GitHub Repository Initialization
 
 #### `make setup-repo`
 
-複製直後のリポジトリ初期化処理をまとめて実行します。以下を順に行います。破壊的な手順を含むため、
-作った直後以外で実行する前に必ず内容を確認してください。タグ `v0.0.0` が既に在れば初期化済みとみなし、
-何もせず止まります。
+Runs the repository initialization right after duplication in one go. It does the following in order. It includes destructive steps,
+so always review its contents before running it other than right after creation. If the tag `v0.0.0` already exists, it treats the repository as initialized and
+stops without doing anything.
 
-- `gh` ログイン
-- **既存タグの全削除**（ローカルと `origin` の両方）と初期タグ `v0.0.0` の作成 / push
-- `develop` / `staging` / `production` ブランチの作成（既に在るものは飛ばす）
-- GitHub デフォルトブランチの設定と `production` への切り替え。実行時に居たブランチが `release/` なら、
-  そのブランチをローカルと `origin` から削除
-- ブランチルールセット適用
-- Pages の配信設定（Actions 配信への切り替えと、`production` からの配信許可）
-- ラベル初期化
-- **`.github/release/` 配下のリリースノートを `v0.0.0.md` を除いて全削除**
-- **`upstream` リモートの削除**
+- `gh` login
+- **Deleting all existing tags** (both local and `origin`) and creating / pushing the initial tag `v0.0.0`
+- Creating the `develop` / `staging` / `production` branches (skipping ones that exist)
+- Setting the GitHub default branch and switching to `production`. If the branch it was on at run time is a `release/` one,
+  deleting that branch from local and `origin`
+- Applying the branch rulesets
+- Pages delivery settings (switching to Actions delivery, and allowing delivery from `production`)
+- Initializing labels
+- **Deleting all release notes under `.github/release/` except `v0.0.0.md`**
+- **Removing the `upstream` remote**
 
-#### セットアップ補助コマンド
+#### Setup Helper Commands
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | LICENSE の著作権表記を更新します。 | 年は省略可能です。 |
-| `make setup-replace-repository-reference REPOSITORY=<owner>/<repo> [PORTAL_URL=<url>]` | GitHub リポジトリ参照とプロジェクト名（`package.json` の `name`）、およびドキュメントポータルへのリンクを、新しいリポジトリのものへ置換します。 | `PORTAL_URL` を省くと GitHub Pages の配信先（`https://<owner>.github.io/<repo>/`）を組み立てます。custom domain のときだけ渡します。`docs/` / `.claude/` / `scripts/setup/` / ビルド成果物（`.next` / `dist` / `build` / `tmp`）/ ロックファイルは対象外です。 |
-| `make setup-remove-licensed-scanners` | 資格情報を要するスキャナ（CodeQL / SonarQube Cloud / Dependency Review）を 3 つまとめて撤去します。 | **製品ごとに別のコミットへ分けます。**1 つだけ残したくなったらそのコミットを `git revert` します。作業ツリーはクリーンである必要があります。workflow・pin・宛先の宣言に加えて、**宣言した文書の行も落とします** —— 宣言が現物と一致することはテストが見るので、行が動いていれば撤去は投げて止まります。撤去は選択なので、決めるまでの間に壊れるものはありません（どれも未設定なら自分を飛ばして緑を返します）。 |
-| `make setup-remove-boilerplate-only` | boilerplate 限定の記述（配る側にしか意味を持たない規則・注記）を剥がします。 | 剥がし終えると道具自身も消えます。飛ばす選択肢はありません（[0152](../docs/adr/0152-agents-md-policy.md)）。 <!-- boilerplate-only:line --> |
-| `make setup-remove-sample` | 題材を持つ画面一式を破棄し、検証まで実行します。 | **破壊的です。** 残す側にサンプル固有の語彙を持ち込まないための出口で、削除後にゲートが通ることまで確かめます。 |
+| `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | Updates the copyright notice in LICENSE. | The year is optional. |
+| `make setup-replace-repository-reference REPOSITORY=<owner>/<repo> [PORTAL_URL=<url>]` | Replaces GitHub repository references, the project name (`name` in `package.json`), and links to the documentation portal with the new repository's. | If `PORTAL_URL` is omitted, it builds the GitHub Pages destination (`https://<owner>.github.io/<repo>/`). Pass it only for a custom domain. `docs/` / `.claude/` / `scripts/setup/` / build outputs (`.next` / `dist` / `build` / `tmp`) / lock files are excluded. |
+| `make setup-remove-licensed-scanners` | Removes the three scanners that need credentials (CodeQL / SonarQube Cloud / Dependency Review) together. | **Each product goes into a separate commit.** If you want to keep just one, `git revert` that commit. The working tree must be clean. In addition to the workflow, pin, and destination declarations, **it also drops the lines in the documents that declared them** — tests check that declarations match what exists, so if a line has moved, the removal throws and stops. Removal is a choice, so nothing breaks until you decide (each skips itself and returns green if unconfigured). |
+| `make setup-remove-boilerplate-only` | Strips the boilerplate-only text (rules and notes meaningful only to the distributing side). | When stripping finishes, the tool itself is gone too. There is no option to skip it ([0152](../docs/adr/0152-agents-md-policy.md)). <!-- boilerplate-only:line --> |
+| `make setup-remove-sample` | Purges the set of screens that carry the sample subject, and runs verification. | **Destructive.** The exit for not carrying sample-specific vocabulary into the side that stays; it confirms the gates pass after deletion. |
 
-いずれの補助コマンドも `DRY_RUN=1` を付けると、書き換えずに変更予定だけを出力します。有効値は `1` のみで、
-それ以外（`DRY_RUN=0` や変数の省略）はすべて実際に書き換えます。
+Every helper command, given `DRY_RUN=1`, prints only the planned changes without rewriting. The only enabled value is `1`;
+anything else (`DRY_RUN=0` or omitting the variable) actually rewrites.
 
-### VRT 基準画像の置き場関連
+### VRT Baseline Image Store
 
-基準画像は別リポジトリに置き、`baseline/images` からサブモジュールとして参照します
-（[`vrt/README.md`](../vrt/README.md)）。置き場側は workflow を持たないので、操作はすべてここから出ます。
+Baseline images live in a separate repository and are referenced as a submodule from `baseline/images`
+([`vrt/README.md`](../vrt/README.md)). The store side has no workflows, so every operation comes from here.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make setup-baseline-store` | 置き場を用意し、`baseline/images` へ配線します。 | 既存リポジトリの指定を先に問います（組織では新規作成が権限で縛られていることがあるため）。新規作成時は README を置く初期コミットまで作ります。配線済みなら張り替えるので、組織の移動やリポジトリ名の変更でも同じコマンドで済みます。 |
-| `make setup-baseline-app` | 撮り直しに使う GitHub App を `BASELINE_APP_ID` / `BASELINE_APP_PRIVATE_KEY` へ登録します。 | App の作成と鍵の生成は自動化できません。App ID は slug から解決するので控える必要はなく、秘密鍵は標準入力へ貼るのでディスクにも履歴にも残りません。 |
-| `make baseline-prune [DRY_RUN=1]` | 生きた ref から指されていない基準画像の一式を置き場から消します。 | 取り消せません。実行を促すのは月次の [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml) で、閾値を超えたときだけ issue を立てます。保持の条件は [`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts)。 |
+| `make setup-baseline-store` | Prepares the store and wires it to `baseline/images`. | It first asks whether to specify an existing repository (organizations sometimes restrict new repository creation by permission). On new creation it also makes the initial commit placing a README. If already wired it rewires, so moving organizations or renaming the repository takes the same command. |
+| `make setup-baseline-app` | Registers the GitHub App used for retakes in `BASELINE_APP_ID` / `BASELINE_APP_PRIVATE_KEY`. | Creating the App and generating the key cannot be automated. The App ID is resolved from the slug, so there is no need to note it, and the private key is pasted into standard input, so it stays neither on disk nor in history. |
+| `make baseline-prune [DRY_RUN=1]` | Deletes from the store the baseline image sets not pointed to by any live ref. | Irreversible. What prompts running it is the monthly [`baseline-prune.yaml`](../.github/workflows/baseline-prune.yaml), which opens an issue only when the threshold is exceeded. The retention conditions are in [`scripts/baseline-store/retention.ts`](../scripts/baseline-store/retention.ts). |
 
-### GitHub Actions Lint 関連
+### GitHub Actions Lint
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make actionlint` | `.github/workflows` のワークフロー定義を actionlint で検査します。 | ディレクトリが存在しない場合はスキップします。 |
-| `make actions-shellcheck` | composite action（`.github/actions/**/action.yaml`）の `run:` シェルを shellcheck で検査します。 | 指摘は `action.yaml` の行・列で報告します。`bash` / `sh` 以外の `shell:` は検査せず、位置と方言を添えて skip として出力します。 |
-| `make actions-mise-pin-lint` | `setup-mise` の版 / digest / キャッシュキーが揃っているか検査します。 | mise 自身の版は `mise.toml` に書けないため composite action が宣言を持ち、`with:` から `env:` を参照できない制約でキャッシュキーが同じ値を二度目に持ちます。片方だけ直した状態は落ちますが原因が遠いので検査します。整合違反は exit 1、検査が成立していない状態は exit 2。 |
-| `make actions-comment-secret-lint` | PR コメントを投稿するジョブに `GITHUB_TOKEN` 以外の secret が渡っていないか検査します。 | 規約違反は exit 1、検査そのものが成立していない状態は exit 2 で区別します。 |
-| `make actions-required-check-lint` | required status check に登録した context が、すべての PR で報告されるか検査します。 | 判定に要るのが ruleset の宣言とワークフロー定義の 2 ファイルなので actionlint では表現できません。宣言違反は exit 1、検査が成立していない状態は exit 2 で区別します。 |
-| `make actions-zizmor` | workflows と composite action の定義を zizmor で静的解析します。 | actionlint / `actions-shellcheck` が shellcheck へ渡す前に `${{ … }}` を潰すため見えない観点（`run:` での未クオートな式展開など）を担います。落とすのは high の所見だけで、抑止は `.github/zizmor.yml` に理由付きで宣言します。**全所見を出す実行と high だけで落とす実行の 2 段で走ります** —— `--min-severity` は表示も絞るので、1 段だと severity の引き下げで抑止した所見が出力からも消え「黙って素通り」になるためです。設定ファイルは自動探索に任せず明示します（外れても「所見ゼロ」ではなく「抑止が効かない」形で現れ、気付けないため）。hook / CI とも `--offline` で走ります。 |
-| `make issue-field-lint` | 実装タスクの issue が、テンプレートの必須項目を実際に持っているかを見ます。 | フォームで立てた issue と `--body-file` で立てた issue は同じ項目を負うのに、後者だけ無検査になるためです。 |
-| `make shellcheck` | 追跡下の `*.sh` を shellcheck で検査します。 | 対象は「依存の導入前に走る必要があってシェルで書くしかないもの」（ADR 0155 の例外）です。TypeScript ではないので 1:1 ゲートもカバレッジも掛からず、`.github` の外なので actionlint も届きません。shellcheck が無ければ検査範囲が黙って縮むため落とします。 |
+| `make actionlint` | Checks the workflow definitions in `.github/workflows` with actionlint. | Skips if the directory does not exist. |
+| `make actions-shellcheck` | Checks the `run:` shells of composite actions (`.github/actions/**/action.yaml`) with shellcheck. | Findings are reported by line and column of `action.yaml`. `shell:` values other than `bash` / `sh` are not checked and are printed as skipped with the location and dialect. |
+| `make actions-mise-pin-lint` | Checks that `setup-mise`'s version / digest / cache key agree. | mise's own version cannot be written in `mise.toml`, so the composite action holds the declaration, and because `with:` cannot reference `env:`, the cache key holds the same value a second time. A state where only one was fixed does fail, but far from its cause, so it is checked. A consistency violation is exit 1; a state where the check cannot be made is exit 2. |
+| `make actions-comment-secret-lint` | Checks that no secret other than `GITHUB_TOKEN` reaches jobs that post PR comments. | A convention violation is exit 1, and a state where the check itself cannot be made is distinguished as exit 2. |
+| `make actions-required-check-lint` | Checks that the contexts registered as required status checks are reported on every PR. | The decision needs two files, the ruleset declaration and the workflow definitions, so actionlint cannot express it. A declaration violation is exit 1, and a state where the check cannot be made is distinguished as exit 2. |
+| `make actions-zizmor` | Statically analyzes the definitions of workflows and composite actions with zizmor. | It covers the angles invisible to actionlint / `actions-shellcheck` because they flatten `${{ … }}` before handing to shellcheck (unquoted expression expansion in `run:`, etc.). It fails only on high findings, and suppressions are declared with reasons in `.github/zizmor.yml`. **It runs in 2 stages, one printing all findings and one failing only on high** — `--min-severity` also narrows the display, so with one stage, findings suppressed by severity downgrade would vanish from the output too and "slip through silently". The config file is specified explicitly rather than left to auto-discovery (if it is missed, it shows up not as "zero findings" but as "suppressions not working", which goes unnoticed). Both hooks and CI run with `--offline`. |
+| `make issue-field-lint` | Checks that implementation-task issues actually have the template's required fields. | Issues opened by the form and issues opened with `--body-file` owe the same fields, yet only the latter would go unchecked. |
+| `make shellcheck` | Checks tracked `*.sh` with shellcheck. | The targets are "things that must run before dependencies are installed and so can only be written in shell" (the ADR 0155 exception). They are not TypeScript, so neither the 1:1 gate nor coverage applies, and they are outside `.github`, so actionlint does not reach them either. Without shellcheck the check scope would silently shrink, so it fails. |
 
-actionlint は `run:` ステップのシェルも shellcheck 経由で検査するため、両バイナリを `mise.toml` で版固定して
-います（[ADR 0003](../docs/adr/0003-version-manager.md)）。先に `make install-tools` を実行してください。
+actionlint also checks the shell of `run:` steps through shellcheck, so both binaries are version-pinned in `mise.toml`
+([ADR 0003](../docs/adr/0003-version-manager.md)). Run `make install-tools` first.
 
-composite action は actionlint の走査対象に含めていません（`action.yaml` を渡すと workflow として解釈され、
-必ず構文エラーになります）。その代わり `run:` のシェルは `make actions-shellcheck` が担い、両者を合わせて
-pre-commit hook と CI の `actions-lint` job が実行します。actionlint 側に何が残るかは
-[ADR 0153](../docs/adr/0153-ci-configuration.md) を参照してください。
+Composite actions are not included in actionlint's scan (passing `action.yaml` makes it interpret it as a workflow,
+which is always a syntax error). Instead, `make actions-shellcheck` handles the `run:` shells, and both together
+are run by the pre-commit hook and CI's `actions-lint` job. For what remains on the actionlint side, see
+[ADR 0153](../docs/adr/0153-ci-configuration.md).
 
-`make actions-shellcheck` は、次のいずれかでも異常終了します。検査範囲が黙って縮んだまま緑になる状態を
-作らないためのもので、判定はファイル単位です（合計で見ると 1 ファイルの抽出失敗が他ファイルの成功に隠れます）。
+`make actions-shellcheck` also exits abnormally in any of the following cases. They exist so that it never
+turns green with the check scope silently shrunk, and the decision is per file (looking at the total, one file's extraction failure would be hidden by other files' success).
 
-- **抽出数が合わない** — パーサ自身の変換で数えた `runs.steps[].run` の件数と、実際に抽出できた件数が食い違う
-  （`using:` の綴りを取り違えた action もここで落ちます）
-- `runs.using: composite` なのに `runs.steps` がリストとして読めない
-- `run:` ステップに `shell:` が無い / 参照先の無い alias がある / YAML として壊れている
+- **The extraction count does not match** — the number of `runs.steps[].run` counted by the parser's own conversion differs from the number actually extracted
+  (an action that misspelled `using:` also fails here)
+- `runs.using: composite` but `runs.steps` cannot be read as a list
+- A `run:` step has no `shell:` / there is an alias with no referent / it is broken as YAML
 
-`run:` の本文は**リテラル（`|`）で書いてください**。ブロック折り畳み（`>`）は隣接する行を空白へ畳むため
-指摘の位置を写し戻せず、畳まれた行がソースに無い構文を作って誤検知も生むため、error になります。
+**Write `run:` bodies as literals (`|`)**. Block folding (`>`) folds adjacent lines into spaces, so
+finding positions cannot be mapped back, and the folded lines create syntax not in the source and cause false positives, so it is an error.
 
-`make actions-comment-secret-lint` は、検査ログをそのまま公開 PR コメントへ複製する `upsert-pr-comment` の
-性質上守らなければならない規約 — **本文を作るジョブに secret を渡さない**（[ADR 0153](../docs/adr/0153-ci-configuration.md)）—
-を機械検査します。走査単位はステップではなく**ジョブ**で、`upsert-pr-comment` を内側で呼ぶローカル action を
-経由するジョブも対象に含めます。
+`make actions-comment-secret-lint` mechanically checks a convention that must hold because `upsert-pr-comment` copies check logs
+as is into public PR comments — **do not pass secrets to jobs that compose bodies** ([ADR 0153](../docs/adr/0153-ci-configuration.md)).
+The scan unit is the **job**, not the step, and jobs that go through a local action calling `upsert-pr-comment` internally
+are included.
 
-参照を探す対象はソースの範囲ではなく**パース済みスカラーの値**です。範囲で切ると、YAML コメントに書いた
-例示が実参照として拾われ、閉じない `${{` があればそこから次の `}}` までが 1 つの式と見なされて間にある
-本物の参照を呑み込み、alias で他のジョブへ退避させた値は逆に対象から外れます。
+What it searches for references is not ranges of source but **the values of parsed scalars**. Cutting by range would pick up examples written in YAML comments
+as real references, an unclosed `${{` would be treated as one expression up to the next `}}`, swallowing
+real references in between, and values evacuated to other jobs through aliases would conversely fall out of scope.
 
-検出できるのは `${{ }}` 式に現れる secrets コンテキストの直接参照だけです。別ジョブで読んで
-`needs.<job>.outputs` 経由で渡す間接参照は静的に追えないため検査を通ります。**規約が正であり、この検査は
-規約が将来 `env:` 1 行で破られることへの退行ガード**です。
+What it can detect is only direct references to the secrets context that appear in `${{ }}` expressions. Indirect references read in another job and passed
+via `needs.<job>.outputs` cannot be traced statically and pass the check. **The convention is authoritative, and this check is
+a regression guard against the convention being broken in the future by a single `env:` line.**
 
-異常終了は 2 通りに分かれます。
+Abnormal exits split two ways.
 
-- **exit 1** — 規約違反（投稿ジョブ、またはワークフロー全体に及ぶ位置に `GITHUB_TOKEN` 以外の secret がある）
-- **exit 2** — 検査そのものが成立していない。ワークフローが 1 件も見つからない（リポジトリルート以外での実行）/
-  `jobs:` がマッピングとして読めない / `upsert-pr-comment` の定義があるのに、それを使うジョブが 1 つも
-  見つからない（参照の同定が壊れている）/ ジョブが reusable workflow を呼び出している（呼び出し先へ
-  `with:` で渡る secret を追えないため未対応）
+- **exit 1** — a convention violation (a secret other than `GITHUB_TOKEN` in a posting job, or in a position that reaches the whole workflow)
+- **exit 2** — the check itself cannot be made. Not a single workflow is found (run outside the repository root) /
+  `jobs:` cannot be read as a mapping / `upsert-pr-comment` is defined but no job using it is
+  found (reference identification is broken) / a job calls a reusable workflow (secrets passed to the callee
+  via `with:` cannot be traced, so unsupported)
 
-`make actions-required-check-lint` は、[`../.github/settings/branch-protection.json`](../.github/settings/branch-protection.json)
-が必須にしている context ごとに、**その名前を報告し続ける job がちょうど 1 つあること**を検査します。報告
-されない context は「必須チェック待ち」のまま永久にマージできず、壊れたと分かるのは原因を入れた PR では
-なく次に上がってきた PR です。
+`make actions-required-check-lint` checks, for each context that [`../.github/settings/branch-protection.json`](../.github/settings/branch-protection.json)
+makes required, that **there is exactly one job that keeps reporting that name**. An unreported
+context leaves merging blocked forever as "waiting for required checks", and the breakage is noticed not on the PR that introduced the cause
+but on the next PR that comes up.
 
-落とすのは次の 6 つ。いずれも登録した時点では緑に見え、条件を満たさない PR が来た瞬間にマージ不能へ変わ
-ります。
+It fails on the following 6. Each looks green at the time of registration, and turns unmergeable the moment a PR arrives that does not meet the condition.
 
-- その名前を宣言する job が無い（job の rename が典型）
-- 複数の job が同じ名前を宣言している（どちらの結果を必須にしているのか決まらない）
-- その workflow が `pull_request` で走らない
-- `pull_request` が `paths` / `paths-ignore` / `branches` / `branches-ignore` で絞られている
-- `types:` を絞っていて `opened` / `synchronize` を含まない
-- context 名が実行時に枝分かれする（`strategy.matrix` / reusable workflow の呼び出し）
+- No job declares that name (a job rename is typical)
+- Several jobs declare the same name (which result is required is undecidable)
+- That workflow does not run on `pull_request`
+- `pull_request` is narrowed by `paths` / `paths-ignore` / `branches` / `branches-ignore`
+- `types:` is narrowed and does not include `opened` / `synchronize`
+- The context name branches at run time (`strategy.matrix` / a reusable workflow call)
 
-`if:` で降りる job は落としません。降りた job は `skipped` を報告し、必須チェックはそれを成功として数える
-ため、報告そのものは途切れないからです。
+Jobs that skip via `if:` are not failed. A skipped job reports `skipped`, and required checks count that as success,
+so the reporting itself is not interrupted.
 
-ワークフローの列挙と `jobs:` へ降りるまでの読み取りは [`../scripts/lib/workflow-files.ts`](../scripts/lib/workflow-files.ts)
-が持ちます。**同じ判断を検査ごとに書き起こすと、片方だけが直った状態が黙って生まれる**ため、
-`make actions-comment-secret-lint` と共有します。
+Enumerating workflows and reading down to `jobs:` are held by [`../scripts/lib/workflow-files.ts`](../scripts/lib/workflow-files.ts).
+**Re-writing the same judgment per check silently creates a state where only one was fixed**, so it is
+shared with `make actions-comment-secret-lint`.
 
-### ベースブランチの解決関連
+### Base Branch Resolution
 
-フィーチャーブランチの分岐元と、PR が無いときの base を答えます。判断は
-[`scripts/base-branch/resolve.ts`](../scripts/base-branch/resolve.ts) が持ち、出所を `origin` の実状態に
-限る理由は [`scripts/base-branch/README.md`](../scripts/base-branch/README.md) が持ちます。
+Answers what a feature branch branches from, and the base when there is no PR. The decision is held by
+[`scripts/base-branch/resolve.ts`](../scripts/base-branch/resolve.ts), and the reason the source is limited to `origin`'s actual state
+is held by [`scripts/base-branch/README.md`](../scripts/base-branch/README.md).
 
-この 2 つだけは pnpm の依存検査を外して起動します（`pnpm --config.verify-deps-before-run=false`）。分岐元は
-`node_modules` を入れる前に要り、引くのが node 組み込みとリポジトリ内のモジュールだけなので依存の新旧が
-答えを変えないためです。**外してよい理由は「node_modules から何も引かない」ことだけ**で、依存を 1 つ引いた
-時点で崩れますが答えは返り続けるため、import と recipe の宣言の両方を
-[`scripts/verify-deps-bypass.gate.test.ts`](../scripts/verify-deps-bypass.gate.test.ts) が見ます。同じ性質の
-ターゲットを増やすときは、この検査の入口一覧へ足します。
+Only these two start with pnpm's dependency check turned off (`pnpm --config.verify-deps-before-run=false`). The branch point is
+needed before `node_modules` is installed, and since they pull in only node built-ins and modules inside the repository, how fresh the dependencies are does not
+change the answer. **The only reason it may be turned off is "pulls nothing from node_modules"**; pulling in a single dependency
+breaks it, yet answers keep coming back, so both the imports and the recipe declarations are watched by
+[`scripts/verify-deps-bypass.gate.test.ts`](../scripts/verify-deps-bypass.gate.test.ts). When adding a target of the same nature,
+add it to this check's list of entry points.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make base-branch` | 最新のリリースライン（`release/vX.Y.Z`）のブランチ名を 1 行で出力します。 | `git ls-remote` で `origin` の実状態を読むため、`git fetch` では更新されないローカルの `refs/remotes/origin/HEAD` が古くても、GitHub のデフォルトブランチが前のラインを指したままでも答えは変わりません。「最新」はコミット日時ではなく版の数値比較で、リリースブランチを切る側と同じ判定を使います。出力は装飾を持たないので `$(make -s base-branch)` でそのまま受けられます。リリースラインが 1 本も無ければ exit 1 で、空文字を返しません。PR が既にあるならその `baseRefName` が正で、これは PR が無いときの答えです。 |
-| `make base-merge [BASE=<ref>] [DRY_RUN=1]` | ベースブランチを現在のブランチへ取り込み、未解決のパスを 1 行 1 件で出力します。 | ベースは `--base` → PR の `baseRefName` → 最新のリリースライン の順で最初に決まったものを採ります。PR がある枝でそのベース以外を取り込むと、追いつかせるつもりが行き先の付け替えになります。**rebase はしません**（[0150](../docs/adr/0150-git-workflow.md)。加えて追記専用のファイルでは同じ内容が別のハッシュで再着地します）。保護ブランチの上と作業ツリーが汚れている状態は拒みます。衝突が残ると exit 1 で、**作業ツリーは MERGING のまま残します** —— 解決は `resolve-merge` が続けるので、ここで捨てるとその入力ごと失われます。分類と解決は持ちません（[`scripts/base-merge/README.md`](../scripts/base-merge/README.md)）。 |
+| `make base-branch` | Prints the branch name of the latest release line (`release/vX.Y.Z`) on one line. | It reads `origin`'s actual state with `git ls-remote`, so the answer does not change even if the local `refs/remotes/origin/HEAD`, which `git fetch` does not update, is stale, or GitHub's default branch still points at the previous line. "Latest" is a numeric version comparison, not a commit date, using the same judgment as the side that cuts release branches. The output has no decoration, so it can be taken as is with `$(make -s base-branch)`. If there is no release line at all, it exits 1 rather than returning an empty string. If a PR already exists, its `baseRefName` is authoritative; this is the answer when there is no PR. |
+| `make base-merge [BASE=<ref>] [DRY_RUN=1]` | Merges the base branch into the current branch and prints unresolved paths one per line. | The base is the first one decided in the order `--base` → the PR's `baseRefName` → the latest release line. On a branch with a PR, merging anything other than that base turns what was meant as catching up into retargeting. **It does not rebase** ([0150](../docs/adr/0150-git-workflow.md); in addition, in append-only files the same content would re-land with a different hash). It refuses on a protected branch and with a dirty working tree. If conflicts remain it exits 1, and **leaves the working tree in MERGING** — `resolve-merge` continues the resolution, so discarding it here would lose its input along with it. It holds no classification or resolution ([`scripts/base-merge/README.md`](../scripts/base-merge/README.md)). |
 
-### リリースブランチ関連
+### Release Branches
 
-いずれも取り消せない操作（`origin` への push / デフォルトブランチの張り替え）を含みます。何をどの順で
-実行するかの判断は [`scripts/release/branch.ts`](../scripts/release/branch.ts) が持ち、ターゲットは
-入口を呼ぶだけです。
+All of these include irreversible operations (pushing to `origin` / repointing the default branch). The judgment of what to run in which order
+is held by [`scripts/release/branch.ts`](../scripts/release/branch.ts), and the targets
+only call the entry point.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make hotfix-patch` | `production` から hotfix ブランチを作成し、GitHub のデフォルトブランチに設定します。 | 現在の最新タグを基準に patch を 1 つ進めます。同名ブランチが既に在るとき、作業ツリーが汚れているときは何もせず終了します。 |
-| `make branch-patch` | `production` から patch リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に patch バージョンを進めます。 |
-| `make branch-minor` | `production` から minor リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に minor バージョンを進めます。 |
-| `make branch-major` | `production` から major リリース用ブランチを作成し、デフォルトブランチに設定します。 | 現在の最新タグを基準に major バージョンを進めます。 |
+| `make hotfix-patch` | Creates a hotfix branch from `production` and sets it as GitHub's default branch. | Advances patch by one from the current latest tag. If a branch with the same name already exists, or the working tree is dirty, it exits without doing anything. |
+| `make branch-patch` | Creates a branch for a patch release from `production` and sets it as the default branch. | Advances the patch version from the current latest tag. |
+| `make branch-minor` | Creates a branch for a minor release from `production` and sets it as the default branch. | Advances the minor version from the current latest tag. |
+| `make branch-major` | Creates a branch for a major release from `production` and sets it as the default branch. | Advances the major version from the current latest tag. |
 
-### 版の焼き込み関連
+### Version Stamping
 
-版の出所はリリースブランチ名（= タグから数えた次の版）1 つで、`package.json` はそこから導かれる側に
-置きます。焼き込みはブランチを切る手順（上記）の中で走るため、通常これらを直に叩くことはありません。
-何を書くか・何を落とすかの判断は [`scripts/package-version/version.ts`](../scripts/package-version/version.ts)
-が持ちます。
+The version has one source, the release branch name (= the next version counted from the tag), and `package.json` sits on the side derived
+from it. Stamping runs inside the branch-cutting procedure (above), so you normally do not invoke these directly.
+The judgment of what to write and what to drop is held by [`scripts/package-version/version.ts`](../scripts/package-version/version.ts).
 
-`REF` は recipe 行へ展開せず、環境変数 `PACKAGE_VERSION_REF` としてスクリプトへ渡します（理由は上記
-「規約」）。`REF` 省略時の取り回し（`GITHUB_REF_NAME` → 手元の現在ブランチ）はスクリプトが持ちます。
+`REF` is not expanded into recipe lines; it is passed to the script as the environment variable `PACKAGE_VERSION_REF` (for the reason, see
+Conventions above). How an omitted `REF` is handled (`GITHUB_REF_NAME` → the local current branch) is held by the script.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make version-stamp [REF=<ref>]` | `package.json` の `version` をブランチ名の版へ書き換えます。 | `release/vX.Y.Z` / `hotfix/vX.Y.Z` 以外の ref では何もせず正常終了します。コミットはしません。 |
-| `make version-stamp-commit [REF=<ref>]` | 同じ焼き込みを、**書き換えが起きたときだけ**コミットまで行います。 | リリースブランチを切る手順が使います。既に名乗りどおりのときにコミットへ進むと、ステージが空のまま `git commit` が落ち、手順が push の手前で止まります。 |
-| `make version-stamp-check [REF=<ref>]` | `package.json` の `version` がブランチ名と一致するか検査します。 | 書き換えません。食い違いで落ちます（`package-version` job が pull request の base を渡して回します）。 |
+| `make version-stamp [REF=<ref>]` | Rewrites `version` in `package.json` to the branch name's version. | For refs other than `release/vX.Y.Z` / `hotfix/vX.Y.Z` it does nothing and exits normally. It does not commit. |
+| `make version-stamp-commit [REF=<ref>]` | Does the same stamping, and commits **only when a rewrite happened**. | Used by the release-branch-cutting procedure. Going on to commit when it already matches the claimed version would make `git commit` fail with an empty stage, stopping the procedure just short of push. |
+| `make version-stamp-check [REF=<ref>]` | Checks that `version` in `package.json` matches the branch name. | Does not rewrite. Fails on mismatch (the `package-version` job runs it passing the pull request's base). |
 
-### リリースタグ関連
+### Release Tags
 
-判断は [`scripts/release/tag.ts`](../scripts/release/tag.ts) が持ちます。基準にする最新タグの選定は
-[`scripts/semver/latest.ts`](../scripts/semver/latest.ts) が一箇所で担い、`pnpm exec tsx scripts/semver latest`
-としても引けます。
+The decision is held by [`scripts/release/tag.ts`](../scripts/release/tag.ts). Choosing the latest tag to base on is handled in one place by
+[`scripts/semver/latest.ts`](../scripts/semver/latest.ts), which can also be invoked as `pnpm exec tsx scripts/semver latest`.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make tag-patch` | patch バージョンを 1 つ進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準とし、リリースノートには `.github/release/<version>.md` を使用します。ノートが無ければタグも Release も作りません。 |
-| `make tag-minor` | minor バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
-| `make tag-major` | major バージョンを進めたタグを作成し、GitHub Release を作成します。 | 現在の最新タグを基準にします。 |
+| `make tag-patch` | Creates a tag advancing the patch version by one and creates a GitHub Release. | Based on the current latest tag; uses `.github/release/<version>.md` for the release notes. Without the note it creates neither the tag nor the Release. |
+| `make tag-minor` | Creates a tag advancing the minor version and creates a GitHub Release. | Based on the current latest tag. |
+| `make tag-major` | Creates a tag advancing the major version and creates a GitHub Release. | Based on the current latest tag. |
 
-## `.makefiles/tools` 系
+## `.makefiles/tools` Targets
 
-### ツールバージョン管理関連
+### Tool Version Management
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make install-tools` | [`mise.toml`](../mise.toml) の `[tools]` を一括でインストールします。 | mise の事前インストールが必要。何が入るかは `mise.toml` が正で、ここには写しません。全エントリが backend を明示します（[ADR 0003](../docs/adr/0003-version-manager.md)）。 |
+| `make install-tools` | Installs the `[tools]` of [`mise.toml`](../mise.toml) in one go. | mise must be installed beforehand. What gets installed is authoritative in `mise.toml` and not copied here. Every entry states its backend explicitly ([ADR 0003](../docs/adr/0003-version-manager.md)). |
 
-### コミットメッセージ検証関連
+### Commit Message Validation
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make commitlint [COMMIT_MSG_FILE=<path>]` | コミットメッセージを commitlint で検証します。 | `.lefthook.yaml` の commit-msg hook から呼ばれます。`COMMIT_MSG_FILE` 省略時は編集中のコミットメッセージを対象にします。その実体は `.git/COMMIT_EDITMSG` と決め打ちせず `git rev-parse --git-path COMMIT_EDITMSG` で引きます —— worktree では `.git` がファイルで、実体は本体側にあるためです。規約は [ADR 0150](../docs/adr/0150-git-workflow.md) 参照 |
+| `make commitlint [COMMIT_MSG_FILE=<path>]` | Validates the commit message with commitlint. | Called from the commit-msg hook in `.lefthook.yaml`. When `COMMIT_MSG_FILE` is omitted it targets the commit message being edited. Its location is not hard-coded as `.git/COMMIT_EDITMSG` but looked up with `git rev-parse --git-path COMMIT_EDITMSG` — in a worktree, `.git` is a file and the real one is on the main checkout's side. For the conventions see [ADR 0150](../docs/adr/0150-git-workflow.md) |
 
-### API 契約の取り込み関連
+### API Contract Import
 
-契約は上流のリポジトリが正本で、こちらは取得して生成するだけです（[ADR 0072](../docs/adr/0072-api-type-generation.md)）。
+The contracts are canonical in the upstream repository; this side only fetches and generates ([ADR 0072](../docs/adr/0072-api-type-generation.md)).
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make api-fetch [NAME=<name>]` | `openapi/sources.yaml` の座標から契約を取得し、blob SHA をスタンプします。 | `gh` の認証が要ります。`NAME` を省くと `sources.yaml` の全件を取得します。 |
-| `make api-gen` | 取得済みの契約から型 / zod / MSW ハンドラを生成します。 | 生成の直後に整形まで掛けます。整形を別手順にすると生成しただけの状態が commit され、drift ゲートが「生成し忘れ」ではなく「整形し忘れ」で落ちます。 |
-| `make api-gen-check` | 契約と生成物の版が揃っているか検証します（生成はしません）。 | CI / hook 用。 |
+| `make api-fetch [NAME=<name>]` | Fetches contracts from the coordinates in `openapi/sources.yaml` and stamps the blob SHA. | Requires `gh` authentication. Omitting `NAME` fetches everything in `sources.yaml`. |
+| `make api-gen` | Generates types / zod / MSW handlers from the fetched contracts. | Applies formatting right after generation. If formatting were a separate step, a merely generated state would be committed, and the drift gate would fail not on "forgot to generate" but on "forgot to format". |
+| `make api-gen-check` | Verifies that the contracts and generated artifacts are at matching versions (does not generate). | For CI / hooks. |
 
-### GitHub Actions の SHA ピン関連
+### GitHub Actions SHA Pins
 
-`uses:` を moving tag のまま置くと、上流が tag を付け替えた時点で CI が実行する内容が黙って変わります。
-これを防ぐため、参照は commit SHA へ固定し、tag → SHA の対応を `.github/actions-pin.toml` が持ちます
-（[ADR 0153](../docs/adr/0153-ci-configuration.md)）。**版の SSOT は `uses:` 行末尾のコメント tag** であり、
-`@` 側の SHA ではありません。
+Leaving `uses:` on a moving tag silently changes what CI runs the moment upstream moves the tag.
+To prevent this, references are pinned to commit SHAs, and the tag → SHA mapping is held by `.github/actions-pin.toml`
+([ADR 0153](../docs/adr/0153-ci-configuration.md)). **The SSOT for the version is the comment tag at the end of the `uses:` line**,
+not the SHA on the `@` side.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。既定の検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
-| `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
-| `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
-| `make egress-apply` | `.github/egress.yaml` を workflow の harden-runner へ反映します。 | 許可した宛先以外への外向き通信は遮断されます（`egress-policy: block`）。**足す根拠は実測**（`audit` が記録した `domain resolved:` 行）に置いてください。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
-| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / 参照されなくなったエントリを検出して exit 1（fail-closed）。 |
+| `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | Resolves comment tags to SHAs with `git ls-remote` and regenerates the lockfile. | The only one of the three that goes out to the network. The default quarantine is 14 days. If a tag declared immutable resolves somewhere new, exit 1 (below). If you hit the GitHub API rate limit, set `GITHUB_TOKEN` (or `GH_TOKEN`). |
+| `make actions-pin-apply` | Rewrites `@<sha>` in `uses:` from the lockfile. | Comment tags are kept. |
+| `make actions-pin-check` | Checks that `uses:` is pinned exactly as in the lockfile. | Does not rewrite and does not go out to the network. Run by the pre-commit hook and CI's `actions-pin` job. Detects unregistered references / unpinned or mismatched SHAs / a broken lockfile / entries no longer referenced / uninterpretable `uses:` notation and exits 1 (fail-closed). |
+| `make egress-apply` | Applies `.github/egress.yaml` to the workflows' harden-runner. | Outbound traffic to anything but the allowed destinations is blocked (`egress-policy: block`). **Base additions on measurement** (the `domain resolved:` lines that `audit` recorded). For workflows whose record is incomplete, keep them at `audit` on the declaration side, with the reason and the condition for removal written. |
+| `make egress-check` | Checks that the workflows are pinned as declared. | Does not rewrite and does not go out to the network. Run by the pre-commit hook and CI's `actions-lint` job. Detects differences from the declaration / unexpected content / entries no longer referenced and exits 1 (fail-closed). |
 
-`uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
-（`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
+Write `uses:` in **block notation, one step per line**. YAML flow mappings
+(`- {name: X, uses: owner/repo@v1}`) are outside the check's net, so they are an error rather than slipping through.
 
-`ACTIONS_PIN_MIN_AGE_DAYS` は供給網検疫の窓です。解決先が公開から指定日数に満たない場合、既存のピンがあれば
-それを維持し、無ければ採用を見送ります。公開直後の（侵害されている可能性のある）リリースを、上流が検知・
-取り下げるより先に取り込まないための猶予です。`0` を渡すと検疫は無効になります。
+`ACTIONS_PIN_MIN_AGE_DAYS` is the supply-chain quarantine window. If the resolved target is younger than the given number of days since publication, an existing pin
+is kept, and if there is none, adoption is deferred. It is a grace period for not taking in a freshly published (possibly compromised) release before upstream detects and
+withdraws it. Passing `0` disables the quarantine.
 
-検疫が見る経過日数は、Release の `published_at` と commit の日付のうち**新しい方**です。Release は tag 名に
-紐づくだけで tag の付け替えでは動かず、commit の日付は発行者が任意に書けるため、どちらも単独では解決先の
-新しさを表しません。ただし新しい方を採ってもなお、**検疫は自動化された乗っ取りに対して時間を稼ぐ仕組みで
-あり、日付の偽装に耐える保証ではありません**。tag 付け替えそのものの検知は下記の fail-closed が担います。
+The age the quarantine looks at is the **newer** of the Release's `published_at` and the commit date. A Release is only
+tied to the tag name and does not move when the tag is moved, and the commit date can be written arbitrarily by the publisher, so neither alone represents how
+new the resolved target is. Even taking the newer one, however, **the quarantine is a mechanism that buys time against automated takeovers,
+not a guarantee that withstands forged dates**. Detecting the tag move itself is handled by the fail-closed behavior below.
 
-#### tag 付け替えの検知
+#### Detecting tag moves
 
-`make actions-pin-resolve` は、**不変を宣言した tag の解決先が変わった時点で exit 1 になり、ロックファイルを
-書きません**（承認済みの移動や他のエントリを含め、一切書きません）。付け替えられた SHA が一度ロックファイルへ
-入れば、以降 `make actions-pin-check` は「整合している」と答え続けるためです。
+`make actions-pin-resolve` **exits 1 the moment a tag declared immutable resolves somewhere new, and does not write the lockfile**
+(it writes nothing at all, including approved moves and other entries). Once a moved SHA enters the lockfile,
+`make actions-pin-check` would keep answering "consistent" from then on.
 
-`# v6` のような **bare な major 番号だけを moving**（前進してよい）とみなします。`# v6.1.0` / `# v6.1` / `# main`
-はすべて不変として扱われ、解決先が動けば落ちます。上流が `v6.1` のような moving minor tag を持つ場合は誤検知
-しますが、その向きの誤りは停止で済みます。
+Only **a bare major number like `# v6` is treated as moving** (allowed to advance). `# v6.1.0` / `# v6.1` / `# main`
+are all treated as immutable, and fail if their target moves. If upstream has a moving minor tag like `v6.1`, this is a false positive,
+but an error in that direction only costs a stop.
 
-意図した更新であれば、ロックファイルのキーを空白区切りで並べて承認します。
+If the update is intended, approve it by listing the lockfile keys separated by spaces.
 
 ```bash
 make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0"
 ```
 
-承認は 1 回の移動に対して与えるものです。移動していないキーを承認に残していると次の付け替えを黙って通すため、
-その場合は「承認は不要でした」と表示されます。承認しても検疫は独立に掛かります。
+An approval is given for one move. Leaving a key that did not move in the approval would silently pass the next move,
+so in that case it prints "the approval was not needed". The quarantine applies independently even when approved.
 
-検知の失敗出力は、キーを埋め込んだ承認コマンドを組み立てません。キーは 1 行ずつ上に並ぶので、承認する分だけを
-自分で並べ直してください。
+The detection's failure output does not build an approval command with the keys embedded. The keys are listed one per line above, so list
+only the ones you approve yourself.
 
-更新の運用手順は `actions-pin` スキルが持ちます。
+The update procedure is held by the `actions-pin` skill.
 
 > Rationale: [0153](../docs/adr/0153-ci-configuration.md)
 
-### container image の digest ピン関連
+### Container Image Digest Pins
 
-registry の tag は、同じ名前のまま別の中身を指せます。`image:` / `FROM` / `uses: docker://` を tag の
-ままにしておくと、指し先が差し替わったことに気づかないまま新しい中身を引きます。そこで参照は
-digest へ固定し、`image:tag` → digest の対応を `docker/images-pin.toml` が持ちます。**版の SSOT は
-tag 側**であり、digest ではありません。走査対象は `docker-compose*.{yml,yaml}`、
-`docker/<用途>/Dockerfile`、そして `.github/workflows/**` / `.github/actions/**` の
-`uses: docker://<image>:<tag>` です。
+A registry tag can point to different contents under the same name. Leaving `image:` / `FROM` / `uses: docker://` on
+a tag pulls new contents without noticing that the target was replaced. So references are pinned to
+digests, and the `image:tag` → digest mapping is held by `docker/images-pin.toml`. **The SSOT for the version is the
+tag side**, not the digest. The scan targets are `docker-compose*.{yml,yaml}`,
+`docker/<purpose>/Dockerfile`, and `uses: docker://<image>:<tag>` in `.github/workflows/**` / `.github/actions/**`.
 
-最後のものは `uses:` の行ですが参照先は registry なので、SHA ピンを担う actions-pin ではなくこちらが
-固定します（actions-pin は tag を `git ls-remote` で commit へ解決する機構で、registry には効きません）。
-両機構は同じファイルを走査しますが、掴む行は重なりません。
+The last one is a `uses:` line, but it references a registry, so this mechanism pins it rather than actions-pin, which handles SHA pins
+(actions-pin resolves tags to commits with `git ls-remote` and has no effect on registries).
+Both mechanisms scan the same files, but the lines they grab do not overlap.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make images-pin-resolve [IMAGES_PIN_MIN_AGE_DAYS=<days>]` | tag を `docker buildx imagetools inspect` で digest へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます（docker の認証情報を使います）。既定の検疫日数は 14。 |
-| `make images-pin-apply` | ロックファイルを元に参照を `image:tag@sha256:...` へ書き換えます。 | tag と行末コメントは保持します。 |
-| `make images-pin-check` | 参照がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `images-pin` job が実行します。未登録 / 未固定・不一致 / 参照されなくなったエントリ / 解釈できない記法を検出して exit 1（fail-closed）。 |
+| `make images-pin-resolve [IMAGES_PIN_MIN_AGE_DAYS=<days>]` | Resolves tags to digests with `docker buildx imagetools inspect` and regenerates the lockfile. | The only one of the three that goes out to the network (uses docker credentials). The default quarantine is 14 days. |
+| `make images-pin-apply` | Rewrites references to `image:tag@sha256:...` from the lockfile. | Tags and trailing comments are kept. |
+| `make images-pin-check` | Checks that references are pinned exactly as in the lockfile. | Does not rewrite and does not go out to the network. Run by the pre-commit hook and CI's `images-pin` job. Detects unregistered / unpinned or mismatched / entries no longer referenced / uninterpretable notation and exits 1 (fail-closed). |
 
-参照は **1 行 1 件・引用符なし・tag 明示**で書いてください。`image: "alpine:3.24"` のような記法や、
-tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入らないため、素通りではなく error に
-なります。
+Write references **one per line, unquoted, with an explicit tag**. Notations like `image: "alpine:3.24"`, and
+`uses: docker://alpine` with the tag omitted (= `:latest`), are outside the check's net, so they are an error
+rather than slipping through.
 
-`IMAGES_PIN_MIN_AGE_DAYS` は供給網検疫の窓で、経過日数は image config の `created` から見ます
-（マルチアーキでは最も古いものを採ります）。既存のピンがあればそれを維持し、無ければ tag のまま
-残さず失敗させます。tag だけの運用を許すと、未検証の digest をそのまま引くためです。
+`IMAGES_PIN_MIN_AGE_DAYS` is the supply-chain quarantine window, and the age is taken from the image config's `created`
+(for multi-arch, the oldest is taken). An existing pin is kept if there is one; if not, it fails rather than leaving
+the tag as is. Allowing tag-only operation would pull unverified digests as is.
 
-**tag の付け替えは検知しません。** base image の tag は patch 版が出るたび前進するのが通例で、
-「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなります（Actions の SHA ピンとは
-ここだけ運用が異なります）。image に対して働く防壁は検疫と固定の 2 つです。
+**Tag moves are not detected.** A base image's tag normally advances every time a patch version comes out, and
+"stop when the target changes" would be indistinguishable from routine updates (this is the one place operation differs from
+Actions SHA pins). The defenses that work for images are two: the quarantine and the pin.
 
-## `.makefiles/testing` 系
+## `.makefiles/testing` Targets
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make test-cached` | Vitest を cache 利用で実行します。 | pre-commit 用の高速フィードバック。coverage gate は実行しません。 |
-| `make test-full` | Vitest を cache 無効・coverage 付きで実行します。 | pre-push / CI 用。Statements / Branches / Functions / Lines の各 100% を下回ると失敗します。人間向けの reporter は `dot` です —— **通過を捨てるのはテキストの濾過ではなく reporter の選択で行います**。失敗行を語彙で拾う形は失敗の理由そのものを通過行として捨てうるのに対し、`dot` は vitest 自身が通過を 1 文字へ畳む出口で、失敗の理由もカバレッジ表も残ります。これでログの大きさが通過件数に比例しなくなり、`tail -n 400` が全文を覆います。 |
-| `make test-failures [TEST_RUN=<target>]` | テストを走らせ、**落ちたケースだけ**を出力します。通過したケースは 1 行も出ません。 | 読むのは vitest の JSON レポート（`status` / `failureMessages`）で、失敗行を語彙で拾う要約器ではありません（[0157](../docs/adr/0157-inspection-declaration-discipline.md)）。全通過なら 1 行、失敗ならその全件が件数つきで出ます。カバレッジの閾値割れは JSON に載らないため、テストが 0 件落ちているのに失敗しているときだけ末尾のログを添えます（分岐は構造化された値だけで決まり、ログの語彙は読みません）。`TEST_RUN` は走らせる先で、既定は `test-full`、CI の合流側は `test-merge`。報告の組み立ては 1 か所しか無く、終了コードは走らせた側のものをそのまま返します。**`tmp/test-report.json` を直接読まないこと** —— 通過したケースも全件書くので、実測で素のテキスト出力の 1,100 倍（690B に対して 785KB）あります。 |
-| `make scripts-test-cached` | 補助スクリプト（`scripts/**`）の suite を cache 利用で実行します。 | pre-commit 用。export と describe の 1:1 ゲートを含みます。 |
-| `make scripts-test` | 補助スクリプトの suite を cache 無効・coverage 付きで実行します。 | pre-push / CI（`scripts-check`）用。アプリ本体の suite と分けるのは、`scripts/` に居るのが検査機構そのもので、落ちた理由を取り違えないためです（[0090](../docs/adr/0090-testing-strategy.md)）。 |
-| `make test-shard SHARD=<i>/<n>` | 分割の 1 台ぶんを走らせ、blob と自分の終了コードを書き出します。 | 割るのは PR の待ち時間のためだけで、保護ブランチと手元は `test-full` のままです（台数ぶん固定費が重複するので、誰も待っていない実行で払う理由が無い）。**各台は閾値を持ちません** —— 割った実行が見るのは自分に割り当てられたファイルだけで、他の台が覆う行は未到達として数えられます。判定は合流させた側が行います。blob の置き場は vitest 既定の `.vitest-reports` ではなく `tmp/` 配下です —— **ドットで始まる名前を upload-artifact の glob が拾わず**、台が書いても成果物が空で上がります。**終了コードとログの末尾も自分で書き出します**（blob とは別の区画へ）—— 合流側が読む JSON はケースの成否とカバレッジしか持たないので、台が失敗を 1 件も記録せずに非ゼロで終わると、その事実はどこにも残らず「全件通りました」と述べたまま検査だけが赤くなります。 |
-| `make test-shards-verify` | 分割の結果が全台ぶん届いているかを確かめます（合流の前）。 | 足りないまま束ねると、走らなかったテストがカバレッジ不足として現れ、原因を取り違えます。台数は各台が書いた名前から読み戻します。 |
-| `make test-merge` | 分割の blob を合流させ、カバレッジのしきい値を検証します。 | 合流後の母数と到達は 1 台で全量を走らせたときと同じになるため、**閾値そのものは緩みません**。 |
-| `make gate-typecheck` | 帯が `ci-first` でなければ型チェックを実行します。 | hook が呼びます。帯が `ci-first` のときは委ねた先のワークフロー名と理由を出して素通しします（委ねる先は `typecheck.yaml`）。 |
-| `make gate-test-full` | 帯が `ci-first` でなければアプリのテストをカバレッジ付きで実行します。 | 同上（委ねる先は `test.yaml`）。 |
-| `make gate-scripts-test` | 帯が `ci-first` でなければ補助スクリプトのテストを実行します。 | 同上（委ねる先は `scripts-check.yaml`）。 |
-| `make load-status` | ローカルゲートの負荷帯と 1 窓あたりの CPU 配分を表示します。 | 帯は測って決めます（[ADR 0151](../docs/adr/0151-git-hooks.md)）。**出力そのものが答えなので `make ai-<target>` で包みません。** |
-| `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` / `make a11y` が前段で呼びます。`storybook build` は preview の build が失敗しても 0 を返すため、生成物（`iframe.html` と `assets/`）の存在を見てから成功を返します。ENV の検証で落ちているときは `APP_ENV` を明示します。 |
-| `make a11y` | 全 story に axe を掛けます。 | VRT と同じ digest 固定のコンテナ・同じ story 列挙で実行します（[ADR 0091](../docs/adr/0091-test-verification-methods.md)）。基準画像は要らないので置き場の配線も要求しません。省略判定は自前の記録（`tmp/a11y/`）だけを見ます —— 基準画像を撮った時点の記録を流用すると、axe が落ちる状態で撮り直しが起きたとき、以後その状態を「一致」と読んで緑を報告します。 |
-| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | 全 story を基準画像と比較します。`VRT_SHARD` は撮影対象の何分割目かで、渡すのは CI だけです。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.md)）。ホスト直実行は比較の前に落ちます。置き場が未配線・未取得なら比較の前に名指しで案内して止まります（取り込まずに回すと全 story が「基準画像が無い」で落ち、退行と見分けが付かないため）。比較を省いた実行でも、基準画像と story の 1 対 1 の対応だけは 1 台目（割っていないか `1/N`）が検査します —— 数える相手は置き場のファイルと story の全目録で、台の数だけ繰り返しても同じ答えしか出ないためです。割った実行のレポートは `list,blob` で出します —— `--reporter` は設定を上書きするもので足すものではなく、blob だけにすると標準出力に何も残らず、どの story で詰まったかが読めなくなります。spec を名指しするのは a11y の spec を同じ実行に巻き込まないためで、混ざると a11y の失敗が撮り直しの対象に入り、撮り直しても直らないまま基準画像だけが承認済みになります。 |
-| `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [BASELINE_BRANCH=<branch>]` | 基準画像を撮り直して置き場へ送ります（`vrt-update` → `baseline-push`）。 | 手元から撮り直す入口はこれです。撮って送らないと親の gitlink が古いままになり、手元の `make vrt` は通るのに CI だけ落ちます。 |
-| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | 基準画像を撮り直します（置き場へは送りません）。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `baseline-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。全数のときだけ撮る前に区画を空にし、**引数が 1 つでも付いていたら消しません** —— 絞り込みは `VRT_ONLY` だけでなく `VRT_ARGS` の `--grep` / `--project` でも起きるので、狭める引数を列挙して判定すると漏れた引数が「全 story を消して一部だけ撮り直す」になります。知らない引数は消さない側へ倒します。撮った時点の入力のハッシュは撮った直後に書きます —— 送る側で書くと、撮らずに置き場を直した木でも「この入力で撮った」と記録でき、次の実行が比較を省きます。撮り直しは承認ではなく、見た目の判断は置き場の compare ビューを見て PR レビューで行います。 |
-| `make baseline-sync` | 基準画像の実体を、いま居るブランチが指す版へ合わせます。 | hook (post-checkout / post-merge) が呼びます。git はブランチを移っても実体を動かさないため、放っておくと指し先から取り残され、その汚れを commit すると間違った指し先が載ります。取り込んでいない作業ツリーでは何もしません（`--init` を付けると worktree を足すたびに置き場を丸ごと取りに行くため、在るものを合わせるだけに留めます）。 |
-| `make baseline-push [BASELINE_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインタを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`BASELINE_BRANCH` の既定は現在のブランチ。 |
-| `make vrt-gate` | 比較を省いてよいかだけを答えます（`run` / `skip`）。 | **`build-storybook` の後でしか答えられません** —— 絵を決める入力に `storybook-static` が入っているためで、CI が「先に判定してから撮影を割る」形を取れない理由もこれです。 |
-| `make vrt-record-verified` | 検査が通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全 shard が緑になってから**書きます（`vrt.yaml`）。手前で書くと、落ちた状態を「通った」として残します。記録は 2 つあります —— **撮った時点**（置き場が画像と同じコミットで持つ）と**検査が通った時点**（`tmp/` に置き、CI は cache で持ち回る）。分けるのは、絵を変えない変更でも `storybook-static` のバイト列は動くためで、撮影時点の記録だけでは一致する窓がほとんど閉じます。追跡下に置かないのは、これが木の状態ではなく「その木を検査した」という実行の履歴だからです。 |
-| `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
-| `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザで動かし、主要ジャーニー・ブラウザが報告する異常・帯ごとの出し分けを 3 つの描画エンジンで回して、画面単位の見た目を基準画像と比べます。 | **アプリはホスト、ブラウザはコンテナ**で動きます（[`e2e/README.md`](../e2e/README.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。相手はモックでなければならず、`APP_ENV` の既定を `ci` に固定します —— 既定の `local` は live を指すので、明示していない呼び出しを実物のバックエンドへ向けません。待ち受けるアドレスはコンテナが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行の口が開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります（Docker Desktop は loopback で届き、Linux では bridge の gateway が宛先になるので OS で解決を分けます）。別 origin から BFF を呼ぶ検証のため、宣言した origin の文書だけを返すサーバをアプリと同じホストに立て、その origin を `HTTP_ALLOWED_ORIGINS` へ渡します —— ブラウザの中で文書を偽装する手は採りません。Chromium は偽装した文書を公開ネットワーク由来と扱い、ホストへの fetch を Private Network Access で止めるためです。 |
-| `make e2e-maintenance [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `APP_MAINTENANCE_MODE=on` でアプリを起動し、全ルートが停止画面へ差し替わること・生存確認が通ること・状態を変える要求が 503 で断られることを確かめます。 | `make e2e` と同じ立て付け（build → 起動 → コンテナのブラウザから当てる → 片付け）に、起動の環境と当てる設定だけを差し替えて乗せています。**基準画像を撮らない**ので置き場（submodule）を要求しません。停止は全ルートに効き、切り替えに起動し直しが要るため、通常の巡回へ混ぜられません（[`e2e/README.md`](../e2e/README.md)）。 |
-| `make e2e-metadata [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `SITE_INDEXABLE=on` でアプリを build して起動し、`robots.txt` が巡回を許すこと・`sitemap.xml` が挙げる URL が実在し自分を正規 URL として名乗ること・アイコンと OG 画像が絵として返ることを確かめます。 | `make e2e-maintenance` と同じ立て付けですが、**build から差し替えます** —— 静的に描かれる画面の metadata は build 時の設定で焼き込まれるためです（[`src/config/site/site.server.ts`](../src/config/site/site.server.ts)）。外から見た origin にはコンテナから見たアプリの場所を渡し、画面が名乗る URL と開いた URL を同じ綴りにします。索引させない側は通常の巡回が見ます（[`e2e/README.md`](../e2e/README.md)）。 |
-| `make e2e-update [E2E_ARGS=<args>]` | 画面の基準画像を撮り直します（置き場へは送りません）。 | 送るのは `make baseline-push` です。画面の基準画像も story と同じ置き場の `screen/` 区画に入ります。撮り直しは承認ではありません。 |
-| `make e2e-retake [E2E_ARGS=<args>]` | 画面の基準画像を撮り直して置き場へ送ります（`e2e-update` → `baseline-push`）。 | 手元から撮り直す入口はこれです。story 側の `make vrt-retake` と同じ関係で、撮って送らないと親の gitlink が古いまま残ります。 |
-| `make e2e-build` | 画面を通した検証が使う本番ビルドを作ります。 | `make e2e` / `make lighthouse` が前段で呼びます。単体で叩くのは、起動だけを繰り返して切り分けるときです。build の前に `.next/cache/fetch-cache` を捨てます —— `cache: "force-cache"` の取得結果はそこに残り、CI では別ブランチの build が作ったものが復元されるため、残したまま撮ると絵が木の状態ではなく「前の build が何をキャッシュしたか」で決まります。生成物（`.next/server/app`）の存在を見てから成功を返します。 |
-| `make e2e-run` | アプリを起動してブラウザから当て、終了時に後片付けします。 | 同じく `make e2e` / `make lighthouse` から呼ばれます。起動・待ち受け・片付けの 1 組をここが持つので、上位のターゲットは環境と当てる設定だけを差し替えます。 |
-| `make e2e-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/e2e/`（追跡対象外）。trace も同じ場所に出ます。**レポートサーバとして常駐するので `make ai-<target>` で包みません。** |
-| `make lighthouse [E2E_PORT=<port>] [LIGHTHOUSE_SHARD=<i>/<n>]` | `e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らします。 | 起動は `make e2e` と同じ仕組みを使い、**ブラウザだけホストで動かします** —— 比べるのが画素ではなく数値なので、固定すべきはフォントのラスタライズではなくブラウザの版で、それは lockfile の `@playwright/test` が担います。基準画像は要らないので置き場の代わりに、測るブラウザがホストに入っていることを確かめます。画面ごとに複数回測って中央値を採り、回数も同じ宣言が持ちます（[ADR 0101](../docs/adr/0101-performance-budget.md)）。`LIGHTHOUSE_SHARD` は機械を割る指定で、**1 台の中で並べる指定ではありません** —— 測っているのは CPU 律速の値なので、同じ機械で並べた時点で互いの CPU を奪い合います。割るのは PR の待ち時間のためだけです。待ち受けは loopback に固定します —— bridge の gateway で待ち受けると、テスト専用の session 発行口が見る `Host` がその IP になり、開ける宛先の集合のどれとも一致せず 404 が返って役割の要る画面が開けません。**直すときに宛先の集合を広げてはいけません** —— あれは設定を誤って公開したときに被害を手元へ留める線で、広げれば任意の役割の session を発行する口の露出面がそのぶん広がります。 |
-| `make lighthouse-gate` | 測定を省いてよいかだけを答えます（`run` / `skip`）。 | 数える入力は build 生成物ではなく元なので、**台を割る前の段で 1 度だけ引けます**。撮影側（`vrt-gate`）が台ごとに引くのは `storybook-static` を数えているためで、こちらにその制約はありません。 |
-| `make lighthouse-record-verified` | 予算を通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全台の結果を知っている束ねる側**が書きます（`lighthouse.yaml`）。 |
-| `make lighthouse-merge` | 分割した台の結果を束ね、予算と照らします。 | 判定を持つのは束ねる側だけです。台ごとに予算を掛けると、割り方を変えるたびに落ち方が変わる検査になります。 |
-| `make lighthouse-report` | 直前の実行が残した LHR から、動いた要素・押し下げの量・重い script を引きます。 | 出力は `tmp/lighthouse/`（追跡対象外）。**出力そのものが答えなので `make ai-<target>` で包みません。** |
-| `make vrt-review BRANCH=<branch> VRT_ONLY=<id>,<id> [RUN=<run-id>] [VRT_REVIEW_PORT=<port>]` | CI が落とした story を、使い捨ての作業ツリーで立てた Storybook に並べます。 | 引数は PR コメントがコピー用の 1 行として書き出します。**手元の作業ツリーは動かしません** —— `tmp/review/vrt/<ブランチ>` に `origin/<ブランチ>` を切り離して展開します。`RUN` を渡すと `vrt-diff` も落として隣のポートで配ります（`gh` が要る）。ここで見えるのは「なぜ変わったか」であって画素の一致ではありません（ホストのフォントで描くため）。撮影側と入口を分けてあるのは、こちらが比較も撮り直しも行わず、コンテナも置き場も要らないためです。`VRT_ONLY` / `E2E_ONLY` は撮影側と同じ集合を同じ名前で受けます。 |
-| `make e2e-review BRANCH=<branch> E2E_ONLY=<name>,<name> [RUN=<run-id>] [E2E_REVIEW_PORT=<port>]` | CI が落とした画面を、使い捨ての作業ツリーで起動したアプリに並べます。 | 起動するのは**本番ビルド**です（画面の基準画像がそれで撮られているため）。役割の要る画面は行き先を持たせた開発用 session の面を経由します。待ち受けは loopback へ絞ります —— `APP_ENV=ci` で session 発行の口が開いているためです。 |
-| `make review-clean` | 上の 2 つが生やした作業ツリーを、git の登録ごと片付けます。 | 作業ツリーは Ctrl-C では消えず、`node_modules` と build 生成物を抱えたまま `tmp/review/` に溜まります。ディレクトリを直接消すと実体を失った登録が残り、次の `git worktree add` がそこで断られるため、片付けはこの入口から行います。 |
+| `make test-cached` | Runs Vitest using the cache. | Fast feedback for pre-commit. Does not run the coverage gate. |
+| `make test-full` | Runs Vitest with the cache disabled and with coverage. | For pre-push / CI. Fails if any of Statements / Branches / Functions / Lines falls below 100%. The human-facing reporter is `dot` — **discarding passes is done by reporter choice, not by filtering text**. A form that picks out failure lines by vocabulary can discard the very reason for a failure as a passing line, whereas `dot` is vitest's own outlet that folds passes into one character, keeping both failure reasons and the coverage table. This keeps log size from growing with the number of passes, and `tail -n 400` covers the whole text. |
+| `make test-failures [TEST_RUN=<target>]` | Runs the tests and prints **only the failing cases**. Not a single line is printed for passing cases. | What it reads is vitest's JSON report (`status` / `failureMessages`), not a summarizer that picks out failure lines by vocabulary ([0157](../docs/adr/0157-inspection-declaration-discipline.md)). If everything passes it is one line; on failure, all of them come out with a count. Coverage threshold breaches are not in the JSON, so only when 0 tests failed yet the run failed does it append the tail of the log (the branch is decided only by structured values; it does not read the log's vocabulary). `TEST_RUN` is what to run, defaulting to `test-full`; CI's merging side uses `test-merge`. The report is assembled in only one place, and the exit code is passed through as is from the side that ran. **Do not read `tmp/test-report.json` directly** — it writes every passing case too, measured at 1,100 times the raw text output (785KB against 690B). |
+| `make scripts-test-cached` | Runs the helper scripts' (`scripts/**`) suite using the cache. | For pre-commit. Includes the export-to-describe 1:1 gate. |
+| `make scripts-test` | Runs the helper scripts' suite with the cache disabled and with coverage. | For pre-push / CI (`scripts-check`). It is separated from the application suite because what lives in `scripts/` is the checking machinery itself, so the reason for a failure is not confused ([0090](../docs/adr/0090-testing-strategy.md)). |
+| `make test-shard SHARD=<i>/<n>` | Runs one machine's share of a split, and writes out the blob and its own exit code. | Splitting is only for PR wait time; protected branches and local runs stay on `test-full` (the fixed cost is duplicated per machine, so there is no reason to pay it on runs nobody is waiting for). **Each machine holds no threshold** — a split run sees only the files assigned to it, and lines other machines cover count as unreached. The verdict is made by the merging side. The blob location is under `tmp/`, not vitest's default `.vitest-reports` — **upload-artifact's glob does not pick up names starting with a dot**, so the artifact would be uploaded empty even though the machine wrote it. **It also writes out its exit code and the tail of its log itself** (to a separate area from the blob) — the JSON the merging side reads holds only case results and coverage, so if a machine ended non-zero without recording a single failure, that fact would be left nowhere, and only the check would turn red while stating "all passed". |
+| `make test-shards-verify` | Confirms that the results of every machine of the split have arrived (before merging). | Merging with some missing would make tests that did not run show up as insufficient coverage, misidentifying the cause. The machine count is read back from the names each machine wrote. |
+| `make test-merge` | Merges the split blobs and verifies the coverage threshold. | After merging, the denominator and reach are the same as running everything on one machine, so **the threshold itself is not loosened**. |
+| `make gate-typecheck` | Runs the type check unless the band is `ci-first`. | Called by hooks. When the band is `ci-first`, it prints the workflow name delegated to and the reason, and passes through (delegated to `typecheck.yaml`). |
+| `make gate-test-full` | Runs the application tests with coverage unless the band is `ci-first`. | Same as above (delegated to `test.yaml`). |
+| `make gate-scripts-test` | Runs the helper scripts' tests unless the band is `ci-first`. | Same as above (delegated to `scripts-check.yaml`). |
+| `make load-status` | Shows the local gates' load band and the CPU allocation per window. | The band is decided by measurement ([ADR 0151](../docs/adr/0151-git-hooks.md)). **The output itself is the answer, so it is not wrapped in `make ai-<target>`.** |
+| `make build-storybook` | Builds Storybook statically. | The VRT capture target. `make vrt` / `make vrt-update` / `make a11y` call it as a prior stage. `storybook build` returns 0 even if the preview build fails, so it checks that the generated artifacts (`iframe.html` and `assets/`) exist before returning success. When it fails on ENV validation, set `APP_ENV` explicitly. |
+| `make a11y` | Runs axe on every story. | Runs in the same digest-pinned container with the same story enumeration as VRT ([ADR 0091](../docs/adr/0091-test-verification-methods.md)). It needs no baseline images, so it does not require the store to be wired. The skip decision looks only at its own record (`tmp/a11y/`) — reusing the record from when the baseline images were captured would, when a retake happens in a state where axe fails, read that state as "matching" from then on and report green. |
+| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | Compares every story with the baseline images. `VRT_SHARD` is which split of the capture targets this is; only CI passes it. | Runs inside a digest-pinned Playwright container ([`vrt/README.md`](../vrt/README.md)). Running directly on the host fails before comparison. If the store is unwired or unfetched, it stops before comparison with a named instruction (running without importing would fail every story with "no baseline image", indistinguishable from a regression). Even on a run that skips the comparison, the first machine (unsplit, or `1/N`) checks the 1:1 correspondence of baseline images and stories — what it counts is the store's files against the full story inventory, which gives the same answer however many machines repeat it. Split runs output the report as `list,blob` — `--reporter` overrides the setting rather than adding to it, and with blob alone nothing remains on standard output, so you could not read which story got stuck. The spec is named so as not to drag the a11y spec into the same run; mixed in, a11y failures would enter the retake set, and the baseline images alone would become approved without retaking fixing anything. |
+| `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [BASELINE_BRANCH=<branch>]` | Retakes the baseline images and sends them to the store (`vrt-update` → `baseline-push`). | This is the entry point for retaking locally. Capturing without sending leaves the parent's gitlink stale, so the local `make vrt` passes while only CI fails. |
+| `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | Retakes the baseline images (does not send them to the store). | `VRT_ONLY` narrows the stories to retake by id (fails if 0 match). The same operation on CI is started by the `baseline-retake` label and targets only the stories the preceding run reported. Only for a full run does it clear the area before capturing; **if even one argument is given, it does not delete** — narrowing happens not only through `VRT_ONLY` but also through `--grep` / `--project` in `VRT_ARGS`, so deciding by enumerating narrowing arguments would let an overlooked argument become "delete every story and retake only some". Unknown arguments fall toward not deleting. The hash of the inputs at capture time is written right after capturing — writing it on the sending side would let a tree that fixed the store without capturing record "captured with these inputs", and the next run would skip the comparison. A retake is not approval; the visual judgment is made in PR review by looking at the store's compare view. |
+| `make baseline-sync` | Aligns the baseline images' contents with the version the current branch points to. | Called by hooks (post-checkout / post-merge). git does not move the contents when switching branches, so left alone they are left behind by the pointer, and committing that dirt records the wrong pointer. In a working tree that has not imported the store, it does nothing (with `--init` it would fetch the whole store every time a worktree is added, so it only aligns what is there). |
+| `make baseline-push [BASELINE_BRANCH=<branch>]` | Sends the retaken set to the store and advances the submodule pointer. | This is the only path that sends to the store. Committing directly inside the submodule would chain retakes together so that cleanup could drop none of them. `BASELINE_BRANCH` defaults to the current branch. |
+| `make vrt-gate` | Answers only whether the comparison may be skipped (`run` / `skip`). | **It can only answer after `build-storybook`** — because `storybook-static` is among the inputs that decide the picture, which is also why CI cannot take the form "decide first, then split the capture". |
+| `make vrt-record-verified` | Records the hash of the inputs at the point the check passed. | Called by CI. On a split run it writes **after every shard is green** (`vrt.yaml`). Writing earlier would leave a failing state recorded as "passed". There are two records — **at capture** (held by the store in the same commit as the images) and **at the point the check passed** (placed in `tmp/`, carried around by CI via cache). They are separated because even a change that does not alter pictures moves the bytes of `storybook-static`, so with only the capture-time record the window of matches almost closes. It is not kept tracked because it is not the state of the tree but the run history of "that tree was checked". |
+| `make vrt-report` | Opens the HTML report of the last run. | Output goes to `tmp/vrt/` (untracked). |
+| `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | Runs the built application in real browsers, runs main journeys, anomalies the browser reports, and per-band rendering differences on 3 rendering engines, and compares per-screen appearance with baseline images. | **The app runs on the host and the browsers in the container** ([`e2e/README.md`](../e2e/README.md)). `node_modules` is resolved for the OS and CPU it was installed on, so `next start` cannot start inside the container. Startup and cleanup are also held by this target. The counterpart must be a mock, and the default `APP_ENV` is fixed to `ci` — the default `local` points at live, so calls that did not state it are not aimed at the real backend. The listening address is narrowed to the one route the container uses to reach it — with the `APP_ENV=ci` this startup uses, the test-only session issuing endpoint is open, so listening on all interfaces would make it reachable from the LAN (Docker Desktop reaches it via loopback, while on Linux the bridge gateway is the destination, so resolution is split by OS). To verify calling the BFF from another origin, a server that returns only documents of the declared origin is started on the same host as the app, and that origin is passed to `HTTP_ALLOWED_ORIGINS` — forging the document inside the browser is not adopted, because Chromium treats a forged document as coming from the public network and blocks fetches to the host with Private Network Access. |
+| `make e2e-maintenance [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | Starts the app with `APP_MAINTENANCE_MODE=on` and confirms that every route is replaced with the stopped screen, that the liveness check passes, and that state-changing requests are refused with 503. | It rides the same setup as `make e2e` (build → start → hit from the container's browser → clean up), swapping only the startup environment and the configuration applied. **It does not capture baseline images**, so it does not require the store (submodule). The stop applies to every route and switching requires a restart, so it cannot be mixed into the normal walk-through ([`e2e/README.md`](../e2e/README.md)). |
+| `make e2e-metadata [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | Builds and starts the app with `SITE_INDEXABLE=on` and confirms that `robots.txt` allows crawling, that the URLs `sitemap.xml` lists exist and declare themselves as canonical URLs, and that icons and OG images come back as images. | The same setup as `make e2e-maintenance`, but **swapped from the build onward** — because the metadata of statically rendered screens is baked in by build-time configuration ([`src/config/site/site.server.ts`](../src/config/site/site.server.ts)). The externally visible origin is given the app's location as seen from the container, so the URL a screen declares and the URL opened are spelled the same. The not-indexed side is covered by the normal walk-through ([`e2e/README.md`](../e2e/README.md)). |
+| `make e2e-update [E2E_ARGS=<args>]` | Retakes the screens' baseline images (does not send them to the store). | Sending is `make baseline-push`. Screen baseline images also go into the `screen/` area of the same store as stories. A retake is not approval. |
+| `make e2e-retake [E2E_ARGS=<args>]` | Retakes the screens' baseline images and sends them to the store (`e2e-update` → `baseline-push`). | This is the entry point for retaking locally. The same relationship as `make vrt-retake` on the story side: capturing without sending leaves the parent's gitlink stale. |
+| `make e2e-build` | Builds the production build used by screen-level verification. | `make e2e` / `make lighthouse` call it as a prior stage. Invoke it alone when isolating a problem by repeating only startup. Before building it discards `.next/cache/fetch-cache` — results fetched with `cache: "force-cache"` remain there, and on CI those created by another branch's build are restored, so capturing with them left in would make pictures depend not on the state of the tree but on "what the previous build cached". It checks that the generated artifacts (`.next/server/app`) exist before returning success. |
+| `make e2e-run` | Starts the app, hits it from the browser, and cleans up on exit. | Likewise called from `make e2e` / `make lighthouse`. This target holds the single set of start, wait, and clean up, so higher targets swap only the environment and the configuration applied. |
+| `make e2e-report` | Opens the HTML report of the last run. | Output goes to `tmp/e2e/` (untracked). Traces go to the same place. **It stays resident as a report server, so it is not wrapped in `make ai-<target>`.** |
+| `make lighthouse [E2E_PORT=<port>] [LIGHTHOUSE_SHARD=<i>/<n>]` | Opens the screens declared by `e2e/lib/screens.ts` one at a time in Lighthouse and compares LCP / CLS / TBT with the limits in `performance-budget.yaml`. | Startup uses the same mechanism as `make e2e`, and **only the browser runs on the host** — what is compared is numbers, not pixels, so what must be pinned is not font rasterization but the browser version, which `@playwright/test` in the lockfile handles. It needs no baseline images, so instead of the store it confirms that the measuring browser is installed on the host. Each screen is measured several times and the median taken, and the count is held by the same declaration ([ADR 0101](../docs/adr/0101-performance-budget.md)). `LIGHTHOUSE_SHARD` splits across machines, **not across parallel runs on one machine** — what is measured is CPU-bound, so lining them up on the same machine makes them fight over CPU. Splitting is only for PR wait time. Listening is fixed to loopback — listening on the bridge gateway would make the `Host` that the test-only session issuing endpoint sees be that IP, matching none of the allowed destinations, so it returns 404 and screens that need a role cannot be opened. **Do not widen the set of destinations when fixing this** — that set is the line that keeps the damage local if the configuration is published by mistake, and widening it enlarges the exposure of an endpoint that issues sessions with arbitrary roles. |
+| `make lighthouse-gate` | Answers only whether measurement may be skipped (`run` / `skip`). | The inputs it counts are the sources, not build outputs, so **it can be asked once, at the stage before splitting machines**. The capture side (`vrt-gate`) asks per machine because it counts `storybook-static`; this side has no such constraint. |
+| `make lighthouse-record-verified` | Records the hash of the inputs at the point the budget passed. | Called by CI. On a split run, **the aggregating side, which knows every machine's result**, writes it (`lighthouse.yaml`). |
+| `make lighthouse-merge` | Aggregates the results of the split machines and compares them with the budget. | Only the aggregating side holds the verdict. Applying the budget per machine would make a check whose failures change every time the split changes. |
+| `make lighthouse-report` | From the LHR the last run left, pulls out elements that moved, how much was pushed down, and heavy scripts. | Output goes to `tmp/lighthouse/` (untracked). **The output itself is the answer, so it is not wrapped in `make ai-<target>`.** |
+| `make vrt-review BRANCH=<branch> VRT_ONLY=<id>,<id> [RUN=<run-id>] [VRT_REVIEW_PORT=<port>]` | Lays out the stories CI failed in a Storybook started in a throwaway working tree. | The arguments are written out by the PR comment as one line to copy. **It does not move the local working tree** — it checks out `origin/<branch>` detached into `tmp/review/vrt/<branch>`. Passing `RUN` also downloads `vrt-diff` and serves it on the next port (needs `gh`). What you see here is "why it changed", not pixel equality (it renders with the host's fonts). The entry is separate from the capture side because this one does neither comparison nor retake and needs neither the container nor the store. `VRT_ONLY` / `E2E_ONLY` accept the same sets under the same names as the capture side. |
+| `make e2e-review BRANCH=<branch> E2E_ONLY=<name>,<name> [RUN=<run-id>] [E2E_REVIEW_PORT=<port>]` | Lays out the screens CI failed in an app started in a throwaway working tree. | What it starts is **the production build** (because screen baseline images are captured with it). Screens that need a role go through the development session surface with a destination attached. Listening is narrowed to loopback — because with `APP_ENV=ci` the session issuing endpoint is open. |
+| `make review-clean` | Cleans up the working trees the two above created, including their git registrations. | Working trees are not removed by Ctrl-C and pile up in `tmp/review/` holding `node_modules` and build outputs. Deleting the directory directly leaves registrations that lost their contents, and the next `git worktree add` is refused there, so clean up through this entry. |
 
-## `.makefiles/security` 系
+## `.makefiles/security` Targets
 
-シークレットの混入・脆弱な依存・自分が書いたコードの脆弱なパターン・配信面の欠落をローカルで検知するための
-スキャンと、抑止と pin の棚卸しです（[ADR 0110](../docs/adr/0110-security-operations.md)）。依存スキャナが
-「引き込んだライブラリが既知の脆弱性を持つか」を問うのに対し、SAST は「自分が書いたコードが脆弱なパターンを
-含むか」を、DAST は「走っているアプリが宣言どおりに配信しているか」を問います。
+Scans for detecting locally the inclusion of secrets, vulnerable dependencies, vulnerable patterns in the code we wrote, and gaps in the delivered surface,
+plus inventories of suppressions and pins ([ADR 0110](../docs/adr/0110-security-operations.md)). While dependency scanners ask
+"does a library we pulled in have known vulnerabilities", SAST asks "does the code we wrote contain vulnerable patterns",
+and DAST asks "is the running app delivering as declared".
 
-抑止は `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml` に限定し、各ファイル冒頭の抑止ポリシーに従って理由付きで記録します。**`make audit` だけは抑止ファイルを持ちません** —— 閾値が「修正版がある」ことなので、抑止するくらいなら上げられる、という前提で組んであります。上流が脆弱な版を厳密固定していると、この前提は崩れます。
+Suppressions are limited to `.gitleaks.toml` / `.gitleaksignore` / `.trivyignore.yaml`, recorded with reasons following the suppression policy at the top of each file. **Only `make audit` has no suppression file** — its threshold is "a fixed version exists", so it is built on the premise that if you would suppress it, you could upgrade instead. This premise breaks when upstream pins a vulnerable version exactly.
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make secret-scan` | push 予定のコミット範囲を gitleaks でスキャンします。 | pre-push hook から実行されます。対象は「`HEAD` から辿れてどのリモートにも無いコミット」で、作業ツリーを見る dir モードは採りません —— commit 後に作業ツリーから消した秘密（blob は履歴に残り push される）を取りこぼし、push されない gitignore 済みファイルを誤検知して hook の bypass 常用を招くためです。リモート追跡参照が 1 つも無ければ履歴全体が対象になります（広がる向きで、取りこぼす向きではない）。**CI は `SECRET_SCAN_LOG_OPTS` で範囲を差し替えます** —— PR のブランチは `origin` に在るため既定では対象が 0 件になり、走査せずに緑を返します。検出時は exit 1 で失敗します（fail-closed）。検出値は `--redact` で出力せず、`--no-color` で非 TTY のログを化けさせません。 |
-| `make secret-scan-history` | コミット履歴全体を gitleaks でスキャンします。 | CI の週次実行だけが呼びます。マージ済みの履歴に埋もれた秘密を拾う用途で、走査時間がコミット数に比例して伸びるため hook には載せません（撤回条件は [0110](../docs/adr/0110-security-operations.md) の 2）。 |
-| `make trivy-fs` | 依存ライブラリの脆弱性を Trivy fs でスキャンします。 | 手動実行専用で、**意図的に hook へ接続していません**。exit code でも落としません。脆弱性は push する当事者がその場で解消できず、diff と独立に状態が変わるためです。ブロックは昇格ゲートが持ちます（[ADR 0110](../docs/adr/0110-security-operations.md)）。 **CI だけが `TRIVY_FS_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。`--ignore-unfixed` で修正版のあるものだけを報告し、抑止ファイルは自動検出に頼らず `--ignorefile` で名指しして適用先をこのターゲットに閉じます。`--skip-version-check` で trivy 自身の更新確認の通信を止めます（版は `mise.toml` が SSOT）。 |
-| `make trivy-fs-release` | 昇格前の依存脆弱性を Trivy fs で厳格にスキャンします。 | 保護ブランチ宛 PR で CI が呼ぶゲート。上の報告専用との差分は `--ignore-unfixed` を外すことだけで、severity の範囲は同じです。検出で exit 1。 |
-| `make opengrep-rules` | SAST のルールを固定した commit から取り出します。 | `make sast` / `make sast-sarif` の前段で自動的に走ります。レジストリ（semgrep.dev）を引かない理由と、検体を置かない取り出し方は [`.github/workflows/README.md`](../.github/workflows/README.md) の「SAST のルールをレジストリから引かない」が持ちます。固定値は `opengrep-rules-pin.toml`（`.github/actions-pin.toml` と同じ形）が持ち、commit を上げるときは `pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` が書き直します。 |
-| `make sast` | 自分が書いたコードの脆弱なパターンを opengrep で検査します。 | **0 件の baseline を前提にしたゲート**で、所見があれば exit 1。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置きます。GitHub の外へ持ち出せる SAST としてここに置き、ローカルでも CI でも同じコマンドが回ります。手で書いたソースだけを対象にし、生成物（生成した client / モックの handler）は外します —— 編集できないものの所見は行動につながらず、出るなら直す先は契約か生成器です。`--taint-intrafile` でファイル内の taint 追跡を有効にします（パターン一致だけでは、値の出所が別の行にある形を拾えません）。 |
-| `make sast-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。**検査条件は `make sast` と同じ変数を読む** —— ゲートと Security タブの一覧が違う走査を指すと、どちらも信用できなくなります。書き出したあと `scripts/sarif` が整えます —— `// nosemgrep:` で抑止した所見は SARIF に残るため、落とさないと Security タブにだけ積み上がります。 |
-| `make osv-scan` | 依存の脆弱性を OSV データベースで見ます。 | 報告専用。Trivy とも `pnpm audit` とも参照先が違うので件数は一致しません。**CI だけが `OSV_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元の既定は 0 で、従来どおり落ちません）。 |
-| `make osv-scan-release` | 昇格前の依存脆弱性を OSV で見ます。 | 保護ブランチ宛 PR で CI が呼ぶゲート。検出で exit 1。抑止は `osv-scanner.toml` が持ち、**フィルタした所見は理由付きで出力に残ります**。 |
-| `make dast` | 走っているアプリへ HTTP を撃ち、配信面を検査します。 | **ここだけが成果物ではなく応答を読みます** —— CSP と同伴ヘッダが宣言どおり配信されているかは、成果物を読んでも分かりません。撃つ相手は `DAST_TARGET` で渡します（既定はコンテナから見たホストの :3000。走るのがコンテナの中だからで、CI はランナー内で起動したアプリを、手元では `pnpm start` したものを指します）。受動走査（baseline）を採り、OpenAPI 駆動の api-scan は採りません —— この層は表示層で API は別リポジトリが持つため、撃つ先が実質ありません。ファイルのパスはすべてマウント点（リポジトリ直下）からの相対で、cwd では動きません。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は exit 1**。ZAP は `IGNORE` にした規則も出力に残すので、黙殺と区別が付きます。 |
-| `make bearer-scan` | 値がプロセスの外へ出る地点を、その値の分類と併せて見ます。 | opengrep も CodeQL もパターンや taint 経路をそれ自体の条件で判定するだけで、**logger へ届いた文字列がメールアドレスであること**は知りません。**落としません。** 誤検知の傾向が強く、fail-closed にすると規則単位の無効化へ寄っていくためです（それは禁止）。所見は code scanning へ送り、差分が持ち込んだものを GitHub 側のチェックが赤にします。走査から外すパスは「秘密ではないと分かっている値」のファイルだけに限り、**個別の誤検知は `bearer.ignore` がフィンガープリントで受けます** —— パスで外すと、そのファイルに後から入る本物の所見まで消えます。 |
-| `make bearer-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。所見が 0 件のとき Bearer は `results: null` を書きますが SARIF にその値は無いため、`scripts/sarif` が配列へ揃えます。揃えないと取り込みが弾かれ、「所見が無い」と「報告できていない」が見分けられなくなります。 |
-| `make suppression-expiry` | 抑止の撤回条件を突き合わせ、満たしたものか様式を欠くものがあれば落とします。 | 週に一度 CI が回します。**限界が 2 つあり、報告がそれを名指しします。** 決められるのは日付だけなので出力は全件の一覧を伴い、理由をコメントに持つ面（gitleaks / zizmor / pnpm の override / sonar）は宣言単位では読めず日付を含む行だけが出ます。冷却の免除（`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` と `mise.toml` の `tools-cooldown-ignore:`）は宣言単位で読み、理由が無い・版を名指ししていない・日付を持たないものを様式違反として落とします。`SUPPRESSION_REPORT` を環境から渡すと issue の本文を書き出します（recipe 行へは展開しません）。 |
-| `make tools-cooldown-check TOOLS_COOLDOWN_BASE=<ref>` | `mise.toml` の pin のうち base から動いたものが、配布経路ごとの冷却期間を満たすか検査します。 | PR で CI が base ブランチを渡して回します。窓は配布経路ごとに 2 つあります —— `TOOLS_COOLDOWN_RELEASE_DAYS`（GitHub Releases。`ACTIONS_PIN_MIN_AGE_DAYS` と同じ値）と `TOOLS_COOLDOWN_REGISTRY_DAYS`（npm / PyPI）で、言語ランタイム（`core:`）は窓の対象外です。窓の内側の pin は exit 1、公開日時を引けない pin や経路を持たない backend は exit 2（検査が成立していない）。免除は pin の直上に `# tools-cooldown-ignore: <理由>。<窓が明ける日> に外す` を置きます（[`scripts/tools-cooldown/README.md`](../scripts/tools-cooldown/README.md)）。`GITHUB_TOKEN` が無ければ `gh auth token` を借ります。 |
-| `make tools-cooldown-audit` | `mise.toml` の全 pin を冷却期間に照らして棚卸しします。 | 週に一度 CI が回します。手元でも引けます。免除の無いまま窓の内側に居る pin で落ち、免除の期限切れは `make suppression-expiry` が見ます。 |
-| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。閾値が severity と修正可能性の 2 つなのは、到達可能性のフィルタが `pnpm audit` にも osv-scanner の call analysis（JS/TS 非対応）にも無く、現行ツールで引ける最も細い線がこの 2 つだからです。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でも閾値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.md)）。 |
+| `make secret-scan` | Scans the range of commits about to be pushed with gitleaks. | Run from the pre-push hook. The target is "commits reachable from `HEAD` that are on no remote"; the dir mode that looks at the working tree is not adopted — it would miss secrets deleted from the working tree after commit (the blob stays in history and gets pushed), and falsely flag gitignored files that are never pushed, inviting habitual hook bypass. If there is no remote-tracking ref at all, the whole history is targeted (widening, not missing). **CI swaps the range with `SECRET_SCAN_LOG_OPTS`** — a PR's branch is on `origin`, so by default the target is 0 commits and it returns green without scanning. On detection it fails with exit 1 (fail-closed). Detected values are not printed thanks to `--redact`, and `--no-color` keeps non-TTY logs from being garbled. |
+| `make secret-scan-history` | Scans the whole commit history with gitleaks. | Called only by CI's weekly run. For picking up secrets buried in merged history; scan time grows with the number of commits, so it is not put in hooks (the reversal condition is item 2 of [0110](../docs/adr/0110-security-operations.md)). |
+| `make trivy-fs` | Scans dependency libraries for vulnerabilities with Trivy fs. | Manual runs only; **deliberately not connected to hooks**. It does not fail on exit code either. Vulnerabilities cannot be resolved on the spot by whoever is pushing, and their state changes independently of the diff. Blocking is held by the promotion gate ([ADR 0110](../docs/adr/0110-security-operations.md)). **Only CI passes `TRIVY_FS_DETECT_EXIT=1`**, receiving detection as an exit code to decide whether a comment is needed (the local default is 0, so as before it does not fail). `--ignore-unfixed` reports only those with a fixed version, and the suppression file is named with `--ignorefile` rather than relying on auto-detection, confining where it applies to this target. `--skip-version-check` stops trivy's own update-check traffic (the version's SSOT is `mise.toml`). |
+| `make trivy-fs-release` | Scans dependency vulnerabilities strictly with Trivy fs before promotion. | The gate CI calls on PRs targeting a protected branch. The only difference from the report-only one above is dropping `--ignore-unfixed`; the severity range is the same. Exit 1 on detection. |
+| `make opengrep-rules` | Extracts the SAST rules from the pinned commit. | Runs automatically as a prior stage of `make sast` / `make sast-sarif`. The reason for not pulling from the registry (semgrep.dev) and the extraction method that places no specimens are held by Do not pull SAST rules from a registry in [`.github/workflows/README.md`](../.github/workflows/README.md#do-not-pull-sast-rules-from-a-registry). The pinned values are held by `opengrep-rules-pin.toml` (the same shape as `.github/actions-pin.toml`), and when raising the commit, `pnpm exec tsx scripts/opengrep-rules --resolve --commit <sha>` rewrites it. |
+| `make sast` | Checks the code we wrote for vulnerable patterns with opengrep. | **A gate premised on a baseline of 0**; any finding is exit 1. Accepted findings are placed in the source as `// nosemgrep: <rule-id>` with a reason. Kept here as SAST that can be taken outside GitHub, the same command runs locally and in CI. Only hand-written source is targeted, and generated artifacts (the generated client / mock handlers) are excluded — findings in what cannot be edited lead to no action, and if they appear, what to fix is the contract or the generator. `--taint-intrafile` enables intra-file taint tracking (pattern matching alone cannot catch forms where the value's origin is on another line). |
+| `make sast-sarif` | Writes out the same check as SARIF. | For import into code scanning. **The check conditions read the same variables as `make sast`** — if the gate and the Security tab list point at different scans, neither can be trusted. After writing, `scripts/sarif` tidies it up — findings suppressed with `// nosemgrep:` remain in SARIF, so unless dropped they pile up only in the Security tab. |
+| `make osv-scan` | Looks at dependency vulnerabilities with the OSV database. | Report only. Its sources differ from both Trivy and `pnpm audit`, so the counts do not match. **Only CI passes `OSV_DETECT_EXIT=1`**, receiving detection as an exit code to decide whether a comment is needed (the local default is 0, so as before it does not fail). |
+| `make osv-scan-release` | Looks at dependency vulnerabilities with OSV before promotion. | The gate CI calls on PRs targeting a protected branch. Exit 1 on detection. Suppressions are held by `osv-scanner.toml`, and **filtered findings remain in the output with reasons**. |
+| `make dast` | Fires HTTP at a running app and checks the delivered surface. | **Only this one reads responses rather than artifacts** — whether CSP and its companion headers are delivered as declared cannot be known by reading artifacts. The target is passed as `DAST_TARGET` (the default is the host's :3000 as seen from the container, because it runs inside a container; CI points at the app started inside the runner, and locally at something started with `pnpm start`). Passive scanning (baseline) is adopted, and the OpenAPI-driven api-scan is not — this layer is the presentation layer and the API is held by a separate repository, so there is effectively nothing to fire at. All file paths are relative to the mount point (the repository root) and do not work from cwd. Known gaps are held by the list in `.github/zap/rules.tsv`, and **findings not on the list are exit 1**. ZAP keeps rules set to `IGNORE` in the output too, so it is distinguishable from silencing. |
+| `make bearer-scan` | Looks at the points where values leave the process, together with the classification of those values. | Both opengrep and CodeQL only judge patterns and taint paths by their own conditions, and do not know **that a string reaching the logger is an email address**. **It does not fail.** It tends strongly toward false positives, and fail-closed would drift toward disabling rules one by one (which is forbidden). Findings are sent to code scanning, and GitHub's check turns red what the diff introduced. Paths excluded from the scan are limited to files of "values known not to be secrets", and **individual false positives are absorbed by `bearer.ignore` by fingerprint** — excluding by path would also erase real findings that later enter that file. |
+| `make bearer-sarif` | Writes out the same check as SARIF. | For import into code scanning. When there are 0 findings Bearer writes `results: null`, but SARIF has no such value, so `scripts/sarif` normalizes it to an array. Without that, the import is rejected, and "no findings" and "could not report" become indistinguishable. |
+| `make suppression-expiry` | Checks suppressions' reversal conditions and fails if any are met or any lack the required form. | CI runs it once a week. **It has two limits, and the report names them.** It can decide only dates, so the output comes with a list of everything, and the surfaces that hold reasons in comments (gitleaks / zizmor / pnpm overrides / sonar) cannot be read per declaration, so only lines containing dates come out. Cooldown exemptions (`minimumReleaseAgeExclude` in `pnpm-workspace.yaml` and `tools-cooldown-ignore:` in `mise.toml`) are read per declaration, and those without a reason, not naming a version, or without a date fail as form violations. Passing `SUPPRESSION_REPORT` from the environment writes out the issue body (it is not expanded into recipe lines). |
+| `make tools-cooldown-check TOOLS_COOLDOWN_BASE=<ref>` | Checks whether the pins in `mise.toml` that moved from base satisfy the cooldown period per distribution channel. | CI runs it on PRs passing the base branch. There are two windows by distribution channel — `TOOLS_COOLDOWN_RELEASE_DAYS` (GitHub Releases; the same value as `ACTIONS_PIN_MIN_AGE_DAYS`) and `TOOLS_COOLDOWN_REGISTRY_DAYS` (npm / PyPI); language runtimes (`core:`) are outside the windows. A pin inside the window is exit 1; a pin whose publish time cannot be fetched, or a backend with no channel, is exit 2 (the check cannot be made). An exemption is a `# tools-cooldown-ignore: <理由>。<窓が明ける日> に外す` (reason; remove on the day the window ends) placed directly above the pin ([`scripts/tools-cooldown/README.md`](../scripts/tools-cooldown/README.md)). Without `GITHUB_TOKEN` it borrows `gh auth token`. |
+| `make tools-cooldown-audit` | Inventories every pin in `mise.toml` against the cooldown periods. | CI runs it once a week. It can also be run locally. It fails on pins inside the window without an exemption; expired exemptions are watched by `make suppression-expiry`. |
+| `make audit` | The dependency audit gate (`pnpm audit`). | Exit 1 if there is even one `high` / `critical` with a fixed version. The threshold is the two of severity and fixability because neither `pnpm audit` nor osv-scanner's call analysis (no JS/TS support) has a reachability filter, and these two are the finest line current tools can draw. The verdict and the table assembly are held by `scripts/audit-gate`. Its counting units and databases differ from Trivy's, so the counts do not match, and **no attempt is made to reconcile them and eliminate the difference** — anything reaching the threshold in either one is treated as blocking ([ADR 0110](../docs/adr/0110-security-operations.md)). |
 
-## `.makefiles/agents` 系
+## `.makefiles/agents` Targets
 
-### 静音実行関連
+### Silent Execution
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make ai-<target>` | 任意のターゲットを静かに実行し、出力を `tmp/ai-logs/<target>.txt` へ退避します。 | エージェントが呼ぶときの既定の形です。置き場が gitignore 済みの `tmp/` 配下なのは、worktree ごとに独立し、窓を跨いだ衝突が無いためです。成功時の出力は 0 バイト、終了コードは素通し、失敗時だけ読むべきログを 1 行で指します。**ハーネスは失敗時に抜粋しか渡さずファイルのパスを渡さない**ため、最も読みたい失敗のときに限って切り落とされた行が取り戻せないという穴を、出力元で塞ぎます。**出力そのものが答えのターゲット**（`help` / `load-status` / `lighthouse-report`）と**常駐するターゲット**（`e2e-report` / `vrt-report`）には使いません —— 前者は読めなくなるだけ、後者は完了しないので呼び出し側が待ち続けます。 |
-| `make clean-ai-logs` | 退避したログ（`tmp/ai-logs`）を削除します。 | ログは成功時も残します。生成系のように「落ちてはいないが何が起きたか確かめたい」ときに実行し直さず読めるほうが安いためです。 |
+| `make ai-<target>` | Runs any target silently and saves its output to `tmp/ai-logs/<target>.txt`. | The default form when an agent calls. It is under the gitignored `tmp/` because that is independent per worktree, with no collisions across windows. On success the output is 0 bytes, the exit code is passed through, and only on failure does it point to the log to read in one line. **The harness hands over only an excerpt on failure and not the file path**, so the hole where truncated lines cannot be recovered precisely when you most want to read the failure is closed at the source of the output. It is not used for **targets whose output is the answer** (`help` / `load-status` / `lighthouse-report`) or **resident targets** (`e2e-report` / `vrt-report`) — the former just becomes unreadable, and the latter never completes, so the caller keeps waiting. |
+| `make clean-ai-logs` | Deletes the saved logs (`tmp/ai-logs`). | Logs are kept even on success. As with generators, when "it did not fail, but I want to confirm what happened", being able to read without re-running is cheaper. |
 
-### 開発の窓の観測関連
+### Observing Development Windows
 
-| コマンド | 説明 | 補足 |
+| Command | Description | Notes |
 | --- | --- | --- |
-| `make closed-loop-report` | 打刻された開発の窓の、段の区間と所見を報告します。 | 読むだけで何も刻みません。打刻は `.agents/closed-loop/marks.sh` が hook とスキルから行い、置き場は追跡外の `tmp/closed-loop/` です。**決定的な集計だけでモデルを使いません**（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）。窓が 0 件のときは「所見なし」ではなく 0 件であること自体を出します（[ADR 0157](../docs/adr/0157-inspection-declaration-discipline.md)）。 |
-| `make closed-loop-send` | 閉じたまま届いていない窓の所見を issue へ送出します。 | **先に `make labels-create-default` を 1 回通しておくこと。**`feedback` 系のラベルが実在しないと `gh issue create` が拒否し、窓は未送出のまま溜まり続けます。送出先は `.git` の remote から導き、設定項目で宛先を持ちません（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）。送るのは**閉じていて、段の境界を 1 つ以上越えた窓**だけです。通常はセッション開始時に `.agents/closed-loop/send.sh` が自動で回すので、これを叩くのは取りこぼしを手で流すときです。 |
-| `make closed-loop-send-dry` | 送出する内容だけを出します。 | 何も送らず、送出済みの索引にも触れません。送出が走っている最中でも見られます。 |
-| `make closed-loop-weekly` | 期間ぶんの所見を束ね、点の高い順に並べ、着地した改善を測り直します。 | **週次で `.github/workflows/closed-loop-weekly.yaml` が同じものを回す**ので、手で叩くのは期間を指定して見直すときです。既定は直近 7 日。`ARGS="--from 2026-09-01 --to 2026-09-07"` で期間を指定します。**読むだけで、issue を作りも閉じもしません。**再計測は省略できない段です（[ADR 0160](../docs/adr/0160-agent-environment-loop.md)）—— 省略した時点でループは蓄積器へ退化します。 |
-| `make closed-loop-weekly-consolidate` | 同じことをした上で、未クローズの所見を関心へ畳みます。 | **issue を作り、畳んだ大元を閉じます。**畳み込みだけを明示指定にしてあるのは、副作用が既定に入ると意図しない畳み込みに誰も気づかないためです。 |
+| `make closed-loop-report` | Reports the phase intervals and findings of marked development windows. | Only reads; marks nothing. Marking is done by `.agents/closed-loop/marks.sh` from hooks and skills, and the location is the untracked `tmp/closed-loop/`. **Only deterministic aggregation; no model is used** ([ADR 0160](../docs/adr/0160-agent-environment-loop.md)). When there are 0 windows, it prints that there are 0 rather than "no findings" ([ADR 0157](../docs/adr/0157-inspection-declaration-discipline.md)). |
+| `make closed-loop-send` | Sends the findings of windows that are closed but not yet delivered to issues. | **Run `make labels-create-default` once beforehand.** If the `feedback` labels do not exist, `gh issue create` refuses, and windows keep piling up unsent. The destination is derived from the `.git` remote, and no setting holds a destination ([ADR 0160](../docs/adr/0160-agent-environment-loop.md)). Only **windows that are closed and have crossed at least one phase boundary** are sent. Normally `.agents/closed-loop/send.sh` runs it automatically at session start, so you invoke this to flush what was missed by hand. |
+| `make closed-loop-send-dry` | Prints only what would be sent. | Sends nothing and does not touch the sent index. It can be looked at even while sending is running. |
+| `make closed-loop-weekly` | Aggregates the period's findings, ranks them by score, and re-measures improvements that landed. | **`.github/workflows/closed-loop-weekly.yaml` runs the same thing weekly**, so invoke it by hand when reviewing with a specified period. The default is the last 7 days. Specify the period with `ARGS="--from 2026-09-01 --to 2026-09-07"`. **It only reads; it neither creates nor closes issues.** Re-measurement is a phase that cannot be skipped ([ADR 0160](../docs/adr/0160-agent-environment-loop.md)) — the moment it is skipped, the loop degrades into an accumulator. |
+| `make closed-loop-weekly-consolidate` | Does the same, then folds unclosed findings into concerns. | **It creates issues and closes the originals it folded.** Only folding is opt-in because if a side effect were in the default, nobody would notice an unintended fold. |
 
-## 関連する ADR
+## Related ADRs
 
-ここに居るターゲットが従う決定。**レシピのコメントからは ADR を直接指さず、この節を辿る** ——
-ADR は番号も節も決定の所在も動くが、README は区画と一緒に動くので、動きがレシピへ波及しない
-（[docs/rules.md#comments](../docs/rules.md#comments)）。
+The decisions the targets here follow. **Recipe comments do not point at ADRs directly; they trace this section** —
+an ADR's number, section, and the location of its decision all move, but the README moves with its area, so the movement does not ripple into the recipes
+([docs/rules.md](../docs/rules.md#comments)).
 
-- [0090](../docs/adr/0090-testing-strategy.md) — アプリと補助スクリプトで実行を分ける
-- [0101](../docs/adr/0101-performance-budget.md) — 上限の置き方と、照らす先が `performance-budget.yaml` であること
-- [0110](../docs/adr/0110-security-operations.md) — 監査の閾値 / 抑止の様式 / 所見を黙って素通りさせない
-- [0151](../docs/adr/0151-git-hooks.md) — ローカルゲートの帯と、hook から呼ぶ側の責務
-- [0153](../docs/adr/0153-ci-configuration.md) — workflow 定義の検査 / secret の渡し方 / 公開の面へ出す文字集合
-- [0155](../docs/adr/0155-claude-skills-development.md) — TypeScript で書けない例外としてのシェル
-- [0160](../docs/adr/0160-agent-environment-loop.md) — 決定的な集計だけを持ち、モデルを使わない
+- [0090](../docs/adr/0090-testing-strategy.md) — separating runs for the application and the helper scripts
+- [0101](../docs/adr/0101-performance-budget.md) — how limits are set, and that they are compared against `performance-budget.yaml`
+- [0110](../docs/adr/0110-security-operations.md) — audit thresholds / suppression format / never letting findings slip through silently
+- [0151](../docs/adr/0151-git-hooks.md) — the local gates' bands, and the responsibilities of the side called from hooks
+- [0153](../docs/adr/0153-ci-configuration.md) — checking workflow definitions / how secrets are passed / the character set allowed on public surfaces
+- [0155](../docs/adr/0155-claude-skills-development.md) — shell as the exception for what cannot be written in TypeScript
+- [0160](../docs/adr/0160-agent-environment-loop.md) — holding only deterministic aggregation, using no model
 
-## 補足
+## Notes
 
-- 既存グループファイルへのターゲット追加ならトップレベル編集は不要。ただし**新規** `.mk` ファイルを追加する場合は、
-  トップレベル `Makefile` へ `include` 行の追記が必要（ワイルドカードではなく個別 include のため）
-- リリースブランチ / タグ系のターゲットは GitHub のデフォルトブランチを操作し `origin` へ push します。実行前に
-  [ADR 0150](../docs/adr/0150-git-workflow.md) を確認してください
+- Adding a target to an existing group file needs no top-level edit. However, adding a **new** `.mk` file requires
+  appending an `include` line to the top-level `Makefile` (because it uses individual includes, not a wildcard)
+- Release branch / tag targets operate on GitHub's default branch and push to `origin`. Before running them,
+  check [ADR 0150](../docs/adr/0150-git-workflow.md)

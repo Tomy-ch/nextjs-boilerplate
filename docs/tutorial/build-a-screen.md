@@ -208,7 +208,7 @@ components:
 
 **Declare the fetch coordinates.** Add one entry to `sources` in `openapi/sources.yaml`. Keeping `name` as `api` is
 the default, and the generation side (`orval.config.ts` / `scripts/openapi/gen-api-plan.ts`) holds that spelling
-(the reason is in [`openapi/README.md`](../../openapi/README.md) 「複数契約」).
+(the reason is in [`openapi/README.md#multiple-contracts`](../../openapi/README.md#multiple-contracts)).
 
 ```yaml
 sources:

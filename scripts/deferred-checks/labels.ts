@@ -4,7 +4,7 @@
  * @remarks
  * ワークフローが `toJSON(github.event.pull_request.labels.*.name)` を環境変数へ渡します。
  * 読む側を入口ファイルから切り出してあるのは、入口が検査の対象外だからです
- * （`scripts/README.md`「検査から外すもの」）。判定を入口に残すと、恒久的に無検査になります。
+ * （`scripts/README.md#what-is-excluded-from-checks`）。判定を入口に残すと、恒久的に無検査になります。
  */
 
 /**

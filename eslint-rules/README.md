@@ -4,190 +4,204 @@ test-requirement: unit
 
 # eslint-rules
 
-biome が表現できない検査だけを持つ自作 ESLint ルールの置き場
-（[0002](../docs/adr/0002-formatter-linter.md) の能力ベース分担）。適用は
-[`eslint.config.ts`](../eslint.config.ts) が `project-rules/<ルール名>` として行う。ここに置いた
-ルールは `pnpm lint`（biome のみ）では走らず、`pnpm lint:ci` と `pnpm exec eslint <path>` で走る
-（[0002](../docs/adr/0002-formatter-linter.md)「Basic Commands」）。
+The home of custom ESLint rules that hold only the checks biome cannot express
+(the capability-based split of [0002](../docs/adr/0002-formatter-linter.md)). They are applied by
+[`eslint.config.ts`](../eslint.config.ts) as `project-rules/<rule-name>`. Rules placed here do not run under
+`pnpm lint` (biome only); they run under `pnpm lint:ci` and `pnpm exec eslint <path>`
+([0002](../docs/adr/0002-formatter-linter.md) sets out which command runs which tool).
 
-**ルールは検査だけを持ち、規約は持たない。** 何を禁じるかとその理由は `docs/rules.md` の節か層の
-README が持ち、ルールの先頭コメントはその所有者を名指す。逆に、所有する側の「enforced via」は
-`project-rules/<ルール名>` を名指す（[0144](../docs/adr/0144-decision-enforcement-pairing.md)）。
-どちらか一方にしか無い状態は、決定と強制手段が切り離された状態である。
+**A rule holds only the check, never the convention.** What is forbidden and why is owned by a section of
+`docs/rules.md` or by a layer README, and the rule's leading comment names that owner. Conversely, the
+owner's "enforced via" names `project-rules/<rule-name>` ([0144](../docs/adr/0144-decision-enforcement-pairing.md)).
+A state where only one side exists is a decision cut off from its enforcement.
 
-## 置いているルール
+## Rules in Place
 
-| ルール | 検査するもの |
+| Rule | What it checks |
 | --- | --- |
-| [`no-ad-hoc-cache-tag`](no-ad-hoc-cache-tag.ts) | 捨てる印の段の数（`<資源>` と `<資源>:<識別子>` の 2 段まで）と、印を付ける場所（取得側の `src/adapters/` 1 か所）。資源名が契約の集合名と揃っているかは契約を読まないと決まらないので見ない |
-| [`no-anonymous-default-export`](no-anonymous-default-export.ts) | 名前を持たない default export。1:1 ゲートが `describe` で指せる名前を要求する（[0090](../docs/adr/0090-testing-strategy.md)）。通すのは名前付きの関数 / クラス宣言と、識別子への参照の 2 形 —— arrow function を default export できるのは後者だけで、両方を許して初めて書ける形が揃う |
-| [`no-app-wide-revalidate`](no-app-wide-revalidate.ts) | アプリ全体を捨てる再検証（`revalidatePath("/", "layout")`）。所有境界ではないので、更新した値がどの画面にも付く外枠に出るときだけの例外とし、`eslint-disable-next-line` に理由を書いて名乗る（[0071](../docs/adr/0071-bff-api-integration.md)）。所有境界そのものの判定は契約と画面を読まないと決まらないので見ない |
-| [`no-arbitrary-z-index`](no-arbitrary-z-index.ts) | 重なりの段の任意値（`z-[…]`、負の `-z-[…]` も）。段階値の間に割り込み、どれが上かを画面全体から読まないと決められなくなる |
-| [`no-cache-option-in-use-cache`](no-cache-option-in-use-cache.ts) | `use cache` を持つモジュールの `fetch` に渡した `cache` / `next`。内側が切れないぶん、外側が再取得しても同じ古い応答を掴む |
-| [`no-captured-bearer-token`](no-captured-bearer-token.ts) | 資格情報の取得口へ渡す掴んだ値。`getBearerToken` は import した口だけ、`bearerToken`（確立中の例外）は囲む関数の引数だけを通す。掴んだ値を渡すと `cookies()` が読まれず、cached scope の防御が黙って外れる（[0112](../docs/adr/0112-data-classification-cache-boundary.md)）。見るのは値を渡す側（object literal のプロパティ）だけで、受け取る側の分解代入は同じ綴りでも通す。テストは対象外 |
-| [`no-client-outside-connection-port`](no-client-outside-connection-port.ts) | 接続口（[`architecture.ts`](../architecture.ts) の `CONNECTION_PORTS`）の外で外部 API の client を組むこと。遮断器と再試行の予算は client に載るため、同じ接続先へ分けると劣化の判断が割れる（[0071](../docs/adr/0071-bff-api-integration.md)）。接続先を呼び出しごとに受け取るなど寄せられない箇所は、`eslint-disable-next-line` に理由を書いて名乗る。import の綴りを実ファイルへ解決してから判定するので、client 側の同じ綴りは当たらない。落とすのは組み立ての関数を値として引く形すべて（別名 / 名前空間 / 再 export / 動的 `import()`）で、型だけの import は通す。テストは対象外 |
-| [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
-| [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよい層の外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`）。見るのは host 要素（小文字始まり）だけで、Provider の合成や断片は JSX でも通す。指摘は要素ではなく置き場に対するものなので、報告はファイルにつき 1 件。テストは対象外 |
-| [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.md)、規約は [`src/components/README.md#font-weight`](../src/components/README.md#font-weight)）。`font-normal` は打ち消しなので対象外。test と story の除外は `eslint.config.ts` の `ignores` が持つ |
-| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得の口の import（[0112](../docs/adr/0112-data-classification-cache-boundary.md) の段 2）。判定はモジュール単位で、import 先とその 1 段先の綴りの宣言を読む。1 段先で client を組む kernel（[`architecture.ts`](../architecture.ts) の `HTTP_CLIENT_FACTORY`）は数えない（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
+| [`no-ad-hoc-cache-tag`](no-ad-hoc-cache-tag.ts) | The number of levels in an invalidation tag (up to two: `<resource>` and `<resource>:<identifier>`) and where tags are attached (one place, `src/adapters/` on the fetching side). Whether the resource name matches the contract's collection name cannot be decided without reading the contract, so it is not checked |
+| [`no-anonymous-default-export`](no-anonymous-default-export.ts) | A default export without a name. The 1:1 gate requires a name `describe` can point at ([0090](../docs/adr/0090-testing-strategy.md)). Two forms pass: a named function / class declaration, and a reference to an identifier — only the latter can default-export an arrow function, and only allowing both makes every writable form available |
+| [`no-app-wide-revalidate`](no-app-wide-revalidate.ts) | Revalidation that discards the whole app (`revalidatePath("/", "layout")`). It is not an ownership boundary, so it is an exception only when the updated value appears in the outer frame attached to every screen, declared with a reason on `eslint-disable-next-line` ([0071](../docs/adr/0071-bff-api-integration.md)). The ownership boundary itself cannot be decided without reading the contract and the screens, so it is not checked |
+| [`no-arbitrary-z-index`](no-arbitrary-z-index.ts) | Arbitrary values for stacking levels (`z-[…]`, and negative `-z-[…]`). They squeeze between the step values, and which is on top can no longer be decided without reading the whole screen |
+| [`no-cache-option-in-use-cache`](no-cache-option-in-use-cache.ts) | `cache` / `next` passed to `fetch` in a module with `use cache`. Since the inner layer cannot be invalidated, even when the outer layer refetches it grabs the same stale response |
+| [`no-captured-bearer-token`](no-captured-bearer-token.ts) | A captured value passed to the credential fetch endpoint. `getBearerToken` accepts only the imported endpoint, and `bearerToken` (the exception during establishment) only a parameter of the enclosing function. Passing a captured value means `cookies()` is not read, and the cached scope defense silently drops away ([0112](../docs/adr/0112-data-classification-cache-boundary.md)). Only the side that passes the value (an object literal property) is checked; destructuring on the receiving side passes even with the same spelling. Tests are out of scope |
+| [`no-client-outside-connection-port`](no-client-outside-connection-port.ts) | Building an external API client outside a connection point (`CONNECTION_PORTS` in [`architecture.ts`](../architecture.ts)). The circuit breaker and retry budget ride on the client, so splitting the same target splits degradation decisions ([0071](../docs/adr/0071-bff-api-integration.md)). Places that cannot be consolidated, such as receiving the target per call, declare themselves with a reason on `eslint-disable-next-line`. Import spellings are resolved to real files before judging, so the same spelling on the client side does not match. It fails every form that pulls the builder function as a value (alias / namespace / re-export / dynamic `import()`), and lets type-only imports pass. Tests are out of scope |
+| [`no-internal-anchor`](no-internal-anchor.ts) | A raw `<a href="/...">` for an internal link. It loses client navigation and prefetch |
+| [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | DOM markup outside the layers where UI may live (`UI_KERNELS` in [`architecture.ts`](../architecture.ts)). Only host elements (lowercase-initial) are checked; Provider composition and fragments pass even as JSX. The finding is about placement, not elements, so one report per file. Tests are out of scope |
+| [`no-raw-font-weight`](no-raw-font-weight.ts) | Direct weight specification (`font-medium` etc.). Weights the typeface does not have are rounded and do not read as emphasis ([0051](../docs/adr/0051-styling-system.md); the convention is `src/components/README.md`, Font Weight). `font-normal` is a reset and out of scope. Excluding tests and stories is owned by `ignores` in `eslint.config.ts` |
+| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | Importing a user-scoped fetch endpoint from a module holding a server-persisted cache (`use cache`) (stage 2 of [0112](../docs/adr/0112-data-classification-cache-boundary.md)). The check is per module, reading the spelling declarations of the import target and one level beyond. A kernel that builds clients one level beyond (`HTTP_CLIENT_FACTORY` in [`architecture.ts`](../architecture.ts)) is not counted (that the spelling remains is watched by `scripts/scope-spelling.gate.test.ts`) |
 
-## ルールが共有する線引き
+## Lines the rules share
 
-ルールごとの検査対象は違っても、判定の置き方は揃えている。新しいルールもこの線に乗せる。
+Each rule checks something different, but the way judgment is placed is aligned. New rules follow these
+lines too.
 
-### 静的に決まる綴りだけを見る
+### Look only at statically determined spellings
 
-**コードの形から決まらないものは見ない。推測して当てない。** 変数で渡した印や経路、式で組んだ
-`href` や class、変数で渡した `fetch` の設定、`[識別子]` で組んだ鍵、変数を渡した動的 `import()`
-は、綴りがその場で決まらないので判定に掛けない。見ないことは「取りこぼす」ではなく線引きであり、
-テストが valid 側で固定する（後述）。
+**What the shape of the code does not decide is not checked. No guessing.** Tags or paths passed in
+variables, `href` or classes built from expressions, `fetch` options passed in variables, keys built with
+`[identifier]`, and dynamic `import()` given a variable are not judged, because their spelling is not decided
+on the spot. Not looking is a line drawn, not "missing things", and the tests pin it on the valid side (see below).
 
-- **文字列リテラルは必ず拾える形である。** class や `href` は文字列としてしか書けないので、リテラル
-  と `TemplateElement` を見れば書かれた分は全部拾える。数値・真偽値・`null` も `Literal` として
-  訪れるので、文字列かを先に確かめる。
-- **式を含むテンプレートリテラルは、判定に要る綴りが `quasis` に残るときだけ読む。** `quasis` だけを
-  繋ぐと式が消える —— `` `/${locale}` `` は根 `/` に見え、根でない経路を全体の捨て方と取り違える
-  （`no-app-wide-revalidate` は式を含む形を見ない）。逆に区切りの数のように `quasis` 側に残るもの
-  は式があっても読める（`no-ad-hoc-cache-tag`）。
-- **リテラルの鍵は `[...]` で書かれていても綴りが確定している。** `["getBearerToken"]` を「計算された
-  鍵」として通すと、括弧を足すだけで規則を外せる。確定しないのは `[識別子]` のように値が実行時に
-  決まる鍵だけである。
+- **String literals are a form that can always be picked up.** Classes and `href` can only be written as
+  strings, so looking at literals and `TemplateElement` picks up everything written. Numbers, booleans and
+  `null` are also visited as `Literal`, so check that it is a string first.
+- **Template literals containing expressions are read only when the spelling needed for the decision
+  remains in `quasis`.** Joining only the `quasis` makes expressions vanish — `` `/${locale}` `` looks like
+  the root `/`, mistaking a non-root path for discarding everything (`no-app-wide-revalidate` does not look
+  at forms with expressions). Conversely, what remains on the `quasis` side, such as the number of
+  separators, can be read even with expressions (`no-ad-hoc-cache-tag`).
+- **A literal key has a settled spelling even when written as `[...]`.** Letting `["getBearerToken"]` pass
+  as a "computed key" would let anyone escape the rule by adding brackets. Only keys whose value is decided
+  at runtime, such as `[identifier]`, are unsettled.
 
-### 呼び出しは素の識別子の名前で合わせる
+### Match calls by the name of a bare identifier
 
-`cacheTag` / `revalidatePath` / `fetch` のような呼び出しは、`callee` が `Identifier` でその名前が
-一致するときだけ見る。`cache["cacheTag"](…)` / `cache.revalidatePath(…)` のように名前が式で決まる
-形は見ない（上の線引きと同じ理由）。名前だけが同じ別の関数（`addTag` / `revalidateRoute`）を
-巻き込まないことと、呼び出しでない参照（`const f = revalidatePath`）を巻き込まないことは、テストが
-valid 側で固定する。
+Calls such as `cacheTag` / `revalidatePath` / `fetch` are checked only when `callee` is an `Identifier` with
+a matching name. Forms whose name is decided by an expression, such as `cache["cacheTag"](…)` /
+`cache.revalidatePath(…)`, are not checked (for the same reason as the line above). That different functions
+sharing only the name (`addTag` / `revalidateRoute`) are not caught, and that non-call references
+(`const f = revalidatePath`) are not caught, are pinned by the tests on the valid side.
 
-### 場所の判定は起点からの相対で、区切りまで見る
+### Judge location relative to the base, up to the separator
 
-`context.filename` は相対でも絶対でも来る。場所で判定するルールは `context.cwd` を起点に
-`resolve` / `relative` してから比べ、**区切りまで含めて**比べる。
+`context.filename` comes either relative or absolute. Rules that judge by location `resolve` / `relative`
+from `context.cwd` as the base before comparing, and compare **including the separator**.
 
-- 接頭辞だけの一致で内側と見なすと、`src/adapters-legacy/` が `src/adapters/` の内側に見える。
-  区画は `resolve(cwd, 区画) + sep` で `startsWith` する。
-- ファイル名のどこかで `src/` に一致させると、ワークスペースの中の `docs-viewer/src/` の直下も層に
-  見える。層は `relative(cwd, filename)` の先頭で `^src/<層>/` を取る（`\` は `/` へ正規化する）。
-- 接続口のように 1 ファイル単位の宣言は、`relative(cwd, filename)` と宣言の等値で比べる。
+- Treating a prefix-only match as inside makes `src/adapters-legacy/` look inside `src/adapters/`. Areas are
+  compared with `startsWith` against `resolve(cwd, area) + sep`.
+- Matching `src/` anywhere in the file name makes the inside of `docs-viewer/src/` in the workspace look like
+  a layer too. The layer is taken as `^src/<layer>/` at the head of `relative(cwd, filename)` (`\` is
+  normalized to `/`).
+- Per-file declarations such as connection points are compared by equality between `relative(cwd, filename)`
+  and the declaration.
 
-### 置き場の宣言は `architecture.ts` から読み、写しを持たない
+### Read placement declarations from `architecture.ts`; hold no copy
 
-UI を置いてよい層、接続口、client を組む kernel は [`architecture.ts`](../architecture.ts) の宣言を
-import して読む。ルールの option（`meta.schema`）や定数へ写すと、宣言が動いたときに片方だけが
-古くなる。同じ理由で、分類（user-scoped）のような**宣言そのものを読める**ものは実ファイルの綴りを
-読み、一覧を持たない —— その綴りが崩れても lint は何も言わなくなるだけなので、綴りが残っている
-ことは別のゲート（`scripts/scope-spelling.gate.test.ts`）が件数ごと主張する。
+The layers where UI may live, the connection points, and the kernel that builds clients are read by
+importing the declarations in [`architecture.ts`](../architecture.ts). Copying them into a rule option
+(`meta.schema`) or a constant leaves one side stale when the declaration moves. For the same reason, things
+whose **declaration itself can be read**, such as the classification (user-scoped), are read from the
+spelling in the real files without holding a list — if that spelling broke, lint would merely fall silent,
+so a separate gate (`scripts/scope-spelling.gate.test.ts`) asserts, with counts, that the spelling remains.
 
-**2 つ以上のルールが同じ判定を要るなら、その述語は 1 つのモジュールが持つ**
-（[`cache-directive.ts`](cache-directive.ts) が例）。片方にだけ綴りが増えて、もう片方が黙って
-古くなることを避けるためである。
+**When two or more rules need the same decision, one module holds that predicate**
+([`cache-directive.ts`](cache-directive.ts) is an example). This avoids spellings growing on one side while
+the other silently goes stale.
 
-### モジュール単位の判定は `Program:exit` で決める
+### Decide module-level checks at `Program:exit`
 
-`use cache` のように**モジュール全体に掛かる宣言**を条件にする判定は、走査の途中で報告しない。
-宣言は式文に置かれた文字列リテラル（`Literal` の親が `ExpressionStatement`）で、関数の中にも
-置けるため、import や `fetch` より後に現れる。候補を配列へ集め、宣言の有無を `Program:exit` で
-確かめてから報告する。「宣言より前に書かれた形も挙げる」をテストが固定する。式文の直下に来る
-リテラルは宣言だけではない（`42;` も同じ位置に立つ）ので、文字列かを先に確かめる。
+A check conditioned on **a declaration that applies to the whole module**, such as `use cache`, does not
+report mid-scan. The declaration is a string literal in an expression statement (a `Literal` whose parent
+is an `ExpressionStatement`) and can also sit inside a function, so it can appear after imports and `fetch`.
+Candidates are collected into an array and reported after checking for the declaration at `Program:exit`.
+The tests pin "forms written before the declaration are also reported". Literals directly under an
+expression statement are not only declarations (`42;` stands in the same position), so check that it is a
+string first.
 
-### 報告する位置
+### Where to report
 
-- **`eslint-disable-next-line` が効くのは宣言の先頭行だけ**なので、抑止で名乗ることを許す指摘は、
-  指定子ではなく宣言そのものに出す。
-- **置き場に対する指摘はファイルにつき 1 件**に留める。要素ごとに出すと、直す先が 1 つなのに
-  指摘が要素の数だけ並ぶ。
-- メッセージは「何を渡さない / 書かないか」「そうすると何が起きるか」「代わりに何を使うか」の 3 つ
-  を持つ。禁止だけを告げるメッセージは、直す側が規約の所有者を探しに行くことになる。
+- **`eslint-disable-next-line` works only on the first line of a declaration**, so findings that allow
+  declaring an exception through suppression are reported on the declaration itself, not on the specifier.
+- **Findings about placement are kept to one per file.** Reporting per element lists as many findings as
+  there are elements even though there is one thing to fix.
+- Messages carry three things: "what not to pass / write", "what happens if you do", and "what to use
+  instead". A message that only states the prohibition sends the fixer off to find the convention's owner.
 
-### 例外の名乗り方
+### Declaring exceptions
 
-ルールが見ない判断（例外が正当か）は人に残る。例外は `eslint-disable-next-line project-rules/<ルール名>`
-にその行で理由を書いて名乗る。専用の綴りを作らないのは [`docs/rules.md#comments`](../docs/rules.md#comments)が独自の
-接頭辞を禁じているためで、効いていない抑止は `reportUnusedDisableDirectives` が落とす
-（[`eslint.config.ts`](../eslint.config.ts)）。
+Judgments the rule does not make (whether an exception is legitimate) stay with people. An exception is
+declared with `eslint-disable-next-line project-rules/<rule-name>` and a reason on that line. No dedicated
+spelling is created because `docs/rules.md#comments` forbids custom prefixes, and suppressions that have no
+effect are failed by `reportUnusedDisableDirectives` ([`eslint.config.ts`](../eslint.config.ts)).
 
-### テストと story の除外
+### Excluding tests and stories
 
-テストは取得口や組み立ての振る舞いを確かめる側で、hook を回すために wrapper を描くこともある。
-これらは束や層の担う UI ではないので、そのルールの検査対象から外す。除外の置き場は 2 つあり、
-理由が置き場を決める。
+Tests verify the behavior of fetch endpoints and builders, and sometimes render a wrapper to run a hook.
+They are not UI the bundle or a layer carries, so they are excluded from that rule's check. There are two
+places for exclusion, and the reason decides the place.
 
-- **理由がルール自身のもの**（テストはこの検査が守る束に載らない）なら、ルールの中で
-  `context.filename` を見て外す。
-- **理由が対象の種類のもの**（story は見本で画面が使う class ではない、など）なら、
-  `eslint.config.ts` の `files` / `ignores` で外し、理由もそこに書く。ルールは全ファイルに当たる
-  形のまま置く。
+- **If the reason belongs to the rule itself** (tests do not ride in the bundle this check protects),
+  exclude inside the rule by looking at `context.filename`.
+- **If the reason belongs to the kind of target** (stories are samples, not classes screens use, for
+  example), exclude with `files` / `ignores` in `eslint.config.ts` and write the reason there. The rule
+  stays in a form that applies to every file.
 
-## 別のファイルを読むとき
+## Reading other files
 
-import の先を判定材料にするルールは、綴りではなく**実ファイルへ解決してから**判定する。server 側
-と client 側の要求境界のように、同じ相対の綴りが別の実ファイルを指すことがあるためである。
+Rules that use import targets as decision material judge **after resolving to real files**, not by spelling.
+The same relative spelling can point at different real files, as across the request boundary between the
+server side and the client side.
 
-- [`module-resolution.ts`](module-resolution.ts) の `resolveModule(specifier, filename, cwd)` が、
-  別名（`@/`）と相対の綴りを `.ts` / `.tsx` / `/index.ts` / `/index.tsx` の順で実ファイルへ解決する。
-  素の package 名は解決しない —— 依存パッケージは読む宣言を持たないうえ、解決に `node_modules`
-  の探索が要る。解決できない綴りは判定材料を持たないので通す。
-- **相対の綴りは、綴りを書いたファイルを起点に解決する。** 1 段先を読むときは、1 段目の実ファイルを
-  `filename` に渡す。lint 対象のファイルを起点にすると、1 段先の相対 import が届かない。
-- **lint の対象でないファイルは ESLint が構文木を渡さない**ので、`moduleSpecifiers(source)` が
-  `typescript` の字句解析（`ts.preProcessFile`）で綴りを拾う。静的な `import` / `export … from`、
-  副作用だけの `import "…"`、動的な `import("…")` を拾い、コメントと文字列の中の綴りは拾わない。
-- `importKind` / `exportKind`（型だけの import / export）は TypeScript の構文木にしか無く、ESLint
-  の型（estree）は持たない。`Reflect.get` で読む。
-- 束縛の種類（import された口か、囲む関数の引数か）で判定するときは、`context.sourceCode.getScope(node)`
-  から `upper` を辿って変数を探し、`defs[].type`（`ImportBinding` / `Parameter`）を見る。渡す口は
-  モジュール直下で import され、渡す側は関数の中に居るため、手前の scope だけでは全部を取りこぼす。
+- `resolveModule(specifier, filename, cwd)` in [`module-resolution.ts`](module-resolution.ts) resolves alias
+  (`@/`) and relative spellings to real files in the order `.ts` / `.tsx` / `/index.ts` / `/index.tsx`. Bare
+  package names are not resolved — dependency packages hold no declarations to read, and resolving them
+  would need a `node_modules` search. Spellings that cannot be resolved provide no decision material, so
+  they pass.
+- **A relative spelling is resolved from the file that wrote it.** When reading one level beyond, pass the
+  first level's real file as `filename`. Resolving from the linted file makes the relative imports one level
+  beyond unreachable.
+- **ESLint does not provide a syntax tree for files that are not lint targets**, so `moduleSpecifiers(source)`
+  picks up spellings with `typescript`'s lexical analysis (`ts.preProcessFile`). It picks up static
+  `import` / `export … from`, side-effect-only `import "…"` and dynamic `import("…")`, and not spellings
+  inside comments or strings.
+- `importKind` / `exportKind` (type-only import / export) exist only in TypeScript's syntax tree, not in
+  ESLint's types (estree). Read them with `Reflect.get`.
+- When judging by the kind of binding (an imported endpoint, or a parameter of the enclosing function),
+  walk `upper` from `context.sourceCode.getScope(node)` to find the variable and look at `defs[].type`
+  (`ImportBinding` / `Parameter`). The endpoint being passed is imported at module top level while the
+  passing side is inside a function, so the nearest scope alone misses everything.
 
-辿る深さは、その段の役目に見合う範囲で切る。1 段先までで止め、それより深い経路は framework の
-防御と取得時の関門に任せる、という切り方が `no-user-scoped-in-cached-module` の例である。
+How deep to follow is cut at the range that fits that stage's role. Stopping one level beyond and leaving
+deeper paths to the framework's defenses and the fetch-time gate is the cut `no-user-scoped-in-cached-module`
+makes, as an example.
 
-## テストの責務
+## Test Responsibilities
 
-frontmatter の `test-requirement: unit` はルール本体に掛かる。ルールは判定を 1 つ間違えると
-**「検査対象があるのに 0 件で緑」**に倒れ、壊れたことが誰にも見えない。だから
-[0090](../docs/adr/0090-testing-strategy.md) はここをカバレッジの母数から外さず、違反する側と
-違反しない側の両方を各ルールのテストが持つ。
+The frontmatter's `test-requirement: unit` applies to the rule bodies. Get one decision wrong and a rule falls
+into **"there are targets, yet zero findings and green"**, and nobody can see it broke. That is why
+[0090](../docs/adr/0090-testing-strategy.md) keeps this out of the coverage exclusions, and each rule's
+tests hold both the violating side and the non-violating side.
 
-### テストの形
+### Test Structure
 
-- ESLint の `RuleTester` を `typescript-eslint` の parser で組む。JSX を読むルールは
-  `parserOptions.ecmaFeatures.jsx` を立てる。
-- 最外の `describe` は default export の名前（camelCase）。`// ----- 正常系 -----` /
-  `// ----- 異常系 -----` で区切り、`it` ごとに `ruleTester.run` を 1 回、`valid` か `invalid` の
-  片方だけを持つ。error は `messageId` で照合する。
-- 場所で判定するルールは `filename` を渡して行使する。接続口のような宣言は `architecture.ts` から
-  import して回し、写しを持たない。
-- 検査対象のコードは文字列で渡すので、テンプレート記法を含むコードは `["…`$", "{x}`…"].join("")`
-  のように分けて組む。
-- 実ファイルへ解決するルールのテストは、リポジトリに実在するモジュールを fixture にする（宣言を
-  読ませるためで、写しを作らない）。fixture に選んだモジュールが動くとテストが落ちるので、
-  選んだ理由（分類を宣言している / していない / 1 段先だけが宣言している）を定数のコメントに書く。
+- Build ESLint's `RuleTester` with the `typescript-eslint` parser. Rules that read JSX set
+  `parserOptions.ecmaFeatures.jsx`.
+- The outermost `describe` is the default export's name (camelCase). Divide with `// ----- 正常系 -----` /
+  `// ----- 異常系 -----`, run `ruleTester.run` once per `it`, each holding only one of `valid` or
+  `invalid`. Match errors by `messageId`.
+- Rules that judge by location are exercised by passing `filename`. Declarations such as connection points
+  are imported from `architecture.ts` and run through, without holding a copy.
+- The code under test is passed as a string, so code containing template syntax is built in pieces, as in
+  `["…`$", "{x}`…"].join("")`.
+- Tests of rules that resolve to real files use modules that actually exist in the repository as fixtures
+  (so the declarations are read, without creating a copy). If a fixture module moves, the test fails, so
+  write the reason it was chosen (declares the classification / does not / only the next level declares it)
+  in the constant's comment.
 
-### 固定する観点
+### Perspectives to pin
 
-各ルールの `invalid` は違反の形を、`valid` は次を持つ。「見ない」線引きは、テストが valid 側で固定
-して初めて意図になる。
+Each rule's `invalid` holds the violating shapes, and `valid` holds the following. A "not looked at" line
+becomes intent only when a test pins it on the valid side.
 
-- 綴りが静的に決まらない形（変数・式・計算された鍵・動的な綴り）
-- 名前だけが同じ別の関数、呼び出しでない参照、呼び出しの名前が式で決まる形
-- 文字列でないリテラル（数値・真偽値・`null`・正規表現）
-- 場所で判定するなら、接頭辞だけが一致する隣の区画と、絶対パスで渡された `filename`
-- モジュール単位で判定するなら、宣言より前に書かれた形と、関数の中の宣言（`invalid` 側）
-- 対象外にした種類（テスト、`use cache: private`、型だけの import）
+- Forms whose spelling is not statically decided (variables, expressions, computed keys, dynamic spellings)
+- Different functions sharing only the name, non-call references, and calls whose name is decided by an expression
+- Non-string literals (numbers, booleans, `null`, regular expressions)
+- For location-judging rules, a neighboring area that matches only the prefix, and a `filename` passed as an absolute path
+- For module-level rules, forms written before the declaration, and declarations inside functions (on the `invalid` side)
+- Kinds excluded from scope (tests, `use cache: private`, type-only imports)
 
-## 足すとき
+## Adding a rule
 
-1. まず biome で表現できないことを確かめる。表現できるものを ESLint 側へ足すのは
-   [0002](../docs/adr/0002-formatter-linter.md) が禁じており、確認結果は PR 本文へ書く。
-2. 規約の所有者を決める。`docs/rules.md` の節か層の README がまだ持っていないなら、先にそこへ書く。
-   ルールの先頭コメントはその所有者を名指し、所有者側の「enforced via」は
-   `project-rules/<ルール名>` を名指す。
-3. `eslint-rules/<ルール名>.ts` に `Rule.RuleModule` を default export する。`meta.type` は
-   `"problem"`、`docs.description` は一文、`messages` は messageId ごとに上の 3 つを持つ日本語。
-   置き場の宣言は `architecture.ts` から読む。
-4. 同じ名前の `.test.ts` を隣に置き、上の観点を固定する。
-5. [`eslint.config.ts`](../eslint.config.ts) の `project-rules` plugin へ登録し、`src/**` の block で
-   `"error"` にする。対象の種類で除外が要るなら、別の block を `files` / `ignores` 付きで足し、
-   理由をそこに書く。
+1. First confirm that biome cannot express it. Adding to the ESLint side something biome can express is
+   forbidden by [0002](../docs/adr/0002-formatter-linter.md); write the result of the check in the PR body.
+2. Decide the convention's owner. If neither a section of `docs/rules.md` nor a layer README owns it yet,
+   write it there first. The rule's leading comment names that owner, and the owner's "enforced via" names
+   `project-rules/<rule-name>`.
+3. Default-export a `Rule.RuleModule` from `eslint-rules/<rule-name>.ts`. `meta.type` is `"problem"`,
+   `docs.description` is one sentence, and `messages` are in Japanese, each messageId carrying the three
+   things above. Read placement declarations from `architecture.ts`.
+4. Place a `.test.ts` of the same name next to it, pinning the perspectives above.
+5. Register it in the `project-rules` plugin in [`eslint.config.ts`](../eslint.config.ts) and set it to
+   `"error"` in the `src/**` block. If exclusion by kind of target is needed, add a separate block with
+   `files` / `ignores` and write the reason there.

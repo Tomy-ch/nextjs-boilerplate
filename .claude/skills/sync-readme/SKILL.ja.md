@@ -66,7 +66,7 @@ README に記載されたエントリと実態を比較する。
 
 ## AI Modification Scope
 
-AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実行中は AI Modification Scope の縛りを解放する。対象は以下に限定する。
+AGENTS.md の "Exception: Skill Execution" セクションに基づき、このスキル実行中は AI Modification Scope の縛りを解放する。対象は以下に限定する。
 
 - 確認済みの対象 canonical README ファイル。
 - 兄弟の翻訳ファイルは、このスキルが直接は変更しない。後続の `canonicalize-doc` の起動（それ自身のスコープ例外で動く）で更新する。

@@ -38,9 +38,9 @@
 直す。diff スコープは `impl-review` / `/code-review`、単発コミットは `commit`。コミット機構自体は `commit`
 スキルに委譲(6. 参照)。
 
-## 引数(既定値つき)
+## 引数(デフォルト値つき)
 
-| 引数 | 既定 | 意味 |
+| 引数 | デフォルト | 意味 |
 | --- | --- | --- |
 | `--reviews-dir` | `tmp/reviews` | 指摘 md 集合のディレクトリ(full-verify の `--out` に対応。例: `tmp/reviews-config`) |
 | `--severity` | `low` | どこまで処理するか(`critical` のみ / `high` まで / … / `low` まで=全部) |
@@ -50,7 +50,7 @@
 
 ## Step 0. 前提チェックと環境準備
 
-1. `--reviews-dir`(既定 `tmp/reviews`)に `mod_*.md` があるか確認。無ければ「先に `full-verify` を」と伝えて終了。
+1. `--reviews-dir`(デフォルト `tmp/reviews`)に `mod_*.md` があるか確認。無ければ「先に `full-verify` を」と伝えて終了。
 2. **ツールチェーンが使えるか確認**(本リポジトリは pnpm / mise 管理、ADR 0001 / 0003)。`pnpm install` 状態が
    最新で `pnpm lint` / `pnpm build` が走ることを確認。バージョン不整合で `pnpm`/`node` が失敗するなら、
    `PATH` の解決(`pnpm --version`)とピン留めの実体(`mise which pnpm`)を突き合わせ、`mise install` と
@@ -62,7 +62,7 @@
 
 `--scope` 等が未指定なら `AskUserQuestion` で一括確認する。確認項目:
 
-- **対象ディレクトリ**: 既定は CLAUDE.md の AI 変更スコープ(`src/`、`public/`)。その外
+- **対象ディレクトリ**: デフォルトは CLAUDE.md の AI 変更スコープ(`src/`、`public/`)。その外
   (ルート設定・`.github/`・`.makefiles/`・Accepted ADR 本文・`.claude/`)は AGENTS.md で「明示指示なしに変更不可」
   なので、含めるには**ユーザの明示同意が必要**── かつ上記の保護集合は同意があっても対象外のまま。
 - **重大度しきい値**: どこまで(Critical のみ / High まで / Medium まで / Low まで=全部)。
@@ -192,7 +192,7 @@ base=最新 release/*、git identity)は **`commit` スキルが正**。ここ�
 
 ## Step 8. 停止粒度での停止
 
-`--pace dir`(既定)では**1 ディレクトリ片付いたら停止**しユーザに報告(完了/見送りテーブル + commit 群)。次の
+`--pace dir`(デフォルト)では**1 ディレクトリ片付いたら停止**しユーザに報告(完了/見送りテーブル + commit 群)。次の
 開始予定(次の重大度/ディレクトリ)を示し、ユーザが「continue」で再開できるようにする。`--pace all` は重大度
 しきい値まで連続。
 

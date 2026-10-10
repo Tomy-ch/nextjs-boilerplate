@@ -71,8 +71,8 @@ export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[
       value: formatNumber(summary.publishedProductCount),
       note: "現在の数です。期間では変わりません",
       // 押せません。公開済みだけを並べる一覧が無く、admin の一覧は未公開を含めて返すため、
-      // 送るとこの数より多い件数が出ます（`src/features/admin/README.md`「契約との関係で
-      // 気を付けること」）。
+      // 送るとこの数より多い件数が出ます（`src/features/admin/README.md` の
+      // "Points to Watch Against the Contract"）。
     },
     {
       id: "total-product-count",

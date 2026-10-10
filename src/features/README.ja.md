@@ -233,7 +233,7 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
   args として型のまま扱える。decorator にすると器の値はコンポーネントの args の外に居て、`parameters` で運ぶ
   ことになり型が残らない
 - overlay の探し方や docs ページの分け方など、**カタログの器そのものに由来する決まりは
-  [`.storybook/README.md`](../../.storybook/README.md) が持つ**
+  [`.storybook/README.md`](../../.storybook/README.ja.md) が持つ**
 
 ## テストの取り方
 

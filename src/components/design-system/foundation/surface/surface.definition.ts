@@ -3,7 +3,7 @@
  *
  * @remarks
  * 綴りは `surface` ですが、呼び名は「系統」です。「面」は `bg-*` が塗る面を指す語として repo
- * 全体で使うため（`tokens/README.md`「切替の軸は 2 本」）。
+ * 全体で使うため（`tokens/README.md#there-are-two-switching-axes`）。
  *
  * 既定の系統は属性を持ちません。`:root` に出ている宣言がそのまま効くので、属性を置くのは既定
  * 以外へ切り替える部分木だけです。

@@ -18,7 +18,7 @@ import { expect, test } from "../lib/test";
  *
  * @remarks
  * landmark・`main`・h1 と、配信される document は story 単位の検査（`vrt/a11y.spec.ts`）では
- * 成立せず、ここでだけ見られます（[README](../README.md) の「画面単位の a11y」）。前者 3 つを
+ * 成立せず、ここでだけ見られます（[README](../README.md#screen-level-a11y-runs-axe-twice)）。前者 3 つを
  * 持つのは [`SCREEN_ONLY_RULES`](../lib/a11y-rules.ts) で、適合目標のタグでは走らないため
  * **axe を 2 度に分けて掛けます**。
  *

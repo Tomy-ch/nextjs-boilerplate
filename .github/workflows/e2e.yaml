@@ -32,7 +32,7 @@ name: E2E
 #
 # The expensive steps stand down on an ordinary pull request. The cadence, the diff shapes
 # that run it without a label, and why the line is drawn there are in README.md
-# § 先送りにする検査. What is specific to this job: it is the cheapest of the three, and
+# § Deferred Checks. What is specific to this job: it is the cheapest of the three, and
 # deferring it is what lets a hydration mismatch — visible nowhere else — land on the merge
 # rather than before it.
 
@@ -334,7 +334,8 @@ jobs:
         shell: bash
         env:
           # Compared in the shell rather than interpolated into it. Why the two stand-down
-          # reasons stay distinguishable: README.md, "降りた理由は 2 つあり、書き分ける".
+          # reasons stay distinguishable: README.md,
+          # "Two reasons for skipping, reported separately".
           #
           # `scope` alone, because standing down with a diff that CAN reach a journey means
           # nothing asked for it: neither the label nor the diff's own structure.
@@ -397,7 +398,7 @@ jobs:
           if-no-files-found: error
 
       # One issue per branch, reopened rather than duplicated — README.md,
-      # "PR の外で落ちたら、issue にする".
+      # "A failure outside a PR becomes an issue".
       #
       # This is what the deferred cadence costs, and for this job it is the cost that matters
       # most — a hydration mismatch is visible nowhere else, so if nobody opens the run, the
@@ -423,7 +424,7 @@ jobs:
 
           # Degrades to a fixed body rather than failing: the step that raises the issue does
           # not gate on this one, so a failure here would file an empty issue (README.md,
-          # "PR の外で落ちたら、issue にする").
+          # "A failure outside a PR becomes an issue").
           pnpm exec tsx scripts/ci-report issue-body \
             --heading '落ちた内容:' \
             --kind tool-output \
@@ -433,7 +434,7 @@ jobs:
             printf '%s\n\n実行: %s\n' '❌ 本文を組み立てられませんでした。実行ログを読んでください。' "${RUN_URL}" > /tmp/e2e-guard.md
 
       # Minted rather than using `GITHUB_TOKEN` for its rate limit; falls back when the app
-      # is absent (README § PR コメント).
+      # is absent (README § PR Comments).
       - name: Mint a token for the issue
         id: api-token
         if: env.BASELINE_APP_ID != ''

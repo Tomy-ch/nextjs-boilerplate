@@ -180,7 +180,7 @@ Docker を維持する場合、以下を毎リリースで同期する必要が�
 
 ### 補助ツールの image は digest で固定する
 
-registry の tag は同じ名前のまま別の中身を指せるため、tag だけの参照では実行環境が黙って変わる。そこで **バージョンの SSOT は tag 側に残し、`image:tag` → digest の対応をロックファイル（`docker/images-pin.toml`）が持つ**。固定してあれば、指し先が変わった時点で pull が失敗する。手順は [`docker/README.md`](../../docker/README.md)。
+registry の tag は同じ名前のまま別の中身を指せるため、tag だけの参照では実行環境が黙って変わる。そこで **バージョンの SSOT は tag 側に残し、`image:tag` → digest の対応をロックファイル（`docker/images-pin.toml`）が持つ**。固定してあれば、指し先が変わった時点で pull が失敗する。手順は [`docker/README.md`](../../docker/README.ja.md)。
 
 - **registry の image を指す参照は、書かれた場所によらずこの機構が固定する。** 対象は compose の `image:` と `docker/<用途>/Dockerfile` の `FROM` に加え、workflow / composite action の `uses: docker://<image>:<tag>`（GitHub Actions が registry の image を直接実行するステップ記法）。`uses:` の行であっても参照先は GitHub のリポジトリではないため、tag を `git ls-remote` で commit SHA へ解決する actions-pin（[0153](0153-ci-configuration.ja.md)）では扱えない。スキャンするファイルは両機構で重なるが、掴む行は重ならない。`docker://` 参照に tag を必須とし、省略（＝`:latest`）は fail-closed で落とす
 - **検疫を通した digest だけを採る。** 解決は公開から 14 日未満の digest を採らない（`IMAGES_PIN_MIN_AGE_DAYS`。ウィンドウの長さは [0110](0110-security-operations.ja.md) のサプライチェーン検疫と同じ理由で決まる）。上流が乗っ取りを検知して取り消すまでの時間を稼ぐためで、既存のピンがあればそれを維持する。退行先の無い出来立ての image は、tag のまま残さず失敗させる

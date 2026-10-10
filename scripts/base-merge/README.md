@@ -1,53 +1,53 @@
 # base-merge
 
-ベースブランチをいまのブランチへ取り込み、未解決のパスを並べる。`make base-merge` の実体。
+Merges the base branch into the current branch and lists the unresolved paths. The implementation behind `make base-merge`.
 
-解決そのものは持たない。衝突したパスをどのクラスとして裁くか（生成物なら再生成、pin lockfile なら
-resolver の再実行、追記専用のレジストリなら和集合）は `resolve-merge` スキルの判断で、この道具は
-**取り込みと報告まで**を持つ。分類表をここへ置くと、表が 2 か所に住む。
+It does not own resolution itself. Which class a conflicted path is settled as (regenerate a generated artifact, re-run the
+resolver for a pin lockfile, take the union for an append-only registry) is the `resolve-merge` skill's judgment; this tool
+owns **the merge and the report, nothing further**. Putting the classification table here would make the table live in two places.
 
-## ベースは PR の `baseRefName` が最も強い
+## The PR's `baseRefName` is the strongest source of the base
 
-順に、最初に決まったものを採る。
+The first one that decides, in order, is taken.
 
-1. `--base=<ref>` —— 人が明示したもの
-2. `gh pr view --json baseRefName` —— **PR がある枝ではこれが正**。その枝がいま実際にマージしていく先だから
-3. origin の最新のリリースライン —— PR が無いときだけ。判定は
-   [`../base-branch/resolve.ts`](../base-branch/resolve.ts) と共有する
+1. `--base=<ref>` — what a person stated explicitly
+2. `gh pr view --json baseRefName` — **authoritative on a branch that has a PR**, because it is where that branch will actually merge
+3. The latest release line on origin — only when there is no PR. The decision is shared with
+   [`../base-branch/resolve.ts`](../base-branch/resolve.ts)
 
-**`refs/remotes/origin/HEAD` と `gh repo view --json defaultBranchRef` は読まない。**どちらも警告を出さずに
-前のリリースラインを答え、その結果 diff が 1 世代ぶん黙って広がる。理由の詳細は
-[`../base-branch/README.md`](../base-branch/README.md) が持つ。
+**`refs/remotes/origin/HEAD` and `gh repo view --json defaultBranchRef` are not read.** Both answer the previous
+release line without a warning, and the diff silently widens by one generation as a result. The detailed reasons are owned by
+[`../base-branch/README.md`](../base-branch/README.md).
 
-PR がある枝でそのベース以外を取り込むと、追いつかせるつもりが**行き先の付け替え**になる。新しい
-リリースラインが開いていても、その枝が向かう先は PR が決めている。
+Merging anything other than that base into a branch that has a PR turns what was meant as catching up into **retargeting**. Even when a new
+release line has opened, the PR decides where that branch is headed.
 
-**hotfix ラインが絡むときは推測しない。**最新のリリースラインの解決は `release/*` しか見ないので
-hotfix を名指さない。`--base=<ref>` を人から受け取る。
+**When a hotfix line is involved, do not guess.** The latest-release-line resolution looks only at `release/*`, so it
+never names a hotfix. Take `--base=<ref>` from a person.
 
-## rebase しない
+## Do not rebase
 
-[0150](../../docs/adr/0150-git-workflow.md) の規約であることに加えて、追記専用のファイル
-（レジストリの表、目録）では rebase が実害を出す —— 同じ内容が別のハッシュで再着地し、2 つの独立した
-追加として読める。
+Beyond being a convention of [0150](../../docs/adr/0150-git-workflow.md), a rebase does real damage to append-only files
+(registry tables, inventories) — the same content re-lands under a different hash and reads as two independent
+additions.
 
-## 拒む 2 つの状態
+## Two states it refuses
 
-- **保護ブランチの上**（`production` / `staging` / `develop` / `release/**` / `hotfix/**`）——
-  取り込んだ後の push が 0150 の「保護ブランチへ直接 push しない」に当たる。マージしてから気付くと、
-  作業ツリーが MERGING のまま行き場を失う
-- **作業ツリーが汚れている** —— 衝突の解決と手元の未確定変更が同じツリーに混ざり、どちらが衝突由来かを
-  後から見分けられなくなる
+- **On a protected branch** (`production` / `staging` / `develop` / `release/**` / `hotfix/**`) —
+  the push after the merge hits 0150's rule against pushing directly to a protected branch. Noticing only after merging
+  leaves the working tree stuck in MERGING with nowhere to go
+- **A dirty working tree** — conflict resolution and uncommitted local changes mix in the same tree, and it becomes impossible
+  to tell afterwards which came from the conflict
 
-## 終わり方
+## How it ends
 
-| 状態 | 終了コード | 出力 |
+| State | Exit code | Output |
 | --- | --- | --- |
-| 取り込めた | 0 | stderr に取り込んだベース |
-| 衝突が残った | 1 | **stdout に未解決のパスを 1 行 1 件**、stderr に件数 |
+| Merged | 0 | The merged base on stderr |
+| Conflicts remain | 1 | **Unresolved paths on stdout, one per line**, and the count on stderr |
 
-衝突が残っても**作業ツリーは MERGING のまま残す。**解決は `resolve-merge` が続けるので、ここで
-`git merge --abort` を打つと、その入力ごと捨てることになる。
+Even when conflicts remain, **the working tree is left in MERGING.** `resolve-merge` continues the resolution, so running
+`git merge --abort` here would throw away its input along with it.
 
-stdout をパスだけにしてあるのは `$(make -s base-merge)` で受けられるようにするため。案内はすべて
-stderr へ出す（[`../base-branch`](../base-branch/README.md) と同じ扱い）。
+stdout carries only paths so that it can be captured with `$(make -s base-merge)`. All guidance goes to
+stderr (treated the same as [`../base-branch`](../base-branch/README.md)).

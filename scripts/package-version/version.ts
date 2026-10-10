@@ -55,7 +55,7 @@ export function stampEffects(mode: StampMode): StampEffects {
  *
  * @remarks
  * ブランチ名は**シェルを経由せず**環境変数として届きます（引数で渡さない理由は
- * [.makefiles/README.md](../../.makefiles/README.md) の「版の焼き込み関連」）。優先順をここへ
+ * [.makefiles/README.md#version-stamping](../../.makefiles/README.md#version-stamping)）。優先順をここへ
  * 置くのは、渡し口が増えても選び方が 1 箇所に残るためです。
  *
  * @param candidates - 優先順に並べた候補。空文字列と `undefined` は「指定なし」として次へ送る

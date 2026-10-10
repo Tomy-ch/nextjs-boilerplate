@@ -11,7 +11,7 @@ token 側（`tokens/themes/<系統>/<配色>.json` と生成物）が持ち、�
 だけです。
 
 > 綴りは `surface` ですが、呼び名は「系統」です。「面」は `bg-*` が塗る面を指す語として repo 全体で
-> 使うためで、根拠は [`tokens/README.md`](../../../../../tokens/README.md)「切替の軸は 2 本」。
+> 使うためで、根拠は [`tokens/README.md`](../../../../../tokens/README.ja.md)「切替の軸は 2 本」。
 
 ## 役割と公開 component
 

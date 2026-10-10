@@ -15,8 +15,8 @@ import {
  * E2E の spec が指す経路が、実在する route に着いていることを見るゲート。
  *
  * @remarks
- * 何を・なぜ見るかは [`e2e/README.md`](../e2e/README.md)「spec が指す経路は、実在する route で
- * なければならない」。走査と判定は [`lib/e2e-routes.ts`](lib/e2e-routes.ts) が持ちます。
+ * 何を・なぜ見るかは
+ * [`e2e/README.md`](../e2e/README.md#paths-a-spec-points-at-must-be-real-routes)。走査と判定は [`lib/e2e-routes.ts`](lib/e2e-routes.ts) が持ちます。
  */
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "..");
