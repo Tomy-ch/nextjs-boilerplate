@@ -492,7 +492,7 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 
 ここに居るターゲットが従う決定。**レシピのコメントからは ADR を直接指さず、この節を辿る** ——
 ADR は番号も節も決定の所在も動くが、README は区画と一緒に動くので、動きがレシピへ波及しない
-（[docs/rules.md](../docs/rules.md)「コメントと文書」）。
+（[docs/rules.md#comments](../docs/rules.md#comments)）。
 
 - [0090](../docs/adr/0090-testing-strategy.md) — アプリと補助スクリプトで実行を分ける
 - [0101](../docs/adr/0101-performance-budget.md) — 上限の置き方と、照らす先が `performance-budget.yaml` であること

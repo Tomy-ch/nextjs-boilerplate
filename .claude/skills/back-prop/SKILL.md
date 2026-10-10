@@ -107,7 +107,8 @@ would be wrong the first time a kernel lands. Keep the per-kernel file list; you
 detector so it does not re-resolve git.
 
 When (C) or (E) is selected, additionally resolve the prose corpus — the layer `README.md` files,
-`docs/adr/*.md`, `docs/rules.md`, and for (C) the `SKILL.md` bodies — and intersect it with the diff
+`docs/adr/*.md`, `docs/rules.md`, and for (C) the `SKILL.md` bodies, canonicals only (every `*.ja.md`
+mirror excluded) — and intersect it with the diff
 in changed-files mode. Add one `docs`-scoped detector invocation whenever that intersection is
 non-empty, or always in full-repository scope.
 
@@ -159,7 +160,9 @@ For each finding, **the integrator** drives the decision:
 4. On a **code fix**: surface it as the user's task. This skill never writes implementation code.
 5. Loop over all findings; the user may abort partway.
 
-**Write scope is exactly**: the layer `README.md` files. Everything else is a hand-off or a report.
+**Write scope is exactly**: the layer `README.md` files, which are English canonicals. After the loop,
+chain `canonicalize-doc` once, in its bulk mode, over every README this run wrote, so their `.ja.md`
+mirrors follow in the same change. Everything else is a hand-off or a report.
 
 **E2 findings are never put to approval at all.** They sit in an ADR or `docs/rules.md` — a decision
 record and the governing document. Rewriting one to satisfy a detector inverts who decides. Surface
@@ -192,7 +195,8 @@ detector that could not run. An unstated omission reads as 「そこは綺麗だ
 ## AI Modification Scope
 
 Invoking this skill is the explicit instruction that relaxes `AGENTS.md`'s modification scope, and it
-relaxes it **only** to the layer `README.md` files, and only for the duration of this run.
+relaxes it **only** to the layer `README.md` files (their mirrors are written by the chained
+`canonicalize-doc`), and only for the duration of this run.
 
 These stay protected even during execution: `AGENTS.md`, `LICENSE`, ADR bodies, `docs/rules.md`,
 `docs/spec/**`, implementation code, generated files, and anything under `.claude/settings.json`'s
@@ -228,7 +232,7 @@ These stay protected even during execution: `AGENTS.md`, `LICENSE`, ADR bodies, 
 - [ ] Prose corpus resolved and a `docs`-scoped detector added when (C) or (E) was selected.
 - [ ] Aggregate summary printed before any decision; empty categories stated as empty.
 - [ ] Per-item approval with reasoning and a before / after draft.
-- [ ] Writes limited to layer `README.md`; skill changes handed to `manage-skill`.
+- [ ] Writes limited to layer `README.md`, their mirrors synced through `canonicalize-doc`; skill changes handed to `manage-skill`.
 - [ ] E2 findings reported only, never approved; glossary never edited to silence one.
 - [ ] Only the written files formatted; no gate run.
 - [ ] Closing report names what was not covered.

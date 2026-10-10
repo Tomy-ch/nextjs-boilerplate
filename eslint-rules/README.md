@@ -104,7 +104,7 @@ import して読む。ルールの option（`meta.schema`）や定数へ写す�
 ### 例外の名乗り方
 
 ルールが見ない判断（例外が正当か）は人に残る。例外は `eslint-disable-next-line project-rules/<ルール名>`
-にその行で理由を書いて名乗る。専用の綴りを作らないのは `docs/rules.md`「コメントと文書」が独自の
+にその行で理由を書いて名乗る。専用の綴りを作らないのは [`docs/rules.md#comments`](../docs/rules.md#comments)が独自の
 接頭辞を禁じているためで、効いていない抑止は `reportUnusedDisableDirectives` が落とす
 （[`eslint.config.ts`](../eslint.config.ts)）。
 

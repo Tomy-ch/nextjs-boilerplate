@@ -83,7 +83,7 @@ coverage-exclusions:
 | `form-state.ts` | 送信の結果の器と、状況で拒まれたときの文言 |
 | `history/query.ts` | 画面が受け取る素の条件と、ページ送りの寸法（件数・カーソルのキー） |
 | `history/period.ts` | 期間の条件。URL のキーと組み立て、利用者への言い換え |
-| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)「URL と条件」） |
+| `history/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)） |
 | `history/period-draft.ts` | 組み立て中の期間。入力欄が経由する途中の姿と、確定できるかの判定 |
 | `history/page-content.tsx` | 条件の解釈と、画面と待機の境界の組み立て |
 | `history/results.tsx` | 先頭ページの取得。期間が変わったときに取り直す範囲 |

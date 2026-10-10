@@ -1,234 +1,234 @@
-# Claude スキル運用方針 (開発系)
+# Claude Skills Operating Policy (Development)
 
-本プロジェクトでは、コード / ドキュメントの生成・編集・レビューに付帯する **開発フロー** を Claude Code の **スキル** として `.claude/skills/` 配下に配置する。本 ADR では開発系スキルの配置 / 命名 / 構造 / subagent パターン / カバー範囲を定義する。
+This project places the **development flows** that accompany generating, editing and reviewing code / documentation as Claude Code **skills** under `.claude/skills/`. This ADR defines the placement, naming, structure, subagent pattern and coverage of development skills.
 
-運用系スキル (コミット / PR / リリース / 依存監査 等) は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) で別途扱う。
+Operations skills (commit / PR / release / dependency audits, etc.) are handled separately in [0154-claude-skills-operations.md](0154-claude-skills-operations.md).
 
 ## Status
 
 Accepted
 
-## 採用理由 / 目的
+## Rationale / Purpose
 
-- ドキュメント同期 / 設定編集 / コードレビューの **反復作業** をスキル化し、人間と AI エージェントが同じ手順で再現できるようにする
-- 多層 review が必要な作業 (adversarial review 等) を **subagent パターン** で構造化し、単一エージェントの bias を回避する
-- スキルが依拠するリポジトリの構造 (config カーネル等) を名指しし、スキルがそれを固定値で持たず実行時に読む境界を定める
+- Turn the **recurring work** of documentation sync / configuration editing / code review into skills, so that humans and AI agents can reproduce it with the same procedure
+- Structure work that needs multi-layer review (adversarial review, etc.) with the **subagent pattern**, avoiding the bias of a single agent
+- Name the repository structures skills rely on (the config kernel, etc.), and set the boundary at which a skill reads them at runtime rather than holding them as fixed values
 
-## 対象範囲 (開発系の定義)
+## Scope (Definition of Development Skills)
 
-「開発系」= **コード / ドキュメント / 設定の生成・編集・レビュー** を主目的とするスキル。
+"Development" = skills whose main purpose is **generating, editing and reviewing code / documentation / configuration**.
 
-具体的には:
+Concretely:
 
-- ドキュメント同期 (canonical EN / 翻訳 JA ペア管理 / README の現実合わせ)
-- ドキュメント評価 (README が portal-worthy か等)
-- 設定編集 (環境変数の e2e 追加等)
-- コードレビュー (adversarial / 多視点)
+- Documentation sync (managing canonical EN / translated JA pairs / aligning READMEs with reality)
+- Documentation evaluation (whether a README is portal-worthy, etc.)
+- Configuration editing (adding an environment variable end to end, etc.)
+- Code review (adversarial / multi-perspective)
 
-運用系 (Git 操作 / リリース / 依存監査) は 0154 で扱う。
+Operations (Git operations / release / dependency audits) are handled in 0154.
 
-## 配置・命名・frontmatter
+## Placement, Naming and frontmatter
 
-配置・命名・frontmatter の規約は **0154 と共通** ([0154-claude-skills-operations.md](0154-claude-skills-operations.md) 参照)。
+The conventions for placement, naming and frontmatter are **shared with 0154** (see [0154-claude-skills-operations.md](0154-claude-skills-operations.md)).
 
-要約:
+Summary:
 
-- 配置: `.claude/skills/<slug>/SKILL.md` (canonical 英) + `SKILL.ja.md` (翻訳参考)
-- 命名: kebab-case 動詞ベース
-- frontmatter: `name` / `description` / `usage-class` / `argument-hint` (任意) / `allowed-tools` (任意)
-- 本文構造: When to Use / Do NOT use / Step 番号付き手順 / 検証
+- Placement: `.claude/skills/<slug>/SKILL.md` (canonical, English) + `SKILL.ja.md` (translation, for reference)
+- Naming: kebab-case, verb-based
+- frontmatter: `name` / `description` / `usage-class` / `argument-hint` (optional) / `allowed-tools` (optional)
+- Body structure: When to Use / Do NOT use / numbered Step procedure / verification
 
-## カバー範囲 (既存スキル)
+## Coverage (Existing Skills)
 
-| Slug | 役割 | カバー範囲 |
+| Slug | Role | Coverage |
 | --- | --- | --- |
-| `canonicalize-doc` | EN / JA ペア同期 | canonical 英ドキュメントと日本語翻訳の同期 / 新規作成 |
-| `sync-readme` | README ↔ ディスク同期 | 単一 README の記述を実ディレクトリ状態に合わせて更新。子ディレクトリの README は digest + 参照リンクのみ |
-| `readme-review` | README の portal 価値評価 | 単一 README を `docs/portal/manifest.yaml` 登録基準で採点 |
-| `portal-manifest-sync` | portal manifest の監査 | `docs/portal/manifest.yaml` を、実在する README と 2 つの生成スクリプト（`pnpm portal:guides` / `portal:docs`）の双方に突き合わせる。生成側が既に決めている stale と構造警告は再実装せず読み取り、生成側が黙って飲み込む「`Other` へ落ちる登録」と、部品リファレンス README の除外、残る curation 候補の分類を担う。判定基準は持たず `readme-review` を実行時に読む。書き込みは `manifest.yaml` だけで、未登録 README を drift 扱いした自動追加はしない |
-| `new-env` | 環境変数の e2e 追加 | 目的別 config モジュール / env ファイル / 変数表 docs を一括で同期 (対象構造は [0030](0030-environment-variable-management.md)、後述) |
-| `impl-review` | adversarial code review | 5 観点 (correctness / security / architecture / cohesion / runtime-gap) の subagent fanout + verifier による多段検証。`cohesion` は「1 つの単位が変わる理由を複数持つ」を見る単位内の観点で、カーネル跨ぎの配置を持つ `architecture` とは重ならない。差分が `src/model/**` か型の宣言に触れたときは、観点とは別の finder として `type-design-reviewer` を加え、その `懸念` だけを verifier へ回す（採点は返ったまま報告する）。網羅的な層規約の監査は `arch-check` が持つ。対象は変更そのものだけで、ソースへは書き込まず、指摘は PR へインライン投稿する |
-| `scaffold-test` | テストの新規作成 (unit / component) | テストを持たない対象の**集合**について、対象自身の分岐からケースを導き `<subject>.test.ts(x)` を書く。画面 1 枚分の一斉配置を単位とし、`test-requirement` の宣言元ディレクトリごとに確認を取る。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / 最近傍 README の `test-requirement` / 1:1 ゲート自身を実行時に読む。責務はディレクトリではなくシンボルに従い、HTTP 境界を跨ぐものは `scaffold-integration-test` へ残す。対象は read-only で、検証できない分岐は skip せず所見として報告する。観点の列挙を**書く前に**、read-only の `test-perspective-enumerator` へ群ごとに出す。テストを書くモデルは「何を検査するか」を「どう主張するか」と同時に決めるので、**並ぶのは主張を書きやすいケース**になる。分けても一覧が完全になるわけではないが、**ケースにならなかった観点を声に出して見送る**ことになり、落としたものが見える。最寄りの `test-requirement` README の `## テスト観点` は人が書いた観点であり、実装していないように見えても落とさず人へ渡す（README とコードのどちらが誤りかは、このスキルの判断ではない） |
-| `scaffold-integration-test` | HTTP 境界の結合テスト作成 | `adapters` のクライアントや Route Handler を、契約から生成された MSW ハンドラで動かすテストを書く。[0090](0090-testing-strategy.md) の「integration = HTTP 境界のみ / 内側は mock / 形と型をアサート」を保ち、ハンドラの手書きと `fetch` stub を禁じる |
-| `settle-comments` | 変更が値したコメントの決着 | 実装はコメントを書かないので、触れた宣言のコメントを 維持 / 削除 / **不要** / 書換 / **移設** / 集約 / **著述** の 7 判定で決める。移設は根拠を ADR や層 README へ動かし、コードには効力のある残余と 1 行の参照を残す。著述は、名前の付いた関数に欠けている TSDoc の必須の枠（要約と必須タグ。範囲は `docs/rules.md` が持つ）を、`--bulk` でも書く。read-only のレビュアーが出せない判定であり(移設先の文書を書く必要がある)、判断対象も差分ではなく在庫である。さらにファイル単位のパスが **集約**（重複 / 分散 / 総量過多）を拾う。1 件ずつの管轄判定では各コピーが単独で通ってしまうためで、対象がコメントの集合になる唯一の判定である。適用は 確認して適用 / 自動適用 (`--apply`) / 報告のみ (`--report-only`) の 3 モードで、自動適用は文書書き込みを伴う移設を適用せず、集約は確度 high のときだけ適用する |
-| `test-review` | テストの品質レビュー | 5 レンズ (構造準拠 / 観点カバレッジ / 意味的品質 / 分岐×意味 / シンボル網羅) の fanout + verifier。規則は焼き込まず [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) とカーネル README の `test-requirement` を実行時に読む。報告は read-only だが、意味網羅の穴だけは確認 1 回で塞ぐ (Step 5) |
-| `full-verify` | リポ全体の検証 | アーキテクチャ (Pass 1) + 全実装 (Pass 2) の妥当性を検証し、`tmp/reviews/` (architecture.md / mod_*.md /_index.md) に所見 Markdown を生成。read-only (コード変更なし) |
-| `full-apply` | full-verify 所見の適用 | `tmp/reviews/` の所見を severity 順 (Critical → Low) に修正適用。設計判断を要する所見は理由付きで defer し、コミット前に `pnpm fix` / lint / build で検証。`full-verify` と対をなす |
-| `scaffold-model` | model カーネルへの配置 | `pnpm gen` に kind の無い `model` へ表示用の型 1 つを置く。置くべきかを `src/model/README.md` の受け入れで先に決め（1 feature しか使わない型・契約の写し・判定ロジックは止まる）、`## 監査の観点` の行ごとに答えた計画を確認してから書く。型の規律は [0029](0029-type-design-discipline.md) を実行時に読む。書いた型は read-only の `type-design-reviewer` で採点し、適用は承認分だけ。単独では `scaffold-test` と `settle-comments` を回し、`scaffold-slice` からは任せる |
-| `scaffold-adapter` | 取得の口の足場 | 取得済みの契約と揃った生成物を前提に、`pnpm gen adapter` で置いてからスタブを埋める。分類・接続口・`allowAnonymous`・寿命・taint を `src/adapters/README.md` と契約の `security` から出所つきで導き、導けないものは止まって引き渡す。契約と生成物は編集しない（[0072](0072-api-type-generation.md)）。`scaffold-integration-test` を必ず連鎖させる |
-| `scaffold-route` | `app` の入口の足場 | 画面でない `app` の element —— thin proxy の Route Handler と、主体を断言する `app` 側 Server Action —— を 1 つ置く。要否と住処を [0025](0025-app-layer-elements.md) と `src/app/README.md` / `src/app/api/README.md` から先に決め、要らなければ止まる。route segment は `new-feature`、断言の要らない action は feature に残す。Route Handler には `scaffold-integration-test` を連鎖させる |
-| `scaffold-slice` | 契約起点のスライス動線 | 契約 → `scaffold-model` → `scaffold-adapter` → `pnpm gen feature` → `scaffold-route` → `scaffold-test` → `settle-comments` を依存の順に連鎖させ、`arch-check` の変更ファイルの形を report-only の出口検査にする。自分ではソースを書かず、止まった最初の段で停止し、巻き戻さない。規則は各子がカーネル README の `## 監査の観点` から実行時に読む。画面の見た目・story・仕様書・画面のテストは `new-feature` に残し、2 つは `pnpm gen feature` で出会う。仕様書は入力にしない（[0143](0143-spec-driven-development.md)）。レビュー 2 本は呼ばない |
-| `new-feature` | 画面 1 枚の e2e 動線 | 画面を「ディレクション → story → レビュー → 分離 → 仕様書 → テスト」の順で通す。順序そのものを含め、規則は焼き込まず [`docs/playbook.md`](../playbook.md) / [`docs/templates/feature-readme.md`](../templates/feature-readme.md) / [`docs/spec/README.md`](../spec/README.md) / カーネル README を実行時に読む。配置・命名・境界は `pnpm gen` に委ね、`docs/spec/**` は**読み込み入力であって生成入力ではない**。story のレビューが返るまでテストを書かない。レビュー 2 本（`impl-review` / `test-review`）は `AGENTS.md` の Review Phase Protocol に従い**呼ばずに user へ渡す**。`settle-comments` は見積もりを伴うレビューではなく実装の最後に無条件で走る段なので、同じ扱いにしない。commit / push はしない |
-| `impl-issue` | issue → merged PR の背骨 | issue 番号を受けて、環境の確保 → 計画 → 実装 → 突き合わせ → レビュー → PR → 回収 → merge → 申し送り → close を通す。**実装判断を一切持たない** —— コミットは `commit`、push と PR は `submit-pr`、base の取り込みと衝突は `resolve-merge`、画面 1 枚は `new-feature`、レビュー 2 本は `AGENTS.md` の Review Phase Protocol に従って見積もり付きで user へ問い、`settle-comments` は問わずに回す。持つのは進行と、承認済み計画と実物の突き合わせと、人間判断が要る瞬間の**機械的検出**である。**止まる場所は 5 箇所に閉じ**、それ以外の判断は起きたその場で追跡外の run record へ追記して、文脈が要約されても Step 9 の申し送りが欠けないようにする。モードは 6 つ（scope / review / issue / flow / derive / plan）。**scope を最初に問う** —— どこで終わるか（merge / PR まで / 手元のコミットまで）が他の全モードを境界づけ、早く終わる実行は他のモードが統べる段へ届かないためで、終わり方が残したもの（とくに回収とランタイム検証）は報告で名指す。`derive` は ADR・`docs/rules.md`・層 README を読んだうえで残る問いを**デファクトスタンダードから**決めてよいとする委譲であり、好みは委譲しない。ゲートは先回りせず hook と CI に委ね、委ねたことを PR に書く。ランタイム検証はリクエスト時の seam が動いたときだけ回し、回さなかったことを述べる |
-| `back-prop` | 宣言と実物のずれの検出 | README / スキル / 語彙表が述べていることと、木が実際にやっていることのずれを 4 種（A README→コード / B コード→README の未文書化パターン（該当 3 件以上） / C スキル↔README の重複 / E 業務語彙の家出）で検出する。integrator + read-only の `drift-detector` をカーネルごとに 1 メッセージで並列起動し、承認と書き込みは integrator が単一スレッドで行う。検出基準は `skills/back-prop/prompts/detect-drift.md` が SSOT で、スキル本文も agent 定義も書き直さず読む。書き込みは層 README のみ。スキル本文の変更は `manage-skill` へ、E2（ADR / `docs/rules.md` への漏れ）は報告のみ。`sync-readme`（構造の drift）とは交わらない |
-| `arch-check` | 層規約の網羅監査 | カーネルごとに README の `## 監査の観点` の表とコードを突き合わせ、`violation` / `suggestion` で報告する。表は `forbidden` タグごとに 1 行と、import の集合では表せない原則を持ち、スキル本文も agent 定義も規則を写さず実行時に読む（基準は `skills/arch-check/prompts/audit-layer.md` が SSOT）。integrator + read-only の `arch-auditor` をカーネルごとに 1 メッセージで並列起動する。静的判定（PR の Lint の結果、または範囲を絞った手元の 1 回）は integrator が 1 度だけ決めて全 auditor に渡し、機械が見る行は再判定しない。表の欠けは README への所見としてコードの違反と分けて数える。`src/model` は full スコープのときだけ `type-design-reviewer` を相乗りさせる（差分なら `impl-review` から届くため）。完全 report-only で、書くのは `tmp/arch-check/` だけ。`full-verify` Pass 1（設計の妥当性）、`impl-review` の architecture レンズ（差分の意味）とは問いを分ける |
-| `glossary` | 語彙表の保守 | `docs/spec/glossary.md` を保守する。目録を決定的に抽出し、機械で決着する 4 種（新出用語 / 孤児 / 解決しない参照 / 二重定義）を分けたまま提示する。**正名を選ばず、2 語を同義と宣言しない** —— 前者はチームがどう話すかの判断、後者は機械的な痕跡を残さない。「使われ方に合わせて行を書き換える」を選択肢として出さない（表が散文の索引に化け、文書が誤っていると言えなくなる）。書くのは語彙表だけで、指し先の文書には触れない |
-| `context-map` | 接触点の地図の保守 | `docs/design/context-map.md` を保守する。辺を `src/config/` / `src/adapters/` / `src/app/api/**` / metadata / `src/proxy.ts` から列挙し、辺ごとに 2 軸を記録する。**翻案の有無は `architecture.ts` が機械で決め、境界の所有はコードから出てこない**（相手と交渉できるかは組織的な事実）。所有は証拠つきの候補として提示して人に選ばせ、自分の権限でラベルを書かない。仕組みは主題ごとの design 文書が持ち、地図は指すだけ |
-| `context-map-audit` | 地図と実物の突合 | **完全 read-only。**3 種の乖離（接触点はあるが辺が無い / 辺の相手が消えた / 記録された翻案が依存表と食い違う）を報告し、編集しない —— 乖離は「地図が古い」とも「コードが決定から外れた」とも読め、監査にはその 2 つを区別できない。所有は監査しない（突き合わせる相手がコードに無い）。**検査した辺と検査できなかった辺の数を必ず述べる** —— 件数を言わない「乖離なし」は、何も走査しなかった実行と見分けが付かない |
-| `verify-spec` | 仕様書と実装の読み合わせ | [0143](0143-spec-driven-development.md) の**内容の突合**を所有する。route ごとに read-only の `spec-validator` を並列起動し、4 種（約束と実装の食い違い / 振り分けの誤り / 上位 layout の書き直し / 書かないものが書かれている）を挙げる。**存在の突合はやり直さない**（ゲートが決着させており、散文で再現すると写像の 2 つめの実装ができる）。**どちらが動くべきかは決めない** —— 向きは 0143 が決めているが、約束が変わったのか実装がずれたのかは読み合わせから見えない。確かめられなかった約束は、確かめられなかったものとして報告する。書き込みは一切しない |
-| `interpretation-audit` | 原典と解釈の突合 | 外部の原典から導いた決定が、原典のいまの言い分と一致しているかを 3 値（差異なし / 差異あり / **逸脱宣言あり**）で判定し、[`docs/reference/upstream-interpretations.md`](../reference/upstream-interpretations.md) を書き換える。**裁定しない** —— 外れること自体は欠陥ではなく（[0010](0010-standards-and-non-lockin.md)）、欠陥は誰も知らないまま外れていることなので、後ろ 2 値を分けることが目的である。判定より先に前提を書かせるのは、**尺度が読み手の記憶になりやすい**ため —— 先に書いた判定は、それを支える前提を後から徴用する。書き換えるのは目録だけで、行が指す ADR / 設定には触れない（監査と修正が同じ息で届くと、修正を誰も選んでいないことになる） |
-| `manage-skill` | スキルの作成・更新の単一入口 | 公式 `skill-creator` の方法論をラップし、本 ADR / [0154](0154-claude-skills-operations.md) の配置・命名・frontmatter・本文構造と [0140](0140-documentation-operations.md) の対訳ペアを上乗せする。`.claude/skills/**` への変更はこのスキルを入口とし、`SKILL.md` / `SKILL.ja.md` の直接手編集に先立って通す。公式プラグインの用意は `scripts/bootstrap-plugins` が担う |
-| `sync-ai` | Claude ↔ Codex のスキル移植 | 1 スキルを片方向の意味的移植として `.claude/skills/<name>/` と `.agents/skills/<name>/` の間で移す。生のコピーはせず、送信側が `tmp/` に転送契約を書き、書き込みは受信側が自分の流儀で行う（Claude は `manage-skill`、Codex は `scripts/sync-ai` が非対話で起動する `codex exec`）。連鎖の深さを抑えるのは前置きではなく作業ツリー上のリースで、逆向きの折り返しは連鎖の最上位で人に確認する。`codex` は導入せず、不在は所見として報告する。Codex 側から同期を始める手段は持たない |
+| `canonicalize-doc` | EN / JA pair sync | Syncing / newly creating a canonical English document and its Japanese translation |
+| `sync-readme` | README ↔ disk sync | Updates the contents of a single README to match the actual directory state. Child directories' READMEs get only a digest + reference link |
+| `readme-review` | Evaluating a README's portal value | Grades a single README against the registration criteria of `docs/portal/manifest.yaml` |
+| `portal-manifest-sync` | Auditing the portal manifest | Checks `docs/portal/manifest.yaml` against both the READMEs that exist and the two generator scripts (`pnpm portal:guides` / `portal:docs`). Reads, without reimplementing, the stale entries and structural warnings the generators already decide, and handles the "registrations that fall to `Other`" the generators silently swallow, the exclusion of component-reference READMEs, and the classification of the remaining curation candidates. Holds no criteria of its own and reads `readme-review` at runtime. Writes only `manifest.yaml`, and does no automatic addition that treats unregistered READMEs as drift (the one exception is the unregistered mirror of a registered canonical) |
+| `new-env` | Adding an environment variable end to end | Syncs the purpose-specific config modules / env files / the variable-table docs in one go (the target structure is [0030](0030-environment-variable-management.md); see below) |
+| `impl-review` | adversarial code review | Multi-stage verification by a subagent fanout over 5 lenses (correctness / security / architecture / cohesion / runtime-gap) + verifier. `cohesion` is the within-unit lens that looks at "one unit having several reasons to change", and does not overlap with `architecture`, which holds cross-kernel placement. When the diff touches `src/model/**` or a type declaration, `type-design-reviewer` is added as a finder separate from the lenses, and only its `懸念` go to the verifier (its grading is reported as returned). Exhaustive auditing of layer rules is held by `arch-check`. The subject is only the change itself; it does not write to source and posts findings inline to the PR |
+| `scaffold-test` | Creating new tests (unit / component) | For a **set** of subjects without tests, derives cases from each subject's own branches and writes `<subject>.test.ts(x)`. Its unit is placing one screen's worth at once, and it takes confirmation per directory that declares `test-requirement`. Bakes in no rules and reads [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) / the nearest README's `test-requirement` / the 1:1 gate itself at runtime. Responsibility follows the symbol, not the directory, and anything crossing the HTTP boundary is left to `scaffold-integration-test`. Subjects are read-only, and branches that cannot be verified are reported as findings rather than skipped. **Before writing**, the enumeration of perspectives is sent per group to the read-only `test-perspective-enumerator`. The model writing tests decides "what to check" at the same time as "how to assert it", so **the cases that line up are the ones whose assertions are easy to write**. Splitting does not make the list complete, but it means **the perspectives that did not become cases are passed over out loud**, so what was dropped is visible. The `## テスト観点` of the nearest `test-requirement` README are perspectives a human wrote, and even if they look unimplemented they are handed to a human rather than dropped (whether the README or the code is wrong is not this skill's judgment) |
+| `scaffold-integration-test` | Writing integration tests at the HTTP boundary | Writes tests that drive `adapters` clients and Route Handlers with MSW handlers generated from the contract. Keeps [0090](0090-testing-strategy.md)'s "integration = HTTP boundary only / the inside is mocked / assert shape and type", and forbids hand-written handlers and `fetch` stubs |
+| `settle-comments` | Settling the comments a change earned | The implementation writes no comments, so the comments of the declarations it touched are decided with 7 verdicts: 維持 / 削除 / **不要** / 書換 / **移設** / 集約 / **著述**. 移設 moves the rationale to an ADR or a layer README, leaving in the code the residue that still takes effect and a one-line reference. 著述 writes the required TSDoc frame (the summary and the required tags; the scope is held by `docs/rules.md`) that a named function lacks, even under `--bulk`. These are verdicts a read-only reviewer cannot give (the destination document has to be written), and the object of judgment is the existing contents, not the diff. In addition, a per-file pass picks up **集約** (duplication / dispersion / excess volume). Judging jurisdiction one by one lets each copy pass on its own, so this is the only verdict whose subject is a set of comments. Application has 3 modes — confirm then apply / auto-apply (`--apply`) / report only (`--report-only`) — and auto-apply does not apply a 移設 that involves writing a document, and applies 集約 only at high confidence |
+| `test-review` | Quality review of tests | Fanout over 5 lenses (structural conformance / perspective coverage / semantic quality / branch × meaning / symbol coverage) + verifier. Bakes in no rules and reads [0090](0090-testing-strategy.md) / [0091](0091-test-verification-methods.md) and the kernel README's `test-requirement` at runtime. Reporting is read-only, but holes in semantic coverage alone are filled after one confirmation (Step 5) |
+| `full-verify` | Verifying the whole repository | Verifies the soundness of the architecture (Pass 1) + all implementation (Pass 2), and generates findings as Markdown in `tmp/reviews/` (architecture.md / mod_*.md /_index.md). Read-only (no code changes) |
+| `full-apply` | Applying full-verify findings | Applies fixes for the findings in `tmp/reviews/` in severity order (Critical → Low). Findings that need a design decision are deferred with a reason, and it verifies with `pnpm fix` / lint / build before committing. The counterpart of `full-verify` |
+| `scaffold-model` | Placing into the model kernel | Places one display type into `model`, which has no kind in `pnpm gen`. First decides whether it belongs there by the acceptance criteria of `src/model/README.md` (a type used by only one feature, a copy of the contract, or decision logic stops it), and writes only after confirming a plan answering each row of `## 監査の観点`. Reads the type discipline of [0029](0029-type-design-discipline.md) at runtime. The type written is graded by the read-only `type-design-reviewer`, and only what is approved is applied. Run alone, it runs `scaffold-test` and `settle-comments`; from `scaffold-slice`, it leaves them to it |
+| `scaffold-adapter` | Scaffolding a fetch endpoint | Given a fetched contract and matching generated artifacts, places it with `pnpm gen adapter` and then fills in the stubs. Derives the classification, connection point, `allowAnonymous`, lifetime and taint, with sources, from `src/adapters/README.md` and the contract's `security`, and stops and hands off what cannot be derived. Does not edit the contract or the generated artifacts ([0072](0072-api-type-generation.md)). Always chains `scaffold-integration-test` |
+| `scaffold-route` | Scaffolding an `app` entry point | Places one non-screen `app` element — a thin-proxy Route Handler, or an `app`-side Server Action asserting the actor. First decides whether it is needed and where it lives from [0025](0025-app-layer-elements.md) and `src/app/README.md` / `src/app/api/README.md`, and stops if not needed. Route segments are left to `new-feature`, and actions needing no assertion stay in the feature. Chains `scaffold-integration-test` for a Route Handler |
+| `scaffold-slice` | The contract-first slice flow | Chains contract → `scaffold-model` → `scaffold-adapter` → `pnpm gen feature` → `scaffold-route` → `scaffold-test` → `settle-comments` in dependency order, and makes `arch-check`'s changed-file shape the report-only exit check. Writes no source itself, halts at the first stage that stops, and does not roll back. The rules are read at runtime by each child from the kernel README's `## 監査の観点`. A screen's look, stories, specification and screen tests are left to `new-feature`, and the two meet at `pnpm gen feature`. The specification is not an input ([0143](0143-spec-driven-development.md)). Does not call the two reviews |
+| `new-feature` | The end-to-end flow for one screen | Takes a screen through "direction → story → review → separation → specification → tests" in order. Bakes in no rules, including the order itself, and reads [`docs/playbook.md`](../playbook.md) / [`docs/templates/feature-readme.md`](../templates/feature-readme.md) / [`docs/spec/README.md`](../spec/README.md) / the kernel READMEs at runtime. Placement, naming and boundaries are left to `pnpm gen`, and `docs/spec/**` is **an input to read, not an input to generate from**. Writes no tests until the story review comes back. The two reviews (`impl-review` / `test-review`) follow the Review Phase Protocol of `AGENTS.md` and are **handed to the user without being called**. `settle-comments` is not a review accompanied by an estimate but a stage that runs unconditionally at the end of implementation, so it is not treated the same. Does not commit / push |
+| `impl-issue` | The backbone from issue → merged PR | Takes an issue number and goes through securing the environment → plan → implementation → reconciliation → review → PR → harvesting → merge → handover → close. **It holds no implementation judgment at all** — commits go to `commit`, push and PR to `submit-pr`, taking in the base and conflicts to `resolve-merge`, one screen to `new-feature`; the two reviews are asked of the user with estimates per the Review Phase Protocol of `AGENTS.md`, and `settle-comments` runs without asking. What it holds is progress, reconciling the approved plan with the actual result, and the **mechanical detection** of moments that need human judgment. **Its stopping points are closed at 5**, and every other judgment is appended, on the spot, to an untracked run record, so that Step 9's handover is not missing anything even if the context is summarized. There are 6 modes (scope / review / issue / flow / derive / plan). **scope is asked first** — where it ends (merge / up to the PR / up to a local commit) bounds every other mode, and a run that ends early does not reach the stages other modes govern; what that ending leaves undone (especially harvesting and runtime verification) is named in the report. `derive` is a delegation allowing the questions that remain after reading the ADRs, `docs/rules.md` and the layer READMEs to be decided **from de-facto standards**; preferences are not delegated. Gates are not pre-run but left to the hooks and CI, and that they were left is written in the PR. Runtime verification is run only when a request-time seam moved, and it states when it did not run it |
+| `back-prop` | Detecting drift between declaration and reality | Detects drift between what READMEs / skills / the glossary state and what the tree actually does, in 4 kinds (A README→code / B code→README undocumented pattern (3 or more occurrences) / C skill↔README duplication / E business vocabulary leaving home). Launches the integrator + read-only `drift-detector` per kernel in parallel in one message, and approval and writing are done by the integrator in a single thread. The detection criteria have `skills/back-prop/prompts/detect-drift.md` as their SSOT, which both the skill body and the agent definition read without rewriting. It writes only layer READMEs. Changes to skill bodies go to `manage-skill`, and E2 (leakage into ADRs / `docs/rules.md`) is report-only. It does not intersect with `sync-readme` (structural drift) |
+| `arch-check` | Exhaustive audit of layer rules | Checks the `## 監査の観点` table of each kernel's README against the code, reporting as `violation` / `suggestion`. The table holds one row per `forbidden` tag plus principles that the import set cannot express, and neither the skill body nor the agent definition copies the rules; they read them at runtime (the criteria have `skills/arch-check/prompts/audit-layer.md` as their SSOT). Launches the integrator + read-only `arch-auditor` per kernel in parallel in one message. The static verdict (the PR's Lint result, or one narrowed local run) is decided once by the integrator and passed to every auditor, and rows a machine checks are not re-judged. Gaps in a table are counted as findings against the README, separately from violations in the code. For `src/model`, `type-design-reviewer` rides along only in full scope (in a diff, it arrives from `impl-review`). Fully report-only, and writes only `tmp/arch-check/`. It separates its question from `full-verify` Pass 1 (soundness of the design) and from `impl-review`'s architecture lens (the meaning of the diff) |
+| `glossary` | Maintaining the glossary | Maintains `docs/spec/glossary.md`. Extracts the inventory deterministically and presents, kept apart, the 4 kinds a machine settles (new term / orphan / unresolved reference / double definition). **It does not choose the canonical name and does not declare two words synonymous** — the former is a judgment about how the team speaks, and the latter leaves no mechanical trace. It does not offer "rewrite the row to match usage" as an option (the table would turn into an index of the prose, and the document could no longer be said to be wrong). It writes only the glossary and does not touch the documents it points to |
+| `context-map` | Maintaining the map of touchpoints | Maintains `docs/design/context-map.md`. Enumerates edges from `src/config/` / `src/adapters/` / `src/app/api/**` / metadata / `src/proxy.ts`, and records 2 axes per edge. **Whether there is translation is decided mechanically by `architecture.ts`; ownership of the boundary does not come out of the code** (whether one can negotiate with the counterpart is an organizational fact). Ownership is presented as candidates with evidence for a human to choose, and it does not write the label on its own authority. Mechanisms are held by the design document for each subject, and the map only points |
+| `context-map-audit` | Reconciling the map with reality | **Fully read-only.** Reports 3 kinds of divergence (a touchpoint with no edge / an edge whose counterpart is gone / a recorded translation that disagrees with the dependency table) and does not edit — a divergence can be read either as "the map is stale" or as "the code departed from the decision", and an audit cannot tell the two apart. It does not audit ownership (there is nothing in the code to check it against). **It always states the number of edges checked and not checkable** — a "no divergence" without counts is indistinguishable from a run that scanned nothing |
+| `verify-spec` | Reading the specification against the implementation | Owns the **content reconciliation** of [0143](0143-spec-driven-development.md). Launches a read-only `spec-validator` per route in parallel and raises 4 kinds (promise and implementation disagree / misfiling / rewriting a higher layout / what should not be written is written). **It does not redo the existence reconciliation** (a gate settles it, and reproducing it in prose would create a second implementation of the mapping). **It does not decide which side should move** — 0143 decides the direction, but whether the promise changed or the implementation drifted cannot be seen from the reading. A promise that could not be confirmed is reported as one that could not be confirmed. It writes nothing at all |
+| `interpretation-audit` | Reconciling sources and interpretations | Judges, in 3 values (No difference / Undeclared difference / **Declared deviation**), whether a decision derived from an external source matches what the source says now, and rewrites [`docs/reference/upstream-interpretations.md`](../reference/upstream-interpretations.md). **It does not rule** — departing is not itself a defect ([0010](0010-standards-and-non-lockin.md)); the defect is departing without anyone knowing, so the purpose is to separate the latter two values. It makes the premises be written before the verdict because **the yardstick easily becomes the reader's memory** — a verdict written first later conscripts the premises that support it. It rewrites only the inventory and does not touch the ADRs / settings a row points to (if auditing and fixing arrive in the same breath, nobody has chosen the fix) |
+| `manage-skill` | The single entry point for creating and updating skills | Wraps the methodology of the official `skill-creator` and layers on the placement, naming, frontmatter and body structure of this ADR / [0154](0154-claude-skills-operations.md) and the mirror pair of [0140](0140-documentation-operations.md). Changes to `.claude/skills/**` enter through this skill, which is passed through before any direct hand edit of `SKILL.md` / `SKILL.ja.md`. Preparing the official plugins is handled by `scripts/bootstrap-plugins` |
+| `sync-ai` | Porting skills between Claude ↔ Codex | Moves one skill between `.claude/skills/<name>/` and `.agents/skills/<name>/` as a one-way semantic port. It does no raw copy: the sending side writes a transfer contract in `tmp/`, and the receiving side writes in its own idiom (Claude via `manage-skill`, Codex via `codex exec` launched non-interactively by `scripts/sync-ai`). Chain depth is limited not by a preamble but by a lease on the working tree, and a reverse bounce is confirmed with a human at the top of the chain. It does not install `codex`, and reports its absence as a finding. There is no means of starting a sync from the Codex side |
 
-新規追加は本 ADR の趣旨 (開発系の定義) に合致する場合のみ。リスト追加は軽微編集とし ADR 改訂は不要。
+New additions only when they fit the intent of this ADR (the definition of development). Adding to the list is a minor edit and requires no ADR revision.
 
-## subagent パターン
+## Subagent Pattern
 
-`impl-review` / `full-verify` / `back-prop` / `arch-check` / `verify-spec` は **複数の subagent を組み合わせる構造** を持つ。
+`impl-review` / `full-verify` / `back-prop` / `arch-check` / `verify-spec` have **a structure that combines several subagents**.
 
 ```text
 impl-review (orchestrator)
  ├─ adversarial-reviewer (per lens)   ← .claude/agents/adversarial-reviewer.md
- │   ├─ correctness 観点
- │   ├─ security 観点
- │   ├─ architecture 観点
- │   ├─ cohesion 観点
- │   └─ runtime-gap 観点
- ├─ type-design-reviewer (差分が src/model/** か型の宣言に触れたとき) ← .claude/agents/type-design-reviewer.md
- │   (型が保証をどれだけ強く述べるかの採点。基準は skills/impl-review/prompts/type-design.md が SSOT)
+ │   ├─ correctness lens
+ │   ├─ security lens
+ │   ├─ architecture lens
+ │   ├─ cohesion lens
+ │   └─ runtime-gap lens
+ ├─ type-design-reviewer (when the diff touches src/model/** or a type declaration) ← .claude/agents/type-design-reviewer.md
+ │   (scores how strongly a type states its guarantees; criteria SSOT: skills/impl-review/prompts/type-design.md)
  └─ review-verifier                   ← .claude/agents/review-verifier.md
-     (各 finding を CONFIRMED / PLAUSIBLE / REFUTED 判定)
+     (classifies each finding CONFIRMED / PLAUSIBLE / REFUTED)
 
 full-verify (orchestrator / in-session fast-path)
  ├─ arch-verifier (Pass 1)            ← .claude/agents/arch-verifier.md
- │   (構造の設計妥当性。基準は skills/full-verify/prompts/verify-arch.md が SSOT)
- └─ impl-verifier (Pass 2 / unit 単位で並列 fanout) ← .claude/agents/impl-verifier.md
-     (unit ごとの実装品質。基準は skills/full-verify/prompts/verify-impl.md が SSOT)
+ │   (design soundness of the structure; criteria SSOT: skills/full-verify/prompts/verify-arch.md)
+ └─ impl-verifier (Pass 2 / parallel fanout per unit) ← .claude/agents/impl-verifier.md
+     (implementation quality per unit; criteria SSOT: skills/full-verify/prompts/verify-impl.md)
 
 back-prop (integrator)
- └─ drift-detector (カーネル単位で並列 fanout)   ← .claude/agents/drift-detector.md
-     (宣言と実物のずれ。基準は skills/back-prop/prompts/detect-drift.md が SSOT)
+ └─ drift-detector (parallel fanout per kernel)   ← .claude/agents/drift-detector.md
+     (drift between declaration and reality; criteria SSOT: skills/back-prop/prompts/detect-drift.md)
 
 arch-check (integrator)
- ├─ arch-auditor (カーネル単位で並列 fanout)     ← .claude/agents/arch-auditor.md
- │   (README の監査の観点とコードの突き合わせ。基準は skills/arch-check/prompts/audit-layer.md が SSOT)
- └─ type-design-reviewer (full スコープで src/model が対象のときだけ) ← .claude/agents/type-design-reviewer.md
-     (基準は skills/impl-review/prompts/type-design.md が SSOT)
+ ├─ arch-auditor (parallel fanout per kernel)     ← .claude/agents/arch-auditor.md
+ │   (matches the README's audit perspectives against the code; criteria SSOT: skills/arch-check/prompts/audit-layer.md)
+ └─ type-design-reviewer (only when src/model is in a full-scope run) ← .claude/agents/type-design-reviewer.md
+     (criteria SSOT: skills/impl-review/prompts/type-design.md)
 
 verify-spec (integrator)
- └─ spec-validator (route 単位で並列 fanout)     ← .claude/agents/spec-validator.md
-     (約束と実装の読み合わせ。基準は skills/verify-spec/prompts/validate-spec.md が SSOT)
+ └─ spec-validator (parallel fanout per route)     ← .claude/agents/spec-validator.md
+     (reads promises against the implementation; criteria SSOT: skills/verify-spec/prompts/validate-spec.md)
 
 scaffold-test (orchestrator)
- └─ test-perspective-enumerator (群単位で並列 fanout) ← .claude/agents/test-perspective-enumerator.md
-     (書く前の観点の列挙。読むのは対象と最寄りの test-requirement README と 0090 / 0091)
+ └─ test-perspective-enumerator (parallel fanout per group) ← .claude/agents/test-perspective-enumerator.md
+     (enumerates perspectives before writing; reads the subject, the nearest test-requirement README, and 0090 / 0091)
 
 scaffold-model (orchestrator)
- └─ type-design-reviewer (書いた model のファイルに 1 回) ← .claude/agents/type-design-reviewer.md
-     (基準は skills/impl-review/prompts/type-design.md が SSOT)
+ └─ type-design-reviewer (once per model file written) ← .claude/agents/type-design-reviewer.md
+     (criteria SSOT: skills/impl-review/prompts/type-design.md)
 
 impl-issue (orchestrator)
- ├─ code-explorer (観点ごとに並列 fanout)   ← feature-dev プラグイン同梱（下記の採否表）
- │   (いまどう動いているか。呼び出しの鎖を辿り、読むべきファイルを返す)
- └─ 3b 調査と起草 (定義を持たない汎用の subagent)
-     (何を変えるか。モデルは実行時に解決する —— 名簿はスキルへ焼かない)
+ ├─ code-explorer (parallel fanout per perspective)   ← bundled with the feature-dev plugin (see the adoption table below)
+ │   (how it works now; traces the call chain and returns the files to read)
+ └─ 3b investigation and drafting (a general-purpose subagent with no definition)
+     (what to change; the model is resolved at runtime — no roster is baked into the skill)
 ```
 
-**エージェント定義は 1 つ、起動は複数**である。カーネルごとにエージェントのファイルを置くと、同じロジックを層の数だけ保守することになり、腐るのは写しのほうになる。並列に走らせる根拠は「独立した観点を並行させる」であって、定義を増やすことではない。
+**One agent definition, many launches.** Placing an agent file per kernel would mean maintaining the same logic once per layer, and the copies are what rot. The basis for running in parallel is "running independent perspectives side by side", not multiplying definitions.
 
-このほか、特定スキルへの固定 wiring を持たない **単独起動の read-only レビュー subagent** として `doc-reviewer` (ドキュメント散文の品質) と `comment-reviewer` (コメント内容の品質基準。`settle-comments` が実行時に基準の出所として読む) が `.claude/agents/` に存在する。下記の subagent 規約 (read-only / sonnet 既定 / モデル分散) に従う。
+Besides these, `doc-reviewer` (the quality of documentation prose) and `comment-reviewer` (the quality standard for comment content; `settle-comments` reads it at runtime as the source of the standard) exist in `.claude/agents/` as **standalone read-only review subagents** with no fixed wiring to a particular skill. They follow the subagent conventions below (read-only / sonnet by default / model diversity).
 
-subagent 自身が read-only である規約は例外を持たない。書き込みを行うスキル (`settle-comments` / `test-review` の Step 5) がソースを変えられるのは、**オーケストレーター側が適用する**からであって、subagent に編集権限を与えているからではない。
+The convention that subagents themselves are read-only has no exceptions. Skills that write (`settle-comments` / Step 5 of `test-review`) can change source because **the orchestrator side applies the changes**, not because subagents are given edit permissions.
 
-### subagent 規約
+### Subagent Conventions
 
-- subagent の配置は `.claude/agents/<slug>.md`
-- スキルの `SKILL.md` は subagent の責務と起動 model (sonnet 既定 / Opus は限定的) を明記する
-- subagent は **read-only on source** を既定とし、レビュー結果のみを返す (code edit は行わない)
-- subagent 間でモデル分散 (reviewer ≠ implementer) を意図する場合は、`SKILL.md` でその意図を明示する
-- 判定基準を持つ subagent は、基準をスキル配下の `prompts/` の 1 ファイルに置き、agent 定義と `SKILL.md` はそれを参照するだけで再掲しない。同じ検証が in-session と background の 2 経路で走るとき、両方が同じファイルを読むことで所見の質と形式が経路間でずれない。agent 定義が持つのは入力の受け取り方だけである
+- Subagents are placed at `.claude/agents/<slug>.md`
+- A skill's `SKILL.md` states the subagent's responsibilities and launch model (sonnet by default / Opus in limited cases)
+- Subagents default to **read-only on source**, returning only review results (no code edits)
+- When model diversity across subagents (reviewer ≠ implementer) is intended, `SKILL.md` states that intent explicitly
+- A subagent that holds judgment criteria places them in one file under the skill's `prompts/`, and the agent definition and `SKILL.md` only reference it without restating it. When the same verification runs on two paths, in-session and background, both reading the same file keeps the quality and format of findings from drifting between paths. What the agent definition holds is only how it takes its input
 
-### 公式プラグインから採る資産と、採らない資産
+### Assets taken from official plugins, and assets not taken
 
-公式プラグインは**資産の束**であり、有効化は束ごと採る宣言ではない。`scripts/bootstrap-plugins` が
-project スコープで宣言するものについて、**何を採り、何を意図して採らないか**をここで述べる。
-述べないと、束に入っているというだけで使われ、この repo が既に下した決定を黙って迂回する。
+An official plugin is **a bundle of assets**, and enabling it is not a declaration that the whole bundle is adopted. For what `scripts/bootstrap-plugins`
+declares in project scope, **what is taken and what is deliberately not taken** is stated here.
+Without stating it, things get used merely because they are in the bundle, silently bypassing decisions this repo has already made.
 
-| プラグイン | 採る | 採らない |
+| Plugin | Taken | Not taken |
 | --- | --- | --- |
-| `skill-creator` | 方法論の全体（起草 → テスト → レビュー → 改善、description の最適化） | —— |
-| `feature-dev` | `code-explorer`（read-only / sonnet。呼び出しの鎖を辿り、読むべきファイルを返す） | `/feature-dev` コマンド・`code-architect`・`code-reviewer` |
+| `skill-creator` | The whole methodology (draft → test → review → improve, description optimization) | —— |
+| `feature-dev` | `code-explorer` (read-only / sonnet. Follows call chains and returns the files to read) | The `/feature-dev` command, `code-architect`, `code-reviewer` |
 
-**`code-explorer` を採るのは、この repo が持っていない問いに答えるからである。**既存のレビュー系
-subagent はどれも「この変更は正しいか」を問うのに対し、これは**いまどう動いているか**を辿る。
-`impl-issue` の 3b（調査と起草）の前段として、観点を変えて並列に出す。read-only / sonnet 既定で、
-上の subagent 規約をそのまま満たす。
+**`code-explorer` is taken because it answers a question this repo has no answer for.** Every existing review
+subagent asks "is this change correct", whereas this one traces **how it works right now**.
+It is sent out in parallel with varied perspectives, as the stage before 3b (investigation and drafting) of `impl-issue`. Read-only / sonnet by default, it
+satisfies the subagent conventions above as is.
 
-**`code-architect` を採らないのは、このリポジトリの構造が決定済みだからである。**あれは
-「最小変更 / 綺麗な構造 / 折衷」の 3 案を並べて選ばせるが、層と依存の向きは
-[0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md) が既に決めており、
-0020 は粒度で切る分類（Atomic Design / FSD）を名指しで棄却している。**既に決まっている所へ案を
-並べることは、選択肢の提示ではなく決定の再開である**（[0010](0010-standards-and-non-lockin.md)）。
+**`code-architect` is not taken because this repository's structure is already decided.** It
+lays out three options, "minimal change / clean structure / compromise", for selection, but the layers and the direction of dependencies are
+already decided by [0020](0020-adopted-architecture.md) / [0021](0021-frontend-responsibility.md),
+and 0020 rejects by name the classifications that cut by granularity (Atomic Design / FSD). **Laying out options where things are already decided
+is not presenting choices but reopening the decision** ([0010](0010-standards-and-non-lockin.md)).
 
-**`code-reviewer` を採らないのは、レビューの主題の分け方が違うからである。**このリポジトリは
-`AGENTS.md` の Review Phase Protocol で主題を 3 つ（変更 / テスト / コメント在庫）に割り、それぞれを
-1 つのスキルが所有し、見積もり付きで個別に問う。あれは軸を 3 つ（簡潔さ / 不具合 / 規約）に割るので、
-**同じ「2 本のレビュー」に見えて `test-review` の主題を覆わない**（コメントは `settle-comments` が実装の段で決着させており、レビューの主題ではない）。加えて
-finder → verifier の 2 段を持たないため、`impl-review` がまさにそのために置いている「もっともらしいが
-誤り」の濾過が働かない。
+**`code-reviewer` is not taken because it divides the subjects of review differently.** This repository
+splits the subjects into two (the change / the tests) in the Review Phase Protocol of `AGENTS.md`, each
+owned by one skill and asked about individually with an estimate. That one splits by three axes (conciseness / defects / conventions), so,
+**while looking like the same "two reviews", it does not cover the subject of `test-review`** (comments are settled by `settle-comments` during implementation and are not a subject of review). In addition,
+it has no two-stage finder → verifier, so the filtering of "plausible but
+wrong" that `impl-review` is placed precisely to provide does not work.
 
-**名前が衝突しなくても、混線は起きる。**プラグインのエージェントは型として並ぶので、統括する側が
-`adversarial-reviewer` の代わりにそちらを選びうる。**この表がその選択の根拠である** ——
-採らないと書いてあるものは、束に在っても使わない。
+**Even without name collisions, cross-wiring happens.** Plugin agents line up as types, so the orchestrating side
+may choose one of them instead of `adversarial-reviewer`. **This table is the basis for that choice** —
+what it says is not taken is not used, even if it is in the bundle.
 
-### subagent を使う判断
+### When to Use Subagents
 
-- **単一エージェントの bias を回避したい場合** (adversarial review / 多視点判定)
-- **並列で独立した観点を走らせたい場合** (per-lens レビュー)
-- **個別の review を集約・検証する 2 段構成が欲しい場合** (finder → verifier パターン)
+- **When you want to avoid the bias of a single agent** (adversarial review / multi-perspective judgment)
+- **When you want to run independent perspectives in parallel** (per-lens review)
+- **When you want a two-stage setup that aggregates and verifies individual reviews** (the finder → verifier pattern)
 
-単純な手順実行 (`canonicalize-doc` 等) は subagent を使わず orchestrator 1 本で完結させる。
+Simple procedure execution (`canonicalize-doc`, etc.) does not use subagents and is completed by a single orchestrator.
 
-## ドキュメント系の責務分担
+## Division of Responsibilities Among Documentation Skills
 
-以下のスキルは入力と出力を分け、責務を重複させない:
+The following skills separate input and output and do not overlap responsibilities:
 
-| スキル | 入力 | 出力 | 用途 |
+| Skill | Input | Output | Purpose |
 | --- | --- | --- | --- |
-| `portal-manifest-sync` | manifest + 実在 README + 生成スクリプトの出力 | manifest の編集（stale 削除と、名指しされた追加のみ） | portal に何を載せるかのキュレーション |
-| `settle-comments` | 変更が触れた宣言のコメント（`--bulk` では 1 ディレクトリの在庫） | 7 判定の適用（コードと移設先の両方を書く。3 適用モード） | 置き場所の誤りと、同じ内容の分散を抜き、実装が書かなかった残余と、名前の付いた関数に欠けた TSDoc の必須の枠を書く |
-| `scaffold-test` | テストを持たない対象の集合 | 対象ごとの `<subject>.test.ts(x)` | 1:1 ゲートとカバレッジゲートを満たすテストの新規作成 |
-| `scaffold-integration-test` | HTTP 境界を持つ継ぎ目 | `<subject>.contract.test.ts` 1 ファイル | 契約駆動のハンドラで境界を固定する |
-| `canonicalize-doc` | EN または JA のドキュメント | 不足側を生成 / 両側の drift を同期 | 1 ドキュメントの 2 言語ペア管理 |
-| `sync-readme` | README + そのディレクトリ | 実状に合わせて README を書き換え | README ↔ ディスク drift 解消 |
-| `readme-review` | README | 採点レポート (manual-worthy / borderline / 等) | portal 登録判断 |
+| `portal-manifest-sync` | manifest + existing READMEs + output of the generator scripts | Edits to the manifest (only removing stale entries, registering the missing mirror of a registered canonical, and adding named ones; a README with a mirror is written as a pair, `README.ja.md` → `<name>.ja.md` as the second entry) | Curating what goes on the portal |
+| `settle-comments` | The comments of the declarations a change touched (under `--bulk`, the contents of one directory) | Applying the 7 verdicts (writes both the code and the relocation destination; 3 application modes) | Removing misplacement and dispersion of the same content, and writing the residue the implementation did not write and the required TSDoc frame missing from named functions |
+| `scaffold-test` | A set of subjects without tests | `<subject>.test.ts(x)` per subject | Creating new tests that satisfy the 1:1 gate and the coverage gate |
+| `scaffold-integration-test` | A seam with an HTTP boundary | One `<subject>.contract.test.ts` file | Pinning the boundary with contract-driven handlers |
+| `canonicalize-doc` | An EN or JA document | Generates the missing side / syncs drift on both sides | Managing the two-language pair of one document |
+| `sync-readme` | README + its directory | Rewrites the README to match reality | Resolving README ↔ disk drift |
+| `readme-review` | README | Grading report (manual-worthy / borderline / etc.) | Deciding portal registration |
 
-`sync-readme` 実行後は内部で `canonicalize-doc` を chain する設計になっている。
+`sync-readme` is designed to chain `canonicalize-doc` internally after running.
 
-## `new-env` の対象構造
+## Target Structure of `new-env`
 
-`new-env` は **[0030](0030-environment-variable-management.md) の config カーネル**を対象とする。すなわち `src/config/` の目的別 config モジュール (`<purpose>.server.ts` / `<purpose>.client.ts` のスキーマ項目 + `#` private フィールド + getter)、検証を通る変数一式を持つ fixture、`env/.env.{local,ci,dev,stg,prd}`、変数表ドキュメントの 4 点を同期する。**fixture を対象に含めるのは、変数一式が型で結ばれているためである** —— 足し忘れると、書いた場所ではなく別ファイルの型検査が落ちる。
+`new-env` targets **the config kernel of [0030](0030-environment-variable-management.md)**. That is, it syncs four things: the purpose-specific config modules under `src/config/` (the schema entries + `#` private fields + getters of `<purpose>.server.ts` / `<purpose>.client.ts`), the fixture holding the full set of variables that passes validation, `env/.env.{local,ci,dev,stg,prd}`, and the variable-table document. **The fixture is included because the set of variables is tied together by types** — forgetting to add to it fails type checking not where you wrote but in another file.
 
-スキルは purpose インベントリ・スキーマライブラリ・env ファイル集合を**実行時に実ツリーから検出**し、固定値で持たない。スキーマライブラリは [0030](0030-environment-variable-management.md) の実装が決めるものであり、スキル側でライブラリ名を前提にしない。
+The skill **detects the purpose inventory, the schema library and the set of env files from the actual tree at runtime**, and does not hold them as fixed values. The schema library is decided by the implementation of [0030](0030-environment-variable-management.md), and the skill side does not presume a library name.
 
-**config カーネルが無いツリーでは、スキルは自らガードして停止する**。カーネルの構築 (スキーマ / 検証呼び出し / `env/` の新設) はスキルの仕事ではなく、変数追加の依頼を根拠にスキルがカーネルを新規作成することはない。
+**In a tree without a config kernel, the skill guards itself and stops.** Building the kernel (schema / validation call / creating `env/`) is not the skill's job, and the skill never newly creates a kernel on the grounds of a request to add a variable.
 
-## 共通参照
+## Shared References
 
-すべての開発系スキルは以下を共通参照する:
+All development skills share the following references:
 
-- **AGENTS.md の Instruction Priority と Language Rules**: [0152](0152-agents-md-policy.md)
-- **ドキュメント運用ポリシー**: [0140](0140-documentation-operations.md) — canonical EN / 翻訳 JA の同期方針
-- **`canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync` のドメイン分担**: 本 ADR の「ドキュメント系の責務分担」表
+- **AGENTS.md's Instruction Priority and Language Rules**: [0152](0152-agents-md-policy.md)
+- **Documentation operations policy**: [0140](0140-documentation-operations.md) — the sync policy for canonical EN / translated JA
+- **Domain split among `canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync`**: the *Division of Responsibilities Among Documentation Skills* table in this ADR
 
-## 禁止事項
+## Prohibitions
 
-- ❌ 開発系スキルから商用操作 (push / tag / release) を行うこと (運用系 = 0154 の領域)（強制: 散文 —— **寄せられない**。スキルが開発系か運用系かは frontmatter に宣言が無く、主目的の判断で決まる）
-- ❌ subagent をモデル分散 (reviewer ≠ implementer) なしで「念のため」増やすこと (コスト見合いに合わない)（強制: 散文 —— **寄せられない**。subagent を足すことがコストに見合うかは判断そのもの）
-- ❌ subagent に code edit 権限を渡すこと (read-only 原則)（強制: 散文 —— **一部寄せられる**。`.claude/agents/*.md` の frontmatter `tools` に Edit / Write / NotebookEdit が在るかは `skill-lint` で落とせるが規則は無い。`Bash` を持つ定義がそれで書き込むかは実行時の振る舞いで決まる）
-- ❌ `new-env` に config カーネル (`src/config/` / スキーマ / 検証呼び出し / `env/`) を新規作成させること
-- ❌ ドキュメント系 4 件 (`canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync`) の責務を重複させること。とくに **`portal-manifest-sync` に判定基準を持たせないこと** — 基準の単一ソースは `readme-review` であり、複製した瞬間に片方だけが更新される（強制: 散文 —— **寄せられない**。2 つのスキルの責務が重なるか、判定基準を持っているかは本文の意味で決まる）
+- ❌ Performing commercial actions (push / tag / release) from a development skill (the domain of operations = 0154) (Enforcement: Prose — **not mechanizable**. Whether a skill is development or operations has no declaration in frontmatter and is decided by judging its main purpose)
+- ❌ Adding subagents "just in case" without model diversity (reviewer ≠ implementer) (not worth the cost) (Enforcement: Prose — **not mechanizable**. Whether adding a subagent is worth the cost is the judgment itself)
+- ❌ Giving subagents code-edit permissions (the read-only principle) (Enforcement: Prose — **partly mechanizable**. Whether Edit / Write / NotebookEdit appear in the frontmatter `tools` of `.claude/agents/*.md` could be failed by `skill-lint`, but no rule exists. Whether a definition holding `Bash` writes with it is decided by runtime behavior)
+- ❌ Having `new-env` newly create a config kernel (`src/config/` / schema / validation call / `env/`)
+- ❌ Overlapping the responsibilities of the four documentation skills (`canonicalize-doc` / `sync-readme` / `readme-review` / `portal-manifest-sync`). In particular, **do not give `portal-manifest-sync` judgment criteria** — the single source of the criteria is `readme-review`, and the moment it is duplicated only one side gets updated (Enforcement: Prose — **not mechanizable**. Whether the responsibilities of two skills overlap, or whether one holds judgment criteria, is decided by the meaning of the body)
 
-## 補足
+## Notes
 
-- subagent 設定 (`.claude/agents/`) は本 ADR と対になる。新規 subagent を追加する場合は `SKILL.md` 側の参照も更新する
-- スキルの組み合わせ (`sync-readme` → `canonicalize-doc`) は `SKILL.md` 内で chain として明示する
-- `impl-review` の lens (correctness / security / architecture / cohesion / runtime-gap) と `test-review` のレンズは追加・削除可能だが、本 ADR の趣旨 (adversarial / 多視点) を逸脱しないこと。**レビューの 2 スキルは対等で、互いを呼ばない** —— テストの所管は `test-review` にあり、`impl-review` はそのレンズを持たない。コメントの所管は `settle-comments` にあるが、これはレビュー段ではなく実装の最後に無条件で走る段である ([AGENTS.md](../../AGENTS.md) Review Phase Protocol)
+- Subagent configuration (`.claude/agents/`) pairs with this ADR. When adding a new subagent, also update the references on the `SKILL.md` side
+- Combinations of skills (`sync-readme` → `canonicalize-doc`) are stated explicitly as a chain in `SKILL.md`
+- The lenses of `impl-review` (correctness / security / architecture / cohesion / runtime-gap) and the lenses of `test-review` may be added or removed, but must not depart from the intent of this ADR (adversarial / multi-perspective). **The two review skills are peers and do not call each other** — tests are the jurisdiction of `test-review`, and `impl-review` holds no such lens. Comments are the jurisdiction of `settle-comments`, but that is not a review stage; it is a stage that runs unconditionally at the end of implementation ([AGENTS.md](../../AGENTS.md) Review Phase Protocol)
 
-## 関連 ADR
+## Related ADRs
 
-- [0030-environment-variable-management.md](0030-environment-variable-management.md) — `new-env` が対象とする config カーネルの構造
-- [0140-documentation-operations.md](0140-documentation-operations.md) — canonical EN / 翻訳 JA のドキュメント運用ポリシー
-- [0150-git-workflow.md](0150-git-workflow.md) — `impl-review` が想定する「commit / PR 前」のタイミング
-- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md の Instruction Priority と Modification Scope
-- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — 運用系スキルとの対 (配置・命名・frontmatter は共通)
+- [0030-environment-variable-management.md](0030-environment-variable-management.md) — The structure of the config kernel `new-env` targets
+- [0140-documentation-operations.md](0140-documentation-operations.md) — The documentation operations policy for canonical EN / translated JA
+- [0150-git-workflow.md](0150-git-workflow.md) — The "before commit / PR" timing `impl-review` assumes
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md's Instruction Priority and Modification Scope
+- [0154-claude-skills-operations.md](0154-claude-skills-operations.md) — The counterpart for operations skills (placement, naming and frontmatter are shared)

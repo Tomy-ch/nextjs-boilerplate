@@ -182,7 +182,7 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 - [0020-adopted-architecture.md](0020-adopted-architecture.md) — 設計原則「他の層が握る問題を、こちらで予防的に手当てしない」(責務を超えた予防措置 / セキュリティ例外)
 - [0030-environment-variable-management.md](0030-environment-variable-management.md) — 漏洩防御(`server-only` + taint)。本 ADR の「client 送信前」の段
 - [0041-cache-components-decision.md](0041-cache-components-decision.md) — Cache Components(PPR)。本 ADR は有効化の前提
-- [0071-bff-api-integration.md](0071-bff-api-integration.md) — キャッシュ・再検証の所有層。`docs/rules.md`「描画とキャッシュ」の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」の Rationale
+- [0071-bff-api-integration.md](0071-bff-api-integration.md) — キャッシュ・再検証の所有層。[`docs/rules.md#rendering`](../rules.md#rendering)の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」の Rationale
 - [0072-api-type-generation.md](0072-api-type-generation.md) — 型漏洩禁止(wire 型を内層へ出さない)
 - [0029-type-design-discipline.md](0029-type-design-discipline.md) — branded / opaque(secret の値型)
 - [0111-csp-security-headers.md](0111-csp-security-headers.md) — 応答ヘッダ。本 ADR の「配信」の段

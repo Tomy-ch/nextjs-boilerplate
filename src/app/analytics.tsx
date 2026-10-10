@@ -105,7 +105,7 @@ function MeasurementId(): null {
  * あります。
  *
  * **読み込みの strategy は選べません。** `GoogleTagManager` は prop を公開しておらず、`next/script`
- * の既定（`afterInteractive`）が効きます。`docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの
+ * の既定（`afterInteractive`）が効きます。`docs/rules.md#security`の「第三者 script は同意ゲートの
  * 裏に置く」が求める strategy の「明示」を宣言では満たせないため、いま効いている値をテストで固定し、ライブラリが既定を変えた時点で落ちるようにしています。
  *
  * **読み込んだ容器は unmount では降りません。** `afterInteractive` は effect で `document.body` へ

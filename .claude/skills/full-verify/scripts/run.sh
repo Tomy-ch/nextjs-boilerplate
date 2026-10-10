@@ -149,11 +149,13 @@ for pat in 'INTENT.md' 'CLAUDE.md' 'AGENTS.md' 'README.md' 'README.*' \
   # $pat は glob なので、展開させるため意図的に分割させる
   # shellcheck disable=SC2044,SC2086
   for f in $(cd "$REPO_ROOT" && ls -1 $pat 2>/dev/null); do
+    # 兄弟の *.ja.md は canonical の翻訳のミラーで、意図源ではない
+    case "$f" in *.ja.md) continue ;; esac
     [ -f "$REPO_ROOT/$f" ] && echo "$f" >> "$STRUCT/design_docs.txt"
   done
 done
-# docs 配下の md を補足（ja/portal 等は意図源でないが存在は記録）
-find "$REPO_ROOT/docs" -maxdepth 2 -name '*.md' 2>/dev/null \
+# docs 配下の md を補足（portal 等は意図源でないが存在は記録。翻訳のミラーは載せない）
+find "$REPO_ROOT/docs" -maxdepth 2 -name '*.md' ! -name '*.ja.md' 2>/dev/null \
   | sed "s|^$REPO_ROOT/||" >> "$STRUCT/design_docs.txt"
 sort -u "$STRUCT/design_docs.txt" -o "$STRUCT/design_docs.txt"
 

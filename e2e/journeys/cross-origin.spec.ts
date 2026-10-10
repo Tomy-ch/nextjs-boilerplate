@@ -1,7 +1,7 @@
 import { expect, test } from "../lib/test";
 
 /**
- * 別 origin からの要求の前捌き（`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を
+ * 別 origin からの要求の前捌き（`docs/rules.md#authorization`の「状態を変える要求の送信元を
  * 検証する」）。
  *
  * @remarks

@@ -21,7 +21,6 @@ v1.0.0 未満は、テンプレート自身の設計が固まっていく期間�
 | | v1.0.0 未満 | v1.0.0 から |
 | --- | --- | --- |
 | ADR | living document。本文を上書きし、改定履歴を残さない | immutable。Status 行のみ編集し、変更は新 ADR で supersede |
-| 正典の言語 | 日本語（サフィックス無しのパス） | 英語 canonical + `*.ja.md` mirror |
 | 保護文書の編集 | 都度承認を一時解除 | `AGENTS.md` / ADR 本文 / `LICENSE` は承認を要する |
 
 ## リリースブランチ戦略

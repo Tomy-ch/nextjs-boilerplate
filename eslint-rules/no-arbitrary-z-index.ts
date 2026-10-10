@@ -3,7 +3,7 @@ import type { Rule } from "eslint";
 /**
  * 重なりの段を任意値で増やさせないルール。
  *
- * 規約そのものは `docs/rules.md`「レイアウトと帯」が持つ。Biome は class 文字列の中身を見ないため
+ * 規約そのものは `docs/rules.md#layout`が持つ。Biome は class 文字列の中身を見ないため
  * ESLint 側で持つ。
  *
  * **文字列リテラルだけを見る。** class は文字列としてしか書けないので、これで書かれた分は必ず拾える。

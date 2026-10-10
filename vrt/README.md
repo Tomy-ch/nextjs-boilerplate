@@ -242,7 +242,7 @@ push すれば、次の VRT の完了で自動的に拾われる。
   CI の撮り直しもこの判定を持ち、報告に孤児があれば絞らずに撮る。
 - viewport は既定で 1 帯（1280×720）、ブラウザも 1 つだけ。帯を増やすのも描画エンジンを増やすのも
   **画面単位の側**（[e2e/README.md](../e2e/README.md)）が持つ。部品の分岐は器の幅で行う規約なので
-  （[`docs/rules.md`](../docs/rules.md)「レイアウトと帯」の「部品の中身は帯（viewport）で分岐させない」）、
+  （[`docs/rules.md#layout`](../docs/rules.md#layout)の「部品の中身は帯（viewport）で分岐させない」）、
   viewport で分岐しない部品を viewport の数だけ撮っても、増えるのは実行時間だけである。**story が
   viewport を宣言したときだけ**、その寸法で撮る（後述「story が宣言した viewport は撮る側が合わせる」）
 

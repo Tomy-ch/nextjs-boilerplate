@@ -9,7 +9,7 @@ import { moduleSpecifiers, resolveModule } from "./module-resolution";
 
 /**
  * サーバに保存されるキャッシュを持つモジュールから、user-scoped な取得の口を import させないルール
- * （`docs/rules.md`「データ分類と機微情報」の「サーバへ保存されるキャッシュから user-scoped な
+ * （`docs/rules.md#data-classification`の「サーバへ保存されるキャッシュから user-scoped な
  * 取得の口を引かない」）。
  *
  * `use cache` は**口の外側からモジュールごと**キャッシュへ入れるため、口の型では止まらない。

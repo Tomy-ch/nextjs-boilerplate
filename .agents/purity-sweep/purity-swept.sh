@@ -145,6 +145,12 @@ out_of_scope_reason() {
       printf '作業用スクラッチ'
       return
       ;;
+    # ミラーは canonical の内容を写す翻訳で、純化は canonical に対して行う。ミラーへ純化を
+    # 掛けると、canonical を経ずにミラーを書き換えることになる。
+    *.ja.md)
+      printf '翻訳のミラー'
+      return
+      ;;
     *.png | *.jpg | *.jpeg | *.gif | *.ico | *.webp | *.avif | *.svg | *.woff | *.woff2 | *.ttf | *.otf)
       printf '資材'
       return

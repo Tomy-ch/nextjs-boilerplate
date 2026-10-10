@@ -125,7 +125,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
   待機の外に残したいときに採る。前者では `params` / `searchParams` を promise のまま穴の内側で解く
   （器の側で待つと、待っている間は殻すら配れない）
 
-画面の 4 状態（[docs/rules.md](../../docs/rules.md)「状態表示と待機」）の持ち主は次の表で決まり、
+画面の 4 状態（[docs/rules.md#states](../../docs/rules.md#states)）の持ち主は次の表で決まり、
 **この層が持つのは表示の部品だけ**である。
 
 | 状態 | 持ち主 | この層に在るもの |
@@ -144,7 +144,7 @@ slice に固有の線引きと、契約・仕様・デザインへの索引で�
 
 `<form action>` + Server Action + `ActionState` の正機構は [0061](../../docs/adr/0061-form-mutation-ux.md)、
 Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」、
-冪等キー・409・確認 dialog の規則は [docs/rules.md](../../docs/rules.md)「フォームと送信」が持つ。
+冪等キー・409・確認 dialog の規則は [docs/rules.md#forms](../../docs/rules.md#forms)が持つ。
 ここが持つのは、それを slice の中でどう割るかである。
 
 1. 入力欄は `form-names.ts` の綴りで `name` を付ける
@@ -259,7 +259,7 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 - feature の根（`features/<name>/README.md`）は同じ frontmatter を持つ README を置く。入れ子の
   README が宣言できるものは「slice の中の語彙」の末尾にある
 - **コードのコメントから ADR を参照しない。** 参照は README に集め、コメントは「置き方は同 feature の
-  README」のように隣から辿れる形で書く（[`docs/rules.md`](../../docs/rules.md)「コメントと文書」）。
+  README」のように隣から辿れる形で書く（[`docs/rules.md#comments`](../../docs/rules.md#comments)）。
   ADR は番号も節も決定の所在も動くが、README は層と一緒に動くので、動いたことが参照側へ波及しない ——
   コメントが直接指していると、参照はコード側に散り、ADR からは誰が指しているか見えないまま腐る
 - **宣言は `test-requirement: [feature, component, unit]` の並びで、slice が 3 つの形を抱えることを書く。**
@@ -277,11 +277,11 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 | --- | --- | --- |
 | `forbidden: features` — 他の feature の内側を import しない。通るのは相手の `facade/` と、画面まるごとの story だけ | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「`features ↔ features` 禁止と昇格ルール」。機械: ESLint boundaries（`architecture.ts` の `features-facade` / `feature-story`） |
 | `facade/` に置いたものは、どのカーネルも受け取れないもの（特定ドメインの語彙を持つ UI、所有するルートの識別子と組み立て）で、2 つ目の feature が実際に使っている | カーネルへ昇格できる形のもの、使う feature が 1 つしか無いものは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「昇格できないもの — feature の `facade/`」 |
-| 他の feature が所有するルートのパスや URL を書き写さず、所有者の `facade/` から取る | 相手の `facade/` が出している綴りと同じ文字列を書いていれば violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「昇格できないもの」/ [docs/rules.md](../../docs/rules.md)「URL と条件」 |
+| 他の feature が所有するルートのパスや URL を書き写さず、所有者の `facade/` から取る | 相手の `facade/` が出している綴りと同じ文字列を書いていれば violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「昇格できないもの」/ [docs/rules.md#url](../../docs/rules.md#url) |
 | 複数の feature が同じ表示ロジック・UI・hook を別々に持たない。2 つ目が現れた時点で責務に応じたカーネルへ上げる | suggestion（同じ理由で変わるかは人が裁く） | [0021](../../docs/adr/0021-frontend-responsibility.md)「feature 内で部品を分ける基準」/ この README「運用」 |
 | バックエンドの業務ロジックを持たない。契約が返さない値を計算して出さない | violation。表示のための整形か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「カーネル受入基準」4 / [0070](../../docs/adr/0070-backend-role-separation.md) 禁止事項 |
 | feature の `actions.ts` は編成だけを持ち、主体の断言が要らないものに限る。断言が要る変更は `src/app/**/actions.ts` に住む | 業務ロジックを持っていれば violation。主体に紐づく変更を断言なしで送っていれば suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」/ この README「運用」 |
-| 画面の最上位（`page-content` / `view`、殻の側で取得を持つ合成）は `withScreenSpan`、`<screen>/ui/**` は `withPartSpan` で包む。span 名は `src/` からのモジュールパスと一致させ、利用者の入力を混ぜない。`"use client"` を持つファイルは包まない | 最上位が包まれていない、名前がパスと一致しない、client component を包んでいる、はいずれも violation | この README「描画を span に載せる」/ [docs/rules.md](../../docs/rules.md)「層境界と依存」 |
+| 画面の最上位（`page-content` / `view`、殻の側で取得を持つ合成）は `withScreenSpan`、`<screen>/ui/**` は `withPartSpan` で包む。span 名は `src/` からのモジュールパスと一致させ、利用者の入力を混ぜない。`"use client"` を持つファイルは包まない | 最上位が包まれていない、名前がパスと一致しない、client component を包んでいる、はいずれも violation | この README「描画を span に載せる」/ [docs/rules.md#layers](../../docs/rules.md#layers) |
 | `<screen>/ui/**` と `facade/**` の描画する部品は自分の story を持つ。持てないのはブラウザで描けない部品だけで、その理由と中身の見られる場所を本体の doc に書く | story が無く、doc にも理由が無ければ violation。取得を持つ合成と見た目を持つ部品が 1 つに束ねられていれば suggestion | この README「カタログに載せる」/ [0054](../../docs/adr/0054-ui-catalog-storybook.md) |
 
 ## 関連する ADR

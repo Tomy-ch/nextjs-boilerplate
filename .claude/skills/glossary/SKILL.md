@@ -94,8 +94,9 @@ looked. Collect from the documents that actually use or own this vocabulary:
 
 Mechanical exclusions:
 
-- **`SKILL.ja.md` is a translation.** It duplicates every term in its canonical, so counting it
-  doubles every match and turns a single definition into a collision.
+- **Every `*.ja.md` is a translation** — `SKILL.ja.md` and the mirrors under `docs/` and `src/`
+  alike. It duplicates every term in its canonical, so counting it doubles every match and turns a
+  single definition into a collision. Read the sources above as `*.md` minus `*.ja.md`.
 <!-- sample:begin -->
 - **Purged surface.** A term that lives only in files the sample purge removes is not the reader's
   problem after the template is used. Say when a finding sits only there
@@ -149,9 +150,11 @@ and a vocabulary that cannot contradict the documents can never tell anyone a do
 
 ## Step 5 — Write
 
-Write `docs/spec/glossary.md` **and nothing else**. The spec tree is Japanese on the suffix-less path
-and has **no `.ja.md` pair** ([0140](../../../docs/adr/0140-documentation-operations.md)) — do not
-create one, and do not chain `canonicalize-doc`.
+Write `docs/spec/glossary.md` — the English canonical — and nothing else by hand. Its Japanese
+mirror is the sibling `glossary.ja.md` ([0140](../../../docs/adr/0140-documentation-operations.md), the
+canonical language model): chain `canonicalize-doc` to sync it in the same change. Each screen-side term has one
+English name in the canonical and one Japanese rendering in the mirror; keep that mapping when
+syncing, so `glossary.ja.md` and every other mirror write the term the same way.
 
 **Do not edit the document a row points at.** When the finding is that the target moved, the fix on
 this side is the pointer; the target belongs to whoever owns it.
@@ -173,8 +176,8 @@ swept nothing.**
 
 ## AI Modification Scope
 
-Invoking this skill relaxes `AGENTS.md`'s modification scope to `docs/spec/glossary.md` alone, for
-the duration of this run. Everything else stays protected — the documents the table points at
+Invoking this skill relaxes `AGENTS.md`'s modification scope to `docs/spec/glossary.md` alone (its
+mirror is written by the chained `canonicalize-doc`), for the duration of this run. Everything else stays protected — the documents the table points at
 included.
 
 ## Do / Do NOT
@@ -192,7 +195,7 @@ included.
 - ❌ Offer 「使われ方に合わせて行を書き換える」 as an option.
 - ❌ Edit a document the table points at.
 - ❌ Add business vocabulary; its source is the contract and the generated types.
-- ❌ Create a `.ja.md`, or chain `canonicalize-doc`.
+- ❌ Edit `glossary.ja.md` by hand instead of chaining `canonicalize-doc`.
 - ❌ Run a gate.
 
 ## Checklist
@@ -205,6 +208,6 @@ included.
 - [ ] Unresolved pointers settled by path and heading, not by judgment.
 - [ ] Two-place definitions reported side by side, with the same-concept question left open.
 - [ ] Options for an unresolved pointer offered in order; 「使われ方に合わせる」 never offered.
-- [ ] Only `docs/spec/glossary.md` written; no `.ja.md`; the pointed-at documents untouched.
+- [ ] Only `docs/spec/glossary.md` written, its mirror synced through `canonicalize-doc`; the pointed-at documents untouched.
 - [ ] Only the written file formatted; no gate run.
 - [ ] Closing report names the scope, the deferrals, and the report-only findings.

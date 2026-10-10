@@ -12,7 +12,7 @@ const ROWS = Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index);
  * @remarks
  * 明細と、脇に貼り付く集計の 2 段を、帯ごとの並び方まで揃えます。縦 1 列で待つと、届いた瞬間に
  * 段組みが立ち上がって明細の位置が動きます
- * （`docs/rules.md`「状態表示と待機」の「loading は形状が近い skeleton を優先する」と
+ * （`docs/rules.md#states`の「loading は形状が近い skeleton を優先する」と
  * 「UI 部品と操作」の「状態で出入りする表示で操作の位置を動かさない」）。
  *
  * **高さは 1 画面ぶん確保します。** 枠だけの明細は実物より短く、その差ぶん footer が画面の中から

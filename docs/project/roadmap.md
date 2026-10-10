@@ -28,8 +28,8 @@
 （[0011](../adr/0011-no-docker.md) の 3 本柱）。層の境界は機械で守られ、部品の使い方と責務は層 README が、
 画面の約束は仕様書が答える。
 
-v1.0.0 は文書運用の境界でもある。ADR は living document から immutable へ切り替わり、正典の言語は
-日本語から英語へ移る（[0140](../adr/0140-documentation-operations.md)）。route と仕様書の突合も
+v1.0.0 は文書運用の境界でもある。ADR は living document から immutable へ切り替わる
+（[0140](../adr/0140-documentation-operations.md)）。route と仕様書の突合も
 この時点で完了する（[0143](../adr/0143-spec-driven-development.md)）。
 
 ### v2 —— 用途に依存するものを、seam の上に局所採用する

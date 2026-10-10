@@ -67,7 +67,7 @@ test-requirement: unit
 
 分類の語彙はこう組みます。
 
-- **値は kebab-case の文字列リテラル**で、型 `ErrorKind` は値の union、定数 `ErrorKind` は同名のオブジェクトです。`enum` は使いません（`docs/rules.md`「型とコード」）。定数は `satisfies` で型に照らし、リテラルの情報を落としません（[0029](../../docs/adr/0029-type-design-discipline.md)）
+- **値は kebab-case の文字列リテラル**で、型 `ErrorKind` は値の union、定数 `ErrorKind` は同名のオブジェクトです。`enum` は使いません（[`docs/rules.md#types`](../../docs/rules.md#types)）。定数は `satisfies` で型に照らし、リテラルの情報を落としません（[0029](../../docs/adr/0029-type-design-discipline.md)）
 - `errorKinds` は全分類の配列で、**分類を引数に取る表が全分類を埋めていることを境界側のテストが網羅的に確かめる**ためにあります。分類を増やしたときに、表の抜けが型ではなくテストで見つかる場所（`switch` で組んだ写像など）がこれを使います
 - 分類の一次キーは意味であって、接続先の code の綴りではありません。分類と安定エラーコードの対応、HTTP status との対応表は [0080](../../docs/adr/0080-error-handling.md) が持ちます
 
@@ -122,7 +122,7 @@ const meta = resolveErrorMeta(error);
 | 層 | 使う口 | 形 |
 | --- | --- | --- |
 | `adapters`（分類する側） | `createAppError()` / `withErrorDetails()` | 生の失敗を 1 度だけ分類し、契約が返した詳細識別子は cause 側へ載せて投げる。応答を得られなかった試行は前の試行の詳細を引き継がない（分類と詳細が別々の試行のものになる） |
-| `features` / `model`（分岐する側） | `findAppError(error)?.kind === ErrorKind.X` | **出し分けの合図は分類であって文言ではない**（`docs/rules.md`「文言」）。見つからなければ `null` に倒す、認証切れなら読み直す、検証失敗なら `details` を項目へ写す、といった分岐をここで行う |
+| `features` / `model`（分岐する側） | `findAppError(error)?.kind === ErrorKind.X` | **出し分けの合図は分類であって文言ではない**（[`docs/rules.md#wording`](../../docs/rules.md#wording)）。見つからなければ `null` に倒す、認証切れなら読み直す、検証失敗なら `details` を項目へ写す、といった分岐をここで行う |
 | 表示・応答の境界 | `resolveErrorMeta()` / `getDefaultErrorMeta()` | 文言はカタログから取り、画面や口ごとに書かない。未分類は `INTERNAL` へ倒す |
 
 `details` を項目名へ写す側は、**契約の項目名と画面の項目名が同じ綴りであることに頼らず**、画面が知る項目名の表に照らしてから使います。読めない名前をそのまま鍵にすると、どの入力欄にも結び付かない誤りが状態へ入ります。理由文は `details` に載らないので、写した先の文言は「受け付けられなかった」までしか言えません。

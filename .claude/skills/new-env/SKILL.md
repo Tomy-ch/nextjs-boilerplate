@@ -120,7 +120,7 @@ For either secret label, the value written into the committed env files is a **p
 
 ### Question 6: Description
 
-Free text, in the language `env/README.md` is written in — a single table in one language ([0140](../../../docs/adr/0140-documentation-operations.md)). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
+Free text, in English: `env/README.md` is the English canonical, and its sibling `README.ja.md` mirror is synced from it in Step 3 ([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). If the user answers in another language, translate it and surface the translation in the Step 2 plan for review before writing.
 
 - 「説明」
 - Notes 欄(任意) — Secret 管理 / 環境依存等の注記
@@ -210,6 +210,7 @@ Use `Edit` with exact anchors derived from the read context (the last existing s
 4. env files (one edit per file)
 5. `env/README.md`
 6. `src/config/README.md` — config-backed path only
+7. Chain `canonicalize-doc` (bulk mode) over the READMEs edited in 5–6, so their `.ja.md` mirrors follow in the same change
 
 If any edit fails, stop and report; do not continue with the remaining files.
 
@@ -272,7 +273,7 @@ Before reporting completion, confirm:
 - [ ] Server / client side confirmed, and consistent with the presence or absence of `NEXT_PUBLIC_`
 - [ ] Secret label confirmed; no secret was placed behind `NEXT_PUBLIC_`, and no real secret value was written to a committed file
 - [ ] Type and required-vs-code-default confirmed
-- [ ] Description confirmed in the language of `env/README.md` (a translation, if any, surfaced in the plan for review)
+- [ ] Description confirmed in English, the language of the canonical `env/README.md` (a translation, if any, surfaced in the plan for review)
 - [ ] Per-environment values resolved
 - [ ] The full plan was displayed and the user approved it
 - [ ] Config-backed path: exactly one purpose updated (schema entry + value in the runtime module's existing shape, no setter)
@@ -280,6 +281,7 @@ Before reporting completion, confirm:
 - [ ] Every env file the variable belongs in was updated at its table-order position, in the line form `env/README.md` assigns
 - [ ] `env/README.md` got its variable-table row (always)
 - [ ] `src/config/README.md` updated on the config-backed path, without restating the env row
+- [ ] The `.ja.md` mirrors of the edited READMEs synced through `canonicalize-doc`
 - [ ] Config-backed path: the key was added to `src/config/environment.fixture.ts` as well
 - [ ] Config tests updated, or their absence stated explicitly
 - [ ] `pnpm fix` / `lint:ci` / `typecheck` / `build` were run and the results reported

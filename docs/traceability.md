@@ -1,173 +1,189 @@
-# トレーサビリティ
+# Traceability
 
-**決定が何によって守られているかの一覧。** 集計であって決定ではない —— 各項目の強制手段は
-[ADR](adr/README.md) の各決定と、[実装規約](rules.md) の各行と、実装タスクの issue が持つ。
-ここはそれを並べ、**「散文のみ」で終わっているものに決着が付いているか**を見る場所である。
+**A list of what each decision is protected by.** It is a tally, not a decision — the enforcement of each
+item is held by each decision in the [ADRs](adr/README.md), each line of the [implementation rules](rules.md),
+and the issues of implementation tasks. This is where they are lined up, to see **whether the ones that end
+in "prose only" have been settled**.
 
-**ここに新しい規約を書かない。** 書きたくなったら、それは決定なので所有する文書へ置く
-（[0144](adr/0144-decision-enforcement-pairing.md)「集計は決定を持たない」）。
+**Do not write new rules here.** If you want to, it is a decision, so put it in the document that owns it
+([0144](adr/0144-decision-enforcement-pairing.md): the tally holds no decisions).
 
-## なぜ集計するのか
+## Why Tally
 
-散文で書いた決定は、誰かが読み直さない限り守られたかどうかが分からない。機械が見ているものと
-そうでないものを混ぜて数えると、**全体としてどれだけ守られているかが誰にも見えなくなる**。
+Whether a decision written in prose has been kept is unknown unless someone rereads it. Counting what
+machines check together with what they do not makes **how well things are kept overall visible to no one**.
 
-区別して数える意味は、散文を減らすことではない。**散文のままでよいものと、寄せ忘れているものを
-分ける**ことにある。前者は理由を持ち、後者は仕事が残っている。
+The point of counting them separately is not to reduce prose. It is to **separate what may stay prose from
+what has been forgotten to mechanize**. The former carries a reason; the latter has work remaining.
 
-## 規約（`docs/rules.md`）
+## Rules (`docs/rules.md`)
 
-節頭の `> Rationale: …; enforced via …` は、その節をどの機械が見ているかを述べる。節頭の手段に
-載らない規約だけが、その場で寄せられるかどうかを自分で述べる（[0144](adr/0144-decision-enforcement-pairing.md)）。
+A section header's `> Rationale: …; enforced via …` states which machine checks that section. Only a rule not
+covered by its section header's means states for itself, on the spot, whether it can be mechanized
+([0144](adr/0144-decision-enforcement-pairing.md)).
 
-**次の節は生成している。手で書き換えない。** `pnpm docs:tally` が `docs/rules.md` から書き出し、
-`scripts/rules-tally.gate.test.ts` が陳腐化を落とす（[0146](adr/0146-rule-reference-stability.md)）。
-手で数えた件数を置かないのは、**後から読む人がそれを検証できない**からである。
+**The next part is generated. Do not edit it by hand.** `pnpm docs:tally` writes it out from `docs/rules.md`,
+and `scripts/rules-tally.gate.test.ts` fails when it goes stale ([0146](adr/0146-rule-reference-stability.md)).
+Hand-counted numbers are not placed here because **later readers cannot verify them**.
 
 <!-- generated: rules-tally -->
 
-**節が 21、規約が 255 件。**
-うち 18 節が節頭で機械の手段を名乗り、30 件の規約が自分で判定を述べる。
+**21 sections, 255 rules.**
+Of these, 18 sections name a mechanical means in their header, and 32 rules state their own verdict.
 
-| 判定 | 件数 |
+| Verdict | Count |
 | --- | --- |
-| 寄せられない | 25 |
-| 一部寄せられる | 1 |
-| 寄せられる | 4 |
+| not mechanizable | 26 |
+| partly mechanizable | 2 |
+| mechanizable | 4 |
 
-### 仕事が残っている 5 件
+### 6 rules with work remaining
 
-| 節 | 規約 | 判定 |
+| Section | Rule | Verdict |
 | --- | --- | --- |
-| [描画とキャッシュ](rules.md#rendering) | 捨てるのは、その mutation が変えたデータを実際に描いている route だけにする。 | 一部寄せられる |
-| [レイアウトと帯](rules.md#layout) | 部品の中身は帯（viewport）で分岐させない。 | 寄せられる |
-| [レイアウトと帯](rules.md#layout) | 画面の骨格は器の幅（container query）で分岐させない。 | 寄せられる |
-| [コメントと文書](rules.md#comments) | サンプル破棄を生き延びる側には、題材の語彙を名前にも中身にも持たせない。 | 寄せられる |
-| [作業とエージェント](rules.md#workflow) | 未コミットの作業を取り戻せない形で捨てる git 操作を使わない。 | 寄せられる |
+| [Rendering and Caching](rules.md#rendering) | Invalidate only the routes that actually render the data that mutation changed. | partly mechanizable |
+| [Layout and Bands](rules.md#layout) | Do not branch a component's contents on the band (viewport). | mechanizable |
+| [Layout and Bands](rules.md#layout) | Do not branch a screen's skeleton on the container's width (container query). | mechanizable |
+| [Comments and Documentation](rules.md#comments) | Named functions get TSDoc, with tags aligned by the following rules. | partly mechanizable |
+| [Comments and Documentation](rules.md#comments) | The side that survives the sample purge carries the subject's vocabulary neither in names nor in contents. | mechanizable |
+| [Workflow and Agents](rules.md#workflow) | Do not use git operations that discard uncommitted work irrecoverably. | mechanizable |
 
 <!-- /generated: rules-tally -->
 
-**「寄せられない」と「寄せられる」を混ぜない。** 前者は道が無く、後者は道が在って歩いていない。
-混ぜると、やれば済むものが「やれない」に埋もれる。
+**Do not mix "not mechanizable" with "mechanizable".** The former has no road; the latter has a road that
+no one has walked. Mixing them buries what would be done by doing it under "cannot be done".
 
-**寄せ先と、いま着手しない理由は、規約の側が持つ。** ここへ写すと二重管理になる
-（[0144](adr/0144-decision-enforcement-pairing.md)「集計は決定を持たない」）。
+**Where to mechanize, and why it is not being started now, are held by the rule side.** Copying them here
+makes double bookkeeping ([0144](adr/0144-decision-enforcement-pairing.md): the tally holds no decisions).
 
-**寄せる作業そのものはここでは行わない。** 判定を持つことと規則を書くことは別の PR である
-（設計判断待ちの 2 件を除く分は #634）。
+**The mechanizing work itself is not done here.** Holding a verdict and writing the rule are separate PRs
+(excluding the 2 awaiting a design judgment, the rest is #634).
 
 ## ADR
 
-**規約と違って、この章は生成していない。** 強制手段の在り処が文書ごとに散っていて一致では数えられ
-ないためである（後述「在り処が 4 通りに散っている」）。以下は **ADR 82 本の時点で数えた値**であり、
-その後に増えた分を含まない。
+**Unlike the rules, this chapter is not generated.** Where enforcement is stated is scattered differently per
+document and cannot be counted by exact match (see *Locations are scattered four ways* below). The
+following are **values counted at the point of 82 ADRs**, and do not include those added since.
 
-**決定の単位は、各 ADR の `## 禁止事項` の箇条 1 行である。** 禁止事項を持たない ADR
-（[0121](adr/0121-i18n-strategy.md) / [0130](adr/0130-pwa-strategy.md)。どちらも exclusion）は、
-`## 決定` の筆頭の箇条を 1 件と数える。本文の散文から決定を拾い出す数え方は採らない ——
-どこまでを 1 つの決定と読むかが数える人によって変わり、同じ件数を誰も再現できない。行の数なら
-`## 禁止事項` の箇条を数えれば誰でも同じ母数に着く。**本文にだけ在って禁止事項に写っていない決定は
-この母数に入らない。**
+**The unit of decision is one bullet line in each ADR's `## Prohibitions`.** An ADR without prohibitions
+([0121](adr/0121-i18n-strategy.md) / [0130](adr/0130-pwa-strategy.md); both exclusions) counts the
+first bullet of `## Decision` as one. Picking decisions out of the body prose is not adopted as a way of
+counting — how much to read as one decision varies by who counts, and no one can reproduce the same number.
+Counting lines, anyone who counts the bullets of `## Prohibitions` arrives at the same population.
+**Decisions that exist only in the body and are not carried into the prohibitions are not in this
+population.**
 
-**82 本、557 決定。** 強制手段の在り処で分けると次のとおりで、**どこにも宣言が無い決定は無い。**
+**82 ADRs, 557 decisions.** Split by where enforcement is stated, they are as follows, and **there is no
+decision without a declaration anywhere.**
 
-| | 件数 | ADR | 実態 |
+| | Count | ADR | Actual state |
 | --- | --- | --- | --- |
-| ADR 自身が述べている | 518 | 82 本 | 行に添えた `強制:`、本文の決定に付いた強制手段、`Enforcement` 節、機械の届く範囲の表 |
-| 置き場の逸脱 | 39 | 22 本 | `rules.md` の節が同じ規約を持ち、節頭の手段が覆っている。**守られている** |
-| どこにも宣言が無い | 0 | — | — |
+| Stated by the ADR itself | 518 | 82 | `Enforcement:` attached to a line, enforcement attached to a decision in the body, an `Enforcement` section, a table of where machines reach |
+| Placement deviation | 39 | 22 | A `rules.md` section holds the same rule and its section header's means covers it. **Covered** |
+| No declaration anywhere | 0 | — | — |
 
-### 行に添えた判定
+### Verdicts Attached to Lines
 
-ADR 自身が述べている 518 件のうち 432 件は、禁止事項の行の末尾に `（強制: …）` の形で判定を持つ。
-その内訳である。
+Of the 518 stated by the ADR itself, 432 carry a verdict at the end of the prohibition line in the form
+`(Enforcement: …)`. This is their breakdown.
 
-| 判定 | 件数 |
+| Verdict | Count |
 | --- | --- |
-| 持たない —— 採らない決定 | 47 |
-| 機械が落とす | 25 |
-| 機械が一部を落とし、残りは散文 | 93 |
-| 散文 —— 寄せられない | 134 |
-| 散文 —— 一部寄せられる | 64 |
-| 散文 —— 寄せられる | 69 |
+| none — a decision not to adopt | 47 |
+| a machine catches it | 25 |
+| a machine catches part; the rest is prose | 93 |
+| Prose — not mechanizable | 134 |
+| Prose — partly mechanizable | 64 |
+| Prose — mechanizable | 69 |
 
-**採らない決定は強制手段を持たない。** 「Docker を同梱しない」「i18n ライブラリを同梱しない」の
-ように、採っていないこと自体が状態であり、それを覆す変更は依存・ファイルの追加として diff に現れ、
-ADR の改定を伴う。守る機械を生やしても、落とす対象が無い。**採用した仕組みの中での振る舞いの禁止**
-（npm を使わない、層を跨いで import しない）は否定形で書かれていても採らない決定ではない。
+**A decision not to adopt has no enforcement.** As with "do not bundle Docker" and "do not bundle an i18n
+library", not having adopted it is itself the state; a change that overturns it appears in the diff as an added
+dependency or file and comes with a revision of the ADR. Growing a machine to guard it leaves nothing for it to
+catch. **A prohibition on behaviour inside an adopted mechanism** (do not use npm, do not import across
+layers) is not a decision not to adopt, even though it is written in the negative.
 
-### 仕事が残っている 172 件
+### 172 decisions with work remaining
 
-検出の形を書き、「規則は無い」と述べている行（68 本）。散文のうち「寄せられる」「一部寄せられる」の
-寄せられる側と、機械が一部を落とす行の残りのうち形が書けるものがここに入る。道が在って歩いていない
-状態で、`docs/adr/` の禁止事項を「規則は無い」で探せば並ぶ。**寄せ先と形は行の側が持つ。** ここへ
-写すと二重管理になる（[0144](adr/0144-decision-enforcement-pairing.md)「集計は決定を持たない」）。
+Lines that write the shape of a detection and state "there is no rule" (68 ADRs). This covers the
+mechanizable side of "mechanizable" and "partly mechanizable" among the prose verdicts, and those remainders
+of lines where a machine catches part whose shape can be written. It is the state of a road that no one has
+walked, and searching the prohibitions in `docs/adr/` for "there is no rule" lists them. **Where to mechanize
+and the shape are held by the line.** Copying them here makes double bookkeeping
+([0144](adr/0144-decision-enforcement-pairing.md): the tally holds no decisions).
 
-### 置き場の逸脱 39 件
+### 39 Placement Deviations
 
-ADR が自分では述べず、`rules.md` の節頭が引き受けているもの。[0144](adr/0144-decision-enforcement-pairing.md)
-「決定と同じ場所に書く」からは外れるが、**書き戻すと二重管理になる**ため単純に直せばよいもので
-もない。
+What the ADR does not state itself and a `rules.md` section header takes on. This departs from
+[0144](adr/0144-decision-enforcement-pairing.md)'s requirement that enforcement be written in the same place
+as the decision, but **writing it back would create double bookkeeping**, so it is not simply a matter of
+fixing it either.
 
-### 在り処が 4 通りに散っている
+### Locations are scattered four ways
 
-[0144](adr/0144-decision-enforcement-pairing.md) は様式を文書ごとに委ねている。その結果として、
-強制手段は次のいずれかの形で現れる。
+[0144](adr/0144-decision-enforcement-pairing.md) leaves the format to each document. As a result,
+enforcement appears in one of the following forms.
 
-| 形 | 例 |
+| Form | Example |
 | --- | --- |
-| 本文に `強制:` を直書き | [0074](adr/0074-runtime-communication-seam.md)（9 決定すべて。散文の場合も寄せられるかまで書いた唯一の完全な例）、[0060](adr/0060-state-management.md)、[0150](adr/0150-git-workflow.md) |
-| `## Enforcement` 節 | [0021](adr/0021-frontend-responsibility.md) |
-| どこまで機械が届くかの表 | [0025](adr/0025-app-layer-elements.md) |
-| 地の文で「機械強制は〜が持つ」 | [0154](adr/0154-claude-skills-operations.md)、[0101](adr/0101-performance-budget.md) |
+| `Enforcement:` written directly in the body | [0074](adr/0074-runtime-communication-seam.md) (all 9 decisions; the only complete example that also writes, for prose, whether it can be mechanized), [0060](adr/0060-state-management.md), [0150](adr/0150-git-workflow.md) |
+| An `## Enforcement` section | [0021](adr/0021-frontend-responsibility.md) |
+| A table of how far machines reach | [0025](adr/0025-app-layer-elements.md) |
+| "Machine enforcement is held by ~" in running text | [0154](adr/0154-claude-skills-operations.md), [0101](adr/0101-performance-budget.md) |
 
-**綴り一致では数えられない。** 数え直すときは本文を読むこと。
+**They cannot be counted by matching spelling.** When recounting, read the body.
 
-## 実装タスク（issue）
+## Implementation Tasks (Issues)
 
-50 件。**強制手段の欄を持つのは 13 件**で、うち散文を含むのは 3 件（#483 / #447 / #317）。
+50 issues. **13 have the enforcement field**, of which 3 include prose (#483 / #447 / #317).
 
-### 37 件が欄を持たない
+### 37 lack the field
 
-欄は issue テンプレートの必須項目だが、テンプレートの `required: true` が縛るのは GitHub の Web
-フォームだけで、`gh issue create --body-file` は素通りする —— **そしてそれが AI が起票する経路である。**
+The field is a required item of the issue template, but the template's `required: true` binds only GitHub's
+web form, and `gh issue create --body-file` passes straight through — **and that is the path by which AI
+files issues.**
 
-欄の有無は起票時期と相関しない（2026-07-30 の #116 は持ち、2026-09-02 の #521 は持たない）。
-古いから欠けているのではなく、**経路によって欠ける**。
+Whether the field is present does not correlate with when the issue was filed (#116 of 2026-07-30 has it, #521 of
+2026-09-02 does not). It is missing not because the issue is old but **because of the path**.
 
-塞いだ形は 2 つある。
+It is closed in two ways.
 
-- `.github/workflows/issue-field-lint.yaml` —— issue が作られた / 編集された時点で本文を見て、
-  欠けている欄を issue へコメントする。PR ゲートにしないのは、**PR は issue を作らない**ため
-- `make issue-field-lint` —— 開いている実装タスクをまとめて見る。過去に開いたままのものを掃く口
+- `.github/workflows/issue-field-lint.yaml` — when an issue is created / edited, it reads the body and
+  comments on the issue about missing fields. It is not a PR gate because **a PR does not create issues**
+- `make issue-field-lint` — checks the open implementation tasks in bulk. The entry point for sweeping those
+  left open from the past
 
-**閉じた issue の欄は埋めない。** そこから読む人はもう居らず、埋めても着地済みの実装が変わらない。
-開いているものだけが、これから読まれる。
+**Do not fill in the field on closed issues.** No one reads from them any more, and filling them in does not
+change the implementation that already landed. Only open ones will be read from now on.
 
-## 機械が届かないと分かっているところ
+## Where machines are known not to reach
 
-`app` の element 分割は、行ごとに強制の届き方が違う。表は
-[0025](adr/0025-app-layer-elements.md) が持ち、`architecture.ts` の `APP_ELEMENTS` が
-**`import` 先の集合として書ける分**を強制する。書けないものが 2 つ残る。
+The element split of `app` differs, row by row, in how enforcement reaches it. The table is held by
+[0025](adr/0025-app-layer-elements.md), and `APP_ELEMENTS` in `architecture.ts` enforces **the part that can be
+written as a set of `import` targets**. Two things that cannot be written remain.
 
-- `server config` と `NEXT_PUBLIC` の公開定数は同じ `config` カーネルに居る
-- `route-segment` の `observability` / `config` の限定は「何を import してよいか」ではなく
-  「**どう使ってよいか**」である
+- `server config` and the public `NEXT_PUBLIC` constants live in the same `config` kernel
+- The restriction on `observability` / `config` for `route-segment` is not "what may be imported" but
+  "**how it may be used**"
 
-どちらも実装の不足ではなく、import の可否では表現できない。**受け持つのは層別のアーキテクチャ監査
-`arch-check` で、判定の形は [`src/app/README.md`](../src/app/README.md) と
-[`src/config/README.md`](../src/config/README.md) の「監査の観点」が行として持つ。** 監査は決定的な
-検査ではなく、緑を返すゲートにはならない。
+Neither is a shortfall of implementation; they cannot be expressed by whether an import is allowed. **They are
+covered by the per-layer architecture audit `arch-check`, and the shape of the judgment is held as rows in the
+*Audit Criteria* of [`src/app/README.md`](../src/app/README.md) and
+[`src/config/README.md`](../src/config/README.md).** The audit is not a deterministic check and does not
+become a gate that returns green.
 
-## この一覧が答えないこと
+## What this list does not answer
 
-- **書かれた強制手段が妥当か。** 欄の有無しか見ていない。「テスト」と書いてあってテストが無い、は
-  ここでは分からない（[実装規約](rules.md) 側は `doc-reviewer` の accuracy が見る）
-- **散文のままでよいという判断が正しいか。** 理由が書かれているかまでを見る
-- **規約 1 件を名指しできるか。** 指せるのは節までで、規約の要旨は生成のたびに写し直される引用で
-  あって識別子ではない（[0146](adr/0146-rule-reference-stability.md)）。指し先を失わないのは節の
-  錨だけで、その実在は `scripts/doc-links.gate.test.ts` が見ている
-- **ADR の集計が現在のものか。** 規約と違って生成していない。強制手段の在り処が文書ごとに 4 通りへ
-  散っており、一致では数えられないためである。**上の ADR の章の件数は ADR 82 本の時点で手で数えた
-  値で、その後に足された ADR と行を含まない。** 母数（禁止事項の行数）は数え直せるが、在り処の分類は
-  本文を読まないと数え直せない
+- **Whether the stated enforcement is sound.** Only the presence of the field is checked. That "tests" is
+  written but no test exists cannot be told here (on the [implementation rules](rules.md) side, the accuracy
+  lens of `doc-reviewer` checks it)
+- **Whether the judgment that something may stay prose is right.** It checks only as far as whether a reason is
+  written
+- **Whether a single rule can be named.** What can be pointed at goes only down to the section; a rule's
+  summary is a quotation recopied on every generation, not an identifier
+  ([0146](adr/0146-rule-reference-stability.md)). Only the section anchors keep their target, and their
+  existence is checked by `scripts/doc-links.gate.test.ts`
+- **Whether the ADR tally is current.** Unlike the rules, it is not generated. Where enforcement is stated is
+  scattered four ways across documents and cannot be counted by exact match. **The counts in the ADR chapter
+  above are values counted by hand at the point of 82 ADRs and do not include ADRs and lines added since.**
+  The population (the number of prohibition lines) can be recounted, but the classification by location cannot
+  be recounted without reading the bodies

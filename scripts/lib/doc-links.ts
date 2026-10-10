@@ -2,6 +2,7 @@ import { readFileSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve } from "node:path";
 
 import { hasAnchor } from "./markdown-anchor";
+import { isMirror } from "./mirror";
 import { groupsAt } from "./regex-groups";
 
 /** 解決しなかったリンク 1 件。 */
@@ -12,8 +13,11 @@ export type BrokenLink = {
   readonly line: number;
   /** 書かれていた相対リンク（アンカーを含む）。 */
   readonly href: string;
-  /** 何が解決しなかったか。`path` はファイル、`anchor` は指し先の見出し。 */
-  readonly reason: "anchor" | "path";
+  /**
+   * 何が解決しなかったか。`path` はファイル、`anchor` は指し先の見出し、`mirror` は
+   * canonical から翻訳のミラー（`*.ja.md`）へ向いたリンク。
+   */
+  readonly reason: "anchor" | "mirror" | "path";
 };
 
 /**
@@ -161,6 +165,10 @@ function brokenReasonOf(file: string, href: string, root: string): BrokenLink["r
 
   if (escapesRoot(root, target) || !exists(target)) return "path";
 
+  // エージェントは canonical だけを読み、ミラーは canonical を追う翻訳なので、canonical から
+  // ミラーへ渡る経路を作らない。ミラーの名前を挙げるだけの散文（リンクでないもの）は対象外。
+  if (!isMirror(file) && isMirror(path)) return "mirror";
+
   return lacksAnchor(target, fragment) ? "anchor" : null;
 }
 
@@ -210,14 +218,18 @@ function escapesRoot(root: string, target: string): boolean {
   return relative(root, target).startsWith("..");
 }
 
+const REASON_LABEL: Record<BrokenLink["reason"], string> = {
+  anchor: "見出しが無い",
+  mirror: "canonical から翻訳のミラーへリンクしている",
+  path: "ファイルが無い",
+};
+
 /** 見つかったものを、そのまま直せる形の文言にする。 */
 export function formatBrokenDocLinks(broken: readonly BrokenLink[], root: string): string {
   return broken
     .map(
       ({ file, line, href, reason }) =>
-        `${relative(root, resolve(root, file))}:${line}: ${href}（${
-          reason === "path" ? "ファイルが無い" : "見出しが無い"
-        }）`,
+        `${relative(root, resolve(root, file))}:${line}: ${href}（${REASON_LABEL[reason]}）`,
     )
     .join("\n");
 }

@@ -317,4 +317,4 @@ pnpm lint:ci && pnpm typecheck && APP_ENV=local pnpm build && pnpm test
 
 CI 側は PR を 1 本立てれば全ジョブが回る。落ちたジョブの引き先は
 [`.github/workflows/README.md`](../../.github/workflows/README.md)、詰まったときは
-[`.claude/skills/repo-ops`](../../.claude/skills/repo-ops/SKILL.ja.md)。
+[`.claude/skills/repo-ops`](../../.claude/skills/repo-ops/SKILL.md)。

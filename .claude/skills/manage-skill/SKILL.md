@@ -175,9 +175,11 @@ contexts including Japanese trigger phrases, and an explicit *when NOT* to fire.
 ### Language (`AGENTS.md`)
 
 - `SKILL.md` is **English canonical**. Never write the canonical body in Japanese.
-- The skill's *runtime behavior* must obey the Japanese output rule: everything the skill emits or
-  writes to the repository — responses, commit and PR text, code comments, generated docs — is
-  **Japanese**. Bake that requirement into the skill's own instructions.
+- The skill's *runtime behavior* must obey the Japanese output rule: what the skill emits — responses,
+  commit and PR text, code comments — is **Japanese**. A document the skill writes is the **English
+  canonical**, and its sibling `.ja.md` mirror is synced through `canonicalize-doc` in the same change
+  (ADR [0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model); a skill that reads
+  documents excludes `*.ja.md`. Bake both requirements into the skill's own instructions.
 
 ### Confirmation before outward-facing actions (ADR 0154)
 
@@ -230,16 +232,19 @@ English-canonical body, and the eval workspace under `tmp/`.
 - Check whether the change invalidates statements made elsewhere: the ADR coverage tables, other
   skills that chain into this one, and `tool-map`'s dependency map.
 
-## Step 4. Sync the Japanese translation pair
+## Step 4. Sync the Japanese mirror
 
-Every skill in this repo ships a `SKILL.ja.md` next to `SKILL.md` (ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) / 0154). This is not optional. After the
-canonical `SKILL.md` is finalized or changed:
+Every skill in this repo ships a `SKILL.ja.md` next to `SKILL.md`, and every bundled `prompts/*.md` /
+`references/*.md` has its own sibling `.ja.md` — ADR
+[0140](../../../docs/adr/0140-documentation-operations.md) gives every English canonical a
+mirror except its closed no-mirror list, and 0154 makes the `SKILL.md` pair mandatory. This is not
+optional. After a canonical is finalized or changed:
 
-- Chain the `canonicalize-doc` skill to produce or sync `SKILL.ja.md` from the canonical
-  `SKILL.md`.
-- `SKILL.ja.md` carries **no YAML frontmatter** and begins with the blockquote note saying it is a
-  translation, must not be edited directly, and that updates flow from `SKILL.md`.
+- Chain the `canonicalize-doc` skill to produce or sync each changed canonical's mirror — in its bulk
+  mode when the change touched several files.
+- A mirror carries **no YAML frontmatter** and begins with the sync note on line 1. `SKILL.ja.md`
+  keeps its own three-line note: it is a translation, must not be edited directly, and updates flow
+  from `SKILL.md`. The canonical never links to its mirror.
 - Confirm the pair is in sync — matching heading structure and section count — before considering
   the task done. A changed `SKILL.md` with a stale Japanese side is drift.
 

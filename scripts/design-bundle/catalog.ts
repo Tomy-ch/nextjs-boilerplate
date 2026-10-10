@@ -13,8 +13,21 @@ const REGISTRY_ITEM_TYPE = {
   COMPONENT: "registry:component",
 } as const;
 
-/** 実装ではないファイル。registry には載せない。 */
-const EXCLUDED_SUFFIXES = [".test.ts", ".test.tsx", "README.md"] as const;
+/** 実装ではないファイル。registry には載せない。文書は README も翻訳のミラーも `.md` で終わる。 */
+const EXCLUDED_SUFFIXES = [".test.ts", ".test.tsx", ".md"] as const;
+
+/**
+ * component の README から目録へ写す節の見出し。
+ *
+ * @remarks
+ * 見出しが README の側と食い違うと、{@link sectionOf} は空文字を返し、目録の欄が黙って消える。
+ * README の書式は `src/components/component-template.md` が持つ。
+ */
+export const README_SECTIONS = {
+  purpose: "用途",
+  boundary: "責務境界",
+} as const;
+
 /** bundle に載せる component 1 件。 */
 export type BundleComponent = {
   name: string;

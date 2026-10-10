@@ -72,7 +72,7 @@ call sites is invisible when you only look at what changed.
 change genuinely earned does not exist yet, and nothing else will write it (**著述**). Two kinds reach
 this pass unwritten: the residue that only a comment can carry — a caller's obligation, a deliberate
 absence, an assumption held elsewhere — and the **required TSDoc frame** of every named function —
-the summary and the tags `docs/rules.md` 「コメントと文書」 makes mandatory, whatever the
+the summary and the tags [`docs/rules.md#comments`](../../../docs/rules.md#comments) makes mandatory, whatever the
 function's visibility or nesting. The frame is read in the hover of whoever calls or edits the
 function, and Storybook's autodocs renders it for a part with a story, so it is a deliverable rather
 than a note. **A named function without it is incomplete**, and 著述 is not optional there.
@@ -148,8 +148,8 @@ copy of it.
 
 | Source | What it decides |
 | --- | --- |
-| `docs/rules.md` 「コメントと文書」 | **The comment standard** — what a comment is and is not, and the named misroutes |
-| `docs/README.md` 「2 つのテスト」 | The 前提の所在 test and the 管轄 test that the verdicts below apply |
+| [`docs/rules.md#comments`](../../../docs/rules.md#comments) | **The comment standard** — what a comment is and is not, and the named misroutes |
+| [`docs/README.md#two-tests`](../../../docs/README.md#two-tests) | The 前提の所在 test and the 管轄 test that the verdicts below apply |
 | `AGENTS.md` | Language Rules (comments are Japanese) |
 | `.claude/agents/comment-reviewer.md` | The reviewer that applies the standard to one comment; the same lens this skill's pass 1 uses |
 | `docs/adr/` | The candidate destinations, and what each ADR already says |
@@ -286,7 +286,7 @@ being written and where that text came from. The two kinds of 著述 source it d
 
 - **The frame** — the summary and the mandatory tags — describes what the declaration does, and the
   signature and the body are its source. Which declarations are in scope, which tags are mandatory and
-  which are written only when they apply is `docs/rules.md` 「コメントと文書」's to say; read it
+  which are written only when they apply is [`docs/rules.md#comments`](../../../docs/rules.md#comments)'s to say; read it
   this run rather than from memory. The frame always exists, so a named function without it is never
   in its correct state.
 - **The residue** — a caller's obligation, a deliberate absence, an assumption held elsewhere — is
@@ -340,7 +340,7 @@ one finding.
 
 **`docs/README.md` owns the routing judgment** — the four kinds a candidate is classified into, the
 ordered test that names a destination, the two tests that settle a borderline case, and the default:
-a candidate that fits no destination stays in the code. **`docs/rules.md` 「コメントと文書」 —
+a candidate that fits no destination stays in the code. **[`docs/rules.md#comments`](../../../docs/rules.md#comments) —
 its rule "設計判断を、それを所有しない文書へ置かない" — carries the two named misroutes** — a
 library's or an API's specific behavior stays at the call site, and business knowledge goes to
 `docs/spec/` rather than to an ADR. Read both when a 移設 verdict needs a

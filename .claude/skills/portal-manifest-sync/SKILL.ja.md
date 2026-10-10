@@ -3,7 +3,7 @@
 # Portal Manifest Sync
 
 このスキルは、ドキュメントポータルの構造の単一ソースである
-[`docs/portal/manifest.yaml`](../../../docs/portal/manifest.yaml)（[ADR 0141](../../../docs/adr/0141-portal-operations.md)）を、
+[`docs/portal/manifest.yaml`](../../../docs/portal/manifest.yaml)（[ADR 0141](../../../docs/adr/0141-portal-operations.ja.md)）を、
 ディスク上の実在する README と、それを読む生成スクリプトの双方に突き合わせて監査します。
 
 canonical は同じディレクトリの `SKILL.md`（英語）です。規約の正はそちらで、この訳は参考です。
@@ -51,12 +51,18 @@ portal は人間が読むキュレーション済みの叙述です。未登録�
 - **部品リファレンス README。** 1 つの component の表面を書いたもので、portal の答えはそれではなく
   Storybook（既に `meta.reference_links` の常設項目）と component 自身の TSDoc です。これを全部候補として
   並べるとレポートが読めなくなります
+- **ミラーが未登録の、登録済み canonical。** README のペアは 2 つのエントリとして公開します ——
+  `src: X/README.md` → `dst: …/<name>.md` と `src: X/README.ja.md` → `dst: …/<name>.ja.md`
+  （[0140](../../../docs/adr/0140-documentation-operations.ja.md) / [0141](../../../docs/adr/0141-portal-operations.ja.md)）。
+  canonical が登録済みで、存在するミラーが未登録なら、portal はそのページを片方の言語でしか出しません。
+  これは**直すべき drift** であって、キュレーション候補ではありません —— キュレーションの判断は
+  canonical について既に下されています
 - **キュレーション候補。** 残りを `readme-review` の基準で分類したもの
 
 ### 4. 判定基準は `readme-review` にある
 
 manual-worthy の定義を**ここへ複製しないこと**。実行時に
-[`.claude/skills/readme-review/SKILL.md`](../readme-review/SKILL.md) を読み、その Step 2（positive /
+[`.claude/skills/readme-review/SKILL.md`](../readme-review/SKILL.ja.md) を読み、その Step 2（positive /
 negative の基準と 4 クラスの閾値）と、`src/features/` 配下なら Step 2b の必須節検査を適用します。
 基準が変われば向こう 1 つを直すだけで、このスキルは自動的に追随します。
 
@@ -110,7 +116,11 @@ git ls-files '*README*.md'
   既に portal に載っています。登録すると二重に公開されます
 - `.claude/**` —— エージェントの設定であって portal の内容ではありません
 
-残りが候補の母集団です。登録済みの `src` 集合を引くと、未キュレーションの集合になります。
+そのうえでミラー（`*.ja.md`）を分けます。canonical が登録済みで、それ自体は未登録のミラーは
+**ミラー**の drift クラスで、レポートへ運びます。それ以外のミラーは canonical に追従するもので、
+それ自体が候補になることはありません。分類も計数もしません。
+
+残った canonical が候補の母集団です。登録済みの `src` 集合を引くと、未キュレーションの集合になります。
 
 ## Step 4. 未キュレーション集合を絞り、分類する
 
@@ -150,6 +160,8 @@ TSDoc を名指しします。内容が弱いのではなく、別の面が持�
    両方への登録が要ります
 3. その section が既に `dst` をどう名付けているかを読み、そのまま倣う。独自の名前を使っている section へ
    機械的な改名を持ち込まないこと
+4. 候補が `README.ja.md` ミラーを持つなら、追加はペアになる。ミラーの `dst` は canonical の `dst` の
+   `.md` を `.ja.md` に置き換えたもの
 
 ## Step 6. 報告する
 
@@ -166,6 +178,9 @@ Portal Manifest Sync 結果
 [構造] N 件
   - ⚠ どの group にも入っていない section (bar) を "Uncategorized" へまとめました
   - layers の baz が meta.subgroups のどの items にも無い → "Other" へ落ちる（警告は出ない）
+
+[ミラー未登録] N 件（canonical は登録済み、ミラーが未登録）
+  - [layers] src/foo/README.ja.md → dst=docs/portal/guides/foo.ja.md
 
 == キュレーション候補 ==
 
@@ -186,18 +201,19 @@ Portal Manifest Sync 結果
 
 ## Step 7. 確認して適用する
 
-このスキルが自ら変更を提案するのは **stale** クラスだけです。
+このスキルが自ら変更を提案するのは **stale** と **ミラー** のクラスだけです。
 
 - 「manifest に残っているが実体のない N 件を削除しますか？」/「すべて削除」「一部のみ削除」「スキップ」
+- 「登録済み canonical のミラー N 件を、同じ section へ対として登録しますか？」/「すべて登録」「一部のみ登録」「スキップ」
 
 stale の削除はたいてい安全ですが、それでも確認します —— リファクタの途中で一時的に消えているだけで、
 エントリを残したい場合があります。
 
 追加は、レポートを読んだユーザが**自分でファイルを名指ししたときだけ**行います。そのうえでファイルごとに、
-推定した section と `dst` を提示し、確認を取ってから適用します。
+推定した section と `dst` を提示し、確認を取ってから適用します —— README がミラーを持つならペアの両エントリを。
 
-YAML は**その場で**編集します —— 対象 section の最後のエントリを見つけ、同じ字下げでその後ろへ 2 行を
-挿入します。文書全体を書き直さないこと。manifest のコメントは ADR 0141 の根拠を持っており、
+YAML は**その場で**編集します —— 対象 section の最後のエントリを見つけ、同じインデントでその後ろへエントリの 2 行
+（ペアなら 4 行。ミラーは canonical の直後）を挿入します。文書全体を書き直さないこと。manifest のコメントは ADR 0141 の根拠を持っており、
 往復させると落ちます。
 
 **`meta.subgroups` を持つ section への追加は、新しい guide id をどれかの subgroup の items へ載せるまで
@@ -237,7 +253,7 @@ manifest の差分を見せて終わります。このスキルはコミット�
 ## 禁止事項
 
 - ❌ どのクラスであれ候補を一括追加すること —— manifest はキュレーション済みで、追加はユーザの判断
-- ❌ 未登録 README を「直すべき drift」として扱うこと
+- ❌ 未登録 README を「直すべき drift」として扱うこと —— 唯一の例外は、登録済み canonical の未登録ミラー
 - ❌ `readme-review` の基準をここへ複製すること —— 実行時に読む
 - ❌ section 一覧・`dst` の命名を焼き込むこと —— いずれも manifest から導く
 - ❌ component README の形をここで導き直すこと —— 定義は `readme-review` の N1 が所有しており、2 つ目の導出を持つと、入った扉によって同じファイルの分類が変わる
@@ -261,7 +277,8 @@ manifest の差分を見せて終わります。このスキルはコミット�
 - [ ] `readme-review` の基準を実行時に読み、ファイルごとに根拠付きで適用した
 - [ ] feature slice を `docs/templates/feature-readme.md` に対して採点した（焼き込んだ一覧ではなく）
 - [ ] section と `dst` を manifest から導いた（創作していない）
-- [ ] stale の削除は確認を取った。どの候補も自動追加していない
+- [ ] ミラーを分けた。登録済み canonical の未登録ミラーは drift として報告した
+- [ ] stale の削除とミラーの登録は確認を取った。どの候補も自動追加していない
 - [ ] manifest はその場で編集し、コメントが残っている
 - [ ] 生成スクリプトを回し直し、`git status --porcelain docs/portal` が何も出さなかった
 - [ ] commit / push をしていない

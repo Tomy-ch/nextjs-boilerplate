@@ -1,127 +1,147 @@
-# ドキュメント運用ポリシー
+# Documentation Operations Policy
 
-ドキュメントの **canonical 言語モデル(EN canonical / JA mirror)/ ADR タクソノミー 4 分類 / `rules.md` の位置づけ / ADR の不可変性・採番ライフサイクル / per-package README 運用 / 運用スキル / 理由の単独所有** を定める。
+Defines the documentation's **canonical language model (EN canonical / JA mirror) / the four-category ADR taxonomy / the position of `rules.md` / ADR immutability and the numbering lifecycle / per-package README operation / operational skills / sole ownership of rationale**.
 
 ## Status
 
 Accepted
 
-## v1.0.0 までの暫定運用
+## Interim Operation until v1.0.0
 
-> **(このセクションは v1.0.0 時には消すこと)**
+> **(Delete this section at v1.0.0)**
 
-v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている。
+While the version is below v1.0.0, the living operation of "Decision 4" below is in effect.
 
-- **ADR 本文は直接上書きしてよい** — Protected Documentation の都度承認を解除する(AGENTS.md「Temporary Operating Rules until v1.0.0」節と対をなす。編集許可のいまの形と最終形は [0152](0152-agents-md-policy.md) が持つ)
-- **経緯・変遷を本文に残さない** — 「当初は X だったが Y に改訂」のような改定履歴・検討経緯を本文に書かない。決定の**現在形**だけを書く。経緯は git 履歴が持つ
-- v1.0.0 到達時に本節を削除する。切替の条件と手順は決定 4 が持ち、本節に依存しない
+- **ADR bodies may be overwritten directly** — the per-change approval of Protected Documentation is lifted (this pairs with the AGENTS.md section "Temporary Operating Rules until v1.0.0"; the current and final form of the edit permissions is owned by [0152](0152-agents-md-policy.md))
+- **Do not leave history or drift in the body** — do not write revision history or deliberation history such as "it was X at first, then revised to Y". Write only the **present form** of the decision. The history is owned by git
+- Delete this section on reaching v1.0.0. The condition and steps of the switch are owned by Decision 4 and do not depend on this section
 
-## 背景
+## Context
 
-本リポジトリのドキュメントは、日本語の読者と、英語の frontmatter や英語のツール出力を前提に動く AI エージェント・ツールの両方に読まれる。canonical を 1 つに定めないと、どちらを直せば正なのかが決まらず、2 つの版が別々に古くなる。
+This repository's documentation is read both by Japanese readers and by AI agents and tools that operate on English frontmatter and English tool output. Without a single canonical, there is no answer to which one to fix to make it correct, and the two versions go stale separately.
 
-設計知識は性質の違う 4 種(decision / exclusion / rule / inventory)を含む。不変の記録と日々強制される制約と漂う目録を同じ文書に同居させると、目録が「根拠」の顔をしたまま腐り、制約が ADR 本文の中に埋もれて機械強制の対象にならない。分類の判定は [`docs/README.md`](../README.md) が持ち、本 ADR はそれぞれの置き場と運用を定める。
+Design knowledge contains four kinds of a different nature (decision / exclusion / rule / inventory). When an immutable record, a constraint enforced daily, and a drifting inventory live in the same document, the inventory rots while still looking like a "basis", and the constraint is buried in an ADR body where it never becomes a target of mechanical enforcement. The classification judgment is owned by [`docs/README.md`](../README.md); this ADR defines where each kind lives and how it is operated.
 
-## 決定
+## Decision
 
-### 1. canonical 言語モデル: 方向は EN、移行は v1
+### 1. Canonical Language Model: English Canonical, Japanese Sibling Mirror
 
-- **最終形は三層**: 英語 canonical(`docs/**/*.md`、`docs/ja/**` と `docs/portal/**`(生成ビュー)を除く)+ 日本語 mirror(`docs/ja/**/*.ja.md`、人間保守の翻訳)+ 生成 portal([0141](0141-portal-operations.md))。AI エージェントは英語 canonical を読み、`*.ja.md` は読まない
-- **移行は v1.0.0 の境界で行う**。**v1.0.0 未満の間は日本語を canonical のまま living 運用**する(AGENTS.md「出力は日本語」と整合)。英語 canonical 化(既存日本語 ADR の英訳 canonical + `docs/ja/` mirror への再編)は、ADR 不可変化と**同じ v1 境界**でまとめて行う
-- **v1.0.0 未満の日本語 canonical は、サフィックス無しのパス(`README.md` 等)に置き `*.ja.md` を作らない**。canonical は常にサフィックス無しのパスであり、`*.ja.md` は翻訳 mirror の名前空間だからである。v1.0.0 でサフィックス無し側を英語へ書き換え、日本語を `*.ja.md` へ移す。**リポジトリ内に英語ドキュメントが既に存在することを、他ドキュメントを英語で新設する根拠にしない**。例外は 2 つだけで、どちらも別の ADR が理由を持つ: `SKILL.md`(Claude Code が frontmatter を英語で解釈するツール要件 — [0154](0154-claude-skills-operations.md))と `AGENTS.md`(エージェントの理解精度 — [0152](0152-agents-md-policy.md))。**この 2 つは v1.0.0 未満でも兄弟の `*.ja.md` を持つ** —— 上の禁止は「日本語 canonical の隣に mirror を作るな」であり、canonical が英語である側には掛からない。読めない規約は守らせられないので、対訳は在るほうが正しい
-- 移行は **`canonicalize-doc` スキル**(EN/JA ペアの生成・同期。`*.ja.md` 命名 + `docs/ja/` 並行ツリー)で実施する。翻訳追従責務 = **canonical を先に更新し翻訳が追従、canonical が常に権威**。知識を探すのも判定を当てるのも書き換えるのも canonical に対して行い、mirror を inline で直さない
-- **ワークフロー定義(`.github/workflows/**` と `.github/actions/**`)のコメントは英語で書く**(日本語規則の例外)。ワークフローは公開リポジトリのうち**外から最も読まれる部分**である —— 上流のバグ報告へ貼られ、最初に手を入れる場所であり、外の読み手が判断に使うハードニングの根拠(SHA ピン / 最小 permissions / fail-closed。[0153](0153-ci-configuration.md))を載せている。加えて英語しか出さない道具の出力(`actionlint` / `shellcheck`)と直に並ぶ。`.github/` のそれ以外(issue / PR テンプレート・`settings/`・道具の設定)は日本語規則に従う —— 定義ではないものは道具の出力と並ばない
-- AGENTS.md Language Rules の「Documentation」はこの方針(方向は EN・v1.0.0 未満は日本語 living・移行は v1)に従う
+- **Three tiers**: the English canonical + the Japanese mirror + the generated portal ([0141](0141-portal-operations.md)). The canonical is the **suffix-less path** and is written in English — `docs/**`, layer READMEs, root documents, and `.claude/**` alike. The Japanese mirror is the sibling `<name>.ja.md` in the same directory: what excludes it is the suffix, not a location, so there is no parallel tree. AI agents read the English canonical and never read `*.ja.md`, except `canonicalize-doc` reading the single pair it was pointed at (AGENTS.md owns that exception)
+- **Every tracked suffix-less `.md` has an English canonical and a sibling mirror, except this closed list**:
 
-### 2. ADR タクソノミー(4 分類)
+  | No mirror | Paths | Reason |
+  | --- | --- | --- |
+  | Loaded as a whole directory | `.claude/agents/*.md` | Claude Code loads every `.md` in that directory as an agent definition, so a sibling `.ja.md` would be read as a duplicate or malformed definition. An agent definition holds only how it takes its input ([0155](0155-claude-skills-development.md)); its criteria live in `prompts/`, which has mirrors |
+  | A one-line include | `CLAUDE.md` | Its whole content is `@AGENTS.md` ([0152](0152-agents-md-policy.md)) |
+  | Japanese output itself | `.github/release/**`, `.github/pull_request_template.md`, `.github/settings/baseline-store/readme-template.md` | They are Japanese output under the AGENTS.md Output Language (release notes, PR bodies, a README generated into another repository), not documentation with a canonical to follow |
+  | Deleted at the v1.0.0 cut | `docs/plan/**`, `docs/adr/BACKLOG.md` | Decision 4, step 4 <!-- boilerplate-only:line --> |
+  | Generated | `docs/portal/**`, files marked `linguist-generated` | A generator writes them from the canonical ([0141](0141-portal-operations.md)) |
 
-分類の意味と判定は [`docs/README.md`](../README.md) が持つ。本 ADR が定めるのは置き場と表記である。
+- **The canonical never links to its mirror** — naming the mirror as plain text is fine. Reading both is reading the same thing twice, and the existence of mirrors is stated once, as the suffix convention, here and in [`docs/README.md`](../README.md). The mirror links back to the canonical
+- **The mirror opens with the sync note on line 1 and carries no frontmatter.** The frontmatter is read and written on the canonical only, so a copy in the mirror would claim to be generated while nothing updates it. The note reads:
 
-| 分類 | 置き場 |
+  ```markdown
+  > **このファイルは [`<name>.md`](<name>.md) の日本語訳です。**
+  > 直接編集しないでください。変更は英語の canonical な `<name>.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+  > エージェントが読むのは `<name>.md` だけです。このファイルは人間が読むための翻訳です。
+  ```
+
+  `SKILL.ja.md` and `AGENTS.ja.md` keep their own three-line note, whose third line says what is loaded as a skill or as the rules
+- **Translation follows the canonical**: update the canonical first and the mirror in the same change; the canonical is always the authority. Searching for knowledge, applying a judgment, and rewriting are all done against the canonical, and the mirror is never fixed inline. Pairs are created and synced with the **`canonicalize-doc` skill**
+- **Mirrors write web and general development terms in katakana or English, not kanji calques** (`インデックス`, not `索引`; `canonical` stays English). `canonicalize-doc` owns the term table
+- **Comments in workflow definitions (`.github/workflows/**` and `.github/actions/**`) are written in English** (an exception to the Japanese rule). Workflows are **the part of a public repository most read from outside** — they get pasted into upstream bug reports, they are the first place someone changes, and they carry the hardening rationale an outside reader uses to judge (SHA pins / minimal permissions / fail-closed; [0153](0153-ci-configuration.md)). They also sit directly beside the output of tools that emit only English (`actionlint` / `shellcheck`). The rest of `.github/` (issue / PR templates, `settings/`, tool configuration) follows the Japanese rule — what is not a definition does not sit beside tool output
+- This model is why "Documentation" is not in the AGENTS.md Language Rules list of Japanese output: the canonical is English, and the Japanese mirror is the translation that follows it
+
+Enforcement: the structure of every existing pair is checked by skill-lint — heading-level parity with the canonical, the sync note on the mirror's first line, no frontmatter in the mirror. doc-links rejects a link from a canonical to a mirror (reason `mirror`). The existence of a mirror is checked only for `SKILL.md` and `AGENTS.md` (skill-lint); for every other canonical it is Prose — **not mechanizable** — an existence check passes an empty mirror, and whether a mirror says what its canonical says is a judgment of meaning.
+
+### 2. ADR Taxonomy (Four Categories)
+
+The meaning and judgment of the categories are owned by [`docs/README.md`](../README.md). This ADR defines where each lives and how it is labelled.
+
+| Category | Location |
 | --- | --- |
 | **decision** | `docs/adr/` |
-| **exclusion** | `docs/adr/`(Status に `Accepted (exclusion)`、decision と混在する場合は `Accepted (一部 exclusion)` と明記。例: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md)、`Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
-| **rule** | **`docs/rules.md`**(下記 3) |
-| **inventory** | ADR には入れない。家は [`docs/reference/`](../reference/README.md) —— コードに追随して変わる目録で、正はコード側、書き換えは対象のコードと同じ変更の中で行う。目録は根拠を持たず、選定の理由は ADR へリンクするだけ |
+| **exclusion** | `docs/adr/` (state `Accepted (exclusion)` in Status, or `Accepted (一部 exclusion)` when mixed with decisions. Examples: `Accepted (exclusion)` = [0121](0121-i18n-strategy.md) / [0130](0130-pwa-strategy.md), `Accepted (一部 exclusion)` = [0082](0082-client-observability.md) / [0110](0110-security-operations.md) / [0131](0131-cookie-consent.md)) |
+| **rule** | **`docs/rules.md`** (3 below) |
+| **inventory** | Not put in ADRs. Its home is [`docs/reference/`](../reference/README.md) — an inventory that changes following the code; the code side is the source of truth, and rewrites happen in the same change as the target code. An inventory holds no rationale and only links to the ADR for the reason of a choice |
 
-- **exclusion** はセットアップ時に直接編集して独自ベースラインを敷けるものとする(supersede-by-new-ADR モデルは setup 後の変更にのみ適用)
-- **ADR の decision から自然に決まるものを、別の ADR で二重に決定しない。** tooling や reference は ADR を要さず、規約に昇格するものだけを ADR 化する
+- An **exclusion** may be edited directly at setup to lay down one's own baseline (the supersede-by-new-ADR model applies only to changes after setup)
+- **Do not decide twice, in a separate ADR, what follows naturally from an ADR's decision.** Tooling and reference need no ADR; only what is promoted to a convention becomes an ADR
 
-#### exclusion は撤回条件を同じ本文に持つ
+#### An exclusion carries its reversal conditions in its own body
 
-**「やらない」と決めたら、再検討を開始する条件をその ADR の本文に書く。** 決定だけを残すと、なぜやらないのかは書かれても**いつなら考え直すのか**が残らず、前提が変わったことに誰も気づけない。条件は決定を持つ ADR が持ち、別の台帳へ出さない —— 出せば決定と条件が別々に古くなり、条件の側は誰からも指されないまま消える。
+**When you decide "we do not do this", write the conditions for reopening the question in that ADR's body.** If only the decision is left, why it is not done gets written but **when to reconsider it** does not, and nobody can notice that the premise has changed. The decision's ADR owns the conditions, and they are not moved out to a separate ledger — if they were, the decision and the conditions would go stale separately, and the conditions would vanish without anything pointing at them.
 
-- **書くのは前提そのものの変化であって、状態ではない。** 道具がその機能を備えたとき / その性質が消えたとき / 標準がそれを定めたとき、が前提の変化である。「検出件数が 0 になった」「いまの実測が速い」「計測の点が低い」はいずれも条件にならない —— 採ると、前提が変わっていないのに決定が動く。**緑は規約が守られている証拠であって、機構が要らない理由ではない**
-- **条件が成立しても自動的には撤回しない。** そこで ADR を読み直して判断し直す。条件は再検討の開始点であって結論ではない
-- **条件を書けない「やらない」は、判断ではなく先送りである**
-- **決着して変更まで出た issue に `wontfix` を付けない。** 後から見た人が「検討されずに放置された」と読む。決定の生存を持つのは ADR の本文であって、issue のラベルではない
+- **What you write is a change in the premise itself, not a state.** The tool gaining that capability / that property disappearing / a standard defining it are changes in the premise. "The number of detections reached 0", "the current measurement is fast", and "the measured score is low" are none of them conditions — adopting them moves the decision while the premise has not changed. **Green is evidence that a rule is being kept, not a reason the mechanism is unnecessary**
+- **When a condition holds, the decision is not withdrawn automatically.** At that point, reread the ADR and judge again. A condition is the starting point of a reconsideration, not its conclusion
+- **A "we do not do this" whose conditions cannot be written is deferral, not judgment**
+- **Do not put `wontfix` on an issue that was settled and led to a change.** A later reader would read it as "left without consideration". What owns whether a decision is still alive is the ADR body, not an issue label
 
-強制: 散文。**寄せられない** —— 書かれた条件が前提の変化なのか状態なのかは、その決定の意味からしか決まらない。
+Enforcement: Prose — **not mechanizable** — whether a written condition is a change in the premise or a state is decided only by the meaning of that decision.
 
-### 3. `rules.md` = rule の集約先(AGENTS.md には積まない)
+### 3. `rules.md` = Where Rules Are Collected (Not Piled into AGENTS.md)
 
-- **`docs/rules.md`** に rule 分類(日常強制される制約)を集約する。AGENTS.md は運用規約の集約ファイル([0152](0152-agents-md-policy.md))であって rule の置き場ではなく、そこへ rule を積むと確実に肥大化する
-- 各ルールには **`> Rationale: [ADR-NNNN](...)` の逆参照リンク**を付け、「ADR = なぜ(決定)/ `rules.md` = 日々強制される制約」の役割分担を体現する
+- The rule category (constraints enforced daily) is collected in **`docs/rules.md`**. AGENTS.md is the file that collects operating rules ([0152](0152-agents-md-policy.md)), not the place for rules, and piling rules into it is sure to bloat it
+- Each rule carries a **`> Rationale: [ADR-NNNN](...)` back-reference link**, embodying the division of roles "ADR = why (the decision) / `rules.md` = the constraints enforced daily"
 
-### 4. ADR の不可変性・採番ライフサイクル
+### 4. ADR Immutability and Numbering Lifecycle
 
-- **v1.0.0 未満(pre-v1)= living document**: ADR 本文を直接上書きし、改定履歴を残さない(pre-v1 なので過去記述の破棄を許容)。この運用は本 ADR が宣言し、各 ADR の Status は写しを持たない
-- **v1.0.0 から immutable**: accepted 後は Status 行のみ編集 / supersede = 本文編集ではなく新 ADR を追加し旧を superseded 化 / **番号は再利用しない**
-- **採番はトピック順ブロック帯**(10 番台 = 主題ブロック。`docs/adr/README.md`)。帯の間の空き番号は将来の挿入用に予約する
+- **Below v1.0.0 (pre-v1) = living document**: ADR bodies are overwritten directly and no revision history is kept (since it is pre-v1, discarding past text is allowed). This ADR declares this operation, and the Status of each ADR holds no copy of it
+- **Immutable from v1.0.0**: after acceptance only the Status line is edited / supersede = add a new ADR and mark the old one superseded, not edit the body / **numbers are never reused**
+- **Numbering uses topic-ordered block bands** (each decade = a subject block; `docs/adr/README.md`). Free numbers between bands are reserved for future insertion
 
-**切替の条件は v1.0.0 のリリースそのもの**である。`release/v1.0.0` を切る変更で行い、ADR ごとに時期をずらさない —— 一部だけを immutable にすると、どの ADR が上書きしてよいのかを Status の外に持つことになる。
+**The condition of the switch is the v1.0.0 release itself**. It is done in the change that cuts `release/v1.0.0`, without staggering the timing per ADR — making only some immutable would mean holding, outside Status, which ADRs may be overwritten.
 
-切替時に行うこと:
+What to do at the switch:
 
-1. 全 ADR 本文から経緯・比較検討・反転の記述を除き、決定の現在形だけにする(禁止事項の「経緯を書かない」を、living 期間に混入した分まで遡って適用する)
-2. 本 ADR の「v1.0.0 までの暫定運用」節と、AGENTS.md の「Temporary Operating Rules until v1.0.0」節を削除する
-3. `.claude/settings.json` の `permissions.deny` に Accepted ADR 本文(`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`)を足す。編集許可の最終形と復元手順は [0152](0152-agents-md-policy.md) が持ち、同じ変更で行う
-4. 決定 1 の canonical 言語の移行(EN canonical + `*.ja.md` mirror)を同じ境界で行う
-5. `docs/plan/**` と `docs/adr/BACKLOG.md` を削除し、その存在を前提にした機械の宣言(剥がしの対象・検査の除外・マーカー行数のベースライン)を同じ変更で外す —— どちらもこの状態を生んだ工程の文書であって、状態そのものではない。決めたことはその時点で ADR に在り、未決の追跡は issue トラッカーへ移っており、残るのは git が既に持つ履歴である <!-- boilerplate-only:line -->
+1. Remove history, comparative deliberation, and reversals from every ADR body, leaving only the present form of the decision (applying the prohibition "do not write history" retroactively, including what crept in during the living period)
+2. Delete this ADR's "Interim Operation until v1.0.0" section and the AGENTS.md section "Temporary Operating Rules until v1.0.0"
+3. Add the Accepted ADR bodies (`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`) to `permissions.deny` in `.claude/settings.json`. The final form of the edit permissions and the restoration steps are owned by [0152](0152-agents-md-policy.md), and are done in the same change
+4. Delete `docs/plan/**` and `docs/adr/BACKLOG.md`, and in the same change remove the machine declarations that assume they exist (strip targets, check exclusions, the marker line-count baseline) — both are documents of the process that produced this state, not the state itself. What was decided is already in an ADR at that point, open tracking has moved to the issue tracker, and what remains is history git already holds <!-- boilerplate-only:line -->
 
-以後の変更は supersede だけになる —— 新 ADR を起票し、旧 ADR は Status 行を `Superseded by NNNN` へ書き換える。
+From then on, the only change is supersede — file a new ADR and rewrite the old ADR's Status line to `Superseded by NNNN`.
 
-強制手段: 3 は Claude Code の `deny`(届かない範囲は [0152](0152-agents-md-policy.md))。immutable な本文が Status 行以外で動いていないことは、`docs/adr/*-*.md` の差分を Status 行に限定する CI 検査として書ける —— 寄せられるが未実装。1 の「経緯かどうか」は文の意味判断で、機械へは寄せられない(レビューが見る)
+Enforcement: 3 is Claude Code's `deny` (for what it does not reach, see [0152](0152-agents-md-policy.md)). That an immutable body does not move except on the Status line can be written as a CI check that limits the diff of `docs/adr/*-*.md` to the Status line — mechanizable but not implemented. Whether something in 1 is "history" is a judgment of a sentence's meaning and cannot be moved to a machine (review checks it)
 
-### 5. per-package README 運用
+### 5. Per-Package README Operation
 
-- 各パッケージ / 層の **README(canonical)を正**とし、監査・実装の実行時読込元とする([0021](0021-frontend-responsibility.md)「層別 README 運用」と接続)
-- README も canonical 言語モデル(上記 1)に従う(v1.0.0 未満は日本語、v1.0.0 から EN canonical + JA mirror)
-- **README は親子で境界を持つ。** 子ディレクトリが自分の README を持つなら、親はその子を 1 行の digest と参照リンクに留め、中身を再帰的に展開しない。展開すると同じ内容が 2 か所に住み、片方が遅れる
-- **README の実ファイル列挙をゲートにしない。** README が並べたファイル名をパースして実体と突合する検査は、README の書き方を縛るだけで腐りを防げない。構造ドリフトは `sync-readme` の判断に委ねる(下記 6)
+- The **README (canonical) of each package / layer is the source of truth**, and is what audits and implementation read at run time (connects to [0021](0021-frontend-responsibility.md)'s rule that each layer's README is the operated source)
+- READMEs also follow the canonical language model (1 above): the README is the English canonical, and its Japanese mirror is the sibling `README.ja.md`
+- **READMEs hold a parent-child boundary.** When a child directory has its own README, the parent keeps that child to a one-line digest and a reference link, and does not expand its contents recursively. Expanding makes the same content live in two places, and one falls behind
+- **Do not gate on a README's listing of actual files.** A check that parses the file names a README lists and reconciles them against what exists only constrains how READMEs are written and does not prevent rot. Structural drift is left to the judgment of `sync-readme` (6 below)
 
-### 6. 運用スキル
+### 6. Operational Skills
 
-- **canonicalize-doc**(EN/JA ペア生成・同期)/ **sync-readme**(構造ドリフト検出・整合)/ **readme-review**(内容の manual-worthy 判定)を、それぞれ翻訳・構造ドリフト・内容レビューの運用に充てる([0155](0155-claude-skills-development.md) 公認の開発系スキル。配置・命名・frontmatter 規約は [0154](0154-claude-skills-operations.md) と共通)
+- **canonicalize-doc** (EN/JA pair generation and sync) / **sync-readme** (structural drift detection and alignment) / **readme-review** (manual-worthiness judgment of content) are assigned to the operation of translation, structural drift, and content review respectively (development skills sanctioned by [0155](0155-claude-skills-development.md); the placement, naming, and frontmatter conventions are shared with [0154](0154-claude-skills-operations.md))
 
-### 7. 理由の単独所有 — 手順の文書は逆参照で済ませる
+### 7. Sole Ownership of Rationale — Procedural Documents Only Back-Reference
 
-- **判断の理由は ADR が単独で持つ。** `.makefiles/README.md` / `.claude/skills/*/SKILL.md` / 層 README が書くのは **何が起きるか(挙動)と、どう使うか(手順)** だけで、なぜそれを選んだかは `> Rationale: [NNNN](...)` の逆参照で済ませる(上記 3 の `rules.md` と同じ形)
-- **SKILL は単体で読まれる前提だが、自己完結させるのは手順であって理由ではない。** エージェントが操作を変えるのに要る事実(fail-closed で落ちる / ロックファイルを書かない / 承認は 1 回分)は SKILL 側に置き、**その挙動を選んだ論証は置かない**。理由は読んでも操作が変わらず、ADR を直したときに追随されないまま残る
-- 判定は「**それを読まなかった読み手が違う操作をするか**」の一問による。しないなら理由であり、置き場は ADR である
+- **The ADR alone owns the reason for a judgment.** `.makefiles/README.md` / `.claude/skills/*/SKILL.md` / layer READMEs write only **what happens (behavior) and how to use it (procedure)**, and settle why it was chosen with a `> Rationale: [NNNN](...)` back-reference (the same form as `rules.md` in 3 above)
+- **A SKILL is assumed to be read on its own, but what it makes self-contained is the procedure, not the reasoning.** The facts an agent needs to change its operation (it fails closed / it does not write the lockfile / an approval covers one run) go in the SKILL, and **the argument for choosing that behavior does not**. Reading a reason does not change the operation, and it stays behind, not followed, when the ADR is fixed
+- The judgment rests on one question: "**would a reader who did not read it operate differently?**" If not, it is a reason, and its place is the ADR
 
-## 禁止事項
+## Prohibitions
 
-- ❌ decision / exclusion を `rules.md` に、rule を ADR 本文に書くこと(タクソノミーの取り違え)
-- ❌ pre-v1 の ADR に改定履歴表を積むこと(living document。直接上書き)
-- ❌ v1 前に ADR を immutable 扱いして supersede-by-new-ADR を強制すること(pre-v1 は living)（強制: 散文 —— **寄せられない**。ADR を immutable として扱うかは運用の判断で、ファイルの形に現れない）
-- ❌ 改定の経緯・比較検討・反転の日付をドキュメント本文に書くこと(決定の現在形のみを書く。経緯は git 履歴が持つ)
-- ❌ `*.ja.md`(将来の日本語 mirror)を AI エージェントの canonical 読込元にすること(v1 以降は英語 canonical を読む)（強制: 散文 —— **一部寄せられる**。Claude Code の読込は `.claude/settings.json` の `permissions.deny` に `Read(**/*.ja.md)` を置けば落とせるが規則は無い。翻訳を同期するスキルの読込との両立と、他のエージェントの読込元は機械で縛れない）
-- ❌ AGENTS.md に rule を積むこと(rule は `rules.md` へ)
-- ❌ 同じ理由付けを ADR と手順の文書(README / SKILL)の両方に書くこと(上記 7。手順側は逆参照だけを持つ)
-- ❌ README のファイル列挙を実体と突合するゲートを置くこと(上記 5)（強制: 持たない —— 採らない決定。README のファイル列挙を突合するゲートは置かれておらず、足す変更はゲートの追加として diff に現れる）
+- ❌ Writing a decision / exclusion in `rules.md`, or a rule in an ADR body (confusing the taxonomy)
+- ❌ Piling a revision history table onto a pre-v1 ADR (living document; overwrite directly)
+- ❌ Treating ADRs as immutable before v1 and forcing supersede-by-new-ADR (pre-v1 is living) (Enforcement: Prose — **not mechanizable**. Whether ADRs are treated as immutable is an operational judgment and does not show in the shape of the files)
+- ❌ Writing the history of a revision, comparative deliberation, or the dates of reversals in a document body (write only the present form of the decision; the history is owned by git)
+- ❌ Making `*.ja.md` (the Japanese mirror) the canonical source an AI agent reads (agents read the English canonical) (Enforcement: Prose — **partly mechanizable**. Claude Code's reading could be blocked by putting `Read(**/*.ja.md)` in `permissions.deny` of `.claude/settings.json`, but there is no rule. Reconciling it with the reading done by the skill that syncs translations, and the sources other agents read, cannot be constrained by a machine)
+- ❌ Piling rules into AGENTS.md (rules go to `rules.md`)
+- ❌ Writing the same reasoning in both an ADR and a procedural document (README / SKILL) (7 above; the procedural side holds only the back-reference)
+- ❌ Placing a gate that reconciles a README's file listing against what exists (5 above) (Enforcement: none — a decision not to adopt. No gate reconciling README file listings is in place, and a change adding one would show in the diff as a new gate)
 
-## 補足
+## Notes
 
-- 本 ADR は [0141](0141-portal-operations.md)(portal 運用)の親決定であり、canonical → portal 生成の三層戦略の上流に立つ
+- This ADR is the parent decision of [0141](0141-portal-operations.md) (portal operations), and stands upstream of the three-tier strategy of canonical → generated portal
 
-## 関連 ADR
+## Related ADRs
 
-- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md 構成方針(運用規約の集約ファイル。rule の置き場は `rules.md` に分ける)
-- [0155-claude-skills-development.md](0155-claude-skills-development.md) — Claude スキル運用・開発系(canonicalize-doc / readme-review / sync-readme / portal-manifest-sync の公認。配置・命名・frontmatter は [0154-claude-skills-operations.md](0154-claude-skills-operations.md) と共通)
-- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — 層別 README 運用(per-package README = 正)
-- [0141-portal-operations.md](0141-portal-operations.md) — 生成 portal(本 ADR の三層戦略の第 3 層)
-- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — exclusion ADR の実例(`Accepted (exclusion)`)
-- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — 一部 exclusion ADR の実例(`Accepted (一部 exclusion)`)
-- [`docs/README.md`](../README.md) — 4 分類の判定と行き先
-- [`docs/reference/README.md`](../reference/README.md) — inventory の家(コードに追随する目録の契約)
+- [0152-agents-md-policy.md](0152-agents-md-policy.md) — AGENTS.md composition policy (the file that collects operating rules; the place for rules is split off into `rules.md`)
+- [0155-claude-skills-development.md](0155-claude-skills-development.md) — Claude skill operations, development skills (sanctions canonicalize-doc / readme-review / sync-readme / portal-manifest-sync; placement, naming, and frontmatter shared with [0154-claude-skills-operations.md](0154-claude-skills-operations.md))
+- [0021-frontend-responsibility.md](0021-frontend-responsibility.md) — per-layer README operation (per-package README = source of truth)
+- [0141-portal-operations.md](0141-portal-operations.md) — the generated portal (the third tier of this ADR's three-tier strategy)
+- [0121-i18n-strategy.md](0121-i18n-strategy.md) / [0130-pwa-strategy.md](0130-pwa-strategy.md) — examples of exclusion ADRs (`Accepted (exclusion)`)
+- [0082-client-observability.md](0082-client-observability.md) / [0110-security-operations.md](0110-security-operations.md) — examples of partial-exclusion ADRs (`Accepted (一部 exclusion)`)
+- [`docs/README.md`](../README.md) — the judgment and destinations of the four categories
+- [`docs/reference/README.md`](../reference/README.md) — the home of inventory (the contract of an inventory that follows the code)

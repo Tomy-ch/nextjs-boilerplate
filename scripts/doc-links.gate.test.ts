@@ -6,7 +6,7 @@ import { findBrokenDocLinks, formatBrokenDocLinks } from "./lib/doc-links";
 import { collectMarkdownFiles } from "./lib/markdown-files";
 
 /**
- * 文書を指す相対リンクが、実在するかを見るゲート。
+ * 文書を指す相対リンクが実在し、canonical から翻訳のミラーを指していないかを見るゲート。
  *
  * @remarks
  * 検査の中身は {@link findBrokenDocLinks} が持ち、ここはツリーの走査だけを担う。ゲートを
@@ -80,7 +80,7 @@ const MINIMUM_MARKDOWN = 200;
 describe("文書リンクの解決", () => {
   // ----- 正常系 -----
   it(
-    "ソースのコメントから文書を指す相対リンクは、すべて実在する",
+    "ソースのコメントから文書を指す相対リンクは、すべて実在し、ミラーを指さない",
     () => {
       const files = SCAN_ROOTS.flatMap((root) =>
         [...walk(join(REPOSITORY_ROOT, root))].map((file) => relative(REPOSITORY_ROOT, file)),
@@ -93,7 +93,7 @@ describe("文書リンクの解決", () => {
   );
 
   it(
-    "Markdown 本文の相対リンクは、すべて実在する",
+    "Markdown 本文の相対リンクは、すべて実在し、canonical からミラーを指さない",
     () => {
       const files = collectMarkdownFiles(REPOSITORY_ROOT);
 

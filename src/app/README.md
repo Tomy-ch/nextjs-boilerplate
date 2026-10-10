@@ -24,12 +24,12 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   描く時点の違いだけで分かれているとき、導線の顔ぶれもここに 1 つ持つ —— 役割で出し分ける導線は
   含めず、出す・出さないの判定を持つ器が自分で足す。テストは `unit` として扱う
 - **器の隣に置く、主体で決まる導線の穴**。役割で出し分ける導線は、session を読む Server Component を
-  `Suspense` の穴として器へ差す（判定の置き方は [docs/rules.md](../../docs/rules.md)「認可と入口」）。
+  `Suspense` の穴として器へ差す（判定の置き方は [docs/rules.md#authorization](../../docs/rules.md#authorization)）。
   置き場が feature ではなく器の隣なのは、`adapters/server/auth` を引けるのが `app` と `adapters` だけ
   だからである。器の側で session を読むと、その器を通る画面がすべて往復を待ってから 1 バイト目を返す。
   テストは描画の状態（出すとき / 出さないとき）で割る
 - **複数の error 境界が共有する組み立て**（`boundary-feedback.ts`）。境界が受け取った失敗を表示できる形と
-  再試行の導線へ組む 1 か所で、版が揃わない失敗（[docs/rules.md](../../docs/rules.md)「フォームと送信」）
+  再試行の導線へ組む 1 か所で、版が揃わない失敗（[docs/rules.md#forms](../../docs/rules.md#forms)）
   の扱いをここだけが持つ。境界ごとに書くと、その扱いが 1 か所だけ古くなる。テストは `unit` として扱う
 - **並行 route の slot**（`@<name>/`）。page から layout へ props は渡せないので、画面ごとに違う値を器へ
   届ける橋は slot になる（現在地までの階層など）。`default.tsx` を置き、階層を持たない画面にも空を返す
@@ -114,7 +114,7 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
 ```
 
 - **器は `params` / `searchParams` を await しない。** Promise のまま穴へ渡し、穴の内側で解く。器で
-  待つと、待っている間は殻すら配れない（[docs/rules.md](../../docs/rules.md)「描画とキャッシュ」）
+  待つと、待っている間は殻すら配れない（[docs/rules.md#rendering](../../docs/rules.md#rendering)）
 - **識別子を契約の型へ通す**（`model` の `toXxxId`）**のはこの層の仕事**で、feature は通した値を受け取る
 - **実時計は穴の内側で `connection()` を待ってから読む**（`config/clock`）。プリレンダーの最中には
   値が定まらない
@@ -157,7 +157,7 @@ feature 側の `page-content` / `view` / `ui/skeleton` の分担は [features/RE
 - **`global-error.tsx` は inline style だけで装飾する。** この境界が出るのは root layout ごと壊れたときで、
   `globals.css` も design token も Provider も当てにできない。class に頼ると文字が読めない画面になり得る
 - **`not-found.tsx` は表示だけを持つ。** 文言はカタログから採り、戻る導線は上の階層へ 1 本だけ出す。
-  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md](../../docs/rules.md)「認可と入口」）。
+  「他人のもの」と「存在しないもの」は区別しない（[docs/rules.md#authorization](../../docs/rules.md#authorization)）。
   **`notFound()` を呼ぶ画面は、器の内側に `not-found.tsx` を持つ segment の配下に置く。** `notFound()`
   は最も近い祖先の `not-found.tsx` が受け、その segment 以上の layout が残る —— 器の内側に無ければ器より
   上（既定では root）の `not-found.tsx` が受け、route group の器ごと外れて導線もパンくずも消える
@@ -331,14 +331,14 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 | `forbidden: direct-fetch` — route segment は `fetch` も `adapters` の取得の口も呼ばない。取得は feature が持つ。例外は入口の保護（`adapters/server/auth` の `verifySession()` を呼び、`model` の述語で判定し、`redirect()` する）だけ。Route Handler も生の `fetch` を持たず `adapters` を通す | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス / [0025](../../docs/adr/0025-app-layer-elements.md) element 表と禁止事項 / [api/README.md](api/README.md)「受け入れないもの」 |
 | route segment の `observability` は計装の mount だけ —— root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す。span を作る・記録する用途で引かない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクスの注記 / [0025](../../docs/adr/0025-app-layer-elements.md)「import 先の集合として書けないもの」。機械は届かない（`route-segment` は要素として宣言していない） |
 | route segment が直に読む `config` は、Next.js の規約が route segment に置くことを要求する値だけ（metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。それ以外の `*.server.ts` を route segment が import しない。本番の束に載らない `page.dev.tsx` の直読は 0025 が記録する既知の形で、対象外 | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) Enforcement / [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [config/README.md](../config/README.md)「運用」。機械は届かない |
-| Server Action（`src/app/**/actions.ts`）は、export する action ごとに内側で `adapters/server/auth` の断言を呼ぶ。描画した画面が保護されていることに依拠しない | 呼び出しが無ければ violation。呼んでいるが、役割・所有の判定として足りているかは suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」/ [docs/rules.md](../../docs/rules.md)「認可と入口」 |
+| Server Action（`src/app/**/actions.ts`）は、export する action ごとに内側で `adapters/server/auth` の断言を呼ぶ。描画した画面が保護されていることに依拠しない | 呼び出しが無ければ violation。呼んでいるが、役割・所有の判定として足りているかは suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md)「Server Action の置き場」/ [docs/rules.md#authorization](../../docs/rules.md#authorization) |
 | Server Action は `server config`（`*.server.ts`）を読まない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0025](../../docs/adr/0025-app-layer-elements.md) 禁止事項と「この表のどこまでが機械で強制されるか」。機械は `config` を層の粒度でしか見ず、この区別は届かない |
-| Route Handler は中継と入出力の検証だけを持つ薄い proxy で、Node runtime に留まる。分類から status と本文を組むのは `adapters/server/http` の口で、handler の中で組み立てない | runtime の宣言を変えていれば violation。応答を handler の中で組み立てていれば suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) element 表 / [docs/rules.md](../../docs/rules.md)「層境界と依存」/ [api/README.md](api/README.md)「失敗の返し方」 |
-| route segment の器（`layout` / `page` / `template` / `default`）に `"use client"` を置かない | violation | [docs/rules.md](../../docs/rules.md)「層境界と依存」。機械: ESLint `no-restricted-syntax`（`eslint.config.ts`） |
+| Route Handler は中継と入出力の検証だけを持つ薄い proxy で、Node runtime に留まる。分類から status と本文を組むのは `adapters/server/http` の口で、handler の中で組み立てない | runtime の宣言を変えていれば violation。応答を handler の中で組み立てていれば suggestion | [0025](../../docs/adr/0025-app-layer-elements.md) element 表 / [docs/rules.md#layers](../../docs/rules.md#layers)/ [api/README.md](api/README.md)「失敗の返し方」 |
+| route segment の器（`layout` / `page` / `template` / `default`）に `"use client"` を置かない | violation | [docs/rules.md#layers](../../docs/rules.md#layers)。機械: ESLint `no-restricted-syntax`（`eslint.config.ts`） |
 | 横断 UI と Provider を mount するのは `layout.tsx` だけで、mount は配置だけを意味する。`page.tsx` は feature を呼ぶだけで、layout は hook を呼んでデータを組まない | violation | [0026](../../docs/adr/0026-layout-shell-mount.md) 禁止事項 / この README「運用」 |
 | segment config（`dynamic` / `revalidate` 等）を持たない。殻を配れない画面だけが `export const instant = false` を名乗る | violation | この README「この層が持つ判断」/ [0041](../../docs/adr/0041-cache-components-decision.md) |
 | metadata は Metadata API で宣言し、`<head>` の手書きと `next/head` を使わない。各 segment は「metadata の土台と差分」の表が定める差分を宣言する | 手書きの `<head>` / `next/head` は violation。表が求める差分（`alternates.canonical`、認証の要る画面の `robots`）の欠落は suggestion | この README「metadata の土台と差分」「運用」/ [0044](../../docs/adr/0044-seo-metadata-strategy.md) |
-| 器（`page.tsx` の default export）は `params` / `searchParams` / cookie / 実時計を await せず、穴（`Suspense` の内側の async component）で解く。器で待つのは `instant = false` を理由つきで名乗った画面だけ | 宣言なしに器で待っていれば violation | この README「殻と穴の定型」/ [docs/rules.md](../../docs/rules.md)「描画とキャッシュ」/ [0041](../../docs/adr/0041-cache-components-decision.md)。機械: `scripts/render-mode` が宣言と prerender の結果を突き合わせる |
+| 器（`page.tsx` の default export）は `params` / `searchParams` / cookie / 実時計を await せず、穴（`Suspense` の内側の async component）で解く。器で待つのは `instant = false` を理由つきで名乗った画面だけ | 宣言なしに器で待っていれば violation | この README「殻と穴の定型」/ [docs/rules.md#rendering](../../docs/rules.md#rendering)/ [0041](../../docs/adr/0041-cache-components-decision.md)。機械: `scripts/render-mode` が宣言と prerender の結果を突き合わせる |
 | `error.tsx` / `not-found.tsx` / `global-error.tsx` は文言を `errors` のカタログ（または `boundary-feedback.ts`）から採り、`error.message` を出さず、自分で組まない | `error.message` を描く、境界の中で文言を組む、はいずれも violation | この README「失敗と不在の面の作法」/ [0080](../../docs/adr/0080-error-handling.md) の、エラーの特殊ファイルを正規化済みの文言だけを出す薄い境界にする決定。機械は届かない —— 各境界のテスト（生の本文を出さないこと）が固定する範囲まで |
 
 ## 関連する ADR

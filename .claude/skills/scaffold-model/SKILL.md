@@ -59,7 +59,8 @@ reported.
 | Sibling modules in `src/model/` | The local shape — how a brand and its constructor are written, how a union is discriminated |
 | [`type-design-reviewer`](../../agents/type-design-reviewer.md) | Scores the written types; its criteria are `.claude/skills/impl-review/prompts/type-design.md` |
 
-Writes one module under `src/model/` and, when the kernel README keeps a module table, that table's row.
+Writes one module under `src/model/` and, when the kernel README keeps a module table, that table's row
+(then its `README.ja.md` mirror, through `canonicalize-doc`).
 Nothing else.
 
 ## Step 0. Resolve the subject
@@ -121,7 +122,8 @@ Write exactly what the plan names, and nothing the plan does not:
   stopping point owned by [ADR 0004](../../../docs/adr/0004-library-management.md).
 
 Add the module's row to the README's module table when the README keeps one, in the table's own
-phrasing.
+phrasing — in English, since the README is the canonical. Then chain `canonicalize-doc` to sync its
+`README.ja.md` mirror in the same change.
 
 ## Step 4. Score the types with `type-design-reviewer`
 
@@ -171,7 +173,7 @@ findings with what was applied and what was left, and the README gaps found. Do 
 - [ ] Name, referrers and shape resolved; none of them invented
 - [ ] Acceptance decided from the README; stopped when it refused
 - [ ] Plan answers every audit row; README gaps reported; plan confirmed
-- [ ] Module written without comments, within `imports-allowed`; module table row added when one exists
+- [ ] Module written without comments, within `imports-allowed`; module table row added when one exists, and the README mirror synced
 - [ ] `type-design-reviewer` ran on the written files; findings applied only on approval
 - [ ] `scaffold-test` chained (standalone) or left to `scaffold-slice`
 - [ ] `/settle-comments` run (standalone) or left to `scaffold-slice`; nothing committed

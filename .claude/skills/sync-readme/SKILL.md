@@ -29,15 +29,10 @@ This skill **MUST call `AskUserQuestion` immediately after invocation** to confi
 
 Do NOT read the file tree or write any file until these are confirmed.
 
-This skill always operates on the **canonical** README — the file on the suffix-less path. ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) owns which language that is and whether
-a `*.ja.md` may sit beside it; read it rather than assuming. While it keeps Japanese canonical
-there and forbids the sibling, a README in this repository has **no translation sibling**: `find src docs -name '*.ja.md'` returns
-nothing. Do not create one, and do not chain into `canonicalize-doc` to "re-sync" a file that must
-not exist.
-
-If a `README.ja.md` ever does turn up next to a `README.md`, that is a finding to report, not a pair
-to sync — 0140 decides which side survives, and this skill does not.
+This skill always operates on the **canonical** README — the English file on the suffix-less path
+(ADR [0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model).
+Never read or edit the sibling `README.ja.md` mirror here: it is synced afterwards by
+`canonicalize-doc` (Step 6), and a mirror is never an entry of the README that sits beside it.
 
 ## How the Sync Works
 
@@ -64,11 +59,12 @@ Compare the README's documented entries against the actual entries:
 - Hidden files/dirs (`.git`, `.DS_Store`, `.gitkeep`, etc.) unless the README clearly documents them.
 - Build artifacts and ignored files (anything matched by `.gitignore` at or above the scope root).
 - Generated files (the paths `.gitattributes` marks `linguist-generated`).
+- Japanese mirrors (`*.ja.md`) — each one follows its canonical and is not an entry of its own.
 - Nested directory internals when that directory has its own README.
 
 ## Repo Conventions
 
-- The canonical README is `README.md` on the suffix-less path; ADR 0140 owns its language. There is no co-located translation, and this skill does not create one.
+- The canonical README is the English `README.md` on the suffix-less path; its Japanese mirror is the sibling `README.ja.md` (ADR 0140). Prose written into the canonical is English.
 - Preserve existing section ordering and styling (tables vs lists vs prose) unless the user explicitly asks to restructure.
 - Preserve existing prose that is still accurate. Do not rewrite for stylistic reasons — minimize churn.
 
@@ -129,15 +125,12 @@ Rewrite the README so it reflects reality:
 - Confirm no real entry (other than ignored ones) is missing.
 - Confirm no nested README was inadvertently expanded.
 
-## Step 6. Confirm there is no translation to sync
+## Step 6. Sync the mirror
 
-There is nothing to chain into while 0140 forbids a `*.ja.md` beside a README: the file just
-written **is** the canonical. Check that the update did not produce one, and report the canonical as
-updated standalone.
-
-The one place this repository does keep a pair is `.claude/skills/<name>/SKILL.md` + `SKILL.ja.md`,
-which exists because Claude Code parses the frontmatter in English (ADR 0154). That pair belongs to
-`manage-skill`, not here.
+After the canonical README is written, chain into `canonicalize-doc` with direction
+`translation-from-canonical` for its sibling `README.ja.md` when one exists, so the mirror follows in
+the same change. When the README has no mirror yet and its path is not on 0140 Decision 1's
+no-mirror list, offer the same chain to create it.
 
 ## Step 7. Format the written files
 

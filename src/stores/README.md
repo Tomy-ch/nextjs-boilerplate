@@ -83,7 +83,7 @@ test-requirement: unit
 
 - cookie の属性を用途ごとに明示すること、`HttpOnly` を付けられない帰結、綴りを `model` の 1 口に寄せること、
   biome の `noDocumentCookie` をファイル単位の overrides で外す宣言は
-  [`docs/rules.md`](../../docs/rules.md)「データ分類と機微情報」のアプリ cookie の項が持つ
+  [`docs/rules.md#data-classification`](../../docs/rules.md#data-classification)のアプリ cookie の項が持つ
 - **`secure` は `location.protocol === "https:"` のときだけ付ける。** 常に付けると `http://localhost` の開発で
   保存されず、選んでも次の描画でまた尋ねる
 - 綴りの解釈（読めない値をどちらへ倒すか、版の突合）は `model` に置き、store は読み書きの口だけを持つ

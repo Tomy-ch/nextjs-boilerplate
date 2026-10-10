@@ -42,7 +42,7 @@ const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
  * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も届き得る
  * ため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態になります。
  *
- * 読み方はスキーマが持ちます（`docs/rules.md`「URL と条件」の「`searchParams` は zod で検証する」）。
+ * 読み方はスキーマが持ちます（`docs/rules.md#url`の「`searchParams` は zod で検証する」）。
  * 1 つしか受け取らない条件が繰り返されていたら未指定として扱い、複数を選べる条件だけが並びのまま残ります。
  *
  * @param params - 生の searchParams

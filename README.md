@@ -56,7 +56,7 @@ coverage-exclusions:
   持つ置き場にあります。自分の置き場を用意するまで撮り直しは通りません（下記）。理由と運用は
   [`vrt/README.md`](vrt/README.md)
 
-詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.ja.md) です。
+詰まったときの引き先は [`.claude/skills/repo-ops`](.claude/skills/repo-ops/SKILL.md) です。
 
 ## 前提ツール
 
@@ -138,7 +138,7 @@ make help                       # 全 make ターゲットとその説明
 ここを起点に、目的のトピックを所有するリンクを辿ってください。
 
 - [docs/get-started/](docs/get-started/) — テンプレートから作成して動かすまでの手順（順序と、人手が要る箇所）
-- [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルール。規約そのものは持たず、どの文書が何を所有するかを指します（日本語訳は [AGENTS.ja.md](AGENTS.ja.md)）
+- [AGENTS.md](AGENTS.md) — AI コーディングエージェント向けの運用ルール。規約そのものは持たず、どの文書が何を所有するかを指します（日本語訳は `AGENTS.ja.md`）
 - [docs/adr/README.md](docs/adr/README.md) — アーキテクチャ決定記録（ADR）の台帳。1 行要約つきの全件一覧はここだけにあります
 - [docs/rules.md](docs/rules.md) — すべての変更を縛る実装規約（層境界 / データ分類 / フォーム / コメント / 作業の進め方）
 - [docs/design/](docs/design/README.md) — 個別のケースをどう決めるかの基準（描画 / データ取得 / 認証 / 可観測性ほか）

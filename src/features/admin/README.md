@@ -114,7 +114,7 @@ app 層にあるためで、理由は「Action 戻り値契約」に書いてあ
 | --- | --- |
 | `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けの器からの入口が引く |
 | `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
-| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)「URL と条件」） |
+| `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.md#url)） |
 | `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
 | `summary-cards.ts` | 合成済みの集計を数値カードの並びへ写す。母集団の断りを値に添える |
 | `analytics/ranking-rows.ts` | 売れ筋の表に並べる 1 行。順位は契約が返した並びの位置 |

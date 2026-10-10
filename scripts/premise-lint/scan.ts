@@ -6,7 +6,7 @@
 // あり、ここが別の解釈を持つと**検査だけが通って本番の剥がしで残る**形が生まれる。
 
 import { stripMarkers } from "../setup/lib/markers.js";
-import { PREMISE_SHAPES } from "./vocabulary.js";
+import { PREMISE_SHAPES, type PremiseShape } from "./vocabulary.js";
 
 /** 見つけた前提 1 件。 */
 export type Premise = {
@@ -64,6 +64,52 @@ export function survivingText(content: string): string {
   }, content);
 }
 
+/** 英語の語を組む文字。綴りの直前がこれなら、より長い語の途中に居る。 */
+const WORD_CHARACTER = /\w/;
+
+/**
+ * 綴りが語の頭から始まる位置に現れるか。
+ *
+ * @param haystack - 探す先。
+ * @param needle - 探す綴り。
+ * @returns 直前が語の文字でない位置に 1 度でも現れれば true。
+ */
+function appearsAtWordStart(haystack: string, needle: string): boolean {
+  for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
+    if (!WORD_CHARACTER.test(haystack.charAt(at - 1))) return true;
+  }
+
+  return false;
+}
+
+/**
+ * 綴りがその行に現れるか。
+ *
+ * @remarks
+ * **英語の対訳だけは大文字小文字を区別しません。** 文頭に来ると先頭が大文字になり
+ * （`This boilerplate …`）、区別すると同じ前提が文の位置だけで素通りします。
+ *
+ * **英語の対訳は語の頭からだけ当てます。** 語の途中から当てると、否定や再帰の接頭辞が付いた
+ * 別の語（`unbundled sample`）を前提として挙げます。語の末尾は区切りません —— 英語の屈折は
+ * 接尾辞で起きるので、末尾を区切ると複数形（`bundled samples`）の前提が素通りします。
+ *
+ * 日本語の側に並ぶ綴りは区切りを見ません。和文には語の区切りが無く、ASCII の綴り（`BACKLOG` /
+ * `docs/plan`）は大小を区別して当てます。どれも固有の名前で、小文字の一般語（`a backlog`）に
+ * 当てると前提ではない散文を挙げます。
+ *
+ * @param line - 剥がした後の本文の 1 行。
+ * @param phrase - 探す綴り。
+ * @param shape - その綴りを持つ形。英語の対訳かどうかをここから引く。
+ * @returns 現れれば true。
+ */
+function appears(line: string, phrase: string, shape: PremiseShape): boolean {
+  const english = shape.pairs.some((pair) => pair.en.includes(phrase));
+
+  return english
+    ? appearsAtWordStart(line.toLowerCase(), phrase.toLowerCase())
+    : line.includes(phrase);
+}
+
 /**
  * 本文から前提を拾う。
  *
@@ -80,7 +126,7 @@ export function findPremises(content: string, file: string): readonly Premise[] 
   for (const line of survivingText(content).split("\n")) {
     for (const shape of PREMISE_SHAPES) {
       for (const phrase of shape.phrases) {
-        if (line.includes(phrase)) {
+        if (appears(line, phrase, shape)) {
           found.push({ file, shape: shape.name, why: shape.why, phrase, text: line.trim() });
         }
       }

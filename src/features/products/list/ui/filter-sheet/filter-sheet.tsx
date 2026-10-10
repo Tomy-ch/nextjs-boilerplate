@@ -78,7 +78,7 @@ function countActive(selection: ProductListSelection): number {
  * 変われば下書きはそちらへ揃うので、確定した後に古い選択が残ることはありません。
  *
  * 開く操作を画面下端に固定するのは、一覧を読み進めた先でも絞り込みへ戻れるようにするためです
- * （`docs/rules.md`「レイアウトと帯」）。
+ * （`docs/rules.md#layout`）。
  *
  * @param props - 選べる分類、その上限、いま効いている条件。
  */

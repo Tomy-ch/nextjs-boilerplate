@@ -26,18 +26,20 @@
 ## 評価基準の導出根拠
 
 評価パターンはハードコードした理論ではなく、`docs/portal/manifest.yaml` に現在登録されているエントリ
-——「これは手引きに載る」の唯一の実例——から読み取ったものです。その 16 件の共通点:
+——「これは手引きに載る」の唯一の実例——から読み取ったものです。登録済みエントリの英語の canonical で
+測った（散文はコードブロック・テーブル・見出しを除いて数える）共通点:
 
-- 見出しは日本語で、その多くが分類名ではなく主張そのものになっている ——
-  「値の分類は取得の口が宣言する」「なぜ別パッケージなのか」「面と文字で明度を分ける」
-- H2 頻度トップ: 関連する ADR (14), 運用 (12), 受け入れるもの (10), 受け入れないもの (10), 構成 (7),
-  テストの責務 (5), モジュール (2)
+- 見出しの多くが分類名ではなく主張そのものになっている ——
+  "The fetch endpoint declares the value classification"、"Why a separate package"、
+  "Separate lightness by surface and text"
+- H2 の上位は Related ADRs、Operations、What Belongs Here / What Does Not Belong Here、Structure、
+  Test Responsibilities、Modules
 - 18/19 がテーブルを使う。**Mermaid は 0/19** —— 図はここでは加点であって前提ではない
-- 散文の量: 中央値 5442 字、最小 822 字、最大 21771 字（空白を除く字数。P7 の下限 800 字はこの最小値であって、丸めた数ではない）
+- P7 の散文の下限は登録済みの最小値であって、丸めた数ではない —— このファイルの数値を読まず、実行時に導く（Step 1）
 - H2 は平均 8.6 個
 
 manifest が大きく変わったらこの数値を取り直します。ADR
-[0141](../../../docs/adr/0141-portal-operations.md) は登録済み集合を manual-worthy の基準としているので、
+[0141](../../../docs/adr/0141-portal-operations.ja.md) は登録済み集合を manual-worthy の基準としているので、
 基準が manifest に追随するのであって逆ではありません。
 
 ### 意図的に manual-worthy でない 2 つの形
@@ -66,10 +68,10 @@ Step 2 のキーワード集合は、`portal-manifest-sync` の実行で false-n
 
 `AskUserQuestion`:
 
-1. **対象 README パス** — canonical 版。canonical は接尾辞なしのパスにあり、その言語は [0140](../../../docs/adr/0140-documentation-operations.md) が持つ。したがって `README.md` を対象にし、`.ja.md` は例外扱い。引数 / 直近メッセージにあれば候補として提示
+1. **対象 README パス** — レビューする canonical の README: サフィックス無しのパスの英語の `README.md`（[0140](../../../docs/adr/0140-documentation-operations.ja.md)）。その `README.ja.md` ミラーは対象にしない。引数 / 直近メッセージにあれば候補として提示
 2. **出力詳細度** — 簡潔スコアカード（デフォルト）/ パターン別フル breakdown
 
-`*.ja.md` パスが渡された場合は、ja を直接 review するか canonical sibling に切り替えるか確認。
+`*.ja.md` パスが渡された場合は、canonical の兄弟へ切り替え、その旨を伝える —— ミラーは canonical に追従するもので、単独では判定しない。
 
 ターゲット確定前にファイルを読まない。
 
@@ -81,7 +83,8 @@ README 全文を読む。抽出:
 - ` ```mermaid ` ブロックの有無 / 件数
 - テーブル (`|...|`) の有無
 - 散文の字数（コード / テーブル / 見出しを除く）
-- 翻訳 sibling (`README.ja.md`) の有無と sync convention 準拠
+- この実行での P7 の下限: `docs/portal/manifest.yaml` に登録されたエントリの散文の量のうち最小のもの。
+  それぞれ英語の canonical で同じ方法で測る。以前の実行やこのファイルの数値を使い回さない
 
 ## Step 2. 各観点の評価
 
@@ -91,13 +94,13 @@ H2 見出しテキストだけでなく、各セクションの内容を読ん�
 
 | # | 観点 | シグナル |
 | --- | --- | --- |
-| P1 | **役割 / 境界** | `受け入れるもの` / `受け入れないもの` の対、または `役割` / `境界` / `なぜ〜なのか`。「受け入れない」側が、外した仕事の行き先を名指ししていること（外したとだけ書いていないこと） |
-| P2 | **設計判断** | 判断を論じた節。主張そのものを見出しにしたもの（「値の分類は取得の口が宣言する」）や `設計` / `トリガ戦略` / `切替の軸` / `この層が持つ判断`。ルールの列挙ではなく理由 |
-| P3 | **規約 / 禁止** | `規約` / `配置・命名` / `TSDoc の基準` / `Storybook の表示規約`、または許可と禁止を突き合わせた表 —— 読み手を拘束できる形の指示 |
-| P4 | **実行機序** | `実行機序` / `実行機序と評価タイミング` / `生成と検査` / `Config の配線` —— 何がいつ動き、何が引き金かを書いている |
-| P5 | **配下への索引** | `構成` / `モジュール` / `〜一覧` / `〜目録` / `置いている hook` —— 配下を持つディレクトリについて |
-| P6 | **運用** | `運用`（登録済み集合で最頻の見出し）に実のある内容: 変更後に何を回すか、何が壊れるか、何を見るか |
-| P7 | **散文の量** | 散文 800 字以上（コードブロック / テーブル / 見出しを除く）。語数ではなく字数 —— 散文が日本語のため |
+| P1 | **役割 / 境界** | `What Belongs Here` / `What Does Not Belong Here` の対、または `Role` / `Boundaries` / `Why …`。「受け入れない」側が、外した仕事の行き先を名指ししていること（外したとだけ書いていないこと） |
+| P2 | **設計判断** | 判断を論じた節。主張そのものを見出しにしたもの（"The fetch endpoint declares the value classification"）や `Design` / `Trigger Strategy` / `Axis of Switching` / `Decisions This Layer Owns`。ルールの列挙ではなく理由 |
+| P3 | **規約 / 禁止** | `Conventions` / `Placement and Naming` / `TSDoc Criteria` / `Storybook Display Conventions`、または許可と禁止を突き合わせた表 —— 読み手を拘束できる形の指示 |
+| P4 | **実行機序** | `Execution Mechanics` / `Execution Mechanics and Evaluation Timing` / `Generation and Checks` / `Config Wiring` —— 何がいつ動き、何がトリガーかを書いている |
+| P5 | **配下へのインデックス** | `Structure` / `Modules` / `… List` / `… Inventory` / `Hooks Placed Here` —— 配下を持つディレクトリについて |
+| P6 | **運用** | `Operations`（登録済み集合で最も多い見出しの 1 つ）に実のある内容: 変更後に何を回すか、何が壊れるか、何を見るか |
+| P7 | **散文の量** | 散文が Step 1 で導いた下限以上（コードブロック / テーブル / 見出しを除く）。英語の canonical で測る |
 
 Mermaid 図は加点であって観点ではありません。登録済みエントリで使っているものはありません。
 
@@ -105,9 +108,9 @@ Mermaid 図は加点であって観点ではありません。登録済みエン
 
 | # | 兆候 | 判定 |
 | --- | --- | --- |
-| N1 | **部品リファレンス** | component README の形（用途 / 役割と公開 component / 利用ケース / 責務境界 / Storybook とテスト）を持ち、その 1 つの component より大きなものを語る節を他に持たない。その component 自身の振る舞いを書いた節が増えても外れない → Storybook と component の TSDoc の領域 / out-of-scope-for-portal |
+| N1 | **コンポーネントリファレンス** | component README の形（Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests）を持ち、その 1 つの component より大きなものを語る節を他に持たない。その component 自身の振る舞いを書いた節が増えても外れない → Storybook と component の TSDoc の領域 / out-of-scope-for-portal |
 | N2 | **Stub** | H2 ≤1 かつ散文 200 字未満 |
-| N3 | **Index-only** | 唯一の H2 が `構成`（または同等の列挙）で、列挙するだけで叙述が無い |
+| N3 | **Index-only** | 唯一の H2 が `Structure`（または同等の列挙）で、列挙するだけで叙述が無い |
 | N4 | **Operational reference** | コマンド / フラグ / 使い方だけ —— スクリプトの起動面であって、判断が何も記録されていない。スクリプトの隣が置き場 |
 
 N1〜N4 は保守的に適用します。役割・設計・実行機序の内容が実質的にあれば、列挙や component の見出しが
@@ -138,22 +141,22 @@ README を持っている場合、その入れ子も含みます。`src/features
 下の表は、いま宣言されている各節が何を意味するかの読み方です。**一覧そのものではありません** ——
 テンプレートの宣言と表が食い違ったらテンプレートが勝ち、表に説明の無い節も宣言されていれば必須です。
 
-各必須節について、見出しの一致ではなく中身で判定します。
+下の名前は、テンプレートが宣言する英語のセクション名です。各必須セクションについて、見出しの一致ではなく中身で判定します。
 
-| 必須節 | 満たしている状態 |
+| 必須セクション | 満たしている状態 |
 | --- | --- |
-| 受け入れるもの | その slice が何を引き受けるか。層 README の受入基準の再掲になっていない |
-| 受け入れないもの | 隣へ渡すものと、その渡し先（`components` / `model` / 他 feature の facade）が名指しされている |
-| Route と契約 | その slice が持つ route がすべて並び、`docs/spec/route/**` の対へ link が張られ、使う operationId が挙がっている（使わないなら、その旨と理由がある） |
-| 状態とデザイン参照 | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
-| 構成 | その slice が所有するファイル / ディレクトリの表がある |
-| 依存カーネル | 引いているカーネルと、その用途が書いてある |
-| Action 戻り値契約 | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら `なし` |
-| テスト観点 | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
+| What Belongs Here | その slice が何を引き受けるか。層 README の受入基準の再掲になっていない |
+| What Does Not Belong Here | 隣へ渡すものと、その渡し先（`components` / `model` / 他 feature の facade）が名指しされている |
+| Routes and Contracts | その slice が持つ route がすべて並び、`docs/spec/route/**` の対へ link が張られ、使う operationId が挙がっている（使わないなら、その旨と理由がある） |
+| States and Design References | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
+| Structure | その slice が所有するファイル / ディレクトリの表がある |
+| Kernel Dependencies | 引いているカーネルと、その用途が書いてある |
+| Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら `なし` |
+| Test Perspectives | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
 
 それぞれを present / thin / missing で報告します。**thin** は見出しはあるが上の表の問いに答えて
 いない状態です —— operationId の載っていない operationId の表、story の付いていない状態表、層の
-宣言を繰り返すだけのテスト観点。
+宣言を繰り返すだけの Test Perspectives。
 
 **書いてあることを信じず、突き合わせます。** feature README が story・operationId・route・Action を
 名指ししているとき、それは照合できる主張です。
@@ -220,7 +223,7 @@ verbose 時は、raw H2 リスト / 散文の字数 / テーブル件数 / H2 �
 
 完全 read-only。
 
-- 読む: 対象 README、（任意）`*.ja.md` sibling
+- 読む: 確認済みの対象 README（その `*.ja.md` ミラーは読まない）、P7 の下限のための登録済みエントリの canonical
 - 書かない / stage しない / commit しない / push しない
 
 ユーザーが review 結果を踏まえて改善を要求した場合: `sync-readme`（構造 drift）または手動編集を推奨。本スキル内では自動書き換えしない。

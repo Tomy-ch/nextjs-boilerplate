@@ -9,7 +9,7 @@ issue から PR まで通す半自動のパイプライン。進行・記帳・�
 コマンドはこのファイルだけで実行を再現できるように置く。自走する詳細はポインタに留める ——
 [`.makefiles/README.md`](../../../.makefiles/README.md)（ターゲットの目録）、
 [`docs/playbook.md`](../../../docs/playbook.md)（置き場と画面の順序）、
-[`docs/rules.md`](../../../docs/rules.md)（実装規約）、そして `AGENTS.md` の *Where You May Stop*。
+[`docs/rules.md`](../../../docs/rules.ja.md)（実装規約）、そして `AGENTS.md` の *Where You May Stop*。
 
 ## いつ使うか
 
@@ -342,7 +342,7 @@ issue の本文・Step 1 の食い違い・既に読んだパスを渡す。
 あるファイルを返す。観点を変えて 2〜3 本を 1 メッセージで並列に出し、名指されたものを読んでから
 3b の入力にする。これが答えるのは「いまどう動いているか」であって、3b の仕事ではない ——
 3b は何を変えるかを決める。**このプラグインから他は何も使わない** ——
-ADR [0155](../../../docs/adr/0155-claude-skills-development.md) を見よ。
+ADR [0155](../../../docs/adr/0155-claude-skills-development.ja.md) を見よ。
 
 **答えを所有する文書を指す**のであって、内容を書き写さない —— 置き場は `docs/playbook.md` の逆引き、
 層が何を import してよいかは ADR [0021](../../../docs/adr/0021-frontend-responsibility.md) の依存

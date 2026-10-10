@@ -116,7 +116,7 @@ Confirm with `AskUserQuestion`: 「この計画で置きますか？」 / 「修
 - **No new dependency.** If the element cannot be written without one, stop: adding a dependency is a
   stopping point owned by [ADR 0004](../../../docs/adr/0004-library-management.md).
 - **Remove nothing a user can see.** An entry point replacing or reshaping an existing visible flow is a
-  stopping point (`docs/rules.md`, *作業とエージェント*); stop and ask.
+  stopping point ([`docs/rules.md#workflow`](../../../docs/rules.md#workflow)); stop and ask.
 
 ## Step 4. Check the written element against the plan
 

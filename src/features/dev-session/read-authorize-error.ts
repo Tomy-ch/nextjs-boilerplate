@@ -6,7 +6,7 @@ import { AUTHORIZE_ERROR, AUTHORIZE_ERROR_PARAM, type AuthorizeError } from "./a
 
 /**
  * URL を読む側。**組む側（[`authorize-error.ts`](authorize-error.ts)）と分けてある**
- * （`docs/rules.md`「URL と条件」の「`searchParams` を読むスキーマは URL へ組む側と別 module へ
+ * （`docs/rules.md#url`の「`searchParams` を読むスキーマは URL へ組む側と別 module へ
  * 置く」）。組むのは認可の応答を返す Route Handler の側です。
  */
 

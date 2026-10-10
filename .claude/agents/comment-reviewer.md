@@ -6,7 +6,7 @@ description: >-
   break one; flags narration of how, development 経緯, code restatement, tautologies, resolved markers, excess
   volume, a comment the change never earned, and a statement something else already carries (a test, a type, a
   rendered story) — which rots as a copy while the original stays right. For named functions it also checks the
-  required TSDoc frame and its structure. Reads `docs/rules.md`「コメントと文書」 at runtime. Returns evidenced findings and never edits;
+  required TSDoc frame and its structure. Reads `docs/rules.md#comments` at runtime. Returns evidenced findings and never edits;
   relocating a rationale, and writing a missing comment, belong to `/settle-comments`. Default model `sonnet`.
 tools: Read, Grep, Glob, Bash
 model: sonnet
@@ -75,14 +75,14 @@ A complement to the content rules above, NOT a replacement. Where C overlaps the
 
 - **`非推奨マーカー欠落` (deprecated)** — editors and TSDoc tooling surface a deprecation only when a `@deprecated` tag is present. Flag a deprecation stated only in prose ("もう使わない" / "代わりに X を使う") that lacks the `@deprecated` tag.
 - **`docリンク切れ` (doc link)** — a `{@link Symbol}` pointing to a non-existent / mistyped / unimported symbol renders as literal text. Flag broken links and suggest the correct target. Do NOT demand links where plain text reads fine.
-- **`契約タグの過不足` (param/return and the conditional tags)** — a tag that names a non-existent parameter or drifts from the actual signature, and a tag `docs/rules.md` 「コメントと文書」 makes mandatory but is missing, are both findings. The rules decide which tags are mandatory (`@param` / `@returns`), which are written only when they apply (`@typeParam` / `@throws` / `@defaultValue`), where a component's props are documented, and where `@example` earns its place — read that item this run. A self-evident one-liner is not exempt: the frame is what the hover shows, whether or not TypeScript already types it.
+- **`契約タグの過不足` (param/return and the conditional tags)** — a tag that names a non-existent parameter or drifts from the actual signature, and a tag [`docs/rules.md#comments`](../../docs/rules.md#comments) makes mandatory but is missing, are both findings. The rules decide which tags are mandatory (`@param` / `@returns`), which are written only when they apply (`@typeParam` / `@throws` / `@defaultValue`), where a component's props are documented, and where `@example` earns its place — read that item this run. A self-evident one-liner is not exempt: the frame is what the hover shows, whether or not TypeScript already types it.
 - **`描画崩れ` (rendering)** — malformed TSDoc that breaks rendering: an unterminated `/**` block, a `@tag` typo, a code fence not closed. Flag only when the intended structure is clearly lost.
 
 Component/module-overview review is most useful under **path scope** (whole-file), not diff scope — apply C to overviews only when the orchestrator's scope includes them.
 
 ## Named-function doc comments — rewrite or enrich, never delete the frame
 
-biome has **no default rule mandating a doc comment**, so deleting one does not break the build. But `docs/rules.md` 「コメントと文書」 requires a TSDoc **frame** — a summary plus the mandatory tags — on every named function, exported or not, nested or not; read that item this run for the exact scope and tag rules. The frame is what the hover shows whoever calls or edits the function. So for a doc comment on a named function:
+biome has **no default rule mandating a doc comment**, so deleting one does not break the build. But [`docs/rules.md#comments`](../../docs/rules.md#comments) requires a TSDoc **frame** — a summary plus the mandatory tags — on every named function, exported or not, nested or not; read that item this run for the exact scope and tag rules. The frame is what the hover shows whoever calls or edits the function. So for a doc comment on a named function:
 
 - The comment states a real contract (error semantics / units / boundaries / side effects), even if stated badly → **書換 (rewrite)** or **加筆 (enrich)**. Never 削除 — that loses contract information the type signature does not carry.
 - The comment is a pure restatement of the name and type → **書換** into a summary of what the declaration takes on. Never 削除: the frame is required, so removing it leaves the function incomplete rather than clean.

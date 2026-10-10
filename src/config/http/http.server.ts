@@ -37,7 +37,7 @@ class HttpConfig {
    *
    * @remarks
    * 空なら同一 origin だけです。`src/proxy.ts` が CORS と origin 検証の両方でこの値を読みます
-   * （`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」）。
+   * （`docs/rules.md#authorization`の「状態を変える要求の送信元を検証する」）。
    *
    * @returns 許可 origin の一覧
    */

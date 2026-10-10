@@ -152,7 +152,7 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 
 **見つけない**:
 
-- **server config の値を props で Client Component へ渡す書き方。** 値が `string` になった時点で `server-only` は効かず、taint も登録した値（署名鍵）にしか効かない。RSC payload として HTML へ直列化され、そのままブラウザへ出る。これは規約（[`docs/rules.md`](../rules.md)「設定と環境」）と、内側の層が config を import できない依存表で止めているのであって、build が見つけるものではない
+- **server config の値を props で Client Component へ渡す書き方。** 値が `string` になった時点で `server-only` は効かず、taint も登録した値（署名鍵）にしか効かない。RSC payload として HTML へ直列化され、そのままブラウザへ出る。これは規約（[`docs/rules.md#config`](../rules.md#config)）と、内側の層が config を import できない依存表で止めているのであって、build が見つけるものではない
 - **派生値。** `` `Bearer ${token}` `` のような文字列は taint に登録していない
 
 `serverActions.bodySizeLimit` は `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` に封筒のぶん（32 KiB）を足した値である。**この上限は全 Server Action に効く。** Next.js は action ごとの上限を持たないので、ファイルのために上げた値がテキストしか受け取らない口にも効く。
@@ -202,7 +202,7 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 | バックエンドの応答 | `adapters` 境界で生成 zod による**形の検証**（契約破れの検知）と、自前 view 型への詰め替え | 文字列の中身の無害化。応答に含まれる文言・パス・識別子はそのまま持ち回る |
 | ブラウザ発の span の中継 | [`adapters/server/telemetry/browser-traces.ts`](../../src/adapters/server/telemetry/browser-traces.ts) の `redactAttributes()` が**属性の名前**で伏せる。名前の表は `logging` が持ち、ログと同じ表を使う | **値の中身は見ない。** 上流や第三者が組んだ URL の中まで洗い出さない。名前で持ち回っている限り効き、そうでないものは元の設計が誤っている |
 | エラーの文言 | [`errors/redact.ts`](../../src/errors/redact.ts) の `redactMessage()` は**呼び出し元が名指しした値**（自分が持っているトークン等）だけを置き換える | バックエンド由来の例外文やスタックの走査 |
-| エラーの `details` | wire へ出して安全な識別子だけを載せる（[`docs/rules.md`](../rules.md)「データ分類と機微情報」） | 入力値・理由文の伝搬 |
+| エラーの `details` | wire へ出して安全な識別子だけを載せる（[`docs/rules.md#data-classification`](../rules.md#data-classification)） | 入力値・理由文の伝搬 |
 | 構造化データの埋め込み | [`components/design-system/display/json-ld`](../../src/components/design-system/display/json-ld/json-ld.tsx) が JSON の `<` を `\u003c` へ逃がす | —— |
 
 最後の行は「上流の値を無害化している」ように見えるが、そうではない。**script の本文を組み立てているのは自分**であり、逃がしているのは自分が作った直列化の形である。値の出所がバックエンドである以上その中身を前提にできない、というのは「`</script>` が入っていても自分の出力が壊れない」ことの理由であって、値を清めているのではない。

@@ -33,7 +33,7 @@ make actions-pin-resolve ACTIONS_PIN_ALLOW_MOVED="actions/cache@v6.1.0 actions/c
 
 承認は 1 回の移動に対して与えるものである。移動していないキーは「承認は不要でした」と報告される。古い承認を残したままにすると次の付け替えを黙って通すためである。検疫は独立に掛かり続け、`ACTIONS_PIN_ALLOW_MOVED` が黙らせるのは付け替えの fail だけ。どの `uses:` からも参照されないキーは error になるため、綴り誤りが承認済みとして通ることはない。
 
-> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md)
+> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) の CI ハードニング。
 
 ## 使用タイミング
 

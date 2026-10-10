@@ -1,6 +1,6 @@
 # 入力と送信の読み方
 
-この文書は、入力欄に文字が入ってから Server Action が結果を返し、それが画面に現れるまでを**通しで**説明するものである。送信の機構は [ADR 0061](../adr/0061-form-mutation-ux.md)、検証の二層は [ADR 0062](../adr/0062-form-input-validation.md)、結果の見せ方は [ADR 0063](../adr/0063-mutation-result-notification.md)、入力状態のライブラリは [ADR 0060](../adr/0060-state-management.md)、ファイル添付の経路は [ADR 0075](../adr/0075-file-upload-seam.md) が持つ。日々強制される規則は [`docs/rules.md`](../rules.md#forms)「フォームと送信」にある。
+この文書は、入力欄に文字が入ってから Server Action が結果を返し、それが画面に現れるまでを**通しで**説明するものである。送信の機構は [ADR 0061](../adr/0061-form-mutation-ux.md)、検証の二層は [ADR 0062](../adr/0062-form-input-validation.md)、結果の見せ方は [ADR 0063](../adr/0063-mutation-result-notification.md)、入力状態のライブラリは [ADR 0060](../adr/0060-state-management.md)、ファイル添付の経路は [ADR 0075](../adr/0075-file-upload-seam.md) が持つ。日々強制される規則は [`docs/rules.md`](../rules.md#forms)にある。
 
 ここが持つのは**それらを読むために要る前提**と、**実装のどこに何が居るか**である。規則の写しは作らない。判断に迷ったら ADR を優先する。
 

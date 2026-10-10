@@ -43,16 +43,17 @@ This skill remains the canonical place to invoke for **deep-dive single-file ana
 
 The evaluation pattern is not hardcoded from theory — it was read off the entries currently in
 `docs/portal/manifest.yaml`, which are the only worked examples of "this belongs in the manual" that
-this repository has. Measured over the 19 currently registered entries (prose counted as non-space
-characters, excluding code blocks, tables and headings), they have this in common:
+this repository has. Measured over the registered entries' English canonicals (prose counted
+excluding code blocks, tables and headings), they have this in common:
 
-- The headings are Japanese, and most of them state a claim rather than name a category —
-  「値の分類は取得の口が宣言する」「なぜ別パッケージなのか」「面と文字で明度を分ける」
-- Top H2 frequencies: 関連する ADR (14), 運用 (12), 受け入れるもの (10), 受け入れないもの (10),
-  構成 (7), テストの責務 (5), モジュール (2)
+- Most headings state a claim rather than name a category —
+  "The fetch endpoint declares the value classification", "Why a separate package",
+  "Separate lightness by surface and text"
+- The most frequent H2s are Related ADRs, Operations, What Belongs Here / What Does Not Belong Here,
+  Structure, Test Responsibilities, and Modules
 - 18/19 use tables; **0/19 use a Mermaid diagram**, so a diagram is a bonus here, not an expectation
-- Prose length: median 5442 characters, min 822, max 21771 — which is why P7's floor sits at 800: it
-  is the registered minimum, not a round number
+- P7's prose floor is the registered minimum, not a round number — derive it at runtime (Step 1)
+  rather than reading a number from this file
 - 8.6 H2 headings on average
 
 Re-derive these numbers when the manifest changes materially; ADR
@@ -88,10 +89,10 @@ section that answers it.
 
 This skill **MUST call `AskUserQuestion` immediately after invocation** to confirm:
 
-1. **Target README path** — the canonical README to review. The canonical file is the one on the suffix-less path and ADR 0140 owns its language, so `README.md` is the target and a `.ja.md` sibling is the exception, not the rule. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
+1. **Target README path** — the canonical README to review: the English `README.md` on the suffix-less path (ADR 0140). Its `README.ja.md` mirror is never the target. If the user supplied a path in skill arguments or the recent message, present it as the default candidate.
 2. **Output verbosity** — concise scorecard (default) or full per-pattern breakdown.
 
-If the user provided a `*.ja.md` path, ask whether to review the Japanese file directly (rare) or switch to the canonical sibling.
+If the user provided a `*.ja.md` path, switch to its canonical sibling and say so — a mirror follows its canonical and is not judged on its own.
 
 Do NOT read any files for evaluation until the target is confirmed.
 
@@ -103,7 +104,9 @@ Read the full README. Capture:
 - Presence and count of ` ```mermaid ` blocks
 - Presence of tables (`|...|` lines)
 - Prose length in characters (text excluding code blocks, tables, headings)
-- Cross-reference to translation (`README.ja.md`) — its existence and sync convention compliance
+- P7's floor for this run: the shortest prose length among the entries registered in
+  `docs/portal/manifest.yaml`, each measured on its English canonical the same way. Do not reuse a
+  number from an earlier run or from this file
 
 ## Step 2. Evaluate Each Criterion
 
@@ -113,13 +116,13 @@ Score each of the following criteria. Match by content, not just exact heading t
 
 | # | 観点 | シグナル |
 | --- | --- | --- |
-| P1 | **Role / boundary** | The pair `受け入れるもの` / `受け入れないもの`, or `役割` / `境界` / `なぜ〜なのか` — and the "not" side names where the excluded work goes, rather than only saying it is excluded |
-| P2 | **Design intent** | A section arguing a judgment: a claim written as the heading itself (「値の分類は取得の口が宣言する」), or `設計` / `トリガ戦略` / `切替の軸` / `この層が持つ判断`. Reasoning, not a list of rules |
-| P3 | **Rules / conventions** | `規約` / `配置・命名` / `TSDoc の基準` / `Storybook の表示規約`, or a table pairing what is allowed against what is not — prescriptive guidance a reader can be held to |
-| P4 | **Mechanism** | `実行機序` / `実行機序と評価タイミング` / `生成と検査` / `Config の配線` — when each part runs and what triggers it |
-| P5 | **Index into the substructure** | `構成` / `モジュール` / `〜一覧` / `〜目録` / `置いている hook` — for a directory that has one |
-| P6 | **Operations** | `運用` (the most frequent heading in the registered set) with non-trivial content: what to re-run after a change, what breaks, what to watch |
-| P7 | **Substantive prose** | Prose ≥ 800 characters, excluding code blocks, tables and headings. Characters, not words — the prose is Japanese |
+| P1 | **Role / boundary** | The pair `What Belongs Here` / `What Does Not Belong Here`, or `Role` / `Boundaries` / `Why …` — and the "not" side names where the excluded work goes, rather than only saying it is excluded |
+| P2 | **Design intent** | A section arguing a judgment: a claim written as the heading itself ("The fetch endpoint declares the value classification"), or `Design` / `Trigger Strategy` / `Axis of Switching` / `Decisions This Layer Owns`. Reasoning, not a list of rules |
+| P3 | **Rules / conventions** | `Conventions` / `Placement and Naming` / `TSDoc Criteria` / `Storybook Display Conventions`, or a table pairing what is allowed against what is not — prescriptive guidance a reader can be held to |
+| P4 | **Mechanism** | `Execution Mechanics` / `Execution Mechanics and Evaluation Timing` / `Generation and Checks` / `Config Wiring` — when each part runs and what triggers it |
+| P5 | **Index into the substructure** | `Structure` / `Modules` / `… List` / `… Inventory` / `Hooks Placed Here` — for a directory that has one |
+| P6 | **Operations** | `Operations` (one of the most frequent headings in the registered set) with non-trivial content: what to re-run after a change, what breaks, what to watch |
+| P7 | **Substantive prose** | Prose at or above the floor derived in Step 1, excluding code blocks, tables and headings, measured on the English canonical |
 
 A Mermaid diagram is a bonus, not a criterion: no registered entry uses one.
 
@@ -127,9 +130,9 @@ A Mermaid diagram is a bonus, not a criterion: no registered entry uses one.
 
 | # | 兆候 | 判定 |
 | --- | --- | --- |
-| N1 | **Per-component reference** | The component-README shape (用途 / 役割と公開 component / 利用ケース / 責務境界 / Storybook とテスト), carrying nothing beyond it that speaks for anything larger than the one component. A section about that component's own behavior does not lift it out. → Storybook and the component's TSDoc own this — out-of-scope-for-portal |
+| N1 | **Per-component reference** | The component-README shape (Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests), carrying nothing beyond it that speaks for anything larger than the one component. A section about that component's own behavior does not lift it out. → Storybook and the component's TSDoc own this — out-of-scope-for-portal |
 | N2 | **Stub** | H2 count ≤ 1 AND prose < 200 characters |
-| N3 | **Index-only** | The only H2 is `構成` (or an equivalent listing) and it enumerates without narrative |
+| N3 | **Index-only** | The only H2 is `Structure` (or an equivalent listing) and it enumerates without narrative |
 | N4 | **Operational reference** | Command / flags / usage only — the invocation surface of a script, with no judgment recorded. Belongs next to the script |
 
 Apply N1–N4 conservatively. If the README carries *any* substantial role, design, or mechanism
@@ -162,22 +165,22 @@ The table below explains what each currently-declared section means. It is a rea
 list: when the template's declaration and this table disagree, the template wins, and a section the
 template declares but this table does not describe is still required.
 
-For each required section, decide by content rather than exact heading text:
+The names below are the English section names the template declares. For each required section, decide by content rather than exact heading text:
 
 | Required section | Satisfied when |
 | --- | --- |
-| 受け入れるもの | The slice's own line — what it takes on — not a restatement of the layer README's acceptance criteria |
-| 受け入れないもの | What it hands to a neighbour, naming the destination (`components` / `model` / another feature's facade) |
-| Route と契約 | Every route this slice owns is listed with a link to its `docs/spec/route/**` pair, plus the operationIds it uses (or an explicit statement that it uses none, with the reason) |
-| 状態とデザイン参照 | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
-| 構成 | A file/directory table covering what the slice owns |
-| 依存カーネル | Each kernel it imports, with what it is used for |
-| Action 戻り値契約 | Each Server Action with its placement, return type, success and failure behavior — or `なし` |
-| テスト観点 | Viewpoints specific to THIS slice (not a restatement of ADR 0090's per-layer duties) |
+| What Belongs Here | The slice's own line — what it takes on — not a restatement of the layer README's acceptance criteria |
+| What Does Not Belong Here | What it hands to a neighbour, naming the destination (`components` / `model` / another feature's facade) |
+| Routes and Contracts | Every route this slice owns is listed with a link to its `docs/spec/route/**` pair, plus the operationIds it uses (or an explicit statement that it uses none, with the reason) |
+| States and Design References | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
+| Structure | A file/directory table covering what the slice owns |
+| Kernel Dependencies | Each kernel it imports, with what it is used for |
+| Action Return Contract | Each Server Action with its placement, return type, success and failure behavior — or `なし` |
+| Test Perspectives | Viewpoints specific to THIS slice (not a restatement of ADR 0090's per-layer duties) |
 
 Report each as present / thin / missing. **Thin** means the heading exists but the content does not
 answer the question in the table above — an operationId table with no operationIds, a state table
-that lists states without stories, a テスト観点 section that only repeats the layer's declaration.
+that lists states without stories, a Test Perspectives section that only repeats the layer's declaration.
 
 **Verify the claims, do not trust them.** A feature README that names a story, an operationId, a
 route, or an Action is asserting something checkable:
@@ -250,7 +253,7 @@ Print a one-line suggestion based on the verdict:
 
 This skill is strictly read-only.
 
-- Reads: the confirmed target README and (optionally) its `*.ja.md` sibling
+- Reads: the confirmed target README (never its `*.ja.md` mirror), the registered entries' canonicals for P7's floor
 - Writes: nothing
 - Does NOT edit, stage, commit, or push
 

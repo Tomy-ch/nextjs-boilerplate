@@ -1,5 +1,5 @@
 import Fuse from "fuse.js";
-import { useCallback, useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { SearchFieldClient } from "@/components/design-system/form/search-field-client/search-field-client";
 import {
   ToggleGroupNative,
@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from "@/components/design-system/overlay/dialog/dialog";
 
-import type { DocsJson, PortalItem } from "../docs-json/docs-json";
+import type { DocsJson, PortalGroup, PortalItem } from "../docs-json/docs-json";
 import { DocumentContent } from "../document-content/document-content";
 import { parseHashRoute, resolveActiveGroupSlug } from "../hash-route/hash-route";
 import { applyLangFilter, type PortalLang } from "../lang-filter/lang-filter";
@@ -49,7 +49,13 @@ export function PortalApp({ docs }: PortalAppProps) {
 
   const selectEnglish = useCallback(() => setLang("EN"), []);
   const selectJapanese = useCallback(() => setLang("JA"), []);
-  const closeDocument = useCallback(() => setOpenDocument(null), []);
+  // 文書の取得の世代。開く・閉じるたびに進め、応答が届いた時点で世代が変わっていれば捨てる。
+  // 捨てないと、閉じた面が遅れた応答で開き直り、後から開いた文書が先の応答で上書きされる。
+  const documentRequest = useRef(0);
+  const closeDocument = useCallback(() => {
+    documentRequest.current += 1;
+    setOpenDocument(null);
+  }, []);
 
   useEffect(() => {
     const onHashChange = () => setHash(window.location.hash);
@@ -83,20 +89,26 @@ export function PortalApp({ docs }: PortalAppProps) {
     : null;
 
   const onOpenDocument = useCallback((item: PortalItem) => {
+    documentRequest.current += 1;
+    const request = documentRequest.current;
+
     setOpenDocument({ name: item.name, content: null });
 
-    fetch(item.path)
+    void fetch(item.path)
       .then((response) => {
         if (!response.ok) {
-          throw new Error(`文書を取得できませんでした: ${response.status}`);
+          throw new Error(`Could not fetch the document: ${response.status}`);
         }
 
         return response.text();
       })
-      .then((markdown) => {
-        setOpenDocument({ name: item.name, content: parseMarkdownDocument(markdown) });
-      })
-      .catch(() => setOpenDocument(null));
+      .then(parseMarkdownDocument)
+      .catch(() => null)
+      .then((content) => {
+        if (request !== documentRequest.current) return;
+
+        setOpenDocument(content === null ? null : { name: item.name, content });
+      });
   }, []);
 
   return (
@@ -111,10 +123,10 @@ export function PortalApp({ docs }: PortalAppProps) {
           <div className="flex flex-wrap items-center gap-4">
             <SearchFieldClient
               className="max-w-md flex-1"
-              label="ドキュメントを検索"
+              label="Search documentation"
               onSearch={setQuery}
             />
-            <ToggleGroupNative aria-label="表示言語">
+            <ToggleGroupNative aria-label="Display language">
               <ToggleGroupNativeItem
                 checked={lang === "EN"}
                 name="lang"
@@ -146,45 +158,12 @@ export function PortalApp({ docs }: PortalAppProps) {
         </aside>
 
         <main className="min-w-0 flex-1">
-          {results ? (
-            <section aria-labelledby={searchResultsHeadingId} className="flex flex-col gap-4">
-              <h2 className="font-semibold text-xl" id={searchResultsHeadingId}>
-                検索結果 {results.length} 件
-              </h2>
-              {results.length === 0 ? (
-                <p className="text-muted-foreground">一致する項目がありません。</p>
-              ) : (
-                <PortalCardGrid items={results} onOpenDocument={onOpenDocument} />
-              )}
-            </section>
-          ) : activeGroup ? (
-            <div className="flex flex-col gap-8">
-              <h2 className="font-semibold text-xl">{activeGroup.title}</h2>
-              {activeGroup.sections.map((section) => (
-                <section
-                  aria-labelledby={`section-${section.slug}-heading`}
-                  className="flex flex-col gap-4"
-                  id={`section-${section.slug}`}
-                  key={section.slug}
-                >
-                  <h3 className="font-medium text-lg" id={`section-${section.slug}-heading`}>
-                    {section.title}
-                  </h3>
-                  <PortalCardGrid items={section.items} onOpenDocument={onOpenDocument} />
-                  {(section.subgroups ?? []).map((subgroup) => (
-                    <div className="flex flex-col gap-3" key={subgroup.title}>
-                      <h4 className="font-medium text-muted-foreground text-sm">
-                        {subgroup.title}
-                      </h4>
-                      <PortalCardGrid items={subgroup.items} onOpenDocument={onOpenDocument} />
-                    </div>
-                  ))}
-                </section>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground">表示できる項目がありません。</p>
-          )}
+          <PortalMain
+            group={activeGroup}
+            onOpenDocument={onOpenDocument}
+            results={results}
+            searchResultsHeadingId={searchResultsHeadingId}
+          />
         </main>
       </div>
 
@@ -197,10 +176,64 @@ export function PortalApp({ docs }: PortalAppProps) {
           {openDocument?.content ? (
             <DocumentContent content={openDocument.content} />
           ) : (
-            <p className="text-muted-foreground">読み込んでいます...</p>
+            <p className="text-muted-foreground">Loading...</p>
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+type PortalMainProps = {
+  group: PortalGroup | null;
+  onOpenDocument: (item: PortalItem) => void;
+  results: SearchEntry[] | null;
+  searchResultsHeadingId: string;
+};
+
+/** 本文の領域。検索語があれば検索結果を、無ければハッシュが指す group を描く。 */
+function PortalMain({ group, onOpenDocument, results, searchResultsHeadingId }: PortalMainProps) {
+  if (results) {
+    return (
+      <section aria-labelledby={searchResultsHeadingId} className="flex flex-col gap-4">
+        <h2 className="font-semibold text-xl" id={searchResultsHeadingId}>
+          Search results ({results.length})
+        </h2>
+        {results.length === 0 ? (
+          <p className="text-muted-foreground">No matching items.</p>
+        ) : (
+          <PortalCardGrid items={results} onOpenDocument={onOpenDocument} />
+        )}
+      </section>
+    );
+  }
+
+  if (!group) {
+    return <p className="text-muted-foreground">No items to display.</p>;
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <h2 className="font-semibold text-xl">{group.title}</h2>
+      {group.sections.map((section) => (
+        <section
+          aria-labelledby={`section-${section.slug}-heading`}
+          className="flex flex-col gap-4"
+          id={`section-${section.slug}`}
+          key={section.slug}
+        >
+          <h3 className="font-medium text-lg" id={`section-${section.slug}-heading`}>
+            {section.title}
+          </h3>
+          <PortalCardGrid items={section.items} onOpenDocument={onOpenDocument} />
+          {(section.subgroups ?? []).map((subgroup) => (
+            <div className="flex flex-col gap-3" key={subgroup.title}>
+              <h4 className="font-medium text-muted-foreground text-sm">{subgroup.title}</h4>
+              <PortalCardGrid items={subgroup.items} onOpenDocument={onOpenDocument} />
+            </div>
+          ))}
+        </section>
+      ))}
     </div>
   );
 }

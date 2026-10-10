@@ -3,7 +3,7 @@ import { type RawSearchParams, singleValue } from "@/model/search-params";
 import { DASHBOARD_PERIOD, type DashboardPeriodSelection, PERIOD_KEY } from "./period";
 
 /**
- * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md`「URL と条件」の
+ * URL を読む側。**組む側（[`period.ts`](period.ts)）と分けてある**（`docs/rules.md#url`の
  * 「`searchParams` を読むスキーマは URL へ組む側と別の module へ置く」）。組むのは期間の選択肢や日付の overlay といった client の部品です。
  */
 

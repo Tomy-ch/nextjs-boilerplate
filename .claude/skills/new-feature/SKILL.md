@@ -68,7 +68,8 @@ Call `AskUserQuestion` before writing anything:
 1. **Feature name** (kebab-case) and the route it will live at.
 2. **The direction** — what the screen shows, or a pointer to where that was decided. If the user
    has only an idea, say so and run Step 2; do not invent product content.
-3. **Whether a spec already exists** under `docs/spec/route/**` for this route.
+3. **Whether a spec already exists** under `docs/spec/route/**` for this route — look at the English
+   canonicals and ignore every `*.ja.md` mirror.
 
 Read `docs/playbook.md` now and follow the order it states. The order below mirrors it at the time
 of writing; **if they differ, the playbook is correct.**
@@ -86,8 +87,8 @@ Reuse the existing `Explore` / `Plan` agent types. Do not define new ones (ADR 0
 
 Fill `docs/templates/feature-readme.md` into `src/features/<name>/README.md`: the route and the
 contract it consumes, the state table, the kernel dependencies, the Server Action return contract,
-and the test viewpoints. The state table drives the next step, so it is written before any component
-exists.
+and the test viewpoints. The README is the English canonical. The state table drives the next step,
+so it is written before any component exists.
 
 Where the direction is genuinely underspecified, ask with `AskUserQuestion` rather than choosing
 product behavior. The user is the author-of-record for what the screen promises.
@@ -147,6 +148,10 @@ the same user goal but a different description?".
 The spec records settled promises, which is why it is written here and not first. It **points at**
 the contract, tokens, `rules.md`, the component catalog, and the ADRs — it never copies them.
 
+The specs and the slice README are English canonicals, each with a sibling `.ja.md` mirror
+([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). Chain `canonicalize-doc`
+once, in its bulk mode, over every canonical this run wrote, so the mirrors follow in the same change.
+
 ## Step 7. Tests (order step 6) and comments
 
 Chain the `scaffold-test` skill for the units now in place. It derives the viewpoints from the
@@ -180,7 +185,8 @@ run as the last step of implementing.
 - ❌ Invent product behavior when the direction is underspecified — ask.
 - ❌ Run the full lint or the full test suite locally to pre-empt a gate.
 - ❌ Restate in this file a rule that `docs/playbook.md`, a kernel README, or an ADR owns.
-- ✅ Japanese for everything the skill emits or writes to the repository.
+- ✅ Japanese for what the skill reports and for code comments; documents are written as the English
+  canonical, with their `.ja.md` mirrors synced through `canonicalize-doc` in the same change.
 - ✅ Halt on a failing phase and surface it; never auto-rollback earlier writes.
 - ✅ Reuse the existing `Explore` / `Plan` agent types.
 - ✅ Run `/settle-comments` once over the touched declarations, as the last step of implementing.
@@ -192,6 +198,7 @@ run as the last step of implementing.
 - [ ] Feature README filled from the template before any component existed (Step 2)
 - [ ] Files placed by `pnpm gen`; four-state stories written (Step 3)
 - [ ] Storybook served and the look settled by a human before any test was written (Step 4)
-- [ ] Spec written under `docs/spec/route/**` after the split (Steps 5–6)
+- [ ] Spec written under `docs/spec/route/**` after the split (Steps 5–6); the mirrors of the specs and
+      the README synced through `canonicalize-doc`
 - [ ] Tests produced via `scaffold-test`; `/settle-comments` run over the touched declarations (Step 7)
 - [ ] No local full-suite runs; no commit; no push; no review skill invoked (Step 8)

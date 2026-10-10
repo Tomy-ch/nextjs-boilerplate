@@ -159,7 +159,7 @@ onto whoever merges rather than cancelling it.
 
 | Mode | Behavior |
 | --- | --- |
-| `fix-here` *(default)* | Fix it in this run. `docs/rules.md`, *作業とエージェント* makes this the repository's default: 範囲外であることは起票の理由にならない |
+| `fix-here` *(default)* | Fix it in this run. [`docs/rules.md#workflow`](../../../docs/rules.md#workflow) makes this the repository's default: 範囲外であることは起票の理由にならない |
 | `search` | Search existing issues first; on a duplicate, comment there instead of filing |
 | `file` | File without searching |
 
@@ -310,7 +310,7 @@ If the user's instruction named a release version other than the resolved one, a
 a deliberate backport target is the one case the resolver cannot know about.
 
 Branch creation is `git switch -c` / `git worktree add -b`; `git checkout` is not used for branch work
-(`docs/rules.md`, *作業とエージェント*).
+([`docs/rules.md#workflow`](../../../docs/rules.md#workflow)).
 
 ### Resuming into an existing worktree
 
@@ -512,7 +512,7 @@ The timing is not negotiable: **CI 緑後・merge 前.** Fixes arrive from three
 implementation, from the reviews, and from CI — and harvesting before the PR exists misses the third.
 Enumerate mechanically with `git log --oneline <base>..HEAD`, never from memory.
 
-`docs/rules.md`, *作業とエージェント* owns the two filters that keep the documents from bloating, and
+[`docs/rules.md#workflow`](../../../docs/rules.md#workflow) owns the two filters that keep the documents from bloating, and
 requires that what was dropped is stated rather than silently discarded.
 
 ### Runtime verification — the merge gate when a request-time seam moved

@@ -20,7 +20,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | --- | --- | --- |
 | ジャーニー | 画面をまたぐ遷移・絞り込み・認証の前捌き | 経路が繋がっているかは、画面 1 枚では答えられない |
 | Browser Errors | hydration の不一致・描画中の例外・通信の失敗・CSP 違反 | **hydration の不一致は build も型検査も通る。**実機で描いたときにしか現れない。CSP の違反も同じで、ヘッダを読む検査（DAST）は enforce の結果を見ない |
-| Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md#layout)「レイアウトと帯」） | 帯は viewport の関数であり、jsdom には幅が無い |
+| Responsive | 帯ごとの出し分け（[`docs/rules.md`](../docs/rules.md#layout)） | 帯は viewport の関数であり、jsdom には幅が無い |
 | 履歴 | 被せた面と画面遷移が同じ履歴を奪い合わないか | 競合するのは実ブラウザの履歴操作どうしで、jsdom には相手が居ない |
 | Cross Browser | 描画エンジン固有の破綻 | 1 つのエンジンで通ることは、他の 2 つで通ることを意味しない |
 | 別 origin | 宣言した origin から BFF が読めること・宣言に無い origin からの書き込みが止まること | preflight の自動発行と CORS の読み取り制限は実ブラウザにしか無い。宣言した origin の文書は起動側が別ポートに立てる（`scripts/e2e/partner-origin.ts`。偽装すると Chromium の Private Network Access に止められる） |
@@ -29,7 +29,7 @@ story 単位の検査（[`vrt/`](../vrt/README.md)）とは**見ている対象�
 | 不在の面 | 1 件が見つからないとき、器の内側の not-found 境界が受け、導線を保ったまま不在を伝えるか | **どの境界が受けるかは segment の木が決める。**描画テストは部品を単独で描くので segment を持たない |
 | フォーカス | 被せた面が焦点を受け取り、閉じ込め、閉じたら返すか | **jsdom はフォーカスの実装を持たない。**`inert` も focus trap も無く、`Tab` の巡回順は近似である |
 | 配信の停止 | `APP_MAINTENANCE_MODE=on` で起動したプロセスが、実際に全ルートを差し替えるか | **入口の分岐も設定も、層ごとには mock 越しにしか確かめていない。**結線は起動してみないと分からない |
-| 公開面 | `robots.txt` / `sitemap.xml` / 各画面の canonical / アイコンと OG 画像が、クローラが読む形で成立しているか。索引させる設定と索引させない設定の両方（[`docs/rules.md`](../docs/rules.md#config)「設定と環境」） | **metadata は中身が壊れていても画面が壊れない。**空の sitemap・他人を指す canonical・実行時に落ちる `ImageResponse` は build も単体テストも通る |
+| 公開面 | `robots.txt` / `sitemap.xml` / 各画面の canonical / アイコンと OG 画像が、クローラが読む形で成立しているか。索引させる設定と索引させない設定の両方（[`docs/rules.md`](../docs/rules.md#config)） | **metadata は中身が壊れていても画面が壊れない。**空の sitemap・他人を指す canonical・実行時に落ちる `ImageResponse` は build も単体テストも通る |
 
 **観点は spec より長く生きる。** 上の表は、spec を自分の画面へ書き換えたあとも成り立つ。**書き換える
 ときは、観点ごと落とさないこと** —— どれも単体テストが原理的に届かない観点で、落としても他の観点が

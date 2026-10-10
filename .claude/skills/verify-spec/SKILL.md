@@ -77,7 +77,8 @@ and reports nothing, which reads exactly like a clean pass.
 For each route in scope, assemble:
 
 - the spec files in its directory — the screen requirement, and the functional requirement when one
-  exists
+  exists. These are the English canonicals: exclude every `*.ja.md` mirror, here and for the layouts
+  below
 - the `src/app` entry it maps to, and the files that entry reaches
 - **the `layout.*.md` specs above it.** A layout's promise applies to everything beneath, and each
   screen writes only its difference — so a validator that cannot see the layout cannot tell a

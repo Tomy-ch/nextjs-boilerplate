@@ -435,7 +435,7 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 The decisions the workflows here follow. **Comments in the workflow definitions do not cite an ADR
 directly — they come here instead.** An ADR's number, section and owning record all move, while this
 README moves with the workflows, so the movement never reaches the definitions
-（[docs/rules.md](../../docs/rules.md)「コメントと文書」）。
+（[docs/rules.md#comments](../../docs/rules.md#comments)）。
 
 - [0004](../../docs/adr/0004-library-management.md) — dependency update policy: majors go in their own PR
 - [0011](../../docs/adr/0011-no-docker.md) — what the delivery boundary does and does not promise

@@ -79,8 +79,9 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 機械的な除外を挙げる。
 
-- **`SKILL.ja.md` は翻訳である。**canonical の語をすべて重複させるので、数えると**すべての一致が
-  2 倍になり、1 つの定義が衝突に化ける。**
+- **`*.ja.md` はすべて翻訳である** —— `SKILL.ja.md` も、`docs/` と `src/` のミラーも同じ。canonical の語を
+  すべて重複させるので、数えると**すべての一致が 2 倍になり、1 つの定義が衝突に化ける。**上の出典は
+  `*.md` から `*.ja.md` を除いたものとして読む。
 <!-- sample:begin -->
 - **爆破で消える面。**サンプル破棄で消えるファイルにしか住んでいない語は、テンプレートを使った後の
   読み手の問題ではない。**そこにしか無い所見はそう述べる**（範囲は
@@ -129,9 +130,11 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 ## Step 5 —— 書く
 
-`docs/spec/glossary.md` **だけ**を書く。spec の木はサフィックス無しのパスの日本語で、
-**`.ja.md` の対を持たない**（[0140](../../../docs/adr/0140-documentation-operations.md)）——
-**作らない。`canonicalize-doc` へ連鎖しない。**
+英語の canonical である `docs/spec/glossary.md` を書き、それ以外は手で書かない。その日本語ミラーは
+兄弟の `glossary.ja.md` である（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。
+同じ変更で `canonicalize-doc` へ連鎖させて同期する。画面側の語はそれぞれ、canonical では 1 つの英語名を、
+ミラーでは 1 つの日本語の表記を持つ。同期のときはその対応を保ち、`glossary.ja.md` と他のすべての
+ミラーが同じ表記で書くようにする。
 
 **行が指している文書を編集しない。**所見が「指し先が動いた」であるとき、こちら側の修正は**指し示す側**である。
 指される側は、それを所有する者のものである。
@@ -151,8 +154,8 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/spec/glossary.md
 
 ## AI 変更範囲
 
-このスキルの起動は、`AGENTS.md` の変更範囲を `docs/spec/glossary.md` **だけ**へ、
-**この実行の間だけ**緩める。それ以外はすべて保護されたままである —— **表が指している文書も含めて。**
+このスキルの起動は、`AGENTS.md` の変更範囲を `docs/spec/glossary.md` **だけ**へ（ミラーは連鎖した
+`canonicalize-doc` が書く）、**この実行の間だけ**緩める。それ以外はすべて保護されたままである —— **表が指している文書も含めて。**
 
 ## やる / やらない
 
@@ -169,7 +172,7 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/spec/glossary.md
 - ❌ 「使われ方に合わせて行を書き換える」を選択肢として出す。
 - ❌ 表が指している文書を編集する。
 - ❌ 業務語彙を足す —— その正は契約と生成した型である。
-- ❌ `.ja.md` を作る / `canonicalize-doc` へ連鎖する。
+- ❌ `canonicalize-doc` へ連鎖せずに `glossary.ja.md` を手で編集する。
 - ❌ ゲートを回す。
 
 ## チェックリスト
@@ -182,6 +185,6 @@ pnpm exec markdownlint-cli2 --no-globs --fix docs/spec/glossary.md
 - [ ] 解決しない参照を、判断ではなくパスと見出しで決着させた。
 - [ ] 2 か所の定義を並べて報告し、同じ概念かの問いを開いたまま残した。
 - [ ] 解決しない参照の選択肢を順序どおり出した。「使われ方に合わせる」は出していない。
-- [ ] `docs/spec/glossary.md` だけを書いた。`.ja.md` を作っていない。指し先の文書に触れていない。
+- [ ] `docs/spec/glossary.md` だけを書き、ミラーは `canonicalize-doc` で同期した。指し先の文書に触れていない。
 - [ ] 書いたファイルだけを整形した。ゲートを回していない。
 - [ ] 完了報告がスコープ・保留・報告のみの所見を名指している。

@@ -35,7 +35,7 @@ remembered version.
 | Source | What it decides |
 | --- | --- |
 | [`docs/adr/0029-type-design-discipline.md`](../../../../docs/adr/0029-type-design-discipline.md) | The type-design discipline — its 決定 and its 禁止事項, including which prohibitions a mechanism enforces (`強制:`) and which are prose only |
-| `docs/rules.md`「型とコード」(anchor `types`) | The implementation rules for types; its `Rationale` line names the mechanisms that already enforce part of them |
+| [`docs/rules.md#types`](../../../../docs/rules.md#types)(anchor `types`) | The implementation rules for types; its `Rationale` line names the mechanisms that already enforce part of them |
 | `docs/rules.md` — every other bullet citing ADR 0029 | `grep -n '0029' docs/rules.md`; rules about types live outside「型とコード」too |
 | `src/model/README.md` | What `model` accepts and refuses, and what it may import |
 | The nearest `README.md` of any in-scope file outside `src/model/` | That layer's responsibilities and allowed ranges |
