@@ -1,24 +1,24 @@
 # Print
 
-## 用途
+## Purpose
 
-紙とその代替（PDF 保存）へ出したときの体裁を定める CSS 基盤です。React component は公開しません。
+The CSS foundation that sets the layout of output to paper and its substitute (saving as PDF). It exports no React component.
 
-拡張点（`print:` variant / `@media print`）は ADR [0051](../../../../../docs/adr/0051-styling-system.md) が定め、この基盤はその最小実装です。
+The extension points (the `print:` variant / `@media print`) are set by ADR [0051](../../../../../docs/adr/0051-styling-system.md), and this foundation is their minimal implementation.
 
-## 何を持つか
+## What It Holds
 
-| 対象 | 内容 |
+| Target | Content |
 | --- | --- |
-| 紙面 | 綴じ代を見込んだ余白（`@page { margin: 16mm }`） |
-| 見出し | 続く本文と同じ紙面に残す（`break-after: avoid`） |
-| 段落 | 1 行だけ次の紙へこぼれない（`orphans` / `widows` に 3） |
-| 表 | 見出し行を各紙面の先頭へ繰り返し、行は途中で切らない |
-| 図 | 途中で切らない |
+| Page | Margins that allow for binding (`@page { margin: 16mm }`) |
+| Headings | Kept on the same page as the body that follows (`break-after: avoid`) |
+| Paragraphs | A single line does not spill onto the next page (`orphans` / `widows` set to 3) |
+| Tables | The header row repeats at the top of each page, and rows are not split |
+| Figures | Not split |
 
-## 使い方
+## Usage
 
-紙に出す / 出さないは呼び出し元が指定します。
+The caller specifies whether something goes on paper.
 
 ```tsx
 <nav className="print-hidden">…</nav>
@@ -26,32 +26,32 @@
 <div className="print-color-keep bg-primary" style={{ width: "62%" }} />
 ```
 
-| utility | 挙動 |
+| utility | Behavior |
 | --- | --- |
-| `print-hidden` | 画面には出て、紙には出ない |
-| `print-only` | 画面には出ず、紙にだけ出る |
-| `print-color-keep` | 面の色を紙にも残す |
+| `print-hidden` | Shown on screen, not on paper |
+| `print-only` | Not shown on screen, only on paper |
+| `print-color-keep` | Keeps the surface color on paper too |
 
-`print-hidden` を tag で自動判定しないのは、**何が操作で何が内容かが画面ごとに違う**ためです。`nav` の中に印刷したい情報があることも、`div` が操作の塊であることもあります。
+`print-hidden` is not decided automatically by tag because **what is an action and what is content differs from screen to screen**. A `nav` may contain information you want printed, and a `div` may be a block of actions.
 
-`print-only` の用途は、画面では link や操作で辿れていた情報を紙で補うことです。宛先の URL、出力日時、ページの出典などが該当します。
+`print-only` is for supplementing on paper the information that on screen could be followed through a link or an action. The destination URL, the output date and time, and the source of the page are examples.
 
-`print-color-keep` を付けるのは、**色そのものが情報を担う面だけ**です。browser は既定で背景のグラフィックを紙面から省くため、色が装飾でしかない面は付けないほうが読めます（省かれるぶんインクが減ります）。帯グラフの帯や、状態を色で示す印は省かれると空白しか残らないので、こちらに当たります。文字と枠線は既定でも紙に残るため、色を持たない要素に付ける意味はありません。
+Apply `print-color-keep` **only to surfaces where the color itself carries information**. Browsers omit background graphics from the page by default, so surfaces whose color is merely decorative read better without it (and the omission saves ink). The bars of a bar chart, or marks that show a state by color, leave only blank space when omitted, so they qualify. Text and borders stay on paper by default, so applying it to elements without color is pointless.
 
-## 責務境界
+## Responsibility Boundaries
 
-何を印刷するかは持ちません。画面の構造、業務内容、印刷の実行（`window.print()`）はいずれもこの外側です。
+It does not own what to print. The structure of the screen, the business content and running the print (`window.print()`) are all outside it.
 
-PDF をサーバで組む場合は backend の責務です（ADR [0070](../../../../../docs/adr/0070-backend-role-separation.md)）。ここが担うのは印刷可能な HTML と CSS を出すところまでで、その先は境界として切ります。
+Building a PDF on the server is the backend's responsibility (ADR [0070](../../../../../docs/adr/0070-backend-role-separation.md)). What this covers stops at producing printable HTML and CSS; everything beyond that is cut off as a boundary.
 
-## 配色
+## Color Scheme
 
-**印刷は画面の配色に関わらず、常に既定（light）の配色になります。** これは印刷側で色を上書きしているのではなく、既定以外の theme が `screen` に限定されているためです（token の生成側が持つ）。
+**Printing always uses the default (light) color scheme, regardless of the screen's color scheme.** This is not the print side overriding colors; themes other than the default are limited to `screen` (owned by the token generation side).
 
-暗い配色のまま印刷すると、背景を出す設定では紙が一面黒く塗られ、出さない設定では白い紙に薄い文字が残ります。どちらも読めないため、印刷では既定の配色へ落とします。
+Printing with a dark color scheme fills the whole page black when backgrounds are printed, and leaves faint text on white paper when they are not. Neither is readable, so printing falls back to the default color scheme.
 
 ## Storybook
 
-印刷しない要素と印刷にだけ出る要素、紙をまたぐ表、見出しと段落の分断を確認します。画面上では差が見えないため、各 story に印刷プレビューを開くボタンを置いています（ボタン自体は `print-hidden` なので紙には出ません）。
+It checks elements that are not printed and elements that appear only in print, tables that span pages, and the splitting of headings and paragraphs. The difference is not visible on screen, so each story has a button that opens the print preview (the button itself is `print-hidden`, so it does not appear on paper).
 
-印刷の実行はこの基盤の責務ではないため、ボタンは story 側にだけあります。
+Running the print is not this foundation's responsibility, so the button exists only on the story side.

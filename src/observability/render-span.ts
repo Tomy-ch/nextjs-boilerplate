@@ -9,7 +9,7 @@ type RenderResult = ReactNode | Promise<ReactNode>;
  * @remarks
  * **実装をここへ静的に import しません。** このモジュールは feature が import するため、ブラウザ
  * （Storybook・client component）のバンドルにも入ります。実装は起動境界から注入し、注入の無い
- * 実行では計装そのものが動きません（理由は同層の README「描画の計装」）。
+ * 実行では計装そのものが動きません（理由は同層の README「Rendering Instrumentation」）。
  */
 export type RenderSpanRunner = <Result extends RenderResult>(
   name: string,
@@ -55,7 +55,7 @@ export function configureRenderSpans(next: RenderSpanConfiguration): void {
  * [features の README](../features/README.md) が持ちます。
  *
  * @param name - span 名に載せる `src/` からのモジュールパス。**利用者の入力を混ぜてはいけません**
- *   （理由は [README](./README.md) の「描画の計装」）。
+ *   （理由は [README](./README.md#rendering-instrumentation)）。
  * @param render - span で包む描画
  * @returns span で包んだ描画
  */

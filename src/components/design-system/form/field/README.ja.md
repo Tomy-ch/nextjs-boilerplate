@@ -1,0 +1,36 @@
+> **このファイルは [`README.md`](README.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `README.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `README.md` だけです。このファイルは人間が読むための翻訳です。
+
+# Field
+
+## 用途
+
+label、入力、説明、エラーを一つの form field として構成します。
+
+## 役割と公開 component
+
+| Component | 役割 |
+| --- | --- |
+| `Field` | 一つの入力項目をまとめる外枠です。 |
+| `FieldGroup` / `FieldSet` | 関連する複数の field をまとめます。 |
+| `FieldLabel` / `FieldLegend` | 項目名または選択群の名称を示します。 |
+| `FieldContent` / `FieldDescription` / `FieldError` | control 周辺の内容・補足・エラーを置きます。 |
+| `FieldTitle` | control を持たない項目の見出しを示します。入力欄の名称には `FieldLabel` を使います。 |
+| `FieldSeparator` | field 群の視覚的な区切りを置きます。 |
+
+[`field.definition.ts`](./field.definition.ts) は、`FieldDescription` / `FieldError` に与える `id` の綴りを持ちます（`toErrorId` / `toDescriptionId`）。入力欄の `aria-describedby` がその `id` を指すため、綴りを決めているのは受け取る側の都合です。項目の外枠を組む [`patterns/form-field`](../../../patterns/form-field/README.ja.md) もここを引きます。
+
+組み立てる側（`patterns/form-field`）へは置きません。レイヤーの向きは `patterns → design-system` の一方向なので、そこに置くと素の `Field` を直接組む catalog や画面が上へ引けず、同じ綴りを手で書くことになります。
+
+## 利用ケース
+
+native form の入力、選択、説明文、Server Action の検証結果を構成する場合に使います。
+
+## 責務境界
+
+Server Component であり、値の状態管理・検証・エラー配列の整形は行いません。feature が `aria-invalid`、`aria-describedby`、エラー文言を渡します。
+
+## Storybook とテスト
+
+Storybook は通常、invalid、区切りを別々に示し、test は label の関連付け・alert・a11y を確認します。

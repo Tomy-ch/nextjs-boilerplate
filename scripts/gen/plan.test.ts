@@ -21,21 +21,21 @@ const contract: LayerContract = {
 
 const README_TEMPLATE = `# {{ComponentName}}
 
-## 用途
+## Purpose
 
-{{この component を使う利用者上の目的を書く}}
+{{State the user-facing purpose this component serves}}
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| \`{{ComponentName}}\` | {{公開 API の役割を書く}} |
+| \`{{ComponentName}}\` | {{State the role of the public API}} |
 
-## 利用ケース
+## Use Cases
 
-## 責務境界
+## Responsibility Boundaries
 
-## Storybook とテスト
+## Storybook and Tests
 `;
 
 const FEATURE_README_TEMPLATE = `---
@@ -44,21 +44,21 @@ forbidden: [features]
 test-requirement: feature
 ---
 
-# <feature 名>
+# <feature name>
 
-<!-- 必須節。
+<!-- Required sections.
 required-sections:
-  - 受け入れるもの
-  - Route と契約
+  - What Belongs Here
+  - Routes and Contracts
 -->
 
-## 受け入れるもの
+## What Belongs Here
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Specification | Authentication |
 | --- | --- | --- |
-| \`<例: /items>\` | \`<link>\` | \`<不要>\` |
+| \`<e.g. /items>\` | \`<link>\` | \`<not required>\` |
 `;
 
 /** 実物のテンプレート。生成器が読む入力そのもの。 */
@@ -212,8 +212,8 @@ describe("planGeneration", () => {
     const readme = fileNamed(planGeneration(featureInput()), "README.md").content;
 
     expect(readme).toContain("# report-detail\n");
-    expect(readme).not.toContain("<feature 名>");
-    expect(readme).toContain("| `<例: /items>` | `<link>` | `<不要>` |");
+    expect(readme).not.toContain("<feature name>");
+    expect(readme).toContain("| `<e.g. /items>` | `<link>` | `<not required>` |");
   });
 
   it("feature の README の frontmatter は、テンプレートの写しではなく層の契約から組む", () => {
@@ -239,7 +239,7 @@ describe("planGeneration", () => {
 
   it("frontmatter を持たないテンプレートにも、層の契約の frontmatter を付ける", () => {
     const readme = fileNamed(
-      planGeneration(featureInput({ readmeTemplate: "# <feature 名>\n" })),
+      planGeneration(featureInput({ readmeTemplate: "# <feature name>\n" })),
       "README.md",
     ).content;
 
@@ -261,7 +261,7 @@ describe("planGeneration", () => {
       expect(readme).toContain(`\n## ${section}\n`);
     }
 
-    expect(readme).not.toContain("<feature 名>");
+    expect(readme).not.toContain("<feature name>");
   });
 
   it("feature の view と page-content を、画面名の識別子と置き場と一致する span 名で出す", () => {
@@ -388,7 +388,7 @@ describe("planGeneration", () => {
 
     expect(readme).toBe(README_TEMPLATE.replaceAll("{{ComponentName}}", "ReportDetail"));
     expect(readme).not.toContain("{{ComponentName}}");
-    expect(readme).toContain("{{この component を使う利用者上の目的を書く}}");
+    expect(readme).toContain("{{State the user-facing purpose this component serves}}");
   });
 
   it("component の README は frontmatter を持たない", () => {

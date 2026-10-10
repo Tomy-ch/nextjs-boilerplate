@@ -1,63 +1,63 @@
 # DropdownMenu
 
-## 用途
+## Purpose
 
-trigger から操作の一覧を開き、対象に対して実行できることをまとめて示します。
+Opens a list of operations from a trigger and presents together what can be done to a target.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `DropdownMenu` | 開閉状態と roving focus・Escape・外側クリックを管理する client-side root です。 |
-| `DropdownMenuTrigger` | menu を開く trigger です。`Button` を使う場合は `asChild` で合成します。 |
-| `DropdownMenuContent` | Portal へ表示する menu 本体です。位置は `side` / `align` / `sideOffset` で調整します。 |
-| `DropdownMenuPortal` | 描画先の Portal です。`DropdownMenuContent` が内部で使います。 |
-| `DropdownMenuItem` | 選択すると menu を閉じて操作を実行する項目です。`variant` で破壊的操作を区別します。 |
-| `DropdownMenuCheckboxItem` | 選択状態を切り替える項目です。menu を開いたまま複数を切り替えられます。 |
-| `DropdownMenuRadioGroup` | 択一選択の項目をまとめ、選択値を扱います。 |
-| `DropdownMenuRadioItem` | group 内で択一に選択される項目です。 |
-| `DropdownMenuGroup` | 関連する項目をまとめます。 |
-| `DropdownMenuLabel` | group の見出しです。選択できません。 |
-| `DropdownMenuSeparator` | 項目群を視覚的・意味論的に区切ります。 |
-| `DropdownMenuShortcut` | 項目の右端へキーボード操作を表示します。`KbdGroup` の上に組んでおり、個々のキーは `Kbd` を子に並べます。表示のみで登録はしません。 |
-| `DropdownMenuSub` | 入れ子の menu をまとめる root です。 |
-| `DropdownMenuSubTrigger` | 入れ子の menu を開く項目です。 |
-| `DropdownMenuSubContent` | 入れ子の menu 本体です。 |
+| `DropdownMenu` | The client-side root that manages the open state, roving focus, Escape and outside clicks. |
+| `DropdownMenuTrigger` | The trigger that opens the menu. When using `Button`, compose it with `asChild`. |
+| `DropdownMenuContent` | The menu body shown in a Portal. Its position is adjusted with `side` / `align` / `sideOffset`. |
+| `DropdownMenuPortal` | The Portal it renders into. `DropdownMenuContent` uses it internally. |
+| `DropdownMenuItem` | An item that closes the menu and runs the operation when selected. `variant` distinguishes destructive operations. |
+| `DropdownMenuCheckboxItem` | An item that toggles a selection state. Several can be toggled while the menu stays open. |
+| `DropdownMenuRadioGroup` | Groups single-choice items and handles the selected value. |
+| `DropdownMenuRadioItem` | An item chosen exclusively within its group. |
+| `DropdownMenuGroup` | Groups related items. |
+| `DropdownMenuLabel` | The heading of a group. Not selectable. |
+| `DropdownMenuSeparator` | Separates groups of items visually and semantically. |
+| `DropdownMenuShortcut` | Shows a keyboard shortcut at the item's right edge. Built on `KbdGroup`, with each key as a `Kbd` child. Display only; it registers nothing. |
+| `DropdownMenuSub` | The root grouping a nested menu. |
+| `DropdownMenuSubTrigger` | The item that opens a nested menu. |
+| `DropdownMenuSubContent` | The body of a nested menu. |
 
-`DROPDOWN_MENU_ITEM_VARIANT` は `dropdown-menu.definition.ts` が owner です。`default` と `destructive` の二値で、`destructive` は削除など取り消せない操作にだけ使います。
+`dropdown-menu.definition.ts` is the owner of `DROPDOWN_MENU_ITEM_VARIANT`. It has two values, `default` and `destructive`; use `destructive` only for operations that cannot be undone, such as deletion.
 
-## 利用ケース
+## Use Cases
 
-一覧の行ごとの補助操作、アカウントメニュー、表示設定の切り替えなど、対象に対する操作をまとめたい場面に使います。
+Use it where operations on a target should be gathered, such as auxiliary per-row operations in a list, an account menu, or switching display settings.
 
-中身は操作に限ります。読み物や form を出したい場合は `Popover`、画面を覆う編集は `Dialog`、取り消せない操作の確認は `AlertDialog` を使います。
+The content is limited to operations. To show reading material or a form, use `Popover`; for editing that covers the screen, `Dialog`; to confirm an operation that cannot be undone, `AlertDialog`.
 
-同じ操作を右クリックからも開きたい場合は [`ContextMenu`](../context-menu/README.md) を併置できます。context menu は画面上に trigger が現れず単独の導線にはできないため、可視の trigger を持つこの component が到達手段の本体であり続けます。
+To also open the same operations from a right-click, a [`ContextMenu`](../context-menu/README.md) can be placed alongside. A context menu shows no trigger on screen and cannot be the sole path, so this component, with its visible trigger, remains the primary means of reaching them.
 
-## 責務境界
+## Responsibility Boundaries
 
-開閉・roving focus・型入力による項目移動・Escape・外側クリックのため hydration が必要な client island です。表示する文言、取得、保存、業務判断、権限による項目の出し分けは持ちません。
+It is a client island that needs hydration for opening / closing, roving focus, moving between items by typeahead, Escape and outside clicks. It holds no display text, fetching, saving, business decisions, or showing items by permission.
 
-icon だけの trigger にする場合は、`sr-only` のテキストなどでアクセシブルな名前を呼び出し元が与えます。一覧の行ごとに menu を置くときは、どの行に対する操作かが名前から分かるようにします。
+When the trigger is icon-only, the caller gives it an accessible name, such as with `sr-only` text. When placing a menu on every row of a list, make the name say which row the operations are for.
 
-menu は touch device と screen reader で到達コストが高いため、主導線の操作を menu の中だけに置きません。入れ子の階層も浅く保ち、深くなる場合は `Dialog` や専用画面への遷移を先に検討します。
+Menus are costly to reach on touch devices and with screen readers, so do not put main-flow operations only inside a menu. Keep nesting shallow too; if it gets deep, consider a `Dialog` or navigating to a dedicated screen first.
 
-`destructive` は色で区別するだけなので、色が手がかりにならない環境でも操作内容が分かる文言にします。実行前の確認が要る場合は、選択後に `AlertDialog` を開くのは feature の責務です。
+`destructive` differs only by color, so use text that makes the operation clear even where color is not a cue. When confirmation is needed before running it, opening an `AlertDialog` after selection is the feature's responsibility.
 
-`DropdownMenuShortcut` は右端への配置だけを担い、キーの意味論は `Kbd` / `KbdGroup` が持ちます。shortcut の登録はせず、キーボードから実行できない操作に対しては表示しません。
+`DropdownMenuShortcut` handles only the placement at the right edge; the semantics of the keys belong to `Kbd` / `KbdGroup`. It registers no shortcut, and is not shown for operations that cannot be performed from the keyboard.
 
-選択項目は既定で、選ぶたびに menu が閉じます。表示する列の切り替えのように続けて操作したい場合は、`DropdownMenuCheckboxItem` / `DropdownMenuRadioItem` の `onSelect` で `event.preventDefault()` を呼ぶと開いたままになり、枠外の操作や Escape で閉じます。どちらが適切かは用途で変わるため、component 側では既定を変えません。
+By default, the menu closes every time an item is selected. To keep operating in a row, as when switching which columns to show, call `event.preventDefault()` in `onSelect` of `DropdownMenuCheckboxItem` / `DropdownMenuRadioItem` to keep it open; it then closes on an action outside the frame or Escape. Which is appropriate depends on the use, so the component side does not change the default.
 
-項目の focus / hover は `bg-accent` / `text-accent-foreground` で示します。この semantic token は `tokens/themes/<系統>/<配色>.json` に定義があり、地から一段離れた淡い面を使います。キーボードで項目を移動したときに現在位置が分かる唯一の手がかりなので、`className` でこの指定を打ち消しません。
+Focus / hover on items is shown with `bg-accent` / `text-accent-foreground`. These semantic tokens are defined in `tokens/themes/<family>/<color scheme>.json` and use a pale surface one step away from the ground. It is the only cue to the current position when moving between items by keyboard, so do not cancel this styling with `className`.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendor is currently Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の開閉、disabled を含む項目の並び、見出し・group・区切り・shortcut 表示・破壊的操作の組み合わせ、icon だけの trigger、実 state に接続した複数選択と択一選択、選択後も開いたままにする場合、入れ子の menu を確認します。テストは開くまで項目を描画しないこと、`menu` / `menuitem` / `menuitemcheckbox` / `menuitemradio` の意味論、選択による実行と閉じ、disabled、`variant` による区別、Escape での閉じ、入れ子の開閉、`DropdownMenuPortal` の明示指定、a11y 自動検査を確認します。
+Storybook checks the default opening / closing, a row of items including disabled ones, combinations of headings, groups, separators, shortcut display and destructive operations, an icon-only trigger, multiple and single choice connected to real state, staying open after selection, and nested menus. The tests check that items are not rendered until opened, the semantics of `menu` / `menuitem` / `menuitemcheckbox` / `menuitemradio`, running and closing on selection, disabled, the distinction by `variant`, closing with Escape, opening / closing nested menus, explicit `DropdownMenuPortal`, and the automated a11y check.
 
-a11y 自動検査では `region`（すべてのページ内容が landmark に含まれること）を対象から外しています。Radix が menu を `document.body` 直下の Portal へ描画するため landmark の外に出ますが、これは Portal を使う UI に共通する制約であり、`region` は axe の `best-practice` タグでリポジトリの目標水準（WCAG 2.x AA）の対象外です。
+The automated a11y check excludes `region` (all page content must be contained in landmarks). Radix renders the menu into a Portal directly under `document.body`, so it falls outside the landmarks; this is a constraint shared by all UI that uses a Portal, and `region` is tagged `best-practice` in axe and is outside the repository's target level (WCAG 2.x AA).
 
-jsdom には Radix が位置計算に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
+jsdom lacks `ResizeObserver` and `scrollIntoView`, which Radix uses for position calculation, so the tests stub them. Removing that dependency from the implementation is not the approach taken.
 
-枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook の `WithSelectionKeptOpen` で実ブラウザ確認します。
+Closing on an action outside the frame is not included in the tests. jsdom does not implement `PointerEvent` and cannot reproduce Radix's detection mechanism, so it is checked in a real browser with Storybook's `WithSelectionKeptOpen`.

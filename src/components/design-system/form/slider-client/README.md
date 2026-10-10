@@ -1,41 +1,41 @@
 # SliderClient
 
-## 用途
+## Purpose
 
-数値または範囲を連続的な操作で指定します。下限と上限を一つの操作面で選べる点が `SliderNative` との違いです。
+Specifies a number or a range through continuous interaction. Being able to choose the lower and upper bound on one control surface is what distinguishes it from `SliderNative`.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SliderClient` | track・選択範囲・thumb を組み立てる client island の form 部品です。値の配列から thumb の数を決めます。 |
+| `SliderClient` | A client island form component that assembles the track, the selected range and the thumbs. The number of thumbs is decided from the array of values. |
 
-## 利用ケース
+## Use Cases
 
-- 価格帯のように、下限と上限を同時に指定する範囲入力
-- 選択中の値を即時に別の表示へ反映する場合
-- 選択済みの範囲を塗り分けて示したい場合（`SliderNative` は擬似要素の制約でこれができません）
+- Range input that specifies the lower and upper bound at once, such as a price range
+- Reflecting the selected value immediately in another display
+- Showing the selected range with a distinct fill (`SliderNative` cannot do this because of the pseudo-element constraint)
 
-単一の値を選ぶだけで足りる場合は、native form へそのまま載る `SliderNative` を使います。
+When choosing a single value is enough, use `SliderNative`, which goes into a native form as is.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` の例外に当たります。既定は `SliderNative` であり、catalog が client island の条件として挙げる**複数 thumb**または複雑な値同期が必要な場合にこちらを選びます。hydration が必要で、Server Component からは直接 render できません。値の保持と確定、`searchParams` への反映、送信は呼び出し元が持ちます。
+In the SSR-first selection it is the exception to `◎`. The default is `SliderNative`; choose this one when **multiple thumbs**, which the catalog lists as a condition for a client island, or complex value synchronization are needed. It needs hydration and cannot be rendered directly from a Server Component. Holding and committing the value, reflecting it in `searchParams`, and submission belong to the caller.
 
-`value` を渡すと制御 component、`defaultValue` を渡すと非制御 component として動きます。いずれも省略した場合は `min` を初期値とする thumb を一つ置きます。thumb の数は値の数と一致します。
+Passing `value` makes it a controlled component and `defaultValue` an uncontrolled one. When both are omitted, it places one thumb with `min` as its initial value. The number of thumbs matches the number of values.
 
-名前を持つのは外枠ではなく**各 thumb** です。`slider` role は thumb 側に付くため、外枠へ `aria-label` や `aria-labelledby` を渡しても名前になりません。`thumbLabels` に値と同じ順序で名前を渡します。範囲入力では「下限価格」「上限価格」のように、どちらの端かが判る名前にします。
+What carries the name is **each thumb**, not the outer frame. The `slider` role sits on the thumb, so passing `aria-label` or `aria-labelledby` to the outer frame does not become the name. Pass names to `thumbLabels` in the same order as the values. For range input, use names that say which end it is, such as 「下限価格」 ("minimum price") and 「上限価格」 ("maximum price").
 
-`aria-valuemin` / `aria-valuemax` は thumb ごとの可動域ではなく、slider 全体の `min` / `max` を指します。範囲入力で「下限は上限を越えない」ことを利用者へ伝えたい場合は、名前や併記テキストで補います。
+`aria-valuemin` / `aria-valuemax` refer to the `min` / `max` of the whole slider, not the movable range of each thumb. To tell the user in range input that "the lower bound does not exceed the upper bound", supplement it with the names or accompanying text.
 
-`orientation="vertical"` で縦向きになります。その場合は高さを `className` で与えます。
+`orientation="vertical"` makes it vertical. In that case give the height with `className`.
 
-track は `bg-border`、選択範囲は `bg-foreground` で、両者が light / dark いずれでも明確に分かれるようにしています。範囲入力では「どこからどこまでを選んでいるか」が唯一の情報なので、track と選択範囲の差はこの component の要件です。thumb は面が `bg-background`、輪郭が `border-foreground` で、選択範囲の上でも背景の上でも位置が判るようにしています。
+The track is `bg-border` and the selected range `bg-foreground`, so that they are clearly distinct in both light and dark. In range input "from where to where is selected" is the only information, so the difference between track and selected range is a requirement of this component. The thumb has a `bg-background` surface and a `border-foreground` outline, so its position is clear both over the selected range and over the background.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API contains no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は単一 thumb、範囲指定、`step` を指定した離散値、disabled、縦向き、制御 component として値を併記する場合を確認します。
+Storybook checks a single thumb, a range, discrete values with `step`, disabled, vertical orientation, and a controlled component shown alongside its value.
 
-テストは値の数だけ thumb が置かれること、`value` / `defaultValue` を省略したときの既定、`aria-valuenow` と全体値域を指す `aria-valuemin` / `aria-valuemax`、keyboard 操作による値の変更と呼び出し元への通知、制御 component としての反映、`thumbLabels` による thumb ごとのアクセシブルな名前、disabled、`className` の上書き、a11y 自動検査を確認します。
+The tests check that one thumb is placed per value, the defaults when `value` / `defaultValue` are omitted, `aria-valuenow` and `aria-valuemin` / `aria-valuemax` pointing at the whole value range, value changes by keyboard and notification to the caller, reflection as a controlled component, per-thumb accessible names via `thumbLabels`, disabled, overriding `className`, and the automated a11y check.

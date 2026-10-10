@@ -168,7 +168,7 @@ export const ENTRY_POINTS = [
  *   mount は `route-segment` の名指しの例外であって、変更の口が span を立てる場所ではありません。
  *   **`config` は落としていません**: 禁じているのは server config の直読で、`actions.ts` が読んで
  *   いるのは `NEXT_PUBLIC` の公開定数です。層の粒度ではその 2 つを分けられないため、区別は
- *   `arch-check` が `src/app/README.md`「監査の観点」の行で拾います（[traceability](docs/traceability.md)
+ *   `arch-check` が `src/app/README.md#audit-criteria`の行で拾います（[traceability](docs/traceability.md)
  *   「機械が届かないと分かっているところ」）
  *
  * - `app-metadata`: クローラと共有先が読む配信物。`config`（外から見た origin・索引の可否）と
@@ -183,7 +183,7 @@ export const ENTRY_POINTS = [
  * `route-segment` はこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
  * 許されているのは計装の mount と、Next.js の規約が route segment に置くことを要求する値だけ
  * ですが、その限定は「何を import してよいか」ではなく「どう使ってよいか」なので、層の許可を削る
- * 形では表せません。残りは `arch-check` が `src/app/README.md`「監査の観点」の行で拾います。
+ * 形では表せません。残りは `arch-check` が `src/app/README.md#audit-criteria`の行で拾います。
  *
  * `testRequirement` をここが持つのは、負う観点を決めるのが**置き場ではなく element** だからです。
  * ディレクトリから遡る README は、`api/` の外に置いた Route Handler へ届きません。対象のテストは

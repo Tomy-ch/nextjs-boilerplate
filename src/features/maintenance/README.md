@@ -1,77 +1,77 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [features]
 test-requirement: [feature, component, unit]
 ---
 
 # maintenance
 
-配信を止めているあいだ、全ルートの代わりに見せる面を持つ slice です。
+The slice that owns the surface shown in place of every route while serving is stopped.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 止まっていることと、いま何ができないかの文面
+- The text saying that service is stopped and what cannot be done right now
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- **止めるかどうかの判定**。入口（`src/proxy.ts`）が `config/maintenance` を読んで決めます。ここが
-  判定を持つと、止まっているあいだ全ルートが動的になります
-- **状態を変える要求を断ること**。差し替えは描く先を変えるだけなので、断るのは入口の仕事です
-  （[仕様書](../../../docs/spec/route/maintenance/page.function.md)）
-- **復旧の見込み**。予定を出すには運用がそれを供給する必要があり、供給が無いまま文面へ書くと
-  当たらない予定が画面に残ります
+- **Deciding whether to stop.** The entry point (`src/proxy.ts`) reads `config/maintenance` and decides. If this slice
+  held that decision, every route would become dynamic while stopped
+- **Refusing requests that change state.** The replacement only changes what is rendered, so refusing is the entry point's job
+  ([spec](../../../docs/spec/route/maintenance/page.function.md))
+- **The expected recovery time.** Showing a schedule requires the operations team to supply it, and writing one into the text without that supply
+  leaves an inaccurate schedule on the screen
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/maintenance` | [`screen`](../../../docs/spec/route/maintenance/page.screen.md) / [`function`](../../../docs/spec/route/maintenance/page.function.md) | 不要 |
+| `/maintenance` | [`screen`](../../../docs/spec/route/maintenance/page.screen.md) / [`function`](../../../docs/spec/route/maintenance/page.function.md) | Not required |
 
-**operationId は使いません。** 取得を持たないためで、契約が増えても変わりません。止まっている
-あいだにバックエンドを引くと、止めた理由がバックエンド側にあるとき応答が返りません。
+**No operationId is used.** This is because the slice does no fetching, and it does not change as the contract grows. Calling the backend while
+stopped gets no response when the reason for stopping lies on the backend side.
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 停止中 | 既定 | 画面まるごとの story は置いていない（下記） |
+| Stopped | default | No whole-screen story is placed (see below) |
 
-**取得も操作も持たないため状態が 1 つしかなく、画面の story を置いていません。**置いても
-`Default` 1 本になり、story が増えた分だけ VRT の実行時間だけが伸びます。見た目は E2E の画面比較が
-受け持ちます（`e2e/lib/screens.ts` に `maintenance` があります）—— **止めていなくても
-`/maintenance` は URL で開けます。** 差し替えの判定は入口が持ち、この画面自身は何も読まないためです。
+**With neither fetching nor operations there is only one state, so no screen story is placed.** One would be
+a single `Default`, and each added story only lengthens the VRT run time. The look is covered by the E2E screen comparison
+(`e2e/lib/screens.ts` has `maintenance`) — **`/maintenance` can be opened by URL even when service is not
+stopped.** This is because the replacement decision belongs to the entry point, and this screen itself reads nothing.
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `view.tsx` | 止まっていることの文面 |
+| `view.tsx` | The text saying that service is stopped |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `observability` | 描画を span に載せる |
+| `observability` | Puts rendering on spans |
 
-取得を持たないため `adapters` を引きません。`components` も引きません —— 器（`main` と
-`ContentContainer`）は route 側が置き、この面が持つのは文章だけです。
+It does no fetching, so it does not use `adapters`. Nor does it use `components` — the container (`main` and
+`ContentContainer`) is placed by the route side, and this surface holds only the text.
 
-## Action 戻り値契約
+## Action Return Contract
 
-なし。この画面に操作がありません。
+None. This screen has no operations.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 押せる物を置かない（止めているあいだ、押した先はすべてこの画面へ戻る）
-- [ ] 当たらない終了予定を出さない
+- [ ] Nothing pressable is placed (while stopped, every destination of a press comes back to this screen)
+- [ ] No inaccurate end time is shown
 
-## 変える箇所
+## Where to Change It
 
-文面はそのまま出ます。**連絡先や状況ページへの導線を足すなら、止めているあいだも到達できる
-先か**を先に確かめてください。自分の配信面へ向けた導線は、入口が同じ画面へ差し替えます。
+The text is shown as is. **If you add a link to contact details or a status page, first confirm that the destination is reachable
+while service is stopped.** A link pointing at your own serving surface is replaced by the entry point with this same screen.
 
-## 関連する ADR
+## Related ADRs
 
-- [0043](../../../docs/adr/0043-middleware-policy.md) — 入口（`src/proxy.ts`）の役割。止めるかどうかの判定と差し替えはそちらが持つ
-- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — カタログの方針。画面まるごとの story を置かない判断はその例外にあたる
-- [0090](../../../docs/adr/0090-testing-strategy.md) — 層別のテスト責務。見た目の確認を E2E の画面比較へ寄せる線引き
+- [0043](../../../docs/adr/0043-middleware-policy.md) — The role of the entry point (`src/proxy.ts`). The decision to stop and the replacement belong there
+- [0054](../../../docs/adr/0054-ui-catalog-storybook.md) — The catalog policy. The decision not to place a whole-screen story is an exception to it
+- [0090](../../../docs/adr/0090-testing-strategy.md) — Test responsibilities per layer. The line that moves visual checks to the E2E screen comparison

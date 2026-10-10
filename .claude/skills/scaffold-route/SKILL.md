@@ -4,7 +4,7 @@ usage-class: situational
 description: >-
   Scaffold one `app` entry point that is not a screen — a Route Handler (`route.ts`) as a thin proxy over
   `adapters`, or an `app`-level Server Action (`actions.ts`) that asserts the principal itself — shaped to pass
-  the `app` audit: element, allowed imports, `test-requirement` and the `## 監査の観点` rows are read from
+  the `app` audit: element, allowed imports, `test-requirement` and the `## Audit Criteria` rows are read from
   `src/app/README.md`, `src/app/api/README.md` and ADR 0025 at runtime. Chains the matching test skill. Use it
   when the browser needs a same-origin endpoint, when a mutation needs a principal assertion features cannot
   reach, when `scaffold-slice` reaches its route step, or on 「route handler を足したい」「主体の断言が要る Server
@@ -54,7 +54,7 @@ reported.
 | Source | What it decides |
 | --- | --- |
 | [ADR 0025](../../../docs/adr/0025-app-layer-elements.md) | The element table — which file is which element, what each may import, and which rows the machine enforces |
-| `src/app/README.md` — frontmatter, `## 運用`, `## 監査の観点` | `forbidden` tags, which `test-requirement` each element is held to, and the rows the element must satisfy |
+| `src/app/README.md` — frontmatter, `## Operations`, `## Audit Criteria` | `forbidden` tags, which `test-requirement` each element is held to, and the rows the element must satisfy |
 | `src/app/api/README.md` | What a Route Handler accepts and refuses, and where its failure responses are built |
 | `architecture.ts` — `APP_ELEMENTS` | The per-element import restriction the boundary check applies |
 | `src/adapters/server/http/` | The request-side helpers a handler validates input and builds failures with |
@@ -88,7 +88,7 @@ A stop here is a result, not a failure. Report which section decided it.
 
 ## Step 2. Plan against the audit rows
 
-Read the frontmatter and the `## 監査の観点` table of `src/app/README.md`. Keep only the rows whose subject
+Read the frontmatter and the `## Audit Criteria` table of `src/app/README.md`. Keep only the rows whose subject
 is this element — a row about route segments does not bind a handler — and say which rows were set aside
 and why. Build the plan as a table with **one line per kept row**:
 
@@ -149,7 +149,7 @@ with the rows set aside, the tests produced, and any README gap. Do not commit.
 ## Constraints
 
 - ✅ Decide from ADR 0025 and the READMEs whether the element is needed, and stop when it is not
-- ✅ Answer every applicable `## 監査の観点` row in the plan, and confirm the plan before writing
+- ✅ Answer every applicable `## Audit Criteria` row in the plan, and confirm the plan before writing
 - ✅ Assert the principal inside every exported `app`-level action
 - ✅ Chain `scaffold-integration-test` for a Route Handler
 - ❌ Write a route segment, a metadata file, or a feature-local action

@@ -44,7 +44,7 @@ export type ConsentBannerProps = {
  * **2 つの選択肢を同じ重さで並べます。** どちらも副次操作の見た目を採り、主要操作の強調は
  * どちらにも与えません。
  *
- * 理由は同層の README「設計」が持ちます。
+ * 理由は同層の README「Design」が持ちます。
  *
  * @param props - 受け取る内容。個々の意味は {@link ConsentBannerProps} の各メンバーが持つ。
  *

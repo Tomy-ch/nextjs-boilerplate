@@ -78,7 +78,7 @@
 
 ### Lens 1: 構造準拠
 
-ADR 0090 への機械的な適合。今回の実行で読み、その時点の記述を適用する。規則は「テストの構成: export ↔ describe の 1:1 対応」節（export 名の `describe`、入れ子の `describe` ではなくコメント区切り、対象が `正常系` / `異常系` で割れるか表示状態で割れるかを決める「軸の選び方」、ケースがどちら側に居るか、ケースごとの命名、skip / todo の規律）、「mock 戦略」（MSW 境界）、「配置・命名」（co-location）、「禁止事項」の一覧が持ち、ケース名が日本語であることは `AGENTS.md` の Language Rules が持つ。このレンズは規則の写しを持たない —— finding は違反した節を引き、ADR が沈黙している範囲は補遺へ回す。
+ADR 0090 への機械的な適合。今回の実行で読み、その時点の記述を適用する。規則は「Test structure: 1:1 export-to-describe mapping」節（export 名の `describe`、入れ子の `describe` ではなくコメント区切り、対象が `正常系` / `異常系` で割れるか表示状態で割れるかを決める「choosing the axis」の規則 ——「The axis is chosen by where success and failure appear」、ケースがどちら側に居るか、ケースごとの命名、skip / todo の規律）、「Mock Strategy」（MSW 境界）、「Placement and Naming」（co-location）、「Prohibitions」の一覧が持ち、ケース名が日本語であることは `AGENTS.md` の Language Rules が持つ。このレンズは規則の写しを持たない —— finding は違反した節を引き、ADR が沈黙している範囲は補遺へ回す。
 
 **ゲートが既に落とすものを再報告しない。** `scripts/one-to-one.gate.test.ts` が名前レベルの 4 形（`missing-test-file` / `missing-describe` / `duplicate-describe` / `unknown-describe`。最上位の `正常系` 束ねはここに落ちる）を機械判定する。それらは CI で既に赤なので言及は 1 行に留め、このレンズはゲートが読めないもの — 区切りによる束ね、ケースがどちら側に居るか、ケース名の質、ケースごとの命名、skip / todo の規律、MSW 境界、co-location — に使う。**テストが 1 つも無い subject は Lens 5 の所管**であり、このレンズは既にあるテストの形だけを見る（二重報告しないため）。
 

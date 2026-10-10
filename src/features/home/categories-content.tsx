@@ -9,7 +9,7 @@ import { CategoryLinks } from "./ui/category-links/category-links";
  * `Suspense` の外に置きます。
  *
  * **失敗をこの節の中で畳みません。** 読めなければ組み立てを落とし、配らない側へ倒します（この扱いが成り立つ条件は
- * [README](./README.md) の「運用」節と [`/` の仕様書](../../../docs/spec/route/shop/page.function.md)）。
+ * [README](./README.md#operations)と [`/` の仕様書](../../../docs/spec/route/shop/page.function.md)）。
  */
 export const HomeCategoriesContent = withScreenSpan(
   "features/home/categories-content",

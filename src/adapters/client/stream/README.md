@@ -4,43 +4,43 @@ test-requirement: [unit, integration]
 
 # stream
 
-長寿命接続を**開いて読む**面です。接続を保持するのはバックエンドで、ここが持つのは購読 1 本の
-状態機械と、それを組み立てる部品だけです（[親の README](../../README.md)「購読は開いて読む側だけを持つ」）。
+The surface that **opens and reads** long-lived connections. The backend holds the connection; what this directory holds is the state
+machine of one subscription and the components that assemble it ([parent README](../../README.md#a-subscription-holds-only-the-opening-and-reading-side)).
 
-**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+**This directory does not declare the import ceiling.** Boundaries are declared at an element's root, and the root of the element containing this directory is [`adapters/`](../../README.md) ([0021](../../../../docs/adr/0021-frontend-responsibility.md)).
 
-## 親と違う点
+## Differences from the Parent
 
-**検証の要求が親と違います。** `adapters` の宣言は `integration` ですが、それが掛かるのは外へ出る
-口を**直接持つ**モジュールです（[README](../../README.md) の「運用」）。ここでそれを持つのは
-`subscription.ts` だけで、残りは位置・封筒・順序・待ち時間を扱う部品であり、確かめるのは値の
-正しさそのものです。
+**The verification requirement differs from the parent's.** `adapters` declares `integration`, but it applies to modules that
+**directly hold** an endpoint going outside ([README](../../README.md#operations)). Here only
+`subscription.ts` holds one; the rest are components handling position, envelope, ordering and wait time, and what is checked is the
+correctness of the values themselves.
 
-**判定は「そのモジュールが外へ出るか」で行い、ディレクトリの位置では決めません。**
+**The decision is made by "does the module go outside", not by its directory location.**
 
-| モジュール | 検証 | 理由 |
+| Module | Verification | Reason |
 | --- | --- | --- |
-| [`subscription.ts`](subscription.ts) | `integration` | 発券の中継を叩き、`EventSource` を開く |
-| [`use-stream.ts`](use-stream.ts) | `unit` | 購読を component の寿命へ束ねる。hook は React の木を介してしか呼べないので RTL の `render` / `act` で確かめる |
-| [`cursor.ts`](cursor.ts) | `unit` | 位置の表し方と比較 |
-| [`envelope.ts`](envelope.ts) | `unit` | 封筒と制御指示の読み取り |
-| [`ordering.ts`](ordering.ts) | `unit` | 到達順の乱れを直す窓と、流した位置の記憶 |
-| [`backoff.ts`](backoff.ts) | `unit` | 張り直しまでの待ち時間 |
+| [`subscription.ts`](subscription.ts) | `integration` | Calls the ticket-issuing relay and opens an `EventSource` |
+| [`use-stream.ts`](use-stream.ts) | `unit` | Binds a subscription to a component's lifetime. A hook can only be called through a React tree, so it is checked with RTL's `render` / `act` |
+| [`cursor.ts`](cursor.ts) | `unit` | How positions are represented and compared |
+| [`envelope.ts`](envelope.ts) | `unit` | Reading the envelope and control directives |
+| [`ordering.ts`](ordering.ts) | `unit` | The window that fixes out-of-order arrival, and the memory of the position delivered |
+| [`backoff.ts`](backoff.ts) | `unit` | The wait before reconnecting |
 
-## 受け入れるもの
+## What Belongs Here
 
-- 購読 1 本の状態機械と、それを組み立てる部品
+- The state machine of one subscription, and the components that assemble it
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 本文の形。資源ごとの module（`client/api/<資源>.ts`）が宣言します
-- 接続の保持・event の採番・誰に何を配るか。バックエンドが持ちます
+- The body shape. The per-resource module (`client/api/<resource>.ts`) declares it
+- Holding the connection, event numbering, who gets what. The backend holds these
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../../README.md).
 
-- [0074](../../../../docs/adr/0074-runtime-communication-seam.md) — 購読 seam の選択と却下、責務分界。ticket を文言・ログ・span へ載せない制約
-- [0090](../../../../docs/adr/0090-testing-strategy.md) — 層別の検証責務（`unit` と `integration` を分けて宣言する理由）
+- [0074](../../../../docs/adr/0074-runtime-communication-seam.md) — The choice and rejections of the subscription seam, and the division of responsibility. The constraint that tickets do not go into UI text, logs or spans
+- [0090](../../../../docs/adr/0090-testing-strategy.md) — Per-layer verification responsibilities (why `unit` and `integration` are declared separately)

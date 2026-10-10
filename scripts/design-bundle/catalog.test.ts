@@ -15,15 +15,15 @@ import {
 const README = [
   "# Button",
   "",
-  "## 用途",
+  "## Purpose",
   "",
   "利用者の操作を開始します。",
   "",
-  "## 責務境界",
+  "## Responsibility Boundaries",
   "",
   "業務上の可否、送信中、結果通知は feature が管理します。",
   "",
-  "## Storybook とテスト",
+  "## Storybook and Tests",
   "",
   "Storybook は variant を確認します。",
   "",
@@ -47,28 +47,28 @@ function component(overrides: Partial<BundleComponent> = {}): BundleComponent {
 describe("sectionOf", () => {
   // ----- 正常系 -----
   it("指定した見出しの本文を 1 行へ畳んで返す", () => {
-    expect(sectionOf(README, "用途")).toBe("利用者の操作を開始します。");
+    expect(sectionOf(README, "Purpose")).toBe("利用者の操作を開始します。");
   });
 
   it("次の見出しより手前で切る", () => {
-    expect(sectionOf(README, "責務境界")).toBe(
+    expect(sectionOf(README, "Responsibility Boundaries")).toBe(
       "業務上の可否、送信中、結果通知は feature が管理します。",
     );
   });
 
   it("最後の見出しでも本文を取り出す", () => {
-    expect(sectionOf(README, "Storybook とテスト")).toBe("Storybook は variant を確認します。");
+    expect(sectionOf(README, "Storybook and Tests")).toBe("Storybook は variant を確認します。");
   });
 
   it("複数行の本文を空白で繋ぐ", () => {
-    const markdown = ["## 用途", "", "1 行目。", "2 行目。", ""].join("\n");
+    const markdown = ["## Purpose", "", "1 行目。", "2 行目。", ""].join("\n");
 
-    expect(sectionOf(markdown, "用途")).toBe("1 行目。 2 行目。");
+    expect(sectionOf(markdown, "Purpose")).toBe("1 行目。 2 行目。");
   });
 
   // ----- 異常系 -----
   it("見出しが無ければ空文字を返す", () => {
-    expect(sectionOf(README, "利用ケース")).toBe("");
+    expect(sectionOf(README, "Use Cases")).toBe("");
   });
 });
 

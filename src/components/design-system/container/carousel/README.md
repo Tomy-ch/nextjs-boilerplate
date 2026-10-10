@@ -1,80 +1,80 @@
 # Carousel
 
-## 用途
+## Purpose
 
-同じ種類の内容が複数あるとき、限られた横幅の中で一枚ずつ、または数枚ずつ順に閲覧できるようにします。
+When there are several items of the same kind, lets the user browse them one or a few at a time, in sequence, within limited width.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Carousel` | 順に閲覧する集合であることを支援技術へ伝える外枠です。名前を必ず与えます。 |
-| `CarouselContent` | slide を並べ、横方向のスクロールと slide 先頭への吸着を担う領域です。keyboard で到達できます。 |
-| `CarouselItem` | 一枚ぶんの内容です。全体のどこかを名前で示し、`flex-basis` で送り幅を決めます。 |
-| `CarouselPrevious` | slide の左端に重なる、一つ前へ送る操作です。置いた slide から見た一つ前を指します。client island です。 |
-| `CarouselNext` | slide の右端に重なる、一つ次へ送る操作です。置いた slide から見た一つ次を指します。client island です。 |
-| `CarouselNav` | 任意の slide へ移動する link を並べる領域です。何の送りかを名前で示します。 |
-| `CarouselLink` | 一枚の slide を指す link です。移動先の `id` を `#` 付きで受け取ります。client island です。 |
-| `CarouselThumbnails` | 表示中の slide に追従する送り先の一覧です。`CarouselNav` に現在地の追従を足したもので、client island です。 |
+| `Carousel` | The outer frame that tells assistive technology this is a set browsed in sequence. Always give it a name. |
+| `CarouselContent` | The region that lays out slides and handles horizontal scrolling and snapping to the start of a slide. Reachable by keyboard. |
+| `CarouselItem` | The content of one slide. It states by name where it sits in the whole, and `flex-basis` decides the advance width. |
+| `CarouselPrevious` | The action that advances to the previous slide, overlapping the slide's left edge. It points to the one before, as seen from the slide it is placed on. A client island. |
+| `CarouselNext` | The action that advances to the next slide, overlapping the slide's right edge. It points to the one after, as seen from the slide it is placed on. A client island. |
+| `CarouselNav` | The region that lays out links that move to any slide. It states by name what it advances. |
+| `CarouselLink` | A link that points to one slide. It receives the destination's `id` with a leading `#`. A client island. |
+| `CarouselThumbnails` | The list of destinations that follows the slide being shown. It is `CarouselNav` with current-position tracking added, and is a client island. |
 
-## 利用ケース
+## Use Cases
 
-- 一つの対象に複数の画像があり、横に並べきれない場合
-- 補足的な内容の並びを、主導線の高さを増やさずに見せたい場合
-- 同型のカードを、画面幅に応じて一枚送り・複数枚送りへ切り替えたい場合
+- When one subject has several images that do not all fit side by side
+- When you want to show a row of supplementary content without increasing the height of the main path
+- When you want same-shaped cards to switch between one-at-a-time and several-at-a-time advancing according to the screen width
 
-一覧すべてを見せることに意味がある場合は使いません。carousel は視界の外に置いた内容が読まれない前提の表示であり、見落とされて困る内容を入れると欠落します。
+Not used when showing the whole list matters. A carousel is a display that assumes content placed out of view is not read, and content that must not be overlooked goes missing in it.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `○` に当たります。送りは CSS Scroll Snap と browser 標準のスクロールで成り立つため、`Carousel` / `CarouselContent` / `CarouselItem` / `CarouselNav` は `"use client"`・React state・browser API を持ちません。slide の中身も Server Component のまま出力され、client 境界を渡りません。
+In the SSR-first selection it falls under `○`. Advancing works with CSS Scroll Snap and standard browser scrolling, so `Carousel` / `CarouselContent` / `CarouselItem` / `CarouselNav` have no `"use client"`, React state or browser API. Slide content is also output as Server Components and does not cross the client boundary.
 
-### 送り操作だけを client island にする
+### Only the advance actions are client islands
 
-client island は `CarouselPrevious` / `CarouselNext` / `CarouselLink` と、`CarouselLink` を束ねて現在地に追従させる `CarouselThumbnails` の 4 つです。markup は `href` を持つ link のままなので hydration 前でも押せば送れますが、fragment 遷移は carousel を画面内へ引き寄せるためにページごとスクロールさせ、履歴も 1 件積みます。hydration 後は既定動作を止めて `CarouselContent` だけを横へ送るため、ページも履歴も URL も動きません。
+The client islands are four: `CarouselPrevious` / `CarouselNext` / `CarouselLink`, and `CarouselThumbnails`, which groups `CarouselLink`s and makes them follow the current position. The markup stays a link with an `href`, so pressing advances even before hydration, but a fragment navigation scrolls the whole page to bring the carousel into view and adds one history entry. After hydration the default action is stopped and only `CarouselContent` is advanced horizontally, so neither the page, the history nor the URL moves.
 
-修飾キーを伴う押下と、行き先の slide が存在しない場合は browser の既定動作に任せます。
+Presses with modifier keys, and cases where the destination slide does not exist, are left to the browser's default action.
 
-touch のスワイプと trackpad の横スクロールは、browser のスクロールとして最初から効きます。pointer だけで送る手段が要る場合は、slide の左右端へ `CarouselPrevious` / `CarouselNext` を重ねます。この二つは置いた slide の中でだけ押せるため、現在位置を追わずに行き先が決まります。行き先のない端では要素ごと置きません。
+Touch swipes and trackpad horizontal scrolling work from the start as browser scrolling. When a pointer-only means of advancing is needed, overlap `CarouselPrevious` / `CarouselNext` on the slide's left and right edges. These two can be pressed only within the slide they are placed on, so the destination is decided without tracking the current position. At an end with no destination, the element is not placed at all.
 
-押しミスを防ぐため、当たり判定は見た目の円より一回り広く、円の半径ぶんだけ外周へ透明な領域を足しています。この領域は slide の内容に重なるので、slide の中に link や button を置く場合は円の周囲を空けてください。重なった操作は押せなくなります。
+To prevent mis-presses, the hit area is a size larger than the visible circle: a transparent region the width of the circle's radius is added around it. This region overlaps the slide's content, so when placing links or buttons inside a slide, leave space around the circle. Overlapped actions cannot be pressed.
 
-内容を隠しすぎないよう面と枠は半透明で置き、hover と focus で不透明にします。薄めるのは面と枠だけで記号は透かしません。背後に来る画像は選べないため、記号まで薄めると絵柄しだいで contrast が落ちるためです。touch には hover がなく半透明のまま操作するので、面はこれ以上薄くしません。
+So as not to hide too much of the content, the surface and border are semi-transparent and become opaque on hover and focus. Only the surface and border are faded; the symbol is not made transparent. The image behind cannot be chosen, so fading the symbol too would lower contrast depending on the picture. Touch has no hover and is operated while semi-transparent, so the surface is not made any fainter.
 
-slide ごとに繰り返されるので、枚数が多く `CarouselNav` で keyboard からの送り先を用意している場合は `tabIndex={-1}` を渡して tab 順から外します。
+They are repeated for every slide, so when there are many slides and `CarouselNav` provides keyboard destinations, pass `tabIndex={-1}` to take them out of the tab order.
 
-**自動送り・JS による drag・無限ループは持ちません。** 再生 timer や pointer の追跡を要し、送りの機構を client へ出すという切り分けを超えます。catalog が client island の条件として挙げる四つのうち、現時点で必要なのは現在位置の同期表示だけです。
+**It does not own auto-advance, JS-driven drag, or infinite looping.** These need a playback timer or pointer tracking, and go beyond the split of moving only the advance mechanism to the client. Of the four conditions the catalog lists for a client island, the only one needed now is synchronized display of the current position.
 
-### 表示中の slide に一覧を追従させる
+### Making the list follow the visible slide
 
-`CarouselThumbnails` は `CarouselNav` を内側に組み、そこへ現在地の追従を足したものです。送り先の一覧としての構造と、押して送る動作は `CarouselNav` / `CarouselLink` のままで、この component が足すのは「いまどれが表示されているか」だけです。
+`CarouselThumbnails` builds `CarouselNav` inside it and adds current-position tracking. The structure as a list of destinations and the press-to-advance behavior remain those of `CarouselNav` / `CarouselLink`; all this component adds is "which one is being shown now".
 
-`Carousel` の中に置きます。観測先は同じ carousel の最初の `CarouselContent` で、`IntersectionObserver` でもっとも見えている slide を選びます。現在地の `CarouselLink` には `aria-current="true"` が付き、文字色と枠で示されます。枠は border で描きます。要素の外側へ描く `ring` は、一覧が横スクロールする面であるため端の項目で切り取られ、輪の一部だけが線として残るためです。透明な枠を常に持たせてあるので、印が付いても大きさは変わりません。その link が一覧からはみ出している場合にだけ、**一覧だけ**を横へ送ります。ページのスクロール位置は動かしません。**追従して送るのは横方向だけです。** `className` で縦積みの一覧にした場合、現在地の印は移りますが一覧自体は動きません。
+Place it inside `Carousel`. What it observes is the first `CarouselContent` of the same carousel, and it picks the most visible slide with `IntersectionObserver`. The current `CarouselLink` gets `aria-current="true"` and is shown with text color and a border. The border is drawn as a border. A `ring`, which is drawn outside the element, would be clipped on the end items because the list is a horizontally scrolling surface, leaving only part of the ring as a line. A transparent border is always present, so the size does not change when the marker is applied. Only when that link overflows the list does it advance **only the list** horizontally. It does not move the page's scroll position. **Following only advances horizontally.** If the list is made into a vertical stack with `className`, the current marker moves but the list itself does not.
 
-位置と余白は `className` で決めます。サムネイル同士の間隔は `CarouselThumbnails` の `gap-*`、main との間隔は `Carousel` の `gap-*`、main の上下左右どちらへ置くかは `Carousel` の `flex-*`（既定は `flex-col` で下）、サムネイルの大きさと内側の余白は `CarouselLink` の `w-*` / `p-*` が決めます。専用の props は持ちません。ただし観測先を同じ carousel から辿るため、**一覧は `Carousel` の中に置く**必要があります。
+Position and spacing are decided with `className`. The spacing between thumbnails is `CarouselThumbnails`' `gap-*`, the spacing from the main area is `Carousel`'s `gap-*`, which side of the main area it goes on is `Carousel`'s `flex-*` (the default is `flex-col`, below), and the thumbnails' size and inner padding are `CarouselLink`'s `w-*` / `p-*`. It has no dedicated props. However, it traces what to observe from the same carousel, so **the list must be placed inside `Carousel`**.
 
-意味論は APG の tabbed carousel（`tablist` / `tab` / `tabpanel`）にしていません。あれは panel を出し分ける前提で、slide がすべて存在してスクロールで見せるこの形には合わないためです。ページ内 link の集合のまま `aria-current` で現在地を示します。
+The semantics are not APG's tabbed carousel (`tablist` / `tab` / `tabpanel`). That pattern assumes panels are swapped in and out, which does not fit this form where all slides exist and are shown by scrolling. It stays a set of in-page links and shows the current position with `aria-current`.
 
-hydration 前は `defaultCurrentId` を指定した場合だけ印が付きます。追従が要らない一覧は `CarouselNav` のままで構いません。
+Before hydration, the marker appears only when `defaultCurrentId` is specified. A list that does not need to follow can stay as `CarouselNav`.
 
-内容の取得、枚数の制御、画像の URL 組み立ては持ちません。`CarouselItem` の中身は呼び出し元が組み立て、画像であれば `MediaImage` を合成します。
+It does not own fetching content, controlling the number of slides, or building image URLs. The caller builds the content of `CarouselItem`, composing `MediaImage` for images.
 
-送り幅は `CarouselItem` の `flex-basis` が決めます。`CarouselContent` は幅を持たないため、外枠の幅は `Carousel` の `className` で与えます。`CarouselContent` が slide の間に隙間を空けるため、割り切った比率をそのまま与えると隙間のぶんだけ次の slide がはみ出します。複数枚をちょうど収めるには、比率から隙間の合計を按分して差し引いた値（2 枚なら `calc(50% - 0.5rem)`）を渡します。
+The advance width is decided by `CarouselItem`'s `flex-basis`. `CarouselContent` has no width of its own, so the outer frame's width is given through `Carousel`'s `className`. `CarouselContent` leaves gaps between slides, so passing an evenly divided ratio as is makes the next slide stick out by the gap. To fit several exactly, pass the ratio minus a proportional share of the total gap (`calc(50% - 0.5rem)` for 2).
 
-`Carousel` は `role="region"` と `aria-roledescription="carousel"` を持ちます。`section` が region になるのは名前を持つときだけなので、役割は明示しています。`aria-label` か `aria-labelledby` を必ず与えます。名前のない landmark へ入っても、何の領域なのか判りません。`CarouselItem` は `role="group"` と `aria-roledescription="slide"` を持ち、`1 / 4` のような位置を `aria-label` で示します。視界に入る枚数が限られるため、名前がないと全体のどこを読んでいるのか判りません。
+`Carousel` has `role="region"` and `aria-roledescription="carousel"`. A `section` becomes a region only when it has a name, so the role is stated explicitly. Always give `aria-label` or `aria-labelledby`. Entering a landmark with no name, you cannot tell what region it is. `CarouselItem` has `role="group"` and `aria-roledescription="slide"`, and shows its position, such as `1 / 4`, with `aria-label`. The number of slides in view is limited, so without a name you cannot tell where in the whole you are reading.
 
-スクロールできる領域は keyboard だけで操作する利用者も到達できる必要があるため、`CarouselContent` の `tabIndex` を `0` にしています。slide の中身が focus 可能な要素だけで構成される場合は `tabIndex={-1}` を渡して外します。読み取り専用の内容では外しません。判定は内容を知る呼び出し元が行い、既定は安全側の `0` にしています。
+A scrollable region must be reachable by users who operate with the keyboard alone, so `CarouselContent`'s `tabIndex` is `0`. When the slide content consists only of focusable elements, pass `tabIndex={-1}` to remove it. Do not remove it for read-only content. The caller, who knows the content, decides; the default is the safe side, `0`.
 
-スクロールは親へ連鎖させません。横送りの端に達したあと画面全体が動くと、どちらを操作しているのか判らなくなるためです。
+Scrolling is not chained to the parent. If the whole screen moved after reaching the end of horizontal advancing, it would be unclear which one is being operated.
 
-`CarouselContent` に `scroll-behavior: smooth` を与えないでください。滑らかな送りを指定した領域では、Chromium が fragment 遷移でのスクロールを行いません。送り操作は hydration 前を fragment 遷移で凌ぐため、指定すると hydration が済むまで何も動かなくなります。
+Do not give `CarouselContent` `scroll-behavior: smooth`. In a region with smooth scrolling specified, Chromium does not scroll on a fragment navigation. The advance actions rely on fragment navigation before hydration, so specifying it means nothing moves until hydration completes.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は一枚送り、slide を指す link を添える場合、左右端に前後の送りを重ねる場合、下に追従する一覧を並べる場合、その一覧の位置・余白・大きさを `className` で変えた場合、複数枚を並べたまま送る場合、画像以外の内容、送り領域の tab stop を外す場合を確認します。
+Storybook checks one-at-a-time advancing, adding links that point to slides, overlapping previous / next on the left and right edges, placing a following list below, changing that list's position, spacing and size with `className`, advancing while showing several side by side, content other than images, and removing the advance region's tab stop.
 
-テストは carousel として読み替える名前のある region を公開すること、slide を位置つきの `group` として公開すること、送り領域が keyboard で到達できスクロールを親へ連鎖させないこと、`tabIndex={-1}` で領域自体の tab stop を外せること、`flex-basis` で送り幅を変えられること、link を名前のある集合として公開すること、link が実在する slide を指すこと、左右端の送りが隣り合う slide を指し端では置かれないこと、その名前を言い換えられること、a11y 自動検査を確認します。
+Tests check that it exposes a named region read as a carousel, that slides are exposed as `group`s with their position, that the advance region is reachable by keyboard and does not chain scrolling to the parent, that `tabIndex={-1}` removes the region's own tab stop, that `flex-basis` changes the advance width, that links are exposed as a named set, that links point to slides that exist, that the edge advances point to adjacent slides and are not placed at the ends, that their names can be reworded, and automated a11y checks.
 
-送り操作の client island は、押下が `CarouselContent` だけを横へ動かし fragment 遷移を起こさないこと、末尾まで送ったあとの戻る向き、修飾キーを伴う押下と行き先のない場合に既定動作へ任せること、呼び出し元の `onClick` を先に呼びそこで止められたら送らないことを別のテストで確認します。
+For the client islands of the advance actions, separate tests check that a press moves only `CarouselContent` horizontally without causing a fragment navigation, the direction back after advancing to the end, that presses with modifier keys and the case with no destination are left to the default action, and that the caller's `onClick` is called first and nothing advances if it stops there.
 
-追従する一覧は、`defaultCurrentId` の有無による hydration 前の印、観測対象が main の slide であること、もっとも見えている slide へ印が移ること、報告のない slide を見えていないものとして扱うこと、現在地の link が収まっているとき・左右へはみ出したときの一覧の送り、対応する link が無い場合、観測できる slide が無い場合、`Carousel` の外に置かれた場合を確認します。
+For the following list, they check the marker before hydration with and without `defaultCurrentId`, that what is observed is the main area's slides, that the marker moves to the most visible slide, that slides with no report are treated as not visible, how the list advances when the current link fits and when it overflows to the left or right, the case with no corresponding link, the case with no observable slides, and the case where it is placed outside `Carousel`.

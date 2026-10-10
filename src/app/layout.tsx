@@ -19,7 +19,7 @@ const site = getSiteConfig();
  *
  * @remarks
  * `metadataBase` があるので、各 segment は canonical と OG 画像を経路だけで宣言できます。
- * **canonical はここに置きません** —— 理由は [README](./README.md)「metadata の土台と差分」。
+ * **canonical はここに置きません** —— 理由は [README](./README.md#metadata-base-and-per-route-differences)。
  *
  * 索引させない環境では `noindex` をここで宣言します（`docs/rules.md#config`の「索引させてよい
  * 環境だけが `SITE_INDEXABLE=on` を宣言する」）。個々の画面が `robots` を持たない限り継承されるので、

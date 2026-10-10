@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, errors] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [model, errors] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [fetch, config, capabilities, stores, business-state]
 coverage-exclusions:
   - "src/components/icon.ts"
@@ -8,286 +8,286 @@ test-requirement: component
 
 # components
 
-複数 feature で使うデザインシステム的な純 UI コンポーネントを置くカーネルです。
+The kernel that holds pure, design-system-style UI components used by more than one feature.
 
-## ここにあるものは参考実装です
+## What is here is a reference implementation
 
-**作り替えてもよく、捨ててもよい。**この目録に並んでいる部品も、[`tokens/`](../../tokens/README.md)
-が持つ値も、自分のデザインへ差し替える前提で置いてあります。**そのまま使うことは
-要件ではありません。**
+**You may rebuild it, and you may throw it away.** The components listed in this inventory and the
+values held by [`tokens/`](../../tokens/README.md) are placed here on the assumption that you will
+replace them with your own design. **Using them as they are is not a requirement.**
 
-残してほしいのは部品ではなく、部品の**置き方**です。
+What we ask you to keep is not the components but **how they are placed**.
 
-| 残るもの | 捨ててよいもの |
+| What stays | What you may throw away |
 | --- | --- |
-| 層の分け方（`design-system` / `patterns` / `shell` / `app-starter`）と、その軸（誰が書き換えるか × 何のための部品か） | 個々の部品の見た目・variant・命名 |
-| 依存の向き（`model` と `errors` だけを引く。fetch も config も業務状態も持たない） | shadcn/ui を起点にするという選択そのもの |
-| 部品ごとに README と story を co-locate するという規律 | いま並んでいる story の内容 |
-| semantic token を通して色と余白を決めるという形 | token の値 |
+| How the layers are split (`design-system` / `patterns` / `shell` / `app-starter`) and the axes behind it (who rewrites it × what the component is for) | The look, variants and naming of individual components |
+| The direction of dependencies (pull only `model` and `errors`; own no fetch, no config, no business state) | The choice of starting from shadcn/ui itself |
+| The discipline of co-locating a README and stories with each component | The content of the stories that exist now |
+| Deciding color and spacing through semantic tokens | The token values |
 
-**`app-starter` は特に作り替える前提の層です。**バックエンドの契約を知っている部品がそこに居る
-ので、契約が変われば作り直しになります（[配置・命名](#配置命名)）。
+**`app-starter` in particular is a layer meant to be rebuilt.** The components that know the backend
+contract live there, so when the contract changes they are rebuilt ([Placement and Naming](#placement-and-naming)).
 
-## 受け入れるもの
+## What Belongs Here
 
-- 横断 UI、表示に必要な UI 状態、アクセシブルな操作部品
+- Cross-cutting UI, the UI state needed for display, and accessible interactive components
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- fetch、config、業務状態、`capabilities`・`stores` の import
+- fetch, config, business state, and imports of `capabilities` / `stores`
 
-## 運用
+## Operations
 
-- 本ディレクトリの部品は shadcn/ui の copy-in を起点にする。Radix など vendor の import を採る場合も `components` に閉じ、feature から直接参照しない
-- **SSR first** とし、初期表示に必要な基礎部品は native HTML と Server Component を優先する。`"use client"`、Radix、Portal など browser runtime を必要とする実装は、native 要素では満たせない操作要件がある client island に限る。静的な少数選択は `select-native` を優先し、初期配置だけを理由に CSR へ寄せない
-- 見た目は Storybook の story を正として確認する。story は対象コンポーネントと同じディレクトリに co-locate する
-- 各 component ディレクトリには `README.md` を co-locate する。必須の節は「配置・命名」が持つ。native / Server Component を既定にする部品と client island の部品は、その境界と hydration の要否を明記する
-- shadcn CLI はアイコンを lucide で出力する（`components.json` の `iconLibrary` に Tabler の選択肢が無い）。copy-in したら、その import を [`icon.ts`](./icon.ts) 経由へ差し替える。必要な名前が無ければ `icon.ts` へ 1 行足す。差し替え漏れは、package が解決できないことと `pnpm lint:eslint` の両方で落ちる
-- 新しい shadcn copy-in では [`component-template.md`](./component-template.md) を component ディレクトリの `README.md` として自動コピーする。テンプレートの placeholder は、同じ取り込み作業で実装に合わせて必ず具体化する
-- component を足したら [component 目録](#component-目録) へ 1 行足す。名前を変えたら書き換え、消したら消す。目録に無い component は、これを読む人にとって存在しないのと同じである。`ContextMenu` のように可視の trigger を持たず、既存の部品を読まなければ気付けないものほどこの影響を受ける
-- どこに置くかは [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `layer` と `as` が正であり、`pnpm check:ui` が `directory` との一致を検査する。**`layer` は「誰が書き換えるか」、`as` は「何のための部品か」**で軸が違うので畳まない。`design-system/navigation/pagination` と `app-starter/cursor-pagination` がどちらも `as: navigation` になるのは、目的が同じで層が違うためである
-- Story は boilerplate を利用する人がそのまま参照できる中立なカタログとして保つ。汎用的な文言・props・リンクで部品自身の使い方を示し、特定の業務や画面に結び付く例は feature 側の Story に置く
-- 状態を自身の責務として持つ UI は loading / empty / error / success を story で示す。`Button` のようにその状態を所有しない UI へ無意味な state story は作らず、disabled・pending など当該 UI の操作状態を示す。画面固有の状態は feature 側で合成する
-- 単一 feature 専用の UI は feature 内に置く
-- 依存先は `model` と `errors` に限定する
-- class 名の条件分岐と Tailwind utility の競合解消には [`cn.ts`](./cn.ts) を使う。`clsx` と `tailwind-merge` を直接利用する実装は増やさない
-- アイコンは [`icon.ts`](./icon.ts) から取る。供給元を直接 import する実装は `components` の内側にも置かない。差し替えを 1 ファイルへ閉じるためで、`eslint.config.ts` の `no-restricted-imports` が締め出す。**この面は名前付き再輸出に限る** —— 名前から component を引く表を置くと、使っていないアイコンまで束へ乗る
-- 「一度満たしたら以後 mount を維持する」判断には [`use-latched.ts`](./use-latched.ts) を使う。器が閉じるたびに中身を外すと、**外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる必要がある入力欄）が作り直しになる。層をまたいで要るため層の下ではなくここに置く
-- 色・余白などは [`tokens/`](../../tokens/README.md) の semantic token を使う。primitive token の直接利用はしない
-- shadcn/ui の追加は `pnpm add:ui <component> --as=<見出し> [--layer=<層>] [-- <shadcn add のオプション>]` を使う。一度に一部品だけを層と見出しに応じた場所へ copy-in し、成功時に [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ層・見出し・レジストリ・追加日時・CLI 版を記録するため、`pnpm exec shadcn add` を直接実行しない。`--as` は必須、`--layer` の既定は `design-system` で、いずれも値が不正なら `shadcn add` を走らせる前に弾かれる
-- 上流に相当する item が無い自前の component は `pnpm gen component <name> --as=<見出し> [--layer=<層>]` で置く。配置オプションの語彙と既定は `add:ui` と同じで、実装・story・test と `component-template.md` の写しの README を同じディレクトリへ出し、[`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ `kind: original` の行を記録する。README を持つディレクトリは台帳に行が無いと `pnpm check:ui` が落とすため、雛形と台帳の行は一度に出る
-- **描画の span を持たない。** 横断 UI は画面ごとの帰属を持たないため、計装は feature 層の最上位に限る（[observability/README.md](../observability/README.md)）
+- Components in this directory start from a shadcn/ui copy-in. When adopting a vendor import such as Radix, keep it inside `components`; features do not reference it directly
+- **SSR first**: the basic components needed for the initial display prefer native HTML and Server Components. Implementations that need the browser runtime, such as `"use client"`, Radix or a Portal, are limited to client islands with interaction requirements native elements cannot meet. For a small static choice prefer `select-native`; do not move to CSR merely for the initial layout
+- The look is checked against the Storybook stories as the source of truth. Stories are co-located in the same directory as the component they cover
+- Co-locate a `README.md` in every component directory. The required sections are owned by "Placement and Naming". For components that default to native / Server Components and for client-island components, state that boundary and whether hydration is needed
+- The shadcn CLI emits icons as lucide (`iconLibrary` in `components.json` has no Tabler option). After a copy-in, replace those imports with ones through [`icon.ts`](./icon.ts). If a needed name is missing, add one line to `icon.ts`. A missed replacement fails both because the package cannot be resolved and in `pnpm lint:eslint`
+- A new shadcn copy-in automatically copies [`component-template.md`](./component-template.md) as the component directory's `README.md`. The template placeholders must be made concrete to match the implementation in the same import work
+- When you add a component, add one line to the [component inventory](#component-inventory). When you rename one, rewrite the line; when you delete one, delete it. A component missing from the inventory is, to whoever reads this, the same as not existing. Components like `ContextMenu`, which have no visible trigger and cannot be noticed without reading existing components, are the most affected
+- Where a component goes is decided by `layer` and `as` in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), and `pnpm check:ui` checks that they match `directory`. **`layer` is "who rewrites it" and `as` is "what the component is for"**; the axes differ, so do not fold them together. `design-system/navigation/pagination` and `app-starter/cursor-pagination` are both `as: navigation` because their purpose is the same and their layer differs
+- Keep stories a neutral catalog that people using the boilerplate can reference as is. Show a component's own usage with generic copy, props and links; examples tied to a specific business or screen go in feature-side stories
+- UI that owns state as its own responsibility shows loading / empty / error / success in stories. Do not create meaningless state stories for UI that does not own that state, such as `Button`; show that UI's own interaction states such as disabled and pending. Screen-specific states are composed on the feature side
+- UI used by a single feature only is placed inside that feature
+- Dependencies are limited to `model` and `errors`
+- Use [`cn.ts`](./cn.ts) for conditional class names and resolving Tailwind utility conflicts. Do not add implementations that use `clsx` and `tailwind-merge` directly
+- Take icons from [`icon.ts`](./icon.ts). Implementations that import the supplier directly are not placed even inside `components`. This keeps a replacement to one file, and `no-restricted-imports` in `eslint.config.ts` shuts them out. **This surface is limited to named re-exports** — a table that looks up a component by name pulls unused icons into the bundle too
+- For the decision "once satisfied, keep it mounted from then on", use [`use-latched.ts`](./use-latched.ts). If the content is removed every time its container closes, **things that cannot be restored once removed** (an editing surface that can only be built from the content at the time it opened, an input that must be included in the submission) are rebuilt. It is needed across layers, so it lives here rather than under a layer
+- Colors, spacing and the like use the semantic tokens of [`tokens/`](../../tokens/README.md). Do not use primitive tokens directly
+- Add shadcn/ui components with `pnpm add:ui <component> --as=<heading> [--layer=<layer>] [-- <shadcn add options>]`. It copies in one component at a time to the place matching its layer and heading, and on success records the layer, heading, registry, time added and CLI version in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), so do not run `pnpm exec shadcn add` directly. `--as` is required and `--layer` defaults to `design-system`; an invalid value for either is rejected before `shadcn add` runs
+- An original component with no equivalent upstream item is placed with `pnpm gen component <name> --as=<heading> [--layer=<layer>]`. The vocabulary and defaults of the placement options are the same as `add:ui`; it emits the implementation, story, test and a README copied from `component-template.md` into the same directory, and records a `kind: original` row in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml). `pnpm check:ui` fails a directory that has a README but no row in the ledger, so the template and the ledger row are emitted together
+- **Do not own rendering spans.** Cross-cutting UI has no per-screen attribution, so instrumentation is limited to the top of the feature layer ([observability/README.md](../observability/README.md))
 
-## 変更したあとの確認
+## Checks After a Change
 
-component を足した・変えたときは次を通す。順序に意味があるのは最初の 2 つだけで、`pnpm fix` が直せるものを直してから `pnpm lint:ci` に残りを出させる。
+When you add or change a component, pass the following. Only the order of the first two matters: fix what `pnpm fix` can fix, then let `pnpm lint:ci` report the rest.
 
 ```bash
 pnpm fix
 pnpm lint:ci
 pnpm typecheck
-pnpm vitest run <触った component のパス>
+pnpm vitest run <path of the component you touched>
 pnpm build-storybook
 git diff --check
 ```
 
-**判定は自分が触った範囲で行う。** このリポジトリの component は互いに独立で、複数人・複数セッションが別々の component を同時に触る。全体を緑にすることを完了条件にすると、他人の途中の状態が自分の完了を止め、直そうとすれば相手の作業を壊す。
+**Judge within the scope you touched.** Components in this repository are independent of each other, and several people and sessions touch different components at the same time. If making everything green is the completion condition, someone else's in-progress state blocks your completion, and trying to fix it breaks their work.
 
-- カバレッジは `--coverage.include` で対象へ絞る。リポジトリ全体の数字は、自分の変更の良し悪しを何も言わない
-- `pnpm check:ui` の指摘も自分の component の分だけ直す。他の component に付いた指摘は報告に書いて残す
-- 触っていない component が落ちている場合、直すのではなく報告する。落ちていること自体が、その component を持っている側への情報である
+- Narrow coverage to the target with `--coverage.include`. The repository-wide number says nothing about whether your change is good or bad
+- Fix `pnpm check:ui` findings only for your own component. Leave findings on other components in your report
+- If a component you did not touch is failing, report it rather than fixing it. The failure itself is information for whoever owns that component
 
-`pnpm build-storybook` が出す Vite の chunk-size warning は build の成功を妨げない。これは分割の助言であり、component 側の欠陥を指していない。
+The Vite chunk-size warning from `pnpm build-storybook` does not stop the build from succeeding. It is advice on splitting and does not point to a defect in a component.
 
-### テストの形
+### Test Structure
 
-観点は [docs/testing-conventions.md](../../docs/testing-conventions.md) と、各 README の「Storybook とテスト」が持つ。この層で揃えている形は次の 4 つである。
+The perspectives are owned by [docs/testing-conventions.md](../../docs/testing-conventions.md) and by each README's "Storybook and Tests". This layer keeps the following four shapes consistent.
 
-- `vitest.config.ts` の既定環境は `node` なので、描画するテストは先頭に `// @vitest-environment jsdom` を置く。描画を持たない `scripts/` はこの行を持たない
-- 描画を返す対象のテストは `vitest-axe` の `axe()` を必ず 1 件持つ（[0091](../../docs/adr/0091-test-verification-methods.md)）
-- router を読む部品（`next/navigation`）は `vi.mock("next/navigation")` で現在地と遷移を差し替える。部品は取得を持たないので、描画する部品のテストが `fetch` を差し替えることはない
-- 閲覧環境で表示を変える部品は、server の出力が環境に依らないことを `renderToStaticMarkup` で固定する。`render` は hydration 後の姿しか見ないため、初回描画の食い違いはそこでは見つからない
+- The default environment in `vitest.config.ts` is `node`, so a test that renders puts `// @vitest-environment jsdom` at the top. `scripts/`, which does not render, does not carry this line
+- A test whose subject returns rendered output always has one `axe()` from `vitest-axe` ([0091](../../docs/adr/0091-test-verification-methods.md))
+- Components that read the router (`next/navigation`) replace the current location and navigation with `vi.mock("next/navigation")`. Components do not fetch, so a test of a rendering component never replaces `fetch`
+- Components whose display changes with the browsing environment pin, with `renderToStaticMarkup`, that the server output does not depend on the environment. `render` sees only the post-hydration result, so a mismatch in the initial render is not found there
 
-## TSDoc の基準
+## TSDoc Standard
 
-TSDoc が満たすべき条件は一つである。**呼び出し側が内部の振る舞いを知らないまま、props を与えるだけで実装できること。** 実装の手順や内部状態の遷移は書かず、公開 API から見える契約だけを書く。加えて **Storybook の配置先を併記し、どのような見た目かが一目で分かるようにする。**
+TSDoc has one condition to meet: **a caller can implement against it by supplying props alone, without knowing the internal behavior.** Do not write implementation steps or internal state transitions; write only the contract visible from the public API. In addition, **state where it is placed in Storybook so its look can be found at a glance.**
 
-どのタグを必須にし、どれを該当するときだけ書くか —— `@param` / `@returns` / `@defaultValue` / `@example` と、props の意味を `<Component>Props` のメンバーへ書くこと —— は [docs/rules.md#comments](../../docs/rules.md#comments)が持つ。この層で足すのは次だけである。
+Which tags are required and which are written only when applicable — `@param` / `@returns` / `@defaultValue` / `@example`, and writing the meaning of props on the members of `<Component>Props` — is owned by [docs/rules.md](../../docs/rules.md#comments). This layer adds only the following.
 
-| 要素 | 内容 |
+| Element | Content |
 | --- | --- |
-| 先頭の一行 | この component の責務。名前の言い換えではなく、何を引き受けるかを書く |
-| `@remarks` | 呼び出し側が知らないと誤用する制約。SSR / client island の境界、必須の a11y 属性、この component が**持たない**責務 |
-| `@param props` | 必須（規則は rules.md）。この層で足すのは、native 属性を透過するならその旨 |
-| `@see` | Storybook の title。``@see Storybook `Action/Button` `` の形式で書く |
+| First line | This component's responsibility. Write what it takes on, not a paraphrase of its name |
+| `@remarks` | Constraints a caller misuses it without knowing: the SSR / client-island boundary, required a11y attributes, and responsibilities this component does **not** own |
+| `@param props` | Required (the rule is in rules.md). This layer adds only whether native attributes are passed through |
+| `@see` | The Storybook title. Write it in the form ``@see Storybook `Action/Button` `` |
 
-`<Component>Props` 自体は対応する component へ `{@link}` を張り、値集合の定数は各値の使い分けを列挙する。
+`<Component>Props` itself carries a `{@link}` to its component, and a constant for a value set enumerates when to use each value.
 
-subcomponent が多い compound では、root の `@example` で組み合わせ全体を示し、各 subcomponent には責務の一行と固有の制約だけを書く。同じ内容を全 subcomponent へ複製しない。
+For a compound with many subcomponents, the root's `@example` shows the whole combination, and each subcomponent carries only a one-line responsibility and its own constraints. Do not duplicate the same content across every subcomponent.
 
-書かないもの。
+What not to write:
 
-- 内部の実装手順、state の遷移、どの hook を使っているか
-- 開発の経緯、過去の不具合、移行の履歴（git history が持つ）
-- 型シグネチャを日本語へ言い換えただけの記述
+- Internal implementation steps, state transitions, which hooks are used
+- Development history, past bugs, migration history (git history owns these)
+- Text that merely paraphrases the type signature in prose
 
-## focus 表示と装飾的な輪の使い分け
+## Focus indicators versus decorative rings
 
-要素の周りに輪を描く手段は CSS の `outline` と `box-shadow`（Tailwind の `ring-*`）の二つがある。**focus 表示は `outline`、装飾的な輪は `ring`** と用途で分ける。同じ見た目を二つの機構で作ると、focus の見え方が component ごとに割れる。
+There are two ways to draw a ring around an element: CSS `outline` and `box-shadow` (Tailwind's `ring-*`). Split them by purpose: **`outline` for focus indicators, `ring` for decorative rings.** Building the same look with two mechanisms splits how focus looks from component to component.
 
-### focus 表示
+### Focus Indicators
 
-- focus ring は `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary` に統一する。shadcn 生成物が使う `ring-ring` / `border-ring` / `outline-ring` の `ring` トークンは採らず、取り込み時にこの指定へ置換する
-- 色に `active` を使うのは、休止時の枠（`input`）と focus とを見分けられるようにするためである。`active` はどの地の上でも **4.5:1** を満たし、`input` の **3:1** より一段強い
-- **`shadow-glow-primary` は装飾であり、focus を示しているのは `outline` である。** forced-colors モードでは UA が `box-shadow` を `none` にするため光は消えるが、`outline` は残るので focus は失われない。光を焦点の唯一の手掛かりにしてはならない理由もここにある
-- `ring` を focus に使わない理由は二つある。**forced-colors モードでは UA が `box-shadow` を強制的に `none` にする**ため focus ring が完全に消えること、および **`ring-offset` の隙間は透明ではなく `ring-offset-color` で塗った帯**であり、その色と一致しない面の上では帯が露出することである
-- **同じ要素に `outline-none` を併記しない。** Tailwind v4 の `outline-none` は要素へ `--tw-outline-style: none` を立て、`focus-visible:outline-2` が出力する `outline-style: var(--tw-outline-style)` をそこで打ち消すため、focus ring が一切描画されなくなる。既定の outline を抑えたいだけなら `focus-visible` 側の指定だけで足りる
-- 面の focus を塗りで示す menu 項目（`dropdown-menu`、`context-menu`、`command`、`select-client` の item）は例外で、`outline-hidden` と `focus:bg-accent` の組み合わせを使う
+- The focus ring is unified as `focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-active focus-visible:shadow-glow-primary`. The `ring` token used by shadcn output (`ring-ring` / `border-ring` / `outline-ring`) is not adopted; it is replaced with this on import
+- `active` is used for the color so that the resting border (`input`) and focus can be told apart. `active` meets **4.5:1** on every background, one step stronger than the **3:1** of `input`
+- **`shadow-glow-primary` is decoration; what indicates focus is the `outline`.** In forced-colors mode the UA sets `box-shadow` to `none`, so the glow disappears, but the `outline` remains and focus is not lost. This is also why the glow must never be the only cue for focus
+- There are two reasons not to use `ring` for focus: **in forced-colors mode the UA forces `box-shadow` to `none`**, so the focus ring disappears entirely; and **the `ring-offset` gap is not transparent but a band painted with `ring-offset-color`**, which shows on any surface whose color does not match it
+- **Do not put `outline-none` on the same element.** In Tailwind v4, `outline-none` sets `--tw-outline-style: none` on the element, which cancels the `outline-style: var(--tw-outline-style)` that `focus-visible:outline-2` emits, so no focus ring is rendered at all. If you only want to suppress the default outline, the `focus-visible` side alone is enough
+- Menu items that show focus with a fill (items in `dropdown-menu`, `context-menu`, `command`, `select-client`) are the exception and use the combination of `outline-hidden` and `focus:bg-accent`
 
-### 文字の太さ
+### Font Weight
 
-- **強調は `font-emphasis` で書く。太さを直に指定しない。** 書体ごとに持っている太さが違い、持っていない段を指定しても丸められるだけで強調にならない（`tokens/README.md`「強調は 1 段だけ持つ」）。**`no-raw-font-weight` が機械で見る**（`eslint-rules/`）。`font-normal` は「強調しない」の打ち消しなので使ってよい
-- **段は 1 つしかない。** 見出しと本文の差は寸法（`text-lg` 等）と位置が作り、太さはその上乗せである。太さで階層をもう 1 段作ろうとしない —— OS 同梱の書体では出ない環境がある
+- **Write emphasis with `font-emphasis`. Do not specify a weight directly.** Each typeface has different weights, and specifying a step it lacks just rounds it and produces no emphasis (`tokens/README.md`, *Only one emphasis step*). **`no-raw-font-weight` checks this mechanically** (`eslint-rules/`). `font-normal` cancels emphasis ("not emphasized"), so it may be used
+- **There is only one step.** The difference between headings and body text comes from size (`text-lg` etc.) and position; weight is added on top of that. Do not try to build another level of hierarchy with weight — some environments with OS-bundled typefaces cannot render it
 
-### 系統（`data-surface`）と Portal
+### Surface Family (`data-surface`) and Portals
 
-- **系統の属性は Portal の出口を含む位置に置く。** `overlay/` の部品は Radix の Portal で `document.body` 直下へ出るため、本文の内側の要素に属性を置くと overlay の中身だけ既定の系統で描かれる（`tokens/README.md`「属性を置く場所は、Portal を含む位置でなければならない」）
-- token 側が示す 2 択（`body` 相当に置く / Portal の `container` を系統の内側へ向ける）のうち、この層は**前者**を採る。本文は器が外枠へ置く `data-surface` で server が描いた時点から効き、overlay の中身は [`foundation/surface`](./design-system/foundation/surface/README.md) の橋が `body` へ同じ値を載せる。hydration の後でも足りるのは、overlay が操作で開くものだからである。`container` の差し替えは採らない —— overlay の部品すべてに口を足したうえで、呼び出し側が毎回指定することになる
-- **記号に色を焼き込まない。** check mark のような記号は画像ではなく罫線や `currentColor` で描く。画像にすると系統や配色で token が変わっても追従しない
+- **Put the surface-family attribute at a position that includes the Portal's exit.** Components in `overlay/` exit to directly under `document.body` through Radix's Portal, so if the attribute sits on an element inside the content, only the overlay's content is rendered in the default family (`tokens/README.md`, *Where the attribute goes must contain the Portal*)
+- Of the two options the token side presents (put it on the `body` equivalent / point the Portal's `container` inside the family), this layer takes **the former**. The content is covered from the moment the server renders it by the `data-surface` the layout shell puts on the outer frame, and overlay content gets the same value on `body` through the bridge in [`foundation/surface`](./design-system/foundation/surface/README.md). Doing it after hydration is enough because overlays open through interaction. Replacing `container` is not adopted — it would add an entry point to every overlay component and make callers specify it every time
+- **Do not bake color into symbols.** Draw symbols such as a check mark with borders or `currentColor`, not images. An image does not follow when the family or color scheme changes the tokens
 
-### 発光
+### Glow
 
-- **光ってよい色は決まっている。** `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive` の 5 つだけが存在し、`secondary` と `emphasis` には token が無い（`tokens/README.md`「発光の可否と時機」）
-- **`warning` と `destructive` は休止時に光らせない。** `hover:` / `focus-visible:` に付ける。危険な操作が常時光っていると「いま押せる」と読める
-- **面の色と違う色で光らせない。** 赤い面を主色の光で囲むと、光でできた世界では破綻して見える
-- **主行動（`default`）だけは休止時から光らせる。** 画面の中で「いま生きている操作」は 1 つなので、常時の装飾ではなく状態の表示にあたる
-- **`destructive` は hover / active の不透明度差を他の variant より大きく取る**（`/75` と `/60`。他は `/85` と `/70`）。暗い配色の上では不透明度をわずかに下げても背景との差が出ず、押せることが hover で判らない
+- **The colors that may glow are fixed.** Only five exist — `shadow-glow-primary` / `-info` / `-success` / `-warning` / `-destructive`; `secondary` and `emphasis` have no token (`tokens/README.md`, *Whether and when to glow*)
+- **`warning` and `destructive` do not glow at rest.** Attach it to `hover:` / `focus-visible:`. A dangerous action that glows all the time reads as "pressable right now"
+- **Do not glow in a color different from the surface's.** Wrapping a red surface in the primary color's glow looks broken in a world made of light
+- **Only the primary action (`default`) glows from rest.** There is one "live action right now" on a screen, so this is a state indicator, not constant decoration
+- **`destructive` takes a larger hover / active opacity difference than other variants** (`/75` and `/60`; others are `/85` and `/70`). On a dark color scheme a slight drop in opacity produces no contrast with the background, and hover does not reveal that it can be pressed
 
-### 境界を示す線
+### Boundary Lines
 
-- **その線が要素の境界を示すなら `border-input`、区画の仕切りなら `border-border` を使う。** `Input` / `Textarea` のように枠が無いと入力できる範囲が判らなくなるもの、`Badge` の `outline` のように縁だけで成り立つ variant は、いずれも `input` を取る
-- 分けるのは**コントラストの要求が違う**ためである。入力できる範囲の境界は **WCAG 1.4.11 が隣接色との 3:1 を求める**対象で、`border` は仕切りとしてどの面でも 1.2〜1.6:1 しかなく満たさない。`input` は `background` / `card` / `popover` / `muted` / `accent` のすべての上で 3:1 を満たすよう定めてある。仕切りは同条の対象外なので `border` のままでよい
-- **`primary` と `emphasis` を本文の色に使わない。** この 2 つは面と図形のための色で、WCAG 1.4.11 の **3:1** しか満たさない。文字に置くと AA の 4.5:1 を割る。リンクや状態の文言には `secondary` / `success` / `warning` / `destructive` / `info` を使う（いずれも 4.5:1 を満たす）。アイコンは非テキストなので 3:1 で足り、`primary` を置いてよい
-- 判断の根拠は token の値にあるため、配色を変えたときはこの節を先に確認し、**比を測り直す**。呼び出し側のコメントに理由を書くと、token を直しても気づかれない
+- **Use `border-input` if the line marks an element's boundary, and `border-border` if it divides sections.** Things whose input area becomes unclear without a border, such as `Input` / `Textarea`, and variants that consist only of an edge, such as `Badge`'s `outline`, all take `input`
+- They are split because **the contrast requirements differ**. The boundary of an input area is subject to **WCAG 1.4.11's 3:1 against adjacent colors**, and `border`, as a divider, has only 1.2–1.6:1 on any surface and does not meet it. `input` is defined to meet 3:1 on all of `background` / `card` / `popover` / `muted` / `accent`. Dividers are outside that criterion, so `border` is fine there
+- **Do not use `primary` and `emphasis` for body text color.** These two are colors for surfaces and shapes and meet only WCAG 1.4.11's **3:1**. On text they fall below AA's 4.5:1. Use `secondary` / `success` / `warning` / `destructive` / `info` for links and status copy (all meet 4.5:1). Icons are non-text, so 3:1 is enough and `primary` may be used
+- The basis of the decision is in the token values, so when you change the color scheme, check this section first and **re-measure the ratios**. A reason written in a caller's comment goes unnoticed when the token is fixed
 
-### 装飾的な輪
+### Decorative Rings
 
-`outline` は 1 要素に 1 本しか引けず、必ず外側に描かれる。次の要件は `outline` では満たせないため `ring-*` を使う。
+`outline` can draw only one line per element, and it is always drawn outside. The following requirements cannot be met with `outline`, so use `ring-*`.
 
-- 輪を重ねる、または輪と影を合成する
-- 要素の内側に引く（`ring-inset`）。`overflow: hidden` の内側や container の端に密着した要素で使う
+- Stacking rings, or compositing a ring with a shadow
+- Drawing inside the element (`ring-inset`). Used inside `overflow: hidden` or on elements flush against the container's edge
 
-太さの変化を遷移させたいことは `ring` を選ぶ理由にならない。`outline-width` も遷移可能なため、
-`outline-solid outline-0` を基底に置いて `hover:outline-4` のように太さだけを変えれば同じ表現になる。
+Wanting to transition a change in thickness is not a reason to choose `ring`. `outline-width` can also be transitioned,
+so placing `outline-solid outline-0` as the base and changing only the thickness, as in `hover:outline-4`, gives the same result.
 
-`ring-offset` が隙間を背景色で塗る性質は、focus では欠陥だが装飾では機能になる。重なり合う `avatar` を背景色の帯で切り分ける `ring-2 ring-background` がその例である。
+The way `ring-offset` paints the gap with the background color is a defect for focus but a feature for decoration. `ring-2 ring-background`, which separates overlapping `avatar`s with a background-colored band, is an example.
 
-## 定義の無い class
+## Undefined Classes
 
-Tailwind は認識できない class に対して CSS を出力せず、そのことを何も報告しない。要素はその宣言が無いまま描画されるだけなので、**面が透明になる・focus ring が出ない・選択状態が見えない**といった欠陥が、browser で見るまで現れない。shadcn 生成物は上流の theme が持つトークンを前提にしているため、取り込みのたびにこれが混入しうる。
+Tailwind emits no CSS for classes it does not recognize, and reports nothing about it. The element is simply rendered without that declaration, so defects such as **a transparent surface, a missing focus ring, an invisible selected state** do not appear until you look in a browser. shadcn output assumes tokens held by the upstream theme, so this can slip in with every import.
 
-検出は `pnpm check:classes` が行う。`globals.css` を実際に build し、`src/components` 配下の `.tsx` に書かれた class がすべて出力に現れるかを照合する。CI では**全 PR で走る** —— この検査は変更起因ではなく、上流の theme を前提にした class は他の変更でも出力から外れうるため。
+Detection is done by `pnpm check:classes`. It actually builds `globals.css` and checks that every class written in the `.tsx` files under `src/components` appears in the output. In CI it **runs on every PR** — this check is not change-driven, because classes that assume the upstream theme can drop out of the output through other changes too.
 
-**「定義が無いから消す」は行わない。** 出力が無いことと、書いてはいけないことは別である。animation plugin を採らないために CSS が出ない `animate-in` / `fade-in-*` / `slide-in-from-*` や、子孫の variant から参照されるだけの `group` / `peer` は、意図して CSS を持たない。これらは [`scripts/check-classes.ts`](./scripts/check-classes.ts) の `KNOWN_WITHOUT_CSS` に理由とともに置いてあり、新たに見つけた場合も実装から消さずにそこへ足す。生成物から消すと、その生成物が持っていた情報が失われる。
+**Do not "delete it because it has no definition".** Having no output and being forbidden to write it are different things. `animate-in` / `fade-in-*` / `slide-in-from-*`, which emit no CSS because no animation plugin is adopted, and `group` / `peer`, which are only referenced from descendant variants, intentionally have no CSS. They are listed with their reasons in `KNOWN_WITHOUT_CSS` in [`scripts/check-classes.ts`](./scripts/check-classes.ts); when you find a new one, add it there instead of removing it from the implementation. Removing it from generated output loses the information that output carried.
 
-一方、次のものは「トークンの話ではなく壊れているもの」なので直ちに直す。
+On the other hand, the following are "broken, not a token matter" and are fixed immediately.
 
-- 解決しない import パス（生成物の `@/components/design-system/button` はこのリポジトリの配置と合わない）
-- 型と実際に render する要素の不一致
-- lint / typecheck が落ちる記述
-- アクセシブルな名前の欠落など a11y の配線
+- Import paths that do not resolve (the generated `@/components/design-system/button` does not match this repository's layout)
+- A mismatch between the type and the element actually rendered
+- Code that fails lint / typecheck
+- a11y wiring such as a missing accessible name
 
-## CSS 変数の接頭辞
+## CSS Variable Prefixes
 
-このリポジトリの CSS 変数は `--color-*`（primitive）と `--semantic-color-*`（semantic）である。shadcn 生成物が使う接頭辞なしの `var(--primary)` / `var(--secondary)` / `var(--muted)` / `var(--foreground)` は**一つも解決しない**。
+This repository's CSS variables are `--color-*` (primitive) and `--semantic-color-*` (semantic). The unprefixed `var(--primary)` / `var(--secondary)` / `var(--muted)` / `var(--foreground)` used by shadcn output **resolve to nothing**.
 
-解決しない変数が `color-mix()` や `oklch(from …)` の引数に入ると、値が無効になった時点で**宣言全体が破棄され、面がまるごと出ない**。class 名の検出には掛からないため、取り込み時は変数も別に検出する。
+When an unresolved variable is an argument of `color-mix()` or `oklch(from …)`, the value becomes invalid and **the whole declaration is discarded, so the surface does not appear at all**. Class-name detection does not catch this, so detect variables separately on import.
 
 ```bash
-grep -ohE 'var\(--[a-z0-9-]+\)' src/components/<層>/**/<component>/*.tsx \
+grep -ohE 'var\(--[a-z0-9-]+\)' src/components/<layer>/**/<component>/*.tsx \
   | sed 's/var(//;s/)//' | sort -u | grep -vE '^--(radix|tw)-' \
   | while read -r v; do grep -qF -e "$v:" storybook-static/assets/*.css || echo "未解決: $v"; done
 ```
 
-`--radix-*` は Radix が、component 自身が `style` で渡す変数はその component が runtime で設定するため除外してよい。
+`--radix-*` may be excluded because Radix sets them, as may variables a component passes itself through `style`, because that component sets them at runtime.
 
-## 実装で繰り返す形
+## Recurring Implementation Patterns
 
-部品をまたいで同じ形を取るものと、その形を選ぶ理由である。個々の部品の README はこの節を前提にし、繰り返さない。
+Things that take the same shape across components, and the reasons for choosing that shape. Individual component READMEs assume this section and do not repeat it.
 
 ### `data-slot`
 
-- **描画する要素には `data-slot` を付ける。** 値は kebab-case で、root はその部品の概念名（`dialog`）、subcomponent は `<概念>-<部位>`（`dialog-content`）。親が子の部位へ style を当てる選択子（`*:data-[slot=alert-title]:text-warning`）と、role から引けない要素をテストで取る手掛かり（[docs/testing-conventions.md](../../docs/testing-conventions.md)「component / hook のテスト」）の両方がこの値を読む
-- `pnpm check:classes` は `className` と `cn()` / `cva()` の引数だけを候補に取るため、`data-slot` の値が class と誤認されることはない
+- **Put `data-slot` on every element rendered.** The value is kebab-case: the root is the component's concept name (`dialog`), and a subcomponent is `<concept>-<part>` (`dialog-content`). Both selectors with which a parent styles a child's part (`*:data-[slot=alert-title]:text-warning`) and the handle tests use to get elements not reachable by role ([docs/testing-conventions.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)) read this value
+- `pnpm check:classes` takes candidates only from `className` and the arguments of `cn()` / `cva()`, so a `data-slot` value is never mistaken for a class
 
-### variant の定義
+### Variant Definitions
 
-- variant の名前は `<部品名>.definition.ts` の定数が持ち、`cva` の `variants` はその定数を計算キーで引く（`[BUTTON_VARIANT.DEFAULT]: "…"`）。名前が 1 か所にしか書かれないので、値集合を足したとき definition と class 表のどちらかだけが増える状態にならない
-- 各値の使い分けは definition 側の定数の doc に列挙する（[TSDoc の基準](#tsdoc-の基準)）。`cva` の側には class だけを書く
+- Variant names are held by constants in `<component-name>.definition.ts`, and the `variants` of `cva` look up those constants as computed keys (`[BUTTON_VARIANT.DEFAULT]: "…"`). The name is written in only one place, so adding to a value set never grows only one of the definition and the class table
+- When to use each value is enumerated in the doc of the constant on the definition side ([TSDoc Standard](#tsdoc-standard)). Only classes are written on the `cva` side
 
-### state の調整は描画中に、資源の生成は effect に
+### Adjust state during render; create resources in effects
 
-- **前回値との差分で state を戻す調整は、effect ではなく描画中に行う。** 「一度満たしたら保つ」（`use-latched.ts`）、遷移先で menu を畳む、段が減って現在地が並びの外へ出たら先頭へ戻す、といった調整を effect に置くと、調整前の描画が 1 度挟まる —— 移った先の内容が menu に覆われたまま 1 フレーム出る、存在しない段の位置で描く。描画中に `setState` を呼ぶと React はその回の描画結果を捨てて描き直すため、呼び出し側へ返るのは調整後の値である。`react-hooks/no-deriving-state-in-effects` が機械で見る
-- **解放が要る資源（object URL など）の生成は effect に置く。** 描画中に作ると、捨てられた描画のぶんが破棄されずに残る。`react-hooks/set-state-in-effect` へ掛かるので、抑止の行に「資源の生成を伴う同期のため」と理由を添える
-- 更新関数は state から次の state を返すだけにする。更新関数の中で別の state の更新関数を呼ぶと、React が更新関数を再実行したときに副作用も繰り返される。関係する値は 1 つの state にまとめる
-- **同じ位置で `type` が `button` から `submit` へ変わる button は `key` を分ける。** 同じ位置の要素として reconcile されると DOM 要素が使い回され、押した瞬間に `type` が書き換わる。click の既定動作は handler の後に走るため、進んだうえで form まで送信される
-- 使わない間も **外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる入力欄）を抱える中身は、`hidden` で隠して mount を保つ。判定は `use-latched.ts` が持つ（[運用](#運用)）
+- **Adjustments that reset state based on the difference from the previous value happen during render, not in an effect.** Putting adjustments such as "keep it once satisfied" (`use-latched.ts`), collapsing a menu at the navigation target, or returning to the first step when steps decrease and the current position falls outside the sequence into an effect inserts one render before the adjustment — the destination's content shows for one frame still covered by the menu, or it renders at the position of a step that does not exist. When `setState` is called during render, React discards that render's result and renders again, so the caller gets the adjusted value. `react-hooks/no-deriving-state-in-effects` checks this mechanically
+- **Create resources that need releasing (object URLs and the like) in an effect.** Created during render, the ones from discarded renders remain without being disposed. This trips `react-hooks/set-state-in-effect`, so add the reason "a sync that involves creating a resource" on the suppression line
+- An updater function only returns the next state from the state. Calling another state's updater inside an updater repeats the side effect when React re-runs the updater. Combine related values into one state
+- **Give a button whose `type` changes from `button` to `submit` at the same position a different `key`.** Reconciled as the same element at the same position, the DOM element is reused and `type` is rewritten at the moment of the press. The click's default action runs after the handler, so it advances and then submits the form too
+- Content that holds **things that cannot be restored once removed** even while unused (an editing surface that can only be built from the content at the time it opened, an input included in the submission) is hidden with `hidden` and kept mounted. The decision is owned by `use-latched.ts` ([Operations](#operations))
 
-### client island と native form
+### Client Islands and Native Forms
 
-- **Portal で form の外へ出る面の中の control は、`name` を与えても送信に載らない。** 選択値は trigger の側に置いた hidden input で運ぶ。複数選択なら選ばれた数だけ同じ `name` の hidden input を並べる
-- **hidden input は constraint validation の対象外なので、`required` は効かない。** 必須であることの表示は `Field` / `RequirementBadge`、実際の強制は Server Action か server 側の検証が持つ。部品の README に「必須指定を持たない」と書く
-- file input は、選び直しても `change` が出るよう、読み取った後に `value` を空へ戻す。drop で受け取ったファイルは選択ダイアログを通らないため、input へ書き戻さないと native form の送信に載らない
+- **A control inside a surface that a Portal moves out of the form is not included in the submission even with a `name`.** Carry the selected value in a hidden input placed on the trigger side. For multiple selection, place as many hidden inputs with the same `name` as there are selected values
+- **Hidden inputs are outside constraint validation, so `required` has no effect.** Indicating that a field is required is owned by `Field` / `RequirementBadge`, and actual enforcement by the Server Action or server-side validation. Write "does not carry the required attribute" in the component's README
+- A file input resets `value` to empty after reading, so that `change` fires even when the same file is chosen again. Files received by drop do not go through the selection dialog, so unless written back into the input they are not included in a native form submission
 
-### 支援技術への配線で biome を抑止するとき
+### When suppressing Biome for assistive-technology wiring
 
-biome の a11y ルールは要素の形だけを見るため、意味論が正しくても指摘が出る場合がある。**実装を後退させず、指摘の行に理由を添えて抑止する**（[docs/rules.md#ui-parts](../../docs/rules.md#ui-parts)）。繰り返し現れる 2 つ。
+Biome's a11y rules look only at the shape of elements, so they can fire even when the semantics are correct. **Do not regress the implementation; suppress the finding with a reason on that line** ([docs/rules.md](../../docs/rules.md#ui-parts)). Two recur.
 
-- **局所スクロールする領域は非対話でも `tabIndex={0}` を持つ**（`noNoninteractiveTabindex`）。外すと keyboard だけではスクロールできず、WCAG 2.1.1 に反する
-- **一つの control とその装飾の外枠、carousel の一枚のような「複数 control の集合ではないまとまり」は `role="group"` で表す**（`useSemanticElements`）。`fieldset` は `legend` を伴う複数 control の集合を表すため、そこに使うと意味論が嘘になる
+- **A region that scrolls locally has `tabIndex={0}` even though it is non-interactive** (`noNoninteractiveTabindex`). Without it, the region cannot be scrolled with the keyboard alone, which violates WCAG 2.1.1
+- **A grouping that is "not a set of multiple controls", such as one control and its decorative outer frame or one slide of a carousel, is expressed with `role="group"`** (`useSemanticElements`). `fieldset` represents a set of multiple controls with a `legend`, so using it there makes the semantics a lie
 
-### 本文の上へ重なる面
+### Surfaces Layered over the Content
 
-- **Portal で本文の上へ出る面（通知、menu、dialog）は不透明な地を持つ。** 文脈内の `Alert` が使う `bg-warning/10` のような tint は、下地が本文の面であることを前提にしている。同じ variant の class を重なる面へ流用するときは、下地を面の側で与える
-- 脇に領域を並べる帯では `main` が flex の項目になり、既定では中身の最小幅より狭くなれない。段組みや長い語が最小幅を押し上げると、`main` が親をはみ出して画面全体に横スクロールが出る。中身の側では防げないので、器が `min-w-0` で縮む
+- **Surfaces that a Portal places over the content (notifications, menus, dialogs) have an opaque background.** A tint such as `bg-warning/10` used by an in-context `Alert` assumes the underlying layer is the content's surface. When reusing the same variant's classes on an overlapping surface, give it a background on the surface side
+- On a band that places a region alongside, `main` becomes a flex item and by default cannot be narrower than its content's minimum width. When columns or a long word push the minimum width up, `main` overflows its parent and a horizontal scroll appears across the whole screen. The content side cannot prevent this, so the layout shell shrinks with `min-w-0`
 
-## 配置・命名
+## Placement and Naming
 
-Next.js と React は、`components/` 配下のディレクトリ構造・ディレクトリ名・テストや story の配置を規定しない。Next.js のファイルシステム規約は `app/` 配下の route segment と特殊ファイルに限られ、React が定めるのは JSX で使うコンポーネント識別子の PascalCase などである。以下はフレームワーク規約ではなく、本リポジトリの規約として採る。
+Next.js and React do not prescribe the directory structure, directory names, or the placement of tests and stories under `components/`. Next.js's file-system conventions are limited to route segments and special files under `app/`, and what React prescribes is things like PascalCase for component identifiers used in JSX. The following are adopted as this repository's conventions, not framework conventions.
 
-- コンポーネントは実装・テスト・story を 1 つのディレクトリへ co-locate する。3 ファイル以上が横並びに増え続けることを避けるため、`design-system/<目的>/<コンポーネント名>/`（`patterns` と `app-starter` は `<層>/<コンポーネント名>/`）を基本形とする
-- component の README は実装・テスト・story と同じディレクトリに置く。単なる props の転記ではなく、用途・役割・公開 component・利用ケース・責務境界・Storybook / test の確認範囲を見出しで示す。公開 component ごとの役割は表にする
-- **`README.md` を持つディレクトリが component である。** `pnpm check:ui` はこれを唯一の目印にして、台帳と実体を突き合わせる。役割ディレクトリを列挙する方式を採らないのは、役割が増えるたびに script を直すことになり、直し忘れた役割が台帳から静かに抜けるためである
-- **`design-system/<目的>/` のようなまとめるためのディレクトリには README を置かない。** 置くとそれ自体が component として数えられ、台帳に記録が無いものとして落ちる。まとめるためのディレクトリが何を受け持つかは、この README の下の一覧が持つ
-- component かどうかを実装ファイルの有無で判定しない。`layout-patterns` のように story だけを持つ component が実在するため、内容から身元を推測すると破綻する
-- 同じ UI 概念に SSR first と client island の実装が並ぶ場合、ディレクトリ・ファイル名は `<concept>-native` / `<concept>-client`、公開 component 名は `ConceptNative` / `ConceptClient` にする。`client` は利用上の境界を表し、現在の Radix など vendor 名は README にだけ記す
-- `native` / `client` の対は runtime 実装だけを分ける。取り込み監査の時点でもサイズ・semantic token・focus・disabled・invalid の基本設計を可能な限り揃え、SSR・form・a11y と公開 API を確認する。layout・motion・visual regression を含む完全整合は、デザインシステムの構築で Storybook を見ながら仕上げる。OS が描画する popup など native 固有の部分まで pixel-perfect に一致させる必要はない
-- コンポーネントの静的な定数・値集合・型・見た目の定義は `<コンポーネント名>.definition.ts` に置く。描画・操作を担う公開コンポーネントは `<コンポーネント名>.tsx` に置き、静的定義を import して使う
-- 値集合の公開定数は `export const BUTTON_SIZE: Readonly<{ ... }> = { ... }` の形式で定義する
-- 公開 API でなくても、複数ファイルが同じ UI 概念の値を使う場合は owner を一つ決めて定義し、各ファイルから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい
-- 層・目的・コンポーネント名は小文字 kebab-case にする。これは全ソースの kebab-case 規約と揃えるためであり、Next.js / React の強制ではない
-- `foundation` は個々の component ではなく、UI を横断して支える基盤の目的である。`typeset` の組版と `scrollbar` の scrollbar 表示が属し、いずれも `globals.css` から import する。**見える要素を描かない**のが共通点で、CSS だけのものと、属性を運ぶだけで描画を返さない client island（`surface` の橋）がある。CSS の効き方は 2 通りある。`scrollbar` のように継承プロパティを `:root` へ一度宣言して指定なしに効くものと、`typeset` のように `.typeset` を付けた範囲だけに効く opt-in のものがある。どちらかを README の冒頭で明示する
-- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が引く）、層をまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
+- A component co-locates its implementation, tests and stories in one directory. To avoid three or more files piling up side by side, the base form is `design-system/<purpose>/<component-name>/` (`<layer>/<component-name>/` for `patterns` and `app-starter`)
+- The component README is placed in the same directory as the implementation, tests and stories. It is not a transcription of props; it shows, under headings, the purpose, role, public components, use cases, responsibility boundaries, and what Storybook / tests check. The role of each public component is given as a table
+- **A directory that has a `README.md` is a component.** `pnpm check:ui` uses this as its only marker to reconcile the ledger with what exists. Enumerating role directories is not adopted because the script would have to be fixed every time a role is added, and a role someone forgot to add would silently drop out of the ledger
+- **Do not put a README in a grouping directory such as `design-system/<purpose>/`.** If you do, it is itself counted as a component and fails as having no record in the ledger. What a grouping directory takes on is owned by the list further down in this README
+- Do not decide whether something is a component by whether it has an implementation file. Components that have only stories, like `layout-patterns`, exist, so inferring identity from contents breaks down
+- When an SSR-first implementation and a client-island implementation exist side by side for the same UI concept, the directory and file names are `<concept>-native` / `<concept>-client`, and the public component names are `ConceptNative` / `ConceptClient`. `client` represents the usage boundary; the current vendor name such as Radix is written only in the README
+- A `native` / `client` pair separates only the runtime implementation. Even at the time of the import audit, align the basic design of size, semantic tokens, focus, disabled and invalid as far as possible, and check SSR, forms, a11y and the public API. Full alignment including layout, motion and visual regression is finished while looking at Storybook when building the design system. Native-specific parts such as OS-rendered popups need not match pixel-perfectly
+- A component's static constants, value sets, types and look definitions go in `<component-name>.definition.ts`. The public component responsible for rendering and interaction goes in `<component-name>.tsx` and imports the static definitions
+- Public constants for value sets are defined in the form `export const BUTTON_SIZE: Readonly<{ ... }> = { ... }`
+- Even when not public API, if several files use values of the same UI concept, decide one owner, define them there, and reference them from each file. Values that represent JSX / type syntax itself, such as native HTML element names, may be written directly
+- Layer, purpose and component names are lowercase kebab-case. This aligns with the kebab-case convention of all source and is not enforced by Next.js / React
+- `foundation` is not an individual component but the purpose of the base that supports UI across the board. `typeset`'s typesetting and `scrollbar`'s scrollbar display belong to it, and both are imported from `globals.css`. What they share is that they **render no visible element**: some are CSS only, and some are client islands that only carry attributes and return no rendered output (the `surface` bridge). There are two ways the CSS applies: one declares an inherited property once on `:root` and applies with no opt-in, like `scrollbar`; the other is opt-in and applies only within the range marked `.typeset`, like `typeset`. State which one at the top of the README
+- A hook shared by several components goes in **the shallowest common place that covers its range**. One shared within the same purpose goes directly under the purpose directory (`overlay/use-overlay-history.ts` is pulled by `dialog` / `sheet` / `drawer` / `alert-dialog`); one that spans layers goes directly under `components/` (`use-latched.ts`). It has no README, so it is not counted as a component
 
-### 層
+### Layers
 
-`components/` 直下は層で分ける。**層は「その部品を誰が書き換えるか」で決まり、目的とは別の軸である。**判定は契約から先に当てる。
+Directly under `components/`, split by layer. **A layer is decided by "who rewrites the component", an axis separate from its purpose.** Apply the contract test first.
 
-| 層 | 受け持つもの | 割り方 |
+| Layer | What it takes on | How it is split |
 | --- | --- | --- |
-| `design-system` | 契約を知らず、**読んでも役割が増えない**部品。`list` が `separator` を使うように、合成していても役割の中で閉じているものはここに入る | 目的別に割る |
-| `patterns` | 契約は知らないが、**複数の役割を合成する**部品。目的を一つに決められないので割らない | 割らない |
-| `shell` | **どこに・いくつ置くかが部品側で決まっている**部品。`toaster` は root layout に一度、`content-container` は `main` の内側、`page-header` はページ先頭 | 割らない |
-| `app-starter` | **バックエンドの契約を知っている**部品。HTTP status の意味付け、送信結果、upload の段取りなど。作り替える前提 | 割らない |
+| `design-system` | Components that do not know the contract and **gain no role from reading it**. Things that compose but stay closed within their role, like `list` using `separator`, go here | Split by purpose |
+| `patterns` | Components that do not know the contract but **compose several roles**. Their purpose cannot be fixed to one, so they are not split | Not split |
+| `shell` | Components whose **placement and count are decided by the component itself**. `toaster` once in the root layout, `content-container` inside `main`, `page-header` at the top of the page | Not split |
+| `app-starter` | Components that **know the backend contract**: the meaning of HTTP statuses, submission results, upload steps and so on. Meant to be rebuilt | Not split |
 
-判定はこの順に当てる。**契約 → mount 位置 → 役割の閉じ方**である。順序を変えると、契約を知りつつ mount 位置も決まっている部品の行き先が揺れる。
+Apply the tests in this order: **contract → mount position → how the role closes**. Changing the order makes the destination of a component that both knows the contract and has a fixed mount position waver.
 
-依存の向きは `app-starter・shell → patterns → design-system` の一方向にする。逆流は層が成立していない印なので、見つけたら層の判定を疑う。
+Dependencies flow one way: `app-starter / shell → patterns → design-system`. A reverse flow is a sign that the layers do not hold, so when you find one, doubt the layer decision.
 
-**「アプリの機能単位だから」を層の判定に使わない。** `import-export` のような機能そのものは、語彙にも構造にも現れないため条件にすると必ず主観へ戻る。機能単位として扱うものは [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `layer: app-starter` が名簿として持ち、そこに載ったものだけを指す。
+**Do not use "because it is an app feature unit" to decide the layer.** A feature itself, like `import-export`, shows up in neither vocabulary nor structure, so making it a condition always falls back to subjectivity. What is treated as a feature unit is listed as a roster by `layer: app-starter` in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), and the term refers only to what is listed there.
 
-`design-system` の内側は依存の向きを問わない。`list` と `separator` のように、同じ目的の中で組み合わせるのは正常である。
+Inside `design-system`, the direction of dependencies does not matter. Combining within the same purpose, like `list` and `separator`, is normal.
 
-### `design-system/` の目的別ディレクトリ
+### Purpose Directories under `design-system/`
 
-`design-system/` は件数が多いため、目的で分けて置く。`patterns/` と `app-starter/` は目的を一つに決められないものの置き場なので割らない。置き場の正と検査は「運用」の `shadcn-manifest.yaml` の項が持つ。
+`design-system/` has many entries, so it is split by purpose. `patterns/` and `app-starter/` hold things whose purpose cannot be fixed to one, so they are not split. The source of truth for placement and its check are owned by the `shadcn-manifest.yaml` item under "Operations".
 
-| ディレクトリ | 受け持つもの | 置かないもの |
+| Directory | What it takes on | What it does not hold |
 | --- | --- | --- |
-| `action` | 利用者の操作の起点そのもの。押す・切り替えるという行為だけを持つ | 何を起こすかの決定。呼び出し元が callback で渡す |
-| `form` | 値を受け取り、form の値として送信する部品 | 検証ルール・送信先・送信結果の解釈 |
-| `overlay` | trigger から本文の上へ面を開く部品。開閉・focus・Escape を持つ | 面の中身。呼び出し元が children で渡す |
-| `navigation` | 移動先を示す部品と、移動そのものを扱う部品 | 移動先 URL の組み立て。呼び出し元が渡す |
-| `display` | 受け取った内容を読める形にして見せる部品 | 値の整形。`model/` の formatter が持つ |
-| `status` | 処理がいまどうなっているかを伝える部品 | 状態の判定。呼び出し元が決めて渡す |
-| `container` | 内容を収める枠と、その面の見え方を制御する部品 | 中身の構造。呼び出し元が組む |
+| `action` | The starting point of a user's action itself. It holds only the act of pressing or switching | Deciding what happens. The caller passes it as a callback |
+| `form` | Components that receive a value and submit it as a form value | Validation rules, submission target, interpreting the submission result |
+| `overlay` | Components that open a surface over the content from a trigger. They hold opening/closing, focus and Escape | The surface's content. The caller passes it as children |
+| `navigation` | Components that indicate a destination, and components that handle the move itself | Building the destination URL. The caller passes it |
+| `display` | Components that show received content in readable form | Formatting values. The formatters in `model/` own that |
+| `status` | Components that convey how processing is going right now | Deciding the state. The caller decides and passes it |
+| `container` | Frames that hold content, and components that control how that surface looks | The structure of the content. The caller builds it |
 
-目的が二つに跨がるときは、**その部品が無いと成立しない側**を採る。`selection-toolbar` は選択という面の状態に従属するので `container`、`copy-button` は押す行為が主なので `action` に置く。
+When a purpose spans two, take **the side without which the component cannot exist**. `selection-toolbar` is subordinate to the surface's state of selection, so it goes in `container`; `copy-button` is mainly the act of pressing, so it goes in `action`.
 
 ```text
 components/
-├── design-system/                  ← 契約を知らず、役割も閉じている
-│   ├── foundation/                 ← まとめるためのディレクトリ。README を置かない
+├── design-system/                  ← knows no contract; its role is closed
+│   ├── foundation/                 ← a grouping directory; no README here
 │   │   └── typeset/
 │   │       ├── typeset.css
 │   │       ├── typeset.stories.tsx
@@ -302,19 +302,19 @@ components/
 │   ├── form/  overlay/  navigation/  display/  status/  container/
 │   ├── layout/
 │   └── rich-text/
-├── patterns/                       ← 役割をまたぐが、契約は知らない
+├── patterns/                       ← spans roles but knows no contract
 │   ├── wizard-form/
-│   └── table/                      ← 入れ子。置き場は親が決める
+│   └── table/                      ← nested; the parent decides where it goes
 │       ├── columns.tsx
 │       ├── README.md
 │       └── static-data/
-├── shell/                          ← mount 位置・数が決まっている
+├── shell/                          ← mount position and count are fixed
 │   ├── app-shell/
 │   ├── toaster/
 │   ├── pull-to-refresh/
 │   ├── content-container/
 │   └── page-header/
-├── app-starter/                    ← バックエンドの契約を知っている
+├── app-starter/                    ← knows the backend contract
 │   └── auth-state-feedback/
 │       ├── auth-state-feedback.definition.ts
 │       ├── auth-state-feedback.tsx
@@ -326,277 +326,277 @@ components/
 └── shadcn-manifest.yaml
 ```
 
-## Storybook の表示規約
+## Storybook Display Conventions
 
-- Story の `title` の先頭セグメントは、その component の**目録の見出しと同じ**にする。値は [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `as` が正で、`pnpm check:ui` が突合する。`Foundation` / `Action` / `Form` / `Overlay` / `Navigation` / `Display` / `Status` / `Container` / `Layout` / `Feedback` / `Rich Text` / `View State` / `Sugar` の 13 種である。`design-system` ではディレクトリ・目録・sidebar が同じ区画になる。目的で割らない層（`patterns` / `shell` / `app-starter`）は目録に目的の見出しを持たないので、sidebar の区画は `as` だけが決める
-- 粒度（単体で最小の部品か、合成か）は sidebar の区画にしない。実装が育てば subcomponent は増えるため、粒度は変わる属性である。変わらない属性だけを配置に焼く
-- **feature の story は上の 13 見出しに入れない。** 目録はこのカーネルが持つ部品の一覧であり、feature の部品はここの持ち物ではないためである。feature 側は次の 2 つの先頭セグメントを使う
-  - `Page/<feature>/<画面>` — 画面の合成（`features/<name>/<screen>/view.tsx`）。取得を伴わない状態で画面全体の見え方を確かめる場所
-  - `Features/<feature>/…` — 画面固有の部品（`features/<name>/<screen>/ui/<part>/`）。以降のセグメントは実装のディレクトリと同じ形にする
-- **取得を行うもの（`page-content.tsx`）は story にしない。** story は取得の実体を持てないため、確かめられるのは合成した結果だけである。取得の検証は unit テストが持つ
-- **`Icons/` も component の見出しではない。** [`icon.ts`](./icon.ts) が配るアイコンの目録（[`.storybook/icon.stories.tsx`](../../.storybook/icon.stories.tsx)）で、`Tokens/` と同じ理由で層にも目録にも載らない。名前を書き写さず公開面から実行時に読むので、`icon.ts` へ足せばこの画面に出る
-- **`Tokens/` は component の見出しではない。** design token の目録（[`.storybook/design-token.stories.tsx`](../../.storybook/design-token.stories.tsx)）で、アプリが描画する部品ではないため `components/` の層にも目録にも載らない。`components/` 直下は「誰が書き換えるか」で層を分ける規約なので、そこへ 5 つ目の層として足すと規約が嘘になる。Storybook 自身の資料として `.storybook/` に置き、`main.ts` の `stories` が拾う
-- sidebar の並び順は [`.storybook/preview.tsx`](../../.storybook/preview.tsx) の `storySort` が持つ。**`Page` → `Features` → `Tokens` → `Icons` → 目録**の順に置き、その中は名前順である。組んでいる間に開くのは前の 2 つで、目録は参照物として後ろにある方が探す手数が少ない。目録自身の並びは sidebar に持ち込まない。目録は層と目的で読む順を作るが、sidebar は目当ての部品を名前で引く場所なので、二つの並びを揃える必要がない
-- Storybook Canvas の座標や余白はアプリのレイアウト規約ではない。`layout: "centered"` は、小さな単体 UI を確認しやすくする story 側の表示指定である。画面・幅いっぱいに広がる部品には `fullscreen` または `padded` を story ごとに選ぶ
-- Controls が推論した props は任意の React 要素を生成できない。`asChild` のように単一の要素 child を必要とする props は Control を公開せず、必要な child を `render` で明示した専用 story を用意する
-- **どの story file にも component の説明と story ごとの説明を書く。** component の説明には、その部品が何のためにあるかと、**隣の似た部品との使い分け**を書く。`Accordion` と `Collapsible`、`Alert` と `Toaster` と `FeedbackState` のように、見た目が近く責務が違う部品は、並べて初めて選び分けられる。story の説明は、その story が何を示しているのかを書く
-- 説明の置き場は 2 つある。component 全体は `parameters.docs.description.component`、story ごとは export の直前の JSDoc（または `parameters.docs.description.story`）である。**どちらも Docs ページにしか描画されない。** [`.storybook/preview.tsx`](../../.storybook/preview.tsx) が `tags: ["autodocs"]` を付けているのはこのためで、外すと書いた説明がどこにも出なくなる
-- 幅を持たない部品（入力欄、card、menu の trigger）は、story の `decorators` で幅を与えた `div` に包む。幅は story 側の表示指定であり、部品にもアプリの layout にも属さない。狭い画面で見切れないよう `max-w-[calc(100vw-2rem)]` を併記する
-- 操作しないと現れない状態（開いた menu、選び終えた候補、送った後の一覧）は `play` で操作して story に固定する。閉じた姿しか story に無いと、その部品の主な姿がカタログにも visual regression にも載らない。Portal で `body` 直下へ出た面の引き方は [docs/testing-conventions.md](../../docs/testing-conventions.md)「component / hook のテスト」が持つ
+- The first segment of a story's `title` is **the same as the component's inventory heading**. The value's source of truth is `as` in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), and `pnpm check:ui` reconciles them. There are 13: `Foundation` / `Action` / `Form` / `Overlay` / `Navigation` / `Display` / `Status` / `Container` / `Layout` / `Feedback` / `Rich Text` / `View State` / `Sugar`. In `design-system`, the directory, the inventory and the sidebar form the same sections. Layers not split by purpose (`patterns` / `shell` / `app-starter`) have no purpose headings in the inventory, so their sidebar section is decided by `as` alone
+- Granularity (a minimal standalone component or a composition) is not made into a sidebar section. As an implementation grows, subcomponents increase, so granularity is an attribute that changes. Only attributes that do not change are baked into placement
+- **Feature stories do not go under the 13 headings above.** The inventory is the list of components this kernel owns, and feature components are not owned here. The feature side uses the following two first segments
+  - `Page/<feature>/<screen>` — the screen composition (`features/<name>/<screen>/view.tsx`). The place to check how the whole screen looks in states that involve no fetching
+  - `Features/<feature>/…` — screen-specific components (`features/<name>/<screen>/ui/<part>/`). The following segments take the same shape as the implementation's directories
+- **What fetches (`page-content.tsx`) is not made into a story.** A story cannot hold the real fetch, so all it can check is the composed result. Verifying the fetch is owned by unit tests
+- **`Icons/` is not a component heading either.** It is the inventory of the icons [`icon.ts`](./icon.ts) distributes ([`.storybook/icon.stories.tsx`](../../.storybook/icon.stories.tsx)), and for the same reason as `Tokens/` it appears in neither the layers nor the inventory. It reads the public surface at runtime rather than transcribing names, so adding to `icon.ts` makes it appear on this screen
+- **`Tokens/` is not a component heading.** It is the inventory of design tokens ([`.storybook/design-token.stories.tsx`](../../.storybook/design-token.stories.tsx)); it is not a component the app renders, so it appears in neither the `components/` layers nor the inventory. The convention directly under `components/` splits layers by "who rewrites it", so adding it there as a fifth layer would make the convention a lie. It lives in `.storybook/` as Storybook's own material, and `stories` in `main.ts` picks it up
+- The sidebar order is owned by `storySort` in [`.storybook/preview.tsx`](../../.storybook/preview.tsx). It is placed in the order **`Page` → `Features` → `Tokens` → `Icons` → inventory**, alphabetical within each. While building, the first two are what you open, and the inventory, as reference material, takes fewer steps to search when it is at the back. The inventory's own order is not carried into the sidebar. The inventory creates a reading order by layer and purpose, but the sidebar is where you look up the component you want by name, so the two orders need not match
+- The coordinates and spacing of the Storybook Canvas are not the app's layout conventions. `layout: "centered"` is a story-side display setting that makes a small standalone UI easier to check. For components that spread to the full screen or width, choose `fullscreen` or `padded` per story
+- Props inferred by Controls cannot create arbitrary React elements. Props that need a single element child, such as `asChild`, do not expose a Control; prepare a dedicated story that makes the needed child explicit with `render`
+- **Every story file carries a component description and a description per story.** The component description states what the component is for and **when to use it instead of a similar neighboring component**. Components that look alike but have different responsibilities, such as `Accordion` and `Collapsible`, or `Alert`, `Toaster` and `FeedbackState`, can only be chosen between when placed side by side. A story description states what that story shows
+- There are two places for descriptions: the whole component in `parameters.docs.description.component`, and each story in the JSDoc immediately before its export (or `parameters.docs.description.story`). **Both are rendered only on the Docs page.** This is why [`.storybook/preview.tsx`](../../.storybook/preview.tsx) sets `tags: ["autodocs"]`; removing it leaves the written descriptions shown nowhere
+- Components with no width of their own (inputs, cards, menu triggers) are wrapped in a `div` given a width in the story's `decorators`. The width is a story-side display setting and belongs neither to the component nor to the app's layout. Add `max-w-[calc(100vw-2rem)]` so it is not cut off on narrow screens
+- States that appear only after interaction (an open menu, a chosen candidate, the list after submitting) are fixed in the story by interacting in `play`. If the story holds only the closed form, the component's main form appears neither in the catalog nor in visual regression. How to get a surface that a Portal has placed directly under `body` is owned by [docs/testing-conventions.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: fetch` — `fetch` などの外部 IO を持たない。取得の結果は呼び出し元から props で受け取る | violation。`adapters` の import は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」。機械: ESLint boundaries |
-| `forbidden: config` — `config` を import せず、`process.env` を読まない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
-| `forbidden: capabilities` — `capabilities` を import しない。runtime 能力が要る合成は feature で行う | violation | [0022](../../docs/adr/0022-capabilities-kernel.md) 禁止事項。機械: ESLint boundaries |
-| `forbidden: stores` — `stores` を import しない。横断状態が要る合成は feature で行う | violation | [0023](../../docs/adr/0023-stores-kernel.md) 禁止事項。機械: ESLint boundaries |
-| `forbidden: business-state` — 持てる状態は表示に必要な UI 状態（開閉・選択中の項目・通知の queue など）だけで、取得した業務データの写しや業務の進行状態を持たない | 取得したデータを自分の状態に写していれば violation。状態が UI のものか業務のものかが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」/ この README「受け入れないもの」 |
-| 層（`design-system` / `patterns` / `shell` / `app-starter`）は「誰が書き換えるか」で決まり、依存は `app-starter・shell → patterns → design-system` の一方向に流れる | 逆向きの import は violation。契約を知っている部品が `app-starter` の外に居るなど、判定の順（契約 → mount 位置 → 役割の閉じ方）と置き場が合わなければ suggestion | この README「層」 |
-| 置いてある部品は複数の feature から使われる。1 つの feature 専用の UI は feature の内側に置く | 使う feature が 1 つしか無ければ suggestion | [0021](../../docs/adr/0021-frontend-responsibility.md)「Kernel Acceptance Criteria」1・2 / この README「運用」 |
-| SSR first —— `"use client"`・Radix・Portal を使うのは、native 要素では満たせない操作要件がある client island に限る | suggestion | この README「運用」/ [docs/rules.md#ui-parts](../../docs/rules.md#ui-parts) |
-| 色と余白は semantic token を通す。class の結合は `cn.ts` を通し、`clsx` / `tailwind-merge` を直に使わない | primitive token の直接利用と、`cn.ts` を通さない結合は violation | この README「運用」 |
-| focus 表示は `outline`、装飾の輪は `ring` で書き分け、境界を示す線と本文の色は「focus 表示と装飾的な輪の使い分け」の各節に従う | 節が名指しで禁じている形（focus に `ring` を使う、`focus-visible:outline-2` と `outline-none` の併記、`primary` / `emphasis` を本文の色に使う）は violation | この README「focus 表示と装飾的な輪の使い分け」。文字の太さは機械: `project-rules/no-raw-font-weight` |
-| 前回値との差分で state を戻す調整は描画中に行い、解放が要る資源の生成は effect に置く | 調整を effect に置いていれば violation。`set-state-in-effect` の抑止に理由が無ければ violation | この README「実装で繰り返す形」。機械: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect` |
-| Portal で form の外へ出る面の中の control に送信を頼らず、値は hidden input で運ぶ。局所スクロールする領域は focus 可能である | Portal の内側の control だけに `name` を置いていれば violation。`overflow-*` を持つ領域に `tabIndex` が無ければ violation | この README「実装で繰り返す形」/ [docs/rules.md#ui-parts](../../docs/rules.md#ui-parts)。a11y の残りは機械: `vitest-axe`（[0091](../../docs/adr/0091-test-verification-methods.md)） |
+| `forbidden: fetch` — owns no external IO such as `fetch`. Fetch results are received as props from the caller | violation. Imports of `adapters` are failed by machine, so what is checked here is calls to the global `fetch` | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for). Machine: ESLint boundaries |
+| `forbidden: config` — does not import `config` and does not read `process.env` | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. Machine: ESLint boundaries and `NODE_RUNTIME_ACCESS` in `architecture.ts` |
+| `forbidden: capabilities` — does not import `capabilities`. Compositions that need runtime capabilities are done in features | violation | [0022](../../docs/adr/0022-capabilities-kernel.md) prohibitions. Machine: ESLint boundaries |
+| `forbidden: stores` — does not import `stores`. Compositions that need cross-cutting state are done in features | violation | [0023](../../docs/adr/0023-stores-kernel.md) prohibitions. Machine: ESLint boundaries |
+| `forbidden: business-state` — the only state it may hold is UI state needed for display (open/closed, the selected item, a notification queue and so on); it holds no copy of fetched business data and no business progress state | violation if fetched data is copied into its own state. suggestion when it cannot be told whether the state is UI or business | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for) / this README, "What Does Not Belong Here" |
+| Layers (`design-system` / `patterns` / `shell` / `app-starter`) are decided by "who rewrites it", and dependencies flow one way: `app-starter / shell → patterns → design-system` | A reverse import is a violation. suggestion when the placement does not match the order of the tests (contract → mount position → how the role closes), such as a component that knows the contract living outside `app-starter` | this README, "Layers" |
+| The components placed here are used by several features. UI dedicated to one feature goes inside that feature | suggestion if only one feature uses it | [0021](../../docs/adr/0021-frontend-responsibility.md) criteria 1 and 2 for what a kernel accepts / this README, "Operations" |
+| SSR first — `"use client"`, Radix and Portals are used only in client islands with interaction requirements native elements cannot meet | suggestion | this README, "Operations" / [docs/rules.md](../../docs/rules.md#ui-parts) |
+| Color and spacing go through semantic tokens. Class merging goes through `cn.ts`; `clsx` / `tailwind-merge` are not used directly | Direct use of primitive tokens and merging that bypasses `cn.ts` are violations | this README, "Operations" |
+| Focus indicators are written with `outline` and decorative rings with `ring`, and boundary lines and body text color follow the subsections of "Focus indicators versus decorative rings" | The shapes those subsections forbid by name (using `ring` for focus, combining `focus-visible:outline-2` with `outline-none`, using `primary` / `emphasis` for body text color) are violations | this README, "Focus indicators versus decorative rings". Font weight is by machine: `project-rules/no-raw-font-weight` |
+| Adjustments that reset state from the difference with the previous value happen during render, and creating resources that need releasing goes in an effect | violation if the adjustment is in an effect. violation if a `set-state-in-effect` suppression has no reason | this README, "Recurring Implementation Patterns". Machine: ESLint `react-hooks/no-deriving-state-in-effects` / `react-hooks/set-state-in-effect` |
+| Submission does not rely on controls inside a surface that a Portal moves out of the form; values are carried in hidden inputs. Regions that scroll locally are focusable | violation if `name` is placed only on controls inside the Portal. violation if a region with `overflow-*` has no `tabIndex` | this README, "Recurring Implementation Patterns" / [docs/rules.md](../../docs/rules.md#ui-parts). The rest of a11y is by machine: `vitest-axe` ([0091](../../docs/adr/0091-test-verification-methods.md)) |
 
-## 関連する ADR
+## Related ADRs
 
-部品ごとの README はこの節を持たない。ADR への参照はこの層の README に集める。
+Per-component READMEs do not have this section. References to ADRs are gathered in this layer's README.
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。ここが `model` と `errors` だけを引く根拠
-- [0026](../../docs/adr/0026-layout-shell-mount.md) — `shell/` の器と Provider をどこに mount するか
-- [0027](../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。実装・test・story・README を 1 ディレクトリに置く形
-- [0050](../../docs/adr/0050-styling-strategy.md) — Tailwind と design token、`cn()` による class の解決
-- [0051](../../docs/adr/0051-styling-system.md) — token の体系・段の切り方・motion・印刷
-- [0052](../../docs/adr/0052-ui-component-policy.md) — shadcn/ui を起点にする選択と、アイコンの供給元を `icon.ts` へ閉じる規約
-- [0053](../../docs/adr/0053-ui-component-interaction-seam.md) — 開閉・focus・履歴など操作まわりの a11y seam
-- [0054](../../docs/adr/0054-ui-catalog-storybook.md) — Storybook をカタログとして持つ運用
-- [0080](../../docs/adr/0080-error-handling.md) — `app-starter` が知っているバックエンドエラーの正規化と、画面側との責務分担
-- [0091](../../docs/adr/0091-test-verification-methods.md) — story と unit テストの分担、a11y 自動検査の組み込み
-- [0100](../../docs/adr/0100-accessibility-target.md) — 到達すべきアクセシビリティの水準
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — layer responsibilities and import boundaries. The basis for pulling only `model` and `errors` here
+- [0026](../../docs/adr/0026-layout-shell-mount.md) — where the layout shells and Providers of `shell/` are mounted
+- [0027](../../docs/adr/0027-directory-structure.md) — physical placement and co-location. The shape that puts the implementation, tests, stories and README in one directory
+- [0050](../../docs/adr/0050-styling-strategy.md) — Tailwind and design tokens, and resolving classes with `cn()`
+- [0051](../../docs/adr/0051-styling-system.md) — the token system, how steps are cut, motion, and printing
+- [0052](../../docs/adr/0052-ui-component-policy.md) — the choice of starting from shadcn/ui, and the convention of closing the icon supplier into `icon.ts`
+- [0053](../../docs/adr/0053-ui-component-interaction-seam.md) — the a11y seam around interaction such as opening/closing, focus and history
+- [0054](../../docs/adr/0054-ui-catalog-storybook.md) — operating Storybook as the catalog
+- [0080](../../docs/adr/0080-error-handling.md) — normalizing the backend errors `app-starter` knows about, and the division of responsibility with the screen side
+- [0091](../../docs/adr/0091-test-verification-methods.md) — the division between stories and unit tests, and building in automated a11y checks
+- [0100](../../docs/adr/0100-accessibility-target.md) — the accessibility level to reach
 
-## component 目録
+## Component Inventory
 
-このリポジトリが持つ component の全件である。改造・削除・置き換えの前に、同じ責務の部品が既にあるかをここで確かめる。各行の概要は一行の要約であり、責務境界・公開 API・確認範囲は各 README を正とする。
+Every component this repository has. Before modifying, deleting or replacing one, check here whether a component with the same responsibility already exists. Each row's summary is a one-line abstract; for responsibility boundaries, public API and what is checked, each README is the source of truth.
 
-見出しは層と目的で、[`shadcn-manifest.yaml`](./shadcn-manifest.yaml) の `layer` と `as` が正である。`design-system` だけが目的別に分かれ、`patterns` と `app-starter` は目的を一つに決められないものの置き場なので分けない。
+The headings are layer and purpose, and their source of truth is `layer` and `as` in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml). Only `design-system` is split by purpose; `patterns` and `app-starter` hold things whose purpose cannot be fixed to one, so they are not split.
 
 ### design-system
 
-契約を知らず、読んでも役割が増えない部品。土台として残る。
+Components that do not know the contract and gain no role from reading it. They stay as the foundation.
 
 #### foundation
 
-UI を横断して支える基盤。見える要素を描かない。
+The base that supports UI across the board. It renders no visible element.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`print`](./design-system/foundation/print/README.md) | 紙と PDF 保存へ出したときの体裁を定める CSS 基盤 |
-| [`scroll-fade`](./design-system/foundation/scroll-fade/README.md) | scrollbar を消した横スクロール領域の端をぼかし、続きがあることを示す CSS 基盤 |
-| [`scrollbar`](./design-system/foundation/scrollbar/README.md) | スクロールする面すべてに共通する scrollbar の見た目を一箇所で定める CSS 基盤 |
-| [`surface`](./design-system/foundation/surface/README.md) | design token の系統を部分木と Portal の出口へ効かせる |
-| [`shimmer`](./design-system/foundation/shimmer/README.md) | 進捗が測れない処理が動き続けていることを、面の上を流れる帯で示す CSS 基盤 |
-| [`typeset`](./design-system/foundation/typeset/README.md) | sanitizer 済みの Markdown / HTML を一定の組版 rhythm で表示する CSS 基盤 |
+| [`print`](./design-system/foundation/print/README.md) | CSS base that sets the presentation when output to paper or saved as PDF |
+| [`scroll-fade`](./design-system/foundation/scroll-fade/README.md) | CSS base that fades the edges of a horizontal scroll area with the scrollbar hidden, showing there is more |
+| [`scrollbar`](./design-system/foundation/scrollbar/README.md) | CSS base that defines in one place the scrollbar look shared by every scrolling surface |
+| [`surface`](./design-system/foundation/surface/README.md) | Applies a design-token family to a subtree and the Portal's exit |
+| [`shimmer`](./design-system/foundation/shimmer/README.md) | CSS base that shows work whose progress cannot be measured is still running, with a band flowing over the surface |
+| [`typeset`](./design-system/foundation/typeset/README.md) | CSS base that displays sanitized Markdown / HTML with a consistent typesetting rhythm |
 
 #### action
 
-操作の起点になる部品。
+Components that are the starting point of an action.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`button`](./design-system/action/button/README.md) | 利用者の操作を開始する |
-| [`button-group`](./design-system/action/button-group/README.md) | 同じ対象への複数の操作を、隣接した一続きの帯としてまとめる |
-| [`copy-button`](./design-system/action/copy-button/README.md) | 値を clipboard へ写す |
-| [`print-button`](./design-system/action/print-button/README.md) | 表示中の文書を印刷する |
-| [`toggle`](./design-system/action/toggle/README.md) | 今その表示が適用されているかを押下状態として示し、切り替える |
+| [`button`](./design-system/action/button/README.md) | Starts a user action |
+| [`button-group`](./design-system/action/button-group/README.md) | Groups several actions on the same target into one adjacent, continuous strip |
+| [`copy-button`](./design-system/action/copy-button/README.md) | Copies a value to the clipboard |
+| [`print-button`](./design-system/action/print-button/README.md) | Prints the document being displayed |
+| [`toggle`](./design-system/action/toggle/README.md) | Shows, as a pressed state, whether a display is applied now, and switches it |
 
 #### form
 
-値を受け取り、form の値として送信する部品。
+Components that receive a value and submit it as a form value.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`calendar`](./design-system/form/calendar/README.md) | 日付または日付範囲を選ぶ |
-| [`checkbox-client`](./design-system/form/checkbox-client/README.md) | indeterminate を含む custom checkbox 操作の client island |
-| [`checkbox-native`](./design-system/form/checkbox-native/README.md) | 二値の同意・設定・複数選択を native form として送信する |
-| [`combobox-client`](./design-system/form/combobox-client/README.md) | 候補が多い選択肢から、入力語で絞り込みながら 1 件を選ぶ |
-| [`date-picker-client`](./design-system/form/date-picker-client/README.md) | カレンダー popup から単一の日付を選ぶ |
-| [`editable-table`](./design-system/form/editable-table/README.md) | native form control を table の cell に置いて編集する |
-| [`field`](./design-system/form/field/README.md) | label・入力・説明・エラーを一つの form field として構成する |
-| [`input`](./design-system/form/input/README.md) | 単一行の native `input` を表示・送信する |
-| [`input-group`](./design-system/form/input-group/README.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
-| [`label`](./design-system/form/label/README.md) | form control の項目名を利用者へ伝える |
-| [`multi-select-client`](./design-system/form/multi-select-client/README.md) | 候補を畳んだまま、checkbox で複数の値を同時に選ぶ |
-| [`radio-group-client`](./design-system/form/radio-group-client/README.md) | native radio では満たせない custom interaction の client island |
-| [`requirement-badge`](./design-system/form/requirement-badge/README.md) | 入力項目が必須か任意かを label の隣で示す |
-| [`radio-group-native`](./design-system/form/radio-group-native/README.md) | 静的な候補から一つを選び、native form として送信する |
-| [`search-field-client`](./design-system/form/search-field-client/README.md) | 打鍵に追従してキーワード検索を通知する検索欄 |
-| [`search-field-native`](./design-system/form/search-field-native/README.md) | キーワード検索欄を、JavaScript を必要としない GET form として置く |
-| [`segmented-input`](./design-system/form/segmented-input/README.md) | 長さの決まったコードを、桁ごとに区切った形で受け取る |
-| [`select-client`](./design-system/form/select-client/README.md) | native select では満たせない custom popup と keyboard / focus 操作を提供する |
-| [`select-native`](./design-system/form/select-native/README.md) | 静的で少数の候補から一つを選び、native form として送信する |
-| [`slider-client`](./design-system/form/slider-client/README.md) | 数値または範囲を連続的な操作で指定する。下限と上限を一つの操作面で選べる |
-| [`slider-native`](./design-system/form/slider-native/README.md) | 数値を連続的な操作で指定する native range |
-| [`switch-client`](./design-system/form/switch-client/README.md) | 設定の入り / 切りを切り替え、結果を即座に画面へ反映する |
-| [`switch-native`](./design-system/form/switch-native/README.md) | 設定の入り / 切りを、native form の値として切り替える |
-| [`textarea`](./design-system/form/textarea/README.md) | 複数行の native `textarea` を表示・送信する |
-| [`toggle-group-client`](./design-system/form/toggle-group-client/README.md) | 関連する切り替えを一つの集合として並べ、browser 側の state へ即座に反映する |
-| [`toggle-group-native`](./design-system/form/toggle-group-native/README.md) | 関連する切り替えを一つの集合として並べ、選んだ値を form として送信する |
+| [`calendar`](./design-system/form/calendar/README.md) | Chooses a date or a date range |
+| [`checkbox-client`](./design-system/form/checkbox-client/README.md) | Client island for custom checkbox interaction, including indeterminate |
+| [`checkbox-native`](./design-system/form/checkbox-native/README.md) | Submits a binary consent, setting or multiple choice as a native form |
+| [`combobox-client`](./design-system/form/combobox-client/README.md) | Chooses one item from many candidates while narrowing them by typed text |
+| [`date-picker-client`](./design-system/form/date-picker-client/README.md) | Chooses a single date from a calendar popup |
+| [`editable-table`](./design-system/form/editable-table/README.md) | Edits by placing native form controls in table cells |
+| [`field`](./design-system/form/field/README.md) | Composes a label, input, description and error into one form field |
+| [`input`](./design-system/form/input/README.md) | Displays and submits a single-line native `input` |
+| [`input-group`](./design-system/form/input-group/README.md) | Holds unit symbols, icons and auxiliary actions in one continuous frame with the input |
+| [`label`](./design-system/form/label/README.md) | Tells the user the item name of a form control |
+| [`multi-select-client`](./design-system/form/multi-select-client/README.md) | Chooses several values at once with checkboxes while the candidates stay collapsed |
+| [`radio-group-client`](./design-system/form/radio-group-client/README.md) | Client island for custom interaction native radios cannot provide |
+| [`requirement-badge`](./design-system/form/requirement-badge/README.md) | Shows next to the label whether an input is required or optional |
+| [`radio-group-native`](./design-system/form/radio-group-native/README.md) | Chooses one from static candidates and submits it as a native form |
+| [`search-field-client`](./design-system/form/search-field-client/README.md) | Search field that follows keystrokes and notifies a keyword search |
+| [`search-field-native`](./design-system/form/search-field-native/README.md) | Places a keyword search field as a GET form that needs no JavaScript |
+| [`segmented-input`](./design-system/form/segmented-input/README.md) | Receives a fixed-length code split into per-digit segments |
+| [`select-client`](./design-system/form/select-client/README.md) | Provides a custom popup and keyboard / focus interaction native selects cannot provide |
+| [`select-native`](./design-system/form/select-native/README.md) | Chooses one from a small static set of candidates and submits it as a native form |
+| [`slider-client`](./design-system/form/slider-client/README.md) | Specifies a number or range by continuous interaction. Lower and upper bounds can be chosen on one control surface |
+| [`slider-native`](./design-system/form/slider-native/README.md) | Native range that specifies a number by continuous interaction |
+| [`switch-client`](./design-system/form/switch-client/README.md) | Switches a setting on / off and reflects the result on screen immediately |
+| [`switch-native`](./design-system/form/switch-native/README.md) | Switches a setting on / off as a native form value |
+| [`textarea`](./design-system/form/textarea/README.md) | Displays and submits a multi-line native `textarea` |
+| [`toggle-group-client`](./design-system/form/toggle-group-client/README.md) | Lays out related toggles as one set and reflects them immediately in browser-side state |
+| [`toggle-group-native`](./design-system/form/toggle-group-native/README.md) | Lays out related toggles as one set and submits the chosen value as a form |
 
 #### overlay
 
-trigger から本文の上へ面を開く部品。
+Components that open a surface over the content from a trigger.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`alert-dialog`](./design-system/overlay/alert-dialog/README.md) | 削除など不可逆な操作を実行前に確認する |
-| [`command`](./design-system/overlay/command/README.md) | 入力語で候補を絞り込む検索可能な一覧。面としても modal としても置ける |
-| [`context-menu`](./design-system/overlay/context-menu/README.md) | 右クリックで対象固有の操作を手元へ出す、可視の導線に対する加速手段 |
-| [`dialog`](./design-system/overlay/dialog/README.md) | 補助表示や通常の編集を、画面を覆う modal として開く |
-| [`drawer`](./design-system/overlay/drawer/README.md) | 画面端から引き出し、drag でも閉じられる modal panel |
-| [`dropdown-menu`](./design-system/overlay/dropdown-menu/README.md) | trigger から操作の一覧を開く |
-| [`hover-card`](./design-system/overlay/hover-card/README.md) | hover / keyboard focus で、trigger の近くへ短い補足を表示する |
-| [`image-viewer`](./design-system/overlay/image-viewer/README.md) | 縮小して並べた画像を、押したときに大きく表示する |
-| [`popover`](./design-system/overlay/popover/README.md) | trigger の近傍に補足内容や補助操作を開く |
-| [`sheet`](./design-system/overlay/sheet/README.md) | 補助的な navigation や絞り込み面を、画面端から現れる modal パネルとして開く |
-| [`tooltip`](./design-system/overlay/tooltip/README.md) | それだけでは意味が自明でない要素へ、短い補足を添える |
+| [`alert-dialog`](./design-system/overlay/alert-dialog/README.md) | Confirms an irreversible action such as deletion before running it |
+| [`command`](./design-system/overlay/command/README.md) | Searchable list that narrows candidates by typed text. Can be placed as a surface or as a modal |
+| [`context-menu`](./design-system/overlay/context-menu/README.md) | An accelerator over visible paths that brings target-specific actions to hand on right-click |
+| [`dialog`](./design-system/overlay/dialog/README.md) | Opens auxiliary display or ordinary editing as a modal covering the screen |
+| [`drawer`](./design-system/overlay/drawer/README.md) | Modal panel pulled out from the screen edge that can also be closed by dragging |
+| [`dropdown-menu`](./design-system/overlay/dropdown-menu/README.md) | Opens a list of actions from a trigger |
+| [`hover-card`](./design-system/overlay/hover-card/README.md) | Shows a short supplement near the trigger on hover / keyboard focus |
+| [`image-viewer`](./design-system/overlay/image-viewer/README.md) | Shows a thumbnail-listed image large when pressed |
+| [`popover`](./design-system/overlay/popover/README.md) | Opens supplementary content or auxiliary actions near the trigger |
+| [`sheet`](./design-system/overlay/sheet/README.md) | Opens auxiliary navigation or a filtering surface as a modal panel that appears from the screen edge |
+| [`tooltip`](./design-system/overlay/tooltip/README.md) | Adds a short supplement to an element whose meaning is not self-evident on its own |
 
 #### navigation
 
-移動先を示す部品と、移動そのものを扱う部品。
+Components that indicate a destination, and components that handle the move itself.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`breadcrumb`](./design-system/navigation/breadcrumb/README.md) | 現在地までの階層を示し、上位階層へ戻れるようにする |
-| [`menubar`](./design-system/navigation/menubar/README.md) | 画面全体に対する操作を分類ごとの menu にまとめ、常に見えている横一列として示す |
-| [`navigation-menu`](./design-system/navigation/navigation-menu/README.md) | 主要な遷移先を並べ、必要に応じて下位階層を開く |
-| [`pagination`](./design-system/navigation/pagination/README.md) | URL 遷移する一覧のページ移動を表す |
-| [`tabs-client`](./design-system/navigation/tabs-client/README.md) | 同じ URL のまま、複数のパネルを切り替えて表示する |
-| [`tabs-native`](./design-system/navigation/tabs-native/README.md) | 同じ対象を複数の観点で見せ分け、観点を URL で切り替える |
+| [`breadcrumb`](./design-system/navigation/breadcrumb/README.md) | Shows the hierarchy up to the current location and lets the user go back to upper levels |
+| [`menubar`](./design-system/navigation/menubar/README.md) | Groups actions on the whole screen into per-category menus, shown as an always-visible horizontal row |
+| [`navigation-menu`](./design-system/navigation/navigation-menu/README.md) | Lays out the main destinations and opens lower levels as needed |
+| [`pagination`](./design-system/navigation/pagination/README.md) | Represents page movement for a list that navigates by URL |
+| [`tabs-client`](./design-system/navigation/tabs-client/README.md) | Switches between several panels while staying on the same URL |
+| [`tabs-native`](./design-system/navigation/tabs-native/README.md) | Shows the same target from several perspectives and switches the perspective by URL |
 
 #### display
 
-受け取った内容を読める形にして見せる部品。
+Components that show received content in readable form.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`activity-timeline`](./design-system/display/activity-timeline/README.md) | 起きた出来事を時刻順に並べて表示する |
-| [`amount-with-reference`](./design-system/display/amount-with-reference/README.md) | 金額と、切り替えで現れる別通貨の参考換算額を表示する |
-| [`avatar`](./design-system/display/avatar/README.md) | 利用者や組織を小さな円形で識別する |
-| [`badge`](./design-system/display/badge/README.md) | 短い分類や状態を視覚的に補助する |
-| [`bubble`](./design-system/display/bubble/README.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |
-| [`card`](./design-system/display/card/README.md) | 関連する情報や補助操作を一つの視覚的なまとまりにする |
-| [`chart`](./design-system/display/chart/README.md) | 集計値の推移や内訳を、系列ごとの色と形で表示する |
-| [`json-ld`](./design-system/display/json-ld/README.md) | 画面が持つ構造化データを `application/ld+json` の script として埋め込む。読み手は検索エンジンで、見える要素を持たない |
-| [`kbd`](./design-system/display/kbd/README.md) | 利用者が押すキーを、キーボード入力として表示する |
-| [`key-value-list`](./design-system/display/key-value-list/README.md) | 項目名と値の対を並べて表示する |
-| [`keyboard-shortcut`](./design-system/display/keyboard-shortcut/README.md) | キーボードで実行できる操作を、説明とキーの対として案内する |
-| [`list`](./design-system/display/list/README.md) | 同型の行を縦に並べ、アイコン・見出し・説明・補助操作を一貫した構造で表示する |
-| [`marker`](./design-system/display/marker/README.md) | 本文より一段控えた一行の注釈・区切りラベルを置く |
-| [`media-image`](./design-system/display/media-image/README.md) | `next/image` に比率固定・CSS Skeleton・LCP 用 preload を一貫して適用する |
-| [`message`](./design-system/display/message/README.md) | 送信者と本文を持つ 1 件のメッセージを表示する |
-| [`separator`](./design-system/display/separator/README.md) | 近接する内容のまとまりを区切る |
-| [`stepper`](./design-system/display/stepper/README.md) | 既知で有限の段階を定義順に並べ、現在位置とまだ到達していない先を示す |
-| [`table`](./design-system/display/table/README.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
-| [`text-highlight`](./design-system/display/text-highlight/README.md) | 検索した語が本文のどこに当たったかを示す |
+| [`activity-timeline`](./design-system/display/activity-timeline/README.md) | Displays events that happened in time order |
+| [`amount-with-reference`](./design-system/display/amount-with-reference/README.md) | Displays an amount and a reference conversion into another currency that appears on toggle |
+| [`avatar`](./design-system/display/avatar/README.md) | Identifies a user or organization with a small circle |
+| [`badge`](./design-system/display/badge/README.md) | Visually supports a short category or status |
+| [`bubble`](./design-system/display/bubble/README.md) | Displays one chunk of speech or a notification as a speech bubble. Inside `Message` it follows the sender's direction |
+| [`card`](./design-system/display/card/README.md) | Makes related information and auxiliary actions into one visual group |
+| [`chart`](./design-system/display/chart/README.md) | Displays trends and breakdowns of aggregated values with per-series color and shape |
+| [`json-ld`](./design-system/display/json-ld/README.md) | Embeds the screen's structured data as an `application/ld+json` script. Its reader is search engines, and it has no visible element |
+| [`kbd`](./design-system/display/kbd/README.md) | Displays a key the user presses as keyboard input |
+| [`key-value-list`](./design-system/display/key-value-list/README.md) | Displays pairs of item names and values in a list |
+| [`keyboard-shortcut`](./design-system/display/keyboard-shortcut/README.md) | Presents an action that can be run from the keyboard as a pair of description and keys |
+| [`list`](./design-system/display/list/README.md) | Stacks rows of the same shape vertically and displays icon, heading, description and auxiliary actions in a consistent structure |
+| [`marker`](./design-system/display/marker/README.md) | Places a one-line annotation or divider label one step quieter than the body text |
+| [`media-image`](./design-system/display/media-image/README.md) | Consistently applies fixed aspect ratio, CSS Skeleton and LCP preload to `next/image` |
+| [`message`](./design-system/display/message/README.md) | Displays one message that has a sender and a body |
+| [`separator`](./design-system/display/separator/README.md) | Separates groups of adjacent content |
+| [`stepper`](./design-system/display/stepper/README.md) | Lays out known, finite steps in defined order and shows the current position and the steps not yet reached |
+| [`table`](./design-system/display/table/README.md) | Displays structured data where the relation between columns and rows is needed for the user's understanding |
+| [`text-highlight`](./design-system/display/text-highlight/README.md) | Shows where in the text a searched term matched |
 
 #### status
 
-処理がいまどうなっているかを伝える部品。
+Components that convey how processing is going right now.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`alert`](./design-system/status/alert/README.md) | 注意・失敗・次に取る行動を文脈内で伝える |
-| [`progress-client`](./design-system/status/progress-client/README.md) | browser 側で更新される進捗度を、値と最大値の関係として示す |
-| [`progress-native`](./design-system/status/progress-native/README.md) | 長さの決まった処理の進捗を、native `progress` として示す |
-| [`skeleton`](./design-system/status/skeleton/README.md) | 読み込み中の最終コンテンツに近い形状を一時表示する |
-| [`spinner`](./design-system/status/spinner/README.md) | 終わりの見えない短い処理が進行中であることを、その場で示す |
+| [`alert`](./design-system/status/alert/README.md) | Conveys caution, failure and the next action to take, in context |
+| [`progress-client`](./design-system/status/progress-client/README.md) | Shows progress updated on the browser side as the relation between a value and its maximum |
+| [`progress-native`](./design-system/status/progress-native/README.md) | Shows the progress of a task of known length as a native `progress` |
+| [`skeleton`](./design-system/status/skeleton/README.md) | Temporarily shows a shape close to the final content while loading |
+| [`spinner`](./design-system/status/spinner/README.md) | Shows on the spot that a short task with no visible end is in progress |
 
 #### container
 
-内容を収める枠と、その面の見え方を制御する部品。
+Frames that hold content, and components that control how that surface looks.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`accordion`](./design-system/container/accordion/README.md) | 関連する複数の詳細を、必要な項目だけ開いて確認する |
-| [`aspect-ratio`](./design-system/container/aspect-ratio/README.md) | 子要素を指定した縦横比の枠へ収める |
-| [`carousel`](./design-system/container/carousel/README.md) | 限られた横幅の中で、同じ種類の内容を順に閲覧する |
-| [`collapsible`](./design-system/container/collapsible/README.md) | 一つの補助内容を、必要なときだけ開いて確認する |
-| [`direction`](./design-system/container/direction/README.md) | 配下の component へ文字送りの向きを配る Provider |
-| [`message-scroller`](./design-system/container/message-scroller/README.md) | 末尾に追加され続ける一覧の scroll 位置を扱い、末尾にいる間だけ新着へ追従する |
-| [`resizable`](./design-system/container/resizable/README.md) | 隣り合う表示領域の境界を掴んで動かし、配分を利用者が決められるようにする |
-| [`scroll-area`](./design-system/container/scroll-area/README.md) | 内容の一部だけを局所的にスクロールさせる |
+| [`accordion`](./design-system/container/accordion/README.md) | Checks several related details by opening only the items needed |
+| [`aspect-ratio`](./design-system/container/aspect-ratio/README.md) | Fits a child element into a frame with the specified aspect ratio |
+| [`carousel`](./design-system/container/carousel/README.md) | Browses content of the same kind in sequence within limited width |
+| [`collapsible`](./design-system/container/collapsible/README.md) | Checks one piece of auxiliary content by opening it only when needed |
+| [`direction`](./design-system/container/direction/README.md) | Provider that distributes text direction to the components beneath it |
+| [`message-scroller`](./design-system/container/message-scroller/README.md) | Handles the scroll position of a list that keeps being appended to, following new items only while at the end |
+| [`resizable`](./design-system/container/resizable/README.md) | Lets the user grab and move the boundary between adjacent display regions to decide the allocation |
+| [`scroll-area`](./design-system/container/scroll-area/README.md) | Scrolls only part of the content locally |
 
 #### layout
 
-ページの骨格を組む合成例。
+Composition examples that build a page's structure.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`layout-patterns`](./design-system/layout/layout-patterns/README.md) | ページの骨格を utility だけで組む合成例。component は公開しない |
+| [`layout-patterns`](./design-system/layout/layout-patterns/README.md) | Composition examples that build a page's structure with utilities only. Exposes no component |
 
 #### rich-text
 
-書き手が構造を付けた文章を扱う部品。
+Components that handle text the writer has given structure.
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`rich-text-content`](./design-system/rich-text/rich-text-content/README.md) | sanitize 済みのリッチテキストを本文として表示する |
-| [`rich-text-editor`](./design-system/rich-text/rich-text-editor/README.md) | 書式付きの本文を、sanitizer が通す範囲だけで書けるようにする |
+| [`rich-text-content`](./design-system/rich-text/rich-text-content/README.md) | Displays sanitized rich text as body content |
+| [`rich-text-editor`](./design-system/rich-text/rich-text-editor/README.md) | Lets formatted body text be written within only what the sanitizer lets through |
 
 ### patterns
 
-契約を知らずに複数の役割を合成する部品（[層](#層)）。
+Components that compose several roles without knowing the contract ([Layers](#layers)).
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`action-bar`](./patterns/action-bar/README.md) | 操作をまとめて置く領域。位置と重なり順だけを持つ |
-| [`filter-bar`](./patterns/filter-bar/README.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
-| [`form-field`](./patterns/form-field/README.md) | 項目名・必須の印・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
-| [`selection-toolbar`](./patterns/selection-toolbar/README.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
-| [`table`](./patterns/table/README.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
-| [`table-view-options`](./patterns/table-view-options/README.md) | 表の表示する列・表示密度・固定列・画面幅ごとの出し分けをまとめて設定する |
-| [`editable-data`](./patterns/table/editable-data/README.md) | 編集 cell を含む列定義から、native form と table を組み立てる |
-| [`row-actions`](./patterns/table/row-actions/README.md) | 行ごとに繰り返す操作 menu を、行操作の定義から組み立てる |
-| [`static-data`](./patterns/table/static-data/README.md) | 読み取り専用の列定義から、列幅・見出し・行・空表示を組み立てる |
-| [`wizard-form`](./patterns/wizard-form/README.md) | 複数段階に分けた入力の枠。現在位置の保持と前後移動を持つ |
+| [`action-bar`](./patterns/action-bar/README.md) | A region that gathers actions. It holds only position and stacking order |
+| [`filter-bar`](./patterns/filter-bar/README.md) | Displays a list's filtering controls together with the conditions currently in effect |
+| [`form-field`](./patterns/form-field/README.md) | Builds the item name, required marker, input, supplement and error in the same order regardless of input type |
+| [`selection-toolbar`](./patterns/selection-toolbar/README.md) | Gathers the number of items selected in a list and the actions available on that selection |
+| [`table`](./patterns/table/README.md) | Displays structured data where the relation between columns and rows is needed for the user's understanding |
+| [`table-view-options`](./patterns/table-view-options/README.md) | Sets together a table's visible columns, display density, pinned columns and per-width visibility |
+| [`editable-data`](./patterns/table/editable-data/README.md) | Builds a native form and table from column definitions that include editable cells |
+| [`row-actions`](./patterns/table/row-actions/README.md) | Builds the per-row action menu from row action definitions |
+| [`static-data`](./patterns/table/static-data/README.md) | Builds column widths, headings, rows and the empty display from read-only column definitions |
+| [`wizard-form`](./patterns/wizard-form/README.md) | Frame for input split into several steps. Holds the current position and forward / back movement |
 
 ### shell
 
-mount 位置が部品側で決まっている部品（[層](#層)）。
+Components whose mount position is decided by the component itself ([Layers](#layers)).
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`app-shell`](./shell/app-shell/README.md) | 利用者向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
-| [`admin-shell`](./shell/admin-shell/README.md) | 管理画面の外枠。脇の導線一覧・header・skip link・`main` を同じ位置に置く |
-| [`content-container`](./shell/content-container/README.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
-| [`page-header`](./shell/page-header/README.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
-| [`toaster`](./shell/toaster/README.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |
-| [`pull-to-refresh`](./shell/pull-to-refresh/README.md) | 画面の上端から引き下げて、いまの route を取り直す。touch のある環境でだけ働く |
-| [`consent-banner`](./shell/consent-banner/README.md) | 任意の用途に cookie を使ってよいかを、選び終えるまで下端で尋ね続ける |
+| [`app-shell`](./shell/app-shell/README.md) | Outer frame for user-facing screens. Puts the header, navigation, skip link, `main` and footer in the same positions |
+| [`admin-shell`](./shell/admin-shell/README.md) | Outer frame for admin screens. Puts the sidebar navigation list, header, skip link and `main` in the same positions |
+| [`content-container`](./shell/content-container/README.md) | Aligns the reading width and side margins of page content inside `main` |
+| [`page-header`](./shell/page-header/README.md) | At the top of a page, shows that page's name, description and main actions |
+| [`toaster`](./shell/toaster/README.md) | Shows the success or failure of a mutation that does not redirect as a temporary notification |
+| [`pull-to-refresh`](./shell/pull-to-refresh/README.md) | Pulls down from the top edge of the screen to refetch the current route. Works only in environments with touch |
+| [`consent-banner`](./shell/consent-banner/README.md) | Keeps asking at the bottom edge, until a choice is made, whether cookies may be used for optional purposes |
 
 ### app-starter
 
-バックエンドの契約を知っている部品（[層](#層)）。
+Components that know the backend contract ([Layers](#layers)).
 
-| component | 概要 |
+| component | Summary |
 | --- | --- |
-| [`invalid-query-feedback`](./app-starter/invalid-query-feedback/README.md) | URL の条件が契約を外れているときに、本体の代わりに理由と解除の導線を出す |
-| [`api-error-feedback`](./app-starter/api-error-feedback/README.md) | client-side の API 失敗を、文脈内の Alert または操作を止める Dialog として表示する |
-| [`attachment`](./app-starter/attachment/README.md) | 選択済みのファイル 1 件を、種類・名前・進行状況・取り消し操作として表示する |
-| [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | サインインが必要・権限が足りない・見つからない状態と、そこから抜け出す導線を表示する |
-| [`connection-status`](./app-starter/connection-status/README.md) | 継続的な受信がいまどうなっているかを、短いラベルで示す |
-| [`cursor-pagination`](./app-starter/cursor-pagination/README.md) | cursor 方式の一覧で前後のページへ移動する |
-| [`feedback-state`](./app-starter/feedback-state/README.md) | loading / empty / error / success の表示状態を一貫して伝える |
-| [`load-more`](./app-starter/load-more/README.md) | 読み進めて積み増す一覧の末尾で、続きの読み込みの状態を示す |
-| [`file-upload`](./app-starter/file-upload/README.md) | 送信するファイルを選び、送る前に形式と大きさが要件に合っているかを知らせる |
-| [`form-feedback`](./app-starter/form-feedback/README.md) | Server Action や native form の結果を、要約と次の行動として表示する |
-| [`form-validation-summary`](./app-starter/form-validation-summary/README.md) | form 全体の検証エラーを一箇所に要約し、各入力欄への link を並べる |
-| [`import-export`](./app-starter/import-export/README.md) | ファイル取り込みの結果（行単位エラー含む）と、書き出しの状態を表示する |
-| [`navigation-guard`](./app-starter/navigation-guard/README.md) | 未保存のままアプリ内を移動しようとしたときに、確認してから遷移する |
-| [`notification-center`](./app-starter/notification-center/README.md) | 永続する通知を確認する面。未読件数・一覧・既読・通知が無い状態 |
-| [`saved-views`](./app-starter/saved-views/README.md) | 一覧の絞り込みや並べ替えを名前付きで残し、選び直せるようにする |
-| [`unload-guard`](./app-starter/unload-guard/README.md) | 未保存のまま画面を離れようとしたときに、browser 標準の確認を出す |
-| [`upload-preview`](./app-starter/upload-preview/README.md) | 選択中のファイルを一覧で確認し、差し替え・取り消し・再試行を行う |
+| [`invalid-query-feedback`](./app-starter/invalid-query-feedback/README.md) | When the URL's conditions fall outside the contract, shows the reason and a way to clear them in place of the main content |
+| [`api-error-feedback`](./app-starter/api-error-feedback/README.md) | Shows a client-side API failure as an in-context Alert or as a Dialog that stops the action |
+| [`attachment`](./app-starter/attachment/README.md) | Shows one selected file as its type, name, progress and cancel action |
+| [`auth-state-feedback`](./app-starter/auth-state-feedback/README.md) | Shows the states sign-in required, insufficient permission and not found, and the way out of them |
+| [`connection-status`](./app-starter/connection-status/README.md) | Shows with a short label how continuous receiving is going right now |
+| [`cursor-pagination`](./app-starter/cursor-pagination/README.md) | Moves to the previous / next page in a cursor-based list |
+| [`feedback-state`](./app-starter/feedback-state/README.md) | Conveys the loading / empty / error / success display states consistently |
+| [`load-more`](./app-starter/load-more/README.md) | At the end of a list that accumulates as you read on, shows the state of loading the next part |
+| [`file-upload`](./app-starter/file-upload/README.md) | Chooses files to send and tells, before sending, whether their format and size meet the requirements |
+| [`form-feedback`](./app-starter/form-feedback/README.md) | Shows the result of a Server Action or native form as a summary and the next action |
+| [`form-validation-summary`](./app-starter/form-validation-summary/README.md) | Summarizes the whole form's validation errors in one place and lists links to each input |
+| [`import-export`](./app-starter/import-export/README.md) | Shows the result of a file import (including row-level errors) and the state of an export |
+| [`navigation-guard`](./app-starter/navigation-guard/README.md) | Confirms before navigating when the user tries to move within the app with unsaved changes |
+| [`notification-center`](./app-starter/notification-center/README.md) | The surface for checking persistent notifications: unread count, list, read state, and the no-notifications state |
+| [`saved-views`](./app-starter/saved-views/README.md) | Saves a list's filters and sorting under a name so they can be chosen again |
+| [`unload-guard`](./app-starter/unload-guard/README.md) | Shows the browser's standard confirmation when the user tries to leave the page with unsaved changes |
+| [`upload-preview`](./app-starter/upload-preview/README.md) | Reviews the selected files in a list and replaces, cancels or retries them |

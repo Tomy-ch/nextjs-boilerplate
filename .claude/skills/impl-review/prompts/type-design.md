@@ -34,9 +34,9 @@ remembered version.
 
 | Source | What it decides |
 | --- | --- |
-| [`docs/adr/0029-type-design-discipline.md`](../../../../docs/adr/0029-type-design-discipline.md) | The type-design discipline — its 決定 and its 禁止事項, including which prohibitions a mechanism enforces (`強制:`) and which are prose only |
+| [`docs/adr/0029-type-design-discipline.md`](../../../../docs/adr/0029-type-design-discipline.md) | The type-design discipline — its `## Decision` and its `## Prohibitions`, including which prohibitions a mechanism enforces (the `(Enforcement: …)` clause) and which are prose only (`Enforcement: Prose — **…**`) |
 | [`docs/rules.md#types`](../../../../docs/rules.md#types)(anchor `types`) | The implementation rules for types; its `Rationale` line names the mechanisms that already enforce part of them |
-| `docs/rules.md` — every other bullet citing ADR 0029 | `grep -n '0029' docs/rules.md`; rules about types live outside「型とコード」too |
+| `docs/rules.md` — every other bullet citing ADR 0029 | `grep -n '0029' docs/rules.md`; rules about types live outside "Types and Code" too |
 | `src/model/README.md` | What `model` accepts and refuses, and what it may import |
 | The nearest `README.md` of any in-scope file outside `src/model/` | That layer's responsibilities and allowed ranges |
 | The ADRs those documents link for types — at least [0021](../../../../docs/adr/0021-frontend-responsibility.md), [0062](../../../../docs/adr/0062-form-input-validation.md), [0070](../../../../docs/adr/0070-backend-role-separation.md), [0072](../../../../docs/adr/0072-api-type-generation.md) | Where a responsibility sits, the two-layer validation split, what the backend owns, how generated types are treated |
@@ -110,8 +110,8 @@ and returns.
 4. **Calibrate.** Meets every applicable line of the sources ≈ 8-10; compliant but weakly expressed
    ≈ 5-7; a guarantee breakable from outside, or an ADR 0029 prohibition broken ≈ 1-4.
 5. **Stay in lane.**
-   - **Do not re-report what a mechanism already decides** — the `Rationale` line of「型とコード」and
-     each 禁止事項's `強制:` clause in ADR 0029 name them. With `緑`, skip them; with `赤`, cite the
+   - **Do not re-report what a mechanism already decides** — the `Rationale` line of "Types and Code" and
+     each prohibition's `(Enforcement: …)` clause in ADR 0029's `## Prohibitions` name them. With `緑`, skip them; with `赤`, cite the
      failure as evidence and do not re-derive it; with `未取得`, say the gate verdict is unknown.
    - **Layer placement is not this subject** — a type in the wrong kernel is a one-line mention from
      the type-design angle at most.
@@ -119,7 +119,7 @@ and returns.
 
 ## Classification
 
-- **`違反`** — breaks a 禁止事項 of ADR 0029 whose `強制:` is prose (no mechanism catches it). Quote
+- **`違反`** — breaks a prohibition in ADR 0029's `## Prohibitions` whose `Enforcement:` is `Prose — **…**` (no mechanism catches it). Quote
   the prohibition.
 - **`提案`** — everything else: a weaker-than-available expression, a missing `readonly`, a brand
   that would pay off. Positional same-typed identifiers are always `提案`.
@@ -146,7 +146,7 @@ type-design 結果（スコープ: <scope> / 静的判定: <緑 | 赤: <check> |
 - <良い点>
 
 ### 懸念
-- [違反 | 提案] <file:line> — <具体的な弱点>。出典: <ADR 0029 の決定・禁止事項 / docs/rules.md の該当行>
+- [違反 | 提案] <file:line> — <具体的な弱点>。出典: <ADR 0029 の Decision・Prohibitions / docs/rules.md の該当行>
   確度: high / medium / low
 
 ### 推奨（複雑さを増やさない範囲で）

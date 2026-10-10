@@ -1,69 +1,69 @@
 # Attachment
 
-## 用途
+## Purpose
 
-選択済みのファイルを 1 件ずつ表示します。種類を示すアイコンまたは縮小表示、名前、大きさや進行状況の補足、取り消しや再送などの操作をひとまとまりに置きます。
+Displays selected files one at a time. It puts together an icon or thumbnail showing the type, the name, a supplement such as size or progress, and actions such as cancel or resend.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `AttachmentGroup` | 複数の添付を横に並べる、名前を持つ `group` です。収まらない分は横スクロールします。 |
-| `Attachment` | 添付 1 件の枠です。`size` / `orientation` / `state` で見た目を選びます。 |
-| `AttachmentMedia` | 種類を示すアイコンまたは縮小表示を置く枠です。 |
-| `AttachmentContent` | 名前と補足を縦に並べる領域です。 |
-| `AttachmentTitle` | 添付の名前です。枠に収まらない場合は末尾を省略します。 |
-| `AttachmentDescription` | 大きさ・進行状況・失敗理由などの補足です。 |
-| `AttachmentActions` | 操作を並べる領域です。`vertical` では枠の右上へ重なります。 |
-| `AttachmentAction` | 添付 1 件に対する操作です。`Button` を合成します。 |
-| `AttachmentTrigger` | 枠全体を押せるようにする、面いっぱいの当たり判定です。 |
+| `AttachmentGroup` | A named `group` that lays out several attachments horizontally. What does not fit scrolls horizontally. |
+| `Attachment` | The frame of one attachment. `size` / `orientation` / `state` choose its look. |
+| `AttachmentMedia` | The frame that holds the icon or thumbnail showing the type. |
+| `AttachmentContent` | The region that stacks the name and the supplement vertically. |
+| `AttachmentTitle` | The attachment's name. Truncated at the end when it does not fit the frame. |
+| `AttachmentDescription` | The supplement: size, progress, failure reason and so on. |
+| `AttachmentActions` | The region that lays out actions. In `vertical` it overlaps the frame's top-right corner. |
+| `AttachmentAction` | An action on one attachment. Composes `Button`. |
+| `AttachmentTrigger` | A full-surface hit area that makes the whole frame pressable. |
 
-`ATTACHMENT_SIZE` / `ATTACHMENT_ORIENTATION` / `ATTACHMENT_STATE` / `ATTACHMENT_MEDIA_VARIANT` と対応する型を `attachment.definition.ts` で公開します。これらに指定できる値の owner はこの定義であり、`"error"` などの文字列を利用側で直接書きません。
+`ATTACHMENT_SIZE` / `ATTACHMENT_ORIENTATION` / `ATTACHMENT_STATE` / `ATTACHMENT_MEDIA_VARIANT` and their corresponding types are exported from `attachment.definition.ts`. These definitions own the values that can be specified, and callers do not write strings such as `"error"` directly.
 
-| state | 見え方 |
+| state | Look |
 | --- | --- |
-| `idle` | 枠線を破線にし、まだ中身が確定していないことを示します。 |
-| `uploading` | 枠全体に帯が流れ、送信が止まっていないことを示します。 |
-| `processing` | 同じく枠全体に帯が流れます。 |
-| `error` | 枠線と媒体の枠を失敗の色にします。 |
-| `done` | 通常の枠として表示します。既定値です。 |
+| `idle` | Makes the border dashed to show the content is not settled yet. |
+| `uploading` | A band flows across the whole frame to show the upload has not stalled. |
+| `processing` | Likewise, a band flows across the whole frame. |
+| `error` | Puts the border and the media frame in the failure color. |
+| `done` | Displays as an ordinary frame. The default. |
 
-| orientation | 見え方 |
+| orientation | Look |
 | --- | --- |
-| `horizontal` | アイコン・名前・操作を横に並べます。既定値です。 |
-| `vertical` | 縮小表示を上、名前を下に置き、操作を右上へ重ねます。 |
+| `horizontal` | Lays out the icon, name and actions horizontally. The default. |
+| `vertical` | Puts the thumbnail on top and the name below, and overlaps the actions at the top right. |
 
-## 利用ケース
+## Use Cases
 
-- 選択済みのファイルを一覧し、1 件ずつ取り消せるようにする場合
-- 送信中・変換中・失敗を、同じ枠のまま見た目で区別する場合
-- 画像の縮小表示を伴う添付を `vertical` で並べる場合
-- 添付そのものを押して詳細や元ファイルへ遷移させる場合（`AttachmentTrigger`）
+- Listing selected files so each can be cancelled individually
+- Distinguishing uploading, converting and failed visually while keeping the same frame
+- Laying out attachments with image thumbnails in `vertical`
+- Pressing the attachment itself to navigate to details or the original file (`AttachmentTrigger`)
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。hydration を必要としない表示専用の Server Component で、client island を持ちません。押下に反応する部分だけを呼び出し元が client component として組みます。
+In the SSR-first selection it falls under `◎`. It is a display-only Server Component that needs no hydration and has no client island. Only the parts that react to presses are built by the caller as client components.
 
-ファイルの選択、送信、削除、再試行、進捗の算出は持ちません。`state` は見た目を切り替えるだけで、実際の進行を管理するのは呼び出し元です。名前・大きさ・進行状況はすべて整形済みの文字列として受け取ります。バイト数の整形は `model/` の formatter の責務です。
+It does not own file selection, uploading, deletion, retrying or computing progress. `state` only switches the look; the caller manages the actual progress. The name, size and progress are all received as preformatted strings. Formatting byte counts is the responsibility of the formatters in `model/`.
 
-`state` は支援技術へ伝わりません。送信中や失敗であることは `AttachmentDescription` の文言としても示します。利用者の対応が要る失敗は、この枠だけに頼らず feature 側で `Alert` などと組み合わせます。
+`state` does not reach assistive technology. Show that an upload is in progress or has failed in the `AttachmentDescription` text as well. For failures that need the user to act, do not rely on this frame alone; combine it with `Alert` or similar on the feature side.
 
-`AttachmentMedia` のアイコンと画像はいずれも装飾です。何のファイルかは `AttachmentTitle` のテキストが伝えるため、画像の `alt` は空にできます。
+The icon and image in `AttachmentMedia` are both decorative. The `AttachmentTitle` text conveys which file it is, so the image's `alt` can be empty.
 
-`AttachmentAction` と `AttachmentTrigger` のアクセシブルな名前は呼び出し元が必ず与えます。どちらもアイコンだけ、あるいは面だけになるため、名前がないと何に対する操作か判りません。名前には添付の名前も含めます。
+The caller must always give `AttachmentAction` and `AttachmentTrigger` an accessible name. Both end up as only an icon or only a surface, so without a name it is unclear what the action targets. Include the attachment's name in it.
 
-`AttachmentTrigger` は枠全体に重なるので、自身の focus 表示を抑え、代わりに `Attachment` が `focus-within` の outline を出します。`AttachmentActions` はさらに上に重なるため、個別の操作はそれぞれ押せます。
+`AttachmentTrigger` overlaps the whole frame, so it suppresses its own focus indicator and `Attachment` shows a `focus-within` outline instead. `AttachmentActions` sits further on top, so each individual action can still be pressed.
 
-`AttachmentGroup` は件数・並び順・上限を持ちません。
+`AttachmentGroup` does not own the count, order or limit.
 
-vendor は Radix の `Slot`（`asChild` の合成）と `class-variance-authority` ですが、公開 API に vendor 名は含めません。
+The vendors are Radix's `Slot` (composition via `asChild`) and `class-variance-authority`, but the public API includes no vendor names.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の添付、段階 5 種、自動で消えるまでの見え方、大きさ 3 種、`vertical` の配置、画像を縮小表示として置く場合、枠全体を押せるようにした場合、名前と補足の省略、複数を横に並べた場合を確認します。枠線・重なり・省略・横スクロールはいずれも実描画でしか判断できないため、Storybook 側の確認範囲です。`Dismissing` はファイルを選ばなくても残り時間の表示と消える様子を確認でき、`並べ直す` で何度でも再生できます。
+Storybook checks the default attachment, the 5 stages, how it looks until it is dismissed automatically, the 3 sizes, the `vertical` layout, using an image as a thumbnail, making the whole frame pressable, truncating the name and supplement, and laying several out horizontally. Borders, overlap, truncation and horizontal scrolling can all be judged only by actual rendering, so they are within Storybook's scope. `Dismissing` lets you check the remaining-time display and how it disappears without choosing a file, and can be replayed any number of times with `並べ直す`.
 
-加えて `FileUpload` と接続した配線例を 2 つ置きます。`UploadFlow` は選択・受理・却下・取り消しを実操作で辿るもので、**選んだものは消えません**。`UploadFlowAutoDismiss` は送信が終わった添付が自動で消える場合で、消えるまでの残り時間を `ProgressClient` で示し、hover / focus 中と画面が見えていない間は計時を止めます（WCAG 2.2.1）。どちらの story も挙動を固定し、story 内で切り替える操作は置きません。
+In addition, there are two wiring examples connected to `FileUpload`. `UploadFlow` walks through selection, acceptance, rejection and cancellation with real interaction, and **what you choose does not disappear**. `UploadFlowAutoDismiss` is the case where attachments that finished uploading disappear automatically; it shows the time remaining until they disappear with `ProgressClient`, and stops the timer while hovered / focused and while the page is not visible (WCAG 2.2.1). Both stories fix their behavior and have no in-story control to switch it.
 
-自動削除は一覧を持つ側の設定であり、この component の機能ではありません。対処が必要な `error` は対象にしません。
+Automatic removal is a setting of whoever owns the list, not a feature of this component. An `error` that needs handling is not subject to it.
 
-テストは既定が `done` / `default` / `horizontal` であること、3 つの値を data 属性として公開すること、`state` が支援技術へ何も伝えないこと、媒体の種類を公開すること、操作にアクセシブルな名前を与えて押下を呼び出し元へ渡せること、trigger が既定で `type="button"` になり `asChild` で link へ合成できること、trigger と個別の操作を同時に置けること、`AttachmentGroup` が複数を含み、名前を持つ `group` になること、a11y 自動検査を確認します。
+Tests check that the defaults are `done` / `default` / `horizontal`, that the three values are exposed as data attributes, that `state` conveys nothing to assistive technology, that the media type is exposed, that actions can be given an accessible name and pass presses to the caller, that the trigger defaults to `type="button"` and can be composed into a link with `asChild`, that the trigger and individual actions can be placed together, that `AttachmentGroup` contains several and becomes a named `group`, and automated a11y checks.

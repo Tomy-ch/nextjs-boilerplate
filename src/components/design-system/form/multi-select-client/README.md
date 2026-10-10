@@ -1,75 +1,58 @@
 # MultiSelectClient
 
-## 用途
+## Purpose
 
-候補を畳んだまま、複数の値を同時に選びます。選んだ結果は trigger に要約として出ます。
+Selects several values at once while keeping the options collapsed. The result appears on the trigger as a summary.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / type | Role |
 | --- | --- |
-| `MultiSelectClient` | trigger と候補の overlay をまとめた client island です。値は hidden input として運びます。 |
-| `MultiSelectClientOption` | 並べる候補 1 件の形です。送信する値・表示する文言・選べるかどうかを持ちます。 |
-| `MultiSelectClientProps` | 公開 props です。 |
+| `MultiSelectClient` | A client island combining the trigger and the overlay of options. Values are carried as hidden inputs. |
+| `MultiSelectClientOption` | The shape of one listed option. Holds the submitted value, the display text and whether it can be selected. |
+| `MultiSelectClientProps` | The public props. |
 
-## 利用ケース
+## Use Cases
 
-- 一覧の絞り込みで、複数の分類や状態を同時に効かせる場合
-- 候補が 10 件前後までで、入力による絞り込みを要さない場合
+- Applying several categories or states at the same time when filtering a list
+- Up to around 10 options, where filtering by typing is not needed
 
-## 責務境界
+## Responsibility Boundaries
 
-**確定の操作を持ちません。** checkbox を押した時点で `onValueChange` が飛びます。即座に反映するか、
-下書きに留めてまとめて確定するかは呼び出し元が決めます。overlay の中では結果が隠れるため、狭い段で
-まとめて確定させたい場合は、呼び出し元が下書きの状態を持ちます。
+**It has no confirm action.** `onValueChange` fires the moment a checkbox is pressed. The caller decides whether to apply immediately or to hold a draft and confirm it all at once. Inside the overlay the results are hidden, so to confirm all at once on a narrow band, the caller holds the draft state.
 
-**候補の取得・並び順・件数の制限を持ちません。** `options` として渡された配列をそのまま並べ、
-表示順は渡された順です。
+**It owns no fetching of options, their order or limits on their count.** It lists the array passed as `options` as is, in the order given.
 
-**選択の順序を持ちません。** `onValueChange` が渡す配列は常に候補の並び順です。押した順に積むと、
-同じ組み合わせでも URL の並びが変わり、同じ条件が別のリンクとして見えます。
+**It owns no selection order.** The array `onValueChange` passes is always in option order. Stacking values in the order pressed would change the order in the URL for the same combination, so the same condition would look like a different link.
 
-**値は hidden input で運びます。** overlay は Portal で form の外へ出るため、中の checkbox に `name`
-を与えても native の送信には載りません。選ばれた数だけ同じ名前の hidden input を trigger の側へ置く
-ので、`categoryCodes=1&categoryCodes=2` のように**同じ名前の繰り返し**として送られます。
+**Values are carried in hidden inputs.** The overlay leaves the form through a Portal, so giving the checkboxes inside a `name` does not put them into native submission. Hidden inputs with the same name, one per selected value, are placed on the trigger side, so they are sent as **repetitions of the same name**, like `categoryCodes=1&categoryCodes=2`.
 
-**必須指定を持ちません。** hidden input は constraint validation の対象外で、`required` を付けても
-browser は検証しません。必須であることの表示は `Field`、実際の強制は Server Action や server 側の
-検証で行います。
+**It has no required setting.** Hidden inputs are outside constraint validation, so the browser does not validate them even with `required`. Show that the field is required with `Field`, and enforce it in the Server Action or server-side validation.
 
-hydration が必要で、Server Component からは直接 render できません。
+It needs hydration and cannot be rendered directly from a Server Component.
 
-### 選ぶ基準
+### Choosing which to use
 
-| 状況 | 使う部品 |
+| Situation | Component to use |
 | --- | --- |
-| 1 つだけ選ぶ / 候補が静的で少数 | `SelectNative` |
-| 1 つだけ選ぶ / 候補が多く入力で絞り込む | `ComboboxClient` |
-| **複数を同時に効かせる** | この component |
+| Choose exactly one / options are static and few | `SelectNative` |
+| Choose exactly one / many options filtered by typing | `ComboboxClient` |
+| **Apply several at the same time** | This component |
 
-絞り込みの入力を持たないため、候補が overlay に収まらないほど多い用途には向きません。
+It has no filter input, so it does not suit uses with more options than fit in the overlay.
 
-### 名前の付け方
+### Naming
 
-`aria-labelledby`（外の要素を指す）か `aria-label`（文言を直接渡す）のどちらかを**必ず与えます**。
-overlay は `role="dialog"` を持ち、名前が無いと支援技術から用途を判別できません。
+**Always give** either `aria-labelledby` (pointing to an outside element) or `aria-label` (passing the text directly). The overlay has `role="dialog"`, and without a name assistive technology cannot tell what it is for.
 
-どちらの経路でも、trigger の名前は**「項目名 + 選択の要約」**になります。`aria-label` を属性のまま
-置くと button の内容を上書きして要約が読み上げから消えるため、内部では常に `aria-labelledby` として
-項目名の要素と trigger 自身の 2 つを指す形へ組み替えています。
+Either way, the trigger's name becomes **"item name + selection summary"**. Leaving `aria-label` as an attribute would override the button's content and drop the summary from screen reading, so internally it is always rearranged into `aria-labelledby` pointing to two things: the item name element and the trigger itself.
 
-**`role="listbox"` は与えません。** 中身は checkbox の集まりで、選択状態は各 checkbox が `checked`
-として公開します。listbox にすると option の選択状態と checkbox の状態が二重になります。
+**It does not get `role="listbox"`.** The content is a set of checkboxes, and each checkbox exposes its selection state as `checked`. Making it a listbox would duplicate the option selection state and the checkbox state.
 
-項目名を button の中へ直接テキストとして入れるだけでは、要素の間に区切りが入らず語が繋がって読み上げられます。そのため項目名の要素と trigger 自身の 2 つを指す `aria-labelledby` として分けて組み替えています。
+Just putting the item name as text directly inside the button leaves no break between the elements, and the words are read out run together. That is why it is split and rearranged into `aria-labelledby` pointing to the item name element and the trigger itself.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は未選択・開いた状態・1 件選択・複数選択・複数選択で開いた状態・要約の差し替え・外の要素を
-名前にする場合・呼び出し元が値を持つ場合・無効・候補なしを確認します。
+Storybook checks nothing selected, the open state, one selected, several selected, the open state with several selected, a replaced summary, naming via an outside element, the caller holding the value, disabled, and no options.
 
-テストは要約の組み立て（未選択 / 1 件 / 複数 / 差し替え）、checkbox の checked 反映、選択と解除で
-送信値が増減すること、押した順ではなく候補の並び順で送ること、controlled のとき呼び出し元の値だけが
-反映されること、名前が「項目名 + 要約」になること（`aria-label` / `aria-labelledby` の両経路）、
-選べない候補が押せないこと、候補が空でも落ちないこと、無効なら開かないこと、a11y 自動検査を
-確認します。
+The tests check the building of the summary (nothing selected / one / several / replaced), that checkbox `checked` is reflected, that selecting and deselecting increases and decreases the submitted values, that values are sent in option order rather than the order pressed, that when controlled only the caller's value is reflected, that the name becomes "item name + summary" (via both `aria-label` and `aria-labelledby`), that unselectable options cannot be pressed, that it does not break with empty options, that it does not open when disabled, and the automated a11y check.

@@ -160,8 +160,8 @@ ADR が自分では述べず、`rules.md` のセクション冒頭が引き受�
   「**どう使ってよいか**」である
 
 どちらも実装の不足ではなく、import の可否では表現できない。**受け持つのはレイヤー別のアーキテクチャ監査
-`arch-check` で、判定の形は [`src/app/README.md`](../src/app/README.md) と
-[`src/config/README.md`](../src/config/README.md) の「監査の観点」が行として持つ。** 監査は決定的な
+`arch-check` で、判定の形は [`src/app/README.md`](../src/app/README.ja.md) と
+[`src/config/README.md`](../src/config/README.ja.md) の「監査の観点」が行として持つ。** 監査は決定的な
 検査ではなく、緑を返すゲートにはならない。
 
 ## この一覧が答えないこと

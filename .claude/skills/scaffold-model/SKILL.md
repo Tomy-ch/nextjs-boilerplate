@@ -3,7 +3,7 @@ name: scaffold-model
 usage-class: situational
 description: >-
   Place one display type or pure display function in the `model` kernel so that it passes that kernel's
-  audit on the first read: acceptance, `forbidden`, `test-requirement` and the `## 監査の観点` table are read
+  audit on the first read: acceptance, `forbidden`, `test-requirement` and the `## Audit Criteria` table are read
   from `src/model/README.md` at runtime, the type discipline from ADR 0029, and the written types are
   scored by the read-only `type-design-reviewer` before hand-off. `pnpm gen` has no model kind, so this skill
   is the placement rail. Use it when a display type is about to be shared by several features or returned by
@@ -52,8 +52,8 @@ reported.
 | Source | What it decides |
 | --- | --- |
 | `src/model/README.md` — frontmatter | `forbidden` tags, `test-requirement`, `imports-allowed` |
-| `src/model/README.md` — `## 受け入れるもの` / `## 受け入れないもの` / `## 運用` | Whether the module belongs here, and file / type / function naming |
-| `src/model/README.md` — `## 監査の観点` | The rows the written module must satisfy; the plan answers each one |
+| `src/model/README.md` — `## What Belongs Here` / `## What Does Not Belong Here` / `## Operations` | Whether the module belongs here, and file / type / function naming |
+| `src/model/README.md` — `## Audit Criteria` | The rows the written module must satisfy; the plan answers each one |
 | [ADR 0029](../../../docs/adr/0029-type-design-discipline.md) | Discriminated unions, branded identifiers, parse-once-at-the-boundary, `satisfies` |
 | [ADR 0027](../../../docs/adr/0027-directory-structure.md) / [ADR 0028](../../../docs/adr/0028-naming-convention.md) | Flat file or subdirectory, and the spelling |
 | Sibling modules in `src/model/` | The local shape — how a brand and its constructor are written, how a union is discriminated |
@@ -91,7 +91,7 @@ A stop here is a result, not a failure. Report which section decided it.
 
 ## Step 2. Read the audit rows and plan against them
 
-Read the frontmatter and the `## 監査の観点` table of `src/model/README.md`, then ADR 0029, then one or two
+Read the frontmatter and the `## Audit Criteria` table of `src/model/README.md`, then ADR 0029, then one or two
 sibling modules as the concrete reference (on any conflict, the README and the ADR win).
 
 Build the plan as a table with **one line per audit row**:
@@ -159,7 +159,7 @@ findings with what was applied and what was left, and the README gaps found. Do 
 ## Constraints
 
 - ✅ Read `src/model/README.md`, ADR 0029 and sibling modules this run
-- ✅ Answer every `## 監査の観点` row in the plan, and confirm the plan before writing
+- ✅ Answer every `## Audit Criteria` row in the plan, and confirm the plan before writing
 - ✅ Stop when Step 1 says the module does not belong in `model`
 - ✅ Score the written types with `type-design-reviewer` on `sonnet`
 - ❌ Place a type only one feature uses

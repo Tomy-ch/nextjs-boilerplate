@@ -1,29 +1,29 @@
 # Badge
 
-## 用途
+## Purpose
 
-短い分類や状態を視覚的に補助します。
+Visually supports a short category or status.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Badge` | 短い分類や状態を表示する `span`。`variant` で視覚表現を選び、`asChild` で link などの要素に見た目を適用できます。 |
+| `Badge` | A `span` that displays a short category or status. `variant` chooses the visual treatment, and `asChild` applies the look to elements such as links. |
 
-## 利用ケース
+## Use Cases
 
-短いラベルや補助的な状態表示に使います。link として使う場合は遷移先を呼び出し側が与えます。
+Used for short labels and auxiliary status displays. When used as a link, the caller gives the destination.
 
-## 色は意味の対を持ちます
+## Colors come in pairs of meaning
 
-`success` と `destructive` は対で、望ましい終端（成立・完了）と望ましくない終端（失敗・無効）を示します。片方だけを使うと、色が付いている側だけが特別に見えます。進行中や分類には `secondary` / `outline` を使い、終端でないものへ対の色を割り当てません。
+`success` and `destructive` are a pair indicating the desirable end (established, completed) and the undesirable end (failed, invalid). Using only one makes only the colored side look special. Use `secondary` / `outline` for in-progress states and categories, and do not assign the paired colors to things that are not ends.
 
-**色だけで意味を伝えてはいけません。** 緑と赤の区別は、色覚特性によっては付きません。この component は必ず文言を持つので色は補強にとどまりますが、`aria-label` などで文言を消してはいけません。
+**Meaning must not be conveyed by color alone.** Green and red cannot be told apart by some types of color vision. This component always has copy, so color is only reinforcement, but do not erase the copy with `aria-label` or similar.
 
-## 責務境界
+## Responsibility Boundaries
 
-業務上の状態遷移、文言、色の意味付けは feature が所有します。どの状態が「望ましい終端」なのかを判定するのはバックエンドの状態遷移であり、この component は渡された `variant` を描くだけです。操作要素としても使いません。
+Business state transitions, copy and the meaning assigned to colors are owned by the feature. Deciding which state is a "desirable end" belongs to the backend's state transitions; this component only renders the `variant` it is given. It is not used as an interactive element either.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は variant と link 表現を、テストは公開 API の基本表示を確認します。
+Storybook checks the variants and the link treatment; tests check the basic display of the public API.

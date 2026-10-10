@@ -1,53 +1,53 @@
 # ImportExport
 
-## 用途
+## Purpose
 
-ファイルからの取り込みと、ファイルへの書き出しの**結果**を表示します。
+Displays the **results** of importing from a file and exporting to a file.
 
-ファイルの選択・形式と大きさの検証・選択中の一覧は [`file-upload`](../file-upload/README.md) と [`upload-preview`](../upload-preview/README.md) が持ちます。この部品はその先、**取り込んだあとに何が起きたか**を扱います。
+Choosing files, validating format and size, and the list of what is selected are owned by [`file-upload`](../file-upload/README.md) and [`upload-preview`](../upload-preview/README.md). This component handles what comes after: **what happened once the import ran**.
 
-## 役割と公開
+## Role and Public API
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ImportSummary` | 取り込みの結果を件数で要約します。 |
-| `ImportErrorList` | 取り込めなかった行を、元のファイルの行番号とともに並べます。 |
-| `ExportButton` | 出力を生成し、できたファイルを受け取る操作です。 |
+| `ImportSummary` | Summarizes the import result as counts. |
+| `ImportErrorList` | Lists the rows that could not be imported, with their line numbers in the original file. |
+| `ExportButton` | The action that generates the output and receives the resulting file. |
 
-## 一部だけ失敗した状態を独立して扱います
+## A partial failure is handled as its own state
 
-取り込みは全部成功か全部失敗かに収まりません。**「取り込みました」だけでは落ちた行に気付けず、「失敗しました」だけでは通った行まで取り消したと誤解されます。**
+An import does not fit into all-succeeded or all-failed. **"Imported" alone leaves dropped rows unnoticed, and "Failed" alone is misread as having rolled back even the rows that went through.**
 
-`ImportSummary` は失敗が 0 件かどうかで文言と見た目を変え、失敗がある場合は成功した件数も併記します。
+`ImportSummary` changes its copy and look depending on whether there are zero failures, and when there are failures it also states the number that succeeded.
 
-結果は `role="status"` で伝えます。取り込みは時間がかかり、利用者が画面から目を離しているため、終わったことが見た目の変化だけでは届きません。
+The result is conveyed with `role="status"`. An import takes time and the user has looked away from the screen, so a visual change alone does not tell them it has finished.
 
-## 行番号は元のファイルのものを渡します
+## Line numbers are passed from the original file
 
-取り込めた行を詰めた連番にすると、利用者が手元のファイルのどこを直せばよいか分かりません。
+If the imported rows are renumbered consecutively, the user cannot tell where to fix their own file.
 
-項目名は原因が特定の列にある場合だけ渡します。行全体が原因のとき（列数が合わない、など）は空にし、表では `—` を出します。
+The item name is passed only when the cause lies in a specific column. When the whole row is the cause (the column count does not match, for example), leave it empty, and the table shows `—`.
 
-**件数を絞るのは呼び出し元の判断です。** この部品は渡された行をすべて並べます。何件目までを見せるかは取り込みの規模によって変わるため、部品側では決められません。
+**Narrowing the count is the caller's decision.** This component lists every row it is given. How many to show depends on the scale of the import, so the component side cannot decide it.
 
-## 書き出しの 3 状態
+## The 3 States of Export
 
-| 状態 | 表示 |
+| State | Display |
 | --- | --- |
-| 生成前 | 押せる button |
-| 生成中 | 押せない button + spinner + 「書き出しています」 |
-| 受け取り可能 | `download` 付きの link |
+| Before generation | A pressable button |
+| Generating | A non-pressable button + spinner + 「書き出しています」 ("exporting") |
+| Ready to receive | A link with `download` |
 
-生成と受け取りは別の状態です。同じ見た目のまま中身だけ変えると、押せるようになったことが伝わりません。生成中は文言も変えます。spinner だけでは、何を待っているのかが読み上げから分かりません。
+Generating and receiving are separate states. Changing only the content while keeping the same look does not convey that it has become pressable. While generating, the copy changes too. A spinner alone does not tell a screen reader user what they are waiting for.
 
-**`pending` と `href` が同時に立つときは、生成中が勝ちます。** 前の出力の URL を持ったまま次を生成している場面で、押せる link を残すと、いま生成しているものと違うファイルを受け取れてしまいます。
+**When `pending` and `href` are both set, generating wins.** When generating the next output while still holding the URL of the previous one, leaving a pressable link would let the user receive a file different from what is being generated now.
 
-## 責務境界
+## Responsibility Boundaries
 
-取り込みの実行、data schema、変換処理、出力形式、ファイルの中身は持ちません。件数・行のエラー・状態・URL を呼び出し元が渡します。
+It does not own running the import, the data schema, conversion, output format, or the file's contents. The caller passes the counts, row errors, state and URL.
 
-再実行の導線は `ImportSummary` の `children` として合成します。「失敗した行だけ」か「全部やり直す」かは、取り込みの意味によって決まるためこの部品では決めません。
+The path to rerun is composed as `children` of `ImportSummary`. Whether it is "only the failed rows" or "redo everything" depends on what the import means, so this component does not decide it.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook はすべて取り込めた場合、一部だけ失敗した場合、行全体が原因の場合、書き出しの 3 状態を確認します。一部だけ失敗した story は再実行を配線してあり、押すたびに実行中の表示を挟んで落ちた行が 1 件ずつ減り、すべて通ると要約が成功の表示へ変わって一覧と再実行の導線が消えます。件数と行の対応、実行中に押せないこと、やり直しで元の状態へ戻ることをここで確認します。テストは件数の文言、`role="status"`、失敗時の見た目、単位の差し替え、操作の合成、表の行番号・項目・理由、項目が空の場合、渡された行をすべて並べること、書き出しの 3 状態と文言の差し替え、a11y 自動検査を確認します。
+Storybook checks the case where everything was imported, a partial failure, the case where a whole row is the cause, and the 3 states of export. The partial-failure story has rerun wired in: each press inserts the running display and reduces the failed rows by one, and once all pass the summary changes to the success display and the list and rerun path disappear. This is where the correspondence of counts and rows, that it cannot be pressed while running, and that redoing returns to the original state are checked. Tests check the count copy, `role="status"`, the look on failure, replacing the unit, composing actions, the table's line numbers, items and reasons, the case with an empty item, that every row given is listed, the 3 states of export and replacing their copy, and automated a11y checks.

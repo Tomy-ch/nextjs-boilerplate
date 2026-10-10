@@ -4,77 +4,77 @@ test-requirement: [unit, integration]
 
 # http
 
-`server/` の要求境界が共有する、応答と本体の扱いと、接続先ごとの口です。
+The handling of responses and bodies shared by the request boundary in `server/`, and the per-target connection points.
 
-**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+**This directory does not declare the import ceiling.** Boundaries are declared at an element's root, and the root of the element containing this directory is [`adapters/`](../../README.md) ([0021](../../../../docs/adr/0021-frontend-responsibility.md)).
 
-## 親と違う点
+## Differences from the Parent
 
-**検証の要求が親と違います。** `adapters` の宣言は `integration` ですが、それが掛かるのは**外部との
-往復を持つモジュール**です（[README](../../README.md) の「運用」）。ここには 2 種類を置きます。要求と
-応答の間で値を写すだけのものは `fetch` も注入された `fetchImpl` も持たず、境界を持たないものへ境界の
-テストを課しても確かめる相手が居ないので `unit` です。外部 API を叩く client と、それを接続先ごとに
-1 つ持つ接続口は外へ出るので `integration` です。
+**The verification requirement differs from the parent's.** `adapters` declares `integration`, but it applies to **modules that make round trips
+with the outside** ([README](../../README.md#operations)). Two kinds are placed here. Those that only map values between request and
+response hold neither `fetch` nor an injected `fetchImpl`; imposing a boundary test on something without a boundary
+leaves nothing to check against, so they are `unit`. The client that calls the external API, and the connection points that hold one per
+target, go outside, so they are `integration`.
 
-**判定は「そのモジュールが外へ出るか」で行い、ディレクトリの位置では決めません。** 外へ出るものが
-ここへ増えたら、そのモジュールだけが `integration` に戻ります。
+**The decision is made by "does the module go outside", not by its directory location.** If more modules that go outside
+are added here, only those modules go back to `integration`.
 
-| モジュール | 検証 | 理由 |
+| Module | Verification | Reason |
 | --- | --- | --- |
-| [`data-scope.ts`](data-scope.ts) | `unit` | 取得の口の分類と、キャッシュ・資格情報ヘッダの関門 |
-| [`error-status.ts`](error-status.ts) | `unit` | 分類から status への表 |
-| [`error-response.ts`](error-response.ts) | `unit` | 分類から応答を組む |
-| [`json-request.ts`](json-request.ts) | `unit` | 受け取った要求の型と大きさを見る |
-| [`public-client.ts`](public-client.ts) | `integration` | 主体を名乗らずに取れるものの接続口 |
-| [`request.ts`](request.ts) | `integration` | 外部 API を叩く |
-| [`user-scoped-client.ts`](user-scoped-client.ts) | `integration` | 主体に紐づくものの接続口。資格情報の取得口を渡すのはここだけ |
-| [`retry-policy.ts`](retry-policy.ts) | `unit` | status から再試行の可否を決める |
-| [`search-params.ts`](search-params.ts) | `unit` | クエリを素の値へ写す |
-| [`circuit-breaker.ts`](circuit-breaker.ts) | `unit` | 失敗率で接続先を遮断する。時計は呼び出し側が渡す |
-| [`retry-budget.ts`](retry-budget.ts) | `unit` | 再試行の予算。使い切ると再試行しない |
-| [`resilience-profile.ts`](resilience-profile.ts) | `unit` | 試行・再試行・遮断の既定値（下の表の値の置き場） |
-| [`patch-payload.ts`](patch-payload.ts) | `unit` | 部分更新の「触らない」と「消す」を型で分け、`undefined` のキーを落とす |
+| [`data-scope.ts`](data-scope.ts) | `unit` | The fetch endpoint's classification, and the gate on caching and credential headers |
+| [`error-status.ts`](error-status.ts) | `unit` | The table from classification to status |
+| [`error-response.ts`](error-response.ts) | `unit` | Builds a response from a classification |
+| [`json-request.ts`](json-request.ts) | `unit` | Checks the type and size of a received request |
+| [`public-client.ts`](public-client.ts) | `integration` | The connection point for what can be fetched without naming a principal |
+| [`request.ts`](request.ts) | `integration` | Calls the external API |
+| [`user-scoped-client.ts`](user-scoped-client.ts) | `integration` | The connection point for what is tied to a principal. The only place the credential getter is passed |
+| [`retry-policy.ts`](retry-policy.ts) | `unit` | Decides from the status whether to retry |
+| [`search-params.ts`](search-params.ts) | `unit` | Maps a query to raw values |
+| [`circuit-breaker.ts`](circuit-breaker.ts) | `unit` | Cuts off a target by failure rate. The caller passes the clock |
+| [`retry-budget.ts`](retry-budget.ts) | `unit` | The retry budget. No retries once it is used up |
+| [`resilience-profile.ts`](resilience-profile.ts) | `unit` | Defaults for attempts, retries and circuit breaking (where the values in the table below live) |
+| [`patch-payload.ts`](patch-payload.ts) | `unit` | Separates "leave untouched" from "clear" in partial updates by type, and drops keys whose value is `undefined` |
 
-## 受け入れるもの
+## What Belongs Here
 
-- `server/` の要求境界が共有する、応答と本体の規則
+- The rules for responses and bodies shared by the request boundary in `server/`
 
-- 接続先ごとに差し替える resilience 設定（劣化の許容度が接続先の性質で変わるため。`ResilienceProfile`）
+- Resilience settings replaced per target (because how much degradation is tolerable varies with the target's nature; `ResilienceProfile`)
 
-- 接続先と分類の組ごとに 1 つ置く接続口（遮断器と再試行の予算は client の中に状態として載るため、同じ接続先へ client を分けると劣化の判断が割れる）
+- One connection point per pair of target and classification (the circuit breaker and retry budget live inside the client as state, so splitting clients toward the same target splits the judgment of degradation)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、特定の口に固有の契約
+- Business logic, contracts specific to one particular endpoint
 
-- レート制限・大域的な遮断（edge / WAF の責務。`json-request.ts` は宣言された型と本体の大きさだけを見る）
+- Rate limiting and global cut-offs (the responsibility of the edge / WAF; `json-request.ts` checks only the declared type and the body size)
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-**外向きの往復に許す時間と試行回数は、環境変数ではなくコードが持ちます**（`resilience-profile.ts` の
-`DEFAULT_PROFILE`）。相手の性質で決まる値なので、接続先を差し替えたら測り直す箇所です。
+**The time and number of attempts allowed for outbound round trips are held by code, not environment variables** (`DEFAULT_PROFILE` in
+`resilience-profile.ts`). They are values set by the counterpart's nature, so they are what to re-measure when the target is replaced.
 
-| 何を | 既定 | 変更する箇所 |
+| What | Default | Where to change it |
 | --- | --- | --- |
-| 1 回の試行と全体の上限 | `perAttemptTimeoutMs` 3 秒 / `overallTimeoutMs` 10 秒 | `resilience-profile.ts`。上限は相手の応答時間の分布から取る |
-| 試行回数と再試行の予算 | `maxAttempts` 3 / `retryBudgetRatio` 0.1 | 同上。全体の上限が per-attempt の 3 倍を少し超える値なので、回数だけ増やしても overall に阻まれる |
-| 遮断の条件 | `failureRate` 0.5 / `sampleSize` 20 / `openMs` 5 秒 / `halfOpenProbes` 3 | 同上 |
+| Per-attempt and overall limits | `perAttemptTimeoutMs` 3 s / `overallTimeoutMs` 10 s | `resilience-profile.ts`. Take the limits from the distribution of the counterpart's response times |
+| Number of attempts and retry budget | `maxAttempts` 3 / `retryBudgetRatio` 0.1 | Same as above. The overall limit is slightly more than three times the per-attempt one, so raising only the count is blocked by overall |
+| Circuit-breaking conditions | `failureRate` 0.5 / `sampleSize` 20 / `openMs` 5 s / `halfOpenProbes` 3 | Same as above |
 
-**接続先ごとに別の値を与えられます**（`ResilienceProfile` を差し替える形）。劣化の許容度が接続先の
-性質で変わるためで、1 本の既定で足りないときはプロファイルを増やします。
+**Each target can be given different values** (by replacing the `ResilienceProfile`). This is because how much degradation is tolerable
+varies with the target's nature; when one default is not enough, add profiles.
 
-値を選ぶ根拠は [0071](../../../../docs/adr/0071-bff-api-integration.md) が持ちます。
+The basis for choosing the values is held by [0071](../../../../docs/adr/0071-bff-api-integration.md).
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../../README.md).
 
-- [0080](../../../../docs/adr/0080-error-handling.md) — 失敗の分類と status の対応表、応答に出す文言
-- [0071](../../../../docs/adr/0071-bff-api-integration.md) — fetch wrapper の責務と、timeout / retry / breaker の値
-- [0112](../../../../docs/adr/0112-data-classification-cache-boundary.md) — 取得の口の分類（`public` / `user-scoped`）と、キャッシュ・資格情報の関所
-- [0079](../../../../docs/adr/0079-auth-frontend-seam.md) — 資格情報を組むのは要求境界だけであること
-- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — 認証を要求しない口の最小の防御（型と大きさ）
-- [0075](../../../../docs/adr/0075-file-upload-seam.md) — 本体がバイト列になる要求の扱い
-- [0090](../../../../docs/adr/0090-testing-strategy.md) — 層別の検証責務（`integration` が掛かる範囲）
+- [0080](../../../../docs/adr/0080-error-handling.md) — The failure classification, its mapping to status, and the text shown in responses
+- [0071](../../../../docs/adr/0071-bff-api-integration.md) — The fetch wrapper's responsibilities, and the timeout / retry / breaker values
+- [0112](../../../../docs/adr/0112-data-classification-cache-boundary.md) — The fetch endpoint's classification (`public` / `user-scoped`), and the checkpoint for caching and credentials
+- [0079](../../../../docs/adr/0079-auth-frontend-seam.md) — Only the request boundary builds credentials
+- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — The minimal defence (type and size) for an endpoint that requires no authentication
+- [0075](../../../../docs/adr/0075-file-upload-seam.md) — Handling requests whose body is a byte sequence
+- [0090](../../../../docs/adr/0090-testing-strategy.md) — Per-layer verification responsibilities (the range the `integration` declaration covers)

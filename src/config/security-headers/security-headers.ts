@@ -93,7 +93,7 @@ const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
  * Content-Security-Policy を組み立てる。
  *
  * @remarks
- * 内容の根拠はここに持ちません（同層の [README](../README.md)「関連する ADR」から辿ります）。
+ * 内容の根拠はここに持ちません（同層の [README](../README.md#related-adrs)から辿ります）。
  * ここに書くのは、値が ENV から来る箇所と、条件で変わる箇所の理由だけです。
  *
  * - `img-src` の配信元は ENV から組み立てます。ここへ直接書くと、環境変数と設定の 2 か所が別々に
@@ -155,7 +155,7 @@ function buildContentSecurityPolicy({
  *
  * **`Cross-Origin-Embedder-Policy` は、タグマネージャを読み込む配備（`gtmContainerId` が空でない）
  * では出しません。読み込まない配備では出したままにします。** 理由と、それによって失うものは
- * 同層の [README](../README.md)「関連する ADR」から辿ります。
+ * 同層の [README](../README.md#related-adrs)から辿ります。
  *
  * @param inputs - 検証済みの ENV と配信の条件
  * @returns `headers()` の `headers` にそのまま渡せる一覧

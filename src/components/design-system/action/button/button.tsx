@@ -37,7 +37,7 @@ export const buttonVariants = cva(
         [BUTTON_VARIANT.GHOST]:
           "bg-transparent text-foreground hover:bg-foreground hover:text-background active:bg-foreground/80",
         // hover / active の差を他の variant より大きく取り、自分の色で hover / focus-visible にだけ
-        // 光らせる（`src/components/README.md`「発光」）
+        // 光らせる（`src/components/README.md#glow`）
         [BUTTON_VARIANT.DESTRUCTIVE]:
           "bg-destructive text-destructive-foreground hover:bg-destructive/75 hover:shadow-glow-destructive focus-visible:shadow-glow-destructive active:bg-destructive/60",
       },

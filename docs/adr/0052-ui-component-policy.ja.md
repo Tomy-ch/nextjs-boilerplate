@@ -45,7 +45,7 @@ CLI が案内する代替 item が、既に持つコンポーネントと責務�
 
 ### コンポーネントのレイヤーと置き場所は README が正
 
-`components` の 4 レイヤー(`design-system` / `patterns` / `shell` / `app-starter`)の受け持ちと、目的別ディレクトリの割り方は [`src/components/README.md`](../../src/components/README.md) が所有する。レイヤーは「誰が書き換えるか」、目的は「何のためのコンポーネントか」で軸が違う。
+`components` の 4 レイヤー(`design-system` / `patterns` / `shell` / `app-starter`)の受け持ちと、目的別ディレクトリの割り方は [`src/components/README.md`](../../src/components/README.ja.md) が所有する。レイヤーは「誰が書き換えるか」、目的は「何のためのコンポーネントか」で軸が違う。
 
 ### 上流は参照実装であり、追従先ではない
 

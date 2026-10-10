@@ -1,55 +1,55 @@
 # ToggleGroupClient
 
-## 用途
+## Purpose
 
-関連する切り替えを 1 つの集合として並べ、選択を browser 側の state として即座に反映します。
+Lays out related toggles as one set and reflects the selection immediately as browser-side state.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ToggleGroupClient` | 選択を保持する client-side root です。`type` で排他 / 複数を選びます。 |
-| `ToggleGroupClientItem` | 集合の中の 1 項目です。`value` で識別します。 |
+| `ToggleGroupClient` | The client-side root that holds the selection. `type` chooses exclusive / multiple. |
+| `ToggleGroupClientItem` | One item in the set. Identified by `value`. |
 
-## 利用ケース
+## Use Cases
 
-- URL にも form にも載せない、その場だけの表示切替
-- 選択した結果を即座に別の表示へ反映する場合
+- A display switch for the moment only, put neither in the URL nor in a form
+- Reflecting the selected result immediately in another display
 
-選択を form の値として送る場合や URL へ載せる場合は `ToggleGroupNative` を使います。
+When the selection is sent as a form value or put in the URL, use `ToggleGroupNative`.
 
-## ToggleGroupNative との使い分け
+## ToggleGroupNative vs This Component
 
 | | `ToggleGroupClient` | `ToggleGroupNative` |
 | --- | --- | --- |
-| 実体 | button（Radix） | native の radio / checkbox |
-| form の値 | 持たない | **そのまま送信される** |
-| hydration | 必要 | 不要 |
-| 項目間の移動 | roving tabindex（Radix） | browser 標準（radio は矢印キー） |
+| Actual element | button (Radix) | native radio / checkbox |
+| Form value | None | **Submitted as is** |
+| hydration | Needed | Not needed |
+| Moving between items | roving tabindex (Radix) | browser standard (arrow keys for radio) |
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `○` の例外に当たります。既定は `ToggleGroupNative` であり、URL にも form にも載せない即時切替が必要な場合にこちらを選びます。hydration が必要で、Server Component からは直接 render できません。
+In the SSR-first selection it is the exception to `○`. The default is `ToggleGroupNative`; choose this one when an immediate switch that goes neither into the URL nor into a form is needed. It needs hydration and cannot be rendered directly from a Server Component.
 
-`value` を渡すと制御 component、`defaultValue` を渡すと非制御 component として動きます。選択の保存、URL への反映、送信は持ちません。
+Passing `value` makes it a controlled component and `defaultValue` an uncontrolled one. It holds no saving of the selection, reflection in the URL or submission.
 
-集合そのものは名前を持たないため、`aria-label` か `aria-labelledby` で**何の切り替えかを必ず示します**。矢印キーでの項目移動と roving tabindex は Radix が担います。
+The set itself has no name, so **always state what it toggles** with `aria-label` or `aria-labelledby`. Radix takes care of moving between items with the arrow keys and of roving tabindex.
 
-### `type` は意味論そのものを変える
+### `type` changes the semantics themselves
 
-| `type` | 集合の role | 項目の role | 選択の表れ方 |
+| `type` | Role of the set | Role of the item | How selection shows |
 | --- | --- | --- | --- |
 | `single` | `radiogroup` | `radio` | `aria-checked` |
 | `multiple` | `toolbar` | `button` | `aria-pressed` |
 
-`single` では項目が `aria-pressed` を**持ちません**。選択中の見た目を両モードで示せるのは、`toggleVariants` が両者に共通する `data-state="on"` も見ているためです。項目の状態に応じた指定を呼び出し元で足す場合も、`aria-pressed` ではなく `data-state` を使います。
+In `single`, items **do not have** `aria-pressed`. The selected look can be shown in both modes because `toggleVariants` also looks at `data-state="on"`, which both share. When the caller adds styling that depends on the item's state, it also uses `data-state` rather than `aria-pressed`.
 
-`variant` と `size` は集合で指定すると配下の項目へ引き継がれます。`spacing` を `0` にすると項目が隣接し、両端だけが丸い segmented control の見た目になります。値を大きくすると独立したボタンの並びになります。
+`variant` and `size` specified on the set are inherited by its items. Setting `spacing` to `0` makes items adjacent, giving the look of a segmented control with only the two ends rounded. A larger value turns it into a row of independent buttons.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API contains no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は排他選択、複数選択（選択中の値を併記）、`outline` variant、`spacing` を空けた場合、大きさ 3 段階、選べない項目を含む場合を確認します。
+Storybook checks exclusive selection, multiple selection (with the selected values shown alongside), the `outline` variant, `spacing` opened up, three sizes, and including unselectable items.
 
-テストは `single` が `radiogroup` / `radio`、`multiple` が `toolbar` / `aria-pressed` になること、選択中の項目が `data-state="on"` を持ちそこに面の指定が効くこと、排他的な切り替え、複数選択での配列通知、form へ送る値を持たないこと、`variant` / `size` の引き継ぎ、`spacing` の CSS 変数、disabled、a11y 自動検査を確認します。
+The tests check that `single` becomes `radiogroup` / `radio` and `multiple` becomes `toolbar` / `aria-pressed`, that the selected item has `data-state="on"` and the surface styling applies there, exclusive toggling, array notification in multiple selection, that it has no value sent to a form, inheritance of `variant` / `size`, the `spacing` CSS variable, disabled, and the automated a11y check.

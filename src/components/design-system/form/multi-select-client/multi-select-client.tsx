@@ -122,14 +122,14 @@ export function toSummary(
  * 確定の操作を持たない。** 確定を待たせるかどうかは呼び出し元が決めるものなので、この部品は
  * 変更を `onValueChange` で通知するだけにしてある。
  *
- * **選ぶのは複数を同時に効かせる場合に限る**（使い分けは `README.md`「選ぶ基準」）。
+ * **選ぶのは複数を同時に効かせる場合に限る**（使い分けは `README.md#choosing-which-to-use`）。
  * 絞り込みは持たないため、候補が画面に収まらないほど多い用途には向かない。
  *
  * **trigger の名前は「項目名 + 選択の要約」になる。** `aria-label` か `aria-labelledby` のどちらかを
  * 必ず渡す。渡さないと overlay に名前が付かず、a11y 自動検査に違反する。
  *
  * 値の運び方・`role="listbox"` を与えない理由・必須指定を持たない理由・hydration の要否は
- * `README.md`「責務境界」。
+ * `README.md#responsibility-boundaries`。
  *
  * @example
  * ```tsx

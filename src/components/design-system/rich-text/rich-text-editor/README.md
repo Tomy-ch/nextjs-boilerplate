@@ -1,60 +1,60 @@
 # RichTextEditor
 
-## 用途
+## Purpose
 
-書式付きの本文を書くための編集面です。見出し・箇条書き・引用・リンクといった構造を、保存したあとに読者へ見えるとおりの形で書けるようにします。
+An editing surface for writing formatted body text. It lets the writer compose structure — headings, bulleted lists, quotes, links — in the same shape readers will see after it is saved.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 値 | 役割 |
+| Component / Value | Role |
 | --- | --- |
-| `RichTextEditor` | toolbar と編集面をまとめた client island です。内容が変わるたびに、現在の内容を HTML 文字列として呼び出し元へ渡します。 |
-| `RICH_TEXT_EDITOR_EXTENSIONS` | editor が読み書きする node と mark の全体です。ここに登録されたものだけが書けます。 |
-| `RICH_TEXT_EDITOR_HEADING_LEVELS` | 見出しとして書ける階層（2 / 3 / 4）です。 |
-| `RICH_TEXT_EDITOR_MARK_ACTIONS` | 太字・斜体・打ち消し線・コードなど、文字そのものの見え方を変える toolbar の操作です。同じことを起こすキーを併せて持ちます。 |
-| `RICH_TEXT_EDITOR_BLOCK_ACTIONS` | 見出し・箇条書き・引用など、段落の種類を変える toolbar の操作です。 |
-| `RICH_TEXT_EDITOR_COMMAND_ACTIONS` | 区切り線の挿入・取り消し・やり直しなど、適用状態を持たない toolbar の操作です。 |
-| `isRichTextHrefAllowed` | `a` の `href` として書ける値かどうかを判定します。 |
+| `RichTextEditor` | Client island combining the toolbar and the editing surface. Whenever the content changes, it passes the current content to the caller as an HTML string. |
+| `RICH_TEXT_EDITOR_EXTENSIONS` | The full set of nodes and marks the editor reads and writes. Only what is registered here can be written. |
+| `RICH_TEXT_EDITOR_HEADING_LEVELS` | The levels that can be written as headings (2 / 3 / 4). |
+| `RICH_TEXT_EDITOR_MARK_ACTIONS` | Toolbar actions that change how the characters themselves look, such as bold, italic, strikethrough and code. Each also holds the key that does the same thing. |
+| `RICH_TEXT_EDITOR_BLOCK_ACTIONS` | Toolbar actions that change the kind of paragraph, such as heading, bulleted list and quote. |
+| `RICH_TEXT_EDITOR_COMMAND_ACTIONS` | Toolbar actions with no applied state, such as inserting a horizontal rule, undo and redo. |
+| `isRichTextHrefAllowed` | Decides whether a value can be written as the `href` of an `a`. |
 
-toolbar の右端に**プレビュー**の切り替えを持ちます。押している間は書式の操作を出さず、書いた内容を読者に届くのと同じ形で見せます。
+At the right end of the toolbar it has a **preview** toggle. While it is pressed, the formatting actions are hidden and the written content is shown in the same shape that reaches readers.
 
-主な props は次のとおりです。
+The main props are as follows.
 
-| props | 役割 |
+| props | Role |
 | --- | --- |
-| `label`（必須） | 編集面のアクセシブルな名前です。編集面は `textbox` として公開されますが視覚的なラベルを持たないため、これだけが「何を書く欄か」を伝えます。 |
-| `onChange`（必須） | 内容が変わるたびに、現在の内容を HTML 文字列として受け取ります。 |
-| `defaultValue` | 初期表示する HTML 文字列です。保存済みの内容を編集する場合に渡します。 |
-| `disabled` | `true` の間は読み取り専用になり、toolbar の操作も効きません。 |
-| `className` | 外枠へ追加する class です。 |
+| `label` (required) | The accessible name of the editing surface. The editing surface is exposed as a `textbox` but has no visual label, so this alone conveys "what this field is for". |
+| `onChange` (required) | Receives the current content as an HTML string whenever the content changes. |
+| `defaultValue` | HTML string to show initially. Pass it when editing saved content. |
+| `disabled` | While `true`, the editor is read-only and the toolbar actions do not work. |
+| `className` | Class added to the outer frame. |
 
-## 利用ケース
+## Use Cases
 
-- 説明文や告知文のように、書き手が見出しと箇条書きで構造を付けたい本文を編集する場合
-- 保存済みの本文を読み込み、書式を保ったまま編集し直す場合
+- Editing body text the writer wants to structure with headings and bulleted lists, such as a description or an announcement
+- Loading saved body text and editing it again with its formatting preserved
 
-単一行の文字列には [`Input`](../../form/input/README.md)、書式を持たない複数行には [`Textarea`](../../form/textarea/README.md) を使います。この部品を選ぶのは、保存する内容そのものが構造を持つ場合だけです。
+For a single-line string use [`Input`](../../form/input/README.md); for unformatted multi-line text use [`Textarea`](../../form/textarea/README.md). Choose this component only when the content to be saved itself has structure.
 
-### 書いた内容が表示に届くまで
+### How written content reaches display
 
-リッチテキストは、**編集と保存では HTML 文字列**、**表示では `SanitizedRichText`** という 2 つの姿を取ります。この部品は前者だけを扱い、後者への変換には関与しません。
+Rich text takes two forms: **an HTML string for editing and saving**, and **`SanitizedRichText` for display**. This component handles only the former and is not involved in the conversion to the latter.
 
-| 段階 | 受け渡す値 | 担当 |
+| Stage | Value passed | Owner |
 | --- | --- | --- |
-| 編集 | HTML 文字列 | `RichTextEditor`（client island） |
-| 保存・受け渡し | HTML 文字列 | 呼び出し元の form / Server Action / backend |
-| 検査 | HTML 文字列 → `SanitizedRichText` | [`model/rich-text/`](../../../../model/rich-text/README.md) の `SanitizedRichText.from` |
-| 表示 | `SanitizedRichText` | [`RichTextContent`](../rich-text-content/README.md)（Server Component） |
+| Editing | HTML string | `RichTextEditor` (client island) |
+| Saving and handoff | HTML string | The caller's form / Server Action / backend |
+| Inspection | HTML string → `SanitizedRichText` | `SanitizedRichText.from` in [`model/rich-text/`](../../../../model/rich-text/README.md) |
+| Display | `SanitizedRichText` | [`RichTextContent`](../rich-text-content/README.md) (Server Component) |
 
-プレビューも表示側と同じ経路を通ります。`SanitizedRichText.from` を通して [`RichTextContent`](../rich-text-content/README.md) で描くため、**プレビューで見えないものは保存しても表示されません**。編集面の見た目をそのまま拡大するのではなく、allowlist を通した後の姿を見せるのが目的です。
+The preview also goes through the same path as the display side. It passes through `SanitizedRichText.from` and renders with [`RichTextContent`](../rich-text-content/README.md), so **what is not visible in the preview is not displayed after saving either**. The purpose is not to enlarge the editing surface's look as it is, but to show the shape after the allowlist.
 
-編集面は隠すだけで DOM から外しません。外すと editor の内部状態が壊れ、戻ったときに書きかけが失われます。
+The editing surface is only hidden, not removed from the DOM. Removing it would break the editor's internal state, and the draft would be lost on returning.
 
-**sanitize は表示の直前に行います。** 保存のときに一度通しただけの値を、以後ずっと検査済みとして扱わないでください。保存先の内容が別の経路で書き換わることも、allowlist を狭めたあとに古い内容が残ることもあるためです。`SanitizedRichText` の構築経路が `from` だけに絞られているのは、この順序を型で強制するためです。
+**Sanitize right before display.** Do not treat a value passed through once at save time as inspected forever after. The stored content can be rewritten through another path, and old content can remain after the allowlist is narrowed. The construction path of `SanitizedRichText` is limited to `from` to enforce this order through the type.
 
-### form へ載せる
+### Putting it in a form
 
-この部品は `<form>` に載りません。呼び出し元が hidden input へ載せて送ります。
+This component does not participate in a `<form>`. The caller puts the value in a hidden input and submits it.
 
 ```tsx
 "use client";
@@ -76,11 +76,11 @@ export function DescriptionField({ defaultHtml = "" }: { defaultHtml?: string })
 }
 ```
 
-送信の結果表示は [`FormFeedback`](../../../app-starter/form-feedback/README.md)、項目名や説明文を伴う form の一項目として組む場合は [`Field`](../../form/field/README.md) と合成します。この部品自身は `label` 以外の form 要素を持ちません。
+For displaying the submission result compose it with [`FormFeedback`](../../../app-starter/form-feedback/README.md), and when building it as one item of a form with a field name and description, with [`Field`](../../form/field/README.md). This component itself holds no form element other than `label`.
 
-### 保存済みの内容を編集し直す
+### Editing saved content again
 
-編集へ戻すのは、保存した **HTML 文字列** です。`SanitizedRichText` を戻り値として持ち回る必要はありません。
+What goes back into editing is the saved **HTML string**. There is no need to carry `SanitizedRichText` around as a return value.
 
 ```tsx
 const product = await fetchProduct(id);
@@ -88,11 +88,11 @@ const product = await fetchProduct(id);
 <DescriptionField defaultHtml={product.description} />;
 ```
 
-`defaultValue` は mount のときだけ読まれます。あとから別の内容へ差し替える場合は、呼び出し元が `key` を変えて作り直します。allowlist の外にあるタグは読み込みの時点で落ちるため、古い内容に表や画像が含まれていた場合は編集画面で消えます。
+`defaultValue` is read only at mount. To switch to different content later, the caller changes the `key` to recreate it. Tags outside the allowlist are dropped at load time, so if old content contained tables or images, they disappear on the edit screen.
 
-### 表示する
+### Displaying
 
-表示側は Server Component です。編集画面とは別のページに置けます。
+The display side is a Server Component. It can be placed on a different page from the edit screen.
 
 ```tsx
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
@@ -103,83 +103,83 @@ export function Description({ html }: { html: string }) {
 }
 ```
 
-### 通らない受け渡し
+### Handoffs that do not work
 
-- **`SanitizedRichText` を `defaultValue` へ渡す** — この部品が受けるのは HTML 文字列です。編集へ戻すのは保存した文字列そのものです
-- **`SanitizedRichText` を Server Component から Client Component の props へ渡す** — class instance であり serializable ではありません。編集画面へ運ぶ値は文字列に保ちます
-- **editor の出力を検査せずに表示する** — `SanitizedRichText` は `from` 以外に構築経路がないため、そもそも組み立てられません
+- **Passing `SanitizedRichText` to `defaultValue`** — this component accepts an HTML string. What goes back into editing is the saved string itself
+- **Passing `SanitizedRichText` from a Server Component to a Client Component's props** — it is a class instance and is not serializable. Keep the value carried to the edit screen a string
+- **Displaying the editor's output without inspecting it** — `SanitizedRichText` has no construction path other than `from`, so it cannot be built in the first place
 
-### 組み合わせる部品
+### Components to Combine With
 
-| 部品 | 関係 |
+| Component | Relationship |
 | --- | --- |
-| [`RichTextContent`](../rich-text-content/README.md) | 書いた内容の表示側。この部品の相方であり、同じ allowlist の範囲を描画する |
-| [`model/rich-text/`](../../../../model/rich-text/README.md) | allowlist と sanitize の所有者。この部品が書ける範囲はここから導出する |
-| [`typeset`](../../foundation/typeset/README.md) | 組版の CSS 基盤。編集面と表示側の両方がこれを使うため、書いている最中と表示後で組版が揃う |
-| [`Input`](../../form/input/README.md) / [`Textarea`](../../form/textarea/README.md) | 書式を持たない入力。構造が要らない項目はこちらを選ぶ |
+| [`RichTextContent`](../rich-text-content/README.md) | The display side for what was written. This component's counterpart; it renders the range of the same allowlist |
+| [`model/rich-text/`](../../../../model/rich-text/README.md) | Owner of the allowlist and sanitizing. What this component can write is derived from here |
+| [`typeset`](../../foundation/typeset/README.md) | The CSS foundation for typography. Both the editing surface and the display side use it, so the typography matches while writing and after display |
+| [`Input`](../../form/input/README.md) / [`Textarea`](../../form/textarea/README.md) | Unformatted input. Choose these for fields that need no structure |
 
-## 責務境界
+## Responsibility Boundaries
 
-ProseMirror の編集面を browser 側で組み立てるため hydration が必要な client island です。Server Component からは直接 render できません。
+A client island that needs hydration because it assembles the ProseMirror editing surface in the browser. It cannot be rendered directly from a Server Component.
 
-保存・送信・検証は持ちません。内容が変わるたびに `onChange` へ HTML 文字列を渡すだけで、`<form>` にも載りません。呼び出し元が受け取った文字列を hidden input へ載せるか、Server Action の引数として渡します。
+It does not own saving, submitting or validation. It only passes an HTML string to `onChange` whenever the content changes, and does not participate in a `<form>`. The caller puts the received string in a hidden input or passes it as an argument to a Server Action.
 
-### 書けるものは sanitizer の allowlist から導出する
+### What can be written is derived from the sanitizer's allowlist
 
-editor が読み書きする node と mark は `RICH_TEXT_EDITOR_EXTENSIONS` が決めており、その集合は [`src/model/rich-text/`](../../../../model/rich-text/README.md) の allowlist（`RICH_TEXT_TAG_NAMES`）に収まる範囲だけで組んであります。**editor が出せるタグ ⊆ sanitizer が通すタグ**という関係を保つためです。この関係が崩れると、書けたのに表示されない内容が生まれます。
+The nodes and marks the editor reads and writes are decided by `RICH_TEXT_EDITOR_EXTENSIONS`, and that set is built only from what fits in the allowlist (`RICH_TEXT_TAG_NAMES`) of [`src/model/rich-text/`](../../../../model/rich-text/README.md). This keeps the relationship **tags the editor can emit ⊆ tags the sanitizer passes**. If this relationship breaks, content appears that could be written but is not displayed.
 
-そのため、書けるのは見出し（2〜4）・箇条書き・番号付き箇条書き・引用・区切り線・太字・斜体・打ち消し線・行内コード・改行・リンクだけです。表・画像・コードブロック・下線は書けません。allowlist に無い書式を要求されたときは、allowlist・extension・test の 3 点を揃えて足します。extension だけを足すと、この関係が無言で崩れます。
+Therefore only headings (2–4), bulleted lists, numbered lists, quotes, horizontal rules, bold, italic, strikethrough, inline code, line breaks and links can be written. Tables, images, code blocks and underline cannot. When a format not in the allowlist is requested, add it to all three — the allowlist, the extension, and the test — together. Adding only the extension breaks this relationship silently.
 
-この理由から、まとめて多くの extension を持ち込む `@tiptap/starter-kit` は採っていません。要件外の extension が入ると、上の関係を保てなくなるためです。
+For this reason `@tiptap/starter-kit`, which brings in many extensions at once, is not adopted. Extensions outside the requirements would make it impossible to keep the relationship above.
 
-### 受け取った HTML を検証済みとして扱わない
+### Do not treat the received HTML as validated
 
-`onChange` が渡す HTML が allowlist に収まるのは、editor の設定が満たしている性質です。**呼び出し元へ届いた文字列がその性質を満たすことの保証ではありません。** 経路の途中で差し替えられる可能性があるため、表示するときは必ず `SanitizedRichText.from` を通します。この部品は入口を狭めるだけで、sanitize の責務は `model` が持ちます。
+That the HTML `onChange` passes fits in the allowlist is a property the editor's configuration satisfies. **It is not a guarantee that the string that reaches the caller satisfies that property.** It could be replaced along the way, so always pass it through `SanitizedRichText.from` when displaying. This component only narrows the entry point; `model` owns the responsibility for sanitizing.
 
-### リンク
+### Links
 
-toolbar の「リンク」から入力するほか、URL を入力または貼り付けると自動でリンクになります。受け付けるのは `http` / `https` / `mailto` から始まる URL と、protocol を持たないアプリ内のパスだけです。判定は `isRichTextHrefAllowed` が sanitizer と同じ規則で行うため、editor が通した `href` は sanitize でも落ちません。
+Besides entering one from the toolbar's "リンク" (Link) action, typing or pasting a URL turns it into a link automatically. Only URLs starting with `http` / `https` / `mailto` and in-app paths with no protocol are accepted. `isRichTextHrefAllowed` decides with the same rules as the sanitizer, so an `href` the editor lets through is not dropped by sanitizing either.
 
-選択範囲があるときはその範囲をリンクにし、カーソルだけのときはリンク先そのものを本文へ挿入します。後者を挿入にしているのは、選択が無い状態で適用すると見た目に何も起きないためです。
+With a selection, the selection becomes the link; with only a cursor, the link target itself is inserted into the body. The latter is an insertion because applying it with no selection would visibly do nothing.
 
-リンク先を持たない `a` を作らないよう、空の入力は適用せず理由を表示します。
+To avoid creating an `a` with no link target, empty input is not applied and the reason is shown.
 
-編集中はリンクを click しても開きません。編集面の中で意図せず遷移することを避けるためです。
+While editing, clicking a link does not open it. This avoids unintended navigation inside the editing surface.
 
-### toolbar の中の移動
+### Moving within the toolbar
 
-toolbar の中は矢印キーで隣の操作へ移り、Home / End で両端へ移ります。Tab の並びに残るのは最後に focus を持ったボタン 1 つだけで、toolbar 全体を Tab 1 回で通り抜けられます。押せない操作は飛ばします。
+Within the toolbar the arrow keys move to the adjacent action, and Home / End move to either end. Only the one button that last had focus stays in the Tab order, so the whole toolbar can be passed with a single Tab. Actions that cannot be pressed are skipped.
 
-**`role="toolbar"` は矢印キーでの移動を約束するため、移動を実装したうえで名乗っています。** 移動を持たない操作の群は toolbar を名乗りません（`SelectionToolbar` は `fieldset` の group で名前を与えています）。
+**`role="toolbar"` promises arrow-key movement, so it claims the role only with the movement implemented.** A group of actions without that movement does not claim to be a toolbar (`SelectionToolbar` gives its name with a `fieldset` group).
 
-### キー操作の案内
+### Key hints
 
-toolbar のボタンには、**同じことを起こすキー**を hover / focus で添えます。キーの表示は `KeyboardShortcutKeys` が持ち、`⌘` と `Ctrl` の出し分けもその部品が引き受けます。
+Toolbar buttons show **the key that does the same thing** on hover / focus. `KeyboardShortcutKeys` owns the key display, and that component also takes care of choosing between `⌘` and `Ctrl`.
 
-説明とキーを `dt` / `dd` の組にする `KeyboardShortcut` は使いません。あれは `dl` の子であることを前提にしており、tooltip の中には `dl` が無いため、孤立した `dt` / `dd` になります。ここでは説明が隣に並ぶだけで足ります。
+`KeyboardShortcut`, which pairs a description and a key as `dt` / `dd`, is not used. It assumes it is a child of a `dl`, and a tooltip has no `dl`, so it would produce orphaned `dt` / `dd`. Here it is enough for the description to sit next to the key.
 
-**`TooltipProvider` はこの部品が自分で持ちます。** 置くだけで動く状態を保つためで、外へ出すと、呼び出し側が Provider を mount し忘れた瞬間に描画時の例外になります。内部の tooltip どうしは 1 つの Provider を共有するので、ボタン間を移るときに遅延を挟みません。
+**This component owns its `TooltipProvider` itself.** This keeps it working just by placing it; if the Provider were moved outside, rendering would throw the moment a caller forgot to mount it. The internal tooltips share one Provider, so moving between buttons does not insert a delay.
 
-**キーの実体は editor の extension が持っており、この部品は登録しません。** editor が focus を持っているあいだだけ効く、閉じたキー操作です。任意の操作を任意のキーへ結び付ける汎用の登録機構は持ちません（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。
+**The editor's extensions own the actual keys; this component does not register them.** They are a closed set of key operations that work only while the editor has focus. There is no general registration mechanism binding arbitrary actions to arbitrary keys ([0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)).
 
-**案内と実体が食い違わないことをテストで固定しています。** 宣言したキーが extension の登録に無ければ落ちるため、extension の版が変わってキーが動いた場合はテストが先に気づきます。
+**A test pins that the hints and the actual keys do not diverge.** It fails if a declared key is not among the extension's registrations, so if an extension version changes and a key moves, the test notices first.
 
-**toolbar のボタンはすべて同じ案内を通します。** キーを持つものだけがキーを併せて出し、持たないもの（区切り線・リンク・プレビュー）は名前だけを出します。片方を browser 標準の `title` のままにすると、同じ toolbar の中で出る速さも見た目も違うものが並びます。効かないキーを案内することはありません。
+**Every toolbar button goes through the same hint.** Only those with a key show the key alongside; those without (horizontal rule, link, preview) show only the name. If some were left with the browser's standard `title`, the same toolbar would mix hints that appear at different speeds and look different. It never hints a key that does not work.
 
-`aria-keyshortcuts` は付けていません。値が `Control+B` と `Meta+B` のどちらになるかは動かしている環境で決まり、その判定は `KeyboardShortcut` が既に持っています。ここで二つ目の判定を持つと、表示と読み上げが食い違いうる状態を自分で作ることになります。
+`aria-keyshortcuts` is not set. Whether the value would be `Control+B` or `Meta+B` depends on the running environment, and `KeyboardShortcut` already owns that decision. Holding a second decision here would itself create a state in which the display and the announcement could diverge.
 
-### 見た目
+### Appearance
 
-編集面には [`typeset`](../../foundation/typeset/README.md) の `.typeset` を付けています。書いている最中の組版と、`RichTextContent` が描画したあとの組版を同じ規則に揃えるためです。
+The editing surface carries `.typeset` from [`typeset`](../../foundation/typeset/README.md). This aligns the typography while writing with the typography after `RichTextContent` renders it, under the same rules.
 
-toolbar のボタンは `Toggle` と `Button` を合成して得ており、この部品は独自の見た目を持ちません。
+The toolbar buttons are obtained by composing `Toggle` and `Button`; this component has no look of its own.
 
-実装は TipTap（ProseMirror）を使いますが、vendor は公開 API に出しません。呼び出し元が受け渡すのは HTML 文字列だけです。
+The implementation uses TipTap (ProseMirror), but the vendor does not appear in the public API. All the caller passes around is an HTML string.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は、何も書かれていない状態、保存済みの内容を読み込んだ状態、読み取り専用の状態、allowlist の外にあるタグを初期値へ渡した場合を確認します。呼び出し元へ渡る HTML を各 story に並べ、操作と出力の対応を実際に確かめられるようにしています。
+Storybook covers the empty state, the state with saved content loaded, the read-only state, and the case where tags outside the allowlist are passed as the initial value. Each story lists the HTML passed to the caller, so the correspondence between actions and output can actually be checked.
 
-テストは、toolbar と名前を持つ編集面を描画すること、toolbar の中を矢印キーと Home / End で移れて押せない操作を飛ばすこと、Tab の並びに残るボタンが 1 つだけであること、初期値の読み込みと allowlist 外のタグが落ちること、読み取り専用のときに編集できないこと、すべての書式ボタンが押下状態を切り替えること、段落の種類を変えると変更後の HTML を通知すること、取り消しとやり直しが実行できる間だけ押せること、リンクの入力・選択範囲の有無による適用・Enter での適用・allowlist 外の protocol と空入力を拒む理由の表示・解除、**案内するキーが extension の登録と一致すること**、a11y 自動検査を確認します。
+The tests cover rendering the toolbar and a named editing surface, moving within the toolbar with the arrow keys and Home / End while skipping actions that cannot be pressed, that only one button stays in the Tab order, loading the initial value and dropping tags outside the allowlist, that editing is impossible when read-only, that every formatting button toggles its pressed state, that changing the paragraph kind notifies the changed HTML, that undo and redo can be pressed only while they can run, link entry, applying it with and without a selection, applying it with Enter, showing the reason when rejecting a protocol outside the allowlist or empty input, removing it, **that the hinted keys match the extensions' registrations**, and the automated a11y check.
 
-**allowlist との関係は test で固定しています。** editor が読み書きする node と mark の一覧が導出した集合と一致すること、editor が出せるタグが `RICH_TEXT_TAG_NAMES` に収まること、editor の出力が sanitize を通しても要素と属性が変わらないこと、allowlist 外の protocol を editor 自身が出力しないことを確認します。extension を足すとこの 4 つが落ちます。
+**The relationship with the allowlist is pinned by tests.** They check that the list of nodes and marks the editor reads and writes matches the derived set, that the tags the editor can emit fit in `RICH_TEXT_TAG_NAMES`, that the editor's output keeps its elements and attributes after sanitizing, and that the editor itself does not output a protocol outside the allowlist. Adding an extension makes these four fail.

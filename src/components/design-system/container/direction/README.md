@@ -1,41 +1,41 @@
 # Direction
 
-## 用途
+## Purpose
 
-配下の component へ文字送りの向きを伝えます。向きに応じて開く方向や矢印キーの意味を変える component が、この Provider から向きを読みます。
+Conveys the text direction to the components beneath it. Components that change which way they open or what the arrow keys mean according to direction read it from this Provider.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 関数 | 役割 |
+| Component / Function | Role |
 | --- | --- |
-| `DirectionProvider` | 配下へ文字送りの向きを配る client-side Provider です。省略時は `ltr` になります。 |
-| `useDirection` | 最も近い `DirectionProvider` が配る向きを読みます。Provider が無い場合は `ltr` を返します。 |
+| `DirectionProvider` | A client-side Provider that distributes the text direction to what is beneath it. Defaults to `ltr` when omitted. |
+| `useDirection` | Reads the direction distributed by the nearest `DirectionProvider`. Returns `ltr` when there is no Provider. |
 
-`DIRECTION` と `DirectionValue` を `direction.definition.ts` で公開します。`dir` に指定できる値の owner はこの定義であり、`"rtl"` などの文字列を利用側で直接書きません。
+`DIRECTION` and `DirectionValue` are exported from `direction.definition.ts`. This definition owns the values that can be given to `dir`, and callers do not write strings such as `"rtl"` directly.
 
-`dir` には別名の `direction` があります。生成物が両方を受ける形だったためそのまま残しており、両方が指定された場合は `direction` が勝ちます。
+`dir` has an alias, `direction`. The generated output accepted both, so both are kept as is; when both are specified, `direction` wins.
 
-## 利用ケース
+## Use Cases
 
-- 向きによって配置や矢印キーの意味が変わる component（`SelectClient`、`DropdownMenu`、`SliderClient` など）を、明示した向きの下で動かす場合
-- 向きで挙動を変える component を自作し、`useDirection` で現在の向きを読む場合
+- Running components whose placement or arrow-key meaning changes with direction (`SelectClient`, `DropdownMenu`, `SliderClient` and so on) under an explicit direction
+- Writing your own component whose behavior changes with direction and reading the current direction with `useDirection`
 
-## 責務境界
+## Responsibility Boundaries
 
-React context を配るため hydration が必要な client island です。Server Component からは直接 render できません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+It distributes a React context, so it is a client island that needs hydration. It cannot be rendered directly from a Server Component. When the content itself needs no client runtime, pass elements built in a Server Component as `children`.
 
-**このリポジトリは既定を `ltr` に固定し、利用者が向きを切り替える機能を持ちません。** RTL の locale を提供する決定がされていないためです。`rtl` は Provider を差し替えたときに配下がどう変わるかを示すための値であり、向きを画面から切り替える UI が要るなら locale の決定が先になります。
+**This repository fixes the default to `ltr` and has no feature for users to switch direction.** This is because no decision has been made to provide an RTL locale. `rtl` is a value for showing how what is beneath changes when the Provider is replaced; if a UI to switch direction from the screen is needed, the locale decision comes first.
 
-`dir` は DOM 属性ではありません。この Provider は context を配るだけで、文字の折り返しや `text-align` のような CSS の挙動は変えません。それらを変える必要がある場合は、呼び出し元が `html` 要素の `dir` 属性を併せて設定します。
+`dir` is not a DOM attribute. This Provider only distributes a context and does not change CSS behavior such as text wrapping or `text-align`. When those need to change, the caller also sets the `dir` attribute on the `html` element.
 
-表示文言の出し分けはこの component の責務ではありません。向きと言語は別の関心であり、文言は feature 側が扱います。
+Switching display copy is not this component's responsibility. Direction and language are separate concerns, and copy is handled on the feature side.
 
-vendor は現在 Radix です。
+The vendor is currently Radix.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は省略時の既定、`ltr` を明示した場合、`rtl` を渡した場合を確認します。向きで配置と矢印キーの意味が変わる例として `DropdownMenu` を合成し、Provider を差し替えたときの違いを実描画で見られるようにしています。
+Storybook checks the default when omitted, `ltr` specified explicitly, and `rtl` passed. As an example whose placement and arrow-key meaning change with direction, it composes `DropdownMenu`, so the difference when the Provider is replaced can be seen in actual rendering.
 
-テストは省略時に `ltr` を配ること、`dir` と別名 `direction` のそれぞれで向きが伝わること、両方あるときは `direction` が勝つこと、入れ子では内側が勝つこと、DOM の `dir` 属性を設定しないこと、Provider が無い場合に `useDirection` が `ltr` を返すこと、a11y 自動検査を確認します。
+Tests check that `ltr` is distributed when omitted, that the direction is conveyed through both `dir` and the alias `direction`, that `direction` wins when both are present, that the inner one wins when nested, that the DOM `dir` attribute is not set, that `useDirection` returns `ltr` when there is no Provider, and automated a11y checks.
 
-jsdom には Radix が位置計算に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。
+jsdom lacks the `ResizeObserver` and `scrollIntoView` that Radix uses for positioning, so they are stubbed on the test side.

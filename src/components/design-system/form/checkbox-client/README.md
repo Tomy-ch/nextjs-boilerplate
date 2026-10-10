@@ -1,25 +1,25 @@
 # CheckboxClient
 
-## 用途
+## Purpose
 
-indeterminate を含む custom checkbox 操作を client island として提供します。
+Provides custom checkbox interaction, including indeterminate, as a client island.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `CheckboxClient` | Radix を使い、checked・unchecked・indeterminate を操作できる client-side checkbox です。 |
+| `CheckboxClient` | A client-side checkbox built on Radix that can be operated through checked, unchecked and indeterminate. |
 
-indeterminate は checked と別の印（横線）で示します。同じ印だと背景の塗りだけが違う状態になり、「一部選択」と「選択済み」が一目で区別できません。
+Indeterminate is shown with a mark (a horizontal bar) distinct from checked. With the same mark, the two states would differ only in background fill, and "partially selected" and "selected" could not be told apart at a glance.
 
-## 利用ケース
+## Use Cases
 
-native checkbox では満たせない状態表現や操作要件がある場面に限定します。
+Limit it to cases with state representation or interaction requirements that a native checkbox cannot meet.
 
-## 責務境界
+## Responsibility Boundaries
 
-初期表示の既定ではありません。項目名は `Label` または `aria-label` で与え、状態・送信・検証は feature が管理します。
+It is not the default for the initial render. Give the item name with `Label` or `aria-label`; the feature manages state, submission and validation.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・checked・disabled・invalid を、テストは選択状態・disabled・a11y を確認します。
+Storybook checks normal, checked, disabled and invalid; the tests check the selection state, disabled and a11y.

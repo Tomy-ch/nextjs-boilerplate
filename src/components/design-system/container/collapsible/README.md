@@ -1,25 +1,25 @@
 # Collapsible
 
-## 用途
+## Purpose
 
-一つの補助内容を、必要なときだけ開いて確認できるようにします。
+Lets the user check one piece of auxiliary content by opening it only when needed.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Collapsible` | native の `details` による一つの開閉領域です。 |
-| `CollapsibleTrigger` | native の `summary` として、領域の見出しと開閉操作を提供します。 |
-| `CollapsibleContent` | 開いたときに表示する補助内容です。 |
+| `Collapsible` | One open/close region using native `details`. |
+| `CollapsibleTrigger` | As a native `summary`, provides the region's heading and the open/close action. |
+| `CollapsibleContent` | The auxiliary content shown when opened. |
 
-## 利用ケース
+## Use Cases
 
-注記、補足設定、長い説明など、一つのまとまりを段階表示する場合に使います。
+Used to reveal one group step by step, such as notes, supplementary settings, or a long explanation.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の native `details` / `summary` であり、hydration は不要です。外部 state との同期、開閉 animation、非標準の keyboard 操作は持ちません。それらが必要になった場合だけ client island を追加します。
+It is SSR-first native `details` / `summary`, and no hydration is needed. It does not own syncing with external state, open/close animation, or non-standard keyboard interaction. Add a client island only when those become necessary.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は閉じた状態と初期状態で開いた表示を示し、初期 open は Controls、native の `toggle` は Actions で確認できます。test は native 開閉、初期 open、a11y を確認します。
+Storybook shows the closed state and the display opened initially; the initial open can be checked with Controls and the native `toggle` with Actions. Tests check native opening/closing, initial open, and a11y.

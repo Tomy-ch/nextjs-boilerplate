@@ -1,33 +1,32 @@
 # SavedViews
 
-## 用途
+## Purpose
 
-一覧で何度も組み直す絞り込みや並べ替えを名前付きで残し、次からは選ぶだけで同じ見え方へ戻れる
-ようにします。
+Saves the filters and sorting that are rebuilt again and again in a list under a name, so that from then on choosing one returns to the same view.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SavedViews` | 保存した条件を選び直し、名前を付けて保存し、名前を変え、消す操作を 1 つの trigger にまとめます。 |
+| `SavedViews` | Gathers into one trigger the actions to choose a saved condition again, save one under a name, rename it, and delete it. |
 
-| props | 型 | 役割 |
+| props | Type | Role |
 | --- | --- | --- |
-| `views` | `readonly SavedView[]` | 選べる条件。`id` と `name` だけを持ちます。 |
-| `currentViewId` | `string \| null` | いま当てている条件。`null` は「どれも当てていない」を表します。 |
-| `onSelect` | `(viewId: string) => void` | 条件を選んだ。 |
-| `onCreate` | `(name: string) => void` | いまの条件へ名前を付けて保存する。 |
-| `onRename` | `(viewId: string, name: string) => void` | 選択中の条件の名前を変えた。 |
-| `onDelete` | `(viewId: string) => void` | 選択中の条件を消した。確認は済んでいます。 |
-| `label` | `string` | 操作のアクセシブルな名前。条件を当てていないときは trigger の表示にもなります。既定は「保存した条件」。 |
+| `views` | `readonly SavedView[]` | The conditions that can be chosen. They have only `id` and `name`. |
+| `currentViewId` | `string \| null` | The condition currently applied. `null` means "none applied". |
+| `onSelect` | `(viewId: string) => void` | A condition was chosen. |
+| `onCreate` | `(name: string) => void` | Save the current conditions under a name. |
+| `onRename` | `(viewId: string, name: string) => void` | The selected condition was renamed. |
+| `onDelete` | `(viewId: string) => void` | The selected condition was deleted. Confirmation is already done. |
+| `label` | `string` | The accessible name of the action. It is also the trigger's display when no condition is applied. Defaults to 「保存した条件」 ("saved conditions"). |
 
-`SavedView` は `{ id, name }` の 2 つだけです。条件の中身はこの型に入りません。
+`SavedView` is just the two fields `{ id, name }`. The content of the conditions is not in this type.
 
-## 使い方
+## Usage
 
-### 一覧の toolbar へ置く
+### Placing it in a list toolbar
 
-条件そのものと保存先は呼び出し元が持ちます。この component へ渡すのは名前と `id` だけです。
+The conditions themselves and where they are stored are owned by the caller. Only names and `id`s are passed to this component.
 
 ```tsx
 "use client";
@@ -58,11 +57,9 @@ export function ListToolbar({ initialViews }: { initialViews: readonly SavedView
 }
 ```
 
-### 条件を URL や保存先とつなぐ
+### Connecting conditions to the URL or storage
 
-`onSelect` は `id` を返すだけで、URL の書き換えも fetch も行いません。条件を URL の query に
-載せるか、backend へ保存するか、browser に残すかは feature が決めます。`onCreate` に渡るのも
-名前だけなので、「いまの条件」が何を指すかは呼び出し元の state が答えます。
+`onSelect` only returns an `id`; it neither rewrites the URL nor fetches. Whether conditions go in the URL's query, are saved to the backend, or are kept in the browser is decided by the feature. `onCreate` also receives only a name, so what "the current conditions" refers to is answered by the caller's state.
 
 ```tsx
 const selectView = useCallback(
@@ -74,48 +71,33 @@ const selectView = useCallback(
 );
 ```
 
-### 絞り込み UI との併置
+### Alongside the Filtering UI
 
-絞り込みの操作そのものは [`filter-bar`](../../patterns/filter-bar/README.md) が、表の見せ方は
-[`table-view-options`](../../patterns/table-view-options/README.md) が持ちます。この component はその結果を
-名前付きで呼び戻す層で、条件の編集 UI を持ちません。
+The filtering controls themselves are owned by [`filter-bar`](../../patterns/filter-bar/README.md), and how the table is shown by [`table-view-options`](../../patterns/table-view-options/README.md). This component is the layer that recalls their result by name, and it has no UI for editing conditions.
 
-## 利用ケース
+## Use Cases
 
-- 一覧で使う絞り込みの組み合わせが複数あり、切り替えて使う場合
-- 保存した条件に後から分かりやすい名前を付け直したい場合
+- When a list has several filter combinations that are switched between
+- When you want to give a saved condition a clearer name later
 
-条件が 1 つしかない画面には置きません。選ぶ対象が無く、保存だけの操作になります。
+Not placed on a screen with only one condition. There would be nothing to choose, and it would be a save-only action.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `×` に当たります。menu と dialog の開閉を browser 側で行うため hydration が
-必要で、Server Component からは直接 render できません。
+In the SSR-first selection it falls under `×`. Opening and closing the menu and dialogs happens on the browser side, so hydration is needed, and it cannot be rendered directly from a Server Component.
 
-条件の中身を持ちません。絞り込み・並べ替えの値、保存先、URL との同期、`id` の発行はすべて
-呼び出し元が所有します。この component が扱うのは `id` と名前だけです。
+It does not own the content of conditions. Filter and sort values, where they are stored, syncing with the URL, and issuing `id`s are all owned by the caller. This component handles only `id`s and names.
 
-名前の変更と削除は**選択中の 1 件**が対象です。`currentViewId` が `null` の間は両方とも選べません。
-一覧の各行に個別の操作を置かないのは、menu 項目の中へ操作 button を入れ子にすると menu の
-keyboard 操作と読み上げが壊れるためです。
+Renaming and deleting target **the one selected item**. While `currentViewId` is `null`, neither can be chosen. Individual actions are not placed on each row of the list because nesting action buttons inside menu items breaks the menu's keyboard interaction and screen reader output.
 
-削除は取り消せないため `AlertDialog`（`role="alertdialog"`）の確認を挟みます。名前の入力は通常の
-`Dialog` です。どちらも menu の外に置いた制御された dialog で、menu が閉じても trigger と一緒に
-消えません。
+Deletion cannot be undone, so it goes through an `AlertDialog` (`role="alertdialog"`) confirmation. Name input is an ordinary `Dialog`. Both are controlled dialogs placed outside the menu, so they do not disappear along with the trigger when the menu closes.
 
-名前は前後の空白を落として渡します。空白だけの名前では保存 button が押せません。名前の重複は
-許します。同じ名前を許すかどうかは保存先の制約であり、この component は判断しません。
+Names are passed with leading and trailing whitespace trimmed. The save button cannot be pressed for a whitespace-only name. Duplicate names are allowed. Whether the same name is allowed is a constraint of the storage, and this component does not decide it.
 
-vendor は Radix（`DropdownMenu` / `Dialog` / `AlertDialog`）です。
+The vendor is Radix (`DropdownMenu` / `Dialog` / `AlertDialog`).
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は `Container/SavedViews` に置き、条件を選んでいる状態、どれも当てていない状態、
-保存した条件がまだ無い状態、操作の名前を差し替えた状態を確認します。Default の story は選択・
-保存・改名・削除がひと通り動くため、呼び出し元が持つ state の形もそのまま読めます。
+Storybook places it in `Container/SavedViews` and checks the state with a condition chosen, the state with none applied, the state with no saved conditions yet, and the state with the action's name replaced. In the Default story, choosing, saving, renaming and deleting all work end to end, so the shape of the state the caller owns can be read from it as is.
 
-テストは trigger の表示、条件が `menuitemradio` として並び選択中に印が付くこと、選択・保存・改名・
-削除がそれぞれ何を返すか、条件が無いときと当てていないときに操作を選ばせないこと、名前の前後の
-空白を落とすこと、空白だけの名前を弾くこと、改名時に現在の名前が初期値になること、dialog と
-alertdialog のアクセシブルな名前と説明、確認をやめたときに何も起きないこと、a11y 自動検査を
-確認します。
+Tests check the trigger's display, that conditions are listed as `menuitemradio` and the selected one is marked, what choosing, saving, renaming and deleting each return, that actions cannot be chosen when there are no conditions or none is applied, that leading and trailing whitespace in names is trimmed, that whitespace-only names are rejected, that the current name is the initial value when renaming, the accessible names and descriptions of the dialog and alertdialog, that nothing happens when the confirmation is cancelled, and automated a11y checks.

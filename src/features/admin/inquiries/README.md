@@ -6,145 +6,146 @@ coverage-exclusions:
 
 # admin/inquiries
 
-届いた問い合わせを見比べ、1 件に回答する画面スライスです
-（`/admin/inquiries` と `/admin/inquiries/[inquiryId]`）。
+The screen slice for comparing the inquiries that arrived and answering one of them
+(`/admin/inquiries` and `/admin/inquiries/[inquiryId]`).
 
-**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`admin/`](../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+**This README does not declare the import ceiling.** Boundaries are declared at an element's root, and the root of the element containing this directory is [`admin/`](../README.md) ([0021](../../../../docs/adr/0021-frontend-responsibility.md)).
 
-## 受け入れるもの
+## What Belongs Here
 
-- 一覧の取得とページ送りの編成、1 件のやり取りの取得
-- 回答の送信の組み立てと、その結果の表示
-- 更新フィードの購読と、それを受けた取り直し
+- Orchestrating the list fetch and pagination, and fetching one inquiry's exchange
+- Assembling the reply submission and showing its result
+- Subscribing to the update feed, and refetching in response
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 購読そのもの（接続・整列・張り直しは `adapters/client/stream` の領分）
-- 並び順と絞り込みの軸（契約が決める。更新の新しい順しか無い）
-- 役割の断言（回答の Server Action は app 層にあり、そこで断言する）
-- 利用者側の問い合わせ画面（`inquiry` の領分。feature 間で直接参照しません）
+- The subscription itself (connecting, ordering and reconnecting are the domain of `adapters/client/stream`)
+- The sort order and filter axes (the contract decides; there is only most recently updated first)
+- Asserting the role (the reply Server Action lives in the app layer and asserts there)
+- The user-side inquiry screens (the domain of `inquiry`; features do not reference each other directly)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Specification | Authentication |
 | --- | --- | --- |
-| `/admin/inquiries` | [`screen`](../../../../docs/spec/route/admin/inquiries/page.screen.md) / [`function`](../../../../docs/spec/route/admin/inquiries/page.function.md) | 役割: admin |
-| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) | 役割: admin |
+| `/admin/inquiries` | [`screen`](../../../../docs/spec/route/admin/inquiries/page.screen.md) / [`function`](../../../../docs/spec/route/admin/inquiries/page.function.md) | Role: admin |
+| `/admin/inquiries/[inquiryId]` | [`screen`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) | Role: admin |
 
-親（[`admin`](../README.md)）の「認可」がこの画面にもそのまま掛かります。
+The parent's ([`admin`](../README.md)) Authorization section applies to these screens as is.
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetInquiries` | 一覧の取得。更新の新しい順で本文を含まない |
-| `GetInquiriesDetailMessages` | 1 件のやり取りの取得 |
-| `PostInquiriesDetailMessages` | 回答の送信。送り手の種別はサーバが決める |
-| `PostInquiriesFeedStreamTicket` | 更新フィードを購読する口の発券 |
+| `GetInquiries` | Fetching the list. Most recently updated first, without message bodies |
+| `GetInquiriesDetailMessages` | Fetching one inquiry's exchange |
+| `PostInquiriesDetailMessages` | Sending a reply. The server decides the sender kind |
+| `PostInquiriesFeedStreamTicket` | Issuing a ticket for the endpoint that subscribes to the update feed |
 
-**会話そのものを購読する口はありません。** 契約が持つのは「自分の問い合わせ」と「更新フィード」の
-2 つで、運営が任意の 1 件を直接購読する口が無いためです。開いている 1 件の更新はフィードから
-知り、正本を取り直します。
+**There is no endpoint that subscribes to a conversation itself.** The contract has two — "your own inquiries"
+and "the update feed" — and no endpoint through which operators subscribe directly to an arbitrary single
+inquiry. Updates to the one that is open are learned from the feed, and the authoritative data is refetched.
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| 一覧 | success | `Page/Admin/Inquiries/List/Default` |
+| List | success | `Page/Admin/Inquiries/List/Default` |
 | | empty | `Page/Admin/Inquiries/List/Empty` |
-| 対応 | success | `Page/Admin/Inquiries/Detail/Default` |
-| やり取りの並び | success | `Features/Admin/Inquiries/Detail/MessageList/Default` |
-| | 送信中 | `Features/Admin/Inquiries/Detail/MessageList/Sending` |
-| | 空 | `Features/Admin/Inquiries/Detail/MessageList/Empty` |
-| 一覧の表 | success / ページ送りつき / empty / スマホ幅 | `Features/Admin/Inquiries/List/Table/{Default,WithPagination,Empty,Mobile}` |
-| 一覧の購読 | 待機 | `Features/Admin/Inquiries/List/FeedWatch/Default` |
-| 一覧の待機表示 | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
-| やり取りと回答 | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
-| 回答欄 | idle / pending / 項目エラー | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
-| 対応の待機表示 | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
-| 階層 | 一覧の下 | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
-| 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
+| Handling | success | `Page/Admin/Inquiries/Detail/Default` |
+| Exchange list | success | `Features/Admin/Inquiries/Detail/MessageList/Default` |
+| | Sending | `Features/Admin/Inquiries/Detail/MessageList/Sending` |
+| | Empty | `Features/Admin/Inquiries/Detail/MessageList/Empty` |
+| List table | success / with pagination / empty / phone width | `Features/Admin/Inquiries/List/Table/{Default,WithPagination,Empty,Mobile}` |
+| List subscription | Waiting | `Features/Admin/Inquiries/List/FeedWatch/Default` |
+| List loading UI | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
+| Exchange and reply | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
+| Reply field | idle / pending / field error | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
+| Handling loading UI | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
+| Hierarchy | Under the list | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
+| Receiving state | 7 kinds | `Status/ConnectionStatus/*` |
 
-## 構成
+## Structure
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `form-names.ts` | 回答の送信が持つ項目の名前。**検証を持たない** |
-| `form-state.ts` | 回答の結果と送信先の型、解けなかったときの文言 |
-| `parse-reply-form.ts` | 送信された内容から回答先・本文・冪等キーを取り出す |
-| `connection-status.ts` | フィードの状態と回線の有無を、画面へ出す 1 語へ写す |
-| `query.ts` | ページ送りの URL を組む側 |
-| `read-location.ts` | ページ送りの URL を読む側 |
-| `list/page-content.tsx` | URL の解釈と一覧の組み立て |
-| `list/results.tsx` | 1 ページぶんの取得とページ送り |
-| `list/view.tsx` | 一覧の画面。購読を一覧本体の外に置く |
-| `list/ui/table/` | 問い合わせの表。本文を持たない |
-| `list/ui/feed-watch/` | 更新フィードの購読と、受信の状態 |
-| `list/ui/skeleton/` | 一覧の待機表示 |
-| `detail/page-content.tsx` | 1 件の取得と組み立て |
-| `detail/view.tsx` | 対応の画面。概要とやり取りを縦に並べる |
-| `detail/breadcrumb-content.tsx` | 現在地までの階層。`@breadcrumb` の slot が使う |
-| `detail/ui/conversation/` | 購読・回答・表示を束ねる client island |
-| `detail/ui/message-list/` | 運営から見たやり取りの並び |
-| `detail/ui/reply-form/` | 回答の入力欄 |
-| `detail/ui/skeleton/` | 対応の待機表示 |
-| `ui/breadcrumb-trail/` | 一覧へ戻る階層 |
-| `inquiries.fixture.ts` | story とテストが読む固定の一覧 |
+| `form-names.ts` | The field names the reply submission carries. **Holds no validation** |
+| `form-state.ts` | The types of the reply result and the submission target, and the wording when decoding fails |
+| `parse-reply-form.ts` | Extracts the reply target, body and idempotency key from the submitted content |
+| `connection-status.ts` | Maps the feed state and whether the line is online to one word shown on screen |
+| `query.ts` | The side that builds pagination URLs |
+| `read-location.ts` | The side that reads pagination URLs |
+| `list/page-content.tsx` | Interpreting the URL and assembling the list |
+| `list/results.tsx` | Fetching one page, and pagination |
+| `list/view.tsx` | The list screen. Places the subscription outside the list body |
+| `list/ui/table/` | The inquiry table. Holds no message bodies |
+| `list/ui/feed-watch/` | Subscribing to the update feed, and the receiving state |
+| `list/ui/skeleton/` | The list loading UI |
+| `detail/page-content.tsx` | Fetching and assembling one inquiry |
+| `detail/view.tsx` | The handling screen. Stacks the overview and the exchange vertically |
+| `detail/breadcrumb-content.tsx` | The hierarchy down to the current location. Used by the `@breadcrumb` slot |
+| `detail/ui/conversation/` | A client island bundling subscription, reply and display |
+| `detail/ui/message-list/` | The exchange as seen by operators |
+| `detail/ui/reply-form/` | The reply input field |
+| `detail/ui/skeleton/` | The handling loading UI |
+| `ui/breadcrumb-trail/` | The hierarchy leading back to the list |
+| `inquiries.fixture.ts` | A fixed list read by stories and tests |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 一覧・やり取りの取得と回答の送信、フィードの購読 |
-| `model` | 表示モデル（`InquirySummary` / `InquiryHistory`）、日付の区切り、`ActionState`、冪等キー |
-| `components` | 表・会話の面・ページ送り・受信の状態 |
-| `capabilities` | 回線の有無（`use-online-status`） |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching the list and exchanges, sending replies, subscribing to the feed |
+| `model` | Display models (`InquirySummary` / `InquiryHistory`), date separators, `ActionState`, idempotency keys |
+| `components` | Tables, the conversation surface, pagination, receiving state |
+| `capabilities` | Whether the line is online (`use-online-status`) |
+| `observability` | Putting rendering on spans |
 
-## Action 戻り値契約
+## Action Return Contract
 
-| Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
+| Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | 開いている 1 件だけ `revalidatePath` | 項目の文言（本文）か、回答欄の隣の文言 |
+| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | `revalidatePath` only the one that is open | Field wording (the body), or wording next to the reply field |
 
-**回答先は画面が送信に載せます。** 運営は複数の問い合わせを行き来するため、「いま開いているもの」
-をサーバ側で決められません。
+**The screen puts the reply target on the submission.** Operators move between several inquiries, so "the one
+open now" cannot be decided on the server side.
 
-**したがって置き場は app 層です。** 任意の問い合わせを名指しできる以上、役割の断言が要り、
-断言に使う `adapters/server/auth` へ触れてよいのは app だけです。**この画面は送信先を自分で
-決めず**、route から props で受け取ります（`form-state.ts` の `AdminInquiryReplyAction`）。
+**Hence it lives in the app layer.** Since it can name any inquiry, the role must be asserted, and only app may
+touch `adapters/server/auth`, which the assertion uses. **This screen does not decide its own submission
+target**; it receives it from the route through props (`AdminInquiryReplyAction` in `form-state.ts`).
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 通ってきた起点を URL へ積み、戻る操作で 1 段ずつ降ろす
-- [ ] 起点が消えた URL で、先頭ページとして読む（「前へ」が押せない）
-- [ ] 開いている問い合わせ以外の更新では、取り直さない
-- [ ] 回答が成立すると、開いている 1 件だけを取り直す
+- [ ] The origins passed through are stacked into the URL, and the back operation pops them one level at a time
+- [ ] A URL whose origin has disappeared is read as the first page (「前へ」 ("previous") cannot be pressed)
+- [ ] Updates to inquiries other than the open one cause no refetch
+- [ ] When a reply succeeds, only the open inquiry is refetched
 
-## 運用
+## Operations
 
-- **購読を一覧本体の外に置きます。** 中に置くと、取り直しのたびに購読ごと unmount され、
-  取り直すたびに発券からやり直すことになります
-- **フィードが運ぶ内容で行を書き換えません。** 運ぶのは「どの問い合わせがどこまで進んだか」だけで、
-  並び順の基準も他の列も入っていません
-- **フィードの位置と会話の位置は別物です。** フィードの event が本文に載せる位置は会話の中での
-  位置で、フィードの再開位置ではありません。取り違えると、問い合わせが 2 件以上ある環境で
-  再開位置がずれます
-- **開始位置を渡さずに購読します。** 一覧の取得はフィードの位置を返さないため、発券が束ねた位置
-  から始まります。取りこぼした更新は次の更新で取り返されます
-- **右へ寄るのは運営の発言です。** 同じやり取りでも、誰が読んでいるかで「自分」が入れ替わります。
-  利用者側と部品を共有していないのはこのためで、共有すると向きの判断が引数として両方へ漏れます
-- **誰の問い合わせかを出せません。** 契約が返すやり取りは送り手の種別しか持たず、利用者の識別子は
-  一覧の行だけが持ちます
+- **The subscription sits outside the list body.** Inside it, every refetch would unmount the subscription
+  along with it, and each refetch would start over from issuing the ticket
+- **Rows are not rewritten with what the feed carries.** It carries only "which inquiry has progressed how
+  far", with neither the sort key nor the other columns
+- **The feed position and the conversation position are different things.** The position a feed event carries
+  in its body is a position within the conversation, not the feed's resume position. Mixing them up shifts
+  the resume position in an environment with two or more inquiries
+- **Subscribe without passing a start position.** The list fetch does not return a feed position, so the
+  subscription starts from the position the ticket bundled. Missed updates are recovered by the next update
+- **Operators' messages align to the right.** In the same exchange, "me" switches depending on who is reading.
+  That is why no components are shared with the user side; sharing them would leak the direction judgment to
+  both as an argument
+- **Whose inquiry it is cannot be shown.** The exchanges the contract returns carry only the sender kind; only
+  the list rows carry the user identifier
 
-## mock の配備では購読しません
+## Not subscribed in mock deployments
 
-理由は利用者側（[`../../inquiry/README.md`](../../inquiry/README.md)）と同じです。一覧も対応も、
-購読が止まった姿のまま表示と送信が動きます。
+The reason is the same as on the user side ([`../../inquiry/README.md`](../../inquiry/README.md)). Both the list
+and the handling screen display and send while left in the stopped-subscription state.
 
-## 関連する ADR
+## Related ADRs
 
-- [0074](../../../../docs/adr/0074-runtime-communication-seam.md) — 購読 seam の契約
-- [0073](../../../../docs/adr/0073-pagination-fetch-boundary.md) — cursor 方式のページ送り
-- [0061](../../../../docs/adr/0061-form-mutation-ux.md) — 送信は Server Action の往復
-- [0070](../../../../docs/adr/0070-backend-role-separation.md) — バックエンドとの責務線
+- [0074](../../../../docs/adr/0074-runtime-communication-seam.md) — The contract of the subscription seam
+- [0073](../../../../docs/adr/0073-pagination-fetch-boundary.md) — Cursor-based pagination
+- [0061](../../../../docs/adr/0061-form-mutation-ux.md) — Submission is a Server Action round trip
+- [0070](../../../../docs/adr/0070-backend-role-separation.md) — The responsibility line with the backend

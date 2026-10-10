@@ -88,7 +88,7 @@ WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token 
 
 いずれの token も、`background` / `card` / `popover` / `muted` / `accent` の**すべての上で**目標を満たします。地を背景だけで測ると、hover 中のメニュー項目に乗る `text-destructive` のように、淡い面の上に色文字が乗る組み合わせで割れます。`card` は半透明なので、背景の上に合成した色で測ります。
 
-線は WCAG 1.4.11 の対象かどうかで要求が分かれます。詳細は [`src/components/README.md`](../src/components/README.md) の「境界を示す線」にあります。
+線は WCAG 1.4.11 の対象かどうかで要求が分かれます。詳細は [`src/components/README.md#boundary-lines`](../src/components/README.md#boundary-lines)にあります。
 
 ## 光の層
 
@@ -115,7 +115,7 @@ WCAG は**文字に 4.5:1、UI 部品と図形に 3:1** を求めます。token 
 
 **光を状態の唯一の手掛かりにしないでください。** forced-colors モードでは UA が `box-shadow` を `none` にするため、`shadow-glow-*` は完全に消えます。`Live` / `Running` / `Selected` は色か文言と併せて示します。
 
-**輪郭のぼかしは focus の表示になりません。** `outline` はぼかせず、focus は `outline` である必要があります（[`src/components/README.md`](../src/components/README.md) の「focus 表示」）。ぼかしはその上に重ねる装飾です。
+**輪郭のぼかしは focus の表示になりません。** `outline` はぼかせず、focus は `outline` である必要があります（[`src/components/README.md#focus-indicators`](../src/components/README.md#focus-indicators)）。ぼかしはその上に重ねる装飾です。
 
 ## card は背景の上に半透明で乗る
 

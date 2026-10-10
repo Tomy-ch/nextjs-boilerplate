@@ -1,77 +1,77 @@
 # SearchFieldClient
 
-## 用途
+## Purpose
 
-キーワード検索の入力を保持する検索欄です。**いつ確定と見なすかは呼び出し元が選びます** —— 打鍵が止まった時点（既定）か、送信の操作でだけかです。前者は送信ボタンを押さなくても結果が変わる導線を、後者はほかの条件と一緒にまとめて確定する導線を作ります。
+A search field that holds keyword search input. **The caller chooses when input counts as committed** — when typing stops (the default), or only on a submit action. The former creates a flow where results change without pressing a submit button; the latter a flow where it is committed together with the other conditions.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 値 | 役割 |
+| Component / value | Role |
 | --- | --- |
-| `SearchFieldClient` | `search` 要素の landmark として、検索入力と消去ボタン（と送信ボタン）をまとめます。確定すると `onSearch` を呼びます。 |
-| `SEARCH_FIELD_COMMIT` | 確定と見なす契機（`typing` / `submit`）です。`search-field-client.definition.ts` が owner です。 |
-| `SEARCH_FIELD_DEBOUNCE_MS` | 入力が止まってから通知するまでの既定の待ち時間（ミリ秒）です。 |
+| `SearchFieldClient` | As a landmark of the `search` element, groups the search input and the clear button (and the submit button). Calls `onSearch` on commit. |
+| `SEARCH_FIELD_COMMIT` | What counts as a commit (`typing` / `submit`). `search-field-client.definition.ts` is the owner. |
+| `SEARCH_FIELD_DEBOUNCE_MS` | The default wait (milliseconds) between input stopping and the notification. |
 
-主な props は次のとおりです。
+The main props are as follows.
 
-| props | 役割 |
+| props | Role |
 | --- | --- |
-| `label`（必須） | 検索入力のアクセシブルな名前です。視覚的なラベルを持たないため、これだけが「何を検索する欄か」を伝えます。 |
-| `onSearch`（必須） | 確定したときに現在の検索語を受け取ります。消去された場合は空文字列です。 |
-| `commit` | 確定と見なす契機です。既定は `typing`（打鍵が止まった時点）。 |
-| `value` / `onValueChange` | 制御 component として使う場合に渡します。検索語をほかの条件と同じ場所に持つ画面で使います。 |
-| `defaultValue` | 初期表示する検索語です。非制御の場合に渡します。 |
-| `debounceMs` | 通知までの待ち時間です。既定は `SEARCH_FIELD_DEBOUNCE_MS`。`commit` が `typing` のときだけ効きます。 |
-| `clearLabel` | 消去ボタンのアクセシブルな名前です。既定は「検索語を消去」。 |
-| `submitLabel` / `submitDisabled` | 送信ボタンの文言と、押せるかどうかです。`commit` が `submit` のときだけ効きます。 |
+| `label` (required) | The accessible name of the search input. It has no visual label, so this alone tells what the field searches. |
+| `onSearch` (required) | Receives the current search term on commit. An empty string when cleared. |
+| `commit` | What counts as a commit. The default is `typing` (when typing stops). |
+| `value` / `onValueChange` | Passed when using it as a controlled component. Used on screens that keep the search term in the same place as the other conditions. |
+| `defaultValue` | The search term shown initially. Passed when uncontrolled. |
+| `debounceMs` | The wait before notification. The default is `SEARCH_FIELD_DEBOUNCE_MS`. Effective only when `commit` is `typing`. |
+| `clearLabel` | The accessible name of the clear button. The default is 「検索語を消去」 ("clear search term"). |
+| `submitLabel` / `submitDisabled` | The submit button's text and whether it can be pressed. Effective only when `commit` is `submit`. |
 
-## 利用ケース
+## Use Cases
 
-- 一覧の主導線で、打鍵しながら結果を絞り込みたい場合（`commit` は既定のまま）
-- 取得が重く、打鍵ごとの呼び出しを待ち時間でまとめたい場合
-- 検索語がほかの条件と並び、まとめて確定する場合（`commit` に `submit` を選ぶ）
-- server を持たない利用側（静的サイトとして配信する [`docs-viewer`](../../../../../docs-viewer/README.md) など）で、検索語を client の state に持って結果をその場で絞る場合。`searchParams` を読み直す server が居ないので、下の「結果は Server Component で描画する」はこの場合には当たりません
+- The main flow of a list, filtering results while typing (`commit` left at its default)
+- Fetching is heavy and per-keystroke calls should be batched with a wait
+- The search term sits alongside other conditions and is committed together with them (choose `submit` for `commit`)
+- A consumer without a server (such as [`docs-viewer`](../../../../../docs-viewer/README.md), delivered as a static site) keeps the search term in client state and filters the results on the spot. There is no server to re-read `searchParams`, so "Render the results in a Server Component" below does not apply in this case
 
-JavaScript が無くても送信できる形が要る場合や、検索が主導線でない場合は `SearchFieldNative` を使います。候補集合から選ぶことがゴールの UI には `Command` を使います。
+When a form that can submit without JavaScript is needed, or search is not the main flow, use `SearchFieldNative`. For UI whose goal is choosing from a set of candidates, use `Command`.
 
-キーワード以外の条件（状態・期間・数値の範囲など）も並ぶ画面では、この検索欄を [`FilterBar`](../../../patterns/filter-bar/README.md) の中へ置きます。`FilterBar` は検索欄を持たず、適用中の条件・件数・全解除の導線を束ねる外枠なので、排他ではなく入れ子の関係です。この component 単体で足りるのは、絞り込みがキーワードだけの場合です。
+On screens that also list conditions other than the keyword (state, period, numeric range and so on), place this search field inside [`FilterBar`](../../../patterns/filter-bar/README.md). `FilterBar` has no search field; it is the outer frame that bundles the applied conditions, the count and the clear-all action, so the relationship is nesting rather than exclusion. This component alone suffices when the only filter is the keyword.
 
-## 責務境界
+## Responsibility Boundaries
 
-入力の保持と待ち時間の制御のため hydration が必要な client island です。Server Component からは直接 render できません。
+It is a client island that needs hydration to hold the input and control the wait. It cannot be rendered directly from a Server Component.
 
-検索の実行、結果の取得、URL の組み立ては持ちません。確定すると `onSearch` を呼ぶだけで、router の操作も行いません。この分担は `Pagination` と同じで、`components` は URL を解釈しません。
+It owns no running of the search, fetching of results or building of URLs. On commit it only calls `onSearch`, and it does not operate the router either. This division is the same as `Pagination`; `components` does not interpret URLs.
 
-見た目は `InputGroup` を合成して得ており、この component は独自の class を持ちません。検索アイコン付きの入力欄という見た目の owner は `InputGroup` 側にあります。
+Its look comes from composing `InputGroup`, and this component has no classes of its own. The owner of the look of an input with a search icon is `InputGroup`.
 
-### 結果は Server Component で描画する
+### Render the results in a Server Component
 
-`onSearch` で受け取った検索語は、呼び出し元が `searchParams` へ載せ、結果は Server Component で描画します。結果まで client 側で取得すると、URL と表示が一致しなくなり、共有・履歴・戻る操作が壊れます。この component が client なのは入力の操作性のためだけであり、データの取得と描画を client へ移すためではありません。server を持たない利用側だけは例外で、検索語を client の state に持ちます（利用ケース）。
+The caller puts the search term received in `onSearch` into `searchParams`, and the results are rendered in a Server Component. Fetching the results on the client as well would make the URL and the display disagree, breaking sharing, history and the back action. This component is a client only for the usability of the input, not to move data fetching and rendering to the client. The one exception is a consumer without a server, which keeps the search term in client state (Use Cases).
 
-### `onSearch` は安定した関数を渡す
+### Pass a stable function to `onSearch`
 
-`commit` が `typing` のとき、`onSearch` の参照が変わるたびに待ち時間が測り直されます。render のたびに新しい関数を渡すと通知が発火しません。呼び出し元は `useCallback` などで参照を安定させます。
+When `commit` is `typing`, the wait is restarted every time the `onSearch` reference changes. Passing a new function on every render means the notification never fires. The caller stabilizes the reference with `useCallback` or similar.
 
-### 空の送信を押せなくするかは画面が決める
+### The screen decides whether an empty submit can be pressed
 
-`submitDisabled` は部品が「空かどうか」で決めません。空の送信が意味を持つか（＝効いている検索語を外す）は、いま何が効いているかを知っている呼び出し元にしか判断できないためです。
+`submitDisabled` is not decided by the component based on "is it empty". Whether an empty submit is meaningful (= removing the search term currently in effect) can be judged only by the caller, which knows what is in effect now.
 
-初期表示だけでは通知しません。`defaultValue` は現在の検索条件を映すためのものであり、mount と同時に検索し直す必要はないためです。
+The initial render alone does not notify. `defaultValue` exists to reflect the current search condition, and there is no need to search again on mount.
 
-### `search` 要素と landmark
+### The `search` Element and Landmark
 
-支援技術の landmark 一覧から到達できます。同じ画面に検索欄を複数置く場合は、`aria-label` で landmark を区別します。
+It can be reached from assistive technology's list of landmarks. When placing several search fields on one screen, distinguish the landmarks with `aria-label`.
 
-`commit` が `typing` のときは Enter による確定は行いません。`submit` を選ぶと Enter でも送信ボタンでも確定しますが、どちらの場合も form は持ちません。form にすると hydration が終わる前の操作で browser の既定の送信が走り、いま効いている条件を伴わないまま現在の URL へ遷移するためです。
+When `commit` is `typing`, Enter does not commit. Choosing `submit` commits on both Enter and the submit button, but in neither case does it have a form. With a form, an action before hydration finishes would run the browser's default submission and navigate to the current URL without the conditions currently in effect.
 
-landmark は `role="search"` 属性ではなく HTML の `search` 要素で表します。browser は `search` 要素を `search` role へマップしますが、テストで使う `aria-query` 5.3.0 はまだこの要素を登録していないため、`getByRole("search")` からは引けません。これはツール側の未対応であり、実装を `div role="search"` へ戻して回避することはしません。テストは `data-slot` で要素を取得し、`search` 要素であることを直接検証します。
+The landmark is expressed with the HTML `search` element rather than a `role="search"` attribute. Browsers map the `search` element to the `search` role, but `aria-query` 5.3.0, used in the tests, does not register this element yet, so it cannot be found with `getByRole("search")`. This is a gap in the tool, and the implementation is not reverted to `div role="search"` to work around it. The tests get the element by `data-slot` and verify directly that it is a `search` element.
 
-消去ボタンは検索語があるときだけ描画し、押すと入力を空にして focus を入力へ戻します。消去は入力の変更で、確定は `commit` に従います —— `typing` では待ち時間の後に空文字列が通知され、`submit` では送信の操作でだけ通知されます。
+The clear button is rendered only when there is a search term; pressing it empties the input and returns focus to the input. Clearing is a change to the input, and commit follows `commit` — with `typing`, an empty string is notified after the wait; with `submit`, it is notified only on a submit action.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の通知、補助文を添える場合、現在の検索条件を反映して消去ボタンが出た状態、待ち時間を長くする場合、送信の操作でだけ確定する場合、その送信を押せなくした場合を確認します。通知された検索語と絞り込み結果を同じ画面に並べ、待ち時間の体感を実際の操作で確かめられるようにしています。
+Storybook checks the default notification, adding helper text, the state where the current search condition is reflected and the clear button appears, a longer wait, committing only on a submit action, and that submit made unpressable. The notified search term and the filtered results are placed on the same screen so the feel of the wait can be checked with real interaction.
 
-テストは `search` 要素の landmark に `type="search"` の入力を置くこと、初期表示では通知しないこと、入力が止まってから通知すること、入力が続く間は通知をまとめて最後の値だけを通知すること、待ち時間を変えられること、消去ボタンの出し分けと文言、消去時に入力が空になり focus が戻り空文字列が通知されること、a11y 自動検査を確認します。待ち時間の検証には fake timer を使い、a11y 自動検査だけは検査側が実時間を必要とするため実 timer に戻します。
+The tests check that a `type="search"` input sits in the landmark of a `search` element, that the initial render does not notify, that it notifies after input stops, that while input continues notifications are batched and only the last value is notified, that the wait can be changed, the showing and text of the clear button, that clearing empties the input, returns focus and notifies an empty string, and the automated a11y check. Fake timers are used to verify the wait; only the automated a11y check switches back to real timers because the checker needs real time.
 
-`commit` が `submit` の場合は、打鍵では通知しないこと、消去しても通知しないこと、送信の操作で通知すること、送信ボタンの文言を差し替えられること、呼び出し元が押せないと決めたときに押せなくなること、`typing` では送信ボタンを出さないことを確認します。制御 component として使う場合は、外から渡された検索語を映すこと、打鍵と消去のたびに呼び出し元へ渡すこと、自分では保持しないことを確認します。
+When `commit` is `submit`, they check that typing does not notify, that clearing does not notify, that a submit action notifies, that the submit button's text can be replaced, that it becomes unpressable when the caller decides so, and that `typing` shows no submit button. When used as a controlled component, they check that it reflects the search term passed in from outside, that it passes the value to the caller on every keystroke and clear, and that it holds nothing itself.

@@ -1,141 +1,140 @@
 ---
-imports-allowed: [model, errors, logging, config] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [model, errors, logging, config] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [adapters, components, stores, server-config, business-state]
 test-requirement: unit
 ---
 
 # capabilities
 
-connectivity、media query、storage、clipboard など、複数 feature が使うブラウザ runtime 能力の client hook を置くカーネルです。
+The kernel that holds client hooks for browser runtime capabilities used by several features: connectivity, media queries, storage, clipboard and the like.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 横断利用される client-only hook と browser API の薄い抽象
+- Client-only hooks used across features, and thin abstractions over browser APIs
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- remote IO、server config、業務状態、UI、ポリシー状態
-- UI に密着した挙動の hook（focus trap / scroll lock など）。runtime 能力ではなく UI 挙動なので、その
-  部品へ共置する（[0022](../../docs/adr/0022-capabilities-kernel.md) 合成方針）
+- Remote IO, server config, business state, UI, policy state
+- Hooks for behaviour tied closely to UI (focus trap / scroll lock and the like). They are UI behaviour, not runtime capabilities, so they are
+  co-located with that component ([0022](../../docs/adr/0022-capabilities-kernel.md), on composing such behaviour with its component)
 
-## 運用
+## Operations
 
-- client-only の実装では `"use client"` を最小の境界に置く
-- 単一 feature 専用 hook は feature 内に置く
-- Provider を export して root layout に mount する形は [0022](../../docs/adr/0022-capabilities-kernel.md) /
-  [0026](../../docs/adr/0026-layout-shell-mount.md) が定める。Provider の外で呼ばれた hook が throw するか
-  no-op になるかは hook の側が決める（[`docs/rules.md#layers`](../../docs/rules.md#layers)）
+- In a client-only implementation, place `"use client"` at the smallest boundary
+- A hook used by a single feature goes inside that feature
+- The shape of exporting a Provider and mounting it in the root layout is set by [0022](../../docs/adr/0022-capabilities-kernel.md) /
+  [0026](../../docs/adr/0026-layout-shell-mount.md). Whether a hook called outside its Provider throws or
+  becomes a no-op is decided by the hook ([`docs/rules.md`](../../docs/rules.md#layers))
 
-### 供給の形
+### Shape of What Is Supplied
 
-hook が返すものは、能力が**変わり続ける値**か**一度起きる出来事**かで決まる。
+What a hook returns is decided by whether the capability is **a value that keeps changing** or **an event that happens once**.
 
-- **変わり続ける値**（条件の一致、回線の有無、直近の向き）は `useSyncExternalStore` で供給する。
-  `subscribe` / `snapshot` / `serverSnapshot` を別々の関数として置き、購読の開始と解除は `subscribe` の
-  返り値で対にする。ブラウザの値を `useState` へ写して `useEffect` で追う形は採らない —— 外部の値を
-  読む React の標準の形がこちらであり（[0022](../../docs/adr/0022-capabilities-kernel.md) 移植性）、
-  サーバ側の初期値が `serverSnapshot` という 1 か所に立つ
-- **一度起きる出来事**（要素が見えた）は callback で受け取り、見張る対象へ渡す ref を返す。「起きた」を
-  state で配ると、読む側がそれを見張る effect と最新の処理を掴む ref を書くことになり、その一式が読む
-  側の数だけ増える。callback は ref に最新を保ち、**処理が変わっても購読を張り直さない** —— 張り直しの
-  瞬間に起きた出来事は落ちる
-- **何をするかは持たない。** 知らせるだけで、そこで何を始めるかは呼び出し側が決める
-- 省略できる調整（手前の距離、見張るかどうか）は 1 つの options object で受け、既定は hook 側が持つ。
-  **見張るかどうかを option で受け、`false` の間は購読そのものを持たない** —— 要素の出し入れと購読の
-  有無を分けて扱えるようにする（読み終えた、続きが無い、の場面で目印を残したまま知らせだけを止める）
-- 揺れる入力から向きや段を導くときは、名前を持つ定数で不感帯を置き、その理由を定数の doc に書く。
-  最小単位で切り替えると、指の震えや慣性の揺り返しで姿が入れ替わり続ける（例:
-  [`use-scroll-direction`](use-scroll-direction.ts) の `THRESHOLD_PX`）
-- hook API はデファクト標準の形（慣用のシグネチャ）に寄せる（[0022](../../docs/adr/0022-capabilities-kernel.md)
-  移植性）
+- **A value that keeps changing** (a condition matching, connectivity, the most recent direction) is supplied with `useSyncExternalStore`.
+  Place `subscribe` / `snapshot` / `serverSnapshot` as separate functions, and pair starting and ending a subscription through `subscribe`'s
+  return value. Do not copy the browser's value into `useState` and track it with `useEffect` — this is React's standard shape for reading
+  an external value ([0022](../../docs/adr/0022-capabilities-kernel.md), portability),
+  and the server-side initial value stands in one place, `serverSnapshot`
+- **An event that happens once** (an element became visible) is received through a callback, and the hook returns a ref to hand to the observed target. Distributing "it happened"
+  as state makes each reader write an effect that watches it and a ref that holds the latest handler, and that set multiplies by
+  the number of readers. The callback keeps the latest in a ref and **does not resubscribe when the handler changes** — an event that occurs
+  at the moment of resubscribing is lost
+- **It does not hold what to do.** It only notifies; what to start there is decided by the caller
+- Optional tuning (the distance in advance, whether to observe) is taken in one options object, and the hook holds the defaults.
+  **Whether to observe is taken as an option, and while it is `false` no subscription is held at all** — so that mounting the element and
+  having a subscription can be handled separately (stopping only the notification while keeping the marker, in cases like "finished reading" or "nothing more to load")
+- When deriving a direction or step from a jittery input, place a dead zone as a named constant and write its reason in the constant's doc.
+  Switching at the smallest unit makes the appearance keep flipping with finger tremor or inertial rebound (e.g.
+  `THRESHOLD_PX` in [`use-scroll-direction`](use-scroll-direction.ts))
+- Align the hook API with the de facto standard shape (the conventional signature) ([0022](../../docs/adr/0022-capabilities-kernel.md),
+  portability)
 
-### サーバ側の初期値
+### Server-Side Initial Values
 
-サーバには browser の値が無い。`serverSnapshot` は**初回の HTML が取るべき姿**を返す関数として置き、
-doc に「常に X を返す」と、なぜその側かを書く。選ぶのは「利用者がまだ何もしていない側」か「その HTML
-が配られたこと自体が前提とする側」で、実装はどれも同じ決め方をしている。
+The server has no browser values. Place `serverSnapshot` as a function that returns **the appearance the initial HTML should take**, and
+write in its doc "always returns X" and why that side. The choice is "the side where the user has not done anything yet" or "the side the
+very delivery of that HTML presupposes", and every implementation decides the same way.
 
-| 能力 | サーバの値 | 選んだ根拠 |
+| Capability | Server value | Basis for the choice |
 | --- | --- | --- |
-| 条件の一致 | 一致していない側 | 条件は評価できない。一致した側にだけ現れる UI は hydration の後に現れる |
-| 回線の有無 | 繋がっている側 | 繋がっていない端末へ配られるのはキャッシュされた応答 |
-| 直近の向き | まだ動いていない側 | 位置を知れない |
+| Condition matching | The not-matching side | The condition cannot be evaluated. UI that appears only on the matching side appears after hydration |
+| Connectivity | The connected side | What is delivered to a disconnected device is a cached response |
+| Most recent direction | The not-yet-moved side | The position cannot be known |
 
-**サーバに値が無い能力は、hook の `@remarks` に次の 3 点を書く**: サーバの値、初回描画がどちらの姿に
-なるか（hydration までは操作できるかもその姿に従う）、それゆえ使えない出し分け（本文の幅・順序が変わる
-もの）。初期値と実際の環境がずれるぶんだけ hydration で表示が動くため、位置が動く出し分けには使わせない
-（CSS 側で表現する）。何が使ってよい出し分けかは「使う側の線」。
+**For a capability with no value on the server, write these three points in the hook's `@remarks`**: the server value, which appearance the
+initial render takes (whether it is operable until hydration also follows that appearance), and the conditional rendering that is therefore unusable (anything that changes the body's
+width or order). The display shifts at hydration by however much the initial value and the actual environment differ, so it is not used for conditional rendering that moves positions
+(express those in CSS). Which conditional rendering may be used is *Where Callers Draw the Line*.
 
-### 購読の持ち方
+### How Subscriptions Are Held
 
-- 値が引数で決まる（query）なら、購読は呼び出しごとに持ち、引数を deps にして張り直す
-- 値が画面に 1 つしか無い（scroll の向き）なら、購読は module に 1 つへ畳む。listener の集合を持ち、
-  **最初の購読で監視を始め、最後の解除で終える**。部品の数だけ listener を張ると、イベントのたびに同じ
-  計算がその数だけ走る。畳んだ分だけ module が状態を持つので、テストは module を読み直す（「テストの
-  書き方」）
-- scroll の listener は `{ passive: true }` で張る
-- 解除は必ず返し、テストで固定する
+- If the value is decided by arguments (query), hold a subscription per call and resubscribe with the arguments as deps
+- If there is only one value per screen (scroll direction), fold the subscription into one per module. Hold a set of listeners,
+  **start observing on the first subscription and stop on the last unsubscription**. Attaching a listener per component runs the same
+  computation that many times on every event. Folding gives the module state, so tests reload the module (*Writing
+  Tests*)
+- Attach scroll listeners with `{ passive: true }`
+- Always return the unsubscription, and pin it in tests
 
-### 使う側の線
+### Where Callers Draw the Line
 
-- **位置が動く出し分けは CSS で行い、この hook で行わない。** 使ってよいのは、DOM を残したままでは
-  成立しないもの（focus trap を持つ面）と、現れても位置が動かないもの。規則は
-  [`docs/rules.md#layout`](../../docs/rules.md#layout)、hydration との関係は
-  [`docs/design/rendering.md`](../../docs/design/rendering.md)「サーバでしか分からないこと・ブラウザでしか
-  分からないことがある」が持つ
-- 幅の段を条件にするときは数値を書かず、[`model/breakpoint`](../model/breakpoint.ts) が design token
-  から組む文字列を渡す。JS 側に数値を書くと、段を差し替えたときに CSS 側の境界とずれる
-- **能力と、その先の成否は別。** 回線があることと通信が成立していることは別で、接続の生死は接続を持つ
-  側（購読 seam）が持つ。画面はどちらも要る（[0022](../../docs/adr/0022-capabilities-kernel.md)
-  受け入れないもの）
+- **Conditional rendering that moves positions is done in CSS, not with these hooks.** What may use them is what cannot work
+  with the DOM left in place (a surface with a focus trap), and what does not move positions when it appears. The rule is held by
+  [`docs/rules.md`](../../docs/rules.md#layout), and the relationship with hydration by
+  [`docs/design/rendering.md`](../../docs/design/rendering.md#サーバでしか分からないことブラウザでしか分からないことがある)
+- When a width step is the condition, do not write numbers; pass the string [`model/breakpoint`](../model/breakpoint.ts) builds from
+  design tokens. Write numbers on the JS side and they drift from the CSS boundaries when the steps are replaced
+- **A capability and whether what follows succeeds are separate.** Having a connection is separate from communication succeeding; the liveness of a connection is held by
+  the side that holds the connection (the subscription seam). A screen needs both ([0022](../../docs/adr/0022-capabilities-kernel.md),
+  which excludes connection liveness from this kernel)
 
-### テストの書き方
+### Writing Tests
 
-**hook のテストは Vitest + React Testing Library の `render` / `act` を使う**。`test-requirement` は
-`unit` だが、React の hook API を内部で使うものは React のツリーを介してしか呼べないため、純粋ロジックと
-同じ手段では検証できない（選択基準は「対象が hook API を使うか」。[0090](../../docs/adr/0090-testing-strategy.md)）。
+**Hook tests use Vitest + React Testing Library's `render` / `act`**. `test-requirement` is
+`unit`, but anything that uses React's hook API internally can only be called through a React tree, so it cannot be verified by the same means as
+pure logic (the selection criterion is "does the subject use the hook API"; [0090](../../docs/adr/0090-testing-strategy.md)).
 
-- ファイル先頭に `// @vitest-environment jsdom` を置く。既定の環境は node（`vitest.config.ts`）
-- hook を呼ぶだけの Probe component を書き、返り値を描画結果に映して読む
-  （[`docs/testing-conventions.md`](../../docs/testing-conventions.md)「利用者が観測するものをアサートする」）
-- jsdom に無い browser API は `vitest.setup.ts` が補う（補いの一覧はそのファイルが持つ）。**変化を起こす
-  必要があるテストは、そのファイルで `vi.stubGlobal` に制御できる最小の実装を置く** —— listener の集合と、
-  それを発火させる `change` / `fire` を返す形。読み取り専用の値（`navigator.onLine` / `window.scrollY`）は
-  `vi.spyOn(…, "get")` / `Object.defineProperty` で差し替える
-- サーバ側の初期値は `renderToStaticMarkup` で描いて固定する。stub を置かずに回し、browser の値を見ずに
-  初期値を返すことを確かめる
-- 解除を固定する。購読ごとの hook は unmount 後の listener 数が 0 であること、module に畳んだ hook は
-  最後の部品が外れたときだけ `removeEventListener` が呼ばれ、まだ部品が残るあいだは呼ばれないこと
-- module に畳んだ購読は前のテストの状態を持ち越す。テストごとに `vi.resetModules()` してから動的
-  `import` で読み直し、Probe の呼ぶ先を差し替える
+- Put `// @vitest-environment jsdom` at the top of the file. The default environment is node (`vitest.config.ts`)
+- Write a Probe component that only calls the hook, and read the return value reflected in the rendered output
+  ([`docs/testing-conventions.md`](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則), "Assert what the user observes")
+- `vitest.setup.ts` supplies browser APIs jsdom lacks (that file holds the list of what it supplies). **A test that needs to cause a
+  change places, in that file, a minimal implementation it can control via `vi.stubGlobal`** — the shape that returns a set of listeners
+  and `change` / `fire` to trigger them. Read-only values (`navigator.onLine` / `window.scrollY`) are
+  replaced with `vi.spyOn(…, "get")` / `Object.defineProperty`
+- Pin the server-side initial value by rendering with `renderToStaticMarkup`. Run it with no stub, and confirm it returns the initial value
+  without looking at browser values
+- Pin the unsubscription. For a per-subscription hook, the listener count after unmount is 0; for a hook folded into the module,
+  `removeEventListener` is called only when the last component detaches, and not while components remain
+- A subscription folded into the module carries over the previous test's state. Per test, `vi.resetModules()` and then reload it with a dynamic
+  `import`, swapping what the Probe calls
 
-## 置いている hook
+## Hooks Provided
 
-| hook | 供給する能力 |
+| hook | Capability supplied |
 | --- | --- |
-| [`use-media-query`](use-media-query.ts) | 幅・入力方式などのメディア条件の一致 |
-| [`use-online-status`](use-online-status.ts) | 回線が繋がっているか（`navigator.onLine` の購読） |
-| [`use-scroll-direction`](use-scroll-direction.ts) | 直近の scroll がどちらへ向いたか |
-| [`use-on-visible`](use-on-visible.ts) | 要素が見えたこと（`IntersectionObserver` の購読） |
+| [`use-media-query`](use-media-query.ts) | Matching media conditions such as width and input method |
+| [`use-online-status`](use-online-status.ts) | Whether the connection is up (subscribing to `navigator.onLine`) |
+| [`use-scroll-direction`](use-scroll-direction.ts) | Which way the most recent scroll went |
+| [`use-on-visible`](use-on-visible.ts) | That an element became visible (subscribing to `IntersectionObserver`) |
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: adapters` — `adapters` を import せず、`fetch` などの remote IO を持たない | violation。import と購読の組み立て（`EventSource` / `WebSocket`）は機械が落とすので、ここで見るのはグローバルの `fetch` の呼び出し | [0022](../../docs/adr/0022-capabilities-kernel.md) 禁止事項。機械: ESLint boundaries と `no-restricted-syntax` |
-| `forbidden: components` — UI 部品を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: stores` — `stores` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: server-config` — server config（`*.server.ts`）を import しない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0022](../../docs/adr/0022-capabilities-kernel.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス。ESLint は `config` を層の粒度でしか見ない |
-| `forbidden: business-state` — 業務状態、同意や feature flag のようなポリシー状態、購読の生死や backoff のような通信機構の状態を持たない。持つのはブラウザ runtime の能力だけ | 業務状態は violation。状態がポリシーや通信機構の写しかどうかが読み分けられないときは suggestion | [0022](../../docs/adr/0022-capabilities-kernel.md) 禁止事項 |
-| 置いてある hook は複数の feature から使われる。1 つの feature 専用の hook は feature の内側に置く | 使う feature が 1 つしか無ければ suggestion | [0022](../../docs/adr/0022-capabilities-kernel.md) / この README「運用」 |
-| サーバに値が無い能力は、サーバ側の初期値を hook の doc に書く | 書かれていなければ violation。`renderToStaticMarkup` で固定するテストが無ければ suggestion | この README「サーバ側の初期値」/「テストの書き方」 |
-| 変わり続ける値は `useSyncExternalStore` で供給し、`serverSnapshot` を名指す | browser の値を `useState` へ写して `useEffect` で追う形なら suggestion | この README「供給の形」 |
-| 購読を張った hook は解除を返し、テストが解除を固定する | 解除が無ければ violation。解除を固定するテストが無ければ suggestion | この README「購読の持ち方」/「テストの書き方」 |
+| `forbidden: adapters` — do not import `adapters`, and hold no remote IO such as `fetch` | violation. Imports and subscription assembly (`EventSource` / `WebSocket`) are failed by the machine, so what is checked here is calls to the global `fetch` | [0022](../../docs/adr/0022-capabilities-kernel.md) prohibitions. Machine: ESLint boundaries and `no-restricted-syntax` |
+| `forbidden: components` — do not import UI components | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. Machine: ESLint boundaries |
+| `forbidden: stores` — do not import `stores` | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. Machine: ESLint boundaries |
+| `forbidden: server-config` — do not import server config (`*.server.ts`). `NEXT_PUBLIC_` public constants (`*.client.ts`) may be read | violation | [0022](../../docs/adr/0022-capabilities-kernel.md) prohibitions / [0021](../../docs/adr/0021-frontend-responsibility.md) dependency matrix. ESLint sees `config` only at layer granularity |
+| `forbidden: business-state` — hold no business state, no policy state such as consent or feature flags, and no communication-mechanism state such as subscription liveness or backoff. Hold only browser runtime capabilities | Business state is a violation. When it cannot be read whether a state is a copy of policy or communication-mechanism state, suggestion | [0022](../../docs/adr/0022-capabilities-kernel.md) prohibitions |
+| The hooks placed here are used by several features. A hook dedicated to one feature goes inside that feature | A suggestion if only one feature uses it | [0022](../../docs/adr/0022-capabilities-kernel.md) / this README, *Operations* |
+| For a capability with no value on the server, the server-side initial value is written in the hook's doc | A violation if not written. A suggestion if there is no test pinning it with `renderToStaticMarkup` | This README, *Server-Side Initial Values* / *Writing Tests* |
+| A value that keeps changing is supplied with `useSyncExternalStore`, naming `serverSnapshot` | A suggestion for the shape that copies a browser value into `useState` and tracks it with `useEffect` | This README, *Shape of What Is Supplied* |
+| A hook that subscribes returns the unsubscription, and a test pins it | A violation if there is no unsubscription. A suggestion if no test pins it | This README, *How Subscriptions Are Held* / *Writing Tests* |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界
-- [0022](../../docs/adr/0022-capabilities-kernel.md) — このカーネルが受け持つ範囲と、単一 feature 用の hook を昇格させない線
-- [0026](../../docs/adr/0026-layout-shell-mount.md) — Provider を root layout へ薄く mount する例外
-- [0040](../../docs/adr/0040-routing-rendering-strategy.md) — Server / Client Component の割り方と `"use client"` の置き場
-- [0090](../../docs/adr/0090-testing-strategy.md) — 層ごとのテストの受け持ちと co-location
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries
+- [0022](../../docs/adr/0022-capabilities-kernel.md) — The scope this kernel takes on, and the line that keeps single-feature hooks from being promoted
+- [0026](../../docs/adr/0026-layout-shell-mount.md) — The exception for thinly mounting Providers in the root layout
+- [0040](../../docs/adr/0040-routing-rendering-strategy.md) — How Server / Client Components are split, and where `"use client"` goes
+- [0090](../../docs/adr/0090-testing-strategy.md) — What tests each layer is responsible for, and co-location

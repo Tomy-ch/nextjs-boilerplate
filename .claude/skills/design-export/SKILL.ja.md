@@ -18,7 +18,7 @@ script ではなくスキルとして存在する理由は、ADR [0055](../../..
 
 ## このスキルを使わない場面
 
-- **component を変更する場合。** 編集は `src/components/` の下で行い、[`components/README.md`](../../../src/components/README.md) が規約を持つ。このスキルは読むだけである
+- **component を変更する場合。** 編集は `src/components/` の下で行い、[`components/README.md`](../../../src/components/README.ja.md) が規約を持つ。このスキルは読むだけである
 - **story や component のドキュメントを書く場合。** それは通常の component 作業である
 - **何かをリポジトリへ戻す場合。** 依存の向きは repo → design で固定されている — 「一方向の規律」節を参照
 

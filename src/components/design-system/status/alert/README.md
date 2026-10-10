@@ -1,25 +1,25 @@
 # Alert
 
-## 用途
+## Purpose
 
-注意、失敗、利用者が次に取る行動を文脈内で伝えます。
+Communicates a caution, a failure, or the next action the user should take, within context.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Alert` | `role="alert"` を持つ通知全体です。`variant` で通常・warning・destructive の見た目を選びます。 |
-| `AlertTitle` | 通知内容を短く要約する見出しです。 |
-| `AlertDescription` | 詳細、影響、次に取る行動を置く領域です。 |
+| `Alert` | The whole notice, carrying `role="alert"`. `variant` selects the default, warning, or destructive look. |
+| `AlertTitle` | Heading that briefly summarizes the notice. |
+| `AlertDescription` | Region for the details, the impact, and the next action to take. |
 
-## 利用ケース
+## Use Cases
 
-保存できない理由、入力内容の確認依頼、処理結果の補足など、画面内で即時に伝える必要がある情報に使います。
+Use it for information that must be conveyed immediately within the screen: why something could not be saved, a request to check the input, a supplement to a processing result.
 
-## 責務境界
+## Responsibility Boundaries
 
-Server Component として表示だけを担います。状態判定、取得、再試行、dismiss、業務文言は feature が所有します。利用者の操作を必要とする失敗は、必要な link や Button を `AlertDescription` へ合成します。
+As a Server Component it handles display only. The feature owns state decisions, fetching, retrying, dismissal, and business wording. For a failure that requires the user to act, compose the needed link or Button into `AlertDescription`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・warning・destructive・補助操作を、テストは `alert` の意味論・variant・a11y を確認します。warning は注意喚起、destructive は処理失敗に使い、薄い背景・見出し・アイコンを組み合わせて、色だけに依存せず意味を伝えます。
+Storybook covers default, warning, destructive, and an auxiliary action; the tests cover the `alert` semantics, the variants, and a11y. Warning is for a caution and destructive for a processing failure; each combines a pale background, a heading and an icon to convey meaning without relying on color alone.

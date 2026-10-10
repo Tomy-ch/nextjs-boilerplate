@@ -1,54 +1,54 @@
 ---
-imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [business-logic, direct-config-access]
 test-requirement: unit
 ---
 
 # logging
 
-構造化ログを提供するカーネルです。設定値と observability は import せず、起動境界から注入されます。この README はカーネルの窓口で、書く側の契約と、実装を消しても残す形を持つ。起動境界の結線順、ブラウザからサーバ、collector までの 1 本の線、registered symbol で注入を渡す機序は [観測](../../docs/design/observability.md) が持つ。
+The kernel that provides structured logging. It imports neither configuration values nor observability; both are injected from the boot boundary. This README is the kernel's front desk: it holds the writing side's contract and the shapes that remain even if the implementation is deleted. The wiring order at the boot boundary, the single line from the browser to the server and on to the collector, and the mechanism that passes injections through a registered symbol are owned by [Observability](../../docs/design/observability.md).
 
-## 受け入れるもの
+## What Belongs Here
 
-- context に基づく logger、`trace_id` の付与、構造化ログ、redaction
+- A context-based logger, attaching `trace_id`, structured logs, redaction
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、config の直接参照
+- Business logic, direct references to config
 
-## 構成
+## Structure
 
-- `logger.ts` はアプリケーションが依存する `Logger`、追加フィールド、trace 抽出器、出力 sink の契約だけを定義する。**`server-only` を名乗らない** —— 契約と名前の表だけを持ち、Pino の型を出さないので、ブラウザ側の束に入ってよい。
-- `logger.ts` は伏せる項目の名前（`authorization` / `cookie` / `password` / `token`）も持つ。**ログと span の双方がこの 1 つの表を見る** —— [0081](../../docs/adr/0081-observability-logging.md) が両方へ同じ redaction を求めており、表が 2 つに割れると片方だけが緩む。span 側で掛けるのは `adapters/server/telemetry` の中継である。
-- `pino.server.ts` は Pino による JSON stdout 出力を実装する。上の表に当たるフィールドを、大文字小文字を区別せず `[REDACTED]` に置換する。Pino を知るのはこのファイルだけである。
-- `logging.server.ts` は起動境界から注入された設定で、プロセス内 singleton を一度だけ初期化する。アプリケーションの server 側コードは `getLogger()` を使い、Pino を直接 import しない。記録の失敗を呼び出し元へ持ち出さない `reportQuietly()` もここが持つ（下記「書く側の形」）。
+- `logger.ts` defines only the contracts the application depends on: `Logger`, additional fields, the trace extractor, and the output sink. **It does not declare `server-only`** — it holds only contracts and a table of names and exposes no Pino types, so it may enter the browser-side bundle.
+- `logger.ts` also holds the names of the fields to redact (`authorization` / `cookie` / `password` / `token`). **Both logs and spans consult this one table** — [0081](../../docs/adr/0081-observability-logging.md) requires the same redaction on both, and if the table split in two, only one side would loosen. On the span side it is applied by the relay in `adapters/server/telemetry`.
+- `pino.server.ts` implements JSON stdout output with Pino. It replaces fields matching the table above with `[REDACTED]`, case-insensitively. This is the only file that knows Pino.
+- `logging.server.ts` initializes the in-process singleton once, with the configuration injected from the boot boundary. Application server-side code uses `getLogger()` and does not import Pino directly. It also holds `reportQuietly()`, which keeps a recording failure from propagating to the caller (see "Shape on the Writing Side" below).
 
-ログ呼出し時に注入済みの trace 抽出器が有効な span を返すと、`trace_id` と `span_id` を構造化フィールドへ自動付与する。**呼び出し側はこの 2 つを渡せない** —— `LogFields` が型で拒む。相関は実行文脈から取るもので、caller が明示的に渡すものではない（[0081](../../docs/adr/0081-observability-logging.md) の ctx-native）。同じ正規化済みレコードは、必要なら注入済み sink にも渡す。OTLP Logs への送出はこの sink を observability 側が実装し、logging から observability への依存は作らない。
+When the injected trace extractor returns a valid span at log time, `trace_id` and `span_id` are attached to the structured fields automatically. **Callers cannot pass these two** — `LogFields` rejects them by type. Correlation is taken from the execution context, not passed explicitly by the caller (the ctx-native stance of [0081](../../docs/adr/0081-observability-logging.md)). The same normalized record is also passed to the injected sink when needed. Sending to OTLP Logs is done by observability implementing this sink, and no dependency from logging to observability is created.
 
-### フィールド名の表
+### The Field Name Table
 
-構造化フィールドの名前は `logger.ts` の `LogFieldKey` が 1 か所で持つ（[0081](../../docs/adr/0081-observability-logging.md) の「ログキーの表」）。同じ意味の項目が呼び出し側ごとに別の名前で載ると、backend で 1 つの問いとして引けなくなるためである。`LogFields` は表の名前に型を付ける。
+The names of structured fields are held in one place, `LogFieldKey` in `logger.ts` (the log key table [0081](../../docs/adr/0081-observability-logging.md) asks for). If an item with the same meaning were recorded under different names by different callers, the backend could no longer query it as one question. `LogFields` types the names in the table.
 
-- `trace_id` / `span_id` は渡せない。logger が実行中の span から付ける
-- `cause` は文字列だけを受ける（理由は下記「書く側の形」）
-- `latency_ms` は数値を受ける
-- 例外の内容は OpenTelemetry semconv の名前（`exception.type` / `exception.message` / `exception.stacktrace`）で載せ、いずれも文字列を受ける。独自の名前（`error_message` 等）を立てない
+- `trace_id` / `span_id` cannot be passed. The logger attaches them from the running span
+- `cause` accepts only a string (the reason is in "Shape on the Writing Side" below)
+- `latency_ms` accepts a number
+- Exception details are recorded under the OpenTelemetry semconv names (`exception.type` / `exception.message` / `exception.stacktrace`), each accepting a string. No custom names (`error_message` and the like) are introduced
 
-表に無い名前も渡せる。ただし公式 semconv に名前がある項目はその名前を使う。
+Names not in the table can be passed too. However, an item that has a name in the official semconv uses that name.
 
-### レコードの形
+### Record Shape
 
-1 行が持つのは、Pino が付ける `level` / `time` / `msg`、呼び出し側のフィールド、trace 相関（`trace_id` / `span_id`）である。Pino の既定の `pid` / `hostname` は載せない（`base: undefined`）。sink が受け取るのは stdout と同じ正規化済みのレコード —— 伏せた後の `fields` に `level` と `message` を添えたもの —— で、sink が生の値を見る経路は無い。
+A line holds the `level` / `time` / `msg` that Pino adds, the caller's fields, and the trace correlation (`trace_id` / `span_id`). Pino's default `pid` / `hostname` are not included (`base: undefined`). What the sink receives is the same normalized record as stdout — the redacted `fields` plus `level` and `message` — and there is no path by which the sink sees raw values.
 
-### レベルの語は 3 か所で同じ
+### Level words are the same in three places
 
-`LogLevel` の値（`debug` / `info` / `warn` / `error`）は、`Logger` の method 名であると同時に、Pino の method 名の引き先（`this.#logger[level]`）であり、OTLP sink が severity を引く鍵でもある。レベルの集合は [0081](../../docs/adr/0081-observability-logging.md) が 4 つと決めており、語を変えるなら 3 か所が同じ語で揃っていることが前提になる。
+The `LogLevel` values (`debug` / `info` / `warn` / `error`) are at once the method names of `Logger`, the lookup target for Pino's method names (`this.#logger[level]`), and the key the OTLP sink uses to look up severity. [0081](../../docs/adr/0081-observability-logging.md) fixes the set of levels at four, and changing a word presupposes that the three places stay aligned on the same word.
 
-## 書く側の形
+## Shape on the Writing Side
 
-**記録の失敗で、記録の対象になった処理まで失敗させない。** `getLogger()` は起動境界を通っていない実行（テスト、`instrumentation.ts` を経ない script）では投げる。記録は後から辿るための手段であって利用者へ見せる結果ではないので、**成否が利用者へ見える処理（画面の描画、Server Action、Route Handler、adapter の取得）の中の記録は `reportQuietly()` で包む**。
+**A recording failure must not make the recorded operation fail too.** `getLogger()` throws in executions that did not pass through the boot boundary (tests, scripts that do not go through `instrumentation.ts`). Recording is a means to trace things later, not a result shown to users, so **recording inside an operation whose success or failure is visible to users (screen rendering, Server Actions, Route Handlers, adapter fetches) is wrapped in `reportQuietly()`**.
 
-縮退して続ける取得はこの形になる。
+A fetch that degrades and continues takes this shape.
 
 ```ts
 try {
@@ -60,43 +60,43 @@ try {
 }
 ```
 
-- **失敗の原因は `cause` に文字列で載せる。** `Error` をそのまま置くと OTLP sink では `{}` になる（理由は [観測](../../docs/design/observability.md)「`Error` や `Date` をそのままフィールドに載せると空になる」）。公式 semconv に名前がある項目（`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`）はその名前を使う。
-- **レベルは [0080](../../docs/adr/0080-error-handling.md) の線で選び、同じ失敗は境界で 1 回だけ記録する。**
-- **フィールドは平らに持つ。** 伏せるのは最上位のフィールド名だけで、入れ子の object の中の名前は見ない。一方 sink は入れ子を再帰的に送る。秘密を持ち回る名前は最上位に置く。
-- **`console.*` は使わない。** biome の `noConsole` が見る（[0002](../../docs/adr/0002-formatter-linter.md)）。
+- **The cause of a failure goes in `cause` as a string.** Putting an `Error` as is becomes `{}` in the OTLP sink (the reason is in [Observability](../../docs/design/observability.md#error-や-date-をそのままフィールドに載せると空になる), "Putting an `Error` or a `Date` straight into a field leaves it empty"). Items that have a name in the official semconv (`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`) use that name.
+- **Choose the level along the line [0080](../../docs/adr/0080-error-handling.md) draws, and record the same failure only once, at the boundary.**
+- **Keep fields flat.** Only top-level field names are redacted; names inside nested objects are not checked. The sink, on the other hand, sends nested values recursively. Names that carry secrets go at the top level.
+- **Do not use `console.*`.** Biome's `noConsole` checks this ([0002](../../docs/adr/0002-formatter-linter.md)).
 
-## 実行機序
+## Execution Mechanics
 
-`src/instrumentation.ts` が Node.js サーバー起動時に `initializeLogger()` を呼ぶ。ここで stdout 用 Pino logger が必ず初期化され、レベルと trace 抽出器はここで注入され、`OBS_LOGS_EXPORTER=otlp` のときだけ OTLP sink も注入される。リクエストごとの再初期化は行わない。
+`src/instrumentation.ts` calls `initializeLogger()` when the Node.js server starts. The stdout Pino logger is always initialized here, the level and the trace extractor are injected here, and the OTLP sink is injected too only when `OBS_LOGS_EXPORTER=otlp`. There is no per-request reinitialization.
 
-注入した logger の置き場はモジュール変数ではなく、`Symbol.for` の registered symbol をキーにした `globalThis` である。読む側は別のモジュールインスタンスが書いた値として、`Logger` の形を確かめてから使う。同じファイルが 1 プロセスで 2 回インスタンス化される事情と、モジュール変数で足りる場合との線引きは [観測](../../docs/design/observability.md)「注入は registered symbol で渡す」が持つ。
+The injected logger is stored not in a module variable but on `globalThis`, keyed by a `Symbol.for` registered symbol. The reading side treats it as a value written by another module instance and checks that it has the shape of `Logger` before using it. Why the same file is instantiated twice in one process, and where a module variable suffices instead, are owned by [Observability](../../docs/design/observability.md#注入は-registered-symbol-で渡す), "Injection is passed through a registered symbol".
 
-## 運用
+## Operations
 
-- 出力先・レベル・有効化の設定は注入で受け取る
-- ログに secret や個人情報を残さない
-- **伏せる名前を増やすときは `logger.ts` の表へ足す。** Pino の `redact`、sink へ渡す前の正規化、span の中継は同じ表を読むので、他に直す場所は無い。表は名前で効くので、その名前で秘密を持ち回る側を揃えるまでが 1 組である。効き目は `pino.server.test.ts` が stdout と sink の双方で固定する
-- **表の名前は小文字で書く。** 突き合わせは key を小文字化して行うので、大文字を含む項目は永遠に当たらない。Pino の `redact` は大文字小文字を区別するが、渡る前に正規化が済んでいる
+- Output destination, level and enablement settings are received by injection
+- Do not leave secrets or personal information in logs
+- **To redact more names, add them to the table in `logger.ts`.** Pino's `redact`, the normalization before handing to the sink, and the span relay all read the same table, so there is nowhere else to change. The table works by name, so one change is complete only once the sides that carry secrets under that name are aligned too. Its effect is pinned by `pino.server.test.ts` on both stdout and the sink
+- **Write the names in the table in lowercase.** Matching lowercases the keys, so an entry containing uppercase would never match. Pino's `redact` is case-sensitive, but normalization is done before values reach it
 
-## テスト
+## Testing
 
-- singleton の置き場は realm の registered symbol なので、**`vi.resetModules()` では消えない**。ケースの前に `Reflect.deleteProperty(globalThis, Symbol.for("nextjs-boilerplate.logging.logger"))` で捨てる
-- `createLogger()` の `destination` は出力を読むための注入口である。`PassThrough` を渡し、書き出された JSON を読んで固定する。stdout を捕まえない
-- 利用側のテストは `@/logging/logging.server` を module ごと差し替える。`getLogger` は spy を返す関数に、`reportQuietly` は渡された関数をそのまま呼ぶ関数にし、**2 つとも供給する** —— 片方を落とすと import が `undefined` になり、記録の行で落ちる
+- The singleton is stored under a realm registered symbol, so **`vi.resetModules()` does not clear it**. Discard it before each case with `Reflect.deleteProperty(globalThis, Symbol.for("nextjs-boilerplate.logging.logger"))`
+- `destination` of `createLogger()` is an injection point for reading the output. Pass a `PassThrough` and pin the JSON that was written. Do not capture stdout
+- Tests on the consuming side replace `@/logging/logging.server` as a whole module. Make `getLogger` a function returning a spy and `reportQuietly` a function that calls the given function as is, and **supply both** — dropping one makes the import `undefined` and fails at the recording line
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: business-logic` — 業務ロジックを持たない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Kernel Acceptance Criteria」4 |
-| `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
-| アプリケーションの server 側コードは `getLogger()` を使い、Pino を直に import しない | `pino.server.ts` の外で `pino` を import していれば violation | この README「構成」 |
-| 伏せる項目の名前の表は `logger.ts` の 1 つだけで、ログと span の双方がそれを見る | 別の場所に伏せる名前の表を持っていれば violation | この README「構成」/ [0081](../../docs/adr/0081-observability-logging.md) |
-| 成否が利用者へ見える処理の中の記録は `reportQuietly()` で包む | suggestion（処理の成否が利用者へ見えるかは呼び出しの形から決まらない） | この README「書く側の形」/ [観測](../../docs/design/observability.md)「`getLogger()` は初期化前に投げる」 |
-| 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.md) 禁止事項 |
+| `forbidden: business-logic` — holds no business logic | violation | [0021](../../docs/adr/0021-frontend-responsibility.md), the fourth of its acceptance criteria for kernels |
+| `forbidden: direct-config-access` — does not import `config` and does not read `process.env`. Settings are received by injection from the boot boundary | violation | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md). Machine: ESLint boundaries and `NODE_RUNTIME_ACCESS` in `architecture.ts` |
+| Application server-side code uses `getLogger()` and does not import Pino directly | violation if `pino` is imported outside `pino.server.ts` | This README, "Structure" |
+| The table of names to redact is the single one in `logger.ts`, and both logs and spans consult it | violation if a table of names to redact exists elsewhere | This README, "Structure" / [0081](../../docs/adr/0081-observability-logging.md) |
+| Recording inside an operation whose success or failure is visible to users is wrapped in `reportQuietly()` | suggestion (whether an operation's outcome is visible to users is not determined by the shape of the call) | This README, "Shape on the Writing Side" / [Observability](../../docs/design/observability.md#getlogger-は初期化前に投げる), "`getLogger()` throws before initialization" |
+| Injections from the boot boundary are not stored in module variables | suggestion (the path of the assigned value is not determined by the shape of the declaration) | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md) |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — config を import せず起動境界から注入を受ける層の線
-- [0080](../../docs/adr/0080-error-handling.md) — エラーログのレベル（5xx = error / 4xx = warn）と、境界で 1 回だけ記録すること
-- [0081](../../docs/adr/0081-observability-logging.md) — 構造化ログ・redaction・OTLP へ寄せるベンダ中立の方針
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — The layer line: do not import config, receive injections from the boot boundary
+- [0080](../../docs/adr/0080-error-handling.md) — Error log levels (5xx = error / 4xx = warn), and recording only once at the boundary
+- [0081](../../docs/adr/0081-observability-logging.md) — The vendor-neutral policy of structured logs, redaction, and converging on OTLP

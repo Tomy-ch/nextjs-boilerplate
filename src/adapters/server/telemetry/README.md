@@ -4,36 +4,36 @@ test-requirement: unit
 
 # telemetry
 
-ブラウザから中継されたシグナルを検証し、signal へ載せる受け側です。
+The receiving side that validates signals relayed from the browser and puts them onto signals.
 
-**import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.md)）。
+**This directory does not declare the import ceiling.** Boundaries are declared at an element's root, and the root of the element containing this directory is [`adapters/`](../../README.md) ([0021](../../../../docs/adr/0021-frontend-responsibility.md)).
 
-## 親と違う点
+## Differences from the Parent
 
-**検証の要求が親と違います。** `adapters` の宣言は `integration` ですが、それが掛かるのは外部との
-往復を持つモジュールです（[README](../../README.md) の「運用」）。
+**The verification requirement differs from the parent's.** `adapters` declares `integration`, but it applies to modules that make round trips
+with the outside ([README](../../README.md#operations)).
 
-**判定は「そのモジュールが外へ出るか」で行い、ディレクトリの位置では決めません。**
+**The decision is made by "does the module go outside", not by its directory location.**
 
-| モジュール | 検証 | 理由 |
+| Module | Verification | Reason |
 | --- | --- | --- |
-| [`browser-telemetry.ts`](browser-telemetry.ts) | `unit` | 報告を検証し、metric とログへ渡す |
-| [`browser-traces.ts`](browser-traces.ts) | `integration` | OTLP を collector へ中継する |
+| [`browser-telemetry.ts`](browser-telemetry.ts) | `unit` | Validates reports and hands them to metrics and logs |
+| [`browser-traces.ts`](browser-traces.ts) | `integration` | Relays OTLP to the collector |
 
-## 受け入れるもの
+## What Belongs Here
 
-- 中継が受け取った本体の検証と、signal への受け渡し
+- Validating the bodies the relay received, and handing them to signals
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 業務ロジック、送信面の組み立て（`client/telemetry/` が持つ）
+- Business logic, assembling the sending surface (held by `client/telemetry/`)
 
-## 関連する ADR
+## Related ADRs
 
-この区画のコードが依存する決定です。**コメントからは ADR を直接指さず、この節を辿ります**
-（[docs/rules.md#comments](../../../../docs/rules.md#comments)）。層全体の一覧は
-[親の README](../../README.md) が持ちます。
+The decisions this compartment's code depends on. **Comments do not point at ADRs directly; they follow this section**
+([docs/rules.md](../../../../docs/rules.md#comments)). The list for the whole layer is held by the
+[parent README](../../README.md).
 
-- [0081](../../../../docs/adr/0081-observability-logging.md) — OTLP への載せ方と、構造化ログの規則
-- [0082](../../../../docs/adr/0082-client-observability.md) — ブラウザ発の Web Vitals と例外を、どの signal へ写すか
-- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — 認証を要求しない受け口が自分で確かめること
+- [0081](../../../../docs/adr/0081-observability-logging.md) — How things are put onto OTLP, and the rules for structured logs
+- [0082](../../../../docs/adr/0082-client-observability.md) — Which signals browser-originated Web Vitals and exceptions are mapped to
+- [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.md) — A receiving endpoint that requires no authentication checks for itself

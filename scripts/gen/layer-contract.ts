@@ -25,7 +25,7 @@ export type LayerContract = {
  * `key: [a, b]` 形式の 1 行から値を取り出す。
  *
  * @remarks
- * **行末のコメントを許します。** 層 README は `forbidden: [features] # 画面まるごとの story は例外`
+ * **行末のコメントを許します。** 層 README は `forbidden: [features] # Exception: whole-screen stories`
  * のように但し書きを添えるので、許さないと「宣言はあるのに読めない」状態になり、生成が
  * 「層の宣言を先に整えてください」で止まります。
  */

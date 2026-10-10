@@ -1,56 +1,56 @@
 # Message
 
-## 用途
+## Purpose
 
-送信者と本文を持つ 1 件のメッセージを表示します。会話、通知、状態遷移の記録のように「誰が・いつ・何を」を時系列で並べる面で、1 件ぶんの構造と、続けて表示する塊の間隔を担います。
+Shows a single message with a sender and a body. On surfaces that list "who, when, what" in time order, such as conversations, notifications or a record of state transitions, it carries the structure of one message and the spacing between messages shown in succession.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `MessageGroup` | 続けて表示するメッセージをひとまとまりとして縦に並べる領域です。間隔だけを持ち、role は持ちません。 |
-| `Message` | 1 件のメッセージ全体です。`align` で avatar と本文の左右を入れ替えます。 |
-| `MessageAvatar` | 送信者を示す円形の枠です。中身は呼び出し元が置きます。 |
-| `MessageContent` | 本文と、その前後に置く補助情報を縦に並べる領域です。 |
-| `MessageHeader` | 本文の前に置く、送信者名や時刻などの補助情報です。 |
-| `MessageFooter` | 本文の後ろに置く、送信状態や補助操作などの情報です。 |
+| `MessageGroup` | The area that stacks consecutive messages vertically as one group. It holds only spacing and has no role. |
+| `Message` | One whole message. `align` swaps the avatar and body left and right. |
+| `MessageAvatar` | The circular frame that indicates the sender. The caller places its content. |
+| `MessageContent` | The area that stacks the body and the auxiliary information before and after it vertically. |
+| `MessageHeader` | Auxiliary information placed before the body, such as the sender name or time. |
+| `MessageFooter` | Information placed after the body, such as the delivery status or auxiliary actions. |
 
-`MESSAGE_ALIGN` と `MessageAlign` を `message.definition.ts` で公開します。`align` に指定できる値の owner はこの定義であり、`"end"` などの文字列を利用側で直接書きません。
+`MESSAGE_ALIGN` and `MessageAlign` are exported from `message.definition.ts`. That definition is the owner of the values `align` can take; callers do not write strings such as `"end"` directly.
 
-| align | 見え方 |
+| align | Appearance |
 | --- | --- |
-| `start` | avatar を先頭、本文をその後ろに置きます。既定値です。 |
-| `end` | avatar と本文の並びを反転し、本文の内容を右端へ寄せます。 |
+| `start` | Places the avatar first and the body after it. This is the default. |
+| `end` | Reverses the order of avatar and body and aligns the body content to the right edge. |
 
-## 利用ケース
+## Use Cases
 
-- 二者のやり取りを、送信者ごとに左右へ分けて時系列で並べる場合
-- 同じ送信者の連続した発言を `MessageGroup` で一つの塊として見せる場合
-- 送信状態や再送のような補助操作を、本文の後ろへ `MessageFooter` として添える場合
-- avatar を持たない通知を、送信者名と時刻だけの `MessageHeader` とともに並べる場合
+- Listing an exchange between two parties in time order, split left and right by sender
+- Showing consecutive messages from the same sender as one block with `MessageGroup`
+- Adding auxiliary actions such as delivery status or resend after the body as `MessageFooter`
+- Listing notifications without an avatar together with a `MessageHeader` holding only the sender name and time
 
-吹き出しの面（背景・角丸・尾）は持ちません。本文の見た目は `MessageContent` の子として呼び出し元が組みます。日付の区切りのような一行の注釈には `Marker` を、読み落とされては困る通知には `Alert` を使います。
+It does not hold the bubble surface (background, rounded corners, tail). The caller builds the look of the body as children of `MessageContent`. Use `Marker` for a one-line annotation such as a date divider, and `Alert` for a notice that must not be overlooked.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。hydration を必要としない表示専用の Server Component で、client island を持ちません。`MessageAvatar` の中で画像の読み込み結果に応じた切り替えが必要な場合だけ、client island である `Avatar` を子として合成します。
+In the SSR-first selection it is `◎`. It is a display-only Server Component that needs no hydration and has no client island. Only when switching based on the image load result is needed inside `MessageAvatar` does it compose `Avatar`, a client island, as a child.
 
-メッセージの取得、並び順、どこで塊を切るかの判断、日時の整形、本文の sanitize は持ちません。いずれも呼び出し元が決め、この component は整形済みの内容を子として受け取ります。sanitize 済みの Markdown / HTML を本文に表示する場合は `Typeset` を併用します。
+It owns neither fetching messages, their order, the decision of where to break groups, date formatting, nor sanitizing the body. The caller decides all of these, and this component receives already formatted content as children. To show sanitized Markdown / HTML in the body, use `Typeset` alongside it.
 
-`align` は avatar と本文の左右を入れ替えるだけの視覚的な区別で、意味論を持ちません。支援技術は向きを読み上げないため、誰の発言かは `MessageHeader` のテキストとして必ず示します。
+`align` is only a visual distinction that swaps avatar and body left and right, and carries no semantics. Assistive technology does not read out the direction, so always indicate who is speaking as text in `MessageHeader`.
 
-`align="end"` のとき `MessageContent` が右端へ寄せるのは `data-slot` を持つ直下の子だけです。`p` のような素の要素を本文に置く場合はこの規則が働かないため、呼び出し元が幅を内容に合わせたうえで右端へ寄せます。Storybook では吹き出し用の局所 component を story 内に置き、この指定を含めた形で示しています。
+When `align="end"`, `MessageContent` aligns only direct children that carry `data-slot` to the right edge. This rule does not apply when a bare element such as `p` is placed in the body, so the caller fits the width to the content and aligns it to the right edge. Storybook puts a local bubble component inside the story and shows the form including this specification.
 
-`MessageGroup` と `Message` はいずれも role を持ちません。会話や通知の一覧であることを支援技術へ伝える必要がある場合は、呼び出し元が `role` とアクセシブルな名前を与えます。名前のない `list` をこの component 側の既定にすると、読み上げに意味のない入れ子が増えるためです。
+Neither `MessageGroup` nor `Message` has a role. When it must be conveyed to assistive technology that this is a list of conversation or notifications, the caller gives a `role` and an accessible name. Making an unnamed `list` the default on this component's side would add meaningless nesting to screen reading.
 
-`MessageAvatar` は隣に送信者名がある限り装飾です。中に画像を置く場合は `alt` を空にし、avatar だけで送信者を特定させる設計にしません。
+`MessageAvatar` is decorative as long as the sender name is next to it. When placing an image inside, leave `alt` empty; do not design it so that the avatar alone identifies the sender.
 
-`MessageHeader` と `MessageFooter` は、メッセージ内に `data-variant="ghost"` を持つ面がある場合に左右の余白を外します。吹き出しの面を持たない variant と組み合わせるための指定で、この component 自身は `data-variant` を出力しません。
+`MessageHeader` and `MessageFooter` drop their left and right padding when the message contains a surface with `data-variant="ghost"`. This is for combining with a variant that has no bubble surface; this component itself does not output `data-variant`.
 
-vendor 依存はありません。`cn` だけを使います。
+It has no vendor dependency. It uses only `cn`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定のメッセージ、`start` / `end` を並置した向きの違い、avatar を持たない場合、`MessageFooter` を添えた場合（avatar が本文の高さに合わせて上へずれる）、`MessageGroup` による連続表示、長い本文と区切りのない連続文字列の折り返しを確認します。左右の反転、footer に追従する avatar の位置、折り返しはいずれも実描画でしか判断できないため、Storybook 側の確認範囲です。
+Storybook checks the default message, `start` / `end` side by side to compare directions, the case without an avatar, adding `MessageFooter` (the avatar shifts up to match the body height), consecutive display with `MessageGroup`, and wrapping of a long body and of an unbroken string. The left-right reversal, the avatar position following the footer, and wrapping can only be judged in real rendering, so they are within Storybook's scope.
 
-テストは既定が `start` 向きの `div` であること、`align` を `data-align` として公開すること、送信者と本文が向きに依存しない読み上げ順のテキストとして残ること、各領域を `data-slot` で識別できること、既定ではいずれの要素も role を持たないこと、`MessageFooter` に置いた操作へ到達できること、`MessageGroup` が複数のメッセージを含み呼び出し元の `role` とアクセシブルな名前を保つこと、a11y 自動検査を確認します。
+The tests check that the default is a `div` in the `start` direction, that `align` is exposed as `data-align`, that sender and body remain as text in a reading order independent of direction, that each area can be identified by `data-slot`, that by default no element has a role, that an action placed in `MessageFooter` is reachable, that `MessageGroup` contains multiple messages and keeps the caller's `role` and accessible name, and the automated a11y check.

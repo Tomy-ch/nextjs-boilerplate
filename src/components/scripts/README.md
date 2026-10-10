@@ -4,13 +4,13 @@ test-requirement: unit
 
 # ui scripts
 
-`components/scripts/` は、shadcn/ui の copy-in と、その来歴情報の更新・追従確認を実行するスクリプトを置きます。
+`components/scripts/` holds the scripts that copy in shadcn/ui, update its provenance records, and check that they track upstream.
 
-**描画を持たない Node 側のツーリングは `unit` である。** 宣言を自分で持たないと、機械の解決は親の
-`src/components/README.md` の `component` を継ぎ、描画も a11y も持たないここへ、描画を前提にした
-観点が当たる（[`scripts/README.md`](../../../scripts/README.md) も同じ理由で `unit` を宣言する）。
+**Node-side tooling with no rendering is `unit`.** Without its own declaration, mechanical resolution would inherit `component` from the parent
+`src/components/README.md`, and rendering-based criteria would apply here, where there is neither rendering nor a11y
+([`scripts/README.md`](../../../scripts/README.md) declares `unit` for the same reason).
 
-## 実行
+## Running
 
 ```sh
 pnpm add:ui button --as=action
@@ -19,32 +19,32 @@ pnpm add:ui button --as=action -- --dry-run
 pnpm check:ui
 ```
 
-一度に追加できる部品は一つです。`--` より前には部品名とラッパー自身のオプション、後ろには `shadcn add` へ渡すオプションを書きます。CLI が一時的に出力する `design-system/<component>.tsx` は、ラッパーが層と見出しに応じた場所へ移動します。`--path` は指定できません。
+One component can be added at a time. Before `--` write the component name and the wrapper's own options; after it, the options passed to `shadcn add`. The wrapper moves the `design-system/<component>.tsx` the CLI temporarily outputs to the location matching the layer and the heading. `--path` cannot be specified.
 
-`--as=<見出し>` は必須で、その部品が component 目録のどの見出しに載るかを指定します。取り込みの前に決めさせるのは、後回しにすると実装が終わった時点で目録へ載せる作業だけが残り、`pnpm check:ui` が落ちるまで誰も気付けないためです。指定できる見出しは `../README.md` の component 目録と同じで、値が違えば `shadcn add` を走らせる前に失敗します。
+`--as=<heading>` is required and specifies which heading of the component inventory the component is listed under. It is decided before the copy-in because, if postponed, only the work of listing it in the inventory remains once the implementation is finished, and nobody notices until `pnpm check:ui` fails. The headings that can be specified are the same as those of the component inventory in `../README.md`; a wrong value fails before `shadcn add` runs.
 
-## 依存の追加が root へ向かうこと
+## Dependency additions go to the root
 
-shadcn CLI は取り込む部品の npm 依存を `pnpm add` で入れますが、`-w` を付けません。このリポジトリは
-ワークスペースを持つため pnpm が root への追加を拒み、**ファイルが 1 つも書かれないまま**取り込みが
-止まります。依存インストールはファイル書き出しより先に走るので、部品の種類に依らずすべて止まります。
+The shadcn CLI installs the npm dependencies of the component being copied in with `pnpm add`, but without `-w`. This repository
+has a workspace, so pnpm refuses to add to the root, and the copy-in stops **with not a single file written**.
+Dependency installation runs before files are written, so it stops for every component regardless of its kind.
 
-CLI 側に抑止する口が無いので、`add:ui` の実行時にだけ `npm_config_ignore_workspace_root_check` を
-立てて許可します。`.npmrc` に置かないのは、そこへ書くと**あらゆる `pnpm add` で root への誤追加が
-黙って通る**ためです。許可の範囲は `pnpm add:ui` の 1 回に閉じ、手で打つ `pnpm add` には効きません。
+The CLI has no way to suppress this, so `npm_config_ignore_workspace_root_check` is set only while `add:ui` runs,
+to allow it. It is not placed in `.npmrc` because written there, **every `pnpm add` would silently let an accidental
+addition to the root through**. The permission is confined to one run of `pnpm add:ui` and has no effect on a `pnpm add` typed by hand.
 
-## 依存部品の生成物
+## Generated Files for Dependency Components
 
-shadcn CLI はこのリポジトリの層と目的による配置を知らないため、依存部品を `design-system/<name>.tsx` へ出力し、取り込んだ component からは `@/components/design-system/<name>` を import します。ラッパーは移動のあとにこれを整理します。
+The shadcn CLI does not know this repository's placement by layer and purpose, so it outputs dependency components to `design-system/<name>.tsx`, and the copied-in component imports `@/components/design-system/<name>`. The wrapper tidies this up after the move.
 
-- 既に取り込まれている依存は、生成された `design-system/<name>.tsx` を削除し、取り込んだ component の import を実体への相対パスへ向け直します。相対の深さは層と目的の組み合わせで決まるため、実体を探して算出します
-- 実体がまだ無い依存は削除も書き換えもせず、部品名を標準出力へ知らせます。生成物と `@/components/design-system/<name>` の import は解決するため型検査は通りますが、取り込み順としては先にその部品を取り込み・監査します
+- For a dependency already copied in, it deletes the generated `design-system/<name>.tsx` and repoints the copied-in component's import to a relative path to the actual file. The relative depth depends on the combination of layer and purpose, so it finds the actual file and computes it
+- For a dependency with no actual file yet, it neither deletes nor rewrites anything, and reports the component name on standard output. The generated file and the `@/components/design-system/<name>` import resolve, so type checking passes, but in terms of copy-in order, copy in and audit that component first
 
-この整理を行わないと、実体の重複と解決しない import が同時に残り、次に `pnpm typecheck` を回した別の作業まで巻き込んで失敗します。
+Without this tidying, duplicated files and unresolvable imports remain at the same time, and the next piece of work that runs `pnpm typecheck` fails along with it.
 
 ## manifest
 
-`../shadcn-manifest.yaml` は、design system の各 component が上流とどういう関係にあるかを記録する台帳です。`pnpm add:ui` の成功時に copy-in のエントリを upsert します。`--dry-run` では更新しません。自前実装のエントリは、`pnpm gen component` が雛形と同時に `kind: original` の行として記録します（[`scripts/gen/manifest.ts`](../../../scripts/gen/manifest.ts)）。雛形を通さずに作った component と、`reimplemented` / `not-adopted` のエントリは、その作業で手で追加します。
+`../shadcn-manifest.yaml` is the ledger recording how each design system component relates to upstream. `pnpm add:ui` upserts the copy-in entry on success. `--dry-run` does not update it. For an original implementation, `pnpm gen component` records a `kind: original` row together with the template ([`scripts/gen/manifest.ts`](../../../scripts/gen/manifest.ts)). Components created without going through the template, and `reimplemented` / `not-adopted` entries, are added by hand as part of that work.
 
 ```yaml
 select:
@@ -65,102 +65,102 @@ select:
       committedAt: 2026-03-02T08:49:00Z
 ```
 
-### 名前と置き場所
+### Names and Locations
 
-**key は実体を指すラベル、`registryItem` は上流の item 名**です。両者は別の関心なので別のスロットに置きます。上流の名前を key に畳むと、同じ item から native / client の 2 実装を作ったときに表現できません（`checkbox` から `checkbox-native` と `checkbox-client` を作るなど）。
+**The key is a label pointing at the actual implementation; `registryItem` is the upstream item name.** They are separate concerns, so they sit in separate slots. Folding the upstream name into the key could not express creating two implementations, native and client, from the same item (such as creating `checkbox-native` and `checkbox-client` from `checkbox`).
 
-- **key** — 原則として実体のディレクトリ名にします。`patterns/table` と `design-system/display/table` のように衝突する場合だけ修飾します（`table-columns`）
-- **`registryItem`** — 上流の item 名です。`original` は上流を持たないため**書きません**
-- **`directory` / `localPath`** — 実体の置き場所です。名前から推測しないため、実体を移動・改名しても対応が壊れず、記録漏れと取り残されたエントリの両方を検出できます
-- **`dependencies`** — 実装が実際に import している外部 package です。registry が「入れろ」と宣言した値ではなく、置いた実装が参照しているものを記録します。取り込み時の書き換えや自前実装で参照は変わるため、宣言と実態は一致しません。`react` / `react-dom` は全 component が前提にする実行環境なので数えず、`next/image` は `next` として数えます。参照が無ければ書きません
-- **`as`** — component 目録で載る見出しです。目的を表します
+- **key** — As a rule, the directory name of the implementation. Qualify it only when names collide, as with `patterns/table` and `design-system/display/table` (`table-columns`)
+- **`registryItem`** — The upstream item name. `original` has no upstream, so it is **not written**
+- **`directory` / `localPath`** — Where the implementation lives. It is not inferred from the name, so moving or renaming the implementation does not break the mapping, and both missing records and stranded entries can be detected
+- **`dependencies`** — The external packages the implementation actually imports. It records what the placed implementation references, not what the registry declared should be installed. Rewrites at copy-in and original implementations change the references, so the declaration and the reality do not match. `react` / `react-dom` are the runtime every component assumes, so they are not counted, and `next/image` counts as `next`. If there are no references, it is not written
+- **`as`** — The heading it is listed under in the component inventory. It expresses the purpose
 
-`layer` と `as` は畳みません。**`layer` が「誰が書き換えるか」、`as` が「何のための部品か」**で、軸が違います。`design-system` だけが目的別の中間ディレクトリを持ち、`patterns` と `app-starter` は目的を一つに決められないものの置き場なので割りません。`directory` はこの二つから導けるため、`pnpm check:ui` が突合します（入れ子の component は親が置き場を決めるので対象外）。
+`layer` and `as` are not folded together. **`layer` is "who rewrites it" and `as` is "what the component is for"** — different axes. Only `design-system` has intermediate directories by purpose; `patterns` and `app-starter` hold things whose purpose cannot be settled on one, so they are not split. `directory` can be derived from these two, so `pnpm check:ui` cross-checks it (nested components are excluded, since their parent decides their location).
 
-`pnpm add:ui` が記録した直後は key と `registryItem` が一致します。取り込み後に実体を改名・移動したら、key と `directory` を追随させ、`registryItem` は上流の名前のまま据え置きます。
+Right after `pnpm add:ui` records it, the key and `registryItem` match. If the implementation is renamed or moved after the copy-in, update the key and `directory` to follow, and leave `registryItem` as the upstream name.
 
-`pnpm check:ui` は、`registryItem` の有無が `kind` と噛み合っているか、宣言した `registryItem` が `source[].path` のファイル名と一致するか、`dependencies` の宣言が実装の import と一致するか、`as` が目録の見出しにある値かを確認します。規約は説明ではなく検査で守られます。
+`pnpm check:ui` checks whether the presence of `registryItem` agrees with `kind`, whether a declared `registryItem` matches the file name in `source[].path`, whether the `dependencies` declaration matches the implementation's imports, and whether `as` is a heading in the inventory. The conventions are kept by checks, not by explanation.
 
-`pnpm add:ui` は台帳を丸ごと書き直さず、対象のエントリだけを差し替えます。文書ごと再シリアライズすると、判断の経緯を書いたコメントが毎回消えるためです。
+`pnpm add:ui` does not rewrite the whole ledger; it replaces only the target entry. Re-serializing the whole document would erase, every time, the comments recording the reasoning behind decisions.
 
 ### kind
 
-| 値 | 意味 | `source` | 上流が動いたとき |
+| Value | Meaning | `source` | When upstream moves |
 | --- | --- | --- | --- |
-| `copy-in` | registry から取り込み、上流を追従対象として持ち続ける | あり | 差分を読み、必要なら取り込む |
-| `reimplemented` | 上流に相当する item はあるが、こちらの要件に合わせて自前で実装し直した | あり | 追従はしない。見直しの材料として差分を読む |
-| `original` | 上流に相当する item が存在せず、最初から自前で作った | なし | 何もしない |
-| `not-adopted` | 検討したうえで作らないと決めた。実体を持たない | なし | 何もしない |
+| `copy-in` | Copied in from the registry and kept as something that tracks upstream | Yes | Read the diff and copy it in if needed |
+| `reimplemented` | An equivalent upstream item exists, but it was reimplemented here to fit this repository's requirements | Yes | Not tracked. Read the diff as material for review |
+| `original` | No equivalent upstream item exists; built here from the start | No | Nothing |
+| `not-adopted` | Decided, after consideration, not to build. Has no implementation | No | Nothing |
 
-`kind` を分けているのは、「manifest に無い」だけでは**自前実装なのか、まだ取り込んでいないのか**を区別できないためです。
+`kind` is split because "not in the manifest" alone cannot distinguish **an original implementation from something not yet copied in**.
 
-`not-adopted` はその裏返しで、**「検討したのか、まだ見ていないのか」**を区別します。実体が無いので `layer` / `as` / `directory` を持たず、代わりに `reason` と `revisitWhen` が必須です。`revisitWhen` を必須にするのは、条件を書けない「やらない」が判断ではなく先送りだからです。registry に存在しない候補を退けた場合は `registryItem` も持ちません。
+`not-adopted` is the flip side, distinguishing **"was it considered, or not looked at yet"**. With no implementation it has no `layer` / `as` / `directory`, and instead `reason` and `revisitWhen` are required. `revisitWhen` is required because a "won't do" whose condition cannot be written is not a decision but a postponement. When rejecting a candidate that does not exist in the registry, it has no `registryItem` either.
 
-決定そのものの実体は、責務を引き取った component の `README.md` が持ちます。台帳側は「その名前を検討した事実」と「いつ考え直すか」だけを持ちます。`pnpm check:ui` はこの kind を実体との突き合わせからも上流追従からも外します。
+The decision itself lives in the `README.md` of the component that took over the responsibility. The ledger holds only "the fact that this name was considered" and "when to reconsider". `pnpm check:ui` excludes this kind both from the cross-check against implementations and from upstream tracking.
 
-### なぜ commit を記録するのか
+### Why the commit is recorded
 
-`addedAt` と `shadcnCliVersion` はこちらが実行した時点を表すもので、取り込んだ内容が上流のどの時点のものかは示しません。それを担うのが `source` です。registry が配る JSON は上流リポジトリのファイルそのものであり、実体の位置は item 自身が `files[].path` として申告するため、こちらでパスを組み立てません。
+`addedAt` and `shadcnCliVersion` represent when this side ran it, and do not show which upstream point the copied-in content came from. `source` carries that. The JSON the registry serves is the upstream repository's file itself, and the item declares its own location as `files[].path`, so this side does not build the path.
 
-CDN の `last-modified` はキャッシュ充填時刻であり内容の変更日ではありません。`etag` は実質が本文のハッシュですが、`Accept-Encoding` によって弱い検証子（`W/` 付き）に変わるため、記録して長期に突き合わせる値には使いません。
+The CDN's `last-modified` is the cache fill time, not the content's modification date. `etag` is effectively a hash of the body, but depending on `Accept-Encoding` it turns into a weak validator (with `W/`), so it is not used as a value recorded and compared over the long term.
 
-`source` の解決には registry と GitHub API への通信が必要です。取得できない場合でも追加自体は完了し、`source` を持たないエントリとして記録したうえで理由を標準出力へ知らせます。ネットワークを復旧してから取り込み直すと記録されます。
+Resolving `source` requires talking to the registry and the GitHub API. Even when it cannot be fetched, the addition itself completes; the entry is recorded without `source` and the reason is reported on standard output. Copying it in again after the network recovers records it.
 
-## 未定義 class の検出
+## Detecting Undefined Classes
 
-`pnpm check:classes`（[`check-classes.ts`](./check-classes.ts)）が `src/app/globals.css` を build し、`src/components` 配下の `.tsx` に書かれた class がすべて出力に現れるかを照合します。Tailwind は認識できない class を黙って無視するため、これを機械で見ないと欠陥が browser まで届きます。
+`pnpm check:classes` ([`check-classes.ts`](./check-classes.ts)) builds `src/app/globals.css` and checks whether every class written in `.tsx` files under `src/components` appears in the output. Tailwind silently ignores classes it does not recognize, so unless a machine checks this, defects reach the browser.
 
-判定の要点は 3 つです。
+There are three key points to the check.
 
-- **照合は selector の形で行う。** `focus-visible:outline-2` は `.focus-visible\:outline-2` として出力されるため、素の文字列で探すと variant 修飾子の付いた class を取りこぼします
-- **候補は `className` 属性と `cn()` / `cva()` の引数からだけ取る。** ファイル中の文字列をすべて拾うと `data-slot` の値や `role` まで候補に入ります。同じ領域に混ざる比較対象（`orientation === "horizontal"`）・`defaultVariants` の variant 名・index の key は候補から外します
-- **意図して CSS を持たない class は `KNOWN_WITHOUT_CSS` に置く。** 検出結果から外すだけで、実装からは消しません
+- **Matching is done in selector form.** `focus-visible:outline-2` is output as `.focus-visible\:outline-2`, so searching for the bare string would miss classes with variant modifiers
+- **Candidates are taken only from the `className` attribute and the arguments of `cn()` / `cva()`.** Picking up every string in a file would include `data-slot` values and even `role`. Comparison operands mixed into the same area (`orientation === "horizontal"`), variant names in `defaultVariants`, and index keys are excluded from the candidates
+- **Classes that intentionally have no CSS go in `KNOWN_WITHOUT_CSS`.** This only removes them from the findings; they are not removed from the implementation
 
-## 追従確認
+## Upstream Tracking Check
 
 ```sh
 pnpm check:ui             # 整合性 + 上流の追従確認
 pnpm check:ui --offline   # 整合性だけ（通信しない）
 ```
 
-実行すると、まず台帳の整合性を確認します。宣言した `directory` / `localPath` と実体の突き合わせ、
-記録の無いディレクトリ、実体を失ったエントリ、同じ場所を二重に宣言したエントリ、`kind` と
-`source` の食い違いを見ます。ここで問題があれば通信せずに終わります。
+When run, it first checks the ledger's consistency. It cross-checks the declared `directory` / `localPath` against the implementations,
+and looks for directories with no record, entries that lost their implementation, entries declaring the same location twice, and mismatches between `kind` and
+`source`. If there is a problem here, it ends without network access.
 
-**台帳の対象は `src/components` 配下のすべての層です。** `design-system` だけでなく `patterns` /
-`shell` / `app-starter` も含みます。層のディレクトリは列挙せず、
-**`README.md` を持つディレクトリを component とみなします**。層を列挙すると、層が増える
-たびにこの script を直す必要が生まれ、直し忘れた層が台帳から静かに抜けるためです。この
-判定なら入れ子（`patterns/table` とその配下）も、層を移した component も記録漏れとして
-現れます。判定の根拠は「component ごとに README を co-locate する」という
-[`components/README.md`](../README.md) の規約です。
+**The ledger covers every layer under `src/components`.** Not only `design-system` but also `patterns` /
+`shell` / `app-starter`. It does not enumerate layer directories;
+**it treats a directory that has a `README.md` as a component**. Enumerating layers would require fixing this script every time
+a layer is added, and a layer someone forgot to add would silently drop out of the ledger. With this
+rule, nested components (`patterns/table` and those under it) and components moved between layers also show up as missing records.
+The basis for the rule is the convention "co-locate a README with each component" in
+[`components/README.md`](../README.md).
 
-問題が無ければ、記録した commit と上流の最新を突き合わせ、動いた component を一覧します。`original` は上流を持たないため確認しません。`copy-in` は `要追従`、`reimplemented` は `参考` として区別して表示します。**上流が動いていた場合と、確認に失敗したものがある場合は exit code 1** で終わります。`make actions-pin-check` が pin のずれで落ちるのと同じ扱いです。
+If there are no problems, it compares the recorded commit with the latest upstream and lists the components that moved. `original` has no upstream, so it is not checked. `copy-in` is shown as `要追従` and `reimplemented` as `参考`, distinguished. **When upstream has moved, or when some check failed, it ends with exit code 1.** This is the same treatment as `make actions-pin-check` failing on a pin mismatch.
 
-GitHub API へは記録件数ぶんのリクエストを出すため、未認証の 60 req/hr では足りません。`gh` の認証を使うので、実行には `gh` が必要です。
+It sends as many requests to the GitHub API as there are records, so the unauthenticated 60 req/hr is not enough. It uses `gh`'s authentication, so running it requires `gh`.
 
-CI は [`shadcn-drift.yaml`](../../../.github/workflows/shadcn-drift.yaml) で 2 つに分けています。
+CI splits it in two in [`shadcn-drift.yaml`](../../../.github/workflows/shadcn-drift.yaml).
 
-- **台帳の整合性** — `src/components/**` を触った pull request で実行します。通信せず、原因もレビュー中の変更にあるため、ここは落として構いません
-- **上流の追従確認** — 毎週月曜の定期実行と `workflow_dispatch` だけで動かし、pull request では動かしません。上流の drift はレビュー中の変更が原因ではなく、それで PR を落とすと作者が直せない理由で作業が止まるためです
+- **Ledger consistency** — Runs on pull requests that touch `src/components/**`. It needs no network, and its cause also lies in the change under review, so it is fine for this to fail
+- **Upstream tracking check** — Runs only on the weekly Monday schedule and `workflow_dispatch`, not on pull requests. Upstream drift is not caused by the change under review, and failing a PR on it would stop work for a reason the author cannot fix
 
-## 上流の変更を取り込む
+## Bringing in upstream changes
 
-取り込んだ実装には TSDoc・import パス・型の修正が入っているため、上流の新しい内容をそのまま上書きできません。記録した commit があるので、当時の原本を base にした 3-way merge ができます。**原本をリポジトリに抱える必要はありません。**
+The copied-in implementation carries fixes to TSDoc, import paths and types, so new upstream content cannot simply overwrite it. With the recorded commit, a 3-way merge using the original as of that time as the base is possible. **There is no need to keep the original in the repository.**
 
 ```sh
 # base   = 取り込んだ時点の原本（manifest の source.commit）
 # theirs = 上流の最新
 # ours   = このリポジトリの実装
 REPO=shadcn-ui/ui
-PATH_IN_REPO=<manifest の source.path>
-BASE_SHA=$(<manifest の source.commit>)
+PATH_IN_REPO=<source.path in manifest>
+BASE_SHA=$(<source.commit in manifest>)
 
 curl -sS "https://raw.githubusercontent.com/$REPO/$BASE_SHA/$PATH_IN_REPO" -o /tmp/base.tsx
 curl -sS "https://raw.githubusercontent.com/$REPO/main/$PATH_IN_REPO" -o /tmp/theirs.tsx
-cp "$(<manifest の source.localPath>)" /tmp/ours.tsx
+cp "$(<source.localPath in manifest>)" /tmp/ours.tsx
 
 git merge-file /tmp/ours.tsx /tmp/base.tsx /tmp/theirs.tsx
 ```
 
-競合が出た箇所だけを手で解決し、結果を実装へ戻します。取り込み直したら `manifest` の `source.commit` を新しい commit へ更新します（`pnpm add:ui <component> --as=<見出し> -- --overwrite --yes` で取り込み直すと自動で更新されますが、その場合は TSDoc などの修正も消えるため、3-way merge の方が実態に合います）。
+Resolve only the conflicting places by hand and bring the result back into the implementation. After bringing it in again, update `source.commit` in the `manifest` to the new commit (copying in again with `pnpm add:ui <component> --as=<heading> -- --overwrite --yes` updates it automatically, but that also erases fixes such as TSDoc, so the 3-way merge fits the reality better).

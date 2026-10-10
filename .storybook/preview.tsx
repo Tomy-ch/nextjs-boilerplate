@@ -119,7 +119,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        // 並び順の根拠は `src/components/README.md`「Storybook の表示規約」
+        // 並び順の根拠は `src/components/README.md#storybook-display-conventions`
         method: "alphabetical",
         // 画面 → 画面固有の部品 → token の目録 → アイコンの目録 → 部品の目録。以降は名前順
         order: ["Page", "Features", "Tokens", "Icons", "*"],

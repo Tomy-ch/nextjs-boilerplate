@@ -1,25 +1,25 @@
 # EditableTable
 
-## 用途
+## Purpose
 
-`Input` などの native form control を table の cell に置き、Server Action または URL 送信で編集します。
+Places native form controls such as `Input` in table cells and edits through a Server Action or URL submission.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `EditableTable` | `Table` 全体を一つの native `form` として包みます。 |
-| `EditableTableHeader` / `EditableTableBody` / `EditableTableFooter` | 見出し・編集行・集計行を置く table の領域です。 |
-| `EditableTableRow` / `EditableTableHead` / `EditableTableCell` / `EditableTableCaption` | 行・列見出し・編集 cell・表の説明を構成します。 |
+| `EditableTable` | Wraps the whole `Table` as one native `form`. |
+| `EditableTableHeader` / `EditableTableBody` / `EditableTableFooter` | The table areas that hold the headers, the editable rows and the totals rows. |
+| `EditableTableRow` / `EditableTableHead` / `EditableTableCell` / `EditableTableCaption` | Make up the rows, column headers, editable cells and the table description. |
 
-## 利用ケース
+## Use Cases
 
-少数の設定値や管理対象を、table 形式のまま一括または行単位で編集する場合に使います。
+Use it to edit a small number of settings or managed items in table form, either all at once or row by row.
 
-## 責務境界
+## Responsibility Boundaries
 
-編集値、Server Action、field name、検証結果、保存単位、行の追加・削除は持ちません。feature が `Input`、`FieldError`、submit button とともに合成します。即時保存や複数行の下書き state は client island の責務です。
+It holds no edited values, Server Action, field names, validation results, unit of saving, or adding and removing rows. The feature composes it with `Input`, `FieldError` and a submit button. Immediate saving and draft state across multiple rows are the responsibility of a client island.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常編集、invalid 表示、単位と行内操作を `InputGroup` で値の枠内へ畳む cell、DataTable と同じ密度の inline 編集を分離します。test は form、table、control、エラーの意味論と a11y を確認します。
+Storybook separates normal editing, the invalid display, cells that fold units and in-row actions inside the value frame with `InputGroup`, and inline editing at the same density as DataTable. The tests check the semantics of the form, table, controls and errors, and a11y.

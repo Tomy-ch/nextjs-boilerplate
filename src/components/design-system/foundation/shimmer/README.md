@@ -1,33 +1,33 @@
 # Shimmer
 
-## 用途
+## Purpose
 
-進捗が測れない処理が今も動いていることを、面の上を流れる帯で示します。
+Shows that a process whose progress cannot be measured is still running, with a band flowing across the surface.
 
-## 使い方
+## Usage
 
-`shimmer` class を付けるだけの opt-in の CSS 基盤です。React component は公開しません。
+An opt-in CSS foundation applied simply by adding the `shimmer` class. It exports no React component.
 
 ```tsx
 <div className="shimmer h-16 rounded-md bg-muted" />
 ```
 
-状態に応じて出す場合は Tailwind の variant と合成します。
+To show it depending on state, compose it with a Tailwind variant.
 
 ```tsx
 <span className="group-data-[state=uploading]/attachment:shimmer">{fileName}</span>
 ```
 
-## `Skeleton` との違い
+## How It Differs from `Skeleton`
 
-| | 伝えること |
+| | What it conveys |
 | --- | --- |
-| `Skeleton`（`animate-pulse`） | ここに箱がある |
-| `shimmer` | 止まっていない |
+| `Skeleton` (`animate-pulse`) | There is a box here |
+| `shimmer` | It has not stopped |
 
-置き換えではありません。読み込み中の形を示したうえで「まだ動いている」ことも伝えたい長い処理では、両方を使います。
+It is not a replacement. For long processes where you want to show the shape while loading and also convey that "it is still running", use both.
 
-**同じ要素には付けられません。** `animate-pulse` と `shimmer` はどちらも `animation` プロパティを使うため、後に効いたほうだけが残ります。両方を出す場合は `Skeleton` の子として重ねます。
+**They cannot go on the same element.** `animate-pulse` and `shimmer` both use the `animation` property, so only the one applied last remains. To show both, layer it as a child of `Skeleton`.
 
 ```tsx
 <Skeleton className="h-16 w-full">
@@ -35,26 +35,26 @@
 </Skeleton>
 ```
 
-## 併用が必要な理由
+## Why It Must Be Combined
 
-`prefers-reduced-motion` では帯ごと消えます。動きを止めたときに帯だけが残ると、止まった装飾が画面に居座るためです。
+Under `prefers-reduced-motion` the band disappears entirely. If only the band remained when motion stops, a frozen decoration would sit on the screen.
 
-**消えた状態では処理中であることが何も伝わりません。** `Skeleton` か待機の文言を必ず併用してください。これは呼び出し元の責務です。
+**In the disappeared state nothing conveys that processing is under way.** Always combine it with `Skeleton` or waiting text. This is the caller's responsibility.
 
-## 見た目の決め方
+## How the Look Is Decided
 
-帯の色は前景色から作ります。「明るい帯」を固定すると light テーマでは背景に埋もれるため、どちらのテーマでも面との差が出る側から取ります。
+The band's color is made from the foreground color. A fixed "bright band" would sink into the background in the light theme, so it is taken from the side that contrasts with the surface in either theme.
 
-帯の幅は面の 40% です。面と同じ幅にすると、流れているのではなく全体が明滅しているように見えます。
+The band's width is 40% of the surface. As wide as the surface, it would look like the whole thing blinking rather than flowing.
 
-周期は 1.6 秒です。遅いと止まって見え、速いと注意を奪うため、その間で採っています。帯の開始と終了は面の外に置き、端で現れたり消えたりせず通り過ぎたように見せます。
+The cycle is 1.6 seconds. Slower looks stopped and faster grabs attention, so it sits in between. The band starts and ends outside the surface, so it looks as if it passes through rather than appearing and disappearing at the edges.
 
-## 責務境界
+## Responsibility Boundaries
 
-処理中かどうかの判定、待機の文言、表示時間は持ちません。付けるかどうかを呼び出し元が決めます。
+It owns neither deciding whether processing is under way, the waiting text, nor how long it is shown. The caller decides whether to apply it.
 
-文字に付けた場合、帯は文字の背後を通ります。文字自体の色は変えないので、読めるまま残ります。
+When applied to text, the band passes behind the text. The text color itself does not change, so it stays readable.
 
 ## Storybook
 
-面に付けた場合、文字に付けた場合、`Skeleton` と重ねた場合、動きを止めたときの見た目を確認します。
+It checks applying it to a surface, applying it to text, layering it with `Skeleton`, and the look when motion is stopped.

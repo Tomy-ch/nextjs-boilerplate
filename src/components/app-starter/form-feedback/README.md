@@ -1,23 +1,23 @@
 # FormFeedback
 
-## 用途
+## Purpose
 
-Server Action や native form の結果を、利用者が理解できる要約と次の行動として表示します。
+Displays the result of a Server Action or native form as a summary the user can understand and the next action.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `FormFeedback` | `Alert` を使い、title・description・任意の request ID・次の行動を表示します。 |
+| `FormFeedback` | Uses `Alert` to display a title, description, an optional request ID, and the next action. |
 
-## 利用ケース
+## Use Cases
 
-保存失敗、再試行依頼、処理完了後の補足など、form 全体に関わる結果を表示する場合に使います。
+Used to display results that concern the whole form, such as a failed save, a request to retry, or a note after processing completes.
 
-## 責務境界
+## Responsibility Boundaries
 
-Server Component であり、Server Action の呼び出し、エラー分類、文言変換、field 単位の検証は持ちません。feature が意味のある props へ変換して渡します。field 単位のエラーには `FieldError` を使います。
+It is a Server Component and does not own calling the Server Action, classifying errors, converting copy, or field-level validation. The feature converts these into meaningful props and passes them. Use `FieldError` for field-level errors.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常、request ID、次の行動を、test は意味論・リンク・a11y を確認します。
+Storybook checks the normal case, the request ID and the next action; tests check semantics, links and a11y.

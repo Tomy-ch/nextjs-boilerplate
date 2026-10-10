@@ -101,16 +101,16 @@ pnpm dev
 | 契約 | バックエンド契約の取得座標と、生成の入出力 | [openapi](openapi/README.md#boilerplate-導入時の変更点) |
 | 契約 | 契約から読めない値域と、口をまたぐ参照の配線 | [mocks](mocks/README.md#boilerplate-導入時の変更点) |
 | 環境 | API・IdP・画像配信・テレメトリの接続先、秘密値、経路上の上限 | [env](env/README.md#boilerplate-導入時の変更点) |
-| 外部接続 | IdP の差し替え点 | [adapters/server/auth](src/adapters/server/auth/README.md#差し替え点) |
-| 外部接続 | 外向きの往復に許す時間・試行回数・遮断の条件 | [adapters/server/http](src/adapters/server/http/README.md#boilerplate-導入時の変更点) |
-| 外部接続 | 配信ヘッダが許す第三者 origin | [config](src/config/README.md#boilerplate-導入時の変更点) |
-| 外部接続 | バックエンドエラーが持つ追加情報の形 | [errors](src/errors/README.md#boilerplate-導入時の変更点) |
+| 外部接続 | IdP の差し替え点 | [adapters/server/auth](src/adapters/server/auth/README.md#replacement-points) |
+| 外部接続 | 外向きの往復に許す時間・試行回数・遮断の条件 | [adapters/server/http](src/adapters/server/http/README.md#what-to-change-when-adopting) |
+| 外部接続 | 配信ヘッダが許す第三者 origin | [config](src/config/README.md#what-to-change-when-adopting) |
+| 外部接続 | バックエンドエラーが持つ追加情報の形 | [errors](src/errors/README.md#what-to-change-when-adopting) |
 | 運用 | 必須チェックの集合、保護するブランチ、通知の宛先、定期実行、資格情報を要する検査の取捨 | [.github/workflows](.github/workflows/README.md#boilerplate-導入時の変更点) |
 | 運用 | VRT 基準画像の置き場と、CI がそこへ書き込む資格 | [vrt](vrt/README.md#boilerplate-導入時の変更点) |
 | 意匠 | 色・余白・形・書体と、配色と系統の軸 | [tokens](tokens/README.md#boilerplate-導入時の変更点) |
-| 意匠 | サイトの名乗り（名前・説明・アイコンの印） | [app](src/app/README.md#boilerplate-導入時の変更点) |
-| 意匠 | UI 部品。参考実装であり、置き換えてよい | [components](src/components/README.md#ここにあるものは参考実装です) |
-| 認可 | 保護する経路と、そこへ入れる役割 | [model](src/model/README.md#boilerplate-導入時の変更点) |
+| 意匠 | サイトの名乗り（名前・説明・アイコンの印） | [app](src/app/README.md#what-to-change-when-adopting) |
+| 意匠 | UI 部品。参考実装であり、置き換えてよい | [components](src/components/README.md#what-is-here-is-a-reference-implementation) |
+| 認可 | 保護する経路と、そこへ入れる役割 | [model](src/model/README.md#what-to-change-when-adopting) |
 | 同梱サンプル | 破棄すると画面横断のテストから何が消えるか | [e2e](e2e/README.md#同梱サンプルを破棄すると何が消えるか) <!-- sample:line --> |
 
 **この表は既定値を持ちません。** 値を 2 か所に置くと片方が遅れるためで、正はどれもリンク先です

@@ -1,50 +1,50 @@
 # MessageScroller
 
-## 用途
+## Purpose
 
-末尾に追加され続ける一覧の scroll 位置を扱います。末尾にいる間は新着へ追従し、利用者が上へ動かしたら追従をやめて過去を読める状態を保ち、末尾へ戻す操作を出します。
+Handles the scroll position of a list that keeps being appended to. While at the end it follows new items; when the user moves up it stops following, keeps the past readable, and shows an action to return to the end.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `MessageScroller` | 状態を持つ root です。`autoFollow` で追従の有無を、`scrollEdgeThreshold` で末尾とみなす範囲を決めます。 |
-| `MessageScrollerViewport` | 実際にスクロールする枠です。`region` として公開し、keyboard で到達できます。 |
-| `MessageScrollerContent` | 一覧の中身を縦に並べる領域です。`log` として、追加された分だけを読み上げます。 |
-| `MessageScrollerButton` | 末尾へ戻す操作です。末尾にいる間は render しません。 |
+| `MessageScroller` | The root that holds the state. `autoFollow` decides whether to follow, and `scrollEdgeThreshold` the range treated as the end. |
+| `MessageScrollerViewport` | The frame that actually scrolls. Exposed as a `region` and reachable by keyboard. |
+| `MessageScrollerContent` | The region that stacks the list's content vertically. As a `log`, it announces only what was added. |
+| `MessageScrollerButton` | The action that returns to the end. Not rendered while at the end. |
 
-`MessageScroller` は `data-at-end` に末尾にいるかどうかを出します。
+`MessageScroller` exposes whether it is at the end in `data-at-end`.
 
-## 利用ケース
+## Use Cases
 
-- 追記され続けるやり取りを表示し、読んでいる途中に新着が来ても位置を奪わない場合
-- 過去を読み返している間だけ「最新へ戻る」導線を出す場合
-- 追従が不要で、末尾を初期位置にするだけでよい場合（`autoFollow={false}`）
+- Displaying a conversation that keeps being appended to, without stealing the position when new items arrive mid-read
+- Showing a "back to latest" path (「最新へ戻る」) only while rereading the past
+- When following is not needed and it is enough to make the end the initial position (`autoFollow={false}`)
 
-局所スクロールだけが必要で追従が要らない場合は、client runtime を持たない `ScrollArea` を使います。1 件ぶんの表示は持たないため、`Message` や `Bubble` を子として組みます。
+When only local scrolling is needed and following is not, use `ScrollArea`, which has no client runtime. It does not own the display of a single item, so compose `Message` or `Bubble` as children.
 
-## 責務境界
+## Responsibility Boundaries
 
-client island です。scroll 位置の観測と要素の寸法変化の検出に browser API を使うため hydration が必要で、Server Component から直接 render できません。SSR first の選定では、追従そのものが client でしか成立しないため native の対になる実装を置いていません。
+A client island. It uses browser APIs to observe the scroll position and detect changes in element dimensions, so hydration is needed and it cannot be rendered directly from a Server Component. In the SSR-first selection, following itself only works on the client, so no native counterpart implementation is provided.
 
-一覧の中身・取得・並び順・件数の上限は持ちません。新着の検出も持たず、内容の寸法が変わったことだけを見ます。
+It does not own the list's content, fetching, order, or a limit on the count. It does not detect new items either; it only watches for changes in the content's dimensions.
 
-高さを持たないため、`max-h-*` や `h-*` を `className` で与えます。与えない場合は内容が伸びるだけでスクロールしません。
+It has no height of its own, so give `max-h-*` or `h-*` through `className`. Without one, the content just grows and does not scroll.
 
-追従を外す条件は「利用者が上へ動かしたこと」だけです。内容が増えて末尾から離れた状態も見かけ上は同じですが、それを条件にすると新着のたびに追従が止まります。
+The only condition for stopping following is "the user moved up". Content growing and moving away from the end looks the same, but making that the condition would stop following on every new item.
 
-`MessageScrollerViewport` のアクセシブルな名前は呼び出し元が必ず与えます。名前がないと landmark にならず、focus したときに何の領域へ入ったのか判りません。
+The caller must always give `MessageScrollerViewport` an accessible name. Without a name it does not become a landmark, and when focused you cannot tell what region you entered.
 
-`MessageScrollerButton` は末尾にいる間 render しません。見えないまま focus だけ残ると、keyboard 利用者が行き先の判らない操作へ到達します。
+`MessageScrollerButton` is not rendered while at the end. If only the focus remained while it was invisible, keyboard users would reach an action whose destination is unclear.
 
-`MessageScrollerContent` の `log` は追加だけを通知します。既存項目の書き換えや削除は読み上げられないため、内容を差し替える用途には使いません。
+The `log` of `MessageScrollerContent` announces only additions. Rewriting or removing existing items is not announced, so do not use it for replacing content.
 
-registry の `message-scroller` は `@shadcn/react` を前提とするため copy-in せず、この 4 つを自前で実装しています。上流が持つ項目単位の可視判定、scroll anchor、先頭への追加時の位置保持、仮想化のための描画制御は持ちません。
+The registry's `message-scroller` assumes `@shadcn/react`, so it is not copied in; these 4 are implemented here. It does not have upstream's per-item visibility detection, scroll anchoring, position preservation when prepending, or rendering control for virtualization.
 
-vendor 依存はありません。アイコンは `components` の [`icon.ts`](../../../icon.ts)、操作に `Button` を使います。
+It has no vendor dependency. Icons come from `components`' [`icon.ts`](../../../icon.ts), and the action uses `Button`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は初期表示で末尾を映すこと、末尾にいる間の追従、上へ動かしたときに追従が外れて操作が現れること、`autoFollow` を切った場合、内容が枠に収まりスクロールできない場合、操作へ文言を与える場合を確認します。追従と位置の保持は実際に動かさないと判らないため、発言を追加するボタンを添えています。
+Storybook checks that the end is shown on initial display, following while at the end, that moving up releases following and makes the action appear, turning `autoFollow` off, content that fits in the frame and cannot scroll, and giving the action copy. Following and position preservation cannot be judged without actually moving things, so a button that adds a message is included.
 
-テストは `region` と `log` の意味論、初期表示で末尾を映すこと、末尾にいる間は操作を出さないこと、上へ動かすと操作が現れること、操作で末尾へ戻ること、末尾にいる間は内容が増えても追従すること、追従を外した後は位置を保つこと、末尾へ届かない下方向の移動では追従を戻さないこと、自分で末尾まで戻すと追従も戻ること、`autoFollow` を切った場合、viewport を持たない構成、`ref` の引き渡し、`MessageScroller` の外で使ったときの通知、a11y 自動検査を確認します。jsdom は layout を持たないため、scroll 量と `ResizeObserver` はテスト側で代替しています。
+Tests check the `region` and `log` semantics, that the end is shown on initial display, that the action is not shown while at the end, that moving up makes the action appear, that the action returns to the end, that it follows content growth while at the end, that it keeps the position after following is released, that downward movement that does not reach the end does not restore following, that returning to the end yourself restores following, turning `autoFollow` off, a composition without a viewport, passing `ref`, the notice when used outside `MessageScroller`, and automated a11y checks. jsdom has no layout, so the scroll amount and `ResizeObserver` are substituted on the test side.

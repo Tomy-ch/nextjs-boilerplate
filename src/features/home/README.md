@@ -1,125 +1,125 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # 生成物。`pnpm gen:architecture` で直す
-forbidden: [features] # 相手の facade/ と、画面まるごとの story は例外
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
+forbidden: [features] # Exceptions: the other feature's facade/, and whole-screen stories
 test-requirement: [feature, component, unit]
 ---
 
 # home
 
-トップの画面スライスです。売れ筋ランキング・新着商品・カテゴリ導線を並べます。
+The screen slice for the top page. It lays out the best-seller ranking, new arrivals, and category entry points.
 
-## 受け入れるもの
+## What Belongs Here
 
-- 3 系統の取得の編成と、系統ごとの成否の扱い（要求ごとに取る 2 系統と、待たずに配れる 1 系統）
-- この画面専用の表示（節ごとの帯・商品の teaser・待機表示・節単位の失敗表示）
+- Orchestrating the three fetch streams and handling success or failure per stream (two fetched per request, and one that can be served without waiting)
+- Display specific to this screen (a strip per section, product teasers, loading UI, per-section failure display)
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- 他 feature の内部への依存（一覧の URL は `products` の `facade/` から取る）
-- 汎用に使える表示（`Card` / `Badge` / `MediaImage` / `Alert` は `components` から取る）
-- パーソナライズ（誰に対しても同じ内容を出す画面です）
+- Depending on another feature's internals (the list URL comes from the `facade/` of `products`)
+- General-purpose display (`Card` / `Badge` / `MediaImage` / `Alert` come from `components`)
+- Personalization (this screen shows the same content to everyone)
 
-## Route と契約
+## Routes and Contracts
 
-| Route | 仕様書 | 認証 |
+| Route | Spec | Authentication |
 | --- | --- | --- |
-| `/` | [`screen`](../../../docs/spec/route/shop/page.screen.md) / [`function`](../../../docs/spec/route/shop/page.function.md) | 不要 |
+| `/` | [`screen`](../../../docs/spec/route/shop/page.screen.md) / [`function`](../../../docs/spec/route/shop/page.function.md) | Not required |
 
-外枠の約束は [`(shop)` の layout](../../../docs/spec/route/shop/layout.function.md) が持ちます。
+The outer frame's promises are owned by [the `(shop)` layout](../../../docs/spec/route/shop/layout.function.md).
 
-使う operationId。
+operationIds used.
 
-| operationId | 用途 |
+| operationId | Purpose |
 | --- | --- |
-| `GetProductsRankingQuantity` | 売れ筋の節 |
-| `GetProducts` | 新着の節。並び替えだけを指定する |
-| `GetProductCategories` | 分類から一覧へ入る導線 |
+| `GetProductsRankingQuantity` | The best-seller section |
+| `GetProducts` | The new-arrivals section. Specifies only the sort order |
+| `GetProductCategories` | The entry point from a category into the list |
 
-## 状態とデザイン参照
+## States and Design References
 
-| 画面 | 状態 | story |
+| Screen | State | story |
 | --- | --- | --- |
-| トップ | success | `Page/Home/Default` |
-| | empty（どの系統も中身が無い） | `Page/Home/Empty` |
+| Top | success | `Page/Home/Default` |
+| | empty (no stream has content) | `Page/Home/Empty` |
 | | loading | `Features/Home/Skeleton/Default` |
-| | 1 系統だけ落ちた | `Page/Home/RankingFailed` |
-| | 取りに行った系統が全部落ちた | `Page/Home/AllFailed` |
-| | 落ちた節の中身 | `Features/Home/SectionFailure/Default` |
+| | only one stream failed | `Page/Home/RankingFailed` |
+| | every fetched stream failed | `Page/Home/AllFailed` |
+| | contents of a failed section | `Features/Home/SectionFailure/Default` |
 
-**error という 1 つの状態を持ちません。** 要求ごとに取る 2 系統は個別に待つので、失敗は系統ごとに立ち、
-落ちた節だけがその表示へ替わります。両方落ちた場合も画面は出ます（節が 2 つとも失敗表示に
-なるだけで、route の `error` 境界へは行きません）。分類の節はこの扱いの外です（「運用」節）。
+**There is no single error state.** The two per-request streams are awaited individually, so failure is raised per stream,
+and only the failed section switches to the failure display. The screen still renders when both fail (both sections simply
+show the failure display; it does not reach the route's `error` boundary). The category section is outside this handling (see the "Operations" section).
 
-## 構成
+## Structure
 
-画面が 1 つしかないため、画面を挟まず直下へ置きます。
+The screen is the only one, so files sit directly here without a screen directory in between.
 
-| ファイル | 役割 |
+| File | Role |
 | --- | --- |
-| `page-content.tsx` | 要求ごとに取る 2 系統の並行取得と組み立て。系統ごとの失敗を値へ落とし、記録もここで行う |
-| `categories-content.tsx` | 分類の取得。静的な殻の側に居るので、`Suspense` の外に置かれる |
-| `view.tsx` | 要求ごとに取る節を積むだけの表示。成否の組み合わせを取得なしで確かめられる |
-| `ui/new-arrivals/` | 新着商品の節。一覧への導線を見出しの隣に持つ |
-| `ui/ranking-list/` | 売れ筋ランキングの節。順位付きの行で並べる |
-| `ui/category-links/` | 分類から一覧へ入る導線の節 |
-| `ui/product-teaser/` | トップに並べる商品 1 件。一覧のカードとは密度が違う |
-| `ui/section-failure/` | 1 つの節だけが落ちたときの表示 |
-| `ui/sample-notice/` | サンプルであることの断り書き。見出しより前、取得の外に出す |
-| `ui/skeleton/` | 待機表示 |
+| `page-content.tsx` | Fetches the two per-request streams in parallel and assembles them. Turns each stream's failure into a value and records it here too |
+| `categories-content.tsx` | Fetches the categories. It sits on the static shell side, so it is placed outside `Suspense` |
+| `view.tsx` | Display that only stacks the per-request sections. Combinations of success and failure can be checked without fetching |
+| `ui/new-arrivals/` | The new-arrivals section. Holds the entry point to the list next to its heading |
+| `ui/ranking-list/` | The best-seller ranking section. Lays out ranked rows |
+| `ui/category-links/` | The section of entry points from a category into the list |
+| `ui/product-teaser/` | One product shown on the top page. Its density differs from the list's card |
+| `ui/section-failure/` | The display when only one section has failed |
+| `ui/sample-notice/` | The caveat that this is a sample. Placed before the heading, outside the fetch |
+| `ui/skeleton/` | Loading UI |
 
-## 依存カーネル
+## Kernel Dependencies
 
-| カーネル | 用途 |
+| Kernel | Purpose |
 | --- | --- |
-| `adapters` | 取得と表示モデルへの変換。分類の寿命は取得の口が持つ |
-| `model` | 表示モデル（`Product`）と画像の型 |
-| `components` | 節を組む器（カード・バッジ・待機表示・案内） |
-| `errors` | 落ちた系統に出す文言を、分類から引く |
-| `logging` | 落ちた系統の記録。画面は出し続けるため、記録が唯一の痕跡になる |
-| `observability` | 描画を span に載せる |
+| `adapters` | Fetching and conversion to display models. The category lifetime is owned by the fetch endpoint |
+| `model` | Display models (`Product`) and image types |
+| `components` | The building blocks a section is assembled from (card, badge, loading UI, notice) |
+| `errors` | Looks up, by classification, the message shown for a failed stream |
+| `logging` | Records a failed stream. The screen keeps rendering, so the record is the only trace |
+| `observability` | Puts rendering on spans |
 
-他 feature の `facade/` も引きます —— 一覧の URL（`products`）と、利用規約への行き先
-（`site-info`）。**内部は見ません**。
+It also uses other features' `facade/` — the list URL (`products`) and the destination for the terms of use
+(`site-info`). **It does not look at their internals.**
 
-## Action 戻り値契約
+## Action Return Contract
 
-なし。トップに操作がありません。
+None. The top page has no operations.
 
-## テスト観点
+## Test Perspectives
 
-- [ ] 1 系統が落ちても、残りの系統が出る
-- [ ] 中身が空の節が描かれない
-- [ ] 断り書きが取得を待たず、見出しより前に出る
-- [ ] 分類の節が待機表示を挟まず、`Suspense` の外に置かれている
-- [ ] 一覧への導線が `products` の `facade/` から組まれている（キーを写していない）
+- [ ] When one stream fails, the remaining streams still render
+- [ ] A section with empty content is not rendered
+- [ ] The caveat appears before the heading without waiting for any fetch
+- [ ] The category section is placed outside `Suspense`, without loading UI in between
+- [ ] The entry points to the list are built from the `facade/` of `products` (keys are not copied)
 
-## 運用
+## Operations
 
-- **要求ごとに取る 2 系統は `Promise.allSettled` で取ります**。`all` は最初の失敗で待機を打ち切るため、
-  成功した系統の結果が手元にあっても使えません。1 つ落ちても残りは出す、が部分エラーの扱いです
-- **分類だけは待機の外に居ます**。取得がキャッシュを持つので
-  （[product-masters](../../adapters/server/api/product-masters.ts)）、要求を待たずに静的な殻へ入り、
-  最初の HTML から辿れます。**この節の失敗は値へ落としません** —— 殻は組み立て時に作られてそのまま
-  配られるため、失敗を表示へ変えるとその事実が次の再検証まで全員へ配られます。読めなければ組み立てを
-  落とし、配り始めたあとで読めなくなっても最後に読めた殻が出続けます（取り直しが背後で起きる形にして
-  あるためで、成立の条件は `next.config.ts` の `masters` profile が `expire` を持たないことです）
-- **節ごとの再取得は置きません**。押せる操作を出すなら画面全体の再取得になります。節単位の
-  部分再取得はその節を client island へ倒して初めて成立するもので、並べるだけの画面が負う
-  複雑さではありません
-- **一覧の URL は自分で組みません**。パスと絞り込みのキーは `products` の
-  `facade/list-url/` が持ちます。キーの綴りを写すと、一覧が契約に合わせて変えたときにこちら
-  だけが古いままになり、絞り込まれない一覧へ飛びます
-- **中身が空の節は描きません**。「該当がありません」はトップでは利用者が取れる行動を持たない
-  告知で、場所を取るだけです。空を伝える必要があるのは、利用者が条件を指定した画面です
-- **サンプルである断り書きを最初に出します**。実在しそうな商品名と企業名を並べている以上、書かないと
-  実在の取引と取り違えられます。伝えるのはサンプルであること・掲載物が実在しないこと・購入と決済が
-  機能しないことの 3 つで、取得を待たず、見出しより前に置きます
-- **利用規約への導線を同じ断り書きに置きます**。閲覧した時点で同意とみなす以上、同意の対象へ
-  最初に届く必要があり、フッターまで下りないと辿れない位置では成立しません
-- **段組みはコンテナクエリで決めます**（[`docs/rules.md`](../../../docs/rules.md#layout)）
+- **The two per-request streams are fetched with `Promise.allSettled`.** `all` abandons the wait at the first failure,
+  so a successful stream's result cannot be used even though it is at hand. Rendering the rest when one fails is how partial errors are handled
+- **Only the categories sit outside the wait.** Their fetch carries a cache
+  ([product-masters](../../adapters/server/api/product-masters.ts)), so they go into the static shell without waiting for the request
+  and are reachable from the first HTML. **A failure of this section is not turned into a value** — the shell is built at build time and
+  served as is, so turning the failure into a display would serve that fact to everyone until the next revalidation. If it cannot be read, the build
+  fails; if it becomes unreadable after serving has begun, the last shell that was read keeps being served (because refetching is arranged to
+  happen in the background; the condition for this is that the `masters` profile in `next.config.ts` has no `expire`)
+- **There is no per-section refetch.** If a pressable action is shown, it refetches the whole screen. A partial refetch per
+  section only works once that section is pushed down into a client island, and that is not complexity a screen that only
+  lays things out should carry
+- **The list URL is not built here.** The path and the filter keys are owned by `facade/list-url/` of
+  `products`. Copying the key spelling means that when the list changes it to match the contract, only this side
+  stays stale and links to an unfiltered list
+- **A section with empty content is not rendered.** "No matches" on the top page is a notice that offers the user no action
+  to take, and only takes up space. Conveying emptiness is needed on screens where the user specified conditions
+- **The caveat that this is a sample comes first.** Since realistic product and company names are listed, leaving it out
+  lets them be mistaken for real transactions. It conveys three things — that this is a sample, that the listed items do not exist, and that
+  purchase and payment do not work — and is placed before the heading without waiting for any fetch
+- **The entry point to the terms of use sits in the same caveat.** Since browsing counts as consent, the user must
+  reach what they consent to first, and a position reachable only by scrolling down to the footer does not achieve that
+- **Column layout is decided by container queries** ([`docs/rules.md`](../../../docs/rules.md#layout))
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。他 feature へは `facade/` 越しにだけ触る
-- [0027](../../../docs/adr/0027-directory-structure.md) — 物理配置と co-location。画面が 1 つなら画面ディレクトリを挟まない
-- [0080](../../../docs/adr/0080-error-handling.md) — エラーの扱い。片方が落ちても残りを配る部分エラー
+- [0021](../../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. Other features are touched only through `facade/`
+- [0027](../../../docs/adr/0027-directory-structure.md) — Physical placement and co-location. With a single screen, no screen directory sits in between
+- [0080](../../../docs/adr/0080-error-handling.md) — Error handling. Partial errors that serve the rest when one side fails

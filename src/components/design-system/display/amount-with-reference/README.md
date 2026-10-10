@@ -1,35 +1,29 @@
 # AmountWithReference
 
-## 用途
+## Purpose
 
-基準通貨の金額と、切り替えで現れる別通貨の参考換算額です。確定した金額はひとつでありながら、
-読み手が慣れた通貨で大きさを掴みたい場面に使います。
+An amount in the base currency, and a reference conversion into another currency that appears on toggle. Used where the settled amount is a single one, yet readers want to grasp its size in a currency they are used to.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `AmountWithReference` | 金額と参考換算額を表示する client island です。切り替えの押下状態を自身で持ちます。 |
+| `AmountWithReference` | A client island that displays the amount and the reference conversion. It holds the toggle's pressed state itself. |
 
-## 基準通貨の金額は常に出したままにします
+## The base-currency amount always stays displayed
 
-切り替えは参考の 1 行を**足すだけ**で、基準通貨の金額を置き換えません。置き換えると、どちらの通貨の
-金額が確定しているのかが読み取れなくなります。
+The toggle **only adds** one reference line and does not replace the base-currency amount. Replacing it would make it impossible to read which currency's amount is the settled one.
 
-**参考換算額が `null` のときは切り替えごと出しません。** 押しても何も現れない操作は、失敗したのか
-対応していないのかを利用者から区別できません。
+**When the reference conversion is `null`, the toggle itself is not shown.** With an action that makes nothing appear when pressed, the user cannot tell whether it failed or is unsupported.
 
-レートと基準日を併記します。いつの相場による目安かが判らなければ参考になりません。
+The rate and its reference date are shown alongside. Without knowing which day's market the estimate is based on, it is no use as a reference.
 
-## 責務境界
+## Responsibility Boundaries
 
-**何の金額かは持ちません。** 見出しは `label` で受け取ります。合計なのか小計なのかを決めるのは
-呼び出し側です。
+**It does not own what the amount is.** The heading is received as `label`. Whether it is a total or a subtotal is decided by the caller.
 
-換算そのものも、換算できなかったときの扱いも持ちません。値を引くのは `adapters` の責務で、
-読めなかったことは `null` として渡されます。
+It owns neither the conversion itself nor what happens when conversion fails. Looking up the value is the responsibility of `adapters`, and failure to read it is passed in as `null`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定、脇へ添える大きさ、参考換算額が無い場合を確認します。テストは金額の表示、
-切り替えでの参考額の出現、`null` のときに操作を出さないこと、a11y 自動検査を確認します。
+Storybook checks the default, the size placed alongside, and the case with no reference conversion. Tests check displaying the amount, the reference amount appearing on toggle, that no action is shown when it is `null`, and automated a11y checks.

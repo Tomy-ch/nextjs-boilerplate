@@ -1,32 +1,32 @@
 # Field
 
-## 用途
+## Purpose
 
-label、入力、説明、エラーを一つの form field として構成します。
+Composes a label, input, description and error into one form field.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Field` | 一つの入力項目をまとめる外枠です。 |
-| `FieldGroup` / `FieldSet` | 関連する複数の field をまとめます。 |
-| `FieldLabel` / `FieldLegend` | 項目名または選択群の名称を示します。 |
-| `FieldContent` / `FieldDescription` / `FieldError` | control 周辺の内容・補足・エラーを置きます。 |
-| `FieldTitle` | control を持たない項目の見出しを示します。入力欄の名称には `FieldLabel` を使います。 |
-| `FieldSeparator` | field 群の視覚的な区切りを置きます。 |
+| `Field` | The outer frame that groups one input item. |
+| `FieldGroup` / `FieldSet` | Group several related fields. |
+| `FieldLabel` / `FieldLegend` | Show the item name or the name of a group of choices. |
+| `FieldContent` / `FieldDescription` / `FieldError` | Hold the content, supplementary text and errors around the control. |
+| `FieldTitle` | Shows the heading of an item that has no control. Use `FieldLabel` for the name of an input. |
+| `FieldSeparator` | Places a visual separator between groups of fields. |
 
-[`field.definition.ts`](./field.definition.ts) は、`FieldDescription` / `FieldError` に与える `id` の綴りを持ちます（`toErrorId` / `toDescriptionId`）。入力欄の `aria-describedby` がその `id` を指すため、綴りを決めているのは受け取る側の都合です。項目の外枠を組む [`patterns/form-field`](../../../patterns/form-field/README.md) もここを引きます。
+[`field.definition.ts`](./field.definition.ts) holds the spelling of the `id` given to `FieldDescription` / `FieldError` (`toErrorId` / `toDescriptionId`). The input's `aria-describedby` points at that `id`, so it is the receiving side's needs that decide the spelling. [`patterns/form-field`](../../../patterns/form-field/README.md), which builds the item's outer frame, also imports it from here.
 
-組み立てる側（`patterns/form-field`）へは置きません。層の向きは `patterns → design-system` の一方向なので、そこに置くと素の `Field` を直接組む catalog や画面が上へ引けず、同じ綴りを手で書くことになります。
+It is not placed on the assembling side (`patterns/form-field`). The layer direction is one-way, `patterns → design-system`, so placing it there would keep catalogs and screens that assemble a bare `Field` directly from reaching up to it, and they would write the same spelling by hand.
 
-## 利用ケース
+## Use Cases
 
-native form の入力、選択、説明文、Server Action の検証結果を構成する場合に使います。
+Use it to compose native form inputs, choices, descriptions and Server Action validation results.
 
-## 責務境界
+## Responsibility Boundaries
 
-Server Component であり、値の状態管理・検証・エラー配列の整形は行いません。feature が `aria-invalid`、`aria-describedby`、エラー文言を渡します。
+It is a Server Component and does no value state management, validation or formatting of error arrays. The feature passes `aria-invalid`, `aria-describedby` and the error text.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常、invalid、区切りを別々に示し、test は label の関連付け・alert・a11y を確認します。
+Storybook shows normal, invalid and separators separately; the tests check the label association, alert and a11y.

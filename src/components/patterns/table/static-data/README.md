@@ -1,24 +1,24 @@
 # StaticData Sugar
 
-## 用途
+## Purpose
 
-読み取り専用の列定義から、列幅・見出し・行・空表示を一貫して組み立てます。
+Builds column widths, headers, rows and the empty display consistently from read-only column definitions.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `StaticDataTable` | 列定義から読み取り専用 table を組み立てます。 |
-| `StaticDataTableColumn<Row>` | header・幅・alignment・row の cell 表示を定義します。 |
+| `StaticDataTable` | Builds a read-only table from column definitions. |
+| `StaticDataTableColumn<Row>` | Defines the header, width, alignment, and the row's cell display. |
 
-## 利用ケース
+## Use Cases
 
-Server で取得した一覧を、列幅と配置を保って表示する場合に使います。
+Use it to display a list fetched on the server while keeping column widths and placement.
 
-## 責務境界
+## Responsibility Boundaries
 
-`Table` の低レベル構成は `design-system/display/table`、列定義の展開は `patterns/table` が担います。取得、URL、filter、行操作は feature の責務です。
+`design-system/display/table` handles the low-level structure of `Table`, and `patterns/table` the expansion of column definitions. Fetching, URLs, filters and row actions are the feature's responsibility.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・空表示・pagination・検索 toolbar を示します。test は列幅・header・empty・toolbar・pagination・a11y を確認します。
+Storybook shows the regular display, the empty display, pagination, and a search toolbar. The tests cover column widths, headers, empty, the toolbar, pagination, and a11y.

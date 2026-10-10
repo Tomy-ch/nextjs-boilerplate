@@ -151,7 +151,7 @@ README を持っている場合、その入れ子も含みます。`src/features
 | States and Design References | 出しうる状態それぞれに Storybook の story 識別子（`<title>/<export>`）が対応している。story が無いならその理由が書いてある |
 | Structure | その slice が所有するファイル / ディレクトリの表がある |
 | Kernel Dependencies | 引いているカーネルと、その用途が書いてある |
-| Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら `なし` |
+| Action Return Contract | Server Action ごとに置き場・戻り値・成功後・失敗時がある。無いなら、無いことが書かれている（テンプレートは `none` と書く。字面の一致ではなく意味で判定するので、`none` でも `なし` でも満たす） |
 | Test Perspectives | **その slice でしか出てこない**観点である（ADR 0090 の層別責務の再掲になっていない） |
 
 それぞれを present / thin / missing で報告します。**thin** は見出しはあるが上の表の問いに答えて
@@ -182,7 +182,7 @@ README Review: <path>
 [判定] manual-worthy | borderline | not-yet-manual-grade | out-of-scope-for-portal
 
 [強み] (満たす positive 観点)
-  ✓ P1 役割 / 境界: 「受け入れないもの」が渡し先（components / model）を名指ししている
+  ✓ P1 役割 / 境界: 「What Does Not Belong Here」が渡し先（components / model）を名指ししている
   ✓ P4 実行機序: いつ評価されるかを起動境界と RSC の 2 経路で書き分けている
   ✓ P6 運用: 変更後に回すものが 3 点（生成 / 突合 / 撮り直し）
   ✓ P7 散文 1,462 字
@@ -191,13 +191,18 @@ README Review: <path>
   ✗ P2 設計判断を述べた節が無い
   ✗ P3 規約 / 禁止の明文化が無い
 
+[B1 必須節] (feature README のときだけ出す)
+  ✓ Routes and Contracts: 2 route と 4 operationId。spec への link も解決する
+  △ Test Perspectives: 見出しはあるが層の宣言の再掲で、この slice 固有の観点が無い
+  ✗ Action Return Contract: 節が無い
+
 [アンチパターン] (トリガした negative)
   なし
-  ※（または）⚠ N1 部品リファレンス: 用途 / 役割と公開 component / 利用ケース / 責務境界 / Storybook とテスト の定型のみ → Storybook と TSDoc の領域
+  ※（または）⚠ N1 部品リファレンス: Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests の定型のみ → Storybook と TSDoc の領域
 
 [補強提案]
   - 「この層が要る理由」を 1〜2 段落足すと、読み手が層を必要性から理解できる
-  - 「受け入れないもの」に渡し先を書き足すと、境界が判断に使える形になる
+  - 「What Does Not Belong Here」に渡し先を書き足すと、境界が判断に使える形になる
 
 [portal 適性]
   manual-worthy → /portal-manifest-sync を回し、レポートを見たうえでこのパスを名指しして追加する

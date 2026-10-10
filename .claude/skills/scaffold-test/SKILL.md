@@ -125,7 +125,7 @@ not one.
 ## Step 1. Read the layer context
 
 1. Walk up from the subject to the nearest ancestor `README.md` carrying `test-requirement` in its
-   frontmatter, and read both the frontmatter and the body — **including its `## テスト観点` section
+   frontmatter, and read both the frontmatter and the body — **including its `## Test Perspectives` section
    when it has one.** Those lines are perspectives a human wrote for this slice, and they are the one
    part of the input this skill did not derive. They are declarations with a reader: a slice README
    that lists a perspective nothing ever asserts is a checklist that rots unwatched.
@@ -209,7 +209,7 @@ a returned error state and a silently dropped value all belong on the same side.
 
 Before listing anything yourself, spawn one `test-perspective-enumerator` per subject group
 (`agentType: "test-perspective-enumerator"`, `label` like `perspectives:<group>`). It reads the
-subject, the nearest `test-requirement` README including its `## テスト観点`, and ADR 0090 / 0091,
+subject, the nearest `test-requirement` README including its `## Test Perspectives`, and ADR 0090 / 0091,
 and returns one line per perspective with the assertion that would distinguish it.
 
 **The split is the point.** A model that writes a test decides what to test while deciding how to
@@ -227,7 +227,7 @@ Reconcile its output against your own derivation:
 - Its 「読めなかった」 block goes into the report verbatim. An input that could not be read is not an
   input that held nothing ([0157](../../../docs/adr/0157-inspection-declaration-discipline.md)).
 
-**When the README has no `## テスト観点` section, or it holds only the template placeholder, say so
+**When the README has no `## Test Perspectives` section, or it holds only the template placeholder, say so
 and do not invent one.** The absence is reportable: it means this slice's perspectives live only in
 whoever is reading the code right now. Proceed on the derived set, and name the gap in Step 3 so the
 user can decide whether the README should gain the section before the tests are written.

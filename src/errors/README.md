@@ -1,111 +1,111 @@
 ---
-imports-allowed: [] # 生成物。`pnpm gen:architecture` で直す
+imports-allowed: [] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [http-vocabulary, external-dependencies]
 test-requirement: unit
 ---
 
 # errors
 
-全層から参照できる、protocol-agnostic なアプリケーション共通エラーのカーネルです。分類・原因・表示メタ情報を分けて持ちます —— 分類は内側で判定に使い、原因は `cause` として辿れるまま残し、表示メタ情報は外側で上書きできます。
+The kernel of protocol-agnostic, application-wide errors that every layer can reference. It holds classification, cause, and display metadata separately — the classification is used inside for decisions, the cause stays traceable as `cause`, and the display metadata can be overridden outside.
 
-## 受け入れるもの
+## What Belongs Here
 
-- transport に依存しないエラー分類の語彙と、それを `cause` chain に載せる型
-- 分類ごとの既定の表示メタ情報（機械可読な code と、利用者向けの文言）のカタログ
-- cause chain を保ったまま表示メタ情報を重ねる口と、chain から分類・メタ情報を取り出す口
-- メッセージに含まれる秘匿値を、呼出し側の名指しで置き換える関数
+- The transport-independent error classification vocabulary, and the type that puts it on the `cause` chain
+- The catalog of default display metadata per classification (a machine-readable code and user-facing text)
+- The entry point that layers display metadata while keeping the cause chain, and the entry points that extract the classification and metadata from the chain
+- A function that replaces secret values contained in a message, as named by the caller
 
-## 受け入れないもの
+## What Does Not Belong Here
 
-- transport の status・レスポンス形式・ヘッダなど、プロトコル由来の語彙（[0080](../../docs/adr/0080-error-handling.md) 禁止事項）
-- 他のカーネルと外部パッケージへの依存（[0021](../../docs/adr/0021-frontend-responsibility.md) 依存マトリクス）
-- ログ出力（`logging` と境界の責務）
+- Protocol-derived vocabulary such as transport status, response formats and headers (the prohibitions of [0080](../../docs/adr/0080-error-handling.md))
+- Dependencies on other kernels and external packages (the dependency matrix of [0021](../../docs/adr/0021-frontend-responsibility.md))
+- Log output (the responsibility of `logging` and the boundaries)
 
-## 公開 API
+## Public API
 
-- `ErrorKind` / `errorKinds` — 分類の型と名前付き定数、および全分類の配列
-- `AppError` / `createAppError()` — 原因を `cause` に残す分類済みエラー
-- `findAppError()` / `isAppError()` — cause chain 内の分類の判定
-- `ErrorMeta` / `createErrorMeta()` — code・利用者向け文言・requestId・公開可能な詳細識別子。不変で、`withMessage()` が文言だけ差し替えた複製を返す
-- `withErrorMeta()` / `withErrorDetails()` / `errorMetaFrom()` — cause chain を保つメタ情報ラッパー。外側のメタ情報が優先
-- `getDefaultErrorMeta()` — 分類カタログの既定メタ情報
-- `resolveErrorMeta()` — 分類カタログと外側メタ情報から code・文言・詳細を解決
-- `redactMessage()` / `redactedValue` — 明示指定した秘匿値を wrap 前に置換する関数と、置換後の固定文字列
+- `ErrorKind` / `errorKinds` — The classification type and named constants, and the array of all classifications
+- `AppError` / `createAppError()` — A classified error that keeps its cause in `cause`
+- `findAppError()` / `isAppError()` — Finding the classification within the cause chain
+- `ErrorMeta` / `createErrorMeta()` — Code, user-facing text, requestId, and publishable detail identifiers. Immutable; `withMessage()` returns a copy with only the text replaced
+- `withErrorMeta()` / `withErrorDetails()` / `errorMetaFrom()` — Metadata wrappers that keep the cause chain. Outer metadata takes precedence
+- `getDefaultErrorMeta()` — The default metadata from the classification catalog
+- `resolveErrorMeta()` — Resolves code, text and details from the classification catalog and the outer metadata
+- `redactMessage()` / `redactedValue` — A function that replaces explicitly specified secret values before wrapping, and the fixed replacement string
 
-## モジュール
+## Modules
 
-| モジュール | 役割 |
+| Module | Role |
 | --- | --- |
-| `error-kind.ts` | 分類の語彙。型と同名の名前付き定数を持ち、他のモジュールが依存する葉 |
-| `app-error.ts` | 分類を cause chain に載せる `AppError` と、chain を外側から辿って分類を見つける関数 |
-| `error-meta.ts` | 分類とは独立に付与する表示メタ情報と、それを chain に載せる・chain から取り出す関数 |
-| `error-catalog.ts` | 分類ごとの既定メタ情報の表と、chain の分類・外側メタ情報から表示用メタ情報を解決する関数 |
-| `redact.ts` | 秘匿値の置換 |
+| `error-kind.ts` | The classification vocabulary. Holds named constants with the same name as the type; the leaf other modules depend on |
+| `app-error.ts` | `AppError`, which puts the classification on the cause chain, and the function that walks the chain from the outside to find the classification |
+| `error-meta.ts` | Display metadata attached independently of classification, and the functions that put it on the chain and extract it from the chain |
+| `error-catalog.ts` | The table of default metadata per classification, and the function that resolves display metadata from the chain's classification and outer metadata |
+| `redact.ts` | Replacing secret values |
 
-依存の向きは `error-kind` → `app-error` / `error-meta` → `error-catalog` の一方向で、`redact` は独立です。
+Dependencies run one way, `error-kind` → `app-error` / `error-meta` → `error-catalog`; `redact` is independent.
 
-## エラー分類
+## Error Classification
 
-`ErrorKind` が分類語彙の唯一の定義であり、呼出し側は `ErrorKind.INVALID_ARGUMENT` のような名前付き定数を使います。分類は protocol-agnostic であり、HTTP status への変換は adapters 境界が担当します。
+`ErrorKind` is the only definition of the classification vocabulary, and callers use named constants such as `ErrorKind.INVALID_ARGUMENT`. The classification is protocol-agnostic; the adapters boundary handles conversion to HTTP status.
 
-| `ErrorKind` | 意味 / 使い所 |
+| `ErrorKind` | Meaning / when to use |
 | --- | --- |
-| `INVALID_ARGUMENT` | 構文上は正しいが意味が不正な引数 |
-| `UNAUTHENTICATED` | 認証失敗・未ログイン |
-| `PERMISSION_DENIED` | 権限不足 |
-| `NOT_FOUND` | 対象が存在しない |
-| `CONFLICT` | ユニーク制約違反・同時更新衝突など |
-| `VALIDATION` | ドメインまたはユースケースの検証失敗 |
-| `UNSUPPORTED_MEDIA_TYPE` | サポートしない入力形式 |
-| `PAYLOAD_TOO_LARGE` | 許容サイズを超えた入力 |
-| `URI_TOO_LONG` | 条件を載せた URL が長すぎる。本体が大きい `PAYLOAD_TOO_LARGE` とは利用者が減らすべきものが違う |
-| `TOO_MANY_REQUESTS` | 流量制限・外部依存のスロットリング |
-| `CANCELED` | 呼出し側による処理の中断。失敗ではなく打ち切りで、再試行の対象にしない |
-| `INTERNAL` | 想定外の内部エラー。契約と違う形の応答も、通信の失敗と区別してここへ入れる |
-| `UNIMPLEMENTED` | 未実装または非サポートの機能 |
-| `UNAVAILABLE` | 外部依存障害などの一時的な利用不可 |
+| `INVALID_ARGUMENT` | An argument that is syntactically correct but semantically invalid |
+| `UNAUTHENTICATED` | Authentication failure or not logged in |
+| `PERMISSION_DENIED` | Insufficient permission |
+| `NOT_FOUND` | The target does not exist |
+| `CONFLICT` | Unique constraint violation, concurrent update conflict, and the like |
+| `VALIDATION` | Domain or use-case validation failure |
+| `UNSUPPORTED_MEDIA_TYPE` | An unsupported input format |
+| `PAYLOAD_TOO_LARGE` | Input exceeding the allowed size |
+| `URI_TOO_LONG` | The URL carrying the conditions is too long. What the user should reduce differs from `PAYLOAD_TOO_LARGE`, where the body is large |
+| `TOO_MANY_REQUESTS` | Rate limiting, or throttling by an external dependency |
+| `CANCELED` | Processing aborted by the caller. A cutoff, not a failure, and not a target for retry |
+| `INTERNAL` | An unexpected internal error. A response in a shape different from the contract also goes here, distinguished from a communication failure |
+| `UNIMPLEMENTED` | An unimplemented or unsupported feature |
+| `UNAVAILABLE` | Temporary unavailability, such as an external dependency outage |
 
-分類の語彙はこう組みます。
+The classification vocabulary is built like this.
 
-- **値は kebab-case の文字列リテラル**で、型 `ErrorKind` は値の union、定数 `ErrorKind` は同名のオブジェクトです。`enum` は使いません（[`docs/rules.md#types`](../../docs/rules.md#types)）。定数は `satisfies` で型に照らし、リテラルの情報を落としません（[0029](../../docs/adr/0029-type-design-discipline.md)）
-- `errorKinds` は全分類の配列で、**分類を引数に取る表が全分類を埋めていることを境界側のテストが網羅的に確かめる**ためにあります。分類を増やしたときに、表の抜けが型ではなくテストで見つかる場所（`switch` で組んだ写像など）がこれを使います
-- 分類の一次キーは意味であって、接続先の code の綴りではありません。分類と安定エラーコードの対応、HTTP status との対応表は [0080](../../docs/adr/0080-error-handling.md) が持ちます
+- **Values are kebab-case string literals**; the type `ErrorKind` is the union of the values, and the constant `ErrorKind` is an object of the same name. `enum` is not used (`docs/rules.md#types`). The constant is checked against the type with `satisfies`, so literal information is not lost ([0029](../../docs/adr/0029-type-design-discipline.md))
+- `errorKinds` is the array of all classifications and exists **so that boundary-side tests can exhaustively check that a table taking a classification as its key fills in every classification**. Places where a gap in the table is found by a test rather than by the type (such as mappings built with `switch`) use it when a classification is added
+- The primary key of a classification is its meaning, not the spelling of the connected service's code. The mapping between classifications and stable error codes, and the table of correspondence with HTTP status, are held by [0080](../../docs/adr/0080-error-handling.md)
 
-### 分類を足す手順
+### Steps to add a classification
 
-1. `error-kind.ts` の型 union と定数の両方へ足す
-2. `error-catalog.ts` の既定メタ情報へ、code と利用者向け文言を足す。表は `Record<ErrorKind, ErrorMeta>` なので、足すまで型検査が通らない
-3. この README の分類表へ 1 行足す
-4. 変換を持つ `adapters` の口（server / client それぞれ）の、status → 分類と分類 → status の両向きの表を直す。分類 → status の抜けは `errorKinds` を回すテストが見つけるが、**status → 分類は表に無い status を `INTERNAL` へ倒すので、抜けは黙って `INTERNAL` になる** —— 両向きを同時に直す
-5. [0080](../../docs/adr/0080-error-handling.md) の対応表を直す
+1. Add it to both the type union and the constant in `error-kind.ts`
+2. Add a code and user-facing text to the default metadata in `error-catalog.ts`. The table is a `Record<ErrorKind, ErrorMeta>`, so type checking does not pass until it is added
+3. Add one row to the classification table in this README
+4. Fix both directions of the table, status → classification and classification → status, in each `adapters` endpoint that holds a conversion (server and client each). A gap in classification → status is found by the test that iterates `errorKinds`, but **status → classification tips any status not in the table to `INTERNAL`, so a gap silently becomes `INTERNAL`** — fix both directions at once
+5. Fix the correspondence table in [0080](../../docs/adr/0080-error-handling.md)
 
-## 分類とメタ情報の重ね方
+## Layering Classification and Metadata
 
-分類とメタ情報はどちらも cause chain に載せ、**chain を外側から辿って最初に見つかったものが勝ちます**。
+Both classification and metadata are put on the cause chain, and **walking the chain from the outside, the first one found wins**.
 
-- **分類を変えるときは外側に `AppError` を被せる**。内側の分類はそのまま残るので、後から辿れます
-- **分類を変えずに文脈を足すときは、`AppError` でないもので被せる**。素の `Error` に `{ cause }` を渡すか、`withErrorMeta()` で文言を載せます。どちらも `findAppError()` は内側の分類を返します。下の層が「到達できない」と「応答が期待の形でない」を分類で分けているとき、上の層で新しい失敗へ詰め替えると両者が同じ顔になります —— 分類は下の層のものを残し、載せるのは文言だけにします
-- **外側のメタ情報は内側のメタ情報を置き換えます。項目ごとには混ざりません。** `withErrorMeta()` した上に `withErrorDetails()` を被せると、内側の code と文言は解決に使われず、カタログの既定値へ戻ります。1 つのエラーに載せるメタ情報は、載せる場所で 1 つにまとめます
-- `ErrorMeta` の code と文言は、**空文字が「未指定」を表し、`resolveErrorMeta()` がカタログの既定値で埋めます**。`requestId` と `details` は外側のメタ情報からしか来ません
-- `ErrorMeta` は不変です。`details` は生成時と取得時の双方でコピーされ、渡した配列を後から変えても、取り出した配列を書き換えても、中身には届きません
-- chain の走査は循環を検出して止まります。`cause` が自身を指すエラーを渡しても `undefined` が返ります
+- **To change the classification, wrap it with an `AppError` on the outside.** The inner classification stays as is, so it can be traced later
+- **To add context without changing the classification, wrap it with something that is not an `AppError`.** Pass `{ cause }` to a plain `Error`, or put text on it with `withErrorMeta()`. In both cases `findAppError()` returns the inner classification. When a lower layer distinguishes "unreachable" from "the response is not in the expected shape" by classification, repackaging it as a new failure in an upper layer would make the two look the same — keep the lower layer's classification and add only text
+- **Outer metadata replaces inner metadata. They do not mix field by field.** Wrapping `withErrorDetails()` over `withErrorMeta()` means the inner code and text are not used for resolution, and it falls back to the catalog defaults. Combine the metadata for one error into one, at the place it is attached
+- For the code and text of `ErrorMeta`, **an empty string means "unspecified", and `resolveErrorMeta()` fills it with the catalog default**. `requestId` and `details` come only from the outer metadata
+- `ErrorMeta` is immutable. `details` is copied both at creation and at retrieval, so changing the passed array later, or rewriting the retrieved array, does not reach its contents
+- Walking the chain detects cycles and stops. Passing an error whose `cause` points to itself returns `undefined`
 
-## 表示メタ情報の解決
+## Resolving Display Metadata
 
-- **カタログの文言は分類しか伝えません。** 「接続できません」からは、宛先が立っていないのか、宛先を間違えたのかは判りません。宛先のようにその場でしか判らない文脈を持つ境界は、分類を残したまま `withErrorMeta()` で文言を載せます。文言の正はカタログにあるので、`withMessage()` を含めて文言を差し替えるのは境界層に限ります
-- `resolveErrorMeta()` は分類のないエラーに `undefined` を返します。**未分類を `INTERNAL` へ倒すのは呼出し側の境界の判断**であり、`resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL)` の形で書きます。分類を持たない値は想定していない経路で投げられたものなので、この層は利用者に見せる形を選べません
-- `AppError` は `Error` の派生、`ErrorMeta` は `#private` を持つクラスで、どちらも素の値ではなく、**Server Action / RSC の直列化境界を越えません**。越える前に `resolveErrorMeta()` と `findAppError()` で code・文言・分類の素の値へ落とします。画面へ返す器は `model` が持ちます（[0080](../../docs/adr/0080-error-handling.md)）
-- production では Server Component から投げられたエラーの本文が伏せられ、error 境界には `digest` しか届きません。**error 境界は受け取ったエラーから解決せず、`getDefaultErrorMeta(ErrorKind.INTERNAL)` の文言を出します**（[0080](../../docs/adr/0080-error-handling.md)）
+- **The catalog's text conveys only the classification.** "接続できません" ("Cannot connect") does not tell whether the destination is down or the destination is wrong. A boundary holding context known only there, such as the destination, keeps the classification and puts text on it with `withErrorMeta()`. The source of truth for text is the catalog, so replacing text, including with `withMessage()`, is limited to the boundary layer
+- `resolveErrorMeta()` returns `undefined` for an error with no classification. **Tipping an unclassified error to `INTERNAL` is the decision of the calling boundary**, written in the form `resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL)`. A value with no classification was thrown on an unexpected path, so this layer cannot choose the form to show the user
+- `AppError` derives from `Error` and `ErrorMeta` is a class with `#private`; neither is a plain value, and **they do not cross the Server Action / RSC serialization boundary**. Before crossing, reduce them to plain values of code, text and classification with `resolveErrorMeta()` and `findAppError()`. The container returned to the screen is held by `model` ([0080](../../docs/adr/0080-error-handling.md))
+- In production, the body of an error thrown from a Server Component is hidden, and only `digest` reaches the error boundary. **The error boundary does not resolve from the error it receives; it shows the text of `getDefaultErrorMeta(ErrorKind.INTERNAL)`** ([0080](../../docs/adr/0080-error-handling.md))
 
-## 秘匿値の置換
+## Replacing Secret Values
 
-`redactMessage()` は**何を秘匿するかを呼出し側が名指しする**値ベースの置換です。名前で伏せる `logging` の表（`authorization` / `password` などの項目名）とは軸が違い、構造化フィールドに載らない、この層で組み立てたメッセージ文字列に埋まった値を消すためにあります。置換後の文字列 `redactedValue` は `logging` が使うものと同じ `[REDACTED]` です。
+`redactMessage()` is value-based replacement in which **the caller names what to hide**. Its axis differs from `logging`'s table that hides by name (field names such as `authorization` / `password`); it exists to erase values embedded in message strings built in this layer, which do not ride on structured fields. The replacement string `redactedValue` is the same `[REDACTED]` that `logging` uses.
 
-- 秘匿値は重複を除き、空文字を捨て、**長い値から置換**します。短い値を先に置換すると、長い値の残りが部分一致で漏れます
-- 置換は文字列の分割と結合で行い、正規表現を組みません。秘匿値に記号が含まれても escape を考えずに済みます
-- **wrap する前に置換します**（[0080](../../docs/adr/0080-error-handling.md)）。chain の内側に生の値が残ると、外側で置換しても辿れば読めます
+- Secret values are deduplicated, empty strings are discarded, and **longer values are replaced first**. Replacing a short value first would leak the rest of a longer value through a partial match
+- Replacement is done by splitting and joining strings, without building a regular expression. Even if a secret value contains symbols, there is no need to think about escaping
+- **Replace before wrapping** ([0080](../../docs/adr/0080-error-handling.md)). If the raw value remains inside the chain, replacing it outside does not help: it can be read by walking the chain
 
-## 利用例
+## Usage Examples
 
 ```ts
 const cause = new Error(redactMessage(`token=${token}`, [token]));
@@ -115,49 +115,49 @@ const error = withErrorDetails(classified, ["accessToken"]);
 const meta = resolveErrorMeta(error);
 ```
 
-`requestId` はログ相関と、利用者からの連絡の突き合わせに使うため、共通エラー画面で表示できます。`details` は wire に出して安全な識別子だけを指定します。画面の表示名は、業務フィールドを知る feature / form 側で変換します。入力値・token・password・理由文は渡しません。
+`requestId` is used for log correlation and for matching contacts from users, so it can be shown on the common error screen. For `details`, specify only identifiers that are safe to put on the wire. Display names on the screen are converted on the feature / form side, which knows the business fields. Do not pass input values, tokens, passwords or reason text.
 
-### 層ごとの使い方
+### Usage per layer
 
-| 層 | 使う口 | 形 |
+| Layer | Entry point used | Form |
 | --- | --- | --- |
-| `adapters`（分類する側） | `createAppError()` / `withErrorDetails()` | 生の失敗を 1 度だけ分類し、契約が返した詳細識別子は cause 側へ載せて投げる。応答を得られなかった試行は前の試行の詳細を引き継がない（分類と詳細が別々の試行のものになる） |
-| `features` / `model`（分岐する側） | `findAppError(error)?.kind === ErrorKind.X` | **出し分けの合図は分類であって文言ではない**（[`docs/rules.md#wording`](../../docs/rules.md#wording)）。見つからなければ `null` に倒す、認証切れなら読み直す、検証失敗なら `details` を項目へ写す、といった分岐をここで行う |
-| 表示・応答の境界 | `resolveErrorMeta()` / `getDefaultErrorMeta()` | 文言はカタログから取り、画面や口ごとに書かない。未分類は `INTERNAL` へ倒す |
+| `adapters` (the classifying side) | `createAppError()` / `withErrorDetails()` | Classify the raw failure exactly once, put the detail identifiers the contract returned on the cause side, and throw. An attempt that got no response does not inherit the previous attempt's details (the classification and the details would come from different attempts) |
+| `features` / `model` (the branching side) | `findAppError(error)?.kind === ErrorKind.X` | **The signal for branching is the classification, not the text** (`docs/rules.md#wording`). Branches such as tipping not-found to `null`, reloading on expired authentication, or mapping `details` to fields on validation failure happen here |
+| Display / response boundary | `resolveErrorMeta()` / `getDefaultErrorMeta()` | Text comes from the catalog and is not written per screen or endpoint. Unclassified errors tip to `INTERNAL` |
 
-`details` を項目名へ写す側は、**契約の項目名と画面の項目名が同じ綴りであることに頼らず**、画面が知る項目名の表に照らしてから使います。読めない名前をそのまま鍵にすると、どの入力欄にも結び付かない誤りが状態へ入ります。理由文は `details` に載らないので、写した先の文言は「受け付けられなかった」までしか言えません。
+The side mapping `details` to field names **does not rely on the contract's field names being spelled the same as the screen's field names**; it checks them against the table of field names the screen knows before using them. Using an unreadable name as a key as is would put an error into the state that is tied to no input field. Reason text is not carried in `details`, so the text at the mapped destination can say no more than "it was not accepted".
 
-## boilerplate 導入時の変更点
+## What to Change When Adopting
 
-本リポジトリはバックエンドエラーの追加情報として `requestId` と `details` を採用します。
+This repository adopts `requestId` and `details` as additional information on backend errors.
 
-- `requestId` — ログ相関と連絡の突き合わせに使う識別子。画面にはリクエスト ID として表示可能
-- `details` — 不正フィールドなど、公開して安全な識別子の配列。feature / form が表示名へ変換
+- `requestId` — An identifier used for log correlation and matching contacts. It can be shown on screen as a request ID
+- `details` — An array of identifiers safe to publish, such as invalid fields. The feature / form converts them to display names
 
-これは本リポジトリの既定であり、すべてのバックエンド契約に共通するものではありません。導入先が `traceId` / `correlationId`、`fieldErrors` のオブジェクト配列、または別のエラー形式を採用する場合は、adapter の応答変換と `ErrorMeta` を契約に合わせて変更してください。`errors` カーネルへ transport 固有の処理は追加しません。
+This is this repository's default and is not common to every backend contract. If the adopting project uses `traceId` / `correlationId`, an array of `fieldErrors` objects, or another error format, change the adapter's response conversion and `ErrorMeta` to match the contract. Do not add transport-specific processing to the `errors` kernel.
 
-カタログの code は wire に出ないこのリポジトリの語彙で、接続先の綴りに寄せません（[0080](../../docs/adr/0080-error-handling.md)「エラーコード語彙」）。文言は日本語で、分類ごとに 1 つです。
+The catalog's codes are this repository's vocabulary, never put on the wire, and are not aligned with the spelling of the connected service ([0080](../../docs/adr/0080-error-handling.md), which defines this code vocabulary). The text is Japanese, one per classification.
 
-## 境界
+## Boundaries
 
-- transport の status とレスポンス形式は持たない
-- 生の transport 応答からの分類は `adapters` 境界で一度だけ行う
-- 未分類エラーを `internal` に正規化する判断も境界の責務
-- ログレベルとログ出力は `logging` と境界の責務。errors 自身は出力しない
+- It does not hold transport status or response formats
+- Classification from the raw transport response is done exactly once, at the `adapters` boundary
+- The decision to normalize unclassified errors to `internal` is also the boundary's responsibility
+- Log level and log output are the responsibility of `logging` and the boundaries. errors itself outputs nothing
 
-## 監査の観点
+## Audit Criteria
 
-| 観点 | 判定の形 | 根拠 |
+| Criterion | How It Is Judged | Basis |
 | --- | --- | --- |
-| `forbidden: http-vocabulary` — HTTP status・レスポンスの形・transport 固有の語彙を持たない。分類から status への変換は `adapters` の境界が持つ | violation。数値や型が transport 由来かが綴りから読み分けられないときは suggestion | [0080](../../docs/adr/0080-error-handling.md) 禁止事項 / この README「境界」。機械: ESLint `no-restricted-syntax` が `http` / `status` / `response` の識別子と `http(s)` の文字列リテラルまでを落とす |
-| `forbidden: external-dependencies` — 他のカーネルも外部パッケージも import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.md)「Responsibilities of Each Kernel」。他のカーネルの import は機械: ESLint boundaries。外部パッケージの import は機械が届かない |
-| errors 自身はログを出力しない | `console` や logger の呼び出しがあれば violation | この README「境界」 |
-| 表示用の code と文言は分類ごとのカタログだけが持ち、`AppError` と `ErrorKind` には持たせない | `AppError` や分類の定義に code・文言の項目があれば violation | [0080](../../docs/adr/0080-error-handling.md)（表示用の code と文言の置き場） / この README「表示メタ情報の解決」 |
-| wrap は `cause` を切らない | `{ cause }` を渡さずに元エラーを包み直す箇所があれば violation | [0080](../../docs/adr/0080-error-handling.md)（wrap と置換の順序） / この README「分類とメタ情報の重ね方」 |
-| 全分類がカタログに既定メタ情報を持つ | violation | 機械: `error-catalog.ts` の表の型 `Record<ErrorKind, ErrorMeta>` |
+| `forbidden: http-vocabulary` — holds no HTTP status, response shape, or transport-specific vocabulary. The `adapters` boundary holds conversion from classification to status | violation. suggestion when it cannot be told from the spelling whether a number or type derives from transport | The prohibitions of [0080](../../docs/adr/0080-error-handling.md) / Boundaries in this README. Mechanical: ESLint `no-restricted-syntax` rejects identifiers `http` / `status` / `response` and `http(s)` string literals |
+| `forbidden: external-dependencies` — imports neither other kernels nor external packages | violation | [0021](../../docs/adr/0021-frontend-responsibility.md) (what each kernel is responsible for). Imports of other kernels are mechanical: ESLint boundaries. Imports of external packages are beyond the machine's reach |
+| errors itself does not output logs | violation if there is a `console` or logger call | Boundaries in this README |
+| Display codes and text are held only by the per-classification catalog, not by `AppError` and `ErrorKind` | violation if `AppError` or the classification definition has a code or text field | [0080](../../docs/adr/0080-error-handling.md) (where display codes and text live) / Resolving Display Metadata in this README |
+| Wrapping does not cut `cause` | violation if an original error is rewrapped without passing `{ cause }` | [0080](../../docs/adr/0080-error-handling.md) (the order of wrapping and replacement) / Layering Classification and Metadata in this README |
+| Every classification has default metadata in the catalog | violation | Mechanical: the table type `Record<ErrorKind, ErrorMeta>` in `error-catalog.ts` |
 
-## 関連する ADR
+## Related ADRs
 
-- [0021](../../docs/adr/0021-frontend-responsibility.md) — 層の責務と import 境界。分類を transport から切り離す線
-- [0029](../../docs/adr/0029-type-design-discipline.md) — 分類を判別可能な値として持つ型設計
-- [0080](../../docs/adr/0080-error-handling.md) — バックエンドエラーの正規化と、画面側（`error.tsx` / `not-found.tsx`）との責務分担
+- [0021](../../docs/adr/0021-frontend-responsibility.md) — Layer responsibilities and import boundaries. The line separating classification from transport
+- [0029](../../docs/adr/0029-type-design-discipline.md) — Type design that holds classifications as discriminable values
+- [0080](../../docs/adr/0080-error-handling.md) — Normalizing backend errors, and the division of responsibility with the screen side (`error.tsx` / `not-found.tsx`)

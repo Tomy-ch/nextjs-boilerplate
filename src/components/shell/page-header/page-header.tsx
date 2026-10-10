@@ -12,7 +12,7 @@ import { cn } from "@/components/cn";
  * `section` の外にあると `banner` landmark になり、サイト全体の header を名乗ってしまう。
  *
  * 本文の構造とデータ取得は持たない。表示する文言は呼び出し元が決める。配置の責務は同層の
- * README「責務境界」が持つ。
+ * README「Responsibility Boundaries」が持つ。
  *
  * Server Component として使える。hydration は不要で、`PageHeaderActions` に client island を
  * 置く場合もその部品だけが境界を持つ。

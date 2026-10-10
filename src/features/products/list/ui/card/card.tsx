@@ -23,7 +23,7 @@ export type ProductCardProps = {
  *
  * @remarks
  * `components` へ上げていない理由とカード全体を link で包まない組み方は、
- * [products の README](../../../README.md)「運用」にまとまっています。
+ * [products の README](../../../README.md#operations)にまとまっています。
  *
  * 分岐は器の幅で行います（`docs/rules.md#layout`の「部品の中身は帯で分岐させず
  * コンテナクエリで書く」）。狭い器では画像を上に積み、広い器では横へ並べます。

@@ -139,7 +139,7 @@ TSDoc を名指しします。内容が弱いのではなく、別の面が持�
 ### 4b. feature slice
 
 `src/features/` 配下の README（層 README である `src/features/README.md` を除く）は、
-[`docs/templates/feature-readme.md`](../../../docs/templates/feature-readme.md) が宣言する必須節に対して
+[`docs/templates/feature-readme.md`](../../../docs/templates/feature-readme.ja.md) が宣言する必須節に対して
 `readme-review` の Step 2b で採点します。必須節の欠落・薄さがあれば `borderline` が上限です。
 節の一覧を焼き込まず、テンプレートを読みます。
 

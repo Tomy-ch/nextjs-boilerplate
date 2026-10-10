@@ -1,45 +1,45 @@
 # Spinner
 
-## 用途
+## Purpose
 
-終わりの見えない短い処理が進行中であることを、その場で示します。
+Shows, in place, that a short process with no visible end is in progress.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Spinner` | 回転する処理中表示です。既定では装飾として扱い、`label` を指定したときだけ読み上げ対象になります。 |
+| `Spinner` | Rotating in-progress indicator. By default it is treated as decoration, and it is announced only when `label` is given. |
 
-## 利用ケース
+## Use Cases
 
-送信中の button の中、再試行中の補助表示、局所的な取得中表示など、最終コンテンツの形状を示せない待機に使います。
+Use it for waits where the shape of the final content cannot be shown: inside a submitting button, as an auxiliary indicator while retrying, as a local fetching indicator.
 
-## 責務境界
+## Responsibility Boundaries
 
-状態判定・取得・タイムアウト・再試行は持ちません。いつ表示するかは feature が決めます。進捗も残り時間も表現しないため、割合が取得できる処理には別の UI を選びます。
+It does not own state decisions, fetching, timeouts, or retries. The feature decides when to show it. It represents neither progress nor remaining time, so for a process whose ratio can be obtained, choose a different UI.
 
-大きさと色は `className` で調整します。色を指定しなければ `currentColor` を継承するため、置いた文脈の文字色に馴染みます。
+Adjust size and color with `className`. Without a color it inherits `currentColor`, so it blends into the text color of the context it is placed in.
 
-## Skeleton / FeedbackState との使い分け
+## Skeleton / FeedbackState vs This Component
 
-| | 使う場面 | 読み上げ |
+| | When to use | Announcement |
 | --- | --- | --- |
-| `Skeleton` | 最終コンテンツの**形状が分かる**待機。一覧・カード・テキストブロックの流し込み前 | 装飾。何も伝えない |
-| `Spinner` | 形状を示せない**局所**の処理中。送信中の button、部分的な再取得 | 既定は装飾。`label` 指定時のみ伝える |
-| `FeedbackState` | **領域や画面全体**の状態。loading / empty / error / success を同じ枠で切り替える | 自身が `role="status"` / `alert` と `aria-live` を持つ |
+| `Skeleton` | A wait where **the shape of the final content is known**. Before a list, card or text block is filled in | Decorative. Conveys nothing |
+| `Spinner` | A **local** in-progress process whose shape cannot be shown. A submitting button, a partial refetch | Decorative by default. Conveys only when `label` is given |
+| `FeedbackState` | The state of **a region or the whole screen**. Switches loading / empty / error / success in the same frame | Carries `role="status"` / `alert` and `aria-live` itself |
 
-分ける軸は 2 つです。**範囲**（局所か、領域全体か）と、**最終形状が予測できるか**。
+There are two axes for choosing: **scope** (local, or a whole region) and **whether the final shape is predictable**.
 
-読み上げの責務も異なります。`Spinner` と `Skeleton` は既定では何も伝えないため、支援技術の利用者にとって**唯一の手がかりにしてはいけません**。周囲の文言か `FeedbackState` が状態を伝える前提で置きます。逆に `FeedbackState` は自身が `aria-live` を持つので、その中へさらに読み上げる要素を重ねません（`FeedbackState` の loading は内部で `Spinner` を装飾として使っています）。
+The announcement responsibility also differs. `Spinner` and `Skeleton` convey nothing by default, so **they must never be the only cue** for users of assistive technology. Place them on the premise that the surrounding text or a `FeedbackState` conveys the state. Conversely, `FeedbackState` carries `aria-live` itself, so do not stack another announcing element inside it (the loading state of `FeedbackState` uses `Spinner` internally as decoration).
 
-## アクセシビリティ
+## Accessibility
 
-既定は `aria-hidden` の装飾です。button の中や loading message の隣に置く場合、状態を伝えるのは周囲の文言であり、spinner が重ねて読み上げると同じ情報が二重に伝わります。
+By default it is decoration with `aria-hidden`. When placed inside a button or next to a loading message, the surrounding text conveys the state, and if the spinner also announced it, the same information would be conveyed twice.
 
-spinner 単体で状態を伝える必要がある場合だけ `label` を指定します。指定すると `role="status"` として、その文言が読み上げ対象になります。`label` と `role` / `aria-hidden` を同時に指定できないよう、公開 API からは後者を除いています。
+Give `label` only when the spinner alone must convey the state. With it, the spinner becomes `role="status"` and its text is announced. So that `label` cannot be combined with `role` / `aria-hidden`, the latter are excluded from the public API.
 
-`prefers-reduced-motion` 時は回転を停止します。停止しても位置と大きさは変わらないため表示は崩れません。
+Under `prefers-reduced-motion` the rotation stops. Position and size do not change when it stops, so the layout does not break.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の装飾表示、`label` を付けた場合、大きさの調整、`currentColor` の継承、送信中の button に置いた場合を確認します。テストは既定で支援技術へ何も伝えないこと、`label` 指定時に `status` として読み上げられること、reduced motion で回転を停止すること、`className` による上書き、装飾・読み上げ双方の a11y 自動検査を確認します。
+Storybook covers the default decorative display, the case with `label`, size adjustment, inheriting `currentColor`, and placement in a submitting button. The tests cover that by default nothing is conveyed to assistive technology, that with `label` it is announced as `status`, that rotation stops under reduced motion, overriding with `className`, and the automated a11y check for both the decorative and the announcing case.

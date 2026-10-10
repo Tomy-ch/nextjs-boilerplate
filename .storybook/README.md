@@ -84,7 +84,7 @@ coverage-exclusions:
 - `parameters.a11y.test` は `error`。panel は手元の確認用で、合否を負うのは vrt と同じコンテナで走る
   axe（[0054](../docs/adr/0054-ui-catalog-storybook.md) / [0091](../docs/adr/0091-test-verification-methods.md)）
 - sidebar の並び（`storySort`）と `tags: ["autodocs"]` の根拠は
-  [`src/components/README.md`](../src/components/README.md)「Storybook の表示規約」が持つ
+  [`src/components/README.md#storybook-display-conventions`](../src/components/README.md#storybook-display-conventions)が持つ
 
 ### `preview.css`
 

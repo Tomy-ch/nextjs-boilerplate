@@ -1,26 +1,26 @@
 # Accordion
 
-## 用途
+## Purpose
 
-関連する複数の詳細を、必要な項目だけ開いて確認できるようにします。
+Lets the user check several related details by opening only the items they need.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Accordion` | 複数の項目を縦にまとめる外枠です。 |
-| `AccordionItem` | native の `details` による一つの開閉項目です。 |
-| `AccordionTrigger` | native の `summary` として、項目の見出しと開閉操作を提供します。 |
-| `AccordionContent` | 項目を開いたときに表示する詳細内容です。 |
+| `Accordion` | The outer frame that groups several items vertically. |
+| `AccordionItem` | One open/close item using native `details`. |
+| `AccordionTrigger` | As a native `summary`, provides the item's heading and the open/close action. |
+| `AccordionContent` | The detail content shown when the item is opened. |
 
-## 利用ケース
+## Use Cases
 
-補足情報、設定群、狭い画面で段階的に見せる説明を表示する場合に使います。複数項目が同時に開いてよい内容に向きます。
+Used to display supplementary information, groups of settings, or explanations shown step by step on narrow screens. Suited to content where several items may be open at once.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の native `details` / `summary` であり、hydration は不要です。常に一項目だけを開く制御、開閉状態の外部同期、アニメーション、高度な keyboard 操作は持ちません。それらが必要になった場合だけ client island を追加します。
+It is SSR-first native `details` / `summary`, and no hydration is needed. It does not own control that keeps only one item open at a time, syncing the open state externally, animation, or advanced keyboard interaction. Add a client island only when those become necessary.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は全項目を閉じた通常状態と複数項目が開いた状態を示し、各項目の初期 open は Controls、native の `toggle` は Actions で確認できます。test は native 開閉、初期 open、a11y を確認します。
+Storybook shows the normal state with all items closed and the state with several items open; each item's initial open can be checked with Controls and the native `toggle` with Actions. Tests check native opening/closing, initial open, and a11y.

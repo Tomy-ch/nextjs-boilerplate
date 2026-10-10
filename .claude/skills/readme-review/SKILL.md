@@ -175,7 +175,7 @@ The names below are the English section names the template declares. For each re
 | States and Design References | Each state the slice can show is mapped to a Storybook story id (`<title>/<export>`), or the absence of a story is stated with its reason |
 | Structure | A file/directory table covering what the slice owns |
 | Kernel Dependencies | Each kernel it imports, with what it is used for |
-| Action Return Contract | Each Server Action with its placement, return type, success and failure behavior — or `なし` |
+| Action Return Contract | Each Server Action with its placement, return type, success and failure behavior — or, when the slice has none, a statement that it has none (the template writes `none`; judged by meaning, not by a literal match, so `none` and `なし` both satisfy it) |
 | Test Perspectives | Viewpoints specific to THIS slice (not a restatement of ADR 0090's per-layer duties) |
 
 Report each as present / thin / missing. **Thin** means the heading exists but the content does not
@@ -206,7 +206,7 @@ README Review: <path>
 [判定] manual-worthy | borderline | not-yet-manual-grade | out-of-scope-for-portal
 
 [強み] (positive criteria met)
-  ✓ P1 役割 / 境界: 「受け入れないもの」が渡し先（components / model）を名指ししている
+  ✓ P1 役割 / 境界: 「What Does Not Belong Here」が渡し先（components / model）を名指ししている
   ✓ P4 実行機序: いつ評価されるかを起動境界と RSC の 2 経路で書き分けている
   ✓ P6 運用: 変更後に回すものが 3 点（生成 / 突合 / 撮り直し）
   ✓ P7 散文 1,462 字
@@ -216,18 +216,18 @@ README Review: <path>
   ✗ P3 規約 / 禁止の明文化が無い
 
 [B1 必須節] (feature README のときだけ出す)
-  ✓ Route と契約: 2 route と 4 operationId。spec への link も解決する
-  △ テスト観点: 見出しはあるが層の宣言の再掲で、この slice 固有の観点が無い
-  ✗ Action 戻り値契約: 節が無い
+  ✓ Routes and Contracts: 2 route と 4 operationId。spec への link も解決する
+  △ Test Perspectives: 見出しはあるが層の宣言の再掲で、この slice 固有の観点が無い
+  ✗ Action Return Contract: 節が無い
 
 [アンチパターン] (negative triggers)
   なし
   ※（または該当する場合）
-  ⚠ N1 部品リファレンス: 用途 / 役割と公開 component / 利用ケース / 責務境界 / Storybook とテスト の定型のみ → Storybook と TSDoc の領域
+  ⚠ N1 部品リファレンス: Purpose / Role and Public Components / Use Cases / Responsibility Boundaries / Storybook and Tests の定型のみ → Storybook と TSDoc の領域
 
 [補強提案]
   - 「この層が要る理由」を 1〜2 段落足すと、読み手が層を必要性から理解できる
-  - 「受け入れないもの」に渡し先を書き足すと、境界が判断に使える形になる
+  - 「What Does Not Belong Here」に渡し先を書き足すと、境界が判断に使える形になる
 
 [portal 適性]
   manual-worthy → /portal-manifest-sync を回し、レポートを見たうえでこのパスを名指しして追加する

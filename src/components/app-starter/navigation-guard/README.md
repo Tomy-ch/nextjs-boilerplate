@@ -1,52 +1,52 @@
 # NavigationGuard
 
-## 用途
+## Purpose
 
-未保存のままアプリ内を移動しようとしたときに、確認してから遷移します。
+Confirms before navigating when the user tries to move within the app with unsaved changes.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `NavigationGuard` | 配下の link click を傍受し、`AlertDialog` で確認する client island です。 |
+| `NavigationGuard` | A client island that intercepts link clicks beneath it and confirms with an `AlertDialog`. |
 
-## 利用ケース
+## Use Cases
 
-編集途中の form を含む画面を包み、未保存のあいだ `when` を `true` にします。`children` が監視の範囲になるので、確認したい link を含む領域を渡します。
+Wrap a screen that contains a form being edited, and set `when` to `true` while there are unsaved changes. `children` is the range being watched, so pass the region that contains the links you want confirmed.
 
-**包んでも配置は変わりません。** click を捕まえるための要素は要りますが、その箱はレイアウトに参加しません（`display: contents`）。見張るために置いただけの器が見た目を動かすと、包む範囲を広げるたびに画面が動きます。
+**Wrapping does not change the layout.** An element is needed to catch clicks, but that box does not take part in layout (`display: contents`). If a wrapper placed only for watching moved the look, the screen would shift every time the wrapped range was widened.
 
-## 抑止できる経路
+## Paths That Can Be Blocked
 
-| 経路 | 抑止 |
+| Path | Blocked |
 | --- | --- |
-| 配下の link によるアプリ内遷移 | ✅ |
-| リロード / タブを閉じる / 外部サイトへの遷移 | ❌ [`UnloadGuard`](../unload-guard/README.md) が扱う |
-| browser の戻る / 進む | ❌ **どちらでも塞げない** |
+| In-app navigation through links beneath it | ✅ |
+| Reload / closing the tab / navigating to an external site | ❌ Handled by [`UnloadGuard`](../unload-guard/README.md) |
+| The browser's back / forward | ❌ **Cannot be blocked by either** |
 
-戻る / 進むを塞げないのは、App Router が client 側の遷移を止める API を持たず、`popstate` は遷移が起きたあとにしか発火しないためです。塞ぐには履歴を差し戻すしかなく、利用者の操作を覆すことになるので採りません。
+Back / forward cannot be blocked because the App Router has no API to stop a client-side navigation, and `popstate` fires only after the navigation has happened. Blocking it would require pushing the history back, which overrides the user's action, so it is not adopted.
 
-両方を塞ぐ画面では `UnloadGuard` と併用します。責務が別なので 1 つの部品にまとめていません。
+On screens that block both, use it together with `UnloadGuard`. Their responsibilities differ, so they are not combined into one component.
 
-## 対象にしない link
+## Links Not Covered
 
-次のものは遷移を止めません。いずれも「この画面を離れる意図が明示されている」か「遷移が起きない」ためです。
+The following do not stop navigation. In each case, either "the intent to leave this screen is explicit" or "no navigation happens".
 
-- 別 origin への link、`target` 指定、`download` 指定
-- 現在地と同じ URL
-- 修飾キーつきの click、中クリック（別タブで開く操作であり、この画面は離れない）
-- 外側で既に `preventDefault` された click
+- Links to another origin, links with `target`, links with `download`
+- The same URL as the current location
+- Clicks with a modifier key, middle clicks (an action to open in another tab; this screen is not left)
+- Clicks already `preventDefault`-ed further out
 
-## 責務境界
+## Responsibility Boundaries
 
-未保存かどうかの判定、保存処理、遷移先の決定は持ちません。呼び出し元が `when` と link を渡します。確認の文言は差し替えられますが、既定でも意味が通る文言を持ちます。
+It does not own deciding whether there are unsaved changes, saving, or deciding the destination. The caller passes `when` and the links. The confirmation copy can be replaced, but it has copy that makes sense by default.
 
-click の経路は `composedPath()` から辿ります。捕捉段階（`onClickCapture`）で受け取るため、link 自身の `onClick` より先に判定します。
+The click's path is traced from `composedPath()`. It is received in the capture phase (`onClickCapture`), so it decides before the link's own `onClick`.
 
-確認を閉じたときは、押した link へ focus を戻します。keyboard だけで操作している人が、留まったあと同じ位置から続けられるようにするためです。
+When the confirmation is closed, focus returns to the link that was pressed. This lets someone operating with the keyboard alone continue from the same position after staying.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は未保存の状態で link を押した場合、文言の差し替え、対象にしない link の一覧、`UnloadGuard` との併用を確認します。テストは遷移を止めて確認すること、続行時に router へ遷移を渡すこと、留まると遷移しないこと、`when` が false なら傍受しないこと、対象にしない link と click（download / target / 外部 / 修飾キー / 中クリック / 現在地 / 外側で止め済み / link 以外）、文言の差し替えを確認します。
+Storybook checks pressing a link with unsaved changes, replacing the copy, the list of links not covered, and using it together with `UnloadGuard`. Tests check that it stops navigation and confirms, that on continue it hands the navigation to the router, that staying does not navigate, that it does not intercept when `when` is false, the links and clicks not covered (download / target / external / modifier key / middle click / current location / already stopped further out / non-link), and replacing the copy.
 
-`useRouter` はテストで差し替えます。遷移そのものは Next.js の責務なので、この部品は「どの href を渡したか」までを確認します。
+`useRouter` is replaced in tests. The navigation itself is the responsibility of Next.js, so this component checks only up to "which href it passed".

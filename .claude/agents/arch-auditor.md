@@ -2,7 +2,7 @@
 name: arch-auditor
 description: >-
   Read-only layer auditor for ONE kernel — the worker form of `arch-check`. Audits the kernel's files
-  against the `## 監査の観点` table of the kernel's own `README.md`, read at runtime: one row per `forbidden`
+  against the `## Audit Criteria` table of the kernel's own `README.md`, read at runtime: one row per `forbidden`
   tag, plus the principles an import rule cannot express. Classifies each breach as `violation` or
   `suggestion` exactly as the row states, relays rather than re-judges what a static gate already checks,
   and reports a missing row as a finding against the README. The canonical criteria live in

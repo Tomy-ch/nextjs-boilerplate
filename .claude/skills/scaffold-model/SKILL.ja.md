@@ -34,8 +34,8 @@
 | 出所 | そこが決めるもの |
 | --- | --- |
 | `src/model/README.md` の frontmatter | `forbidden` タグ / `test-requirement` / `imports-allowed` |
-| `src/model/README.md` の `## 受け入れるもの` / `## 受け入れないもの` / `## 運用` | そのモジュールがここに属するか、ファイル・型・関数の命名 |
-| `src/model/README.md` の `## 監査の観点` | 書いたモジュールが満たすべき行。計画はその 1 行ずつに答える |
+| `src/model/README.md` の `## What Belongs Here` / `## What Does Not Belong Here` / `## Operations` | そのモジュールがここに属するか、ファイル・型・関数の命名 |
+| `src/model/README.md` の `## Audit Criteria` | 書いたモジュールが満たすべき行。計画はその 1 行ずつに答える |
 | [ADR 0029](../../../docs/adr/0029-type-design-discipline.ja.md) | 判別可能 union / branded な識別子 / 境界で 1 度だけ parse / `satisfies` |
 | [ADR 0027](../../../docs/adr/0027-directory-structure.ja.md) / [ADR 0028](../../../docs/adr/0028-naming-convention.ja.md) | 平置きかサブディレクトリか、綴り |
 | `src/model/` の隣のモジュール | その場の形 —— brand と構築関数の書き方、union の判別のさせ方 |
@@ -71,7 +71,7 @@
 
 ## Step 2. 監査の行を読み、それに対して計画する
 
-`src/model/README.md` の frontmatter と `## 監査の観点` の表を読み、次に ADR 0029 を、次に具体の参照として
+`src/model/README.md` の frontmatter と `## Audit Criteria` の表を読み、次に ADR 0029 を、次に具体の参照として
 隣のモジュールを 1〜2 本読む（食い違えば README と ADR が勝つ）。
 
 計画は**監査の行 1 つにつき 1 行**の表として組む。
@@ -134,7 +134,7 @@ README がモジュール表を持っていれば、その表の言い回しで�
 ## 制約
 
 - ✅ `src/model/README.md` / ADR 0029 / 隣のモジュールを今回の実行で読む
-- ✅ 計画で `## 監査の観点` の全行に答え、書く前に計画を確認する
+- ✅ 計画で `## Audit Criteria` の全行に答え、書く前に計画を確認する
 - ✅ Step 1 が `model` に属さないと言ったら止まる
 - ✅ 書いた型を `sonnet` の `type-design-reviewer` で採点する
 - ❌ 1 つの feature しか使わない型を置く

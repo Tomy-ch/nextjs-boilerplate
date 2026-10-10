@@ -1,33 +1,33 @@
 # PullToRefresh
 
-## 用途
+## Purpose
 
-画面の上端から引き下げて、いまの route を取り直します。touch のある環境でだけ働きます。
+Refetches the current route by pulling down from the top edge of the screen. It works only in environments with touch.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `PullToRefresh` | 引き下げを受け付け、実行の域を超えたら `router.refresh()` を呼びます。目印の描画も持ちます。 |
+| `PullToRefresh` | Accepts the pull-down and calls `router.refresh()` once it passes the trigger threshold. It also renders the indicator. |
 
-`PULL_STATE`・`TRIGGER_DISTANCE`・`RESISTANCE`・`MAX_DISTANCE`・`APPEAR_DISTANCE` は `pull-to-refresh.definition.ts` が owner です。引き下げの観測は `use-pull-gesture.ts` が持ちますが、公開 API ではありません。
+`pull-to-refresh.definition.ts` owns `PULL_STATE`, `TRIGGER_DISTANCE`, `RESISTANCE`, `MAX_DISTANCE` and `APPEAR_DISTANCE`. `use-pull-gesture.ts` observes the pull-down, but it is not public API.
 
-## 利用ケース
+## Use Cases
 
-器へ一度だけ置きます。`AppShell` が内部で mount しているため、通常は呼び出し側が意識する必要はありません。
+Place it once in the layout shell. `AppShell` mounts it internally, so callers normally do not need to think about it.
 
-何を取り直すかは知りません。`router.refresh()` はサーバに現在の route を描き直させるだけなので、どの画面に置いても同じ意味になります。画面ごとの再取得の中身はそれぞれの画面が持ちます。
+It does not know what is refetched. `router.refresh()` only has the server re-render the current route, so it means the same thing wherever it is placed. Each screen owns what its own refetch covers.
 
-## 設計
+## Design
 
-- **ブラウザ既定の引き下げ更新は、この部品が載っている間だけ止めます。** 静的な CSS に `overscroll-behavior` を書くと、この部品を載せていないページでも既定が消え、引いても何も起きない状態が残ります
-- **`router.refresh()` はブラウザの再読み込みとは別物です。** client state が保たれるため、開いている入力や一時的な選択が消えません
-- **進行の判定は `useTransition` に委ねます。** `router.refresh()` は完了を返さないため、自前で時間を決めて畳むと実際の取得とずれます
-- **modal が開いている間は引けません。** 判定は modal の 2 通りの名乗り方 —— 面が `aria-modal` を立てる形と、背面を `aria-hidden` / `inert` で閉じる形 —— の両方を見ます。どちらも ARIA の語彙であって、特定の overlay ライブラリの印ではありません。片方だけでは効きません。同梱の overlay が使う Radix は後者しか採らず、`aria-modal` を出しません。背面が閉じているかは `main` を起点に見ます。触れた要素から辿ると、装飾のアイコンに付く `aria-hidden` を modal と取り違えます
-- **touch を持たない環境では何も描きません。** 引く手段が無い場所に目印だけ出しても操作へつながりません。サーバでも同じ判定になるため、hydration の前後で配置は動きません
+- **The browser's default pull-to-refresh is stopped only while this component is present.** Writing `overscroll-behavior` in static CSS would remove the default even on pages without this component, leaving a state where pulling does nothing
+- **`router.refresh()` is not a browser reload.** Client state is kept, so open inputs and temporary selections are not lost
+- **Deciding progress is delegated to `useTransition`.** `router.refresh()` does not report completion, so collapsing it on a self-chosen timer would drift from the actual fetch
+- **It cannot be pulled while a modal is open.** The check looks at both of the two ways a modal declares itself — the surface setting `aria-modal`, and the background being closed off with `aria-hidden` / `inert`. Both are ARIA vocabulary, not markers of a specific overlay library. Either one alone does not work. Radix, used by the bundled overlays, adopts only the latter and does not emit `aria-modal`. Whether the background is closed off is checked starting from `main`. Tracing up from the touched element would mistake an `aria-hidden` on a decorative icon for a modal
+- **In environments without touch it renders nothing.** Showing only the indicator where there is no means to pull would not lead to any action. The server makes the same decision, so the layout does not shift before and after hydration
 
-## 注意
+## Cautions
 
-**読み進める一覧を持つ画面では、取り直しても表示が変わらないことがあります。** 積み上げた結果を client state に持つ実装では、サーバが返す最初のページが差し替わっても state が入れ替わらないためです。取り直しを反映させる側は、取得結果から鍵を作って積み上げを捨てる必要があります。
+**On screens with a list that loads more as you read, refetching may not change the display.** In an implementation that keeps accumulated results in client state, the state is not replaced even if the first page the server returns changes. The side that should reflect the refetch needs to build a key from the fetch result and discard the accumulation.
 
-**iOS の `overscroll-behavior` の効き方は端末差があります。** 実機での確認が要ります。
+**How `overscroll-behavior` works on iOS varies by device.** Verification on real devices is required.

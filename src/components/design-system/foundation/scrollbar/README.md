@@ -1,42 +1,42 @@
 # Scrollbar
 
-## 用途
+## Purpose
 
-スクロールする面すべてに共通する scrollbar の見た目を、一箇所で定めます。局所スクロール領域では、scrollbar が「ここは別途スクロールする領域である」ことを示す手掛かりになります。
+Defines in one place the scrollbar look shared by every scrolling surface. In a local scroll area, the scrollbar is the cue that "this is an area that scrolls separately".
 
-## 役割と公開 component
+## Role and Public Components
 
-公開する React component はありません。`scrollbar.css` が `:root` へ宣言する CSS 基盤です。`globals.css` から import しており、利用側の指定は要りません。
+There is no public React component. It is a CSS foundation that `scrollbar.css` declares on `:root`. It is imported from `globals.css`, and consumers need to specify nothing.
 
-| 宣言 | 役割 |
+| Declaration | Role |
 | --- | --- |
-| `scrollbar-width: thin` | scrollbar の太さを揃えます。 |
-| `scrollbar-color` | thumb を `muted-foreground`、track を透明にします。 |
+| `scrollbar-width: thin` | Unifies the scrollbar thickness. |
+| `scrollbar-color` | Makes the thumb `muted-foreground` and the track transparent. |
 
-## 利用ケース
+## Use Cases
 
-- ページ本体のスクロール
-- `ScrollArea` による局所スクロール領域
-- `textarea` / `pre` / `overflow` を持つ任意の要素
+- Scrolling of the page body
+- Local scroll areas through `ScrollArea`
+- Any element with `textarea` / `pre` / `overflow`
 
-いずれも個別の指定は不要です。
+None of them needs an individual specification.
 
-## 責務境界
+## Responsibility Boundaries
 
-`scrollbar-color` と `scrollbar-width` は**継承プロパティ**です。`:root` で一度宣言すれば配下のスクロール面すべてへ行き渡るため、component ごとには持たせません。component 側で指定すると、同じアプリの中で場所ごとに scrollbar の見た目が割れます。
+`scrollbar-color` and `scrollbar-width` are **inherited properties**. Declaring them once on `:root` reaches every scrolling surface beneath, so they are not given per component. Specifying them on the component side would split the scrollbar look from place to place within the same app.
 
-`auto` 以外の値を与えると overlay scrollbar が classic へ切り替わります。macOS や touch 環境の既定では scrollbar がスクロールするまで現れず、局所スクロール領域の存在に気づけません。常時表示にすることで、触れる前から領域の存在・残量・現在地が判ります。この three つは scroll 位置から導かれるため、静的なアイコンや装飾と違って表示が実態とずれません。
+Giving a value other than `auto` switches overlay scrollbars to classic. With the defaults on macOS and touch environments, the scrollbar does not appear until scrolling, so the existence of a local scroll area goes unnoticed. Showing it at all times makes the area's existence, remaining amount and current position clear before it is touched. These three are derived from the scroll position, so unlike a static icon or decoration, the display never drifts from reality.
 
-代償として、classic scrollbar は幅を占め、利用者が OS で選んだ overlay の設定を上書きします。ページ内に独立したスクロール面が現れる UI では、その存在を示す手掛かりが他にないため、この上書きを受け入れています。
+The trade-off is that classic scrollbars take up width and override the overlay setting the user chose in the OS. In UI where an independent scrolling surface appears within the page, nothing else indicates its existence, so this override is accepted.
 
-対応していないブラウザでは browser 既定の scrollbar がそのまま使われます。表示が消えたり誤った状態を示したりはせず、現状から退行しません。
+In browsers that do not support it, the browser's default scrollbar is used as is. The display neither disappears nor shows a wrong state, and nothing regresses from the current situation.
 
-スクロール位置の保持、末尾検知、追加読み込みは持ちません。領域の大きさと方向は `ScrollArea` の担当です。
+It owns no preservation of scroll position, end detection or loading more. The size and direction of the area are the job of `ScrollArea`.
 
-`html` には `scrollbar-gutter: stable` を宣言し、scrollbar が出ていないときも場所を確保します。classic scrollbar が出入りすると内容の幅がそのぶん変わり、面を覆う overlay がページのスクロールを止めた瞬間に折り返しの位置ごと動くためです。この宣言は継承されないため、局所スクロール領域で同じ横ずれが問題になった時点で、その領域側で指定します。
+`html` declares `scrollbar-gutter: stable` to reserve the space even when no scrollbar is shown. When a classic scrollbar appears or disappears, the content width changes by that much, and the moment an overlay covering the surface stops page scrolling, everything moves along with the wrap points. This declaration is not inherited, so once the same horizontal shift becomes a problem in a local scroll area, specify it on that area.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は `ScrollArea` による局所スクロール、`textarea` と `pre` という native 要素、横方向のスクロールで、同じ見た目が指定なしに及ぶことを確認します。
+Storybook checks that the same look reaches local scrolling through `ScrollArea`, the native elements `textarea` and `pre`, and horizontal scrolling, without any specification.
 
-CSS のみで JavaScript を持たないため、単体テストは置いていません。scrollbar の描画は browser と OS が担い、jsdom では再現できません。
+It is CSS only with no JavaScript, so there is no unit test. Rendering of the scrollbar is done by the browser and the OS and cannot be reproduced in jsdom.

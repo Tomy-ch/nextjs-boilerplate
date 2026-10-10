@@ -35,7 +35,7 @@ describe("readLayerContract", () => {
   it("行末に但し書きが付いていても読む", () => {
     const readme = README.replace(
       "forbidden: [features, business-logic]",
-      "forbidden: [features] # 画面まるごとの story は例外",
+      "forbidden: [features] # Exception: whole-screen stories",
     );
 
     expect(readLayerContract(readme)?.forbidden).toEqual(["features"]);

@@ -1,65 +1,51 @@
 # ConnectionStatus
 
-## 用途
+## Purpose
 
-継続的な受信がいまどうなっているかを、短いラベルで示します。購読を持つ画面が「新着を受け取れて
-いるか」を利用者へ伝えるための面です。
+Shows with a short label how continuous receiving is going right now. It is the surface a screen with a subscription uses to tell the user "whether new items are being received".
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ConnectionStatus` | いまの受信の状態に対応する文言を、`Badge` の面で出します。 |
+| `ConnectionStatus` | Shows the copy corresponding to the current receiving state on a `Badge` surface. |
 
-`CONNECTION_STATUS` と `ConnectionStatusValue` を `connection-status.definition.ts` で公開します。
-`status` に指定できる値の owner はこの定義であり、`"receiving"` などの文字列を利用側で直接
-書きません。
+`CONNECTION_STATUS` and `ConnectionStatusValue` are exported from `connection-status.definition.ts`. This definition owns the values that can be given to `status`, and callers do not write strings such as `"receiving"` directly.
 
-| status | 何を示すか |
+| status | What it indicates |
 | --- | --- |
-| `connecting` | 繋ぎにいっている。まだ受け取っていない |
-| `receiving` | 受け取れている |
-| `reconnecting` | 切れたので繋ぎ直している |
-| `offline` | 回線が無い |
-| `suspended` | 受け取る対象がまだ無い |
-| `halted` | 打ち切った。繋ぎ直しても同じ結果になる |
-| `expired` | 資格が切れた。入り直せば再開できる |
+| `connecting` | Trying to connect. Nothing received yet |
+| `receiving` | Receiving |
+| `reconnecting` | Disconnected and reconnecting |
+| `offline` | No network |
+| `suspended` | Nothing to receive yet |
+| `halted` | Given up. Reconnecting would give the same result |
+| `expired` | Credentials expired. Re-entering resumes it |
 
-## 利用ケース
+## Use Cases
 
-- 購読で更新される画面に、受信できているかを常時示す場合
-- 回線が切れているあいだ、購読の状態より先にその事実を伝える場合
-- 打ち切りと一時的な切断を、利用者の取るべき行動の違いとして言い分ける場合
+- Constantly showing whether a screen updated by a subscription is receiving
+- While the network is down, conveying that fact ahead of the subscription's state
+- Wording "given up" and a temporary disconnect differently, as a difference in what the user should do
 
-進行中の処理を示す局所的な表示には `Spinner` を、領域や画面全体の状態には `FeedbackState` を
-使います。読み落とされては困る通知には `Alert` を使います。
+Use `Spinner` for a local indicator of work in progress, and `FeedbackState` for the state of a region or the whole screen. Use `Alert` for notices that must not be missed.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。hydration を必要としない表示専用の Server Component で、
-client island を持ちません。
+In the SSR-first selection it falls under `◎`. It is a display-only Server Component that needs no hydration and has no client island.
 
-**通信を持ちません。** 接続も再接続も状態の判定も持たず、渡された状態に対応する文言を出すだけ
-です。どの状態をいつ渡すかは呼び出し元が決めます。**通信の手段も知りません** —— 購読でも定期
-取得でも、受け取り続けられているかどうかを同じ語で表せます。
+**It owns no communication.** It owns neither connecting, reconnecting nor deciding the state; it only shows the copy for the state it is given. The caller decides which state to pass and when. **It does not know the means of communication either** — whether a subscription or periodic fetching, whether receiving is continuing can be expressed with the same words.
 
-`status` の意味論は `role="status"` として支援技術へ伝わります。割り込まずに変化だけを伝えるため
-`aria-live` は `polite` です。
+The semantics of `status` reach assistive technology as `role="status"`. `aria-live` is `polite`, so that only changes are conveyed without interrupting.
 
-**出したままにする前提の部品です。** 切れている間だけ出す使い方もできますが、その場合は
-「出ていない」が「繋がっている」と「そもそも受信していない」のどちらなのかを画面が別に示す
-必要があります。
+**It is a component meant to stay displayed.** It can also be shown only while disconnected, but in that case the screen must separately show whether "not shown" means "connected" or "not receiving in the first place".
 
-色は文言に重ねているだけで、**色だけで区別させません**。同じ優先度の色を持つ状態が複数あるため、
-区別は文言が担います。
+Color is only layered on the copy, and **it never distinguishes by color alone**. Several states share the same priority color, so the copy does the distinguishing.
 
-vendor 依存はありません。面は `Badge` を合成しています。
+It has no vendor dependency. The surface composes `Badge`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は 7 つの状態それぞれの見え方を確認します。面の色と文言の組み合わせは実描画でしか
-判断できないため、Storybook 側の確認範囲です。
+Storybook checks how each of the 7 states looks. The combination of surface color and copy can be judged only by actual rendering, so it is within Storybook's scope.
 
-テストは状態ごとの文言、`role="status"` と `aria-live="polite"` の意味論、状態を data 属性として
-公開すること、すべての状態が文言を持つこと、色だけで区別させないこと、呼び出し元の属性を
-そのまま渡すこと、a11y 自動検査を確認します。
+Tests check the copy for each state, the semantics of `role="status"` and `aria-live="polite"`, that the state is exposed as a data attribute, that every state has copy, that nothing is distinguished by color alone, that attributes from the caller are passed through as is, and automated a11y checks.
