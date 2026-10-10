@@ -30,7 +30,7 @@ export type ShipmentQueueViewProps = {
  * 画面から何も無くなるわけではありません。
  *
  * 契約が決めた並びをそのまま出します。並べ直さない理由は
- * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
+ * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md#fetching)。
  *
  * @param props - 発送を待っている便・発送済みの注文・発送の送信先・配達の確認の送信先。
  */

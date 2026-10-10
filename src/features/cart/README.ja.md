@@ -22,11 +22,11 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/cart` | [`screen`](../../../docs/spec/route/shop/cart/page.screen.md) / [`function`](../../../docs/spec/route/shop/cart/page.function.md) | 不要（ゲストのまま使える） |
+| `/cart` | [`screen`](../../../docs/spec/route/shop/cart/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/cart/page.function.ja.md) | 不要（ゲストのまま使える） |
 
 **この slice は route 以外の場所にも出ます。** header のエントリポイント・サイドバー・被せる領域は
 `(shop)/layout.tsx` が mount するもので、外枠の約束は
-[`(shop)` の layout](../../../docs/spec/route/shop/layout.function.md) が持ちます。
+[`(shop)` の layout](../../../docs/spec/route/shop/layout.function.ja.md) が持ちます。
 
 使う operationId。
 

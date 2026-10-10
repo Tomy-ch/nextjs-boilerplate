@@ -1,328 +1,328 @@
-# 表現層の防御
+# Presentation-Layer Defenses
 
-この文書は、この表現層が**自分で持っている防御**を通しで説明する。持っているのは 2 つの面で、**ブラウザへ配る面**（配信ヘッダ・CSP・バンドルへ入る値）と、**後ろから来た値の扱い**（分類と置き場・上流由来の値への線引き・リッチテキスト）である。入口（`src/proxy.ts`）はその 2 つの面が交わる場所として扱う。
+This document walks through the **defenses this presentation layer holds itself**. They cover two surfaces: **what is shipped to the browser** (delivery headers, CSP, values that enter the bundle) and **how values arriving from behind are handled** (classification and placement, the line drawn against upstream-originated values, rich text). The entry point (`src/proxy.ts`) is treated as the place where those two surfaces meet.
 
-判断は ADR が持つ。ヘッダと CSP の本体は [ADR 0111](../adr/0111-csp-security-headers.md)、値の分類は [ADR 0112](../adr/0112-data-classification-cache-boundary.md)、env の境界は [ADR 0030](../adr/0030-environment-variable-management.md)、入口の責務は [ADR 0043](../adr/0043-middleware-policy.md) が正で、ここはそれらを**実装の在り処と落とし穴**から読み直す。CI 側の検査（秘密スキャン・SAST・依存監査・DAST の配線）は [ADR 0110](../adr/0110-security-operations.md) と [`.github/workflows/README.md`](../../.github/workflows/README.md) が持つので再掲しない。認証の往復そのものは [ADR 0079](../adr/0079-auth-frontend-seam.md) の持ち分で、ここに出てくるのは「入口がそれをどう扱うか」だけである。
+The ADRs own the decisions. [ADR 0111](../adr/0111-csp-security-headers.md) is authoritative for the headers and the CSP, [ADR 0112](../adr/0112-data-classification-cache-boundary.md) for value classification, [ADR 0030](../adr/0030-environment-variable-management.md) for the env boundary, and [ADR 0043](../adr/0043-middleware-policy.md) for the entry point's responsibilities; this document rereads them from **where the implementation lives and where the pitfalls are**. The CI-side checks (secret scanning, SAST, dependency audit, DAST wiring) are owned by [ADR 0110](../adr/0110-security-operations.md) and [`.github/workflows/README.md`](../../.github/workflows/README.md), and are not restated. The authentication round trip itself belongs to [ADR 0079](../adr/0079-auth-frontend-seam.md); all that appears here is "how the entry point handles it".
 
-## 全体の形
+## Overall Shape
 
-防御は 1 か所に集めず、**値が通る道のりの段ごと**に置いてある。どの段も他の段が見えないものを見ている（[ADR 0112](../adr/0112-data-classification-cache-boundary.md)）ので、1 つを読んで「ここが守っている」と結論しない。
+The defenses are not gathered in one place; they sit **at each stage of the path a value travels**. Every stage sees something the other stages cannot ([ADR 0112](../adr/0112-data-classification-cache-boundary.md)), so do not read one of them and conclude "this is what protects us".
 
 ```text
-ブラウザ ──(要求)──▶ proxy.ts ──▶ Route Handler / 画面 / Server Action ──▶ adapters/server ──▶ バックエンド
-                     │  停止 / 送信元 / 楽観判定          │ 確定認可 / 本体の上限        │ 分類 / 資格情報 / 応答検証
-                     ▼                                     ▼                              ▼
-ブラウザ ◀──(応答)── next.config.ts headers() ◀── 描画（taint）◀── 取得の口（型・関門）◀── zod 検証
-                     配信ヘッダ / CSP
+Browser ──(request)──▶ proxy.ts ──▶ Route Handler / screen / Server Action ──▶ adapters/server ──▶ backend
+                       │ stop / origin / optimistic check   │ final authz / body limit   │ classify / credentials / response validation
+                       ▼                                    ▼                            ▼
+Browser ◀──(response)── next.config.ts headers() ◀── render (taint) ◀── fetch endpoint (types / gate) ◀── zod validation
+                       delivery headers / CSP
 ```
 
-要求に依らないものは**配信の側**（`next.config.ts`）、要求に依るものは**入口**（`src/proxy.ts`）、値に依るものは**取得の口**（`adapters/server/http`）に置く。この 3 つの分担を先に押さえると、どこに何が無いかも読める。
+What does not depend on the request goes on **the delivery side** (`next.config.ts`), what depends on the request goes in **the entry point** (`src/proxy.ts`), and what depends on the value goes in **the fetch endpoint** (`adapters/server/http`). Once this three-way split is clear, you can also read where something is absent.
 
-## 配信ヘッダと CSP
+## Delivery Headers and CSP
 
-### どこで宣言しているか
+### Where They Are Declared
 
-**要求に依らないヘッダは全部 `next.config.ts` の `headers()` が付ける。** 対象は `source: "/:path*"` で、中身は [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) の `buildSecurityHeaders()` が組み立てる。CSP・`X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy`・`Permissions-Policy`・`Cross-Origin-*`・HSTS がここに載る。
+**Every request-independent header is attached by `headers()` in `next.config.ts`.** It targets `source: "/:path*"`, and the content is assembled by `buildSecurityHeaders()` in [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts). CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-*` and HSTS are set here.
 
-値のうち環境で変わるものは、**検証済みの ENV から導く**。ヘッダの文字列へ配信元を直接書く場所は無い。
+Values that vary by environment are **derived from the validated ENV**. There is no place where an origin is written directly into a header string.
 
-| 入力 | 出所 | 効く先 |
+| Input | Source | Affects |
 | --- | --- | --- |
 | `mediaOrigin` | `MEDIA_ORIGIN` | `img-src` |
-| `authIssuer` | `AUTH_ISSUER` | `form-action`（ログインの form が IdP へリダイレクトされる先） |
-| `apiOrigin` | `APP_API_BASE_URL` | `connect-src`（ブラウザが backend へ直接開く購読の宛先。往復は BFF を通るので要らない） |
-| `servesOverTls` | `AUTH_REDIRECT_URI` の scheme（`isServedOverTls()`） | HSTS と `upgrade-insecure-requests` を出すか |
-| `development` | `next dev` かどうか（phase） | `script-src` に `'unsafe-eval'` を足すか |
-| `gtmContainerId` | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | Google の配信元を `script-src` / `connect-src` / `img-src` に足し、`Cross-Origin-Embedder-Policy` を**出さない** |
+| `authIssuer` | `AUTH_ISSUER` | `form-action` (where the login form is redirected to the IdP) |
+| `apiOrigin` | `APP_API_BASE_URL` | `connect-src` (the destination of subscriptions the browser opens directly to the backend; round trips go through the BFF, so they do not need it) |
+| `servesOverTls` | the scheme of `AUTH_REDIRECT_URI` (`isServedOverTls()`) | whether HSTS and `upgrade-insecure-requests` are emitted |
+| `development` | whether this is `next dev` (phase) | whether `'unsafe-eval'` is added to `script-src` |
+| `gtmContainerId` | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | adds Google's origins to `script-src` / `connect-src` / `img-src`, and does **not** emit `Cross-Origin-Embedder-Policy` |
 
-最後の行が示すとおり、**同梱するタグマネージャの有無でヘッダの形が変わる**。容器 ID が空の配備では `Cross-Origin-Embedder-Policy: require-corp` が出て cross-origin isolation が立ち、空でない配備では出ない。どちらが正しいかは配備が決めることで、判断は `security-headers.ts` が 1 か所で持つ。
+As the last row shows, **the shape of the headers changes with whether the bundled tag manager is in use**. A deployment with an empty container ID emits `Cross-Origin-Embedder-Policy: require-corp` and gets cross-origin isolation; a deployment with a non-empty one does not. Which is right is for the deployment to decide, and the decision is held in one place, `security-headers.ts`.
 
-**要求に依るヘッダは `src/proxy.ts` が持つ。** 資格情報を載せた要求への `Cache-Control: private, no-store` と、宣言した別 origin への `Access-Control-*` の 2 種類である（後述「入口」）。`headers()` で足すと全応答に載ってしまい、`proxy.ts` で足すと前捌きを通らない静的応答から漏れる、という**向きの違い**で置き場が決まっている。
+**Request-dependent headers are owned by `src/proxy.ts`.** There are two kinds: `Cache-Control: private, no-store` on requests that carry credentials, and `Access-Control-*` for declared cross origins (see *Entry point* below). The placement is decided by **which way each one fails**: added in `headers()`, they would land on every response; added in `proxy.ts`, they miss the static responses that do not pass through the pre-handler.
 
-### nonce を使うと何が起きるか
+### What Happens If You Use a Nonce
 
-CSP の `script-src` は `'self' 'unsafe-inline'` である。**nonce は使っていない。** Next.js 自身が RSC payload を inline script（`self.__next_f.push`）として吐くため、nonce も hash も無い構成で inline を許すにはこれしか無い。
+The CSP `script-src` is `'self' 'unsafe-inline'`. **No nonce is used.** Next.js itself emits the RSC payload as inline scripts (`self.__next_f.push`), so with neither a nonce nor a hash, this is the only way to allow inline.
 
-nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.md) の seam B）を採ると、`src/proxy.ts` が要求ごとに nonce を生成し、Next.js が全 script に付ける。その瞬間に**全 route が dynamic rendering になる**。静的な殻は配れず、CDN キャッシュも ISR も効かず、このリポジトリが有効にしている Cache Components（[rendering.md](rendering.md)「このリポジトリは有効にしている」）と両立しない。「CSP を厳しくしたい」という要件は、配信モデルごと入れ替える判断を伴う。
+Taking the nonce path (seam B of [ADR 0111](../adr/0111-csp-security-headers.md)) means `src/proxy.ts` generates a nonce per request and Next.js attaches it to every script. At that moment **every route becomes dynamic rendering**. A static shell can no longer be served, neither CDN caching nor ISR works, and it is incompatible with Cache Components, which this repository enables ([rendering.md](rendering.md#this-repository-enables-it) — "This repository enables it"). A requirement to "tighten the CSP" comes with a decision to replace the whole delivery model.
 
-`Content-Security-Policy-Report-Only` も経由していない。段階導入の代わりに、違反は次項の検査が実ブラウザで見つける。
+`Content-Security-Policy-Report-Only` is not used either. Instead of a staged rollout, violations are found in real browsers by the checks in the next subsection.
 
-### 宣言と実際の配信を突き合わせる検査
+### Checks That Reconcile the Declaration with Actual Delivery
 
-宣言（`next.config.ts`）と、ブラウザが受け取るもの、ブラウザが enforce した結果は**3 つの別の事実**で、それぞれ別の検査が見る。
+The declaration (`next.config.ts`), what the browser receives, and what the browser enforces are **three separate facts**, each seen by a separate check.
 
-| 事実 | 検査 | 在り処 |
+| Fact | Check | Location |
 | --- | --- | --- |
-| 組み立てが宣言どおりか | 単体テスト | [`security-headers.test.ts`](../../src/config/security-headers/security-headers.test.ts)。容器 ID の有無・TLS の有無の両方の配備を固定する |
-| 応答に載っているか | DAST（OWASP ZAP baseline） | `dast.yaml`（`make dast`）。既知の欠落は [`.github/zap/rules.tsv`](../../.github/zap/rules.tsv) に理由と撤回条件つきで並び、**一覧に無い所見は赤** |
-| ブラウザが enforce しているか | E2E の見張り | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) が `securitypolicyviolation` を document で受け、**全 spec・全描画エンジン**で違反を数える |
-| enforce が効いている証拠 | E2E の spec | [`e2e/journeys/csp.spec.ts`](../../e2e/journeys/csp.spec.ts) が宣言に無い配信元の script を差し、違反が報告されることを確かめる |
+| The assembly matches the declaration | Unit test | [`security-headers.test.ts`](../../src/config/security-headers/security-headers.test.ts). Pins deployments both with and without a container ID and with and without TLS |
+| It is on the response | DAST (OWASP ZAP baseline) | `dast.yaml` (`make dast`). Known gaps are listed in [`.github/zap/rules.tsv`](../../.github/zap/rules.tsv) with a reason and a reversal condition, and **any finding not on the list is red** |
+| The browser enforces it | E2E watcher | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) listens for `securitypolicyviolation` on the document and counts violations across **every spec and every rendering engine** |
+| Evidence that enforcement works | E2E spec | [`e2e/journeys/csp.spec.ts`](../../e2e/journeys/csp.spec.ts) injects a script from an undeclared origin and confirms that a violation is reported |
 
-**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行は引数を持たず、見張りが「JavaScript が書いた行」だけを数える規則で外れる。だから `securitypolicyviolation` を別経路で受けている（[`e2e/README.md`](../../e2e/README.md)「何を異常と数えるか」）。`Report-Only` へ緩めると DAST は通るが `csp.spec.ts` が落ちる —— ヘッダを読む検査と enforce を見る検査が別に在るのはこのためである。
+**CSP violations are not caught by the console watcher.** Lines the browser writes itself carry no arguments, and the watcher's rule of counting only "lines JavaScript wrote" excludes them. That is why `securitypolicyviolation` is received on a separate path ([`e2e/README.md`](../../e2e/README.md#何を異常と数えるか) — "What counts as an anomaly"). Loosening to `Report-Only` would pass DAST but fail `csp.spec.ts` — this is why the check that reads headers and the check that observes enforcement exist separately.
 
-`next.config.ts` と `src/config/security-headers/` を触った変更は `scripts/deferred-checks/recommend.ts` が `run-e2e` を名指しする。ヘッダの変更を単体テストだけで通した気にならないように、実ブラウザの検査へ誘導している。
+A change touching `next.config.ts` or `src/config/security-headers/` makes `scripts/deferred-checks/recommend.ts` name `run-e2e`. It steers toward the real-browser check so that a header change does not feel done on unit tests alone.
 
-**CI はタグマネージャの容器 ID を空にして走る。** したがって Google の配信元を足す側の CSP と、`Cross-Origin-Embedder-Policy` が降りた状態は、実ブラウザでは検査されていない。単体テストが組み立てを固定しているだけである（[ADR 0110](../adr/0110-security-operations.md)）。
+**CI runs with the tag manager's container ID empty.** So the CSP with Google's origins added, and the state in which `Cross-Origin-Embedder-Policy` is dropped, are not checked in a real browser. Only the unit tests pin the assembly ([ADR 0110](../adr/0110-security-operations.md)).
 
-### 配信ヘッダの隣にあるもの
+### What Sits Next to the Delivery Headers
 
-- `poweredByHeader: false` —— フレームワークと版を名乗らない
-- `images.remotePatterns` —— `MEDIA_ORIGIN` の 1 host だけ。ワイルドカードを使わないのは、許した host が画像最適化の取りに行ける相手そのものだからである
-- `experimental.taint: true` —— 描画時の漏洩防御。後述「データの分類と置き場」
+- `poweredByHeader: false` — does not announce the framework or its version
+- `images.remotePatterns` — only the single host of `MEDIA_ORIGIN`. No wildcard is used because an allowed host is exactly whom image optimization can go and fetch from
+- `experimental.taint: true` — protection against leaks during rendering. See *Data Classification and Placement* below
 
-## データの分類と置き場
+## Data Classification and Placement
 
-### 分類は取得の口が持つ
+### The Fetch Endpoint Holds the Classification
 
-値を包む型（`UserScopedData<T>` のようなもの）は無い。分類は**取得の口**が宣言し、[`src/adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) の `createHttpClient()` が `scope` を必ず受け取る。client を組むのは分類ごとに 1 つの接続口（[`public-client.ts`](../../src/adapters/server/http/public-client.ts) / [`user-scoped-client.ts`](../../src/adapters/server/http/user-scoped-client.ts)）で、取得の口は分類に合う接続口を引く。
+There is no type that wraps a value (nothing like `UserScopedData<T>`). The **fetch endpoint** declares the classification, and `createHttpClient()` in [`src/adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) always receives a `scope`. Clients are built by one connection point per classification ([`public-client.ts`](../../src/adapters/server/http/public-client.ts) / [`user-scoped-client.ts`](../../src/adapters/server/http/user-scoped-client.ts)), and a fetch endpoint takes the connection point that matches its classification.
 
-| 分類 | 何か | 口が持てるもの |
+| Classification | What it is | What the endpoint can hold |
 | --- | --- | --- |
-| `public` | 主体を名乗らずに取れるもの | `cache` / `tags`。資格情報の口（`getBearerToken` / `bearerToken`）は**型として存在しない** |
-| `user-scoped` | 主体に紐づくもの | 資格情報の口。`cache` / `tags` は**型として存在しない** |
-| secret | 署名鍵・トークン | この経路を通らない。`config/*.server.ts` に閉じる |
+| `public` | Anything obtainable without naming a principal | `cache` / `tags`. The credential handle (`getBearerToken` / `bearerToken`) **does not exist in the type** |
+| `user-scoped` | Anything tied to a principal | The credential handle. `cache` / `tags` **do not exist in the type** |
+| secret | Signing keys, tokens | Does not go through this path. Confined to `config/*.server.ts` |
 
-「PII を共有キャッシュへ入れるな」は注意書きではなく**引数の不在**になっている。不在は両側にあり、public の口には資格情報を載せる引数そのものが無い。だから分類を読めば「その口が資格情報を載せうるか」が言い当てられる。
+"Do not put PII in a shared cache" is not a warning note but **the absence of an argument**. The absence is on both sides: a public endpoint has no argument that could carry credentials at all. So reading the classification tells you "whether that endpoint can carry credentials".
 
-**`allowAnonymous` は分類を動かさない。** 資格情報が取れたときは常に載せ、取れなかった回だけ匿名で送る**要求ごと**の宣言であって、口は user-scoped のままである。立ててよいのは、契約がその operation の認証を任意と宣言している（`security` に `{}` を含む）ものだけである。無効な資格情報を伏せて匿名として通すと、失効に気づかないまま別の主体として扱われる。
+**`allowAnonymous` does not change the classification.** It is a **per-request** declaration — always attach credentials when they can be obtained, and send anonymously only on the occasions they cannot — and the endpoint remains user-scoped. It may be set only where the contract declares authentication for that operation optional (`security` includes `{}`). Hiding invalid credentials and passing as anonymous means being treated as a different principal without noticing the expiry.
 
-### 段ごとの関所
+### Checkpoints at Each Stage
 
-同じ事故を、値が通る段ごとに別の手段が止める。**どの段も、他の段が見えないものを見ている。**
+The same accident is stopped by a different means at each stage a value passes through. **Every stage sees something the other stages cannot.**
 
-| 段 | 止めるもの | 手段 | 在り処 |
+| Stage | What it stops | Means | Location |
 | --- | --- | --- | --- |
-| 取得の口 | user-scoped の口に `cache` / `tags` を渡す | 型 | `request.ts` の `UserScopedRequestSpec` |
-| 取得時 | 型を迂回して組んだ spec のキャッシュ指定、呼び出しごとに持ち込んだ `Authorization` / `Cookie` | 要求時に throw | [`data-scope.ts`](../../src/adapters/server/http/data-scope.ts) の `assertSpecWithinScope()` / `assertNoCredentialHeader()` |
-| キャッシュ投入前 | `use cache` を持つモジュールが user-scoped の口を import する（import 先とその 1 段先） | ESLint | `project-rules/no-user-scoped-in-cached-module`。分類の綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る |
-| 描画 | cached scope からの `cookies()` 読み出し | framework | `next-request-in-use-cache`。資格情報が cookie 由来であることに乗っている |
-| client 送信前 | server の object と秘密値を Client Component へ渡す | taint | [`adapters/server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) |
-| 配信 | 主体に紐づく応答が共有キャッシュへ載る | 応答ヘッダ | `src/proxy.ts` の `Cache-Control: private, no-store` |
+| Fetch endpoint | Passing `cache` / `tags` to a user-scoped endpoint | types | `UserScopedRequestSpec` in `request.ts` |
+| At fetch time | A cache directive on a spec built around the type, and `Authorization` / `Cookie` brought in per call | throw at request time | `assertSpecWithinScope()` / `assertNoCredentialHeader()` in [`data-scope.ts`](../../src/adapters/server/http/data-scope.ts) |
+| Before cache entry | A module with `use cache` importing a user-scoped endpoint (the import target and one hop beyond) | ESLint | `project-rules/no-user-scoped-in-cached-module`. `scripts/scope-spelling.gate.test.ts` watches that the classification spellings remain |
+| Rendering | Reading `cookies()` from a cached scope | framework | `next-request-in-use-cache`. Relies on credentials coming from cookies |
+| Before sending to the client | Passing server objects and secret values to a Client Component | taint | [`adapters/server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) |
+| Delivery | A response tied to a principal landing in a shared cache | response header | `Cache-Control: private, no-store` in `src/proxy.ts` |
 
-**描画の段は 1 つの前提に乗っている** —— 資格情報が使用地点で `cookies()` から解決されること。解決済みの値を掴んで持ち回ると、cached scope の中で `cookies()` が読まれず、framework の防御は**何も言わずに**外れる。`request.ts` の `getBearerToken` に渡せるのが import した口だけ（ESLint `project-rules/no-captured-bearer-token`）なのは、この前提を検査可能にするためである。session を確立する 1 往復だけは cookie がまだ無く、`bearerToken` という別の綴りで解決済みの値を渡す。綴りを分けてあるのは、防御が外れる箇所を数えられるようにするためであって、渡してよい場所が増えたのではない。
+**The rendering stage rests on one premise** — that credentials are resolved from `cookies()` at the point of use. If a resolved value is captured and carried around, `cookies()` is not read inside the cached scope and the framework's defense drops away **silently**. Only an imported handle can be passed to `getBearerToken` in `request.ts` (ESLint `project-rules/no-captured-bearer-token`) precisely so that this premise can be checked. Only the single round trip that establishes the session has no cookie yet, and it passes a resolved value under a separate spelling, `bearerToken`. The spellings are kept apart so the places where the defense drops away can be counted, not because there are more places where passing one is allowed.
 
-**資格情報は接続先の外へ出ない。** `request.ts` の `authorizationHeader()` は、要求 URL の origin が `baseUrl` と違えば `Authorization` を付けない。絶対 URL は Discovery のような外の応答から来ることがあり、呼び出し側の慣習だけでは止まらない。
+**Credentials do not leave the connection target.** `authorizationHeader()` in `request.ts` does not attach `Authorization` when the request URL's origin differs from `baseUrl`. Absolute URLs can come from external responses such as Discovery, and caller conventions alone would not stop it.
 
-### taint が見ているもの・見ていないもの
+### What Taint Sees and Does Not See
 
-taint は**参照でしか追わない**。`{ ...record }` のコピーや、項目を抜き出した文字列には及ばない。だから主防御ではなく、取得範囲と Client DTO の最小化を抜けた誤送信を実行時に捕まえる補助である。
+Taint **tracks by reference only**. It does not extend to a `{ ...record }` copy or to strings with fields extracted. So it is not the primary defense, but an aid that catches, at runtime, a mis-send that slipped past minimizing the fetch scope and the Client DTO.
 
-登録している場所は 2 つで、どちらも**値が生まれる場所**である。
+It is registered in two places, both **where the value is born**.
 
-- session の記録 —— [`adapters/server/auth/session.ts`](../../src/adapters/server/auth/session.ts) の `readSessionRecord()` が復元した直後に `taintObjectReference()` を掛ける。Access Token と ID Token を含む記録そのものを Client Component へ渡すと、渡した時点で描画が落ちる
-- session の署名鍵 —— [`adapters/server/auth/resolver.ts`](../../src/adapters/server/auth/resolver.ts) の `getSessionResolver()` が `taintUniqueValue()` で値そのものを登録する。`config` カーネルは `react` を持ち込めない（`imports-allowed: []`）ので、読む側が登録する。登録の寿命は値を持つ singleton（`AuthConfig`）が握る
+- The session record — `readSessionRecord()` in [`adapters/server/auth/session.ts`](../../src/adapters/server/auth/session.ts) applies `taintObjectReference()` immediately after restoring it. Passing the record itself, which contains the Access Token and ID Token, to a Client Component makes rendering fail at the moment it is passed
+- The session signing key — `getSessionResolver()` in [`adapters/server/auth/resolver.ts`](../../src/adapters/server/auth/resolver.ts) registers the value itself with `taintUniqueValue()`. The `config` kernel cannot bring in `react` (`imports-allowed: []`), so the reading side registers it. The lifetime of the registration is held by the singleton that holds the value (`AuthConfig`)
 
-内側の層へ渡してよいのは `verifySession()` が返す**身元だけ**である。トークンは `getAccessToken()` という別の口にあり、両方とも `adapters/server` の外へ記録を出さない。
+What may be passed to inner layers is **only the identity** returned by `verifySession()`. The token sits behind a separate handle, `getAccessToken()`, and neither lets the record out of `adapters/server`.
 
-### secret はどこに閉じるか
+### Where Secrets Are Confined
 
-secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` に閉じる。守りは 3 つある。
+Secrets do not go through the fetch path; they are confined to `config/<purpose>/<purpose>.server.ts`. There are three guards.
 
-1. **`import "server-only"`** —— client の束へ入った時点で build が落ちる。`*.server.ts` と名乗って番人を欠いたモジュールは `scripts/server-only.gate.test.ts` が見つける。層の依存表は import の向きしか見ておらず、server と client の区別を持たないので、この番人は別の軸で要る
-2. **同梱の秘密値を実環境で拒む** —— [`config/auth/auth.schema.ts`](../../src/config/auth/auth.schema.ts) の `authSessionSecretValidator()` は、公開リポジトリに平文で載っている 2 つの値を `local` / `ci` 以外で受け付けない。設定し忘れは「値が無い」ではなく「既知の値が入っている」形で現れるため、長さだけを見る検証では通る。判定は起動時で、cookie を 1 枚も発行する前に止まる
-3. **taint** —— 上記
+1. **`import "server-only"`** — the build fails the moment it enters the client bundle. `scripts/server-only.gate.test.ts` finds modules named `*.server.ts` that lack the guard. The layer dependency table only sees import direction and has no notion of server versus client, so this guard is needed on a separate axis
+2. **Rejecting the bundled secret values in real environments** — `authSessionSecretValidator()` in [`config/auth/auth.schema.ts`](../../src/config/auth/auth.schema.ts) does not accept the two values that sit in plain text in the public repository anywhere other than `local` / `ci`. Forgetting to set it shows up not as "no value" but as "a known value is present", so a validation that only checks length would pass it. The check runs at startup and stops before a single cookie is issued
+3. **taint** — as above
 
-`APP_ENV` が未指定のときは、同梱値を許す判定も `null` を返して**許さない側へ倒れる**。既定値へ落とす経路はどこにも無い（`application-environment.ts` の `findApplicationEnvironment()`）。
+When `APP_ENV` is unspecified, the check that permits the bundled values also returns `null` and **falls to the not-permitting side**. There is no path anywhere that falls back to a default (`findApplicationEnvironment()` in `application-environment.ts`).
 
-## `NEXT_PUBLIC_` の境界
+## The `NEXT_PUBLIC_` Boundary
 
-### 何がバンドルへ入るか
+### What Enters the Bundle
 
-`NEXT_PUBLIC_` の変数は、ビルド時に**参照箇所ごとのリテラルへ置換**される。ブラウザへ届くのは値そのものであり、実行時に差し替える手段は無い。いま入っているのは 3 つである。
+`NEXT_PUBLIC_` variables are **replaced with a literal at each reference** at build time. What reaches the browser is the value itself, and there is no way to swap it at runtime. Three are in use today.
 
-| 変数 | 読む場所 | ブラウザで何に使うか |
+| Variable | Where it is read | What the browser uses it for |
 | --- | --- | --- |
-| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | [`config/http/http.client.ts`](../../src/config/http/http.client.ts) | 要求 URL の上限。server 側と同じ変数を読むので閾値は env の 1 行 |
-| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 同上 | 送る前に弾く。**受け口が同じ大きさをもう一度確かめる** —— ブラウザ側の判定は送信者が差し替えられる |
-| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | [`config/analytics/analytics.client.ts`](../../src/config/analytics/analytics.client.ts) | 空なら同意ゲートの裏の要素そのものを描かない。容器 ID はタグを読む URL に現れる公開値で、秘密は容器の編集権限の側にある |
+| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | [`config/http/http.client.ts`](../../src/config/http/http.client.ts) | The request URL limit. It reads the same variable as the server side, so the threshold is one line of env |
+| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | Same as above | Rejects before sending. **The receiving endpoint checks the same size again** — a sender can replace the browser-side check |
+| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | [`config/analytics/analytics.client.ts`](../../src/config/analytics/analytics.client.ts) | When empty, the element behind the consent gate is not rendered at all. The container ID is a public value that appears in the URL the tag is loaded from; the secret lies in edit permission on the container |
 
-client config は `NEXT_PUBLIC_` 変数を**文字列リテラルで名指す参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
+Client config holds **only references that name `NEXT_PUBLIC_` variables by string literal**, and does not validate there. The browser is not where validation runs, and what is substituted is the value that already passed validation.
 
-### 何が入らないか
+### What Does Not Enter
 
-server config（`*.server.ts`）は runtime object であり、`server-only` の番人を持つ。`process.env` の直読は biome の `noProcessEnv` で禁じ、`config` カーネルと起動境界だけを override で外している。したがって「`process.env.SECRET` を Client Component から読む」書き方は lint で止まり、「server config を import する」書き方は build で止まる。
+Server config (`*.server.ts`) is a runtime object and carries the `server-only` guard. Reading `process.env` directly is forbidden by biome's `noProcessEnv`, with only the `config` kernel and the startup boundary exempted by override. So "reading `process.env.SECRET` from a Client Component" stops at lint, and "importing server config" stops at build.
 
-### ビルドが見つけるもの・見つけないもの
+### What the Build Finds and Does Not Find
 
-**見つける**:
+**Finds**:
 
-- 全 ENV の検証 —— `next.config.ts` が `validateEnvironment()` を呼び、`NEXT_PUBLIC_` か否かを問わず全量を検証する。欠落も不正も build failure になる。ブラウザに未検証の値が置換されることは無い
-- `server-only` の越境 —— client の束から server モジュールを引いた時点で落ちる
-- client の束の重さ —— `scripts/client-schema-weight.gate.test.ts` が、検証ライブラリごと client へ載る import の形を見つける
+- Validation of every ENV — `next.config.ts` calls `validateEnvironment()` and validates all of them, `NEXT_PUBLIC_` or not. Both missing and invalid values are a build failure. An unvalidated value is never substituted into the browser
+- `server-only` boundary crossing — fails the moment a server module is pulled from the client bundle
+- Client bundle weight — `scripts/client-schema-weight.gate.test.ts` finds import shapes that carry the whole validation library into the client
 
-**見つけない**:
+**Does not find**:
 
-- **server config の値を props で Client Component へ渡す書き方。** 値が `string` になった時点で `server-only` は効かず、taint も登録した値（署名鍵）にしか効かない。RSC payload として HTML へ直列化され、そのままブラウザへ出る。これは規約（[`docs/rules.md#config`](../rules.md#config)）と、内側の層が config を import できない依存表で止めているのであって、build が見つけるものではない
-- **派生値。** `` `Bearer ${token}` `` のような文字列は taint に登録していない
+- **Passing a server config value to a Client Component through props.** Once the value is a `string`, `server-only` no longer applies, and taint only applies to registered values (the signing key). It is serialized into HTML as the RSC payload and goes out to the browser as is. This is stopped by the rules ([`docs/rules.md`](../rules.md#config)) and by the dependency table that keeps inner layers from importing config — not something the build finds
+- **Derived values.** A string like `` `Bearer ${token}` `` is not registered with taint
 
-`serverActions.bodySizeLimit` は `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` に封筒のぶん（32 KiB）を足した値である。**この上限は全 Server Action に効く。** Next.js は action ごとの上限を持たないので、ファイルのために上げた値がテキストしか受け取らない口にも効く。
+`serverActions.bodySizeLimit` is `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` plus an allowance for the envelope (32 KiB). **This limit applies to every Server Action.** Next.js has no per-action limit, so a value raised for files also applies to endpoints that only receive text.
 
-## 入口 —— `src/proxy.ts` が持つもの・持たないもの
+## Entry Point — What `src/proxy.ts` Holds and Does Not Hold
 
-[`src/proxy.ts`](../../src/proxy.ts) は prefetch を含む全経路で走る前捌きで、順序は固定である。
+[`src/proxy.ts`](../../src/proxy.ts) is the pre-handler that runs on every path, including prefetch, and its order is fixed.
 
-1. **停止** —— `APP_MAINTENANCE_MODE` が立っていれば、`GET` / `HEAD` を停止画面へ rewrite し、それ以外を `503` で断る。停止画面自身と `/api/health` だけは通す。認可より先に置くのは、止めるのが全 route に対する 1 つの判断だからである
-2. **送信元** —— `Origin` を `model/cross-origin` の `judgeOrigin()` で判定し、宣言（`HTTP_ALLOWED_ORIGINS`）に無い別 origin からの**状態を変えるメソッド**を handler へ届く前に `403` で止める
-3. **CORS か楽観判定か** —— 宣言した別 origin から `/api/` へ来た要求には CORS ヘッダを付け（preflight には `204`）、それ以外は役割の楽観判定へ進む
-4. **始末** —— 同意に紐づく計測 id の発行と撤去、資格情報を載せた要求への `Cache-Control: private, no-store`
+1. **Maintenance** — when `APP_MAINTENANCE_MODE` is set, it rewrites `GET` / `HEAD` to the maintenance screen and refuses everything else with `503`. Only the maintenance screen itself and `/api/health` pass. It comes before authorization because stopping is one decision over every route
+2. **Origin** — judges `Origin` with `judgeOrigin()` from `model/cross-origin`, and stops **state-changing methods** from cross origins not in the declaration (`HTTP_ALLOWED_ORIGINS`) with `403` before they reach the handler
+3. **CORS or optimistic check** — requests to `/api/` from a declared cross origin get CORS headers (`204` for preflight); everything else proceeds to the optimistic role check
+4. **Finalization** — issuing and removing the consent-bound measurement id, and `Cache-Control: private, no-store` on requests that carry credentials
 
-### 持つもの
+### What It Holds
 
-| 責務 | 実装 | 備考 |
+| Responsibility | Implementation | Notes |
 | --- | --- | --- |
-| 楽観的な認可 | `readOptimisticSession()` で cookie を復号し、`model/authz` の `allowedRolesFor()` に照らす | 未認証はログインへ（復帰先は `toSafeReturnUrl()` を通す）、役割不足は `/` へ。**ログインへ戻さない**のは、やり直しても同じ結果になるため |
-| 保護する経路の宣言 | `model/authz` の `ROUTE_POLICIES` | **保護されている側を列挙する。** 公開側を列挙すると、足した画面が既定で公開になる。確定認可も同じ宣言を引く |
-| 送信元の検証 | `judgeOrigin()` + `isStateChanging()` | 同一 origin の判定は **host だけ**（`X-Forwarded-Host` → `Host` の順）。TLS を終端する proxy の後ろでは scheme が食い違うため比べない。宣言した別 origin は origin の完全一致 |
-| CORS | `openCors()` | `/api/` だけ。`Access-Control-Allow-Credentials: true` を返すので `*` は使えず、`Vary: Origin` を添える。preflight は求められたメソッドとヘッダをそのまま許す —— origin を許した時点で相手を信頼しており、一覧を別に持つと宣言が 2 つに割れる |
-| 資格情報を載せた応答の `Cache-Control` | `finalize()` | session cookie を載せた要求、**または cookie を書き換えた応答**。後者を外すと、匿名で同意済みの訪問者へ計測 id を配る応答が CDN に固まり、以後の全員へ同じ id を配る |
+| Optimistic authorization | Decrypts the cookie with `readOptimisticSession()` and checks it against `allowedRolesFor()` from `model/authz` | Unauthenticated goes to login (the return destination passes through `toSafeReturnUrl()`); insufficient role goes to `/`. It **does not send back to login** because retrying would produce the same result |
+| Declaring the protected paths | `ROUTE_POLICIES` in `model/authz` | **It enumerates the protected side.** Enumerating the public side would make a newly added screen public by default. Definitive authorization draws on the same declaration |
+| Origin validation | `judgeOrigin()` + `isStateChanging()` | Same-origin is judged on **host only** (`X-Forwarded-Host`, then `Host`). Behind a TLS-terminating proxy the scheme disagrees, so it is not compared. A declared cross origin requires an exact origin match |
+| CORS | `openCors()` | `/api/` only. It returns `Access-Control-Allow-Credentials: true`, so `*` cannot be used, and it adds `Vary: Origin`. Preflight allows the requested methods and headers as is — once the origin is allowed the counterpart is trusted, and keeping a separate list would split the declaration in two |
+| `Cache-Control` on responses that carry credentials | `finalize()` | Requests that carry the session cookie, **or responses that rewrote a cookie**. Dropping the latter would freeze in the CDN a response that hands a measurement id to an anonymous consenting visitor, and hand the same id to everyone thereafter |
 
-### 持たないもの
+### What It Does Not Hold
 
-- **確定認可。** データ源に最も近い所（`adapters/server/auth/session.ts` の `verifySession()`）が持ち、画面・Server Action・Route Handler がそれぞれ呼ぶ。前捌きは cookie を読むだけで、データ源を参照しない。Proxy が唯一の検査だと、Proxy を通らない経路（`matcher` の除外、Server Action の直接呼び出し）がそのまま穴になる
-- **要求に依らないヘッダ。** `next.config.ts` の持ち分（前述）
-- **レート制限・DDoS 緩和・WAF。** infra / edge の責務として名前付きで切ってある（[ADR 0077](../adr/0077-bff-abuse-protection-boundary.md)）。本体に残す最小の防御は、認証を要求しない Route Handler が本体を読む前に掛ける**型と大きさ**で、[`adapters/server/http/json-request.ts`](../../src/adapters/server/http/json-request.ts) の `readJsonBody()` が持つ。content-type が JSON を名乗らなければ `415`、宣言された長さが上限を超えれば読まずに `413`、宣言が無いか偽っていれば読んだ後の実測で `413`。**読む前に打ち切ることまではしない** —— 際限なく流し込まれる本体を止めるのは配信経路の役割である
-- **開発専用の口の開閉。** `route.dev.ts` / `page.dev.tsx` は `pageExtensions` で build から外れ、残った成果物では [`adapters/server/auth/development-access.ts`](../../src/adapters/server/auth/development-access.ts) の `isDevelopmentAccessAllowed()` が `APP_ENV` と宛先（`Host` / `X-Forwarded-Host` が手元の名前であること）を見る。閉じているときは `404` で、存在を知らせない（[ADR 0113](../adr/0113-development-access-surface.md)）
+- **Definitive authorization.** The place closest to the data source (`verifySession()` in `adapters/server/auth/session.ts`) owns it, and the screen, Server Action and Route Handler each call it. The pre-handler only reads the cookie and does not consult the data source. If the Proxy were the only check, the paths that bypass the Proxy (`matcher` exclusions, direct Server Action calls) would become holes as they are
+- **Request-independent headers.** Owned by `next.config.ts` (see above)
+- **Rate limiting, DDoS mitigation, WAF.** Cut out by name as infra / edge responsibilities ([ADR 0077](../adr/0077-bff-abuse-protection-boundary.md)). The minimal defense left in the app is **type and size**, applied before a Route Handler that does not require authentication reads the body, held by `readJsonBody()` in [`adapters/server/http/json-request.ts`](../../src/adapters/server/http/json-request.ts). If the content-type does not claim JSON, `415`; if the declared length exceeds the limit, `413` without reading; if there is no declaration or it lies, `413` from the measured size after reading. **It does not go as far as cutting off before reading** — stopping an endlessly streamed body is the delivery path's job
+- **Opening and closing the development-only endpoints.** `route.dev.ts` / `page.dev.tsx` are excluded from the build by `pageExtensions`, and in the remaining artifacts `isDevelopmentAccessAllowed()` in [`adapters/server/auth/development-access.ts`](../../src/adapters/server/auth/development-access.ts) looks at `APP_ENV` and the destination (that `Host` / `X-Forwarded-Host` is a local name). When closed it returns `404` and does not reveal that it exists ([ADR 0113](../adr/0113-development-access-surface.md))
 
-### `matcher` が選ぶ範囲
+### The Range `matcher` Selects
 
-`_next/static` / `_next/image` / `favicon.ico` と metadata ファイル（`icon` / `apple-icon` / `opengraph-image` / `sitemap.xml` / `robots.txt`）は前捌きを通らない。**通らない経路には `Cache-Control: private` も届かない。** 画像最適化に載るのが公開画像だけであることが、この除外の前提である。`/api` は除外していない —— Route Handler も保護の対象になり得る。
+`_next/static` / `_next/image` / `favicon.ico` and the metadata files (`icon` / `apple-icon` / `opengraph-image` / `sitemap.xml` / `robots.txt`) do not pass through the pre-handler. **`Cache-Control: private` does not reach the paths that do not pass through either.** This exclusion presumes that only public images go through image optimization. `/api` is not excluded — Route Handlers can also be subject to protection.
 
-除外の綴りは末尾まで固定する。`icon` を接頭辞で外すと、その綴りで始まる画面を後から足したとき、その画面だけが前捌きを素通りする。
+The excluded spellings are fixed to their full length. Excluding `icon` by prefix would mean that a screen added later whose path starts with that spelling would alone bypass the pre-handler.
 
-## 後ろから来た値の扱い
+## Handling Values That Arrive from Behind
 
-**この層は、上流（バックエンド・IdP・第三者）から来た値を網羅的に無害化しない。** 始末するのは**自分が作った値**だけである（[ADR 0070](../adr/0070-backend-role-separation.md) 境界値の所有）。
+**This layer does not exhaustively sanitize values that arrive from upstream (the backend, the IdP, third parties).** It cleans up only **the values it produced itself** ([ADR 0070](../adr/0070-backend-role-separation.md), which assigns ownership of boundary values).
 
-線引きの理由は、網羅しようとすると供給側の都合が表示側の構造へ染み出し、しかも完全にはならないことにある。「上流の値がこう来たら危ない」という指摘に対して表現層が答えられるのは、その値を**自分がどこへ置くか**であって、値の中身を洗うことではない。防ぎたいものは供給側か境界で閉じる。
+The reason for drawing the line is that trying to be exhaustive leaks the supplier's concerns into the structure of the presentation side, and still never becomes complete. To the challenge "this upstream value would be dangerous if it arrived like this", what the presentation layer can answer is **where it places** that value, not scrubbing the value's contents. What must be prevented is closed at the supplier or at the boundary.
 
-実装の形で言うと、次のようになる。
+In terms of implementation, it looks like this.
 
-| 場面 | やっていること | やっていないこと |
+| Situation | What is done | What is not done |
 | --- | --- | --- |
-| バックエンドの応答 | `adapters` 境界で生成 zod による**形の検証**（契約破れの検知）と、自前 view 型への詰め替え | 文字列の中身の無害化。応答に含まれる文言・パス・識別子はそのまま持ち回る |
-| ブラウザ発の span の中継 | [`adapters/server/telemetry/browser-traces.ts`](../../src/adapters/server/telemetry/browser-traces.ts) の `redactAttributes()` が**属性の名前**で伏せる。名前の表は `logging` が持ち、ログと同じ表を使う | **値の中身は見ない。** 上流や第三者が組んだ URL の中まで洗い出さない。名前で持ち回っている限り効き、そうでないものは元の設計が誤っている |
-| エラーの文言 | [`errors/redact.ts`](../../src/errors/redact.ts) の `redactMessage()` は**呼び出し元が名指しした値**（自分が持っているトークン等）だけを置き換える | バックエンド由来の例外文やスタックの走査 |
-| エラーの `details` | wire へ出して安全な識別子だけを載せる（[`docs/rules.md#data-classification`](../rules.md#data-classification)） | 入力値・理由文の伝搬 |
-| 構造化データの埋め込み | [`components/design-system/display/json-ld`](../../src/components/design-system/display/json-ld/json-ld.tsx) が JSON の `<` を `\u003c` へ逃がす | —— |
+| Backend responses | **Shape validation** with generated zod at the `adapters` boundary (detecting contract breaches), and repacking into in-house view types | Sanitizing string contents. Text, paths and identifiers in the response are carried around as is |
+| Relaying browser-originated spans | `redactAttributes()` in [`adapters/server/telemetry/browser-traces.ts`](../../src/adapters/server/telemetry/browser-traces.ts) masks by **attribute name**. The table of names is owned by `logging`, the same table used for logs | **Does not look at value contents.** It does not scrub inside URLs built by upstream or third parties. It works as long as things are carried by name; anything that is not means the original design is wrong |
+| Error messages | `redactMessage()` in [`errors/redact.ts`](../../src/errors/redact.ts) replaces only **values the caller named** (tokens it holds, etc.) | Scanning exception text or stacks from the backend |
+| Error `details` | Carries only identifiers that are safe to put on the wire ([`docs/rules.md`](../rules.md#data-classification)) | Propagating input values or reason text |
+| Embedding structured data | [`components/design-system/display/json-ld`](../../src/components/design-system/display/json-ld/json-ld.tsx) escapes JSON's `<` to `\u003c` | — |
 
-最後の行は「上流の値を無害化している」ように見えるが、そうではない。**script の本文を組み立てているのは自分**であり、逃がしているのは自分が作った直列化の形である。値の出所がバックエンドである以上その中身を前提にできない、というのは「`</script>` が入っていても自分の出力が壊れない」ことの理由であって、値を清めているのではない。
+The last row looks like "sanitizing an upstream value", but it is not. **The script body is assembled by this layer itself**, and what is escaped is the serialization shape it produced. That the value comes from the backend and its contents cannot be assumed is the reason "this layer's output does not break even if `</script>` is inside" — not a purification of the value.
 
-同じ理由で、この層が**確かめてから持ち回る**のは自分が組む値である。復帰先は `model/return-url` の `toSafeReturnUrl()` が URL パーサに解かせた結果で同一 origin の相対パスだけを通し、以降は brand 型が検証済みであることを示す。`searchParams` は `model/search-params` が「届く形」を決め、何が正しい値かは読む側のスキーマが決める。cookie は用途ごとの属性を server 境界で明示する。どれも**値を作る側**の始末である。
+For the same reason, what this layer **verifies before carrying around** is the values it builds. For the return destination, `toSafeReturnUrl()` in `model/return-url` lets the URL parser resolve it and passes only same-origin relative paths, after which a brand type shows it is verified. For `searchParams`, `model/search-params` decides "the shape that arrives", and the reading side's schema decides what a correct value is. Cookies state their per-use attributes explicitly at the server boundary. All of these are cleanup by **the side that produces the value**.
 
-**例外に見えるのがリッチテキストである。** 上流から来た HTML を、この層が sanitize してから描く。矛盾ではない —— sanitizer が持っているのは「上流の何が危ないか」の一覧（blocklist）ではなく、「**この層が描いてよいもの**」の一覧（allowlist）である。次節のとおり、それは表示側の仕様であって上流への対応ではない。
+**What looks like an exception is rich text.** This layer sanitizes HTML that came from upstream before rendering it. That is not a contradiction — what the sanitizer holds is not a list of "what upstream might send that is dangerous" (a blocklist) but a list of "**what this layer may render**" (an allowlist). As the next section shows, that is a presentation-side specification, not a response to upstream.
 
-## リッチテキストの sanitize
+## Rich-Text Sanitization
 
-### 経路
+### Path
 
-[`src/model/rich-text/`](../../src/model/rich-text/) は、未検査の HTML 文字列を「表示してよい範囲だけに絞った木」へ変換する port である。構築経路は `SanitizedRichText.from()` の 1 つに絞ってあり、この型を持つ値は sanitize を通ったことを型が保証する。
+[`src/model/rich-text/`](../../src/model/rich-text/) is a port that converts an unchecked HTML string into "a tree narrowed to only what may be displayed". There is exactly one construction path, `SanitizedRichText.from()`, and the type guarantees that any value of this type has gone through sanitization.
 
 ```text
-HTML 文字列
-  → hast-util-from-html（parse5、fragment として parse）
-  → hast-util-sanitize（RICH_TEXT_SANITIZE_SCHEMA）
-  → dropProtocolRelativeUrls()（後段）
-  → SanitizedRichText（root: hast の Root）
-  → RichTextContent が hast-util-to-jsx-runtime で React 要素へ
+HTML string
+  → hast-util-from-html (parse5, parsed as a fragment)
+  → hast-util-sanitize (RICH_TEXT_SANITIZE_SCHEMA)
+  → dropProtocolRelativeUrls() (post-step)
+  → SanitizedRichText (root: hast Root)
+  → RichTextContent turns it into React elements with hast-util-to-jsx-runtime
 ```
 
-HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetInnerHTML` を props から**型で外している**。仕様準拠の parser で木にしてから木を検査するので、文字列置換の sanitizer が持つ parser の解釈差（sanitizer とブラウザで読み方が違う）を検査の前後で持ち込まない。
+There is no path back to an HTML string, and `RichTextContent` **removes `dangerouslySetInnerHTML` from its props by type**. Because it builds a tree with a spec-compliant parser and then checks the tree, it does not bring in, before and after the check, the parser interpretation gap that string-replacing sanitizers have (the sanitizer and the browser reading it differently).
 
-### schema が言っていること
+### What the Schema Says
 
-[`rich-text.definition.ts`](../../src/model/rich-text/rich-text.definition.ts) の `RICH_TEXT_SANITIZE_SCHEMA` は、**schema の全項目を明示する**。`hast-util-sanitize` は未指定の項目を既定 schema で補完するため、明示しないと上流の既定が広がったときに通過範囲が黙って広がる。
+`RICH_TEXT_SANITIZE_SCHEMA` in [`rich-text.definition.ts`](../../src/model/rich-text/rich-text.definition.ts) **states every field of the schema explicitly**. `hast-util-sanitize` fills unspecified fields from its default schema, so without stating them, the pass-through range would widen silently when the upstream default widens.
 
-- 通すタグはブロック 9 つとインライン 6 つ。`h1` は本文の見出しが page の `h1` と競合するので通さない
-- 属性は `a` の `href` だけ。`style` も `class` も通らない —— だから「リッチテキストのために `style-src 'unsafe-inline'`」は成立しない
-- `href` のプロトコルは `http` / `https` / `mailto`。相対 URL は残る
-- `script` / `style` は**内容ごと**取り除く。それ以外の allowlist 外のタグは中身を残して展開される —— テキストの子要素がそのまま本文へ混ざるタグだけを `strip` に挙げている
-- コメントと doctype は落とす。`li` は `ul` / `ol` の中にあるときだけ残る
+- Nine block tags and six inline tags pass. `h1` does not pass, because a heading in the body would compete with the page's `h1`
+- The only attribute is `href` on `a`. Neither `style` nor `class` passes — so "`style-src 'unsafe-inline'` for rich text" does not hold
+- `href` protocols are `http` / `https` / `mailto`. Relative URLs remain
+- `script` / `style` are removed **together with their content**. Other tags outside the allowlist are unwrapped with their content kept — only the tags whose text children would otherwise mix straight into the body are listed in `strip`
+- Comments and doctypes are dropped. `li` remains only inside `ul` / `ol`
 
-`hast-util-sanitize` のプロトコル検査は `:` を含む値のスキームだけを見るため、`//host` は相対参照として素通りする。実体は閲覧中のページと同じ protocol で解決される外部ホストへの絶対 URL なので、`dropProtocolRelativeUrls()` が後段で落とす。editor 側の `isRichTextHrefAllowed()` も同じ判定を持ち、入力できるのに保存後に落ちる不整合を作らない。
+`hast-util-sanitize`'s protocol check only looks at the scheme of values containing `:`, so `//host` passes through as a relative reference. In reality it is an absolute URL to an external host resolved with the same protocol as the page being viewed, so `dropProtocolRelativeUrls()` drops it afterwards. The editor side's `isRichTextHrefAllowed()` holds the same check, so there is no inconsistency where something can be entered but is dropped after saving.
 
-### editor との対
+### Pairing with the Editor
 
-「editor が出せるタグ ⊆ sanitizer が通すタグ」を保つ。allowlist・editor の extension 集合・test は 1 組で、片方だけを変えない。`RichTextEditor` は starter kit ではなく extension を個別に入れており、その集合は allowlist から導出する。
+Keep "the tags the editor can produce ⊆ the tags the sanitizer passes". The allowlist, the editor's extension set and the tests are one set; do not change just one of them. `RichTextEditor` installs extensions individually rather than a starter kit, and that set is derived from the allowlist.
 
-### 上限は無い
+### There Is No Limit
 
-**入力サイズ・ノード数・深さの上限は実装に無い。** `SanitizedRichText.from()` は与えられた文字列をそのまま parse し、木の大きさで打ち切る段も、超えたときに fail-closed で拒む段も持たない。
+**The implementation has no limit on input size, node count or depth.** `SanitizedRichText.from()` parses the given string as is, and has neither a stage that cuts off by tree size nor a stage that rejects fail-closed when it is exceeded.
 
-これが効く範囲は入口で決まる。form から Server Action で受ける HTML は `serverActions.bodySizeLimit` が本体ごと上限を課すので、そこを超える入力は sanitizer へ届かない。バックエンドから取得して描く HTML には、その手前に上限が無い。parse5 は不正な入れ子も閉じ忘れも例外にせず正規化するので、大きさ以外の異常で落ちることは無いが、大きさに比例した時間と memory はそのまま掛かる。
+How far this matters is decided at the entry point. HTML received from a form through a Server Action is capped as part of the whole body by `serverActions.bodySizeLimit`, so input beyond that never reaches the sanitizer. HTML fetched from the backend and rendered has no limit before it. parse5 normalizes malformed nesting and unclosed tags rather than throwing, so it does not fail on anomalies other than size, but time and memory proportional to size are spent as is.
 
-### 制約
+### Constraints
 
-`SanitizedRichText` は class instance であり serializable ではない。**Client Component の props へ直接渡せない。** `root` を取り出せば渡せるが、その時点で「sanitize 済みである」ことの型保証は失われる。Client Component の内側へ置くなら、Server Component で描いた結果を `children` として渡す。
+`SanitizedRichText` is a class instance and is not serializable. **It cannot be passed directly into a Client Component's props.** Extracting `root` lets you pass it, but at that point the type guarantee that it "has been sanitized" is lost. To place it inside a Client Component, pass the result rendered in a Server Component as `children`.
 
-木ベースの sanitize は冪等なので、`RichTextContent` は表示のたびに `SanitizedRichText.from()` を通してよく、二重適用で content が壊れることは無い。
+Tree-based sanitization is idempotent, so `RichTextContent` may run `SanitizedRichText.from()` on every display, and applying it twice does not corrupt the content.
 
-## 間違えやすいところ
+## Common Pitfalls
 
-### 「CSP を敷いた」と「strict CSP を敷いた」は別である
+### "Deployed a CSP" and "deployed a strict CSP" are different
 
-`script-src` に `'unsafe-inline'` が残っている。これは Next.js 自身の inline script を許すための弱い許可で、DAST の既知欠落一覧（`.github/zap/rules.tsv` の `10055`）にも載っている。strict にする道は nonce（全 route が dynamic になる）か hash（Next.js の実験的 SRI）で、どちらも今の配信モデルを変える。「CSP がある」ことを根拠に inline script の注入を心配しなくてよい、とは言えない。
+`'unsafe-inline'` remains in `script-src`. It is a weak allowance for Next.js's own inline scripts, and it is also on DAST's known-gap list (`10055` in `.github/zap/rules.tsv`). The way to strict is either a nonce (every route becomes dynamic) or a hash (Next.js's experimental SRI), and either changes the current delivery model. "There is a CSP" is not grounds for not worrying about inline script injection.
 
-### `proxy.ts` にヘッダを足しても静的応答には載らない
+### Adding a header in `proxy.ts` does not reach static responses
 
-前捌きを通る経路にしか効かない。要求に依らないヘッダを足したくなったら `security-headers.ts` へ行く。逆に `matcher` が除外している `_next/image` は、cookie を載せた要求でも framework の `Cache-Control`（`public, max-age=...`）のまま配られる。**主体固有の画像を `next/image` に載せた瞬間、その画像は CDN で共有される。**
+It only applies to paths that pass through the pre-handler. If you want to add a request-independent header, go to `security-headers.ts`. Conversely, `_next/image`, which `matcher` excludes, is served with the framework's `Cache-Control` (`public, max-age=...`) even for requests carrying cookies. **The moment a principal-specific image is put through `next/image`, that image is shared at the CDN.**
 
-### 送信元の検証は認証ではない
+### Origin validation is not authentication
 
-`Origin` を持たない要求は same-origin として通る。ブラウザ以外の client や同一 origin の `GET` には `Origin` が無いためで、これは CSRF（**被害者のブラウザが被害者の cookie を載せて**別サイトから送る）を止める検査であって、資格情報の検証ではない。認可は `verifySession()` が別に行う。`Origin: null`（sandbox された iframe やリダイレクト越し）は文字列の `"null"` で届き、`new URL()` が拒むので untrusted になる。
+A request without `Origin` passes as same-origin. Non-browser clients and same-origin `GET` have no `Origin`; this is a check that stops CSRF (sending from another site **with the victim's browser carrying the victim's cookies**), not credential validation. Authorization is done separately by `verifySession()`. `Origin: null` (sandboxed iframes, across redirects) arrives as the string `"null"`, and `new URL()` rejects it, so it becomes untrusted.
 
-### CORS が開くのは `/api/` だけである
+### CORS opens only `/api/`
 
-宣言した別 origin から画面の経路を `fetch` しても CORS ヘッダは付かず、preflight も素通しになる。読むだけの要求は 403 にしないので、「通ったのに読めない」という見え方になる。
+`fetch`-ing a screen path from a declared cross origin gets no CORS headers, and preflight passes through too. Read-only requests are not answered with 403, so it shows up as "it went through but cannot be read".
 
-### 楽観判定を通ったことは、認可されたことではない
+### Passing the optimistic check does not mean being authorized
 
-`proxy.ts` は cookie を復号して役割を見るだけで、その役割が今も正しいかはデータ源の側でしか分からない。画面が描かれた後の Server Action は画面を経由せずに呼べるので、**入口ごとに** `verifySession()` を呼ぶ。片方だけ閉じても閉じたことにならない。
+`proxy.ts` only decrypts the cookie and looks at the role; whether that role is still correct is known only on the data-source side. A Server Action can be called after the screen has rendered without going through the screen, so call `verifySession()` **at every entry point**. Closing only one of them does not count as closed.
 
-### `allowAnonymous: true` は public ではない
+### `allowAnonymous: true` is not public
 
-匿名で送ってよい要求を public にしたくなるが、資格情報を載せうる接続口を通るなら、載せなかった回も含めて user-scoped である。「匿名でも取れるものを共有キャッシュへ」入れたいなら、**資格情報を載せない公開の接続口から取る**のが条件になる —— 契約がその operation を `security: []`（認証を要しない）と宣言していれば、公開の接続口を引く。
+It is tempting to make a request that may be sent anonymously public, but if it goes through a connection point that can carry credentials, it is user-scoped, including the occasions it did not carry them. To put "what can be obtained even anonymously into a shared cache", the condition is **to fetch from a public connection point that does not carry credentials** — if the contract declares that operation `security: []` (no authentication required), take the public connection point.
 
-### taint はコピーに効かない
+### Taint does not apply to copies
 
-`readSessionRecord()` が汚すのは記録の参照そのものである。`{ ...record }` も `record.accessToken` も汚れていない。内側へ渡してよいのは `verifySession()` の返り値だけ、という約束が主で、taint はそれを抜けたときの補助である。「taint が有効なので大丈夫」は成り立たない。
+What `readSessionRecord()` taints is the record reference itself. Neither `{ ...record }` nor `record.accessToken` is tainted. The primary guarantee is the promise that only the return value of `verifySession()` may be passed inward; taint is the aid for when that is bypassed. "Taint is on, so it is fine" does not hold.
 
-### `bearerToken` に解決済みの値を渡すと、防御が黙って外れる
+### Passing a resolved value to `bearerToken` silently drops the defense
 
-`getBearerToken` へ import した口ではなく、その場で組んだ関数や引数で持ち回った値を渡すと、cached scope の中で `cookies()` が読まれず、framework の `next-request-in-use-cache` は発火しない。エラーにならず、**主体の値が共有キャッシュへ入る**。ESLint が形を止めるが、規則を外せば止まらない。
+If you pass `getBearerToken` not an imported handle but a function built on the spot or a value carried around as an argument, `cookies()` is not read inside the cached scope and the framework's `next-request-in-use-cache` does not fire. There is no error, and **the principal's value enters the shared cache**. ESLint stops the shape, but turning the rule off stops nothing.
 
-### `NEXT_PUBLIC_` は起動時に差し替わらない
+### `NEXT_PUBLIC_` is not swapped at startup
 
-ビルド時にリテラルへ置換される。PaaS の環境変数を変えても再ビルドしなければ効かない。逆に、動的アクセス（`process.env[name]`）や分割代入は置換が効かず `undefined` になる。client 側で検証していないのは手抜きではなく、検証を通った値だけが置換されるからである。
+It is replaced with a literal at build time. Changing the PaaS environment variable has no effect without a rebuild. Conversely, dynamic access (`process.env[name]`) and destructuring defeat the replacement and yield `undefined`. Not validating on the client side is not a shortcut; only values that passed validation are substituted.
 
-### タグマネージャを有効にすると cross-origin isolation を失う
+### Enabling the tag manager loses cross-origin isolation
 
-容器 ID を入れた配備では `Cross-Origin-Embedder-Policy` が出ない。`SharedArrayBuffer` のような isolation を前提とする機能はその構成では使えない。しかもこの側の CSP は CI の実ブラウザで検査されていない。
+A deployment with a container ID does not emit `Cross-Origin-Embedder-Policy`. Features that presume isolation, such as `SharedArrayBuffer`, cannot be used in that configuration. And the CSP on that side is not checked in a real browser in CI.
 
-### `dangerouslySetInnerHTML` の例外は 2 か所ある
+### There are two exceptions for `dangerouslySetInnerHTML`
 
-`JsonLd`（JSON を script の本文として埋める）と `ChartStyle`（系列色を CSS 変数として `<style>` へ配る）で、どちらも biome の `noDangerouslySetInnerHtml` を理由つきで外している。共通点は、**中身が自分の直列化か開発者の定数**であることで、利用者入力や API 応答をそこへ渡さない。3 つ目を足すなら同じ形でなければならず、リッチテキストの描画はここに含まれない。
+`JsonLd` (embedding JSON as a script body) and `ChartStyle` (distributing series colors as CSS variables into `<style>`), both exempted from biome's `noDangerouslySetInnerHtml` with a reason. What they share is that **the content is this layer's own serialization or a developer constant**; user input and API responses are not passed there. A third one would have to take the same shape, and rich-text rendering is not among them.
 
-### 開発専用の口は `APP_ENV` 未指定で閉じる
+### The development-only endpoints close when `APP_ENV` is unspecified
 
-`isDevelopmentOnlyEndpointOpen()` は `APP_ENV` が `local` / `ci` のときだけ true で、未指定は既定へ落ちずに false になる。同梱の秘密値も同じ判定で拒まれるので、`APP_ENV` を付けずに起動すると、口が閉じるより前に起動そのものが止まる（env ファイルを選べないか、同梱の秘密値が拒まれる）。開発の入口（`pnpm dev` / `pnpm storybook`）は script が `local` を渡している。宛先（`Host`）の判定は防御線ではなく、設定を誤ったまま公開したときに普通の利用者が普通に踏む経路を止めるだけである。
+`isDevelopmentOnlyEndpointOpen()` is true only when `APP_ENV` is `local` / `ci`, and unspecified becomes false rather than falling to a default. The bundled secret values are rejected by the same check, so starting without `APP_ENV` stops startup itself before the endpoint even closes (either no env file can be selected or the bundled secret values are rejected). The development entry points (`pnpm dev` / `pnpm storybook`) have their scripts pass `local`. The destination (`Host`) check is not a line of defense; it only stops the path an ordinary user would ordinarily hit when something is published with a misconfiguration.
 
-### `SanitizedRichText` は Client Component へ渡せない
+### `SanitizedRichText` cannot be passed to a Client Component
 
-class instance は RSC の直列化を通らない。`root` を抜いて渡すと sanitize 済みの保証が型から消える。Client Component の内側に本文を置くなら、描いた結果を `children` で渡す。
+A class instance does not survive RSC serialization. Extracting `root` and passing it removes the sanitized guarantee from the type. To place body content inside a Client Component, pass the rendered result as `children`.
 
-### sanitizer に大きさの上限は無い
+### The sanitizer has no size limit
 
-前節のとおり。上限を足すなら `SanitizedRichText.from()` の入口に置き、超えたら空にするのではなく**拒む**形にする —— 黙って空にすると、本文が消えた理由が誰にも見えない。
+As in the previous section. If you add a limit, place it at the entry of `SanitizedRichText.from()`, and make it **reject** when exceeded rather than empty the content — silently emptying it leaves no one able to see why the body disappeared.
 
-## 関連する ADR
+## Related ADRs
 
-- [0111](../adr/0111-csp-security-headers.md) — CSP と同伴ヘッダの本体。seam A（静的）を既定にし、nonce は opt-in とする判断
-- [0112](../adr/0112-data-classification-cache-boundary.md) — 分類を取得の口に持たせる判断と、段ごとの関所
-- [0030](../adr/0030-environment-variable-management.md) — env の検証点、`NEXT_PUBLIC_` の境界、`server-only` + taint の 2 段構え
-- [0043](../adr/0043-middleware-policy.md) — `proxy.ts` は薄い last resort。楽観判定に限り、確定認可はデータ境界
-- [0077](../adr/0077-bff-abuse-protection-boundary.md) — レート制限 / WAF を edge へ切り、本体には型と大きさの最小防御だけを残す判断
-- [0079](../adr/0079-auth-frontend-seam.md) — 前捌きは防御線ではない。確定認可の側が持つ
-- [0113](../adr/0113-development-access-surface.md) — 開発専用の口。制御面と安全を別の軸で決める
-- [0080](../adr/0080-error-handling.md) — 秘匿情報を含むエラーの redact
-- [0131](../adr/0131-cookie-consent.md) — 第三者 script を同意ゲートの裏に置く。CSP の外部オリジンと連動
-- [0110](../adr/0110-security-operations.md) — CI 側の検査（秘密スキャン・SAST・依存監査・DAST）。ここでは再掲しない
+- [0111](../adr/0111-csp-security-headers.md) — the CSP and its accompanying headers. The decision to make seam A (static) the default and the nonce opt-in
+- [0112](../adr/0112-data-classification-cache-boundary.md) — the decision to have the fetch endpoint hold the classification, and the checkpoints at each stage
+- [0030](../adr/0030-environment-variable-management.md) — the env validation point, the `NEXT_PUBLIC_` boundary, and the two-tier `server-only` + taint arrangement
+- [0043](../adr/0043-middleware-policy.md) — `proxy.ts` is a thin last resort. Limited to optimistic checks; definitive authorization sits at the data boundary
+- [0077](../adr/0077-bff-abuse-protection-boundary.md) — the decision to cut rate limiting / WAF out to the edge and leave only the minimal type-and-size defense in the app
+- [0079](../adr/0079-auth-frontend-seam.md) — the pre-handler is not a line of defense. The definitive authorization side owns it
+- [0113](../adr/0113-development-access-surface.md) — the development-only endpoints. Control surface and safety decided on separate axes
+- [0080](../adr/0080-error-handling.md) — redacting errors that contain confidential information
+- [0131](../adr/0131-cookie-consent.md) — placing third-party scripts behind the consent gate. Tied to the CSP's external origins
+- [0110](../adr/0110-security-operations.md) — the CI-side checks (secret scanning, SAST, dependency audit, DAST). Not restated here

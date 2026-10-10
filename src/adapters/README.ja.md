@@ -441,7 +441,7 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
   **確かめられるのはそこまでです** —— 名乗った profile 名が `next.config.ts` に実在するか、実際に
   キャッシュが効くかは、このレイヤーでは分かりません（前者は build、後者はシェルの実測が持ちます）
 - **HTTP 境界を模すのは MSW です**（`vitest.setup.msw` を import したファイルだけ。
-  [docs/testing-conventions.md](../../docs/testing-conventions.md)）。`serveJson` / `serveStatus` /
+  [docs/testing-conventions.md](../../docs/testing-conventions.ja.md)）。`serveJson` / `serveStatus` /
   `serveWrite` が応答を割り当て、`watchFetch` が wrapper へ渡った `fetch` の引数を見ます。資格情報は
   `../auth/session` を、設定は `@/config/environment` を `PARSED_ENVIRONMENT` で、モジュール境界で
   差し替えます。client 側のエンドポイントは `vi.stubGlobal("fetch", ...)` で済みます

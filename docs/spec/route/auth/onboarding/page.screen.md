@@ -1,80 +1,81 @@
-# `/onboarding` 登録（画面要件）
+# `/onboarding` Registration (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-初めての利用で登録情報を作る画面。認証の器（[`layout.screen.md`](../layout.screen.md)）に載る。
-ここへ来る前に [`/login`](../login/page.screen.md) で認証が済んでいる。
+A screen that creates registration information on first use. It sits in the authentication layout shell ([`layout.screen.md`](../layout.screen.md)).
+Before arriving here, the user has completed authentication at [`/login`](../login/page.screen.md).
 
-## 見せるもの
+## What It Shows
 
-9 項目を 3 つの段に分け、一度に 1 つの段だけを見せる。
+Nine fields split into three steps, showing only one step at a time.
 
-| 段 | 項目 |
+| Step | Fields |
 | --- | --- |
-| 基本情報 | 名字・名前（横並び）・メールアドレス・電話番号 |
-| 住所 | 郵便番号（住所を検索する操作を同梱）・都道府県・市区町村・丁目番地・建物名 |
-| 確認 | 送ろうとしている値の読み返し |
+| Basic information | Family name, given name (side by side), email address, phone number |
+| Address | Postal code (with the address lookup action bundled), prefecture, city, district and street number, building name |
+| Confirmation | Reading back the values about to be sent |
 
-**分けるのは、一度に 9 項目を出す理由が無いためである。** 初めての入力では「あとどれだけで
-送れるか」が要り、それは進捗が示す。
+**They are split because there is no reason to show nine fields at once.** First-time input needs "how much more until I can send",
+which the progress indicator shows.
 
-必須・任意の印は label の前に置く。印は支援技術から隠し、必須であることは control が伝える。
+Required and optional markers are placed before the label. The markers are hidden from assistive technology, and the control conveys
+that the field is required.
 
-**メールアドレスには補足を添える。** 認証を済ませた直後にこの画面へ着くため、ここで入れた宛先で
-ログインできると読める。連絡のための宛先であって認証の identity ではないことを、欄の側に書く。
-補足を付けるのはこの項目だけで、他の項目は名前から読める。
+**The email address gets a supplementary note.** The user arrives at this screen right after completing authentication, so it could be
+read as if the address entered here can be used to log in. The field states that it is an address for contact, not the authentication
+identity. Only this field gets a note; the other fields can be read from their names.
 
-都道府県は素の select。候補が静的で件数も固定なので、検索できる client 島を持ち込む理由がない。
+Prefecture is a plain select. The options are static and fixed in number, so there is no reason to bring in a searchable client island.
 
-## 進捗
+## Progress
 
-段の並びと現在地を、入力欄より上に横に並べる。縦へ積むと段の数だけ入力欄より上が伸び、入力を
-始める前に画面を送ることになる。
+The sequence of steps and the current position are laid out horizontally above the input fields. Stacking them vertically lengthens
+the area above the input fields by the number of steps, and the user has to scroll before starting to type.
 
-**一度でも到達した段へは、進捗から直接戻れる。** 確認から 1 か所だけ直しに行く動きが最短で済む。
-まだ到達していない段は押せない。
+**Any step reached at least once can be returned to directly from the progress indicator.** Going from confirmation to fix one thing
+takes the shortest path. Steps not yet reached cannot be pressed.
 
-## 進む操作
+## The Forward Action
 
-**今の段が埋まるまで、次へは押せない。** 埋まっていない段から進めると、送る直前になって初めて
-欠けを知ることになる。
+**Next cannot be pressed until the current step is filled in.** Proceeding from an unfilled step means discovering the gap only right
+before sending.
 
-**誤りの文言は、それとは別の条件で出す。** 出すのは focus が外れた時点で、focus が当たっている
-あいだは表示を消す方向にだけ効かせる（[0062](../../../../adr/0062-form-input-validation.md)）。
-開いた直後に空欄をすべて赤くすると、まだ何もしていない人に落ち度を告げることになる。
+**Error messages are shown under a different condition.** They appear when focus leaves, and while focus is on the field they only act
+in the direction of hiding the display ([0062](../../../../adr/0062-form-input-validation.md)). Turning every empty field red right
+after opening tells someone who has done nothing yet that they are at fault.
 
-住所の段から確認へ進む操作は、行き先を名前で示す。段が 1 つ増える以上のこと —— 入力が終わり、
-送る前の読み返しに移ること —— を意味するためである。
+The action that moves from the address step to confirmation names its destination. It means more than one more step — that input is
+finished and the user is moving to reading back before sending.
 
-## 住所補完の見え方
+## How Address Autocomplete Looks
 
-補完が起きたことを読み上げる。入力欄の値が変わるだけでは、そこを見ていない利用者に届かない。
-待機中の文言は持たない（応答が速いと結果と入れ替わって戻り、文字が明滅する）。
+Announce that autocomplete happened. A change in the input field's value alone does not reach users who are not looking there. There is
+no text for the waiting state (with a fast response it is swapped back for the result, and the text flickers).
 
-**補完の機構が動いていないと判ったら、検索の操作を閉じる。** 押しても永久に何も起きない操作を
-残すと、利用者は自分の入力した郵便番号を疑って何度も試す。手入力へ促す文言は読み上げの領域が
-出す。該当が無かっただけのときは操作を残す。
+**Once it is known that the autocomplete mechanism is not working, close the lookup action.** Leaving an action that will never do
+anything makes the user doubt the postal code they entered and try again and again. The announcement region shows text prompting manual
+entry. When there was merely no match, the action stays.
 
-## 確認の段
+## Confirmation Step
 
-**入力欄を持たない。** 直すのは前の段へ戻って行う。項目名と値を対で並べ、任意入力が空のときは
-行を消さずに空であることを示す。行ごと消すと、項目が存在すること自体が伝わらず、他の項目の
-位置も動く。
+**No input fields.** Fixing is done by going back to the earlier step. Field names and values are listed in pairs, and when an optional
+field is empty, the row is not removed but shows that it is empty. Removing the row would fail to convey that the field exists at all,
+and would move the positions of the other fields.
 
-## 送信の結果
+## Submission Result
 
-成功しても失敗しても、この画面には結果を残さない。成立したときは画面が移り、失敗したときは
-理由をフォームの先頭に出す。
+Whether it succeeds or fails, no result is left on this screen. On success the screen moves; on failure the reason appears at the top
+of the form.
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook では住所を引く口が存在しないため、応答をカタログ自身が返す。引ける郵便番号は
-`150-0001`（町域が割れる）と `220-0012`（町域まで定まる）、`000-0000`（補完の機構が動いて
-いない）で、それ以外は該当なしになる。詳細は
-[feature の README](../../../../../src/features/account/README.md)。
+In Storybook there is no endpoint to look up addresses, so the catalog itself returns the responses. The postal codes that can be looked
+up are `150-0001` (the town area splits), `220-0012` (resolves down to the town area), and `000-0000` (the autocomplete mechanism is not
+working); anything else gives no match. Details are in the
+[feature's README](../../../../../src/features/account/README.md).
 
-## 関連
+## Related
 
-- 実装 `src/features/account/onboarding/`
-- 認証の側 [`/login`](../login/page.screen.md)
-- 同じ項目を扱う画面 [`/mypage/edit`](../../shop/mypage/edit/page.screen.md)
+- Implementation: `src/features/account/onboarding/`
+- The authentication side: [`/login`](../login/page.screen.md)
+- The screen handling the same fields: [`/mypage/edit`](../../shop/mypage/edit/page.screen.md)

@@ -1,45 +1,45 @@
-# `/about` このサイトについて（画面要件）
+# `/about` About This Site (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-このサイトが何のためのもので、何で出来ていて、何が動かないかを説明する画面。
+A screen that explains what this site is for, what it is built with, and what does not work.
 
-## 見せるもの
+## What It Shows
 
-| 節 | 内容 |
+| Section | Contents |
 | --- | --- |
-| （見出し） | 画面の名前と、何を説明する画面かの 1 文 |
-| （冒頭） | サンプルであることの警告 |
-| 何のためのサイトか | 公開しているコードが動く姿を確かめるためであること |
-| 何で出来ているか | サンプル除去の機能を持つこと、リポジトリ 2 つのカード |
-| 動かないもの | 購入・決済・メール・問い合わせ・配送追跡と、表示される日時・件数・金額がデモ用の値であること |
-| メンテナンスについて | 予告なく行い、お知らせ画面での通知はしないこと |
-| 利用にあたって | 利用規約への導線 |
+| (Heading) | The screen's name and one sentence on what it explains |
+| (Opening) | A warning that this is a sample |
+| What the site is for | That it exists to see the published code running |
+| What it is built with | That it has a sample-removal feature; cards for the two repositories |
+| What does not work | Purchases, payment, email, inquiries and delivery tracking, and that the dates, counts and amounts shown are demo values |
+| About maintenance | That it happens without notice, and is not announced on the notices screen |
+| Using the site | A path to the terms of use |
 
-## 書かないこと
+## What Not to Write
 
-**設計上の呼び名を出さない。** 層の分け方や責務の所在は、このサイトを触りに来た利用者の判断
-材料にならない。読みたい人はリポジトリへ行くので、フッターの導線で足りる。
+**Do not use design names.** How layers are divided and where responsibilities sit are not decision material for users who came to try
+this site. Those who want to read about it go to the repository, so the path in the footer is enough.
 
-**免責を書かない。** [`/terms`](../terms/page.screen.md) が持つ。同じ文を 2 か所に置くと、片方だけ直した状態を
-作れる。ここからは導線だけを出す。
+**Do not write a disclaimer.** [`/terms`](../terms/page.screen.md) holds it. Putting the same text in two places makes it possible to end up with only one of them
+fixed. From here, show only a path to it.
 
-## リポジトリのカード
+## Repository Cards
 
-**カード全体がリポジトリへの導線だが、link で包まない。** 包むと補足を開く操作が link の内側に
-入り、操作の中に操作が居る形になる。名前の link を疑似要素でカードいっぱいに広げ、補足の操作は
-その後ろへ置いて `relative` で重なりの上へ出す（商品カードと同じ形）。
+**The whole card leads to the repository, but it is not wrapped in a link.** Wrapping it would put the action that opens the supplementary note inside
+the link, an action inside an action. The name link is stretched over the whole card with a pseudo-element, and the supplementary action is
+placed after it and raised above the overlap with `relative` (the same shape as the product card).
 
-支援技術に見える遷移先は「カード全体の文言」ではなくリポジトリ名になる。
+The destination assistive technology sees is the repository name, not "the text of the whole card".
 
-カード内の `[リポジトリの補足]` は popover を開き、そのリポジトリの**目的**と**できること**を
-出す。dialog にしないのは、読んだあとカードへ戻る前提の内容で、画面を覆って背後の操作を止める
-ほどではないため。
+The `[リポジトリの補足]` inside the card opens a popover showing that repository's **purpose** and **what it can do**.
+It is not a dialog because the content assumes the user returns to the card after reading, and it does not warrant covering the screen and stopping
+the operations behind it.
 
-**リポジトリの宣言は 1 つの表**（[README](../../../../../src/features/site-info/README.md)）。
-フッターの導線・カード・補足の面が同じものを読む。別々に持つと片方だけ名前や URL が古いまま残る。
+**The repository declarations are one table** ([README](../../../../../src/features/site-info/README.md)).
+The footer path, the cards and the supplementary surface read the same thing. Holding them separately leaves a name or URL stale on one side only.
 
-## 関連
+## Related
 
-- 実装 `src/features/site-info/about/` — [README](../../../../../src/features/site-info/README.md)
+- Implementation `src/features/site-info/about/` — [README](../../../../../src/features/site-info/README.md)
 - [`/terms`](../terms/page.screen.md) / [`/privacy`](../privacy/page.screen.md)

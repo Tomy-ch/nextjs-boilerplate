@@ -1,76 +1,76 @@
-# `/dev/session` 開発用 session（機能要件）
+# `/dev/session` Development Session (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。使い方は
-> [`src/features/dev-session/README.md`](../../../../../src/features/dev-session/README.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md). Usage:
+> [`src/features/dev-session/README.md`](../../../../../src/features/dev-session/README.md).
 
-IdP を通さずに session を発行し、保護された画面へ入るための開発用の面。
+A development page for issuing a session without going through the IdP and entering protected screens.
 
-## 開く条件
+## When It Opens
 
-**環境と宛先の両方を見る。**
+**Both the environment and the destination host are checked.**
 
-- 環境が `local` または `ci` であること。`APP_ENV` が**明示されている**ことも要求する（未設定を
-  既定値へ落とすと、設定を忘れた実環境がこの口を開ける）
-- 宛先（`Host` / `X-Forwarded-Host`）が手元の名前であること。宛先を名乗らない要求は閉じる
+- The environment is `local` or `ci`. It also requires `APP_ENV` to be **set explicitly** (falling back to a default when unset would
+  let a real environment that forgot the setting open this endpoint)
+- The destination host (`Host` / `X-Forwarded-Host`) is a local name. A request that does not state a host is closed
 
-条件を満たさない要求に対して、**画面と認可 endpoint は見つからないと答える。** 403 にしないのは、
-存在を知らせないほうが設定を誤ったまま公開したときの被害が小さいため。
+For requests that do not meet the conditions, **the screen and the authorization endpoint answer not found.** It is not 403 because not
+revealing existence reduces the damage when something is published with the wrong settings.
 
-**発行と破棄の 2 つの送信は、閉じているとき理由の文言を返す。** どちらも描かれた画面のフォームから
-しか届かない送信で、閉じた環境でそこへ届くのは、開いていたときに描かれたフォームを持つ相手だけで
-ある。その相手には存在を隠す意味が無く、見つからないと答えても何が起きたかが伝わらない。
+**The two submissions, issue and discard, return text giving the reason when closed.** Both can only arrive from the form of a rendered
+screen, and in a closed environment the only party that can reach them is one holding a form rendered while it was open. Hiding
+existence from that party is pointless, and answering not found would not convey what happened.
 
-**宛先の判定は防御線ではない。** `Host` は要求側が名乗る値で偽れる。ここが止めるのは「設定を
-誤ったまま公開してしまったときに、普通の利用者が普通に踏む経路」であり、狙って偽る相手を止める
-のは環境の側である。
+**The host check is not a line of defense.** `Host` is a value the requester states and can be forged. What this stops is "the path
+ordinary users ordinarily take when something has been published with the wrong settings"; stopping a deliberate forger is the
+environment's job.
 
-**判定は入口ごとに置く。** 画面と Server Action は別々の入口で、Server Action は画面を経由せずに
-呼べる。片方だけ閉じても閉じたことにならない。
+**The check is placed at each entry point.** The screen and the Server Action are separate entry points, and the Server Action can be
+called without going through the screen. Closing only one of them closes nothing.
 
-## production build に入れない
+## Not included in the production build
 
-この route は**開発と CI の build にしか含まれない**。実行時の判定と二重にしているのは、
-「残っていない」ことと「開かない」ことが別の保証だからである。build から外れていれば、環境変数を
-取り違えても成果物に面そのものが存在しない。
+This route is **included only in development and CI builds**. It is doubled with the runtime check because "not left in" and "does
+not open" are different guarantees. Once it is out of the build, the page itself does not exist in the artifact even if environment
+variables are mixed up.
 
-## 発行するもの
+## What It Issues
 
-指定できるのは、誰として入るか・役割・失効までの秒数と、API へ載せるトークンの決め方である。
+What can be specified is who to enter as, the role, the seconds until expiry, and how the token sent to the API is decided.
 
-- **役割はここで直接与える。** 通常のログインでは役割をバックエンドから引くが、この口は IdP も
-  バックエンドの登録も経由せずに到達させるためのものである
-- **失効までの秒数を短くできる**のは、失効したあとの見え方を待たずに踏めるようにするため
-- **取りに行かせることもできる。** 誰として入るかと IdP の接続先を渡して開発用 IdP から
-  トークンを取り、session へ載せる。実物の API へ繋いでいる間、検証される先が無い前提の値は
-  弾かれるため、その API が受け付けるトークンをここで揃える
-- **トークンを貼らなければ、検証される先が無い前提の値を組む。** モックへ繋いでいる間はそれで
-  足りる。実物の API へ繋ぐときだけ、その API が受け付けるトークンを貼る
+- **The role is granted directly here.** Ordinary login pulls the role from the backend, but this endpoint exists to reach screens
+  without going through either the IdP or backend registration
+- **The seconds until expiry can be shortened** so that the post-expiry appearance can be reached without waiting
+- **It can also be told to go and fetch one.** Given who to enter as and the IdP's connection target, it gets a token from the
+  development IdP and puts it on the session. While connected to the real API, values that assume there is nothing to verify against
+  are rejected, so the token that API accepts is obtained here
+- **If no token is pasted, a value that assumes there is nothing to verify against is built.** That is enough while connected to the
+  mock. Only when connecting to the real API is the token that API accepts pasted in
 
-発行したら戻り先へ送る。**戻り先は同じ生成元の中だけに絞る** —— 外部の URL を受け取ると、発行
-した直後に別のサイトへ送る導線になる。
+After issuing, send the user to the return destination. **The return destination is restricted to the same origin** — accepting an
+external URL would make it a way to send the user to another site right after issuing.
 
-## 認可の開始先として開かれたとき
+## When opened as the authorization start point
 
-`AUTH_MODE=dev` のとき、認可の開始先が IdP ではなくこの面になる。そのときは要求と応答を
-対応づける値が検索条件に載って開かれ、**送信先が認可 endpoint（`/dev/session/authorize`）に変わる**。
-そこが認可コードを持って `/api/auth/callback` へ戻す。
+When `AUTH_MODE=dev`, the authorization start point becomes this page instead of the IdP. It is then opened with the value that
+correlates request and response in its query, and **the submission target changes to the authorization endpoint
+(`/dev/session/authorize`)**. That endpoint returns to `/api/auth/callback` carrying an authorization code.
 
-- 対応づける値が正しいかは判定しない。突き合わせるのは callback が復元する一時状態であり、
-  ここでも判定すると同じ判定が 2 か所に分かれる
-- 指定は封緘して渡す。`code` は利用者が編集できる位置に現れるため、平文で役割を載せると誰でも
-  管理者として戻ってこられる
-- **封緘には発行元の要求（`state`）も含める。** コードを手に入れた側が、自分で始めた別の往復で
-  それを交換できないようにする（仕組みは [`src/adapters/server/auth/README.md`](../../../../../src/adapters/server/auth/README.md)）
-- **送信の本体に上限を置く**
-- **session はここでは置かない。** 置いてしまうと、`AUTH_MODE=dev` の間だけ callback が一度も
-  踏まれず、認可の往復が壊れていても開発と CI では最後まで気づけない
-- 失敗は分類だけを URL で戻す。素の送信は状態を持ち越せず、実在の IdP の認可 endpoint も `error` の
-  分類しか戻さない。項目ごとの理由は、自分の画面へ留まる送信のほうが持つ
+- Whether the correlating value is correct is not judged. What it is matched against is the temporary state the callback restores;
+  judging it here too would split the same check into two places
+- The specification is passed sealed. `code` appears where the user can edit it, so carrying the role in plain text would let anyone
+  come back as an administrator
+- **The seal also includes the issuer's request (`state`).** This keeps whoever obtains the code from exchanging it in a different round
+  trip they started themselves (mechanism: [`src/adapters/server/auth/README.md`](../../../../../src/adapters/server/auth/README.md))
+- **Put a limit on the submission body**
+- **No session is set here.** Setting one would mean the callback is never hit while `AUTH_MODE=dev`, so even if the authorization round
+  trip were broken, development and CI would never notice
+- Failures return only the classification in the URL. A plain submission cannot carry state over, and a real IdP's authorization
+  endpoint also returns only an `error` classification. Per-field reasons are held by the submission that stays on its own screen
 
-対応づける値が載っていない（直接開かれた）ときは、その場で発行して戻り先へ送る。突き合わせる
-一時状態が無いため、callback へ返しても認証をやり直させられるだけである。
+When the correlating value is absent (opened directly), it issues on the spot and sends the user to the return destination. There is no
+temporary state to match against, so returning to the callback would only make the user authenticate again.
 
-## 捨てる
+## Discarding
 
-cookie を消すだけで、IdP へは何も伝えない。この session は IdP を通さずに作ったもので、
-終わらせる相手が居ない（通常のログアウトは IdP 側も終わらせる）。
+It only deletes the cookie and tells the IdP nothing. This session was made without going through the IdP, so there is no one to end it
+with (an ordinary logout also ends the IdP side).

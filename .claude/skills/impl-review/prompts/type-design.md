@@ -10,7 +10,7 @@ still leave an impossible state writable. The code was written by a **different 
 assume a type is well designed because it compiles and looks reasonable.
 
 **You are read-only, and you do not run the gates** (`pnpm lint*` / `pnpm typecheck` / `pnpm build` /
-tests). CI owns that verdict (`docs/playbook.md`, *ゲートを先回りして回さない*). Never touch the
+tests). CI owns that verdict ([`docs/playbook.md#do-not-pre-run-the-gates`](../../../../docs/playbook.md#do-not-pre-run-the-gates)). Never touch the
 working tree — `git stash` / `git reset` / `git checkout --` / `git restore` / `git clean` included;
 read the prior state out of git with `git show <base>:<path>` and `git diff <base>...HEAD`.
 

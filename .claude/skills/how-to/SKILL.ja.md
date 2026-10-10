@@ -104,8 +104,8 @@ grep -l "<goal keywords>" .claude/skills/*/SKILL.md # 誰が名乗っている�
 | `package.json` の scripts | アプリ側のコマンド —— dev / build / lint / typecheck / 生成 | `package.json` |
 | git hook | commit / push 時に走るもの | `.lefthook.yaml` |
 | CI | PR で走るものと、その環境 | [`.github/workflows/README.md`](../../../.github/workflows/README.md) |
-| 初回のセットアップ | 新しい clone / 新しいリポジトリに要るもの | [`docs/get-started/setup-repository.md`](../../../docs/get-started/setup-repository.md) |
-| 逆引き | 「X をやりたい」→ 置き場 | [`docs/playbook.md`](../../../docs/playbook.md) |
+| 初回のセットアップ | 新しい clone / 新しいリポジトリに要るもの | [`docs/get-started/setup-repository.md`](../../../docs/get-started/setup-repository.ja.md) |
+| 逆引き | 「X をやりたい」→ 置き場 | [`docs/playbook.md`](../../../docs/playbook.ja.md) |
 
 **アプリ側のコマンドは make ターゲットではなく `pnpm` の script である** —— `make help` には出て来ず、
 「ビルドを回したい」という目標は `package.json` で解ける。**2 つのうち片方しか見ないことが、

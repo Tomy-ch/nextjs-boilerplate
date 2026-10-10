@@ -1,152 +1,152 @@
-# 実装プレイブック
+# Implementation Playbook
 
-この文書は、実装したいことから置き場と確認手段を逆引きするための短いガイドである。設計判断は ADR、具体的な規約は [rules.md](rules.md) を正とする。
+This document is a short guide for looking up, from what you want to implement, where it goes and how to verify it. Design decisions are owned by the ADRs, and the concrete rules by [rules.md](rules.md).
 
-## 最初の決定
+## First Decisions
 
 ```mermaid
 flowchart TD
-  A[実装したいこと] --> B{外部 API / ブラウザ API に触れるか}
-  B -->|外部 API| C[adapters で取得・検証・表示モデルへ変換]
-  B -->|ブラウザ API| D[feature の client 葉、または capabilities / stores]
-  B -->|どちらでもない| E{複数 feature で再利用するか}
-  E -->|はい| F[model または components]
-  E -->|いいえ| G[features]
-  C --> H[app は driving adapter として組み立てる]
+  A[What you want to implement] --> B{Does it touch an external API / browser API?}
+  B -->|External API| C[Fetch, validate and convert to a view model in adapters]
+  B -->|Browser API| D[A client leaf of the feature, or capabilities / stores]
+  B -->|Neither| E{Reused across multiple features?}
+  E -->|Yes| F[model or components]
+  E -->|No| G[features]
+  C --> H[app assembles them as the driving adapter]
   D --> H
   F --> H
   G --> H
 ```
 
-## 逆引き
+## Reverse Lookup
 
-| したくなったら | 置き場 | 使う型・仕組み | 最初に確認すること |
+| When you want to | Where it goes | Types and mechanisms used | What to check first |
 | --- | --- | --- | --- |
-| 外部 API を呼びたい | `src/adapters/` | generated zod schema、正規化済み model | response 検証、timeout、retry、status → errors の変換を adapter で1回だけ行う。 |
-| 画面固有の UI を作りたい | `src/features/<name>/` | props、表示モデル、状態コンポーネント | loading / empty / error / success と Storybook story を先に表へ書く。 |
-| 複数 feature で UI を共有したい | `src/components/` | 意味のある props、variant | feature 固有の業務語彙が props に漏れていないか確認する。 |
-| 複数 feature で表示モデルを共有したい | `src/model/` | `type`、純粋関数 | generated API 型や transport 語彙を持ち込まない。 |
-| Server Action を追加したい | feature 内 `actions.ts`（受け口が route 側にしか置けないなら `app` の同じ段） | `ActionState<T>` | 二重送信、idempotency key、再検証、field error を決める。 |
-| client 横断 state が必要 | `src/stores/` | Zustand store | feature local state で足りないか先に確認する。 |
-| client 横断 hook が必要 | `src/capabilities/` | browser API を包む hook | 実際に使う場所があるか、SSR 安全かを確認する。 |
-| 環境値を読みたい | `src/config/` | purpose ごとの Config getter | `process.env` を直接読まず、server / client 境界を守る。 |
-| 失敗を表示したい | `src/errors/` と feature | `ErrorKind`、表示用 Meta | HTTP status を上位層へ漏らさず、adapter で正規化済みか確認する。 |
-| 記録・計測したい | `src/logging/` / `src/observability/` | structured log、OTel | 秘匿値を渡さず、trace context を引き継ぐ。 |
+| Call an external API | `src/adapters/` | generated zod schema, normalized model | Do response validation, timeout, retry, and status → errors conversion exactly once, in the adapter. |
+| Build screen-specific UI | `src/features/<name>/` | props, display model, state components | Write loading / empty / error / success and the Storybook stories into the table first. |
+| Share UI across features | `src/components/` | meaningful props, variants | Check that no feature-specific business vocabulary leaks into the props. |
+| Share a display model across features | `src/model/` | `type`, pure functions | Do not bring in generated API types or transport vocabulary. |
+| Add a Server Action | `actions.ts` in the feature (the same level in `app` if the receiving endpoint can only live on the route side) | `ActionState<T>` | Decide double submission, idempotency key, revalidation and field errors. |
+| Need cross-cutting client state | `src/stores/` | Zustand store | First check whether feature-local state is enough. |
+| Need a cross-cutting client hook | `src/capabilities/` | a hook wrapping a browser API | Check that there is a real place that uses it, and that it is SSR-safe. |
+| Read an environment value | `src/config/` | per-purpose Config getter | Do not read `process.env` directly; keep the server / client boundary. |
+| Display a failure | `src/errors/` and the feature | `ErrorKind`, display Meta | Do not leak HTTP status to upper layers; check that the adapter has already normalized it. |
+| Record or measure | `src/logging/` / `src/observability/` | structured log, OTel | Do not pass secret values; propagate the trace context. |
 
-## 実物で読む
+## Read it in real code
 
-逆引きで置き場が決まったら、同じ形をしている実物を 1 つ開いて写すのが最短である。
+Once the reverse lookup has decided where something goes, the shortest path is to open one real example of the same shape and copy it.
 
 <!-- sample:begin -->
-**この repo には 19 画面ぶんのサンプル実装が入っている。**そのうち一覧を出す画面（`/products`）が
-層をひととおり通る。
+**This repo contains sample implementations for 19 screens.** Of them, the screen that shows a list (`/products`)
+goes through every layer.
 
-| 層 | 実物 | そこが持っているもの |
+| Layer | Real code | What it holds |
 | --- | --- | --- |
-| `app` | [`(shop)/products/page.tsx`](<../src/app/(shop)/products/page.tsx>) | metadata・待機の境界・feature の呼び出しだけ。判断を持たない |
-| `features` | [`products/list/page-content.tsx`](../src/features/products/list/page-content.tsx) | 条件の解釈と組み立て。取り直す範囲の区切り |
-| `features` | [`products/list/view.tsx`](../src/features/products/list/view.tsx) | 表示。取得を持たないので story で全状態を出せる |
-| `adapters` | [`server/api/products.ts`](../src/adapters/server/api/products.ts) | 取得・検証・表示モデルへの変換。生成型はここから出ない |
-| `app`（BFF） | [`api/products/route.ts`](../src/app/api/products/route.ts) | client からの続きの取得を同一オリジンで受ける口 |
-| `model` | [`product/product.ts`](../src/model/product/product.ts) | feature をまたぐ表示モデル |
-| `features`（変更） | [`cart/actions.ts`](../src/features/cart/actions.ts) | `<form action>` から呼ぶ Server Action。`ActionState<T>` を返す |
+| `app` | [`(shop)/products/page.tsx`](<../src/app/(shop)/products/page.tsx>) | Only metadata, the loading boundary and the call into the feature. It holds no decisions |
+| `features` | [`products/list/page-content.tsx`](../src/features/products/list/page-content.tsx) | Interpreting and assembling conditions. Delimiting the refetch scope |
+| `features` | [`products/list/view.tsx`](../src/features/products/list/view.tsx) | Display. It has no fetching, so stories can show every state |
+| `adapters` | [`server/api/products.ts`](../src/adapters/server/api/products.ts) | Fetching, validation, conversion to the display model. Generated types do not leave here |
+| `app` (BFF) | [`api/products/route.ts`](../src/app/api/products/route.ts) | The endpoint that receives continuation fetches from the client on the same origin |
+| `model` | [`product/product.ts`](../src/model/product/product.ts) | The display model shared across features |
+| `features` (mutation) | [`cart/actions.ts`](../src/features/cart/actions.ts) | A Server Action called from `<form action>`. Returns `ActionState<T>` |
 
-その画面が何を約束しているかは
-[`spec/route/shop/products/`](spec/route/shop/products/page.function.md)、置き場と線引きの理由は
-[`features/products/README.md`](../src/features/products/README.md) が持つ。
+What that screen promises is held by
+[`spec/route/shop/products/`](spec/route/shop/products/page.function.md), and the reasons for its placement and boundaries by
+[`features/products/README.md`](../src/features/products/README.md).
 <!-- sample:end -->
 
 <!-- sample:replace-begin -->
-**層ごとの README も同じ役割を持つ。**入口は
-[`src/features/README.md`](../src/features/README.md) で、そこから各カーネルの README へ辿れる。
-サンプルを捨てた後に残るのはこちらである。
+**The per-layer READMEs play the same role.** The entry point is
+[`src/features/README.md`](../src/features/README.md), and from there you can follow each kernel's README.
+These are what remain after the sample is discarded.
 <!-- sample:replace-with -->
-<!-- = **同じ形の実物がまだ無いなら、層ごとの README が同じ役割を持つ。**入口は -->
-<!-- = [`src/features/README.md`](../src/features/README.md) で、そこから各カーネルの README へ辿れる。 -->
+<!-- = **If there is no real example of the same shape yet, the per-layer READMEs play the same role.** The entry point is -->
+<!-- = [`src/features/README.md`](../src/features/README.md), and from there you can follow each kernel's README. -->
 <!-- sample:replace-end -->
 
-## 画面を作るときの順序
+## Order of Work When Building a Screen
 
-**見た目が決まってからテストを書く。** 逆にすると見た目が動くたびにテストを書き直すことになり、
-書き直したテストは「通ること」だけを目的に緩む。
+**Write tests after the look is settled.** The other way round, the tests have to be rewritten every time the look moves,
+and rewritten tests loosen toward the sole aim of "passing".
 
-| # | 工程 | そこで決まるもの |
+| # | Step | What it settles |
 | --- | --- | --- |
-| 1 | ディレクション | 何を出すか。[feature README テンプレート](templates/feature-readme.md) の Route と契約・状態表・依存カーネルを埋める |
-| 2 | story | loading / empty / error / success の 4 状態。取得を持たない `view` に切ると 4 状態すべてを story から出せる |
-| 3 | レビュー | 見た目の確定。**ここを通るまでテストを書かない** |
-| 4 | 分離 | 確定した見た目の層への割り付け。基準は書き写さず、[逆引き](#逆引き)と[参照パス](#工程-4分離で読むもの)で持つ |
-| 5 | 仕様書 | [`spec/`](spec/README.md) の機能要件と画面要件。確定した約束を書くので、ここが最初ではない |
-| 6 | テスト | 確定した形に対する検証 |
+| 1 | Direction | What to show. Fill in Routes and Contracts, the state table and Kernel Dependencies of the [feature README template](templates/feature-readme.md) |
+| 2 | Story | The four states loading / empty / error / success. Splitting off a `view` that has no fetching lets stories show all four states |
+| 3 | Review | Settling the look. **Do not write tests until this passes** |
+| 4 | Separation | Assigning the settled look to layers. The criteria are not copied out; they are held by [Reverse Lookup](#reverse-lookup) and the [reference paths](#what-to-read-at-step-4-separation) |
+| 5 | Specification | The functional and screen requirements in [`spec/`](spec/README.md). It records promises that are settled, so it does not come first |
+| 6 | Tests | Verification against the settled shape |
 
-この順序を通すあいだ、次が常に効いている。
+While going through this order, the following always apply.
 
-- **story は主題で数え、大まかなパターンを網羅する。**段（PC / タブレット / スマホ）は 1 主題と
-  数える。主題が 15 を超えるときだけ、省いてよいかを利用者に問う。
-- **目視で「良い」と言う前に機械で測る。**横あふれ・固定要素・a11y 違反は目では気づけない。
-- **確認を求めるときは実物を開ける状態にして URL を渡す。**文章と screenshot だけで見た目の判断を
-  求めない。段をまたいだ確認ができない。
-- **立てたものは PR を出す時点で閉じる。**Storybook と dev サーバは作業中だけ要るもので、
-  残すとポートを占有したまま次の作業とぶつかる。
+- **Count stories by subject and cover the broad patterns.** The tiers (PC / tablet / smartphone) count as one
+  subject. Only when there are more than 15 subjects, ask the user whether some may be omitted.
+- **Measure with a machine before saying "looks good" by eye.** Horizontal overflow, fixed elements and a11y violations cannot be noticed by eye.
+- **When asking for confirmation, make the real thing openable and hand over a URL.** Do not ask for a judgment on the look from
+  text and screenshots alone. Confirmation across tiers is impossible that way.
+- **Shut down what you started by the time you open the PR.** Storybook and the dev server are needed only while working;
+  left running, they hold ports and collide with the next task.
 
-**5 が終わるまで push しない。** 途中まででも CI は回るが、約束が書かれていない画面をレビューへ
-出すと、読む側が実装から約束を推定することになる。
+**Do not push until step 5 is done.** CI runs on partial work too, but sending a screen whose promises are not written to review
+makes the reader infer the promises from the implementation.
 
-**カーネルはこの順序の対象外である。** `components` / `adapters` / `model` / `stores` /
-`capabilities` は見た目が先に決まらないため、実装とテストを並べて進めてよい。
+**Kernels are outside this order.** `components` / `adapters` / `model` / `stores` /
+`capabilities` do not have their look settled first, so implementation and tests may proceed side by side.
 
-### 工程 4（分離）で読むもの
+### What to Read at Step 4 (Separation)
 
-**基準はここに無い。**書き写した時点で古い版が二重に残るので、この表が持つのは**どこを開くか**
-だけである。右の列は、その ADR のどの中身を当てるかを要旨で示す —— 分離に着手する前に、ADR を実際に開いてその中身へ当てる。
+**The criteria are not here.** Copying them out leaves an old version duplicated, so what this table holds is **only where to open**.
+The right column summarizes which content of that ADR to apply — before starting the separation, actually open the ADR and apply that content.
 
-| 何を決めるか | 参照先と、そこから持ってくるもの |
+| What is decided | Where to look, and what to take from it |
 | --- | --- |
-| **分ける / 分けないの判定（主）** | [0021](adr/0021-frontend-responsibility.md) —— feature の内側で分けるのは、変わる理由が 2 つある・技術的に境界が強制される・状態の寿命と持ち主が違う・2 つ目の参照が実際に出た・React を外して検証できる、のどれかに当たるときだけ |
-| 別名で立て直さない | [0021](adr/0021-frontend-responsibility.md) —— SSOT / YAGNI / SOLID のような標語を規則として別立てせず、既に規定している側へ戻る |
-| **粒度で切る分類を採らない** | [0020](adr/0020-adopted-architecture.md) —— Atomic Design のように粒度で UI を分類しない。粒度は責務を表さない |
-| 採らない分割モデル | [0040](adr/0040-routing-rendering-strategy.md) —— Islands / render-as-you-fetch を別の語彙として持ち込まず、RSC の分割へ戻る |
-| server（取得・編成）/ client（相互作用）の線 | [0040](adr/0040-routing-rendering-strategy.md) —— `"use client"` はクライアント機能を実際に使う葉にだけ付け、`page.tsx` / `layout.tsx` は Server Component のまま保つ |
-| 待つ単位・失敗の単位 | [0040](adr/0040-routing-rendering-strategy.md) —— `Suspense` の境界は待つものの単位で置き、外枠が既に await したものを待たない / [0080](adr/0080-error-handling.md) —— `error.tsx` は失われて困る範囲の外側に置き、部分的な失敗は境界ではなく表示で受ける |
-| **重さを持ち込まない分け方** | [0101](adr/0101-performance-budget.md) —— 値を 1 つ取るためにスキーマ一式を引き込まない（綴りと数だけの module を分ける）、初期表示に要らない重い部品は `next/dynamic` で外す |
-| 部品が持つ状態と、外から渡すもの | [0053](adr/0053-ui-component-interaction-seam.md) —— 見た目と操作の連続性のためだけの状態は部品が持ち、データ・可否・押した結果は外から渡す |
-| 部品の粒度 | [0053](adr/0053-ui-component-interaction-seam.md) —— 1 つの要素が 2 つの操作を兼ねるなら 2 つの部品にする。粒度は role で決まる |
-| 一度に見せる量 / 構造の差し替え | [0053](adr/0053-ui-component-interaction-seam.md) —— その場の判断に要るものだけを出して残りは次の段へ送る。組み替えは props の分岐でなく `children` / `asChild` で開け、compound は子が単独で意味を持たないときだけ |
-| variant の使いどころ / headless に分ける条件 | [0052](adr/0052-ui-component-policy.md) —— variant は同時に成り立たない見た目にだけ使う。振る舞いを hook / headless へ出すのは、別の見た目で同じ振る舞いが実際に要るときだけ |
-| 状態をどこまで上げるか | [0060](adr/0060-state-management.md) —— 状態は必要な最小の共通祖先に置き、上げる・下げる理由は寿命で決める（再描画の推測では決めない） |
-| 状態遷移を書く手段の使い分け | [0060](adr/0060-state-management.md) —— `useState` / `useReducer`・判別可能 union・Zustand・XState を目的で割り当て、同じ目的に複数の手段を許さない |
-| 型で表すもの / 表さないもの | [0029](adr/0029-type-design-discipline.md) —— 同時に立ち得ない状態は真偽値の組でなく判別可能 union で表す。値の型は注釈で広げず `satisfies` で確かめる |
-| 帯で分けるか、器の幅で分けるか | [0051](adr/0051-styling-system.md) —— 画面の骨格は帯（viewport）で、部品の中身は器の幅（container query）で分ける |
-| 物理配置 | [0027](adr/0027-directory-structure.md) —— カーネルはフラット共置、`features/<name>/` は画面と性質の 2 軸だけで掘る |
-| 共有モジュールの粒度 | [0027](adr/0027-directory-structure.md) —— 判定を持つ module は per-file、UI 部品は per-folder。feature を跨ぐ共有は昇格で受け、汎用フォルダを作らない |
-| **やってはいけない分け方** | [0090](adr/0090-testing-strategy.md) —— テストは実装の隣に 1 対 1 で置き、1 つの export に最上位 `describe` を 1 つだけ対応させる。分けた単位がそのままテストの単位になる |
+| **Whether to split (primary)** | [0021](adr/0021-frontend-responsibility.md) — split inside a feature only when one of these holds: there are two reasons to change, the boundary is technically enforced, the lifetime and owner of state differ, a second reference has actually appeared, or it can be verified with React removed |
+| Do not rebuild under another name | [0021](adr/0021-frontend-responsibility.md) — do not set up slogans such as SSOT / YAGNI / SOLID as separate rules; go back to whatever already prescribes it |
+| **Do not adopt classification by granularity** | [0020](adr/0020-adopted-architecture.md) — do not classify UI by granularity as Atomic Design does. Granularity does not express responsibility |
+| Splitting models not adopted | [0040](adr/0040-routing-rendering-strategy.md) — do not bring in Islands / render-as-you-fetch as separate vocabulary; go back to RSC's splitting |
+| The server (fetching, composition) / client (interaction) line | [0040](adr/0040-routing-rendering-strategy.md) — put `"use client"` only on leaves that actually use client features, and keep `page.tsx` / `layout.tsx` as Server Components |
+| Unit of waiting, unit of failure | [0040](adr/0040-routing-rendering-strategy.md) — place `Suspense` boundaries per unit of what is awaited, and do not await what the outer frame has already awaited / [0080](adr/0080-error-handling.md) — place `error.tsx` outside the range you cannot afford to lose, and receive partial failures in the display rather than at a boundary |
+| **Splitting that does not bring in weight** | [0101](adr/0101-performance-budget.md) — do not pull in a whole schema to obtain one value (split out a module of only spellings and numbers), and move heavy components not needed for initial display out with `next/dynamic` |
+| State a component holds, and what is passed from outside | [0053](adr/0053-ui-component-interaction-seam.md) — the component holds state that exists only for continuity of look and interaction; data, availability and the result of a press are passed from outside |
+| Component granularity | [0053](adr/0053-ui-component-interaction-seam.md) — if one element serves two interactions, make it two components. Granularity is decided by role |
+| How much to show at once / swapping structure | [0053](adr/0053-ui-component-interaction-seam.md) — show only what the judgment at hand needs and send the rest to the next step. Open recomposition through `children` / `asChild` rather than props branches; use compound components only when the children have no meaning alone |
+| Where variants apply / when to split into headless | [0052](adr/0052-ui-component-policy.md) — use variants only for looks that cannot hold at the same time. Move behavior out to a hook / headless only when the same behavior is actually needed with a different look |
+| How far to lift state | [0060](adr/0060-state-management.md) — place state at the smallest common ancestor that needs it, and decide lifting or lowering by lifetime (not by guesses about re-rendering) |
+| Choosing the means of writing state transitions | [0060](adr/0060-state-management.md) — assign `useState` / `useReducer`, discriminated unions, Zustand and XState by purpose, and do not allow several means for the same purpose |
+| What types express / do not express | [0029](adr/0029-type-design-discipline.md) — express states that cannot hold at the same time with a discriminated union, not a set of booleans. Do not widen a value's type with an annotation; check it with `satisfies` |
+| Split by band, or by container width | [0051](adr/0051-styling-system.md) — split the screen skeleton by band (viewport), and a component's content by container width (container query) |
+| Physical placement | [0027](adr/0027-directory-structure.md) — kernels are flat and co-located; `features/<name>/` is dug only along two axes, screen and nature |
+| Granularity of shared modules | [0027](adr/0027-directory-structure.md) — modules that hold a judgment are per-file, UI components per-folder. Sharing across features is received by promotion, without creating generic folders |
+| **Splits you must not make** | [0090](adr/0090-testing-strategy.md) — place tests next to the implementation one-to-one, and map exactly one top-level `describe` to each export. The unit you split into becomes the unit of testing as is |
 
-**棄却側（0020 の採用しないパターン / 0040 の採らない分割モデル）を必ず含める。**同じ発想を
-思いつくたびに一から議論し直さないためである。
+**Always include the rejected side (0020's patterns not adopted / 0040's splitting models not adopted).** This is so that
+the same idea is not argued from scratch every time someone thinks of it.
 
-**分離をテストの後へ回さない。** 1 対象 1 テストで付いた後に分けると、変更範囲がテストごと膨らむ。
+**Do not push separation past the tests.** Splitting after tests have attached one per target makes the change scope swell along with the tests.
 
-## 着手前・完了前の確認
+## Checks Before Starting and Before Finishing
 
-着手前:
+Before starting:
 
-- [ ] Config、error、adapter の既存公開面を確認した
-- [ ] 各カーネル README と ESLint boundaries に反しない置き場を選んだ
+- [ ] Checked the existing public surface of Config, error and adapter
+- [ ] Chose a location that violates neither each kernel's README nor ESLint boundaries
 
-完了前:
+Before finishing:
 
-- [ ] 4 状態の story が feature README の状態表と対応している
-- [ ] feature README と [rules.md](rules.md) の該当規約を更新した
-- [ ] commit / push して、hook と CI の判定を読んだ
+- [ ] The four-state stories correspond to the state table in the feature README
+- [ ] Updated the feature README and the relevant rules in [rules.md](rules.md)
+- [ ] Committed / pushed, and read the verdict from the hook and CI
 
-### ゲートを先回りして回さない
+### Do not pre-run the gates
 
-**判定を持つのは hook と CI である**（[0151](adr/0151-git-hooks.md)）。同じ検査を手元でもう一度
-掛けても結果はより正しくならず、負荷の高い機械では二重に走らせたことそのものが、変更と無関係な
-失敗の原因になる。
+**The hook and CI hold the verdict** ([0151](adr/0151-git-hooks.md)). Running the same check again locally
+does not make the result more correct, and on a heavily loaded machine running it twice is itself a cause of failures unrelated
+to the change.
 
-いまどのゲートが手元で走るかは `make load-status` が出す。機械が混んでいれば重いゲートは CI へ
-委ねられる —— その判断は実測に基づくので、`--no-verify` で先回りしない。
+`make load-status` prints which gates run locally right now. When the machine is busy, the heavy gates are delegated to CI
+— that decision is based on measurement, so do not pre-empt it with `--no-verify`.
 
-いま書き換えた 1 ファイルだけを回すのは構わない。`pnpm exec vitest run <対象>` のように対象を
-絞る。`vitest.config.ts` には並列度を書かない。既定を書き換えると CI と手元で挙動が割れる。
+Running just the one file you have just rewritten is fine. Narrow the target, as in `pnpm exec vitest run <target>`.
+Do not write the parallelism into `vitest.config.ts`. Rewriting the default makes behavior diverge between CI and local.

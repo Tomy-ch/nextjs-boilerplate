@@ -1,61 +1,61 @@
-# `/mypage/edit` プロフィール編集（機能要件）
+# `/mypage/edit` Edit Profile (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 取得（CollectAll）
+## Fetching (CollectAll)
 
-「自分の情報」と「都道府県マスタ」を RSC 内の `Promise.all` で並置合成する。
+"The user's own information" and "the prefecture master" are composed side by side with `Promise.all` within the RSC.
 
 ```text
 GET /v1/users/me    ┐
-                    ├─ 並置するだけ（ドメインの計算を挟まない）
+                    ├─ only placed side by side (no domain computation in between)
 GET /v1/prefectures ┘
 ```
 
-**合成をバックエンドへ寄せない。** 片方の結果がもう片方の取得条件にならず、計算も要らないため、
-フロント側で並べれば足りる。寄せると画面の都合で契約が 1 本増える
-（並べるだけの合成をフロントに置く基準は [screens.md](../../../../screens.md) の合成パターンの使い分け）。
+**The composition is not moved to the backend.** Neither result is a fetch condition for the other, and no computation is needed,
+so lining them up on the frontend is enough. Moving it would add one contract for the screen's convenience
+(the criterion for placing a line-them-up composition on the frontend is [screens.md, "Choosing a Composition Pattern (Implementation Guidance)"](../../../../screens.md#choosing-a-composition-pattern-implementation-guidance)).
 
-都道府県は契約が全 47 件を固定で返す静的な候補である。
+The prefectures are static options for which the contract always returns all 47.
 
-## 検証
+## Validation
 
-client と server の両方で同じ表示検証スキーマ（`model/user/profile-schema.ts`、手書き）を通す。
-client 側は即時に返すためのもので、**通ったことは保証にならない**。契約に照らした検証は
-`adapters` の境界が生成スキーマで別に行う。
+The same display validation schema (`model/user/profile-schema.ts`, hand-written) is applied on both the client and the server.
+The client side is for immediate feedback, and **passing it is no guarantee**. Validation against the contract is done separately by
+the `adapters` boundary with the generated schema.
 
-必須・任意は**検証スキーマから導く**（`isRequiredProfileField()`）。列挙すると、規則を緩めたのに
-画面が必須のままという状態を作れる。任意なのは建物名だけ。
+Required / optional is **derived from the validation schema** (`isRequiredProfileField()`). Enumerating it would allow a state where the rule was relaxed but
+the screen still marks the field required. Only the building name is optional.
 
-## 住所補完
+## Address Autocomplete
 
-郵便番号から focus が外れた時点と、`[住所を検索]` を押した時点に走る。
+It runs when focus leaves the postal code and when `[住所を検索]` ("Search address") is pressed.
 
 ```text
-入力欄 → /api/addresses（Route Handler）→ adapters/server → GET /v1/addresses
+Input field → /api/addresses (Route Handler) → adapters/server → GET /v1/addresses
 ```
 
-- **候補が割れた項目は埋めない。** 1 つの郵便番号が複数の町域を指すことがあり、先頭を無条件に
-  採ると利用者が選んでいない住所が黙って入る
-- **町域を入れるのは丁目・番地が空のときだけ。** 番地は補完に含まれないので、上書きすると
-  利用者が書いた番地が消える
-- **引けなくても先へ進める。** 契約は外部 lookup の障害を `503` ではなく空の候補で返すため、
-  画面は「見つからなかった」と同じ扱いで手入力を続けさせる
-- **同じ郵便番号は 2 度引かない。** 値を変えずに項目を通り過ぎただけで要求が出る。ただし
-  **操作で呼ばれたときは引き直す** —— 押した操作が何も起こさないと壊れていると読まれる
+- **Fields whose candidates split are not filled.** One postal code can point to several town areas, and taking the first unconditionally
+  would silently fill in an address the user did not choose
+- **The town area is filled only when the block / street number is empty.** The street number is not part of the completion, so overwriting would
+  erase the street number the user wrote
+- **It can proceed even when the lookup finds nothing.** The contract returns an external lookup failure as empty candidates rather than `503`, so
+  the screen treats it the same as "not found" and lets the user continue entering by hand
+- **The same postal code is not looked up twice.** Merely passing through the field without changing the value would issue a request. However,
+  **when called by an operation, it looks up again** — an operation that does nothing when pressed is read as broken
 
-## 送信
+## Submission
 
-`<form action>` + `useActionState` + `useFormStatus`（[0061](../../../../../adr/0061-form-mutation-ux.md)）。
-入力中の検証は送信機構を置き換えない。JavaScript が動かない環境でも form はそのまま送信され、
-server 側が同じスキーマで検証する。
+`<form action>` + `useActionState` + `useFormStatus` ([0061](../../../../../adr/0061-form-mutation-ux.md)).
+Validation during input does not replace the submission mechanism. Even where JavaScript does not run, the form submits as is, and
+the server side validates with the same schema.
 
-**更新の対象を指す識別子を画面へ渡さない。** `adapters` の中で解決する。フォームの hidden に
-載せると、ブラウザに置く理由の無い値が出る。
+**The identifier of the update target is not passed to the screen.** It is resolved inside `adapters`. Putting it in a hidden form field
+would expose a value that has no reason to be in the browser.
 
-成功したら、マイページ側が次に開いたときに新しい内容が出るよう Server Action が再検証を要求する。
+On success, the Server Action requests revalidation so that the new content appears the next time my page is opened.
 
-## 認可
+## Authorization
 
-マイページと同じ（[`../page.function.md`](../page.function.md) の「認可」）。未認証の主体はログインへ、
-登録していない主体は登録（`/onboarding`）へ送り、どちらもこの画面へ戻る指定を伴う。
+Same as my page ([`../page.function.md`](../page.function.md#authorization)). An unauthenticated actor is sent to login, and
+an unregistered actor to registration (`/onboarding`), both with an instruction to return to this screen.

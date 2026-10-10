@@ -5,7 +5,7 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
  *
  * @remarks
  * 分類と状態は契約と同じく並びで載せます。**同じキーを繰り返す形**で、区切り文字で連結しません。
- * 連結しない理由も複数を選ばせる理由も `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」。
+ * 連結しない理由も複数を選ばせる理由も `docs/spec/route/admin/products/page.function.md#the-url-holds-the-search-conditions`。
  */
 export const FILTER_KEY: Readonly<{
   KEYWORD: "keyword";
@@ -25,7 +25,7 @@ export const CURSOR_KEY = "after";
  *
  * @remarks
  * cursor は「次の位置」しか指さないため、戻る先はどこにも書かれていません。覚える場所を URL に
- * する理由は `docs/spec/route/admin/products/page.function.md`「ページ送り」。
+ * する理由は `docs/spec/route/admin/products/page.function.md#pagination`。
  */
 export const TRAIL_KEY = "trail";
 

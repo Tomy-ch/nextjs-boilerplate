@@ -1,6 +1,6 @@
 ---
 name: interpretation-audit
-description: Re-check this repository's decisions against the external sources they were derived from, and refresh the ledger at docs/reference/upstream-interpretations.md. Fire when an upstream moves (a major dependency bump, a spec revision, a framework release), when an ADR that cites an external source is revised, or when the user asks 「原典と食い違っていないか」「standards conformance を確かめて」「upstream に追随できているか」. Produces a three-valued verdict per pairing — 差異なし / 差異あり / 逸脱宣言あり — and records the premise the verdict rested on so a human can refute it. Do NOT fire for reviewing a change (/impl-review), for README-vs-code drift (/back-prop), for dependency version policy (/tools-upgrade), or to decide which side should move — this skill never adjudicates.
+description: Re-check this repository's decisions against the external sources they were derived from, and refresh the ledger at docs/reference/upstream-interpretations.md. Fire when an upstream moves (a major dependency bump, a spec revision, a framework release), when an ADR that cites an external source is revised, or when the user asks 「原典と食い違っていないか」「standards conformance を確かめて」「upstream に追随できているか」. Produces a three-valued verdict per pairing — No difference / Undeclared difference / Declared deviation — and records the premise the verdict rested on so a human can refute it. Do NOT fire for reviewing a change (/impl-review), for README-vs-code drift (/back-prop), for dependency version policy (/tools-upgrade), or to decide which side should move — this skill never adjudicates.
 usage-class: lifecycle
 ---
 
@@ -62,7 +62,7 @@ so it has to come from something you actually opened.
 3. **The ledger row**, including its existing premise. A premise that no longer holds is itself the
    finding — the verdict may not have changed while the reason for it evaporated.
 
-**When you cannot reach the source, the verdict is not 差異なし.** Report the row as unread, say what
+**When you cannot reach the source, the verdict is not No difference.** Report the row as unread, say what
 you tried, and leave the previous verdict with its date. An unread source is not an agreeing one
 ([0157](../../../docs/adr/0157-inspection-declaration-discipline.md)).
 
@@ -70,15 +70,18 @@ you tried, and leave the previous verdict with its date. An unread source is not
 
 | Verdict | When |
 | --- | --- |
-| **差異なし** | The source, as it reads now, says what our decision assumed |
-| **差異あり** | They disagree, **and nothing of ours says so** |
-| **逸脱宣言あり** | They disagree, **and either a decision or the enforcement point states why we depart** |
+| **No difference** | The source, as it reads now, says what our decision assumed |
+| **Undeclared difference** | They disagree, **and nothing of ours says so** |
+| **Declared deviation** | They disagree, **and either a decision or the enforcement point states why we depart** |
+
+These three strings are the ledger's vocabulary, written exactly as above in the English canonical —
+the gate (`scripts/interpretations.gate.test.ts`) accepts no other wording.
 
 **The split between the last two is the whole point of the ledger.** Departing from a standard is
 not a defect — ADR [0010](../../../docs/adr/0010-standards-and-non-lockin.md) exists precisely
 because conformance is a judgment, not an obligation. The defect is departing without anyone knowing.
 
-So when you land on 差異あり, check once more whether the declaration exists somewhere you did not
+So when you land on Undeclared difference, check once more whether the declaration exists somewhere you did not
 look — the configuration file's comment, a neighbouring ADR, `docs/rules.md`.
 
 **The declaration belongs where a reader meets the constraint, and that is often not an ADR.** When
@@ -120,7 +123,10 @@ and nothing else. Specifically:
 - Rows whose source you could not reach keep their previous verdict **and their previous date**.
 - The ledger is the English canonical; its Japanese mirror `upstream-interpretations.ja.md` follows
   it ([0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model). Chain
-  `canonicalize-doc` to sync the mirror in the same change, rather than editing it by hand.
+  `canonicalize-doc` to sync the mirror in the same change, rather than editing it by hand. This
+  skill writes the English verdicts only; the mirror carries their Japanese renderings
+  (差異なし / 差異あり / 逸脱宣言あり), and putting them there is the sync's job. The gate checks
+  that the mirror keeps the same number of rows as the canonical.
 
 Then run the gate over the shape:
 
@@ -133,23 +139,23 @@ pnpm exec vitest run --config vitest.scripts.config.ts scripts/interpretations.g
 ```text
 ## 原典との突合（<N> 対）
 
-差異なし: <n> / 逸脱宣言あり: <n> / 差異あり: <n>
+No difference: <n> / Declared deviation: <n> / Undeclared difference: <n>
 確かめられなかった対: <n>（<原典> —— <何が届かなかったか>）
 
-### 差異あり（宣言の無い食い違い）
+### Undeclared difference（宣言の無い食い違い）
 - <原典> ↔ <こちらの決定>
   - 原典: <前提。逐語または位置>
   - こちら: <該当する記述>
   - **どちらを動かすかは決めない。** 選べるのは 3 つ —— 原典へ合わせる / 逸脱を宣言する / 対そのものを外す
 
-### 逸脱宣言あり（宣言が在る食い違い）
+### Declared deviation（宣言が在る食い違い）
 - <原典> ↔ <こちらの決定> —— 宣言の場所: <path>
 
 ### 未判定として残るもの
 - <原典を読んで導いた決定のうち、まだ対になっていないもの>
 ```
 
-**The 差異あり block never carries a recommendation.** Naming the three moves is not choosing among
+**The Undeclared difference block never carries a recommendation.** Naming the three moves is not choosing among
 them; if you find yourself explaining why one of them is better, you have left this skill's scope.
 
 ## Constraints
@@ -160,4 +166,4 @@ them; if you find yourself explaining why one of them is better, you have left t
 - ✅ Write only the ledger, and sync its mirror through `canonicalize-doc`
 - ❌ Never edit an ADR, a design document, or a configuration file
 - ❌ Never recommend which side moves
-- ❌ Never let an unreachable source become 差異なし
+- ❌ Never let an unreachable source become No difference

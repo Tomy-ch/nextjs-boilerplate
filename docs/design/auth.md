@@ -1,212 +1,212 @@
-# 認証の前側
+# The Front Side of Authentication
 
-この表現層が認証について**何を持ち、何を持たないか**を、実装を読んだうえで通しで説明する。決定そのもの —— seam の形・2 層の認可・Resolver 方式・所有画面の線 —— は [ADR 0079](../adr/0079-auth-frontend-seam.md) が持ち、入口（`proxy.ts`）の射程は [ADR 0043](../adr/0043-middleware-policy.md)、開発用の口の制御面は [ADR 0113](../adr/0113-development-access-surface.md) が持つ。ここが持つのは、それらを読むために要る前提と、実装の在り処、そして読まずに触ると踏む落とし穴である。
+This page explains end to end, after reading the implementation, **what this presentation layer holds and does not hold** about authentication. The decisions themselves — the shape of the seam, the two tiers of authorization, the Resolver approach, the line around the screens it owns — belong to [ADR 0079](../adr/0079-auth-frontend-seam.md); the reach of the entry point (`proxy.ts`) belongs to [ADR 0043](../adr/0043-middleware-policy.md), and the control surface of the development endpoints to [ADR 0113](../adr/0113-development-access-surface.md). What this page holds is the background needed to read them, where the implementation lives, and the pitfalls you step into if you touch it without reading.
 
-判断に迷ったら ADR を優先する。この文書は説明であって規約ではない。
+When in doubt, the ADR wins. This document is an explanation, not a rule.
 
-## 責務の線 —— 中継するが、検証しない
+## The line of responsibility — relay, but do not verify
 
-バックエンドが**検証する側**であるのに対し、この層は**検証しない側**である。資格情報の正しさを判定しない、試行回数を数えない、鍵を持たない。持つのは次の 3 つだけである。
+Where the backend is **the side that verifies**, this layer is **the side that does not verify**. It does not judge whether credentials are correct, does not count attempts, and holds no keys. It holds only the following three things.
 
-| 持つもの | 持たないもの |
+| Holds | Does not hold |
 | --- | --- |
-| サインインの導線（`/login`）と、認証を始める操作 | 資格情報の正しさの判定・試行回数の制限・ロックアウト（バックエンド / IdP） |
-| IdP から受け取ったトークンを **httpOnly cookie に封緘して持つ**こと | トークンの発行・署名鍵・利用者の記録 |
-| session を読んで**入口を捌く**こと（前捌きと確定認可） | 役割の正本（バックエンドが持つ。session に載るのは確立時の写し） |
+| The sign-in path (`/login`) and the action that starts authentication | Judging whether credentials are correct, limiting attempts, lockout (backend / IdP) |
+| **Holding the tokens received from the IdP sealed in an httpOnly cookie** | Issuing tokens, signing keys, the record of users |
+| Reading the session to **screen requests at the entry points** (pre-screening and confirmed authorization) | The authoritative copy of roles (held by the backend; what the session carries is a copy taken when it was established) |
 
-この非対称が可能にするのは、**IdP を替えても画面が変わらない**ことである。この層が IdP について知っているのは `AUTH_ISSUER` 1 つと、そこから引く Discovery 文書だけで、IdP 固有の SDK も資格情報も依存に入っていない。バックエンドの役割体系も知らない —— 知っているのは「特権を持つ側 / 持たない側」の 2 値だけで（`src/model/session.ts` の `SESSION_ROLE`）、この集合は自分の体系へ置き換える。
+What this asymmetry makes possible is that **swapping the IdP does not change the screens**. All this layer knows about the IdP is the single `AUTH_ISSUER` and the Discovery document fetched from it; no IdP-specific SDK or credentials are among its dependencies. It does not know the backend's role system either — all it knows is the two values "the privileged side / the unprivileged side" (`SESSION_ROLE` in `src/model/session.ts`), and this set is replaced with your own system.
 
-同じ非対称が不可能にするのは、**session の中身を自分で検証すること**である。cookie を復元できたなら、その中身は正しいと信じる —— 役割が確立時のまま古くなっていても、この層には照らし合わせる先が無い。確定認可（`verifySession()`）が確かめているのは「この cookie は自分が封緘したもので、まだ失効していない」ことまでであり、「この主体はいまもこの役割を持つ」ことではない。それを答えられるのは、Bearer を検証するバックエンドだけである。
+What the same asymmetry makes impossible is **verifying the session's contents itself**. If the cookie can be restored, its contents are trusted as correct — even if the role has gone stale since it was established, this layer has nothing to check it against. What confirmed authorization (`verifySession()`) establishes goes only as far as "this cookie is one I sealed, and it has not expired yet", not "this principal still holds this role". Only the backend that verifies the Bearer can answer that.
 
-## 登場するもの
+## The Pieces Involved
 
-| 役割 | 在り処 |
+| Role | Location |
 | --- | --- |
-| session の型（内側の層へ渡してよい身元）と役割の述語 | `src/model/session.ts` |
-| 保護する経路の宣言と、管理への述語 | `src/model/authz.ts` |
-| 復帰先の検証（open redirect を止める） | `src/model/return-url.ts` |
-| 入口の前捌き（optimistic な認可・origin・`Cache-Control`） | `src/proxy.ts` |
-| 確定認可の入口 `verifySession()`・Bearer の取り出し口・cookie の読み書き | `src/adapters/server/auth/session.ts` |
-| 差し替え点 `SessionResolver` の面 | `src/adapters/server/auth/session-resolver.ts` |
-| 既定 Resolver（Authorization Code + PKCE、JWE 封緘、RP-Initiated Logout） | `src/adapters/server/auth/default-session-resolver.ts` |
-| 開発用 Resolver（IdP の代わりに `/dev/session` へ送り出す） | `src/adapters/server/auth/development-session-resolver.ts` |
-| どちらの Resolver を選ぶか | `src/adapters/server/auth/resolver.ts` |
-| cookie の名前と属性 | `src/adapters/server/auth/session-cookie.ts` |
-| 認証の往復の口 | `src/app/api/auth/{login,callback,logout}/route.ts` |
-| ログイン画面 | `src/app/(auth)/login/page.tsx` → `src/features/auth/login-view.tsx` |
-| 開発用の口（画面・Server Action・認可 endpoint・直接発行 API） | `src/app/dev/session/` / `src/app/api/auth/test-session/route.dev.ts` |
-| 開発専用の口を開けてよいかの判定 | `src/config/application-environment.ts` の `isDevelopmentOnlyEndpointOpen()` と `src/adapters/server/auth/development-access.ts` |
-| `AUTH_*` の検証と Config | `src/config/auth/` |
+| The session type (the identity that may be passed to inner layers) and the role predicates | `src/model/session.ts` |
+| The declaration of protected routes, and the predicate for admin | `src/model/authz.ts` |
+| Validating the return destination (stopping open redirects) | `src/model/return-url.ts` |
+| Pre-screening at the entry point (optimistic authorization, origin, `Cache-Control`) | `src/proxy.ts` |
+| The entry point of confirmed authorization `verifySession()`, the point that extracts the Bearer, reading and writing cookies | `src/adapters/server/auth/session.ts` |
+| The surface of the replacement point `SessionResolver` | `src/adapters/server/auth/session-resolver.ts` |
+| The default Resolver (Authorization Code + PKCE, JWE sealing, RP-Initiated Logout) | `src/adapters/server/auth/default-session-resolver.ts` |
+| The development Resolver (sends the user to `/dev/session` instead of the IdP) | `src/adapters/server/auth/development-session-resolver.ts` |
+| Which Resolver is chosen | `src/adapters/server/auth/resolver.ts` |
+| Cookie names and attributes | `src/adapters/server/auth/session-cookie.ts` |
+| The endpoints of the authentication round trip | `src/app/api/auth/{login,callback,logout}/route.ts` |
+| The login screen | `src/app/(auth)/login/page.tsx` → `src/features/auth/login-view.tsx` |
+| The development endpoints (screen, Server Action, authorization endpoint, direct-issue API) | `src/app/dev/session/` / `src/app/api/auth/test-session/route.dev.ts` |
+| Deciding whether development-only endpoints may be open | `isDevelopmentOnlyEndpointOpen()` in `src/config/application-environment.ts` and `src/adapters/server/auth/development-access.ts` |
+| Validation of `AUTH_*` and the Config | `src/config/auth/` |
 
-`features` からは `adapters/server/auth` を引けない（`architecture.ts` の区画 `adapters-auth`。引けるのは `app` / `adapters` / `proxy`）。したがって session を読む場所は app 層の器・Server Action・Route Handler に限られ、feature が受け取るのは判定済みの結果だけになる。
+`features` cannot reach `adapters/server/auth` (the `adapters-auth` zone in `architecture.ts`; only `app` / `adapters` / `proxy` can reach it). So the places that read the session are limited to the app layer's layout shells, Server Actions and Route Handlers, and a feature receives only the already-judged result.
 
-## session の持ち方
+## How the Session Is Held
 
-**2 つの型を分けている。** `Session`（`userId` / `role` / `expiresAt`）は内側の層へ渡してよい身元で、`SessionRecord` はそれに Access Token と ID Token を足したものである。`verifySession()` が返すのは前者だけで、後者は `adapters/server/auth` の外へ出ない。`readSessionRecord` は復元した記録を taint に登録するので、記録そのものを Client Component へ渡すと描画が落ちる —— ただし参照でしか追えないため、項目を抜き出したコピーには及ばない。約束が主で、taint は補助である。
+**Two types are kept apart.** `Session` (`userId` / `role` / `expiresAt`) is the identity that may be passed to inner layers, and `SessionRecord` is that plus the Access Token and ID Token. `verifySession()` returns only the former; the latter never leaves `adapters/server/auth`. `readSessionRecord` registers the restored record with taint, so passing the record itself to a Client Component makes rendering fail — but because taint can follow only references, it does not reach a copy with fields picked out of it. The promise is primary; taint is a backstop.
 
-**cookie は 2 枚ある。**
+**There are two cookies.**
 
-| cookie | 中身 | 寿命 |
+| Cookie | Contents | Lifetime |
 | --- | --- | --- |
-| `auth_session` | `SessionRecord` を JWE（`dir` / `A256GCM`）で封緘したもの | Access Token の `expires_in`（無ければ ID Token の `exp`） |
-| `auth_tx` | 認可要求の一時状態（`state` / PKCE 検証子 / `nonce` / 復帰先） | 600 秒。callback で取り出すと同時に消える |
+| `auth_session` | `SessionRecord` sealed with JWE (`dir` / `A256GCM`) | The Access Token's `expires_in` (the ID Token's `exp` if absent) |
+| `auth_tx` | The temporary state of the authorization request (`state` / PKCE verifier / `nonce` / return destination) | 600 seconds. Deleted at the moment the callback takes it out |
 
-属性はどちらも `httpOnly` / `sameSite: "lax"` / `path: "/"` で、`secure` は `AUTH_REDIRECT_URI` の scheme が `https:` かで決まる。`strict` にしないのは、IdP からのリダイレクトで cookie が届かず callback が成立しなくなるためである。鍵は `AUTH_SESSION_SECRET` を SHA-256 に通した 32 バイトで、設定側に長さの制約を課さない。
+Both have the attributes `httpOnly` / `sameSite: "lax"` / `path: "/"`, and `secure` depends on whether the scheme of `AUTH_REDIRECT_URI` is `https:`. It is not `strict` because then the cookie would not arrive on the redirect from the IdP and the callback could not complete. The key is `AUTH_SESSION_SECRET` passed through SHA-256 into 32 bytes, so no length constraint is imposed on the configuration side.
 
-**session の寿命は Access Token の寿命と同じである。** Resolver の面に `refresh` は無い —— それを使う既定実装が無いためで、IdP が refresh を持つなら `restore` の内側で完結させる。失効した session は `restore` が `null` を返し、未認証と区別されない（壊れた cookie も同じ）。失効・改竄・鍵の入れ替えを呼び出し側が区別できると、その区別が攻撃者への手掛かりになる。
+**The session's lifetime equals the Access Token's lifetime.** The Resolver surface has no `refresh` — because there is no default implementation that would use it; if the IdP has refresh, it is completed inside `restore`. For an expired session `restore` returns `null`, indistinguishable from unauthenticated (a broken cookie is the same). If the caller could tell expiry, tampering and key rotation apart, that distinction would become a clue for an attacker.
 
-**役割は確立時に 1 度だけ引く。** 既定 Resolver は `resolveRole` を依存として受け取り、`completeAuthorization` の途中で Access Token を渡して呼ぶ。ここは cookie がまだ無い唯一の往復なので、取得口は `getBearerToken` ではなく `bearerToken` の綴りで解決済みの値を渡す（[ADR 0112](../adr/0112-data-classification-cache-boundary.md) の例外）。**`resolveRole` を渡さなければ、権限を持たない側へ倒す。** 役割の出所（バックエンドの役割の口）は利用側が `resolver.ts` で繋ぐ。
+**The role is fetched only once, when the session is established.** The default Resolver takes `resolveRole` as a dependency and calls it with the Access Token partway through `completeAuthorization`. This is the only round trip in which the cookie does not exist yet, so the fetch endpoint is handed the already-resolved value under the spelling `bearerToken` rather than through `getBearerToken` (the exception in [ADR 0112](../adr/0112-data-classification-cache-boundary.md)). **If `resolveRole` is not passed, it falls to the unprivileged side.** The source of roles (the backend's role endpoint) is connected by the adopter in `resolver.ts`.
 
 <!-- sample:begin -->
-同梱サンプルはバックエンドの役割の口を繋いでいるが、その adapter はサンプルと一緒に消えるので、残る側では役割の出所を繋ぎ直す。
+The bundled sample connects the backend's role endpoint, but that adapter disappears with the sample, so the surviving side reconnects the source of roles.
 <!-- sample:end -->
 
-## 認証の往復
+## The Authentication Round Trip
 
 ```mermaid
 sequenceDiagram
-  participant B as ブラウザ
+  participant B as Browser
   participant L as /login
   participant A as /api/auth/login
   participant I as IdP
   participant C as /api/auth/callback
-  B->>L: GET（returnUrl 付き）
-  Note over L: 復帰先を検証して form に載せる。リンクにしない
-  B->>A: GET（form 送信）
-  Note over A: Resolver.startAuthorization → auth_tx を置く
-  A-->>B: 302 authorization_endpoint（PKCE S256 / state / nonce）
-  B->>I: 認可要求。借り物の画面で認証
+  B->>L: GET (with returnUrl)
+  Note over L: Validate the return destination and put it in a form. Not a link
+  B->>A: GET (form submission)
+  Note over A: Resolver.startAuthorization → set auth_tx
+  A-->>B: 302 authorization_endpoint (PKCE S256 / state / nonce)
+  B->>I: Authorization request. Authenticate on the borrowed screen
   I-->>B: 302 redirect_uri?code&state
   B->>C: GET
-  Note over C: auth_tx を取り出して消す → state 突合 → token 交換 → ID Token 検証 → 役割取得
-  Note over C: auth_session を置く。未認証時の状態の引き継ぎはここだけ
-  C-->>B: 302 returnUrl（もう一度検証してから）
+  Note over C: Take out and delete auth_tx → match state → exchange token → verify ID Token → fetch roles
+  Note over C: Set auth_session. The only place unauthenticated state is carried over
+  C-->>B: 302 returnUrl (after validating it once more)
 ```
 
-**始めるのは form であってリンクではない。** 認可要求の開始は一時状態の cookie を置く操作なので、リンクにすると prefetch で利用者が押していないのに始まる。
+**It starts from a form, not a link.** Starting an authorization request is an operation that sets a temporary-state cookie, so as a link it would start on prefetch without the user having pressed anything.
 
-**callback の失敗はすべて `/login` へ戻す。** `state` 不一致・復号失敗・`nonce` 不一致・`azp` 不一致・IdP がエラーを返した場合のどれも同じ扱いで、理由は画面に出さず記録にだけ残す。何が欠けたか（`code` / `state` / 一時状態）は booleans で記録され、IdP 側の設定違いで全員が入れない状態になったときの手掛かりはそこにしかない。
+**Every callback failure goes back to `/login`.** A `state` mismatch, a decryption failure, a `nonce` mismatch, an `azp` mismatch and an error returned by the IdP are all treated the same; the reason is not shown on screen and is only recorded. What was missing (`code` / `state` / the temporary state) is recorded as booleans, and that is the only clue when a misconfiguration on the IdP side locks everyone out.
 
-ログアウトは `POST /api/auth/logout` だけが受ける。`signOut()` は**先に自分の cookie を消し**、それから IdP の終了口（Discovery の `end_session_endpoint` に `id_token_hint` を添えた URL）を返す。Route Handler はそこへ 303 で送り出す。**IdP 側の session を終わらせるのは、この応答ではなく次の遷移である** —— IdP の session を持っているのは利用者のブラウザの cookie で、サーバから叩いた要求にそれは載らない。送り先を組み立てられなくてもトップへ戻す。手元の cookie は既に消えているので、利用者はログアウトできている。
+Logout is accepted only by `POST /api/auth/logout`. `signOut()` **deletes its own cookie first**, then returns the IdP's end-session endpoint (Discovery's `end_session_endpoint` with `id_token_hint` attached). The Route Handler sends the user there with a 303. **What ends the session on the IdP side is not this response but the next navigation** — the IdP's session is held by a cookie in the user's browser, and a request made from the server does not carry it. Even when the destination cannot be built, the user is sent back to the top page. The local cookie is already gone, so the user has logged out.
 
-## 保護の掛かる場所
+## Where Protection Applies
 
-保護は 3 段あり、どれも他の段が見えないものを見ている。
+There are three tiers of protection, and each checks something the others cannot see.
 
-| 段 | 何を見るか | どこ |
+| Tier | What it checks | Where |
 | --- | --- | --- |
-| 前捌き（optimistic） | cookie を復元できるか、宣言した役割を持つか。データ源は引かない | `src/proxy.ts` の `authorize` |
-| 確定認可 | 同じ cookie を、描画・Server Action・Route Handler の各入口で改めて確かめる | `verifySession()` を呼ぶ側 |
-| バックエンド | Bearer の署名と主体。この層が唯一持てない判定 | `adapters/server` の取得口が 401 を `unauthenticated` へ写す |
+| Pre-screening (optimistic) | Whether the cookie can be restored and whether it carries the declared role. It does not consult the data source | `authorize` in `src/proxy.ts` |
+| Confirmed authorization | The same cookie, checked again at each entry point: rendering, Server Actions, Route Handlers | The callers of `verifySession()` |
+| Backend | The Bearer's signature and principal. The one judgment this layer cannot hold | The fetch endpoints in `adapters/server` map 401 to `unauthenticated` |
 
-**どの経路に何の役割が要るかは `src/model/authz.ts` の 1 か所が宣言する。** 保護される側を列挙し（公開側を列挙すると足した画面が既定で公開になる）、接頭辞は入れ子にしない（どちらの宣言が勝つかの規則が要らないようにする）。前捌きも確定認可も `robots.ts` も同じ宣言を引く。残る側の宣言は `/account`（認証だけ）と `/admin`（特権だけ）の 2 つで、求める役割が違う 2 つを残すのは、役割不足で弾く分岐を通す入力を無くさないためである。**残る側に `/account` の画面は無い** —— 宣言だけが置き場として残っている。
+**Which route requires which role is declared in one place, `src/model/authz.ts`.** It enumerates the protected side (enumerating the public side would make every added screen public by default), and prefixes are not nested (so no rule is needed for which declaration wins). Pre-screening, confirmed authorization and `robots.ts` all read the same declaration. The surviving side has two declarations, `/account` (authentication only) and `/admin` (privileged only); two with different required roles are kept so as not to lose an input that exercises the branch rejecting for insufficient role. **The surviving side has no `/account` screen** — only the declaration remains, as a placeholder.
 
-**未認証と役割不足は行き先が違う。** 未認証は `/login?returnUrl=<元の URL>` へ送る（やり直せば入れる）。役割不足は `/` へ送り、復帰先を持たせない（やり直しても同じ結果になる）。403 の画面も出さない —— 導線を出していない以上、届いた時点で URL を直接叩いた要求であり、権限の有無を答えることは面の存在を教えることにしかならない。前捌きと確定認可は同じ行き先へ送る。
+**Unauthenticated and insufficient role go to different destinations.** Unauthenticated goes to `/login?returnUrl=<the original URL>` (trying again gets you in). Insufficient role goes to `/` with no return destination (trying again gives the same result). No 403 screen is shown either — since no path to it is displayed, a request that arrives is one that hit the URL directly, and answering whether the permission exists would only reveal that the surface exists. Pre-screening and confirmed authorization send to the same destination.
 
-**役割を持たない主体には、入口そのものを出さない。** 出したうえで押した先で断ると、その面がある事実だけが誰にでも伝わる。出す・出さないの判定と確定認可は同じ述語（`isAdmin` / `hasAllowedRole`）を使い、別々に書かない。判定は session を読む部品を `Suspense` の穴として器へ差す形で行う —— 器で読むと cookie に触れた時点で殻が動的になり、器を通る画面が全部バックエンドの往復を待つ。
+**A principal without the role is not shown the entrance at all.** Showing it and refusing after the click tells anyone the one fact that the surface exists. The show/hide decision and confirmed authorization use the same predicates (`isAdmin` / `hasAllowedRole`), never written separately. The decision is made by inserting the component that reads the session into the layout shell as a `Suspense` dynamic hole — reading it in the layout shell makes the static shell dynamic the moment it touches the cookie, and every screen passing through that layout shell waits for the backend round trip.
 
-**Server Action は画面とは別の入口である。** 画面が保護されていることを理由に断言を省かない。特権の要る操作は Action の先頭で `verifySession()` を通し、足りなければ `PERMISSION_DENIED` を返す。
+**A Server Action is an entry point separate from the screen.** Do not skip the check on the grounds that the screen is protected. An operation that needs privilege passes `verifySession()` at the top of the Action and returns `PERMISSION_DENIED` if insufficient.
 
-**Route Handler は宣言した接頭辞の下にあるときだけ前捌きの対象になる。** `/api` を matcher から外していないのはこのためで、逆に `/api/auth/*` と `/api/health` は宣言に無いので誰でも叩ける。認証の要る取得の Route Handler は自分では弾かず、`adapters` が返す `unauthenticated` をそのまま 401 へ写す —— 判定を 2 か所に置くと片方だけが緩む。
+**A Route Handler is subject to pre-screening only when it sits under a declared prefix.** This is why `/api` is not excluded from the matcher; conversely, `/api/auth/*` and `/api/health` are not in the declaration, so anyone can call them. A fetch Route Handler that needs authentication does not reject on its own; it maps the `unauthenticated` returned by `adapters` straight to 401 — putting the judgment in two places lets one of them loosen.
 
-### `proxy.ts` が入口で見るもの
+### What `proxy.ts` checks at the entry point
 
-前捌きは認可だけをしているのではない。順に、**停止判定**（`APP_MAINTENANCE_MODE`。認可より先に置き、読み取りは停止画面へ rewrite、それ以外は 503）、**origin の判定**（宣言に無い origin からの状態を変える要求は 403。`/api/*` へは宣言した origin に限って CORS を開く）、**認可**、そして応答の前に **`Cache-Control: private, no-store`** を session cookie を載せた要求と cookie を書き換えた応答に一律で付ける。画面や Route Handler ごとに書かないのはこのためである。
+Pre-screening does more than authorization. In order: the **maintenance check** (`APP_MAINTENANCE_MODE`; placed before authorization, it rewrites reads to the maintenance screen and returns 503 for everything else), the **origin check** (a state-changing request from an undeclared origin gets 403; CORS for `/api/*` opens only to declared origins), **authorization**, and before the response, **`Cache-Control: private, no-store`** added uniformly to requests carrying the session cookie and to responses that rewrote a cookie. This is why it is not written per screen or per Route Handler.
 
-matcher は `_next/static` / `_next/image` / metadata ファイルを外している。外した経路には `Cache-Control` も届かないので、画像最適化に載るのが公開画像だけであることが前提になる。
+The matcher excludes `_next/static` / `_next/image` / metadata files. `Cache-Control` does not reach the excluded routes either, so it is a precondition that only public images go through image optimization.
 
-## dev / live のモード —— 何を差し替え、何を差し替えないか
+## dev / live modes — what is swapped and what is not
 
-軸は 2 つあり、直交している。**API の相手**（`APP_API_MODE=mock | live`）と、**認可の開始先**（`AUTH_MODE=idp | dev`）である。前者は `mocks/` が差し替える（認証はそこを通らない —— IdP との往復は Discovery が示す口へ出るもので、契約から生成したハンドラは間に挟まらない）。後者がここの主題である。
+There are two axes, and they are orthogonal: **the API counterpart** (`APP_API_MODE=mock | live`) and **where authorization starts** (`AUTH_MODE=idp | dev`). The former is swapped by `mocks/` (authentication does not pass through it — the round trip with the IdP goes out to the endpoint Discovery points to, and the handlers generated from the contract do not sit in between). The latter is the subject here.
 
-| `APP_ENV` | `APP_API_MODE` | `AUTH_MODE` | 到達のしかた |
+| `APP_ENV` | `APP_API_MODE` | `AUTH_MODE` | How you get in |
 | --- | --- | --- | --- |
-| `local` | `live` | `idp`（既定） | 開発用 IdP へ通常のログインを通す。`/dev/session` も開く |
-| `ci` | `mock` | `dev` | `/login` が `/dev/session` へ送り出す。E2E は `/api/auth/test-session` で直接発行する |
-| `dev` / `stg` / `prd` | `live` | `idp` | 実 IdP。**`AUTH_*` は空欄で、利用側が埋める** |
+| `local` | `live` | `idp` (default) | Go through the normal login against the development IdP. `/dev/session` is also open |
+| `ci` | `mock` | `dev` | `/login` sends you to `/dev/session`. E2E issues sessions directly via `/api/auth/test-session` |
+| `dev` / `stg` / `prd` | `live` | `idp` | The real IdP. **`AUTH_*` are blank, and the adopter fills them in** |
 
-**`AUTH_MODE=dev` だけでは何も起きない。** `resolver.ts` の `usesDevelopmentAuthorization()` は `isDevelopmentOnlyEndpointOpen()`（`APP_ENV` が明示され、かつ `local` / `ci`）と併せて見る。`AUTH_MODE` だけを条件にすると、設定を誤って実環境へ `dev` を与えた瞬間に、IdP を通らずに任意の役割で入れる経路が公開ドメインで開く。
+**`AUTH_MODE=dev` alone does nothing.** `usesDevelopmentAuthorization()` in `resolver.ts` looks at it together with `isDevelopmentOnlyEndpointOpen()` (`APP_ENV` is set explicitly, and is `local` / `ci`). If `AUTH_MODE` were the only condition, the moment a misconfiguration gave `dev` to a real environment, a path that lets anyone in with any role without going through the IdP would open on the public domain.
 
-開発用 Resolver が**差し替えるのは 2 つだけ**である。
+The development Resolver **swaps only two things**.
 
-| 差し替える | 差し替えない |
+| Swapped | Not swapped |
 | --- | --- |
-| `startAuthorization` —— IdP の authorize の代わりに `/dev/session?returnUrl&state` へ送り出す | `seal` / `restore` / `sealTransaction` / `restoreTransaction` —— 既定 Resolver をそのまま借りる。cookie の形が方式で変わると、`dev` で作った session を `idp` で読めなくなる |
-| `completeAuthorization` —— IdP の token 交換の代わりに、封緘した開発用の認可コードを開く | `auth_tx` の往復と `/api/auth/callback` —— 本番と同じ経路を通す。ここで直接 session を置くと、callback が一度も踏まれないまま画面を触り続け、往復が壊れていても気づけない |
-| `endSession` —— 終わらせる相手が居ないので `null` | 保護ルートの判定・復帰先の検証・役割の述語 —— Resolver の外にあり、方式に依らない |
+| `startAuthorization` — sends the user to `/dev/session?returnUrl&state` instead of the IdP's authorize | `seal` / `restore` / `sealTransaction` / `restoreTransaction` — borrowed from the default Resolver unchanged. If the cookie's shape changed with the approach, a session made under `dev` could not be read under `idp` |
+| `completeAuthorization` — instead of the IdP's token exchange, opens a sealed development authorization code | The `auth_tx` round trip and `/api/auth/callback` — the same path as production. Setting the session directly here would keep you using the screens without ever hitting the callback, and you would not notice a broken round trip |
+| `endSession` — `null`, since there is nothing to end | The protected-route decision, return-destination validation, the role predicates — these sit outside the Resolver and do not depend on the approach |
 
-開発用の認可コードは、指定（主体 / 役割 / 失効秒数 / Access Token）だけでなく**発行元の要求の `state` も一緒に封緘する**。指定だけを封緘すると、コードを持っている側が自分で新しい往復を始めて交換できてしまう（一時状態の消費が止められるのは「自分の往復を自分でもう一度使うこと」だけ）。実在の IdP では PKCE の検証子がこの役目を負う。
+The development authorization code seals **not only the specification (principal / role / expiry seconds / Access Token) but also the `state` of the issuing request**. If only the specification were sealed, whoever holds the code could start a new round trip of their own and exchange it (consuming the temporary state stops only "reusing your own round trip"). With a real IdP, the PKCE verifier carries this role.
 
-`/dev/session` には送信先が 2 つある。**直接開いたとき**は Server Action がその場で session を置いて戻り先へ送る。**認可の往復の途中で開かれたとき**（URL に `state` がある）は素の form で `/dev/session/authorize`（Route Handler）へ送り、そこが認可コードを持って `/api/auth/callback` へ 303 する。Server Action の `redirect()` は Route Handler へ遷移できない（[rendering.md](rendering.md)）ので、この経路だけ Route Handler になっている。
+`/dev/session` has two submit targets. **When opened directly**, a Server Action sets the session on the spot and sends the user to the return destination. **When opened partway through an authorization round trip** (the URL carries `state`), a plain form submits to `/dev/session/authorize` (a Route Handler), which then 303s to `/api/auth/callback` with the authorization code. A Server Action's `redirect()` cannot navigate to a Route Handler ([rendering.md](rendering.md)), so only this path is a Route Handler.
 
-**live に繋ぐとき、Bearer は `/dev/session` が取る。** 「誰として入るか」に入れた主体で、指定した issuer の Discovery を引き、Resource Owner Password Credentials で主体を名指ししたトークンを取る（`development-token.ts`）。接続先を設定から固定しないのは、バックエンドを複数の口で並行して立てる開発機では、いま叩いている API が期待する IdP と `AUTH_ISSUER` がずれるためである。ずれたまま取るとトークンは出るのに API で 401 になる。この付与方式は本物の IdP で使ってはならない（廃止済み）—— 通るのは、照合する相手が居ない開発用の実装だからである。mock に繋いでいる間は Bearer を検証する先が無いので、空欄で足りる。
+**When connecting to live, `/dev/session` obtains the Bearer.** For the principal entered in 「誰として入るか」 ("who to sign in as"), it fetches the Discovery of the specified issuer and obtains a token naming the principal through Resource Owner Password Credentials (`development-token.ts`). The connection target is not fixed from configuration because on a development machine running the backend in parallel on several ports, the IdP expected by the API currently being called and `AUTH_ISSUER` drift apart. Obtaining a token while they disagree yields a token but a 401 from the API. This grant type must not be used with a real IdP (it is deprecated) — it works only because this is a development implementation with no one to check against. While connected to mock there is nothing to verify the Bearer, so blank is enough.
 
-**開発用の口は 2 重に閉じている。** `page.dev.tsx` / `route.dev.ts` の拡張子は、`next.config.ts` が `isDevelopmentOnlyEndpointOpen()` を見て build に含めるかを決めるので、実環境の成果物には面そのものが無い。加えて実行時に、画面・Server Action・Route Handler がそれぞれ `isDevelopmentAccessAllowed()`（環境 + `Host` / `X-Forwarded-Host` が手元の名前）を呼び、閉じているときは 404 を返す。宛先の判定は防御線ではない —— `Host` は名乗る値で偽れる。止めるのは設定を誤ったまま公開したときに普通の利用者が普通に踏む経路で、狙って偽る相手を止めるのは環境の側である。
+**The development endpoints are closed twice.** For the `page.dev.tsx` / `route.dev.ts` extensions, `next.config.ts` decides whether to include them in the build by looking at `isDevelopmentOnlyEndpointOpen()`, so the build output of a real environment has no such surface at all. In addition, at runtime the screen, the Server Action and the Route Handler each call `isDevelopmentAccessAllowed()` (environment + `Host` / `X-Forwarded-Host` being a local name), and return 404 when closed. The destination check is not a line of defense — `Host` is a self-declared value and can be forged. What it stops is the path an ordinary user would ordinarily hit if the site were published while misconfigured; stopping someone who forges it on purpose is the environment's job.
 
-## 開発用 IdP が持たないもの
+## What the Development IdP Lacks
 
-`local` が繋ぐ開発用 IdP（バックエンドの compose が立てる）は、この層が要るものを揃えている —— OIDC Discovery、Authorization Code + PKCE、`end_session_endpoint`、主体を名指しできるパスワード付与。**同時に、実在の IdP が持つもののうち 3 つを持たず、設計はそれを前提に組んである。** 立っている実物に対して確かめた結果である。
+The development IdP that `local` connects to (started by the backend's compose) has what this layer needs — OIDC Discovery, Authorization Code + PKCE, `end_session_endpoint`, and a password grant that can name the principal. **At the same time, it lacks three things a real IdP has, and the design is built on that assumption.** This was checked against the running instance.
 
-1. **refresh token を返さない。** token endpoint の応答は `access_token` / `id_token` / `expires_in`（3600 秒）だけで、Resolver の面に `refresh` が無いのと釣り合っている。**失効に到達する手段は、待つか、`/dev/session` で失効秒数を短くして入るかの 2 つ**である。失効後の見え方（復帰先付きでログインへ送られる）は後者で踏む。
-2. **利用者の記録も役割も持たない。** ログイン画面（またはパスワード付与）に入れた名前がそのまま `sub` になり、誰でも認証は成功する。この層が役割を IdP の claim から読まずバックエンドから引くのはこのためで、バックエンドに登録の無い主体はトークンこそ出るが API で 401 になる。**特権を持つ側と持たない側を切り替えたいときは、登録済みの主体を使い分けるか、`/dev/session` で役割を直接与える**（[ADR 0113](../adr/0113-development-access-surface.md) —— 制御面は到達したい状態で決め、実システムのポリシーで狭めない）。なお `mock` の側でも「認証済みだが記録が無い」状態は作れない —— 契約から生成したハンドラは 404 を返さない。
-3. **実在の IdP が拒むものを拒まない。** `redirect_uri` は登録と照合されず、PKCE は `plain` も広告され強制されない。したがって**認可の往復を守る検証はすべてこちら側にある** —— S256 しか実装しない `pkce.ts`、`state` / `nonce` / `azp` の突合、`iss` と Discovery の `issuer` の完全一致、復帰先と `post_logout_redirect_uri` を `redirectUri` から導くこと。開発用 IdP で通ったことは、実在の IdP で通ることを保証しない。逆に、実在の IdP に登録する値（callback URL・ログアウト後の戻り先）は、開発用 IdP では要らなかった分だけ忘れやすい。
+1. **It does not return a refresh token.** The token endpoint's response is only `access_token` / `id_token` / `expires_in` (3600 seconds), which matches the Resolver surface having no `refresh`. **There are two ways to reach expiry: wait, or sign in through `/dev/session` with a short expiry.** How things look after expiry (being sent to login with a return destination) is exercised with the latter.
+2. **It holds no user records and no roles.** The name entered on the login screen (or in the password grant) becomes `sub` as is, and anyone authenticates successfully. This is why this layer fetches roles from the backend rather than reading them from the IdP's claims: a principal not registered with the backend gets a token but a 401 from the API. **To switch between the privileged and unprivileged sides, use different registered principals, or assign the role directly in `/dev/session`** ([ADR 0113](../adr/0113-development-access-surface.md) — the control surface is decided by the states you want to reach, not narrowed by the real system's policy). Note that the `mock` side cannot produce the "authenticated but no record" state either — the handlers generated from the contract do not return 404.
+3. **It does not reject what a real IdP rejects.** `redirect_uri` is not checked against a registration, and PKCE advertises `plain` too and is not enforced. So **every check that protects the authorization round trip is on this side** — `pkce.ts`, which implements only S256; matching `state` / `nonce` / `azp`; exact equality between `iss` and Discovery's `issuer`; deriving the return destination and `post_logout_redirect_uri` from `redirectUri`. Passing against the development IdP does not guarantee passing against a real IdP. Conversely, the values registered with a real IdP (the callback URL, the post-logout return destination) are easy to forget, precisely because the development IdP never needed them.
 
-## 資格情報が出てはいけない境界
+## Boundaries Credentials Must Not Cross
 
-| 境界 | 何が止めるか |
+| Boundary | What stops it |
 | --- | --- |
-| **ブラウザ** | Access Token は `Session` 型に含めない。cookie は httpOnly。`SessionRecord` と `AUTH_SESSION_SECRET` は taint に登録され、Client Component へ渡した時点で描画が落ちる。`/dev/session` は貼った Access Token を読み返す欄を持たない |
-| **ログ・span** | `authorization` / `cookie` / `password` / `token` の名前を持つ項目を一律に伏せる（`src/logging/logger.ts` の `REDACTED_FIELD_NAMES`。値の形は見ない）。callback が記録するのは何が欠けたかの booleans と `cause` の文字列だけで、トークンは持ち回らない |
-| **外向きの要求** | Bearer を付けるのは `baseUrl` と同じ origin へ出る要求だけ（`request.ts` の `authorizationHeader`）。Discovery が返す絶対 URL のように接続先を離れる宛先には載せない。取得口へ渡せるのは import した `getBearerToken` だけで、掴んだ値・引数で持ち回った値は lint が落とす |
-| **第三者のクライアント** | `/api/*` への CORS は `HTTP_ALLOWED_ORIGINS` に宣言した origin にしか開かず、宣言に無い origin からの状態を変える要求は前捌きが 403 で止める。ログアウトは POST だけを受ける（GET で消せると `<img src>` だけでログアウトさせられる） |
-| **設定** | 同梱の `AUTH_SESSION_SECRET` は `local` / `ci` 以外で起動を拒む。公開リポジトリに平文で載っている値なので、それで封緘した cookie は誰でも偽造できる |
+| **Browser** | The Access Token is not part of the `Session` type. Cookies are httpOnly. `SessionRecord` and `AUTH_SESSION_SECRET` are registered with taint, and rendering fails the moment one is passed to a Client Component. `/dev/session` has no field that reads back a pasted Access Token |
+| **Logs and spans** | Fields named `authorization` / `cookie` / `password` / `token` are redacted uniformly (`REDACTED_FIELD_NAMES` in `src/logging/logger.ts`; the value's shape is not inspected). The callback records only booleans for what was missing and the `cause` string; tokens are not carried around |
+| **Outbound requests** | The Bearer is attached only to requests going to the same origin as `baseUrl` (`authorizationHeader` in `request.ts`). It is not attached to destinations that leave the connection target, such as absolute URLs returned by Discovery. Only an imported `getBearerToken` can be passed to a fetch endpoint; a captured value or a value carried around as an argument is rejected by lint |
+| **Third-party clients** | CORS for `/api/*` opens only to origins declared in `HTTP_ALLOWED_ORIGINS`, and pre-screening stops state-changing requests from undeclared origins with 403. Logout accepts only POST (if GET could clear it, an `<img src>` alone could log someone out) |
+| **Configuration** | The bundled `AUTH_SESSION_SECRET` refuses to start outside `local` / `ci`. It is published in plain text in a public repository, so anyone can forge a cookie sealed with it |
 
-**通過するだけの値に責任範囲が広がるのは、保存・ログ・派生を始めた時点である。** ID Token だけは例外で、ログアウトの送り先に `id_token_hint` として埋めて外へ出る —— RP-Initiated Logout は利用者のブラウザ経由でそれを IdP へ届ける手順であり、届かないと IdP 側が終わらない。出るのはこの 1 用途だけで、Access Token は今も外へ出ない。
+**Responsibility for a value that only passes through expands the moment you start storing, logging or deriving from it.** The ID Token alone is the exception: it leaves as `id_token_hint` embedded in the logout destination — RP-Initiated Logout is the procedure that delivers it to the IdP via the user's browser, and without it the IdP side does not end. This one use is the only way it leaves, and the Access Token still never leaves.
 
-## 資格情報の入力面 —— いまの実装と ADR 0079 の差
+## The credential entry surface — the current implementation versus ADR 0079
 
-**[ADR 0079](../adr/0079-auth-frontend-seam.md) が定める形と、いまの実装は一致していない。** どちらが実態かを先に書く。
+**The shape [ADR 0079](../adr/0079-auth-frontend-seam.md) prescribes and the current implementation do not match.** Which one is reality is stated first.
 
-| | ADR が定める形（認証画面を意匠ごと所有し、借り物の画面は federation に限る） | いまの実装 |
+| | The shape the ADR prescribes (own the authentication screens including their design; borrowed screens only for federation) | The current implementation |
 | --- | --- | --- |
-| 資格情報の入力面 | `/login` が所有する。利用者は自分のドメインを離れない | **IdP の画面（借り物）が受け取る。** `/login` は「ログインへ進む」の 1 ボタンで、`/api/auth/login` が authorize endpoint へ 302 する |
-| 検証との接点 | Route Handler がバックエンドへ中継し、バックエンドが正規化したチャレンジを返す | **既定 Resolver が OIDC クライアントとして IdP と直接往復する**（Discovery / token 交換 / JWKS） |
-| 借り物の画面が現れる場所 | federation の連携先と IdP の終了口だけ | **主たる経路そのもの** |
+| The credential entry surface | Owned by `/login`. Users never leave your domain | **The IdP's (borrowed) screen receives them.** `/login` is a single 「ログインへ進む」 ("proceed to login") button, and `/api/auth/login` 302s to the authorize endpoint |
+| The contact point with verification | A Route Handler relays to the backend, and the backend returns a normalized challenge | **The default Resolver, acting as an OIDC client, round-trips directly with the IdP** (Discovery / token exchange / JWKS) |
+| Where borrowed screens appear | Only at federation partners and the IdP's end-session endpoint | **On the main path itself** |
 
-つまり、いまの実装は同 ADR が **federation に限って**認めている形を、主たる経路として採っている。ADR は書き戻していない —— 決定のほうが正しく、実装が追いついていないだけだからで、ADR を実態へ倒すと、戻す根拠が消える。
+In other words, the current implementation takes as its main path the shape that the same ADR allows **only for federation**. The ADR has not been rewritten — because the decision is the correct one and the implementation simply has not caught up; bending the ADR to fit reality would erase the grounds for going back.
 
-実装がそこへ届いていないのは、この層の中だけでは進められない前提の連鎖に従属しているためである。**IdP の構築が先、次にバックエンドが認証機構を持って正規化されたチャレンジを返すこと、最後にこの層の画面**の順で、逆順に着手すると、契約が無い状態で画面を書き、契約が決まった時点で書き直すことになる。`env/.env.{dev,stg,prd}` の `AUTH_*` が空欄なのはこの帰結で、cloud 環境の認証はこの層が単独で閉じられない。
+The implementation has not reached it because it depends on a chain of preconditions that cannot be advanced inside this layer alone. The order is **first build the IdP, next have the backend hold an authentication mechanism and return normalized challenges, and last this layer's screens**; starting in reverse order means writing screens with no contract and rewriting them once the contract is settled. The blank `AUTH_*` in `env/.env.{dev,stg,prd}` is a consequence of this: authentication in cloud environments cannot be closed by this layer alone.
 
-連鎖が解けたとき変わるのは、`/login` が入力面を持つことと、`/api/auth/login` が「IdP へ送り出す口」から「バックエンドへ中継する口」へ変わることである。session の封緘・保護ルートの判定・復帰先の検証・ログアウト時の破棄は Resolver の外にあり、この切り替えで書き直さない。
+When the chain is resolved, what changes is that `/login` holds the entry surface, and that `/api/auth/login` turns from "the endpoint that sends the user to the IdP" into "the endpoint that relays to the backend". Sealing the session, the protected-route decision, return-destination validation and discarding on logout sit outside the Resolver and are not rewritten by this switch.
 
-## 間違えやすいところ
+## Common Pitfalls
 
-- **`AUTH_MODE=dev` を置いても `APP_ENV` が `local` / `ci` でなければ既定 Resolver が選ばれる。** 起動は通り、`/login` は IdP へ向かう。`APP_ENV` 未指定は既定へ落ちず起動時に落ちる。
-- **`verifySession()` は「cookie が自分のもので失効していない」までしか確かめない。** 役割は確立時の写しで、バックエンド側で変わっても session が失効するまで古いままである。役割を変えた主体には入り直させる。
-- **session の寿命は Access Token の寿命である。** 開発用 IdP では 3600 秒。refresh は無いので、それを過ぎると保護された画面がログインへ送り出す。「1 時間ごとにログインを求められる」は不具合ではなく既定の姿で、伸ばす手段は IdP 側の `expires_in` か、`restore` の内側に refresh を足すことである。
-- **callback の失敗は理由なしで `/login` へ戻る。** 画面から原因は読めない。ログの `認可の完了に失敗しました` / `認可の応答を受け取れませんでした` を見る。`auth_tx` は取り出した時点で消えるので、callback の URL を再読み込みすると 2 度目は必ず失敗する。
-- **Discovery の `issuer` は `AUTH_ISSUER` と文字列として完全一致していなければならない。** 末尾の `/` の有無だけで `INTERNAL` になり、`/login` に「認証を始められませんでした」が出る。手元では `http://localhost:2010/default` のように、IdP が名乗る形そのままを置く。
-- **`signOut()` は URL を返すだけで、遷移させなければ IdP 側は終わらない。** 返り値を捨てると手元だけのログアウトになり、直後の再ログインが認証を求めずに素通りする。開発用 Resolver は `null` を返すので、`dev` で「ログアウトしても IdP に戻らない」のは正常である。
-- **`sameSite` を `strict` にすると認証が成立しない。** IdP からのリダイレクトで `auth_tx` が届かず、callback は「一時状態が無い」で `/login` へ戻る。
-- **`secure` は `APP_ENV` ではなく `AUTH_REDIRECT_URI` の scheme で決まる。** `https://` の callback を置いたまま `http://localhost` で開くと cookie が保存されず、ログインが成立したように見えて次の要求で未認証になる。
-- **前捌きは宣言した接頭辞しか見ない。** `/api/auth/*` と `/api/health` は誰でも叩ける。認証の要る Route Handler を足すときは、`authz.ts` へ接頭辞を足すか、`adapters` の 401 を写すかのどちらかであり、Route Handler 自身に判定を書かない。
-- **`Cache-Control: private, no-store` は matcher が外した経路には届かない。** 主体ごとに違う画像を `next/image` に載せるなら、除外を見直す。
-- **Bearer は `baseUrl` と同じ origin にしか付かない。** Discovery が返した絶対 URL や、別 origin の API を同じクライアントで叩くと、認証なしで出ていって 401 になる。接続先ごとにクライアントを作る。
-- **`resolveRole` を渡さなければ全員が権限を持たない側になる。** 繋ぐまではこの状態で、`/admin` には誰も入れない。役割の出所を繋ぐのが最初の仕事である。
-- **`/account` は宣言だけで画面が無い。** 前捌きは効く（未認証で踏むとログインへ送られる）が、認証後に戻ると 404 になる。宣言を消さずに画面を足すか、宣言ごと自分の接頭辞へ書き換える。
-- **Server Action から Route Handler へ `redirect()` しても要求は出ない。** `/dev/session` の認可の往復が素の form 送信になっているのはこのためで、同じ形を他所で組むときも Server Action を経由させない。
-- **`use cache` の下で `verifySession()` は呼べない。** `cookies()` を読むため framework が落とす。認可の判定は穴の内側で解く。
-- **開発用 IdP で通ったことは、実在の IdP で通ることを保証しない。** `redirect_uri` の登録、`post_logout_redirect_uri` の登録、PKCE の強制はすべて実在の IdP 側にしか無い。`dev` へ繋いだ最初の 1 回で落ちるのは、たいていこの登録漏れである。
+- **Setting `AUTH_MODE=dev` still selects the default Resolver unless `APP_ENV` is `local` / `ci`.** Startup succeeds, and `/login` heads for the IdP. An unset `APP_ENV` does not fall back to a default; it fails at startup.
+- **`verifySession()` establishes only "the cookie is mine and has not expired".** The role is a copy taken when the session was established, and stays stale until the session expires even if it changed on the backend. Make a principal whose role changed sign in again.
+- **The session's lifetime is the Access Token's lifetime.** With the development IdP it is 3600 seconds. There is no refresh, so after that, protected screens send the user to login. "Being asked to log in every hour" is not a defect but the default behavior; the ways to extend it are the IdP's `expires_in`, or adding refresh inside `restore`.
+- **A callback failure returns to `/login` with no reason.** The cause cannot be read from the screen. Look at the log messages `認可の完了に失敗しました` / `認可の応答を受け取れませんでした`. `auth_tx` is deleted at the moment it is taken out, so reloading the callback URL always fails the second time.
+- **Discovery's `issuer` must match `AUTH_ISSUER` exactly as a string.** A trailing `/` alone makes it `INTERNAL`, and `/login` shows 「認証を始められませんでした」 ("could not start authentication"). Locally, put the exact form the IdP declares, such as `http://localhost:2010/default`.
+- **`signOut()` only returns a URL; without navigating there, the IdP side does not end.** Discarding the return value makes it a local-only logout, and the next login goes straight through without asking for authentication. The development Resolver returns `null`, so "logging out under `dev` does not go back to the IdP" is normal.
+- **Setting `sameSite` to `strict` breaks authentication.** `auth_tx` does not arrive on the redirect from the IdP, and the callback returns to `/login` with "no temporary state".
+- **`secure` depends on the scheme of `AUTH_REDIRECT_URI`, not on `APP_ENV`.** Opening `http://localhost` with an `https://` callback configured means the cookie is not saved: login appears to succeed, and the next request is unauthenticated.
+- **Pre-screening looks only at declared prefixes.** `/api/auth/*` and `/api/health` can be called by anyone. When adding a Route Handler that needs authentication, either add the prefix to `authz.ts` or map the 401 from `adapters`; do not write the judgment in the Route Handler itself.
+- **`Cache-Control: private, no-store` does not reach routes the matcher excluded.** If you put images that differ per principal through `next/image`, revisit the exclusions.
+- **The Bearer is attached only to the same origin as `baseUrl`.** Calling an absolute URL returned by Discovery, or an API on another origin, with the same client sends the request without authentication and gets 401. Create one client per connection target.
+- **If `resolveRole` is not passed, everyone ends up on the unprivileged side.** That is the state until it is connected, and nobody can enter `/admin`. Connecting the source of roles is the first job.
+- **`/account` is only a declaration with no screen.** Pre-screening works (hitting it unauthenticated sends you to login), but returning after authentication gives a 404. Either add a screen while keeping the declaration, or rewrite the declaration to your own prefix.
+- **A `redirect()` from a Server Action to a Route Handler sends no request.** This is why the authorization round trip in `/dev/session` is a plain form submission; when building the same shape elsewhere, do not route it through a Server Action.
+- **`verifySession()` cannot be called under `use cache`.** It reads `cookies()`, so the framework fails it. Resolve the authorization decision inside the dynamic hole.
+- **Passing against the development IdP does not guarantee passing against a real IdP.** Registering `redirect_uri`, registering `post_logout_redirect_uri` and enforcing PKCE all exist only on the real IdP's side. What fails on the first connection to `dev` is usually one of these missing registrations.
 
-## 関連する ADR
+## Related ADRs
 
-- [0079](../adr/0079-auth-frontend-seam.md) — 認証の前側の seam。所有の線・2 層の認可・Resolver 方式・認証画面を意匠ごと所有すること
-- [0043](../adr/0043-middleware-policy.md) — `proxy.ts` は optimistic な前捌きまで。唯一の防御線にしない
-- [0113](../adr/0113-development-access-surface.md) — 開発用の口の制御面と、それを閉じる環境の判定
-- [0112](../adr/0112-data-classification-cache-boundary.md) — 資格情報が通る道のりの関所。`bearerToken` の例外
-- [0030](../adr/0030-environment-variable-management.md) — `AUTH_*` の読み方・secret の境界・taint
-- [0011](../adr/0011-no-docker.md) — 環境の定義と、開発専用の口が開く環境
-- [0070](../adr/0070-backend-role-separation.md) — 認証本体は out of scope。役割の正本はバックエンド
-- [0021](../adr/0021-frontend-responsibility.md) — `adapters/server/auth` へ触れてよい層
-- [0080](../adr/0080-error-handling.md) — 401 / 403 の分類と、`unauthenticated` を畳まないこと
-- [0111](../adr/0111-csp-security-headers.md) — 応答ヘッダの配置。`proxy.ts` が持つ `Cache-Control`
+- [0079](../adr/0079-auth-frontend-seam.md) — the seam on the front side of authentication. The ownership line, two tiers of authorization, the Resolver approach, owning the authentication screens including their design
+- [0043](../adr/0043-middleware-policy.md) — `proxy.ts` goes only as far as optimistic pre-screening. It is never the only line of defense
+- [0113](../adr/0113-development-access-surface.md) — the control surface of the development endpoints, and the environment check that closes them
+- [0112](../adr/0112-data-classification-cache-boundary.md) — the checkpoints along the path credentials travel. The `bearerToken` exception
+- [0030](../adr/0030-environment-variable-management.md) — how `AUTH_*` is read, the secret boundary, taint
+- [0011](../adr/0011-no-docker.md) — the definition of environments, and the environments in which the development-only endpoints open
+- [0070](../adr/0070-backend-role-separation.md) — authentication itself is out of scope. The authoritative copy of roles is the backend's
+- [0021](../adr/0021-frontend-responsibility.md) — which layers may touch `adapters/server/auth`
+- [0080](../adr/0080-error-handling.md) — classifying 401 / 403, and not folding `unauthenticated`
+- [0111](../adr/0111-csp-security-headers.md) — where response headers are placed. The `Cache-Control` held by `proxy.ts`

@@ -1,416 +1,416 @@
-# レンダリングの読み方
+# Understanding Rendering
 
-この文書は、Next.js App Router のレンダリングについて**間違えやすいところ**だけを集めたものである。何をどこで描くかの方針は [ADR 0040](../adr/0040-routing-rendering-strategy.md)（ルーティング / レンダリング戦略）が、コンポーネント内部の書き方は [ADR 0042](../adr/0042-react19-rendering-api.md)（React 19 レンダリング API）が持つ。ここはその手前で、**用語の意味を取り違えたまま設計してしまうこと**を防ぐために置く。
+This document collects only **the places that are easy to get wrong** about rendering in the Next.js App Router. The policy on what to render where belongs to [ADR 0040](../adr/0040-routing-rendering-strategy.md) (routing / rendering strategy), and how to write the inside of a component belongs to [ADR 0042](../adr/0042-react19-rendering-api.md) (React 19 rendering APIs). This page sits before those, to prevent **designing while the meaning of the terms is misunderstood**.
 
-判断に迷ったら ADR を優先する。この文書は説明であって規約ではない。
+When in doubt, the ADR wins. This document is an explanation, not a rule.
 
-## 用語
+## Terminology
 
-この 5 つを取り違えると、以降の議論が全部ずれる。
+Confuse these five, and every discussion that follows drifts.
 
-| 語 | 意味 | よくある取り違え |
+| Term | Meaning | Common confusion |
 | --- | --- | --- |
-| **Server Component** | サーバでだけ実行され、ブラウザへコードが送られないコンポーネント。App Router の既定 | 「速いコンポーネント」ではない。実行場所の話 |
-| **Client Component** | `"use client"` を持つファイルから始まるコンポーネント。ブラウザへコードが送られ、操作を受け付ける | **「サーバで描かれない」ではない**（後述） |
-| **SSR** | サーバで HTML を組み立てて返すこと | Server Component 専用の仕組みではない。Client Component も対象 |
-| **hydration** | 返ってきた HTML に、ブラウザ側で event handler を取り付けて操作可能にすること | HTML を作り直すことではない。既にある DOM に紐付けるだけ |
-| **RSC Payload** | Server Component を描いた結果の直列表現。HTML とは別に配られ、ブラウザ側が木を突き合わせるのに使う | HTML の別名ではない |
+| **Server Component** | A component that runs only on the server; its code is not sent to the browser. The App Router default | It is not "a fast component". It is about where it runs |
+| **Client Component** | A component starting from a file that has `"use client"`. Its code is sent to the browser, and it accepts interaction | **It does not mean "not rendered on the server"** (see below) |
+| **SSR** | Assembling HTML on the server and returning it | Not a mechanism exclusive to Server Components. Client Components are included |
+| **hydration** | Attaching event handlers in the browser to the returned HTML so it becomes interactive | It does not rebuild the HTML. It only binds to the DOM already there |
+| **RSC Payload** | The serialized result of rendering Server Components. Delivered separately from the HTML, and used by the browser to reconcile the tree | It is not another name for HTML |
 
-**Client Island** は正式な用語ではなく、「ほぼサーバで描かれた画面の中に、操作のために埋め込まれた小さい Client Component」を指す通称である。このリポジトリではこの形を既定にしている。
+**Client Island** is not an official term but a nickname for "a small Client Component embedded for interaction inside a screen rendered almost entirely on the server". This repository makes this shape the default.
 
-## 1 リクエストで起きること
+## What Happens in One Request
 
-順序を押さえると、後の誤解がほとんど消える。
+Once you have the order, most later misunderstandings disappear.
 
-1. サーバが **Server Component** を描き、結果を **RSC Payload** にする
-2. サーバが **Client Component も描いて**、Payload と合わせて **HTML** を組み立てる
-3. ブラウザが HTML を表示する。**画面はここで既に見えている**
-4. ブラウザが RSC Payload で木を突き合わせる
-5. ブラウザが JavaScript で **Client Component だけを hydration** する。**ここで操作可能になる**
+1. The server renders the **Server Components** and turns the result into the **RSC Payload**
+2. The server **also renders the Client Components**, and assembles the **HTML** together with the Payload
+3. The browser displays the HTML. **The screen is already visible at this point**
+4. The browser reconciles the tree with the RSC Payload
+5. The browser **hydrates only the Client Components** with JavaScript. **This is when it becomes interactive**
 
-**2 が最大の分かれ目である。** Client Component もサーバで HTML になる。`"use client"` は「サーバで描くな」という意味ではない。
+**Step 2 is the biggest fork in understanding.** Client Components also become HTML on the server. `"use client"` does not mean "do not render on the server".
 
-### 3 の時点で何が見えているか
+### What is visible at step 3
 
-**Server Component の結果も Client Component の結果も、両方すでに見えている。** 欠けているのは見た目ではなく反応で、ボタンは描かれているが押しても何も起きない、という状態である。
+**The results of both Server Components and Client Components are already visible.** What is missing is not appearance but response: the button is rendered, but pressing it does nothing.
 
-例外は 2 つある。
+There are two exceptions.
 
-- **Suspense の中でまだ解決していない部分**は fallback（待機表示）が出ている。中身も同じくサーバが描くが、届く時刻が後になる
-- **ブラウザにしか分からない値に依存する分岐**は、サーバ側の姿で描かれている。画面幅・ポインタの種類・`window` の有無がこれにあたる（後述）
+- **Parts inside Suspense that have not resolved yet** show the fallback (loading UI). Their contents are rendered by the server too, but arrive later
+- **Branches that depend on values only the browser knows** are rendered in their server-side form. Screen width, pointer type and whether `window` exists are such values (see below)
 
-この 2 つを除けば、**JavaScript が 1 行も動いていない時点で画面は完成している**。検索する側や、通信が細くて JavaScript の到着が遅れる利用者が見るのはこの状態である。
+Apart from these two, **the screen is complete before a single line of JavaScript has run**. This is the state seen by search engines, and by users on slow connections whose JavaScript arrives late.
 
-## 描く時点の違い
+## When Rendering Happens
 
-前節は「Server Component と Client Component が 1 リクエストの中でどう分担するか」だった。ここは別の軸で、**いつ・どの単位で描くか**を扱う。
+The previous section was about "how Server Components and Client Components divide the work within one request". This one is a different axis: **when, and in what unit, rendering happens**.
 
-3 つの軸が別物であることを先に押さえる。混ぜると議論が噛み合わない。
+First note that the three axes are separate things. Mixing them makes discussions talk past each other.
 
-| 軸 | 問い | 値 |
+| Axis | Question | Values |
 | --- | --- | --- |
-| どこで作るか | サーバか、ブラウザか | SSR / CSR |
-| いつ作るか | build 時か、リクエスト時か | Static rendering / Dynamic rendering |
-| どの単位で返すか | ページ丸ごとか、部分ごとか | 一括 / streaming |
+| Where it is built | Server or browser | SSR / CSR |
+| When it is built | At build time or at request time | Static rendering / Dynamic rendering |
+| In what unit it is returned | The whole page or part by part | All at once / streaming |
 
-**PPR が触るのは 2 つめと 3 つめであって、CSR / SSR ではない。** サーバで描く話に閉じており、「ブラウザで描くか」には関与しない。
+**PPR touches the second and third, not CSR / SSR.** It is confined to rendering on the server and has nothing to do with "whether to render in the browser".
 
-### CSR — 比較のために置く（App Router の既定ではない）
-
-```mermaid
-sequenceDiagram
-  participant B as ブラウザ
-  participant S as サーバ
-  B->>S: リクエスト
-  S-->>B: ほぼ空の HTML
-  Note over B: 画面は空のまま
-  B->>S: JavaScript を取得
-  Note over B: JavaScript が DOM を組み立てる
-  B->>S: データを取得
-  Note over B: ここで初めて中身が見える
-```
-
-**中身が見えるまでに JavaScript の到着とデータ取得を待つ。** App Router でこの形になるのは `ssr: false` を明示したときだけである。
-
-### Static rendering — build 時に描いて置いておく
+### CSR — for comparison (not the App Router default)
 
 ```mermaid
 sequenceDiagram
-  participant D as ビルド
-  participant S as サーバ / CDN
-  participant B as ブラウザ
-  D->>S: build 時に描いた HTML を置く
-  B->>S: リクエスト
-  S-->>B: 置いてある HTML をそのまま返す
-  Note over B: 中身は見えている。まだ操作できない
-  B->>S: JavaScript を取得
-  Note over B: hydration して操作可能になる
+  participant B as Browser
+  participant S as Server
+  B->>S: Request
+  S-->>B: Nearly empty HTML
+  Note over B: The screen stays empty
+  B->>S: Fetch JavaScript
+  Note over B: JavaScript builds the DOM
+  B->>S: Fetch data
+  Note over B: Content becomes visible only now
 ```
 
-**リクエスト時にサーバは何も描かない。** 速いが、build 時に決まらない情報は載せられない。
+**Before the content is visible, it waits for JavaScript to arrive and for data to be fetched.** In the App Router you get this shape only when you specify `ssr: false` explicitly.
 
-### Dynamic rendering — リクエストごとに描く
+### Static rendering — render at build time and keep it
 
 ```mermaid
 sequenceDiagram
-  participant S as サーバ
-  participant B as ブラウザ
-  B->>S: リクエスト
-  Note over S: このリクエストのために描く
-  S-->>B: 中身入りの HTML
-  Note over B: 中身は見えている。まだ操作できない
-  B->>S: JavaScript を取得
-  Note over B: hydration して操作可能になる
+  participant D as Build
+  participant S as Server / CDN
+  participant B as Browser
+  D->>S: Place the HTML rendered at build time
+  B->>S: Request
+  S-->>B: Return the stored HTML as is
+  Note over B: Content is visible. Not yet interactive
+  B->>S: Fetch JavaScript
+  Note over B: Hydrates and becomes interactive
 ```
 
-**リクエスト固有の情報を載せられる。** 代わりに、描き終わるまで最初の 1 バイトも返せない。
+**At request time the server renders nothing.** It is fast, but cannot carry information not settled at build time.
 
-### PPR — 殻を先に返し、穴を後から埋める
+### Dynamic rendering — render per request
 
 ```mermaid
 sequenceDiagram
-  participant D as ビルド
-  participant S as サーバ
-  participant B as ブラウザ
-  D->>S: build 時に静的な殻を描いて置く
-  Note over D,S: 動的な部分は Suspense の位置で穴にする
-  B->>S: リクエスト
-  S-->>B: 静的な殻をすぐ返す。穴は待機表示
-  Note over B: 殻はもう見えている
-  Note over S: 穴の中身をこのリクエストのために描く
-  S-->>B: 穴の中身を streaming で流し込む
-  Note over B: 穴が埋まる
-  B->>S: JavaScript を取得
-  Note over B: hydration して操作可能になる
+  participant S as Server
+  participant B as Browser
+  B->>S: Request
+  Note over S: Render for this request
+  S-->>B: HTML with content
+  Note over B: Content is visible. Not yet interactive
+  B->>S: Fetch JavaScript
+  Note over B: Hydrates and becomes interactive
 ```
 
-**Static の「すぐ返せる」と Dynamic の「リクエスト固有の情報を載せられる」を 1 つの route の中で両立させる。** 引き換えに、**どこが殻でどこが穴かを決めるのが `<Suspense>` の位置**になる。前の 3 つでは書いても書かなくても届く時刻が変わらなかったものが、ここでは配信の形そのものを決める。
+**It can carry request-specific information.** In exchange, not even the first byte can be returned until rendering finishes.
 
-### 対称性
+### PPR — return the static shell first, fill the dynamic holes later
 
-| | 最初の HTML が出るまで | リクエスト固有の情報 | 境界を決めるもの |
+```mermaid
+sequenceDiagram
+  participant D as Build
+  participant S as Server
+  participant B as Browser
+  D->>S: Render the static shell at build time and place it
+  Note over D,S: Dynamic parts become holes at the Suspense positions
+  B->>S: Request
+  S-->>B: Return the static shell at once. Holes show the loading UI
+  Note over B: The shell is already visible
+  Note over S: Render the holes' content for this request
+  S-->>B: Stream the holes' content in
+  Note over B: The holes are filled
+  B->>S: Fetch JavaScript
+  Note over B: Hydrates and becomes interactive
+```
+
+**It combines Static's "can return immediately" and Dynamic's "can carry request-specific information" within one route.** In exchange, **the position of `<Suspense>` decides what is static shell and what is dynamic hole**. Something that, in the previous three, changed nothing about arrival time whether you wrote it or not, here decides the very shape of delivery.
+
+### Symmetry
+
+| | Until the first HTML comes out | Request-specific information | What decides the boundary |
 | --- | --- | --- | --- |
-| CSR | JavaScript とデータを待つ | 載る | — |
-| Static rendering | 待たない | 載らない | — |
-| Dynamic rendering | サーバが描き終わるまで待つ | 載る | — |
-| PPR | 待たない | 載る | **`<Suspense>` の位置** |
+| CSR | Waits for JavaScript and data | Carried | — |
+| Static rendering | Does not wait | Not carried | — |
+| Dynamic rendering | Waits until the server finishes rendering | Carried | — |
+| PPR | Does not wait | Carried | **The position of `<Suspense>`** |
 
-**PPR だけが最後の列を持つ。** これが「Suspense が飾りから構造になる」ということであり、PPR の複雑さの出どころである。
+**Only PPR has the last column.** This is what "Suspense turns from decoration into structure" means, and it is where PPR's complexity comes from.
 
-## 間違えやすいこと
+## Common Mistakes
 
-### `"use client"` は「CSR にする指示」ではない
+### `"use client"` is not "an instruction to do CSR"
 
-`"use client"` が宣言しているのは、**client bundle に入る境界**である。レンダリングの場所ではない。
+What `"use client"` declares is **the boundary of what goes into the client bundle**. It is not where rendering happens.
 
-古い枠組み（サーバで HTML を返す SSR か、空の HTML に JavaScript が描く CSR かの二択）で読むと、`"use client"` が「CSR 側へ倒す指示」に見える。App Router にその二択は無い。既定は「サーバで HTML を作り、操作の要る部分だけブラウザで hydration する」の一本で、`"use client"` はその後半に参加するかどうかを決めているだけである。
+Read with the old framework (a binary choice between SSR, where the server returns HTML, and CSR, where JavaScript draws into empty HTML), `"use client"` looks like "an instruction to switch to the CSR side". The App Router has no such binary choice. The default is the single path "build HTML on the server, and hydrate in the browser only the parts that need interaction", and `"use client"` only decides whether a component takes part in the second half of that.
 
-**唯一の本物の CSR** は、`dynamic(..., { ssr: false })` のようにサーバでの描画を明示的に止めた場合である。これは意図して選ぶものであって、`"use client"` の一般的な帰結ではない。
+**The only real CSR** is when server rendering is explicitly turned off, as in `dynamic(..., { ssr: false })`. That is something chosen deliberately, not a general consequence of `"use client"`.
 
-### Client Component の下が全部 Client になるとは限らない
+### Not everything under a Client Component becomes Client
 
-伝染するのは **module graph（import の連鎖）** であって、**画面の親子関係**ではない。
+What spreads is **the module graph (the chain of imports)**, not **the parent-child relationship on screen**.
 
-- **伝染する**: `"use client"` のファイルが `import` したもの、および直接描画するコンポーネント
-- **伝染しない**: `children` や props として**渡された**もの
+- **Spreads**: what a `"use client"` file `import`s, and the components it renders directly
+- **Does not spread**: what is **passed** as `children` or props
 
-渡されたものはサーバで描かれ、**描画済みの結果**として Client Component に置かれる。Client Component はそれを import していないので、client bundle には入らない。
+What is passed is rendered on the server and placed into the Client Component as **an already-rendered result**. The Client Component does not import it, so it does not enter the client bundle.
 
-したがって「Server → Client → Server」の入れ子は成立する。Client Component に `children` の口を開け、そこへサーバで描いたものを差す形がその実装である。
+So nesting "Server → Client → Server" works. Opening a `children` slot on the Client Component and inserting something rendered on the server into it is how this is implemented.
 
 ```tsx
 // layout（Server Component）
 <ClientShell>{children}</ClientShell>   // children はサーバで描かれたまま渡る
 ```
 
-**確かめ方**: `curl` で初期 HTML を取り、中身が入っているかを見る。JavaScript を実行する前の状態が見えるので、SSR されたかどうかがそのまま判る。
+**How to check**: fetch the initial HTML with `curl` and see whether the content is there. You see the state before any JavaScript runs, so whether it was SSR'd is directly visible.
 
-### サーバでしか分からないこと・ブラウザでしか分からないことがある
+### Some things only the server knows, and some only the browser knows
 
-画面幅・ポインタの種類・`window` の有無は、サーバでは決められない。そこで **サーバ側の初期値**を決めておき、hydration の後に本当の値へ入れ替える形になる。
+Screen width, pointer type and whether `window` exists cannot be decided on the server. So the shape is to decide a **server-side initial value** and replace it with the real value after hydration.
 
-このリポジトリの [`capabilities/use-media-query.ts`](../../src/capabilities/use-media-query.ts) はサーバで常に `false` を返す。つまり**初回の HTML は「一致していない側」の姿**であり、一致した側の姿は hydration の後に現れる。
+This repository's [`capabilities/use-media-query.ts`](../../src/capabilities/use-media-query.ts) always returns `false` on the server. So **the first HTML is the "not matching" form**, and the matching form appears after hydration.
 
-この性質から、次の使い分けが出る。
+From this property, the following division of use follows.
 
-- **本文の幅・順序が変わる出し分けには使わない**。hydration の前後で配置が動く。CSS の media query（Tailwind の `lg:` など）で行う（[ADR 0051](../adr/0051-styling-system.md)）
-- **押せる必要のある操作の有無にも使わない**。JavaScript が届くまで押せない操作ができる
-- **使ってよいのは、DOM を残したままでは成立しないもの**（focus trap など）と、**現れても位置が動かないもの**
+- **Do not use it to switch content in ways that change the width or order of the body**. The layout moves before and after hydration. Do it with CSS media queries (Tailwind's `lg:` and the like) ([ADR 0051](../adr/0051-styling-system.md))
+- **Do not use it for whether an interaction that must be pressable exists either**. It creates interactions that cannot be pressed until JavaScript arrives
+- **What may use it is what cannot work while leaving the DOM in place** (focus traps and the like), and **what does not move position when it appears**
 
-**この非対称は、描画だけでなく「送られてきた値の読み方」にも及ぶ。** `datetime-local` の入力が運ぶのは
-**時差を持たない壁時計**（`2026-09-01T09:00`）で、これを受け口が `new Date()` に掛けると**実行環境の
-時差**で解釈される。配備先はたいてい UTC なので、入力した人の時差との差ぶんだけずれた瞬間が保存される。
-hydration の警告も型エラーも出ず、**保存された値だけが静かに間違う**。
+**This asymmetry extends beyond rendering to "how a value sent in is read".** What a `datetime-local` input carries is
+**a wall-clock time with no offset** (`2026-09-01T09:00`), and if the receiving endpoint passes it to `new Date()`, it is interpreted in **the offset of the
+runtime environment**. The deployment target is usually UTC, so an instant shifted by the difference from the inputting person's offset is stored.
+There is no hydration warning and no type error; **only the stored value is quietly wrong**.
 
-どの時差で読むべきかを知っているのは入力した側だけなので、時差そのものを一緒に送るか、送信の前に
-瞬間へ確定させる。server 側で裸の壁時計を `new Date()` に掛けない。
+Only the inputting side knows which offset it should be read in, so either send the offset itself along with it, or settle it into an
+instant before submitting. On the server side, do not pass a bare wall-clock time to `new Date()`.
 
-壁時計と時差の対で受ける受け口は、**既に時差を持つ綴りを拒む**。`new Date` で読めるかだけを見る
-検証はそれを通してしまい、壁時計として読み直せない綴りから意図と違う瞬間が確定する。
+A receiving endpoint that accepts a pair of wall-clock time and offset **rejects spellings that already carry an offset**. A validation that only checks whether
+`new Date` can read it lets them through, and an instant different from the intent is settled from a spelling that cannot be re-read as a wall-clock time.
 
-### hydration mismatch は偶発的ではない
+### Hydration mismatches are not accidental
 
-サーバが描いた HTML とブラウザが描いた結果が食い違うと起きる。原因は 2 つある。
+They happen when the HTML the server rendered and the result the browser rendered disagree. There are two causes.
 
-**1. サーバとブラウザで違う値を使った。** 典型は現在時刻、乱数、`window` 依存の値である。日時については [実装規約「表示と書式」](../rules.md#formatting)が「server と client で異なる値を初期 render しない」を規約として持つ。
+**1. The server and the browser used different values.** Typical are the current time, random numbers and values that depend on `window`. For dates and times, [the implementation rules on display and formatting](../rules.md#formatting) hold "do not render different values on server and client in the initial render" as a rule.
 
-**2. React の外から DOM を書き換えた。** React が比べる相手は「サーバが返した HTML」ではなく **hydrate する瞬間の DOM** なので、その前に誰かが属性を足すと、値が両側で同じでも食い違いとして報告される。書き換える主体は自分のコードとは限らない —— focus の閉じ込めや背面の inert 化を行うライブラリは、React を通さずに `document` へ直接手を入れる。
+**2. The DOM was rewritten from outside React.** What React compares against is not "the HTML the server returned" but **the DOM at the moment of hydration**, so if someone adds an attribute before that, it is reported as a mismatch even though the values are the same on both sides. The one rewriting it is not necessarily your own code — libraries that trap focus or make the background inert reach into `document` directly without going through React.
 
-**2 は hydration が 1 回の commit で終わらないときに起きる。** hydration は Suspense 境界ごとに分かれ、境界の外は先に、中は後から hydrate される。先に hydrate された島の effect が、まだ hydrate されていない側の DOM を書き換えると、後からそこへ来た React が食い違いを見る。**島が置かれた位置と、書き換える相手の位置が違う**ことが条件なので、値を揃えても消えない。
+**Cause 2 happens when hydration does not finish in one commit.** Hydration is split per Suspense boundary: outside a boundary is hydrated first, inside later. If the effect of an island hydrated first rewrites DOM on the side not yet hydrated, React arriving there later sees a mismatch. The condition is that **the island's position and the position of what it rewrites differ**, so aligning values does not make it go away.
 
-**直すには、書き換えを「相手が hydrate された後」へ送る必要がある。時計では送れない。** 実測で外れた手を挙げる —— `requestIdleCallback` は WebKit が持たず例外になる。`setTimeout` は早すぎる。`requestAnimationFrame` は背面 tab で発火しない。`startTransition` は `useSyncExternalStore` の更新が同期で走るため効かない。`load` は effect の時点で `readyState` が既に `complete` のことがある。**相手の側から「hydrate された」と言わせる**か、**書き換えられる相手そのものを、先に hydrate される
-要素へ変える**かのどちらかになる。このリポジトリは後者を採り、画面本体を root layout が描く 1 要素で
-包んでいる（`src/app/layout.tsx` の `app-root`）。
+**To fix it, the rewrite has to be deferred until "after the other side is hydrated". A timer cannot defer it.** The approaches that measurably missed — `requestIdleCallback` is missing in WebKit and throws. `setTimeout` is too early. `requestAnimationFrame` does not fire in a background tab. `startTransition` does not work because `useSyncExternalStore` updates run synchronously. `load` sometimes has `readyState` already at `complete` by the time of the effect. It comes down to either **having the other side say "I am hydrated"**, or **changing what gets rewritten into an
+element that is hydrated first**. This repository takes the latter, wrapping the screen body in one element rendered by the root layout
+(`app-root` in `src/app/layout.tsx`).
 
-**確かめ方**: ブラウザの console を見る。mismatch が起きていれば警告が出る。出ていなければ起きていない。
+**How to check**: look at the browser console. If a mismatch happened, there is a warning. If there is none, it did not happen.
 
-### Server Component は「速い」わけではない
+### Server Components are not "fast"
 
-Server Component の利点は、**そのコードがブラウザへ送られないこと**と、**サーバ側の資源（設定・秘密・バックエンド接続）へ直接届くこと**である。実行そのものが速いわけではない。
+The advantages of a Server Component are that **its code is not sent to the browser** and that **it reaches server-side resources (configuration, secrets, backend connections) directly**. Execution itself is not faster.
 
-逆に Client Component の代償は、**その分の JavaScript がブラウザへ送られること**である。SSR が壊れることではない。したがって「Client Component にすると SSR が死ぬ」を心配する必要はなく、心配すべきは**送るコードの量**である。
+Conversely, the cost of a Client Component is that **that much JavaScript is sent to the browser**. It is not that SSR breaks. So there is no need to worry that "making it a Client Component kills SSR"; what to worry about is **the amount of code sent**.
 
-### Server Action の `redirect()` は Route Handler へ遷移しない
+### A Server Action's `redirect()` does not navigate to a Route Handler
 
-Server Action の中で `redirect()` を呼ぶと、応答は「この URL へ移れ」という指示になり、**遷移を実際に行うのは client router** である。router が知っているのは route segment（`page.tsx`）であって Route Handler（`route.ts`）ではないため、**Route Handler を指した redirect は要求が一度も出ないまま URL だけが書き換わる。** 同一生成元の絶対 URL にしても同じで、client router から見れば内部の遷移だからである。
+Calling `redirect()` inside a Server Action makes the response an instruction "move to this URL", and **the one actually navigating is the client router**. The router knows route segments (`page.tsx`), not Route Handlers (`route.ts`), so **a redirect pointing at a Route Handler rewrites only the URL without a single request going out.** The same holds even with a same-origin absolute URL, because from the client router's point of view it is an internal navigation.
 
-副作用を起こしたあとに Route Handler へ渡す必要があるなら、Server Action ではなく**素の form 送信**（`<form method="post" action="/...">`）で受ける。ブラウザ自身が遷移するので、`Response.redirect` の連鎖も cookie の往復もそのまま通る。
+If you need to hand off to a Route Handler after causing a side effect, receive it with **a plain form submission** (`<form method="post" action="/...">`) rather than a Server Action. The browser itself navigates, so a chain of `Response.redirect`s and the cookie round trip go through as is.
 
-代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。同梱サンプルでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
+The cost is that a plain submission cannot carry state over. **Per-field errors and the submitting indicator** carried on `useActionState`'s return value do not appear, so failures are returned through URL search conditions (`?error=...`). In the sample, the authorization round trip of `/dev/session` takes this shape (`DEV_AUTHORIZE_PATH` in [`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts)).
 
-**確かめ方**: Server Action から `redirect("/api/…")` を呼ぶ画面を開き、操作したあとに開発サーバのログを見る。URL は変わっているのに、その `GET` が 1 行も出ない。
+**How to check**: open a screen that calls `redirect("/api/…")` from a Server Action, operate it, and look at the development server's log. The URL has changed, but not a single line for that `GET` appears.
 
-## このリポジトリでの現れ方
+## How It Shows Up in This Repository
 
-| 層 | 既定 | 備考 |
+| Layer | Default | Notes |
 | --- | --- | --- |
-| `app/` の `page.tsx` / `layout.tsx` | Server | 薄い層に留め、取得と組み立ては `features` が持つ |
-| `app/**/route.ts` | サーバのみ | HTTP の口。[ADR 0025](../adr/0025-app-layer-elements.md) |
-| `features/` | 原則 Server。操作の要る部分だけ Client Island | 島は小さく切り、器は Server のまま保つ |
-| `components/` | 部品による | 操作を持つ部品は Client |
-| `capabilities/` | Client | ブラウザの能力を購読する hook。[ADR 0022](../adr/0022-capabilities-kernel.md) |
-| `stores/` | Client | 横断する client 状態。[ADR 0023](../adr/0023-stores-kernel.md) |
-| `adapters/server` | サーバのみ | `server-only` を宣言している |
-| `adapters/client` | Client | 同一オリジンへの薄い取得。[ADR 0024](../adr/0024-adapters-server-client-split.md) |
+| `page.tsx` / `layout.tsx` in `app/` | Server | Kept a thin layer; fetching and assembly belong to `features` |
+| `app/**/route.ts` | Server only | HTTP endpoints. [ADR 0025](../adr/0025-app-layer-elements.md) |
+| `features/` | Server in principle. A Client Island only for parts that need interaction | Cut islands small, and keep the layout shell Server |
+| `components/` | Depends on the component | Components with interaction are Client |
+| `capabilities/` | Client | Hooks that subscribe to browser capabilities. [ADR 0022](../adr/0022-capabilities-kernel.md) |
+| `stores/` | Client | Cross-cutting client state. [ADR 0023](../adr/0023-stores-kernel.md) |
+| `adapters/server` | Server only | Declares `server-only` |
+| `adapters/client` | Client | Thin same-origin fetching. [ADR 0024](../adr/0024-adapters-server-client-split.md) |
 
-**器を Client にせず、島を差す。** 横断的な操作を足したくなったとき、外枠そのものを `"use client"` にすると、外枠が import しているものが全部ブラウザへ行く。外枠に props の口を開け、そこへ小さい Client Component を渡す形にすれば、外枠は Server のまま保てる。[`components/shell/app-shell`](../../src/components/shell/app-shell/) が `headerActions` / `sidebar` の口を持っているのはこのためである。
+**Do not make the layout shell Client; insert islands.** When you want to add a cross-cutting interaction, making the outer frame itself `"use client"` sends everything the outer frame imports to the browser. Open a props slot on the outer frame and pass a small Client Component into it, and the outer frame stays Server. This is why [`components/shell/app-shell`](../../src/components/shell/app-shell/) has the `headerActions` / `sidebar` slots.
 
-## 他に踏みやすい語
+## Other Terms That Trip People Up
 
-知らない語より、**知っている語が別の意味で使われている**ほうが危ない。以下は後者を優先して並べたものである。網羅ではなく、この構成を読むのに要るものに絞ってある。全語の定義は Next.js 同梱の用語集（`node_modules/next/dist/docs/01-app/04-glossary.md`）にある。
+**A term you know being used with a different meaning** is more dangerous than a term you do not know. The following list puts that kind first. It is not exhaustive; it is narrowed to what is needed to read this setup. Definitions of every term are in the glossary bundled with Next.js (`node_modules/next/dist/docs/01-app/04-glossary.md`).
 
-1 行では足りないものは「[表では足りない語](#表では足りない語)」で扱う。
+Terms that one line cannot cover are handled in "[Terms a Table Cannot Cover](#terms-a-table-cannot-cover)".
 
 ### Server / Client
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| `"use server"` | **`"use client"` の反対ではない。** client から呼べるサーバ関数を宣言する印 | 「このファイルはサーバで動く」の意味だと読む。既定でサーバなので、そういう宣言は要らない |
-| Server Function | `"use server"` を付けた非同期関数。client から呼べる | — |
-| Server Action | Server Function のうち、form の `action` や Client Component の props として渡されたもの | Server Function との差は**呼ばれ方**だけ |
-| Client Bundles | ブラウザへ送られる JavaScript の塊 | Client Component の代償はここであって、SSR の可否ではない |
-| `server-only` / `client-only` | 反対側へ import したらビルドを落とす印 | 実行を止めるものではなく、依存の混線を build 時に気付かせるもの |
+| `"use server"` | **Not the opposite of `"use client"`.** A marker declaring server functions that can be called from the client | Reading it as "this file runs on the server". The server is the default, so no such declaration is needed |
+| Server Function | An async function marked `"use server"`. Callable from the client | — |
+| Server Action | A Server Function passed as a form's `action` or as a Client Component's props | The only difference from a Server Function is **how it is called** |
+| Client Bundles | The chunks of JavaScript sent to the browser | This is where a Client Component's cost lies, not in whether SSR works |
+| `server-only` / `client-only` | Markers that fail the build if imported on the opposite side | They do not stop execution; they surface tangled dependencies at build time |
 
-### ルーティング
+### Routing
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| Route Segment | URL の 1 階層に対応するフォルダ | — |
-| Route Handler | `route.ts`。HTTP の口 | Pages Router の「API Routes」とは別物。同じ階層に `page.tsx` と共存できない |
-| Proxy | `proxy.ts`。route に届く前に通る層 | **Next 16 で `middleware.ts` から改称された。** 「middleware」で調べると旧名の情報に当たる |
-| Parallel Route / Slot | `@name/` ごと独立して描かれ、layout が props で受け取る枝 | 下記 2 つを踏みやすい |
+| Route Segment | A folder corresponding to one level of the URL | — |
+| Route Handler | `route.ts`. An HTTP endpoint | A different thing from the Pages Router's "API Routes". Cannot coexist with `page.tsx` at the same level |
+| Proxy | `proxy.ts`. The layer passed through before reaching a route | **Renamed from `middleware.ts` in Next 16.** Searching for "middleware" hits information under the old name |
+| Parallel Route / Slot | A branch rendered independently per `@name/` and received by the layout as props | Easy to trip over the two points below |
 
-**slot に対応する route を持たない画面では、直前の slot がそのまま残る。** `default.tsx` へ戻るのは
-読み込み直したときだけで、画面を跨ぐ移動（soft navigation）では戻らない。したがって slot を足したら、
-**その配下の全 route ぶんの slot を置く**。置かないと、保存を終えて一覧へ送られた先に前の画面の
-slot が残る。
+**On a screen that has no route corresponding to a slot, the previous slot stays as it is.** It goes back to `default.tsx` only
+on a reload, not on a move across screens (soft navigation). So when you add a slot,
+**place the slot for every route beneath it**. Otherwise, after a save sends you to the list, the previous screen's
+slot remains.
 
-**slot は中身が空の画面にも要素を渡す。** 渡すのは「`null` を返す component」であって `undefined` では
-ないため、layout 側の `slot === undefined` という判定は効かない。空のときに場所を空けたくないなら、
-**描かれた結果が空かどうか**で畳む（`empty:hidden` など）。
+**A slot passes an element even to a screen whose content is empty.** What it passes is "a component that returns `null`", not `undefined`,
+so a check like `slot === undefined` on the layout side does not work. If you do not want to reserve space when it is empty,
+collapse it by **whether the rendered result is empty** (`empty:hidden` and the like).
 
-### 描画の決まり方
+### How the Rendering Mode Is Decided
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| Static rendering | build 時に描いておく | 明示的に選ぶものではない |
-| Dynamic rendering | リクエストごとに描く | 同上。**使った API で自動的に決まる** |
-| Runtime rendering | Dynamic rendering の別名 | **3 つめの描画方式ではない。** 資料によって呼び名が揺れているだけ |
-| Prerendering / Static Shell | 事前に描いてある部分。ブラウザへ即座に返る | — |
-| Streaming / Suspense boundary | 描けたところから順に送る仕組みと、その区切り | — |
-| Loading UI | Suspense が解決するまで出る表示。`loading.tsx` がこれにあたる | `loading.tsx` は「読み込み中の画面」ではなく、**そのセグメントに Suspense を敷く宣言**である |
+| Static rendering | Rendered ahead at build time | Not something you choose explicitly |
+| Dynamic rendering | Rendered per request | Same as above. **Decided automatically by the APIs you use** |
+| Runtime rendering | Another name for Dynamic rendering | **Not a third rendering mode.** The name merely varies between sources |
+| Prerendering / Static Shell | The parts rendered in advance. Returned to the browser immediately | — |
+| Streaming / Suspense boundary | The mechanism that sends parts in order as they finish rendering, and its divisions | — |
+| Loading UI | What is shown until Suspense resolves. `loading.tsx` is this | `loading.tsx` is not "a loading screen" but **a declaration that lays a Suspense over that segment** |
 
-### キャッシュ（名前が似ていて寿命が違う）
+### Caches (similar names, different lifetimes)
 
-| 語 | 生存範囲 | 取り違え |
+| Term | Lifetime | Confusion |
 | --- | --- | --- |
-| Memoization | **1 リクエストの描画中だけ**。同じ `fetch` GET は自動で 1 回にまとまる。`fetch` 以外は React の `cache()` を使う | 「キャッシュした」と言うと次のリクエストにも残ると読まれる。残らない |
-| Data Cache / Revalidation | **リクエストを跨いで残る**。`tags` を無効化して捨てる | 上と同じ「キャッシュ」の語で呼ばれる |
-| Client Cache | **ブラウザが持つ** RSC Payload の控え。戻る / 進むで再利用される | サーバ側のキャッシュと混同する。再読み込みで消える |
+| Memoization | **Only during the rendering of one request**. Identical `fetch` GETs are automatically collapsed into one. For anything other than `fetch`, use React's `cache()` | Saying "it is cached" is read as surviving into the next request. It does not |
+| Data Cache / Revalidation | **Survives across requests**. Discarded by invalidating `tags` | Called by the same word "cache" as above |
+| Client Cache | The copy of the RSC Payload **held by the browser**. Reused on back / forward | Confused with server-side caches. Disappears on reload |
 
-**Route Handler は React の component tree の外にある。** `fetch` の自動 memoization が効くのは component tree の中なので、`route.ts` から呼ぶ経路では同じ前提を置かない。
+**Route Handlers are outside React's component tree.** Automatic `fetch` memoization works inside the component tree, so do not assume the same for paths called from `route.ts`.
 
-**1 描画の trace に同じ取得が複数本見えても、memoization の失敗とは限らない。** 再試行は memoization より
-内側（fetch wrapper の試行）で起きるので、`cache()` が効いていても試行の数だけ span は増える。先に応答を
-見る —— 失敗した試行が並んでいれば再試行であり、成功した呼び出しが別々の呼び出し元から並んでいれば
-memoization が効いていない。
+**Seeing the same fetch several times in one rendering's trace is not necessarily a memoization failure.** Retries happen inside
+memoization (attempts of the fetch wrapper), so even when `cache()` works, spans multiply by the number of attempts. Look at the responses
+first — if failed attempts line up, they are retries; if successful calls line up from separate callers,
+memoization is not working.
 
-### 遷移
+### Navigation
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| Client-side navigation | ページ全体を作り直さず、変わった部分だけ差し替える遷移 | `<a>` による通常の遷移とは別物。`Link` はこちら |
-| Prefetching | 遷移先を先読みしておくこと | — |
-| `router.refresh()` | サーバから描き直すが、**client state は保つ** | ブラウザの再読み込みとは別物。あちらは client state を捨てる |
-| Version skew | 利用者が開いたままの間に新しい版がデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
+| Client-side navigation | Navigation that swaps only the changed parts without rebuilding the whole page | A different thing from ordinary navigation by `<a>`. `Link` does this kind |
+| Prefetching | Loading the destination ahead of time | — |
+| `router.refresh()` | Re-renders from the server, but **keeps client state** | A different thing from a browser reload, which discards client state |
+| Version skew | A new version is deployed while a user keeps the page open, and old and new disagree | Tends to be dismissed as "it breaks occasionally", but the cause has a name |
 
-### 境界とエラー
+### Boundaries and Errors
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| Error Boundary | 配下で投げられた例外を捕まえて代わりの表示を出す仕組み。`error.tsx` がこれにあたる | **Client Component でなければならない。** また production では Server Component から投げられた例外の本文が伏せられ、境界には汎用の文言と `digest` しか届かない（[ADR 0080](../adr/0080-error-handling.md)） |
+| Error Boundary | The mechanism that catches exceptions thrown beneath it and shows a substitute. `error.tsx` is this | **It must be a Client Component.** Also, in production the body of an exception thrown from a Server Component is hidden, and only a generic message and `digest` reach the boundary ([ADR 0080](../adr/0080-error-handling.md)) |
 
-### ルーティングの残り
+### More Routing
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| Dynamic route segment | `[id]`。値が入る階層 | — |
-| Catch-all segment | `[...slug]` / `[[...slug]]`。以降の階層をまとめて受ける | — |
-| Private Folder `_name` | **URL に現れない**フォルダ。ルーティングの対象から外す | **URL に出ないフォルダは 2 種類ある。** `(name)` は器を分けるため、`_name` はルーティングから外すため。目的が違う |
+| Dynamic route segment | `[id]`. A level that takes a value | — |
+| Catch-all segment | `[...slug]` / `[[...slug]]`. Takes all following levels at once | — |
+| Private Folder `_name` | A folder that **does not appear in the URL**. Excluded from routing | **There are two kinds of folders that do not appear in the URL.** `(name)` is for separating layout shells, `_name` for excluding from routing. Their purposes differ |
 
-### ビルドと配信
+### Build and Delivery
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| ISR（Incremental Static Regeneration） | 静的に描いたものを期限付きで作り直す | 名前が難しいだけで、やっていることは「静的だが古くなったら描き直す」 |
-| Static Export | ページを全部静的ファイルとして出す構成 | 採るとサーバが無くなるため、Request-time API も Route Handler も使えなくなる |
+| ISR (Incremental Static Regeneration) | Rebuilds statically rendered output with an expiry | Only the name is difficult; what it does is "static, but re-rendered once stale" |
+| Static Export | A setup that outputs every page as static files | Adopting it removes the server, so neither Request-time APIs nor Route Handlers can be used |
 
-### その他
+### Other
 
-| 語 | 意味 | 取り違え |
+| Term | Meaning | Confusion |
 | --- | --- | --- |
-| `params` / `searchParams` は Promise | Next 15 以降、`await` してから読む | 同期で読めた頃のコード例が大量に残っている |
-| Edge runtime / Node.js runtime | 実行環境が 2 つある | [`instrumentation.ts`](../../src/instrumentation.ts) が `NEXT_RUNTIME` で分岐しているのはこのため |
-| Turbopack | 既定のバンドラ | webpack 前提の設定情報に当たることがある |
+| `params` / `searchParams` are Promises | Since Next 15, read them after `await` | Plenty of code examples from when they could be read synchronously remain |
+| Edge runtime / Node.js runtime | There are two runtime environments | This is why [`instrumentation.ts`](../../src/instrumentation.ts) branches on `NEXT_RUNTIME` |
+| Turbopack | The default bundler | You may run into configuration information that assumes webpack |
 
-## 表では足りない語
+## Terms a Table Cannot Cover
 
-### Request-time API — 触ると描画方式が変わる
+### Request-time API — touching one changes the rendering mode
 
-`cookies()` / `headers()` / `searchParams` / `draftMode()` の 4 つ。これらに触れたコンポーネントは、その時点で **dynamic rendering へ倒れる**。
+The four `cookies()` / `headers()` / `searchParams` / `draftMode()`. A component that touches one of these **falls over into dynamic rendering** at that point.
 
-倒れるのはページ全体ではなく、触れたコンポーネントを含む区画である。したがって木の深いところにある小さなコンポーネントが `cookies()` を読んだだけで、その区画は毎リクエスト描かれるようになる。
+What falls over is not the whole page but the region containing the component that touched it. So merely having a small component deep in the tree read `cookies()` makes that region render on every request.
 
-**「読むだけ」という感覚と実際の影響が釣り合わない。** Cache Components を持たないモデル（静的が既定で、触れた区画が黙って動的へ倒れる）では、静的に配れるはずだったところが動的になっていることに書いた側は気付きにくい。このリポジトリのモデル（[有効にしている](#このリポジトリは有効にしている)）では黙って倒れることはなく、殻の外で触れると build が落ちる —— 触れる部分は穴（`<Suspense>` の内側）へ置く。どちらのモデルでも、静的に保ちたい部分とリクエストごとに変わる部分は Suspense で区切って別々に扱う。
+**The feeling of "just reading it" and the actual impact do not match.** In the model without Cache Components (static by default, and a touched region silently falls over to dynamic), the author rarely notices that something which could have been delivered statically has become dynamic. In this repository's model ([enabled](#this-repository-enables-it)) nothing falls over silently; touching one outside the static shell fails the build — place the touching part in a dynamic hole (inside `<Suspense>`). In either model, separate with Suspense the parts you want to keep static from the parts that change per request, and treat them separately.
 
-### Route Group `(name)` — URL に出ないだけではない
+### Route Group `(name)` — more than just not appearing in the URL
 
-括弧で囲んだフォルダは URL に現れない。`app/(marketing)/about/page.tsx` は `/about` である。ここまでは知られているが、**副作用が 2 つある**。
+A folder in parentheses does not appear in the URL. `app/(marketing)/about/page.tsx` is `/about`. That much is well known, but **it has two side effects**.
 
-- **グループごとに root layout を分けられる。** 分けた場合、**異なる root layout を跨ぐ遷移はフルページリロードになる**（client-side navigation にならない）。器を分けたこと自体が遷移の質を変える
-- **別のグループが同じ URL へ解決するとエラーになる。** `(marketing)/about` と `(shop)/about` はどちらも `/about` なので共存できない
+- **Each group can have its own root layout.** If you split them, **navigation across different root layouts becomes a full page reload** (not client-side navigation). Splitting the layout shells itself changes the quality of navigation
+- **Different groups resolving to the same URL is an error.** `(marketing)/about` and `(shop)/about` are both `/about`, so they cannot coexist
 
-### Partial Prerendering (PPR) — 1 つの機能ではなくモデルの切り替え
+### Partial Prerendering (PPR) — not one feature but a switch of model
 
-**難しいのは機能そのものではなく、それまで前提にしていたモデルが崩れるところである。** 順に 4 つ崩れる。配信の形そのものは「[描く時点の違い](#描く時点の違い)」の図で先に見ておくと早い。
+**The hard part is not the feature itself but how the model you had assumed until then breaks down.** Four things break, in order. The shape of delivery itself is quicker to grasp from the diagrams in "[When Rendering Happens](#when-rendering-happens)" first.
 
-**1 つの route は静的か動的かのどちらか、という前提が消える。** PPR は 1 つの route の中に静的な部分と動的な部分を同居させる。build 時に描ける範囲を「静的な殻」として出力し、描けない部分には穴を空けておく。リクエスト時にその穴へ動的な中身を streaming で流し込む。
+**The assumption that a route is either static or dynamic disappears.** PPR lets static and dynamic parts live together within one route. The range renderable at build time is output as a "static shell", and holes are left in the parts that cannot be rendered. At request time, dynamic content is streamed into those holes.
 
-**Suspense の役割が変わる。** それまで `<Suspense>` は「待っている間に代わりを出す」ための飾りだった。PPR ではそれが**静的と動的の境界線そのもの**になる。書き方は同じで意味だけが重くなり、境界を 1 つ動かすと静的に配れる範囲が変わる。
+**The role of Suspense changes.** Until then, `<Suspense>` was decoration for "showing a substitute while waiting". Under PPR it becomes **the boundary line between static and dynamic itself**. The syntax is the same and only its meaning gets heavier; moving one boundary changes how much can be delivered statically.
 
-**既定が反転する。** データ取得は**動的が既定**になり、キャッシュしたいものに `"use cache"` を付けて選ぶ形になる。従来モデルの「静的が既定で、動的にしたいものが opt-out」とは向きが逆である。
+**The default flips.** Data fetching becomes **dynamic by default**, and you opt in by marking what you want cached with `"use cache"`. That is the reverse direction of the traditional model's "static by default, opt out what you want dynamic".
 
-**遷移の意味論まで変わる。** client-side navigation が React の `<Activity>` を使うようになり、前の route が unmount されずに隠されるだけになる。**戻ると state が残っている。** 便利だが、「開いたまま離れた」状態が残る前提で作っていない部品は影響を受ける。
+**Even navigation semantics change.** Client-side navigation comes to use React's `<Activity>`, and the previous route is merely hidden rather than unmounted. **Going back, the state is still there.** Convenient, but components not built on the assumption that an "opened and left" state remains are affected.
 
-#### 3 つの語の関係
+#### How the three terms relate
 
-| 語 | 位置づけ |
+| Term | Position |
 | --- | --- |
-| `"use cache"` | **指示子**。route / コンポーネント / 関数に「キャッシュしてよい」と印を付ける。ファイル先頭なら全 export、関数の先頭ならその戻り値が対象 |
-| Cache Components | **機構**。`"use cache"` を軸に、静的・キャッシュ済み・動的を 1 つの route の中で混ぜられるようにする。寿命は `cacheLife()`、タグ付けは `cacheTag()` |
-| Partial Prerendering (PPR) | **その機構で得られる描画の形**。静的な殻を即座に返し、動的な部分は準備でき次第 streaming で流し込む |
+| `"use cache"` | **A directive**. Marks a route / component / function as "may be cached". At the top of a file it covers every export; at the top of a function, that function's return value |
+| Cache Components | **A mechanism**. Built around `"use cache"`, it allows static, cached and dynamic to be mixed within one route. Lifetime via `cacheLife()`, tagging via `cacheTag()` |
+| Partial Prerendering (PPR) | **The rendering shape obtained from that mechanism**. Returns the static shell immediately, and streams in the dynamic parts as soon as they are ready |
 
-`"use client"` / `"use server"` と字面が揃っているが、**3 つで 1 組の選択肢ではない**。前 2 つは実行場所と呼び出し可否の話で、`"use cache"` はキャッシュの話である。
+The spelling lines up with `"use client"` / `"use server"`, but **the three are not one set of options**. The first two are about where code runs and whether it can be called; `"use cache"` is about caching.
 
-#### route 単位で試せるものではない
+#### Not something you can try per route
 
-Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にすると PPR が既定の挙動になる。Next 15 にあった `experimental.ppr` と route 単位の `experimental_ppr` は**削除された**。つまり**リポジトリ全体のモデルを切り替えるスイッチ**であり、1 画面だけ試すことはできない。
+In Next 16 it is bundled into the single `cacheComponents: true`, and enabling it makes PPR the default behavior. Next 15's `experimental.ppr` and the per-route `experimental_ppr` **were removed**. In other words it is **a switch for the whole repository's model**, and you cannot try it on just one screen.
 
-#### このリポジトリは有効にしている
+#### This repository enables it
 
-`next.config.ts` に `cacheComponents: true` を書いている。したがって**このモデル**で動いており、取得は `use cache` を付けたものだけがプリレンダーへ入り、それ以外は穴として後から届く。判断と根拠は [ADR 0041](../adr/0041-cache-components-decision.md) が持つ。
+`next.config.ts` has `cacheComponents: true`. So it runs on **this model**: only fetches marked `use cache` go into the prerender, and everything else arrives later as a dynamic hole. The decision and its basis belong to [ADR 0041](../adr/0041-cache-components-decision.md).
 
-有効にした結果、次の 3 つが実装の作法として効いてくる。
+As a result of enabling it, the following three come into effect as implementation practice.
 
-- **描くモードを画面が宣言しない。** segment config（`export const dynamic`）は併存しない。殻と穴の分かれ目は `<Suspense>` の位置そのもので、`params` / `searchParams` / cookie / 認可の判定 / 実時計はすべて穴の内側で解く
-- **殻を配れない画面だけが名乗る。** `export const instant = false` がその宣言で、宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らす
-- **現在地を読む client 部品も穴を要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route の殻では解決できず、読む側を `<Suspense>` で包むまで build が通らない
+- **Screens do not declare a rendering mode.** Segment config (`export const dynamic`) does not coexist with it. The split between static shell and dynamic hole is the position of `<Suspense>` itself, and `params` / `searchParams` / cookies / authorization decisions / the real clock are all resolved inside the dynamic hole
+- **Only screens that cannot deliver a static shell say so.** `export const instant = false` is that declaration, and `scripts/render-mode` checks declaration against reality by looking at `compute` in `prerender-manifest.json`
+- **Client components that read the current location also need a dynamic hole.** `usePathname` / `useSearchParams` cannot resolve in the static shell of a route with dynamic segments, and the build does not pass until the reading side is wrapped in `<Suspense>`
 
-**外部の情報を読むときは、どちらのモデルの話かを先に確かめる。** Next.js 自身のドキュメントも Cache Components 前提のページと従来モデル向けのページが別々にある。区別を見落とすと、書いてあるとおりにしても動かない。
+**When reading outside information, first check which model it is about.** Next.js's own documentation also has separate pages that assume Cache Components and pages for the traditional model. Miss the distinction, and doing exactly what is written does not work.
 
-### Code Splitting / Tree Shaking — 代償を見積もる道具
+### Code Splitting / Tree Shaking — tools for estimating the cost
 
-- **Code Splitting**: **route 単位**で JavaScript を分割する。開いたページに届くのは、その route に要る分だけ
-- **Tree Shaking**: 使っていない export を build 時に落とす
+- **Code Splitting**: splits JavaScript **per route**. What reaches an opened page is only what that route needs
+- **Tree Shaking**: drops unused exports at build time
 
-この 2 つがあるので、「Client Component を 1 つ足したらアプリ全部の JavaScript が届く」にはならない。**増えるのはその route の塊だけ**である。
+Because of these two, "adding one Client Component delivers the whole app's JavaScript" does not happen. **Only that route's chunk grows.**
 
-逆に言えば、**使っているものは落ちない**。大きなライブラリを Client Component から import すれば、その route の塊はその分だけ膨らむ。器を Client にせず島を差す形が効くのはここで、島が小さければ import も小さい。
+Conversely, **what is used is not dropped**. Import a large library from a Client Component, and that route's chunk swells by that much. This is where the shape of keeping the layout shell Server and inserting islands pays off: if the island is small, so are its imports.
 
-### Parallel Routes / Intercepting Routes — 知らないと自前で組んでしまう
+### Parallel Routes / Intercepting Routes — without knowing them, you build it yourself
 
-- **Parallel Routes**（`@folder`）: 1 つの layout の中に**複数のページを同時に**、あるいは条件によって描く。独立した区画が並ぶ画面で使う
-- **Intercepting Routes**: 遷移元によって同じ URL の描き方を変える
+- **Parallel Routes** (`@folder`): render **several pages at once**, or conditionally, inside one layout. Used on screens where independent regions sit side by side
+- **Intercepting Routes**: change how the same URL is rendered depending on where the navigation came from
 
-組み合わせると、「一覧から押したときはその場にモーダルで開き、同じ URL を直接叩いたら全画面で開く。**URL は共有できる**」という形が、ルーティングの機能だけで成立する。
+Combined, the shape "when pressed from a list, open in place as a modal; when the same URL is hit directly, open full screen. **The URL can be shared**" works with routing features alone.
 
-**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。まだ使っていないが、「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
+**Without knowing them, you end up building the same thing yourself with client state and modal toggling.** Then the URL does not change, so neither sharing nor going back works. It is not used yet, but it is the first option to consider the moment you think "I want to open the detail from the list as a modal".
 
-## ここでは扱わない語
+## Terms Not Covered Here
 
-次は Next.js 固有の語ではあるが、**判断を持っている ADR が別にある**。ここに定義を書くと二重管理になるため、誘導だけ置く。
+The following are Next.js-specific terms, but **a separate ADR holds the decision**. Writing definitions here would mean managing them twice, so only pointers are placed.
 
-| 語 | 判断の在り処 |
+| Term | Where the decision lives |
 | --- | --- |
 | Metadata | [ADR 0044](../adr/0044-seo-metadata-strategy.md) |
 | Font Optimization / Image Optimization | [ADR 0045](../adr/0045-fonts-and-images.md) |
@@ -419,15 +419,15 @@ Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にす�
 | Environment Variables | [ADR 0030](../adr/0030-environment-variable-management.md) |
 | Import Aliases | [ADR 0027](../adr/0027-directory-structure.md) |
 
-## 自分で確かめる
+## Verify it yourself
 
-思い込みで判断せず、次の 2 つで足りる。
+Rather than judging on assumptions, the following two are enough.
 
 ```bash
 # 初期 HTML に中身が入っているか（JavaScript 実行前の状態が見える）
-curl -s http://localhost:3000/<path> | grep -o '<探したい文字列>'
+curl -s http://localhost:3000/<path> | grep -o '<string-to-find>'
 ```
 
-ブラウザの console に hydration の警告が出ていないかを見る。出ていなければ、サーバとブラウザの出力は一致している。
+Look at whether the browser console shows hydration warnings. If not, the server's and the browser's output match.
 
-**開発サーバの状態を過信しない。** 起動時に一度だけ走る初期化（モックの起動など）は、ファイルを保存して再コンパイルした後に失われていることがある。挙動が変わったように見えたら、開発サーバを立て直してから判断する。
+**Do not overtrust the development server's state.** Initialization that runs only once at startup (starting mocks and the like) can be lost after saving a file and recompiling. If behavior seems to have changed, restart the development server before judging.

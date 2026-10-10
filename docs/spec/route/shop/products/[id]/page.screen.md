@@ -1,85 +1,85 @@
-# `/products/[id]` 商品詳細（画面要件）
+# `/products/[id]` Product Detail (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-商品 1 件を確かめ、カートへ入れる画面。
+The screen for checking one product and adding it to the cart.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| 頭 | パンくず・紙に出す操作 |
-| 画像 | 送れる形で並べた画像と、送り先の一覧 |
-| 主情報 | 分類・状態・商品名・価格・在庫・公開日時・カートへ入れる操作 |
-| 商品説明 | 届いた書式付きの本文。無ければ区画ごと出さない |
+| Head | Breadcrumbs and the print operation |
+| Images | Images laid out so they can be advanced, and the list of targets to advance to |
+| Main information | Category, condition, product name, price, stock, publication date, and the add-to-cart operation |
+| Product description | The formatted body as delivered. If there is none, the whole area is omitted |
 
-## 画像
+## Images
 
-**枚数によらず同じ構造に載せ、送り先の一覧を必ず下に並べる。** 枚数で構造を変えると境界で見た目が
-動き、1 枚の商品と複数枚の商品が別の画面に見える。1 枚も無い場合は代わりの画像を 1 枚として置く。
+**Regardless of count, they sit in the same structure, and the list of targets is always laid out below.** Changing the structure by count would make the look
+shift at the boundary, and a single-image product and a multi-image product would look like different screens. With no images at all, a substitute image is placed as one image.
 
-**実画像だけを押して拡大できる。** 代わりの画像は「画像が無い」ことを伝える表示であり、拡大しても
-得られるものがない。押せる画像と押せない画像が混ざるのは実画像が無い商品だけで、同じ商品の中で
-押せたり押せなかったりはしない。
+**Only real images can be pressed to enlarge.** The substitute image is a display that conveys "there is no image," and enlarging it
+yields nothing. Pressable and unpressable images mix only for products without real images; within one product it is never
+pressable sometimes and not others.
 
-送る操作は画像より後ろに置く。前に置くと画像に覆われて押せない。
+The advance operations are placed after the images. Placed before, they would be covered by the images and could not be pressed.
 
-## 在庫の見せ方
+## How Stock Is Shown
 
-| 状態 | 添えるもの |
+| State | What is added |
 | --- | --- |
-| 在庫が無い | 「在庫なし」を強い配色で |
-| 在庫はあるが境界を下回る | 「残りわずか」を弱い配色で |
+| Out of stock | 「在庫なし」 ("Out of stock") in a strong color scheme |
+| In stock but below the threshold | 「残りわずか」 ("Only a few left") in a weak color scheme |
 
-在庫は数そのものも出す。境界の値は出さない（バックエンドが商品ごとに決めており、利用者にとっては
-判断材料にならない）。
+Stock is shown as the number itself as well. The threshold value is not shown (the backend decides it per product, and it is no basis for the user's
+decision).
 
-## パンくず
+## Breadcrumbs
 
-**置く。** 一覧・分類・トップのどこからでも入る画面で、global nav から 1 手で戻れない祖先を持つ
-（[0026](../../../../../adr/0026-layout-shell-mount.md)）。示すのは辿った経路ではなく、サイト構造上の
-階層である。
+**Placed.** It is a screen entered from the list, a category or the top page, and it has an ancestor that cannot be reached in one step from the global nav
+([0026](../../../../../adr/0026-layout-shell-mount.md)). What it shows is not the path the user took but the hierarchy in the site's
+structure.
 
-**現在地の商品名は幅で詰める。** 契約の上限は長く、そのまま置くと現在地だけで数行を占め、階層を
-一目で読み取るという役割が失われる。**文字数では切らない** —— 書記素の切れ目を跨いで壊す形にしない
-ためと、同じ文字数でも和文と欧文で占める幅が違うため。詰めても情報は落ちない（全文は真下の見出しに
-あり、読み上げには全文が渡る）。
+**The current product name is truncated by width.** The contract's limit is long, and placed as is the current location alone would take several lines, losing the role
+of letting the hierarchy be read at a glance. **It is not cut by character count** — so as not to break across grapheme boundaries,
+and because the same character count takes different widths in Japanese and Latin text. Truncating loses no information (the full text is in the heading right below,
+and the screen reader gets the full text).
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 画像と主情報 | カートへ入れる操作 |
+| Width | Images and main information | Add-to-cart operation |
 | --- | --- | --- |
-| `lg` 以上 | 左右 2 列 | 本文の流れの中 |
-| `lg` 未満 | 縦積み | 画面の下端に固定 |
+| `lg` and up | Two columns side by side | In the body's flow |
+| Below `lg` | Stacked | Fixed to the bottom edge of the screen |
 
-**下端に固定するのは、この画面が縦に長いため。** 画像と商品説明を読み進めた位置から操作へ戻れなく
-なる（常に届く必要がある操作を、脇の領域が無い帯で下端に固定する規約は[実装規約](../../../../../rules.md#layout)が持つ）。固定するかどうかは画面の組み立ての
-判断で、操作の部品は自分がどこに置かれたかを知らない。本文の下端には固定した操作のぶんの余白を
-空ける。
+**It is fixed to the bottom edge because this screen is tall.** From the position reached after reading through the images and the product description, the user could no longer get back
+to the operation (the rule that fixes an always-reachable operation to the bottom edge on bands without a sidebar is owned by [docs/rules.md](../../../../../rules.md#layout)). Whether to fix it is a decision of the screen's
+assembly; the operation's component does not know where it was placed. Space for the fixed operation is left at the bottom of the
+body.
 
-## 紙に出す
+## Printing
 
-**紙に出すのは内容だけ。** 押せない操作（パンくず・画像の送り・一覧・カートへの追加・紙に出す操作
-そのもの）は紙面の場所を取るだけなので落とす。
+**Only the content goes to paper.** Operations that cannot be pressed (breadcrumbs, image advancing, the list, adding to the cart, the print operation
+itself) only take up space on the page, so they are dropped.
 
-**画像は先頭の 1 枚だけを残し、幅も抑える。** 横に送って見る形は紙では送れないため、全部並べると
-同じ商品の写真が紙を埋める。幅を抑えないと 1 枚でも紙 1 面を占め、肝心の値が次の紙へ送られる。
+**Only the first image is kept, and its width is held down.** A side-scrolling view cannot be advanced on paper, so laying them all out would fill the paper with
+photos of the same product. Without holding down the width, even one image takes a whole page, pushing the key values to the next sheet.
 
-## 失敗の見え方
+## How Failure Looks
 
-| 失敗 | 出すもの |
+| Failure | What is shown |
 | --- | --- |
-| 見つからない | 見つからないことを伝える見出しと、**商品一覧へ戻る導線** |
-| その他 | 分類を問わない汎用の文言と問い合わせ番号、再試行の導線。生のエラー本文は出さない |
+| Not found | A heading saying it was not found, and **a link back to the product list** |
+| Other | A generic message regardless of classification, an inquiry number and a retry link. The raw error body is not shown |
 
-**その他の失敗は分類で文言を言い分けない。** production では server で起きた失敗の本文が伏せられ、
-境界に届くのは問い合わせ番号だけで、分類を読み取れない。
+**Other failures are not worded differently by classification.** In production the body of a failure that occurred on the server is hidden,
+and only the inquiry number reaches the boundary, so the classification cannot be read.
 
-見つからない画面に「未公開だから」とは書かない。存在の有無を秘匿する契約の判断が、画面の文言から
-覆る。
+The not-found screen does not say "because it is unpublished." The contract's decision to keep existence secret would be overturned by the screen's
+text.
 
-## 関連
+## Related
 
-- 実装 `src/features/products/` — [README](../../../../../../src/features/products/README.md)
-- 戻る先 [`/products`](../page.screen.md)（商品一覧） / 進む先 `/cart`（カート）
-- 外枠に出るカート [`../../layout.screen.md`](../../layout.screen.md)
+- Implementation `src/features/products/` — [README](../../../../../../src/features/products/README.md)
+- Back: [`/products`](../page.screen.md) (product list) / Next: `/cart` (cart)
+- The cart in the outer frame [`../../layout.screen.md`](../../layout.screen.md)

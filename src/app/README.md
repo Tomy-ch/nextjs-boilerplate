@@ -237,7 +237,7 @@ the sending surface live by [0031](../../docs/adr/0031-policy-state-supply.md) /
   the route at the time it occurred ([docs/design/observability.md](../../docs/design/observability.md)).
   Exceptions sent per load are cut off at a cap — in a breakage where rendering keeps throwing, the same exception rises every frame
 - **The cross-cutting notification Provider is placed outside the single element that wraps the screen body**
-  ([`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.md#画面は-1-つの器で包み横断通知はその外へ出す))
+  ([`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.md#screens-are-wrapped-in-one-layout-shell-with-cross-cutting-notifications-outside-it))
 
 ## What to Change When Adopting
 

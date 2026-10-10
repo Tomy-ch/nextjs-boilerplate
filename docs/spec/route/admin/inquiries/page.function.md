@@ -1,40 +1,41 @@
-# `/admin/inquiries` 問い合わせ一覧（機能要件）
+# `/admin/inquiries` Inquiry List (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**管理者ロールを要する。** 役割が足りない主体にはバックエンドが `403` を返し、この画面はそれを
-そのまま失敗として扱う（判定を画面が持たない）。
+**Requires the administrator role.** The backend returns `403` to an actor without the role, and this screen treats it as a
+failure as is (the screen does not own the check).
 
-## 取得
+## Fetching
 
-`GET /v1/inquiries` の 1 系統だけ。更新日時の新しい順に 1 ページ。
+A single source: `GET /v1/inquiries`. One page, most recently updated first.
 
-ページ送りは keyset で、応答の `nextCursor` をそのまま次の起点へ渡す。**戻る先は URL が覚える**
-—— cursor は「次の位置」しか指さないため、通ってきた起点を URL に積む。
+Pagination is keyset: the response's `nextCursor` is passed as is as the next starting point. **The URL remembers where to go back to**
+— a cursor only points to "the next position", so the starting points passed through are stacked in the URL.
 
-**起点が消えた URL では、積んだ道を捨てる。** URL は利用者が直接編集でき、起点だけが消えた形も
-届く。捨てないと、先頭ページで「前へ」が押せる状態になる。
+**When a URL has lost its starting point, the stacked trail is discarded.** Users can edit the URL directly, so a URL with only
+the starting point gone can arrive. Without discarding, "previous" becomes clickable on the first page.
 
-## 購読
+## Subscription
 
-`POST /v1/inquiries/feed/stream-ticket` で発券し、更新フィードを購読する。
+Issue a ticket with `POST /v1/inquiries/feed/stream-ticket` and subscribe to the update feed.
 
-**開始位置を渡さない。** 一覧の取得はフィードの位置を返さないため、購読は発券が束ねた位置から
-始まる。繋ぎ直しの前後で取りこぼした更新は次の更新で取り返され、取り返される前に見えているのは
-1 回ぶん古い一覧である。
+**No start position is passed.** The list fetch does not return a feed position, so the subscription starts from the position
+the ticket bundled. Updates missed around a reconnect are recovered by the next update, and until they are, what is visible is
+a list one update behind.
 
-**フィードの位置と会話の位置は別物。** フィードの event が本文に載せる位置は会話の中での位置で
-あり、フィードの再開位置ではない。取り違えると、問い合わせが 2 件以上ある環境で再開位置がずれる。
+**The feed position and the conversation position are different things.** The position a feed event carries in its body is the
+position within the conversation, not the feed's resume position. Confusing them shifts the resume position in an environment
+with two or more inquiries.
 
-購読の張り直し・打ち切りの規則は利用者側の画面と同じ
-（[`../../shop/mypage/inquiry/page.function.md`](../../shop/mypage/inquiry/page.function.md)）。
+The rules for re-establishing and terminating the subscription are the same as on the customer-side screen
+([`../../shop/mypage/inquiry/page.function.md`](../../shop/mypage/inquiry/page.function.md)).
 
-## 失敗
+## Failures
 
-| 契約の応答 | 画面 |
+| Contract response | Screen |
 | --- | --- |
-| 401 | 入り直しへ落とす |
-| 403 | 役割が足りない。購読は打ち切る |
-| 5xx | error 境界が受ける |
+| 401 | Send back to sign in again |
+| 403 | Insufficient role. The subscription is terminated |
+| 5xx | The error boundary catches it |

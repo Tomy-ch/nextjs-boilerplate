@@ -25,7 +25,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 - **並行 route の slot**（`@<name>/`）。page から layout へ props は渡せないので、画面ごとに違う値をレイアウトシェルへ
   届ける橋は slot になる（現在地までの階層など）。`default.tsx` を置き、階層を持たない画面にも空を返す
   slot を route ごとに置く —— soft navigation では直前の slot が残るためで、落とし穴は
-  [docs/design/rendering.md](../../docs/design/rendering.md) が持つ
+  [docs/design/rendering.md](../../docs/design/rendering.ja.md) が持つ
 - **metadata ファイル**（`sitemap.ts` / `robots.ts` / `icon.tsx` / `apple-icon.tsx` /
   `opengraph-image.tsx`）。Next.js の規約で特殊な Route Handler になる（[0044](../../docs/adr/0044-seo-metadata-strategy.ja.md)）。
   宣言は `architecture.ts` の `app-metadata` element が持つ —— 何を挙げるか・何を断るかの判定を持つ
@@ -60,7 +60,7 @@ route ごとに決まることがここにあります。**そのうちいくつ
 
 | 判断 | 宣言する場所 | 答えを持つ文書 |
 | --- | --- | --- |
-| シェルを配れないこと（`instant = false`） | `page.tsx` / `layout.tsx` | その画面の機能要件（[`docs/spec/route/**`](../../docs/spec/README.md)） + [0041](../../docs/adr/0041-cache-components-decision.ja.md) |
+| シェルを配れないこと（`instant = false`） | `page.tsx` / `layout.tsx` | その画面の機能要件（[`docs/spec/route/**`](../../docs/spec/README.ja.md)） + [0041](../../docs/adr/0041-cache-components-decision.ja.md) |
 | 待ちの境界（`Suspense` をどこへ掛けるか） | `page.tsx` | 同上 |
 | 失敗と不在の面 | `error.tsx` / `not-found.tsx` | 同上 + [0080](../../docs/adr/0080-error-handling.ja.md) |
 | metadata | `page.tsx` / `layout.tsx` | [0044](../../docs/adr/0044-seo-metadata-strategy.ja.md) |
@@ -131,7 +131,7 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
   見出しより前かつ `Suspense` の外へ置く。取得を待って出すと、待っている間は普通の画面に見える
 
 feature 側の `page-content` / `view` / `ui/skeleton` の分担は [features/README.md](../features/README.ja.md)
-が持つ。route を 1 本足す手順の通し例は [docs/tutorial/build-a-screen.md](../../docs/tutorial/build-a-screen.md)。
+が持つ。route を 1 本足す手順の通し例は [docs/tutorial/build-a-screen.md](../../docs/tutorial/build-a-screen.ja.md)。
 
 ### 失敗と不在の面の作法
 
@@ -201,7 +201,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 
 ### root layout が mount するアイランドの作法
 
-何を置くかは [`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.md) が、供給と
+何を置くかは [`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.ja.md) が、供給と
 送信面の置き場は [0031](../../docs/adr/0031-policy-state-supply.ja.md) / [0082](../../docs/adr/0082-client-observability.ja.md) /
 [0131](../../docs/adr/0131-cookie-consent.ja.md) が持つ。ここにあるのはアイランドを書くときの形である。
 
@@ -225,10 +225,10 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   値は module 変数に控えて同じ値を二度渡さない（コンポーネントの中に控えると作り直しのたびに消える）
 - **ブラウザ側のシグナルを中継へ送るアイランドは、送信を `adapters/client` に持たせ、計装は mount した後に
   動的な import で読む。** Web Vitals に載せる route は読み込みが始まった route、例外に載せる route は
-  起きた時点の route（[docs/design/observability.md](../../docs/design/observability.md)）。
+  起きた時点の route（[docs/design/observability.md](../../docs/design/observability.ja.md)）。
   1 回の読み込みで送る例外は上限で打ち切る —— レンダリングが投げ続ける壊れ方では同じ例外が毎フレーム上がる
 - **横断通知の Provider は、画面本体を包む 1 要素の外へ置く**
-  （[`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.md#画面は-1-つの器で包み横断通知はその外へ出す)）
+  （[`docs/spec/route/layout.function.md`](../../docs/spec/route/layout.function.ja.md#画面は-1-つのレイアウトシェルで包み横断通知はその外へ出す)）
 
 ## boilerplate 導入時の変更点
 

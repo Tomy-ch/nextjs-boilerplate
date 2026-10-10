@@ -40,7 +40,7 @@ export type PurchaseTransitionsProps = {
  *
  * 何を出し何を出さないか、結果をどこへ出すかは
  * [画面要件](../../../../../../docs/spec/route/shop/purchases/[code]/page.screen.md)
- * 「この購入にできること」。
+ * "What Can Be Done with This Purchase"。
  *
  * @param props - 受け取る内容。個々の意味は {@link PurchaseTransitionsProps} の各メンバーが持つ。
  * @see Storybook `Features/Purchases/Detail/Transitions`

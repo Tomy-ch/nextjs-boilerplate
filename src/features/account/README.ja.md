@@ -23,9 +23,9 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/mypage` | [`screen`](../../../docs/spec/route/shop/mypage/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/page.function.md) | 必要 |
-| `/mypage/edit` | [`screen`](../../../docs/spec/route/shop/mypage/edit/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/edit/page.function.md) | 必要 |
-| `/onboarding` | [`screen`](../../../docs/spec/route/auth/onboarding/page.screen.md) / [`function`](../../../docs/spec/route/auth/onboarding/page.function.md) | 必要（登録はまだ無い状態） |
+| `/mypage` | [`screen`](../../../docs/spec/route/shop/mypage/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/mypage/page.function.ja.md) | 必要 |
+| `/mypage/edit` | [`screen`](../../../docs/spec/route/shop/mypage/edit/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/mypage/edit/page.function.ja.md) | 必要 |
+| `/onboarding` | [`screen`](../../../docs/spec/route/auth/onboarding/page.screen.ja.md) / [`function`](../../../docs/spec/route/auth/onboarding/page.function.ja.md) | 必要（登録はまだ無い状態） |
 
 使う operationId。
 
@@ -161,7 +161,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
   失われ、戻る操作も共有もできなくなります
 - **合成はフロント側で行います**。編集画面が要る「自分の情報」と「都道府県マスタ」は互いに独立で、
   並べるだけで足ります。ドメインの計算を挟まない合成をバックエンドへ持たせると、画面の都合で契約が
-  1 本増えます（[screens.md](../../../docs/spec/screens.md) §1）
+  1 本増えます（[screens.md](../../../docs/spec/screens.ja.md) §1）
 - **識別子を画面へ渡しません**。更新と退会が対象を指すのに使う内部の識別子は `adapters` の中で
   解決します。フォームの hidden に載せると、ブラウザに置く理由の無い値が出ます
 - **都道府県は `SelectNative` です**。契約が全 47 件を固定で返す静的な候補なので、client island の

@@ -78,7 +78,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 | どこ | 何を決着させるか |
 | --- | --- |
 | [`docs/adr/`](../../../docs/adr/README.ja.md) | 現行の決定。意図的な除外と、それぞれが本文に持つ **撤回条件**（何が真になれば見直すか）も含む |
-| [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | このリポジトリが意図して持たないもの。どの条件なら持つか |
+| [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.ja.md) | このリポジトリが意図して持たないもの。どの条件なら持つか |
 
 **この 2 つが揃って「やらない」を不在ではなく決定にしている。**開いて見える問いは、たいてい
 **撤回条件がまだ満たされていないだけ**であり、答えは比較ではなく**その条件**である。
@@ -99,7 +99,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 **これが最も安い段であり、最も飛ばされる段である。**カーネルを
 [`architecture.ts`](../../../architecture.ts) から**列挙する** —— 何が存在し、何が何を import して
 よいかの権威はそのファイルである。そのうえで所有する `README.md` と
-[`docs/design/placement.md`](../../../docs/design/placement.md) を実行時に読む。
+[`docs/design/placement.md`](../../../docs/design/placement.ja.md) を実行時に読む。
 **問題の形から推論しない。**
 
 **同型の機構はその形で見つかる。つまりキーワード検索では見つからない。**それは**違う問題を同じ構造で**

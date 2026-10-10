@@ -4,7 +4,7 @@
 
 # 仕様書駆動
 
-本プロジェクトでは、画面が**何を約束しているか**を仕様書として持ち、実装をそこから導く。仕様書は `docs/spec/route/**` に置き、画面ごとに機能要件と画面要件の 2 層へ分ける。置き場と書き方の細目は [`docs/spec/README.md`](../spec/README.md) が持ち、本 ADR はその採用と、仕様書から実装の骨格を機械生成する経路を**持たない**決定を定める。
+本プロジェクトでは、画面が**何を約束しているか**を仕様書として持ち、実装をそこから導く。仕様書は `docs/spec/route/**` に置き、画面ごとに機能要件と画面要件の 2 層へ分ける。置き場と書き方の細目は [`docs/spec/README.md`](../spec/README.ja.md) が持ち、本 ADR はその採用と、仕様書から実装の骨格を機械生成する経路を**持たない**決定を定める。
 
 [0140](0140-documentation-operations.ja.md) が文書の運用を、[0141](0141-portal-operations.ja.md) が portal を持つのに対し、本 ADR が持つのは仕様書という文書種の採否と役割である。
 
@@ -42,7 +42,7 @@ Accepted
 
 ## 実装は仕様書から導く
 
-- **仕様書は確定した約束を書く。** したがって書ける時点は見た目が確定した後であり、画面実装の順序（[`docs/playbook.md`](../playbook.md)）では story のレビューを通り、レイヤーへの割り付けを終えたあとに置く。**仕様書を先に固めることは強制しない** —— 先に固めると、見た目が動くたびに書き直すことになる
+- **仕様書は確定した約束を書く。** したがって書ける時点は見た目が確定した後であり、画面実装の順序（[`docs/playbook.md`](../playbook.ja.md)）では story のレビューを通り、レイヤーへの割り付けを終えたあとに置く。**仕様書を先に固めることは強制しない** —— 先に固めると、見た目が動くたびに書き直すことになる
 - **仕様書を書き終えるまで画面をレビューへ出さない。** 約束が書かれていない画面を出すと、読む側が実装から約束を推定することになる
 - **feature の README は route ごとに仕様書の対を指す**（[feature README テンプレート](../templates/feature-readme.ja.md)）。指す先が実在するかは `readme-review` が突き合わせる
 - **仕様書は読み込み入力である。** 散文から実装を導けるのは scaffold ではなく、読んで判断する側（人と `new-feature` スキル —— [0155](0155-claude-skills-development.ja.md)）である
@@ -66,7 +66,7 @@ Accepted
 
 `src/app` の route と `docs/spec/route/**` の対応を機械で突き合わせる検査。
 
-- **母数**: `src/app/**` の `page.tsx` / `page.dev.tsx` / `layout.tsx` の全件。**開発専用の route も約束を持つ** —— build から外れること（[0113](0113-development-access-surface.ja.md)）と、約束を持たないことは別である。[`docs/spec/README.md`](../spec/README.md) のマッピング（route group の括弧を外す・動的セグメントは角括弧のまま）で仕様書のパスへ変換する
+- **母数**: `src/app/**` の `page.tsx` / `page.dev.tsx` / `layout.tsx` の全件。**開発専用の route も約束を持つ** —— build から外れること（[0113](0113-development-access-surface.ja.md)）と、約束を持たないことは別である。[`docs/spec/README.md`](../spec/README.ja.md) のマッピング（route group の括弧を外す・動的セグメントは角括弧のまま）で仕様書のパスへ変換する
 - **判定**: 各 route に `*.screen.md` が在ること。`*.function.md` は無くてよい（機能要件を持たない画面には置かない）。逆向きに、route を持たない仕様書は失敗として挙げる —— 画面を消して約束だけが残った状態である
 - **倒し方**: route が 0 件に列挙されたら「違反なし」ではなく失敗にする（[0157](0157-inspection-declaration-discipline.ja.md)）
 

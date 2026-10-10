@@ -1,144 +1,144 @@
-# `/products` 商品一覧（機能要件）
+# `/products` Product List (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**認証を要さない。** 誰が見ても同じ一覧が出る。
+**No authentication required.** The same list appears whoever views it.
 
-**絞り込みの一致判定はバックエンドが持つ。** この画面は条件を組んで渡し、返ってきたものを並べる
-だけで、価格の比較も在庫の判定も持たない（[0070](../../../../adr/0070-backend-role-separation.md)）。
+**The backend owns filter matching.** This screen builds the conditions, passes them, and lists what comes back;
+it owns neither price comparison nor stock judgment ([0070](../../../../adr/0070-backend-role-separation.md)).
 
-## 検索条件は URL が持つ
+## The URL holds the search conditions
 
-**効いている条件はすべて URL に載る。** 共有したリンク・戻る操作・再読み込みのいずれでも同じ
-結果になる必要があり、client の状態に持つとそのどれも成立しない。
+**Every condition in effect is in the URL.** A shared link, the back operation and a reload must all give the same
+result, and holding the conditions in client state would make none of them hold.
 
-| 条件 | 値 | 複数 |
+| Condition | Value | Multiple |
 | --- | --- | --- |
-| キーワード | 商品名・商品説明への部分一致 | — |
-| カテゴリ | 分類のマスタが持つコード | **あり** |
-| 価格 | 下限と上限。どちらも省ける | — |
-| 在庫状況 | すべて / 在庫あり / 在庫なし | — |
-| 並び替え | 新着順（既定）/ 古い順 | — |
+| Keyword | Partial match on product name and product description | — |
+| Category | Codes held by the category master | **Yes** |
+| Price | Minimum and maximum. Either can be omitted | — |
+| Stock availability | All / In stock / Out of stock | — |
+| Sort | Newest first (default) / Oldest first | — |
 
-**在庫状況は契約の在庫数の条件へ写して載せる。** 契約が受け取るのは数の下限と上限で、「在庫あり」
-という状態を持たない。利用者が選ぶのは有無なので、その橋渡しはこの画面が行う。
+**Stock availability is mapped onto the contract's stock-count condition.** The contract accepts a minimum and maximum count and has no
+"in stock" state. What the user chooses is presence or absence, so this screen does the bridging.
 
-**複数選べる条件は同じキーの繰り返しで表す。** 区切り文字で連結すると、区切り文字を含む値が現れた
-時点で分解できなくなる。
+**Conditions that allow multiple values are expressed by repeating the same key.** Joining with a delimiter would make the values impossible to split
+as soon as a value containing the delimiter appeared.
 
-**分類を指すのはマスタのコードであり、UUID ではない。** 契約が絞り込みで受け取るのはコードで、
-UUID を取る口は非推奨として残っているだけである。両方を同時に送ると 400 になるため、この画面が
-使う口はコードの側だけに寄せる。
+**A category is identified by the master's code, not by UUID.** The contract accepts codes for filtering, and
+the endpoint that takes UUIDs only remains as deprecated. Sending both at once gives 400, so the endpoint this screen
+uses is limited to the code side.
 
-**既定と同じ値は URL に載せない。** 並び替えの既定を明示した URL と省いた URL が別物として履歴に
-積まれる。
+**Values equal to the default are not put in the URL.** A URL that states the sort default explicitly and one that omits it would be stacked in history
+as different things.
 
-**キーを並べ替えてから組み立てる。** 同じ条件が選んだ順序で違う文字列になると、共有されたリンクも
-履歴も同じ画面を別物として扱う。複数選べる条件は値どうしも並べ替える。
+**Keys are sorted before assembling.** If the same conditions became different strings depending on the order selected, shared links and
+history alike would treat the same screen as different things. For conditions that allow multiple values, the values are sorted too.
 
-**1 つしか取らない条件に複数の値が届いたら、指定なしとして読む。** URL は利用者が直接編集できる
-ため、キーワードや価格のように単一の値を取る条件にも同じキーが 2 度現れ得る。どれを採るかを条件
-ごとに決めると、同じ URL が画面の場所によって違う条件に見える。**読み方は 1 つに揃える。**
+**When multiple values arrive for a condition that takes only one, it is read as unspecified.** The URL can be edited directly by the user,
+so the same key can appear twice even for single-valued conditions such as keyword or price. Deciding which to take per condition
+would make the same URL look like different conditions depending on where on the screen it is read. **There is one way of reading it.**
 
-**状態で絞り込む口は置かない。** 契約も backend も `statusCodes` を受け付け、絞り込みは実際に
-効く。置かないのは、状態マスタが在庫・販売の状態（在庫あり・予約受付中・廃盤・検討中など）で、
-売り手が対象を見つけるための語彙だからである。どれを買い手へ出すかを選ばずに全部並べると、選べる
-のに買い手にとって意味を持たない選択肢が混ざる。買い手が選ぶ軸のうち在庫の有無は別に置いてある。
+**No status filter is offered.** Both the contract and the backend accept `statusCodes`, and filtering does actually
+work. It is not placed because the status master is a set of stock and sales statuses (in stock, accepting reservations, discontinued, under review, etc.),
+a vocabulary for sellers to find their targets. Listing them all without choosing which to show buyers would mix in options that are selectable
+but mean nothing to a buyer. Of the axes a buyer chooses on, stock availability is placed separately.
 
-**公開の可否は状態マスタではなく `publishedAt` が持つ。** 契約が公開済みだけを返す制約はこちらの
-軸であり、状態マスタでの絞り込みが効くかどうかとは関係しない。
+**Whether something is published is held by `publishedAt`, not by the status master.** The contract's constraint of returning only published items is on that
+axis, and has nothing to do with whether filtering by the status master works.
 
-## 条件の検証
+## Validating Conditions
 
-**契約に照らして写せなかった条件は、捨てずに写せなかったことを返す。** URL は利用者が直接編集
-できる入力であり、範囲外の値を黙って落として既定の一覧を出すと、絞り込んだつもりの利用者が
-絞り込まれていない結果を見る。
+**Conditions that could not be mapped against the contract are not discarded; the failure to map them is returned.** The URL is input the user can edit
+directly, and silently dropping out-of-range values to show the default list would have a user who thinks they filtered
+see unfiltered results.
 
-検証を行うのは取得の境界で、画面側は写せなかったキーを受け取って表示を決めるだけ。契約を
-再生成したときに検証だけが古い範囲のまま残る状態を作らない。
+Validation is done at the fetch boundary; the screen side only receives the keys that could not be mapped and decides the display. This avoids a state where,
+when the contract is regenerated, only the validation remains on the old range.
 
-## 検索語の送信は browser の JavaScript を要する
+## Submitting a search term requires JavaScript in the browser
 
-キーワードの入力欄は、絞り込みと同じ 1 つの条件の一部として値を保持する。**そのため入力欄は
-browser 側で動く必要があり、JavaScript が無い環境では検索できない。** 条件を組み立ててから
-まとめて確定する形と、JavaScript 無しで送信できる形は両立しない —— 前者は保持を要求し、後者は
-保持を持たない form でしか成立しないため。
+The keyword input holds its value as part of the same single condition as the filters. **Therefore the input must run
+on the browser side, and searching is not possible where JavaScript is absent.** Assembling the conditions and then confirming them
+together, and being submittable without JavaScript, cannot coexist — the former requires holding the value, and the latter only works with a form that
+holds nothing.
 
-この画面は前者を採る。**検索語だけが先に効くと、絞り込みを組んでいる途中で一覧が入れ替わる**
-ためで、その代償として後者を落としている。一覧の閲覧・絞り込みの表示・詳細への遷移は
-JavaScript 無しでも成立する（条件を URL へ載せる形は変わらない）。
+This screen takes the former. **If the search term took effect first, the list would swap while the user is assembling filters**,
+and the latter is dropped as the cost of avoiding that. Browsing the list, showing the filters and navigating to a detail work
+without JavaScript (the conditions still go into the URL the same way).
 
-## 取得
+## Fetching
 
-| 何を | いつ |
+| What | When |
 | --- | --- |
-| 一覧の 1 ページ目 | 条件が確定するたび（サーバ側） |
-| 一致する総件数 | 同上。一覧と同じ条件を渡す |
-| 分類の一覧 | 条件によらず 1 回 |
-| 一致する件数（確定前） | overlay で絞り込みを組んでいる最中、操作が止まってから（画面側） |
-| 一覧の続き | 末尾へ近づいたとき（画面側） |
+| The first page of the list | Every time the conditions are confirmed (server side) |
+| Total matching count | Same as above. The same conditions as the list are passed |
+| Category list | Once, regardless of conditions |
+| Matching count (before confirming) | While assembling filters in the overlay, after interaction pauses (screen side) |
+| The rest of the list | When nearing the end (screen side) |
 
-**総件数は一覧の応答から取れない。** cursor ページネーションが返すのは次のカーソルの有無だけで、
-総数は専用の口が返す。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て、並んでいる
-件数と食い違う。
+**The total count cannot be taken from the list's response.** Cursor pagination returns only whether there is a next cursor, and
+a dedicated endpoint returns the total. If that endpoint were not given the conditions, the pre-filter count would show even after filtering, disagreeing with
+the number listed.
 
-**総数を出すのは、契約が数える口を持ち、かつその画面で総数が判断材料になる一覧だけである。**
-両方が要る —— 口があっても、次の操作が総数で変わらない一覧には出さない。この画面は口を持ち、
-絞り込んだ結果の大きさが「もっと絞るか」を決めるので出す。同じ判定で出さない側は
-[購入履歴](../purchases/page.screen.md)。
+**The total is shown only for lists where the contract has an endpoint that counts and where the total informs the decision on that screen.**
+Both are required — even with an endpoint, it is not shown on a list where the next action does not change with the total. This screen has the endpoint,
+and the size of the filtered result decides "whether to filter further," so it shows it. The side that does not show it by the same test is
+the [purchase history](../purchases/page.screen.md).
 
-**分類の一覧は検索条件で変わらない。** 条件で変わるもの（一覧・総件数）と取得を分けてあり、
-絞り込んでも分類は取り直さない。
+**The category list does not change with the search conditions.** Its fetch is separated from what changes with the conditions (the list and the total count),
+and categories are not refetched on filtering.
 
-**確定前の件数は画面側から数える。** まだ URL に載っていない条件が対象なので、サーバ側の描画では
-数えられない。連続した操作の途中では取りに行かず、止まってから 1 回だけ数える。前の取得は
-打ち切る。
+**The pre-confirmation count is counted from the screen side.** It targets conditions not yet in the URL, so the server-side render cannot
+count them. It is not fetched in the middle of continuous interaction; it is counted only once after interaction pauses. The previous fetch is
+aborted.
 
-**画面側からの取得は同一オリジンを経由する。** timeout・再試行・遮断はサーバ側の境界が持ち、
-同じ要求に対して 2 つの再試行が別々の勘定で走らないようにする
-（[0073](../../../../adr/0073-pagination-fetch-boundary.md)）。
+**Fetches from the screen side go through the same origin.** Timeout, retry and circuit breaking are owned by the server-side boundary,
+so that two retries do not run under separate retry budgets for the same request
+([0073](../../../../adr/0073-pagination-fetch-boundary.md)).
 
-## 読み進め
+## Reading On
 
-**続きは末尾へ近づいた時点で自動的に読む。** 番号付きのページ送りは作れない（総件数も任意ページ
-への飛び先もカーソルは持たない）。これは
-[0073](../../../../adr/0073-pagination-fetch-boundary.md) が限定例外として認めた経路である。
+**The rest is read automatically when nearing the end.** Numbered pagination cannot be built (the cursor holds neither the total count nor
+a jump target for an arbitrary page). This is the path that
+[0073](../../../../adr/0073-pagination-fetch-boundary.md) allowed as a limited exception.
 
-**読み進めた件数を URL へ書き戻す。** 書き戻さないと、戻る操作も再読み込みも先頭の 1 ページだけの
-画面に戻り、読み進めた分がスクロール位置ごと失われる。**復元できるのは契約が受け付ける件数の
-上限まで**で、それを超えて読み進めた分は戻らない。書き戻しは履歴を積まず、戻る操作は一覧より前の
-画面へ抜ける。
+**The number of items read so far is written back to the URL.** Without writing it back, both the back operation and a reload would return to a screen with only the first
+page, losing what was read along with the scroll position. **It can be restored only up to the count the contract
+accepts**; anything read beyond that does not come back. Writing back does not stack history, and the back operation leaves to the screen
+before the list.
 
-**条件が変われば読み進めた位置は引き継がない。** 変えた後の「続き」は前の条件の続きを指している。
+**When the conditions change, the reading position is not carried over.** "The rest" after a change would point to the rest of the previous conditions.
 
-## 一覧の 1 件が持つもの
+## What One List Item Holds
 
-商品を指す値・名前・価格・在庫数・分類名・状態名・代表画像。
+A value identifying the product, name, price, stock count, category name, status name and representative image.
 
-**代表画像は契約が返す並びの先頭。** どれを代表とするかは契約の順序が決めている。画像が 1 枚も
-無い商品には代わりの画像を置く。
+**The representative image is the first in the order the contract returns.** The contract's order decides which is representative. A product with no
+images at all gets a substitute image.
 
-**価格は十進の文字列のまま持ち回る。** 数値へ直すとサブセントの精度が落ちる。通貨の記号は表示の
-直前で付ける。
+**Prices are carried around as decimal strings.** Converting to numbers would lose sub-cent precision. The currency symbol is added
+just before display.
 
-## カートへ入れる
+## Add to Cart
 
-**操作の持ち主はこの画面ではない。** カートへの変更であり、`cart` が公開する口を置くだけ
-（[0026](../../../../adr/0026-layout-shell-mount.md)）。在庫が 1 つも無い商品では押せない。
+**This screen does not own the operation.** It is a change to the cart, and this screen only places the endpoint that `cart` exposes
+([0026](../../../../adr/0026-layout-shell-mount.md)). It cannot be pressed for a product with no stock at all.
 
-## 問い合わせ
+## Inquiries
 
-在庫の無い商品から問い合わせる入口を出す。**受け口はまだ無く、押しても問い合わせは送られない。**
-入口の位置だけを先に確定させてある。
+An entry point for inquiring is shown on out-of-stock products. **There is no receiving endpoint yet, and pressing it sends no inquiry.**
+Only the entry point's position has been settled in advance.
 
-## 失敗の意味論
+## Failure Semantics
 
-| 失敗 | 及ぶ範囲 |
+| Failure | Scope |
 | --- | --- |
-| 一覧の取得 | 画面全体。route の `error` 境界が受ける（[0080](../../../../adr/0080-error-handling.md)） |
-| 総件数の取得 | 総件数だけ。読み込み済みの件数に切り替え、一覧はそのまま出す |
-| 条件が契約を外れている | 一覧の代わりに写せなかったキーを出す。失敗として投げない |
-| 続きの取得 | その取得だけ。読み終えた分は残す |
-| 確定前の件数 | 何も出さない。数の代わりに何かを出すと、それが件数として読まれる |
+| Fetching the list | The whole screen. The route's `error` boundary receives it ([0080](../../../../adr/0080-error-handling.md)) |
+| Fetching the total count | Only the total count. It switches to the number loaded so far, and the list is shown as is |
+| Conditions fall outside the contract | The keys that could not be mapped are shown in place of the list. Not thrown as a failure |
+| Fetching the rest | Only that fetch. What has been read stays |
+| Pre-confirmation count | Nothing is shown. Showing something in place of the number would be read as a count |

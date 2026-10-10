@@ -1,59 +1,58 @@
-# バージョン管理方針
+# Versioning Policy
 
-プロジェクトは **Semantic Versioning** を採用する。版はリリースブランチ名 `release/v<X.Y.Z>` が名乗り、
-タグは `production` HEAD に打つ（[0150](../adr/0150-git-workflow.md)）。
+The project adopts **Semantic Versioning**. The version is named by the release branch name `release/v<X.Y.Z>`,
+and tags are placed on the `production` HEAD ([0150](../adr/0150-git-workflow.md)).
 
-## 版が指すもの
+## What the Version Refers To
 
-版が付くのは**テンプレートそのもの**である。テンプレートから作ったリポジトリは、作った時点のツリーを
-写して自分の版を持つ。生成が写すのはツリーだけで、ブランチ保護や token の権限は複製されない ——
-それらは設定ではなく「設定を適用する手順」（`make setup-repo`）として渡す
-（[0010](../adr/0010-standards-and-non-lockin.md)）。
+The version is attached to **the template itself**. A repository created from the template copies the tree as of creation
+and carries its own version. Generation copies only the tree; branch protection and token permissions are not replicated —
+they are handed over not as settings but as "the procedure that applies the settings" (`make setup-repo`)
+([0010](../adr/0010-standards-and-non-lockin.md)).
 
-作った側がテンプレートの後の版を取り込む機構は同梱しない。矢印はテンプレート → 作った側の一方向で、
-以後の追従は作った側の判断である。
+No mechanism is bundled for the creating side to take in later versions of the template. The arrow runs one way, template → creating side,
+and keeping up afterwards is the creating side's decision.
 
-## v1.0.0 の境界
+## The v1.0.0 Boundary
 
-v1.0.0 未満は、テンプレート自身の設計が固まっていく期間である。次が v1.0.0 で切り替わる
-（[0140](../adr/0140-documentation-operations.md)）。到達時にこの節は消す。
+Below v1.0.0 is the period in which the template's own design is settling. The following switch at v1.0.0
+([0140](../adr/0140-documentation-operations.md)). This section is removed when it is reached.
 
-| | v1.0.0 未満 | v1.0.0 から |
+| | Below v1.0.0 | From v1.0.0 |
 | --- | --- | --- |
-| ADR | living document。本文を上書きし、改定履歴を残さない | immutable。Status 行のみ編集し、変更は新 ADR で supersede |
-| 保護文書の編集 | 都度承認を一時解除 | `AGENTS.md` / ADR 本文 / `LICENSE` は承認を要する |
+| ADR | living document. The body is overwritten, and no revision history is kept | immutable. Only the Status line is edited, and changes supersede with a new ADR |
+| Editing protected documents | Per-change approval temporarily lifted | `AGENTS.md` / ADR bodies / `LICENSE` require approval |
 
-## リリースブランチ戦略
+## Release Branch Strategy
 
-release-centric のブランチモデルを採る（[0150](../adr/0150-git-workflow.md)）。
+A release-centric branch model is adopted ([0150](../adr/0150-git-workflow.md)).
 
-- 機能開発は**最新の `release/*`** から分岐し、PR の base も同じブランチ。GitHub のデフォルト
-  ブランチは最新の `release/v<X.Y.Z>` へ張り替える
-- `develop` / `staging` / `production` へは `release/*` 経由でしか反映しない。保護ブランチへの直接
-  push、force push、履歴の書き換えは禁止
-- `develop` を base に取ってよいのは `release/*` → `develop` の統合 PR だけ
+- Feature development branches from **the latest `release/*`**, and the PR's base is the same branch. GitHub's default
+  branch is repointed to the latest `release/v<X.Y.Z>`
+- Changes reach `develop` / `staging` / `production` only via `release/*`. Direct pushes to protected branches,
+  force pushes and history rewriting are forbidden
+- Only the integration PR `release/*` → `develop` may take `develop` as its base
 
-## リリース手順
+## Release Procedure
 
-1. `production` から `make branch-patch` / `branch-minor` / `branch-major` で `release/v<X.Y.Z>` を
-   切る。`package.json` の `version` はこのときブランチ名から焼き込まれ、CI（`package-version`）が
-   一致を見る
-2. `release/*` → `develop` → `staging` → `production` を別々の PR で昇格する
-3. `.github/release/v<X.Y.Z>.md` にリリースノートを置く
-4. `production` HEAD で `make tag-patch` / `tag-minor` / `tag-major` を実行する。直近のタグから次の
-   版を計算してタグを打ち、リリースノートを本文に GitHub Release を作る。**ノートが無ければ失敗する**
+1. From `production`, cut `release/v<X.Y.Z>` with `make branch-patch` / `branch-minor` / `branch-major`.
+   `package.json`'s `version` is stamped from the branch name at this point, and CI (`package-version`) checks
+   that they match
+2. Promote `release/*` → `develop` → `staging` → `production` in separate PRs
+3. Place the release notes at `.github/release/v<X.Y.Z>.md`
+4. On the `production` HEAD, run `make tag-patch` / `tag-minor` / `tag-major`. It computes the next
+   version from the latest tag, places the tag, and creates a GitHub Release with the release notes as its body. **It fails if there are no notes**
 
 ### Hotfix
 
-- `production` から切る。`make hotfix-patch` を使うと `hotfix/v<X.Y.Z>` となり、`version` の
-  焼き込みもリリースブランチと同じに揃う
-- `hotfix/*` → `production` の PR を作り、merge 後に同じ修正を `develop`（必要なら `staging`）へ
-  反映する
+- Cut from `production`. Using `make hotfix-patch` gives `hotfix/v<X.Y.Z>`, and the `version`
+  stamping is aligned with release branches as well
+- Open a `hotfix/*` → `production` PR, and after merging, bring the same fix into `develop` (and `staging` if needed)
 
-## 原則
+## Principles
 
-- `package.json` の `version` を手で決めない。版を決めるのはブランチ名で、`package.json` はそれに
-  従う（手で直すなら `make version-stamp`）
-- タグは make 経由で打つ。検査が届くのは「ブランチ名と `package.json` の一致」までで、ブランチ名
-  そのものの正しさを保証するのは `make branch-*` が切る瞬間だけである
-- 依存のメジャー更新は破壊的変更を引用した別 PR に分ける（[0004](../adr/0004-library-management.md)）
+- Do not decide `package.json`'s `version` by hand. The branch name decides the version, and `package.json`
+  follows it (to fix it by hand, `make version-stamp`)
+- Place tags through make. The checks reach only as far as "the branch name and `package.json` match"; the correctness of the branch name
+  itself is guaranteed only at the moment `make branch-*` cuts it
+- Major dependency updates go into a separate PR that cites the breaking changes ([0004](../adr/0004-library-management.md))

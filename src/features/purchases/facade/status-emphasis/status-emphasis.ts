@@ -48,7 +48,7 @@ const UNKNOWN_STATUS_EMPHASIS: BadgeVariant = BADGE_VARIANT.GHOST;
  * （README 参照）。
  *
  * 3 つに束ねる根拠と、色を文言の補強に留める根拠は
- * [画面要件](../../../../../docs/spec/route/shop/purchases/page.screen.md)「状況」。
+ * [画面要件](../../../../../docs/spec/route/shop/purchases/page.screen.md#how-status-looks) の "How Status Looks"。
  *
  * @param statusCode - 購入ステータスの業務キー。
  * @returns 対応する badge の見た目。

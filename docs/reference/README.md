@@ -1,29 +1,29 @@
-# リファレンス
+# Reference
 
-**コードに追随して変わる目録**を置く。ここにある文書は ADR ではない —— 何かを決めた記録では
-なく、いま `package.json` や設定ファイルに何が在るかを、人が読める単位に束ね直した**生きた
-参照**である。コードが動けば同じ変更の中で書き換わり、書き換わらなければ古くなる。
+Holds **inventories that change in step with the code**. The documents here are not ADRs — they are not records of having decided something,
+but **living references** that regroup what is in `package.json` and the configuration files right now into units a person can read.
+When the code moves, they are rewritten in the same change; if they are not, they go stale.
 
-[`docs/README.md`](../README.md) の 4 分類でいう **inventory** の家がここである。decision /
-exclusion（[`adr/`](../adr/)）・rule（[`rules.md`](../rules.md)）は根拠を持つが、目録は根拠を
-持たない。**「なぜこれを選んだか」はここに書かない** —— 書けば目録が根拠の顔をしたまま腐る。
-選定の判断は ADR が持ち、目録はそこへリンクするだけである。
+This is the home of **inventory** in the four categories of [`docs/README.md`](../README.md). decision /
+exclusion ([`adr/`](../adr/)) and rule ([`rules.md`](../rules.md)) carry a basis, but an inventory carries
+none. **"Why this was chosen" is not written here** — writing it would let the inventory rot while wearing the face of a basis.
+The selection decision is held by the ADR, and the inventory only links to it.
 
-## 契約
+## Contract
 
-| | ここ（目録） | ADR |
+| | Here (inventory) | ADR |
 | --- | --- | --- |
-| 何に追随するか | **コード**（`package.json` など）、または**解釈の元にした原典** | 何にも追随しない。決定そのもの |
-| いつ変わるか | 対象が変わるたび、**同じ変更の中で** | 別の案を選び直したときだけ |
-| 何を答えるか | 何が在り、何を担っているか | 何を選び、何を却下したか |
-| 正はどちらか | **コード側**。ここは束ね直した写し | ADR 本文 |
+| What it follows | **The code** (`package.json`, etc.), or **the source it was interpreted from** | Nothing. It is the decision itself |
+| When it changes | Whenever its subject changes, **in the same change** | Only when a different option is chosen anew |
+| What it answers | What exists and what it is responsible for | What was chosen and what was rejected |
+| Which is authoritative | **The code side**. This is a regrouped copy | The ADR body |
 
-目録の行を足す・消す・書き換える理由は、コード側にその変化が起きたことだけである。目録を先に
-書いてコードを後から合わせることはしない。
+The only reason to add, remove or rewrite an inventory row is that the change has happened on the code side. The inventory is never written
+first with the code adjusted to it afterwards.
 
-## 文書
+## Documents
 
-| 文書 | 何の目録か | 正 |
+| Document | Inventory of what | Authoritative |
 | --- | --- | --- |
-| [dependencies.md](dependencies.md) | 直接依存。責務でグループ化した一覧と、2 つの上流にまたがる例外 | `package.json` |
-| [upstream-interpretations.md](upstream-interpretations.md) | 外部の原典と、そこから導いた決定との対。3 値の判定と、判定に使った原典側の前提 | **原典の側**。こちらの決定ではない |
+| [dependencies.md](dependencies.md) | Direct dependencies. A list grouped by responsibility, and the exceptions that span two upstreams | `package.json` |
+| [upstream-interpretations.md](upstream-interpretations.md) | Pairs of external sources and the decisions derived from them. A three-valued verdict, and the source-side premise used for the verdict | **The source side**. Not this side's decision |

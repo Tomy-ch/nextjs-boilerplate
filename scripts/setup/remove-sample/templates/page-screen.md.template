@@ -1,31 +1,31 @@
-# `/` トップ（画面要件）
+# `/` Top (Screen Requirements)
 
-画面を作る前に置かれている、**動作確認用の最小ページ**の要件。画面を作り始めたら、この文書ごと
-その画面の要件で置き換える。
+The requirements of the **minimal page for checking that the app runs**, which stands in place before any screen is built. Once a
+screen is being built, replace this whole document with that screen's requirements.
 
-## 見せるもの
+## What It Shows
 
-| 節 | 内容 |
+| Section | Content |
 | --- | --- |
-| 見出し | このサイトの名前 |
-| 説明 | このサイトが何であるか |
+| Heading | The name of this site |
+| Description | What this site is |
 
-## 書かないこと
+## What Not to Write
 
-**導線を置かない。** この足場は行き先になる画面を持たないので、置けば押した先が無い操作になる。
+**No navigation paths.** This scaffold has no screen to lead to, so placing one would make an action with nothing behind it.
 
-## 器
+## Layout Shell
 
-**器を通らない。** route group の器が無いため、この画面が `main` を自分で置く。
+**It does not pass through a layout shell.** There is no route group layout shell, so this screen places `main` itself.
 
-## この画面が空にできない理由
+## Why This Screen Cannot Be Empty
 
-見つからない画面から戻る先、役割の足りない要求を送り返す先、サイトマップが挙げる公開経路が、
-どれもこの入口を指している。空にすると、それらの導線がすべて行き先を失う（何がここを指しているかは
-実装の側が持つ）。
+Where a not-found screen leads back to, where a request lacking a role is sent back to, and the public routes the sitemap lists all
+point at this entry point. Emptying it leaves every one of those paths without a destination (what points here is held by the
+implementation).
 
-## 関連
+## Related
 
-- 実装 [`src/app/page.tsx`](../../../src/app/page.tsx)
-- 外枠 [`layout.screen.md`](layout.screen.md)
-- 仕様書の規約 [`../README.md`](../README.md)
+- Implementation [`src/app/page.tsx`](../../../src/app/page.tsx)
+- The outer frame [`layout.screen.md`](layout.screen.md)
+- Conventions for specifications [`../README.md`](../README.md)

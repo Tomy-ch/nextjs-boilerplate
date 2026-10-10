@@ -1,91 +1,91 @@
-# `/` トップ（機能要件）
+# `/` Top (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**認証を要さない。** 誰が見ても同じ内容が出る。パーソナライズは持たない。
+**No authentication required.** The same content appears whoever views it. There is no personalization.
 
-**何を並べるかはバックエンドが決める。** 売れ筋の順位も新着の並びも、この画面は受け取ったものを
-そのまま並べるだけで、集計も並べ替えも持たない
-（[0070](../../../adr/0070-backend-role-separation.md)）。
+**The backend decides what is listed.** For both the best-seller ranking and the new-arrival order, this screen only lists what it receives
+as is, and owns neither aggregation nor reordering
+([0070](../../../adr/0070-backend-role-separation.md)).
 
-## 描画の時点
+## Render Timing
 
-**商品の並びはリクエストごとに描く。** 売れ筋も新着もバックエンドの状態が変われば変わる値なので、
-組み立て時に固めると更新が反映されない（[0040](../../../adr/0040-routing-rendering-strategy.md)）。
+**The product lists are rendered per request.** Both best sellers and new arrivals change when the backend's state changes,
+so fixing them at build time would not reflect updates ([0040](../../../adr/0040-routing-rendering-strategy.md)).
 
-**分類の一覧だけは静的な殻に入る。** 分類は運用で足し引きされる程度にしか変わらない値で、取得の口が
-寿命を持つ（[0071](../../../adr/0071-bff-api-integration.md)）。待つ理由が無いので、最初の HTML から
-辿れる側へ置く（[0041](../../../adr/0041-cache-components-decision.md)）。
+**Only the category list goes into the static shell.** Categories change only as much as operations add or remove them, and the fetch endpoint
+has a lifetime ([0071](../../../adr/0071-bff-api-integration.md)). There is no reason to wait, so it is placed on the side reachable from
+the first HTML ([0041](../../../adr/0041-cache-components-decision.md)).
 
-**殻の取り直しは背後で起きる。** 使う profile が `expire` を持たないためで、これによって「配り始めたあとは
-最後に読めた殻が出続ける」が成り立つ。`expire` を持たせると、その時間トラフィックが途絶えた直後の 1 要求が
-同期で取り直しに行き、そこで失敗した分がこの route の外——`error.tsx` を持たないので `global-error.tsx`
-——まで抜ける。**この画面が期限を持たない理由はそれである。**
+**Refetching the static shell happens in the background.** This is because the profile used has no `expire`, which is what makes "once serving starts,
+the last successfully read static shell keeps being served" hold. With an `expire`, the first request right after traffic stops for that long would
+go refetch synchronously, and a failure there would escape outside this route — all the way to `global-error.tsx`, since it has no `error.tsx`.
+**That is why this screen has no expiry.**
 
-**その代わり、組み立てにはバックエンドへの到達性が要る。** 殻に入る値は組み立て時に読まれるため、
-読めなければ組み立てが落ちる。**これは引き受ける。** 読めない殻を配るより落としたほうが良く、
-配り始めたあとで読めなくなっても最後に読めた殻がそのまま出続ける。到達できない環境で組み立てるなら
-`APP_API_MODE=mock` で組む（[`env/README.md`](../../../../env/README.md)）。
+**In exchange, building requires reachability to the backend.** Values in the static shell are read at build time, so
+if they cannot be read the build fails. **This is accepted.** Failing is better than serving an unreadable static shell, and
+if they become unreadable after serving starts, the last successfully read static shell keeps being served as is. To build in an environment that cannot reach it,
+build with `APP_API_MODE=mock` ([`env/README.md`](../../../../env/README.md)).
 
-**この宣言はこの画面が自分で持つ。** 外枠がカートを読むため配下はどのみち殻と穴に分かれるが
-（[`layout.function.md`](layout.function.md)）、それは外枠の都合であって、この画面のどの節がどちらに
-居るかの理由ではない。外枠の事情が変わったときに、この画面の描画の時点が黙って変わらないようにする。
+**This screen owns this declaration itself.** Because the outer frame reads the cart, everything beneath is split into static shell and dynamic holes anyway
+([`layout.function.md`](layout.function.md)), but that is the outer frame's concern, not the reason any section of this screen sits on
+either side. This keeps this screen's render timing from silently changing when the outer frame's circumstances change.
 
-## 取得
+## Fetching
 
-| 何を | いつ | 件数 |
+| What | When | Count |
 | --- | --- | --- |
-| 新着の商品 | 描画のたび | 決め打ち。段が最も多いときにちょうど 2 行になる数 |
-| 売れ筋の順位 | 同上 | 決め打ち |
-| 分類の一覧 | 組み立て時に 1 度。以後は背後で取り直す | 契約が返すすべて |
+| New-arrival products | Every render | Fixed. The number that makes exactly two rows at the most columns |
+| Best-seller ranking | Same as above | Fixed |
+| Category list | Once at build time; refetched in the background after that | Everything the contract returns |
 
-**描画のたびに取る 2 系統は並行して取る。** 直列にすると前の系統が返るまで次が始まらず、待ち時間が
-2 つの合計になる。系統同士に依存は無い。
+**The two lines fetched on every render are fetched in parallel.** In series, the next would not start until the previous returned, and the wait would be
+the sum of the two. The lines do not depend on each other.
 
-**件数はこの画面が決める。** 契約の既定に頼ると、契約の都合で並ぶ数が変わる。新着の数は段組みが
-割り切れる数に合わせてあるので、割り方を変えたら数も見直す。
+**This screen decides the counts.** Relying on the contract's default would let the contract's concerns change how many are listed. The new-arrival count is set to a number
+the column layout divides evenly, so changing the division means revisiting the count.
 
-**取得の待ちは 1 つにまとめる。** 節ごとに分けると枠の入れ替わる回数が節の数だけ増え、上から
-順に読み始めた位置が下へずれる。描画のたびに取る 2 系統は同時に取得しており待つのは最も遅い 1 つ分
-なので、まとめて待たせても増える待ち時間は無い。
+**The fetch waits are combined into one.** Splitting them per section would add as many frame swaps as there are sections, and the position
+where the user started reading from the top would shift downward. The two lines fetched on every render are fetched simultaneously, so the wait is for the slowest one
+only, and waiting on them together adds no wait time.
 
-**分類はこの待ちの外に置く。** 待つ理由が無い節を待ちの中へ入れる理由も無い。枠が増えるわけではない
-ので、上のまとめる理由とは衝突しない。
+**Categories are placed outside this wait.** There is no reason to put a section that has no reason to wait inside it. It adds no frames,
+so it does not conflict with the reason for combining above.
 
-**断り書きはこの待ちの外に置く。** 取得を待って出すと、待っている間は普通の EC に見える。
+**The caveat is placed outside this wait.** If it waited for the fetch, it would look like an ordinary EC site while waiting.
 
-## 失敗の意味論
+## Failure Semantics
 
-**失敗は系統ごとに立つ。** 1 系統が落ちても残りは出す。
+**Failures arise per line.** If one line fails, the rest are still shown.
 
-| 失敗 | 及ぶ範囲 |
+| Failure | Scope |
 | --- | --- |
-| 描画のたびに取る 1 系統 | その節だけ。節の中身を失敗の知らせへ置き換える |
-| 描画のたびに取る 2 系統とも | 2 つの節がどちらも失敗の知らせになる。画面は出る |
-| 分類の取得 | 節の失敗にしない。組み立て時なら組み立てが落ち、配り始めたあとは最後に読めた殻が出続ける |
+| One of the lines fetched on every render | That section only. The section's content is replaced with a failure notice |
+| Both lines fetched on every render | Both sections become failure notices. The screen still appears |
+| Fetching categories | Not made a section failure. At build time the build fails; after serving starts, the last successfully read static shell keeps being served |
 
-**描画のたびに取る系統がすべて落ちても route の `error` 境界へは行かない。** 失敗を例外ではなく値で
-持つためで、これが [0080](../../../adr/0080-error-handling.md) の部分エラーの形である。
+**Even if every line fetched on every render fails, it does not go to the route's `error` boundary.** Failure is held as a value rather than
+an exception, and this is the partial-error form of [0080](../../../adr/0080-error-handling.md).
 
-**分類の失敗だけは値にしない。** 殻は一度作られてそのまま配られ続けるため、失敗を表示へ変えると、
-そのとき読めなかったという事実が次の再検証まで全員へ配られる。
+**Only the category failure is not made a value.** The static shell is built once and served as is, so turning a failure into display would
+serve the fact that it could not be read at that time to everyone until the next revalidation.
 
-**出す文言は失敗の分類から引く。** 取得側のメッセージをそのまま出すと、バックエンドの都合が
-画面の文言になる。
+**The message shown is taken from the failure classification.** Showing the fetch side's message as is would make the backend's concerns
+the screen's text.
 
-**落ちた系統は記録する。** 画面は出続けるので、記録が唯一の痕跡になる。
+**Failed lines are logged.** The screen keeps being shown, so the log is the only trace.
 
-## 空
+## Empty
 
-**中身が空の節は描かない。** 「該当がありません」はトップでは利用者が取れる行動を持たない告知で、
-場所を取るだけである。空を伝える必要があるのは、利用者が条件を指定した画面のほう。
+**Sections with empty content are not rendered.** On the top page, "no matches" is a notice that offers the user no action to take,
+and it only takes up space. Conveying emptiness is needed on screens where the user specified conditions.
 
-**空と失敗は別に扱う。** 空の節は消え、失敗した節は知らせが残る。
+**Empty and failure are handled separately.** An empty section disappears; a failed section leaves its notice.
 
-## 行き先
+## Destinations
 
-**一覧への行き先はこの画面が組み立てない。** パスと絞り込みのキーは商品一覧の区画が持つ。綴りを
-写すと、一覧が契約に合わせて変えたときにこちらだけが古いまま残り、絞り込まれない一覧へ飛ぶ
-（[0021](../../../adr/0021-frontend-responsibility.md)）。
+**This screen does not assemble destinations into the list.** The path and the filter keys are owned by the product list's area. Copying the spelling
+would leave this side alone stale when the list changes to match the contract, jumping to an unfiltered list
+([0021](../../../adr/0021-frontend-responsibility.md)).

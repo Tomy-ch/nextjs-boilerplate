@@ -14,7 +14,7 @@ export const metadata: Metadata = {
  *
  * @remarks
  * **器を通らないので `main` は自分で置きます**（[README](../README.md)）。header と nav を出さない
- * 理由は `docs/spec/route/maintenance/page.screen.md` の「器」。
+ * 理由は `docs/spec/route/maintenance/page.screen.md#layout-shell`。
  */
 export default function MaintenancePage() {
   return (

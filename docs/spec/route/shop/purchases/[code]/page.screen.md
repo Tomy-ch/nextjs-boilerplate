@@ -1,129 +1,129 @@
-# `/purchases/[code]` 購入詳細（画面要件）
+# `/purchases/[code]` Purchase Detail (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-購入 1 件の控えと、請求額の内訳と、買った商品を確かめる画面。
+The screen for checking one purchase's receipt, the breakdown of the charged amount, and the products bought.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| パンくず | 購入履歴 → 注文番号。同じ段の右端に紙へ出す操作 |
-| 控え | 注文番号・注文日時・状況と、その購入にいまできること |
-| 内訳 | 小計・税・送料・合計と、円の参考換算額の切り替え |
-| 明細 | 商品名・購入時点の単価・数量 |
-| 導線 | 購入履歴へ戻る / 買い物を続ける |
+| Breadcrumbs | Purchase history → order number. The print operation at the right end of the same row |
+| Receipt | Order number, order date and time, status, and what can be done with the purchase now |
+| Breakdown | Subtotal, tax, shipping and total, and the yen reference converted amount toggle |
+| Line items | Product name, unit price at the time of purchase, quantity |
+| Links | Back to purchase history / Continue shopping |
 
-**現在地は注文番号で示す。** 利用者がこの画面を見分ける手がかりであり、控えとの突き合わせにも
-使う。契約が返すのは長い識別子なので、パンくずの中では幅で詰める（全文は控えにある）。
+**The current location is shown by the order number.** It is the user's cue for telling this screen apart, and is also used for matching against the receipt.
+The contract returns a long identifier, so it is truncated by width within the breadcrumbs (the full text is in the receipt).
 
-**状況は一覧の行と同じ色で示す。** 一覧で取り消しの配色だった購入が詳細では地の文になっていると、
-同じことを言っているのかが読み取れない。束ね方は [`../page.screen.md`](../page.screen.md) と同じ。
+**The status is shown in the same color as the list's row.** If a purchase that had the cancel color scheme in the list became plain text in the detail,
+it would be unreadable whether they are saying the same thing. The grouping is the same as [`../page.screen.md`](../page.screen.md).
 
-**注文番号は控えの中では折り返す。** 詰めて隠すと、問い合わせのときに全文を読み取れない。
+**The order number wraps within the receipt.** Truncating and hiding it would keep the full text from being read when making an inquiry.
 
-**行ごとの金額は出さない。** 単価と数量を掛けると、画面が金額を作ることになる。合算した値は
-内訳が持つ。
+**No per-row amount.** Multiplying unit price by quantity would mean the screen creating an amount. The summed values are held by
+the breakdown.
 
-## この購入にできること
+## What Can Be Done with This Purchase
 
-控えの中、状況のすぐ下へ置く。**何ができるかを決めているのは控えが出している状況そのもの**なので、
-根拠と操作を離すと、押せる操作が変わった理由を画面の別の場所へ探しに行くことになる。
+Placed inside the receipt, right below the status. **What can be done is decided by the very status the receipt shows**, so
+separating the basis from the operations would send the user looking elsewhere on the screen for why the pressable operations changed.
 
-| 状況 | 出す操作 |
+| Status | Operations shown |
 | --- | --- |
-| 未処理 / 受付中 / 確認中 | 支払う・キャンセルする |
-| 処理中 / 支払い済み | キャンセルする |
-| 発送済み / 配達済み / 完了 / キャンセル | 無し（段そのものを出さない） |
+| 未処理 / 受付中 / 確認中 (unprocessed / accepted / under review) | 支払う (Pay), キャンセルする (Cancel) |
+| 処理中 / 支払い済み (processing / paid) | キャンセルする (Cancel) |
+| 発送済み / 配達済み / 完了 / キャンセル (shipped / delivered / completed / cancelled) | None (the row itself is not shown) |
 
-**できない操作は押せなくするのではなく出さない。** 押せないボタンは「いつか押せる」と読めてしまう。
-支払い済みの注文に灰色の「支払う」が残ると、何を待てばよいのかが伝わらない。できることが 1 つも
-無い購入では、段そのものが現れない（空の余白だけを残さない）。
+**Operations that cannot be done are not shown, rather than made unpressable.** An unpressable button reads as "pressable someday."
+If a grayed-out 「支払う」 remained on a paid order, it would not convey what to wait for. For a purchase with nothing
+that can be done, the row itself does not appear (no empty space is left behind).
 
-**進む操作を主に見せ、取り消しは縁だけにする。** 並びも支払う・キャンセルするの順に置く。戻せない
-ことは確認の中の実行ボタンが赤で伝えるので、確定の瞬間には必ず目に入る。
+**The advancing operation is shown as primary, and cancellation only as an outline.** The order is also pay, then cancel. That it cannot be undone
+is conveyed by the red execute button inside the confirmation, so it is always seen at the moment of confirming.
 
-### 確認
+### Confirmation
 
-**どちらも確認を挟む。** キャンセルは戻せず、支払いは金銭の意味を持つ。背景を押しただけでは閉じず、
-閉じる操作を明示的に選ばせる。
+**Both interpose a confirmation.** Cancellation cannot be undone, and payment carries monetary meaning. Merely pressing the backdrop does not close it;
+the user is made to choose the close operation explicitly.
 
-確認の本文には、起きることと戻せるかどうかを書く。
+The confirmation's body states what will happen and whether it can be undone.
 
-| 操作 | 書くこと |
+| Operation | What it states |
 | --- | --- |
-| 支払う | 支払い方法の入力が無くこの操作だけで確定すること / 発送されるまではキャンセルできること |
-| キャンセルする | 元に戻せないこと / 商品が在庫へ戻り、買い直すには改めて注文が要ること |
+| 支払う (Pay) | That there is no payment-method input and this operation alone confirms it / that it can be cancelled until shipped |
+| キャンセルする (Cancel) | That it cannot be undone / that the products return to stock and buying again requires a new order |
 
-### 結果の出し方
+### How Results Are Shown
 
-| 結果 | どこへ出すか |
+| Result | Where it is shown |
 | --- | --- |
-| 通らなかった | **確認の中。** 送信しても確認は開いたままなので、外へ出すと利用者が見ていない場所に文言が出る |
-| 状況で拒まれた（409） | 同上。加えて読み込み直す導線を添える |
-| 成立した | **操作が並ぶ段。** 進んだ購入では操作ごと確認が消えるため、残る側が知らせを持つ |
+| Did not go through | **Inside the confirmation.** The confirmation stays open after submitting, so showing it outside would put the text where the user is not looking |
+| Rejected by status (409) | Same as above. A reload link is added as well |
+| Succeeded | **The row where the operations are listed.** On an advanced purchase the confirmation vanishes along with its operations, so the remaining side carries the notice |
 
-**状況で拒まれたときだけ読み込み直す導線を添える。** 拒まれた理由が「読み込んでからの間に購入が
-進んだ」ことなので、次にすべきなのは同じ操作の押し直しではなく、いまの状況を見ること。
+**The reload link is added only when rejected by status.** The reason for rejection is that "the purchase advanced between loading and
+now," so the next thing to do is not to press the same operation again but to look at the current status.
 
-## 金額の見え方
+## How Amounts Look
 
-**基準通貨の金額は常に出したままにする。** 円の切り替えは参考の 1 行を足すだけで、置き換えない。
-置き換えると、どちらの通貨で請求されたのかが読み取れなくなる。
+**The amount in the base currency always stays shown.** The yen toggle only adds one reference row; it does not replace anything.
+Replacing would make it unreadable in which currency the charge was made.
 
-**参考換算額を添えるのは合計にだけ。** 内訳のそれぞれに添えると、どれが請求された金額なのかが
-読み取れなくなる。
+**The reference converted amount is added only to the total.** Adding it to each item in the breakdown would make it unreadable which one is
+the amount charged.
 
-**参考換算額が無いときは切り替えごと出さない。** 押しても何も現れない操作は、失敗したのか対応
-していないのかを区別できない。0 円や代替の記号も置かない（金額として読める形を残すと、換算
-できなかったことが「その金額である」と受け取られる）。
+**When there is no reference converted amount, the toggle is not shown at all.** An operation that makes nothing appear when pressed cannot be told apart as
+failed or unsupported. Neither 0 yen nor a substitute symbol is placed (leaving a form readable as an amount would make the failure to convert
+be taken as "that is the amount").
 
-換算に使ったレートと基準日を添える。いつの相場による目安かが判らなければ参考にならない。
+The rate and reference date used for conversion are added. An estimate is no use as a reference unless it says which day's rate it is based on.
 
-## 紙に出すもの
+## What Goes to Paper
 
-この購入の控えは手元へ残す対象なので、紙へ出す操作をパンくずと同じ段の右端に置く。
+This purchase's receipt is something to keep at hand, so the print operation is placed at the right end of the same row as the breadcrumbs.
 
-| 紙に出す | 紙に出さない |
+| Printed | Not printed |
 | --- | --- |
-| 控え・内訳・明細 | パンくず・次の導線・紙へ出す操作そのもの・円の切り替え・この購入への操作 |
+| Receipt, breakdown, line items | Breadcrumbs, the next links, the print operation itself, the yen toggle, the operations on this purchase |
 
-押せない操作は紙面の場所を取るだけなので落とす。
+Operations that cannot be pressed only take up space on the page, so they are dropped.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 控えと内訳 |
+| Width | Receipt and breakdown |
 | --- | --- |
-| `lg` 以上 | 左右 2 列 |
-| `lg` 未満 | 縦積み |
+| `lg` and up | Two columns side by side |
+| Below `lg` | Stacked |
 
-明細はどちらの幅でも全幅で下に置く。行数が読めないため脇へ入れると、狭い列で商品名が折り返し
-続ける。
+The line items are placed below at full width at either width. The row count is unpredictable, so putting them to the side would make product names keep wrapping
+in a narrow column.
 
-**内訳を脇に貼り付けない。** 読み進めるあいだ画面に残しておきたいのは請求額ではなく、控えの側に
-ある状況と、そこからできる操作である。
+**The breakdown is not stuck to the side.** What the user wants to keep on screen while reading on is not the charged amount but the status on the receipt's
+side and the operations available from it.
 
-## 待機
+## Loading
 
-出来上がりと同じ段組みで枠だけを出す。控えが先に出て内訳が後から現れる形にすると、読み始めた
-位置が動く。
+Only frames are shown, in the same column layout as the finished screen. If the receipt appeared first and the breakdown later, the reading
+position would move.
 
-## 見つからないとき
+## When Not Found
 
-対象なしの表示へ落とす。他人の購入と存在しない購入を区別しない
-（[`page.function.md`](page.function.md)）。
+It falls to the not-found display. Someone else's purchase and a nonexistent purchase are not distinguished
+([`page.function.md`](page.function.md)).
 
-## 見出し
+## Headings
 
-**画面には出さない。** 見出しを負っているのはパンくずの現在地（注文番号）で、重ねると同じ
-識別子が 2 度並ぶ。
+**Not shown on the screen.** The current location in the breadcrumbs (the order number) carries the heading, and overlaying one would put the same
+identifier twice in a row.
 
-**ただし文書としては置く。** 出さないことにすると、支援技術から「いまどの購入を見ているか」を
-得る手段がパンくずを辿る以外に無くなる。見えない見出しとして注文番号を置き、画面の見え方は
-変えない。
+**It is placed in the document, though.** If it were omitted, the only way for assistive technology to learn "which purchase am I looking at" would be
+to trace the breadcrumbs. The order number is placed as an invisible heading, and the screen's appearance does not
+change.
 
-## 関連
+## Related
 
-- 実装 `src/features/purchases/` — [README](../../../../../../src/features/purchases/README.md)
-- 戻る先 [`/purchases`](../page.screen.md)（購入履歴）
-- 同じ控えを出す画面 `/checkout/complete`（購入完了）
+- Implementation `src/features/purchases/` — [README](../../../../../../src/features/purchases/README.md)
+- Back: [`/purchases`](../page.screen.md) (purchase history)
+- A screen showing the same receipt: `/checkout/complete` (purchase complete)

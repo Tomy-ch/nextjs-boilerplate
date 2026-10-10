@@ -365,7 +365,7 @@ export async function payMyPurchase(purchaseCode: string): Promise<void> {
  * 発送待ちが無いときは、失敗ではなく空の並びが返ります。
  *
  * 組分けと並び順を契約が決めること、範囲の外の購入が別の便になることは
- * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
+ * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md#fetching)。
  *
  * @returns 発送可能な購入の組
  */

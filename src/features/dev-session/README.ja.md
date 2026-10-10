@@ -24,7 +24,7 @@ IdP を通さずに session を発行し、保護された画面へ入るため�
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/dev/session` | [`screen`](../../../docs/spec/route/dev/session/page.screen.md) / [`function`](../../../docs/spec/route/dev/session/page.function.md) | 不要（開ける環境の判定が代わりに掛かる） |
+| `/dev/session` | [`screen`](../../../docs/spec/route/dev/session/page.screen.ja.md) / [`function`](../../../docs/spec/route/dev/session/page.function.ja.md) | 不要（開ける環境の判定が代わりに掛かる） |
 
 `/dev/session/authorize` は同じ画面が送信先に選ぶ Route Handler で、画面ではありません。
 

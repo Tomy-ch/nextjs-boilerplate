@@ -28,7 +28,7 @@ const POLICY_HREF = "/privacy";
  * 始まる資材を止められません。
  *
  * **何を裏へ置き、何を置かないかは器が決めます** —— 本体は何も繋がず、運用テレメトリも通しません
- * （`docs/spec/route/layout.function.md`「同意が無いものは読み込まない」）。
+ * （`docs/spec/route/layout.function.md#load-nothing-without-consent`）。
  *
  * @param props.children - 同意が得られている間だけ描く資材
  */

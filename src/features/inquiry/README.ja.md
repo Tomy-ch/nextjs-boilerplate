@@ -24,7 +24,7 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/mypage/inquiry` | [`screen`](../../../docs/spec/route/shop/mypage/inquiry/page.screen.md) / [`function`](../../../docs/spec/route/shop/mypage/inquiry/page.function.md) | 必要 |
+| `/mypage/inquiry` | [`screen`](../../../docs/spec/route/shop/mypage/inquiry/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/mypage/inquiry/page.function.ja.md) | 必要 |
 
 使う operationId。
 

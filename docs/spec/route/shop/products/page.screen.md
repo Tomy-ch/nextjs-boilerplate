@@ -1,226 +1,226 @@
-# `/products` 商品一覧（画面要件）
+# `/products` Product List (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-商品を探し、絞り込み、詳細へ進むか、その場でカートへ入れる画面。
+The screen for finding products, filtering them, and either proceeding to a detail or adding to the cart on the spot.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| 検索と並び替え | キーワードの入力欄・並び替え・いま効いている条件・条件をすべて解除する操作 |
-| 絞り込み | 価格・カテゴリ・在庫状況の入力欄。overlay の中ではそこに確定する操作と確定前の該当件数が付く |
-| 一覧 | 読み込み済みの件数と総件数・商品のカード・続きの読み込み状況 |
+| Search and sort | Keyword input, sort, the conditions currently in effect, and an operation that clears all conditions |
+| Filters | Inputs for price, category and stock availability. Inside the overlay, an operation to apply them and the pre-confirmation matching count are added |
+| List | The number loaded and the total count, product cards, and the loading status of the rest |
 
-## 絞り込み
+## Filtering
 
-### 並び
+### Order of the Filters
 
-価格 → カテゴリ → 在庫状況の順に置く。予算は商品を探す前から決まっていることが多く分類を跨いで
-効くため先に、在庫状況は結果を絞るというより出てきた結果から買えないものを外す条件なので後に置く。
+Placed in the order price → category → stock availability. A budget is often decided before looking for products and applies across categories,
+so it comes first; stock availability is less a narrowing condition than one that removes unbuyable items from the results that came up, so it comes last.
 
-| 条件 | 選び方 |
+| Condition | How it is chosen |
 | --- | --- |
-| 価格 | `［下限］〜［上限］` の選択と、同じ範囲を指すレンジスライダー |
-| カテゴリ | **複数選べる**。「すべて」の選択肢は置かない |
-| 在庫状況 | すべて / 在庫あり / 在庫なし から 1 つ |
+| Price | A `［下限］〜［上限］` (min–max) selection, and a range slider pointing at the same range |
+| Category | **Multiple selectable**. No "all" option |
+| Stock availability | One of All / In stock / Out of stock |
 
-**カテゴリに「すべて」を置かない。** 1 つも選んでいない状態がそのまま「すべて」であり、選択肢と
-して並べると、それを選ぶことと他を外すことのどちらが効いているのかが読めなくなる。
+**Category has no "all."** The state with nothing selected is itself "all," and listing it as an option
+would make it unreadable whether selecting it or deselecting the others is what takes effect.
 
-**在庫状況は互いに排他なので単一選択にする。** 分類のように積み上げられるものではない。
+**Stock availability is mutually exclusive, so it is single-select.** It is not something that stacks like categories.
 
-### 価格の 2 つの操作面
+### The Two Price Controls
 
-**下限と上限は目盛りの上でだけ選べる。** 選択とスライダーが同じ範囲を指すため、連続値を許すと
-2 つの操作面が同じ条件を別の粒度で表す。目盛りの両端は値ではなく「指定なし」を表し、端を目盛りに
-含めることで下限と上限を 1 つの操作面に載せても左右の向きが崩れない。
+**The minimum and maximum can be chosen only on the scale's ticks.** The selection and the slider point at the same range, so allowing continuous values
+would make the two controls express the same condition at different granularities. The two ends of the scale represent "unspecified" rather than a value, and
+including the ends in the scale keeps the left-right orientation intact even with minimum and maximum on one control.
 
-**スライダーは滑らせている間、何も確定しない。** 指を離した時点だけを確定として扱う。通り過ぎた
-目盛りをすべて確定にすると、確定のたびに該当件数の取得が走る。選択の側からは即座に確定し、
-スライダーの位置もそれに追従する。
+**The slider confirms nothing while sliding.** Only the moment the finger is lifted counts as confirmation. Confirming every tick
+passed over would run a matching-count fetch on every confirmation. From the selection side it confirms immediately, and
+the slider's position follows it.
 
-**目盛りに無い値が URL で届いたら、操作面では「指定なし」の端に見せる。** その条件自体は効いた
-ままで、効いていることは条件の表示が伝える。操作面の側は、次に動かしたときどの値になるかを
-見せられる位置に置く。
+**When a value not on the scale arrives via the URL, the control shows it at the "unspecified" end.** The condition itself stays in
+effect, and the condition display conveys that it is in effect. The control is placed where it can show which value it will take the next time it is
+moved.
 
-### 選べる数
+### How Many Can Be Selected
 
-**分類には一度に選べる数の上限があり、契約が決める。** 表示側は数を書き写さず、契約から受け取る。
+**Categories have a limit on how many can be selected at once, and the contract decides it.** The display side does not copy the number; it receives it from the contract.
 
-**上限に届くまで何も出さない。** 上限を超える数の分類を持つ運用でしか到達しない制約であり、残り数を
-常に出すと、届かない制約のために全員の視界を占める。
+**Nothing is shown until the limit is reached.** It is a constraint reached only by operations with more categories than the limit, and always showing the remaining
+count would occupy everyone's view for a constraint they never reach.
 
-**上限に達したら、まだ選んでいない分類を選べなくし、いくつまで選べるかを群の末尾に出す。** 押せるのに
-何も起きない形は「壊れている」と読まれる。**選べなくするのは `disabled` ではない** —— focus が当たら
-なくなると、keyboard と支援技術の利用者が理由へ辿り着けない。外す操作は常に通す。
+**Once the limit is reached, unselected categories become unselectable, and how many can be selected is shown at the end of the group.** A form that is pressable but
+does nothing is read as "broken." **Making them unselectable is not `disabled`** — if focus could no longer
+land on them, keyboard and assistive-technology users could not reach the reason. Deselecting always goes through.
 
-### 確定
+### Applying the Conditions
 
-**確定を挟むかどうかは、選んだ結果が見えるかどうかで決まる。**
+**Whether a confirm step is interposed depends on whether the result of a selection is visible.**
 
-**一覧が隣に見えている幅では、選んだ時点で反映する。** 結果はその場に出るので、確定を挟むと結果を
-見るためだけにもう 1 回押させることになる。値の範囲は指を離した時点だけを確定として扱うため、
-滑らせる操作でも反映は 1 回で済む。
+**At widths where the list is visible alongside, a selection is reflected the moment it is made.** The result appears right there, so a confirm step would
+make the user press once more just to see the result. The value range counts only the moment the finger is lifted as confirmation, so
+even a sliding operation reflects only once.
 
-**反映を待つあいだも入力欄は押せるままにする。** 塞ぐと、条件を続けて選ぶ操作がそのたびに止まる。
-待っていることは `aria-busy` で伝える。
+**The inputs stay pressable while waiting for reflection.** Blocking them would halt each successive selection.
+That it is waiting is conveyed with `aria-busy`.
 
-**一覧が overlay の裏に隠れる幅では、条件を組んでからまとめて確定する。** 選んだ結果を確かめられ
-ないため、選ぶたびに反映しても手数が増えるだけになる。
+**At widths where the list is hidden behind the overlay, conditions are assembled and then confirmed together.** The result of a selection cannot be checked,
+so reflecting on every selection would only add steps.
 
-**まとめて確定する側には、確定する前の該当件数を添える。** 反映を待たずに結果の大きさが分かるので、
-確定を明示にしても選び直す手数は増えない。
+**The side that confirms together shows the pre-confirmation matching count.** The size of the result is known without waiting for reflection, so
+making confirmation explicit adds no steps for reselecting.
 
-**数え直している間は 1 つ前の件数を残す。** 消すと、条件を選ぶたびに数が現れては消え、読み取る前に
-入れ替わる。
+**While recounting, the previous count stays.** Clearing it would make the number appear and vanish with every selection, swapping
+before it can be read.
 
-**数えられなかったときは消す。** 残すと、いまの条件の件数として読まれる。件数が分からないだけで
-確定は妨げないため、押せる状態は変えない。
+**When it cannot be counted, it is cleared.** Leaving it would be read as the count for the current conditions. Not knowing the count does not
+prevent confirmation, so the pressable state does not change.
 
-**一覧に効いている条件が外から変わったら、組み立て中の条件を捨ててそちらへ揃える。** 条件の表示を
-外す操作や戻る操作は入力欄を通らないため、揃えないと画面の一覧と入力欄が違うものを指す。
+**When the conditions in effect on the list change from outside, the conditions being assembled are discarded and aligned to those.** Operations that remove a condition
+from the condition display, and the back operation, do not go through the inputs, so without aligning the screen's list and the inputs would point at different things.
 
-**反映の契機は複数あるが、飛ばすものは 1 つ。** 検索語の送信・絞り込みの選択・overlay の確定は、
-どれも組み立て中の条件を丸ごと飛ばす。別々に持つと、片方を押した時点でもう片方の入力途中が
-捨てられる —— 絞り込みを選んでからキーワードを打って送信すると、選んだ絞り込みが消える。
+**There are several triggers for reflection, but what is sent is one.** Submitting a search term, selecting a filter and confirming the overlay
+all send the whole set of conditions being assembled. Holding them separately would discard the other's in-progress input the moment one is
+pressed — selecting a filter and then typing and submitting a keyword would erase the selected filter.
 
-**overlay は開くときに組み立て中の条件を捨てない。** 下書きは画面で 1 つで、閉じている間もキーワードの
-入力欄がその一部を見せている。ここで捨てると打ち込んだ検索語まで一緒に消える。
+**The overlay does not discard the conditions being assembled when it opens.** There is one draft per screen, and even while closed the keyword
+input shows part of it. Discarding here would also erase the typed search term.
 
-**overlay は確定では閉じず、確定した条件が一覧へ届いたときに閉じる。** 閉じる操作と遷移を同時に
-撃つと、overlay が戻る操作のために積んだ履歴を戻す動きが、まだ届いていない遷移を打ち消す。条件が
-変わらないときは届くものが無いので、その場で閉じる。**確定は履歴を積まずに差し替える** —— overlay が
-既に 1 つ積んでおり、そのうえで積むと戻る操作が 1 度空振りする。
+**The overlay does not close on confirmation; it closes when the confirmed conditions reach the list.** Firing the close operation and the navigation at the same
+time would let the move that rewinds the history the overlay stacked for the back operation cancel the navigation that has not yet arrived. When the conditions
+do not change, nothing is going to arrive, so it closes on the spot. **Confirmation replaces without stacking history** — the overlay
+has already stacked one, and stacking another on top would make the back operation miss once.
 
-## 読み進めたときの居場所
+## Where Things Stay While Reading On
 
-一覧を読み進めるあいだ、画面の上端は 3 つで取り合う —— site header・検索の帯・脇の絞り込み。
+While reading on through the list, three things compete for the top edge of the screen — the site header, the search bar and the side filters.
 
-| 送りの向き | 検索の帯 | 脇の絞り込み |
+| Scroll direction | Search bar | Side filters |
 | --- | --- | --- |
-| 下へ（商品を読んでいる） | 退く | header の直下に止まる |
-| 上へ（戻ろうとしている） | header の直下に止まる | 帯の下に止まる |
+| Down (reading products) | Recedes | Stops right below the header |
+| Up (trying to go back) | Stops right below the header | Stops below the bar |
 
-**下へ読むあいだ検索の帯を退かせる。** その間に見たいのは商品であって、検索し直す構えには入って
-いない。上へ戻ろうとした時点で現れるので、条件を変えたくなればすぐ届く。
+**The search bar recedes while reading downward.** What the user wants to see then is products, not to get ready to search again.
+It appears the moment the user tries to go back up, so it is within reach as soon as they want to change conditions.
 
-**帯の退き方は「貼り付くのをやめる」ことで表す。** 位置をずらして隠すと、まだ本来の位置に居る
-（画面の先頭に近い）ときにも見出しへ重なって上がる。貼り付きをやめるだけなら、**本来の位置より
-上へは決して行かない**。
+**The bar's receding is expressed by "it stops sticking."** Hiding it by shifting its position would make it overlap the heading as it rises even when it is
+still at its natural position (near the top of the screen). If it only stops sticking, **it never goes above its natural
+position**.
 
-**絞り込みは向きによらず手元に残す。** 商品を見ながら条件を変えるのがこの画面の主な流れで、
-絞り込みが画面外へ去ると、変えるたびに先頭へ戻ることになる。止まる位置は帯の下で、帯が退いて
-いるあいだは header の直下まで上がる。**帯の高さは効いている条件の数で変わる**（条件が折り返すと
-伸びる）ため、位置は測った値から決める。
+**The filters stay at hand regardless of direction.** Changing conditions while looking at products is this screen's main flow, and
+if the filters left the screen, every change would mean going back to the top. They stop below the bar, and while the bar has receded
+they rise to right below the header. **The bar's height changes with the number of conditions in effect** (it grows when conditions wrap),
+so the position is decided from a measured value.
 
-**絞り込みが画面に収まらない高さになったら、自分の中で送る。** 外側の送りは商品のためのもので、
-そちらに任せると絞り込みの下端へ到達できない。
+**When the filters become too tall for the screen, they scroll within themselves.** The outer scroll is for the products, and
+leaving it to that would make the bottom of the filters unreachable.
 
-貼り付いているあいだ商品はその下を通るため、帯にも絞り込みにも背景を敷く。
+While sticking, products pass underneath, so both the bar and the filters get a background.
 
-## 幅による組み替え
+## Responsive Layout
 
-| 幅 | 絞り込みの居場所 | 確定 |
+| Width | Where the filters live | Confirm |
 | --- | --- | --- |
-| `lg` 以上 | 本文の脇に常設（読み進めても残る） | 置かない。選んだ時点で反映する |
-| `lg` 未満 | 画面の下端から開く overlay | overlay の下端 |
+| `lg` and up | Permanently beside the body (remains while reading on) | None. Reflected the moment selected |
+| Below `lg` | An overlay that opens from the bottom edge of the screen | At the bottom edge of the overlay |
 
-出し分けは CSS で行う。位置が動く出し分けを幅の判定で行うと、サーバでは判定できないため
-hydration の前後で配置が動く（[0051](../../../../adr/0051-styling-system.md)）。
+The switch is done with CSS. Switching something whose position moves by a width check would, since the server cannot make that check,
+move the layout before and after hydration ([0051](../../../../adr/0051-styling-system.md)).
 
-**確定の仕方が幅で変わるのは、選んだ結果が見えるかどうかが変わるからである。** 入力欄そのものは
-同じで、変わるのは反映の契機だけになる。
+**How confirmation works changes with width because whether the result of a selection is visible changes.** The inputs themselves are
+the same; only the trigger for reflection changes.
 
-**並び替えは幅によらず選んだ時点で反映する。** 単一選択なので選ぶことが確定と同じであり、overlay で
-まとめて確定する側へ入れると確定の操作が 2 段になる。同じ理由で絞り込みの側へは入れない。
+**Sort is reflected the moment selected, regardless of width.** It is single-select, so selecting is the same as confirming, and putting it on the overlay's
+confirm-together side would make confirmation two steps. For the same reason it is not put on the filter side.
 
-**overlay を開く操作には、効いている条件の数を添える。** 閉じているあいだ入力欄は見えないため、
-何かで絞り込まれていること自体が画面から読めない。入力欄 1 つを 1 件と数える。
+**The operation that opens the overlay shows the number of conditions in effect.** While it is closed the inputs are not visible, so
+that anything is filtering at all cannot be read from the screen. Each input counts as one.
 
-## 効いている条件の表示
+## Showing the Active Conditions
 
-条件は 1 つずつ外せる形で並べる。脇に領域を持てない幅では入力欄が overlay の中にあり、閉じている
-間は何で絞り込まれているかが画面から読めない。条件が増えるほどこの差は開く。
+Conditions are listed in a form where each can be removed individually. At widths that cannot hold a side region, the inputs are inside the overlay, and while it is closed
+what is filtering cannot be read from the screen. The more conditions, the wider this gap grows.
 
-- **分類は選んだぶんだけ並べる。** まとめて 1 つにすると外す操作が「全部外す」しか作れず、3 つ
-  選んだうちの 1 つを取り下げられない
-- **価格は下限と上限で 1 つにまとめる。** 片方だけ外せても意味のある操作にならず、範囲は 2 つ
-  そろって初めて 1 つの条件になる
-- **並び替えは並べない。** 常に値を持つため、外せない表示が居座って外せるものと混ざる
-- **分類は選んだ表示名で出す。** URL に載っているのは値そのもので、出しても何を選んだのか分からない。
-  選択肢に無い値は飛ばす（契約を外れた値か消えた分類であり、出すと存在しない条件が効いているように
-  読める）
-- **すべてを解除する操作は右端に留める。** 条件の後ろへ流すと、条件が増えて折り返すたびに位置が
-  動き、同じ場所を狙って押せない。効いている条件が 1 つのときは出さない（その条件を外す操作と
-  行き先が同じになる）
+- **Categories are listed one per selection.** Combining them into one would allow only a "remove all" operation, so one of three
+  selected could not be withdrawn
+- **Price is combined into one with its minimum and maximum.** Removing just one side would not be a meaningful operation, and a range becomes one condition only
+  when both are present
+- **Sort is not listed.** It always has a value, so an unremovable display would sit there mixed in with removable ones
+- **Categories are shown by their selected display names.** What is in the URL is the value itself, and showing it would not say what was selected.
+  Values not among the options are skipped (they are values outside the contract or vanished categories, and showing them would read as if nonexistent conditions were
+  in effect)
+- **The clear-all operation is kept at the right end.** Flowing it after the conditions would move its position every time conditions increase and wrap,
+  so it could not be pressed by aiming at the same place. It is not shown when only one condition is in effect (it would lead to the same place as
+  the operation removing that condition)
 
-## 検索欄
+## Search Field
 
-**打鍵では検索しない。** 検索語だけが先に効くと、絞り込みを組んでいる途中で一覧が入れ替わり、
-中途半端な条件の結果を見ることになる。
+**Keystrokes do not search.** If the search term took effect first, the list would swap while the user is assembling filters,
+and they would see results for half-finished conditions.
 
-**空のまま送信できるのは、いま検索語が効いているときだけ。** 効いている検索語を消すには空の送信が
-要る一方、何も効いていない状態での送信は結果が変わらない。押しても何も起きない操作を残すと、反応が
-無いのか結果が同じなのかを利用者から区別できない。
+**It can be submitted empty only when a search term is currently in effect.** Clearing an active search term requires an empty submission,
+while submitting when nothing is in effect does not change the result. Leaving an operation that does nothing when pressed means the user cannot tell
+whether it failed to respond or the result is the same.
 
-**読み進めた位置は引き継がない。** 検索し直した後の「続き」は前の条件の続きを指している。
+**The reading position is not carried over.** "The rest" after searching again would point to the rest of the previous conditions.
 
-## 一覧
+## List
 
-**カードに指を乗せたことを面で返す。** カード全体が詳細への導線でありながら操作の入れ子を避けて
-包んでいないため、返さないと押せる範囲が商品名の文字だけに見える。導線そのものの focus 表示とは
-別に要る。
+**Hovering over a card is answered on its surface.** The whole card is a link to the detail, but it is not wrapped, to avoid nesting
+operations, so without that feedback the pressable area would look like only the product name's text. This is needed separately from the link's own
+focus indicator.
 
-**在庫が無い商品には問い合わせの入口を並べる。** カートへ入れる操作は押せないままにしてあり、
-それだけでは「買えない」ことしか伝わらない。押すと問い合わせの画面へ移る。**どの商品かは
-引き継がない** —— 問い合わせは利用者ごとに 1 件で、商品ごとの筋を持たない。
+**Out-of-stock products get an inquiry entry point alongside.** The add-to-cart operation is left unpressable,
+and that alone conveys only "cannot buy." Pressing it moves to the inquiry screen. **Which product it was is not
+carried over** — there is one inquiry per user, and it has no per-product thread.
 
-**カートへ入れる操作は、送信中も見えている文言を変えない。** 文言を伸ばすと幅が変わり、一覧では
-隣の値までまとめて動く。送信中であることは絵柄の差し替えで示し、支援技術へは操作そのものの名前で
-伝える。
+**The add-to-cart operation keeps its visible text unchanged while sending.** Lengthening the text would change its width, and in the list
+the neighboring values would all move with it. That it is sending is shown by swapping the glyph, and conveyed to assistive technology by the operation's own
+name.
 
-**読み込み済みの件数と総件数を添える。** 読み込んだ数だけを「全体の何件中」の形に見せると、実際
-には知らない数を知っているように読める。件数と読み込み状況はそれぞれ別に読み上げさせる（1 つの
-文へまとめると読み込みのたびに件数まで読み直される）。
+**The number loaded and the total count are shown.** Showing only the number loaded in the form "N of the whole" would read as knowing a number
+that is actually unknown. The count and the loading status are announced separately (combining them into one
+sentence would re-read the count on every load).
 
-**続きを読む操作は失敗したときだけ出す。** 読み進めている間は末尾に近づくだけで次が始まるため、
-同じことをする入口を並べても手数が増えるだけ。失敗した後だけは事情が違い、末尾到達の検知はその場に
-留まる限り二度と起きないので、操作が唯一の復帰口になる。keyboard の送りも支援技術の読み進めも
-表示位置を動かすため、この形でも送り以外の手段は失われない。
+**The load-more operation appears only on failure.** While reading on, the next load starts merely by nearing the end,
+so lining up an entry point that does the same thing would only add steps. Only after a failure is it different: detection of reaching the end never fires again
+as long as the user stays there, so the operation becomes the only way to recover. Keyboard scrolling and assistive technology's reading-on both
+move the display position, so even in this form no means other than scrolling is lost.
 
-## 待機
+## Loading
 
-**条件を変えたときに待機表示へ落ちるのは一覧と件数だけ。** 検索欄・効いている条件の表示・絞り込みの
-入力欄はその外にあり、絞り込んでも操作の足場が消えない。
+**When conditions change, only the list and the count fall back to the loading UI.** The search field, the active-conditions display and the filter
+inputs are outside it, so the controls the user stands on do not vanish while filtering.
 
-待機表示は出来上がりと同じ形・同じ段組みで枠だけを出す。1 つの回転する印で代用すると、描画された
-瞬間に位置が動いて読み始めた場所を見失う。段の数は器の幅で決める（画面の幅で決めると、脇に絞り込みが
-常設される幅で待機表示だけが本文からはみ出す）。
+The loading UI shows only frames, in the same shape and the same column layout as the finished screen. Substituting a single spinning marker would shift positions the moment
+it is rendered and lose where the user started reading. The number of columns is decided by the container's width (deciding by the screen's width would make only the loading UI
+overflow the body at widths where the filters sit permanently beside it).
 
-## 空の状態
+## Empty State
 
-「条件に合う商品がありません」と、次に何をすればよいか（キーワードを短くする・絞り込みを外す）を
-添える。「0 件」とだけ出さない。
+「条件に合う商品がありません」 ("No products match the conditions") is shown, together with what to do next (shorten the keyword, remove filters).
+It never says only "0 results."
 
-## 失敗の見え方
+## How Failure Looks
 
-| 失敗 | 出すもの |
+| Failure | What is shown |
 | --- | --- |
-| 取得 | 分類を問わない汎用の文言と問い合わせ番号、再試行の導線。生のエラー本文は出さない |
-| 条件が契約を外れている | 一覧の代わりに、確認する条件の呼び名と、**条件を外して一覧を見る導線** |
+| Fetching | A generic message regardless of classification, an inquiry number and a retry link. The raw error body is not shown |
+| Conditions fall outside the contract | In place of the list, the names of the conditions to check, and **a link to view the list with the conditions removed** |
 
-**条件が外れているときは直せる導線を必ず添える。** 条件は URL に入っており、画面の操作だけでは
-戻せない状態になり得る。条件の呼び名は画面上の言葉へ直して出す（利用者が URL の綴りを知っている
-前提を置かない）。
+**When conditions fall outside, a link that fixes it is always added.** The conditions are in the URL, and the state may not be recoverable through
+the screen's operations alone. Condition names are shown in the screen's own words (not assuming the user knows the URL's
+spelling).
 
-## パンくず
+## Breadcrumbs
 
-置かない。global nav が直接この画面を指しており、階層が 1 段であるため
-（[0026](../../../../adr/0026-layout-shell-mount.md)）。
+None. The global nav points directly at this screen, and the hierarchy is one level deep
+([0026](../../../../adr/0026-layout-shell-mount.md)).
 
-## 関連
+## Related
 
-- 実装 `src/features/products/` — [README](../../../../../src/features/products/README.md)
-- 進む先 [`/products/[id]`](./[id]/page.screen.md)（商品詳細） / `/cart`（カート）
-- 外枠に出るカート [`../layout.screen.md`](../layout.screen.md)
+- Implementation `src/features/products/` — [README](../../../../../src/features/products/README.md)
+- Next: [`/products/[id]`](./[id]/page.screen.md) (product detail) / `/cart` (cart)
+- The cart in the outer frame [`../layout.screen.md`](../layout.screen.md)

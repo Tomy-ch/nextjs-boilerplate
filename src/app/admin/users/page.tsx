@@ -36,7 +36,7 @@ async function AdminUserListContent({ searchParams }: { searchParams: Promise<Ra
  * 利用者を一覧で見る画面。
  *
  * @remarks
- * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md#keep-out-of-search-indexes`。
  */
 export default function AdminUserListPage({
   searchParams,

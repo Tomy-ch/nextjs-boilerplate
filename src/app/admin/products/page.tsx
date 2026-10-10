@@ -35,7 +35,7 @@ async function AdminProductListContent({
  * 管理側の商品一覧管理。
  *
  * @remarks
- * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md#keep-out-of-search-indexes`。
  */
 export default function AdminProductsPage({
   searchParams,

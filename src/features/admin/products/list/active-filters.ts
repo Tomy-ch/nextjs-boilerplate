@@ -24,7 +24,7 @@ const STATUS_LABEL = "状態";
  * URL に載っているのはマスタ行を指す番号で、そのまま出しても何を選んだのかは読めません。
  * 選択肢に無い番号は条件として出しません。
  *
- * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」）。
+ * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md#the-url-holds-the-search-conditions`）。
  *
  * @param codes - 選ばれたコードの一覧
  * @param options - コードを表示名へ直す候補

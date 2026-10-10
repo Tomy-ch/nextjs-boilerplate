@@ -8,7 +8,7 @@ issue から PR まで通す半自動のパイプライン。進行・記帳・�
 
 コマンドはこのファイルだけで実行を再現できるように置く。自走する詳細はポインタに留める ——
 [`.makefiles/README.md`](../../../.makefiles/README.md)（ターゲットの目録）、
-[`docs/playbook.md`](../../../docs/playbook.md)（置き場と画面の順序）、
+[`docs/playbook.md`](../../../docs/playbook.ja.md)（置き場と画面の順序）、
 [`docs/rules.md`](../../../docs/rules.ja.md)（実装規約）、そして `AGENTS.md` の *Where You May Stop*。
 
 ## いつ使うか

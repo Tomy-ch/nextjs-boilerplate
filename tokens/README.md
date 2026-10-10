@@ -20,7 +20,7 @@ W3C Design Tokens の `$type` / `$value` と alias（`{...}`）を使います�
 
 参照は値の一部としても書けます。`color-mix()` や `box-shadow` のように primitive を素材の 1 つとして組み立てる値があるためで、そこを素の色で書くと semantic 層から primitive への経路が切れ、テーマの差し替えがその宣言だけ効かなくなります。
 
-**参照先の無い token は生成が落ちます。** 通すと実在しない変数を指す `var()` が出て、その宣言はエラーにならず丸ごと無効になり、面や文字が静かに消えます（[`docs/design/design-system.md`](../docs/design/design-system.md)「解決しない CSS 変数は、class より静かに壊れる」）。参照の区切りは `.` ですが、`{spacing.0.5}` のように段の名前自体が `.` を含む場合も、宣言済みの primitive と突き合わせて解決します。
+**参照先の無い token は生成が落ちます。** 通すと実在しない変数を指す `var()` が出て、その宣言はエラーにならず丸ごと無効になり、面や文字が静かに消えます（[`docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes`](../docs/design/design-system.md#unresolved-css-variables-break-more-quietly-than-classes)）。参照の区切りは `.` ですが、`{spacing.0.5}` のように段の名前自体が `.` を含む場合も、宣言済みの primitive と突き合わせて解決します。
 
 値そのものの理由は、その token の `$description` に書けます。W3C の項目で、生成物には出ません。
 

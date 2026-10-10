@@ -14,7 +14,7 @@ export type AdminDashboardPageContentProps = {
  *
  * @remarks
  * 期間を明示して求めます。省略に委ねない理由は
- * `docs/spec/route/admin/page.function.md`「期間を明示して求める」。
+ * `docs/spec/route/admin/page.function.md#asking-with-an-explicit-period`。
  *
  * **「いま」は受け取ります。** ここで実時計を読むと、暦日の区切りが要求のクエリへ入り、検証で
  * 固定できない要求になります（`config/clock`）。

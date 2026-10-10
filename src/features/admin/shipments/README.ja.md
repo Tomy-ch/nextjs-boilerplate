@@ -24,7 +24,7 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/admin/shipments` | [`screen`](../../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../../docs/spec/route/admin/shipments/page.function.md) | 役割: admin |
+| `/admin/shipments` | [`screen`](../../../../docs/spec/route/admin/shipments/page.screen.ja.md) / [`function`](../../../../docs/spec/route/admin/shipments/page.function.ja.md) | 役割: admin |
 
 親（[`admin`](../README.ja.md)）の「認可」がこの画面にもそのまま掛かります。
 

@@ -1,53 +1,54 @@
-# `/admin` 外枠（機能要件）
+# `/admin` Outer Frame (Functional Requirements)
 
-> 画面要件は [`layout.screen.md`](layout.screen.md)。
+> Screen requirements: [`layout.screen.md`](layout.screen.md).
 >
-> ここに書くのは**配下のすべての画面に効く約束**です。個々の画面はそれぞれの `page.*.md` が持ちます。
+> What is written here are **promises that apply to every screen beneath it**. Each screen's own are held by its `page.*.md`.
 
-## 誰が入れるか
+## Who can enter
 
-**管理の役割を持つ主体だけが入れる。** 未認証も、認証済みでも役割を持たない主体も入れない。
+**Only actors with the admin role can enter.** Neither unauthenticated actors nor authenticated actors without the role can enter.
 
-役割の正本はバックエンドで、IdP ではない。IdP が持つのは身元だけで、何をしてよいかは業務側の
-データである（[0070](../../../adr/0070-backend-role-separation.md) / [0079](../../../adr/0079-auth-frontend-seam.md)）。
+The canonical source of roles is the backend, not the IdP. The IdP holds only identity; what an actor may do is business-side
+data ([0070](../../../adr/0070-backend-role-separation.md) / [0079](../../../adr/0079-auth-frontend-seam.md)).
 
-**どの経路に何の役割が要るかは 1 か所が宣言する。** 前捌きと確定認可が別々に条件を持つと、
-2 つが食い違ったときにどちらが正か決まらない。
+**One place declares which role each route requires.** If the pre-check and the definitive authorization each hold their own
+conditions, there is no telling which is right when the two disagree.
 
-## 二段で止める
+## Stopping in two stages
 
-| 段 | 何をするか | 何をしないか |
+| Stage | What it does | What it does not do |
 | --- | --- | --- |
-| 前捌き | cookie の session だけを読み、届く前に送り返す | データ源を参照しない |
-| 確定認可 | session を検証し、役割を確かめてから中身を組む | 前捌きの結果を信用しない |
+| Pre-check | Reads only the cookie session and sends the request back before it arrives | Does not consult the data source |
+| Definitive authorization | Verifies the session and checks the role before building the content | Does not trust the pre-check's result |
 
-**前捌きは防御線ではない。** cookie を読むだけの判定であり、そこを通らない経路がそのまま穴に
-なる。防御線は確定認可の側にある（[0043](../../../adr/0043-middleware-policy.md)）。
+**The pre-check is not a line of defense.** It is a check that only reads a cookie, and any path that does not go through it is
+simply a hole. The line of defense is on the definitive authorization side ([0043](../../../adr/0043-middleware-policy.md)).
 
-**確定認可は前捌きが通したことを前提にしない。** 前捌きを経ないで届く要求があり得るため、同じ
-判定をもう一度行う。
+**The definitive authorization does not assume the pre-check let the request through.** A request may arrive without passing the
+pre-check, so the same check is made again.
 
-## 入れない主体をどこへ送るか
+## Where to send actors who cannot enter
 
-| 状態 | 送り先 | 理由 |
+| State | Destination | Reason |
 | --- | --- | --- |
-| 未認証 | ログイン（元の行き先を伴う） | やり直せば入れる |
-| 役割が足りない | サイトのトップ | やり直しても結果が同じ |
+| Unauthenticated | Login (carrying the original destination) | Retrying gets them in |
+| Insufficient role | The site's top page | Retrying gives the same result |
 
-**役割が足りないことを画面で伝えない。** 管理への導線はそもそも出していないため、ここへ届いた
-時点で URL を直接叩いた要求である。権限の有無を答えることは、面の存在を教えることにしかならない。
+**Do not tell the user on screen that the role is insufficient.** Links into admin are never shown in the first place, so a
+request that reaches here hit the URL directly. Answering whether the actor has permission only reveals that the page exists.
 
-**元の行き先を伴ってログインへ送るのは前捌きである。** 確定認可（器）は今いる URL を受け取らない
-ため、前捌きを通らずに届いた要求は、未認証でも役割が足りなくてもサイトのトップへ戻す。確定認可は
-前捌きの後ろに置く保険で、入れない主体を中へ通さないことだけを約束する。
+**Sending to login with the original destination is the pre-check's job.** The definitive authorization (layout shell) does not
+receive the current URL, so a request that arrived without passing the pre-check is sent back to the site's top page whether it
+is unauthenticated or lacks the role. The definitive authorization is a safety net behind the pre-check, and promises only that
+actors who cannot enter are not let in.
 
-## 導線を出す側
+## The side that shows the link
 
-**役割を持たない主体には、管理への入口そのものを出さない。** 出したうえで押した先で断る作りに
-すると、管理の面がある事実だけが誰にでも伝わる。出す・出さないの判定は確定認可と同じ述語を使う
-（[`shop/layout.function.md`](../shop/layout.function.md)）。
+**Actors without the role are not shown the entry into admin at all.** Showing it and refusing at the destination tells everyone
+that an admin area exists. Whether to show it uses the same predicate as the definitive authorization
+([`shop/layout.function.md`](../shop/layout.function.md)).
 
-## 索引に載せない
+## Keep out of search indexes
 
-配下の画面は検索エンジンに拾わせない。認可の内側にあり索引から辿り着けないうえ、存在だけが外へ
-出る（[0044](../../../adr/0044-seo-metadata-strategy.md)）。
+Screens beneath this are not to be picked up by search engines. They sit behind authorization and cannot be reached from an
+index, and only their existence would leak out ([0044](../../../adr/0044-seo-metadata-strategy.md)).

@@ -25,7 +25,7 @@ const LABEL = "今日の集計";
  *
  * **期間を選ばせず、隣の画面（`../analytics/view.tsx`）への導線だけを置きます。** 導線の名前を
  * 行き先の名前に揃えているのもその一部で、根拠は
- * `docs/spec/route/admin/page.screen.md`「期間を選ばせない」。
+ * `docs/spec/route/admin/page.screen.md#no-period-selection`。
  *
  * @param props - {@link DashboardViewProps} を参照。
  * @see Storybook `Page/Admin/Dashboard`

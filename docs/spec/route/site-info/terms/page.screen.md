@@ -1,46 +1,46 @@
-# `/terms` 利用規約（画面要件）
+# `/terms` Terms of Use (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-閲覧・利用の条件と免責を置く画面。
+A screen that holds the conditions for viewing and using the site, and the disclaimer.
 
-## 閲覧そのもののリスクから書く
+## Start from the risk of viewing itself
 
-**このサイトの主なリスクは、利用者が何かをするかどうかとは無関係に存在する。**行為の禁止事項
-から始める体裁では伝わらないため、冒頭に「閲覧した時点で同意したものとみなす」を置き、次に
-セキュリティ上の前提を書く。
+**The main risk of this site exists regardless of whether the user does anything.** A format that starts from prohibited
+actions does not convey that, so the top states "viewing the site counts as agreeing", followed by the
+security assumptions.
 
-| 節 | 内容 |
+| Section | Contents |
 | --- | --- |
-| （冒頭） | 閲覧した時点で同意とみなすこと |
-| セキュリティについて | 構成が公開されること、不正アクセス時に連絡しないこと |
-| 入力する情報について | 偽名を使うこと。プライバシーポリシーへの導線 |
-| サービスの提供について | 予告なく停止・仕様変更・全件削除すること。購入と決済が成立しないこと。何が動かないかを書いた画面への導線 |
-| やめてほしいこと | 脆弱性の探索・過負荷・自動化した大量要求・他者の入力の収集 |
-| 免責 | 現状のまま提供すること、損害の責任を負わないこと |
+| (Opening) | That viewing counts as consent |
+| About security | That the configuration is public, and that users are not contacted in case of unauthorized access |
+| About the information you enter | To use fake names. A path to the privacy policy |
+| About the service | That it may be stopped, changed or wiped entirely without notice. That purchases and payments never go through. A path to the screen that says what does not work |
+| What we ask you not to do | Probing for vulnerabilities, overloading, automated bulk requests, collecting other people's input |
+| Disclaimer | That it is provided as is, and that no liability is accepted for damages |
 
-## セキュリティの書き方
+## How to Write About Security
 
-危ういのは公開そのものではなく、**特別なカスタマイズをしない**こと。WAF の設置を含め一般的な
-ベストプラクティスには則るが、設定値まで公開され、かつ個別の作り込みをしないため、相対的に
-攻撃の難易度が企業のサイトより低くなる、という筋で書く。
+The danger is not being public itself but that **no special customization is done**. General best practices,
+including placing a WAF, are followed, but because even the configuration values are public and nothing is built individually, attacks are
+relatively easier than against a company's site — write along that line.
 
-構成の公開先は「将来的に一連の boilerplate のサンプルとして公開する予定」と書く。**実在しない
-リポジトリ名を先に出さない。**
+Write the place where the configuration is published as "planned to be published in the future as samples of a series of boilerplates". **Do not name
+a repository that does not exist yet.**
 
-不正アクセスやデータベースへの侵入が起きても利用者・閲覧者へ連絡しないことを明記する。
+State clearly that users and viewers are not contacted even if unauthorized access or a database intrusion occurs.
 
-## 免責はここだけが持つ
+## Only this screen holds the disclaimer
 
-[`/about`](../about/page.screen.md) には置かない。同じ文を 2 か所に置くと、片方だけ直した状態を作れる。
+It is not placed on [`/about`](../about/page.screen.md). Putting the same text in two places makes it possible to end up with only one of them fixed.
 
-## 導線
+## Entry Paths
 
-トップの断り書き（`features/home` の `SampleNotice`）が先頭でこの画面を指す。**閲覧した時点で
-同意とみなす以上、同意の対象へ最初に届く必要があり、フッターまで下りないと辿れない位置では
-成立しない。**
+The caveat on the top page (`SampleNotice` in `features/home`) points to this screen at its very start. **Since viewing counts as
+consent, the user must reach what they are consenting to first; a position that cannot be reached without scrolling down to the footer
+does not hold.**
 
-## 関連
+## Related
 
-- 実装 `src/features/site-info/terms/` — [README](../../../../../src/features/site-info/README.md)
+- Implementation `src/features/site-info/terms/` — [README](../../../../../src/features/site-info/README.md)
 - [`/about`](../about/page.screen.md) / [`/privacy`](../privacy/page.screen.md)

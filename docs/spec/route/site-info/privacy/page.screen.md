@@ -1,30 +1,30 @@
-# `/privacy` プライバシーポリシー（画面要件）
+# `/privacy` Privacy Policy (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-入力した情報がどこに残るかを説明する画面。
+A screen that explains where the information you enter is kept.
 
-## 一般的な体裁を採らない
+## Do not use the usual format
 
-**保存先は、どう起動しているかで 3 通りに変わる。**定型文にすると、利用者は
-自分がどれに当たるかを判断できない。
+**Where data is stored changes three ways depending on how the site is running.** With stock wording, users
+cannot tell which case applies to them.
 
-| 起動のしかた | 保存先 |
+| How it is running | Where data is stored |
 | --- | --- |
-| 自分で clone して Go 側と繋いでいる | 自分の手元のデータベース。外部へは送られない |
-| 自分で clone してモックのまま | **どこにも保存されない**。応答は契約から生成したモックがその場で組み立てる |
-| 公開されているサンプルサイト | **サンプル用のデータベース**。暗号化・アクセス制限・保存期間の管理は行わない |
+| You cloned it yourself and connected it to the Go side | Your own local database. Nothing is sent outside |
+| You cloned it yourself and left it on mocks | **Stored nowhere**. Responses are assembled on the spot by a mock generated from the contract |
+| The public sample site | **A database for the sample**. Encryption, access restriction and retention-period management are not provided |
 
-## 偽名を求める警告を先頭に置く
+## Put the warning asking for fake names first
 
-3 通りの説明を読み終えてから書いても、既に入力した後になる。冒頭に `destructive` の警告として
-置き、氏名・住所・電話番号・メールアドレスに実在しない値を入れるよう求める。
+Written after the three explanations, it would come after the user has already entered something. Put it at the top as a `destructive` warning,
+asking users to enter values that do not exist for their name, address, phone number and email address.
 
-## そのほか
+## Everything Else
 
-追跡（アクセス解析・広告）を行わないこと、第三者提供をしないことを書く。
+State that no tracking (analytics, advertising) is done, and that nothing is provided to third parties.
 
-## 関連
+## Related
 
-- 実装 `src/features/site-info/privacy/` — [README](../../../../../src/features/site-info/README.md)
-- [`/terms`](../terms/page.screen.md) が同意条件と免責を持つ
+- Implementation `src/features/site-info/privacy/` — [README](../../../../../src/features/site-info/README.md)
+- [`/terms`](../terms/page.screen.md) holds the consent conditions and the disclaimer

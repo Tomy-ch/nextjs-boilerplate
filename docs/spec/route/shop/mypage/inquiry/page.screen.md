@@ -1,80 +1,80 @@
-# `/mypage/inquiry` お問い合わせ（画面要件）
+# `/mypage/inquiry` Inquiries (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-サポートとのやり取りを読み、1 通を送る画面。**届いた 1 通が、取り直しを待たずに並びへ現れる。**
+The screen for reading the conversation with support and sending a message. **An arriving message appears in the list without waiting for a refetch.**
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Area | Content |
 | --- | --- |
-| 受信の状態 | 新着を受け取れているかどうかの 1 語 |
-| やり取り | 日付の区切りと、送り手ごとに左右へ分かれた発言 |
-| 送信欄 | 本文の入力と送信 |
+| Receiving status | One word on whether new messages are being received |
+| Conversation | Date separators, and messages split left and right by sender |
+| Submission field | Body input and send |
 
-**見出しを画面に出さない。** 画面の高さをやり取りと送信欄で使い切るためで、この画面が何かは
-global nav とタブのタイトルが示す。
+**No heading is shown on the screen.** This is to use the screen's full height for the conversation and the submission field; what this screen is
+is shown by the global nav and the tab title.
 
-**ただし文書としては置く。** 出さないことにすると、支援技術から「いま何の画面に居るか」を得る
-手段が global nav を辿る以外に無くなる。見えない見出しとして画面の名前を置き、画面の見え方は
-変えない。
+**It is placed in the document, though.** If it were omitted, the only way for assistive technology to learn "which screen am I on" would be
+to trace the global nav. The screen's name is placed as an invisible heading, and the screen's appearance does not
+change.
 
-**画面そのものは縦にスクロールしない。** やり取りだけが枠の中で流れ、送信欄は常に下端に残る。
-打ちながら直前のやり取りが見える状態を保つためで、画面ごと流れる形にすると送るたびに下端まで
-辿り直すことになる。
+**The screen itself does not scroll vertically.** Only the conversation flows inside its frame, and the submission field always stays at the bottom edge.
+This keeps the preceding messages visible while typing; if the whole screen flowed, the user would have to go back down to the bottom
+after every send.
 
-## やり取りの見え方
+## How the Conversation Looks
 
-自分の発言を右、サポートを左へ寄せる。
+The user's own messages lean right and support's lean left.
 
-**向きは支援技術へ伝わらない。** 左右は視覚的な区別でしかないため、誰の発言かは発言ごとの
-見出しに文字で必ず示す。
+**Direction does not reach assistive technology.** Left and right are only a visual distinction, so who sent each message is always stated in text
+in each message's heading.
 
-**時刻は発言ごと、日付は区切りに出す。** 同じ時刻の発言が別の日にあり得るため、区切りが無いと
-1 通ずつに日付を添えることになる。
+**Times go on each message, dates on separators.** Messages with the same time can occur on different days, so without separators
+each message would need its own date.
 
-**本文の改行を保つ。** 契約は本文を 1 つの文字列として持ち、書き手が入れた改行はその一部である。
-区切りの無い長い文字列は折り返す。
+**Line breaks in the body are preserved.** The contract holds the body as a single string, and the line breaks the writer entered are part of it.
+Long strings without break points wrap.
 
-追加された分だけを読み上げへ知らせる。既に並んでいる発言の書き換えは起こらない（契約上、
-追記しかされない）。
+Only what is added is announced to the screen reader. Messages already listed are never rewritten (per the contract, they are
+only appended).
 
-## 送信の見え方
+## How Submission Looks
 
-**送信中の 1 通を、確定したものと同じ向き・同じ面で末尾に置く。** 届いた瞬間に位置も見た目も
-変わらないため、送った本人の目には行が入れ替わったようには見えない。
+**The message being sent is placed at the end with the same direction and the same surface as a confirmed one.** Neither its position nor its look
+changes the moment it arrives, so to the sender it does not look as if the row was swapped.
 
-**成立したときだけ書きかけを片付ける。** 通らなかった送信で本文が消えると、打ち直しになる。
+**The draft is cleared only when it succeeds.** If the body vanished on a submission that did not go through, it would have to be retyped.
 
-空のままでは送信できない。`⌘Enter` / `Ctrl+Enter` でも送信できる。
+It cannot be sent empty. `⌘Enter` / `Ctrl+Enter` also sends.
 
-失敗は送信欄の隣に出す。本文が契約を通らなかった場合は入力欄に紐づけ、それ以外は欄の上へ 1 行で
-出す。
+Failures are shown next to the submission field. If the body did not pass the contract, it is tied to the input; otherwise it is shown as one line
+above the field.
 
-## 受信の状態の見え方
+## How the Receiving Status Looks
 
-**出したままにする。** 切れている間だけ出すと、出ていないことが「繋がっている」と「そもそも
-受信していない」のどちらなのか画面から読めない。
+**It stays shown.** If it were shown only while disconnected, the screen could not tell whether its absence means "connected" or
+"not receiving at all."
 
-| 状態 | いつ |
+| Status | When |
 | --- | --- |
-| 待機中 | まだ 1 通も無く、購読する対象が無い |
-| 接続中 / 受信中 / 再接続中 | 購読の状態そのまま |
-| オフライン | 回線が切れている。**購読の状態より先に出す** |
-| ログインし直すと再開します | session が切れた |
-| 受信を停止しました | 権限を失った、またはサーバが打ち切った |
+| 待機中 (Waiting) | There are no messages yet, and nothing to subscribe to |
+| 接続中 / 受信中 / 再接続中 (Connecting / Receiving / Reconnecting) | The subscription's state as is |
+| オフライン (Offline) | The network is down. **Shown in preference to the subscription state** |
+| ログインし直すと再開します (Resumes after you log in again) | The session expired |
+| 受信を停止しました (Stopped receiving) | Permission was lost, or the server ended it |
 
-回線が切れているときの購読は必ず張り直しの途中にあり、そこで「再接続中」とだけ出すと、直すべき
-相手がバックエンドに見える。
+While the network is down the subscription is always mid-reconnection, and showing only 「再接続中」 there would make it look as if
+the backend were the party to fix.
 
-## まだ 1 通も無いとき
+## When There Are No Messages Yet
 
-やり取りの代わりに案内を 1 行出し、送信欄はそのまま出す。**取得の失敗ではない** —— 問い合わせが
-無いことは誤りではなく、最初の 1 通が問い合わせを作る。
+One line of guidance is shown in place of the conversation, and the submission field is shown as is. **It is not a fetch failure** — having no
+inquiry is not an error, and the first message creates the inquiry.
 
-## 待機と失敗
+## Loading and Failure
 
-待機表示は出来上がりと同じ高さの器を先に置く。枠の高さが後から決まると、やり取りが届いた瞬間に
-送信欄の位置が動く。
+The loading UI places a container of the same height as the finished screen first. If the frame's height were decided later, the submission field
+would move the moment the conversation arrives.
 
-取得の失敗はこの route の error 境界が受ける。
+Fetch failures are received by this route's error boundary.

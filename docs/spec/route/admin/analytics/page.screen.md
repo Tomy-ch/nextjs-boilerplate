@@ -1,91 +1,93 @@
-# `/admin/analytics` 期間別の集計（画面要件）
+# `/admin/analytics` Aggregates by Period (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 >
-> 器の約束は [`../layout.screen.md`](../layout.screen.md) が持つ。
+> The layout shell's promises are held by [`../layout.screen.md`](../layout.screen.md).
 
-期間を選んで集計を読み、売れ筋の商品を確かめる画面。
+A screen for choosing a period, reading the aggregates, and checking the best-selling products.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 画面の名前と、ここで何ができるか |
-| 期間の選択 | 今日 / 今月 / 期間を指定 |
-| 対象の暦日 | 選択の直下。いま出ている数がどの日付の話か |
-| 集計 | 数値カードとステータス別の件数。入口（`/admin`）と同じ部品 |
-| 売れ筋 | 直近 30 日の商品。**期間の選択に従わない** |
+| Heading | The screen's name and what can be done here |
+| Period selection | Today / This month / Custom range |
+| Target calendar dates | Directly below the selection. Which dates the numbers currently shown are about |
+| Aggregates | Metric cards and counts by status. The same components as the entry screen (`/admin`) |
+| Best sellers | Products from the last 30 days. **Does not follow the period selection** |
 
-## 取り直すのは選択肢の下だけ
+## Only what is below the options is refetched
 
-**期間を選び直したときに待つのは集計だけ。** 選択肢と対象の暦日は出たまま残る。全体を 1 つの待機に
-包むと、押した選択肢そのものが消えてから戻ってきて、何を押したのかを見失う。
+**When the period is chosen again, only the aggregates wait.** The options and the target calendar dates stay shown. Wrapping
+everything in one loading state makes the very option that was pressed disappear and come back, and the user loses track of what
+they pressed.
 
-**売れ筋も待たない。** 期間の選択に従わない区画なので、期間を変えても取り直す必要がない。
+**Best sellers do not wait either.** The region does not follow the period selection, so changing the period gives it no reason to refetch.
 
-## 期間の選択
+## Period Selection
 
-**今日と今月は link。** 選んだ期間は URL に載るので、選択は「この画面の状態」ではなく「どの画面を
-見ているか」である。tab や toggle にすると、同じ状態へ戻る手段が履歴と共有 URL の両方から失われる。
+**Today and This month are links.** The chosen period is in the URL, so the selection is not "this screen's state" but "which
+screen is being viewed". Making it a tab or a toggle loses the way back to the same state from both history and shared URLs.
 
-**期間を指定だけは overlay を開く。** 両端が決まるまで行き先が決まらず、押した瞬間に遷移する link に
-できない。日付の入力欄を並びに常設すると、日付を使わない利用者にも常にその領域を見せることになる。
+**Only Custom range opens an overlay.** The destination is not fixed until both ends are, so it cannot be a link that navigates
+the moment it is pressed. Keeping date inputs permanently in the row would always show that area even to users who do not use dates.
 
-**いま見ている項目を `aria-current` で示す。** 色の違いだけで現在地を表すと、色を区別できない利用者
-に伝わらない。
+**The item currently viewed is marked with `aria-current`.** Indicating the current location by color difference alone does not
+reach users who cannot distinguish colors.
 
-**日付を持ち越さない。** 今日 / 今月へ切り替えたときは URL にも載せない。載せたままだと、効いていない
-条件が画面の外（アドレス欄・共有した URL）にだけ残る。
+**Dates are not carried over.** When switching to Today / This month, the dates are not put in the URL either. Leaving them there
+keeps a condition that has no effect only outside the screen (the address bar, a shared URL).
 
-## 対象の暦日を出す
+## Showing the Target Calendar Dates
 
-**選択肢の名前だけでは、どの日を見ているのか判らない。**「今月」が何月なのか、「今日」がいつなのかは、
-画面を見た時刻によって変わる。共有した画面や撮った画像を後から読む人には、その手がかりが名前の側に
-残っていない。
+**The option's name alone does not tell which dates are being viewed.** Which month "This month" is, and when "Today" is, depend
+on when the screen was viewed. Someone reading a shared screen or a captured image later finds no such clue left on the name's side.
 
-1 日だけを指すときは範囲の形にしない。同じ日付を 2 度並べても読み手が得るものがない。
+When it points at a single day, do not use the range form. Listing the same date twice gives the reader nothing.
 
-**境界が日本時間の暦日であることを添える。** 決めているのはバックエンドで、応答には入っていない
-（[`page.function.md`](page.function.md)）。
+**State that the boundaries are calendar dates in Japan time.** The backend decides this, and it is not in the response
+([`page.function.md`](page.function.md)).
 
-## 期間を指定する overlay
+## The Custom Range Overlay
 
-**中身は native の GET フォーム。** 送信すると入力した値がそのまま URL のクエリになり、その URL が
-集計の条件になる。
+**Its content is a native GET form.** Submitting turns the entered values into the URL's query as is, and that URL becomes the
+aggregation condition.
 
-**選んでいた日付を初期値に戻す。** 開き直したときに入れ直しをさせない。覚えているのはアドレス欄で
-あって overlay ではない。
+**The previously chosen dates come back as initial values.** Reopening does not make the user re-enter them. What remembers them
+is the address bar, not the overlay.
 
-**日付の前後は入力欄の制約でも示す。** ただし制約が見ているのは URL に載っていた値で、いま書き換えて
-いる途中の値ではない。入れ替わった組は送れてしまうので、送った先で誤りとして返る。
+**Date order is also shown by the input constraints.** However, the constraints look at the values that were in the URL, not at
+the values being edited right now. A swapped pair can still be submitted, so it comes back as an error from where it was sent.
 
-## 売れ筋は期間が別であることを見出しに書く
+## The best sellers' heading says their period is different
 
-売れ筋は直近 30 日に固定していて、この画面の選択肢に従わない（[機能要件](page.function.md)）。同じ枠に
-並べたまま黙って別の期間を出すと、選んだ期間の売れ筋だと読まれる。
+Best sellers are fixed to the last 30 days and do not follow this screen's options ([functional requirements](page.function.md)).
+Placing them in the same frame and silently showing a different period gets them read as the best sellers for the chosen period.
 
-**商品名から商品の面へ出られる。** 売れているものを見つけたときに次へ知りたいのは、その商品が何かで
-ある。行き先が利用者向けの面なのは、管理側が 1 件を眺める面をまだ持たないため。
+**The product name leads to the product's page.** When someone finds what is selling, the next thing they want to know is what
+that product is. The destination is the customer-facing page because the admin side does not yet have a page for viewing a single product.
 
-**行全体を押せる形にしない。** 商品名だけが遷移先で、順位・販売数・価格は遷移先の説明ではない。
+**The whole row is not made clickable.** Only the product name is the link; rank, units sold and price do not describe the destination.
 
-## 幅で変わるもの
+## What Changes with Width
 
-| 幅 | 期間の選択 | 集計 | 売れ筋 |
+| Width | Period selection | Aggregates | Best sellers |
 | --- | --- | --- | --- |
-| 脇に一覧を置ける | 1 行 | 数値カード 4 列 / 棒と表を横に | 全列 |
-| 置けない | 折り返す | 2 列 / 棒・表の順に積む | **価格を伏せる** |
+| A side list fits | 1 row | Metric cards in 4 columns / bars and table side by side | All columns |
+| It does not fit | Wraps | 2 columns / bars then table, stacked | **Price hidden** |
 
-売れ筋で狭い段に残すのは**どれが・どれだけ売れたか**の 2 つ。価格は売れ筋を読むための手がかりでは
-ない。段の境界は [0051](../../../../adr/0051-styling-system.md) が持つ。
+On the narrow band, best sellers keep two things: **which sold, and how much**. Price is not a clue for reading best sellers.
+The band boundaries are held by [0051](../../../../adr/0051-styling-system.md).
 
-## 期間が決まっていないとき
+## When the period is not settled
 
-**日付が揃っていないのは失敗として出さない。** これから選ぶところなので、誤りとして出すと開いただけで
-叱られる画面になる。集計の枠だけが入れ替わり、選択肢・対象の暦日・売れ筋は残る。
+**Dates that are not both filled are not shown as a failure.** The user is about to choose them; showing an error would make a
+screen that scolds the user just for opening it. Only the aggregates' frame is replaced; the options, the target calendar dates
+and the best sellers stay.
 
-**前後が逆なのは入力の拒否として出す。** 送った値がそのまま受け取れないことなので、こちらは誤りの色を
-持つ。日付の前後は選ぶ面でも示すが、入れ替わった組は送れてしまう（[機能要件](page.function.md)）。
+**A reversed order is shown as rejected input.** It means the submitted values cannot be accepted as is, so this one carries the
+error color. Date order is also shown where the dates are chosen, but a swapped pair can still be submitted
+([functional requirements](page.function.md)).
 
-**どちらも読み上げの役は持たない。** この 2 つは開いた時点の表示にしか現れず、操作の結果として現れる
-場面が無い。変化を伝える機構を最初からある文言に付けても、前置きが増えるだけになる。
+**Neither has a role for screen readers.** Both appear only in the display at the moment of opening, never as the result of an
+interaction. Attaching a change-announcing mechanism to text that is there from the start only adds preamble.

@@ -1,173 +1,174 @@
-# `/admin/products` 商品一覧管理（機能要件）
+# `/admin/products` Product List Management (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 認可・器の約束は [`../layout.function.md`](../layout.function.md) が持つ。
+> The promises on authorization and the layout shell are held by [`../layout.function.md`](../layout.function.md).
 
-商品を探して確かめ、作成・編集・在庫の補充へ進むための一覧。
+A list for finding and checking products, and moving on to creation, editing, or restocking.
 
-## 主体と所有
+## Actor and Ownership
 
-**管理の役割が要る。** 到達できるかどうかは外枠が決める。
+**Requires the admin role.** The outer frame decides whether the screen can be reached.
 
-**一致判定はバックエンドが持つ。** この画面は条件を組んで渡し、返ってきたものを並べるだけで、
-検索の一致も分類の判定も持たない（[0070](../../../../adr/0070-backend-role-separation.md)）。
+**The backend owns matching.** This screen only builds conditions, passes them, and lists what comes back; it owns neither search
+matching nor category judgment ([0070](../../../../adr/0070-backend-role-separation.md)).
 
-## 何が並ぶか
+## What is listed
 
-**未公開を含むすべての商品が並ぶ。** ここは管理の画面で、公開前の商品が出ないと編集へ辿り着け
-ない。契約の既定は公開済みだけを返すため、未公開を含める指定を明示して取る。その指定は管理の
-役割を持つ主体にしか通らない。
+**Every product, including unpublished ones, is listed.** This is an admin screen, and if products not yet published did not
+appear, editing them would be unreachable. The contract's default returns only published products, so the fetch explicitly asks to
+include unpublished ones. That request goes through only for actors with the admin role.
 
-**母集団はこの画面の中で切り替えない。** 未公開を含めるかどうかで並び順の軸が変わるため、
-ページ送りの鍵は同じ指定の中でしか意味を持たない。
+**The population is not switched within this screen.** Whether unpublished products are included changes the sort axis, so a
+pagination key is meaningful only within the same request.
 
-**商品の「状態」は在庫・販売の状態であり、公開の可否とは別の軸である。** 在庫あり・在庫切れ・
-廃盤・検討中などがあり、この条件での絞り込みは現契約でそのまま効く。
+**A product's "status" is its stock and sales status, a separate axis from whether it is published.** It includes in stock, out of
+stock, discontinued, under consideration and so on, and filtering by it works as is under the current contract.
 
-**総件数は出さない。** cursor 方式の一覧は総数を持たず、別の取得口を要する
-（[0073](../../../../adr/0073-pagination-fetch-boundary.md)）。ページ番号を出せない以上、総数だけを
-添えても「いま何ページ目か」は示せない。
+**No total count is shown.** A cursor-based list has no total, and getting one needs a separate fetch endpoint
+([0073](../../../../adr/0073-pagination-fetch-boundary.md)). Since page numbers cannot be shown, adding only the total still cannot
+show "which page this is".
 
-## 検索条件は URL が持つ
+## The URL holds the search conditions
 
-**効いている条件も、いま見ているページも、すべて URL に載る。** 共有したリンク・戻る操作・
-再読み込みのいずれでも同じ結果になる必要があり、client の状態に持つとそのどれも成立しない。
+**The conditions in effect and the page being viewed are all in the URL.** A shared link, the back action and a reload must all
+give the same result, and holding them in client state makes none of them work.
 
-| 条件 | 値 | 複数 |
+| Condition | Value | Multiple |
 | --- | --- | --- |
-| キーワード | 商品名・商品説明への部分一致 | — |
-| 分類 | 分類のマスタが持つコード | ○ |
-| 状態 | 状態のマスタが持つコード | ○ |
+| Keyword | Partial match on product name and product description | — |
+| Category | A code held by the category master | ○ |
+| Status | A code held by the status master | ○ |
 
-**分類と状態は複数選べる。** 契約が並びで受け取るとおりに載せる。管理の一覧は「どれを直すか」を
-絞り込む場所で、扱いの決まっていない状態をまとめて見たい（在庫切れと入荷待ちを並べる、など）と
-いう用途が単一選択では組めない。どの条件で絞られているかは表の列と chip が示すため、混ぜても
-行の読み取りは壊れない。
+**Category and status allow multiple selections.** They are put in as the contract accepts them, as a sequence. The admin list is
+where people narrow down "which to fix", and uses such as viewing statuses with no settled handling together (out of stock alongside
+awaiting arrival, for example) cannot be built with single selection. The table's columns and the chips show which conditions are
+filtering, so mixing them does not break reading the rows.
 
-**複数の値は同じキーの繰り返しで載せる。** 区切り文字で連結すると、値に区切り文字が現れた時点で
-別の条件が同じ URL になる。
+**Multiple values are put in by repeating the same key.** Joining them with a delimiter makes different conditions produce the same
+URL as soon as a value contains the delimiter.
 
-**「指定なし」は候補ではなく、何も選ばれていない状態である。** 候補として置くと、指定なしと
-具体的な値を同時に選べる形になる。
+**"Unspecified" is not an option but the state of nothing being selected.** Making it an option creates a shape where unspecified
+and a concrete value can be selected at the same time.
 
-**マスタ行を指すのはコードであり、UUID ではない。** 契約が絞り込みで受け取るのはコードで、UUID を
-取る口は非推奨として残っているだけである。両方を同時に送ると 400 になるため、この画面が使う口は
-コードの側だけに寄せる。
+**A master row is pointed to by its code, not its UUID.** What the contract accepts for filtering is the code; the endpoint that
+takes the UUID remains only as deprecated. Sending both at once gives 400, so the endpoint this screen uses is kept to the code side only.
 
-**同じ値が繰り返し届いたら畳む。** URL は利用者が直接編集できる。契約は重複の無い並びとして
-宣言しており、同じ値が 2 度届いても指している条件は 1 度のときと同じである。畳まないと、意味の
-同じ条件が契約を外れた要求として backend まで届く。
+**When the same value arrives repeatedly, it is collapsed.** Users can edit the URL directly. The contract declares a sequence
+without duplicates, and the same value arriving twice points to the same condition as arriving once. Without collapsing, a condition
+with the same meaning reaches the backend as a request that breaks the contract.
 
-**効いている条件を外す操作は、その 1 つだけを外す。** 同じ種類を複数選べる以上、1 つ押したときに
-同じ種類がすべて消えると、どれを外したのか押した本人にも判らない。
+**The action that removes a condition in effect removes only that one.** Since several of the same kind can be selected, if pressing
+one removed all of that kind, even the person who pressed could not tell which was removed.
 
-**条件が変われば、読み進めた位置は捨てる。** 前の条件の途中の位置は、新しい条件では別の場所を指す。
+**When the conditions change, the position read so far is discarded.** A position partway through the previous conditions points
+somewhere else under the new conditions.
 
-## 条件の検証
+## Validating Conditions
 
-**契約に照らして写せなかった条件は、捨てずに写せなかったことを出す。** URL は利用者が直接編集
-できる入力であり、範囲外の値を黙って落として既定の一覧を出すと、絞り込んだつもりの利用者が
-絞り込まれていない結果を見る。複数を選べる条件は 1 つ外れても画面に出ないので、倒さずに出す側
-である。
+**A condition that could not be mapped against the contract is not discarded; the screen shows that it could not be mapped.** The
+URL is input the user can edit directly; silently dropping out-of-range values and showing the default list makes a user who thinks
+they filtered see unfiltered results. A multi-select condition does not show on screen when one value falls out, so it is surfaced
+rather than collapsed to a fallback.
 
-検証を行うのは取得の境界で、画面側は写せなかったキーを受け取って表示を決めるだけである。画面が
-独自に写すと、契約を再生成しても写し方だけが古い範囲のまま残る
-（[0029](../../../../adr/0029-type-design-discipline.md)）。
+Validation is done at the fetch boundary; the screen side only receives the keys that could not be mapped and decides the display.
+If the screen mapped them on its own, only its mapping would stay at the old range after the contract is regenerated
+([0029](../../../../adr/0029-type-design-discipline.md)).
 
-**外れた条件は名指しし、外して戻る導線を添える。** 条件は URL に入っており、画面の操作だけでは
-戻せない状態になり得る。
+**Name the condition that fell out, and add a link that removes it and goes back.** The condition is in the URL, and the state may
+be one that screen operations alone cannot undo.
 
-## 取得の失敗
+## Fetch Failures
 
-**本文の取得が失敗しても、器（脇の導線・header・利用者向け画面へ戻る導線）は残す。** 境界は
-`/admin` の直下に置く（[0080](../../../../adr/0080-error-handling.md)）。
+**Even if fetching the main content fails, the layout shell (side navigation, header, the link back to the customer-facing screens)
+stays.** The boundary sits directly beneath `/admin` ([0080](../../../../adr/0080-error-handling.md)).
 
-**生のエラーもスタックも出さない。** production では本文が伏せられ、境界には `digest` だけが
-渡るので、文言は分類を問わない汎用のものになる。原因の特定は `digest` とサーバ側のログの突合で行う。
+**Neither raw errors nor stacks are shown.** In production the message body is hidden and only `digest` reaches the boundary, so the
+text is generic regardless of classification. The cause is identified by matching `digest` against the server-side logs.
 
-## ページ送り
+## Pagination
 
-**前後の 1 ページずつにだけ移動できる。** cursor は「次の位置」を指す不透明な値で、任意の位置へ
-跳ぶ手段を表さない。ページ番号は並べない。
+**Navigation is possible only one page back or forward.** A cursor is an opaque value pointing to "the next position" and offers no
+means of jumping to an arbitrary position. Page numbers are not listed.
 
-**戻る先は URL が覚える。** cursor は次の位置しか指さないため、通ってきたページの起点を画面の側が
-持たないと前へ戻れない。覚える場所を URL にするのは、共有されたリンクとブラウザの履歴が同じ
-ページを指すためである。client の状態に持つと、同じ URL が「何ページ目から辿り着いたか」で違う
-画面になる。
+**The URL remembers where to go back to.** A cursor points only to the next position, so unless the screen side keeps the starting
+points of the pages passed through, it cannot go back. The URL is where they are remembered so that a shared link and the browser
+history point to the same page. Holding them in client state makes the same URL a different screen depending on "which page it was
+reached from".
 
-| 操作 | URL の変化 |
+| Action | URL change |
 | --- | --- |
-| 次へ | いまの起点を通ってきた道の末尾へ足し、次の起点を載せる |
-| 前へ | 通ってきた道の末尾を起点へ戻す。道が空なら起点そのものを落とす |
+| Next | Append the current starting point to the end of the trail passed through, and put the next starting point |
+| Previous | Return the end of the trail to the starting point. If the trail is empty, drop the starting point itself |
 
-**先頭ページには戻る先がない。** 起点が載っていない URL が先頭ページである。起点が消えているのに
-道だけが残った URL も届き得るため、そのときは道を捨てる。捨てないと先頭ページで前へが押せる。
+**The first page has nowhere to go back to.** A URL without a starting point is the first page. A URL whose starting point is gone
+but whose trail remains can also arrive, in which case the trail is discarded. Without discarding it, "previous" is clickable on the
+first page.
 
-## 状態に色を割り当てるのはこの画面
+## This screen assigns colors to statuses
 
-**契約は状態の意味を返さない。** マスタが持つのはコードと表示名だけで、どれが売れる状態でどれが
-終わった状態かは書かれていない。意味づけはこの画面の都合として持ち、利用者向けの一覧・詳細は
-状態に色を付けない。
+**The contract does not return what a status means.** The master holds only codes and display names; it does not say which statuses
+are sellable and which are finished. Assigning meaning is held as this screen's own concern, and the customer-facing list and detail
+do not color statuses.
 
-**色は 1 件の状態ではなく、扱いの区分に付ける。**
+**Colors are attached to handling categories, not to individual statuses.**
 
-| 区分 | 状態 | 見せ方 |
+| Category | Statuses | Appearance |
 | --- | --- | --- |
-| 渡せる | 在庫あり / 限定販売 | 塗り |
-| 待ちがある | 予約受付中 / 取り寄せ中 / 入荷待ち / 再入荷予定 | 注意の色 |
-| 売れない | 在庫切れ | 失敗の色 |
-| 役目を終えた・まだ出していない | 販売終了 / 廃盤 / 検討中 | 縁だけ |
+| Can be delivered | In stock / Limited sale | Filled |
+| Involves waiting | Accepting reservations / On order / Awaiting arrival / Restock planned | Caution color |
+| Cannot be sold | Out of stock | Failure color |
+| Done with, or not yet released | Sales ended / Discontinued / Under consideration | Outline only |
 
-**マスタに無いコードは、どの区分にも寄せない。** マスタはこちらの都合と関係なく増える。既存の
-どれかへ寄せると、意味を取り違えた色が付く。**装飾を持たない姿**で出し、区分を決めていないことを
-そのまま示す —— 区分の決まっている状態はいずれも塗りか枠線で囲まれた形を持つので、形を持たず素の
-文字で出ることが印になる。
+**A code not in the master is not folded into any category.** The master grows regardless of this side's concerns. Folding it into an
+existing category gives it a color that misreads its meaning. It is shown in an **undecorated form**, indicating as is that no
+category has been decided — every status with a decided category has a filled or outlined shape, so appearing as plain text with no
+shape serves as the marker.
 
-## 廃番の商品
+## Discontinued Products
 
-**廃番はマスタのラベルではなく、商品自身が持つ事実である。** 契約は `discontinuedAt` で返し、
-廃番にする操作はマスタの状態を書き換えない。したがって廃番の商品は `在庫あり` のようなラベルを
-保ったまま届く。
+**Discontinuation is a fact the product itself holds, not a master label.** The contract returns it as `discontinuedAt`, and the
+action that discontinues a product does not rewrite the master status. Discontinued products therefore arrive still carrying a
+label such as `在庫あり`.
 
-**状態の欄には、マスタのラベルではなく「廃番」を出す。** ラベルをそのまま出すと、買えない商品が
-「在庫あり」として並ぶ。この欄が答えるのは「いまこの商品をどう扱うか」で、廃番はその答えとして
-他のどのラベルより先に立つ。
+**The status column shows 「廃番」 (discontinued), not the master label.** Showing the label as is lists unbuyable products as
+「在庫あり」 (in stock). What this column answers is "how should this product be handled now", and discontinuation, as that answer,
+takes precedence over every other label.
 
-**廃番は区分のどれとも別に扱う。** 廃番は失敗でも注意喚起でもなく、取り消せない確定した扱いで
-あり、admin が手で付け替えられるラベルとは重さが違う。
+**Discontinuation is handled separately from all the categories.** Discontinuation is neither a failure nor a caution; it is a
+settled, irreversible handling, and carries a different weight from labels an admin can reassign by hand.
 
-**判定は `discontinuedAt` が null かどうかで行い、現在時刻と比べない。** 廃番にする操作は日時を
-受け取らずサーバーの時刻で確定するため、未来の日時にならない。公開日時（予定を表せる）と同じ
-読み方をすると、比べる必要のない値を比べることになる。
+**The check is whether `discontinuedAt` is null; it is not compared with the current time.** The discontinue action takes no date and
+time and is settled with the server's time, so it is never a future time. Reading it the same way as the publication date and time
+(which can represent a schedule) would compare a value that needs no comparison.
 
-**商品が持つ状態は UUID で、コードはマスタにしかない。** 突き合わせは同じ要求の中で 1 度だけ行う。
-表示名では突き合わせない —— 名前は表示のための値で、コードと違って書き換わる。
+**The status a product holds is a UUID; the code exists only in the master.** Matching is done once within the same request. Display
+names are not used for matching — a name is a value for display and, unlike a code, gets rewritten.
 
-## 行から進める先
+## Where a Row Leads
 
-| どこを押すか | 行き先 |
+| What is pressed | Destination |
 | --- | --- |
-| 行 | その商品の編集 |
-| 在庫の数 | その商品の在庫補充 |
-| 行の操作 | 編集・在庫補充を名前で選ぶ |
+| Row | Editing that product |
+| Stock number | Restocking that product |
+| Row actions | Choose edit or restock by name |
 
-**面を押す導線と、名前で選ぶ導線の両方を残す。** 面を押す導線は速い一方、どこを押すと何が起きるかは
-押すまで判らない。名前の付いた項目が並ぶ menu が、その答えを押す前に読める場所になる。
+**Keep both the press-the-surface link and the choose-by-name link.** Pressing the surface is fast, but what happens where is unknown
+until pressed. A menu listing named items becomes the place where that answer can be read before pressing.
 
-## 取り直す範囲
+## Refetch Scope
 
-**条件やページが変わったときに取り直すのは一覧だけ。** 検索欄・絞り込み・効いている条件・作成への
-導線は取り直しの待機表示に巻き込まない。境界の内側は待っているあいだ操作できないため、操作できる
-必要があるものを内側へ入れない（[0040](../../../../adr/0040-routing-rendering-strategy.md)）。
+**When conditions or the page change, only the list is refetched.** The search field, the filters, the conditions in effect and the
+link to creation are not caught up in the refetch's loading UI. The inside of the boundary cannot be operated while waiting, so
+nothing that must stay operable is put inside it ([0040](../../../../adr/0040-routing-rendering-strategy.md)).
 
-**分類と状態のマスタは条件で変わらない。** ここで一覧まで取ると、条件が変わるたびに入力欄まで
-待機表示へ落ち、続けて絞り込む操作の足場が消える。
+**The category and status masters do not change with the conditions.** Fetching them here along with the list would drop even the
+input fields into the loading UI each time the conditions change, and the foothold for continued filtering would vanish.
 
-## 進める先
+## Next Screens
 
-| 行き先 | 仕様書 |
+| Destination | Specification |
 | --- | --- |
-| 作成 | [`new/page.function.md`](new/page.function.md) / [`screen`](new/page.screen.md) |
-| 編集 | [`[id]/edit/page.function.md`](<[id]/edit/page.function.md>) / [`screen`](<[id]/edit/page.screen.md>) |
-| 在庫補充 | [`[id]/stock/page.function.md`](<[id]/stock/page.function.md>) / [`screen`](<[id]/stock/page.screen.md>) |
+| Create | [`new/page.function.md`](new/page.function.md) / [`screen`](new/page.screen.md) |
+| Edit | [`[id]/edit/page.function.md`](<[id]/edit/page.function.md>) / [`screen`](<[id]/edit/page.screen.md>) |
+| Restock | [`[id]/stock/page.function.md`](<[id]/stock/page.function.md>) / [`screen`](<[id]/stock/page.screen.md>) |

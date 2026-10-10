@@ -24,7 +24,7 @@ const FOCUS_RING =
  * 狭い段で伏せる列に付ける class。
  *
  * @remarks
- * 何を残すかは `docs/spec/route/admin/analytics/page.screen.md`「幅で変わるもの」。伏せる列を
+ * 何を残すかは `docs/spec/route/admin/analytics/page.screen.md#what-changes-with-width`。伏せる列を
  * 増やすと、横送りしないと販売数にも届かなくなります。
  *
  * 段の境目は、管理の器が脇に一覧を置ける幅（`lg`）に揃えます。
@@ -81,7 +81,7 @@ function rowKey(row: AdminRankingRow): string {
  *
  * @remarks
  * **上の集計とは期間が別です**（`docs/spec/route/admin/analytics/page.function.md`
- * 「売れ筋は期間の選択に従わない」）。見出しに期間を書いているのはその断りです。
+ * "Best sellers do not follow the period selection"）。見出しに期間を書いているのはその断りです。
  *
  * **商品名から商品の面へ出られます。** 売れているものを見つけたときに次へ知りたいのは、その
  * 商品が何かです。行き先が利用者向けの面なのは、管理側が 1 件を眺める面を持たないためで、

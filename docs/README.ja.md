@@ -28,16 +28,16 @@
    であって状態（件数が 0・いまは速い）ではなく、条件を書けない「やらない」は先送りである
    （[0140](adr/0140-documentation-operations.ja.md)）
 2. **次に同種のものが来たとき、どちらへ倒すかを答える基準か。複数のレイヤーやコンポーネントにまたがるか。**
-   → [`design/`](design/README.md)
+   → [`design/`](design/README.ja.md)
 3. **「やったら違反」と機械的に言える形か。**
    → [`rules.md`](rules.ja.md)。根拠の ADR へリンクし、**何が守るか**（型 / lint / ゲート / テスト /
    散文）を同じ場所に書く（[0144](adr/0144-decision-enforcement-pairing.ja.md)）。テストを書くとき・
-   レビューするときの規約は、分量の都合で [`testing-conventions.md`](testing-conventions.md) に
+   レビューするときの規約は、分量の都合で [`testing-conventions.md`](testing-conventions.ja.md) に
    分けてあり、判定は同じ
 4. **1 つのレイヤー・feature の中で完結する責務・禁止・所有する状態の話か。**
    → そのレイヤー / feature の `README.md`
 5. **業務が何を意味するかの話か。その領域の語彙で書けるか。**
-   → [`spec/`](spec/README.md)
+   → [`spec/`](spec/README.ja.md)
 6. **コードに追随して漂うインベントリか。**
    → 生きた参照。ADR へは入れない
 7. **どれでもない。**
@@ -53,11 +53,11 @@
 2 つだけ、上の判定が素直に当たらないものがある。どちらも**インデックスであって根拠を持たない**ので、
 判定をコピーせず**指すだけ**にする。
 
-- **[`spec/glossary.md`](spec/glossary.md)** —— 判定 5 は「業務の語彙で書けるか」を問うが、
+- **[`spec/glossary.md`](spec/glossary.ja.md)** —— 判定 5 は「業務の語彙で書けるか」を問うが、
   仕様書の散文は**業務でも実装でもない画面の側の語**（レイアウトシェル・外枠・バンド・サイドバー・ローディング表示）も使う。
   それらの家は既に散らばって在るので、語彙表が持つのは**どの文書が定義しているか**と、
   **どこにも家が無かった語の定義だけ**。業務の語は入れない —— 正は契約と生成型である
-- **[`design/context-map.md`](design/context-map.md)** —— 判定 6 のインベントリだが、辺ごとに
+- **[`design/context-map.md`](design/context-map.ja.md)** —— 判定 6 のインベントリだが、辺ごとに
   **「境界の所有」という、コードから読めない事実**を持つ。読めないものを記録する以上、
   コードに追随するインベントリではなく、判定 2 の「複数の主題にまたがる基準」の側に近い。
   各辺の仕組みは主題ごとの design 文書が持ち、ここは指すだけにする
@@ -98,7 +98,7 @@
 - **仕様書は契約・token・コンポーネントの語彙・規約・ADR を指すだけで、コピーしない**
   （[0143](adr/0143-spec-driven-development.ja.md)）
 - **逆引きと手順の表は「どこを開くか」だけを持つ。** 基準を書き写した時点で古いバージョンが二重に残る
-  （[`playbook.md`](playbook.md)、[`tutorial/`](tutorial/README.md) がこの形）
+  （[`playbook.md`](playbook.ja.md)、[`tutorial/`](tutorial/README.ja.md) がこの形）
 
 ## ノードごとの問い
 
@@ -107,11 +107,11 @@
 | ノード | 問い | 時間的性質 |
 | --- | --- | --- |
 | [`adr/`](adr/) | **何を決め、何を却下したか** | 記録。本文を上書きしてよいかは [0140](adr/0140-documentation-operations.ja.md) が持つ |
-| [`design/`](design/README.md) | **目の前の case をどう裁くか** | **育つ。** 基準が鋭くなるたび書き足す |
+| [`design/`](design/README.ja.md) | **目の前の case をどう裁くか** | **育つ。** 基準が鋭くなるたび書き足す |
 | [`rules.md`](rules.ja.md) | **何をしたら違反か** | 強制可能な禁止だけ。判断の根拠は持たず、上の 2 つへリンクする |
-| [`tutorial/`](tutorial/README.md) | **実際にどう書くのか** | 1 画面を端から端まで。**サンプルを消したあとの状態から始まる** |
-| [`project/`](project/README.md) | **このプロジェクトが何であって何でないか** | スコープ・対象外・方針・バージョン・方向。最初に置き換える |
-| [`reference/`](reference/README.md) | **いま何が入っているか** | **コードに追随するインベントリ。** ADR と違い、変わることを前提とした参照 |
+| [`tutorial/`](tutorial/README.ja.md) | **実際にどう書くのか** | 1 画面を端から端まで。**サンプルを消したあとの状態から始まる** |
+| [`project/`](project/README.ja.md) | **このプロジェクトが何であって何でないか** | スコープ・対象外・方針・バージョン・方向。最初に置き換える |
+| [`reference/`](reference/README.ja.md) | **いま何が入っているか** | **コードに追随するインベントリ。** ADR と違い、変わることを前提とした参照 |
 | [`templates/`](templates/feature-readme.ja.md) | **繰り返し作られる文書はどのセクションから始まるか** | テンプレート。`pnpm gen` が置き、必須セクションはテンプレートが宣言して採点する側が実行時に読む —— 必須セクションの一覧はここにしか無い |
 
 **`design/` が生えるのは、1 つの README では収まらない判定手続きがあるときだけ。** 「この取得は
@@ -120,7 +120,7 @@
 
 ## `spec/` とレイヤー・feature の `README.md`
 
-| | [`spec/`](spec/README.md) | レイヤー / feature の `README.md` |
+| | [`spec/`](spec/README.ja.md) | レイヤー / feature の `README.md` |
 | --- | --- | --- |
 | **何の語彙で書くか** | **業務・ドメインの語彙** | **実装構造の語彙** |
 | 何を答えるか | この業務ルールは何を意味するか。どの値がどの範囲か。どの遷移が許されるか | 何を所有し、何を禁じ、どの状態を持ち、どうテストするか |
@@ -140,13 +140,13 @@
 
 | 置き場 | 受け取らない理由 |
 | --- | --- |
-| [`playbook.md`](playbook.md) | 逆引きのインデックスと、画面を作るときの作業順。どちらも「どこを開くか」を持つだけで、基準は指す先が持つ。行き先が増えたらインデックスを更新するだけ |
+| [`playbook.md`](playbook.ja.md) | 逆引きのインデックスと、画面を作るときの作業順。どちらも「どこを開くか」を持つだけで、基準は指す先が持つ。行き先が増えたらインデックスを更新するだけ |
 | [`traceability.md`](traceability.ja.md) | 集計。自分でそう宣言している。規約の集計は `rules.md` から生成され、手で数えた件数を置かない（[0146](adr/0146-rule-reference-stability.ja.md)） |
 | [`adr/BACKLOG.md`](adr/BACKLOG.md) | 進捗ボード。決定も撤回条件も持たず、持つ ADR の本文を指す <!-- boilerplate-only:line --> |
 | [`portal/`](portal/) | 生成ビュー。生成器が書き直す。`docs/<dir>/` 直下の `*.md` はスキャンで自動発見され、載る位置は [`manifest.yaml`](portal/manifest.yaml) の `meta` が決める（[0141](adr/0141-portal-operations.ja.md)） |
 | `plan/` | 過程の成果物。配布物ではない <!-- boilerplate-only:line --> |
 | `get-started/` | 手順。順序と人手の要る箇所しか持たず、テンプレートから作る前提が死ぬと使われなくなる |
-| [`screens.md`](spec/screens.md) | サンプルの画面表。残す側の文書ではない <!-- sample:line --> |
+| [`screens.md`](spec/screens.ja.md) | サンプルの画面表。残す側の文書ではない <!-- sample:line --> |
 
 **canonical はサフィックス無しのパスに置く英語の文書であり、その日本語のミラーは兄弟の `<name>.ja.md`、
 canonical に追従する翻訳であって、別の置き場ではない。** サフィックスが名前空間であり、エージェントは

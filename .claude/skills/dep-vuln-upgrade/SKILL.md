@@ -284,7 +284,7 @@ vulnerability id, a reason saying why it is acceptable here, and the condition t
 ## Step 7. Verify
 
 The verdicts belong to CI; do not re-run its gates here
-([`docs/playbook.md`](../../../docs/playbook.md), *ゲートを先回りして回さない*). Locally, only what
+([`docs/playbook.md#do-not-pre-run-the-gates`](../../../docs/playbook.md#do-not-pre-run-the-gates)). Locally, only what
 CI cannot tell you before the push:
 
 ```sh

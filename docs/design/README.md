@@ -1,36 +1,36 @@
-# 設計リファレンス
+# Design Reference
 
-主題ごとの**設計解説**を置く。1 つの主題について、役割・成り立ち・実装の在り処・間違えやすい点を 1 ページにまとめたものである。
+This directory holds **design explanations** per topic. Each one gathers, on a single page, a topic's role, how it came to be, where it is implemented, and where it is easy to get wrong.
 
-## ここに置くもの・置かないもの
+## What Goes Here and What Does Not
 
-層別 README を置き換えるものではない。README が 1 つの層の窓口であるのに対し、ここは**層を跨ぐ 1 つの主題**を通しで説明する。
+It does not replace the per-layer READMEs. Where a README is the entry point to one layer, a page here explains **one topic that cuts across layers** from end to end.
 
-| 種類 | 置き場 |
+| Kind | Location |
 | --- | --- |
-| 選択肢からの選定・意図的にやらない判断 | [`docs/adr/`](../adr/) |
-| 日々強制される制約 | [`docs/rules.md`](../rules.md) |
-| 層ごとの責務と受け入れ範囲 | 各層の `README.md` |
-| **主題ごとの設計解説** | **ここ** |
+| Choosing among options, and deliberate decisions not to do something | [`docs/adr/`](../adr/) |
+| Constraints enforced day to day | [`docs/rules.md`](../rules.md) |
+| Each layer's responsibilities and what it accepts | each layer's `README.md` |
+| **Design explanations per topic** | **here** |
 
-判断そのものは ADR が持つ。ここが持つのは、その判断を読むために要る前提と、実装を読んだうえでの説明である。両者が食い違う場合は ADR を優先する（[ADR 0140](../adr/0140-documentation-operations.md)）。
+The decision itself belongs to the ADR. What a page here holds is the background needed to read that decision, and an explanation written after reading the implementation. When the two disagree, the ADR wins ([ADR 0140](../adr/0140-documentation-operations.md)).
 
-## 文書
+## Documents
 
-| 文書 | 主題 | 扱う範囲 |
+| Document | Topic | Scope |
 | --- | --- | --- |
-| [rendering.md](rendering.md) | レンダリング | Server / Client Component・SSR・hydration・Server Action の用語と、取り違えたときに起きること |
-| [placement.md](placement.md) | 置き場 | 表示・hook・client 状態をどこへ置くか。判断の順序と、引き当てを間違えやすい点 |
-| [design-system.md](design-system.md) | デザインシステム | token から部品までの積み上がり、区画の切り方、上流部品の取り込み、重なり順、カタログ |
-| [forms.md](forms.md) | 入力と送信 | 入力欄から Server Action、結果の見せ方まで。3 つの hook が見ている木と、値を誰が持つか |
-| [data-fetching.md](data-fetching.md) | 取得と契約 | 契約から生成物、生成物から表示の型まで。fetch wrapper・エラーの正規化・分類の関門 |
-| [auth.md](auth.md) | 認証の前側 | 中継するが検証しない責務線、session の持ち方、保護の掛かる場所、開発用の口 |
-| [security.md](security.md) | 防御 | 配信ヘッダと CSP、データの分類、`NEXT_PUBLIC_` の境界、入口が持つもの |
-| [observability.md](observability.md) | 観測 | 2 つのカーネルの分担、1 本の trace の繋がり方、中継の口、描画の計装 |
-| [realtime-delivery.md](realtime-delivery.md) | 購読と配信 | **まだ実体の無い** 購読 seam を実体化するときの形。発券から整列・再接続まで、どの層が何を持つか |
-| [vrt.md](vrt.md) | 見た目の固定 | 基準画像が何を守り、何を守らないか。揺らぎの止め方 |
-| [context-map.md](context-map.md) | 接触点の地図 | 外と触れる場所の一覧と、辺ごとの境界の所有・翻案の有無。仕組みは各主題の文書が持ち、ここは指すだけ |
+| [rendering.md](rendering.md) | Rendering | The terms Server / Client Component, SSR, hydration and Server Action, and what happens when they are confused |
+| [placement.md](placement.md) | Placement | Where to put display, hooks and client state. The order of the decision, and where the lookup is easy to get wrong |
+| [design-system.md](design-system.md) | Design system | How tokens build up to components, how regions are divided, taking in upstream components, stacking order, the catalog |
+| [forms.md](forms.md) | Input and submission | From the input field to the Server Action and how the result is shown. The tree each of the three hooks looks at, and who holds the value |
+| [data-fetching.md](data-fetching.md) | Fetching and contracts | From the contract to generated artifacts, and from generated artifacts to display types. The fetch wrapper, error normalization, and the classification gate |
+| [auth.md](auth.md) | The front side of authentication | The line of responsibility that relays but does not verify, how the session is held, where protection applies, the development endpoint |
+| [security.md](security.md) | Defense | Delivery headers and CSP, data classification, the `NEXT_PUBLIC_` boundary, what entry points hold |
+| [observability.md](observability.md) | Observability | How the two kernels divide the work, how one trace connects, the relay endpoint, rendering instrumentation |
+| [realtime-delivery.md](realtime-delivery.md) | Subscription and delivery | The shape for giving the subscription seam, which **has no implementation yet**, a real one. From ticket issuance to ordering and reconnection, which layer holds what |
+| [vrt.md](vrt.md) | Pinning the visuals | What baseline images protect and what they do not. How to stop flakiness |
+| [context-map.md](context-map.md) | Map of touchpoints | The list of places that touch the outside, and per edge who owns the boundary and whether it translates. The mechanisms live in each topic's document; this one only points to them |
 
-## 読み方
+## How to Read This
 
-主題ごとに独立している。全部を読む必要はなく、いま触っている主題のものだけを読めばよい。
+Each topic stands on its own. There is no need to read all of them; read only the one for the topic you are touching now.

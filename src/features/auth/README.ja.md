@@ -23,9 +23,9 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/login` | [`screen`](../../../docs/spec/route/auth/login/page.screen.md) / [`function`](../../../docs/spec/route/auth/login/page.function.md) | 不要（ここがエントリポイント） |
+| `/login` | [`screen`](../../../docs/spec/route/auth/login/page.screen.ja.md) / [`function`](../../../docs/spec/route/auth/login/page.function.ja.md) | 不要（ここがエントリポイント） |
 
-外枠の約束は [`auth` の layout](../../../docs/spec/route/auth/layout.screen.md) が持ちます。
+外枠の約束は [`auth` の layout](../../../docs/spec/route/auth/layout.screen.ja.md) が持ちます。
 
 **operationId は使いません。** この画面が呼ぶのは同一オリジンの `/api/auth/login` だけで、IdP と
 やり取りするのは Route Handler です。どの IdP を繋いでも画面が変わらないのは、契約をここへ

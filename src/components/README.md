@@ -197,7 +197,7 @@ Things that take the same shape across components, and the reasons for choosing 
 
 ### `data-slot`
 
-- **Put `data-slot` on every element rendered.** The value is kebab-case: the root is the component's concept name (`dialog`), and a subcomponent is `<concept>-<part>` (`dialog-content`). Both selectors with which a parent styles a child's part (`*:data-[slot=alert-title]:text-warning`) and the handle tests use to get elements not reachable by role ([docs/testing-conventions.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)) read this value
+- **Put `data-slot` on every element rendered.** The value is kebab-case: the root is the component's concept name (`dialog`), and a subcomponent is `<concept>-<part>` (`dialog-content`). Both selectors with which a parent styles a child's part (`*:data-[slot=alert-title]:text-warning`) and the handle tests use to get elements not reachable by role ([docs/testing-conventions.md](../../docs/testing-conventions.md#component-and-hook-tests--testing-library-principles)) read this value
 - `pnpm check:classes` takes candidates only from `className` and the arguments of `cn()` / `cva()`, so a `data-slot` value is never mistaken for a class
 
 ### Variant Definitions
@@ -342,7 +342,7 @@ components/
 - **Every story file carries a component description and a description per story.** The component description states what the component is for and **when to use it instead of a similar neighboring component**. Components that look alike but have different responsibilities, such as `Accordion` and `Collapsible`, or `Alert`, `Toaster` and `FeedbackState`, can only be chosen between when placed side by side. A story description states what that story shows
 - There are two places for descriptions: the whole component in `parameters.docs.description.component`, and each story in the JSDoc immediately before its export (or `parameters.docs.description.story`). **Both are rendered only on the Docs page.** This is why [`.storybook/preview.tsx`](../../.storybook/preview.tsx) sets `tags: ["autodocs"]`; removing it leaves the written descriptions shown nowhere
 - Components with no width of their own (inputs, cards, menu triggers) are wrapped in a `div` given a width in the story's `decorators`. The width is a story-side display setting and belongs neither to the component nor to the app's layout. Add `max-w-[calc(100vw-2rem)]` so it is not cut off on narrow screens
-- States that appear only after interaction (an open menu, a chosen candidate, the list after submitting) are fixed in the story by interacting in `play`. If the story holds only the closed form, the component's main form appears neither in the catalog nor in visual regression. How to get a surface that a Portal has placed directly under `body` is owned by [docs/testing-conventions.md](../../docs/testing-conventions.md#component--hook-のテスト--testing-library-の原則)
+- States that appear only after interaction (an open menu, a chosen candidate, the list after submitting) are fixed in the story by interacting in `play`. If the story holds only the closed form, the component's main form appears neither in the catalog nor in visual regression. How to get a surface that a Portal has placed directly under `body` is owned by [docs/testing-conventions.md](../../docs/testing-conventions.md#component-and-hook-tests--testing-library-principles)
 
 ## Audit Criteria
 

@@ -60,7 +60,7 @@ try {
 }
 ```
 
-- **The cause of a failure goes in `cause` as a string.** Putting an `Error` as is becomes `{}` in the OTLP sink (the reason is in [Observability](../../docs/design/observability.md#error-や-date-をそのままフィールドに載せると空になる), "Putting an `Error` or a `Date` straight into a field leaves it empty"). Items that have a name in the official semconv (`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`) use that name.
+- **The cause of a failure goes in `cause` as a string.** Putting an `Error` as is becomes `{}` in the OTLP sink (the reason is in [Observability](../../docs/design/observability.md#putting-an-error-or-a-date-straight-into-a-field-leaves-it-empty), "Putting an `Error` or a `Date` straight into a field leaves it empty"). Items that have a name in the official semconv (`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`) use that name.
 - **Choose the level along the line [0080](../../docs/adr/0080-error-handling.md) draws, and record the same failure only once, at the boundary.**
 - **Keep fields flat.** Only top-level field names are redacted; names inside nested objects are not checked. The sink, on the other hand, sends nested values recursively. Names that carry secrets go at the top level.
 - **Do not use `console.*`.** Biome's `noConsole` checks this ([0002](../../docs/adr/0002-formatter-linter.md)).
@@ -69,7 +69,7 @@ try {
 
 `src/instrumentation.ts` calls `initializeLogger()` when the Node.js server starts. The stdout Pino logger is always initialized here, the level and the trace extractor are injected here, and the OTLP sink is injected too only when `OBS_LOGS_EXPORTER=otlp`. There is no per-request reinitialization.
 
-The injected logger is stored not in a module variable but on `globalThis`, keyed by a `Symbol.for` registered symbol. The reading side treats it as a value written by another module instance and checks that it has the shape of `Logger` before using it. Why the same file is instantiated twice in one process, and where a module variable suffices instead, are owned by [Observability](../../docs/design/observability.md#注入は-registered-symbol-で渡す), "Injection is passed through a registered symbol".
+The injected logger is stored not in a module variable but on `globalThis`, keyed by a `Symbol.for` registered symbol. The reading side treats it as a value written by another module instance and checks that it has the shape of `Logger` before using it. Why the same file is instantiated twice in one process, and where a module variable suffices instead, are owned by [Observability](../../docs/design/observability.md#injection-is-passed-through-a-registered-symbol), "Injection is passed through a registered symbol".
 
 ## Operations
 
@@ -92,7 +92,7 @@ The injected logger is stored not in a module variable but on `globalThis`, keye
 | `forbidden: direct-config-access` — does not import `config` and does not read `process.env`. Settings are received by injection from the boot boundary | violation | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md). Machine: ESLint boundaries and `NODE_RUNTIME_ACCESS` in `architecture.ts` |
 | Application server-side code uses `getLogger()` and does not import Pino directly | violation if `pino` is imported outside `pino.server.ts` | This README, "Structure" |
 | The table of names to redact is the single one in `logger.ts`, and both logs and spans consult it | violation if a table of names to redact exists elsewhere | This README, "Structure" / [0081](../../docs/adr/0081-observability-logging.md) |
-| Recording inside an operation whose success or failure is visible to users is wrapped in `reportQuietly()` | suggestion (whether an operation's outcome is visible to users is not determined by the shape of the call) | This README, "Shape on the Writing Side" / [Observability](../../docs/design/observability.md#getlogger-は初期化前に投げる), "`getLogger()` throws before initialization" |
+| Recording inside an operation whose success or failure is visible to users is wrapped in `reportQuietly()` | suggestion (whether an operation's outcome is visible to users is not determined by the shape of the call) | This README, "Shape on the Writing Side" / [Observability](../../docs/design/observability.md#getlogger-throws-before-initialization), "`getLogger()` throws before initialization" |
 | Injections from the boot boundary are not stored in module variables | suggestion (the path of the assigned value is not determined by the shape of the declaration) | The prohibitions in [0081](../../docs/adr/0081-observability-logging.md) |
 
 ## Related ADRs

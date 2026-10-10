@@ -1,94 +1,94 @@
-# 根の外枠（機能要件）
+# Root Outer Frame (Functional Requirements)
 
-> 画面要件は [`layout.screen.md`](layout.screen.md)。
+> Screen requirements: [`layout.screen.md`](layout.screen.md).
 >
-> ここに書くのは**すべての画面に効く約束**です。route group ごとの約束はそれぞれの
-> `layout.*.md` が、画面ごとの約束は `page.*.md` が持ちます。
+> What is written here are **promises that apply to every screen**. Each route group's promises are held by its
+> `layout.*.md`, and each screen's by its `page.*.md`.
 
-この器はどの route group にも属さない。書体・計装・横断通知・同意の供給を置く。
+This layout shell belongs to no route group. It holds the supply of fonts, instrumentation, cross-cutting notifications, and consent.
 
-## 同意の区分は 2 つ
+## Two consent categories
 
-「画面を表示するために必要なもの」と「無くても画面が成立するもの」の 2 値で尋ねる。細分は
-繋ぐ製品と法域で決まるため、何も繋がっていない状態で先に決めない
-（[0131](../../adr/0131-cookie-consent.md)）。
+Consent is asked as a binary: "what is needed to display the screen" and "what the screen works without". Finer categories depend on
+the products connected and the jurisdiction, so they are not decided in advance while nothing is connected
+([0131](../../adr/0131-cookie-consent.md)).
 
-**必要なものは尋ねない。** 尋ねて拒否されたら画面が成立しないので、選択肢として提示すると
-嘘になる。
+**What is needed is not asked about.** If asked and refused, the screen would not work, so presenting it as an option would be a lie.
 
-## 選び終えるまで尋ね続ける
+## Keep asking until a choice is made
 
-尋ねるのは「読んだうえで、まだ選ばれていない」ときだけである。
+It asks only when "the consent state has been read and nothing has been chosen yet".
 
-**選ばずに終える手段を置かない。** 閉じる操作・Escape・面の外を押す操作のいずれでも終わらない。
-終えられると「尋ねたが選ばれていない」状態が残り、次に開いたときも同じ面が出る。利用者から見れ
-ば消えないものが増えるだけで、こちらから見れば同意の有無が決まらない。
+**No way to finish without choosing.** Neither a close action, Escape, nor clicking outside the panel ends it. If it could be ended,
+an "asked but not chosen" state would remain, and the same panel would appear on the next visit. To the user it only multiplies
+things that will not go away; to this side, whether consent was given is never settled.
 
-**尋ねている間、背面は操作できない。** 見えている人と読み上げる人で操作できる範囲が食い違わない
-ようにする。
+**While asking, the background cannot be operated.** This keeps what can be operated the same for people who see the screen and people
+who use a screen reader.
 
-## 同意は cookie に残り、サーバ側から読める
+## Consent stays in a cookie and can be read on the server side
 
-選ばれた意思は cookie に載り、有効期間を持つ。**無期限にはしない** —— 繋ぐ製品も文面も変わった
-あとの画面が、何年も前の意思で動くことになる。
+The chosen intent is put in a cookie with a validity period. **It is not indefinite** — otherwise screens whose connected products and
+wording have changed would run on intent from years ago.
 
-**尋ねた文面の版を意思と一緒に載せ、いまの版と違えば選ばれていないものとして扱う。** 期限だけでは、
-文面を書き換えても古い文面に同意した意思がそのまま効き続ける —— 何に同意したかが変わったのに、
-同意だけが残る。版を添えることで、書き換えた時点で全員へ尋ね直せる。**文面を書き換える側が版を
-上げる**のが条件で、上げ忘れると新しい文面を見ていない利用者の同意が効いたままになる。
+**The version of the wording that was asked is stored along with the intent; if it differs from the current version, it is treated as
+not chosen.** With expiry alone, intent given to the old wording keeps taking effect even after the wording is rewritten — what was
+consented to has changed, but the consent remains. Attaching the version means everyone can be asked again the moment the wording is
+rewritten. The condition is that **whoever rewrites the wording bumps the version**; forgetting to bump it leaves in effect the consent
+of users who have not seen the new wording.
 
-**読み取りはブラウザ側で行う。** 同意は全画面に掛かるので、読む場所はルート layout しかない。
-そこでサーバ側から読むと、**その読みが全画面に共通の穴になり、いま丸ごと固めて配れている画面まで
-穴つきへ落ちる**（[0041](../../adr/0041-cache-components-decision.md)）。同意の面のためだけに、
-同意と関係の無い画面の配り方を変えることになる。この選択の帰結として、**面はブラウザが読み終えて
-から現れる**。
+**Reading happens on the browser side.** Consent applies to every screen, so the only place to read it is the root layout. Reading it
+there on the server side would make **that read a dynamic hole shared by every screen, dropping even screens currently delivered fully
+static into ones with dynamic holes** ([0041](../../adr/0041-cache-components-decision.md)). It would change how screens unrelated to
+consent are delivered, just for the consent panel. As a consequence of this choice, **the panel appears after the browser finishes
+reading**.
 
-前捌き（`src/proxy.ts`）は同じ cookie をサーバ側で読む。読む主体が 2 つあっても綴りと解釈は
-1 か所（`src/model/consent.ts`）が持つ。
+The pre-check (`src/proxy.ts`) reads the same cookie on the server side. Even with two readers, one place (`src/model/consent.ts`)
+holds the spelling and the interpretation.
 
-## 画面は 1 つの器で包み、横断通知はその外へ出す
+## Screens are wrapped in one layout shell, with cross-cutting notifications outside it
 
-尋ねる面は、開いている間ずっと背面を支援技術から隠す。
+While open, the asking panel hides the background from assistive technology the whole time.
 
-**画面本体を、この層が描く 1 つの要素で包む。** 背面へ付ける印が、まだ hydrate されていない要素を
-書き換えて食い違いを起こさないようにするためである。理由と、時計で遅らせる形を採らない根拠は
-[0026](../../adr/0026-layout-shell-mount.md) と [rendering.md](../../design/rendering.md) の
-「hydration mismatch は偶発的ではない」が持つ。
+**The screen body is wrapped in one element rendered by this layer.** This keeps the marker attached to the background from rewriting
+elements that have not yet hydrated and causing a mismatch. The reason, and the basis for not delaying it with a timer, are held by
+[0026](../../adr/0026-layout-shell-mount.md) and [rendering.md](../../design/rendering.md#hydration-mismatches-are-not-accidental)'s
+"Hydration mismatches are not accidental".
 
-**横断通知はこの器の外へ置く。** 読み上げ続ける領域（`aria-live`）は背面を隠すときにも隠されない。
-通知を器の中に入れると器をまるごと隠せなくなり、包んだ意味が無くなる。
+**Cross-cutting notifications are placed outside this layout shell.** A continuously announced region (`aria-live`) is not hidden even
+when the background is hidden. Putting notifications inside the layout shell would prevent hiding the whole layout shell, defeating the
+point of wrapping it.
 
-## 同意が無いものは読み込まない
+## Load nothing without consent
 
-同意を要する資材は、同意が得られるまで**要素そのものを置かない**。
+Assets that require consent **do not have their elements placed at all** until consent is obtained.
 
-**置いたものを後から外せるとは限らない。** 同意を取り消す口を足す配備では、**取り消しは次の
-読み込みから効く**。ゲートが守るのは「まだ読み込んでいない」側であって、「読み込んだものを降ろす」
-側ではない。
+**What has been placed cannot necessarily be removed later.** In deployments that add a way to withdraw consent, **withdrawal takes
+effect from the next load**. What the gate protects is the "not yet loaded" side, not the "unload what was loaded" side.
 
-**ゲートの先にはタグマネージャを置く**（[0131](../../adr/0131-cookie-consent.md)）。容器 ID を
-宣言した配備でだけ読み込み、空なら要素そのものを描かない。**空は「未設定」ではなく「読み込まない」**
-という指定で、これが Google への依存を外す口になる。
+**A tag manager sits behind the gate** ([0131](../../adr/0131-cookie-consent.md)). It loads only in deployments that declare a container
+ID, and if empty, its element itself is not rendered. **Empty is not "unset" but a specification to "not load"**, and this is the lever
+that removes the dependency on Google.
 
-この経路は中継を通らず、ブラウザから配信元へ直接出る（[0082](../../adr/0082-client-observability.md)
-禁止事項の唯一の例外。理由は [0131](../../adr/0131-cookie-consent.md)）。容器 ID を宣言した配備では、
-配信ヘッダも Google の origin を許す形に変わる（[0111](../../adr/0111-csp-security-headers.md)）。
+This path does not go through the relay; it goes directly from the browser to the distribution origin (the sole exception to what
+[0082](../../adr/0082-client-observability.md) prohibits; the reason is in [0131](../../adr/0131-cookie-consent.md)). In deployments
+that declare a container ID, the delivery headers also change to allow Google's origin ([0111](../../adr/0111-csp-security-headers.md)).
 
-**運用の計装はゲートを通らない。** 障害と性能の計測は、行動の追跡とは区別する
-（[0082](../../adr/0082-client-observability.md)）。法域の要件でこちらも同意の対象にする場合は、
-同じ述語を再利用する。
+**Operational instrumentation does not pass through the gate.** Failure and performance measurement are kept distinct from behavior
+tracking ([0082](../../adr/0082-client-observability.md)). If jurisdictional requirements make these subject to consent too, the same
+predicate is reused.
 
-## 計測 id は同意の裏でだけ配る
+## The measurement id is issued only behind consent
 
-同じブラウザからの訪問を繋ぐ識別子を、**同意が得られている間だけ**配る。未同意のうちに配ると、
-識別子を渡してから同意を尋ねることになる。
+An identifier linking visits from the same browser is issued **only while consent is in place**. Issuing it before consent would mean
+handing out the identifier and then asking for consent.
 
-- 配るのは前捌きで、要求のたびに同意状態と突き合わせる
-- すでに配ってあれば作り直さない。要求ごとに変わる識別子は訪問を繋げない
-- **同意が外れたら消す。** 期限切れ・利用者による削除・選び直しのいずれも同じ扱いにする
-- 同意を押した直後ではなく、その次の要求から配られる
+- The pre-check issues it, matching it against the consent state on every request
+- If already issued, it is not recreated. An identifier that changes per request cannot link visits
+- **When consent is withdrawn, it is deleted.** Expiry, deletion by the user, and choosing again are all treated the same
+- It is issued from the request after the one where consent was pressed, not immediately
 
-## 関連
+## Related
 
-- 実装 `src/app/layout.tsx` / `src/app/consent.tsx` / `src/proxy.ts`
-- 供給の形 [0031](../../adr/0031-policy-state-supply.md) / mount の位置 [0026](../../adr/0026-layout-shell-mount.md)
+- Implementation: `src/app/layout.tsx` / `src/app/consent.tsx` / `src/proxy.ts`
+- Shape of the supply: [0031](../../adr/0031-policy-state-supply.md) / mount position: [0026](../../adr/0026-layout-shell-mount.md)

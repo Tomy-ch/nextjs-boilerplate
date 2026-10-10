@@ -91,7 +91,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 | Rule —— ここでは何をすべきか | それを統べる文書 | **規則が未定義かもしれない**。それ自体が所見だが、Step 2 が所有索引を尽くした後にだけ言える |
 | Rationale —— なぜこうなっているか | `docs/adr/` / `docs/design/` | 暗黙に決まり、記録されなかった |
 | Procedure —— ここではどうやるか | `.makefiles/**` / `package.json` の scripts / `.lefthook.yaml` / `.github/workflows/` / `docs/get-started/` | **正規手順が無いかもしれない**。同じ基準。穴を埋めるためにコマンドを発明しない |
-| Vocabulary —— この語は何を指すか | [`docs/spec/glossary.md`](../../../docs/spec/glossary.md) / `docs/spec/README.md` / 層 README | その語にまだ家が無いか、正がバックエンドの契約にある業務語彙である |
+| Vocabulary —— この語は何を指すか | [`docs/spec/glossary.md`](../../../docs/spec/glossary.ja.md) / `docs/spec/README.md` / 層 README | その語にまだ家が無いか、正がバックエンドの契約にある業務語彙である |
 | History —— いつ・なぜ変わったか | `git log` / merge された PR | —— |
 
 問いは、どの種別かについての言われていない前提を抱えていることが多い。「この検証はどのコマンド？」は
@@ -113,10 +113,10 @@ Procedure、「なぜこの検証は CI 側なのか」は Rationale で、解�
 | --- | --- |
 | [`docs/README.md`](../../../docs/README.ja.md) | **どの文書がその判断を所有するか** —— 4 分類と行き先の判定。どのコーパスが統べるか分からないときは、まずここ |
 | [`docs/adr/README.md`](../../../docs/adr/README.ja.md) | なぜその決定になったか。どれが意図的な除外か |
-| [`docs/design/README.md`](../../../docs/design/README.md) | 層を跨ぐ 1 つの主題がどう動くか |
+| [`docs/design/README.md`](../../../docs/design/README.ja.md) | 層を跨ぐ 1 つの主題がどう動くか |
 | [`docs/rules.md`](../../../docs/rules.ja.md) | 日々強制される制約。各項が Rationale のリンクを持つ |
 | [`.makefiles/README.md`](../../../.makefiles/README.md) | 全 make ターゲット、領域別 |
-| [`docs/playbook.md`](../../../docs/playbook.md) | 逆引き —— 「X をやりたい」→ 置き場 |
+| [`docs/playbook.md`](../../../docs/playbook.ja.md) | 逆引き —— 「X をやりたい」→ 置き場 |
 | 対象パスから `src/<kernel>/README.md` まで辿る README 連鎖 | 責務・禁止・frontmatter の `imports-allowed` / `test-requirement` |
 | [`architecture.ts`](../../../architecture.ts) | 依存表そのもの。何が何を import してよいかの唯一の権威 |
 

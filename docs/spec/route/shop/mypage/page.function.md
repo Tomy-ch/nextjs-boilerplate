@@ -1,45 +1,44 @@
-# `/mypage` マイページ（機能要件）
+# `/mypage` My Page (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 取得
+## Fetching
 
-3 系統（自分の情報・購入の集計・購入履歴の 1 ページ）を RSC 内で並行に取得する。互いに依存
-しないため、順に待つ理由がない。
+Three lines (the user's own information, the purchase summary, and one page of purchase history) are fetched in parallel within the RSC. They do not
+depend on one another, so there is no reason to wait for them in sequence.
 
-| 内容 | 取得元 |
+| Content | Source |
 | --- | --- |
-| プロフィール | `GET /v1/users/me` |
-| 購入サマリ | `GET /v1/users/me/purchases/summary` |
-| 購入履歴の 1 ページ | `GET /v1/purchases` |
+| Profile | `GET /v1/users/me` |
+| Purchase summary | `GET /v1/users/me/purchases/summary` |
+| One page of purchase history | `GET /v1/purchases` |
 
-**部分的な失敗を許さない。** どれも自分自身の情報で、片方だけが出ている画面は「何かが壊れて
-いる」以上のことを伝えない。失敗は route の `error` 境界が受ける。
+**Partial failure is not allowed.** All of it is the user's own information, and a screen showing only one part conveys nothing beyond "something
+is broken." Failure is received by the route's `error` boundary.
 
-## 購入サマリの詳細
+## Purchase Summary Details
 
-上位 10 件を注文日時の降順で出す。
+The top 10 are shown in descending order of order date and time.
 
-**10 件を超える分は購入履歴（`/purchases`）へ送る。** ここは集計の内訳を確かめる場所で、履歴
-そのものを読む場所ではない。
+**Anything beyond 10 is sent to the purchase history (`/purchases`).** This is the place to check the breakdown of the summary, not the place to read
+the history itself.
 
-**期間での絞り込みを持たない。** 契約（`GET /v1/purchases`）が受け取るのは cursor の 2 つだけ
-で、取得済みのページに client 側で日付の条件を掛けると、条件に合う古い購入が落ちた一覧になる。
-範囲で絞る操作は購入履歴の画面が持つ。
+**There is no filtering by period.** The contract (`GET /v1/purchases`) accepts only the two cursors,
+and applying a date condition on the client side to already-fetched pages would yield a list missing older purchases that match the condition.
+Filtering by range is an operation the purchase history screen owns.
 
-## 退会
+## Account Closure
 
-- **進行中の購入が 1 件でもあると成立しない**（契約が `409`）
-- 成立したら session を破棄する。IdP 側の session を終わらせる送り先が返ればまずそこへ送り、
-  返らなければ（または組み立てられなければ）トップへ送る
-- **即時の反映を約束しない**。取り消しと在庫の戻しは結果整合で走るため、直後は反映されていない
-  ことがある
+- **It does not go through if even one purchase is in progress** (the contract returns `409`)
+- When it succeeds, the session is discarded. If a destination that ends the IdP-side session is returned, the user is sent there first;
+  if not (or if it cannot be assembled), the user is sent to the top page
+- **Immediate reflection is not promised**. Cancellation and returning stock run with eventual consistency, so right afterwards they may not
+  be reflected yet
 
-## 認可
+## Authorization
 
-- 未認証の主体は、この画面へ戻る指定を伴ってログインへ送る
-- 認証済みでも利用者として登録していない主体は、この画面へ戻る指定を伴って登録（`/onboarding`）へ
-  送る
+- An unauthenticated actor is sent to login with an instruction to return to this screen
+- An actor that is authenticated but not registered as a user is sent to registration (`/onboarding`) with an instruction to return to this screen
 
-判定は主体の情報を描く前に行う。外枠の手前にも cookie を読むだけの前捌きがあるが、防御線はこの画面の
-判定である（[0079](../../../../adr/0079-auth-frontend-seam.md) / [0043](../../../../adr/0043-middleware-policy.md)）。
+The decision is made before rendering the actor's information. Before the outer frame there is also a pre-check that only reads the cookie, but the line of defense is this screen's
+decision ([0079](../../../../adr/0079-auth-frontend-seam.md) / [0043](../../../../adr/0043-middleware-policy.md)).

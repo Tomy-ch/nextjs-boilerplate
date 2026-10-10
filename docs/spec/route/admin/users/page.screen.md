@@ -1,77 +1,78 @@
-# `/admin/users` 利用者一覧（画面要件）
+# `/admin/users` User List (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-誰がいるかを見渡す画面。
+A screen for surveying who is there.
 
-## 絞り込みは 1 つだけ
+## Only one filter
 
-**状態（すべて / 有効 / 退会済み）を選ぶ欄を、表の上に常設する。** 選んだ時点で反映する —— 選択肢が
-排他の 3 つしかなく、結果が同じ画面にそのまま出るため、確定を待たせる理由がない。
+**A field for choosing the status (all / active / closed) is always present above the table.** It applies on selection — there are
+only three exclusive options and the result appears on the same screen, so there is no reason to make the user wait to confirm.
 
-**効いている条件の印を別に置かない。** 欄が幅によらず常に見えており、欄に出ている値と印が同じことを
-言う。狭い段で欄が畳まれる商品一覧とはそこが違う。
+**No separate marker for the condition in effect.** The field is always visible regardless of width, so a marker would say the same
+thing as the value shown in the field. That is where it differs from the product list, whose field collapses on narrow bands.
 
-## 表に出す列
+## Columns Shown in the Table
 
-**名前・メール・状態・操作。** 電話番号は広い段でだけ足す。行を見比べるときの手がかりであって、1 人を
-特定するのには要らない。
+**Name, email, status, actions.** Phone number is added only on wide bands. It is a clue for comparing rows, not something needed to
+identify one person.
 
-**狭い段で残すのは「誰か」「どこへ連絡するか」「どういう状態か」「何ができるか」。** それ以外を残すと、
-横送りしないと操作に届かなくなる。
+**On the narrow band, what remains is "who", "where to contact", "what state", and "what can be done".** Keeping anything else means
+the actions cannot be reached without scrolling horizontally.
 
-**表が入り切らない幅では、表だけが自分の領域の中で横に送れる。** 画面そのものは横にあふれない。
+**At widths where the table does not fit, only the table scrolls horizontally, within its own area.** The page itself never overflows
+horizontally.
 
-## 状態は文字で示す
+## Status is shown in text
 
-**「有効」「退会済み」を文字のバッジで出す。** 行そのものを淡くするなどの色だけの区別にしない。
+**「有効」 (active) and 「退会済み」 (closed) are shown as text badges.** Distinction by color alone, such as fading the whole row, is not used.
 
-## 行の操作
+## Row Actions
 
-**行末の操作 menu の中に「退会させる」を置く。** 不可逆な操作を、一覧の上に裸で並べない。
+**「退会させる」 (close account) is placed inside the row-end action menu.** An irreversible action is not laid out bare on the list.
 
-**退会済みの行には操作の trigger ごと出さない。** 押せる物が並んでいるのに開くと空、という面を作ら
-ない。
+**Rows of closed accounts do not show even the action trigger.** No surface where something clickable is shown but opens empty.
 
-## 退会の確認
+## Confirming Account Closure
 
-**背面を塞ぐ確認を出す。** 対象の名前を見出しに置き、**戻せないことと、後始末が同時には終わらない
-ことを本文に書く**。
+**Show a confirmation that blocks the background.** Put the target's name in the heading, and **write in the body that it cannot be
+undone and that the cleanup does not finish at the same time**.
 
-**結果が返ったら、成否によらず閉じる。** 確認は「本当に押すか」を尋ねる面であって、結果を語る面では
-ない。拒まれたときだけ開いたままにすると、一覧の上に出した理由が背面に隔てられ、読むために一度
-閉じることになる。
+**When the result comes back, close it regardless of success or failure.** The confirmation is a surface that asks "really press?",
+not one that reports results. Keeping it open only on rejection would separate the reason shown above the list behind the background,
+and the user would have to close it once to read it.
 
-## 結果は一覧の上に残す
+## Results stay above the list
 
-**成立も失敗も、表の上に出す。** 確認は閉じるのでその中には残せず、退会が成立した行は「有効」で
-絞り込んでいれば一覧からも消える。
+**Both success and failure appear above the table.** The confirmation closes, so they cannot stay inside it, and a row whose closure
+succeeded also disappears from the list if filtering by 「有効」.
 
-**失敗の文言に対象の名前を含める。** どの行に対する結果かが、行が消えた後でも判る。
+**The failure message includes the target's name.** Which row the result is for remains clear even after the row disappears.
 
-## ページ送り
+## Pagination
 
-**表の下に、任意のページへ跳べる送りを置く。** 先頭・末尾・現在の両隣を出し、離れた範囲は省略の印で
-畳む。全ページを並べると、件数が増えるほど列が伸びる。
+**Below the table, place pagination that can jump to any page.** Show the first, the last, and the neighbors of the current page, and
+collapse distant ranges with an ellipsis marker. Listing every page makes the row grow as the count grows.
 
-**端では前後を消さず、押せない状態で残す。** 消すと残った側が左右へ動き、同じ場所を狙って押せない。
+**At the ends, previous and next are not removed but left disabled.** Removing them moves the remaining side left or right, so the
+same spot cannot be aimed at.
 
-**入り切らない幅では折り返す。**
+**At widths where it does not fit, it wraps.**
 
-## 該当が無いとき
+## When there are no matches
 
-**表の形は保ったまま、無いことだけを伝える。**
+**Keep the table's shape, and convey only that there are none.**
 
-## パンくず
+## Breadcrumbs
 
-**置かない。** 脇の一覧がこの画面を直接指しており、間に段がない。
+**None.** The sidebar list points directly to this screen, with no level in between.
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook の `Page/Admin/Users` に、先頭ページ・有効だけ・退会済みだけ・途中のページ・末尾のページ・
-1 ページしかない場合・該当なし・行の操作を開いた状態・退会の確認・成立・拒まれた状態・契約上の最大長の
-姓名・タブレット・スマホを置く。
+Storybook's `Page/Admin/Users` holds: the first page, active only, closed only, a middle page, the last page, a single page only, no
+matches, the row actions opened, the closure confirmation, success, the rejected state, a full name of the contract's maximum length,
+tablet and smartphone.
 
-## 関連
+## Related
 
-- [`../layout.screen.md`](../layout.screen.md) —— この画面を指す脇の一覧を持つ器
+- [`../layout.screen.md`](../layout.screen.md) — the layout shell holding the sidebar list that points to this screen

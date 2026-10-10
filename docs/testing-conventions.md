@@ -1,129 +1,129 @@
-# テスト規約
+# Testing Conventions
 
-この文書は、テストを**書くとき**と**レビューするとき**に当てる行動規約である。何をどう検証するかの判断は [ADR 0090](adr/0090-testing-strategy.md)（テスト戦略）と [ADR 0091](adr/0091-test-verification-methods.md)（検証手段）が持ち、ここはその適用にあたって迷う点を具体化する。両者が矛盾する場合は ADR を優先する。
+This document is the code of conduct applied when **writing** tests and when **reviewing** them. The judgment of what to verify and how is held by [ADR 0090](adr/0090-testing-strategy.md) (testing strategy) and [ADR 0091](adr/0091-test-verification-methods.md) (verification methods); this document makes concrete the points where applying them is confusing. If the two conflict, the ADRs take precedence.
 
-根拠は **TS / Vitest / Testing Library のデファクトスタンダード**か、**このリポジトリの構造からの導出**に限る（ADR 0090 の戦略）。他言語の慣習を訳したものは根拠にしない。
+The basis is limited to **the de facto standards of TS / Vitest / Testing Library** or **what this repository's structure derives** (ADR 0090's strategy). A translation of another language's customs is not a basis.
 
-## 意味網羅 — カバレッジは情報を持たない
+## Meaning coverage — coverage carries no information
 
-このリポジトリは 4 指標 100% のカバレッジゲートを持つ（ADR 0090）。**したがってカバレッジは「アサーションが意味を持つか」について何も語らない。**全行が構造上実行済みだからである。
+This repository has a coverage gate at 100% on all four metrics (ADR 0090). **So coverage says nothing about "whether the assertions mean anything".** Every line has been executed, by construction.
 
-残る問いは 2 つある。
+Two questions remain.
 
-1. **分岐網羅** — 論理分岐ごとに、それを通るケースが少なくとも 1 つあるか
-2. **意味網羅** — その分岐に**固有の結果**をアサートしているか
+1. **Branch coverage** — for each logical branch, is there at least one case that goes through it
+2. **Meaning coverage** — does it assert the result **specific** to that branch
 
-2 が満たされない典型は次の形である。
+Typical shapes that fail 2 are the following.
 
-- エラー分岐で「throw した」ことだけを見て、**どのエラーか**を見ていない
-- 状態を変える操作で「呼ばれた」ことだけを見て、**変更後の状態**を見ていない
-- 成功分岐で、他の分岐と**区別できない**値をアサートしている
-- 境界のケースで、片側だけをアサートしている
-- 並行に始めていることを、呼び出しの**順序**で見ている。逐次 `await` でも同じ順に並ぶので区別できない。
-  先頭の取得を解決させずに止めたまま、後続が既に呼ばれていることを見る —— 全部を即解決させると直列でも通る
+- An error branch checks only that it "threw", not **which error**
+- An operation that changes state checks only that it "was called", not **the state after the change**
+- A success branch asserts a value that **cannot be distinguished** from other branches
+- A boundary case asserts only one side
+- Starting things concurrently is checked by the **order** of calls. Sequential `await` lines them up in the same order, so the two cannot be distinguished.
+  Keep the first fetch unresolved and check that the later ones have already been called — resolving everything immediately passes even when run serially
 
-分岐を反転させたり、条件を丸ごと消したりしても落ちないテストは、その分岐について何も検証していない。
+A test that does not fail when a branch is inverted or a condition is removed entirely verifies nothing about that branch.
 
-## アサーションの強さ
+## Assertion Strength
 
-- **型で保証されている値に `toBeDefined()` を当てない。**通らない可能性が無い。
-- **論理積の結果へ存在アサーションを当てない。**`expect(a && b).toBeDefined()` は `a` が偽でも `false` が
-  defined なので通る。項目ごとに名指しで見る。
-- **見つからないことを表す番兵の値を、大小比較にそのまま流さない。**並び順の検査で `findIndex` の `-1` を
-  比較に使うと、綴りを間違えた名前が常に「先に居る」ことになり、並びを 1 つも検査しないまま通る。
-  見つからなければ落とす。
-- **`expect(fn).not.toThrow()` を唯一のアサーションにしない。**「何も起きなかった」は、何が起きるべきだったかを述べていない。
-- **snapshot を具体的なアサーションの代わりに使わない。**snapshot はコードの振る舞いをそのまま記録するので、バグも一緒に固定する。使うのは「構造全体が変わっていないこと」自体が主題のときに限る。
-- **検証したいものを mock しない。**対象の内部を mock で置き換えると、テストは mock の設定を検証する。
-- **時刻・乱数はリテラルで固定しない。**日付境界で腐る。時刻は表示用の timezone を固定し（`Intl` の `timeZone`）、絶対時刻を渡す。
-- **対象が持っている一覧を、テストへ書き写さない。**「宣言したものがすべて効いているか」を確かめるテストは、
-  その一覧を対象から取る。書き写すと、対象へ 1 件足しても検査は増えず、**守っているように見えて何も守らない**。
-  必要なら対象側の定数を公開する（公開する理由をその doc に書く）。
-- **数え上げで要素を特定できたことにしない。**`querySelectorAll(...).length` の下限や件数の一致は、
-  どの要素がそうなのかを述べていない。他の要素が条件を満たしていれば、本来の対象が外れても通る。
-  要素を名指しでアサートし、**そうであってはならない側も併せて確かめる**。
+- **Do not apply `toBeDefined()` to a value the types guarantee.** It cannot fail.
+- **Do not apply an existence assertion to the result of a logical AND.** `expect(a && b).toBeDefined()` passes even when `a` is falsy, because `false` is
+  defined. Check each item by name.
+- **Do not feed a sentinel value meaning "not found" straight into a magnitude comparison.** In an ordering check, using `findIndex`'s `-1` in
+  the comparison makes a misspelled name always "come first", and the check passes without testing a single ordering.
+  Fail when it is not found.
+- **Do not make `expect(fn).not.toThrow()` the only assertion.** "Nothing happened" does not state what should have happened.
+- **Do not use a snapshot instead of concrete assertions.** A snapshot records the code's behavior as is, so it locks in bugs along with it. Use one only when "the whole structure has not changed" is itself the subject.
+- **Do not mock what you want to verify.** Replacing the subject's internals with a mock makes the test verify the mock's setup.
+- **Do not fix time or random values as literals.** They rot at date boundaries. For time, fix the display timezone (`Intl`'s `timeZone`) and pass absolute instants.
+- **Do not copy a list the subject holds into the test.** A test that checks "everything declared takes effect" takes
+  that list from the subject. Copied, adding an item to the subject adds no check, and **it looks like it protects something but protects nothing**.
+  If needed, export the constant from the subject (and write the reason for exporting it in its doc).
+- **Do not treat counting as having identified an element.** A lower bound on `querySelectorAll(...).length` or a matching count
+  does not say which element is the one. If other elements satisfy the condition, it passes even when the intended subject is missing.
+  Assert the element by name, and **also check the side that must not be so**.
 
-## component / hook のテスト — Testing Library の原則
+## Component and hook tests — Testing Library principles
 
-以下は Testing Library が定める guiding principles であり、このリポジトリの好みではない。指摘するときは原則名で呼ぶ。
+The following are the guiding principles Testing Library defines, not this repository's preferences. When pointing one out, call it by the principle's name.
 
-- **query の優先順位を守る。**`getByRole`（`name` つき）が最優先、次に `getByLabelText` / `getByPlaceholderText` / `getByText`、`getByTestId` や `data-*` は**利用者から辿れる手がかりが無いときの最後の手段**。role と accessible name があるのに `data-slot` や class 名で引くのは、利用者が到達できるものではなく実装を検証している。
-- **`fireEvent` より `user-event`。**`user-event` は実際の入力列（focus / keydown / pointer 系）を再現する。`fireEvent.click` は合成 `click` を 1 つ投げるだけなので、**pointer を伴う経路を素通りする**。
-  **例外は、実物が打鍵ごとではなく確定値をまとめて返す入力欄の代役**（リッチテキストの編集面など）。
-  代役へ 1 文字ずつ送ると、実物と違う呼ばれ方を検証することになる。`fireEvent.change` で確定値を 1 回渡す。
-- **`user.type` は追記である。**補完や初期値で既に値が入っている欄へ重ねると、値が連結される。
-  `user.clear` してから打つ。
-- **overlay は portal で `body` 側へ出る。**`screen` は document 全体を見るので届くが、`within(container)` で
-  絞った query からは辿れない。開いた面は `screen.findByRole("dialog")` で受け、trigger と同じ名前を持つ
-  実行操作は `within(dialog)` で内側へ絞る（確認の trigger と実行は、ふつう同じ名前を持つ）。story の
-  play 関数で `within(canvasElement)` から始めるときも同じで、開いた面は `within(document.body)` から引く。
-- **「利用者が見ている場所へ出す」は `toBeVisible` では留まらない。** jsdom は重なりを持たないので、
-  overlay の背後にある要素にも `toBeVisible` は通る。`screen` から引くと、面の外に出てしまった文言も
-  見つかってしまい、**約束が破れているのにテストは緑になる**。場所そのものが約束なら、その場所を
-  定める器で query を絞る —— 面の中に出す約束なら `within(dialog)` から引き、外へ出た瞬間に
-  query が落ちるようにする。
-- **描画のあいだだけ真になる値は、落ち着いた後に読まない。**落ち着いた値はどの経路でも偽なので、何も判らない。
-  描画ごとの値を配列へ記録する probe component で包み、記録の列を見る。
-- **sleep ではなく待つ。**`await waitFor(...)` / `await screen.findBy...` を使う。固定の遅延は構造的に flaky になる。時間そのものが主題なら `vi.useFakeTimers` + `vi.advanceTimersByTime`。
-- **意味を持つ matcher を使う。**`toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` は何を主張しているかを述べる。queried element への `toBeTruthy()` はほとんど何も主張していない。
-- **利用者が観測するものをアサートする。**hook の内部や private な呼び出し順ではなく、描画結果で分岐が区別できるならそちらを見る。store の値を直接読んで済ませない。
+- **Follow the query priority.** `getByRole` (with `name`) comes first, then `getByLabelText` / `getByPlaceholderText` / `getByText`; `getByTestId` and `data-*` are **the last resort when there is no clue a user can follow**. Querying by `data-slot` or a class name when a role and accessible name exist verifies the implementation, not what a user can reach.
+- **`user-event` over `fireEvent`.** `user-event` reproduces the actual input sequence (focus / keydown / pointer events). `fireEvent.click` only dispatches one synthetic `click`, so it **skips the paths that involve the pointer**.
+  **The exception is a stand-in for an input whose real counterpart returns a committed value all at once rather than per keystroke** (a rich-text editing surface and the like).
+  Sending one character at a time to the stand-in verifies a way of being called that differs from the real one. Pass the committed value once with `fireEvent.change`.
+- **`user.type` appends.** Typing into a field that already has a value from autocomplete or an initial value concatenates the values.
+  `user.clear` before typing.
+- **Overlays render into `body` through a portal.** `screen` looks at the whole document, so it reaches them, but a query narrowed with
+  `within(container)` cannot. Receive the opened surface with `screen.findByRole("dialog")`, and narrow the execute action that has the same name
+  as the trigger to the inside with `within(dialog)` (a confirmation's trigger and its execute action usually have the same name). The same applies when a story's
+  play function starts from `within(canvasElement)`: query the opened surface from `within(document.body)`.
+- **"Show it where the user is looking" is not settled by `toBeVisible`.** jsdom has no overlap, so
+  `toBeVisible` passes even for elements behind an overlay. Querying from `screen` also finds text that has escaped the surface,
+  and **the test is green while the promise is broken**. If the place itself is the promise, narrow the query with the container that
+  defines that place — if the promise is to show it inside the surface, query from `within(dialog)` so that the query fails the moment
+  it escapes.
+- **Do not read a value that is true only during rendering after things have settled.** The settled value is false on every path, so it tells you nothing.
+  Wrap with a probe component that records the value on each render into an array, and look at the recorded sequence.
+- **Wait instead of sleeping.** Use `await waitFor(...)` / `await screen.findBy...`. A fixed delay is structurally flaky. If time itself is the subject, use `vi.useFakeTimers` + `vi.advanceTimersByTime`.
+- **Use matchers that carry meaning.** `toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` state what they claim. `toBeTruthy()` on a queried element claims almost nothing.
+- **Assert what the user observes.** If the rendered result can distinguish the branches, look at that rather than a hook's internals or a private call order. Do not settle for reading a store's value directly.
 
-## 見た目の主張をどこで見るか
+## Where visual claims are checked
 
-「2 つの選択肢を同じ重さで並べる」「面が背面を覆う」のような主張は、role でも accessible name でも
-表せない。**どこで見るかは、主張が何についてのものかで決まる。**
+Claims such as "two options are laid out with equal weight" or "a surface covers what is behind it" cannot be expressed with a role or an accessible
+name. **Where to check one is decided by what the claim is about.**
 
-- **具体的な見え方そのもの**（余白・色・字面・位置）は**基準画像が持つ**。単体テストで class 名や
-  style を 1 つずつ数えると、意味の変わらない書き換えのたびに赤くなり、しかも**主張していた見え方は
-  そもそも守れていない** —— class が同じでも、後から効く宣言で見え方は変わる。
-- **基準画像が主張を守るのは、fixture がその主張の出る値を持つときだけ**である。区分ごとの見た目を
-  見比べるなら、区分の全件と、どの区分にも当たらない値の姿を 1 つの並びに置く。折り返しを見るなら、
-  区切りの無い長い語と和文を混ぜる —— どちらか一方では折り返しの挙動が出ない。
-- **要素どうしの関係**（同じ / 違う / 一方だけが強調されている）は単体テストで見てよい。ただし
-  **関係だけを見る**。`expect(reject.className).toBe(accept.className)` は「片方だけを目立たせない」
-  という主張そのものだが、`toBe("inline-flex …")` と綴りを焼き込むと、主張ではなく現在の実装を
-  固定することになる。
-- **在る / 無い**（要素そのものを作らない、背面が読めなくなる）は単体テストの領分で、これは見た目の
-  主張ではなく構造の主張である。
+- **The concrete appearance itself** (spacing, color, glyphs, position) is **held by the baseline images**. Counting class names or
+  styles one by one in a unit test turns red on every rewrite that does not change the meaning, and **the appearance it claimed
+  is not protected in the first place** — even with the same class, a declaration that applies later changes the appearance.
+- **Baseline images protect a claim only when the fixture holds the values in which that claim shows**. To compare the appearance per
+  category, put every category and the appearance of a value that matches no category in one row. To check wrapping,
+  mix long words with no break points and Japanese text — either one alone does not bring out the wrapping behavior.
+- **Relationships between elements** (same / different / only one of them emphasized) may be checked in a unit test. But
+  **check only the relationship**. `expect(reject.className).toBe(accept.className)` is exactly the claim "do not make only one of them stand out",
+  but baking in the spelling with `toBe("inline-flex …")` locks in the current implementation rather than the
+  claim.
+- **Present / absent** (not creating the element at all, what is behind becoming unreadable) is the domain of unit tests; this is not a visual
+  claim but a structural one.
 
-## テストが起こしたものはテストが畳む
+## Tests clean up what they start
 
-1 つのワーカーが何本ものファイルを続けて回すため、**ファイルが終わっても畳まれなかったものはワーカーに残る**。残った購読・タイマー・React root は環境が破棄された後に動き、`window is not defined` のような形で表面化する。これは失敗したテストとしてではなく **unhandled error として run 全体を落とす** —— 全件 pass のまま赤くなり、名指しされるのは原因と無関係なファイルなので、ログから原因へ辿れない。
+One worker runs many files in a row, so **whatever was not cleaned up when a file ends stays in the worker**. Leftover subscriptions, timers and React roots run after the environment has been torn down and surface as something like `window is not defined`. This does not fail as a failed test but **fails the whole run as an unhandled error** — it turns red with every test passing, and the file named is unrelated to the cause, so the log does not lead to the cause.
 
-- `render` したものは Testing Library の `cleanup` が畳む（`vitest.setup.ts` が全ファイルへ掛けている）。**それ以外の経路で作ったものは自分で畳む。**
-- **`vi.hoisted` で作った `vi.fn()` の既定値は、`beforeEach` でテストごとに置き直す。** `vi.restoreAllMocks()` が元へ戻すのは `vi.spyOn` で作ったものだけで、`vi.fn()` に `mockResolvedValue` で与えた値はファイルの残りのテストへ持ち越される。持ち越された値の上では、既定を前提にしたテストが別の分岐を通ったまま緑になり、どのテストが値を変えたかはファイルの並び順でしか分からない。
-- **`vi.resetModules()` はモックを戻さない。** 読み直した module が受け取るのは、`vi.mock` のファクトリが前に返したのと同じモックで、呼び出しの記録も途中で与えた実装も残っている。module を読み直すテストは `beforeEach` で `vi.resetAllMocks()` も呼ぶ —— `vi.fn(impl)` は reset で `impl` へ戻るので、本物を包んだ spy は包んだまま残る。
-- 畳む口を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末の口を足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
+- What was `render`ed is cleaned up by Testing Library's `cleanup` (`vitest.setup.ts` applies it to every file). **Whatever was created through any other path, clean up yourself.**
+- **Reset the default of a `vi.fn()` created with `vi.hoisted` per test in `beforeEach`.** `vi.restoreAllMocks()` restores only what was created with `vi.spyOn`, and a value given to a `vi.fn()` with `mockResolvedValue` carries over into the rest of the file's tests. On top of a carried-over value, a test that assumes the default stays green while going through a different branch, and which test changed the value can only be found from the order of the file.
+- **`vi.resetModules()` does not restore mocks.** A re-imported module receives the same mock the `vi.mock` factory returned before, with its call records and any implementation given midway still in place. A test that re-imports a module also calls `vi.resetAllMocks()` in `beforeEach` — `vi.fn(impl)` returns to `impl` on reset, so a spy wrapping the real thing stays wrapped.
+- When calling a production function that has no way to clean up, capture the creation itself on the test side ([`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) does this for `createRoot`). **Do not add a cleanup hook to production just to make it cleanable** — an API that has no caller in production is only baggage that makes the next reader question what it is for.
 
-## jsdom に無いブラウザ API の扱い
+## Handling browser APIs that jsdom lacks
 
-jsdom は仕様の一部を実装しない。**個別のテストで発火方法を変えて回避しない** —— それは検証したかった経路を通らないテストを生む。
+jsdom does not implement parts of the specification. **Do not work around it by changing how an individual test fires events** — that produces a test that does not go through the path you wanted to verify.
 
-- **共有の `vitest.setup.ts` で補い、補いの全部はそのファイルが持つ。** 一覧をここへ写さない —— 部品側の README が、そこに無いものを「補っている」と書いていたら、どちらかが古い。
-- 補いには、そのファイルの中で**なぜ必要か**を書く。次に同じ問題へ当たった人が、個別の回避に逃げる前にそこを見る。
-- 補えないもの（レイアウト計算を要するもの等）は、**その旨を明記して別の検証手段へ回す**。「動いているはず」で通さない。
+- **Fill the gap in the shared `vitest.setup.ts`, and that file holds all of the fills.** Do not copy the list here — if a component's README says something is "filled" that is not in that file, one of them is stale.
+- For each fill, write **why it is needed** in that file. The next person who hits the same problem looks there before escaping into an individual workaround.
+- What cannot be filled (anything that needs layout computation, etc.) is **stated explicitly and handed to another verification method**. Do not pass it on "it should work".
 
-**スタイルシートも効いていない。**帯で出し分ける 2 つの姿は、実際の画面ではどちらか一方しか見えないが、
-テストの木には両方が居る。同じ role と name の query は 2 件返り、`toBeVisible` も class による出し分けを
-見分けない。`getAllBy*` の先頭を暗黙に採らず、どちらを採るかを決めて名指しで引く（脇の領域に含まれない方、
-など）。幅ごとの姿そのものは基準画像の領分である。
+**Stylesheets do not apply either.** Of the two forms switched by band, only one is visible on the actual screen, but
+both are in the test's tree. A query for the same role and name returns two results, and `toBeVisible` does not tell apart switching by
+class. Do not implicitly take the first of `getAllBy*`; decide which one to take and query it by name (the one not inside the sidebar,
+for example). The form at each width itself is the domain of the baseline images.
 
-`fireEvent` へ逃げると落ちなくなる代わりに、**ジェスチャー判定のコードを 1 行も通らない**テストになる。落ちる方が情報がある。
+Escaping to `fireEvent` stops the failure, but in exchange the test **goes through not a single line of the gesture-detection code**. A failing test carries more information.
 
-## メモ化が効いているかは、ここでは確かめられない
+## Memoization cannot be verified here
 
-Vitest は `react-server` 条件で解決しないため、公開 `react` の `cache` は**素通しの実装**になる。
-`cache()` で包んだ関数を同じ描画の中で 2 度呼べば 2 度走り、テストは常に「畳まれていない」姿を見る。
-**包んだ意図が効いているかは、この経路からは判定できない。**
+Vitest does not resolve with the `react-server` condition, so the public `react`'s `cache` is **a pass-through implementation**.
+Calling a function wrapped in `cache()` twice in the same render runs it twice, and the test always sees the "not deduplicated" form.
+**Whether the intent of wrapping it takes effect cannot be determined from this path.**
 
-- **数えるなら実プロセスで数える。** `pnpm build && pnpm start` で動かし、包まれた側の内側（復号や
-  取得の実体）の呼び出し回数を一時的に数え、同一リクエスト内で 1 度に畳めていることを見る。
-- **効いていない機構をコメントで主張しない。** 畳めていなければ `cache()` を外し、呼び出し側で 1 度
-  だけ引く形へ倒す。「1 リクエストにつき 1 度」と書いた言葉だけが残る状態が、いちばん悪い。
+- **If you count, count in a real process.** Run it with `pnpm build && pnpm start`, temporarily count the calls on the inside of the wrapped side (the actual
+  decryption or fetch), and check that they are deduplicated to one within a single request.
+- **Do not claim a mechanism that is not working in a comment.** If it is not deduplicating, remove `cache()` and fall back to fetching once
+  on the calling side. The worst state is one where only the words "once per request" remain.
 
-## `next/dynamic` を含む木を描くとき
+## Rendering a tree that contains `next/dynamic`
 
-**その module を `beforeAll` で先に読む。**
+**Import that module first in `beforeAll`.**
 
 ```ts
 beforeAll(async () => {
@@ -131,19 +131,19 @@ beforeAll(async () => {
 });
 ```
 
-`next/dynamic` の解決は描画のたびに実際の module 読み込みを挟む。読まずに `findBy*` で待つと、**待ち時間の中に読み込みが入る**。全量を並列で回すと読み込みだけで待ち時間を使い切り、落ちるかどうかがそのときの混み具合で決まる —— 単体では通り、全量では実行のたびに違うファイルが落ちる形で現れる。
+Resolving `next/dynamic` inserts an actual module load into every render. Waiting with `findBy*` without importing it first **puts the load inside the wait time**. Running the whole suite in parallel uses up the wait time on loading alone, and whether it fails depends on how busy things are at that moment — it shows up as passing alone, while in the full run a different file fails on every run.
 
-**待ち時間（`asyncUtilTimeout`）を広げて吸収させない。**必要な余裕が「読み込みの遅さ」で決まってしまい、部品が増えるたびに広げ直すことになる。
+**Do not absorb it by widening the wait time (`asyncUtilTimeout`).** The needed margin becomes determined by "how slow loading is", and it has to be widened again every time components are added.
 
-**同じファイルで二度目の動的な解決を行わない。** 先に読んでも、1 つのファイルの中で二度目の解決が
-起きると待ち時間に収まらず、そのケースだけが確実に落ちる（順序を入れ替えても落ちる側が入れ替わる）。
-同じ描画についての事実は 1 つのケースへ畳む。
+**Do not perform a second dynamic resolution in the same file.** Even with the module imported first, a second resolution within one file
+does not fit in the wait time, and that case alone fails reliably (reordering only swaps which side fails).
+Fold facts about the same render into one case.
 
-**掛かるのは、その部品を直接描くテストだけではない。**動的に読む部品を含む木を描くテストすべてが対象で、外枠（`layout`）を描くテストもここに入る。先読みは `dynamic()` の境界を消さない —— `Suspense` は依然として通る。
+**It applies not only to tests that render that component directly.** Every test that renders a tree containing a dynamically loaded component is covered, including tests that render the outer frame (`layout`). Importing first does not remove the `dynamic()` boundary — `Suspense` is still passed through.
 
-## リポジトリ全体を走査するゲート
+## Gates that scan the whole repository
 
-**`it` に明示の timeout を渡す。**
+**Pass an explicit timeout to `it`.**
 
 ```ts
 const TIMEOUT_MS = 300_000;
@@ -153,48 +153,48 @@ describe("...", () => {
 });
 ```
 
-既定の 5 秒は**テスト 1 件**を想定した値で、ツリー全体を歩いて型を解決する走査の分を含んでいない。
-全量を並列で回すと取り合いでさらに伸びるため、走査の遅さがそのまま赤になり、**判定は正しいのに
-落ちる**。落ちた側を見ても違反は 1 件も出ていないので、原因に辿り着くまでが遠い。
+The default 5 seconds is a value meant for **one test**, and does not include a scan that walks the whole tree resolving types.
+Running the whole suite in parallel stretches it further through contention, so the slowness of the scan turns straight into red, and **the gate fails
+while its verdict is correct**. Looking at the failing side shows not a single violation, so it is a long way to the cause.
 
-**走査範囲を狭めて時間を縮めない。**縮めたぶんだけ無検査の範囲が増え、ゲートは「違反なし」を
-報告したまま黙る。時間は timeout で受け、範囲は必要なだけ取る。
+**Do not shrink the scan scope to cut the time.** Every bit you shrink adds unchecked scope, and the gate keeps reporting "no violations"
+while going silent. Take the time with the timeout, and take as much scope as needed.
 
-## mock の境界
+## Mock Boundaries
 
-- **HTTP は MSW で止める。**`fetch` の手書きスタブや adapter のモジュール mock で代替しない（ADR 0090 が integration の対象を HTTP 境界に限っているため、境界の位置がテストごとに動くと何を検証しているかが決まらない）。
-- **mock は契約駆動のハンドラを使う。**テスト専用のスタブを別に持つと、契約が変わってもテストだけが古い形のまま通り続ける。
-- **MSW を立てるのは `vitest.setup.msw.ts` を import したファイルだけ。**interception は 1 ファイルあたり約 480ms 掛かるので、HTTP 境界を持つファイルにだけ載せる。読み込まないファイルは、外へ出ようとした時点で `fetch` が宛先を名指しして落ちる（応答は作らない）。
-- **乱数で作る生成物を検査するときは、seed を固定して複数回まわす。**契約から生成したモックの nullable な
-  項目は値と `null` のどちらかを引くので、1 回では選ばれなかった側が検査されない。
-- **`use cache` を持つ module は `next/cache` を差し替える。**`cacheLife` / `cacheTag` は Cache Components を
-  有効にした Next の実行文脈でしか動かず、単体テストにその文脈は無い。差し替えるのは実行文脈であって、
-  検証対象ではない。
-- **同じファイルで描画結果も見るなら、子部品を空の mock で置き換えない。**`vi.mock(path, async (importOriginal) => …)`
-  で本物を包み、`vi.fn(actual.X)` にして渡った props だけを記録する。置き換えると、同じファイルの並びや
-  a11y の検査が中身を失う。
-- **「実 API はこの順でしか返さない」を理由に、mock が到達できる応答を狭めない。**mock の制御面は
-  **状態へ到達するための口**であって、実システムのライフサイクル方針の実装ではない。被験側が観測
-  するのはその瞬間の状態だけで、そこへ至った操作列は観測しない。狭めてよいのは不正・矛盾した状態
-  だけである（[0113](adr/0113-development-access-surface.md)）。
+- **Stop HTTP with MSW.** Do not substitute a hand-written `fetch` stub or a module mock of an adapter (ADR 0090 limits the integration subject to the HTTP boundary, so if the boundary's position moves from test to test, what is being verified is not fixed).
+- **Use contract-driven handlers for mocks.** Keeping separate test-only stubs lets the tests alone keep passing in the old shape even when the contract changes.
+- **Only files that import `vitest.setup.msw.ts` start MSW.** Interception costs about 480ms per file, so load it only in files that have an HTTP boundary. In a file that does not load it, `fetch` fails at the moment it tries to go outside, naming the destination (no response is produced).
+- **When checking generated artifacts made with random values, fix the seed and run several times.** A nullable field of a mock generated from the contract
+  draws either a value or `null`, so a single run leaves the side that was not chosen unchecked.
+- **Replace `next/cache` in a module that has `use cache`.** `cacheLife` / `cacheTag` work only in the execution context of Next with Cache Components
+  enabled, and unit tests do not have that context. What is replaced is the execution context, not
+  the subject under verification.
+- **If the same file also checks the rendered result, do not replace child components with empty mocks.** Wrap the real thing with `vi.mock(path, async (importOriginal) => …)`,
+  make it `vi.fn(actual.X)`, and record only the props passed. Replacing it strips the content from the same file's ordering and
+  a11y checks.
+- **Do not narrow the responses a mock can reach on the grounds that "the real API only returns them in this order".** A mock's control surface is
+  **an endpoint for reaching states**, not an implementation of the real system's lifecycle policy. What the side under test observes
+  is only the state at that moment, not the sequence of operations that led there. Only invalid or contradictory states
+  may be narrowed out ([0113](adr/0113-development-access-surface.md)).
 
-## 何をどこに置くか
+## What goes where
 
-- **テストは対象の隣に置く**（co-location）。`__tests__/` に集約しない。
-- **残る側の部品が約束する性質は、その部品自身のテストで固定する。** 同じ性質をサンプル画面のテストが見ていても足りない —— サンプルを破棄した木では、その性質を見るものが無くなる。
-- **最上位の `describe` は export された記号の名前**そのもの。1 対象 1 ファイル。
-- **観点の束ねはコメント区切り**。入れ子 `describe` は共有 setup を持つ文脈にだけ使う。
-- **軸は対象が何を返すかで変わる**（ADR 0090）。
-  - **値を返す対象**（純粋関数 / adapter / store / Route Handler / Server Action）は `// ----- 正常系 -----` / `// ----- 異常系 -----`。振り分けはハッピーパスの内外で、表現手段（throw か、エラー状態を返すか）では切らない。`redirect()` で終わる Server Action はその典型で、成立したときに throw する —— 本物は戻らないので `next/navigation` の差し替えも throw させ、行き先はその例外から取り出す。正常系に置く。
-  - **描画を返す対象**（component / 描画の hook / `page-content`）は**分けない**。長くて束ねたいときの軸は[実装規約「状態表示と待機」](rules.md#states)が各画面に求める 4 状態（loading / empty / error / success）。**上流の失敗も状態の 1 つ**であって、弾く入力ではない。
-- 分けるのは可読性のためなので、迷うケースはどちらに置くと読みやすいかで決めてよい。
+- **Put a test next to its subject** (co-location). Do not gather them in `__tests__/`.
+- **A property promised by a component that remains is pinned by that component's own tests.** It is not enough that a sample screen's test checks the same property — in a tree with the sample purged, nothing would check that property anymore.
+- **The outermost `describe` is the exported symbol's name** itself. One file per subject.
+- **Group perspectives with comment dividers**. Use nested `describe` only for contexts with shared setup.
+- **The axis changes with what the subject returns** (ADR 0090).
+  - **Subjects that return values** (pure functions / adapters / stores / Route Handlers / Server Actions) use `// ----- 正常系 -----` / `// ----- 異常系 -----`. The split is inside versus outside the happy path, not the means of expression (throwing or returning an error state). A Server Action that ends in `redirect()` is the typical case: it throws when it succeeds — the real one does not return, so the replacement of `next/navigation` throws too, and the destination is taken from that exception. It goes under `正常系`.
+  - **Subjects that return rendering** (components / rendering hooks / `page-content`) are **not split**. When it is long and you want to group, the axis is the four states (loading / empty / error / success) that [docs/rules.md](rules.md#states) requires of every screen. **An upstream failure is also one of the states**, not an input to reject.
+- The split exists for readability, so a borderline case may be placed wherever it reads better.
 
-## レビューで見る順
+## Review Order
 
-1. **対象のシンボルにテストが 1 つも無いものはないか**（カバレッジでは見えない。実行はされていても、名前を持つテストが無い）
-2. **分岐網羅** — 反転させても落ちない分岐はないか
-3. **意味網羅** — その分岐に固有の結果を見ているか
-4. **アサーションの強さ**と **Testing Library の原則**
-5. **構造準拠**（ADR 0090 の形）
+1. **Is there any subject symbol with no test at all** (invisible to coverage: it is executed, but no test bears its name)
+2. **Branch coverage** — is there a branch that does not fail when inverted
+3. **Meaning coverage** — does it check the result specific to that branch
+4. **Assertion strength** and **the Testing Library principles**
+5. **Structural conformance** (the shape in ADR 0090)
 
-1 と 2 は対象のソースから始めないと見えない。テストファイルだけを読むと、そこに在るテストの品質しか判定できない。
+1 and 2 cannot be seen without starting from the subject's source. Reading only the test files can judge only the quality of the tests that are there.

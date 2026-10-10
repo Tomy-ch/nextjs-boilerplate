@@ -188,7 +188,7 @@ function finalize(request: NextRequest, response: NextResponse, url: URL): NextR
  * 同意に紐づく計測 id を、いまの同意状態へ合わせる。
  *
  * @remarks
- * いつ配り、いつ消すかは `docs/spec/route/layout.function.md`「計測 id は同意の裏でだけ配る」が
+ * いつ配り、いつ消すかは `docs/spec/route/layout.function.md#the-measurement-id-is-issued-only-behind-consent`が
  * 持ちます。ここに書くのは、この関数でしか読めない実装上の判断だけです。
  *
  * `httpOnly` を付けません。読むのはブラウザ側で動く計測であり、サーバは配るだけだからです。

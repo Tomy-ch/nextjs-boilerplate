@@ -68,7 +68,7 @@ describe("parseSearchParams", () => {
 
 対応は **`scripts/one-to-one.gate.test.ts` が機械判定する**。「export に `describe` が無い」と「`describe` に対応する export が無い」の両方向を見る。片方向だけだと、export を消してテストだけ残った状態や、テストを別名へ改名した状態が検査をすり抜ける。
 
-本 ADR は判断を持ち、**書くとき・レビューするときの行動規約は [テスト規約](../testing-conventions.md)** が持つ。アサーションの強さ、Testing Library の原則、jsdom に無い API の扱いはそちらにある。
+本 ADR は判断を持ち、**書くとき・レビューするときの行動規約は [テスト規約](../testing-conventions.ja.md)** が持つ。アサーションの強さ、Testing Library の原則、jsdom に無い API の扱いはそちらにある。
 
 ### レイヤー別責務
 

@@ -1,0 +1,324 @@
+> **このファイルは [`setup-repository.md`](setup-repository.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `setup-repository.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `setup-repository.md` だけです。このファイルは人間が読むための翻訳です。
+
+# セットアップ手順
+
+このボイラープレートを自分のプロジェクトとして立ち上げるまでの手順。**上から順に実行する**。
+順序に依存する箇所は各セクションに明示してある。
+
+各手順の中身は、それを所有するドキュメントが正である。ここが持つのは**順序と、人手が要る箇所**だけ。
+
+## 0. 前提
+
+| | |
+| --- | --- |
+| [mise](https://mise.jdx.dev) | ツール / ランタイムのバージョン管理。**シェルで activate しておくこと**（[0003](../adr/0003-version-manager.ja.md)） |
+| GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
+| Docker | 手順 8 でのみ使う。ベースライン画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.md)） |
+
+## 1. 手元を用意する
+
+```bash
+git clone --recurse-submodules <自分のリポジトリ>   # VRT のベースライン画像がサブモジュール
+cd <リポジトリ>
+
+make install-tools
+pnpm install
+pnpm exec lefthook install   # 自動では入らない。clone 後に 1 度だけ
+```
+
+**`lefthook install` はベースライン画像の追随にも要る。** git はブランチを移っても submodule の実体を
+動かさないため、撮り直しで指し先が進むと実体が取り残され、`git status` に `baseline/images` が
+出続ける。**その汚れを commit すると間違った指し先が載る。** hook が移動と pull のたびに実体を
+指し先へ合わせるので、入れておけば手で直すことはない（[0151](../adr/0151-git-hooks.ja.md)）。
+
+入れ忘れても壊れはしない。リリースブランチを切る口はこの汚れだけを見分け、合わせ直す手を
+名指しで案内する（`scripts/release`）。
+
+## 2. リポジトリを初期化する
+
+```bash
+make setup-repo
+```
+
+**破壊的**。既存タグをローカルと `origin` の両方から全削除し、`v0.0.0` を打ち直す。
+`develop` / `staging` / `production` を作り、デフォルトブランチ・ルールセット・ラベル、および
+ドキュメントサイトの配信設定（Pages を Actions 配信にし、`production` からの配信を許可する）を
+入れる。中身は [`.makefiles/README.md`](../../.makefiles/README.md) を参照。
+
+**配信の許可は、忘れると原因が読めない形で落ちる。** `github-pages` environment が配信元ブランチを
+許可していないと、`docs-deploy` は job としては起動するが step を 1 つも実行せずに失敗する。
+ログに理由が出ないため、`docs-build` が緑であることと合わせて「組み上がっているのに公開されない」
+状態になる。配信元を `production` 以外にするなら、`PAGES_DELIVERY_BRANCH` と
+[`deploy-docs.yaml`](../../.github/workflows/deploy-docs.yaml) の push トリガを揃えて変える。
+
+## 3. GitHub の画面で設定する（人手）
+
+`gh` では代行できないものだけ。
+
+1. **Actions を有効にする** — 作成直後は無効になっていることがある
+2. **Dependency graph を有効にする** — Settings → Security → Dependency graph。Dependabot が依存のツリーを
+   読むのに要る（[0110](../adr/0110-security-operations.ja.md)）。有効化そのものに課金は無い
+   （**このリポジトリでは `dependency-review` job もこれを読む**ため、無効のままだと「このリポジトリでは使えない」で落ちる。設定を入れるまでコード側では直せない）
+3. **必須チェックを確認する** — `make setup-repo` が適用したルールセットの `required_status_checks` が、
+   1 度 CI を回した後に実際の context 名と一致しているか見る（[`.github/workflows/README.md`](../../.github/workflows/README.md)）
+
+## 4. 自分のリポジトリの姿にする
+
+```bash
+make setup-replace-repository-reference REPOSITORY=<owner>/<repo>
+make setup-replace-license-copyright COPYRIGHT_HOLDER='<著作権者>'
+make setup-remove-boilerplate-only   # boilerplate-only:line
+```
+
+いずれも `DRY_RUN=1` で書き換えずに予定だけ出せる。
+
+1 つ目はドキュメントポータルへのリンクも差し替える。差し替え先のデフォルトは GitHub Pages の配信先
+（`https://<owner>.github.io/<repo>/`）で、custom domain を当てる場合だけ
+`PORTAL_URL=https://docs.example.com/` を足す。**手順 3 で Pages を有効にしていなくても実行してよい** —
+URL の形は Pages の有効化ではなく `<owner>/<repo>` が決めるため、後から有効にしてもリンクは合う。
+
+3 つ目は `.gitleaksignore` の抑止も落とす。抑止しているのは**このリポジトリの履歴にしか残っていない
+値**で、履歴を引き継がずに作ったツリーでは指す先が無いためである。**履歴ごと複製したツリー（fork、remote を
+外した clone）でここを通したときは**、指紋だけが消えて履歴中の値は残るので、週次の秘密スキャン
+（`make secret-scan-history`）がそれらを未抑止の所見として挙げる。露出が増えたわけではない ——
+抑止が外れただけなので、内容を確かめて `.gitleaksignore` へ書き戻すか、履歴を切り直す。
+
+<!-- boilerplate-only:begin -->
+3 つ目は**この template を配る側にしか意味を持たない記述**を剥がす
+（[0152](../adr/0152-agents-md-policy.ja.md)）。飛ばす選択肢は無い —— テンプレートから作った時点で前提が
+失効しているので、残すと自分に効かない規則に従うことになる。剥がし終えると道具自身も消える。
+<!-- boilerplate-only:end -->
+
+## 5. 資格情報を要するスキャナを残すかを決める
+
+3 つのスキャナが、このリポジトリだけでは供給できないものを要求する。
+
+| 検査 | 要るもの |
+| --- | --- |
+| [`codeql.yaml`](../../.github/workflows/codeql.yaml) | GitHub Advanced Security。public は無料、private は課金 |
+| [`sonarcloud.yaml`](../../.github/workflows/sonarcloud.yaml) | SonarQube Cloud のアカウントと `SONAR_TOKEN` |
+| [`dependency-review.yaml`](../../.github/workflows/dependency-review.yaml) | Dependency graph の有効化（手順 3）。呼ぶ API が無料なのは public のときだけ |
+
+**決めるまでの間、壊れるものは無い。** どれもスキャン前に必要なものが揃っているかを確かめ、無ければ
+自分を飛ばして実行を緑のまま残す —— 資格情報の欠如はスキャン結果ではなくセットアップの未了だからで
+ある。fork からの pull request も同じ経路が覆う（fork にはリポジトリの secret が渡らない）。
+
+### 残す場合
+
+リポジトリへ secret を登録し、ベンダー側に対応するプロジェクトを作る。`sonar-project.properties` の
+`sonar.projectKey` / `sonar.organization` は手順 4 の `make setup-replace-repository-reference` が
+書き換えるので、その手順を飛ばしたときだけ最初のスキャンの前に手で直す（さもないと解析結果が
+テンプレート側のプロジェクトへ送られる）。
+
+### 撤去する場合
+
+```bash
+DRY_RUN=1 make setup-remove-licensed-scanners          # 何も書かず、何もコミットしない
+make setup-remove-licensed-scanners                    # 撤去
+```
+
+**製品ごとに別のコミットへ分ける。** 後からライセンスを得たら `git revert` 1 回で戻せる。作業ツリーは
+クリーンである必要がある。
+
+workflow・`.github/actions-pin.toml` の pin・`.github/egress.yaml` の宛先を始末する。`make
+actions-pin-check` と `make egress-check` はどちらも「どの workflow からも参照されないエントリ」で
+落ちるので、片方だけ残って黙って通ることはない。**`github/codeql-action` の pin は残る** —— 他の 4 つ
+の workflow が `upload-sarif` で使い続けており、参照は宣言ではなく実際の数で判定している。
+
+**宣言した文書の行も落とす。** 一致しなければ撤去は投げて止まるので、消したつもりで消えていない状態は
+残らない。拾い切れていない言及は最後に一覧で出すので、そこは自分で掃く。有効/無効を切り替えるスイッチ
+は無い —— 残すとは残すことであり、設定されたまま無効なスキャナは、誰も読まず誰も保守しないものになる。
+
+## 6. 同梱サンプルを破棄する
+
+```bash
+make setup-remove-sample   # DRY_RUN=1 でプレビュー
+```
+
+題材を持つ画面群と、その題材に固有の契約・モック・破棄の道具そのものを消す。
+破棄後に整形・検査・build・test まで連鎖するので、参照の消し残しはその場で判る。
+
+サンプルを残して使う場合はこの手順を飛ばす。ただし**手順 8 より先に済ませたほうがよい** —
+破棄はサブモジュールの中へ届かないため、逆順にすると題材のベースライン画像を自分の置き場に撮ってしまう。
+
+**破棄の変更は、手順 7 で自分の契約を入れるまで commit しない。** 破棄は題材の契約の宣言も消すため、
+直後の `openapi/sources.yaml` は宣言が 0 本になり、読み取りで拒否される。同じ読み取りを通る
+`make api-gen-check` は commit 時の hook（`openapi/**` を触った commit）と CI の両方で落ちるので、
+破棄だけを先に commit・push することはできない（[`openapi/README.md`](../../openapi/README.md)）。
+
+### 破棄後に自分で書き換えるもの
+
+[`src/model/authz.ts`](../../src/model/authz.ts) の `ROUTE_POLICIES` は、破棄すると `/account`
+（認証だけを求める）と `/admin`（役割まで求める）の 2 件が残る。これは**保護するパスをどこに
+何と宣言するか**を示すための置き場であり、その画面は同梱していない。自分の保護対象へ書き換える
+こと。列挙するのは保護する側で、公開側ではない（理由は `ROUTE_POLICIES` の doc コメントが持つ）。
+
+**求める役割が違う 2 件を残してある。** 認証だけを求める宣言しか無いと、役割が足りない主体を
+弾く経路がどこにも無くなり、その分岐を通す入力を作れなくなる。
+
+判定は前方一致なので、`/` は置けない。すべてのパスに一致し、`/login` 自身も保護対象になって
+リダイレクトが循環する。
+
+`env/.env.local` と `env/.env.ci` の接続先は、破棄すると**どれも実在しない置き場所**になる
+（`APP_API_BASE_URL` / `MEDIA_ORIGIN` / `AUTH_ISSUER` / `AUTH_CLIENT_ID`）。値の意味と、どこまでが
+必須かは [`env/README.md`](../../env/README.md)。`MEDIA_ORIGIN` は画像を 1 枚も置かない間も必須で、
+`next/image` の許可 host と CSP の `img-src` をこの値だけが決める。
+
+**破棄とは別に、供給されているデフォルトそのものを見直す。** ここが挙げるのは破棄が直接壊すものだけで、
+契約・意匠・運用設定を含む全体のインデックスは [ルート README](../../README.md#導入時に見直す既定) にある。
+
+## 7. 自分の契約を入れる
+
+`openapi/sources.yaml` に自分のバックエンドの契約の座標を書き、生成し直す。
+
+```bash
+make api-fetch
+make api-gen
+```
+
+座標の書き方と、`name` を変えたときに一緒に動く綴りは
+[`openapi/README.md`](../../openapi/README.md#boilerplate-導入時の変更点) が持つ。
+
+**ベースライン画像を撮る前に済ませる。** 画面単位の撮影は契約から生成したモックの応答でレンダリングするため、契約より先に撮ると、入れ替えた時点で全数を撮り直すことになる。
+
+## 8. VRT のベースライン画像の置き場を用意する
+
+### 8-1. 置き場を作る
+
+```bash
+make setup-baseline-store
+```
+
+3 つ聞かれる。デフォルトでよければ Enter。
+
+```text
+既存のリポジトリへ配置しますか? 空欄なら新規作成 [<org>/<repo>]:   ← 空欄で新規作成
+作成するリポジトリ名 [<現在のリポジトリ名>-baseline-images]:
+公開範囲 (public / private / internal) [private]:
+```
+
+組織で新規作成が権限で縛られている場合は、最初の問いに既存の `<org>/<repo>` を入れる。
+
+**公開範囲はデフォルトで `private`。** ベースライン画像は画面の見た目そのものなので、公開側へ倒れるデフォルトは取らない。
+ただし**置き場を非公開にすると、外部（fork）からの PR で `vrt` が落ちる** — fork の PR には
+secrets が渡らず、ベースライン画像を読む App トークンを取れないため。外部の PR を受けるリポジトリは `public`。
+
+終わったら配線をコミットする。
+
+```bash
+git add .gitmodules baseline/images
+git commit -m "Build: ベースライン画像の置き場を配線する"
+```
+
+> **置き場にルールセットを掛けないこと。** 撮り直しは GitHub App の push で行うため、
+> 保護を掛けると更新経路そのものを塞ぐ。
+
+### 8-2. GitHub App を作る（人手）
+
+自動化できない。REST に作成のエンドポイントが無く、秘密鍵は生成時に一度しか表示されない。
+
+<https://github.com/settings/apps/new> で作る。
+
+| 項目 | 値 |
+| --- | --- |
+| GitHub App name | `<現在のリポジトリ名>-baseline-images-app`（**GitHub 全体で一意**） |
+| Description | `<現在のリポジトリ名>-baseline-images の visual regression test 用` |
+| Homepage URL | `https://github.com/<owner>/<現在のリポジトリ名>` |
+| Webhook | **Active のチェックを外す** |
+| Repository permissions → Contents | **Read and write** |
+| Repository permissions → Pull requests | **Read and write** |
+| その他の permissions | No access のまま |
+| Where can this GitHub App be installed? | **Only on this account** |
+
+`web` や `frontend` のようなありふれたリポジトリ名では既に取られていることがあるので、その場合は
+owner 名などを足す。名前は後から変えられる（slug も追随するが、変えたら `make setup-baseline-app` を
+叩き直すこと）。
+
+作成後、続けて 3 つ。作成直後に着地するのが **General** ページなので、上から順に済ませられる。
+
+1. **App ID を控える** — General ページの上部に数字で出ている。次の 8-3 で貼り付ける
+2. **General → Private keys → Generate a private key** → `.pem` がダウンロードされる
+3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
+
+`Pull requests` が要るのは、保護されたブランチ（`release/**` / `hotfix/**` と各環境のブランチ）では
+撮り直しがポインタを直接 push できず、PR で入れるためである（[`vrt/README.md`](../../vrt/README.md)）。
+
+> **後から権限を足したときは、installation 側で承認するまで効かない。** App の設定を変えただけでは
+> 足りず、`https://github.com/settings/installations/<id>` に出る "Review request" を通す。承認して
+> いないと、撮り直しはトークンの発行そのものが
+> `422 The permissions requested are not granted to this installation.` で落ちる。
+
+### 8-3. App を登録する
+
+```bash
+make setup-baseline-app
+```
+
+```text
+App ID（General ページの App ID）:           ← 8-2 で控えた数字
+
+  App ID : ...
+  登録先 : <owner>/<repo>
+
+この内容で登録しますか (y/N) [N]:            ← y
+
+秘密鍵 (.pem) のパス:                        ← 端末へ .pem をドラッグしてもよい
+```
+
+`App ID: 2168345` のようにラベルごと貼っても通る。
+
+**登録が済んだら `.pem` を消すこと。** ブラウザが落とした実体がそこにある。
+
+```bash
+gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
+```
+
+### 8-4. 最初のベースライン画像を撮る
+
+Docker が要る。**2 つある。**置き場は story 単位と画面単位で共有し、区画だけが分かれる
+（[`baseline/README.md`](../../baseline/README.md)）。片方だけ撮ると、もう片方は「ベースライン画像が無い」で
+全数落ちる。全数を撮るので時間がかかる。
+
+```bash
+make vrt-retake   # story を撮って置き場へ送る
+make e2e-retake   # 画面を撮って置き場へ送る
+git commit -am "Test: ベースライン画像を撮る"
+```
+
+送った結果が出る。
+
+```text
+before=<置き場の直前のコミット>
+after=<撮影したコミット>
+count=<動いた枚数>
+```
+
+以降の運用（撮り直し・承認・掃除）は [`vrt/README.md`](../../vrt/README.md) が正。画面単位の側は
+[`e2e/README.md`](../../e2e/README.md) を見る。
+
+## 9. 認証済みの画面を手元で見る
+
+手元では `/dev/session` が開いており、**IdP のリダイレクトを通さずに session を発行できる**。
+主体と役割を決めて「この内容で入る」を押すと、指定した画面へ着地する。このエンドポイントは開発と CI の手元の
+宛先でだけ開き、production build には route ごと入らない。
+
+実物のバックエンドへ繋いでいるときは、**「API 接続モード」を入れる**とアクセストークンもこの画面が
+取る。「IdP の接続先」は設定（`AUTH_ISSUER`）を初期値に置いているが書き換えられるので、**いま叩いて
+いる API と同じ組の IdP** を指すこと。エンドポイントを分けて並行して立てていると、設定の値とずれる。
+
+トークンの取り方は
+[`src/adapters/server/auth/development-token.ts`](../../src/adapters/server/auth/development-token.ts)
+が 1 か所で持つ。**別の IdP へ移るなら、書き換えるのはこのファイルだけ**でよい。通る IdP の性質と
+詳しい使い方は [`src/features/dev-session/README.md`](../../src/features/dev-session/README.ja.md)。
+
+## 確認
+
+```bash
+pnpm lint:ci && pnpm typecheck && APP_ENV=local pnpm build && pnpm test
+```
+
+CI 側は PR を 1 本立てれば全ジョブが回る。落ちたジョブの引き先は
+[`.github/workflows/README.md`](../../.github/workflows/README.md)、詰まったときは
+[`.claude/skills/repo-ops`](../../.claude/skills/repo-ops/SKILL.ja.md)。

@@ -22,8 +22,8 @@
 
 | Route | 仕様書 | 認証 |
 | --- | --- | --- |
-| `/purchases` | [`screen`](../../../docs/spec/route/shop/purchases/page.screen.md) / [`function`](../../../docs/spec/route/shop/purchases/page.function.md) | 必要 |
-| `/purchases/[code]` | [`screen`](<../../../docs/spec/route/shop/purchases/[code]/page.screen.md>) / [`function`](<../../../docs/spec/route/shop/purchases/[code]/page.function.md>) | 必要 |
+| `/purchases` | [`screen`](../../../docs/spec/route/shop/purchases/page.screen.ja.md) / [`function`](../../../docs/spec/route/shop/purchases/page.function.ja.md) | 必要 |
+| `/purchases/[code]` | [`screen`](<../../../docs/spec/route/shop/purchases/[code]/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/shop/purchases/[code]/page.function.ja.md>) | 必要 |
 
 使う operationId。
 

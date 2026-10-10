@@ -1,82 +1,84 @@
-# `/admin/products/new` 商品の新規作成（機能要件）
+# `/admin/products/new` Creating a Product (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 認可・器の約束は [`../../layout.function.md`](../../layout.function.md) が持つ。
+> The promises on authorization and the layout shell are held by [`../../layout.function.md`](../../layout.function.md).
 
-商品を 1 件作る。
+Creates one product.
 
-## 主体と所有
+## Actor and Ownership
 
-**管理の役割が要る。** 到達できるかどうかは外枠が決めるが、**送信の口も自分で確かめる**。送信は
-画面とは別の入口であり、画面を経由せずに呼べる。入口ごとに閉じていなければ、閉じたことにならない。
+**Requires the admin role.** The outer frame decides whether the screen can be reached, but **the submission endpoint checks for
+itself too**. The submission is an entry point separate from the screen and can be called without going through the screen. Unless
+each entry point is closed, nothing is closed.
 
-**業務としての妥当性はバックエンドが持つ。** この画面が確かめるのは形（空欄か・数として読めるか・
-長さが上限に収まるか）までで、価格として妥当かも、その分類が実在するかも判定しない
-（[0070](../../../../../adr/0070-backend-role-separation.md)）。
+**The backend owns business validity.** This screen checks only shape (empty or not, readable as a number, length within the
+limit); it judges neither whether the price is valid as a price nor whether the category exists
+([0070](../../../../../adr/0070-backend-role-separation.md)).
 
-## 送るもの
+## What Is Sent
 
-| 項目 | 必須 | 備考 |
+| Field | Required | Notes |
 | --- | --- | --- |
-| 商品名 | ○ | 上限は契約が持つ |
-| 価格 | ○ | 十進の文字列のまま送る。数へ変換しない |
-| 在庫数 | ○ | 登録した時点の在庫。以降の増減は在庫の補充が持つ |
-| 在庫警告の閾値 | — | 空欄なら閾値を持たない商品として作る |
-| 分類 | ○ | 送るのは識別子。絞り込みが使うコードとは別 |
-| 商品説明 | — | 書式付き。空欄なら説明を持たない |
-| 商品画像 | — | 無くても作れる |
-| 状態 | ○ | 在庫・販売の状態。公開の可否とは別の軸 |
-| 公開日時 | — | 空欄なら未公開として作る |
+| Product name | ○ | The contract holds the limit |
+| Price | ○ | Sent as a decimal string. Not converted to a number |
+| Stock quantity | ○ | Stock at registration. Later changes belong to restocking |
+| Low-stock warning threshold | — | If empty, the product is created without a threshold |
+| Category | ○ | What is sent is the identifier. Distinct from the code filtering uses |
+| Product description | — | Formatted. If empty, the product has no description |
+| Product images | — | It can be created without them |
+| Status | ○ | Stock and sales status. A separate axis from whether it is published |
+| Publication date and time | — | If empty, it is created as unpublished |
 
-**価格を数へ変換しない。** 十進の文字列のまま運ぶ。数として扱うと丸めが入り、送る前に精度が落ちる。
+**Price is not converted to a number.** It is carried as a decimal string. Treating it as a number introduces rounding and loses
+precision before it is sent.
 
-## 入力の判定は 1 か所が持つ
+## One place owns input validation
 
-**同じ判定を、送る前と受け取った後の両方が通る。** 送る前に確かめるのは、往復して初めて「入って
-いない」と言われるより、その場で判る方が直しやすいためである。受け取った後にも確かめるのは、
-送る前の判定が送信者に差し替えられるためである。
+**The same validation runs both before sending and after receiving.** It is checked before sending because learning it on the spot
+is easier to fix than being told "missing" only after a round trip. It is checked after receiving because the sender can replace
+the pre-send check.
 
-**判定と文言は 1 か所が持つ。** 両側へ書き写すと、同じ誤りに 2 通りの言い方が生まれ、片方だけを
-直せる状態になる。
+**One place owns both the validation and the messages.** Copying them to both sides creates two ways of saying the same error,
+and a state where only one of them can be fixed.
 
-## 画像は先に送る
+## Images are sent first
 
-**画像は選んだ時点で送り、商品の送信には保存済みの識別子だけが載る。** 大きな本文が商品の送信に
-混ざらず、1 枚が失敗しても他の枚と入力済みの項目が残る。
+**Images are sent when chosen, and only their saved identifiers ride on the product submission.** Large bodies do not mix into the
+product submission, and if one image fails, the others and the fields already entered remain.
 
-**受け付ける大きさと形式は、送る前と受け取った後の両方で確かめる。** 中継の経路では、署名付き
-URL が担保していた層が無い（[0075](../../../../../adr/0075-file-upload-seam.md)）。宣言された形式は
-送信者が付けられる値なので、それだけを根拠にしない。
+**The accepted size and format are checked both before sending and after receiving.** On the relay path there is no layer that the
+signed URL used to guarantee ([0075](../../../../../adr/0075-file-upload-seam.md)). The declared format is a value the sender can
+set, so it is not relied on alone.
 
-**上限は配備先が要求本体に課す上限より内側に取る。** 外側に置いた上限は、配備先が先に打ち切る
-ため効かない。値は設定が持つ。
+**The limit is set inside the limit the deployment target imposes on request bodies.** A limit set outside it has no effect,
+because the deployment target cuts the request off first. The value is held by configuration.
 
-**表示順は並びそのものが持つ。** 番号を別に持つと、動かしたときに並びと番号のどちらが正かが
-決まらない。
+**The display order is held by the sequence itself.** Holding a separate number leaves it undecided, after a move, whether the
+sequence or the number is right.
 
-## 送信
+## Submission
 
-**送信は最後に 1 回。** 表示していない段の入力も同じ要求に載る。
+**One submission at the end.** Input in steps not currently shown rides on the same request.
 
-**入力欄に「必須」の印は付けるが、ブラウザに送信を止めさせない。** 隠れている段の空欄はブラウザが
-focus できず、送信が理由も示さずに止まる。空欄の指摘は画面が出す。
+**Input fields carry the "必須" (required) marker, but the browser is not allowed to block submission.** The browser cannot focus an
+empty field in a hidden step, and submission stops without giving a reason. The screen points out empty fields.
 
-**画像を送り終わるまで送信しない。** 途中で送ると、上げたつもりの画像を持たない商品ができる。
+**Do not submit until the images finish uploading.** Submitting midway creates a product without images the user thought were uploaded.
 
-## 成立したら一覧へ送る
+## On success, go to the list
 
-**作成は取り消せない。** 成立した直後に同じ空のフォームへ留まると、続けて押したときに同じ商品を
-もう 1 件作れてしまう。
+**Creation cannot be undone.** Staying on the same empty form right after success lets a repeated press create the same product a
+second time.
 
-**成立したら、商品を読む取得を取り直させる。** 送った先の一覧に、たった今作った商品が並んでいない
-状態を見せない。
+**On success, the fetch that reads products is made to refetch.** The list the user is sent to never shows a state without the
+product just created.
 
-## 失敗
+## Failures
 
-| 何が起きたか | 何を出すか |
+| What happened | What is shown |
 | --- | --- |
-| 形の上での誤り | 項目ごとの文言と、その一覧 |
-| 役割が足りない・通信が途切れた | 送信そのものが通らなかったことだけ |
+| A shape error | Per-field messages, and a list of them |
+| Insufficient role / connection dropped | Only that the submission itself did not go through |
 
-**項目ごとの誤りがあるときは、全体に対する文言を出さない。** 同じ指摘が 2 か所に並ぶ。
+**When there are per-field errors, no message about the whole is shown.** The same point would appear in two places.

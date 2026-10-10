@@ -134,7 +134,7 @@ no-mirror list, offer the same chain to create it.
 
 ## Step 7. Format the written files
 
-After writing the canonical README (and after `canonicalize-doc` has produced any translation), run `pnpm exec markdownlint-cli2 --no-globs --fix <paths you wrote>` on the files this skill produced. Leave `pnpm lint:md` to the pre-commit hook and CI (AGENTS.md: do not pre-run the gates).
+After writing the canonical README (and after `canonicalize-doc` has produced any translation), run `pnpm exec markdownlint-cli2 --no-globs --fix <paths you wrote>` on the files this skill produced. Leave `pnpm lint:md` to the pre-commit hook and CI (`docs/playbook.md`: Do not pre-run the gates).
 
 ## Step 8. Final verification
 

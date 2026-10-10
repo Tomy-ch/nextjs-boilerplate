@@ -1,104 +1,104 @@
-# `/admin/shipments` 発送（機能要件）
+# `/admin/shipments` Shipping (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 
-## 主体と役割
+## Actor and Role
 
-**管理の役割を要する。** 入れるかどうかの確定認可は器（`app/admin/layout.tsx`）が持ち、発送の送信は
-受け取った時点でもう一度役割を確かめる。送信は画面を経由せずに叩けるため、そこが最後の砦になる
-（[0079](../../../../adr/0079-auth-frontend-seam.md)）。
+**Requires the admin role.** The definitive authorization of whether one can enter is held by the layout shell
+(`app/admin/layout.tsx`), and the shipping submission checks the role again on receipt. The submission can be called without going
+through the screen, so it is the last line of defense ([0079](../../../../adr/0079-auth-frontend-seam.md)).
 
-## 取得
+## Fetching
 
-2 系統を並行で取る。互いに依存しないので、順に待つと遅いほうの後ろに速いほうが並ぶだけになる。
+Two sources are fetched in parallel. They do not depend on each other, so waiting in sequence would only queue the faster one behind
+the slower one.
 
-| 区画 | 取得 | 母集団 |
+| Region | Fetch | Population |
 | --- | --- | --- |
-| 発送待ちの便 | `GET /v1/purchases/shippable` | 支払いを終えてまだ発送していない購入 |
-| 配達の確認待ち | `GET /v1/purchases`（`statusCodes=8` + `includeOtherUsers=true`） | 発送済みでまだ配達済みになっていない購入 |
+| Shipments awaiting dispatch | `GET /v1/purchases/shippable` | Purchases that are paid and not yet shipped |
+| Awaiting delivery confirmation | `GET /v1/purchases` (`statusCodes=8` + `includeOtherUsers=true`) | Purchases that are shipped and not yet delivered |
 
-**片方だけの失敗を許さない。** どちらも同じ担当者が続けて使うもので、片方だけが出ている画面は
-「何かが壊れている」以上のことを伝えない。
+**A failure of only one is not tolerated.** Both are used in succession by the same person in charge, and a screen showing only one
+conveys nothing beyond "something is broken".
 
-`GET /v1/purchases/shippable` の側。発送可能とは、支払いを終えてまだ発送していない状態。
+The `GET /v1/purchases/shippable` side. Shippable means paid and not yet shipped.
 
-**組分けは契約が行う。** 同じ購入者宛ての注文が 1 つの便になり、便の中は注文日時の古い順、便同士は
-その便の最も古い注文の順で並ぶ。画面は並べ直さない。並べ直すと、「まとめて発送してよい単位」という
-契約の判断に画面の判断が重なる。
+**The contract does the grouping.** Orders to the same buyer form one shipment; within a shipment, orders are sorted oldest order
+date first, and shipments are sorted by their oldest order. The screen does not re-sort. Re-sorting would layer the screen's judgment
+on top of the contract's judgment of "the unit that may be shipped together".
 
-**読み出す件数は契約の既定に委ねる。** まとめ判定はその範囲の中で行われるため、件数を画面が決めると
-便の切れ目まで画面が決めることになる。範囲の外にある同じ購入者の注文は別の便になる。
+**The number of items read is left to the contract's default.** Grouping happens within that range, so if the screen decided the
+count, it would also decide where shipments break. Orders from the same buyer outside the range become a separate shipment.
 
-**ページ送りが無い。** 契約が持たない。
+**There is no pagination.** The contract has none.
 
-**購入者は識別子しか届かない。** 契約が呼び名を載せない。
+**Only the buyer's identifier arrives.** The contract does not include a name.
 
-### 配達の確認待ち
+### Awaiting Delivery Confirmation
 
-`GET /v1/purchases` に `includeOtherUsers=true` を添えて、他の利用者の購入も母集団に含める。指定できる
-のは管理の役割を持つ主体だけで、無ければ契約が 403 で返す。
+`GET /v1/purchases` is called with `includeOtherUsers=true`, so other users' purchases are included in the population. Only actors
+with the admin role can specify it; otherwise the contract returns 403.
 
-**まとめる軸が無い。** 契約の配達確認は購入 1 件ずつで、届いたかどうかも注文ごとに分かれる。発送の
-ような便の組は作らない。
+**There is no axis to group by.** The contract's delivery confirmation is per purchase, and whether something arrived also differs
+per order. No shipment groups like those for dispatch are built.
 
-**ページ送りを持たない。** 持たせるなら増分取得の口が要る（[0073](../../../../adr/0073-pagination-fetch-boundary.md)）。
-上限に達しているときは、確認を進めれば残りが現れる。
+**No pagination.** Adding it would need an incremental fetch endpoint ([0073](../../../../adr/0073-pagination-fetch-boundary.md)).
+When the limit is reached, the rest appear as confirmations proceed.
 
-## 発送
+## Dispatch
 
-`PATCH /v1/purchases/{purchaseCode}/ship`。支払い済みからのみ通り、二重の発送は競合になる。
+`PATCH /v1/purchases/{purchaseCode}/ship`. It goes through only from paid, and shipping twice is a conflict.
 
-**1 件ずつ順に送る。** 契約の発送が購入 1 件ずつで、まとめて指示する口が無い。並行に送らないのは、
-途中で拒まれたときにどこまで通ったのかを数えられなくするため。
+**Sent one at a time, in order.** The contract's shipping is per purchase, and there is no endpoint that instructs a batch. They are
+not sent in parallel because that would make it impossible to count how far it got when rejected midway.
 
-**1 件ずつの発送も、便をまとめた発送も、同じ送信で受ける。** まとめる単位を送信の形の違いで表すと、
-受け取る側が 2 通りになる。
+**Shipping one order and shipping a whole shipment are received by the same submission.** Expressing the grouping unit as a
+difference in submission shape would give the receiving side two forms.
 
-### 途中で拒まれたとき
+### When Rejected Midway
 
-| 拒まれ方 | 扱い |
+| How it is rejected | Handling |
 | --- | --- |
-| いまの状況では通らない（競合） | 数えて先へ進む |
-| それ以外（役割が無い・接続先が落ちている等） | そこで止める |
+| Cannot go through in the current situation (conflict) | Count it and continue |
+| Anything else (no role, the connection target is down, etc.) | Stop there |
 
-競合で止めると、便の中の 1 件が先に発送済みになっているだけで、通るはずの注文が押し直しのたびに
-1 件ずつしか進まない。それ以外の失敗は次の 1 件でも同じように起きるため、送り続けても数が増える
-だけになる。
+Stopping on a conflict means that merely because one order in a shipment was already shipped, orders that should go through advance
+only one per re-press. Other failures recur the same way on the next order, so continuing to send would only increase the count.
 
-**最後まで送り切ったときは、1 件も通らなかったときだけ失敗にする。** 途中まで通った送信を失敗として
-返すと、通った分の発送がなかったことになる。
+**When everything has been sent to the end, it is a failure only if none went through.** Returning a partially successful
+submission as a failure would make the shipments that went through look as if they never happened.
 
-**途中で打ち切ったときは、打ち切った理由だけを失敗として返す。** 通った件数は伝えない。通った注文は
-取り直した一覧から消えることで現れる（下記）。
+**When cut off midway, only the reason for cutting off is returned as the failure.** The number that went through is not reported.
+Orders that went through show by disappearing from the refetched list (below).
 
-### 1 件でも通ったら取り直す
+### Refetch if even one went through
 
-発送した注文は発送待ちではなくなる。残したままにすると、押せば必ず競合になる操作が並び続ける。
-取り直した一覧に残っているものが、そのまま「まだ発送していない注文」になる。
+A shipped order is no longer awaiting dispatch. Leaving it would keep listing an action that is certain to conflict when pressed.
+What remains in the refetched list is exactly "the orders not yet shipped".
 
-**途中で打ち切ったときも取り直す。** 打ち切りの理由を伝えることと、そこまでに成立した発送を一覧へ
-反映することは別の話で、後者を落とすと発送済みの注文が未発送として並び続ける。
+**Refetch also when cut off midway.** Reporting why it was cut off and reflecting the shipments that succeeded up to then in the list
+are separate matters; dropping the latter keeps shipped orders listed as unshipped.
 
-## 配達の確認
+## Delivery Confirmation
 
-`PATCH /v1/purchases/{purchaseCode}/deliver`。発送済みからのみ通り、二重の確認は競合になる。
+`PATCH /v1/purchases/{purchaseCode}/deliver`. It goes through only from shipped, and confirming twice is a conflict.
 
-**常に 1 件ずつ受ける。** まとめて確認できる形にすると、確かめていないものまで確認済みにする経路が
-できる。送信に複数並べられる形をそもそも作らない。
+**Always received one at a time.** A shape that allows batch confirmation creates a path to marking even unchecked orders as
+confirmed. A submission shape that can list several is not built at all.
 
-**届いたことを確かめるのは店の側。** 契約は配送業者の追跡を持たないため、この操作が根拠にしている
-のは画面の向こうにいる人の確認だけになる。
+**The shop side confirms that something arrived.** The contract has no carrier tracking, so the only basis this action rests on is
+the confirmation of the person on the other side of the screen.
 
-**通ったら取り直す。** 配達済みになった注文は発送済みではなくなる。残したままにすると、押せば必ず
-競合になる操作が並び続ける。
+**Refetch when it goes through.** An order marked delivered is no longer shipped. Leaving it would keep listing an action that is
+certain to conflict when pressed.
 
-## 失敗
+## Failures
 
-取得の失敗は画面全体に及び、分類を問わない汎用の文言と問い合わせ番号、再試行の導線を出す
-（[0080](../../../../adr/0080-error-handling.md)）。発送待ちが 0 件であることは失敗ではない。
+A fetch failure affects the whole screen, showing a generic message regardless of classification, an inquiry number, and a retry
+link ([0080](../../../../adr/0080-error-handling.md)). Zero orders awaiting dispatch is not a failure.
 
-## 関連
+## Related
 
-- 契約 `openapi/api.gen.yaml` の `GET /v1/purchases/shippable` / `GET /v1/purchases` /
-  `PATCH /v1/purchases/{purchaseCode}/ship` / `PATCH /v1/purchases/{purchaseCode}/deliver`
-- 実装 `src/features/admin/shipments/` — [README](../../../../../src/features/admin/shipments/README.md)
+- Contract: `GET /v1/purchases/shippable` / `GET /v1/purchases` /
+  `PATCH /v1/purchases/{purchaseCode}/ship` / `PATCH /v1/purchases/{purchaseCode}/deliver` in `openapi/api.gen.yaml`
+- Implementation: `src/features/admin/shipments/` — [README](../../../../../src/features/admin/shipments/README.md)

@@ -1,93 +1,92 @@
-# `/mypage/inquiry` お問い合わせ（機能要件）
+# `/mypage/inquiry` Inquiries (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements are in [`page.screen.md`](page.screen.md).
 
-## 主体と所有
+## Actor and Ownership
 
-**登録済みの利用者を要する。** 自分の問い合わせだけを読み書きし、パスに他者の識別子を持たない。
-未認証で開くとログインへ送る。認証済みでも利用者として登録していない主体は登録（`/onboarding`）へ
-送り、登録を終えたらこの画面へ戻す。
+**Requires a registered user.** It reads and writes only the user's own inquiry, and the path carries no one else's identifier.
+Opened unauthenticated, it sends the user to login. An actor that is authenticated but not registered as a user is sent to registration (`/onboarding`),
+and returned to this screen after registering.
 
-**問い合わせは利用者ごとに 1 件。** 作成の口は無く、**最初の投稿が問い合わせを作る**。
-状態遷移（close / reopen）も担当も持たない（契約が持たない）。
+**One inquiry per user.** There is no creation endpoint; **the first post creates the inquiry**.
+There are no state transitions (close / reopen) and no assignee (the contract has none).
 
-やり取りの中身はバックエンドが持つ。この画面は並べ方と言い方だけを決める
-（[0070](../../../../../adr/0070-backend-role-separation.md)）。
+The backend owns the content of the conversation. This screen decides only the ordering and the wording
+([0070](../../../../../adr/0070-backend-role-separation.md)).
 
-## 取得
+## Fetching
 
-`GET /v1/inquiries/me/messages` の 1 系統だけ。1 ページぶんを位置の昇順で取る。
+A single line: `GET /v1/inquiries/me/messages`. One page is taken in ascending order of position.
 
-**応答が返す購読の開始位置を、そのまま購読へ渡す。** 応答はその位置以下だけを含むため、取得と
-購読の間に追加された分が抜けない。位置を画面の側で組み立てない。
+**The subscription start position the response returns is passed to the subscription as is.** The response contains only positions up to it, so
+anything added between fetching and subscribing is not missed. The position is not assembled on the screen side.
 
-まだ問い合わせを持たない主体には、空のやり取りと開始位置 `0` が成功として返る。
+An actor with no inquiry yet gets an empty conversation and start position `0` as a success.
 
-**古いやり取りを遡る導線は持たない。** 契約は続きの位置を返すが、この画面は使わない。
+**There is no link for going back through older messages.** The contract returns the next position, but this screen does not use it.
 
-## 購読
+## Subscription
 
-**ブラウザがバックエンドの stream へ直接繋ぐ**（[0074](../../../../../adr/0074-runtime-communication-seam.md)）。
+**The browser connects directly to the backend's stream** ([0074](../../../../../adr/0074-runtime-communication-seam.md)).
 
-| 段 | 何が起きるか |
+| Stage | What happens |
 | --- | --- |
-| 発券 | 同一オリジンの Route Handler が中継し、繋ぎ先の URL を返す |
-| 接続 | 取得が返した位置より後ろの event が届く |
-| 整列 | 短い時間窓で溜め、位置の昇順へ直してから画面へ渡す |
-| 畳み込み | 届いた 1 通を並びへ足す。同じ識別子は 1 件に畳む |
+| Ticket issuance | A same-origin Route Handler relays it and returns the URL to connect to |
+| Connection | Events after the position the fetch returned arrive |
+| Ordering | Buffered over a short time window and put back in ascending order of position before being handed to the screen |
+| Folding | Each arriving message is added to the list. The same identifier is folded into one entry |
 
-**まだ 1 通も無い利用者では購読を始めない。** 購読する対象が存在しないため、発券の口も叩かない。
+**No subscription starts for a user with no messages yet.** There is nothing to subscribe to, so the issuance endpoint is not called either.
 
-**歯抜けも到達順の乱れも正常。** 穴が埋まるまで待つ判断は持たない。窓を越えて遅れた event が
-届いたら、その位置へ挿し込まずに**正本を取り直し**、取り直した位置で購読を張り直す。
+**Gaps and out-of-order arrival are both normal.** There is no decision to wait until a gap fills. When an event arrives later than the window,
+it is not inserted at its position; instead **the authoritative copy is refetched**, and the subscription is re-established at the refetched position.
 
-**張り直しは自前で行う。** 5xx と網の断だけが対象で、session 切れ・権限喪失・購読する対象が
-無いことは打ち切る（張り直しても同じ経路を辿る）。画面が見えていない間は張り直さない。
+**Reconnection is done in-house.** Only 5xx and network drops are covered; session expiry, loss of permission and having nothing to subscribe to
+end it (reconnecting would take the same path). No reconnection happens while the screen is not visible.
 
-**資格情報は ticket として query に載る。** ticket を含む URL を文言・ログ・span の属性へ載せない。
+**Credentials ride in the query as a ticket.** A URL containing the ticket is not put into text, logs or span attributes.
 
-## 送信
+## Submission
 
-`POST /v1/inquiries/me/messages` を Server Action の往復で送る
-（[0061](../../../../../adr/0061-form-mutation-ux.md)）。
+`POST /v1/inquiries/me/messages` is sent as a Server Action round trip
+([0061](../../../../../adr/0061-form-mutation-ux.md)).
 
-- **本文だけを送る。** 送り手の種別はサーバが決める
-- **冪等キーを必ず付ける。** メッセージは自然キーを持たないため、応答が届かなかっただけの再送が
-  2 通目になる。鍵は成立するまで同じ値を使い、成立した時点で作り直す
-- **送信は購読の経路を通らない。** 送信の失敗は分類として画面へ返る必要があり、購読にはその往復が
-  無い
-- 送った 1 通は、購読ではなく**取り直した正本**に現れる。取り直しの応答が新しい購読の開始位置を
-  返すので、送信と購読の位置が同じ往復で揃う
+- **Only the body is sent.** The server decides the sender type
+- **An idempotency key is always attached.** A message has no natural key, so a resend just because the response did not arrive would become
+  a second message. The key keeps the same value until it succeeds, and is regenerated once it succeeds
+- **Submission does not go through the subscription path.** A submission failure needs to come back to the screen as a classification, and the subscription has no such round
+  trip
+- A sent message appears in **the refetched authoritative copy**, not via the subscription. The refetch response returns a new subscription start position,
+  so the submission and subscription positions line up in the same round trip
 
-**client 側の識別子で突合しない。** 契約の送信はそれを受け取らないため、echo で突き合わせる経路が
-無い。
+**No reconciliation by a client-side identifier.** The contract's submission does not accept one, so there is no path to match it against the echo.
 
-## 本文の扱い
+## Handling the Body
 
-| 規則 | 値 |
+| Rule | Value |
 | --- | --- |
-| 長さ | 契約（`openapi/api.gen.yaml`）が定める範囲。単位は Unicode コードポイント |
-| 前後の空白 | 送る前に落とす。落とした結果が空なら送らない |
+| Length | The range the contract (`openapi/api.gen.yaml`) defines. The unit is Unicode code points |
+| Leading and trailing whitespace | Dropped before sending. If the result is empty, it is not sent |
 
-画面は数を書き写さず、契約由来の値をそのまま入力欄へ渡す。
+The screen does not copy the numbers; it passes the contract-derived values to the input as is.
 
-## 失敗
+## Failures
 
-| 契約の応答 | 画面 |
+| Contract response | Screen |
 | --- | --- |
-| 401 | 入り直しへ落とす（購読は打ち切る） |
-| 409 | 送信の失敗として、送信欄の隣に出す |
-| 422 | 本文の項目エラーとして出す |
-| 5xx | 取得なら error 境界、送信なら送信欄の隣 |
+| 401 | Falls to signing in again (the subscription is ended) |
+| 409 | Shown next to the submission field as a submission failure |
+| 422 | Shown as a field error on the body |
+| 5xx | The error boundary for fetching; next to the submission field for submission |
 
-## 購読を表せない配備
+## Deployments That Cannot Represent a Subscription
 
-**`APP_API_MODE=mock` では購読しません。** 生成したモックは SSE を表せないため、発券の取得口が
-mock の配備では発券そのものを断ります。画面は「受け取る対象が無い」姿で止まり、やり取りの表示と
-送信はそのまま動きます。**止めているのはモックではなくアプリ側**で、断らなければブラウザは実在
-しない接続先へ張り直しを繰り返します。
+**With `APP_API_MODE=mock` there is no subscription.** The generated mock cannot represent SSE, so in a mock deployment the issuance fetch
+endpoint refuses issuance itself. The screen stops in the "nothing to receive" form, while showing the conversation and
+submitting keep working. **What stops it is the app side, not the mock**; without the refusal the browser would keep reconnecting to a connection target
+that does not exist.
 
-## 入口
+## Entry Point
 
-商品一覧の在庫が無い商品に置いた「お問い合わせ」がこの画面へ入る。**どの商品かは引き継がない**
-—— 問い合わせは利用者ごとに 1 件で、商品ごとの筋を持たない。
+The 「お問い合わせ」 ("Contact us") placed on out-of-stock products in the product list leads into this screen. **Which product it was is not carried over**
+— there is one inquiry per user, and it has no per-product thread.

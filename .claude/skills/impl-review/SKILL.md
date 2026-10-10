@@ -141,7 +141,7 @@ audits the change and nothing else").
 
 The lenses must not run the gates — each one that did would recompute the same verdict, once per
 lens, and this repository's authority for a gate verdict is CI anyway (`docs/playbook.md`,
-*ゲートを先回りして回さない*). So **the orchestrator resolves it a single time and hands the result to every finder**:
+*Do not pre-run the gates*). So **the orchestrator resolves it a single time and hands the result to every finder**:
 
 ```bash
 gh pr checks --json name,state,link 2>/dev/null   # the branch's PR, if one is open

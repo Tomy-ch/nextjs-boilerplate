@@ -18,7 +18,7 @@ Accepted
 
 したがって本 ADR は**新カーネルも新しい家も立てない**。既存の家を結線したうえで、なお未確定だった点 —— **長寿命接続の hosting をどこが持つか([0011](0011-no-docker.ja.md) PaaS 制約下の境界判定)** と、**実体化するときに毎回選び直すことになる契約** —— を、設計思想([0010](0010-standards-and-non-lockin.ja.md) 標準準拠・非ロックイン)から確定する。同じ「往復モデルの外側」に見える動的 feature flag / 段階的配信は subject が異なり、[0078](0078-dynamic-feature-flag-seam.ja.md) が持つ。
 
-seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**であり、満たすべき形の通し説明 —— 一連の流れ・順序の扱い・再接続の組み立て・どのレイヤーが何を持つか・踏みやすい点 —— は [docs/design/realtime-delivery.md](../design/realtime-delivery.md) が持つ。
+seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**であり、満たすべき形の通し説明 —— 一連の流れ・順序の扱い・再接続の組み立て・どのレイヤーが何を持つか・踏みやすい点 —— は [docs/design/realtime-delivery.md](../design/realtime-delivery.ja.md) が持つ。
 
 ## 決定
 
@@ -115,7 +115,7 @@ seam は実体を持つ(§補足)。本 ADR が持つのは**選択と却下**�
 
 - **購読 seam は実体を持つ。** 置き場は `src/adapters/client/stream/` で、中身は native `EventSource` + 薄い client である(§手段の優先順位=標準準拠は不変)。native で足りず外部クライアントを採る場合も本体は seam を保持し、[0010](0010-standards-and-non-lockin.ja.md)(vendor-independent 正当化 + adapters/カーネル境界の裏で差替可能・vendor 直参照を feature/component に散らさない)/ [0004](0004-library-management.ja.md)(exact-pin / `pnpm audit`)の枠内で置く。
 - **発券の中継と購読の家は別である。** 発券は同一オリジンの Route Handler(`src/app/api/<資源>/…/stream-ticket/`)が中継し、購読そのものはブラウザが backend へ直接開く。中継が返すのは ticket の生値ではなく**繋ぎ先の URL** で、ブラウザ側で組み立てと取り回しを増やさないためである(URL を文言・ログ・span へ載せない制約は 決定 4 が持つ)。
-- **契約側に属するものは決めない。** 再開 cursor の query パラメータ名 / heartbeat の形式と間隔 / 開発時にイベントを起こす手段 / ticket の TTL は backend の契約が持つ。それらが client 側の設計に何を要求するかは [docs/design/realtime-delivery.md](../design/realtime-delivery.md) が列挙する。
+- **契約側に属するものは決めない。** 再開 cursor の query パラメータ名 / heartbeat の形式と間隔 / 開発時にイベントを起こす手段 / ticket の TTL は backend の契約が持つ。それらが client 側の設計に何を要求するかは [docs/design/realtime-delivery.md](../design/realtime-delivery.ja.md) が列挙する。
 - 本 ADR は exclusion(非同梱宣言 + named seam を併記する)である。polling / 相対時刻更新等の周期 client 取得の rule は本 ADR の対象外([docs/rules.md](../rules.ja.md))。本 ADR は**双方向/ストリーム**の seam のみを扱う(動的配信フラグは [0078](0078-dynamic-feature-flag-seam.ja.md))。
 
 ## 関連 ADR

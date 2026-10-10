@@ -12,7 +12,7 @@ import { ErrorKind } from "@/errors/error-kind";
  *
  * 隣の口（`../route.ts`）が受けるのはこのリポジトリが決めた形の報告で、ここが受けるのは
  * **OTLP そのもの**です。読み替えずに collector へ渡します（口を分ける理由は
- * [README](../../README.md)「telemetry/traces/」）。
+ * [README](../../README.md) の `telemetry/traces/` の行）。
  *
  * ブラウザは collector の endpoint を知りません。送り先はこの口で、資格情報が要る構成でもそれを
  * 載せるのはサーバー側です。
