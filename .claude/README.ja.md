@@ -206,7 +206,7 @@ test -x "$CLAUDE_PROJECT_DIR/<実体>" && "$CLAUDE_PROJECT_DIR/<実体>" --hook 
 
 ## セットアップ
 
-clone 後に 1 度実行する。手順の全体は [README.md](../README.md) のクイックスタートにある。
+clone 後に 1 度実行する。手順の全体は [README.md](../README.ja.md) のクイックスタートにある。
 
 ### 公式プラグイン
 
