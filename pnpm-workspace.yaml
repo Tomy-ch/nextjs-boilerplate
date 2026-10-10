@@ -10,7 +10,11 @@ minimumReleaseAge: 10080
 # 緊急のセキュリティ修正は、影響を受ける特定バージョンだけを一時的に例外化する。(パッケージ名だけの例外は禁止)
 # 項目は `name@version` で書き、直上のコメントに理由と、窓が明ける日（YYYY-MM-DD）を添える。
 # 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
-minimumReleaseAgeExclude: []
+minimumReleaseAgeExclude:
+  # GHSA-8r5x-fm3f-whwj / GHSA-p8wg-vrv2-v86f (critical) の修正版。eslint-plugin-boundaries が引き、
+  # lint の実行時にだけ走る。発行者・タグとの一致・差分・依存面の 4 軸を直接証拠で確かめた
+  # （/supply-chain-triage: 1/12 LOW）。窓が明ける 2026-10-12 に外す。
+  - "handlebars@4.7.10"
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
@@ -127,6 +131,14 @@ overrides:
   # 固定で、最新の 0.23.3 でも同じなので、内側に留まると塞げない。組み合わせの検証は、markdown を
   # 触る変更ごとに走る pnpm lint:md で代える。markdownlint-cli2 が 1.9.0 以上を要求したら撤去する。
   "smol-toml@<1.9.0": ">=1.9.0 <2"
+  # eslint-plugin-boundaries の推移的依存。lint の実行時にしか走らず、配信物には入らない。
+  # GHSA-8r5x-fm3f-whwj / GHSA-p8wg-vrv2-v86f (critical): AST の型の取り違えと own property 検査の
+  # 迂回で、compile が任意の JavaScript を差し込める。GHSA-xw65-4hp5-5hc7 (moderate): 事前コンパイル
+  # 済みテンプレートのインライン埋め込みで同じことが起きる。
+  # **この宣言は上流の宣言範囲の内側から外れる。** eslint-plugin-boundaries は 4.7.9 の完全固定で、
+  # 内側に留まると塞げない。4.7.10 は 4.7.x の patch で、組み合わせの検証は lint:ci が代える。
+  # eslint-plugin-boundaries が 4.7.10 以上を要求したら撤去する。
+  "handlebars@<4.7.10": ">=4.7.10 <5"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
