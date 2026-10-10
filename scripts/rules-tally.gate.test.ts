@@ -48,7 +48,7 @@ describe("実装規約の集計", () => {
   });
 
   it("判定の前置きを持つ行の数だけ判定を読めており、1 件以上ある", () => {
-    expect(tally.judged.length).toBe(countVerdictPrefixedLines(rules));
+    expect(tally.judged).toHaveLength(countVerdictPrefixedLines(rules));
     expect(tally.judged.length).toBeGreaterThanOrEqual(1);
   });
 
