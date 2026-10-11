@@ -78,13 +78,7 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
     "購読を開けるのは `adapters/client/stream` だけです（ADR 0074）。画面は購読 adapter を通してください。",
 };
 
-/**
- * 通貨記号を手で付けた金額の表示を落とす選択子。
- *
- * @remarks
- * 金額は `model/money.ts` の書式関数を通す（ADR 0120）。`$` を手で付けると、基準通貨と locale の
- * 差し替えが届かず、桁区切りも付かない。template literal と JSX のテキストの 2 通りの書き方を見る。
- */
+/** 通貨記号を手で付けた金額の表示を落とす（template literal と JSX テキスト）。 */
 const HAND_FORMATTED_MONEY_SELECTOR = {
   selector:
     "TemplateElement[tail=false][value.raw=/\\$$/], JSXText[value=/\\$\\s*$/] + JSXExpressionContainer",

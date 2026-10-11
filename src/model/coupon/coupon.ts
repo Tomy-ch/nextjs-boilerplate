@@ -4,7 +4,6 @@
  * @remarks
  * 2 つの種別は値の桁が違います。定額の `value` は価格と同じ主単位の decimal 文字列
  * （`"5.00"` が 5 ドル）、定率の `value` は掛ける率（`"0.10"` が 10% 引き）です。
- * 上限は定率だけが持つため、種別ごとに形を分けています。
  */
 export type CouponDiscount =
   | {
@@ -40,8 +39,7 @@ export const COUPON_SCOPE_NAME: Readonly<Record<CouponScopeKind, string>> = {
  * 購入に適用したクーポン。
  *
  * @remarks
- * 値引きと範囲は、購入の時点の控えではなく、取得の時点で解決した現在値です。発行済みの
- * クーポンの値引きと範囲を書き換える口が無いため、購入の時点と食い違いません。
+ * 値引きと範囲は、購入の時点の控えではなく、取得の時点で解決した現在値です。
  */
 export type AppliedCoupon = {
   readonly discount: CouponDiscount;

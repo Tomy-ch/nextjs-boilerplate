@@ -7,11 +7,8 @@ import type { CouponDiscount } from "./coupon";
  * 値引きの決まり方を、額面の文言にする。
  *
  * @remarks
- * 上限は含めません。上限の有無や置き方は画面ごとに違い、一覧の列に分けて出す画面もあるため、
- * {@link formatCouponDiscountCap} で別に受け取ります。
- *
- * 定額の額面は、値引き額を求める時点の切り捨てとは別のものです。ここは額面を通貨の桁で見せる
- * だけで、実際に引かれた額は購入やカートの応答が返します。
+ * 上限は含めません。{@link formatCouponDiscountCap} で別に受け取ります。額面の表示であり、
+ * 実際に引かれた額は購入やカートの応答が返します。
  *
  * @param discount - 値引きの決まり方
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}

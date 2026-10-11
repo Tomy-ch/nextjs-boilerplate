@@ -56,8 +56,6 @@ export const RankingList = withPartSpan(
                 <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
                   {entry.soldQuantity} 個
                 </span>
-                {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
-                    数値へ変換するとサブセント精度が落ちる。 */}
                 <span className="w-20 shrink-0 text-right font-emphasis tabular-nums">
                   {formatDecimalMoney(entry.price)}
                 </span>

@@ -73,8 +73,6 @@ export const ProductCard = withPartSpan(
             </div>
             <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
-                    数値へ変換するとサブセント精度が落ちる。 */}
                 <span className="font-emphasis">{formatDecimalMoney(item.price)}</span>
                 <span className="text-muted-foreground text-sm">在庫 {item.quantity}</span>
               </div>
