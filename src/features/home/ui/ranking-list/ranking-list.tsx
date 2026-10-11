@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Separator } from "@/components/design-system/display/separator/separator";
+import { formatDecimalMoney } from "@/model/money";
 import type { ProductRankingEntry } from "@/model/product/product";
 import { withPartSpan } from "@/observability/render-span";
 
@@ -58,7 +59,7 @@ export const RankingList = withPartSpan(
                 {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
                     数値へ変換するとサブセント精度が落ちる。 */}
                 <span className="w-20 shrink-0 text-right font-emphasis tabular-nums">
-                  {`$${entry.price}`}
+                  {formatDecimalMoney(entry.price)}
                 </span>
               </div>
             </li>

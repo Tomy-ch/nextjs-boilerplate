@@ -7,6 +7,7 @@ import {
   type MediaImagePriority,
 } from "@/components/design-system/display/media-image/media-image.definition";
 import { NO_IMAGE_URL } from "@/model/media";
+import { formatDecimalMoney } from "@/model/money";
 import type { ProductListItem } from "@/model/product/product";
 import { withPartSpan } from "@/observability/render-span";
 
@@ -55,7 +56,7 @@ export const ProductTeaser = withPartSpan(
             <p className="line-clamp-2 text-sm font-emphasis break-words">{item.name}</p>
             {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
                 数値へ変換するとサブセント精度が落ちる。 */}
-            <p className="mt-auto font-emphasis">${item.price}</p>
+            <p className="mt-auto font-emphasis">{formatDecimalMoney(item.price)}</p>
           </div>
         </Link>
       </Card>

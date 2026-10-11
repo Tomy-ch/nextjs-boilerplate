@@ -4,6 +4,7 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { formatDecimalMoney } from "@/model/money";
 import { formatNumber } from "@/model/number";
 import { withPartSpan } from "@/observability/render-span";
 import { productDetailPath } from "../../../paths";
@@ -62,7 +63,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminRankingRow>[] = [
     headerClassName: `${WIDE_ONLY} w-24`,
     cellClassName: WIDE_ONLY,
     // 契約が decimal 文字列で返す値をそのまま出す。数値へ直すと、丸めの規則を画面が持つ。
-    cell: (row) => <span className="tabular-nums">{`$${row.price}`}</span>,
+    cell: (row) => <span className="tabular-nums">{formatDecimalMoney(row.price)}</span>,
   },
 ];
 

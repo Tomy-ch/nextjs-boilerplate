@@ -79,6 +79,20 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
 };
 
 /**
+ * 通貨記号を手で付けた金額の表示を落とす選択子。
+ *
+ * @remarks
+ * 金額は `model/money.ts` の書式関数を通す（ADR 0120）。`$` を手で付けると、基準通貨と locale の
+ * 差し替えが届かず、桁区切りも付かない。template literal と JSX のテキストの 2 通りの書き方を見る。
+ */
+const HAND_FORMATTED_MONEY_SELECTOR = {
+  selector:
+    "TemplateElement[tail=false][value.raw=/\\$$/], JSXText[value=/\\$\\s*$/] + JSXExpressionContainer",
+  message:
+    "金額は `@/model/money` の書式関数で表示してください（ADR 0120）。`$` を手で付けると基準通貨と locale の差し替えが届きません。",
+};
+
+/**
  * どのファイルでも締め出すもの。
  *
  * **新しい締め出しは原則ここへ足す。**flat config は同名ルールを配列ごと後勝ちで置き換えるので、
@@ -311,6 +325,7 @@ export default [
         "error",
         PROCESS_ACCESS_SELECTOR,
         SUBSCRIPTION_CONSTRUCTION_SELECTOR,
+        HAND_FORMATTED_MONEY_SELECTOR,
       ],
       "no-restricted-imports": [
         "error",
@@ -324,7 +339,7 @@ export default [
     // 残す側を書き下す）。
     files: ["src/adapters/client/stream/**/*.{js,jsx,ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", PROCESS_ACCESS_SELECTOR],
+      "no-restricted-syntax": ["error", PROCESS_ACCESS_SELECTOR, HAND_FORMATTED_MONEY_SELECTOR],
     },
   },
   {

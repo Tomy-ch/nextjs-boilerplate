@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_LOCALE } from "./locale";
 import type { ReferenceAmount } from "./money";
-import { formatMoney, formatReferenceAmount } from "./money";
+import { formatDecimalMoney, formatMoney, formatReferenceAmount } from "./money";
 
 /** `de-DE` が記号の手前に挟む区切り。空白と見分けが付かないのでエスケープで書く。 */
 const NBSP = "\u00a0";
@@ -34,6 +34,34 @@ describe("formatMoney", () => {
 
   it("負の金額を符号つきで表す", () => {
     expect(formatMoney(-1_500)).toBe("-$15.00");
+  });
+});
+
+describe("formatDecimalMoney", () => {
+  // ----- 正常系 -----
+  it("主単位の decimal 文字列を基準通貨の表記にする", () => {
+    expect(formatDecimalMoney("19.99")).toBe("$19.99");
+  });
+
+  it("最小単位の整数で表した同じ金額と同じ表記になる", () => {
+    expect(formatDecimalMoney("1234.56")).toBe(formatMoney(123_456));
+  });
+
+  it("端数の無い金額でも最小単位の桁を補う", () => {
+    expect(formatDecimalMoney("5")).toBe("$5.00");
+  });
+
+  it("最小単位より下の桁を丸めずに残す", () => {
+    expect(formatDecimalMoney("0.001")).toBe("$0.001");
+  });
+
+  it("locale を明示すると、その locale の表記になる", () => {
+    expect(formatDecimalMoney("1234.56", "de-DE")).toBe(`1.234,56${NBSP}$`);
+  });
+
+  // ----- 異常系 -----
+  it("decimal 文字列でない値は RangeError を投げる", () => {
+    expect(() => formatDecimalMoney("$5")).toThrow(RangeError);
   });
 });
 

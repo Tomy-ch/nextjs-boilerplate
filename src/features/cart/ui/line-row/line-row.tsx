@@ -6,6 +6,7 @@ import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/med
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import { NO_IMAGE_URL } from "@/model/media";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 import { CartLineIssues } from "../../facade/line-issues/line-issues";
 import { CartMatchStockButton } from "../match-stock-button/match-stock-button";
@@ -82,7 +83,7 @@ export const CartLineRow = withPartSpan(
           )}
           {line.unitPrice === null ? null : (
             <p className={cn("text-sm", blocked ? "text-muted-foreground" : undefined)}>
-              {`$${line.unitPrice} / 個`}
+              {`${formatDecimalMoney(line.unitPrice)} / 個`}
             </p>
           )}
           <CartLineIssues
