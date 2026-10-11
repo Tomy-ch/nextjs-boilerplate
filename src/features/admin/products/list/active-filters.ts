@@ -1,5 +1,10 @@
 import type { AdminProductFilterOption } from "./filter-option";
-import { type AdminProductListConditions, toConditionHref } from "./query";
+import {
+  type AdminProductListConditions,
+  DISCONTINUED_FILTER_LABEL,
+  FILTER_KEY,
+  toConditionHref,
+} from "./query";
 
 /** いま効いている条件 1 件。解除先まで含めて、表示側が組み立て直さずに済む形で持つ。 */
 export type AdminActiveFilter = {
@@ -16,6 +21,7 @@ export type AdminActiveFilter = {
 const KEYWORD_LABEL = "キーワード";
 const CATEGORY_LABEL = "分類";
 const STATUS_LABEL = "状態";
+const DISCONTINUED_LABEL = "廃番";
 
 /**
  * 選ばれたコードを、解除先付きの条件へ写す。
@@ -101,6 +107,15 @@ export function toAdminActiveFilters(
       statusCodes,
     })),
   );
+
+  if (conditions.discontinued !== null) {
+    filters.push({
+      key: FILTER_KEY.DISCONTINUED,
+      label: DISCONTINUED_LABEL,
+      value: DISCONTINUED_FILTER_LABEL[conditions.discontinued],
+      removeHref: toConditionHref({ ...conditions, discontinued: null }),
+    });
+  }
 
   return filters;
 }

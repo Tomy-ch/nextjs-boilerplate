@@ -2,7 +2,13 @@ import { z } from "zod";
 
 import { type RawSearchParams, repeatedValues, singleValue } from "@/model/search-params";
 
-import { type AdminProductListLocation, CURSOR_KEY, FILTER_KEY, TRAIL_KEY } from "./query";
+import {
+  type AdminProductListLocation,
+  CURSOR_KEY,
+  DISCONTINUED_FILTER,
+  FILTER_KEY,
+  TRAIL_KEY,
+} from "./query";
 
 /**
  * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある。**
@@ -36,6 +42,33 @@ const codesSchema = repeatedValues(
 const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
 
 /**
+ * 廃番で絞り込む条件。
+ *
+ * @remarks
+ * 読めた綴りだけを条件として持ちます。読めない綴りは {@link readDiscontinuedSpelling} が取り出し、
+ * 取得の口の検証へ回します。
+ */
+const discontinuedSchema = singleValue(
+  z.enum([DISCONTINUED_FILTER.ONLY, DISCONTINUED_FILTER.EXCLUDED]).nullable(),
+).catch(null);
+
+/**
+ * 廃番の条件として届いた綴りを、読めるかどうかに関わらず取り出す。
+ *
+ * @remarks
+ * **読めない綴りを未指定へ倒しません。** 取得の口の検証へそのまま渡し、写せなかった条件として
+ * 一覧の代わりに伝えます。倒すと、絞り込んだつもりの人に絞り込んでいない一覧が出ます。
+ *
+ * @param params - 生の searchParams
+ * @returns 届いた綴り。届いていなければ null
+ */
+export function readDiscontinuedSpelling(params: RawSearchParams): string | null {
+  const spelling = textSchema.parse(params[FILTER_KEY.DISCONTINUED]);
+
+  return spelling === "" ? null : spelling;
+}
+
+/**
  * 素の `searchParams` を、いま見ている場所として読む。
  *
  * @remarks
@@ -56,6 +89,7 @@ export function toAdminProductListLocation(params: RawSearchParams): AdminProduc
     keyword: textSchema.parse(params[FILTER_KEY.KEYWORD]),
     categoryCodes: codesSchema.parse(params[FILTER_KEY.CATEGORY]),
     statusCodes: codesSchema.parse(params[FILTER_KEY.STATUS]),
+    discontinued: discontinuedSchema.parse(params[FILTER_KEY.DISCONTINUED]),
     cursor: cursor === "" ? null : cursor,
     trail: cursor === "" ? [] : cursorsSchema.parse(params[TRAIL_KEY]),
   };

@@ -48,6 +48,8 @@ export type AdminProductRow = {
   readonly statusName: string;
   /** 状態に対応するバッジの見た目。 */
   readonly statusTone: BadgeVariant;
+  /** 廃番か。廃番の行には廃番にする操作を出さない。 */
+  readonly discontinued: boolean;
 };
 
 /**
@@ -92,6 +94,7 @@ export function toAdminProductRows(
       statusTone: discontinued
         ? DISCONTINUED_STATUS_TONE
         : toStatusTone(codeById.get(product.status.id)),
+      discontinued,
     };
   });
 }

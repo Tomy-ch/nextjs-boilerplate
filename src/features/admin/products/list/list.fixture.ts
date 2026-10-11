@@ -45,6 +45,7 @@ export const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 /**
@@ -63,6 +64,7 @@ export const PRODUCT_ROWS = [
     categoryName: "電子機器",
     statusName: "在庫あり",
     statusTone: toStatusTone(1),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000002"),
@@ -72,6 +74,7 @@ export const PRODUCT_ROWS = [
     categoryName: "電子機器",
     statusName: "在庫切れ",
     statusTone: toStatusTone(2),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000003"),
@@ -81,6 +84,7 @@ export const PRODUCT_ROWS = [
     categoryName: "電子機器",
     statusName: "入荷待ち",
     statusTone: toStatusTone(6),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000004"),
@@ -90,6 +94,7 @@ export const PRODUCT_ROWS = [
     categoryName: "食品",
     statusName: "販売終了",
     statusTone: toStatusTone(4),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000005"),
@@ -99,6 +104,7 @@ export const PRODUCT_ROWS = [
     categoryName: "電子機器",
     statusName: "限定販売",
     statusTone: toStatusTone(10),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000006"),
@@ -108,6 +114,7 @@ export const PRODUCT_ROWS = [
     categoryName: "電子機器",
     statusName: "新設された状態",
     statusTone: toStatusTone(99),
+    discontinued: false,
   },
   {
     id: toProductId("0195f0c2-0000-7000-8000-000000000007"),
@@ -119,6 +126,7 @@ export const PRODUCT_ROWS = [
     // 廃番はマスタのコードから決まらないため、`toStatusTone` を通さず直に置く。実際の値は
     // `row.ts` が持ち、対応は `row.test.ts` が押さえる。
     statusTone: BADGE_VARIANT.DEFAULT,
+    discontinued: true,
   },
 ] satisfies readonly [AdminProductRow, ...AdminProductRow[]];
 
@@ -131,4 +139,5 @@ export const LONG_NAME_PRODUCT_ROW: AdminProductRow = {
   categoryName: "電子機器",
   statusName: "在庫あり",
   statusTone: toStatusTone(1),
+  discontinued: false,
 };

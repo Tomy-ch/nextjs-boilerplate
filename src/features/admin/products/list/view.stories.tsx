@@ -19,6 +19,7 @@ import {
   PRODUCT_ROWS,
   STATUS_OPTIONS,
 } from "./list.fixture";
+import { DISCONTINUED_FILTER } from "./query";
 import { AdminProductTable } from "./ui/table/table";
 import { AdminProductListView } from "./view";
 
@@ -136,6 +137,20 @@ export const MultipleFiltered: Story = {
   args: { conditions: { ...NO_CONDITIONS, categoryCodes: ["1", "2"], statusCodes: ["2", "6"] } },
 };
 
+/** 廃番だけに絞った状態。選んだ値が欄と chip の両方に出る。 */
+export const DiscontinuedOnly: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    conditions: { ...NO_CONDITIONS, discontinued: DISCONTINUED_FILTER.ONLY },
+    children: (
+      <AdminProductTable
+        items={PRODUCT_ROWS.filter((row) => row.discontinued)}
+        pagination={<CursorPagination aria-label="商品一覧のページ送り" />}
+      />
+    ),
+  },
+};
+
 /** 途中のページ。前後のどちらへも進める。 */
 export const MiddlePage: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
@@ -228,7 +243,7 @@ export const LongName: Story = {
   },
 };
 
-/** 行ごとの操作を開いた状態。編集と在庫の補充へ進める。 */
+/** 行ごとの操作を開いた状態。編集と在庫の補充、区切りの後ろに廃番へ進める。 */
 export const RowActionsOpen: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {

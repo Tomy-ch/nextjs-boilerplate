@@ -18,7 +18,12 @@ import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar
 import { FilterBarTrigger } from "@/components/patterns/filter-bar/filter-bar";
 
 import type { AdminProductFilterOption } from "../../filter-option";
-import { type AdminProductListConditions, toConditionHref } from "../../query";
+import {
+  type AdminProductListConditions,
+  type DiscontinuedFilter,
+  toConditionHref,
+} from "../../query";
+import { AdminProductDiscontinuedControl } from "../discontinued-control/discontinued-control";
 import { AdminProductFilterControl } from "../filter-control/filter-control";
 
 /** `AdminProductFilterSheet` の props。 */
@@ -38,7 +43,11 @@ export type AdminProductFilterSheetProps = {
  * @returns 選ばれた値の合計件数
  */
 function countActive(conditions: AdminProductListConditions): number {
-  return conditions.categoryCodes.length + conditions.statusCodes.length;
+  return (
+    conditions.categoryCodes.length +
+    conditions.statusCodes.length +
+    (conditions.discontinued === null ? 0 : 1)
+  );
 }
 
 /**
@@ -89,13 +98,17 @@ export function AdminProductFilterSheet({
     setDraft((current) => ({ ...current, statusCodes }));
   }, []);
 
+  const selectDiscontinued = useCallback((discontinued: DiscontinuedFilter) => {
+    setDraft((current) => ({ ...current, discontinued }));
+  }, []);
+
   const confirm = useCallback(() => {
     setOpen(false);
     router.push(toConditionHref(draft));
   }, [draft, router]);
 
   const clear = useCallback(() => {
-    setDraft((current) => ({ ...current, categoryCodes: [], statusCodes: [] }));
+    setDraft((current) => ({ ...current, categoryCodes: [], statusCodes: [], discontinued: null }));
   }, []);
 
   return (
@@ -126,6 +139,11 @@ export function AdminProductFilterSheet({
             onSelect={selectStatus}
             options={statusOptions}
             value={draft.statusCodes}
+          />
+          <AdminProductDiscontinuedControl
+            className="justify-between"
+            onSelect={selectDiscontinued}
+            value={draft.discontinued}
           />
         </div>
         <SheetFooter>

@@ -53,6 +53,16 @@ export function adminProductStockPath(id: ProductId): string {
 }
 
 /**
+ * 商品を廃番にする画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 廃番にする画面のパス
+ */
+export function adminProductDiscontinuePath(id: ProductId): string {
+  return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/discontinue`;
+}
+
+/**
  * 商品 1 件を眺める画面のパス。
  *
  * @remarks

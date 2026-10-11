@@ -13,6 +13,7 @@ import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "../../paths";
 import { toAdminActiveFilters } from "./active-filters";
 import type { AdminProductFilterOption } from "./filter-option";
 import type { AdminProductListConditions } from "./query";
+import { AdminProductDiscontinuedSelect } from "./ui/discontinued-select/discontinued-select";
 import { AdminProductFilterSelect } from "./ui/filter-select/filter-select";
 import { AdminProductFilterSheet } from "./ui/filter-sheet/filter-sheet";
 import { AdminProductKeywordField } from "./ui/keyword-field/keyword-field";
@@ -81,6 +82,7 @@ export const AdminProductListView = withScreenSpan(
                   label="状態"
                   options={statusOptions}
                 />
+                <AdminProductDiscontinuedSelect conditions={conditions} />
               </div>
             </FilterBarControls>
             {activeFilters.length === 0 ? null : (

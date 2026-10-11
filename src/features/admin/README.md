@@ -5,6 +5,7 @@ test-requirement: [feature, component, unit]
 coverage-exclusions:
   - "src/features/admin/analytics/analytics.fixture.ts"
   - "src/features/admin/products/products.fixture.ts"
+  - "src/features/admin/products/discontinue/discontinue.fixture.ts"
   - "src/features/admin/products/list/list.fixture.ts"
   - "src/features/admin/users/users.fixture.ts"
 ---
@@ -41,6 +42,7 @@ outer frame's promises are held by [the `admin` layout](../../../docs/spec/route
 | `/admin/products/new` | [`screen`](../../../docs/spec/route/admin/products/new/page.screen.md) / [`function`](../../../docs/spec/route/admin/products/new/page.function.md) |
 | `/admin/products/[id]/edit` | [`screen`](<../../../docs/spec/route/admin/products/[id]/edit/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/edit/page.function.md>) |
 | `/admin/products/[id]/stock` | [`screen`](<../../../docs/spec/route/admin/products/[id]/stock/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/stock/page.function.md>) |
+| `/admin/products/[id]/discontinue` | [`screen`](<../../../docs/spec/route/admin/products/[id]/discontinue/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/products/[id]/discontinue/page.function.md>) |
 | `/admin/inquiries` | [`screen`](../../../docs/spec/route/admin/inquiries/page.screen.md) / [`function`](../../../docs/spec/route/admin/inquiries/page.function.md) |
 | `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) |
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
@@ -58,13 +60,16 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | --- | --- | --- |
 | `GetDashboardSummary` | Figures for the entry screen and analytics | feature |
 | `GetProductsRankingQuantity` | The best-seller table | feature |
-| `GetProducts` | The product list | feature |
-| `GetProductsDetail` | The single item read by edit and restock | feature |
+| `GetProducts` | The product list, including filtering by discontinuation | feature |
+| `GetProductsDetail` | The single item read by edit, restock and discontinuation | feature |
+| `GetProductsDiscontinueImpact` | The estimate shown before discontinuing | feature |
+| `GetPurchases` | The in-progress purchases that keep a product from being discontinued | feature |
 | `GetProductCategories` / `GetProductStatuses` | Candidates for filters and forms | feature |
 | `GetUsers` | The user list | feature |
 | `PostProductsImages` | Image upload | An app-layer Action |
 | `PostProducts` / `PatchProductsDetail` | Creating and editing products | An app-layer Action |
 | `PatchProductsStock` | Increasing and decreasing stock | An app-layer Action |
+| `PostProductsDiscontinue` | Discontinuing a product and issuing replacement coupons | An app-layer Action |
 | `DeleteUsersDetail` | Closing a user's account | An app-layer Action |
 
 ## States and Design References
@@ -81,7 +86,7 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | | loading (while only the lower part refetches) | `Page/Admin/Analytics/SummaryPending` |
 | Product list | success (including discontinued rows) | `Page/Admin/Products/List/Default` |
 | | empty | `Page/Admin/Products/List/Empty` |
-| | Filtering, search, pagination | `Page/Admin/Products/List/{MultipleFiltered,Searched,MiddlePage,LastPage}` |
+| | Filtering, search, pagination | `Page/Admin/Products/List/{MultipleFiltered,DiscontinuedOnly,Searched,MiddlePage,LastPage}` |
 | | loading | `Features/Admin/Products/List/Skeleton/Default` |
 | Product creation | Input, confirmation, rejection | `Page/Admin/Products/Create/{Default,Confirm,Rejected}` |
 | | loading | `Features/Admin/Products/New/Skeleton/Default` |
@@ -90,6 +95,12 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | Restock | Replenish / deduct / out of stock | `Page/Admin/Products/Stock/{Replenishing,Deducting,OutOfStock}` |
 | | Unreadable quantity / version mismatch / cannot refetch | `Page/Admin/Products/Stock/{RejectedQuantity,Conflicted,Unavailable}` |
 | | loading | `Features/Admin/Products/Stock/Skeleton/Default` |
+| Discontinuation | success (can discontinue) / empty (in no cart) | `Page/Admin/Products/Discontinue/{Default,NoImpact}` |
+| | In-progress purchases remain / not all of them listed / they could not be read | `Page/Admin/Products/Discontinue/{InProgressRemaining,InProgressPartial,RemainingUnavailable}` |
+| | Confirmation, sending, unreadable condition, rejected condition | `Page/Admin/Products/Discontinue/{Confirming,Submitting,InvalidCondition,RejectedCondition}` |
+| | In-progress purchase found when sending (conflict) / other failure | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable}` |
+| | Result shown / already discontinued | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
+| | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
 | Users | success / empty | `Page/Admin/Users/{Default,Empty}` |
 | | Account closure confirmation, success, conflict | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 | | loading | `Features/Admin/Users/Skeleton/Default` |
@@ -108,7 +119,7 @@ band, the contract's maximum length, sending, a rejected result) are held by eac
 
 Create a directory per screen and divide each by nature.
 
-**Products have four screens (list, create, edit, restock), so they are split along the screen axis.** What
+**Products have five screens (list, create, edit, restock, discontinue), so they are split along the screen axis.** What
 several screens share belongs to none of them, so the level above (directly under `products/` and
 `products/ui/`) owns it. Users have only one screen, so files sit directly under `users/` with no axis between.
 
@@ -152,11 +163,11 @@ several screens share belongs to none of them, so the level above (directly unde
 | `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | The step contents shared by create and edit. They do not know they are steps |
 | ↳ `description-editor.tsx` / `confirm-details.tsx` | The split between **when to load** a heavy component and **what to render**. Kept apart so loading concerns do not mix into the container |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | The submit control and the submission result |
-| `products/list/query.ts` | The list URL contract (filters and pagination position) and the key names. Also holds the path the user came by |
+| `products/list/query.ts` | The list URL contract (filters and pagination position) and the key names, and the names of the discontinuation choices. Also holds the path the user came by |
 | `products/list/page-size.ts` | How many items one page lists |
 | `products/list/filter-option.ts` | The shape of the candidates selectable in filters, and the copy from master data |
 | `products/list/active-filters.ts` | Maps the active conditions to a list with removal destinations |
-| `products/list/row.ts` | The shape of one table row. Matches products against master data to decide the status appearance, and shows discontinued before the label |
+| `products/list/row.ts` | The shape of one table row. Matches products against master data to decide the status appearance, and shows discontinued before the label. Carries whether the product is discontinued, so the row offers discontinuation only where it applies |
 | `products/list/status-tone.ts` | The mapping between status codes and appearance. This screen holds the meaning the contract does not return |
 | `products/list/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
 | `products/list/results.tsx` | Fetching one page, and assembling the table and pagination |
@@ -166,6 +177,8 @@ several screens share belongs to none of them, so the level above (directly unde
 | `products/list/ui/filter-control/` | The category and status selectors themselves. Holds nothing about how a selected value is handled |
 | `products/list/ui/filter-select/` | Filters applied as soon as they are selected. Used on wide bands |
 | `products/list/ui/filter-sheet/` | Filtering on narrow bands. Opens from the bottom operation and confirms everything together inside an overlay |
+| `products/list/ui/discontinued-control/` | The discontinuation selector itself. Two exclusive choices; neither chosen means not filtering |
+| `products/list/ui/discontinued-select/` | Filtering by discontinuation applied as soon as it is selected. Used on wide bands |
 | `products/list/ui/skeleton/` | The table loading UI |
 | `products/new/page-content.tsx` `products/new/view.tsx` | Creation. Proceeds in stages, with a confirmation at the end |
 | `products/new/ui/skeleton/` | The form loading UI. Has the stage progress at the top |
@@ -182,6 +195,21 @@ several screens share belongs to none of them, so the level above (directly unde
 | `products/stock/ui/amount-fields/` | Direction and quantity. Holds the value being typed and adds the projection |
 | `products/stock/ui/projection/` | The projection after submission. That it is a reference value, and the caveat when negative |
 | `products/stock/ui/skeleton/` | The form loading UI |
+| `products/discontinue/coupon-rules.ts` | How the coupon conditions are read and worded. Turns a percentage into the contract's decimal string without going through a number. Both the sending and receiving sides go through it |
+| `products/discontinue/form-state.ts` `products/discontinue/form-names.ts` | The discontinuation result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
+| `products/discontinue/parse-discontinue-form.ts` | Reading the submitted target, idempotency key, confirmation signal and conditions |
+| `products/discontinue/discontinue-rejection.ts` | Maps the fields the connection target named in a rejection onto this screen's input fields |
+| `products/discontinue/page-content.tsx` | Fetching the product and, unless it is already discontinued, the estimate. Issues the idempotency key once per assembly |
+| `products/discontinue/remaining-purchases-section.tsx` | Fetching the in-progress purchases. A separate wait and a separate unit of failure from the estimate |
+| `products/discontinue/view.tsx` | The only client island. Holds the submission state, the key and the conditions being typed, and branches between the three standings inside itself so a refetch never unmounts it |
+| `products/discontinue/breadcrumb-content.tsx` | The hierarchy down to the discontinue screen. Fetches for the product name |
+| `products/discontinue/ui/impact-summary/` | The estimate, the population each number counts, its freshness, and the path to refetch |
+| `products/discontinue/ui/remaining-purchases/` | The purchases that keep the product from being discontinued. Says so when they are not all listed, and when they could not be read |
+| `products/discontinue/ui/conditions-fields/` | The coupon conditions. The caller holds the values |
+| `products/discontinue/ui/confirm-dialog/` | The confirmation. States that it is irreversible and what happens to carts. Receives only `formAction` |
+| `products/discontinue/ui/result/` | What the execution reported. A place that remains after the confirmation closes |
+| `products/discontinue/ui/discontinued-state/` | The product is already discontinued, and since when |
+| `products/discontinue/ui/skeleton/` | The screen loading UI |
 | `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
 | `users/page-size.ts` | How many items one page lists |
 | `users/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
@@ -212,8 +240,8 @@ directly. Imposing composition tests on something with no composition leaves not
 
 | Kernel | Purpose |
 | --- | --- |
-| `adapters` | Fetching analytics, products, purchases and users, and resolving image URLs |
-| `model` | Display models (`Product` / `Purchase` / `Dashboard`), pagination, periods, number formatting, `ActionState` |
+| `adapters` | Fetching analytics, products, purchases and users, and resolving image URLs. The contract's limits that input fields read in the browser come from `adapters/client` |
+| `model` | Display models (`Product` / `Purchase` / `Dashboard`), pagination, periods, number and date formatting, `ActionState`, idempotency keys |
 | `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
 | `errors` | Maps fetch and submission failures to the wording the screen shows |
 | `observability` | Putting rendering on spans |
@@ -233,11 +261,17 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `createProductAction` | Same as above | `ProductFormState` | `redirect` to the list | Returns per-field errors to their steps |
 | `updateProductAction` | Same as above | `ProductFormState` | Same as above | Same as above. A version mismatch is told apart |
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
+| `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `revalidatePath`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
 
 **Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
 refetching right after would only show the list before it is reflected. The submission result reports what
 happened.
+
+**Only discontinuation stays on its screen after success.** The counts of what the execution did exist only in
+its response — the contract has no endpoint to read them back, and running it again reports zeros — so a
+destination screen could not show them. What a reload keeps is the fact of discontinuation (`discontinuedAt`),
+which the refetched screen shows; the counts disappear with the reload.
 
 Screens only receive Actions through props. **The `route` layout shell holds the Actions because an `actions.ts`
 placed at the same level as `page.tsx` corresponds one-to-one with the route's entry point**; judgment and
@@ -249,6 +283,7 @@ assembly are held on the feature side (`products/parse-product-form.ts` and so o
 - [ ] Conditions that could not be mapped are not discarded; that fact is shown in place of the list
 - [ ] A version mismatch (409) is told apart from other failures
 - [ ] Rows of closed accounts show no operations
+- [ ] Discontinuation is not offered while in-progress purchases remain, nor for a product already discontinued
 
 The layer assignment (`feature` / `component` / `unit`) is at the end of Structure.
 
@@ -283,6 +318,9 @@ a bare screen without the side navigation or the header.
 **Listing unpublished products is the `includeUnpublished` option.** Only admin can pass `true`;
 unauthenticated requests get 401, and an insufficient role 403. **When the population changes, the sort axis
 changes too**, so pagination keys are usable only within the same option (`products/list/results.tsx`).
+
+**Filtering by discontinuation (`discontinued`) means something only together with `includeUnpublished`.** A
+discontinued product is unpublished, so `discontinued=true` over the published-only population is always empty.
 
 A product's "status" is its stock and sales status (in stock, out of stock, discontinued and so on), and **is a
 separate axis from whether it is published**. Publication is held by `publishedAt` and has nothing to do with
