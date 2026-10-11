@@ -23,7 +23,7 @@ vi.mock("@/logging/logging.server", async (importOriginal) => ({
 import { RemainingPurchasesSection } from "./remaining-purchases-section";
 
 const ID = DISCONTINUE_PRODUCT.id;
-const EXPECTED = REMAINING_PURCHASES.length;
+const EXPECTED: number = REMAINING_PURCHASES.length;
 const PARTIAL_NOTE = /ほかにも進行中の購入があり/;
 
 function section(expectedCount = EXPECTED) {

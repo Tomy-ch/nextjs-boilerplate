@@ -19,7 +19,7 @@ function renderFields(
 ) {
   const onValuesChange = vi.fn();
 
-  render(
+  const { container } = render(
     <DiscontinueConditionsFields
       messages={overrides.messages ?? {}}
       onValuesChange={onValuesChange}
@@ -27,7 +27,7 @@ function renderFields(
     />,
   );
 
-  return { onValuesChange };
+  return { container, onValuesChange };
 }
 
 function rateField(): HTMLElement {
@@ -129,12 +129,12 @@ describe("DiscontinueConditionsFields", () => {
   });
 
   it("誤りがある状態で a11y 検査を通る", async () => {
-    renderFields({
+    const { container } = renderFields({
       messages: { couponDiscountRate: "率の誤り", couponValidityDays: "日数の誤り" },
     });
 
     expect(
-      (await axe(document.body, { rules: { "color-contrast": { enabled: false } } })).violations,
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
   });
 });

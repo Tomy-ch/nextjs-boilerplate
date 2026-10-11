@@ -42,12 +42,20 @@ describe("AdminProductDiscontinuedControl", () => {
     expect(screen.getByRole("radio", { name: "廃番のみ" })).not.toBeChecked();
   });
 
-  it("選んだ値を、契約の綴りで呼び出し元へ伝える", async () => {
+  it("「廃番を除く」を選ぶと、契約の綴り false で呼び出し元へ伝える", async () => {
     const { onSelect } = renderControl();
 
     await userEvent.click(screen.getByRole("radio", { name: "廃番を除く" }));
 
     expect(onSelect).toHaveBeenCalledWith("false");
+  });
+
+  it("「廃番のみ」を選ぶと、契約の綴り true で呼び出し元へ伝える", async () => {
+    const { onSelect } = renderControl();
+
+    await userEvent.click(screen.getByRole("radio", { name: "廃番のみ" }));
+
+    expect(onSelect).toHaveBeenCalledWith("true");
   });
 
   it("2 か所に置いても、同じ値をそれぞれが選ばれた状態で保つ", () => {
