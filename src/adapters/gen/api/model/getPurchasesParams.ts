@@ -9,13 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+4a0bd3a
  */
 import type { CursorAfterParamParameter } from "./cursorAfterParamParameter";
 import type { CursorFirstParamParameter } from "./cursorFirstParamParameter";
 import type { IncludeOtherUsersParamParameter } from "./includeOtherUsersParamParameter";
 import type { OrderedAfterParamParameter } from "./orderedAfterParamParameter";
 import type { OrderedBeforeParamParameter } from "./orderedBeforeParamParameter";
+import type { PurchaseProductIdParamParameter } from "./purchaseProductIdParamParameter";
 import type { PurchaseStatusCodesParamParameter } from "./purchaseStatusCodesParamParameter";
 
 export type GetPurchasesParams = {
@@ -65,4 +66,11 @@ export type GetPurchasesParams = {
    * ページ送りの間は同じ指定を渡してください（母集団が変わると keyset の連続性は保証されません）。
    */
   includeOtherUsers?: IncludeOtherUsersParamParameter;
+  /**
+   * 指定した商品を含む購入だけに絞ります。指定しない場合は絞りません。
+   * 廃番が進行中の購入を理由に拒まれたとき、どの購入が残っているのかを辿るために用います。
+   * 所有権のフィルタは変わりません。既定では自分の購入のみが母集団で、他ユーザーの購入まで見るには
+   * includeOtherUsers=true（管理者のみ）を併せて指定します。
+   */
+  productId?: PurchaseProductIdParamParameter;
 };

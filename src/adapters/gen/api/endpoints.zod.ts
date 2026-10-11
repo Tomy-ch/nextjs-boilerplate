@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+4a0bd3a
  */
 import * as zod from "zod";
 
@@ -156,7 +156,9 @@ export const GetUsersResponse = zod
   .describe("ユーザー情報のリストを返すレスポンスです。");
 
 /**
- * 新しいユーザーを作成します。必要な情報をリクエストボディに含めてください。
+ * 認証済みの主体を内部ユーザーとして登録します。認証したトークンの issuer と subject を
+ * そのまま外部アイデンティティとして結び付けるため、リクエストボディには本人の属性だけを含めます。
+ * 同じ主体で 2 回目を呼ぶと 409 を返します。
  * @summary ユーザーの作成
  */
 export const postUsersHeaderIdempotencyKeyMax = 255;
@@ -743,6 +745,102 @@ export const GetUsersMeRolesResponse = zod
   );
 
 /**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザーが保有するクーポンを取得します。
+ * パスに他者の識別子を持たないため、他ユーザーのクーポンは取得できません。
+ * **使用済み・失効済みも並びます。** この口が返すのは「使えるもの」ではなく「持っているもの」で、
+ * いまのカートに対して使えるかどうかは `GET /v1/carts/me/coupons` が答えます。
+ * 発行日時の新しい順で、ページングは持ちません。1 枚も保有しない場合はエラーではなく空配列を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary 認証ユーザー自身の保有クーポンの取得
+ */
+export const getUsersMeCouponsResponseCouponsItemDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
+export const GetUsersMeCouponsResponse = zod
+  .object({
+    coupons: zod
+      .array(
+        zod
+          .object({
+            id: zod.uuid().describe("クーポンID"),
+            discount: zod
+              .object({
+                kind: zod
+                  .enum(["flat", "rate"])
+                  .describe(
+                    "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+                  ),
+                value: zod
+                  .string()
+                  .regex(getUsersMeCouponsResponseCouponsItemDiscountValueRegExp)
+                  .describe(
+                    '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+                  ),
+                maxAmount: zod
+                  .int()
+                  .nullable()
+                  .describe(
+                    "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+                  ),
+              })
+              .describe(
+                "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+              ),
+            scope: zod
+              .object({
+                kind: zod
+                  .enum(["all", "category", "product"])
+                  .describe(
+                    "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+                  ),
+                targetId: zod
+                  .uuid()
+                  .nullable()
+                  .describe(
+                    "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+                  ),
+              })
+              .describe(
+                "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+              ),
+            expiresAt: zod.iso
+              .datetime({ offset: true })
+              .describe(
+                "有効期限。この時刻ちょうどを含めて以降は失効として扱います。\n失効を一括更新する機構は持たず、判定のたびに現在時刻と突き合わせます。\n",
+              ),
+            usedAt: zod.iso
+              .datetime({ offset: true })
+              .nullable()
+              .describe(
+                "使用日時。未使用の場合は null です。使用済みへの遷移は一度きりで取り消せません。",
+              ),
+            issuedAt: zod.iso.datetime({ offset: true }).describe("発行日時"),
+            minPurchaseAmount: zod
+              .int()
+              .nullable()
+              .describe(
+                "このクーポンを使うために必要な購入額の下限。USD セント単位の整数です。\n条件が無い場合は null で、そのときは購入額を問わず使えます。\n",
+              ),
+            usableFrom: zod.iso
+              .datetime({ offset: true })
+              .nullable()
+              .describe(
+                "使えるようになる日時。この時刻ちょうどを含めて以降に使えます。\n条件が無い場合は null で、そのときは発行した時点から使えます。\n",
+              ),
+          })
+          .describe(
+            "クーポン。値引きと適用範囲という直交する 2 つの軸を持ちます。\n1 枚のクーポンは 1 つの値引きと 1 つの適用範囲を持ち、複数枚の併用も複数範囲の合成も表しません。\n",
+          ),
+      )
+      .describe("保有クーポンの配列。1 枚も持たない場合は空配列です。"),
+  })
+  .describe(
+    "保有クーポンの一覧。使用済み・失効済みも並びます。「使えるもの」ではなく「持っているもの」を返す口です。\n発行日時の新しい順で、ページングは持ちません。\n",
+  );
+
+/**
  * 検索条件に基づいてユーザーの一覧を取得します。ページネーションを指定できます。
  * @summary ユーザー一覧の取得
  */
@@ -1146,6 +1244,12 @@ export const GetProductsQueryParams = zod.object({
     .describe(
       "未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は公開済みの商品のみです。\ntrue を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。\nfalse を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。\n",
     ),
+  discontinued: zod
+    .boolean()
+    .optional()
+    .describe(
+      "廃番かどうかで母集団を絞ります。true を指定すると廃番の商品だけ、false を指定すると廃番でない\n商品だけを返します。指定しない場合は絞りません。\n\*\*廃番の商品は非公開になる\*\*ため、この軸が意味を持つのは includeUnpublished=true を指定できる\n管理者（admin）だけです。既定の母集団（公開済みのみ）に対して true を指定すると常に空になります。\n廃番かどうかは discontinuedAt が設定されているかで決まります（未来の日時にはなりません）。\n",
+    ),
 });
 
 export const getProductsResponseOneProductsItemNameMax = 255;
@@ -1501,6 +1605,12 @@ export const GetProductsCountQueryParams = zod.object({
     .describe(
       "未公開（公開日時が未設定）の商品を母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は公開済みの商品のみです。\ntrue を指定できるのは管理者（admin）だけで、未認証は 401、管理者でなければ 403 で拒否します。\nfalse を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。\n",
     ),
+  discontinued: zod
+    .boolean()
+    .optional()
+    .describe(
+      "廃番かどうかで母集団を絞ります。true を指定すると廃番の商品だけ、false を指定すると廃番でない\n商品だけを返します。指定しない場合は絞りません。\n\*\*廃番の商品は非公開になる\*\*ため、この軸が意味を持つのは includeUnpublished=true を指定できる\n管理者（admin）だけです。既定の母集団（公開済みのみ）に対して true を指定すると常に空になります。\n廃番かどうかは discontinuedAt が設定されているかで決まります（未来の日時にはなりません）。\n",
+    ),
 });
 
 export const getProductsCountResponseCountMin = 0;
@@ -1809,6 +1919,157 @@ export const PatchProductsDetailResponse = zod
       ),
   })
   .describe("商品情報のレスポンススキーマ");
+
+/**
+ * 指定された UUID に該当する商品を廃番にします。認証必須で、管理者（admin）のみ実行できます（非 admin は 403）。
+ * 商品を非公開にし、その商品の明細を持っていた確定済みユーザーへ代替クーポンを一括発行します。
+ * 非公開化とクーポンの発行は同一トランザクションで原子的に行います。**クーポンだけが配られて商品がまだ
+ * 買える状態は observable になりません。**
+ * **進行中の購入（完了 / キャンセル / 配達済みのいずれでもない購入）がある商品は廃番にできません**（409）。
+ * 409 はこの一義で、要求が版の食い違いで拒まれることはありません（本操作はバージョンを受け取らないため）。
+ * どの購入が残っているかは GET /v1/purchases に productId を指定して辿れます。
+ * **カートの明細は取り除きません。** 以降の取得で discontinued の issue が立ち、なぜ買えないのかが
+ * 利用者に伝わります。黙って明細が減るより、理由が残るほうが正しいためです。
+ * クーポンの受給対象は**実行時点でその明細を保持していた確定済みユーザー**です。ゲストのカートは
+ * 影響を受けますが受給者にはならず、退会済みユーザーも対象外です。実行後に明細を入れた利用者も対象外です。
+ * 廃番は取り消せません。廃番の商品に公開日時を設定する部分更新は 422 で拒まれます。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返し、クーポンが二重に
+ * 発行されることはありません。
+ * 既に廃番の商品への再実行は、新たな発行を行わずに 200 を返します。3 つの件数はいずれも
+ * 「その実行が起こしたこと」を表すため、何も起こさない再実行では 0 になります。
+ * 本 op は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 商品の廃番
+ */
+export const postProductsDiscontinuePathProductIdMax = 36;
+
+export const postProductsDiscontinuePathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const PostProductsDiscontinueParams = zod.object({
+  productId: zod
+    .uuid()
+    .max(postProductsDiscontinuePathProductIdMax)
+    .regex(postProductsDiscontinuePathProductIdRegExp)
+    .describe("商品のUUID"),
+});
+
+export const postProductsDiscontinueHeaderIdempotencyKeyMax = 255;
+
+export const postProductsDiscontinueHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostProductsDiscontinueHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postProductsDiscontinueHeaderIdempotencyKeyMax)
+    .regex(postProductsDiscontinueHeaderIdempotencyKeyRegExp)
+    .optional()
+    .describe(
+      "冪等キー。非冪等な変更操作（作成系など）で、同一キーによるリトライを重複実行なく\n安全にするための識別子。サーバは同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n",
+    ),
+});
+
+export const postProductsDiscontinueBodyCouponDiscountRateRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+export const postProductsDiscontinueBodyCouponValidityDaysMax = 365;
+
+export const PostProductsDiscontinueBody = zod
+  .object({
+    couponDiscountRate: zod
+      .string()
+      .regex(postProductsDiscontinueBodyCouponDiscountRateRegExp)
+      .describe(
+        '代替クーポンの値引き率。対象額に掛ける乗数を、正確な十進量を保つ decimal 文字列で表します （例 \"0.10\" は 10% 引き）。0 より大きく 1 以下である必要があり、範囲外は 422 を返します。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。',
+      ),
+    couponValidityDays: zod
+      .int()
+      .min(1)
+      .max(postProductsDiscontinueBodyCouponValidityDaysMax)
+      .describe(
+        "代替クーポンの有効期間（日数）。発行日時からこの日数だけ有効です。 上限 365 は placeholder で、実要件が立った時点で改めます。",
+      ),
+  })
+  .describe(
+    "商品廃番のリクエスト（application\/json）。admin のみ実行できます（非 admin は 403）。\n廃番の代替として発行するクーポンの条件を指定します。発行の条件をサーバーが固定せず要求で受けるのは、\n何をどれだけ補償するかが業務の判断であり、この API はその判断を実行するだけだからです。\n\*\*楽観ロックのバージョンは受け取りません。\*\* 廃番は属性の書き換えではなく命令であり、実行の可否は\n商品の現在値ではなく進行中の購入の有無で決まります。そのため 409 は「進行中の購入がある」の一義です。\n",
+  );
+
+export const PostProductsDiscontinueResponse = zod
+  .object({
+    discontinuedAt: zod.iso
+      .datetime({ offset: true })
+      .describe("廃番が確定した日時。サーバーの時刻で決まるため、要求では指定できません。"),
+    affectedCartCount: zod
+      .int()
+      .describe(
+        "この実行で影響を受けたカートの件数。所有者が確定していないゲストのカートも含みます。 明細は取り除かれず、以降の取得で discontinued の issue が立ちます。",
+      ),
+    affectedUserCount: zod
+      .int()
+      .describe(
+        "この実行でクーポンの受給対象になった確定済みユーザーの数。ゲストのカートと退会済みユーザーは 含みません。そのため affectedCartCount 以下になります。",
+      ),
+    issuedCouponCount: zod
+      .int()
+      .describe(
+        "この実行で発行したクーポンの枚数。受給者 1 人につき 1 枚です。 既に廃番の商品への再実行では新たな発行を行わないため 0 になります（過去の発行実績ではありません）。",
+      ),
+  })
+  .describe(
+    "商品廃番の実行結果。何が起きたかを件数で返します。\naffectedCartCount と affectedUserCount は一致しません。カートは所有者が確定していなくても持てるため、\nゲストのカートは影響を受けますがクーポンの受給者にはなりません。退会済みユーザーも対象外です。\n",
+  );
+
+/**
+ * 指定された UUID に該当する商品を廃番にした場合の影響を、実行前に件数で返します。
+ * 認証必須で、管理者（admin）のみ実行できます（非 admin は 403）。この見積もりは廃番を実行できる
+ * 主体だけが見るべき情報であり、廃番そのものと同じ権限で守ります。
+ * 返すのは影響カート件数・影響利用者数・進行中購入件数の 3 つです。
+ * **影響カート件数と影響利用者数は一致しません。** カートは所有者が確定していなくても持てるため、
+ * ゲストのカートは影響を受けますがクーポンの受給者にはなりません。退会済みユーザーも対象外です。
+ * **行をロックしないため、返した瞬間から古くなります。** 押した結果がこの見積もりと食い違うことは
+ * あり、実際に何が起きたかは実行（POST /v1/products/{productId}/discontinue）の応答が返します。
+ * 進行中購入件数が 1 以上であれば実行は 409 で拒まれます。どの購入かは
+ * GET /v1/purchases に productId を指定して辿れます。
+ * 未公開の商品も対象です。廃番にできるかを調べる読み取りであり、公開状態で母集団を絞る理由がないためです。
+ * 本 op は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の一時障害で
+ * 応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 商品を廃番にしたときの影響の見積もり
+ */
+export const getProductsDiscontinueImpactPathProductIdMax = 36;
+
+export const getProductsDiscontinueImpactPathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const GetProductsDiscontinueImpactParams = zod.object({
+  productId: zod
+    .uuid()
+    .max(getProductsDiscontinueImpactPathProductIdMax)
+    .regex(getProductsDiscontinueImpactPathProductIdRegExp)
+    .describe("商品のUUID"),
+});
+
+export const GetProductsDiscontinueImpactResponse = zod
+  .object({
+    affectedCartCount: zod
+      .int()
+      .describe(
+        "この商品の明細を持つカートの件数。所有者が確定していないゲストのカートも含みます。",
+      ),
+    affectedUserCount: zod
+      .int()
+      .describe(
+        "クーポンの受給対象になる確定済みユーザーの数。ゲストのカートと退会済みユーザーは含みません。 そのため affectedCartCount 以下になります。",
+      ),
+    inProgressPurchaseCount: zod
+      .int()
+      .describe(
+        "この商品を含む進行中の購入の件数。1 件でもあれば廃番は 409 で拒まれます。 どの購入かは GET \/v1\/purchases に productId を指定して辿れます。",
+      ),
+  })
+  .describe(
+    "商品を廃番にしたときの影響の見積もり。押す前に規模を見せるための読み取りです。\n\*\*行をロックしないため、返した瞬間から古くなります。\*\* 実行時の件数がこれと一致する保証はなく、\n実際に何が起きたかは実行の応答が返します。\naffectedCartCount と affectedUserCount が一致しないのは実行時と同じ理由で、ゲストのカートは\n影響を受けますがクーポンの受給者にはならないためです。\n",
+  );
 
 /**
  * 指定された UUID に該当する商品の在庫を増減します。認証必須で、管理者（admin）のみ実行できます（非 admin は 403）。
@@ -2388,6 +2649,12 @@ export const GetPurchasesQueryParams = zod.object({
     .describe(
       "他ユーザーの購入も母集団に含める場合は true を指定します。既定は false で、\n指定しない場合の母集団は認証主体（自分）の購入のみです。\ntrue を指定できるのは管理者（admin）だけで、管理者でなければ 403 で拒否します。\n並び順・ページ送りの規則は母集団によらず同一（注文日時の降順）です。\nページ送りの間は同じ指定を渡してください（母集団が変わると keyset の連続性は保証されません）。\n",
     ),
+  productId: zod
+    .uuid()
+    .optional()
+    .describe(
+      "指定した商品を含む購入だけに絞ります。指定しない場合は絞りません。\n廃番が進行中の購入を理由に拒まれたとき、どの購入が残っているのかを辿るために用います。\n所有権のフィルタは変わりません。既定では自分の購入のみが母集団で、他ユーザーの購入まで見るには\nincludeOtherUsers=true（管理者のみ）を併せて指定します。\n",
+    ),
 });
 
 export const GetPurchasesResponse = zod
@@ -2500,11 +2767,20 @@ export const PostPurchasesBody = zod
       .describe(
         "購入明細の配列。1 件以上必須で、同一 productId の重複は不可です。\n空配列・重複はドメインで検証し 422 を返します（スキーマでは制約せず単一の検証責務に集約）。\n",
       ),
+    couponId: zod
+      .uuid()
+      .optional()
+      .describe(
+        '適用するクーポンのID。省略すると値引きを行いません。1 回の購入に適用できるのは高々 1 枚です。\n\n失効済み・使用済み・保有していない（存在しない場合を含む）・値引きが 0 になる場合は、\nいずれも 422 + `details: [\"couponId\"]` を返します。次にすべきことがどれも同じ\n（別のクーポンを選ぶか外す）ため、呼び出し側からは区別しません。\n',
+      ),
   })
   .describe(
-    "購入作成リクエスト。明細（商品IDと数量）の配列を受け取ります。\n明細は 1 件以上必須で、同一 productId の重複は許可しません（いずれも 422）。\n",
+    "購入作成リクエスト。明細（商品IDと数量）の配列を受け取ります。\n明細は 1 件以上必須で、同一 productId の重複は許可しません（いずれも 422）。\nクーポンを 1 枚まで適用できます。併用はできません。\n",
   );
 
+export const postPurchasesResponseAppliedCouponOneDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 export const postPurchasesResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 export const postPurchasesResponseReferenceAmountRateRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
@@ -2518,6 +2794,62 @@ export const PostPurchasesResponse = zod
         "購入ステータスID。作成直後は「未処理」です。名称は購入ステータスマスタで解決します。",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
+    discountAmount: zod
+      .int()
+      .describe(
+        "クーポンによる値引き額。USD セント単位の整数です。\n\*\*非 null で、クーポン未使用および過去の購入は 0\*\* になります。\n値引きが立っていることと appliedCoupon が入っていることは常に一致します。\n",
+      ),
+    appliedCoupon: zod
+      .object({
+        id: zod.uuid().describe("適用したクーポンのID"),
+        discount: zod
+          .object({
+            kind: zod
+              .enum(["flat", "rate"])
+              .describe(
+                "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+              ),
+            value: zod
+              .string()
+              .regex(postPurchasesResponseAppliedCouponOneDiscountValueRegExp)
+              .describe(
+                '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+              ),
+            maxAmount: zod
+              .int()
+              .nullable()
+              .describe(
+                "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+              ),
+          })
+          .describe(
+            "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+          ),
+        scope: zod
+          .object({
+            kind: zod
+              .enum(["all", "category", "product"])
+              .describe(
+                "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+              ),
+            targetId: zod
+              .uuid()
+              .nullable()
+              .describe(
+                "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+              ),
+          })
+          .describe(
+            "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+          ),
+      })
+      .describe(
+        "購入に適用したクーポン。値引きと適用範囲の 2 軸だけを返します。\n\n控えへ写さず結合で解決した現在値です（`productName` と同じ扱い）。発行済みクーポンの値引きと\n適用範囲を書き換える口が無いため、結合で解決しても内容がぶれません。\n",
+      )
+      .nullable()
+      .describe(
+        "適用したクーポン。未使用の場合は null です。値引きと適用範囲は結合で解決した現在値です。\n",
+      ),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
     shippingFee: zod.int().describe("送料。USD セント単位の整数です。"),
     totalAmount: zod.int().describe("合計（小計 + 税額 + 送料）。USD セント単位の整数です。"),
@@ -2664,6 +2996,9 @@ export const GetPurchasesDetailParams = zod.object({
     .describe("購入コード（利用者へ注文番号として見せる一意の識別子）"),
 });
 
+export const getPurchasesDetailResponseAppliedCouponOneDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 export const getPurchasesDetailResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const GetPurchasesDetailResponse = zod
@@ -2684,6 +3019,62 @@ export const GetPurchasesDetailResponse = zod
         "購入に紐づくステータス（ID・業務キー・名称）。name は事前解決済みで、別途の名称解決 API 呼び出しは不要です。\n表示には name を、分岐にはドメインの業務キーである code を用います。\n",
       ),
     subtotalAmount: zod.int().describe("小計。明細（単価×数量）の合計。USD セント単位の整数です。"),
+    discountAmount: zod
+      .int()
+      .describe(
+        "クーポンによる値引き額。USD セント単位の整数です。\n\*\*非 null で、クーポン未使用および過去の購入は 0\*\* になります。\n値引きが立っていることと appliedCoupon が入っていることは常に一致します。\n",
+      ),
+    appliedCoupon: zod
+      .object({
+        id: zod.uuid().describe("適用したクーポンのID"),
+        discount: zod
+          .object({
+            kind: zod
+              .enum(["flat", "rate"])
+              .describe(
+                "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+              ),
+            value: zod
+              .string()
+              .regex(getPurchasesDetailResponseAppliedCouponOneDiscountValueRegExp)
+              .describe(
+                '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+              ),
+            maxAmount: zod
+              .int()
+              .nullable()
+              .describe(
+                "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+              ),
+          })
+          .describe(
+            "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+          ),
+        scope: zod
+          .object({
+            kind: zod
+              .enum(["all", "category", "product"])
+              .describe(
+                "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+              ),
+            targetId: zod
+              .uuid()
+              .nullable()
+              .describe(
+                "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+              ),
+          })
+          .describe(
+            "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+          ),
+      })
+      .describe(
+        "購入に適用したクーポン。値引きと適用範囲の 2 軸だけを返します。\n\n控えへ写さず結合で解決した現在値です（`productName` と同じ扱い）。発行済みクーポンの値引きと\n適用範囲を書き換える口が無いため、結合で解決しても内容がぶれません。\n",
+      )
+      .nullable()
+      .describe(
+        "適用したクーポン。未使用の場合は null です。値引きと適用範囲は結合で解決した現在値です。\n",
+      ),
     taxAmount: zod.int().describe("税額（国内消費税）。USD セント単位の整数です。"),
     shippingFee: zod.int().describe("送料。USD セント単位の整数です。"),
     totalAmount: zod.int().describe("合計（小計 + 税額 + 送料）。USD セント単位の整数です。"),
@@ -3483,6 +3874,989 @@ export const PostCartsMeMergeResponse = zod
   );
 
 /**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザーのカートに対して、
+ * 使えるクーポンと、それぞれを適用した場合の値引き額を取得します。
+ *
+ * **適用可否と値引き額を表現層に計算させないための口です。** どのクーポンがどの明細に効いて
+ * いくら引かれるかを front が判定すると、金額の決定が表現層へ漏れます。
+ *
+ * 母集団は保有一覧（`GET /v1/users/me/coupons`）と異なります。使用済み・失効済みと、
+ * いまのカートでは値引きが 0 になるクーポンは並びません。値引き額は購入確定時と同じ規則で決まります。
+ *
+ * **ロックを取らないため、返した値は返した瞬間から古くなります。** 確定までの間にカートの中身や
+ * クーポンの状態が変われば確定時の値引き額は変わり得るので、値引きが 0 になる確定は購入側が 422 で拒みます。
+ *
+ * カートを持たない場合と、使えるクーポンが 1 枚も無い場合は、いずれもエラーではなく空配列を返します。
+ * ゲストはクーポンの受給者になれないため、認証を必須とします。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary いまのカートに対して使えるクーポンの取得
+ */
+export const getCartsMeCouponsResponseCouponsItemCouponDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
+export const GetCartsMeCouponsResponse = zod
+  .object({
+    coupons: zod
+      .array(
+        zod
+          .object({
+            coupon: zod
+              .object({
+                id: zod.uuid().describe("クーポンID"),
+                discount: zod
+                  .object({
+                    kind: zod
+                      .enum(["flat", "rate"])
+                      .describe(
+                        "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+                      ),
+                    value: zod
+                      .string()
+                      .regex(getCartsMeCouponsResponseCouponsItemCouponDiscountValueRegExp)
+                      .describe(
+                        '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+                      ),
+                    maxAmount: zod
+                      .int()
+                      .nullable()
+                      .describe(
+                        "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+                      ),
+                  })
+                  .describe(
+                    "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+                  ),
+                scope: zod
+                  .object({
+                    kind: zod
+                      .enum(["all", "category", "product"])
+                      .describe(
+                        "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+                      ),
+                    targetId: zod
+                      .uuid()
+                      .nullable()
+                      .describe(
+                        "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+                      ),
+                  })
+                  .describe(
+                    "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+                  ),
+                expiresAt: zod.iso
+                  .datetime({ offset: true })
+                  .describe(
+                    "有効期限。この時刻ちょうどを含めて以降は失効として扱います。\n失効を一括更新する機構は持たず、判定のたびに現在時刻と突き合わせます。\n",
+                  ),
+                usedAt: zod.iso
+                  .datetime({ offset: true })
+                  .nullable()
+                  .describe(
+                    "使用日時。未使用の場合は null です。使用済みへの遷移は一度きりで取り消せません。",
+                  ),
+                issuedAt: zod.iso.datetime({ offset: true }).describe("発行日時"),
+                minPurchaseAmount: zod
+                  .int()
+                  .nullable()
+                  .describe(
+                    "このクーポンを使うために必要な購入額の下限。USD セント単位の整数です。\n条件が無い場合は null で、そのときは購入額を問わず使えます。\n",
+                  ),
+                usableFrom: zod.iso
+                  .datetime({ offset: true })
+                  .nullable()
+                  .describe(
+                    "使えるようになる日時。この時刻ちょうどを含めて以降に使えます。\n条件が無い場合は null で、そのときは発行した時点から使えます。\n",
+                  ),
+              })
+              .describe(
+                "クーポン。値引きと適用範囲という直交する 2 つの軸を持ちます。\n1 枚のクーポンは 1 つの値引きと 1 つの適用範囲を持ち、複数枚の併用も複数範囲の合成も表しません。\n",
+              ),
+            discountAmount: zod
+              .int()
+              .describe(
+                "このクーポンを適用した場合に差し引かれる額。USD セント単位の整数です。\n対象明細の小計を合算してから一度だけ切り捨てるため、明細ごとの丸め落ちは起きません。\n確定時に実際に引かれる額と同じ規則で決まりますが、ロックを取らないため一致は保証されません。\n",
+              ),
+          })
+          .describe(
+            "いまのカートに対して使えるクーポンと、そのクーポンを適用した場合の値引き額の組です。\n",
+          ),
+      )
+      .describe("使えるクーポンと値引き額の配列。1 枚も使えない場合は空配列です。"),
+  })
+  .describe(
+    "いまのカートに対して使えるクーポンの一覧。\n\n\*\*ロックを取らないため、返した値は返した瞬間から古くなります。\*\* 確定までの間にカートの中身や\nクーポンの状態が変われば、確定時の値引き額は変わり得ます。値引きが 0 になる確定は 422 で拒みます。\n\n母集団は保有一覧（`GET \/v1\/users\/me\/coupons`）と異なります。使用済み・失効済みと、\nいまのカートでは値引きが 0 になるクーポンは並びません。\n",
+  );
+
+/**
+ * 受給者を名指しして、クーポンを 1 枚発行します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。
+ * **受給者は 1 人です。** 不特定多数への配布は別の操作であり、POST /v1/coupons/bulk-issue が
+ * その形です。この API を全員へ繰り返し呼ぶ用途は想定していません。
+ * 受給者は退会していない利用者に限ります。存在しない、または退会済みの `userId` は 404 を返します。
+ * 適用範囲に `category` / `product` を指定した場合も、その対象が存在しなければ 404 を返します。
+ * 存在しない対象を範囲にしたクーポンは誰にも使えないため、発行してから気づくことを避けます。
+ * 発行されたクーポンは未使用の状態で作られ、GET /v1/users/me/coupons に並びます。
+ * 他の発行経路のクーポンと区別されません。
+ * **発行は取り消せません。** 使用済み・失効済みのいずれもクーポンの行は残り、無効化する経路も
+ * ありません。二度目の実行は一度目と同じだけの新しいクーポンを配るため、再送を安全にする手段が
+ * キーしかありません。そのため **`Idempotency-Key` は必須です**（欠くと 400）。
+ * 同一キーの再送は初回の結果をそのまま返し、クーポンが二重に発行されることはありません。
+ * **別のキーで再実行した場合は、別の発行として改めて 1 枚配られます。**
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary クーポンの発行
+ */
+export const postCouponsHeaderIdempotencyKeyMax = 255;
+
+export const postCouponsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCouponsHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCouponsHeaderIdempotencyKeyMax)
+    .regex(postCouponsHeaderIdempotencyKeyRegExp)
+    .describe(
+      "冪等キー。同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n\n\*\*この操作では必須です。\*\* 必須になる理由は 2 通りあり、どちらかに当たれば必須です。ひとつは、\n重複が取り消せない金銭的価値の配布になること。クーポンの発行・一括発行・コードによる受け取りが\nこれで、配り終えたクーポンを回収する経路は持ちません。もうひとつは、重複そのものは一意制約で\n弾かれるものの、返る 409 から初回の結果を辿れないこと。キャンペーンの定義がこれで、コードで\n引く操作が無いため一覧を辿るほかありません。\n\nキーが任意の操作では、重複を許容できます。二度目が弾かれる（同じ主体の二度目の登録は 409 で、\n初回の結果は GET \/v1\/users\/me から辿れます）、状態が収束する（廃番済みの商品は再度廃番にならず\n200 を返します）、事後に取り消せる（購入はキャンセルできます）、重複が残っても新たな価値を\n生まない（問い合わせメッセージの追記）のいずれかです。\n",
+    ),
+});
+
+export const postCouponsBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCouponsBody = zod
+  .object({
+    userId: zod
+      .uuid()
+      .describe(
+        "受給者の利用者 ID。退会していない利用者に限ります。存在しない、または退会済みの ID を 指定した場合は 404 を返します。受給者は発行時に確定し、以後移りません。",
+      ),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCouponsBodyDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、 正確な十進量を保つ decimal 文字列で表します（例 `\"0.15\"` は 15% 引き）。 定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、 USD セント単位の整数で表す maxAmount や minPurchaseAmount とは桁が違います。 定額で引く額は対象額が上限です。セント未満の桁も受け付けますが、値引き額を求める時点で セント未満は切り捨てられます（四捨五入ではありません）。 ドメインの検証に落ちる値（定率で 0 以下または 1 超など）は 422 を返します。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。',
+          ),
+        maxAmount: zod
+          .int()
+          .nullish()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。任意で、省略または null なら 上限を設けません。定額（`flat`）に対して指定した場合は、意味を持たない組み合わせとして 422 を 返します。0 以下を指定した場合も 422 です。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n応答側の CouponDiscount と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリ ID、`product` なら商品 ID です。 `all` では対象を持たないため null を送ります。 `category` \/ `product` で存在しない識別子を指した場合は 404 を返します。誰にも使えないクーポンを 発行してから気づくことになるためです。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n応答側の CouponScope と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "発行するクーポンの有効期限。締切を名指しする操作なので、日数ではなく絶対時刻で受け取ります。 現在時刻以前を指定した場合は、発行した瞬間に失効するクーポンになるため 422 を返します。",
+      ),
+    minPurchaseAmount: zod
+      .int()
+      .nullish()
+      .describe(
+        "発行するクーポンを使うために必要な購入額の下限。USD セント単位の整数です。任意で、 省略または null なら購入額を問わず使えます。0 以下を指定した場合は 422 を返します。",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullish()
+      .describe(
+        "発行するクーポンが使えるようになる日時。任意で、省略または null なら発行した時点から使えます。 有効期限（expiresAt）以降を指定した場合は、一度も使えないクーポンになるため 422 を返します。",
+      ),
+  })
+  .describe(
+    "クーポン発行のリクエスト（application\/json）。admin のみ実行できます（非 admin は 403）。\n受給者・値引き・適用範囲・有効期限を指定すると、その利用者へクーポンが 1 枚発行されます。\n\*\*受給者は 1 人だけです。\*\* 不特定多数への配布は別の操作（POST \/v1\/coupons\/bulk-issue）です。\n",
+  );
+
+export const postCouponsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCouponsResponse = zod
+  .object({
+    id: zod.uuid().describe("クーポンID"),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCouponsResponseDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+          ),
+        maxAmount: zod
+          .int()
+          .nullable()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+          ),
+      })
+      .describe(
+        "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+          ),
+      })
+      .describe(
+        "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "有効期限。この時刻ちょうどを含めて以降は失効として扱います。\n失効を一括更新する機構は持たず、判定のたびに現在時刻と突き合わせます。\n",
+      ),
+    usedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("使用日時。未使用の場合は null です。使用済みへの遷移は一度きりで取り消せません。"),
+    issuedAt: zod.iso.datetime({ offset: true }).describe("発行日時"),
+    minPurchaseAmount: zod
+      .int()
+      .nullable()
+      .describe(
+        "このクーポンを使うために必要な購入額の下限。USD セント単位の整数です。\n条件が無い場合は null で、そのときは購入額を問わず使えます。\n",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "使えるようになる日時。この時刻ちょうどを含めて以降に使えます。\n条件が無い場合は null で、そのときは発行した時点から使えます。\n",
+      ),
+  })
+  .describe(
+    "クーポン。値引きと適用範囲という直交する 2 つの軸を持ちます。\n1 枚のクーポンは 1 つの値引きと 1 つの適用範囲を持ち、複数枚の併用も複数範囲の合成も表しません。\n",
+  );
+
+/**
+ * 退会していないすべての利用者へ、同一条件の販促クーポンを 1 枚ずつ発行します。認証必須で、
+ * 管理者（admin）のみ実行できます（非 admin は 403）。
+ * **受給者は指定できません。** 不特定多数への配布がこの操作の形です。受給者を名指しして配る発行は
+ * 別の操作であり、この API を「全員を列挙する」用途に使うことは想定していません。
+ * 書き込むのはクーポンだけで、他の集約は変更しません。往復は受給者数に比例せず、発行枚数によらず
+ * 一定です。
+ * **配布の記録は残りません。** 同じ条件で二度実行すれば、同じ利用者へ 2 枚発行されます。
+ * 同じ配布を二度走らせない責務は呼び出し側にあるため、**Idempotency-Key は必須です**（欠くと 400）。
+ * 同一キーの再送は初回の結果をそのまま返し、クーポンが二重に発行されることはありません。
+ * **別のキーで再実行した場合は、別の配布として全員へ改めて発行されます。**意図しない再配布を防ぐのは
+ * キーの管理だけなので、リトライでは必ず同じキーを送ってください。
+ * 適用範囲に `category` / `product` を指定した場合、その対象が存在しなければ 404 を返します。
+ * 存在しない対象を範囲にしたクーポンは誰にも使えないため、発行してから気づくことを避けます。
+ * 受給対象の人数が上限を超える場合は 409 を返します。409 はこの一義で、要求の形が原因になることは
+ * ありません（形の誤りは 400 / 422 です）。
+ * 発行されたクーポンは GET /v1/users/me/coupons に並び、他の発行経路のクーポンと区別されません。
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 販促クーポンの一括発行
+ */
+export const postCouponsBulkIssueHeaderIdempotencyKeyMax = 255;
+
+export const postCouponsBulkIssueHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCouponsBulkIssueHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCouponsBulkIssueHeaderIdempotencyKeyMax)
+    .regex(postCouponsBulkIssueHeaderIdempotencyKeyRegExp)
+    .describe(
+      "冪等キー。同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n\n\*\*この操作では必須です。\*\* 必須になる理由は 2 通りあり、どちらかに当たれば必須です。ひとつは、\n重複が取り消せない金銭的価値の配布になること。クーポンの発行・一括発行・コードによる受け取りが\nこれで、配り終えたクーポンを回収する経路は持ちません。もうひとつは、重複そのものは一意制約で\n弾かれるものの、返る 409 から初回の結果を辿れないこと。キャンペーンの定義がこれで、コードで\n引く操作が無いため一覧を辿るほかありません。\n\nキーが任意の操作では、重複を許容できます。二度目が弾かれる（同じ主体の二度目の登録は 409 で、\n初回の結果は GET \/v1\/users\/me から辿れます）、状態が収束する（廃番済みの商品は再度廃番にならず\n200 を返します）、事後に取り消せる（購入はキャンセルできます）、重複が残っても新たな価値を\n生まない（問い合わせメッセージの追記）のいずれかです。\n",
+    ),
+});
+
+export const postCouponsBulkIssueBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCouponsBulkIssueBody = zod
+  .object({
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCouponsBulkIssueBodyDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、 正確な十進量を保つ decimal 文字列で表します（例 `\"0.15\"` は 15% 引き）。 定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、 USD セント単位の整数で表す maxAmount や minPurchaseAmount とは桁が違います。 定額で引く額は対象額が上限です。セント未満の桁も受け付けますが、値引き額を求める時点で セント未満は切り捨てられます（四捨五入ではありません）。 ドメインの検証に落ちる値（定率で 0 以下または 1 超など）は 422 を返します。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。',
+          ),
+        maxAmount: zod
+          .int()
+          .nullish()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。任意で、省略または null なら 上限を設けません。定額（`flat`）に対して指定した場合は、意味を持たない組み合わせとして 422 を 返します。0 以下を指定した場合も 422 です。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n応答側の CouponDiscount と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリ ID、`product` なら商品 ID です。 `all` では対象を持たないため null を送ります。 `category` \/ `product` で存在しない識別子を指した場合は 404 を返します。誰にも使えないクーポンを 発行してから気づくことになるためです。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n応答側の CouponScope と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "発行するクーポンの有効期限。販促の終了日を名指しする操作なので、日数ではなく絶対時刻で 受け取ります。現在時刻以前を指定した場合は、発行した瞬間に失効するクーポンになるため 422 を返します。",
+      ),
+  })
+  .describe(
+    "販促クーポン一括発行のリクエスト（application\/json）。admin のみ実行できます（非 admin は 403）。\n値引き・適用範囲・有効期限を指定すると、退会していないすべての利用者へ同一条件のクーポンが\n1 枚ずつ発行されます。\*\*受給者は指定できません。\*\* 不特定多数への配布がこの API の形であり、\n受給者を名指しする発行は別の操作です。\n",
+  );
+
+export const PostCouponsBulkIssueResponse = zod
+  .object({
+    issuedAt: zod.iso
+      .datetime({ offset: true })
+      .describe("発行が確定した日時。サーバーの時刻で決まるため、要求では指定できません。"),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe("発行したクーポンの有効期限。要求で指定した値をそのまま返します。"),
+    recipientCount: zod
+      .int()
+      .describe(
+        "この実行で受給対象になった利用者数。退会済みユーザーは含みません。 受給者が 0 人の場合は 0 を返し、クーポンは 1 枚も発行されません。",
+      ),
+    issuedCouponCount: zod
+      .int()
+      .describe(
+        "この実行で発行したクーポンの枚数。受給者 1 人につき 1 枚なので recipientCount と一致します。 一致しない場合はトランザクションが巻き戻り、この応答は返りません。",
+      ),
+  })
+  .describe(
+    "販促クーポン一括発行の実行結果。その実行が起こしたことを件数で返します。\n\*\*過去の発行実績ではありません。\*\* 配布の記録を持たないため、同じ条件で二度実行すれば\n同じ利用者へ 2 枚発行されます（Idempotency-Key による再送は除く）。\n",
+  );
+
+/**
+ * コードを配るキャンペーンを 1 件定義します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。
+ * 定義した時点ではクーポンは 1 枚も配られません。利用者が POST /v1/campaigns/claims で
+ * コードを示したときに、このテンプレートからクーポンが 1 枚発行されます。
+ * **配るクーポンの内容は受け取った時点でクーポンへ焼かれます。** 以後この定義を変えても、
+ * 既に配ったクーポンは動きません。編集の口を持たないのはそのためで、配布を止めるには
+ * POST /v1/campaigns/{campaignId}/suspend を使います。
+ * テンプレートが実際にクーポンへ解決できるかはここで確かめます。誰も受け取れないキャンペーンを
+ * 作れてしまわないためです。値引き種別・適用範囲種別が既知でない場合は 422 を返します。
+ * コードは前後の空白を落とし大文字に揃えて保存されます。**既に使われているコードは 409 です。**
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの定義
+ */
+export const postCampaignsHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCampaignsHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCampaignsHeaderIdempotencyKeyMax)
+    .regex(postCampaignsHeaderIdempotencyKeyRegExp)
+    .describe(
+      "冪等キー。同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n\n\*\*この操作では必須です。\*\* 必須になる理由は 2 通りあり、どちらかに当たれば必須です。ひとつは、\n重複が取り消せない金銭的価値の配布になること。クーポンの発行・一括発行・コードによる受け取りが\nこれで、配り終えたクーポンを回収する経路は持ちません。もうひとつは、重複そのものは一意制約で\n弾かれるものの、返る 409 から初回の結果を辿れないこと。キャンペーンの定義がこれで、コードで\n引く操作が無いため一覧を辿るほかありません。\n\nキーが任意の操作では、重複を許容できます。二度目が弾かれる（同じ主体の二度目の登録は 409 で、\n初回の結果は GET \/v1\/users\/me から辿れます）、状態が収束する（廃番済みの商品は再度廃番にならず\n200 を返します）、事後に取り消せる（購入はキャンセルできます）、重複が残っても新たな価値を\n生まない（問い合わせメッセージの追記）のいずれかです。\n",
+    ),
+});
+
+export const postCampaignsBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCampaignsBody = zod
+  .object({
+    code: zod
+      .string()
+      .describe(
+        "キャンペーンコード。前後の空白を落とし大文字に揃えた結果が 8〜32 文字で、 英数字とハイフンのみである必要があります。総当たりの抑止をアプリケーション内に持たないため、 コードは推測されにくさを自分の長さで持ちます。既に使われているコードは 409 を返します。",
+      ),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCampaignsBodyDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、 正確な十進量を保つ decimal 文字列で表します（例 `\"0.15\"` は 15% 引き）。 定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、 USD セント単位の整数で表す maxAmount や minPurchaseAmount とは桁が違います。 定額で引く額は対象額が上限です。セント未満の桁も受け付けますが、値引き額を求める時点で セント未満は切り捨てられます（四捨五入ではありません）。 ドメインの検証に落ちる値（定率で 0 以下または 1 超など）は 422 を返します。 JSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。',
+          ),
+        maxAmount: zod
+          .int()
+          .nullish()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。任意で、省略または null なら 上限を設けません。定額（`flat`）に対して指定した場合は、意味を持たない組み合わせとして 422 を 返します。0 以下を指定した場合も 422 です。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n応答側の CouponDiscount と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリ ID、`product` なら商品 ID です。 `all` では対象を持たないため null を送ります。 `category` \/ `product` で存在しない識別子を指した場合は 404 を返します。誰にも使えないクーポンを 発行してから気づくことになるためです。",
+          ),
+      })
+      .describe(
+        "発行するクーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n応答側の CouponScope と同じ形ですが、要求として受け取る側は宣言に無いフィールドを拒むため別に持ちます。\n",
+      ),
+    minPurchaseAmount: zod
+      .int()
+      .nullish()
+      .describe(
+        "配るクーポンを使うために必要な購入額の下限。USD セント単位の整数です。任意で、 省略または null なら購入額を問わず使えます。0 以下を指定した場合は 422 を返します。",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullish()
+      .describe(
+        "配るクーポンが使えるようになる日時。任意で、省略または null なら発行した時点から使えます。 couponExpiresAt 以降を指定した場合は 422 を返します。",
+      ),
+    couponExpiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "配るクーポンの有効期限。endsAt より後である必要があります（満たさない場合は 422）。",
+      ),
+    startsAt: zod.iso
+      .datetime({ offset: true })
+      .describe("配布期間の開始日時。この時刻ちょうどを含めて以降に受け取れます。"),
+    endsAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "配布期間の終了日時。startsAt より後である必要があります（満たさない場合は 422）。",
+      ),
+    totalLimit: zod.int().describe("総枚数上限。1 以上である必要があります。"),
+    perUserLimit: zod
+      .int()
+      .describe("1 人あたり上限。1 以上で、totalLimit 以下である必要があります。"),
+  })
+  .describe(
+    "キャンペーン定義のリクエスト（application\/json）。admin のみ実行できます（非 admin は 403）。\nコードと、配るクーポンの内容・配布期間・上限を指定すると、そのコードで受け取れるようになります。\n",
+  );
+
+export const postCampaignsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCampaignsResponse = zod
+  .object({
+    id: zod.uuid().describe("キャンペーンID"),
+    code: zod
+      .string()
+      .describe(
+        "正規化済みのキャンペーンコード。前後の空白を落とし、大文字に揃えた値です。\n受け取り時のコードも同じ正規化を経るため、大文字・小文字の違いは同じコードとして扱われます。\n",
+      ),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCampaignsResponseDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+          ),
+        maxAmount: zod
+          .int()
+          .nullable()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+          ),
+      })
+      .describe(
+        "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+          ),
+      })
+      .describe(
+        "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+      ),
+    minPurchaseAmount: zod
+      .int()
+      .nullable()
+      .describe(
+        "配るクーポンの最低購入金額。USD セント単位の整数です。条件が無い場合は null です。",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("配るクーポンが使えるようになる日時。発行時点から使える場合は null です。"),
+    couponExpiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "配るクーポンの有効期限。配布期間の終了より後である必要があります。\n期間の終わりぎわに受け取った利用者へ、その時点で既に失効しているクーポンを渡さないためです。\n",
+      ),
+    startsAt: zod.iso
+      .datetime({ offset: true })
+      .describe("配布期間の開始日時。この時刻ちょうどを含めて以降に受け取れます。"),
+    endsAt: zod.iso
+      .datetime({ offset: true })
+      .describe("配布期間の終了日時。この時刻ちょうどを含めて以降は受け取れません。"),
+    totalLimit: zod.int().describe("総枚数上限。このキャンペーンが配れるクーポンの上限枚数です。"),
+    perUserLimit: zod.int().describe("1 人あたり上限。1 人の利用者が受け取れる上限枚数です。"),
+    issuedCount: zod
+      .int()
+      .describe(
+        "発行済み枚数。購入のキャンセルでクーポンが未使用へ戻っても減りません。\n配った事実は取り消されないためです。\n",
+      ),
+    suspendedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("停止日時。停止していない場合は null です。停止は取り消せません。"),
+  })
+  .describe(
+    "キャンペーン。コードを配り、受け取った利用者へクーポンを 1 枚ずつ配る取り組みです。\n配るクーポンの内容はテンプレートとして固定され、受け取った時点でクーポンへ焼かれます。\n以後この定義を変えても、既に配ったクーポンは動きません。\n",
+  );
+
+/**
+ * キャンペーンを配布期間の開始が新しい順で返します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。停止済みと配布期間を過ぎたものも含みます。
+ * 残枚数は totalLimit と issuedCount の差から読めます。issuedCount は配った枚数であり、
+ * 購入のキャンセルでクーポンが未使用へ戻っても減りません。
+ * 本 op は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの一覧
+ */
+export const getCampaignsQueryPageDefault = 1;
+export const getCampaignsQueryPageMax = 10000;
+
+export const getCampaignsQueryPerPageDefault = 10;
+export const getCampaignsQueryPerPageMax = 100;
+
+export const GetCampaignsQueryParams = zod.object({
+  page: zod
+    .int()
+    .min(1)
+    .max(getCampaignsQueryPageMax)
+    .default(getCampaignsQueryPageDefault)
+    .describe("ページ番号（1から始まる）。上限を超えた場合は 400 を返します。"),
+  perPage: zod
+    .int()
+    .min(1)
+    .max(getCampaignsQueryPerPageMax)
+    .default(getCampaignsQueryPerPageDefault)
+    .describe("1ページあたりの取得件数"),
+});
+
+export const getCampaignsResponseCampaignsItemDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const GetCampaignsResponse = zod
+  .object({
+    campaigns: zod
+      .array(
+        zod
+          .object({
+            id: zod.uuid().describe("キャンペーンID"),
+            code: zod
+              .string()
+              .describe(
+                "正規化済みのキャンペーンコード。前後の空白を落とし、大文字に揃えた値です。\n受け取り時のコードも同じ正規化を経るため、大文字・小文字の違いは同じコードとして扱われます。\n",
+              ),
+            discount: zod
+              .object({
+                kind: zod
+                  .enum(["flat", "rate"])
+                  .describe(
+                    "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+                  ),
+                value: zod
+                  .string()
+                  .regex(getCampaignsResponseCampaignsItemDiscountValueRegExp)
+                  .describe(
+                    '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+                  ),
+                maxAmount: zod
+                  .int()
+                  .nullable()
+                  .describe(
+                    "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+                  ),
+              })
+              .describe(
+                "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+              ),
+            scope: zod
+              .object({
+                kind: zod
+                  .enum(["all", "category", "product"])
+                  .describe(
+                    "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+                  ),
+                targetId: zod
+                  .uuid()
+                  .nullable()
+                  .describe(
+                    "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+                  ),
+              })
+              .describe(
+                "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+              ),
+            minPurchaseAmount: zod
+              .int()
+              .nullable()
+              .describe(
+                "配るクーポンの最低購入金額。USD セント単位の整数です。条件が無い場合は null です。",
+              ),
+            usableFrom: zod.iso
+              .datetime({ offset: true })
+              .nullable()
+              .describe("配るクーポンが使えるようになる日時。発行時点から使える場合は null です。"),
+            couponExpiresAt: zod.iso
+              .datetime({ offset: true })
+              .describe(
+                "配るクーポンの有効期限。配布期間の終了より後である必要があります。\n期間の終わりぎわに受け取った利用者へ、その時点で既に失効しているクーポンを渡さないためです。\n",
+              ),
+            startsAt: zod.iso
+              .datetime({ offset: true })
+              .describe("配布期間の開始日時。この時刻ちょうどを含めて以降に受け取れます。"),
+            endsAt: zod.iso
+              .datetime({ offset: true })
+              .describe("配布期間の終了日時。この時刻ちょうどを含めて以降は受け取れません。"),
+            totalLimit: zod
+              .int()
+              .describe("総枚数上限。このキャンペーンが配れるクーポンの上限枚数です。"),
+            perUserLimit: zod
+              .int()
+              .describe("1 人あたり上限。1 人の利用者が受け取れる上限枚数です。"),
+            issuedCount: zod
+              .int()
+              .describe(
+                "発行済み枚数。購入のキャンセルでクーポンが未使用へ戻っても減りません。\n配った事実は取り消されないためです。\n",
+              ),
+            suspendedAt: zod.iso
+              .datetime({ offset: true })
+              .nullable()
+              .describe("停止日時。停止していない場合は null です。停止は取り消せません。"),
+          })
+          .describe(
+            "キャンペーン。コードを配り、受け取った利用者へクーポンを 1 枚ずつ配る取り組みです。\n配るクーポンの内容はテンプレートとして固定され、受け取った時点でクーポンへ焼かれます。\n以後この定義を変えても、既に配ったクーポンは動きません。\n",
+          ),
+      )
+      .describe("配布期間の開始が新しい順に並んだキャンペーンです。"),
+    total: zod.int().describe("キャンペーンの総件数"),
+  })
+  .describe("キャンペーンの一覧。停止済みも含みます。");
+
+/**
+ * キャンペーンコードを示して、クーポンを 1 枚受け取ります。認証必須で、受給者は認証主体自身です。
+ * 受け取ったクーポンは未使用の状態で作られ、GET /v1/users/me/coupons に並びます。
+ * 他の発行経路のクーポンと区別されません。
+ * **受け取れない理由は区別しません。** 存在しないコード・配布期間の外・停止済み・総枚数上限に到達・
+ * その利用者が 1 人あたり上限に到達、のいずれも `422` + `details: ["code"]` を返します。
+ * 区別できると、有効なコードを言い当てる手がかりになるためです。形式が不正なコードも同じ応答です。
+ * 次にすべきことはどの場合も同じ（別のコードを使うか諦める）なので、区別する必要もありません。
+ * **総枚数上限と 1 人あたり上限は、同時に受け取りが殺到しても超えません。** キャンペーンの行を
+ * 先に押さえてから枚数を数えるため、判定と発行の間に他の受け取りが割り込みません。
+ * その代わり、同じコードへの同時要求は順番に処理されます。
+ * **Idempotency-Key は必須です**（欠くと 400）。受け取りは取り消せず、二度目の実行は
+ * もう 1 枚配るためです。同一キーの再送は初回の結果をそのまま返します。
+ * **別のキーで押し直した場合は、上限に達していなければ改めて 1 枚配られます。**
+ * 本 op は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary コードによるクーポンの受け取り
+ */
+export const postCampaignsClaimsHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsClaimsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCampaignsClaimsHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCampaignsClaimsHeaderIdempotencyKeyMax)
+    .regex(postCampaignsClaimsHeaderIdempotencyKeyRegExp)
+    .describe(
+      "冪等キー。同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n\n\*\*この操作では必須です。\*\* 必須になる理由は 2 通りあり、どちらかに当たれば必須です。ひとつは、\n重複が取り消せない金銭的価値の配布になること。クーポンの発行・一括発行・コードによる受け取りが\nこれで、配り終えたクーポンを回収する経路は持ちません。もうひとつは、重複そのものは一意制約で\n弾かれるものの、返る 409 から初回の結果を辿れないこと。キャンペーンの定義がこれで、コードで\n引く操作が無いため一覧を辿るほかありません。\n\nキーが任意の操作では、重複を許容できます。二度目が弾かれる（同じ主体の二度目の登録は 409 で、\n初回の結果は GET \/v1\/users\/me から辿れます）、状態が収束する（廃番済みの商品は再度廃番にならず\n200 を返します）、事後に取り消せる（購入はキャンセルできます）、重複が残っても新たな価値を\n生まない（問い合わせメッセージの追記）のいずれかです。\n",
+    ),
+});
+
+export const PostCampaignsClaimsBody = zod
+  .object({
+    code: zod
+      .string()
+      .describe(
+        "キャンペーンコード。前後の空白と大文字・小文字の違いは無視されます。 受け取れない場合の理由（存在しない・配布期間外・停止済み・上限到達）は区別されません。",
+      ),
+  })
+  .describe(
+    "コードの提示による受け取りのリクエスト（application\/json）。認証必須で、\n認証主体自身がクーポンを 1 枚受け取ります。\nコードはボディで受け取ります。URL に置くとアクセスログや Referer に残り、\nコードそのものが受け取る資格である以上、それは資格情報を記録することになるためです。\n",
+  );
+
+export const postCampaignsClaimsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCampaignsClaimsResponse = zod
+  .object({
+    id: zod.uuid().describe("クーポンID"),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCampaignsClaimsResponseDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+          ),
+        maxAmount: zod
+          .int()
+          .nullable()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+          ),
+      })
+      .describe(
+        "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+          ),
+      })
+      .describe(
+        "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+      ),
+    expiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "有効期限。この時刻ちょうどを含めて以降は失効として扱います。\n失効を一括更新する機構は持たず、判定のたびに現在時刻と突き合わせます。\n",
+      ),
+    usedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("使用日時。未使用の場合は null です。使用済みへの遷移は一度きりで取り消せません。"),
+    issuedAt: zod.iso.datetime({ offset: true }).describe("発行日時"),
+    minPurchaseAmount: zod
+      .int()
+      .nullable()
+      .describe(
+        "このクーポンを使うために必要な購入額の下限。USD セント単位の整数です。\n条件が無い場合は null で、そのときは購入額を問わず使えます。\n",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe(
+        "使えるようになる日時。この時刻ちょうどを含めて以降に使えます。\n条件が無い場合は null で、そのときは発行した時点から使えます。\n",
+      ),
+  })
+  .describe(
+    "クーポン。値引きと適用範囲という直交する 2 つの軸を持ちます。\n1 枚のクーポンは 1 つの値引きと 1 つの適用範囲を持ち、複数枚の併用も複数範囲の合成も表しません。\n",
+  );
+
+/**
+ * 指定された UUID に該当するキャンペーンの受け取りを打ち切ります。認証必須で、管理者（admin）のみ
+ * 実行できます（非 admin は 403）。
+ * 配布期間が残っていても、以後そのコードでは受け取れなくなります。配布事故を止める口がこれです。
+ * **停止は取り消せません。** 既に停止済みのキャンペーンへの再実行は 409 を返します。
+ * 409 はこの一義で、要求が版の食い違いで拒まれることはありません（本操作はバージョンを受け取らないため）。
+ * **既に配ったクーポンは無効になりません。** 停止が止めるのは配布であって、配った 1 枚ではないためです。
+ * 発行済みのクーポンを失効させる経路は存在しません。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返します。
+ * 本 op は DB の SELECT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの停止
+ */
+export const postCampaignsSuspendPathCampaignIdMax = 36;
+
+export const postCampaignsSuspendPathCampaignIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const PostCampaignsSuspendParams = zod.object({
+  campaignId: zod
+    .uuid()
+    .max(postCampaignsSuspendPathCampaignIdMax)
+    .regex(postCampaignsSuspendPathCampaignIdRegExp)
+    .describe("キャンペーンのUUID"),
+});
+
+export const postCampaignsSuspendHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsSuspendHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const PostCampaignsSuspendHeader = zod.object({
+  "Idempotency-Key": zod
+    .string()
+    .min(1)
+    .max(postCampaignsSuspendHeaderIdempotencyKeyMax)
+    .regex(postCampaignsSuspendHeaderIdempotencyKeyRegExp)
+    .optional()
+    .describe(
+      "冪等キー。非冪等な変更操作（作成系など）で、同一キーによるリトライを重複実行なく\n安全にするための識別子。サーバは同一 (認証主体, キー) の再送を初回結果のリプレイとして扱う。\nこのヘッダを宣言する操作は、ハンドラが必ず idempotency.Run 経由で処理する契約（完全性テストで機械検証）。\n",
+    ),
+});
+
+export const postCampaignsSuspendResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const PostCampaignsSuspendResponse = zod
+  .object({
+    id: zod.uuid().describe("キャンペーンID"),
+    code: zod
+      .string()
+      .describe(
+        "正規化済みのキャンペーンコード。前後の空白を落とし、大文字に揃えた値です。\n受け取り時のコードも同じ正規化を経るため、大文字・小文字の違いは同じコードとして扱われます。\n",
+      ),
+    discount: zod
+      .object({
+        kind: zod
+          .enum(["flat", "rate"])
+          .describe(
+            "値引きの決まり方。`flat` は金額を直接差し引く定額、`rate` は対象額に率を掛ける定率です。\n",
+          ),
+        value: zod
+          .string()
+          .regex(postCampaignsSuspendResponseDiscountValueRegExp)
+          .describe(
+            '種別における値。定額なら差し引く金額、定率なら対象額に掛ける率を、\n正確な十進量を保つ decimal 文字列で表します（例 `\"0.10\"` は 10% 引き）。\n定額の金額は商品の price と同じ USD のドル建てで（例 `\"5.00\"` は 5 ドル引き）、\nUSD セント単位の整数で表す maxAmount とは桁が違います。\n定額で引く額は対象額が上限で、セント未満の桁は値引き額を求める時点で切り捨てられます\n（四捨五入ではありません）。\nJSON number は IEEE754 double として復元され精度を失うため、文字列で表現します。\n',
+          ),
+        maxAmount: zod
+          .int()
+          .nullable()
+          .describe(
+            "定率の値引きが 1 回に引ける額の上限。USD セント単位の整数です。\n定率（`rate`）にのみ意味を持ち、定額（`flat`）では常に null です。\n上限が無い場合も null で、そのときは対象額に率を掛けた額がそのまま引かれます。\n",
+          ),
+      })
+      .describe(
+        "クーポンの値引き。いくら引くかを表します。適用範囲（どの明細が対象か）とは独立した軸です。\n",
+      ),
+    scope: zod
+      .object({
+        kind: zod
+          .enum(["all", "category", "product"])
+          .describe(
+            "適用範囲の決まり方。`all` は対象を絞らない全体、`category` は特定の商品カテゴリに属する明細だけ、\n`product` は特定の商品の明細だけを対象とします。\n",
+          ),
+        targetId: zod
+          .uuid()
+          .nullable()
+          .describe(
+            "範囲を絞る対象の識別子。`category` なら商品カテゴリID、`product` なら商品IDです。\n`all` では対象を持たないため null になります。\n",
+          ),
+      })
+      .describe(
+        "クーポンの適用範囲。どの明細が対象かを表します。値引き（いくら引くか）とは独立した軸です。\n",
+      ),
+    minPurchaseAmount: zod
+      .int()
+      .nullable()
+      .describe(
+        "配るクーポンの最低購入金額。USD セント単位の整数です。条件が無い場合は null です。",
+      ),
+    usableFrom: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("配るクーポンが使えるようになる日時。発行時点から使える場合は null です。"),
+    couponExpiresAt: zod.iso
+      .datetime({ offset: true })
+      .describe(
+        "配るクーポンの有効期限。配布期間の終了より後である必要があります。\n期間の終わりぎわに受け取った利用者へ、その時点で既に失効しているクーポンを渡さないためです。\n",
+      ),
+    startsAt: zod.iso
+      .datetime({ offset: true })
+      .describe("配布期間の開始日時。この時刻ちょうどを含めて以降に受け取れます。"),
+    endsAt: zod.iso
+      .datetime({ offset: true })
+      .describe("配布期間の終了日時。この時刻ちょうどを含めて以降は受け取れません。"),
+    totalLimit: zod.int().describe("総枚数上限。このキャンペーンが配れるクーポンの上限枚数です。"),
+    perUserLimit: zod.int().describe("1 人あたり上限。1 人の利用者が受け取れる上限枚数です。"),
+    issuedCount: zod
+      .int()
+      .describe(
+        "発行済み枚数。購入のキャンセルでクーポンが未使用へ戻っても減りません。\n配った事実は取り消されないためです。\n",
+      ),
+    suspendedAt: zod.iso
+      .datetime({ offset: true })
+      .nullable()
+      .describe("停止日時。停止していない場合は null です。停止は取り消せません。"),
+  })
+  .describe(
+    "キャンペーン。コードを配り、受け取った利用者へクーポンを 1 枚ずつ配る取り組みです。\n配るクーポンの内容はテンプレートとして固定され、受け取った時点でクーポンへ焼かれます。\n以後この定義を変えても、既に配ったクーポンは動きません。\n",
+  );
+
+/**
  * 問い合わせを更新日時の新しい順に 1 ページ取得します。**管理者ロールが必要です**。
  * 本文は含めません。一覧は問い合わせの行だけで組み立て、最新メッセージの内容は履歴か feed の
  * 購読で受け取ります。
@@ -3615,7 +4989,7 @@ export const GetInquiriesMeMessagesResponse = zod
  * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
  * timeout 後の再送でメッセージが二重に生まれません。同一キーを内容の異なる要求で使い回した場合は
  * 422 で拒否します。
- * 最初の投稿が並行した場合、サーバは内部で 1 度だけやり直します。それでも解けない場合のみ 409 を返します。
+ * 最初の投稿が並行した場合、サーバは先に作られた問い合わせへ追加するため、どちらの投稿も成功します。
  * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
  * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
  * @summary 自分の問い合わせへの投稿

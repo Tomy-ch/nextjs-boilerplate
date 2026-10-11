@@ -40,6 +40,9 @@ const PATTERNED_MOCK_PROPERTIES = {
   "/^(price|unitPrice|rate|original)$/": () => "19.99",
   // 符号付きの decimal 文字列。
   "/^converted$/": () => "-19.99",
+  // クーポンの値引きの decimal 文字列。定率では 0 より大きく 1 以下、定額では USD の額であり、
+  // どちらの種別にも収まる値を返す。
+  "/^value$/": () => "0.10",
   // 先頭の + は任意で、以降は 10〜15 桁の数字。
   "/^phone$/": () => "09012345678",
   "/^postalCode$/": () => "100-0001",

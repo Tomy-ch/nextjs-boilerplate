@@ -9,14 +9,21 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+4a0bd3a
  */
 
 export * from "./activeParamParameter";
 export * from "./addressCandidate";
 export * from "./addressCandidatesResponse";
 export * from "./afterSequenceParamParameter";
+export * from "./appliedCouponResponse";
 export * from "./badRequest400Response";
+export * from "./campaignClaimsPostRequest";
+export * from "./campaignListResponse";
+export * from "./campaignResponse";
+export * from "./campaignsPostRequest";
+export * from "./cartCouponListResponse";
+export * from "./cartCouponResponse";
 export * from "./cartItemIssue";
 export * from "./cartItemPutRequest";
 export * from "./cartItemResponse";
@@ -30,6 +37,19 @@ export * from "./conflict409Response";
 export * from "./controlEvent";
 export * from "./controlEventAction";
 export * from "./controlEventReason";
+export * from "./couponBulkIssuePostRequest";
+export * from "./couponBulkIssueResponse";
+export * from "./couponDiscount";
+export * from "./couponDiscountInput";
+export * from "./couponDiscountInputKind";
+export * from "./couponDiscountKind";
+export * from "./couponListResponse";
+export * from "./couponResponse";
+export * from "./couponScope";
+export * from "./couponScopeInput";
+export * from "./couponScopeInputKind";
+export * from "./couponScopeKind";
+export * from "./couponsPostRequest";
 export * from "./cursorAfterParamParameter";
 export * from "./cursorFirstParamParameter";
 export * from "./cursorPaginationMetadataResponse";
@@ -37,12 +57,14 @@ export * from "./dashboardPurchaseStatusCountResponse";
 export * from "./dashboardSummaryResponse";
 export * from "./deliveryEvent";
 export * from "./deliveryEventPayload";
+export * from "./discontinuedParamParameter";
 export * from "./displayCurrencyParamParameter";
 export * from "./errorResponse";
 export * from "./errorResponseWithDetails";
 export * from "./exchangeRateResponse";
 export * from "./forbidden403Response";
 export * from "./getAddressesParams";
+export * from "./getCampaignsParams";
 export * from "./getDashboardSummaryParams";
 export * from "./getExchangeRatesDisplayCurrency";
 export * from "./getExchangeRatesParams";
@@ -64,6 +86,7 @@ export * from "./getUsersParams";
 export * from "./getUsersSearchParams";
 export * from "./gone410Response";
 export * from "./idempotencyKeyParamParameter";
+export * from "./idempotencyKeyRequiredParamParameter";
 export * from "./includeOtherUsersParamParameter";
 export * from "./includeUnpublishedParamParameter";
 export * from "./inquiryHistoryResponse";
@@ -99,6 +122,9 @@ export * from "./productAmountRankingResponse";
 export * from "./productCategoryRef";
 export * from "./productCategoryResponse";
 export * from "./productCountResponse";
+export * from "./productDiscontinueImpactResponse";
+export * from "./productDiscontinuePostRequest";
+export * from "./productDiscontinueResponse";
 export * from "./productImageInput";
 export * from "./productImageItem";
 export * from "./productImagePostRequest";
@@ -130,6 +156,7 @@ export * from "./purchaseGroupResponse";
 export * from "./purchaseGroupResponseGroups";
 export * from "./purchaseListResponse";
 export * from "./purchasePayResponse";
+export * from "./purchaseProductIdParamParameter";
 export * from "./purchaseResponse";
 export * from "./purchaseShippableItemResponse";
 export * from "./purchaseShippableResponse";

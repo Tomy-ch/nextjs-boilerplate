@@ -9,9 +9,9 @@ sources:
   - name: api
     repo: Tomy-ch/go-boilerplate
     path: openapi/openapi.gen.yaml
-    # コミット SHA で固定する。商品 API も購入ステータスマスタも未タグの release ブランチにしか
+    # コミット SHA で固定する。クーポン / キャンペーン / 廃番の口は未タグの release ブランチにしか
     # なく、tag では指せない。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    ref: 91cf355bcd4d806e81d08ccc367f88ac40de1179
-    sha: 76e48258341218b16deaba772c2dd447f114b13e
-    fetchedAt: 2026-09-04T19:25:56.960Z
+    ref: cd8b749c2e96eb56b0df96287246bd3b25913fe0
+    sha: 4a0bd3a8b5b52703ed055481d24f2c8990d84a9f
+    fetchedAt: 2026-10-11T13:59:12.196Z
   # sample:end
