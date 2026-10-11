@@ -202,6 +202,7 @@ several screens share belongs to none of them, so the level above (directly unde
 | `products/discontinue/page-content.tsx` | Fetching the product and, unless it is already discontinued, the estimate. Issues the idempotency key once per assembly |
 | `products/discontinue/remaining-purchases-section.tsx` | Fetching the in-progress purchases. A separate wait and a separate unit of failure from the estimate |
 | `products/discontinue/view.tsx` | The only client island. Holds the submission state, the key and the conditions being typed, and branches between the three standings inside itself so a refetch never unmounts it |
+| `products/discontinue/discontinue-feedback.ts` | Which conditions block opening the confirmation, which result closes it, and where each failure message is shown — in the confirmation or beside the field |
 | `products/discontinue/breadcrumb-content.tsx` | The hierarchy down to the discontinue screen. Fetches for the product name |
 | `products/discontinue/ui/impact-summary/` | The estimate, the population each number counts, its freshness, and the path to refetch |
 | `products/discontinue/ui/remaining-purchases/` | The purchases that keep the product from being discontinued. Says so when they are not all listed, and when they could not be read |
