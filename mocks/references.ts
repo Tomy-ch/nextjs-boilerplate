@@ -223,8 +223,7 @@ function alignCoupon(record: Record<string, unknown>, draw: DrawFromEndpoint): R
  * 購入 1 件のステータスと、明細が名乗る商品名を揃える。
  *
  * @remarks
- * 明細と値引きを持つのは購入詳細だけで、一覧の行や遷移の応答は持ちません。持っている応答にだけ
- * 触れます。
+ * 明細と値引きを持たない応答もあります（一覧の行や遷移の応答）。持っている応答にだけ触れます。
  */
 function alignPurchase(purchase: unknown, draw: DrawFromEndpoint): Record<string, unknown> {
   const record = recordOf(purchase, "購入");
