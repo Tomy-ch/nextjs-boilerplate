@@ -75,7 +75,7 @@ export const CAPPED_RATE_DISCOUNT_PURCHASE: Purchase = {
     scopeKind: "all",
   },
   taxAmount: 1_790,
-  totalAmount: 19_187,
+  totalAmount: 20_187,
 };
 
 /** 定額のクーポンで値引きした購入。 */

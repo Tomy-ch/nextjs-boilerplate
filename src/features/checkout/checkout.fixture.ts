@@ -161,5 +161,5 @@ export const DISCOUNTED_PURCHASE: Purchase = {
     scopeKind: "all",
   },
   taxAmount: 1_790,
-  totalAmount: 19_187,
+  totalAmount: 20_187,
 };
