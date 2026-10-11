@@ -4,7 +4,11 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { PURCHASE_DETAIL, TOTAL_REFERENCE } from "../facade/purchase.fixture";
+import {
+  CAPPED_RATE_DISCOUNT_PURCHASE,
+  PURCHASE_DETAIL,
+  TOTAL_REFERENCE,
+} from "../facade/purchase.fixture";
 import { PurchaseDetailView } from "./view";
 
 describe("PurchaseDetailView", () => {
@@ -66,6 +70,41 @@ describe("PurchaseDetailView", () => {
     render(<PurchaseDetailView purchase={PURCHASE_DETAIL} reference={null} />);
 
     expect(screen.queryByRole("button", { name: "円で見る" })).not.toBeInTheDocument();
+  });
+
+  it("値引きの行の直下に、適用したクーポンの 1 行を出す", () => {
+    render(<PurchaseDetailView purchase={CAPPED_RATE_DISCOUNT_PURCHASE} reference={null} />);
+
+    const coupon = screen.getByText("10% 引き（上限 $10.00）・全商品が対象");
+
+    expect(coupon.previousElementSibling).toHaveTextContent("クーポン値引き");
+  });
+
+  it("紙にはクーポンの 1 行を含めて内訳を出す", () => {
+    render(<PurchaseDetailView purchase={CAPPED_RATE_DISCOUNT_PURCHASE} reference={null} />);
+
+    expect(
+      screen.getByText("10% 引き（上限 $10.00）・全商品が対象").closest(".print-hidden"),
+    ).toBeNull();
+  });
+
+  it("値引きの無い購入には、値引きの行もクーポンの 1 行も出さない", () => {
+    render(<PurchaseDetailView purchase={PURCHASE_DETAIL} reference={null} />);
+
+    expect(screen.queryByText("クーポン値引き")).not.toBeInTheDocument();
+    expect(screen.queryByText(/が対象$/)).not.toBeInTheDocument();
+  });
+
+  it("適用クーポンが無ければ、値引きの行だけを出す", () => {
+    render(
+      <PurchaseDetailView
+        purchase={{ ...CAPPED_RATE_DISCOUNT_PURCHASE, appliedCoupon: null }}
+        reference={null}
+      />,
+    );
+
+    expect(screen.getByText("クーポン値引き")).toBeVisible();
+    expect(screen.queryByText(/が対象$/)).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {

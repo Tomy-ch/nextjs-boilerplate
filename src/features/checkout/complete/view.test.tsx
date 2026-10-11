@@ -6,7 +6,7 @@ import { axe } from "vitest-axe";
 
 import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
 
-import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
+import { DISCOUNTED_PURCHASE, PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutCompleteView } from "./view";
 
 describe("CheckoutCompleteView", () => {
@@ -42,6 +42,19 @@ describe("CheckoutCompleteView", () => {
 
     expect(screen.getByText("$212.87")).toBeVisible();
     expect(screen.queryByRole("button", { name: "円で見る" })).not.toBeInTheDocument();
+  });
+
+  it("値引きがあれば値引きの額を出し、クーポンの条件は出さない", () => {
+    render(<CheckoutCompleteView purchase={DISCOUNTED_PURCHASE} reference={null} />);
+
+    expect(screen.getByText("クーポン値引き").nextElementSibling).toHaveTextContent("-$10.00");
+    expect(screen.queryByText(/が対象$/)).not.toBeInTheDocument();
+  });
+
+  it("値引きが無ければ値引きの行を出さない", () => {
+    render(<CheckoutCompleteView purchase={PURCHASE} reference={null} />);
+
+    expect(screen.queryByText("クーポン値引き")).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {
