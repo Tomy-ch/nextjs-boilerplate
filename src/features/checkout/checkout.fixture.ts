@@ -151,3 +151,15 @@ export const PURCHASE: Purchase = {
   ],
   orderedAt: new Date("2026-08-17T10:30:00+09:00"),
 };
+
+/** クーポンで値引きして成立した購入。 */
+export const DISCOUNTED_PURCHASE: Purchase = {
+  ...PURCHASE,
+  discountAmount: 1_000,
+  appliedCoupon: {
+    discount: { kind: "rate", value: "0.10", maxAmount: 1_000 },
+    scopeKind: "all",
+  },
+  taxAmount: 1_790,
+  totalAmount: 19_187,
+};

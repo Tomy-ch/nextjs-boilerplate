@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { PURCHASE_DETAIL, TOTAL_REFERENCE } from "../purchase.fixture";
+import { CAPPED_RATE_DISCOUNT_PURCHASE, PURCHASE_DETAIL, TOTAL_REFERENCE } from "../purchase.fixture";
 import { PurchaseAmountSummary } from "./amount-summary";
 
 const meta = {
@@ -37,4 +37,18 @@ export const Default: Story = {
 /** 参考換算額を引けなかった状態。切り替えの操作ごと出さない。 */
 export const WithoutReference: Story = {
   args: { purchase: PURCHASE_DETAIL, reference: null },
+};
+
+/** クーポンで値引きした購入。小計の次に、差し引いた額を負の符号で出す。 */
+export const WithDiscount: Story = {
+  args: { purchase: CAPPED_RATE_DISCOUNT_PURCHASE, reference: TOTAL_REFERENCE },
+};
+
+/** 値引きの行の直下に、画面が渡した中身を添える。 */
+export const WithDiscountDetail: Story = {
+  args: {
+    purchase: CAPPED_RATE_DISCOUNT_PURCHASE,
+    reference: TOTAL_REFERENCE,
+    discountDetail: <p className="text-muted-foreground text-xs">画面が渡す値引きの中身</p>,
+  },
 };

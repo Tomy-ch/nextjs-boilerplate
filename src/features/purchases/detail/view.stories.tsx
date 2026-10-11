@@ -9,11 +9,14 @@ import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
 
 import {
+  CAPPED_RATE_DISCOUNT_PURCHASE,
   DELIVERED_PURCHASE,
+  FLAT_DISCOUNT_PURCHASE,
   PAID_PURCHASE,
   PURCHASE_DETAIL,
   SINGLE_LINE_PURCHASE,
   TOTAL_REFERENCE,
+  UNCAPPED_RATE_DISCOUNT_PURCHASE,
 } from "../facade/purchase.fixture";
 import { PurchaseDetailView } from "./view";
 
@@ -112,5 +115,29 @@ export const Paid: Story = {
 /** 届き終えた購入。できることが無いので、控えの中に操作の段が現れない。 */
 export const Delivered: Story = {
   args: { purchase: DELIVERED_PURCHASE, reference: TOTAL_REFERENCE },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 上限に届いた定率のクーポンを使った購入。値引きの行の直下に、額面・上限・範囲を添える。 */
+export const WithDiscount: Story = {
+  args: { purchase: CAPPED_RATE_DISCOUNT_PURCHASE, reference: TOTAL_REFERENCE },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** スマホ幅で値引きのある購入。中身の 1 行が内訳の幅で折り返す。 */
+export const WithDiscountMobile: Story = {
+  args: WithDiscount.args,
+  globals: { viewport: { value: "mobile2", isRotated: false } },
+};
+
+/** 定額のクーポンを使った購入。上限を持たないので括弧が付かない。 */
+export const WithFlatDiscount: Story = {
+  args: { purchase: FLAT_DISCOUNT_PURCHASE, reference: TOTAL_REFERENCE },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 上限の無い定率のクーポンを、範囲を分類で絞って使った購入。 */
+export const WithUncappedRateDiscount: Story = {
+  args: { purchase: UNCAPPED_RATE_DISCOUNT_PURCHASE, reference: TOTAL_REFERENCE },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };
