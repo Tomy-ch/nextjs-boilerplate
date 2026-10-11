@@ -9,7 +9,7 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.3.0+4a0bd3a
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 import type {
   AddressCandidatesResponse,
@@ -5082,7 +5082,9 @@ export const getPostInquiriesMeStreamTicketUrl = () => {
 };
 
 /**
- * 呼び出し主体自身の問い合わせについて、購読に使う 1 回限りの ticket を発行します。
+ * 呼び出し主体自身の問い合わせについて、購読に使う ticket を発行します。
+ * ticket は有効期限（応答の expiresAt）まで繰り返し使え、EventSource の自動再接続のように
+ * 同じ URL で新しい接続を始め直しても受け付けられます。
  * 応答の streamId を GET /v1/streams/{destination} の destination に渡して接続します。
  * **生値はこの応答にしか現れません**。サーバは hash しか保存しないため、失った場合は再発行します。
  * **開始位置には発行時点の stream の現在位置を束ねます**。cursor を持たずに接続した client へ

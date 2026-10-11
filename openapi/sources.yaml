@@ -11,7 +11,7 @@ sources:
     path: openapi/openapi.gen.yaml
     # コミット SHA で固定する。この commit はクーポン / キャンペーン / 廃番の口と、定額の値引きの
     # 単位の記述を含む。上流の進展の取り込みはこの ref の書き換えとして明示的に行う。
-    ref: cd8b749c2e96eb56b0df96287246bd3b25913fe0
-    sha: 4a0bd3a8b5b52703ed055481d24f2c8990d84a9f
-    fetchedAt: 2026-10-11T13:59:12.196Z
+    ref: d5abaf2c7b57d4e50f9c0de093dae4caa3cb0b3f
+    sha: f44f4909cd80f565d5dc43710c5927e7a862c3dd
+    fetchedAt: 2026-10-11T14:56:47.514Z
   # sample:end

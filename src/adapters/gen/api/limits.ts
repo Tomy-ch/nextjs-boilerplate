@@ -4,7 +4,7 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.3.0+4a0bd3a
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 
 export const getStreamPathDestinationMax = 128;

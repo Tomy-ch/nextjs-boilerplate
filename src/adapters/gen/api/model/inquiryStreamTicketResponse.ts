@@ -9,11 +9,12 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.3.0+4a0bd3a
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 
 /**
- * 購読に使う 1 回限りの ticket。生値はこの応答にしか現れず、サーバは hash しか保存しない。
+ * 購読に使う ticket。有効期限まで、新しい接続を始めるたびに繰り返し使える（自動再接続を含む）。
+ * 生値はこの応答にしか現れず、サーバは hash しか保存しない。
  * 接続は GET /v1/streams/{destination} に streamId を渡して開始する。
  */
 export interface InquiryStreamTicketResponse {
