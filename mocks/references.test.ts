@@ -195,7 +195,8 @@ describe("REFERENCE_PATCHES", () => {
 
     for (const entry of patched) {
       expect(entry.discountAmount > 0).toBe(entry.appliedCoupon !== null);
-      expect(entry.discountAmount).toBeLessThan(1_000);
+      // 小計 $10.00 に対して、なし / 定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+      expect([0, 500, 100, 150]).toContain(entry.discountAmount);
     }
 
     expect(new Set(patched.map((entry) => entry.appliedCoupon === null)).size).toBe(2);
@@ -218,15 +219,6 @@ describe("REFERENCE_PATCHES", () => {
     }
   });
 
-  it("小計を持たない購入詳細は値引きを揃えられないので落ちる", () => {
-    expect(() =>
-      patchOf("getGetPurchasesDetailResponseMock")(
-        { ...purchase("c1"), discountAmount: 0, appliedCoupon: null },
-        draw,
-      ),
-    ).toThrow("購入の応答が小計を持ちません");
-  });
-
   it("明細を持たない応答には明細を足さない", () => {
     const patched = patchOf("getPatchPurchasesPayResponseMock")(purchase("c1"), draw) as Record<
       string,
@@ -234,6 +226,16 @@ describe("REFERENCE_PATCHES", () => {
     >;
 
     expect("details" in patched).toBe(false);
+  });
+
+  it("値引きを持たない応答には値引きもクーポンも足さない", () => {
+    const patched = patchOf("getPatchPurchasesPayResponseMock")(purchase("c1"), draw) as Record<
+      string,
+      unknown
+    >;
+
+    expect("discountAmount" in patched).toBe(false);
+    expect("appliedCoupon" in patched).toBe(false);
   });
 
   it("購入一覧は行ごとにステータスと代表商品名を揃える", () => {
@@ -284,6 +286,15 @@ describe("REFERENCE_PATCHES", () => {
   });
 
   // ----- 異常系 -----
+  it("小計を持たない購入詳細は値引きを揃えられないので落ちる", () => {
+    expect(() =>
+      patchOf("getGetPurchasesDetailResponseMock")(
+        { ...purchase("c1"), discountAmount: 0, appliedCoupon: null },
+        draw,
+      ),
+    ).toThrow("購入の応答が小計を持ちません");
+  });
+
   it("マスタの応答が一覧でなければ落ちる", () => {
     const patch = patchOf("getGetProductsDetailResponseMock");
 

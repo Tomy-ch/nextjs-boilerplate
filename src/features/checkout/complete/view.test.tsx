@@ -47,7 +47,7 @@ describe("CheckoutCompleteView", () => {
   it("値引きがあれば値引きの額を出し、クーポンの条件は出さない", () => {
     render(<CheckoutCompleteView purchase={DISCOUNTED_PURCHASE} reference={null} />);
 
-    expect(screen.getByText("クーポン値引き").nextElementSibling).toHaveTextContent("-$10.00");
+    expect(screen.getByText("-$10.00").closest("p")).toHaveTextContent("クーポン値引き");
     expect(screen.queryByText(/が対象$/)).not.toBeInTheDocument();
   });
 

@@ -15,8 +15,6 @@ import { PurchaseAmountSummary } from "./amount-summary";
 const ROW_LABELS = /^(小計|クーポン値引き|税|送料)$/;
 
 describe("PurchaseAmountSummary", () => {
-  // ----- 値引きが無いとき -----
-
   it("小計・税・送料・合計を出す", () => {
     render(<PurchaseAmountSummary purchase={PURCHASE_DETAIL} reference={null} />);
 
@@ -73,8 +71,6 @@ describe("PurchaseAmountSummary", () => {
     expect(screen.queryByText("値引きの中身")).not.toBeInTheDocument();
   });
 
-  // ----- 値引きがあるとき -----
-
   it("小計 → クーポン値引き → 税 → 送料 の順に並べる", () => {
     render(<PurchaseAmountSummary purchase={CAPPED_RATE_DISCOUNT_PURCHASE} reference={null} />);
 
@@ -89,7 +85,7 @@ describe("PurchaseAmountSummary", () => {
   it("値引きを差し引く額として負の符号で出す", () => {
     render(<PurchaseAmountSummary purchase={CAPPED_RATE_DISCOUNT_PURCHASE} reference={null} />);
 
-    expect(screen.getByText("クーポン値引き").nextElementSibling).toHaveTextContent("-$10.00");
+    expect(screen.getByText("-$10.00").closest("p")).toHaveTextContent("クーポン値引き");
   });
 
   it("値引きの中身を値引きの行の直下、税の行より前に描く", () => {
@@ -101,10 +97,11 @@ describe("PurchaseAmountSummary", () => {
       />,
     );
 
-    const detail = screen.getByText("値引きの中身");
-
-    expect(detail.previousElementSibling).toHaveTextContent("クーポン値引き");
-    expect(detail.parentElement?.nextElementSibling).toHaveTextContent("税");
+    expect(
+      screen
+        .getAllByText(/^(クーポン値引き|値引きの中身|税)$/)
+        .map((element) => element.textContent),
+    ).toEqual(["クーポン値引き", "値引きの中身", "税"]);
   });
 
   it("値引きがあっても参考換算額は合計にだけ添える", async () => {
@@ -118,6 +115,7 @@ describe("PurchaseAmountSummary", () => {
     await userEvent.click(screen.getByRole("button", { name: "円で見る" }));
 
     expect(screen.getAllByText(/参考/)).toHaveLength(1);
+    expect(screen.getByText("クーポン値引き").closest("p")).not.toHaveTextContent(/参考/);
   });
 
   it("値引きの行と中身を含めても a11y 自動検査に違反しない", async () => {

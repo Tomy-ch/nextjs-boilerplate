@@ -14,15 +14,11 @@ const CAPPED_RATE: AppliedCoupon = {
 };
 
 describe("PurchaseAppliedCoupon", () => {
-  // ----- 上限付きの定率のとき -----
-
   it("額面・上限・範囲を 1 行で出す", () => {
     render(<PurchaseAppliedCoupon coupon={CAPPED_RATE} />);
 
     expect(screen.getByText("10% 引き（上限 $10.00）・全商品が対象")).toBeVisible();
   });
-
-  // ----- 上限の無いとき -----
 
   it("定額なら上限の括弧を出さない", () => {
     render(
@@ -46,8 +42,6 @@ describe("PurchaseAppliedCoupon", () => {
 
     expect(screen.getByText("15% 引き・特定のカテゴリが対象")).toBeVisible();
   });
-
-  // ----- 共通 -----
 
   it("a11y 自動検査に違反しない", async () => {
     const { container } = render(<PurchaseAppliedCoupon coupon={CAPPED_RATE} />);

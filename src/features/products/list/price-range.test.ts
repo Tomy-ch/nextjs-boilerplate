@@ -75,7 +75,7 @@ describe("applyPriceRange", () => {
 describe("formatPriceBound", () => {
   // ----- 正常系 -----
   it("値のある位置を通貨付きで出す", () => {
-    expect(formatPriceBound(1, "low")).toBe("$10");
+    expect(formatPriceBound(1, "low")).toBe("$10.00");
   });
 
   it("下限の端を下限なしと呼ぶ", () => {
@@ -97,15 +97,15 @@ describe("formatPriceCondition", () => {
   it("下限と上限を 1 つの表示にまとめる", () => {
     expect(
       formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: "25", [FILTER_KEY.MAX_PRICE]: "250" }),
-    ).toBe("$25 〜 $250");
+    ).toBe("$25.00 〜 $250.00");
   });
 
   it("片側だけなら、もう片方を指定なしと呼ぶ", () => {
-    expect(formatPriceCondition({ [FILTER_KEY.MAX_PRICE]: "100" })).toBe("下限なし 〜 $100");
+    expect(formatPriceCondition({ [FILTER_KEY.MAX_PRICE]: "100" })).toBe("下限なし 〜 $100.00");
   });
 
   it("目盛りに無い値も URL の値のまま出す", () => {
-    expect(formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: "37" })).toBe("$37 〜 上限なし");
+    expect(formatPriceCondition({ [FILTER_KEY.MIN_PRICE]: "37" })).toBe("$37.00 〜 上限なし");
   });
 
   it("下限も上限も指定が無ければ undefined を返す", () => {

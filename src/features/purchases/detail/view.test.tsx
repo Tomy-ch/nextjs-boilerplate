@@ -75,9 +75,11 @@ describe("PurchaseDetailView", () => {
   it("値引きの行の直下に、適用したクーポンの 1 行を出す", () => {
     render(<PurchaseDetailView purchase={CAPPED_RATE_DISCOUNT_PURCHASE} reference={null} />);
 
-    const coupon = screen.getByText("10% 引き（上限 $10.00）・全商品が対象");
-
-    expect(coupon.previousElementSibling).toHaveTextContent("クーポン値引き");
+    expect(
+      screen
+        .getAllByText(/^(クーポン値引き|10% 引き（上限 \$10\.00）・全商品が対象|税)$/)
+        .map((element) => element.textContent),
+    ).toEqual(["クーポン値引き", "10% 引き（上限 $10.00）・全商品が対象", "税"]);
   });
 
   it("紙にはクーポンの 1 行を含めて内訳を出す", () => {

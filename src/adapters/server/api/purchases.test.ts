@@ -269,6 +269,25 @@ describe("getMyPurchase", () => {
     });
   });
 
+  it("上限の無い定率のクーポンは、上限を null のまま写す", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 2_834,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "rate", value: "0.15", maxAmount: null },
+        scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-0000000000e1" },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scopeKind: "product",
+    });
+  });
+
   it("購入コードを経路へ載せる", async () => {
     const requests = serveJson(PURCHASE_URL, wireDetail);
 

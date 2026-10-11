@@ -39,7 +39,6 @@ describe("formatCouponDiscountCap", () => {
     );
   });
 
-  // ----- 境界値 -----
   it("上限の無い定率は undefined を返す", () => {
     expect(formatCouponDiscountCap({ kind: "rate", value: "0.10", maxAmount: null })).toBeUndefined();
   });
