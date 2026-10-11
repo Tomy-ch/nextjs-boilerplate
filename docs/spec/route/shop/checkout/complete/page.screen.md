@@ -10,7 +10,7 @@ The screen that tells the user the purchase succeeded and shows the receipt and 
 | --- | --- |
 | Success notice | That the order was received |
 | ご注文の控え (Order receipt) | Order number, order date and time, status |
-| 内訳 (Breakdown) | Subtotal, tax, shipping and total, and the reference converted amount toggle for the total |
+| 内訳 (Breakdown) | Subtotal, coupon discount, tax, shipping and total, and the reference converted amount toggle for the total |
 | ご購入いただいた商品 (Purchased products) | Product name, unit price at the time of purchase, quantity |
 | Next links | Back to shopping / check the receipt later |
 
@@ -24,6 +24,11 @@ by the breakdown.
 
 **The reference converted amount is added only to the total.** Adding it to each item in the breakdown would make it unreadable which one is
 the amount charged.
+
+**The coupon's terms are not shown.** The breakdown has the discount row, in the same order and under the same rule as
+the purchase detail ([`../../purchases/[code]/page.screen.md`](<../../purchases/[code]/page.screen.md>)): it appears only when a
+discount was applied. Which coupon produced it is left to the detail — the user has just chosen it, and this screen's job
+is to say the order went through.
 
 **The purchase identifier is not shown.** What the user can bring to an inquiry is the order number; the value used for fetching is not
 put on the screen.

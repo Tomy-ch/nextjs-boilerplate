@@ -28,7 +28,7 @@
 
 - カートの変更（数量・削除・全消しは `cart` の領分。この画面は戻る導線だけを持つ）
 - 届け先の編集（登録情報は `account` の領分）
-- 金額の計算（小計も税も送料も合計もバックエンドが決めます）
+- 金額の計算（小計もクーポン値引きも税も送料も合計もバックエンドが決めます）
 - 買えるか・値が変わったかの判定（同上。届いた事情を読むだけです）
 
 ## Route と契約
@@ -63,6 +63,7 @@
 | | 値の変更を確かめる | `Features/Checkout/Confirm/PriceChangeConfirm/Default` |
 | 購入完了 | success | `Page/Checkout/Complete/Default` |
 | | 参考換算額が読めなかった | `Page/Checkout/Complete/WithoutReference` |
+| | クーポンの値引きが掛かった | `Page/Checkout/Complete/WithDiscount` |
 
 error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が受けます。完了画面で指し先が
 読めない場合は `not-found.tsx` です。
