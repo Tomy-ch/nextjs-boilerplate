@@ -36,9 +36,9 @@ The reference converted amount is not the charged amount. What is stored is the 
 
 ### The coupon discount
 
-**Whether a discount row appears is decided by the discount amount alone**, and the coupon line under it by the applied
-coupon alone. The contract states the two always agree; the screen does not arbitrate if they do not, and shows what each
-says.
+**Whether a discount row appears is decided by the discount amount alone.** The coupon line appears only under that row,
+and only when an applied coupon arrived. The contract states the two always agree, so the screen adds no arbitration of
+its own.
 
 **The coupon's terms arrive resolved to their current values**, like the product name. The discount amount is the value at
 the time of purchase and does not move; the face value, cap and scope next to it are the coupon's terms now.
