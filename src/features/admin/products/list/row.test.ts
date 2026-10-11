@@ -42,6 +42,7 @@ describe("toAdminProductRows", () => {
       categoryName: "電子機器",
       statusName: "在庫切れ",
       statusTone: BADGE_VARIANT.DESTRUCTIVE,
+      discontinued: false,
     });
   });
 
@@ -82,6 +83,15 @@ describe("toAdminProductRows", () => {
     expect(rows[0]?.statusTone).toBe(BADGE_VARIANT.DEFAULT);
   });
 
+  it("廃番の商品は、廃番であることを行に持たせる", () => {
+    const rows = toAdminProductRows(
+      [product({ discontinuedAt: new Date("2026-09-05T00:00:00.000Z") })],
+      STATUSES,
+    );
+
+    expect(rows[0]?.discontinued).toBe(true);
+  });
+
   it("マスタのラベルが廃盤でも、廃番でなければそのラベルのまま出す", () => {
     const rows = toAdminProductRows(
       [
@@ -95,7 +105,11 @@ describe("toAdminProductRows", () => {
       ],
     );
 
-    expect(rows[0]).toMatchObject({ statusName: "廃盤", statusTone: BADGE_VARIANT.OUTLINE });
+    expect(rows[0]).toMatchObject({
+      statusName: "廃盤",
+      statusTone: BADGE_VARIANT.OUTLINE,
+      discontinued: false,
+    });
   });
 
   it("受け取った順序を保つ", () => {

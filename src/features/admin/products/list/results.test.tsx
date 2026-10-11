@@ -50,7 +50,15 @@ function product(): Product {
 const QUERY: ProductQuery = { first: 20 };
 
 function location(overrides: Partial<AdminProductListLocation> = {}): AdminProductListLocation {
-  return { keyword: "", categoryCodes: [], statusCodes: [], cursor: null, trail: [], ...overrides };
+  return {
+    keyword: "",
+    categoryCodes: [],
+    statusCodes: [],
+    discontinued: null,
+    cursor: null,
+    trail: [],
+    ...overrides,
+  };
 }
 
 beforeEach(() => {

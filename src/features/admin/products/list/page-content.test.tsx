@@ -81,6 +81,28 @@ describe("AdminProductListPageContent", () => {
     );
   });
 
+  it("廃番の条件を取得の条件へ写して一覧へ渡す", async () => {
+    render(await AdminProductListPageContent({ searchParams: { discontinued: "false" } }));
+
+    expect(results).toHaveBeenCalledWith(
+      expect.objectContaining({
+        location: expect.objectContaining({ discontinued: "false" }),
+        query: expect.objectContaining({ discontinued: false }),
+      }),
+    );
+  });
+
+  it("廃番の条件が無ければ、取得の条件にも載せない", async () => {
+    render(await AdminProductListPageContent({ searchParams: {} }));
+
+    expect(results).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.not.objectContaining({ discontinued: false }) }),
+    );
+    expect(results).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.not.objectContaining({ discontinued: true }) }),
+    );
+  });
+
   // ----- 条件が契約を外れているとき -----
   it("一覧の代わりに、条件が正しくないことを出す", async () => {
     render(await AdminProductListPageContent({ searchParams: { categoryCodes: "abc" } }));
@@ -93,6 +115,13 @@ describe("AdminProductListPageContent", () => {
     render(await AdminProductListPageContent({ searchParams: { statusCodes: "xyz" } }));
 
     expect(screen.getByText("確認する条件: 状態")).toBeInTheDocument();
+  });
+
+  it("読めない廃番の綴りを捨てず、その欄の呼び名で名指しする", async () => {
+    render(await AdminProductListPageContent({ searchParams: { discontinued: "yes" } }));
+
+    expect(screen.getByText("確認する条件: 廃番")).toBeInTheDocument();
+    expect(results).not.toHaveBeenCalled();
   });
 
   it("長すぎる語も、その欄の呼び名で名指しする", async () => {
