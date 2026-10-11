@@ -177,7 +177,11 @@ const COUPON_PATTERNS: readonly {
   readonly discountOf: (subtotal: number) => number;
 }[] = [
   { discount: null, scopeKind: "all", discountOf: () => 0 },
-  { discount: { kind: "flat", value: "5.00", maxAmount: null }, scopeKind: "all", discountOf: () => 500 },
+  {
+    discount: { kind: "flat", value: "5.00", maxAmount: null },
+    scopeKind: "all",
+    discountOf: () => 500,
+  },
   // $10 以上の 10% は必ず上限の $1.00 に届く。
   {
     discount: { kind: "rate", value: "0.10", maxAmount: 100 },
@@ -192,7 +196,10 @@ const COUPON_PATTERNS: readonly {
 ];
 
 /** 購入 1 件の値引き額と適用したクーポンを、噛み合う組へ揃える。 */
-function alignCoupon(record: Record<string, unknown>, draw: DrawFromEndpoint): Record<string, unknown> {
+function alignCoupon(
+  record: Record<string, unknown>,
+  draw: DrawFromEndpoint,
+): Record<string, unknown> {
   const pattern = pick(COUPON_PATTERNS, record["code"]);
   const subtotal = record["subtotalAmount"];
 
@@ -206,7 +213,10 @@ function alignCoupon(record: Record<string, unknown>, draw: DrawFromEndpoint): R
 
   const targetId =
     pattern.scopeKind === "category"
-      ? pick(entriesOf(draw("getGetProductCategoriesResponseMock", CATEGORIES_PATH)), record["code"]).id
+      ? pick(
+          entriesOf(draw("getGetProductCategoriesResponseMock", CATEGORIES_PATH)),
+          record["code"],
+        ).id
       : null;
 
   return {

@@ -188,7 +188,12 @@ describe("REFERENCE_PATCHES", () => {
     const patched = codes.map(
       (code) =>
         patchOf("getGetPurchasesDetailResponseMock")(
-          { ...purchase(code), subtotalAmount: 1_000, discountAmount: 1_234_567_890_123_456, appliedCoupon: null },
+          {
+            ...purchase(code),
+            subtotalAmount: 1_000,
+            discountAmount: 1_234_567_890_123_456,
+            appliedCoupon: null,
+          },
           draw,
         ) as { discountAmount: number; appliedCoupon: unknown },
     );
@@ -203,13 +208,20 @@ describe("REFERENCE_PATCHES", () => {
   });
 
   it("範囲を分類で絞るクーポンは、分類マスタに在る分類を指す", () => {
-    const scopes = Array.from({ length: 12 }, (_, index) =>
-      (
-        patchOf("getGetPurchasesDetailResponseMock")(
-          { ...purchase(`c${index}`), subtotalAmount: 1_000, discountAmount: 0, appliedCoupon: null },
-          draw,
-        ) as { appliedCoupon: { scope: { kind: string; targetId: string | null } } | null }
-      ).appliedCoupon?.scope,
+    const scopes = Array.from(
+      { length: 12 },
+      (_, index) =>
+        (
+          patchOf("getGetPurchasesDetailResponseMock")(
+            {
+              ...purchase(`c${index}`),
+              subtotalAmount: 1_000,
+              discountAmount: 0,
+              appliedCoupon: null,
+            },
+            draw,
+          ) as { appliedCoupon: { scope: { kind: string; targetId: string | null } } | null }
+        ).appliedCoupon?.scope,
     );
     const categoryScopes = scopes.filter((scope) => scope?.kind === "category");
 
