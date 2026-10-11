@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 
-import { CAPPED_RATE_DISCOUNT_PURCHASE, PURCHASE_DETAIL, TOTAL_REFERENCE } from "../purchase.fixture";
+import {
+  CAPPED_RATE_DISCOUNT_PURCHASE,
+  PURCHASE_DETAIL,
+  TOTAL_REFERENCE,
+} from "../purchase.fixture";
 import { PurchaseAmountSummary } from "./amount-summary";
 
 const meta = {
