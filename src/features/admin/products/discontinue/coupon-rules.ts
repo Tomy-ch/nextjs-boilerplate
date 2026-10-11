@@ -44,7 +44,9 @@ export function toCouponDiscountRate(percent: string): string | null {
     return null;
   }
 
-  const [integer = "", fraction = ""] = percent.split(".");
+  const dot = percent.indexOf(".");
+  const integer = dot === -1 ? percent : percent.slice(0, dot);
+  const fraction = dot === -1 ? "" : percent.slice(dot + 1);
   const padded = integer.padStart(PERCENT_SHIFT + 1, "0");
   const head = padded.slice(0, -PERCENT_SHIFT).replace(/^0+(?=\d)/, "");
   const tail = `${padded.slice(-PERCENT_SHIFT)}${fraction}`;
