@@ -183,6 +183,50 @@ describe("REFERENCE_PATCHES", () => {
     expect(patched.details[0]?.quantity).toBe(2);
   });
 
+  it("値引き額と適用したクーポンを、値引きが立つときだけクーポンが入る組へ揃える", () => {
+    const codes = Array.from({ length: 12 }, (_, index) => `c${index}`);
+    const patched = codes.map(
+      (code) =>
+        patchOf("getGetPurchasesDetailResponseMock")(
+          { ...purchase(code), subtotalAmount: 1_000, discountAmount: 1_234_567_890_123_456, appliedCoupon: null },
+          draw,
+        ) as { discountAmount: number; appliedCoupon: unknown },
+    );
+
+    for (const entry of patched) {
+      expect(entry.discountAmount > 0).toBe(entry.appliedCoupon !== null);
+      expect(entry.discountAmount).toBeLessThan(1_000);
+    }
+
+    expect(new Set(patched.map((entry) => entry.appliedCoupon === null)).size).toBe(2);
+  });
+
+  it("範囲を分類で絞るクーポンは、分類マスタに在る分類を指す", () => {
+    const scopes = Array.from({ length: 12 }, (_, index) =>
+      (
+        patchOf("getGetPurchasesDetailResponseMock")(
+          { ...purchase(`c${index}`), subtotalAmount: 1_000, discountAmount: 0, appliedCoupon: null },
+          draw,
+        ) as { appliedCoupon: { scope: { kind: string; targetId: string | null } } | null }
+      ).appliedCoupon?.scope,
+    );
+    const categoryScopes = scopes.filter((scope) => scope?.kind === "category");
+
+    expect(categoryScopes.length).toBeGreaterThan(0);
+    for (const scope of categoryScopes) {
+      expect(CATEGORIES.map((category) => category.id)).toContain(scope?.targetId);
+    }
+  });
+
+  it("小計を持たない購入詳細は値引きを揃えられないので落ちる", () => {
+    expect(() =>
+      patchOf("getGetPurchasesDetailResponseMock")(
+        { ...purchase("c1"), discountAmount: 0, appliedCoupon: null },
+        draw,
+      ),
+    ).toThrow("購入の応答が小計を持ちません");
+  });
+
   it("明細を持たない応答には明細を足さない", () => {
     const patched = patchOf("getPatchPurchasesPayResponseMock")(purchase("c1"), draw) as Record<
       string,
