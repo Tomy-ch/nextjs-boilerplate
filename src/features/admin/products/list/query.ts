@@ -38,13 +38,13 @@ export const TRAIL_KEY = "trail";
  * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
  * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
  */
-export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
+export const FILTER_KEY_LABEL = {
   [FILTER_KEY.KEYWORD]: "キーワード",
   [FILTER_KEY.CATEGORY]: "分類",
   [FILTER_KEY.STATUS]: "状態",
   [FILTER_KEY.DISCONTINUED]: "廃番",
   [CURSOR_KEY]: "読み込み位置",
-};
+} as const satisfies Readonly<Record<string, string>>;
 
 /**
  * 廃番で絞り込むときに URL へ載せる値。契約の真偽値の綴りと揃える。

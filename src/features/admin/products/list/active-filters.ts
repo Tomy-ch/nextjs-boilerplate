@@ -3,6 +3,7 @@ import {
   type AdminProductListConditions,
   DISCONTINUED_FILTER_LABEL,
   FILTER_KEY,
+  FILTER_KEY_LABEL,
   toConditionHref,
 } from "./query";
 
@@ -17,11 +18,6 @@ export type AdminActiveFilter = {
   /** この条件だけを外した URL。 */
   readonly removeHref: string;
 };
-
-const KEYWORD_LABEL = "キーワード";
-const CATEGORY_LABEL = "分類";
-const STATUS_LABEL = "状態";
-const DISCONTINUED_LABEL = "廃番";
 
 /**
  * 選ばれたコードを、解除先付きの条件へ写す。
@@ -88,7 +84,7 @@ export function toAdminActiveFilters(
   if (conditions.keyword !== "") {
     filters.push({
       key: "keyword",
-      label: KEYWORD_LABEL,
+      label: FILTER_KEY_LABEL[FILTER_KEY.KEYWORD],
       value: conditions.keyword,
       removeHref: toConditionHref({ ...conditions, keyword: "" }),
     });
@@ -98,20 +94,26 @@ export function toAdminActiveFilters(
     ...toFilters(
       conditions.categoryCodes,
       categoryOptions,
-      CATEGORY_LABEL,
+      FILTER_KEY_LABEL[FILTER_KEY.CATEGORY],
       "category",
       (categoryCodes) => ({ ...conditions, categoryCodes }),
     ),
-    ...toFilters(conditions.statusCodes, statusOptions, STATUS_LABEL, "status", (statusCodes) => ({
-      ...conditions,
-      statusCodes,
-    })),
+    ...toFilters(
+      conditions.statusCodes,
+      statusOptions,
+      FILTER_KEY_LABEL[FILTER_KEY.STATUS],
+      "status",
+      (statusCodes) => ({
+        ...conditions,
+        statusCodes,
+      }),
+    ),
   );
 
   if (conditions.discontinued !== null) {
     filters.push({
       key: FILTER_KEY.DISCONTINUED,
-      label: DISCONTINUED_LABEL,
+      label: FILTER_KEY_LABEL[FILTER_KEY.DISCONTINUED],
       value: DISCONTINUED_FILTER_LABEL[conditions.discontinued],
       removeHref: toConditionHref({ ...conditions, discontinued: null }),
     });
