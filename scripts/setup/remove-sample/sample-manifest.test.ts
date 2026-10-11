@@ -140,7 +140,7 @@ describe("BINARY_EXTENSIONS", () => {
 describe("DANGLING_PATTERN", () => {
   it("語ごとに宣言した境界の形で組み上がる", () => {
     expect(DANGLING_PATTERN).toBe(
-      String.raw`商品|カート|在庫|購入|注文|問い合わせ|\bproducts\b|\bcart\b|\binquiry|\binquiries`,
+      String.raw`商品|カート|在庫|購入|注文|問い合わせ|クーポン|\bproducts\b|\bcart\b|\binquiry|\binquiries|coupon`,
     );
   });
 

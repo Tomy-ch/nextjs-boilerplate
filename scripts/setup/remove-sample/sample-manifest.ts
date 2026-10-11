@@ -51,6 +51,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/app/api/inquiries",
   // 題材に固有のカーネルモジュール
   "src/model/cart",
+  "src/model/coupon",
   "src/model/dashboard",
   "src/model/inquiry",
   "src/model/product",
@@ -181,10 +182,13 @@ const DANGLING_WORDS: readonly DanglingWord[] = [
   { boundary: WORD_BOUNDARY.NONE, word: "購入" },
   { boundary: WORD_BOUNDARY.NONE, word: "注文" },
   { boundary: WORD_BOUNDARY.NONE, word: "問い合わせ" },
+  { boundary: WORD_BOUNDARY.NONE, word: "クーポン" },
   { boundary: WORD_BOUNDARY.BOTH, word: "products" },
   { boundary: WORD_BOUNDARY.BOTH, word: "cart" },
   { boundary: WORD_BOUNDARY.LEADING, word: "inquiry" },
   { boundary: WORD_BOUNDARY.LEADING, word: "inquiries" },
+  // `appliedCoupon` のように識別子の途中に現れるので、境界を要求しない。
+  { boundary: WORD_BOUNDARY.NONE, word: "coupon" },
 ];
 
 /**

@@ -130,6 +130,8 @@ export const PURCHASE: Purchase = {
   statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
+  discountAmount: 0,
+  appliedCoupon: null,
   taxAmount: 1_890,
   shippingFee: 500,
   totalAmount: 21_287,
