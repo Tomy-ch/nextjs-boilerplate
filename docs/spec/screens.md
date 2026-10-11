@@ -23,7 +23,7 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 - Images are uploaded through `POST /v1/products/images` (multipart), and the object key the backend issues (`products/{uuid}.{ext}`) is stored. They are served from Garage's public endpoint, which is allowlisted in `remotePatterns` of `next/image`. **No wildcards**
 - The product description is **rich text** (authored with TipTap). The display side always passes it through a sanitizer (using raw `dangerouslySetInnerHTML` directly is forbidden; see [docs/rules.md](../rules.md#security), "`dangerouslySetInnerHTML` is forbidden in principle")
 - Pagination is basically **cursor-based**. Screens with infinite scroll (incremental fetching) and screens with page-by-page navigation coexist, so mind the implementation pattern of each screen
-- The writes that require an Idempotency-Key are purchase creation (U6) and posting and replying to inquiries (U13 / A10). Neither has a natural key, and a resend made only because a response did not arrive becomes a second record, so implement it as double-submission prevention
+- The writes that require an Idempotency-Key are purchase creation (U6) and posting and replying to inquiries (U13 / A10). Neither has a natural key, and a resend made only because a response did not arrive becomes a second record, so implement it as double-submission prevention. The contract itself makes the key required for issuing coupons (to one user and in bulk), claiming a coupon with a campaign code, and defining a campaign (`IdempotencyKeyRequiredParam` states why)
 - **The browser opens long-lived connections (SSE) to the backend directly**. This path is separate from the fetch relay; because `EventSource` cannot carry arbitrary headers, the credential is a short-lived ticket the BFF issues, carried in the query. Ordering, deduplication, reconnection and cut-off decisions are held by `adapters/client/stream`, and the screen only folds in the events it receives ([ADR 0074](../adr/0074-runtime-communication-seam.md))
 
 ---
@@ -89,7 +89,7 @@ is discarded.
 
 | Method / Path | Auth | Purpose | Main fields the frontend sends | Main response fields | Main errors |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/products` | Not required (`includeUnpublished=true` requires admin) | List (cursor + filter + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/products` | Not required (`includeUnpublished=true` requires admin) | List (cursor + filter + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished, discontinued (meaningful only with `includeUnpublished=true`; `GET /v1/products/count` accepts it too) | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/products/{productId}` | Not required | Detail | — | Product detail (including description) | 400, 404 |
 | `GET /v1/products/categories` | Not required | Category master | — | categories[] | — |
 | `GET /v1/products/statuses` | Not required | Status master | — | statuses[] | — |
@@ -98,19 +98,36 @@ is discarded.
 | `PATCH /v1/products/{productId}` | Requires admin | Product update (A7). Fields other than stock | version and the partially updated fields | The updated product | 400, 401, 403, 404, **409 (optimistic locking)**, 422 |
 | `PATCH /v1/products/{productId}/stock` | Requires admin | Restocking (A3) | delta | The updated product | 400, 401, 403, 404, **409**, 422, 503 |
 | `POST /v1/products/images` | Requires admin | Image upload (A6 / A7) | The image binary as multipart | `{ imagePath }` | 400, 401, 403, 413, 415, 422 |
+| `GET /v1/products/{productId}/discontinue-impact` | Requires admin | Estimating the impact of discontinuing, before running it. Takes no lock, so it is stale as soon as it returns | — | affectedCartCount, affectedUserCount, inProgressPurchaseCount | 400, 401, 403, 404 |
+| `POST /v1/products/{productId}/discontinue` | Requires admin | Discontinuing a product: unpublishes it and issues a replacement coupon to the registered users who held it in their cart, in one transaction. Cannot be undone | couponDiscountRate (decimal string), couponValidityDays, Idempotency-Key (optional header) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409 (a purchase in progress contains it)**, 422 |
 
 ### Purchase APIs
 
 | Method / Path | Auth | Purpose | Main fields the frontend sends | Main response fields | Main errors |
 | --- | --- | --- | --- | --- | --- |
-| `POST /v1/purchases` | Required | Purchase creation (U6) | details (productId, quantity), Idempotency-Key (header), displayCurrency (optional query) | The purchase, referenceAmount | 400, 401, 409 (insufficient stock etc.), 422 |
-| `GET /v1/purchases` | Required (`includeOtherUsers=true` requires admin) | Purchase history (U7, cursor). The period is a half-open interval of instants | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers | items[], nextCursor | 400, 401, 403 |
-| `GET /v1/purchases/{purchaseCode}` | Required | Purchase detail (U8) | — | Lines (product names already joined) | 401, 404 |
+| `POST /v1/purchases` | Required | Purchase creation (U6) | details (productId, quantity), couponId (optional, at most one), Idempotency-Key (header), displayCurrency (optional query) | The purchase, discountAmount, appliedCoupon, referenceAmount | 400, 401, 409 (insufficient stock etc.), 422 (including a coupon that cannot be applied) |
+| `GET /v1/purchases` | Required (`includeOtherUsers=true` requires admin) | Purchase history (U7, cursor). The period is a half-open interval of instants | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/purchases/{purchaseCode}` | Required | Purchase detail (U8) | — | Lines (product names already joined), discountAmount, appliedCoupon | 401, 404 |
 | `PATCH /v1/purchases/{purchaseCode}/cancel` | Required | Cancellation (U8) | — | The updated status | 400, 401, 404, 409 (invalid transition) |
 | `PATCH /v1/purchases/{purchaseCode}/pay` | Required | Payment (simulated payment, U8). Only from unprocessed / accepted / under review | — | The updated status | 400, 401, 404, 409 (double payment, invalid transition) |
 | `PATCH /v1/purchases/{purchaseCode}/ship` | Requires admin | Shipping (A8) | — | The updated status | 400, 401, 403, 404, 409 |
 | `PATCH /v1/purchases/{purchaseCode}/deliver` | Requires admin | Delivery complete | — | The updated status | 400, 401, 403, 404, 409 |
 | `GET /v1/purchases/shippable` | Requires admin | Groups for batched shipping (A8) | limit | `groups[]` (groups per purchaser) | 400, 401, 403 |
+
+### Coupons and Campaigns
+
+| Method / Path | Auth | Purpose | Main fields the frontend sends | Main response fields | Main errors |
+| --- | --- | --- | --- | --- | --- |
+| `GET /v1/users/me/coupons` | Required | The coupons you hold, newest issue first. Used and expired ones are included | — | coupons[] | 401 |
+| `GET /v1/carts/me/coupons` | Required | The coupons usable against the current cart, each with the discount it would give. **The endpoint exists so the presentation layer never computes applicability or the discount** | — | coupons[] (coupon, discountAmount) | 401 |
+| `POST /v1/campaigns/claims` | Required | Claiming one coupon with a campaign code | code, Idempotency-Key (required header) | The issued coupon | 400, 401, 409, **422 (every reason a code cannot be claimed, undistinguished)** |
+| `POST /v1/coupons` | Requires admin | Issuing one coupon to one named user | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key (required header) | The issued coupon | 400, 401, 403, 404 (no such user or scope target), 409, 422 |
+| `POST /v1/coupons/bulk-issue` | Requires admin | Issuing one coupon to every user who has not withdrawn. Recipients cannot be named | discount, scope, expiresAt, Idempotency-Key (required header) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409 (too many recipients)**, 422 |
+| `GET /v1/campaigns` | Requires admin | Campaign list, newest start first. Suspended and ended ones are included | page, perPage | campaigns[], total | 400, 401, 403, 422 |
+| `POST /v1/campaigns` | Requires admin | Defining a campaign. There is no edit endpoint | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key (required header) | The campaign | 400, 401, 403, **409 (code already in use)**, 422 |
+| `POST /v1/campaigns/{campaignId}/suspend` | Requires admin | Stopping a campaign's claims. Cannot be undone, and coupons already issued stay valid | Idempotency-Key (optional header) | The campaign | 400, 401, 403, 404, **409 (already suspended)**, 422 |
+
+**Coupon amounts use two scales.** A flat discount's `value` is a USD decimal string on the same scale as `price` (`"5.00"` is $5); a rate discount's `value` is the multiplier (`"0.10"` is 10% off). `maxAmount` and `minPurchaseAmount` are integer USD cents, like the purchase totals. Digits below a cent in a flat `value` are accepted and truncated when the discount is computed.
 
 ### Inquiries
 
@@ -143,7 +160,7 @@ For 5 minutes after issue it can be reused for new connections, and an establish
 | `GET /v1/prefectures` | Not required | Prefecture master | For the select in the registration / update forms |
 | `GET /v1/addresses?postalCode=` | Not required | Postal code → address autocomplete | If isFallback=true, every field is entered by hand (degrade) |
 | `GET /v1/exchange-rates` | Not required | Exchange rate (for the reference yen conversion) | base, quote and amount (decimal string) are required. An external outage is 503 |
-| `POST /v1/users` | Required | First-time onboarding (U10) | Sends the Idempotency-Key and the user information. 409 is a conflict such as an existing user |
+| `POST /v1/users` | Required (accepts an authenticated subject that has no internal user yet) | First-time onboarding (U10) | Sends the Idempotency-Key and the user information. 409 is a conflict such as an existing user |
 | `DELETE /v1/users/{userId}` | Requires admin (A5) or the user themself (U11) | Account closure | 409 if purchases are in progress. Cancellation and stock restoration are processed in the same transaction |
 
 ### Login / Logout (mock OIDC)

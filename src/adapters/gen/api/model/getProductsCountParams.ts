@@ -9,10 +9,11 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 import type { CategoryCodesParamParameter } from "./categoryCodesParamParameter";
 import type { CategoryIdParamParameter } from "./categoryIdParamParameter";
+import type { DiscontinuedParamParameter } from "./discontinuedParamParameter";
 import type { IncludeUnpublishedParamParameter } from "./includeUnpublishedParamParameter";
 import type { KeywordParamParameter } from "./keywordParamParameter";
 import type { MaxPriceParamParameter } from "./maxPriceParamParameter";
@@ -96,4 +97,12 @@ export type GetProductsCountParams = {
    * false を明示した場合は認証を要しません（指定しない場合と同じ扱いです）。
    */
   includeUnpublished?: IncludeUnpublishedParamParameter;
+  /**
+   * 廃番かどうかで母集団を絞ります。true を指定すると廃番の商品だけ、false を指定すると廃番でない
+   * 商品だけを返します。指定しない場合は絞りません。
+   * **廃番の商品は非公開になる**ため、この軸が意味を持つのは includeUnpublished=true を指定できる
+   * 管理者（admin）だけです。既定の母集団（公開済みのみ）に対して true を指定すると常に空になります。
+   * 廃番かどうかは discontinuedAt が設定されているかで決まります（未来の日時にはなりません）。
+   */
+  discontinued?: DiscontinuedParamParameter;
 };

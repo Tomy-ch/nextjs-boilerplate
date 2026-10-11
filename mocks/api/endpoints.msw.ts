@@ -9,16 +9,22 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 import { faker } from "@faker-js/faker";
 import type { RequestHandlerOptions } from "msw";
 import { HttpResponse, http } from "msw";
 import type {
   AddressCandidatesResponse,
+  CampaignListResponse,
+  CampaignResponse,
+  CartCouponListResponse,
   CartMergeResponse,
   CartResponse,
   ControlEvent,
+  CouponBulkIssueResponse,
+  CouponListResponse,
+  CouponResponse,
   DashboardSummaryResponse,
   DeliveryEvent,
   ExchangeRateResponse,
@@ -29,6 +35,8 @@ import type {
   PrefecturesResponse,
   ProductAmountRankingResponse,
   ProductCountResponse,
+  ProductDiscontinueImpactResponse,
+  ProductDiscontinueResponse,
   ProductImageResponse,
   ProductListResponse,
   ProductLowStockResponse,
@@ -279,6 +287,37 @@ export const getGetUsersMeRolesResponseMock = (
     code: faker.helpers.arrayElement(["admin", "general"] as const),
     name: faker.string.alpha({ length: { min: 10, max: 100 } }),
   })),
+  ...overrideResponse,
+});
+
+export const getGetUsersMeCouponsResponseMock = (
+  overrideResponse: Partial<Extract<CouponListResponse, object>> = {},
+): CouponListResponse => ({
+  coupons: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.uuid(),
+      discount: {
+        kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+        value: (() => "0.10")(),
+        maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+      },
+      scope: {
+        kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+        targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+      },
+      expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+      usedAt: faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+      issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+      minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+      usableFrom: faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+    }),
+  ),
   ...overrideResponse,
 });
 
@@ -547,6 +586,25 @@ export const getPatchProductsDetailResponseMock = (
   ...overrideResponse,
 });
 
+export const getPostProductsDiscontinueResponseMock = (
+  overrideResponse: Partial<Extract<ProductDiscontinueResponse, object>> = {},
+): ProductDiscontinueResponse => ({
+  discontinuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  affectedCartCount: faker.number.int(),
+  affectedUserCount: faker.number.int(),
+  issuedCouponCount: faker.number.int(),
+  ...overrideResponse,
+});
+
+export const getGetProductsDiscontinueImpactResponseMock = (
+  overrideResponse: Partial<Extract<ProductDiscontinueImpactResponse, object>> = {},
+): ProductDiscontinueImpactResponse => ({
+  affectedCartCount: faker.number.int(),
+  affectedUserCount: faker.number.int(),
+  inProgressPurchaseCount: faker.number.int(),
+  ...overrideResponse,
+});
+
 export const getPatchProductsStockResponseMock = (
   overrideResponse: Partial<Extract<ProductResponse, object>> = {},
 ): ProductResponse => ({
@@ -729,6 +787,24 @@ export const getPostPurchasesResponseMock = (
   userId: faker.string.uuid(),
   statusId: faker.string.uuid(),
   subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  discountAmount: faker.number.int(),
+  appliedCoupon: faker.helpers.arrayElement([
+    {
+      ...{
+        id: faker.string.uuid(),
+        discount: {
+          kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+          value: (() => "0.10")(),
+          maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+        },
+        scope: {
+          kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+          targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+        },
+      },
+    },
+    null,
+  ]),
   taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
   shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
   totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
@@ -793,6 +869,24 @@ export const getGetPurchasesDetailResponseMock = (
     name: faker.string.alpha({ length: { min: 10, max: 20 } }),
   },
   subtotalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
+  discountAmount: faker.number.int(),
+  appliedCoupon: faker.helpers.arrayElement([
+    {
+      ...{
+        id: faker.string.uuid(),
+        discount: {
+          kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+          value: (() => "0.10")(),
+          maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+        },
+        scope: {
+          kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+          targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+        },
+      },
+    },
+    null,
+  ]),
   taxAmount: (() => faker.number.int({ min: 0, max: 99_999 }))(),
   shippingFee: (() => faker.number.int({ min: 0, max: 2000 }))(),
   totalAmount: (() => faker.number.int({ min: 1000, max: 999_999 }))(),
@@ -1016,6 +1110,199 @@ export const getPostCartsMeMergeResponseMock = (
   dropped: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() =>
     faker.string.uuid(),
   ),
+  ...overrideResponse,
+});
+
+export const getGetCartsMeCouponsResponseMock = (
+  overrideResponse: Partial<Extract<CartCouponListResponse, object>> = {},
+): CartCouponListResponse => ({
+  coupons: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      coupon: {
+        id: faker.string.uuid(),
+        discount: {
+          kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+          value: (() => "0.10")(),
+          maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+        },
+        scope: {
+          kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+          targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+        },
+        expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+        usedAt: faker.helpers.arrayElement([
+          faker.date.past().toISOString().slice(0, 19) + "Z",
+          null,
+        ]),
+        issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+        minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+        usableFrom: faker.helpers.arrayElement([
+          faker.date.past().toISOString().slice(0, 19) + "Z",
+          null,
+        ]),
+      },
+      discountAmount: faker.number.int(),
+    }),
+  ),
+  ...overrideResponse,
+});
+
+export const getPostCouponsResponseMock = (
+  overrideResponse: Partial<Extract<CouponResponse, object>> = {},
+): CouponResponse => ({
+  id: faker.string.uuid(),
+  discount: {
+    kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+    value: (() => "0.10")(),
+    maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  },
+  scope: {
+    kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+    targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+  },
+  expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  usedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
+  issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  usableFrom: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  ...overrideResponse,
+});
+
+export const getPostCouponsBulkIssueResponseMock = (
+  overrideResponse: Partial<Extract<CouponBulkIssueResponse, object>> = {},
+): CouponBulkIssueResponse => ({
+  issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  recipientCount: faker.number.int(),
+  issuedCouponCount: faker.number.int(),
+  ...overrideResponse,
+});
+
+export const getPostCampaignsResponseMock = (
+  overrideResponse: Partial<Extract<CampaignResponse, object>> = {},
+): CampaignResponse => ({
+  id: faker.string.uuid(),
+  code: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  discount: {
+    kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+    value: (() => "0.10")(),
+    maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  },
+  scope: {
+    kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+    targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+  },
+  minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  usableFrom: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  couponExpiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  startsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  endsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  totalLimit: faker.number.int(),
+  perUserLimit: faker.number.int(),
+  issuedCount: faker.number.int(),
+  suspendedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  ...overrideResponse,
+});
+
+export const getGetCampaignsResponseMock = (
+  overrideResponse: Partial<Extract<CampaignListResponse, object>> = {},
+): CampaignListResponse => ({
+  campaigns: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
+    () => ({
+      id: faker.string.uuid(),
+      code: faker.string.alpha({ length: { min: 10, max: 20 } }),
+      discount: {
+        kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+        value: (() => "0.10")(),
+        maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+      },
+      scope: {
+        kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+        targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+      },
+      minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+      usableFrom: faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+      couponExpiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+      startsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+      endsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+      totalLimit: faker.number.int(),
+      perUserLimit: faker.number.int(),
+      issuedCount: faker.number.int(),
+      suspendedAt: faker.helpers.arrayElement([
+        faker.date.past().toISOString().slice(0, 19) + "Z",
+        null,
+      ]),
+    }),
+  ),
+  total: (() => faker.number.int({ min: 0, max: 9999 }))(),
+  ...overrideResponse,
+});
+
+export const getPostCampaignsClaimsResponseMock = (
+  overrideResponse: Partial<Extract<CouponResponse, object>> = {},
+): CouponResponse => ({
+  id: faker.string.uuid(),
+  discount: {
+    kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+    value: (() => "0.10")(),
+    maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  },
+  scope: {
+    kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+    targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+  },
+  expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  usedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
+  issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  usableFrom: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  ...overrideResponse,
+});
+
+export const getPostCampaignsSuspendResponseMock = (
+  overrideResponse: Partial<Extract<CampaignResponse, object>> = {},
+): CampaignResponse => ({
+  id: faker.string.uuid(),
+  code: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  discount: {
+    kind: faker.helpers.arrayElement(["flat", "rate"] as const),
+    value: (() => "0.10")(),
+    maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  },
+  scope: {
+    kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
+    targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
+  },
+  minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
+  usableFrom: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
+  couponExpiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  startsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  endsAt: faker.date.past().toISOString().slice(0, 19) + "Z",
+  totalLimit: faker.number.int(),
+  perUserLimit: faker.number.int(),
+  issuedCount: faker.number.int(),
+  suspendedAt: faker.helpers.arrayElement([
+    faker.date.past().toISOString().slice(0, 19) + "Z",
+    null,
+  ]),
   ...overrideResponse,
 });
 
@@ -1367,6 +1654,30 @@ export const getGetUsersMeRolesMockHandler = (
   );
 };
 
+export const getGetUsersMeCouponsMockHandler = (
+  overrideResponse?:
+    | CouponListResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<CouponListResponse> | CouponListResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/users/me/coupons",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetUsersMeCouponsResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getGetUsersSearchMockHandler = (
   overrideResponse?:
     | UsersSearchResponse
@@ -1600,6 +1911,54 @@ export const getPatchProductsDetailMockHandler = (
             ? await overrideResponse(info)
             : overrideResponse
           : getPatchProductsDetailResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostProductsDiscontinueMockHandler = (
+  overrideResponse?:
+    | ProductDiscontinueResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<ProductDiscontinueResponse> | ProductDiscontinueResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/products/:productId/discontinue",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostProductsDiscontinueResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetProductsDiscontinueImpactMockHandler = (
+  overrideResponse?:
+    | ProductDiscontinueImpactResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<ProductDiscontinueImpactResponse> | ProductDiscontinueImpactResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/products/:productId/discontinue-impact",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetProductsDiscontinueImpactResponseMock(),
         { status: 200 },
       );
     },
@@ -2125,6 +2484,174 @@ export const getPostCartsMeMergeMockHandler = (
   );
 };
 
+export const getGetCartsMeCouponsMockHandler = (
+  overrideResponse?:
+    | CartCouponListResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<CartCouponListResponse> | CartCouponListResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/carts/me/coupons",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetCartsMeCouponsResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostCouponsMockHandler = (
+  overrideResponse?:
+    | CouponResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CouponResponse> | CouponResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/coupons",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCouponsResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostCouponsBulkIssueMockHandler = (
+  overrideResponse?:
+    | CouponBulkIssueResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CouponBulkIssueResponse> | CouponBulkIssueResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/coupons/bulk-issue",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCouponsBulkIssueResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostCampaignsMockHandler = (
+  overrideResponse?:
+    | CampaignResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CampaignResponse> | CampaignResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/campaigns",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCampaignsResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getGetCampaignsMockHandler = (
+  overrideResponse?:
+    | CampaignListResponse
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<CampaignListResponse> | CampaignListResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    "*/v1/campaigns",
+    async (info: Parameters<Parameters<typeof http.get>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getGetCampaignsResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostCampaignsClaimsMockHandler = (
+  overrideResponse?:
+    | CouponResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CouponResponse> | CouponResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/campaigns/claims",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCampaignsClaimsResponseMock(),
+        { status: 201 },
+      );
+    },
+    options,
+  );
+};
+
+export const getPostCampaignsSuspendMockHandler = (
+  overrideResponse?:
+    | CampaignResponse
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<CampaignResponse> | CampaignResponse),
+  options?: RequestHandlerOptions,
+) => {
+  return http.post(
+    "*/v1/campaigns/:campaignId/suspend",
+    async (info: Parameters<Parameters<typeof http.post>[1]>[0]) => {
+      return HttpResponse.json(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === "function"
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getPostCampaignsSuspendResponseMock(),
+        { status: 200 },
+      );
+    },
+    options,
+  );
+};
+
 export const getGetInquiriesMockHandler = (
   overrideResponse?:
     | InquiryListResponse
@@ -2303,6 +2830,7 @@ export const getGoBoilerplateAPIMock = () => [
   getGetUsersMeMockHandler(),
   getGetUsersMePurchasesSummaryMockHandler(),
   getGetUsersMeRolesMockHandler(),
+  getGetUsersMeCouponsMockHandler(),
   getGetUsersSearchMockHandler(),
   getGetUsersFeedMockHandler(),
   getGetPrefecturesMockHandler(),
@@ -2313,6 +2841,8 @@ export const getGoBoilerplateAPIMock = () => [
   getGetProductsCountMockHandler(),
   getGetProductsDetailMockHandler(),
   getPatchProductsDetailMockHandler(),
+  getPostProductsDiscontinueMockHandler(),
+  getGetProductsDiscontinueImpactMockHandler(),
   getPatchProductsStockMockHandler(),
   getGetProductsRankingQuantityMockHandler(),
   getGetProductsRankingAmountMockHandler(),
@@ -2335,6 +2865,13 @@ export const getGoBoilerplateAPIMock = () => [
   getPutCartsMeItemMockHandler(),
   getDeleteCartsMeItemMockHandler(),
   getPostCartsMeMergeMockHandler(),
+  getGetCartsMeCouponsMockHandler(),
+  getPostCouponsMockHandler(),
+  getPostCouponsBulkIssueMockHandler(),
+  getPostCampaignsMockHandler(),
+  getGetCampaignsMockHandler(),
+  getPostCampaignsClaimsMockHandler(),
+  getPostCampaignsSuspendMockHandler(),
   getGetInquiriesMockHandler(),
   getGetInquiriesMeMessagesMockHandler(),
   getPostInquiriesMeMessagesMockHandler(),

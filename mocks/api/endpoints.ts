@@ -9,21 +9,32 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 import type {
   AddressCandidatesResponse,
   BadRequest400Response,
+  CampaignClaimsPostRequest,
+  CampaignListResponse,
+  CampaignResponse,
+  CampaignsPostRequest,
+  CartCouponListResponse,
   CartItemPutRequest,
   CartMergeResponse,
   CartResponse,
   Conflict409Response,
   ControlEvent,
+  CouponBulkIssuePostRequest,
+  CouponBulkIssueResponse,
+  CouponListResponse,
+  CouponResponse,
+  CouponsPostRequest,
   DashboardSummaryResponse,
   DeliveryEvent,
   ExchangeRateResponse,
   Forbidden403Response,
   GetAddressesParams,
+  GetCampaignsParams,
   GetDashboardSummaryParams,
   GetExchangeRatesParams,
   GetInquiriesDetailMessagesParams,
@@ -56,6 +67,9 @@ import type {
   PrefecturesResponse,
   ProductAmountRankingResponse,
   ProductCountResponse,
+  ProductDiscontinueImpactResponse,
+  ProductDiscontinuePostRequest,
+  ProductDiscontinueResponse,
   ProductImagePostRequest,
   ProductImageResponse,
   ProductListResponse,
@@ -341,7 +355,9 @@ export const getPostUsersUrl = () => {
 };
 
 /**
- * 新しいユーザーを作成します。必要な情報をリクエストボディに含めてください。
+ * 認証済みの主体を内部ユーザーとして登録します。認証したトークンの issuer と subject を
+ * そのまま外部アイデンティティとして結び付けるため、リクエストボディには本人の属性だけを含めます。
+ * 同じ主体で 2 回目を呼ぶと 409 を返します。
  * @summary ユーザーの作成
  */
 export const postUsers = async (
@@ -959,6 +975,75 @@ export const getUsersMeRoles = async (options?: RequestInit): Promise<getUsersMe
 
   const data: getUsersMeRolesResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as getUsersMeRolesResponse;
+};
+
+export type getUsersMeCouponsResponse200 = {
+  data: CouponListResponse;
+  status: 200;
+};
+
+export type getUsersMeCouponsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getUsersMeCouponsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getUsersMeCouponsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getUsersMeCouponsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getUsersMeCouponsResponseSuccess = getUsersMeCouponsResponse200 & {
+  headers: Headers;
+};
+export type getUsersMeCouponsResponseError = (
+  | getUsersMeCouponsResponse401
+  | getUsersMeCouponsResponse405
+  | getUsersMeCouponsResponse500
+  | getUsersMeCouponsResponse503
+) & {
+  headers: Headers;
+};
+
+export type getUsersMeCouponsResponse =
+  | getUsersMeCouponsResponseSuccess
+  | getUsersMeCouponsResponseError;
+
+export const getGetUsersMeCouponsUrl = () => {
+  return `/v1/users/me/coupons`;
+};
+
+/**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザーが保有するクーポンを取得します。
+ * パスに他者の識別子を持たないため、他ユーザーのクーポンは取得できません。
+ * **使用済み・失効済みも並びます。** この口が返すのは「使えるもの」ではなく「持っているもの」で、
+ * いまのカートに対して使えるかどうかは `GET /v1/carts/me/coupons` が答えます。
+ * 発行日時の新しい順で、ページングは持ちません。1 枚も保有しない場合はエラーではなく空配列を返します。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary 認証ユーザー自身の保有クーポンの取得
+ */
+export const getUsersMeCoupons = async (
+  options?: RequestInit,
+): Promise<getUsersMeCouponsResponse> => {
+  const res = await fetch(getGetUsersMeCouponsUrl(), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getUsersMeCouponsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getUsersMeCouponsResponse;
 };
 
 export type getUsersSearchResponse200 = {
@@ -1806,6 +1891,215 @@ export const patchProductsDetail = async (
 
   const data: patchProductsDetailResponse["data"] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as patchProductsDetailResponse;
+};
+
+export type postProductsDiscontinueResponse200 = {
+  data: ProductDiscontinueResponse;
+  status: 200;
+};
+
+export type postProductsDiscontinueResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postProductsDiscontinueResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postProductsDiscontinueResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postProductsDiscontinueResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postProductsDiscontinueResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postProductsDiscontinueResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postProductsDiscontinueResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postProductsDiscontinueResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postProductsDiscontinueResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postProductsDiscontinueResponseSuccess = postProductsDiscontinueResponse200 & {
+  headers: Headers;
+};
+export type postProductsDiscontinueResponseError = (
+  | postProductsDiscontinueResponse400
+  | postProductsDiscontinueResponse401
+  | postProductsDiscontinueResponse403
+  | postProductsDiscontinueResponse404
+  | postProductsDiscontinueResponse405
+  | postProductsDiscontinueResponse409
+  | postProductsDiscontinueResponse422
+  | postProductsDiscontinueResponse500
+  | postProductsDiscontinueResponse503
+) & {
+  headers: Headers;
+};
+
+export type postProductsDiscontinueResponse =
+  | postProductsDiscontinueResponseSuccess
+  | postProductsDiscontinueResponseError;
+
+export const getPostProductsDiscontinueUrl = (productId: string) => {
+  return `/v1/products/${productId}/discontinue`;
+};
+
+/**
+ * 指定された UUID に該当する商品を廃番にします。認証必須で、管理者（admin）のみ実行できます（非 admin は 403）。
+ * 商品を非公開にし、その商品の明細を持っていた確定済みユーザーへ代替クーポンを一括発行します。
+ * 非公開化とクーポンの発行は同一トランザクションで原子的に行います。**クーポンだけが配られて商品がまだ
+ * 買える状態は observable になりません。**
+ * **進行中の購入（完了 / キャンセル / 配達済みのいずれでもない購入）がある商品は廃番にできません**（409）。
+ * 409 はこの一義で、要求が版の食い違いで拒まれることはありません（本操作はバージョンを受け取らないため）。
+ * どの購入が残っているかは GET /v1/purchases に productId を指定して辿れます。
+ * **カートの明細は取り除きません。** 以降の取得で discontinued の issue が立ち、なぜ買えないのかが
+ * 利用者に伝わります。黙って明細が減るより、理由が残るほうが正しいためです。
+ * クーポンの受給対象は**実行時点でその明細を保持していた確定済みユーザー**です。ゲストのカートは
+ * 影響を受けますが受給者にはならず、退会済みユーザーも対象外です。実行後に明細を入れた利用者も対象外です。
+ * 廃番は取り消せません。廃番の商品に公開日時を設定する部分更新は 422 で拒まれます。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返し、クーポンが二重に
+ * 発行されることはありません。
+ * 既に廃番の商品への再実行は、新たな発行を行わずに 200 を返します。3 つの件数はいずれも
+ * 「その実行が起こしたこと」を表すため、何も起こさない再実行では 0 になります。
+ * 本 op は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 商品の廃番
+ */
+export const postProductsDiscontinue = async (
+  productId: string,
+  productDiscontinuePostRequest: ProductDiscontinuePostRequest,
+  options?: RequestInit,
+): Promise<postProductsDiscontinueResponse> => {
+  const res = await fetch(getPostProductsDiscontinueUrl(productId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(productDiscontinuePostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postProductsDiscontinueResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postProductsDiscontinueResponse;
+};
+
+export type getProductsDiscontinueImpactResponse200 = {
+  data: ProductDiscontinueImpactResponse;
+  status: 200;
+};
+
+export type getProductsDiscontinueImpactResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getProductsDiscontinueImpactResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getProductsDiscontinueImpactResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type getProductsDiscontinueImpactResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type getProductsDiscontinueImpactResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getProductsDiscontinueImpactResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getProductsDiscontinueImpactResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getProductsDiscontinueImpactResponseSuccess =
+  getProductsDiscontinueImpactResponse200 & {
+    headers: Headers;
+  };
+export type getProductsDiscontinueImpactResponseError = (
+  | getProductsDiscontinueImpactResponse400
+  | getProductsDiscontinueImpactResponse401
+  | getProductsDiscontinueImpactResponse403
+  | getProductsDiscontinueImpactResponse404
+  | getProductsDiscontinueImpactResponse405
+  | getProductsDiscontinueImpactResponse500
+  | getProductsDiscontinueImpactResponse503
+) & {
+  headers: Headers;
+};
+
+export type getProductsDiscontinueImpactResponse =
+  | getProductsDiscontinueImpactResponseSuccess
+  | getProductsDiscontinueImpactResponseError;
+
+export const getGetProductsDiscontinueImpactUrl = (productId: string) => {
+  return `/v1/products/${productId}/discontinue-impact`;
+};
+
+/**
+ * 指定された UUID に該当する商品を廃番にした場合の影響を、実行前に件数で返します。
+ * 認証必須で、管理者（admin）のみ実行できます（非 admin は 403）。この見積もりは廃番を実行できる
+ * 主体だけが見るべき情報であり、廃番そのものと同じ権限で守ります。
+ * 返すのは影響カート件数・影響利用者数・進行中購入件数の 3 つです。
+ * **影響カート件数と影響利用者数は一致しません。** カートは所有者が確定していなくても持てるため、
+ * ゲストのカートは影響を受けますがクーポンの受給者にはなりません。退会済みユーザーも対象外です。
+ * **行をロックしないため、返した瞬間から古くなります。** 押した結果がこの見積もりと食い違うことは
+ * あり、実際に何が起きたかは実行（POST /v1/products/{productId}/discontinue）の応答が返します。
+ * 進行中購入件数が 1 以上であれば実行は 409 で拒まれます。どの購入かは
+ * GET /v1/purchases に productId を指定して辿れます。
+ * 未公開の商品も対象です。廃番にできるかを調べる読み取りであり、公開状態で母集団を絞る理由がないためです。
+ * 本 op は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の一時障害で
+ * 応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 商品を廃番にしたときの影響の見積もり
+ */
+export const getProductsDiscontinueImpact = async (
+  productId: string,
+  options?: RequestInit,
+): Promise<getProductsDiscontinueImpactResponse> => {
+  const res = await fetch(getGetProductsDiscontinueImpactUrl(productId), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getProductsDiscontinueImpactResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getProductsDiscontinueImpactResponse;
 };
 
 export type patchProductsStockResponse200 = {
@@ -3763,6 +4057,701 @@ export const postCartsMeMerge = async (
   return { data, status: res.status, headers: res.headers } as postCartsMeMergeResponse;
 };
 
+export type getCartsMeCouponsResponse200 = {
+  data: CartCouponListResponse;
+  status: 200;
+};
+
+export type getCartsMeCouponsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getCartsMeCouponsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getCartsMeCouponsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getCartsMeCouponsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getCartsMeCouponsResponseSuccess = getCartsMeCouponsResponse200 & {
+  headers: Headers;
+};
+export type getCartsMeCouponsResponseError = (
+  | getCartsMeCouponsResponse401
+  | getCartsMeCouponsResponse405
+  | getCartsMeCouponsResponse500
+  | getCartsMeCouponsResponse503
+) & {
+  headers: Headers;
+};
+
+export type getCartsMeCouponsResponse =
+  | getCartsMeCouponsResponseSuccess
+  | getCartsMeCouponsResponseError;
+
+export const getGetCartsMeCouponsUrl = () => {
+  return `/v1/carts/me/coupons`;
+};
+
+/**
+ * 認証コンテキスト（Bearer トークン）の内部 UserID に該当するユーザーのカートに対して、
+ * 使えるクーポンと、それぞれを適用した場合の値引き額を取得します。
+ *
+ * **適用可否と値引き額を表現層に計算させないための口です。** どのクーポンがどの明細に効いて
+ * いくら引かれるかを front が判定すると、金額の決定が表現層へ漏れます。
+ *
+ * 母集団は保有一覧（`GET /v1/users/me/coupons`）と異なります。使用済み・失効済みと、
+ * いまのカートでは値引きが 0 になるクーポンは並びません。値引き額は購入確定時と同じ規則で決まります。
+ *
+ * **ロックを取らないため、返した値は返した瞬間から古くなります。** 確定までの間にカートの中身や
+ * クーポンの状態が変われば確定時の値引き額は変わり得るので、値引きが 0 になる確定は購入側が 422 で拒みます。
+ *
+ * カートを持たない場合と、使えるクーポンが 1 枚も無い場合は、いずれもエラーではなく空配列を返します。
+ * ゲストはクーポンの受給者になれないため、認証を必須とします。
+ * 本 op 自体は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証必須 op の先例に倣い 503 を宣言します。
+ * @summary いまのカートに対して使えるクーポンの取得
+ */
+export const getCartsMeCoupons = async (
+  options?: RequestInit,
+): Promise<getCartsMeCouponsResponse> => {
+  const res = await fetch(getGetCartsMeCouponsUrl(), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getCartsMeCouponsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getCartsMeCouponsResponse;
+};
+
+export type postCouponsResponse201 = {
+  data: CouponResponse;
+  status: 201;
+};
+
+export type postCouponsResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCouponsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCouponsResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postCouponsResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postCouponsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCouponsResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCouponsResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCouponsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCouponsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCouponsResponseSuccess = postCouponsResponse201 & {
+  headers: Headers;
+};
+export type postCouponsResponseError = (
+  | postCouponsResponse400
+  | postCouponsResponse401
+  | postCouponsResponse403
+  | postCouponsResponse404
+  | postCouponsResponse405
+  | postCouponsResponse409
+  | postCouponsResponse422
+  | postCouponsResponse500
+  | postCouponsResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCouponsResponse = postCouponsResponseSuccess | postCouponsResponseError;
+
+export const getPostCouponsUrl = () => {
+  return `/v1/coupons`;
+};
+
+/**
+ * 受給者を名指しして、クーポンを 1 枚発行します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。
+ * **受給者は 1 人です。** 不特定多数への配布は別の操作であり、POST /v1/coupons/bulk-issue が
+ * その形です。この API を全員へ繰り返し呼ぶ用途は想定していません。
+ * 受給者は退会していない利用者に限ります。存在しない、または退会済みの `userId` は 404 を返します。
+ * 適用範囲に `category` / `product` を指定した場合も、その対象が存在しなければ 404 を返します。
+ * 存在しない対象を範囲にしたクーポンは誰にも使えないため、発行してから気づくことを避けます。
+ * 発行されたクーポンは未使用の状態で作られ、GET /v1/users/me/coupons に並びます。
+ * 他の発行経路のクーポンと区別されません。
+ * **発行は取り消せません。** 使用済み・失効済みのいずれもクーポンの行は残り、無効化する経路も
+ * ありません。二度目の実行は一度目と同じだけの新しいクーポンを配るため、再送を安全にする手段が
+ * キーしかありません。そのため **`Idempotency-Key` は必須です**（欠くと 400）。
+ * 同一キーの再送は初回の結果をそのまま返し、クーポンが二重に発行されることはありません。
+ * **別のキーで再実行した場合は、別の発行として改めて 1 枚配られます。**
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary クーポンの発行
+ */
+export const postCoupons = async (
+  couponsPostRequest: CouponsPostRequest,
+  options?: RequestInit,
+): Promise<postCouponsResponse> => {
+  const res = await fetch(getPostCouponsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(couponsPostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCouponsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCouponsResponse;
+};
+
+export type postCouponsBulkIssueResponse200 = {
+  data: CouponBulkIssueResponse;
+  status: 200;
+};
+
+export type postCouponsBulkIssueResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCouponsBulkIssueResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCouponsBulkIssueResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postCouponsBulkIssueResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postCouponsBulkIssueResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCouponsBulkIssueResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCouponsBulkIssueResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCouponsBulkIssueResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCouponsBulkIssueResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCouponsBulkIssueResponseSuccess = postCouponsBulkIssueResponse200 & {
+  headers: Headers;
+};
+export type postCouponsBulkIssueResponseError = (
+  | postCouponsBulkIssueResponse400
+  | postCouponsBulkIssueResponse401
+  | postCouponsBulkIssueResponse403
+  | postCouponsBulkIssueResponse404
+  | postCouponsBulkIssueResponse405
+  | postCouponsBulkIssueResponse409
+  | postCouponsBulkIssueResponse422
+  | postCouponsBulkIssueResponse500
+  | postCouponsBulkIssueResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCouponsBulkIssueResponse =
+  | postCouponsBulkIssueResponseSuccess
+  | postCouponsBulkIssueResponseError;
+
+export const getPostCouponsBulkIssueUrl = () => {
+  return `/v1/coupons/bulk-issue`;
+};
+
+/**
+ * 退会していないすべての利用者へ、同一条件の販促クーポンを 1 枚ずつ発行します。認証必須で、
+ * 管理者（admin）のみ実行できます（非 admin は 403）。
+ * **受給者は指定できません。** 不特定多数への配布がこの操作の形です。受給者を名指しして配る発行は
+ * 別の操作であり、この API を「全員を列挙する」用途に使うことは想定していません。
+ * 書き込むのはクーポンだけで、他の集約は変更しません。往復は受給者数に比例せず、発行枚数によらず
+ * 一定です。
+ * **配布の記録は残りません。** 同じ条件で二度実行すれば、同じ利用者へ 2 枚発行されます。
+ * 同じ配布を二度走らせない責務は呼び出し側にあるため、**Idempotency-Key は必須です**（欠くと 400）。
+ * 同一キーの再送は初回の結果をそのまま返し、クーポンが二重に発行されることはありません。
+ * **別のキーで再実行した場合は、別の配布として全員へ改めて発行されます。**意図しない再配布を防ぐのは
+ * キーの管理だけなので、リトライでは必ず同じキーを送ってください。
+ * 適用範囲に `category` / `product` を指定した場合、その対象が存在しなければ 404 を返します。
+ * 存在しない対象を範囲にしたクーポンは誰にも使えないため、発行してから気づくことを避けます。
+ * 受給対象の人数が上限を超える場合は 409 を返します。409 はこの一義で、要求の形が原因になることは
+ * ありません（形の誤りは 400 / 422 です）。
+ * 発行されたクーポンは GET /v1/users/me/coupons に並び、他の発行経路のクーポンと区別されません。
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary 販促クーポンの一括発行
+ */
+export const postCouponsBulkIssue = async (
+  couponBulkIssuePostRequest: CouponBulkIssuePostRequest,
+  options?: RequestInit,
+): Promise<postCouponsBulkIssueResponse> => {
+  const res = await fetch(getPostCouponsBulkIssueUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(couponBulkIssuePostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCouponsBulkIssueResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCouponsBulkIssueResponse;
+};
+
+export type postCampaignsResponse201 = {
+  data: CampaignResponse;
+  status: 201;
+};
+
+export type postCampaignsResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCampaignsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCampaignsResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postCampaignsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCampaignsResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCampaignsResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCampaignsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCampaignsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCampaignsResponseSuccess = postCampaignsResponse201 & {
+  headers: Headers;
+};
+export type postCampaignsResponseError = (
+  | postCampaignsResponse400
+  | postCampaignsResponse401
+  | postCampaignsResponse403
+  | postCampaignsResponse405
+  | postCampaignsResponse409
+  | postCampaignsResponse422
+  | postCampaignsResponse500
+  | postCampaignsResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCampaignsResponse = postCampaignsResponseSuccess | postCampaignsResponseError;
+
+export const getPostCampaignsUrl = () => {
+  return `/v1/campaigns`;
+};
+
+/**
+ * コードを配るキャンペーンを 1 件定義します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。
+ * 定義した時点ではクーポンは 1 枚も配られません。利用者が POST /v1/campaigns/claims で
+ * コードを示したときに、このテンプレートからクーポンが 1 枚発行されます。
+ * **配るクーポンの内容は受け取った時点でクーポンへ焼かれます。** 以後この定義を変えても、
+ * 既に配ったクーポンは動きません。編集の口を持たないのはそのためで、配布を止めるには
+ * POST /v1/campaigns/{campaignId}/suspend を使います。
+ * テンプレートが実際にクーポンへ解決できるかはここで確かめます。誰も受け取れないキャンペーンを
+ * 作れてしまわないためです。値引き種別・適用範囲種別が既知でない場合は 422 を返します。
+ * コードは前後の空白を落とし大文字に揃えて保存されます。**既に使われているコードは 409 です。**
+ * 本 op は DB の SELECT / INSERT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの定義
+ */
+export const postCampaigns = async (
+  campaignsPostRequest: CampaignsPostRequest,
+  options?: RequestInit,
+): Promise<postCampaignsResponse> => {
+  const res = await fetch(getPostCampaignsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(campaignsPostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCampaignsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCampaignsResponse;
+};
+
+export type getCampaignsResponse200 = {
+  data: CampaignListResponse;
+  status: 200;
+};
+
+export type getCampaignsResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type getCampaignsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type getCampaignsResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type getCampaignsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type getCampaignsResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type getCampaignsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type getCampaignsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type getCampaignsResponseSuccess = getCampaignsResponse200 & {
+  headers: Headers;
+};
+export type getCampaignsResponseError = (
+  | getCampaignsResponse400
+  | getCampaignsResponse401
+  | getCampaignsResponse403
+  | getCampaignsResponse405
+  | getCampaignsResponse422
+  | getCampaignsResponse500
+  | getCampaignsResponse503
+) & {
+  headers: Headers;
+};
+
+export type getCampaignsResponse = getCampaignsResponseSuccess | getCampaignsResponseError;
+
+export const getGetCampaignsUrl = (params?: GetCampaignsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/v1/campaigns?${stringifiedParams}` : `/v1/campaigns`;
+};
+
+/**
+ * キャンペーンを配布期間の開始が新しい順で返します。認証必須で、管理者（admin）のみ実行できます
+ * （非 admin は 403）。停止済みと配布期間を過ぎたものも含みます。
+ * 残枚数は totalLimit と issuedCount の差から読めます。issuedCount は配った枚数であり、
+ * 購入のキャンセルでクーポンが未使用へ戻っても減りません。
+ * 本 op は DB の SELECT のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの一覧
+ */
+export const getCampaigns = async (
+  params?: GetCampaignsParams,
+  options?: RequestInit,
+): Promise<getCampaignsResponse> => {
+  const res = await fetch(getGetCampaignsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: getCampaignsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as getCampaignsResponse;
+};
+
+export type postCampaignsClaimsResponse201 = {
+  data: CouponResponse;
+  status: 201;
+};
+
+export type postCampaignsClaimsResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCampaignsClaimsResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCampaignsClaimsResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCampaignsClaimsResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCampaignsClaimsResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCampaignsClaimsResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCampaignsClaimsResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCampaignsClaimsResponseSuccess = postCampaignsClaimsResponse201 & {
+  headers: Headers;
+};
+export type postCampaignsClaimsResponseError = (
+  | postCampaignsClaimsResponse400
+  | postCampaignsClaimsResponse401
+  | postCampaignsClaimsResponse405
+  | postCampaignsClaimsResponse409
+  | postCampaignsClaimsResponse422
+  | postCampaignsClaimsResponse500
+  | postCampaignsClaimsResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCampaignsClaimsResponse =
+  | postCampaignsClaimsResponseSuccess
+  | postCampaignsClaimsResponseError;
+
+export const getPostCampaignsClaimsUrl = () => {
+  return `/v1/campaigns/claims`;
+};
+
+/**
+ * キャンペーンコードを示して、クーポンを 1 枚受け取ります。認証必須で、受給者は認証主体自身です。
+ * 受け取ったクーポンは未使用の状態で作られ、GET /v1/users/me/coupons に並びます。
+ * 他の発行経路のクーポンと区別されません。
+ * **受け取れない理由は区別しません。** 存在しないコード・配布期間の外・停止済み・総枚数上限に到達・
+ * その利用者が 1 人あたり上限に到達、のいずれも `422` + `details: ["code"]` を返します。
+ * 区別できると、有効なコードを言い当てる手がかりになるためです。形式が不正なコードも同じ応答です。
+ * 次にすべきことはどの場合も同じ（別のコードを使うか諦める）なので、区別する必要もありません。
+ * **総枚数上限と 1 人あたり上限は、同時に受け取りが殺到しても超えません。** キャンペーンの行を
+ * 先に押さえてから枚数を数えるため、判定と発行の間に他の受け取りが割り込みません。
+ * その代わり、同じコードへの同時要求は順番に処理されます。
+ * **Idempotency-Key は必須です**（欠くと 400）。受け取りは取り消せず、二度目の実行は
+ * もう 1 枚配るためです。同一キーの再送は初回の結果をそのまま返します。
+ * **別のキーで押し直した場合は、上限に達していなければ改めて 1 枚配られます。**
+ * 本 op は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
+ * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary コードによるクーポンの受け取り
+ */
+export const postCampaignsClaims = async (
+  campaignClaimsPostRequest: CampaignClaimsPostRequest,
+  options?: RequestInit,
+): Promise<postCampaignsClaimsResponse> => {
+  const res = await fetch(getPostCampaignsClaimsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(campaignClaimsPostRequest),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCampaignsClaimsResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCampaignsClaimsResponse;
+};
+
+export type postCampaignsSuspendResponse200 = {
+  data: CampaignResponse;
+  status: 200;
+};
+
+export type postCampaignsSuspendResponse400 = {
+  data: BadRequest400Response;
+  status: 400;
+};
+
+export type postCampaignsSuspendResponse401 = {
+  data: Unauthorized401Response;
+  status: 401;
+};
+
+export type postCampaignsSuspendResponse403 = {
+  data: Forbidden403Response;
+  status: 403;
+};
+
+export type postCampaignsSuspendResponse404 = {
+  data: NotFound404Response;
+  status: 404;
+};
+
+export type postCampaignsSuspendResponse405 = {
+  data: MethodNotAllowed405Response;
+  status: 405;
+};
+
+export type postCampaignsSuspendResponse409 = {
+  data: Conflict409Response;
+  status: 409;
+};
+
+export type postCampaignsSuspendResponse422 = {
+  data: UnprocessableEntity422Response;
+  status: 422;
+};
+
+export type postCampaignsSuspendResponse500 = {
+  data: InternalServerError500Response;
+  status: 500;
+};
+
+export type postCampaignsSuspendResponse503 = {
+  data: ServiceUnavailable503Response;
+  status: 503;
+};
+
+export type postCampaignsSuspendResponseSuccess = postCampaignsSuspendResponse200 & {
+  headers: Headers;
+};
+export type postCampaignsSuspendResponseError = (
+  | postCampaignsSuspendResponse400
+  | postCampaignsSuspendResponse401
+  | postCampaignsSuspendResponse403
+  | postCampaignsSuspendResponse404
+  | postCampaignsSuspendResponse405
+  | postCampaignsSuspendResponse409
+  | postCampaignsSuspendResponse422
+  | postCampaignsSuspendResponse500
+  | postCampaignsSuspendResponse503
+) & {
+  headers: Headers;
+};
+
+export type postCampaignsSuspendResponse =
+  | postCampaignsSuspendResponseSuccess
+  | postCampaignsSuspendResponseError;
+
+export const getPostCampaignsSuspendUrl = (campaignId: string) => {
+  return `/v1/campaigns/${campaignId}/suspend`;
+};
+
+/**
+ * 指定された UUID に該当するキャンペーンの受け取りを打ち切ります。認証必須で、管理者（admin）のみ
+ * 実行できます（非 admin は 403）。
+ * 配布期間が残っていても、以後そのコードでは受け取れなくなります。配布事故を止める口がこれです。
+ * **停止は取り消せません。** 既に停止済みのキャンペーンへの再実行は 409 を返します。
+ * 409 はこの一義で、要求が版の食い違いで拒まれることはありません（本操作はバージョンを受け取らないため）。
+ * **既に配ったクーポンは無効になりません。** 停止が止めるのは配布であって、配った 1 枚ではないためです。
+ * 発行済みのクーポンを失効させる経路は存在しません。
+ * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返します。
+ * 本 op は DB の SELECT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の JWKS 参照）の
+ * 一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
+ * @summary キャンペーンの停止
+ */
+export const postCampaignsSuspend = async (
+  campaignId: string,
+  options?: RequestInit,
+): Promise<postCampaignsSuspendResponse> => {
+  const res = await fetch(getPostCampaignsSuspendUrl(campaignId), {
+    ...options,
+    method: "POST",
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
+  const data: postCampaignsSuspendResponse["data"] = body ? JSON.parse(body) : {};
+  return { data, status: res.status, headers: res.headers } as postCampaignsSuspendResponse;
+};
+
 export type getInquiriesResponse200 = {
   data: InquiryListResponse;
   status: 200;
@@ -3968,11 +4957,6 @@ export type postInquiriesMeMessagesResponse409 = {
   status: 409;
 };
 
-export type postInquiriesMeMessagesResponse415 = {
-  data: UnsupportedMediaType415Response;
-  status: 415;
-};
-
 export type postInquiriesMeMessagesResponse422 = {
   data: UnprocessableEntity422Response;
   status: 422;
@@ -3996,7 +4980,6 @@ export type postInquiriesMeMessagesResponseError = (
   | postInquiriesMeMessagesResponse401
   | postInquiriesMeMessagesResponse405
   | postInquiriesMeMessagesResponse409
-  | postInquiriesMeMessagesResponse415
   | postInquiriesMeMessagesResponse422
   | postInquiriesMeMessagesResponse500
   | postInquiriesMeMessagesResponse503
@@ -4019,7 +5002,7 @@ export const getPostInquiriesMeMessagesUrl = () => {
  * **Idempotency-Key を受け付けます**。同一キーの再送は初回の結果をそのまま返すため、
  * timeout 後の再送でメッセージが二重に生まれません。同一キーを内容の異なる要求で使い回した場合は
  * 422 で拒否します。
- * 最初の投稿が並行した場合、サーバは内部で 1 度だけやり直します。それでも解けない場合のみ 409 を返します。
+ * 最初の投稿が並行した場合、サーバは先に作られた問い合わせへ追加するため、どちらの投稿も成功します。
  * 本 op 自体は DB の SELECT / INSERT / UPDATE のみで外部依存を持ちませんが、認証段（外部 IdP の
  * JWKS 参照）の一時障害で応答不能となり得るため、認証を伴う op の先例に倣い 503 を宣言します。
  * @summary 自分の問い合わせへの投稿
@@ -4099,7 +5082,9 @@ export const getPostInquiriesMeStreamTicketUrl = () => {
 };
 
 /**
- * 呼び出し主体自身の問い合わせについて、購読に使う 1 回限りの ticket を発行します。
+ * 呼び出し主体自身の問い合わせについて、購読に使う ticket を発行します。
+ * ticket は有効期限（応答の expiresAt）まで繰り返し使え、EventSource の自動再接続のように
+ * 同じ URL で新しい接続を始め直しても受け付けられます。
  * 応答の streamId を GET /v1/streams/{destination} の destination に渡して接続します。
  * **生値はこの応答にしか現れません**。サーバは hash しか保存しないため、失った場合は再発行します。
  * **開始位置には発行時点の stream の現在位置を束ねます**。cursor を持たずに接続した client へ
@@ -4341,11 +5326,6 @@ export type postInquiriesDetailMessagesResponse405 = {
   status: 405;
 };
 
-export type postInquiriesDetailMessagesResponse415 = {
-  data: UnsupportedMediaType415Response;
-  status: 415;
-};
-
 export type postInquiriesDetailMessagesResponse422 = {
   data: UnprocessableEntity422Response;
   status: 422;
@@ -4370,7 +5350,6 @@ export type postInquiriesDetailMessagesResponseError = (
   | postInquiriesDetailMessagesResponse403
   | postInquiriesDetailMessagesResponse404
   | postInquiriesDetailMessagesResponse405
-  | postInquiriesDetailMessagesResponse415
   | postInquiriesDetailMessagesResponse422
   | postInquiriesDetailMessagesResponse500
   | postInquiriesDetailMessagesResponse503

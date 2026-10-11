@@ -27,7 +27,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 - 画像は `POST /v1/products/images`(multipart)でアップロードし、backend が発行したオブジェクトキー(`products/{uuid}.{ext}`)を保存する。配信元は Garage の公開エンドポイントで、`next/image` の `remotePatterns` へ allowlist 登録する。**ワイルドカードは使わない**
 - 商品説明(description)は **リッチテキスト**(TipTap で作成)。表示側は必ず sanitizer を通す(生の `dangerouslySetInnerHTML` 直接使用は禁止。[実装規約](../rules.ja.md#security)の「`dangerouslySetInnerHTML` は原則禁止する」)
 - ページネーションは基本 **cursor 方式**。無限スクロール(増分取得)の画面とページ送り相当の画面が混在するので、画面ごとの実装パターンに注意
-- Idempotency-Key が必要な書き込みは購入作成(U6)と問い合わせの投稿・回答(U13 / A10)である。どちらも自然キーを持たず、応答が届かなかっただけの再送が 2 件目になるため、二重送信防止として実装すること
+- Idempotency-Key が必要な書き込みは購入作成(U6)と問い合わせの投稿・回答(U13 / A10)である。どちらも自然キーを持たず、応答が届かなかっただけの再送が 2 件目になるため、二重送信防止として実装すること。クーポンの発行(1 人へ・一括)、キャンペーンコードによるクーポンの受け取り、キャンペーンの定義は、契約そのものがキーを必須にしている(理由は `IdempotencyKeyRequiredParam` が持つ)
 - **長寿命接続(SSE)はブラウザが backend へ直接開く**。取得の中継とは経路が別で、`EventSource` は任意のヘッダを載せられないため、資格情報は BFF が発券する短命 ticket を query に載せる。整列・重複排除・張り直し・打ち切りの判断は `adapters/client/stream` が持ち、画面は受け取った event を畳み込むだけにする([ADR 0074](../adr/0074-runtime-communication-seam.ja.md))
 
 ---
@@ -93,7 +93,7 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/products` | 不要(`includeUnpublished=true` は要 admin) | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/products` | 不要(`includeUnpublished=true` は要 admin) | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished, discontinued(`includeUnpublished=true` と組んだときだけ意味を持つ。`GET /v1/products/count` も受け付ける) | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/products/{productId}` | 不要 | 詳細 | — | 商品詳細(description 含む) | 400, 404 |
 | `GET /v1/products/categories` | 不要 | カテゴリマスタ | — | categories[] | — |
 | `GET /v1/products/statuses` | 不要 | ステータスマスタ | — | statuses[] | — |
@@ -102,19 +102,36 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | `PATCH /v1/products/{productId}` | 要 admin | 商品更新(A7)。在庫以外の項目 | version と部分更新フィールド | 更新後の商品 | 400, 401, 403, 404, **409(楽観ロック)**, 422 |
 | `PATCH /v1/products/{productId}/stock` | 要 admin | 在庫補充(A3) | delta | 更新後の商品 | 400, 401, 403, 404, **409**, 422, 503 |
 | `POST /v1/products/images` | 要 admin | 画像アップロード(A6 / A7) | multipart の image binary | `{ imagePath }` | 400, 401, 403, 413, 415, 422 |
+| `GET /v1/products/{productId}/discontinue-impact` | 要 admin | 廃番にしたときの影響を実行前に見積もる。ロックを取らないため、返した時点で古くなる | — | affectedCartCount, affectedUserCount, inProgressPurchaseCount | 400, 401, 403, 404 |
+| `POST /v1/products/{productId}/discontinue` | 要 admin | 商品の廃番。非公開にし、カートに入れていた確定済みユーザーへ代替クーポンを発行する。同一トランザクションで行い、取り消せない | couponDiscountRate(decimal 文字列), couponValidityDays, Idempotency-Key(任意のヘッダ) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409(進行中の購入に含まれる)**, 422 |
 
 ### Purchase 系
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), Idempotency-Key(ヘッダ), displayCurrency(任意 query) | 購入、referenceAmount | 400, 401, 409(在庫不足等), 422 |
-| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間 | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers | items[], nextCursor | 400, 401, 403 |
-| `GET /v1/purchases/{purchaseCode}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み) | 401, 404 |
+| `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), couponId(任意、1 枚まで), Idempotency-Key(ヘッダ), displayCurrency(任意 query) | 購入、discountAmount、appliedCoupon、referenceAmount | 400, 401, 409(在庫不足等), 422(適用できないクーポンを含む) |
+| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間 | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/purchases/{purchaseCode}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み)、discountAmount、appliedCoupon | 401, 404 |
 | `PATCH /v1/purchases/{purchaseCode}/cancel` | 要 | キャンセル(U8) | — | 更新後ステータス | 400, 401, 404, 409(不正遷移) |
 | `PATCH /v1/purchases/{purchaseCode}/pay` | 要 | 支払い(擬似決済、U8)。未処理 / 受付中 / 確認中 からのみ | — | 更新後ステータス | 400, 401, 404, 409(二重支払い・不正遷移) |
 | `PATCH /v1/purchases/{purchaseCode}/ship` | 要 admin | 発送(A8) | — | 更新後ステータス | 400, 401, 403, 404, 409 |
 | `PATCH /v1/purchases/{purchaseCode}/deliver` | 要 admin | 配達完了 | — | 更新後ステータス | 400, 401, 403, 404, 409 |
 | `GET /v1/purchases/shippable` | 要 admin | まとめ発送の組(A8) | limit | `groups[]`（購入者ごとの組） | 400, 401, 403 |
+
+### クーポン・キャンペーン
+
+| Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
+| --- | --- | --- | --- | --- | --- |
+| `GET /v1/users/me/coupons` | 要 | 保有クーポン。発行日時の新しい順。使用済み・失効済みも並ぶ | — | coupons[] | 401 |
+| `GET /v1/carts/me/coupons` | 要 | いまのカートに使えるクーポンと、それぞれの値引き額。**適用可否と値引き額を表現層に計算させないための口** | — | coupons[](coupon, discountAmount) | 401 |
+| `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る | code, Idempotency-Key(必須のヘッダ) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
+| `POST /v1/coupons` | 要 admin | 名指しした 1 人へクーポンを 1 枚発行する | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key(必須のヘッダ) | 発行されたクーポン | 400, 401, 403, 404(受給者または範囲の対象が無い), 409, 422 |
+| `POST /v1/coupons/bulk-issue` | 要 admin | 退会していない全員へクーポンを 1 枚ずつ発行する。受給者は指定できない | discount, scope, expiresAt, Idempotency-Key(必須のヘッダ) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409(受給者数が上限超過)**, 422 |
+| `GET /v1/campaigns` | 要 admin | キャンペーン一覧。開始の新しい順で、停止済み・終了済みも含む | page, perPage | campaigns[], total | 400, 401, 403, 422 |
+| `POST /v1/campaigns` | 要 admin | キャンペーンの定義。編集の口は無い | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key(必須のヘッダ) | キャンペーン | 400, 401, 403, **409(コードが使用済み)**, 422 |
+| `POST /v1/campaigns/{campaignId}/suspend` | 要 admin | キャンペーンの受け取りを止める。取り消せず、配ったクーポンは有効のまま | Idempotency-Key(任意のヘッダ) | キャンペーン | 400, 401, 403, 404, **409(停止済み)**, 422 |
+
+**クーポンの金額は 2 つの桁を使う。** 定額の `value` は `price` と同じ桁の USD decimal 文字列(`"5.00"` は $5)、定率の `value` は掛ける率(`"0.10"` は 10% 引き)である。`maxAmount` と `minPurchaseAmount` は、購入の合計と同じ USD セントの整数である。定額の `value` のセント未満の桁は受け付けられ、値引き額を計算するときに切り捨てられる。
 
 ### 問い合わせ
 
@@ -147,7 +164,7 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | `GET /v1/prefectures` | 不要 | 都道府県マスタ | 登録 / 更新フォームの select 用 |
 | `GET /v1/addresses?postalCode=` | 不要 | 郵便番号 → 住所補完 | isFallback=true なら全項目を手入力する(degrade) |
 | `GET /v1/exchange-rates` | 不要 | 為替レート(参考円換算用) | base, quote, amount(decimal 文字列) は必須。外部障害は 503 |
-| `POST /v1/users` | 要 | 初回オンボーディング(U10) | Idempotency-Key とユーザー情報を送る。409 は既存ユーザーなどの競合 |
+| `POST /v1/users` | 要(内部ユーザーがまだ無い、認証済みの主体を受け付ける) | 初回オンボーディング(U10) | Idempotency-Key とユーザー情報を送る。409 は既存ユーザーなどの競合 |
 | `DELETE /v1/users/{userId}` | 要 admin(A5) または本人(U11) | 退会 | 進行中購入があると 409。取消・在庫復元は同一トランザクションで処理される |
 
 ### ログイン / ログアウト(mock OIDC)

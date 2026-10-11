@@ -4,7 +4,7 @@
  *
  * 生成した zod スキーマから、検証を伴わない定数だけを写したもの。client はこちらを引く。
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 
 export const getStreamPathDestinationMax = 128;
@@ -208,6 +208,10 @@ export const getUsersMeResponseBuildingMax = 255;
 export const getUsersMePurchasesSummaryQueryGroupByMax = 2;
 
 export const getUsersMeRolesResponseRolesItemNameMax = 100;
+
+export const getUsersMeCouponsResponseCouponsItemDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 
 export const getUsersSearchQueryKeywordMax = 255;
 
@@ -431,6 +435,26 @@ export const patchProductsDetailResponsePriceRegExp = new RegExp("^\\d+(\\.\\d+)
 
 export const patchProductsDetailResponseImagesItemDisplaySortMax = 32767;
 
+export const postProductsDiscontinuePathProductIdMax = 36;
+
+export const postProductsDiscontinuePathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const postProductsDiscontinueHeaderIdempotencyKeyMax = 255;
+
+export const postProductsDiscontinueHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postProductsDiscontinueBodyCouponDiscountRateRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postProductsDiscontinueBodyCouponValidityDaysMax = 365;
+
+export const getProductsDiscontinueImpactPathProductIdMax = 36;
+
+export const getProductsDiscontinueImpactPathProductIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
 export const patchProductsStockPathProductIdMax = 36;
 
 export const patchProductsStockPathProductIdRegExp = new RegExp(
@@ -517,6 +541,10 @@ export const postPurchasesBodyDetailsItemProductIdRegExp = new RegExp(
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 );
 
+export const postPurchasesResponseAppliedCouponOneDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
 export const postPurchasesResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const postPurchasesResponseReferenceAmountRateRegExp = new RegExp("^\\d+(\\.\\d+)?$");
@@ -526,6 +554,10 @@ export const getPurchasesShippableQueryLimitDefault = 20;
 export const getPurchasesShippableQueryLimitMax = 100;
 
 export const getPurchasesDetailPathPurchaseCodeMax = 50;
+
+export const getPurchasesDetailResponseAppliedCouponOneDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
 
 export const getPurchasesDetailResponseDetailsItemUnitPriceRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
@@ -600,6 +632,60 @@ export const postCartsMeMergeHeaderXCartSessionRegExp = new RegExp("^[A-Za-z0-9_
 export const postCartsMeMergeHeaderIdempotencyKeyMax = 255;
 
 export const postCartsMeMergeHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const getCartsMeCouponsResponseCouponsItemCouponDiscountValueRegExp = new RegExp(
+  "^\\d+(\\.\\d+)?$",
+);
+
+export const postCouponsHeaderIdempotencyKeyMax = 255;
+
+export const postCouponsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postCouponsBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCouponsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCouponsBulkIssueHeaderIdempotencyKeyMax = 255;
+
+export const postCouponsBulkIssueHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postCouponsBulkIssueBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCampaignsHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postCampaignsBodyDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCampaignsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const getCampaignsQueryPageDefault = 1;
+
+export const getCampaignsQueryPageMax = 10000;
+
+export const getCampaignsQueryPerPageDefault = 10;
+
+export const getCampaignsQueryPerPageMax = 100;
+
+export const getCampaignsResponseCampaignsItemDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCampaignsClaimsHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsClaimsHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postCampaignsClaimsResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
+
+export const postCampaignsSuspendPathCampaignIdMax = 36;
+
+export const postCampaignsSuspendPathCampaignIdRegExp = new RegExp(
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+);
+
+export const postCampaignsSuspendHeaderIdempotencyKeyMax = 255;
+
+export const postCampaignsSuspendHeaderIdempotencyKeyRegExp = new RegExp("^[\\x21-\\x7E]+$");
+
+export const postCampaignsSuspendResponseDiscountValueRegExp = new RegExp("^\\d+(\\.\\d+)?$");
 
 export const getInquiriesQueryAfterMax = 512;
 

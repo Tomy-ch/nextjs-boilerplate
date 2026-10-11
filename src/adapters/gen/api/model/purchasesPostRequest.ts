@@ -9,13 +9,14 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
 import type { PurchaseDetailInput } from "./purchaseDetailInput";
 
 /**
  * 購入作成リクエスト。明細（商品IDと数量）の配列を受け取ります。
  * 明細は 1 件以上必須で、同一 productId の重複は許可しません（いずれも 422）。
+ * クーポンを 1 枚まで適用できます。併用はできません。
  */
 export interface PurchasesPostRequest {
   /**
@@ -23,4 +24,12 @@ export interface PurchasesPostRequest {
    * 空配列・重複はドメインで検証し 422 を返します（スキーマでは制約せず単一の検証責務に集約）。
    */
   details: PurchaseDetailInput[];
+  /**
+   * 適用するクーポンのID。省略すると値引きを行いません。1 回の購入に適用できるのは高々 1 枚です。
+   *
+   * 失効済み・使用済み・保有していない（存在しない場合を含む）・値引きが 0 になる場合は、
+   * いずれも 422 + `details: ["couponId"]` を返します。次にすべきことがどれも同じ
+   * （別のクーポンを選ぶか外す）ため、呼び出し側からは区別しません。
+   */
+  couponId?: string;
 }
