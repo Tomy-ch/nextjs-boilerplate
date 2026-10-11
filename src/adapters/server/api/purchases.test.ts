@@ -17,6 +17,7 @@ import {
   cancelMyPurchase,
   createPurchase,
   deliverPurchase,
+  getInProgressPurchasesOfProduct,
   getMyPurchase,
   getMyPurchases,
   getShippablePurchases,
@@ -634,6 +635,50 @@ describe("getShippedPurchases", () => {
     serveStatus("get", PURCHASES_URL, 403);
 
     expect(await kindOf(() => getShippedPurchases(50))).toBe(ErrorKind.PERMISSION_DENIED);
+  });
+});
+
+describe("getInProgressPurchasesOfProduct", () => {
+  const PRODUCT_ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  // ----- 正常系 -----
+  it("指定した商品を含む進行中の購入だけを、他の利用者の購入も含めて求める", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getInProgressPurchasesOfProduct(PRODUCT_ID, 20);
+
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("productId")).toBe(PRODUCT_ID);
+    expect(query.get("includeOtherUsers")).toBe("true");
+    expect(query.get("first")).toBe("20");
+    expect(query.getAll("statusCodes")).toEqual(["1", "2", "3", "4", "7", "8"]);
+  });
+
+  it("続きがあることを次ページの鍵で返す", async () => {
+    serveJson(PURCHASES_URL, wirePage);
+
+    await expect(getInProgressPurchasesOfProduct(PRODUCT_ID, 20)).resolves.toMatchObject({
+      nextCursor: "next",
+    });
+  });
+
+  it("進行中の購入が無いとき空の並びを返す", async () => {
+    serveJson(PURCHASES_URL, { items: [], nextCursor: null, hasNext: false });
+
+    await expect(getInProgressPurchasesOfProduct(PRODUCT_ID, 20)).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
+  // ----- 異常系 -----
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("get", PURCHASES_URL, 403);
+
+    expect(await kindOf(() => getInProgressPurchasesOfProduct(PRODUCT_ID, 20))).toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
   });
 });
 

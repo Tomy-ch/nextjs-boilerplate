@@ -22,3 +22,19 @@ export const PURCHASE_STATUS = {
   SHIPPED: 8,
   DELIVERED: 9,
 } as const satisfies Readonly<Record<string, number>>;
+
+/**
+ * 進行中の購入の業務キー。完了・キャンセル・配達済みのいずれでもない状態。
+ *
+ * @remarks
+ * 契約が「進行中の購入がある商品は廃番にできない」と数えるときの母集団と同じです。マスタに
+ * 状態が増えてもここには入らないので、この並びで絞った結果は契約の件数より少なくなり得ます。
+ */
+export const IN_PROGRESS_PURCHASE_STATUSES: readonly number[] = [
+  PURCHASE_STATUS.UNPROCESSED,
+  PURCHASE_STATUS.ACCEPTED,
+  PURCHASE_STATUS.CONFIRMING,
+  PURCHASE_STATUS.PROCESSING,
+  PURCHASE_STATUS.PAID,
+  PURCHASE_STATUS.SHIPPED,
+];

@@ -265,3 +265,43 @@ export type ProductRankingEntry = {
   /** 集計期間内の販売数量。キャンセル済みの購入を除いた合算値。 */
   readonly soldQuantity: number;
 };
+
+/**
+ * 商品を廃番にしたときの影響の見積もり。
+ *
+ * @remarks
+ * **行を固定せずに読んだ値で、返った時点から古くなります。** 実行したときに何が起きたかは
+ * {@link ProductDiscontinueResult} が持ち、この値を結果として流用しません。
+ */
+export type ProductDiscontinueImpact = {
+  /** この商品の明細を持つカートの件数。所有者の決まっていないカートも含む。 */
+  readonly affectedCartCount: number;
+  /** 代替クーポンを受け取る利用者の数。所有者の決まっていないカートと退会済みは含まない。 */
+  readonly affectedUserCount: number;
+  /** この商品を含む進行中の購入の件数。1 件でもあれば廃番は拒まれる。 */
+  readonly inProgressPurchaseCount: number;
+};
+
+/** 廃番に添えて発行する代替クーポンの条件。 */
+export type ProductDiscontinueConditions = {
+  /** 値引き率。0 より大きく 1 以下を表す decimal 文字列で、数値へ変換しない。 */
+  readonly couponDiscountRate: string;
+  /** 発行日時から数えた有効日数。 */
+  readonly couponValidityDays: number;
+};
+
+/**
+ * 廃番を実行した結果。
+ *
+ * @remarks
+ * 送信の結果としてフォームの状態に載るため、日時は ISO 8601 文字列のまま持ちます。件数は
+ * いずれも「この実行が起こしたこと」で、既に廃番の商品へ再実行したときは 0 になります。
+ */
+export type ProductDiscontinueResult = {
+  /** 廃番が確定した日時。ISO 8601 文字列。 */
+  readonly discontinuedAt: string;
+  readonly affectedCartCount: number;
+  readonly affectedUserCount: number;
+  /** 発行した代替クーポンの枚数。 */
+  readonly issuedCouponCount: number;
+};

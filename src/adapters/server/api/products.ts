@@ -6,6 +6,9 @@ import type { z } from "zod";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
+  ProductDiscontinueConditions,
+  ProductDiscontinueImpact,
+  ProductDiscontinueResult,
   ProductDraft,
   ProductEdit,
   ProductId,
@@ -19,16 +22,19 @@ import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 import {
   GetProductsCountResponse,
   GetProductsDetailResponse,
+  GetProductsDiscontinueImpactResponse,
   GetProductsQueryParams,
   GetProductsRankingQuantityResponse,
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
   PatchProductsDetailResponse,
   PatchProductsStockResponse,
+  PostProductsDiscontinueResponse,
   PostProductsImagesResponse,
   PostProductsResponse,
 } from "../../gen/api/endpoints.zod";
 import type {
+  ProductDiscontinuePostRequest,
   ProductPatchRequest,
   ProductStockPatchRequest,
   ProductsPostRequest,
@@ -38,6 +44,8 @@ import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
+
+const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 /**
  * 契約が受け付ける並び順。
@@ -76,7 +84,7 @@ export const PRODUCT_CATEGORY_LIMIT: number = getProductsQueryCategoryCodesMax;
  */
 const ProductQueryParams = GetProductsQueryParams.omit({ categoryId: true, statusId: true });
 
-/** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
+/** 商品一覧の取得条件。契約のクエリから、非推奨の `categoryId` / `statusId` を除いたもの。 */
 export type ProductQuery = {
   after?: string;
   first?: number;
@@ -103,6 +111,14 @@ export type ProductQuery = {
    * 鍵は契約が 400 で返します。
    */
   includeUnpublished?: boolean;
+  /**
+   * 廃番かどうかで絞る。`true` で廃番だけ、`false` で廃番でないものだけ。省略すると絞らない。
+   *
+   * @remarks
+   * 廃番の商品は非公開になるため、意味を持つのは {@link ProductQuery.includeUnpublished} と
+   * 組んだときだけです。公開済みだけの母集団に `true` を指定すると常に空になります。
+   */
+  discontinued?: boolean;
 };
 
 /**
@@ -141,7 +157,7 @@ const INTEGER_ARRAY_KEYS: ReadonlySet<string> = new Set(["categoryCodes", "statu
  * @remarks
  * URL の値は常に文字列なので、そのまま渡すと真偽値の宣言に当たって落ちます。
  */
-const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished"]);
+const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished", "discontinued"]);
 
 /**
  * 契約が受け付ける綴りだけを真偽値へ直す。
@@ -262,6 +278,8 @@ function toFilterParams(
     maxPrice: query.maxPrice,
     minQuantity: query.minQuantity?.toString(),
     maxQuantity: query.maxQuantity?.toString(),
+    includeUnpublished: query.includeUnpublished?.toString(),
+    discontinued: query.discontinued?.toString(),
   };
 }
 
@@ -326,8 +344,6 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
       after: query.after,
       first: query.first?.toString(),
       sort: query.sort,
-      includeUnpublished:
-        query.includeUnpublished === undefined ? undefined : String(query.includeUnpublished),
     },
     schema: GetProductsResponse,
   });
@@ -473,6 +489,95 @@ export const getProduct = cache(async (id: ProductId): Promise<Product> => {
 
   return toProduct(product);
 });
+
+/**
+ * 未公開の商品も含めて、商品 1 件を取得する。
+ *
+ * @remarks
+ * **管理の役割を持つ主体しか通りません。** 契約の既定の母集団は公開済みだけで、未公開と廃番の
+ * 商品は {@link getProduct} では not-found になります。管理の画面が扱うのはその両方なので、
+ * 含める指定を添えて読みます。
+ *
+ * {@link getProduct} と別の口にしているのは、`cache()` が引数の同一性でまとめるためです。
+ * 指定を引数で切り替えると、同じ描画の中の本文と breadcrumb の取得が 1 回にまとまりません。
+ *
+ * @param id - 対象の商品
+ * @returns 商品 1 件
+ */
+export const getProductIncludingUnpublished = cache(async (id: ProductId): Promise<Product> => {
+  const product = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}`,
+    searchParams: { includeUnpublished: "true" },
+    schema: GetProductsDetailResponse,
+  });
+
+  return toProduct(product);
+});
+
+/**
+ * 商品を廃番にしたときの影響を、実行する前に見積もる。
+ *
+ * @remarks
+ * 行を固定しない読み取りで、返った時点から古くなります。実際に何が起きたかは
+ * {@link discontinueProduct} の結果が持ちます。
+ *
+ * @param id - 対象の商品
+ * @returns 影響の見積もり
+ */
+export async function getProductDiscontinueImpact(
+  id: ProductId,
+): Promise<ProductDiscontinueImpact> {
+  const impact = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}/discontinue-impact`,
+    schema: GetProductsDiscontinueImpactResponse,
+  });
+
+  return {
+    affectedCartCount: impact.affectedCartCount,
+    affectedUserCount: impact.affectedUserCount,
+    inProgressPurchaseCount: impact.inProgressPurchaseCount,
+  };
+}
+
+/**
+ * 商品を廃番にし、代替クーポンを発行する。
+ *
+ * @remarks
+ * **取り消せません。** 非公開化とクーポンの発行は契約の側で 1 つの処理として成立します。
+ * 同じ鍵の再送は初回の結果へ畳まれ、クーポンが二重に発行されることはありません。
+ *
+ * 進行中の購入が残っている商品は wrapper が `conflict` へ正規化します。版を添えないので、
+ * この口の `conflict` が版の食い違いを指すことはありません。
+ *
+ * @param id - 対象の商品
+ * @param conditions - 発行する代替クーポンの条件
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ * @returns 実行の結果
+ */
+export async function discontinueProduct(
+  id: ProductId,
+  conditions: ProductDiscontinueConditions,
+  idempotencyKey: string,
+): Promise<ProductDiscontinueResult> {
+  const result = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}/discontinue`,
+    method: "POST",
+    headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+    body: {
+      couponDiscountRate: conditions.couponDiscountRate,
+      couponValidityDays: conditions.couponValidityDays,
+    } satisfies ProductDiscontinuePostRequest,
+    idempotent: true,
+    schema: PostProductsDiscontinueResponse,
+  });
+
+  return {
+    discontinuedAt: result.discontinuedAt,
+    affectedCartCount: result.affectedCartCount,
+    affectedUserCount: result.affectedUserCount,
+    issuedCouponCount: result.issuedCouponCount,
+  };
+}
 
 /**
  * 画像 1 件を契約の形へ写す。

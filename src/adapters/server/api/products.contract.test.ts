@@ -1,7 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
-// 契約から生成したハンドラそのものを相手にするため、応答は原則割り当てない。写しの分岐そのものを
-// 見るケースだけ、下の wire を割り当てる。
 import { serveJson } from "../../../../vitest.setup.msw";
 
 const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
@@ -13,7 +11,13 @@ vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
 import { toProductId } from "@/model/product/product";
-import { getProduct, getProductRanking, getProducts } from "./products";
+import {
+  discontinueProduct,
+  getProduct,
+  getProductDiscontinueImpact,
+  getProductRanking,
+  getProducts,
+} from "./products";
 
 /** 商品の口の URL。wire を割り当てるケースが指す。 */
 const PRODUCTS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/products`;
@@ -76,8 +80,6 @@ describe("getProduct", () => {
 
     const product = await getProduct(id);
 
-    // zod の検証を抜けた時点ではまだ文字列で、Date にするのは adapter 自身。契約の応答が
-    // 通ることだけを見ると、この写しが外れても気づけない。
     expect(product.publishedAt).toEqual(new Date("2026-04-01T09:00:00Z"));
   });
 
@@ -146,5 +148,43 @@ describe("getProductRanking", () => {
       price: expect.stringMatching(/^\d+(\.\d+)?$/),
       soldQuantity: expect.any(Number),
     });
+  });
+});
+
+describe("getProductDiscontinueImpact", () => {
+  // ----- 正常系 -----
+  it("生成ハンドラの応答から、3 つの件数だけを組み立てる", async () => {
+    getAccessToken.mockResolvedValueOnce("access-token");
+
+    const impact = await getProductDiscontinueImpact(
+      toProductId("0195f0c2-0000-7000-8000-000000000001"),
+    );
+
+    expect(Object.keys(impact).sort()).toEqual([
+      "affectedCartCount",
+      "affectedUserCount",
+      "inProgressPurchaseCount",
+    ]);
+  });
+});
+
+describe("discontinueProduct", () => {
+  // ----- 正常系 -----
+  it("生成ハンドラの応答から、日時を文字列のまま持つ結果を組み立てる", async () => {
+    getAccessToken.mockResolvedValueOnce("access-token");
+
+    const result = await discontinueProduct(
+      toProductId("0195f0c2-0000-7000-8000-000000000001"),
+      { couponDiscountRate: "0.10", couponValidityDays: 30 },
+      "idempotency-key",
+    );
+
+    expect(Object.keys(result).sort()).toEqual([
+      "affectedCartCount",
+      "affectedUserCount",
+      "discontinuedAt",
+      "issuedCouponCount",
+    ]);
+    expect(typeof result.discontinuedAt).toBe("string");
   });
 });

@@ -17,8 +17,11 @@ import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/pro
 import {
   adjustProductStock,
   createProduct,
+  discontinueProduct,
   getProduct,
   getProductCount,
+  getProductDiscontinueImpact,
+  getProductIncludingUnpublished,
   getProductListPage,
   getProductRanking,
   getProducts,
@@ -136,6 +139,14 @@ describe("parseProductQuery", () => {
     expect(excluded).toMatchObject({ ok: true, query: { includeUnpublished: false } });
   });
 
+  it("廃番で絞る指定を、URL の綴りから真偽値へ写す", () => {
+    const only = parseProductQuery({ includeUnpublished: "true", discontinued: "true" });
+    const without = parseProductQuery({ includeUnpublished: "true", discontinued: "false" });
+
+    expect(only).toMatchObject({ ok: true, query: { discontinued: true } });
+    expect(without).toMatchObject({ ok: true, query: { discontinued: false } });
+  });
+
   it("省略した条件を契約の既定値で埋める", () => {
     const result = parseProductQuery({});
 
@@ -150,6 +161,12 @@ describe("parseProductQuery", () => {
     const result = parseProductQuery({ includeUnpublished: "yes" });
 
     expect(result).toEqual({ ok: false, invalidKeys: ["includeUnpublished"] });
+  });
+
+  it("廃番の指定が真偽値として読めなければ、外れたキーとして返す", () => {
+    const result = parseProductQuery({ includeUnpublished: "true", discontinued: "yes" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["discontinued"] });
   });
 
   it("契約に無い並び順を写さず、外れたキーを返す", () => {
@@ -309,6 +326,14 @@ describe("getProducts", () => {
     expect(new URL(requests[0]?.url ?? "").searchParams.has("includeUnpublished")).toBe(false);
   });
 
+  it("廃番で絞る指定をクエリへ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true, discontinued: false });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("discontinued")).toBe("false");
+  });
+
   it("取得条件をクエリへ載せる", async () => {
     const requests = serveJson(PRODUCTS_URL, wirePage);
 
@@ -449,6 +474,17 @@ describe("getProductCount", () => {
     expect(requests[0]?.url).toBe(`${COUNT_URL}?keyword=%E9%9D%B4&minPrice=10`);
   });
 
+  it("母集団を変える指定を、一覧と同じくクエリへ載せる", async () => {
+    const requests = serveJson(COUNT_URL, { count: 0 });
+
+    await getProductCount({ includeUnpublished: true, discontinued: true });
+
+    const params = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(params.get("includeUnpublished")).toBe("true");
+    expect(params.get("discontinued")).toBe("true");
+  });
+
   it("条件を省略しても取得できる", async () => {
     serveJson(COUNT_URL, { count: 7 });
 
@@ -513,6 +549,145 @@ describe("getProduct", () => {
     await getProduct(toProductId("a/../b"));
 
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/a%2F..%2Fb`);
+  });
+});
+
+describe("getProductIncludingUnpublished", () => {
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("未公開の商品も含める指定を添えて、表示用の商品にして返す", async () => {
+    const requests = serveJson(PRODUCT_URL, { ...wireProduct, publishedAt: null });
+
+    const product = await getProductIncludingUnpublished(toProductId(wireProduct.id));
+
+    expect(product.publishedAt).toBeNull();
+    expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}?includeUnpublished=true`);
+  });
+
+  it("主体を名乗って送る", async () => {
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await getProductIncludingUnpublished(toProductId(wireProduct.id));
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await expect(
+      kindOf(() => getProductIncludingUnpublished(toProductId(wireProduct.id))),
+    ).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
+});
+
+describe("getProductDiscontinueImpact", () => {
+  const IMPACT_URL = `${PRODUCT_URL}/discontinue-impact`;
+  const ID = toProductId(wireProduct.id);
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("見積もりの 3 つの件数を返す", async () => {
+    serveJson(IMPACT_URL, {
+      affectedCartCount: 12,
+      affectedUserCount: 9,
+      inProgressPurchaseCount: 2,
+    });
+
+    await expect(getProductDiscontinueImpact(ID)).resolves.toEqual({
+      affectedCartCount: 12,
+      affectedUserCount: 9,
+      inProgressPurchaseCount: 2,
+    });
+  });
+
+  it("主体を名乗って送る", async () => {
+    const requests = serveJson(IMPACT_URL, {
+      affectedCartCount: 0,
+      affectedUserCount: 0,
+      inProgressPurchaseCount: 0,
+    });
+
+    await getProductDiscontinueImpact(ID);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("存在しない商品の応答を、見つからないとして分類する", async () => {
+    serveStatus("get", IMPACT_URL, 404);
+
+    await expect(kindOf(() => getProductDiscontinueImpact(ID))).resolves.toBe(ErrorKind.NOT_FOUND);
+  });
+});
+
+describe("discontinueProduct", () => {
+  const DISCONTINUE_URL = `${PRODUCT_URL}/discontinue`;
+  const ID = toProductId(wireProduct.id);
+  const conditions = { couponDiscountRate: "0.10", couponValidityDays: 30 };
+  const wireResult = {
+    discontinuedAt: "2026-09-05T00:00:00Z",
+    affectedCartCount: 12,
+    affectedUserCount: 9,
+    issuedCouponCount: 9,
+  };
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("実行の結果を返す", async () => {
+    serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await expect(discontinueProduct(ID, conditions, "idempotency-key")).resolves.toEqual(
+      wireResult,
+    );
+  });
+
+  it("代替クーポンの条件を本文で送る", async () => {
+    const requests = serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await discontinueProduct(ID, conditions, "idempotency-key");
+
+    await expect(requests[0]?.json()).resolves.toEqual({
+      couponDiscountRate: "0.10",
+      couponValidityDays: 30,
+    });
+  });
+
+  it("冪等キーをヘッダへ載せる", async () => {
+    const requests = serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await discontinueProduct(ID, conditions, "idempotency-key");
+
+    expect(requests[0]?.headers.get("Idempotency-Key")).toBe("idempotency-key");
+  });
+
+  // ----- 異常系 -----
+  it("進行中の購入が残っているという拒否を、競合として分類する", async () => {
+    serveStatus("post", DISCONTINUE_URL, 409);
+
+    await expect(kindOf(() => discontinueProduct(ID, conditions, "idempotency-key"))).resolves.toBe(
+      ErrorKind.CONFLICT,
+    );
+  });
+
+  it("条件が範囲を外れた応答を、入力の誤りとして分類する", async () => {
+    serveStatus("post", DISCONTINUE_URL, 422);
+
+    await expect(kindOf(() => discontinueProduct(ID, conditions, "idempotency-key"))).resolves.toBe(
+      ErrorKind.VALIDATION,
+    );
   });
 });
 
