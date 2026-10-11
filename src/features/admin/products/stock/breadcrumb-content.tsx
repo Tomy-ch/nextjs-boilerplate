@@ -1,4 +1,4 @@
-import { getProduct } from "@/adapters/server/api/products";
+import { getProductIncludingUnpublished } from "@/adapters/server/api/products";
 import type { ProductId } from "@/model/product/product";
 
 import { ProductBreadcrumbTrail } from "../ui/breadcrumb-trail/breadcrumb-trail";
@@ -20,7 +20,7 @@ export type AdminProductStockBreadcrumbContentProps = {
 export async function AdminProductStockBreadcrumbContent({
   id,
 }: AdminProductStockBreadcrumbContentProps) {
-  const product = await getProduct(id);
+  const product = await getProductIncludingUnpublished(id);
 
   return <ProductBreadcrumbTrail trail={[product.name, "在庫補充"]} />;
 }

@@ -1,4 +1,4 @@
-import { getProduct } from "@/adapters/server/api/products";
+import { getProductIncludingUnpublished } from "@/adapters/server/api/products";
 import type { ProductId } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
 import type { AdjustProductStockAction } from "./form-state";
@@ -23,7 +23,7 @@ export type AdminProductStockPageContentProps = {
 export const AdminProductStockPageContent = withScreenSpan(
   "features/admin/products/stock/page-content",
   async ({ adjustAction, id }: AdminProductStockPageContentProps) => {
-    const product = await getProduct(id);
+    const product = await getProductIncludingUnpublished(id);
 
     return (
       // 在庫が変われば作り直す。読み込み直す導線は同じ URL を指すため、作り直さないと入力欄には

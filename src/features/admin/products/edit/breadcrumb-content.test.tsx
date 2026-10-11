@@ -6,11 +6,13 @@ import { axe } from "vitest-axe";
 
 import { toProductId } from "@/model/product/product";
 
-const { getProduct } = vi.hoisted(() => ({ getProduct: vi.fn() }));
+const { getProductIncludingUnpublished } = vi.hoisted(() => ({
+  getProductIncludingUnpublished: vi.fn(),
+}));
 
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
-  getProduct,
+  getProductIncludingUnpublished,
 }));
 
 import { AdminProductEditBreadcrumbContent } from "./breadcrumb-content";
@@ -23,7 +25,7 @@ beforeEach(() => {
 
 describe("AdminProductEditBreadcrumbContent", () => {
   it("一覧の下に、商品名と編集に居ることを出す", async () => {
-    getProduct.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
+    getProductIncludingUnpublished.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
 
     render(await AdminProductEditBreadcrumbContent({ id: ID }));
 
@@ -33,14 +35,14 @@ describe("AdminProductEditBreadcrumbContent", () => {
   });
 
   it("本文と同じ取得を通す。同じ描画では 1 回にまとまる", async () => {
-    getProduct.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
+    getProductIncludingUnpublished.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
 
     render(await AdminProductEditBreadcrumbContent({ id: ID }));
 
-    expect(getProduct).toHaveBeenCalledWith(ID);
+    expect(getProductIncludingUnpublished).toHaveBeenCalledWith(ID);
   });
   it("a11y 自動検査に違反しない", async () => {
-    getProduct.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
+    getProductIncludingUnpublished.mockResolvedValue({ id: ID, name: "ワイヤレスイヤホン" });
 
     const { container } = render(await AdminProductEditBreadcrumbContent({ id: ID }));
 
