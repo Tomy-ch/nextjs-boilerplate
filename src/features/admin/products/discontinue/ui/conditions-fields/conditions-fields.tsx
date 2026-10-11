@@ -34,8 +34,6 @@ export type DiscontinueConditionsFieldsProps = {
  * 値引き率は百分率で受け、数値型の入力欄にしません。送る値は打たれた綴りから写します
  * （[`coupon-rules`](../../coupon-rules.ts)）。
  *
- * @param props - {@link DiscontinueConditionsFieldsProps} を参照。
- *
  * @see Storybook `Features/Admin/Products/Discontinue/ConditionsFields`
  */
 export function DiscontinueConditionsFields({

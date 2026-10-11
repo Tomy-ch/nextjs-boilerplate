@@ -270,7 +270,6 @@ function toFilterParams(
   query: ProductQuery,
 ): Record<string, string | readonly string[] | undefined> {
   return {
-    // 契約は整数の並びで宣言しているが、クエリ文字列に載せる時点で文字列へ戻る。
     categoryCodes: query.categoryCodes?.map(String),
     statusCodes: query.statusCodes?.map(String),
     keyword: query.keyword,
@@ -285,10 +284,6 @@ function toFilterParams(
 
 /**
  * 契約の商品を表示用の型へ写す。
- *
- * @remarks
- * 変換をこの境界に閉じるのは、契約の形が変わったときに影響が及ぶ範囲をここまでに留めるためです。
- * 生成型をそのまま内層へ渡すと、契約の都合が画面の実装へ直接漏れます。
  *
  * @param wire - 契約の商品応答
  * @returns 表示用の商品
@@ -326,10 +321,6 @@ export function toProductPage(wire: WireProductPage): ProductPage {
 
 /**
  * 商品一覧を取得する。
- *
- * @remarks
- * 同一レンダリング内の重複呼び出しは `cache()` がまとめます。呼び出し側に「1 回だけ呼ぶ」
- * 規律を要求すると、画面を組み替えるたびに取得の回数が変わってしまうためです。
  *
  * @param query - 商品一覧の取得条件
  * @defaultValue query = {}

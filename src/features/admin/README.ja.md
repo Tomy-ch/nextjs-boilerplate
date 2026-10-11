@@ -154,6 +154,7 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | ↳ `description-editor.tsx` / `confirm-details.tsx` | 重いコンポーネントを**いつ読むか**と、**何をレンダリングするか**の分かれ目。器へ読み込みの都合を混ぜないため分けてある |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | 送信の操作と、送信の結果 |
 | `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名、廃番の選択肢の呼び名。通ってきた道もここが持つ |
+| `products/list/read-location.ts` | 一覧の URL を条件へ読み戻す。読むのは画面を組み立てる地点だけで、組むのは client の部品なので、組む側と分けてある |
 | `products/list/page-size.ts` | 1 ページに並べる件数 |
 | `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからのコピー |
 | `products/list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |

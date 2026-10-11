@@ -29,8 +29,6 @@ export type RemainingPurchasesSectionProps = {
  *
  * 並びが見積もりの件数に届かないときと、続きがあるときは全件ではありません。どちらも同じ注記で
  * 受けます（見積もりの後に購入が増えた場合も含む）。
- *
- * @param props - {@link RemainingPurchasesSectionProps} を参照。
  */
 export const RemainingPurchasesSection = withScreenSpan(
   "features/admin/products/discontinue/remaining-purchases-section",

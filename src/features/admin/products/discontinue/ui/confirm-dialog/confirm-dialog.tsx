@@ -69,8 +69,6 @@ function DiscontinueSubmit() {
  *
  * 確認を通った合図を載せるのはこの form だけです。送信先は合図の無い送信を受けません。
  *
- * @param props - {@link DiscontinueConfirmDialogProps} を参照。
- *
  * @see Storybook `Features/Admin/Products/Discontinue/ConfirmDialog`
  */
 export function DiscontinueConfirmDialog({

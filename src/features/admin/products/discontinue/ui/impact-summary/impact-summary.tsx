@@ -13,7 +13,7 @@ export type DiscontinueImpactSummaryProps = {
   reloadHref: string;
 };
 
-/** 見積もりの 1 項目。数ごとに数えている母集団が違うため、注記を値と同じ枠に置く。 */
+/** 見積もりの 1 項目。`note` はその数が数えている母集団の注記。 */
 type ImpactFigure = {
   readonly key: keyof ProductDiscontinueImpact;
   readonly label: string;

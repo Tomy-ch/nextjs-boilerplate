@@ -122,8 +122,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/checkout/complete",
     name: "checkout-complete",
-    // 完了は成立した購入 1 件を指して開く。モックは同じ URL へ同じ応答を返すため、ID を固定
-    // すれば中身も固定される（`mocks/stable-responses.ts`）。
+    // 完了は成立した購入 1 件を指して開く。ID を固定する理由は `/products/[id]` と同じ。
     path: "/checkout/complete?purchase=0195f0c2-0000-7000-9000-000000000001",
     signedIn: "user",
   },
@@ -131,8 +130,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/purchases/[code]",
     name: "purchase-detail",
-    // モックは同じ URL へ同じ応答を返すため（`mocks/stable-responses.ts`）、ID を固定すれば
-    // 中身も固定される。存在する ID である必要はない — 契約駆動のモックはどの ID にも応える。
+    // `/products/[id]` と同じ理由で ID を固定する。
     path: "/purchases/0195f0c2-0000-7000-9000-000000000001",
     signedIn: "user",
   },
@@ -167,22 +165,22 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/admin/products/[id]/edit",
     name: "admin-product-edit",
-    // 詳細と同じ理由で ID を固定する。
+    // `/products/[id]` と同じ理由で ID を固定する。
     path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/edit",
     signedIn: "admin",
   },
   {
     route: "/admin/products/[id]/stock",
     name: "admin-product-stock",
-    // 編集と同じ理由で ID を固定する。
+    // `/products/[id]` と同じ理由で ID を固定する。
     path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/stock",
     signedIn: "admin",
   },
   {
     route: "/admin/products/[id]/discontinue",
     name: "admin-product-discontinue",
-    // 編集と同じ理由で ID を固定する。廃番でなく進行中の購入も無い応答に当たる ID を選び、実行の
-    // 入口がある姿を撮る（廃番済みと進行中の購入が残る姿は story が持つ）。
+    // `/products/[id]` と同じ理由で ID を固定する。廃番でなく進行中の購入も無い応答に当たる
+    // ID を選び、実行の入口がある姿を撮る（廃番済みと進行中の購入が残る姿は story が持つ）。
     path: "/admin/products/0195f0c2-0000-7000-8000-000000000001/discontinue",
     signedIn: "admin",
   },

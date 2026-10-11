@@ -164,6 +164,7 @@ several screens share belongs to none of them, so the level above (directly unde
 | ↳ `description-editor.tsx` / `confirm-details.tsx` | The split between **when to load** a heavy component and **what to render**. Kept apart so loading concerns do not mix into the container |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | The submit control and the submission result |
 | `products/list/query.ts` | The list URL contract (filters and pagination position) and the key names, and the names of the discontinuation choices. Also holds the path the user came by |
+| `products/list/read-location.ts` | Reading the list URL back into conditions. Kept apart from building it, because only the screen assembly reads while client parts build |
 | `products/list/page-size.ts` | How many items one page lists |
 | `products/list/filter-option.ts` | The shape of the candidates selectable in filters, and the copy from master data |
 | `products/list/active-filters.ts` | Maps the active conditions to a list with removal destinations |

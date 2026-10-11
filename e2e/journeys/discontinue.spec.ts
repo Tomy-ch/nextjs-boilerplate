@@ -4,9 +4,6 @@ import { expect, test } from "../lib/test";
  * 管理の一覧から商品を 1 件選び、廃番にするまで。
  *
  * @remarks
- * 一覧の行操作・廃番の画面・確認の面・Server Action の往復をまたぐ導線で、どの部品の単体
- * テストも組み合わせた導線が繋がっていることは答えません。
- *
  * **選ぶ行はモックの応答で決まります。** 応答は URL ごとに固定され（`mocks/stable-responses.ts`）、
  * 一覧の行と廃番の画面が読む 1 件は口ごとに独立して組み立てられます。実行の入口が出るのは、
  * 1 件の応答が廃番でなく、見積もりに進行中の購入が無いときだけです。下の行はその条件に当たる
@@ -30,8 +27,8 @@ test("一覧の行操作から廃番の画面へ移り、条件を確かめて�
   await page.getByRole("button", { name: `${TARGET_ROW_NAME} の操作` }).click();
 
   const entry = page.getByRole("menu").getByRole("menuitem", { name: "廃番にする" });
-  // 遷移先は一覧が組み立てた href そのもの。名前で照合しないのは、一覧の 1 件と廃番の画面の
-  // 1 件が同じ商品を指す保証がモックに無いため。
+  // 遷移先は名前ではなく一覧が組み立てた href で照合する
+  // （[README](../README.md#navigating-from-a-list-to-a-single-item)）。
   const href = await entry.getAttribute("href");
 
   await entry.click();

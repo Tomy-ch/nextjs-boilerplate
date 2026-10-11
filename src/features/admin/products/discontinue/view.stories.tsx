@@ -146,8 +146,6 @@ type RefetchingViewProps = ComponentProps<typeof AdminProductDiscontinueView> & 
  * @remarks
  * 本物では送信先が `revalidatePath` で取り直させ、届いた props だけが差し替わります。ここでは送信の
  * 中で立ち位置を差し替え、island が作り直されずに結果を持ち続けることを見せます。
- *
- * @param props - {@link RefetchingViewProps} を参照。
  */
 function RefetchingView({
   outcome,
