@@ -245,6 +245,7 @@ directly. Imposing composition tests on something with no composition leaves not
 | `model` | Display models (`Product` / `Purchase` / `Dashboard`), pagination, periods, number and date formatting, `ActionState`, idempotency keys |
 | `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
 | `errors` | Maps fetch and submission failures to the wording the screen shows |
+| `logging` | Recording a partial fetch failure the screen absorbs in place instead of throwing to the boundary |
 | `observability` | Putting rendering on spans |
 
 **No components are drawn from other features' `facade/`.** The opening line — handling the same subjects as the

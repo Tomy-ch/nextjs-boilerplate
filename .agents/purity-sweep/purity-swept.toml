@@ -481,3 +481,6 @@
 "src/features/admin/products/stock/breadcrumb-content.tsx" = "2026-10-12"
 "src/features/admin/products/stock/breadcrumb-content.test.tsx" = "2026-10-12"
 "src/features/admin/products/discontinue/discontinue-feedback.ts" = "2026-10-12"
+"docs/spec/route/admin/products/page.screen.md" = "2026-10-12"
+"docs/spec/route/admin/products/[id]/discontinue/page.function.md" = "2026-10-12"
+"docs/spec/route/admin/products/[id]/discontinue/page.screen.md" = "2026-10-12"

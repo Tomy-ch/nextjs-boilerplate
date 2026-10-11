@@ -82,6 +82,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.ja.md) / [`function`](route/admin/products/new/page.function.ja.md) <!-- sample:line --> |
 | `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.ja.md>) / [`function`](<route/admin/products/[id]/edit/page.function.ja.md>) <!-- sample:line --> |
 | `/admin/products/[id]/stock` | [`screen`](<route/admin/products/[id]/stock/page.screen.ja.md>) / [`function`](<route/admin/products/[id]/stock/page.function.ja.md>) <!-- sample:line --> |
+| `/admin/products/[id]/discontinue` | [`screen`](<route/admin/products/[id]/discontinue/page.screen.ja.md>) / [`function`](<route/admin/products/[id]/discontinue/page.function.ja.md>) <!-- sample:line --> |
 | `/admin/inquiries` | [`screen`](route/admin/inquiries/page.screen.ja.md) / [`function`](route/admin/inquiries/page.function.ja.md) <!-- sample:line --> |
 | `/admin/inquiries/[inquiryId]` | [`screen`](<route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<route/admin/inquiries/[inquiryId]/page.function.ja.md>) <!-- sample:line --> |
 | `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.ja.md) / [`function`](route/admin/shipments/page.function.ja.md) <!-- sample:line --> |

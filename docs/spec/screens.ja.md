@@ -32,7 +32,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 
 ---
 
-## 1. 画面一覧(27)
+## 1. 画面一覧(28)
 
 ### ユーザー側(13)
 
@@ -52,12 +52,12 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | U12 | ユーザー更新 | `GET /v1/users/me` / `GET /v1/prefectures` / `PUT /v1/users/{userId}` | プロフィール編集 | U11 とは独立ルート。**CollectAll**(RSC 内 `Promise.all` での並置合成)の実例 |
 | U13 | お問い合わせ | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | サポートとのやり取り。利用者ごとに 1 件で、最初の投稿が問い合わせを作る | **届いた 1 通が取り直しを待たずに出る唯一の画面**。初期表示は RSC が履歴を取り、その応答が返す `streamCursor` を購読の開始位置に渡す。購読はブラウザが backend の SSE へ直接繋ぎ、資格情報は BFF が発券する短命 ticket を query に載せる。送信は Server Action + `Idempotency-Key` で、届いた 1 通は購読ではなく取り直した canonical に現れる。`APP_API_MODE=mock` では発券の取得エンドポイントが発券を断り、購読を持たない姿で止まる（表示と送信は動く） |
 
-### admin 側(10)
+### admin 側(11)
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
 | A1 | ダッシュボード | `GET /v1/dashboard/summary` | 数値カードと、ステータス別内訳の横棒 | サマリは **backend 側で合成済み**の値をそのまま表示する。在庫僅少一覧(`GET /v1/products/low-stock`)は A1 では使わない(独立した別機能で、画面を持たない) |
-| A2 | 商品一覧 | `GET /v1/products`(`includeUnpublished=true`) / `GET /v1/products/statuses` | admin 操作一覧。作成・編集・補充への導線 | 未公開の商品も母集団に含める。含める指定は admin だけが通せる。母集団を変えると並び順の第 1 キーが登録日時へ変わるため、ページ送りのキーは同じ指定の中でだけ使える |
+| A2 | 商品一覧 | `GET /v1/products`(`includeUnpublished=true`) / `GET /v1/products/statuses` | admin 操作一覧。作成・編集・補充・廃番への導線と、廃番での絞り込み | 未公開の商品も母集団に含める。含める指定は admin だけが通せる。母集団を変えると並び順の第 1 キーが登録日時へ変わるため、ページ送りのキーは同じ指定の中でだけ使える。廃番への導線は行の操作で、既に廃番の行には出さない。廃番は `discontinued`(`true` / `false`。未指定は URL に書かない)で絞り込む |
 | A3 | 商品補充 | `PATCH /v1/products/{productId}/stock` | 在庫数の加算 / 調整のみ | `delta` は符号付き。409 は再取得、503 は時間を空けて再試行する。在庫以外は編集しない(A7 の担当) |
 | A4 | 集計 | `GET /v1/dashboard/summary` / `GET /v1/products/ranking/quantity` | 売上・ランキング系の集計表示 | A1 と共通 API を使うが表示観点が異なる。期間は瞬時の半開区間 `[orderedAfter, orderedBefore)` で送り、暦の区分（今日・今月）を解くのは画面の側。売れ筋は直近 30 日に固定し、期間の選択に従わない |
 | A5 | ユーザー一覧 | `GET /v1/users`(`page` / `perPage` / `active`) / `DELETE /v1/users/{userId}` | ユーザー一覧・退会操作 | 退会は確認モーダル必須。409 は進行中購入が残るための拒否であり、非同期取消・在庫復元を前提にしない |
@@ -66,6 +66,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | A8 | 発送 | `GET /v1/purchases/shippable` / `PATCH /v1/purchases/{purchaseCode}/ship` / `GET /v1/purchases`(`statusCodes=8` + `includeOtherUsers=true`) / `PATCH /v1/purchases/{purchaseCode}/deliver` | 支払い済み・未発送の注文を、まとめて発送してよい便ごとに並べて発送する。発送済みの注文はその下に並べ、1 件ずつ配達済みにする | 便の分け方も並び順も契約が決めるので画面は並べ直さない。発送は購入 1 件ずつなので、まとめる操作は同じ送信に注文を並べて送る。途中まで通った送信を失敗にせず、通った件数と通らなかった件数を両方出す。確認は挟まない(流れ作業のため)。配達の確認はまとめる軸を持たず常に 1 件 —— 届いたかどうかは注文ごとに分かれる |
 | A9 | 問い合わせ一覧 | `GET /v1/inquiries`(`after` / `first`) / `POST /v1/inquiries/feed/stream-ticket` / `GET /v1/streams/{destination}` | 届いた問い合わせを更新の新しい順に並べる。本文は含まない | 更新フィードを購読し、届いた時点で一覧を取り直す。**届いた内容で行を書き換えない** —— フィードが運ぶのは「どの問い合わせがどこまで進んだか」だけで、並び順の基準も他の列も入っていない。ページ送りは cursor で、戻る先は URL が覚える |
 | A10 | 問い合わせの対応 | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | 1 件のやり取りを読み、回答する | **会話そのものを購読できない** —— 契約が持つ購読のエンドポイントは「自分の問い合わせ」と「更新フィード」の 2 つで、運営が任意の 1 件を直接購読するエンドポイントが無い。フィードが開いている 1 件の更新を伝えたときに canonical を取り直す。右へ寄るのは運営の発言で、利用者側とは「自分」が入れ替わる。誰の問い合わせかは履歴が返さないため、一覧の行と突き合わせる |
+| A11 | 商品の廃番 | `GET /v1/products/{productId}`(`includeUnpublished=true`) / `GET /v1/products/{productId}/discontinue-impact` / `GET /v1/purchases`(`productId` + `includeOtherUsers=true` + 進行中の `statusCodes`) / `POST /v1/products/{productId}/discontinue` | 影響を見積もり、代替クーポンの条件を受け、確認を挟んで商品 1 件を廃番にする | **見積もりは結果ではない** —— ロックを取らず返した時点で古くなるため、何が起きたかは実行の応答から出し、その件数は応答にしか無い。進行中の購入が残っている間は実行を差し出さず、代わりにその購入を並べる。409 は見積もりの後に進行中の購入が入ったということで、画面を取り直す。値引き率は decimal 文字列なので、数として持ち回らない。既に廃番の商品は廃番になった日時だけを出す |
 
 ### サイト情報・開発用の画面(4)
 
@@ -94,7 +95,7 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
 | `GET /v1/products` | 不要(`includeUnpublished=true` は要 admin) | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished, discontinued(`includeUnpublished=true` と組んだときだけ意味を持つ。`GET /v1/products/count` も受け付ける) | items[], nextCursor | 400, 401, 403 |
-| `GET /v1/products/{productId}` | 不要 | 詳細 | — | 商品詳細(description 含む) | 400, 404 |
+| `GET /v1/products/{productId}` | 不要(`includeUnpublished=true` は要 admin) | 詳細。管理の画面(A3 / A7 / A11)は `includeUnpublished=true` で読む。付けないと未公開・廃番の商品は 404 になる | includeUnpublished | 商品詳細(description 含む) | 400, 401, 403, 404 |
 | `GET /v1/products/categories` | 不要 | カテゴリマスタ | — | categories[] | — |
 | `GET /v1/products/statuses` | 不要 | ステータスマスタ | — | statuses[] | — |
 | `GET /v1/products/ranking/quantity` | 不要 | 売れ筋ランキング(数量順) | orderedAfter, orderedBefore, limit | ranked items[] | 400 |
@@ -102,15 +103,15 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | `PATCH /v1/products/{productId}` | 要 admin | 商品更新(A7)。在庫以外の項目 | version と部分更新フィールド | 更新後の商品 | 400, 401, 403, 404, **409(楽観ロック)**, 422 |
 | `PATCH /v1/products/{productId}/stock` | 要 admin | 在庫補充(A3) | delta | 更新後の商品 | 400, 401, 403, 404, **409**, 422, 503 |
 | `POST /v1/products/images` | 要 admin | 画像アップロード(A6 / A7) | multipart の image binary | `{ imagePath }` | 400, 401, 403, 413, 415, 422 |
-| `GET /v1/products/{productId}/discontinue-impact` | 要 admin | 廃番にしたときの影響を実行前に見積もる。ロックを取らないため、返した時点で古くなる | — | affectedCartCount, affectedUserCount, inProgressPurchaseCount | 400, 401, 403, 404 |
-| `POST /v1/products/{productId}/discontinue` | 要 admin | 商品の廃番。非公開にし、カートに入れていた確定済みユーザーへ代替クーポンを発行する。同一トランザクションで行い、取り消せない | couponDiscountRate(decimal 文字列), couponValidityDays, Idempotency-Key(任意のヘッダ) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409(進行中の購入に含まれる)**, 422 |
+| `GET /v1/products/{productId}/discontinue-impact` | 要 admin | 廃番にしたときの影響を実行前に見積もる(A11)。ロックを取らないため、返した時点で古くなる | — | affectedCartCount, affectedUserCount, inProgressPurchaseCount | 400, 401, 403, 404 |
+| `POST /v1/products/{productId}/discontinue` | 要 admin | 商品の廃番(A11)。非公開にし、カートに入れていた確定済みユーザーへ代替クーポンを発行する。同一トランザクションで行い、取り消せない | couponDiscountRate(decimal 文字列), couponValidityDays, Idempotency-Key(任意のヘッダ) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409(進行中の購入に含まれる)**, 422 |
 
 ### Purchase 系
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
 | `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), couponId(任意、1 枚まで), Idempotency-Key(ヘッダ), displayCurrency(任意 query) | 購入、discountAmount、appliedCoupon、referenceAmount | 400, 401, 409(在庫不足等), 422(適用できないクーポンを含む) |
-| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間 | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間。A8 と A11 は `includeOtherUsers=true` で他の利用者の購入を読み、A11 は `productId` で商品 1 件に絞る | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/purchases/{purchaseCode}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み)、discountAmount、appliedCoupon | 401, 404 |
 | `PATCH /v1/purchases/{purchaseCode}/cancel` | 要 | キャンセル(U8) | — | 更新後ステータス | 400, 401, 404, 409(不正遷移) |
 | `PATCH /v1/purchases/{purchaseCode}/pay` | 要 | 支払い(擬似決済、U8)。未処理 / 受付中 / 確認中 からのみ | — | 更新後ステータス | 400, 401, 404, 409(二重支払い・不正遷移) |
