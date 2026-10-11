@@ -167,7 +167,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   {
     route: "/admin/products/[id]/edit",
     name: "admin-product-edit",
-    // 詳細と同じ理由で ID を固定する。契約駆動のモックはどの ID にも同じ応答を返す。
+    // 詳細と同じ理由で ID を固定する。
     path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/edit",
     signedIn: "admin",
   },
@@ -176,6 +176,14 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     name: "admin-product-stock",
     // 編集と同じ理由で ID を固定する。
     path: "/admin/products/0195f0c2-0000-7000-9000-000000000001/stock",
+    signedIn: "admin",
+  },
+  {
+    route: "/admin/products/[id]/discontinue",
+    name: "admin-product-discontinue",
+    // 編集と同じ理由で ID を固定する。廃番でなく進行中の購入も無い応答に当たる ID を選び、実行の
+    // 入口がある姿を撮る（廃番済みと進行中の購入が残る姿は story が持つ）。
+    path: "/admin/products/0195f0c2-0000-7000-8000-000000000001/discontinue",
     signedIn: "admin",
   },
   {
