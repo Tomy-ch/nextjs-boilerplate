@@ -30,12 +30,14 @@ describe("toActiveFilters", () => {
         [FILTER_KEY.MIN_PRICE]: "25",
         [FILTER_KEY.MAX_PRICE]: "250",
       }),
-    ).toEqual([{ key: "minPrice", label: "価格", value: "$25 〜 $250", removeHref: "/products" }]);
+    ).toEqual([
+      { key: "minPrice", label: "価格", value: "$25.00 〜 $250.00", removeHref: "/products" },
+    ]);
   });
 
   it("片側だけの価格は、もう片方を指定なしとして出す", () => {
     expect(toActiveFilters(CATEGORIES, { [FILTER_KEY.MIN_PRICE]: "50" })[0]?.value).toBe(
-      "$50 〜 上限なし",
+      "$50.00 〜 上限なし",
     );
   });
 
@@ -91,7 +93,7 @@ describe("toActiveFilters", () => {
     ).toEqual({
       key: "minPrice",
       label: "価格",
-      value: "$37 〜 上限なし",
+      value: "$37.00 〜 上限なし",
       removeHref: "/products?keyword=%E9%9E%84",
     });
   });
