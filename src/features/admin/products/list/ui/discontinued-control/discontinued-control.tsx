@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId } from "react";
+import { useId } from "react";
 
 import { cn } from "@/components/cn";
 import {
@@ -54,17 +54,6 @@ export function AdminProductDiscontinuedControl({
   const groupName = useId();
   const labelId = useId();
 
-  const change = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const selected = CHOICES.find((choice) => choice === event.target.value);
-
-      if (selected !== undefined) {
-        onSelect(selected);
-      }
-    },
-    [onSelect],
-  );
-
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <span className="shrink-0 text-muted-foreground text-sm" id={labelId}>
@@ -76,7 +65,7 @@ export function AdminProductDiscontinuedControl({
             checked={value === choice}
             key={choice}
             name={groupName}
-            onChange={change}
+            onChange={() => onSelect(choice)}
             size="sm"
             value={choice}
             variant="outline"
