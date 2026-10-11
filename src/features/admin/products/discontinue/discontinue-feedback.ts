@@ -65,9 +65,6 @@ export function failuresOf(state: DiscontinueProductState): readonly string[] {
 /**
  * 条件の欄に出す誤りの文言。
  *
- * @remarks
- * 確認を開く前の判定を先に見ます。送信の結果は、条件を打ち直すまでのあいだだけ添えます。
- *
  * @param checked - 確認を開く前の判定が出した文言
  * @param state - 直前の送信の結果。下げられていれば null
  * @returns 項目ごとの文言

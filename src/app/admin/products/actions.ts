@@ -262,8 +262,6 @@ export async function adjustProductStockAction(
  * **進行中の購入が残って拒まれたときも取り直させます。** 見積もりの後に購入が入ったということで、
  * 取り直せば最新の見積もりと残っている購入が並びます。文言はこの画面でしか言えないものを当てます。
  *
- * 確認を通った合図・冪等キー・対象のいずれかが無い送信は、読む段で止めます。
- *
  * @param _previous - 直前の action state（本体では参照しない）。
  * @param formData - 廃番の指示の送信内容。
  * @returns 送信結果を表す action state。成立時は実行の応答を載せる。

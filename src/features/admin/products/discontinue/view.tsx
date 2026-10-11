@@ -72,8 +72,6 @@ const EMPTY_VALUES: DiscontinueConditionValues = {
  * 出し分けをこの内側で行うのはそのためで、外側で姿ごとに別の木を返すと、取り直しのたびに結果が
  * 消えます。
  *
- * 冪等キーは受け取った最初の値を持ち続けます。取り直しで新しい鍵が届いても差し替えません。
- *
  * 画面が何を約束するかは
  * [機能要件](../../../../../docs/spec/route/admin/products/[id]/discontinue/page.function.md)と[画面要件](../../../../../docs/spec/route/admin/products/[id]/discontinue/page.screen.md)。
  *

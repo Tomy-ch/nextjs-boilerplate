@@ -50,8 +50,6 @@ function textOf(formData: FormData, name: string): string {
  * 経ずに呼べます。対象・冪等キー・合図のどれが欠けても、入力した人が直せるものではないため、
  * 開き直してもらう文言にまとめます。
  *
- * 条件の読み方は [`coupon-rules`](./coupon-rules.ts) が持ちます。確認を開く前の画面と同じ規則です。
- *
  * @param formData - 送信された form の値
  * @returns 読めた結果。読めなければ `ok: false` にエラーの内訳を添えて返す
  */

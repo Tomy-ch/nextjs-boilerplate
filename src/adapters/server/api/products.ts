@@ -508,10 +508,6 @@ export const getProductIncludingUnpublished = cache(async (id: ProductId): Promi
 /**
  * 商品を廃番にしたときの影響を、実行する前に見積もる。
  *
- * @remarks
- * 行を固定しない読み取りで、返った時点から古くなります。実際に何が起きたかは
- * {@link discontinueProduct} の結果が持ちます。
- *
  * @param id - 対象の商品
  * @returns 影響の見積もり
  */

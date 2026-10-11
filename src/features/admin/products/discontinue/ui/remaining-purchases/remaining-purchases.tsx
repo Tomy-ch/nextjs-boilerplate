@@ -43,11 +43,6 @@ const PLACEHOLDER_ROWS = 3;
  * `docs/spec/route/admin/products/[id]/discontinue/page.function.md#the-purchases-in-progress`）。
  * 行が答えるのは「どの購入が、いまどの状態か」だけです。
  *
- * **全件でないときはそう書きます。** 並べる件数には上限があり、見積もりの後に購入が増えたときも
- * 並びが件数に届きません。
- *
- * 読めなかったときは見積もりを巻き込まず、この場所だけで伝えます。
- *
  * @see Storybook `Features/Admin/Products/Discontinue/RemainingPurchases`
  */
 export const DiscontinueRemainingPurchases = withPartSpan(

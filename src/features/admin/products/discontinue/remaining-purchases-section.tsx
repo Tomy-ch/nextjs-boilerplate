@@ -26,9 +26,6 @@ export type RemainingPurchasesSectionProps = {
  * @remarks
  * **見積もりとは別に待ち、別に失敗します。** 読めなかったときに見積もりまで失わないよう、失敗は
  * 境界へ投げず、この区画の表示として受けます。
- *
- * 並びが見積もりの件数に届かないときと、続きがあるときは全件ではありません。どちらも同じ注記で
- * 受けます（見積もりの後に購入が増えた場合も含む）。
  */
 export const RemainingPurchasesSection = withScreenSpan(
   "features/admin/products/discontinue/remaining-purchases-section",

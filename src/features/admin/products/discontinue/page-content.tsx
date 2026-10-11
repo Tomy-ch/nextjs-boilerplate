@@ -30,12 +30,8 @@ export type AdminProductDiscontinuePageContentProps = {
  * `docs/spec/route/admin/products/[id]/discontinue/page.function.md#the-product-is-read-including-unpublished-ones`）。
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  *
- * **既に廃番なら見積もりを取りません。**
- *
- * 進行中の購入が残っているときだけ、その並びを別の待機で読みます。
- *
  * **island には鍵を与えません。** 成立や競合のあとの取り直しで island を作り直すと、送信の結果が
- * 消えます。冪等キーは組み立てるたびに 1 つ作り、island が最初の値を持ち続けます。
+ * 消えます。
  */
 export const AdminProductDiscontinuePageContent = withScreenSpan(
   "features/admin/products/discontinue/page-content",

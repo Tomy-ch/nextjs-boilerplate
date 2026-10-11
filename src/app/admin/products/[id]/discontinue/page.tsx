@@ -36,12 +36,7 @@ async function AdminProductDiscontinueContent({ params }: { params: Promise<{ id
   );
 }
 
-/**
- * 商品を廃番にする画面。
- *
- * @remarks
- * 成立しても画面を移りません。実行の応答にしか無い件数を、この画面が出すためです。
- */
+/** 商品を廃番にする画面。 */
 export default function AdminProductDiscontinuePage({
   params,
 }: {
