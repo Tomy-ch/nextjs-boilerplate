@@ -142,6 +142,13 @@ type UserScopedRequestSpec<T> = BaseRequestSpec<T> & {
 type RequestSpec<T> = PublicRequestSpec<T> | UserScopedRequestSpec<T>;
 
 /**
+ * 冪等キーを載せるヘッダ名。
+ *
+ * `idempotent: true` を宣言する要求は、このヘッダで鍵を渡す。綴りは契約の `IdempotencyKeyParam`。
+ */
+export const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
+
+/**
  * 主体を名乗らずに取れるものを運ぶ client。
  *
  * @remarks
