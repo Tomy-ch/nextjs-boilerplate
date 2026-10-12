@@ -213,6 +213,8 @@ describe("getMyPurchase", () => {
       statusCode: 1,
       statusName: "未処理",
       subtotalAmount: 18_897,
+      discountAmount: 0,
+      appliedCoupon: null,
       taxAmount: 1_890,
       shippingFee: 500,
       totalAmount: 21_287,
@@ -225,6 +227,64 @@ describe("getMyPurchase", () => {
         },
       ],
       orderedAt: new Date("2026-08-17T01:30:00.000Z"),
+    });
+  });
+
+  it("定額のクーポンを値引きと範囲の種別へ写し、範囲の対象は写さない", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 500,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "flat", value: "5.00", maxAmount: null },
+        scope: { kind: "category", targetId: "0195f0c2-0000-7000-8000-0000000000e1" },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.discountAmount).toBe(500);
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "flat", value: "5.00" },
+      scopeKind: "category",
+    });
+  });
+
+  it("定率のクーポンは上限を併せて写す", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 300,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "rate", value: "0.10", maxAmount: 300 },
+        scope: { kind: "all", targetId: null },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "rate", value: "0.10", maxAmount: 300 },
+      scopeKind: "all",
+    });
+  });
+
+  it("上限の無い定率のクーポンは、上限を null のまま写す", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 2_834,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "rate", value: "0.15", maxAmount: null },
+        scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-0000000000e1" },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scopeKind: "product",
     });
   });
 

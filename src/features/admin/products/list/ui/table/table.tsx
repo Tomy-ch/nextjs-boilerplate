@@ -8,6 +8,7 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 import { adminProductEditPath, adminProductStockPath } from "../../../../paths";
 import type { AdminProductRow } from "../../row";
@@ -68,7 +69,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
     align: "end",
     headerClassName: "w-24",
     // 契約が decimal 文字列で返す値をそのまま出す。数値へ直すと、丸めの規則を画面が持つ。
-    cell: (item) => `$${item.price}`,
+    cell: (item) => formatDecimalMoney(item.price),
   },
   {
     id: "quantity",

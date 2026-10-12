@@ -20,6 +20,7 @@ import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
 import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { formatDateTime } from "@/model/datetime";
+import { formatDecimalMoney } from "@/model/money";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { withScreenSpan } from "@/observability/render-span";
@@ -107,7 +108,7 @@ export const ProductDetail = withScreenSpan(
 
             <h1 className="text-3xl font-emphasis tracking-tight">{product.name}</h1>
 
-            <p className="text-3xl font-emphasis">{`$${product.price}`}</p>
+            <p className="text-3xl font-emphasis">{formatDecimalMoney(product.price)}</p>
 
             <KeyValueList className="w-full">
               <KeyValueItem>

@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { type ZodType, z } from "zod";
 
+import type { AppliedCoupon } from "@/model/coupon/coupon";
 import { toProductId } from "@/model/product/product";
 import type {
   Purchase,
@@ -220,6 +221,28 @@ export const getMyPurchases = cache(
 );
 
 /**
+ * 契約の適用クーポンを表示用の型へ写す。
+ *
+ * @remarks
+ * 範囲を絞る対象の識別子は写しません。名前が届かず、表示に使えないためです。
+ *
+ * @param wire - 契約の適用クーポン
+ * @returns 表示用の適用クーポン
+ */
+function toAppliedCoupon({
+  discount,
+  scope,
+}: NonNullable<WirePurchaseDetail["appliedCoupon"]>): AppliedCoupon {
+  return {
+    discount:
+      discount.kind === "flat"
+        ? { kind: "flat", value: discount.value }
+        : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount },
+    scopeKind: scope.kind,
+  };
+}
+
+/**
  * 契約の購入詳細応答を表示用の型へ写す。
  *
  * @param wire - 契約の購入詳細応答
@@ -231,6 +254,8 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
     statusCode: wire.status.code,
     statusName: wire.status.name,
     subtotalAmount: wire.subtotalAmount,
+    discountAmount: wire.discountAmount,
+    appliedCoupon: wire.appliedCoupon === null ? null : toAppliedCoupon(wire.appliedCoupon),
     taxAmount: wire.taxAmount,
     shippingFee: wire.shippingFee,
     totalAmount: wire.totalAmount,

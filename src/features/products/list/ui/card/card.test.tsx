@@ -54,7 +54,7 @@ describe("ProductCard", () => {
     expect(screen.getByText("スタンドライト")).toBeVisible();
     expect(screen.getByText("デスク周り")).toBeVisible();
     expect(screen.getByText("公開中")).toBeVisible();
-    expect(screen.getByText("$4980.00")).toBeVisible();
+    expect(screen.getByText("$4,980.00")).toBeVisible();
     expect(screen.getByText("在庫 3")).toBeVisible();
   });
 

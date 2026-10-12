@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE } from "./locale";
+import { toDecimalLiteral } from "./number";
 
 /** 金額を表す基準の通貨。 */
 export const BASE_CURRENCY = "USD";
@@ -79,6 +80,40 @@ function formatMinorUnits(minorUnits: number, currency: string, locale: string):
  */
 export function formatMoney(minorUnits: number, locale: string = DEFAULT_LOCALE): string {
   return formatMinorUnits(minorUnits, BASE_CURRENCY, locale);
+}
+
+const decimalFormatters = new Map<string, Intl.NumberFormat>();
+
+/**
+ * 主単位の decimal 文字列で受け取った基準通貨の金額を、locale に沿った通貨表記にする。
+ *
+ * @remarks
+ * 価格のように契約が主単位の decimal 文字列で返す金額に使います。最小単位の整数で届く金額は
+ * {@link formatMoney} が受け持ちます。どちらも同じ通貨の `Intl` 表記なので、同じ画面に並べても
+ * 記号と区切りが揃います。
+ *
+ * 数へ直さずに渡し、**桁を落としません。** 契約は価格を最小単位より細かい桁まで保持しており、
+ * 通貨の桁へ丸めると `"0.001"` が `$0.00` になって、値の付いたものが無料に見えます。通貨の桁に
+ * 満たない値（`"5"`）は、その桁まで補います。
+ *
+ * @param value - 主単位の decimal 文字列で表した金額（`"5.00"` が 5 ドル）
+ * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 基準通貨の表示用文字列
+ * @throws {RangeError} decimal 文字列でないとき
+ */
+export function formatDecimalMoney(value: string, locale: string = DEFAULT_LOCALE): string {
+  let formatter = decimalFormatters.get(locale);
+
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: BASE_CURRENCY,
+      maximumFractionDigits: 20,
+    });
+    decimalFormatters.set(locale, formatter);
+  }
+
+  return formatter.format(toDecimalLiteral(value));
 }
 
 /**

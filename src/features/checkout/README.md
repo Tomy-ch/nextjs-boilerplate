@@ -33,7 +33,7 @@ carries no subject vocabulary, so it lives in `components`.
 
 - Changing the cart (quantity, deletion and clearing are the domain of `cart`; this screen only holds the path back)
 - Editing the destination (registration data is the domain of `account`)
-- Computing amounts (the backend decides the subtotal, tax, shipping and total)
+- Computing amounts (the backend decides the subtotal, coupon discount, tax, shipping and total)
 - Judging whether something can be bought or whether its price changed (same as above; it only reads the issues that arrive)
 
 ## Routes and Contracts
@@ -68,6 +68,7 @@ operationIds used.
 | | Checking a price change | `Features/Checkout/Confirm/PriceChangeConfirm/Default` |
 | Purchase completion | success | `Page/Checkout/Complete/Default` |
 | | The reference conversion could not be read | `Page/Checkout/Complete/WithoutReference` |
+| | A coupon discount was applied | `Page/Checkout/Complete/WithDiscount` |
 
 error is taken by the route's `error` boundary (`src/app/(shop)/checkout/error.tsx`). When the completion screen
 cannot read what it points at, it is `not-found.tsx`.

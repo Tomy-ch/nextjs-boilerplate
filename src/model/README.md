@@ -29,7 +29,7 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | [`rich-text/`](rich-text/README.md) | The rich text sanitize port. Converts an HTML string into a tree limited to what may be displayed |
 | `breakpoint.ts` | Builds media queries for widths that have not reached a tier. The widths are owned by design tokens |
 | `datetime.ts` | Locale-aware formatters for dates, times and month names |
-| `number.ts` | Locale-aware number formatting (digit grouping). Money is owned by `money.ts` |
+| `number.ts` | Locale-aware number formatting (digit grouping, rates as percentages) and the guard that hands a decimal string to `Intl` without converting it to a number. Money is owned by `money.ts` |
 | `locale.ts` | The default locale and default time zone. The single replacement point formatters use when omitted |
 | `generated/breakpoint.ts` | Tier names and widths. Generated from `tokens/` (do not edit by hand) |
 | `generated/design-token.ts` | Names of semantic tokens and raw scales. Generated from `tokens/` (do not edit by hand) |
@@ -40,13 +40,14 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | `idempotency-key.ts` | The key that identifies one change, and the name of the form field that carries it |
 | `uuid.ts` | Unique values a screen creates. RFC 9562 version 7, creatable even from sources that are not a secure context |
 | `consent.ts` | The intent on whether cookies may be used for optional purposes, and the gate predicates per category |
-| `money.ts` | Formats an amount held as an integer in the minor unit into locale-appropriate currency notation |
+| `money.ts` | Formats an amount into locale-appropriate currency notation, whether it arrives as an integer in the minor unit or as a decimal string in the major unit |
 | `session.ts` | The identity and roles of an authenticated user. The payload placed in the cookie is confined to this type and holds neither the Access Token nor PII |
 | `authz.ts` | The roles allowed per route prefix. Routes that require only authentication are expressed by listing every role |
 | `return-url.ts` | A return destination that passed validation. Only same-origin relative paths pass; anything else falls back to the default destination |
 | `cross-origin.ts` | Judging a request's origin, and building CORS / preflight response headers |
 | `time-window.ts` | The period that aggregation and filtering target. Maps a calendar division to a half-open interval of instants in the reference time zone |
 | `cart/` | Display types for the cart the sample screens handle, and how conditions raised on line items are shown <!-- sample:line --> |
+| `coupon/` | Display types for the coupon discounts the sample screens handle, and their wording (face value, cap, scope) <!-- sample:line --> |
 | `dashboard/dashboard.ts` | Display types for the admin-side cross-cutting aggregates the sample screens handle <!-- sample:line --> |
 | `inquiry/` | Display types for the inquiries the sample screens handle, and folding in what arrived through the subscription <!-- sample:line --> |
 | `product/product.ts` | Display types for the products the sample screens handle <!-- sample:line --> |
@@ -172,8 +173,10 @@ is aligned to the following shape.
 | `<subject>/<concern>.ts` | Minimal display functions, such as mapping judgment results to wording, or folding what arrived through the subscription into the authoritative copy |
 | `<subject>/<status>.ts` | The vocabulary of business keys used for branching |
 
-References across subjects are limited to identifier types (`import type`). While a subject module is used by only one feature,
-it stays inside that feature, and is raised here once it is referenced from several
+References across subjects are limited to `import type`, in one direction: identifier types, and the display type of a value that one
+subject's fetch result embeds as it arrives. Enforcement: Prose — no gate checks imports between subject modules. While a subject module
+is used by only one feature, it stays inside that feature, and is raised here once it is referenced from several, or once another subject
+module embeds its type — `model` cannot import from a feature
 ([0021](../../docs/adr/0021-frontend-responsibility.md), its acceptance criteria for kernels).
 
 ## What to Change When Adopting

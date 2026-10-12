@@ -2,6 +2,7 @@ import { cn } from "@/components/cn";
 import { CartLineIssues } from "@/features/cart/facade/line-issues/line-issues";
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 
 /** {@link OrderLineRow} の props。 */
@@ -47,7 +48,7 @@ export const OrderLineRow = withPartSpan(
             {line.name ?? UNKNOWN_NAME}
           </p>
           {line.unitPrice === null ? null : (
-            <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
+            <p className="text-muted-foreground text-sm">{`${formatDecimalMoney(line.unitPrice)} / 個`}</p>
           )}
           <CartLineIssues
             availableQuantity={line.availableQuantity}

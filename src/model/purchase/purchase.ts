@@ -1,3 +1,4 @@
+import type { AppliedCoupon } from "../coupon/coupon";
 import type { CursorPage } from "../pagination";
 import type { ProductId } from "../product/product";
 
@@ -43,7 +44,7 @@ export type PurchaseLine = {
  * 成立した購入 1 件。
  *
  * @remarks
- * カートと違い、金額は**確定した請求額**です。小計・税・送料・合計はいずれもバックエンドが
+ * カートと違い、金額は**確定した請求額**です。小計・値引き・税・送料・合計はいずれもバックエンドが
  * 決めた値で、画面は足し直しません。
  *
  * 識別子は `code` ひとつです。利用者へ見せる注文番号と、次の取得に渡す値が同じものなので、
@@ -58,6 +59,10 @@ export type Purchase = {
   readonly statusName: string;
   /** 明細（単価 × 数量）の合計。最小単位の整数。 */
   readonly subtotalAmount: number;
+  /** クーポンによる値引き額。最小単位の整数。クーポンを使っていなければ 0。 */
+  readonly discountAmount: number;
+  /** 適用したクーポン。使っていなければ `null`。 */
+  readonly appliedCoupon: AppliedCoupon | null;
   /** 税額。最小単位の整数。 */
   readonly taxAmount: number;
   /** 送料。最小単位の整数。 */

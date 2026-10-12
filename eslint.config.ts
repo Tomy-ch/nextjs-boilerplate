@@ -78,6 +78,14 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
     "購読を開けるのは `adapters/client/stream` だけです（ADR 0074）。画面は購読 adapter を通してください。",
 };
 
+/** 通貨記号を手で付けた金額の表示を落とす（template literal と JSX テキスト）。 */
+const HAND_FORMATTED_MONEY_SELECTOR = {
+  selector:
+    "TemplateElement[tail=false][value.raw=/\\$$/], JSXText[value=/\\$\\s*$/] + JSXExpressionContainer",
+  message:
+    "金額は `@/model/money` の書式関数で表示してください（ADR 0120）。`$` を手で付けると基準通貨と locale の差し替えが届きません。",
+};
+
 /**
  * どのファイルでも締め出すもの。
  *
@@ -311,6 +319,7 @@ export default [
         "error",
         PROCESS_ACCESS_SELECTOR,
         SUBSCRIPTION_CONSTRUCTION_SELECTOR,
+        HAND_FORMATTED_MONEY_SELECTOR,
       ],
       "no-restricted-imports": [
         "error",
@@ -324,7 +333,7 @@ export default [
     // 残す側を書き下す）。
     files: ["src/adapters/client/stream/**/*.{js,jsx,ts,tsx}"],
     rules: {
-      "no-restricted-syntax": ["error", PROCESS_ACCESS_SELECTOR],
+      "no-restricted-syntax": ["error", PROCESS_ACCESS_SELECTOR, HAND_FORMATTED_MONEY_SELECTOR],
     },
   },
   {

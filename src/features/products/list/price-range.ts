@@ -1,3 +1,4 @@
+import { formatDecimalMoney } from "@/model/money";
 import {
   FILTER_KEY,
   type ProductListSelection,
@@ -106,17 +107,7 @@ export function applyPriceRange(
  * @returns 表示用の文字列
  */
 export function formatPriceBound(index: number, edge: RangeEdge): string {
-  return formatRangeEdge(toBound(index) ?? "", edge, formatPrice);
-}
-
-/**
- * 契約が受け取る十進文字列を、通貨付きの表示へ写す。
- *
- * @param value - 十進文字列
- * @returns 表示用の文字列
- */
-function formatPrice(value: string): string {
-  return `$${value}`;
+  return formatRangeEdge(toBound(index) ?? "", edge, formatDecimalMoney);
 }
 
 /**
@@ -133,6 +124,6 @@ export function formatPriceCondition(selection: ProductListSelection): string | 
   return formatRangeLabel(
     toSelectedValue(selection, FILTER_KEY.MIN_PRICE),
     toSelectedValue(selection, FILTER_KEY.MAX_PRICE),
-    formatPrice,
+    formatDecimalMoney,
   );
 }
