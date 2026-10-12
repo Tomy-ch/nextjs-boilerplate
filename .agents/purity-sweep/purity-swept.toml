@@ -514,3 +514,5 @@
 "src/features/admin/products/discontinue/view.test.tsx" = "2026-10-12"
 "src/features/admin/products/list/ui/discontinued-control/discontinued-control.test.tsx" = "2026-10-12"
 "src/features/admin/products/list/ui/discontinued-select/discontinued-select.test.tsx" = "2026-10-12"
+"vrt/lib/a11y-rules.ts" = "2026-10-12"
+"vrt/lib/a11y-rules.test.ts" = "2026-10-12"
