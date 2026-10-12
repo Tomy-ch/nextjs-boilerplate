@@ -192,7 +192,6 @@ test -x "$CLAUDE_PROJECT_DIR/<実体>" && "$CLAUDE_PROJECT_DIR/<実体>" --hook 
 | frontmatter | `name` / `description` の必須、`name` と配置名の一致、`usage-class` の enum（スキルのみ）、`description` ≤ 800 字 |
 | ミラー | `SKILL.ja.md` の存在、frontmatter が無いこと、冒頭の引用行、見出しレベル列の 1:1。`AGENTS.md` / `AGENTS.ja.md` も同じ検査 |
 | 参照 | コードフェンスの外にある `make <target>` / リポジトリ相対パス / 設定ファイル名 / Markdown リンクの実在。frontmatter も対象 |
-| 採番 | 廃止された ADR 採番プレフィックスの不使用 |
 | 行長 | 4096 字を超える行は検査を飛ばさず違反にする（長く書けば外せる抜け道を作らない） |
 
 - **意図的に実在しない参照**（例示・任意配置）は同じ行に `<!-- skill-lint-ignore -->` を置く。
