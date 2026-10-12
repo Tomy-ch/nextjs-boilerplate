@@ -461,7 +461,7 @@ describe("discontinueProductAction", () => {
     { label: "確認の合図", name: "confirmed" },
     { label: "冪等キー", name: "idempotencyKey" },
     { label: "対象", name: "productId" },
-  ])("$label が届かなければ、開き直す案内を返して送らない", async ({ name }) => {
+  ])("$label が届かなければ、開き直す案内を返し、送らず取り直させもしない", async ({ name }) => {
     const state = await discontinueProductAction(
       idleActionState(),
       discontinueForm({ [name]: "" }),
@@ -469,9 +469,10 @@ describe("discontinueProductAction", () => {
 
     expect(state).toMatchObject({ status: "error", formError: DISCONTINUE_TARGET_LOST_MESSAGE });
     expect(discontinueProduct).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("条件が読めなければ、その欄あての文言を返して送らない", async () => {
+  it("条件が読めなければ、その欄あての文言を返し、送らず取り直させもしない", async () => {
     const state = await discontinueProductAction(
       idleActionState(),
       discontinueForm({ couponValidityDays: "0" }),
@@ -482,6 +483,7 @@ describe("discontinueProductAction", () => {
       "couponValidityDays",
     ]);
     expect(discontinueProduct).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("進行中の購入が残って拒まれたら、この画面でしか言えない文言で返し、画面を取り直させる", async () => {

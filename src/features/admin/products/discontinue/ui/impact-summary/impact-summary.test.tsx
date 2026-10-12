@@ -97,18 +97,18 @@ describe("DiscontinueImpactSummary", () => {
     expect(screen.queryByText(UNTOUCHED_TEXT)).not.toBeInTheDocument();
   });
 
-  // ----- 影響が無いとき -----
-  it("3 つとも 0 なら、クーポンが発行されないことを書く", () => {
-    renderSummary({ affectedCartCount: 0, affectedUserCount: 0, inProgressPurchaseCount: 0 });
-
-    expect(screen.getByText(UNTOUCHED_TEXT)).toBeInTheDocument();
-  });
-
   it("a11y 検査を通る", async () => {
     const { container } = renderSummary();
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
     ).toEqual([]);
+  });
+
+  // ----- 影響が無いとき -----
+  it("3 つとも 0 なら、クーポンが発行されないことを書く", () => {
+    renderSummary({ affectedCartCount: 0, affectedUserCount: 0, inProgressPurchaseCount: 0 });
+
+    expect(screen.getByText(UNTOUCHED_TEXT)).toBeInTheDocument();
   });
 });

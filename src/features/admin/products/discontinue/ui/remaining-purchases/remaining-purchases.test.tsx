@@ -65,6 +65,14 @@ describe("DiscontinueRemainingPurchases", () => {
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
 
+  it("読めなかったときの a11y 検査を通る", async () => {
+    const { container } = renderPurchases({ status: "failed" });
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
   // ----- 並んでいるとき -----
   it("購入ごとに注文番号・状態・注文日時・合計を 1 行で出す", () => {
     renderPurchases({ status: "ready", items: PURCHASES, partial: false });
@@ -115,14 +123,6 @@ describe("DiscontinueRemainingPurchases", () => {
 
   it("並んでいるときの a11y 検査を通る", async () => {
     const { container } = renderPurchases({ status: "ready", items: PURCHASES, partial: true });
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
-  });
-
-  it("読めなかったときの a11y 検査を通る", async () => {
-    const { container } = renderPurchases({ status: "failed" });
 
     expect(
       (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,

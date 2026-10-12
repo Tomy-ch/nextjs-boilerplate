@@ -326,12 +326,28 @@ describe("getProducts", () => {
     expect(new URL(requests[0]?.url ?? "").searchParams.has("includeUnpublished")).toBe(false);
   });
 
-  it("廃番で絞る指定をクエリへ載せる", async () => {
+  it("廃番を除く指定を false としてクエリへ載せる", async () => {
     const requests = serveJson(PRODUCTS_URL, wirePage);
 
     await getProducts({ includeUnpublished: true, discontinued: false });
 
     expect(new URL(requests[0]?.url ?? "").searchParams.get("discontinued")).toBe("false");
+  });
+
+  it("廃番だけに絞る指定を true としてクエリへ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true, discontinued: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("discontinued")).toBe("true");
+  });
+
+  it("廃番の指定を省略したら、契約の既定に任せてクエリに載せない", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("discontinued")).toBe(false);
   });
 
   it("取得条件をクエリへ載せる", async () => {
@@ -623,6 +639,20 @@ describe("getProductDiscontinueImpact", () => {
   });
 
   // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(IMPACT_URL, {
+      affectedCartCount: 0,
+      affectedUserCount: 0,
+      inProgressPurchaseCount: 0,
+    });
+
+    await expect(kindOf(() => getProductDiscontinueImpact(ID))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(requests).toHaveLength(0);
+  });
+
   it("存在しない商品の応答を、見つからないとして分類する", async () => {
     serveStatus("get", IMPACT_URL, 404);
 

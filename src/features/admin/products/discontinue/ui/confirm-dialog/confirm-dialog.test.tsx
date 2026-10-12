@@ -110,7 +110,7 @@ describe("DiscontinueConfirmDialog", () => {
     await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
 
     expect(props.formAction).not.toHaveBeenCalled();
-    expect(props.onDismiss).toHaveBeenCalled();
+    expect(props.onDismiss).toHaveBeenCalledTimes(1);
   });
 
   it("失敗が無ければ、失敗の報せを出さない", async () => {

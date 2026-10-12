@@ -75,7 +75,6 @@ describe("closesConfirmation", () => {
     expect(closesConfirmation(failed({ formError: "拒否", kind: ErrorKind.CONFLICT }))).toBe(true);
   });
 
-  // ----- 異常系 -----
   it("項目の誤りで拒まれたら閉じない", () => {
     expect(closesConfirmation(failed({ formError: null, kind: ErrorKind.VALIDATION }))).toBe(false);
   });
@@ -121,7 +120,6 @@ describe("failuresOf", () => {
     expect(failuresOf(failed({ formError: "全体の文言" }))).toEqual(["全体の文言"]);
   });
 
-  // ----- 異常系 -----
   it("成立していれば何も返さない", () => {
     expect(failuresOf(succeeded)).toEqual([]);
   });
@@ -175,7 +173,6 @@ describe("fieldMessagesOf", () => {
     ).toStrictEqual({ couponDiscountRate: "開く前の文言", couponValidityDays: "結果の文言" });
   });
 
-  // ----- 異常系 -----
   it("結果が下げられていれば、開く前の判定だけを見る", () => {
     expect(fieldMessagesOf({}, null)).toStrictEqual({});
   });

@@ -94,7 +94,7 @@ describe("AdminProductTable", () => {
     );
   });
 
-  it("廃番でない行は、操作の末尾から廃番の画面へ進める", async () => {
+  it("廃番でない行は、区切りの後の操作の末尾から廃番の画面へ進める", async () => {
     renderTable();
 
     await userEvent.click(screen.getByRole("button", { name: "ワイヤレスイヤホン の操作" }));
@@ -103,9 +103,10 @@ describe("AdminProductTable", () => {
 
     expect(items.at(-1)).toHaveAccessibleName("廃番にする");
     expect(items.at(-1)).toHaveAttribute("href", `/admin/products/${ID}/discontinue`);
+    expect(within(menu).getByRole("separator")).toBeInTheDocument();
   });
 
-  it("廃番の行は、廃番にする操作を出さない", async () => {
+  it("廃番の行は、廃番にする操作もその前の区切りも出さない", async () => {
     renderTable({ items: [row({ discontinued: true })] });
 
     await userEvent.click(screen.getByRole("button", { name: "ワイヤレスイヤホン の操作" }));
@@ -113,6 +114,7 @@ describe("AdminProductTable", () => {
 
     expect(within(menu).getByRole("menuitem", { name: "在庫を補充する" })).toBeInTheDocument();
     expect(within(menu).queryByRole("menuitem", { name: "廃番にする" })).not.toBeInTheDocument();
+    expect(within(menu).queryByRole("separator")).not.toBeInTheDocument();
   });
 
   it("状態は行が持ち込んだ見た目で出す", () => {

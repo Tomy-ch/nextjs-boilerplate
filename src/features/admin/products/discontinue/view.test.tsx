@@ -316,6 +316,28 @@ describe("AdminProductDiscontinueView", () => {
     expect(rateField()).toHaveAccessibleDescription(expect.stringContaining(message));
   });
 
+  it("接続先に拒まれた後に条件を打ち直すと、その欄に残っていた拒否の文言を下げる", async () => {
+    const message = "値引き率は受け付けられませんでした。入力し直してください。";
+
+    renderView({
+      discontinueAction: returning(
+        failedActionState({
+          formError: null,
+          fieldErrors: { couponDiscountRate: [message] },
+          kind: ErrorKind.VALIDATION,
+        }),
+      ),
+    });
+
+    const dialog = await submit();
+
+    await within(dialog).findByText(message);
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+    await userEvent.type(rateField(), "1");
+
+    expect(rateField()).not.toHaveAccessibleDescription(expect.stringContaining(message));
+  });
+
   it("一時的に受け付けられなかったら、確認を開いたまま中に文言を出す", async () => {
     renderView({
       discontinueAction: returning(
@@ -353,6 +375,27 @@ describe("AdminProductDiscontinueView", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("実行できるときの a11y 検査を通る", async () => {
+    const { container } = renderView();
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
+  it("結果を出した状態で a11y 検査を通る", async () => {
+    const { container } = renderView({
+      discontinueAction: returning(succeededActionState(DISCONTINUE_RESULT)),
+    });
+
+    await submit();
+    await screen.findByText("廃番にしました");
+
+    expect(
+      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
+    ).toEqual([]);
+  });
+
   // ----- 進行中の購入が残っているとき -----
   it("実行の入口と条件の欄を出さず、残っている購入の区画を出す", () => {
     renderView({ standing: { kind: "open", impact: BLOCKED_IMPACT } });
@@ -374,26 +417,5 @@ describe("AdminProductDiscontinueView", () => {
     expect(screen.queryByRole("heading", { name: "影響の見積もり" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "廃番にする" })).not.toBeInTheDocument();
     expect(screen.queryByText(REMAINING_MARKER)).not.toBeInTheDocument();
-  });
-
-  it("実行できるときの a11y 検査を通る", async () => {
-    const { container } = renderView();
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
-  });
-
-  it("結果を出した状態で a11y 検査を通る", async () => {
-    const { container } = renderView({
-      discontinueAction: returning(succeededActionState(DISCONTINUE_RESULT)),
-    });
-
-    await submit();
-    await screen.findByText("廃番にしました");
-
-    expect(
-      (await axe(container, { rules: { "color-contrast": { enabled: false } } })).violations,
-    ).toEqual([]);
   });
 });
