@@ -229,6 +229,68 @@ function alignCoupon(
   };
 }
 
+/**
+ * カートの明細の事情。並びの位置で選ぶ。
+ *
+ * @remarks
+ * 生成器は事情を明細ごとに無作為に重ねるため、「在庫が無い」と「在庫がいくつまで」が同じ明細に
+ * 並び、買える明細が 1 つも無いカートになります。買える明細と買えない明細を 1 つずつ以上含む組に
+ * 揃え、購入確認から確定まで辿れるようにします。
+ */
+const CART_LINE_PATTERNS: readonly {
+  readonly issues: readonly string[];
+  readonly availableQuantity: number | null;
+}[] = [
+  { issues: [], availableQuantity: null },
+  { issues: [], availableQuantity: null },
+  { issues: ["outOfStock"], availableQuantity: 0 },
+];
+
+/** 題材の単価。生成器が置く値と同じ。 */
+const CART_UNIT_PRICE = "19.99";
+
+/** 単価を最小単位で表した値。小計を明細から組むために使う。 */
+const CART_UNIT_PRICE_MINOR = 1_999;
+
+/**
+ * カートの明細と小計を、噛み合う組へ揃える。
+ *
+ * @remarks
+ * 小計は買える明細の単価と数量から決まります。明細と別に引くと、明細を足しても小計が合いません。
+ */
+function alignCart(response: unknown): unknown {
+  const record = recordOf(response, "カート");
+  const lines = arrayOf(record, "items", "カート")
+    .slice(0, CART_LINE_PATTERNS.length)
+    .map((item, index) => {
+      const line = recordOf(item, "カートの明細");
+      const pattern = CART_LINE_PATTERNS[index];
+
+      if (pattern === undefined) {
+        throw new Error("明細の事情の組がありません");
+      }
+
+      const quantity = typeof line["quantity"] === "number" ? (line["quantity"] % 3) + 1 : 1;
+
+      return {
+        ...line,
+        productName: pick(PRODUCT_CATALOGUE, line["productId"], index).name,
+        quantity,
+        unitPrice: CART_UNIT_PRICE,
+        issues: pattern.issues,
+        availableQuantity: pattern.availableQuantity,
+      };
+    });
+
+  return {
+    ...record,
+    items: lines,
+    subtotalAmount: lines
+      .filter((line) => line.issues.length === 0)
+      .reduce((sum, line) => sum + CART_UNIT_PRICE_MINOR * line.quantity, 0),
+  };
+}
+
 /** カートの口。候補の値引き額は、このカートの小計に対して決まる。 */
 const CART_PATH = "/v1/carts/me";
 
@@ -240,9 +302,9 @@ const CART_PATH = "/v1/carts/me";
  * 開いても失効前に見えるよう、基準日より十分先の日付を置きます。
  */
 const CART_COUPON_EXPIRIES = [
-  "2027-03-31T15:00:00Z",
-  "2027-06-30T15:00:00Z",
-  "2027-12-31T15:00:00Z",
+  "2027-03-31T14:59:59Z",
+  "2027-06-30T14:59:59Z",
+  "2027-12-31T14:59:59Z",
 ];
 
 /**
@@ -258,7 +320,7 @@ const CART_COUPON_EXPIRIES = [
  */
 function alignCartCoupons(response: unknown, draw: DrawFromEndpoint): unknown {
   const record = recordOf(response, "使えるクーポン");
-  const subtotal = recordOf(draw("getGetCartsMeResponseMock", CART_PATH), "カート")[
+  const subtotal = recordOf(alignCart(draw("getGetCartsMeResponseMock", CART_PATH)), "カート")[
     "subtotalAmount"
   ];
 
@@ -398,6 +460,8 @@ export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsRankingAmountResponseMock", alignProductRanking],
   ["getGetPurchasesResponseMock", alignPurchaseList],
   ["getGetPurchasesDetailResponseMock", alignPurchase],
+  ["getGetCartsMeResponseMock", alignCart],
+  ["getPutCartsMeItemResponseMock", alignCart],
   ["getGetCartsMeCouponsResponseMock", alignCartCoupons],
   ["getPatchPurchasesCancelResponseMock", alignPurchase],
   ["getPatchPurchasesPayResponseMock", alignPurchase],

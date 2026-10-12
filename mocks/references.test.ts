@@ -38,7 +38,10 @@ const draw: DrawFromEndpoint = (name) => {
   }
 
   if (name === "getGetCartsMeResponseMock") {
-    return { items: [], subtotalAmount: 1_000 };
+    return {
+      items: [cartLine("cart-1", 0), cartLine("cart-2", 0)],
+      subtotalAmount: 1_234_567,
+    };
   }
 
   throw new Error(`知らない口です: ${name}`);
@@ -51,6 +54,18 @@ function product(id: string) {
     name: "生成された商品名",
     category: { id: "生成された分類の識別子", name: "生成された分類" },
     status: { id: "生成された状態の識別子", name: "生成された状態" },
+  };
+}
+
+/** 契約から生成したカートの明細 1 件のうち、揃える項目だけを持つ形。 */
+function cartLine(productId: string, quantity: number) {
+  return {
+    productId,
+    productName: null,
+    quantity,
+    unitPrice: null,
+    issues: ["outOfStock", "insufficientStock", "priceIncreased"],
+    availableQuantity: 70,
   };
 }
 
@@ -440,5 +455,54 @@ describe("REFERENCE_PATCHES", () => {
     for (const scope of categoryScopes) {
       expect(CATEGORIES.map((category) => category.id)).toContain(scope.targetId);
     }
+  });
+
+  it("カートの明細を、買える明細と買えない明細が並ぶ組へ揃える", () => {
+    const patched = patchOf("getGetCartsMeResponseMock")(
+      {
+        items: [
+          cartLine("cart-1", 0),
+          cartLine("cart-2", 4),
+          cartLine("cart-3", 1),
+          cartLine("cart-4", 1),
+        ],
+        subtotalAmount: 1_234_567,
+      },
+      draw,
+    ) as {
+      items: readonly {
+        productName: string;
+        quantity: number;
+        unitPrice: string;
+        issues: unknown[];
+      }[];
+      subtotalAmount: number;
+    };
+
+    expect(patched.items.map((line) => line.issues.length)).toEqual([0, 0, 1]);
+    for (const line of patched.items) {
+      expect(line.productName).not.toBeNull();
+      expect(line.unitPrice).toBe("19.99");
+      expect(line.quantity).toBeGreaterThan(0);
+    }
+  });
+
+  it("カートの小計を、買える明細の単価と数量から組む", () => {
+    const patched = patchOf("getGetCartsMeResponseMock")(
+      {
+        items: [cartLine("cart-1", 0), cartLine("cart-2", 4), cartLine("cart-3", 1)],
+        subtotalAmount: 1,
+      },
+      draw,
+    ) as { subtotalAmount: number };
+
+    // 数量は 1 と 2 に揃い、在庫の無い 3 件目は小計に入らない。
+    expect(patched.subtotalAmount).toBe(1_999 * 1 + 1_999 * 2);
+  });
+
+  it("カートの明細を足し直した応答も同じ組へ揃える", () => {
+    expect(REFERENCE_PATCHES.get("getPutCartsMeItemResponseMock")).toBe(
+      REFERENCE_PATCHES.get("getGetCartsMeResponseMock"),
+    );
   });
 });
