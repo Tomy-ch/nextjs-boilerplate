@@ -178,20 +178,20 @@ export const CART_COUPONS: readonly CartCoupon[] = [
     discount: { kind: "rate", value: "0.10", maxAmount: 1_000 },
     scopeKind: "category",
     discountAmount: 332,
-    expiresAt: "2027-03-31T15:00:00Z",
+    expiresAt: "2027-03-31T14:59:59Z",
   },
   {
     id: toCouponId("0193a1c0-0001-7000-8000-000000000002"),
     discount: { kind: "flat", value: "5.00" },
     scopeKind: "all",
     discountAmount: 500,
-    expiresAt: "2027-06-30T15:00:00Z",
+    expiresAt: "2027-06-30T14:59:59Z",
   },
   {
     id: toCouponId("0193a1c0-0001-7000-8000-000000000003"),
     discount: { kind: "rate", value: "0.15", maxAmount: null },
     scopeKind: "product",
     discountAmount: 287,
-    expiresAt: "2027-12-31T15:00:00Z",
+    expiresAt: "2027-12-31T14:59:59Z",
   },
 ];

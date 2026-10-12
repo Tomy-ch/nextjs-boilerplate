@@ -35,8 +35,8 @@ const NOTE =
  * 漏れます。合計にも足し込みません。足し込んだ額は確定の時点で変わり得て、画面が約束できない
  * 金額になります。
  *
- * 「使わない」を先頭に置き、最初はどれも選んでいません。radio は一度選ぶと外せないため、使わない
- * という選択肢が無いと、一度選んだ利用者は元に戻れません。
+ * 「使わない」を先頭に置き、最初はどれも選んでいません（使わない扱いで送られます）。radio は一度
+ * 選ぶと外せないため、使わないという選択肢が無いと、一度選んだ利用者は元に戻れません。
  *
  * 選択は確定の送信状態と同じ器が持ちます（`../place-order-state`）。確定は脇と下端の帯と金額の
  * 確かめのどこからでも送られるためです。選んだ時点で反映し、「適用」の操作は置きません。
@@ -51,7 +51,7 @@ export function CouponField({ coupons }: CouponFieldProps) {
 
   const scope = useId();
   const errorId = `${scope}-error`;
-  const { couponId, selectCoupon, couponErrors } = usePlaceOrderState();
+  const { couponId, couponSelection, selectCoupon, couponErrors } = usePlaceOrderState();
 
   if (coupons === null) {
     return (
@@ -75,7 +75,7 @@ export function CouponField({ coupons }: CouponFieldProps) {
         >
           <legend className="mb-3 font-emphasis leading-none">{TITLE}</legend>
           <CouponOption
-            checked={couponId === null}
+            checked={couponSelection === null}
             couponId={null}
             id={`${scope}-none`}
             name={scope}

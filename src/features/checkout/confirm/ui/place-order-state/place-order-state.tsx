@@ -27,6 +27,8 @@ export type PlaceOrderState = {
   readonly idempotencyKey: string;
   /** 確定に載せるクーポン。使わなければ null。 */
   readonly couponId: CouponId | null;
+  /** 利用者がクーポンの欄で選んだもの。「使わない」は null、まだ選んでいなければ undefined。 */
+  readonly couponSelection: CouponId | null | undefined;
   /** 確定に載せるクーポンを選び直す。 */
   readonly selectCoupon: (couponId: CouponId | null) => void;
   /** 直近の送信がクーポンについて返した文言。選び直した後は消える。 */
@@ -77,10 +79,13 @@ export function PlaceOrderStateProvider({
     placeOrderAction,
     idleActionState(),
   );
-  const [selected, setSelected] = useState<CouponId | null>(null);
+  const [couponSelection, setCouponSelection] = useState<CouponId | null | undefined>(undefined);
   const [answeredState, setAnsweredState] = useState<PlaceOrderFormState | null>(null);
 
-  const couponId = selected !== null && couponIds.includes(selected) ? selected : null;
+  const couponId =
+    typeof couponSelection === "string" && couponIds.includes(couponSelection)
+      ? couponSelection
+      : null;
   const couponErrors =
     state.status === "error" && state !== answeredState
       ? state.fieldErrors?.[COUPON_ID_FIELD]
@@ -93,13 +98,14 @@ export function PlaceOrderStateProvider({
       isPending,
       idempotencyKey,
       couponId,
+      couponSelection,
       selectCoupon: (next: CouponId | null) => {
-        setSelected(next);
+        setCouponSelection(next);
         setAnsweredState(state);
       },
       couponErrors,
     }),
-    [formAction, state, isPending, idempotencyKey, couponId, couponErrors],
+    [formAction, state, isPending, idempotencyKey, couponId, couponSelection, couponErrors],
   );
 
   return (
