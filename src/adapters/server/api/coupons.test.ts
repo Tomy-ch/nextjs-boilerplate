@@ -69,12 +69,14 @@ describe("getMyCartCoupons", () => {
         discount: { kind: "rate", value: "0.10", maxAmount: 1000 },
         scopeKind: "category",
         discountAmount: 332,
+        expiresAt: "2026-12-01T00:00:00Z",
       },
       {
         id: "0193a1c0-0001-7000-8000-000000000003",
         discount: { kind: "flat", value: "5.00" },
         scopeKind: "all",
         discountAmount: 500,
+        expiresAt: "2026-12-01T00:00:00Z",
       },
     ]);
   });

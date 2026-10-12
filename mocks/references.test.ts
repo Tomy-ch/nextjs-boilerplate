@@ -82,6 +82,7 @@ function candidate(id: string) {
       id,
       discount: { kind: "rate", value: "生成された率", maxAmount: 1_234_567 },
       scope: { kind: "product", targetId: "生成された商品の識別子" },
+      expiresAt: "2025-01-01T00:00:00Z",
       usedAt: "2025-01-01T00:00:00Z",
       usableFrom: "2099-01-01T00:00:00Z",
       minPurchaseAmount: 1_234_567,
@@ -98,6 +99,7 @@ const patchedCartCoupons = patchOf("getGetCartsMeCouponsResponseMock")(
     coupon: {
       discount: unknown;
       scope: { kind: string; targetId: string | null };
+      expiresAt: string;
       usedAt: unknown;
       usableFrom: unknown;
       minPurchaseAmount: unknown;
@@ -422,6 +424,7 @@ describe("REFERENCE_PATCHES", () => {
 
   it("カートに使えるクーポンを、いま使える未使用のクーポンにする", () => {
     for (const { coupon } of patchedCartCoupons.coupons) {
+      expect(Date.parse(coupon.expiresAt)).toBeGreaterThan(Date.parse("2026-01-01T00:00:00Z"));
       expect(coupon.usedAt).toBeNull();
       expect(coupon.usableFrom).toBeNull();
       expect(coupon.minPurchaseAmount).toBeNull();

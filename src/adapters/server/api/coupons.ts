@@ -36,6 +36,7 @@ export const getMyCartCoupons = cache(async (): Promise<readonly CartCoupon[]> =
     discount: toCouponDiscount(coupon.discount),
     scopeKind: coupon.scope.kind,
     discountAmount,
+    expiresAt: coupon.expiresAt,
   }));
 });
 

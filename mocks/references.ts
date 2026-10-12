@@ -233,6 +233,19 @@ function alignCoupon(
 const CART_PATH = "/v1/carts/me";
 
 /**
+ * 使えるクーポンの有効期限。並びの位置で選ぶ。
+ *
+ * @remarks
+ * 生成器は期限を基準日より過去に引くため、「失効済みは並ばない」契約と食い違います。どの「いま」で
+ * 開いても失効前に見えるよう、基準日より十分先の日付を置きます。
+ */
+const CART_COUPON_EXPIRIES = [
+  "2027-03-31T15:00:00Z",
+  "2027-06-30T15:00:00Z",
+  "2027-12-31T15:00:00Z",
+];
+
+/**
  * いまのカートに使えるクーポンを、値引きが立つ組だけへ揃える。
  *
  * @remarks
@@ -278,6 +291,7 @@ function alignCartCoupons(response: unknown, draw: DrawFromEndpoint): unknown {
             ...coupon,
             discount: pattern.discount,
             scope: { kind: pattern.scopeKind, targetId },
+            expiresAt: CART_COUPON_EXPIRIES[index % CART_COUPON_EXPIRIES.length],
             usedAt: null,
             usableFrom: null,
             minPurchaseAmount: null,
