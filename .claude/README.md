@@ -188,7 +188,6 @@ semantically. The implementation is [`scripts/skill-lint/`](../scripts/skill-lin
 | frontmatter | `name` / `description` required, `name` matches the placement name, `usage-class` enum (skills only), `description` ≤ 800 characters |
 | Mirror | `SKILL.ja.md` exists, has no frontmatter, has the leading quoted line, and its heading-level sequence is 1:1. `AGENTS.md` / `AGENTS.ja.md` get the same check |
 | References | Existence of `make <target>` / repository-relative paths / config file names / Markdown links outside code fences. Frontmatter is included |
-| Numbering | No use of the retired ADR numbering prefix |
 | Line length | A line over 4096 characters is a violation rather than skipped (no loophole of escaping the check by writing long) |
 
 - **References that intentionally do not exist** (examples, optional placements) put `<!-- skill-lint-ignore -->` on the same line.
