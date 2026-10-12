@@ -26,13 +26,25 @@ the fetch key, so the number the screen shows can be matched against as a receip
 
 ## Amounts
 
-**All are the charged amounts as confirmed.** Subtotal, tax, shipping and total are all values the backend decided, and the screen does not
+**All are the charged amounts as confirmed.** Subtotal, coupon discount, tax, shipping and total are all values the backend decided, and the screen does not
 re-add them ([0070](../../../../../adr/0070-backend-role-separation.md)).
 
 **A line item's unit price is the value at the time of purchase**, and does not move even if the product's current price changes. **Only the product name
 arrives resolved to the current name**, so the name and the unit price refer to different points in time.
 
 The reference converted amount is not the charged amount. What is stored is the amount in the base currency, and this value is used only for display.
+
+### The coupon discount
+
+**Whether a discount row appears is decided by the discount amount alone.** The coupon line appears only under that row,
+and only when an applied coupon arrived. The contract states the two always agree, so the screen adds no arbitration of
+its own.
+
+**The coupon's terms arrive resolved to their current values**, like the product name. The discount amount is the value at
+the time of purchase and does not move; the face value, cap and scope next to it are the coupon's terms now.
+
+**What the coupon applied to is shown by kind.** The contract returns the kind and the target's identifier, not its name,
+and this screen does not fetch the name.
 
 ## Advancing the Status
 

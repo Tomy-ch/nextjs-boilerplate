@@ -33,6 +33,8 @@ export const PURCHASE_DETAIL: Purchase = {
   statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
+  discountAmount: 0,
+  appliedCoupon: null,
   taxAmount: 1_890,
   shippingFee: 500,
   totalAmount: 21_287,
@@ -62,4 +64,37 @@ export const DELIVERED_PURCHASE: Purchase = {
   ...PURCHASE_DETAIL,
   statusCode: PURCHASE_STATUS.DELIVERED,
   statusName: "配達済み",
+};
+
+/** 上限に届いた定率のクーポンで値引きした購入。 */
+export const CAPPED_RATE_DISCOUNT_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  discountAmount: 1_000,
+  appliedCoupon: {
+    discount: { kind: "rate", value: "0.10", maxAmount: 1_000 },
+    scopeKind: "all",
+  },
+  taxAmount: 1_790,
+  totalAmount: 20_187,
+};
+
+/** 定額のクーポンで値引きした購入。 */
+export const FLAT_DISCOUNT_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  discountAmount: 500,
+  appliedCoupon: { discount: { kind: "flat", value: "5.00" }, scopeKind: "product" },
+  taxAmount: 1_840,
+  totalAmount: 20_737,
+};
+
+/** 上限の無い定率のクーポンを、範囲を分類で絞って使った購入。 */
+export const UNCAPPED_RATE_DISCOUNT_PURCHASE: Purchase = {
+  ...PURCHASE_DETAIL,
+  discountAmount: 2_834,
+  appliedCoupon: {
+    discount: { kind: "rate", value: "0.15", maxAmount: null },
+    scopeKind: "category",
+  },
+  taxAmount: 1_606,
+  totalAmount: 18_169,
 };

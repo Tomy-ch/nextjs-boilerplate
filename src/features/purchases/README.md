@@ -20,7 +20,7 @@ The screen slice for reading completed purchases afterwards. It holds the list (
 
 - Depending on another feature's internals (the product list URL comes from the `facade/` of `products`)
 - Creating purchases (owned by `checkout`)
-- Calculating amounts (subtotal, tax, shipping and total are values the backend decided)
+- Calculating amounts (subtotal, coupon discount, tax, shipping and total are values the backend decided)
 
 ## Routes and Contracts
 
@@ -56,6 +56,7 @@ transitions owned by `admin`.
 | Detail | success | `Page/Purchases/Detail/Default` |
 | | paid / delivered | `Page/Purchases/Detail/{Paid,Delivered}` |
 | | reference converted amount could not be read | `Page/Purchases/Detail/WithoutReference` |
+| | coupon discount (capped rate / flat / uncapped rate) | `Page/Purchases/Detail/{WithDiscount,WithFlatDiscount,WithUncappedRateDiscount}` |
 | | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
 **The empty state is split in two.** "Has not bought anything yet" and "none in that period" lead the user to different next
@@ -73,7 +74,7 @@ What belongs to neither screen sits directly here without a screen directory in 
 | `facade/paths/` | The two routes this feature owns. Referenced by the links in My Page (`account`) and purchase completion (`checkout`) |
 | `facade/receipt/` | The purchase receipt (order number, order date and time, status). **Purchase completion shows it in the same form** |
 | `facade/lines/` | The joined line items. **Purchase completion shows them in the same form** |
-| `facade/amount-summary/` | The breakdown of the billed amount and the reference amount converted to yen. **Purchase completion shows it in the same form** |
+| `facade/amount-summary/` | The breakdown of the billed amount and the reference amount converted to yen. **Purchase completion shows it in the same form**. What goes under the discount row is the screen's to pass |
 | `facade/status-emphasis/` | Chooses the badge look from the status name. Groups them into three |
 | `purchases.fixture.ts` | Fixed purchases used by stories and tests |
 | `facade/purchase.fixture.ts` | Fixed values read by the three in `facade/` and by `checkout`, which borrows them |
@@ -104,6 +105,7 @@ What belongs to neither screen sits directly here without a screen directory in 
 | `detail/ui/transitions/` | The operations currently available for that purchase, and the notice of success |
 | `detail/ui/transitions/presentation.ts` | The words and look per transition. Split between the opening action and the confirming action |
 | `detail/ui/transition-button/` | The operation that advances the state by one. Opens the confirmation and reports a refusal inside it |
+| `detail/ui/applied-coupon/` | The one line under the discount row saying which coupon produced it |
 | `detail/ui/skeleton/` | The detail's loading UI |
 
 ## Kernel Dependencies
@@ -111,7 +113,7 @@ What belongs to neither screen sits directly here without a screen directory in 
 | Kernel | Purpose |
 | --- | --- |
 | `adapters` | Fetching the history, detail and reference converted amounts, and the sends that advance the state |
-| `model` | Display models (`Purchase` / status), period types, `ActionState` |
+| `model` | Display models (`Purchase` / status / applied coupon), the coupon's display functions, period types, `ActionState` |
 | `components` | The building blocks the surfaces are assembled from (card, badge, inputs, load more, print action) |
 | `capabilities` | Detecting reaching the end (`use-on-visible`) |
 | `errors` | Maps the classification of a refused transition to a message |
@@ -136,6 +138,7 @@ the person who pressed can take (reloading the screen) differs from other failur
 - [ ] Operations for transitions not currently possible do not appear
 - [ ] That a transition was refused appears inside the confirmation, which stays open
 - [ ] An unknown status business key is assigned to no category, and the list remains readable
+- [ ] The breakdown reads subtotal → coupon discount → tax → shipping, and a purchase without a discount has no discount row
 
 ## Design
 

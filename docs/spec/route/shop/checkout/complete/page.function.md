@@ -19,7 +19,7 @@ to show.
 
 ## Amounts
 
-Subtotal, tax, shipping and total are all **the charged amounts as confirmed**, shown exactly as the backend decided them.
+Subtotal, coupon discount, tax, shipping and total are all **the charged amounts as confirmed**, shown exactly as the backend decided them.
 The confirmation screen could show only up to the subtotal.
 
 A line item's unit price is **the value at the time of purchase** and does not move even if the product's current price changes. Only the product name

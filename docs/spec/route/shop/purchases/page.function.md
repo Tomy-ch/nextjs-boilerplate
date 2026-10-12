@@ -17,6 +17,9 @@ A single line: `GET /v1/purchases`. Results come in descending order of order da
 **The list returns only summaries, without line items.** Neither product names nor item counts are on this screen. When line items are needed,
 the detail is fetched.
 
+**The list returns no discount either.** A row shows the total only; the breakdown, including the coupon discount, is
+the detail's.
+
 ### Filtering by Period
 
 The URL holds a period type (all time / calendar month / date range / last N days) and that type's values. **The contract accepts not that

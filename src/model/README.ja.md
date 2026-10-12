@@ -25,7 +25,7 @@
 | [`rich-text/`](rich-text/README.ja.md) | リッチテキストの sanitize port。HTML 文字列を表示してよい範囲のツリーへ変換する |
 | `breakpoint.ts` | バンドに達していない幅の media query を組む。幅は design token が持つ |
 | `datetime.ts` | 日時と月名の locale 対応フォーマッタ |
-| `number.ts` | 数の locale 対応整形（桁区切り）。金額は `money.ts` が持つ |
+| `number.ts` | 数の locale 対応整形（桁区切り、率の百分率表記）と、decimal 文字列を数へ変換せずに `Intl` へ渡すための確認。金額は `money.ts` が持つ |
 | `locale.ts` | デフォルト locale とデフォルトタイムゾーン。フォーマッタが省略時に用いる単一の差し替え点 |
 | `generated/breakpoint.ts` | バンドの名前と幅。`tokens/` から生成する（手編集禁止） |
 | `generated/design-token.ts` | 意味トークンと生スケールの名前。`tokens/` から生成する（手編集禁止） |
@@ -36,13 +36,14 @@
 | `idempotency-key.ts` | 変更 1 回ぶんを指すキーと、それを載せるフォーム項目の名前 |
 | `uuid.ts` | 画面が作る一意な値。secure context でない出所でも作れる、RFC 9562 のバージョン 7 |
 | `consent.ts` | 任意の用途に cookie を使ってよいかという意思と、その区分ごとのゲート述語 |
-| `money.ts` | 最小単位の整数で持つ金額を、locale に沿った通貨表記へ整える |
+| `money.ts` | 金額を locale に沿った通貨表記へ整える。最小単位の整数で届くものも、主単位の decimal 文字列で届くものも扱う |
 | `session.ts` | 認証済み利用者の身元と役割。cookie へ載せる payload はこの型に閉じ、Access Token も PII も持たない |
 | `authz.ts` | 経路の接頭辞ごとに許す役割。認証だけを要求する経路は全役割を並べて表す |
 | `return-url.ts` | 検証を通った復帰先。同一 origin の相対パスだけを通し、外れた値はデフォルトの行き先へ倒す |
 | `cross-origin.ts` | リクエストの origin の判定と、CORS / preflight の応答ヘッダの組み立て |
 | `time-window.ts` | 集計・絞り込みが対象にする期間。暦の区分を、基準のタイムゾーンで瞬時の半開区間へマッピングする |
 | `cart/` | サンプル画面が扱うカートの表示用の型と、明細に立った事情の見せ方 <!-- sample:line --> |
+| `coupon/` | サンプル画面が扱うクーポンの値引きの表示用の型と、その文言（額面・上限・範囲） <!-- sample:line --> |
 | `dashboard/dashboard.ts` | サンプル画面が扱う管理側の横断集計の表示用の型 <!-- sample:line --> |
 | `inquiry/` | サンプル画面が扱う問い合わせの表示用の型と、購読で届いた分の畳み込み <!-- sample:line --> |
 | `product/product.ts` | サンプル画面が扱う商品の表示用の型 <!-- sample:line --> |
@@ -168,8 +169,11 @@
 | `<題材>/<関心>.ts` | 判定結果を文言へマッピングする・購読で届いた分を canonical へ畳む、といった表示のための最小限の関数 |
 | `<題材>/<状態>.ts` | 分岐に使う業務キーの語彙 |
 
-題材をまたぐ参照は識別子の型だけにします（`import type`）。題材の module は 1 つの feature しか
-使わないうちは feature の内側に置き、複数から参照される段になってここへ上げます
+題材をまたぐ参照は `import type` だけにし、向きは一方向です。参照してよいのは識別子の型と、ある題材の
+取得結果が届いたまま埋め込んでいる値の表示用の型です。強制: 散文 —— 題材の module 間の import を検査する
+ゲートはありません。題材の module は 1 つの feature しか使わないうちは feature の内側に置き、複数から参照
+される段か、別の題材の module がその型を埋め込む段になってここへ上げます —— `model` は feature から
+import できません
 （[0021](../../docs/adr/0021-frontend-responsibility.ja.md) のカーネル受入基準）。
 
 ## boilerplate 導入時の変更点

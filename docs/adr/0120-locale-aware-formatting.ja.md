@@ -38,6 +38,7 @@ Accepted
 
 - **locale-aware フォーマッタ(`Intl.*` の薄いラッパ)と日付演算ヘルパ(`date-fns` の薄いラッパ)はともに `model` カーネルに置く**。[0021](0021-frontend-responsibility.ja.md) の責務定義で `model` は「表示用 ValueObject / **フォーマッタ** / 単位変換 / 表示バリデーション規則」を明示的に所有しており、フォーマッタ・日付演算(表示用ドメイン値の加工)の家は既に `model` に名指しされている。物理配置は [0027](0027-directory-structure.ja.md) の `src/model/`(フラット共置・per-file 基本)に従う
 - **昇格ルール([0021](0021-frontend-responsibility.ja.md))との整合**: フォーマッタ・日付演算ヘルパは「表示用ロジック(VO / フォーマッタ)→ `model` へ」の昇格先そのものである。ただし [0021](0021-frontend-responsibility.ja.md) カーネル受入基準に従い、**1 つの feature でしか使わない単発ヘルパは feature 内に置き**、複数 feature から参照される段になって `model` へ昇格させる(横断は `model`、単一機能ヘルパは feature 内)。`date-fns` の直参照も、横断利用になった段で `model` の薄いラッパに集約する(§2 差替可能性)
+- **金額のフォーマッタは、契約が使う 2 つの形のどちらにも 1 つの module で応じる**。金額は最小単位の整数か主単位の decimal 文字列で届き、どちらも `model/money.ts` を通すので、2 つを並べる画面でも表記が 1 つに揃う。decimal 文字列は数へ変換せず文字列のまま `Intl.NumberFormat` へ渡し(ECMA-402 は文字列の数値リテラルを受け付ける)、**契約が持つ桁は落とさない**: 最小は通貨自身の小数桁で、それより細かい桁は残す(セント未満の価格を通貨の桁へ丸めると無料に読めることがある)
 - **禁止方向の確認**: フォーマッタ・日付演算ヘルパは表示用ロジックであり、`components`(純 UI)/ `adapters`(外部接続)/ `capabilities`(runtime 能力 hook)には置かない([0021](0021-frontend-responsibility.ja.md) 依存マトリクス・命名規律。汎用 `utils` 置き場も作らない)
 
 ### 4. デフォルト locale の供給 seam
@@ -49,6 +50,7 @@ Accepted
 
 - ❌ 日付の**表示(format)**に `date-fns` の `format` / `formatDistance` / `formatRelative` 等や `date-fns/locale` を用いること(表示は §1 の `Intl` に一本化。二重フォーマット禁止)（強制: 散文 —— **寄せられる**（ESLint `no-restricted-imports` の `importNames` で `date-fns` の `format` / `formatDistance` / `formatRelative` と `date-fns/locale` を落とせる。規則は無い））
 - ❌ `Intl` と `date-fns` で同じ表示を**二重に**持つこと(表示 = `Intl`、演算 = `date-fns` の役割分界を崩さない)（強制: 散文 —— **一部寄せられる**。`date-fns` の表示関数の import は `no-restricted-imports` で落とせるが規則は無い。手書きの文字列組み立てで `Intl` と同じ表示を再現しているかは、出力の意味を読まないと決まらない）
+- ❌ `model/money.ts` のフォーマッタを通さず、金額に通貨記号を手で付けること(記号と桁区切りが基準通貨にも locale にも従わなくなる。§3)（強制: ESLint `no-restricted-syntax`（`eslint.config.ts` の `HAND_FORMATTED_MONEY_SELECTOR`）が、テンプレートリテラルまたは JSX テキストで補間の直前に置かれた `$` を、テストと Node の実行境界（`architecture.ts` の `NODE_RUNTIME_ACCESS`）を除く `src/` で落とす。他通貨の記号を手で書くことは散文 —— セレクタが名指すのは基準通貨の `$` だけ）
 - ❌ Moment / Luxon / Day.js 等、**独自 DateTime ラッパ型**を持つ日付ライブラリを採用すること(型境界を汚染する。標準 `Date` を境界型に保つ。[0020](0020-adopted-architecture.ja.md) 型漏洩禁止 / §2)（強制: 持たない —— 採らない決定。独自 DateTime 型のライブラリは依存に無く、足す変更は `package.json` の依存追加として diff に現れる）
 - ❌ `date-fns` の関数を feature / component から**直接 import して散らす**こと(横断利用は `model` の薄いラッパ越し。vendor 直参照を 1 箇所に閉じ込め差替点を保つ。§2 / [0010](0010-standards-and-non-lockin.ja.md))（強制: 散文 —— **一部寄せられる**。`components` からの `date-fns` の import は `no-restricted-imports` で落とせるが規則は無い。feature 内の単発ヘルパは直参照を許すので、feature からの import が「散らし」かは参照の広がりの判断で決まる）
 - ❌ `date-fns` を [0004](0004-library-management.ja.md) フロー(exact pin + `pnpm audit`)を通さず追加すること（強制: Dependency Scan の audit gate job が既知の脆弱性を持つバージョンを落とす。exact pin は散文 —— **寄せられる**（`package.json` のバージョン指定に範囲指定子 `^` / `~` が含まれることを検出できる。規則は無い））

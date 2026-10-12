@@ -19,6 +19,7 @@ import { PurchaseAmountSummary } from "../facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "../facade/lines/lines";
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 import { PurchaseReceiptCard } from "../facade/receipt/receipt";
+import { PurchaseAppliedCoupon } from "./ui/applied-coupon/applied-coupon";
 import { PurchaseTransitions } from "./ui/transitions/transitions";
 
 /** `PurchaseDetailView` の props。 */
@@ -72,7 +73,15 @@ export const PurchaseDetailView = withScreenSpan(
             purchase={purchase}
           />
           <div className="rounded-lg border p-4">
-            <PurchaseAmountSummary purchase={purchase} reference={reference} />
+            <PurchaseAmountSummary
+              discountDetail={
+                purchase.appliedCoupon === null ? undefined : (
+                  <PurchaseAppliedCoupon coupon={purchase.appliedCoupon} />
+                )
+              }
+              purchase={purchase}
+              reference={reference}
+            />
           </div>
         </div>
 

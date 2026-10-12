@@ -158,11 +158,82 @@ function alignProductRanking(response: unknown): unknown {
   };
 }
 
+/** 適用したクーポンの識別子。購入をまたいで同じクーポンを指してよいので 1 つで足りる。 */
+const APPLIED_COUPON_ID = "0195f0c2-0000-7000-8000-0000000000c1";
+
+/**
+ * 購入に適用したクーポンと、それによる値引き額の組。
+ *
+ * @remarks
+ * 契約は「値引きが立っていること」と「クーポンが入っていること」が常に一致し、値引きは小計を
+ * 超えないと言っています。生成器は 2 つを別々に引くため、組をこの表から購入ごとに 1 つ選びます。
+ *
+ * 小計は $10 以上で生成されます（`orval.config.ts`）。定額と上限付きの定率は、その下限でも
+ * 成り立つ額を表に持ち、上限の無い定率だけ小計から求めます。
+ */
+const COUPON_PATTERNS: readonly {
+  readonly discount: Record<string, unknown> | null;
+  readonly scopeKind: "all" | "category";
+  readonly discountOf: (subtotal: number) => number;
+}[] = [
+  { discount: null, scopeKind: "all", discountOf: () => 0 },
+  {
+    discount: { kind: "flat", value: "5.00", maxAmount: null },
+    scopeKind: "all",
+    discountOf: () => 500,
+  },
+  // $10 以上の 10% は必ず上限の $1.00 に届く。
+  {
+    discount: { kind: "rate", value: "0.10", maxAmount: 100 },
+    scopeKind: "category",
+    discountOf: () => 100,
+  },
+  {
+    discount: { kind: "rate", value: "0.15", maxAmount: null },
+    scopeKind: "all",
+    discountOf: (subtotal) => Math.floor((subtotal * 15) / 100),
+  },
+];
+
+/** 購入 1 件の値引き額と適用したクーポンを、噛み合う組へ揃える。 */
+function alignCoupon(
+  record: Record<string, unknown>,
+  draw: DrawFromEndpoint,
+): Record<string, unknown> {
+  const pattern = pick(COUPON_PATTERNS, record["code"]);
+  const subtotal = record["subtotalAmount"];
+
+  if (typeof subtotal !== "number") {
+    throw new TypeError("購入の応答が小計を持ちません");
+  }
+
+  if (pattern.discount === null) {
+    return { discountAmount: 0, appliedCoupon: null };
+  }
+
+  const targetId =
+    pattern.scopeKind === "category"
+      ? pick(
+          entriesOf(draw("getGetProductCategoriesResponseMock", CATEGORIES_PATH)),
+          record["code"],
+        ).id
+      : null;
+
+  return {
+    discountAmount: pattern.discountOf(subtotal),
+    appliedCoupon: {
+      id: APPLIED_COUPON_ID,
+      discount: pattern.discount,
+      scope: { kind: pattern.scopeKind, targetId },
+    },
+  };
+}
+
 /**
  * 購入 1 件のステータスと、明細が名乗る商品名を揃える。
  *
  * @remarks
- * 明細を持つのは購入詳細だけで、一覧の行や遷移の応答は持ちません。持っている応答にだけ触れます。
+ * 明細と値引きを持たない応答もあります（一覧の行や遷移の応答）。持っている応答にだけ触れます。
  */
 function alignPurchase(purchase: unknown, draw: DrawFromEndpoint): Record<string, unknown> {
   const record = recordOf(purchase, "購入");
@@ -188,6 +259,7 @@ function alignPurchase(purchase: unknown, draw: DrawFromEndpoint): Record<string
   return {
     ...record,
     ...(named === undefined ? {} : { details: named }),
+    ...("discountAmount" in record ? alignCoupon(record, draw) : {}),
     status: pick(statuses, idOf(record["status"])),
   };
 }

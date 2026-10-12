@@ -8,7 +8,7 @@ import { CartHeaderAction } from "@/features/cart/ui/header-action/header-action
 import { CartPanel } from "@/features/cart/ui/panel/panel";
 import { useCartStore } from "@/stores/cart-store";
 
-import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
+import { DISCOUNTED_PURCHASE, PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutCompleteView } from "./view";
 
 const NAV_ITEMS = [
@@ -79,5 +79,11 @@ export const Mobile: Story = {
 /** 参考換算額を引けなかった状態。円で見る操作が消える。 */
 export const WithoutReference: Story = {
   args: { purchase: PURCHASE, reference: null },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** クーポンで値引きした購入。値引きの行は金額だけで、クーポンの中身は添えない。 */
+export const WithDiscount: Story = {
+  args: { purchase: DISCOUNTED_PURCHASE, reference: TOTAL_REFERENCE },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };

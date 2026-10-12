@@ -16,7 +16,7 @@
 
 - 他 feature の内部への依存（商品一覧の URL は `products` の `facade/` から取る）
 - 購入を作ること（`checkout` の領分）
-- 金額の計算（小計・税・送料・合計はバックエンドが決めた値）
+- 金額の計算（小計・クーポン値引き・税・送料・合計はバックエンドが決めた値）
 
 ## Route と契約
 
@@ -52,6 +52,7 @@
 | 詳細 | success | `Page/Purchases/Detail/Default` |
 | | 支払い済み / 配達済み | `Page/Purchases/Detail/{Paid,Delivered}` |
 | | 参考換算額が読めなかった | `Page/Purchases/Detail/WithoutReference` |
+| | クーポンの値引き（上限付きの定率 / 定額 / 上限なしの定率） | `Page/Purchases/Detail/{WithDiscount,WithFlatDiscount,WithUncappedRateDiscount}` |
 | | loading | `Features/Purchases/Detail/Skeleton/Default` |
 
 **空の状態を 2 つに分けています。**「まだ買っていない」と「その期間に無い」は利用者が次に取る
@@ -69,7 +70,7 @@
 | `facade/paths/` | この feature が持つ 2 つのルート。マイページ（`account`）と購入完了（`checkout`）の導線が参照する |
 | `facade/receipt/` | 購入の控え（注文番号・注文日時・状況）。**購入完了も同じ形で出す** |
 | `facade/lines/` | 結合済みの明細。**購入完了も同じ形で出す** |
-| `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す** |
+| `facade/amount-summary/` | 請求額の内訳と円の参考換算額。**購入完了も同じ形で出す**。値引きの行の下に置くものは画面が渡す |
 | `facade/status-emphasis/` | ステータスの名称から badge の見た目を選ぶ。3 つに束ねる |
 | `purchases.fixture.ts` | story とテストが使う固定の購入 |
 | `facade/purchase.fixture.ts` | `facade/` の 3 つと、それを借りる `checkout` が読む固定値 |
@@ -100,6 +101,7 @@
 | `detail/ui/transitions/` | その購入にいまできる操作と、成立の知らせ |
 | `detail/ui/transitions/presentation.ts` | 遷移ごとの言葉と見た目。開く操作と確定する操作で分ける |
 | `detail/ui/transition-button/` | 状態を 1 つ進める操作。確認を開き、通らなかったことをその中で伝える |
+| `detail/ui/applied-coupon/` | 値引きの行の下で、それを生んだクーポンを示す 1 行 |
 | `detail/ui/skeleton/` | 詳細のローディング表示 |
 
 ## 依存カーネル
@@ -107,7 +109,7 @@
 | カーネル | 用途 |
 | --- | --- |
 | `adapters` | 履歴・詳細・参考換算額の取得と、状態を進める送信 |
-| `model` | 表示モデル（`Purchase` / ステータス）、期間の型、`ActionState` |
+| `model` | 表示モデル（`Purchase` / ステータス / 適用クーポン）、クーポンの表示関数、期間の型、`ActionState` |
 | `components` | 面を組み立てるコンポーネント（カード・バッジ・入力欄・続きの読み込み・印刷の操作） |
 | `capabilities` | 末尾到達の検知（`use-on-visible`） |
 | `errors` | 遷移が通らなかったときの分類を文言へマッピングする |
@@ -132,6 +134,7 @@
 - [ ] いまできない遷移の操作が現れない
 - [ ] 遷移が通らなかったことが、開いたままの確認の中に出る
 - [ ] 知らないステータスの業務キーがどの区分にも寄らず、一覧が読める
+- [ ] 内訳が 小計 → クーポン値引き → 税 → 送料 の順に並び、値引きの無い購入には値引きの行が無い
 
 ## 設計
 

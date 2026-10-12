@@ -10,7 +10,7 @@ The screen for checking one purchase's receipt, the breakdown of the charged amo
 | --- | --- |
 | Breadcrumbs | Purchase history → order number. The print operation at the right end of the same row |
 | Receipt | Order number, order date and time, status, and what can be done with the purchase now |
-| Breakdown | Subtotal, tax, shipping and total, and the yen reference converted amount toggle |
+| Breakdown | Subtotal, coupon discount, tax, shipping and total, and the yen reference converted amount toggle. Under the discount, the coupon that produced it |
 | Line items | Product name, unit price at the time of purchase, quantity |
 | Links | Back to purchase history / Continue shopping |
 
@@ -80,13 +80,28 @@ be taken as "that is the amount").
 
 The rate and reference date used for conversion are added. An estimate is no use as a reference unless it says which day's rate it is based on.
 
+### The coupon discount
+
+**The breakdown reads subtotal → coupon discount → tax → shipping → total.** The discount is taken off what was bought,
+so it sits right after the subtotal it applies to.
+
+**The discount row appears only when a discount was applied.** A purchase without a coupon has no row, rather than a row
+of zero: a zero discount would read as "a coupon was used and gave nothing."
+
+**The discount is shown as an amount taken off**, with a minus sign, so it is not read as one more item added to the total.
+
+**Right under the discount, one small line says which coupon produced it** — its face value, its cap when it has one, and
+what it applied to (all products / a specific category / a specific product). This screen is where the user checks a
+charge afterwards, and an amount alone does not say what it was taken off for. What it applied to is shown by kind only:
+the name of the category or product is not part of what the contract returns.
+
 ## What Goes to Paper
 
 This purchase's receipt is something to keep at hand, so the print operation is placed at the right end of the same row as the breadcrumbs.
 
 | Printed | Not printed |
 | --- | --- |
-| Receipt, breakdown, line items | Breadcrumbs, the next links, the print operation itself, the yen toggle, the operations on this purchase |
+| Receipt, breakdown (including the coupon line), line items | Breadcrumbs, the next links, the print operation itself, the yen toggle, the operations on this purchase |
 
 Operations that cannot be pressed only take up space on the page, so they are dropped.
 
