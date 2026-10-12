@@ -28,4 +28,4 @@ export const DISCONTINUE_TARGET_LOST_MESSAGE =
 
 /** 進行中の購入が残っていて拒まれたときの文言。 */
 export const DISCONTINUE_CONFLICT_MESSAGE =
-  "進行中の購入が残っているため廃番にできませんでした。最新の見積もりと残っている購入を表示しています。";
+  "進行中の購入が残っていたため廃番にできませんでした。最新の見積もりを表示しています。";

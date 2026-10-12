@@ -114,7 +114,7 @@ disappear, and the screen says so.
 
 | What happened | Handling |
 | --- | --- |
-| A purchase in progress appeared after the estimate (409) | A message only this screen can give. The screen is fetched again, so the current estimate and the remaining purchases appear |
+| A purchase in progress appeared after the estimate (409) | A message only this screen can give. The screen is fetched again, so the current estimate appears, with the purchases still in progress if any remain |
 | The backend named the conditions it refused (422) | Shown at those fields. A refusal naming no field this screen has gets the generic message |
 | The conditions do not read | Stopped before the confirmation opens |
 | The product, key or confirmation signal is missing | Asks the user to open the screen again |
