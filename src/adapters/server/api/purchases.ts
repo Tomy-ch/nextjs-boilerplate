@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { type ZodType, z } from "zod";
 
-import type { AppliedCoupon } from "@/model/coupon/coupon";
+import type { AppliedCoupon, CouponId } from "@/model/coupon/coupon";
 import { type ProductId, toProductId } from "@/model/product/product";
 import type {
   Purchase,
@@ -28,6 +28,7 @@ import {
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
 import { getUserScopedClient } from "../http/user-scoped-client";
+import { toCouponDiscount } from "./coupon-discount";
 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -233,13 +234,7 @@ function toAppliedCoupon({
   discount,
   scope,
 }: NonNullable<WirePurchaseDetail["appliedCoupon"]>): AppliedCoupon {
-  return {
-    discount:
-      discount.kind === "flat"
-        ? { kind: "flat", value: discount.value }
-        : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount },
-    scopeKind: scope.kind,
-  };
+  return { discount: toCouponDiscount(discount), scopeKind: scope.kind };
 }
 
 /**
@@ -302,13 +297,18 @@ export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchas
  * 在庫が要求に足りない場合は `conflict` として返ります。カートの再評価を通っていても、確定の
  * 瞬間に足りなくなる余地は残ります。
  *
+ * クーポンは 1 回の購入に 1 枚までです。使わないときは項目ごと送りません。使えないクーポン
+ * （失効・使用済み・非保有・値引きが 0）は `couponId` を名指した `validation` として返ります。
+ *
  * @param lines - 購入する商品と数量。1 件以上必要で、同じ商品を 2 行に分けられない
  * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ * @param couponId - 適用するクーポン。使わなければ null
  * @returns 成立した購入の購入コード
  */
 export async function createPurchase(
   lines: readonly PurchaseOrderLine[],
   idempotencyKey: string,
+  couponId: CouponId | null,
 ): Promise<string> {
   const wire = await getUserScopedClient().request({
     path: PURCHASES_PATH,
@@ -316,6 +316,7 @@ export async function createPurchase(
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
     body: {
       details: lines.map(({ productId, quantity }) => ({ productId, quantity })),
+      ...(couponId === null ? {} : { couponId }),
     } satisfies PurchasesPostRequest,
     idempotent: true,
     schema: PostPurchasesResponse,

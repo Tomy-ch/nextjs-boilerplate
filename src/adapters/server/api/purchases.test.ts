@@ -12,6 +12,7 @@ const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
+import { toCouponId } from "@/model/coupon/coupon";
 import { toProductId } from "@/model/product/product";
 import {
   cancelMyPurchase,
@@ -37,6 +38,8 @@ const wireItem = {
 };
 
 const wirePage = { items: [wireItem], nextCursor: "next", hasNext: true };
+
+const COUPON_ID = "0193a1c0-0001-7000-8000-000000000002";
 
 const PURCHASES_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/purchases`;
 const PURCHASE_URL = `${PURCHASES_URL}/:purchaseCode`;
@@ -335,13 +338,13 @@ describe("createPurchase", () => {
   it("成立した購入の購入コードを返す", async () => {
     serveWrite("post", PURCHASES_URL, wireCreated);
 
-    expect(await createPurchase(orderLines, "idempotency-key")).toBe(wireCreated.code);
+    expect(await createPurchase(orderLines, "idempotency-key", null)).toBe(wireCreated.code);
   });
 
   it("冪等キーをヘッダへ載せる", async () => {
     const requests = serveWrite("post", PURCHASES_URL, wireCreated);
 
-    await createPurchase(orderLines, "idempotency-key");
+    await createPurchase(orderLines, "idempotency-key", null);
 
     expect(requests[0]?.headers.get("Idempotency-Key")).toBe("idempotency-key");
   });
@@ -349,16 +352,27 @@ describe("createPurchase", () => {
   it("送るのは商品と数量だけで、金額を送らない", async () => {
     const requests = serveWrite("post", PURCHASES_URL, wireCreated);
 
-    await createPurchase(orderLines, "idempotency-key");
+    await createPurchase(orderLines, "idempotency-key", null);
 
     await expect(requests[0]?.json()).resolves.toEqual({ details: orderLines });
+  });
+
+  it("クーポンを指定すると本文に載せる", async () => {
+    const requests = serveWrite("post", PURCHASES_URL, wireCreated);
+
+    await createPurchase(orderLines, "idempotency-key", toCouponId(COUPON_ID));
+
+    await expect(requests[0]?.json()).resolves.toEqual({
+      details: orderLines,
+      couponId: COUPON_ID,
+    });
   });
 
   // ----- 異常系 -----
   it("契約に無い形の応答を内層へ渡さない", async () => {
     serveWrite("post", PURCHASES_URL, { ...wireCreated, userId: "not-a-uuid" });
 
-    expect(await kindOf(() => createPurchase(orderLines, "idempotency-key"))).toBe(
+    expect(await kindOf(() => createPurchase(orderLines, "idempotency-key", null))).toBe(
       ErrorKind.INTERNAL,
     );
   });

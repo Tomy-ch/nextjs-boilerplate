@@ -111,7 +111,7 @@ export async function placeOrderAction(
   let purchaseCode: string;
 
   try {
-    purchaseCode = await createPurchase(lines, idempotencyKey.data);
+    purchaseCode = await createPurchase(lines, idempotencyKey.data, null);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: CONFLICT_MESSAGE });

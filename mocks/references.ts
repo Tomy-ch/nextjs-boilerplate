@@ -229,6 +229,65 @@ function alignCoupon(
   };
 }
 
+/** カートの口。候補の値引き額は、このカートの小計に対して決まる。 */
+const CART_PATH = "/v1/carts/me";
+
+/**
+ * いまのカートに使えるクーポンを、値引きが立つ組だけへ揃える。
+ *
+ * @remarks
+ * 契約はこの一覧に「使用済み・失効済みと、値引きが 0 になるクーポンは並ばない」と言っています。
+ * 生成器は値引き額を額面と別に引くため、購入と同じ組の表から値引きの立つ組だけを使い、値引き額は
+ * 同じ seed のカートの小計から求めます。
+ *
+ * 並びの位置で組を選び、**組の数を超える行は落とします**。同じ額面の候補が並ぶと、比べて選ぶ画面に
+ * なりません。
+ */
+function alignCartCoupons(response: unknown, draw: DrawFromEndpoint): unknown {
+  const record = recordOf(response, "使えるクーポン");
+  const subtotal = recordOf(draw("getGetCartsMeResponseMock", CART_PATH), "カート")[
+    "subtotalAmount"
+  ];
+
+  if (typeof subtotal !== "number") {
+    throw new TypeError("カートの応答が小計を持ちません");
+  }
+
+  const patterns = COUPON_PATTERNS.filter((pattern) => pattern.discount !== null);
+  const categories = entriesOf(draw("getGetProductCategoriesResponseMock", CATEGORIES_PATH));
+
+  return {
+    ...record,
+    coupons: arrayOf(record, "coupons", "使えるクーポン")
+      .slice(0, patterns.length)
+      .map((entry, index) => {
+        const pattern = patterns[index];
+        const candidate = recordOf(entry, "使えるクーポンの行");
+        const coupon = recordOf(candidate["coupon"], "クーポン");
+
+        if (pattern === undefined) {
+          throw new Error("値引きの立つ組がありません");
+        }
+
+        const targetId =
+          pattern.scopeKind === "category" ? pick(categories, coupon["id"]).id : null;
+
+        return {
+          ...candidate,
+          coupon: {
+            ...coupon,
+            discount: pattern.discount,
+            scope: { kind: pattern.scopeKind, targetId },
+            usedAt: null,
+            usableFrom: null,
+            minPurchaseAmount: null,
+          },
+          discountAmount: pattern.discountOf(subtotal),
+        };
+      }),
+  };
+}
+
 /**
  * 購入 1 件のステータスと、明細が名乗る商品名を揃える。
  *
@@ -325,6 +384,7 @@ export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsRankingAmountResponseMock", alignProductRanking],
   ["getGetPurchasesResponseMock", alignPurchaseList],
   ["getGetPurchasesDetailResponseMock", alignPurchase],
+  ["getGetCartsMeCouponsResponseMock", alignCartCoupons],
   ["getPatchPurchasesCancelResponseMock", alignPurchase],
   ["getPatchPurchasesPayResponseMock", alignPurchase],
   ["getPatchPurchasesShipResponseMock", alignPurchase],

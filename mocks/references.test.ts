@@ -37,6 +37,10 @@ const draw: DrawFromEndpoint = (name) => {
     return PURCHASE_STATUSES;
   }
 
+  if (name === "getGetCartsMeResponseMock") {
+    return { items: [], subtotalAmount: 1_000 };
+  }
+
   throw new Error(`知らない口です: ${name}`);
 };
 
@@ -70,6 +74,37 @@ function patchOf(name: string) {
 }
 
 const CATEGORY_NAMES = CATEGORIES.map((category) => category.name);
+
+/** 契約から生成した候補 1 件のうち、揃える項目だけを持つ形。 */
+function candidate(id: string) {
+  return {
+    coupon: {
+      id,
+      discount: { kind: "rate", value: "生成された率", maxAmount: 1_234_567 },
+      scope: { kind: "product", targetId: "生成された商品の識別子" },
+      usedAt: "2025-01-01T00:00:00Z",
+      usableFrom: "2099-01-01T00:00:00Z",
+      minPurchaseAmount: 1_234_567,
+    },
+    discountAmount: 1_234_567_890_123_456,
+  };
+}
+
+const patchedCartCoupons = patchOf("getGetCartsMeCouponsResponseMock")(
+  { coupons: Array.from({ length: 10 }, (_, index) => candidate(`coupon-${index}`)) },
+  draw,
+) as {
+  coupons: readonly {
+    coupon: {
+      discount: unknown;
+      scope: { kind: string; targetId: string | null };
+      usedAt: unknown;
+      usableFrom: unknown;
+      minPurchaseAmount: unknown;
+    };
+    discountAmount: number;
+  }[];
+};
 
 describe("REFERENCE_PATCHES", () => {
   // ----- 正常系 -----
@@ -373,5 +408,34 @@ describe("REFERENCE_PATCHES", () => {
     expect(() => patchOf("getGetDashboardSummaryResponseMock")({}, draw)).toThrow(
       "配列を持ちません",
     );
+  });
+
+  it("カートに使えるクーポンを、値引きの立つ組だけで、額面の重ならない候補として並べる", () => {
+    // 小計 $10.00 に対して、定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+    const { coupons } = patchedCartCoupons;
+
+    expect(coupons.map((entry) => entry.discountAmount)).toEqual([500, 100, 150]);
+    expect(new Set(coupons.map((entry) => JSON.stringify(entry.coupon.discount))).size).toBe(
+      coupons.length,
+    );
+  });
+
+  it("カートに使えるクーポンを、いま使える未使用のクーポンにする", () => {
+    for (const { coupon } of patchedCartCoupons.coupons) {
+      expect(coupon.usedAt).toBeNull();
+      expect(coupon.usableFrom).toBeNull();
+      expect(coupon.minPurchaseAmount).toBeNull();
+    }
+  });
+
+  it("カートに使えるクーポンのうち範囲を分類で絞るものは、分類マスタに在る分類を指す", () => {
+    const categoryScopes = patchedCartCoupons.coupons
+      .map((entry) => entry.coupon.scope)
+      .filter((scope) => scope.kind === "category");
+
+    expect(categoryScopes.length).toBeGreaterThan(0);
+    for (const scope of categoryScopes) {
+      expect(CATEGORIES.map((category) => category.id)).toContain(scope.targetId);
+    }
   });
 });
