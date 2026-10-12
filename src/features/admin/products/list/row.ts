@@ -15,8 +15,8 @@ import { toStatusTone } from "./status-tone";
  * 廃番の商品の状態として出す名前。
  *
  * @remarks
- * マスタの `廃盤`(7) とは別物です。あちらは admin が手で付けられる表示上のラベルで、こちらは
- * 廃番のジャーニーが立てた事実を指します。同じ欄に並ぶため、綴りが重ならないようにしてあります。
+ * マスタの `廃盤` と同じ欄に並ぶため、綴りが重ならないようにしてあります。両者が別物である点は
+ * `src/features/admin/README.md#points-to-watch-against-the-contract`。
  */
 const DISCONTINUED_STATUS_NAME = "廃番";
 
@@ -48,6 +48,8 @@ export type AdminProductRow = {
   readonly statusName: string;
   /** 状態に対応するバッジの見た目。 */
   readonly statusTone: BadgeVariant;
+  /** 廃番か。廃番の行には廃番にする操作を出さない。 */
+  readonly discontinued: boolean;
 };
 
 /**
@@ -65,9 +67,9 @@ export type AdminProductRow = {
  * 中で取っているため通常は起こりませんが、起きたときに色を取り違えるより、決めていないことを
  * そのまま出すほうが安全です。
  *
- * **廃番の商品はマスタのラベルを出しません。**廃番にしてもマスタの状態は書き換わらないため、
- * ラベルをそのまま出すと、買えない商品が「在庫あり」として並びます。状態の欄が答えるのは
- * 「いまこの商品をどう扱うか」で、廃番はその答えとして他のどのラベルより先に立ちます。
+ * **廃番の商品はマスタのラベルを出しません。**状態の欄が答えるのは「いまこの商品をどう扱うか」で、
+ * 廃番はその答えとして他のどのラベルより先に立ちます。廃番にしてもマスタの状態が書き換わらない
+ * 点は `src/features/admin/README.md#points-to-watch-against-the-contract`。
  *
  * @param products - 表に並べる商品
  * @param statuses - 状態のマスタ
@@ -92,6 +94,7 @@ export function toAdminProductRows(
       statusTone: discontinued
         ? DISCONTINUED_STATUS_TONE
         : toStatusTone(codeById.get(product.status.id)),
+      discontinued,
     };
   });
 }

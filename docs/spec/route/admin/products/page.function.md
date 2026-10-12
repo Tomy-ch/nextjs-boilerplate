@@ -4,7 +4,7 @@
 >
 > The promises on authorization and the layout shell are held by [`../layout.function.md`](../layout.function.md).
 
-A list for finding and checking products, and moving on to creation, editing, or restocking.
+A list for finding and checking products, and moving on to creation, editing, restocking, or discontinuation.
 
 ## Actor and Ownership
 
@@ -39,11 +39,16 @@ give the same result, and holding them in client state makes none of them work.
 | Keyword | Partial match on product name and product description | — |
 | Category | A code held by the category master | ○ |
 | Status | A code held by the status master | ○ |
+| Discontinued | Only discontinued products, or only products not discontinued | — |
 
 **Category and status allow multiple selections.** They are put in as the contract accepts them, as a sequence. The admin list is
 where people narrow down "which to fix", and uses such as viewing statuses with no settled handling together (out of stock alongside
 awaiting arrival, for example) cannot be built with single selection. The table's columns and the chips show which conditions are
 filtering, so mixing them does not break reading the rows.
+
+**Discontinuation is a single choice between two values, and leaving it unchosen is not written to the URL.** The two are
+mutually exclusive, so selecting both cannot mean anything. The key and its two values are the contract's own; an unspecified
+condition puts nothing in the URL, so the unfiltered list has a single spelling.
 
 **Multiple values are put in by repeating the same key.** Joining them with a delimiter makes different conditions produce the same
 URL as soon as a value contains the delimiter.
@@ -142,6 +147,11 @@ settled, irreversible handling, and carries a different weight from labels an ad
 time and is settled with the server's time, so it is never a future time. Reading it the same way as the publication date and time
 (which can represent a schedule) would compare a value that needs no comparison.
 
+**The list can be narrowed by discontinuation.** The condition is the contract's own, so the backend decides which products are
+discontinued; the screen does not filter the rows it received. It narrows the population this screen already lists (including
+unpublished products) rather than switching it — a discontinued product is unpublished, so over published products alone the
+condition would always come back empty.
+
 **The status a product holds is a UUID; the code exists only in the master.** Matching is done once within the same request. Display
 names are not used for matching — a name is a value for display and, unlike a code, gets rewritten.
 
@@ -151,7 +161,11 @@ names are not used for matching — a name is a value for display and, unlike a 
 | --- | --- |
 | Row | Editing that product |
 | Stock number | Restocking that product |
-| Row actions | Choose edit or restock by name |
+| Row actions | Choose edit, restock or discontinue by name |
+
+**Discontinuation is reached only from the row actions, and is not offered on a discontinued row.** It is irreversible, so it
+is not placed bare on the row surface. A discontinued product can no longer be discontinued, and an action that changes nothing
+is not offered. Moving to the discontinue screen changes nothing by itself; the screen asks for confirmation before running it.
 
 **Keep both the press-the-surface link and the choose-by-name link.** Pressing the surface is fast, but what happens where is unknown
 until pressed. A menu listing named items becomes the place where that answer can be read before pressing.
@@ -172,3 +186,4 @@ input fields into the loading UI each time the conditions change, and the footho
 | Create | [`new/page.function.md`](new/page.function.md) / [`screen`](new/page.screen.md) |
 | Edit | [`[id]/edit/page.function.md`](<[id]/edit/page.function.md>) / [`screen`](<[id]/edit/page.screen.md>) |
 | Restock | [`[id]/stock/page.function.md`](<[id]/stock/page.function.md>) / [`screen`](<[id]/stock/page.screen.md>) |
+| Discontinue | [`[id]/discontinue/page.function.md`](<[id]/discontinue/page.function.md>) / [`screen`](<[id]/discontinue/page.screen.md>) |

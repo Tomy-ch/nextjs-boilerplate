@@ -2,7 +2,13 @@ import { z } from "zod";
 
 import { type RawSearchParams, repeatedValues, singleValue } from "@/model/search-params";
 
-import { type AdminProductListLocation, CURSOR_KEY, FILTER_KEY, TRAIL_KEY } from "./query";
+import {
+  type AdminProductListLocation,
+  CURSOR_KEY,
+  DISCONTINUED_FILTER,
+  FILTER_KEY,
+  TRAIL_KEY,
+} from "./query";
 
 /**
  * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある。**
@@ -36,14 +42,39 @@ const codesSchema = repeatedValues(
 const cursorsSchema = repeatedValues(z.array(z.string())).catch([]);
 
 /**
+ * 廃番で絞り込む条件。
+ *
+ * @remarks
+ * 読めた綴りだけを条件として持ちます。読めない綴りは {@link readDiscontinuedSpelling} が取り出し、
+ * 取得の口の検証へ回します。
+ */
+const discontinuedSchema = singleValue(
+  z.enum([DISCONTINUED_FILTER.ONLY, DISCONTINUED_FILTER.EXCLUDED]).nullable(),
+).catch(null);
+
+/**
+ * 廃番の条件として届いた綴りを、読めるかどうかに関わらず取り出す。
+ *
+ * @remarks
+ * **読めない綴りを未指定へ倒しません。** 取得の口の検証へそのまま渡し、写せなかった条件として
+ * 一覧の代わりに伝えます。倒すと、絞り込んだつもりの人に絞り込んでいない一覧が出ます。
+ *
+ * @param params - 生の searchParams
+ * @returns 届いた綴り。届いていなければ null
+ */
+export function readDiscontinuedSpelling(params: RawSearchParams): string | null {
+  const spelling = textSchema.parse(params[FILTER_KEY.DISCONTINUED]);
+
+  return spelling === "" ? null : spelling;
+}
+
+/**
  * 素の `searchParams` を、いま見ている場所として読む。
  *
  * @remarks
  * **URL は利用者が直接編集できます。** 起点が消えているのに通ってきた道だけが残った URL も届き得る
  * ため、先頭ページでは道を捨てます。捨てないと、先頭ページで「前へ」が押せる状態になります。
  *
- * 読み方はスキーマが持ちます（`docs/rules.md#url` の
- * "Validate `searchParams` with zod and state the URL serialisation format and default values explicitly"）。
  * 1 つしか受け取らない条件が繰り返されていたら未指定として扱い、複数を選べる条件だけが並びのまま残ります。
  *
  * @param params - 生の searchParams
@@ -56,6 +87,7 @@ export function toAdminProductListLocation(params: RawSearchParams): AdminProduc
     keyword: textSchema.parse(params[FILTER_KEY.KEYWORD]),
     categoryCodes: codesSchema.parse(params[FILTER_KEY.CATEGORY]),
     statusCodes: codesSchema.parse(params[FILTER_KEY.STATUS]),
+    discontinued: discontinuedSchema.parse(params[FILTER_KEY.DISCONTINUED]),
     cursor: cursor === "" ? null : cursor,
     trail: cursor === "" ? [] : cursorsSchema.parse(params[TRAIL_KEY]),
   };

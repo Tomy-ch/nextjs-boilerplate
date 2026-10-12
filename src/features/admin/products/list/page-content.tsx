@@ -11,7 +11,7 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
 import { CURSOR_KEY, FILTER_KEY, FILTER_KEY_LABEL } from "./query";
-import { toAdminProductListLocation } from "./read-location";
+import { readDiscontinuedSpelling, toAdminProductListLocation } from "./read-location";
 import { AdminProductListResults } from "./results";
 import { AdminProductListSkeleton } from "./ui/skeleton/skeleton";
 import { AdminProductListView } from "./view";
@@ -44,12 +44,14 @@ export const AdminProductListPageContent = withScreenSpan(
   "features/admin/products/list/page-content",
   async ({ searchParams }: AdminProductListPageContentProps) => {
     const location = toAdminProductListLocation(searchParams);
+    const discontinued = readDiscontinuedSpelling(searchParams);
     const parsed = parseProductQuery({
       ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
       ...(location.categoryCodes.length === 0
         ? {}
         : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
       ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
+      ...(discontinued === null ? {} : { [FILTER_KEY.DISCONTINUED]: discontinued }),
       ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
       first: String(ADMIN_PRODUCT_PAGE_SIZE),
     });
@@ -84,6 +86,7 @@ export const AdminProductListPageContent = withScreenSpan(
             location.keyword,
             location.categoryCodes,
             location.statusCodes,
+            location.discontinued,
             location.cursor,
           ])}
         >

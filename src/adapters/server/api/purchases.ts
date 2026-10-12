@@ -4,7 +4,7 @@ import { cache } from "react";
 import { type ZodType, z } from "zod";
 
 import type { AppliedCoupon } from "@/model/coupon/coupon";
-import { toProductId } from "@/model/product/product";
+import { type ProductId, toProductId } from "@/model/product/product";
 import type {
   Purchase,
   PurchaseDispatchGroup,
@@ -12,7 +12,7 @@ import type {
   PurchaseHistoryPage,
   PurchaseOrderLine,
 } from "@/model/purchase/purchase";
-import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
+import { IN_PROGRESS_PURCHASE_STATUSES, PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 import {
   GetPurchasesDetailResponse,
@@ -67,7 +67,7 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
  */
 export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
-/** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
+/** 購入履歴の取得条件。契約のクエリから、商品で絞る `productId` を除いたもの。 */
 export type PurchaseHistoryQuery = {
   /** 次ページの鍵。先頭ページなら省く。区間の下限ではない。 */
   readonly after?: string;
@@ -438,6 +438,38 @@ export const getShippedPurchases = cache(
     return toPurchaseHistoryPage(wire).items;
   },
 );
+
+/**
+ * 指定した商品を含む、進行中の購入を取る。
+ *
+ * @remarks
+ * **他の利用者の購入を母集団に含めます。** 商品の廃番を拒ませている購入を辿るための口で、
+ * 役割を持たない主体がこれを呼ぶと契約が 403 で返します。
+ *
+ * 状態は {@link IN_PROGRESS_PURCHASE_STATUSES} で絞ります。絞らずに読むと、並んだ購入と見積もりの
+ * 件数が別の母集団になります。
+ *
+ * @param productId - 含まれている商品
+ * @param first - 1 度に読む件数。ページ送りを持たないため、ここが見せられる上限になる
+ * @returns 進行中の購入の 1 ページ。続きがあれば `nextCursor` が入る
+ */
+export async function getInProgressPurchasesOfProduct(
+  productId: ProductId,
+  first: number,
+): Promise<PurchaseHistoryPage> {
+  const wire = await getUserScopedClient().request({
+    path: PURCHASES_PATH,
+    searchParams: {
+      first: String(first),
+      includeOtherUsers: "true",
+      productId,
+      statusCodes: IN_PROGRESS_PURCHASE_STATUSES.map(String),
+    },
+    schema: GetPurchasesResponse,
+  });
+
+  return toPurchaseHistoryPage(wire);
+}
 
 /**
  * 購入 1 件を配達済みにする。

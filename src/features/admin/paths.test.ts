@@ -5,6 +5,7 @@ import { toProductId } from "@/model/product/product";
 
 import {
   adminInquiryDetailPath,
+  adminProductDiscontinuePath,
   adminProductEditPath,
   adminProductStockPath,
   productDetailPath,
@@ -23,6 +24,19 @@ describe("adminProductStockPath", () => {
   // ----- 正常系 -----
   it("商品の在庫補充画面を指す", () => {
     expect(adminProductStockPath(ID)).toBe(`/admin/products/${ID}/stock`);
+  });
+});
+
+describe("adminProductDiscontinuePath", () => {
+  // ----- 正常系 -----
+  it("商品の廃番画面を指す", () => {
+    expect(adminProductDiscontinuePath(ID)).toBe(`/admin/products/${ID}/discontinue`);
+  });
+
+  it("id に URL で意味を持つ文字が含まれても壊れない", () => {
+    expect(adminProductDiscontinuePath(toProductId("a/b?c"))).toBe(
+      "/admin/products/a%2Fb%3Fc/discontinue",
+    );
   });
 });
 

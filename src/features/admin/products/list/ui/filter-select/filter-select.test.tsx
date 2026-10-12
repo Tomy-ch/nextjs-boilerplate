@@ -32,6 +32,7 @@ const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 function renderSelect(conditions: AdminProductListConditions = NO_CONDITIONS) {

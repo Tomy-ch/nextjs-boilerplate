@@ -4,14 +4,14 @@
 >
 > The layout shell's promises are held by [`../layout.screen.md`](../layout.screen.md).
 
-A screen for listing and comparing products, and moving from there to creation, editing, or restocking.
+A screen for listing and comparing products, and moving from there to creation, editing, restocking, or discontinuation.
 
 ## What It Shows
 
 | Region | Content |
 | --- | --- |
 | Heading | The screen's name and what can be done from here |
-| Search and filtering | Keyword input, category, status, the conditions currently in effect, and an action that clears all conditions |
+| Search and filtering | Keyword input, category, status, discontinuation, the conditions currently in effect, and an action that clears all conditions |
 | Link to creation | At the right end, outside the filters |
 | List | The product table, and the pagination below it |
 
@@ -47,6 +47,12 @@ across the whole row, so assistive technology sees only the product name as the 
 
 **The stock number and row actions are layered above the row's link.** This keeps two links from competing for the same spot.
 
+## Row Actions
+
+**Discontinuing comes last in the menu, set apart from editing and restocking by a divider.** It is the only irreversible one,
+and placing it next to the everyday actions invites pressing it by mistake. **On a discontinued row it does not appear at all**;
+editing and restocking remain.
+
 ## Status Colors
 
 **Color is only layered on the status name; color alone is never the distinction.** The badge shows the status name as is
@@ -66,7 +72,11 @@ is held by [`page.function.md`](page.function.md).
 | Condition | When it takes effect | Reason |
 | --- | --- | --- |
 | Keyword | On the submit action | Refetching on every keystroke swaps rows in the middle of reading |
-| Category / status | Each time one is toggled | The result of the choice appears on the same screen, so there is no reason to make the user wait to confirm. Seeing the count change with each choice reaches the goal faster than not knowing the result until the combination is complete |
+| Category / status / discontinuation | Each time one is toggled | The result of the choice appears on the same screen, so there is no reason to make the user wait to confirm. Seeing the count change with each choice reaches the goal faster than not knowing the result until the combination is complete |
+
+**Discontinuation offers two mutually exclusive choices, 「廃番のみ」 (discontinued only) and 「廃番を除く」 (excluding
+discontinued), and no "unspecified" choice.** Neither being chosen is the unfiltered state; it is returned to by removing the chip
+or clearing all conditions. Both choices stay shown, so which one is in effect can be read without opening anything.
 
 **Submitting while empty is possible only when a search term is currently in effect.** Clearing a search term in effect requires an
 empty submission, while submitting with nothing in effect does not change the result. Leaving an action that does nothing when
@@ -74,7 +84,7 @@ pressed makes it impossible to tell whether there was no response or the result 
 
 ### What Changes with Width
 
-**There are two sets of category and status inputs, switched by CSS bands.** On wide bands they are always shown above the table;
+**There are two sets of category, status and discontinuation inputs, switched by CSS bands.** On wide bands they are always shown above the table;
 on narrow bands they open in an overlay from a control at the bottom of the screen. Doing a position-changing switch with a
 JavaScript width check cannot be decided on the server, so the layout shifts before and after hydration
 ([0051](../../../../adr/0051-styling-system.md)).

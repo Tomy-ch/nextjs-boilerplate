@@ -1,5 +1,5 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
-import { getProduct } from "@/adapters/server/api/products";
+import { getProductIncludingUnpublished } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import type { ProductId } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
@@ -31,7 +31,7 @@ export const AdminProductEditPageContent = withScreenSpan(
   "features/admin/products/edit/page-content",
   async ({ id, maxUploadBytes, updateAction, uploadAction }: AdminProductEditPageContentProps) => {
     const [product, categories, statuses] = await Promise.all([
-      getProduct(id),
+      getProductIncludingUnpublished(id),
       getProductCategories(),
       getProductStatuses(),
     ]);

@@ -1,13 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  type AdminProductListConditions,
   type AdminProductListLocation,
+  DISCONTINUED_FILTER,
   toConditionHref,
   toNextPageHref,
   toPreviousPageHref,
 } from "./query";
 
-const NO_CONDITIONS = { keyword: "", categoryCodes: [], statusCodes: [] };
+const NO_CONDITIONS: AdminProductListConditions = {
+  keyword: "",
+  categoryCodes: [],
+  statusCodes: [],
+  discontinued: null,
+};
 
 function location(overrides: Partial<AdminProductListLocation> = {}): AdminProductListLocation {
   return { ...NO_CONDITIONS, cursor: null, trail: [], ...overrides };
@@ -27,6 +34,32 @@ describe("toConditionHref", () => {
 
   it("読み進めた位置を引き継がない", () => {
     expect(toConditionHref({ ...NO_CONDITIONS, categoryCodes: ["1"] })).not.toContain("after=");
+  });
+
+  it("廃番のみで絞り込んでいれば、契約の真偽値の綴りで載せる", () => {
+    expect(toConditionHref({ ...NO_CONDITIONS, discontinued: DISCONTINUED_FILTER.ONLY })).toBe(
+      "/admin/products?discontinued=true",
+    );
+  });
+
+  it("廃番を除いて絞り込んでいれば、偽の綴りで載せる", () => {
+    expect(toConditionHref({ ...NO_CONDITIONS, discontinued: DISCONTINUED_FILTER.EXCLUDED })).toBe(
+      "/admin/products?discontinued=false",
+    );
+  });
+
+  it("廃番で絞り込んでいなければ、そのキーを載せない", () => {
+    expect(toConditionHref({ ...NO_CONDITIONS, keyword: "鞄" })).not.toContain("discontinued");
+  });
+
+  it("廃番の条件を、他の絞り込みの後ろに並べる", () => {
+    expect(
+      toConditionHref({
+        ...NO_CONDITIONS,
+        statusCodes: ["2"],
+        discontinued: DISCONTINUED_FILTER.ONLY,
+      }),
+    ).toBe("/admin/products?statusCodes=2&discontinued=true");
   });
 });
 
@@ -51,6 +84,12 @@ describe("toNextPageHref", () => {
   it("効いている条件を引き継ぐ", () => {
     expect(toNextPageHref(location({ categoryCodes: ["1"] }), "c1")).toBe(
       "/admin/products?categoryCodes=1&after=c1",
+    );
+  });
+
+  it("廃番の条件も起点より前に引き継ぐ", () => {
+    expect(toNextPageHref(location({ discontinued: DISCONTINUED_FILTER.EXCLUDED }), "c1")).toBe(
+      "/admin/products?discontinued=false&after=c1",
     );
   });
 });

@@ -16,6 +16,7 @@ const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 function renderField(conditions: AdminProductListConditions = NO_CONDITIONS) {

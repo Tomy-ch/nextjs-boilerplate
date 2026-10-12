@@ -117,33 +117,21 @@ export type ProductCategory = ProductRef<ProductCategoryId> & {
  * 状態のマスタ 1 件。
  *
  * @remarks
- * 形は {@link ProductCategory} と同じですが、名前を分けています。どちらのマスタも番号で絞り込む
- * という契約の都合が揃っているだけで、公開・非公開といった状態の体系と商品の分類体系は別々に
- * 動きます。1 つの型にまとめると、片方の都合でもう片方の宣言が動きます。
+ * 形は {@link ProductCategory} と同じですが、名前を分けています。公開・非公開といった状態の
+ * 体系と商品の分類体系は別々に動きます。
  */
 export type ProductStatus = ProductRef<ProductStatusId> & {
   /** マスタ行を指す静的な番号。分類と同じく、絞り込みの条件として URL に載せられる。 */
   readonly code: number;
 };
 
-/**
- * 画面が扱う商品。
- *
- * @remarks
- * 契約の wire 型ではなく、表示のための型です。両者を分けるのは、契約の制約が表示の都合とは
- * 別の理由で動くためです。
- */
+/** 画面が扱う商品。 */
 export type Product = {
   readonly id: ProductId;
   readonly name: string;
   /** 商品説明。リッチテキストであり、表示側は必ず sanitizer を通す。 */
   readonly description: string | null;
-  /**
-   * 価格。USD の decimal 文字列のまま持つ。
-   *
-   * 数値へ変換しないのは、JSON number が IEEE754 double として復元され、サブセント精度を
-   * 失うためである。丸めの判断は表示の直前に行う。
-   */
+  /** 価格。USD の decimal 文字列のまま持ち、表示の直前まで数値へ変換しない。 */
   readonly price: string;
   readonly quantity: number;
   /**
@@ -225,9 +213,8 @@ export type ProductPage = CursorPage<Product>;
  * 一覧に並べる 1 件分の表示データ。
  *
  * @remarks
- * {@link Product} をそのまま並べないのは、一覧が増分取得で JSON を跨ぐためです。`Date` も
- * `undefined` も JSON では往復せず、跨いだ先で型どおりに扱うと実際には文字列が入っています。
- * 一覧に要るものだけを素の値で持つ形にして、往復しても壊れないことを型で示します。
+ * {@link Product} をそのまま並べないのは、一覧が増分取得で JSON を跨ぐためです。一覧に要る
+ * ものだけを、往復しても壊れない素の値で持ちます。
  *
  * 画像は URL まで解決した状態で持ちます。オブジェクトキーから URL を組むには配信元の設定が
  * 要り、設定を読めるのは `adapters` までだからです。
@@ -254,8 +241,7 @@ export type ProductListItem = {
  *
  * @remarks
  * {@link ProductListItem} と別の型にしているのは、ランキングの取得口が画像も分類も在庫も
- * 返さないためです。同じ型へ寄せると、一覧では必ずある値がランキングでは常に欠けている形に
- * なり、受け取る側が「この画面ではどれが入っているか」を毎回確かめることになります。
+ * 返さないためです。
  */
 export type ProductRankingEntry = {
   readonly productId: ProductId;
@@ -264,4 +250,44 @@ export type ProductRankingEntry = {
   readonly price: string;
   /** 集計期間内の販売数量。キャンセル済みの購入を除いた合算値。 */
   readonly soldQuantity: number;
+};
+
+/**
+ * 商品を廃番にしたときの影響の見積もり。
+ *
+ * @remarks
+ * **行を固定せずに読んだ値で、返った時点から古くなります。** 実行したときに何が起きたかは
+ * {@link ProductDiscontinueResult} が持ち、この値を結果として流用しません。
+ */
+export type ProductDiscontinueImpact = {
+  /** この商品の明細を持つカートの件数。所有者の決まっていないカートも含む。 */
+  readonly affectedCartCount: number;
+  /** 代替クーポンを受け取る利用者の数。所有者の決まっていないカートと退会済みは含まない。 */
+  readonly affectedUserCount: number;
+  /** この商品を含む進行中の購入の件数。1 件でもあれば廃番は拒まれる。 */
+  readonly inProgressPurchaseCount: number;
+};
+
+/** 廃番に添えて発行する代替クーポンの条件。 */
+export type ProductDiscontinueConditions = {
+  /** 値引き率。0 より大きく 1 以下を表す decimal 文字列で、数値へ変換しない。 */
+  readonly couponDiscountRate: string;
+  /** 発行日時から数えた有効日数。 */
+  readonly couponValidityDays: number;
+};
+
+/**
+ * 廃番を実行した結果。
+ *
+ * @remarks
+ * 送信の結果としてフォームの状態に載るため、日時は ISO 8601 文字列のまま持ちます。件数は
+ * いずれも「この実行が起こしたこと」で、既に廃番の商品へ再実行したときは 0 になります。
+ */
+export type ProductDiscontinueResult = {
+  /** 廃番が確定した日時。ISO 8601 文字列。 */
+  readonly discontinuedAt: string;
+  readonly affectedCartCount: number;
+  readonly affectedUserCount: number;
+  /** 発行した代替クーポンの枚数。 */
+  readonly issuedCouponCount: number;
 };

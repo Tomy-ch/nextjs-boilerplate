@@ -1,13 +1,46 @@
 import { describe, expect, it } from "vitest";
 
-import type { AdminProductListLocation } from "./query";
-import { toAdminProductListLocation } from "./read-location";
+import type { AdminProductListConditions, AdminProductListLocation } from "./query";
+import { readDiscontinuedSpelling, toAdminProductListLocation } from "./read-location";
 
-const NO_CONDITIONS = { keyword: "", categoryCodes: [], statusCodes: [] };
+const NO_CONDITIONS: AdminProductListConditions = {
+  keyword: "",
+  categoryCodes: [],
+  statusCodes: [],
+  discontinued: null,
+};
 
 function location(overrides: Partial<AdminProductListLocation> = {}): AdminProductListLocation {
   return { ...NO_CONDITIONS, cursor: null, trail: [], ...overrides };
 }
+
+describe("readDiscontinuedSpelling", () => {
+  // ----- 正常系 -----
+  it("読める綴りをそのまま取り出す", () => {
+    expect(readDiscontinuedSpelling({ discontinued: "true" })).toBe("true");
+  });
+
+  it("条件として読めない綴りも、未指定へ倒さずに取り出す", () => {
+    expect(readDiscontinuedSpelling({ discontinued: "yes" })).toBe("yes");
+  });
+
+  it("前後の空白を落として取り出す", () => {
+    expect(readDiscontinuedSpelling({ discontinued: " false " })).toBe("false");
+  });
+
+  it("載っていなければ null を返す", () => {
+    expect(readDiscontinuedSpelling({})).toBeNull();
+  });
+
+  it("空の値は届いていないものとして null を返す", () => {
+    expect(readDiscontinuedSpelling({ discontinued: "" })).toBeNull();
+  });
+
+  // ----- 異常系 -----
+  it("重ねて載っていれば、どちらも採らずに null を返す", () => {
+    expect(readDiscontinuedSpelling({ discontinued: ["true", "false"] })).toBeNull();
+  });
+});
 
 describe("toAdminProductListLocation", () => {
   // ----- 正常系 -----
@@ -34,6 +67,14 @@ describe("toAdminProductListLocation", () => {
     ).toEqual(
       location({ keyword: "イヤホン", categoryCodes: ["1"], statusCodes: ["2"], cursor: "c1" }),
     );
+  });
+
+  it("廃番のみの綴りを、廃番で絞り込む条件として読む", () => {
+    expect(toAdminProductListLocation({ discontinued: "true" }).discontinued).toBe("true");
+  });
+
+  it("廃番を除く綴りを、廃番で絞り込む条件として読む", () => {
+    expect(toAdminProductListLocation({ discontinued: "false" }).discontinued).toBe("false");
   });
 
   it("通ってきた道を並びとして読む", () => {
@@ -63,6 +104,10 @@ describe("toAdminProductListLocation", () => {
       "1",
       "2",
     ]);
+  });
+
+  it("廃番の条件として読めない綴りは、絞り込まない条件として読む", () => {
+    expect(toAdminProductListLocation({ discontinued: "yes" }).discontinued).toBeNull();
   });
 
   it("起点が無いのに道だけ残った URL では道を捨てる", () => {

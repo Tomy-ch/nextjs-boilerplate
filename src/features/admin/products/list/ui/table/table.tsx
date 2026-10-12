@@ -10,7 +10,11 @@ import {
 } from "@/components/patterns/table/static-data/static-data";
 import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
-import { adminProductEditPath, adminProductStockPath } from "../../../../paths";
+import {
+  adminProductDiscontinuePath,
+  adminProductEditPath,
+  adminProductStockPath,
+} from "../../../../paths";
 import type { AdminProductRow } from "../../row";
 
 /** `AdminProductTable` の props。 */
@@ -109,6 +113,17 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
           label: "在庫を補充する",
           href: adminProductStockPath(item.id),
         },
+        ...(item.discontinued
+          ? []
+          : [
+              { id: "discontinue-separator", kind: ROW_ACTION_KIND.SEPARATOR },
+              {
+                id: "discontinue",
+                kind: ROW_ACTION_KIND.LINK,
+                label: "廃番にする",
+                href: adminProductDiscontinuePath(item.id),
+              },
+            ]),
       ],
     }),
     width: undefined,
@@ -140,7 +155,7 @@ function rowKey(item: AdminProductRow): string {
  *
  * **在庫の数は補充への導線です。** link を行の重なりの上へ出すため、その cell だけ位置指定の
  * 基準を持たせます。DOM の順序が後ろにある位置指定要素が上に描かれるため、段階値を持ち出さずに
- * 押せる状態を作れます（`rules.md`「レイアウトと帯」の「z-index は Tailwind の段階値だけを使う」）。
+ * 押せる状態を作れます（`docs/rules.md#layout` の z-index の段階値の規則）。
  * 行操作の menu も同じ理由で上へ出します。
  *
  * 狭い段の列の取捨は {@link WIDE_ONLY} が持ちます。

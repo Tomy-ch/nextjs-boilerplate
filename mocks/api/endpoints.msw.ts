@@ -586,22 +586,19 @@ export const getPatchProductsDetailResponseMock = (
   ...overrideResponse,
 });
 
-export const getPostProductsDiscontinueResponseMock = (
-  overrideResponse: Partial<Extract<ProductDiscontinueResponse, object>> = {},
-): ProductDiscontinueResponse => ({
-  discontinuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-  affectedCartCount: faker.number.int(),
-  affectedUserCount: faker.number.int(),
-  issuedCouponCount: faker.number.int(),
-  ...overrideResponse,
+export const getPostProductsDiscontinueResponseMock = () => ({
+  discontinuedAt: "2026-09-05T00:00:00Z",
+  affectedCartCount: 12,
+  affectedUserCount: 9,
+  issuedCouponCount: 9,
 });
 
 export const getGetProductsDiscontinueImpactResponseMock = (
   overrideResponse: Partial<Extract<ProductDiscontinueImpactResponse, object>> = {},
 ): ProductDiscontinueImpactResponse => ({
-  affectedCartCount: faker.number.int(),
-  affectedUserCount: faker.number.int(),
-  inProgressPurchaseCount: faker.number.int(),
+  affectedCartCount: (() => faker.number.int({ min: 10, max: 99 }))(),
+  affectedUserCount: (() => faker.number.int({ min: 0, max: 9 }))(),
+  inProgressPurchaseCount: (() => faker.number.int({ min: 0, max: 2 }))(),
   ...overrideResponse,
 });
 

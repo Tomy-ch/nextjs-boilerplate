@@ -54,12 +54,22 @@ export const LongName: Story = {
   args: { items: [LONG_NAME_PRODUCT_ROW, ...PRODUCT_ROWS.slice(0, 2)] },
 };
 
-/** 行の操作を開いた状態。編集と在庫の補充へ進める。 */
+/** 行の操作を開いた状態。編集と在庫の補充、区切りの後ろに廃番へ進める。 */
 export const RowActionsOpen: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
     await userEvent.click(
       within(canvasElement).getByRole("button", { name: "ワイヤレスイヤホン の操作" }),
+    );
+  },
+};
+
+/** 廃番の行の操作を開いた状態。廃番にする操作は出ない。 */
+export const DiscontinuedRowActionsOpen: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await userEvent.click(
+      within(canvasElement).getByRole("button", { name: "AirPods Pro 第2世代 の操作" }),
     );
   },
 };

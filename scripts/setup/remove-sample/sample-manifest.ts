@@ -73,7 +73,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // とは別に置いてある。
   "mocks/references.ts",
   "mocks/references.test.ts",
-  // 題材の画面の一覧。全 24 画面と API の対応表で、中身は題材そのものである。
+  // 題材の画面の一覧。画面と API の対応表で、中身は題材そのものである。
   // 画面ごとの約束は `docs/spec/route/**` が持ち、契約は `openapi/api.gen.yaml` が持つので、
   // ここは索引であって正ではない。題材と一緒に消える。
   "docs/spec/screens.md",
@@ -92,6 +92,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "e2e/journeys/overlay.spec.ts",
   "e2e/journeys/focus.spec.ts",
   "e2e/journeys/not-found.spec.ts",
+  "e2e/journeys/discontinue.spec.ts",
   // 破棄の道具（使い終わったら不要）。
   "scripts/setup/remove-sample",
 ];

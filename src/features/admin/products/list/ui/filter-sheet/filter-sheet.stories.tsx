@@ -3,6 +3,7 @@ import { userEvent, within } from "storybook/test";
 
 import { ADMIN_PRODUCT_LIST_PATH } from "../../../../paths";
 import { CATEGORY_OPTIONS, NO_CONDITIONS, STATUS_OPTIONS } from "../../list.fixture";
+import { DISCONTINUED_FILTER } from "../../query";
 import { AdminProductFilterSheet } from "./filter-sheet";
 
 const meta = {
@@ -42,7 +43,14 @@ export const Filtered: Story = {
 
 /** 開いた状態。効いている条件が下書きの初期値として入っている。 */
 export const Open: Story = {
-  args: { conditions: { ...NO_CONDITIONS, categoryCodes: ["1"], statusCodes: ["2"] } },
+  args: {
+    conditions: {
+      ...NO_CONDITIONS,
+      categoryCodes: ["1"],
+      statusCodes: ["2"],
+      discontinued: DISCONTINUED_FILTER.EXCLUDED,
+    },
+  },
   play: async ({ canvasElement }) => {
     await userEvent.click(within(canvasElement).getByRole("button", { name: /絞り込み/ }));
     await within(document.body).findByRole("dialog");

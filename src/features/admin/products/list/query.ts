@@ -11,10 +11,12 @@ export const FILTER_KEY: Readonly<{
   KEYWORD: "keyword";
   CATEGORY: "categoryCodes";
   STATUS: "statusCodes";
+  DISCONTINUED: "discontinued";
 }> = {
   KEYWORD: "keyword",
   CATEGORY: "categoryCodes",
   STATUS: "statusCodes",
+  DISCONTINUED: "discontinued",
 };
 
 /** いま見ているページの起点を載せる URL のキー。契約のクエリ名と揃える。 */
@@ -36,11 +38,33 @@ export const TRAIL_KEY = "trail";
  * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
  * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
  */
-export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
+export const FILTER_KEY_LABEL = {
   [FILTER_KEY.KEYWORD]: "キーワード",
   [FILTER_KEY.CATEGORY]: "分類",
   [FILTER_KEY.STATUS]: "状態",
+  [FILTER_KEY.DISCONTINUED]: "廃番",
   [CURSOR_KEY]: "読み込み位置",
+} as const satisfies Readonly<Record<string, string>>;
+
+/**
+ * 廃番で絞り込むときに URL へ載せる値。契約の真偽値の綴りと揃える。
+ *
+ * @remarks
+ * 2 つは排他で、どちらでもない状態が「絞り込まない」です。未指定を値として持たないのは、
+ * 既定値を URL に載せないためです。
+ */
+export const DISCONTINUED_FILTER: Readonly<{ ONLY: "true"; EXCLUDED: "false" }> = {
+  ONLY: "true",
+  EXCLUDED: "false",
+};
+
+/** {@link DISCONTINUED_FILTER} のいずれか。 */
+export type DiscontinuedFilter = (typeof DISCONTINUED_FILTER)[keyof typeof DISCONTINUED_FILTER];
+
+/** 廃番で絞り込む値の呼び名。値を持つこの層が呼び名も持つ。 */
+export const DISCONTINUED_FILTER_LABEL: Readonly<Record<DiscontinuedFilter, string>> = {
+  [DISCONTINUED_FILTER.ONLY]: "廃番のみ",
+  [DISCONTINUED_FILTER.EXCLUDED]: "廃番を除く",
 };
 
 /**
@@ -57,6 +81,8 @@ export type AdminProductListConditions = {
   readonly categoryCodes: readonly string[];
   /** 状態のコード。空なら状態で絞り込まない。 */
   readonly statusCodes: readonly string[];
+  /** 廃番で絞り込む値。null なら絞り込まない。 */
+  readonly discontinued: DiscontinuedFilter | null;
 };
 
 /** 一覧の URL が表す、いま見ている場所。 */
@@ -93,6 +119,10 @@ function toHref(
     for (const value of values) {
       params.append(key, value);
     }
+  }
+
+  if (conditions.discontinued !== null) {
+    params.set(FILTER_KEY.DISCONTINUED, conditions.discontinued);
   }
 
   if (cursor !== null) {

@@ -3,12 +3,9 @@ import type { InquiryId } from "@/model/inquiry/inquiry";
 import type { ProductId } from "@/model/product/product";
 
 /**
- * 商品を管理する画面のパス。
+ * 商品を一覧で見る画面のパス。
  *
  * @remarks
- * 画面を挟まず feature 直下に置きます。管理の画面どうしが互いへの導線を持ち、利用者向けの器も
- * 管理への入口をここから引くため、どれか 1 つの画面の持ち物にできません。
- *
  * 一覧が扱う検索条件やページ送りはここに入れません。パスは admin の route 構成が変われば変わり、
  * 条件は一覧の作りが変われば変わる、別々に動くものです。
  */
@@ -50,6 +47,16 @@ export function adminProductEditPath(id: ProductId): string {
  */
 export function adminProductStockPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/stock`;
+}
+
+/**
+ * 商品を廃番にする画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 廃番にする画面のパス
+ */
+export function adminProductDiscontinuePath(id: ProductId): string {
+  return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/discontinue`;
 }
 
 /**

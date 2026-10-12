@@ -1,9 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   adjustProductStock,
   createProduct,
+  discontinueProduct,
   updateProduct,
   uploadProductImage,
 } from "@/adapters/server/api/products";
@@ -11,7 +13,13 @@ import { verifySession } from "@/adapters/server/auth/session";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
+import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "@/features/admin/paths";
+import { toDiscontinueFieldErrors } from "@/features/admin/products/discontinue/discontinue-rejection";
+import {
+  DISCONTINUE_CONFLICT_MESSAGE,
+  type DiscontinueProductState,
+} from "@/features/admin/products/discontinue/form-state";
+import { parseDiscontinueForm } from "@/features/admin/products/discontinue/parse-discontinue-form";
 import {
   PRODUCT_IMAGE_ACCEPT,
   PRODUCT_IMAGE_ACCEPT_LABEL,
@@ -37,7 +45,7 @@ import {
   succeededActionState,
 } from "@/model/action-state";
 import { isAdmin } from "@/model/authz";
-import { toProductId } from "@/model/product/product";
+import { type ProductDiscontinueResult, toProductId } from "@/model/product/product";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
 
@@ -242,4 +250,62 @@ export async function adjustProductStockAction(
   }
 
   redirect(ADMIN_PRODUCT_LIST_PATH);
+}
+
+/**
+ * 商品を廃番にし、代替クーポンを発行する。
+ *
+ * @remarks
+ * **成立しても画面を移りません。** 実行の応答の件数は契約に取り直す口が無く、移った先では出せ
+ * ないためです。代わりにこの画面を取り直させ、廃番になった姿で描き直します。
+ *
+ * **進行中の購入が残って拒まれたときも取り直させます。** 見積もりの後に購入が入ったということで、
+ * 取り直せば最新の見積もりと残っている購入が並びます。文言はこの画面でしか言えないものを当てます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 廃番の指示の送信内容。
+ * @returns 送信結果を表す action state。成立時は実行の応答を載せる。
+ */
+export async function discontinueProductAction(
+  _previous: DiscontinueProductState,
+  formData: FormData,
+): Promise<DiscontinueProductState> {
+  try {
+    await assertAdmin();
+  } catch (error) {
+    return actionStateFromError(error);
+  }
+
+  const parsed = parseDiscontinueForm(formData);
+
+  if (!parsed.ok) {
+    return failedActionState({ formError: parsed.formError, fieldErrors: parsed.fieldErrors });
+  }
+
+  let result: ProductDiscontinueResult;
+
+  try {
+    result = await discontinueProduct(parsed.productId, parsed.conditions, parsed.idempotencyKey);
+  } catch (error) {
+    if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
+      revalidatePath(adminProductDiscontinuePath(parsed.productId));
+
+      return failedActionState({
+        formError: DISCONTINUE_CONFLICT_MESSAGE,
+        kind: ErrorKind.CONFLICT,
+      });
+    }
+
+    const fieldErrors = toDiscontinueFieldErrors(error);
+
+    if (Object.keys(fieldErrors).length > 0) {
+      return failedActionState({ formError: null, fieldErrors, kind: ErrorKind.VALIDATION });
+    }
+
+    return actionStateFromError(error);
+  }
+
+  revalidatePath(adminProductDiscontinuePath(parsed.productId));
+
+  return succeededActionState(result);
 }
