@@ -21,7 +21,7 @@ const KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 /** 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に器を置いて描く。 */
 function renderSummary(ui: ReactNode) {
-  return render(<PlaceOrderStateProvider idempotencyKey={KEY}>{ui}</PlaceOrderStateProvider>);
+  return render(<PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>{ui}</PlaceOrderStateProvider>);
 }
 
 describe("OrderSummary", () => {

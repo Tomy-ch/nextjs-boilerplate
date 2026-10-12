@@ -19,7 +19,7 @@ const NAMES = ["ノイズキャンセリングヘッドホン"];
 
 function renderConfirm(orderable = true, idempotencyKey = KEY) {
   return render(
-    <PlaceOrderStateProvider idempotencyKey={idempotencyKey}>
+    <PlaceOrderStateProvider couponIds={[]} idempotencyKey={idempotencyKey}>
       <PriceChangeConfirm changedNames={NAMES} orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -72,7 +72,7 @@ describe("PriceChangeConfirm", () => {
     await open();
     await userEvent.click(screen.getByRole("button", { name: "確認へ戻る" }));
     rerender(
-      <PlaceOrderStateProvider idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={OTHER_KEY}>
         <PriceChangeConfirm changedNames={NAMES} orderable />
       </PlaceOrderStateProvider>,
     );

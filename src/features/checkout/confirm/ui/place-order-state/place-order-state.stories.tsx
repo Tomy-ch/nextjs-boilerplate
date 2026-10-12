@@ -49,7 +49,11 @@ const meta = {
       },
     },
   },
-  args: { idempotencyKey: "0195f0c2-0000-7000-b000-000000000001", children: <TwoPlaces /> },
+  args: {
+    couponIds: [],
+    idempotencyKey: "0195f0c2-0000-7000-b000-000000000001",
+    children: <TwoPlaces />,
+  },
   decorators: [(Story) => <div className="max-w-md">{Story()}</div>],
 } satisfies Meta<typeof PlaceOrderStateProvider>;
 

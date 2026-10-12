@@ -29,7 +29,7 @@ const LABEL = "注文を確定する";
  */
 function renderSubmit({ orderable = true, fullWidth = false } = {}) {
   return render(
-    <PlaceOrderStateProvider idempotencyKey={KEY}>
+    <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
       <PlaceOrderForm fullWidth={fullWidth} orderable={orderable} />
     </PlaceOrderStateProvider>,
   );

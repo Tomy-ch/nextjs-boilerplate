@@ -1,6 +1,7 @@
 "use client";
 
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
+import { COUPON_ID_FIELD } from "../../../form-fields";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
@@ -26,11 +27,12 @@ const LABEL = "注文を確定する";
  * @param props - {@link PlaceOrderFormProps}。
  */
 export function PlaceOrderForm({ orderable }: PlaceOrderFormProps) {
-  const { formAction, idempotencyKey } = usePlaceOrderState();
+  const { formAction, idempotencyKey, couponId } = usePlaceOrderState();
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
+      {couponId === null ? null : <input name={COUPON_ID_FIELD} type="hidden" value={couponId} />}
       <PlaceOrderSubmit fullWidth label={LABEL} orderable={orderable} />
       <PlaceOrderError />
     </form>

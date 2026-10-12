@@ -20,6 +20,7 @@ function renderView(cart = ORDERABLE_CART) {
   return render(
     <CheckoutConfirmView
       cart={cart}
+      coupons={[]}
       idempotencyKey={KEY}
       profile={PROFILE}
       reference={SUBTOTAL_REFERENCE}

@@ -16,7 +16,7 @@ const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
 /** 送信の状態は器が持つ。鍵を差し替えて描き直せるよう、器ごと組み立てる。 */
 function renderForm(orderable = true, idempotencyKey = KEY) {
   return render(
-    <PlaceOrderStateProvider idempotencyKey={idempotencyKey}>
+    <PlaceOrderStateProvider couponIds={[]} idempotencyKey={idempotencyKey}>
       <PlaceOrderForm orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -39,7 +39,7 @@ describe("PlaceOrderForm", () => {
     const { container, rerender } = renderForm();
 
     rerender(
-      <PlaceOrderStateProvider idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={OTHER_KEY}>
         <PlaceOrderForm orderable />
       </PlaceOrderStateProvider>,
     );

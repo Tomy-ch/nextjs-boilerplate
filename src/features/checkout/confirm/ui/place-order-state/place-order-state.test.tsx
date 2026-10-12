@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("PlaceOrderStateProvider", () => {
   it("受け取った鍵を、器の中のどの姿へも同じ値で配る", () => {
     const { container } = render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -54,13 +54,13 @@ describe("PlaceOrderStateProvider", () => {
 
   it("組み直された画面から別の鍵が届いても、配る鍵は変えない", () => {
     const { container, rerender } = render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
 
     rerender(
-      <PlaceOrderStateProvider idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={OTHER_KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
@@ -72,7 +72,7 @@ describe("PlaceOrderStateProvider", () => {
     placeOrderAction.mockResolvedValue(failedActionState({ formError: "在庫が変わりました。" }));
 
     render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -87,7 +87,7 @@ describe("PlaceOrderStateProvider", () => {
     placeOrderAction.mockReturnValue(new Promise(() => undefined));
 
     render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -100,7 +100,7 @@ describe("PlaceOrderStateProvider", () => {
 
   it("a11y 自動検査に違反しない。包んだだけで支援技術への見え方を変えない", async () => {
     const { container } = render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
@@ -115,7 +115,7 @@ describe("usePlaceOrderState", () => {
   // ----- 正常系 -----
   it("まだ送っていないあいだは、待っておらず理由も持たない", () => {
     render(
-      <PlaceOrderStateProvider idempotencyKey={KEY}>
+      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
