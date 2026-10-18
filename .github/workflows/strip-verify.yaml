@@ -60,7 +60,7 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -79,7 +79,7 @@ jobs:
             fonts.gstatic.com:443
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -111,7 +111,7 @@ jobs:
       # coverage shortfall rather than as the test that actually broke.
       - name: Hand the recorded run to the collecting job
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: strip-test-blob-${{ matrix.shard }}
           path: tmp/test-blob/
@@ -133,7 +133,7 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -152,7 +152,7 @@ jobs:
             fonts.gstatic.com:443
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -231,7 +231,7 @@ jobs:
         run: pnpm build
 
       - name: Collect what every machine recorded
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: tmp/test-blob/
           pattern: strip-test-blob-*

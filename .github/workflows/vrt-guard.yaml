@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -67,7 +67,7 @@ jobs:
             *.data.mcr.microsoft.com:443
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -108,7 +108,7 @@ jobs:
 
       - name: Upload the visual diff
         if: ${{ !cancelled() && steps.vrt.outputs.status == 'failure' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-diff
           path: tmp/vrt
@@ -173,7 +173,7 @@ jobs:
         id: api-token
         if: env.BASELINE_APP_ID != ''
         continue-on-error: true
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
