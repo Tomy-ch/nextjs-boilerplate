@@ -254,11 +254,8 @@
       "Bash(pnpm exec chrome-devtools start --wsEndpoint*)",
       "Bash(pnpm exec playwright cli attach*)",
       "Edit(AGENTS.md)",
-      "Write(AGENTS.md)",
       "Edit(LICENSE)",
-      "Write(LICENSE)",
-      "Edit(.claude/settings.json)",
-      "Write(.claude/settings.json)"
+      "Edit(.claude/settings.json)"
     ]
   },
   "hooks": {

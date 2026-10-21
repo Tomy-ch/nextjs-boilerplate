@@ -27,10 +27,9 @@ import {
 } from "../../gen/api/endpoints.zod";
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
 import { toCouponDiscount } from "./coupon-discount";
-
-const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 const PURCHASES_PATH = "/v1/purchases";
 

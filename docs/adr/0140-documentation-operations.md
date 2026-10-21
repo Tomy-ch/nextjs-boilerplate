@@ -96,7 +96,7 @@ What to do at the switch:
 
 1. Remove history, comparative deliberation, and reversals from every ADR body, leaving only the present form of the decision (applying the prohibition "do not write history" retroactively, including what crept in during the living period)
 2. Delete this ADR's "Interim Operation until v1.0.0" section and the AGENTS.md section "Temporary Operating Rules until v1.0.0"
-3. Add the Accepted ADR bodies (`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`) to `permissions.deny` in `.claude/settings.json`. The final form of the edit permissions and the restoration steps are owned by [0152](0152-agents-md-policy.md), and are done in the same change
+3. Add the Accepted ADR bodies (`Edit(docs/adr/*-*.md)`) to `permissions.deny` in `.claude/settings.json`. The final form of the edit permissions and the restoration steps are owned by [0152](0152-agents-md-policy.md), and are done in the same change
 4. Delete `docs/plan/**` and `docs/adr/BACKLOG.md`, and in the same change remove the machine declarations that assume they exist (strip targets, check exclusions, the marker line-count baseline) — both are documents of the process that produced this state, not the state itself. What was decided is already in an ADR at that point, open tracking has moved to the issue tracker, and what remains is history git already holds <!-- boilerplate-only:line -->
 
 From then on, the only change is supersede — file a new ADR and rewrite the old ADR's Status line to `Superseded by NNNN`.

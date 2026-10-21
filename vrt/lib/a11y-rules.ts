@@ -79,6 +79,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
     stories: [
       "action-buttongroup--split-button-open",
       "container-tableviewoptions--menu-open",
+      "features-admin-products-list-table--discontinued-row-actions-open", // sample:line
       "features-admin-products-list-table--row-actions-open", // sample:line
       "features-admin-users-table--row-actions-open", // sample:line
       "form-selectclient--open",
