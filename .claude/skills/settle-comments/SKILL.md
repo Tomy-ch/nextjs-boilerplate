@@ -166,8 +166,7 @@ It is the declarations the change touched, judged whole: resolve the base with
 確認して適用. Asking a scope question here would imply a choice the protocol does not offer.
 
 Every other entry point resolves a scope explicitly. One `AskUserQuestion` call carrying **two**
-questions; skip whichever the argument or a flag already answers, and skip the call entirely when
-both are fixed.
+questions; skip whichever is already answered, and skip the call entirely when both are.
 
 - 「settle-comments の対象スコープを選んでください」
   - 「変更で触れたファイル」 — the default above, stated explicitly
@@ -179,6 +178,11 @@ both are fixed.
   - 「判定の束ごとに確認して書き換える」 ← default
   - 「そのまま書き換える（確認を取らない。文書書き込みを伴う移設は対象外）」
   - 「報告のみ（書き込まない）」
+
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+
+- **Pre-answered**: the scope and the apply mode — by a flag the user gave this invocation, or by the user's own answer earlier in the same run, passed verbatim. A mode the invoking skill picked itself is offered as the recommended option, not adopted.
+- **Always asked**: Step 3's per-group confirmation in 確認して適用 — the verdicts it confirms did not exist when the user answered.
 
 **Sweep one directory at a time.** A repository-wide sweep produces an approval queue nobody
 finishes, and a half-finished queue is worse than none — the reader cannot tell swept from unswept.

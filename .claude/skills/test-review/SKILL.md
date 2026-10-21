@@ -87,6 +87,11 @@ returning an empty result that reads as a pass).
 For each target test file, resolve its **subject source file** — the same directory, the basename
 without `.test`. Required by Lenses 4 and 5.
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+this scope question is pre-answered by the user's own scope answer earlier in the same run, passed
+verbatim; a scope the invoking skill chose is offered as the recommended option instead. Step 5
+declares its own clause.
+
 ## Step 1. Read Layer Context
 
 For every target:
@@ -296,6 +301,11 @@ Confirm once before editing:
 
 - `AskUserQuestion`: 「意味網羅の穴 <N> 件にテストを追加しますか？」 — options: 「すべて追加」 /
   「1 件ずつ確認」 / 「追加しない（レポートのみ）」.
+
+**When an invoking skill passes the answer**: this question is pre-answered by the user's verbatim
+answer, earlier in the same run, on what happens to this review's findings — apply them all →
+「すべて追加」, report only → 「追加しない」. An answer that maps to neither, or one given for another
+review, pre-answers nothing: ask.
 
 Then, per finding:
 

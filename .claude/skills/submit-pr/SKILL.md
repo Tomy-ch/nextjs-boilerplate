@@ -20,7 +20,7 @@ A Japanese reference translation of this skill is available at `SKILL.ja.md` in 
 ## Preconditions
 
 - `gh` CLI is installed and authenticated (`gh auth status` succeeds).
-- Current branch is not a protected branch (`production` / `develop` / `staging` / `release/*`).
+- Current branch is not a protected branch (`production` / `develop` / `staging` / `release/*` / `hotfix/*`).
 - Working tree is clean. If there are uncommitted changes, the skill aborts and suggests running `/commit` first.
 
 ## Step 0. Pre-flight Checks
@@ -73,6 +73,8 @@ For the "create" path, confirm the resolved base via `AskUserQuestion` — a bac
 
 - Question: 「ベースブランチをこれで作成しますか？」
 - Options: 「`<resolved-base>` を使う」 / 「別のブランチを指定する」
+
+**This confirmation is always asked**, even when an invoking skill passes a base: the base is resolved from `origin`'s live state and can move after the user answered, so it fails [0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)'s no-drift condition. A base the invoking skill passes is offered as the recommended option.
 
 The base branch has to be decided here because the next step merges it.
 
@@ -135,6 +137,8 @@ Why a clean cancel rather than a pause-and-resume: a local review commonly produ
 
 **Depth by change type** — scale the recommendation to what the diff touches, on the scale *Depth by change type* under Step 10 defines; the same scale drives both asks.
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)): this gate is pre-answered by the user's verbatim answer, earlier in the same run, on which of the two reviews to run for this change — once the ones they chose have run, proceed as 「実行済み / 不要」. An invoking skill's own estimate, or a review it ran without asking, is not that answer: ask.
+
 ## Step 4. Gather Context and Read Template
 
 Collect the inputs needed to compose title and body. `<base>` is the base branch decided in Step 1.
@@ -177,6 +181,8 @@ If the branch name encodes an issue number, append `closes #N` at the bottom of 
 
 Local review was already decided at Step 3 — do not ask again here.
 
+**Never pre-answered.** This confirmation (both paths, the label question included) and the push it gates are taken at the moment of the action, whatever an invoking skill passes — a push is a commercial action, and the update path's wording is required by `AGENTS.md` ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)).
+
 Display the resolved title, base branch, push command, and full body. If Step 2 merged anything, say so, so the user knows the push includes a merge commit.
 
 ### Create path
@@ -199,7 +205,7 @@ Judge from the diff whether the change can alter how a story renders — a `.tsx
 - Question: 「見た目が変わる変更ですか？（`baseline-retake` ラベルを付けて PR を作成します）」
 - Options: 「付ける」 / 「付けない」
 
-Attach it with `gh pr create --label baseline-retake`. The label is a condition on the VRT Retake workflow, not its trigger: the workflow fires when VRT completes, so attaching the label up front means the baselines are retaken without anyone waiting for the run and labelling afterwards. It also survives a deferral — while another check is failing, the retake is skipped and the label stays on, so fixing that check resumes it on the next run.
+Attach it with `gh pr create --label baseline-retake`. The label is a condition the retake workflow reads, not its trigger, so attaching it up front spares anyone waiting for the comparison run to label it afterwards. When and how the retake runs is owned by `.github/workflows/baseline-retake.yaml` and `vrt/README.md`.
 
 Do NOT present this as approving the visual change. The retake only turns the diff into a reviewable image diff; the user still has to look at the store's compare view before approving the PR. Say that when reporting at Step 9.
 
@@ -287,7 +293,7 @@ If Step 2 merged the base in, add one line stating how many commits were taken i
 
 ## Step 10. Post-PR Review (confirm)
 
-After the PR URL is reported, **always ask the user whether to run a review** — do not skip this, and do not auto-run a review. Use `AskUserQuestion`:
+After the PR URL is reported, **ask the user whether to run a review** — do not auto-run one. Use `AskUserQuestion`:
 
 - Question: 「PR を作成/更新しました。コードレビューを実行しますか？」
 - Options (offer the ones that apply):
@@ -297,18 +303,20 @@ After the PR URL is reported, **always ask the user whether to run a review** �
   - 「ultrareview を案内」 — cloud multi-agent review; **user-triggered and billed**, so the skill cannot launch it — only surface the command for the user to run
   - 「レビューしない」
 
+**When an invoking skill passes the answer**: the same answer that pre-answers Step 3 pre-answers this question — the user already said which reviews this change gets. Without such an answer, the question is not skipped.
+
 ### Depth by change type
 
 Scale the recommended depth to what changed (if a full source review is 10):
 
-- **Behavior-affecting code** (`src/**` の `.ts` / `.tsx`、Server Action、Route Handler、`adapters`) → full depth (10); recommend a review by default.
-- **Docs / tooling-dominant changes** (`docs/**`、`*.md`、`.claude/**`、`AGENTS.md`、CI 設定 — 本番の振る舞いを変えない) → shallower is acceptable (~7–8/10). Still ask, but note the lower ROI so the user can decide quickly.
+- **Behavior-affecting code** (`.ts` / `.tsx` under `src/**`, Server Actions, Route Handlers, `adapters`) → full depth (10); recommend a review by default.
+- **Docs / tooling-dominant changes** (`docs/**`, `*.md`, `.claude/**`, `AGENTS.md`, CI configuration — nothing that changes production behavior) → shallower is acceptable (~7–8/10). Still ask, but note the lower ROI so the user can decide quickly.
 
 Judge the dominant nature of the diff (changed file paths / commit prefixes) to pick the default recommendation, but the user's choice always wins.
 
 ## Constraints
 
-- ❌ Push to protected branches (`production` / `develop` / `staging` / `release/*`)
+- ❌ Push to protected branches (`production` / `develop` / `staging` / `release/*` / `hotfix/*`)
 - ❌ Check out a protected branch to update it — merge `origin/<base>` into the current branch instead
 - ❌ Resolve a base-merge conflict here, or discard the merging tree (hand it to the user and stop; `resolve-merge` owns the mechanical classes)
 - ❌ `git push --force` / `--force-with-lease` (only with explicit user instruction)
@@ -331,13 +339,13 @@ Before reporting completion, confirm:
 - [ ] Current branch is not a protected branch
 - [ ] Working tree was clean before the push
 - [ ] `gh auth status` passed
-- [ ] Step 2 でベースを取り込んだ（または「Already up to date」を確認した）。保護ブランチは checkout も push もしていない
+- [ ] The base was merged in at Step 2 (or reported "Already up to date"); no protected branch was checked out or pushed
 - [ ] PR template was read and reflected in the body
 - [ ] Title and body are Japanese
 - [ ] Title ≤ 70 characters
-- [ ] Step 3 で push 前のローカルレビュー 2 本の実行可否を、見込み付きで確認した（レビューを選んだ場合は submit-pr をキャンセルして案内した）
+- [ ] Step 3 asked whether to run the two local reviews before the push, with their estimated return (and cancelled with guidance when a review was chosen) — or took the user's same-run answer an invoking skill passed verbatim
 - [ ] User confirmation was obtained before the push (mandatory for update path per `CLAUDE.md`)
-- [ ] 見た目が変わりうる差分なら `baseline-retake` ラベルの要否を確認した（承認ではないことを添えて）
+- [ ] For a diff that can change how a story renders, asked whether to attach `baseline-retake`, saying it is not an approval
 - [ ] PR URL was reported to the user
-- [ ] (必須) PR 作成/更新後にレビュー実行可否を確認した（深さは変更種別でスケール）
+- [ ] (Required) After creating or updating the PR, asked whether to run a review, scaled by change type — or took the same answer that pre-answered Step 3
 - [ ] No `--force` was used

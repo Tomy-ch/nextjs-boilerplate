@@ -190,6 +190,11 @@ Confirm the proposal via `AskUserQuestion`:
 - Question: 「提案したコミット分割でよいですか？」
 - Options: 「この提案で進める」 / 「修正したい箇所を指摘する」
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+
+- **Pre-answered**: this grouping confirmation, by a grouping the user approved verbatim earlier in the same run — only when it names exactly the files Step 2 found. A file it misses, or one no longer changed, means the approval was of another diff: ask.
+- **Always asked**: the merged-PR check (Step 1) and the error-recovery question (Step 5) — both read runtime state that did not exist when the user answered.
+
 When `--dry-run` is set, print the proposal and stop. Do not stage or commit.
 
 ## Step 5. Execute Each Commit
