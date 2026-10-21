@@ -166,7 +166,13 @@ settles the submission (a refused coupon, a conflict) renews the key, because th
 **A confirmation sent before hydration carries no coupon.** The coupon choices sit in the body column, outside
 the two confirming forms (the side summary and the bottom band), so the chosen coupon reaches a form as a hidden
 input written from the shared submission state. A `form` attribute cannot tie one radio group to two forms. The
-confirmation itself still submits without JavaScript; only the coupon waits for hydration.
+confirmation itself still submits without JavaScript; only the coupon waits for hydration. Until then the choices
+are disabled, so a choice that would not be sent never looks made, and a `noscript` sentence says why.
+
+**While the outcome of a confirmation is open, the coupon cannot be chosen again.** A resend under the same key
+must carry the same content: the backend replays the first result for a repeated key, so a different coupon
+under it would silently return the purchase made with the earlier one. The same lock holds while a submission is
+in flight, so a refusal is never shown against a choice made after it was sent.
 
 **On success, the user is sent to a different URL.** Showing the completion on the same screen would make a
 reload erase the completion and the back operation return to the pre-confirmation screen. The completion screen

@@ -71,6 +71,12 @@ widening just one of the side-by-side operations would make the shorter text loo
 **When the chosen coupon is refused at confirmation**, the reason is shown next to the confirm operation and the order is not placed.
 The candidates are fetched again, so the refused coupon is no longer listed and nothing is chosen. When other candidates remain,
 the field also carries the error until another choice is made; when none remain, the field disappears and only the reason stays.
+Choosing again also clears the reason next to the confirm operation, so a corrected choice does not look as if it fixed nothing.
+
+**While a confirmation is in flight, and while the outcome of the last one is unknown, the coupon cannot be chosen again.** The field
+stays reachable and says, in one sentence, that the coupon can be chosen again once the outcome is known and that the same order can be
+confirmed again. Before the page is interactive the choices are disabled, and without JavaScript one sentence says the order can still
+be placed without a coupon.
 
 While sending, only the glyph is swapped and **the visible text stays put**. Lengthening the text would move the container's width, and in a stuck
 summary or a fixed band even the surrounding positions would move.

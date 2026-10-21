@@ -63,7 +63,9 @@ stale premises even if stock or prices changed while the screen was left open.
 **One idempotency key is created each time the screen is assembled.** Pressing twice or resubmitting by reloading still leaves one
 purchase. Reopening the screen with the intent to buy again gives a different key. **Once the order is refused — a coupon that cannot be used, or a
 conflict in stock or price — the next submission takes a new key**, since it may carry different content. A failure whose outcome is unknown
-(the backend unavailable, an internal error) keeps the key so the same submission can be resent.
+(the backend unavailable, an internal error) keeps the key so the same submission can be resent. **While that outcome is open, the
+submission's content does not change**: the backend replays the first result for a repeated key, so a different coupon under it would
+silently return the purchase made with the earlier one.
 
 **A coupon refused at confirmation refetches the candidates.** Every reason the backend refuses one for (expired, used, not held, zero
 discount) is a coupon the next fetch no longer lists, so the user chooses again from what is current. The next submission takes a new
