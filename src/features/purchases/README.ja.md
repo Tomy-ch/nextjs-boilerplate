@@ -121,7 +121,7 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `refresh()` | 確認を開いたまま、その中で伝える |
 | `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | 同上 | 同上 |
 
 **競合（409）だけ言い分けます。** ほかの誰か・別のタブが先に進めた状態で押した場合で、押した人が

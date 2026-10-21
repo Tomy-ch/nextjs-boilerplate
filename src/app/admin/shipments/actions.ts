@@ -1,12 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 
 import { deliverPurchase, shipPurchase } from "@/adapters/server/api/purchases";
 import { verifySession } from "@/adapters/server/auth/session";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
 import {
   DELIVERY_CONFLICT_MESSAGE,
@@ -134,7 +133,7 @@ export async function shipPurchasesAction(
   const { shipped, refused, abort } = await shipEach(purchaseCodes);
 
   if (shipped > 0) {
-    revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
+    refresh();
   }
 
   if (abort !== null) {
@@ -191,7 +190,7 @@ export async function deliverPurchaseAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(ADMIN_SHIPMENT_QUEUE_PATH);
+  refresh();
 
   return succeededActionState({ purchaseCode });
 }

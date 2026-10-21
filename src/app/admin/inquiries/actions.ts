@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 
 import { postInquiryReply } from "@/adapters/server/api/inquiries";
 import { verifySession } from "@/adapters/server/auth/session";
@@ -10,7 +10,6 @@ import { REPLY_BODY_FIELD } from "@/features/admin/inquiries/form-names";
 import type { AdminInquiryReplyState } from "@/features/admin/inquiries/form-state";
 import { REPLY_MALFORMED_MESSAGE } from "@/features/admin/inquiries/form-state";
 import { parseAdminInquiryReplyForm } from "@/features/admin/inquiries/parse-reply-form";
-import { adminInquiryDetailPath } from "@/features/admin/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -69,7 +68,7 @@ export async function replyInquiryAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(adminInquiryDetailPath(parsed.inquiryId));
+  refresh();
 
   return succeededActionState(undefined);
 }

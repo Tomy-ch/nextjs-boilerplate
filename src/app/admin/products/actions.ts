@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import {
   adjustProductStock,
@@ -13,7 +13,7 @@ import { verifySession } from "@/adapters/server/auth/session";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "@/features/admin/paths";
+import { ADMIN_PRODUCT_LIST_PATH } from "@/features/admin/paths";
 import { toDiscontinueFieldErrors } from "@/features/admin/products/discontinue/discontinue-rejection";
 import {
   DISCONTINUE_CONFLICT_MESSAGE,
@@ -288,7 +288,7 @@ export async function discontinueProductAction(
     result = await discontinueProduct(parsed.productId, parsed.conditions, parsed.idempotencyKey);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      revalidatePath(adminProductDiscontinuePath(parsed.productId));
+      refresh();
 
       return failedActionState({
         formError: DISCONTINUE_CONFLICT_MESSAGE,
@@ -305,7 +305,7 @@ export async function discontinueProductAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(adminProductDiscontinuePath(parsed.productId));
+  refresh();
 
   return succeededActionState(result);
 }

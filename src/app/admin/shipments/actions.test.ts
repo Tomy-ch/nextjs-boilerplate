@@ -10,14 +10,14 @@ import {
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
-const { deliverPurchase, revalidatePath, shipPurchase, verifySession } = vi.hoisted(() => ({
+const { deliverPurchase, refresh, shipPurchase, verifySession } = vi.hoisted(() => ({
   deliverPurchase: vi.fn(),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
   shipPurchase: vi.fn(),
   verifySession: vi.fn<() => Promise<Session | null>>(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
@@ -77,7 +77,7 @@ describe("shipPurchasesAction", () => {
   it("成立したら発送待ちの一覧を取り直させる", async () => {
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("いまの状況で通らなかった注文は数えて先へ進む", async () => {
@@ -127,7 +127,7 @@ describe("shipPurchasesAction", () => {
       formError: SHIPMENT_CONFLICT_MESSAGE,
       kind: ErrorKind.CONFLICT,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("競合以外の失敗では、残りを送らずに止める", async () => {
@@ -146,7 +146,7 @@ describe("shipPurchasesAction", () => {
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
     expect(shipPurchase).toHaveBeenCalledTimes(2);
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("1 件も通らずに打ち切ったときは取り直させない", async () => {
@@ -154,7 +154,7 @@ describe("shipPurchasesAction", () => {
 
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -170,7 +170,7 @@ describe("deliverPurchaseAction", () => {
   it("通ったら一覧を取り直させる", async () => {
     await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("複数並んでいても、先頭の 1 件だけを送る", async () => {
@@ -209,7 +209,7 @@ describe("deliverPurchaseAction", () => {
 
     const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
   });
 });

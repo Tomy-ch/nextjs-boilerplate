@@ -135,7 +135,7 @@ When to use which means belongs to [ADR 0063](../adr/0063-mutation-result-notifi
 
 **An action that ends in `redirect()` "does not return".** It throws on success, so there is no branch that returns `success`. That screen's `ActionState` therefore holds no success value and has no success display. In tests, the throw on success is placed in the normal cases ([`docs/testing-conventions.md`](../testing-conventions.md#what-goes-where)). When confirming from inside an overlay, use `RedirectType.replace` — because otherwise the one history entry the overlay pushed remains as the back destination.
 
-**An action that stays on the screen asks for revalidation itself.** The scope of `revalidatePath` is decided by where the change shows up. Anything that also shows in the outer frame (a count in the header, the sidebar) needs `revalidatePath("/", "layout")`; otherwise only the body is fresh and the outer frame stays stale.
+**An action that stays on the screen asks for revalidation itself.** When the screen's data is not cached and the change shows only on this route, `refresh()` re-renders it; `revalidatePath` is for a change that must also show on another route, and its scope is decided by where the change shows up. Anything that also shows in the outer frame (a count in the header, the sidebar) needs `revalidatePath("/", "layout")`; otherwise only the body is fresh and the outer frame stays stale.
 
 **The result stays until the next submission.** It is dismissed when the input is corrected or the viewpoint moves, and shown again on resubmission. The signal to restore the "dismissed" mark is the result's **identity**: `useActionState` returns a new object on every submission, so `!==` against the previous result reveals the change. In the sample, `use-action-result-freshness.ts` holds this, in a shape that knows nothing of the subject matter.
 
@@ -251,7 +251,7 @@ rhf treats `undefined` fields as uncontrolled. It arrives in `FormData` not as a
 
 ### Code written after `redirect()` does not run
 
-`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the sample wraps the communication in try and places the post-success `revalidatePath` and `redirect()` outside the try.
+`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the sample wraps the communication in try and places the post-success `refresh()` / `revalidatePath` and `redirect()` outside the try.
 
 A `redirect()` pointing at a Route Handler sends no request. The reason belongs to [`rendering.md`](rendering.md#a-server-actions-redirect-does-not-navigate-to-a-route-handler).
 

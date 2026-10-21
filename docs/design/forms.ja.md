@@ -139,7 +139,7 @@ rhf を使うときの配線は次のとおり。
 
 **`redirect()` で終わる action は「戻らない」。** 成立時に throw するので、`success` を返す枝が存在しない。したがってその画面の `ActionState` は成功値を持たず、成功の表示も持たない。テストでは成立時の throw を正常系に置く（[`docs/testing-conventions.md`](../testing-conventions.ja.md#何をどこに置くか)）。overlay の中から確定したときは `RedirectType.replace` にする —— overlay が積んだ履歴 1 件が戻り先に残るためである。
 
-**画面に留まる action は再検証を自分で頼む。** `revalidatePath` の範囲は、変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
+**画面に留まる action は再検証を自分で頼む。** 画面のデータをキャッシュしておらず、変更がこの route にしか出ないなら `refresh()` でレンダリングし直す。`revalidatePath` は別の route にも変更を出すときのもので、その範囲は変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
 
 **結果は次の送信まで残る。** 入力を直した時点・観点を移した時点で下げ、送り直せばまた出す。「下げた印」を戻す合図は結果の**同一性**で、`useActionState` は送信のたびに新しい object を返すので、前回の結果との `!==` で入れ替わりが判る。同梱サンプルでは `use-action-result-freshness.ts` がこれを持ち、題材を知らない形になっている。
 
@@ -255,7 +255,7 @@ rhf は `undefined` の項目を非制御のまま扱う。`FormData` には空�
 
 ### `redirect()` の後ろに書いたコードは動かない
 
-`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `revalidatePath` と `redirect()` を try の外に置いている。
+`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `refresh()` / `revalidatePath` と `redirect()` を try の外に置いている。
 
 Route Handler を指す `redirect()` は要求を出さない。理由は [`rendering.md`](rendering.ja.md#server-action-の-redirect-は-route-handler-へ遷移しない) が持つ。
 

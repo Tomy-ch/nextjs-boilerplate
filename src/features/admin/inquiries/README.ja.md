@@ -58,7 +58,7 @@
 | 一覧の購読 | 待機 | `Features/Admin/Inquiries/List/FeedWatch/Default` |
 | 一覧のローディング表示 | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
 | やり取りと回答 | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
-| 回答欄 | idle / pending / 項目エラー | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
+| 回答欄 | idle / 空のまま送ろうとした / pending / 項目エラー | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,EmptySubmitted,Pending,Invalid}` |
 | 対応のローディング表示 | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
 | 階層 | 一覧の下 | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
@@ -103,7 +103,7 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | 開いている 1 件だけ `revalidatePath` | 項目の文言（本文）か、回答欄の隣の文言 |
+| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | 開いている 1 件だけ `refresh()` | 項目の文言（本文）か、回答欄の隣の文言 |
 
 **回答先は画面が送信に載せます。** 運営は複数の問い合わせを行き来するため、「いま開いているもの」
 をサーバ側で決められません。
