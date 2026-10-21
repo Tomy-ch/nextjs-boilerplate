@@ -1,59 +1,59 @@
 # SwitchNative
 
-## 用途
+## Purpose
 
-設定の入り / 切りを、native form の値として切り替えます。
+Toggles a setting on / off as a native form value.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / type | Role |
 | --- | --- |
-| `SwitchNative` | `input type="checkbox"` を switch の見た目で描く、SSR first の部品です。読み上げは checkbox のままです。 |
-| `SWITCH_SIZE` | 表示サイズの定数です。このディレクトリが owner で、`SwitchClient` も同じ値を参照します。 |
+| `SwitchNative` | An SSR-first component that renders `input type="checkbox"` with the look of a switch. It is still read out as a checkbox. |
+| `SWITCH_SIZE` | The display size constant. This directory is its owner, and `SwitchClient` refers to the same values. |
 
-## 利用ケース
+## Use Cases
 
-通知の受け取り、公開 / 非公開など、設定を form として保存する場面に使います。
+Use it where a setting is saved as a form, such as receiving notifications or public / private.
 
-## SwitchClient との使い分け
+## SwitchClient vs This Component
 
-| | 使う場面 |
+| | When to use |
 | --- | --- |
-| `SwitchNative` | form 送信と初期表示だけで足りる。browser JavaScript なしで動く |
-| `SwitchClient` | 切り替えた結果を即座に画面へ反映する、楽観更新して失敗時に戻す、複数の switch を同期する |
+| `SwitchNative` | Form submission and the initial render are enough. Works without browser JavaScript |
+| `SwitchClient` | Reflects the toggled result on screen immediately, updates optimistically and reverts on failure, keeps several switches in sync |
 
-既定は `SwitchNative` です。上の右列に当てはまる要件が確定したときだけ `SwitchClient` へ切り替えます。
+The default is `SwitchNative`. Switch to `SwitchClient` only once a requirement matching the right-hand column above is settled.
 
-## Toggle との使い分け
+## Toggle vs This Component
 
-見た目が似ていても責務が違います。分かれ目は「**設定を変えるのか、今の見え方を変えるのか**」です。
+They may look alike, but their responsibilities differ. The dividing line is "**does it change a setting, or the current way things look**".
 
 | | `Switch` | `Toggle` |
 | --- | --- | --- |
-| 意味論 | `checkbox` / `switch` | `button` + `aria-pressed` |
-| 表すもの | 設定の入り / 切り（通知を受け取る、公開する） | 表示の適用状態（今この見え方になっている） |
-| 送信値 | **持つ**（form の値になる） | 持たない（操作ボタン） |
-| 効き方 | 保存して永続する | その画面の見せ方を変える |
-| 例 | 通知の受け取り、公開 / 非公開 | 表示密度、折り返しの有無 |
+| Semantics | `checkbox` / `switch` | `button` + `aria-pressed` |
+| What it represents | A setting's on / off (receive notifications, publish) | The applied display state (things currently look this way) |
+| Submitted value | **Has one** (becomes a form value) | None (an action button) |
+| Effect | Saved and persisted | Changes how that screen looks |
+| Examples | Receiving notifications, public / private | Display density, whether to wrap |
 
-保存されて次に開いたときも残るなら `Switch`、その場の見え方だけなら [`Toggle`](../../action/toggle/README.md) です。排他や複数選択の切り替え群になる場合は `ToggleGroup` を使います。
+If it is saved and still there the next time it is opened, use `Switch`; if it only affects how things look right now, use [`Toggle`](../../action/toggle/README.md). For a group of toggles with exclusive or multiple selection, use `ToggleGroup`.
 
-## 意味論は checkbox
+## The semantics are checkbox
 
-実体は `input type="checkbox"` で、`role="switch"` は与えていません。
+The actual element is `input type="checkbox"`, and it is not given `role="switch"`.
 
-`switch` role は `aria-checked` を必須としますが、uncontrolled な native input では利用者の操作で React が再 render されないため同期できません。実状態と食い違う `aria-checked` は、checkbox として読み上げるより有害です。biome の `useAriaPropsForRole` もこの不足を検出します。
+The `switch` role requires `aria-checked`, but with an uncontrolled native input React does not re-render on user interaction, so it cannot be kept in sync. An `aria-checked` that disagrees with the real state is more harmful than being read out as a checkbox. Biome's `useAriaPropsForRole` also detects this gap.
 
-支援技術へ「入り / 切り」として伝える必要がある場合は、状態と role を Radix が対応させる [`SwitchClient`](../switch-client/README.md) を使います。この部品が提供するのは **switch の見た目と native form の値**であり、読み上げは checkbox です。
+When it must reach assistive technology as "on / off", use [`SwitchClient`](../switch-client/README.md), where Radix keeps state and role in step. What this component provides is **the look of a switch and a native form value**; it is read out as a checkbox.
 
-`CheckboxNative` との違いも見た目だけです。form の複数選択や同意の確認には `CheckboxNative`、設定の有効化のように「入り / 切り」を視覚的に示したい場面にはこちらを使います。
+The difference from `CheckboxNative` is likewise only the look. Use `CheckboxNative` for multiple selection or consent confirmation in a form, and this one where you want to show "on / off" visually, such as enabling a setting.
 
-## 責務境界
+## Responsibility Boundaries
 
-ラベルを持ちません。何の設定かは `Label` などで呼び出し元が関連付けます。保存のタイミング、切り替え結果の反映、失敗時の扱いも持ちません。
+It has no label. The caller associates what the setting is with `Label` or similar. It owns neither the timing of saving, reflecting the toggled result, nor handling of failure.
 
-見た目の track と thumb は CSS だけで組んでおり、状態は `:checked` が持ちます。native の `size` 属性は text 入力の文字数を表すもので switch には意味がないため、表示サイズの props で置き換えています。
+The visual track and thumb are built with CSS alone, and `:checked` holds the state. The native `size` attribute represents the character count of a text input and means nothing for a switch, so it is replaced by display size props.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は基本状態、初期状態が入り、disabled、表示サイズ、native form の一部として送信する場合を確認します。テストは checkbox として読み上げられること、`role` と `aria-checked` を出さないこと、form の `name` / `value` を持つこと、クリックでの切り替え、disabled、`size` の data 属性、a11y 自動検査を確認します。
+Storybook checks the basic state, initially on, disabled, display sizes, and submission as part of a native form. The tests check that it is read out as a checkbox, that it emits no `role` or `aria-checked`, that it has the form `name` / `value`, toggling by click, disabled, the `size` data attribute, and the automated a11y check.

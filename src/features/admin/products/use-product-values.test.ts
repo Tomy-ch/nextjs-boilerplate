@@ -3,7 +3,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { emptyProductValues, productValuesOf, useProductValues } from "./use-product-values";
 
@@ -14,8 +14,8 @@ const PRODUCT = {
   price: "19.99",
   quantity: 12,
   stockWarningThreshold: 3,
-  status: { id: "status-1", name: "在庫あり" },
-  category: { id: "category-1", name: "電子機器" },
+  status: { id: toProductStatusId("status-1"), name: "在庫あり" },
+  category: { id: toProductCategoryId("category-1"), name: "電子機器" },
   publishedAt: new Date("2026-08-07T09:00:00.000Z"),
   discontinuedAt: null,
   imagePaths: [],
@@ -62,8 +62,6 @@ describe("productValuesOf", () => {
   });
 
   it("保存された瞬間を、読む人の時差の壁時計へ写す", () => {
-    // 書式だけを見ると、符号の取り違えや二重補正でも通る。実行時の時差は Asia/Tokyo に
-    // 固定してあるので（`vitest.config.ts`）、09:00Z は 18:00 として出るはずである。
     expect(productValuesOf(PRODUCT).publishedAt).toBe("2026-08-07T18:00");
   });
 });

@@ -45,7 +45,6 @@ describe("HomePage", () => {
     const notice = screen.getByRole("alert");
     const heading = screen.getByRole("heading", { level: 1, name: "ようこそ" });
 
-    // 断り書きの後ろに見出しが来る。逆順なら読み始めた後に断り書きが現れる。
     expect(notice.compareDocumentPosition(heading) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
@@ -67,8 +66,6 @@ describe("HomePage", () => {
 
     const { container } = render(<HomePage />);
 
-    // 待機表示が出ている＝中身は未解決。この時点で分類が DOM に居るなら、
-    // それは待機の内側に居ないということである。
     expect(container.querySelector('[data-slot="skeleton"]')).toBeInTheDocument();
     expect(screen.getByText("カテゴリから探す")).toBeVisible();
   });

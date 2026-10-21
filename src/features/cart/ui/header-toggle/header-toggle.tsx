@@ -20,6 +20,8 @@ export type CartHeaderToggleProps = {
  * 中身を持ちません。押すと脇の領域が出るか消えるかで、開閉の要求そのものは `stores` が持ちます。
  *
  * `aria-expanded` を持たせるのは、この操作が別の領域の開閉を担っているためです。
+ *
+ * @see Storybook `Features/Cart/HeaderToggle`
  */
 export function CartHeaderToggle({ count }: CartHeaderToggleProps) {
   const isOpen = useCartStore((state) => state.isOpen);

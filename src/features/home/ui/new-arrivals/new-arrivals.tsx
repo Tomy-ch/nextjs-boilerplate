@@ -16,15 +16,17 @@ export type NewArrivalsProps = {
 const LEADING_COUNT = 4;
 
 /**
- * 新着商品。
+ * 段の数を viewport ではなく器の幅で決める、新着商品の節。
  *
  * @remarks
- * 段の数は器の幅で決めます。トップは脇に何も置きませんが、同じ節を脇のある画面へ移したときに
- * viewport 基準だと詰まって見える帯ができます（`docs/rules.md`「レイアウトと帯」の「部品の中身は
+ * トップは脇に何も置きませんが、同じ節を脇のある画面へ移したときに viewport 基準だと詰まって
+ * 見える帯ができます（`docs/rules.md#layout`の「部品の中身は
  * 帯で分岐させずコンテナクエリで書く」）。
  *
  * 一覧への導線を節の見出しの隣に置いています。ここに並ぶのは先頭の数件だけで、続きがあることを
  * 示さないと、これが全部だと読めてしまいます。
+ *
+ * @param props - 描画する新着商品の一覧。
  */
 export const NewArrivals = withPartSpan(
   "features/home/ui/new-arrivals/new-arrivals",

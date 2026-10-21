@@ -1,39 +1,39 @@
 # Pagination
 
-## 用途
+## Purpose
 
-URL 遷移する一覧のページ移動を表します。
+Represents page movement for a list that navigates by URL.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Pagination` | ページネーション全体を表す `nav`。アクセシブルな領域名もここで提供します。 |
-| `PaginationContent` | ページネーション項目を横並びにするリストです。入り切らなければ折り返します。 |
-| `PaginationItem` | ページ番号・前後移動・省略記号を包む個々のリスト項目です。 |
-| `PaginationLink` | 任意のページへ遷移する link。`isActive` で現在ページを表します。 |
-| `PaginationPrevious` | 前のページへ遷移する、ラベルとアイコン付きの link です。 |
-| `PaginationNext` | 次のページへ遷移する、ラベルとアイコン付きの link です。 |
-| `PaginationEllipsis` | 連続したページ番号を省略していることを示す、遷移しない表示要素です。 |
+| `Pagination` | The `nav` representing the whole pagination. It also provides the accessible region name. |
+| `PaginationContent` | The list that lays out pagination items horizontally. Wraps when they do not fit. |
+| `PaginationItem` | An individual list item wrapping a page number, previous / next, or an ellipsis. |
+| `PaginationLink` | A link to any page. `isActive` indicates the current page. |
+| `PaginationPrevious` | A link with a label and icon to the previous page. |
+| `PaginationNext` | A link with a label and icon to the next page. |
+| `PaginationEllipsis` | A non-navigating display element indicating that a run of page numbers is omitted. |
 
-## 利用ケース
+## Use Cases
 
-page 型の一覧で前後・現在・省略されたページへの link を示します。
+Shows links to the previous / next, current and omitted pages in a page-based list.
 
-## 責務境界
+## Responsibility Boundaries
 
-fetch、現在ページ計算、URL の組み立ては持ちません。feature が href と現在ページを渡します。
+It holds no fetch, current page calculation or URL building. The feature passes the href and the current page.
 
-link は `next/link` で描画します。アプリ内の route 遷移のため、viewport に入った時点で移動先が prefetch され、遷移は client-side transition になります。ページ番号を多数並べる場合など prefetch を抑えたいときは、呼び出し元が `prefetch={false}` を渡します。
+Links are rendered with `next/link`. Because they are in-app route navigations, the destination is prefetched once it enters the viewport, and navigation is a client-side transition. When prefetch should be suppressed, such as when many page numbers are listed, the caller passes `prefetch={false}`.
 
-並ぶ数を決めるのは呼び出し元です。**入り切らない場合は折り返します** —— 何個まで収まるかは器の幅で変わり、部品からは判りません。折り返さずに横へ伸ばすと、はみ出した分がページごと横にあふれ、他の内容まで横送りしないと読めなくなります。
+The caller decides how many are shown. **When they do not fit, they wrap** — how many fit depends on the container width and cannot be known from the component. Stretching horizontally without wrapping would let the overflow spill sideways with the whole page, making other content unreadable without horizontal scrolling.
 
-`href` は必須です。`?page=2` のようなクエリのみの相対 URL を渡すと、prefetch・遷移のいずれも現在の URL を基準に解決され、現在の pathname を保ったまま query だけが差し替わります。絞り込みや並び順を保って移動する場合は、呼び出し元が既存の query を含めた URL を組み立てます。
+`href` is required. Passing a query-only relative URL such as `?page=2` resolves both prefetch and navigation against the current URL, replacing only the query while keeping the current pathname. To move while keeping filters and sort order, the caller builds a URL that includes the existing query.
 
-`PaginationPrevious` / `PaginationNext` の `href` は省略できます。先頭・末尾のように**行き先が無い端**では省略し、link ではなく操作できない control として描きます。要素ごと消さないのは、片側だけになったときに残った操作が左右へ動いて誤操作を招くためです。位置が保たれ、支援技術にも「あるが今は使えない」と伝わります。
+The `href` of `PaginationPrevious` / `PaginationNext` can be omitted. At an **end with nowhere to go**, such as the first or last page, omit it and it is rendered as a non-operable control instead of a link. The element is not removed entirely because, with only one side left, the remaining control would move left or right and invite mis-operation. The position is kept, and assistive technology is told that "it exists but cannot be used now".
 
-表示内容は `children`、アクセシブルな名前は `aria-label` で差し替えられます。cursor 方式の前後移動はこの機構をそのまま使うため、[`CursorPagination`](../../../app-starter/cursor-pagination/README.md) は独自の前後移動を持ちません。
+The displayed content can be replaced with `children` and the accessible name with `aria-label`. Cursor-based previous / next uses this mechanism as is, so [`CursorPagination`](../../../app-starter/cursor-pagination/README.md) has no previous / next of its own.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook はページ番号の基本形、中間ページの前後移動、**先頭ページ**（前へが操作できない control）、**末尾ページ**（次へが操作できない control）、ページ数が多い場合の省略記号と前後移動を組み合わせた並びを確認します。
+Storybook checks the basic form with page numbers, previous / next from a middle page, the **first page** (previous is a non-operable control), the **last page** (next is a non-operable control), and a row combining the ellipsis and previous / next when there are many pages.

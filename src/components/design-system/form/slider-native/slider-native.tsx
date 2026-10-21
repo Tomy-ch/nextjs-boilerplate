@@ -27,6 +27,7 @@ export type SliderNativeProps = Omit<ComponentProps<"input">, "type">;
  * `::-moz-range-progress` しかなく、片方だけ塗ると browser 間で affordance が食い違う。塗り分けが
  * 必要な場合は `SliderClient` を使う。
  *
+ * @param props - native `input` 属性。`type` は `range` に固定される。
  * @see Storybook `Form/SliderNative`
  */
 export function SliderNative({ className, ...props }: SliderNativeProps) {

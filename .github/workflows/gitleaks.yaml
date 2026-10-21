@@ -10,8 +10,7 @@ name: Secret Scan
 # job would scan nothing and report green, which is the one failure mode a gate
 # must not have. The range is handed in through the environment.
 #
-# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
-# in README.md.
+# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
 
 on:
   pull_request:
@@ -97,8 +96,6 @@ jobs:
 
           exit 0
 
-      # A PR from a fork gets a read-only token, so posting is allowed to fail
-      # without taking the verdict with it.
       - name: Comment secret scan result on PR
         if: github.event_name == 'pull_request'
         continue-on-error: true
@@ -117,7 +114,7 @@ jobs:
         if: always() && steps.gitleaks.outputs.status != 'success'
         run: exit 1
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: secret-scan
     if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.secret-scan.result) }}

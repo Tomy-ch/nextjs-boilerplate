@@ -41,6 +41,10 @@ const INVALID_INPUT_MESSAGE = "指定を確認してください。";
  *
  * **認可の往復の途中の送信はここへ来ません。** あちらは `/dev/session/authorize` へ素の form で
  * 送ります。理由は `features/dev-session/paths.ts` の `DEV_AUTHORIZE_PATH` が持ちます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 発行フォームの送信内容。
+ * @returns 送信結果を表す action state。成立時は戻り先へ redirect するため戻らない。
  */
 export async function issueDevSessionAction(
   _previous: DevSessionFormState,
@@ -74,6 +78,10 @@ export async function issueDevSessionAction(
  * @remarks
  * 画面に留まります。捨てた結果は同じ画面が出し直す「いまの session」に現れるため、別の場所へ
  * 送る理由がありません。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param _formData - 使わない（送信内容を必要としない操作のため）。
+ * @returns 送信結果を表す action state。
  */
 export async function discardDevSessionAction(
   _previous: DiscardSessionFormState,

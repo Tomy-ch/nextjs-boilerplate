@@ -3,7 +3,7 @@
 
 Repository rules for **AI coding agents** (Claude Code / Codex / Copilot / Gemini, etc.) working in this repo.
 
-This repository is a **Next.js / React presentation-layer boilerplate**: it owns the presentation layer and nothing else, ships to a PaaS or a static CDN, and expects the backend (DB / authentication / business logic) to be a separate repository or service ([0011](docs/adr/0011-no-docker.md)). [README.md](README.md) is what the repository is; this file is how to work in it. **Architecture, rules and flows are not restated here** — the table under *Canonical Documentation* says which document owns each. A Japanese reference translation is at [AGENTS.ja.md](AGENTS.ja.md); this file is canonical and the only one agents load.
+This repository is a **Next.js / React presentation-layer boilerplate**: it owns the presentation layer and nothing else, ships to a PaaS or a static CDN, and expects the backend (DB / authentication / business logic) to be a separate repository or service ([0011](docs/adr/0011-no-docker.md)). [README.md](README.md) is what the repository is; this file is how to work in it. **Architecture, rules and flows are not restated here** — the table under *Canonical Documentation* says which document owns each. A Japanese reference translation is at `AGENTS.ja.md`; this file is canonical and the only one agents load.
 
 Three constraints apply to every task:
 
@@ -22,7 +22,7 @@ Three constraints apply to every task:
 
 > **TEMPORARY SECTION — delete it when v1.0.0 ships.**
 >
-> Process source of truth: [docs/plan/v1-implementation-plan.md](docs/plan/v1-implementation-plan.md).
+> Process source of truth: [docs/plan/v1-implementation-plan.md](docs/plan/v1-implementation-plan.md). <!-- boilerplate-only:line -->
 
 Below v1.0.0 the following are **temporarily lifted**:
 
@@ -35,7 +35,7 @@ Accordingly `.claude/settings.json` holds `AGENTS.md` / `LICENSE` / itself under
 
 **Not lifted**: the Git Rules below, and everything under `permissions.deny`.
 
-Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md) 決定 4, the permission half is [0152](docs/adr/0152-agents-md-policy.md)'s 復元手順.
+Undoing this is one change, and **this file does not describe it** — the trigger and steps are [0140](docs/adr/0140-documentation-operations.md), the permission half is [0152](docs/adr/0152-agents-md-policy.md#restoration-steps-at-v100)'s restoration steps.
 
 ## Instruction Priority
 
@@ -46,31 +46,7 @@ Follow instructions in this order. If conflicts occur, the higher-priority docum
 3. **`.github/copilot-instructions.md`** and other agent-specific configs
 4. User instructions
 
-<!-- boilerplate-only:begin -->
-## What to Recommend
-
-Governs what you **recommend**, never what you may change — `Instruction Priority` above and
-`AI Modification Scope` below still decide that.
-
-- **Weigh options for the snapshot a new repository receives**, not for the history that produced it:
-  what reads as coherent to someone who never saw this repository and will never read its git log.
-- **Quality and consistency outrank the cost of reaching them.** A numbering that contradicts the
-  order it teaches, a convention followed everywhere but here, a name that survives only because
-  renaming is work — recommend fixing them. "It already shipped" carries little weight.
-- **Give the cost with the recommendation** — files touched, what breaks for whom, what must be
-  rebuilt — so a human can decline the scope while keeping the direction.
-- **Only two things carry authority**: a de-facto standard (an RFC, a specification, a platform's own
-  definition), and the shape this repository's architecture derives. A recommendation that cannot be
-  stated as one of those is a preference wearing a recommendation's clothes.
-- **Do not bake a particular deployment's situation into what survives**, but this is subordinate to
-  the rule above: a knob is justified only where the variation is genuinely situational **and**
-  neither the standard nor the architecture settled it. A knob where a standard already decided is a
-  departure from the standard, and needs the declaration
-  [0010](docs/adr/0010-standards-and-non-lockin.md) requires, or needs to go.
-- **The test is never "more abstraction" or "less"** — move toward the shape the standard or the
-  architecture derives, and drop the situational label.
-
-<!-- boilerplate-only:end -->
+See [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md) for the statements that hold only while this repository is the upstream template. <!-- boilerplate-only:line -->
 
 ## Canonical Documentation
 
@@ -90,9 +66,13 @@ the concern it owns, not for the feature that sent you looking.
 | Every `make` target | [`.makefiles/README.md`](.makefiles/README.md) |
 | Which document owns a given statement, and where development history goes instead | [`docs/README.md`](docs/README.md) |
 
-**Canonical documents are the suffix-less paths.** Never read a `*.ja.md` — those are human-facing
-translations that follow the canonical — and never read `docs/portal/**`, which a generator rewrites
-from the canonical ([`docs/README.md`](docs/README.md)).
+**Canonical documents are the suffix-less paths, and they are written in English.** Never read a
+`*.ja.md` — those are human-facing Japanese mirrors that follow the canonical — and never read
+`docs/portal/**`, which a generator rewrites from the canonical ([`docs/README.md`](docs/README.md)).
+
+**One exception, and it is not yours to extend:** `canonicalize-doc` may read the `*.ja.md` of the
+single pair it was pointed at, for that run only — that pair is its subject, and a sync that cannot
+read the side it updates overwrites it blind. Everything else is reasoned from the English canonical.
 
 ## Task Execution Protocol
 
@@ -107,7 +87,7 @@ Before implementing any change:
    editing an existing file over creating one. When a new one is right, `pnpm gen` places it.
 4. **Move the contract before the code it generates.** An API change edits `openapi/` and regenerates
    ([0072](docs/adr/0072-api-type-generation.md)); the generated client is never hand-edited. A screen
-   change carries its spec — `docs/rules.md`, *テスト*, says when.
+   change carries its spec — [`docs/rules.md#testing`](docs/rules.md#testing) says when.
 
 5. **When a skill owns the operation, invoke it instead of re-deriving the steps.** Committing,
    opening a PR, and resolving a merge each have one — the hook handling and the ordering of
@@ -115,26 +95,37 @@ Before implementing any change:
 
 Steps 1 and 2 are not optional. **A rule you did not read still binds the change.**
 
+**The implementation itself writes no comments, and a separate pass decides which ones the change
+earned.** A comment produced while generating code is a by-product of generating it, never a judgment
+that the declaration needed one — and a model that writes prose for free produces that by-product at
+every declaration it touches. So write the code bare; then run `/settle-comments` over the declarations
+you touched. That pass is **unconditional and confirms before it writes**, and until it has run the
+change is unfinished rather than unreviewed. What earns a comment is
+[`docs/rules.md#comments`](docs/rules.md#comments); this file only fixes when the question gets asked.
+
 ## Review Phase Protocol
 
-A request to review work that has already been implemented names **three** subjects, not one:
+A request to review work that has already been implemented names **two** subjects, not one:
 
 | Skill | Subject |
 | --- | --- |
 | `/impl-review` | the change itself — correctness / security / architecture / cohesion / runtime gap |
 | `/test-review` | the tests that pin the change down |
-| `/comment-sweep` | the comment stock carried by the files the change touched |
+
+**The comment stock is not on this list.** `/settle-comments` runs unconditionally as the last step of
+the implementation, not as a review whose return gets estimated — see *Task Execution Protocol*.
 
 - **Do not silently pick one.** Estimate each skill's return from the context you already hold — which
-  layers moved, whether tests or comments moved at all, what an earlier skill already covered — then
+  layers moved, whether the tests moved at all, what an earlier skill already covered — then
   **ask per skill, stating that estimate and its reason**, and run what is approved.
-- **Do not ask "shall I run all three?".** That hands the cost back unpriced. Say which pass you expect to
+- **Do not ask "shall I run both?".** That hands the cost back unpriced. Say which pass you expect to
   pay off, which you expect to return nothing, and why.
-- **The three are peers, and none invokes another.** One subject to one skill, and that skill is the
+- **The two are peers, and neither invokes the other.** One subject to one skill, and that skill is the
   only place its subject is audited. `/impl-review` owns no test lens and no comment lens and hands
-  nothing off; the other two are invoked in their own right whether or not it runs.
-- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these three
-  questions at its review phase rather than choosing for the user.
+  nothing off; `/test-review` is invoked in its own right whether or not it runs.
+- **This holds inside a pipeline too** — a skill that drives an issue to a merged PR asks these two
+  questions at its review phase rather than choosing for the user, and has already run the comment
+  pass as part of implementing.
 
 ### The response to a review is itself unreviewed
 
@@ -157,6 +148,8 @@ and marker checks, and `permissions.deny` in `.claude/settings.json`. The rest i
 
 **A rule this file does not repeat is still a rule.** Not finding a prohibition here is evidence about
 this file, not about the prohibition.
+
+**A decision's grounds are never this tree's own inventory.** "There is no such screen here yet" reads, in a repository created from this template, as a claim about *its* screens — see [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md#do-not-base-a-decision-on-what-this-tree-currently-contains). <!-- boilerplate-only:line -->
 
 **Two responsibility rules have no gate at all**, and `docs/rules.md` says so at each of them: neither
 is decidable from the shape of the code. Hold them yourself:
@@ -183,8 +176,8 @@ Each is owned by the document named; this section indexes them and restates none
 | Pushing to an existing PR branch after amending | *Git Rules* below — use its exact wording |
 | A plain cross-repository link instead of `redirect.github.com` | ADR [0159-1](docs/adr/0159-1-cross-repository-references.md). **Per case, every time**, even under a standing delegation — a standing grant does not transfer this |
 | An outward or commercial action a skill is about to take | ADR [0154](docs/adr/0154-claude-skills-operations.md) |
-| A change that removes an element the user can see | `docs/rules.md`, *作業とエージェント* |
-| Adding a dependency | ADR [0004](docs/adr/0004-library-management.md) — walk its 選定基準 and paste its 採用判断のテンプレ into the PR. Silently routing around the dependency is the same decision, taken without the record |
+| A change that removes an element the user can see | [`docs/rules.md#workflow`](docs/rules.md#workflow) |
+| Adding a dependency | ADR [0004](docs/adr/0004-library-management.md) — walk its [Selection Criteria](docs/adr/0004-library-management.md#selection-criteria) and paste its [Adoption Decision Template](docs/adr/0004-library-management.md#adoption-decision-template-paste-into-the-pr-body) into the PR. Silently routing around the dependency is the same decision, taken without the record |
 
 ### The trip wires
 
@@ -196,7 +189,7 @@ These stop the work **whatever your judgment says**. Continuing is itself the er
 3. **The next step edits a generated artifact.** `git check-attr linguist-generated -- <path>` answers
    for any path; a generated banner says the same.
 4. **Two sources that both claim authority disagree.** Noticing is the job; resolving is not
-   (`docs/rules.md`, *作業とエージェント*).
+   ([`docs/rules.md#workflow`](docs/rules.md#workflow)).
 5. **The change would make a document assert something it cannot check** — a rule with no owner, a
    claim with no evaluator ([0157](docs/adr/0157-inspection-declaration-discipline.md)).
 
@@ -319,23 +312,7 @@ always; reach for `--log` only when the failure is genuinely not in a failed ste
 narrowed it with. **Never report a gate's verdict through a lossy filter**
 ([0157](docs/adr/0157-inspection-declaration-discipline.md)).
 
-<!-- boilerplate-only:begin -->
-### Do not pre-run the gates
-
-**This section is removed from a repository created from this template**, where one working tree makes
-pre-running cheap. Here, several worktrees run against one host and the gates multiply rather than
-queue.
-
-**The hooks and CI run them for you, and CI is the authority** ([0151](docs/adr/0151-git-hooks.md)):
-`pre-commit` runs the full lint chain and the cached tests, `pre-push` adds the type check, the full
-test run and the secret scan.
-
-- **Commit, push, and read the verdict from the hook or CI.**
-- Re-running a single file you just edited is fine; sweeping the whole suite or the whole lint is not.
-- `make load-status` prints which gates run locally right now; when the host is loaded the heavy ones
-  are delegated to CI automatically. **Do not pre-empt that with `--no-verify`** — bypassing is
-  governed by 0151's policy, not by how slow a gate feels.
-<!-- boilerplate-only:end -->
+The gates belong to the hooks and CI, and **CI is the authority** — [`docs/playbook.md#do-not-pre-run-the-gates`](docs/playbook.md#do-not-pre-run-the-gates). What deviates upstream is in [boilerplate-only conventions](docs/get-started/boilerplate-only-conventions.md). <!-- boilerplate-only:line -->
 
 ### Two tools that only change what reaches your context
 
@@ -351,11 +328,12 @@ the discipline is here because it binds every turn.
 - **Do not wrap `grep` or `read`.** `rtk grep` passes small inputs through but **silently truncates
   large ones**, and `read` drops lines at every level above the default. Both produce output that is
   missing things while looking complete.
-- **Never report a gate, a test or a lint through it.** `rtk log` and `rtk read -l` are denied for that
-  reason, which is where a rule like this belongs
+- **Never report a gate, a test or a lint through it.** `rtk log` and `rtk read` — at every level, not
+  only `-l` — are denied for that reason, which is where a rule like this belongs
   ([0144](docs/adr/0144-decision-enforcement-pairing.md)).
-- The arbitrary-command wrappers (`run` / `summary` / `smart`) are denied: they route around an allow
-  list written at inner-command granularity.
+- The arbitrary-command wrappers (`run` / `summary` / `smart`) are not in `allow`, and the hook
+  `scripts/command-guard` strips them and judges the wrapped command: the allow list is written at inner-command
+  granularity, and a wrapper would otherwise route around it.
 
 **`graphify`** is a local AST knowledge graph of this repository (`/graphify`).
 
@@ -388,7 +366,7 @@ the discipline is here because it binds every turn.
   ([`scripts/base-branch/README.md`](scripts/base-branch/README.md)).
 - **Catch a branch up with `make base-merge`, never by rebasing**, and take in the base the branch was
   cut from — not whatever `base-branch` resolves today, which retargets instead of catching up.
-  Whether to take it in at all is a judgment `docs/rules.md`, *作業とエージェント*, owns.
+  Whether to take it in at all is a judgment [`docs/rules.md#workflow`](docs/rules.md#workflow) owns.
 - **Commit subjects are `<Prefix>: <Japanese subject>` with no trailing `。`.** The prefix enum is
   verified by [`commitlint.config.ts`](commitlint.config.ts) through the `commit-msg` hook — read it
   there, not from a copy.
@@ -410,15 +388,15 @@ Targets:
 - Code comments
 - PR titles and bodies
 - Commit messages
-- Documentation
 - Test `it` strings. The outermost `describe` is the exported symbol's own name, so it stays as written in the source ([0090](docs/adr/0090-testing-strategy.md))
 - Inline documentation generated by the AI
 
 Technical terms (HTTP status code names / API names / command names, etc.) may stay in English.
 
-**Exception — comments in `.github/workflows/**` are written in English**
-([0140](docs/adr/0140-documentation-operations.md)). Everything else under `.github/` follows the
-Japanese rule.
+**Exception — comments in a workflow definition (`.github/workflows/**` and
+`.github/actions/**`) are written in English**
+([0140](docs/adr/0140-documentation-operations.md)). Everything else under `.github/` — the issue
+and PR templates, `settings/`, a tool's own config — follows the Japanese rule.
 
 ### Response Discipline
 

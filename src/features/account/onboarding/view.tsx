@@ -35,12 +35,11 @@ export type OnboardingViewProps = {
 };
 
 /**
- * 登録（オンボーディング）の画面。
+ * 9 項目を段に分けて進め、送信は最後の段で 1 回だけ行う登録の器。
  *
  * @remarks
- * **段に分けて進みます。** 初めての入力では一度に 9 項目を見せる理由が無く、進捗と行き来だけを
- * `WizardForm` が持ちます。**表示していない段も DOM に残る**ため、送信は最後の段で 1 回、
- * 全項目を載せて行われます。
+ * 初めての入力では一度に全項目を見せる理由が無く、進捗と行き来だけを `WizardForm` が持ちます。
+ * **表示していない段も DOM に残る**ため、送信には全項目が載ります。
  *
  * 検証といつ誤りを見せるかは `useProfileFields`、住所の補完は住所の段が持ちます。
  *
@@ -48,6 +47,8 @@ export type OnboardingViewProps = {
  * 項目からだけ出します。
  *
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません。
+ *
+ * @param props - 選べる都道府県、この登録を指す鍵、登録を終えた利用者を戻す先。
  */
 export function OnboardingView({
   idempotencyKey: initialIdempotencyKey,

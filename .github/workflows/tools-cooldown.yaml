@@ -23,8 +23,7 @@ name: Tools Cooldown
 # of the check, so unlike `actions-pin` it cannot be an offline comparison.
 # Not a required check: the job stands down for a diff that does not touch `mise.toml`.
 #
-# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is in
-# README.md.
+# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
 
 on:
   pull_request:
@@ -58,9 +57,8 @@ jobs:
         with:
           persist-credentials: false
 
-      # The subject is `mise.toml`, not the tree: no source change alters a pin's publish
-      # date. Admissible as an allow-list only because the weekly audit above reads every
-      # pin — a mistake here defers a check by a week, it does not remove it.
+      # The subject is `mise.toml`, not the tree, and the weekly audit above reads every pin
+      # — the two halves `only` requires (see the note in the action).
       - name: Decide whether the diff can reach the pins
         id: scope
         uses: ./.github/actions/diff-scope
@@ -85,7 +83,7 @@ jobs:
         if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
-      # `GITHUB_TOKEN` is the one secret a checking step may carry (README § PR コメント):
+      # `GITHUB_TOKEN` is the one secret a checking step may carry (README § PR Comments):
       # the unauthenticated GitHub API budget does not cover one run. The base ref is handed
       # to the script through the environment, never expanded into a make recipe line — a
       # branch name may carry shell metacharacters.
@@ -147,7 +145,7 @@ jobs:
         if: always() && steps.scope.outputs.relevant == 'true' && steps.cooldown.outputs.status != 'success'
         run: exit 1
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: tools-cooldown
     if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.tools-cooldown.result) }}

@@ -37,6 +37,7 @@ import { List, ListItem, ListItemMedia } from "@/components/design-system/displa
  * </ActivityTimeline>
  * ```
  *
+ * @param props - native `ol` 属性（`aria-label` を除く）と、以下の表示用 props。
  * @param props.label - この履歴のアクセシブルな名前。
  *
  * @see Storybook `Display/ActivityTimeline`
@@ -65,6 +66,7 @@ export function ActivityTimeline({
  * 先頭の印は装飾である。誰が何をしたかは `ListItemTitle` の文言が伝える。印だけが actor を示す
  * 作りにしない。
  *
+ * @param props - native `li` 属性（`size` を除く）と、以下の表示用 props。
  * @param props.marker - 先頭に置く印。avatar や icon を渡す。省略すると印の枠だけが残り、
  *   行の頭が揃う。
  *
@@ -105,6 +107,7 @@ export function ActivityTimelineItem({
  *
  * 整形はこの部品が持たない。locale ごとの表記は `model` の formatter が決める。
  *
+ * @param props - native `time` 属性と、以下の表示用 props。
  * @param props.dateTime - ISO 8601 の値。
  *
  * @see Storybook `Display/ActivityTimeline`

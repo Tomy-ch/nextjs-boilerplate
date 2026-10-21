@@ -67,10 +67,10 @@ export function KeyValueItem({ className, ...props }: ComponentProps<"div">) {
 }
 
 /**
- * 項目名。
+ * 値そのものではなく、値が何であるかを示す短い語を置く項目名。
  *
  * @remarks
- * 値そのものではなく、値が何であるかを示す短い語を置く。補足が要る場合は value 側へ書く。
+ * 補足が要る場合は value 側へ書く。
  *
  * @param props - native `dt` 属性。
  *
@@ -83,10 +83,10 @@ export function KeyValueLabel({ className, ...props }: ComponentProps<"dt">) {
 }
 
 /**
- * 項目の値。
+ * 長い値を折り返して見せる項目の値。
  *
  * @remarks
- * 長い値は折り返す。改行を含む値をそのまま見せる場合は、呼び出し元が `className` で
+ * 改行を含む値をそのまま見せる場合は、呼び出し元が `className` で
  * `whitespace-pre-line` を指定する。値が無い場合は `KeyValueEmpty` を置く。
  *
  * @param props - native `dd` 属性。

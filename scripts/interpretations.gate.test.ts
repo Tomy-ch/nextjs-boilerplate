@@ -11,9 +11,10 @@ import { describe, expect, it } from "vitest";
 
 const REPOSITORY_ROOT = path.resolve(import.meta.dirname, "..");
 const LEDGER_PATH = "docs/reference/upstream-interpretations.md";
+const MIRROR_PATH = "docs/reference/upstream-interpretations.ja.md";
 
 /** 判定として認める 3 値。4 つめを作らせない。 */
-const VERDICTS = ["差異なし", "差異あり", "逸脱宣言あり"] as const;
+const VERDICTS = ["No difference", "Undeclared difference", "Declared deviation"] as const;
 
 type Row = {
   readonly line: number;
@@ -24,39 +25,65 @@ type Row = {
   readonly checkedAt: string;
 };
 
-/** 目録の表から行を読む。見出し行と区切り行は落とす。 */
-function parseRows(): readonly Row[] {
-  const lines = readFileSync(path.join(REPOSITORY_ROOT, LEDGER_PATH), "utf8").split("\n");
+/** 目録の表の列数。判定の 3 値を説明する表など、この文書の他の表は列数で見分ける。 */
+const LEDGER_COLUMNS = 5;
 
-  return lines.flatMap((raw, index) => {
-    const line = raw.trim();
+/** Markdown の表の 1 行をセルに分ける。表の行でなければ `undefined`。 */
+function splitCells(raw: string): readonly string[] | undefined {
+  const line = raw.trim();
 
-    if (!line.startsWith("|") || !line.endsWith("|")) {
-      return [];
+  if (!line.startsWith("|") || !line.endsWith("|")) {
+    return undefined;
+  }
+
+  return line
+    .slice(1, -1)
+    .split(" | ")
+    .map((cell) => cell.trim());
+}
+
+/**
+ * 目録の表から行を読む。見出しが 5 列の表の、区切り行より下をすべて行とみなす。
+ *
+ * 判定の文言では行を選ばない。文言で選ぶと、未知の判定を持つ行が黙って落ち、
+ * 「判定が 3 値のどれかである」が検査する前に消えてしまう。
+ */
+function parseRows(relativePath: string): readonly Row[] {
+  const lines = readFileSync(path.join(REPOSITORY_ROOT, relativePath), "utf8").split("\n");
+  const rows: Row[] = [];
+  let inLedger = false;
+
+  lines.forEach((raw, index) => {
+    const cells = splitCells(raw);
+
+    if (cells === undefined) {
+      inLedger = false;
+      return;
     }
 
-    const cells = line
-      .slice(1, -1)
-      .split(" | ")
-      .map((cell) => cell.trim());
+    const previous = index > 0 ? splitCells(lines[index - 1] ?? "") : undefined;
 
-    // 判定の列に 3 値のどれかが在る行だけを目録の行とみなす。判定の 3 値を説明する表や、
-    // この文書の他の表を巻き込まないため。
-    if (cells.length !== 5 || !VERDICTS.some((verdict) => cells[2]?.includes(verdict))) {
-      return [];
+    // 区切り行に出会ったら、その直前の見出しの列数で、目録の表かを決める。
+    if (cells.every((cell) => /^:?-+:?$/.test(cell))) {
+      inLedger = previous?.length === LEDGER_COLUMNS;
+      return;
     }
 
-    return [
-      {
-        line: index + 1,
-        source: cells[0] ?? "",
-        ours: cells[1] ?? "",
-        verdict: cells[2] ?? "",
-        premise: cells[3] ?? "",
-        checkedAt: cells[4] ?? "",
-      },
-    ];
+    if (!inLedger) {
+      return;
+    }
+
+    rows.push({
+      line: index + 1,
+      source: cells[0] ?? "",
+      ours: cells[1] ?? "",
+      verdict: cells[2] ?? "",
+      premise: cells[3] ?? "",
+      checkedAt: cells[4] ?? "",
+    });
   });
+
+  return rows;
 }
 
 /** セル内の Markdown リンクが指すリポジトリ相対パス。 */
@@ -73,11 +100,16 @@ function linkedPaths(cell: string): readonly string[] {
 }
 
 describe("原典との突合の目録", () => {
-  const rows = parseRows();
+  const rows = parseRows(LEDGER_PATH);
 
   // ----- 正常系 -----
   it("行を 1 件以上持つ", () => {
     expect(rows.length).toBeGreaterThan(0);
+  });
+
+  it("日本語の写しが、正本と同じ数の行を持つ", () => {
+    // 写しの判定は日本語の語で書くので、文言ではなく行数で対を見る。
+    expect(parseRows(MIRROR_PATH)).toHaveLength(rows.length);
   });
 
   it("判定が 3 値のどれかである", () => {

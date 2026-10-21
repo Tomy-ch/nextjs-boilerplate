@@ -1,5 +1,5 @@
 // 索引させる設定（`SITE_INDEXABLE=on`）で build して起動したアプリの公開面を、クローラが読む形で
-// 確かめる。何を見るか・なぜ別の build かは `e2e/README.md`「索引させる側だけは別の build で回る」。
+// 確かめる。何を見るか・なぜ別の build かは `e2e/README.md#the-indexable-side-runs-in-a-separate-build`。
 //
 // **`e2e/lib/test.ts` の test は使わない。** 理由は同じ節にあるが、ここで開くのは画面ではなく応答
 // なので、見張りも要らない。

@@ -27,6 +27,10 @@ const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画�
  * カートの画面で確かめられます。
  *
  * 在庫を超えても拒みません。買えるかどうかはバックエンドが明細の事情として返します。
+ *
+ * @param _previous - `useActionState` が渡す直前の結果。ここでは使いません。
+ * @param formData - 送信された FormData。`productId` を含みます。
+ * @returns 受け付けた・拒んだ・失敗したのいずれかの結果。
  */
 export async function addToCartAction(
   _previous: ActionState<void>,
@@ -49,7 +53,7 @@ export async function addToCartAction(
     return actionStateFromError(error);
   }
 
-  // 明細は本体だけでなく、どの画面にも付く外枠（脇の領域と header の点数）にも出る。
+  // eslint-disable-next-line project-rules/no-app-wide-revalidate -- 明細は外枠に出る
   revalidatePath("/", "layout");
 
   return succeededActionState(undefined);

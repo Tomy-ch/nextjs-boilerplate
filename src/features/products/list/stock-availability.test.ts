@@ -4,6 +4,7 @@ import { FILTER_KEY } from "../facade/list-url/list-url";
 import {
   applyStockAvailability,
   formatStockAvailability,
+  formatStockQuantity,
   STOCK_AVAILABILITY,
   toStockAvailability,
 } from "./stock-availability";
@@ -93,5 +94,28 @@ describe("formatStockAvailability", () => {
 
   it("1 つも無い状態を「在庫なし」と呼ぶ", () => {
     expect(formatStockAvailability(STOCK_AVAILABILITY.OUT_OF_STOCK)).toBe("在庫なし");
+  });
+});
+
+describe("formatStockQuantity", () => {
+  // ----- 正常系 -----
+  it("下限と上限を 1 つの表示にまとめる", () => {
+    expect(
+      formatStockQuantity({ [FILTER_KEY.MIN_QUANTITY]: "5", [FILTER_KEY.MAX_QUANTITY]: "10" }),
+    ).toBe("5 〜 10");
+  });
+
+  it("片側だけなら、もう片方を指定なしと呼ぶ", () => {
+    expect(formatStockQuantity({ [FILTER_KEY.MIN_QUANTITY]: "5" })).toBe("5 〜 上限なし");
+    expect(formatStockQuantity({ [FILTER_KEY.MAX_QUANTITY]: "3" })).toBe("下限なし 〜 3");
+  });
+
+  it("下限も上限も指定が無ければ undefined を返す", () => {
+    expect(formatStockQuantity({})).toBeUndefined();
+  });
+
+  // ----- 異常系 -----
+  it("同じキーが複数回現れたら指定なしとして扱う", () => {
+    expect(formatStockQuantity({ [FILTER_KEY.MIN_QUANTITY]: ["1", "1"] })).toBeUndefined();
   });
 });

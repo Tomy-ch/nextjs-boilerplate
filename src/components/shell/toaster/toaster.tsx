@@ -24,13 +24,29 @@ export type {
 
 /** 通知の見せ方。`Toaster` と `ToastProvider` で共通する。 */
 type ToastAppearance = {
-  /** 積む隅。既定は {@link DEFAULT_TOAST_POSITION}。 */
+  /**
+   * 積む隅。
+   *
+   * @defaultValue {@link DEFAULT_TOAST_POSITION}
+   */
   position?: ToastPosition;
-  /** 常に展開して並べるか。既定では畳み、hover / focus で展開する。 */
+  /**
+   * 常に展開して並べるか。畳んだ状態では hover / focus で展開する。
+   *
+   * @defaultValue false
+   */
   expand?: boolean;
-  /** 領域へ focus を移すキー操作。既定は {@link DEFAULT_TOAST_HOTKEY}（Alt + T）。 */
+  /**
+   * 領域へ focus を移すキー操作。
+   *
+   * @defaultValue {@link DEFAULT_TOAST_HOTKEY}（Alt + T）
+   */
   hotkey?: ToastHotkey;
-  /** 領域のアクセシブルな名前。 */
+  /**
+   * 領域のアクセシブルな名前。
+   *
+   * @defaultValue "通知"
+   */
   label?: string;
 };
 
@@ -57,11 +73,7 @@ const DEFAULT_REGION_LABEL = "通知";
  * <Toaster onDismiss={dismiss} toasts={toasts} />
  * ```
  *
- * @param props.toasts - 表示する通知の配列。先頭が最も新しい。
- * @param props.onDismiss - 通知が閉じられたときに、その `id` を受け取る callback。
- *   自動で閉じた場合も呼ばれる。省略すると閉じる操作を提供しない。
- * @param props.visibleToasts - 同時に表示する上限。既定は {@link DEFAULT_VISIBLE_TOASTS}。
- *   超えた分は表示せず、表示中の通知が閉じると現れる。0 以下を渡すと何も表示しない。
+ * @param props - 並べる通知と、同時に表示する上限、および見せ方。
  *
  * @see Storybook `Feedback/Toaster`
  */
@@ -74,8 +86,19 @@ export function Toaster({
   hotkey = DEFAULT_TOAST_HOTKEY,
   label = DEFAULT_REGION_LABEL,
 }: {
+  /** 表示する通知の配列。先頭が最も新しい。 */
   toasts: Toast[];
+  /**
+   * 通知が閉じられたときに、その `id` を受け取る callback。
+   * 自動で閉じた場合も呼ばれる。省略すると閉じる操作を提供しない。
+   */
   onDismiss?: (id: string) => void;
+  /**
+   * 同時に表示する上限。
+   * 超えた分は表示せず、表示中の通知が閉じると現れる。0 以下を渡すと何も表示しない。
+   *
+   * @defaultValue {@link DEFAULT_VISIBLE_TOASTS}
+   */
   visibleToasts?: number;
 } & ToastAppearance) {
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(() => new Set());
@@ -164,9 +187,7 @@ const ToastContext = createContext<ToastControls | undefined>(undefined);
  * toast({ title: "保存しました", duration: 5000 });
  * ```
  *
- * @param props.children - 通知を出せる範囲。
- * @param props.defaultVisibleToasts - 同時に表示する上限の初期値。既定は
- *   {@link DEFAULT_VISIBLE_TOASTS}。以後は `useToast()` の `setVisibleToasts` で変えられる。
+ * @param props - 通知を出せる範囲と、同時に表示する上限の初期値、および見せ方。
  *
  * @see Storybook `Feedback/Toaster`
  */
@@ -178,7 +199,13 @@ export function ToastProvider({
   hotkey = DEFAULT_TOAST_HOTKEY,
   label = DEFAULT_REGION_LABEL,
 }: {
+  /** 通知を出せる範囲。 */
   children?: ReactNode;
+  /**
+   * 同時に表示する上限の初期値。以後は `useToast()` の `setVisibleToasts` で変えられる。
+   *
+   * @defaultValue {@link DEFAULT_VISIBLE_TOASTS}
+   */
   defaultVisibleToasts?: number;
 } & ToastAppearance) {
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -232,6 +259,7 @@ export function ToastProvider({
  * {@link ToastProvider} の外で呼ぶと例外を投げる。通知は Provider が保持する queue へ入るため、
  * 呼び出し側は表示位置も閉じる操作も知らなくてよい。
  *
+ * @returns 通知を出す・差し替える・取り除く操作と、同時表示上限の読み書き。
  * @throws Provider の外で呼ばれた場合。
  */
 export function useToast(): ToastControls {

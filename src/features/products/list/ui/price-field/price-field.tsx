@@ -32,7 +32,12 @@ const HIGH_INDEXES: readonly number[] = PRICE_SCALE.map((_, index) => index).sli
   PRICE_RANGE_MAX + 1,
 );
 
-/** 操作面が返した位置を、下限と上限の組として読む。 */
+/**
+ * 操作面が返した位置を、下限と上限の組として読む。
+ *
+ * @param values - 操作面（スライダー）が返した位置の配列。
+ * @returns 下限と上限の組。
+ */
 function toRange(values: number[]): PriceRange {
   /* istanbul ignore next -- 端は TS の絞り込みのためだけで、操作面は渡した数と同じ数の位置を返す。 */
   return [values[0] ?? PRICE_RANGE_MIN, values[1] ?? PRICE_RANGE_MAX];
@@ -53,6 +58,8 @@ function toRange(values: number[]): PriceRange {
  *
  * 滑らせている間の位置は自分で持ちますが、離した後は外から来る位置に従います。持ち続けると、
  * セレクトボックスで選び直した値をスライダーが映さなくなります。
+ *
+ * @param props - いま選ばれている下限・上限、確定の通知。
  */
 export function ProductPriceField({ value, onChange }: ProductPriceFieldProps) {
   "use memo";

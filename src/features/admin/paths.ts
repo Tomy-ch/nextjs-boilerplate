@@ -1,12 +1,11 @@
+import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
+import type { InquiryId } from "@/model/inquiry/inquiry";
 import type { ProductId } from "@/model/product/product";
 
 /**
- * 商品を管理する画面のパス。
+ * 商品を一覧で見る画面のパス。
  *
  * @remarks
- * 画面を挟まず feature 直下に置きます。管理の画面どうしが互いへの導線を持ち、利用者向けの器も
- * 管理への入口をここから引くため、どれか 1 つの画面の持ち物にできません。
- *
  * 一覧が扱う検索条件やページ送りはここに入れません。パスは admin の route 構成が変われば変わり、
  * 条件は一覧の作りが変われば変わる、別々に動くものです。
  */
@@ -24,17 +23,40 @@ export const ADMIN_SHIPMENT_QUEUE_PATH = "/admin/shipments";
 /** 利用者を一覧で見る画面のパス。 */
 export const ADMIN_USER_LIST_PATH = "/admin/users";
 
+/** 問い合わせを一覧で見る画面のパス。 */
+export const ADMIN_INQUIRY_LIST_PATH = "/admin/inquiries";
+
 /** 商品を作る画面のパス。 */
 export const ADMIN_PRODUCT_NEW_PATH = `${ADMIN_PRODUCT_LIST_PATH}/new`;
 
-/** 商品を編集する画面のパス。 */
+/**
+ * 商品を編集する画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 編集画面のパス
+ */
 export function adminProductEditPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/edit`;
 }
 
-/** 在庫を補充する画面のパス。 */
+/**
+ * 在庫を補充する画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 在庫補充画面のパス
+ */
 export function adminProductStockPath(id: ProductId): string {
   return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/stock`;
+}
+
+/**
+ * 商品を廃番にする画面のパス。
+ *
+ * @param id - 対象の商品
+ * @returns 廃番にする画面のパス
+ */
+export function adminProductDiscontinuePath(id: ProductId): string {
+  return `${ADMIN_PRODUCT_LIST_PATH}/${encodeURIComponent(id)}/discontinue`;
 }
 
 /**
@@ -46,7 +68,20 @@ export function adminProductStockPath(id: ProductId): string {
  * 人が求めているのは「どんな商品か」であって編集ではありません。
  *
  * 管理側に 1 件を眺める面ができたら、行き先をそちらへ替えるのはこの関数だけです。
+ *
+ * @param id - 対象の商品
+ * @returns 商品を眺める利用者向け画面のパス
  */
 export function productDetailPath(id: ProductId): string {
-  return `/products/${encodeURIComponent(id)}`;
+  return toProductDetailHref(id);
+}
+
+/**
+ * 問い合わせ 1 件のやり取りを見る画面のパス。
+ *
+ * @param id - 対象の問い合わせ
+ * @returns やり取りを見る画面のパス
+ */
+export function adminInquiryDetailPath(id: InquiryId): string {
+  return `${ADMIN_INQUIRY_LIST_PATH}/${encodeURIComponent(id)}`;
 }

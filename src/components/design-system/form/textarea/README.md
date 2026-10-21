@@ -1,23 +1,23 @@
 # Textarea
 
-## 用途
+## Purpose
 
-複数行の native `textarea` を表示・送信します。
+Shows and submits a multi-line native `textarea`.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Textarea` | native `textarea` の属性・form 送信を保ったまま見た目を統一する、SSR first の複数行入力です。 |
+| `Textarea` | An SSR-first multi-line input that unifies the look while keeping the native `textarea` attributes and form submission. |
 
-## 利用ケース
+## Use Cases
 
-`name`、`rows`、`required`、`value` などを使う複数行の form 入力に使います。
+Use it for multi-line form input that uses `name`, `rows`, `required`, `value` and so on.
 
-## 責務境界
+## Responsibility Boundaries
 
-項目名・説明・検証エラーは `Label` / `Field` または feature が構成します。`aria-invalid` と `aria-describedby` の関連付けも呼び出し側が行います。
+The item name, description and validation errors are composed by `Label` / `Field` or the feature. The caller also makes the `aria-invalid` and `aria-describedby` associations.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・行数・disabled・invalid を、テストは native 属性と a11y を確認します。
+Storybook checks normal, row count, disabled and invalid; the tests check the native attributes and a11y.

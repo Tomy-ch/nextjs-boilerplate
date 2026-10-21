@@ -25,6 +25,9 @@ export type CheckoutCompletePageContentProps = {
  * この画面が他人の購入を映すことはありません。
  *
  * try の範囲は取得だけです。描画中の例外はここでは捕まらないため、捕まるように見える形にしません。
+ *
+ * @param purchaseCode - 取得する購入コード。
+ * @returns 取得した購入。
  */
 async function loadPurchase(purchaseCode: string): Promise<Purchase> {
   try {
@@ -48,6 +51,8 @@ async function loadPurchase(purchaseCode: string): Promise<Purchase> {
  *
  * 指し先が読めない場合も `not-found` にします。確定を経ずに開かれた URL であり、見せる購入が
  * ありません。
+ *
+ * @param props - {@link CheckoutCompletePageContentProps} を参照。
  */
 export const CheckoutCompletePageContent = withScreenSpan(
   "features/checkout/complete/page-content",

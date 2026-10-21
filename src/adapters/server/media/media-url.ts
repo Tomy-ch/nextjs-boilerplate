@@ -9,6 +9,9 @@ import { mediaUrl } from "@/model/media";
  * @remarks
  * 配信元は設定から来ます。設定を読めるのは `adapters` までで、feature は読めません。
  * 組み立ての規則そのものは `model` が持ち、ここは配信元を束ねるだけです。
+ *
+ * @param imagePath - 解決するオブジェクトキー
+ * @returns 解決した URL。解決できなければ `null`
  */
 export function resolveMediaUrl(imagePath: string | null): string | null {
   return mediaUrl(getMediaConfig().origin, imagePath);

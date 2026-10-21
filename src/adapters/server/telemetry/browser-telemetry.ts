@@ -83,6 +83,8 @@ export function parseTelemetryReport(value: unknown): TelemetryReport | undefine
  * 画面を組んだ要求の trace へ紐づけます。
  *
  * 記録の失敗はここで止めます。ブラウザは応答を読まないので、投げても伝わる相手が居ません。
+ *
+ * @param report - 記録する検証済みの報告
  */
 export function recordTelemetryReport(report: TelemetryReport): void {
   reportQuietly(() => {

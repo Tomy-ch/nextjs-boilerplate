@@ -30,6 +30,12 @@ describe("renderDigest", () => {
     );
   });
 
+  it("スキャナが強制する期限を持つ宣言は、期限を列として添える", () => {
+    expect(renderDigest([{ ...SUPPRESSION, until: "2026-11-02" }])).toBe(
+      "osv-scanner.toml\tGHSA-1111\t2026-08-02 以降に削除する。\t期限 2026-11-02",
+    );
+  });
+
   it("宣言が無ければ空を返す", () => {
     expect(renderDigest([])).toBe("");
   });

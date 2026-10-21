@@ -3,6 +3,7 @@ import {
   type ProductListSelection,
   toSelectedValue,
 } from "../facade/list-url/list-url";
+import { formatRangeLabel } from "./range-label";
 
 /**
  * 在庫の有無で選べる状態。
@@ -51,7 +52,12 @@ export const STOCK_AVAILABILITY_OPTIONS: readonly StockAvailabilityOption[] = Ob
   STOCK_AVAILABILITY,
 ).map((value) => ({ value, label: STOCK_AVAILABILITY_TEXT[value] }));
 
-/** 在庫状況の表示名。 */
+/**
+ * 在庫状況の表示名。
+ *
+ * @param availability - 在庫状況
+ * @returns 表示名
+ */
 export function formatStockAvailability(availability: StockAvailability): string {
   return STOCK_AVAILABILITY_TEXT[availability];
 }
@@ -66,6 +72,9 @@ export const STOCK_AVAILABILITY_LABEL = "在庫状況";
  * 在庫数の下限と上限は URL で直接指定でき、「1 つ以上」「1 つも無い」以外の範囲も書けます。
  * どちらにも当てはまらない範囲は「すべて」として読みます。3 つの選択肢のどれかに寄せると、
  * 選んでいない状態が選ばれているように見えます。
+ *
+ * @param selection - いま効いている条件
+ * @returns 在庫状況
  */
 export function toStockAvailability(selection: ProductListSelection): StockAvailability {
   const min = toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY);
@@ -82,7 +91,34 @@ export function toStockAvailability(selection: ProductListSelection): StockAvail
   return STOCK_AVAILABILITY.ALL;
 }
 
-/** 在庫状況を在庫数の条件へ書き戻す。 */
+/** 在庫数の条件名。3 つの選択肢のどれにも当たらない範囲の chip に出す。 */
+export const STOCK_QUANTITY_LABEL = "在庫数";
+
+/**
+ * いま効いている在庫数の条件を、下限と上限をまとめた 1 つの表示へ写す。
+ *
+ * @remarks
+ * 選択肢のどれにも当たらない範囲も条件としては効いています。在庫状況へ写すと「すべて」に見えて
+ * 効いている条件が表示から消えるため、こちらは URL の値から作ります。
+ *
+ * @param selection - いま効いている条件
+ * @returns 表示用の文字列。下限も上限も指定が無ければ `undefined`
+ */
+export function formatStockQuantity(selection: ProductListSelection): string | undefined {
+  return formatRangeLabel(
+    toSelectedValue(selection, FILTER_KEY.MIN_QUANTITY),
+    toSelectedValue(selection, FILTER_KEY.MAX_QUANTITY),
+    (quantity) => quantity,
+  );
+}
+
+/**
+ * 在庫状況を在庫数の条件へ書き戻す。
+ *
+ * @param selection - いま効いている条件
+ * @param availability - 在庫状況
+ * @returns 書き戻した後の条件
+ */
 export function applyStockAvailability(
   selection: ProductListSelection,
   availability: StockAvailability,

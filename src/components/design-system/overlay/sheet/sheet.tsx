@@ -142,12 +142,16 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
      *
      * - `right` / `left`: 画面の高さいっぱいの縦長パネル。navigation や絞り込みに使う
      * - `top` / `bottom`: 画面の幅いっぱいの横長パネル。内容の高さに合わせて伸縮する
+     *
+     * @defaultValue SHEET_SIDE.RIGHT
      */
     side?: SheetSide;
     /**
      * 右上の閉じる操作を描画するか。
      *
      * `false` にする場合は、内容側に `SheetClose` の閉じる手段を必ず用意する。
+     *
+     * @defaultValue true
      */
     showCloseButton?: boolean;
   };

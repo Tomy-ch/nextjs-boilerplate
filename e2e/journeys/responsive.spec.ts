@@ -2,15 +2,14 @@ import { expect, test } from "../lib/test";
 import { loadBands, loadBreakpoints, VIEWPORT_HEIGHT } from "../lib/viewports";
 
 /**
- * 帯ごとの出し分け（`docs/rules.md`「レイアウトと帯」の「脇に常設する領域は `lg` 以上でだけ出す」）。
+ * 帯ごとの出し分け（`docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above"）。
  *
  * @remarks
  * 規約が決めているのは「本文の脇に常設する領域は `lg` 以上でだけ出す」ことです。幅は design token
  * が持ち、帯は [viewports](../lib/viewports.ts) がそこから組み立てます。ここに数値はありません。
  *
- * 見た目の比較（`../visual/`）とは別に持ちます。あちらが答えるのは「前と変わったか」で、ここが
- * 答えるのは「決めたとおりに出し分けているか」です。基準画像を撮り直せば前者は通りますが、
- * 出し分けが壊れたことは後者でしか分かりません。
+ * 見た目の比較（`../visual/`）と別に持つ理由は [README](../README.md#per-band-variation)。
  */
 
 /** 本文の脇に常設する領域。 */

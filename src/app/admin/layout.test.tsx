@@ -21,6 +21,7 @@ vi.mock("next/navigation", () => ({
 
 import { SESSION_ROLE, type Session } from "@/model/session";
 
+import { SITE_NAME } from "../site";
 import AdminLayout from "./layout";
 
 function session(role: Session["role"]): Session {
@@ -65,7 +66,7 @@ describe("AdminLayout", () => {
   it("サイト名からトップへ戻れる", async () => {
     await renderLayout();
 
-    expect(screen.getByRole("link", { name: "nextjs-boilerplate" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: SITE_NAME })).toHaveAttribute("href", "/");
   });
 
   it("送り返さない", async () => {

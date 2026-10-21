@@ -22,7 +22,11 @@ export type ImportSummaryProps = ComponentProps<"div"> & {
   succeeded: number;
   /** 取り込めなかった件数。 */
   failed: number;
-  /** 件数の単位。「件」「行」など。 */
+  /**
+   * 件数の単位。「件」「行」など。
+   *
+   * @defaultValue "件"
+   */
   unit?: string;
   /** 再実行など、結果を受けて取る操作。 */
   children?: ReactNode;
@@ -40,9 +44,7 @@ export type ImportSummaryProps = ComponentProps<"div"> & {
  *
  * 取り込みの実行、schema、変換処理は持たない。件数を呼び出し元が渡す。
  *
- * @param props.total - 取り込もうとした件数。
- * @param props.succeeded - 取り込めた件数。
- * @param props.failed - 取り込めなかった件数。
+ * @param props - native `div` 属性と、取り込みの件数。
  *
  * @see Storybook `Status/ImportExport`
  */
@@ -90,7 +92,11 @@ export type ImportRowError = {
 export type ImportErrorListProps = ComponentProps<"div"> & {
   /** 取り込めなかった行。 */
   errors: readonly ImportRowError[];
-  /** 表の名前。 */
+  /**
+   * 表の名前。
+   *
+   * @defaultValue "取り込めなかった行"
+   */
   label?: string;
 };
 
@@ -106,8 +112,7 @@ export type ImportErrorListProps = ComponentProps<"div"> & {
  * 件数を絞るのは呼び出し元の判断である。この部品は渡された行をすべて並べる。全件が多すぎる場合、
  * 何件目までを見せるかは取り込みの規模によって変わる。
  *
- * @param props.errors - 取り込めなかった行。
- * @param props.label - 表の名前。
+ * @param props - native `div` 属性と、取り込めなかった行。
  *
  * @see Storybook `Status/ImportExport`
  */
@@ -143,15 +148,27 @@ export function ImportErrorList({
 
 /** {@link ExportButton} の props。 */
 export type ExportButtonProps = Omit<ComponentProps<typeof Button>, "children"> & {
-  /** 出力の生成が進行中か。 */
+  /**
+   * 出力の生成が進行中か。
+   *
+   * @defaultValue false
+   */
   pending?: boolean;
   /** 生成が終わり、受け取れる URL。渡すと link になる。 */
   href?: string;
   /** ファイル名。`href` を渡すときに指定する。 */
   fileName?: string;
-  /** 操作の文言。 */
+  /**
+   * 操作の文言。
+   *
+   * @defaultValue "書き出す"
+   */
   label?: string;
-  /** 生成中の文言。 */
+  /**
+   * 生成中の文言。
+   *
+   * @defaultValue "書き出しています"
+   */
   pendingLabel?: string;
 };
 
@@ -173,8 +190,7 @@ export type ExportButtonProps = Omit<ComponentProps<typeof Button>, "children"> 
  * `href` の検証も持たない。同一オリジンかつ `http` / `https` であることは呼び出し元が保証する。
  * `javascript:` を渡すと押下時に実行されるため、生成 API の応答をそのまま流し込まない。
  *
- * @param props.pending - 出力の生成が進行中か。
- * @param props.href - 生成が終わり、受け取れる URL。
+ * @param props - `Button` の props（`children` を除く）と、生成の状態および受け取り先。
  *
  * @see Storybook `Status/ImportExport`
  */

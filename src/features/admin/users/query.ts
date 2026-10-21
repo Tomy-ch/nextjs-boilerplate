@@ -32,7 +32,12 @@ export const USER_SCOPE_LABELS = {
   [USER_SCOPE.WITHDRAWN]: "退会済み",
 } as const satisfies Readonly<Record<UserScope, string>>;
 
-/** 範囲を、契約が受け取る `active` へ直す。区別しないなら省く。 */
+/**
+ * 範囲を、契約が受け取る `active` へ直す。区別しないなら省く。
+ *
+ * @param scope - 直したい範囲
+ * @returns 契約の `active`。区別しないときは `undefined`
+ */
 export function toActiveParam(scope: UserScope): boolean | undefined {
   if (scope === USER_SCOPE.ACTIVE) return true;
   if (scope === USER_SCOPE.WITHDRAWN) return false;
@@ -56,6 +61,9 @@ export type AdminUserListLocation = {
  * @remarks
  * 既定の値は載せません。`?scope=all&page=1` と `/admin/users` は同じ場所を指しており、両方が
  * 出回ると同じ一覧に 2 つの住所ができます。
+ *
+ * @param location - 組む先の URL が表す場所
+ * @returns 組んだ URL
  */
 export function toUserListHref(location: AdminUserListLocation): string {
   const params = new URLSearchParams();
@@ -76,6 +84,9 @@ export function toUserListHref(location: AdminUserListLocation): string {
  *
  * @remarks
  * ページ位置は捨てます。前の範囲の 3 ページ目は、新しい範囲では別の人たちを指します。
+ *
+ * @param scope - 選び直す先の範囲
+ * @returns 組んだ URL
  */
 export function toScopeHref(scope: UserScope): string {
   return toUserListHref({ scope, page: 1 });

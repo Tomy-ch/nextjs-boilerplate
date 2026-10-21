@@ -1,23 +1,23 @@
 # Label
 
-## 用途
+## Purpose
 
-form control の項目名を利用者へ伝えます。
+Conveys the item name of a form control to the user.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Label` | native `label` として control の項目名を表示し、`htmlFor` により対象 input と関連付けます。 |
+| `Label` | Shows the control's item name as a native `label` and associates it with the target input through `htmlFor`. |
 
-## 利用ケース
+## Use Cases
 
-`htmlFor` と対象 control の一意な `id` を対応させて使います。
+Use it by matching `htmlFor` to the unique `id` of the target control.
 
-## 責務境界
+## Responsibility Boundaries
 
-説明・必須表示・検証エラー・field 全体の layout は持ちません。`Field` または feature が構成します。
+It holds no description, required indicator, validation error or layout of the whole field. `Field` or the feature composes those.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常と disabled control に連動する表示を、テストは項目名との関連付けと a11y を確認します。
+Storybook checks the normal display and the display linked to a disabled control; the tests check the association with the item name and a11y.

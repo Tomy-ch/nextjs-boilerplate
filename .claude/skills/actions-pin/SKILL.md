@@ -30,7 +30,7 @@ a skill; for human reference only).
 ## How Pinning Works in This Repo
 
 Read this before doing anything — the mechanism determines every step below. The decision behind it
-is [ADR 0153](../../../docs/adr/0153-ci-configuration.md) §3.
+is [ADR 0153](../../../docs/adr/0153-ci-configuration.md).
 
 - Each external reference is pinned as `uses: owner/repo[/sub]@<40-hex-sha> # <tag>`. The **tag in
   the trailing comment is the version source of truth**, not the `@<sha>` part.
@@ -76,7 +76,7 @@ stale one in place would wave the next re-point through. The quarantine still ap
 `ACTIONS_PIN_ALLOW_MOVED` silences only the re-point failure. A key no `uses:` references is an
 error, so a typo cannot pass as a granted approval.
 
-> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) decision 3.
+> Rationale: [0153](../../../docs/adr/0153-ci-configuration.md) — CI hardening.
 
 ## When to Use
 

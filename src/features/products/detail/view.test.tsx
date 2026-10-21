@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 
 import type { ActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 const { addToCartAction } = vi.hoisted(() => ({
   addToCartAction:
@@ -43,8 +43,8 @@ function productOf(overrides: Partial<Product> = {}): Product {
     price: "12.34",
     quantity: 7,
     stockWarningThreshold: null,
-    status: { id: "s1", name: "公開中" },
-    category: { id: "c1", name: "コーヒー" },
+    status: { id: toProductStatusId("s1"), name: "公開中" },
+    category: { id: toProductCategoryId("c1"), name: "コーヒー" },
     publishedAt: null,
     discontinuedAt: null,
     imagePaths: ["coffee-front.png"],

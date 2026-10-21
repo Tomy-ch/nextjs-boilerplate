@@ -13,6 +13,7 @@ const QUANTITY_FIELD = "quantity";
  * フォームは外から来る入力なので、ここが識別子を確定させる境界です。実在するかどうかはバックエンドが
  * 判断します。
  *
+ * @param formData - 読み取り元のフォーム内容
  * @returns 値が無い、または文字列でなければ null
  */
 export function readProductId(formData: FormData): ProductId | null {
@@ -31,6 +32,7 @@ export function readProductId(formData: FormData): ProductId | null {
  * 空の値を数へ変換しません。`Number` は項目の欠落も空文字も `0` と読むため、変換に任せると
  * 「送られてこなかった」が「0 が送られてきた」になります。
  *
+ * @param formData - 読み取り元のフォーム内容
  * @returns 整数として読めなければ null
  */
 export function readQuantity(formData: FormData): number | null {

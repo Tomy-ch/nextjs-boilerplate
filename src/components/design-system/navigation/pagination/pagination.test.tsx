@@ -53,7 +53,6 @@ describe("Pagination", () => {
     const { container } = render(<PaginationEllipsis />);
     const ellipsis = container.querySelector("[data-slot='pagination-ellipsis']");
 
-    // 記号だけを隠す。外側に aria-hidden を付けると子孫ごと外れ、代替テキストも読まれない。
     expect(ellipsis).not.toHaveAttribute("aria-hidden");
     expect(ellipsis?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.getByText("省略されたページ")).toHaveClass("sr-only");

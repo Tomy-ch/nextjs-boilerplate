@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { promisify } from "node:util";
+import ts from "typescript";
 import { parse } from "yaml";
 import { z } from "zod";
 
@@ -36,9 +37,7 @@ const registrySourceSchema = z.object({
  * `components/README.md` の component 目録で、その component が載る見出し。
  *
  * @remarks
- * `design-system` の部品は目的ごとの見出しに分かれ、それ以外の層は目的で割らないため `as` だけが見出しを持つ。
- * `navigation` のように両方へ現れる値があるのは、同じ目的の部品が基底と合成の両方に存在する
- * ためであり、どちらの層かは `directory` が持つ。目的と層は別の軸なので畳まない。
+ * `design-system` 以外の層は目的で割らないため `as` だけが見出しを持つ。
  */
 export const CATALOG_HEADING = {
   ACTION: "action",
@@ -64,12 +63,7 @@ export type CatalogHeading = (typeof CATALOG_HEADING)[keyof typeof CATALOG_HEADI
  *
  * @remarks
  * 層は「その部品を誰が書き換えるか」で決まり、目的（{@link CATALOG_HEADING}）とは別の軸である。
- * 畳まずに両方を持つ。判定は契約から先に当てる。
- *
- * - `design-system` — 契約を知らず、読んでも役割が増えない。目的別に置く
- * - `patterns` — 契約は知らないが、複数の役割を合成する。目的を一つに決められないので割らない
- * - `shell` — アプリのどこに・いくつ置くかが部品側で決まっている。mount 位置が制約になる
- * - `app-starter` — バックエンドの契約を知っている。テンプレートから作った側が作り替える前提
+ * 各層の受け持ちは components/README.md「Layers」参照。
  */
 export const COMPONENT_LAYER = {
   DESIGN_SYSTEM: "design-system",
@@ -92,8 +86,13 @@ export const componentLayerSchema = z.enum([
  * 層と目的から、component ディレクトリのリポジトリ相対パスを組み立てる。
  *
  * @remarks
- * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは目的を一つに決められない
- * ものの置き場なので、割らずに直下へ並べる。
+ * `design-system` だけが目的別の中間ディレクトリを持つ。他の二つは {@link COMPONENT_LAYER} の
+ * とおり目的で割らないため、直下へ並べる。
+ *
+ * @param layer - component を置く層。
+ * @param as - component 目録で載る見出し。
+ * @param component - component の名前。
+ * @returns component ディレクトリのリポジトリ相対パス。
  */
 export function componentDirectoryOf(
   layer: ComponentLayer,
@@ -133,6 +132,9 @@ export const CATALOG_HEADING_TITLE: Readonly<Record<CatalogHeading, string>> = {
  * @remarks
  * `title` を持たない story は Storybook が配置を自動生成するため、sidebar が規約から外れる。
  * 取り出せなかったことを `undefined` で表し、呼び出し元が欠落として報告する。
+ *
+ * @param source - story ファイルの中身。
+ * @returns `title` の先頭セグメント。取り出せなければ `undefined`。
  */
 export function storyHeadingOf(source: string): string | undefined {
   return /title:\s*"([^"/]+)\//.exec(source)?.[1];
@@ -213,6 +215,10 @@ export type CheckResult = {
  *
  * `original` は上流を持たないため確認しない。`reimplemented` は追従対象ではないが、上流の
  * 変更が自前実装の見直し材料になるため確認対象に含める。
+ *
+ * @param fetchUpstreamJson - 上流の JSON を取得する手段。
+ * @param manifestSource - 台帳の YAML の中身。
+ * @returns 確認した件数と、対象外・動いたもの・確認できなかったものの内訳。
  */
 export async function checkUpstreamDrift(
   fetchUpstreamJson: (url: string) => Promise<unknown>,
@@ -252,11 +258,24 @@ export async function checkUpstreamDrift(
   return result;
 }
 
+/**
+ * 記録した上流ファイルの、最新 commit を 1 件だけ取りに行く URL。
+ *
+ * @param source - 記録済みの上流ファイル。
+ * @returns GitHub API の commits の URL。
+ */
 function commitsUrl(source: RegistrySource): string {
   return `${UPSTREAM_API_URL}/repos/${source.repository}/commits?path=${encodeURIComponent(source.path)}&per_page=1`;
 }
 
-/** 差分を読むための 3-way merge 用 URL を組み立てる。 */
+/**
+ * 差分を読むための 3-way merge 用 URL を組み立てる。
+ *
+ * @param repository - 上流リポジトリ。
+ * @param commit - 基準にする commit。
+ * @param path - 上流でのファイルの位置。
+ * @returns その commit 時点のファイルを生で取得できる URL。
+ */
 export function baselineUrl(repository: string, commit: string, path: string): string {
   return `${UPSTREAM_RAW_URL}/${repository}/${commit}/${path}`;
 }
@@ -270,6 +289,9 @@ const RUNTIME_PACKAGES: ReadonlySet<string> = new Set(["react", "react-dom"]);
  * @remarks
  * `next/image` は `next` に、`@tiptap/react` はそのまま数える。台帳が答えるのは
  * 「どの package を参照しているか」であって、その package のどの入口を使ったかではない。
+ *
+ * @param specifier - import 宣言が読み込む先の綴り。
+ * @returns package 名。
  */
 export function packageOf(specifier: string): string {
   return specifier.replace(/^((?:@[^/]+\/)?[^/]+).*/, "$1");
@@ -281,12 +303,17 @@ export function packageOf(specifier: string): string {
  * @remarks
  * 相対 import と `@/` の内部 import は外部依存ではない。react / react-dom は全 component が
  * 前提にする実行環境なので数えない。test と story は component の依存ではないため、呼び出し元が
- * 対象から外す。
+ * 対象から外す。数えるのは `import … from` と `export … from` の宣言だけで、コメントや文字列の
+ * 中の綴りは数えない —— doc comment の `@example` は呼び出し側の import を含み、文字列は `/*` を
+ * 含みうるので、字面で拾うと宣言でないものまで数える。
+ *
+ * @param sources - 実装ファイルの中身
+ * @returns 参照している外部 package の名前。重複なく並べ替えたもの
  */
 export function vendorImportsOf(sources: readonly string[]): string[] {
   const packages = new Set<string>();
   for (const source of sources) {
-    for (const [specifier] of source.matchAll(/(?<=from ")[^"]+(?=")/g)) {
+    for (const specifier of moduleSpecifiersOf(source)) {
       if (specifier.startsWith(".") || specifier.startsWith("@/")) continue;
       const name = packageOf(specifier);
       if (RUNTIME_PACKAGES.has(name)) continue;
@@ -297,11 +324,41 @@ export function vendorImportsOf(sources: readonly string[]): string[] {
 }
 
 /**
+ * ソースの `import … from` / `export … from` 宣言が読み込む先を、構文木から取り出す。
+ *
+ * @param source - TypeScript / TSX のソース
+ * @returns 読み込み先の綴り。宣言の順
+ */
+function moduleSpecifiersOf(source: string): string[] {
+  const file = ts.createSourceFile(
+    "source.tsx",
+    source,
+    ts.ScriptTarget.Latest,
+    false,
+    ts.ScriptKind.TSX,
+  );
+  const specifiers: string[] = [];
+  for (const statement of file.statements) {
+    let specifier: ts.Expression | undefined;
+    if (ts.isImportDeclaration(statement) && statement.importClause) {
+      specifier = statement.moduleSpecifier;
+    } else if (ts.isExportDeclaration(statement)) {
+      specifier = statement.moduleSpecifier;
+    }
+    if (specifier && ts.isStringLiteral(specifier)) specifiers.push(specifier.text);
+  }
+  return specifiers;
+}
+
+/**
  * 上流ファイルのパスから registry item 名を取り出す。
  *
  * @remarks
  * 上流は 1 item = 1 ファイルで、ファイル名がそのまま item 名である。`registryItem` の宣言が
  * この対応から外れていないかを確かめるために使う。
+ *
+ * @param upstreamPath - 上流でのファイルの位置。
+ * @returns registry item 名。
  */
 export function registryItemOf(upstreamPath: string): string {
   return upstreamPath.replace(/^.*\//, "").replace(/\.[a-z]+$/, "");
@@ -311,12 +368,12 @@ export function registryItemOf(upstreamPath: string): string {
  * component ディレクトリと、その配下のファイルを、リポジトリ相対パスの一覧から取り出す。
  *
  * @remarks
- * 層のディレクトリ（{@link COMPONENT_LAYER}）と目的のディレクトリを列挙しない。列挙すると、
- * 層や目的が増えるたびに script を直す必要が生まれ、直し忘れたものが台帳から静かに抜ける。
- * 代わりに {@link COMPONENT_MARKER} を持つディレクトリをすべて component として扱うため、
- * 入れ子になっていても、層を移しても記録漏れとして現れる。
+ * 役割ディレクトリを列挙せず、{@link COMPONENT_MARKER} を持つディレクトリをすべて component
+ * として扱う（components/README.md「Placement and Naming」）。そのため、入れ子になっていても層を移しても
+ * 記録漏れとして現れる。
  *
  * @param filePaths - `src/components` 配下のファイルのリポジトリ相対パス。
+ * @returns component ディレクトリの一覧と、渡されたファイルの集合。
  */
 export function collectComponentLayout(filePaths: readonly string[]): {
   directories: readonly string[];
@@ -337,6 +394,13 @@ export function collectComponentLayout(filePaths: readonly string[]): {
  * 上流と名前が違う component があるため、対応付けを名前の一致で推測しない。各エントリが宣言する
  * `directory` と、実際に存在するディレクトリを突き合わせる。宣言があることで、実体を移動・改名
  * したときに記録漏れと取り残されたエントリの両方が検出できる。
+ *
+ * @param componentDirectories - 実際に存在する component ディレクトリ。
+ * @param existingFiles - 実際に存在するファイルのリポジトリ相対パス。
+ * @param manifestSource - 台帳の YAML の中身。
+ * @param vendorImports - component ディレクトリごとの、実際に参照している外部 package。省略時は空で、package の突き合わせを行わない。
+ * @param storyHeadings - component ディレクトリごとの、story の title の先頭セグメント。省略時は空で、title の突き合わせを行わない。
+ * @returns 見つかった食い違い。無ければ空。
  */
 export function verifyManifestIntegrity(
   componentDirectories: readonly string[],
@@ -442,18 +506,31 @@ export function verifyManifestIntegrity(
  *
  * 上流が動いた場合も失敗として扱う。定期実行から見たときに、追従の判断が必要になったことが
  * 赤で見えるようにするためであり、`make actions-pin-check` が pin のずれで落ちるのと同じ扱いである。
+ *
+ * @param result - 追従判断のために確認した結果。
+ * @returns 終了コード。
  */
 export function checkExitCode(result: CheckResult): number {
   return result.drifted.length > 0 || result.failed.length > 0 ? 1 : 0;
 }
 
-/** 整合性の確認結果を、そのまま読める報告へ整形する。 */
+/**
+ * 整合性の確認結果を、そのまま読める報告へ整形する。
+ *
+ * @param problems - 見つかった食い違い。
+ * @returns 標準出力へそのまま書ける報告。
+ */
 export function formatIntegrityProblems(problems: readonly string[]): string {
   if (problems.length === 0) return "manifest の整合性: 問題ありません。\n";
   return `manifest の整合性: ${String(problems.length)} 件\n${problems.map((problem) => `  ${problem}`).join("\n")}\n`;
 }
 
-/** 確認結果を、そのまま読める報告へ整形する。 */
+/**
+ * 確認結果を、そのまま読める報告へ整形する。
+ *
+ * @param result - 追従判断のために確認した結果。
+ * @returns 標準出力へそのまま書ける報告。
+ */
 export function formatCheckResult(result: CheckResult): string {
   const lines = [
     `確認: ${String(result.checked)} 件 / 対象外（自前実装）: ${String(result.skipped.length)} 件`,
@@ -487,6 +564,9 @@ export function formatCheckResult(result: CheckResult): string {
  *
  * 1 回の確認で記録件数ぶんのリクエストを出すため、未認証の 60 req/hr では足りない。`gh` の
  * 認証を使うことで上限を避ける。`gh` が無い環境では、その旨がそのまま失敗として表れる。
+ *
+ * @param url - 取得先。GitHub API の URL なら `gh api` の endpoint へ畳む。
+ * @returns 応答本体を JSON として読んだもの。
  */
 export async function fetchJson(url: string): Promise<unknown> {
   const endpoint = url.startsWith(`${UPSTREAM_API_URL}/`)
@@ -496,6 +576,9 @@ export async function fetchJson(url: string): Promise<unknown> {
   return JSON.parse(stdout);
 }
 
+/**
+ * 台帳の整合性を確認し、`--offline` でなければ上流との差も見て、結果を報告して終了コードを決める。
+ */
 /* istanbul ignore next -- CLI のエントリポイントは pnpm check:ui が実地で通す。 */
 async function main(): Promise<void> {
   const manifestSource = await readFile(manifestPath, "utf8");

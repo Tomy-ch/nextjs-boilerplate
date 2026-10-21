@@ -20,6 +20,7 @@ import { ActionBar } from "@/components/patterns/action-bar/action-bar";
 import { ACTION_BAR_POSITION } from "@/components/patterns/action-bar/action-bar.definition";
 import { AddToCartButton } from "@/features/cart/facade/add-to-cart/add-to-cart-button";
 import { formatDateTime } from "@/model/datetime";
+import { formatDecimalMoney } from "@/model/money";
 import type { Product } from "@/model/product/product";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 import { withScreenSpan } from "@/observability/render-span";
@@ -55,6 +56,15 @@ type ProductDetailProps = {
  *
  * 紙に出すのは内容だけです。押せない操作（パンくず・画像の送り・一覧・カートへの追加・印刷そのもの）
  * は紙面の場所を取るだけなので落とします。
+ *
+ * @example
+ * ```tsx
+ * <ProductDetail imageUrls={["https://example.com/a.png"]} product={product} />
+ * ```
+ *
+ * @param props.product - 表示する商品。
+ * @param props.imageUrls - 表示順に並べた画像 URL。解決は feature 側の取得で済ませておく。
+ * @see Storybook `Page/Products/Detail`
  */
 export const ProductDetail = withScreenSpan(
   "features/products/detail/view",
@@ -76,7 +86,6 @@ export const ProductDetail = withScreenSpan(
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
                 <BreadcrumbPage className="max-w-40 truncate">{product.name}</BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -89,7 +98,6 @@ export const ProductDetail = withScreenSpan(
 
           <div className="flex flex-col items-start gap-6">
             <div className="flex flex-wrap items-center gap-2">
-              {/* 長さの上限をバックエンドが決める値なので、1 行に収まる前提を置けない。 */}
               <Badge className="whitespace-normal break-words" variant="secondary">
                 {product.category.name}
               </Badge>
@@ -100,7 +108,7 @@ export const ProductDetail = withScreenSpan(
 
             <h1 className="text-3xl font-emphasis tracking-tight">{product.name}</h1>
 
-            <p className="text-3xl font-emphasis">{`$${product.price}`}</p>
+            <p className="text-3xl font-emphasis">{formatDecimalMoney(product.price)}</p>
 
             <KeyValueList className="w-full">
               <KeyValueItem>

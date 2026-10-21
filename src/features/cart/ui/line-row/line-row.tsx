@@ -6,6 +6,7 @@ import { MEDIA_IMAGE_ASPECT_RATIO } from "@/components/design-system/display/med
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
 import { NO_IMAGE_URL } from "@/model/media";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 import { CartLineIssues } from "../../facade/line-issues/line-issues";
 import { CartMatchStockButton } from "../match-stock-button/match-stock-button";
@@ -30,7 +31,7 @@ const SUBTOTAL_NOTE = "小計には含めていません。";
  * @remarks
  * 脇の領域と全画面の両方が使います。幅の違いは折り返しで吸収し、器ごとに別の行を持ちません。
  * 狭い器では操作が名前の下へ回り、広い器では同じ行に並びます。サムネイルも器の幅で縮めます
- * （`docs/rules.md`「レイアウトと帯」の「部品の中身は帯で分岐させずコンテナクエリで書く」）。
+ * （`docs/rules.md#layout` の "Do not branch a component's contents on the band (viewport)"）。
  *
  * **商品状態は出しません。** 契約が返す明細に無く、出すには明細の数だけ商品を引くことになります。
  *
@@ -47,6 +48,8 @@ const SUBTOTAL_NOTE = "小計には含めていません。";
  * **在庫が足りない明細には、その数へ合わせる操作が生えます。** 事情として今買える数が届いている
  * 以上、利用者に数え直させる理由がありません。在庫が 1 つも無い明細には出しません（合わせる先が
  * ありません）。
+ *
+ * @see Storybook `Features/Cart/LineRow`
  */
 export const CartLineRow = withPartSpan(
   "features/cart/ui/line-row/line-row",
@@ -80,7 +83,7 @@ export const CartLineRow = withPartSpan(
           )}
           {line.unitPrice === null ? null : (
             <p className={cn("text-sm", blocked ? "text-muted-foreground" : undefined)}>
-              {`$${line.unitPrice} / 個`}
+              {`${formatDecimalMoney(line.unitPrice)} / 個`}
             </p>
           )}
           <CartLineIssues

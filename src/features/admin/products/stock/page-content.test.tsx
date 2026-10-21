@@ -6,11 +6,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { idleActionState } from "@/model/action-state";
 import { toProductId } from "@/model/product/product";
 
-const { getProduct } = vi.hoisted(() => ({ getProduct: vi.fn() }));
+const { getProductIncludingUnpublished } = vi.hoisted(() => ({
+  getProductIncludingUnpublished: vi.fn(),
+}));
 
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
-  getProduct,
+  getProductIncludingUnpublished,
 }));
 
 vi.mock("./view", () => ({
@@ -42,20 +44,20 @@ const adjustAction = () => Promise.resolve(idleActionState<void>());
 
 describe("AdminProductStockPageContent", () => {
   beforeEach(() => {
-    getProduct.mockReset();
+    getProductIncludingUnpublished.mockReset();
   });
 
   it("対象の商品を取得して画面へ渡す", async () => {
-    getProduct.mockResolvedValue(PRODUCT);
+    getProductIncludingUnpublished.mockResolvedValue(PRODUCT);
 
     render(await AdminProductStockPageContent({ adjustAction, id: ID }));
 
-    expect(getProduct).toHaveBeenCalledWith(ID);
+    expect(getProductIncludingUnpublished).toHaveBeenCalledWith(ID);
     expect(screen.getByText("ワイヤレスイヤホン:128")).toBeInTheDocument();
   });
 
   it("取得が失敗すれば、その失敗を境界へ渡す", async () => {
-    getProduct.mockRejectedValue(new Error("対象が見つかりません"));
+    getProductIncludingUnpublished.mockRejectedValue(new Error("対象が見つかりません"));
 
     await expect(AdminProductStockPageContent({ adjustAction, id: ID })).rejects.toThrow(
       "対象が見つかりません",

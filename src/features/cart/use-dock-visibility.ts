@@ -22,6 +22,8 @@ export type DockVisibility = {
  * 対応しません。
  *
  * 器から切り出してあるのは、出す条件と器の見た目が別々に変わるためです。
+ *
+ * @returns 出すかどうかと、その切り替え
  */
 export function useDockVisibility(): DockVisibility {
   const [pinned, setPinned] = useState(false);

@@ -42,7 +42,7 @@ not loaded as a skill).
 - A known operational symptom with a documented fix — `repo-ops`.
 - An operation you want to perform — `how-to`.
 - An undecided design question that needs options compared — `research`.
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review` / `settle-comments`.
 - Filing what was found — `new-issue`.
 
 ## Why this exists
@@ -149,8 +149,8 @@ Keyword search comes **last**, as a net for what the indexes missed — never as
 The corpus here is small and mostly honest, which makes the two exceptions easy to miss:
 
 - **`SKILL.ja.md` is a translation, not a source.** Hitting one is useful as a *locator* — it proves
-  the topic is documented — but cite the canonical `SKILL.md` beside it. Below v1.0.0 these are the
-  only `*.ja.md` in the repository ([0140](../../../docs/adr/0140-documentation-operations.md)).
+  the topic is documented — but cite the canonical `SKILL.md` beside it. While 0140 keeps Japanese
+  canonical on the suffix-less path, these are the only `*.ja.md` in the repository ([0140](../../../docs/adr/0140-documentation-operations.md)).
 - **Generated views are not authority.** `docs/portal/` is built from the sources it lists, and
   `graphify-out/` is a derived index. Cite what they were built from.
 
@@ -287,7 +287,7 @@ This skill is invoked in its own right and chains into nothing. It reports what 
 be — `research` for an undecided design question, `new-issue` to file what it found, `back-prop` for
 drift, `repo-ops` for a known symptom — and the user decides whether to run it.
 
-That is the same reason the three review skills are peers under the Review Phase Protocol in
+That is the same reason the two review skills are peers under the Review Phase Protocol in
 `AGENTS.md`: a skill that runs the next one for you removes that decision from the user, and a drift
 in this skill's judgment would then silently redirect every flow that passed through it.
 

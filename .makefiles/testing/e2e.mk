@@ -62,6 +62,10 @@ export E2E_ONLY
 # 上の 3 つは vrt.mk も同じものを使うが、宣言をこちらでも持つのは、片方のファイルの export に
 # 暗黙依存すると include の順序を変えただけで静かに壊れるためである。
 
+# 外から来る値はレシピ行へ展開せず、環境変数として渡す（`.makefiles/README.md`）。
+E2E_ARGS ?=
+export E2E_ARGS
+
 E2E_RUN := docker compose -f docker-compose.dev-tools.yml run --rm -T \
 	-e E2E_BASE_URL=$(E2E_BASE_URL) -e E2E_ALLOWED_ORIGIN=$(E2E_ALLOWED_ORIGIN) -e APP_ENV=$(E2E_APP_ENV) -e BASELINE_RETAKE -e E2E_ONLY browser_runner
 
@@ -72,7 +76,7 @@ E2E_CONFIG := --config=playwright.e2e.config.ts
 # 2 組持つと、起動待ちも後片付けもポートの衝突検査も二重になり、片方だけを直した状態が生まれる。
 #
 # アプリの待ち受け先は recipe が解決する `$$hostname` に入っている。
-E2E_COMMAND ?= $(E2E_RUN) ./node_modules/.bin/playwright test $(E2E_CONFIG) $(E2E_UPDATE) $(E2E_ARGS)
+E2E_COMMAND ?= $(E2E_RUN) ./node_modules/.bin/playwright test $(E2E_CONFIG) $(E2E_UPDATE) $$E2E_ARGS
 
 # 起動の手前で確かめること。基準画像を要求するのは撮る側だけなので、呼ぶ側が差し替える。
 E2E_PRECHECK ?= $(E2E_REQUIRE_BASELINES)
@@ -162,7 +166,7 @@ e2e-run: e2e-build
 		cat tmp/e2e/server.log; \
 		echo "❌ アプリが $(E2E_BOOT_TIMEOUT) 秒で応答を返しませんでした。"; exit 1; \
 	fi; \
-	if [ "$(BASELINE_RETAKE)" = "1" ] && [ -z "$(E2E_ONLY)$(E2E_ARGS)" ]; then \
+	if [ "$$BASELINE_RETAKE" = "1" ] && [ -z "$$E2E_ONLY$$E2E_ARGS" ]; then \
 		pnpm exec tsx scripts/e2e clear-screens; \
 	fi; \
 	$(E2E_COMMAND)
@@ -189,7 +193,7 @@ e2e-update: e2e-run
 # 画像を持たない環境でこの検証だけが動かせなくなる。
 e2e-maintenance: E2E_APP_ENV_EXTRA := APP_MAINTENANCE_MODE=on
 e2e-maintenance: E2E_PRECHECK := true
-e2e-maintenance: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.maintenance.config.ts $(E2E_ARGS)
+e2e-maintenance: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.maintenance.config.ts $$E2E_ARGS
 e2e-maintenance: e2e-run
 
 # 公開面の検証。索引させる設定で build と起動をやり直し、クローラが読むもの（robots.txt /
@@ -204,7 +208,7 @@ E2E_METADATA_ENV = SITE_INDEXABLE=on SITE_PUBLIC_ORIGIN=$(E2E_BASE_URL)
 e2e-metadata: E2E_BUILD_ENV_EXTRA = $(E2E_METADATA_ENV)
 e2e-metadata: E2E_APP_ENV_EXTRA = $(E2E_METADATA_ENV)
 e2e-metadata: E2E_PRECHECK := true
-e2e-metadata: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.metadata.config.ts $(E2E_ARGS)
+e2e-metadata: E2E_COMMAND = $(E2E_RUN) ./node_modules/.bin/playwright test --config=playwright.metadata.config.ts $$E2E_ARGS
 e2e-metadata: e2e-run
 
 e2e-report:

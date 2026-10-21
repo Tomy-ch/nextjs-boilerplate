@@ -2,6 +2,7 @@
 
 import { render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { axe } from "vitest-axe";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
 
@@ -93,6 +94,15 @@ describe("PullToRefresh", () => {
     expect(markerIn(container)).toHaveAttribute("data-state", PULL_STATE.PULLING);
     expect(indicatorIn(container)).toHaveClass("opacity-100");
     expect(indicatorIn(container)).toHaveStyle({ transform: "translateY(18px)" });
+  });
+
+  it("引いて現れた目印は a11y 違反を持たない", async () => {
+    stubCoarsePointer();
+    const { container } = render(<PullToRefresh />);
+
+    pull(40);
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 
   it("実行の域まで引いて離すと route を取り直す", () => {

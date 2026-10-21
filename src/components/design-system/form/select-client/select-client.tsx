@@ -17,9 +17,6 @@ export type SelectClientProps = React.ComponentProps<typeof SelectPrimitive.Root
  * 優先し、native control では満たせない選択操作が必要な箇所だけに限定する。`SelectContent` は
  * Portal で表示されるため、browser JavaScript と hydration を必要とする。
  *
- * この部品は Client Component だが、Next.js は初期 HTML を SSR した上で hydration する。
- * `"use client"` 境界を route 全体へ広げず、必要な form control の島として配置する。
- *
  * 選択された値を native form として送る場合は `name` を渡す。開閉と選択の状態は `value` /
  * `defaultValue` で制御 / 非制御を選ぶ。
  *
@@ -84,7 +81,6 @@ function SelectValue({ ...props }: React.ComponentProps<typeof SelectPrimitive.V
  * 与える。入力内容が不正であることを示す場合は `aria-invalid` を渡す。
  *
  * @param props - Radix `Select.Trigger` の props と `size`。
- * @param props.size - trigger の高さ。`default` は 36px、`sm` は 32px。
  * @see Storybook `Form/SelectClient`
  */
 function SelectTrigger({
@@ -93,6 +89,11 @@ function SelectTrigger({
   children,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
+  /**
+   * trigger の高さ。`default` は 36px、`sm` は 32px。
+   *
+   * @defaultValue `"default"`
+   */
   size?: "sm" | "default";
 }) {
   return (

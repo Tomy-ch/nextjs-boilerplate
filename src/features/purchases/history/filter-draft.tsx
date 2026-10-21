@@ -74,6 +74,8 @@ export type PurchaseFilterDraftProviderProps = {
  * 結果が 0 件のときの「全期間で見る」は入力欄を通らないため、揃えないと画面の一覧と入力欄が
  * 違うものを指します。
  * 揃える判断を描画の中で行うのは、描画のあとで直すと一度古い姿が出てしまうためです。
+ *
+ * @param props - いま一覧に効いている期間と、下書きを読む側を含む部分木
  */
 export function PurchaseFilterDraftProvider({
   period,
@@ -145,6 +147,7 @@ export function PurchaseFilterDraftProvider({
  * 供給の外では既定値を返さず、その場で失敗させます。返してしまうと、期間を変えても確定が何も
  * 起こさない画面ができ、壊れていることが誰の目にも見えません。
  *
+ * @returns 組み立て中の期間と、それを一覧へ反映する手段
  * @throws {Error} {@link PurchaseFilterDraftProvider} の外で呼んだとき
  */
 export function usePurchaseFilterDraft(): PeriodFilterDraft {

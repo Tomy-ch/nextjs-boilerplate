@@ -12,6 +12,14 @@ const SegmentedInputMaskContext = createContext<{ mask: boolean; maskChar: strin
   maskChar: SEGMENTED_INPUT_MASK_CHAR,
 });
 
+/**
+ * その桁に映す文字を決める。
+ *
+ * @param char - その桁に入っている文字。
+ * @param isMasked - 伏せるか。
+ * @param maskChar - 伏せるときに代わりに描く文字。
+ * @returns 映す文字。桁に文字が入っていなければ `null`。
+ */
 function displayCharOf(char: string | null | undefined, isMasked: boolean, maskChar: string) {
   if (char === null || char === undefined) {
     return null;
@@ -24,9 +32,17 @@ function displayCharOf(char: string | null | undefined, isMasked: boolean, maskC
 export type SegmentedInputProps = ComponentProps<typeof OTPInput> & {
   /** 桁を囲む外枠へ追加する class 名。`className` は実体の `input` に届く。 */
   containerClassName?: string;
-  /** 入力した文字を伏せるか。 */
+  /**
+   * 入力した文字を伏せるか。
+   *
+   * @defaultValue `false`
+   */
   mask?: boolean;
-  /** 伏せるときに代わりに描く文字。 */
+  /**
+   * 伏せるときに代わりに描く文字。
+   *
+   * @defaultValue {@link SEGMENTED_INPUT_MASK_CHAR}
+   */
   maskChar?: string;
 };
 
@@ -183,12 +199,11 @@ export function SegmentedInputSlot({ className, index, mask, ...props }: Segment
 }
 
 /**
- * 区画と区画の間に置く区切り。
+ * 入力に関与せず、支援技術からは隠す、桁のまとまりを目で分けるだけの区切り。
  *
  * @remarks
- * 桁のまとまりを目で分けるための装飾で、入力には関与しない。**支援技術からは隠す。** 入力の値は
- * 実体の `input` が伝えるため、この記号に意味は無い。`separator` role は focus と値を持つ widget を
- * 表すので当てない。
+ * 入力の値は実体の `input` が伝えるため、この記号に意味は無い。`separator` role は focus と値を
+ * 持つ widget を表すので当てない。
  *
  * @param props - native `div` 属性。
  * @see Storybook `Form/SegmentedInput`

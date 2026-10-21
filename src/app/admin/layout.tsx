@@ -9,6 +9,7 @@ import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-sh
 import {
   ADMIN_ANALYTICS_PATH,
   ADMIN_DASHBOARD_PATH,
+  ADMIN_INQUIRY_LIST_PATH,
   ADMIN_PRODUCT_LIST_PATH,
   ADMIN_SHIPMENT_QUEUE_PATH,
   ADMIN_USER_LIST_PATH,
@@ -16,7 +17,8 @@ import {
 import { UnsavedChangesGuard } from "@/features/admin/ui/unsaved-changes-guard/unsaved-changes-guard";
 import { isAdmin } from "@/model/authz";
 
-const SITE_NAME = "nextjs-boilerplate";
+import { SITE_NAME } from "../site";
+
 const CONSOLE_NAME = "管理";
 
 /** サイトのトップ。役割が足りないときの行き先も兼ねる。 */
@@ -35,7 +37,13 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
   },
   { label: "商品", items: [{ href: ADMIN_PRODUCT_LIST_PATH, label: "商品一覧管理" }] },
   { label: "注文", items: [{ href: ADMIN_SHIPMENT_QUEUE_PATH, label: "発送" }] },
-  { label: "利用者", items: [{ href: ADMIN_USER_LIST_PATH, label: "利用者一覧" }] },
+  {
+    label: "利用者",
+    items: [
+      { href: ADMIN_USER_LIST_PATH, label: "利用者一覧" },
+      { href: ADMIN_INQUIRY_LIST_PATH, label: "問い合わせ一覧" },
+    ],
+  },
 ];
 
 /**
@@ -58,8 +66,9 @@ export const instant = false;
  * **ここが確定認可です**。判定に使う役割の宣言は `model/authz` にあり、前捌き（`proxy.ts`）
  * と同じものを引きます。
  *
- * 送り返す先は前捌き（`proxy.ts`）と同じにします。行き先とその理由、403 の面を出さない理由は
- * `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
+ * 入れない主体はサイトのトップへ戻します。layout は今いる URL を受け取らないので、元の行き先を
+ * 伴うログインへの送り出しは前捌き（`proxy.ts`）が持ちます。行き先とその理由、403 の面を出さない
+ * 理由は `docs/spec/route/admin/layout.function.md#where-to-send-actors-who-cannot-enter`。
  *
  * **現在地までの階層は並行の route から受け取ります**（`@breadcrumb`）。器へ渡すのはこの層です
  * が、何段目に何を出すかは画面ごとに違うため、画面と同じ形の route に持たせます。page から

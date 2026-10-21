@@ -1,79 +1,79 @@
-# 語彙表
+# Glossary
 
-仕様書の散文が使う語のうち、**契約に無い、画面の側の概念**を集める。
+Collects, among the terms used in specification prose, **the screen-side concepts that are not in the contract**.
 
-## この表が持つもの / 持たないもの
+## What This Table Holds and Does Not Hold
 
-**持つのは「画面を書くために要るが、バックエンドの契約には現れない語」だけ。**同じ語が画面ごとに
-違う意味で使われると、仕様書は読めているのに実装が食い違う —— それが起きるのは、契約が決めてくれない
-語のところだけである。
+**It holds only "terms needed to write screens that do not appear in the backend contract".** When the same term is used with different
+meanings on different screens, the specifications read fine but the implementations disagree — and that happens only with terms the contract
+does not decide.
 
-**業務の語彙は持たない。**その正は契約と、契約から生成した型である
-（[0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md)）。
-別に持つと二重になり、契約が変わったときに表の側だけが黙って古くなる。
+**It does not hold business vocabulary.** Its source of truth is the contract and the types generated from it
+([0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md)).
+Holding it separately would duplicate it, and when the contract changed only the table side would silently go stale.
 
-**定義そのものも、ほとんどはここに無い。**下の表が持つのは「その語を決めている文書はどれか」で、
-意味の本体はその文書が持つ。ここで定義するのは**どこにも家が無かった語だけ**である
-（[`docs/README.md`](../README.md) の inventory の扱い —— 目録は根拠を持たず、指すだけ）。
+**Most definitions are not here either.** What the table below holds is "which document decides that term";
+the substance of the meaning is held by that document. What is defined here is **only terms that had no home anywhere**
+(the handling of inventory in [`docs/README.md`](../README.md) — an inventory carries no basis and only points).
 
-## 画面の骨格
+## Screen Skeleton
 
-| 語 | 何を指すか | 定義を持つ文書 |
+| Term | What it refers to | Document holding the definition |
 | --- | --- | --- |
-| **器** | route group と layout が作る、配下を包む単位。描く時点と unmount の境界がここで決まる | [0026](../adr/0026-layout-shell-mount.md) |
-| **外枠** | 利用者から見える共通の枠。**器を分けても外枠は同じにする** —— 器を分けるのは描く時点の都合で、同じサイトの続きに見えなくてよい理由にはならない | [`rules.md` § レイアウトと帯](../rules.md) |
-| **帯** | viewport の幅の段。どこに何を置くか・出すか出さないかを決める。部品の中身の分岐には使わない（そちらはコンテナクエリ） | [`rules.md` § レイアウトと帯](../rules.md) / [0051](../adr/0051-styling-system.md) |
-| **脇の領域** | 帯が広いときだけ常設できる副次の領域。無い帯では、常に届く必要のある操作を画面下端へ固定する | [`rules.md` § レイアウトと帯](../rules.md) |
-| **パンくず** | 現在地までの経路を示す導線。**器が一律に置くものではなく、条件を満たす画面が持つ** | [0026 § パンくずを置く画面](../adr/0026-layout-shell-mount.md) |
+| **layout shell** | The unit made by a route group and a layout that wraps everything beneath it. Render timing and the unmount boundary are decided here | [0026](../adr/0026-layout-shell-mount.md) |
+| **outer frame** | The common frame the user sees. **Keep the outer frame the same even when the layout shells are split** — splitting layout shells is a matter of render timing, and is no reason for it not to look like a continuation of the same site | [`docs/rules.md`](../rules.md#layout) |
+| **band** | A tier of viewport width. Decides what is placed where, and whether it is shown. Not used for branching a component's content (that is container queries) | [`docs/rules.md`](../rules.md#layout) / [0051](../adr/0051-styling-system.md) |
+| **sidebar** | A secondary region that can be permanent only when the band is wide. On bands without it, controls that must always be reachable are fixed to the bottom of the screen | [`docs/rules.md`](../rules.md#layout) |
+| **breadcrumbs** | The navigation that shows the path to the current location. **Not something the layout shell places uniformly; held by screens that meet the conditions** | [0026](../adr/0026-layout-shell-mount.md) — which screens place breadcrumbs |
 
-## 描画
+## Rendering
 
-レンダリングの語（Server Component / Client Component / SSR / hydration / RSC Payload / 島）は
-**[`docs/design/rendering.md` § 用語](../design/rendering.md) が正**である。取り違えたときに何が
-ずれるかまでそこに書いてあるので、ここには写さない。
+Rendering terms (Server Component / Client Component / SSR / hydration / RSC Payload / island) are
+**owned by [`docs/design/rendering.md` § Terminology](../design/rendering.md#terminology)**. It also says what goes wrong when they
+are confused, so they are not copied here.
 
-仕様書でとくに出てくるのは次の 1 語。
+The one that comes up particularly in specifications is the following.
 
-| 語 | 何を指すか | 定義を持つ文書 |
+| Term | What it refers to | Document holding the definition |
 | --- | --- | --- |
-| **島**（Client Island） | ほぼサーバで描かれた画面の中に、操作のために埋め込まれた小さい Client Component。正式な用語ではなく通称 | [`design/rendering.md` § 用語](../design/rendering.md) |
+| **island** (Client Island) | A small Client Component embedded for interaction in a screen rendered mostly on the server. A nickname, not an official term | [`design/rendering.md` § Terminology](../design/rendering.md#terminology) |
 
-## 状態
+## States
 
-| 語 | 何を指すか | 定義を持つ文書 |
+| Term | What it refers to | Document holding the definition |
 | --- | --- | --- |
-| **4 状態** | loading / empty / error / success。**各画面が設計し、その画面が所有する状態だけを実装・テストする** | [`rules.md` § 状態表示と待機](../rules.md) |
-| **待機表示** | loading の見せ方。形の近い skeleton を優先し、**読み上げの対象にしない**。件数を実データと揃えない | [`rules.md` § 状態表示と待機](../rules.md) |
+| **the four states** | loading / empty / error / success. **Each screen designs them, and implements and tests only the states that screen owns** | [`docs/rules.md`](../rules.md#states) |
+| **loading UI** | How loading is shown. A skeleton of similar shape is preferred, and it is **not made a target for screen readers**. Its item count is not matched to the real data | [`docs/rules.md`](../rules.md#states) |
 
-## ここが定義を持つ語
+## Terms Defined Here
 
-家がどこにも無かった語。**新しく語を作るのではなく、既に仕様書の散文が使っている語に家を与える。**
+Terms that had no home anywhere. **This is not coining new terms; it gives a home to terms specification prose already uses.**
 
-### 空の状態
+### Empty State
 
-**「まだ無い」と「絞り込んだ結果が無い」は別の空である。**同じ文言で出すと、条件を外せば出てくることが
-画面から読み取れない。仕様書はどちらの空を指しているかを書く。
+**"There is nothing yet" and "the filtered result is empty" are different empties.** Showing them with the same text means the screen does not convey
+that removing the conditions would make things appear. A specification states which empty it refers to.
 
-「読めなかった」は空ではない。それは error であり、混ぜると再試行できる失敗が「何も無い」として
-利用者へ届く（[`rules.md` § 状態表示と待機](../rules.md)）。
+"Could not be read" is not empty. It is an error, and mixing them delivers a retryable failure to the user as "there is nothing"
+([`docs/rules.md`](../rules.md#states)).
 
-### 断り書き
+### Caveats
 
-**画面の内容そのものではないが、内容の読み方を変える短い注記。**表示している値がいつ時点のものか、
-どこまでを含むか、確定前か —— これが無いと、利用者は表示を額面どおりに読む。
+**A short note that is not the screen's content itself, but changes how the content is read.** As of when the displayed values are,
+how far they extend, whether they are provisional — without it, users read the display at face value.
 
-**置く位置は画面の約束であって、部品の都合ではない。**そのため仕様書が位置を書き、実装はそれに従う
-（[0143](../adr/0143-spec-driven-development.md)）。読み上げの順で内容より後ろへ回ると、注記を
-読む前に内容を読み終える。
+**Where it is placed is a promise of the screen, not a matter of the component's convenience.** So the specification states the position, and the implementation follows it
+([0143](../adr/0143-spec-driven-development.md)). If it falls after the content in reading order, the content is read to the end before
+the note is.
 
-## 語を足すとき
+## Adding a Term
 
-**正名を選ぶのも、同義語を宣言するのも人の判断である。**この表は「同じ語が 2 つを指している」
-「2 つの語が同じものを指している」を見つけたら報告するが、どちらが正しいかは決めない。
+**Choosing the canonical name and declaring synonyms are human judgments.** This table reports when it finds "one term pointing at two things"
+or "two terms pointing at the same thing", but does not decide which is right.
 
-足す前に、その語が次のどれかに当たらないかを見る。当たるなら、家はそちらで、ここへは書かない。
+Before adding, check whether the term falls under any of the following. If it does, its home is there, and it is not written here.
 
-- 業務の語 → 契約と生成型（[0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md)）
-- 層・カーネル・app 層の要素の名前 → `architecture.ts` と [0021](../adr/0021-frontend-responsibility.md) / [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md)
-- レンダリングの語 → [`design/rendering.md` § 用語](../design/rendering.md)
-- 日々強制される制約の語 → [`rules.md`](../rules.md)
+- Business terms → the contract and generated types ([0070](../adr/0070-backend-role-separation.md) / [0072](../adr/0072-api-type-generation.md))
+- Names of layers, kernels and app-layer elements → `architecture.ts` and [0021](../adr/0021-frontend-responsibility.md) / [0027](../adr/0027-directory-structure.md) / [0028](../adr/0028-naming-convention.md)
+- Rendering terms → [`design/rendering.md` § Terminology](../design/rendering.md#terminology)
+- Terms for constraints enforced day to day → [`rules.md`](../rules.md)

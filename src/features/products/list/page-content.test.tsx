@@ -4,7 +4,8 @@ import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import type { ProductRef } from "@/model/product/product";
+import type { ProductCategoryId, ProductRef } from "@/model/product/product";
+import { toProductCategoryId } from "@/model/product/product";
 
 const { getProductCategories } = vi.hoisted(() => ({ getProductCategories: vi.fn() }));
 const { ProductListResults } = vi.hoisted(() => ({
@@ -18,9 +19,9 @@ vi.mock("@/adapters/client/api/products", () => ({ fetchProductCount: vi.fn(asyn
 
 import { ProductListPageContent } from "./page-content";
 
-const CATEGORIES: readonly ProductRef[] = [
-  { id: "0195f0c2-0000-7000-8000-0000000000c1", name: "オーディオ" },
-  { id: "0195f0c2-0000-7000-8000-0000000000c2", name: "ウェアラブル" },
+const CATEGORIES: readonly ProductRef<ProductCategoryId>[] = [
+  { id: toProductCategoryId("0195f0c2-0000-7000-8000-0000000000c1"), name: "オーディオ" },
+  { id: toProductCategoryId("0195f0c2-0000-7000-8000-0000000000c2"), name: "ウェアラブル" },
 ];
 
 beforeEach(() => {
@@ -69,7 +70,7 @@ describe("ProductListPageContent", () => {
   it("検索欄に現在のキーワードを引き継ぐ", async () => {
     render(await ProductListPageContent({ searchParams: { keyword: "イヤホン" } }));
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("イヤホン");
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toHaveValue("イヤホン");
   });
 
   it("明示された並び順を選択済みにする", async () => {
@@ -95,7 +96,7 @@ describe("ProductListPageContent", () => {
     render(await ProductListPageContent({ searchParams: { categoryCodes: "not-a-uuid" } }));
 
     expect(ProductListResults).not.toHaveBeenCalled();
-    expect(screen.queryByRole("searchbox", { name: "商品名で探す" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("searchbox", { name: "商品名・説明で探す" })).not.toBeInTheDocument();
   });
 
   it("契約を外れた条件の呼び名を、画面上の言葉へ直して出す", async () => {

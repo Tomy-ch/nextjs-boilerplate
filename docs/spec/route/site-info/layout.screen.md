@@ -1,33 +1,33 @@
-# `(site-info)` 外枠（画面要件）
+# `(site-info)` Outer Frame (Screen Requirements)
 
-> 機能要件は [`layout.function.md`](layout.function.md)。
+> Functional requirements are in [`layout.function.md`](layout.function.md).
 
-サイトの案内を包む器。header・本文・footer で構成する。
+The layout shell that wraps the site information. It consists of a header, the body and a footer.
 
 ## header
 
-| 区画 | 内容 |
+| Region | Contents |
 | --- | --- |
-| サイト名 | トップへの導線 |
-| nav | 商品 / 購入履歴 / マイページ |
+| Site name | A path to the top page |
+| nav | Products / Purchase history / My Page |
 
-**利用者向けの外枠と同じ見え方にする。** 器が分かれているのは描く時点の都合であり、利用者には
-同じサイトの続きとして見える必要がある。
+**Make it look the same as the user-facing outer frame.** The layout shells are separate for reasons of rendering time, and to users it
+must look like a continuation of the same site.
 
-**カートの入口だけが無い。** 理由は [`layout.function.md`](layout.function.md) が持つ。
+**Only the cart entry point is missing.** The reason is held by [`layout.function.md`](layout.function.md).
 
-## 本文の脇
+## Beside the Body
 
-置かない。脇に出すものがこの器には無い。
+None. This layout shell has nothing to show beside it.
 
 ## footer
 
-このリポジトリが何であるかの 1 文と、リポジトリへの導線を置く（`(shop)` と同じ）。
+One sentence on what this repository is, and a path to the repository (the same as `(shop)`).
 
-## パンくず
+## Breadcrumbs
 
-置かない。配下はいずれも階層を持たない 1 枚である。
+None. Every page beneath it is a single page with no hierarchy.
 
-## 関連
+## Related
 
-- 実装 `src/app/(site-info)/layout.tsx` / `src/features/site-info/` — [README](../../../../src/features/site-info/README.md)
+- Implementation `src/app/(site-info)/layout.tsx` / `src/features/site-info/` — [README](../../../../src/features/site-info/README.md)

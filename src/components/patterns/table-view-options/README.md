@@ -1,59 +1,59 @@
 # TableViewOptions
 
-## 用途
+## Purpose
 
-表の見た目の設定を 1 か所へ集めます。利用者が選ぶ設定は menu から、画面幅による出し分けと固定列は列へ当てる class から与えます。
+Gathers a table's display settings in one place. Settings the user chooses come from the menu; responsive visibility by screen width and pinned columns come from classes applied to columns.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 値 | 役割 |
+| Component / Value | Role |
 | --- | --- |
-| `TableViewOptions` | 表示する列と表示密度を切り替える menu です。 |
-| `TABLE_DENSITY` / `TABLE_DENSITY_CLASS` | 行の詰め方と、それを `Table` へ当てる class です。 |
-| `TABLE_COLUMN_PRIORITY` / `TABLE_COLUMN_PRIORITY_CLASS` | 画面が狭いときに列を残す優先度と、それを列へ当てる class です。 |
-| `TABLE_STICKY_COLUMN_CLASS` / `TABLE_STICKY_ROW_CLASS` | 横 scroll しても左端に残す列と、その表の行へ当てる class です。 |
+| `TableViewOptions` | Menu that switches the visible columns and the display density. |
+| `TABLE_DENSITY` / `TABLE_DENSITY_CLASS` | How tightly rows are packed, and the class that applies it to `Table`. |
+| `TABLE_COLUMN_PRIORITY` / `TABLE_COLUMN_PRIORITY_CLASS` | The priority for keeping a column on a narrow screen, and the class that applies it to the column. |
+| `TABLE_STICKY_COLUMN_CLASS` / `TABLE_STICKY_ROW_CLASS` | The class for a column that stays at the left edge during horizontal scroll, and the class for the rows of that table. |
 
-## 設定を当てる場所
+## Where Settings Are Applied
 
-menu は状態を持たないので、いまの状態を渡して変更を受け取ります。受け取った状態は呼び出し元が表へ当てます。
+The menu holds no state, so pass it the current state and receive changes. The caller applies the received state to the table.
 
-| 設定 | 当てる先 |
+| Setting | Applied to |
 | --- | --- |
-| 表示密度 | `Table` の `className` に `TABLE_DENSITY_CLASS[density]` |
-| 表示する列 | 列そのものを描画しない |
-| 画面幅の優先度 | 列の `TableHead` / `TableCell` に `TABLE_COLUMN_PRIORITY_CLASS[priority]` |
-| 固定列 | 列の `TableHead` / `TableCell` に `TABLE_STICKY_COLUMN_CLASS`、`TableRow` に `TABLE_STICKY_ROW_CLASS` |
+| Display density | `TABLE_DENSITY_CLASS[density]` on `Table`'s `className` |
+| Visible columns | Do not render the column at all |
+| Screen-width priority | `TABLE_COLUMN_PRIORITY_CLASS[priority]` on the column's `TableHead` / `TableCell` |
+| Pinned column | `TABLE_STICKY_COLUMN_CLASS` on the column's `TableHead` / `TableCell`, `TABLE_STICKY_ROW_CLASS` on `TableRow` |
 
-設定を URL に載せるか browser に残すかは feature が決めます。
+The feature decides whether to put the settings in the URL or keep them in the browser.
 
-## menu と画面幅は別物
+## The menu and screen width are separate
 
-menu は**利用者の選択**、優先度の class は**画面幅による既定の出し分け**です。狭い画面で隠れている列は、menu で表示にしても現れません。両方を満たしたときだけ列が出ます。
+The menu is **the user's choice**; the priority class is **the default visibility by screen width**. A column hidden on a narrow screen does not appear even if shown in the menu. A column appears only when both are satisfied.
 
-隠せない列には `locked` を指定します。対象を識別できる列まで隠せると、表がどの行のことか分からなくなります。
+Specify `locked` for columns that cannot be hidden. If even the column that identifies the item could be hidden, it would be unclear which row the table refers to.
 
-## 見た目の決め方
+## How the Look Is Decided
 
-**密度**は高さと上下の余白だけを詰めます。左右の余白まで詰めると列の境目が読み取りにくくなり、文字を小さくすると本文の最小サイズを下回ります。
+**Density** tightens only the height and the vertical padding. Tightening the horizontal padding too would make column boundaries hard to read, and shrinking the text would go below the minimum body size.
 
-**優先度**は画面幅ではなく意味で名付けています。どの列を残すかは「対象を識別できるか」で決まるためです。表は横に伸びるので、狭い画面では列を減らすほうが横 scroll より読み取れます。
+**Priority** is named by meaning, not by screen width, because which columns to keep is decided by "can the item be identified". Tables grow horizontally, so on a narrow screen reducing the columns reads better than horizontal scroll.
 
-**固定列**の背景は行から引き継ぎます。固定した cell は他の cell の上へ重なるため透明にはできませんが、色を固定すると行の hover と選択中の色だけが固定列に乗らず、行が途中で切れて見えます。
+The background of a **pinned column** is inherited from the row. A pinned cell overlaps other cells, so it cannot be transparent; but if its color were fixed, only the row's hover and selected colors would fail to reach the pinned column, and the row would look cut off partway.
 
-行は既定で背景を持たないため、`TableRow` へ `TABLE_STICKY_ROW_CLASS` を当てないと固定列が透明を引き継ぎ、横 scroll した内容が透けます。**2 つは対で使います。**
+Rows have no background by default, so without `TABLE_STICKY_ROW_CLASS` on `TableRow` the pinned column inherits transparency and the horizontally scrolled content shows through. **Use the two as a pair.**
 
-選択中の色は不透明なのでそのまま一致します。hover の色は半透明なので、固定列だけ僅かに濃くなります。行の色が固定列に乗らないほうが行の切れ目として目立つため、この差は許容しています。
+The selected color is opaque, so it matches as is. The hover color is semi-transparent, so only the pinned column becomes slightly darker. This difference is accepted, because a row color that did not reach the pinned column would stand out more as a break in the row.
 
-`Table` は既に横 scroll する容器を持つため、呼び出し元は容器を足しません。
+`Table` already has a horizontally scrolling container, so the caller does not add one.
 
-## 責務境界
+## Responsibility Boundaries
 
-データの取得、並べ替え、絞り込み、業務型は持ちません。列の一覧と現在の設定を受け取り、変更を返すだけです。
+It does not own data fetching, sorting, filtering, or business types. It only receives the list of columns and the current settings, and returns changes.
 
-**列の順序は変えられません。** 見たい列を識別列の近くへ寄せる目的は、関係ない列を隠して識別列を固定することで足ります。列順は識別列を先頭に置き重要な属性から並べるという画面側の決定であり、利用者が入れ替えられるようにすると、その設計が既定値に格下げされます。
+**Column order cannot be changed.** The goal of bringing a wanted column near the identifying column is met by hiding unrelated columns and pinning the identifying column. Column order is the screen's decision to put the identifying column first and order the rest by important attributes; letting users rearrange it would demote that design to a default value.
 
-列数が多く、識別列の隣に置きたい列が利用者ごとに異なる画面が実際に現れたら見直します。そのときも drag ではなく、menu の中でキーボードだけで完結する上下移動から始めます。
+Revisit this if a screen actually appears with many columns, where the column users want next to the identifying column differs per user. Even then, start not with drag but with up/down movement completed by keyboard alone inside the menu.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は menu から列と密度を切り替える表と、詰めた表示を確認します。テストは列の checked 状態、隠せない列、列と密度の変更の通知、表へ当てる class の中身を確認します。
+Storybook covers a table whose columns and density are switched from the menu, and the compact display. The tests cover the columns' checked state, columns that cannot be hidden, notification of column and density changes, and the contents of the classes applied to the table.

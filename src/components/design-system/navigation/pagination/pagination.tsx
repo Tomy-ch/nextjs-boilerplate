@@ -9,6 +9,8 @@ import { Button, type ButtonProps } from "../../action/button/button";
 /**
  * URL 遷移型のページ移動を構成する SSR first の navigation。
  *
+ * @param props - native `nav` 属性。
+ *
  * @see Storybook `Navigation/Pagination`
  */
 export function Pagination({ className, ...props }: ComponentProps<"nav">) {
@@ -34,6 +36,7 @@ export function Pagination({ className, ...props }: ComponentProps<"nav">) {
  * しないと読めなくなる。
  *
  * @param props - native `ul` 属性。
+ *
  * @see Storybook `Navigation/Pagination`
  */
 export function PaginationContent({ className, ...props }: ComponentProps<"ul">) {
@@ -54,6 +57,7 @@ export function PaginationContent({ className, ...props }: ComponentProps<"ul">)
  * {@link PaginationEllipsis} のいずれか一つを置く。
  *
  * @param props - native `li` 属性。
+ *
  * @see Storybook `Navigation/Pagination`
  */
 export function PaginationItem(props: ComponentProps<"li">) {
@@ -80,6 +84,8 @@ export type PaginationLinkProps = ComponentProps<typeof Link> &
  * を渡す。
  *
  * 現在ページには `isActive` を指定する。`aria-current="page"` が付き、支援技術へ現在地を伝える。
+ *
+ * @param props - `next/link` の `Link` の props と、大きさ・現在ページの指定。
  *
  * @see Storybook `Navigation/Pagination`
  */
@@ -116,7 +122,11 @@ export type PaginationStepProps = Omit<PaginationLinkProps, "href" | "isActive">
   href?: string;
 };
 
-/** 前後移動を 1 つ描く。行き先があれば link、無ければ操作できない control になる。 */
+/**
+ * 前後移動を 1 つ描く。行き先があれば link、無ければ操作できない control になる。
+ *
+ * @param props - {@link PaginationStepProps} に、必須の `aria-label` を加えたもの。
+ */
 function PaginationStep({
   "aria-label": ariaLabel,
   children,
@@ -211,6 +221,7 @@ export function PaginationNext({
  * 操作を持たないため、省略した範囲へ移動する手段は前後のページ番号が担う。
  *
  * @param props - native `span` 属性。
+ *
  * @see Storybook `Navigation/Pagination`
  */
 export function PaginationEllipsis({ className, ...props }: ComponentProps<"span">) {

@@ -7,6 +7,8 @@
  * `scripts/test-requirement.gate.test.ts` が担う。
  */
 
+import { posix } from "node:path";
+
 import { APP_ELEMENTS, ENTRY_POINTS } from "../../architecture";
 
 import { parseFrontmatter } from "./frontmatter";
@@ -113,6 +115,10 @@ export type ResolvedTestRequirement = {
  * 宣言を持たない README は素通しする。README が在ることと責務を宣言していることは別で、
  * 素通ししないと途中の 1 枚が上位の宣言を遮る。
  *
+ * **リポジトリ直下の README の宣言は、直下のテストにしか及ばない。** 下へ継がせると全体の
+ * 既定値になり、宣言を欠いたディレクトリが直下の宣言へ黙って解決して、引けないことを
+ * 報告できなくなる。
+ *
  * @param testFile - テストファイル(リポジトリルート相対、区切りは `/`)
  * @param readReadme - ディレクトリの README を読む
  * @returns 宣言が見つからなければ null
@@ -134,8 +140,9 @@ export function resolveTestRequirement(
   }
 
   const segments = testFile.split("/").slice(0, -1);
+  const shallowest = segments.length === 0 ? 0 : 1;
 
-  for (let depth = segments.length; depth >= 0; depth -= 1) {
+  for (let depth = segments.length; depth >= shallowest; depth -= 1) {
     const directory = segments.slice(0, depth).join("/");
     const source = readReadme(directory);
 
@@ -163,7 +170,7 @@ export function resolveTestRequirement(
  *
  * @param testFiles - テストファイル(リポジトリルート相対、区切りは `/`)
  * @param readReadme - ディレクトリの README を読む
- * @returns 宣言を引けなかったディレクトリ。重複を畳み、名前順に並ぶ
+ * @returns 宣言を引けなかったディレクトリ。重複を畳み、名前順に並ぶ。リポジトリ直下は `.`
  */
 export function findUndeclaredDirectories(
   testFiles: readonly string[],
@@ -175,7 +182,7 @@ export function findUndeclaredDirectories(
     const resolved = resolveTestRequirement(file, readReadme);
 
     if (resolved === null || resolved.layers.length === 0) {
-      undeclared.add(file.split("/").slice(0, -1).join("/"));
+      undeclared.add(posix.dirname(file));
     }
   }
 

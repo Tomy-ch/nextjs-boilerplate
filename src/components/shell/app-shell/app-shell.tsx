@@ -15,7 +15,10 @@ import { AppShellNavLink } from "./app-shell-nav-link";
 export type AppShellProps = {
   /** header 左端に置く名称。遷移先はトップ。 */
   siteName: string;
-  /** header に並べる導線。狭い画面では side menu に畳まれ、{@link menuNavSlot} と併せて空なら menu を出さない。 */
+  /**
+   * header に並べる導線。狭い画面では side menu に畳まれ、{@link menuNavSlot} と併せて空なら menu を出さない。
+   * {@link navSlot} と併せて空なら、header の `nav` 自体を置かない。
+   */
   navItems: readonly AppShellNavItem[];
   /**
    * header の導線の末尾へ差す要素。
@@ -51,9 +54,6 @@ export type AppShellProps = {
  * 持つと、画面ごとにどちらが効いているのかを読まないと分からなくなります。全幅の背景や図を
  * 置く画面も、shell を剥がさずに済みます。
  *
- * skip link を先頭に置くのは、キーボードと支援技術の利用者が header の導線を毎回辿らずに
- * 本文へ入れるようにするためです。
- *
  * admin 側は別の shell を持ちます。見せる相手も導線も違うため、1 枚にまとめると分岐を shell の
  * 中に抱えることになります。
  *
@@ -61,14 +61,11 @@ export type AppShellProps = {
  * 上では押せず場所を取るだけです（`components/design-system/foundation/print`）。どの画面を
  * 印刷しても器の判断は同じなのでここで決め、中身の何を落とすかは画面ごとに違うので画面が決めます。
  *
- * **`main` は縮める。** 脇に領域を並べる帯では `main` が flex の項目になり、既定では中身の
- * 最小幅より狭くなれません。段組みや長い語を持つ画面がその最小幅を押し上げると、`main` が
- * 親をはみ出して画面全体に横スクロールが出ます。中身の側で防ぐことはできないため、器が縮む
- * ことを宣言します。
- *
  * **`sidebar` と `headerActions` の中身は知りません。** 置き場所だけを用意し、何を出すか・いつ出すか・
  * どれだけの幅を取るかは渡す側が決めます。shell が中身を知ると、画面ごとの出し分けが分岐として
  * ここに集まります。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link AppShellProps} の各メンバーが持つ。
  *
  * @see Storybook `Layout/AppShell`
  */
@@ -85,6 +82,7 @@ export function AppShell({
 }: AppShellProps) {
   // 待ち枠と本体は同じ条件で落とす。片方だけ残すと、届いてから消える枠が header の中身を左へずらす。
   const hasMenu = navItems.length > 0 || menuNavSlot !== undefined;
+  const hasNav = navItems.length > 0 || navSlot !== undefined;
 
   return (
     <>
@@ -110,18 +108,26 @@ export function AppShell({
             {siteName}
           </Link>
           <div className="ml-auto flex items-center gap-1">
-            <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
-              {navItems.map((item) => (
-                <AppShellNavLink key={item.href} item={item} />
-              ))}
-              {navSlot}
-            </nav>
+            {hasNav ? (
+              <nav aria-label="主要な導線" className="hidden items-center gap-1 md:flex">
+                {navItems.map((item) => (
+                  <AppShellNavLink key={item.href} item={item} />
+                ))}
+                {navSlot}
+              </nav>
+            ) : null}
             {headerActions}
           </div>
         </div>
       </header>
       <div className="flex flex-1 flex-col md:flex-row">
-        <main id={APP_SHELL_MAIN_ID} className={cn("min-w-0 flex-1", className)}>
+        <main
+          // 脇に領域を並べる帯では main が flex の項目になり、既定では中身の最小幅より狭くなれない。
+          // 段組みや長い語を持つ画面がその最小幅を押し上げると、main が親をはみ出して画面全体に
+          // 横スクロールが出る。中身の側で防ぐことはできないため、器がここで縮む。
+          id={APP_SHELL_MAIN_ID}
+          className={cn("min-w-0 flex-1", className)}
+        >
           {children}
         </main>
         {sidebar}

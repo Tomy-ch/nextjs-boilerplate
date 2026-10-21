@@ -1,45 +1,37 @@
 # InvalidQueryFeedback
 
-## 用途
+## Purpose
 
-URL に載った条件が契約を外れているときに、本体の代わりに理由と解除の導線を出します。
+When the conditions in the URL fall outside the contract, shows the reason and a way to clear them in place of the main content.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `InvalidQueryFeedback` | 題・文言・外れたキー・解除の導線を 1 つの Alert にまとめます。 |
-| `InvalidQueryFeedbackProps` | 公開 props です。 |
+| `InvalidQueryFeedback` | Gathers the title, copy, offending keys and the way to clear them into one Alert. |
+| `InvalidQueryFeedbackProps` | The public props. |
 
-## 利用ケース
+## Use Cases
 
-- 一覧の絞り込み条件が契約の範囲外だった場合
-- 集計の期間指定が契約の形に合わなかった場合
+- When a list's filter conditions were outside the range of the contract
+- When an aggregation's period did not match the shape of the contract
 
-いずれも **URL は利用者が直接編集できる**ため、画面の操作だけでは戻せない状態になり得る場面です。
+In both, **the user can edit the URL directly**, so these are situations that may not be recoverable through on-screen interaction alone.
 
-## 責務境界
+## Responsibility Boundaries
 
-**範囲外の条件を捨てて既定の結果を出す、という選択肢を持ちません。** 捨てると、絞り込んだつもりの
-利用者が絞り込まれていない結果を、指定したつもりの期間とは違う数を、それと判らないまま読みます。
-本体の代わりにこれを出すかどうかは呼び出し元が決めます。
+**It has no option of discarding out-of-range conditions and showing the default result.** If they are discarded, a user who believes they filtered reads unfiltered results, or numbers for a period other than the one they believe they specified, without being able to tell. Whether to show this in place of the main content is decided by the caller.
 
-**キーの呼び名を持ちません。** どのキーが何を指すかは URL の契約を持つ画面が知っています。ここが
-持つのは、表に無いキーを**そのまま出す**という落とし方だけです。呼び名を書き写した表が各画面に
-あると、契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
+**It does not own the display names of keys.** Which key means what is known by the screen that owns the URL contract. What this component owns is only the fallback of showing a key that is not in the table **as is**. If each screen had a table transcribing the display names, then when a key is added to the contract, screens would split into those that show the raw name and those that do not.
 
-**どこへ戻すかも持ちません。** 解除の行き先と文言は画面ごとに違い、`app-starter` は route を
-知りません。
+**It does not own where to return to either.** The destination and copy for clearing differ per screen, and `app-starter` does not know routes.
 
-**検証を持ちません。** 何が契約を外れたかは取得の口（`adapters`）が判定し、その結果を受け取る
-だけです。
+**It owns no validation.** What fell outside the contract is decided by the fetch endpoint (`adapters`); this component only receives the result.
 
-状態を持たないため hydration は要りません。Server Component からそのまま render できます。
+It holds no state, so it needs no hydration. It can be rendered from a Server Component as is.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は、外れたキーが複数のとき・1 つも無いとき・表に無いキーが混ざるとき・題と導線を
-差し替えた場合を確認します。
+Storybook checks the cases with several offending keys, with none, with keys not in the table mixed in, and with the title and link replaced.
 
-テストは、題と文言が出ること、キーが呼び名へ直ること、表に無いキーがそのまま出ること、キーが
-無ければその行を出さないこと、解除の導線が渡された行き先を指すこと、a11y 自動検査を確認します。
+Tests check that the title and copy appear, that keys are converted to display names, that keys not in the table appear as is, that the row is not shown when there are no keys, that the clearing link points to the destination given, and automated a11y checks.

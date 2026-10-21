@@ -1,35 +1,40 @@
-# `/maintenance` メンテナンス中（画面要件）
+# `/maintenance` Under Maintenance (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-配信を止めているあいだ、全ルートの代わりに出る画面。
+The screen shown in place of every route while delivery is stopped.
 
-## 見せるもの
+## What It Shows
 
-| 節 | 内容 |
+| Section | Content |
 | --- | --- |
-| 見出し | 止まっていること |
-| 本文 | いま利用できないこと |
-| 本文 | 終了の予定を知らせていないこと、時間を置いて試すこと |
+| Heading | That the service is stopped |
+| Body | That it cannot be used right now |
+| Body | That no scheduled end is announced, and to try again after a while |
 
-## 書かないこと
+## What Not to Write
 
-**戻る導線を置かない。** 止めているのは全ルートなので、どこへ送っても同じ画面が返る。押せる物を
-出すと、押した結果が変わらないことを利用者が確かめて初めて判る。
+**No link back.** Every route is stopped, so wherever it sends the user the same screen comes back. Showing something
+pressable means the user learns that pressing it changes nothing only after trying.
 
-**復旧の見込みを書かない。** 予定を出すには運用がそれを供給する必要があり、供給が無いまま文面へ
-書くと、当たらない予定が画面に残る。
+**No recovery estimate.** Showing a schedule requires operations to supply one, and writing it into the text without that
+supply leaves a schedule on the screen that will not hold.
 
-**止めている理由を書かない。** 計画停止と障害を利用者が区別しても、できることは変わらない。
+**No reason for the stop.** Even if the user can tell a planned stop from an outage, what they can do does not change.
 
-## 器
+## Layout Shell
 
-**器を通らない。** 入口が全ルートをここへ差し替えるため、route group の layout は挟まらない。
-`main` はこの画面が自分で置く。
+**It does not pass through a route group's layout shell.** What is rendered is the swap target's `maintenance/` hierarchy, which sits
+outside the route groups. This screen places `main` itself.
 
-header と nav を出さないのは、出すと押した先がすべてこの画面へ戻るため。
+The header and nav are not shown because, if shown, every link in them would lead back to this screen.
 
-## 関連
+**It does pass through the root outer frame** ([`../layout.screen.md`](../layout.screen.md)). A user who has not yet chosen a consent option
+sees the consent surface over this screen too, and cannot leave it until choosing. While stopped, the links the surface offers to the
+material for that decision lead back to this screen. The notification region is also placed, but this screen has no operation that
+raises a notification, so it stays empty.
 
-- 実装 `src/features/maintenance/` — [README](../../../../src/features/maintenance/README.md)
-- 差し替えの判定 `src/proxy.ts` — [0043](../../../adr/0043-middleware-policy.md)
+## Related
+
+- Implementation `src/features/maintenance/` — [README](../../../../src/features/maintenance/README.md)
+- Swap decision `src/proxy.ts` — [0043](../../../adr/0043-middleware-policy.md)

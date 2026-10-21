@@ -22,6 +22,9 @@ export type PurchaseDetailPageContentProps = {
  * この画面が他人の購入を映すことはありません。
  *
  * try の範囲は取得だけです。描画中の例外はここでは捕まらないため、捕まるように見える形にしません。
+ *
+ * @param purchaseCode - route が受け取った購入コード。
+ * @returns 取得した購入。
  */
 async function loadPurchase(purchaseCode: string): Promise<Purchase> {
   try {
@@ -44,6 +47,8 @@ async function loadPurchase(purchaseCode: string): Promise<Purchase> {
  *
  * 購入を取ってから換算額を引きます。並行にできますが、購入が `not-found` のときに換算の取得を
  * 始めるのは無駄で、外部のレート提供元へ余計な要求を出すことになります。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseDetailPageContentProps} の各メンバーが持つ。
  */
 export const PurchaseDetailPageContent = withScreenSpan(
   "features/purchases/detail/page-content",

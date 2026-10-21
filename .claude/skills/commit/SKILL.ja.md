@@ -8,11 +8,11 @@
 
 このコマンドは作業ツリーの未コミット変更を分析し、適切な粒度とプロジェクトの prefix 規約に沿った 1 つ以上の git コミットを作る。コミットメッセージはすべて日本語（`AGENTS.md` に従う）。
 
-このコマンドは全コミットで意図的に lefthook を迂回する（`git commit --no-verify`）。複数コミットへ分割する際に `.lefthook.yaml` の pre-commit 検査（現状は `pnpm lint:ci` / `pnpm lint:md`）が N 回発火しないようにするため。あとから回すこともしない。`AGENTS.md` の *Do not pre-run the gates* がゲートを hook と CI に置き、**判定は CI が正**としているためである。Step 6 はこの実行が書いたものだけを整形し、どのゲートを CI へ預けたかを報告する。
+このコマンドは全コミットで意図的に lefthook を迂回する（`git commit --no-verify`）。複数コミットへ分割する際に `.lefthook.yaml` の pre-commit 検査（現状は `pnpm lint:ci` / `pnpm lint:md`）が N 回発火しないようにするため。あとから回すこともしない。`docs/playbook.md`「Do not pre-run the gates」 がゲートを hook と CI に置き、**判定は CI が正**としているためである。Step 6 はこの実行が書いたものだけを整形し、どのゲートを CI へ預けたかを報告する。
 
 ## Step 0. 自動フォーマット
 
-冒頭で `pnpm fix` を 1 回実行し、フォーマット由来の差分を吸収する（biome format + 自動修正可能な lint ルール。フォーマッタは biome 単独、[0002](../../../docs/adr/0002-formatter-linter.md)）。これにより後続の差分検査からノイズの主要因が消え、Step 6 の検証が純粋なフォーマットで落ちる可能性も下がる。
+冒頭で `pnpm fix` を 1 回実行し、フォーマット由来の差分を吸収する（biome format + 自動修正可能な lint ルール。フォーマッタは biome 単独、[0002](../../../docs/adr/0002-formatter-linter.ja.md)）。これにより後続の差分検査からノイズの主要因が消え、Step 6 の検証が純粋なフォーマットで落ちる可能性も下がる。
 
 ```sh
 pnpm fix
@@ -39,7 +39,7 @@ git rev-parse --verify REBASE_HEAD 2>/dev/null       # rebase 進行中の検出
 
 以下のいずれかに該当する場合は中断する（コミットしない）:
 
-- 現在のブランチが `^(production|develop|staging|release/.+|hotfix/.+)$` に一致する。`AGENTS.md` の git 規約（[0150](../../../docs/adr/0150-git-workflow.md)）により、保護ブランチへは決してコミットしない。ユーザへ知らせ、先に feature ブランチ（例: `feature/<issue-or-topic>`）を作るよう依頼する。
+- 現在のブランチが `^(production|develop|staging|release/.+|hotfix/.+)$` に一致する。`AGENTS.md` の git 規約（[0150](../../../docs/adr/0150-git-workflow.ja.md)）により、保護ブランチへは決してコミットしない。ユーザへ知らせ、先に feature ブランチ（例: `feature/<issue-or-topic>`）を作るよう依頼する。
 - staged / unstaged の porcelain 出力がどちらも空。コミットするものが無い旨を伝えて停止する。
 - `MERGE_HEAD` / `CHERRY_PICK_HEAD` / `REBASE_HEAD` のいずれかが設定されている。リポジトリが操作の途中なので、先にそれを解決するよう依頼する。
 
@@ -81,7 +81,7 @@ gh pr view --json number,state,mergedAt,baseRefName,headRefName,url 2>/dev/null
 | --- | --- |
 | `--dry-run` | 分割提案のみ行い、staging もコミットもしない。 |
 | `--scope=staged` | 現在 staged の変更のみを対象とする。 |
-| `--scope=all` | staged と unstaged の双方を対象とする（既定）。 |
+| `--scope=all` | staged と unstaged の双方を対象とする（デフォルト）。 |
 
 ## Step 2. 変更の検査
 
@@ -96,11 +96,11 @@ git diff --name-only
 
 以下は **rider ファイル**として扱う — 単独でコミットを構成せず、それを生んだソース変更に相乗りする:
 
-- ロックファイル: `pnpm-lock.yaml` は、それを生んだ `package.json` の変更に相乗りする（[0001](../../../docs/adr/0001-package-manager.md) — ロックファイルはコミット必須であり、単独ではコミットしない）
-- 生成された API 生成物: `src/adapters/gen/**` と取り込んだ `openapi.gen.yaml`（[0072](../../../docs/adr/0072-api-type-generation.md) — 編集禁止。バックエンドの spec から再生成される） <!-- skill-lint-ignore -->
+- ロックファイル: `pnpm-lock.yaml` は、それを生んだ `package.json` の変更に相乗りする（[0001](../../../docs/adr/0001-package-manager.ja.md) — ロックファイルはコミット必須であり、単独ではコミットしない）
+- 生成された API 生成物: `src/adapters/gen/**` と取り込んだ `openapi.gen.yaml`（[0072](../../../docs/adr/0072-api-type-generation.ja.md) — 編集禁止。バックエンドの spec から再生成される） <!-- skill-lint-ignore -->
 - Next.js が管理する型: `next-env.d.ts`
 
-これらのパスの一部はまだ存在しない（生成パイプラインは [0072](../../../docs/adr/0072-api-type-generation.md) の実装 PR で着地する）。存在しないパスは「rider 無し」として扱い、エラーにしない。
+これらのパスの一部はまだ存在しない（生成パイプラインは [0072](../../../docs/adr/0072-api-type-generation.ja.md) の実装 PR で着地する）。存在しないパスは「rider 無し」として扱い、エラーにしない。
 
 ## Step 3. prefix リファレンス
 
@@ -156,7 +156,7 @@ git diff --name-only
 - **テストは対象の実装と同居してよい**（新規ハンドラとそのテストは一緒でよい）。既存コードへテストだけを追加する場合は、単独の `Test:` コミットにする。
 - **生成物はソース変更と同居する。** Step 2 の rider ファイルは、それを生んだ変更と同じコミットに相乗りする。
 - **フォーマットのみの変更は単独の `Style:` コミット。** Step 0 の `pnpm fix` が生んだ出力は、明らかに同じ変更の一部なら該当グループへ畳み込んでよい。無関係なら別の `Style:` コミットとして出す。
-- **`Docs:` は既定で単独。** 例外として、ドキュメントが新機能の一部である場合（新規パッケージに添える README 等）は同居してよい。
+- **`Docs:` はデフォルトで単独。** 例外として、ドキュメントが新機能の一部である場合（新規パッケージに添える README 等）は同居してよい。
 - **1 コミット 1 prefix。** 2 つ書きたくなったら、その分割が間違っている。
 
 ### lefthook の通知
@@ -204,7 +204,7 @@ EOF
 ### コミットメッセージの規則
 
 - **タイトル**: `<Prefix>: <日本語タイトル>`。50 文字以内を目安にする。
-- **本文**: 任意。書く場合はタイトルの後に空行を 1 行入れ、72 文字程度で折り返す。「何を」より「なぜ」を優先する。
+- **本文**: 任意。書く場合はタイトルの後に空行を 1 行入れ、72 文字程度で折り返す。「何を」より「なぜ」を優先する。**本文が残すのは変更の背景であって、この実行の足取りではない** ——「前は壊れていた」「〜を直した」は差分が既に持っており、同じ PR の中で作った状態を指すなら、ベースから見ればその事実は起きていない。変更後の現在形で書く（`docs/rules.md`「作業とエージェント」/ [0150](../../../docs/adr/0150-git-workflow.ja.md)）。
 - **言語**: 日本語（`AGENTS.md` の出力規約に従う）。
 - **`Co-Authored-By` フッタ**: 必須。形式は `Co-Authored-By: <実行中のモデル名> <noreply@anthropic.com>` — 例: `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。実際にコミットを生成しているモデルの識別子を、環境が示すとおりに使う。本ドキュメントにハードコードされたモデル名を写さないこと — モデルのリリースごとに古くなり、誤った名前はコミットの帰属を誤らせる。
 - **`Refs:` footer（レビュー適用コミットのみ）**: `full-apply` / `impl-review` / `code-review` の指摘を適用したコミットには、`Refs: tmp/reviews/mod_*.md (<severity>)` の行を footer へ足し、コミットからfinding へ辿れるようにする。通常のコミットには付けない。
@@ -232,13 +232,13 @@ EOF
 ## Step 6. 検証
 
 <!-- boilerplate-only:replace-begin -->
-**ここでゲートを回さない。** `AGENTS.md` の *Do not pre-run the gates* は「hook と CI が回す。
+**ここでゲートを回さない。** `docs/playbook.md`「Do not pre-run the gates」 は「hook と CI が回す。
 **判定は CI が正**」と明言している。コミット後にリポジトリ全体へ `pnpm lint:ci` / `pnpm lint:md` を
 掛け直しても判定が真になるわけではなく、負荷の高いホストでは二重実行そのものが、変更と無関係な失敗の
 発生源になる。`make load-status` はいまローカルでどのゲートが走る帯かを表示し、その帯は推測ではなく実測で決まる。
 
 **その規約はこのリポジトリだけのもの**で、テンプレートから作ったリポジトリからは剥がされる ——
-この節ごと剥がされるのはそのためで、下に退避してある版がゲートの実行を戻す。作った側の
+このセクションごと剥がされるのはそのためで、下に退避してある版がゲートの実行を戻す。作った側の
 リポジトリは作業ツリーが 1 本で、ゲートの実行は書いてあるとおりの費用しか掛からない。
 
 したがってこのステップがやることは 2 つだけである。

@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 
 // エージェントへの指示面 —— `.claude/**` のスキル / エージェント定義と、その頂点に在る `AGENTS.md`
-// —— を意味的に検査する lint スクリプト。
-// markdownlint は体裁しか見ないため、「書いてある内容が実態と合っているか」は誰も検査していない。
+// —— を意味的に検査する lint スクリプト。対訳の構造の検査だけは、追跡されている全 `*.ja.md` に及ぶ。
+// markdownlint は体裁しか見ず、書いてある内容が実態と合っているかは見ない。
 // スキル定義はエージェントの挙動を決める指示書であり、腐った参照はそのまま誤った手順の実行につながる。
 //
-// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出・確定済みの採番規約から導出できる
+// 検査は Makefile のターゲット一覧・ファイルシステム・見出し抽出から導出できる
 // ものだけに限る（判断を含めない）。node の標準ライブラリのみに依存する。
 // 1 件でも違反があれば非 0 で終了する。
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+
+import { isMirror } from "../lib/mirror.js";
 
 import {
   eachLineOutsideFence,
@@ -24,6 +27,7 @@ import {
   scanInlineCode,
   WILDCARD_RE,
 } from "./reference-pattern.js";
+import { translationPairsOf } from "./translation-pairs.js";
 
 type Finding = {
   file: string;
@@ -72,7 +76,7 @@ const GENERATED_ARTIFACT_PATHS = new Set(["docs/portal/guides", "docs/portal/doc
 const IGNORE_DIRECTIVE = "<!-- skill-lint-ignore -->";
 
 // 検査する 1 行の長さの上限。行の内容も書き手が自由に決められ、正規表現の照合は行長に対して
-// 二次時間まで落ちる。このリポジトリは公開されており md-lint は fork からの PR でも走るため、
+// 二次時間まで落ちる。md-lint は PR ごとに走るため（公開リポジトリなら fork からの PR でも）、
 // 極端に長い 1 行は CI と pre-commit を止める手段になる。上限超過は検査を飛ばさず違反として
 // 報告する（黙って通すと「長く書けば検査を外せる」抜け道になる）。
 const MAX_LINE_LENGTH = 4096;
@@ -83,8 +87,7 @@ const MAX_LINE_LENGTH = 4096;
  * @remarks
  * **緑は「同期済み」ではない。**ここが見ているのは形（frontmatter の鍵、対訳の見出し列の 1:1、
  * 参照するパスと make ターゲットの実在）であって、中身ではありません。黙って通すと、**形が
- * 揃っているだけの対訳と、通るはずの無い手順が「検査済み」として並びます**
- * 。
+ * 揃っているだけの対訳と、通るはずの無い手順が「検査済み」として並びます**。
  *
  * 撤去条件は、その形を機械で見られるようになった時点。見られないなら、ここに残す。
  */
@@ -225,9 +228,14 @@ function checkFrontmatter(
 // 対訳ペア
 // ---------------------------------------------------------------------------
 
-// 対訳（SKILL.ja.md）が canonical（SKILL.md）と 1:1 であることを検査する。
+// 対訳（`<name>.ja.md`）が canonical（`<name>.md`）と 1:1 であることを検査する。
 // ファイルの有無だけでは節の欠落・ずれを検出できないため、見出しレベル列の一致まで見る。
-function checkTranslationPair(canonicalRel: string, translationRel: string): void {
+// `frontmatterOwner` は、frontmatter を canonical 側だけが持つ理由（報告の文言に載る）。
+function checkTranslationPair(
+  canonicalRel: string,
+  translationRel: string,
+  frontmatterOwner = "スキルとして読み込まれるのは canonical 側だけです",
+): void {
   if (!fs.existsSync(path.join(REPO_ROOT, translationRel))) {
     report(
       canonicalRel,
@@ -244,7 +252,7 @@ function checkTranslationPair(canonicalRel: string, translationRel: string): voi
       translationRel,
       1,
       "translation",
-      "対訳に frontmatter があります（スキルとして読み込まれるのは canonical 側だけです）",
+      `対訳に frontmatter があります（${frontmatterOwner}）`,
     );
   }
 
@@ -457,16 +465,6 @@ function repoPathExists(candidate: string, fromDir: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// 参照: ADR 採番
-// ---------------------------------------------------------------------------
-
-// 廃止済みの ADR 採番プレフィックス。採番はトピック別ブロック帯の数値 4 桁へ全面再付番済みで、
-// プレフィックス付きの採番は現行に 1 つも存在しない。
-// 参照先が実在しないことが綴りだけで確定するため、判断を挟まずに違反と断定できる。
-// 廃止された 2 つに限定するのは、`[A-Z]\w+-\d{4}` のような一般形が規格番号や型番を巻き込むため。
-const RETIRED_ADR_NUMBER_RE = /\b(?:Toolchain|Dev)-\d{4}\b/g;
-
-// ---------------------------------------------------------------------------
 // 参照: Markdown リンク
 // ---------------------------------------------------------------------------
 
@@ -512,19 +510,6 @@ function linkPathExists(target: string, fromDir: string): boolean {
 
 // 検査している行の位置。報告に使うファイルと行番号、相対参照を解決する基準ディレクトリ。
 type Site = { file: string; lineNo: number; fromDir: string };
-
-// 廃止済み ADR 採番を参照していないか。行全体を見る —— 廃止採番はコードスパンに書かれていても
-// 実在しない ADR を指しており、リンクと違って「記法の例示」という正当な用途が無い。
-function checkRetiredAdrNumbers(site: Site, line: string): void {
-  for (const match of line.matchAll(RETIRED_ADR_NUMBER_RE)) {
-    report(
-      site.file,
-      site.lineNo,
-      "adr-ref",
-      `廃止された ADR 採番を参照しています: \`${match[0]}\`（現行の採番は数値 4 桁のみ）`,
-    );
-  }
-}
 
 // Markdown リンクの宛先は実在するか。コードスパンを除いた本文を見る —— コードスパンの中のリンクは
 // リンク記法そのものの例示であり、実在するファイルを指す主張ではない。
@@ -607,7 +592,6 @@ function checkLineReferences(site: Site, line: string): void {
     );
     return;
   }
-  checkRetiredAdrNumbers(site, line);
   const { spans, withoutCode } = scanInlineCode(line);
   checkLinkReferences(site, withoutCode);
   for (const span of spans) {
@@ -616,8 +600,7 @@ function checkLineReferences(site: Site, line: string): void {
   }
 }
 
-// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパス / リンク先の実在性と、
-// 廃止済み ADR 採番の不使用を検査する。
+// `.claude/**` の Markdown 本文が参照する make ターゲット / ファイルパス / リンク先の実在性を検査する。
 // frontmatter も対象にする。`description` はスキル選択時にモデルへ渡る要約であり、本文と同じだけ腐る。
 // 抑止ディレクティブ（HTML コメント）は YAML スカラの中では機能しないため、frontmatter で誤検知が
 // 出た場合は記述側を直して回避する。
@@ -669,7 +652,7 @@ for (const name of skillDirs) {
 const agentFiles = fs.existsSync(path.join(REPO_ROOT, AGENTS_DIR))
   ? fs
       .readdirSync(path.join(REPO_ROOT, AGENTS_DIR))
-      .filter((name) => name.endsWith(".md") && !name.endsWith(".ja.md"))
+      .filter((name) => name.endsWith(".md") && !isMirror(name))
       .sort()
   : [];
 for (const file of agentFiles) {
@@ -677,9 +660,35 @@ for (const file of agentFiles) {
   checkFrontmatter(rel, readFile(rel), file.replace(/\.md$/, ""));
 }
 
-// `AGENTS.md` も対訳を持つ。canonical を英語で持つ文書はスキル定義とこれだけで（[README](../README.md)）、
-// 対訳が canonical から遅れたことを検出する機構は、このペア検査のほかに無い。
-checkTranslationPair("AGENTS.md", "AGENTS.ja.md");
+// `AGENTS.md` も対訳を持つ。スキル定義と同じく、対訳の欠けもここで落とす。
+checkTranslationPair(
+  "AGENTS.md",
+  "AGENTS.ja.md",
+  "エージェントが読み込むのは canonical 側だけです",
+);
+
+// それ以外の対訳は、追跡されている `*.ja.md` のうち兄弟の canonical を持つものすべて。対訳が
+// canonical から遅れたことを検出する機構は、このペア検査のほかに無い。ここは**在る組**の構造だけを
+// 見て、canonical が対訳を持つかどうかは見ない（対訳を必須にするのはスキル定義と `AGENTS.md` だけ）。
+const pairedTranslations = new Set([
+  ...skillDirs.map((name) => path.join(SKILLS_DIR, name, "SKILL.ja.md")),
+  "AGENTS.ja.md",
+]);
+// 追跡されていても作業ツリーから消えたファイルは組に入れない。サンプルの破棄は `git rm` を経ずに
+// ディレクトリごと消すので、索引だけを見ると消えた canonical の組を「対訳が無い」と報告する。
+const trackedFiles = execFileSync("git", ["ls-files", "-z"], { cwd: REPO_ROOT, encoding: "utf8" })
+  .split("\0")
+  .filter((file) => file !== "" && fs.existsSync(path.join(REPO_ROOT, file)));
+const documentPairs = translationPairsOf(trackedFiles).filter(
+  ({ translation }) => !pairedTranslations.has(translation),
+);
+for (const { canonical, translation } of documentPairs) {
+  checkTranslationPair(
+    canonical,
+    translation,
+    "frontmatter を読み書きするのは canonical 側だけです",
+  );
+}
 
 const markdownFiles = collectClaudeMarkdown();
 for (const rel of markdownFiles) checkReferences(rel);
@@ -696,13 +705,13 @@ if (findings.length > 0) {
     console.error(`    :${finding.line}  [${finding.rule}] ${finding.message}`);
   }
   console.error(
-    `\n検査 ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${markdownFiles.length} Markdown 中 ${findings.length} 件 NG`,
+    `\n検査 ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${documentPairs.length} 対訳 / ${markdownFiles.length} Markdown 中 ${findings.length} 件 NG`,
   );
   console.error(`  未検査: ${UNCHECKED.join(" / ")}`);
   process.exit(1);
 }
 
 console.log(
-  `✓ skill-lint: ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${markdownFiles.length} Markdown すべて OK`,
+  `✓ skill-lint: ${skillDirs.length} スキル / ${agentFiles.length} エージェント / ${documentPairs.length} 対訳 / ${markdownFiles.length} Markdown すべて OK`,
 );
 console.log(`  未検査: ${UNCHECKED.join(" / ")}`);

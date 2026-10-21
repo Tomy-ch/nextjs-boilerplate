@@ -11,7 +11,7 @@ import { toProductDetailHref } from "@/features/products/facade/detail-url/detai
  *
  * @remarks
  * Sitemaps protocol の値です。超える規模は `generateSitemaps` で分割するのが規約であり、
- * 分け方は経路の構成で決まるためテンプレートから作った側の判断です。ここでは上限で打ち切り、
+ * 分け方は経路の構成で決まるため用途依存です。ここでは上限で打ち切り、
  * 載せ切れないものを黙って落とすのではなく、分割が要ることが挙げた件数から読めるようにします。
  */
 const SITEMAP_URL_LIMIT = 50_000;
@@ -46,6 +46,8 @@ const PUBLIC_PATHS: readonly string[] = [
  *
  * 主体を名乗らない口を使うのは、`use cache` の中で cookie を読めないためです
  * （`adapters/server/api/public-products`）。
+ *
+ * @returns 公開中の商品の詳細経路の一覧。
  */
 async function listProductPaths(): Promise<string[]> {
   "use cache";
@@ -71,6 +73,8 @@ async function listProductPaths(): Promise<string[]> {
  * 一覧の取得が失敗しても、backend に依らない経路まで一緒に落としません。500 を返すと、
  * クローラは静的な画面の存在まで知れなくなります。失敗の分類と記録は `adapters` の境界が
  * 済ませているので、ここでは記録し直しません。
+ *
+ * @returns 商品の経路の一覧。取得に失敗すれば空配列。
  */
 async function findProductPaths(): Promise<string[]> {
   try {

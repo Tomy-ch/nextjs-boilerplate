@@ -10,7 +10,12 @@ class ClockConfig {
     this.#fixedNow = fixedNow;
   }
 
-  /** 検証済み ENV から production singleton を組み立てる。 */
+  /**
+   * 検証済み ENV から production singleton を組み立てる。
+   *
+   * @param values - 検証済みの clock 用 ENV
+   * @returns 組み立てた {@link ClockConfig}
+   */
   static fromValues(values: ClockEnvironment): ClockConfig {
     return new ClockConfig(values.CLOCK_FIXED_NOW);
   }
@@ -21,6 +26,8 @@ class ClockConfig {
    * @remarks
    * 固定されているときも、呼ぶたびに新しい `Date` を返します。同じ実体を配ると、受け取った側が
    * 破壊的に動かした結果が次の呼び出し元へ伝わります。
+   *
+   * @returns 「いま」を表す新しい `Date`
    */
   now(): Date {
     return this.#fixedNow === undefined ? new Date() : new Date(this.#fixedNow);
@@ -40,6 +47,8 @@ let clockConfig: ClockConfig | undefined;
  *
  * 表示だけを撮影から外す `mask` では届きません。外れるのは日付を描く場所であって、seed から
  * 生まれる値そのものは画面じゅうに散っています。
+ *
+ * @returns {@link ClockConfig} の singleton
  */
 export function getClockConfig(): ClockConfig {
   clockConfig ??= ClockConfig.fromValues(getEnvironment());

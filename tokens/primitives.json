@@ -332,7 +332,7 @@
     },
     "system-jp": {
       "$type": "fontFamily",
-      "$description": "OS が同梱する和文ゴシック。Web フォントを読まないため転送も @font-face の宣言も持たない (0051 §5)",
+      "$description": "OS が同梱する和文ゴシック。Web フォントを読まないため転送も @font-face の宣言も持たない (ADR 0051)",
       "$value": [
         "system-ui",
         "Hiragino Sans",

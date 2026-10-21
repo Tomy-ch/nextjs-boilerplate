@@ -1,22 +1,33 @@
 import { z } from "zod";
 
-/** http purpose 専用の ENV validator を定義する。 */
-
 const maxUrlBytes = z.coerce.number().int().positive();
 
-/** 1 つの要求 URL に許すバイト数の上限を検証する。 */
+/**
+ * 1 つの要求 URL に許すバイト数の上限を検証する。
+ *
+ * @returns 上限バイト数の検証器
+ */
 export function maxUrlBytesValidator() {
   return maxUrlBytes;
 }
 
 const maxUploadBytes = z.coerce.number().int().positive();
 
-/** 中継する 1 件のアップロードに許すバイト数の上限を検証する。 */
+/**
+ * 中継する 1 件のアップロードに許すバイト数の上限を検証する。
+ *
+ * @returns 上限バイト数の検証器
+ */
 export function maxUploadBytesValidator() {
   return maxUploadBytes;
 }
 
-/** `Origin` ヘッダと完全一致で比べられる形（scheme + host + port、パス無し）か。 */
+/**
+ * `Origin` ヘッダと完全一致で比べられる形（scheme + host + port、パス無し）か。
+ *
+ * @param value - 検査する文字列
+ * @returns origin の形をしているか
+ */
 function isOrigin(value: string): boolean {
   try {
     return new URL(value).origin === value;
@@ -43,6 +54,8 @@ const allowedOrigins = z
  *
  * @remarks
  * 省略できます。既定の空は「同一 origin だけ」で、これは配備に依らず正しい値です。
+ *
+ * @returns 許可 origin 一覧の検証器
  */
 export function allowedOriginsValidator() {
   return allowedOrigins;

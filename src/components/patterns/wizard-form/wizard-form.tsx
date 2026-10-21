@@ -47,6 +47,8 @@ export type WizardSteps = readonly [WizardStep, ...WizardStep[]];
  *
  * @remarks
  * 段階ごとに切り出すのは、行き先を閉じ込めた handler を段階の数だけ作らないためです。
+ *
+ * @param props - 移る先の段階と、選ばれたことを受け取る callback。
  */
 function WizardStepLink({
   disabled,
@@ -84,9 +86,17 @@ export type WizardFormProps = {
   steps: WizardSteps;
   /** 最後の段階で「次へ」の代わりに置く操作。送信は呼び出し元が持つ。 */
   submit: ReactNode;
-  /** 前の段階へ戻る操作の文言。 */
+  /**
+   * 前の段階へ戻る操作の文言。
+   *
+   * @defaultValue "戻る"
+   */
   previousLabel?: string;
-  /** 次の段階へ進む操作の文言。 */
+  /**
+   * 次の段階へ進む操作の文言。
+   *
+   * @defaultValue "次へ"
+   */
   nextLabel?: string;
   /** 外枠の class。 */
   className?: string;
@@ -99,11 +109,8 @@ export type WizardFormProps = {
  * 持つのは**今どの段階に居るかと、その行き来だけ**である。各段階の field、検証規則、送信、途中
  * 保存はいずれも呼び出し元が持つ。進めてよいかは `blocked` として渡す。
  *
- * **到達した段階は DOM へ残し、現在以外を `hidden` で隠す**（理由は `StepPanel`）。
- *
- * 最後の段階で置く操作と「次へ」には別々の `key` を与える。同じ位置の `button` として reconcile
- * されると React が DOM 要素を使い回し、押した瞬間に `type` が `button` から `submit` へ書き換わる。
- * click の既定動作は handler の後に走るため、進んだうえで form まで送信されてしまう。
+ * **まだ到達していない段階は組み立てず、到達した段階は DOM へ残して現在以外を `hidden` で隠す**
+ * （理由は `StepPanel`）。
  *
  * **一度でも到達した段階へは進捗から直接行ける。** 順に辿り直させる理由が無く、確認の段から
  * 1 か所だけ直しに行く動きが最短で済む。まだ到達していない段階は押せない。規則は `canGoTo` が
@@ -120,7 +127,6 @@ export type WizardFormProps = {
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
  *
  * 進捗の表示は `Stepper` を合成し、**横に並べる**。段階の並びと現在位置の意味論はそちらが持つ。
- * 縦へ積むと、段階の数だけ入力欄より上が伸び、入力を始める前に画面を送ることになる。
  *
  * @example
  * ```tsx
@@ -134,9 +140,7 @@ export type WizardFormProps = {
  * />
  * ```
  *
- * @param props.label - この入力全体のアクセシブルな名前。
- * @param props.steps - 段階の定義。
- * @param props.submit - 最後の段階で置く操作。
+ * @param props - 入力全体の名前、段階の定義、最後に置く操作、および前後へ動く操作の文言。
  *
  * @see Storybook `Form/WizardForm`
  */
@@ -197,7 +201,7 @@ export function WizardForm({
    * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
    *
    * **`index <= furthestIndex` を緩めると、飛ばした段が mount されないまま送信される。**
-   * 段を DOM へ残すかは `StepPanel` が「一度でも現在地だったか」で決めており、ここが 1 段ずつ
+   * 段の中身を組み立てるかは `StepPanel` が「一度でも現在地だったか」で決めており、ここが 1 段ずつ
    * しか進ませないことがその判断の前提になっている。
    */
   const canGoTo = useCallback(
@@ -272,7 +276,15 @@ export function WizardForm({
         {isLast ? (
           <Fragment key="submit">{submit}</Fragment>
         ) : (
-          <Button disabled={current.blocked} key="next" onClick={goNext} type="button">
+          <Button
+            // 最後の段階の操作とは別の key を与える。同じ位置の button として reconcile されると React が
+            // DOM 要素を使い回し、押した瞬間に type が button から submit へ書き換わる。click の既定動作は
+            // handler の後に走るため、進んだうえで form まで送信されてしまう。
+            disabled={current.blocked}
+            key="next"
+            onClick={goNext}
+            type="button"
+          >
             {current.nextLabel ?? nextLabel}
           </Button>
         )}
@@ -287,6 +299,11 @@ export function WizardForm({
  * @remarks
  * 通過したことは **`currentIndex` ではなく `furthestIndex` で見る**。現在地だけで決めると、前へ
  * 戻った時点で通過済みの印が消え、済ませた入力までやり直しに見える。
+ *
+ * @param index - 状態を求める段階の位置。
+ * @param currentIndex - いま居る段階の位置。
+ * @param furthestIndex - 最も先まで進んだ段階の位置。
+ * @returns 進捗に出すその段階の状態。
  */
 function stepState(index: number, currentIndex: number, furthestIndex: number) {
   if (index === currentIndex) return STEPPER_STATE.CURRENT;
@@ -298,15 +315,20 @@ function stepState(index: number, currentIndex: number, furthestIndex: number) {
 /**
  * 段階 1 つぶんの領域。
  *
- * 現在の段階以外も DOM へ残すため、`hidden` で隠す。unmount すると `<form action>` で送信した
- * ときにその段の入力値が送られない。`hidden` なら値は form に残ったまま、支援技術と layout からは
- * 外れる。値を保つのが目的なので、`display: none` を class で当てるのではなく属性で隠す。
+ * 中身は到達するまで組み立てず、到達した段階は現在地を離れても DOM へ残して `hidden` で隠す。
+ * unmount すると `<form action>` で送信したときにその段の入力値が送られない。`hidden` なら値は
+ * form に残ったまま、支援技術と layout からは外れる。値を保つのが目的なので、`display: none` を
+ * class で当てるのではなく属性で隠す。
  *
  * 段階は form control の集合なので `fieldset` で表し、段階名を `legend` として与える。
  *
- * focus は移すが輪は描かない。操作した直後に中身が目に見えて変わるため、輪が足す情報が無く、pointer で操作した人には押した場所と無関係な枠が現れることになる。行き先は要素の名前が伝える。`legend` は
- * flex の流れから外れて描かれるため `gap` が効かない。段階名と最初の入力が詰まらないよう、
- * `legend` 自身へ下の余白を持たせる。
+ * focus は移すが輪は描かない。操作した直後に中身が目に見えて変わるため、輪が足す情報が無く、
+ * pointer で操作した人には押した場所と無関係な枠が現れることになる。行き先は要素の名前が伝える。
+ *
+ * `legend` は flex の流れから外れて描かれるため `gap` が効かない。段階名と最初の入力が詰まらない
+ * よう、`legend` 自身へ下の余白を持たせる。
+ *
+ * @param props - 段階の名前と中身、その領域の id、いま表示している段階かどうか。
  */
 function StepPanel({
   active,
@@ -319,8 +341,7 @@ function StepPanel({
   id: string;
   title: string;
 }) {
-  // 到達済みかは「一度でも現在地だったか」と同じである —— 次へは 1 段ずつしか進まず、飛べる先も
-  // 到達済みに限られるため、先の段が現在地を飛ばして開くことがない。
+  // 到達済みを「一度でも現在地だったか」で数える。両者が一致する前提は `canGoTo` が持つ。
   const reached = useLatched(active);
 
   return (

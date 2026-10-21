@@ -82,6 +82,8 @@ export function reportClientError(
  * `keepalive` を付けた取得へ落とします。
  *
  * 失敗は握り潰します。記録できないことで、記録の対象になった操作まで失敗させないためです。
+ *
+ * @param report - 中継へ送る報告
  */
 function send(report: TelemetryReport): void {
   const body = JSON.stringify(report);

@@ -55,6 +55,7 @@ const LABEL = "期間を指定";
  * いま書き換えている途中の値ではありません。入れ替わった組を送れてしまうので、送った先で
  * 誤りとして返ってきます。
  *
+ * @param props - {@link RangeDialogProps} を参照。
  * @see Storybook `Features/Admin/Analytics/RangeDialog`
  */
 export function RangeDialog({ selected, from, to }: RangeDialogProps) {

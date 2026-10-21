@@ -7,7 +7,6 @@ import {
 } from "./keyboard-shortcut.definition";
 
 describe("shortcutKeyLabel", () => {
-  // ----- 正常系 -----
   it("修飾キーを platform ごとの表記へ置き換える", () => {
     expect(shortcutKeyLabel(SHORTCUT_MODIFIER.MOD, SHORTCUT_PLATFORM.APPLE)).not.toBe(
       shortcutKeyLabel(SHORTCUT_MODIFIER.MOD, SHORTCUT_PLATFORM.OTHER),

@@ -24,6 +24,30 @@ describe("ApiErrorAlert", () => {
     ).toBeInTheDocument();
   });
 
+  it("版が揃っていない失敗では、送り直しではなく読み込み直しへ誘導する", () => {
+    render(
+      <ApiErrorAlert error={{ kind: "stale", message: "本文", retryable: true }} onRetry={noop} />,
+    );
+
+    const alert = within(screen.getByRole("alert"));
+
+    expect(alert.getByText("表示が新しくなりました")).toBeInTheDocument();
+    expect(alert.getByRole("button", { name: "読み込み直す" })).toBeInTheDocument();
+    expect(alert.queryByRole("button", { name: "再試行" })).not.toBeInTheDocument();
+  });
+
+  it("読み込み直しの実行中は、その旨を出して押せなくする", () => {
+    render(
+      <ApiErrorAlert
+        error={{ kind: "stale", message: "本文", retryable: true }}
+        onRetry={noop}
+        retryPending
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "読み込み直し中…" })).toBeDisabled();
+  });
+
   it("server の失敗では処理が失敗した見出しを出す", () => {
     render(<ApiErrorAlert error={{ kind: "server", message: "本文", retryable: true }} />);
 
@@ -61,10 +85,10 @@ describe("ApiErrorAlert", () => {
     expect(screen.getByRole("link", { name: "ログイン" })).toBeVisible();
   });
 
-  it("requestId を問い合わせ用に表示する", () => {
+  it("requestId をリクエスト ID として表示する", () => {
     render(<ApiErrorAlert error={{ kind: "server", message: "失敗", requestId: "req_01HZY" }} />);
 
-    expect(screen.getByText("問い合わせ ID: req_01HZY")).toBeVisible();
+    expect(screen.getByText("リクエスト ID: req_01HZY")).toBeVisible();
   });
 });
 
@@ -101,7 +125,7 @@ describe("ApiErrorDialog", () => {
       </ApiErrorDialog>,
     );
 
-    expect(screen.getByText("問い合わせ ID: req_01J0A")).toBeVisible();
+    expect(screen.getByText("リクエスト ID: req_01J0A")).toBeVisible();
     expect(screen.getByText("再試行可能まで約 30 秒")).toBeVisible();
     expect(screen.getByRole("button", { name: "再試行中…" })).toBeDisabled();
     expect(screen.getByRole("link", { name: "ログイン" })).toBeVisible();

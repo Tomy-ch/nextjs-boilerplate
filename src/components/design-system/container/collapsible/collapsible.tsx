@@ -10,6 +10,8 @@ import { ChevronDownIcon } from "@/components/icon";
  * native の `details` を使うため hydration を必要としない。外部 state との同期や開閉 animation が
  * 必要な場合は、利用画面に最小の client island を置く。
  *
+ * @param props - native `details` 属性。
+ *
  * @see Storybook `Container/Collapsible`
  */
 export function Collapsible({ className, ...props }: ComponentProps<"details">) {
@@ -24,6 +26,8 @@ export function Collapsible({ className, ...props }: ComponentProps<"details">) 
 
 /**
  * {@link Collapsible} を開閉する native の `summary`。
+ *
+ * @param props - native `summary` 属性。
  *
  * @see Storybook `Container/Collapsible`
  */
@@ -48,6 +52,8 @@ export function CollapsibleTrigger({ className, children, ...props }: ComponentP
 
 /**
  * {@link Collapsible} が開いたときだけ表示される補助内容。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Container/Collapsible`
  */

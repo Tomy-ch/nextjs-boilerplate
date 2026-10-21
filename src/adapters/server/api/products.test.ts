@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PARSED_ENVIRONMENT } from "@/config/environment.fixture";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
@@ -12,13 +12,16 @@ const { getAccessToken, getEnvironment } = vi.hoisted(() => ({
 vi.mock("@/config/environment", () => ({ getEnvironment }));
 vi.mock("../auth/session", () => ({ getAccessToken }));
 
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import {
   adjustProductStock,
   createProduct,
+  discontinueProduct,
   getProduct,
   getProductCount,
+  getProductDiscontinueImpact,
+  getProductIncludingUnpublished,
   getProductListPage,
   getProductRanking,
   getProducts,
@@ -36,8 +39,8 @@ const wireProduct = {
   price: "19.99",
   quantity: 3,
   stockWarningThreshold: 2,
-  status: { id: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12", name: "公開" },
-  category: { id: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13", name: "雑貨" },
+  status: { id: toProductStatusId("1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12"), name: "公開" },
+  category: { id: toProductCategoryId("2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13"), name: "雑貨" },
   publishedAt: "2026-08-07T00:00:00.000Z",
   discontinuedAt: null,
   images: [{ imagePath: "products/abc.png", displaySort: 1 }],
@@ -61,6 +64,10 @@ async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> 
 
   return undefined;
 }
+
+beforeEach(() => {
+  getAccessToken.mockResolvedValue(null);
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -132,6 +139,14 @@ describe("parseProductQuery", () => {
     expect(excluded).toMatchObject({ ok: true, query: { includeUnpublished: false } });
   });
 
+  it("廃番で絞る指定を、URL の綴りから真偽値へ写す", () => {
+    const only = parseProductQuery({ includeUnpublished: "true", discontinued: "true" });
+    const without = parseProductQuery({ includeUnpublished: "true", discontinued: "false" });
+
+    expect(only).toMatchObject({ ok: true, query: { discontinued: true } });
+    expect(without).toMatchObject({ ok: true, query: { discontinued: false } });
+  });
+
   it("省略した条件を契約の既定値で埋める", () => {
     const result = parseProductQuery({});
 
@@ -146,6 +161,12 @@ describe("parseProductQuery", () => {
     const result = parseProductQuery({ includeUnpublished: "yes" });
 
     expect(result).toEqual({ ok: false, invalidKeys: ["includeUnpublished"] });
+  });
+
+  it("廃番の指定が真偽値として読めなければ、外れたキーとして返す", () => {
+    const result = parseProductQuery({ includeUnpublished: "true", discontinued: "yes" });
+
+    expect(result).toEqual({ ok: false, invalidKeys: ["discontinued"] });
   });
 
   it("契約に無い並び順を写さず、外れたキーを返す", () => {
@@ -280,6 +301,15 @@ describe("getProducts", () => {
     expect(page.items[0]?.name).toBe("商品");
   });
 
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ keyword: "本", first: 20 });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("未公開を含める指定をクエリへ載せる", async () => {
     const requests = serveJson(PRODUCTS_URL, wirePage);
 
@@ -294,6 +324,30 @@ describe("getProducts", () => {
     await getProducts({ first: 20 });
 
     expect(new URL(requests[0]?.url ?? "").searchParams.has("includeUnpublished")).toBe(false);
+  });
+
+  it("廃番を除く指定を false としてクエリへ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true, discontinued: false });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("discontinued")).toBe("false");
+  });
+
+  it("廃番だけに絞る指定を true としてクエリへ載せる", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true, discontinued: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.get("discontinued")).toBe("true");
+  });
+
+  it("廃番の指定を省略したら、契約の既定に任せてクエリに載せない", async () => {
+    const requests = serveJson(PRODUCTS_URL, wirePage);
+
+    await getProducts({ includeUnpublished: true });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("discontinued")).toBe(false);
   });
 
   it("取得条件をクエリへ載せる", async () => {
@@ -419,12 +473,32 @@ describe("getProductCount", () => {
     await expect(getProductCount({ keyword: "鞄" })).resolves.toBe(42);
   });
 
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(COUNT_URL, { count: 42 });
+
+    await getProductCount({ keyword: "鞄" });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("一致する対象を決める条件だけをクエリへ載せる", async () => {
     const requests = serveJson(COUNT_URL, { count: 0 });
 
     await getProductCount({ keyword: "靴", minPrice: "10", after: "cursor-1", first: 20 });
 
     expect(requests[0]?.url).toBe(`${COUNT_URL}?keyword=%E9%9D%B4&minPrice=10`);
+  });
+
+  it("母集団を変える指定を、一覧と同じくクエリへ載せる", async () => {
+    const requests = serveJson(COUNT_URL, { count: 0 });
+
+    await getProductCount({ includeUnpublished: true, discontinued: true });
+
+    const params = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(params.get("includeUnpublished")).toBe("true");
+    expect(params.get("discontinued")).toBe("true");
   });
 
   it("条件を省略しても取得できる", async () => {
@@ -456,6 +530,15 @@ describe("getProduct", () => {
     expect(product.name).toBe("商品");
   });
 
+  it("未ログインでも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await getProduct(toProductId(wireProduct.id));
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("ID をパスへ載せる", async () => {
     const requests = serveJson(PRODUCT_URL, wireProduct);
 
@@ -482,6 +565,159 @@ describe("getProduct", () => {
     await getProduct(toProductId("a/../b"));
 
     expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/a%2F..%2Fb`);
+  });
+});
+
+describe("getProductIncludingUnpublished", () => {
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("未公開の商品も含める指定を添えて、表示用の商品にして返す", async () => {
+    const requests = serveJson(PRODUCT_URL, { ...wireProduct, publishedAt: null });
+
+    const product = await getProductIncludingUnpublished(toProductId(wireProduct.id));
+
+    expect(product.publishedAt).toBeNull();
+    expect(requests[0]?.url).toBe(`${PRODUCTS_URL}/${wireProduct.id}?includeUnpublished=true`);
+  });
+
+  it("主体を名乗って送る", async () => {
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await getProductIncludingUnpublished(toProductId(wireProduct.id));
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(PRODUCT_URL, wireProduct);
+
+    await expect(
+      kindOf(() => getProductIncludingUnpublished(toProductId(wireProduct.id))),
+    ).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
+});
+
+describe("getProductDiscontinueImpact", () => {
+  const IMPACT_URL = `${PRODUCT_URL}/discontinue-impact`;
+  const ID = toProductId(wireProduct.id);
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("見積もりの 3 つの件数を返す", async () => {
+    serveJson(IMPACT_URL, {
+      affectedCartCount: 12,
+      affectedUserCount: 9,
+      inProgressPurchaseCount: 2,
+    });
+
+    await expect(getProductDiscontinueImpact(ID)).resolves.toEqual({
+      affectedCartCount: 12,
+      affectedUserCount: 9,
+      inProgressPurchaseCount: 2,
+    });
+  });
+
+  it("主体を名乗って送る", async () => {
+    const requests = serveJson(IMPACT_URL, {
+      affectedCartCount: 0,
+      affectedUserCount: 0,
+      inProgressPurchaseCount: 0,
+    });
+
+    await getProductDiscontinueImpact(ID);
+
+    expect(requests[0]?.headers.get("authorization")).toBe("Bearer access-token");
+  });
+
+  // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveJson(IMPACT_URL, {
+      affectedCartCount: 0,
+      affectedUserCount: 0,
+      inProgressPurchaseCount: 0,
+    });
+
+    await expect(kindOf(() => getProductDiscontinueImpact(ID))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(requests).toHaveLength(0);
+  });
+
+  it("存在しない商品の応答を、見つからないとして分類する", async () => {
+    serveStatus("get", IMPACT_URL, 404);
+
+    await expect(kindOf(() => getProductDiscontinueImpact(ID))).resolves.toBe(ErrorKind.NOT_FOUND);
+  });
+});
+
+describe("discontinueProduct", () => {
+  const DISCONTINUE_URL = `${PRODUCT_URL}/discontinue`;
+  const ID = toProductId(wireProduct.id);
+  const conditions = { couponDiscountRate: "0.10", couponValidityDays: 30 };
+  const wireResult = {
+    discontinuedAt: "2026-09-05T00:00:00Z",
+    affectedCartCount: 12,
+    affectedUserCount: 9,
+    issuedCouponCount: 9,
+  };
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
+  // ----- 正常系 -----
+  it("実行の結果を返す", async () => {
+    serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await expect(discontinueProduct(ID, conditions, "idempotency-key")).resolves.toEqual(
+      wireResult,
+    );
+  });
+
+  it("代替クーポンの条件を本文で送る", async () => {
+    const requests = serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await discontinueProduct(ID, conditions, "idempotency-key");
+
+    await expect(requests[0]?.json()).resolves.toEqual({
+      couponDiscountRate: "0.10",
+      couponValidityDays: 30,
+    });
+  });
+
+  it("冪等キーをヘッダへ載せる", async () => {
+    const requests = serveWrite("post", DISCONTINUE_URL, wireResult);
+
+    await discontinueProduct(ID, conditions, "idempotency-key");
+
+    expect(requests[0]?.headers.get("Idempotency-Key")).toBe("idempotency-key");
+  });
+
+  // ----- 異常系 -----
+  it("進行中の購入が残っているという拒否を、競合として分類する", async () => {
+    serveStatus("post", DISCONTINUE_URL, 409);
+
+    await expect(kindOf(() => discontinueProduct(ID, conditions, "idempotency-key"))).resolves.toBe(
+      ErrorKind.CONFLICT,
+    );
+  });
+
+  it("条件が範囲を外れた応答を、入力の誤りとして分類する", async () => {
+    serveStatus("post", DISCONTINUE_URL, 422);
+
+    await expect(kindOf(() => discontinueProduct(ID, conditions, "idempotency-key"))).resolves.toBe(
+      ErrorKind.VALIDATION,
+    );
   });
 });
 
@@ -526,6 +762,15 @@ describe("getProductRanking", () => {
     expect(query.get("limit")).toBe("5");
   });
 
+  it("ログイン中でも資格情報を付けずに送る", async () => {
+    getAccessToken.mockResolvedValue("access-token");
+    const requests = serveJson(RANKING_URL, wireRanking);
+
+    await getProductRanking({ limit: 5 });
+
+    expect(requests[0]?.headers.get("authorization")).toBeNull();
+  });
+
   it("数量の軸の口を叩く", async () => {
     const requests = serveJson(RANKING_URL, wireRanking);
 
@@ -564,14 +809,18 @@ const DRAFT = {
   price: "19.99",
   quantity: 3,
   stockWarningThreshold: 2,
-  categoryId: "2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13",
-  statusId: "1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12",
+  categoryId: toProductCategoryId("2f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b13"),
+  statusId: toProductStatusId("1f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12"),
   publishedAt: new Date("2026-08-07T00:00:00.000Z"),
   images: [{ imagePath: "products/abc.png", displaySort: 1 }],
 };
 
 describe("uploadProductImage", () => {
   const IMAGES_URL = `${PRODUCTS_URL}/images`;
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
 
   // ----- 正常系 -----
   it("保存されたオブジェクトキーだけを返す", async () => {
@@ -607,9 +856,23 @@ describe("uploadProductImage", () => {
       kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
     ).resolves.toBe(ErrorKind.PAYLOAD_TOO_LARGE);
   });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("post", IMAGES_URL, wireProduct);
+
+    await expect(
+      kindOf(() => uploadProductImage(new File(["x"], "a.png", { type: "image/png" }))),
+    ).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("createProduct", () => {
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
+
   // ----- 正常系 -----
   it("契約の応答を表示用の型へ写して返す", async () => {
     serveWrite("post", PRODUCTS_URL, wireProduct);
@@ -644,10 +907,23 @@ describe("createProduct", () => {
 
     await expect(requests[0]?.json()).resolves.toMatchObject({ publishedAt: null });
   });
+
+  // ----- 異常系 -----
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("post", PRODUCTS_URL, wireProduct);
+
+    await expect(kindOf(() => createProduct(DRAFT))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("updateProduct", () => {
   const id = toProductId("0195f0c2-0000-7000-8000-000000000001");
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
 
   // ----- 正常系 -----
   it("契約の応答を表示用の型へ写して返す", async () => {
@@ -682,11 +958,25 @@ describe("updateProduct", () => {
       ErrorKind.CONFLICT,
     );
   });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("patch", PRODUCT_URL, wireProduct);
+
+    await expect(kindOf(() => updateProduct(id, { ...DRAFT, version: 4 }))).resolves.toBe(
+      ErrorKind.UNAUTHENTICATED,
+    );
+    expect(requests).toHaveLength(0);
+  });
 });
 
 describe("adjustProductStock", () => {
   const STOCK_URL = `${PRODUCT_URL}/stock`;
   const ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  beforeEach(() => {
+    getAccessToken.mockResolvedValue("access-token");
+  });
 
   // ----- 正常系 -----
   it("増減後の商品を表示用の型へ写して返す", async () => {
@@ -733,6 +1023,14 @@ describe("adjustProductStock", () => {
     serveStatus("patch", STOCK_URL, 422);
 
     await expect(kindOf(() => adjustProductStock(ID, -1000))).resolves.toBe(ErrorKind.VALIDATION);
+  });
+
+  it("資格情報が無ければ送らずに未認証で落とす", async () => {
+    getAccessToken.mockResolvedValue(null);
+    const requests = serveWrite("patch", STOCK_URL, wireProduct);
+
+    await expect(kindOf(() => adjustProductStock(ID, 50))).resolves.toBe(ErrorKind.UNAUTHENTICATED);
+    expect(requests).toHaveLength(0);
   });
 
   it("並行して動かされて拒まれた応答を、競合として分類する", async () => {

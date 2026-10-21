@@ -47,6 +47,10 @@ export type PurchasePeriodFieldsProps = {
  *
  * 終了日に下限を与えるのは、開始日より前を選べないようにするためです（理由は `period.ts` の
  * {@link toPeriodSelection}）。選べてしまうと、押した後に一覧の消えた画面になります。
+ *
+ * @param props - いま組み立てている期間と、変わったときに呼ぶ callback
+ *
+ * @see Storybook `Features/Purchases/History/PeriodFields`
  */
 export function PurchasePeriodFields({ draft, onChange }: PurchasePeriodFieldsProps) {
   const scope = useId();

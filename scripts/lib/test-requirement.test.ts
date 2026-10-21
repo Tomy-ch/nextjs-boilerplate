@@ -104,6 +104,15 @@ describe("resolveTestRequirement", () => {
   });
 
   // ----- 異常系 -----
+  it("リポジトリ直下の README の宣言は、ディレクトリの中のテストには及ばない", () => {
+    const resolved = resolveTestRequirement(
+      "vrt/lib/clock.test.ts",
+      readerOf({ "": frontmatter("test-requirement: unit") }),
+    );
+
+    expect(resolved).toBeNull();
+  });
+
   it("遡っても宣言が無ければ null を返す", () => {
     expect(resolveTestRequirement("vrt/lib/clock.test.ts", readerOf({}))).toBeNull();
   });
@@ -176,6 +185,19 @@ describe("findUndeclaredDirectories", () => {
     );
 
     expect(undeclared).toEqual(["mocks"]);
+  });
+
+  it("リポジトリ直下の宣言だけでは、ディレクトリの中のテストを引けた側へ入れない", () => {
+    const undeclared = findUndeclaredDirectories(
+      ["tool.test.ts", "tokens/scripts/gen.test.ts"],
+      readerOf({ "": frontmatter("test-requirement: unit") }),
+    );
+
+    expect(undeclared).toEqual(["tokens/scripts"]);
+  });
+
+  it("宣言を引けない直下のテストは `.` として返す", () => {
+    expect(findUndeclaredDirectories(["tool.test.ts"], readerOf({}))).toEqual(["."]);
   });
 
   it("複数の未宣言ディレクトリを名前順に並べる", () => {

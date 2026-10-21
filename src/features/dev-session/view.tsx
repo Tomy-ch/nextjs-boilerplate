@@ -10,7 +10,7 @@ import type { DiscardDevSessionAction, IssueDevSessionAction } from "./form-stat
 import { CurrentSession } from "./ui/current-session/current-session";
 import { type AuthorizationHandoff, DevSessionForm } from "./ui/session-form/session-form";
 
-/** `DevSessionView` の props。 */
+/** {@link DevSessionView} の props。 */
 export type DevSessionViewProps = {
   /** いま持っている session。持っていなければ null。 */
   session: Session | null;
@@ -42,6 +42,8 @@ export type DevSessionViewProps = {
  * 入っているか」**で、それが判ってから入り直すかどうかを決めるためです。
  *
  * 送信先を自分で決めません。理由は [`form-state.ts`](./form-state.ts) が持ちます。
+ *
+ * @param props - {@link DevSessionViewProps}。
  */
 export const DevSessionView = withScreenSpan(
   "features/dev-session/view",

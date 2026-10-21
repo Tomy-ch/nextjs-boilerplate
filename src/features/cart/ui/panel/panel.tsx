@@ -33,7 +33,7 @@ export type CartPanelProps = {
  * カートが空の間は枠ごと描画しません。中身の無い枠が常に場所を取ると、本文の幅がカートの有無で
  * 変わらないぶん、空白だけが残ります。
  *
- * **`lg` 未満では出しません**（タブレットを含む。`docs/rules.md`「レイアウトと帯」の
+ * **`lg` 未満では出しません**（タブレットを含む。`docs/rules.md#layout`の
  * 「脇に常設する領域は `lg` 以上でだけ出す」）。本文の下へ積むと内側のスクロールが外側の
  * スクロールを奪い、本文へ戻れなくなるため、`lg` 未満は本文へ被せる `CartHeaderAction` が
  * 受け持ちます。
@@ -46,6 +46,8 @@ export type CartPanelProps = {
  * **開いているかどうかは幅によらず store の要求に従います。** 脇に常設できる幅でも、この領域は本文の
  * 幅をその分だけ持っていきます。閉じられないと、一度カートへ入れた利用者は一覧を狭いまま読み続ける
  * ことになります。閉じた後は header の入口から開き直せます。
+ *
+ * @see Storybook `Features/Cart/Panel`
  */
 export function CartPanel({ cart }: CartPanelProps) {
   const isOpen = useCartStore((state) => state.isOpen);

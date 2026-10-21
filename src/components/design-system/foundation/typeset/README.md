@@ -1,28 +1,28 @@
 # Typeset
 
-## 用途
+## Purpose
 
-sanitizer 済みの Markdown / HTML を一定の組版 rhythm で表示します。
+Shows sanitized Markdown / HTML with a consistent typesetting rhythm.
 
-## 役割と公開 class
+## Role and Public Classes
 
-| Class | 役割 |
+| Class | Role |
 | --- | --- |
-| `.typeset` | HTML 要素へ共通の組版 rhythm を適用する起点です。 |
-| `.typeset-<preset>` | font、size、leading、flow を文脈ごとに上書きする preset です。 |
-| `.not-typeset` / `[data-not-typeset]` | 配下を Typeset の適用対象から外す escape hatch です。 |
-| `.typeset-scroll` | 横に収まらない table などを横スクロール可能にする wrapper です。 |
+| `.typeset` | The starting point that applies a common typesetting rhythm to HTML elements. |
+| `.typeset-<preset>` | A preset that overrides font, size, leading and flow per context. |
+| `.not-typeset` / `[data-not-typeset]` | An escape hatch that excludes its descendants from Typeset. |
+| `.typeset-scroll` | A wrapper that makes content that does not fit horizontally, such as a table, horizontally scrollable. |
 
-`typeset.css` がこれらを定義する CSS foundation で、Story は `Foundation/Typeset` に置きます。
+`typeset.css` is the CSS foundation that defines these, and the Story is placed at `Foundation/Typeset`.
 
-## 利用ケース
+## Use Cases
 
-記事、ドキュメント、ストリーミング表示など、HTML 要素の組版を共通化する場面で renderer の外側へ付与します。
+Apply it outside the renderer wherever the typesetting of HTML elements should be shared, such as articles, documentation and streaming display.
 
-## 責務境界
+## Responsibility Boundaries
 
-renderer・sanitizer・最大幅・業務コンテンツを持ちません。安全な HTML と layout は呼び出し側が所有します。
+It holds no renderer, sanitizer, maximum width or business content. The caller owns safe HTML and layout.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は見出し・段落・表・preset を確認します。CSS foundation のため表示検証は Storybook で行います。
+Storybook checks headings, paragraphs, tables and presets. As a CSS foundation, visual verification is done in Storybook.

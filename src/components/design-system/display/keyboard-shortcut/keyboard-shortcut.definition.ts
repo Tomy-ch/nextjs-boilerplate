@@ -70,6 +70,12 @@ export const SHORTCUT_MODIFIER_LABEL: Readonly<
   },
 };
 
+/**
+ * キーが、プラットフォームで表記の変わる修飾キーかどうかを判定する。
+ *
+ * @param key - 判定するキー。
+ * @returns {@link SHORTCUT_MODIFIER} の値であれば `true`。
+ */
 function isShortcutModifier(key: string): key is ShortcutModifier {
   return Object.values(SHORTCUT_MODIFIER).some((modifier) => modifier === key);
 }
@@ -82,6 +88,7 @@ function isShortcutModifier(key: string): key is ShortcutModifier {
  *
  * @param key - 表示するキー。
  * @param platform - 表記を引くプラットフォーム。
+ * @returns そのプラットフォームで表示する文字列。
  */
 export function shortcutKeyLabel(key: string, platform: ShortcutPlatform): string {
   return isShortcutModifier(key) ? SHORTCUT_MODIFIER_LABEL[platform][key] : key;

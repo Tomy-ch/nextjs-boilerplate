@@ -30,7 +30,7 @@ export type UnloadGuardProps = {
  * <UnloadGuard when={isDirty} />
  * ```
  *
- * @param props.when - 離脱を確認するか。
+ * @param props - 離脱を確認するかどうか。
  *
  * @see Storybook `Navigation/UnloadGuard`
  */
@@ -38,6 +38,11 @@ export function UnloadGuard({ when }: UnloadGuardProps) {
   useEffect(() => {
     if (!when) return;
 
+    /**
+     * browser 標準の離脱確認を出させる。
+     *
+     * @param event - `beforeunload`。
+     */
     const confirmUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };

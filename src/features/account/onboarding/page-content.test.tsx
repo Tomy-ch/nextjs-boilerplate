@@ -92,8 +92,6 @@ describe("OnboardingPageContent", () => {
 
     for (const label of ADDRESS_LABELS) {
       if (label === PROFILE_FIELD_LABELS.prefecture) {
-        // 候補から選ぶ項目には既定の選択を置かない。選んでいないことと、先頭の候補を
-        // 選んだことは別である。
         expect(screen.getByLabelText(label)).not.toHaveValue();
         continue;
       }

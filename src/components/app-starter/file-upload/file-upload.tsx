@@ -19,13 +19,25 @@ import { FILE_UPLOAD_REJECTION_REASON, type FileUploadRejection } from "./file-u
 export type FileUploadProps = Omit<ComponentProps<"input">, "onSelect" | "type" | "value"> & {
   /** 受け付ける最大の大きさ（byte）。省略すると大きさで弾かない。 */
   maxSize?: number;
-  /** 送信中か。操作を止める。 */
+  /**
+   * 送信中か。操作を止める。
+   *
+   * @defaultValue false
+   */
   pending?: boolean;
   /** 送信の進捗（0 以上 100 以下）。省略すると進捗を表示しない。 */
   progress?: number;
-  /** 領域に添える誘導文。 */
+  /**
+   * 領域に添える誘導文。
+   *
+   * @defaultValue "ここにドラッグ、またはクリックして選択"
+   */
   prompt?: string;
-  /** 選ぶ操作の文言。 */
+  /**
+   * 選ぶ操作の文言。
+   *
+   * @defaultValue "ファイルを選択"
+   */
   triggerLabel?: string;
   /**
    * 選択された内容を伝える。受け付けたものだけが渡る。
@@ -46,6 +58,13 @@ export type FileUploadProps = Omit<ComponentProps<"input">, "onSelect" | "type" 
   onReject?: (rejections: FileUploadRejection[]) => void;
 };
 
+/**
+ * `accept` の指定にファイルが当てはまるか。
+ *
+ * @param file - 判定するファイル。
+ * @param accept - native `input` の `accept` と同じ書式。未指定と空文字はすべて受け付ける。
+ * @returns 当てはまるなら `true`。
+ */
 function matchesAccept(file: File, accept: string | undefined) {
   if (accept === undefined || accept.trim() === "") {
     return true;
@@ -70,6 +89,14 @@ function matchesAccept(file: File, accept: string | undefined) {
   });
 }
 
+/**
+ * ファイルを受け付けない理由を求める。
+ *
+ * @param file - 判定するファイル。
+ * @param accept - 受け付ける形式。
+ * @param maxSize - 受け付ける最大の大きさ（byte）。未指定なら大きさで弾かない。
+ * @returns 受け付けない理由。受け付けるなら `null`。
+ */
 function rejectionOf(
   file: File,
   accept: string | undefined,
@@ -166,6 +193,12 @@ export function FileUpload({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const isBlocked = disabled === true || pending;
 
+  /**
+   * 選択された分を検証し、受け付けた分を `onSelect` へ、弾いた分を `onReject` へ渡す。
+   *
+   * @param chosen - 選択されたファイル。
+   * @returns 受け付けたファイル。
+   */
   const applySelection = useCallback(
     (chosen: File[]) => {
       const limited = multiple === true ? chosen : chosen.slice(0, 1);
@@ -188,6 +221,11 @@ export function FileUpload({
     [accept, maxSize, multiple, onReject, onSelect, resetOnSelect],
   );
 
+  /**
+   * 選択ダイアログで選ばれた分を受け取る。
+   *
+   * @param event - `input` の `change`。
+   */
   const handleChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       onChange?.(event);
@@ -201,6 +239,11 @@ export function FileUpload({
     [applySelection, onChange, resetOnSelect],
   );
 
+  /**
+   * 領域の上へドラッグされている間の見た目を立てる。
+   *
+   * @param event - `dragover`。
+   */
   const handleDragOver = useCallback(
     (event: DragEvent<HTMLLabelElement>) => {
       event.preventDefault();
@@ -212,6 +255,11 @@ export function FileUpload({
     [isBlocked],
   );
 
+  /**
+   * 領域の外へ出たときだけ、ドラッグ中の見た目を下ろす。
+   *
+   * @param event - `dragleave`。
+   */
   const handleDragLeave = useCallback((event: DragEvent<HTMLLabelElement>) => {
     const next = event.relatedTarget;
 
@@ -220,6 +268,11 @@ export function FileUpload({
     }
   }, []);
 
+  /**
+   * 落とされた分を受け付け、native form の送信に載るよう `input` へ書き戻す。
+   *
+   * @param event - `drop`。
+   */
   const handleDrop = useCallback(
     (event: DragEvent<HTMLLabelElement>) => {
       event.preventDefault();

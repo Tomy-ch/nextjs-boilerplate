@@ -2,7 +2,11 @@
 
 import { useCallback, useSyncExternalStore } from "react";
 
-/** サーバでは media query を評価できないため、一致していない側を返す。 */
+/**
+ * サーバでは media query を評価できないため、一致していない側を返す。
+ *
+ * @returns 常に `false`
+ */
 function serverSnapshot(): boolean {
   return false;
 }
@@ -20,6 +24,7 @@ function serverSnapshot(): boolean {
  * DOM を残したままでは成立しないものに限ります。
  *
  * @param query - `matchMedia` へ渡す media query
+ * @returns media query が一致しているか
  */
 export function useMediaQuery(query: string): boolean {
   const subscribe = useCallback(

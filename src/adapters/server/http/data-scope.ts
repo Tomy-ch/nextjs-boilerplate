@@ -32,6 +32,8 @@ const CREDENTIAL_HEADERS: ReadonlySet<string> = new Set(["authorization", "cooki
  * 同じことを型が既に禁じています（`request.ts` の `UserScopedRequestSpec`）。ここに置くのは **型を
  * 迂回した書き方**への後詰めで、別の口の使い回しや組み立てた spec から入ってくる経路を止めます。
  *
+ * @param scope - 許される範囲を決める口の分類
+ * @param spec - 検査する呼び出しごとの指定
  * @throws 分類に許されない指定を含むとき
  */
 export function assertSpecWithinScope(
@@ -53,6 +55,7 @@ export function assertSpecWithinScope(
  * **口の分類が「その client が資格情報を載せるか」を言い当てられなくなります** —— 分類の
  * 前提そのものが崩れるため、綴りの段階で塞ぎます。
  *
+ * @param headers - 検査する呼び出しごとのヘッダ
  * @throws 資格情報のヘッダを含むとき
  */
 export function assertNoCredentialHeader(headers?: Readonly<Record<string, string>>): void {

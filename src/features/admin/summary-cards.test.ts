@@ -35,17 +35,17 @@ describe("toSummaryCards", () => {
     expect(toSummaryCards(SUMMARY).every((card) => card.note.length > 0)).toBe(true);
   });
 
-  it("母集団の一致する公開中の商品だけが行き先を持つ", () => {
-    const published = toSummaryCards(SUMMARY).find((card) => card.id === "published-product-count");
-
-    expect(published?.href).toBe("/admin/products");
-    expect(published?.linkLabel).toBe("公開中の商品を一覧で見る");
-  });
-
-  it("登録済みの商品は行き先を持たない", () => {
+  it("母集団の一致する登録済みの商品だけが行き先を持つ", () => {
     const total = toSummaryCards(SUMMARY).find((card) => card.id === "total-product-count");
 
-    expect(total?.href).toBeUndefined();
-    expect(total?.linkLabel).toBeUndefined();
+    expect(total?.href).toBe("/admin/products");
+    expect(total?.linkLabel).toBe("登録済みの商品を一覧で見る");
+  });
+
+  it("公開中の商品は行き先を持たない", () => {
+    const published = toSummaryCards(SUMMARY).find((card) => card.id === "published-product-count");
+
+    expect(published?.href).toBeUndefined();
+    expect(published?.linkLabel).toBeUndefined();
   });
 });

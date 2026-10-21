@@ -16,11 +16,11 @@ describe("noInternalAnchor", () => {
   it("a 以外の要素と、静的に解決できない href を通す", () => {
     ruleTester.run("no-internal-anchor", noInternalAnchor, {
       valid: [
-        "const a = <Foo.Bar href='/products' />;",
-        "const a = <div href='/products' />;",
+        "const a = <Foo.Bar href='/resources' />;",
+        "const a = <div href='/resources' />;",
         "const a = <a>ラベル</a>;",
         "const a = <a className='underline'>ラベル</a>;",
-        "const a = <a xlink:href='/products'>ラベル</a>;",
+        "const a = <a xlink:href='/resources'>ラベル</a>;",
         "const a = <a href>ラベル</a>;",
         "const a = <a href={to}>ラベル</a>;",
         "const a = <a href='https://example.com'>ラベル</a>;",
@@ -35,11 +35,11 @@ describe("noInternalAnchor", () => {
       valid: [],
       invalid: [
         {
-          code: "const a = <a href='/products'>ラベル</a>;",
+          code: "const a = <a href='/resources'>ラベル</a>;",
           errors: [{ messageId: "noInternalAnchor" }],
         },
         {
-          code: "const a = <a {...rest} href='/products'>ラベル</a>;",
+          code: "const a = <a {...rest} href='/resources'>ラベル</a>;",
           errors: [{ messageId: "noInternalAnchor" }],
         },
       ],

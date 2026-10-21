@@ -12,9 +12,9 @@ import { idleActionState } from "@/model/action-state";
 import type { Prefecture, UserProfile } from "@/model/user/user";
 
 import { updateProfileAction } from "../../../actions";
+import { MYPAGE_PATH } from "../../../facade/paths/paths";
 import { PROFILE_FIELD_LABELS } from "../../../field-labels";
 import type { ProfileFormState } from "../../../form-state";
-import { MYPAGE_PATH } from "../../../paths";
 import { PostalCodeField } from "../../../ui/postal-code-field/postal-code-field";
 import { PrefectureField } from "../../../ui/prefecture-field/prefecture-field";
 import { ProfileSubmitButton } from "../../../ui/submit-button/submit-button";
@@ -31,11 +31,10 @@ type ProfileFormProps = {
 };
 
 /**
- * プロフィール編集フォーム。
+ * 検証も補完も持たず、並びだけを持つプロフィール編集フォーム。
  *
  * @remarks
- * この部品が持つのは**並びだけ**です。検証といつ誤りを見せるかは `useProfileFields`、住所の
- * 補完は `useAddressField` が持ちます。
+ * 検証といつ誤りを見せるかは `useProfileFields`、住所の補完は `useAddressField` が持ちます。
  *
  * 送信は `<form action>` に委ねます。react-hook-form が持つのは入力中の検証だけで、送信機構は
  * 置き換えません。JavaScript が動かない環境でも form はそのまま送信され、server 側が同じ
@@ -61,6 +60,8 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
   const postalCode = fields.fieldOf("postalCode");
   const prefecture = fields.fieldOf("prefecture");
 
+  // 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
+  // 入力欄を見ていない利用者には届かない（住所欄直下の role="status" の p が読み上げを担う）。
   return (
     <form action={formAction} className="flex max-w-2xl flex-col gap-8">
       {state.status === "error" && state.formError !== null ? (
@@ -109,8 +110,6 @@ export function ProfileForm({ prefectures, profile }: ProfileFormProps) {
       <FieldSet>
         <FieldLegend>住所</FieldLegend>
         <FieldGroup>
-          {/* 補完は focus が外れた時点で走る。起きたことを画面の変化だけで伝えると、
-              入力欄を見ていない利用者には届かない。 */}
           <p className="text-sm text-muted-foreground" role="status">
             {address.message}
           </p>

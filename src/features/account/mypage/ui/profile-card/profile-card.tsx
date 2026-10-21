@@ -20,7 +20,7 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import type { UserProfile } from "@/model/user/user";
 import { withPartSpan } from "@/observability/render-span";
-import { PROFILE_EDIT_PATH } from "../../../paths";
+import { PROFILE_EDIT_PATH } from "../../../facade/paths/paths";
 
 /**
  * 住所を 1 つの文字列へ組む。
@@ -28,6 +28,9 @@ import { PROFILE_EDIT_PATH } from "../../../paths";
  * @remarks
  * 郵便番号を先頭に置き、都道府県から番地までを続けます。建物名は任意入力なので、無ければ
  * その区切りごと落とします。空の要素を残すと区切り記号だけが並びます。
+ *
+ * @param profile - 住所を組む元のプロフィール
+ * @returns 郵便番号から番地までを 1 行にした文字列
  */
 function formatAddress(profile: UserProfile): string {
   const lines = [profile.prefecture, profile.city, profile.street, profile.building ?? ""];
@@ -36,15 +39,18 @@ function formatAddress(profile: UserProfile): string {
 }
 
 /**
- * 自分の登録情報の表示。
+ * 編集する対象と同じ場所に導線を置く、自分の登録情報のカード。
  *
  * @remarks
- * 編集への導線をこのカードが持つのは、編集する対象がここに出ている情報そのものだからです。
- * 画面の下端にまとめると、何を変えに行くのかが操作の位置から読み取れなくなります。
+ * 導線を画面の下端にまとめると、何を変えに行くのかが操作の位置から読み取れなくなります。
+ *
+ * @param props - 表示するプロフィール。
  */
 export const ProfileCard = withPartSpan(
   "features/account/mypage/ui/profile-card/profile-card",
   ({ profile }: { readonly profile: UserProfile }) => {
+    // メールアドレスは契約が長さの上限を置いていないので、1 行に収まる前提を置けない
+    // （下の KeyValueValue に break-all を当てている）。
     return (
       <Card>
         <CardHeader>
@@ -63,7 +69,6 @@ export const ProfileCard = withPartSpan(
             </KeyValueItem>
             <KeyValueItem>
               <KeyValueLabel>メールアドレス</KeyValueLabel>
-              {/* 契約は長さの上限を置いていないので、1 行に収まる前提を置けない。 */}
               <KeyValueValue className="break-all">{profile.email}</KeyValueValue>
             </KeyValueItem>
             <KeyValueItem>

@@ -63,19 +63,15 @@ export function InputGroup({ className, disabled, ...props }: InputGroupProps) {
         "group/input-group relative flex w-full items-center rounded-md border border-input shadow-xs transition-[color,box-shadow] dark:bg-input/30",
         "h-10 min-w-0 has-[>textarea]:h-auto",
 
-        // Variants based on alignment.
         "has-[>[data-align=inline-start]]:[&>input]:pl-2",
         "has-[>[data-align=inline-end]]:[&>input]:pr-2",
         "has-[>[data-align=block-start]]:h-auto has-[>[data-align=block-start]]:flex-col has-[>[data-align=block-start]]:[&>input]:pb-3",
         "has-[>[data-align=block-end]]:h-auto has-[>[data-align=block-end]]:flex-col has-[>[data-align=block-end]]:[&>input]:pt-3",
 
-        // Focus state.
         "has-[[data-slot=input-group-control]:focus-visible]:outline-2 has-[[data-slot=input-group-control]:focus-visible]:outline-offset-2 has-[[data-slot=input-group-control]:focus-visible]:outline-active",
 
-        // Error state.
         "has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40",
 
-        // Disabled state.
         "has-[[data-slot=input-group-control]:disabled]:border-border data-[disabled=true]:border-border",
 
         className,
@@ -110,7 +106,11 @@ const inputGroupAddonVariants = cva(
   },
 );
 
-/** addon の空白部分を押したとき、同じ枠内の control へ focus を移す。 */
+/**
+ * addon の空白部分を押したとき、同じ枠内の control へ focus を移す。
+ *
+ * @param event - addon が受け取った click event。
+ */
 function forwardFocusToControl(event: MouseEvent<HTMLDivElement>): void {
   if (event.target instanceof HTMLElement && event.target.closest("button")) {
     return;
@@ -130,6 +130,8 @@ export type InputGroupAddonProps = ComponentProps<"div"> &
      * - `inline-end`: 送信・消去など、入力欄の後ろに置く
      * - `block-start`: 見出しや操作列として、入力欄の上に積む
      * - `block-end`: 補足や操作列として、入力欄の下に積む
+     *
+     * @defaultValue `INPUT_GROUP_ADDON_ALIGN.INLINE_START`（`"inline-start"`）
      */
     align?: InputGroupAddonAlign;
   };
@@ -149,8 +151,7 @@ export type InputGroupAddonProps = ComponentProps<"div"> &
  * tab で到達する。addon へ操作を置く場合は `InputGroupButton` を使い、その button 自身に
  * アクセシブルな名前を与える。
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.align - 入力欄に対して addon を置く位置。
+ * @param props - native `div` 属性と、表示用 props。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupAddon({
@@ -195,6 +196,8 @@ export type InputGroupButtonProps = Omit<ComponentProps<typeof Button>, "size"> 
      *
      * - `xs` / `sm`: 文言を伴う操作
      * - `icon-xs` / `icon-sm`: アイコンだけの正方形の操作
+     *
+     * @defaultValue `INPUT_GROUP_BUTTON_SIZE.EXTRA_SMALL`（`"xs"`）
      */
     size?: InputGroupButtonSize;
   };
@@ -211,8 +214,7 @@ export type InputGroupButtonProps = Omit<ComponentProps<typeof Button>, "size"> 
  * アイコンだけを子に置く場合、button のアクセシブルな名前が空になる。`aria-label` か視覚的に
  * 隠したテキストを必ず与える。
  *
- * @param props - `Button` の props（`size` を除く）と、以下の表示用 props。
- * @param props.size - 入力欄の枠内に収める button の大きさ。
+ * @param props - `Button` の props（`size` を除く）と、表示用 props。
  * @see Storybook `Form/InputGroup`
  */
 export function InputGroupButton({

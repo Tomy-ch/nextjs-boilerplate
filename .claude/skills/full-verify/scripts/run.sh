@@ -149,11 +149,13 @@ for pat in 'INTENT.md' 'CLAUDE.md' 'AGENTS.md' 'README.md' 'README.*' \
   # $pat は glob なので、展開させるため意図的に分割させる
   # shellcheck disable=SC2044,SC2086
   for f in $(cd "$REPO_ROOT" && ls -1 $pat 2>/dev/null); do
+    # 兄弟の *.ja.md は canonical の翻訳のミラーで、意図源ではない
+    case "$f" in *.ja.md) continue ;; esac
     [ -f "$REPO_ROOT/$f" ] && echo "$f" >> "$STRUCT/design_docs.txt"
   done
 done
-# docs 配下の md を補足（ja/portal 等は意図源でないが存在は記録）
-find "$REPO_ROOT/docs" -maxdepth 2 -name '*.md' 2>/dev/null \
+# docs 配下の md を補足（portal 等は意図源でないが存在は記録。翻訳のミラーは載せない）
+find "$REPO_ROOT/docs" -maxdepth 2 -name '*.md' ! -name '*.ja.md' 2>/dev/null \
   | sed "s|^$REPO_ROOT/||" >> "$STRUCT/design_docs.txt"
 sort -u "$STRUCT/design_docs.txt" -o "$STRUCT/design_docs.txt"
 
@@ -166,7 +168,7 @@ done
 if [ -n "$PRIMARY_BASIS_DOCS" ]; then
   BASIS="設計文書あり（意図の正）: ${PRIMARY_BASIS_DOCS}"
 else
-  BASIS="一般原則のみ（意図未文書化）。構造起因の指摘は全てこの基準前提で読むこと。検証不能な点は『検証不能（基準欠如）』と記す。"
+  BASIS="一般原則のみ（意図未文書化）。構造起因の指摘は全てこの基準前提で読むこと。検証不能な点は「検証不能(基準欠如)」と記す。"
 fi
 echo "$BASIS" > "$STRUCT/basis.txt"
 log "基準: $BASIS"
@@ -693,7 +695,7 @@ process_module() { # $1=dir
   fi
 }
 
-log "Pass2 実装検証を開始（${#MODULES[@]} ユニット, 粒度=$GRANULARITY）"
+log "Pass2 実装検証を開始（${#MODULES[@]} ユニット, 粒度=${GRANULARITY}）"
 cb_reset   # 前回の即失敗カウントを掃除
 
 if [ "$PARALLEL" -gt 1 ]; then

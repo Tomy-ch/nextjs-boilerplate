@@ -25,15 +25,10 @@
 
 ファイルツリーの読み取りやファイル書き込みは、これらの確定後にのみ行うこと。
 
-このスキルは常に **canonical** README を対象とする。そして v1.0.0 未満において canonical とは、
-サフィックス無しのパスに置かれた**日本語**のファイルである。ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) は v1.0.0 の境界まで日本語をそこに置き、
-その隣に `*.ja.md` を作ることを禁じている。したがってこのリポジトリの README には**翻訳の兄弟が無い** ——
-`find src docs -name '*.ja.md'` は何も返さない。作ってはならないし、存在してはならないファイルを
-「再同期」するために `canonicalize-doc` へチェーンしてもならない。
-
-もし `README.md` の隣に `README.ja.md` が現れたら、それは同期すべき対ではなく**報告すべき所見**である。
-どちらが残るかは 0140 が決めることで、このスキルは決めない。
+このスキルは常に **canonical** README を対象とする。canonical とは、サフィックス無しのパスに
+置かれた英語のファイルである（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。
+ここで兄弟の `README.ja.md` ミラーを読んだり書いたりしない。ミラーはその後 `canonicalize-doc` が同期し
+（Step 6）、隣の README のエントリにはならない。
 
 ## 同期の仕組み
 
@@ -60,21 +55,21 @@ README に記載されたエントリと実態を比較する。
 - 隠しファイル／ディレクトリ（`.git`, `.DS_Store`, `.gitkeep` 等）。README で明示的に文書化されている場合のみ扱う。
 - ビルド成果物および ignored ファイル（スコープルートかその上の `.gitignore` にマッチするもの）。
 - 生成ファイル（`.gitattributes` が `linguist-generated` を付けるパス）。
+- 日本語ミラー（`*.ja.md`）—— それぞれ canonical に追従するもので、それ自体はエントリにならない。
 - 独自 README を持つネストディレクトリの内部。
 
 ## リポジトリ規約
 
-- canonical README は `README.md` で、v1.0.0 未満は**日本語**で書く（ADR 0140）。同居する翻訳は無く、このスキルは作らない。
-- 両方を更新する際は、見出し構造・リスト順・テーブル列を 1:1 で揃える。
+- canonical README はサフィックス無しのパスの英語の `README.md` で、その日本語ミラーは兄弟の `README.ja.md` である（ADR 0140）。canonical に書く散文は英語にする。
 - 既存のセクション順序やスタイル（テーブル / 箇条書き / 散文）は、ユーザーから明示的に再構成を依頼されない限り維持する。
 - 現状でも正確な既存散文は書き換えない。文体の好みのみで rewrite しない — 差分を最小化する。
 
 ## AI Modification Scope
 
-AGENTS.md の "Exception: Skill Execution" 節に基づき、このスキル実行中は AI Modification Scope の縛りを解放する。対象は以下に限定する。
+AGENTS.md の "Exception: Skill Execution" セクションに基づき、このスキル実行中は AI Modification Scope の縛りを解放する。対象は以下に限定する。
 
 - 確認済みの対象 canonical README ファイル。
-- 兄弟の翻訳ファイルは存在しない（ADR 0140）。作らないことを確認する。
+- 兄弟の翻訳ファイルは、このスキルが直接は変更しない。後続の `canonicalize-doc` の起動（それ自身のスコープ例外で動く）で更新する。
 
 スキル実行中でも保護対象として維持されるもの:
 
@@ -126,19 +121,15 @@ README を実態に合わせて書き換える。
 - 実態のあるエントリ（ignore 対象を除く）が漏れていないことを確認する。
 - ネスト README が誤って展開されていないことを確認する。
 
-## Step 6. 同期すべき翻訳が無いことを確かめる
+## Step 6. ミラーを同期する
 
-v1.0.0 未満ではチェーンする先が無い。いま書いた README が canonical そのものであり、0140 はその隣に
-`*.ja.md` を置くことを禁じている。更新の結果それが生まれていないことを確かめ、canonical のみ更新した旨を
-報告する。
-
-このリポジトリが対を持つ唯一の場所は `.claude/skills/<name>/SKILL.md` + `SKILL.ja.md` で、
-Claude Code が frontmatter を英語で解釈するツール要件による（ADR 0154）。その対を扱うのは
-`manage-skill` であって、このスキルではない。
+canonical README を書いた後、兄弟の `README.ja.md` があれば、方向 `translation-from-canonical` で
+`canonicalize-doc` へ連鎖させ、ミラーを同じ変更で追従させる。README にまだミラーが無く、そのパスが
+0140 決定 1 のミラーを作らない一覧に載っていなければ、作るための同じ連鎖を提案する。
 
 ## Step 7. 書いたファイルの整形
 
-canonical README の書き込みが完了した後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（AGENTS.md: ゲートを先回りして回さない）。
+canonical README の書き込み（および `canonicalize-doc` による翻訳の生成）が完了した後、このスキルが書いたファイルだけに `pnpm exec markdownlint-cli2 --no-globs --fix <書いたパス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（`docs/playbook.md`: Do not pre-run the gates）。
 
 ## Step 8. 最終検証
 

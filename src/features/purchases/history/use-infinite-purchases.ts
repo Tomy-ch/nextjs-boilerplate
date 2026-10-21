@@ -32,8 +32,6 @@ export type InfinitePurchases = {
  * 購入履歴を読み進める。
  *
  * @remarks
- * 使うのがこの一覧だけなので `features` の中へ置いています。
- *
  * 初回ページは受け取るだけで取得しません。取得するのは Server Component であり、この hook が
  * 担うのは 2 ページ目以降だけです。
  *
@@ -50,6 +48,7 @@ export type InfinitePurchases = {
  * @param initial - Server Component が取得した最初のページ
  * @param window - いま効いている期間の区間。続きの取得にそのまま渡す
  * @param pageSize - 1 度に読み込む件数
+ * @returns 読み込み済みの購入・続きの読み込みの状態・末尾の目印
  */
 export function useInfinitePurchases(
   initial: CursorPage<PurchaseHistoryEntry>,

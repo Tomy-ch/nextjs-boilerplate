@@ -26,12 +26,10 @@
 export const ENTRYPOINT_PATTERNS = [
   "scripts/*/index.ts",
   "scripts/setup/*/index.ts",
-  // boilerplate-only:begin
   // closed-loop は読む入口・送る入口・週次の入口を分けてある。畳むと、読むだけの経路が
   // 投稿の権限を持つ。
   "scripts/closed-loop/send/index.ts",
   "scripts/closed-loop/weekly/index.ts",
-  // boilerplate-only:end
   // portal と openapi は 1 ディレクトリに入口が複数あるツール群で、`index.ts` へ畳めない。
   "scripts/portal/gen-*.ts",
   "scripts/portal/build-site.ts",
@@ -51,7 +49,7 @@ export const ENTRYPOINT_PATTERNS = [
  * `mocks/contract-conformance.test.ts` の全ハンドラ検査が担保します。
  *
  * 並ぶのは題材の契約から生成したものだけなので、サンプルを破棄すると空になります。テンプレートから
- * 作った側は自分の契約を生成した先をここへ並べます。
+ * 自分の契約を生成した先をここへ並べます。
  */
 // sample:replace-begin
 export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as const;
@@ -92,6 +90,13 @@ export const GENERATED_MODULES = ["src/adapters/gen/**", "mocks/api/**"] as cons
  * - `.storybook/css.d.ts` — 型宣言のみ。
  * - `.storybook/msw/worker.ts` — ブラウザの service worker を立てるだけ。何を警告と数えるかは
  *   `.storybook/lib/unhandled-request.ts` が持つ。Vitest からは呼べない。
+ * - リポジトリ直下の道具の設定（`commitlint` / `eslint` / `knip` / `orval` / `playwright` /
+ *   `vitest`）— 道具へ渡す値の束で、読み手は道具自身。値が効いていることは、それぞれの道具の
+ *   実行（lint / e2e / 生成 / テスト）が示す。`next.config.ts` は環境から設定を組み立てる判定を
+ *   持つため並べない。**関数を export し始めたら、ここから外してテストを置く。**
+ * - `architecture.ts` — 依存マトリクスと境界の宣言。定数だけを持ち、判定は読み手（境界の lint・
+ *   `check:architecture`・層別責務の解決）が持つ。
+ * - リポジトリ直下の `*.d.ts` — 型宣言のみ。
  */
 const NON_DECIDING_MODULES = [
   "scripts/setup/lib/runtime.ts",
@@ -110,6 +115,15 @@ const NON_DECIDING_MODULES = [
   ".storybook/lib/sample-asset.ts",
   ".storybook/css.d.ts",
   ".storybook/msw/worker.ts",
+  "commitlint.config.ts",
+  "eslint.config.ts",
+  "knip.ts",
+  "orval.config.ts",
+  "playwright*.config.ts",
+  "vitest.config.ts",
+  "vitest.scripts.config.ts",
+  "architecture.ts",
+  "*.d.ts",
 ] as const;
 
 /**
@@ -119,7 +133,7 @@ const NON_DECIDING_MODULES = [
  * 判定を持たず、検証を通る入力一式を用意するだけ。テストが自分の分だけを組み立てると、
  * 他の purpose の欠落で落ちて検査したい判定へ到達しないため 1 箇所に置いてあります。
  *
- * `account.fixture.ts` は story とテストの双方が読みます。都道府県の 47 件のように、
+ * 機能の fixture は story とテストの双方が読みます。選択肢の全件のように、
  * 実物どおりの件数でなければ器の幅を確かめられない入力があるためです。
  *
  * `experimental-react.fixture.ts` が返すのは Next.js 同梱の experimental React の位置です。本番は
@@ -134,7 +148,10 @@ const TEST_FIXTURE_MODULES = [
   "src/features/admin/analytics/analytics.fixture.ts", // sample:line
   "src/features/admin/products/products.fixture.ts", // sample:line
   "src/features/admin/products/list/list.fixture.ts", // sample:line
+  "src/features/admin/products/discontinue/discontinue.fixture.ts", // sample:line
   "src/features/admin/users/users.fixture.ts", // sample:line
+  "src/features/admin/inquiries/inquiries.fixture.ts", // sample:line
+  "src/features/inquiry/inquiry.fixture.ts", // sample:line
 ] as const;
 
 /**
@@ -145,7 +162,7 @@ const TEST_FIXTURE_MODULES = [
  * 判定は持たず、隣にある本物の Server Action がテストの対象です。
  *
  * `.storybook/msw/handlers.ts` も同じ genre で、カタログが自分で答える `/api/*` の据え置きです。
- * 郵便番号ごとの出し分けは題材そのもの（`sample:replace` でサンプル破棄時に空へ置き換わる）で、
+ * 入力値ごとの応答の出し分けは題材そのもの（`sample:replace` でサンプル破棄時に空へ置き換わる）で、
  * 固定しても確かめられるのは並べた fixture が並べたとおりであることだけです。返す形が正しいことは
  * `adapters/client` の検証が担います。
  */
@@ -155,6 +172,7 @@ const CATALOG_MOCK_MODULES = [
   "src/features/cart/__mocks__/**", // sample:line
   "src/features/cart/facade/add-to-cart/__mocks__/**", // sample:line
   "src/features/checkout/__mocks__/**", // sample:line
+  "src/features/inquiry/__mocks__/**", // sample:line
   "src/features/purchases/__mocks__/**", // sample:line
 ] as const;
 

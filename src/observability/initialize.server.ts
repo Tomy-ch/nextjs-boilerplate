@@ -102,7 +102,13 @@ export function initializeObservability({
   sdk.start();
 }
 
-/** OTLP HTTP の base endpoint から signal 固有の resource endpoint を組み立てる。 */
+/**
+ * OTLP HTTP の base endpoint から signal 固有の resource endpoint を組み立てる。
+ *
+ * @param otlpEndpoint - OTLP HTTP の base endpoint
+ * @param signal - 対象の signal
+ * @returns signal 固有の resource endpoint
+ */
 export function getSignalEndpoint(otlpEndpoint: string, signal: OtelSignal): string {
   return `${otlpEndpoint.endsWith("/") ? otlpEndpoint : `${otlpEndpoint}/`}v1/${signal}`;
 }

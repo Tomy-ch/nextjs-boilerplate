@@ -1,5 +1,5 @@
 // 全ての spec が使う test。ブラウザが報告する異常の見張りと、ログイン済みの状態を作る手立てを持つ
-// （見張りを spec ごとに書かせない理由は README「何を異常と数えるか」）。
+// （見張りを spec ごとに書かせない理由は [README](../README.md#what-counts-as-an-anomaly)）。
 import { test as base, expect } from "@playwright/test";
 
 import { CONSENT_CHOICE, CONSENT_COOKIE_NAME, toConsentCookieValue } from "@/model/consent";
@@ -16,7 +16,7 @@ import {
 } from "./browser-errors";
 import { TEST_SESSION_ISSUED_STATUS, TEST_SESSION_PATH } from "./dev-session.js";
 
-/** 画像の代わりに返す 1×1 の PNG。配信元を差し替える理由は README「画像は差し替える」。 */
+/** 画像の代わりに返す 1×1 の PNG。配信元を差し替える理由は [README](../README.md#images-are-replaced)。 */
 const PLACEHOLDER_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
   "base64",
@@ -87,8 +87,8 @@ export const test = base.extend<Fixtures>({
       });
     });
 
-    // 同意を尋ねる面は選び終えるまで画面を覆う。拒否の側で始める理由は README「同意は選び終えた
-    // 状態から始める」。
+    // 同意を尋ねる面は選び終えるまで画面を覆う。拒否の側で始める理由は
+    // [README](../README.md#consent-starts-already-chosen)。
     await page.context().addCookies([
       {
         name: CONSENT_COOKIE_NAME,

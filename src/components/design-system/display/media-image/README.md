@@ -1,40 +1,40 @@
 # MediaImage
 
-## 用途
+## Purpose
 
-`next/image` を使い、比率固定・CSS Skeleton・LCP 用 preload を一貫して適用します。
+Uses `next/image` and consistently applies a fixed aspect ratio, a CSS Skeleton and the preload for LCP.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 定数 | 役割 |
+| Component / constant | Role |
 | --- | --- |
-| `MediaImage` | `next/image` を比率固定の wrapper に収め、既定で CSS Skeleton を下層に表示します。 |
-| `MEDIA_IMAGE_ASPECT_RATIO` | `square`、`standard`、`wide` の固定比率を選ぶ定数です。 |
+| `MediaImage` | Fits `next/image` into a fixed-ratio wrapper and by default shows a CSS Skeleton underneath. |
+| `MEDIA_IMAGE_ASPECT_RATIO` | The constant that selects the fixed ratio: `square`, `standard` or `wide`. |
 
-## 利用ケース
+## Use Cases
 
-一覧・詳細・説明内の画像に使います。通常画像は Skeleton を既定にし、LCP 候補だけは `priority` に `preload` を指定して Skeleton を省略します。`placeholder="blur"` と `blurDataURL` も明示時に使えます。
+Use it for images in lists, details and descriptions. Ordinary images default to the Skeleton; only an LCP candidate sets `priority` to `preload` and omits the Skeleton. `placeholder="blur"` and `blurDataURL` are also available when specified explicitly.
 
-画像が未設定の対象を並べる場所では、`src` に `null` を渡したうえで `fallbackSrc` に代替画像を指定します。
+Where items without an image set are listed, pass `null` as `src` and specify a substitute image in `fallbackSrc`.
 
-## 責務境界
+## Responsibility Boundaries
 
-Server Component であり、`imagePath` からの URL 組み立て、画像の取得状態、読み込み失敗時の fallback、業務上の alt 文は持ちません。これらは feature / model が所有します。blur は static import または利用側が明示的に渡す場合に利用可能ですが、バックエンド由来画像の通常 API 契約には含めません。
+It is a Server Component and owns neither building the URL from `imagePath`, the image fetch state, a fallback on load failure, nor business alt text. These are owned by the feature / model. Blur is available with a static import or when the caller passes it explicitly, but it is not part of the ordinary API contract for backend-provided images.
 
-### 画像が無い場合の差し替え
+### Substitution when there is no image
 
-`src` は `null` を受け取ります。「画像が無い」を呼び出し側の分岐で表すと、枠を出すのか出さないのか、代わりに何を出すのかが呼び出し側ごとに分かれるため、経路の選択をこの component に閉じています。
+`src` accepts `null`. If "there is no image" were expressed by a branch in the caller, whether to show the frame and what to show instead would differ from caller to caller, so the choice of path is closed inside this component.
 
-| `src` | `fallbackSrc` | 描画 |
+| `src` | `fallbackSrc` | Rendering |
 | --- | --- | --- |
-| あり | — | `src` の画像 |
-| なし | あり | `fallbackSrc` の画像 |
-| なし | なし | 何も描画しない（枠も出ません） |
+| present | — | the `src` image |
+| absent | present | the `fallbackSrc` image |
+| absent | absent | renders nothing (no frame either) |
 
-**代替画像のパスは持ちません。** どの画像を代わりに置くかは対象の性質で決まるため、呼び出し元が渡します。代替画像を出しているときの代替テキストは `fallbackAlt` が担い、既定は空文字です。代替画像は対象について何も語らないため、`alt` をそのまま流用しません。
+**It does not hold the substitute image's path.** Which image to use instead depends on the nature of the item, so the caller passes it. The alternative text while the substitute image is shown is carried by `fallbackAlt`, whose default is the empty string. The substitute image says nothing about the item, so `alt` is not reused as is.
 
-これは読み込み**失敗**時の差し替えではありません。`onError` を持たないのは、失敗の検出が client runtime を要するためです。必要な場合は feature 側の client island が包みます。
+This is not a substitution on load **failure**. It has no `onError` because detecting a failure requires the client runtime. Where needed, a client island on the feature side wraps it.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は Skeleton・preload・明示的な blur を、テストは比率・Skeleton の省略・`next/image` props・a11y を確認します。
+Storybook checks the Skeleton, preload and explicit blur; the tests check the ratio, omission of the Skeleton, the `next/image` props and a11y.

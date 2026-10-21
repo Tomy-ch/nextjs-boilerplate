@@ -33,6 +33,9 @@ const PREFLIGHT_MAX_AGE_SECONDS = 600;
  * @remarks
  * `Origin: null`（sandbox された iframe やリダイレクト越しの要求）は文字列の `"null"` で届きます。
  * `new URL()` が拒むので、ここで null になり、どの origin とも一致しません。
+ *
+ * @param value - `Origin` ヘッダの値
+ * @returns 読めた origin。読めなければ null
  */
 function parseOrigin(value: string): URL | null {
   try {
@@ -56,6 +59,7 @@ function parseOrigin(value: string): URL | null {
  *
  * @param request - 要求の断片
  * @param allowedOrigins - 宣言で許した別 origin（`HTTP_ALLOWED_ORIGINS`）
+ * @returns 判定結果
  */
 export function judgeOrigin(
   request: OriginRequest,
@@ -82,7 +86,12 @@ export function judgeOrigin(
   return { kind: "untrusted" };
 }
 
-/** 状態を変えうるメソッドか。 */
+/**
+ * 状態を変えうるメソッドか。
+ *
+ * @param method - 判定する HTTP メソッド
+ * @returns 状態を変えうるか
+ */
 export function isStateChanging(method: string): boolean {
   return !SAFE_METHODS.has(method.toUpperCase());
 }
@@ -96,6 +105,7 @@ export function isStateChanging(method: string): boolean {
  * `Vary: Origin` を添えます。
  *
  * @param origin - 許可した別 origin（{@link judgeOrigin} が返したもの）
+ * @returns 付与する CORS ヘッダ
  */
 export function corsHeadersFor(origin: string): Readonly<Record<string, string>> {
   return {
@@ -115,6 +125,7 @@ export function corsHeadersFor(origin: string): Readonly<Record<string, string>>
  * @param origin - 許可した別 origin
  * @param requestedMethod - `Access-Control-Request-Method`
  * @param requestedHeaders - `Access-Control-Request-Headers`。無ければ載せない
+ * @returns 付与する preflight 応答ヘッダ
  */
 export function preflightHeadersFor(
   origin: string,

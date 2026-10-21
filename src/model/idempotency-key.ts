@@ -1,3 +1,5 @@
+import { newUuid } from "./uuid";
+
 /** 冪等キーを載せるフォーム項目の名前。 */
 export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
 
@@ -16,7 +18,9 @@ export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
  *
  * 鍵の役割はバックエンドの再送検知だけで、推測されて困る値ではありません。ここで作れるのは、
  * 送信の単位を決めているのが画面だからです。
+ *
+ * @returns 新しい冪等キー
  */
 export function newIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return newUuid();
 }

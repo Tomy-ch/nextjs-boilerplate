@@ -7,7 +7,7 @@
  * 表現をこの 1 ファイルに閉じ、強制側は生成でも複製でもなく直接の import で受け取ります。
  *
  * **ここが持つのは強制へ変換できる構造だけです。** 各層が何を担うかはここでは決めません
- * （`docs/rules.md`「層境界と依存」）。責務の記述をここへ書き足すと、機械が読めない散文が
+ * （`docs/rules.md#layers`）。責務の記述をここへ書き足すと、機械が読めない散文が
  * 依存表の中に居座り、直す側がどちらを正とすればよいか分からなくなります。
  */
 
@@ -33,7 +33,7 @@ export type Kernel = (typeof KERNELS)[number];
  *
  * @remarks
  * ここに無い層で描画を組み立てると、外部接続や横断状態の内側に画面が生まれ、置き場を辿れなく
- * なります（`docs/rules.md`「層境界と依存」）。
+ * なります（`docs/rules.md#layers`）。
  *
  * 強制が届くのは **DOM マークアップだけ**です。Provider の合成は許されており、React 19 では
  * Provider も JSX なので、JSX の有無では分けられません。層に class 名や見た目の定数を置く経路も
@@ -167,8 +167,9 @@ export const ENTRY_POINTS = [
  *   `errors` / `logging` だけなので、UI 部品・横断状態と `observability` を落とします —— 計装の
  *   mount は `route-segment` の名指しの例外であって、変更の口が span を立てる場所ではありません。
  *   **`config` は落としていません**: 禁じているのは server config の直読で、`actions.ts` が読んで
- *   いるのは `NEXT_PUBLIC` の公開定数です。層の粒度ではその 2 つを分けられないため、扱いは
- *   [BACKLOG](docs/adr/BACKLOG.md) の GB-1 が持ちます
+ *   いるのは `NEXT_PUBLIC` の公開定数です。層の粒度ではその 2 つを分けられないため、区別は
+ *   `arch-check` が `src/app/README.md#audit-criteria`の行で拾います（[traceability](docs/traceability.md)
+ *   「機械が届かないと分かっているところ」）
  *
  * - `app-metadata`: クローラと共有先が読む配信物。`config`（外から見た origin・索引の可否）と
  *   `model`（保護している経路の宣言）を読み、要求時に一覧を辿る `sitemap.ts` だけが
@@ -179,11 +180,10 @@ export const ENTRY_POINTS = [
  *   `unit` で検証し、絵を返すだけの 3 つは判定を持たないので単体では回しません
  *   （`scripts/lib/untested-modules.ts`）
  *
- * `route-segment` はまだこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
+ * `route-segment` はこの表に無く、`app` の粒度で検査されます。`observability` も `config` も、
  * 許されているのは計装の mount と、Next.js の規約が route segment に置くことを要求する値だけ
  * ですが、その限定は「何を import してよいか」ではなく「どう使ってよいか」なので、層の許可を削る
- * 形では表せません。残りは意味的な監査と人のレビューが拾います。表を実態へ揃える作業は
- * [BACKLOG](docs/adr/BACKLOG.md) の GB-1 が持ちます。
+ * 形では表せません。残りは `arch-check` が `src/app/README.md#audit-criteria`の行で拾います。
  *
  * `testRequirement` をここが持つのは、負う観点を決めるのが**置き場ではなく element** だからです。
  * ディレクトリから遡る README は、`api/` の外に置いた Route Handler へ届きません。対象のテストは
@@ -200,7 +200,7 @@ export const APP_ELEMENTS = [
     category: "app-server-action",
     patterns: ["src/app/**/actions.ts"],
     forbidden: ["components", "capabilities", "stores", "observability"],
-    testRequirement: "route",
+    testRequirement: "unit",
   },
   {
     category: "app-metadata",
@@ -259,6 +259,19 @@ export const SHARED_AREAS = [
 }[];
 
 /**
+ * 区画の型。
+ *
+ * @remarks
+ * 層ではありませんが、**区画が別の区画へ依存することがある**ので、依存を宣言するための名前が
+ * 要ります（`mocks` は契約から生成した wire 型を引きます）。union で持つのは、依存に層名でない
+ * 語を書けるようにしつつ、打ち間違いを型で落とすためです。
+ */
+export type RestrictedAreaType = "adapters-gen" | "adapters-http" | "adapters-auth" | "mocks";
+
+/** 要素が依存として宣言できる相手。層と、区画そのもの。 */
+export type ElementDependency = Kernel | RestrictedAreaType;
+
+/**
  * 名指しした相手からしか import できない区画。
  *
  * @remarks
@@ -307,15 +320,49 @@ export const RESTRICTED_AREAS = [
     pattern: "mocks",
     allowedFrom: [],
     allowedFromCategories: ["bootstrap"],
-    dependencies: [],
+    // 契約から生成した応答と、それが契約に従っていることを確かめるテストが持つ参照。どちらも
+    // 契約の側から来るもので、モックがアプリの内側へ手を伸ばしているわけではない。
+    dependencies: ["model", "adapters-gen"],
   },
 ] as const satisfies readonly {
-  type: string;
+  type: RestrictedAreaType;
   pattern: string;
   allowedFrom: readonly Kernel[];
   allowedFromCategories: readonly string[];
-  dependencies: readonly Kernel[];
+  dependencies: readonly ElementDependency[];
 }[];
+
+/** 境界検査の要素。根を指すパターンと、そこが import してよい層を持つ。 */
+export type BoundaryElement = {
+  /** 要素の型。 */
+  readonly type: string;
+  /** 要素の根を指すパターン。`*` は 1 段ぶん。 */
+  readonly pattern: string;
+  /** その要素が import してよい層。 */
+  readonly dependencies: readonly ElementDependency[];
+};
+
+/**
+ * 境界検査の要素を、狭いものから順に並べた表。
+ *
+ * @remarks
+ * 区画は層の内側に居るので、層が先に一致すると区画としては見えなくなり、層の粒度の許可がそのまま
+ * 区画への許可になります。狭いものを先に置くことでだけ、区画の宣言が効きます。
+ *
+ * 読む者は強制へ変換する `eslint.config.ts` と、層 README の宣言先を解く `scripts/architecture/`
+ * の 2 つで、**どちらもここから順序を受け取り、写しを持ちません。**
+ *
+ * `dependencies` を要素ごとに持つ理由は {@link RESTRICTED_AREAS} が持ちます。
+ */
+export const BOUNDARY_ELEMENTS: readonly BoundaryElement[] = [
+  ...RESTRICTED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...SHARED_AREAS.map(({ type, pattern, dependencies }) => ({ type, pattern, dependencies })),
+  ...KERNELS.map((kernel) => ({
+    type: kernel,
+    pattern: KERNEL_PATTERNS[kernel] ?? `src/${kernel}`,
+    dependencies: DEPENDENCIES[kernel],
+  })),
+];
 
 /**
  * Node.js の実行環境そのものへ触ってよい場所。
@@ -337,4 +384,31 @@ export const NODE_RUNTIME_ACCESS = [
   "src/config/**",
   "src/instrumentation.ts",
   "src/components/scripts/**",
+] as const;
+
+/**
+ * 外部 API を叩く client を組む kernel。
+ *
+ * @remarks
+ * 取得の口の分類（`public` / `user-scoped`）を型として宣言するため、両方の綴りを持ちます。
+ * 口の分類を綴りで読む検査がこれを 1 段先の相手として数えると、公開の口を経由するだけの
+ * モジュールまで user-scoped と取り違えます。検査が名指しで除けるように、置き場をここで
+ * 宣言します。
+ */
+export const HTTP_CLIENT_FACTORY = "src/adapters/server/http/request.ts";
+
+/**
+ * 外部 API を叩く client を組んでよい接続口。
+ *
+ * @remarks
+ * 遮断器と再試行の予算は client の中に状態として載るため、接続先と分類の組ごとに 1 つだけ置き、
+ * 取得の口はここを引きます。ここ以外で client を組む箇所は、`eslint-disable-next-line` に理由を
+ * 書いて名乗ります（`project-rules/no-client-outside-connection-port`）。
+ *
+ * 取得の口がまだ 1 つも無い状態でも、テンプレートから作った側が最初に引く口として残すので、
+ * 未使用の検査（`knip.ts`）はここを入口として扱います。
+ */
+export const CONNECTION_PORTS = [
+  "src/adapters/server/http/public-client.ts",
+  "src/adapters/server/http/user-scoped-client.ts",
 ] as const;

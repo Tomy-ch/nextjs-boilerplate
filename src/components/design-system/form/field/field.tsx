@@ -70,6 +70,8 @@ export type FieldProps = ComponentProps<"div"> & {
    *
    * - `vertical`: label を control の上に置く既定の配置
    * - `horizontal`: checkbox や switch のように label を control の横へ置く配置
+   *
+   * @defaultValue `"vertical"`
    */
   orientation?: "horizontal" | "vertical";
 };
@@ -91,8 +93,7 @@ export type FieldProps = ComponentProps<"div"> & {
  * </Field>
  * ```
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.orientation - label と control の並べ方。
+ * @param props - native `div` 属性と、表示用 props。
  * @see Storybook `Form/Field`
  */
 export function Field({ className, orientation = "vertical", ...props }: FieldProps) {

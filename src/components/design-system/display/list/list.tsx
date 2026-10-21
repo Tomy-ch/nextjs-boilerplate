@@ -22,7 +22,7 @@ import {
  *
  * 列を揃えて属性を比較させたい場合は `Table`、情報と操作を囲う塊は `Card` を使う。
  *
- * @param props - native `ul` 属性。
+ * @param props - native `ul` 属性と、以下の表示用 props。
  * @param props.asChild - 単一の子要素へ合成するか。`ol` を渡す場合に指定する。
  *
  * @see Storybook `Display/List`
@@ -67,9 +67,7 @@ const listItemVariants = cva(
  * 行全体を遷移先にする場合は、この要素を link に差し替えず `ListItemLink` を子に置く。`li` を
  * 失うと `ul` の意味論が崩れる。
  *
- * @param props - native `li` 属性。
- * @param props.variant - 面の見せ方。{@link LIST_ITEM_VARIANT} のいずれか。
- * @param props.size - 余白の大きさ。{@link LIST_ITEM_SIZE} のいずれか。
+ * @param props - native `li` 属性（`size` を除く）と、以下の表示用 props。
  *
  * @see Storybook `Display/List`
  */
@@ -80,7 +78,17 @@ function ListItem({
   ...props
 }: Omit<ComponentProps<"li">, "size"> &
   Omit<VariantProps<typeof listItemVariants>, "size" | "variant"> & {
+    /**
+     * 余白の大きさ。{@link LIST_ITEM_SIZE} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_SIZE.DEFAULT`
+     */
     size?: ListItemSize;
+    /**
+     * 面の見せ方。{@link LIST_ITEM_VARIANT} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_VARIANT.DEFAULT`
+     */
     variant?: ListItemVariant;
   }) {
   return (
@@ -103,7 +111,7 @@ function ListItem({
  *
  * リポジトリ内の遷移では `asChild` を指定して `next/link` の `Link` を子に渡す。
  *
- * @param props - native `a` 属性。
+ * @param props - native `a` 属性と、以下の表示用 props。
  * @param props.asChild - 単一の子要素へ合成するか。
  *
  * @see Storybook `Display/List`
@@ -151,8 +159,7 @@ const listItemMediaVariants = cva(
  * @remarks
  * `icon` は控えめな面（`bg-muted`）に載せ、内容の色を `text-foreground` にする。
  *
- * @param props - native `div` 属性。
- * @param props.variant - 媒体の種類。{@link LIST_ITEM_MEDIA_VARIANT} のいずれか。
+ * @param props - native `div` 属性と、以下の表示用 props。
  *
  * @see Storybook `Display/List`
  */
@@ -162,6 +169,11 @@ function ListItemMedia({
   ...props
 }: ComponentProps<"div"> &
   Omit<VariantProps<typeof listItemMediaVariants>, "variant"> & {
+    /**
+     * 媒体の種類。{@link LIST_ITEM_MEDIA_VARIANT} のいずれか。
+     *
+     * @defaultValue `LIST_ITEM_MEDIA_VARIANT.DEFAULT`
+     */
     variant?: ListItemMediaVariant;
   }) {
   return (

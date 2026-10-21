@@ -9,7 +9,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { ProfileEditPageContent } from "@/features/account/edit/page-content";
 import { ProfileEditSkeleton } from "@/features/account/edit/ui/skeleton/skeleton";
-import { PROFILE_EDIT_PATH } from "@/features/account/paths";
+import { PROFILE_EDIT_PATH } from "@/features/account/facade/paths/paths";
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 
 export const metadata: Metadata = {

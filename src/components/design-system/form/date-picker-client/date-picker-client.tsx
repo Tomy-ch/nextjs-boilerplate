@@ -8,12 +8,24 @@ import { Button } from "../../action/button/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../../overlay/popover/popover";
 import { Calendar } from "../calendar/calendar";
 
+/**
+ * ISO 形式の日付文字列を `Date` へ変換する。
+ *
+ * @param value - `YYYY-MM-DD` 形式の日付文字列。
+ * @returns 変換した `Date`。未指定・空文字列・日付として解釈できない場合は `undefined`。
+ */
 function parseDate(value: string | undefined) {
   if (value === undefined || value === "") return undefined;
   const date = new Date(`${value}T00:00:00`);
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/**
+ * `Date` を ISO 形式の日付文字列へ変換する。
+ *
+ * @param date - 変換する日付。
+ * @returns `YYYY-MM-DD` 形式の文字列。未指定なら空文字列。
+ */
 function formatDate(date: Date | undefined) {
   if (date === undefined) return "";
   const year = date.getFullYear();
@@ -32,9 +44,17 @@ export type DatePickerClientProps = {
   defaultValue?: string;
   /** 日付が選択されたときの通知。 */
   onValueChange?: (value: string) => void;
-  /** 入力を無効にするか。 */
+  /**
+   * 入力を無効にするか。
+   *
+   * @defaultValue `false`
+   */
   disabled?: boolean;
-  /** 必須入力か。 */
+  /**
+   * 必須入力か。
+   *
+   * @defaultValue `false`
+   */
   required?: boolean;
 };
 
@@ -45,6 +65,7 @@ export type DatePickerClientProps = {
  * range・時刻・タイムゾーン変換は扱わない。単一日付を直接入力できる場合は
  * `Input type="date"` を優先し、calendar 操作が必要な場合だけ使用する。
  *
+ * @param props - 表示用 props。native 属性は透過しない。
  * @see Storybook `Form/DatePickerClient`
  */
 export function DatePickerClient({

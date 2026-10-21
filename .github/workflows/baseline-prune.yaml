@@ -94,7 +94,7 @@ jobs:
             --note /tmp/baseline-store-note.md > /tmp/baseline-store-issue.md
 
       # Minted rather than using `GITHUB_TOKEN` for its rate limit; falls back when the app
-      # is absent (README § PR コメント).
+      # is absent (README § PR Comments).
       - name: Mint a token for the issue
         id: api-token
         if: env.BASELINE_APP_ID != ''

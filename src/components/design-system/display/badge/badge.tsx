@@ -17,7 +17,7 @@ const badgeVariants = cva(
         [BADGE_VARIANT.DESTRUCTIVE]: "bg-destructive text-destructive-foreground",
         [BADGE_VARIANT.WARNING]: "bg-warning text-warning-foreground",
         // 縁だけで成り立つ variant なので、枠線は `border` ではなく `input` を取る
-        // （`components/README.md`「境界を示す線」）。
+        // （`components/README.md`「Boundary Lines」）。
         [BADGE_VARIANT.OUTLINE]:
           "border-input text-foreground hover:bg-foreground hover:text-background",
         [BADGE_VARIANT.GHOST]: "text-foreground hover:bg-foreground hover:text-background",
@@ -35,7 +35,11 @@ export type BadgeProps = ComponentProps<"span"> &
   Omit<VariantProps<typeof badgeVariants>, "variant"> & {
     /** 短いラベルの優先度に対応する見た目。 */
     variant?: BadgeVariant;
-    /** 子要素へ badge の見た目と props を合成するか。 */
+    /**
+     * 子要素へ badge の見た目と props を合成するか。
+     *
+     * @defaultValue `false`
+     */
     asChild?: boolean;
   };
 
@@ -62,8 +66,6 @@ export type BadgeProps = ComponentProps<"span"> &
  * ```
  *
  * @param props - native `span` 属性と表示用 props。
- * @param props.variant - ラベルの優先度に対応する見た目。
- * @param props.asChild - 子要素へ badge の見た目と props を合成するか。
  * @see Storybook `Display/Badge`
  */
 export function Badge({ className, variant, asChild = false, ...props }: BadgeProps) {

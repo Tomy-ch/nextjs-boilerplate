@@ -5,11 +5,11 @@ import { withPartSpan } from "@/observability/render-span";
 const PLACEHOLDER_GROUPS = 3;
 
 /**
- * 発送待ちの待機表示。
+ * 実際に並ぶ組と同じ高さで枠だけを出す、発送待ちの待機表示。
  *
  * @remarks
- * 実際に並ぶ組と同じ高さで枠だけを出します。代用で高さが変わると読み始めた位置が動く理由は
- * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md)「待機」。
+ * 代用で高さが変わると読み始めた位置が動く理由は
+ * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md#loading)。
  */
 export const ShipmentQueueSkeleton = withPartSpan(
   "features/admin/shipments/ui/skeleton/skeleton",

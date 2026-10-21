@@ -1,68 +1,68 @@
 # Drawer
 
-## 用途
+## Purpose
 
-画面端から引き出し、drag でも閉じられる modal panel を開きます。touch での操作を前提にした補助情報や絞り込み面に使います。
+Opens a modal panel that slides out from a screen edge and can also be closed by drag. Use it for auxiliary information or filter surfaces designed around touch interaction.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Drawer` | 開閉状態と drag、focus trap、Escape を管理する client-side root です。`direction` で引き出す方向を選びます。 |
-| `DrawerTrigger` | Drawer を開く trigger です。`Button` や link を使う場合は `asChild` で合成します。 |
-| `DrawerContent` | overlay と Portal を伴って drawer 本体を描画します。`bottom` のときだけ上端に掴み手が出ます。 |
-| `DrawerClose` | drawer を閉じる操作です。footer のキャンセル・閉じるに使います。 |
-| `DrawerHeader` | title と説明をまとめる領域です。`top` / `bottom` では小さい viewport で中央寄せになります。 |
-| `DrawerTitle` | drawer のアクセシブルな名前になる title です。 |
-| `DrawerDescription` | drawer の目的や内容を説明する本文です。 |
-| `DrawerFooter` | 操作を並べる領域です。配置だけを担い、操作自体は持ちません。 |
-| `DrawerOverlay` | 背面を覆う overlay です。`DrawerContent` が内部で描画します。 |
-| `DrawerPortal` | 描画先の Portal です。`DrawerContent` が内部で使います。 |
+| `Drawer` | The client-side root that manages the open state, drag, the focus trap and Escape. `direction` chooses the direction it slides out from. |
+| `DrawerTrigger` | The trigger that opens the Drawer. When using `Button` or a link, compose it with `asChild`. |
+| `DrawerContent` | Renders the drawer body together with the overlay and Portal. Only for `bottom` does a grab handle appear at the top edge. |
+| `DrawerClose` | The action that closes the drawer. Used for cancel / close in the footer. |
+| `DrawerHeader` | The area that groups the title and description. For `top` / `bottom` it is centered on small viewports. |
+| `DrawerTitle` | The title that becomes the drawer's accessible name. |
+| `DrawerDescription` | The body text explaining the drawer's purpose or content. |
+| `DrawerFooter` | The area that lays out actions. It handles only placement and holds no actions itself. |
+| `DrawerOverlay` | The overlay covering the background. `DrawerContent` renders it internally. |
+| `DrawerPortal` | The Portal it renders into. `DrawerContent` uses it internally. |
 
-`DRAWER_DIRECTION` と `DrawerDirection` を `drawer.definition.ts` で公開します。`direction` に指定できる値の owner はこの定義であり、`"bottom"` などの文字列を利用側で直接書きません。
+`DRAWER_DIRECTION` and `DrawerDirection` are exported from `drawer.definition.ts`. That definition is the owner of the values `direction` can take; callers do not write strings such as `"bottom"` directly.
 
-## 利用ケース
+## Use Cases
 
-- 小さい viewport で、絞り込み条件や補助情報を下端から引き出す場合
-- 掴んで閉じる操作が自然に期待される、touch 主体の導線
+- Pulling filter conditions or auxiliary information up from the bottom edge on a small viewport
+- Touch-first paths where closing by grabbing is naturally expected
 
-## 責務境界
+## Responsibility Boundaries
 
-drag の追従と慣性、閉じる判定のため hydration が必要な client island です。Server Component からは直接 render できません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+It is a client island that needs hydration for following the drag, inertia and deciding when to close. It cannot be rendered directly from a Server Component. When the content itself needs no client runtime, pass elements assembled in a Server Component as `children`.
 
-開いているあいだは履歴を 1 つ持ち、**戻る操作で自分だけを閉じます**（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。積むのは同じ URL の履歴 entry だけで、URL 自体は変わりません。
+While open it holds one history entry, and **the back action closes only itself** ([0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)). It pushes only a history entry for the same URL; the URL itself does not change.
 
-表示する文言、取得、保存、業務判断、開閉を URL へ載せるかの選択は持ちません。`direction` は引き出す方向だけを決め、viewport 幅に応じて drawer と常時表示を切り替える判断は feature 側が持ちます。
+It owns no display text, fetching, saving, business decisions, or the choice of whether to put the open state in the URL. `direction` decides only the direction it slides out from; the decision to switch between a drawer and an always-visible display depending on viewport width belongs to the feature.
 
-内容が高さを超える場合のスクロールは持ちません。必要な場合は呼び出し元が `className` で overflow を指定します。drag と内容のスクロールは競合しうるため、スクロールする領域を作るときは実機で操作を確認します。
+It does not handle scrolling when the content exceeds the height. When needed, the caller specifies overflow with `className`. Drag and content scrolling can conflict, so when creating a scrolling area, check the interaction on a real device.
 
-`DrawerContent` はアクセシブルな名前として `DrawerTitle` を必ず子に置きます。説明が要る場合は `DrawerDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示します。`bottom` のときに出る掴み手は装飾であり、`aria-hidden` で支援技術から隠しています。
+`DrawerContent` always has a `DrawerTitle` as a child for its accessible name. Add a `DrawerDescription` when a description is needed, and specify `aria-describedby={undefined}` explicitly when it is not. The grab handle that appears for `bottom` is decorative and hidden from assistive technology with `aria-hidden`.
 
-### `Sheet` との使い分け
+### `Sheet` vs This Component
 
-どちらも画面端に固定される modal で、focus trap と Escape は同じように働きます。選ぶ基準は操作方法です。
+Both are modals fixed to a screen edge, and the focus trap and Escape work the same way. The basis for choosing is the interaction method.
 
 | | `Drawer` | `Sheet` |
 | --- | --- | --- |
-| drag で閉じる | できる | できない |
-| 掴み手の表示 | `bottom` のとき | なし |
-| 想定操作 | touch 主体 | pointer / keyboard |
-| 実装 | vaul | Radix Dialog |
+| Close by drag | Yes | No |
+| Grab handle | For `bottom` | None |
+| Intended interaction | Touch first | pointer / keyboard |
+| Implementation | vaul | Radix Dialog |
 
-drag が要らないなら `Sheet` を使います。同じ画面で両方を使い分けると操作方法が揃わないため、どちらを既定にするかは feature 側で決めます。
+If drag is not needed, use `Sheet`. Using both on the same screen makes the interaction methods inconsistent, so the feature decides which one is the default.
 
-### `dismissible={false}` は閉じる経路をすべて塞ぐ
+### `dismissible={false}` blocks every way to close
 
-`dismissible` を `false` にすると、drag と背面の操作だけでなく **Escape と `DrawerClose` でも閉じなくなります**。実装が `onOpenChange` の入口で閉じる方向の変化を無視するため、内部に閉じる経路が残りません。
+Setting `dismissible` to `false` stops it from closing not only by drag and background interaction but **also by Escape and `DrawerClose`**. The implementation ignores changes in the closing direction at the entry point of `onOpenChange`, so no internal way to close remains.
 
-この指定をする場合は `open` / `onOpenChange` で呼び出し元が開閉を制御し、閉じる条件を自分で決めます。閉じる手段を用意しないまま指定すると、利用者が操作不能になります。
+When specifying this, the caller controls opening / closing with `open` / `onOpenChange` and decides the closing conditions itself. Specifying it without providing a way to close leaves the user unable to operate.
 
-vendor は現在 vaul（内部で Radix Dialog）ですが、公開 API に vendor 名は含めません。
+The vendor is currently vaul (Radix Dialog internally), but the public API contains no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の開閉、`bottom` / `top` / `left` / `right` の四方向、絞り込み面として form 部品を内容に置く場合、`dismissible={false}` を `open` の制御と組み合わせる場合、説明を持たない場合を確認します。drag の追従は実機での確認が要るため、Storybook では配置・掴み手・開閉の構成までを確認範囲とします。
+Storybook checks the default opening / closing, the four directions `bottom` / `top` / `left` / `right`, placing form components in the content as a filter surface, combining `dismissible={false}` with control of `open`, and having no description. Following the drag needs checking on a real device, so Storybook's scope extends to placement, the grab handle and the opening / closing composition.
 
-テストは開くまで内容を描画しないこと、title と説明の関連付け、`alertdialog` ではなく `dialog` の意味論であること、既定と `direction` 指定での引き出し方向、掴み手が支援技術から隠れること、開いている間は trigger を含む背面が隠れること、trigger の `aria-controls` が実在する dialog の id を指すこと、`DrawerClose` と Escape での閉じ、`dismissible={false}` では閉じず `open` の制御でだけ閉じられること、`DrawerPortal` / `DrawerOverlay` の明示指定、a11y 自動検査を確認します。Portal 先は render の `container` の外に出るため、a11y 自動検査には `baseElement` を渡します。
+The tests check that the content is not rendered until opened, the association of title and description, that the semantics are `dialog` rather than `alertdialog`, the slide-out direction by default and with `direction`, that the grab handle is hidden from assistive technology, that while open the background including the trigger is hidden, that the trigger's `aria-controls` points at the id of an existing dialog, closing with `DrawerClose` and Escape, that with `dismissible={false}` it does not close and can be closed only by controlling `open`, explicit `DrawerPortal` / `DrawerOverlay`, and the automated a11y check. The Portal target lies outside the render `container`, so `baseElement` is passed to the automated a11y check.
 
-jsdom には vaul が開くときに参照する `matchMedia` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
+jsdom lacks `matchMedia`, which vaul refers to when opening, so the tests stub it. Removing that dependency from the implementation is not the approach taken.

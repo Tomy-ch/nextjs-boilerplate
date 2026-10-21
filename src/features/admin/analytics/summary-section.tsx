@@ -42,6 +42,8 @@ const PENDING_TONE: Readonly<Record<"incomplete" | "reversed", string>> = {
  * **どちらも読み上げの役は持ちません。** この 2 つは文書の初期表示にしか現れず、動的に差し込ま
  * れる場面がありません。live region は内容の変化を伝える機構なので、最初から画面にある文言に
  * 付けると前置きが増えるだけになります（`Alert` の契約も同じ理由で常設の文言を除いています）。
+ *
+ * @param props - {@link AnalyticsSummarySectionProps} を参照。
  */
 export async function AnalyticsSummarySection({ request }: AnalyticsSummarySectionProps) {
   if (request.status !== "ready") {

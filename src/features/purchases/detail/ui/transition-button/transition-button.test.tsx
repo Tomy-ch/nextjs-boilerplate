@@ -16,7 +16,12 @@ import { PurchaseTransitionButton } from "./transition-button";
 const PURCHASE_CODE = "0195f0c2-0000-7000-9000-000000000001";
 const RELOAD_HREF = `/purchases/${PURCHASE_CODE}`;
 
-/** 既定の props。個々のケースは、ここから必要な 1 つだけ差し替える。 */
+/**
+ * 既定の props。個々のケースは、ここから必要な 1 つだけ差し替える。
+ *
+ * @param overrides - 既定から差し替えたい props だけを渡す。
+ * @returns render 結果と、渡した formAction。
+ */
 function renderButton(
   overrides: Partial<{
     state: ActionState<undefined>;
@@ -48,7 +53,12 @@ function renderButton(
   return { formAction };
 }
 
-/** 確認を開く。 */
+/**
+ * 確認を開く。
+ *
+ * @param user - `userEvent.setup()` が返す操作主体。
+ * @returns 開いた確認ダイアログの要素。
+ */
 async function open(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "キャンセルする" }));
 

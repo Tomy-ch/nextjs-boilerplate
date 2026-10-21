@@ -1,59 +1,61 @@
-# 仕様
+# Specifications
 
-**実装が何を約束しているか**を書きます。仕様書だけを読んで同じ画面を組み直せることを目標に
-します。
+These documents record **what the implementation promises**. The goal is that the same screen can be rebuilt from the specifications
+alone.
 
-## 2 つに分ける
+## Split in Two
 
-画面ごとに、機能要件と画面要件を別のファイルに分けます。混ざっていると、契約から決まることと
-デザインの判断が区別できず、片方だけを差し替えられません。
+For each screen, functional requirements and screen requirements go in separate files. Mixed together, what the contract decides and
+design judgments cannot be told apart, and one cannot be replaced without the other.
 
-振り分けはこの問いで決めます。
+The split is decided by this question.
 
-> **バックエンドの契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか。**
-> あり得る → 画面要件。あり得ない → 機能要件。
+> **Could there be a screen with the same backend contract and the same user goal, where only this statement differs?**
+> If it could → screen requirement. If it could not → functional requirement.
 
-| | 機能要件（`*.function.md`） | 画面要件（`*.screen.md`） |
+| | Functional requirements (`*.function.md`) | Screen requirements (`*.screen.md`) |
 | --- | --- | --- |
-| 主語 | 何ができるか | どう見えるか |
-| 例 | 数量は加算ではなく設定で送る / 対象が 1 つ以上なければ次の段へ進めない / 取得の失敗は画面全体に及ぶ | 上限に達したら増やす操作を押せなくする / `lg` 未満では集計を画面の下から出す / 失敗はその操作の隣に出す |
+| Subject | What can be done | How it looks |
+| Examples | Values are sent as the result, not as a diff / without at least one target, it cannot advance to the next step / a fetch failure affects the whole screen | When the limit is reached, the control that increases the value cannot be pressed / below `lg`, the summary comes out from the bottom of the screen / a failure is shown next to that control |
 
-## 置き場所
+## Where They Go
 
-**`src/app` の階層をそのまま写します。** ルートごとにディレクトリを作り、その中に対応する
-ファイルの仕様を置きます。置き場を考える必要がなく、layout の約束にも置き場ができます。
+**They mirror the `src/app` hierarchy as is.** A directory is created per route, and the specification of each corresponding
+file goes inside it. There is no need to think about placement, and layout promises get a place too.
 
-| 実装 | 仕様書 |
+| Implementation | Specification |
 | --- | --- |
-| `layout.tsx`（根） | `route/layout.{screen,function}.md` |
+| `layout.tsx` (root) | `route/layout.{screen,function}.md` |
+| `page.tsx` (root) | `route/page.{screen,function}.md` |
+| `<segment>/page.tsx` | `route/<segment>/page.{screen,function}.md` |
 | `(group)/layout.tsx` | `route/<group>/layout.{screen,function}.md` |
 | `(group)/<segment>/page.tsx` | `route/<group>/<segment>/page.{screen,function}.md` |
 | `(group)/<segment>/<child>/page.tsx` | `route/<group>/<segment>/<child>/page.{screen,function}.md` |
 | `(group)/<segment>/[id]/page.tsx` | `route/<group>/<segment>/[id]/page.{screen,function}.md` |
 
-route group は URL に現れないため、括弧を外した名前で置きます（`(group)` → `<group>/`）。動的
-セグメントは URL に現れるため、角括弧を含む名前のまま置きます。
+A route group does not appear in the URL, so it is placed under the name with the parentheses removed (`(group)` → `<group>/`). A dynamic
+segment appears in the URL, so it is placed under the name with the square brackets kept.
 
-**並行ルートのスロット（`@slot/`）は置き場を持ちません。**URL に現れず、独立した画面でもないため、
-その約束はスロットを差し込む画面の仕様書が持ちます（`admin/@breadcrumb/products/page.tsx` の約束は
-`route/admin/products/page.screen.md`）。
+**Parallel route slots (`@slot/`) have no place of their own.** They do not appear in the URL and are not independent screens,
+so their promises are held by the specification of the screen the slot is inserted into (the promises of `<group>/@slot/<segment>/page.tsx` go in
+`route/<group>/<segment>/page.screen.md`).
 
-**開発専用の route も仕様書を持ちます。**`page.dev.tsx` は build から外れますが
-（[0113](../adr/0113-development-access-surface.md)）、**build から外れることと、約束を持たないことは
-別**です。置き場の写し方は他と同じです。
+**Development-only routes have specifications too.** `page.dev.tsx` is excluded from the build
+([0113](../adr/0113-development-access-surface.md)), but **being excluded from the build and having no promises are
+different things**. Placement is mirrored the same way as the others.
 
-**layout の仕様はその配下すべてに効きます。** 画面をまたぐ約束（外枠が供給する状態、認証の扱い、
-描画の時点への影響）は上位の `layout.*.md` に 1 回だけ書き、各画面はそこからの差分を書きます。
+**A layout's specification applies to everything beneath it.** Promises that span screens (state the outer frame supplies, how authentication is handled,
+effects on render timing) are written once in the upper `layout.*.md`, and each screen writes its difference from there.
 
-**機能要件を持たない画面には `page.function.md` を置きません。** 空のファイルは「まだ書いて
-いない」と「無い」の区別を消します。
+**A screen with no functional requirements gets no `page.function.md`.** An empty file erases the distinction between "not written
+yet" and "there is none".
 
-## いま書いてある画面
+## Screens Written So Far
 
-| ルート | 仕様書 |
+| Route | Specification |
 | --- | --- |
-| 根の外枠 | [`layout.screen.md`](route/layout.screen.md) / [`layout.function.md`](route/layout.function.md) |
-| `(shop)` 外枠 | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) <!-- sample:line --> |
+| Root outer frame | [`layout.screen.md`](route/layout.screen.md) / [`layout.function.md`](route/layout.function.md) |
+| `(shop)` outer frame | [`layout.screen.md`](route/shop/layout.screen.md) / [`layout.function.md`](route/shop/layout.function.md) <!-- sample:line --> |
 | `/` | [`screen`](route/shop/page.screen.md) / [`function`](route/shop/page.function.md) <!-- sample:line --> |
 | `/products` | [`screen`](route/shop/products/page.screen.md) / [`function`](route/shop/products/page.function.md) <!-- sample:line --> |
 | `/products/[id]` | [`screen`](<route/shop/products/[id]/page.screen.md>) / [`function`](<route/shop/products/[id]/page.function.md>) <!-- sample:line --> |
@@ -64,53 +66,81 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/purchases/[code]` | [`screen`](<route/shop/purchases/[code]/page.screen.md>) / [`function`](<route/shop/purchases/[code]/page.function.md>) <!-- sample:line --> |
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.md) / [`function`](route/shop/mypage/page.function.md) <!-- sample:line --> |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.md) / [`function`](route/shop/mypage/edit/page.function.md) <!-- sample:line --> |
-| `(site-info)` 外枠 | [`layout.screen.md`](route/site-info/layout.screen.md) / [`layout.function.md`](route/site-info/layout.function.md) <!-- sample:line --> |
+| `/mypage/inquiry` | [`screen`](route/shop/mypage/inquiry/page.screen.md) / [`function`](route/shop/mypage/inquiry/page.function.md) <!-- sample:line --> |
+| `(site-info)` outer frame | [`layout.screen.md`](route/site-info/layout.screen.md) / [`layout.function.md`](route/site-info/layout.function.md) <!-- sample:line --> |
 | `/about` | [`screen`](route/site-info/about/page.screen.md) / [`function`](route/site-info/about/page.function.md) <!-- sample:line --> |
 | `/privacy` | [`screen`](route/site-info/privacy/page.screen.md) / [`function`](route/site-info/privacy/page.function.md) <!-- sample:line --> |
 | `/terms` | [`screen`](route/site-info/terms/page.screen.md) / [`function`](route/site-info/terms/page.function.md) <!-- sample:line --> |
-| `admin` 外枠 | [`screen`](route/admin/layout.screen.md) / [`function`](route/admin/layout.function.md) <!-- sample:line --> |
+| `admin` outer frame | [`screen`](route/admin/layout.screen.md) / [`function`](route/admin/layout.function.md) <!-- sample:line --> |
 | `/admin` | [`screen`](route/admin/page.screen.md) / [`function`](route/admin/page.function.md) <!-- sample:line --> |
 | `/admin/analytics` | [`screen`](route/admin/analytics/page.screen.md) / [`function`](route/admin/analytics/page.function.md) <!-- sample:line --> |
 | `/admin/products` | [`screen`](route/admin/products/page.screen.md) / [`function`](route/admin/products/page.function.md) <!-- sample:line --> |
 | `/admin/products/new` | [`screen`](route/admin/products/new/page.screen.md) / [`function`](route/admin/products/new/page.function.md) <!-- sample:line --> |
 | `/admin/products/[id]/edit` | [`screen`](<route/admin/products/[id]/edit/page.screen.md>) / [`function`](<route/admin/products/[id]/edit/page.function.md>) <!-- sample:line --> |
 | `/admin/products/[id]/stock` | [`screen`](<route/admin/products/[id]/stock/page.screen.md>) / [`function`](<route/admin/products/[id]/stock/page.function.md>) <!-- sample:line --> |
+| `/admin/products/[id]/discontinue` | [`screen`](<route/admin/products/[id]/discontinue/page.screen.md>) / [`function`](<route/admin/products/[id]/discontinue/page.function.md>) <!-- sample:line --> |
+| `/admin/inquiries` | [`screen`](route/admin/inquiries/page.screen.md) / [`function`](route/admin/inquiries/page.function.md) <!-- sample:line --> |
+| `/admin/inquiries/[inquiryId]` | [`screen`](<route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<route/admin/inquiries/[inquiryId]/page.function.md>) <!-- sample:line --> |
 | `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.md) / [`function`](route/admin/shipments/page.function.md) <!-- sample:line --> |
 | `/admin/users` | [`screen`](route/admin/users/page.screen.md) / [`function`](route/admin/users/page.function.md) <!-- sample:line --> |
-| `auth` 外枠 | [`screen`](route/auth/layout.screen.md) |
+| `auth` outer frame | [`screen`](route/auth/layout.screen.md) |
 | `/login` | [`screen`](route/auth/login/page.screen.md) / [`function`](route/auth/login/page.function.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.md) / [`function`](route/auth/onboarding/page.function.md) <!-- sample:line --> |
 | `/dev/session` | [`screen`](route/dev/session/page.screen.md) / [`function`](route/dev/session/page.function.md) |
 | `/maintenance` | [`screen`](route/maintenance/page.screen.md) / [`function`](route/maintenance/page.function.md) |
+<!-- sample:replace-begin -->
+<!-- sample:replace-with -->
+<!-- = | `/` | `route/page.screen.md` |-->
+<!-- sample:replace-end -->
 
-**この目録が画面の一覧です。** 画面の約束はここが持ち、ほかの文書が代わりに持つことはありません
-（[0143](../adr/0143-spec-driven-development.md)）。
+**This inventory is the list of screens.** The promises of screens are held here, and no other document holds them in its place
+([0143](../adr/0143-spec-driven-development.md)).
 
-**仕様書を先に固めることは求めません。** 書ける時点は見た目が確定した後なので、画面実装の順序
-（[`playbook.md`](../playbook.md)）では story のレビューを通ったあとに置きます。ただし
-**仕様書を持たない route が残るのは埋めるべき穴であって、正常な状態ではありません。**
-`src/app` の route とこの目録を機械で突き合わせる検査は v1.0.0 到達前に入れます（同 ADR）。
+**Settling the specification first is not required.** It can be written only after the look is settled, so in the order of screen implementation
+([`playbook.md`](../playbook.md)) it comes after the story review passes. However,
+**a route left without a specification is a hole to fill, not a normal state.**
+The routes in `src/app` and this inventory are reconciled by machine ([`scripts/spec-routes.gate.test.ts`](../../scripts/spec-routes.gate.test.ts)).
 
-## 何を書かないか
+## Section Vocabulary
 
-仕様書は次の 5 つを**指すだけ**で、写しません。写した時点で、直したときに 2 か所へ反映すること
-になります。
+**Sections on the same subject are written under the same heading on every screen.** With aligned headings, the same promise on two screens
+can be read side by side, and a section missing from only one of them stands out. A subject that does not fit the vocabulary below
+gets a heading specific to that screen. The vocabulary itself is not reworded per screen.
 
-| 指す先 | そこが持つもの |
+| Heading | Side it goes on | What to write |
+| --- | --- | --- |
+| `What It Shows` | Screen requirements | What is shown, in what order. The screen skeleton |
+| `Loading` / `Empty State` / `How Failure Looks` | Screen requirements | How each state looks. What appears where, and what remains |
+| `Responsive Layout` | Screen requirements | How the skeleton changes by band (`lg` and up / below, etc.) |
+| `Breadcrumbs` | Screen requirements | How the hierarchy is shown, and where you can go back to |
+| `Checking in the Catalog` | Screen requirements | Premises for checking in Storybook. Responses replaced inside the story, etc. |
+| `Actor and Ownership` | Functional requirements | Whose what it handles, and which judgments the backend holds |
+| `Fetching` | Functional requirements | What is fetched in how many streams, and what can change on each fetch |
+| `Failures` | Functional requirements | For each failure, how far it reaches and which boundary receives it |
+| `Authorization` | Functional requirements | Who can enter, and where they are sent when they cannot |
+| `Submission` | Functional requirements | What is sent, and what happens when it succeeds |
+| `Related` | Both | The implementation's README, the upper layout's specification, where it leads and where it returns. **Placed as the last section** |
+
+## What Not to Write
+
+A specification **only points at** the following five, and does not copy them. Copying means a fix has to be reflected
+in two places.
+
+| Points at | What it holds |
 | --- | --- |
-| `openapi/api.gen.yaml` | 契約（型・エラー・上限値） |
-| `tokens/primitives.json` | 値（段の幅など） |
-| [`rules.md`](../rules.md) | 日常的に強制される規約 |
-| `components/**/README.md` + Storybook | 部品の語彙 |
-| [`adr/`](../adr/) | 機構の選択と、その理由 |
-| [`glossary.md`](glossary.md) | 仕様書の散文が使う、**契約に無い画面の側の語** |
+| `openapi/<name>.gen.yaml` ([`openapi/README.md`](../../openapi/README.md)) | The contract (types, errors, limits) |
+| `tokens/primitives.json` | Values (tier widths, etc.) |
+| [`rules.md`](../rules.md) | Rules enforced day to day |
+| `components/**/README.md` + Storybook | Component vocabulary |
+| [`adr/`](../adr/) | The choice of mechanisms, and the reasons |
+| [`glossary.md`](glossary.md) | **Screen-side terms not in the contract**, used in specification prose |
 
-したがって、仕様書には次を書きません。
+So the following are not written in a specification.
 
-- **部品の名前**。「小計と先へ進む導線を 1 つの器にまとめる」までを書き、どの部品を使うかは
-  書きません。部品名を書くと、再生成はできても改名のたびに腐ります
-- **単位つきの数値**。段は `lg` 以上 / `lg` 未満のように名前で書きます
-- **層をまたぐ規約**。「脇の領域は `lg` 以上でのみ出す」は規約であって、個別の画面の仕様では
-  ありません
-- **実装の手順**。コードが持ちます
-- **画面に固有でない運用**。feature の README が持ちます
+- **Component names.** Write as far as "put the summary and the path forward into one container", and do not write which component is used.
+  Writing component names would allow regeneration but rots with every rename
+- **Numbers with units.** Tiers are written by name, such as `lg` and up / below `lg`
+- **Rules that span layers.** "The sidebar is shown only at `lg` and up" is a rule, not a specification of an individual
+  screen
+- **Implementation procedures.** The code holds them
+- **Operations not specific to a screen.** The feature's README holds them

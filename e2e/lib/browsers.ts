@@ -7,13 +7,13 @@
  *
  * @remarks
  * サポート対象は「Next.js の既定 browserslist を追認する（モダンブラウザ）」です
- * （[README](../README.md)「帯とエンジンは宣言から引く」）。モダンブラウザは実装としては
+ * （[README](../README.md#bands-and-engines-come-from-declarations)）。モダンブラウザは実装としては
  * 3 つの描画エンジン（Blink / Gecko / WebKit）に畳まれ、Playwright の `chromium` /
  * `firefox` / `webkit` がそれぞれに対応します。**エンジンが同じブラウザは、ここで捕まえたい
  * 種類の差を持ちません** — Edge も Opera も Blink であり、iOS のブラウザは全て WebKit です。
  *
  * したがって**見ているのは 3 つだけ**で、ブラウザの銘柄も版も見ていません。版の下限は
- * テンプレートから作った側へ委ねられているため、ここで固定できる基準がありません。各エンジンの
+ * 用途依存であるため、ここで固定できる基準がありません。各エンジンの
  * 版は Playwright のコンテナイメージ（`docker-compose.dev-tools.yml` の digest）が決めます。
  *
  * 絞った事実を宣言として残すのは、job の名前が "Cross Browser" であるだけだと「全部見ている」と

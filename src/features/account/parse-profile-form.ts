@@ -10,7 +10,13 @@ export type ProfileFormParseResult =
   | { readonly ok: true; readonly profile: UserProfile }
   | { readonly ok: false; readonly fieldErrors: FieldErrors<ProfileField> };
 
-/** `FormData` の 1 項目を文字列として読む。未入力と欠落を同じ空文字へ均す。 */
+/**
+ * `FormData` の 1 項目を文字列として読む。未入力と欠落を同じ空文字へ均す。
+ *
+ * @param formData - 読み取り元の `FormData`
+ * @param name - 読み取る項目名
+ * @returns 項目の値。文字列でなければ空文字
+ */
 function readField(formData: FormData, name: ProfileField): string {
   const value = formData.get(name);
 
@@ -26,6 +32,9 @@ function readField(formData: FormData, name: ProfileField): string {
  *
  * 検証は client と同じスキーマで通し直します。client の検証は即時に返すためのもので、そこを
  * 通ったことは何の保証にもなりません。
+ *
+ * @param formData - 送信された `FormData`
+ * @returns 検証を通れば `ok: true` とプロフィール。通らなければ `ok: false` と項目ごとの誤り
  */
 export function parseProfileForm(formData: FormData): ProfileFormParseResult {
   const parsed = profileSchema.safeParse({

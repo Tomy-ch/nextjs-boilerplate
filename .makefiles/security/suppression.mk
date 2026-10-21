@@ -6,8 +6,8 @@
 # 週に一度 CI が回す（.github/workflows/suppression-expiry.yaml）。手元でも同じ入口で引ける。
 # SUPPRESSION_REPORT を渡すと、issue の本文を書き出す。
 #
-# recipe 行へ展開せず、環境変数として渡す（理由は .makefiles/README.md の「外から来る値を
-# make の変数として recipe 行へ展開しない」）。受け取る側は process.env から読む。
+# recipe 行へ展開せず、環境変数として渡す（理由は .makefiles/README.md の "Do not expand values that come from
+# outside as make variables into recipe lines."）。受け取る側は process.env から読む。
 SUPPRESSION_REPORT ?=
 export SUPPRESSION_REPORT
 

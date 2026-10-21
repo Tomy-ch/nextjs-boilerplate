@@ -1,46 +1,47 @@
-# カタログへ配る資材
+# Assets Served to the Catalog
 
-Storybook が配信する静的資材の置き場です。カタログの設定（[`../main.ts`](../main.ts) の `staticDirs`）が
-アプリの `public/` と並べて配信し、**どちらもカタログの根から見えます**。
+The home of the static assets Storybook serves. The catalog configuration (`staticDirs` in [`../main.ts`](../main.ts))
+serves them alongside the app's `public/`, and **both are visible from the catalog's root**.
 
-## アプリの `public/` と分ける理由
+## Why it is separate from the app's `public/`
 
-**本番の配信物に検証用の資材を混ぜないため**です（[0054](../../docs/adr/0054-ui-catalog-storybook.md)）。
-ここに置いたものはアプリのビルドに入らず、テンプレートから作った側が題材を捨てるときも巻き添えになりません。
+**So that verification assets are not mixed into what production serves** ([0054](../../docs/adr/0054-ui-catalog-storybook.md)).
+What is placed here does not enter the app build, and it is not caught up when the side that created the repository from the template discards the sample.
 
-逆に、**アプリが出す画像はここへ置きません**。画像を持たない対象に出す代替画像
-（`public/no-image.svg`）は利用者が実際に見るものなので、アプリ側の配信物です。
+Conversely, **images the app outputs are not placed here**. The fallback image shown for a subject without an image
+(`public/no-image.svg`) is something users actually see, so it is part of what the app serves.
 
-## 置いてあるもの
+## What Is Here
 
-| ファイル | 追跡 | 用途 |
+| File | Tracked | Purpose |
 | --- | --- | --- |
-| `sample-avatar.svg` | する | 利用者の顔として出す絵。丸く切り抜かれても主題が残る |
-| `sample-document.svg` | する | 添付されたファイルの縮小版。`2.5rem` まで潰れても「画像ファイル」と読める |
-| `sample-item-1.svg` 〜 `-3.svg` | する | 絵そのものが主題でない場所すべて。比率・拡大・送りの検証台 |
-| `mockServiceWorker.js` | **しない** | 取得を横取りする service worker。カタログの設定が起動のたびに依存から写すため、依存の版と必ず揃う |
+| `sample-avatar.svg` | yes | A picture shown as a user's face. The subject survives being cropped to a circle |
+| `sample-document.svg` | yes | A thumbnail of an attached file. Still reads as "an image file" when squeezed down to `2.5rem` |
+| `sample-item-1.svg` to `-3.svg` | yes | Every place where the picture itself is not the subject. A test bed for aspect ratio, zoom and paging |
+| `mockServiceWorker.js` | **no** | The service worker that intercepts fetches. The catalog configuration copies it from the dependency on every startup, so it always matches the dependency's version |
 
-**`sample-item-*` が 3 柄あるのは、枚数ぶん違う絵柄が要る場所があるためです。** 画像を送る部品
-（`ImageViewer` と、それを載せる画面）は、送った位置が変わったことを絵柄の違いでしか示せません。
-1 柄を並べると、送れているのかどうかが基準画像からも目視からも判りません。
+**There are three `sample-item-*` designs because some places need as many different designs as there are images.** A component that pages through images
+(`ImageViewer` and the screens that carry it) can show that the position changed only through the difference in design.
+With one design repeated, neither the baseline image nor the eye can tell whether paging works.
 
-## 足すときの注意
+## Notes When Adding
 
-- **足した資材の綴りは [`../lib/sample-asset.ts`](../lib/sample-asset.ts) へ公開する**。story が読むのは
-  そこだけなので、改名しても直す場所が 1 つで済む
-- **`public/` と同じ名前を使わない**。2 つの置き場が同じ根から配信されるため、名前がぶつかると
-  どちらが出るかが配信の順序に依存します
-- **story から `/src/...` のファイルを直接指さない**。dev サーバは素通しで配信しますが、
-  `storybook build` の成果物には入らないため、**基準画像を撮ると壊れた絵がそのまま承認されます**
-  （[0091](../../docs/adr/0091-test-verification-methods.md)）。カタログで絵が要るなら、ここへ置いて
-  配信の根から指すこと
-- **解決しない URL は落ちる。** ルート絶対で書いた資材の URL が配信の根に無いこと、および `/src/...` を
-  指していることは、[`scripts/catalog-assets.gate.test.ts`](../../scripts/catalog-assets.gate.test.ts) が
-  見ています。**404 そのものを見せたい story**（読み込み失敗の姿など）は、実体を置くのではなく
-  [`scripts/lib/catalog-assets.ts`](../../scripts/lib/catalog-assets.ts) へ理由と撤去条件つきで宣言します
-- **文字を持つ絵を置かない**。書体は実行環境で変わるため、基準画像が撮る場所ごとに揺れます
-- **題材の語彙を名前にも中身にも持たせない**。ここは作った側が題材を捨てても残る側で、しかも
-  残留語彙の検査から外れています（`scripts/setup/remove-sample/sample-manifest.ts` の
-  `EXCLUDED_PATH_PREFIXES`）。**咎める機械が無いぶん、名前は役割で付けること** —— 「商品」ではなく
-  「絵が要る場所に置く絵」として扱えば、題材を持たない作った側でもそのまま使えます。中身も同じ理由で
-  抽象的な図形・ピクトグラム・シルエットに留めます
+- **Publish the spelling of an added asset in [`../lib/sample-asset.ts`](../lib/sample-asset.ts).** Stories read only
+  from there, so a rename leaves one place to fix
+- **Do not reuse a name from `public/`.** The two locations are served from the same root, so when names collide,
+  which one is served depends on the serving order
+- **Do not point a story directly at a file under `/src/...`.** The dev server serves it straight through, but it is
+  not part of the `storybook build` output, so **capturing a baseline image approves the broken picture as is**
+  ([0091](../../docs/adr/0091-test-verification-methods.md)). If the catalog needs a picture, place it here and
+  reference it from the serving root
+- **An unresolved URL fails.** That a root-absolute asset URL is missing from the serving root, and that one points
+  at `/src/...`, is checked by [`scripts/catalog-assets.gate.test.ts`](../../scripts/catalog-assets.gate.test.ts).
+  **A story that wants to show the 404 itself** (the look of a load failure, for example) declares it, with a reason
+  and a removal condition, in [`scripts/lib/catalog-assets.ts`](../../scripts/lib/catalog-assets.ts) instead of placing a file
+- **Do not place pictures that contain text.** Fonts vary by runtime environment, so the baseline image wobbles
+  depending on where it is captured
+- **Keep the sample's vocabulary out of both names and content.** This is the side that remains after the creating side
+  discards the sample, and it is also excluded from the residual-vocabulary check (`EXCLUDED_PATH_PREFIXES` in
+  `scripts/setup/remove-sample/sample-manifest.ts`). **With no machine to object, name things by role** — treat them
+  not as "products" but as "a picture placed where a picture is needed", and a creating side without the sample can use
+  them unchanged. For the same reason, keep the content to abstract shapes, pictograms and silhouettes

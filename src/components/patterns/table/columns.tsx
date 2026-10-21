@@ -68,7 +68,12 @@ export function TableColumnHeaders({ columns }: { columns: readonly TableColumnD
   );
 }
 
-/** 列定義の alignment に対応する cell 用 class を返す。 */
+/**
+ * 列定義の alignment に対応する cell 用 class を返す。
+ *
+ * @param column - cell を出す列の定義。
+ * @returns cell へ当てる文字寄せの class。
+ */
 export function tableColumnCellClass(column: TableColumnDefinition): string {
   return ALIGNMENT_CLASS[column.align ?? "start"];
 }

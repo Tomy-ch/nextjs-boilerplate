@@ -58,12 +58,13 @@ const ProductCountPayload = z.object({ count: z.int() });
  *
  * @param query - URL へ載せる検索条件。カーソルを含める
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ * @returns 一覧の次ページ
  */
 export async function fetchProductListPage(
   query: URLSearchParams,
   signal?: AbortSignal,
 ): Promise<CursorPage<ProductListItem>> {
-  return request(`/api/products?${query.toString()}`, ProductListPagePayload, signal);
+  return request(`/api/products?${query.toString()}`, ProductListPagePayload, { signal });
 }
 
 /**
@@ -75,16 +76,15 @@ export async function fetchProductListPage(
  *
  * @param query - URL へ載せる検索条件。読み進めた位置は含めない
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ * @returns 条件に一致する件数
  */
 export async function fetchProductCount(
   query: URLSearchParams,
   signal?: AbortSignal,
 ): Promise<number> {
-  const { count } = await request(
-    `/api/products/count?${query.toString()}`,
-    ProductCountPayload,
+  const { count } = await request(`/api/products/count?${query.toString()}`, ProductCountPayload, {
     signal,
-  );
+  });
 
   return count;
 }

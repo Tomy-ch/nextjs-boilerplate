@@ -77,7 +77,7 @@ function collectTestFiles(): string[] {
 }
 
 // リポジトリ全体を走査するため、既定の 5 秒では足りない。全量を並列で回すと取り合いでさらに伸び、
-// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+// 走査の遅さがそのまま赤になる（`docs/testing-conventions.md#gates-that-scan-the-whole-repository`）。
 const TIMEOUT_MS = 300_000;
 
 describe("層別責務の宣言", () => {

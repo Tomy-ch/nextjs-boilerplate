@@ -19,6 +19,7 @@ import { PurchaseAmountSummary } from "../facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "../facade/lines/lines";
 import { PURCHASE_HISTORY_PATH } from "../facade/paths/paths";
 import { PurchaseReceiptCard } from "../facade/receipt/receipt";
+import { PurchaseAppliedCoupon } from "./ui/applied-coupon/applied-coupon";
 import { PurchaseTransitions } from "./ui/transitions/transitions";
 
 /** `PurchaseDetailView` の props。 */
@@ -35,13 +36,19 @@ export type PurchaseDetailViewProps = {
  * @remarks
  * 画面が何を見せ、どう組み替え、紙に何を出すかは
  * [画面要件](../../../../docs/spec/route/shop/purchases/[code]/page.screen.md)。
+ *
+ * 見出し（`h1`）は画面には出さず sr-only に留める（画面要件「見出し」）。
+ *
+ * 購入コードは契約上 UUID で返るため、1 行に収まる前提を置けない。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseDetailViewProps} の各メンバーが持つ。
+ * @see Storybook `Page/Purchases/Detail`
  */
 export const PurchaseDetailView = withScreenSpan(
   "features/purchases/detail/view",
   ({ purchase, reference }: PurchaseDetailViewProps) => {
     return (
       <article className="flex flex-col gap-6">
-        {/* 画面には出さない見出し（画面要件「見出し」）。 */}
         <h1 className="sr-only">購入 {purchase.code}</h1>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Breadcrumb className="print-hidden">
@@ -51,7 +58,6 @@ export const PurchaseDetailView = withScreenSpan(
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                {/* 契約が返すのは UUID なので、1 行に収まる前提を置けない。 */}
                 <BreadcrumbPage className="max-w-40 truncate font-mono">
                   {purchase.code}
                 </BreadcrumbPage>
@@ -67,7 +73,15 @@ export const PurchaseDetailView = withScreenSpan(
             purchase={purchase}
           />
           <div className="rounded-lg border p-4">
-            <PurchaseAmountSummary purchase={purchase} reference={reference} />
+            <PurchaseAmountSummary
+              discountDetail={
+                purchase.appliedCoupon === null ? undefined : (
+                  <PurchaseAppliedCoupon coupon={purchase.appliedCoupon} />
+                )
+              }
+              purchase={purchase}
+              reference={reference}
+            />
           </div>
         </div>
 

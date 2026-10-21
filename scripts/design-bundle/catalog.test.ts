@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   type BundleComponent,
   bundledFilesOf,
   itemTypeOf,
+  README_SECTIONS,
   renderCatalog,
   sectionOf,
   titleOf,
@@ -12,15 +15,15 @@ import {
 const README = [
   "# Button",
   "",
-  "## 用途",
+  "## Purpose",
   "",
   "利用者の操作を開始します。",
   "",
-  "## 責務境界",
+  "## Responsibility Boundaries",
   "",
   "業務上の可否、送信中、結果通知は feature が管理します。",
   "",
-  "## Storybook とテスト",
+  "## Storybook and Tests",
   "",
   "Storybook は variant を確認します。",
   "",
@@ -42,42 +45,64 @@ function component(overrides: Partial<BundleComponent> = {}): BundleComponent {
 }
 
 describe("sectionOf", () => {
+  // ----- 正常系 -----
   it("指定した見出しの本文を 1 行へ畳んで返す", () => {
-    expect(sectionOf(README, "用途")).toBe("利用者の操作を開始します。");
+    expect(sectionOf(README, "Purpose")).toBe("利用者の操作を開始します。");
   });
 
   it("次の見出しより手前で切る", () => {
-    expect(sectionOf(README, "責務境界")).toBe(
+    expect(sectionOf(README, "Responsibility Boundaries")).toBe(
       "業務上の可否、送信中、結果通知は feature が管理します。",
     );
   });
 
   it("最後の見出しでも本文を取り出す", () => {
-    expect(sectionOf(README, "Storybook とテスト")).toBe("Storybook は variant を確認します。");
+    expect(sectionOf(README, "Storybook and Tests")).toBe("Storybook は variant を確認します。");
   });
 
   it("複数行の本文を空白で繋ぐ", () => {
-    const markdown = ["## 用途", "", "1 行目。", "2 行目。", ""].join("\n");
+    const markdown = ["## Purpose", "", "1 行目。", "2 行目。", ""].join("\n");
 
-    expect(sectionOf(markdown, "用途")).toBe("1 行目。 2 行目。");
+    expect(sectionOf(markdown, "Purpose")).toBe("1 行目。 2 行目。");
   });
 
+  // ----- 異常系 -----
   it("見出しが無ければ空文字を返す", () => {
-    expect(sectionOf(README, "利用ケース")).toBe("");
+    expect(sectionOf(README, "Use Cases")).toBe("");
+  });
+});
+
+describe("README_SECTIONS", () => {
+  // component の README はすべてこの雛形の見出しで書く。見出しが食い違うと目録の欄が黙って空になる。
+  const template = readFileSync(
+    resolve(import.meta.dirname, "../../src/components/component-template.md"),
+    "utf8",
+  );
+
+  // ----- 正常系 -----
+  it("README の雛形から用途の節を取り出せる", () => {
+    expect(sectionOf(template, README_SECTIONS.purpose)).not.toBe("");
+  });
+
+  it("README の雛形から責務境界の節を取り出せる", () => {
+    expect(sectionOf(template, README_SECTIONS.boundary)).not.toBe("");
   });
 });
 
 describe("titleOf", () => {
+  // ----- 正常系 -----
   it("先頭の見出しを表示名にする", () => {
     expect(titleOf(README, "button")).toBe("Button");
   });
 
+  // ----- 異常系 -----
   it("見出しが無ければ台帳の key を使う", () => {
     expect(titleOf("本文だけ", "button")).toBe("button");
   });
 });
 
 describe("itemTypeOf", () => {
+  // ----- 正常系 -----
   it("design-system は registry:ui になる", () => {
     expect(itemTypeOf("design-system")).toBe("registry:ui");
   });
@@ -90,6 +115,7 @@ describe("itemTypeOf", () => {
 });
 
 describe("bundledFilesOf", () => {
+  // ----- 正常系 -----
   it("実装ファイルを名前順で返す", () => {
     expect(bundledFilesOf(["button.tsx", "button.definition.ts"])).toEqual([
       "button.definition.ts",
@@ -97,14 +123,20 @@ describe("bundledFilesOf", () => {
     ]);
   });
 
+  // ----- 異常系 -----
   it("test と README は載せない", () => {
     expect(bundledFilesOf(["button.tsx", "button.test.tsx", "gen.test.ts", "README.md"])).toEqual([
       "button.tsx",
     ]);
   });
+
+  it("README の翻訳のミラーと、その他の文書も載せない", () => {
+    expect(bundledFilesOf(["button.tsx", "README.ja.md", "notes.md"])).toEqual(["button.tsx"]);
+  });
 });
 
 describe("renderCatalog", () => {
+  // ----- 正常系 -----
   it("層ごとに見出しを立てて component を並べる", () => {
     const catalog = renderCatalog([
       component(),

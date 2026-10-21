@@ -1,6 +1,6 @@
 import type { DashboardSummary } from "@/model/dashboard/dashboard";
 import { formatMoney } from "@/model/money";
-import { formatCount } from "./count";
+import { formatNumber } from "@/model/number";
 import { ADMIN_PRODUCT_LIST_PATH } from "./paths";
 
 /**
@@ -45,6 +45,9 @@ export type SummaryCard = {
  * バックエンドが返していない数です。
  *
  * 行き先を添える条件は {@link SummaryCard.href} の契約に従います。
+ *
+ * @param summary - 写す元になるダッシュボードの集計
+ * @returns 数値カードの並び
  */
 export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[] {
   // 枚数を変えたら待機表示の枠数（`ui/skeleton/skeleton.tsx` の `CARD_COUNT`）も合わせる。
@@ -59,25 +62,26 @@ export function toSummaryCards(summary: DashboardSummary): readonly SummaryCard[
     {
       id: "sales-count",
       label: "売上の件数",
-      value: formatCount(summary.salesCount),
+      value: formatNumber(summary.salesCount),
       note: "売上に算入した購入の数です",
     },
     {
       id: "published-product-count",
       label: "公開中の商品",
-      value: formatCount(summary.publishedProductCount),
+      value: formatNumber(summary.publishedProductCount),
       note: "現在の数です。期間では変わりません",
-      // 一覧は公開済みだけを返すため、条件を付けない一覧がそのままこの数になる。
-      href: ADMIN_PRODUCT_LIST_PATH,
-      linkLabel: "公開中の商品を一覧で見る",
+      // 押せません。公開済みだけを並べる一覧が無く、admin の一覧は未公開を含めて返すため、
+      // 送るとこの数より多い件数が出ます（`src/features/admin/README.md` の
+      // "Points to Watch Against the Contract"）。
     },
     {
       id: "total-product-count",
       label: "登録済みの商品",
-      value: formatCount(summary.totalProductCount),
+      value: formatNumber(summary.totalProductCount),
       note: "未公開を含む現在の数です",
-      // 押せません。未公開を含む一覧を返す取得口が契約に無く、公開済みだけの一覧へ送ると
-      // 押す前と後で件数が食い違います（`src/features/admin/README.md`「現契約でできないこと」）。
+      // admin の一覧は未公開を含めて返すので、条件を付けない一覧がそのままこの数になる。
+      href: ADMIN_PRODUCT_LIST_PATH,
+      linkLabel: "登録済みの商品を一覧で見る",
     },
   ];
 }

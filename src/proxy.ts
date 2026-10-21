@@ -50,9 +50,8 @@ const OPEN_PATHS: ReadonlySet<string> = new Set([MAINTENANCE_PATH, "/api/health"
  * `Next-Action` ヘッダもそのままなので、止まっていることを要求側へ言うのは差し替えの仕事では
  * ありません。ここで読み取り以外を断るのは、**止めるという約束を自分の境界で言い切るため**です。
  *
- * Next.js 側でも結局は実行されませんが、それは framework の内部の成り行きであって、こちらが
- * 約束したことではありません。**依存すると、その内部が変わった日に黙って開きます**
- * （成り行きの中身は `docs/spec/route/maintenance/page.function.md`）。
+ * 差し替えた要求で Server Action がどう扱われるかを、framework は約束していません。**どう扱われる
+ * かに依存すると、それが変わった日に黙って開きます。**
  */
 const OPEN_METHODS: ReadonlySet<string> = new Set(["GET", "HEAD"]);
 
@@ -79,7 +78,7 @@ const PRIVATE_CACHE_CONTROL = "private, no-store";
  *
  * @remarks
  * ログインへは送りません（{@link proxy}）。403 の面を出さない理由は
- * `docs/spec/route/admin/layout.function.md`「入れない主体をどこへ送るか」。
+ * `docs/rules.md#authorization`。
  */
 const FALLBACK_PATH = "/";
 
@@ -97,7 +96,7 @@ const FALLBACK_PATH = "/";
  * （CDN / ロードバランサ）が前に立ちます。
  *
  * 認可について、**ここは防御線ではありません。** cookie を読むだけの前捌きであり、確定認可はデータ源に最も
- * 近い所（`adapters/server` の `verifySession()`）が持ちます（`docs/rules.md`「認可と入口」）。
+ * 近い所（`adapters/server` の `verifySession()`）が持ちます（`docs/rules.md#authorization`）。
  * ここを唯一の検査にすると、Proxy を通らない経路がそのまま穴になります。
  *
  * prefetch を含む全リクエストで走るため、データ源を参照しません。cookie の復号だけに留めるのは
@@ -139,7 +138,7 @@ export async function proxy(request: NextRequest): Promise<Response> {
   );
 
   // 許していない origin からの書き込みは、handler へ届く前に止める
-  // （`docs/rules.md`「認可と入口」の「状態を変える要求の送信元を検証する」）。
+  // （`docs/rules.md#authorization` の "Verify the origin of state-changing requests"）。
   // 読むだけの要求は止めない —— CORS ヘッダを付けないので、ブラウザ側で応答を読めない。
   if (verdict.kind === "untrusted" && isStateChanging(request.method)) {
     return new NextResponse(null, { status: 403 });
@@ -167,8 +166,13 @@ export async function proxy(request: NextRequest): Promise<Response> {
  * **cookie を書き換えた応答は共有キャッシュへ載せません。** 資格情報を載せた要求への応答だけを
  * 外すと、**匿名で同意済みの訪問者へ計測 id を配る応答**が漏れます。固めて配れる画面は
  * `s-maxage` を伴うため、その応答を保存した CDN は以後の訪問者全員へ同じ id を配ります
- * （`docs/rules.md`「データ分類と機微情報」の「主体に紐づく応答の `Cache-Control` を個別に
- * 書かない」）。
+ * （`docs/rules.md#data-classification` の "Do not write `Cache-Control` for principal-bound
+ * responses per screen or per Route Handler"）。
+ *
+ * @param request - 受信した要求
+ * @param response - 差し替え後の応答
+ * @param url - 要求の URL
+ * @returns 送出する応答
  */
 function finalize(request: NextRequest, response: NextResponse, url: URL): NextResponse {
   syncMeasurementId(request, response, url);
@@ -184,7 +188,7 @@ function finalize(request: NextRequest, response: NextResponse, url: URL): NextR
  * 同意に紐づく計測 id を、いまの同意状態へ合わせる。
  *
  * @remarks
- * いつ配り、いつ消すかは `docs/spec/route/layout.function.md`「計測 id は同意の裏でだけ配る」が
+ * いつ配り、いつ消すかは `docs/spec/route/layout.function.md#the-measurement-id-is-issued-only-behind-consent`が
  * 持ちます。ここに書くのは、この関数でしか読めない実装上の判断だけです。
  *
  * `httpOnly` を付けません。読むのはブラウザ側で動く計測であり、サーバは配るだけだからです。
@@ -194,6 +198,10 @@ function finalize(request: NextRequest, response: NextResponse, url: URL): NextR
  * 採番はここで行います。**同意を確かめてからでなければ呼べない**という制約が、判定と採番を
  * 同じ関数に置いて初めて読み取れる形になります。値そのものは推測されて困るものではなく、同じ
  * ブラウザからの訪問を繋ぐためだけの識別子です。
+ *
+ * @param request - 受信した要求
+ * @param response - 書き換える応答
+ * @param url - 要求の URL
  */
 function syncMeasurementId(request: NextRequest, response: NextResponse, url: URL): void {
   const consent = parseConsentState(request.cookies.get(CONSENT_COOKIE_NAME)?.value);
@@ -220,7 +228,13 @@ function syncMeasurementId(request: NextRequest, response: NextResponse, url: UR
   });
 }
 
-/** 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。 */
+/**
+ * 許可した別 origin からの BFF への要求。preflight はここで答え、それ以外は CORS ヘッダを添える。
+ *
+ * @param request - 受信した要求
+ * @param origin - 許可された送信元 origin
+ * @returns 送出する応答
+ */
 async function openCors(request: NextRequest, origin: string): Promise<NextResponse> {
   if (request.method === "OPTIONS") {
     return new NextResponse(null, {
@@ -242,7 +256,12 @@ async function openCors(request: NextRequest, origin: string): Promise<NextRespo
   return response;
 }
 
-/** 到達してよい役割を持たない要求を送り返し、それ以外を通す。 */
+/**
+ * 到達してよい役割を持たない要求を送り返し、それ以外を通す。
+ *
+ * @param request - 受信した要求
+ * @returns 送出する応答
+ */
 async function authorize(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);

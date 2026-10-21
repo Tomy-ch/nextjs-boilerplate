@@ -3,13 +3,14 @@ import Link from "next/link";
 import { Button } from "@/components/design-system/action/button/button";
 import { BUTTON_VARIANT } from "@/components/design-system/action/button/button.definition";
 import { CircleCheckIcon } from "@/components/icon";
+import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import { PurchaseAmountSummary } from "@/features/purchases/facade/amount-summary/amount-summary";
 import { PurchaseLineList } from "@/features/purchases/facade/lines/lines";
+import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
 import { PurchaseReceiptCard } from "@/features/purchases/facade/receipt/receipt";
 import type { ReferenceAmount } from "@/model/money";
 import type { Purchase } from "@/model/purchase/purchase";
 import { withScreenSpan } from "@/observability/render-span";
-import { MYPAGE_PATH, PRODUCTS_PATH } from "../paths";
 
 /** `CheckoutCompleteView` の props。 */
 export type CheckoutCompleteViewProps = {
@@ -20,14 +21,16 @@ export type CheckoutCompleteViewProps = {
 };
 
 /**
- * 購入完了の表示。
+ * 成立したことを先に伝え、控えと内容を続ける購入完了の器。
  *
  * @remarks
- * 成立したことを先に伝え、控えと内容を続けます。金額の内訳を脇へ貼り付けないのは、この画面に
- * 送信の操作が無く、読み進めるあいだ画面に残しておきたい操作が無いためです。
+ * 金額の内訳を脇へ貼り付けないのは、この画面に送信の操作が無く、読み進めるあいだ画面に残して
+ * おきたい操作が無いためです。
  *
  * 次の導線を 2 本置きます。買い物へ戻る道と、控えを後から確かめる道です。ここで行き止まりに
  * すると、利用者は戻る操作で確定前の画面へ帰ろうとします。
+ *
+ * @param props - {@link CheckoutCompleteViewProps} を参照。
  */
 export const CheckoutCompleteView = withScreenSpan(
   "features/checkout/complete/view",
@@ -50,10 +53,10 @@ export const CheckoutCompleteView = withScreenSpan(
 
         <div className="flex flex-wrap gap-3">
           <Button asChild>
-            <Link href={PRODUCTS_PATH}>買い物を続ける</Link>
+            <Link href={PRODUCT_LIST_PATH}>買い物を続ける</Link>
           </Button>
           <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={MYPAGE_PATH}>購入の控えを見る</Link>
+            <Link href={purchaseDetailPath(purchase.code)}>購入の控えを見る</Link>
           </Button>
         </div>
       </div>

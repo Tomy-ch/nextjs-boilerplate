@@ -46,7 +46,10 @@ const AVAILABLE_TRANSITIONS: Readonly<Record<number, readonly PurchaseTransition
  * 不可逆な操作を出すことになります。
  *
  * 判定の正がバックエンドにあること（送った結果が拒まれる余地）は
- * [機能要件](../../../../docs/spec/route/shop/purchases/[code]/page.function.md)「状態を進める」。
+ * [機能要件](../../../../docs/spec/route/shop/purchases/[code]/page.function.md#advancing-the-status)。
+ *
+ * @param statusCode - 判定対象の購入ステータスの業務キー。
+ * @returns 画面に出す順に並んだ、いまできる遷移の一覧。
  */
 export function availablePurchaseTransitions(statusCode: number): readonly PurchaseTransition[] {
   return AVAILABLE_TRANSITIONS[statusCode] ?? [];

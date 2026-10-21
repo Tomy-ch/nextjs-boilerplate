@@ -7,14 +7,14 @@
 #
 # Semgrep 本体ではなく OSS fork の opengrep を使う。ルール記法は互換で、抑止も
 # `// nosemgrep: <rule-id>` がそのまま効く。CodeQL は GitHub の外へ持ち出せないため、
-# private + GHAS 無しのテンプレートから作った側では層ごと消える。持ち出せる SAST を別に持つのはそのため。
+# private + GHAS 無しの構成では層ごと消える。持ち出せる SAST を別に持つのはそのため。
 #
 # **検査条件は 1 箇所に持つ。** ゲート（text）と code scanning への取り込み（SARIF）は
 # 同じ対象・同じルール・同じ除外でなければ、落ちた内容と Security タブの一覧が食い違う。
 # 変数へ括り出してあるのはそれを構造的に保証するためで、両方の行に書き写さない。
 
 # ルールセット。**レジストリ（semgrep.dev）は引かず**、opengrep-rules を commit で固定して読む。
-# 理由と取り出し方は .github/workflows/README.md の「SAST のルールをレジストリから引かない」が
+# 理由と取り出し方は .github/workflows/README.md § Do not pull SAST rules from a registryが
 # 持つ。取得と照合は scripts/opengrep-rules が担い、置き場・選別・digest の宣言もそちらが持つ。
 OPENGREP_RULES_DIR := tmp/opengrep-rules
 OPENGREP_CONFIGS := --config $(OPENGREP_RULES_DIR)

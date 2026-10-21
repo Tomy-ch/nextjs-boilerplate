@@ -12,19 +12,24 @@
 
 - 新しい画面 / feature スライスを足すところで、ディレクション（何を出すか）が既にあるか、これから
   決まる。
-- 置き場・feature README の必須節・`docs/spec/route/**` の仕様書・テストがどれも未作成で、手戻りを
+- 置き場・feature README の必須セクション・`docs/spec/route/**` の仕様書・テストがどれも未作成で、手戻りを
   生まない順序で作りたい。
 
 ## このスキルを使わないとき
 
 - **既存 feature の変更** —— 直接編集する。このスキルは何も無いところから始まる前提で書かれている。
-- **`src/components/**` / `src/adapters/**` / `src/model/**` / `src/stores/**` / `src/capabilities/**`
-  配下への追加** —— これらはカーネルなので `pnpm gen <kind> <name>` を直接叩き、story 先行の順序は
-  踏まない。あの順序は画面の見た目を確定させる場面にしか要らない。
+  例外は 1 つで、`scaffold-slice` が置いて見た目を残した画面は Step 3 の story から引き取る。
+- **カーネル側の単位**（`components` / `adapters` / `model` / `stores` / `capabilities`）。
+  `docs/playbook.md` はカーネルを story 先行の順序から外している —— そこでは見た目を確定させないため
+  である。`pnpm gen` が生成するのは `feature` / `component` / `adapter` だけで、component は
+  `pnpm gen component <name> --as=<見出し>`、adapter は `scaffold-adapter`（`pnpm gen adapter` を包んで
+  スタブを埋める）、model の型は `scaffold-model` で置く。`stores` と `capabilities` には生成器の kind が
+  無いので、そのカーネル README に従って置く。
 - **既にあるコードへのテスト作成** —— それは `scaffold-test` の仕事である。
-- **レビュー** —— `impl-review` / `test-review` / `comment-sweep` は `AGENTS.md` の Review Phase
+- **レビュー** —— `impl-review` / `test-review` は `AGENTS.md` の Review Phase
   Protocol における peers である。このスキルは判断を user へ渡すだけで、**それらを呼ばない**。呼ぶ
-  スキルは、3 つの subject が独立に答えられなくなる代償を払う。
+  スキルは、2 つの subject が独立に答えられなくなる代償を払う。`/settle-comments` はレビューではない ——
+  実装の最後に無条件で走る段であり、このスキルは Step 7 でそれを回す。
 
 ## 実行時に読むもの
 
@@ -33,7 +38,7 @@
 | 出所 | そこが決めるもの |
 | --- | --- |
 | `docs/playbook.md` | 画面実装の順序 / 置き場の逆引き / ゲートの方針 |
-| `docs/templates/feature-readme.md` | feature README が持つべき必須節 |
+| `docs/templates/feature-readme.md` | feature README が持つべき必須セクション |
 | `docs/spec/README.md` | 仕様書の 2 層構造と置き場 |
 | `src/features/README.md` と各カーネル README | import 境界 / `test-requirement` / 公開面 |
 | `architecture.ts` | `pnpm gen` と ESLint boundaries が強制する依存マトリクス |
@@ -48,7 +53,7 @@
 1. **feature 名**（kebab-case）と、置かれる route。
 2. **ディレクション** —— 画面が何を出すか、またはそれが決まった場所への参照。アイデアしか無い場合は
    そう言って Step 2 を回す。プロダクトの中身を勝手に作らない。
-3. その route の**仕様書が既に `docs/spec/route/**` にあるか**。
+3. その route の**仕様書が既に `docs/spec/route/**` にあるか** —— 英語の canonical を見て、`*.ja.md` ミラーはすべて無視する。
 
 ここで `docs/playbook.md` を読み、そこに書かれた順序に従う。以下の順序は執筆時点のそれを写したもの
 なので、**食い違ったら playbook が正である**。
@@ -64,17 +69,19 @@
 ## Step 2. ディレクション（工程 1）
 
 `docs/templates/feature-readme.md` を `src/features/<name>/README.md` へ埋める —— route と消費する
-契約、状態表、依存カーネル、Server Action の戻り値契約、テスト観点。状態表が次の工程を動かすので、
-部品が 1 つも無いうちに書く。
+契約、状態表、依存カーネル、Server Action の戻り値契約、テスト観点。README は英語の canonical である。
+状態表が次の工程を動かすので、コンポーネントが 1 つも無いうちに書く。
 
 ディレクションが本当に決まっていないところは、プロダクトの振る舞いを選ばずに `AskUserQuestion` で
 訊く。画面が何を約束するかの著者は user である。
 
 ## Step 3. story 先行（工程 2）
 
-スライスに `pnpm gen feature <name> --screen=<画面>` を、設計が要求する共有部品に `pnpm gen component <name> --as=<見出し>` を回す。
+スライスに `pnpm gen feature <name> --screen=<画面>` を、設計が要求する共有コンポーネントに `pnpm gen component <name> --as=<見出し>` を回す。
 配置・命名・境界は生成器に委ね、**手で置かない**。生成器が取る入力以外を渡さない（`architecture.ts`
-＋層 README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
+＋レイヤー README が唯一の入力であり、`docs/spec/**` は**生成入力ではない**）。
+
+`scaffold-slice` がこの画面を既に置いているなら —— 2 つのスキルは `pnpm gen feature` で出会う —— 生成器を飛ばして story から始める。
 
 出るのは slice の `README.md` と画面のディレクトリ（`<画面>/view.tsx` / `<画面>/page-content.tsx` / `<画面>/view.stories.tsx` と、それぞれの隣のテスト）で、**画面軸は 1 画面目から在る**。**2 画面目は同じコマンドをもう一度回す** —— 生成器は新しい画面のディレクトリだけを足し、README には触らない。`<name>/<画面>/` が既に在れば止まる。生成器が書くはずのものを手で置かない。
 
@@ -89,7 +96,7 @@
 pnpm storybook
 ```
 
-script 側が `APP_ENV` を `local` に既定しているので、前置きは要らない。`:6006` で出る。1 ツールに
+script 側が `APP_ENV` を `local` にデフォルトしているので、前置きは要らない。`:6006` で出る。1 ツールに
 つき 1 つだけ立て、閉じるのは user に任せる。URL と見るべき story id を渡して、待つ。
 
 **これが返るまでテストを書かない。** 順序が在る理由そのものであり、確定していない見た目に対して
@@ -97,12 +104,12 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 
 ## Step 5. 分離（工程 4）
 
-レビューが見た目を確定させたので、この段が挟む 2 つの境界を打刻する: `.agents/closed-loop/marks.sh planApprovedAt` のあと `.agents/closed-loop/marks.sh implStartedAt`。 <!-- boilerplate-only:line -->
+レビューが見た目を確定させたので、この段が挟む 2 つの境界を打刻する: `.agents/closed-loop/marks.sh planApprovedAt` のあと `.agents/closed-loop/marks.sh implStartedAt`。
 
 レビューが確定させたものを層へ移す。置き場は `docs/playbook.md` の逆引きと各カーネル README から
 決める。基準はコードにも README にも書き写さず、それを所有する ADR への参照パスとして持つ。
-**参照パスそのものは `docs/playbook.md` の「工程 4（分離）で読むもの」の表が持つ** —— 該当する行を
-開いて ADR の節を当てる。棄却側の行も必ず含める。同じ発想を思いつくたびに一から議論し直さない
+**参照パスそのものは `docs/playbook.md` の「What to Read at Step 4 (Separation)」の表が持つ** —— 該当する行を
+開いて ADR のセクションを当てる。棄却側の行も必ず含める。同じ発想を思いつくたびに一から議論し直さない
 ためである。
 
 ## Step 6. 仕様書（工程 5）
@@ -110,13 +117,20 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 `docs/spec/README.md` に従って `docs/spec/route/<...>/page.{function,screen}.md` を書く —— 機能要件と
 画面要件を、「契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか」で振り分ける。
 
-仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / 部品
+仕様書は確定した約束を記録するものなので、最初ではなくここに来る。契約 / token / `rules.md` / コンポーネント
 カタログ / ADR は**指すだけ**で、写さない。
 
-## Step 7. テスト（工程 6）
+仕様書と slice の README は英語の canonical で、それぞれ兄弟の `.ja.md` ミラーを持つ
+（[0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。この実行で書いた canonical すべてに
+対して `canonicalize-doc` を一括モードで 1 回連鎖させ、ミラーを同じ変更で追従させる。
+
+## Step 7. テスト（工程 6）とコメント
 
 揃った対象について `scaffold-test` スキルを連鎖させる。観点は対象自身の分岐と最近傍 README の
 `test-requirement` から導かれる。テストの規約をここへ書き写さない。
+
+そのうえで、この実行が触れたすべての宣言に対して `/settle-comments` を 1 回回す。実装の最後に無条件で
+走る段であり、書く前に確認を取る。
 
 ## Step 8. ゲートと引き渡し
 
@@ -124,33 +138,35 @@ script 側が `APP_ENV` を `local` に既定しているので、前置きは�
 掃かない。commit / push して結果を読む。いま手元で走るゲートは `make load-status` が出す。
 
 日本語で締めの要約を出す —— 層ごとに作ったファイル、押さえた 4 状態、書いた仕様書、CI がまだ判定中の
-もの。そのうえで、`AGENTS.md` の Review Phase Protocol が `/impl-review` / `/test-review` /
-`/comment-sweep` の可否をスキルごとに user へ問うことを、**実行せずに**伝える。この変更でそれぞれが
-何を返しそうかの見積もりを添える。
+もの。そのうえで、`AGENTS.md` の Review Phase Protocol が `/impl-review` / `/test-review`
+の可否をスキルごとに user へ問うことを、**実行せずに**伝える。この変更でそれぞれが
+何を返しそうかの見積もりを添える。`/settle-comments` はこの問いに含まれない —— 実装の最後の手順として
+既に走っている。
 
 **commit しない。push しない。** どちらも `/commit` と `/submit-pr` を通じて user のものである。
 
 ## 制約
 
 - ❌ Step 4 のレビューが返る前にテストを書く。
-- ❌ `pnpm gen` が置くはずのファイルを手で置く、または生成器へ `architecture.ts` ＋層 README 以外の
+- ❌ `pnpm gen` が置くはずのファイルを手で置く、または生成器へ `architecture.ts` ＋レイヤー README 以外の
   入力を渡す。
 - ❌ `docs/spec/**` を生成入力として扱う —— **読み込み**入力に限る。
-- ❌ `impl-review` / `test-review` / `comment-sweep` を呼ぶ。
+- ❌ `impl-review` / `test-review` を呼ぶ。
 - ❌ ディレクションが決まっていないところでプロダクトの振る舞いを作る —— 訊く。
 - ❌ ゲートを先回りして lint 全体 / テスト全体を手元で回す。
 - ❌ `docs/playbook.md` / カーネル README / ADR が所有する規則をこのファイルへ書き写す。
-- ✅ スキルが出力しリポジトリへ書くものはすべて日本語。
+- ✅ スキルの報告とコードコメントは日本語。文書は英語の canonical として書き、その `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する。
 - ✅ 失敗した工程で停止して表に出す。先行する書き込みを自動で巻き戻さない。
 - ✅ 既存の `Explore` / `Plan` エージェント型を再利用する。
+- ✅ 触れた宣言に対して `/settle-comments` を 1 回、実装の最後の段として回す。
 
 ## チェックリスト
 
 - [ ] feature 名 / route / ディレクションを `AskUserQuestion` で確認した（Step 0）
 - [ ] `docs/playbook.md` を今回の実行で読み、その順序に従った
-- [ ] 部品が 1 つも無いうちに、テンプレートから feature README を埋めた（Step 2）
+- [ ] コンポーネントが 1 つも無いうちに、テンプレートから feature README を埋めた（Step 2）
 - [ ] ファイルは `pnpm gen` が置いた。4 状態の story を書いた（Step 3）
 - [ ] テストを 1 行も書く前に、Storybook を立てて人が見た目を確定させた（Step 4）
-- [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書いた（Step 5〜6）
-- [ ] `scaffold-test` でテストを作った（Step 7）
+- [ ] 分離のあとに `docs/spec/route/**` へ仕様書を書き、仕様書と README のミラーを `canonicalize-doc` で同期した（Step 5〜6）
+- [ ] `scaffold-test` でテストを作り、触れた宣言に `/settle-comments` を回した（Step 7）
 - [ ] 手元で全体を回していない / commit していない / push していない / レビュースキルを呼んでいない（Step 8）

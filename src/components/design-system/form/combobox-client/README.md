@@ -1,45 +1,45 @@
 # ComboboxClient
 
-## 用途
+## Purpose
 
-候補が多い選択肢から、入力語で絞り込みながら 1 件を選びます。
+Selects one item from many options while narrowing them down with typed text.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ComboboxClient` | trigger・絞り込み入力・候補一覧・選択値の hidden input を一つにまとめた client island です。 |
-| `ComboboxClientOption` | 候補 1 件を表す型です。`value`（送信値）・`label`（表示と検索の対象）・`disabled` を持ちます。 |
+| `ComboboxClient` | A client island that combines the trigger, the filter input, the option list and a hidden input for the selected value. |
+| `ComboboxClientOption` | The type representing one option. Has `value` (the submitted value), `label` (what is shown and searched) and `disabled`. |
 
-## 利用ケース
+## Use Cases
 
-- 都道府県やカテゴリのように、候補が多く一覧から探すのが難しい選択
-- 表示文言で検索したいが、送信する値は識別子である選択
+- A selection with so many options that finding one in a list is hard, such as prefectures or categories
+- A selection that should be searched by its display text while the submitted value is an identifier
 
-候補が少なく静的なら `SelectNative` を優先します。絞り込みの必要がないのに使うと、選ぶまでに入力という手数が増えるだけになります。
+If the options are few and static, prefer `SelectNative`. Using it where no filtering is needed only adds the step of typing before choosing.
 
-## 責務境界
+## Responsibility Boundaries
 
-**shadcn CLI の単独部品ではなく、`Popover` と `Command` を合成した実装パターンです。** shadcn registry の `combobox` は別の headless ライブラリを前提としており、このリポジトリが採る vendor と一致しないため、copy-in せず参考にとどめて組み直しています。台帳には `kind: reimplemented` として登録しています（`registryItem: combobox`）。上流を持たない `date-picker-client`（`kind: original`）とは、そこが違います。
+**It is not a standalone shadcn CLI component but an implementation pattern composing `Popover` and `Command`.** The shadcn registry's `combobox` assumes a different headless library that does not match the vendors this repository adopts, so it is not copied in; it serves only as a reference and is rebuilt. It is registered in the ledger as `kind: reimplemented` (`registryItem: combobox`). That is where it differs from `date-picker-client` (`kind: original`), which has no upstream.
 
-hydration が必要で、Server Component からは直接 render できません。選択値は hidden input として持つため、native form へそのまま載ります。
+It needs hydration and cannot be rendered directly from a Server Component. The selected value is held as a hidden input, so it goes into a native form as is.
 
-候補の取得・並び順・件数の制限は持ちません。`options` として渡された配列をそのまま扱い、絞り込みは `Command` が label に対して行います。サーバ側で検索する必要がある場合は、呼び出し元が `options` を差し替えます。
+It does not own fetching options, their order or limits on their count. It handles the array passed as `options` as is, and `Command` does the filtering against the label. When the search must happen on the server, the caller replaces `options`.
 
-**必須指定は持ちません。** 値を運ぶ hidden input は constraint validation の対象外であり、`required` を付けても browser は検証しません。必須であることの表示は `Field`、実際の強制は Server Action や server 側の検証で行います。
+**It has no required setting.** The hidden input that carries the value is outside constraint validation, so the browser does not validate it even with `required`. Show that the field is required with `Field`, and enforce it in the Server Action or server-side validation.
 
-### アクセシビリティ
+### Accessibility
 
-**trigger に `role="combobox"` は付けません。** 絞り込み入力そのものが `Command` の中で `role="combobox"` として公開されるため、trigger にも付けると combobox が二重になり、`aria-controls` の関連付けも競合します。trigger は popover を開く button であり、開閉は Radix が `aria-expanded` に反映します。
+**The trigger does not get `role="combobox"`.** The filter input itself is exposed as `role="combobox"` inside `Command`, so putting it on the trigger too would duplicate the combobox and make the `aria-controls` associations conflict. The trigger is a button that opens the popover, and Radix reflects open / closed in `aria-expanded`.
 
-trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。絞り込み入力の名前は `Command` の `label` として内部で渡しています。
+The trigger's text changes with the selection state, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. The filter input's name is passed internally as the `label` of `Command`.
 
-絞り込みは label に対して行います。`CommandItem` の `value` は form へ送る値で表示文言と異なるため、label を `keywords` として渡して検索対象にしています。読みは正規化されないため、かな入力で漢字の候補を引かせたい場合は、呼び出し元が読みを含む `label` を用意します。
+Filtering is done against the label. The `value` of `CommandItem` is the value sent to the form and differs from the display text, so the label is passed as `keywords` to make it searchable. Readings are not normalized, so if kana input should find kanji options, the caller prepares a `label` that includes the reading.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は未選択、選択済み、選べない候補を含む場合、文言を差し替える場合、操作できない状態、外の `Label` を `aria-labelledby` で名前にする場合、制御 component として送信値を併記する場合を確認します。
+Storybook checks nothing selected, a selection made, options that include unselectable ones, replaced text, the non-operable state, naming via an outside `Label` with `aria-labelledby`, and a controlled component shown alongside its submitted value.
 
-テストは開くまで候補一覧を出さないこと、未選択時の placeholder と hidden input が空であること、選択済みの値に対応する label を trigger へ出すこと、trigger が combobox ではなく button として公開されること、開いたときの絞り込み入力と候補、label による絞り込み、一致なしの文言、選択による hidden input への反映と閉じ、呼び出し元への通知と制御 component としての反映、`disabled` の候補が選べないこと、trigger の無効化、a11y 自動検査を確認します。
+The tests check that the option list is not rendered until opened, that the placeholder shows and the hidden input is empty when nothing is selected, that the trigger shows the label matching the selected value, that the trigger is exposed as a button rather than a combobox, the filter input and options when opened, filtering by label, the no-match text, that selecting updates the hidden input and closes, notification to the caller and reflection as a controlled component, that `disabled` options cannot be selected, disabling the trigger, and the automated a11y check.
 
-cmdk と Popover は jsdom に無い `scrollIntoView` と `ResizeObserver` を使うため、`command` と同じくテスト側で補っています。
+cmdk and Popover use `scrollIntoView` and `ResizeObserver`, which jsdom lacks, so as with `command` the tests supply them.

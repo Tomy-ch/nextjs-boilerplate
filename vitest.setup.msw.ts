@@ -10,7 +10,7 @@ import { mockServer } from "./mocks/node";
 // 作るため、落とす判定には掛からない。
 //
 // **これを `setupFiles` へ戻さないこと。**全ファイルへ掛けたときの費用と、読み込む相手を
-// HTTP 境界に限る理由は `docs/testing-conventions.md`「mock の境界」が持つ。読み込まないファイルは、
+// HTTP 境界に限る理由は `docs/testing-conventions.md#mock-boundaries`が持つ。読み込まないファイルは、
 // 宛先を名指しで落とす番人が `vitest.setup.ts` 側に立つ。
 //
 // 立てるのが hook ではなく module の評価時なのは、番人より先に席を取るためである。番人は

@@ -9,6 +9,9 @@ import { PRODUCT_IMAGE_ACCEPT_LABEL } from "./field-limits";
  * @remarks
  * 受け口は大きさの整形を持たないため、見せ方はこちらが決めます。切り上げないのは、上限を
  * 超える値を「まだ入る」と読ませないためです。
+ *
+ * @param bytes - 丸める対象のバイト数
+ * @returns 丸めた MB 表記の文字列
  */
 export function formatMegabytes(bytes: number): string {
   return `${Math.floor(bytes / 1024 / 1024)} MB`;
@@ -23,6 +26,10 @@ export function formatMegabytes(bytes: number): string {
  *
  * 先頭の 1 件だけを出します。まとめて選び直す操作しか無いので、何件目が原因かを並べても直し方は
  * 変わりません。
+ *
+ * @param rejections - 弾かれたファイルの一覧
+ * @param maxUploadBytes - 受け付ける 1 枚あたりの大きさ（byte）
+ * @returns 先頭の 1 件についての文言。無ければ undefined
  */
 export function toRejectionMessage(
   rejections: readonly FileUploadRejection[],

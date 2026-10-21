@@ -25,6 +25,8 @@ export type ProductInfiniteListProps = {
  * 取得と見た目をつなぐだけです。見た目は {@link ProductLoadMoreList} が持ち、取得と末尾到達の
  * 検知は `useInfiniteProducts` が持ちます。分けてあるのは、見え方の確認に取得を必要としない
  * ようにするためです。
+ *
+ * @param props - 最初のページ、いま効いている検索条件、総数。
  */
 export function ProductInfiniteList({ initial, query, total }: ProductInfiniteListProps) {
   const { items, loadMore, sentinelRef } = useInfiniteProducts(initial, query);

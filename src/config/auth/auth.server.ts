@@ -27,7 +27,12 @@ class AuthConfig {
     this.#sessionSecret = sessionSecret;
   }
 
-  /** 検証済み ENV から production singleton を組み立てる。 */
+  /**
+   * 検証済み ENV から production singleton を組み立てる。
+   *
+   * @param values - 検証済みの auth 用 ENV
+   * @returns 組み立てた {@link AuthConfig}
+   */
   static fromValues(values: AuthEnvironment): AuthConfig {
     return new AuthConfig(
       values.AUTH_MODE,
@@ -45,32 +50,54 @@ class AuthConfig {
    * @remarks
    * `dev` でも、開発専用の口が閉じている環境では既定 Resolver が選ばれます。判定を併せる側は
    * `adapters/server/auth/resolver.ts` です。
+   *
+   * @returns 認可の開始先
    */
   get mode(): AuthMode {
     return this.#mode;
   }
 
-  /** OIDC Discovery の起点となる issuer。 */
+  /**
+   * OIDC Discovery の起点となる issuer。
+   *
+   * @returns issuer の URL
+   */
   get issuer(): string {
     return this.#issuer;
   }
 
-  /** Authorization Code + PKCE の public client ID。 */
+  /**
+   * Authorization Code + PKCE の public client ID。
+   *
+   * @returns public client ID
+   */
   get clientId(): string {
     return this.#clientId;
   }
 
-  /** IdP 登録値と完全一致させる callback URL。 */
+  /**
+   * IdP 登録値と完全一致させる callback URL。
+   *
+   * @returns callback URL
+   */
   get redirectUri(): string {
     return this.#redirectUri;
   }
 
-  /** 認可リクエストに渡す space-delimited scope。 */
+  /**
+   * 認可リクエストに渡す space-delimited scope。
+   *
+   * @returns scope 文字列
+   */
   get scopes(): string {
     return this.#scopes;
   }
 
-  /** BFF session cookie を保護する server 専用の秘密値。 */
+  /**
+   * BFF session cookie を保護する server 専用の秘密値。
+   *
+   * @returns session secret
+   */
   get sessionSecret(): string {
     return this.#sessionSecret;
   }
@@ -78,7 +105,11 @@ class AuthConfig {
 
 let authConfig: AuthConfig | undefined;
 
-/** 認証 adapter が利用する、プロセス内で不変な singleton を返す。 */
+/**
+ * 認証 adapter が利用する、プロセス内で不変な singleton を返す。
+ *
+ * @returns {@link AuthConfig} の singleton
+ */
 export const getAuthConfig = (): AuthConfig => {
   authConfig ??= AuthConfig.fromValues(getEnvironment());
   return authConfig;

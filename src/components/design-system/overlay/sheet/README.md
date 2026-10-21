@@ -1,54 +1,54 @@
 # Sheet
 
-## 用途
+## Purpose
 
-補助的な navigation や絞り込み面を、画面端から現れる modal パネルとして開きます。狭い viewport で常時表示する余地がない内容を、必要なときだけ画面の外から引き出します。
+Opens auxiliary navigation or a filter surface as a modal panel that appears from an edge of the screen. On a narrow viewport with no room to show it permanently, it pulls the content in from off-screen only when needed.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Sheet` | 開閉状態と focus trap・Escape・背面の inert 化を管理する client-side root です。 |
-| `SheetTrigger` | Sheet を開く trigger です。`Button` や link を使う場合は `asChild` で合成します。 |
-| `SheetContent` | overlay と Portal を伴って、`side` で指定した画面端へ sheet 本体を固定して描画します。既定で右上に閉じる操作を置きます。 |
-| `SheetClose` | sheet を閉じる操作です。footer のキャンセル・閉じるに使います。 |
-| `SheetHeader` | title と説明をまとめる領域です。 |
-| `SheetTitle` | sheet のアクセシブルな名前になる title です。既定で `h2` を render します。 |
-| `SheetDescription` | sheet の目的や内容を説明する本文です。 |
-| `SheetFooter` | 操作を並べる領域です。配置だけを担い、操作自体は持ちません。 |
-| `SheetOverlay` | 背面を覆う overlay です。`SheetContent` が内部で描画します。 |
-| `SheetPortal` | 描画先の Portal です。`SheetContent` が内部で使います。 |
+| `Sheet` | Client-side root that manages the open state, focus trap, Escape, and making the background inert. |
+| `SheetTrigger` | Trigger that opens the Sheet. When using a `Button` or a link, compose it with `asChild`. |
+| `SheetContent` | Renders the sheet body fixed to the screen edge given by `side`, together with the overlay and the Portal. By default it places a close control at the top right. |
+| `SheetClose` | Control that closes the sheet. Used for cancel or close in the footer. |
+| `SheetHeader` | Region that groups the title and the description. |
+| `SheetTitle` | Title that becomes the sheet's accessible name. Renders an `h2` by default. |
+| `SheetDescription` | Body text explaining the purpose or content of the sheet. |
+| `SheetFooter` | Region that lays out actions. It only handles placement and owns no actions itself. |
+| `SheetOverlay` | Overlay that covers the background. `SheetContent` renders it internally. |
+| `SheetPortal` | Portal the sheet renders into. `SheetContent` uses it internally. |
 
-`SHEET_SIDE` と `SheetSide` を `sheet.definition.ts` で公開します。`SheetContent` の `side` に指定できる値の owner はこの定義であり、`"right"` などの文字列を利用側で直接書きません。
+`SHEET_SIDE` and `SheetSide` are exported from `sheet.definition.ts`. This definition owns the values accepted by `SheetContent`'s `side`; callers do not write strings such as `"right"` directly.
 
-## 利用ケース
+## Use Cases
 
-- 狭い viewport で header のナビゲーションを畳み、trigger から一覧として引き出す場合
-- 一覧の絞り込み条件を、主導線を隠さずに画面端の面へまとめる場合
-- 内容の高さが可変で、画面上端・下端から引き出したい補助情報を置く場合
+- On a narrow viewport, collapsing the header navigation and pulling it out from a trigger as a list
+- Gathering a list's filter conditions into an edge surface without hiding the main flow
+- Placing auxiliary information of variable height that should be pulled in from the top or bottom edge
 
-画面中央へ内容を集めて注視させたい場合は `Dialog`、退会・削除のような取り消せない操作の確認には `role="alertdialog"` の意味論を持つ `AlertDialog` を使います。
+To gather content in the center of the screen and draw attention to it, use `Dialog`; to confirm an irreversible action such as account closure or deletion, use `AlertDialog`, which carries `role="alertdialog"` semantics.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `△` に当たります。既定は通常の link / button と Server 側で組み立てた内容であり、overlay の開閉・focus 管理・Escape・animation が必要になった場合にこの client island を選びます。開閉状態と focus trap のため hydration が必要で、Server Component からは直接 render できません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+In the SSR-first selection it is rated `△`. The default is ordinary links and buttons with content assembled on the server; choose this client island when overlay open/close, focus management, Escape or animation become necessary. It needs hydration for the open state and the focus trap, and cannot be rendered directly from a Server Component. When the content itself needs no client runtime, pass elements assembled in a Server Component as `children`.
 
-開いているあいだは履歴を 1 つ持ち、**戻る操作で自分だけを閉じます**（[0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)）。積むのは同じ URL の履歴 entry だけで、URL 自体は変わりません。
+While open it holds one history entry, and **the back action closes only itself** ([0053](../../../../../docs/adr/0053-ui-component-interaction-seam.md)). It pushes only a history entry for the same URL; the URL itself does not change.
 
-表示する文言、取得、保存、業務判断、開閉を URL へ載せるかの選択は持ちません。`side` は現れる画面端だけを決め、viewport 幅に応じて sheet と常時表示を切り替える判断は feature 側が持ちます。
+It does not own the text it displays, fetching, saving, business decisions, or the choice of whether to put the open state in the URL. `side` decides only which screen edge it appears from; the feature owns the decision to switch between a sheet and a permanent display depending on viewport width.
 
-`SheetContent` は縦方向の flex で内容を並べ、`SheetFooter` の `mt-auto` によって余白があるときは footer が下端へ寄ります。内容が sheet の高さを超える場合のスクロールは持たないため、必要な場合は呼び出し元が `className` で overflow を指定します。
+`SheetContent` lays out its content in a vertical flex, and `mt-auto` on `SheetFooter` pushes the footer to the bottom edge when there is spare room. It does not handle scrolling when the content exceeds the sheet's height; when needed, the caller sets overflow through `className`.
 
-`SheetFooter` は配置だけを担い、閉じる操作を自前で描画しません。閉じる操作は `SheetClose` を `Button` へ合成して呼び出し元が置きます。
+`SheetFooter` only handles placement and does not render a close control of its own. The caller places the close control by composing `SheetClose` onto a `Button`.
 
-`SheetContent` はアクセシブルな名前として `SheetTitle` を必ず子に置きます。説明が要る場合は `SheetDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示します。どちらも無いと Radix が警告します。`showCloseButton` を `false` にする場合は、内容側に `SheetClose` の閉じる手段を必ず用意します。
+`SheetContent` always has a `SheetTitle` child as its accessible name. When a description is needed, add `SheetDescription`; when not, set `aria-describedby={undefined}` explicitly. Radix warns when neither is present. When `showCloseButton` is set to `false`, always provide a closing means with `SheetClose` in the content.
 
-内容は Portal で `body` 直下へ描画されますが、React の木構造としては呼び出し元の配下に残ります。sheet の内部に置いた `form` は通常どおり submit され、`name` / `value` はそのまま送信値になります。
+The content is rendered into the Portal directly under `body`, but in the React tree it stays under the caller. A `form` placed inside the sheet submits normally, and its `name` / `value` become the submitted values as they are.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。`side` の位置決めと animation の class は shadcn の生成物をそのまま保持しており、animation plugin を採用していないため現状 animation の CSS は出力されません。
+The vendor is currently Radix, but the public API carries no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`. The positioning and animation classes for `side` are kept exactly as shadcn generated them; since no animation plugin is adopted, no animation CSS is emitted at present.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の開閉、`right` / `left` / `top` / `bottom` の四つの固定位置、絞り込み面として form 部品を内容に置く場合、説明を持たない場合、右上の閉じる操作を置かない場合を確認します。画面端への固定と余白の見え方は実描画でしか判断できないため、位置と余白は Storybook 側の確認範囲です。
+Storybook covers the default open and close, the four fixed positions `right` / `left` / `top` / `bottom`, form components placed in the content as a filter surface, the case without a description, and the case without the top-right close control. Fixing to a screen edge and the look of the spacing can only be judged in a real render, so position and spacing are within Storybook's scope.
 
-テストは開くまで内容を描画しないこと、title と説明の関連付け、title が見出しとして描画されること、`alertdialog` ではなく `dialog` の意味論であること、既定と `side` 指定での固定位置、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、Portal 内の `form` が送信値を保つこと、`SheetPortal` / `SheetOverlay` の明示指定、a11y 自動検査を確認します。Portal 先は render の `container` の外に出るため、a11y 自動検査には `baseElement` を渡します。
+The tests cover that the content is not rendered until opened, the association of the title and the description, that the title renders as a heading, that the semantics are `dialog` rather than `alertdialog`, the fixed position by default and with `side`, closing from both the top right and the footer, toggling `showCloseButton`, closing with Escape, that a `form` inside the Portal keeps its submitted values, explicit use of `SheetPortal` / `SheetOverlay`, and the automated a11y check. The Portal target lies outside the render's `container`, so `baseElement` is passed to the automated a11y check.

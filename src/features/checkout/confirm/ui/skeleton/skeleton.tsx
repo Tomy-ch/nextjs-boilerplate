@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 届け先に並べる項目数。[`../shipping-card/`](../shipping-card/shipping-card.tsx) と同じ。 */
-const PLACEHOLDER_FIELDS = 4;
+const PLACEHOLDER_FIELDS = 3;
 
 /** 枠だけで見せる明細の行数。多すぎると、実際より入っているように見える。 */
 const PLACEHOLDER_ROWS = 3;
@@ -24,11 +24,11 @@ const FIELDS = Array.from({ length: PLACEHOLDER_FIELDS }, (_, index) => index);
 const ROWS = Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index);
 
 /**
- * 購入確認の待機表示。
+ * 出来上がりと同じ器（`Card` / `KeyValueList`）で組む、購入確認の待機表示。
  *
  * @remarks
- * 出来上がりと同じ器（`Card` / `KeyValueList`）で組みます。高さを数値で予約しません
- * （`docs/rules.md`「UI 部品と操作」の「高さを数値で予約して揃えない」）。
+ * 高さを数値で予約しません
+ * （`docs/rules.md#ui-parts` の "Do not align heights by reserving a numeric height"）。
  *
  * 集計は広い画面にしか出しません。狭い画面では固定の操作帯が持つため、器の側と同じく
  * `lg` から出し、下端の余白（`pb-40`）も同じだけ空けます。

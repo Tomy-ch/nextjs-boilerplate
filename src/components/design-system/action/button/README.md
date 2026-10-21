@@ -1,35 +1,35 @@
 # Button
 
-## 用途
+## Purpose
 
-利用者の操作を開始します。
+Starts a user action.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Button` | 操作を開始する button。`variant`、`size`、`disabled`、`pending` を提供し、`asChild` で link などの操作要素にも同じ見た目を適用できます。 |
+| `Button` | A button that starts an action. It provides `variant`, `size`, `disabled` and `pending`, and with `asChild` it can apply the same look to other interactive elements such as links. |
 
-## 利用ケース
+## Use Cases
 
-form の送信、画面内の操作、再試行に使います。遷移には `asChild` と単一の link 要素を組み合わせ、アプリ内の遷移には `next/link` の `Link`、外部 URL には native の `a` を使います。
+Used for submitting forms, on-screen actions, and retrying. For navigation, combine `asChild` with a single link element: `next/link`'s `Link` for in-app navigation, and a native `a` for external URLs.
 
-取り消せない操作には `destructive` を使います。配色だけでは何が起きるかを伝えられないため、文言でも示します（[`AlertDialog`](../../overlay/alert-dialog/README.md)）。
+Use `destructive` for actions that cannot be undone. Color alone cannot convey what will happen, so show it in the copy too ([`AlertDialog`](../../overlay/alert-dialog/README.md)).
 
-## 送信中の見せ方
+## How Pending Is Shown
 
-`pending` を渡すと、**文言をその場所に残したまま**回転する印を重ね、押せなくします。
+When `pending` is passed, it overlays a spinning marker **while leaving the copy in place**, and makes the button unpressable.
 
-文言を「送信しています…」のように差し替えたり、印を文言の隣へ足したりすると器の幅が動きます。脇に貼り付いた集計や下端に固定した帯では、周りの位置まで動きます。重ねればその揺れが起きません。
+Replacing the copy with something like 「送信しています…」 ("sending…") or adding the marker next to the copy changes the container's width. On a summary pinned beside the content or a band fixed to the bottom edge, the surrounding positions move too. Overlaying avoids that jitter.
 
-見えなくなった文言は支援技術からも外れるため、待っていることは `pendingLabel` が伝えます。省略すると見た目でしか伝わりません。
+Copy that is no longer visible also drops out of assistive technology, so `pendingLabel` conveys that the user is waiting. If omitted, it is conveyed only visually.
 
-`asChild` とは併せられません。合成先の要素の中身をこの component が組み替えられないためです。
+It cannot be combined with `asChild`, because this component cannot rearrange the content of the element it composes into.
 
-## 責務境界
+## Responsibility Boundaries
 
-業務上の可否、送信中、結果通知は feature が管理します。form 送信時の native `type` も呼び出し側が明示します。
+Business permissibility, the in-progress state and result notifications are managed by the feature. The native `type` for form submission is also stated explicitly by the caller.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は variant（`destructive` を含む）・size・disabled・pending・link を、テストは基本表示と `asChild` を確認します。
+Storybook checks variants (including `destructive`), sizes, disabled, pending and links; tests check the basic display and `asChild`.

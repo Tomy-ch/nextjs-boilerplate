@@ -10,13 +10,17 @@
 # 赤にする。
 #
 # 除外は 2 つだけで、どちらも「秘密ではないと分かっている値」である。パスは走査の起点からの相対。
-# **個別の誤検知は `bearer.ignore` がフィンガープリントで受ける**（同 ADR 3.4）—— パスで外すと、
+# **個別の誤検知は `bearer.ignore` がフィンガープリントで受ける** —— パスで外すと、
 # そのファイルに後から入る本物の所見まで消える。
 BEARER_SKIP := config/environment.fixture.ts,adapters/server/auth/development-token.ts
 
+# 外から来る値はレシピ行へ展開せず、環境変数として渡す（`.makefiles/README.md`）。
+BEARER_ARGS ?=
+export BEARER_ARGS
+
 bearer-scan:
 	@command -v bearer >/dev/null 2>&1 || { echo "❌ bearer が PATH にありません。make install-tools を実行し、shell の mise activate を済ませてください。"; exit 1; }
-	@bearer scan src --exit-code 0 --skip-path '$(BEARER_SKIP)' $(BEARER_ARGS)
+	@bearer scan src --exit-code 0 --skip-path '$(BEARER_SKIP)' $$BEARER_ARGS
 
 .PHONY: bearer-sarif ## 同じ検査を SARIF で書き出す（code scanning への取り込み用）
 

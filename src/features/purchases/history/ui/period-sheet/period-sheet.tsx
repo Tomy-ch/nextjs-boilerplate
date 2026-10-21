@@ -60,6 +60,10 @@ export type PurchasePeriodSheetProps = {
  * **効いている期間を開く操作の文言そのものにします。** 閉じているあいだ入力欄は見えないので、
  * ここが唯一の表示になります。件数の印だけでは「何かで絞られている」までしか伝わらず、
  * 何で絞られているかを見るために開くことになります。
+ *
+ * @param props - いま一覧に効いている期間
+ *
+ * @see Storybook `Features/Purchases/History/PeriodSheet`
  */
 export function PurchasePeriodSheet({ period }: PurchasePeriodSheetProps) {
   const [open, setOpen] = useState(false);

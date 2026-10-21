@@ -13,10 +13,9 @@ type TextFieldProps = Pick<InputProps, "autoComplete" | "inputMode" | "placehold
   };
 
 /**
- * 1 行入力の項目。
+ * `useProfileFields` が組んだ props を `FormField` と `Input` へ配るだけの 1 行入力。
  *
- * @remarks
- * `useProfileFields` が組んだ props を、そのまま `FormField` と `Input` へ配ります。
+ * @param props - 入力欄の基本 props と、native `input` 属性、表示用の `label` / `description`。
  */
 export function TextField({
   controlId,

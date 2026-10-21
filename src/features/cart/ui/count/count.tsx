@@ -20,6 +20,8 @@ export type CartCountProps = {
  * 狭い帯では文字を出さず記号だけにします。header は銘と主要な導線が並ぶ場所で、そこへ文字を
  * 足すと銘が折り返します。読み上げの名前は呼び出し元の `aria-label` が持つため、文字を隠しても
  * 名前は失われません。
+ *
+ * @see Storybook `Features/Cart/Count`
  */
 export const CartCount = withPartSpan(
   "features/cart/ui/count/count",

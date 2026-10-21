@@ -17,10 +17,22 @@ import { alignSlideToStart, CAROUSEL_CONTENT_SLOT, CAROUSEL_ITEM_SLOT } from "./
 
 const CarouselCurrentContext = createContext<string | null>(null);
 
+/**
+ * fragment 付きの `href` から、指している slide の `id` を取り出す。
+ *
+ * @param href - `#` から始まる、slide の `id` を指す参照
+ * @returns `#` を除き、percent encoding を解いた `id`
+ */
 function slideIdOf(href: string) {
   return decodeURIComponent(href.slice(1));
 }
 
+/**
+ * 領域からはみ出している要素だけを、はみ出した分だけ横へ送って見える位置へ戻す。
+ *
+ * @param container - 横スクロールする領域
+ * @param target - 見える位置へ戻す要素
+ */
 function keepVisible(container: Element, target: Element) {
   const view = container.getBoundingClientRect();
   const box = target.getBoundingClientRect();
@@ -40,6 +52,13 @@ export type CarouselNavigationProps = Omit<ComponentProps<"a">, "href"> & {
   href: string;
 };
 
+/**
+ * `href` が指す slide を領域の先頭へ寄せ、fragment 遷移の既定動作を止める。行き先が見つからない
+ * ときは何もせず、link の既定動作に任せる。
+ *
+ * @param event - link の click event
+ * @param href - 移動先の slide を指す参照
+ */
 function scrollToSlide(event: MouseEvent<HTMLAnchorElement>, href: string) {
   const target = document.getElementById(slideIdOf(href));
   const content = target?.closest(CAROUSEL_CONTENT_SLOT);
@@ -52,6 +71,14 @@ function scrollToSlide(event: MouseEvent<HTMLAnchorElement>, href: string) {
   alignSlideToStart(content, target);
 }
 
+/**
+ * link の click handler を組み立てる。呼び出し元の handler を先に呼び、既定動作が止められていた
+ * 場合と修飾キーを伴う click では送らない。
+ *
+ * @param href - 移動先の slide を指す参照
+ * @param onClick - 呼び出し元が渡した click handler
+ * @returns link へ渡す click handler
+ */
 function handleSlideClick(href: string, onClick?: MouseEventHandler<HTMLAnchorElement>) {
   return (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
@@ -97,10 +124,6 @@ const CAROUSEL_STEP_CLASS =
  * 押しミスを防ぐため、当たり判定は見た目の円より一回り広い。円の半径ぶんだけ外周へ透明な領域を
  * 足しており、円の縁を外しても押せる。この領域は slide の内容に重なるので、**slide の中に link や
  * button を置く場合は円の周囲を空ける。** 重なった操作は押せなくなる。
- *
- * 内容を隠しすぎないよう、面と枠は半透明で置き、hover と focus で不透明にする。**薄めるのは面と
- * 枠だけで、記号は透かさない。** 背後に来る画像は選べないため、記号まで薄めると絵柄しだいで
- * contrast が落ちる。touch には hover がなく半透明のまま操作するので、面を今より薄くしない。
  *
  * slide ごとに繰り返されるので、枚数が多いと tab 順に同じ操作が並ぶ。`CarouselNav` で keyboard
  * からの送り先を用意している場合は `tabIndex={-1}` を渡して外す。
@@ -173,10 +196,6 @@ export function CarouselNext({
  * {@link CarouselThumbnails} の中に置くと、表示中の slide を指すものへ `aria-current="true"` が付き、
  * 文字色と枠で現在地が分かる。{@link CarouselNav} の中では現在地を持たず、印も付かない。
  *
- * 現在地の枠は border で描く。要素の外側へ描く `ring` は、一覧が横スクロールする面であるため端の
- * 項目で切り取られ、輪の一部だけが線として残る。透明な枠を常に持たせてあるので、印が付いても
- * 大きさは変わらない。
- *
  * link の文言には `1` のような順序ではなく、移動先が何かを表す短い語を与えるとよい。**中身を画像に
  * する場合は `aria-label` でアクセシブルな名前を与える。** 装飾として `alt=""` の画像だけを置くと、
  * link に名前がなくなる。
@@ -233,10 +252,6 @@ export type CarouselThumbnailsProps = ComponentProps<"ul"> & {
  * 位置と余白は `className` で決める。サムネイル同士の間隔はこの component の `gap-*`、
  * {@link Carousel} との間隔は {@link Carousel} の `gap-*`、main との上下左右の並びは
  * {@link Carousel} の `flex-*` が決める。専用の props は持たない。
- *
- * 意味論は APG の tabbed carousel（`tablist` / `tab` / `tabpanel`）にしない。あれは panel を
- * 出し分ける前提であり、slide がすべて存在してスクロールで見せるこの形には合わない。ページ内
- * link の集合のまま `aria-current` で現在地を示す。
  *
  * 何の一覧かを示す `aria-label` を必ず与える。hydration 前は `defaultCurrentId` を指定した場合
  * だけ印が付く。

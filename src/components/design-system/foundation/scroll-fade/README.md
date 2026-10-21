@@ -1,49 +1,49 @@
 # ScrollFade
 
-## 用途
+## Purpose
 
-スクロールする領域の端をぼかし、続きがあることを示す CSS 基盤です。React component は公開しません。
+A CSS foundation that fades the edges of a scrolling area to show that there is more. It exports no React component.
 
-| utility | 方向 |
+| utility | Direction |
 | --- | --- |
-| `scroll-fade-x` | 横 |
-| `scroll-fade-y` | 縦 |
+| `scroll-fade-x` | Horizontal |
+| `scroll-fade-y` | Vertical |
 
-## いつ使うか
+## When to Use
 
-**scrollbar を消した領域だけです。** [`scrollbar`](../scrollbar/README.md) が存在・残量・現在地を常時示すため、scrollbar がある領域にこの演出は要りません。
+**Only on areas whose scrollbar has been removed.** [`scrollbar`](../scrollbar/README.md) always shows existence, remaining amount and current position, so areas with a scrollbar do not need this effect.
 
-要るのは `scrollbar-none` を当てた領域です。そこでは続きがあることを示す手掛かりが他にありません。`AttachmentGroup` がこれに当たります。
+It is needed on areas with `scrollbar-none` applied. There, nothing else indicates that there is more. `AttachmentGroup` is such a case.
 
 ```tsx
 <ScrollArea aria-label="…" className="scroll-fade-x flex gap-3 scrollbar-none" orientation="horizontal">…</ScrollArea>
 <ScrollArea aria-label="…" className="scroll-fade-y flex flex-col gap-3 scrollbar-none">…</ScrollArea>
 ```
 
-スクロールする領域は keyboard だけで操作する利用者も到達できる必要があるため、`overflow-*` を直接当てず [`ScrollArea`](../../container/scroll-area/README.md) へ当てます。
+A scrolling area must also be reachable by users who operate only with the keyboard, so do not apply `overflow-*` directly; apply it to [`ScrollArea`](../../container/scroll-area/README.md).
 
-収まりきる領域に付けても端の飾りにしかなりません。溢れうる領域にだけ付けます。
+On an area whose content fits, it is nothing but edge decoration. Apply it only to areas that can overflow.
 
-## 挙動
+## Behavior
 
-端に着いた側のぼかしは外れます。先頭では手前の端がぼけず、末尾まで送ると先の端のぼかしが外れるため、scrollbar が無くても「先頭に居る」「まだ続く」が端の見た目だけで判ります。
+The fade is removed on the side that has reached its edge. At the start the near edge is not faded, and scrolling to the end removes the fade on the far edge, so even without a scrollbar "at the start" and "there is more" can be told from the look of the edges alone.
 
-追従には scroll-driven animation を使い、`@supports` で囲っています。使えない環境では両端をぼかした状態で止まります。続きが無いのにぼけるより、続きがあるのに手掛かりが無いほうが困るため、そちらへ倒しています。
+Tracking uses scroll-driven animation, wrapped in `@supports`. Where it is unavailable, it stays with both edges faded. A missing cue when there is more is worse than a fade when there is nothing more, so it errs on that side.
 
-ぼかし幅は `--scroll-fade-size` で、既定は 6（`--spacing` 換算）です。
+The fade width is `--scroll-fade-size`, with a default of 6 (in units of `--spacing`).
 
-## 2 方向は重ねられません
+## The two directions cannot be combined
 
-`scroll-fade-x` と `scroll-fade-y` を同じ要素へ付けても、両方向はぼけません。どちらも `mask-image` を使うため、後に効いたほうだけが残ります。両方向へスクロールする領域には使わないでください。
+Putting `scroll-fade-x` and `scroll-fade-y` on the same element does not fade both directions. Both use `mask-image`, so only the one applied last remains. Do not use it on areas that scroll in both directions.
 
-## 実装上の制約
+## Implementation Constraints
 
-端ごとのぼかし量は長さではなく **0〜1 の比**で持ちます。長さそのものを keyframe で動かすと値に `var()` を含むことになり、登録済み custom property の keyframe として解決されず、animation ごと無効になります。比なら keyframe を定数だけで書けるため、ぼかし幅は utility 側の 1 か所に残せます。
+The fade amount per edge is held not as a length but as **a ratio from 0 to 1**. Animating a length itself in keyframes would put `var()` in the value, which is not resolved as a keyframe of a registered custom property, and the whole animation becomes invalid. With a ratio the keyframes can be written with constants only, so the fade width stays in one place on the utility side.
 
-## 責務境界
+## Responsibility Boundaries
 
-スクロール領域そのもの、scrollbar を消すかどうか、中身の並べ方は持ちません。付けるかどうかを呼び出し元が決めます。
+It owns neither the scroll area itself, whether to remove the scrollbar, nor how the content is laid out. The caller decides whether to apply it.
 
 ## Storybook
 
-横と縦それぞれについて、scrollbar を消した場合と scrollbar がある場合を並べ、どこで使うべきかを比べられるようにしています。収まりきる場合も置いています。
+For both horizontal and vertical, it places the case with the scrollbar removed beside the case with a scrollbar, so you can compare where it should be used. The case where the content fits is also included.

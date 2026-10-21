@@ -1,25 +1,25 @@
 # HoverCard
 
-## 用途
+## Purpose
 
-hover または keyboard focus に応じて、trigger の近くへ短い補足情報を表示します。
+Shows brief supplementary information near the trigger in response to hover or keyboard focus.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `HoverCard` | 開閉状態と hover / focus の interaction を管理する client-side root です。 |
-| `HoverCardTrigger` | HoverCard を開く trigger です。link や button を使う場合は `asChild` で合成します。 |
-| `HoverCardContent` | Portal に表示する補足内容です。位置は `align` と `sideOffset` で調整できます。 |
+| `HoverCard` | The client-side root that manages the open state and the hover / focus interaction. |
+| `HoverCardTrigger` | The trigger that opens the HoverCard. When using a link or button, compose it with `asChild`. |
+| `HoverCardContent` | The supplementary content shown in a Portal. Its position can be adjusted with `align` and `sideOffset`. |
 
-## 利用ケース
+## Use Cases
 
-link や名称へ短い補足を付ける場合に使います。操作や判断に不可欠な情報は HoverCard だけに置かず、常時表示または明示的な導線も用意します。
+Use it to add a brief supplement to a link or a name. Do not put information essential to an operation or decision only in a HoverCard; also provide an always-visible display or an explicit path.
 
-## 責務境界
+## Responsibility Boundaries
 
-Portal と interaction のため hydration が必要な client island です。補足文、取得、業務判断、モバイルでの代替導線は持ちません。touch device で内容が必要な場合の表示方法は feature が決めます。
+It is a client island that needs hydration for the Portal and interaction. It holds no supplementary text, fetching, business decisions or alternative path on mobile. When the content is needed on touch devices, the feature decides how to show it.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は hover による表示と開いた状態を、テストは trigger・Portal content・a11y を確認します。
+Storybook checks display on hover and the open state; the tests check the trigger, the Portal content and a11y.

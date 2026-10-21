@@ -23,7 +23,7 @@ import {
   ProductStickyRegion,
 } from "./ui/sticky-region/sticky-region";
 
-/** `ProductListView` の props。 */
+/** {@link ProductListView} の props。 */
 export type ProductListViewProps = {
   /** 選べる分類。 */
   categories: readonly FilterOption[];
@@ -38,11 +38,10 @@ export type ProductListViewProps = {
 };
 
 /**
- * 商品一覧の画面。
+ * 取得を持たず、条件が変わったときに取り直す範囲を区切る商品一覧の器。
  *
  * @remarks
- * 取得を持ちません。一覧本体を受け取る形にしてあるのは、画面の組み方の確認に取得を必要と
- * しないようにするためです。**同時に、条件が変わったときに取り直す範囲をここで区切っています。**
+ * 一覧本体を受け取る形にしてあるのは、画面の組み方の確認に取得を必要としないようにするためです。
  * 検索欄・条件の chip・絞り込みの入力欄はこの外側にあり、一覧が取り直されても待機表示に落ちません。
  *
  * 検索・並び替え・効いている条件を `FilterBar` にまとめます。landmark になるため、支援技術から
@@ -60,11 +59,13 @@ export type ProductListViewProps = {
  *
  * 絞り込みの入力欄を 2 つ置き、CSS の段で出し分けます。位置が動く出し分けを JS の幅判定で行うと、
  * サーバでは判定できないため hydration の前後で配置が動きます。脇に常設できる幅の下限も、脇に
- * 領域を持てない幅で操作を下端へ固定する判断も、`docs/rules.md`「レイアウトと帯」が持ちます
+ * 領域を持てない幅で操作を下端へ固定する判断も、`docs/rules.md#layout`が持ちます
  * （「脇に常設する領域は `lg` 以上でだけ出す」と「常に届く操作は `lg` 未満で画面下端に固定する」）。
  *
  * 並び替えを絞り込みの側へ入れず、幅によらず同じ場所へ置きます。単一選択なので選ぶことが確定と
  * 同じであり、まとめて確定する絞り込みの中に入れると確定の操作が 2 段になります。
+ *
+ * @see Storybook `Page/Products/List`
  */
 export const ProductListView = withScreenSpan(
   "features/products/list/view",
@@ -92,9 +93,14 @@ export const ProductListView = withScreenSpan(
                       />
                     ))}
                   </FilterBarActiveFilters>
-                  {/* 1 件しか効いていないときは、その chip の解除と行き先が同じになる。 */}
                   {activeFilters.length > 1 ? (
-                    <Button asChild className="shrink-0" size="sm" variant="ghost">
+                    <Button
+                      // 1 件しか効いていないときは、その chip の解除と行き先が同じになる。
+                      asChild
+                      className="shrink-0"
+                      size="sm"
+                      variant="ghost"
+                    >
                       <Link href={PRODUCT_LIST_PATH}>条件をすべて解除</Link>
                     </Button>
                   ) : null}

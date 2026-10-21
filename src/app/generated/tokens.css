@@ -113,8 +113,6 @@
   --color-active: var(--semantic-color-active);
   --color-primary: var(--semantic-color-primary);
   --color-primary-foreground: var(--semantic-color-primary-foreground);
-  --color-primary-light: var(--semantic-color-primary-light);
-  --color-primary-highlight: var(--semantic-color-primary-highlight);
   --color-secondary: var(--semantic-color-secondary);
   --color-secondary-foreground: var(--semantic-color-secondary-foreground);
   --color-emphasis: var(--semantic-color-emphasis);
@@ -161,8 +159,6 @@
   --semantic-color-active: var(--color-cyan-775);
   --semantic-color-primary: var(--color-cyan-655);
   --semantic-color-primary-foreground: var(--color-slate-995);
-  --semantic-color-primary-light: var(--color-cyan-325);
-  --semantic-color-primary-highlight: var(--color-slate-65);
   --semantic-color-secondary: var(--color-blue-760);
   --semantic-color-secondary-foreground: var(--color-slate-35);
   --semantic-color-emphasis: var(--color-orange-620);
@@ -209,8 +205,6 @@
     --semantic-color-active: var(--color-cyan-205);
     --semantic-color-primary: var(--color-slate-205);
     --semantic-color-primary-foreground: var(--color-slate-990);
-    --semantic-color-primary-light: var(--color-cyan-205);
-    --semantic-color-primary-highlight: var(--color-slate-50);
     --semantic-color-secondary: var(--color-blue-600);
     --semantic-color-secondary-foreground: var(--color-slate-990);
     --semantic-color-emphasis: var(--color-orange-540);
@@ -258,8 +252,6 @@
     --semantic-color-active: var(--color-cyan-205);
     --semantic-color-primary: var(--color-slate-205);
     --semantic-color-primary-foreground: var(--color-slate-990);
-    --semantic-color-primary-light: var(--color-cyan-205);
-    --semantic-color-primary-highlight: var(--color-slate-50);
     --semantic-color-secondary: var(--color-blue-600);
     --semantic-color-secondary-foreground: var(--color-slate-990);
     --semantic-color-emphasis: var(--color-orange-540);
@@ -305,8 +297,6 @@
   --semantic-color-active: var(--color-cyan-770);
   --semantic-color-primary: var(--color-cyan-655);
   --semantic-color-primary-foreground: var(--color-slate-995);
-  --semantic-color-primary-light: var(--color-cyan-325);
-  --semantic-color-primary-highlight: var(--color-steel-65);
   --semantic-color-secondary: var(--color-blue-760);
   --semantic-color-secondary-foreground: var(--color-steel-55);
   --semantic-color-emphasis: var(--color-orange-620);
@@ -352,8 +342,6 @@
     --semantic-color-active: var(--color-cyan-595);
     --semantic-color-primary: var(--color-steel-205);
     --semantic-color-primary-foreground: var(--color-steel-985);
-    --semantic-color-primary-light: var(--color-cyan-205);
-    --semantic-color-primary-highlight: var(--color-steel-50);
     --semantic-color-secondary: var(--color-blue-590);
     --semantic-color-secondary-foreground: var(--color-steel-985);
     --semantic-color-emphasis: var(--color-orange-540);
@@ -400,8 +388,6 @@
     --semantic-color-active: var(--color-cyan-595);
     --semantic-color-primary: var(--color-steel-205);
     --semantic-color-primary-foreground: var(--color-steel-985);
-    --semantic-color-primary-light: var(--color-cyan-205);
-    --semantic-color-primary-highlight: var(--color-steel-50);
     --semantic-color-secondary: var(--color-blue-590);
     --semantic-color-secondary-foreground: var(--color-steel-985);
     --semantic-color-emphasis: var(--color-orange-540);

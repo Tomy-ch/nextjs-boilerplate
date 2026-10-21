@@ -75,6 +75,7 @@ function printOutcome(): void {
       ids: value("IDS"),
       pointerPrUrl: value("POINTER_PR"),
       screensPending: value("SCREENS_PENDING") === "true",
+      screensAbsent: value("SCREENS_ABSENT") === "true",
       headRef: value("HEAD_REF"),
       stories: value("STORIES"),
       screens: value("SCREENS"),

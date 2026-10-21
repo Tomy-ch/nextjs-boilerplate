@@ -1,23 +1,23 @@
 # Input
 
-## 用途
+## Purpose
 
-単一行の native `input` を表示・送信します。
+Shows and submits a single-line native `input`.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Input` | native `input` の属性・form 送信を保ったまま見た目を統一する、SSR first の単一行入力です。 |
+| `Input` | An SSR-first single-line input that unifies the look while keeping the native `input` attributes and form submission. |
 
-## 利用ケース
+## Use Cases
 
-`name`、`type`、`autoComplete`、`required` を使う通常の form 入力に使います。
+Use it for ordinary form input that uses `name`, `type`, `autoComplete` and `required`.
 
-## 責務境界
+## Responsibility Boundaries
 
-項目名は `Label`、説明・検証エラーは `Field` または feature が構成します。`aria-invalid` と `aria-describedby` の関連付けも呼び出し側が行います。
+The item name comes from `Label`, and the description and validation errors are composed by `Field` or the feature. The caller also makes the `aria-invalid` and `aria-describedby` associations.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は label・email・password・file・disabled・invalid を、テストは native 属性と a11y を確認します。
+Storybook checks label, email, password, file, disabled and invalid; the tests check the native attributes and a11y.

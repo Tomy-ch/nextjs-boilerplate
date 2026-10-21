@@ -38,7 +38,11 @@ export type TableViewOptionsProps = {
   density: TableDensity;
   /** 表示密度を変える。 */
   onDensityChange: (density: TableDensity) => void;
-  /** 操作のアクセシブルな名前。 */
+  /**
+   * 操作のアクセシブルな名前。
+   *
+   * @defaultValue "表示設定"
+   */
   label?: string;
 };
 
@@ -55,8 +59,7 @@ export type TableViewOptionsProps = {
  * であり、狭い画面で隠れている列は menu で表示にしても現れない。列の優先度は
  * `TABLE_COLUMN_PRIORITY_CLASS` を列の cell へ適用して表す。
  *
- * @param props.columns - 表示を切り替えられる列。
- * @param props.density - いまの表示密度。
+ * @param props - 切り替えられる列といまの表示密度、およびそれぞれの変更を受け取る callback。
  *
  * @see Storybook `Container/TableViewOptions`
  */
@@ -104,7 +107,11 @@ export function TableViewOptions({
   );
 }
 
-/** 列 1 つの表示切り替え。隠せない列は操作させない。 */
+/**
+ * 列 1 つの表示切り替え。隠せない列は操作させない。
+ *
+ * @param props - 対象の列と、表示の切り替えを受け取る callback。
+ */
 function ColumnVisibilityItem({
   column,
   onColumnVisibilityChange,

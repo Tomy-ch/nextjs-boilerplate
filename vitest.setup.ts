@@ -5,7 +5,7 @@ import { afterEach, beforeAll, vi } from "vitest";
 // テストから外へ出る取得を、宛先を名指しして落とす。**応答は作らない。**
 //
 // HTTP を止めるのは MSW で、立てるのは要るファイルだけである（`vitest.setup.msw.ts`）。誰が読み込み、
-// なぜ全ファイルへ掛けないかは `docs/testing-conventions.md`「mock の境界」が持つ。
+// なぜ全ファイルへ掛けないかは `docs/testing-conventions.md#mock-boundaries`が持つ。
 //
 // 据えるのが hook なのは、`vitest.setup.msw.ts` を読み込んだファイルでは MSW が module の評価時に
 // 先に席を取り、ここが何もしないで済むようにするためである。応答を自分で作るテスト
@@ -168,5 +168,35 @@ if (typeof Element !== "undefined" && Element.prototype.scrollBy === undefined) 
 if (typeof Element !== "undefined" && Element.prototype.scrollIntoView === undefined) {
   Element.prototype.scrollIntoView = function scrollIntoView(): void {
     // 意図的に空。
+  };
+}
+
+// 位置を指して送る API も無い。末尾へ追従する一覧は、届いた 1 件ごとにここを呼ぶ。
+if (typeof Element !== "undefined" && Element.prototype.scrollTo === undefined) {
+  Element.prototype.scrollTo = function scrollTo(): void {
+    // 意図的に空。
+  };
+}
+
+// 選択範囲の座標を測る API も無い。編集面は選択を移したあと、その位置が視野に入るかを測ろうとして
+// ここを呼ぶ。測るのはテストが終わった後の frame なので、補わないと**テストは通ったまま、実行の
+// 混み具合しだいで未処理の例外として落ちる**。レイアウトは jsdom に無く測れないため、空の矩形を返す。
+if (typeof Range !== "undefined" && Range.prototype.getClientRects === undefined) {
+  const emptyRect = {
+    bottom: 0,
+    height: 0,
+    left: 0,
+    right: 0,
+    toJSON: () => ({}),
+    top: 0,
+    width: 0,
+    x: 0,
+    y: 0,
+  } as const;
+  Range.prototype.getClientRects = function getClientRects(): DOMRectList {
+    return Object.assign([], { item: () => null }) as unknown as DOMRectList;
+  };
+  Range.prototype.getBoundingClientRect = function getBoundingClientRect(): DOMRect {
+    return emptyRect as unknown as DOMRect;
   };
 }

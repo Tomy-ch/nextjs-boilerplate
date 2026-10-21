@@ -1,25 +1,25 @@
 # SelectNative
 
-## 用途
+## Purpose
 
-静的で少数の候補から一つを選び、native form として送信します。
+Chooses one of a few static options and submits it as a native form.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SelectNative` | native `select` を保持し、選択値を form として送信する SSR first の control です。 |
-| `SelectNativeOption` | 一つの選択肢を表す native `option` です。 |
-| `SelectNativeOptGroup` | 関連する選択肢をラベル付きでまとめる native `optgroup` です。 |
+| `SelectNative` | An SSR-first control that keeps the native `select` and submits the selected value as a form. |
+| `SelectNativeOption` | A native `option` representing one choice. |
+| `SelectNativeOptGroup` | A native `optgroup` that gathers related choices under a label. |
 
-## 利用ケース
+## Use Cases
 
-表示形式・並び順など、browser JavaScript を必要としない選択に使います。
+Use it for selections that need no browser JavaScript, such as display format or sort order.
 
-## 責務境界
+## Responsibility Boundaries
 
-検索・custom popup・独自 keyboard 操作は持ちません。それらが必要な場合だけ `SelectClient` を検討します。
+It holds no search, custom popup or custom keyboard interaction. Consider `SelectClient` only when those are needed.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・disabled・invalid を、テストは form 属性・a11y を確認します。
+Storybook checks normal, disabled and invalid; the tests check the form attributes and a11y.

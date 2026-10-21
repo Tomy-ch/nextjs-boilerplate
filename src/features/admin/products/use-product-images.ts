@@ -8,6 +8,7 @@ import {
 } from "@/components/app-starter/attachment/attachment.definition";
 import type { UploadPreviewItem } from "@/components/app-starter/upload-preview/upload-preview.definition";
 import { idleActionState } from "@/model/action-state";
+import { newUuid } from "@/model/uuid";
 import { PRODUCT_FORM_NAMES } from "./form-names";
 import type { ProductImageUploadState, UploadProductImageAction } from "./form-state";
 
@@ -19,6 +20,9 @@ const UPLOAD_FAILED_MESSAGE = "送信できませんでした。";
  * @remarks
  * 分類だけが返って文言が無い場合と、そもそも結果が付かない場合があるため、既定の文言へ倒します。
  * 何も出さないと、送れていないことが画面のどこにも現れません。
+ *
+ * @param result - 送信の結果
+ * @returns 利用者へ見せる文言
  */
 function failureOf(result: ProductImageUploadState): string {
   return result.status === "error"
@@ -26,7 +30,12 @@ function failureOf(result: ProductImageUploadState): string {
     : UPLOAD_FAILED_MESSAGE;
 }
 
-/** 保存済みのキーから、利用者へ見せる名前を取り出す。 */
+/**
+ * 保存済みのキーから、利用者へ見せる名前を取り出す。
+ *
+ * @param imagePath - 保存済みのオブジェクトキー
+ * @returns 利用者へ見せる名前
+ */
 function nameOf(imagePath: string): string {
   return imagePath.slice(imagePath.lastIndexOf("/") + 1);
 }
@@ -82,7 +91,14 @@ export type ProductImages = {
   readonly moveDown: (id: string) => void;
 };
 
-/** 隣どうしを入れ替える。端では動かさない。 */
+/**
+ * 隣どうしを入れ替える。端では動かさない。
+ *
+ * @param entries - 入れ替え前の一覧
+ * @param id - 動かす明細の識別子
+ * @param offset - 動かす向き
+ * @returns 入れ替え後の一覧
+ */
 function swap(
   entries: readonly ProductImageEntry[],
   id: string,
@@ -101,7 +117,12 @@ function swap(
   return next;
 }
 
-/** 明細 1 件の見た目の状態。送信に失敗していれば、その先の判定は要らない。 */
+/**
+ * 明細 1 件の見た目の状態。送信に失敗していれば、その先の判定は要らない。
+ *
+ * @param entry - 対象の明細
+ * @returns 見た目の状態
+ */
 function attachmentStateOf(entry: ProductImageEntry): AttachmentState {
   if (entry.failure !== undefined) {
     return ATTACHMENT_STATE.ERROR;
@@ -124,6 +145,7 @@ function attachmentStateOf(entry: ProductImageEntry): AttachmentState {
  *
  * @param upload - 画像を送る送信先
  * @param saved - 読み込んだ時点で保存されている画像。作る画面では空
+ * @returns 画面が扱う画像の一覧と、その動かし方
  */
 export function useProductImages(
   upload: UploadProductImageAction,
@@ -171,7 +193,7 @@ export function useProductImages(
     (files: readonly File[]) => {
       for (const file of files) {
         // 同じ名前のファイルを選び直しても別の行として扱うため、名前ではなく一意な値で識別する。
-        const entry: ProductImageEntry = { file, id: crypto.randomUUID(), name: file.name };
+        const entry: ProductImageEntry = { file, id: newUuid(), name: file.name };
 
         setEntries((current) => [...current, entry]);
         void send(entry);

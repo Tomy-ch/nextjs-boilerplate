@@ -6,18 +6,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { idleActionState, succeededActionState } from "@/model/action-state";
 import { toProductId } from "@/model/product/product";
 
-const { getProduct, getProductCategories, getProductStatuses, resolveMediaUrl } = vi.hoisted(
-  () => ({
-    getProduct: vi.fn(),
-    getProductCategories: vi.fn(),
-    getProductStatuses: vi.fn(),
-    resolveMediaUrl: vi.fn(),
-  }),
-);
+const {
+  getProductIncludingUnpublished,
+  getProductCategories,
+  getProductStatuses,
+  resolveMediaUrl,
+} = vi.hoisted(() => ({
+  getProductIncludingUnpublished: vi.fn(),
+  getProductCategories: vi.fn(),
+  getProductStatuses: vi.fn(),
+  resolveMediaUrl: vi.fn(),
+}));
 
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
-  getProduct,
+  getProductIncludingUnpublished,
 }));
 vi.mock("@/adapters/server/api/product-masters", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/product-masters")>()),
@@ -51,7 +54,7 @@ const PRODUCT = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  getProduct.mockResolvedValue(PRODUCT);
+  getProductIncludingUnpublished.mockResolvedValue(PRODUCT);
   getProductCategories.mockResolvedValue([{ id: "category-1", name: "電子機器", code: 1 }]);
   getProductStatuses.mockResolvedValue([{ id: "status-1", name: "在庫あり", code: 1 }]);
   resolveMediaUrl.mockReturnValue("https://media.example.test/products/saved.png");
@@ -84,7 +87,7 @@ describe("AdminProductEditPageContent", () => {
   it("互いに依存しない取得を並行して行う", async () => {
     await renderContent();
 
-    expect(getProduct).toHaveBeenCalledTimes(1);
+    expect(getProductIncludingUnpublished).toHaveBeenCalledTimes(1);
     expect(getProductCategories).toHaveBeenCalledTimes(1);
     expect(getProductStatuses).toHaveBeenCalledTimes(1);
   });
@@ -98,7 +101,7 @@ describe("AdminProductEditPageContent", () => {
   });
 
   it("存在しない商品の取得の失敗は握り潰さず、境界へ渡す", async () => {
-    getProduct.mockRejectedValue(new Error("見つかりません"));
+    getProductIncludingUnpublished.mockRejectedValue(new Error("見つかりません"));
 
     await expect(renderContent()).rejects.toThrow("見つかりません");
   });

@@ -8,6 +8,7 @@ export type RadioGroupNativeProps = ComponentProps<"fieldset">;
 /**
  * SSR first の native radio group を構成する fieldset。
  *
+ * @param props - native `fieldset` 属性。
  * @see Storybook `Form/RadioGroupNative`
  */
 export function RadioGroupNative({ className, ...props }: RadioGroupNativeProps) {
@@ -22,6 +23,7 @@ export type RadioGroupNativeItemProps = Omit<ComponentProps<"input">, "type">;
 /**
  * SSR first の native radio input。複数項目で同じ `name` を指定する。
  *
+ * @param props - native `input` 属性。`type` は `radio` に固定される。
  * @see Storybook `Form/RadioGroupNative`
  */
 export function RadioGroupNativeItem({ className, ...props }: RadioGroupNativeItemProps) {

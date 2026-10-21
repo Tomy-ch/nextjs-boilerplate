@@ -41,7 +41,7 @@ import {
  * </Stepper>
  * ```
  *
- * @param props.label - この進捗のアクセシブルな名前。
+ * @param props - native `ol` 属性（`aria-label` を除く）と、以下の表示用 props。
  *
  * @see Storybook `Display/Stepper`
  */
@@ -51,7 +51,13 @@ export function Stepper({
   className,
   ...props
 }: Omit<ComponentProps<"ol">, "aria-label"> & {
+  /** この進捗のアクセシブルな名前。 */
   label: string;
+  /**
+   * 段階の並べ方。{@link STEPPER_ORIENTATION} のいずれか。
+   *
+   * @defaultValue `STEPPER_ORIENTATION.VERTICAL`
+   */
   orientation?: StepperOrientation;
 }) {
   return (
@@ -83,14 +89,7 @@ export function Stepper({
  * 区別できないため、状態を表す語（完了 / 現在の段階 / 未着手）を読み上げ専用のテキストとして
  * 添える。
  *
- * @param props.state - 今どの位置にあるか。値の一覧は {@link STEPPER_STATE}。
- * @param props.passed - 現在地であっても、既に済ませた段階か。印だけを `complete` と同じにし、
- *   状態そのものは `current` のまま残す（現在地は 1 つに定まっている必要がある）。戻ったときに
- *   印まで消えると、済ませた入力が無かったように見える。
- * @param props.marker - 印に出す番号。省略すると `complete` 以外の印は空になる。
- * @param props.stateLabel - 状態を読み上げへ伝える語。省略すると {@link STEPPER_STATE_LABEL}
- *   の既定を使う。「承認済み」「差し戻し」のように段階の呼び名が決まっている場合へ寄せられる。
- *   空文字にすると状態が伝わらなくなるため、置き換えるなら別の語を与える。
+ * @param props - native `li` 属性（`size` を除く）と、以下の表示用 props。
  *
  * @see Storybook `Display/Stepper`
  */
@@ -103,9 +102,27 @@ export function StepperItem({
   className,
   ...props
 }: Omit<ComponentProps<"li">, "size"> & {
+  /**
+   * 今どの位置にあるか。値の一覧は {@link STEPPER_STATE}。
+   *
+   * @defaultValue `STEPPER_STATE.UPCOMING`
+   */
   state?: StepperState;
+  /** 印に出す番号。省略すると `complete` 以外の印は空になる。 */
   marker?: ReactNode;
+  /**
+   * 状態を読み上げへ伝える語。省略すると {@link STEPPER_STATE_LABEL} の既定を使う。「承認済み」
+   * 「差し戻し」のように段階の呼び名が決まっている場合へ寄せられる。空文字にすると状態が
+   * 伝わらなくなるため、置き換えるなら別の語を与える。
+   */
   stateLabel?: string;
+  /**
+   * 現在地であっても、既に済ませた段階か。印だけを `complete` と同じにし、状態そのものは
+   * `current` のまま残す（現在地は 1 つに定まっている必要がある）。戻ったときに印まで消えると、
+   * 済ませた入力が無かったように見える。
+   *
+   * @defaultValue `false`
+   */
   passed?: boolean;
 }) {
   const complete = state === STEPPER_STATE.COMPLETE;

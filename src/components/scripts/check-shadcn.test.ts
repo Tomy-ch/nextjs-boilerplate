@@ -723,6 +723,50 @@ describe("vendorImportsOf", () => {
       vendorImportsOf(['import Image from "next/image";\nimport { Slot } from "radix-ui";']),
     ).toEqual(["next", "radix-ui"]);
   });
+
+  it("コメントの中の import は数えない", () => {
+    expect(
+      vendorImportsOf([
+        '/**\n * @example\n * ```tsx\n * import Link from "next/link";\n * ```\n */\n// import x from "input-otp";\nimport { Slot } from "radix-ui";',
+      ]),
+    ).toEqual(["radix-ui"]);
+  });
+
+  it("文字列の中に import の綴りがあっても数えない", () => {
+    expect(
+      vendorImportsOf([
+        'const sample = `import { Fake } from "fake-pkg";`;\nconst glob = "image/*";\nimport { Slot } from "radix-ui";\n/** 閉じる。 */\nexport const a = 1;',
+      ]),
+    ).toEqual(["radix-ui"]);
+  });
+
+  it("再輸出の読み込み先も数える", () => {
+    expect(vendorImportsOf(['export { Slot } from "radix-ui";\nexport const a = 1;'])).toEqual([
+      "radix-ui",
+    ]);
+  });
+
+  it("読み込み先を持たない再輸出は数えない", () => {
+    expect(vendorImportsOf(["const a = 1;\nexport { a };"])).toEqual([]);
+  });
+
+  it("副作用だけの import は数えない", () => {
+    expect(vendorImportsOf(['import "server-only";\nimport { Slot } from "radix-ui";'])).toEqual([
+      "radix-ui",
+    ]);
+  });
+
+  it("型だけの import も数える", () => {
+    expect(vendorImportsOf(['import type { Config } from "input-otp";'])).toEqual(["input-otp"]);
+  });
+
+  it("scope 付きの package を、内部 import と区別して数える", () => {
+    expect(
+      vendorImportsOf([
+        'import { cn } from "@/components/cn";\nimport { Editor } from "@tiptap/react";',
+      ]),
+    ).toEqual(["@tiptap/react"]);
+  });
 });
 
 describe("storyHeadingOf", () => {
@@ -738,7 +782,6 @@ describe("storyHeadingOf", () => {
 });
 
 describe("componentDirectoryOf", () => {
-  // ----- 正常系 -----
   it("design-system では見出しを挟んだ配置先を返す", () => {
     expect(componentDirectoryOf("design-system", "overlay", "dialog")).toBe(
       "src/components/design-system/overlay/dialog",
@@ -753,7 +796,6 @@ describe("componentDirectoryOf", () => {
 });
 
 describe("packageOf", () => {
-  // ----- 正常系 -----
   it("scope を持たない specifier から package 名を取り出す", () => {
     expect(packageOf("clsx")).toBe("clsx");
     expect(packageOf("date-fns/locale")).toBe("date-fns");

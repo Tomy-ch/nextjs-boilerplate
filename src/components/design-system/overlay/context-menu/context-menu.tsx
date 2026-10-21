@@ -18,7 +18,6 @@ import { CONTEXT_MENU_ITEM_VARIANT, type ContextMenuItemVariant } from "./contex
  * 加速手段**として使う。ここでしか到達できない操作を置いてはならない。行ごとの操作なら
  * `RowActions`、trigger を伴う menu なら `DropdownMenu` が可視の導線を担う。
  *
- * @remarks
  * `ContextMenuTrigger` が覆う範囲では、browser 既定のコンテキストメニューが開かなくなる。
  * 画像の保存やリンクのコピーといった browser の機能もその範囲で使えなくなるため、
  * 覆う範囲は操作対象の要素に限る。
@@ -135,8 +134,7 @@ function ContextMenuRadioGroup({
  * 右端に開く向きを示す装飾のアイコンを伴う。項目自体は操作を実行せず、`ContextMenuSubContent`
  * を開くだけである。
  *
- * @param props - Radix `ContextMenu.SubTrigger` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。
+ * @param props - Radix `ContextMenu.SubTrigger` の props と、`inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -146,6 +144,7 @@ function ContextMenuSubTrigger({
   children,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.SubTrigger> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。 */
   inset?: boolean;
 }) {
   return (
@@ -238,9 +237,7 @@ function ContextMenuContent({
  * `inset` は、同じ menu 内に checkbox / radio 項目があるときに左端の余白を揃えるための表示
  * 指定であり、意味論は変えない。
  *
- * @param props - Radix `ContextMenu.Item` の props と、以下の表示用 props。
- * @param props.variant - 取り消せない操作を区別する見た目。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。
+ * @param props - Radix `ContextMenu.Item` の props と、`variant` / `inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -250,7 +247,13 @@ function ContextMenuItem({
   variant = CONTEXT_MENU_ITEM_VARIANT.DEFAULT,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.Item> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。 */
   inset?: boolean;
+  /**
+   * 取り消せない操作を区別する見た目。
+   *
+   * @defaultValue CONTEXT_MENU_ITEM_VARIANT.DEFAULT
+   */
   variant?: ContextMenuItemVariant;
 }) {
   return (
@@ -348,8 +351,7 @@ function ContextMenuRadioItem({
  * それ自体は選択できない。操作対象が何であるかを示す場合に、menu の先頭または
  * `ContextMenuGroup` の先頭へ置く。
  *
- * @param props - Radix `ContextMenu.Label` の props と、以下の表示用 props。
- * @param props.inset - 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。
+ * @param props - Radix `ContextMenu.Label` の props と、`inset`。
  *
  * @see Storybook `Overlay/ContextMenu`
  */
@@ -358,6 +360,7 @@ function ContextMenuLabel({
   inset,
   ...props
 }: ComponentProps<typeof ContextMenuPrimitive.Label> & {
+  /** 左端の余白を indicator 付き項目に揃えるか。{@link ContextMenuItem} と同じ。 */
   inset?: boolean;
 }) {
   return (

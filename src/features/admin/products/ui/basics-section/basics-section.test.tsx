@@ -11,7 +11,6 @@ import { ProductBasicsSection } from "./basics-section";
 
 const CATEGORY_OPTIONS = [{ value: "category-1", label: "電子機器" }];
 
-/** 段の部品は入力の状態を外から受けるため、hook を通した本物の状態で確かめる。 */
 function Harness({
   children,
 }: {
@@ -64,7 +63,6 @@ describe("ProductBasicsSection", () => {
   it("どの項目も、打鍵した内容をそのまま保つ", async () => {
     renderSection();
 
-    // 価格は文字列のまま、数の欄は数として保たれる。
     await userEvent.clear(screen.getByLabelText("価格"));
     await userEvent.type(screen.getByLabelText("価格"), "19.99");
     await userEvent.clear(screen.getByLabelText("在庫数"));
@@ -80,8 +78,6 @@ describe("ProductBasicsSection", () => {
   it("どの項目も、focus が外れたら誤りを判定する", async () => {
     renderSection();
 
-    // 3 つの欄を順に通り、最後の欄から出る。触れた欄だけが誤りを出すため、通らずに tab を
-    // 重ねても判定は起きない。
     await userEvent.click(screen.getByLabelText("価格"));
     await userEvent.click(screen.getByLabelText("在庫数"));
     await userEvent.type(screen.getByLabelText("在庫警告の閾値"), "-1");

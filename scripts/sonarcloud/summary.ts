@@ -7,6 +7,7 @@
  * 落ちたのか」がどこにも書かれていない本文になります。
  */
 
+import { drawToolOutputInline } from "../lib/issue-body.js";
 import { fieldOf, itemsOf, numberOf, textOf } from "./payload.js";
 
 /** 段の並び順。表に無い段は最後へ。 */
@@ -81,14 +82,20 @@ function rankOf(result: unknown): number {
  * 所見 1 件を 2 行にする。
  *
  * @remarks
- * 説明の改行を空白へ潰すのは、箇条書きの入れ子が崩れると**次の所見の見出しに見える**ためです。
+ * 位置・規則・説明はどれもこのリポジトリが書いたものではなく（ファイル名は PR を出した側が、説明は
+ * SonarCloud が決める）、PR のコメントとして公開の面に載るので、記法として読まれない形で描きます。
+ *
+ * @param result - SARIF の所見 1 件
+ * @returns 位置と規則の行、説明の行
  */
 function resultLine(result: unknown): string {
   const location = fieldOf(itemsOf(fieldOf(result, "locations"))[0], "physicalLocation");
   const uri = textOf(fieldOf(fieldOf(location, "artifactLocation"), "uri"), UNREADABLE);
   const line = numberOf(fieldOf(fieldOf(location, "region"), "startLine"), UNREADABLE_LINE);
   const rule = textOf(fieldOf(result, "ruleId"), UNREADABLE);
-  const message = textOf(fieldOf(fieldOf(result, "message"), "text"), "").replaceAll("\n", " ");
+  const message = textOf(fieldOf(fieldOf(result, "message"), "text"), "");
+  const position = `${uri}:${line}`;
+  const heading = `${drawToolOutputInline(position)} ${drawToolOutputInline(rule)}`;
 
-  return `- [${levelOf(result)}] ${uri}:${line} ${rule}\n  - ${message}`;
+  return `- [${levelOf(result)}] ${heading}\n  - ${drawToolOutputInline(message)}`;
 }

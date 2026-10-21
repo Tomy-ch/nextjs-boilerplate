@@ -7,7 +7,7 @@ import { axe } from "vitest-axe";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 import type { AdminProductFilterOption } from "./filter-option";
-import type { AdminProductListConditions } from "./query";
+import { type AdminProductListConditions, DISCONTINUED_FILTER } from "./query";
 import { AdminProductListView } from "./view";
 
 const CATEGORIES: readonly AdminProductFilterOption[] = [
@@ -24,6 +24,7 @@ const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 function renderView(conditions: Partial<AdminProductListConditions> = {}) {
@@ -61,9 +62,17 @@ describe("AdminProductListView", () => {
   it("検索欄と分類・状態の入力欄を出す", () => {
     renderView();
 
-    expect(screen.getByRole("searchbox", { name: "商品名で探す" })).toBeInTheDocument();
+    expect(screen.getByRole("searchbox", { name: "商品名・説明で探す" })).toBeInTheDocument();
     expect(screen.getByLabelText("分類")).toBeInTheDocument();
     expect(screen.getByLabelText("状態")).toBeInTheDocument();
+  });
+
+  it("廃番の選択欄を絞り込みの中に出す", () => {
+    renderView();
+
+    const filtering = screen.getByRole("region", { name: "商品の検索と絞り込み" });
+
+    expect(within(filtering).getByRole("group", { name: "廃番" })).toBeInTheDocument();
   });
 
   it("作成への導線を絞り込みの外へ置く", () => {
@@ -104,6 +113,21 @@ describe("AdminProductListView", () => {
       "href",
       "/admin/products?keyword=%E9%9E%84",
     );
+  });
+
+  it("廃番の条件を呼び名の chip で出し、廃番だけを外す解除の導線を付ける", () => {
+    renderView({ keyword: "鞄", discontinued: DISCONTINUED_FILTER.ONLY });
+
+    expect(screen.getByRole("link", { name: "廃番: 廃番のみ を解除" })).toHaveAttribute(
+      "href",
+      "/admin/products?keyword=%E9%9E%84",
+    );
+  });
+
+  it("廃番の選択欄にいま効いている値を反映する", () => {
+    renderView({ discontinued: DISCONTINUED_FILTER.EXCLUDED });
+
+    expect(screen.getByRole("radio", { name: "廃番を除く" })).toBeChecked();
   });
 
   it("条件が 1 つだけならすべて解除は出さない", () => {

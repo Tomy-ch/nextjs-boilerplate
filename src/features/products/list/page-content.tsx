@@ -42,6 +42,9 @@ const SORT_OPTIONS: readonly FilterOption[] = [
  *
  * @remarks
  * 値に `code` を使います。契約が分類の絞り込みで受け取るのは UUID ではなくこの番号です。
+ *
+ * @param categories - 分類のマスタ
+ * @returns 選択肢の一覧
  */
 function toOptions(categories: readonly ProductCategory[]): readonly FilterOption[] {
   return categories.map(({ code, name }) => ({ value: String(code), label: name }));

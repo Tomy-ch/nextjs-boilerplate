@@ -19,6 +19,10 @@ export type AttemptOutcome = {
  * @remarks
  * `POST` / `PATCH` は既定で対象外です。同じ要求を 2 度送ってよいかは呼び出し側の設計に
  * 属し、adapters からは判断できません。冪等性を担保した呼び出しだけが明示的に opt-in します。
+ *
+ * @param method - 検査する HTTP メソッド
+ * @param idempotent - 呼び出し側が冪等性を保証しているか
+ * @returns 再試行の対象か
  */
 export function isRetryableMethod(method: string, idempotent: boolean): boolean {
   return idempotent || IDEMPOTENT_METHODS.includes(method.toUpperCase());
@@ -32,6 +36,8 @@ export function isRetryableMethod(method: string, idempotent: boolean): boolean 
  * 要求そのものが誤っているため、送り直しても同じ結果になります（429 は例外で、
  * 時間を空ければ通る）。応答が無い場合（通信断・タイムアウト）は届いていない可能性が
  * あるため対象に含めます。
+ *
+ * @returns 再試行に値するか
  */
 export function isRetryableOutcome({ status }: AttemptOutcome): boolean {
   if (status === undefined) {
@@ -50,6 +56,7 @@ export function isRetryableOutcome({ status }: AttemptOutcome): boolean {
  *
  * @param attempt - 完了した試行の回数（1 始まり）
  * @param random - 0 以上 1 未満の乱数を返す関数。呼び出し側が渡す
+ * @returns 待ち時間（ミリ秒）
  */
 export function backoffDelayMs(attempt: number, random: () => number): number {
   const ceiling = Math.min(MAX_DELAY_MS, BASE_DELAY_MS * 2 ** (attempt - 1));
@@ -66,6 +73,7 @@ export function backoffDelayMs(attempt: number, random: () => number): number {
  *
  * @param header - ヘッダの値。無い場合は null
  * @param now - 現在時刻のミリ秒。HTTP-date 形式の解釈に使う
+ * @returns 待ち時間（ミリ秒）。指示が無い・解釈できないときは null
  */
 export function retryAfterDelayMs(header: string | null, now: number): number | null {
   if (header === null) {
@@ -93,6 +101,9 @@ export function retryAfterDelayMs(header: string | null, now: number): number | 
  * @remarks
  * 表に無い status は `internal` へ矯正します。分類できない応答を素通しすると、生の status が
  * 上位層へ漏れます。対応表の出所は[同区画の README](README.md)。
+ *
+ * @param status - 変換元の HTTP status
+ * @returns 対応する分類
  */
 export function toErrorKind(status: number): ErrorKind {
   switch (status) {

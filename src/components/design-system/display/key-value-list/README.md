@@ -1,47 +1,47 @@
 # KeyValueList
 
-## 用途
+## Purpose
 
-項目名と値の対を並べて表示します。対象の属性、設定値、要約のように「何が」「どうなっているか」が繰り返す領域に使います。
+Displays pairs of item names and values in a list. Used for regions where "what" and "what state it is in" repeat, such as a subject's attributes, setting values, or a summary.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 値 | 役割 |
+| Component / Value | Role |
 | --- | --- |
-| `KeyValueList` | 対を並べる `dl` です。 |
-| `KeyValueItem` | label と value の対を一行としてまとめます。狭い幅では縦に積み、`sm` 以上で横に並べます。 |
-| `KeyValueLabel` | 項目名（`dt`）です。 |
-| `KeyValueValue` | 項目の値（`dd`）です。長い値は折り返します。 |
-| `KeyValueEmpty` | 値が無いことを示す表示です。記号は支援技術から隠し、読み上げ用の語を添えます。 |
+| `KeyValueList` | The `dl` that lays out the pairs. |
+| `KeyValueItem` | Groups a label and value pair into one row. Stacks vertically at narrow widths and lays out horizontally at `sm` and above. |
+| `KeyValueLabel` | The item name (`dt`). |
+| `KeyValueValue` | The item's value (`dd`). Long values wrap. |
+| `KeyValueEmpty` | The display indicating there is no value. The symbol is hidden from assistive technology, and a word for screen readers is added. |
 
-## 利用ケース
+## Use Cases
 
-- 詳細画面で、対象の属性をまとめて示す場合
-- 設定画面で、現在の設定値を読み取り専用で並べる場合
-- 識別子のように、利用者が別の場所へ貼り付ける値を示す場合（[`CopyButton`](../../action/copy-button/README.md) を添える）
+- On a details screen, showing a subject's attributes together
+- On a settings screen, listing the current setting values read-only
+- Showing values the user pastes elsewhere, such as identifiers (add a [`CopyButton`](../../action/copy-button/README.md))
 
-二つの軸で比較される表形式のデータには使いません。列見出しと行見出しの両方が意味を持つ場合は `Table` を使います。
+Not used for tabular data compared along two axes. When both column headings and row headings carry meaning, use `Table`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。`KeyValueList` から `KeyValueEmpty` までは native の `dl` / `dt` / `dd` を描画するだけで hydration を必要とせず、Server Component から直接 render できます。
+In the SSR-first selection it falls under `◎`. `KeyValueList` through `KeyValueEmpty` only render native `dl` / `dt` / `dd`, need no hydration, and can be rendered directly from a Server Component.
 
-値の整形は持ちません。日時・金額・割合は `model/` の formatter を通した文字列を渡します。項目の並び順、表示する / しないの判断、取得も持ちません。
+It does not own formatting values. Pass dates, amounts and ratios as strings formatted through the formatters in `model/`. It does not own the order of items, deciding whether to show them, or fetching either.
 
-### 値が無い項目も行を残す
+### Keep the row even for items with no value
 
-`KeyValueEmpty` は行ごと消さずに「値が無い」と示すためのものです。項目が存在すること自体が情報であり、消すと他の項目の位置が動いて読み取りにくくなります。
+`KeyValueEmpty` is for showing "no value" without removing the row. That the item exists is itself information, and removing it shifts the other items and makes them harder to read.
 
-記号（`—`）だけでは読み上げが意味を成さないため、記号は `aria-hidden` で隠し、読み上げ用の語を別に置きます。既定は「未設定」で、`children` で変えられます。
+A symbol (`—`) alone means nothing when read aloud, so the symbol is hidden with `aria-hidden` and a separate word for screen readers is placed. The default is 「未設定」 ("not set"), and it can be changed with `children`.
 
-### 写す操作は合成する
+### Compose the copy action
 
-写す操作は [`CopyButton`](../../action/copy-button/README.md) を合成します。clipboard を扱うため hydration が必要で、一覧そのものは Server Component のまま保ちます。写す操作は key-value 以外の場所でも要るため、この一覧の一部としては持ちません。
+The copy action composes [`CopyButton`](../../action/copy-button/README.md). It handles the clipboard and so needs hydration, while the list itself stays a Server Component. The copy action is needed in places other than key-value lists too, so it is not owned as part of this list.
 
-写す文字列と失敗時の扱いは `CopyButton` の README にまとめてあります。
+The string to copy and the handling on failure are described in `CopyButton`'s README.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は基本の構成、値が無い項目、長い値と改行を含む値、コピー操作を添える場合、区切りを挟んで複数の一覧を並べる場合を確認します。狭い幅での縦積みと `sm` 以上での横並びは実描画でしか判断できないため、responsive の見え方は Storybook 側の確認範囲です。
+Storybook checks the basic composition, items with no value, long values and values containing line breaks, adding a copy action, and laying out several lists separated by dividers. Stacking at narrow widths and the horizontal layout at `sm` and above can be judged only by actual rendering, so the responsive look is within Storybook's scope.
 
-テストは `dl` / `dt` / `dd` の意味論、対が一行としてまとまること、値が無い項目でも行が残ること、空値の記号が支援技術から隠れて読み上げ用の語が添うこと、その語を変えられること、native 属性がそのまま通ること、a11y 自動検査を確認します。
+Tests check the `dl` / `dt` / `dd` semantics, that a pair groups into one row, that the row remains even for an item with no value, that the empty-value symbol is hidden from assistive technology and a word for screen readers is added, that the word can be changed, that native attributes pass through as is, and automated a11y checks.

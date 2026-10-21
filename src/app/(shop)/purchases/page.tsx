@@ -31,6 +31,8 @@ export const metadata: Metadata = {
  * ヘッダではなく meta タグで伝わります。未認証の来訪は `proxy.ts` が入口で本物の転送として
  * 捌くので、ここまで届くのは「認証済みだが登録が済んでいない」場合だけです。登録の有無は
  * バックエンドに問わないと分からず、入口では判定できません。
+ *
+ * @param searchParams - 検証前の検索パラメータ。
  */
 async function PurchaseHistoryContent({
   searchParams,

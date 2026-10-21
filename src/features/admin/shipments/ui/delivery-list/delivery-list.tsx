@@ -63,6 +63,8 @@ function DeliverSubmit() {
  *
  * 何をどう見せるかは
  * [画面要件](../../../../../../docs/spec/route/admin/shipments/page.screen.md)。
+ *
+ * @param props - 発送済みの注文と、配達の確認の送信先
  */
 export function DeliveryListCard({ purchases, deliverAction }: DeliveryListCardProps) {
   const [state, formAction] = useActionState<DeliveryState, FormData>(

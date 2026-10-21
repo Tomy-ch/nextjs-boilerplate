@@ -78,7 +78,7 @@ export function planReleaseBranch(input: {
       runStep("pnpm", ["install", "--frozen-lockfile", "--ignore-scripts"]),
       // 版はここで焼き込む。切った時点がその版を決めた時点であり、後から気づく機会は無い ——
       // production へ入ってしまえば、出荷した版と `package.json` が名乗る版がずれたまま残る。
-      // コミットを作るかどうかは焼き込む側が決める（`.makefiles/README.md` の「版の焼き込み関連」）。
+      // コミットを作るかどうかは焼き込む側が決める（`.makefiles/README.md#version-stamping`）。
       runStep("make", ["version-stamp-commit", `REF=${branchName}`]),
       // push も `--no-verify`。押すのは production が全ゲートを通過した木と、その上へブランチ名
       // から導いた 1 行だけ。bypass の可否は [README](../README.md) から辿る。

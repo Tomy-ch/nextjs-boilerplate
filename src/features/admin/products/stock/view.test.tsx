@@ -8,7 +8,7 @@ import { axe } from "vitest-axe";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, adminProductStockPath } from "../../paths";
 import type { StockFormState } from "./form-state";
@@ -21,8 +21,8 @@ const PRODUCT: Product = {
   price: "19.99",
   quantity: 128,
   stockWarningThreshold: null,
-  status: { id: "status-1", name: "在庫あり" },
-  category: { id: "category-1", name: "電子機器" },
+  status: { id: toProductStatusId("status-1"), name: "在庫あり" },
+  category: { id: toProductCategoryId("category-1"), name: "電子機器" },
   publishedAt: null,
   discontinuedAt: null,
   imagePaths: [],

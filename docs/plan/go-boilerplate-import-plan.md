@@ -60,7 +60,7 @@ IM-29 では `readme-review` の基準が go の英語見出しを前提にし�
 
 ## 2. 作業一覧
 
-全 59 項目(完了 11 / 一部完了 2 / 未着手 46)。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
+全 59 項目(完了・着地・決着 22 / 一部完了 3 / 未着手 34)。issue 化の単位はこの 1 行 = 1 issue。「受け皿」は v1 実装計画の PR ID、`—` は新規枠。
 
 | ID | 内容 | 分類 | 受け皿 | 依存 / トリガー | 状態 |
 | --- | --- | --- | --- | --- | --- |
@@ -69,14 +69,14 @@ IM-29 では `readme-review` の基準が go の英語見出しを前提にし�
 | IM-33 | 移植バックログ節を現行スナップショット 42/22 へ改訂 | A | — | なし | 未着手 |
 | **W1: レビュー体系の追随** | | | | | |
 | IM-02 | `impl-review` を go 側現行仕様へ追随 | B | — | IM-01 | 完了(issue #40) |
-| IM-36 | `comment-sweep` + コメント在庫の管轄ゲート | B | — | IM-34, P3-9 | 未着手 |
+| IM-36 | `settle-comments` + コメント在庫の管轄ゲート | B | — | IM-34, P3-9 | 未着手 |
 | **W2: AI 環境二重運用**(受け皿なし / 即着手可) | | | | | |
 | IM-03 | `manage-skill` 移植 | A | — | なし | 完了(issue #39) |
 | IM-35 | AI 運用の判断を ADR として持つかの決定 | C | — | なし。IM-34 / IM-04 の前 | 未着手 |
 | IM-34 | `.agents/` の器 | A | — | IM-35 | 未着手 |
-| IM-04 | `.codex/` 基盤(README 対訳 / config.toml / スコープ規約) | B | — | IM-35 | 未着手 |
-| IM-05 | `sync-ai` + handoff スクリプト双方向 | B | — | IM-04 | 未着手 |
-| IM-06 | `.codex/` へのスキル / エージェント一括ミラー | B | — | IM-05 | 未着手 |
+| IM-04 | Codex 側の基盤(スキルの置き場 / config.toml / スコープ規約) | B | — | IM-35 | 一部完了(スキルの置き場は `.agents/skills/` に決着) |
+| IM-05 | `sync-ai` + handoff スクリプト | B | — | IM-04 のスキルの置き場 | **着地**(#658。Claude → Codex の片方向) |
+| IM-06 | `.agents/skills/` へのスキル一括ミラー | B | — | IM-05 | 未着手 |
 | IM-37 | `CODEX.md` + `.codex/rules/*.rules`(実行禁止ルール) | B | — | IM-04 | 未着手 |
 | IM-38 | `skill-lint` の Claude ↔ Codex parity 検査 | A | — | IM-06 | 未着手 |
 | **W3: ローカル品質ゲート**(v1 Phase 1 併走) | | | | | |
@@ -104,17 +104,17 @@ IM-29 では `readme-review` の基準が go の英語見出しを前提にし�
 | **W5: サプライチェーン**(v1 Phase 2 後) | | | | | |
 | IM-19 | actions-pin 機構 + スキル(GB-6) | B | P2-3 | IM-12 | 完了(issue #86) |
 | IM-20 | `supply-chain-triage` スキル | B | — | IM-19 | **着地** |
-| IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 着地により解除 | 未着手 |
+| IM-21 | `dep-vuln-upgrade` スキル | B | — | IM-20 | **着地**(#658) |
 | IM-47 | `tool-cooldown`(mise pin のクールダウン gate) | B | — | IM-19 | 未着手 |
 | **W6: アーキ監査・ドリフト**(v1 Phase 3 後) | | | | | |
-| IM-22 | `arch-check` + 層別 auditor(GB-1) | C | — | A3 Accepted + P3-1 | 未着手 |
+| IM-22 | `arch-check` + 層別 auditor(GB-1) | C | — | A3 Accepted + P3-1 | **着地**(#654。agent は 1 定義でカーネルごとに並列起動) |
 | IM-23 | `back-prop` + drift-detector(GB-2) | C | — | IM-22 を待たず着地 | **着地**（agent は 1 定義でカーネルごとに並列起動） |
-| IM-24 | `type-design-reviewer`(GB-7) | C | — | A3 Accepted + P3-1 | 未着手 |
+| IM-24 | `type-design-reviewer`(GB-7) | C | — | A3 Accepted + P3-1 | **着地**(#658) |
 | IM-25 | 2 段 lint 構成の思想を ESLint へ適用 | B | P3-2 | P3-2 | 未着手 |
 | IM-48 | DDD / 語彙 / コンテキストマップ系の採否判断 | C | — | A3 Accepted。IM-22 の前 | **決着**（DDD の監査は不採用のまま。語彙表と接触点の地図は採用し、軸を「境界の所有と翻案の有無」「契約に無い UI 上の概念だけ」に限る条件付き） |
 | **W7: spec / scaffold**(v1 Phase 4 前後) | | | | | |
 | IM-26 | GB-3(spec 駆動)の採否判断 | C | P5-18 | v1 直前に spec と実装の突合のみ | **決着**(採用 / 生成 scaffold は不採用 / spec 先行は強制しない) |
-| IM-27 | GB-4 の骨格のみ P4-6 へ吸収 | B | P4-6 | P4-5(着地済み) | 未着手 |
+| IM-27 | GB-4 の骨格を scaffold 群へ翻案 | B | P4-6 | P4-5(着地済み) | **着地**(#658) |
 | **W8: テスト**(v1 Phase 3 後) | | | | | |
 | IM-28 | `scaffold-test` / `test-review`(GB-5) | C | P4-0 | P3-6 完了 | `test-review` 完了 / `scaffold-test` 未着手 |
 | IM-49 | `scripts/` の 1:1 テスト対応ゲート + ツールのディレクトリ化 | B | — | なし | 完了(PR #143) |
@@ -146,12 +146,10 @@ IM-29 では `readme-review` の基準が go の英語見出しを前提にし�
 ```mermaid
 flowchart TD
   IM35["IM-35 AI 運用 ADR 判断"] --> IM34["IM-34 .agents 器"]
-  IM35 --> IM04["IM-04 .codex 基盤"]
-  IM04 --> IM05["IM-05 sync-ai"]
-  IM05 --> IM06["IM-06 ミラー生成"]
-  IM06 --> IM38["IM-38 parity 検査"]
+  IM35 --> IM04["IM-04 Codex 基盤"]
+  IM06["IM-06 ミラー生成"] --> IM38["IM-38 parity 検査"]
   IM04 --> IM37["IM-37 CODEX.md / rules"]
-  IM34 --> IM36["IM-36 comment-sweep"]
+  IM34 --> IM36["IM-36 settle-comments"]
   P39["v1 P3-9"] --> IM36
   P13["v1 P1-3"] --> IM12["IM-12 skip-guard"]
   IM12 --> IM13["IM-13 リリースゲート"]
@@ -166,11 +164,6 @@ flowchart TD
   IM50 --> IM51["IM-51 撤去スクリプト"]
   IM14 & IM50 --> IM52["IM-52 Issue 集約"]
   IM13 & IM14 & IM16 & IM17 & IM40 --> IM18["IM-18 required check"]
-  IM20["IM-20 supply-chain-triage"] --> IM21["IM-21 dep-vuln-upgrade"]
-  IM48["IM-48 DDD 系 採否"] --> IM22["IM-22 arch-check"]
-  P31["v1 P3-1"] --> IM22
-  IM22 --> IM23["IM-23 back-prop"]
-  P31 --> IM24["IM-24 type-design-reviewer"]
   IM53["IM-53 前提の一般則"] --> IM54["IM-54 premise-lint"]
   IM57["IM-57 new-issue"] --> IM58["IM-58 impl-issue"]
 ```
@@ -194,7 +187,7 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 
 - **目的**: go 側がスキル 42 / エージェント 22 へ増えており、台帳の分類に現れない資産が生じている。IM-01 と同じ作業を現行スナップショットに対して行う
 - **主な変更先**: [BACKLOG.md](../adr/BACKLOG.md) 移植バックログ節
-- **追加分類が必要な資産**: スキル 7 件(`comment-sweep` / `context-map` / `context-map-audit` / `ddd-audit` / `glossary` / `impl-issue` / `new-issue`)、エージェント 3 件(`ddd-origin-auditor` / `drift-detector-ddd` / `drift-detector-glossary`)、`.agents/` の 3 ドメイン
+- **追加分類が必要な資産**: スキル 7 件(`settle-comments` / `context-map` / `context-map-audit` / `ddd-audit` / `glossary` / `impl-issue` / `new-issue`)、エージェント 3 件(`ddd-origin-auditor` / `drift-detector-ddd` / `drift-detector-glossary`)、`.agents/` の 3 ドメイン
 - **併せて反映する**: GB-2(`back-prop`)の検出カテゴリに語彙漏れ(E)が増えた点、GB-5 の受け皿が P4-0 である点
 - **完了条件**: BACKLOG の分類に go 側の全 42 スキル / 22 エージェント / `.agents/` 全ドメインが漏れなく現れる
 - **依存**: なし
@@ -219,11 +212,11 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **依存**: IM-01
 - **状態**: **完了**(issue #40)。その後 `test-review` の移植(IM-28)に伴い、スキル名を `local-review` から go 側と同じ `impl-review` へ改名し、テスト観点は Step 5 で `test-review` へ委譲する形にした(`test-gap` レンズは委譲が動かない場合の fallback)。PR インライン投稿は `gh api` の実行許可が前提で、これを許可する判断は issue #48 で別途決着させた。Step 1 の layer 検出・ランタイム検証段・`runtime-gap` のレンズ定義本文には go 由来の記述が残っており、未翻案分は BACKLOG の移植バックログ節が持つ。その後の追随で 3 点を取り込んだ — コメント内容の判定を go 側現行の分類へ揃え(下記 IM-36 の 3 番目を除く)、テスト観点委譲の状態を 4 分岐へ割り直して「テストのみの変更で委譲不可」のとき `test-gap` を空振りさせない形にし、`テスト観点:` 行を必須の 4 値へ固定した。併せて `architecture` レンズの前提を実態(`pnpm lint:ci` が `eslint-plugin-boundaries` と `check:architecture` を走らせる)へ訂正した
 
-#### IM-36: `comment-sweep` + コメント在庫の管轄ゲート
+#### IM-36: `settle-comments` + コメント在庫の管轄ゲート
 
 - **目的**: 既存レビュー体系が答えられない問いを 1 つ足す。`comment-reviewer` は差分上のコメントを「削除 / 書換」でしか裁けず、**「この内容はここに置くべきか」という管轄の判定**(= 設計根拠を ADR / 層 README へ移設し、コード側には効力のある残余とリンクだけを残す)を持たない。結果として、1 行ずつは正しいが総量が読み手の負担になったコメント在庫が減らない
-- **輸入元**: `.claude/skills/comment-sweep/`、`.agents/comment-remediation/`、`docs/rules.md` のコメント規則
-- **主な変更先**: `.claude/skills/comment-sweep/SKILL.md`(+ `.ja.md`)、`.agents/comment-remediation/`、`docs/rules.md`、`.claude/settings.json`(hooks)
+- **輸入元**: `.claude/skills/settle-comments/`、`.agents/comment-remediation/`、`docs/rules.md` のコメント規則
+- **主な変更先**: `.claude/skills/settle-comments/SKILL.md`(+ `.ja.md`)、`.agents/comment-remediation/`、`docs/rules.md`、`.claude/settings.json`(hooks)
 - **輸入する 3 点**:
   1. **管轄判定を持つスキル本体** — パッケージ単位に read-only の監査を fan-out し、1 件ずつ承認を取って**コード側と移設先ドキュメントの両方を自分で書く**(移設した根拠が行き先を失わないため)。移設先の誤配 2 種(ライブラリ固有の挙動はコードに残す / 業務知識は ADR ではなく仕様側へ)を拒否する規約も輸入
   2. **在庫台帳 + 編集前の照会フック** — 掃き終えたファイルを `.agents/comment-remediation/` の台帳に記録し、`Edit` / `Write` の `PreToolUse` フックで未掃引ファイルへの編集を検知する。フックは worktree でも黙らない形にする
@@ -248,8 +241,8 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **輸入元**: `.agents/README.md`(+ `.ja.md`)
 - **主な変更先**: `.agents/README.md`(+ `.ja.md`)、[AGENTS.md](../../AGENTS.md) の「Agent configuration file protection」節
 - **輸入する線引き**: 置くのは「次の run が読む、コミット済みの共有機械可読状態」だけ。アシスタントへの指示(= ベンダ設定)、run ごとの再開状態(= 当該スキルの `tmp/`)、1 ベンダの契約に紐づくものは置かない。ピン用ロックファイル(`.github/actions-pin.toml`)は概念的には同種だが、マニフェストの隣に置くほうがツールの参照位置と一致するため移さない
-- **翻案メモ**: [AGENTS.md](../../AGENTS.md) は Codex CLI の置き場を `.agents/skills/` と記載しており、この器と衝突する。go 側は Codex を `.codex/` に置いて `.agents/` を成果物専用にしているため、**同じ線引きへ揃えるか、器の名前を変えるか**を IM-35 で決着させてから着手する
-- **完了条件**: `.agents/README.md` が置き場の線引きを持ち、`.claude/` / `.codex/` の README と相互参照する。AI Modification Scope に成果物ディレクトリとしての扱いが現れる
+- **翻案メモ**: go 側は Codex を `.codex/` に置いて `.agents/` を成果物専用にしているが、[AGENTS.md](../../AGENTS.md) は Codex CLI のスキルの置き場を `.agents/skills/` に割り当てている。器はこれを、成果物と並ぶ唯一の設定として抱える(`.agents/README.md` の `skills/` 節)
+- **完了条件**: `.agents/README.md` が置き場の線引きを持ち、`.claude/` の README と相互参照する。AI Modification Scope に成果物ディレクトリとしての扱いが現れる
 - **依存**: IM-35
 
 #### IM-35: AI 運用の判断を ADR として持つかの決定
@@ -262,29 +255,32 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **完了条件**: 上記 3 点について「ADR を立てる / 既存 ADR へ追補する / 採らない」が決まり、決めた形が反映されている
 - **依存**: なし(IM-34 / IM-36 / IM-37 のブロック元)
 
-#### IM-04: `.codex/` 基盤
+#### IM-04: Codex 側の基盤
 
 - **目的**: Codex CLI 側の運用契約を置く器を作る
 - **輸入元**: `.codex/README.md`(+ `.ja.md`)、`.codex/config.toml`
-- **主な変更先**: `.codex/README.md`(+ `.ja.md`)、`.codex/config.toml`
+- **置き場**: Codex のスキルは [AGENTS.md](../../AGENTS.md) が割り当てる `.agents/skills/` に置く。go 側の `.codex/skills/` は採らない。線引きは `.agents/README.md` の `skills/` 節が持つ
 - **翻案メモ**: `config.toml` は codex-cli がプロジェクト設定を読まないため**「記録された意図」**である旨を go 側同様に明記する。個人設定(MCP / 認証)は `~/.codex/` へ置く分離方針も踏襲。ツール実行系の記述を Go/Docker から pnpm / mise へ差し替える
-- **完了条件**: `.codex/README.md` が Claude 側 `.claude/README.md` と鏡像の構成で存在し、両者が互いを参照する
+- **完了条件**: Codex 側の運用契約が Claude 側 `.claude/README.md` と鏡像の構成で存在し、両者が互いを参照する
 - **依存**: IM-35(置き場の線引き)
+- **状態**: **一部完了**。スキルの置き場は `.agents/skills/` に決着し、`.agents/README.md` が `sync-ai` を指す。`config.toml` と運用契約の README は未着手
 
-#### IM-05: `sync-ai` + handoff スクリプト双方向
+#### IM-05: `sync-ai` + handoff スクリプト
 
-- **目的**: 片方の環境で更新したスキルを、もう片方へ**セマンティックに**移植する。生ディレクトリコピーを禁じ、受け側の `manage-skill` に翻案させる
-- **輸入元**: `.claude/skills/sync-ai/`(+ `scripts/handoff-to-codex.sh`)、`.codex/skills/sync-ai/`(+ `scripts/handoff-to-claude.sh`)
-- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は無改造で必須輸入** — `tmp/sync-ai/.handoff.lock` の `mkdir` アトミックロック + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.codex/` 追加、Claude 側への `--permission-mode bypassPermissions` 引き渡し。handoff スクリプトは §0 の原則に従い `*.sh` から `scripts/<tool>/` へ変換する — ロック機構は `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない
-- **完了条件**: 片方向ハンドオフが完走し、受け側にネイティブな形でスキルが生成される。同時起動でロックが効き再帰しない
-- **依存**: IM-04
+- **目的**: 片方の環境で更新したスキルを、もう片方へ**セマンティックに**移植する。生ディレクトリコピーを禁じ、受け側に翻案させる(Claude 側は `manage-skill`)
+- **輸入元**: `.claude/skills/sync-ai/`(+ `scripts/handoff-to-codex.sh`)
+- **主な変更先**: `.claude/skills/sync-ai/SKILL.md`(+ `.ja.md`)、`scripts/sync-ai/`
+- **翻案メモ**: 中身は言語非依存でほぼ無翻案。**再帰防止の機構は必須輸入** — `tmp/skills/sync-ai/.handoff.lock` の `mkdir` アトミックなリース + TTL 3600s、非対話 CLI 起動、Codex sandbox の writable roots への `.agents/` 追加。handoff スクリプトは §0 の原則に従い `*.sh` から `scripts/sync-ai/` へ変換した — リースは `fs.mkdirSync` の失敗判定で等価に再現できるため、この変換で再帰防止の要件は落ちない。Codex 側から Claude を非対話で起動する `handoff-to-claude` と、Codex 側の `sync-ai` は採らない。Codex → Claude の向きは、Codex の写しを送信元として読む Claude のセッションから走らせる
+- **完了条件**: Claude → Codex のハンドオフが完走し、受け側にネイティブな形でスキルが生成される。同時起動でリースが効き再帰しない
+- **依存**: IM-04 のスキルの置き場(`.agents/skills/`)
+- **状態**: **着地**(#658)。`codex` の導入はしない —— `PATH` に無ければ `scripts/sync-ai` が終了コード 4 で止まり、スキルは所見として報告する
 
-#### IM-06: `.codex/` へのスキル / エージェント一括ミラー
+#### IM-06: `.agents/skills/` へのスキル一括ミラー
 
 - **目的**: 既存資産を Codex 側へ展開し、二重運用を成立させる
-- **主な変更先**: `.codex/agents/*.toml`、`.codex/skills/*/`(`SKILL.md` + `agents/openai.yaml`)
-- **翻案メモ**: **IM-05 の `sync-ai` で 1 資産ずつ駆動する**(手コピーしない)。エージェントは `name` / `description` / `developer_instructions`(日本語、read-only 規律 + プロンプトインジェクション耐性 + `file:line` 根拠必須)の TOML 形式へ。`full-verify` は `prompts/` と `scripts/run.sh` を同梱する
-- **完了条件**: `.claude/` 側の全スキル / エージェントに対応する `.codex/` 資産が存在し、`tool-map` が両環境を棚卸しできる
+- **主な変更先**: `.agents/skills/*/`
+- **翻案メモ**: **IM-05 の `sync-ai` で 1 資産ずつ駆動する**(手コピーしない)。エージェント定義の Codex 側の置き場は IM-04 で決める(`AGENTS.md` が割り当てるのはスキルの置き場だけである)。`full-verify` は `prompts/` と `scripts/run.sh` を同梱する
+- **完了条件**: `.claude/skills/` の Claude 専用でない全スキルに対応する `.agents/skills/` 資産が存在し、`tool-map` が両環境を棚卸しできる
 - **依存**: IM-05
 
 #### IM-37: `CODEX.md` + `.codex/rules/*.rules`
@@ -301,9 +297,9 @@ v1 計画に受け皿がある項目は、その PR 定義へ書き足す内容�
 - **目的**: スキルが片方の環境にだけ着地する事故を機械で捕まえる。本リポジトリの `skill-lint` は frontmatter / 対訳ペア / 参照の実在性までを持ち、環境間の対応は見ていない
 - **輸入元**: `scripts/skill-lint/checks.ts` の parity 検査と `PLATFORM_ONLY_SKILLS`
 - **主な変更先**: `scripts/skill-lint/`
-- **輸入する 3 点**: (1) `.claude/skills/<name>/` ⇔ `.codex/skills/<name>/`、`.claude/agents/<name>.md` ⇔ `.codex/agents/<name>.toml` の**存在のみ**の相互検査。(2) 意図的に片側のみのスキルは**理由付きの宣言**を必須とし、理由が空のエントリと、両側(または両側とも不在)へ変わったのに残っているエントリを fail させる — 例外リストが例外より長生きしないようにする。(3) 本文の対応は検査しない(`sync-ai` はセマンティックな移植であり、恒久的な差異が正常)
+- **輸入する 3 点**: (1) `.claude/skills/<name>/` ⇔ `.agents/skills/<name>/` の**存在のみ**の相互検査(エージェント定義の対応は IM-04 が Codex 側の置き場を決めてから足す)。(2) 意図的に片側のみのスキルは**理由付きの宣言**を必須とし、理由が空のエントリと、両側(または両側とも不在)へ変わったのに残っているエントリを fail させる — 例外リストが例外より長生きしないようにする。(3) 本文の対応は検査しない(`sync-ai` はセマンティックな移植であり、恒久的な差異が正常)
 - **注意**: エージェントには例外の抜け穴を作らない。片側だけに置く実例が現に無いためで、必要になってから機構を足す
-- **完了条件**: 片側にだけスキル / エージェントを置くと `pnpm lint:md` が落ちる。理由の無い例外エントリも落ちる
+- **完了条件**: 片側にだけスキルを置くと `pnpm lint:md` が落ちる。理由の無い例外エントリも落ちる
 - **依存**: IM-06
 
 ### W3: ローカル品質ゲート
@@ -452,7 +448,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **検疫**: `ACTIONS_PIN_MIN_AGE_DAYS`(既定 14)未満の解決先は採用せず、既存ピンがあれば維持・無ければ見送る。1 つ前の通過済み版への step-back は `actions-pin` スキルが持つ
 - **再ポイントタグ検知**: ロックファイルの差分監視としてスキルの手順に置いた(厳密版 tag の SHA が動いたらセキュリティイベント扱いで停止)
 - `check` は fail-closed。go 版の「未登録 / 未固定」に加え、**壊れたロックファイル行**と**孤児エントリ**も error にした
-- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md) 1「別関心として分ける」)
+- 二重掛けは pre-commit hook と CI の `actions-pin` job。`actions-lint` へは相乗りさせない([0153](../adr/0153-ci-configuration.md)「別関心として分ける」)
 
 > go 側はこの後、補助スクリプト群の fail-open を一括で fail-close 化している。本リポジトリの `check` は当初から fail-closed のため追随不要。
 
@@ -472,6 +468,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **翻案メモ**: go 側は npm と Go の二本立て。**npm 側だけを採り**、pnpm の `overrides` へ読み替える。クールダウン整合チェックは IM-16 と対にする
 - **完了条件**: GHSA ID を渡すと該当依存が最小差分で更新され、`pnpm audit` が当該項目を解消する
 - **依存**: IM-20
+- **状態**: **着地**(#658)。直接依存は `package.json` の exact pin、推移的依存は上流の宣言範囲の内側に留まる `overrides` で動かし、窓に捕まった版は `supply-chain-triage` へ渡す。窓そのものは下げない
 
 #### IM-47: `tool-cooldown`(mise pin のクールダウン gate)
 
@@ -492,6 +489,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **トリガー**: A3 Accepted + P3-1(11 カーネル物理化 + 層別 README)完了
 - **輸入する骨格**: integrator が lint を 1 回だけ実行し、層別 auditor を**並列 fan-out** する。各 auditor は**自層の README を正として実行時に読み込む**(規約をエージェント本文にハードコードしない)。TODO ハンドオフコメントは opt-in
 - **翻案メモ**: 層マッピングを go の domain / usecase / controller / infra / pkg から、本リポジトリの 11 カーネルへ差し替える。**`full-verify` Pass 1 との分担を SKILL.md に明記する**(`arch-check` = 層規約の準拠検査 / `full-verify` Pass 1 = 構造設計の妥当性)
+- **状態**: **着地**(#654)。層ごとの auditor 5 定義は `arch-auditor` 1 定義へ畳み、カーネルごとに並列起動する。規則は各カーネル README の `## 監査の観点` の表が持ち、判定基準は `skills/arch-check/prompts/audit-layer.md` が SSOT。静的判定は integrator が 1 度だけ決める。TODO ハンドオフコメントは採らず、完全 report-only
 
 #### IM-23: `back-prop` + drift-detector(GB-2)
 
@@ -504,6 +502,7 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **トリガー**: A3 Accepted + `src/model/` の型設計規約確定
 - **目的**: `arch-auditor` 系の二値判定では拾えない「規約は満たすが弱い型」を程度で拾う
 - **翻案メモ**: 4 軸ルーブリック(Encapsulation / Invariant Expression / Invariant Usefulness / Invariant Enforcement、各 1–10)は Anthropic 公式 `pr-review-toolkit` の `type-design-analyzer`(MIT)由来で**言語非依存**。Go の非公開フィールド + getter / `New()` 不変条件検査を、TypeScript の branded type / `readonly` / zod schema による parse-don't-validate / factory 関数へ読み替える。**Attribution 記述はそのまま残す**。読み込む正典は `src/model/README.md` + [docs/rules.md](../rules.md)(P3-9)
+- **状態**: **着地**(#658)。基準は `.claude/skills/impl-review/prompts/type-design.md` が SSOT で、[0029](../adr/0029-type-design-discipline.md) を実行時に読む。`impl-review` は差分が型に触れたときの finder として、`arch-check` は full スコープで `src/model` が対象のときに起動する
 
 #### IM-25: 2 段 lint 構成の思想を ESLint へ適用(受け皿 P3-2)
 
@@ -531,12 +530,13 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **注意**: go 側は spec 側に語彙表への登録まで足しているが、語彙表の採否は IM-48 の 3 が持つ
 - **残る確認**: v1 を切る直前に `docs/spec/route/**` と実装の食い違いを一度見る。決めることは残っていない
 
-#### IM-27: GB-4 の骨格のみ P4-6 へ吸収
+#### IM-27: GB-4 の骨格を scaffold 群へ翻案
 
 - go の onion + sqlc / OpenAPI 前提は表示層に載らない(DB が無い)。輸入するのは 2 点のみ:
   - **chain 構造** — 生成を段階に分け、前段の検証が通らなければ次段へ進まない
   - **halt / hand-off** — 生成由来のマッピングを name-match で導出し、**導出不能なら自動ロールバックせず TODO を残して停止する**
 - **受け皿**: P4-6。上記 2 点を設計として書き足す。どちらも生成入力の形に依らないため、IM-26(spec 駆動の採否)の決着を待たない
+- **状態**: **着地**(#658)。2 点は scaffold 群のスキル(`scaffold-slice` / `scaffold-model` / `scaffold-adapter` / `scaffold-route`)として翻案した。配置と受け入れ範囲はカーネル README と `pnpm gen` から実行時に読む
 
 ### W8: テスト
 
@@ -579,9 +579,9 @@ v1 計画 Phase 2 の各 PR へ、以下を輸入元・輸入内容として書�
 - **翻案メモ**: go 側から意図的に変えた点
   - bootstrap を `.sh` ではなく `scripts/bootstrap-external-skills/` として置く(§0 の TypeScript 変換原則)
   - `mise exec` で包まない。素の `graphify` を activate 済み mise の PATH から解決する([0003](../adr/0003-version-manager.md))。この帰結としてスクリプトは `mise.toml` の pin を読まない
-  - 対象プラットフォームは Claude Code のみ。`.codex/` の器が無く着地検証ができない(IM-04 待ち)
+  - 対象プラットフォームは Claude Code のみ。Codex 側の運用契約が無く着地検証ができない(IM-04 待ち)
   - `[sql]` extra を付けない。表示層に SQL ソースを持たない([0070](../adr/0070-backend-role-separation.md))
-  - クールダウン基準の置き場は [0110](../adr/0110-security-operations.md) 1.1
+  - クールダウン基準の置き場は [0110](../adr/0110-security-operations.md)
   - `.graphifyignore` は `*.ja.md` の 1 件のみ。本リポジトリの生成物は gitignore 済みで graphify が自動的に外す
   - project スコープ書き換え命令の `deny` を、プラットフォーム名の列挙ではなくパターン(`graphify * install*`)で書く
 

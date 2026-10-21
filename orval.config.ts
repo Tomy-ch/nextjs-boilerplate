@@ -29,7 +29,7 @@ const NON_CLIENT_TAGS = [
 // 検証するテスト (`mocks/contract-conformance.test.ts`) が捕まえる。
 // sample:replace-with
 // = // 取りこぼしは黙って通る。生成物と zod はどちらも契約から出るので、両者を突き合わせる検査を
-// = // 契約を入れたときに書く (`mocks/README.md` の「契約適合の検査」)。
+// = // 契約を入れたときに書く (`mocks/README.md#contract-conformance-test`)。
 // sample:replace-end
 const PATTERNED_MOCK_PROPERTIES = {
   // sample:replace-begin
@@ -40,6 +40,9 @@ const PATTERNED_MOCK_PROPERTIES = {
   "/^(price|unitPrice|rate|original)$/": () => "19.99",
   // 符号付きの decimal 文字列。
   "/^converted$/": () => "-19.99",
+  // クーポンの値引きの decimal 文字列。定率では 0 より大きく 1 以下、定額では USD の額であり、
+  // どちらの種別にも収まる値を返す。
+  "/^value$/": () => "0.10",
   // 先頭の + は任意で、以降は 10〜15 桁の数字。
   "/^phone$/": () => "09012345678",
   "/^postalCode$/": () => "100-0001",
@@ -256,6 +259,28 @@ export default defineConfig({
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {
             mock: { properties: { "/^salesAmount$/": () => "824.69" } },
+          },
+          // 受給者はカートの所有者の一部なので、利用者数がカート件数を超えないよう範囲を分ける。
+          // 進行中の購入は 0 を含め、実行できる姿と拒まれる姿の両方に届くようにする。
+          GetProductsDiscontinueImpact: {
+            mock: {
+              properties: {
+                "/^affectedCartCount$/": () => faker.number.int({ min: 10, max: 99 }),
+                "/^affectedUserCount$/": () => faker.number.int({ min: 0, max: 9 }),
+                "/^inProgressPurchaseCount$/": () => faker.number.int({ min: 0, max: 2 }),
+              },
+            },
+          },
+          // 発行枚数は受給者数と一致する組の値なので、応答ごと指定する。
+          PostProductsDiscontinue: {
+            mock: {
+              data: {
+                discontinuedAt: "2026-09-05T00:00:00Z",
+                affectedCartCount: 12,
+                affectedUserCount: 9,
+                issuedCouponCount: 9,
+              },
+            },
           },
         },
         // sample:replace-with

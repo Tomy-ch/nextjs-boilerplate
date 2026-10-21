@@ -21,7 +21,11 @@ const ToggleGroupContext = createContext<
 /** {@link ToggleGroupClient} の props。 */
 export type ToggleGroupClientProps = ComponentProps<typeof ToggleGroupPrimitive.Root> &
   VariantProps<typeof toggleVariants> & {
-    /** 項目の間隔。`0` は隣接させ、ひと続きの segmented control に見せる。 */
+    /**
+     * 項目の間隔。`0` は隣接させ、ひと続きの segmented control に見せる。
+     *
+     * @defaultValue `0`
+     */
     spacing?: number;
   };
 
@@ -44,6 +48,7 @@ export type ToggleGroupClientProps = ComponentProps<typeof ToggleGroupPrimitive.
  * 集合そのものは名前を持たないため、`aria-label` か `aria-labelledby` で**何の切り替えかを必ず
  * 示す**。矢印キーでの項目移動と roving tabindex は Radix が担う。
  *
+ * @param props - Radix `ToggleGroup.Root` の props と `variant` / `size` / `spacing`。
  * @see Storybook `Form/ToggleGroupClient`
  */
 function ToggleGroupClient({

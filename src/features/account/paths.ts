@@ -1,11 +1,5 @@
 import { toSafeReturnUrl } from "@/model/return-url";
 
-/** マイページ。global nav が直接指す。 */
-export const MYPAGE_PATH = "/mypage";
-
-/** プロフィール編集。マイページの下の階層に置く。 */
-export const PROFILE_EDIT_PATH = "/mypage/edit";
-
 /**
  * 登録（オンボーディング）。
  *
@@ -23,6 +17,7 @@ export const ONBOARDING_PATH = "/onboarding";
  * 送れます（open redirect）。検証は `model` が持ち、ここはその結果を URL へ組むだけです。
  *
  * @param returnTo - 登録後に戻す先。同一 origin の相対パスでなければ `/` へ倒れる
+ * @returns 登録画面の URL
  */
 export function onboardingPath(returnTo: string): string {
   return `${ONBOARDING_PATH}?returnUrl=${encodeURIComponent(toSafeReturnUrl(returnTo))}`;

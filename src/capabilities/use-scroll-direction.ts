@@ -17,6 +17,7 @@ let direction: ScrollDirection = "up";
 let lastY = 0;
 const listeners = new Set<() => void>();
 
+/** scroll 位置の変化を読み取り、しきい値を超えて向きが変わったときだけ listener へ通知する。 */
 function handleScroll(): void {
   const delta = window.scrollY - lastY;
 
@@ -39,6 +40,12 @@ function handleScroll(): void {
   }
 }
 
+/**
+ * 向きの変化を購読する。最初の購読で scroll の監視を始め、最後の解除で終える。
+ *
+ * @param onStoreChange - 向きが変わったときに呼ぶ通知
+ * @returns 購読解除関数
+ */
 function subscribe(onStoreChange: () => void): () => void {
   if (listeners.size === 0) {
     lastY = window.scrollY;
@@ -56,11 +63,20 @@ function subscribe(onStoreChange: () => void): () => void {
   };
 }
 
+/**
+ * いまの直近スクロール方向を返す。
+ *
+ * @returns 直近のスクロール方向
+ */
 function snapshot(): ScrollDirection {
   return direction;
 }
 
-/** サーバではスクロール位置を知れないため、まだ下へ動いていない側を返す。 */
+/**
+ * サーバではスクロール位置を知れないため、まだ下へ動いていない側を返す。
+ *
+ * @returns 常に `"up"`
+ */
 function serverSnapshot(): ScrollDirection {
   return "up";
 }
@@ -74,6 +90,8 @@ function serverSnapshot(): ScrollDirection {
  *
  * 購読は全体で 1 つに畳みます。向きは画面に 1 つしかない値で、購読する部品の数だけ listener を
  * 張ると、スクロールのたびに同じ計算がその数だけ走ります。
+ *
+ * @returns 直近のスクロール方向
  */
 export function useScrollDirection(): ScrollDirection {
   return useSyncExternalStore(subscribe, snapshot, serverSnapshot);

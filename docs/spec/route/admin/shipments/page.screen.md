@@ -1,103 +1,107 @@
-# `/admin/shipments` 発送（画面要件）
+# `/admin/shipments` Shipping (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-支払いを終えてまだ発送していない注文を便ごとに確認して発送し、発送済みの注文を配達済みにする画面。
+A screen for checking paid but not yet shipped orders shipment by shipment and dispatching them, and for marking shipped orders as delivered.
 
-## 見せるもの
+## What It Shows
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 画面の名前と、何が並んでいるかの一文 |
-| 便 | 宛先と、その宛先へまとめてよい注文の並び |
-| 発送済み | 配達の確認を待っている注文の並び |
+| Heading | The screen's name, and one sentence on what is listed |
+| Shipments | The recipient, and the orders that may be grouped to that recipient |
+| Shipped | Orders awaiting delivery confirmation |
 
-**便は縦に積む。** 1 つの便が持つ注文の数はまちまちで、横に並べると高さの揃わない列ができる。
+**Shipments are stacked vertically.** The number of orders in a shipment varies, and laying them out horizontally creates columns of
+uneven height.
 
-**2 つの区画を 1 つの画面に置く。** どちらも同じ担当者が同じ時間に見るもので、注文は発送から配達へ
-続けて進む。画面を分けると、発送した直後の注文を見るために移動が要る。
+**Both regions sit on one screen.** Both are viewed by the same person at the same time, and orders proceed from dispatch straight to
+delivery. Splitting the screen would require navigating to see orders just shipped.
 
-**発送済みは便の下に置く。** 先に片付けるのは発送で、配達の確認は届いたという知らせを受けてから
-行う。順序を逆にすると、その日まず見る区画が下に来る。
+**Shipped sits below the shipments.** Dispatch is cleared first, and delivery confirmation happens after word of arrival comes in.
+Reversing the order puts the region looked at first each day at the bottom.
 
-## 便の見せ方
+## How Shipments Look
 
-| 行 | 内容 |
+| Row | Content |
 | --- | --- |
-| 見出し | 「宛先」と購入者の識別子 |
-| 注文 | 注文番号・注文日時・合計と、その 1 件を発送する操作 |
-| 末尾 | 便をまとめて発送する操作 |
+| Heading | 「宛先」 (recipient) and the buyer's identifier |
+| Order | Order number, order date and time, total, and the action that ships that one order |
+| End | The action that ships the whole shipment |
 
-**見出しに「宛先」と明示する。** 購入者も注文も識別子で表示されるため、並記すると同じ見た目の
-文字列が縦に続き、どれが便の鍵なのかが読み取れない。
+**The heading says 「宛先」 explicitly.** Buyers and orders are both shown by identifier, so listing them together makes similar-looking
+strings run down the page, and it cannot be read which one is the shipment's key.
 
-**購入者は識別子のまま出す。** 契約が呼び名を載せない（[`page.function.md`](page.function.md)）。
-便を見分けるのが目的なので、識別子で足りる。
+**The buyer is shown as the identifier.** The contract does not include a name ([`page.function.md`](page.function.md)). The purpose
+is to tell shipments apart, so the identifier is enough.
 
-**注文が 1 件しかない便では、まとめる操作を出さない。** 同じ 1 件を送る操作が 2 つ並ぶだけで、
-どちらを押すかを考えさせる。
+**A shipment with only one order does not show the group action.** It would only put two actions that send the same order side by
+side and make the user think about which to press.
 
-## 操作
+## Interaction
 
-**確認を挟まない。** 発送は流れ作業で、一日に何十件も押す。一つずつ確認を挟むと、確認を読まずに
-押す習慣を作るだけで、押し間違いは減らない。対象（宛先と注文）は押す前から画面に出ている。
+**No confirmation step.** Shipping is assembly-line work, pressed dozens of times a day. Inserting a confirmation for each only builds
+the habit of pressing without reading it and does not reduce mistaken presses. The target (recipient and orders) is on screen before
+pressing.
 
-**押しているあいだは押せなくする。** 二重送信を止めるのと、押した操作が進んでいることの表示を
-兼ねる（[0061](../../../../adr/0061-form-mutation-ux.md)）。
+**Disabled while pressing.** This both stops double submission and shows that the pressed action is in progress
+([0061](../../../../adr/0061-form-mutation-ux.md)).
 
-## 結果の出し方
+## How Results Are Shown
 
-結果は便ごとに出す。送信の単位が便なので、画面の一番上へまとめると、どの便の結果なのかが読み取れない。
+Results are shown per shipment. The submission unit is the shipment, so gathering results at the top of the screen would make it
+impossible to read which shipment a result belongs to.
 
-| 結果 | 出す文言 |
+| Result | Text shown |
 | --- | --- |
-| 全件が通った | 「N 件を発送しました。」 |
-| 一部が通った | 「N 件を発送しました。M 件はいまの状況では発送できませんでした。」 |
-| 1 件も通らなかった | 拒まれた理由（いまの状況では発送できないこと） |
+| All went through | 「N 件を発送しました。」 (shipped N orders) |
+| Some went through | 「N 件を発送しました。M 件はいまの状況では発送できませんでした。」 (shipped N; M could not be shipped in the current situation) |
+| None went through | The reason for rejection (that it cannot be shipped in the current situation) |
 
-**通った件数と通らなかった件数を両方出す。** 契約の発送は 1 件ずつなので、便をまとめると途中まで
-通ることがある。1 つの成否に畳むと、通った分がそのまま見えなくなる。
+**Show both the number that went through and the number that did not.** The contract's shipping is per order, so a grouped shipment
+can go through partway. Folding it into a single success or failure would hide what went through.
 
-**通った便は一覧から消える**（[`page.function.md`](page.function.md)）。全件が通った便は結果の文言
-ごと消えるが、便が消えたこと自体が通ったことを表している。一部だけ通った便は残るため、そこには
-件数の内訳が出る。
+**Shipments that went through disappear from the list** ([`page.function.md`](page.function.md)). A shipment where everything went
+through disappears along with its result text, but the shipment's disappearance itself shows it went through. A shipment where only
+some went through remains, and the breakdown of counts appears there.
 
-## 発送済みの見せ方
+## How Shipped Orders Look
 
-| 行 | 内容 |
+| Row | Content |
 | --- | --- |
-| 見出し | 「発送済み」 |
-| 注文 | 注文番号・注文日時・合計と、その 1 件を配達済みにする操作 |
+| Heading | 「発送済み」 (shipped) |
+| Order | Order number, order date and time, total, and the action that marks that one order as delivered |
 
-**まとめる操作を置かない。** 届いたかどうかは注文ごとに分かれる（[`page.function.md`](page.function.md)）。
-まとめて確認できる形にすると、確かめていないものまで確認済みにする経路ができる。
+**No group action.** Whether something arrived differs per order ([`page.function.md`](page.function.md)). A shape that allows batch
+confirmation creates a path to marking even unchecked orders as confirmed.
 
-**結果はこの区画に 1 つだけ出す。** 押した行の脇に出すと、行ごとに送信の状態を持つことになり、
-同じ操作が並ぶ数だけ状態が増えて、どれが最後の結果なのかが読み取れない。
+**Only one result is shown in this region.** Showing it beside the pressed row would mean holding submission state per row; the
+states multiply with the number of identical actions, and which result is the latest becomes unreadable.
 
-| 結果 | 出す文言 |
+| Result | Text shown |
 | --- | --- |
-| 通った | 「注文 &lt;注文番号&gt; を配達済みにしました。」 |
-| 通らなかった | 拒まれた理由（読み込んでからの間に、すでに確認されたこと） |
+| Went through | 「注文 &lt;注文番号&gt; を配達済みにしました。」 (marked order &lt;order number&gt; as delivered) |
+| Did not go through | The reason for rejection (it was already confirmed between loading and now) |
 
-**どの注文を確認したのかを書く。** 一覧は取り直しで消えるため、「確認しました」だけでは、押した行が
-消えたことしか手掛かりが残らない。
+**Write which order was confirmed.** The list disappears on refetch, so with only "confirmed" the sole remaining clue is that the
+pressed row vanished.
 
-**確認を待つ注文が無いときは、この区画の中でそう述べる。** 区画ごと消すと、配達の確認がこの画面に
-あること自体が読み取れなくなる。
+**When no orders await confirmation, say so inside this region.** Removing the whole region would make it unreadable that delivery
+confirmation exists on this screen at all.
 
-## 並べるものが無いとき
+## When there is nothing to list
 
-**どちらの区画も空のときだけ**「発送を待っている注文はありません。」とだけ出す。契約はこれを失敗では
-なく空の並びで返すので、画面もこれを平常として扱う。次の行き先は置かない（待つ以外にすることが無い）。
+**Only when both regions are empty**, show just 「発送を待っている注文はありません。」 (no orders are awaiting shipment). The contract
+returns this not as a failure but as an empty sequence, so the screen treats it as normal too. No next destination is placed (there is
+nothing to do but wait).
 
-片方だけが空なのは仕事が片付いた状態で、画面から何も無くなるわけではない。
+One region alone being empty is a state where the work is done; it does not mean the screen has nothing.
 
-## 待機
+## Loading
 
-出来上がりと同じ高さで便の枠だけを出す。スピナー 1 つで代用すると、描画された瞬間に高さが変わり、
-読み始めた位置が動く。
+Show only shipment frames at the same height as the finished result. Substituting a single spinner changes the height the moment
+content renders and moves the position where reading started.
 
-## 関連
+## Related
 
-- 実装 `src/features/admin/shipments/` — [README](../../../../../src/features/admin/shipments/README.md)
+- Implementation: `src/features/admin/shipments/` — [README](../../../../../src/features/admin/shipments/README.md)

@@ -30,11 +30,11 @@ test("トップから一覧へ入り、1 件の詳細まで辿り着く", async 
 test("絞り込みの条件が URL に残り、開き直しても同じ一覧になる", async ({ page }) => {
   await page.goto(`/products?keyword=${encodeURIComponent("鞄")}`);
 
-  await expect(page.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("鞄");
+  await expect(page.getByRole("searchbox", { name: "商品名・説明で探す" })).toHaveValue("鞄");
 
   await page.reload();
 
-  await expect(page.getByRole("searchbox", { name: "商品名で探す" })).toHaveValue("鞄");
+  await expect(page.getByRole("searchbox", { name: "商品名・説明で探す" })).toHaveValue("鞄");
 });
 
 test("脇に絞り込みを常設できる幅では、選んだ時点で一覧へ効く", async ({ page }) => {
@@ -44,15 +44,12 @@ test("脇に絞り込みを常設できる幅では、選んだ時点で一覧�
 
   await sidebar.getByRole("checkbox").first().check();
 
-  // 確定の操作を持たない。選ぶことがそのまま確定になる
-  // （`docs/rules.md`「レイアウトと帯」の「脇に常設する領域は `lg` 以上でだけ出す」）。
   await expect(page).toHaveURL(/categoryCodes=/);
   await expect(sidebar.getByRole("checkbox").first()).toBeChecked();
 });
 
 test("脇に領域を持てない幅では、overlay で組んだ条件が確定で一覧へ載る", async ({ page }) => {
-  // 脇に絞り込みを常設できない幅でだけ overlay が出る
-  // （`docs/rules.md`「レイアウトと帯」の「脇に常設する領域は `lg` 以上でだけ出す」）。
+  // 脇の領域を常設しない `lg` 未満の幅でだけ overlay が出る。
   await page.setViewportSize({ width: 720, height: 900 });
   await page.goto("/products");
 
@@ -69,8 +66,7 @@ test("脇に領域を持てない幅では、overlay で組んだ条件が確定
   await expect(page).toHaveURL(/categoryCodes=/);
   await expect(sheet).toBeHidden();
 
-  // overlay が積んだ 1 件は結果で差し替わる（`docs/rules.md`「UI 部品と操作」の「overlay の中から
-  // 遷移するときは閉じる操作を同時に撃たない」）。積み増すと、この戻る操作が 1 度空振りしてから
+  // overlay が積んだ 1 件は確定の結果で差し替わる。積み増すと、この戻る操作が 1 度空振りしてから
   // 条件が外れる。
   await page.goBack();
 

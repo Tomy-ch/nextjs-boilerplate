@@ -1,51 +1,51 @@
 # Avatar
 
-## 用途
+## Purpose
 
-利用者や組織を小さな円形で識別しやすくします。
+Makes users and organizations easier to identify with a small circle.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Avatar` | 画像と代替表示を切り替える client-side root です。`size` で表示サイズを選びます。 |
-| `AvatarImage` | 読み込みに成功したときだけ表示される画像です。 |
-| `AvatarFallback` | 画像が表示できないときの代替表示です。頭文字や icon を置きます。 |
-| `AvatarBadge` | avatar の右下へ重ねる小さな標識です。 |
-| `AvatarGroup` | 複数の avatar を少し重ねて並べます。 |
-| `AvatarGroupCount` | `AvatarGroup` の末尾に置く、表示しきれない人数の表示です。 |
+| `Avatar` | The client-side root that switches between the image and the fallback. `size` chooses the display size. |
+| `AvatarImage` | The image, shown only when loading succeeds. |
+| `AvatarFallback` | The fallback shown when the image cannot be displayed. Holds initials or an icon. |
+| `AvatarBadge` | A small indicator overlaid on the avatar's bottom right. |
+| `AvatarGroup` | Lays out several avatars slightly overlapping. |
+| `AvatarGroupCount` | Placed at the end of `AvatarGroup`, shows the number of people that could not be displayed. |
 
-`AVATAR_SIZE` は `avatar.definition.ts` が owner です。`default` / `sm` / `lg` の三値で、`AvatarGroupCount` の大きさは group 内の `size` に追従します。
+`AVATAR_SIZE` is owned by `avatar.definition.ts`. It has three values, `default` / `sm` / `lg`, and the size of `AvatarGroupCount` follows the `size` within the group.
 
-## 利用ケース
+## Use Cases
 
-一覧の行、マイページ、コメントや履歴の発言者など、人物や組織を繰り返し示す場面に使います。
+Used where people or organizations are shown repeatedly, such as list rows, a my-page screen, or the authors of comments and history entries.
 
-## MediaImage との使い分け
+## MediaImage vs This Component
 
-| | 使う場面 |
+| | Where to use |
 | --- | --- |
-| `Avatar` | 人物・組織の識別。円形に切り抜き、読み込み失敗時は頭文字などへ切り替える |
-| `MediaImage` | 内容としての画像。比率を固定し、読み込み中は Skeleton を出す |
+| `Avatar` | Identifying people and organizations. Cropped to a circle, switching to initials or similar when loading fails |
+| `MediaImage` | Images as content. Fixed aspect ratio, showing a Skeleton while loading |
 
-切り替えの有無が分かれ目です。`Avatar` は読み込み結果に応じて表示を差し替えるため hydration が必要な client island、`MediaImage` は差し替えを持たない SSR first の Server Component です。読み込み結果で表示を変えないなら `Avatar` を使いません。
+Whether it switches is the dividing line. `Avatar` replaces its display according to the load result, so it is a client island that needs hydration; `MediaImage` has no replacement and is an SSR-first Server Component. If the display does not change with the load result, do not use `Avatar`.
 
-## 責務境界
+## Responsibility Boundaries
 
-画像の取得元、代替表示の文字列（頭文字の作り方）、標識が示す状態、group に何人ぶん表示するかの判断は持ちません。いずれも呼び出し元が決めて props として渡します。
+It does not own the image source, the fallback string (how initials are made), the state the indicator shows, or the decision of how many people to show in a group. All are decided by the caller and passed as props.
 
-avatar そのものは識別の補助です。誰を指すかは隣接する氏名などの文言が伝えるので、avatar だけで人物を特定させる設計にしません。
+The avatar itself is an aid to identification. Who it refers to is conveyed by adjacent copy such as the person's name, so the design never relies on the avatar alone to identify a person.
 
-vendor は現在 Radix です。
+The vendor is currently Radix.
 
-## アクセシビリティ
+## Accessibility
 
-`alt` は呼び出し元が必ず指定します。隣に氏名を表示していて avatar が装飾に留まる場合は `alt=""` とし、avatar だけが人物を示す場合は誰かが分かる文言を渡します。`AvatarFallback` に `AvatarImage` の `alt` と同じ情報を書くと、切り替わった際に同じ情報が二重に伝わります。
+The caller must always specify `alt`. When the name is shown next to it and the avatar is merely decorative, use `alt=""`; when the avatar alone indicates the person, pass copy that tells who it is. Writing the same information as `AvatarImage`'s `alt` into `AvatarFallback` conveys the same information twice when it switches.
 
-`AvatarBadge` は色や点だけでは意味が伝わりません。状態を伝える必要がある場合は `sr-only` の文言を子に置くか、隣接する文言で補います。
+`AvatarBadge` conveys no meaning through color or a dot alone. When a state needs to be conveyed, put `sr-only` copy in its children or supplement it with adjacent copy.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は読み込み成功時、代替表示、サイズ一覧、標識つき、group と残数表示、avatar 単体で人物を示す場合を確認します。テストは読み込み前後の切り替え、読み込み失敗時に代替表示のままになること、空の `alt` で読み上げ対象から外れること、`size` の data 属性、標識と group の構成、a11y 自動検査を確認します。
+Storybook checks a successful load, the fallback, the list of sizes, with an indicator, a group with the remaining count, and the case where the avatar alone indicates the person. Tests check the switch before and after loading, that it stays on the fallback when loading fails, that an empty `alt` takes it out of screen reader output, the `size` data attribute, the composition of the indicator and group, and automated a11y checks.
 
-jsdom は画像を実際に取得しないため、テストでは `Image` を差し替えて読み込み結果だけを再現します。Radix は `addEventListener` と `complete` / `naturalWidth` で状態を判定するため、stub もその形に合わせます。実装から画像取得の依存を取り除く方向では対処しません。
+jsdom does not actually fetch images, so tests replace `Image` and reproduce only the load result. Radix decides the state with `addEventListener` and `complete` / `naturalWidth`, so the stub matches that shape. This is not addressed by removing the image-fetching dependency from the implementation.

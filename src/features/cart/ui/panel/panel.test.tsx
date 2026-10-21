@@ -34,7 +34,7 @@ function NotifyButton() {
 }
 
 // 中身は `next/dynamic` で読まれる。先に解決しておかないと、要素を待つ時間の中に module の
-// 読み込みが入る（`docs/testing-conventions.md`「`next/dynamic` を含む木を描くとき」）。
+// 読み込みが入る（`docs/testing-conventions.md#rendering-a-tree-that-contains-nextdynamic`）。
 beforeAll(async () => {
   await import("../contents/contents");
 });
@@ -64,13 +64,13 @@ describe("CartPanel", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("閉じる操作で要求を下ろす", async () => {
+  it("閉じる操作で枠ごと閉じる", async () => {
     const user = userEvent.setup();
 
     render(<CartPanel cart={CART} />);
     await user.click(screen.getByRole("button", { name: "カートを閉じる" }));
 
-    expect(useCartStore.getState().isOpen).toBe(false);
+    expect(screen.queryByRole("complementary", { name: "カート" })).not.toBeInTheDocument();
   });
 
   it("脇に置けない幅では出さない", () => {

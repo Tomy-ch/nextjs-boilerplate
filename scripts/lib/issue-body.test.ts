@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { composeIssueBody, drawModelProse } from "./issue-body";
+import { composeIssueBody, drawModelProse, drawToolOutputInline } from "./issue-body";
 
 describe("composeIssueBody", () => {
   // ----- 正常系 -----
@@ -134,5 +134,31 @@ describe("drawModelProse", () => {
     expect(drawModelProse("https://github.com/o/r/commit/abc1234")).toBe(
       "https://github.com/o/r/commit/abc1234",
     );
+  });
+});
+
+describe("drawToolOutputInline", () => {
+  // ----- 正常系 -----
+  it("1 行のコードスパンにする", () => {
+    expect(drawToolOutputInline("a > b")).toBe("`a > b`");
+  });
+
+  it("改行を潰して行から溢れさせない", () => {
+    expect(drawToolOutputInline("先頭\n\n## 偽の見出し")).toBe("`先頭 ## 偽の見出し`");
+  });
+
+  it("中身より長いバッククォートで囲む", () => {
+    expect(drawToolOutputInline("``` 閉じる ```")).toBe("```` ``` 閉じる ``` ````");
+  });
+
+  it("mention と偽のリンクをコードスパンの中へ閉じる", () => {
+    expect(drawToolOutputInline("@someone [偽](https://github.com/o/r/issues/1)")).toBe(
+      "`@someone [偽](https://github.com/o/r/issues/1)`",
+    );
+  });
+
+  // ----- 異常系 -----
+  it("空の値でも空のスパンにしない", () => {
+    expect(drawToolOutputInline("   ")).toBe("`(空)`");
   });
 });

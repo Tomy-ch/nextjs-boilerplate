@@ -32,6 +32,8 @@ export type ProductKeywordFieldProps = {
  * **空のまま押せるのは、いま検索語が効いているときだけです。** 効いている検索語を消すには空の
  * 送信が要る一方、何も効いていない状態での送信は結果が変わりません。押しても何も起きない操作を
  * 残すと、反応が無いのか結果が同じなのかを利用者から区別できません。
+ *
+ * @param props - いま一覧に効いている条件。
  */
 export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
   "use memo";
@@ -51,10 +53,10 @@ export function ProductKeywordField({ selection }: ProductKeywordFieldProps) {
     <SearchFieldClient
       className="max-w-xs flex-1"
       commit={SEARCH_FIELD_COMMIT.SUBMIT}
-      label="商品名で探す"
+      label="商品名・説明で探す"
       onSearch={apply}
       onValueChange={setKeyword}
-      placeholder="商品名で探す"
+      placeholder="商品名・説明で探す"
       submitDisabled={keyword === "" && toSelectedValue(selection, FILTER_KEY.KEYWORD) === ""}
       value={keyword}
     />

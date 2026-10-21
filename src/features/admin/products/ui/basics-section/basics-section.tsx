@@ -31,6 +31,8 @@ export type ProductBasicsSectionProps = {
  *
  * 価格を数値の入力欄にしないのは、サブセントまでの十進を文字列のまま運ぶためです。数値として
  * 扱うと丸めが入り、送る前に精度が落ちます。
+ *
+ * @param props - 選べる分類・入力の状態と操作・在庫数欄の要否。
  */
 export function ProductBasicsSection({
   categoryOptions,

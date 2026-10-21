@@ -42,6 +42,9 @@ export type RowActionsMenuProps<Row> = {
  * 面を作らないためで、行によって操作の有無が変わる一覧（すでに済んでいる行など）では `actions`
  * が空を返すのが自然な表し方になる。
  *
+ * @typeParam Row - 1 行が表す値の型。
+ * @param props - 操作の対象となる行と、その行に提供する操作の組み立て方。
+ *
  * @see Storybook `Sugar/Table/RowActions`
  */
 export function RowActionsMenu<Row>({ actions, row, triggerLabel }: RowActionsMenuProps<Row>) {
@@ -93,13 +96,25 @@ export function RowActionsMenu<Row>({ actions, row, triggerLabel }: RowActionsMe
 export type RowActionsColumnOptions<Row> = {
   /** 行に対して提供する操作を組み立てる。 */
   actions: (row: Row) => readonly RowAction[];
-  /** 読み上げ用の列見出し。視覚的には隠す。 */
+  /**
+   * 読み上げ用の列見出し。視覚的には隠す。
+   *
+   * @defaultValue "操作"
+   */
   header?: ReactNode;
-  /** 列の識別子。 */
+  /**
+   * 列の識別子。
+   *
+   * @defaultValue "row-actions"
+   */
   id?: string;
   /** trigger のアクセシブルな名前。 */
   triggerLabel: (row: Row) => string;
-  /** 列幅。 */
+  /**
+   * 列幅。
+   *
+   * @defaultValue "3rem"
+   */
   width?: CSSProperties["width"];
 };
 
@@ -129,6 +144,10 @@ export type RowActionsColumnOptions<Row> = {
  *
  * <StaticDataTable columns={[...columns, actions]} getRowKey={(user) => user.id} rows={users} />
  * ```
+ *
+ * @typeParam Row - 1 行が表す値の型。
+ * @param options - 操作の組み立て方と、列の見た目。
+ * @returns `StaticDataTable` へ渡す操作列の定義。
  *
  * @see Storybook `Sugar/Table/RowActions`
  */

@@ -1,23 +1,23 @@
 # CheckboxNative
 
-## 用途
+## Purpose
 
-二値の同意・設定・複数選択を native form として送信します。
+Submits a binary consent, setting or multiple selection as a native form.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `CheckboxNative` | native `input[type="checkbox"]` を保持した、SSR first の checkbox です。form の値として送信できます。 |
+| `CheckboxNative` | An SSR-first checkbox that keeps the native `input[type="checkbox"]`. It can be submitted as a form value. |
 
-## 利用ケース
+## Use Cases
 
-通常の checkbox 入力に `name` と `value` を与えて使います。
+Use it for ordinary checkbox input, giving it `name` and `value`.
 
-## 責務境界
+## Responsibility Boundaries
 
-indeterminate や custom interaction は持ちません。それらが必要な場合だけ `CheckboxClient` を検討します。
+It has no indeterminate state or custom interaction. Consider `CheckboxClient` only when those are needed.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常・checked・disabled・invalid を、テストは form 属性・選択操作・a11y を確認します。
+Storybook checks normal, checked, disabled and invalid; the tests check the form attributes, selection and a11y.

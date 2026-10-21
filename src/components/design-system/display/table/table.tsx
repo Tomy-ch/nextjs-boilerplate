@@ -28,10 +28,6 @@ type TableProps = ComponentProps<"table"> & {
  * 包んだ領域は keyboard だけで横へ送れるよう focus を受け取るため、**`label` で名前を与える**。
  * 名前が無いと、focus したときに何の領域へ入ったのかが判らない。`TableCaption` と同じ語を渡す。
  *
- * 端まで来たらスクロールを外側へ渡す。`ScrollArea` の既定は内側で止める指定だが、表は本文の
- * 途中に置かれるものであり、上端で止まると**表の上に指を置いている間だけページが動かない**
- * 状態になる。内側で止める必要があるのは、独立した面として重なる領域だけである。
- *
  * 取得・並べ替え・filter・pagination・行ごとの操作・業務型は持たない。これらは feature が
  * この部品を合成して実装する。列定義から表の骨格を展開したい場合は `sugar/table` を使う。
  *
@@ -70,6 +66,8 @@ function Table({ className, containerClassName, label, ...props }: TableProps) {
   return (
     <ScrollArea
       aria-label={label}
+      // `ScrollArea` の既定は内側でスクロールを止める指定だが、表は本文の途中に置かれるため、端まで
+      // 来たら外側へ渡す。`overscroll-auto` が無いと、表の上に指を置いている間だけページが動かなくなる。
       className={cn("relative w-full overscroll-auto", containerClassName)}
       data-slot="table-container"
       orientation="horizontal"
@@ -91,6 +89,7 @@ function Table({ className, containerClassName, label, ...props }: TableProps) {
  * `scope="col"` が伝えるため、呼び出し元が指定する。
  *
  * @param props - native `thead` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableHeader({ className, ...props }: ComponentProps<"thead">) {
@@ -101,6 +100,7 @@ function TableHeader({ className, ...props }: ComponentProps<"thead">) {
  * 表の主なデータ行を置く領域。
  *
  * @param props - native `tbody` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableBody({ className, ...props }: ComponentProps<"tbody">) {
@@ -121,6 +121,7 @@ function TableBody({ className, ...props }: ComponentProps<"tbody">) {
  * `scope="row"` 付きで置く。
  *
  * @param props - native `tfoot` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
@@ -141,6 +142,7 @@ function TableFooter({ className, ...props }: ComponentProps<"tfoot">) {
  * どの行が選択中かは呼び出し元が決める。
  *
  * @param props - native `tr` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableRow({ className, ...props }: ComponentProps<"tr">) {
@@ -166,6 +168,7 @@ function TableRow({ className, ...props }: ComponentProps<"tr">) {
  * 内容は既定で折り返さない。長い見出しを折り返す場合は `className="whitespace-normal"` を渡す。
  *
  * @param props - native `th` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableHead({ className, ...props }: ComponentProps<"th">) {
@@ -188,6 +191,7 @@ function TableHead({ className, ...props }: ComponentProps<"th">) {
  * 折り返しは {@link TableHead} と同じで、既定では折り返さない。複数の列や行にまたがる場合は native の `colSpan` / `rowSpan` を渡す。
  *
  * @param props - native `td` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableCell({ className, ...props }: ComponentProps<"td">) {
@@ -211,6 +215,7 @@ function TableCell({ className, ...props }: ComponentProps<"td">) {
  * 読まれるため、`Table` の最初の子として置く。
  *
  * @param props - native `caption` 属性。
+ *
  * @see Storybook `Display/Table`
  */
 function TableCaption({ className, ...props }: ComponentProps<"caption">) {

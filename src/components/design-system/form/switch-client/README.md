@@ -1,49 +1,49 @@
 # SwitchClient
 
-## 用途
+## Purpose
 
-設定の入り / 切りを切り替え、結果を即座に画面へ反映します。
+Toggles a setting on / off and reflects the result on screen immediately.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `SwitchClient` | 切り替えを React state として扱う client island の switch です。 |
+| `SwitchClient` | A client island switch that handles toggling as React state. |
 
-表示サイズの定数 `SWITCH_SIZE` は [`switch-native`](../switch-native/README.md) が owner です。native と client で見た目が揃わないと、同じ画面に両方が現れたときに別部品に見えるため、値を共有します。
+The display size constant `SWITCH_SIZE` is owned by [`switch-native`](../switch-native/README.md). If native and client did not look the same, they would look like different components when both appear on one screen, so the values are shared.
 
-## 利用ケース
+## Use Cases
 
-切り替えた結果をその場で反映する設定、楽観更新して失敗時に元へ戻す操作、複数の switch を互いに同期させる場面に使います。
+Use it for settings whose toggled result is reflected on the spot, for operations that update optimistically and revert on failure, and for keeping several switches in sync with each other.
 
-## SwitchNative との使い分け
+## SwitchNative vs This Component
 
-hydration の要否が分かれ目です。form 送信と初期表示だけで足りるなら SSR first の [`SwitchNative`](../switch-native/README.md) を使います。この部品を選ぶのは、browser state が必要な要件が確定した場合に限ります。
+Whether hydration is needed is the dividing line. If form submission and the initial render are enough, use the SSR-first [`SwitchNative`](../switch-native/README.md). Choose this component only once a requirement that needs browser state is settled.
 
-もう一つの違いは読み上げです。この部品は Radix が `role="switch"` と `aria-checked` を状態と対応させて付与するため、支援技術へ「入り / 切り」として伝わります。`SwitchNative` は uncontrolled な native input なので `aria-checked` を同期できず、checkbox として読み上げられます。支援技術へ switch として伝えることが要件なら、この部品を選びます。
+The other difference is screen reading. In this component Radix sets `role="switch"` and `aria-checked` in step with the state, so assistive technology hears it as "on / off". `SwitchNative` is an uncontrolled native input, so it cannot keep `aria-checked` in sync and is read out as a checkbox. If conveying it to assistive technology as a switch is a requirement, choose this component.
 
-## Toggle との使い分け
+## Toggle vs This Component
 
-見た目が似ていても責務が違います。分かれ目は「**設定を変えるのか、今の見え方を変えるのか**」です。
+They may look alike, but their responsibilities differ. The dividing line is "**does it change a setting, or the current way things look**".
 
 | | `Switch` | `Toggle` |
 | --- | --- | --- |
-| 意味論 | `checkbox` / `switch` | `button` + `aria-pressed` |
-| 表すもの | 設定の入り / 切り（通知を受け取る、公開する） | 表示の適用状態（今この見え方になっている） |
-| 送信値 | **持つ**（form の値になる） | 持たない（操作ボタン） |
-| 効き方 | 保存して永続する | その画面の見せ方を変える |
-| 例 | 通知の受け取り、公開 / 非公開 | 表示密度、折り返しの有無 |
+| Semantics | `checkbox` / `switch` | `button` + `aria-pressed` |
+| What it represents | A setting's on / off (receive notifications, publish) | The applied display state (things currently look this way) |
+| Submitted value | **Has one** (becomes a form value) | None (an action button) |
+| Effect | Saved and persisted | Changes how that screen looks |
+| Examples | Receiving notifications, public / private | Display density, whether to wrap |
 
-保存されて次に開いたときも残るなら `Switch`、その場の見え方だけなら [`Toggle`](../../action/toggle/README.md) です。排他や複数選択の切り替え群になる場合は `ToggleGroup` を使います。
+If it is saved and still there the next time it is opened, use `Switch`; if it only affects how things look right now, use [`Toggle`](../../action/toggle/README.md). For a group of toggles with exclusive or multiple selection, use `ToggleGroup`.
 
-## 責務境界
+## Responsibility Boundaries
 
-切り替えの結果をどう保存するか、失敗時にどう戻すかは持ちません。`checked` / `onCheckedChange` を通じて呼び出し元が扱います。ラベルも持たないため、何の設定かは `Label` などで関連付けます。
+It does not own how the toggled result is saved or how it reverts on failure. The caller handles them through `checked` / `onCheckedChange`. It has no label either, so associate what the setting is with `Label` or similar.
 
-Server Component からは直接 render できません。`role="switch"` は Radix が付与します。
+It cannot be rendered directly from a Server Component. Radix sets `role="switch"`.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API contains no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は切り替え結果の即時反映、disabled、表示サイズ、複数 switch の同期を確認します。テストは `switch` として読み上げられること、操作が state として扱われ結果が反映されること、disabled、`size` の data 属性が `SwitchNative` と同じ既定値になること、a11y 自動検査を確認します。
+Storybook checks immediate reflection of the toggled result, disabled, display sizes and keeping several switches in sync. The tests check that it is read out as a `switch`, that interaction is handled as state and the result reflected, disabled, that the `size` data attribute has the same default as `SwitchNative`, and the automated a11y check.

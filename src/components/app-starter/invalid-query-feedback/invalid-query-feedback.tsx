@@ -24,10 +24,12 @@ export type InvalidQueryFeedbackProps = {
  *
  * @remarks
  * **本体の代わりに出します。** 出すかどうかを決めるのは呼び出し元で、持たないもの（キーの呼び名・
- * 戻り先）とその理由は `README.md`「責務境界」。
+ * 戻り先）とその理由は `README.md#responsibility-boundaries`。
  *
  * **直せる導線を必ず添えます。** 条件は URL に入っており、画面の操作だけでは戻せない状態になり得る
  * ためです。
+ *
+ * @param props - 出せない理由の文言と、条件を外す導線。
  *
  * @see Storybook `Feedback/InvalidQueryFeedback`
  */

@@ -26,8 +26,8 @@ const HEALTH_PATH = "/api/health";
 const STOPPED_PATH = "/help";
 
 // 同意を尋ねる面はこの画面も覆い、周囲を `aria-hidden` にする。作らないと見出しを役割で引けない。
-// `lib/test.ts` を使う spec は同じ状態を fixture から受け取る（`e2e/README.md`「同意は選び終えた
-// 状態から始める」）。
+// `lib/test.ts` を使う spec は同じ状態を fixture から受け取る
+// （[`e2e/README.md`](../README.md#consent-starts-already-chosen)）。
 test.beforeEach(async ({ context, baseURL }) => {
   await context.addCookies([
     {

@@ -9,7 +9,7 @@ import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
 import { AnalyticsView } from "./view";
 
-function renderView(query: DashboardPeriodSelection, window?: { from: string; to: string }) {
+function renderView(query?: DashboardPeriodSelection, window?: { from: string; to: string }) {
   return render(
     <AnalyticsView
       query={query}
@@ -51,6 +51,14 @@ describe("AnalyticsView", () => {
     expect(screen.getByRole("link", { name: "今日" })).toHaveAttribute("aria-current", "page");
   });
 
+  it("条件が渡されなければ、どの選択肢も現在地にしない", () => {
+    renderView();
+
+    expect(screen.getByRole("link", { name: "今日" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "今月" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "期間を指定" })).not.toHaveAttribute("aria-current");
+  });
+
   it("選ばれている期間だけに現在地を示す", () => {
     renderView({ period: DASHBOARD_PERIOD.MONTH });
 
@@ -74,6 +82,15 @@ describe("AnalyticsView", () => {
 
     expect(screen.getByLabelText(/開始日/)).toHaveValue("2026-08-01");
     expect(screen.getByLabelText(/終了日/)).toHaveValue("2026-08-19");
+  });
+
+  it("条件が渡されなければ、overlay の日付を空のまま開く", async () => {
+    renderView();
+
+    await userEvent.click(screen.getByRole("button", { name: "期間を指定" }));
+
+    expect(screen.getByLabelText(/開始日/)).toHaveValue("");
+    expect(screen.getByLabelText(/終了日/)).toHaveValue("");
   });
 
   it("対象の暦日が決まっていなければその旨を出す", () => {

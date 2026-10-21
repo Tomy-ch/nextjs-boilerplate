@@ -18,12 +18,22 @@ vi.mock("../../../actions", () => ({ cancelPurchaseAction, payPurchaseAction }))
 import { PURCHASE_DETAIL } from "../../../facade/purchase.fixture";
 import { PurchaseTransitions } from "./transitions";
 
-/** その状況の購入。個々のケースは状況だけを差し替える。 */
+/**
+ * その状況の購入。個々のケースは状況だけを差し替える。
+ *
+ * @param statusCode - 差し替えたいステータスの業務キー。
+ * @returns 差し替えた購入。
+ */
 function purchaseWith(statusCode: number) {
   return { ...PURCHASE_DETAIL, statusCode };
 }
 
-/** 確認を開いて、その中の実行操作まで押す。 */
+/**
+ * 確認を開いて、その中の実行操作まで押す。
+ *
+ * @param user - `userEvent.setup()` が返す操作主体。
+ * @param label - 開く操作と確認の中の実行操作、両方の表示名。
+ */
 async function submit(user: ReturnType<typeof userEvent.setup>, label: string) {
   await user.click(screen.getByRole("button", { name: label }));
 

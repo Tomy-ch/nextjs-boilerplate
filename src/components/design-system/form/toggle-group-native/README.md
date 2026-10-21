@@ -1,52 +1,52 @@
 # ToggleGroupNative
 
-## 用途
+## Purpose
 
-関連する切り替えを 1 つの集合として並べ、選んだ値を form として送信します。表示通貨やランキング期間のように、選択肢が横に並ぶ切り替え群に使います。
+Lays out related toggles as one set and submits the chosen value as a form. Use it for a group of toggles whose choices sit side by side, such as display currency or ranking period.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ToggleGroupNative` | 集合を表す `fieldset` です。`aria-label` で何の切り替えかを示します。 |
-| `ToggleGroupNativeItem` | 集合の中の 1 項目です。実体は視覚的に隠した native input と、それを映す `label` です。 |
+| `ToggleGroupNative` | The `fieldset` representing the set. `aria-label` states what it toggles. |
+| `ToggleGroupNativeItem` | One item in the set. The actual element is a visually hidden native input and the `label` that reflects it. |
 
-## 利用ケース
+## Use Cases
 
-- 表示通貨・ランキング期間のような、form として送る排他選択
-- 表示する列のような、form として送る複数選択
+- An exclusive selection sent as a form, such as display currency or ranking period
+- A multiple selection sent as a form, such as which columns to show
 
-URL にも form にも載せない即時の表示切替には `ToggleGroupClient` を使います。
+For an immediate display switch that goes neither into the URL nor into a form, use `ToggleGroupClient`.
 
-## ToggleGroupClient との使い分け
+## ToggleGroupClient vs This Component
 
 | | `ToggleGroupNative` | `ToggleGroupClient` |
 | --- | --- | --- |
-| 実体 | native の radio / checkbox | button（Radix） |
-| form の値 | **そのまま送信される** | 持たない |
-| hydration | 不要 | 必要 |
-| 項目間の移動 | browser 標準（radio は矢印キー） | roving tabindex（Radix） |
+| Actual element | native radio / checkbox | button (Radix) |
+| Form value | **Submitted as is** | None |
+| hydration | Not needed | Needed |
+| Moving between items | browser standard (arrow keys for radio) | roving tabindex (Radix) |
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `○` に当たります。項目が native の radio / checkbox なので、選択は form の値としてそのまま送信され、初期表示も Server 側で確定します。client runtime を必要としません。
+In the SSR-first selection it is `○`. The items are native radio / checkbox, so the selection is submitted as a form value as is, and the initial render is also settled on the server side. It needs no client runtime.
 
-排他選択は項目を `type="radio"`、複数選択は `type="checkbox"` にし、集合内で同じ `name` を与えます。選択肢どうしの移動は browser の標準動作に従います。
+For exclusive selection make the items `type="radio"`, for multiple selection `type="checkbox"`, and give them the same `name` within the set. Moving between choices follows the browser's standard behavior.
 
-`fieldset` として公開されるため、`aria-label` か `aria-labelledby` で**何の切り替えかを必ず示します**。`legend` を置く場合はそちらが名前になります。
+It is exposed as a `fieldset`, so **always state what it toggles** with `aria-label` or `aria-labelledby`. When a `legend` is placed, that becomes the name.
 
-送信後の処理、URL の組み立て、選択の永続化は持ちません。
+It owns no handling after submission, building of URLs or persistence of the selection.
 
-### 隠した input の扱い
+### Handling the hidden input
 
-項目は `label` を表示要素にし、その中の input を `sr-only` で視覚的にだけ隠しています。`display: none` や `aria-hidden` では支援技術からも keyboard からも到達できなくなるため使いません。focus は input が受け取り、見た目は `label` が `has-[:checked]` / `has-[:focus-visible]` で追従します。
+Each item makes the `label` the visible element and hides the input inside it only visually with `sr-only`. `display: none` and `aria-hidden` are not used because they make it unreachable from both assistive technology and the keyboard. The input receives focus, and the `label` follows its look with `has-[:checked]` / `has-[:focus-visible]`.
 
-選択中の面と大きさは `toggleVariants` を共有しているため `Toggle` と揃います。隣接する項目は境界を重ね、角丸は両端だけに付けてひと続きの segmented control に見せます。
+The selected surface and sizes share `toggleVariants`, so they match `Toggle`. Adjacent items overlap their borders, and rounded corners go only on the two ends, so it looks like one continuous segmented control.
 
-`RadioGroupNative` とは意味論が同じで見た目だけが違います。ドット付きの縦並びなら `RadioGroupNative`、押下面の横並びならこちらを使います。
+It has the same semantics as `RadioGroupNative` and differs only in look. Use `RadioGroupNative` for a vertical list with dots, and this one for pressable surfaces side by side.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は排他選択、複数選択、`outline` variant、大きさ 3 段階、選べない項目を含む場合、native form に載せる場合を確認します。
+Storybook checks exclusive selection, multiple selection, the `outline` variant, three sizes, a case that includes unselectable items, and placement in a native form.
 
-テストは名前を持つ `group` として公開されること、排他選択が radio・複数選択が checkbox になること、`name` / `value` を native 属性として持つこと、排他的な切り替えと複数同時選択、隠した input が支援技術と keyboard から到達できること、disabled、選択中の面と大きさが `Toggle` と同じ token であること、a11y 自動検査を確認します。
+The tests check that it is exposed as a named `group`, that exclusive selection becomes radio and multiple selection checkbox, that it has `name` / `value` as native attributes, exclusive toggling and simultaneous multiple selection, that the hidden input is reachable from assistive technology and the keyboard, disabled, that the selected surface and sizes are the same tokens as `Toggle`, and the automated a11y check.

@@ -8,6 +8,7 @@ import {
 } from "@/components/design-system/display/card/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/design-system/status/alert/alert";
 import type { SafeReturnUrl } from "@/model/return-url";
+import { withScreenSpan } from "@/observability/render-span";
 
 import { LOGIN_NOTICE, type LoginNotice } from "./facade/login-notice";
 
@@ -20,16 +21,15 @@ const NOTICE_TEXT = {
 } as const satisfies Readonly<Record<LoginNotice, { title: string; description: string }>>;
 
 /**
- * 画面の説明。
+ * 画面の説明。折り返しが半角空白として描かれないよう、1 つの文字列へ結合して渡す。
  *
  * @remarks
- * JSX の本文へ直に書くと、行の折り返しがそのまま半角空白として描画されます。和文では語の
- * 途中に空白が入って見えるため、結合した 1 つの文字列を渡します。
+ * JSX の本文へ直に書くと、和文では語の途中に空白が入って見えます。
  */
 const DESCRIPTION = [
   "操作を続けるには認証が必要です。",
   "認証はこのアプリの外にある認証基盤で行い、済むと元の操作に戻ります。",
-  "この画面ではアカウントを作らず、初めての方も認証を済ませてから登録へ進みます。",
+  "この画面ではアカウントを作りません。初めての方も、まず認証を済ませてください。",
 ].join("");
 
 /** `LoginView` の props。 */
@@ -53,16 +53,11 @@ export type LoginViewProps = {
 };
 
 /**
- * ログイン画面。
+ * 資格情報を受け取らず、認証基盤の画面へ送り出すログインの器。
  *
  * @remarks
- * **いまは資格情報の入力欄を持たず、認証基盤の画面へ送り出します。** 既定の Resolver が
+ * 入力欄を持たないのは、既定の Resolver が
  * federation（連携先での認可）の形を採っており、借り物の画面へ渡す経路になっているためです。
- *
- * **目標は所有画面です。** `/login` が資格情報の入力面を所有し、検証だけをバックエンドへ
- * 中継する —— 利用者が見知らぬドメインへ着地しない 1 本の導線にします。**実装はまだそこへ
- * 届いていません。** 入力欄を足すときも、このリポジトリが資格情報を検証・保持しないことは
- * 変わりません。
  *
  * 説明と案内の文言の方針は[画面要件](../../../docs/spec/route/auth/login/page.screen.md)。
  *
@@ -73,8 +68,9 @@ export type LoginViewProps = {
  * **面の見出しを `h1` として描きます。** `CardTitle` は見た目だけを持つので、文書構造上の見出しは
  * 呼び出し元が子として渡します。この画面は `PageHeader` を持たないため、ここが唯一の h1 です。
  */
-export function LoginView({ returnUrl, notice }: LoginViewProps) {
-  return (
+export const LoginView = withScreenSpan(
+  "features/auth/login-view",
+  ({ returnUrl, notice }: LoginViewProps) => (
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-sm">
         <CardHeader>
@@ -101,5 +97,5 @@ export function LoginView({ returnUrl, notice }: LoginViewProps) {
         </CardContent>
       </Card>
     </div>
-  );
-}
+  ),
+);

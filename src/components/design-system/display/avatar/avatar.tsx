@@ -18,7 +18,6 @@ import { AVATAR_SIZE, type AvatarSize } from "./avatar.definition";
  * 人物を特定させる設計にしない。
  *
  * @param props - Radix `Avatar.Root` の props。
- * @param props.size - 表示サイズ。{@link AVATAR_SIZE} のいずれか。
  *
  * @see Storybook `Display/Avatar`
  */
@@ -27,6 +26,11 @@ function Avatar({
   size = AVATAR_SIZE.DEFAULT,
   ...props
 }: ComponentProps<typeof AvatarPrimitive.Root> & {
+  /**
+   * 表示サイズ。{@link AVATAR_SIZE} のいずれか。
+   *
+   * @defaultValue `AVATAR_SIZE.DEFAULT`
+   */
   size?: AvatarSize;
 }) {
   return (

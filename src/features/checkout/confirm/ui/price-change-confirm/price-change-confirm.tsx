@@ -13,13 +13,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
+import { CART_PATH } from "@/features/cart/facade/paths/paths";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
-import { CART_PATH } from "../../../paths";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
-/** `PriceChangeConfirm` の props。 */
+/** {@link PriceChangeConfirm} の props。 */
 export type PriceChangeConfirmProps = {
   /** 確定できる明細があるか。無ければ押せない。 */
   orderable: boolean;
@@ -50,6 +50,8 @@ const FIX_CART_LABEL = "カートを修正する";
  *
  * カートへ移る導線は置き換えで移ります。被せている間の履歴 1 件は現在地の複製で、戻り先として
  * 残すと戻る操作が 1 回空回りします。
+ *
+ * @param props - {@link PriceChangeConfirmProps}。
  */
 export function PriceChangeConfirm({ orderable, changedNames }: PriceChangeConfirmProps) {
   const { formAction, idempotencyKey } = usePlaceOrderState();

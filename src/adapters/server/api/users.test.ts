@@ -6,24 +6,35 @@ import { toUserId } from "@/model/user/user";
 import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup.msw";
 import { getUsersQueryPerPageMax } from "../../gen/api/endpoints.zod";
 
-const { getAccessToken, getEnvironment, getLogger, signOut, verifySession, warn } = vi.hoisted(
-  () => {
-    const warnFn = vi.fn();
+const {
+  getAccessToken,
+  getEnvironment,
+  getLogger,
+  signOut,
+  taintObjectReference,
+  verifySession,
+  warn,
+} = vi.hoisted(() => {
+  const warnFn = vi.fn();
 
-    return {
-      getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
-      getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
-      getLogger: vi.fn(() => ({ warn: warnFn })),
-      signOut: vi.fn(async (): Promise<string | null> => null),
-      verifySession: vi.fn(),
-      warn: warnFn,
-    };
-  },
-);
+  return {
+    getAccessToken: vi.fn(async (): Promise<string | null> => "access-token"),
+    getEnvironment: vi.fn(() => PARSED_ENVIRONMENT),
+    getLogger: vi.fn(() => ({ warn: warnFn })),
+    signOut: vi.fn(async (): Promise<string | null> => null),
+    taintObjectReference: vi.fn(),
+    verifySession: vi.fn(),
+    warn: warnFn,
+  };
+});
 
 vi.mock("@/config/environment", () => ({ getEnvironment }));
-vi.mock("@/logging/logging.server", () => ({ getLogger }));
+vi.mock("@/logging/logging.server", () => ({
+  getLogger,
+  reportQuietly: (run: () => void) => run(),
+}));
 vi.mock("../auth/session", () => ({ getAccessToken, signOut, verifySession }));
+vi.mock("../taint/taint", () => ({ taintObjectReference }));
 
 import {
   findMyProfile,
@@ -114,6 +125,7 @@ beforeEach(() => {
   signOut.mockResolvedValue(null);
   verifySession.mockReset();
   verifySession.mockResolvedValue({ userId: "subject", role: "user", expiresAt: new Date() });
+  taintObjectReference.mockReset();
   warn.mockReset();
 });
 
@@ -135,6 +147,15 @@ describe("getMyProfile", () => {
     serveJson(ME_URL, wireUser);
 
     await expect(getMyProfile()).resolves.not.toHaveProperty("deletedAt");
+  });
+
+  it("写したプロフィールを client へ渡せないものとして登録する", async () => {
+    serveJson(ME_URL, wireUser);
+
+    const result = await getMyProfile();
+
+    expect(taintObjectReference).toHaveBeenCalledTimes(1);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), result);
   });
 
   it("建物名の無い利用者の建物名を null にする", async () => {
@@ -245,6 +266,16 @@ describe("updateMyProfile", () => {
     await expect(updateMyProfile({ ...profile, city: "港区" })).resolves.toMatchObject({
       city: "港区",
     });
+  });
+
+  it("更新後のプロフィールを client へ渡せないものとして登録する", async () => {
+    serveJson(ME_URL, wireUser);
+    serveWrite("put", USER_URL, wireUser);
+
+    const result = await updateMyProfile(profile);
+
+    expect(taintObjectReference).toHaveBeenCalledTimes(1);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), result);
   });
 
   it("自分の識別子を解決してから対象の口を PUT で叩く", async () => {
@@ -464,6 +495,21 @@ describe("getManagedUserPage", () => {
       perPage: 20,
       offset: 20,
     });
+  });
+
+  it("写し終えた利用者を 1 件ずつ client へ渡せないものとして登録する", async () => {
+    serveJson(USERS_URL, {
+      users: [wireUser, { ...wireUser, id: "0195f0c2-0000-7000-8000-0000000000a2" }],
+      total: 2,
+      limit: 20,
+      offset: 0,
+    });
+
+    const page = await getManagedUserPage({ page: 1, perPage: PER_PAGE });
+
+    expect(taintObjectReference).toHaveBeenCalledTimes(2);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), page.items[0]);
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), page.items[1]);
   });
 
   it("ページ番号と 1 ページの件数をクエリへ載せる", async () => {

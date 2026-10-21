@@ -11,7 +11,7 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
 import { toFilterOptions } from "./filter-option";
 import { ADMIN_PRODUCT_PAGE_SIZE } from "./page-size";
 import { CURSOR_KEY, FILTER_KEY, FILTER_KEY_LABEL } from "./query";
-import { toAdminProductListLocation } from "./read-location";
+import { readDiscontinuedSpelling, toAdminProductListLocation } from "./read-location";
 import { AdminProductListResults } from "./results";
 import { AdminProductListSkeleton } from "./ui/skeleton/skeleton";
 import { AdminProductListView } from "./view";
@@ -31,23 +31,27 @@ export type AdminProductListPageContentProps = {
  *
  * URL の条件は `parseProductQuery`（取得の口）へ通し、独自の変換を持ちません。写せなかった条件は
  * 一覧の代わりに {@link InvalidQueryFeedback} へ渡します（検証の契約は
- * `src/features/admin/README.md`「条件の検証と失敗」）。
+ * `src/features/admin/README.md#validating-conditions-and-failures`）。
  *
  * 待機表示の境界に鍵を与えるのは、条件やページが変われば表が総入れ替えになるためです。鍵を
  * 与えないと、次の結果が届くまで前のページの行が残ります。通ってきた道は取得に効かないため
  * 鍵に含めません。含めると、同じ結果を出す遷移でも表が組み直されます。**鍵は値を一意に表す形で
  * 作ります。** 区切り文字で連結すると、値に区切り文字が現れた時点で別の条件が同じ鍵になります。
+ *
+ * @param props - {@link AdminProductListPageContentProps} を受け取る。
  */
 export const AdminProductListPageContent = withScreenSpan(
   "features/admin/products/list/page-content",
   async ({ searchParams }: AdminProductListPageContentProps) => {
     const location = toAdminProductListLocation(searchParams);
+    const discontinued = readDiscontinuedSpelling(searchParams);
     const parsed = parseProductQuery({
       ...(location.keyword === "" ? {} : { [FILTER_KEY.KEYWORD]: location.keyword }),
       ...(location.categoryCodes.length === 0
         ? {}
         : { [FILTER_KEY.CATEGORY]: location.categoryCodes }),
       ...(location.statusCodes.length === 0 ? {} : { [FILTER_KEY.STATUS]: location.statusCodes }),
+      ...(discontinued === null ? {} : { [FILTER_KEY.DISCONTINUED]: discontinued }),
       ...(location.cursor === null ? {} : { [CURSOR_KEY]: location.cursor }),
       first: String(ADMIN_PRODUCT_PAGE_SIZE),
     });
@@ -82,6 +86,7 @@ export const AdminProductListPageContent = withScreenSpan(
             location.keyword,
             location.categoryCodes,
             location.statusCodes,
+            location.discontinued,
             location.cursor,
           ])}
         >

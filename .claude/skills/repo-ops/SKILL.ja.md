@@ -7,21 +7,21 @@
 `AGENTS.md` に従い先にユーザへ伝える。
 
 > **スコープ注記。** この runbook は意図的に薄く、実在する落とし穴だけを載せる。本リポジトリは Docker
-> ツールランナーも DB も持たない表示層なので([0011](../../../docs/adr/0011-no-docker.md))、その種の項目は
+> ツールランナーも DB も持たないプレゼンテーションレイヤーなので([0011](../../../docs/adr/0011-no-docker.ja.md))、その種の項目は
 > ここに属さない。新たに踏んだら項目を足すこと。
 
 ## Contract
 
 | | |
 | --- | --- |
-| **Owns** | 既知の症状 → 対処。索引に載っている落とし穴の、実際に効いた直し方 |
-| **Never** | 手順の発明 / **「手順が存在しない」という結論** / 索引に無い症状への推測 |
-| **Starts when** | 何かが予期しない振る舞いをし、それが下の索引に載っているとき |
-| **Stops when** | 症状が索引に無いとき —— `how-to`（目標）か `repo-truth`（現状）へ振って止まる |
+| **Owns** | 既知の症状 → 対処。インデックスに載っている落とし穴の、実際に効いた直し方 |
+| **Never** | 手順の発明 / **「手順が存在しない」という結論** / インデックスに無い症状への推測 |
+| **Starts when** | 何かが予期しない振る舞いをし、それが下のインデックスに載っているとき |
+| **Stops when** | 症状がインデックスに無いとき —— `how-to`（目標）か `repo-truth`（現状）へ振って止まる |
 
-## 症状の索引
+## 症状のインデックス
 
-| 症状 | 節 |
+| 症状 | セクション |
 | --- | --- |
 | `make install-tools` が `mise not found` で落ちる | 1 |
 | `pnpm` の script が落ちる / `pnpm-workspace.yaml` が勝手に変わる | 2 |
@@ -31,15 +31,17 @@
 | scratch の出力を `git status` に出したくない / どこへ置くか | 6 |
 | commit / push が hook に弾かれる | 7 |
 | mise 自身の版を上げたい / 上げたら CI が落ちた | 8 |
+| worktree を消したのにポートが空かない / 消したはずのコードが配られている | 9 |
+| 別ポートで開いた localhost のタブが、他のタブのダイアログで固まる | 10 |
 
-**この索引が、このスキルに答えられることの全部である。**ここに無い症状は「たぶん大丈夫」でもなければ
+**このインデックスが、このスキルに答えられることの全部である。**ここに無い症状は「たぶん大丈夫」でもなければ
 「手順が存在しない」でもない —— **この runbook は後者を結論できない。**結論できるようにすると、
 **その沈黙が答えと区別できなくなる。**代わりに振る。
 
 | 問いが実は何だったか | 扉 |
 | --- | --- |
 | 「これをやりたい。正規の手順は？」 | `how-to` —— 尽くしたレジストリの上で UNDEFINED を**結論できる** |
-| 「そもそもどうなっている / この規約の正本は？」 | `repo-truth` |
+| 「そもそもどうなっている / この規約の canonical は？」 | `repo-truth` |
 | 「まだ誰も決めていない選択」 | `research` |
 
 ## 1. `make install-tools` が `mise not found` で落ちる
@@ -78,7 +80,7 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
     sharp: set this to true or false
   ```
 
-  何も告知されないため `git status` に紛れ込み、PR まで届きうる。`pnpm-workspace.yaml` は既定の
+  何も告知されないため `git status` に紛れ込み、PR まで届きうる。`pnpm-workspace.yaml` はデフォルトの
   AI 変更スコープ外のルート設定で、ついでに変えてよいものではない。
 
 2 つの解決結果を突き合わせる。一致していなければならない。
@@ -146,29 +148,39 @@ git add package.json pnpm-lock.yaml
 ```
 
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
-保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.md)
+保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.ja.md)
 により依存メジャーは別 PR。)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
 フォーマッタは biome 単独で、biome が表現できる lint 検査はすべて biome が持つ。Prettier は不採用。ESLint が
 持つのは biome で表現できない検査だけである(ADR 0002 の能力ベース分割)。現行の集合はここに写さず
-`eslint.config.ts` を読む —— いまは層境界(`boundaries/*`)、React Hooks の規則、型アサーションの禁止、
+`eslint.config.ts` を読む —— いまはレイヤー境界(`boundaries/*`)、React Hooks の規則、型アサーションの禁止、
 このリポジトリ自身の `project-rules/*` である。入口は次のとおり:
 
 ```bash
 pnpm fix       # biome check --fix : 自動修正可能なものを直す
 pnpm lint      # biome check       : 残エラーを報告(手で直す)
 pnpm format    # biome format --write : フォーマットのみ
-pnpm lint:ci   # pnpm lint + ESLint + architecture 突合
+pnpm lint:ci   # pnpm lint + ESLint + architecture 検査
 ```
 
 `pnpm lint:ci` は hook と CI が回すゲートで、3 段の直列である。`pnpm lint`(biome、設定は 1 枚)、
-`pnpm lint:eslint`、`pnpm check:architecture`(層 README の `imports-allowed` frontmatter と、依存
-マトリクスの単一の正である `architecture.ts` の突合)。失敗はどの段かを名乗るので、整形の問題と決めつける前に
-読む。
+`pnpm lint:eslint`、`pnpm check:architecture`(レイヤー README の `imports-allowed` と、依存マトリクスの
+単一の正である `architecture.ts` が生成する結果との突き合わせ)。失敗はどの段かを名乗るので、整形の問題と
+決めつける前に読む。
 
-`noConsole` は既定 `warn` ── **`console.log` をコミットに残さない**(AGENTS.md / ADR 0002)。自動修正で直らない
+**`check:architecture` は差分ゼロの検査なので、直し方は手で書き換えることではなく生成し直すこと:**
+
+```sh
+pnpm gen:architecture   # 層 README の imports-allowed を architecture.ts から書き直す
+```
+
+生成し直しでは直らない失敗が 2 つあり、どちらも文言で自分からそう名乗る。宣言してよい場所でない
+README が境界を宣言している場合(宣言を持つのは要素の根だけ)と、`forbidden` に挙げた層が
+`imports-allowed` にも在る場合である。どちらも人が直す。
+
+`noConsole` はデフォルト `warn` ── **`console.log` をコミットに残さない**(AGENTS.md / ADR 0002)。自動修正で直らない
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は
 保護対象ルート設定=ユーザ指示)。
 
@@ -184,7 +196,7 @@ pnpm lint:ci   # pnpm lint + ESLint + architecture 突合
 
 **worktree はリポジトリ内の `.claude/worktrees/<name>/` に置く** ── エージェントのツールがそこに
 作り、置き場所は設定できない。別の場所に置く規約を敷いても、守られるのは人手で作った分だけになる。
-ツリー内のチェックアウトは、ツリーを走査する全ツールの走査対象に入るため、除外は 5 箇所に書かれて
+ツリー内のチェックアウトは、ツリーをスキャンする全ツールのスキャン対象に入るため、除外は 5 箇所に書かれて
 おり、その全てを揃えて保つ必要がある。
 
 | 場所 | エントリ |
@@ -196,7 +208,7 @@ pnpm lint:ci   # pnpm lint + ESLint + architecture 突合
 | `.makefiles/security/trivy.mk` | `--skip-dirs .claude/worktrees` |
 
 これらのツールはいずれも `.gitignore` を読まないため、そこで ignore しても他の 4 箇所の除外にはならない。
-ツリーを走査するツールを 6 つ目に増やすときは、除外も 6 箇所目を足すことになる。
+ツリーをスキャンするツールを 6 つ目に増やすときは、除外も 6 箇所目を足すことになる。
 
 ## 7. commit / push が hook に弾かれる(lefthook)
 
@@ -209,7 +221,7 @@ worktree にも継承されるが、**`node_modules` は継承されない** ─
 | --- | --- | --- |
 | pre-commit | `pnpm lint:ci`、`*.md` が staged なら `pnpm lint:md`、workflow が staged なら `make actionlint` | biome + ESLint + `architecture.ts` 突合(§5) / markdownlint + mermaid 構文 + `.claude/**` の意味検査(`skill-lint`) / workflow 構文 + `run:` のシェル |
 | commit-msg | `make commitlint` | subject を ADR 0150 に照らす |
-| pre-push | `pnpm typecheck`、`make secret-scan` | `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
+| pre-push | `make test-full`、`pnpm typecheck`、`make secret-scan` | Vitest cache 無効 + カバレッジしきい値 / `tsc --noEmit` / push 範囲の秘密(**fail-closed**) |
 
 `make trivy-fs` は **hook に接続していない**(手動実行専用)。依存の脆弱性は push する当事者がその場で
 解消できず、diff と独立に状態が変わるため、ゲートとして成立しないという判断による ── 報告は PR コメント、
@@ -235,7 +247,7 @@ make secret-scan
 commit-msg で落ちた場合、subject が ADR 0150 の prefix 11 種を使った `<Prefix>: <subject>` になっていないか、
 subject が空か、末尾が `。` で終わっている。
 `commitlint.config.ts` は `type-case` を意図的に課していない ── prefix が `Feat` と `CI` のように大文字構成を
-混在させるため、単一の case ルールが当たらない。merge / revert コミットは commitlint の既定 ignore で除外される。
+混在させるため、単一の case ルールが当たらない。merge / revert コミットは commitlint のデフォルト ignore で除外される。
 
 コミットせずにメッセージだけ検査する:
 
@@ -247,7 +259,7 @@ echo "Feat: 説明" | pnpm exec commitlint
 
 hook の失敗が「その変更についての証拠」になるのは、失敗の原因がその変更にある場合だけである。次の 3 つは違う。
 
-- **別セッションのファイル。** `pnpm typecheck` と `make test-full` は commit 範囲ではなく作業ツリー全体を読む。別の窓が編集途中の未コミットファイルが、それを含まない push を落とす
+- **別セッションのファイル。** `pnpm typecheck` と `make test-full` は commit 範囲ではなく作業ツリー全体を読む。別のウィンドウが編集途中の未コミットファイルが、それを含まない push を落とす
 - **同じ出力先を共有する 2 つの実行。** Vitest は `coverage/.tmp` <!-- skill-lint-ignore --> へ書き、1 つ目が生きているうちに 2 つ目が始まると `Something removed the coverage directory` で落ちる。コードは何も壊れておらず、2 つの実行が互いの一時ファイルを消し合っただけである
 - **base ブランチに元からある失敗。** base を checkout して同じ gate を回せば分かる
 
@@ -288,15 +300,55 @@ make actions-mise-pin-lint
 どちらも fail-closed(違うバイナリは実行されない)だが、どちらのメッセージも原因を名指ししない。検査を
 置いてあるのはそのため。digest は取得したものだけでなく**復元したものにも**照合する ── Actions の
 キャッシュはブランチを跨いで共有され、push 権限があれば書けるので、信頼境界ではない
-([0153](../../../docs/adr/0153-ci-configuration.md))。
+([0153](../../../docs/adr/0153-ci-configuration.ja.md))。
 
 `mise.toml` の中のツールの版は別件で、`tools-upgrade` が担当し、mise 自身は意図的に触らない。
+
+## 9. worktree を消しても、そこから起動したサーバは止まらない
+
+`git worktree remove` が消すのはチェックアウトとその登録で、作業ディレクトリがその中にあったプロセスには
+触れない。バックグラウンドに残った `pnpm dev` や `pnpm storybook` はポートを掴んだまま、読み込み済みの
+コードを配り続ける ── 次にそのポートを開いた人はもう存在しない worktree を見ることになり、そのポートを
+使いたい worktree は使えない。`make review-clean` も同じで、見直し用のターゲットは自分のサーバを Ctrl-C で
+止め、片付けはその worktree を消すが、手で起動したサーバはそれらが止めるものではない。
+
+ポートを掴んでいるプロセスを見つけ、どこから・いつ起動したかを読む。
+
+```bash
+lsof -tnP -iTCP:<port> -sTCP:LISTEN      # ポートを LISTEN している pid
+lsof -p <pid> -a -d cwd -Fn              # その作業ディレクトリ: どの worktree のものか
+ps -p <pid> -o lstart=,command=          # いつ起動した、何のプロセスか
+kill <pid>
+```
+
+`cwd` が `git worktree list` の知らないチェックアウト ── もう存在しないディレクトリ、またはゴミ箱へ
+移されたもの(macOS なら `~/.Trash/`) ── を指していれば孤児である。生きている worktree の中を指す
+`cwd` はそこで作業している人のもの: 止めずに別のポートを選ぶ(`AGENTS.md`、*Working in a git worktree*)。
+
+## 10. あるポートのタブが、別のタブのダイアログが開いている間固まる
+
+ポートを分けるとサーバは衝突しないが、browser の中のタブは**隔離されない**。Chrome はレンダラープロセスを
+*サイト* ── スキーム + 登録可能ドメイン(eTLD+1) ── 単位でまとめ、ポートはそこに含まれない。
+`http://localhost:6006` と `http://localhost:6007` は別オリジンだが同一サイトなので、タブが 1 つの
+レンダラープロセスを共有しうる。JavaScript のモーダル(`alert` / `confirm` / `prompt` / `window.print()`)は
+そのプロセスのメインスレッドを止めるため、片方のタブのダイアログがもう片方を固め、Chrome は固まった側を
+ダイアログが閉じられるまで通知により一時停止したものとして表示する。
+
+アプリは壊れておらず、さらに別のポートへ移しても効かない。もう一方のタブのダイアログを閉じる。2 つの
+worktree を互いに影響させずに並べて見る必要があるなら、2 つ目を別の browser プロファイルで開く ── browser を
+`--user-data-dir=<新しいディレクトリ>` 付きで起動する ── と、独立したプロセス群として動く。
+
+ツリーがどのモーダル呼び出しを持つかは画面の増減で変わるので、一覧を信じず検索する。
+
+```bash
+grep -rnE 'window\.(print|alert|confirm|prompt)\(' src
+```
 
 ## 制約
 
 - ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。
-- ✅ 破壊的ステップ(§3 のタグ/ブランチ削除)は `AGENTS.md` に従い事前警告。
-- ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── 既定の
+- ✅ 破壊的ステップ(§3 のタグ/ブランチ削除、§9 の `kill`)は `AGENTS.md` に従い事前警告。
+- ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── デフォルトの
   AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
   作るのではなく捨てる操作だから。
 - ❌ Docker / DB の項目をここに足さない(スコープ注記)。

@@ -6,7 +6,7 @@ import { hasExcludedLines, orderLinesOf, priceChangedNames } from "../../../orde
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PriceChangeConfirm } from "../price-change-confirm/price-change-confirm";
 
-/** `OrderSummary` の props。 */
+/** {@link OrderSummary} の props。 */
 export type OrderSummaryProps = {
   /** 確定しようとしているカート。 */
   cart: Cart;
@@ -31,6 +31,8 @@ export type OrderSummaryProps = {
  *
  * **確定できないときは確かめの姿を出しません。** 載せる明細が 1 つも無い状態で「このまま進んで
  * よいか」を問うても、答えたところで進めません。
+ *
+ * @param props - {@link OrderSummaryProps}。
  */
 export const OrderSummary = withPartSpan(
   "features/checkout/confirm/ui/order-summary/order-summary",

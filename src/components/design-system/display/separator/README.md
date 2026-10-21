@@ -1,23 +1,23 @@
 # Separator
 
-## 用途
+## Purpose
 
-近接する内容のまとまりを区切ります。
+Separates groups of adjacent content.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Separator` | horizontal / vertical の区切り線です。意味論を持つ水平線か、装飾目的の線かを `decorative` で選べます。 |
+| `Separator` | A horizontal / vertical dividing line. `decorative` chooses between a horizontal rule with semantics and a purely decorative line. |
 
-## 利用ケース
+## Use Cases
 
-詳細、補足、並列した情報を視覚的に区切る場面に使います。
+Use it to visually separate details, supplements and parallel pieces of information.
 
-## 責務境界
+## Responsibility Boundaries
 
-操作・状態・余白・業務上の意味付けは持ちません。装飾だけに使うか意味論を持たせるかは feature が決めます。
+It holds no actions, state, spacing or business meaning. The feature decides whether to use it purely as decoration or give it semantics.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は horizontal / vertical を、テストは方向と a11y を確認します。
+Storybook checks horizontal / vertical; the tests check the orientation and a11y.

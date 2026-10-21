@@ -45,7 +45,12 @@ export function toSafeReturnUrl(candidate: unknown): SafeReturnUrl {
   return safeReturnUrlSchema.parse(resolveReturnUrl(candidate));
 }
 
-/** 候補を、通ってよい形へ倒す。 */
+/**
+ * 候補を、通ってよい形へ倒す。
+ *
+ * @param candidate - 判定する値
+ * @returns 通ってよいと判定した相対パス。判定に落ちたときは `/`
+ */
 function resolveReturnUrl(candidate: unknown): string {
   if (typeof candidate !== "string" || !candidate.startsWith("/")) {
     return FALLBACK_RETURN_URL;

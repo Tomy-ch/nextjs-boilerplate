@@ -35,6 +35,7 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
  * 操作を二列に配置する。下端に区切りを付ける場合は `className="border-b border-border"` を渡す。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardHeader({ className, ...props }: ComponentProps<"div">) {
@@ -58,6 +59,7 @@ export function CardHeader({ className, ...props }: ComponentProps<"div">) {
  * heading 要素を子として渡すか、feature 側で適切な heading を配置する。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardTitle({ className, ...props }: ComponentProps<"div">) {
@@ -74,6 +76,7 @@ export function CardTitle({ className, ...props }: ComponentProps<"div">) {
  * 見出しを補足する短い説明文の領域。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardDescription({ className, ...props }: ComponentProps<"div">) {
@@ -94,6 +97,7 @@ export function CardDescription({ className, ...props }: ComponentProps<"div">) 
  * カード全体への click に暗黙化しない。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardAction({ className, ...props }: ComponentProps<"div">) {
@@ -110,6 +114,7 @@ export function CardAction({ className, ...props }: ComponentProps<"div">) {
  * カードの主内容を配置する領域。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardContent({ className, ...props }: ComponentProps<"div">) {
@@ -124,6 +129,7 @@ export function CardContent({ className, ...props }: ComponentProps<"div">) {
  * 並びや間隔は feature 側で指定し、ここへ業務固有の variant を増やさない。
  *
  * @param props - native `div` 属性。
+ *
  * @see Storybook `Display/Card`
  */
 export function CardFooter({ className, ...props }: ComponentProps<"div">) {

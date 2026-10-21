@@ -7,9 +7,9 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { MYPAGE_PATH } from "@/features/account/facade/paths/paths";
 import { OnboardingPageContent } from "@/features/account/onboarding/page-content";
 import { OnboardingSkeleton } from "@/features/account/onboarding/ui/skeleton/skeleton";
-import { MYPAGE_PATH } from "@/features/account/paths";
 import { requireUnregisteredUser } from "@/features/account/registration-gate";
 import { toSafeReturnUrl } from "@/model/return-url";
 
@@ -28,6 +28,8 @@ export const metadata: Metadata = {
  *
  * 判定を穴の内側へ置いても、登録済みの主体を送り返す働きは変わりません。転送は描画の途中でも
  * 効き、殻を先に配ったぶんだけ早く判定へ入ります。
+ *
+ * @param searchParams - 復帰先を運ぶ検索パラメータ。
  */
 async function OnboardingContent({
   searchParams,

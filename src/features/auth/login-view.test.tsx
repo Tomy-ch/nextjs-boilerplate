@@ -50,7 +50,7 @@ describe("LoginView", () => {
   it("この画面がアカウントを作らないことを伝える", () => {
     render(<LoginView notice={null} returnUrl={toSafeReturnUrl("/")} />);
 
-    expect(screen.getByText(/アカウントを作らず/)).toBeVisible();
+    expect(screen.getByText(/アカウントを作りません/)).toBeVisible();
   });
 
   it("ADR 0011 が例示する認証基盤の名前を出さない", () => {

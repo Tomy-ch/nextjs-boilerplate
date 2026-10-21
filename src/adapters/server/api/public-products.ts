@@ -4,7 +4,7 @@ import type { CursorPage } from "@/model/pagination";
 import { type ProductId, toProductId } from "@/model/product/product";
 
 import { GetProductsResponse, getProductsQueryFirstMax } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 /** 一覧の口が 1 度に返せる最大件数。全件を辿る側（`app/sitemap.ts`）が 1 歩の幅として使う。 */
 export const PRODUCT_PAGE_LIMIT: number = getProductsQueryFirstMax;
@@ -22,6 +22,7 @@ export const PRODUCT_PAGE_LIMIT: number = getProductsQueryFirstMax;
  * ものだけです。
  *
  * @param after - 前のページが返した cursor。先頭なら省略
+ * @returns 公開中の商品 ID の 1 ページ
  */
 export async function getPublicProductIds(after?: string): Promise<CursorPage<ProductId>> {
   const page = await getPublicClient().request({

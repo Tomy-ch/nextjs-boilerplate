@@ -11,6 +11,7 @@ import { base64url } from "jose";
  * いるため、選べる余地を残す意味もありません。
  *
  * @param verifier - `random-token.ts` が作った検証子
+ * @returns S256 で変換した code_challenge
  */
 export async function toCodeChallenge(verifier: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));

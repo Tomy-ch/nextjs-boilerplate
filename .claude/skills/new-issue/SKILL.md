@@ -43,7 +43,7 @@ not loaded as a skill).
 
 ## Do NOT use this skill for
 
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review`.
 - Comparing options nobody has chosen between yet — `research` first; its recommendation is not a
   decision.
 - Writing an ADR.
@@ -183,8 +183,8 @@ Three writing rules that keep an issue from rotting:
   reader who follows one to the wrong place trusts what they find there.
 - **Record the recommendation together with its basis.** A recommendation that turns out to be wrong
   is fine and normal; one whose reasoning is invisible cannot be overturned by evidence.
-- **Redact before writing a security finding.** This repository is public and an issue cannot be
-  retracted. Describe the shape, cite `path` and symbol, and never reproduce a secret-shaped value.
+- **Redact before writing a security finding.** An issue cannot be retracted, and everyone who can
+  read the repository reads it. Describe the shape, cite `path` and symbol, and never reproduce a secret-shaped value.
   A finding whose point cannot survive redaction is one to raise privately, not to file.
 
 **For a link to another repository's issue or PR, use `redirect.github.com`.** A plain `github.com`
@@ -221,7 +221,7 @@ nobody can read is a backlog nobody uses.
 | An existing issue covers it | Comment there with the new finding |
 | The fix is small enough to just make | Offer to make it now |
 | Step 2 disproved the premise | Report that; file nothing |
-| It is a decision, not a task | Propose an ADR, or a slot in `docs/adr/BACKLOG.md` with its 撤回条件 |
+| It is a decision, not a task | Propose an ADR, whose body carries the 撤回条件 when the decision is a deliberate exclusion |
 | It is a screen's promise, not a defect | Propose a spec update under `docs/spec/` |
 | It is a thing deliberately not carried | Check `docs/project/out-of-scope.md` first — it may already be answered, with the condition that would change it |
 
@@ -243,7 +243,9 @@ State which branch of the table applied. **Silence reads as "it was obviously an
 gh issue create --title "<title>" --label <label> --body-file <file>
 ```
 
-Labels come from `.github/settings/labels.json`; read it rather than guessing a name. Report the URL,
+Labels come from `.github/settings/labels.json`; read it rather than guessing a name. **Pass the
+template's own `labels:` too** — the web form applies them and `--body-file` does not, and
+`scripts/issue-field-lint` finds the issues it checks by that label. Report the URL,
 and say which premises were observed and which only read.
 
 If the user selected `--output=draft`, stop before this and hand over the body.
@@ -269,7 +271,7 @@ checked, not where they read most smoothly.**
 - ✅ Search existing issues, closed ones included, before concluding it is new.
 - ✅ Say explicitly which claims are unverified.
 - ✅ Cite symbols and paths; record the recommendation's basis alongside it.
-- ✅ Redact a security finding before it reaches a public issue.
+- ✅ Redact a security finding before it reaches an issue.
 - ✅ State which branch of the Step 6 table applied.
 - ✅ Write in Japanese.
 - ❌ Assert runtime behavior that was never observed, without labelling it as unverified.

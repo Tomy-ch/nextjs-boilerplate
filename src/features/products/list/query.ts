@@ -34,6 +34,9 @@ const valuesSchema = repeatedValues(z.array(z.string())).catch([]);
  * 空白を落として空を捨てるのは読み取りの規則が持ちます（`model/search-params.ts`）。入力欄を空にして
  * 送った form は `?keyword=` を URL に残すため、これを不正な入力と扱うと、消しただけで検索できなく
  * なります。
+ *
+ * @param params - page が受け取った素の検索条件
+ * @returns 条件として読める形に均した値
  */
 export function normalizeSearchParams(params: RawSearchParams): ProductListSelection {
   const normalized: Record<string, string | readonly string[]> = {};

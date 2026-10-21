@@ -14,7 +14,11 @@ export type AdminProductCreatePageContentProps = {
   uploadAction: UploadProductImageAction;
 };
 
-/** 作成の画面に要るマスタを揃える。 */
+/**
+ * 作成の画面に要るマスタを揃える。
+ *
+ * @param props - 作成画面が要る入力の上限と送信先。
+ */
 export const AdminProductCreatePageContent = withScreenSpan(
   "features/admin/products/new/page-content",
   async ({ createAction, maxUploadBytes, uploadAction }: AdminProductCreatePageContentProps) => {

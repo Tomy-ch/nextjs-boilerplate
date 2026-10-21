@@ -7,14 +7,27 @@
  */
 
 const REGISTRY_ITEM_TYPE = {
-  /** 契約を知らない基礎部品。テンプレートから作った側も土台として残す */
+  /** 契約を知らない基礎部品。土台として残る */
   UI: "registry:ui",
-  /** 契約や画面骨格を前提にする部品。テンプレートから作った側が作り替える */
+  /** 契約や画面骨格を前提にする部品。作り替える前提 */
   COMPONENT: "registry:component",
 } as const;
 
-/** 実装ではないファイル。registry には載せない。 */
-const EXCLUDED_SUFFIXES = [".test.ts", ".test.tsx", "README.md"] as const;
+/** 実装ではないファイル。registry には載せない。文書は README も翻訳のミラーも `.md` で終わる。 */
+const EXCLUDED_SUFFIXES = [".test.ts", ".test.tsx", ".md"] as const;
+
+/**
+ * component の README から目録へ写す節の見出し。
+ *
+ * @remarks
+ * 見出しが README の側と食い違うと、{@link sectionOf} は空文字を返し、目録の欄が黙って消える。
+ * README の書式は `src/components/component-template.md` が持つ。
+ */
+export const README_SECTIONS = {
+  purpose: "Purpose",
+  boundary: "Responsibility Boundaries",
+} as const;
+
 /** bundle に載せる component 1 件。 */
 export type BundleComponent = {
   name: string;
@@ -22,9 +35,9 @@ export type BundleComponent = {
   layer: string;
   as: string;
   directory: string;
-  /** README の「用途」節。1 行で何のための部品かを表す */
+  /** README の「Purpose」節。1 行で何のための部品かを表す */
   purpose: string;
-  /** README の「責務境界」節。この部品が持たないもの */
+  /** README の「Responsibility Boundaries」節。この部品が持たないもの */
   boundary: string;
   files: string[];
   stories: { id: string; name: string }[];

@@ -96,7 +96,6 @@ describe("WizardForm", () => {
     await userEvent.click(screen.getByRole("button", { name: "次へ" }));
     await userEvent.click(screen.getByRole("button", { name: "入力" }));
 
-    // 「確認」は到達しただけで通過はしていないため印は付かないが、行けるようにする。
     const [, second] = screen.getAllByRole("listitem");
     expect(second).toHaveAttribute("data-state", "upcoming");
 
@@ -146,7 +145,6 @@ describe("WizardForm", () => {
 
     const [first] = screen.getAllByRole("listitem");
 
-    // 現在地であることは状態で示したまま、済ませた印を残す。
     expect(first).toHaveAttribute("data-state", "current");
     expect(first?.querySelector('[data-slot="stepper-item-marker"] svg')).toBeInTheDocument();
     expect(first).toHaveTextContent("現在の段階・完了");
@@ -215,6 +213,16 @@ describe("WizardForm", () => {
     expect(screen.getAllByRole("group")).toHaveLength(1);
   });
 
+  it("まだ到達していない段階の中身は組み立てない", async () => {
+    const { container } = render(<WizardFixture />);
+
+    expect(container.querySelector("input[name='purpose']")).toBeNull();
+
+    await next();
+
+    expect(container.querySelector("input[name='purpose']")).not.toBeNull();
+  });
+
   it("進捗として段階の並びと現在位置を示す", () => {
     render(<WizardFixture />);
 
@@ -266,7 +274,6 @@ describe("WizardForm", () => {
   });
 
   it("終えられない段階に居るあいだは、到達済みの先の段階へも進捗から飛べない", async () => {
-    // 「次へ」だけを塞いでも、進捗から飛べては同じことになる。戻る側は塞がない。
     const { rerender } = render(<WizardFixture />);
 
     await next();
@@ -277,8 +284,6 @@ describe("WizardForm", () => {
   });
 
   it("終えられない段階からの直行は、押しても現在地を動かさない", async () => {
-    // 判定は描画と状態で共有する。描画側だけで塞ぐと、規則の変更が見た目の変更としてしか
-    // 現れず、状態の側は素通しのままになる。
     const { rerender } = render(<WizardFixture />);
 
     await next();

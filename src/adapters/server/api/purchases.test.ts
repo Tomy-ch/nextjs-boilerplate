@@ -17,6 +17,7 @@ import {
   cancelMyPurchase,
   createPurchase,
   deliverPurchase,
+  getInProgressPurchasesOfProduct,
   getMyPurchase,
   getMyPurchases,
   getShippablePurchases,
@@ -103,6 +104,22 @@ describe("getMyPurchases", () => {
     );
   });
 
+  it("複数の状態を、同じ名前を繰り返してクエリへ載せる", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getMyPurchases({ ...HISTORY_QUERY, statusCodes: [7, 8] });
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.getAll("statusCodes")).toEqual(["7", "8"]);
+  });
+
+  it("状態を指定しなければ状態の条件を送らない", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getMyPurchases(HISTORY_QUERY);
+
+    expect(new URL(requests[0]?.url ?? "").searchParams.has("statusCodes")).toBe(false);
+  });
+
   it("次ページのカーソルを引き継ぐ", async () => {
     serveJson(PURCHASES_URL, wirePage);
 
@@ -167,6 +184,8 @@ const wireDetail = {
   userId: "0195f0c2-0000-7000-9000-0000000000a1",
   status: { id: "0195f0c2-0000-7000-8000-0000000000d1", code: 1, name: "未処理" },
   subtotalAmount: 18_897,
+  discountAmount: 0,
+  appliedCoupon: null,
   taxAmount: 1_890,
   shippingFee: 500,
   totalAmount: 21_287,
@@ -195,6 +214,8 @@ describe("getMyPurchase", () => {
       statusCode: 1,
       statusName: "未処理",
       subtotalAmount: 18_897,
+      discountAmount: 0,
+      appliedCoupon: null,
       taxAmount: 1_890,
       shippingFee: 500,
       totalAmount: 21_287,
@@ -207,6 +228,64 @@ describe("getMyPurchase", () => {
         },
       ],
       orderedAt: new Date("2026-08-17T01:30:00.000Z"),
+    });
+  });
+
+  it("定額のクーポンを値引きと範囲の種別へ写し、範囲の対象は写さない", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 500,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "flat", value: "5.00", maxAmount: null },
+        scope: { kind: "category", targetId: "0195f0c2-0000-7000-8000-0000000000e1" },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.discountAmount).toBe(500);
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "flat", value: "5.00" },
+      scopeKind: "category",
+    });
+  });
+
+  it("定率のクーポンは上限を併せて写す", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 300,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "rate", value: "0.10", maxAmount: 300 },
+        scope: { kind: "all", targetId: null },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "rate", value: "0.10", maxAmount: 300 },
+      scopeKind: "all",
+    });
+  });
+
+  it("上限の無い定率のクーポンは、上限を null のまま写す", async () => {
+    serveJson(PURCHASE_URL, {
+      ...wireDetail,
+      discountAmount: 2_834,
+      appliedCoupon: {
+        id: "0195f0c2-0000-7000-8000-0000000000c1",
+        discount: { kind: "rate", value: "0.15", maxAmount: null },
+        scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-0000000000e1" },
+      },
+    });
+
+    const purchase = await getMyPurchase(wireDetail.code);
+
+    expect(purchase.appliedCoupon).toEqual({
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scopeKind: "product",
     });
   });
 
@@ -231,6 +310,8 @@ const wireCreated = {
   userId: "0195f0c2-0000-7000-9000-0000000000a1",
   statusId: "0195f0c2-0000-7000-8000-0000000000d1",
   subtotalAmount: 18_897,
+  discountAmount: 0,
+  appliedCoupon: null,
   taxAmount: 1_890,
   shippingFee: 500,
   totalAmount: 21_287,
@@ -316,6 +397,18 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(excluded.ok && excluded.query.includeOtherUsers).toBe(false);
   });
 
+  it("1 つだけ選ばれた状態を、整数の並びへ直す", () => {
+    const parsed = parsePurchaseHistoryQuery({ statusCodes: "7" });
+
+    expect(parsed.ok && parsed.query.statusCodes).toEqual([7]);
+  });
+
+  it("繰り返された状態を並びのまま残し、重複を畳む", () => {
+    const parsed = parsePurchaseHistoryQuery({ statusCodes: ["7", "8", "7"] });
+
+    expect(parsed.ok && parsed.query.statusCodes).toEqual([7, 8]);
+  });
+
   it("繰り返された条件は指定なしとして落とす", () => {
     const parsed = parsePurchaseHistoryQuery({
       orderedAfter: ["2026-07-01T00:00:00+09:00", "2026-08-01T00:00:00+09:00"],
@@ -343,6 +436,13 @@ describe("parsePurchaseHistoryQuery", () => {
     expect(parsePurchaseHistoryQuery({ includeOtherUsers: "yes" })).toEqual({
       ok: false,
       invalidKeys: ["includeOtherUsers"],
+    });
+  });
+
+  it("整数として読めない状態は読めなかったキーとして返す", () => {
+    expect(parsePurchaseHistoryQuery({ statusCodes: ["7", "発送済み"] })).toEqual({
+      ok: false,
+      invalidKeys: ["statusCodes"],
     });
   });
 
@@ -595,6 +695,50 @@ describe("getShippedPurchases", () => {
     serveStatus("get", PURCHASES_URL, 403);
 
     expect(await kindOf(() => getShippedPurchases(50))).toBe(ErrorKind.PERMISSION_DENIED);
+  });
+});
+
+describe("getInProgressPurchasesOfProduct", () => {
+  const PRODUCT_ID = toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11");
+
+  // ----- 正常系 -----
+  it("指定した商品を含む進行中の購入だけを、他の利用者の購入も含めて求める", async () => {
+    const requests = serveJson(PURCHASES_URL, wirePage);
+
+    await getInProgressPurchasesOfProduct(PRODUCT_ID, 20);
+
+    const query = new URL(requests[0]?.url ?? "").searchParams;
+
+    expect(query.get("productId")).toBe(PRODUCT_ID);
+    expect(query.get("includeOtherUsers")).toBe("true");
+    expect(query.get("first")).toBe("20");
+    expect(query.getAll("statusCodes")).toEqual(["1", "2", "3", "4", "7", "8"]);
+  });
+
+  it("続きがあることを次ページの鍵で返す", async () => {
+    serveJson(PURCHASES_URL, wirePage);
+
+    await expect(getInProgressPurchasesOfProduct(PRODUCT_ID, 20)).resolves.toMatchObject({
+      nextCursor: "next",
+    });
+  });
+
+  it("進行中の購入が無いとき空の並びを返す", async () => {
+    serveJson(PURCHASES_URL, { items: [], nextCursor: null, hasNext: false });
+
+    await expect(getInProgressPurchasesOfProduct(PRODUCT_ID, 20)).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
+  // ----- 異常系 -----
+  it("役割が足りない要求を、権限なしとして返す", async () => {
+    serveStatus("get", PURCHASES_URL, 403);
+
+    expect(await kindOf(() => getInProgressPurchasesOfProduct(PRODUCT_ID, 20))).toBe(
+      ErrorKind.PERMISSION_DENIED,
+    );
   });
 });
 

@@ -1,48 +1,48 @@
 # CopyButton
 
-## 用途
+## Purpose
 
-値を clipboard へ写す操作です。識別子・URL・API キーのように、利用者が別の場所へ貼り付ける値へ添えます。
+The action that copies a value to the clipboard. It accompanies values the user pastes elsewhere, such as identifiers, URLs and API keys.
 
-## 役割と公開
+## Role and Public API
 
-| Component / 値 | 役割 |
+| Component / Value | Role |
 | --- | --- |
-| `CopyButton` | 値を clipboard へ写す client island です。 |
-| `COPY_FEEDBACK_MS` | 写した合図を表示し続ける時間（ミリ秒）です。 |
+| `CopyButton` | A client island that copies a value to the clipboard. |
+| `COPY_FEEDBACK_MS` | How long (in milliseconds) the copied cue stays displayed. |
 
-`Button` の props をそのまま受け取ります（`children` / `onClick` / `type` を除く）。
+It accepts `Button`'s props as they are (except `children` / `onClick` / `type`).
 
-## 名前は必須です
+## A name is required
 
-`label` は必須です。アイコンだけの操作は、名前が無いと支援技術から用途が分かりません。同じ画面に複数の写す操作が並ぶため、「識別子を写す」のように**何を写すのかが分かる語**にします。
+`label` is required. An icon-only action has no discernible purpose for assistive technology without a name. Several copy actions sit on the same screen, so use **words that say what is being copied**, such as 「識別子を写す」 ("copy identifier").
 
-写した直後は読み上げ専用の語を live region へ出します。印が check へ変わるだけでは、画面を見ていない利用者に成否が伝わりません。
+Right after copying, a word for screen readers only is put into a live region. The marker changing to a check alone does not tell users who are not looking at the screen whether it succeeded.
 
-## 失敗しても止めません
+## Failure does not stop anything
 
-clipboard は安全な文脈でしか使えず、利用者が許可しない場合もあります。失敗しても例外は投げず、合図を出さないだけにとどめます。**写せたことを前提にした導線を feature 側で組まないでください。**
+The clipboard is available only in secure contexts, and the user may not grant permission. On failure it throws no exception and merely shows no cue. **Do not build paths on the feature side that assume the copy succeeded.**
 
-## `capabilities` の hook にしていない理由
+## Why this is not a `capabilities` hook
 
-再利用したい実体は browser 能力ではなく「写して、写せたと伝える操作」です。`navigator.clipboard.writeText` の呼び出しは 1 行で、残りはすべて UI の決定です。
+What is worth reusing is not a browser capability but "the action that copies and tells you it was copied". Calling `navigator.clipboard.writeText` is one line, and everything else is a UI decision.
 
-| 要素 | 種別 |
+| Element | Kind |
 | --- | --- |
-| `navigator.clipboard.writeText` | browser 能力 |
-| 名前を必須にする | UI の決定 |
-| 写した語を読み上げる | UI の決定 |
-| 合図を戻す時間と unmount 時の解除 | UI の状態管理 |
-| 失敗しても合図を出さないだけにする | UI の方針 |
+| `navigator.clipboard.writeText` | Browser capability |
+| Making the name required | UI decision |
+| Announcing the copied word | UI decision |
+| How long until the cue resets, and clearing it on unmount | UI state management |
+| Merely showing no cue on failure | UI policy |
 
-hook へ移せるのは 1 行目だけで、残りは各利用箇所へ残ります。**ボタン以外の面から写す必要が出た時点**（`DropdownMenu` の項目や keyboard shortcut など、`button` ではない面）で、共有する部分を `capabilities` の hook へ切り出し、この component もそれを使う形へ寄せます。
+Only the first row could move into a hook; the rest would stay at each usage site. **At the point where copying is needed from a surface other than a button** (a surface that is not a `button`, such as a `DropdownMenu` item or a keyboard shortcut), extract the shared part into a `capabilities` hook and move this component to use it too.
 
-## 責務境界
+## Responsibility Boundaries
 
-写す文字列の整形は持ちません。表示している値と写る値がずれないよう、整形済みの同じ文字列を渡します。整形は `model/` の formatter が持ちます。
+It does not own formatting the string to copy. Pass the same preformatted string so that the displayed value and the copied value do not diverge. Formatting is owned by the formatters in `model/`.
 
-写せたかどうかの記録、再試行、通知は持ちません。
+It does not own recording whether the copy succeeded, retrying, or notifications.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定、合図の文言を変えた場合、見た目を変えた場合、値の隣へ添えた場合を確認します。テストはアクセシブルな名前、clipboard へ写すこと、合図の表示と一定時間での消滅、文言の差し替え、clipboard が使えない場合に例外を投げないこと、a11y 自動検査を確認します。
+Storybook checks the default, a changed cue copy, a changed look, and placing it next to a value. Tests check the accessible name, copying to the clipboard, showing the cue and its disappearance after a set time, replacing the copy, not throwing when the clipboard is unavailable, and automated a11y checks.

@@ -1,38 +1,38 @@
-# `/admin/products/[id]/edit` 商品の編集（機能要件）
+# `/admin/products/[id]/edit` Editing a Product (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 認可・器の約束は [`../../../layout.function.md`](../../../layout.function.md) が持つ。
+> The promises on authorization and the layout shell are held by [`../../../layout.function.md`](../../../layout.function.md).
 >
-> 送るものと入力の判定は [`../../new/page.function.md`](../../new/page.function.md) と同じ。ここは
-> **差分だけ**を書く。
+> What is sent and how input is validated are the same as [`../../new/page.function.md`](../../new/page.function.md). This file
+> records **only the differences**.
 
-既にある商品を書き換える。
+Rewrites an existing product.
 
-## 在庫数は扱わない
+## Stock quantity is not handled
 
-**在庫数はこの画面で編集しない。** 在庫は加算で動かすもので、他の項目と同じ「読んで書き戻す」形に
-すると、読んでから送るまでの間に売れた分を打ち消す。在庫は補充の画面が持つ。
+**Stock quantity is not edited on this screen.** Stock is moved by addition; giving it the same "read and write back" shape as the
+other fields cancels out whatever sold between reading and sending. Stock belongs to the restocking screen.
 
-## 版を持ち回る
+## Carrying the version
 
-**読み込んだ時点の版を送る。** 送らずに更新すると、読み込んでから送るまでの間に別の主体が行った
-更新を黙って消す。
+**Send the version as of loading.** Updating without it silently erases updates another actor made between loading and
+sending.
 
-**版が食い違えば更新は拒まれる。** そのときだけ、読み込み直す導線を添える。権限や通信の失敗にまで
-添えると、やり直せば直るものとして読める。
+**If the versions disagree, the update is rejected.** Only then is a link to reload attached. Attaching it to permission or
+network failures as well would read as if retrying fixes them.
 
-## 画像は集合ごと置き換わる
+## Images are replaced as a whole set
 
-**送った画像の並びが、そのままその商品の画像になる。** 差分ではない。したがって**保存済みの画像も
-送信に載せる**。載せずに送ると、既にある画像が消える。
+**The sequence of images sent becomes the product's images as is.** It is not a diff. Therefore **saved images are included in
+the submission too**. Sending without them erases the existing images.
 
-**保存済みの画像は送り直さない。** 既に識別子を持っており、同じ内容をもう一度保存する理由がない。
+**Saved images are not uploaded again.** They already have identifiers, and there is no reason to save the same content again.
 
-## 成立したら一覧へ送る
+## On success, go to the list
 
-作成と同じ。成立したら、商品を読む取得を取り直させる。
+Same as creation. On success, the fetch that reads the product is made to refetch.
 
-## 失敗
+## Failures
 
-作成と同じ。加えて版の食い違いを、読み込み直せば解けるものとして扱う。
+Same as creation. In addition, a version mismatch is treated as something reloading resolves.

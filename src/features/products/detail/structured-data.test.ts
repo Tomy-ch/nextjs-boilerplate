@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { toProductStructuredData } from "./structured-data";
 
@@ -11,8 +11,8 @@ const PRODUCT = {
   price: "12.34",
   quantity: 7,
   stockWarningThreshold: null,
-  status: { id: "s1", name: "公開中" },
-  category: { id: "c1", name: "コーヒー" },
+  status: { id: toProductStatusId("s1"), name: "公開中" },
+  category: { id: toProductCategoryId("c1"), name: "コーヒー" },
   publishedAt: null,
   discontinuedAt: null,
   imagePaths: ["coffee.png"],

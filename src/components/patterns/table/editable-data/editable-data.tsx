@@ -23,14 +23,21 @@ export type EditableDataTableColumn<Row> = TableColumnDefinition & {
 };
 /** {@link EditableDataTable} の props。 */
 export type EditableDataTableProps<Row> = Omit<EditableTableProps, "children"> & {
+  /** 表の説明。渡すと `caption` として描画する。 */
   caption?: ReactNode;
+  /** 列の定義。並び順がそのまま列の順序になる。 */
   columns: readonly EditableDataTableColumn<Row>[];
+  /** 行を識別する key を返す。 */
   getRowKey: (row: Row) => string;
+  /** 描画する行。 */
   rows: readonly Row[];
 };
 
 /**
  * 編集 cell を含む列定義を、native form と table へ展開する sugar。
+ *
+ * @typeParam Row - 1 行が表す値の型。
+ * @param props - 列の定義と描画する行、および行を識別する key の取り方。
  *
  * @see Storybook `Sugar/Table/EditableData`
  */

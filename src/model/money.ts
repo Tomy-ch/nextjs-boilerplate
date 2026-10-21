@@ -1,13 +1,14 @@
 import { DEFAULT_LOCALE } from "./locale";
+import { toDecimalLiteral } from "./number";
 
-/** 保存と表示の基準にする通貨。 */
+/** 金額を表す基準の通貨。 */
 export const BASE_CURRENCY = "USD";
 
 /**
  * 表示通貨での参考換算額。
  *
  * @remarks
- * 請求額ではありません。保存も計算も {@link BASE_CURRENCY} で行い、この値は読み手が金額の
+ * 確定した金額ではありません。計算は {@link BASE_CURRENCY} で行い、この値は読み手が金額の
  * 大きさを掴むためだけに添えます。レートと基準日を併せて持つのは、いつの相場による目安かが
  * 判らなければ参考にならないためです。
  */
@@ -28,6 +29,10 @@ const formatters = new Map<string, Intl.NumberFormat>();
  *
  * @remarks
  * 生成には locale データの解決が伴うため、描画ごとに作ると件数に比例して積み上がります。
+ *
+ * @param locale - 用いる locale
+ * @param currency - 用いる通貨
+ * @returns 対応する `Intl.NumberFormat`
  */
 function formatterOf(locale: string, currency: string): Intl.NumberFormat {
   const key = `${locale}/${currency}`;
@@ -48,6 +53,11 @@ function formatterOf(locale: string, currency: string): Intl.NumberFormat {
  * 1 単位あたりの最小単位の数は通貨ごとに違う（`USD` は 100、`JPY` は 1）ため、`Intl` が
  * その通貨に用いる小数桁から導きます。通貨と桁数の対応を手元の表に持つと、扱う通貨が
  * 増えるたびに 2 か所を揃えることになります。
+ *
+ * @param minorUnits - 最小単位の整数で表した金額
+ * @param currency - 用いる通貨
+ * @param locale - 用いる locale
+ * @returns 通貨表記の文字列
  */
 function formatMinorUnits(minorUnits: number, currency: string, locale: string): string {
   const formatter = formatterOf(locale, currency);
@@ -66,9 +76,44 @@ function formatMinorUnits(minorUnits: number, currency: string, locale: string):
  *
  * @param minorUnits - 最小単位（セント）の整数で表した金額
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 基準通貨の表示用文字列
  */
 export function formatMoney(minorUnits: number, locale: string = DEFAULT_LOCALE): string {
   return formatMinorUnits(minorUnits, BASE_CURRENCY, locale);
+}
+
+const decimalFormatters = new Map<string, Intl.NumberFormat>();
+
+/**
+ * 主単位の decimal 文字列で受け取った基準通貨の金額を、locale に沿った通貨表記にする。
+ *
+ * @remarks
+ * 価格のように契約が主単位の decimal 文字列で返す金額に使います。最小単位の整数で届く金額は
+ * {@link formatMoney} が受け持ちます。どちらも同じ通貨の `Intl` 表記なので、同じ画面に並べても
+ * 記号と区切りが揃います。
+ *
+ * 数へ直さずに渡し、**桁を落としません。** 契約は価格を最小単位より細かい桁まで保持しており、
+ * 通貨の桁へ丸めると `"0.001"` が `$0.00` になって、値の付いたものが無料に見えます。通貨の桁に
+ * 満たない値（`"5"`）は、その桁まで補います。
+ *
+ * @param value - 主単位の decimal 文字列で表した金額（`"5.00"` が 5 ドル）
+ * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 基準通貨の表示用文字列
+ * @throws {RangeError} decimal 文字列でないとき
+ */
+export function formatDecimalMoney(value: string, locale: string = DEFAULT_LOCALE): string {
+  let formatter = decimalFormatters.get(locale);
+
+  if (formatter === undefined) {
+    formatter = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: BASE_CURRENCY,
+      maximumFractionDigits: 20,
+    });
+    decimalFormatters.set(locale, formatter);
+  }
+
+  return formatter.format(toDecimalLiteral(value));
 }
 
 /**
@@ -80,6 +125,7 @@ export function formatMoney(minorUnits: number, locale: string = DEFAULT_LOCALE)
  *
  * @param reference - 契約が返した参考換算額
  * @param locale - 用いる locale。省略時は {@link DEFAULT_LOCALE}
+ * @returns 表示通貨の表示用文字列
  */
 export function formatReferenceAmount(
   reference: ReferenceAmount,

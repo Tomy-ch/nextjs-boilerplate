@@ -26,6 +26,8 @@ const MANY_CATEGORIES: readonly FilterOption[] = Array.from({ length: LIMIT + 4 
  * @remarks
  * 下書きは画面で 1 つのものを読み、供給の外では失敗させてあります。効いている条件は脇の絞り込み
  * 自身の props ではないため、器の引数としてここで受け取ります。
+ *
+ * @param props - {@link ProductFilterSidebar} へ渡す props と、下書きの元になる選択条件。
  */
 function SidebarInPage({
   selection,

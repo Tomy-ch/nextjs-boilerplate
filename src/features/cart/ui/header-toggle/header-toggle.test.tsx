@@ -40,23 +40,29 @@ describe("CartHeaderToggle", () => {
     );
   });
 
-  it("押すと開く要求を立てる", async () => {
+  it("押すと開く要求を立て、閉じる操作として読めるようになる", async () => {
     const user = userEvent.setup();
 
     render(<CartHeaderToggle count={0} />);
     await user.click(screen.getByRole("button"));
 
-    expect(useCartStore.getState().isOpen).toBe(true);
+    expect(screen.getByRole("button", { name: "カートを閉じる" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
   });
 
-  it("開いているときに押すと要求を下ろす", async () => {
+  it("開いているときに押すと要求を下ろし、開く操作として読めるようになる", async () => {
     const user = userEvent.setup();
 
     useCartStore.setState({ isOpen: true });
     render(<CartHeaderToggle count={0} />);
     await user.click(screen.getByRole("button"));
 
-    expect(useCartStore.getState().isOpen).toBe(false);
+    expect(screen.getByRole("button", { name: "カートを開く" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
   });
 
   it("a11y 自動検査に違反しない", async () => {

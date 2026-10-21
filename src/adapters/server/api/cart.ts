@@ -3,8 +3,6 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { Cart, CartMergeResult } from "@/model/cart/cart";
 import type { ProductId } from "@/model/product/product";
 import { toProductId } from "@/model/product/product";
@@ -17,8 +15,7 @@ import {
   PutCartsMeItemResponse,
 } from "../../gen/api/endpoints.zod";
 import type { CartItemPutRequest } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 import { clearCartSession, readCartSession, storeCartSession } from "./cart-session";
 
@@ -29,33 +26,14 @@ const CART_PATH = "/v1/carts/me";
 
 type WireCart = z.infer<typeof GetCartsMeResponse>;
 
-let client: UserScopedHttpClient | undefined;
-
-/**
- * カートの接続先。
- *
- * @remarks
- * 認証を任意にします。カートは未ログインでも使え、主体はゲストの識別子か認証済みの利用者かの
- * どちらかで、契約が両方の呼び出しを受け付けます。
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-    allowAnonymous: true,
-  });
-
-  return client;
-}
-
 /**
  * ゲストの識別子をヘッダへ組む。まだ発行されていなければ何も付けない。
  *
  * @remarks
  * 認証済みの呼び出しでも付けたままにします。契約は両方が提示された場合に認証済みの主体を採ると
  * 定めており、こちらで優先順位を判断すると同じ規則が 2 箇所に生まれます。
+ *
+ * @returns ゲストの識別子ヘッダ。未発行なら undefined
  */
 async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | undefined> {
   const token = await readCartSession();
@@ -63,7 +41,12 @@ async function cartSessionHeader(): Promise<Readonly<Record<string, string>> | u
   return token === null ? undefined : { [CART_SESSION_HEADER]: token };
 }
 
-/** 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。 */
+/**
+ * 契約の応答を表示用の型へ写す。画像はオブジェクトキーのまま渡さず、ここで表示 URL へ解決する。
+ *
+ * @param wire - 契約のカート応答
+ * @returns 表示用のカート
+ */
 function toCart(wire: WireCart): Cart {
   return {
     lines: wire.items.map((item) => ({
@@ -85,6 +68,8 @@ function toCart(wire: WireCart): Cart {
  * @remarks
  * 識別子が載るのは、その呼び出しがゲストのカートを新しく作ったときだけです。載っていない応答で
  * 手元の cookie を消さないのは、既に持っている識別子がそのまま生きているためです。
+ *
+ * @param wire - カート操作の契約応答
  */
 async function keepIssuedSession(wire: WireCart): Promise<void> {
   if (wire.sessionToken === undefined || wire.sessionToken === null) {
@@ -104,11 +89,14 @@ async function keepIssuedSession(wire: WireCart): Promise<void> {
  * この取得はカートを作りません。ゲストの識別子がまだ無い利用者にも、空のカートが返ります。
  *
  * 1 リクエストの中で外枠と画面の双方がカートを読むため memo 化します。
+ *
+ * @returns 自分のカート
  */
 export const getMyCart = cache(async (): Promise<Cart> => {
   return toCart(
-    await getClient().request({
+    await getUserScopedClient().request({
       path: CART_PATH,
+      allowAnonymous: true,
       headers: await cartSessionHeader(),
       schema: GetCartsMeResponse,
     }),
@@ -127,11 +115,14 @@ export const getMyCart = cache(async (): Promise<Cart> => {
  *
  * 在庫を超えた数量も拒まれません。買えるかどうかは明細の `issues` として返ります。
  *
+ * @param productId - 対象の商品
+ * @param quantity - 設定後の数量
  * @returns 設定後のカート（取得と同じく再評価つき）
  */
 export async function setMyCartItem(productId: ProductId, quantity: number): Promise<Cart> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
+    allowAnonymous: true,
     method: "PUT",
     headers: await cartSessionHeader(),
     body: { quantity } satisfies CartItemPutRequest,
@@ -149,10 +140,13 @@ export async function setMyCartItem(productId: ProductId, quantity: number): Pro
  * @remarks
  * 対象が無くても成功します。公開が止まった商品も取り除けます（そうでないと、買えない明細を
  * 利用者が片付けられません）。
+ *
+ * @param productId - 取り除く商品
  */
 export async function removeMyCartItem(productId: ProductId): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `${CART_PATH}/items/${encodeURIComponent(productId)}`,
+    allowAnonymous: true,
     method: "DELETE",
     headers: await cartSessionHeader(),
     schema: DeleteCartsMeItemResponse,
@@ -184,7 +178,7 @@ export async function mergeGuestCart(): Promise<CartMergeResult | null> {
     return null;
   }
 
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${CART_PATH}/merge`,
     method: "POST",
     headers: { [CART_SESSION_HEADER]: token },
@@ -207,8 +201,9 @@ export async function mergeGuestCart(): Promise<CartMergeResult | null> {
  * 利用者の同一性が切れます。
  */
 export async function clearMyCart(): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: CART_PATH,
+    allowAnonymous: true,
     method: "DELETE",
     headers: await cartSessionHeader(),
     schema: DeleteCartsMeResponse,

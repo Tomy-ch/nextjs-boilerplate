@@ -64,6 +64,8 @@ export type PurchaseTransitionButtonProps = {
  *
  * @remarks
  * `useFormStatus` は `form` の子でしか送信状態を読めないため、別の部品に切り出しています。
+ *
+ * @param props - 表示する文言と見た目。
  */
 function TransitionSubmit({
   label,
@@ -99,6 +101,9 @@ function TransitionSubmit({
  *
  * **成立したことは伝えません。** 進んだ購入ではこの操作そのものが出なくなり、確認ごと画面から
  * 消えます。成立の知らせは残る側（操作が並ぶ段）が持ちます。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseTransitionButtonProps} の各メンバーが持つ。
+ * @see Storybook `Features/Purchases/Detail/TransitionButton`
  */
 export function PurchaseTransitionButton({
   purchaseCode,

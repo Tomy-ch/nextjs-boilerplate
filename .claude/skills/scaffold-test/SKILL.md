@@ -125,7 +125,7 @@ not one.
 ## Step 1. Read the layer context
 
 1. Walk up from the subject to the nearest ancestor `README.md` carrying `test-requirement` in its
-   frontmatter, and read both the frontmatter and the body — **including its `## テスト観点` section
+   frontmatter, and read both the frontmatter and the body — **including its `## Test Perspectives` section
    when it has one.** Those lines are perspectives a human wrote for this slice, and they are the one
    part of the input this skill did not derive. They are declarations with a reader: a slice README
    that lists a perspective nothing ever asserts is a checklist that rots unwatched.
@@ -144,8 +144,8 @@ not one.
 
 ### The duty follows the symbol, not the directory
 
-`test-requirement` is one word in frontmatter, and a directory holds symbols that are not all the
-same. **The README body is where the layer says which of its symbols the declaration actually
+`test-requirement` is one value or a short list in frontmatter (`[feature, component, unit]`), and a
+directory holds symbols that are not all the same. **The README body is where the layer says which of its symbols the declaration actually
 covers** — `src/adapters` declares `integration` and then its body narrows that to modules with an
 external round-trip, sending pure transforms to `unit`. Read the body, not just the frontmatter;
 step 1 above asks for both because this is what the body is for.
@@ -209,7 +209,7 @@ a returned error state and a silently dropped value all belong on the same side.
 
 Before listing anything yourself, spawn one `test-perspective-enumerator` per subject group
 (`agentType: "test-perspective-enumerator"`, `label` like `perspectives:<group>`). It reads the
-subject, the nearest `test-requirement` README including its `## テスト観点`, and ADR 0090 / 0091,
+subject, the nearest `test-requirement` README including its `## Test Perspectives`, and ADR 0090 / 0091,
 and returns one line per perspective with the assertion that would distinguish it.
 
 **The split is the point.** A model that writes a test decides what to test while deciding how to
@@ -227,7 +227,7 @@ Reconcile its output against your own derivation:
 - Its 「読めなかった」 block goes into the report verbatim. An input that could not be read is not an
   input that held nothing ([0157](../../../docs/adr/0157-inspection-declaration-discipline.md)).
 
-**When the README has no `## テスト観点` section, or it holds only the template placeholder, say so
+**When the README has no `## Test Perspectives` section, or it holds only the template placeholder, say so
 and do not invent one.** The absence is reportable: it means this slice's perspectives live only in
 whoever is reading the code right now. Proceed on the derived set, and name the gap in Step 3 so the
 user can decide whether the README should gain the section before the tests are written.
@@ -238,25 +238,25 @@ Confirm **per group**, not per file and not for the whole set. Show every subjec
 its planned path and case list, so the agreement covers all of them at once:
 
 ```txt
-群: <feature>/（test-requirement: feature）
+群: <feature>/（test-requirement: [feature, component, unit]）
 
-書き出し先: <feature>/<期間を解く純関数>.test.ts
-  describe("toPeriodRequest")
+書き出し先: <feature>/<入力を解く純関数>.test.ts
+  describe("<toXxxRequest>")
     ----- 正常系 -----
-    - 日付の要らない区分はそのまま求められる形になる
+    - 追加の入力が要らない区分はそのまま求められる形になる
     ----- 異常系 -----
-    - range で日付が欠けていれば求めない
-    - range で終了日が開始日より前なら求めない
-  describe("toPeriodHref")
+    - 範囲指定で端が欠けていれば求めない
+    - 範囲指定で終端が始端より前なら求めない
+  describe("<toXxxHref>")
     ----- 正常系 -----
-    - 日付を持ち越さない
+    - 範囲の端を持ち越さない
 
 書き出し先: <feature>/ui/<表の部品>/<表の部品>.test.tsx
-  describe("RankingTable")
+  describe("<XxxTable>")
     ----- 空のとき -----
     - 行が無ければ、無いと判る文言を出す
     ----- 揃っているとき -----
-    - 契約の並び順のまま順位を出す
+    - 契約の並び順のまま行を出す
     - 表として読み上げられる（axe）
 ```
 

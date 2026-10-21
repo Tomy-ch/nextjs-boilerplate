@@ -3,7 +3,7 @@ import type { Rule } from "eslint";
 /**
  * 太さの utility を直に書かせないルール。
  *
- * 規約そのものは `src/components/README.md`「文字の太さ」が持つ。Biome は class 文字列の中身を
+ * 規約そのものは `src/components/README.md#font-weight`が持つ。Biome は class 文字列の中身を
  * 見ないため ESLint 側で持つ。
  *
  * **文字列リテラルだけを見る。** class は文字列としてしか書けないので、これで書かれた分は必ず拾える。

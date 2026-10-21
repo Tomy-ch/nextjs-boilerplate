@@ -1,73 +1,73 @@
 # Menubar
 
-## 用途
+## Purpose
 
-画面全体に対する操作を分類ごとの menu にまとめ、常に見えている横一列として示します。
+Gathers operations on the whole screen into menus by category and presents them as an always-visible horizontal row.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Menubar` | 横一列の menu 群をまとめる client-side root です。左右キーによる移動と、開いている menu の切り替えを管理します。 |
-| `MenubarMenu` | trigger と内容の対を、menubar の中の一つの menu として束ねます。`value` で識別します。 |
-| `MenubarTrigger` | 常に見えている menu の trigger です。`aria-haspopup` と `aria-expanded` を持ちます。 |
-| `MenubarContent` | Portal へ表示する menu 本体です。既定では trigger の左端へ寄せて開きます。 |
-| `MenubarPortal` | 描画先の Portal です。`MenubarContent` が内部で使います。 |
-| `MenubarItem` | 選択すると menu を閉じて操作を実行する項目です。`variant` で破壊的操作を区別します。 |
-| `MenubarCheckboxItem` | 選択状態を切り替える項目です。 |
-| `MenubarRadioGroup` | 択一選択の項目をまとめ、選択値を扱います。 |
-| `MenubarRadioItem` | group 内で択一に選択される項目です。 |
-| `MenubarGroup` | 関連する項目をまとめます。 |
-| `MenubarLabel` | 項目群の見出しです。選択できません。 |
-| `MenubarSeparator` | 項目群を視覚的・意味論的に区切ります。 |
-| `MenubarShortcut` | 項目の右端へキーボード操作を表示します。`KbdGroup` の上に組んでおり、個々のキーは `Kbd` を子に並べます。表示のみで登録はしません。 |
-| `MenubarSub` | 入れ子の menu をまとめる root です。 |
-| `MenubarSubTrigger` | 入れ子の menu を開く項目です。 |
-| `MenubarSubContent` | 入れ子の menu 本体です。 |
+| `Menubar` | The client-side root that groups a horizontal row of menus. Manages movement with the left and right keys and switching the open menu. |
+| `MenubarMenu` | Bundles a trigger and its content as one menu within the menubar. Identified by `value`. |
+| `MenubarTrigger` | The always-visible trigger of a menu. Has `aria-haspopup` and `aria-expanded`. |
+| `MenubarContent` | The menu body shown in a Portal. By default it opens aligned to the trigger's left edge. |
+| `MenubarPortal` | The Portal it renders into. `MenubarContent` uses it internally. |
+| `MenubarItem` | An item that closes the menu and runs the operation when selected. `variant` distinguishes destructive operations. |
+| `MenubarCheckboxItem` | An item that toggles a selection state. |
+| `MenubarRadioGroup` | Groups single-choice items and handles the selected value. |
+| `MenubarRadioItem` | An item chosen exclusively within its group. |
+| `MenubarGroup` | Groups related items. |
+| `MenubarLabel` | The heading of a group of items. Not selectable. |
+| `MenubarSeparator` | Separates groups of items visually and semantically. |
+| `MenubarShortcut` | Shows a keyboard shortcut at the item's right edge. Built on `KbdGroup`, with each key as a `Kbd` child. Display only; it registers nothing. |
+| `MenubarSub` | The root grouping a nested menu. |
+| `MenubarSubTrigger` | The item that opens a nested menu. |
+| `MenubarSubContent` | The body of a nested menu. |
 
-`MENUBAR_ITEM_VARIANT` は `menubar.definition.ts` が owner です。`default` と `destructive` の二値で、`destructive` は削除など取り消せない操作にだけ使います。
+`menubar.definition.ts` is the owner of `MENUBAR_ITEM_VARIANT`. It has two values, `default` and `destructive`; use `destructive` only for operations that cannot be undone, such as deletion.
 
-## 利用ケース
+## Use Cases
 
-編集画面や管理画面のように、対象一つではなく画面全体に対する操作が多く、それらを「ファイル / 編集 / 表示」のような分類で常時提示したい場面に使います。
+Use it where there are many operations on the whole screen rather than on a single target, as on edit or admin screens, and you want to present them at all times under categories such as "File / Edit / View".
 
-近い見た目の component とは、**操作の対象が何か**と**遷移か操作か**で使い分けます。
+It is distinguished from similar-looking components by **what the operation targets** and **whether it is navigation or an operation**.
 
-| 状況 | 使うもの |
+| Situation | What to use |
 | --- | --- |
-| 操作の対象が画面全体で、分類が複数あり常時見せたい | `Menubar` |
-| 操作の対象が個々の行・項目で、trigger は一つ | [`DropdownMenu`](../../overlay/dropdown-menu/README.md) |
-| 可視の導線がすでにあり、右クリックから加速したい | [`ContextMenu`](../../overlay/context-menu/README.md) |
-| サイトの階層を辿る遷移 | [`NavigationMenu`](../navigation-menu/README.md) / [`Breadcrumb`](../breadcrumb/README.md) |
+| The operation targets the whole screen, with several categories shown at all times | `Menubar` |
+| The operation targets individual rows or items, with a single trigger | [`DropdownMenu`](../../overlay/dropdown-menu/README.md) |
+| A visible path already exists and you want to speed it up with a right-click | [`ContextMenu`](../../overlay/context-menu/README.md) |
+| Navigation that follows the site hierarchy | [`NavigationMenu`](../navigation-menu/README.md) / [`Breadcrumb`](../breadcrumb/README.md) |
 
-最後の行を守れないことが最も多い誤用です。menubar は操作の構造であり、遷移リンクを混ぜると「操作」と「遷移」の区別が利用者側から失われます。
+Failing to respect the last row is the most common misuse. A menubar is a structure of operations; mixing in navigation links takes away the user's distinction between "operation" and "navigation".
 
-一つの menu を開いている間、左右キーと hover で隣の menu へそのまま移れることがこの component の本体です。この横断的な移動が要らないなら、`DropdownMenu` を単独で置くほうが構造は単純になります。
+The core of this component is that while one menu is open, the left and right keys and hover move straight to the neighboring menu. If this movement across menus is not needed, placing a standalone `DropdownMenu` gives a simpler structure.
 
-## 責務境界
+## Responsibility Boundaries
 
-開閉・roving focus・型入力による項目移動・Escape・外側クリックのため hydration が必要な client island です。表示する文言、取得、保存、業務判断、権限による項目の出し分けは持ちません。
+It is a client island that needs hydration for opening / closing, roving focus, moving between items by typeahead, Escape and outside clicks. It holds no display text, fetching, saving, business decisions, or showing items by permission.
 
-menu は touch device と screen reader で到達コストが高く、menubar は画面上部を常時占有します。主導線の操作を menu の中だけに置かず、入れ子の階層も一段までに保ちます。
+Menus are costly to reach on touch devices and with screen readers, and a menubar permanently occupies the top of the screen. Do not put main-flow operations only inside a menu, and keep nesting to one level.
 
-同じ画面に menubar が複数ある場合に `aria-label` でそれぞれを区別するのは、呼び出し元の責務です。
+When a screen has several menubars, distinguishing each with `aria-label` is the caller's responsibility.
 
-`destructive` は色で区別するだけなので、色が手がかりにならない環境でも操作内容が分かる文言にします。実行前の確認が要る場合に、選択後へ `AlertDialog` を挟むのは feature の責務です。
+`destructive` differs only by color, so use text that makes the operation clear even where color is not a cue. When confirmation is needed before running it, inserting an `AlertDialog` after selection is the feature's responsibility.
 
-`MenubarShortcut` は右端への配置だけを担い、キーの意味論は `Kbd` / `KbdGroup` が持ちます。shortcut の登録はせず、キーボードから実行できない操作に対しては表示しません。
+`MenubarShortcut` handles only the placement at the right edge; the semantics of the keys belong to `Kbd` / `KbdGroup`. It registers no shortcut, and is not shown for operations that cannot be performed from the keyboard.
 
-選択項目は既定で、選ぶたびに menu が閉じます。表示する列の切り替えのように続けて操作したい場合は、`MenubarCheckboxItem` / `MenubarRadioItem` の `onSelect` で `event.preventDefault()` を呼ぶと開いたままになります。どちらが適切かは用途で変わるため、component 側では既定を変えません。
+By default, the menu closes every time an item is selected. To keep operating in a row, as when switching which columns to show, call `event.preventDefault()` in `onSelect` of `MenubarCheckboxItem` / `MenubarRadioItem` to keep it open. Which is appropriate depends on the use, so the component side does not change the default.
 
-項目と trigger の focus / hover は `bg-accent` / `text-accent-foreground` で示します。キーボードで移動したときに現在位置が分かる唯一の手がかりなので、`className` でこの指定を打ち消しません。
+Focus / hover on items and triggers is shown with `bg-accent` / `text-accent-foreground`. It is the only cue to the current position when moving by keyboard, so do not cancel this styling with `className`.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendor is currently Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は複数 menu を並べた基本構成と `disabled` な trigger、`defaultValue` で開いた状態、見出し・group・区切り・shortcut 表示・破壊的操作の組み合わせ、実 state に接続した複数選択と択一選択、入れ子の menu、`inset` による左端の余白揃えを確認します。テストは `menubar` とアクセシブルな名前、開くまで項目を描画しないこと、trigger の押下による開閉と `aria-expanded`、`menu` / `menuitem` / `menuitemcheckbox` / `menuitemradio` の意味論、shortcut が `kbd` の意味論で表示されること、選択による実行と閉じ、disabled、`variant` による区別、Escape での閉じ、開いた menu から左右キーで隣の menu へ移ること、入れ子の開閉、a11y 自動検査を確認します。
+Storybook checks the basic composition with several menus side by side and a `disabled` trigger, the state opened with `defaultValue`, combinations of headings, groups, separators, shortcut display and destructive operations, multiple and single choice connected to real state, nested menus, and aligning the left padding with `inset`. The tests check `menubar` and its accessible name, that items are not rendered until opened, opening / closing by pressing the trigger and `aria-expanded`, the semantics of `menu` / `menuitem` / `menuitemcheckbox` / `menuitemradio`, that shortcuts are shown with `kbd` semantics, running and closing on selection, disabled, the distinction by `variant`, closing with Escape, moving from an open menu to the neighboring menu with the left and right keys, opening / closing nested menus, and the automated a11y check.
 
-a11y 自動検査では `region`（すべてのページ内容が landmark に含まれること）を対象から外しています。Radix が menu を `document.body` 直下の Portal へ描画するため landmark の外に出ますが、これは Portal を使う UI に共通する制約であり、`region` は axe の `best-practice` タグでリポジトリの目標水準（WCAG 2.x AA）の対象外です。
+The automated a11y check excludes `region` (all page content must be contained in landmarks). Radix renders the menu into a Portal directly under `document.body`, so it falls outside the landmarks; this is a constraint shared by all UI that uses a Portal, and `region` is tagged `best-practice` in axe and is outside the repository's target level (WCAG 2.x AA).
 
-jsdom には Radix が位置計算に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
+jsdom lacks `ResizeObserver` and `scrollIntoView`, which Radix uses for position calculation, so the tests stub them. Removing that dependency from the implementation is not the approach taken.
 
-枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook で実ブラウザ確認します。
+Closing on an action outside the frame is not included in the tests. jsdom does not implement `PointerEvent` and cannot reproduce Radix's detection mechanism, so it is checked in a real browser in Storybook.

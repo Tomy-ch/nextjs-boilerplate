@@ -39,10 +39,11 @@ const PurchaseHistoryPagePayload = z.object({
  *
  * @param query - URL へ載せる取得条件。カーソルと期間を含める
  * @param signal - 条件が変わった、または画面を離れたときに取得を打ち切る
+ * @returns 購入履歴の次ページ
  */
 export async function fetchPurchaseHistoryPage(
   query: URLSearchParams,
   signal?: AbortSignal,
 ): Promise<PurchaseHistoryPage> {
-  return request(`/api/purchases?${query.toString()}`, PurchaseHistoryPagePayload, signal);
+  return request(`/api/purchases?${query.toString()}`, PurchaseHistoryPagePayload, { signal });
 }

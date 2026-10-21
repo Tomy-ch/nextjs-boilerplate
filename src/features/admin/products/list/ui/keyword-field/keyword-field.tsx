@@ -30,6 +30,8 @@ export type AdminProductKeywordFieldProps = {
  * **空のまま押せるのは、いま検索語が効いているときだけです。** 効いている検索語を消すには空の
  * 送信が要る一方、何も効いていない状態での送信は結果が変わりません。
  *
+ * @param props - {@link AdminProductKeywordFieldProps} を受け取る。
+ *
  * @see Storybook `Features/Admin/Products/List/KeywordField`
  */
 export function AdminProductKeywordField({ conditions }: AdminProductKeywordFieldProps) {
@@ -62,10 +64,10 @@ export function AdminProductKeywordField({ conditions }: AdminProductKeywordFiel
     <SearchFieldClient
       className="max-w-xs flex-1"
       commit={SEARCH_FIELD_COMMIT.SUBMIT}
-      label="商品名で探す"
+      label="商品名・説明で探す"
       onSearch={search}
       onValueChange={setDraft}
-      placeholder="商品名で探す"
+      placeholder="商品名・説明で探す"
       submitDisabled={draft.trim() === "" && conditions.keyword === ""}
       value={draft}
     />

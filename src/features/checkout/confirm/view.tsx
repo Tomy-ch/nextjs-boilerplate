@@ -8,11 +8,11 @@ import {
   APP_SHELL_HEADER_HEIGHT,
   APP_SHELL_STICKY_GAP,
 } from "@/components/shell/app-shell/app-shell.definition";
+import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import type { UserProfile } from "@/model/user/user";
 import { withScreenSpan } from "@/observability/render-span";
-import { PRODUCTS_PATH } from "../paths";
 import { OrderLines } from "./ui/order-lines/order-lines";
 import { OrderSummary } from "./ui/order-summary/order-summary";
 import { PlaceOrderStateProvider } from "./ui/place-order-state/place-order-state";
@@ -31,13 +31,15 @@ export type CheckoutConfirmViewProps = {
 };
 
 /**
- * 購入確認の表示。
+ * 内容が伸びても確定の操作が画面の中に残るよう、届け先と内容を左に、集計と確定を右へ置く購入確認の器。
  *
  * @remarks
- * 届け先と内容を左に積み、集計と確定を右へ置きます。内容が伸びても確定の操作が画面の中に
- * 残るためで、脇に置けない幅では画面の下端に固定した帯が同じ役割を持ちます
- * （`docs/rules.md`「レイアウトと帯」の「脇に常設する領域は `lg` 以上でだけ出す」と
- * 「常に届く操作は `lg` 未満で画面下端に固定する」）。
+ * 脇に置けない幅では、画面の下端に固定した帯が同じ役割を持ちます
+ * （`docs/rules.md#layout` の
+ * "An area permanently placed beside the body (sidebar, rail) appears only at `lg` and above" と
+ * "An action that must always be reachable is pinned to the bottom edge of the screen in the band
+ * without a sidebar (below `lg`), and returns to normal placement at widths where a sidebar can be
+ * permanent"）。
  *
  * 同じ集計を 2 か所に置いていますが、**出るのはどちらか一方だけ**です。器の出し分けは CSS で
  * 行い、hydration を待ちません。待つと、読み始めた後に画面の下へ器が現れて内容が動きます。
@@ -51,6 +53,8 @@ export type CheckoutConfirmViewProps = {
  * **確定の送信状態は器が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
  * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
  * 表に出る側が「何も送っていない」姿になります。
+ *
+ * @param props - {@link CheckoutConfirmViewProps} を参照。
  */
 export const CheckoutConfirmView = withScreenSpan(
   "features/checkout/confirm/view",
@@ -62,7 +66,7 @@ export const CheckoutConfirmView = withScreenSpan(
             カートに商品が入っていないため、確定できる注文がありません。
           </p>
           <Button asChild variant={BUTTON_VARIANT.OUTLINE}>
-            <Link href={PRODUCTS_PATH}>商品を探す</Link>
+            <Link href={PRODUCT_LIST_PATH}>商品を探す</Link>
           </Button>
         </div>
       );

@@ -88,6 +88,10 @@ export type ProductListSelection = Readonly<Record<string, string | readonly str
  * 複数回現れた条件は単一の値として読めないため、空として扱います。**URL は利用者が直接編集
  * できる**ので、1 つしか受け取らない条件にも並びが届き得ます。読み方をここに 1 つだけ置くのは、
  * 読む側それぞれが独自に畳むと、同じ URL が場所によって違う条件に見えるためです。
+ *
+ * @param selection - URL から読んだ検索条件
+ * @param key - 読む対象の条件キー
+ * @returns 条件の値。複数回現れた場合や無い場合は空文字
  */
 export function toSelectedValue(selection: ProductListSelection, key: string): string {
   const value = selection[key];
@@ -95,7 +99,13 @@ export function toSelectedValue(selection: ProductListSelection, key: string): s
   return typeof value === "string" ? value : "";
 }
 
-/** 条件 1 つを、値の有無によらず並びとして読む。 */
+/**
+ * 条件 1 つを、値の有無によらず並びとして読む。
+ *
+ * @param selection - URL から読んだ検索条件
+ * @param key - 読む対象の条件キー
+ * @returns 条件の値の並び。無い場合は空の並び
+ */
 export function toSelectedValues(selection: ProductListSelection, key: string): readonly string[] {
   const value = selection[key];
 
@@ -115,6 +125,9 @@ export function toSelectedValues(selection: ProductListSelection, key: string): 
  *
  * @remarks
  * 増分取得へ渡す条件を作ります。位置を含めたまま渡すと、続きの取得が「続きの続き」を指します。
+ *
+ * @param selection - 落とす前の検索条件
+ * @returns 読み進めた位置を除いた検索条件
  */
 export function toConditions(selection: ProductListSelection): ProductListSelection {
   return Object.fromEntries(Object.entries(selection).filter(([key]) => !POSITION_KEYS.has(key)));
@@ -131,6 +144,9 @@ export function toConditions(selection: ProductListSelection): ProductListSelect
  * キーを並べ替えてから組み立てます。同じ条件が選択の順序で違う URL になると、共有されたリンクも
  * ブラウザの履歴も同じ画面を別物として扱います。複数選べる条件は値どうしも並べ替えます。選んだ
  * 順序は条件の一部ではないため、順序だけが違う URL は同じ画面を指しています。
+ *
+ * @param selection - URL へ組む検索条件
+ * @returns 一覧のパス。条件が無い場合はクエリ文字列を持たないパス
  */
 export function toProductListHref(selection: ProductListSelection): string {
   const params = toProductListSearchParams(selection);
@@ -144,6 +160,9 @@ export function toProductListHref(selection: ProductListSelection): string {
  * @remarks
  * 並べ替えの規則は {@link toProductListHref} と同じものです。取得の口へ渡す条件と、画面が指す
  * URL とで並べ方が違うと、同じ条件が別の文字列になり、取得結果を URL で見分けられなくなります。
+ *
+ * @param selection - クエリへ組む検索条件
+ * @returns 並べ替え済みの `URLSearchParams`
  */
 export function toProductListSearchParams(selection: ProductListSelection): URLSearchParams {
   const params = new URLSearchParams();

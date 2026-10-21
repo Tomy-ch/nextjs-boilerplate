@@ -1,37 +1,41 @@
-# 根の外枠（画面要件）
+# Root Outer Frame (Screen Requirements)
 
-> 機能要件は [`layout.function.md`](layout.function.md)。
+> Functional requirements: [`layout.function.md`](layout.function.md).
 
-すべての画面を包む一番外側の器。描くものは同意を尋ねる面だけで、header も footer も持たない
-——それらは route group ごとの器が置く。
+The outermost layout shell wrapping every screen. It renders only the panel that asks for consent and the region for notifications that
+appear across screens, and has neither header nor footer — those are placed by each route group's layout shell. The notification region
+shows nothing while there are none, but stays on screen as a named region.
 
-## 同意を尋ねる面
+## The Consent Panel
 
-画面の下端に横いっぱいで張り付き、背面を半透明の膜で覆う。
+It sticks to the bottom of the screen at full width and covers the background with a translucent overlay.
 
-| 区画 | 内容 |
+| Region | Content |
 | --- | --- |
-| 見出し | 何について尋ねているか |
-| 説明 | 必要なものと任意のものの区別が読み取れる文 |
-| 導線 | 判断の材料を示す文書へ（置かない構成も選べる） |
-| 操作 | 「同意する」と「必要なものだけ使う」の 2 つ |
+| Heading | What is being asked about |
+| Description | Text from which the distinction between what is needed and what is optional can be read |
+| Link | To a document giving the material for the decision (a configuration without it can also be chosen) |
+| Actions | Two: 「同意する」 (agree) and 「必要なものだけ使う」 (use only what is needed) |
 
-**2 つの操作を同じ大きさで並べる。** 拒否だけを小さくしたり、目立たない見た目にしたりしない。
-選びにくくすると、得られた同意が自由に与えられたものでなくなる。
+**The two actions are laid out at the same size.** Refusal alone is not made smaller or given an inconspicuous look. Making it harder to
+choose means the consent obtained is no longer freely given.
 
-**閉じる操作を置かない。** 面から出る手段は選ぶことだけである（[`layout.function.md`](layout.function.md)）。
+The only way out of the panel is choosing one of the two actions; there is no close action either (the reason is
+[`layout.function.md`](layout.function.md), "Keep asking until a choice is made").
 
-**狭い画面では説明と操作を縦に積む。** 横に並べると、説明が読めない幅まで詰まる。
+**On narrow screens, the description and the actions are stacked vertically.** Side by side, the description gets squeezed to an
+unreadable width.
 
-**文言はこの器が持たない。** 何にどの cookie を使うかは繋ぐ製品で、どこまで書くかは法域で変わる
-ため、書き換える場所を 1 つに寄せてある（`components/**/README.md`）。
+**This layout shell does not hold the wording.** Which cookies are used for what depends on the products connected, and how much to write
+depends on the jurisdiction, so the place to rewrite it is gathered into one (the component that renders the consent panel holds the
+wording's definition. [Related](#related)).
 
-## 面が出る時点
+## When the Panel Appears
 
-**読み込み直後には出ない。** ブラウザ側で同意状態を読み終えてから現れる（理由は
-[`layout.function.md`](layout.function.md)）。
+**It does not appear immediately after load.** It appears after the browser side finishes reading the consent state (the reason is in
+[`layout.function.md`](layout.function.md)).
 
-## 関連
+## Related
 
-- 実装 `src/app/layout.tsx` / `src/app/consent.tsx`
-- 部品 [`ConsentBanner`](../../../src/components/shell/consent-banner/README.md) —— Storybook `Overlay/ConsentBanner`
+- Implementation: `src/app/layout.tsx` / `src/app/consent.tsx`
+- The [README](../../../src/components/shell/consent-banner/README.md) of the component that renders the consent panel, and its Storybook

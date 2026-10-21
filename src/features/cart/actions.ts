@@ -20,6 +20,7 @@ import { readProductId, readQuantity } from "./parse-cart-form";
  * 1 つ指定しても外枠は古いままになるため、layout の段で無効にします。
  */
 function revalidateCart(): void {
+  // eslint-disable-next-line project-rules/no-app-wide-revalidate -- 明細は外枠に出る
   revalidatePath("/", "layout");
 }
 
@@ -43,6 +44,10 @@ const MALFORMED_MESSAGE = "操作を受け付けられませんでした。画�
  * 要しません（冪等性は明細の自然キーから来ます）。
  *
  * 在庫を超えた数量も拒みません。買えるかどうかは明細の `issues` として次の取得で現れます。
+ *
+ * @param _previous - 直前の結果。参照しない
+ * @param formData - 送信された商品と数量
+ * @returns 操作の結果
  */
 export async function setCartItemQuantityAction(
   _previous: CartActionState,
@@ -71,6 +76,10 @@ export async function setCartItemQuantityAction(
  *
  * @remarks
  * 対象が既に無くても成功します。買えない明細も取り除けます。
+ *
+ * @param _previous - 直前の結果。参照しない
+ * @param formData - 送信された商品
+ * @returns 操作の結果
  */
 export async function removeCartItemAction(
   _previous: CartActionState,
@@ -98,6 +107,10 @@ export async function removeCartItemAction(
  *
  * @remarks
  * カートそのものは残ります。空にしても利用者の同一性は切れません。
+ *
+ * @param _previous - 直前の結果。参照しない
+ * @param _formData - 参照しない
+ * @returns 操作の結果
  */
 export async function clearCartAction(
   _previous: CartActionState,

@@ -68,7 +68,6 @@ describe("useProductImages", () => {
     expect(result.current.items).toHaveLength(1);
     expect(result.current.imagePaths).toEqual([]);
     expect(result.current.uploading).toBe(true);
-    // 表示状態まで見る。ここが失敗の状態にならないと、実際の画面では再試行が出ない。
     expect(result.current.items[0]).toMatchObject({
       description: "送信中",
       state: ATTACHMENT_STATE.UPLOADING,
@@ -115,7 +114,6 @@ describe("useProductImages", () => {
   });
 
   it("顔ぶれが同じでも、並びが変われば書きかけになる", () => {
-    // 長さの比較だけになっても他のケースは通る。並べ替えただけの人が警告なく変更を失う。
     const saved = [
       { imagePath: "products/a.png", url: "/a.png" },
       { imagePath: "products/b.png", url: "/b.png" },
@@ -151,8 +149,6 @@ describe("useProductImages", () => {
   });
 
   it("送信そのものが失敗しても、送信中のまま留まらせない", async () => {
-    // 切断・上限超過・5xx は action の外で起きるため、戻り値では受け取れない。捕まえないと
-    // その枚は送信中でも失敗でもない状態に居残り、送信が永久に塞がる。
     const upload = vi.fn(() => Promise.reject(new Error("切断")));
     const { result } = renderHook(() => useProductImages(upload));
 

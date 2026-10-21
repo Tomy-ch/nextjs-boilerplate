@@ -1,5 +1,11 @@
 import type { AdminProductFilterOption } from "./filter-option";
-import { type AdminProductListConditions, toConditionHref } from "./query";
+import {
+  type AdminProductListConditions,
+  DISCONTINUED_FILTER_LABEL,
+  FILTER_KEY,
+  FILTER_KEY_LABEL,
+  toConditionHref,
+} from "./query";
 
 /** いま効いている条件 1 件。解除先まで含めて、表示側が組み立て直さずに済む形で持つ。 */
 export type AdminActiveFilter = {
@@ -13,10 +19,6 @@ export type AdminActiveFilter = {
   readonly removeHref: string;
 };
 
-const KEYWORD_LABEL = "キーワード";
-const CATEGORY_LABEL = "分類";
-const STATUS_LABEL = "状態";
-
 /**
  * 選ばれたコードを、解除先付きの条件へ写す。
  *
@@ -24,7 +26,14 @@ const STATUS_LABEL = "状態";
  * URL に載っているのはマスタ行を指す番号で、そのまま出しても何を選んだのかは読めません。
  * 選択肢に無い番号は条件として出しません。
  *
- * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」）。
+ * **外すのはその 1 つだけ**です（理由は `docs/spec/route/admin/products/page.function.md#the-url-holds-the-search-conditions`）。
+ *
+ * @param codes - 選ばれたコードの一覧
+ * @param options - コードを表示名へ直す候補
+ * @param label - 各条件に付ける表示名
+ * @param key - 条件のキーに使う接頭辞
+ * @param toConditions - 1 件を外した残りのコードから条件を組み立てる関数
+ * @returns 解除先付きの条件の一覧
  */
 function toFilters(
   codes: readonly string[],
@@ -63,6 +72,7 @@ function toFilters(
  * @param conditions - いま効いている条件
  * @param categoryOptions - 選べる分類。コードを表示名へ直すために使う
  * @param statusOptions - 選べる状態。同上
+ * @returns 解除先付きの条件の一覧
  */
 export function toAdminActiveFilters(
   conditions: AdminProductListConditions,
@@ -74,7 +84,7 @@ export function toAdminActiveFilters(
   if (conditions.keyword !== "") {
     filters.push({
       key: "keyword",
-      label: KEYWORD_LABEL,
+      label: FILTER_KEY_LABEL[FILTER_KEY.KEYWORD],
       value: conditions.keyword,
       removeHref: toConditionHref({ ...conditions, keyword: "" }),
     });
@@ -84,15 +94,30 @@ export function toAdminActiveFilters(
     ...toFilters(
       conditions.categoryCodes,
       categoryOptions,
-      CATEGORY_LABEL,
+      FILTER_KEY_LABEL[FILTER_KEY.CATEGORY],
       "category",
       (categoryCodes) => ({ ...conditions, categoryCodes }),
     ),
-    ...toFilters(conditions.statusCodes, statusOptions, STATUS_LABEL, "status", (statusCodes) => ({
-      ...conditions,
-      statusCodes,
-    })),
+    ...toFilters(
+      conditions.statusCodes,
+      statusOptions,
+      FILTER_KEY_LABEL[FILTER_KEY.STATUS],
+      "status",
+      (statusCodes) => ({
+        ...conditions,
+        statusCodes,
+      }),
+    ),
   );
+
+  if (conditions.discontinued !== null) {
+    filters.push({
+      key: FILTER_KEY.DISCONTINUED,
+      label: FILTER_KEY_LABEL[FILTER_KEY.DISCONTINUED],
+      value: DISCONTINUED_FILTER_LABEL[conditions.discontinued],
+      removeHref: toConditionHref({ ...conditions, discontinued: null }),
+    });
+  }
 
   return filters;
 }

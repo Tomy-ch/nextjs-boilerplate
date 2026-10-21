@@ -1,40 +1,40 @@
 # ProgressClient
 
-## 用途
+## Purpose
 
-browser 側で更新される進捗度を、値と最大値の関係として視覚的に示します。
+Visually shows progress that is updated in the browser, as the relationship between a value and a maximum.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ProgressClient` | 進捗部分を独立した要素として描画する client island の表示 primitive です。`value` と `max` を props として受け取り、進捗の割合だけを描画します。 |
+| `ProgressClient` | Display primitive in a client island that renders the progress portion as a separate element. It takes `value` and `max` as props and renders only the progress ratio. |
 
-外枠の見た目は `className`、進捗部分の見た目は `indicatorClassName` で上書きします。
+Override the look of the outer frame with `className`, and of the progress portion with `indicatorClassName`.
 
-## 利用ケース
+## Use Cases
 
-- ファイル送信量のように、browser 側で計測した値を短い間隔で更新する場合
-- 擬似要素による browser 間の見た目の差を避けたい場合
+- Updating a value measured in the browser at short intervals, such as the amount of a file sent
+- Avoiding the cross-browser differences in look caused by pseudo-elements
 
-進捗が URL や Server 側で確定しているだけなら `ProgressNative` を使います。完了時期が不明な待機には使わず、骨格を見せるだけでよい場合は `Skeleton` を使います。
+If the progress is merely settled in the URL or on the server, use `ProgressNative`. Do not use it for a wait whose end is unknown; when showing a skeleton is enough, use `Skeleton`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `△` に当たります。既定は `ProgressNative` であり、値を browser 側で連続更新する要件が確定した場合にこちらを選びます。hydration が必要で、Server Component からは直接 render できません。値の保持と更新は呼び出し元の client island が持ち、この component は state も timer も購読も持ちません。取得、完了後の遷移、百分率の文言整形も持ちません。
+In the SSR-first selection it is rated `△`. The default is `ProgressNative`; choose this one once the requirement to update the value continuously in the browser is settled. It needs hydration and cannot be rendered directly from a Server Component. The caller's client island holds and updates the value; this component holds no state, no timer, and no subscription. It also does not own fetching, navigation after completion, or formatting the percentage text.
 
-`value` は必須です。進捗不明（indeterminate）は表現の対象外にしています。待機の表現は `Skeleton` / `Shimmer` が担うため、進捗部品は値の判っている進捗だけを引き受けます（[0051](../../../../../docs/adr/0051-styling-system.md)）。
+`value` is required. Indeterminate progress is out of scope. `Skeleton` / `Shimmer` handle the representation of waiting, so the progress components take on only progress whose value is known ([0051](../../../../../docs/adr/0051-styling-system.md)).
 
-`progressbar` role として公開され、値は `value` と `max` から百分率として読み上げられます。要素自体は名前を持たないため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。`ProgressNative` と違い実体は `div` であり labelable 要素ではないため、**`label` の `htmlFor` では名前が付きません**。見出しテキストと関連付ける場合は、その要素の `id` を `aria-labelledby` から参照します。
+It is exposed with the `progressbar` role, and the value is announced as a percentage derived from `value` and `max`. The element has no name of its own, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. Unlike `ProgressNative`, the underlying element is a `div` and not a labelable element, so **`label`'s `htmlFor` does not name it**. To associate it with heading text, reference that element's `id` from `aria-labelledby`.
 
-進捗部分の幅は `value` と `max` の比から算出します。値が変わると幅の変化が CSS transition で補間され、`prefers-reduced-motion` 時は補間しません。更新間隔が既定の transition より短い場合は、`indicatorClassName` に `duration-*` と easing を渡して合わせます。
+The width of the progress portion is computed from the ratio of `value` to `max`. When the value changes, the width change is interpolated with a CSS transition, and is not interpolated under `prefers-reduced-motion`. When the update interval is shorter than the default transition, pass `duration-*` and an easing in `indicatorClassName` to match.
 
-太さや幅は `className` で上書きします。既定は `h-2 w-full`、track は `bg-border`、進捗部分は `bg-foreground` で、`ProgressNative` と同じ組み合わせです。
+Override thickness and width with `className`. The defaults are `h-2 w-full`, `bg-border` for the track and `bg-foreground` for the progress portion — the same combination as `ProgressNative`.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API carries no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の表示、値が `0` の状態、`max` に達した完了状態、`max` を実単位にした場合、値を更新して補間を確認する場合、`aria-labelledby` で名前を与える場合、`className` で太さを変えた場合を確認します。
+Storybook covers the default display, a value of `0`, the completed state at `max`, `max` in real units, updating the value to see the interpolation, naming it with `aria-labelledby`, and changing the thickness with `className`.
 
-テストは `progressbar` role として公開されること、`aria-valuenow` / `aria-valuemax` が出ること、進捗部分の幅が `value` と `max` の比になること、値が `0` と `max` のときの端の扱い、呼び出し元の更新が表示へ反映されること、`aria-labelledby` によるアクセシブルな名前、`className` の上書き、a11y 自動検査を確認します。
+The tests cover exposure with the `progressbar` role, that `aria-valuenow` / `aria-valuemax` are emitted, that the progress portion's width is the ratio of `value` to `max`, the edge handling when the value is `0` and `max`, that the caller's updates reach the display, the accessible name via `aria-labelledby`, overriding `className`, and the automated a11y check.

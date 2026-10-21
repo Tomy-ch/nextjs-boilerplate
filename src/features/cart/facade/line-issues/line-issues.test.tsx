@@ -30,7 +30,7 @@ describe("CartLineIssues", () => {
         availableQuantity={null}
         issues={["outOfStock", "priceIncreased"]}
         note={NOTE}
-      />, //
+      />,
     );
 
     expect(screen.getAllByRole("listitem")).toHaveLength(3);

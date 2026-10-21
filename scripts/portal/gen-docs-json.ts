@@ -2,21 +2,22 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 
-import { buildDocsJson, type DiscoveredDirectory, type DiscoveredDocs } from "./docs-json";
+import {
+  buildDocsJson,
+  type DiscoveredDirectory,
+  type DiscoveredDocs,
+  splitByLanguage,
+} from "./docs-json";
 
 const DOCS_DIR = "docs";
 const MANIFEST_PATH = "docs/portal/manifest.yaml";
 const OUTPUT_PATH = "docs/portal/docs.json";
 
-/** ビューアー自身と翻訳ツリーは section にしない。前者は生成物、後者は各 section の一部。 */
-const NON_SECTION_DIRECTORIES = new Set(["portal", "ja"]);
+/** ビューアー自身は生成物なので section にしない。 */
+const NON_SECTION_DIRECTORIES = new Set(["portal"]);
 
-function markdownIn(directory: string): string[] {
-  return existsSync(directory)
-    ? readdirSync(directory)
-        .filter((file) => file.endsWith(".md"))
-        .sort()
-    : [];
+function markdownIn(directory: string) {
+  return splitByLanguage(readdirSync(directory).sort());
 }
 
 function discover(): DiscoveredDocs {
@@ -27,15 +28,11 @@ function discover(): DiscoveredDocs {
     .map((name) => ({
       name,
       hasIndexHtml: existsSync(join(DOCS_DIR, name, "index.html")),
-      enFiles: markdownIn(join(DOCS_DIR, name)),
-      jaFiles: markdownIn(join(DOCS_DIR, "ja", name)),
+      ...markdownIn(join(DOCS_DIR, name)),
     }));
+  const root = markdownIn(DOCS_DIR);
 
-  return {
-    directories,
-    rootEnFiles: markdownIn(DOCS_DIR),
-    rootJaFiles: markdownIn(join(DOCS_DIR, "ja")),
-  };
+  return { directories, rootEnFiles: root.enFiles, rootJaFiles: root.jaFiles };
 }
 
 if (!existsSync(MANIFEST_PATH)) {

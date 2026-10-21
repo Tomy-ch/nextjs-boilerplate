@@ -44,6 +44,9 @@ const KNOWN_WITHOUT_CSS_PREFIXES: readonly string[] = [
  * Tailwind は `:` `.` `/` `[` `]` `(` `)` `%` などを含む class を、その文字を `\` で
  * 逃がした selector として出力する。素の文字列で探すと variant 修飾子の付いた class を
  * 取りこぼすため、照合する前に同じ形へ揃える。
+ *
+ * @param className - ソースに書かれた class 名。
+ * @returns 生成された CSS を探すための selector。
  */
 export function toSelector(className: string): string {
   return `.${className.replace(/[^\w-]/g, (character) => `\\${character}`)}`;
@@ -55,6 +58,9 @@ export function toSelector(className: string): string {
  * @remarks
  * `data-[state=open]:animate-in` の `:` は修飾子の区切りだが、`data-[state=open]` の中の `=`
  * や `[` の内側にも記号が現れる。角括弧・丸括弧の内側は区切りとして数えない。
+ *
+ * @param className - variant 修飾子を含みうる class 名。
+ * @returns 最後の区切りより後ろ、utility の部分。
  */
 export function utilityOf(className: string): string {
   let depth = 0;
@@ -70,7 +76,12 @@ export function utilityOf(className: string): string {
   return className.slice(lastSeparator + 1);
 }
 
-/** 意図して CSS を持たない class か。判定は variant 修飾子を外した utility に対して行う。 */
+/**
+ * 意図して CSS を持たない class か。判定は variant 修飾子を外した utility に対して行う。
+ *
+ * @param className - 判定する class 名。
+ * @returns 意図して CSS を持たない class なら真。
+ */
 export function isKnownWithoutCss(className: string): boolean {
   const utility = utilityOf(className);
   if (KNOWN_WITHOUT_CSS.has(utility)) return true;
@@ -83,7 +94,15 @@ const CLASS_ANCHORS = [
   { pattern: /\bcn\(/g, open: "(", close: ")" },
 ] as const;
 
-/** 開き括弧の位置から、対応する閉じ括弧までを返す。文字列リテラルの中の括弧は数えない。 */
+/**
+ * 開き括弧の位置から、対応する閉じ括弧までを返す。文字列リテラルの中の括弧は数えない。
+ *
+ * @param source - 切り出す元のソース。
+ * @param start - 開き括弧の位置。
+ * @param open - 開き括弧の文字。
+ * @param close - 閉じ括弧の文字。
+ * @returns 開き括弧から対応する閉じ括弧までの範囲。閉じ切らなければ末尾まで。
+ */
 function balancedSlice(source: string, start: number, open: string, close: string): string {
   let depth = 0;
   let quote: string | undefined;
@@ -127,6 +146,9 @@ const DIGIT_LED_VARIANT_TOKEN = /^\d+[a-z]+:[\w:./[\]()&>*+~=%!#'-]*$/;
  * 候補に入る。class が書かれる位置は `className` 属性か、`cn()` / `cva()` の引数に限られるため、
  * その内側の文字列リテラルだけを見る。判定は生成された CSS との照合で確定させるので、
  * ここでは class としてありえない形だけを落とす。
+ *
+ * @param source - component の実装ファイルの中身。
+ * @returns class として照合する候補。
  */
 export function collectClassCandidates(source: string): ReadonlySet<string> {
   const candidates = new Set<string>();
@@ -142,7 +164,12 @@ export function collectClassCandidates(source: string): ReadonlySet<string> {
   return candidates;
 }
 
-/** 文字列リテラルの中で class としてありうる語。 */
+/**
+ * 文字列リテラルの中で class としてありうる語。
+ *
+ * @param value - 引用符を除いた文字列リテラルの中身。
+ * @returns class としてありうる形の語。
+ */
 function classTokensIn(value: string): string[] {
   return value
     .split(/\s+/)
@@ -154,6 +181,9 @@ function classTokensIn(value: string): string[] {
  *
  * @remarks
  * 書かれた順に返す。どの anchor から来たかで並びが変わると、差分が読みにくくなる。
+ *
+ * @param source - component の実装ファイルの中身。
+ * @returns class が書かれうる範囲。書かれた順。
  */
 function classRegionsIn(source: string): string[] {
   const regions: { at: number; text: string }[] = [];
@@ -173,6 +203,9 @@ function classRegionsIn(source: string): string[] {
  *
  * @remarks
  * 比較の対象・index の key・cva の variant 名は、文字列でも class ではないので落とす。
+ *
+ * @param region - class が書かれうる範囲。
+ * @returns class として読む文字列リテラルの中身。引用符は含まない。
  */
 function classLiteralsIn(region: string): string[] {
   // cva の `defaultVariants` が指すのは variant の名前であって class ではない
@@ -202,7 +235,12 @@ function classLiteralsIn(region: string): string[] {
   return literals;
 }
 
-/** `src/components` 配下の `.tsx` を集める。story と test は実装ではないため対象にしない。 */
+/**
+ * `src/components` 配下の `.tsx` を集める。story と test は実装ではないため対象にしない。
+ *
+ * @param directory - 走査を始めるディレクトリ。
+ * @returns 見つかった実装ファイルのパス。
+ */
 /* istanbul ignore next -- ファイル走査と CSS の build は pnpm check:classes が実地で通す。 */
 async function collectComponentSources(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -223,7 +261,11 @@ async function collectComponentSources(directory: string): Promise<string[]> {
   return files;
 }
 
-/** `globals.css` を実際に build し、生成された CSS を返す。 */
+/**
+ * `globals.css` を実際に build し、生成された CSS を返す。
+ *
+ * @returns build の結果として出力された CSS。
+ */
 /* istanbul ignore next -- 同上（`collectComponentSources` と同じ）。 */
 async function buildCss(): Promise<string> {
   const source = await readFile(entryCssPath, "utf8");
@@ -232,7 +274,13 @@ async function buildCss(): Promise<string> {
   return result.css;
 }
 
-/** 出力に現れなかった class を、書かれているファイルとともに返す。 */
+/**
+ * 出力に現れなかった class を、書かれているファイルとともに返す。
+ *
+ * @param css - build して得た CSS。
+ * @param sources - ファイルごとの class 候補。
+ * @returns 出力に現れなかった class と、それが書かれているファイル。class 名の昇順。
+ */
 export function findMissingClasses(
   css: string,
   sources: ReadonlyMap<string, ReadonlySet<string>>,
@@ -252,6 +300,9 @@ export function findMissingClasses(
     .sort((a, b) => a.className.localeCompare(b.className));
 }
 
+/**
+ * 生成された CSS と component に書かれた class を突き合わせ、結果を報告して終了コードを決める。
+ */
 /* istanbul ignore next -- CLI のエントリポイントは pnpm check:classes が実地で通す。 */
 async function main(): Promise<void> {
   const css = await buildCss();

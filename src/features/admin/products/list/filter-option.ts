@@ -24,6 +24,7 @@ export type AdminProductFilterOption = {
  * 体系の違いはこの変換に現れません。
  *
  * @param masters - 番号と表示名を持つマスタ行
+ * @returns 選べる候補の一覧
  */
 export function toFilterOptions(
   masters: readonly { readonly code: number; readonly name: string }[],

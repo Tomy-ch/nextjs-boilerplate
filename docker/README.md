@@ -1,55 +1,131 @@
 # docker
 
-開発を補助するコンテナの定義と、そこで使う image の digest ロックファイルを置く。
+Holds the definitions of containers that support development, and the digest lockfile for the images used there.
 
-**ここにあるものは配送物ではない。** アプリ本体は PaaS / 静的 CDN へそのまま載せる前提で、
-Docker で動かさない（[0011](../docs/adr/0011-no-docker.md)）。無印の `docker-compose.yml` を
-使わず [`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) を名指しで起動する形に
-してあるのは、本体配送と読み違えられないようにするため。
+**Nothing here is a shipped artifact.** The application itself is meant to go straight onto a PaaS / static CDN
+and is not run in Docker ([0011](../docs/adr/0011-no-docker.md)). Instead of a plain `docker-compose.yml`,
+[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) is started by name, so that it is not
+mistaken for shipping the application. The uses for which Docker may be adopted, and the rules for file
+names / start commands when it is, are owned by [0011](../docs/adr/0011-no-docker.md).
 
-## 中身
+## Contents
 
-| パス | 役割 |
+| Path | Role |
 | --- | --- |
-| `images-pin.toml` | `image:tag` → digest のロックファイル（SSOT）。手で書かない |
-| `<用途>/Dockerfile` | 補助ツールを自前で組む場合の置き場。現時点では無く、上流 image をそのまま使う |
+| `images-pin.toml` | The `image:tag` → digest lockfile (SSOT). Written by `make images-pin-resolve`, never by hand |
+| `<purpose>/Dockerfile` | Where a helper tool goes when it cannot be assembled from the upstream image as is. One directory per use; only a `Dockerfile` at this position is scanned |
 
-ロックファイルの守備範囲はこのディレクトリの外にも及ぶ。走査するのは以下の 3 か所。
+The lockfile's coverage extends beyond this directory. Three places are scanned.
 
-| 場所 | 記法 |
+| Location | Notation |
 | --- | --- |
-| リポジトリ直下の `docker-compose*.{yml,yaml}` | `image: <image>:<tag>` |
-| `docker/<用途>/Dockerfile` | `FROM <image>:<tag>` |
+| `docker-compose*.{yml,yaml}` at the repository root | `image: <image>:<tag>` |
+| `docker/<purpose>/Dockerfile` | `FROM <image>:<tag>` |
 | `.github/workflows/**` / `.github/actions/**` | `uses: docker://<image>:<tag>` |
 
-3 つ目は GitHub Actions が registry の image を直接実行するステップの記法で、`uses:` の行ではあるが
-参照先は GitHub のリポジトリではない。SHA 固定を担う actions-pin は tag を `git ls-remote` で
-commit へ解決する機構なので registry には効かず、digest を扱うこちらが持つ（[0153](../docs/adr/0153-ci-configuration.md)）。
-**tag は必須**で、省略すると `:latest` を指してしまうため取りこぼしとして落とす。
+The third is the notation for a step in which GitHub Actions runs a registry image directly; it is a `uses:`
+line, but what it references is not a GitHub repository. actions-pin, which handles SHA pinning, resolves a
+tag to a commit with `git ls-remote` and so has no effect on a registry; this side, which handles digests,
+owns it ([0153](../docs/adr/0153-ci-configuration.md)). **The tag is required**; omitting it points at
+`:latest`, so it is failed as something missed.
 
-## image は digest で固定する
+## Pin images by digest
 
-registry の tag は、同じ名前のまま別の中身を指せる。tag だけで参照していると、指し先が
-差し替わったことに気づけないまま新しい中身を引く。そこで **tag は版の SSOT として参照側に
-残し、digest をロックファイルが持つ**形にしてある。固定してあれば、指し先が変わった時点で
-pull が失敗する。
+**The tag stays on the referencing side as the version SSOT, and the lockfile holds the digest.** Why images
+are pinned, the quarantine window, and why tag re-pointing is not detected are owned by
+[0011](../docs/adr/0011-no-docker.md); this file holds only the procedure and the notation.
 
 ```bash
-make images-pin-resolve   # tag を digest へ解決してロックファイルを更新する
+make images-pin-resolve   # tag を digest へ解決してロックファイルを更新する（唯一ネットワークに出る）
 make images-pin-apply     # ロックファイルを元に参照を digest へ固定する
-make images-pin-check     # 固定済みか検証する（書き換えなし。CI が回す）
+make images-pin-check     # 固定済みか検証する（書き換えなし。pre-commit hook と CI が回す）
 ```
 
-`resolve` は**公開から 14 日未満の digest を採らない**（`IMAGES_PIN_MIN_AGE_DAYS`）。上流が
-乗っ取りを検知して取り消すまでの時間を稼ぐためで、既存のピンがあればそれを維持する。退行先の
-無い出来立ての image は、tag のまま残さず失敗させる。
+`resolve` does not adopt a digest published less than `IMAGES_PIN_MIN_AGE_DAYS` (default 14 days) ago. If a
+pin already exists it is kept; a brand-new image with nothing to fall back to fails rather than being left
+as a tag.
 
-tag の付け替えそのものは検知しない。base image の tag は patch 版が出るたび前進するのが通例で、
-「解決先が変わったら止める」を入れると日常的な更新と区別が付かなくなる。image に対して働く
-防壁は検疫と固定の 2 つである。
+### How the quarantine is measured
 
-## VRT ランナー
+- Age is counted from `created` in the registry's image config. **For a multi-arch image, the oldest of the
+  per-platform `created` values is used** — the quarantine asks "since when has this reference existed",
+  and an update that only adds one architecture to an existing image is not treated as new
+- Resolution uses `docker buildx imagetools inspect`. It needs a local docker and its credentials
+- In an emergency, the quarantine is lifted **only by stating** `make images-pin-resolve IMAGES_PIN_MIN_AGE_DAYS=0`.
+  Scoring the evidence on whether a version caught by the window may be adopted is owned by the
+  `supply-chain-triage` skill ([0154](../docs/adr/0154-claude-skills-operations.md))
 
-[`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) の `browser_runner` は、story の
-見た目を比較する Playwright の実行環境。基準画像の一意性をこのイメージが担保するため、
-`platform` まで固定してある。使い方は [`vrt/README.md`](../vrt/README.md)。
+### Writing references
+
+Write references **one per line, unquoted, with an explicit tag**. Scanning uses strict patterns, and an
+`image:` / `FROM` / `uses: docker://` line that does not match them is **an error, not a pass-through** —
+quoted forms (`image: "<image>:<tag>"`) and flow mappings would count as neither unregistered nor unpinned,
+and the check would return "no anomalies", so anything outside the supported notation is detected and failed.
+
+| Form | Handling |
+| --- | --- |
+| `image: <image>:<tag>` / `FROM <image>:<tag>` / `uses: docker://<image>:<tag>` | Pinned |
+| A reference that already carries `@sha256:...` | Only the tag part is read; the digest is aligned to the lockfile value |
+| `FROM --platform=... <image>:<tag> AS <stage>` | Pinned. Only the reference is rewritten; `--platform` and `AS <stage>` must be preserved |
+| `FROM <stage>` / `FROM scratch` | A legitimate tagless reference that cannot be pinned. An exception for Dockerfiles only |
+| Quoted, flow mapping, or tagless | Error (reported as `<relative-path>:<line>`) |
+
+`apply` rewrites to `<image>:<tag>@sha256:...` while keeping the tag and the trailing comment.
+
+### What `check` fails
+
+`apply` and `check` share the same decision, and `check` runs it without rewriting. There are four failure
+conditions, all fail-closed.
+
+| Symptom | Meaning | Fix |
+| --- | --- | --- |
+| Unregistered | Referenced but not in the lockfile | `make images-pin-resolve` |
+| Unpinned / mismatched | The reference's digest differs from the lockfile, or is missing | Commit the result of `make images-pin-resolve && make images-pin-apply` |
+| Orphan | In the lockfile but referenced from nowhere | Delete the line, or `make images-pin-resolve` |
+| Unparseable notation | The error row in the table above | Rewrite the reference in a supported notation |
+
+`apply` settles whether every file can be written before writing any. If even one entry is unregistered or
+orphaned, no file is rewritten, so "a working tree partly pinned even though the command failed" never
+remains.
+
+### Procedures
+
+- **Adding an image** — write the reference with its tag, run `resolve` then `apply`, and commit the
+  rewritten reference together with the lockfile. If `resolve` could not adopt it because of the
+  quarantine, wait a few days
+- **Upgrading a version** — rewrite the tag on the referencing side, then `resolve` → `apply`. Do not swap
+  the digest by hand (the version SSOT is the tag side)
+- **Removing an image** — delete the reference, then run `resolve`. Deleting alone leaves the lockfile line
+  failing `check` as an orphan
+
+## The shape of a helper-tool service
+
+Each service in [`docker-compose.dev-tools.yml`](../docker-compose.dev-tools.yml) follows the shape below.
+What each service is responsible for is owned by the comment at the head of that service.
+
+- **Write `image:` with a digest** (the mechanism above pins it). Why tools are put in compose services
+  rather than left to official actions that accept images only by tag is in [0011](../docs/adr/0011-no-docker.md)
+- **A service whose image guarantees unique output also pins `platform`.** Font rasterization varies with
+  CPU architecture as well, so leaving it out makes Apple Silicon and CI pull different architectures, and
+  generated artifacts (baseline images and the like) do not match between them
+- **The app starts on the host, and the container looks at it.** `node_modules` is resolved for the OS and
+  CPU it was installed on, so `next start` cannot run inside the container. `host.docker.internal:host-gateway`
+  goes in `extra_hosts` because Docker Desktop resolves this name itself, but on Linux it cannot be looked
+  up unless stated
+- **A service that writes generated artifacts into the repository passes the host uid / gid to `user:`**
+  (`RUNNER_UID` / `RUNNER_GID`, filled by the make side with `id -u` / `id -g`). Writing as root leaves
+  generated artifacts in the repository that the person who captured them cannot delete. Since it runs as
+  non-root, it is also given a writable `HOME`
+- **A tool that writes to a fixed path inside the image is not passed `user:`.** Running it with the
+  caller's uid makes it fail to start. Its output then goes only under the gitignored `tmp/`
+- **A service that runs Chromium uses `ipc: host`.** Otherwise it exhausts the default 64MB `/dev/shm` and
+  the whole tab crashes
+- **`ports:` are published only when stated.** They open only when started with
+  `docker compose run --service-ports`, so declare only endpoints like report serving, and do not open
+  them for the comparison run itself
+- **`entrypoint: []`** removes the upstream image's default entrypoint; the command to run is given by the
+  make recipe
+
+Example: the visual regression runner `browser_runner` implements every item above, and the DAST `zap`
+implements the items for the side not passed `user:`. For usage, see
+[`vrt/README.md`](../vrt/README.md) and [`.makefiles/README.md`](../.makefiles/README.md).

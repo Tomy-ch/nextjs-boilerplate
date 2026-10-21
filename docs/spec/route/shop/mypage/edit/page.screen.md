@@ -1,64 +1,62 @@
-# `/mypage/edit` プロフィール編集（画面要件）
+# `/mypage/edit` Edit Profile (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements are in [`page.function.md`](page.function.md).
 
-登録情報を書き換える画面。マイページとは独立したルート。
+The screen that rewrites the registered information. A route independent of my page.
 
-## 見せるもの
+## What It Shows
 
-9 項目を 3 節に分ける。
+Nine fields divided into three sections.
 
-| 節 | 項目 |
+| Section | Fields |
 | --- | --- |
-| 基本情報 | 名字・名前（横並び） |
-| 連絡先 | メールアドレス・電話番号 |
-| 住所 | 郵便番号（`[住所を検索]` 同梱）・都道府県・市区町村・丁目番地・建物名 |
+| Basic information | Family name, given name (side by side) |
+| Contact | Email address, phone number |
+| Address | Postal code (with `[住所を検索]`), prefecture, city / ward / town / village, block and street number, building name |
 
-必須・任意の印は label の前に置く。「必須」「任意」がどちらも 2 文字なので、印の列と label の
-開始位置が同時に揃う。印は `aria-hidden` で、必須であることは control の `aria-required` が
-伝える。
+The required / optional marker is placed before the label. 「必須」 ("Required") and 「任意」 ("Optional") are both two characters, so the marker column and the label's
+starting position line up at the same time. The marker is `aria-hidden`, and that a field is required is conveyed by the control's `aria-required`.
 
-都道府県は素の select。候補が静的で件数も固定なので、検索できる client 島を持ち込む理由がない。
+The prefecture is a plain select. The options are static and fixed in number, so there is no reason to bring in a searchable client island.
 
-## 誤りの出し方
+## How Errors Are Shown
 
-**誤りを出すのは focus が外れた時点。focus が当たっている間は、表示を消す方向にだけ効かせる**
-（reward early, punish late。[0062](../../../../../adr/0062-form-input-validation.md)）。
+**Errors appear when focus leaves. While focused, it only acts in the direction of clearing the display**
+(reward early, punish late; [0062](../../../../../adr/0062-form-input-validation.md)).
 
-| 操作 | 表示 |
+| Operation | Display |
 | --- | --- |
-| 正常な値の項目を focus 中に空にする | 出さない |
-| focus を外す | 出す |
-| focus して直す | **その場で消す** |
-| focus 中にまた壊す | focus した時点と同じ文言のまま |
+| Emptying a field with a valid value while it is focused | Not shown |
+| Moving focus away | Shown |
+| Focusing and fixing it | **Cleared on the spot** |
+| Breaking it again while focused | Stays at the same text as when focused |
 
-実装では 2 つ要る。フォームの再検証は **submit のあとにしか効かない**ため検証の起点を
-「一度触れた時点」に置くこと、そのうえで focus 中の表示を「焦点を当てた時点の文言」で
-頭打ちにすること。後者が無いと、書き直そうとして 1 文字消しただけで「入力してください」が
-現れる。
+The implementation needs two things. Form revalidation **only takes effect after submit**, so the starting point of validation is placed at
+"once touched"; and on top of that, the display while focused is capped at "the text as of when focus arrived."
+Without the latter, deleting a single character while trying to rewrite would bring up 「入力してください」 ("Please enter a value").
 
-## 住所補完の見え方
+## How Address Autocomplete Looks
 
-補完が起きたことを読み上げる。入力欄の値が変わるだけでは、そこを見ていない利用者に届かない。
-待機中の文言は持たない（応答が速いと結果と入れ替わって戻り、文字が明滅する）。
+That completion happened is announced. A mere change in the field's value does not reach a user who is not looking there.
+There is no loading text (with a fast response it would swap with the result and back, making the text flicker).
 
-## 送信の結果
+## Submission Result
 
-成功しても画面を移さず、toast で伝える。フォームの文脈に留まる保存であるため
-（[0063](../../../../../adr/0063-mutation-result-notification.md)）。
+Even on success the screen does not move; a toast reports it. It is a save that stays in the form's context
+([0063](../../../../../adr/0063-mutation-result-notification.md)).
 
-## パンくず
+## Breadcrumbs
 
-`マイページ > プロフィール編集` を置く。global nav から 1 手で戻れない祖先を持つため
-（[0026](../../../../../adr/0026-layout-shell-mount.md)）。
+`マイページ > プロフィール編集` is placed. It has an ancestor that cannot be reached in one step from the global nav
+([0026](../../../../../adr/0026-layout-shell-mount.md)).
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook では `/api/addresses` が存在しないため、応答を story の中で差し替えている。引ける
-郵便番号は `150-0001`（町域が割れる）と `220-0012`（町域まで定まる）で、それ以外は該当なし。
-詳細は [feature の README](../../../../../../src/features/account/README.md)。
+`/api/addresses` does not exist in Storybook, so the response is replaced inside the story. The postal codes that can be looked up
+are `150-0001` (the town area splits) and `220-0012` (resolved down to the town area); anything else has no match.
+See the [feature README](../../../../../../src/features/account/README.md) for details.
 
-## 関連
+## Related
 
-- 実装 `src/features/account/edit/`
-- 隣の画面 [`/mypage`](../page.screen.md)
+- Implementation `src/features/account/edit/`
+- Neighboring screen [`/mypage`](../page.screen.md)

@@ -1,73 +1,76 @@
-# `/onboarding` 登録（機能要件）
+# `/onboarding` Registration (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 
-初めてこの系を使う利用者が、自分の登録情報を作る。認証そのものは
-[`/login`](../login/page.function.md) が済ませており、ここが解消するのは登録の側だけである。
+A user using this system for the first time creates their own registration information. Authentication itself has been completed by
+[`/login`](../login/page.function.md); what is resolved here is only the registration side.
 
-## 主体と所有
+## Actor and Ownership
 
-**認証は済んでいるが、利用者の記録がまだ無い主体だけが入れる。** 認証と登録は別の状態であり、
-前者はログインでしか、後者は登録でしか解消しない。未認証で踏んだ主体はログインへ、登録済みの
-主体は戻り先へ送り返す。**2 人目の利用者を作る操作を見せない**ためである。
+**Only actors who are authenticated but have no user record yet can enter.** Authentication and registration are separate states; the
+former is resolved only by login, the latter only by registration. An unauthenticated actor who lands here is sent to login, and a
+registered actor is sent back to the return destination. This is **so the action that creates a second user is never shown**.
 
-**保護された画面の入口は、同じ判定を通る。** 認証と登録の判定はデータ源に最も近い所が持ち、
-画面側はその結果を行き先へ変えるだけである（[0079](../../../../adr/0079-auth-frontend-seam.md)）。
-弾かれた主体が元居た場所は戻り先として持ち回り、登録の成立で解放する。
+**The entry points of protected screens go through the same check.** The check on authentication and registration is held closest to
+the data source, and the screen side only turns its result into a destination ([0079](../../../../adr/0079-auth-frontend-seam.md)).
+Where a bounced actor was is carried around as the return destination and released when registration succeeds.
 
-**業務としての妥当性はバックエンドが持つ。** この画面が確かめるのは形（空欄か・形式に合うか・
-長さが上限に収まるか）までで、その住所が実在するかも、その連絡先が本人のものかも判定しない
-（[0070](../../../../adr/0070-backend-role-separation.md)）。
+**The backend owns business validity.** This screen checks only shape (empty or not, matching the format, length within the limit);
+it judges neither whether the address exists nor whether the contact details belong to the person
+([0070](../../../../adr/0070-backend-role-separation.md)).
 
-## 送るもの
+## What Is Sent
 
-| 項目 | 必須 | 備考 |
+| Field | Required | Notes |
 | --- | --- | --- |
-| 名字 / 名前 | ○ | 上限は契約が持つ |
-| メールアドレス | ○ | 形式まで確かめる |
-| 電話番号 | ○ | 区切りを含まない桁だけ |
-| 郵便番号 | ○ | 住所の補完もこの値で引く |
-| 都道府県 | ○ | 送るのは名前。候補はマスタから取る |
-| 市区町村 / 丁目・番地 | ○ | |
-| 建物名・部屋番号 | — | 空欄は「入力しなかった」であり、空文字という値ではない |
+| Family name / given name | ○ | The contract holds the limit |
+| Email address | ○ | Checked up to the format |
+| Phone number | ○ | Digits only, without separators |
+| Postal code | ○ | Address autocomplete is also looked up with this value |
+| Prefecture | ○ | What is sent is the name. The options come from the master |
+| City / district and street number | ○ | |
+| Building name and room number | — | Empty means "not entered", not the value of an empty string |
 
-## 入力の判定は 1 か所が持つ
+## One place owns input validation
 
-**同じ判定を、送る前と受け取った後の両方が通る。** 送る前に確かめるのは、往復して初めて「入って
-いない」と言われるより、その場で判る方が直しやすいためである。受け取った後にも確かめるのは、
-送る前の判定が送信者に差し替えられるためである（[0062](../../../../adr/0062-form-input-validation.md)）。
+**The same validation runs both before sending and after receiving.** It is checked before sending because learning it on the spot is
+easier to fix than being told "missing" only after a round trip. It is checked after receiving because the sender can replace the
+pre-send check ([0062](../../../../adr/0062-form-input-validation.md)).
 
-**判定と文言は 1 か所が持つ。** 登録と登録情報の変更は同じ規則を通る。両側へ書き写すと、同じ
-誤りに 2 通りの言い方が生まれ、片方だけを直せる状態になる。
+**One place owns both the validation and the messages.** Registration and changing registration information go through the same
+rules. Copying them to both sides creates two ways of saying the same error, and a state where only one of them can be fixed.
 
-## 住所の補完
+## Address Autocomplete
 
-**郵便番号から住所を引き、決まった項目だけを埋める。** 1 つの郵便番号が複数の町域を指すことが
-あり、候補の先頭を無条件に採ると、利用者が選んでいない住所が黙って入る。番地から先は補完に
-含まれないため、町域を入れるのは丁目・番地が空のときだけである。
+**Look up the address from the postal code and fill only the fields that are determined.** One postal code may point to several town
+areas, and taking the first candidate unconditionally silently fills in an address the user did not choose. Street numbers and beyond
+are not part of autocomplete, so the town area is filled only when the district and street number field is empty.
 
-**引けなくても登録は続けられる。** 契約は外部 lookup の障害を失敗ではなく空の候補で返すと定めて
-おり、画面は手入力を続けさせる（[0080](../../../../adr/0080-error-handling.md)）。
+**Registration can continue even if the lookup fails.** The contract specifies that failures of the external lookup are returned not
+as a failure but as empty candidates, and the screen lets the user continue entering by hand
+([0080](../../../../adr/0080-error-handling.md)).
 
-**「該当が無い」と「補完の機構が動いていない」を分ける。** 前者は郵便番号を直せば埋まるが、後者は
-何度引いても埋まらない。契約はこの 2 つを別々に返すので、**画面が利用者へ言うことも分ける**。
+**Separate "no match" from "the autocomplete mechanism is not working".** The former fills in if the postal code is corrected; the
+latter never fills in however many times it is looked up. The contract returns these two separately, so **what the screen tells the
+user is separate too**.
 
-## 段の進行
+## Step Progression
 
-**埋まっていない段からは進めない。** 同じ規則を受け取る側も通るが、その場で判る方が直しやすい。
-最後の段は入力を受け取らず、送ろうとしている値を読み返すためだけに在る。
+**The user cannot proceed from a step that is not filled in.** The receiving side runs the same rules, but learning it on the spot is
+easier to fix. The last step accepts no input and exists only for reading back the values about to be sent.
 
-## 送信
+## Submission
 
-**送信は最後に 1 回。** 表示していない段の入力も同じ要求に載る。
+**One submission at the end.** Input in steps not currently shown rides on the same request.
 
-**二重に送っても利用者は 1 人にしかならない。** 画面を組み立てた地点が、この登録 1 回ぶんを指す
-鍵を作って送信に載せる。同じ画面から何度送っても鍵は同じで、受け取る側が 2 度目を初回の再生と
-して扱う。画面を開き直したときは別の鍵になるが、その時点で登録が済んでいればこの画面には入れない。
+**Submitting twice still creates only one user.** The point that built the screen creates a key pointing to this one registration
+and puts it in the submission. However many times it is sent from the same screen, the key is the same, and the receiving side treats
+the second as a replay of the first. Reopening the screen gives a different key, but if registration has completed by then, this
+screen cannot be entered.
 
-**競合は登録できなかったこととして伝える。** すでに登録が済んでいる場合と、他の登録と重複する
-場合を、利用者の側から区別する手段はない。
+**A conflict is conveyed as a failure to register.** The user has no way to distinguish a registration that has already completed
+from one that duplicates another registration.
 
-**成立したら画面を移る。** 登録はこの場に留まる操作ではなく、**登録を終えて初めて開ける画面**が
-ある（[0063](../../../../adr/0063-mutation-result-notification.md)）。移る先は持ち回った戻り先で、
-無ければマイページになる。
+**On success, move to another screen.** Registration is not an operation that stays here; there are **screens that can be opened only
+after registering** ([0063](../../../../adr/0063-mutation-result-notification.md)). The destination is the carried return destination,
+or My Page if there is none.

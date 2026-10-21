@@ -18,8 +18,6 @@ export const SEMANTIC_TOKEN = {
     "active",
     "primary",
     "primary-foreground",
-    "primary-light",
-    "primary-highlight",
     "secondary",
     "secondary-foreground",
     "emphasis",

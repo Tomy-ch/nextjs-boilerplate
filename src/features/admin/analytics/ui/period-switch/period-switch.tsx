@@ -12,8 +12,8 @@ import {
 
 /** `PeriodSwitch` の props。 */
 export type PeriodSwitchProps = {
-  /** いま選ばれている期間。 */
-  current: DashboardPeriod;
+  /** いま選ばれている期間。URL の期間が読めなかったときは渡さない。 */
+  current?: DashboardPeriod;
   /** 日付を選ぶ選択肢。overlay を開くため、ここだけ client island を受け取る。 */
   rangeChoice: ReactNode;
 };
@@ -39,6 +39,7 @@ const LINK_CHOICES: readonly { readonly period: DashboardPeriod; readonly label:
  * `aria-current` でいま見ている項目を示します。色の違いだけで現在地を表すと、色を区別できない
  * 利用者に伝わりません。
  *
+ * @param props - {@link PeriodSwitchProps} を参照。
  * @see Storybook `Features/Admin/Analytics/PeriodSwitch`
  */
 export const PeriodSwitch = withPartSpan(

@@ -1,7 +1,13 @@
 import { calendarDate, calendarMonth } from "@/model/time-window";
 import { DASHBOARD_PERIOD, type DashboardPeriodSelection } from "./period";
 
-/** その月の最終日。月をまたぐ加算は `Date` に数えさせる。 */
+/**
+ * その月の最終日。月をまたぐ加算は `Date` に数えさせる。
+ *
+ * @param year - 対象の年。
+ * @param month - 対象の月（1〜12）。
+ * @returns `YYYY-MM-DD` 形式の日付文字列。
+ */
 function endOfMonth(year: number, month: number): string {
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
 
@@ -31,6 +37,7 @@ export type PeriodWindow = {
  * @param query - URL が表す条件
  * @param now - 判定に使う時刻。呼び出し側が渡すのは、描画のたびに実時計を読むと基準画像が
  *   撮った時刻に依存するため
+ * @returns 対象になる暦日の範囲。`range` で両端が揃っていない、または前後が入れ替わっているときは `undefined`。
  */
 export function toPeriodWindow(
   query: DashboardPeriodSelection,

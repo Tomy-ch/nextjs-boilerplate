@@ -65,7 +65,7 @@ const DOCUMENT_STRIPPED_TAG_NAMES: readonly string[] = ["script", "style"];
  * ドキュメント表示用の sanitize schema です。
  *
  * アプリ本体の `model/rich-text` より広い範囲を通します。この schema はこのパッケージから外へ
- * 出しません —— 広さを分けている理由は `docs-viewer/README.md`「なぜ別パッケージなのか」が持ちます。
+ * 出しません —— 広さを分けている理由は `docs-viewer/README.md#why-a-separate-package`が持ちます。
  *
  * `hast-util-sanitize` の既定 schema へ委ねる項目を残しません。未指定の項目は既定値で
  * 補完される仕様のため、上流の既定が広がったときに通過範囲が黙って広がることを防ぎます。

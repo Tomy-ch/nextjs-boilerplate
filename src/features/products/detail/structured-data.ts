@@ -21,6 +21,7 @@ const AVAILABILITY = {
  *
  * @param product - 表示する商品
  * @param imageUrls - 解決済みの画像 URL。表示順
+ * @returns schema.org の `Product` を表す JSON-LD オブジェクト
  */
 export function toProductStructuredData(
   product: Product,

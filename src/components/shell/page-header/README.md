@@ -1,42 +1,42 @@
 # PageHeader
 
-## 用途
+## Purpose
 
-ページ先頭で、そのページが何かと主要な操作を示します。
+At the top of a page, shows what the page is and its primary actions.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `PageHeader` | 先頭ブロックの枠です。タイトルと説明を左、操作を右へ配置します。 |
-| `PageHeaderTitle` | そのページの名前です。`h1` として描画します。 |
-| `PageHeaderDescription` | タイトルを補う一文です。 |
-| `PageHeaderActions` | ページ全体に対する主要な操作を置く領域です。 |
+| `PageHeader` | Frame of the leading block. Places the title and description on the left and the actions on the right. |
+| `PageHeaderTitle` | The page's name. Rendered as an `h1`. |
+| `PageHeaderDescription` | One sentence supplementing the title. |
+| `PageHeaderActions` | Region for the primary actions on the page as a whole. |
 
-## 利用ケース
+## Use Cases
 
-一覧・詳細・設定など、タイトルと主要操作を持つページの先頭に置きます。[`ContentContainer`](../content-container/README.md) の直下が定位置です。
+Place it at the top of pages with a title and primary actions, such as lists, details and settings. Its home is directly under [`ContentContainer`](../content-container/README.md).
 
-説明も操作も省略できます。省略した場合はその行が詰まるだけで、残りの配置は変わりません。
+Both the description and the actions can be omitted. When omitted, only that row closes up; the rest of the layout does not change.
 
-## 責務境界
+## Responsibility Boundaries
 
-**左右余白を持ちません。** 余白は `ContentContainer` が所有しており、ここで重ねると本文と先頭ブロックで縦線が揃わなくなります。
+**It has no horizontal padding.** `ContentContainer` owns the padding, and adding it here too would misalign the vertical lines of the body and the leading block.
 
-**`main` の内側に置いてください。** `header` 要素は `main` / `article` / `aside` / `nav` / `section` の外にあると `banner` landmark になり、サイト全体の header を名乗ってしまいます。`ContentContainer` を `main` の内側に置く限り、この条件は自然に満たされます。
+**Place it inside `main`.** A `header` element outside `main` / `article` / `aside` / `nav` / `section` becomes a `banner` landmark and claims to be the site-wide header. As long as `ContentContainer` is placed inside `main`, this condition is met naturally.
 
-本文の構造とデータ取得は持ちません。表示する文言は呼び出し元が決めます。
+It does not own the body structure or data fetching. The caller decides the text to display.
 
-配置は grid で、タイトルと説明を左の列へ積み、操作を右の列へ置きます。子を包む要素を足さずに済ませるため、各 subcomponent が自分の位置を持ちます。狭い画面では DOM の順に縦へ積みます。
+The layout is a grid: the title and description stack in the left column and the actions go in the right column. To avoid adding wrapper elements around the children, each subcomponent owns its own position. On narrow screens they stack vertically in DOM order.
 
-`PageHeaderTitle` はページに 1 つだけ置きます。見出し階層の起点になるため、装飾目的では使いません。
+Place only one `PageHeaderTitle` per page. It is the root of the heading hierarchy, so do not use it for decoration.
 
-`PageHeaderActions` に置くのはページ全体に対する操作だけです。特定の行や項目に対する操作は、その対象の近くへ置きます。狭い画面では回り込んで縦を占有するため、数を絞り、副次的なものは `DropdownMenu` へまとめます。
+Put in `PageHeaderActions` only actions on the page as a whole. Actions on a specific row or item go near that target. On narrow screens they wrap and take up vertical space, so keep their number down and group secondary ones into a `DropdownMenu`.
 
-Server Component として使えます。`PageHeaderActions` に client island を置く場合も、境界を持つのはその部品だけです。
+It can be used as a Server Component. Even when a client island is placed in `PageHeaderActions`, only that component holds the boundary.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は `ContentContainer` と組んだ既定の構成、説明を省いた場合、操作を持たない場合、読み幅を超える viewport での中央寄せを確認します。テストは `h1` が見出し階層の起点になること、先頭ブロックが `header` 要素であること、説明と操作を省いても成立すること、左右余白を持たないこと、`className` を受け付けること、a11y 自動検査を確認します。
+Storybook covers the default composition combined with `ContentContainer`, the case without a description, the case without actions, and centering on a viewport wider than the reading width. The tests cover that the `h1` is the root of the heading hierarchy, that the leading block is a `header` element, that it holds together with the description and actions omitted, that it has no horizontal padding, accepting `className`, and the automated a11y check.
 
-landmark の検証はテストに含めていません。jsdom と testing-library の role 計算は `header` を無条件に `banner` とみなし、HTML が定める landmark のスコープ規則（`main` の内側では landmark にならない）を再現しないためです。実ブラウザでの確認は Storybook で行います。
+Landmark verification is not included in the tests. The role computation of jsdom and testing-library treats `header` as `banner` unconditionally and does not reproduce HTML's landmark scoping rule (not a landmark inside `main`). Verification in a real browser is done in Storybook.

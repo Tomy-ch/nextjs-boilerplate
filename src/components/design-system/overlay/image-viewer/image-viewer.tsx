@@ -39,7 +39,12 @@ export type ImageViewerProps = {
   className?: string;
 };
 
-/** 領域の中の N 枚目へ寄せる。枚数の外を指されても落とさない。 */
+/**
+ * 領域の中の N 枚目へ寄せる。枚数の外を指されても落とさない。
+ *
+ * @param content - slide を並べている、横スクロールする領域
+ * @param index - 寄せる slide の 0 起点の位置
+ */
 function alignToIndex(content: Element, index: number): void {
   const target = content.querySelectorAll(CAROUSEL_ITEM_SLOT)[index];
 
@@ -71,6 +76,8 @@ function alignToIndex(content: Element, index: number): void {
  * 操作だからです。
  *
  * 紙には出しません。押せない操作であり、拡大版は開いていなければ DOM にも居ません。
+ *
+ * @param props - 拡大して見せる画像と、trigger として描く中身。
  *
  * @see Storybook `Overlay/ImageViewer`
  */

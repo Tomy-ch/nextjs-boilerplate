@@ -1,24 +1,24 @@
 # EditableData Sugar
 
-## 用途
+## Purpose
 
-編集 cell を含む列定義から、native form と table を一貫して組み立てます。
+Builds a native form and a table consistently from column definitions that include editable cells.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `EditableDataTable` | 列定義から編集用 form table を組み立てます。 |
-| `EditableDataTableColumn<Row>` | header・幅・alignment・row の編集 cell を定義します。 |
+| `EditableDataTable` | Builds an editable form table from column definitions. |
+| `EditableDataTableColumn<Row>` | Defines the header, width, alignment, and the row's editable cell. |
 
-## 利用ケース
+## Use Cases
 
-少数の設定値を table のまま編集する場合に使います。
+Use it to edit a small number of settings directly in a table.
 
-## 責務境界
+## Responsibility Boundaries
 
-`EditableTable` は低レベルの form + table、ここは列定義の sugar です。保存、検証、下書き state は feature が所有します。
+`EditableTable` is the low-level form + table; this is the sugar for column definitions. The feature owns saving, validation, and draft state.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は通常編集・invalid・行単位保存・列定義が `InputGroup` を返す場合を、test は列幅・alignment・編集 control・a11y を確認します。
+Storybook covers regular editing, invalid, per-row saving, and a column definition that returns an `InputGroup`; the tests cover column widths, alignment, the edit controls, and a11y.

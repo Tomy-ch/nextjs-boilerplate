@@ -95,6 +95,27 @@ export function drawModelProse(text: string): string {
 }
 
 /**
+ * 道具が吐いた文字列を、行の中に置ける 1 つのコードスパンにする。
+ *
+ * @remarks
+ * 箇条書きや見出しの 1 行へ道具の文言を埋める面のための口です。コードスパンの中は記法として
+ * 読まれないので、mention の通知も偽の見出し・偽のリンクも起きません。改行と空白の連なりは
+ * 1 つの空白へ潰します —— 残すと行から溢れ、次の項目や見出しに見えます。フェンスは中身の最も長い
+ * バッククォートの連なりより 1 つ長く取ります。固定長だと中身のバッククォートでスパンが閉じます。
+ *
+ * @param text - このリポジトリが書いていない文字列
+ * @returns コードスパン。空なら `(空)` を囲んだもの
+ */
+export function drawToolOutputInline(text: string): string {
+  const flat = text.replace(/\s+/g, " ").trim() || "(空)";
+  const longest = Math.max(0, ...[...flat.matchAll(/`+/g)].map((run) => run[0].length));
+  const fence = "`".repeat(longest + 1);
+  const pad = flat.startsWith("`") || flat.endsWith("`") ? " " : "";
+
+  return `${fence}${pad}${flat}${pad}${fence}`;
+}
+
+/**
  * `authored` が本当に安全な形かを確かめる。
  *
  * @remarks

@@ -17,11 +17,10 @@ export type PurchaseRowProps = {
 };
 
 /**
- * 購入履歴の 1 行。
+ * 行そのものを行き先にする、購入履歴の 1 行。
  *
  * @remarks
- * 行そのものを行き先にします。日付や金額だけをリンクにすると、狙う的が文字の幅まで縮み、指で
- * 押す場面で外しやすくなります。
+ * 日付や金額だけをリンクにすると、狙う的が文字の幅まで縮み、指で押す場面で外しやすくなります。
  *
  * 注文日時を先頭に置きます。利用者が自分の購入を見分ける手がかりは、まず「いつ買ったか」で、
  * 購入コードは控えと突き合わせるときにしか使いません。
@@ -34,6 +33,8 @@ export type PurchaseRowProps = {
  *
  * 購入コードは折り返さずに詰めます。契約が返すのは UUID で、折り返すと 1 行の高さが 2 倍になり、
  * 一覧を読み進める密度が落ちます。全文は詳細の控えにあります。
+ *
+ * @see Storybook `Features/Purchases/History/PurchaseRow`
  */
 export const PurchaseRow = withPartSpan(
   "features/purchases/history/ui/purchase-row/purchase-row",

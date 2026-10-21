@@ -26,6 +26,8 @@ export type AdminUserResultsProps = {
  *
  * ページ数は全件数から導きます。契約が返すのは位置と全件数で、何ページあるかは返しません
  * （[`toPageCount`](../../../model/pagination.ts)）。
+ *
+ * @param props - いま見ている場所・1 ページの件数・退会の送信先
  */
 export async function AdminUserResults({
   location,

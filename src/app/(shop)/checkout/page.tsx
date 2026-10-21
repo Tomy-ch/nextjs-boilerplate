@@ -10,7 +10,7 @@ import {
 import { requireRegisteredUser } from "@/features/account/registration-gate";
 import { CheckoutConfirmPageContent } from "@/features/checkout/confirm/page-content";
 import { CheckoutConfirmSkeleton } from "@/features/checkout/confirm/ui/skeleton/skeleton";
-import { CHECKOUT_PATH } from "@/features/checkout/paths";
+import { CHECKOUT_PATH } from "@/features/checkout/facade/paths/paths";
 
 export const metadata: Metadata = {
   title: "購入確認",

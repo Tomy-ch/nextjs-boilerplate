@@ -2,9 +2,10 @@ import { cn } from "@/components/cn";
 import { CartLineIssues } from "@/features/cart/facade/line-issues/line-issues";
 import type { CartLine } from "@/model/cart/cart";
 import { hasBlockingIssue } from "@/model/cart/issue-notice";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 
-/** `OrderLineRow` の props。 */
+/** {@link OrderLineRow} の props。 */
 export type OrderLineRowProps = {
   /** 再掲する明細。 */
   line: CartLine;
@@ -17,11 +18,11 @@ const EXCLUDED_NOTE = "この明細は今回の購入に含まれません。";
 const PRICE_CHANGED_NOTE = "この金額で購入してよいかを、確定のときに確かめます。";
 
 /**
- * 確定する内容の 1 行。
+ * 操作を持たず、確定する内容だけを読ませる 1 行。
  *
  * @remarks
- * **操作を持ちません。** 数量を変えるのも取り除くのもカートの領分で、同じ操作を 2 つの画面に
- * 置くと、どちらで直したのかを利用者も実装も追えなくなります。
+ * 数量を変えるのも取り除くのもカートの領分で、同じ操作を 2 つの画面に置くと、どちらで直したのかを
+ * 利用者も実装も追えなくなります。
  *
  * **買えない明細と、値が変わっただけの明細を書き分けます。** 前者は今回の購入から外れ、後者は
  * 載ります（載る代わりに、確定のときに金額を確かめます）。どちらも落とさずに出すのは、カートで
@@ -31,6 +32,8 @@ const PRICE_CHANGED_NOTE = "この金額で購入してよいかを、確定の�
  * **弱めるのは商品名だけで、行ごと薄くはしません。** 行に透過をかけると、載らない理由の文字まで
  * 一緒に薄くなり、地とのコントラスト比が足りなくなります。読ませたいのはその理由なので、
  * 弱めるのは対象の名前に留めます。
+ *
+ * @param props - {@link OrderLineRowProps}。
  */
 export const OrderLineRow = withPartSpan(
   "features/checkout/confirm/ui/order-line-row/order-line-row",
@@ -45,7 +48,7 @@ export const OrderLineRow = withPartSpan(
             {line.name ?? UNKNOWN_NAME}
           </p>
           {line.unitPrice === null ? null : (
-            <p className="text-muted-foreground text-sm">{`$${line.unitPrice} / 個`}</p>
+            <p className="text-muted-foreground text-sm">{`${formatDecimalMoney(line.unitPrice)} / 個`}</p>
           )}
           <CartLineIssues
             availableQuantity={line.availableQuantity}

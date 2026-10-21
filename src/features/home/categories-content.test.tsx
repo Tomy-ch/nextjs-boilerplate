@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import type { ProductCategory } from "@/model/product/product";
+import { toProductCategoryId } from "@/model/product/product";
 
 const { getProductCategories } = vi.hoisted(() => ({ getProductCategories: vi.fn() }));
 
@@ -12,7 +13,9 @@ vi.mock("@/adapters/server/api/product-masters", () => ({ getProductCategories }
 
 import { HomeCategoriesContent } from "./categories-content";
 
-const CATEGORIES: readonly ProductCategory[] = [{ id: "c1", code: 10, name: "オーディオ" }];
+const CATEGORIES: readonly ProductCategory[] = [
+  { id: toProductCategoryId("c1"), code: 10, name: "オーディオ" },
+];
 
 beforeEach(() => {
   getProductCategories.mockReset().mockResolvedValue(CATEGORIES);

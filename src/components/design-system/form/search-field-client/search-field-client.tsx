@@ -51,6 +51,8 @@ export type SearchFieldClientProps = {
    *
    * ほかの条件と一緒にまとめて確定する画面では `submit` を選ぶ。打鍵のたびに確定すると、
    * 検索語だけが先に効いた中途半端な条件で結果が入れ替わる。
+   *
+   * @defaultValue `SEARCH_FIELD_COMMIT.TYPING`
    */
   commit?: SearchFieldCommit;
   /**
@@ -62,21 +64,39 @@ export type SearchFieldClientProps = {
   value?: string;
   /** 打鍵のたびに呼ばれる。制御 component として使う場合に渡す。 */
   onValueChange?: (value: string) => void;
-  /** 初期表示する検索語。非制御の場合に使う。 */
+  /**
+   * 初期表示する検索語。非制御の場合に使う。
+   *
+   * @defaultValue `""`
+   */
   defaultValue?: string;
   /** 入力例を示す補助文。 */
   placeholder?: string;
-  /** 入力が止まってから `onSearch` を呼ぶまでの待ち時間（ミリ秒）。`commit` が `typing` のときだけ効く。 */
+  /**
+   * 入力が止まってから `onSearch` を呼ぶまでの待ち時間（ミリ秒）。`commit` が `typing` のときだけ効く。
+   *
+   * @defaultValue {@link SEARCH_FIELD_DEBOUNCE_MS}
+   */
   debounceMs?: number;
-  /** 消去ボタンのアクセシブルな名前。 */
+  /**
+   * 消去ボタンのアクセシブルな名前。
+   *
+   * @defaultValue `"検索語を消去"`
+   */
   clearLabel?: string;
-  /** 送信ボタンのラベル。`commit` が `submit` のときだけ出る。 */
+  /**
+   * 送信ボタンのラベル。`commit` が `submit` のときだけ出る。
+   *
+   * @defaultValue `"検索"`
+   */
   submitLabel?: string;
   /**
    * 送信を押せなくするか。`commit` が `submit` のときだけ効く。
    *
    * 押しても結果が変わらないと呼び出し元が判っている場合に渡す。部品の側は「空かどうか」で
    * 判断しない —— 空の送信が意味を持つか（効いている検索語を外す）は画面が決める。
+   *
+   * @defaultValue `false`
    */
   submitDisabled?: boolean;
   /** 追加の class。 */
@@ -93,10 +113,6 @@ export type SearchFieldClientProps = {
  * **いつ確定するかは `commit` が決める。** 既定は打鍵が止まった時点で、検索語だけで絞り込みが
  * 完結し結果がその場に見えている画面向け。ほかの条件と一緒にまとめて確定する画面は `submit` を
  * 選び、送信の操作でだけ通知させる。
- *
- * **`submit` でも form は使わない。** form にすると、hydration が終わる前に押されたとき browser の
- * 既定の送信が走り、いま効いている条件を伴わないまま現在の URL へ遷移する —— 押した結果として
- * 条件が消える。form を持たなければ、hydration 前の操作は何も起こさずに済む。
  *
  * 検索の実行、結果の取得、URL の組み立ては持たない。確定したら `onSearch` を呼ぶだけで、router の
  * 操作も行わない。この分担は `Pagination` と同じで、`components` は URL を解釈しない。呼び出し元は
@@ -128,6 +144,7 @@ export type SearchFieldClientProps = {
  * />
  * ```
  *
+ * @param props - 表示用 props。native 属性は透過しない。
  * @see Storybook `Form/SearchFieldClient`
  */
 export function SearchFieldClient({

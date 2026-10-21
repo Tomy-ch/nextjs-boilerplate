@@ -52,9 +52,13 @@ export function composeImagePattern(): RegExp {
 }
 const COMPOSE_IMAGE_LOOSE = /^[ \t]+image[ \t]*:[ \t]*\S/;
 
-// FROM [--platform=...] <ref> [AS <stage>]
+/**
+ * Dockerfile の `FROM [--platform=...] <ref> [AS <stage>]` 行を捕まえるパターンを作る。
+ *
+ * @returns 接頭辞・参照・接尾辞の 3 群を持つ、`g` 付きのパターン
+ */
 export function dockerfileFromPattern(): RegExp {
-  return /^(FROM[ \t]+)(?:--platform=\S+[ \t]+)?([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
+  return /^(FROM[ \t]+(?:--platform=\S+[ \t]+)?)([^\s'"]+)((?:[ \t]+as[ \t]+\S+)?[ \t]*)$/gim;
 }
 const DOCKERFILE_FROM_LOOSE = /^[ \t]*FROM[ \t]+\S/i;
 

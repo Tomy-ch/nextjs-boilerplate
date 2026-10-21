@@ -1,34 +1,34 @@
 # rich-text
 
-未検査の HTML 文字列を、表示してよい範囲だけに絞った木へ変換する sanitize port です。
+A sanitize port that converts an unchecked HTML string into a tree narrowed to only what may be displayed.
 
-表示側が受け取れる値の構築経路を `SanitizedRichText.from()` だけに絞ることで、sanitize を通っていない HTML が UI へ到達しえない状態を型で保証します。
+By narrowing the construction path for values the display side can receive to `SanitizedRichText.from()` alone, the type guarantees that HTML that has not gone through sanitize can never reach the UI.
 
-## 公開 API
+## Public API
 
-- `SanitizedRichText` / `SanitizedRichText.from()` — HTML 文字列を parse・sanitize した Value Object。`root` に検査済みの hast root ノードを持つ
-- `RICH_TEXT_SANITIZE_SCHEMA` — allowlist から導出した sanitize schema
-- `RICH_TEXT_TAG_NAMES` / `RICH_TEXT_BLOCK_TAG_NAMES` / `RICH_TEXT_INLINE_TAG_NAMES` — 通すタグの集合
-- `RICH_TEXT_LINK_PROTOCOLS` — `href` に通すプロトコル
-- `RICH_TEXT_STRIPPED_TAG_NAMES` — 内容ごと取り除くタグ
-- `toRichTextRoot()` — hast のノードを root ノードへ揃える正規化
+- `SanitizedRichText` / `SanitizedRichText.from()` — A Value Object that parses and sanitizes an HTML string. `root` holds the checked hast root node
+- `RICH_TEXT_SANITIZE_SCHEMA` — The sanitize schema derived from the allowlist
+- `RICH_TEXT_TAG_NAMES` / `RICH_TEXT_BLOCK_TAG_NAMES` / `RICH_TEXT_INLINE_TAG_NAMES` — The sets of tags let through
+- `RICH_TEXT_LINK_PROTOCOLS` — The protocols let through in `href`
+- `RICH_TEXT_STRIPPED_TAG_NAMES` — Tags removed together with their content
+- `toRichTextRoot()` — Normalization that aligns a hast node to a root node
 
 ## allowlist
 
-| 区分 | 通すもの |
+| Category | Let through |
 | --- | --- |
-| ブロック | `p` `h2` `h3` `h4` `ul` `ol` `li` `blockquote` `hr` |
-| インライン | `strong` `em` `s` `code` `a` `br` |
-| 属性 | `a` の `href` のみ |
-| `href` のプロトコル | `http` `https` `mailto` |
+| Block | `p` `h2` `h3` `h4` `ul` `ol` `li` `blockquote` `hr` |
+| Inline | `strong` `em` `s` `code` `a` `br` |
+| Attributes | Only `href` of `a` |
+| `href` protocols | `http` `https` `mailto` |
 
-`h1` を通さないのは、本文の見出しが page の `h1` と競合するためです。`li` は `ul` / `ol` の中にあるときだけ残ります。
+`h1` is not let through because a heading in the body would compete with the page's `h1`. `li` remains only when it is inside `ul` / `ol`.
 
-allowlist 外のタグは中身を残して展開されます。テキストの子要素がそのまま本文へ混ざる `script` / `style` だけは `RICH_TEXT_STRIPPED_TAG_NAMES` で内容ごと取り除きます。
+Tags outside the allowlist are unwrapped, keeping their contents. Only `script` / `style`, whose text children would mix straight into the body, are removed together with their content via `RICH_TEXT_STRIPPED_TAG_NAMES`.
 
-相対 URL（`/path` `#anchor` `?query`）は `href` に残ります。プロトコルの検査は絶対 URL に対して行うという sanitize 側の仕様です。
+Relative URLs (`/path` `#anchor` `?query`) remain in `href`. That protocols are checked against absolute URLs is the sanitize side's specification.
 
-## 利用例
+## Usage Examples
 
 ```ts
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
@@ -36,35 +36,35 @@ import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
 const content = SanitizedRichText.from(rawHtml);
 ```
 
-構築した値は `RichTextContent` へ渡して描画します。`root` は hast のオブジェクトであり、HTML 文字列へ戻す経路を持ちません。
+The constructed value is passed to `RichTextContent` to be rendered. `root` is a hast object and has no path back to an HTML string.
 
-## 実装の要点
+## Implementation Notes
 
-parse は `hast-util-from-html`（内部で `parse5`）が仕様準拠で行い、検査は `hast-util-sanitize` が木に対して行います。文字列を正規表現で書き換える sanitize と違い、parser の解釈差を検査の前後で持ち込みません。
+Parsing is done to spec by `hast-util-from-html` (internally `parse5`), and checking is done on the tree by `hast-util-sanitize`. Unlike sanitizing that rewrites strings with regular expressions, no difference in parser interpretation is introduced between before and after the check.
 
-`RICH_TEXT_SANITIZE_SCHEMA` は schema の全項目を明示します。`hast-util-sanitize` は未指定の項目を既定 schema で補完するため、明示しないと上流の既定が広がったときに通過範囲が黙って広がります。
+`RICH_TEXT_SANITIZE_SCHEMA` states every item of the schema explicitly. `hast-util-sanitize` fills unspecified items from its default schema, so without stating them, the range let through would silently widen when the upstream default widens.
 
-## 実装を差し替えるとき
+## Replacing the Implementation
 
-sanitize の実装は `hast-util-from-html` / `hast-util-sanitize` の 2 本に閉じています。**この port が守るのは「木に対して検査する」ことであり、どの実装で行うかではありません。** hast と unist は公開仕様なので、実装を替えても `SanitizedRichText` の契約は変わりません。
+The sanitize implementation is confined to the two packages `hast-util-from-html` / `hast-util-sanitize`. **What this port guarantees is "checking against a tree", not which implementation does it.** hast and unist are public specifications, so replacing the implementation does not change the contract of `SanitizedRichText`.
 
-乗り換え先は `sanitize-html` + `html-react-parser` です。allowlist はライブラリ固有の形式へ書き直すことになりますが、HTML 文字列を経由せず React 要素へ渡す設計はそのまま組めます。
+The migration target is `sanitize-html` + `html-react-parser`. The allowlist would have to be rewritten into the library's own format, but the design that hands values to React elements without going through an HTML string can be built as is.
 
-差し替えを検討する条件は一つです。**現在の 2 本のいずれかに `high` 以上の advisory が出て、上流が反応しないとき。** その場合は ADR [0004](../../../docs/adr/0004-library-management.md) の応答期限に従います。上流が更新を止めていること自体は条件になりません。この port は仕様準拠の parse を経てから木を検査するため、成熟して変更が止まることは劣化ではないからです。
+There is one condition for considering a replacement. **When an advisory of `high` or above is issued against either of the current two packages and upstream does not respond.** In that case, follow the response deadline in ADR [0004](../../../docs/adr/0004-library-management.md). Upstream having stopped updating is not itself a condition. This port checks the tree after a spec-compliant parse, so maturing and no longer changing is not degradation.
 
-`dangerouslySetInnerHTML` を使う実装へは戻しません（[`docs/rules.md`](../../../docs/rules.md) の禁止と biome `noDangerouslySetInnerHtml`）。文字列を経由する sanitizer は、sanitizer とブラウザの解釈差そのものが攻撃面になります。
+There is no going back to an implementation that uses `dangerouslySetInnerHTML` (the prohibition in [`docs/rules.md`](../../../docs/rules.md) and biome's `noDangerouslySetInnerHtml`). With a sanitizer that goes through strings, the difference in interpretation between the sanitizer and the browser is itself the attack surface.
 
-## 境界
+## Boundaries
 
-- バックエンドが所有する業務ルールを持たない
-- fetch・config を参照しない
-- 描画しない。React 要素への変換は `components` の `RichTextContent` が担う
-- HTML 文字列を出力しない
+- Holds no business rules owned by the backend
+- Does not reference fetch or config
+- Does not render. Conversion to React elements is done by `RichTextContent` in `components`
+- Does not output HTML strings
 
-## allowlist を広げるとき
+## Widening the allowlist
 
-allowlist・editor の extension 集合・test は 1 組です。「editor が出せるタグ ⊆ sanitizer が通すタグ」を保つため、片方だけを変更しません。
+The allowlist, the editor's set of extensions, and the tests are one set. To keep "tags the editor can produce ⊆ tags the sanitizer lets through", never change only one of them.
 
-## 制約
+## Constraints
 
-`SanitizedRichText` は class instance であり serializable ではないため、Client Component の props へ直接渡せません。`root` を取り出せば渡せますが、その時点で「sanitize 済みである」ことの型保証は失われます。
+`SanitizedRichText` is a class instance and not serializable, so it cannot be passed directly to a Client Component's props. Extracting `root` makes it passable, but at that point the type guarantee of "already sanitized" is lost.

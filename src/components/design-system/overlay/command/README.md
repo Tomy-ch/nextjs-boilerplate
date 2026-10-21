@@ -1,70 +1,70 @@
 # Command
 
-## 用途
+## Purpose
 
-入力した語で候補を絞り込み、キーボードだけで目的の項目へ到達できる検索可能な一覧を表示します。画面内に面として置くことも、画面を覆う modal として開くこともできます。
+Shows a searchable list that narrows candidates by the typed words and lets the user reach the target item with the keyboard alone. It can be placed as a surface within the screen or opened as a modal covering the screen.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `Command` | 検索語と選択中の候補を管理する client-side root です。`label` が検索入力のアクセシブルな名前になります。 |
-| `CommandDialog` | `Command` を `Dialog` の中に置き、modal として開きます。開閉は呼び出し元が制御します。 |
-| `CommandInput` | 候補を絞り込む検索入力です。`role="combobox"` を持ちます。 |
-| `CommandList` | 絞り込まれた候補を並べる `role="listbox"` の領域です。高さの上限を超えるとここだけがスクロールします。 |
-| `CommandEmpty` | 一致する候補が無いときだけ表示される領域です。表示の切り替えは自動で行われます。`CommandList` の外、その兄弟として置きます。 |
-| `CommandGroup` | 候補を意味のあるまとまりへ分けます。`heading` が group のラベルになります。 |
-| `CommandItem` | 選択できる候補の一件です。`role="option"` を持ち、決定時は `onSelect` を呼びます。 |
-| `CommandSeparator` | group と group の間に引く区切り線です。支援技術からは隠れます。 |
-| `CommandShortcut` | 候補の右端へ添えるキーボード操作の補足表示です。キー入力は購読しません。 |
+| `Command` | The client-side root that manages the search term and the selected candidate. `label` becomes the accessible name of the search input. |
+| `CommandDialog` | Places `Command` inside a `Dialog` and opens it as a modal. The caller controls opening / closing. |
+| `CommandInput` | The search input that narrows the candidates. Has `role="combobox"`. |
+| `CommandList` | The `role="listbox"` area that lists the narrowed candidates. Only this area scrolls once it exceeds the height limit. |
+| `CommandEmpty` | An area shown only when no candidate matches. Showing and hiding happen automatically. Place it outside `CommandList`, as its sibling. |
+| `CommandGroup` | Splits candidates into meaningful groups. `heading` becomes the group's label. |
+| `CommandItem` | One selectable candidate. Has `role="option"` and calls `onSelect` when chosen. |
+| `CommandSeparator` | A separator line drawn between groups. Hidden from assistive technology. |
+| `CommandShortcut` | A supplementary display of a keyboard shortcut at the candidate's right edge. It does not subscribe to key input. |
 
-## 利用ケース
+## Use Cases
 
-- 一覧・設定・遷移先など、数が多く階層も異なる操作を、画面を離れずに検索して選ぶ場合
-- 補助導線としての command palette を置き、主導線のナビゲーションは別に保つ場合
-- 候補検索を伴う選択 UI を組む場合。静的で少数の選択肢には `select-native` を優先します
+- Searching and choosing among many operations of differing hierarchy, such as lists, settings and destinations, without leaving the screen
+- Placing a command palette as an auxiliary path while keeping the main navigation separate
+- Building a selection UI with candidate search. For a few static choices, prefer `select-native`
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では、入力に応じた絞り込みとキーボード操作が本質のため client island です。hydration が必要で、Server Component からは直接 render できません。候補そのものに client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+In the SSR-first selection, filtering by input and keyboard operation are its essence, so it is a client island. It needs hydration and cannot be rendered directly from a Server Component. When the candidates themselves need no client runtime, pass elements assembled in a Server Component as `children`.
 
-候補の取得、並び順、決定時の遷移や実行は持ちません。いずれも呼び出し元が `onSelect` で扱います。`CommandDialog` は開閉状態も持たず、`open` / `onOpenChange` で呼び出し元が制御します。キーボード shortcut で開く導線を作る場合も、キー入力の購読は feature 側に置きます。
+It owns no fetching of candidates, their order, or navigation and execution on selection. The caller handles all of them in `onSelect`. `CommandDialog` holds no open state either; the caller controls it with `open` / `onOpenChange`. When building a path that opens it with a keyboard shortcut, the key input subscription also lives on the feature side.
 
-サーバー側で検索する場合は `shouldFilter={false}` を指定し、候補の絞り込みと並び順を呼び出し元が担います。
+When searching on the server side, specify `shouldFilter={false}` and the caller takes on narrowing and ordering the candidates.
 
-### 既定の絞り込みは順序を保った部分列一致
+### The default filter is an order-preserving subsequence match
 
-文字が連続していなくても、入力した順に現れれば一致します。読みの正規化は行いません。
+Characters match if they appear in the typed order, even if they are not contiguous. Readings are not normalized.
 
-| 入力 | 「一覧を開く」 | 理由 |
+| Input | 「一覧を開く」 | Reason |
 | --- | :---: | --- |
-| `一覧` | 一致 | 連続一致 |
-| `一く` | 一致 | 順序を保った部分列 |
-| `覧開` | 一致 | 同上 |
-| `開一` | 不一致 | 順序が逆 |
-| `いちらん` | 不一致 | 読みは正規化しない |
-| `ICHIRAN` | 不一致 | 同上 |
+| `一覧` | Match | Contiguous match |
+| `一く` | Match | Order-preserving subsequence |
+| `覧開` | Match | Same as above |
+| `開一` | No match | Order reversed |
+| `いちらん` | No match | Readings are not normalized |
+| `ICHIRAN` | No match | Same as above |
 
-かな入力やローマ字でも引かせたい場合は、`CommandItem` の `keywords` に読みを渡します。`keywords={["いちらん"]}` を与えると `いちらん` で一致します。日本語の候補を扱うときは、`keywords` を与えるかどうかを呼び出し元が必ず決めます。
+To match with kana input or romaji too, pass the reading to `keywords` of `CommandItem`. Giving `keywords={["いちらん"]}` makes `いちらん` match. When handling Japanese candidates, the caller must always decide whether to give `keywords`.
 
-### アクセシブルな名前は `Command` の `label` で与える
+### Give the accessible name through the `label` of `Command`
 
-`Command` の `label` は**必ず指定します**。`CommandInput` へ `aria-label` を渡してもアクセシブルな名前にはなりません。検索入力は常に `aria-labelledby` で内部の隠し label を参照しており、その参照が `aria-label` より優先されるためです。`label` を省くと参照先が空のまま残り、名前を持たない入力になります。`CommandDialog` は `title` を内側の `Command` の `label` へも渡すため、この指定は不要です。
+**Always specify** the `label` of `Command`. Passing `aria-label` to `CommandInput` does not become the accessible name. The search input always refers to an internal hidden label through `aria-labelledby`, and that reference takes precedence over `aria-label`. Omitting `label` leaves the reference target empty, producing an input without a name. `CommandDialog` also passes `title` to the inner `Command`'s `label`, so this specification is not needed there.
 
-`CommandList` のアクセシブルな名前は `label` で決まり、既定を「候補」にしています。実装の既定は英語のため、この component が日本語で上書きしています。
+The accessible name of `CommandList` is decided by `label`, and its default is 「候補」 ("candidates"). The implementation's default is English, so this component overrides it in Japanese.
 
-### 生成物から直した点
+### Corrections to the generated output
 
-`CommandDialog` は `DialogHeader` を `DialogContent` の**中**に置きます。title が dialog の中に無いと `aria-labelledby` が成立せず、dialog がアクセシブルな名前を失います。
+`CommandDialog` places `DialogHeader` **inside** `DialogContent`. Without the title inside the dialog, `aria-labelledby` does not hold and the dialog loses its accessible name.
 
-`CommandSeparator` は `role="separator"` を固定で持ちますが、`listbox` が子に許すのは `option` と `group` だけです。区切りが読み上げの対象として残ると ARIA として不正な入れ子になり、a11y 自動検査が critical として検出します。要素は残したまま `aria-hidden` で支援技術から隠しています。group の見出しが読み上げ順での区切りをすでに伝えるため、伝わる情報は減りません。
+`CommandSeparator` has a fixed `role="separator"`, but `listbox` allows only `option` and `group` as children. If the separator remained something that is read out, it would be invalid nesting under ARIA, and the automated a11y check detects it as critical. The element is kept but hidden from assistive technology with `aria-hidden`. The group headings already convey the breaks in reading order, so no information is lost.
 
-vendor は現在 cmdk と、`Dialog` を通じた Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendors are currently cmdk and, through `Dialog`, Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は面として画面内に置く構成、一致する候補が無い場合、`shouldFilter={false}` で絞り込みを呼び出し元が担う場合、modal として開く場合を確認します。
+Storybook checks placement as a surface within the screen, no matching candidates, the caller taking on filtering with `shouldFilter={false}`, and opening as a modal.
 
-テストは combobox と listbox の関連付け、`label` がアクセシブルな名前になること、`CommandInput` の `aria-label` では名前にならないこと、listbox の名前が日本語であること、入力による絞り込み、空の案内の出し分け、`shouldFilter={false}` の挙動、group の見出しによるラベル付け、`disabled` な候補が選択されないこと、`onSelect`、下キーでの選択移動、a11y 自動検査を確認します。`CommandDialog` は開くまで描画しないこと、title と説明の関連付け、title が内側の検索入力の名前にもなること、`showCloseButton` の切り替え、Escape での閉じ、a11y 自動検査を確認します。
+The tests check the association between combobox and listbox, that `label` becomes the accessible name, that `aria-label` on `CommandInput` does not, that the listbox name is Japanese, filtering by input, showing and hiding the empty message, the behavior of `shouldFilter={false}`, labeling by group headings, that `disabled` candidates are not selected, `onSelect`, moving the selection with the down key, and the automated a11y check. For `CommandDialog` they check that it is not rendered until opened, the association of title and description, that the title also becomes the name of the inner search input, toggling `showCloseButton`, closing with Escape, and the automated a11y check.
 
-jsdom には候補の寸法計測と表示位置の追従に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
+jsdom lacks `ResizeObserver` and `scrollIntoView`, used to measure candidate dimensions and follow the display position, so the tests stub them. Removing that dependency from the implementation is not the approach taken.

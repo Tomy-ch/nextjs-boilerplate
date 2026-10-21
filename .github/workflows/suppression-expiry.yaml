@@ -86,7 +86,7 @@ jobs:
         run: make suppression-expiry
 
       # Minted rather than using `GITHUB_TOKEN` for its rate limit; falls back when the app
-      # is absent (README § PR コメント).
+      # is absent (README § PR Comments).
       - name: Mint a token for the issue
         id: api-token
         if: env.BASELINE_APP_ID != ''
@@ -113,7 +113,7 @@ jobs:
         if: ${{ steps.expiry.outcome == 'failure' }}
         run: exit 1
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: suppression-expiry
     if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.suppression-expiry.result) }}

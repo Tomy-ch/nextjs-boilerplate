@@ -5,12 +5,13 @@ import { cache } from "react";
 import type { z } from "zod";
 
 import type { ProductCategory, ProductStatus } from "@/model/product/product";
+import { toProductCategoryId, toProductStatusId } from "@/model/product/product";
 
 import {
   GetProductCategoriesResponse,
   GetProductStatusesResponse,
 } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WireCategories = z.infer<typeof GetProductCategoriesResponse>;
 type WireStatuses = z.infer<typeof GetProductStatusesResponse>;
@@ -32,9 +33,12 @@ export const PRODUCT_MASTERS_TAG = "product-masters";
  * 表示の順序になります。
  *
  * `code` は残します。分類で絞り込む条件として URL に載るのはこの番号だからです。
+ *
+ * @param wire - 契約の分類マスタ応答
+ * @returns 表示用の分類一覧
  */
 function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
-  return wire.map(({ id, name, code }) => ({ id, name, code }));
+  return wire.map(({ id, name, code }) => ({ id: toProductCategoryId(id), name, code }));
 }
 
 /**
@@ -45,14 +49,16 @@ function toProductCategories(wire: WireCategories): readonly ProductCategory[] {
  * 寿命は `next.config.ts` の `masters` profile、捨てる印は {@link PRODUCT_MASTERS_TAG} が持ちます。
  *
  * **確実に残るのは、組み立て時に殻へ焼かれた分だけです**（入れ物の性質は
- * [adapters](../../README.md) の「リクエストをまたいで残すのは `use cache` の側」）。
+ * [adapters](../../README.md#use-cache-is-what-persists-across-requests)）。
  *
  * **このリポジトリから {@link PRODUCT_MASTERS_TAG} を撃つ経路はありません。** マスタの更新は
  * バックエンド側で起きるためで、古さの上限を決めているのは profile の時間だけです。タグは
- * webhook などの無効化口を持つ、テンプレートから作った側のために置いてあります。
+ * webhook などの無効化口を持つ場合のために置いてあります。
  *
  * 外側の `cache()` は同一リクエスト内の重複を畳みます。`use cache` はリクエストをまたぐ層で、
  * 別物です。
+ *
+ * @returns 商品カテゴリのマスタ
  */
 export const getProductCategories = cache(async (): Promise<readonly ProductCategory[]> => {
   "use cache";
@@ -72,9 +78,12 @@ export const getProductCategories = cache(async (): Promise<readonly ProductCate
  *
  * @remarks
  * `code` を残す理由は {@link toProductCategories} と同じです。
+ *
+ * @param wire - 契約のステータスマスタ応答
+ * @returns 表示用のステータス一覧
  */
 function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
-  return wire.map(({ id, name, code }) => ({ id, name, code }));
+  return wire.map(({ id, name, code }) => ({ id: toProductStatusId(id), name, code }));
 }
 
 /**
@@ -82,6 +91,8 @@ function toProductStatuses(wire: WireStatuses): readonly ProductStatus[] {
  *
  * @remarks
  * キャッシュの扱いは {@link getProductCategories} と同じです。
+ *
+ * @returns 商品ステータスのマスタ
  */
 export const getProductStatuses = cache(async (): Promise<readonly ProductStatus[]> => {
   "use cache";

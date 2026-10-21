@@ -6,6 +6,8 @@ import { ChevronDownIcon } from "@/components/icon";
 /**
  * 複数の {@link AccordionItem} を縦に並べる SSR first の外枠。
  *
+ * @param props - native `div` 属性。
+ *
  * @see Storybook `Container/Accordion`
  */
 export function Accordion({ className, ...props }: ComponentProps<"div">) {
@@ -25,6 +27,8 @@ export function Accordion({ className, ...props }: ComponentProps<"div">) {
  * native の `details` を使うため、JavaScript なしで開閉できる。複数項目を同時に閉じる・開く
  * 表現を基本とし、常に一つだけを開く制御は client island が必要になった時点で追加する。
  *
+ * @param props - native `details` 属性。
+ *
  * @see Storybook `Container/Accordion`
  */
 export function AccordionItem({ className, ...props }: ComponentProps<"details">) {
@@ -43,6 +47,8 @@ export function AccordionItem({ className, ...props }: ComponentProps<"details">
  * @remarks
  * `summary` は `details` の直接の子として置く。見出しレベルは呼び出し側で必要に応じて外側の
  * `h2` などと合成する。
+ *
+ * @param props - native `summary` 属性。
  *
  * @see Storybook `Container/Accordion`
  */
@@ -67,6 +73,8 @@ export function AccordionTrigger({ className, children, ...props }: ComponentPro
 
 /**
  * {@link AccordionItem} の開閉対象となる詳細内容。
+ *
+ * @param props - native `div` 属性。
  *
  * @see Storybook `Container/Accordion`
  */

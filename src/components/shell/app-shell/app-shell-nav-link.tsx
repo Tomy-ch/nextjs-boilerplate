@@ -25,6 +25,8 @@ export type AppShellNavLinkProps = {
  *
  * **主体で出し分ける導線もこれを使います。** 出し分けは取得を待つため穴の内側に居ますが、
  * 見た目は殻の側と同じでなければ、待ち終わった瞬間に並びの中で 1 件だけ姿が変わります。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link AppShellNavLinkProps} の各メンバーが持つ。
  */
 export function AppShellNavLink({ item, replace }: AppShellNavLinkProps) {
   return (

@@ -4,10 +4,9 @@
 // いないか）なので、判定は [baseline/lib/orphans](../../baseline/lib/orphans.ts) を
 // そのまま使う。ここが持つのは、画面と帯から在るべきパスを組み立てるところだけである。
 
+import { EXTENSION } from "../../baseline/lib/orphans";
 import type { Screen } from "./screens";
 import type { Band } from "./viewports";
-
-const EXTENSION = ".png";
 
 /**
  * 対応の検査に付ける Playwright のタグ。

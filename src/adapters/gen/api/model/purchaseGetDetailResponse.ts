@@ -9,8 +9,9 @@
  * Handlers (oapi-codegen) and the published reference documentation are both generated from this
  * file, so every endpoint change starts here.
  *
- * OpenAPI spec version: 2.2.0+76e4825
+ * OpenAPI spec version: 2.3.0+f44f490
  */
+import type { AppliedCouponResponse } from "./appliedCouponResponse";
 import type { PurchaseDetailItemResponse } from "./purchaseDetailItemResponse";
 import type { PurchaseStatusRef } from "./purchaseStatusRef";
 
@@ -28,6 +29,17 @@ export interface PurchaseGetDetailResponse {
   status: PurchaseStatusRef;
   /** 小計。明細（単価×数量）の合計。USD セント単位の整数です。 */
   subtotalAmount: number;
+  /**
+   * クーポンによる値引き額。USD セント単位の整数です。
+   * **非 null で、クーポン未使用および過去の購入は 0** になります。
+   * 値引きが立っていることと appliedCoupon が入っていることは常に一致します。
+   */
+  discountAmount: number;
+  /**
+   * 適用したクーポン。未使用の場合は null です。値引きと適用範囲は結合で解決した現在値です。
+   * @nullable
+   */
+  appliedCoupon: AppliedCouponResponse | null;
   /** 税額（国内消費税）。USD セント単位の整数です。 */
   taxAmount: number;
   /** 送料。USD セント単位の整数です。 */

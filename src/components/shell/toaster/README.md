@@ -1,37 +1,37 @@
 # Toaster
 
-## 用途
+## Purpose
 
-redirect しない mutation の成功・失敗を、一時的な通知として表示します。
+Shows the success or failure of a mutation that does not redirect as a temporary notification.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ToastProvider` | 通知 queue と同時表示の上限を保持し、配下のどこからでも通知を出せるようにする client Provider です。自身が `Toaster` を描画します。 |
-| `useToast` | 配下から `toast()` / `update()` / `dismiss()` と、同時表示上限の `visibleToasts` / `setVisibleToasts` を取り出します。Provider の外で呼ぶと例外を投げます。 |
-| `Toaster` | 渡された通知を画面の隅へ積みます。queue は持ちません。 |
-| `Toast` | 通知の id、文言、variant、任意の auto-close `duration`、任意の `action` を表す型です。 |
-| `ToastAction` | 通知から直接実行できる操作（文言と処理）を表す型です。 |
-| `ToastPatch` | `update()` に渡す差分の型です。`id` は変えられません。 |
-| `ToastControls` | `useToast()` が返す操作一式の型です。 |
+| `ToastProvider` | Client Provider that holds the notification queue and the limit on simultaneously visible notifications, so notifications can be raised from anywhere beneath it. It renders `Toaster` itself. |
+| `useToast` | Retrieves `toast()` / `update()` / `dismiss()` and the visible-limit `visibleToasts` / `setVisibleToasts` from beneath the Provider. Throws when called outside the Provider. |
+| `Toaster` | Stacks the notifications it is given in a corner of the screen. It holds no queue. |
+| `Toast` | Type representing a notification's id, text, variant, optional auto-close `duration`, and optional `action`. |
+| `ToastAction` | Type representing an action (text and handler) that can be run directly from a notification. |
+| `ToastPatch` | Type of the patch passed to `update()`. The `id` cannot be changed. |
+| `ToastControls` | Type of the set of operations `useToast()` returns. |
 
-`TOAST_VARIANT`・`TOAST_POSITION`・`DEFAULT_VISIBLE_TOASTS`・`DEFAULT_TOAST_POSITION`・`DEFAULT_TOAST_HOTKEY` などの静的定義は `toaster.definition.ts` が owner です。
+`toaster.definition.ts` owns static definitions such as `TOAST_VARIANT`, `TOAST_POSITION`, `DEFAULT_VISIBLE_TOASTS`, `DEFAULT_TOAST_POSITION` and `DEFAULT_TOAST_HOTKEY`.
 
-内部は責務ごとに 3 つのファイルへ分けています。`toaster.tsx` が queue と公開面、`toast-region.tsx` が積む位置・畳み方・領域への到達手段、`toast-item.tsx` が通知一件の描画・計時・払いのけです。`ToastRegion` と `ToastItem` は公開 API ではありません。
+Internally it is split into three files by responsibility: `toaster.tsx` holds the queue and the public surface, `toast-region.tsx` the stacking position, the collapsing and the way to reach the region, and `toast-item.tsx` the rendering, timing and swipe-to-dismiss of one notification. `ToastRegion` and `ToastItem` are not public API.
 
-## 利用ケース
+## Use Cases
 
-局所操作の保存完了、非破壊的な失敗、バックグラウンド処理の完了通知に使います。
+Use it for save completion of local actions, non-destructive failures, and completion notices of background processing.
 
-通常は `ToastProvider` を root layout へ一度だけ置き、通知を出す側は `useToast()` の `toast()` を呼ぶだけにします。これで呼び出し側は queue の state も dismiss の配線も持ちません。
+Normally `ToastProvider` is placed once in the root layout, and the side raising a notification only calls `toast()` from `useToast()`. This way callers hold neither queue state nor dismiss wiring.
 
 ```tsx
 const { toast } = useToast();
 toast({ title: "保存しました", duration: 5000 });
 ```
 
-処理中の表示を結果へ変える場合は、`toast()` が返した `id` を `update()` へ渡します。同じ場所のまま差し替わるため、通知が二重に積まれません。
+To turn an in-progress display into a result, pass the `id` returned by `toast()` to `update()`. It is replaced in the same place, so the notification is not stacked twice.
 
 ```tsx
 const id = toast({ title: "処理中です" });
@@ -39,17 +39,17 @@ const id = toast({ title: "処理中です" });
 update(id, { title: "完了しました", duration: 5000 });
 ```
 
-queue の保持を呼び出し側で行いたい場合だけ、`Toaster` を直接使って `toasts` と `onDismiss` を渡します。
+Only when the caller wants to hold the queue itself, use `Toaster` directly and pass `toasts` and `onDismiss`.
 
-## 責務境界
+## Responsibility Boundaries
 
-Server Action の結果分類は feature が所有します。`Toaster` は queue を持たず、`ToastProvider` を使う場合も保持するのは表示中の通知だけで、永続化・再送・既読管理はしません。文脈内で必要な失敗表示や不可逆操作の確認は `FormFeedback` / `AlertDialog` を使います。
+The feature owns classifying Server Action results. `Toaster` holds no queue, and even with `ToastProvider` it holds only the notifications being shown; it does no persistence, resending or read tracking. For failure displays needed in context and confirmations of irreversible actions, use `FormFeedback` / `AlertDialog`.
 
-閉じた通知は、呼び出し元が queue から外すまでのあいだ `Toaster` 側でも表示を止めます。呼び出し元の反映を待たずに消すためです。この抑制は **`toasts` からその `id` が消えた時点で解けます**。解かないと、対象ごとに `id` を採る呼び出し元（同じ対象で再び失敗したら同じ `id`）では、二度目の通知が二度と出せなくなります。
+A closed notification is also suppressed on the `Toaster` side until the caller removes it from the queue, so it disappears without waiting for the caller's update. This suppression **is lifted when that `id` disappears from `toasts`**. Otherwise, for a caller that takes the `id` per target (the same `id` when the same target fails again), the second notification could never be shown again.
 
-同時に表示する件数は `visibleToasts`（既定 3）で抑えます。上限が無いと連続した失敗で画面の隅が覆われ、操作面を塞ぐためです。超えた分は queue に残り、表示中の通知が閉じると現れます。0 以下を渡すと何も表示しません。
+The number shown at once is capped by `visibleToasts` (default 3). Without a cap, consecutive failures would cover the corner of the screen and block the working surface. Those beyond the cap stay in the queue and appear when a visible notification closes. Passing 0 or less shows nothing.
 
-`ToastProvider` を使う場合、この上限は `defaultVisibleToasts` が初期値になり、以後は `useToast()` の `setVisibleToasts` で実行時に変えられます。一括処理の結果をまとめて見せたい画面のように、その画面でだけ広げたい場合に使います。**一時的に広げたら離脱時に戻すのは呼び出し元の責務**で、戻さないと以後すべての画面がその上限のままになります。
+With `ToastProvider`, `defaultVisibleToasts` sets the initial cap, which can afterwards be changed at runtime with `setVisibleToasts` from `useToast()`. Use it when a particular screen alone wants a wider cap, such as a screen showing the results of a batch operation together. **Restoring a temporarily widened cap on leaving is the caller's responsibility**; otherwise every screen from then on keeps that cap.
 
 ```tsx
 const { setVisibleToasts } = useToast();
@@ -60,26 +60,26 @@ useEffect(() => {
 }, [setVisibleToasts]);
 ```
 
-`position` は積む隅を決めます。画面ごとに変えると通知の出所が定まらないため、アプリで一つに決めます。払いのけて閉じる向きはこの位置から導出し、画面の外へ向かう向きだけを受け付けます。上下中央に積んだ場合、横へは払えません。
+`position` decides the corner to stack in. Changing it per screen would leave the source of notifications unsettled, so decide on one for the app. The swipe-to-dismiss direction is derived from this position, and only directions toward the outside of the screen are accepted. When stacked at the top or bottom center, they cannot be swiped sideways.
 
-通知が複数あるとき、既定では重ねて畳み、hover するか領域内へ focus が入ったときだけ展開します。常に並べたい場合は `expand` を指定します。
+When there are several notifications, by default they are stacked and collapsed, and expand only on hover or when focus enters the region. To always lay them out, specify `expand`.
 
-通知は任意のページ内容の上へ重なるため、面は不透明にします。`Alert` の `warning` / `destructive` は文脈内で使う前提の 10% の色であり、そのままでは下の内容が透けます。`Toaster` 側で `bg-background` の下地を敷いたうえに、その色を重ねています。`Alert` 自体は文脈内での見た目が正しいので変えていません。
+Notifications overlap arbitrary page content, so the surface is opaque. `Alert`'s `warning` / `destructive` are 10% colors meant for use in context, and as they are, the content below would show through. `Toaster` lays a `bg-background` base and layers that color on top. `Alert` itself looks correct in context, so it is not changed.
 
-`variant` が `destructive` の通知だけを `role="alert"` として読み上げに割り込ませ、ほかは `role="status"` で読み上げ中の内容を妨げずに順番を待たせます。成功の報告まで割り込むと、支援技術の利用者は読んでいる内容を毎回中断されます。
+Only notifications whose `variant` is `destructive` interrupt the screen reader as `role="alert"`; the others wait their turn as `role="status"` without disturbing what is being read. If even success reports interrupted, assistive-technology users would have what they are reading cut off every time.
 
-通知の領域は名前つきの landmark であり、`hotkey`（既定は `Alt` + `T`）で focus を移せます。通知は数秒で消えるため、pointer を持たない利用者にとってはこれが到達手段になります。`hotkey.code` は物理キーを指すので、キーボード配列が変わっても同じ位置のキーで届きます。**この hotkey は通知の領域へ focus を移すだけで、アプリ全体の shortcut 機構ではありません。** 任意の操作へキーを割り当てる仕組みは別途決めます。
+The notification region is a named landmark, and focus can be moved to it with `hotkey` (default `Alt` + `T`). Notifications disappear within seconds, so for users without a pointer this is the means to reach them. `hotkey.code` refers to a physical key, so the key in the same position works even when the keyboard layout changes. **This hotkey only moves focus to the notification region; it is not an app-wide shortcut mechanism.** A mechanism assigning keys to arbitrary actions is decided separately.
 
-`action` は「元に戻す」「再試行」のように、通知を読んだ直後にしか意味を持たない操作だけに使います。通知は数秒で消えるため、ここにしか到達手段が無い操作は置きません。選択すると処理を実行して通知を閉じます。
+Use `action` only for actions meaningful only right after reading the notification, such as "元に戻す" (Undo) or "再試行" (Retry). Notifications disappear within seconds, so do not put an action here whose only means of reach is this. Selecting it runs the handler and closes the notification.
 
-`duration` の progress は通常の処理進捗ではなく、通知が閉じるまでの残り時間です。表示は満タンから時間経過に合わせて縮み、右側から左側へ減っていきます。値が増える進捗を表す用途には使いません。描画は `ProgressClient` に委ね、残り時間の計測と `value` / `max` の受け渡しだけをこちらが持ちます。100ms 間隔の更新に合わせるため、進捗部分の transition は `indicatorClassName` で線形に指定します。
+The `duration` progress is not ordinary processing progress but the time remaining until the notification closes. The display starts full and shrinks over time, decreasing from right to left. Do not use it to represent progress whose value increases. Rendering is delegated to `ProgressClient`; this side holds only measuring the remaining time and passing `value` / `max`. To match the 100ms update interval, the progress portion's transition is specified as linear through `indicatorClassName`.
 
-自動で閉じる計時は、**hover しているあいだ・領域内へ focus が入っているあいだ・通知を掴んでいるあいだ・タブが背面にあるあいだ**は進みません。hover と focus は「読もうとしている」意思表示であり、その最中に消えるのは操作の裏切りになります。タブが背面のときは誰も見ておらず、戻ったときには通知が消えていて結果を知る手段が無くなります。
+The auto-close timer does not advance **while hovered, while focus is inside the region, while the notification is being grabbed, or while the tab is in the background**. Hover and focus signal an intent to read, and disappearing in the middle of that would betray the interaction. While the tab is in the background nobody is looking, and on returning the notification would be gone, leaving no way to learn the result.
 
-`expand` で常時展開している場合は止めません。展開されていることと、読んでいることは別だからです。
+When always expanded with `expand`, the timer is not stopped, because being expanded and being read are different things.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は variant 三種、auto-close、`action` つき、畳んだ状態と `expand`、`position` の違い、`visibleToasts` の上限、`ToastProvider` から命令的に出す場合、上限を実行時に増減する場合、表示中の通知を差し替える場合を確認します。テストは表示と dismiss、queue から外れた通知を同じ `id` で再び出せること、`destructive` だけが `role="alert"` になること、名前つき landmark へ収まること、hotkey での focus 移動と修飾キーが合わない場合、畳みと hover / focus での展開、`position` に応じた払いのけの向き（逆向き・中央・主ボタン以外では閉じないこと）、上限と超過分の繰り上がり、上限に 0 以下を渡した場合、`action` の実行と自動 dismiss、残り時間の減少と自動閉じ、`duration` が 0 以下の場合、hover / focus / 掴んでいるあいだ / タブが背面のあいだ計時が止まり離れると再開すること、Provider 経由の追加・削除・上限・差し替え、Provider の外で `useToast` を呼んだときの例外、a11y 自動検査を確認します。
+Storybook covers the three variants, auto-close, with `action`, the collapsed state and `expand`, different `position`s, the `visibleToasts` cap, raising notifications imperatively from `ToastProvider`, raising and lowering the cap at runtime, and replacing a visible notification. The tests cover display and dismiss, that a notification removed from the queue can be shown again with the same `id`, that only `destructive` becomes `role="alert"`, fitting into a named landmark, moving focus with the hotkey and the case where the modifier keys do not match, collapsing and expanding on hover / focus, the swipe-to-dismiss direction depending on `position` (not closing on the reverse direction, the center, or a non-primary button), the cap and moving up those beyond it, passing 0 or less as the cap, running `action` and the automatic dismiss, the remaining time decreasing and auto-close, `duration` of 0 or less, that the timer stops while hovered / focused / grabbed / with the tab in the background and resumes on leaving, adding, removing, capping and replacing through the Provider, the exception when `useToast` is called outside the Provider, and the automated a11y check.
 
-払いのけは jsdom で pointer イベントを直接発火して検証しています。実際の慣性やアニメーションは再現されないため、感触は Storybook で確認します。
+Swipe-to-dismiss is verified in jsdom by dispatching pointer events directly. Real inertia and animation are not reproduced, so the feel is checked in Storybook.

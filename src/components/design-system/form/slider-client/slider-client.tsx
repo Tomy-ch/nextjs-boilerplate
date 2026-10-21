@@ -34,6 +34,7 @@ export type SliderClientProps = ComponentProps<typeof SliderPrimitive.Root> & {
  *
  * `orientation="vertical"` を指定すると縦向きになる。その場合は高さを `className` で与える。
  *
+ * @param props - Radix `Slider.Root` の props と `thumbLabels`。
  * @see Storybook `Form/SliderClient`
  */
 export function SliderClient({

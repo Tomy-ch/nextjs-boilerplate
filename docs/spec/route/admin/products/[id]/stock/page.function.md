@@ -1,60 +1,61 @@
-# `/admin/products/[id]/stock` 在庫の補充（機能要件）
+# `/admin/products/[id]/stock` Restocking (Functional Requirements)
 
-> 画面要件は [`page.screen.md`](page.screen.md)。
+> Screen requirements: [`page.screen.md`](page.screen.md).
 >
-> 認可・器の約束は [`../../../layout.function.md`](../../../layout.function.md) が持つ。
+> The promises on authorization and the layout shell are held by [`../../../layout.function.md`](../../../layout.function.md).
 
-1 つの商品の在庫だけを動かす。
+Moves the stock of one product, and nothing else.
 
-## 在庫だけを動かす
+## Only the stock moves
 
-**他の項目は送らない。** 商品名・価格・分類などは編集の画面が持つ。分けてあるのは更新の仕方が
-違うためで、在庫は相対値で加算し、他の項目は読んだ内容を書き戻す。1 つの送信に混ぜると、片方の
-作法にもう片方が引きずられる。
+**No other field is sent.** Product name, price, category and the like belong to the edit screen. They are separated because the
+update method differs: stock is added as a relative value, while the other fields write back what was read. Mixing them in one
+submission drags one side into the other's conventions.
 
-## 送るのは増減量であって、更新後の在庫数ではない
+## What is sent is the delta, not the stock count after the update
 
-**契約は符号付きの増減量を受け取る。** 読んだ時点から送るまでの間に売れた分・別の主体が補充した
-分は打ち消されず、合成される。
+**The contract accepts a signed delta.** Whatever sold, or whatever another actor restocked, between reading and sending is not
+cancelled out but combined.
 
-**したがって「変更後の在庫数」を入力させない。** 差分を画面が計算して送る形にすると、読んだ在庫を
-前提にした差分になり、相対更新の利点がその場で失われる。
+**Therefore the user is not asked for "the stock count after the change".** If the screen computed the difference and sent it,
+the difference would rest on the stock that was read, and the benefit of a relative update would be lost on the spot.
 
-**版を添えない。** 相対更新は並行しても失われないため、競合を検出して拒む必要がそもそもない。
+**No version is attached.** Relative updates are not lost when concurrent, so there is no need to detect and reject conflicts in
+the first place.
 
-## 向きと量に分けて受け取る
+## Taking direction and quantity separately
 
-**入力する人が選ぶのは「増やすか減らすか」と「いくつか」で、符号は画面が付ける。** 1 つの欄で符号
-付きの数を受けると、マイナスの入れ忘れがそのまま逆向きの更新になり、取り消す手段が「反対向きに
-もう一度送る」しかない。
+**The person entering chooses "increase or decrease" and "how many"; the screen adds the sign.** Accepting a signed number in one
+field turns a forgotten minus into an update in the opposite direction, and the only way to undo it is "send it again in the
+opposite direction".
 
-**量は 1 以上の整数だけを受け取る。** 0 を通すと、何も動かない要求が成功として扱われ、押した人は
-動いたと受け取る。負は向きが表すため届く筋がない。
+**Quantity accepts only integers of 1 or more.** Letting 0 through treats a request that moves nothing as a success, and the
+person who pressed takes it that something moved. Negatives have no route in, since the direction expresses them.
 
-**向きが読めない値は既定へ倒さず弾く。** どちらか判らないまま在庫を動かす筋がない。
+**A value whose direction cannot be read is rejected, not defaulted.** There is no case for moving stock without knowing which way.
 
-## 在庫が足りない要求は画面で止めない
+## A request for more than the stock is not stopped on screen
 
-**現在の在庫より多く差し引く要求も送る。** 止める根拠になるのは読み込んだ時点の在庫だけで、送る
-時点で足りるかどうかは契約の側にしか判らない。**範囲を外れた要求は契約が拒む。**
+**A request that subtracts more than the current stock is still sent.** The only basis for stopping it is the stock as of loading;
+whether there is enough at the time of sending is known only to the contract side. **The contract rejects out-of-range requests.**
 
-## 成立したら一覧へ送る
+## On success, go to the list
 
-**同じ画面に留まらない。** 加算は再送すると二重に効き、しかも成立した後なので取り消す手段がない。
-連続して補充するときは一覧を経由する。
+**Do not stay on the same screen.** An addition takes effect twice if resent, and since it has already succeeded there is no way
+to undo it. Restocking repeatedly goes by way of the list.
 
-成立したら、商品を読む取得を取り直させる。
+On success, the fetch that reads the product is made to refetch.
 
-## 失敗
+## Failures
 
-| 起きたこと | 扱い |
+| What happened | Handling |
 | --- | --- |
-| 並行して動かされて拒まれた | 取り直せば送り直せるものとして扱い、読み込み直す導線を添える |
-| 増減後の在庫が保持できる範囲を外れた | 入力の誤りとして扱う |
-| 一時的に受け付けられない | 時間を空けて再試行するものとして扱う。やり直す導線は添えない |
-| 役割が足りない | 器が入口で止めるため、この画面には現れない |
+| Rejected because it was moved concurrently | Treated as resendable after a refetch; a link to reload is attached |
+| The stock after the change falls outside the range it can hold | Treated as an input error |
+| Temporarily not accepted | Treated as something to retry after a while. No retry link is attached |
+| Insufficient role | Does not appear on this screen, because the layout shell stops it at the entry point |
 
-## 関連
+## Related
 
-- [`../edit/page.function.md`](../edit/page.function.md) —— 在庫以外を扱う画面
-- [`../../page.function.md`](../../page.function.md) —— この画面へ来る一覧
+- [`../edit/page.function.md`](../edit/page.function.md) — the screen that handles everything other than stock
+- [`../../page.function.md`](../../page.function.md) — the list that leads to this screen

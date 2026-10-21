@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactElement } from "react";
 import { userEvent, within } from "storybook/test";
 
+import { InvalidQueryFeedback } from "@/components/app-starter/invalid-query-feedback/invalid-query-feedback";
 import { Button } from "@/components/design-system/action/button/button";
 import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
 import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
@@ -12,6 +13,8 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { getDefaultErrorMeta } from "@/errors/error-catalog";
+import { ErrorKind } from "@/errors/error-kind";
 import type { DashboardSummary, PurchaseStatusCount } from "@/model/dashboard/dashboard";
 
 import { ADMIN_ANALYTICS_PATH, ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH } from "../paths";
@@ -20,7 +23,7 @@ import { AdminSummarySkeleton } from "../ui/skeleton/skeleton";
 import { StatCards } from "../ui/stat-cards/stat-cards";
 import { StatusBreakdown } from "../ui/status-breakdown/status-breakdown";
 import { RANKING_ROWS } from "./analytics.fixture";
-import { DASHBOARD_PERIOD } from "./period";
+import { DASHBOARD_PERIOD, PERIOD_KEY, PERIOD_KEY_LABEL } from "./period";
 import { RankingTable } from "./ui/ranking-table/ranking-table";
 import { AnalyticsView } from "./view";
 
@@ -211,6 +214,25 @@ export const RangeReversed: Story = {
       <p className="text-sm text-destructive" role="alert">
         終了日は開始日と同じ日か、それより後を選んでください。
       </p>
+    ),
+  },
+};
+
+/** URL の期間が読めない状態。集計の枠だけが入れ替わり、どの選択肢も現在地にならない。 */
+export const InvalidPeriod: Story = {
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  args: {
+    query: undefined,
+    window: undefined,
+    summary: (
+      <InvalidQueryFeedback
+        invalidKeys={[PERIOD_KEY.PERIOD]}
+        keyLabels={PERIOD_KEY_LABEL}
+        message={getDefaultErrorMeta(ErrorKind.INVALID_ARGUMENT).message}
+        resetHref={ADMIN_ANALYTICS_PATH}
+        resetLabel="期間を外して見る"
+        title="この期間では集計を表示できません"
+      />
     ),
   },
 };

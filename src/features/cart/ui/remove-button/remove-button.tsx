@@ -21,7 +21,11 @@ export type CartRemoveButtonProps = {
   quantity: number;
 };
 
-/** 送信中は押せなくする実行部。`useFormStatus` は form の子でしか状態を読めない。 */
+/**
+ * 送信中は押せなくする実行部。`useFormStatus` は form の子でしか状態を読めない。
+ *
+ * @param props - 表示する文言と、押されたときの callback。
+ */
 function RemoveSubmit({ label, onSubmit }: { label: string; onSubmit: () => void }) {
   const { pending } = useFormStatus();
 
@@ -54,6 +58,8 @@ function RemoveSubmit({ label, onSubmit }: { label: string; onSubmit: () => void
  *
  * 買えない明細にも出します。公開が止まった商品こそ取り除きたく、契約もこの操作だけは商品の
  * 状態を問いません。
+ *
+ * @see Storybook `Features/Cart/RemoveButton`
  */
 export function CartRemoveButton({ productId, label, quantity }: CartRemoveButtonProps) {
   const notice = useCartRemovalNotice();

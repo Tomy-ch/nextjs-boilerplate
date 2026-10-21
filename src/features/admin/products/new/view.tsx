@@ -37,11 +37,10 @@ export type AdminProductCreateViewProps = {
 };
 
 /**
- * 商品を作る画面。
+ * 「あとどれだけで送れるか」を示すため、段階に分けて進ませる商品作成の器。
  *
  * @remarks
- * **段階に分けて進みます。**初めての入力では「あとどれだけで送れるか」が要るためで、進捗と行き来
- * だけを `WizardForm` が持ちます。段の中身は編集の画面と同じ部品で、器だけが違います。
+ * 進捗と行き来だけを `WizardForm` が持ちます。段の中身は編集の画面と同じ部品で、器だけが違います。
  *
  * **埋まっていない段からは進めません。**同じ規則を Server Action も通りますが、往復して初めて
  * 「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言を触れた項目から
@@ -55,6 +54,8 @@ export type AdminProductCreateViewProps = {
  *
  * 画像を送り終わるまで送信を止めます。載るのは保存済みのキーだけなので、途中で送ると、上げた
  * つもりの画像を持たない商品ができます。
+ *
+ * @see Storybook `Page/Admin/Products/Create`
  */
 export function AdminProductCreateView({
   categoryOptions,
@@ -79,6 +80,11 @@ export function AdminProductCreateView({
 
   // 説明欄だけは値の更新と結果の取り下げを 1 つの handler にまとめる。他の項目は form 全体の
   // `onInput` が取り下げを担うが、編集面は input event を出さない。
+  /**
+   * 描いている説明を書き換え、結果の表示を取り下げる。
+   *
+   * @param value - 新しい説明の値。
+   */
   const changeDescription = useCallback(
     (value: string) => {
       values.setValue("description", value);

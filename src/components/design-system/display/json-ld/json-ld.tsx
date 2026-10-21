@@ -24,7 +24,6 @@ export type JsonLdProps = {
  * ```
  *
  * @param props - 構造化データ
- * @param props.data - schema.org の語彙で組み立てた 1 つの object
  * @see Storybook `Display/JsonLd`
  */
 export function JsonLd({ data }: JsonLdProps) {
@@ -41,6 +40,7 @@ export function JsonLd({ data }: JsonLdProps) {
  * script の本文に置ける形へ直列化する。
  *
  * @param data - 構造化データ
+ * @returns `script` の本文に置ける JSON 文字列
  */
 export function toJsonLdScriptContent(data: Readonly<Record<string, unknown>>): string {
   return JSON.stringify(data).replaceAll("<", String.raw`\u003c`);

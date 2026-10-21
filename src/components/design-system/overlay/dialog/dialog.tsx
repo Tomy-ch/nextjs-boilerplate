@@ -132,6 +132,7 @@ function DialogContent({
   showCloseButton = true,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Content> & {
+  /** @defaultValue true */
   showCloseButton?: boolean;
 }) {
   return (

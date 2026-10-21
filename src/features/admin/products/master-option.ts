@@ -9,6 +9,9 @@ import type { ProductSelectOption } from "./ui/select-field/select-field";
  *
  * 「指定なし」を先頭へ置きません。分類も状態も**選ばなければ送れない**項目で、外す操作を持ち
  * ません。空の候補は選択欄の側が「選んでください」として持ちます。
+ *
+ * @param masters - 直す前のマスタの一覧
+ * @returns フォームで選べる候補の一覧
  */
 export function toMasterOptions(
   masters: readonly { readonly id: string; readonly name: string }[],

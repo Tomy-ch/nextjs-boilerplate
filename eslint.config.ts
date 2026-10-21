@@ -9,16 +9,20 @@ import tseslint from "typescript-eslint";
 
 import {
   APP_ELEMENTS,
+  BOUNDARY_ELEMENTS,
   DEPENDENCIES,
   ENTRY_POINTS,
-  KERNEL_PATTERNS,
-  KERNELS,
   NODE_RUNTIME_ACCESS,
   RESTRICTED_AREAS,
   SHARED_AREAS,
 } from "./architecture";
+import noAdHocCacheTag from "./eslint-rules/no-ad-hoc-cache-tag";
 import noAnonymousDefaultExport from "./eslint-rules/no-anonymous-default-export";
+import noAppWideRevalidate from "./eslint-rules/no-app-wide-revalidate";
+import noArbitraryZIndex from "./eslint-rules/no-arbitrary-z-index";
+import noCacheOptionInUseCache from "./eslint-rules/no-cache-option-in-use-cache";
 import noCapturedBearerToken from "./eslint-rules/no-captured-bearer-token";
+import noClientOutsideConnectionPort from "./eslint-rules/no-client-outside-connection-port";
 import noInternalAnchor from "./eslint-rules/no-internal-anchor";
 import noMarkupOutsideUiLayers from "./eslint-rules/no-markup-outside-ui-layers";
 import noRawFontWeight from "./eslint-rules/no-raw-font-weight";
@@ -44,6 +48,45 @@ const iconVendorImports = {
 };
 
 /**
+ * `process` の直読を落とす選択子。
+ *
+ * @remarks
+ * `.property` を外すのは `foo.process` のような無関係な名前を拾わないため。ただし
+ * `globalThis.process` はその除外にそのまま当たってしまう同じ global の別の綴りなので、名指しで
+ * 塞ぐ。塞がないと規則が 1 語で迂回できる。
+ */
+const PROCESS_ACCESS_SELECTOR = {
+  selector:
+    'Identifier[name="process"]:not(MemberExpression > .property):not(Property > .key), MemberExpression[object.name="globalThis"][property.name="process"]',
+  message:
+    "`process` を読んでよいのは config カーネルと起動境界だけです（ADR 0030）。値は config を通して受け取ってください。",
+};
+
+/**
+ * 購読の口を落とす選択子。
+ *
+ * @remarks
+ * `EventSource` / `WebSocket` は import を持たない global なので、層の依存表（boundaries）には
+ * 掛からない。整列・重複排除・張り直しを持たない購読が画面ごとに生まれるのを止めるのは、この
+ * 選択子だけである。
+ *
+ * 見るのは組み立てだけで、型としての参照は落とさない —— 型は接続を開かない。
+ */
+const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
+  selector: "NewExpression[callee.name=/^(EventSource|WebSocket)$/]",
+  message:
+    "購読を開けるのは `adapters/client/stream` だけです（ADR 0074）。画面は購読 adapter を通してください。",
+};
+
+/** 通貨記号を手で付けた金額の表示を落とす（template literal と JSX テキスト）。 */
+const HAND_FORMATTED_MONEY_SELECTOR = {
+  selector:
+    "TemplateElement[tail=false][value.raw=/\\$$/], JSXText[value=/\\$\\s*$/] + JSXExpressionContainer",
+  message:
+    "金額は `@/model/money` の書式関数で表示してください（ADR 0120）。`$` を手で付けると基準通貨と locale の差し替えが届きません。",
+};
+
+/**
  * どのファイルでも締め出すもの。
  *
  * **新しい締め出しは原則ここへ足す。**flat config は同名ルールを配列ごと後勝ちで置き換えるので、
@@ -52,19 +95,118 @@ const iconVendorImports = {
  */
 const commonImportRestrictions = [nodeBuiltinImports];
 
-const elements = [
-  // 層より先に並べる。区画は層の内側にあるため、層の要素が先に一致すると区画としては
-  // 見えなくなり、層の粒度の許可がそのまま区画への許可になる。
-  ...RESTRICTED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
-  ...SHARED_AREAS.map(({ type, pattern }) => ({ type, pattern, partialMatch: false })),
-  ...KERNELS.map((type) => ({
-    type,
-    pattern: KERNEL_PATTERNS[type] ?? `src/${type}`,
-    partialMatch: false,
-  })),
-];
+// 並び順は `architecture.ts` の `BOUNDARY_ELEMENTS` が持つ。写しは持たず import で受け取る。
+const elements = BOUNDARY_ELEMENTS.map(({ type, pattern }) => ({
+  type,
+  pattern,
+  partialMatch: false,
+}));
+
+/**
+ * 境界検査の設定と規則。**`src/` の中と外で 2 つのブロックが共有します。**
+ *
+ * `src/` の外に居る区画（`mocks`）は、`boundaries/include` に載っていてもルールが当たるファイル
+ * 集合の外に在ると依存の宣言が評価されません。その状態では「検査して違反が無い」と「検査して
+ * いない」が見分けられないので、宣言を持つ範囲へ規則を当てます。
+ *
+ * 写しではなく参照で共有するのは、片方だけが更新された状態を誰も検出できないためです。
+ */
+const boundarySettings = {
+  "boundaries/files": [
+    ...ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
+    ...APP_ELEMENTS.map(({ category, patterns }) => ({ category, pattern: [...patterns] })),
+  ],
+  // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
+  // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
+  "import/resolver": { typescript: { project: "./tsconfig.json" } },
+  "boundaries/include": [
+    "src/**/*",
+    ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+    ...SHARED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
+  ],
+  "boundaries/elements": elements,
+} as const;
+
+const boundaryRules = {
+  "boundaries/dependencies": [
+    "error",
+    {
+      default: "disallow",
+      policies: [
+        ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
+          from: { element: { type: from } },
+          allow: { to: { element: { types: { anyOf: types } } } },
+        })),
+        // 区画自身の依存。層としては `features` に居るが、要素としては別の型になるため、
+        // 層の policy が当たらない。
+        ...SHARED_AREAS.map(({ type, dependencies }) => ({
+          from: { element: { type } },
+          allow: { to: { element: { types: { anyOf: dependencies } } } },
+        })),
+        ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
+          from: { element: { types: { anyOf: allowedFrom } } },
+          allow: { to: { element: { type } } },
+        })),
+        // 画面まるごとの story は feature を跨いで組むため、面にも届く必要がある。
+        ...SHARED_AREAS.flatMap(({ type, allowedFromCategories }) =>
+          allowedFromCategories.map((category) => ({
+            from: { file: { categories: category } },
+            allow: { to: { element: { type } } },
+          })),
+        ),
+        // 区画自身の依存。層の許可は要素の型に当たるため、区画へ切り出すと層の許可が届かない。
+        ...RESTRICTED_AREAS.filter(({ dependencies }) => dependencies.length > 0).map(
+          ({ type, dependencies }) => ({
+            from: { element: { type } },
+            allow: { to: { element: { types: { anyOf: dependencies } } } },
+          }),
+        ),
+        ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
+          ({ type, allowedFrom }) => ({
+            from: { element: { types: { anyOf: allowedFrom } } },
+            allow: { to: { element: { type } } },
+          }),
+        ),
+        ...RESTRICTED_AREAS.filter(
+          ({ allowedFromCategories }) => allowedFromCategories.length > 0,
+        ).map(({ type, allowedFromCategories }) => ({
+          from: { file: { categories: allowedFromCategories } },
+          allow: { to: { element: { type } } },
+        })),
+        ...ENTRY_POINTS.map(({ category, dependencies }) => ({
+          from: { file: { categories: category } },
+          allow: { to: { element: { types: { anyOf: dependencies } } } },
+        })),
+        // co-location したテストが対象を読む経路。カーネル内では同一層の import に収まるが、
+        // エントリは層を持たないため category 内の相互参照として明示する。
+        ...ENTRY_POINTS.map(({ category }) => ({
+          from: { file: { categories: category } },
+          allow: { to: { file: { categories: category } } },
+        })),
+        // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
+        ...APP_ELEMENTS.map(({ category, forbidden }) => ({
+          from: { file: { categories: category } },
+          disallow: { to: { element: { types: { anyOf: forbidden } } } },
+        })),
+      ],
+    },
+  ],
+  "boundaries/no-unknown-files": "error",
+  "boundaries/no-unknown-dependencies": "error",
+} as const;
+
+/** 境界の宣言を持つが `src/` の外に居る区画。 */
+const nonSourceAreas = RESTRICTED_AREAS.filter(({ pattern }) => !pattern.startsWith("src/")).map(
+  ({ pattern }) => `${pattern}/**/*.{js,jsx,ts,tsx}`,
+);
 
 export default [
+  {
+    // 効かなくなった抑止が黙って残ると、例外を名乗った理由だけが残り、規則の側が動いていない。
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
+  },
   {
     ignores: [
       ".next/**",
@@ -89,8 +231,13 @@ export default [
       "react-hooks": reactHooks,
       "project-rules": {
         rules: {
+          "no-ad-hoc-cache-tag": noAdHocCacheTag,
           "no-anonymous-default-export": noAnonymousDefaultExport,
+          "no-app-wide-revalidate": noAppWideRevalidate,
+          "no-arbitrary-z-index": noArbitraryZIndex,
+          "no-cache-option-in-use-cache": noCacheOptionInUseCache,
           "no-captured-bearer-token": noCapturedBearerToken,
+          "no-client-outside-connection-port": noClientOutsideConnectionPort,
           "no-internal-anchor": noInternalAnchor,
           "no-markup-outside-ui-layers": noMarkupOutsideUiLayers,
           "no-raw-font-weight": noRawFontWeight,
@@ -99,19 +246,7 @@ export default [
       },
     },
     settings: {
-      "boundaries/files": [
-        ...ENTRY_POINTS.map(({ category, pattern }) => ({ category, pattern })),
-        ...APP_ELEMENTS.map(({ category, patterns }) => ({ category, pattern: [...patterns] })),
-      ],
-      // 境界検査は import 先を実ファイルまで解決できて初めて成立する。解決できない import は
-      // 「どの層でもない」と見なされ、違反があっても黙って通る。`@/*` を含めて解決させる。
-      "import/resolver": { typescript: { project: "./tsconfig.json" } },
-      "boundaries/include": [
-        "src/**/*",
-        ...RESTRICTED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
-        ...SHARED_AREAS.map(({ pattern }) => `${pattern}/**/*`),
-      ],
-      "boundaries/elements": elements,
+      ...boundarySettings,
     },
     rules: {
       // Biome では effect で state を導出する形や描画中の副作用を表現できないため、React Compiler
@@ -136,73 +271,14 @@ export default [
       "react-hooks/unsupported-syntax": "error",
       "react-hooks/use-memo": "error",
       "react-hooks/void-use-memo": "error",
-      "boundaries/dependencies": [
-        "error",
-        {
-          default: "disallow",
-          policies: [
-            ...Object.entries(DEPENDENCIES).map(([from, types]) => ({
-              from: { element: { type: from } },
-              allow: { to: { element: { types: { anyOf: types } } } },
-            })),
-            // 区画自身の依存。層としては `features` に居るが、要素としては別の型になるため、
-            // 層の policy が当たらない。
-            ...SHARED_AREAS.map(({ type, dependencies }) => ({
-              from: { element: { type } },
-              allow: { to: { element: { types: { anyOf: dependencies } } } },
-            })),
-            ...SHARED_AREAS.map(({ type, allowedFrom }) => ({
-              from: { element: { types: { anyOf: allowedFrom } } },
-              allow: { to: { element: { type } } },
-            })),
-            // 画面まるごとの story は feature を跨いで組むため、面にも届く必要がある。
-            ...SHARED_AREAS.flatMap(({ type, allowedFromCategories }) =>
-              allowedFromCategories.map((category) => ({
-                from: { file: { categories: category } },
-                allow: { to: { element: { type } } },
-              })),
-            ),
-            // 区画自身の依存。層の許可は要素の型に当たるため、区画へ切り出すと層の許可が届かない。
-            ...RESTRICTED_AREAS.filter(({ dependencies }) => dependencies.length > 0).map(
-              ({ type, dependencies }) => ({
-                from: { element: { type } },
-                allow: { to: { element: { types: { anyOf: dependencies } } } },
-              }),
-            ),
-            ...RESTRICTED_AREAS.filter(({ allowedFrom }) => allowedFrom.length > 0).map(
-              ({ type, allowedFrom }) => ({
-                from: { element: { types: { anyOf: allowedFrom } } },
-                allow: { to: { element: { type } } },
-              }),
-            ),
-            ...RESTRICTED_AREAS.filter(
-              ({ allowedFromCategories }) => allowedFromCategories.length > 0,
-            ).map(({ type, allowedFromCategories }) => ({
-              from: { file: { categories: allowedFromCategories } },
-              allow: { to: { element: { type } } },
-            })),
-            ...ENTRY_POINTS.map(({ category, dependencies }) => ({
-              from: { file: { categories: category } },
-              allow: { to: { element: { types: { anyOf: dependencies } } } },
-            })),
-            // co-location したテストが対象を読む経路。カーネル内では同一層の import に収まるが、
-            // エントリは層を持たないため category 内の相互参照として明示する。
-            ...ENTRY_POINTS.map(({ category }) => ({
-              from: { file: { categories: category } },
-              allow: { to: { file: { categories: category } } },
-            })),
-            // `app` の element（`architecture.ts` の `APP_ELEMENTS`）。
-            ...APP_ELEMENTS.map(({ category, forbidden }) => ({
-              from: { file: { categories: category } },
-              disallow: { to: { element: { types: { anyOf: forbidden } } } },
-            })),
-          ],
-        },
-      ],
-      "boundaries/no-unknown-files": "error",
-      "boundaries/no-unknown-dependencies": "error",
+      ...boundaryRules,
+      "project-rules/no-ad-hoc-cache-tag": "error",
       "project-rules/no-anonymous-default-export": "error",
+      "project-rules/no-app-wide-revalidate": "error",
+      "project-rules/no-arbitrary-z-index": "error",
+      "project-rules/no-cache-option-in-use-cache": "error",
       "project-rules/no-captured-bearer-token": "error",
+      "project-rules/no-client-outside-connection-port": "error",
       "project-rules/no-internal-anchor": "error",
       "project-rules/no-markup-outside-ui-layers": "error",
       "project-rules/no-user-scoped-in-cached-module": "error",
@@ -212,6 +288,19 @@ export default [
           assertionStyle: "never",
         },
       ],
+    },
+  },
+  {
+    // `src/` の外に居る区画。境界の宣言だけを当てる。ここへ他の規則を広げると、`node:` の
+    // 締め出しのように `src/` を前提にした規則が、前提の無い場所で鳴る。
+    files: nonSourceAreas,
+    languageOptions: { parser: tseslint.parser },
+    plugins: { boundaries },
+    settings: {
+      ...boundarySettings,
+    },
+    rules: {
+      ...boundaryRules,
     },
   },
   {
@@ -228,20 +317,23 @@ export default [
     rules: {
       "no-restricted-syntax": [
         "error",
-        {
-          selector:
-            // `.property` を外すのは `foo.process` のような無関係な名前を拾わないため。ただし
-            // `globalThis.process` はその除外にそのまま当たってしまう同じ global の別の綴りなので、
-            // 名指しで塞ぐ。塞がないと規則が 1 語で迂回できる。
-            'Identifier[name="process"]:not(MemberExpression > .property):not(Property > .key), MemberExpression[object.name="globalThis"][property.name="process"]',
-          message:
-            "`process` を読んでよいのは config カーネルと起動境界だけです（ADR 0030）。値は config を通して受け取ってください。",
-        },
+        PROCESS_ACCESS_SELECTOR,
+        SUBSCRIPTION_CONSTRUCTION_SELECTOR,
+        HAND_FORMATTED_MONEY_SELECTOR,
       ],
       "no-restricted-imports": [
         "error",
         { patterns: [...commonImportRestrictions, iconVendorImports] },
       ],
+    },
+  },
+  {
+    // 購読 adapter だけが接続を組み立てる。**規則ごと外さない** —— 同じ束の `process` の禁止は
+    // ここでも効いたままにする（flat config は規則の値を後勝ちで置き換えるので、並べ直すのではなく
+    // 残す側を書き下す）。
+    files: ["src/adapters/client/stream/**/*.{js,jsx,ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": ["error", PROCESS_ACCESS_SELECTOR, HAND_FORMATTED_MONEY_SELECTOR],
     },
   },
   {

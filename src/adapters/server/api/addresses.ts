@@ -6,11 +6,16 @@ import type { z } from "zod";
 import type { AddressCandidate, AddressLookup } from "@/model/user/user";
 
 import { GetAddressesResponse } from "../../gen/api/endpoints.zod";
-import { getPublicClient } from "./public-client";
+import { getPublicClient } from "../http/public-client";
 
 type WireAddresses = z.infer<typeof GetAddressesResponse>;
 
-/** 契約の応答を表示用の候補へ写す。`prefectureName` は `prefecture` へ改名する。 */
+/**
+ * 契約の応答を表示用の候補へ写す。`prefectureName` は `prefecture` へ改名する。
+ *
+ * @param wire - 契約の住所候補応答
+ * @returns 表示用に整えた候補の一覧
+ */
 function toAddressCandidates(wire: WireAddresses): readonly AddressCandidate[] {
   return wire.candidates.map(({ prefectureName, city, town }) => ({
     prefecture: prefectureName,

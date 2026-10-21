@@ -11,13 +11,23 @@ import { type IssueBody, missingRequiredFields } from "./required-fields.js";
 function listIssues(requested: string): readonly IssueBody[] {
   const raw = execFileSync(
     "gh",
-    ["issue", "list", "--state", requested, "--limit", "200", "--json", "number,title,body"],
+    ["issue", "list", "--state", requested, "--limit", "200", "--json", "number,title,body,labels"],
     { encoding: "utf8" },
   );
 
-  return (JSON.parse(raw) as { number: number; title: string; body: string | null }[]).map(
-    (issue) => ({ number: issue.number, title: issue.title, body: issue.body ?? "" }),
-  );
+  return (
+    JSON.parse(raw) as {
+      number: number;
+      title: string;
+      body: string | null;
+      labels: { name: string }[];
+    }[]
+  ).map((issue) => ({
+    number: issue.number,
+    title: issue.title,
+    body: issue.body ?? "",
+    labels: issue.labels.map((label) => label.name),
+  }));
 }
 
 const issueState = process.argv.includes("--all") ? "all" : "open";

@@ -11,8 +11,7 @@ name: CodeQL Scan
 # setting, not through this job's exit code. The job fails only when
 # the analysis itself could not run.
 #
-# Deliberately unfiltered by `paths`; the reason every workflow runs on every PR is
-# in README.md.
+# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
 
 on:
   pull_request:
@@ -36,7 +35,7 @@ concurrency:
 jobs:
   codeql:
     runs-on: ubuntu-latest
-    # security-extended is a larger suite than the default one.
+    # 30, because `security-extended` runs longer than the default suite.
     timeout-minutes: 30
     permissions:
       contents: read
@@ -82,7 +81,7 @@ jobs:
         with:
           category: '/language:javascript-typescript'
 
-  # See README.md § 通知 (why only scheduled runs notify, and why cancelled counts).
+  # See README.md § Notifications (why only scheduled runs notify, and why cancelled counts).
   notify-failure:
     needs: codeql
     if: ${{ always() && github.event_name == 'schedule' && contains(fromJSON('["failure", "cancelled"]'), needs.codeql.result) }}

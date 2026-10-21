@@ -40,11 +40,23 @@ const attachmentVariants = cva(
 
 /** {@link Attachment} の props。 */
 export type AttachmentProps = ComponentProps<"div"> & {
-  /** 添付の大きさ。 */
+  /**
+   * 添付の大きさ。{@link ATTACHMENT_SIZE} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_SIZE.DEFAULT
+   */
   size?: AttachmentSize;
-  /** 内容の並べ方。 */
+  /**
+   * 内容の並べ方。{@link ATTACHMENT_ORIENTATION} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_ORIENTATION.HORIZONTAL
+   */
   orientation?: AttachmentOrientation;
-  /** 今どの段階にあるか。 */
+  /**
+   * 今どの段階にあるか。{@link ATTACHMENT_STATE} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_STATE.DONE
+   */
   state?: AttachmentState;
 };
 
@@ -77,10 +89,7 @@ export type AttachmentProps = ComponentProps<"div"> & {
  * </Attachment>
  * ```
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.size - 添付の大きさ。{@link ATTACHMENT_SIZE} のいずれか。
- * @param props.orientation - 内容の並べ方。{@link ATTACHMENT_ORIENTATION} のいずれか。
- * @param props.state - 今どの段階にあるか。{@link ATTACHMENT_STATE} のいずれか。
+ * @param props - native `div` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -121,7 +130,11 @@ const attachmentMediaVariants = cva(
 
 /** {@link AttachmentMedia} の props。 */
 export type AttachmentMediaProps = ComponentProps<"div"> & {
-  /** 置く媒体の種類。 */
+  /**
+   * 置く媒体の種類。{@link ATTACHMENT_MEDIA_VARIANT} のいずれか。
+   *
+   * @defaultValue ATTACHMENT_MEDIA_VARIANT.ICON
+   */
   variant?: AttachmentMediaVariant;
 };
 
@@ -132,8 +145,7 @@ export type AttachmentMediaProps = ComponentProps<"div"> & {
  * `icon` はアイコンを、`image` は縮小表示を置く。いずれも装飾であり、何のファイルかは
  * `AttachmentTitle` のテキストが伝える。画像を置く場合も同じ理由で `alt` は空にできる。
  *
- * @param props - native `div` 属性と、以下の表示用 props。
- * @param props.variant - 置く媒体の種類。{@link ATTACHMENT_MEDIA_VARIANT} のいずれか。
+ * @param props - native `div` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -270,7 +282,11 @@ export function AttachmentAction({
 
 /** {@link AttachmentTrigger} の props。 */
 export type AttachmentTriggerProps = ComponentProps<"button"> & {
-  /** 子要素へ trigger の当たり判定と props を合成するか。 */
+  /**
+   * 子要素へ trigger の当たり判定と props を合成するか。
+   *
+   * @defaultValue false
+   */
   asChild?: boolean;
 };
 
@@ -284,8 +300,7 @@ export type AttachmentTriggerProps = ComponentProps<"button"> & {
  *
  * **アクセシブルな名前は呼び出し元が必ず与える**。面だけでは何をする操作か判らない。
  *
- * @param props - native `button` 属性と、以下の表示用 props。
- * @param props.asChild - 子要素へ trigger の当たり判定と props を合成するか。
+ * @param props - native `button` 属性と、表示用の props。
  *
  * @see Storybook `Display/Attachment`
  */
@@ -309,15 +324,19 @@ export function AttachmentTrigger({
 
 /** {@link AttachmentGroup} の props。 */
 export type AttachmentGroupProps = ComponentProps<"section"> & {
-  /** 領域の名前。 */
+  /**
+   * 領域の名前。
+   *
+   * @defaultValue "添付の一覧"
+   */
   label?: string;
 };
 
 /**
- * 複数の添付を横に並べる領域。
+ * 件数・並び順・上限を持たず、複数の添付を横に並べるだけの領域。
  *
  * @remarks
- * 収まらない場合は横スクロールし、添付の先頭で止まる。件数・並び順・上限は持たない。
+ * 収まらない場合は横スクロールし、添付の先頭で止まる。
  *
  * スクロールは `ScrollArea` が引き受けるため、keyboard だけでも横へ送れる。添付そのものが
  * focus を持つ構成では `tabIndex={-1}` を渡し、領域自体の tab stop を外す。

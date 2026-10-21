@@ -15,7 +15,11 @@ const OVERLAY_HISTORY_MARKER = "overlayHistory";
 export type OverlayHistoryOptions = {
   /** 外から制御する場合の開閉状態。 */
   open?: boolean;
-  /** 制御しない場合の初期状態。 */
+  /**
+   * 制御しない場合の初期状態。
+   *
+   * @defaultValue false
+   */
   defaultOpen?: boolean;
   /** 開閉が変わったときに呼ぶ。 */
   onOpenChange?: (open: boolean) => void;
@@ -44,12 +48,15 @@ export type OverlayHistory = {
  * **この判定が見分けられるのは、URL が既に動いた遷移だけです。** client 側の遷移は取得が終わる
  * まで URL を動かさないため、閉じる操作と遷移を同じ操作で撃つと、ここは「まだ最前面」と読んで
  * 戻し、その戻しが遷移を消します。**overlay の中から遷移するときは、閉じる操作を同時に撃たず、
- * 遷移が届いたことで閉じてください**（`docs/rules.md`「UI 部品と操作」の「overlay の中から遷移するときは
+ * 遷移が届いたことで閉じてください**（`docs/rules.md#ui-parts`の「overlay の中から遷移するときは
  * 閉じる操作を同時に撃たない」）。積んだ 1 件は結果で差し替えます——そのうえで積むと、戻る操作が
  * 1 度空振りします。
  *
  * 制御されている（`open` を渡された）場合も同じように積みます。開閉の持ち主が誰であっても、
  * 戻る操作の意味は変わらないためです。
+ *
+ * @param options - 開閉の指定
+ * @returns 開閉状態と、その切り替え口
  */
 export function useOverlayHistory({
   open,
@@ -92,6 +99,7 @@ export function useOverlayHistory({
     window.history.pushState({ ...window.history.state, [OVERLAY_HISTORY_MARKER]: historyId }, "");
     pushedRef.current = true;
 
+    /** 戻る操作を受けて、自分が積んだ 1 件から離れたときだけ閉じる。 */
     const handlePopState = () => {
       // 自分の印が残っているなら、離れたのは自分の 1 件ではない。同じ文書の中での移動でも
       // popstate は届くため、届いたことだけを閉じる合図にすると、開いた直後に閉じる。

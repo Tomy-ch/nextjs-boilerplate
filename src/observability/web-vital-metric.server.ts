@@ -17,7 +17,7 @@ const SCOPE = "browser-telemetry";
  *
  * @remarks
  * ミリ秒を想定した既定の刻みは、0 から 1 に収まる `CLS` に当たりません。指標ごとに分ける理由と、
- * これが good / poor の境界ではないことは、[README](./README.md) の「ブラウザ側のシグナル」が持ちます。
+ * これが good / poor の境界ではないことは、[README](./README.md#browser-side-signals)が持ちます。
  */
 const BOUNDARIES = {
   /** 読み込みの時間。秒台まで伸びるので、後半を粗くして端を落とさない。 */
@@ -62,10 +62,12 @@ const histograms = new Map<Instrumented, Histogram>();
  *
  * @remarks
  * 分布として持つ理由・log の event にしない理由・計器の名前をこのリポジトリが決めていることは、
- * [README](./README.md) の「ブラウザ側のシグナル」が持ちます。
+ * [README](./README.md#browser-side-signals)が持ちます。
  *
  * 送出されるのは metrics signal が有効なときだけです。無効なら OTel API が何もしない実装を返すので、
  * ここで有効・無効を判定しません。
+ *
+ * @param vital - 記録する Web Vitals 1 件
  */
 export function recordWebVital(vital: WebVital): void {
   histogramFor(vital.name).record(vital.value, {
@@ -75,7 +77,12 @@ export function recordWebVital(vital: WebVital): void {
   });
 }
 
-/** 指標に対応する計器を返す。同じ計器を測定のたびに作り直さない。 */
+/**
+ * 指標に対応する計器を返す。同じ計器を測定のたびに作り直さない。
+ *
+ * @param name - 対象の指標
+ * @returns 指標に対応する `Histogram`
+ */
 function histogramFor(name: Instrumented): Histogram {
   const existing = histograms.get(name);
 

@@ -23,13 +23,23 @@ export type StaticDataTableColumn<Row> = TableColumnDefinition & {
 
 /** {@link StaticDataTable} の props。 */
 export type StaticDataTableProps<Row> = {
+  /** 表の説明。渡すと `caption` として描画する。 */
   caption?: ReactNode;
+  /** 外枠の class。 */
   className?: string;
+  /** 列の定義。並び順がそのまま列の順序になる。 */
   columns: readonly StaticDataTableColumn<Row>[];
+  /**
+   * 行が 1 件も無いときに出す文言。
+   *
+   * @defaultValue "表示する項目はありません。"
+   */
   emptyMessage?: ReactNode;
+  /** 行を識別する key を返す。 */
   getRowKey: (row: Row) => string;
   /** 横スクロールする領域の名前。 */
   label?: string;
+  /** 表の下に置く頁送り。 */
   pagination?: ReactNode;
   /**
    * 各行に追加する class 名。
@@ -39,12 +49,17 @@ export type StaticDataTableProps<Row> = {
    * 位置指定の基準になっている必要がある。何を基準にするかは並べる側の都合なので、ここで受ける。
    */
   rowClassName?: string;
+  /** 描画する行。 */
   rows: readonly Row[];
+  /** 表の上に置く操作。 */
   toolbar?: ReactNode;
 };
 
 /**
  * 読み取り専用の列定義を、table・empty 表示・toolbar・pagination へ展開する sugar。
+ *
+ * @typeParam Row - 1 行が表す値の型。
+ * @param props - 列の定義と描画する行、行が無いときの文言、および表の周りへ置く要素。
  *
  * @see Storybook `Sugar/Table/StaticData`
  */

@@ -29,6 +29,8 @@ export type ProductBreadcrumbTrailProps = {
  *
  * 一覧より下だけを受け取ります。**戻れるのは一覧までで、途中の段は戻り先を持ちません** ——
  * 編集の途中にある商品名は、それ自体を開く面が管理側に無いためです。
+ *
+ * @param props - 一覧より下の現在地。
  */
 export const ProductBreadcrumbTrail = withPartSpan(
   "features/admin/products/ui/breadcrumb-trail/breadcrumb-trail",

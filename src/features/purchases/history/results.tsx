@@ -28,6 +28,8 @@ export type PurchaseHistoryResultsProps = {
  *
  * **区間をここで 1 度だけ決めて、続きの取得へも同じものを渡します。** 「直近 N 日」は解く瞬間で
  * 答えが変わるため、ページごとに解き直すと境目の購入が飛ばされます。
+ *
+ * @param props - いま効いている期間
  */
 export async function PurchaseHistoryResults({ period }: PurchaseHistoryResultsProps) {
   const window = toPurchaseWindow(period, new Date());

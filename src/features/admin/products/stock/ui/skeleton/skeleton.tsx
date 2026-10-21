@@ -2,11 +2,13 @@ import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 import { withPartSpan } from "@/observability/render-span";
 
 /**
- * 在庫を補充する画面の待機表示。
+ * 現在の在庫・向きの選択・数量の欄・送信を、実際と同じ高さで出す待機表示。
  *
  * @remarks
- * 現在の在庫の枠・向きの選択・数量の欄・送信の並びを、実際と同じ高さで出します。一覧の待機表示を
- * 流用すると、表の行が並んでからフォームが現れることになり、何を待っているかが伝わりません。
+ * 一覧の待機表示を流用すると、表の行が並んでからフォームが現れることになり、何を待っているかが
+ * 伝わりません。
+ *
+ * @see Storybook `Features/Admin/Products/Stock/Skeleton`
  */
 export const AdminProductStockSkeleton = withPartSpan(
   "features/admin/products/stock/ui/skeleton/skeleton",

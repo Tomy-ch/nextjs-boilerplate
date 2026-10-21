@@ -20,6 +20,10 @@ export type PatchPayload<T> = {
  * が持つ規律）。
  *
  * `null` は残します。こちらは「消す」という指示であり、値のある指定と同じく届ける必要があります。
+ *
+ * @typeParam T - 更新対象のペイロードが持つ元の型
+ * @param payload - 落とす前の部分更新ペイロード
+ * @returns `undefined` のキーを落とした後のペイロード
  */
 export function normalizePatchPayload<T extends object>(payload: PatchPayload<T>): PatchPayload<T> {
   const normalized: PatchPayload<T> = {};

@@ -63,7 +63,7 @@ describe("renderSummary", () => {
     const body = renderSummary(sarifOf([ERROR_RESULT]), "ERROR", "");
 
     expect(body).toBe(
-      "Quality gate: ERROR\n\n- [error] src/app/page.tsx:12 typescript:S1234\n  - この関数は長すぎます\n",
+      "Quality gate: ERROR\n\n- [error] `src/app/page.tsx:12` `typescript:S1234`\n  - `この関数は長すぎます`\n",
     );
   });
 
@@ -85,7 +85,20 @@ describe("renderSummary", () => {
     const result = { ...ERROR_RESULT, message: { text: "1 行目\n2 行目" } };
     const body = renderSummary(sarifOf([result]), "ERROR", "");
 
-    expect(body).toContain("  - 1 行目 2 行目\n");
+    expect(body).toContain("  - `1 行目 2 行目`\n");
+  });
+
+  it("SonarCloud の説明とファイル名を、注入されても記法として読まれない形で描く", () => {
+    const injected = resultAt("error", "src/@someone.ts", 1);
+    const result = {
+      ...injected,
+      message: { text: "@someone\n## 偽の見出し [偽](https://github.com/o/r/issues/1)" },
+    };
+    const body = renderSummary(sarifOf([result]), "ERROR", "");
+
+    expect(body).toBe(
+      "Quality gate: ERROR\n\n- [error] `src/@someone.ts:1` `typescript:S1234`\n  - `@someone ## 偽の見出し [偽](https://github.com/o/r/issues/1)`\n",
+    );
   });
 
   // ----- 異常系 -----
@@ -93,7 +106,7 @@ describe("renderSummary", () => {
     const result = { ...ERROR_RESULT, level: undefined };
     const body = renderSummary(sarifOf([result]), "ERROR", "");
 
-    expect(body).toContain("- [warning] src/app/page.tsx:12");
+    expect(body).toContain("- [warning] `src/app/page.tsx:12`");
   });
 
   it("知らない段の所見を最後へ回す", () => {
@@ -106,6 +119,6 @@ describe("renderSummary", () => {
   it("位置の読めない所見も、行として残す", () => {
     const body = renderSummary(sarifOf([{}]), "ERROR", "");
 
-    expect(body).toBe("Quality gate: ERROR\n\n- [warning] ?:0 ?\n  - \n");
+    expect(body).toBe("Quality gate: ERROR\n\n- [warning] `?:0` `?`\n  - `(空)`\n");
   });
 });

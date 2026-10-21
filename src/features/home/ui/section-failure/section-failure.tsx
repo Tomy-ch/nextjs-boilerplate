@@ -22,6 +22,8 @@ export type SectionFailureProps = {
  *
  * 節の名前を文言に含めるのは、複数の節が同時に落ちたときに同じ文が並ぶためです。どれが
  * 落ちたのかが文からわかる必要があります。
+ *
+ * @param props - 出せなかった節の名前と、表示する文言。
  */
 export const SectionFailure = withPartSpan(
   "features/home/ui/section-failure/section-failure",

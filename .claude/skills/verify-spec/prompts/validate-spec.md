@@ -11,14 +11,14 @@ The single source of truth for what a spec review checks. The `spec-validator` a
 | Input | Meaning |
 | --- | --- |
 | `route` | One route's spec directory, e.g. `docs/spec/route/auth/login` |
-| `specs` | The spec files in it — a `*.screen.md`, and a `*.function.md` when one exists |
+| `specs` | The spec files in it — a `*.screen.md`, and a `*.function.md` when one exists. English canonicals only; a `*.ja.md` mirror is never an input |
 | `implementation` | The `src/app` entry the route maps to, and the files it reaches |
 
 ## Read these first, at runtime
 
 - `docs/spec/README.md` — how the two files divide, where they live, and **what a spec deliberately
   does not say**.
-- The `layout.*.md` specs **above** this route. A layout's promise applies to everything beneath it,
+- The `layout.*.md` specs **above** this route (not their `*.ja.md` mirrors). A layout's promise applies to everything beneath it,
   and each screen writes only its difference from that.
 - The implementation the route maps to.
 

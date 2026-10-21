@@ -41,7 +41,7 @@ not loaded as a skill).
 - Establishing what the repository currently does — `repo-truth` first.
 - Finding the sanctioned procedure for an operation — `how-to`.
 - Filing the outcome — `new-issue`.
-- Reviewing a diff — `impl-review` / `test-review` / `comment-sweep`.
+- Reviewing a diff — `impl-review` / `test-review`.
 
 ## Why this exists
 
@@ -52,7 +52,7 @@ that favour it are the ones that get written down. Fixing the axes first is the 
 has to happen before any option is named.
 
 **Cost picks the answer.** 「30 ファイル触ることになる」 quietly becomes the deciding argument.
-`AGENTS.md`'s *What to Recommend* is explicit that here quality and consistency outrank the cost of
+[0010](../../../docs/adr/0010-standards-and-non-lockin.md) is explicit that quality and consistency outrank the cost of
 reaching them, and that the cost is stated so a human can decline the scope while keeping the
 direction. Stating the cost is required; letting it choose is not.
 
@@ -90,16 +90,15 @@ Before anything else, establish the current state. If it is unclear or contested
 so**: the user should run `repo-truth` first. Do not invoke it yourself and do not paper over the gap
 with an assumption, because the assumption then silently shapes every option.
 
-**Three places settle a question here, not one.** Missing any of them produces this skill's most
+**Two places settle a question here, not one.** Missing any of them produces this skill's most
 expensive output — a comparison that re-litigates something already decided.
 
 | Where | What it settles |
 | --- | --- |
-| [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions |
-| [`docs/adr/BACKLOG.md`](../../../docs/adr/BACKLOG.md) | A slot's **撤回条件** — what was deferred, and what would have to become true to revisit it |
+| [`docs/adr/`](../../../docs/adr/README.md) | A standing decision, including the deliberate exclusions and the **撤回条件** each one carries in its own body — what would have to become true to revisit it |
 | [`docs/project/out-of-scope.md`](../../../docs/project/out-of-scope.md) | What this repository deliberately does not carry, and under what condition it would |
 
-The last two are what make 「やらない」 a decision rather than an absence. A question that looks open
+Together they make 「やらない」 a decision rather than an absence. A question that looks open
 is often one whose 撤回条件 simply has not been met — and the answer is that condition, not a
 comparison.
 
@@ -164,7 +163,7 @@ this repository's judgments actually live, and each one is owned by a document t
 | --- | --- |
 | デファクトへの適合 / 非ロックイン | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
 | 採用アーキテクチャからの導出 | [0020](../../../docs/adr/0020-adopted-architecture.md) / [0021](../../../docs/adr/0021-frontend-responsibility.md) / `architecture.ts` |
-| テンプレート適用時の状態としての純粋さ | `AGENTS.md` § What to Recommend |
+| いまの状態としての純粋さ | [0010](../../../docs/adr/0010-standards-and-non-lockin.md) |
 | 依存を足す問いなら、選定基準 | [0004](../../../docs/adr/0004-library-management.md) と [`.github/pull_request_template.md`](../../../.github/pull_request_template.md) の依存欄 |
 
 A question about a CI gate does not turn on the architecture axis; a question about adding a library
@@ -247,7 +246,7 @@ Always this shape, in Japanese. Lead with the recommendation; the comparison is 
 - <測れなかったコスト / 確認できなかった主張> — <なぜ測れなかったか、測れば何が変わるか>
 
 ## 決めるべきこと
-- <人が決める事項> — 記録先: ADR / BACKLOG の枠 / issue / spec / 層 README のどれか
+- <人が決める事項> — 記録先: ADR / issue / spec / 層 README のどれか
 ```
 
 When only part of the question could be researched, return that part and name the rest as
@@ -272,14 +271,14 @@ This skill produces `決めるべきこと` and stops. It does not adopt an opti
 issue, or start implementing — and it does not invoke `new-issue` for you.
 
 **The gap between a recommendation and a decision is the whole point of the step.** A recommendation
-that flows straight into implementation was never reviewed by anyone; `AGENTS.md` puts the areas
-`docs/adr/BACKLOG.md` still leaves blank behind a human gate precisely so that the option surviving
-to code is one somebody chose. The route onward is human approval, then `new-issue`.
+that flows straight into implementation was never reviewed by anyone; [`docs/rules.md#workflow`](../../../docs/rules.md#workflow)
+puts the areas no Accepted ADR decides behind a human gate precisely so that
+the option surviving to code is one somebody chose. The route onward is human approval, then `new-issue`.
 
 ## Do / Do NOT
 
 - ✅ Establish the current state first; stop and ask for `repo-truth` when it is unclear.
-- ✅ Check all three settling places — the ADRs, the backlog's 撤回条件, and the out-of-scope list.
+- ✅ Check both settling places — the ADRs, including the 撤回条件 in their own bodies, and the out-of-scope list.
 - ✅ Search the indexes by concern, never by the feature's words.
 - ✅ Look for an isomorphic mechanism before treating the question as a design branch — by shape, by
   enumerating the kernels, not by grepping the concept.
@@ -307,7 +306,7 @@ to code is one somebody chose. The route onward is human approval, then `new-iss
 
 - [ ] `--stage` / `--sources` resolved; under `repo` the unmakeable claims were named.
 - [ ] Current state established, or the run stopped with `repo-truth` named as the next step.
-- [ ] All three settling places checked by concern; a standing decision or an unmet 撤回条件 reported
+- [ ] Both settling places checked by concern; a standing decision or an unmet 撤回条件 reported
       as the answer if one exists.
 - [ ] Isomorphic-mechanism check done by shape over enumerated kernels; 「設計分岐なし」 reported when
       it applies, and the enumerated scope stated when claiming none exists.

@@ -33,6 +33,8 @@ export type HomeViewProps = {
  * 節の並びは、画像のある帯・行の帯の順です。同じ密度の帯が続くと、どこまでが 1 つの節なのかが
  * 読み取りにくくなります。3 つ目の帯（分類）はこの器の外、静的な殻の側に居ます
  * （[categories-content.tsx](./categories-content.tsx)）。
+ *
+ * @param props - 新着商品とランキング、2 節ぶんの状態。
  */
 export const HomeView = withScreenSpan(
   "features/home/view",

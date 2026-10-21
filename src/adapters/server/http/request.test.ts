@@ -30,7 +30,6 @@ type ClientOverrides = {
   now?: () => number;
   wallClockNow?: () => number;
   getBearerToken?: () => Promise<string | null>;
-  allowAnonymous?: boolean;
   sleep?: (ms: number) => Promise<void>;
 };
 
@@ -433,27 +432,23 @@ describe("createHttpClient", () => {
     });
   });
 
-  it("認証を任意にした接続先は、資格情報が無くても認証なしで送る", async () => {
+  it("認証を任意にした要求は、資格情報が無くても認証なしで送る", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createClient(fetchImpl, {
-      allowAnonymous: true,
-      getBearerToken: async () => null,
-    });
+    const client = createClient(fetchImpl, { getBearerToken: async () => null });
 
-    await expect(client.request({ path: "/v1/ping", schema })).resolves.toEqual({ ok: true });
+    await expect(
+      client.request({ path: "/v1/ping", schema, allowAnonymous: true }),
+    ).resolves.toEqual({ ok: true });
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       headers: expect.not.objectContaining({ Authorization: expect.anything() }),
     });
   });
 
-  it("認証を任意にした接続先でも、取得できた資格情報は載せる", async () => {
+  it("認証を任意にした要求でも、取得できた資格情報は載せる", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
-    const client = createClient(fetchImpl, {
-      allowAnonymous: true,
-      getBearerToken: async () => "token",
-    });
+    const client = createClient(fetchImpl, { getBearerToken: async () => "token" });
 
-    await client.request({ path: "/v1/ping", schema });
+    await client.request({ path: "/v1/ping", schema, allowAnonymous: true });
 
     expect(fetchImpl.mock.calls[0]?.[1]).toMatchObject({
       headers: expect.objectContaining({ Authorization: "Bearer token" }),
@@ -613,7 +608,7 @@ describe("createHttpClient", () => {
     await expect(client.request({ path: "/v1/items", schema })).resolves.toEqual({ ok: true });
   });
 
-  it("認証が要る接続先で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
+  it("認証を任意にしていない要求で Bearer を解決できないとき、送らずに未認証で落とす", async () => {
     const fetchImpl = vi.fn<typeof fetch>(async () => jsonResponse(200, { ok: true }));
     const client = createClient(fetchImpl, { getBearerToken: async () => null });
 
@@ -729,7 +724,6 @@ describe("createHttpClient", () => {
   });
 
   it("経過時間だけで期限に達したら、待ちが短くても諦める", async () => {
-    // 締切は単調時計で測る。待ちの長さではなく、試行に費やした時間の積算で越えさせる。
     const now = vi.fn(() => 0);
 
     now.mockReturnValueOnce(0).mockReturnValue(profile.overallTimeoutMs);
@@ -826,8 +820,6 @@ describe("createHttpClient", () => {
       attemptsPerRequest.push(fetchImpl.mock.calls.length - before);
     }
 
-    // 予算は失敗 1 件につき 1 消費し、上限の半分を下回ると再試行を止める。失敗だけが続くと
-    // 要求ごとの試行回数がそのぶん減り、3 度目には 1 度も再試行できない。
     expect(attemptsPerRequest).toEqual([profile.maxAttempts, 2, 1]);
   });
 });

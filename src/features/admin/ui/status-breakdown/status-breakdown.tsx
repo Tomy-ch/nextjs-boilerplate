@@ -7,8 +7,8 @@ import {
   TableRow,
 } from "@/components/design-system/display/table/table";
 import type { PurchaseStatusCount } from "@/model/dashboard/dashboard";
+import { formatNumber } from "@/model/number";
 import { withPartSpan } from "@/observability/render-span";
-import { formatCount } from "../../count";
 import { StatusBars } from "../status-bars/status-bars";
 
 /** `StatusBreakdown` の props。 */
@@ -37,6 +37,9 @@ const TITLE = "ステータス別の件数";
  * **棒も表もサーバで描き切ります。** 棒は渡された件数を並べるだけで操作を受けないため、
  * client 島にする理由がありません。
  *
+ * @param props - 並べるステータス別件数
+ *
+ *
  * @see Storybook `Features/Admin/StatusBreakdown`
  */
 export const StatusBreakdown = withPartSpan(
@@ -64,7 +67,7 @@ export const StatusBreakdown = withPartSpan(
                   <TableRow key={entry.statusId}>
                     <TableCell>{entry.statusName}</TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatCount(entry.count)}
+                      {formatNumber(entry.count)}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -3,11 +3,12 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import type { CursorPage } from "@/model/pagination";
 import type {
   Product,
+  ProductDiscontinueConditions,
+  ProductDiscontinueImpact,
+  ProductDiscontinueResult,
   ProductDraft,
   ProductEdit,
   ProductId,
@@ -16,30 +17,35 @@ import type {
   ProductPage,
   ProductRankingEntry,
 } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 import { type TimeWindow, WHOLE_TIME } from "@/model/time-window";
 import {
   GetProductsCountResponse,
   GetProductsDetailResponse,
+  GetProductsDiscontinueImpactResponse,
   GetProductsQueryParams,
   GetProductsRankingQuantityResponse,
   GetProductsResponse,
   getProductsQueryCategoryCodesMax,
   PatchProductsDetailResponse,
   PatchProductsStockResponse,
+  PostProductsDiscontinueResponse,
   PostProductsImagesResponse,
   PostProductsResponse,
 } from "../../gen/api/endpoints.zod";
 import type {
+  ProductDiscontinuePostRequest,
   ProductPatchRequest,
   ProductStockPatchRequest,
   ProductsPostRequest,
 } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getPublicClient } from "../http/public-client";
+import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
+
+const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 /**
  * 契約が受け付ける並び順。
@@ -78,7 +84,7 @@ export const PRODUCT_CATEGORY_LIMIT: number = getProductsQueryCategoryCodesMax;
  */
 const ProductQueryParams = GetProductsQueryParams.omit({ categoryId: true, statusId: true });
 
-/** 商品一覧の取得条件。契約のクエリと 1 対 1 に対応する。 */
+/** 商品一覧の取得条件。契約のクエリから、非推奨の `categoryId` / `statusId` を除いたもの。 */
 export type ProductQuery = {
   after?: string;
   first?: number;
@@ -105,6 +111,14 @@ export type ProductQuery = {
    * 鍵は契約が 400 で返します。
    */
   includeUnpublished?: boolean;
+  /**
+   * 廃番かどうかで絞る。`true` で廃番だけ、`false` で廃番でないものだけ。省略すると絞らない。
+   *
+   * @remarks
+   * 廃番の商品は非公開になるため、意味を持つのは {@link ProductQuery.includeUnpublished} と
+   * 組んだときだけです。公開済みだけの母集団に `true` を指定すると常に空になります。
+   */
+  discontinued?: boolean;
 };
 
 /**
@@ -143,7 +157,7 @@ const INTEGER_ARRAY_KEYS: ReadonlySet<string> = new Set(["categoryCodes", "statu
  * @remarks
  * URL の値は常に文字列なので、そのまま渡すと真偽値の宣言に当たって落ちます。
  */
-const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished"]);
+const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished", "discontinued"]);
 
 /**
  * 契約が受け付ける綴りだけを真偽値へ直す。
@@ -152,6 +166,9 @@ const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeUnpublished"]);
  * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeUnpublished=yes` のような
  * 打ち間違いが黙って「含めない」に倒れ、絞り込んだつもりの母集団が変わったことを利用者が
  * 知る手段がなくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ *
+ * @param value - URL から届いた素の値
+ * @returns 読めれば真偽値、読めなければ元の文字列
  */
 function toBoolean(value: string): boolean | string {
   if (value === "true") {
@@ -165,13 +182,25 @@ function toBoolean(value: string): boolean | string {
   return value;
 }
 
-/** 素の値を、契約が宣言した型へ直す。 */
+/**
+ * 素の値を、契約が宣言した型へ直す。
+ *
+ * @param raw - URL から届いた素の検索条件
+ * @returns 契約の型に沿って直した値の組
+ */
 function toTypedQuery(raw: RawProductQuery): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(raw).map(([key, value]) => [key, toTypedValue(key, value)]),
   );
 }
 
+/**
+ * 1 つのキーの素の値を、契約が宣言した型へ直す。
+ *
+ * @param key - 検索条件のキー名
+ * @param value - URL から届いた素の値
+ * @returns 契約の型に沿って直した値
+ */
 function toTypedValue(key: string, value: string | readonly string[]): unknown {
   if (INTEGER_ARRAY_KEYS.has(key)) {
     return [...new Set((typeof value === "string" ? [value] : value).map(Number))];
@@ -207,6 +236,9 @@ export type ProductQueryParseResult =
  *
  * 未指定のキーは契約の既定値で埋まります。件数と並び順の既定を画面ごとに決め直すと、URL を
  * 省略したときの結果が画面によって変わります。
+ *
+ * @param raw - URL 由来の検索条件
+ * @returns 照らせれば取得条件、読めなければ外れたキーの一覧
  */
 export function parseProductQuery(raw: RawProductQuery): ProductQueryParseResult {
   const parsed = ProductQueryParams.safeParse(toTypedQuery(raw));
@@ -230,12 +262,14 @@ type WireProduct = WireProductPage["products"][number];
  * @remarks
  * 一覧と件数がどちらもこの一式を送ります。取り出す位置（`after` / `first`）と並び順は件数に
  * 効かないため含めません。片方だけに条件を足すと、出ている件数と一覧の中身が食い違います。
+ *
+ * @param query - 商品一覧の取得条件
+ * @returns 一致する対象を決める条件だけを載せたクエリ文字列
  */
 function toFilterParams(
   query: ProductQuery,
 ): Record<string, string | readonly string[] | undefined> {
   return {
-    // 契約は整数の並びで宣言しているが、クエリ文字列に載せる時点で文字列へ戻る。
     categoryCodes: query.categoryCodes?.map(String),
     statusCodes: query.statusCodes?.map(String),
     keyword: query.keyword,
@@ -243,41 +277,16 @@ function toFilterParams(
     maxPrice: query.maxPrice,
     minQuantity: query.minQuantity?.toString(),
     maxQuantity: query.maxQuantity?.toString(),
+    includeUnpublished: query.includeUnpublished?.toString(),
+    discontinued: query.discontinued?.toString(),
   };
-}
-
-let client: UserScopedHttpClient | undefined;
-
-/**
- * 商品の口を叩く client。
- *
- * @remarks
- * **資格情報は取れたときだけ載せます。**読む口は未ログインでも通り、書き込む口は主体を要求
- * します。読み書きが 1 つの client に同居するときの形と、落としたときの症状は
- * [adapters](../../README.md) の「主体を名乗るかは、口ではなく client が決める」節。
- *
- * **だからこの口の分類は `user-scoped` で、キャッシュの指定は型として渡せません**
- * （`docs/rules.md`「データ分類と機微情報」の「取得の口は分類を宣言する」）。入れてはいけない理由は
- * 同「描画とキャッシュ」の「Data Cache へ入れてよいのは主体を名乗らずに取れるものだけ」が持ちます。
- */
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    allowAnonymous: true,
-    baseUrl: getApiConfig().baseUrl,
-    getBearerToken: getAccessToken,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-  });
-
-  return client;
 }
 
 /**
  * 契約の商品を表示用の型へ写す。
  *
- * @remarks
- * 変換をこの境界に閉じるのは、契約の形が変わったときに影響が及ぶ範囲をここまでに留めるためです。
- * 生成型をそのまま内層へ渡すと、契約の都合が画面の実装へ直接漏れます。
+ * @param wire - 契約の商品応答
+ * @returns 表示用の商品
  */
 export function toProduct(wire: WireProduct): Product {
   return {
@@ -287,8 +296,8 @@ export function toProduct(wire: WireProduct): Product {
     price: wire.price,
     quantity: wire.quantity,
     stockWarningThreshold: wire.stockWarningThreshold,
-    status: { id: wire.status.id, name: wire.status.name },
-    category: { id: wire.category.id, name: wire.category.name },
+    status: { id: toProductStatusId(wire.status.id), name: wire.status.name },
+    category: { id: toProductCategoryId(wire.category.id), name: wire.category.name },
     publishedAt: wire.publishedAt === null ? null : new Date(wire.publishedAt),
     discontinuedAt: wire.discontinuedAt === null ? null : new Date(wire.discontinuedAt),
     // 契約が displaySort 昇順で返すため、受け取った順序がそのまま表示の順序になる。
@@ -297,7 +306,12 @@ export function toProduct(wire: WireProduct): Product {
   };
 }
 
-/** 契約の 1 ページを表示用の型へ写す。 */
+/**
+ * 契約の 1 ページを表示用の型へ写す。
+ *
+ * @param wire - 契約の商品一覧応答
+ * @returns 表示用の 1 ページ
+ */
 export function toProductPage(wire: WireProductPage): ProductPage {
   return {
     items: wire.products.map(toProduct),
@@ -308,20 +322,19 @@ export function toProductPage(wire: WireProductPage): ProductPage {
 /**
  * 商品一覧を取得する。
  *
- * @remarks
- * 同一レンダリング内の重複呼び出しは `cache()` がまとめます。呼び出し側に「1 回だけ呼ぶ」
- * 規律を要求すると、画面を組み替えるたびに取得の回数が変わってしまうためです。
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 商品一覧の 1 ページ
  */
 export const getProducts = cache(async (query: ProductQuery = {}): Promise<ProductPage> => {
-  const page = await getClient().request({
+  const page = await getUserScopedClient().request({
     path: "/v1/products",
+    allowAnonymous: true,
     searchParams: {
       ...toFilterParams(query),
       after: query.after,
       first: query.first?.toString(),
       sort: query.sort,
-      includeUnpublished:
-        query.includeUnpublished === undefined ? undefined : String(query.includeUnpublished),
     },
     schema: GetProductsResponse,
   });
@@ -335,6 +348,9 @@ export const getProducts = cache(async (query: ProductQuery = {}): Promise<Produ
  * @remarks
  * 画像 URL の解決をここで済ませるのは、配信元が設定から来るためです。設定を読めるのは
  * `adapters` までで、画面側は解決済みの URL しか受け取りません。
+ *
+ * @param product - 表示用の商品
+ * @returns 一覧向けに絞った表示データ
  */
 function toProductListItem(product: Product): ProductListItem {
   return {
@@ -355,6 +371,10 @@ function toProductListItem(product: Product): ProductListItem {
  * @remarks
  * 増分取得が同じ形を JSON で受け取るため、`Date` や省略可能な値を含まない形へここで落とします。
  * 初回ページと増分ページで形が違うと、積み上げた一覧の途中から表示が壊れます。
+ *
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 表示に必要なものだけへ絞った 1 ページ
  */
 export async function getProductListPage(
   query: ProductQuery = {},
@@ -373,10 +393,15 @@ export async function getProductListPage(
  *
  * 一覧と同じ条件を受け取ります。条件を渡さない口にすると、絞り込んだ後も絞り込む前の数が出て、
  * 一覧に並んでいる件数と食い違います。
+ *
+ * @param query - 商品一覧の取得条件
+ * @defaultValue query = {}
+ * @returns 条件に一致する商品の総数
  */
 export const getProductCount = cache(async (query: ProductQuery = {}): Promise<number> => {
-  const { count } = await getClient().request({
+  const { count } = await getUserScopedClient().request({
     path: "/v1/products/count",
+    allowAnonymous: true,
     searchParams: toFilterParams(query),
     schema: GetProductsCountResponse,
   });
@@ -406,13 +431,18 @@ export type ProductRankingQuery = {
  *
  * 件数と期間を既定へ寄せず呼び出し側から受けるのは、画面ごとに要る件数が違うためです。
  * 省略時は契約の既定値（全期間・上位 10 件）が効きます。
+ *
+ * 認証を要しない公開の口です。契約がこの operation に資格情報を求めないため、ログイン中でも
+ * 主体を名乗らずに送ります。
+ *
+ * @returns 売れ筋ランキング
  */
 export const getProductRanking = cache(
   async ({
     window = WHOLE_TIME,
     limit,
   }: ProductRankingQuery = {}): Promise<readonly ProductRankingEntry[]> => {
-    const response = await getClient().request({
+    const response = await getPublicClient().request({
       path: "/v1/products/ranking/quantity",
       searchParams: {
         orderedAfter: window.after,
@@ -437,22 +467,121 @@ export const getProductRanking = cache(
  * @remarks
  * 一覧と同じ経路を通すため、生 status の分類と応答の検証は fetch wrapper が済ませています。
  * 存在しない ID は wrapper が `not-found` へ正規化するため、ここでは分岐を持ちません。
+ *
+ * @param id - 対象の商品
+ * @returns 商品 1 件
  */
 export const getProduct = cache(async (id: ProductId): Promise<Product> => {
-  const product = await getClient().request({
+  const product = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
+    allowAnonymous: true,
     schema: GetProductsDetailResponse,
   });
 
   return toProduct(product);
 });
 
-/** 画像 1 件を契約の形へ写す。 */
+/**
+ * 未公開の商品も含めて、商品 1 件を取得する。
+ *
+ * @remarks
+ * **管理の役割を持つ主体しか通りません。** 契約の既定の母集団は公開済みだけで、未公開と廃番の
+ * 商品は {@link getProduct} では not-found になります。管理の画面が扱うのはその両方なので、
+ * 含める指定を添えて読みます。
+ *
+ * {@link getProduct} と別の口にしているのは、`cache()` が引数の同一性でまとめるためです。
+ * 指定を引数で切り替えると、同じ描画の中の本文と breadcrumb の取得が 1 回にまとまりません。
+ *
+ * @param id - 対象の商品
+ * @returns 商品 1 件
+ */
+export const getProductIncludingUnpublished = cache(async (id: ProductId): Promise<Product> => {
+  const product = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}`,
+    searchParams: { includeUnpublished: "true" },
+    schema: GetProductsDetailResponse,
+  });
+
+  return toProduct(product);
+});
+
+/**
+ * 商品を廃番にしたときの影響を、実行する前に見積もる。
+ *
+ * @param id - 対象の商品
+ * @returns 影響の見積もり
+ */
+export async function getProductDiscontinueImpact(
+  id: ProductId,
+): Promise<ProductDiscontinueImpact> {
+  const impact = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}/discontinue-impact`,
+    schema: GetProductsDiscontinueImpactResponse,
+  });
+
+  return {
+    affectedCartCount: impact.affectedCartCount,
+    affectedUserCount: impact.affectedUserCount,
+    inProgressPurchaseCount: impact.inProgressPurchaseCount,
+  };
+}
+
+/**
+ * 商品を廃番にし、代替クーポンを発行する。
+ *
+ * @remarks
+ * **取り消せません。** 非公開化とクーポンの発行は契約の側で 1 つの処理として成立します。
+ * 同じ鍵の再送は初回の結果へ畳まれ、クーポンが二重に発行されることはありません。
+ *
+ * 進行中の購入が残っている商品は wrapper が `conflict` へ正規化します。版を添えないので、
+ * この口の `conflict` が版の食い違いを指すことはありません。
+ *
+ * @param id - 対象の商品
+ * @param conditions - 発行する代替クーポンの条件
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ * @returns 実行の結果
+ */
+export async function discontinueProduct(
+  id: ProductId,
+  conditions: ProductDiscontinueConditions,
+  idempotencyKey: string,
+): Promise<ProductDiscontinueResult> {
+  const result = await getUserScopedClient().request({
+    path: `/v1/products/${encodeURIComponent(id)}/discontinue`,
+    method: "POST",
+    headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+    body: {
+      couponDiscountRate: conditions.couponDiscountRate,
+      couponValidityDays: conditions.couponValidityDays,
+    } satisfies ProductDiscontinuePostRequest,
+    idempotent: true,
+    schema: PostProductsDiscontinueResponse,
+  });
+
+  return {
+    discontinuedAt: result.discontinuedAt,
+    affectedCartCount: result.affectedCartCount,
+    affectedUserCount: result.affectedUserCount,
+    issuedCouponCount: result.issuedCouponCount,
+  };
+}
+
+/**
+ * 画像 1 件を契約の形へ写す。
+ *
+ * @param image - 表示用の画像下書き
+ * @returns 契約が受け付ける画像の形
+ */
 function toWireImage(image: ProductImageDraft) {
   return { imagePath: image.imagePath, displaySort: image.displaySort };
 }
 
-/** 公開日時を契約の形へ写す。未公開は null のまま送る。 */
+/**
+ * 公開日時を契約の形へ写す。未公開は null のまま送る。
+ *
+ * @param publishedAt - 表示用の公開日時
+ * @returns 契約が受け付ける ISO 8601 文字列。未公開なら null
+ */
 function toWirePublishedAt(publishedAt: Date | null): string | null {
   return publishedAt === null ? null : publishedAt.toISOString();
 }
@@ -465,12 +594,15 @@ function toWirePublishedAt(publishedAt: Date | null): string | null {
  * 二度送れば別のキーで二重に保存され、片方が誰からも参照されないまま残ります。
  *
  * 返るのはキーだけで、表示 URL はここでは組みません。組み立てに要る配信元は表示側の関心です。
+ *
+ * @param image - アップロードする画像
+ * @returns 保存されたオブジェクトキー
  */
 export async function uploadProductImage(image: File): Promise<string> {
   const body = new FormData();
   body.append("image", image);
 
-  const { imagePath } = await getClient().request({
+  const { imagePath } = await getUserScopedClient().request({
     path: "/v1/products/images",
     method: "POST",
     multipart: body,
@@ -485,9 +617,12 @@ export async function uploadProductImage(image: File): Promise<string> {
  *
  * @remarks
  * 自然キーを持たないため**再送しません**。同じ本文を二度送れば商品が 2 件できます。
+ *
+ * @param draft - 作成する商品の内容
+ * @returns 作成された商品
  */
 export async function createProduct(draft: ProductDraft): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: "/v1/products",
     method: "POST",
     body: {
@@ -517,9 +652,13 @@ export async function createProduct(draft: ProductDraft): Promise<Product> {
  *
  * 版が現在値と食い違えば wrapper が `conflict` へ正規化します。呼び出し側はそれを、取り直して
  * から送り直す合図として扱います。
+ *
+ * @param id - 対象の商品
+ * @param edit - 更新後の内容
+ * @returns 更新後の商品
  */
 export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}`,
     method: "PATCH",
     body: {
@@ -559,7 +698,7 @@ export async function updateProduct(id: ProductId, edit: ProductEdit): Promise<P
  * @returns 増減後の商品
  */
 export async function adjustProductStock(id: ProductId, delta: number): Promise<Product> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/products/${encodeURIComponent(id)}/stock`,
     method: "PATCH",
     body: { delta } satisfies ProductStockPatchRequest,

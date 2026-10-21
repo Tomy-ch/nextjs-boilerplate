@@ -70,7 +70,13 @@ const SECTION_OF_FIELD = {
   publishedAt: "publish",
 } as const satisfies Readonly<Record<ProductFormField, ProductFormSection>>;
 
-/** その段に属する、形の上での判定を持つ項目。 */
+/**
+ * その段に属する、形の上での判定を持つ項目。
+ *
+ * @param section - 絞り込む段
+ * @param validated - 絞り込み前の、形の上での判定を持つ項目
+ * @returns section に属する項目
+ */
 export function validatedFieldsOf(
   section: ProductFormSection,
   validated: readonly ProductValidatedField[],
@@ -84,6 +90,9 @@ export function validatedFieldsOf(
  * @remarks
  * 段を切り替えられる器は、送信が弾かれたときにここへ移ります。誤りのある欄が隠れたままだと、
  * 画面のどこも赤くないのに送信だけが通らない状態になります。
+ *
+ * @param fieldErrors - 項目ごとの誤り
+ * @returns 誤りを含む最初の段。無ければ undefined
  */
 export function findFirstInvalidSection(
   fieldErrors: FieldErrors<ProductFormField> | undefined,
@@ -119,7 +128,13 @@ const CONTROL_SUFFIXES = {
   publishedAt: "published-at",
 } as const satisfies Readonly<Record<ProductFormField, string>>;
 
-/** 入力欄の `id` を組む。前置きは同じフォームを 2 度置いても衝突しないよう呼び出し元が採番する。 */
+/**
+ * 入力欄の `id` を組む。前置きは同じフォームを 2 度置いても衝突しないよう呼び出し元が採番する。
+ *
+ * @param idPrefix - 呼び出し元が採番する前置き
+ * @param field - 対象の項目
+ * @returns 組み立てた `id`
+ */
 export function controlIdOf(idPrefix: string, field: ProductFormField): string {
   return `${idPrefix}-${CONTROL_SUFFIXES[field]}`;
 }

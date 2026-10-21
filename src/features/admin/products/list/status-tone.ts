@@ -9,7 +9,7 @@ import {
  * @remarks
  * **契約は状態の意味を返しません。** マスタが持つのは `code` と表示名だけなので、意味づけはこの
  * 画面が持ちます。色は 1 件の状態ではなく扱いの区分に付けます。区分と割り当ての理由は
- * `docs/spec/route/admin/products/page.function.md`「状態に色を割り当てるのはこの画面」。
+ * `docs/spec/route/admin/products/page.function.md#this-screen-assigns-colors-to-statuses`。
  *
  * バッジは状態名も出すので、色だけで区別させません。
  */
@@ -41,6 +41,7 @@ const UNKNOWN_STATUS_TONE: BadgeVariant = BADGE_VARIANT.GHOST;
  * 状態のコードから、バッジの見た目を選ぶ。
  *
  * @param code - 状態マスタのコード。マスタに見つからなければ undefined
+ * @returns 対応するバッジの見た目
  */
 export function toStatusTone(code: number | undefined): BadgeVariant {
   return (code === undefined ? undefined : STATUS_TONE[code]) ?? UNKNOWN_STATUS_TONE;

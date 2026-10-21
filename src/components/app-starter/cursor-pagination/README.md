@@ -1,46 +1,46 @@
 # CursorPagination
 
-## 用途
+## Purpose
 
-cursor 方式の一覧で、前後のページへ移動します。
+Moves to the previous / next page in a cursor-based list.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `CursorPagination` | 前後の移動を並べる `nav` です。行き先の URL を `previousHref` / `nextHref` として受け取ります。 |
+| `CursorPagination` | A `nav` that lays out the previous / next moves. It receives the destination URLs as `previousHref` / `nextHref`. |
 
-## 利用ケース
+## Use Cases
 
-- 総件数を返さない API の一覧で、前後へ 1 ページずつ移動する場合
-- `nextCursor` を query へ載せて次を取得する一覧
+- Moving one page back or forward in a list from an API that does not return a total count
+- A list that puts `nextCursor` in the query to fetch the next part
 
-ページ番号で任意の位置へ移動する一覧には `Pagination` を使います。
+For a list that moves to any position by page number, use `Pagination`.
 
-## Pagination との使い分け
+## Pagination vs This Component
 
 | | `CursorPagination` | `Pagination` |
 | --- | --- | --- |
-| 前提 | cursor 方式（総件数・総ページ数を持たない） | page 方式 |
-| 並べるもの | 前後の移動だけ | ページ番号と前後 |
-| 任意の位置へ跳べるか | **跳べない** | 跳べる |
+| Premise | Cursor-based (no total count or total pages) | Page-based |
+| What it lays out | Only previous / next moves | Page numbers and previous / next |
+| Can it jump to any position | **No** | Yes |
 
-同じ「ページ送り」でも契約が別なので、片方をもう片方の代わりに使いません。
+Although both are "pagination", the contracts differ, so neither is used in place of the other.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の component です。`next/link` による URL 遷移だけで成り立つため、`"use client"`・React state・browser API を持ちません。
+An SSR-first component. It works with URL navigation through `next/link` alone, so it has no `"use client"`, React state or browser API.
 
-**URL の組み立ては呼び出し元が持ちます。** API が返す `nextCursor` を query へ載せることも、現在の絞り込みや並び順を引き継ぐことも呼び出し元の責務で、この component は受け取った `href` へ移動させるだけです。取得も再取得も行いません。
+**Building the URL is owned by the caller.** Putting the `nextCursor` returned by the API into the query and carrying over the current filters and sort order are the caller's responsibility; this component only moves to the `href` it receives. It neither fetches nor refetches.
 
-**前後移動の機構は独自に持ちません。** `Pagination` の `PaginationPrevious` / `PaginationNext` をそのまま合成しており、行き先が無い端を link ではなく操作できない control として描く挙動も、実体は [`Pagination`](../../design-system/navigation/pagination/README.md) 側にあります。この component が担うのは「ページ番号を並べない」という cursor 方式の契約です。
+**It has no previous / next mechanism of its own.** It composes `Pagination`'s `PaginationPrevious` / `PaginationNext` as they are, and the behavior of rendering an end with no destination as a non-operable control rather than a link actually lives on the [`Pagination`](../../design-system/navigation/pagination/README.md) side. What this component takes on is the cursor-based contract of "not laying out page numbers".
 
-**行き先が無い向きは `href` を省略します。** 位置が保たれ、支援技術にも「あるが今は使えない」と伝わります。
+**For a direction with no destination, omit the `href`.** The position is kept, and assistive technology is told "it exists but cannot be used now".
 
-同じ画面に複数の navigation が並ぶため、`aria-label` で何の移動かを示します。省略時は「ページ送り」になります。操作の文言は `previousLabel` / `nextLabel` で差し替えられ、アクセシブルな名前も一緒に変わります。
+Several navigations sit on the same screen, so `aria-label` states what the movement is for. When omitted it is 「ページ送り」 ("pagination"). The action copy can be replaced with `previousLabel` / `nextLabel`, and the accessible names change with it.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は前後どちらへも移動できる状態、先頭ページ、末尾ページ、1 ページに収まる場合、文言を差し替えた場合、`aria-label` で区別する場合を確認します。
+Storybook checks the state where both directions are available, the first page, the last page, the case that fits on one page, replaced copy, and distinguishing with `aria-label`.
 
-テストは名前を持つ `navigation` として公開されること、ページ番号を持たず前後だけを並べること、行き先がある向きが `href` を持つ link になること、無い向きが操作できない control になること、行き先が無くても要素が残ること、文言と `aria-label` の差し替え、a11y 自動検査を確認します。
+Tests check that it is exposed as a named `navigation`, that it lays out only previous / next without page numbers, that a direction with a destination becomes a link with an `href`, that one without becomes a non-operable control, that the element remains even without a destination, replacing the copy and `aria-label`, and automated a11y checks.

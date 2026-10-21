@@ -3,11 +3,9 @@ import "server-only";
 import { cache } from "react";
 import type { z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { getLogger } from "@/logging/logging.server";
+import { getLogger, reportQuietly } from "@/logging/logging.server";
 import type { OffsetPage } from "@/model/pagination";
 import type { RegistrationStatus } from "@/model/user/registration";
 import type { ManagedUser, PurchaseSummary, UserId, UserProfile } from "@/model/user/user";
@@ -24,23 +22,11 @@ import {
   PutUsersDetailResponse,
 } from "../../gen/api/endpoints.zod";
 import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
-import { getAccessToken, signOut, verifySession } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { signOut, verifySession } from "../auth/session";
+import { getUserScopedClient } from "../http/user-scoped-client";
+import { taintObjectReference } from "../taint/taint";
 
 type WireUser = z.infer<typeof GetUsersMeResponse>;
-
-let client: UserScopedHttpClient | undefined;
-
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
 
 /**
  * 自分の情報を契約の形のまま取る。
@@ -51,12 +37,19 @@ function getClient(): UserScopedHttpClient {
  * この境界の内側で解決します。
  *
  * memo 化するのは、1 リクエストの中で表示と更新の双方がこれを引くためです。
+ *
+ * @returns 契約の形のままの自分の情報
  */
 const getMyUser = cache(async (): Promise<WireUser> => {
-  return getClient().request({ path: "/v1/users/me", schema: GetUsersMeResponse });
+  return getUserScopedClient().request({ path: "/v1/users/me", schema: GetUsersMeResponse });
 });
 
-/** 契約の応答を表示用の型へ写す。 */
+/**
+ * 契約の応答を表示用の型へ写す。
+ *
+ * @param wire - 契約の利用者応答
+ * @returns 表示用のプロフィール
+ */
 function toUserProfile(wire: WireUser): UserProfile {
   return {
     firstName: wire.firstName,
@@ -71,9 +64,20 @@ function toUserProfile(wire: WireUser): UserProfile {
   };
 }
 
-/** 自分のプロフィールを取得する。 */
+/**
+ * 自分のプロフィールを取得する。
+ *
+ * @returns 自分のプロフィール
+ */
 export async function getMyProfile(): Promise<UserProfile> {
-  return toUserProfile(await getMyUser());
+  const profile = toUserProfile(await getMyUser());
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    profile,
+  );
+
+  return profile;
 }
 
 /**
@@ -111,6 +115,8 @@ export async function findMyProfile(): Promise<UserProfile | null> {
  *
  * 未認証を先に判定します。身元が無いまま `/v1/users/me` を叩いても `401` が返るだけで、
  * 往復が 1 つ増えます。
+ *
+ * @returns 未認証 / 未登録 / 登録済みのいずれか
  */
 export async function findRegistration(): Promise<RegistrationStatus> {
   if ((await verifySession()) === null) {
@@ -125,9 +131,11 @@ export async function findRegistration(): Promise<RegistrationStatus> {
  *
  * @remarks
  * ステータスは ID と名称が解決済みで届くため、名称を引き直しません。
+ *
+ * @returns 自分の購入の集計
  */
 export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: "/v1/users/me/purchases/summary",
     schema: GetUsersMePurchasesSummaryResponse,
   });
@@ -162,7 +170,7 @@ export const getMyPurchaseSummary = cache(async (): Promise<PurchaseSummary> => 
  * @param idempotencyKey - 同一の試みを指す鍵。契約は表示可能 ASCII 255 文字以内を要求する
  */
 export async function registerUser(profile: UserProfile, idempotencyKey: string): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: "/v1/users",
     method: "POST",
     headers: { "Idempotency-Key": idempotencyKey },
@@ -189,12 +197,13 @@ export async function registerUser(profile: UserProfile, idempotencyKey: string)
  * 契約は全項目の置換（`PUT`）を要求します。部分更新の口もありますが、フォームが常に全項目を
  * 持って送るため、送った内容がそのまま更新後の状態になる形を選びます。
  *
+ * @param profile - 更新後のプロフィール内容
  * @returns 更新後のプロフィール
  */
 export async function updateMyProfile(profile: UserProfile): Promise<UserProfile> {
   const { id } = await getMyUser();
 
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `/v1/users/${id}`,
     method: "PUT",
     body: {
@@ -211,7 +220,14 @@ export async function updateMyProfile(profile: UserProfile): Promise<UserProfile
     schema: PutUsersDetailResponse,
   });
 
-  return toUserProfile(wire);
+  const updated = toUserProfile(wire);
+
+  taintObjectReference(
+    "主体の詳細には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    updated,
+  );
+
+  return updated;
 }
 
 /**
@@ -235,7 +251,7 @@ export async function updateMyProfile(profile: UserProfile): Promise<UserProfile
 export async function withdrawMe(): Promise<string | null> {
   const { id } = await getMyUser();
 
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `/v1/users/${id}`,
     method: "DELETE",
     schema: DeleteUsersDetailResponse,
@@ -244,7 +260,9 @@ export async function withdrawMe(): Promise<string | null> {
   try {
     return await signOut();
   } catch (cause) {
-    getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) });
+    reportQuietly(() =>
+      getLogger().warn("退会後の IdP session 終了に失敗しました", { cause: String(cause) }),
+    );
 
     return null;
   }
@@ -278,7 +296,12 @@ export type ManagedUserQuery = {
   readonly active?: boolean;
 };
 
-/** 契約の応答 1 件を、一覧が並べる形へ写す。 */
+/**
+ * 契約の応答 1 件を、一覧が並べる形へ写す。
+ *
+ * @param wire - 契約の利用者応答 1 件
+ * @returns 一覧向けの利用者
+ */
 function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]): ManagedUser {
   return {
     id: toUserId(wire.id),
@@ -302,6 +325,9 @@ function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]):
  *
  * admin の役割を要します。役割の判定はこの手前（`app` 層の断言と `admin` の器）にあり、ここは
  * 通った要求だけを受けます。
+ *
+ * @param query - 一覧を絞り込む条件
+ * @returns 利用者一覧の 1 ページ
  */
 export const getManagedUserPage = cache(
   async (query: ManagedUserQuery): Promise<OffsetPage<ManagedUser>> => {
@@ -311,7 +337,7 @@ export const getManagedUserPage = cache(
       ...(query.active === undefined ? {} : { active: query.active }),
     });
 
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: "/v1/users",
       searchParams: {
         active: params.active?.toString(),
@@ -321,8 +347,17 @@ export const getManagedUserPage = cache(
       schema: GetUsersResponse,
     });
 
+    const items = wire.users.map(toManagedUser);
+
+    for (const item of items) {
+      taintObjectReference(
+        "利用者には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+        item,
+      );
+    }
+
     return {
-      items: wire.users.map(toManagedUser),
+      items,
       total: wire.total,
       perPage: wire.limit,
       offset: wire.offset,
@@ -343,7 +378,7 @@ export const getManagedUserPage = cache(
  * @param id - 退会させる利用者
  */
 export async function withdrawUser(id: UserId): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `/v1/users/${encodeURIComponent(id)}`,
     method: "DELETE",
     schema: DeleteUsersDetailResponse,

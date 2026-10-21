@@ -12,7 +12,7 @@ import { cn } from "@/components/cn";
  * `section` の外にあると `banner` landmark になり、サイト全体の header を名乗ってしまう。
  *
  * 本文の構造とデータ取得は持たない。表示する文言は呼び出し元が決める。配置の責務は同層の
- * README「責務境界」が持つ。
+ * README「Responsibility Boundaries」が持つ。
  *
  * Server Component として使える。hydration は不要で、`PageHeaderActions` に client island を
  * 置く場合もその部品だけが境界を持つ。
@@ -28,7 +28,7 @@ import { cn } from "@/components/cn";
  * </PageHeader>
  * ```
  *
- * @param props - native `header` 属性。
+ * @param props - native `header` 属性。`className` は既定の見た目へ追加・上書きできる。
  *
  * @see Storybook `Layout/PageHeader`
  */
@@ -49,7 +49,7 @@ export function PageHeader({ className, ...props }: ComponentProps<"header">) {
  * `h1` として描画する。ページに 1 つだけ置く。見出し階層の起点になるため、装飾目的で
  * 使わない。
  *
- * @param props - native `h1` 属性。
+ * @param props - native `h1` 属性。`className` は既定の見た目へ追加・上書きできる。
  *
  * @see Storybook `Layout/PageHeader`
  */
@@ -72,7 +72,7 @@ export function PageHeaderTitle({ className, ...props }: ComponentProps<"h1">) {
  * @remarks
  * そのページで何ができるかを短く述べる。操作の手順や注意書きは本文へ置く。
  *
- * @param props - native `p` 属性。
+ * @param props - native `p` 属性。`className` は既定の見た目へ追加・上書きできる。
  *
  * @see Storybook `Layout/PageHeader`
  */
@@ -95,7 +95,7 @@ export function PageHeaderDescription({ className, ...props }: ComponentProps<"p
  * 狭い画面ではタイトルの下へ回り込む。操作が増えるほど回り込んだときの縦の占有が増えるため、
  * 数は絞り、副次的なものは `DropdownMenu` へまとめる。
  *
- * @param props - native `div` 属性。
+ * @param props - native `div` 属性。`className` は既定の見た目へ追加・上書きできる。
  *
  * @see Storybook `Layout/PageHeader`
  */

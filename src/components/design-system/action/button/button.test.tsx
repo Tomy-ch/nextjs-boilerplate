@@ -17,7 +17,6 @@ describe("Button", () => {
 
     const button = screen.getByRole("button");
 
-    // 文言は取り除かない。取り除くと器の幅が縮む。
     expect(button).toHaveTextContent("登録する");
     expect(button.querySelector('[data-slot="spinner"]')).toBeInTheDocument();
   });

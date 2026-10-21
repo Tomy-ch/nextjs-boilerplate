@@ -26,6 +26,8 @@ const MEASUREMENT_ID_SHAPE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[
  *
  * `document.cookie` を生で読む実装がここと `stores/consent-store`（読む相手は同意の cookie で別物）の
  * 2 か所にあるのは、`stores` が `capabilities` を引けず、共通の読み手へ寄せられないためです。
+ *
+ * @returns 形の合った計測 id。合わなければ `undefined`。
  */
 function readMeasurementId(): string | undefined {
   const value = document.cookie
@@ -40,9 +42,9 @@ function readMeasurementId(): string | undefined {
  * タグマネージャの読み込み口。
  *
  * @remarks
- * **動的に読みます。** 静的に import すると、容器 ID を空にした配備 —— Google への依存を外した、
- * テンプレートから作った側 —— の初期 JS にもライブラリのコードが載ります。**拒否した相手に
- * バイト数を運ばせない**のが同梱の条件です。
+ * **動的に読みます。** 静的に import すると、容器 ID を空にした配備 —— Google への依存を外した側
+ * —— の初期 JS にもライブラリのコードが載ります。**拒否した相手にバイト数を運ばせない**のが
+ * 同梱の条件です。
  *
  * 同意を得るまで取りに行かない、という性質も同時に付きます。
  */
@@ -103,13 +105,13 @@ function MeasurementId(): null {
  * あります。
  *
  * **読み込みの strategy は選べません。** `GoogleTagManager` は prop を公開しておらず、`next/script`
- * の既定（`afterInteractive`）が効きます。`docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの
+ * の既定（`afterInteractive`）が効きます。`docs/rules.md#security`の「第三者 script は同意ゲートの
  * 裏に置く」が求める strategy の「明示」を宣言では満たせないため、いま効いている値をテストで固定し、ライブラリが既定を変えた時点で落ちるようにしています。
  *
  * **読み込んだ容器は unmount では降りません。** `afterInteractive` は effect で `document.body` へ
  * script を足し、unmount で外しません。React も `async` の付いた `<script src>` を資源として扱い、
  * 木から消えても `<head>` から外しません。同意の取り消しが効くのは次の読み込みからです
- * （`docs/spec/route/layout.function.md`「同意が無いものは読み込まない」）。
+ * （`docs/spec/route/layout.function.md#load-nothing-without-consent`）。
  *
  * 計測 id はこの経路以外へ渡しません。運用テレメトリ（`telemetry.tsx`）とは主体を分けます。
  */

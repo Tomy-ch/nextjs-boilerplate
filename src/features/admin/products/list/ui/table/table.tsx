@@ -8,8 +8,13 @@ import {
   StaticDataTable,
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
+import { formatDecimalMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
-import { adminProductEditPath, adminProductStockPath } from "../../../../paths";
+import {
+  adminProductDiscontinuePath,
+  adminProductEditPath,
+  adminProductStockPath,
+} from "../../../../paths";
 import type { AdminProductRow } from "../../row";
 
 /** `AdminProductTable` の props。 */
@@ -68,7 +73,7 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
     align: "end",
     headerClassName: "w-24",
     // 契約が decimal 文字列で返す値をそのまま出す。数値へ直すと、丸めの規則を画面が持つ。
-    cell: (item) => `$${item.price}`,
+    cell: (item) => formatDecimalMoney(item.price),
   },
   {
     id: "quantity",
@@ -108,6 +113,17 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
           label: "在庫を補充する",
           href: adminProductStockPath(item.id),
         },
+        ...(item.discontinued
+          ? []
+          : [
+              { id: "discontinue-separator", kind: ROW_ACTION_KIND.SEPARATOR },
+              {
+                id: "discontinue",
+                kind: ROW_ACTION_KIND.LINK,
+                label: "廃番にする",
+                href: adminProductDiscontinuePath(item.id),
+              },
+            ]),
       ],
     }),
     width: undefined,
@@ -116,6 +132,12 @@ const COLUMNS: readonly StaticDataTableColumn<AdminProductRow>[] = [
   },
 ];
 
+/**
+ * 行の React key を取り出す。
+ *
+ * @param item - 対象の行
+ * @returns 行の商品 ID
+ */
 function rowKey(item: AdminProductRow): string {
   return item.id;
 }
@@ -126,10 +148,6 @@ function rowKey(item: AdminProductRow): string {
  * @remarks
  * 取得もページ送りの組み立ても持ちません。並べる商品と、上下へ置くものを受け取るだけです。
  *
- * **利用者側の一覧と同じ商品を、違う形で出します。** 買う側は 1 件ずつ眺めて選ぶのでカードで、
- * 管理側は同じ属性を件どうしで見比べるので表です。同じ部品を共有すると、どちらかの都合が
- * もう一方へ漏れます。
- *
  * **行全体が編集への導線ですが、link で包んではいません。** `tr` を link で包むことはできず、
  * 包めたとしても在庫と行操作が link の内側に入り、操作の中に操作が居る形になります。代わりに
  * 商品名の link を疑似要素で行いっぱいに広げ、支援技術には商品名だけが遷移先として見えるように
@@ -137,7 +155,7 @@ function rowKey(item: AdminProductRow): string {
  *
  * **在庫の数は補充への導線です。** link を行の重なりの上へ出すため、その cell だけ位置指定の
  * 基準を持たせます。DOM の順序が後ろにある位置指定要素が上に描かれるため、段階値を持ち出さずに
- * 押せる状態を作れます（`rules.md`「レイアウトと帯」の「z-index は Tailwind の段階値だけを使う」）。
+ * 押せる状態を作れます（`docs/rules.md#layout` の z-index の段階値の規則）。
  * 行操作の menu も同じ理由で上へ出します。
  *
  * 狭い段の列の取捨は {@link WIDE_ONLY} が持ちます。
@@ -147,7 +165,9 @@ function rowKey(item: AdminProductRow): string {
  * 区別させません。
  *
  * **行を押す・在庫を押すのどちらも、明示的に選ぶ道を menu が残します**（理由は `docs/spec/route/admin/products/page.function.md`
- * 「行から進める先」）。
+ * "Where a Row Leads"）。
+ *
+ * @param props - {@link AdminProductTableProps} を受け取る。
  *
  * @see Storybook `Features/Admin/Products/List/Table`
  */

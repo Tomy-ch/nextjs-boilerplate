@@ -62,11 +62,9 @@ These stay protected even during this skill's execution:
 - `LICENSE`
 - Accepted ADR bodies. Step 5 appends a row to the coverage table of ADR
   [0154](../../../docs/adr/0154-claude-skills-operations.md) or
-  [0155](../../../docs/adr/0155-claude-skills-development.md); that is possible today only because
-  `AGENTS.md`'s "Temporary Operating Rules until v1.0.0" lift the approval requirement on ADR
-  bodies. Once those rules are removed, the row addition needs the user's explicit approval like any
-  other ADR edit — the ADRs' own "adding a row is a minor edit" clause does not by itself override
-  `AGENTS.md`.
+  [0155](../../../docs/adr/0155-claude-skills-development.md); whether that edit needs the user's
+  explicit approval is decided by `AGENTS.md`'s *Protected Documentation*, like any other ADR edit —
+  the ADRs' own "adding a row is a minor edit" clause does not by itself override `AGENTS.md`.
 - `.claude/settings.json` — the plugin bootstrap writes it through the `claude` CLI (Step 0); never
   hand-edit it here.
 - Anything listed under `permissions.deny` in `.claude/settings.json`.
@@ -130,9 +128,9 @@ option and let the user confirm it.
 The current members of each family are the coverage table of that ADR — read it this run rather
 than a list kept here.
 
-If the proposed skill would establish a new convention, pattern, or library in an area `BACKLOG.md`
-still leaves undecided, **stop and defer the ADR decision to the user** (`docs/rules.md`,
-*作業とエージェント*). Do not let a skill become the place a convention gets decided implicitly.
+If the proposed skill would establish a new convention, pattern, or library in an area no Accepted
+ADR decides yet, **stop and defer the ADR decision to the user** ([`docs/rules.md#workflow`](../../../docs/rules.md#workflow)). Do not let a skill become
+the place a convention gets decided implicitly.
 
 Prefer extending an existing skill over adding a near-duplicate. Granularity is
 "one invocation = one operation" (ADR 0154).
@@ -177,9 +175,11 @@ contexts including Japanese trigger phrases, and an explicit *when NOT* to fire.
 ### Language (`AGENTS.md`)
 
 - `SKILL.md` is **English canonical**. Never write the canonical body in Japanese.
-- The skill's *runtime behavior* must obey the Japanese output rule: everything the skill emits or
-  writes to the repository — responses, commit and PR text, code comments, generated docs — is
-  **Japanese**. Bake that requirement into the skill's own instructions.
+- The skill's *runtime behavior* must obey the Japanese output rule: what the skill emits — responses,
+  commit and PR text, code comments — is **Japanese**. A document the skill writes is the **English
+  canonical**, and its sibling `.ja.md` mirror is synced through `canonicalize-doc` in the same change
+  (ADR [0140](../../../docs/adr/0140-documentation-operations.md), the canonical language model); a skill that reads
+  documents excludes `*.ja.md`. Bake both requirements into the skill's own instructions.
 
 ### Confirmation before outward-facing actions (ADR 0154)
 
@@ -232,16 +232,19 @@ English-canonical body, and the eval workspace under `tmp/`.
 - Check whether the change invalidates statements made elsewhere: the ADR coverage tables, other
   skills that chain into this one, and `tool-map`'s dependency map.
 
-## Step 4. Sync the Japanese translation pair
+## Step 4. Sync the Japanese mirror
 
-Every skill in this repo ships a `SKILL.ja.md` next to `SKILL.md` (ADR
-[0140](../../../docs/adr/0140-documentation-operations.md) / 0154). This is not optional. After the
-canonical `SKILL.md` is finalized or changed:
+Every skill in this repo ships a `SKILL.ja.md` next to `SKILL.md`, and every bundled `prompts/*.md` /
+`references/*.md` has its own sibling `.ja.md` — ADR
+[0140](../../../docs/adr/0140-documentation-operations.md) gives every English canonical a
+mirror except its closed no-mirror list, and 0154 makes the `SKILL.md` pair mandatory. This is not
+optional. After a canonical is finalized or changed:
 
-- Chain the `canonicalize-doc` skill to produce or sync `SKILL.ja.md` from the canonical
-  `SKILL.md`.
-- `SKILL.ja.md` carries **no YAML frontmatter** and begins with the blockquote note saying it is a
-  translation, must not be edited directly, and that updates flow from `SKILL.md`.
+- Chain the `canonicalize-doc` skill to produce or sync each changed canonical's mirror — in its bulk
+  mode when the change touched several files.
+- A mirror carries **no YAML frontmatter** and begins with the sync note on line 1. `SKILL.ja.md`
+  keeps its own three-line note: it is a translation, must not be edited directly, and updates flow
+  from `SKILL.md`. The canonical never links to its mirror.
 - Confirm the pair is in sync — matching heading structure and section count — before considering
   the task done. A changed `SKILL.md` with a stale Japanese side is drift.
 
@@ -265,6 +268,18 @@ Update the row when an existing skill's coverage materially changes.
   responsibility: whether the translation says the same thing, and whether the body is still correct.
 - Confirm no eval artifact is staged (`git status`), and that no protected path was touched.
 
+## Step 7. Offer the port to Codex
+
+Codex reads its own copy of a skill from `.agents/skills/<name>/`, and nothing carries a change there
+by itself. After Step 6, for a new or materially changed skill that is not Claude-only, **offer**
+`/sync-ai` with this skill as the source — only when `.agents/skills/<name>/` already exists or the
+user wants a Codex copy. Ask with `AskUserQuestion`; never start it on your own, because its Codex
+handoff runs a separate paid agent that writes to the working tree.
+
+Skip the offer when this run is itself the receiving side of a `sync-ai` port (it was invoked with a
+transfer contract): a receiver that starts another synchronization is the loop `sync-ai` guards
+against. A skill deliberately kept Claude-only is left alone; say so in the report.
+
 ## Definition of Done
 
 - The official `skill-creator` methodology was resolved and loaded (Step 0).
@@ -276,3 +291,4 @@ Update the row when an existing skill's coverage materially changes.
   applies.
 - No eval artifacts committed; no protected path touched.
 - Verification commands run and reported honestly, including what was **not** machine-checked.
+- The `/sync-ai` port offered per Step 7 when a Codex copy exists or is wanted, or the reason it was not.

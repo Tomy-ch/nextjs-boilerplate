@@ -7,7 +7,6 @@ const ERROR_ID = "profile-email-error";
 const DESCRIPTION_ID = "profile-email-description";
 
 describe("fieldControlAttributes", () => {
-  // ----- 正常系 -----
   it("入力欄と文言を結ぶ id を配る", () => {
     const attributes = fieldControlAttributes({
       controlId: CONTROL_ID,

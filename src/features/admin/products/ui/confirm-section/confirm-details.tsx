@@ -27,12 +27,22 @@ export type ProductConfirmDetailsProps = {
   imageCount: number;
 };
 
-/** 識別子で選ばれた候補を、表示する文言へ直す。 */
+/**
+ * 識別子で選ばれた候補を、表示する文言へ直す。
+ *
+ * @param options - 選べる候補の一覧。
+ * @param value - 選ばれている候補の識別子。
+ * @returns 一致した候補の表示名。一致が無ければ空文字列。
+ */
 function labelOf(options: readonly ProductSelectOption[], value: string): string {
   return options.find((option) => option.value === value)?.label ?? "";
 }
 
-/** 値が空なら「未入力」として見せる。 */
+/**
+ * 値が空なら「未入力」として見せる。
+ *
+ * @param props - 表示するラベルと値。
+ */
 function Row({ label, value }: { label: string; value: string }) {
   const shown = value === "" ? <KeyValueEmpty /> : value;
 
@@ -44,7 +54,11 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** 空にはならない値を出す行。 */
+/**
+ * 空にはならない値を出す行。
+ *
+ * @param props - 表示するラベルと中身。
+ */
 function FilledRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <KeyValueItem>
@@ -63,6 +77,8 @@ function FilledRow({ label, children }: { label: string; children: ReactNode }) 
  *
  * 説明は表示側と同じ経路（sanitize してから描く）で出します。ここで見えないものは保存しても
  * 表示されません。
+ *
+ * @param props - 送ろうとしている値・選べる分類と状態・画像の枚数。
  */
 export function ProductConfirmDetails({
   categoryOptions,

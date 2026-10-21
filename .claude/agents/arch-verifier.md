@@ -30,4 +30,4 @@ Read `.claude/skills/full-verify/prompts/verify-arch.md` and apply it verbatim. 
 
 ## Output
 
-Exactly as `prompts/verify-arch.md` 「出力要件」 specifies: Japanese markdown body only, severity-ordered findings (重大度 / 対象 / 問題 / 根拠 / 修正案), basis location stated on line 1, no preamble / summary / praise. If there is no design-level problem, follow the prompt's empty-result convention. Your final message **is** the `architecture.md` body the orchestrator writes — return it directly.
+Exactly as the "Output Requirements" section of `prompts/verify-arch.md` specifies: Japanese markdown body only, severity-ordered findings (重大度 / 対象 / 問題 / 根拠 / 修正案), basis location stated on line 1, no preamble / summary / praise. If there is no design-level problem, follow the prompt's empty-result convention. Your final message **is** the `architecture.md` body the orchestrator writes — return it directly.

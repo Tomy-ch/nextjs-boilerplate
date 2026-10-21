@@ -23,6 +23,8 @@ export const metadata: Metadata = {
  * @remarks
  * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません。
  * 器は promise のまま渡し、穴の内側で解きます。
+ *
+ * @param searchParams - 検証前の検索パラメータ。
  */
 async function ProductListContent({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
   return <ProductListPageContent searchParams={await searchParams} />;

@@ -4,7 +4,12 @@ import type { AdminUserRow } from "./row";
 /** 契約が許す姓名の最大長（`src/adapters/gen/api/endpoints.zod.ts`）。 */
 const MAX_NAME_LENGTH = 100;
 
-/** 折り返しの有無を見分けるため、区切りの無い長い語と日本語を混ぜる。 */
+/**
+ * 折り返しの有無を見分けるため、区切りの無い長い語と日本語を混ぜる。
+ *
+ * @param length - 生成する文字列の長さ
+ * @returns 指定した長さの文字列
+ */
 function longText(length: number): string {
   const unit = "長谷川ヴィクトリア-Bartholomew-Featherstonehaugh-";
 

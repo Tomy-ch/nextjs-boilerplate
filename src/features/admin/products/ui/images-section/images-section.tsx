@@ -41,6 +41,8 @@ export type ProductImagesSectionProps = {
  *
  * 選ぶ受け口と、選んだ内容の一覧は別の部品です。ここが持つのは 2 つを並べることと、弾かれた
  * ファイルの文言を出すことだけで、送信経路も寿命の管理も持ちません。
+ *
+ * @param props - 選択中の画像・受け付ける大きさの上限・弾いたファイルの文言と受け取り方。
  */
 export function ProductImagesSection({
   idPrefix,

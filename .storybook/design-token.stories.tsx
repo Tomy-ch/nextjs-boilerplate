@@ -56,10 +56,11 @@ const mono: CSSProperties = {
   fontSize: "0.8125rem",
 };
 
+/** 見出しと注記を添えた、token 一覧の表 1 つ分の区画。 */
 function Section({ title, note, children }: { title: string; note: string; children: ReactNode }) {
   return (
     <section style={{ marginBlockEnd: "2.5rem" }}>
-      <h2 style={{ fontWeight: "var(--semantic-font-weight-strong)", fontSize: "1.125rem" }}>
+      <h2 style={{ fontWeight: "var(--semantic-font-weight-emphasis)", fontSize: "1.125rem" }}>
         {title}
       </h2>
       <p style={{ color: "var(--semantic-color-muted-foreground)", fontSize: "0.875rem" }}>

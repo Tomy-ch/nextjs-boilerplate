@@ -6,7 +6,12 @@ import { FILTER_KEY, type ProductListSelection } from "../../../facade/list-url/
 import { ProductFilterDraftProvider } from "../../filter-draft";
 import { ProductKeywordField } from "./keyword-field";
 
-/** 下書きの供給で包む。入力の保持は画面の下書きが持つため、包まないと打った内容が残らない。 */
+/**
+ * 下書きの供給で包む。入力の保持は画面の下書きが持つため、包まないと打った内容が残らない。
+ *
+ * @param Story - 包んで描画する story 本体。
+ * @param context - story の実行文脈。`args.selection` を供給の初期値にする。
+ */
 function withDraft(
   Story: () => ReactElement,
   context: { args: { selection: ProductListSelection } },

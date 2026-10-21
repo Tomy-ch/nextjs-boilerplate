@@ -20,7 +20,11 @@ export type CartQuantityStepperProps = {
   quantity: number;
   /** 対象の名前。操作の読み上げを行ごとに区別するために使う。 */
   label: string;
-  /** 数量の上限。省略時は契約の上限。在庫が足りない明細では今買える数を渡す。 */
+  /**
+   * 数量の上限。省略時は契約の上限。在庫が足りない明細では今買える数を渡す。
+   *
+   * @defaultValue {@link CART_ITEM_MAX_QUANTITY}
+   */
   max?: number;
 };
 
@@ -33,6 +37,8 @@ export type CartQuantityStepperProps = {
  *
  * 送信中はどちらの向きも押せなくします。押した操作が進んでいることの表示と、往復の途中で別の数量が
  * 飛ぶことの防止を兼ねます。
+ *
+ * @param props - 押すボタンの値と見た目、中身。
  */
 function StepButton({
   quantity,
@@ -72,8 +78,10 @@ function StepButton({
  * 1 つの操作に 2 つの意味を持たせません。
  *
  * 上限に達したら増やす操作を押せなくします。押しても何も起きない操作を残すと、反応が無いのか
- * 上限なのかが利用者から区別できません。**在庫の上限ではありません** — 在庫が足りるかどうかは
- * バックエンドが明細の事情として返します。
+ * 上限なのかが利用者から区別できません。**上限が契約の既定値か在庫かは、この部品の関知する
+ * ところではありません** — 在庫が足りない明細では、呼び出し元が今買える数をそのまま `max` として渡します。
+ *
+ * @see Storybook `Features/Cart/QuantityStepper`
  */
 export function CartQuantityStepper({
   productId,

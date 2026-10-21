@@ -69,6 +69,12 @@ running them leaves no diff to clean up.
 - **Per-component reference READMEs.** They document one component's API surface; the portal's
   answer for that is Storybook (already a `meta.reference_links` entry) plus the component's own
   TSDoc. Reporting all of them as candidates makes the report unreadable.
+- **A registered canonical whose mirror is not registered.** A README pair is published as two
+  entries — `src: X/README.md` → `dst: …/<name>.md` and `src: X/README.ja.md` → `dst: …/<name>.ja.md`
+  ([0140](../../../docs/adr/0140-documentation-operations.md) / [0141](../../../docs/adr/0141-portal-operations.md)).
+  When the canonical is registered and its existing mirror is not, the portal serves the page in one
+  language only. That is **drift to fix**, not a curation candidate — the curation decision was
+  already made on the canonical.
 - **Curation candidates.** The remainder, classified by `readme-review`'s criteria.
 
 ### 4. The criteria live in `readme-review`
@@ -130,7 +136,12 @@ maintaining a second exclusion list. From the result, drop:
   publish it twice.
 - `.claude/**` — agent configuration, not portal content.
 
-The remainder is the candidate universe. Subtract the registered `src` set to get the uncurated set.
+Then split off the mirrors (`*.ja.md`). A mirror whose canonical is registered but which is not
+registered itself is the **mirror** drift class — carry it to the report. Every other mirror follows
+its canonical and is never a candidate of its own; it is neither classified nor counted.
+
+The remaining canonicals are the candidate universe. Subtract the registered `src` set to get the
+uncurated set.
 
 ## Step 4. Filter and classify the uncurated set
 
@@ -172,6 +183,8 @@ proposal.
    `meta.groups` entry and a `section_titles` entry to be visible at all).
 3. Read how that section already names its `dst` values and follow it literally. Do not invent a
    mechanical rename for a section that uses bespoke names.
+4. When the candidate has a `README.ja.md` mirror, the addition is the pair: the mirror's `dst` is
+   the canonical's with `.md` replaced by `.ja.md`.
 
 ## Step 6. Report
 
@@ -188,6 +201,9 @@ Portal Manifest Sync 結果
 [構造] N 件
   - ⚠ どの group にも入っていない section (bar) を "Uncategorized" へまとめました
   - layers の baz が meta.subgroups のどの items にも無い → "Other" へ落ちる（警告は出ない）
+
+[ミラー未登録] N 件（canonical は登録済み、ミラーが未登録）
+  - [layers] src/foo/README.ja.md → dst=docs/portal/guides/foo.ja.md
 
 == キュレーション候補 ==
 
@@ -208,18 +224,20 @@ When nothing is found in any class, say so in one line and stop.
 
 ## Step 7. Confirm, then apply
 
-Only the **stale** class is proposed for change on this skill's own initiative:
+Only the **stale** and **mirror** classes are proposed for change on this skill's own initiative:
 
 - 「manifest に残っているが実体のない N 件を削除しますか？」/「すべて削除」「一部のみ削除」「スキップ」
+- 「登録済み canonical のミラー N 件を、同じ section へ対として登録しますか？」/「すべて登録」「一部のみ登録」「スキップ」
 
 Stale removal is usually safe, but ask anyway — a file can be missing mid-refactor and the entry is
 worth keeping.
 
 Additions happen **only** when the user, after reading the report, names the files they want added.
-Then, per file: present the inferred section and `dst`, confirm, and apply.
+Then, per file: present the inferred section and `dst`, confirm, and apply — both entries of the
+pair when the README has a mirror.
 
-Edit the YAML **in place** — locate the section's last entry and insert the two lines after it, at
-the same indentation. Never re-serialize the document; the manifest's comments carry ADR 0141's
+Edit the YAML **in place** — locate the section's last entry and insert the entry's two lines (four
+for a pair, the mirror right after its canonical) after it, at the same indentation. Never re-serialize the document; the manifest's comments carry ADR 0141's
 reasoning and a round-trip drops them.
 
 **An addition to a section that has `meta.subgroups` is not finished until the new guide id is
@@ -261,7 +279,8 @@ Protected even during this run:
 ## Constraints
 
 - ❌ Bulk-add candidates from any class — the manifest is curated, and adding is the user's call
-- ❌ Frame an unregistered README as drift to fix
+- ❌ Frame an unregistered README as drift to fix — the one exception is the unregistered mirror of a
+  registered canonical
 - ❌ Duplicate `readme-review`'s criteria here — read them at runtime
 - ❌ Hardcode the section list or the `dst` naming — derive each from the manifest
 - ❌ Re-derive the component-README shape here — `readme-review`'s N1 owns it, and a second
@@ -286,7 +305,8 @@ Protected even during this run:
 - [ ] `readme-review`'s criteria were read at runtime and applied per file, with a rationale each
 - [ ] Feature slices were graded against `docs/templates/feature-readme.md`, not a hardcoded list
 - [ ] Section and `dst` were derived from the manifest, not invented
-- [ ] Stale removals were confirmed; no candidate was auto-added
+- [ ] Mirrors were split off; an unregistered mirror of a registered canonical was reported as drift
+- [ ] Stale removals and mirror registrations were confirmed; no candidate was auto-added
 - [ ] The manifest was edited in place and its comments survived
 - [ ] Both generators were re-run and `git status --porcelain docs/portal` printed nothing
 - [ ] Nothing was committed or pushed

@@ -36,8 +36,8 @@ not loaded as a skill).
 ## Do NOT use this skill for
 
 - **A change with no issue behind it** — `commit` then `submit-pr` directly.
-- **Reviewing an existing diff** — `impl-review` / `test-review` / `comment-sweep`, which are peers
-  under `AGENTS.md`'s Review Phase Protocol and are asked for in their own right.
+- **Reviewing an existing diff** — `impl-review` / `test-review`, which are peers under `AGENTS.md`'s
+  Review Phase Protocol and are asked for in their own right.
 - **Authoring a skill** — `manage-skill`.
 - **Filing the issue in the first place** — `new-issue`. This skill starts from one that exists.
 
@@ -59,7 +59,7 @@ Where this pipeline stops is a specification, not a judgment. It stops here and 
 | 1 | Step 0 | The six modes, in two back-to-back calls, before anything else |
 | 2 | Step 3 | Approval of the written plan |
 | 3 | Step 4 | A trip-wire whose row says halt |
-| 4 | Step 7 | Which of the three peer review skills to run, each with its estimated return |
+| 4 | Step 7 | Which of the two peer review skills to run, each with its estimated return |
 | 5 | Step 8 | Runtime verification failed; and the merge itself |
 
 `AGENTS.md`'s *Where You May Stop* still governs above this list — its stopping points and trip wires
@@ -90,16 +90,15 @@ right, or whether a finding deserves an issue. It routes those to the user and r
 | A new screen or feature slice | `new-feature` — hand the whole implementation phase to it |
 | Review of the change itself | `impl-review` |
 | Review of the tests | `test-review` |
-| Review of the comment stock | `comment-sweep` |
+| Settling the comments of a change | `settle-comments` — unconditional, as the last step of implementing |
 | The implementation itself | you, following the approved plan |
 
 ## AI Modification Scope
 
-`AGENTS.md` confines AI edits to `src/` / `public/` / `docs/adr/BACKLOG.md` by default. Below v1.0.0
-its *Temporary Operating Rules* already lift the protected-path list; what remains is that an issue
-about CI, tooling, or documentation reaches surfaces the default scope never names. **Invoking this
-skill is the explicit user instruction that relaxes the remainder**, because this skill is
-issue-generic: the issue decides the surface.
+`AGENTS.md` confines AI edits to `src/` / `public/` by default, and an issue about CI, tooling, or
+documentation reaches surfaces the default scope never names. **Invoking this skill is the explicit
+user instruction that relaxes that scope** (`AGENTS.md`, *Exception: Skill Execution*), because this
+skill is issue-generic: the issue decides the surface.
 
 The relaxation is bounded, and the bound is the plan:
 
@@ -160,7 +159,7 @@ onto whoever merges rather than cancelling it.
 
 | Mode | Behavior |
 | --- | --- |
-| `fix-here` *(default)* | Fix it in this run. `docs/rules.md`, *作業とエージェント* makes this the repository's default: 範囲外であることは起票の理由にならない |
+| `fix-here` *(default)* | Fix it in this run. [`docs/rules.md#workflow`](../../../docs/rules.md#workflow) makes this the repository's default: 範囲外であることは起票の理由にならない |
 | `search` | Search existing issues first; on a duplicate, comment there instead of filing |
 | `file` | File without searching |
 
@@ -189,7 +188,7 @@ keeps behind a human gate unconditionally.
 | `ask` *(default)* | Surface it and wait. The run stops on the question |
 | `derive` | Read the ADRs, `docs/rules.md`, and the layer READMEs first; for what they leave open, decide from the de-facto standard (RFC / specification / the platform's own definition) and record the derivation |
 
-**`derive` does not authorize preference.** `AGENTS.md`, *What to Recommend* names exactly two
+**`derive` does not authorize preference.** [0010](../../../docs/adr/0010-standards-and-non-lockin.md) names exactly two
 authorities — a de-facto standard, and the shape this repository's architecture derives — and this
 mode delegates only those. A question that neither answers is not derivable, and it goes back to the
 user however the mode is set. Every derivation is written to the run record with the clause it rested
@@ -267,7 +266,7 @@ gh issue view <n> --json number,title,body,labels,state,comments
 **Compare the issue against the actual base before writing anything.** An issue body is a snapshot of
 the repository as it was when someone wrote it; line numbers, 「X はまだ無い」, and 「Y に呼び出し側が
 無い」 go stale. Verify each factual claim against the base you are about to branch from — this is
-`docs/rules.md`'s 「『まだ直っていない』『未着手』『存在しない』と言う直前に、測り直す」 applied at the
+[`docs/rules.md#workflow`](../../../docs/rules.md#workflow)'s "Measure again right before saying \"not fixed yet\", \"not started\", or \"does not exist\"" applied at the
 one moment it is cheapest.
 
 Then post a kickoff comment recording branch name, base commit, and — most importantly — **every
@@ -311,7 +310,7 @@ If the user's instruction named a release version other than the resolved one, a
 a deliberate backport target is the one case the resolver cannot know about.
 
 Branch creation is `git switch -c` / `git worktree add -b`; `git checkout` is not used for branch work
-(`docs/rules.md`, *作業とエージェント*).
+([`docs/rules.md#workflow`](../../../docs/rules.md#workflow)).
 
 ### Resuming into an existing worktree
 
@@ -336,7 +335,7 @@ server is actually imminent, not as a resume ritual.
 are one default way of satisfying it, not the rule — read the rule off the session's own model rather
 than off a model name written here.
 
-No later gate re-opens the plan: `impl-review` / `test-review` / `comment-sweep` all take the finished
+No later gate re-opens the plan: `impl-review` / `test-review` / `settle-comments` all take the finished
 change as their subject, so whether the plan solves the issue at all is checked here or nowhere.
 
 | Stage | Runs on | Produces | Runs in |
@@ -405,7 +404,6 @@ Present the plan and **wait for approval. Do not implement before it.** That app
 
 ## Step 4 — Implement, watching five trip-wires
 
-<!-- boilerplate-only:begin -->
 The plan is approved and implementation begins — the boundary between deciding and building, which
 only this skill knows. Stamp it, so this repository's own feedback loop can later say how long each
 phase actually took (ADR [0161](../../../docs/adr/0161-development-window-as-feedback-unit.md)):
@@ -414,7 +412,6 @@ phase actually took (ADR [0161](../../../docs/adr/0161-development-window-as-fee
 .agents/closed-loop/marks.sh planApprovedAt 2>/dev/null || true
 .agents/closed-loop/marks.sh implStartedAt 2>/dev/null || true
 ```
-<!-- boilerplate-only:end -->
 
 Follow the approved plan. These triggers are deliberately mechanical — relying on you to *notice* that
 a decision was significant is exactly how drift goes unreported.
@@ -440,6 +437,11 @@ about drift:
 - **見つけたものは、その場で直す** — under issue mode `fix-here`, a defect found in a part you touched
   is fixed in this run, with the check that catches it again, rather than filed.
 
+**The implementation writes no comments** (`AGENTS.md`, *Task Execution Protocol*). Once the code is
+written, run `settle-comments` over the declarations this change touched — unconditionally, before
+this step ends. It confirms its verdicts before writing; it is not a gate whose cost gets weighed, and
+the change is unfinished until it has run.
+
 ## Step 5 — Reconcile the plan against reality
 
 Run this before the gates. Compare:
@@ -453,7 +455,7 @@ nothing drifted, say so in one line and move on.
 
 ## Step 6 — Gates belong to the hook and to CI
 
-**Do not pre-run the gates.** `AGENTS.md` and `docs/playbook.md` both put the authority in the hook and
+**Do not pre-run the gates.** `docs/playbook.md` puts the authority in the hook and
 in CI, and running the same check by hand does not make its result more true — on a loaded machine the
 duplicate run is itself a source of failures unrelated to the change. Commit, push, and read the verdict.
 
@@ -468,14 +470,18 @@ parallel with it instead of after it.
 
 ## Step 7 — Review
 
-A completed change has three review subjects, each owned by one skill: `impl-review` (the change),
-`test-review` (the tests), `comment-sweep` (the comment stock of the touched files). They are peers —
-none invokes another — so this step must not silently pick one.
+A completed change has two review subjects, each owned by one skill: `impl-review` (the change) and
+`test-review` (the tests). They are peers — neither invokes the other — so this step must not silently
+pick one.
 
 Follow the Review Phase Protocol in `AGENTS.md`: **estimate each skill's return from the context this
-run already holds** — which layers the change touched, whether tests or comments moved at all — then
-ask the user per skill, stating that estimate and its reason, and run what they approve.
-「三つとも回しますか」 is not a question; it hands the cost back unpriced.
+run already holds** — which layers the change touched, whether the tests moved at all — then ask the
+user per skill, stating that estimate and its reason, and run what they approve.
+「両方とも回しますか」 is not a question; it hands the cost back unpriced.
+
+**The comment stock is not reviewed here, because Step 4 already settled it.** `settle-comments`
+runs unconditionally as the last step of implementing, not as a subject whose return is estimated. If
+it has not run, the change never finished — go back and run it rather than adding it to this ask.
 
 This step is where the estimate is cheapest to make: the plan, the diff, and the Step 5 reconciliation
 are already in hand.
@@ -506,7 +512,7 @@ The timing is not negotiable: **CI 緑後・merge 前.** Fixes arrive from three
 implementation, from the reviews, and from CI — and harvesting before the PR exists misses the third.
 Enumerate mechanically with `git log --oneline <base>..HEAD`, never from memory.
 
-`docs/rules.md`, *作業とエージェント* owns the two filters that keep the documents from bloating, and
+[`docs/rules.md#workflow`](../../../docs/rules.md#workflow) owns the two filters that keep the documents from bloating, and
 requires that what was dropped is stated rather than silently discarded.
 
 ### Runtime verification — the merge gate when a request-time seam moved
@@ -558,13 +564,11 @@ Then merge:
 gh pr merge <n> --merge
 ```
 
-<!-- boilerplate-only:begin -->
 Stamp it — a merge performed here is observed by nobody else until the loop goes back to `gh` for it:
 
 ```sh
 .agents/closed-loop/marks.sh mergedAt 2>/dev/null || true
 ```
-<!-- boilerplate-only:end -->
 
 ## Step 9 — Close out
 
@@ -582,8 +586,9 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 The handover comment covers, per the completion criteria: **どの条件をどう満たしたか / 指示と違えた
 判断とその理由 / 別 issue が妥当な積み残し**.
 
-**Fetch again before asserting anything about the state of the world.** Release lines move in minutes
-here, so a handover written from a session-start snapshot claims things that stopped being true.
+**Fetch again before asserting anything about the state of the world.** A release line can move while
+a run is in progress, so a handover written from a session-start snapshot claims things that stopped
+being true.
 
 **Clean up the worktree, not the branch.** `git worktree remove` leaves the local branch, and that is
 the correct end state; the remote branch is deleted by GitHub on merge. Do not run `git branch -d`.
@@ -604,11 +609,11 @@ payload so the sub-skill skips its own gate.
 | `new-feature` | The approved plan, and the subject | Its Step 0 subject confirmation |
 | `impl-review` | Scope, reviewer model | Its Step 0 |
 | `test-review` | Scope, reviewer model | Its scope question |
-| `comment-sweep` | Scope **and apply mode** | Its scope and apply-mode questions |
+| `settle-comments` | Scope **and apply mode** | Its scope and apply-mode questions |
 | `resolve-merge` | The base | Its base resolution |
 
 **Every row is required, because a missing one reinstates a gate this skill already settled.** A
-sub-skill whose default is to confirm per item — `comment-sweep` is the one to watch — will do exactly
+sub-skill whose default is to confirm per item — `settle-comments` is the one to watch — will do exactly
 that when its apply mode does not arrive.
 
 ## Do / Do NOT
@@ -650,7 +655,8 @@ that when its apply mode does not arrive.
 - [ ] No stop outside the five listed places.
 - [ ] Plan reconciled against the actual diff.
 - [ ] Gates left to CI, and said so in the PR.
-- [ ] The three review skills each estimated and put to the user; the approved ones run with their
+- [ ] `settle-comments` run as the last step of implementing, before any review.
+- [ ] The two review skills each estimated and put to the user; the approved ones run with their
       answers passed through.
 - [ ] General form harvested into the surviving documents, with what was dropped stated.
 - [ ] Runtime verification run for a moved request-time seam — or its absence stated with which of the

@@ -13,6 +13,9 @@ import { toHttpStatus } from "./error-status";
  *
  * 載せるのは分類が持つ既定の文言だけです。外から来た文言をそのまま返すと、こちらが選んでいない
  * 文字列が利用者へ出ます。
+ *
+ * @param kind - 応答に変換する分類
+ * @returns 組んだ応答
  */
 export function toErrorResponse(kind: ErrorKindType): Response {
   return Response.json(
@@ -27,6 +30,9 @@ export function toErrorResponse(kind: ErrorKindType): Response {
  * @remarks
  * 分類の付いていない失敗は `internal` へ矯正します。分類を持たない値は、こちらが想定していない
  * 経路で投げられたものなので、利用者に見せる形を選べません。
+ *
+ * @param error - catch で捕まえた値
+ * @returns 組んだ応答
  */
 export function toCaughtErrorResponse(error: unknown): Response {
   return toErrorResponse(findAppError(error)?.kind ?? ErrorKind.INTERNAL);

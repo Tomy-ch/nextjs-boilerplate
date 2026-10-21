@@ -57,7 +57,7 @@
 
 ## AI Modification Scope について
 
-このスキルは AGENTS.md の "Exception: Skill Execution" 節に基づき、スキル実行中に限り通常の AI Modification Scope の縛りを解放する。具体的には以下のパスへの**新規作成**がスキル実行中に許可される:
+このスキルは AGENTS.md の "Exception: Skill Execution" セクションに基づき、スキル実行中に限り通常の AI Modification Scope の縛りを解放する。具体的には以下のパスへの**新規作成**がスキル実行中に許可される:
 
 - `.github/release/<NEW_VERSION>.md`（新規作成のみ）
 
@@ -182,7 +182,7 @@ git log --no-merges --pretty=format:'%h%n%s%n%b%n---' <FROM_TAG>..HEAD
 
 ## Step 6. 書いたファイルの整形
 
-書き込み後、リリースノートのファイルに `pnpm exec markdownlint-cli2 --no-globs --fix <パス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（AGENTS.md: ゲートを先回りして回さない）。
+書き込み後、リリースノートのファイルに `pnpm exec markdownlint-cli2 --no-globs --fix <パス>` を掛ける。`pnpm lint:md` は pre-commit hook と CI に任せる（`docs/playbook.md`: Do not pre-run the gates）。
 
 ## Step 7. 最終確認
 

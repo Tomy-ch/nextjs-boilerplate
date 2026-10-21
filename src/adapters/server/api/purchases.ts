@@ -3,9 +3,8 @@ import "server-only";
 import { cache } from "react";
 import { type ZodType, z } from "zod";
 
-import { getApiConfig } from "@/config/api/api.server";
-import { getHttpConfig } from "@/config/http/http.server";
-import { toProductId } from "@/model/product/product";
+import type { AppliedCoupon } from "@/model/coupon/coupon";
+import { type ProductId, toProductId } from "@/model/product/product";
 import type {
   Purchase,
   PurchaseDispatchGroup,
@@ -13,7 +12,7 @@ import type {
   PurchaseHistoryPage,
   PurchaseOrderLine,
 } from "@/model/purchase/purchase";
-import { PURCHASE_STATUS } from "@/model/purchase/purchase-status";
+import { IN_PROGRESS_PURCHASE_STATUSES, PURCHASE_STATUS } from "@/model/purchase/purchase-status";
 
 import {
   GetPurchasesDetailResponse,
@@ -28,8 +27,7 @@ import {
 } from "../../gen/api/endpoints.zod";
 import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
-import { getAccessToken } from "../auth/session";
-import { createHttpClient, type UserScopedHttpClient } from "../http/request";
+import { getUserScopedClient } from "../http/user-scoped-client";
 
 const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
@@ -38,19 +36,12 @@ const PURCHASES_PATH = "/v1/purchases";
 type WirePurchases = z.infer<typeof GetPurchasesResponse>;
 type WirePurchaseDetail = z.infer<typeof GetPurchasesDetailResponse>;
 
-let client: UserScopedHttpClient | undefined;
-
-function getClient(): UserScopedHttpClient {
-  client ??= createHttpClient({
-    scope: "user-scoped",
-    baseUrl: getApiConfig().baseUrl,
-    maxUrlBytes: getHttpConfig().maxUrlBytes,
-    getBearerToken: getAccessToken,
-  });
-
-  return client;
-}
-
+/**
+ * 契約の履歴応答を表示用の 1 ページへ写す。
+ *
+ * @param wire - 契約の購入履歴応答
+ * @returns 表示用の履歴の 1 ページ
+ */
 function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
   return {
     items: wire.items.map(({ code, totalAmount, status, orderedAt }) => ({
@@ -76,8 +67,20 @@ function toPurchaseHistoryPage(wire: WirePurchases): PurchaseHistoryPage {
  */
 export const PurchaseCode = z.string().min(1).max(getPurchasesDetailPathPurchaseCodeMax);
 
-/** 購入履歴の取得条件。契約のクエリと 1 対 1 に対応する。 */
-export type PurchaseHistoryQuery = z.infer<typeof GetPurchasesQueryParams>;
+/** 購入履歴の取得条件。契約のクエリから、商品で絞る `productId` を除いたもの。 */
+export type PurchaseHistoryQuery = {
+  /** 次ページの鍵。先頭ページなら省く。区間の下限ではない。 */
+  readonly after?: string;
+  readonly first: number;
+  /** 区間の下限（この瞬時を含む）。RFC3339 の瞬時。 */
+  readonly orderedAfter?: string;
+  /** 区間の上限（この瞬時を含まない）。 */
+  readonly orderedBefore?: string;
+  /** 状態のコード。マスタ行を指す静的な番号。 */
+  readonly statusCodes?: readonly number[];
+  /** 他の利用者の購入も母集団に含めるか。含める指定は管理の役割を持つ主体しか通らない。 */
+  readonly includeOtherUsers: boolean;
+};
 
 /** `parsePurchaseHistoryQuery` の結果。読めなかったキーは呼び出し側が画面へ出す。 */
 export type PurchaseHistoryQueryParseResult =
@@ -86,6 +89,16 @@ export type PurchaseHistoryQueryParseResult =
 
 /** 数として宣言されている条件。クエリ文字列からは文字列で届くため、照合の前に直す。 */
 const NUMERIC_KEYS: ReadonlySet<string> = new Set(["first"]);
+
+/**
+ * 契約が整数の並びで宣言している条件。
+ *
+ * @remarks
+ * 1 つだけ選ばれた条件は URL に 1 回しか現れず、素の値としては単一の文字列で届きます。
+ * 並びへ揃えないと、1 つ選んだときだけ契約の宣言に当たって落ちます。同じ値の繰り返しは
+ * 指している条件が 1 度のときと同じなので、畳んでから照らします。
+ */
+const INTEGER_ARRAY_KEYS: ReadonlySet<string> = new Set(["statusCodes"]);
 
 /** 真偽値として宣言されている条件。同じく、クエリ文字列からは文字列で届く。 */
 const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeOtherUsers"]);
@@ -97,6 +110,9 @@ const BOOLEAN_KEYS: ReadonlySet<string> = new Set(["includeOtherUsers"]);
  * **読めない綴りは文字列のまま返します。** 真偽値へ寄せると、`includeOtherUsers=yes` のような
  * 打ち間違いが黙って「自分の購入だけ」に倒れ、母集団が変わったことを利用者が知る手段が
  * なくなります。文字列のまま契約へ落とせば、読めなかったキーとして返ります。
+ *
+ * @param value - URL から届いた素の値
+ * @returns 読めれば真偽値、読めなければ元の文字列
  */
 function toBoolean(value: string): boolean | string {
   if (value === "true") {
@@ -121,6 +137,9 @@ function toBoolean(value: string): boolean | string {
  *
  * **キーは利用者が決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、
  * 並びを組んでから `Object.fromEntries` で畳みます。同じ綴りでも自前のプロパティになります。
+ *
+ * @param raw - URL 由来の検索条件
+ * @returns 照らせれば取得条件、読めなければ外れたキーの一覧
  */
 export function parsePurchaseHistoryQuery(
   raw: Readonly<Record<string, string | readonly string[]>>,
@@ -128,6 +147,11 @@ export function parsePurchaseHistoryQuery(
   const typed: [string, unknown][] = [];
 
   for (const [key, value] of Object.entries(raw)) {
+    if (INTEGER_ARRAY_KEYS.has(key)) {
+      typed.push([key, [...new Set((typeof value === "string" ? [value] : value).map(Number))]]);
+      continue;
+    }
+
     if (typeof value !== "string") {
       continue;
     }
@@ -152,13 +176,21 @@ export function parsePurchaseHistoryQuery(
   return { ok: true, query: parsed.data };
 }
 
-/** 取得条件を、クエリ文字列へ載せる形へ写す。 */
-function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | undefined> {
+/**
+ * 取得条件を、クエリ文字列へ載せる形へ写す。
+ *
+ * @param query - 購入履歴の取得条件
+ * @returns クエリ文字列に載せる検索条件
+ */
+function toSearchParams(
+  query: PurchaseHistoryQuery,
+): Record<string, string | readonly string[] | undefined> {
   return {
     after: query.after,
     first: String(query.first),
     orderedAfter: query.orderedAfter,
     orderedBefore: query.orderedBefore,
+    statusCodes: query.statusCodes?.map(String),
     includeOtherUsers: String(query.includeOtherUsers),
   };
 }
@@ -172,10 +204,13 @@ function toSearchParams(query: PurchaseHistoryQuery): Record<string, string | un
  * 次ページの鍵は応答の `nextCursor` に載ります。**ページ送りの間は同じ区間を渡します。**
  * 途中で条件が変わると keyset の連続性が保証されず、飛ばされる購入が出ます。区間は瞬時の
  * 半開区間 `[orderedAfter, orderedBefore)` で、暦の区分から解くのは呼び出し側です。
+ *
+ * @param query - 購入履歴の取得条件
+ * @returns 購入履歴の 1 ページ
  */
 export const getMyPurchases = cache(
   async (query: PurchaseHistoryQuery): Promise<PurchaseHistoryPage> => {
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: PURCHASES_PATH,
       searchParams: toSearchParams(query),
       schema: GetPurchasesResponse,
@@ -185,12 +220,42 @@ export const getMyPurchases = cache(
   },
 );
 
+/**
+ * 契約の適用クーポンを表示用の型へ写す。
+ *
+ * @remarks
+ * 範囲を絞る対象の識別子は写しません。名前が届かず、表示に使えないためです。
+ *
+ * @param wire - 契約の適用クーポン
+ * @returns 表示用の適用クーポン
+ */
+function toAppliedCoupon({
+  discount,
+  scope,
+}: NonNullable<WirePurchaseDetail["appliedCoupon"]>): AppliedCoupon {
+  return {
+    discount:
+      discount.kind === "flat"
+        ? { kind: "flat", value: discount.value }
+        : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount },
+    scopeKind: scope.kind,
+  };
+}
+
+/**
+ * 契約の購入詳細応答を表示用の型へ写す。
+ *
+ * @param wire - 契約の購入詳細応答
+ * @returns 表示用の購入
+ */
 function toPurchase(wire: WirePurchaseDetail): Purchase {
   return {
     code: wire.code,
     statusCode: wire.status.code,
     statusName: wire.status.name,
     subtotalAmount: wire.subtotalAmount,
+    discountAmount: wire.discountAmount,
+    appliedCoupon: wire.appliedCoupon === null ? null : toAppliedCoupon(wire.appliedCoupon),
     taxAmount: wire.taxAmount,
     shippingFee: wire.shippingFee,
     totalAmount: wire.totalAmount,
@@ -212,9 +277,10 @@ function toPurchase(wire: WirePurchaseDetail): Purchase {
  * 呼び出し側が所有者を確かめる必要はありません。
  *
  * @param purchaseCode - 購入コード。利用者へ注文番号として見せている値
+ * @returns 購入 1 件
  */
 export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchase> => {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}`,
     schema: GetPurchasesDetailResponse,
   });
@@ -244,7 +310,7 @@ export async function createPurchase(
   lines: readonly PurchaseOrderLine[],
   idempotencyKey: string,
 ): Promise<string> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: PURCHASES_PATH,
     method: "POST",
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
@@ -268,13 +334,18 @@ export async function createPurchase(
  *
  * **再送しません。** 同じ要求が 2 度届くと 2 度目は `conflict` になるため、遷移は冪等ではあり
  * ません。通信の途中で切れた要求を勝手に送り直すと、成立していた遷移が失敗として見えます。
+ *
+ * @typeParam T - 遷移応答の契約の形
+ * @param purchaseCode - 対象の購入コード
+ * @param action - 契約の URL に載せる遷移操作名
+ * @param schema - 応答を検証する契約のスキーマ
  */
 async function transition<T>(
   purchaseCode: string,
   action: string,
   schema: ZodType<T>,
 ): Promise<void> {
-  await getClient().request({
+  await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/${encodeURIComponent(purchaseCode)}/${action}`,
     method: "PATCH",
     schema,
@@ -319,10 +390,12 @@ export async function payMyPurchase(purchaseCode: string): Promise<void> {
  * 発送待ちが無いときは、失敗ではなく空の並びが返ります。
  *
  * 組分けと並び順を契約が決めること、範囲の外の購入が別の便になることは
- * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md)「取得」。
+ * [機能要件](../../../../docs/spec/route/admin/shipments/page.function.md#fetching)。
+ *
+ * @returns 発送可能な購入の組
  */
 export async function getShippablePurchases(): Promise<readonly PurchaseDispatchGroup[]> {
-  const wire = await getClient().request({
+  const wire = await getUserScopedClient().request({
     path: `${PURCHASES_PATH}/shippable`,
     schema: GetPurchasesShippableResponse,
   });
@@ -348,10 +421,11 @@ export async function getShippablePurchases(): Promise<readonly PurchaseDispatch
  * に分かれます。発送のような便の組は作りません。
  *
  * @param first - 1 度に読む件数。ページ送りを持たないため、ここが見せられる上限になる
+ * @returns 発送済みで未配達の購入
  */
 export const getShippedPurchases = cache(
   async (first: number): Promise<readonly PurchaseHistoryEntry[]> => {
-    const wire = await getClient().request({
+    const wire = await getUserScopedClient().request({
       path: PURCHASES_PATH,
       searchParams: {
         first: String(first),
@@ -364,6 +438,38 @@ export const getShippedPurchases = cache(
     return toPurchaseHistoryPage(wire).items;
   },
 );
+
+/**
+ * 指定した商品を含む、進行中の購入を取る。
+ *
+ * @remarks
+ * **他の利用者の購入を母集団に含めます。** 商品の廃番を拒ませている購入を辿るための口で、
+ * 役割を持たない主体がこれを呼ぶと契約が 403 で返します。
+ *
+ * 状態は {@link IN_PROGRESS_PURCHASE_STATUSES} で絞ります。絞らずに読むと、並んだ購入と見積もりの
+ * 件数が別の母集団になります。
+ *
+ * @param productId - 含まれている商品
+ * @param first - 1 度に読む件数。ページ送りを持たないため、ここが見せられる上限になる
+ * @returns 進行中の購入の 1 ページ。続きがあれば `nextCursor` が入る
+ */
+export async function getInProgressPurchasesOfProduct(
+  productId: ProductId,
+  first: number,
+): Promise<PurchaseHistoryPage> {
+  const wire = await getUserScopedClient().request({
+    path: PURCHASES_PATH,
+    searchParams: {
+      first: String(first),
+      includeOtherUsers: "true",
+      productId,
+      statusCodes: IN_PROGRESS_PURCHASE_STATUSES.map(String),
+    },
+    schema: GetPurchasesResponse,
+  });
+
+  return toPurchaseHistoryPage(wire);
+}
 
 /**
  * 購入 1 件を配達済みにする。

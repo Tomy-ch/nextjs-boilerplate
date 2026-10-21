@@ -25,7 +25,12 @@ const STATUS_BY_KIND: Readonly<Record<ErrorKindType, number>> = {
   [ErrorKind.INTERNAL]: 500,
 };
 
-/** 分類に対応する HTTP status を返す。 */
+/**
+ * 分類に対応する HTTP status を返す。
+ *
+ * @param kind - 変換元の分類
+ * @returns 対応する HTTP status
+ */
 export function toHttpStatus(kind: ErrorKindType): number {
   return STATUS_BY_KIND[kind];
 }

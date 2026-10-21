@@ -19,7 +19,7 @@ describe("noMarkupOutsideUiLayers", () => {
     ruleTester.run("no-markup-outside-ui-layers", noMarkupOutsideUiLayers, {
       valid: [
         { code: MARKUP, filename: "src/app/page.tsx" },
-        { code: MARKUP, filename: "src/features/products/list/view.tsx" },
+        { code: MARKUP, filename: "src/features/resources/list/view.tsx" },
         { code: MARKUP, filename: "src/components/design-system/action/button/button.tsx" },
       ],
       invalid: [],
@@ -63,8 +63,8 @@ describe("noMarkupOutsideUiLayers", () => {
     ruleTester.run("no-markup-outside-ui-layers", noMarkupOutsideUiLayers, {
       valid: [
         {
-          code: "export const spec = { path: '/products' };",
-          filename: "src/adapters/server/api/products.ts",
+          code: "export const spec = { path: '/resources' };",
+          filename: "src/adapters/server/api/resources.ts",
         },
       ],
       invalid: [],
@@ -88,7 +88,7 @@ describe("noMarkupOutsideUiLayers", () => {
       invalid: [
         {
           code: MARKUP,
-          filename: "src/adapters/server/api/products.tsx",
+          filename: "src/adapters/server/api/resources.tsx",
           errors: [{ messageId: "noMarkupOutsideUiLayers" }],
         },
         {

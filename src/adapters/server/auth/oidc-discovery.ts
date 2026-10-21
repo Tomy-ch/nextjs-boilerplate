@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 接続先の issuer を呼び出しごとに受け取る
 import { createHttpClient } from "../http/request";
 
 /** OIDC Discovery の取得先。仕様が定める固定パス（OpenID Connect Discovery 1.0 §4）。 */
@@ -54,6 +55,7 @@ export type OidcEndpoints = {
  * @param issuer - 設定が持つ issuer
  * @param maxUrlBytes - 1 つの要求 URL に許すバイト数の上限
  * @param fetchImpl - 取得に使う実装。既定は環境の `fetch`
+ * @returns IdP が公開している接続先
  * @throws Discovery を取得できないとき、`issuer` が一致しないとき
  */
 export async function fetchOidcEndpoints(

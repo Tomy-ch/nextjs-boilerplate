@@ -23,6 +23,8 @@ export type AdminScreenErrorProps = {
  * 生のエラーもスタックも出しません。production では Server Component から投げられたエラーの
  * 本文が伏せられ、境界には汎用文言と `digest` だけが渡るためです。原因の特定は `digest` と
  * サーバ側のログの突合で行います。
+ *
+ * @param props - 表示する文言・digest・再取得の操作
  */
 export function AdminScreenError({ message, digest, onRetry }: AdminScreenErrorProps) {
   return (

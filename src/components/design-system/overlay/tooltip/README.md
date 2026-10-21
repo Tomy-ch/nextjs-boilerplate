@@ -1,45 +1,45 @@
 # Tooltip
 
-## 用途
+## Purpose
 
-アイコンや略記など、それだけでは意味が自明でない要素へ短い補足を添え、画面を離れずに読めるようにします。
+Attaches a short note to an element whose meaning is not self-evident on its own, such as an icon or an abbreviation, so it can be read without leaving the screen.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `TooltipProvider` | 配下の Tooltip が表示遅延を共有する境界です。`Tooltip` はこの Provider を祖先に必要とします。 |
-| `Tooltip` | hover / keyboard focus に応じた開閉状態を管理する client-side root です。 |
-| `TooltipTrigger` | Tooltip を開く trigger です。`Button` や link を使う場合は `asChild` で合成します。 |
-| `TooltipContent` | Portal へ表示する補足文です。位置は `side` / `align` / `sideOffset` で調整します。 |
+| `TooltipProvider` | Boundary within which the Tooltips below it share the display delay. `Tooltip` requires this Provider as an ancestor. |
+| `Tooltip` | Client-side root that manages the open state in response to hover and keyboard focus. |
+| `TooltipTrigger` | Trigger that opens the Tooltip. When using a `Button` or a link, compose it with `asChild`. |
+| `TooltipContent` | Note shown in a Portal. Adjust its position with `side` / `align` / `sideOffset`. |
 
-## 利用ケース
+## Use Cases
 
-- アイコンだけのボタンや、単位・略号を伴う数値へ短い説明を添える場合
-- 値の算出根拠のように、読めば理解の助けになるが、読まなくても操作を完了できる補足を置く場合
+- Adding a short explanation to an icon-only button, or to a number with a unit or abbreviation
+- Placing a note that helps understanding when read but is not needed to complete the action, such as how a value was calculated
 
-操作を含む内容には使わず `Popover`、まとまった補足情報には `HoverCard`、不可逆操作の確認には `AlertDialog` を使います。
+Do not use it for content that includes actions — use `Popover` — nor for a substantial block of supplementary information — use `HoverCard` — nor to confirm an irreversible action — use `AlertDialog`.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `△` に当たります。既定は静的な補足文・`title` 属性・focus 対応 CSS・明示的な詳細 link であり、位置計算・表示遅延・hover interaction が必要になった場合にこの client island を選びます。表示位置の計算と遅延制御のため hydration が必要で、Server Component からは直接 render できません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
+In the SSR-first selection it is rated `△`. The default is static supplementary text, the `title` attribute, focus-aware CSS, and an explicit details link; choose this client island when position calculation, display delay or hover interaction become necessary. It needs hydration to compute the position and control the delay, and cannot be rendered directly from a Server Component. When the content itself needs no client runtime, pass elements assembled in a Server Component as `children`.
 
-表示する文言、取得、業務判断は持ちません。`TooltipProvider` を mount する位置も feature 側の判断です。tooltip を使う画面の外側で一度だけ mount し、`Tooltip` ごとに入れ子で置きません。Provider を分けると、trigger を移動したときに遅延を省く連続性が失われます。
+It does not own the text it displays, fetching, or business decisions. Where to mount `TooltipProvider` is also the feature's decision. Mount it once, outside the screen that uses tooltips, and do not nest one per `Tooltip`. Splitting the Provider loses the continuity that skips the delay when moving between triggers.
 
-**ただし、内部に複数の tooltip を持つ部品は自分で Provider を持ちます。** `RichTextEditor` が先例で、外へ出すと呼び出し側が mount し忘れた瞬間に描画時の例外になるためです。この場合、その部品の中の tooltip どうしだけが遅延の連続性を共有します。上の「feature 側の判断」が指すのは、feature が `Tooltip` を自分で並べる場合です。
+**However, a component that holds several tooltips internally owns its own Provider.** `RichTextEditor` is the precedent: if the Provider were left outside, the moment a caller forgot to mount it, rendering would throw. In this case only the tooltips inside that component share the delay continuity. The "feature's decision" above refers to the case where a feature lays out `Tooltip`s itself.
 
-`TooltipContent` は `role="tooltip"` を持ち、開いている間だけ trigger の `aria-describedby` から参照される**説明**です。trigger のアクセシブルな名前にはならないため、アイコンだけの trigger には `aria-label` か視覚的に隠したテキストを trigger 側で必ず与えます。内容には link・button・入力などの focus 可能な要素を入れません。pointer が離れると閉じるため、tooltip 内の操作には到達できません。
+`TooltipContent` carries `role="tooltip"` and is a **description** referenced from the trigger's `aria-describedby` only while open. It does not become the trigger's accessible name, so an icon-only trigger must always get an `aria-label` or visually hidden text on the trigger side. Do not put focusable elements such as links, buttons or inputs in the content. It closes when the pointer leaves, so actions inside a tooltip cannot be reached.
 
-tooltip は pointer hover と keyboard focus でしか開かず、touch 環境では到達できません。操作や判断に不可欠な情報は tooltip だけに置かず、常時表示または明示的な導線を feature 側にも用意します。
+A tooltip opens only on pointer hover and keyboard focus, and cannot be reached in touch environments. Do not put information essential to an action or a decision only in a tooltip; the feature also provides an always-visible display or an explicit path to it.
 
-面は `bg-foreground` / `text-background` の反転色で描画し、trigger を指す arrow を伴います。ページ内容の上へ重なるため面は不透明である必要があり、反転色は同時に、常時表示の補足文と一時的な tooltip を見分けられるようにします。arrow が trigger へ接するよう `sideOffset` の既定は `0` です。
+The surface is rendered in the inverted colors `bg-foreground` / `text-background`, with an arrow pointing at the trigger. It sits on top of the page content, so the surface must be opaque, and the inverted colors at the same time distinguish a transient tooltip from always-visible supplementary text. `sideOffset` defaults to `0` so the arrow touches the trigger.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。
+The vendor is currently Radix, but the public API carries no vendor name.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の開閉、開いた状態の説明、`side` / `align` による配置、アイコンだけの trigger に名前を与える場合、一つの Provider を共有して遅延をまとめる場合、内容が一行に収まらない場合の折り返し幅指定を確認します。
+Storybook covers the default open and close, the description in the open state, placement with `side` / `align`, giving a name to an icon-only trigger, sharing one Provider to group the delay, and specifying a wrapping width when the content does not fit on one line.
 
-テストは開くまで内容を描画しないこと、閉じている間は `aria-describedby` を持たないこと、keyboard focus での開閉、Escape での閉じ、Portal 内容が `role="tooltip"` として trigger の説明になること、trigger のアクセシブルな名前が tooltip の内容に依存しないこと、a11y 自動検査を確認します。hover 経路は表示遅延の timer を伴うため、Storybook で確認します。
+The tests cover that the content is not rendered until opened, that `aria-describedby` is absent while closed, opening and closing with keyboard focus, closing with Escape, that the Portal content becomes the trigger's description as `role="tooltip"`, that the trigger's accessible name does not depend on the tooltip content, and the automated a11y check. The hover path involves the display-delay timer, so it is checked in Storybook.
 
-a11y 自動検査では `color-contrast` に加えて `region` を無効化します。`region` は「ページの内容がすべて landmark に含まれるか」を見る page 単位の best-practice 規則であり、landmark を持たない component 単体の render と、Portal で `body` 直下へ出る内容の両方に構造上適合しません。component の意味論を見る規則ではないため、無効化しても検査範囲は狭まりません。
+The automated a11y check disables `region` in addition to `color-contrast`. `region` is a page-level best-practice rule checking that all page content is contained in landmarks, and it structurally does not fit either a standalone component render with no landmark or content placed directly under `body` through the Portal. It is not a rule about the component's semantics, so disabling it does not narrow what is checked.

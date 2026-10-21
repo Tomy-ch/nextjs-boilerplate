@@ -22,7 +22,9 @@ export type ActionResultFreshness = {
  *
  * 題材を知りません。`useActionState` の結果を持つフォームなら、何を送るものでも同じように使えます。
  *
+ * @typeParam T - `useActionState` が返す結果の型
  * @param state - `useActionState` が返す現在の結果
+ * @returns 結果の鮮度と、下げる操作
  */
 export function useActionResultFreshness<T>(state: T): ActionResultFreshness {
   const [dismissed, setDismissed] = useState(false);

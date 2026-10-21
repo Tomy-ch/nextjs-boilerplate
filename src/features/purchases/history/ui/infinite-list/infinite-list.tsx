@@ -28,6 +28,10 @@ export type PurchaseInfiniteListProps = {
  *
  * 詳細への行き先をここで組みます。ルートを知っているのはこの feature で、行の側は渡された
  * 行き先を描くだけです。
+ *
+ * @param props - Server Component が取得した最初のページ、いま効いている期間の区間、1 度に読み込む件数
+ *
+ * @see Storybook `Features/Purchases/History/InfiniteList`
  */
 export function PurchaseInfiniteList({ initial, window, pageSize }: PurchaseInfiniteListProps) {
   const { items, loadMore, sentinelRef } = useInfinitePurchases(initial, window, pageSize);

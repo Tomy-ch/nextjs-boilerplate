@@ -1,49 +1,49 @@
 # FileUpload
 
-## 用途
+## Purpose
 
-送信するファイルを選び、送る前に形式と大きさが要件に合っているかを利用者へ知らせます。
+Lets the user choose files to send, and tells them before sending whether the format and size meet the requirements.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `FileUpload` | ファイルを選ぶ領域です。ドラッグで落とすか、押して選択ダイアログから選びます。受け付けた分だけを `onSelect` へ、弾いた分を理由つきで `onReject` へ渡し、送信中は操作を止めて進捗を示します。client island です。 |
+| `FileUpload` | The region for choosing files. Drop them by dragging, or press it and choose from the selection dialog. It passes only what it accepted to `onSelect` and what it rejected, with reasons, to `onReject`, and while sending it stops interaction and shows progress. A client island. |
 
-`FILE_UPLOAD_REJECTION_REASON` は弾いた理由の値集合で、`type`（`accept` に合わない）と `size`（`maxSize` を超える）を持ちます。
+`FILE_UPLOAD_REJECTION_REASON` is the value set of rejection reasons, with `type` (does not match `accept`) and `size` (exceeds `maxSize`).
 
-## 利用ケース
+## Use Cases
 
-- 形式や大きさに条件があり、送信して初めて弾かれるのを避けたい場合
-- 送信に時間がかかり、進行中であることと二重送信の抑止を見せたい場合
-- 選んだファイルが何だったかを、browser 既定の表示に頼らず自分の様式で見せたい場合
+- When there are conditions on format or size and you want to avoid rejection only after sending
+- When sending takes time and you want to show that it is in progress and prevent double submission
+- When you want to show which files were chosen in your own style, without relying on the browser's default display
 
-条件が緩く、Server Action の検証結果を返すだけで足りる場合は使いません。`Field` と `Input type="file"` の組み合わせで済みます。
+Not used when the conditions are loose and returning the Server Action's validation result is enough. The combination of `Field` and `Input type="file"` covers that.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では、native の下地が `Field` + `Input type="file"` + Server Action にあたります。この component は、**送信前の検証・選択内容の表示・送信中の抑止と進捗**という、その下地では表せない部分だけを担う client island です。選択の保持のため hydration が必要で、Server Component からは直接 render できません。
+In the SSR-first selection, the native base is `Field` + `Input type="file"` + Server Action. This component is a client island that takes on only what that base cannot express: **validation before sending, displaying the selection, and suppression and progress while sending**. Hydration is needed to hold the selection, so it cannot be rendered directly from a Server Component.
 
-**送信経路を持ちません。** 選んだものをどこへ、どう送るかをこの component は知りません。送信中かどうかは `pending`、進捗は `progress`、完了後の識別子の扱いは、すべて呼び出し元が props と callback で受け渡します。経路が決まるのを待たずに使えます。
+**It owns no submission path.** This component does not know where or how what was chosen is sent. Whether it is sending (`pending`), progress (`progress`), and handling identifiers after completion are all passed in and out by the caller through props and callbacks. It can be used without waiting for the path to be decided.
 
-**エラーの文言を持ちません。** `onReject` が渡すのは弾いたファイルと理由の組だけです。利用者へ見せる文言は呼び出し元が組み立て、`FieldError` として表示します。`aria-invalid` も呼び出し元が決めます。server 側の検証結果と client 側の検証結果を一箇所で扱うためです。
+**It owns no error copy.** `onReject` passes only pairs of the rejected file and the reason. The caller builds the copy shown to the user and displays it as a `FieldError`. `aria-invalid` is also decided by the caller. This is so that server-side and client-side validation results are handled in one place.
 
-**大きさの整形を持ちません。** 表示するのは受け付けたファイルの名前だけです。「2 MB まで」のような文言は呼び出し元が組み立てます。
+**It owns no size formatting.** It displays only the names of accepted files. Copy such as "up to 2 MB" is built by the caller.
 
-**drop は加速手段であり、唯一の経路にしません。** ドラッグは pointer を持つ環境でしか使えず、touch にも keyboard にも効きません。領域全体が `input` の `label` なので、どこを押しても選択ダイアログが開き、`input` 自体は tab で到達して Enter で開けます。WCAG 2.5.7（Dragging Movements）が求めるドラッグ操作の代替はこれで満たします。
+**Drop is an accelerator, not the only path.** Dragging is available only in environments with a pointer, and works with neither touch nor keyboard. The whole region is the `label` of the `input`, so pressing anywhere opens the selection dialog, and the `input` itself can be reached with Tab and opened with Enter. This meets the alternative to dragging movements that WCAG 2.5.7 (Dragging Movements) requires.
 
-落としたファイルは `input` の `files` へ書き戻すため、native form の送信にもそのまま載ります。`multiple` を指定しない場合、複数を落としても先頭の 1 件だけを受け付けます。
+Dropped files are written back into the `input`'s `files`, so they are included in a native form submission as is. Without `multiple`, only the first of several dropped files is accepted.
 
-領域の文言は `input` のアクセシブルな名前にも加わります。`Field` の `FieldLabel` と併せると名前が連なるため、`prompt` と `triggerLabel` は短い語にします。
+The region's copy is also added to the `input`'s accessible name. Combined with `Field`'s `FieldLabel`, the names chain together, so keep `prompt` and `triggerLabel` short.
 
-**選び終わった内容の持ち主は選べます。** 既定では受け付けたファイルの名前を自分で並べますが、`resetOnSelect` を渡すと渡し終えた時点で空へ戻り、表示も控えも持ちません。選んだ内容の一覧を [`UploadPreview`](../upload-preview/README.md) が持つ組み立てではこちらを使います。両方が控えを持つと、呼び出し元が 1 件外しても受け口の表示は変わらず、同じファイルが 2 か所に食い違って並びます。空へ戻すと、同じファイルを選び直せるようにもなります（`input` は値が変わらないと変更を知らせないため）。
+**The owner of the finished selection can be chosen.** By default it lists the names of accepted files itself, but with `resetOnSelect` it returns to empty once it has handed them over and holds neither a display nor a record. Use this in assemblies where [`UploadPreview`](../upload-preview/README.md) holds the list of what was chosen. If both hold a record, removing one item in the caller does not change the upload area's display, and the same file is listed in two places that disagree. Returning to empty also makes it possible to choose the same file again (because an `input` does not report a change unless its value changes).
 
-**preview・選択済みの削除は持ちません。** ファイル 1 件ぶんの行 UI と、preview や replace を含む組み立ては、それぞれ別の component が担います。
+**It does not own preview or removal of selected items.** The per-file row UI and the assembly including preview and replace are each handled by separate components.
 
-`accept` と `multiple` は native の属性としてそのまま働き、同じ値が送信前の検証にも使われます。`accept` は `.png` のような拡張子、`image/*` のような総称、`image/png` のような完全一致のいずれでも判定します。`accept` を省略すると形式では弾きません。
+`accept` and `multiple` work as native attributes as they are, and the same values are also used for validation before sending. `accept` matches by an extension such as `.png`, a wildcard such as `image/*`, or an exact match such as `image/png`. When `accept` is omitted, nothing is rejected for format.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の形、複数選択、送信前の検証とエラー表示、送信中（進捗あり / 進捗なし）、操作できない状態、文言を差し替えた場合を確認します。
+Storybook checks the default form, multiple selection, validation before sending and the error display, sending (with / without progress), the non-operable state, and replaced copy.
 
-テストは `type="file"` の control として公開すること、領域全体が `input` の `label` であること、`id` を渡さなければ自前で採番すること、落としたファイルも同じ検証を通して `input` の `files` へ書き戻すこと、`multiple` でなければ先頭 1 件だけを受け付けること、ドラッグ中の強調と領域内の移動では解かないこと、送信中は drop を受け付けないこと、受け付けたファイルの名前を並べて `onSelect` へ渡すこと、`accept` に合わない形式と `maxSize` を超える大きさを理由つきで `onReject` へ渡すこと、拡張子・総称・完全一致それぞれで `accept` を判定すること、`accept` の空の区切りと空白だけの指定の扱い、弾くものが無ければ `onReject` を呼ばないこと、選択の取り消し、呼び出し元の `onChange` も呼ぶこと、`pending` と `disabled` で操作できないこと、`progress` を渡したときだけ名前のある進捗を表示すること、a11y 自動検査を確認します。
+Tests check that it is exposed as a `type="file"` control, that the whole region is the `label` of the `input`, that it generates its own `id` when none is passed, that dropped files go through the same validation and are written back into the `input`'s `files`, that only the first one is accepted without `multiple`, the highlight while dragging and that moving within the region does not clear it, that drops are not accepted while sending, that the names of accepted files are listed and passed to `onSelect`, that formats not matching `accept` and sizes exceeding `maxSize` are passed to `onReject` with reasons, that `accept` matches by extension, wildcard and exact match, the handling of empty separators and whitespace-only values in `accept`, that `onReject` is not called when nothing is rejected, cancelling the selection, that the caller's `onChange` is called too, that it cannot be operated with `pending` and `disabled`, that named progress is displayed only when `progress` is passed, and automated a11y checks.

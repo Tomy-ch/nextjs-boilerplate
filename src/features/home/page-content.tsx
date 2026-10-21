@@ -9,7 +9,6 @@ import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { withScreenSpan } from "@/observability/render-span";
 import { HomeView, type SectionState } from "./view";
 
-/** ランキングに載せる件数。 */
 const RANKING_LIMIT = 5;
 
 /** 新着に載せる件数。段が最も多いときにちょうど 2 行になる。 */
@@ -21,6 +20,11 @@ const NEW_ARRIVAL_COUNT = 8;
  * @remarks
  * 表示する文言は分類から引きます。取得側のメッセージをそのまま出すと、バックエンドの都合が
  * 画面の文言になります。
+ *
+ * @typeParam T - 取得が成功したときの値の型。
+ * @param section - ログに残す系統名。
+ * @param settled - `Promise.allSettled` が返した、1 系統ぶんの結果。
+ * @returns 節が扱える形に写した状態。
  */
 function toSectionState<T>(section: string, settled: PromiseSettledResult<T>): SectionState<T> {
   if (settled.status === "fulfilled") {

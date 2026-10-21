@@ -53,7 +53,7 @@ function* walk(directory: string): Generator<string> {
 }
 
 // リポジトリ全体を走査するため、既定の 5 秒では足りない
-// （`docs/testing-conventions.md`「リポジトリ全体を走査するゲート」）。
+// （`docs/testing-conventions.md#gates-that-scan-the-whole-repository`）。
 const TIMEOUT_MS = 300_000;
 
 describe("カタログ資材の解決", () => {

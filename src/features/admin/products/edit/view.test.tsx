@@ -9,7 +9,7 @@ import { axe } from "vitest-axe";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 
 import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import type { ProductFormState } from "../form-state";
@@ -19,8 +19,6 @@ import { AdminProductEditView } from "./view";
 // 申告の宛先は器で、器が何を見張っているかは `NavigationGuard` へ渡る `when` に現れる。
 const guard = vi.hoisted(() => ({ when: false }));
 
-// 編集面は ProseMirror で、合成した input に応じない。編集面自身の振る舞いはその部品の
-// テストが持つので、ここは同じ役割と名前を持つ入力欄へ差し替え、画面の配線だけを確かめる。
 vi.mock("@/components/design-system/rich-text/rich-text-editor/rich-text-editor", async () => {
   const { useCallback } = await import("react");
 
@@ -71,8 +69,8 @@ const PRODUCT: Product = {
   price: "19.99",
   quantity: 12,
   stockWarningThreshold: 3,
-  status: { id: "status-1", name: "在庫あり" },
-  category: { id: "category-1", name: "電子機器" },
+  status: { id: toProductStatusId("status-1"), name: "在庫あり" },
+  category: { id: toProductCategoryId("category-1"), name: "電子機器" },
   publishedAt: new Date("2026-08-07T09:00:00.000Z"),
   discontinuedAt: null,
   imagePaths: ["products/saved.png"],
@@ -240,7 +238,6 @@ describe("AdminProductEditView", () => {
   });
 
   it("同じ文言でも、分類が伴わなければ導線を出さない", async () => {
-    // 合図は分類であって文言ではない。文言へ動的な要素を足しても導線が消えないための固定。
     renderView(() =>
       Promise.resolve(failedActionState<void>({ formError: PRODUCT_VERSION_CONFLICT_MESSAGE })),
     );

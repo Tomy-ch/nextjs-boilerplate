@@ -1,40 +1,40 @@
 # TextHighlight
 
-## 用途
+## Purpose
 
-検索した語が本文のどこに当たったかを示し、一覧から目的の項目を見つけやすくします。
+Shows where a searched term matched in the body text, making it easier to find the target item in a list.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `TextHighlight` | 本文のうち指定した語に一致する区間を native `mark` で強調して表示します。 |
+| `TextHighlight` | Shows the body text with the spans matching the given terms emphasized by a native `mark`. |
 
-props は `text`（強調対象の本文）、`query`（強調する語。文字列または文字列の配列）、`caseSensitive`（大文字小文字を区別するか。既定は区別しない）と、native `span` 属性です。`children` は受け取りません。
+The props are `text` (the body text to highlight), `query` (the terms to highlight; a string or an array of strings), `caseSensitive` (whether to distinguish case; by default it does not), and native `span` attributes. It does not accept `children`.
 
-## 利用ケース
+## Use Cases
 
-- 検索結果の一覧で、入力した語が項目名や説明のどこに一致したかを示す場合
-- 絞り込み条件に使った語を、該当する本文の中で目立たせる場合
+- Showing, in a list of search results, where the entered term matched in the item name or description
+- Making the terms used as filter conditions stand out in the matching body text
 
-一致件数や検索条件そのものの提示は行いません。強調は視覚的な手掛かりに留まるため、件数や条件は feature が別のテキストで示します。
+It does not present the match count or the search conditions themselves. Highlighting stays a visual cue, so the feature states the count and conditions in separate text.
 
-## 責務境界
+## Responsibility Boundaries
 
-SSR first の選定では `◎` に当たります。state・browser API・event handler を持たない Server Component であり、hydration は不要です。Server Component と Client Component のどちらからも利用できます。
+In the SSR-first selection it is `◎`. It is a Server Component with no state, browser APIs or event handlers, and needs no hydration. It can be used from both Server Components and Client Components.
 
-検索語の分割、正規化、同義語の展開、一致件数の集計は持ちません。どの語を `query` へ渡すかは呼び出し元が決めます。業務型や API の語彙も受け取らず、扱うのは本文の文字列と語だけです。
+It owns neither splitting the search terms, normalization, synonym expansion, nor counting matches. The caller decides which terms to pass to `query`. It takes no business types or API vocabulary either; it handles only the body string and the terms.
 
-`text` は文字列としてのみ扱い、HTML として解釈しません。この部品は raw HTML の入口になりません。sanitize 済みの Markdown / HTML を組版する用途には `Typeset` を使います。
+`text` is treated only as a string and never interpreted as HTML. This component is not an entry point for raw HTML. To typeset sanitized Markdown / HTML, use `Typeset`.
 
-語に正規表現の記号が含まれていても、文字そのものとして扱います。空文字と空配列は「強調しない」を表し、本文をそのまま表示します。
+Even if a term contains regular expression symbols, they are treated as literal characters. An empty string and an empty array mean "do not highlight" and show the body as is.
 
-`mark` は「文脈上いま注目に値する区間」を表す要素であり、語そのものの重要性を表す `strong` や `em` とは意味が異なります。強調しても本文の読み上げ内容は変わりません。
+`mark` is the element for "a span worth attention in the current context", which differs in meaning from `strong` and `em`, which express the importance of the words themselves. Highlighting does not change what the body reads out.
 
-面は `accent` / `accent-foreground` で描画し、本文の文字色と字送りは外枠の `span` が継承します。本文全体の見た目は呼び出し元が `className` で指定します。
+The surface is rendered with `accent` / `accent-foreground`, and the body text color and letter spacing are inherited from the outer `span`. The caller specifies the look of the whole body with `className`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は基本の一致、複数箇所の一致、`caseSensitive`、複数の語、正規表現の記号を含む語、一致しない場合、語が空の場合、呼び出し元が本文の見た目を指定する場合を確認します。
+Storybook checks a basic match, matches in several places, `caseSensitive`, multiple terms, terms containing regular expression symbols, no match, an empty term, and the caller specifying the look of the body.
 
-テストは一致区間が `mark` になること、強調しても本文の文字列が欠落も重複もしないこと、先頭と末尾が一致する場合、大文字小文字の既定と `caseSensitive`、複数の語、正規表現の記号の扱い、空文字・空配列・不一致で本文がそのまま表示されること、native `span` 属性の伝播、a11y 自動検査を確認します。
+The tests check that matched spans become `mark`, that highlighting neither drops nor duplicates any of the body string, matches at the start and the end, the case default and `caseSensitive`, multiple terms, handling of regular expression symbols, that the body is shown as is for an empty string, an empty array and no match, propagation of native `span` attributes, and the automated a11y check.

@@ -1,0 +1,243 @@
+> **このファイルは [`0150-git-workflow.md`](0150-git-workflow.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `0150-git-workflow.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `0150-git-workflow.md` だけです。このファイルは人間が読むための翻訳です。
+
+# Git ブランチ・コミット運用方針
+
+本プロジェクトの Git ブランチ戦略、コミット規約、Pull Request 運用、リリース運用を定義する。
+
+リポジトリ設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) によりブランチ保護を機械的に強制しているが、本 ADR はその根拠と、人間が日常的に従うべき運用ルール全体を「意思決定」として明文化したものである。
+
+## Status
+
+Accepted
+
+## 採用理由 / 目的
+
+- **環境とブランチを 1:1 で対応** させ、「どのブランチが何に出ているか」を一意にする (production / staging / develop)
+- **保護ブランチをリポジトリ設定で機械的に保護** することで、直 push / force push / レビュー忘れの事故を構造的に排除する
+- **コミット粒度と PR テンプレートを揃える** ことで、後追いレビューおよびリリースノート生成 (`.github/release/`) のコストを下げる
+- 「最初から踏むべきレール」を辿れるよう、暗黙運用を成文化する
+
+## ブランチ構造
+
+### 環境マッピング
+
+| ブランチ | デプロイ環境 | 役割 |
+| --- | --- | --- |
+| `production` | 本番環境 | 本番にリリース済みのコード |
+| `staging` | 検証環境 | 本番投入前の最終検証 |
+| `develop` | 開発環境 | 次回リリースに含める変更の統合先 (PR の base デフォルト) |
+| `release/vX.Y.Z` | (デプロイなし) | リリース単位の作業集約ブランチ |
+| `feature/*` | (デプロイなし) | 機能追加の作業ブランチ |
+| `bugfix/*` | (デプロイなし) | 通常のバグ修正の作業ブランチ |
+| `hotfix/*` | (緊急時のみ) | 本番障害の緊急修正 |
+
+### 派生と昇格のフロー
+
+```text
+production  ←(merge)  staging  ←(merge)  develop  ←(merge)  release/vX.Y.Z  ←(merge)  feature/*
+                                                                                      bugfix/*
+     ↑
+     └────────── hotfix/* (本番から派生・本番へ戻す。develop へも反映)
+```
+
+| ブランチ | 派生元 | merge 先 |
+| --- | --- | --- |
+| `release/vX.Y.Z` | `production` | `develop` |
+| `feature/*` | **最新の `release/vX.Y.Z`** | 派生元の `release/*` |
+| `bugfix/*` | **最新の `release/vX.Y.Z`** | 派生元の `release/*` |
+| `hotfix/*` | `production` | `production` (＋ `develop` にも反映) |
+
+### 重要な派生ルール
+
+- `release/*` は **`production` から派生** させる。出荷済みの断面から始めないと、まだ出していない変更をリリース版へ引き連れる。`develop` は統合先であり、作業起点として使わない
+- `feature/*` / `bugfix/*` は **`develop` からではなく、現行の `release/vX.Y.Z` から派生** させる
+- 1 リリースにつき 1 本の `release/*` ブランチを使う。リリース番号が確定した時点でブランチ名にバージョンを含める (`release/v0.1.0`)
+- `hotfix/*` は本番障害の緊急修正専用。`production` へ戻した後、`develop` にも反映して履歴を一致させる
+
+## 保護ブランチ
+
+`.github/settings/branch-protection.json` で対象 (`production` / `staging` / `develop` / `release/**` / `hotfix/**`) に対し、以下を機械的に強制している。
+
+| ルール | 内容 |
+| --- | --- |
+| Pull Request 必須 | 直接 push 禁止。すべての変更は PR 経由 |
+| 必要承認数 | 最低 1 件の approve |
+| 古い approve の無効化 | 新しい push が入ると過去の approve は自動的に dismiss される |
+| 最終 push の承認必須 | 最後の push に approve が乗っていないと merge できない |
+| review thread の resolve 必須 | 未解決の review コメントがあると merge できない |
+| force push / 非 fast-forward 禁止 | 履歴書き換えを全面禁止 |
+| ブランチ削除禁止 | 保護対象ブランチは削除不可 |
+| code quality | `errors` 重大度のチェック失敗で merge ブロック |
+| 許可される merge 戦略 | `merge` (merge commit) / `squash` |
+
+これらは「リポジトリが拒否するから守る」のではなく **「運用としてもこの方針が正しいから設定で固めている」** という建付け。設定を緩める変更は本 ADR の改訂と同期させる。
+
+## ブランチ命名規則
+
+```text
+feature/<issue-no>-<kebab-description>   例: feature/1234-add-login-form
+bugfix/<issue-no>-<kebab-description>    例: bugfix/5678-fix-route-handler
+hotfix/<issue-no>-<kebab-description>    例: hotfix/9012-cache-invalidation
+release/v<major>.<minor>.<patch>          例: release/v0.1.0
+```
+
+- issue 番号が無い場合は省略可。代わりにハイフン区切りの説明的な名称にする (例: `feature/restructure-config`)
+- 説明部分は **英小文字 + ハイフン区切り**。コロン・大文字・空白・日本語は含めない
+- `release/*` は SemVer (パッチまで) を必ず含める
+
+## コミット規約
+
+### プレフィックス
+
+すべてのコミット件名は以下のいずれかのプレフィックスで始める。形式は **`<Prefix>: <日本語の件名>`** で統一する。
+
+| Prefix | 用途 |
+| --- | --- |
+| `Feat` | 新機能の追加 |
+| `Fix` | バグ修正 |
+| `Refactor` | 振る舞いを変えない内部改善 |
+| `Perf` | パフォーマンス改善 |
+| `Docs` | ドキュメントのみの変更 |
+| `Test` | テスト追加・修正のみ |
+| `Build` | ビルド構成・依存関係の変更 (`package.json` / `mise.toml` 等) |
+| `CI` | CI / GitHub Actions の変更 |
+| `Chore` | その他雑務 (ファイル移動・コメント整理など) |
+| `Style` | フォーマッタ自動修正など、ロジックに影響しない整形 |
+| `Revert` | コミットの取り消し |
+
+### メッセージ規則
+
+- 件名は **日本語** で書く。本文も日本語を基本とする (技術用語の英表記は許容)
+- 件名は 1 行で完結させ、句点 (`。`) は打たない
+- 件名だけで why が伝わらないコミットは本文に背景を残す
+- **本文が残すのは、その変更の背景であって作業の足取りではない。** 「前は壊れていた」「〜を直した」は diff が既に持っている。まして同じ PR の中で自分が作った状態を指すなら、ベースから見ればその事実は起きていない。本文は変更後の現在形で書く —— 何がどういう状態になり、なぜその形なのか
+- 件名は概ね 72 文字以内を目安にする
+
+#### 機械強制の範囲
+
+commit-msg hook ([0151](0151-git-hooks.ja.md)) が機械強制するのは次の 3 点に限る。
+
+- プレフィックスが上表の 11 種のいずれかであること
+- 件名が空でないこと
+- 件名が句点 (`。`) で終わらないこと
+
+**残りは散文の指針にとどめ、機械強制しない**。日本語であること・72 文字の目安・why を本文に残すこと・背景と作業の足取りの区別は、いずれも判定が主観に依存するか、機械的に判定すると誤検知が出る。誤検知する hook は `--no-verify` の常用を招き、機械強制していた 3 点まで一緒に無効化される。**強制範囲を広げることは、強制の実効性を下げうる**。
+
+**撤回条件**: commitlint が、**件名の形を正規表現で定義させずに**「空白のみ」を判定できる標準ルールを提供したとき。いま塞ぐ手段が `parserOpts` の `headerPattern` 自前定義しかなく、それが「日本語であること・長さ・体裁は機械強制しない」という上の指針と衝突することが、やらない理由そのものである。**「規約外の件名が実際に混入した」ことは条件にならない**。
+
+同じ理由で、件名の内容そのもの (空白のみ・意味を持たない文字列など) は規約化しない。`Feat:` の後ろが空白のみの件名は現行の検査を通過するが、これを塞ぐには件名の形を正規表現で定義することになり、上の指針と衝突する。この範囲を変えるときは本 ADR を先に改訂し、`commitlint.config.ts` はそれに従わせる (逆順にしない)。
+
+例:
+
+```text
+Docs: ADR 0011 を Type A / Type B 区別で補強
+Build: Dockerfile を削除し pnpm 採用方針と整合させる
+Fix: route handler の query 取得を Next.js 16 API に合わせる
+```
+
+### スコープ分割の原則
+
+- **1 つの意味変更 = 1 コミット、プレフィックスは 1 つ。** 1 PR に複数の論理変更が混ざる場合はコミットを分割する (例: Refactor + Feat、Docs + Fix)。プレフィックスを 2 つ書きたくなったら、分割の単位が違う
+- テストは、それが検証する実装と同じコミットに置いてよい (実装と切り離した `Test:` に分けることを強制しない)
+- メジャー依存の更新 (`next` / `react` / `@biomejs/biome` 等のメジャーアップ) は他の機能変更と同じコミット・PR に混ぜない (0004 と整合)
+- フォーマッタ起因の大量変更は `Style:` で別コミットに切り出し、レビュアーがロジック差分に集中できるようにする
+- 生成物 (`pnpm-lock.yaml` 等) の変更は原因コミットと同じコミットに含める (lockfile だけ別コミットにしない)
+
+## Pull Request 運用
+
+### テンプレート
+
+`.github/pull_request_template.md` の以下セクションは固定で残す。空欄のままでは merge しない。
+
+| セクション | 記載内容 |
+| --- | --- |
+| `概要` | この PR で何を追加・変更・修正したか (1〜3 行) |
+| `変更内容` | 主要な diff の論理単位を箇条書き |
+| `動作確認方法` | 再現手順 (例: `pnpm dev` で起動して X を確認) |
+
+PR タイトルも日本語で書き、関連 issue / ADR を本文末尾に記載する。
+
+### Merge 戦略
+
+- **デフォルト: merge commit** (`Create a merge commit`)
+  - 履歴に PR 単位の境界が残るため、後追いの reviewer / リリースノート生成側で「どこからどこまでが 1 つの変更か」を辿りやすい
+- **`squash merge` は例外運用** — 履歴を 1 行に潰す必要が明確な場合 (機械生成物の大量更新 PR など) のみ、PR 本文で明示してから使う
+- **`rebase merge` は使用しない** (保護設定でも未許可)
+- 既存 PR ブランチに新たな push を入れた場合、保護設定により approve は自動的に dismiss されるため、改めてレビューを依頼する
+
+### 既存 PR ブランチの更新フロー
+
+承認済み PR ブランチに対して追加修正を入れる場合は次の順序を守る。
+
+1. ローカルで修正・コミットする
+2. push する前に PR 上にコメントで「何を直したか」を簡潔に追記する
+3. push する (古い approve は dismiss される)
+4. レビュアーに再 review を依頼する
+
+履歴書き換え (`git commit --amend` 後の force push、`git rebase`) は、保護ブランチでは `branch-protection.json` が、`feature/**` / `bugfix/**` では `work-branch-history.json` が非 fast-forward の push として拒否するため、追加修正は **常に新規コミット** で積む。作業ブランチの ruleset は非 fast-forward の禁止だけを持ち、PR の要求・削除の禁止は持たない —— マージ後の自動削除と、PR を開く前の直接 push を止めないため。PR を開く前の force push も同じく拒否される —— ruleset は PR の有無でブランチを分けられず、開く前だけ許すと、開いた後に止める手段が残らない
+
+## リリース運用
+
+1. 次バージョン (`v<X.Y.Z>`) を決め、`production` から `release/v<X.Y.Z>` を作る (`make branch-patch` / `branch-minor` / `branch-major`)
+2. このブランチに `feature/*` / `bugfix/*` を PR 経由で merge していく
+3. リリース対象が揃ったら `release/v<X.Y.Z>` → `develop` の PR を作る (タイトル例: `Release v<X.Y.Z>`)
+4. `.github/release/` に該当バージョンのリリースノートを Markdown で追加する (本リポの慣例。フォーマットは既存ファイルを参照)
+5. `develop` → `staging` → `production` の昇格はそれぞれ別 PR で行い、保護ルールに従う
+6. `production` HEAD で `make tag-patch` / `tag-minor` / `tag-major` を実行する
+   - 直近のリリースタグから SemVer の次バージョンを計算し、`production` HEAD にタグを打つ
+   - `.github/release/<v>.md` を `--notes-file` として `gh release create` を行い、GitHub Release を生成する
+   - 対応するリリースノート Markdown が存在しない場合、コマンドは失敗する (タグ・Release の整合性担保のため)
+
+**`package.json` の `version` はリリースブランチ名から導く。**`package.json` はバージョンを決める側ではなく、
+ブランチ名の名乗りに従う側に置く。人が両方を書くと、出荷したバージョンと名乗るバージョンが黙ってずれる。焼き込むのは
+上の手順 1 の `make branch-*` で、切ったブランチの上に version を合わせるコミットが 1 本乗る (既に
+名乗りどおりなら何も書かず、コミットも作らない)。PR の base が名乗るバージョンと一致するかは CI
+(`package-version`) が同じ規則で導き直して見る。手で直すときは `make version-stamp`。
+
+**検査が届くのは「ブランチ名と `package.json` の一致」までで、ブランチ名そのものの正しさではない。**
+ブランチ名が最新タグから 1 段進んだバージョンであることを保証するのは `make branch-*` が切る瞬間だけで、手で
+切った `release/v9.9.9` は誰も咎めない。同じ理由で、`hotfix/<issue>-<desc>` の形で切った hotfix には
+バージョンが含まれないため焼き込みは何もせず、CI も据え置きとして緑を返す。バージョンを載せたい hotfix は
+`make hotfix-patch` (`hotfix/v<X.Y.Z>`) で切る。
+
+### Hotfix 運用
+
+1. `production` から `hotfix/<issue>-<desc>` を切る (`make hotfix-patch` を使うと `hotfix/v<X.Y.Z>` になり、`version` の焼き込みもリリースブランチと同じに揃う)
+2. 修正・テストの上、`hotfix/*` → `production` の PR を作る
+3. merge 後、同じ修正を `develop` にも反映する PR を作る (cherry-pick または同等の変更)
+4. 必要に応じて `staging` にも反映し、3 環境間の差分を解消する
+
+## 他リポジトリへのリンク
+
+**[0159-1](0159-1-cross-repository-references.ja.md) が持つ。** デフォルトは `redirect.github.com` を通すこと、素のリンクは留保であること、使う判断が例外なく人間のものであること —— いずれも本 ADR の射程（git の操作手順）ではなく、エージェントが書いた文字列が GitHub へ届く場所すべてに掛かる。
+
+## 禁止事項
+
+- ❌ 保護ブランチ (`production` / `staging` / `develop` / `release/**` / `hotfix/**`) への直接 push
+- ❌ 保護ブランチへの force push / 非 fast-forward push / ブランチ削除
+- ❌ `feature/*` / `bugfix/*` を `develop` / `staging` / `production` から派生させること (必ず最新の `release/*` から)
+- ❌ プレフィックスなしの commit メッセージ (`update`, `wip` 等)
+- ❌ メジャー依存更新を他のコミット (機能追加 / バグ修正等) と同じコミット・PR に混ぜること（強制: 散文 —— **一部寄せられる**。PR の差分が `package.json` の major バージョンの繰り上げとそれ以外の変更を併せ持つことは差分で落とせるが規則は無い。併せ持った変更が更新への追従か別の機能かは変更の意味で決まる）
+- ❌ 既存 PR ブランチへの履歴書き換え (`commit --amend` + force push、`rebase` 等)。追加修正は常に新規コミットで積む（強制: `feature/**` / `bugfix/**` は `work-branch-history.json` の `non_fast_forward`、保護ブランチは `branch-protection.json`。手元の `commit --amend` / `rebase` そのものは push されるまで現れない）
+- ❌ PR テンプレートのセクション (`概要` / `変更内容` / `動作確認方法`) を削除・空欄のまま merge すること（強制: 散文 —— **一部寄せられる**。PR 本文に 3 つの見出しが在り中身が空でないことは `pull_request` の本文を読めば落とせるが規則は無い。中身が変更を説明しているかは読んで決まる）
+- ❌ コミット・PR メッセージで英語をデフォルトとすること (日本語がデフォルト。技術用語の英表記は許容)
+- ❌ ブランチ保護設定 (`.github/settings/branch-protection.json` / `.github/settings/work-branch-history.json`) を本 ADR の改訂なしに緩めること（強制: 散文 —— **一部寄せられる**。両ファイルの規則の削除や数値の引き下げを、`0150` の本文を伴わない PR で落とす形は書けるが規則は無い。リポジトリ設定を UI から直接緩めた場合はファイルに現れない）
+
+## 補足
+
+- 「最新の `release/*` から派生する」ルールがあるため、複数の `release/*` が並行する期間は **どの release に乗せるかを issue / PR 段階で決める**。曖昧な場合は最新の `release/*` を採る
+- **GitHub のデフォルトブランチは最新の `release/vX.Y.Z`** とする。リポジトリを開いた人が「現在作業中のリリース」を最初に見る形にするためである。デフォルトブランチはリリースを切るたびに新しい `release/*` へ張り替える
+- **派生元と PR の base は、どちらも最新の `release/vX.Y.Z`。** 引くのは `make base-branch` で、**origin の生の状態**（`ls-remote`）からバージョンを数値で比べて決める。**ローカルの参照とデフォルトブランチを基準にしない** —— `refs/remotes/origin/HEAD` は clone 時に固定されて `git fetch` では動かず、デフォルトブランチの張り替えも人の操作なので、どちらも古いラインを指したまま黙って外れる。**release ラインが 1 本も無い remote では答えを返さず落ちる**（[0157](0157-inspection-declaration-discipline.ja.md)）。
+  > 強制: `make base-branch`。`commit` / `submit-pr` の両スキルがこのエントリポイントを通す
+- **`develop` を base に取ってよいのは `release/*` → `develop` の統合 PR だけ。** `feature/*` / `bugfix/*` の PR が `develop` を向いていたら、派生元を取り違えている。`develop` は統合先であり、開いている `release/*` より必ず後ろにいるため、そこを起点にすると既に載っている変更を差分として引き連れる
+- 本 ADR ではブランチ命名・保護対象・コミット粒度のみを宣言する。CI ジョブの具体構成 (どの job をどのブランチで走らせるか) や自動デプロイ連携の詳細は [0153](0153-ci-configuration.ja.md) が扱う
+- **worktree はリポジトリの外へ出さず、`.claude/worktrees/` に置き、ツリーをスキャンする各ツールで個別に除外する。撤回条件は、エージェントの道具が worktree の生成先を設定で受け取るようになったとき** —— 現状は生成先が固定で、リポジトリ外に置く規約を敷いても人手で作った分にしか効かず、両流儀が併存して除外の要否が読めなくなる。**除外箇所が増えて煩わしいことは条件にならない** —— 煩わしさは同期漏れの検査で減らす話であり、実体の置き場所とは別である
+
+## 関連 ADR
+
+- [0001-package-manager.md](0001-package-manager.ja.md) — `pnpm-lock.yaml` を commit する方針 (lockfile の手動編集禁止)
+- [0004-library-management.md](0004-library-management.ja.md) — 依存ライブラリ更新 PR の粒度 (メジャー更新は別 PR)
+- [0151-git-hooks.md](0151-git-hooks.ja.md) — pre-commit / pre-push hook の運用方針
+- [0153-ci-configuration.md](0153-ci-configuration.ja.md) — CI ジョブの構成と required check

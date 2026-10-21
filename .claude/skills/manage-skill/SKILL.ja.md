@@ -30,13 +30,13 @@
 
 - `AGENTS.md`
 - `LICENSE`
-- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.md) / [0155](../../../docs/adr/0155-claude-skills-development.md) のカバー範囲テーブルへ行を追加するが、それが今できるのは `AGENTS.md`「Temporary Operating Rules until v1.0.0」が ADR 本文への承認要件を解除しているからにすぎない。この暫定運用が外れたら、行追加も他の ADR 編集と同様にユーザの明示的承認を要する — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
+- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) / [0155](../../../docs/adr/0155-claude-skills-development.ja.md) のカバー範囲テーブルへ行を追加する。その編集にユーザの明示的承認が要るかは、他の ADR 編集と同様に `AGENTS.md` の *Protected Documentation* が決める — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
 - `.claude/settings.json` — プラグイン bootstrap が `claude` CLI 経由で書き込む（Step 0）。ここで手編集してはならない。
 - `.claude/settings.json` の `permissions.deny` に載っているパス。
 
 ## Step 0. 公式の方法論を用意して読み込む
 
-*どうやるか* の正典は公式の `skill-creator`。まずその存在を保証する:
+*どうやるか* の canonical は公式の `skill-creator`。まずその存在を保証する:
 
 ```bash
 pnpm exec tsx scripts/bootstrap-plugins
@@ -58,7 +58,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 
 ## Step 1. 操作内容を確認する
 
-何かを書き始める前に `AskUserQuestion` を呼ぶ。ADR [0154](../../../docs/adr/0154-claude-skills-operations.md) が定める「入力は引数から暗黙に採用せず明示的に確認する」規約に従う:
+何かを書き始める前に `AskUserQuestion` を呼ぶ。ADR [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) が定める「入力は引数から暗黙に採用せず明示的に確認する」規約に従う:
 
 1. **どの操作か** — 新規 / 更新 / description 最適化 / 対訳ペア修復。
 2. **どのスキルか** — 更新・最適化・修復の場合、対象の `.claude/skills/<slug>/`。
@@ -70,12 +70,12 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 
 | 系統 | ADR | 定義 |
 | --- | --- | --- |
-| 運用系 | [0154](../../../docs/adr/0154-claude-skills-operations.md) | 開発プロセスを進めるためのオペレーション — Git / GitHub、リリース、依存・ツール監査、`.claude/` のメタ inventory。コード生成・編集を主目的としないもの |
-| 開発系 | [0155](../../../docs/adr/0155-claude-skills-development.md) | コード / ドキュメント / 設定の生成・編集・レビュー |
+| 運用系 | [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) | 開発プロセスを進めるためのオペレーション — Git / GitHub、リリース、依存・ツール監査、`.claude/` のメタ inventory。コード生成・編集を主目的としないもの |
+| 開発系 | [0155](../../../docs/adr/0155-claude-skills-development.ja.md) | コード / ドキュメント / 設定の生成・編集・レビュー |
 
 各系統の現在の構成員は、その ADR のカバー範囲テーブルが持つ。ここに一覧を置かず、今回の実行で読む。
 
-提案されたスキルが、`BACKLOG.md` でまだ未決の領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（`docs/rules.md`「作業とエージェント」）。スキルを、規約が暗黙に決まる場所にしてはならない。
+提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（[`docs/rules.md#workflow`](../../../docs/rules.ja.md#workflow)）。スキルを、規約が暗黙に決まる場所にしてはならない。
 
 近い役割の重複を作るくらいなら、既存スキルの拡張を優先する。粒度は「1 起動 = 1 オペレーション」（ADR 0154）。
 
@@ -112,7 +112,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 ### 言語（`AGENTS.md`）
 
 - `SKILL.md` は **英語 canonical**。canonical 本文を日本語で書かない。
-- 一方、スキルの*実行時の挙動*は日本語出力規約に従う — スキルが出力しリポジトリへ書き込むもの（応答 / コミット・PR 文面 / コードコメント / 生成ドキュメント）はすべて**日本語**。この要件をスキル自身の手順へ書き込むこと。
+- 一方、スキルの*実行時の挙動*は日本語出力規約に従う — スキルが出力するもの（応答 / コミット・PR 文面 / コードコメント）は**日本語**。スキルが書く文書は**英語の canonical** で、その兄弟の `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。文書を読むスキルは `*.ja.md` を除く。この 2 つの要件をスキル自身の手順へ書き込むこと。
 
 ### 外向き操作の前のユーザ確認（ADR 0154）
 
@@ -124,7 +124,7 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 
 - 定義は `.claude/agents/<slug>.md` に置き、新種を発明せず既存タイプを再利用する。
 - subagent は **read-only on source** で、所見だけを返す。書き込みは orchestrator 側が行う。
-- 既定モデルは `sonnet`。reviewer ≠ implementer が重要な場合はその意図を `SKILL.md` に明記し、各 subagent の起動モデルも書く。
+- デフォルトモデルは `sonnet`。reviewer ≠ implementer が重要な場合はその意図を `SKILL.md` に明記し、各 subagent の起動モデルも書く。
 - 「念のため」で subagent を増やさない（ADR がコスト見合いで禁じている）。
 
 ### 正は実行時に読む
@@ -148,13 +148,13 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 - eval のベースラインとして、公式の指針どおり編集前のスキルを `tmp/` 配下へスナップショットし、前後比較できるようにする。
 - 変更によって他所の記述が無効にならないか確認する — ADR のカバー範囲テーブル、このスキルへ chain している他スキル、`tool-map` の依存マップ。
 
-## Step 4. 日本語対訳ペアを同期する
+## Step 4. 日本語ミラーを同期する
 
-本リポジトリのスキルは必ず `SKILL.md` の隣に `SKILL.ja.md` を持つ（ADR [0140](../../../docs/adr/0140-documentation-operations.md) / 0154）。これは任意ではない。canonical な `SKILL.md` が確定 / 変更されたら:
+本リポジトリのスキルは必ず `SKILL.md` の隣に `SKILL.ja.md` を持ち、同梱の `prompts/*.md` / `references/*.md` もそれぞれ兄弟の `.ja.md` を持つ —— ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) は、閉じた「ミラーを作らない一覧」を除くすべての英語の canonical にミラーを与え、0154 は `SKILL.md` のペアを必須にする。これは任意ではない。canonical が確定 / 変更されたら:
 
-- `canonicalize-doc` スキルを chain し、canonical な `SKILL.md` から `SKILL.ja.md` を生成 / 同期する。
-- `SKILL.ja.md` は **YAML frontmatter を持たず**、「これは翻訳であり、直接編集せず、更新は `SKILL.md` から流す」旨の blockquote から始める。
-- 完了とする前に、見出し構造と節数が一致していることを確認する。`SKILL.md` だけ変わって日本語側が古いのは drift。
+- `canonicalize-doc` スキルを chain し、変わった canonical それぞれのミラーを生成 / 同期する —— 変更が複数ファイルに及ぶなら一括モードで。
+- ミラーは **YAML frontmatter を持たず**、1 行目の同期の注記から始める。`SKILL.ja.md` は独自の 3 行の注記を持つ: 翻訳であり、直接編集せず、更新は `SKILL.md` から流す。canonical はミラーへリンクしない。
+- 完了とする前に、見出し構造とセクション数が一致していることを確認する。`SKILL.md` だけ変わって日本語側が古いのは drift。
 
 ## Step 5. ADR へ登録する
 
@@ -168,6 +168,12 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 - `pnpm lint:md` — `.claude/**` を含め、Markdown に触れたら必ず実行する。3 段で走る — markdownlint（体裁）、mermaid-lint（図の構文）、`skill-lint`（frontmatter のキー、`SKILL.md` / `SKILL.ja.md` の見出し構造、本文が参照する `make` ターゲット・パスの実在性）。`skill-lint` が判定できない部分 — 対訳が同じことを言っているか、本文の内容が今も正しいか — は引き続きこのスキルの責務。
 - eval 生成物が staged になっていないこと（`git status`）と、保護対象パスに触れていないことを確認する。
 
+## Step 7. Codex への移植を申し出る
+
+Codex はスキルを `.agents/skills/<name>/` の自分の写しから読み、変更をそこへ運ぶものは他に無い。Step 6 の後、Claude 専用ではない新規または大きく変えたスキルについて、このスキルを送信元とする `/sync-ai` を**申し出る** —— `.agents/skills/<name>/` が既に在るか、user が Codex の写しを望むときだけ。`AskUserQuestion` で問い、自分からは起動しない。Codex への引き渡しは作業ツリーへ書き込む別の有料エージェントを走らせるためである。
+
+この実行そのものが `sync-ai` の受信側（転送契約を渡されて起動された）なら申し出ない。受信側が次の同期を始めることこそ `sync-ai` が防いでいる連鎖である。意図して Claude 専用にしているスキルには触れず、そう報告する。
+
 ## Definition of Done
 
 - 公式 `skill-creator` の方法論を解決して読み込んだ（Step 0）。
@@ -177,3 +183,4 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 - 同梱スクリプトが `tsx` 実行の TypeScript である（インストール前単体実行の例外に当たる場合を除く）。
 - eval 生成物をコミットしていない。保護対象パスに触れていない。
 - 検証コマンドを実行し、**機械検査されなかった範囲**も含めて正直に報告した。
+- Codex の写しが在るか望まれるとき、Step 7 のとおり `/sync-ai` を申し出た。申し出なかったときはその理由を述べた。

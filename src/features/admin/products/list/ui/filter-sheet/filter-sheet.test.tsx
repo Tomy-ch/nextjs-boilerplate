@@ -10,7 +10,7 @@ const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 import type { AdminProductFilterOption } from "../../filter-option";
-import type { AdminProductListConditions } from "../../query";
+import { type AdminProductListConditions, DISCONTINUED_FILTER } from "../../query";
 import { AdminProductFilterSheet } from "./filter-sheet";
 
 beforeAll(() => {
@@ -34,6 +34,7 @@ const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 function renderSheet(conditions: AdminProductListConditions = NO_CONDITIONS) {
@@ -85,6 +86,12 @@ describe("AdminProductFilterSheet", () => {
     expect(screen.getByLabelText("3 件の条件が有効")).toBeInTheDocument();
   });
 
+  it("廃番の条件も 1 件として数に含める", () => {
+    renderSheet({ ...NO_CONDITIONS, categoryCodes: ["1"], discontinued: DISCONTINUED_FILTER.ONLY });
+
+    expect(screen.getByLabelText("2 件の条件が有効")).toBeInTheDocument();
+  });
+
   it("何も効いていなければ数を出さない", () => {
     renderSheet();
 
@@ -110,6 +117,36 @@ describe("AdminProductFilterSheet", () => {
     await openField("分類");
 
     expect(screen.getByRole("checkbox", { name: "電子機器" })).toBeChecked();
+  });
+
+  it("廃番の条件をいま効いている値から組み直す", async () => {
+    await open({ ...NO_CONDITIONS, discontinued: DISCONTINUED_FILTER.EXCLUDED });
+
+    expect(screen.getByRole("radio", { name: "廃番を除く" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "廃番のみ" })).not.toBeChecked();
+  });
+
+  it("廃番の条件を選んで確定すると、その条件で一覧へ移る", async () => {
+    await open();
+    await userEvent.click(screen.getByRole("radio", { name: "廃番のみ" }));
+
+    expect(push).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("button", { name: "この条件で見る" }));
+
+    expect(push).toHaveBeenCalledWith("/admin/products?discontinued=true");
+  });
+
+  it("すべて外すと廃番の条件も外れ、確定した URL に載らない", async () => {
+    await open({ ...NO_CONDITIONS, discontinued: DISCONTINUED_FILTER.ONLY });
+
+    await userEvent.click(screen.getByRole("button", { name: "条件をすべて外す" }));
+
+    expect(screen.getByRole("radio", { name: "廃番のみ" })).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole("button", { name: "この条件で見る" }));
+
+    expect(push).toHaveBeenCalledWith("/admin/products");
   });
 
   it("選んだ時点では反映しない", async () => {
@@ -174,6 +211,7 @@ describe("AdminProductFilterSheet", () => {
 
     expect(screen.getByRole("checkbox", { name: "電子機器" })).not.toBeChecked();
   });
+
   it("閉じているときの a11y 検査を通る", async () => {
     const { container } = renderSheet();
 

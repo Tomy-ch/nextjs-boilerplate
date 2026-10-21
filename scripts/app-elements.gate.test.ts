@@ -24,7 +24,7 @@ const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
 const ALLOWED: Readonly<Record<string, readonly Kernel[]>> = {
   "app-route-handler": ["adapters", "model", "errors", "logging"],
   // `config` は element の表に無いが、禁じられているのは server config の直読だけで、層の粒度
-  // では client config の公開定数と分けられない（GB-1）。
+  // では client config の公開定数と分けられない。
   "app-server-action": ["adapters", "features", "model", "errors", "logging", "config"],
   "app-metadata": ["adapters", "config", "model"],
 };
@@ -77,7 +77,7 @@ describe("app の element の禁止", () => {
 
   // ----- 正常系 -----
   it(
-    "`route.ts` から境界アダプタと feature の `facade/` は引ける",
+    "`route.ts` から `model` と feature の `facade/` は引ける",
     async () => {
       const errors = await boundaryErrorsOf(
         "src/app/api/probe/route.ts",

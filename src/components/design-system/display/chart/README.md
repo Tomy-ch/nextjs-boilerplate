@@ -1,52 +1,52 @@
 # Chart
 
-## 用途
+## Purpose
 
-集計値の推移や内訳を、系列ごとの色と形で表示します。数値カードや表では見えない傾向や比較を補います。
+Displays trends and breakdowns of aggregated values with per-series color and shape. It complements trends and comparisons that number cards and tables do not reveal.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 型 | 役割 |
+| Component / Type | Role |
 | --- | --- |
-| `ChartContainer` | 系列定義と描画領域を配下へ与える client-side root です。色を CSS 変数として配ります。 |
-| `ChartTooltip` | hover 位置の系列値を表示する tooltip です。中身は `content` へ渡します。 |
-| `ChartTooltipContent` | tooltip の中身です。系列名・色の印・値を並べます。 |
-| `ChartLegend` | 系列名と色の対応を示す凡例です。中身は `content` へ渡します。 |
-| `ChartLegendContent` | 凡例の中身です。系列の印と表示名を並べます。 |
-| `ChartStyle` | 系列色を CSS 変数として配る `style` 要素です。`ChartContainer` が内部で描画します。 |
-| `ChartConfig` | 系列ごとの表示名・色・アイコンの定義です。 |
+| `ChartContainer` | The client-side root that gives the series definitions and the drawing area to what is beneath it. It distributes colors as CSS variables. |
+| `ChartTooltip` | The tooltip that shows the series values at the hover position. Its content is passed to `content`. |
+| `ChartTooltipContent` | The tooltip's content. Lays out series names, color markers and values. |
+| `ChartLegend` | The legend showing the mapping between series names and colors. Its content is passed to `content`. |
+| `ChartLegendContent` | The legend's content. Lays out series markers and display names. |
+| `ChartStyle` | The `style` element that distributes series colors as CSS variables. `ChartContainer` renders it internally. |
+| `ChartConfig` | The definition of each series' display name, color and icon. |
 
-`CHART_INDICATOR` / `ChartIndicator` と `CHART_THEME_SELECTORS` / `ChartTheme` を `chart.definition.ts` で公開します。`indicator` に指定できる値の owner はこの定義であり、`"dashed"` などの文字列を利用側で直接書きません。
+`CHART_INDICATOR` / `ChartIndicator` and `CHART_THEME_SELECTORS` / `ChartTheme` are exported from `chart.definition.ts`. This definition owns the values that can be given to `indicator`, and callers do not write strings such as `"dashed"` directly.
 
-## 利用ケース
+## Use Cases
 
-- 期間ごとの件数推移を折れ線や棒で示す場合
-- 複数系列の大小を並べて比較する場合
+- Showing the trend of counts per period with lines or bars
+- Comparing the magnitudes of several series side by side
 
-## 責務境界
+## Responsibility Boundaries
 
-recharts が描画に DOM の実寸を必要とするため hydration が必要な client island です。Server Component からは直接 render できません。
+recharts needs the actual DOM dimensions to render, so it is a client island that needs hydration. It cannot be rendered directly from a Server Component.
 
-データの取得・集計・並べ替えは持ちません。描画に必要な形へ整えた配列を呼び出し元が渡します。軸の刻みや書式も持たないため、日時や金額の整形は `model/` の formatter を通した値を渡します。
+It does not own fetching, aggregating or sorting data. The caller passes an array already shaped for rendering. It does not own axis ticks or formats either, so pass dates and amounts as values formatted through the formatters in `model/`.
 
-`config` の各 key は data の系列名と一致させます。色は `--color-<key>` の CSS 変数として配下へ配られるので、recharts 側では `var(--color-<key>)` で参照します。
+Each key of `config` matches a series name in the data. Colors are distributed beneath it as `--color-<key>` CSS variables, so on the recharts side they are referenced as `var(--color-<key>)`.
 
-`ChartStyle` は `dangerouslySetInnerHTML` で stylesheet を書き出します。系列色を CSS 変数として配下へ配る手段が他に無いためで、`config` の色は開発者が書く定数であることを前提にしています。**利用者入力や API 応答を色として渡しません。**
+`ChartStyle` writes out a stylesheet with `dangerouslySetInnerHTML`. There is no other way to distribute series colors beneath it as CSS variables, and it assumes the colors in `config` are constants written by developers. **Do not pass user input or API responses as colors.**
 
-### chart を唯一の伝達手段にしない
+### Do not make the chart the only means of conveying information
 
-chart は形と色で情報を伝えるため、それだけでは読み取れない利用者がいます。同じ内容へ到達できる数値表や要約を必ず併置します。`WithDataTable` の story がその構成です。
+A chart conveys information through shape and color, so some users cannot read it from that alone. Always place alongside it a number table or summary that reaches the same content. The `WithDataTable` story is that composition.
 
-`ChartTooltipContent` は pointer を合わせている間だけ現れるため、touch 環境と keyboard 利用者には到達できません。tooltip でしか読めない情報を置きません。
+`ChartTooltipContent` appears only while the pointer is over it, so touch environments and keyboard users cannot reach it. Do not put information that can be read only in the tooltip.
 
-## 使わない場合
+## When Not to Use It
 
-0 から始まる 1 系列の帯とその軸だけを描くなら、この部品を採らず要素と CSS で描きます。座標系・凡例・tooltip・アニメーションのどれも使わないのに、画面を開いた人が recharts の読み込みと評価を払うことになります。採るのは、系列を重ねる・値の位置を軸に対して読ませる・pointer で系列値を引く、といった作図の一式が要るときです。
+If all you draw is a single series' bars starting at 0 and their axis, do not adopt this component; draw it with elements and CSS. Otherwise everyone who opens the screen pays for loading and evaluating recharts while none of the coordinate system, legend, tooltip or animation is used. Adopt it when the full plotting set is needed: overlaying series, reading values' positions against an axis, or pulling series values with the pointer.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は複数系列の棒グラフ、折れ線、tooltip の印を破線にする場合、同じ内容の数値表を併置する構成を確認します。
+Storybook checks a multi-series bar chart, a line chart, making the tooltip's marker dashed, and the composition with a number table of the same content placed alongside.
 
-テストは `ChartContainer` の `data-chart` 付与と `id` の反映、`ChartStyle` の CSS 変数出力と配色モードごとの振り分け、色を持つ系列が無い場合、`ChartTooltipContent` の開閉・表示名と値・桁区切り・`hideLabel` / `labelFormatter` / `formatter` / `hideIndicator` / `indicator` の各分岐・`nameKey` / `labelKey` による定義解決・値が無い系列・`type` が `none` の系列、`ChartLegendContent` の表示名・`verticalAlign`・アイコンの出し分け、`ChartContainer` の外で使った場合の例外、a11y 自動検査を確認します。
+Tests check `ChartContainer` adding `data-chart` and reflecting `id`, `ChartStyle`'s CSS variable output and its split by color mode, the case with no series that has a color, `ChartTooltipContent`'s opening/closing, display names and values, digit grouping, each branch of `hideLabel` / `labelFormatter` / `formatter` / `hideIndicator` / `indicator`, resolving definitions by `nameKey` / `labelKey`, series with no value, series whose `type` is `none`, `ChartLegendContent`'s display names, `verticalAlign` and switching icons, the exception when used outside `ChartContainer`, and automated a11y checks.
 
-jsdom は要素の寸法を常に 0 と報告し `ResizeObserver` も持たないため、recharts が children を描画しません。テスト側で実寸を返す `ResizeObserver` と `getBoundingClientRect` を stub しています。実装からその依存を取り除く方向では対処しません。
+jsdom always reports element dimensions as 0 and has no `ResizeObserver`, so recharts does not render children. The test side stubs a `ResizeObserver` and `getBoundingClientRect` that return actual dimensions. This is not addressed by removing that dependency from the implementation.

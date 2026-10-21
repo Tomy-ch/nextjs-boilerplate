@@ -18,6 +18,7 @@ beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), "doc-links-"));
   place("docs/guide.md", "# 使い方\n\n## 置き場\n\n## 置き場\n\n## `cn()` の使い方\n");
   place("docs/logo.svg");
+  place("docs/guide.ja.md", "# 使い方\n\n## 置き場\n");
   mkdirSync(join(root, "docs/nested"), { recursive: true });
 });
 
@@ -102,6 +103,24 @@ describe("findBrokenDocLinks", () => {
     const source = "[手引き]: ../docs/guide.md\n";
 
     expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([]);
+  });
+
+  it("ミラーからミラーへのリンクは拾わない", () => {
+    const source = "[使い方](guide.ja.md#置き場)";
+
+    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
+  });
+
+  it("ミラーから canonical へのリンクは拾わない", () => {
+    const source = "[使い方](guide.md)";
+
+    expect(findBrokenDocLinks("docs/other.ja.md", source, root)).toEqual([]);
+  });
+
+  it("ミラーの名前をリンクにせず挙げるだけの行は拾わない", () => {
+    const source = "日本語訳は `guide.ja.md` にある。guide.ja.md も同じ。";
+
+    expect(findBrokenDocLinks("docs/x.md", source, root)).toEqual([]);
   });
 
   // ----- 異常系 -----
@@ -192,6 +211,42 @@ describe("findBrokenDocLinks", () => {
       { file: "src/x.md", href, line: 1, reason: "anchor" },
     ]);
   });
+
+  it("canonical から翻訳のミラーへのリンクを mirror として返す", () => {
+    const href = "../docs/guide.ja.md";
+    const source = `[使い方](${href})`;
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "mirror" },
+    ]);
+  });
+
+  it("見出しを指していても、ミラーへのリンクは mirror として返す", () => {
+    const href = "../docs/guide.ja.md#置き場";
+    const source = `/** [置き場](${href}) */`;
+
+    expect(findBrokenDocLinks("src/x.ts", source, root)).toEqual([
+      { file: "src/x.ts", href, line: 1, reason: "mirror" },
+    ]);
+  });
+
+  it("実在するミラーの無い見出しを指すリンクは、アンカー切れより先に mirror として返す", () => {
+    const href = `../docs/guide.ja.md#${"無い節"}`;
+    const source = `[無い節](${href})`;
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "mirror" },
+    ]);
+  });
+
+  it("実在しないミラーへのリンクは、ファイル切れとして返す", () => {
+    const href = "../docs/missing.ja.md";
+    const source = `[無い](${href})`;
+
+    expect(findBrokenDocLinks("src/x.md", source, root)).toEqual([
+      { file: "src/x.md", href, line: 1, reason: "path" },
+    ]);
+  });
 });
 
 describe("formatBrokenDocLinks", () => {
@@ -200,12 +255,14 @@ describe("formatBrokenDocLinks", () => {
     const broken = [
       { file: "src/a.ts", href: "../docs/x.md", line: 3, reason: "path" },
       { file: "src/b.md", href: "../docs/x.md#無い", line: 4, reason: "anchor" },
+      { file: "src/c.md", href: "../docs/x.ja.md", line: 5, reason: "mirror" },
     ] as const;
 
     expect(formatBrokenDocLinks(broken, root)).toBe(
       [
         "src/a.ts:3: ../docs/x.md（ファイルが無い）",
         "src/b.md:4: ../docs/x.md#無い（見出しが無い）",
+        "src/c.md:5: ../docs/x.ja.md（canonical から翻訳のミラーへリンクしている）",
       ].join("\n"),
     );
   });

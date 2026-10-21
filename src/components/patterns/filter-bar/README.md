@@ -1,74 +1,74 @@
 # FilterBar
 
-## 用途
+## Purpose
 
-一覧の絞り込み操作と、いま効いている条件をまとめて表示します。
+Shows a list's filtering controls together with the conditions currently in effect.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `FilterBar` | 絞り込み全体を `section` landmark として囲みます。 |
-| `FilterBarControls` | 検索欄と条件を開く操作を並べる行です。 |
-| `FilterBarTrigger` | 条件の入力欄を開く操作です。効いている条件の数を添えます。 |
-| `FilterBarActiveFilters` | 効いている条件を並べる一覧です。 |
-| `FilterChip` | 条件 1 件と、その解除操作です。 |
-| `FilterBarSummary` | 絞り込んだ結果の件数と、条件をすべて解除する導線です。 |
+| `FilterBar` | Wraps the whole filter area as a `section` landmark. |
+| `FilterBarControls` | Row that lays out the search field and the control that opens the conditions. |
+| `FilterBarTrigger` | Control that opens the condition inputs. It shows the number of conditions in effect. |
+| `FilterBarActiveFilters` | List of the conditions in effect. |
+| `FilterChip` | One condition and the control that removes it. |
+| `FilterBarSummary` | The number of filtered results and the path to clear all conditions. |
 
-## 利用ケース
+## Use Cases
 
-検索欄は持たないので、[`search-field-native`](../../design-system/form/search-field-native/README.md) か [`search-field-client`](../../design-system/form/search-field-client/README.md) を `FilterBarControls` へ合成します。条件の入力欄の中身は画面ごとに異なるため、`Sheet` や `Popover` を呼び出し元が組み立て、`FilterBarTrigger` をその trigger として渡します。
+It has no search field of its own, so compose [`search-field-native`](../../design-system/form/search-field-native/README.md) or [`search-field-client`](../../design-system/form/search-field-client/README.md) into `FilterBarControls`. The contents of the condition inputs differ per screen, so the caller assembles a `Sheet` or `Popover` and passes `FilterBarTrigger` as its trigger.
 
-## 条件が 1 つの画面では使いません
+## Not used on a screen with a single condition
 
-この組は**条件が複数あること**を前提にしています。効いている条件を chip で並べ、まとめて解除する
-導線を持つのはそのためで、条件が 1 つしか無い画面では入力欄そのものが効いている条件の表示に
-なり、chip はその写しにしかなりません。解除もその条件を既定へ戻すだけで足ります。
+This set assumes **there are several conditions**. That is why it lists the conditions in effect as chips and has a path
+to clear them all at once; on a screen with only one condition, the input itself already shows the condition in effect,
+and a chip would only be a copy of it. Clearing it is also just resetting that condition to its default.
 
-条件が 1 つなら、入力欄を素の `form` に置き、`aria-label` を与えて landmark にすれば同じことが
-できます。**入力欄が overlay の中にあって閉じているあいだ見えない幅では、開く操作の文言に効いて
-いる条件そのものを出します** —— 件数の印だけでは「何かで絞られている」までしか伝わらず、何でかを
-見るために開くことになります。
+With a single condition, the same is achieved by placing the input in a plain `form` and making it a landmark with an
+`aria-label`. **At widths where the input sits in an overlay and is hidden while closed, put the condition in effect itself
+in the text of the opening control** — a count marker alone conveys only "something is filtering", and the user has to open it
+to see what.
 
-## `SearchField*` との使い分け
+## `SearchField*` vs This Component
 
-排他ではなく、入れ子の関係です。`SearchFieldNative` / `SearchFieldClient` は**検索語 1 つの入力欄**を担い、`FilterBar` は**検索語を含む絞り込み全体の枠**を担います。検索欄そのものは持たないので、`FilterBarControls` の中へ合成します。
+They are not exclusive but nested. `SearchFieldNative` / `SearchFieldClient` handle **the input for a single search term**, and `FilterBar` handles **the frame for the whole filter, including the search term**. It has no search field of its own, so the field is composed into `FilterBarControls`.
 
-| 画面 | 使うもの |
+| Screen | What to use |
 | --- | --- |
-| キーワードだけで絞り込む | `SearchField*` のみ |
-| キーワードに加えて状態・期間などの条件がある | `FilterBar` + `SearchField*` |
-| 条件はあるがキーワード検索は無い | `FilterBar` のみ |
+| Filtering by keyword only | `SearchField*` only |
+| Conditions such as status or period in addition to the keyword | `FilterBar` + `SearchField*` |
+| Conditions but no keyword search | `FilterBar` only |
 
-どちらを合成するかは検索欄側の基準（JavaScript 無しで送信できる形が要るか、打鍵に追従するか）で決めます。`FilterBar` はどちらとも組み合わせられます。
+Which one to compose is decided by the search field's own criteria (whether a form that submits without JavaScript is needed, whether it follows keystrokes). `FilterBar` combines with either.
 
-なお `FilterChip` の解除手段は、合成した検索欄と揃えます。`SearchFieldNative` と組むなら条件は URL に載るので `removeHref`、`SearchFieldClient` と組んで client 側に条件を持つなら `onRemove` です。
+The removal means of `FilterChip` matches the composed search field. With `SearchFieldNative` the conditions are in the URL, so use `removeHref`; with `SearchFieldClient`, holding the conditions on the client side, use `onRemove`.
 
-## 解除の手段
+## Removal Means
 
-`FilterChip` には `removeHref` か `onRemove` のどちらか一方を渡します。
+Pass `FilterChip` exactly one of `removeHref` or `onRemove`.
 
-- `removeHref`: URL に条件を載せる一覧で使います。条件を外した状態が履歴に残り、URL として共有できます。
-- `onRemove`: client 側で条件を持つ一覧で使います。
+- `removeHref`: for lists that put conditions in the URL. The state with the condition removed stays in history and can be shared as a URL.
+- `onRemove`: for lists that hold conditions on the client side.
 
-どちらも渡さない場合、条件は表示だけになります。
+If neither is passed, the condition is display-only.
 
-## 支援技術への伝え方
+## How It Reaches Assistive Technology
 
-`FilterBar` は `section` の landmark なので、絞り込みへ直接移動できます。同じ画面に絞り込みが複数ある場合は `label` で区別します。
+`FilterBar` is a `section` landmark, so users can move directly to the filter. When the same screen has several filters, distinguish them with `label`.
 
-条件が無くても `FilterBarActiveFilters` は要素を残します。条件を外し切ったときに一覧ごと消えると、何が起きたかが伝わらないためです。
+`FilterBarActiveFilters` keeps its element even with no conditions. If the whole list disappeared when the last condition was removed, what happened would not be conveyed.
 
-件数は `aria-live="polite"` で伝えます。条件を変えた結果が一覧の見た目だけに現れると、画面を見ていない利用者には何件になったか分かりません。
+The count is conveyed with `aria-live="polite"`. If the result of changing conditions appeared only in the look of the list, a user not looking at the screen would not know how many results there are.
 
-解除操作の名前には条件名と値を含めます。「×」だけでは、複数並んだときに操作の一覧からどれを外すのか判別できません。
+The name of a removal control includes the condition name and value. "×" alone cannot tell which one is removed from the list of controls when several are lined up.
 
-`onRemove` で条件を外すと、押した解除操作そのものが消えます。focus が document へ落ちないよう、外す直前に focus を条件の一覧へ移します。
+Removing a condition with `onRemove` makes the pressed removal control itself disappear. So that focus does not fall to the document, focus moves to the condition list right before removal.
 
-## 責務境界
+## Responsibility Boundaries
 
-条件の解釈、URL の組み立て、絞り込みの実行、件数の計算は持ちません。呼び出し元が、表示する条件・解除先・件数を渡します。URL state の所有は feature 側です。
+It does not own interpreting conditions, building URLs, running the filter, or computing counts. The caller passes the conditions to display, the removal targets, and the count. The feature owns the URL state.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は URL に条件を載せる場合、条件が無い場合、overlay に入力欄を置く場合、client 側で条件を持つ場合を確認します。テストは landmark と一覧の名前、条件数の表示、件数と live region、解除手段の 3 通り、解除操作の名前、外したあとの focus の行き先、a11y 自動検査を確認します。
+Storybook covers putting conditions in the URL, no conditions, placing the inputs in an overlay, and holding conditions on the client side. The tests cover the names of the landmark and the list, the display of the condition count, the count and the live region, the three removal variants, the name of the removal control, where focus goes after removal, and the automated a11y check.

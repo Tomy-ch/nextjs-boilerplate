@@ -4,7 +4,7 @@ usage-class: safety
 description: >-
   Gather direct evidence about ONE artifact version that a cooldown window has caught, and score how likely it
   is to be a compromised publish, so a human can decide adopt-now vs wait from evidence rather than a day
-  count. Use it whenever a version is held or deferred by `tools-upgrade` / `actions-pin` / `images-pin`;
+  count. Use it whenever a version is held back by `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`;
   whenever `make tools-cooldown-check` blocks a pin; whenever a Dependabot security update wants to skip the
   window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. It reports an axis as
   unanswerable rather than as a pass when the evidence cannot be obtained. Strictly report-only — it never
@@ -37,7 +37,8 @@ command recipes, not prose for human readers.
 ## When to Use
 
 - A cooldown window caught a candidate and someone must decide whether to wait: `tools-upgrade`
-  classified a release pending, `actions-pin` had to step back or hold, `images-pin` held on a tag.
+  classified a release pending, `actions-pin` had to step back or hold, `images-pin` held on a tag,
+  `dep-vuln-upgrade` found an advisory's fixed version still inside the npm window.
 - `make tools-cooldown-check` fails on a `mise.toml` pin. That gate **fails the build**, so the
   question is not whether an override slipped through but whether waiting is protective.
 - A Dependabot security update wants to skip the window, and someone must decide whether taking a
@@ -57,7 +58,7 @@ command recipes, not prose for human readers.
 
 ## Do NOT use this skill for
 
-- Performing the upgrade — `tools-upgrade` / `actions-pin` / `images-pin`, or the Dependabot PR.
+- Performing the upgrade — `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`, or the Dependabot PR.
   This skill only reports.
 - Scanning first-party code for defects — `impl-review` and the SAST gates.
 - **A routine image hold.** For a mutable tag two of the four axes are usually unanswerable (there is
@@ -169,7 +170,7 @@ numbers.** Report exposure as a separate line:
 - **Build / dev-time only** — a generator, a linter, a `mise`-managed CLI. **A tool that distributes
   agent skills sits above this line rather than on it**: it runs with the developer's privileges on a
   workstation holding repository write access, and it decides for itself what leaves the machine
-  ([0110](../../../docs/adr/0110-security-operations.md) §1.1).
+  ([0110](../../../docs/adr/0110-security-operations.md)).
 
 ## Procedure
 
@@ -199,7 +200,7 @@ cannot answer.
   evidence here, because a real commit range is available
 - [`references/container-images.md`](references/container-images.md) — image digests. The thinnest
 
-Also read [0110](../../../docs/adr/0110-security-operations.md) §1.1 for the window that applies —
+Also read [0110](../../../docs/adr/0110-security-operations.md) for the window that applies —
 what the toolchain already guarantees decides whether an axis is free or absent.
 
 ### 3. Gather, score, band
@@ -254,7 +255,7 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
   window or turning off its strict mode.
 - **`make tools-cooldown-check` fails the build.** A blocked pin is blocked by a check this
   repository owns, and a LOW score does not clear it. The escape hatch is the exemption comment
-  [0110](../../../docs/adr/0110-security-operations.md) §1.1 requires — **a triage verdict is the
+  [0110](../../../docs/adr/0110-security-operations.md) requires — **a triage verdict is the
   evidence that belongs in that comment's reason, not permission to write it.**
 - **A first-ever pin has no aged fallback**, so a LOW score still leaves the choice between waiting
   and a deliberate bootstrap.
@@ -274,13 +275,13 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
   is the normal case for this skill; download counts and stars are not evidence about this version.
 - **Attribution matters as much as the verdict.** When a score lands HIGH or CRITICAL, the publisher
   and commit identified on axes P and A are what makes an upstream report actionable. Include them.
-- **This repository is public.** When a finding names a live indicator, describe it rather than
+- **Treat what reaches the repository's issues and pull requests as public.** When a finding names a live indicator, describe it rather than
   reproducing it, and raise a confirmed compromise privately before it reaches an issue body.
 - The skill never commits, stages, or pushes.
 
 ## Checklist
 
-- [ ] [0110](../../../docs/adr/0110-security-operations.md) §1.1 and §1.2 read at runtime.
+- [ ] [0110](../../../docs/adr/0110-security-operations.md) and §1.2 read at runtime.
 - [ ] Candidate fixed: ecosystem, name, candidate version, **the baseline the caller would keep**,
       window `N`, disposition, urgency.
 - [ ] The one matching `references/` file read; its unanswerable axes honored.

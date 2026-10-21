@@ -1,12 +1,12 @@
 import type { Product } from "@/model/product/product";
-import { toProductId } from "@/model/product/product";
+import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
 import type { ProductSelectOption } from "./ui/select-field/select-field";
 
 /** 分類の識別子。商品の分類と候補の並びで同じものを指す。 */
-export const CATEGORY_ID = "01936f6d-0000-7000-8000-000000000001";
+export const CATEGORY_ID = toProductCategoryId("01936f6d-0000-7000-8000-000000000001");
 
 /** 状態の識別子。候補の並びと商品の状態を結ぶためだけに使う。 */
-const STATUS_ID = "01936f6d-0000-7000-8000-000000000101";
+const STATUS_ID = toProductStatusId("01936f6d-0000-7000-8000-000000000101");
 
 /** 選べる分類。 */
 export const CATEGORY_OPTIONS: readonly ProductSelectOption[] = [

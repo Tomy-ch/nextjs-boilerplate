@@ -16,6 +16,7 @@ const NO_CONDITIONS: AdminProductListConditions = {
   keyword: "",
   categoryCodes: [],
   statusCodes: [],
+  discontinued: null,
 };
 
 function renderField(conditions: AdminProductListConditions = NO_CONDITIONS) {
@@ -23,7 +24,7 @@ function renderField(conditions: AdminProductListConditions = NO_CONDITIONS) {
 }
 
 function input(): HTMLElement {
-  return screen.getByRole("searchbox", { name: "商品名で探す" });
+  return screen.getByRole("searchbox", { name: "商品名・説明で探す" });
 }
 
 function submit(): HTMLElement {

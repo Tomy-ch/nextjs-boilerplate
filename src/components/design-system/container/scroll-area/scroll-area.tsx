@@ -4,7 +4,11 @@ import { cn } from "@/components/cn";
 
 /** {@link ScrollArea} の props。 */
 export type ScrollAreaProps = ComponentProps<"section"> & {
-  /** スクロールさせる方向。 */
+  /**
+   * スクロールさせる方向。
+   *
+   * @defaultValue "vertical"
+   */
   orientation?: "vertical" | "horizontal" | "both";
 };
 
@@ -33,6 +37,8 @@ export type ScrollAreaProps = ComponentProps<"section"> & {
  *
  * scrollbar は browser と OS が描画するため、見た目は環境で異なる。統一した scrollbar が要件に
  * なった場合は、client island の scroll area を別途追加する。
+ *
+ * @param props - native `section` 属性。`aria-label` または `aria-labelledby` は必須。
  *
  * @see Storybook `Container/ScrollArea`
  */

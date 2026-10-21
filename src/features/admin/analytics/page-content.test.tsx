@@ -49,6 +49,27 @@ describe("AdminAnalyticsPageContent", () => {
     expect(screen.queryByText("集計の区画")).not.toBeInTheDocument();
   });
 
+  it("選択肢と売れ筋は残す", () => {
+    renderContent({ period: "weekly" });
+
+    expect(screen.getByRole("navigation", { name: "集計対象期間" })).toBeInTheDocument();
+    expect(screen.getByText("売れ筋の区画")).toBeInTheDocument();
+  });
+
+  it("対象の暦日は決まっていないものとして出す", () => {
+    renderContent({ period: "range", from: "2026-06-31", to: "2026-07-01" });
+
+    expect(screen.getByText("集計する期間が決まっていません。")).toBeInTheDocument();
+  });
+
+  it("どの選択肢も現在地として示さない", () => {
+    renderContent({ period: "weekly" });
+
+    expect(screen.getByRole("link", { name: "今日" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("link", { name: "今月" })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: "期間を指定" })).not.toHaveAttribute("aria-current");
+  });
+
   it("読めないキーを画面上の呼び名で示す", () => {
     renderContent({ period: "weekly" });
 

@@ -4,7 +4,9 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
+import { purchaseDetailPath } from "@/features/purchases/facade/paths/paths";
+
+import { DISCOUNTED_PURCHASE, PURCHASE, TOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutCompleteView } from "./view";
 
 describe("CheckoutCompleteView", () => {
@@ -22,7 +24,7 @@ describe("CheckoutCompleteView", () => {
     expect(screen.getByText("ご購入いただいた商品")).toBeVisible();
   });
 
-  it("次の導線を 2 本置く", () => {
+  it("次の導線を 2 本置き、控えの導線はこの購入の詳細を指す", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={TOTAL_REFERENCE} />);
 
     expect(screen.getByRole("link", { name: "買い物を続ける" })).toHaveAttribute(
@@ -31,14 +33,28 @@ describe("CheckoutCompleteView", () => {
     );
     expect(screen.getByRole("link", { name: "購入の控えを見る" })).toHaveAttribute(
       "href",
-      "/mypage",
+      purchaseDetailPath(PURCHASE.code),
     );
   });
+
   it("参考換算額が無くても成り立つ", () => {
     render(<CheckoutCompleteView purchase={PURCHASE} reference={null} />);
 
     expect(screen.getByText("$212.87")).toBeVisible();
     expect(screen.queryByRole("button", { name: "円で見る" })).not.toBeInTheDocument();
+  });
+
+  it("値引きがあれば値引きの額を出し、クーポンの条件は出さない", () => {
+    render(<CheckoutCompleteView purchase={DISCOUNTED_PURCHASE} reference={null} />);
+
+    expect(screen.getByText("-$10.00").closest("p")).toHaveTextContent("クーポン値引き");
+    expect(screen.queryByText(/が対象$/)).not.toBeInTheDocument();
+  });
+
+  it("値引きが無ければ値引きの行を出さない", () => {
+    render(<CheckoutCompleteView purchase={PURCHASE} reference={null} />);
+
+    expect(screen.queryByText("クーポン値引き")).not.toBeInTheDocument();
   });
 
   it("a11y 自動検査に違反しない", async () => {

@@ -6,13 +6,6 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { EXPERIMENTAL_REACT_MODULES } from "./experimental-react.fixture";
 
-/**
- * `react` を Next.js 同梱の experimental build（react-server）へ向ける。
- *
- * 本番で `experimental.taint` を立てた Next.js が RSC の描画に使うのはこのビルドで、
- * stable の `react` は taint の口を持たない。**防御の側に「口があれば呼ぶ」分岐を置かないため、
- * テストの側で解決先を決める**。
- */
 vi.mock("react", async () => {
   const { createRequire: create } = await import("node:module");
   const { EXPERIMENTAL_REACT_MODULES: modules } = await import("./experimental-react.fixture");

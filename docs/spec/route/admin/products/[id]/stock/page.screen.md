@@ -1,79 +1,79 @@
-# `/admin/products/[id]/stock` 在庫の補充（画面要件）
+# `/admin/products/[id]/stock` Restocking (Screen Requirements)
 
-> 機能要件は [`page.function.md`](page.function.md)。
+> Functional requirements: [`page.function.md`](page.function.md).
 
-数を 1 つ入れて送るだけの画面。
+A screen for entering one number and sending it.
 
-## 3 つの段
+## Three Tiers
 
-**いま何個あるか → どちらへいくつ動かすか → 送る**、の順に並べる。判断の順序がそのまま縦の順序に
-なる。
+Arranged in the order **how many there are now → which way and how many to move → send**. The order of judgment becomes the
+vertical order as is.
 
-## いま何個あるかは、鮮度ごと出す
+## How many there are now is shown with its freshness
 
-**現在の在庫を数として出し、それが読み込んだ時点の値であることを添える。** 在庫は他の主体の販売・
-補充でいつでも動くため、ここに出ている数は画面を開いた瞬間の写しである。
+**Show the current stock as a number, and state that it is the value as of loading.** Stock moves at any time through other
+actors' sales and restocking, so the number shown here is a copy taken the moment the screen was opened.
 
-**取り直す導線を常設する。** ずれていることが判ってから探すのでは遅く、送る前に確かめたい人が必ず
-いる。
+**A refetch link is always present.** Looking for it after realizing the number is off is too late, and there are always people who
+want to check before sending.
 
-**商品名は折り返して 2 行で打ち切る。** 1 行に詰めると折り返しを禁じることになり、契約が許す長さの
-名前で枠ごと横に伸びる。
+**The product name wraps and is cut off at 2 lines.** Squeezing it into one line means forbidding wrapping, and a name of the length
+the contract allows stretches the whole frame sideways.
 
-## 向きは 2 択で選ばせる
+## Direction is a choice of two
 
-**「補充する」「差し引く」の排他 2 択。既定は補充。** 画面の名前が補充である以上、増やす側から
-始める。
+**An exclusive choice of 「補充する」 (restock) and 「差し引く」 (subtract). The default is restock.** Since the screen is named
+restocking, it starts on the increasing side.
 
-**選択肢を出したままにする。** 畳むと、いま逆向きが選ばれていることに気づかないまま量だけ打てる。
+**The options stay shown.** If they were collapsed, a quantity could be typed without noticing that the opposite direction is
+currently selected.
 
-## 送信後の見込みを出す
+## Showing the projection after sending
 
-**選んだ向きと打った量から、送ったらいくつになるかを出す。** 符号を人に書かせない代わりに、どちら
-向きに効くのかをその場で確かめられるようにする。
+**From the chosen direction and the typed quantity, show what the stock will be once sent.** Instead of having a person write the
+sign, this lets them confirm on the spot which way it takes effect.
 
-**参考値であることを前提に置く。** 現在の在庫が写しである以上、この数は実際の結果と一致しないこと
-がある。
+**It is premised on being a reference value.** Since the current stock is a copy, this number may not match the actual result.
 
-**負になっても入力を止めない。** 止める根拠が古い在庫しかないため、拒むかどうかは送ってから判る
-（[機能要件](page.function.md)）。**負のときは、受け付けられない要求であることだけを添える。**
+**Input is not stopped even if it goes negative.** The only basis for stopping it is the stale stock, so whether it is rejected is
+known after sending ([functional requirements](page.function.md)). **When negative, only state that the request cannot be accepted.**
 
-**量が読めないうちは出さない。** 打鍵ごとに数字が動いて読めない。
+**Not shown while the quantity cannot be read.** The number would move with every keystroke and be unreadable.
 
-## 誤りの出し方
+## How Errors Are Shown
 
-**入力の誤りは欄のそばに出す。要約は置かない。** 入力欄が 1 つしかないため、要約は欄のそばの文言と
-同じことをもう一度言うだけになる。
+**Input errors appear next to the field. No summary.** There is only one input field, so a summary would only repeat what the text
+next to the field says.
 
-**送信そのものの失敗は、フォームの先頭に出す。** 直すべきものが入力の中にない。
+**A failure of the submission itself appears at the top of the form.** There is nothing in the input to fix.
 
-**入力を直した時点で、直前の結果は下げる。** 結果は次の送信まで残り続けるため、出し続けると直した
-のに直っていないように見える。**下げたあと送り直せば、また出る。**
+**Once the input is corrected, the previous result is cleared.** The result persists until the next submission, so keeping it shown
+makes a fix look unfixed. **If resent after being cleared, it appears again.**
 
-**並行して動かされて拒まれたときだけ、読み込み直す導線を添える。** 権限や通信の失敗にまで添えると、
-やり直せば直るものとして読める。
+**Only when rejected because of a concurrent move, attach a link to reload.** Attaching it to permission or network failures as well
+would read as if retrying fixes them.
 
-## 送るのをやめる導線
+## A way to not send
 
-**送信の隣に、一覧へ戻る導線を置く。** 開いてから「やはり触らない」と決める経路があり、パンくずを
-探させない。
+**Next to the submit button, place a link back to the list.** There is a path where someone opens the screen and then decides "I
+won't touch it after all", and they should not have to look for the breadcrumbs.
 
-## 段による違い
+## Differences by Band
 
-**縦一列のまま変わらない。** 入力が 3 つしかなく、広い段で横へ並べる理由がない。向きの選択肢は狭い
-段で折り返す。
+**It stays a single vertical column.** There are only three inputs, and no reason to lay them out horizontally on wide bands. The
+direction options wrap on narrow bands.
 
-## パンくず
+## Breadcrumbs
 
-**商品一覧管理 > 商品名 > 在庫補充。**
+**商品一覧管理 > 商品名 > 在庫補充** (Product list management > product name > Restock).
 
-## カタログでの確認
+## Checking in the Catalog
 
-Storybook の `Page/Admin/Products/Stock` に、開いた直後・量を入れた状態・差し引きを選んだ状態・
-見込みが負・在庫が尽きた商品・入力が弾かれた状態・並行更新で拒まれた状態・一時的に受け付けられない
-状態・契約上の最大長の商品名・タブレット・スマホを置く。
+Storybook's `Page/Admin/Products/Stock` holds: just opened, with a quantity entered, with subtract selected, a negative projection,
+a product out of stock, rejected input, rejected by a concurrent update, temporarily not accepted, a product name of the contract's
+maximum length, tablet and smartphone.
 
-## 関連
+## Related
 
-- [`../../page.screen.md`](../../page.screen.md) —— 在庫の数を押してこの画面へ来る一覧
-- [`../edit/page.screen.md`](../edit/page.screen.md) —— 在庫以外を直す画面
+- [`../../page.screen.md`](../../page.screen.md) — the list from which pressing the stock number leads to this screen
+- [`../edit/page.screen.md`](../edit/page.screen.md) — the screen that fixes everything other than stock

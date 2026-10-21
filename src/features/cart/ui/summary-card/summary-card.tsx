@@ -21,6 +21,8 @@ export type CartSummaryCardProps = {
  *
  * **買える明細が 1 つも無い状態では購入手続きへ進ませません。** 進んだ先で「買えるものがない」と
  * 伝えるより、進めない理由を明細の隣で見せるほうが、利用者が次に取る行動に近い場所にあります。
+ *
+ * @see Storybook `Features/Cart/SummaryCard`
  */
 export const CartSummaryCard = withPartSpan(
   "features/cart/ui/summary-card/summary-card",

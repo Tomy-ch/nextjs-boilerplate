@@ -1,55 +1,55 @@
 # UploadPreview
 
-## 用途
+## Purpose
 
-選択中のファイルを一覧で確認し、差し替え・取り消し・再試行を行います。
+Reviews the selected files in a list and replaces, cancels or retries them.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `UploadPreview` | 選択中のファイルを並べ、件ごとの操作を置く client island です。 |
-| `UploadPreviewItem` | 一覧に並べる 1 件（識別子・名前・説明・状態・プレビュー元）を表す型です。 |
+| `UploadPreview` | A client island that lays out the selected files and places per-item actions. |
+| `UploadPreviewItem` | The type representing one item in the list (identifier, name, description, state, preview source). |
 
-## 利用ケース
+## Use Cases
 
-`FileUpload` で選んだファイルを、送信前に確認させる場面に使います。選ぶ受け口は [`FileUpload`](../file-upload/README.md)、1 件の見た目は [`Attachment`](../attachment/README.md) が担い、この component は**束ね方と件ごとの操作**だけを持ちます。
+Used to have the user review files chosen with `FileUpload` before sending. Choosing is handled by [`FileUpload`](../file-upload/README.md) and the look of one item by [`Attachment`](../attachment/README.md); this component owns only **how they are grouped and the per-item actions**.
 
 ```tsx
 <FileUpload accept="image/*" multiple onSelect={add} />
 <UploadPreview items={items} onRemove={remove} />
 ```
 
-`orientation` で並べ方を選べます。既定の `list` は縦の一覧で、件ごとの補足まで読ませたい場合に使います。`row` は横の束で、件数が増えても縦を取らせたくない場合に使います。`row` でも 1 件の組みは変えず、折り返して並べるだけです。縦組みのタイルへ替えないのは、あちらが小さな幅で固定されており、件ごとの操作を重ねると枠から溢れるためです。
+`orientation` chooses how they are laid out. The default `list` is a vertical list, used when you want per-item supplements to be read too. `row` is a horizontal group, used when you do not want it to take vertical space as the count grows. Even in `row` the composition of one item does not change; it just wraps. It does not switch to vertical tiles because those are fixed at a small width and overflow the frame when per-item actions are stacked on them.
 
-**横スクロールする束が要るだけで操作を伴わない場合は `AttachmentGroup` を使います。** この component が持つのは件ごとの操作で、並べ方はそのための器です。
+**When you only need a horizontally scrolling group with no actions, use `AttachmentGroup`.** What this component owns is the per-item actions, and the layout is the container for them.
 
-## 責務境界
+## Responsibility Boundaries
 
-**一覧そのものを保持しません。** `items` は呼び出し元の state であり、取り消しや再試行の結果を反映するのも呼び出し元です。送信経路・保存先・業務上の意味は持ちません（ADR 0075 の経路決定を待たずに使えるのはこのためです）。
+**It does not hold the list itself.** `items` is the caller's state, and reflecting the results of cancelling or retrying is also the caller's. It does not own the submission path, storage, or business meaning (this is why it can be used without waiting for ADR 0075's path decision).
 
-`preview` に `File` を渡した場合、**表示用 URL の生成と破棄はこの component が引き受けます**。破棄しないと選択をやり直すたびに解放されない参照が積み上がるため、持ち主を一箇所に決めています。これが client island である理由でもあります。送信済みで URL が判っている場合は文字列を渡してください。生成も破棄もしません。
+When a `File` is passed as `preview`, **this component takes on creating and revoking the display URL**. Without revocation, unreleased references pile up every time the selection is redone, so the owner is fixed in one place. This is also why it is a client island. When the file has already been sent and its URL is known, pass a string; it then neither creates nor revokes anything.
 
-`preview` を渡した行だけが縮小表示を持ちます。**ファイルの種類からアイコンを決めることはしません。** 種類とアイコンの対応は用途で変わるため、必要なら呼び出し元が `preview` に画像を渡すか、`Attachment` へ降りて `AttachmentMedia` の `variant` を選びます。
+Only rows given a `preview` have a thumbnail. **It does not decide an icon from the file type.** The mapping between type and icon varies by use, so if needed the caller passes an image as `preview`, or drops down to `Attachment` and chooses `AttachmentMedia`'s `variant`.
 
-画像は `next/image` ではなく素の `img` で描画します。object URL は寸法も配信元も事前に判らず、`next/image` の最適化が成立しないためです。
+Images are rendered with a plain `img`, not `next/image`. For an object URL neither the dimensions nor the origin are known in advance, so `next/image` optimization cannot work.
 
-**並び順は呼び出し元のものです。** 並べ替えの操作を渡すと、対象の id を返します。実際に入れ替えるのは `items` を持つ呼び出し元で、この component は端の項目でその先へ動かす button を押せなくするところまでを持ちます。並び順そのものに意味がない場面では渡さず、button も出ません。
+**The order belongs to the caller.** When a reorder action is passed, it returns the target id. The caller that owns `items` does the actual swapping; this component goes only as far as making the button that moves an end item further unpressable. Where the order itself has no meaning, do not pass it, and no button appears.
 
-渡さなかった操作の button は描画しません。`pending` の間はすべての操作を止めますが、**一覧の表示は残します**。送信中に何を送っているのか判らなくなるためです。
+Buttons for actions not passed are not rendered. While `pending`, every action is stopped, but **the list display remains**, because otherwise it becomes unclear what is being sent while sending.
 
-操作のアクセシブルな名前には対象のファイル名を含めます。同じ形の button が件数ぶん並ぶため、名前だけでどれに対する操作かが判る必要があります。
+The accessible name of each action includes the target file name. Buttons of the same shape are repeated for every item, so the name alone must tell which item the action is for.
 
-`state` が `uploading` / `processing` の間は、**再試行の button を spinner へ差し替えます**。押した位置で進行が見え、同じ操作を二度押せなくなります。
+While `state` is `uploading` / `processing`, **the retry button is replaced with a spinner**. Progress is visible where the user pressed, and the same action cannot be pressed twice.
 
-**spinner が出るのは `state` によってであり、button が押されたことによってではありません。** 再送信がいつ終わるかを知っているのは呼び出し元だけで、押下を起点にするとこの component は終われません。呼び出し元は再試行を受けたら `state` を `uploading` にし、結果が出たら `done` か `error` へ移します。
+**The spinner appears because of `state`, not because the button was pressed.** Only the caller knows when the resend finishes, and if it started from the press this component could never finish. On receiving a retry, the caller sets `state` to `uploading`, and when the result is in, moves it to `done` or `error`.
 
-`state` は見た目を変えるだけで支援技術へ伝わりません。進行中や失敗は `description` の文言でも示します。spinner も装飾として置くため、読み上げは `description` が担います。
+`state` only changes the look and does not reach assistive technology. Show in progress and failure in the `description` copy as well. The spinner is also placed as decoration, so screen reader output is carried by `description`.
 
-何も選ばれていない場合は何も描画しません。空の一覧を出すか、選択を促す文言を出すかは画面側の判断です。
+When nothing is selected, it renders nothing. Whether to show an empty list or copy prompting a selection is the screen's decision.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の取り消しのみ、全操作を渡した場合、操作を渡さない確認だけの一覧、`state` 五種、画像と画像でないファイルが混ざる場合、枠に収まらない名前と説明、送信中、`FileUpload` と繋いだ実操作、再試行から完了までの遷移を確認します。テストは名前つきの一覧として並ぶこと、空なら何も描画しないこと、渡さなかった操作の button を出さないこと、操作の名前に対象のファイル名を含め id を返すこと、送信中に操作を止め一覧を残すこと、`uploading` で再試行が spinner へ変わり終われば戻ること、spinner が装飾であること、`File` から表示用 URL を作り外れるときに破棄すること、URL を渡した場合は生成も破棄もしないこと、`preview` 省略時に画像を出さないこと、a11y 自動検査を確認します。
+Storybook checks the default cancel-only form, passing all actions, a review-only list with no actions passed, the five `state`s, a mix of image and non-image files, names and descriptions that do not fit the frame, sending, real interaction wired to `FileUpload`, and the transition from retry to completion. Tests check that items are listed as a named list, that nothing is rendered when empty, that buttons for actions not passed are not shown, that action names include the target file name and return the id, that actions stop while sending and the list remains, that retry changes to a spinner on `uploading` and returns once finished, that the spinner is decorative, that a display URL is created from a `File` and revoked when it is removed, that nothing is created or revoked when a URL is passed, that no image is shown when `preview` is omitted, and automated a11y checks.
 
-jsdom は object URL を実装しないため、`URL.createObjectURL` / `revokeObjectURL` はテスト側で差し替え、生涯の呼び出しだけを観測しています。
+jsdom does not implement object URLs, so `URL.createObjectURL` / `revokeObjectURL` are replaced on the test side, and only the lifetime calls are observed.

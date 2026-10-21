@@ -20,7 +20,12 @@ import {
   TRANSITION_TARGET_LOST_MESSAGE,
 } from "./form-state";
 
-/** 送信から対象の購入を取り出す。載っていなければ null。 */
+/**
+ * 送信から対象の購入を取り出す。載っていなければ null。
+ *
+ * @param formData - 送信された FormData。
+ * @returns 購入コード。取り出せなければ null。
+ */
 function readPurchaseCode(formData: FormData): string | null {
   const code = formData.get(PURCHASE_TRANSITION_FORM_NAMES.purchaseCode);
 
@@ -37,6 +42,11 @@ function readPurchaseCode(formData: FormData): string | null {
  *
  * `409` にだけ専用の文言を当てます。カタログの既定文言は分類だけを伝えるもので、拒まれた理由を
  * 遷移ごとに言い分けられるのはこの画面だけです。
+ *
+ * @param formData - 送信された FormData。対象の購入コードを含む。
+ * @param transition - 実際に状態を進める呼び出し（キャンセル or 支払い）。
+ * @param conflictMessage - 409 で拒まれたときに出す専用の文言。
+ * @returns 進めた結果の画面向け状態。
  */
 async function runTransition(
   formData: FormData,
@@ -70,6 +80,10 @@ async function runTransition(
  * @remarks
  * 主体を断言しません。契約が本人の購入だけを対象とし、他人の購入は存在ごと秘匿するため、この
  * 操作で他人の購入へ届く経路がありません。
+ *
+ * @param _previous - `useActionState` が渡す直前の状態。ここでは参照しない。
+ * @param formData - 送信された FormData。対象の購入コードを含む。
+ * @returns 進めた結果の画面向け状態。
  */
 export async function cancelPurchaseAction(
   _previous: PurchaseTransitionState,
@@ -78,7 +92,13 @@ export async function cancelPurchaseAction(
   return runTransition(formData, cancelMyPurchase, CANCEL_CONFLICT_MESSAGE);
 }
 
-/** 購入を支払う。主体を断言しない理由は {@link cancelPurchaseAction} と同じ。 */
+/**
+ * 購入を支払う。主体を断言しない理由は {@link cancelPurchaseAction} と同じ。
+ *
+ * @param _previous - `useActionState` が渡す直前の状態。ここでは参照しない。
+ * @param formData - 送信された FormData。対象の購入コードを含む。
+ * @returns 進めた結果の画面向け状態。
+ */
 export async function payPurchaseAction(
   _previous: PurchaseTransitionState,
   formData: FormData,

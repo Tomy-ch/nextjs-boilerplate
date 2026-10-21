@@ -22,8 +22,11 @@ import { AlertTriangleIcon, CircleXIcon } from "@/components/icon";
  * この型は表示に必要な値だけを運び、利用者へ見せられない情報は含めない。
  */
 export type ApiError = {
-  /** 失敗の発生場所。`client` は 4xx 相当、`server` は 5xx 相当、`network` は到達不能を表す。 */
-  kind: "client" | "server" | "network";
+  /**
+   * 失敗の発生場所。`client` は 4xx 相当、`server` は 5xx 相当、`network` は到達不能を表す。
+   * `stale` は画面と配信の版が揃っていないことによる失敗で、**送り直しでは変わらない**。
+   */
+  kind: "client" | "server" | "network" | "stale";
   /** 利用者へ表示する安全なメッセージ。raw response は渡さない。 */
   message: string;
   /** サポート照会用の不透明な識別子。token や個人情報は含めない。 */
@@ -34,14 +37,26 @@ export type ApiError = {
   retryAfter?: number;
 };
 
+/**
+ * 失敗の発生場所に対応する見出しを返す。
+ *
+ * @param kind - 失敗の発生場所。
+ * @returns 見出しとして表示する文言。
+ */
 function getTitle(kind: ApiError["kind"]) {
   if (kind === "client") return "入力を確認してください";
   if (kind === "network") return "通信を確認してください";
+  if (kind === "stale") return "表示が新しくなりました";
   return "処理に失敗しました";
 }
 
+/**
+ * 失敗の発生場所に対応するアイコン。
+ *
+ * @param props - 表示用 props。
+ */
 function ErrorIcon({ kind }: { kind: ApiError["kind"] }) {
-  return kind === "client" ? (
+  return kind === "client" || kind === "stale" ? (
     <AlertTriangleIcon aria-hidden="true" />
   ) : (
     <CircleXIcon aria-hidden="true" />
@@ -49,7 +64,26 @@ function ErrorIcon({ kind }: { kind: ApiError["kind"] }) {
 }
 
 /**
+ * 押したときに起きることを、ボタンの文言にする。
+ *
+ * @remarks
+ * 版が揃っていない失敗で「再試行」と出すと、同じ識別子で送り直す操作に読めます。起きるのは
+ * 読み込み直しなので、そう書きます。
+ *
+ * @param kind - 失敗の発生場所。
+ * @param pending - 実行中か。
+ * @returns ボタンに出す文言。
+ */
+function retryLabel(kind: ApiError["kind"], pending: boolean): string {
+  if (kind === "stale") return pending ? "読み込み直し中…" : "読み込み直す";
+
+  return pending ? "再試行中…" : "再試行";
+}
+
+/**
  * client-side API failure を文脈内へ表示する Alert。
+ *
+ * @param props - 表示する失敗と、再試行の導線。
  *
  * @see Storybook `Feedback/ApiErrorFeedback`
  */
@@ -61,24 +95,30 @@ export function ApiErrorAlert({
 }: {
   /** 認証・遷移など feature 固有の補助操作。 */
   children?: ReactNode;
+  /** 表示する API 失敗。 */
   error: ApiError;
+  /** 再試行の実行。渡さないと再試行ボタンを出さない。 */
   onRetry?: () => void;
-  /** 再試行処理中はボタンを無効化する。 */
+  /**
+   * 再試行処理中はボタンを無効化する。
+   *
+   * @defaultValue false
+   */
   retryPending?: boolean;
 }) {
   return (
-    <Alert variant={error.kind === "client" ? "warning" : "destructive"}>
+    <Alert variant={error.kind === "client" || error.kind === "stale" ? "warning" : "destructive"}>
       <ErrorIcon kind={error.kind} />
       <AlertTitle>{getTitle(error.kind)}</AlertTitle>
       <AlertDescription>
         {error.message}
-        {error.requestId === undefined ? null : <p>問い合わせ ID: {error.requestId}</p>}
+        {error.requestId === undefined ? null : <p>リクエスト ID: {error.requestId}</p>}
         {error.retryAfter === undefined ? null : (
           <span>再試行可能まで約 {error.retryAfter} 秒</span>
         )}
         {error.retryable && onRetry !== undefined ? (
           <Button disabled={retryPending} onClick={onRetry} type="button">
-            {retryPending ? "再試行中…" : "再試行"}
+            {retryLabel(error.kind, retryPending)}
           </Button>
         ) : null}
         {children}
@@ -89,6 +129,8 @@ export function ApiErrorAlert({
 
 /**
  * 操作継続を止める client-side API failure dialog。
+ *
+ * @param props - 表示する失敗と、dialog の開閉および再試行の導線。
  *
  * @see Storybook `Feedback/ApiErrorFeedback`
  */
@@ -102,11 +144,19 @@ export function ApiErrorDialog({
 }: {
   /** 認証・遷移など feature 固有の補助操作。 */
   children?: ReactNode;
+  /** 表示する API 失敗。 */
   error: ApiError;
+  /** 再試行の実行。渡さないと再試行ボタンを出さない。 */
   onRetry?: () => void;
+  /** dialog を開いているか。 */
   open: boolean;
+  /** dialog の開閉の要求を受け取る。 */
   onOpenChange: (open: boolean) => void;
-  /** 再試行処理中はボタンを無効化する。 */
+  /**
+   * 再試行処理中はボタンを無効化する。
+   *
+   * @defaultValue false
+   */
   retryPending?: boolean;
 }) {
   return (
@@ -117,7 +167,7 @@ export function ApiErrorDialog({
           <AlertDialogTitle>{getTitle(error.kind)}</AlertDialogTitle>
           <AlertDialogDescription>
             {error.message}
-            {error.requestId === undefined ? null : <span>問い合わせ ID: {error.requestId}</span>}
+            {error.requestId === undefined ? null : <span>リクエスト ID: {error.requestId}</span>}
             {error.retryAfter === undefined ? null : (
               <span>再試行可能まで約 {error.retryAfter} 秒</span>
             )}
@@ -127,7 +177,7 @@ export function ApiErrorDialog({
           <AlertDialogCancel>閉じる</AlertDialogCancel>
           {error.retryable && onRetry !== undefined ? (
             <Button disabled={retryPending} onClick={onRetry} type="button">
-              {retryPending ? "再試行中…" : "再試行"}
+              {retryLabel(error.kind, retryPending)}
             </Button>
           ) : null}
           {children}

@@ -400,7 +400,6 @@ function UploadFlowFixture({ autoDismiss = false }: { autoDismiss?: boolean }) {
     for (const { file, entry } of added) {
       timersRef.current.push(
         setTimeout(() => {
-          // 消すかどうかは一覧を持つ側の判断。error は対処が要るので対象にしない。
           setEntries((current) =>
             current.map((item) =>
               item.id === entry.id

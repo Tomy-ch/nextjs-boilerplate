@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -43,7 +43,6 @@ describe("CartHeaderDrawer", () => {
     const dialog = await screen.findByRole("dialog");
 
     expect(within(dialog).getByText("カート")).toBeVisible();
-    expect(useCartStore.getState().isOpen).toBe(true);
   });
 
   it("開いた中身に何点入っているかを添える", async () => {
@@ -62,7 +61,7 @@ describe("CartHeaderDrawer", () => {
     expect(await screen.findByText("商品が入っていません。")).toBeVisible();
   });
 
-  it("閉じる操作で要求を下ろす", async () => {
+  it("閉じる操作で中身を閉じる", async () => {
     const user = userEvent.setup();
 
     useCartStore.setState({ isOpen: true });
@@ -72,7 +71,7 @@ describe("CartHeaderDrawer", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "閉じる" }));
 
-    expect(useCartStore.getState().isOpen).toBe(false);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
   it("a11y 自動検査に違反しない", async () => {

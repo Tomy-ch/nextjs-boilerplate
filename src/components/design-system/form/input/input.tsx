@@ -20,7 +20,7 @@ export type InputProps = ComponentProps<"input">;
  * どちらからも利用できる。入力値を React state で制御するか、native form に委ねるかは
  * 呼び出し側が選ぶ。
  *
- * 枠線は `border` ではなく `input` を取る（[`components/README.md`](../../../README.md)「境界を示す線」）。
+ * 枠線は `border` ではなく `input` を取る（[`components/README.md#boundary-lines`](../../../README.md#boundary-lines)）。
  *
  * @example
  * ```tsx

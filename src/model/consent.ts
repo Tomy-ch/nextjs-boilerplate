@@ -3,7 +3,7 @@
  *
  * @remarks
  * 2 値に留めます。細分（分析 / 広告 / 個人化…）は法域と、ゲートの先に繋ぐ製品が決めるもので、
- * 何も繋がっていない側が先に決めると、テンプレートから作った側は削る作業から始めることになります。
+ * 何も繋がっていない側が先に決めると、削る作業から始めることになります。
  */
 export const CONSENT_CATEGORY = {
   /** 画面が成立するために要る用途。尋ねる対象ではなく、常に動く。 */
@@ -122,6 +122,7 @@ export function parseConsentState(raw: string | undefined): ConsentState {
  * 通っているからです。
  *
  * @param choice - 利用者が選んだ意思
+ * @returns cookie へ載せる綴り
  */
 export function toConsentCookieValue(choice: ConsentChoice): string {
   return `${choice}.${CONSENT_COPY_VERSION}`;
@@ -136,6 +137,7 @@ export function toConsentCookieValue(choice: ConsentChoice): string {
  *
  * @param state - いまの同意状態
  * @param category - 動かしたい用途の区分
+ * @returns 動かしてよいか
  */
 export function allowsCategory(state: ConsentState, category: ConsentCategory): boolean {
   if (category === CONSENT_CATEGORY.necessary) {
@@ -153,6 +155,7 @@ export function allowsCategory(state: ConsentState, category: ConsentCategory): 
  * 一度バナーが出ます。
  *
  * @param state - いまの同意状態
+ * @returns 尋ねるべきか
  */
 export function shouldAskConsent(state: ConsentState): boolean {
   return state.status === "unset";

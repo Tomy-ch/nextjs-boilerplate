@@ -24,6 +24,8 @@ export type RegistrationBasicsSectionProps = {
  *
  * 名字と名前だけを横に並べます。どちらも短く、続けて 1 つの氏名として読むためです。連絡先は
  * 値の長さが揃わないので 1 列に落とします。
+ *
+ * @param props - 入力欄の props を組む口。
  */
 export function RegistrationBasicsSection({ fields }: RegistrationBasicsSectionProps) {
   return (

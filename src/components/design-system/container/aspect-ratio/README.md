@@ -1,40 +1,40 @@
 # AspectRatio
 
-## 用途
+## Purpose
 
-子要素を指定した縦横比の枠へ収めます。
+Fits a child element into a frame with the specified aspect ratio.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `AspectRatio` | `ratio` で指定した縦横比の枠を作る SSR first の表示 primitive です。 |
+| `AspectRatio` | An SSR-first display primitive that creates a frame with the aspect ratio given by `ratio`. |
 
-## 利用ケース
+## Use Cases
 
-動画の埋め込み枠、地図の差し込み、画像を伴わないプレースホルダなど、**任意の比率**を数値で指定したい場面に使います。
+Used where you want to specify **an arbitrary ratio** numerically, such as a frame for an embedded video, an inserted map, or a placeholder without an image.
 
-比率が `square` / `standard` / `wide` のいずれかで済み、`MediaImage` と枠を揃えたい場合は、`MEDIA_IMAGE_ASPECT_RATIO_CLASS` を直接 class として当てる方が軽くなります。この部品は数値指定が要る場合の受け皿です。
+When the ratio is one of `square` / `standard` / `wide` and you want the frame to match `MediaImage`, applying `MEDIA_IMAGE_ASPECT_RATIO_CLASS` directly as a class is lighter. This component is the fallback for when a numeric value is needed.
 
-## 責務境界
+## Responsibility Boundaries
 
-比率の枠を作るだけで、内容の取得・読み込み状態・画像の最適化は持ちません。画像を表示する場合は `MediaImage` を使います。
+It only creates the ratio frame and does not own fetching content, loading state, or image optimization. To display an image, use `MediaImage`.
 
-`overflow-hidden` を伴うのは、CSS の `aspect-ratio` が内容の高さに負けて縦へ伸びるためです。枠より高い内容を入れたときに比率を優先し、はみ出しを切ります。
+It carries `overflow-hidden` because CSS `aspect-ratio` yields to the content's height and stretches vertically. When content taller than the frame is put in, the ratio wins and the overflow is clipped.
 
-## 上流と実装が異なる理由
+## Why the Implementation Differs from Upstream
 
-registry item は `aspect-ratio` ですが、Radix の実装は copy-in せず自前で実装しています（manifest の `kind` は `reimplemented`）。
+The registry item is `aspect-ratio`, but Radix's implementation is not copied in; it is implemented here (the manifest's `kind` is `reimplemented`).
 
-Radix 版は `padding-bottom` による旧来の比率固定で、次の 2 点が本リポジトリの方針と噛み合いません。
+The Radix version uses the older `padding-bottom` ratio lock, and the following 2 points do not fit this repository's policy.
 
-1. **高さが決まった親の中で拘束を無視する。** 高さ 120px の親に 16:9 を入れると子が 225px になり、親を突き抜けます。CSS の `aspect-ratio` は高さが決まっていれば幅を逆算するため、この破綻が起きません
-2. **`"use client"` を要求する。** CSS で完結する表示に hydration を持ち込むことになり、SSR first の選定方針に反します
+1. **It ignores the constraint inside a parent with a fixed height.** Putting 16:9 into a parent 120px tall makes the child 225px, breaking through the parent. CSS `aspect-ratio` computes the width back when the height is fixed, so this breakdown does not happen
+2. **It requires `"use client"`.** That brings hydration into a display that CSS can complete on its own, against the SSR-first selection policy
 
-上流版が優れる条件はありません。
+There is no condition under which the upstream version is better.
 
-公開 API の `ratio` は上流と揃えてあるため、shadcn/ui から来た利用者はそのまま使えます。
+`ratio` in the public API matches upstream, so users coming from shadcn/ui can use it as is.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は 16:9 の枠、任意比率と既定の正方形、内容が枠より高い場合、高さが決まった親の中、`MediaImage` と枠を揃える場合を確認します。テストは指定比率が CSS の `aspect-ratio` になること、既定が正方形になること、溢れを切ること、client runtime なしで描画されること、`className` と `style` の拡張、a11y 自動検査を確認します。
+Storybook checks a 16:9 frame, an arbitrary ratio and the default square, content taller than the frame, inside a parent with a fixed height, and matching the frame to `MediaImage`. Tests check that the specified ratio becomes CSS `aspect-ratio`, that the default is square, that overflow is clipped, that it renders without the client runtime, extension through `className` and `style`, and automated a11y checks.

@@ -20,6 +20,7 @@ export type CartIssueNotice = {
  *
  * @param issue - 明細に立った事情
  * @param availableQuantity - 在庫が足りない場合に、今買える上限
+ * @returns 表示する一文と、買えないことを表すか
  */
 export function cartIssueNotice(
   issue: CartLineIssue,
@@ -55,6 +56,9 @@ export function cartIssueNotice(
  * @remarks
  * 事情が 1 つも立っていないことと同じです。小計の合算対象もこの条件であり、判定はバックエンドが
  * 済ませています。
+ *
+ * @param line - 判定対象の明細
+ * @returns 買えるか
  */
 export function isPurchasable(line: CartLine): boolean {
   return line.issues.length === 0;
@@ -66,6 +70,9 @@ export function isPurchasable(line: CartLine): boolean {
  * @remarks
  * {@link isPurchasable} と別に要ります。値が変わっただけの明細は買えますが、小計の合算からは
  * 外れるためです。行を弱めて見せてよいのは買えない明細だけです。
+ *
+ * @param line - 判定対象の明細
+ * @returns 買えない事情を抱えているか
  */
 export function hasBlockingIssue(line: CartLine): boolean {
   return line.issues.some((issue) => cartIssueNotice(issue, line.availableQuantity).blocking);

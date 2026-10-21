@@ -1,49 +1,49 @@
 # NavigationMenu
 
-## 用途
+## Purpose
 
-サイト構造の中の主要な遷移先を並べ、必要に応じて下位階層を開きます。
+Lists the main destinations within the site structure and opens lower levels as needed.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component / 値 | 役割 |
+| Component / value | Role |
 | --- | --- |
-| `NavigationMenu` | 開閉と focus 移動を管理する client-side root です。`viewport` で開いた内容の表示位置を選びます。 |
-| `NavigationMenuList` | 遷移先を並べるリストです。 |
-| `NavigationMenuItem` | 遷移先 1 件ぶんの項目です。 |
-| `NavigationMenuTrigger` | 下位階層を開く trigger です。それ自体は遷移しません。 |
-| `NavigationMenuContent` | 開いたときに表示する下位階層です。 |
-| `NavigationMenuLink` | 遷移先の link です。`asChild` で `next/link` を合成します。 |
-| `NavigationMenuViewport` | 開いた内容をまとめて表示する共通領域です。root が内部で描画します。 |
-| `NavigationMenuIndicator` | 開いている項目を指す装飾の矢印です。省略できます。 |
-| `navigationMenuTriggerStyle` | trigger と同じ見た目の class を返します。下位階層を持たない link へ使います。 |
+| `NavigationMenu` | The client-side root that manages opening / closing and focus movement. `viewport` chooses where opened content is shown. |
+| `NavigationMenuList` | The list that lays out the destinations. |
+| `NavigationMenuItem` | The item for one destination. |
+| `NavigationMenuTrigger` | The trigger that opens a lower level. It does not navigate itself. |
+| `NavigationMenuContent` | The lower level shown when opened. |
+| `NavigationMenuLink` | A link to a destination. Composes `next/link` with `asChild`. |
+| `NavigationMenuViewport` | The shared area that shows opened content together. The root renders it internally. |
+| `NavigationMenuIndicator` | A decorative arrow pointing at the open item. It can be omitted. |
+| `navigationMenuTriggerStyle` | Returns the classes for the same look as a trigger. Used for links that have no lower level. |
 
-## 利用ケース
+## Use Cases
 
-PC の header で、カテゴリなど階層のあるサイト遷移を提供する場面に使います。
+Use it in a desktop header to provide site navigation with a hierarchy, such as categories.
 
-## いつ使わないか
+## When Not to Use
 
-**下位階層を開かない単純な navigation にはこの部品を使いません。** `nav` と `Link` を並べるだけで足り、client runtime も不要です。この部品を選ぶのは、trigger で下位項目を開く必要が確定した場合に限ります。
+**Do not use this component for simple navigation that opens no lower levels.** Laying out `nav` and `Link` is enough, and no client runtime is needed. Choose this component only once it is settled that a trigger must open lower items.
 
-現在地までの階層は [`Breadcrumb`](../breadcrumb/README.md)、一覧の送りは [`Pagination`](../pagination/README.md) が担います。行に対する操作をまとめるのは [`DropdownMenu`](../../overlay/dropdown-menu/README.md) で、こちらは遷移ではなく操作が対象です。
+The hierarchy down to the current location is handled by [`Breadcrumb`](../breadcrumb/README.md), and paging through a list by [`Pagination`](../pagination/README.md). Gathering operations on a row is [`DropdownMenu`](../../overlay/dropdown-menu/README.md), whose target is operations rather than navigation.
 
-## 責務境界
+## Responsibility Boundaries
 
-開閉・hover 遅延・focus 移動のため hydration が必要な client island です。Server Component から直接 render できません。
+It is a client island that needs hydration for opening / closing, hover delay and focus movement. It cannot be rendered directly from a Server Component.
 
-遷移先の決定、現在地の判定、権限による項目の出し分けは持ちません。現在地を示す場合は `NavigationMenuLink` に `active` を渡すと `aria-current="page"` が付きます。
+It owns neither deciding the destinations, determining the current location, nor showing items by permission. To indicate the current location, pass `active` to `NavigationMenuLink`, which sets `aria-current="page"`.
 
-`NavigationMenuContent` の中身は遷移先に限ります。form や読み物を入れたい場合は `Popover` や `Dialog` を使います。
+The content of `NavigationMenuContent` is limited to destinations. To put in a form or reading material, use `Popover` or `Dialog`.
 
-mobile での表示形式は持ちません。狭い viewport で別の導線にするかは、利用する画面側で決めます。
+It has no display format for mobile. Whether to switch to a different path on a narrow viewport is decided by the screen that uses it.
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
+The vendor is currently Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は下位階層を持つ項目と直接遷移する項目を並べた基本構成、共通 viewport を使わない場合、現在地の項目に `active` を渡す場合を確認します。テストは navigation landmark とリスト構造、開くまで下位階層を描画しないこと、trigger での開閉と `aria-expanded`、`viewport` の有無、`active` による `aria-current`、`navigationMenuTriggerStyle` が trigger と同じ見た目を与えること、a11y 自動検査を確認します。
+Storybook checks the basic composition with items that have lower levels next to items that navigate directly, not using the shared viewport, and passing `active` to the item at the current location. The tests check the navigation landmark and list structure, that lower levels are not rendered until opened, opening / closing with the trigger and `aria-expanded`, with and without `viewport`, `aria-current` from `active`, that `navigationMenuTriggerStyle` gives the same look as a trigger, and the automated a11y check.
 
-`NavigationMenuIndicator` は Radix が layout を計測してから描画するため、jsdom では DOM に現れません。テストでは「足しても navigation の意味論が変わらない」ことだけを確認し、見た目は Storybook で確認します。
+`NavigationMenuIndicator` is rendered by Radix after it measures the layout, so in jsdom it does not appear in the DOM. The tests check only that "adding it does not change the navigation semantics", and the look is checked in Storybook.
 
-jsdom には Radix が使う `ResizeObserver` が無いため、テスト側で stub しています。a11y 自動検査では `region` を対象から外しています。Portal を使う UI に共通する制約で、`region` は axe の `best-practice` タグとしてリポジトリの目標水準（WCAG 2.x AA）の対象外です。
+jsdom lacks `ResizeObserver`, which Radix uses, so the tests stub it. The automated a11y check excludes `region`. This is a constraint shared by UI that uses a Portal, and `region` is tagged `best-practice` in axe and is outside the repository's target level (WCAG 2.x AA).

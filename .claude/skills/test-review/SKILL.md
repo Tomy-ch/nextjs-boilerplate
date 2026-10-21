@@ -7,7 +7,7 @@ description: >-
   be judged rather than run: after tests are written for a new symbol or screen, when coverage is green but
   the viewpoints look thin, and on 「テストをレビューして」「テストの観点が足りているか見て」「このテストは意味があるか」. It hardcodes no rules — ADR
   0090 / 0091, the nearest README's `test-requirement`, and the subject source are read at runtime. Sole owner
-  of the test subject, invoked in its own right beside `/impl-review` (the change) and `/comment-sweep` (the
+  of the test subject, invoked in its own right beside `/impl-review` (the change) and `/settle-comments` (the
   comment stock), never from inside them. Do NOT use it to review implementation code (`impl-review`) or to
   run the tests (`make test-full`).
 ---
@@ -58,7 +58,7 @@ assertion split to enforce), and the mock boundary is MSW rather than generated 
 **Where the rule sources are silent, say so rather than inventing a rule.** `docs/testing-conventions.md`
 carries the semantic-quality standard, so Lens 3 applies *it* rather than a general principle — but
 where it does not reach, report the gap in 補遺 instead of smuggling in a rule as if it were repository
-policy (`docs/rules.md`, *作業とエージェント*: do not introduce conventions on your own where nothing derives them).
+policy ([`docs/rules.md#workflow`](../../../docs/rules.md#workflow): do not introduce conventions on your own where nothing derives them).
 
 ## Writes
 
@@ -67,7 +67,7 @@ semantic findings point at. The reviewer subagents stay read-only; the orchestra
 
 ## Step 0. Resolve Scope
 
-Stamp the boundary this run crosses before anything else: `.agents/closed-loop/marks.sh reviewStartedAt`. <!-- boilerplate-only:line -->
+Stamp the boundary this run crosses before anything else: `.agents/closed-loop/marks.sh reviewStartedAt`.
 
 `AskUserQuestion`:
 
@@ -112,10 +112,11 @@ enters their field of view. That is the blind spot a test-file-first read struct
 ### Lens 1: Structural Compliance
 
 Mechanical adherence to ADR 0090 — read it this run and apply what it currently says. The rules
-live in its 「テストの構成: export ↔ describe の 1:1 対応」 section (the export-name `describe`, comment
-separators rather than nested `describe`s, the 軸の選び方 that decides whether a subject splits on
-`正常系` / `異常系` or on display state, which side a case sits on, per-case naming, skip / todo
-discipline), 「mock 戦略」 (the MSW boundary), 「配置・命名」 (co-location) and the 「禁止事項」 list;
+live in its "Test structure: 1:1 export-to-describe mapping" section (the export-name `describe`, comment
+separators rather than nested `describe`s, the "choosing the axis" rule — "The axis is chosen by where
+success and failure appear" — that decides whether a subject splits on `正常系` / `異常系` or on display
+state, which side a case sits on, per-case naming, skip / todo discipline), "Mock Strategy" (the MSW
+boundary), "Placement and Naming" (co-location) and the "Prohibitions" list;
 `AGENTS.md` Language Rules make the case names Japanese. This lens carries no copy of those rules:
 each finding cites the section it violates, and where the ADR is silent the gap goes to 補遺.
 
@@ -174,9 +175,9 @@ Output: viewpoints the layer owes that the test does not exercise.
 ### Lens 3: Semantic Quality
 
 Whether the assertions mean anything. **`docs/testing-conventions.md` is the standard** — read it this
-run and apply what it currently says: 「アサーションの強さ」 for what a weak or vacuous assertion is,
-「component / hook のテスト — Testing Library の原則」 for component / hook targets (cite the document
-and the principle by name in the finding), 「mock の境界」 for over-mocking. This lens carries no copy of
+run and apply what it currently says: *Assertion Strength* for what a weak or vacuous assertion is,
+*Component and hook tests — Testing Library principles* for component / hook targets (cite the document
+and the principle by name in the finding), *Mock Boundaries* for over-mocking. This lens carries no copy of
 those rules; where the document is silent, flag the gap in 補遺 rather than inventing one.
 
 Output: findings with `file:line` and a one-sentence reason the assertion is weak.
@@ -184,7 +185,7 @@ Output: findings with `file:line` and a one-sentence reason the assertion is wea
 ### Lens 4: Branch × Meaning Completeness (code-origin)
 
 Reads the subject source and builds, per function, a two-axis matrix. **Coverage ≠ meaning**
-(`docs/testing-conventions.md` 「意味網羅 — カバレッジは情報を持たない」 is the standard; the matrix is
+([`docs/testing-conventions.md#meaning-coverage--coverage-carries-no-information`](../../../docs/testing-conventions.md#meaning-coverage--coverage-carries-no-information) is the standard; the matrix is
 how this lens applies it), and in a repository with a 100 % gate that distinction is the only one left
 that carries information.
 
@@ -319,9 +320,9 @@ findings. Name the files and the specific cases, and point a symbol with no test
 ## Relationship to the other review skills
 
 This skill owns the **tests**, and it owns them alone: no other review skill carries a test lens, and
-this one is invoked in its own right rather than from inside another. `/impl-review` (the change) and
-`/comment-sweep` (the comment stock) are its peers under the Review Phase Protocol in `AGENTS.md` —
-asked for separately, decided separately, and never delegating to one another.
+this one is invoked in its own right rather than from inside another. `/impl-review` (the change) is its peer under the Review Phase Protocol in `AGENTS.md` — asked for
+separately, decided separately, and never delegating to one another. `/settle-comments` is not a third
+peer: it settles the comments as the last step of implementing, before either review runs.
 
 Lens 5 owns "no test at all" and Lens 4 owns branch × meaning, so both shapes have exactly one
 reporter. This skill never chains onward.

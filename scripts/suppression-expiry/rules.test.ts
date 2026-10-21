@@ -46,12 +46,45 @@ describe("expiredSuppressions", () => {
   });
 
   it("日付が本文の中で時系列と逆に書かれていても、値として最も遅いものを期限にする", () => {
-    // 出現順の最後を取る実装は、ここで早い側（2026-08-02）を期限に選び、来ていない期限を
-    // 過ぎたと報告する。
     expect(
       expiredSuppressions(
         [suppression("2026-09-05 以降に削除する（当初は 2026-08-02 の予定だった）")],
         "2026-08-15",
+      ),
+    ).toEqual([]);
+  });
+
+  it("スキャナが強制する期限は、条件に書かれたより遅い日付より優先する", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("2027-01-15 に見直す"), until: "2026-11-02" }],
+        "2026-11-02",
+      ),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "2027-01-15 に見直す",
+        until: "2026-11-02",
+        dueDate: "2026-11-02",
+      },
+    ]);
+  });
+
+  it("スキャナが強制する期限がまだ来ていなければ答えない", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("修正版が出たら削除する"), until: "2026-11-02" }],
+        "2026-11-01",
+      ),
+    ).toEqual([]);
+  });
+
+  it("スキャナが強制する期限がまだ来ていなければ、条件に書かれた日付が過ぎていても答えない", () => {
+    expect(
+      expiredSuppressions(
+        [{ ...suppression("2026-08-02 以降に削除する"), until: "2026-11-02" }],
+        "2026-09-06",
       ),
     ).toEqual([]);
   });
@@ -83,6 +116,14 @@ describe("malformedSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("scope 付きの名前でも、版を名指しした免除は様式を満たす", () => {
+    expect(
+      malformedSuppressions([
+        exemption("@scope/pkg@1.2.3", "修正版。窓が明ける 2026-08-02 に外す。"),
+      ]),
+    ).toEqual([]);
+  });
+
   it("免除でない宣言は、理由さえあれば日付を求めない", () => {
     expect(
       malformedSuppressions([
@@ -91,7 +132,45 @@ describe("malformedSuppressions", () => {
     ).toEqual([]);
   });
 
+  it("期限の項目を持つ宣言は、理由に日付が無ければ様式を満たす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("修正版が出たら削除する"), until: "2026-11-02" }]),
+    ).toEqual([]);
+  });
+
+  it("期限の項目を持たない宣言は、理由に日付があっても様式を満たす", () => {
+    expect(malformedSuppressions([suppression("2026-08-02 以降に削除する")])).toEqual([]);
+  });
+
   // ----- 異常系 -----
+  it("期限の項目が暦日として読めない宣言は、書かれた値を添えて落とす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("理由"), unreadableUntil: "2026-11-02 以降" }]),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "理由",
+        unreadableUntil: "2026-11-02 以降",
+        defects: ["期限の項目「2026-11-02 以降」が暦日として読めない（YYYY-MM-DD で書く）"],
+      },
+    ]);
+  });
+
+  it("期限の項目を持つ宣言の理由に日付があれば、理由から外すよう落とす", () => {
+    expect(
+      malformedSuppressions([{ ...suppression("2027-01-15 に見直す"), until: "2026-11-02" }]),
+    ).toEqual([
+      {
+        source: "osv-scanner.toml",
+        subject: "GHSA-0000-0000-0000",
+        condition: "2027-01-15 に見直す",
+        until: "2026-11-02",
+        defects: ["期限の項目があるのに理由にも日付がある（理由から日付を外す）"],
+      },
+    ]);
+  });
+
   it("理由が空の宣言は、面を問わず落とす", () => {
     expect(malformedSuppressions([suppression("   ")])).toEqual([
       { ...suppression("   "), defects: ["理由と撤回条件が書かれていない"] },
@@ -102,6 +181,17 @@ describe("malformedSuppressions", () => {
     expect(malformedSuppressions([exemption("pkg", "窓が明ける 2026-08-02 に外す。")])).toEqual([
       {
         ...exemption("pkg", "窓が明ける 2026-08-02 に外す。"),
+        defects: ["対象が版を名指ししていない（<name>@<version> の形で書く）"],
+      },
+    ]);
+  });
+
+  it("scope 付きの名前だけの免除は落とす", () => {
+    expect(
+      malformedSuppressions([exemption("@scope/pkg", "修正版。窓が明ける 2026-08-02 に外す。")]),
+    ).toEqual([
+      {
+        ...exemption("@scope/pkg", "修正版。窓が明ける 2026-08-02 に外す。"),
         defects: ["対象が版を名指ししていない（<name>@<version> の形で書く）"],
       },
     ]);

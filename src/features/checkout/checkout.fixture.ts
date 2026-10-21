@@ -130,6 +130,8 @@ export const PURCHASE: Purchase = {
   statusCode: PURCHASE_STATUS.UNPROCESSED,
   statusName: "未処理",
   subtotalAmount: 18_897,
+  discountAmount: 0,
+  appliedCoupon: null,
   taxAmount: 1_890,
   shippingFee: 500,
   totalAmount: 21_287,
@@ -148,4 +150,16 @@ export const PURCHASE: Purchase = {
     },
   ],
   orderedAt: new Date("2026-08-17T10:30:00+09:00"),
+};
+
+/** クーポンで値引きして成立した購入。 */
+export const DISCOUNTED_PURCHASE: Purchase = {
+  ...PURCHASE,
+  discountAmount: 1_000,
+  appliedCoupon: {
+    discount: { kind: "rate", value: "0.10", maxAmount: 1_000 },
+    scopeKind: "all",
+  },
+  taxAmount: 1_790,
+  totalAmount: 20_187,
 };

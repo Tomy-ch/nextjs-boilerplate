@@ -33,6 +33,8 @@ export type AdminShellNavProps = {
  * 開閉に乗ります。開閉のためだけに client の状態を持つと、最初の描画で全部開いた姿が一度出ます。
  * 見出しに遷移は持たせません（理由は `AdminShellNavGroup` の型 doc）。
  *
+ * @param props - 受け取る内容。個々の意味は {@link AdminShellNavProps} の各メンバーが持つ。
+ *
  * @see Storybook `Layout/AdminShell`
  */
 export function AdminShellNav({ groups, label, className }: AdminShellNavProps) {

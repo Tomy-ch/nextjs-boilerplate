@@ -32,6 +32,39 @@ describe("readLayerContract", () => {
     expect(readLayerContract(readme)?.forbidden).toEqual(["features", "fetch"]);
   });
 
+  it("行末に但し書きが付いていても読む", () => {
+    const readme = README.replace(
+      "forbidden: [features, business-logic]",
+      "forbidden: [features] # Exception: whole-screen stories",
+    );
+
+    expect(readLayerContract(readme)?.forbidden).toEqual(["features"]);
+  });
+
+  it("test-requirement の行末に但し書きが付いていても読む", () => {
+    const readme = README.replace("test-requirement: feature", "test-requirement: feature # 暫定");
+
+    expect(readLayerContract(readme)?.testRequirement).toBe("feature");
+  });
+
+  it("並びで宣言した test-requirement を並びのまま読む", () => {
+    const readme = README.replace(
+      "test-requirement: feature",
+      "test-requirement: [feature, component, unit]",
+    );
+
+    expect(readLayerContract(readme)?.testRequirement).toEqual(["feature", "component", "unit"]);
+  });
+
+  it("行末の但し書きに ] が現れても値だけを読む", () => {
+    const readme = README.replace(
+      "forbidden: [features, business-logic]",
+      "forbidden: [features] # 詳細は 仕様書[1] を参照",
+    );
+
+    expect(readLayerContract(readme)?.forbidden).toEqual(["features"]);
+  });
+
   // ----- 異常系 -----
   it("frontmatter が無ければ null を返す", () => {
     expect(readLayerContract("# reports\n")).toBeNull();

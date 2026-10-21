@@ -31,7 +31,12 @@ class ObservabilityConfig {
     this.#renderSpans = renderSpans;
   }
 
-  /** 検証済み ENV から production singleton を組み立てる。 */
+  /**
+   * 検証済み ENV から production singleton を組み立てる。
+   *
+   * @param values - 検証済みの observability 用 ENV
+   * @returns 組み立てた {@link ObservabilityConfig}
+   */
   static fromValues(values: ObservabilityEnvironment): ObservabilityConfig {
     return new ObservabilityConfig(
       values.OBS_SERVICE_NAME,
@@ -43,49 +48,87 @@ class ObservabilityConfig {
     );
   }
 
-  /** テレメトリの発信元を表す service 名。 */
+  /**
+   * テレメトリの発信元を表す service 名。
+   *
+   * @returns service 名
+   */
   get serviceName(): string {
     return this.#serviceName;
   }
 
-  /** OpenTelemetry exporter の送信先。 */
+  /**
+   * OpenTelemetry exporter の送信先。
+   *
+   * @returns OTLP endpoint
+   */
   get otlpEndpoint(): string {
     return this.#otlpEndpoint;
   }
 
-  /** trace exporter を構築するかを返す。 */
+  /**
+   * trace exporter を構築するかを返す。
+   *
+   * @returns trace exporter を構築するか
+   */
   get tracesEnabled(): boolean {
     return isActiveExporter(this.#tracesExporter);
   }
 
-  /** metrics exporter を構築するかを返す。 */
+  /**
+   * metrics exporter を構築するかを返す。
+   *
+   * @returns metrics exporter を構築するか
+   */
   get metricsEnabled(): boolean {
     return isActiveExporter(this.#metricsExporter);
   }
 
-  /** logs exporter を構築するかを返す。 */
+  /**
+   * logs exporter を構築するかを返す。
+   *
+   * @returns logs exporter を構築するか
+   */
   get logsEnabled(): boolean {
     return isActiveExporter(this.#logsExporter);
   }
 
-  /** 画面の最上位の描画を span に載せるかを返す。 */
+  /**
+   * 画面の最上位の描画を span に載せるかを返す。
+   *
+   * @returns 画面の最上位の描画を span に載せるか
+   */
   get renderScreenSpansEnabled(): boolean {
     return this.#renderSpans !== RenderSpanScope.NONE;
   }
 
-  /** feature が持つ部品の描画まで span に載せるかを返す。 */
+  /**
+   * feature が持つ部品の描画まで span に載せるかを返す。
+   *
+   * @returns feature が持つ部品の描画まで span に載せるか
+   */
   get renderPartSpansEnabled(): boolean {
     return this.#renderSpans === RenderSpanScope.PART;
   }
 }
 
+/**
+ * signal exporter の有効化値が構築を要する値か。
+ *
+ * @param value - 検証済みの exporter 有効化値
+ * @returns 構築を要するか
+ */
 function isActiveExporter(value: string): boolean {
   return value.length > 0 && value !== OtelExporter.NONE;
 }
 
 let observabilityConfig: ObservabilityConfig | undefined;
 
-/** observability adapter が利用する、プロセス内で不変な singleton を返す。 */
+/**
+ * observability adapter が利用する、プロセス内で不変な singleton を返す。
+ *
+ * @returns {@link ObservabilityConfig} の singleton
+ */
 export function getObservabilityConfig(): ObservabilityConfig {
   observabilityConfig ??= ObservabilityConfig.fromValues(getEnvironment());
   return observabilityConfig;

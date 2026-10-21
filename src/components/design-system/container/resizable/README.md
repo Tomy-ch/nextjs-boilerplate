@@ -1,44 +1,44 @@
 # Resizable
 
-## 用途
+## Purpose
 
-隣り合う表示領域の境界を掴んで動かし、どちらをどれだけ見るかを利用者が決められるようにします。
+Lets the user grab and move the boundary between adjacent display regions to decide how much of each to see.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ResizablePanelGroup` | 配分を分け合う pane の集合です。向きと全体の大きさを決めます。 |
-| `ResizablePanel` | pane の一つです。`defaultSize` / `minSize` / `maxSize` で大きさの範囲を決め、`collapsible` で畳めるようにします。 |
-| `ResizableHandle` | 隣り合う pane の境界です。`separator` として公開され、ドラッグでも矢印キーでも動かせます。 |
+| `ResizablePanelGroup` | The set of panes that share the allocation. It decides the orientation and overall size. |
+| `ResizablePanel` | One pane. `defaultSize` / `minSize` / `maxSize` decide its size range, and `collapsible` lets it be collapsed. |
+| `ResizableHandle` | The boundary between adjacent panes. Exposed as a `separator` and movable by dragging or with the arrow keys. |
 
-## 利用ケース
+## Use Cases
 
-- dialog の中で画像を引き伸ばして見たい場合のように、見たい割合が人と場面で変わる場合
-- 一覧と詳細を並べ、どちらを広く使うかを利用者に委ねたい場合
+- When the proportion someone wants to see varies by person and situation, such as wanting to stretch an image inside a dialog
+- When placing a list and details side by side and leaving it to the user which one gets more space
 
-## 責務境界
+## Responsibility Boundaries
 
-**常用する部品ではありません。** 表示領域の配分は本来デザインが決めるものです。利用者に決めさせるのは、どちらをどれだけ見たいかが人と場面で変わる場合に限られます。当てがあるのは dialog の中で画像を引き伸ばして見る、といった限られた場面です。一覧と詳細を並べたいだけなら、固定幅の layout か画面遷移で足りるかを先に検討してください。
+**It is not a component for everyday use.** The allocation of display regions is properly decided by design. Letting the user decide is limited to cases where how much of each they want to see varies by person and situation. The cases in view are limited ones, such as stretching an image inside a dialog. If you only want to place a list and details side by side, first consider whether a fixed-width layout or a screen transition is enough.
 
-**単一の要素をリサイズできればよい場合は使いません。** CSS の `resize` と `overflow` だけで成立し、client runtime も外部 package も要りません。この component が要るのは、**複数の pane が総量を分け合う**場合です。
+**Not used when resizing a single element is enough.** That works with CSS `resize` and `overflow` alone, needing neither client runtime nor an external package. This component is needed when **several panes share a total**.
 
-SSR first の選定では `○` に当たります。配分の保持と境界の操作に hydration が必要な client island で、Server Component からは直接 render できません。pane の中身は Server Component のまま `children` として渡せます。
+In the SSR-first selection it falls under `○`. It is a client island that needs hydration to hold the allocation and operate the boundary, and it cannot be rendered directly from a Server Component. Pane content can be passed as `children` while remaining Server Components.
 
-**配分を保存しません。** 再訪時に前回の配分へ戻す必要がある場合は、`onLayoutChange` で受け取った値を呼び出し元が保存し、`defaultLayout` として渡します。保存先の選択はこの component の責務ではありません。
+**It does not save the allocation.** When a return visit needs to restore the previous allocation, the caller saves the value received through `onLayoutChange` and passes it as `defaultLayout`. Choosing where to save is not this component's responsibility.
 
-**中身のスクロールを持ちません。** 収まらない内容は溢れた分が切られます。送って読ませる必要があるものは、pane の中へ [`ScrollArea`](../scroll-area/README.md) を置きます。pane 自体をスクロールさせないのは、そこへ keyboard の focus を与える手段が無く、送れない領域ができるためです。
+**It does not own scrolling of its content.** Content that does not fit has the overflow clipped. For content that must be scrolled through, put a [`ScrollArea`](../scroll-area/README.md) inside the pane. The pane itself is not made to scroll because there is no way to give it keyboard focus, which would create a region that cannot be scrolled.
 
-`ResizablePanelGroup` には `className` で高さを与えます。与えないと内容の高さのままになり、境界を動かせる幅が生まれません。
+Give `ResizablePanelGroup` a height through `className`. Without one it stays at the content's height, leaving no room to move the boundary.
 
-`ResizableHandle` には `aria-label` で何と何の境界かを示します。省略すると「表示領域の区切り」になるため、境界が複数あるときは必ず与えます。同じ名前が並ぶと、どれを操作しているのか判りません。`role` と `tabIndex` は vendor が決めるため渡せません。
+Give `ResizableHandle` an `aria-label` stating what it separates. When omitted it becomes 「表示領域の区切り」 ("display region divider"), so always give one when there are several boundaries. If the same name repeats, you cannot tell which one you are operating. `role` and `tabIndex` are decided by the vendor and cannot be passed.
 
-`withHandle` を指定すると掴む場所の標識を中央へ置きます。境界は 1px しかなく、標識が無いと動かせることに気付けません。標識そのものは装飾で、操作は境界全体が受けます。
+Specifying `withHandle` places a grip indicator in the center. The boundary is only 1px, and without the indicator it is not noticeable that it can be moved. The indicator itself is decorative; the whole boundary receives the interaction.
 
-境界の実装は `react-resizable-panels` です。
+The boundary is implemented with `react-resizable-panels`.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の横並び、縦積み、標識を置かない場合、畳める pane、三つ以上の pane、動かせない境界を確認します。
+Storybook checks the default horizontal layout, a vertical stack, the case without the indicator, a collapsible pane, three or more panes, and a boundary that cannot be moved.
 
-テストは pane の集合と中身を並べること、境界を `separator` として公開し keyboard で到達できること、名前を省略したときの既定の名前、`orientation` が境界の向きを決めること、`withHandle` のときだけ標識を置き標識を読み上げないこと、`disabled` の表し方、`className` で大きさを与えられること、a11y 自動検査を確認します。
+Tests check that the set of panes and their content are laid out, that the boundary is exposed as a `separator` and reachable by keyboard, the default name when the name is omitted, that `orientation` decides the boundary's direction, that the indicator is placed only with `withHandle` and is not announced, how `disabled` is represented, that the size can be given through `className`, and automated a11y checks.

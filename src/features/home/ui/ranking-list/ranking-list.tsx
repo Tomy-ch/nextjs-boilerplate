@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Separator } from "@/components/design-system/display/separator/separator";
+import { formatDecimalMoney } from "@/model/money";
 import type { ProductRankingEntry } from "@/model/product/product";
 import { withPartSpan } from "@/observability/render-span";
 
@@ -23,6 +24,8 @@ export type RankingListProps = {
  *
  * 行全体を link にせず商品名だけを link にしています。販売数量は遷移先の説明ではないため、
  * 読み上げの名前に混ぜません。
+ *
+ * @param props - 描画するランキングの一覧。
  */
 export const RankingList = withPartSpan(
   "features/home/ui/ranking-list/ranking-list",
@@ -53,10 +56,8 @@ export const RankingList = withPartSpan(
                 <span className="shrink-0 text-sm text-muted-foreground tabular-nums">
                   {entry.soldQuantity} 個
                 </span>
-                {/* 通貨は表示の直前で付ける。価格は decimal 文字列のまま持ち回っており、
-                    数値へ変換するとサブセント精度が落ちる。 */}
                 <span className="w-20 shrink-0 text-right font-emphasis tabular-nums">
-                  {`$${entry.price}`}
+                  {formatDecimalMoney(entry.price)}
                 </span>
               </div>
             </li>

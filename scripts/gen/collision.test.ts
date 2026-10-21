@@ -17,7 +17,7 @@ function featureInput(readme: Extract<GenerationInput, { kind: "feature" }>["rea
   } as const satisfies GenerationInput;
 }
 
-const FIRST_SCREEN = featureInput({ kind: "create", template: "# <feature 名>\n" });
+const FIRST_SCREEN = featureInput({ kind: "create", template: "# <feature name>\n" });
 const SECOND_SCREEN = featureInput({ kind: "keep" });
 const ADAPTER: GenerationInput = { kind: "adapter", name: "report-detail" };
 

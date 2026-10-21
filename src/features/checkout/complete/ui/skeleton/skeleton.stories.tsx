@@ -9,7 +9,7 @@ const meta = {
     layout: "padded",
     docs: {
       description: {
-        component: "購入完了の待機表示です。控えと送り先の 2 枚が並ぶ形をそのまま枠で出します。",
+        component: "購入完了の待機表示です。控えと集計の 2 枚が並ぶ形をそのまま枠で出します。",
       },
     },
   },

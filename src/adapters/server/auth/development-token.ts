@@ -6,6 +6,7 @@ import { getAuthConfig } from "@/config/auth/auth.server";
 import { getHttpConfig } from "@/config/http/http.server";
 import { createErrorMeta, withErrorMeta } from "@/errors/error-meta";
 
+// eslint-disable-next-line project-rules/no-client-outside-connection-port -- 接続先の issuer を呼び出しごとに受け取る
 import { createHttpClient } from "../http/request";
 import { fetchOidcEndpoints } from "./oidc-discovery";
 
@@ -122,6 +123,7 @@ export async function issueDevelopmentAccessToken(input: {
  *
  * @param issuer - 応えなかった宛先
  * @param stage - その宛先が満たさなかったこと
+ * @returns catch へ渡すと、載せた文言で投げ直す関数
  */
 function rethrowAs(issuer: string, stage: string): (cause: unknown) => never {
   return (cause: unknown) => {

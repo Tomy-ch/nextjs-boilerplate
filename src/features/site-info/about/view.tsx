@@ -18,7 +18,7 @@ import { RepositoryCards } from "../ui/repository-cards/repository-cards";
  * 設計上の呼び名（層の分け方や責務の所在）は書きません。このサイトを触りに来た利用者にとって
  * 判断材料にならず、読みたい人はリポジトリへ行くためです。
  *
- * 免責は利用規約が持ちます。同じ文を 2 か所に置くと、片方だけ直した状態を作れます。
+ * 閲覧の条件と免責は利用規約が持ちます。同じ文を 2 か所に置くと、片方だけ直した状態を作れます。
  */
 export const AboutView = withScreenSpan("features/site-info/about/view", () => {
   return (
@@ -65,17 +65,13 @@ export const AboutView = withScreenSpan("features/site-info/about/view", () => {
         <p>
           インターネット上で公開している場合、
           <strong>予告なくメンテナンスを行うことがあります。</strong>
-          お知らせ画面での通知は行いません。保存した内容が残り続けることも、同じ画面が明日も
-          存在することも保証しません。
+          お知らせ画面での通知は行いません。
         </p>
       </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-lg font-emphasis">利用にあたって</h2>
-        <p>
-          免責を含む利用上の条件は利用規約にまとめてあります。閲覧した時点で同意したものと
-          みなすため、先に読んでください。
-        </p>
+        <p>閲覧の条件と免責は、利用規約にまとめてあります。</p>
         <Button asChild className="self-start" variant={BUTTON_VARIANT.OUTLINE}>
           <Link href={TERMS_PATH}>利用規約を読む</Link>
         </Button>

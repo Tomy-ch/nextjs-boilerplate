@@ -51,7 +51,11 @@ export function TabsNativeList({ className, ...props }: ComponentProps<"ul">) {
 
 /** {@link TabsNativeLink} の props。 */
 export type TabsNativeLinkProps = ComponentProps<typeof Link> & {
-  /** 現在表示している観点か。 */
+  /**
+   * 現在表示している観点か。
+   *
+   * @defaultValue `false`
+   */
   isActive?: boolean;
 };
 

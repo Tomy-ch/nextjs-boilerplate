@@ -1,5 +1,6 @@
 import { setupServer } from "msw/node";
 
+import { absentHandlers } from "./absent";
 import { handlers } from "./handlers";
 
 /**
@@ -9,7 +10,7 @@ import { handlers } from "./handlers";
  * Server Components から出る取得もここを通ります。ブラウザ側だけをモックすると、RSC が実際の
  * バックエンドへ出ていくため、「バックエンド未起動で動く」が成立しません。
  *
- * 配信元（`MEDIA_ORIGIN`）宛は素通しします。mock が差し替えるのは API だけであり、画像は
- * 配信元から取得するためです（[README](README.md)）。
+ * 差し替えるのは API の口だけで、配信元（`MEDIA_ORIGIN`）宛のハンドラは持ちません。ハンドラの無い
+ * 宛先を素通しするか落とすかは `listen` を呼ぶ側が決めます（[README](README.md)）。
  */
-export const mockServer = setupServer(...handlers);
+export const mockServer = setupServer(...absentHandlers(handlers), ...handlers);

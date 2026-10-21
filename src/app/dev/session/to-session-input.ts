@@ -12,6 +12,8 @@ import type { DevSessionParseResult } from "@/features/dev-session/parse-session
  * 2 つの送信先（その場で発行する Server Action と、認可の応答を返す Route Handler）が同じ形へ
  * 揃える必要があるため、どちらの隣にも置かず独立させています。
  *
+ * @param input - 解いたフォームの入力。
+ * @returns 封緘に渡せる形へ揃えた指定。
  * @throws トークンを取りに行けなかったとき
  */
 export async function toSessionInput(

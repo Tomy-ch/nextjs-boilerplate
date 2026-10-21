@@ -4,8 +4,8 @@ import { withScreenSpan } from "@/observability/render-span";
  * 配信を止めているあいだに見せる面。
  *
  * @remarks
- * **戻る導線と終了の予定は出しません。** 理由は [README](./README.md) の「受け入れないもの」と
- * `docs/spec/route/maintenance/page.screen.md` の「書かないこと」。
+ * **戻る導線と終了の予定は出しません。** 理由は [README](./README.md#what-does-not-belong-here)と
+ * `docs/spec/route/maintenance/page.screen.md#what-not-to-write`。
  */
 export const MaintenanceView = withScreenSpan("features/maintenance/view", () => {
   return (

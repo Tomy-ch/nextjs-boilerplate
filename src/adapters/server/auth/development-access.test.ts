@@ -6,7 +6,7 @@ const { headers, isDevelopmentOnlyEndpointOpen } = vi.hoisted(() => ({
 }));
 
 vi.mock("next/headers", () => ({ headers }));
-vi.mock("@/config/load-environment", () => ({ isDevelopmentOnlyEndpointOpen }));
+vi.mock("@/config/application-environment", () => ({ isDevelopmentOnlyEndpointOpen }));
 
 import { isDevelopmentAccessAllowed } from "./development-access";
 
@@ -57,13 +57,13 @@ describe("isDevelopmentAccessAllowed", () => {
   });
 
   it("公開ドメインを名乗る要求は閉じる", async () => {
-    stubHeaders({ host: "shop.example.com" });
+    stubHeaders({ host: "app.example.com" });
 
     expect(await isDevelopmentAccessAllowed()).toBe(false);
   });
 
   it("転送された宛先が公開ドメインなら閉じる", async () => {
-    stubHeaders({ host: "localhost:3000", "x-forwarded-host": "shop.example.com" });
+    stubHeaders({ host: "localhost:3000", "x-forwarded-host": "app.example.com" });
 
     expect(await isDevelopmentAccessAllowed()).toBe(false);
   });

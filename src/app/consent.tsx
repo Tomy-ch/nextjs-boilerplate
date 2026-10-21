@@ -10,7 +10,7 @@ import { decideConsent, useConsentState } from "@/stores/consent-store";
  * 判断の材料として示す文書の行き先。
  *
  * @remarks
- * 器が持ちます。部品へ焼くと、テンプレートから作った側が文書を別の場所へ置いたときに部品側を
+ * 器が持ちます。部品へ焼くと、文書を別の場所へ置いたときに部品側を
  * 書き換えることになります。
  */
 const POLICY_HREF = "/privacy";
@@ -28,7 +28,7 @@ const POLICY_HREF = "/privacy";
  * 始まる資材を止められません。
  *
  * **何を裏へ置き、何を置かないかは器が決めます** —— 本体は何も繋がず、運用テレメトリも通しません
- * （`docs/spec/route/layout.function.md`「同意が無いものは読み込まない」）。
+ * （`docs/spec/route/layout.function.md#load-nothing-without-consent`）。
  *
  * @param props.children - 同意が得られている間だけ描く資材
  */

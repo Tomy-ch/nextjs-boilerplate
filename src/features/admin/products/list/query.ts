@@ -5,16 +5,18 @@ import { ADMIN_PRODUCT_LIST_PATH } from "../../paths";
  *
  * @remarks
  * 分類と状態は契約と同じく並びで載せます。**同じキーを繰り返す形**で、区切り文字で連結しません。
- * 連結しない理由も複数を選ばせる理由も `docs/spec/route/admin/products/page.function.md`「検索条件は URL が持つ」。
+ * 連結しない理由も複数を選ばせる理由も `docs/spec/route/admin/products/page.function.md#the-url-holds-the-search-conditions`。
  */
 export const FILTER_KEY: Readonly<{
   KEYWORD: "keyword";
   CATEGORY: "categoryCodes";
   STATUS: "statusCodes";
+  DISCONTINUED: "discontinued";
 }> = {
   KEYWORD: "keyword",
   CATEGORY: "categoryCodes",
   STATUS: "statusCodes",
+  DISCONTINUED: "discontinued",
 };
 
 /** いま見ているページの起点を載せる URL のキー。契約のクエリ名と揃える。 */
@@ -25,7 +27,7 @@ export const CURSOR_KEY = "after";
  *
  * @remarks
  * cursor は「次の位置」しか指さないため、戻る先はどこにも書かれていません。覚える場所を URL に
- * する理由は `docs/spec/route/admin/products/page.function.md`「戻る先は URL が覚える」。
+ * する理由は `docs/spec/route/admin/products/page.function.md#pagination`。
  */
 export const TRAIL_KEY = "trail";
 
@@ -36,11 +38,33 @@ export const TRAIL_KEY = "trail";
  * キーを持っているのはこの層なので、呼び名も同じ場所に置きます。表示する側が写しを持つと、
  * 契約にキーが増えたときに生の名前が出る画面と出ない画面に割れます。
  */
-export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
+export const FILTER_KEY_LABEL = {
   [FILTER_KEY.KEYWORD]: "キーワード",
   [FILTER_KEY.CATEGORY]: "分類",
   [FILTER_KEY.STATUS]: "状態",
+  [FILTER_KEY.DISCONTINUED]: "廃番",
   [CURSOR_KEY]: "読み込み位置",
+} as const satisfies Readonly<Record<string, string>>;
+
+/**
+ * 廃番で絞り込むときに URL へ載せる値。契約の真偽値の綴りと揃える。
+ *
+ * @remarks
+ * 2 つは排他で、どちらでもない状態が「絞り込まない」です。未指定を値として持たないのは、
+ * 既定値を URL に載せないためです。
+ */
+export const DISCONTINUED_FILTER: Readonly<{ ONLY: "true"; EXCLUDED: "false" }> = {
+  ONLY: "true",
+  EXCLUDED: "false",
+};
+
+/** {@link DISCONTINUED_FILTER} のいずれか。 */
+export type DiscontinuedFilter = (typeof DISCONTINUED_FILTER)[keyof typeof DISCONTINUED_FILTER];
+
+/** 廃番で絞り込む値の呼び名。値を持つこの層が呼び名も持つ。 */
+export const DISCONTINUED_FILTER_LABEL: Readonly<Record<DiscontinuedFilter, string>> = {
+  [DISCONTINUED_FILTER.ONLY]: "廃番のみ",
+  [DISCONTINUED_FILTER.EXCLUDED]: "廃番を除く",
 };
 
 /**
@@ -51,12 +75,14 @@ export const FILTER_KEY_LABEL: Readonly<Record<string, string>> = {
  * 具体的な値を同時に選べてしまいます。
  */
 export type AdminProductListConditions = {
-  /** 商品名に含まれる語。 */
+  /** 商品名・商品説明に部分一致で含まれる語。 */
   readonly keyword: string;
   /** 分類のコード。空なら分類で絞り込まない。 */
   readonly categoryCodes: readonly string[];
   /** 状態のコード。空なら状態で絞り込まない。 */
   readonly statusCodes: readonly string[];
+  /** 廃番で絞り込む値。null なら絞り込まない。 */
+  readonly discontinued: DiscontinuedFilter | null;
 };
 
 /** 一覧の URL が表す、いま見ている場所。 */
@@ -67,6 +93,14 @@ export type AdminProductListLocation = AdminProductListConditions & {
   readonly trail: readonly string[];
 };
 
+/**
+ * 条件とページ位置から一覧の URL を組む。
+ *
+ * @param conditions - 絞り込み条件
+ * @param cursor - いま見ているページの起点。先頭ページは null
+ * @param trail - ここまでに通ってきたページの起点
+ * @returns 組み立てた URL
+ */
 function toHref(
   conditions: AdminProductListConditions,
   cursor: string | null,
@@ -85,6 +119,10 @@ function toHref(
     for (const value of values) {
       params.append(key, value);
     }
+  }
+
+  if (conditions.discontinued !== null) {
+    params.set(FILTER_KEY.DISCONTINUED, conditions.discontinued);
   }
 
   if (cursor !== null) {
@@ -106,12 +144,21 @@ function toHref(
  * @remarks
  * 読み進めた位置は載せません。条件が変わった後の「続き」は前の条件の続きを指しており、そのまま
  * 引き継ぐと、絞り直したのに前の条件の途中から始まります。
+ *
+ * @param conditions - 絞り込み条件
+ * @returns 組んだ URL
  */
 export function toConditionHref(conditions: AdminProductListConditions): string {
   return toHref(conditions, null, []);
 }
 
-/** 次のページの URL を組む。 */
+/**
+ * 次のページの URL を組む。
+ *
+ * @param location - いま見ている場所
+ * @param nextCursor - 次のページの起点
+ * @returns 組んだ URL
+ */
 export function toNextPageHref(location: AdminProductListLocation, nextCursor: string): string {
   const trail = location.cursor === null ? [] : [...location.trail, location.cursor];
 
@@ -125,6 +172,7 @@ export function toNextPageHref(location: AdminProductListLocation, nextCursor: s
  * 先頭ページには戻る先がないため、行き先を返しません。省略された向きは押せない control として
  * 描かれます（`components/app-starter/cursor-pagination`）。
  *
+ * @param location - いま見ている場所
  * @returns 先頭ページなら undefined
  */
 export function toPreviousPageHref(location: AdminProductListLocation): string | undefined {

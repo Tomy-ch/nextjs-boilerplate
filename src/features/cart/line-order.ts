@@ -14,6 +14,7 @@
  * @param remembered - 覚えている並び
  * @param present - いまカートに入っている明細
  * @param recoverable - いま戻せる明細
+ * @returns 描画に使う明細 ID の並び
  */
 export function toCartLineOrder(
   remembered: readonly string[],

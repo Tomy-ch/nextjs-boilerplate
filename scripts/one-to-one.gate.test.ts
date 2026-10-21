@@ -30,12 +30,15 @@ import { EXCLUDED_FROM_CHECKS, SUBJECTLESS_TESTS } from "./lib/untested-modules"
 const REPOSITORY_ROOT = resolve(import.meta.dirname, "..");
 
 /**
- * 走査する範囲(リポジトリルート相対)。
+ * 走査するディレクトリ(リポジトリルート相対)。
  *
  * @remarks
  * ここに並ばないディレクトリは丸ごと無検査になります。範囲を足したら、除外したいものは
  * `lib/untested-modules.ts` へ理由付きで宣言してください。走査範囲を狭めて回避すると、
  * 外した記録がどこにも残りません。
+ *
+ * リポジトリ直下のファイルはここに並べず、常に走査します({@link isInScanRange})。名前で
+ * 並べると、直下へ足したファイルが黙って走査の外に出ます。
  */
 const SCAN_ROOTS = [
   "src",
@@ -49,6 +52,13 @@ const SCAN_ROOTS = [
   "e2e",
   ".storybook",
 ] as const;
+
+/** リポジトリ直下のファイルか、{@link SCAN_ROOTS} の下に居るか。 */
+function isInScanRange(relativePath: string): boolean {
+  return (
+    !relativePath.includes("/") || SCAN_ROOTS.some((root) => relativePath.startsWith(`${root}/`))
+  );
+}
 
 /** 除外宣言を、リポジトリ相対パスに当てる正規表現へ変える。 */
 function toMatcher(pattern: string): RegExp {
@@ -137,9 +147,9 @@ function scanRepository(): Scan {
       continue;
     }
 
-    const inRepository = relative(REPOSITORY_ROOT, absolute);
+    const inRepository = relative(REPOSITORY_ROOT, absolute).split("\\").join("/");
 
-    if (!SCAN_ROOTS.some((root) => inRepository.startsWith(`${root}/`))) {
+    if (!isInScanRange(inRepository)) {
       continue;
     }
     if (matchesAny(inRepository, EXCLUDED_FROM_CHECKS)) {

@@ -34,7 +34,6 @@ export type InfiniteProducts = {
  * 一覧を読み進める。
  *
  * @remarks
- * 使うのがこの一覧だけなので `features` の中へ置いています。
  *
  * 初回ページは受け取るだけで取得しません。取得するのは Server Component であり、この hook が
  * 担うのは 2 ページ目以降だけです。
@@ -45,6 +44,7 @@ export type InfiniteProducts = {
  *
  * @param initial - Server Component が取得した最初のページ
  * @param query - いま効いている検索条件。続きの取得にそのまま渡す
+ * @returns 読み進めた一覧の状態と、続きを読む手段
  */
 export function useInfiniteProducts(
   initial: CursorPage<ProductListItem>,

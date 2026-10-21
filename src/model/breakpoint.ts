@@ -14,6 +14,7 @@ export type BreakpointName = keyof typeof BREAKPOINT;
  * 追従して両方出る幅か両方消える幅ができます。
  *
  * @param name - 段の名前
+ * @returns 組み立てた media query 文字列
  */
 export function mediaBelow(name: BreakpointName): string {
   return `not all and (min-width: ${BREAKPOINT[name]})`;

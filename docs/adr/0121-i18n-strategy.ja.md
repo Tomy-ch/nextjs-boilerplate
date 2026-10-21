@@ -1,0 +1,34 @@
+> **このファイルは [`0121-i18n-strategy.md`](0121-i18n-strategy.md) の日本語訳です。**
+> 直接編集しないでください。変更は英語の canonical な `0121-i18n-strategy.md` を先に更新し、そのうえでこの日本語訳を同期してください。
+> エージェントが読むのは `0121-i18n-strategy.md` だけです。このファイルは人間が読むための翻訳です。
+
+# i18n 戦略(exclusion)
+
+国際化(i18n)ライブラリ・ロケール解決・翻訳キー設計を **同梱しない** ことを意図的な除外(exclusion)として記録し、採用する場合の App Router 上の seam のみ示す。
+
+## Status
+
+Accepted (exclusion)
+
+## 背景
+
+i18n は**必要ロケール・翻訳運用が用途に強く依存**するため、ここで一律に決めると選択を狭める。ライブラリを同梱せず、本 ADR が記すのは**採用時の拡張点の座標**である。
+
+## 決定: 同梱しない(用途依存)
+
+- **i18n ライブラリ(next-intl 等)・ロケール解決・翻訳キー体系を 同梱しない**。用途依存のため、必要になった時点で判断する（強制: 持たない —— 採らない決定。i18n ライブラリ・ロケール解決・翻訳キーは同梱されておらず、入れる変更は依存とファイルの追加として diff に現れる）
+- 導出根拠: [0011](0011-no-docker.ja.md) の「用途未定のプレゼンテーションレイヤー」ロール —— 用途依存の判断を本体で先取りしない
+- **採用するときは、局所ライブラリ(next-intl)を下記 seam に置く形を採る。** その場合も本体は seam を保持し、ライブラリは [0010](0010-standards-and-non-lockin.ja.md)(vendor-independent 正当化 / adapters・カーネル境界の裏で差替可能 / vendor 直参照を feature・component に散らさない)と [0004](0004-library-management.ja.md)(exact pin / `pnpm audit`)の枠内で置く
+- **i18n を採用する場合の seam**(参考): App Router のロケール解決は **`proxy.ts`(ロケール検出・リダイレクト。[0043](0043-middleware-policy.ja.md))** と **route セグメント(`[locale]`。[0040](0040-routing-rendering-strategy.ja.md) / [0028](0028-naming-convention.ja.md))** で行うのが Next.js 慣行。導入時も [0021](0021-frontend-responsibility.ja.md)(カーネル配置・命名規律)・[0004](0004-library-management.ja.md)(exact pin / audit)の枠内で行う
+- 単一ロケールでも初日から要る**日付・数値のフォーマットと日付演算は本 ADR の射程外**であり、[0120](0120-locale-aware-formatting.ja.md) が所有する。デフォルト locale を `model` の単一定数に集約する 0120 の seam が、採用時にアクティブ locale を上記 seam から受け取る差し替え点になる
+
+## exclusion の扱い
+
+- 本 ADR は「意図的にやらない」判断の記録である([0140](0140-documentation-operations.ja.md) タクソノミー: exclusion = ADR)。導入する分にはこの exclusion は障害にならない
+
+## 関連 ADR
+
+- [0011-no-docker.md](0011-no-docker.ja.md) — 用途未定のプレゼンテーションレイヤーロール(用途依存とする根拠)
+- [0043-middleware-policy.md](0043-middleware-policy.ja.md) / [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.ja.md) — ロケール解決の seam(採用時)
+- [0120-locale-aware-formatting.md](0120-locale-aware-formatting.ja.md) — `Intl` フォーマット・`date-fns` 演算の所有 / デフォルト locale の seam
+- [0130-pwa-strategy.md](0130-pwa-strategy.ja.md) — 用途依存を exclusion 記録する同型の判断

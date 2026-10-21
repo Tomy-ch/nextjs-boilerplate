@@ -33,6 +33,7 @@ export type LoginNotice = (typeof LOGIN_NOTICE)[keyof typeof LOGIN_NOTICE];
  * 検証を通していない方が生まれます。
  *
  * @param returnTo - 認証後に戻す先。同一 origin の相対パスでなければ `/` へ倒れる
+ * @returns 理由を載せたログイン画面の URL
  */
 export function unavailableLoginPath(returnTo: string): string {
   return `${loginPath(returnTo)}&${LOGIN_NOTICE_KEY}=${LOGIN_NOTICE.UNAVAILABLE}`;

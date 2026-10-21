@@ -20,6 +20,11 @@ const OPTIONS: readonly FilterOption[] = [
   { value: "publishedAt", label: "古い順" },
 ];
 
+/**
+ * 並び替えのセレクトボックスを取得する。
+ *
+ * @returns 並び替えの要素。
+ */
 function field(): HTMLElement {
   return screen.getByLabelText("並び替え");
 }

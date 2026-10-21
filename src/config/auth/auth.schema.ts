@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-/** auth purpose 専用の ENV validator を定義する。 */
-
 const httpUrl = z.url().refine(
   (value) => {
     const protocol = new URL(value).protocol;
@@ -10,7 +8,11 @@ const httpUrl = z.url().refine(
   { error: "http または https の URL を指定してください" },
 );
 
-/** OIDC issuer を検証する。 */
+/**
+ * OIDC issuer を検証する。
+ *
+ * @returns OIDC issuer の検証器
+ */
 export function authIssuerValidator() {
   return httpUrl;
 }
@@ -26,17 +28,27 @@ export function authIssuerValidator() {
  * 省略できます。既定の `idp` は環境によらず正しい値で、`dev` を置くのは開発専用の口を開けて
  * いる環境だけです。全環境へ必須にすると、実環境の設定に「開発用ではない」と書くだけの行が
  * 増えます。
+ *
+ * @returns 認可の開始先の検証器
  */
 export function authModeValidator() {
   return z.enum(["idp", "dev"]).default("idp");
 }
 
-/** OIDC public client ID を検証する。 */
+/**
+ * OIDC public client ID を検証する。
+ *
+ * @returns OIDC public client ID の検証器
+ */
 export function authClientIdValidator() {
   return z.string().min(1);
 }
 
-/** IdP に登録する callback URL を検証する。 */
+/**
+ * IdP に登録する callback URL を検証する。
+ *
+ * @returns callback URL の検証器
+ */
 export function authRedirectUriValidator() {
   return httpUrl;
 }
@@ -50,12 +62,17 @@ export function authRedirectUriValidator() {
  * 配信ヘッダ（HSTS / `upgrade-insecure-requests`）が同じ答えを要るため、綴りをここに 1 つ置きます。
  *
  * @param redirectUri - 検証済みの `AUTH_REDIRECT_URI`
+ * @returns https で配信されているか
  */
 export function isServedOverTls(redirectUri: string): boolean {
   return new URL(redirectUri).protocol === "https:";
 }
 
-/** 認可リクエストの scope を検証する。 */
+/**
+ * 認可リクエストの scope を検証する。
+ *
+ * @returns scope 文字列の検証器
+ */
 export function authScopesValidator() {
   return z.string().trim().min(1);
 }
@@ -84,6 +101,7 @@ const SHIPPED_SECRETS: ReadonlySet<string> = new Set([
  * 呼び出し側の責務です。
  *
  * @param allowShipped - 同梱値を許すか。local / ci だけ true
+ * @returns session secret の検証器
  */
 export function authSessionSecretValidator(allowShipped: boolean) {
   return z

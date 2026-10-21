@@ -1,6 +1,11 @@
 [
   { "name": "bug", "description": "バグ・不具合", "color": "d73a4a" },
   { "name": "feature", "description": "機能追加の提案や要望", "color": "0e8a16" },
+  {
+    "name": "implementation-task",
+    "description": "決定を実装する変更 1 件（目的・強制手段・完了条件の欄を負う）",
+    "color": "0e8a16"
+  },
   { "name": "triage", "description": "初期分類中（要確認）", "color": "d93f0b" },
   { "name": "enhancement", "description": "既存機能の改善", "color": "c5def5" },
   { "name": "question", "description": "質問・ディスカッション用", "color": "d876e3" },

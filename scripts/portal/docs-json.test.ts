@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { parseDocsJson } from "../../docs-viewer/src/docs-json/docs-json";
-import { autoTitle, buildDocsJson, type DiscoveredDocs, guideIdOf, slugify } from "./docs-json";
+import {
+  autoTitle,
+  buildDocsJson,
+  type DiscoveredDocs,
+  guideIdOf,
+  slugify,
+  splitByLanguage,
+} from "./docs-json";
 
 const empty: DiscoveredDocs = { directories: [], rootEnFiles: [], rootJaFiles: [] };
 
@@ -47,6 +54,30 @@ describe("guideIdOf", () => {
   });
 });
 
+describe("splitByLanguage", () => {
+  // ----- 正常系 -----
+  it("同じディレクトリの一覧を canonical と兄弟のミラーへ分ける", () => {
+    expect(splitByLanguage(["rules.md", "rules.ja.md", "playbook.md"])).toEqual({
+      enFiles: ["rules.md", "playbook.md"],
+      jaFiles: ["rules.ja.md"],
+    });
+  });
+
+  it("Markdown でない項目をどちらにも入れない", () => {
+    expect(splitByLanguage(["index.html", "notes.ja.txt", "adr"])).toEqual({
+      enFiles: [],
+      jaFiles: [],
+    });
+  });
+
+  it("名前の途中に ja を含むだけの canonical をミラーと取り違えない", () => {
+    expect(splitByLanguage(["ninja.md", "ja.md"])).toEqual({
+      enFiles: ["ninja.md", "ja.md"],
+      jaFiles: [],
+    });
+  });
+});
+
 describe("buildDocsJson", () => {
   // ----- 正常系 -----
   it("manifest の複製先を portal からの相対経路にする", () => {
@@ -78,6 +109,18 @@ describe("buildDocsJson", () => {
     expect(docs.groups[0]?.sections[0]?.items[0]?.lang).toBe("ja");
   });
 
+  it("言語を置き場のディレクトリ名ではなく接尾辞で決める", () => {
+    const { docs } = buildDocsJson(
+      {
+        meta: { groups: [{ title: "Architecture", sections: ["adr"] }] },
+        adr: [{ src: "docs/adr/0001.md", dst: "docs/portal/guides/ja/0001.md" }],
+      },
+      empty,
+    );
+
+    expect(docs.groups[0]?.sections[0]?.items[0]?.lang).toBe("en");
+  });
+
   it("ディレクトリ直下の Markdown を section として発見する", () => {
     const { docs } = buildDocsJson(
       { meta: { groups: [{ title: "Architecture", sections: ["adr"] }] } },
@@ -90,7 +133,7 @@ describe("buildDocsJson", () => {
     expect(docs.groups[0]?.sections[0]?.items[0]?.path).toBe("../adr/0001.md");
   });
 
-  it("翻訳ツリーの Markdown を同じ section へ入れる", () => {
+  it("兄弟のミラーを canonical と同じディレクトリの経路で同じ section へ入れる", () => {
     const { docs } = buildDocsJson(
       { meta: { groups: [{ title: "Architecture", sections: ["adr"] }] } },
       {
@@ -100,7 +143,8 @@ describe("buildDocsJson", () => {
     );
 
     expect(docs.groups[0]?.sections[0]?.items[0]).toMatchObject({
-      path: "../ja/adr/0001.ja.md",
+      path: "../adr/0001.ja.md",
+      source: "docs/adr/0001.ja.md",
       lang: "ja",
     });
   });
@@ -128,7 +172,7 @@ describe("buildDocsJson", () => {
 
     expect(docs.groups[0]?.sections[0]?.items.map((item) => item.path)).toEqual([
       "../playbook.md",
-      "../ja/rules.ja.md",
+      "../rules.ja.md",
     ]);
   });
 

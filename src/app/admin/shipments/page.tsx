@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  * 発送を待っている注文を便ごとに見て、発送済みの注文の配達を確認する画面。
  *
  * @remarks
- * 索引に載せない理由は `docs/spec/route/admin/layout.function.md`「索引に載せない」。
+ * 索引に載せない理由は `docs/spec/route/admin/layout.function.md#keep-out-of-search-indexes`。
  */
 export default function AdminShipmentQueuePage() {
   return (

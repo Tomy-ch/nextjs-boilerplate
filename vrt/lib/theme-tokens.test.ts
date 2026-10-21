@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { semanticColorTokens, semanticNonColorTokens } from "./theme-tokens";
+import { declaredSurfaces, semanticColorTokens, semanticNonColorTokens } from "./theme-tokens";
 
 const CSS = `
 @theme {
@@ -63,5 +63,22 @@ describe("semanticNonColorTokens", () => {
   // ----- 異常系 -----
   it("1 つも無ければ落とす", () => {
     expect(() => semanticNonColorTokens(":root { color-scheme: light; }")).toThrow();
+  });
+});
+
+describe("declaredSurfaces", () => {
+  // ----- 正常系 -----
+  it("再束縛する系統の名前を、配色ごとの重複を除いて並べる", () => {
+    const css = `
+[data-surface="ops"] { --semantic-color-background: red; }
+[data-surface="admin"] { --semantic-color-background: blue; }
+:root[data-theme="dark"] [data-surface="admin"] { --semantic-color-background: black; }
+`;
+
+    expect(declaredSurfaces(css)).toEqual(["admin", "ops"]);
+  });
+
+  it("系統を再束縛しない CSS からは何も取り出さない", () => {
+    expect(declaredSurfaces(CSS)).toEqual([]);
   });
 });

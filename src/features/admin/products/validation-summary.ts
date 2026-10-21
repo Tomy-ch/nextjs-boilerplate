@@ -23,6 +23,10 @@ const FIELD_LABELS = {
  * @remarks
  * 要約の各項目は入力欄への link になるため、宛先の `id` が要ります。`id` は同じフォームを 2 度
  * 置いても衝突しないよう前置きつきで採番されるので、写す側も同じ前置きを使います。
+ *
+ * @param fieldErrors - 項目ごとの誤り
+ * @param idPrefix - 入力欄の `id` に使う前置き
+ * @returns 要約に並べる形
  */
 export function toValidationErrors(
   fieldErrors: FieldErrors<ProductFormField> | undefined,

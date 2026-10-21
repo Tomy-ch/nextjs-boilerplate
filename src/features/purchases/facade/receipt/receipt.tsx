@@ -35,11 +35,10 @@ export type PurchaseReceiptCardProps = {
 };
 
 /**
- * 購入の控え。
+ * 取得に使う ID を出さず、購入コードだけを識別子として見せる控え。
  *
  * @remarks
- * 見せる識別子は購入コードです。取得に使う ID は利用者が問い合わせに持ち出せる値ではないため、
- * 画面には出しません。
+ * ID は利用者が問い合わせに持ち出せる値ではないため、画面には出しません。
  *
  * 折り返しを許すのは、契約が返すのが UUID で、狭い幅では 1 行に収まらないためです。詰めて隠すと、
  * 問い合わせのときに全文を読み取れません。
@@ -48,6 +47,9 @@ export type PurchaseReceiptCardProps = {
  * 詳細では地の文になっていると、同じことを言っているのかが読み取れません。
  *
  * 購入完了と購入詳細の両方がこれを出すため `facade` に置いています（README 参照）。
+ *
+ * @param props - 受け取る内容。個々の意味は {@link PurchaseReceiptCardProps} の各メンバーが持つ。
+ * @see Storybook `Features/Purchases/ReceiptCard`
  */
 export function PurchaseReceiptCard({ purchase, actions }: PurchaseReceiptCardProps) {
   return (

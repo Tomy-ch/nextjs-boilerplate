@@ -40,14 +40,20 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/account",
   "src/features/site-info",
   "src/features/admin",
+  "src/features/inquiry",
   // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
   "src/app/api/addresses",
   "src/app/api/purchases",
+  // 購読の発券を中継する口。購読の機構（`src/adapters/client/stream`）はコア残留だが、
+  // 何を購読するかは題材が決めるので、この中継は題材側である。
+  "src/app/api/inquiries",
   // 題材に固有のカーネルモジュール
   "src/model/cart",
+  "src/model/coupon",
   "src/model/dashboard",
+  "src/model/inquiry",
   "src/model/product",
   "src/model/purchase",
   "src/model/user",
@@ -67,10 +73,11 @@ export const SAMPLE_PATHS: readonly string[] = [
   // とは別に置いてある。
   "mocks/references.ts",
   "mocks/references.test.ts",
-  // 題材の画面の一覧。全 24 画面と API の対応表で、中身は題材そのものである。
+  // 題材の画面の一覧。画面と API の対応表で、中身は題材そのものである。
   // 画面ごとの約束は `docs/spec/route/**` が持ち、契約は `openapi/api.gen.yaml` が持つので、
   // ここは索引であって正ではない。題材と一緒に消える。
   "docs/spec/screens.md",
+  "docs/spec/screens.ja.md",
   // 題材の画面の仕様書。実装と 1 対 1 で対応するため、画面が消えれば仕様書も消える。
   // 残るのは `docs/spec/README.md` と、コア残留の画面（`auth` の器 / `/login` / `/dev/session`）の分。
   "docs/spec/route/shop",
@@ -84,6 +91,8 @@ export const SAMPLE_PATHS: readonly string[] = [
   "e2e/journeys/responsive.spec.ts",
   "e2e/journeys/overlay.spec.ts",
   "e2e/journeys/focus.spec.ts",
+  "e2e/journeys/not-found.spec.ts",
+  "e2e/journeys/discontinue.spec.ts",
   // 破棄の道具（使い終わったら不要）。
   "scripts/setup/remove-sample",
 ];
@@ -127,20 +136,84 @@ export const SAMPLE_RESTORATIONS: readonly SampleRestoration[] = [
     from: "scripts/setup/remove-sample/templates/page-screen.md.template",
     to: "docs/spec/route/page.screen.md",
   },
+  // 上の画面要件の日本語訳。canonical だけを戻すと、ミラーの規約を持つ木に訳の無い仕様書が 1 本残る。
+  {
+    from: "scripts/setup/remove-sample/templates/page-screen.ja.md.template",
+    to: "docs/spec/route/page.screen.ja.md",
+  },
 ];
+
+/**
+ * 語に付ける境界の形。
+ *
+ * @remarks
+ * **語ごとに違います。** 両側に付けられるのは、その語が語として現れるときだけです。
+ * `cart` は両側に付けないと `CartesianGrid` に当たりますが、`inquiry` を両側にすると
+ * `inquiryId` や `InquiryListResponse` のような複合した識別子に当たらなくなります。
+ * 日本語の語は語境界の概念を持たないので付けません。
+ */
+const WORD_BOUNDARY = {
+  /** 前後ともに境界を要求する。 */
+  BOTH: "both",
+  /** 先頭だけ境界を要求する。 */
+  LEADING: "leading",
+  /** 境界を要求しない。 */
+  NONE: "none",
+} as const;
+
+type WordBoundary = (typeof WORD_BOUNDARY)[keyof typeof WORD_BOUNDARY];
+
+/** 題材の語 1 つと、その語に付ける境界。 */
+type DanglingWord = {
+  readonly word: string;
+  readonly boundary: WordBoundary;
+};
 
 /**
  * 破棄後に実装へ残っていてはいけない題材の語彙。
  *
  * @remarks
+ * 語を足す / 落とすのはこの表だけを触ります。境界の付け方は `toBoundedPattern` が持つので、
+ * 語を足す側が正規表現を書くことはありません。
+ */
+const DANGLING_WORDS: readonly DanglingWord[] = [
+  { boundary: WORD_BOUNDARY.NONE, word: "商品" },
+  { boundary: WORD_BOUNDARY.NONE, word: "カート" },
+  { boundary: WORD_BOUNDARY.NONE, word: "在庫" },
+  { boundary: WORD_BOUNDARY.NONE, word: "購入" },
+  { boundary: WORD_BOUNDARY.NONE, word: "注文" },
+  { boundary: WORD_BOUNDARY.NONE, word: "問い合わせ" },
+  { boundary: WORD_BOUNDARY.NONE, word: "クーポン" },
+  { boundary: WORD_BOUNDARY.BOTH, word: "products" },
+  { boundary: WORD_BOUNDARY.BOTH, word: "cart" },
+  { boundary: WORD_BOUNDARY.LEADING, word: "inquiry" },
+  { boundary: WORD_BOUNDARY.LEADING, word: "inquiries" },
+  // `appliedCoupon` のように識別子の途中に現れるので、境界を要求しない。
+  { boundary: WORD_BOUNDARY.NONE, word: "coupon" },
+];
+
+/**
+ * 語と境界の宣言から、その語 1 つ分の正規表現を組む。
+ *
+ * @returns 境界を付けた正規表現の断片。
+ */
+function toBoundedPattern({ boundary, word }: DanglingWord): string {
+  if (boundary === WORD_BOUNDARY.BOTH) {
+    return String.raw`\b${word}\b`;
+  }
+
+  return boundary === WORD_BOUNDARY.LEADING ? String.raw`\b${word}` : word;
+}
+
+/**
+ * 破棄後に実装へ残っていてはいけない題材の語彙を、1 本の正規表現として渡す。
+ *
+ * @remarks
  * 検証側はこれをスナップショット経由で受け取ります。**検証は削除の後に走り、その時点でこの
  * モジュールは消えている**ため、import では渡せません。宣言をここに置くのは、破棄する対象と
  * 残留を探す語彙が同じ表から出る必要があるからです。
- *
- * 英語の語には語境界を付けます。付けないと別語の一部に当たります（`CartesianGrid` が `cart` に
- * 一致し、題材と無関係な部品が消し残しとして報告されます）。
  */
-export const DANGLING_PATTERN = String.raw`商品|カート|在庫|購入|注文|\bproducts\b|\bcart\b`;
+export const DANGLING_PATTERN: string = DANGLING_WORDS.map(toBoundedPattern).join("|");
 
 /** マーカーの名前。`sample:begin` / `sample:end` / `sample:line` / `sample:replace-*` を作る。 */
 export const SAMPLE_MARKER = "sample";
@@ -166,15 +239,17 @@ export const EXCLUDED_DIRECTORIES: Set<string> = new Set([
  * 走査から外す相対パス接頭辞。生成物・作業用の置き場と、マーカーの形をデータとして持つ区画。
  *
  * @remarks
- * マーカー行のベースライン（`scripts/marker-baseline/`）をファイル単位ではなく接頭辞で外すのは、
- * あの区画を boilerplate 限定節の剥がしが**丸ごと消す**からです。`MARKER_LITERAL_FILES` へ並べると、
- * 剥がしだけを走らせた木で「宣言したファイルが実在しない」になります。
+ * マーカー行のベースライン（`scripts/marker-baseline/`）と前提の検査（`scripts/premise-lint/`）を
+ * ファイル単位ではなく接頭辞で外すのは、どちらの区画も boilerplate 限定節の剥がしが**丸ごと消す**
+ * からです。`MARKER_LITERAL_FILES` へ並べると、剥がしだけを走らせた木で「宣言したファイルが実在
+ * しない」になります。
  */
 export const EXCLUDED_PATH_PREFIXES: readonly string[] = [
   ".storybook/public/",
   "docs/portal/guides/",
   "graphify-out/",
   "scripts/marker-baseline/",
+  "scripts/premise-lint/",
   "tmp/",
   "src/app/generated/",
   "src/model/generated/",
@@ -221,8 +296,9 @@ export const MARKER_LITERAL_FILES: readonly string[] = [
   "scripts/setup/lib/markers.test.ts",
   // マーカーの名前と形を宣言・説明している当ファイル自身。
   "scripts/setup/remove-sample/sample-manifest.ts",
+  // boilerplate-only:begin
   // 破棄の手順を説明する散文。マーカーの書き方をそのまま載せている。
+  // 剥がし（`scripts/setup/remove-boilerplate-only/`）が `docs/plan` ごと消すので、宣言も一緒に消える。
   "docs/plan/v1-implementation-plan.md",
-  // 前提の検査が剥がし後の本文を読むことのテスト。入力としてマーカーの形を持つ。
-  "scripts/premise-lint/scan.test.ts",
+  // boilerplate-only:end
 ];

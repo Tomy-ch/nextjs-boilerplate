@@ -9,21 +9,40 @@ import {
   shortcutKeyLabel,
 } from "./keyboard-shortcut.definition";
 
-/** プラットフォームは変わらないため、購読は解除だけを返す。 */
+/**
+ * プラットフォームは変わらないため、購読は解除だけを返す。
+ *
+ * @returns 何もしない解除関数。
+ */
 function subscribe(): () => void {
   return () => {};
 }
 
+/**
+ * 閲覧環境から、修飾キーの表記を選ぶプラットフォームを読む。
+ *
+ * @returns Apple 系の環境なら {@link SHORTCUT_PLATFORM} の `APPLE`、それ以外は `OTHER`。
+ */
 function readPlatform(): ShortcutPlatform {
   return /mac|iphone|ipad|ipod/i.test(navigator.platform)
     ? SHORTCUT_PLATFORM.APPLE
     : SHORTCUT_PLATFORM.OTHER;
 }
 
+/**
+ * server 描画時に使うプラットフォーム。閲覧環境を読めないため Apple 以外として扱う。
+ *
+ * @returns {@link SHORTCUT_PLATFORM} の `OTHER`。
+ */
 function readServerPlatform(): ShortcutPlatform {
   return SHORTCUT_PLATFORM.OTHER;
 }
 
+/**
+ * 修飾キーの表記を選ぶプラットフォームを、hydration 後に閲覧環境から決める。
+ *
+ * @returns hydration までは {@link SHORTCUT_PLATFORM} の `OTHER`、その後は閲覧環境から読んだ値。
+ */
 function useShortcutPlatform(): ShortcutPlatform {
   return useSyncExternalStore(subscribe, readPlatform, readServerPlatform);
 }
@@ -59,8 +78,6 @@ export type KeyboardShortcutKeysProps = Omit<ComponentProps<typeof KbdGroup>, "c
  * ```
  *
  * @param props - `KbdGroup` の props から `children` を除いたものと、以下の表示用 props。
- * @param props.keys - 押す順に並べたキー。
- * @param props.platform - 表記を固定するプラットフォーム。{@link SHORTCUT_PLATFORM} のいずれか。
  *
  * @see Storybook `Display/KeyboardShortcut`
  */

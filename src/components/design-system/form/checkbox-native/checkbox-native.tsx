@@ -17,6 +17,7 @@ export type CheckboxNativeProps = Omit<ComponentProps<"input">, "type">;
  * いるかを色の違いだけで読むことになる。印は `CheckboxClient` と同じ位置・同じ token の色で
  * 描いており、同じ checkbox が場所によって違う顔にならない。
  *
+ * @param props - native `input` 属性。`type` は `checkbox` に固定される。
  * @see Storybook `Form/CheckboxNative`
  */
 export function CheckboxNative({ className, ...props }: CheckboxNativeProps) {

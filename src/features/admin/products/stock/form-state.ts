@@ -35,3 +35,13 @@ export const STOCK_TARGET_LOST_MESSAGE = "対象の商品が判りません。�
 
 /** 動かす量が数として読めなかったときの文言。 */
 export const STOCK_QUANTITY_INVALID_MESSAGE = "1 以上の整数を入力してください。";
+
+/**
+ * 増減後の在庫が保持できる範囲を外れると拒まれたときの文言。
+ *
+ * @remarks
+ * カタログの既定文言は分類だけを伝えるもので、直すのが動かす量であることは、この画面でしか
+ * 言えません。
+ */
+export const STOCK_OUT_OF_RANGE_MESSAGE =
+  "動かした後の在庫が扱える範囲を外れます。量を見直してください。";

@@ -29,6 +29,7 @@ export type AdminUserPaginationProps = {
  * 端では前後を link にせず、押せない control として残します。消すと残った側が左右へ動き、同じ
  * 場所を狙って押せません（`components/design-system/navigation/pagination`）。
  *
+ * @param props - {@link AdminUserPaginationProps} を参照。
  * @see Storybook `Features/Admin/Users/Pagination`
  */
 export const AdminUserPagination = withPartSpan(

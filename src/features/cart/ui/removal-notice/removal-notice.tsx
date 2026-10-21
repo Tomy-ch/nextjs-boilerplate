@@ -33,6 +33,8 @@ export type CartRemovalNoticeProps = {
  *
  * 操作の名前に商品名を含めます。案内は同時に複数並ぶため、文言だけではどれを戻す操作かを
  * 区別できません。
+ *
+ * @param props - {@link CartRemovalNoticeProps} を参照。
  */
 export function CartRemovalNotice({ removed }: CartRemovalNoticeProps) {
   const [, formAction] = useActionState<CartActionState, FormData>(
@@ -75,6 +77,8 @@ export type CartRemovalNoticeListProps = {
  * @remarks
  * 明細が 1 つも無い姿で使います。並べる相手が無いため位置を持てず、取り除いた順に積みます。
  * 明細が残っている場合は `CartLineList` が並びの中へ差し込みます。
+ *
+ * @see Storybook `Features/Cart/RemovalNotice`
  */
 export function CartRemovalNoticeList({ presentProductIds }: CartRemovalNoticeListProps) {
   const pending = usePendingRemovals(presentProductIds);

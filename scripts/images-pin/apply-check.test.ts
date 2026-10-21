@@ -69,6 +69,15 @@ describe("rewritePins", () => {
     expect(result.out).toContain(`alpine:3.24@${DIGEST} # 補助ツール`);
   });
 
+  it("platform 指定とステージ名を保ったまま参照だけを固定する", () => {
+    write("docker/tools/Dockerfile", "");
+    const data = "FROM --platform=linux/amd64 alpine:3.24 AS build\n";
+
+    const result = rewritePins(data, firstTarget(), lock([["alpine:3.24", DIGEST]]));
+
+    expect(result.out).toBe(`FROM --platform=linux/amd64 alpine:3.24@${DIGEST} AS build\n`);
+  });
+
   // ----- 異常系 -----
   it("ロックファイルに無い参照を未登録として報告し、行は書き換えない", () => {
     write(COMPOSE, UNPINNED);

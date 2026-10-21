@@ -63,7 +63,7 @@ describe("decideNudge", () => {
   });
 
   it("数える対象の外だけが動いた差分では黙る", () => {
-    expect(decideNudge([change("docs/adr/BACKLOG.md", 5000)], [], 400).kind).toBe("quiet");
+    expect(decideNudge([change("docs/adr/README.md", 5000)], [], 400).kind).toBe("quiet");
   });
 
   it("3 つとも既に付いていれば、行数が越えていても黙る", () => {

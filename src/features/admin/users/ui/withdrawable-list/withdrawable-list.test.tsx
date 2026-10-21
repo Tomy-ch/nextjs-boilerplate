@@ -82,8 +82,6 @@ describe("WithdrawableUserList", () => {
   });
 
   it("結果を伴わない応答では、確認を閉じない", async () => {
-    // canvas は送信を起こさない送信先を渡す（`view.stories.tsx`）。押しても何も起きないことを、
-    // 待ち続けない形で示すためで、そのとき確認は開いたままでなければならない。
     renderList(idle);
 
     await confirmWithdraw();
@@ -119,7 +117,6 @@ describe("WithdrawableUserList", () => {
   });
 
   it("結果を出した状態で a11y 検査を通る", async () => {
-    // 3 つの部品が合成された状態でだけ出る不整合を見るため、報せが出た後を検査する。
     const succeeding = () => Promise.resolve(succeededActionState({ name: "山田 太郎" }));
     const { container } = render(
       <WithdrawableUserList items={[ROW]} withdrawAction={succeeding} />,

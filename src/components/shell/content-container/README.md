@@ -1,31 +1,31 @@
 # ContentContainer
 
-## 用途
+## Purpose
 
-ページ本文の読み幅と左右余白を揃えます。
+Aligns the reading width and horizontal padding of the page body.
 
-## 役割と公開 component
+## Role and Public Components
 
-| Component | 役割 |
+| Component | Role |
 | --- | --- |
-| `ContentContainer` | `main` の内側で、中身の最大幅と左右余白を決める枠です。 |
+| `ContentContainer` | Frame inside `main` that decides the maximum width and horizontal padding of the contents. |
 
-## 利用ケース
+## Use Cases
 
-ページの中身を組む前に、まずこの枠で包みます。読み幅と余白を各ページが自前で書くと、ページを足すたびに `max-w-*` と `px-*` の指定が増えていき、揃わなくなります。
+Wrap the page contents in this frame first, before building them. If each page wrote its own reading width and padding, the `max-w-*` and `px-*` specifications would multiply with every page added and stop matching.
 
-幅や余白を変えたい場合は `className` で上書きします。story の `Default` のように背景を足す場合も同じです。
+To change the width or padding, override with `className`. The same applies when adding a background, as in the story's `Default`.
 
-## 責務境界
+## Responsibility Boundaries
 
-**持つのは幅と左右余白だけ**です。縦方向の間隔・段組み・背景・境界線は持ちません。それらは中身を組む側が決めます。
+**It holds only width and horizontal padding.** It does not hold vertical spacing, columns, background or borders. The side building the contents decides those.
 
-`main` 要素そのものは app shell の責務で、この component は `main` を描画しません。shell 側の `main` は幅を絞らず全幅のままにします。両方が幅を持つと二重管理になり、後から剥がすことになります。
+The `main` element itself is the app shell's responsibility; this component does not render `main`. The shell's `main` keeps full width without narrowing. If both held width, it would be managed in two places and would have to be stripped later.
 
-読み幅は一つだけ用意します。広い表や図のために別の幅が要る場面はありますが、それは**その画面が要求した時点で決めること**で、先回りで variant を作りません。
+Only one reading width is provided. There are situations where wide tables or figures need a different width, but that is **decided when that screen requires it**; variants are not created in advance.
 
-Server Component として使えます。hydration は不要です。
+It can be used as a Server Component. No hydration is needed.
 
-## Storybook とテスト
+## Storybook and Tests
 
-Storybook は既定の構成と、読み幅より狭い viewport での見え方を確認します。背景色は枠の範囲を見るための story 側の指定で、component 自身は背景を持ちません。テストは中央寄せと読み幅の指定、左右余白を所有すること、`main` を描画せず置かれた場所の内側だけを担うこと、`className` を受け付けることを確認します。
+Storybook covers the default composition and how it looks on a viewport narrower than the reading width. The background color is set by the story to show the frame's extent; the component itself has no background. The tests cover centering and the reading-width specification, owning the horizontal padding, not rendering `main` and handling only the inside of where it is placed, and accepting `className`.

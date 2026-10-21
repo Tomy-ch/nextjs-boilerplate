@@ -157,6 +157,7 @@ export function ProductFilterDraftProvider({
  * 供給の外では既定値を返さず、その場で失敗させます。返してしまうと、条件を変えても確定が何も
  * 起こさない画面ができ、壊れていることが誰の目にも見えません。
  *
+ * @returns 組み立て中の条件と、それを一覧へ反映する手段
  * @throws {Error} {@link ProductFilterDraftProvider} の外で呼んだとき
  */
 export function useProductFilterDraft(): FilterDraft {
