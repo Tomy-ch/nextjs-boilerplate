@@ -63,6 +63,7 @@ describe("renderObservation", () => {
 
     expect(text.startsWith("```yaml closed-loop")).toBe(true);
     expect(text).toContain("windowId: w1-x");
+    expect(text).toContain("humanPrompts: 8");
     expect(text).toContain("toolCalls: 5");
     expect(text).toContain("  - from: openedAt");
   });

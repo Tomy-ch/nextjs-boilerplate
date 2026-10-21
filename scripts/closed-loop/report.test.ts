@@ -79,7 +79,6 @@ describe("reportTranscript", () => {
     });
 
     expect(lines).toContain("記録: 10 行 / 置き場 3 件（解釈できなかった行 2）");
-    expect(lines).toContain("人の発話 0 / 道具の失敗 0 / 中断 0");
     expect(lines).toContain("  commit: 1");
     expect(lines).toContain("一度も起動されなかったスキル: 0 本");
   });
@@ -127,6 +126,15 @@ describe("reportTranscript", () => {
 
     expect(lines).toContain("  なし");
     expect(lines.some((line) => line.includes("model"))).toBe(false);
+  });
+
+  it("人の発話・道具の失敗・中断を、それぞれの数で並べる", () => {
+    const lines = reportTranscript(
+      { ...counts, humanPrompts: 3, toolErrors: 2, interruptions: 1 },
+      { files: 1, places: 1, unparsable: 0, declared: ["commit"], never: [] },
+    );
+
+    expect(lines).toContain("人の発話 3 / 道具の失敗 2 / 中断 1");
   });
 
   // ----- 異常系 -----
