@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn, userEvent, within } from "storybook/test";
 
 import { ADMIN_USER_LIST_PATH } from "../../../paths";
-import { USER_SCOPE } from "../../query";
+import { OffsetPagination } from "../../../ui/offset-pagination/offset-pagination";
+import { toUserListHref, USER_SCOPE } from "../../query";
 import { ADMIN_USER_ROWS, LONG_NAME_USER_ROW, WITHDRAWN_USER_ROWS } from "../../users.fixture";
-import { AdminUserPagination } from "../pagination/pagination";
 import { AdminUserTable } from "./table";
 
 const meta = {
@@ -26,7 +26,14 @@ const meta = {
   args: {
     items: ADMIN_USER_ROWS,
     onWithdraw: fn(),
-    pagination: <AdminUserPagination location={{ scope: USER_SCOPE.ALL, page: 1 }} pageCount={4} />,
+    pagination: (
+      <OffsetPagination
+        hrefOf={(page) => toUserListHref({ scope: USER_SCOPE.ALL, page })}
+        label="利用者一覧のページ送り"
+        page={1}
+        pageCount={4}
+      />
+    ),
   },
 } satisfies Meta<typeof AdminUserTable>;
 

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -106,6 +106,40 @@ describe("WithdrawableUserList", () => {
 
     expect(withdrawAction).not.toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("確認をやめたら、開いた行の操作へ focus を戻す", async () => {
+    renderList();
+
+    await userEvent.click(screen.getByRole("button", { name: "山田 太郎 の操作" }));
+    await userEvent.click(
+      await within(document.body).findByRole("menuitem", { name: "退会させる" }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "山田 太郎 の操作" })).toHaveFocus(),
+    );
+  });
+
+  it("結果が返って確認が閉じたら、開いた行の操作へ focus を戻す", async () => {
+    renderList(() =>
+      Promise.resolve(
+        failedActionState({
+          formError: "山田 太郎 は進行中の購入が残っています。",
+          kind: ErrorKind.CONFLICT,
+        }),
+      ),
+    );
+
+    await confirmWithdraw();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "山田 太郎 の操作" })).toHaveFocus(),
+    );
   });
 
   it("下に置くページ送りをそのまま並べる", () => {

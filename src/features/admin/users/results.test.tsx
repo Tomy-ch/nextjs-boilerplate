@@ -25,6 +25,7 @@ vi.mock("./ui/withdrawable-list/withdrawable-list", () => ({
   ),
 }));
 
+import { ADMIN_USER_LIST_PATH } from "../paths";
 import { USER_SCOPE } from "./query";
 import { AdminUserResults } from "./results";
 
@@ -104,6 +105,21 @@ describe("AdminUserResults", () => {
 
     expect(screen.getByRole("link", { name: "3 ページ目" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "4 ページ目" })).not.toBeInTheDocument();
+  });
+
+  it("絞り込みを保ったままページを移る", async () => {
+    render(
+      await AdminUserResults({
+        location: { scope: USER_SCOPE.WITHDRAWN, page: 1 },
+        perPage: PER_PAGE,
+        withdrawAction,
+      }),
+    );
+
+    expect(screen.getByRole("link", { name: "3 ページ目" })).toHaveAttribute(
+      "href",
+      `${ADMIN_USER_LIST_PATH}?scope=withdrawn&page=3`,
+    );
   });
 
   it("組み上がったページ送りが a11y 検査を通る", async () => {

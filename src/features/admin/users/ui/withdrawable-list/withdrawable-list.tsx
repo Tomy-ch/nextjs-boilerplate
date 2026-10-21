@@ -1,9 +1,10 @@
 "use client";
 
-import { type ReactNode, useActionState, useCallback, useState } from "react";
+import { type ReactNode, useActionState } from "react";
 
 import { idleActionState } from "@/model/action-state";
 
+import { useConfirmationTarget } from "../../../use-confirmation-target";
 import type { WithdrawUserAction, WithdrawUserState } from "../../form-state";
 import type { AdminUserRow } from "../../row";
 import { AdminUserTable } from "../table/table";
@@ -41,24 +42,12 @@ export function WithdrawableUserList({
     withdrawAction,
     idleActionState(),
   );
-  const [target, setTarget] = useState<AdminUserRow | null>(null);
-  const [seenState, setSeenState] = useState<WithdrawUserState>(state);
-
-  // 結果が返ったら確認を閉じる。閉じるのは結果が返ってからで、押した瞬間ではない（送信中に閉じる
-  // と form ごと外れ、何が起きたかが誰にも届かない）。effect にすると閉じる前の描画が一度挟まり、
-  // 報せと開いたままの確認が同時に見える。
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (state.status !== "idle") setTarget(null);
-  }
-
-  const dismiss = useCallback(() => setTarget(null), []);
+  const { target, confirm, dismiss } = useConfirmationTarget<AdminUserRow>(state);
 
   return (
     <div className="space-y-4">
       <WithdrawFeedback state={state} />
-      <AdminUserTable items={items} onWithdraw={setTarget} pagination={pagination} />
+      <AdminUserTable items={items} onWithdraw={confirm} pagination={pagination} />
       <UserWithdrawDialog formAction={formAction} onDismiss={dismiss} target={target} />
     </div>
   );

@@ -4,10 +4,10 @@ import { userEvent, within } from "storybook/test";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import { ADMIN_USER_LIST_PATH } from "../../../paths";
+import { OffsetPagination } from "../../../ui/offset-pagination/offset-pagination";
 import { WITHDRAW_CONFLICT_MESSAGE, type WithdrawUserAction } from "../../form-state";
-import { USER_SCOPE } from "../../query";
+import { toUserListHref, USER_SCOPE } from "../../query";
 import { ADMIN_USER_ROWS } from "../../users.fixture";
-import { AdminUserPagination } from "../pagination/pagination";
 import { WithdrawableUserList } from "./withdrawable-list";
 
 /** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
@@ -61,7 +61,14 @@ const meta = {
   args: {
     items: ADMIN_USER_ROWS,
     withdrawAction: idle,
-    pagination: <AdminUserPagination location={{ scope: USER_SCOPE.ALL, page: 1 }} pageCount={4} />,
+    pagination: (
+      <OffsetPagination
+        hrefOf={(page) => toUserListHref({ scope: USER_SCOPE.ALL, page })}
+        label="利用者一覧のページ送り"
+        page={1}
+        pageCount={4}
+      />
+    ),
   },
 } satisfies Meta<typeof WithdrawableUserList>;
 

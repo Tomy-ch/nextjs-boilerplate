@@ -4,17 +4,21 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ADMIN_USER_LIST_PATH } from "../../../paths";
-import { USER_SCOPE } from "../../query";
-import { AdminUserPagination } from "./pagination";
+import { OffsetPagination } from "./offset-pagination";
+
+const LIST_PATH = "/admin/list";
+
+function hrefOf(page: number) {
+  return page === 1 ? LIST_PATH : `${LIST_PATH}?page=${page}`;
+}
 
 function renderPagination(page: number, pageCount: number) {
   return render(
-    <AdminUserPagination location={{ scope: USER_SCOPE.ALL, page }} pageCount={pageCount} />,
+    <OffsetPagination hrefOf={hrefOf} label="一覧のページ送り" page={page} pageCount={pageCount} />,
   );
 }
 
-describe("AdminUserPagination", () => {
+describe("OffsetPagination", () => {
   it("いま見ているページを現在地として示す", () => {
     renderPagination(2, 4);
 
@@ -30,19 +34,30 @@ describe("AdminUserPagination", () => {
 
     expect(screen.getByRole("link", { name: "4 ページ目" })).toHaveAttribute(
       "href",
-      `${ADMIN_USER_LIST_PATH}?page=4`,
+      `${LIST_PATH}?page=4`,
     );
   });
 
-  it("絞り込みを保ったまま移る", () => {
+  it("行き先は渡された組み方で作る", () => {
     render(
-      <AdminUserPagination location={{ scope: USER_SCOPE.WITHDRAWN, page: 1 }} pageCount={3} />,
+      <OffsetPagination
+        hrefOf={(page) => `${LIST_PATH}?scope=withdrawn&page=${page}`}
+        label="一覧のページ送り"
+        page={1}
+        pageCount={3}
+      />,
     );
 
     expect(screen.getByRole("link", { name: "3 ページ目" })).toHaveAttribute(
       "href",
-      `${ADMIN_USER_LIST_PATH}?scope=withdrawn&page=3`,
+      `${LIST_PATH}?scope=withdrawn&page=3`,
     );
+  });
+
+  it("渡された名前で読み上げる", () => {
+    renderPagination(1, 4);
+
+    expect(screen.getByRole("navigation", { name: "一覧のページ送り" })).toBeInTheDocument();
   });
 
   it("先頭では、前へを link にせず押せない状態で残す", () => {
@@ -62,13 +77,10 @@ describe("AdminUserPagination", () => {
   it("途中では前後のどちらへも進める", () => {
     renderPagination(2, 4);
 
-    expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute(
-      "href",
-      ADMIN_USER_LIST_PATH,
-    );
+    expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute("href", LIST_PATH);
     expect(screen.getByRole("link", { name: "次のページ" })).toHaveAttribute(
       "href",
-      `${ADMIN_USER_LIST_PATH}?page=3`,
+      `${LIST_PATH}?page=3`,
     );
   });
 
