@@ -136,14 +136,26 @@ describe("parseLine", () => {
   });
 
   it.each([
-    { origin: null, promptSource: "typed" },
-    { origin: {}, promptSource: "typed" },
-    { origin: { kind: 5 }, promptSource: "typed" },
-  ])("origin.kind が文字列でない行 %o は、promptSource で決める", (keys) => {
+    { origin: null, promptSource: "typed", isMeta: true },
+    { origin: {}, promptSource: "queued", isMeta: true },
+    { origin: { kind: 5 }, promptSource: "typed", isCompactSummary: true },
+  ])("origin.kind が文字列でない行 %o は、isMeta より先に promptSource で人と決める", (keys) => {
     expect(
       parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
     ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
   });
+
+  it.each([
+    { origin: null, promptSource: "system" },
+    { origin: { kind: 5 }, promptSource: "system" },
+  ])(
+    "origin.kind が文字列でない行 %o は、isMeta が無くても promptSource で人以外と決める",
+    (keys) => {
+      expect(
+        parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "違う" } })),
+      ).toEqual([]);
+    },
+  );
 
   it.each([
     { origin: null, isMeta: true },
@@ -191,19 +203,6 @@ describe("parseLine", () => {
           timestamp: AT,
           isCompactSummary: true,
           message: { content: "要約の本文。違う" },
-        }),
-      ),
-    ).toEqual([]);
-  });
-
-  it("文脈圧縮の要約は、人の発話として出さない", () => {
-    expect(
-      parseLine(
-        line({
-          type: "user",
-          timestamp: AT,
-          isCompactSummary: true,
-          message: { content: "This session is being continued from a previous conversation" },
         }),
       ),
     ).toEqual([]);

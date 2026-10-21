@@ -71,9 +71,10 @@ const HUMAN_PROMPT_SOURCES: readonly string[] = ["typed", "suggestion_accepted",
  * `isMeta` を持たずに差し込まれる本文の目印。
  *
  * @remarks
- * `isMeta` の付いた行（スキル本文、別セッションからの通知）は構造で落ちるので、ここへは載せません。
- * 文脈圧縮の要約は `isCompactSummary` でも落ちますが、目印にも残します。鍵の付かない版の要約が
- * 人の発話に混ざると、私的な要約が公開される読解の材料へ流れるためです。
+ * 出所の鍵を持たない行のうち `isMeta` の付いたもの（スキル本文、別セッションからの通知）は構造で
+ * 落ちるので、ここへは載せません。文脈圧縮の要約は目印にも残します。`isCompactSummary` が効くのは
+ * 出所の鍵を持たない行だけで、要約が人の発話に混ざると、私的な要約が公開される読解の材料へ流れる
+ * ためです。
  */
 const INJECTED_MARKERS: readonly string[] = [
   "<task-notification>",
