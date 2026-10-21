@@ -1,3 +1,37 @@
+import * as z from "zod/mini";
+
+/**
+ * クーポンの識別子を確定させるスキーマ。
+ *
+ * @remarks
+ * 外へは出しません。確定させる口は {@link toCouponId} だけで、二重に入口を設けると境界の外でも
+ * 通せてしまいます。
+ */
+const couponIdSchema = z.string().brand<"coupon">();
+
+/**
+ * クーポンを指す識別子。
+ *
+ * @remarks
+ * 素の `string` を代入できない形にしてあります。クーポンの識別子も UUID の文字列で、商品や購入の
+ * 識別子と取り違えても型では止まらないためです。
+ */
+export type CouponId = z.infer<typeof couponIdSchema>;
+
+/**
+ * 文字列をクーポンの識別子として確定させる。
+ *
+ * @remarks
+ * **呼んでよいのは境界だけ**です。`adapters` の検証の出口とフォームの受け取りで 1 度だけ通します。
+ * 実在するかは検査しません。保有していない・使えない識別子は、購入の確定が拒みます。
+ *
+ * @param value - 確定させる文字列
+ * @returns クーポンの識別子
+ */
+export function toCouponId(value: string): CouponId {
+  return couponIdSchema.parse(value);
+}
+
 /**
  * クーポンの値引きの決まり方。
  *
@@ -44,4 +78,25 @@ export const COUPON_SCOPE_NAME: Readonly<Record<CouponScopeKind, string>> = {
 export type AppliedCoupon = {
   readonly discount: CouponDiscount;
   readonly scopeKind: CouponScopeKind;
+};
+
+/**
+ * 利用者が保有するクーポン 1 枚。
+ *
+ * @remarks
+ * 使用済み・失効済みも含む「持っているもの」です。使えるかどうかの状態は持たず、3 つの時刻を
+ * 現在時刻と突き合わせて決めます。失効を一括で書き換える仕組みが契約側に無いためです。
+ */
+export type HeldCoupon = {
+  readonly id: CouponId;
+  readonly discount: CouponDiscount;
+  readonly scopeKind: CouponScopeKind;
+  /** 使うために要る購入額の下限。最小単位の整数。条件が無ければ `null`。 */
+  readonly minPurchaseAmount: number | null;
+  /** 使えるようになる時刻。この時刻ちょうどから使える。発行時点から使えるなら `null`。 */
+  readonly usableFrom: Date | null;
+  /** 有効期限。この時刻ちょうどから失効として扱う。 */
+  readonly expiresAt: Date;
+  /** 使った時刻。未使用なら `null`。 */
+  readonly usedAt: Date | null;
 };

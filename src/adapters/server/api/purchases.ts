@@ -29,6 +29,7 @@ import { getPurchasesDetailPathPurchaseCodeMax } from "../../gen/api/limits";
 import type { PurchasesPostRequest } from "../../gen/api/model";
 import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
+import { toCouponDiscount } from "./coupon-discount";
 
 const PURCHASES_PATH = "/v1/purchases";
 
@@ -232,13 +233,7 @@ function toAppliedCoupon({
   discount,
   scope,
 }: NonNullable<WirePurchaseDetail["appliedCoupon"]>): AppliedCoupon {
-  return {
-    discount:
-      discount.kind === "flat"
-        ? { kind: "flat", value: discount.value }
-        : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount },
-    scopeKind: scope.kind,
-  };
+  return { discount: toCouponDiscount(discount), scopeKind: scope.kind };
 }
 
 /**
