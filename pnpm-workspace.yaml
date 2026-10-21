@@ -100,8 +100,14 @@ overrides:
   "undici@>=7.28.0 <7.29.1": ">=7.29.1 <8"
   # shadcn CLI の推移的依存。
   # GHSA-6qxp-vccf-f47h (high): OAuth クライアントが資格情報を、MCP サーバが名指しした認可サーバへ
-  # 送ってしまう。shadcn の宣言は ^1.26.0 で 1.31.0 はその内側。shadcn が 1.31.0 以上を要求したら撤去する。
-  "@modelcontextprotocol/sdk@>=1.12.0 <1.31.0": ">=1.31.0 <2"
+  # 送ってしまう。
+  # GHSA-22jm-h49p-29qw / GHSA-46jr-4wx8-v453 (high): experimental tasks が作成元のセッションに
+  # 結び付かない件と、既定の上限内の 1 リクエストで検証中にメモリを使い切る件。
+  # GHSA-6prh-2h8m-c8cw / GHSA-rvq5-wwqv-78pq (moderate): HTTP クライアントが別 origin への
+  # リダイレクトでヘッダと本文を送り直す件と、bearer 認証が別サービス向けのトークンを受け入れる件。
+  # 1.32.0 で 4 件とも塞がれた。
+  # shadcn の宣言は ^1.26.0 で 1.32.0 はその内側。shadcn が 1.32.0 以上を要求したら撤去する。
+  "@modelcontextprotocol/sdk@>=1.12.0 <1.32.0": ">=1.32.0 <2"
   # shadcn CLI の推移的依存。
   # GHSA-rj75-hqrm-r3gf (moderate): `.a.a.a…` のような平たいセレクタの解析がクラス数に対して二次で伸びる。
   # shadcn の宣言は ^7.1.0 で 7.1.6 はその内側。shadcn が 7.1.6 以上を要求したら撤去する。
