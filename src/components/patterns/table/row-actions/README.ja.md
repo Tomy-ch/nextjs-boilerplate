@@ -25,6 +25,8 @@ admin の一覧で、行ごとに編集画面への遷移や削除操作をま�
 
 取得・保存・遷移先の決定・確認 UI は持ちません。`command` の実行内容と、削除など不可逆操作の確認（`AlertDialog`）は呼び出し元が扱います。行のバインドも呼び出し元の責務で、`actions` は受け取った行に対して確定済みの `href` と `onSelect` を返します。
 
+**選ばれた `command` は、menu が閉じてフォーカスが行の trigger へ戻ってから実行します。** [WAI-ARIA APG Menu Button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/) に従い、項目を選ぶと menu が閉じてフォーカスはその button へ戻ります。command をそのあとで実行することで、確認の `AlertDialog` が開く時点でフォーカスしている要素がその trigger になり、dialog は閉じるときに開いた元の行へフォーカスを戻します。同期的に実行すると、フォーカスがまだ消えかけの menu 項目にあるうちに dialog が開きます。この順序は menu の content が持つため、そこが唯一の Client Component の部分（`row-actions-menu-content.tsx`）になっています。`link` だけで組んだ menu は引き続き Server Component から使えます。
+
 業務型は `Row` の generics として呼び出し元に残るため、この sugar は特定の型・API・語彙を持ちません。
 
 **操作が 1 つも無い行には trigger ごと出しません。** `actions` が空を返した行は menu を持たず、押せる物が並んでいるのに開くと空、という面になりません。行によって操作の有無が変わる一覧（すでに済んでいる行・状態で操作が閉じる行）では、空を返すのが自然な表し方になります。
@@ -43,7 +45,7 @@ admin の一覧で、行ごとに編集画面への遷移や削除操作をま�
 
 ## Storybook とテスト
 
-Storybook は遷移だけで構成した操作列、その場で実行する操作を含む場合、table を伴わない単独利用を確認します。テストは行ごとに対象が分かる trigger 名になること、操作列の見出しが読み上げ用に保持されること、`link` が行ごとの遷移先へ展開されること、行の状態による無効化、`command` が対象の行を伴って呼び出し元の処理を実行すること、破壊的操作の区別、`separator` の展開、a11y 自動検査を確認します。
+Storybook は遷移だけで構成した操作列、その場で実行する操作を含む場合、table を伴わない単独利用を確認します。テストは行ごとに対象が分かる trigger 名になること、操作列の見出しが読み上げ用に保持されること、`link` が行ごとの遷移先へ展開されること、行の状態による無効化、`command` がフォーカスが trigger へ戻ってから対象の行を伴って呼び出し元の処理を実行すること、破壊的操作の区別、`separator` の展開、a11y 自動検査を確認します。
 
 a11y 自動検査では `region` を対象から外しています。Radix が menu を `document.body` 直下の Portal へレンダリングするため landmark の外に出ますが、Portal を使う UI に共通する制約であり、`region` は axe の `best-practice` タグでリポジトリの目標水準（WCAG 2.x AA）の対象外です。
 

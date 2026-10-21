@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { type SyntheticEvent, useCallback, useId } from "react";
+import { type SyntheticEvent, useCallback, useId, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -42,6 +42,35 @@ function SheetFixture({
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function TriggerlessSheetFixture() {
+  const [open, setOpen] = useState(false);
+  const [invokerShown, setInvokerShown] = useState(true);
+
+  return (
+    <>
+      <section aria-label="一覧" tabIndex={-1}>
+        {invokerShown ? (
+          <button onClick={() => setOpen(true)} type="button">
+            メニューを開く
+          </button>
+        ) : null}
+      </section>
+      <Sheet onOpenChange={setOpen} open={open}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>メニュー</SheetTitle>
+            <SheetDescription>各セクションへ移動します。</SheetDescription>
+          </SheetHeader>
+          <SheetFooter>
+            <SheetClose>戻る</SheetClose>
+            <SheetClose onClick={() => setInvokerShown(false)}>適用</SheetClose>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
@@ -257,6 +286,37 @@ describe("SheetContent", () => {
     render(<SheetFixture />);
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("trigger から開いたときは、閉じると trigger へ focus を戻す", async () => {
+    render(<SheetFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "メニューを開く" })).toHaveFocus(),
+    );
+  });
+
+  it("trigger を持たないときは、閉じると開いたときに focus があった要素へ戻す", async () => {
+    render(<TriggerlessSheetFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "メニューを開く" })).toHaveFocus(),
+    );
+  });
+
+  it("開いたときに focus があった要素が閉じる間に消えたら、focus できる最も近い祖先へ戻す", async () => {
+    render(<TriggerlessSheetFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "適用" }));
+
+    await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
   });
 });
 

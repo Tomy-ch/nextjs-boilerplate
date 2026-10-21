@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -38,6 +39,35 @@ function DialogFixture({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function TriggerlessDialogFixture() {
+  const [open, setOpen] = useState(false);
+  const [invokerShown, setInvokerShown] = useState(true);
+
+  return (
+    <>
+      <section aria-label="一覧" tabIndex={-1}>
+        {invokerShown ? (
+          <button onClick={() => setOpen(true)} type="button">
+            詳細を見る
+          </button>
+        ) : null}
+      </section>
+      <Dialog onOpenChange={setOpen} open={open}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>表示条件</DialogTitle>
+            <DialogDescription>条件を満たす項目だけを一覧に表示します。</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose>戻る</DialogClose>
+            <DialogClose onClick={() => setInvokerShown(false)}>適用</DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -187,6 +217,33 @@ describe("DialogContent", () => {
     render(<DialogFixture />);
 
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("trigger から開いたときは、閉じると trigger へ focus を戻す", async () => {
+    render(<DialogFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "詳細を見る" })).toHaveFocus());
+  });
+
+  it("trigger を持たないときは、閉じると開いたときに focus があった要素へ戻す", async () => {
+    render(<TriggerlessDialogFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "詳細を見る" })).toHaveFocus());
+  });
+
+  it("開いたときに focus があった要素が閉じる間に消えたら、focus できる最も近い祖先へ戻す", async () => {
+    render(<TriggerlessDialogFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "適用" }));
+
+    await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
   });
 });
 
