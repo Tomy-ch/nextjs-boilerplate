@@ -200,6 +200,31 @@ As a consequence, **a skill must not skip confirmation on the grounds that "the 
 - Do **not implicitly adopt** values from arguments / the latest message
 - Confirm right before execution to avoid drift
 
+<a id="pre-answered-inputs"></a>
+
+### An answer the user already gave in the same run
+
+A skill invoked by another skill may treat one of its inputs as confirmed, without asking again, only
+when **all three** hold:
+
+- **The invoking skill passes the user's own answer, verbatim, from earlier in the same run.** A value
+  the invoking skill derived, defaulted or recommended is not an answer, and is offered as the
+  recommended option instead.
+- **The input cannot drift between that answer and execution.** A scope, a reviewer model, an apply
+  mode, a translation direction, or an approved grouping qualifies. A set computed from runtime state
+  — the unpushed commits, a base resolved from `origin`'s current state, the files a merge left conflicted — does not, because the
+  state can move after the user answered.
+- **The receiving skill declares, in its own body, which of its questions such an answer may
+  pre-answer.** The invoking skill's declaration alone suppresses nothing: a skill owns its own
+  preconditions, and a caller that waives them is overriding a contract it does not own.
+
+Never pre-answerable: the confirmations of *User Confirmation Before Commercial Actions* above, and the
+confirmation `AGENTS.md` requires before pushing to an existing PR. They are taken at the moment of the
+action, because what they confirm is the action, not an input to it.
+
+Enforcement: Prose — **not mechanizable**. Whether an input can drift is decided by what it means, not
+by the shape of the question.
+
 ## Shared References
 
 All operations skills share the following references:
