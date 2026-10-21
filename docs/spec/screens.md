@@ -28,7 +28,7 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 
 ---
 
-## 1. Screen List (28)
+## 1. Screen List (29)
 
 ### User Side (13)
 
@@ -48,7 +48,7 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 | U12 | User update | `GET /v1/users/me` / `GET /v1/prefectures` / `PUT /v1/users/{userId}` | Editing the profile | A route independent of U11. A worked example of **CollectAll** (side-by-side composition with `Promise.all` inside the RSC) |
 | U13 | Inquiries | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | Conversation with support. One per user; the first post creates the inquiry | **The only screen where an arriving message appears without waiting for a refetch**. On initial display the RSC fetches the history, and the `streamCursor` its response returns is passed as the subscription's start position. The browser connects to the backend's SSE directly for the subscription, and the credential is a short-lived ticket the BFF issues, carried in the query. Sending is a Server Action + `Idempotency-Key`, and a sent message appears in the authoritative data fetched again, not through the subscription. With `APP_API_MODE=mock` the ticket fetch endpoint refuses to issue, and the screen stops in its form without a subscription (display and sending work) |
 
-### Admin Side (11)
+### Admin Side (12)
 
 | # | Screen | APIs used | Rough specification | Frontend implementation caveats |
 | --- | --- | --- | --- | --- |
@@ -63,6 +63,7 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 | A9 | Inquiry list | `GET /v1/inquiries` (`after` / `first`) / `POST /v1/inquiries/feed/stream-ticket` / `GET /v1/streams/{destination}` | Lists incoming inquiries by most recently updated. The body is not included | Subscribes to the update feed and refetches the list when something arrives. **Rows are not rewritten with what arrived** — the feed carries only "which inquiry has progressed how far", with neither the sort basis nor the other columns. Pagination is by cursor, and the URL remembers where to go back to |
 | A10 | Responding to an inquiry | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | Reads one conversation and replies | **The conversation itself cannot be subscribed to** — the contract's subscription endpoints are two, "your own inquiry" and "the update feed", and there is no endpoint through which operators subscribe to an arbitrary one directly. When the feed reports an update to the one that is open, the authoritative data is fetched again. Messages aligned to the right are the operator's, so "me" is swapped relative to the user side. The history does not return whose inquiry it is, so it is matched against the row in the list |
 | A11 | Product discontinuation | `GET /v1/products/{productId}` (`includeUnpublished=true`) / `GET /v1/products/{productId}/discontinue-impact` / `GET /v1/purchases` (`productId` + `includeOtherUsers=true` + the in-progress `statusCodes`) / `POST /v1/products/{productId}/discontinue` | Estimates the impact, takes the replacement coupon's conditions, and discontinues one product after a confirmation | **The estimate is not the result** — it takes no lock and is stale as soon as it returns, so what happened is shown from the execution's response, and those counts exist only in that response. While in-progress purchases remain the execution is not offered, and the purchases are listed instead. A 409 means one appeared after the estimate; the screen is refetched. The discount rate is a decimal string, so it is never carried as a number. A product already discontinued shows only when it was discontinued |
+| A12 | Campaign list | `GET /v1/campaigns` (`page` / `perPage`) / `POST /v1/campaigns/{campaignId}/suspend` | Lists every campaign by distribution status and remaining count, and suspends a distribution after a confirmation | The contract returns no status: suspended, before distribution, distributing or out of period is decided against "now" read on the server, suspension first, and the period includes its start and excludes its end. The remaining count is `totalLimit` minus `issuedCount`. Suspension is offered on every row except suspended ones, and the confirmation says coupons already issued stay valid. One idempotency key is made per opened confirmation, since one screen holds many targets. A 409 means it was already suspended; the list is refetched after a 409 as after a success |
 
 ### Site Information and Development Screens (4)
 
@@ -124,9 +125,9 @@ is discarded.
 | `POST /v1/campaigns/claims` | Required | Claiming one coupon with a campaign code | code, Idempotency-Key (required header) | The issued coupon | 400, 401, 409, **422 (every reason a code cannot be claimed, undistinguished)** |
 | `POST /v1/coupons` | Requires admin | Issuing one coupon to one named user | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key (required header) | The issued coupon | 400, 401, 403, 404 (no such user or scope target), 409, 422 |
 | `POST /v1/coupons/bulk-issue` | Requires admin | Issuing one coupon to every user who has not withdrawn. Recipients cannot be named | discount, scope, expiresAt, Idempotency-Key (required header) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409 (too many recipients)**, 422 |
-| `GET /v1/campaigns` | Requires admin | Campaign list, newest start first. Suspended and ended ones are included | page, perPage | campaigns[], total | 400, 401, 403, 422 |
+| `GET /v1/campaigns` | Requires admin | Campaign list (A12), newest start first. Suspended and ended ones are included | page, perPage | campaigns[], total | 400, 401, 403, 422 |
 | `POST /v1/campaigns` | Requires admin | Defining a campaign. There is no edit endpoint | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key (required header) | The campaign | 400, 401, 403, **409 (code already in use)**, 422 |
-| `POST /v1/campaigns/{campaignId}/suspend` | Requires admin | Stopping a campaign's claims. Cannot be undone, and coupons already issued stay valid | Idempotency-Key (optional header) | The campaign | 400, 401, 403, 404, **409 (already suspended)**, 422 |
+| `POST /v1/campaigns/{campaignId}/suspend` | Requires admin | Stopping a campaign's claims (A12). Cannot be undone, and coupons already issued stay valid | Idempotency-Key (optional header) | The campaign | 400, 401, 403, 404, **409 (already suspended)**, 422 |
 
 **Coupon amounts use two scales.** A flat discount's `value` is a USD decimal string on the same scale as `price` (`"5.00"` is $5); a rate discount's `value` is the multiplier (`"0.10"` is 10% off). `maxAmount` and `minPurchaseAmount` are integer USD cents, like the purchase totals. Digits below a cent in a flat `value` are accepted and truncated when the discount is computed.
 
