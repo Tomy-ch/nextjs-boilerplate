@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -24,15 +23,13 @@ export const metadata: Metadata = {
  * **`searchParams` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません。
  * 器は promise のまま渡し、穴の内側で解きます。
  *
- * **「いま」を読むのもここです。** 実時計はプリレンダーの最中には値が定まらないため、
- * `connection()` を待って「要求のときに描く」ことを確定させてから読みます。
+ * **「いま」は `searchParams` を解いた後に読みます。** 実時計はプリレンダーの最中には値が定まらず、
+ * 要求ごとの値を待った後なら「要求のときに描く」ことが確定しています。
  */
 async function AdminAnalyticsContent({ searchParams }: { searchParams: Promise<RawSearchParams> }) {
-  await connection();
+  const params = await searchParams;
 
-  return (
-    <AdminAnalyticsPageContent now={getClockConfig().now()} searchParams={await searchParams} />
-  );
+  return <AdminAnalyticsPageContent now={getClockConfig().now()} searchParams={params} />;
 }
 
 /**

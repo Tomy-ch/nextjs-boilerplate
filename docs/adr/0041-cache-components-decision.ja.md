@@ -26,7 +26,7 @@ Accepted
 - **有効化の前提は [0112](0112-data-classification-cache-boundary.ja.md)** のデータ分類とキャッシュ境界である。PPR は「何が静的なシェルへ入るか」を決める機構であり、**分類が無いまま有効化すると事故の面だけが先に開く**。
 - **PPR は public data に対する性能最適化として扱う。** user-scoped な値については、共有・静的キャッシュの恩恵より機密性を優先する([0112](0112-data-classification-cache-boundary.ja.md) 不変条件 1 / 2)。
 - **レイアウトシェルの形がシェルとダイナミックホールの分かれ目そのものになり**、次が実装の作法として効く。
-  - **レンダリングするモードを画面が宣言しない。** segment config は併存しない。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、すべてダイナミックホールの内側で解く(実時計はさらに `connection()` を待ってから読む)
+  - **レンダリングするモードを画面が宣言しない。** segment config は併存しない。`params` / `searchParams` / cookie / 認可の判定 / 実時計は、すべてダイナミックホールの内側で解く(実時計はさらに、要求ごとの値を待った後か、それが無ければ `await io()` の後に読む。`connection()` はプリフェッチも止めるので、実際の要求を待つ必要があるレンダリングに限る)
   - **シェルを配れない画面だけが `export const instant = false` を理由つきで名乗る。** 宣言と実態の突合は `scripts/render-mode` が `prerender-manifest.json` の `compute` に照らし、宣言なしにブロックしている route と、宣言が余っている route の双方を見る
   - **現在地を読む client コンポーネントもダイナミックホールを要る。** `usePathname` / `useSearchParams` は動的な区間を持つ route のシェルでは解決できない
   - **認可でシェルを配れない区画は、区画ごと名乗る。** 判定をダイナミックホールへ落とすと、確かめる前にその面のシェルが誰にでも配られる([0079](0079-auth-frontend-seam.ja.md))
