@@ -109,6 +109,13 @@ Web and general software-development terms are written in **katakana or English,
 calques**. Established kanji terms — 関数, 型, 依存, 境界, 設定, 環境, 契約, 取得, 生成物, 台帳,
 外枠 — stay. This table is the permanent home of the rule; apply every row to what you write.
 
+A katakana word for an English word ending in -er / -or / -ar carries the long-vowel mark (ユーザー,
+サーバー, ブラウザー), per the cabinet notice 「外来語の表記」. "user" is ユーザー in every sense the
+canonical uses it — the person using the app, the developer using the template, the person operating
+the agent — and in its compounds (ユーザー向け, エンドユーザー, ユーザーエージェント). Where the
+canonical chose another word ("operator", "caller"), the mirror follows that word instead. A verbatim
+quotation of a standard keeps the standard's spelling.
+
 Always replace:
 
 | Calque | Write | Calque | Write |
@@ -116,7 +123,7 @@ Always replace:
 | 索引 | インデックス | 錨 | アンカー |
 | 雛形 | テンプレート | 閾値 | しきい値 |
 | 基準画像 | ベースライン画像 | 走査 | スキャン |
-| 目録 | インベントリ | | |
+| 目録 | インベントリ | 利用者 / ユーザ | ユーザー |
 | 既定 | デフォルト | 部品 | コンポーネント |
 | 描画 | レンダリング | 表現層 / 表示層 | プレゼンテーションレイヤー |
 | 部分木 | サブツリー | 殻 | シェル |
