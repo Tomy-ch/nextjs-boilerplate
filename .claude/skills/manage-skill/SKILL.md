@@ -121,7 +121,7 @@ option and let the user confirm it.
 **When an invoking skill passes the answer**, this step is **still asked**. This skill writes agent
 configuration, and `AGENTS.md` (*Exception: Skill Execution*) keeps a skill's own confirmation steps
 in force; so none of these three questions is pre-answerable under
-[0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs).
+[0154](../../../docs/adr/0154-claude-skills-operations.md).
 The operation, skill and family an invoking skill passes — even as an approved plan names them — are
 offered as the recommended options, and the user confirms them here.
 

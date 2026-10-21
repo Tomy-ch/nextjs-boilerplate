@@ -71,7 +71,7 @@ Call `AskUserQuestion` before writing anything:
 3. **Whether a spec already exists** under `docs/spec/route/**` for this route — look at the English
    canonicals and ignore every `*.ja.md` mirror.
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 items 1 and 2 are pre-answered by a plan the user approved earlier in the same run, passed verbatim,
 when it names the feature, the route and the direction. What the plan leaves out is still asked, and
 item 3 is read from the tree either way — it is state, not an answer.

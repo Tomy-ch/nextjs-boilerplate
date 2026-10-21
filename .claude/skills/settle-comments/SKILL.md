@@ -179,7 +179,7 @@ questions; skip whichever is already answered, and skip the call entirely when b
   - 「そのまま書き換える（確認を取らない。文書書き込みを伴う移設は対象外）」
   - 「報告のみ（書き込まない）」
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 
 - **Pre-answered**: the scope and the apply mode — by a flag the user gave this invocation, or by the user's own answer earlier in the same run, passed verbatim. A mode the invoking skill picked itself is offered as the recommended option, not adopted.
 - **Always asked**: Step 3's per-group confirmation in 確認して適用 — the verdicts it confirms did not exist when the user answered.

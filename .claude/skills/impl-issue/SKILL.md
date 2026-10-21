@@ -9,7 +9,7 @@ description: >-
   `resolve-merge`, to the peer review skills, and to `new-feature` for a screen-shaped issue. A scope mode
   settled up front decides whether the run ends at a merge, at the PR (the 「pr作って」 shape), or at a local
   commit. Do NOT use it for a change with no issue behind it (`commit` + `submit-pr`), for reviewing an
-  existing diff, or for authoring skills (`manage-skill`).
+  existing diff, or for a skill change no issue asks for (`manage-skill`).
 argument-hint: '<issue-url-or-number> [--scope=merge|pr|commit] [--review-mode=all|harmful|issues] [--issue-mode=fix-here|search|file] [--flow=record-on-tripwire|halt-on-tripwire] [--derive=ask|derive] [--plan=full|draft-review|single]'
 ---
 
@@ -607,7 +607,7 @@ declares under its own **When an invoking skill passes the answer** clause; it g
 | Sub-skill | Pass through (the user's own answer) | Pre-answered there | Still asked there |
 | --- | --- | --- | --- |
 | `commit` | The grouping the user approved | Step 4 grouping confirmation | Merged-PR check; error recovery |
-| `submit-pr` | Which review skills the user chose for this change (Step 7) | Step 3 local-review gate; Step 10 post-PR review question | Step 1 base; Step 6 confirmation and Step 7 push, both paths |
+| `submit-pr` | Which review skills the user chose for this change (Step 7) | Step 3 local-review gate | Step 1 base; Step 6 confirmation and Step 7 push, both paths; Step 10 post-PR review |
 | `new-feature` | The approved plan's feature, route and direction | Step 0 items 1–2 | Step 0 item 3 (read from the tree); Step 2's underspecified direction |
 | `impl-review` | Scope, reviewer model | Step 0 | Step 6 posting to the PR |
 | `test-review` | Scope; the review mode, when given for this review | Step 0 scope; Step 5 add-or-not (`all` → すべて追加, `issues` → 追加しない) | Step 5 under any other review mode |
@@ -622,7 +622,7 @@ as the user gave it: a value this skill derived, defaulted or recommended is not
 receiver offers it as the recommended option instead. A Step 0 mode counts as the user's answer only
 where the receiver's clause names it.
 
-**Never pre-answerable, whatever is passed** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**Never pre-answerable, whatever is passed** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 the confirmations before a commercial action — `submit-pr`'s Step 6 / Step 7 push and PR creation,
 `impl-review`'s posting to the PR — and the `AGENTS.md` confirmation before pushing to an existing PR.
 They are taken at the moment of the action.

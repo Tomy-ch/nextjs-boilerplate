@@ -574,7 +574,7 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 | サブスキル | 渡すもの（利用者自身の回答） | そこで事前回答されるもの | そこでなお問われるもの |
 | --- | --- | --- | --- |
 | `commit` | 利用者が承認したグルーピング | Step 4 のグルーピング確認 | マージ済み PR の確認・エラー復旧 |
-| `submit-pr` | この変更に利用者が選んだレビュースキル（Step 7） | Step 3 のローカルレビューのゲート・Step 10 の PR 後レビューの問い | Step 1 の base・Step 6 の確認と Step 7 の push（両パスとも） |
+| `submit-pr` | この変更に利用者が選んだレビュースキル（Step 7） | Step 3 のローカルレビューのゲート | Step 1 の base・Step 6 の確認と Step 7 の push（両パスとも）・Step 10 の PR 後レビュー |
 | `new-feature` | 承認済みの計画の feature・route・ディレクション | Step 0 の項目 1–2 | Step 0 の項目 3（ツリーから読む）・Step 2 の決まっていないディレクション |
 | `impl-review` | 範囲・レビュアーのモデル | Step 0 | Step 6 の PR への投稿 |
 | `test-review` | 範囲・このレビューに対して与えられたときのレビューモード | Step 0 の範囲・Step 5 の追加可否（`all` → すべて追加、`issues` → 追加しない） | それ以外のレビューモードでの Step 5 |
@@ -588,7 +588,7 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 デフォルトにした値・推奨した値は回答ではなく、受け手はそれを推奨選択肢として提示する。Step 0 のモードが
 利用者の回答として数えられるのは、受け手の条項がそれを名指すところだけである。
 
-**何を渡しても事前回答できないもの**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md#pre-answered-inputs)）:
+**何を渡しても事前回答できないもの**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md)）:
 商用操作の前の確認 —— `submit-pr` の Step 6 / Step 7 の push と PR 作成、`impl-review` の PR への投稿 ——
 と、既存 PR への push 前に `AGENTS.md` が求める確認。これらは操作の時点で取る。
 

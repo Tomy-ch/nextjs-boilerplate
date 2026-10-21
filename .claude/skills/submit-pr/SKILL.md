@@ -74,7 +74,7 @@ For the "create" path, confirm the resolved base via `AskUserQuestion` — a bac
 - Question: 「ベースブランチをこれで作成しますか？」
 - Options: 「`<resolved-base>` を使う」 / 「別のブランチを指定する」
 
-**This confirmation is always asked**, even when an invoking skill passes a base: the base is resolved from `origin`'s live state and can move after the user answered, so it fails [0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)'s no-drift condition. A base the invoking skill passes is offered as the recommended option.
+**This confirmation is always asked**, even when an invoking skill passes a base: the base is resolved from `origin`'s live state and can move after the user answered, so it fails [0154](../../../docs/adr/0154-claude-skills-operations.md)'s no-drift condition. A base the invoking skill passes is offered as the recommended option.
 
 The base branch has to be decided here because the next step merges it.
 
@@ -137,7 +137,7 @@ Why a clean cancel rather than a pause-and-resume: a local review commonly produ
 
 **Depth by change type** — scale the recommendation to what the diff touches, on the scale *Depth by change type* under Step 10 defines; the same scale drives both asks.
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)): this gate is pre-answered by the user's verbatim answer, earlier in the same run, on which of the two reviews to run for this change — once the ones they chose have run, proceed as 「実行済み / 不要」. An invoking skill's own estimate, or a review it ran without asking, is not that answer: ask.
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)): this gate is pre-answered by the user's verbatim answer, earlier in the same run, on which of the two reviews to run for this change — once the ones they chose have run, proceed as 「実行済み / 不要」. An invoking skill's own estimate, or a review it ran without asking, is not that answer: ask.
 
 ## Step 4. Gather Context and Read Template
 
@@ -181,7 +181,7 @@ If the branch name encodes an issue number, append `closes #N` at the bottom of 
 
 Local review was already decided at Step 3 — do not ask again here.
 
-**Never pre-answered.** This confirmation (both paths, the label question included) and the push it gates are taken at the moment of the action, whatever an invoking skill passes — a push is a commercial action, and the update path's wording is required by `AGENTS.md` ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)).
+**Never pre-answered.** This confirmation (both paths, the label question included) and the push it gates are taken at the moment of the action, whatever an invoking skill passes — a push is a commercial action, and the update path's wording is required by `AGENTS.md` ([0154](../../../docs/adr/0154-claude-skills-operations.md)).
 
 Display the resolved title, base branch, push command, and full body. If Step 2 merged anything, say so, so the user knows the push includes a merge commit.
 
@@ -293,7 +293,7 @@ If Step 2 merged the base in, add one line stating how many commits were taken i
 
 ## Step 10. Post-PR Review (confirm)
 
-After the PR URL is reported, **ask the user whether to run a review** — do not auto-run one. Use `AskUserQuestion`:
+After the PR URL is reported, **always ask the user whether to run a review** — do not skip this, and do not auto-run a review. Use `AskUserQuestion`:
 
 - Question: 「PR を作成/更新しました。コードレビューを実行しますか？」
 - Options (offer the ones that apply):
@@ -303,7 +303,7 @@ After the PR URL is reported, **ask the user whether to run a review** — do no
   - 「ultrareview を案内」 — cloud multi-agent review; **user-triggered and billed**, so the skill cannot launch it — only surface the command for the user to run
   - 「レビューしない」
 
-**When an invoking skill passes the answer**: the same answer that pre-answers Step 3 pre-answers this question — the user already said which reviews this change gets. Without such an answer, the question is not skipped.
+**When an invoking skill passes the answer**: this question is still asked. The answer that pre-answers Step 3 chose between the two local reviews; this question also offers `/code-review` and ultrareview, which that answer never saw.
 
 ### Depth by change type
 
@@ -347,5 +347,5 @@ Before reporting completion, confirm:
 - [ ] User confirmation was obtained before the push (mandatory for update path per `CLAUDE.md`)
 - [ ] For a diff that can change how a story renders, asked whether to attach `baseline-retake`, saying it is not an approval
 - [ ] PR URL was reported to the user
-- [ ] (Required) After creating or updating the PR, asked whether to run a review, scaled by change type — or took the same answer that pre-answered Step 3
+- [ ] (Required) After creating or updating the PR, asked whether to run a review, scaled by change type
 - [ ] No `--force` was used

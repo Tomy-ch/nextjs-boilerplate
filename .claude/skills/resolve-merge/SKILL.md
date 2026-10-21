@@ -91,7 +91,7 @@ Two rules decide correctness here, and both live outside this skill:
 `release/*` only and will not name a hotfix, and inferring a base from branch names is guessing at
 the moment guessing is most expensive. Require `--base=<ref>` from the human.
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 the base is pre-answered only by a ref the user named, verbatim, earlier in the same run — pass it as
 `--base`. A base the invoking skill resolved itself is not an answer: resolve as above. If the pull
 request's `baseRefName` now differs from the named ref, the answer has drifted — ask. The Step 6

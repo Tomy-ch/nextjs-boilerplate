@@ -74,7 +74,7 @@ make base-merge            # 衝突が残れば exit 1 で未解決のパスを 
 hotfix を名指さない。ブランチ名からベースを推測するのは、**推測が最も高くつく瞬間に推測すること**である。
 `--base=<ref>` を人から受け取る。
 
-**呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md#pre-answered-inputs)）:
+**呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md)）:
 base が事前回答されるのは、同じ run の先行する時点でユーザーが逐語で名指した ref によってだけである —— それを
 `--base` として渡す。呼び出し元のスキルが自分で解決した base は回答ではない: 上記のとおり解決する。PR の
 `baseRefName` が名指された ref から変わっていたら、回答がドリフトしている —— 問う。Step 6 の commit-and-push の

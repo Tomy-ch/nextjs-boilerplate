@@ -126,7 +126,7 @@ model is passed to every `adversarial-reviewer` / `type-design-reviewer` / `revi
 subjects belong to `/test-review`, asked for separately, and to `/settle-comments`, run during implementation (Core Idea, "This skill
 audits the change and nothing else").
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 
 - **Pre-answered**: both Step 0 questions — scope and reviewer model — by the user's own answer earlier in the same run, passed verbatim. A scope or model the invoking skill chose is offered as the recommended option instead. A passed model that is the implementer's own still gets the warn-and-confirm above.
 - **Never pre-answered**: the Step 6 confirmation before posting to the PR — it is an outward action, confirmed at the moment of posting.

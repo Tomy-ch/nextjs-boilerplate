@@ -57,7 +57,7 @@ than one question per file. A file the user strikes from the list is left alone.
 **When an invoking skill passes the answer**, Step 0 is **still asked** — once, as the single bulk
 question when there are several files. The paths and direction an invoking skill passes are pre-filled
 as the recommended options; none is adopted without the user confirming it here
-([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)
+([0154](../../../docs/adr/0154-claude-skills-operations.md)
 lets only a receiver's own declaration waive a question, and this one declares none).
 
 Do NOT read or write any files for translation until the source path(s) and direction are confirmed.

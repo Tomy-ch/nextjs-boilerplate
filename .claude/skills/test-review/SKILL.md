@@ -87,7 +87,7 @@ returning an empty result that reads as a pass).
 For each target test file, resolve its **subject source file** — the same directory, the basename
 without `.test`. Required by Lenses 4 and 5.
 
-**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md#pre-answered-inputs)):
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
 this scope question is pre-answered by the user's own scope answer earlier in the same run, passed
 verbatim; a scope the invoking skill chose is offered as the recommended option instead. Step 5
 declares its own clause.

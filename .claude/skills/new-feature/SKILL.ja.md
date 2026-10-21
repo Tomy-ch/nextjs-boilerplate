@@ -55,7 +55,7 @@
    そう言って Step 2 を回す。プロダクトの中身を勝手に作らない。
 3. その route の**仕様書が既に `docs/spec/route/**` にあるか** —— 英語の canonical を見て、`*.ja.md` ミラーはすべて無視する。
 
-**呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md#pre-answered-inputs)）:
+**呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md)）:
 項目 1 と 2 は、同じ run の先行する時点で user が承認した計画が逐語で渡され、それが feature・route・ディレクションを
 名指しているとき、事前回答される。計画が触れていないことはやはり問い、項目 3 はどちらの場合もツリーから読む ——
 それは回答ではなく状態である。
