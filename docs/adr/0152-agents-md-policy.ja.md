@@ -167,27 +167,27 @@ Next.js 自身が `AGENTS.md` を生成する範囲の境界であり、将来�
 
 ### 最終形(v1.0.0 から)
 
-`permissions.deny` が次の 8 エントリを持ち、`permissions.ask` はこれらを持たない。
+`permissions.deny` が次の 4 エントリを持ち、`permissions.ask` はこれらを持たない。`Edit(...)` のルールはファイルを書き換える組み込みツールすべて(`Write` を含む)に掛かるので、`Write(...)` のエントリは書かない —— Claude Code はそれを一致しないルールとして警告する。
 
 | エントリ | 守るもの |
 | --- | --- |
-| `Edit(AGENTS.md)` / `Write(AGENTS.md)` | 規約本体 |
-| `Edit(LICENSE)` / `Write(LICENSE)` | ライセンス([0142](0142-license.ja.md)) |
-| `Edit(.claude/settings.json)` / `Write(.claude/settings.json)` | 権限境界そのもの。エージェントが自分の deny を外せる形にしない |
-| `Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` | Accepted ADR 本文(immutable — [0140](0140-documentation-operations.ja.md))。`*-*` は番号付きの ADR にだけ掛かり、`docs/adr/README.md` には掛からない |
+| `Edit(AGENTS.md)` | 規約本体 |
+| `Edit(LICENSE)` | ライセンス([0142](0142-license.ja.md)) |
+| `Edit(.claude/settings.json)` | 権限境界そのもの。エージェントが自分の deny を外せる形にしない |
+| `Edit(docs/adr/*-*.md)` | Accepted ADR 本文(immutable — [0140](0140-documentation-operations.ja.md))。`*-*` は番号付きの ADR にだけ掛かり、`docs/adr/README.md` には掛からない |
 
 **`ask` ではなく `deny` にする理由。** `ask` は編集のたびに承認を求める形で、承認する側が内容を読まずに通した 1 回で保護が破れる。Protected Documentation の保護の中身は「人が変更案を読んで判断する」ことなので、経路をエージェントの提案 → 人の編集に限り、エージェントの編集そのものを塞ぐ。`deny` には承認疲れで通る経路が無い。
 
 ### いまの形(v1.0.0 未満)と、そうしている理由
 
-- `AGENTS.md` / `LICENSE` / `.claude/settings.json` の 6 エントリは `permissions.ask` に置く。承認は残し、hard block はしない
+- `AGENTS.md` / `LICENSE` / `.claude/settings.json` の 3 エントリは `permissions.ask` に置く。承認は残し、hard block はしない
 - Accepted ADR 本文はエントリを持たない
 
 v1.0.0 未満の ADR は living document で、本文を直接上書きする([0140](0140-documentation-operations.ja.md))。この期間の作業の大半は ADR 本文の書き換えそのものなので、ADR に `ask` を置くと承認が常時鳴り、承認する側が内容を読まずに通す習慣を作る —— `deny` を選ぶ理由と正反対の状態である。鳴らないほうが、鳴り続けて無視されるより保護として正しい。AGENTS.md / LICENSE / settings.json は編集の頻度が低く、`ask` が「読んで判断する」機会として機能するので残す。
 
 ### v1.0.0 での復元手順
 
-1. `.claude/settings.json` で上の 6 エントリを `permissions.ask` から `permissions.deny` へ移し、`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` を `permissions.deny` に足す
+1. `.claude/settings.json` で上の 3 エントリを `permissions.ask` から `permissions.deny` へ移し、`Edit(docs/adr/*-*.md)` を `permissions.deny` に足す
 2. `AGENTS.md` の `Temporary Operating Rules until v1.0.0` セクションを削除し、`AI Modification Scope` / `Protected Documentation` に付いている「v1.0.0 未満は解除」の但し書きを消す
 3. 本 ADR のセクション構成表から #1.5 の行、「更新責務」の v1.0.0 未満の但し書き、上記「いまの形」の小節を消す
 
@@ -196,7 +196,7 @@ v1.0.0 未満の ADR は living document で、本文を直接上書きする([0
 ### 強制手段と、届かない範囲
 
 - **`permissions.deny` は Claude Code にしか効かない。** Codex / Copilot / Gemini には同等の宣言形式が無く、そこでは AGENTS.md の散文だけが保護である。寄せられない
-- **`Edit` / `Write` の `deny` は `Bash` 経由の書き換え(`sed` / heredoc)に届かない。** 塞ぐには Bash の引数の中にパスを見る `deny` が要るが、パスが引数のどこに現れるかは決まらず、前方一致の宣言では書けない。寄せられない
+- **`Edit` の `deny` は `Bash` 経由の書き換え(`sed` / heredoc)に届かない。** 塞ぐには Bash の引数の中にパスを見る `deny` が要るが、パスが引数のどこに現れるかは決まらず、前方一致の宣言では書けない。寄せられない
 - **`settings.json` が本 ADR の最終形と一致していること**は、上の表と JSON を突き合わせる検査として書ける。未実装
 
 ## 禁止事項

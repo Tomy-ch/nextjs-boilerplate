@@ -98,7 +98,7 @@ Claude Code 向けの設定資産を置く。
 外向きに書くが取り戻せる操作 —— ブランチを切る、ラベルやブランチ保護を設定する、実ブラウザへ繋ぐ ——
 は `ask` に置く。`deny` にすると「今回は使う」と人が決める余地が消え、`allow` にすると確認が消える。
 
-`Edit(...)` / `Write(...)` の `ask` は、AGENTS.md「Temporary Operating Rules」が保護文書に置いている
+`Edit(...)` の `ask` は、AGENTS.md「Temporary Operating Rules」が保護文書に置いている
 段階のコピーである。段階が変われば、そちらの手順に従って `deny` へ戻る。
 
 ## `hooks` —— 登録はここ、実体は外

@@ -100,7 +100,7 @@ v1.0.0 未満の間は、下記「決定 4」の living 運用が効いている
 
 1. 全 ADR 本文から経緯・比較検討・反転の記述を除き、決定の現在形だけにする(禁止事項の「経緯を書かない」を、living 期間に混入した分まで遡って適用する)
 2. 本 ADR の「v1.0.0 までの暫定運用」セクションと、AGENTS.md の「Temporary Operating Rules until v1.0.0」セクションを削除する
-3. `.claude/settings.json` の `permissions.deny` に Accepted ADR 本文(`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`)を足す。編集許可の最終形と復元手順は [0152](0152-agents-md-policy.ja.md) が持ち、同じ変更で行う
+3. `.claude/settings.json` の `permissions.deny` に Accepted ADR 本文(`Edit(docs/adr/*-*.md)`)を足す。編集許可の最終形と復元手順は [0152](0152-agents-md-policy.ja.md) が持ち、同じ変更で行う
 4. `docs/plan/**` と `docs/adr/BACKLOG.md` を削除し、その存在を前提にした機械の宣言(剥がしの対象・検査の除外・マーカー行数のベースライン)を同じ変更で外す —— どちらもこの状態を生んだ工程の文書であって、状態そのものではない。決めたことはその時点で ADR に在り、未決の追跡は issue トラッカーへ移っており、残るのは git が既に持つ履歴である <!-- boilerplate-only:line -->
 
 以後の変更は supersede だけになる —— 新 ADR を起票し、旧 ADR は Status 行を `Superseded by NNNN` へ書き換える。
