@@ -14,6 +14,7 @@
 | --- | --- |
 | プロフィール | 氏名・メール・電話・住所と、編集への導線 |
 | 購入サマリ | 総件数・合計金額と、ステータス別の内訳。詳細を開く導線 |
+| クーポン | 保有クーポンへの導線。読む 2 枚の下、区切りの上に置き、取り消せない操作の隣に並べない |
 | 操作の列 | このサイトについて / プライバシーポリシー / 退会 |
 
 ## 購入サマリ詳細
@@ -59,3 +60,4 @@
 
 - 実装 `src/features/account/mypage/` — [README](../../../../../src/features/account/README.ja.md)
 - 隣の画面 [`/mypage/edit`](edit/page.screen.ja.md)
+- 隣の画面 [`/mypage/coupons`](coupons/page.screen.ja.md)

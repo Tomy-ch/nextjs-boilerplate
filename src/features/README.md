@@ -44,6 +44,7 @@ What the bundled sample adds:
 | `purchases/` | History of what was confirmed, one record's detail, and the state transitions from there | [README](purchases/README.md) |
 | `account/` | Your own record. Registration, editing, account closure, and summaries for yourself | [README](account/README.md) |
 | `inquiry/` | Exchanges with support. A message that arrives lines up without waiting for a refetch | [README](inquiry/README.md) |
+| `coupons/` | What you hold and what a campaign code gives you. The status is decided on the screen against now | [README](coupons/README.md) |
 | `admin/` | The operations surface only actors holding a role may enter | [README](admin/README.md) |
 | `site-info/` | Static surfaces with no fetching | [README](site-info/README.md) |
 <!-- sample:end -->
@@ -65,7 +66,7 @@ opening the file. Whether a component goes in `ui/` or is promoted to `component
 | `<screen>/view.tsx` | Composition of a screen renderable from props alone. Receives what `page-content` fetched and assembles it | Fetching |
 | `<screen>/breadcrumb-content.tsx` | The hierarchy down to the current location. Placed by the app layer's `@breadcrumb` slot. May go through the same fetch as the body to get a name — it is collapsed to one within the same render | |
 | `<screen>/ui/<part>/` | That screen's components. One directory per component, co-locating implementation, test and stories | References from other screens (when a second screen needs it, move it up one level) |
-| `ui/skeleton/` | The loading UI. Same column layout as the real thing; the number of placeholder slots is a fixed value that fits one screen. `aria-hidden` | Matching the real item count |
+| `ui/skeleton/` | The loading UI. Same column layout as the real thing; the number of placeholder slots is a fixed value that fits one screen. `aria-hidden`, with one `LoadingAnnouncement` inside | Matching the real item count |
 | `ui/submit-button/` | The submit control that reads `useFormStatus`. Extracted as a **child** of the component that renders the `form` | |
 | `ui/error-state/` | What is shown when fetching fails. Rendered by the route's `error.tsx` | Composing the wording (`errors` looks it up from the classification) |
 | `query.ts` | URL key spellings, building destinations, the type of the location currently viewed — **the building side** | The schema that reads `searchParams` |
@@ -159,7 +160,8 @@ What this section owns is how that is divided inside a slice.
 2. The Action decodes `FormData` with `parse-<target>-form.ts`. If it cannot, `failedActionState({ formError })`
    — the wording is a constant of that screen and prompts the user to reload the screen
 3. Call `adapters`, and map a failure to a classification with `actionStateFromError`
-4. On success, `revalidatePath` or `redirect`. **If the value also appears in the outer frame (header, sidebar),
+4. On success, `refresh()` (staying on a screen whose data is not cached), `revalidatePath` (another route must show it) or
+   `redirect`. **If the value also appears in the outer frame (header, sidebar),
    invalidating a single path leaves the outer frame stale** — use `revalidatePath("/", "layout")`, with a
    reason attached to the `project-rules/no-app-wide-revalidate` suppression
 

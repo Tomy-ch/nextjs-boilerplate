@@ -90,10 +90,11 @@ the same rules**, so the input fields and validation pieces sit directly under t
 | `ui/postal-code-field/` | The postal code field. Holds the address search operation inside its frame |
 | `ui/submit-button/` | The submit control. Holds how it looks while pressed, as a child of the `form` |
 | `mypage/page-content.tsx` | Parallel fetching of your own information and the purchase summary |
-| `mypage/view.tsx` | The My Page display. Lays out the two cards to read and, below a divider, account closure |
+| `mypage/view.tsx` | The My Page display. Lays out the two cards to read, the path to coupons and, below a divider, account closure |
 | `mypage/ui/profile-card/` | The registration display and the path to editing |
 | `mypage/ui/purchase-summary-card/` | The purchase summary. Shows the breakdown by status in a table |
 | `mypage/ui/purchase-history-dialog/` | The purchase history list. A dialog with local scrolling |
+| `mypage/ui/coupons-link/` | The path to the held coupons |
 | `mypage/ui/action-row/` | The row of operations at the bottom. Paths to account closure and the site description |
 | `mypage/ui/withdraw-button/` | Account closure. A client island holding the confirmation dialog and the submission |
 | `mypage/ui/skeleton/` | The My Page loading UI |
@@ -139,8 +140,8 @@ Things that change for different reasons are kept apart. Fixing any one of them 
 | `errors` | Maps the classification of a failed submission to wording |
 | `observability` | Putting rendering on spans |
 
-It also draws on other features' `facade/` — login (`auth`), purchase destinations (`purchases`), the site
-description (`site-info`).
+It also draws on other features' `facade/` — login (`auth`), purchase destinations (`purchases`), held
+coupons (`coupons`), the site description (`site-info`).
 
 ## Action Return Contract
 

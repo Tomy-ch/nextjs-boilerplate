@@ -152,6 +152,7 @@ const TEST_FIXTURE_MODULES = [
   "src/features/admin/users/users.fixture.ts", // sample:line
   "src/features/admin/inquiries/inquiries.fixture.ts", // sample:line
   "src/features/inquiry/inquiry.fixture.ts", // sample:line
+  "src/features/coupons/coupons.fixture.ts", // sample:line
 ] as const;
 
 /**
@@ -172,6 +173,7 @@ const CATALOG_MOCK_MODULES = [
   "src/features/cart/__mocks__/**", // sample:line
   "src/features/cart/facade/add-to-cart/__mocks__/**", // sample:line
   "src/features/checkout/__mocks__/**", // sample:line
+  "src/features/coupons/__mocks__/**", // sample:line
   "src/features/inquiry/__mocks__/**", // sample:line
   "src/features/purchases/__mocks__/**", // sample:line
 ] as const;
