@@ -16,11 +16,11 @@
 
 ## 利用ケース
 
-取得中の見出し、本文、画像、行の形状を示す場合に使います。近くに loading の意味を伝える文言または `FeedbackState` を置きます。
+取得中の見出し、本文、画像、行の形状を示す場合に使います。読み込み中であることを支援技術へ伝えるのは、同じ fallback に置く `LoadingAnnouncement`（[`loading-announcer`](../../../shell/loading-announcer/README.ja.md)）で、skeleton の隣の文言ではありません。
 
 ## 責務境界
 
-Server Component として見た目だけを提供します。取得状態の判定、最終コンテンツ、loading message、表示時間は feature が管理します。`prefers-reduced-motion` 時は animation を停止します。
+Server Component として見た目だけを提供します。取得状態の判定、最終コンテンツ、表示時間は feature が管理し、読み込みの告知は `loading-announcer` が持ちます。`prefers-reduced-motion` 時は animation を停止します。
 
 ## Storybook とテスト
 

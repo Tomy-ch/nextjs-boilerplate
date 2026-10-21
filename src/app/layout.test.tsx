@@ -123,6 +123,19 @@ describe("RootLayout", () => {
     expect(markup.indexOf('aria-live="polite"')).toBeGreaterThan(appRootClosesAt(markup));
   });
 
+  it("読み込みを告げる領域を、空のまま器の外へ先に置く", () => {
+    const markup = renderToStaticMarkup(
+      <RootLayout>
+        <p>テスト用コンテンツ</p>
+      </RootLayout>,
+    );
+
+    expect(markup).toContain('<p class="sr-only" role="status"></p>');
+    expect(markup.indexOf('<p class="sr-only" role="status">')).toBeGreaterThan(
+      appRootClosesAt(markup),
+    );
+  });
+
   it("横断通知の Provider を配下へ供給する", () => {
     const markup = renderToStaticMarkup(
       <RootLayout>

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 一覧の待機表示で並べる件数。実際の初期取得件数と揃えず、折り返し 2 段分に留める。 */
@@ -17,8 +18,9 @@ export const ProductListSkeleton = withPartSpan(
   "features/products/list/ui/skeleton/skeleton",
   () => {
     return (
-      <div className="@container/list">
-        <ul aria-hidden="true" className="grid grid-cols-1 gap-4 @4xl/list:grid-cols-2">
+      <div aria-hidden="true" className="@container/list">
+        <LoadingAnnouncement />
+        <ul className="grid grid-cols-1 gap-4 @4xl/list:grid-cols-2">
           {Array.from({ length: PLACEHOLDER_COUNT }, (_, index) => index).map((index) => (
             <li className="flex gap-4 rounded-lg border p-4" key={index}>
               <Skeleton className="aspect-square w-24 shrink-0" />

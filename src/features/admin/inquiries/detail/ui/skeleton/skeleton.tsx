@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機中に並べる吹き出しの数。何通あるかは取得しないと分からない。 */
@@ -11,7 +12,8 @@ export const AdminInquiryDetailSkeleton = withPartSpan(
   "features/admin/inquiries/detail/ui/skeleton/skeleton",
   () => {
     return (
-      <div className="flex flex-col gap-4">
+      <div aria-hidden="true" className="flex flex-col gap-4">
+        <LoadingAnnouncement />
         <Skeleton className="h-16 w-full" />
         <div className="flex flex-col gap-4">
           {MESSAGES.map((index) => (

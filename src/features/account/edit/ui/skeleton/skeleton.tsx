@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { profileSchema } from "@/model/user/profile-schema";
 import { withPartSpan } from "@/observability/render-span";
 
@@ -22,6 +23,7 @@ export const ProfileEditSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex max-w-2xl flex-col gap-6">
+        <LoadingAnnouncement />
         {FIELDS.map((field) => (
           <div className="flex flex-col gap-2" key={field}>
             <Skeleton className="h-4 w-24" />

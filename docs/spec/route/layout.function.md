@@ -5,7 +5,7 @@
 > What is written here are **promises that apply to every screen**. Each route group's promises are held by its
 > `layout.*.md`, and each screen's by its `page.*.md`.
 
-This layout shell belongs to no route group. It holds the supply of fonts, instrumentation, cross-cutting notifications, and consent.
+This layout shell belongs to no route group. It holds the supply of fonts, instrumentation, cross-cutting notifications, the loading announcement, and consent.
 
 ## Two consent categories
 
@@ -58,6 +58,10 @@ elements that have not yet hydrated and causing a mismatch. The reason, and the 
 **Cross-cutting notifications are placed outside this layout shell.** A continuously announced region (`aria-live`) is not hidden even
 when the background is hidden. Putting notifications inside the layout shell would prevent hiding the whole layout shell, defeating the
 point of wrapping it.
+
+**That something is loading is announced from one region outside this layout shell, too.** The region is there, empty, before anything
+loads, because a live region is only reliably read when it already exists when its content changes. A wait that ends quickly is not
+announced, and the end is announced only when the start was.
 
 ## Load nothing without consent
 

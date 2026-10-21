@@ -574,6 +574,7 @@ Components whose mount position is decided by the component itself ([Layers](#la
 | [`content-container`](./shell/content-container/README.md) | Aligns the reading width and side margins of page content inside `main` |
 | [`page-header`](./shell/page-header/README.md) | At the top of a page, shows that page's name, description and main actions |
 | [`toaster`](./shell/toaster/README.md) | Shows the success or failure of a mutation that does not redirect as a temporary notification |
+| [`loading-announcer`](./shell/loading-announcer/README.md) | Tells assistive technology, from one region at the root, that part of the screen is loading and when it has finished |
 | [`pull-to-refresh`](./shell/pull-to-refresh/README.md) | Pulls down from the top edge of the screen to refetch the current route. Works only in environments with touch |
 | [`consent-banner`](./shell/consent-banner/README.md) | Keeps asking at the bottom edge, until a choice is made, whether cookies may be used for optional purposes |
 

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 枠だけで見せる明細の数。1 画面に収まる範囲に留め、実際より入っているように見せない。 */
@@ -28,6 +29,7 @@ export const CartSkeleton = withPartSpan("features/cart/ui/skeleton/skeleton", (
       aria-hidden="true"
       className="flex min-h-svh flex-col gap-8 pb-24 lg:flex-row lg:items-start lg:pb-0"
     >
+      <LoadingAnnouncement />
       <div className="flex min-w-0 flex-1 flex-col gap-4">
         <ul className="divide-y border-y">
           {ROWS.map((row) => (

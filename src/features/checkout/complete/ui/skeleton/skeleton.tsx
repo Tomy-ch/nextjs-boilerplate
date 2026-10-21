@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 枠だけで見せる明細の数。1 画面に収まる範囲に留め、実際より入っているように見せない。 */
@@ -22,6 +23,7 @@ export const CheckoutCompleteSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex flex-col gap-6">
+        <LoadingAnnouncement />
         <Skeleton className="h-7 w-72" />
         <div className="grid items-start gap-6 lg:grid-cols-2">
           <Skeleton className="h-64 w-full" />

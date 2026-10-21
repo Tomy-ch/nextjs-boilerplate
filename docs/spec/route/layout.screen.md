@@ -4,7 +4,7 @@
 
 The outermost layout shell wrapping every screen. It renders only the panel that asks for consent and the region for notifications that
 appear across screens, and has neither header nor footer — those are placed by each route group's layout shell. The notification region
-shows nothing while there are none, but stays on screen as a named region.
+shows nothing while there are none, but stays on screen as a named region. It also holds a region that is never visible and tells assistive technology when part of the screen is loading.
 
 ## The Consent Panel
 

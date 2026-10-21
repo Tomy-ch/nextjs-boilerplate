@@ -570,6 +570,7 @@ mount 位置がコンポーネント側で決まっているコンポーネン�
 | [`content-container`](shell/content-container/README.ja.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
 | [`page-header`](shell/page-header/README.ja.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
 | [`toaster`](shell/toaster/README.ja.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |
+| [`loading-announcer`](shell/loading-announcer/README.ja.md) | 画面のどこかが読み込み中であることと、読み込み終えたことを、ルートの領域 1 つから支援技術へ告げる |
 | [`pull-to-refresh`](shell/pull-to-refresh/README.ja.md) | 画面の上端から引き下げて、いまの route を取り直す。touch のある環境でだけ働く |
 | [`consent-banner`](shell/consent-banner/README.ja.md) | 任意の用途に cookie を使ってよいかを、選び終えるまで下端で尋ね続ける |
 
