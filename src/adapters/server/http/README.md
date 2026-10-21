@@ -26,7 +26,7 @@ are added here, only those modules go back to `integration`.
 | [`error-response.ts`](error-response.ts) | `unit` | Builds a response from a classification |
 | [`json-request.ts`](json-request.ts) | `unit` | Checks the type and size of a received request |
 | [`public-client.ts`](public-client.ts) | `integration` | The connection point for what can be fetched without naming a principal |
-| [`request.ts`](request.ts) | `integration` | Calls the external API |
+| [`request.ts`](request.ts) | `integration` | Calls the external API. Also holds the header name that carries the idempotency key |
 | [`user-scoped-client.ts`](user-scoped-client.ts) | `integration` | The connection point for what is tied to a principal. The only place the credential getter is passed |
 | [`retry-policy.ts`](retry-policy.ts) | `unit` | Decides from the status whether to retry |
 | [`search-params.ts`](search-params.ts) | `unit` | Maps a query to raw values |

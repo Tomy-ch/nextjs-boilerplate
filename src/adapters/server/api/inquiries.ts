@@ -18,9 +18,8 @@ import {
   PostInquiriesMeMessagesResponse,
 } from "../../gen/api/endpoints.zod";
 import type { InquiryMessagePostRequest } from "../../gen/api/model";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
-
-const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 const MY_MESSAGES_PATH = "/v1/inquiries/me/messages";
 

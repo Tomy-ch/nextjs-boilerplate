@@ -80,8 +80,7 @@ const SUBSCRIPTION_CONSTRUCTION_SELECTOR = {
 
 /** 通貨記号を手で付けた金額の表示を落とす（template literal と JSX テキスト）。 */
 const HAND_FORMATTED_MONEY_SELECTOR = {
-  selector:
-    "TemplateElement[tail=false][value.raw=/\\$$/], JSXText[value=/\\$\\s*$/] + JSXExpressionContainer",
+  selector: String.raw`TemplateElement[tail=false][value.raw=/\$$/], JSXText[value=/\$\s*$/] + JSXExpressionContainer`,
   message:
     "金額は `@/model/money` の書式関数で表示してください（ADR 0120）。`$` を手で付けると基準通貨と locale の差し替えが届きません。",
 };
@@ -427,7 +426,7 @@ export default [
           message: "errors カーネルへ transport 語彙を持ち込んではいけません。",
         },
         {
-          selector: "Literal[value=/\\bhttps?\\b/i]",
+          selector: String.raw`Literal[value=/\bhttps?\b/i]`,
           message: "errors カーネルへ transport 語彙を持ち込んではいけません。",
         },
       ],
