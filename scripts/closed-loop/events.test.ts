@@ -88,15 +88,13 @@ describe("parseLine", () => {
     expect(events.some((event) => event.kind === "interrupt")).toBe(true);
   });
 
-  it("isMeta の付いた行は、人の発話として出さない", () => {
-    for (const text of [
-      "Base directory for this skill: /repo/.claude/skills/commit",
-      "Another Claude session sent a message: 違う",
-    ]) {
-      expect(
-        parseLine(line({ type: "user", timestamp: AT, isMeta: true, message: { content: text } })),
-      ).toEqual([]);
-    }
+  it.each([
+    "Base directory for this skill: /repo/.claude/skills/commit",
+    "Another Claude session sent a message: 違う",
+  ])("isMeta の付いた行 %s は、人の発話として出さない", (text) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, isMeta: true, message: { content: text } })),
+    ).toEqual([]);
   });
 
   it("isMeta が true でなければ、人の発話として出す", () => {
@@ -144,16 +142,14 @@ describe("parseLine", () => {
     ).toEqual([{ at: EPOCH, kind: "interrupt", text: "[Request interrupted by user]" }]);
   });
 
-  it("差し込まれた本文は、人の発話として出さない", () => {
-    for (const text of [
-      "<task-notification>違う</task-notification>",
-      "<local-command-caveat>違う</local-command-caveat>",
-      "<system-reminder>違う</system-reminder>",
-    ]) {
-      expect(parseLine(line({ type: "user", timestamp: AT, message: { content: text } }))).toEqual(
-        [],
-      );
-    }
+  it.each([
+    "<task-notification>違う</task-notification>",
+    "<local-command-caveat>違う</local-command-caveat>",
+    "<system-reminder>違う</system-reminder>",
+  ])("差し込まれた本文 %s は、人の発話として出さない", (text) => {
+    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: text } }))).toEqual(
+      [],
+    );
   });
 
   it("`/名前` の起動は、起動だけを出す", () => {
