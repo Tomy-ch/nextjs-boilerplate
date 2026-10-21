@@ -1,3 +1,6 @@
+import { ErrorKind } from "@/errors/error-kind";
+
+import type { ActionState } from "./action-state";
 import { newUuid } from "./uuid";
 
 /** 冪等キーを載せるフォーム項目の名前。 */
@@ -23,4 +26,36 @@ export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
  */
 export function newIdempotencyKey(): string {
   return newUuid();
+}
+
+const RETRYABLE_FAILURES: ReadonlySet<ErrorKind> = new Set([
+  ErrorKind.UNAVAILABLE,
+  ErrorKind.INTERNAL,
+  ErrorKind.TOO_MANY_REQUESTS,
+  ErrorKind.CANCELED,
+]);
+
+/**
+ * 送信の結果が、その鍵の役目を終わらせたか。
+ *
+ * @remarks
+ * 成功と、結果が定まった拒否（検証の失敗・衝突・見つからない・権限が無い・未対応など）で true を
+ * 返します。次の送信は中身が変わり得るため、新しい鍵で送ります。
+ *
+ * 結果が定まらない失敗（利用不可・内部エラー・レート制限・中断）と、分類を持たない失敗では false
+ * です。前者は同じ鍵で送り直すことこそ鍵の役目で、後者は結果を判断できないため鍵を保ちます。
+ *
+ * @param state - 直近の送信が返した結果
+ * @returns 次の送信を新しい鍵で送るべきなら true
+ */
+export function settlesSubmission(state: ActionState<unknown>): boolean {
+  if (state.status === "success") {
+    return true;
+  }
+
+  if (state.status === "idle" || state.kind === undefined) {
+    return false;
+  }
+
+  return !RETRYABLE_FAILURES.has(state.kind);
 }

@@ -53,7 +53,8 @@ end it (reconnecting would take the same path). No reconnection happens while th
 
 - **Only the body is sent.** The server decides the sender type
 - **An idempotency key is always attached.** A message has no natural key, so a resend just because the response did not arrive would become
-  a second message. The key keeps the same value until it succeeds, and is regenerated once it succeeds
+  a second message. The key keeps the same value while the outcome is open, and is regenerated once a response settles the submission —
+  a success, or a refusal after which the rewritten message may differ
 - **Submission does not go through the subscription path.** A submission failure needs to come back to the screen as a classification, and the subscription has no such round
   trip
 - A sent message appears in **the refetched authoritative copy**, not via the subscription. The refetch response returns a new subscription start position,
