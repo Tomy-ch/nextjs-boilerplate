@@ -64,7 +64,7 @@ boilerplate のドキュメントは、日本語の読者と、英語の frontma
 
 1. 全 ADR 本文から経緯・比較検討・反転の記述を除き、決定の現在形だけにする(禁止事項の「経緯を書かない」を、living 期間に混入した分まで遡って適用する)
 2. 本 ADR の「v1.0.0 までの暫定運用」節と、AGENTS.md の「Temporary Operating Rules until v1.0.0」節を削除する
-3. `.claude/settings.json` の `permissions.deny` に Accepted ADR 本文(`Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)`)を足す。編集許可の最終形と復元手順は [0152](0152-agents-md-policy.md) が持ち、同じ変更で行う
+3. `.claude/settings.json` の `permissions.deny` に Accepted ADR 本文(`Edit(docs/adr/*-*.md)`)を足す。編集許可の最終形と復元手順は [0152](0152-agents-md-policy.md) が持ち、同じ変更で行う
 4. 決定 1 の canonical 言語の移行(EN canonical + `*.ja.md` mirror)を同じ境界で行う
 5. `docs/plan/**` を削除する —— この状態を生んだ計画であって、状態そのものではない。計画は v1.0.0 より前に閉じ、もっと早く閉じることもある。決めたことはその時点で ADR に在り、残るのは git が既に持つ履歴である
 
