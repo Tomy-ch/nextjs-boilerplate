@@ -1,8 +1,8 @@
 // 週次の集計を人が読む形にする判定。issue の取得は入口([weekly/index.ts](weekly/index.ts))が
 // 持ち、ここは並べ方だけを持つ。
 //
-// **順位は検討の入口であって結論ではない。**保持・簡素化・撤回を決めるのは人である
-// 。だから本文にその一行を残す。
+// **順位は検討の入口であって結論ではない。**保持・簡素化・撤回を決めるのは人である。
+// だから本文にその一行を残す。
 
 import { humanize, issueRefs, percent } from "./format.js";
 import { type Period, toDay } from "./period.js";
@@ -120,8 +120,7 @@ export type WeeklyInput = {
  *
  * @remarks
  * **読めなかった issue の数を必ず出します。**人が本文を書き換えた 1 件で週次全体を落とさない
- * 代わりに、落とした量は見えている必要があります
- * 。
+ * 代わりに、落とした量は見えている必要があります。
  */
 export function reportWeekly(input: WeeklyInput): readonly string[] {
   const header = [

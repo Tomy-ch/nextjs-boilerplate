@@ -4,10 +4,10 @@
 //
 //   closed-loop            すべての窓を報告する
 //
-// 打刻は `.agents/closed-loop/marks.sh` が刻み、置き場は追跡外の `tmp/closed-loop/marks/` である
-// 。ここは読むだけで、何も刻まない。
+// 打刻は `.agents/closed-loop/marks.sh` が刻み、置き場は追跡外の `tmp/closed-loop/marks/` である。
+// ここは読むだけで、何も刻まない。
 //
-// **決定的な集計だけを行い、モデルを使わない**（同 決定 2）。区間・回数・順序は数えるものであって
+// **決定的な集計だけを行い、モデルを使わない**。区間・回数・順序は数えるものであって
 // 解釈するものではなく、この層の数は監査できる。「何が難しかったか」は別の段の仕事である。
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
