@@ -164,6 +164,66 @@ const PREFECTURES = [
   name,
 }));
 
+/**
+ * 保有クーポンのモック応答。生成器の既定ではどの行も失効になるため応答ごと置く。日付は
+ * `mocks/stable-responses.ts` の基準日と CI の `CLOCK_FIXED_NOW`（どちらも 2026-01-01T00:00:00Z）を
+ * 「いま」として選んであり、どちらかが動けば状態の内訳が変わる。
+ */
+const HELD_COUPONS = {
+  coupons: [
+    {
+      id: "0193a1c0-0001-7000-8000-000000000005",
+      discount: { kind: "rate", value: "0.10", maxAmount: 1000 },
+      scope: { kind: "category", targetId: "0195f0c2-2000-7000-9000-000000000001" },
+      expiresAt: "2026-03-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-20T00:00:00Z",
+      minPurchaseAmount: 5000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000004",
+      discount: { kind: "flat", value: "5.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-04-30T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-15T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2026-01-31T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000003",
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-000000000002" },
+      expiresAt: "2026-02-28T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2025-12-04T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000002",
+      discount: { kind: "flat", value: "10.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-01-31T15:00:00Z",
+      usedAt: "2025-12-10T03:00:00Z",
+      issuedAt: "2025-11-15T00:00:00Z",
+      minPurchaseAmount: 3000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000001",
+      discount: { kind: "flat", value: "3.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2025-12-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-10-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: null,
+    },
+  ],
+};
+
 // sample:end
 
 // sample:replace-begin
@@ -255,6 +315,7 @@ export default defineConfig({
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
           GetPurchaseStatuses: { mock: { data: PURCHASE_STATUSES } },
+          GetUsersMeCoupons: { mock: { data: HELD_COUPONS } },
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {
