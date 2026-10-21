@@ -304,8 +304,10 @@ Confirm once before editing:
 
 **When an invoking skill passes the answer**: this question is pre-answered by the user's verbatim
 answer, earlier in the same run, on what happens to this review's findings — apply them all →
-「すべて追加」, report only → 「追加しない」. An answer that maps to neither, or one given for another
-review, pre-answers nothing: ask.
+「すべて追加」, report only → 「追加しない」. `impl-issue`'s review mode is such an answer when the user
+gave it for this review: `all` → 「すべて追加」, `issues` → 「追加しない」 (the findings are routed to
+issues instead). An answer that maps to neither, or one given for another review, pre-answers
+nothing: ask.
 
 Then, per finding:
 

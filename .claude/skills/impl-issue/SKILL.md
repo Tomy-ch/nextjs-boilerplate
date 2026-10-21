@@ -604,28 +604,25 @@ Sub-skills ask their own questions. Where the user already answered one earlier 
 that answer through so the sub-skill does not ask it twice. This table indexes what each receiver
 declares under its own **When an invoking skill passes the answer** clause; it grants nothing itself.
 
-| Sub-skill | Pass through (the user's own answer) | Pre-answered there | Still asked there |
-| --- | --- | --- | --- |
-| `commit` | The grouping the user approved | Step 4 grouping confirmation | Merged-PR check; error recovery |
-| `submit-pr` | Which review skills the user chose for this change (Step 7) | Step 3 local-review gate | Step 1 base; Step 6 confirmation and Step 7 push, both paths; Step 10 post-PR review |
-| `new-feature` | The approved plan's feature, route and direction | Step 0 items 1–2 | Step 0 item 3 (read from the tree); Step 2's underspecified direction |
-| `impl-review` | Scope, reviewer model | Step 0 | Step 6 posting to the PR |
-| `test-review` | Scope; the review mode, when given for this review | Step 0 scope; Step 5 add-or-not (`all` → すべて追加, `issues` → 追加しない) | Step 5 under any other review mode |
-| `settle-comments` | Scope **and apply mode** | Step 0 both questions | Step 3 per-group verdicts in 確認して適用 |
-| `resolve-merge` | A base the user named | The base, unless the PR's `baseRefName` now differs | Step 6 commit-and-push |
-| `manage-skill` | The operation, skill and family the approved plan names | — (offered as recommended) | Step 1, always |
-| `canonicalize-doc` | The pair's paths and the direction | — (pre-filled as recommended) | Step 0, always — one question for a bulk list |
+| Sub-skill | Pass through (the user's own answer) |
+| --- | --- |
+| `commit` | The grouping the user approved |
+| `submit-pr` | Which review skills the user chose for this change (Step 7) |
+| `new-feature` | The approved plan's feature, route and direction |
+| `impl-review` | Scope, reviewer model |
+| `test-review` | Scope; the review mode, when the user gave it for this review |
+| `settle-comments` | Scope **and apply mode** |
+| `resolve-merge` | A base the user named |
+| `manage-skill` | The operation, skill and family the approved plan names |
+| `canonicalize-doc` | The pair's paths and the direction |
 
-**The receiver's clause is the authority, not this table.** A row that claims more than its receiver
-declares suppresses nothing — the receiver asks, and that is correct. Pass each answer **verbatim**,
-as the user gave it: a value this skill derived, defaulted or recommended is not an answer, and the
-receiver offers it as the recommended option instead. A Step 0 mode counts as the user's answer only
-where the receiver's clause names it.
+**What each answer pre-answers, and what is still asked, is the receiver's to say** — read its clause
+rather than a copy here. A receiver whose clause does not accept an answer asks, and that is correct.
+Pass each answer **verbatim**, as the user gave it: a value this skill derived, defaulted or
+recommended is not an answer, and the receiver offers it as the recommended option instead.
 
-**Never pre-answerable, whatever is passed** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
-the confirmations before a commercial action — `submit-pr`'s Step 6 / Step 7 push and PR creation,
-`impl-review`'s posting to the PR — and the `AGENTS.md` confirmation before pushing to an existing PR.
-They are taken at the moment of the action.
+**Leave every confirmation [0154](../../../docs/adr/0154-claude-skills-operations.md) marks never
+pre-answerable to the receiver** — the ones taken at the moment of an outward action.
 
 ## Do / Do NOT
 
