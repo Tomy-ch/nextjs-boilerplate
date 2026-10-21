@@ -11,10 +11,14 @@ minimumReleaseAge: 10080
 # 項目は `name@version` で書き、直上のコメントに理由と、窓が明ける日（YYYY-MM-DD）を添える。
 # 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
 minimumReleaseAgeExclude:
-  # GHSA-8r5x-fm3f-whwj / GHSA-p8wg-vrv2-v86f (critical) の修正版。eslint-plugin-boundaries が引き、
-  # lint の実行時にだけ走る。発行者・タグとの一致・差分・依存面の 4 軸を直接証拠で確かめた
-  # （/supply-chain-triage: 1/12 LOW）。窓が明ける 2026-10-12 に外す。
-  - "handlebars@4.7.10"
+  # GHSA-gfr2-rv44-r23c / GHSA-r7fv-28h4-cvq7 (high) / GHSA-vfgh-jcmw-g37q (low) の修正版。
+  # 14.3.3 は typedoc が引き API 型の生成時にだけ、15.0.3 は markdownlint-cli2 が引き lint の
+  # 実行時にだけ走る。/supply-chain-triage は 14.3.3 が MEDIUM（出所の一致は未確認）、15.0.3 が
+  # 1/12 LOW。同名の項目は 1 つにまとめる。窓が明ける 2026-10-24 に外す。
+  - "markdown-it@14.3.3 || 15.0.3"
+  # markdown-it@15.0.3 が ^3.0.3 を要求する。lint の実行時にだけ走る。トリアージは未実施。
+  # 窓が明ける 2026-10-24 に外す。
+  - "argparse@3.0.3"
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
@@ -57,8 +61,17 @@ overrides:
   "js-yaml@>=4 <4.3.1": ">=4.3.1 <5"
   # typedoc (orval が引く) の推移的依存。API 型の生成時にしか走らず、配信物には入らない。
   # GHSA-253c-mchw-3w2r (moderate): linkify を有効にすると 2 つの経路が入力長に対して二次で伸びる。
-  # typedoc の宣言は ^14.3.0 で 14.3.1 はその内側。typedoc が 14.3.1 以上を要求したら撤去する。
-  "markdown-it@<14.3.1": ">=14.3.1 <15"
+  # GHSA-gfr2-rv44-r23c (high): 複数行にわたる 1 つのリンク参照定義の描画が二次で伸びる。
+  # GHSA-vfgh-jcmw-g37q (low): html を有効にするとインライン HTML の解析が二次で伸びる。14.3.3 で塞がれた。
+  # typedoc の宣言は ^14.3.0 で 14.3.3 はその内側。typedoc が 14.3.3 以上を要求したら撤去する。
+  "markdown-it@<14.3.3": ">=14.3.3 <15"
+  # markdownlint-cli2 の推移的依存。lint の実行時にしか走らない。
+  # GHSA-gfr2-rv44-r23c / GHSA-vfgh-jcmw-g37q に加え、GHSA-r7fv-28h4-cvq7 (high): smartquotes が
+  # 閉じない引用符で二次で伸びる。15.0.3 で 3 件とも塞がれた。
+  # **この宣言は上流の宣言範囲の内側から外れる。** markdownlint-cli2 は 15.0.1 の完全固定で、
+  # 内側に留まると塞げない。15.0.3 は 15.0.x の patch で、組み合わせの検証は pnpm lint:md が代える。
+  # markdownlint-cli2 が 15.0.3 以上を要求したら撤去する。
+  "markdown-it@>=15.0.0 <15.0.3": ">=15.0.3 <16"
   # postcss の推移的依存。
   # GHSA-8v8w-v8xg-79rf (high): 自前の生成器を渡すと終わらない場合がある。
   # postcss の宣言は ^3.3.6 で 3.3.18 はその内側。postcss が 3.3.18 以上を要求したら撤去する。
