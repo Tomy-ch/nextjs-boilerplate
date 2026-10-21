@@ -8,6 +8,7 @@ import { AdminShell } from "@/components/shell/admin-shell/admin-shell";
 import type { AdminShellNavGroup } from "@/components/shell/admin-shell/admin-shell.definition";
 import {
   ADMIN_ANALYTICS_PATH,
+  ADMIN_CAMPAIGN_LIST_PATH,
   ADMIN_DASHBOARD_PATH,
   ADMIN_INQUIRY_LIST_PATH,
   ADMIN_PRODUCT_LIST_PATH,
@@ -44,6 +45,7 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
       { href: ADMIN_INQUIRY_LIST_PATH, label: "問い合わせ一覧" },
     ],
   },
+  { label: "販促", items: [{ href: ADMIN_CAMPAIGN_LIST_PATH, label: "キャンペーン一覧" }] },
 ];
 
 /**

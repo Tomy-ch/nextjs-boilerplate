@@ -54,6 +54,15 @@ describe("AdminLayout", () => {
     );
   });
 
+  it("キャンペーン一覧への導線を並べる", async () => {
+    await renderLayout();
+
+    expect(screen.getByRole("link", { name: "キャンペーン一覧" })).toHaveAttribute(
+      "href",
+      "/admin/campaigns",
+    );
+  });
+
   it("利用者向け画面へ戻る導線を header へ渡す", async () => {
     await renderLayout();
 

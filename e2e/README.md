@@ -661,7 +661,7 @@ where routes without declarations and declarations without a target both fail ([
 <!-- sample:begin -->
 ## What disappears when the bundled sample is purged
 
-**Only specs whose subject disappears together with the sample disappear.** There are six, all in
+**Only specs whose subject disappears together with the sample disappear.** There are seven, all in
 `journeys/`.
 
 | spec | Why it disappears |
@@ -672,6 +672,7 @@ where routes without declarations and declarations without a target both fail ([
 | `journeys/focus` | No screen with a drawer, modal or menu remains |
 | `journeys/not-found` | No screen remains that fetches a single item and receives the absence inside the layout shell |
 | `journeys/discontinue` | The admin list, the discontinue screen and its Server Action it runs through are the sample's screens themselves |
+| `journeys/campaign-suspend` | The admin campaign list, its suspend confirmation and the Server Action it runs through are the sample's screens themselves |
 
 **Remaining specs must point only at remaining screens.** The specs that check mechanisms (consent, CSP,
 cross-origin, public surface, authentication pre-handling) require no sample, so they point at the entry

@@ -46,6 +46,7 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | `return-url.ts` | A return destination that passed validation. Only same-origin relative paths pass; anything else falls back to the default destination |
 | `cross-origin.ts` | Judging a request's origin, and building CORS / preflight response headers |
 | `time-window.ts` | The period that aggregation and filtering target. Maps a calendar division to a half-open interval of instants in the reference time zone |
+| `campaign/` | Display types for the campaigns the sample admin screens list and suspend <!-- sample:line --> |
 | `cart/` | Display types for the cart the sample screens handle, and how conditions raised on line items are shown <!-- sample:line --> |
 | `coupon/` | Display types for the coupon discounts the sample screens handle, and their wording (face value, cap, scope) <!-- sample:line --> |
 | `dashboard/dashboard.ts` | Display types for the admin-side cross-cutting aggregates the sample screens handle <!-- sample:line --> |
