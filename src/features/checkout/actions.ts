@@ -5,7 +5,7 @@ import { RedirectType, redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/api/cart";
-import { createPurchase } from "@/adapters/server/api/purchases";
+import { createPurchase, PURCHASE_COUPON_FIELD } from "@/adapters/server/api/purchases";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { errorMetaFrom } from "@/errors/error-meta";
@@ -57,7 +57,7 @@ function readCouponId(formData: FormData): CouponId | null | undefined {
 function isCouponRejected(error: unknown): boolean {
   return (
     findAppError(error)?.kind === ErrorKind.VALIDATION &&
-    (errorMetaFrom(error)?.details ?? []).includes(COUPON_ID_FIELD)
+    (errorMetaFrom(error)?.details ?? []).includes(PURCHASE_COUPON_FIELD)
   );
 }
 

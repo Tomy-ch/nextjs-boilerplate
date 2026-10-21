@@ -282,6 +282,9 @@ export const getMyPurchase = cache(async (purchaseCode: string): Promise<Purchas
   return toPurchase(wire);
 });
 
+/** 購入の作成で、適用するクーポンを載せる項目の契約上の名前。拒否の `details` もこの名前で名指す。 */
+export const PURCHASE_COUPON_FIELD = "couponId" satisfies keyof PurchasesPostRequest;
+
 /**
  * 購入を作る。
  *

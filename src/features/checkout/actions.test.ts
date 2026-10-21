@@ -32,12 +32,16 @@ vi.mock("next/navigation", () => ({
   redirect,
 }));
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart, removeMyCartItem, setMyCartItem }));
-vi.mock("@/adapters/server/api/purchases", () => ({ createPurchase }));
+vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
+  createPurchase,
+}));
 vi.mock("@/logging/logging.server", () => ({
   getLogger: () => ({ warn }),
   reportQuietly: (task: () => void) => task(),
 }));
 
+import { PURCHASE_COUPON_FIELD } from "@/adapters/server/api/purchases";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { placeOrderAction } from "./actions";
 import {
@@ -265,7 +269,7 @@ describe("placeOrderAction", () => {
   });
 
   it("在庫や価格の衝突は、クーポンを名指ししていてもクーポンの拒否として扱わない", async () => {
-    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.CONFLICT, [COUPON_ID_FIELD]));
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.CONFLICT, [PURCHASE_COUPON_FIELD]));
 
     const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
 
@@ -277,7 +281,7 @@ describe("placeOrderAction", () => {
   });
 
   it("クーポンを名指しして拒まれたら、候補を取り直させる", async () => {
-    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [PURCHASE_COUPON_FIELD]));
 
     await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
 
@@ -285,7 +289,7 @@ describe("placeOrderAction", () => {
   });
 
   it("クーポンを名指しして拒まれたら、クーポンの欄とフォームの両方へ理由を返す", async () => {
-    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [PURCHASE_COUPON_FIELD]));
 
     const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
 
@@ -298,7 +302,7 @@ describe("placeOrderAction", () => {
   });
 
   it("クーポンを名指しして拒まれたら、完了へ送らずカートも触らない", async () => {
-    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [PURCHASE_COUPON_FIELD]));
 
     await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
 
