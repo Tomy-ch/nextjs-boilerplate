@@ -175,7 +175,7 @@ pre-push:
 ## 禁止事項
 
 - ❌ pre-commit に重い処理 (`pnpm build` / e2e / 全テスト) を入れること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の pre-commit の `run:` に `pnpm build` / e2e / `make test-full` が現れることは綴りで落とせるが規則は無い。それ以外の処理が重いかは実行時間で決まり、設定の形からは決まらない）
-- ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること（強制: 散文 —— **寄せられない**。alias と IDE の設定は利用者の環境に在り、リポジトリの差分に現れない）
+- ❌ `--no-verify` を git alias / shell alias / IDE 設定で恒常化すること（強制: 散文 —— **寄せられない**。alias と IDE の設定はユーザーの環境に在り、リポジトリの差分に現れない）
 - ❌ CI 側で hook 相当の検査をスキップすること（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の各 command が呼ぶエントリポイントがいずれかの workflow の `run:` に在ることは突き合わせで落とせるが規則は無い。そのステップが実際に走るかは `if:` の評価で決まり実行時にしか分からない）
 - ❌ `.git/hooks/` 配下に直接 shell script を書き込むこと (lefthook 経由のみ)（強制: 散文 —— **寄せられない**。`.git/hooks/` は追跡外で、書き込みがリポジトリの差分に現れない）
 - ❌ hook 設定 (どの段階でどの command を走らせるか) を `.lefthook.yaml` 以外のファイル (script / Makefile 等) に分散させること。`run:` から `pnpm <script>` / `make <target>` のような既存の実行エントリポイントを 1 行で呼ぶのは分散にあたらない (ローカルと CI で同じコマンドを呼ぶための要件でもある)（強制: 散文 —— **一部寄せられる**。`.lefthook.yaml` の `run:` が既存のエントリポイントを 1 行で呼ぶ形であることは YAML を読めば落とせるが規則は無い。呼ばれた script や target が段の選択を抱え込んでいるかは中身の意味で決まる）
@@ -185,7 +185,7 @@ pre-push:
 
 - 「hook はあると邪魔、ないと事故」のジレンマを、**速い hook + 権威ある CI** の二重化で解く方針
 - lefthook 設定の具体内容 (どの段階でどの command を走らせるか) はリポジトリの肥大化に応じて調整する
-- hook の存在は README で利用者向けに案内する (`pnpm exec lefthook install` の必要性)
+- hook の存在は README でユーザー向けに案内する (`pnpm exec lefthook install` の必要性)
 
 ## 関連 ADR
 

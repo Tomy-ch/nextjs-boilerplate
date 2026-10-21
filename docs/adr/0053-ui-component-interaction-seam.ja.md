@@ -15,7 +15,7 @@ Accepted
 interaction UI は次の 5 つに分かれ、それぞれ本 ADR が持つものが違う。
 
 - **複雑入力 UI**(0052 で採用済み)= 日付ピッカー等は 0052 が shadcn 系コンポーネントとして `components` に置く。本 ADR は「入れてよいか」ではなく、採用コンポーネントの **キーボード操作 / フォーカス順序 / ARIA という相互作用 a11y 契約** を敷く
-- **リッチテキスト/エディタ**(採用)= 本体は **sanitize IF + 表示 seam**(sanitizer は差し替え可能な port として名前を付ける)。エディタ本体(TipTap)を実使用する
+- **リッチテキスト/エディター**(採用)= 本体は **sanitize IF + 表示 seam**(sanitizer は差し替え可能な port として名前を付ける)。エディター本体(TipTap)を実使用する
 - **モーダル/ダイアログ** = a11y 契約(focus trap・Escape・scroll lock 必須。[0100](0100-accessibility-target.ja.md))をデフォルトとし、route-as-modal(intercepting routes)の採否は [0040](0040-routing-rendering-strategy.ja.md) 管轄
 - **キーボードショートカット**(除外)= 採らず、登録機構も置かない
 - **ドラッグ&ドロップ**(ライブラリ非同梱)= 本体は **WCAG 2.2 ドラッグ代替を満たす a11y 準拠 DnD seam/IF**。DnD ライブラリ(dnd-kit 等)は本体に同梱しない
@@ -28,7 +28,7 @@ interaction UI は次の 5 つに分かれ、それぞれ本 ADR が持つもの
 
 interaction UI は、**ライブラリより先にプラットフォーム標準(HTML/CSS/DOM の built-in)を第一候補とする**([0010](0010-standards-and-non-lockin.ja.md) 標準準拠)。built-in で要件を満たせないと判明した時にのみ、用途依存の判断としてライブラリを足す。
 
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.ja.md)): built-in 優先は「フレームワークが推奨するから」ではなく、web プラットフォーム標準に固有の独立根拠で正当化する ——(a) top-layer / focus / `inert` / `::backdrop` 等の a11y 機構を**ブラウザがデフォルトで供給**する(自前 focus-trap の車輪の再発明を避ける)、(b) **JS ライブラリ依存ゼロ = 任意フレームワークへ可搬**(0010 の運用テスト「ベンダーを正当化から抜いても正当か」= Yes)、(c) **最小依存**(バンドル増を伴わない)。これは 0052 が採る shadcn/ui(Radix = WAI-ARIA 準拠 primitive)とも整合する —— built-in で満たせる相互作用は built-in を先に使い、built-in で足りない範囲を shadcn 系コンポーネント / 局所ライブラリで補う、という優先順である
+- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.ja.md)): built-in 優先は「フレームワークが推奨するから」ではなく、web プラットフォーム標準に固有の独立根拠で正当化する ——(a) top-layer / focus / `inert` / `::backdrop` 等の a11y 機構を**ブラウザーがデフォルトで供給**する(自前 focus-trap の車輪の再発明を避ける)、(b) **JS ライブラリ依存ゼロ = 任意フレームワークへ可搬**(0010 の運用テスト「ベンダーを正当化から抜いても正当か」= Yes)、(c) **最小依存**(バンドル増を伴わない)。これは 0052 が採る shadcn/ui(Radix = WAI-ARIA 準拠 primitive)とも整合する —— built-in で満たせる相互作用は built-in を先に使い、built-in で足りない範囲を shadcn 系コンポーネント / 局所ライブラリで補う、という優先順である
 
 ### 2. 複雑入力 UI の相互作用 a11y 契約
 
@@ -36,17 +36,17 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 - built-in 優先(§1)により、要件を満たせる範囲では native input(`<input type="date">` / `<datalist>` / `<select>` 等)を第一候補とし、native で足りない複雑入力にのみ shadcn 系コンポーネント(0052)を用いる
 - 採用コンポーネント・自前実装のいずれでも、**a11y 準拠(キーボード操作 / フォーカス順序 / ARIA / [0100](0100-accessibility-target.ja.md) の WCAG 2.x AA)を必須**とし、[0050](0050-styling-strategy.ja.md)(Tailwind 主軸 + CSS Modules 限定許可・styled-components / emotion は非採用)・[0021](0021-frontend-responsibility.ja.md)(カーネル配置・命名規律)・[0004](0004-library-management.ja.md)(exact pin / audit)の枠内で行う(0052 の採用時条件と同一)
 
-### 3. リッチテキスト/エディタ = TipTap を採用 + sanitizer port + 表示 seam
+### 3. リッチテキスト/エディター = TipTap を採用 + sanitizer port + 表示 seam
 
-- **WYSIWYG エディタは TipTap を採用**する。エディタ本体は `components` カーネルに置き、[0052](0052-ui-component-policy.ja.md) の配置・exact-pin 要件に従う
-- **採る理由はエディタ本体ではなく、その隣に要る表示側の seam にある。** 利用者が書いた内容を安全に表示する経路は、**後から足すと「通し忘れ」が既に散った後**になる。同梱するのは、その経路を型で塞いだ形(下記の port と nominal type)を実物として置くためであり、エディタ本体を差し替えてもこの形は残る
-- **エディタ本体が要るのは、利用者が書いた長文が他の利用者へ表示される欄を持つときだけ**である。そういう欄を持たないなら、エディタごと落として sanitizer port だけを残してよい。差し替えても落としても、残るべき形(port と nominal type)は変わらない
+- **WYSIWYG エディターは TipTap を採用**する。エディター本体は `components` カーネルに置き、[0052](0052-ui-component-policy.ja.md) の配置・exact-pin 要件に従う
+- **採る理由はエディター本体ではなく、その隣に要る表示側の seam にある。** ユーザーが書いた内容を安全に表示する経路は、**後から足すと「通し忘れ」が既に散った後**になる。同梱するのは、その経路を型で塞いだ形(下記の port と nominal type)を実物として置くためであり、エディター本体を差し替えてもこの形は残る
+- **エディター本体が要るのは、ユーザーが書いた長文が他のユーザーへ表示される欄を持つときだけ**である。そういう欄を持たないなら、エディターごと落として sanitizer port だけを残してよい。差し替えても落としても、残るべき形(port と nominal type)は変わらない
 - 「表示」側の拡張点(seam): **信頼できない HTML を安全な表示へ変換する sanitizer を、差し替え可能な named port(seam)として扱う**(rehype/rehype-sanitize / DOMPurify 等は port の実装であって本体前提ではない)。リッチテキスト表示は、この sanitizer port を必ず通す
 - sanitizer port は外部ライブラリの wrap であり、[0021](0021-frontend-responsibility.ja.md) のカーネル受入基準(複数箇所参照 or 外部ライブラリ wrap → カーネル)に従って **`model` カーネル**に置く。表示 seam(sanitize 済みコンテンツのレンダリング)は `components` に置く
 - **port は sanitize 済みであることを型で表す。** 通過後の値を nominal type として返し、表示側はその型だけを受け取る。生の HTML 文字列を props に取らないため、**sanitizer を迂回する経路が公開 API にも実装にも存在しない**。「通し忘れ」を規約ではなく型で塞ぐ形である
-- **レンダリングは HTML 文字列を経由しない。** 仕様準拠のパーサで HTML をツリー(hast)にし、ツリーを allowlist で検査し、そのツリーから直接 React 要素を組み立てる。文字列のまま検査する方式は採らない —— パーサが補正する崩れた markup を、文字列上の検査はすり抜けさせる。これにより `dangerouslySetInnerHTML` を使う箇所自体が無くなり、[0110](0110-security-operations.ja.md) の禁止規定に対して「使っていない」ではなく「使える形になっていない」状態を作る
+- **レンダリングは HTML 文字列を経由しない。** 仕様準拠のパーサーで HTML をツリー(hast)にし、ツリーを allowlist で検査し、そのツリーから直接 React 要素を組み立てる。文字列のまま検査する方式は採らない —— パーサーが補正する崩れた markup を、文字列上の検査はすり抜けさせる。これにより `dangerouslySetInnerHTML` を使う箇所自体が無くなり、[0110](0110-security-operations.ja.md) の禁止規定に対して「使っていない」ではなく「使える形になっていない」状態を作る
 - **sanitizer の許可リストは inline `style` 属性を落とす。** 太字 / 斜体 / リスト / 見出し / リンクはいずれもクラスへマッピングできるため、`style` を通す理由が無い。**この設計が成立することは実装で確認済みであり、リッチテキストを理由に CSP の `style-src-attr` へ `'unsafe-inline'` を開ける必要はない**([0111](0111-csp-security-headers.ja.md) の enforce seam 判断の入力)。`class` / `id` も同様に落とす
-- **editor が出せるタグ ⊆ sanitizer が通すタグ**を保つ。この包含関係が崩れると、入力できるのに保存後に落ちるという不整合が生じる。エディタの extension 集合は allowlist から導出し、**包含関係を test で固定して extension の追加が検知されるようにする**。したがって **`@tiptap/starter-kit` は採らず、extension を個別に入れる** —— starter-kit は allowlist に無いタグを出す extension まで束で引くため、包含関係を保てない
+- **editor が出せるタグ ⊆ sanitizer が通すタグ**を保つ。この包含関係が崩れると、入力できるのに保存後に落ちるという不整合が生じる。エディターの extension 集合は allowlist から導出し、**包含関係を test で固定して extension の追加が検知されるようにする**。したがって **`@tiptap/starter-kit` は採らず、extension を個別に入れる** —— starter-kit は allowlist に無いタグを出す extension まで束で引くため、包含関係を保てない
 - **許容範囲の異なる sanitizer を同じパッケージへ同居させない。** リポジトリ自身のコミット済み文書をレンダリングする viewer([`docs-viewer/`](../../docs-viewer/README.ja.md))は表・コードブロック・`class` を通す広い allowlist を要るが、それをアプリ本体と同じパッケージに置くと、広い方を本体から import することを止めるものが規約しか無くなる。別パッケージに置き、構造として到達不能にする([0020](0020-adopted-architecture.ja.md))
 - **XSS 規約との接続**: `dangerouslySetInnerHTML` の原則禁止と sanitizer 必須の**規約(rule)自体は [0110](0110-security-operations.ja.md) が所有**する。本 ADR は「sanitizer を差し替え可能な port として名前を付ける」構造側を敷き、規約は 0110 を正とする(二重決定しない)
 
@@ -70,14 +70,14 @@ interaction UI は、**ライブラリより先にプラットフォーム標準
 
 - **DnD ライブラリ(dnd-kit 等)は本体に同梱しない**([0052](0052-ui-component-policy.ja.md) の本体スコープ)。まず native HTML Drag and Drop API を第一候補とする(§1)
 - **ファイルのドロップは native API で満たせるため本体で実装する。** 受信エンドポイントを `input type="file"` の `label` として組めば、ドロップは加速手段になり、押下でも選択でき、`input` は tab で到達して Enter で開ける。落としたファイルは `input` の `files` へ書き戻し、native form の送信にも載せる。**ライブラリを要さずドラッグ代替を構造的に満たす**形であり、ライブラリを待つ対象ではない。ライブラリを要するのは並べ替え等の複雑な DnD である
-- 採用する DnD は **WCAG 2.2 の Dragging Movements(SC 2.5.7)を満たす a11y 契約**を必須とする = **ドラッグ以外の単一ポインタ / キーボードによる代替操作を必ず提供する**。この「ドラッグ代替」を named seam として扱い、DnD を採る feature は代替経路の実装を伴う(a11y 契約なしの DnD は禁止。§禁止事項)
+- 採用する DnD は **WCAG 2.2 の Dragging Movements(SC 2.5.7)を満たす a11y 契約**を必須とする = **ドラッグ以外の単一ポインター / キーボードによる代替操作を必ず提供する**。この「ドラッグ代替」を named seam として扱い、DnD を採る feature は代替経路の実装を伴う(a11y 契約なしの DnD は禁止。§禁止事項)
 - DnD の挙動は UI 密着のため、focus-trap 同様に component co-location + feature 合成に置く([0022](0022-capabilities-kernel.ja.md) の UI 挙動 hook 方針と同型)。a11y 目標は [0100](0100-accessibility-target.ja.md)
 
 ### 7. 拡張点のコード実体化スコープ
 
 拡張点は**実装を伴う形でのみコードに置く**。空の IF / port 定義だけを置かない —— 実装の無い抽象は、実装する時点で必ず書き直されるためである。
 
-- **sanitizer port は `model` カーネルに実体化済み**(§3)。エディタを採ったため、表示側も実装を伴う
+- **sanitizer port は `model` カーネルに実体化済み**(§3)。エディターを採ったため、表示側も実装を伴う
 - **shortcut registry は置かない**(§5)。本 ADR は「名前 + 家 + a11y 契約」を記録し、採用する時点で実体化する
 - **DnD のドラッグ代替は、ライブラリを要さない範囲では component の実装として実体化済み**(§6)。ライブラリを要する DnD の代替 IF は、ライブラリを採る時点で実装ごと置く
 

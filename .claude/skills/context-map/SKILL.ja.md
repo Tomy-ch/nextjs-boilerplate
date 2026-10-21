@@ -68,7 +68,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 <!-- sample:begin -->
 **サンプル破棄で消える辺と、残る辺を分ける。**サンプルが在るからこそ存在する相手は、
-テンプレート利用者が受け取る地図の一部ではない —— 範囲は
+テンプレートユーザーが受け取る地図の一部ではない —— 範囲は
 [`scripts/setup/remove-sample/sample-manifest.ts`](../../../scripts/setup/remove-sample/sample-manifest.ts)。
 
 <!-- sample:end -->

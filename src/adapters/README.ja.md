@@ -4,17 +4,17 @@
 
 # adapters
 
-バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプタです。実行文脈で
+バックエンド API、BFF fetch、telemetry の送信など外部接続だけを置く境界アダプターです。実行文脈で
 `server/` と `client/` に分けます —— **これは置き場の分けであって、境界検査の要素の分けではありません**
 （要素の分かれ目は下記「このレイヤーの要素」）。
 
-**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャはコンテナを読み込むだけで、送信はコンテナの中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.ja.md)）。
+**このアプリが送信を組み立てないものは、ここを通りません。** 同梱のタグマネージャーはコンテナーを読み込むだけで、送信はコンテナーの中身が行うため、`app` の client island が受け持ちます（[0082](../../docs/adr/0082-client-observability.ja.md)）。
 実行文脈を持たない規則——どちらの面が送る要求にも等しく効くもの——は `http/` に置き、契約からの生成物は `gen/` に置きます。どちらも `adapters` の中からだけ import できます。
 
 ## 受け入れるもの
 
 - 外部 API / SDK への接続、外部型から表示用型への変換
-- `server/` の secret を使う接続、`client/` のブラウザ向け接続
+- `server/` の secret を使う接続、`client/` のブラウザー向け接続
 
 ## 受け入れないもの
 
@@ -60,7 +60,7 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
   `reportQuietly` で残します。
 - **路の可変区間は `encodeURIComponent` で包みます。** 要求境界は `.` / `..` の区間を弾きますが、それ以外は
   包んだ側が持ちます。
-- **契約上のヘッダは要求ごとに `headers` で渡します**（冪等キー、契約が独自に持つ識別子）。優先順位を契約が
+- **契約上のヘッダーは要求ごとに `headers` で渡します**（冪等キー、契約が独自に持つ識別子）。優先順位を契約が
   定めているものは、こちらで選ばず両方載せます —— 選ぶと同じ規則が 2 か所に生まれます。
 - **並びは契約が決めます。** 契約が順序を宣言している一覧は写すときに並べ替えず、並び順のためだけの番号は
   落とします。
@@ -113,7 +113,7 @@ import の許可はどちらも同じ `adapters` のものだからです。分�
 4. `{ ok: true, query } | { ok: false, invalidKeys }` を返す。外れたキーは検証ライブラリの型ではなく素の
    名前で返し、どう見せるかは画面が決める
 
-**キーは利用者が決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、並びを組んで
+**キーはユーザーが決めます。** 空の object へ添字で書くと `__proto__` が代入の対象になるため、並びを組んで
 から `Object.fromEntries` で畳みます。
 
 **一致する対象を決める条件の一式は、一覧と件数で共有します。** 取り出す位置と並び順は件数に効かないので
@@ -133,15 +133,15 @@ client を組むのは分類ごとに 1 つの接続ポイント（[`server/http
 **資格情報を載せうるエンドポイントは、載せなかった回も含めて user-scoped です。** `allowAnonymous: true` を立てても
 動きません。分類はエンドポイントの性質であって要求ごとの結果ではなく、だから静的に決まり、型で塞げます。
 
-**主体を指す値は資格情報とは限りません。** 契約が独自に持つ識別子のヘッダも主体を指します。
+**主体を指す値は資格情報とは限りません。** 契約が独自に持つ識別子のヘッダーも主体を指します。
 そういう値を載せるエンドポイントも user-scoped です —— 判定は「認証されているか」ではなく「応答が主体で
 変わるか」です。
 
 分類が塞ぐのは「PII が共有キャッシュへ入る」経路です。入れ物は server 側で共有され、キーは URL・
-method・ヘッダ・本文なので、主体ごとに割れた値がそこへ載ると、ある主体の応答が別の主体へ渡ります。
+method・ヘッダー・本文なので、主体ごとに割れた値がそこへ載ると、ある主体の応答が別の主体へ渡ります。
 **注意書きではなく引数の不在**にしてあるのは、注意書きが守るのは読んだ人だけだからです。
 
-user-scoped な値をキャッシュしたいときの手段は `use cache: private`（サーバへ保存されず、ブラウザの
+user-scoped な値をキャッシュしたいときの手段は `use cache: private`（サーバーへ保存されず、ブラウザーの
 メモリにのみ載る）に限ります。**これは明示的な例外能力であって一般許可ではありません。**
 
 ## リクエストをまたいで残すのは `use cache` の側
@@ -213,25 +213,25 @@ cookie がまだ無い session 確立の 1 往復だけは `bearerToken` とい�
 
 ## バックエンドが発行した識別子を cookie に預かる
 
-認証とは別に、バックエンドが発行した識別子（未認証でも持てるもの）をブラウザへ預けるエンドポイントを置くときの形です。
+認証とは別に、バックエンドが発行した識別子（未認証でも持てるもの）をブラウザーへ預けるエンドポイントを置くときの形です。
 
 - **属性は [`server/auth/session-cookie.ts`](server/auth/session-cookie.ts) の `baseCookieOptions()` を
   借ります。** 用途を接頭辞に含める規則と属性のデフォルトは [docs/rules.ja.md](../../docs/rules.ja.md#data-classification)
 が持ち、エンドポイントごとに書くのは固有の判断だけです。認証の cookie と別に置くのは、寿命も主体も session と
   一致しないためです。
-- **寿命は発行元の期限に合わせます。** 期限が判らなければブラウザを閉じるまでとし、こちらで年数を決めません。
+- **寿命は発行元の期限に合わせます。** 期限が判らなければブラウザーを閉じるまでとし、こちらで年数を決めません。
   先に消えた対象を指す cookie は、何も指さない値になります。
 - **空の値は持っていないものとして扱います。** cookie は残っているが中身が空という状態は起こりえて、そのまま
   送るとバックエンドが形の違反として拒みます。
 - **発行された値を受け取れるのは、それを作る操作の応答だけです。** 載っていない応答で手元の cookie を消さない
   のは、既に持っている識別子が生きているためです。
-- **ログアウトの teardown で破棄します。** 次に画面を開いた利用者へ、前の利用者のものが見えないようにします。
-- **ブラウザから読める形には置きません。** その値だけが到達手段である以上、露出はそのまま他人のものへの
+- **ログアウトの teardown で破棄します。** 次に画面を開いたユーザーへ、前のユーザーのものが見えないようにします。
+- **ブラウザーから読める形には置きません。** その値だけが到達手段である以上、露出はそのまま他人のものへの
   到達経路になります。
 
 ## URL の予算
 
-**条件を URL へ載せる要求には、1 本ぶんの予算があります。** 経路の中継——ブラウザ / CDN /
+**条件を URL へ載せる要求には、1 本ぶんの予算があります。** 経路の中継——ブラウザー / CDN /
 リバースプロキシ / backend——はどれも要求行の長さに上限を持ち、超えた要求は backend へ届く前に
 弾かれます。契約が各条件に宣言した上限は、この 1 つの予算を食い合います。
 
@@ -272,7 +272,7 @@ cookie がまだ無い session 確立の 1 往復だけは `bearerToken` とい�
 原理的に分からず、置けば画面の数だけ当て推量の定数が増えます。超過は `uri-too-long` として落ち、
 画面には `errors` の分類 1 つとして現れます（[0080](../../docs/adr/0080-error-handling.ja.md)）。
 
-## ブラウザ発の取得エンドポイント
+## ブラウザー発の取得エンドポイント
 
 `client/api/<資源>.ts` が持つのは、同一オリジンの BFF（`app/api/**`）を
 [`client/http/request.ts`](client/http/request.ts) の `request()` で叩くエンドポイントと、購読が運ぶ本文の形だけです
@@ -286,7 +286,7 @@ cookie がまだ無い session 確立の 1 往復だけは `bearerToken` とい�
   文字列へ落ちた日時は `z.coerce.date()` でこちらが戻します。
 - **`client/` は `zod/mini` を使います。** `request()` が受けるのは `zod/v4/core` の `$ZodType` なので、
   流儀は問いません —— 共有レイヤーが片方の流儀を要求すると、呼び出し側の移行がその 1 箇所のために止まります。
-- **本文を載せるエンドポイントを持ちません。** ブラウザから状態を作る操作は Server Action が持ちます。ここを通るのは
+- **本文を載せるエンドポイントを持ちません。** ブラウザーから状態を作る操作は Server Action が持ちます。ここを通るのは
   取得と、発券のように引数を持たない `POST` だけです。
 - **timeout・再試行・遮断を持ちません。** それは `adapters/server` が BFF の向こうで持っており、ここにも
   持つと同じ要求に 2 つの再試行が別々の勘定で走ります。
@@ -298,21 +298,21 @@ cookie がまだ無い session 確立の 1 往復だけは `bearerToken` とい�
   判らないままにします。
 - **client が読むだけの定数は、検証スキーマを持つ module と分けて置きます**
   （[docs/rules.ja.md](../../docs/rules.ja.md#url)）。`const` を 1 つ読む import が、zod のスキーマ一式を
-  ブラウザのバンドルへ載せます。
+  ブラウザーのバンドルへ載せます。
 
-## ブラウザ発のテレメトリの中継
+## ブラウザー発のテレメトリの中継
 
-**ブラウザから collector を直接叩かせません**（[0081](../../docs/adr/0081-observability-logging.ja.md)）。
-endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF が受けて OTLP へ載せます。この経路は
+**ブラウザーから collector を直接叩かせません**（[0081](../../docs/adr/0081-observability-logging.ja.md)）。
+endpoint も資格情報もブラウザーへ出さず、同一オリジンの BFF が受けて OTLP へ載せます。この経路は
 3 つに分かれ、境界ごとに持ち物が違います。
 
 | 置き場 | 持つもの |
 | --- | --- |
 | `http/telemetry-report.ts` | 送る側と受ける側が共有する報告の形。型と、送る前に切り詰める長さだけ |
 | `client/telemetry/report-telemetry.ts` | 測定と例外を報告へ組み、`sendBeacon` で送る |
-| `client/telemetry/browser-tracer.ts` | ブラウザ側の計装。動的な import でだけ読まれる |
+| `client/telemetry/browser-tracer.ts` | ブラウザー側の計装。動的な import でだけ読まれる |
 | `server/telemetry/browser-telemetry.ts` | 報告を検証し、signal へ載せる |
-| `server/telemetry/browser-traces.ts` | ブラウザが作った span を collector へ渡す |
+| `server/telemetry/browser-traces.ts` | ブラウザーが作った span を collector へ渡す |
 
 **検証は受け側にしかありません。** 送る側にも同じ長さの宣言がありますが、それは通信量を抑える
 ためのもので、送信者は差し替えられます。認証を要求しないエンドポイントなので、受け側が自分で確かめます
@@ -325,12 +325,12 @@ endpoint も資格情報もブラウザへ出さず、同一オリジンの BFF 
 要素を分けているのは実行文脈ではなく区画で、`server/` も `client/` も同じ `adapters` の要素に居ます
 （下記「このレイヤーの要素」）。効いているのは **`observability` の側が module ごとに `server-only` を
 名乗っていること**で、client から引いた時点でビルドが落ちます。**名乗っていないのは
-`render-span.ts` の 1 本だけ**で、それは feature が import する面なので意図的にブラウザのバンドルへ入ります
+`render-span.ts` の 1 本だけ**で、それは feature が import する面なので意図的にブラウザーのバンドルへ入ります
 （[observability/README.md](../observability/README.ja.md)）—— **そこはレイヤー検査も `server-only` も止めません。**
 同じ形は `config` にもあります —— ADR 0021 は server config を `adapters/server` だけに許しますが、
 機械強制はレイヤーの粒度で当たります。
 
-**ブラウザ側の計装は動的な import でだけ読みます。** 要求境界（`client/http/request.ts`）は画面を
+**ブラウザー側の計装は動的な import でだけ読みます。** 要求境界（`client/http/request.ts`）は画面を
 開いた時点で読まれるので、そこから OTel へ辺を張ると計装の重さが初期の読み込みに乗ります。要求を
 span にするのは `fetch` を包む計装のほうで、要求境界のコードは計装を知りません。
 
@@ -356,13 +356,13 @@ event の採番も、誰に何を配るかも持ちません。
 **本文の形は資源ごとの module が宣言します**（`client/api/<資源>.ts`）。エンベロープは feature に依らず
 同じで、中身は event の種別ごとに違うためです。契約に無い種別はその検証で落ち、上へ流れません。
 
-**ブラウザは backend の stream へ直接繋ぎます。** `EventSource` は任意のヘッダを載せられないため、
+**ブラウザーは backend の stream へ直接繋ぎます。** `EventSource` は任意のヘッダーを載せられないため、
 資格情報は同一オリジンの中継（`app/api/**/stream-ticket`）が発券した短命の ticket を query に載せた
-**繋ぎ先の URL** として届きます。ticket を値として渡さないのは、ブラウザ側で組み立てと取り回しが
+**繋ぎ先の URL** として届きます。ticket を値として渡さないのは、ブラウザー側で組み立てと取り回しが
 増えるほど、文言やログへコピーする経路が増えるためです。
 
 **契約駆動モックが表せない往復は、発券のエンドポイントで断ります**（[mocks/README.md](../../mocks/README.ja.md#購読sseは差し替えません)
-「購読（SSE）は差し替えません」）。発券だけが成功すると、ブラウザは実在しない接続先へ張り直しを繰り返し
+「購読（SSE）は差し替えません」）。発券だけが成功すると、ブラウザーは実在しない接続先へ張り直しを繰り返し
 ます。`getApiConfig().mode === "mock"` のとき発券のエンドポイントが `not-found` を投げ、購読する対象が無いのと同じ姿で
 画面を止めます。
 
@@ -445,9 +445,9 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
   `serveWrite` が応答を割り当て、`watchFetch` が wrapper へ渡った `fetch` の引数を見ます。資格情報は
   `../auth/session` を、設定は `@/config/environment` を `PARSED_ENVIRONMENT` で、モジュール境界で
   差し替えます。client 側のエンドポイントは `vi.stubGlobal("fetch", ...)` で済みます
-- **`<口>.contract.test.ts` は応答を割り当てず、契約から生成したハンドラそのものを相手にします**
+- **`<口>.contract.test.ts` は応答を割り当てず、契約から生成したハンドラーそのものを相手にします**
   （[`scripts/lib/untested-modules.ts`](../../scripts/lib/untested-modules.ts)）。マッパーが公開する項目は
-  `Object.keys(...).sort()` を並びごと照合します —— 生成ハンドラは契約の全項目を返すため、数項目だけを見ると
+  `Object.keys(...).sort()` を並びごと照合します —— 生成ハンドラーは契約の全項目を返すため、数項目だけを見ると
   マッピング漏れも wire の項目の漏れ出しも通ります。マッパーの分岐そのものを見るケースだけ応答を割り当てます。
   抽選結果に頼ると、モックの値域を変えるたびに seed の消費列がずれて落ちます
 
@@ -459,16 +459,16 @@ taintUniqueValue("署名鍵は server 専用です", config, config.sessionSecre
 | 観点 | 判定の形 | 根拠 |
 | --- | --- | --- |
 | `forbidden: components` — UI コンポーネントを import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス。機械: ESLint boundaries |
-| `forbidden: capabilities` — `capabilities` を import しない。storage / clipboard / cookie の読みといった local ブラウザ API もここに置かない | import は violation（機械が落とす）。`localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照も violation | [0024](../../docs/adr/0024-adapters-server-client-split.ja.md) 禁止事項。機械: ESLint boundaries（import のみ） |
+| `forbidden: capabilities` — `capabilities` を import しない。storage / clipboard / cookie の読みといった local ブラウザー API もここに置かない | import は violation（機械が落とす）。`localStorage` / `sessionStorage` / `navigator.clipboard` / `document.cookie` の参照も violation | [0024](../../docs/adr/0024-adapters-server-client-split.ja.md) 禁止事項。機械: ESLint boundaries（import のみ） |
 | `forbidden: stores` — `stores` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス。機械: ESLint boundaries |
 | `forbidden: business-logic` — 持つのは接続と、外部の形から表示の型への変換だけ。契約が返さない値を計算しない | violation。変換か業務の判定かが読み分けられないときは suggestion | [0070](../../docs/adr/0070-backend-role-separation.ja.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.ja.md) の、各カーネルへ割り当てる責務 |
-| `client/` は server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数は読んでよい | violation | [0024](../../docs/adr/0024-adapters-server-client-split.ja.md) 禁止事項 / この README「ブラウザ発のテレメトリの中継」。機械はレイヤーの粒度でしか見ず、`server/` と `client/` を区別しない |
+| `client/` は server config（`*.server.ts`）を import せず、secret を持たない。`NEXT_PUBLIC_` の公開定数は読んでよい | violation | [0024](../../docs/adr/0024-adapters-server-client-split.ja.md) 禁止事項 / この README「ブラウザー発のテレメトリの中継」。機械はレイヤーの粒度でしか見ず、`server/` と `client/` を区別しない |
 | `server/` に client hook や `"use client"` を置かない。逆に `client/` に `server-only` の module を置かない | violation | [0024](../../docs/adr/0024-adapters-server-client-split.ja.md) 禁止事項 |
 | 公開面が返す型は表示の型で、`gen/` の生成型を素通しにしない | 公開面の宣言が生成型を名指していれば violation。推論を経て生成型が出ていくなら suggestion | [0070](../../docs/adr/0070-backend-role-separation.ja.md) 禁止事項 / この README「運用」。機械は `gen/` の直接の import までを落とす |
-| `observability` を import するのは中継の受け側（`server/telemetry/`）だけ | violation | この README「ブラウザ発のテレメトリの中継」。機械はレイヤーの粒度でしか見ない |
+| `observability` を import するのは中継の受け側（`server/telemetry/`）だけ | violation | この README「ブラウザー発のテレメトリの中継」。機械はレイヤーの粒度でしか見ない |
 | client へ渡してはいけない値は取得エンドポイントで汚し、呼び出し側では汚さない。`react` の taint API は `server/taint/taint.ts` を通して呼ぶ | `taint.ts` の外で `react` の taint API を直に呼んでいれば violation。PII を含む取得エンドポイントが汚していなければ suggestion（何が PII かは 0112 が持つ） | この README「client へ渡してはいけないものを登録する」/ [0112](../../docs/adr/0112-data-classification-cache-boundary.ja.md) |
 | 契約由来の上限・enum・書式は `gen/` から再輸出し、数や綴りを書き写さない | 生成物に同じ宣言がある数リテラルや文字列の表を別に宣言していれば violation。`satisfies` で生成型へ照らした表は通す | [0072](../../docs/adr/0072-api-type-generation.ja.md) / [docs/rules.ja.md](../../docs/rules.ja.md#url) / この README「取得エンドポイントの形」 |
-| 自然キーを持たない作成のエンドポイントは冪等キーを受け取り、`idempotent: true` はキーと同時にだけ立てる | `idempotent: true` の要求に `Idempotency-Key` ヘッダが無ければ violation。キーを受け取らない作成のエンドポイントは suggestion（自然キーの有無は契約が持つ） | [0071](../../docs/adr/0071-bff-api-integration.ja.md) 禁止事項 / この README「書き込みのエンドポイント」 |
+| 自然キーを持たない作成のエンドポイントは冪等キーを受け取り、`idempotent: true` はキーと同時にだけ立てる | `idempotent: true` の要求に `Idempotency-Key` ヘッダーが無ければ violation。キーを受け取らない作成のエンドポイントは suggestion（自然キーの有無は契約が持つ） | [0071](../../docs/adr/0071-bff-api-integration.ja.md) 禁止事項 / この README「書き込みのエンドポイント」 |
 
 ## 関連する ADR
 
@@ -492,7 +492,7 @@ ADR は番号もセクションも動くので、動いたことに気づける�
 - [0075](../../docs/adr/0075-file-upload-seam.ja.md) — ファイルアップロードの seam（署名付き直接 PUT と多重部の例外）
 - [0079](../../docs/adr/0079-auth-frontend-seam.ja.md) — 資格情報を組む境界と、主体を名乗る要求の扱い
 - [0080](../../docs/adr/0080-error-handling.ja.md) — バックエンド由来の失敗を分類へ正規化すること
-- [0081](../../docs/adr/0081-observability-logging.ja.md) — ブラウザから collector を直接叩かせず、BFF が中継すること
+- [0081](../../docs/adr/0081-observability-logging.ja.md) — ブラウザーから collector を直接叩かせず、BFF が中継すること
 - [0082](../../docs/adr/0082-client-observability.ja.md) — Web Vitals と client 例外の収集、送信面の置き場
 - [0112](../../docs/adr/0112-data-classification-cache-boundary.ja.md) — 取得エンドポイントが分類を宣言し、キャッシュと資格情報の口を型で塞ぐこと
 - [0030](../../docs/adr/0030-environment-variable-management.ja.md) — secret の扱いと、client へ渡せないものを登録する口

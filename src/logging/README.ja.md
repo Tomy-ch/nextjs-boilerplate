@@ -4,7 +4,7 @@
 
 # logging
 
-構造化ログを提供するカーネルです。設定値と observability は import せず、起動境界から注入されます。この README はカーネルの窓口で、書く側の契約と、実装を消しても残す形を持つ。起動境界の結線順、ブラウザからサーバ、collector までの 1 本の線、registered symbol で注入を渡す機序は [観測](../../docs/design/observability.ja.md) が持つ。
+構造化ログを提供するカーネルです。設定値と observability は import せず、起動境界から注入されます。この README はカーネルの窓口で、書く側の契約と、実装を消しても残す形を持つ。起動境界の結線順、ブラウザーからサーバー、collector までの 1 本の線、registered symbol で注入を渡す機序は [観測](../../docs/design/observability.ja.md) が持つ。
 
 ## 受け入れるもの
 
@@ -16,7 +16,7 @@
 
 ## 構成
 
-- `logger.ts` はアプリケーションが依存する `Logger`、追加フィールド、trace 抽出器、出力 sink の契約だけを定義する。**`server-only` を名乗らない** —— 契約と名前の表だけを持ち、Pino の型を出さないので、ブラウザ側のバンドルに入ってよい。
+- `logger.ts` はアプリケーションが依存する `Logger`、追加フィールド、trace 抽出器、出力 sink の契約だけを定義する。**`server-only` を名乗らない** —— 契約と名前の表だけを持ち、Pino の型を出さないので、ブラウザー側のバンドルに入ってよい。
 - `logger.ts` は伏せる項目の名前（`authorization` / `cookie` / `password` / `token`）も持つ。**ログと span の双方がこの 1 つの表を見る** —— [0081](../../docs/adr/0081-observability-logging.ja.md) が両方へ同じ redaction を求めており、表が 2 つに割れると片方だけが緩む。span 側で掛けるのは `adapters/server/telemetry` の中継である。
 - `pino.server.ts` は Pino による JSON stdout 出力を実装する。上の表に当たるフィールドを、大文字小文字を区別せず `[REDACTED]` に置換する。Pino を知るのはこのファイルだけである。
 - `logging.server.ts` は起動境界から注入された設定で、プロセス内 singleton を一度だけ初期化する。アプリケーションの server 側コードは `getLogger()` を使い、Pino を直接 import しない。記録の失敗を呼び出し元へ持ち出さない `reportQuietly()` もここが持つ（下記「書く側の形」）。
@@ -44,7 +44,7 @@
 
 ## 書く側の形
 
-**記録の失敗で、記録の対象になった処理まで失敗させない。** `getLogger()` は起動境界を通っていない実行（テスト、`instrumentation.ts` を経ない script）では投げる。記録は後から辿るための手段であって利用者へ見せる結果ではないので、**成否が利用者へ見える処理（画面のレンダリング、Server Action、Route Handler、adapter の取得）の中の記録は `reportQuietly()` で包む**。
+**記録の失敗で、記録の対象になった処理まで失敗させない。** `getLogger()` は起動境界を通っていない実行（テスト、`instrumentation.ts` を経ない script）では投げる。記録は後から辿るための手段であってユーザーへ見せる結果ではないので、**成否がユーザーへ見える処理（画面のレンダリング、Server Action、Route Handler、adapter の取得）の中の記録は `reportQuietly()` で包む**。
 
 縮退して続ける取得はこの形になる。
 
@@ -90,11 +90,11 @@ try {
 | `forbidden: direct-config-access` — `config` を import せず、`process.env` を読まない。設定は起動境界から注入で受ける | violation | [0081](../../docs/adr/0081-observability-logging.ja.md) の禁止事項。機械: ESLint boundaries と `architecture.ts` の `NODE_RUNTIME_ACCESS` |
 | アプリケーションの server 側コードは `getLogger()` を使い、Pino を直に import しない | `pino.server.ts` の外で `pino` を import していれば violation | この README「構成」 |
 | 伏せる項目の名前の表は `logger.ts` の 1 つだけで、ログと span の双方がそれを見る | 別の場所に伏せる名前の表を持っていれば violation | この README「構成」/ [0081](../../docs/adr/0081-observability-logging.ja.md) |
-| 成否が利用者へ見える処理の中の記録は `reportQuietly()` で包む | suggestion（処理の成否が利用者へ見えるかは呼び出しの形から決まらない） | この README「書く側の形」/ [観測](../../docs/design/observability.ja.md#getlogger-は初期化前に投げる)「`getLogger()` は初期化前に投げる」 |
+| 成否がユーザーへ見える処理の中の記録は `reportQuietly()` で包む | suggestion（処理の成否がユーザーへ見えるかは呼び出しの形から決まらない） | この README「書く側の形」/ [観測](../../docs/design/observability.ja.md#getlogger-は初期化前に投げる)「`getLogger()` は初期化前に投げる」 |
 | 起動境界からの注入をモジュール変数に置かない | suggestion（代入元の経路は宣言の形から決まらない） | [0081](../../docs/adr/0081-observability-logging.ja.md) の禁止事項 |
 
 ## 関連する ADR
 
 - [0021](../../docs/adr/0021-frontend-responsibility.ja.md) — config を import せず起動境界から注入を受けるレイヤーの線
 - [0080](../../docs/adr/0080-error-handling.ja.md) — エラーログのレベル（5xx = error / 4xx = warn）と、境界で 1 回だけ記録すること
-- [0081](../../docs/adr/0081-observability-logging.ja.md) — 構造化ログ・redaction・OTLP へ寄せるベンダ中立の方針
+- [0081](../../docs/adr/0081-observability-logging.ja.md) — 構造化ログ・redaction・OTLP へ寄せるベンダー中立の方針

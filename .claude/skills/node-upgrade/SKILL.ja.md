@@ -48,7 +48,7 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 許可:
 
 - `mise.toml` — `[tools]` 下 `node` エントリ(SSOT 編集。`mise.toml` は本来保護対象のルート設定なので、起動時に
-  ユーザが認識できるよう本スキルが明示宣言する)。
+  ユーザーが認識できるよう本スキルが明示宣言する)。
 - `pnpm-lock.yaml` — ランタイム変更で解決が変わる場合に `pnpm install` が再生成。
 
 本スキル実行中も保護されたまま: `AGENTS.md` / `CLAUDE.md`、Accepted な ADR 本文、`LICENSE`、`package.json` 等の
@@ -62,9 +62,9 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 - 削除/非推奨 API・フラグ(特に Next.js 16 / ツールチェーンが依存するもの)。
 - V8 バージョンと挙動変化。
 - エコシステムの最小バージョン要件(Next.js 16 / React 19 は `<TARGET_VERSION>` をサポートするか)。
-- `<TARGET_VERSION>` が LTS か Current か(boilerplate は Active LTS 推奨。ユーザが Current を望む場合を除く)。
+- `<TARGET_VERSION>` が LTS か Current か(boilerplate は Active LTS 推奨。ユーザーが Current を望む場合を除く)。
 
-メジャー更新なら、進める前に主要な破壊的変更をユーザに提示する。
+メジャー更新なら、進める前に主要な破壊的変更をユーザーに提示する。
 
 ## Step 2. `mise.toml` 更新
 
@@ -77,16 +77,16 @@ AGENTS.md「例外: スキル実行」により、通常の AI 変更スコー�
 `mise.toml` が単一の正。本リポジトリで Node の版を持つファイルは他に無く(Dockerfile も無い ──
 [0011](../../../docs/adr/0011-no-docker.ja.md))、伝播ステップは存在しない。
 
-## Step 3. ローカル Node 環境の更新(ユーザ作業)
+## Step 3. ローカル Node 環境の更新(ユーザー作業)
 
-**ユーザ**に `make install-tools`(`mise install` を実行し `[tools] node` を読む)を実行してもらい、バージョンを確認:
+**ユーザー**に `make install-tools`(`mise install` を実行し `[tools] node` を読む)を実行してもらい、バージョンを確認:
 
 ```sh
 make install-tools
 node --version        # v<TARGET_VERSION> であること
 ```
 
-AI エージェントは `mise install` を自分で実行しない(マシンのツールチェーンを変更するため)── ユーザ作業。
+AI エージェントは `mise install` を自分で実行しない(マシンのツールチェーンを変更するため)── ユーザー作業。
 
 ## Step 4. ロックファイル/依存の再構築
 
@@ -108,7 +108,7 @@ pnpm build            # next build ── 新ランタイムで成功必須
 ```
 
 ランタイム変更が実際に現れるのはテスト suite である。Node のメジャーは `Intl` の出力・タイマー分解能・
-`structuredClone` の意味論を動かしうるが、build が通ることはそのどれについても何も言わない。任意で dev サーバ
+`structuredClone` の意味論を動かしうるが、build が通ることはそのどれについても何も言わない。任意で dev サーバー
 (`pnpm dev` → 停止)をスモークし、ランタイムでアプリが起動するか確認。
 
 ## Step 6. フォローアップの明示(ここでは束ねない)
@@ -121,17 +121,17 @@ pnpm build            # next build ── 新ランタイムで成功必須
 
 ## チェックリスト
 
-- [ ] `<TARGET_VERSION>` を `AskUserQuestion` でユーザ確認
+- [ ] `<TARGET_VERSION>` を `AskUserQuestion` でユーザー確認
 - [ ] リリースノート/破壊的変更を確認、Next.js 16 / React 19 互換を確認
 - [ ] `mise.toml [tools] node` を `<TARGET_VERSION>` に更新
-- [ ] `make install-tools`(ユーザ作業)で更新、`node --version` 一致
+- [ ] `make install-tools`(ユーザー作業)で更新、`node --version` 一致
 - [ ] `pnpm install` 実行、`pnpm-lock.yaml` diff 確認
 - [ ] `pnpm lint` + `make test-full` + `make scripts-test` + `pnpm build` が新ランタイムでグリーン
 - [ ] `@types/node` メジャー整合は別 PR として記録(ここでは行わない)
 
 ## 注意
 
-- `mise install` を自分で実行しない ── ユーザ作業(Step 3)。
+- `mise install` を自分で実行しない ── ユーザー作業(Step 3)。
 - ここで `package.json` を編集しない(Step 6)。
 - 作業ブランチでコミット。保護ブランチへの直接コミット禁止(AGENTS.md)。
 - push は明示指示があるときのみ。

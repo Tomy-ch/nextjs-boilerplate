@@ -12,13 +12,13 @@
 
 ## Step 0. 自動フォーマット
 
-冒頭で `pnpm fix` を 1 回実行し、フォーマット由来の差分を吸収する（biome format + 自動修正可能な lint ルール。フォーマッタは biome 単独、[0002](../../../docs/adr/0002-formatter-linter.ja.md)）。これにより後続の差分検査からノイズの主要因が消え、Step 6 の検証が純粋なフォーマットで落ちる可能性も下がる。
+冒頭で `pnpm fix` を 1 回実行し、フォーマット由来の差分を吸収する（biome format + 自動修正可能な lint ルール。フォーマッターは biome 単独、[0002](../../../docs/adr/0002-formatter-linter.ja.md)）。これにより後続の差分検査からノイズの主要因が消え、Step 6 の検証が純粋なフォーマットで落ちる可能性も下がる。
 
 ```sh
 pnpm fix
 ```
 
-`pnpm fix` 自体が失敗した場合は中断してユーザへ報告する。続行しない。生じた変更は作業ツリーへ畳み込まれ、Step 2 で検査する候補変更集合の一部になる。
+`pnpm fix` 自体が失敗した場合は中断してユーザーへ報告する。続行しない。生じた変更は作業ツリーへ畳み込まれ、Step 2 で検査する候補変更集合の一部になる。
 
 ## Step 1. 事前チェック
 
@@ -39,7 +39,7 @@ git rev-parse --verify REBASE_HEAD 2>/dev/null       # rebase 進行中の検出
 
 以下のいずれかに該当する場合は中断する（コミットしない）:
 
-- 現在のブランチが `^(production|develop|staging|release/.+|hotfix/.+)$` に一致する。`AGENTS.md` の git 規約（[0150](../../../docs/adr/0150-git-workflow.ja.md)）により、保護ブランチへは決してコミットしない。ユーザへ知らせ、先に feature ブランチ（例: `feature/<issue-or-topic>`）を作るよう依頼する。
+- 現在のブランチが `^(production|develop|staging|release/.+|hotfix/.+)$` に一致する。`AGENTS.md` の git 規約（[0150](../../../docs/adr/0150-git-workflow.ja.md)）により、保護ブランチへは決してコミットしない。ユーザーへ知らせ、先に feature ブランチ（例: `feature/<issue-or-topic>`）を作るよう依頼する。
 - staged / unstaged の porcelain 出力がどちらも空。コミットするものが無い旨を伝えて停止する。
 - `MERGE_HEAD` / `CHERRY_PICK_HEAD` / `REBASE_HEAD` のいずれかが設定されている。リポジトリが操作の途中なので、先にそれを解決するよう依頼する。
 
@@ -70,10 +70,10 @@ gh pr view --json number,state,mergedAt,baseRefName,headRefName,url 2>/dev/null
       ```
 
       ここでの base は**現行の**リリースラインであり、`make base-branch` が `origin` の実状態から解決する。マージ済み PR の `baseRefName` は使わない。あれは古い作業がマージされた先を記録しているだけで、その後に新しいリリースラインが開いていることは十分あり、そこから切ると新しい作業が 1 世代遅れて始まる。`gh repo view --json defaultBranchRef` が答えにならないのも同じ理由で、GitHub のデフォルトブランチも現行のラインより遅れうる。`git switch -c … origin/release/*` は新ブランチの upstream を**保護された** base に設定するため、最終的な push は明示 refspec（`git push -u origin <new-branch>`）を使い、素の `git push`（保護 base を対象にしてしまう）は決して使わないこと。未コミットの作業ツリー変更は新ブランチへ持ち越される。以降は新ブランチ上で通常フロー（Step 2 以降）を続ける。**例外:** `--dry-run` のときはブランチを切り替えない — 警告と推奨コマンドを提示するだけにし、dry-run の提案を続ける。
-    - 「このブランチのまま続ける」 — マージ済みブランチ上でのコミットをユーザが受け入れた場合。現在のブランチで続行する。
-- **`state` が `CLOSED`**（マージされずクローズ）→ 中断はしないが、その旨を一度ユーザへ伝えて続行する。
+    - 「このブランチのまま続ける」 — マージ済みブランチ上でのコミットをユーザーが受け入れた場合。現在のブランチで続行する。
+- **`state` が `CLOSED`**（マージされずクローズ）→ 中断はしないが、その旨を一度ユーザーへ伝えて続行する。
 
-`.lefthook.yaml`（あれば）を読み、`pre-commit:` のコマンド項目一覧を抽出する。この一覧は 2 か所で使う — (a) Step 4 で表示し、分割中に何がスキップされるかをユーザへ知らせる、(b) Step 6 でコミット後の検証ゲートとして直接実行する。`.lefthook.yaml` が無い場合はその旨を記録して続行する（Step 6 は `pnpm fix` のみのフォールバックになる）。
+`.lefthook.yaml`（あれば）を読み、`pre-commit:` のコマンド項目一覧を抽出する。この一覧は 2 か所で使う — (a) Step 4 で表示し、分割中に何がスキップされるかをユーザーへ知らせる、(b) Step 6 でコミット後の検証ゲートとして直接実行する。`.lefthook.yaml` が無い場合はその旨を記録して続行する（Step 6 は `pnpm fix` のみのフォールバックになる）。
 
 `$ARGUMENTS` の解釈:
 
@@ -110,13 +110,13 @@ git diff --name-only
 | --- | --- | --- |
 | `Feat:` | 新機能・新画面・新エンドポイント | `src/app/` 配下の新規 route segment、新規 Route Handler、新規コンポーネント / hook |
 | `Fix:` | バグ修正（意図から外れた挙動の是正） | エラーハンドリング修正、ロジック修正、a11y 欠陥の修正 |
-| `Refactor:` | 外部挙動を変えない内部整理 | 関数分割、リネーム、責務移動、レイヤ再編 |
+| `Refactor:` | 外部挙動を変えない内部整理 | 関数分割、リネーム、責務移動、レイヤー再編 |
 | `Perf:` | パフォーマンス改善 | 再レンダリング削減、バンドルサイズ削減、不要な client 境界の除去 |
 | `Docs:` | ドキュメント変更 | `README*`、`docs/`、`*.ja.md`、コードコメント、リリースノート |
-| `Test:` | テストの追加・修正 | `*.test.ts` / `*.test.tsx`、テストフィクスチャ、テストヘルパ |
+| `Test:` | テストの追加・修正 | `*.test.ts` / `*.test.tsx`、テストフィクスチャ、テストヘルパー |
 | `Build:` | ビルド・依存・ツールチェーン | `package.json` / `pnpm-lock.yaml`、`mise.toml`、`next.config.ts`、`tsconfig.json`、`Makefile`、`.makefiles/**` |
 | `CI:` | CI/CD 設定 | `.github/workflows/**`、`.lefthook.yaml`、GitHub Actions 関連 |
-| `Chore:` | その他の雑務 | `.gitignore`、エディタ設定、`.claude/**`、その他の小作業 |
+| `Chore:` | その他の雑務 | `.gitignore`、エディター設定、`.claude/**`、その他の小作業 |
 | `Style:` | ロジックに影響しないフォーマットのみの変更 | `pnpm fix` / `pnpm format`（biome）の出力 |
 | `Revert:` | 既存コミットの取り消し | `git revert` の出力、または同等の手動 revert |
 
@@ -136,7 +136,7 @@ git diff --name-only
 | `docs/**/*.md`、`README*.md`、`*.ja.md` | `Docs` |
 | `package.json`、`pnpm-lock.yaml`、`mise.toml`、`next.config.ts`、`tsconfig.json`、`biome.json`、`postcss.config.mjs`、`Makefile`、`.makefiles/**`、`scripts/**` | `Build` |
 | `.github/workflows/**`、`.lefthook.yaml` | `CI` |
-| `.gitignore`、`.claude/**`、`.markdownlint*`、エディタ設定 | `Chore` |
+| `.gitignore`、`.claude/**`、`.markdownlint*`、エディター設定 | `Chore` |
 
 ## Step 4. 分割の提案
 
@@ -153,7 +153,7 @@ git diff --name-only
 ### 粒度の指針
 
 - **1 つの意味的変更 = 1 コミット。** feature + refactor + fix を 1 コミットへ混ぜない。
-- **テストは対象の実装と同居してよい**（新規ハンドラとそのテストは一緒でよい）。既存コードへテストだけを追加する場合は、単独の `Test:` コミットにする。
+- **テストは対象の実装と同居してよい**（新規ハンドラーとそのテストは一緒でよい）。既存コードへテストだけを追加する場合は、単独の `Test:` コミットにする。
 - **生成物はソース変更と同居する。** Step 2 の rider ファイルは、それを生んだ変更と同じコミットに相乗りする。
 - **フォーマットのみの変更は単独の `Style:` コミット。** Step 0 の `pnpm fix` が生んだ出力は、明らかに同じ変更の一部なら該当グループへ畳み込んでよい。無関係なら別の `Style:` コミットとして出す。
 - **`Docs:` はデフォルトで単独。** 例外として、ドキュメントが新機能の一部である場合（新規パッケージに添える README 等）は同居してよい。
@@ -181,8 +181,8 @@ which is the authority on whether they pass:
 
 **呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md)）:
 
-- **事前回答される**: このグルーピング確認 —— 同じ run の先行する時点でユーザが逐語で承認したグルーピングによって。ただし、それが Step 2 で見つけたファイルをちょうど名指しているときに限る。漏れているファイルや、もう変更されていないファイルがあれば、承認されたのは別の差分である: 問う。
-- **常に問う**: マージ済み PR の確認（Step 1）とエラー復旧の問い（Step 5） —— どちらも、ユーザが答えた時点には存在しなかったランタイムの状態を読む。
+- **事前回答される**: このグルーピング確認 —— 同じ run の先行する時点でユーザーが逐語で承認したグルーピングによって。ただし、それが Step 2 で見つけたファイルをちょうど名指しているときに限る。漏れているファイルや、もう変更されていないファイルがあれば、承認されたのは別の差分である: 問う。
+- **常に問う**: マージ済み PR の確認（Step 1）とエラー復旧の問い（Step 5） —— どちらも、ユーザーが答えた時点には存在しなかったランタイムの状態を読む。
 
 `--dry-run` が指定されている場合は、提案を表示して停止する。staging もコミットもしない。
 
@@ -211,9 +211,9 @@ EOF
 - **タイトル**: `<Prefix>: <日本語タイトル>`。50 文字以内を目安にする。
 - **本文**: 任意。書く場合はタイトルの後に空行を 1 行入れ、72 文字程度で折り返す。「何を」より「なぜ」を優先する。**本文が残すのは変更の背景であって、この実行の足取りではない** ——「前は壊れていた」「〜を直した」は差分が既に持っており、同じ PR の中で作った状態を指すなら、ベースから見ればその事実は起きていない。変更後の現在形で書く（`docs/rules.md`「作業とエージェント」/ [0150](../../../docs/adr/0150-git-workflow.ja.md)）。
 - **言語**: 日本語（`AGENTS.md` の出力規約に従う）。
-- **`Co-Authored-By` フッタ**: 必須。形式は `Co-Authored-By: <実行中のモデル名> <noreply@anthropic.com>` — 例: `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。実際にコミットを生成しているモデルの識別子を、環境が示すとおりに使う。本ドキュメントにハードコードされたモデル名を写さないこと — モデルのリリースごとに古くなり、誤った名前はコミットの帰属を誤らせる。
+- **`Co-Authored-By` フッター**: 必須。形式は `Co-Authored-By: <実行中のモデル名> <noreply@anthropic.com>` — 例: `Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>`。実際にコミットを生成しているモデルの識別子を、環境が示すとおりに使う。本ドキュメントにハードコードされたモデル名を写さないこと — モデルのリリースごとに古くなり、誤った名前はコミットの帰属を誤らせる。
 - **`Refs:` footer（レビュー適用コミットのみ）**: `full-apply` / `impl-review` / `code-review` の指摘を適用したコミットには、`Refs: tmp/reviews/mod_*.md (<severity>)` の行を footer へ足し、コミットからfinding へ辿れるようにする。通常のコミットには付けない。
-- **HEREDOC**: 必須（タイトル + 空行 + 本文 + フッタの体裁を保つ）。
+- **HEREDOC**: 必須（タイトル + 空行 + 本文 + フッターの体裁を保つ）。
 - **`--no-verify`**: このコマンドが作る全コミットで必須 — 冒頭で述べたコマンド限定の例外であり、検証は Step 6 の 1 回のパスで行う。
 - **`-a` / `git add -A` / `git add .` は決して使わない。** 常にファイル名を指定して staging する（`.env` や資格情報の巻き込みを避ける）。
 - **`--no-gpg-sign` と `--amend` は引き続き禁止。**
@@ -223,7 +223,7 @@ EOF
 いずれかのグループで `git add` / `git commit` が失敗した場合（パスの打ち間違い、事前チェックをすり抜けた操作途中状態、GPG 署名失敗など）:
 
 1. 直ちに以降のコミットを止める。次のグループへ進まない。
-2. ユーザへ報告する:
+2. ユーザーへ報告する:
    - どのグループが失敗したか（`[k]` の番号と提案タイトル）
    - 失敗したコマンドの stderr
    - このセッションで既に作成したコミット: `git log --oneline <ORIGINAL_HEAD>..HEAD`
@@ -231,8 +231,8 @@ EOF
    - 質問: 「ここまでに作成したコミットをどうしますか？」
    - 選択肢:
      - 「ロールバックする (`git reset --mixed <ORIGINAL_HEAD>`)」 — HEAD を保存した `ORIGINAL_HEAD` へ巻き戻し、変更はすべて作業ツリーに残し、index をクリアする
-     - 「そのまま残して停止する」 — 部分的なコミットを残し、制御をユーザへ返す
-4. ユーザがロールバックを選んだら `git reset --mixed <ORIGINAL_HEAD>` を実行し、`git status` と `git log --oneline -n 3` で確認する。`--hard` は決して使わない。
+     - 「そのまま残して停止する」 — 部分的なコミットを残し、制御をユーザーへ返す
+4. ユーザーがロールバックを選んだら `git reset --mixed <ORIGINAL_HEAD>` を実行し、`git status` と `git log --oneline -n 3` で確認する。`--hard` は決して使わない。
 
 ## Step 6. 検証
 
@@ -282,7 +282,7 @@ EOF
 ## Step 7. push 方針と最終リマインド
 
 - **自動 push しない**（`AGENTS.md` の git 規約に従う）。
-- Step 6 が終わったらユーザへ報告する:
+- Step 6 が終わったらユーザーへ報告する:
 
   ```txt
   N 件のコミットを作成しました。
@@ -306,7 +306,7 @@ EOF
 - ❌ `--no-verify` 無しのコミット（lefthook が N 回走ってしまう）
 - ✅ 日本語のコミットメッセージ
 - ✅ メッセージは HEREDOC で渡す
-- ✅ `Co-Authored-By` フッタ
+- ✅ `Co-Authored-By` フッター
 - ✅ このコマンドが作る全コミットで `--no-verify`
 - ✅ 現在のグループのファイルのみを staging する
 - ✅ Step 0 で検査前に `pnpm fix` を 1 回実行する
@@ -327,15 +327,15 @@ EOF
 - [ ] Step 0 で `pnpm fix` が成功した
 - [ ] コミット前に `ORIGINAL_HEAD` を捕捉した
 - [ ] 保護ブランチ以外でコミットした
-- [ ] 現ブランチの PR がマージ済みかを確認し、該当する場合は新ブランチを推奨した（そしてユーザの選択に従った）
+- [ ] 現ブランチの PR がマージ済みかを確認し、該当する場合は新ブランチを推奨した（そしてユーザーの選択に従った）
 - [ ] リポジトリが merge / rebase / cherry-pick の途中でなかった
-- [ ] ユーザが分割提案を承認した（`--dry-run` の場合を除く）
-- [ ] lefthook のスキップ通知を、動的に読んだコマンド一覧つきでユーザへ表示した
+- [ ] ユーザーが分割提案を承認した（`--dry-run` の場合を除く）
+- [ ] lefthook のスキップ通知を、動的に読んだコマンド一覧つきでユーザーへ表示した
 - [ ] 各コミットの prefix が 1 つである
-- [ ] 各コミットメッセージが日本語で `Co-Authored-By` フッタを含む
+- [ ] 各コミットメッセージが日本語で `Co-Authored-By` フッターを含む
 - [ ] 各コミットが `--no-verify` を使い、HEREDOC で渡された
 - [ ] `git add` がファイルを明示している（`-A` / `.` を使っていない）
 - [ ] 生成物がソース変更と同居している
 - [ ] Step 6 がこの実行の書いたものだけを整形し、CI へ委ねたゲートを報告した
-- [ ] 検証結果（OK / FAIL / no changes）をユーザへ提示した
+- [ ] 検証結果（OK / FAIL / no changes）をユーザーへ提示した
 - [ ] 自動 push を行っていない

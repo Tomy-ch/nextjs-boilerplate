@@ -48,14 +48,14 @@ SaaS(LaunchDarkly / Statsig / Unleash / GrowthBook 等)を本リポジトリに�
 
 ### 3. RSC キャッシュとの相互作用(保守的立場)
 
-ユーザ / コホートで変わるフラグ評価結果を、キャッシュ / PPR の static 出力へ**誤って焼き込まない**。フラグで分岐する内容は **dynamic(uncached)扱い、またはコホートを cache key に含める**ことをデフォルトとする。Cache Components は有効([0041](0041-cache-components-decision.ja.md))であり、シェルとダイナミックホールの分かれ目はレイアウトシェルの形で決まるため、フラグで分岐する内容はダイナミックホールの内側で解く。**フラグ評価 × cache key の具体設計は用途依存**のため、本 ADR では上記の保守的デフォルトのみ定め、**具体は実装へ委ねる**。
+ユーザー / コホートで変わるフラグ評価結果を、キャッシュ / PPR の static 出力へ**誤って焼き込まない**。フラグで分岐する内容は **dynamic(uncached)扱い、またはコホートを cache key に含める**ことをデフォルトとする。Cache Components は有効([0041](0041-cache-components-decision.ja.md))であり、シェルとダイナミックホールの分かれ目はレイアウトシェルの形で決まるため、フラグで分岐する内容はダイナミックホールの内側で解く。**フラグ評価 × cache key の具体設計は用途依存**のため、本 ADR では上記の保守的デフォルトのみ定め、**具体は実装へ委ねる**。
 
 ## 禁止事項
 
 - ❌ flag / A-B / 段階的公開サービス本体を同梱すること(exclusion。[0031](0031-policy-state-supply.ja.md) の供給 seam に乗せる)（強制: 持たない —— 採らない決定。flag / A-B / 段階的公開の SaaS は依存の追加として `package.json` の diff に現れ、同梱していないこと自体が状態である）
 - ❌ **動的フラグ値を [0030](0030-environment-variable-management.ja.md) の env / 目的別 config 経由に載せること**(env は凍結。動的値は runtime config / source adapter へ逃がす)（強制: 散文 —— **寄せられない**。フラグが再デプロイなしで変えたい値かは運用の意図で決まり、コードの形からは決まらない）
 - ❌ フラグ評価ロジック / SaaS SDK をデフォルトで client bundle に載せること(評価デフォルト = server。flicker / CLS 回避・バンドル排除)（強制: 散文 —— **一部寄せられる**。SaaS SDK を client から引く形は `no-restricted-imports` で落とせるが規則は無い。評価の判定を client に書いたかは判定の意味で決まる）
-- ❌ ユーザ / コホート依存のフラグ評価結果をキャッシュ / PPR static 出力へ焼き込むこと(dynamic 扱い or cohort を cache key に含める)
+- ❌ ユーザー / コホート依存のフラグ評価結果をキャッシュ / PPR static 出力へ焼き込むこと(dynamic 扱い or cohort を cache key に含める)
 
 ## 補足
 

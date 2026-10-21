@@ -4,7 +4,7 @@
 
 # docker
 
-開発を補助するコンテナの定義と、そこで使う image の digest ロックファイルを置く。
+開発を補助するコンテナーの定義と、そこで使う image の digest ロックファイルを置く。
 
 **ここにあるものは配送物ではない。** アプリ本体は PaaS / 静的 CDN へそのまま載せる前提で、
 Docker で動かさない（[0011](../docs/adr/0011-no-docker.ja.md)）。無印の `docker-compose.yml` を
@@ -108,8 +108,8 @@ make images-pin-check     # 固定済みか検証する（書き換えなし。p
 - **出力の一意性をイメージが担保する service は `platform` まで固定する。** フォントの
   ラスタライズは CPU アーキテクチャでも変わるため、省くと Apple Silicon と CI が別の
   アーキテクチャを引き、生成物（ベースライン画像など）が両者で一致しない
-- **アプリはホストで起動し、コンテナから見に行く。** `node_modules` は入れた OS と CPU 向けに
-  解決されるため、コンテナ内で `next start` は起動できない。`extra_hosts` に
+- **アプリはホストで起動し、コンテナーから見に行く。** `node_modules` は入れた OS と CPU 向けに
+  解決されるため、コンテナー内で `next start` は起動できない。`extra_hosts` に
   `host.docker.internal:host-gateway` を書くのは、Docker Desktop はこの名前を自分で解決するが
   Linux では明示しないと引けないため
 - **リポジトリへ生成物を書く service は `user:` にホストの uid / gid を渡す**（`RUNNER_UID` /

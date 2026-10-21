@@ -166,7 +166,7 @@ API の側で解決できず 401 になります。管理側の画面を見る�
 
 **その送信は Server Action ではなく Route Handler へ出します。** Server Action の `redirect()` は
 Route Handler へ遷移できません —— client router が飲み込み、リクエストそのものが出ず、URL だけが
-書き換わります（実測）。素の form 送信ならブラウザが遷移します。実在の IdP でもログイン画面は
+書き換わります（実測）。素の form 送信ならブラウザーが遷移します。実在の IdP でもログイン画面は
 認可 endpoint へ送信し、そこが応答を持って戻すので、形としてもそちらが実物に近くなります。
 
 **認可 endpoint の判定は受信エンドポイントの隣が持ちます。** `route.ts` に許される import 先は
@@ -190,7 +190,7 @@ HTTP の形へ直す」だけにしています。**送信の本体の上限も�
 指す IdP と、いま叩いている API が期待する IdP がずれます。**どれが正かを知っているのは、その場で
 繋ぎ先を選んでいる人**なので、設定の値を初期値として出し、書き換えられるようにしています。
 
-**Access Token は画面に出しません。** ブラウザから観測できないことが session をこの形にしている理由
+**Access Token は画面に出しません。** ブラウザーから観測できないことが session をこの形にしている理由
 そのもので、確かめるために出すとその性質を自分で壊します。貼る欄はあっても、貼った値を読み返す欄は
 ありません。
 
@@ -203,4 +203,4 @@ HTTP の形へ直す」だけにしています。**送信の本体の上限も�
 - [0025](../../../docs/adr/0025-app-layer-elements.ja.md) — app レイヤーの構成要素。Route Handler は thin proxy に留め、判定は隣へ置く
 - [0029](../../../docs/adr/0029-type-design-discipline.ja.md) — 判別可能 union と境界での parse。送信された `FormData` の解き方
 - [0053](../../../docs/adr/0053-ui-component-interaction-seam.ja.md) — 操作の a11y シーム。入力の面が守るシーム
-- [0079](../../../docs/adr/0079-auth-frontend-seam.ja.md) — 認証の前面のシーム。ブラウザから session を観測できないという性質
+- [0079](../../../docs/adr/0079-auth-frontend-seam.ja.md) — 認証の前面のシーム。ブラウザーから session を観測できないという性質

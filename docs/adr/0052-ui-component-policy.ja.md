@@ -23,7 +23,7 @@ Accepted
 - **複雑入力(日付ピッカー等)= shadcn 系コンポーネント**(`react-day-picker` などを Radix/Tailwind でラップした shadcn レシピ)。`components` に配置する。デフォルトは控えめ(Medium)= 必要時に使う位置づけ
 - 本リポジトリの UI は、これら採用コンポーネントに加えて **Tailwind ユーティリティ**([0050](0050-styling-strategy.ja.md))と feature 内 UI([0021](0021-frontend-responsibility.ja.md))で構成する。**utility で足りる配置(stack / inline / grid)は component で包まない。** `<Stack gap={4}>` と `<div className="flex flex-col gap-4">` の間に抽象の利得は無く、包んでも Tailwind の表現力は増えない。増えるのは「utility と component のどちらで書くか」を利用側が毎回迷う面だけである。骨格を utility だけで組む合成例はカタログ([0054](0054-ui-catalog-storybook.ja.md))が示す
 - **variant 定義 = `class-variance-authority`(cva)**。shadcn/ui の公式コンポーネントが cva を使った状態で配布されるため採用する(採らなければ配布物を毎回書き換えることになる)。置き場・使い方の規約は [0050](0050-styling-strategy.ja.md) が持つ。**`tailwind-variants` は採らない** —— variant / slots / responsive / merge を束ねて責務を 1 語で言えず([0004](0004-library-management.ja.md) の一次判定)、cva と責務が重なる
-- **リッチテキスト(TipTap)を採用する**。エディタ本体と表示側 sanitizer の a11y 契約・seam は [0053](0053-ui-component-interaction-seam.ja.md) が所有し、本 ADR は `components` カーネルへの配置と exact-pin 要件のみを持つ
+- **リッチテキスト(TipTap)を採用する**。エディター本体と表示側 sanitizer の a11y 契約・seam は [0053](0053-ui-component-interaction-seam.ja.md) が所有し、本 ADR は `components` カーネルへの配置と exact-pin 要件のみを持つ
 - **本体スコープの線引き**: 本体が抱えるのは上記の汎用 UI 基盤 + リッチテキストまで。これを超える局所的な UI 要件(並べ替え等のライブラリを要する DnD = dnd-kit 等)は本体に同梱せず、[0053](0053-ui-component-interaction-seam.ja.md) が seam と a11y 契約を持つ。それらは **必要時に追加**する
 
 ### コンポーネントを得るために上流を増やさない
