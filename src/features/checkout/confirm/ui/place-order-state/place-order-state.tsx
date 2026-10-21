@@ -10,7 +10,8 @@ import {
 } from "react";
 
 import { idleActionState } from "@/model/action-state";
-import type { CouponId } from "@/model/coupon/coupon";
+import type { CartCoupon, CouponId } from "@/model/coupon/coupon";
+import { newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import { placeOrderAction } from "../../../actions";
 import { COUPON_ID_FIELD } from "../../../form-fields";
 import type { PlaceOrderFormState } from "../../../form-state";
@@ -26,6 +27,8 @@ export type PlaceOrderState = {
   /** この画面の確定 1 回ぶんを表す鍵。 */
   readonly idempotencyKey: string;
   /** 確定に載せるクーポン。使わなければ null。 */
+  readonly coupon: CartCoupon | null;
+  /** 確定に載せるクーポンの識別子。使わなければ null。 */
   readonly couponId: CouponId | null;
   /** 利用者がクーポンの欄で選んだもの。「使わない」は null、まだ選んでいなければ undefined。 */
   readonly couponSelection: CouponId | null | undefined;
@@ -41,8 +44,8 @@ const PlaceOrderStateContext = createContext<PlaceOrderState | null>(null);
 export type PlaceOrderStateProviderProps = {
   /** 画面を組み立てた地点が作った鍵。 */
   idempotencyKey: string;
-  /** いま選べるクーポン。読めなかったときも空として渡す。 */
-  couponIds: readonly CouponId[];
+  /** いまのカートに使えるクーポン。読めなかったときは null。 */
+  coupons: readonly CartCoupon[] | null;
   /** 内側に描く木。 */
   children: ReactNode;
 };
@@ -52,14 +55,15 @@ export type PlaceOrderStateProviderProps = {
  *
  * @remarks
  * **同じ集計を 2 か所に描くため**です（脇に貼り付く姿と、下端に固定する帯）。器の出し分けは CSS で
- * 行うので **DOM には両方が residing しています**。それぞれが自分の送信状態を持つと、狭い幅で送って
+ * 行うので **DOM には両方が居ます**。それぞれが自分の送信状態を持つと、狭い幅で送って
  * 待っている最中に `lg` の境界を跨いだとき、表に出る側は何も送っていない姿になり、**送信中の表示も
  * 失敗の文言も消えます**。
  *
  * 待っているかを `useFormStatus` ではなく `useActionState` から採るのはこのためです。`useFormStatus`
  * は自分が属する `form` しか見ないので、共有できるのは送信の状態そのものを持つ側だけです。
  *
- * 鍵は最初に受け取ったものを使い続けます（理由は `model/idempotency-key.ts`）。
+ * 鍵は最初に受け取ったものを使い続け（理由は `model/idempotency-key.ts`）、応答が送信を確定させた
+ * ときだけ新しくします（{@link settlesSubmission}）。
  *
  * **選んだクーポンも同じ理由でここに置きます。** 確定は脇・下端の帯・金額の確かめの dialog の
  * どこからでも送られ、どこから送っても同じ選択が載らなければなりません。
@@ -71,21 +75,28 @@ export type PlaceOrderStateProviderProps = {
  */
 export function PlaceOrderStateProvider({
   idempotencyKey: initialIdempotencyKey,
-  couponIds,
+  coupons,
   children,
 }: PlaceOrderStateProviderProps) {
-  const [idempotencyKey] = useState(initialIdempotencyKey);
+  const [idempotencyKey, setIdempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction, isPending] = useActionState<PlaceOrderFormState, FormData>(
     placeOrderAction,
     idleActionState(),
   );
+  const [seenState, setSeenState] = useState(state);
+
+  if (seenState !== state) {
+    setSeenState(state);
+
+    if (settlesSubmission(state)) {
+      setIdempotencyKey(newIdempotencyKey());
+    }
+  }
   const [couponSelection, setCouponSelection] = useState<CouponId | null | undefined>(undefined);
   const [answeredState, setAnsweredState] = useState<PlaceOrderFormState | null>(null);
 
-  const couponId =
-    typeof couponSelection === "string" && couponIds.includes(couponSelection)
-      ? couponSelection
-      : null;
+  const coupon = coupons?.find((candidate) => candidate.id === couponSelection) ?? null;
+  const couponId = coupon?.id ?? null;
   const couponErrors =
     state.status === "error" && state !== answeredState
       ? state.fieldErrors?.[COUPON_ID_FIELD]
@@ -97,6 +108,7 @@ export function PlaceOrderStateProvider({
       state,
       isPending,
       idempotencyKey,
+      coupon,
       couponId,
       couponSelection,
       selectCoupon: (next: CouponId | null) => {
@@ -105,7 +117,7 @@ export function PlaceOrderStateProvider({
       },
       couponErrors,
     }),
-    [formAction, state, isPending, idempotencyKey, couponId, couponSelection, couponErrors],
+    [formAction, state, isPending, idempotencyKey, coupon, couponId, couponSelection, couponErrors],
   );
 
   return (

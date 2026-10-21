@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppError } from "@/errors/app-error";
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
+import { withErrorDetails } from "@/errors/error-meta";
 import { idleActionState } from "@/model/action-state";
 
 const {
@@ -41,16 +42,18 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { placeOrderAction } from "./actions";
 import {
   BLOCKED_CART,
+  CART_COUPONS,
   EMPTY_CART,
   ORDERABLE_CART,
   PARTIALLY_ORDERABLE_CART,
 } from "./checkout.fixture";
-import { ACCEPT_PRICE_CHANGE_FIELD } from "./form-fields";
+import { ACCEPT_PRICE_CHANGE_FIELD, COUPON_ID_FIELD } from "./form-fields";
 import type { PlaceOrderFormState } from "./form-state";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const PURCHASE_ID = "0195f0c2-0000-7000-9000-000000000001";
 const IDLE: PlaceOrderFormState = idleActionState();
+const COUPON_ID = CART_COUPONS[0]?.id ?? "";
 
 function formDataOf(overrides: Readonly<Record<string, string>> = {}): FormData {
   const formData = new FormData();
@@ -62,6 +65,13 @@ function formDataOf(overrides: Readonly<Record<string, string>> = {}): FormData 
   }
 
   return formData;
+}
+
+/** 接続先が項目を名指しして拒んだ失敗。 */
+function rejectedFields(kind: ErrorKind, details: readonly string[]): Error {
+  return createAppError(kind, {
+    cause: withErrorDetails(new Error("接続先が拒みました"), details),
+  });
 }
 
 /** 送信の結果。redirect は例外で表れるため、その行き先も取り出す。 */
@@ -103,6 +113,7 @@ describe("placeOrderAction", () => {
         },
       ],
       KEY,
+      null,
     );
   });
 
@@ -141,7 +152,29 @@ describe("placeOrderAction", () => {
     expect(createPurchase).toHaveBeenCalledWith(
       ORDERABLE_CART.lines.map((line) => ({ productId: line.productId, quantity: line.quantity })),
       KEY,
+      null,
     );
+  });
+
+  it("クーポンが載っていなければ、使わない購入として送る", async () => {
+    await run(formDataOf());
+
+    expect(createPurchase).toHaveBeenCalledWith(expect.anything(), KEY, null);
+  });
+
+  it("選んだクーポンが載っていれば、そのクーポンを購入へ渡す", async () => {
+    await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(createPurchase).toHaveBeenCalledWith(expect.anything(), KEY, COUPON_ID);
+  });
+
+  it("値の変わった明細を承知して置き直しても、選んだクーポンを購入へ渡す", async () => {
+    getMyCart.mockResolvedValueOnce(PARTIALLY_ORDERABLE_CART);
+    getMyCart.mockResolvedValueOnce(ORDERABLE_CART);
+
+    await run(formDataOf({ [ACCEPT_PRICE_CHANGE_FIELD]: "1", [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(createPurchase).toHaveBeenCalledWith(expect.anything(), KEY, COUPON_ID);
   });
 
   // ----- 異常系 -----
@@ -154,6 +187,28 @@ describe("placeOrderAction", () => {
       formError: expect.stringContaining("開き直して"),
       status: "error",
     });
+    expect(createPurchase).not.toHaveBeenCalled();
+  });
+
+  it("クーポンが識別子として読めない送信は受け付けず、カートも読まない", async () => {
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: "not-a-uuid" }));
+
+    expect(state).toMatchObject({
+      formError: expect.stringContaining("開き直して"),
+      status: "error",
+    });
+    expect(getMyCart).not.toHaveBeenCalled();
+    expect(createPurchase).not.toHaveBeenCalled();
+  });
+
+  it("クーポンの項目が空の文字列なら、載っていない扱いにせず受け付けない", async () => {
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: "" }));
+
+    expect(state).toMatchObject({
+      formError: expect.stringContaining("開き直して"),
+      status: "error",
+    });
+    expect(getMyCart).not.toHaveBeenCalled();
     expect(createPurchase).not.toHaveBeenCalled();
   });
 
@@ -205,7 +260,76 @@ describe("placeOrderAction", () => {
     expect(state).toMatchObject({
       status: "error",
       formError: expect.stringContaining("在庫か価格"),
+      kind: ErrorKind.CONFLICT,
     });
+  });
+
+  it("在庫や価格の衝突は、クーポンを名指ししていてもクーポンの拒否として扱わない", async () => {
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.CONFLICT, [COUPON_ID_FIELD]));
+
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: expect.stringContaining("在庫か価格"),
+    });
+    expect(state).not.toHaveProperty("fieldErrors.couponId");
+  });
+
+  it("クーポンを名指しして拒まれたら、候補を取り直させる", async () => {
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+
+    await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(revalidatePath).toHaveBeenCalledWith("/checkout");
+  });
+
+  it("クーポンを名指しして拒まれたら、クーポンの欄とフォームの両方へ理由を返す", async () => {
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(state).toMatchObject({
+      status: "error",
+      formError: expect.stringContaining("クーポン"),
+      fieldErrors: { couponId: ["このクーポンは使えなくなりました。選び直してください。"] },
+      kind: ErrorKind.VALIDATION,
+    });
+  });
+
+  it("クーポンを名指しして拒まれたら、完了へ送らずカートも触らない", async () => {
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, [COUPON_ID_FIELD]));
+
+    await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(redirect).not.toHaveBeenCalled();
+    expect(removeMyCartItem).not.toHaveBeenCalled();
+  });
+
+  it("名指しの無い入力の拒否は、分類ごとの文言で返し候補を取り直させない", async () => {
+    createPurchase.mockRejectedValue(createAppError(ErrorKind.VALIDATION));
+
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(state).toMatchObject({
+      formError: getDefaultErrorMeta(ErrorKind.VALIDATION).message,
+      status: "error",
+    });
+    expect(state).not.toHaveProperty("fieldErrors.couponId");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/checkout");
+  });
+
+  it("クーポン以外の項目を名指しした拒否は、分類ごとの文言で返し候補を取り直させない", async () => {
+    createPurchase.mockRejectedValue(rejectedFields(ErrorKind.VALIDATION, ["other"]));
+
+    const { state } = await run(formDataOf({ [COUPON_ID_FIELD]: COUPON_ID }));
+
+    expect(state).toMatchObject({
+      formError: getDefaultErrorMeta(ErrorKind.VALIDATION).message,
+      status: "error",
+    });
+    expect(state).not.toHaveProperty("fieldErrors.couponId");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/checkout");
   });
 
   it("それ以外の失敗は分類ごとの文言で返す", async () => {

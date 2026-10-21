@@ -24,7 +24,7 @@ const meta = {
   decorators: [
     // 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に置かないと、この姿が器を持たない。
     (Story) => (
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={IDEMPOTENCY_KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={IDEMPOTENCY_KEY}>
         <div className="w-72">
           <Story />
         </div>

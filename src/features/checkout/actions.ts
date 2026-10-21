@@ -103,12 +103,12 @@ async function acceptPriceChanges(lines: readonly PurchaseOrderLine[]): Promise<
  * **値が変わっていたら、承知したという合図が無い限り送りません。** 画面は押す前に確かめますが、
  * 確かめた後に変わることもあります。合図があれば、その明細を今の価格で置き直してから購入します。
  *
- * **冪等キーは画面が組んだ時点の値をそのまま使います。** 二重に押しても再読み込みで送り直しても、
- * 同じ鍵で届いた要求は初回の結果の再生として扱われ、購入は 1 件のままです。
+ * **冪等キーは送信に載った値をそのまま接続先へ渡します。** 鍵を作り、いつ新しくするかは画面が
+ * 決めます。
  *
  * **クーポンを理由に拒まれたら、候補を取り直してから返します。** 候補は取得した瞬間から古くなり、
  * 拒まれた理由（失効・使用済み・値引きが 0 になった等）はどれも、取り直した候補にそのクーポンが
- * 並ばないことで画面に現れます。同じ鍵のまま送り直せます。失敗した要求は購入を残さないためです。
+ * 並ばないことで画面に現れます。
  *
  * **送るのは積み増しではなく置き換えです。** 確定した後の確認画面はもう見せる内容を持たず、
  * 被せた overlay の中から確定したときは、その overlay が積んだ 1 件が戻り先として残ります。
@@ -157,7 +157,7 @@ export async function placeOrderAction(
     purchaseCode = await createPurchase(lines, idempotencyKey.data, couponId);
   } catch (error) {
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: CONFLICT_MESSAGE });
+      return failedActionState({ formError: CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
     }
 
     if (isCouponRejected(error)) {
@@ -166,6 +166,7 @@ export async function placeOrderAction(
       return failedActionState({
         formError: COUPON_REJECTED_MESSAGE,
         fieldErrors: { [COUPON_ID_FIELD]: [COUPON_REJECTED_FIELD_MESSAGE] },
+        kind: ErrorKind.VALIDATION,
       });
     }
 

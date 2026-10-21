@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -9,13 +10,30 @@ const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
 
 vi.mock("../../../actions", () => ({ placeOrderAction }));
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
+import { type CartCoupon, type CouponId, toCouponId } from "@/model/coupon/coupon";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
+
+import { COUPON_ID_FIELD } from "../../../form-fields";
 
 import { PlaceOrderStateProvider, usePlaceOrderState } from "./place-order-state";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
+const COUPON: CartCoupon = {
+  id: toCouponId("0193a1c0-0001-7000-8000-000000000001"),
+  discount: { kind: "flat", value: "5.00" },
+  scopeKind: "all",
+  discountAmount: 500,
+  expiresAt: "2027-06-30T14:59:59Z",
+};
+const OTHER_COUPON: CartCoupon = {
+  ...COUPON,
+  id: toCouponId("0193a1c0-0001-7000-8000-000000000002"),
+  discountAmount: 300,
+};
+const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
 
 /** 器から読んだものを、そのまま見える形に出す姿。名前で 2 つを見分ける。 */
 function Consumer({ name }: { name: string }) {
@@ -31,6 +49,42 @@ function Consumer({ name }: { name: string }) {
   );
 }
 
+/** 器から読んだクーポンの状態を、そのまま見える形に出す姿。 */
+function CouponConsumer({ name }: { name: string }) {
+  const { coupon, couponId, couponSelection, couponErrors } = usePlaceOrderState();
+  const selection = couponSelection === undefined ? "未選択" : (couponSelection ?? "使わない");
+  const discount = coupon === null ? "なし" : `${coupon.id} ${coupon.discountAmount}`;
+
+  return (
+    <>
+      <p>{`${name}:選択 ${selection}`}</p>
+      <p>{`${name}:載せる ${couponId ?? "なし"}`}</p>
+      <p>{`${name}:値引き ${discount}`}</p>
+      <p>{`${name}:文言 ${couponErrors?.join(" ") ?? "なし"}`}</p>
+    </>
+  );
+}
+
+/** クーポンを選び直す引き手。 */
+function SelectCouponButton({ couponId, label }: { couponId: CouponId | null; label: string }) {
+  const { selectCoupon } = usePlaceOrderState();
+  const select = useCallback(() => selectCoupon(couponId), [selectCoupon, couponId]);
+
+  return (
+    <button type="button" onClick={select}>
+      {label}
+    </button>
+  );
+}
+
+function rejectedCoupon() {
+  return failedActionState({
+    formError: "選んだクーポンを使えなかったため、注文は確定していません。",
+    fieldErrors: { [COUPON_ID_FIELD]: [REJECTED_FIELD_ERROR] },
+    kind: ErrorKind.VALIDATION,
+  });
+}
+
 beforeEach(() => {
   placeOrderAction.mockReset();
   placeOrderAction.mockResolvedValue(succeededActionState(undefined));
@@ -39,7 +93,7 @@ beforeEach(() => {
 describe("PlaceOrderStateProvider", () => {
   it("受け取った鍵を、器の中のどの姿へも同じ値で配る", () => {
     const { container } = render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -54,13 +108,13 @@ describe("PlaceOrderStateProvider", () => {
 
   it("組み直された画面から別の鍵が届いても、配る鍵は変えない", () => {
     const { container, rerender } = render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
 
     rerender(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={OTHER_KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
@@ -72,7 +126,7 @@ describe("PlaceOrderStateProvider", () => {
     placeOrderAction.mockResolvedValue(failedActionState({ formError: "在庫が変わりました。" }));
 
     render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -87,7 +141,7 @@ describe("PlaceOrderStateProvider", () => {
     placeOrderAction.mockReturnValue(new Promise(() => undefined));
 
     render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
         <Consumer name="帯" />
       </PlaceOrderStateProvider>,
@@ -98,9 +152,21 @@ describe("PlaceOrderStateProvider", () => {
     expect(screen.getByText("帯:待っている")).toBeVisible();
   });
 
+  it("片方の姿で選んだクーポンを、もう片方の姿も読む", async () => {
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="脇で選ぶ" />
+        <CouponConsumer name="帯" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇で選ぶ" }));
+
+    expect(screen.getByText(`帯:載せる ${COUPON.id}`)).toBeVisible();
+  });
+
   it("a11y 自動検査に違反しない。包んだだけで支援技術への見え方を変えない", async () => {
     const { container } = render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
@@ -112,10 +178,10 @@ describe("PlaceOrderStateProvider", () => {
 });
 
 describe("usePlaceOrderState", () => {
-  // ----- 正常系 -----
+  // ----- まだ送っていないとき -----
   it("まだ送っていないあいだは、待っておらず理由も持たない", () => {
     render(
-      <PlaceOrderStateProvider couponIds={[]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
         <Consumer name="脇" />
       </PlaceOrderStateProvider>,
     );
@@ -124,7 +190,212 @@ describe("usePlaceOrderState", () => {
     expect(screen.getByText("脇:理由なし")).toBeVisible();
   });
 
-  // ----- 異常系 -----
+  // ----- まだ選んでいないとき -----
+  it("まだ選んでいないあいだは、クーポンを載せず選択も持たない", () => {
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+
+    expect(screen.getByText("脇:選択 未選択")).toBeVisible();
+    expect(screen.getByText("脇:載せる なし")).toBeVisible();
+    expect(screen.getByText("脇:値引き なし")).toBeVisible();
+  });
+
+  // ----- クーポンを選んだとき -----
+  it("選んだクーポンを、候補に並ぶ値引き額ごと読む", async () => {
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON, OTHER_COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={OTHER_COUPON.id} label="クーポンを選ぶ" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
+
+    expect(screen.getByText(`脇:載せる ${OTHER_COUPON.id}`)).toBeVisible();
+    expect(screen.getByText(`脇:値引き ${OTHER_COUPON.id} 300`)).toBeVisible();
+  });
+
+  it("使わないを選ぶと、使わない選択を持ちクーポンを載せない", async () => {
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
+        <SelectCouponButton couponId={null} label="使わないを選ぶ" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
+    await userEvent.click(screen.getByRole("button", { name: "使わないを選ぶ" }));
+
+    expect(screen.getByText("脇:選択 使わない")).toBeVisible();
+    expect(screen.getByText("脇:載せる なし")).toBeVisible();
+    expect(screen.getByText("脇:値引き なし")).toBeVisible();
+  });
+
+  it("選んだクーポンが候補から消えたら、クーポンを載せず値引きも読まない", async () => {
+    const { rerender } = render(
+      <PlaceOrderStateProvider coupons={[COUPON, OTHER_COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
+    rerender(
+      <PlaceOrderStateProvider coupons={[OTHER_COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+
+    expect(screen.getByText("脇:載せる なし")).toBeVisible();
+    expect(screen.getByText("脇:値引き なし")).toBeVisible();
+  });
+
+  it("候補を読めなかったときは、選んでもクーポンを載せず値引きも読まない", async () => {
+    render(
+      <PlaceOrderStateProvider coupons={null} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
+
+    expect(screen.getByText("脇:載せる なし")).toBeVisible();
+    expect(screen.getByText("脇:値引き なし")).toBeVisible();
+  });
+
+  it("クーポンを選び直しても、配る鍵は変えない", async () => {
+    const { container } = render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
+        <Consumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
+
+    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+  });
+
+  // ----- 確定が拒まれたとき -----
+  it("確定がクーポンを名指しして拒んだら、その文言を読む", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+
+    expect(await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`)).toBeVisible();
+  });
+
+  it("確定がクーポンを名指しして拒んだら、次の送信を別の鍵で送る", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    const { container } = render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`);
+
+    const key = container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`);
+
+    expect(key).not.toHaveValue(KEY);
+    expect(key).toHaveAttribute("value", expect.stringMatching(/^[0-9a-f-]{36}$/));
+  });
+
+  it("確定が衝突で拒まれたら、次の送信を別の鍵で送る", async () => {
+    placeOrderAction.mockResolvedValue(
+      failedActionState({ formError: "在庫が変わりました。", kind: ErrorKind.CONFLICT }),
+    );
+
+    const { container } = render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText("脇:在庫が変わりました。");
+
+    const key = container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`);
+
+    expect(key).not.toHaveValue(KEY);
+    expect(key).toHaveAttribute("value", expect.stringMatching(/^[0-9a-f-]{36}$/));
+  });
+
+  it("確定先が応じられなかった失敗では、送り直しても同じ鍵のまま", async () => {
+    placeOrderAction.mockResolvedValue(
+      failedActionState({ formError: "いまは確定できません。", kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    const { container } = render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText("脇:いまは確定できません。");
+
+    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+  });
+
+  it("分類を持たない失敗では、送り直しても同じ鍵のまま", async () => {
+    placeOrderAction.mockResolvedValue(failedActionState({ formError: "在庫が変わりました。" }));
+
+    const { container } = render(
+      <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText("脇:在庫が変わりました。");
+
+    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+  });
+
+  it("拒まれた後にクーポンを選び直すと、クーポンの文言を消す", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON, OTHER_COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+        <SelectCouponButton couponId={OTHER_COUPON.id} label="選び直す" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`);
+    await userEvent.click(screen.getByRole("button", { name: "選び直す" }));
+
+    expect(screen.getByText("脇:文言 なし")).toBeVisible();
+  });
+
+  it("選び直した後に送って再び拒まれたら、クーポンの文言をまた読む", async () => {
+    placeOrderAction.mockImplementation(async () => rejectedCoupon());
+
+    render(
+      <PlaceOrderStateProvider coupons={[COUPON, OTHER_COUPON]} idempotencyKey={KEY}>
+        <Consumer name="脇" />
+        <SelectCouponButton couponId={OTHER_COUPON.id} label="選び直す" />
+        <CouponConsumer name="脇" />
+      </PlaceOrderStateProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+    await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`);
+    await userEvent.click(screen.getByRole("button", { name: "選び直す" }));
+    await screen.findByText("脇:文言 なし");
+    await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
+
+    expect(await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`)).toBeVisible();
+  });
+
+  // ----- 器の外で読んだとき -----
   it("器の外で読もうとしたら、その場で落とす", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 

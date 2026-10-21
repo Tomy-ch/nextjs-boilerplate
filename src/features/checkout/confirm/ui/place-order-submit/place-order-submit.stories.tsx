@@ -17,7 +17,7 @@ function OrderForm({ children }: { children: ReactElement }) {
 /** 送信状態は画面が 1 つだけ持つ。器の外では読めないので、包まないと描けない。 */
 function withPlaceOrderState(Story: () => ReactElement) {
   return (
-    <PlaceOrderStateProvider couponIds={[]} idempotencyKey="0195f0c2-0000-7000-b000-000000000001">
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey="0195f0c2-0000-7000-b000-000000000001">
       <OrderForm>{Story()}</OrderForm>
     </PlaceOrderStateProvider>
   );
