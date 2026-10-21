@@ -88,6 +88,86 @@ describe("parseLine", () => {
     expect(events.some((event) => event.kind === "interrupt")).toBe(true);
   });
 
+  it("isMeta の付いた行は、人の発話として出さない", () => {
+    for (const text of [
+      "Base directory for this skill: /repo/.claude/skills/commit",
+      "Another Claude session sent a message: 違う",
+    ]) {
+      expect(
+        parseLine(line({ type: "user", timestamp: AT, isMeta: true, message: { content: text } })),
+      ).toEqual([]);
+    }
+  });
+
+  it("isMeta が true でなければ、人の発話として出す", () => {
+    expect(
+      parseLine(
+        line({ type: "user", timestamp: AT, isMeta: false, message: { content: "直して" } }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it("文脈圧縮の要約は、人の発話として出さない", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          isCompactSummary: true,
+          message: { content: "This session is being continued from a previous conversation" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("道具の結果だけの行は、道具の結果だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: [{ type: "tool_result", is_error: false }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "tool_result", ok: true }]);
+  });
+
+  it("中断の行は、中断だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: [{ type: "text", text: "[Request interrupted by user]" }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "interrupt", text: "[Request interrupted by user]" }]);
+  });
+
+  it("差し込まれた本文は、人の発話として出さない", () => {
+    for (const text of [
+      "<task-notification>違う</task-notification>",
+      "<local-command-caveat>違う</local-command-caveat>",
+      "<system-reminder>違う</system-reminder>",
+    ]) {
+      expect(parseLine(line({ type: "user", timestamp: AT, message: { content: text } }))).toEqual(
+        [],
+      );
+    }
+  });
+
+  it("`/名前` の起動は、起動だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: "<command-name>/commit</command-name>" },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "command", name: "commit" }]);
+  });
+
   // ----- 異常系 -----
   it("壊れた行と空行を空にする", () => {
     expect(parseLine("{")).toEqual([]);
@@ -100,9 +180,7 @@ describe("parseLine", () => {
     expect(parseLine(line({ type: "user", timestamp: 42, message: { content: "x" } }))[0]?.at).toBe(
       0,
     );
-    expect(parseLine(line({ type: "user", timestamp: "時刻ではない", message: {} }))[0]?.at).toBe(
-      0,
-    );
+    expect(parseLine(line({ type: "assistant", timestamp: "時刻ではない" }))[0]?.at).toBe(0);
   });
 
   it("知らない形の中身を飛ばす", () => {
@@ -113,10 +191,8 @@ describe("parseLine", () => {
     expect(events).toEqual([{ at: EPOCH, kind: "assistant" }]);
   });
 
-  it("本文を持たない発話を、空の本文で出す", () => {
-    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: 42 } }))).toEqual([
-      { at: EPOCH, kind: "prompt", text: "" },
-    ]);
+  it("本文を持たない発話は、人の発話として出さない", () => {
+    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: 42 } }))).toEqual([]);
   });
 
   it("Skill の起動を、道具の呼び出しと起動の両方として出す", () => {
@@ -136,9 +212,7 @@ describe("parseLine", () => {
   });
 
   it("message が物でない行は、本文が無いものとして読む", () => {
-    expect(parseLine(line({ type: "user", timestamp: AT, message: "文字列" }))).toEqual([
-      { at: EPOCH, kind: "prompt", text: "" },
-    ]);
+    expect(parseLine(line({ type: "user", timestamp: AT, message: "文字列" }))).toEqual([]);
   });
 
   it("Skill の入力が読めなければ、起動としては数えない", () => {

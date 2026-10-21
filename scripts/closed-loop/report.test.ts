@@ -79,6 +79,7 @@ describe("reportTranscript", () => {
     });
 
     expect(lines).toContain("記録: 10 行 / 置き場 3 件（解釈できなかった行 2）");
+    expect(lines).toContain("人の発話 0 / 道具の失敗 0 / 中断 0");
     expect(lines).toContain("  commit: 1");
     expect(lines).toContain("一度も起動されなかったスキル: 0 本");
   });
@@ -141,7 +142,7 @@ describe("reportTranscript", () => {
       tools: {},
       toolErrors: 0,
       interruptions: 0,
-      turns: 2,
+      humanPrompts: 2,
       firstAt: 0,
       lastAt: 10,
     };

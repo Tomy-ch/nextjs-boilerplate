@@ -30,7 +30,13 @@ export type Event = {
  * 全体を型にしません —— 形を決めているのはツールで、版が上がれば知らない鍵が増えます。
  * **読む鍵だけを宣言する**ことで、増えた鍵はここを素通りします。
  */
-type Line = { readonly type?: unknown; readonly timestamp?: unknown; readonly message?: unknown };
+type Line = {
+  readonly type?: unknown;
+  readonly timestamp?: unknown;
+  readonly message?: unknown;
+  readonly isMeta?: unknown;
+  readonly isCompactSummary?: unknown;
+};
 type Message = { readonly content?: unknown };
 type SkillInput = { readonly skill?: unknown };
 type Block = {
@@ -54,6 +60,20 @@ const COMMAND_NAME_RE = /<command-name>\/?[a-z0-9-]+<\/command-name>/g;
 
 /** 人が実行を中断したときに記録へ入る綴り。 */
 const INTERRUPTION_MARK = "[Request interrupted";
+
+/**
+ * `isMeta` を持たずに差し込まれる本文の目印。
+ *
+ * @remarks
+ * `isMeta` の付いた行（スキル本文、別セッションからの通知）は構造で落ちるので、ここへは載せません。
+ * 目印と鍵の 2 か所で同じ行を判定すると、片方を消してももう片方のテストが緑のまま残ります。
+ */
+const INJECTED_MARKERS: readonly string[] = [
+  "<task-notification>",
+  "<local-command-caveat>",
+  "<command-name>",
+  "<system-reminder>",
+];
 
 /** ISO の時刻を epoch 秒にする。読めなければ 0。 */
 function toEpoch(value: unknown): number {
@@ -142,7 +162,11 @@ export function parseLine(line: string): readonly Event[] {
   const found: Event[] = [];
 
   if (record.type === "user") {
-    found.push({ at, kind: "prompt", text: textOf(record) });
+    const text = textOf(record);
+
+    if (isHumanPrompt(record, text)) {
+      found.push({ at, kind: "prompt", text });
+    }
   }
 
   if (record.type === "assistant") {
@@ -172,6 +196,27 @@ export function parseLine(line: string): readonly Event[] {
   }
 
   return found;
+}
+
+/**
+ * 記録の 1 行が人の打った発話か。
+ *
+ * @param record - 記録の 1 行
+ * @param text - その行の本文
+ * @returns 人の発話なら true
+ *
+ * @remarks
+ * 人の発話を正で示す鍵（`origin.kind` / `promptSource`）は新しい版の行にしか無く、古い行の人の発話を
+ * 落とします。だから、差し込み・圧縮の要約・道具の結果・中断に当たらないものを人の発話とします。
+ */
+function isHumanPrompt(record: Line, text: string): boolean {
+  return (
+    record.isMeta !== true &&
+    record.isCompactSummary !== true &&
+    text !== "" &&
+    !text.includes(INTERRUPTION_MARK) &&
+    !INJECTED_MARKERS.some((marker) => text.includes(marker))
+  );
 }
 
 /** 人の発話の本文。文字列でも、text ブロックの連なりでも拾う。 */

@@ -9,14 +9,15 @@ function at(seconds: number, event: Omit<Event, "at">): Event {
 
 describe("countEvents", () => {
   // ----- 正常系 -----
-  it("人とモデルの発話をやり取りとして数える", () => {
+  it("人の発話だけを数え、モデルの発話と道具の結果を数えない", () => {
     const counts = countEvents([
       at(1, { kind: "prompt" }),
       at(2, { kind: "assistant" }),
       at(3, { kind: "tool_use", name: "Read" }),
+      at(4, { kind: "tool_result", ok: true }),
     ]);
 
-    expect(counts.turns).toBe(2);
+    expect(counts.humanPrompts).toBe(1);
   });
 
   it("道具の呼び出しを名前ごとに数える", () => {
@@ -79,7 +80,7 @@ describe("countEvents", () => {
 
     expect(counts.firstAt).toBeNull();
     expect(counts.lastAt).toBeNull();
-    expect(counts.turns).toBe(0);
+    expect(counts.humanPrompts).toBe(0);
   });
 
   it("時刻を持たない出来事を、最初と最後に数えない", () => {

@@ -80,7 +80,7 @@ describe("renderIssueBody", () => {
       tools: { Read: 3 },
       toolErrors: 1,
       interruptions: 2,
-      turns: 8,
+      humanPrompts: 8,
       firstAt: 0,
       lastAt: 240,
     });
@@ -96,7 +96,7 @@ describe("renderIssueBody", () => {
       tools: {},
       toolErrors: 1,
       interruptions: 2,
-      turns: 4,
+      humanPrompts: 4,
       firstAt: 0,
       lastAt: 240,
     };

@@ -14,7 +14,7 @@ const COUNTS: TranscriptCounts = {
   tools: { Read: 3, Bash: 2 },
   toolErrors: 1,
   interruptions: 2,
-  turns: 8,
+  humanPrompts: 8,
   firstAt: 100,
   lastAt: 400,
 };
@@ -30,7 +30,7 @@ describe("toObservation", () => {
         { from: "openedAt", to: "commitAt", sec: 60 },
         { from: "commitAt", to: "closedAt", sec: 240 },
       ],
-      prompts: 8,
+      humanPrompts: 8,
       toolCalls: 5,
       toolFailures: 1,
       interrupts: 2,
@@ -114,6 +114,12 @@ describe("parseObservation", () => {
 
   it("閉じ忘れた区画も、読める行まで読む", () => {
     expect(parseObservation("```yaml closed-loop\nwindowId: w1-x")?.windowId).toBe("w1-x");
+  });
+
+  it("prompts の鍵を人の発話として読み戻さない", () => {
+    const observation = parseObservation("```yaml closed-loop\nwindowId: w1-x\nprompts: 1632\n```");
+
+    expect(observation?.humanPrompts).toBeUndefined();
   });
 
   it("数として読めない値を落とす", () => {

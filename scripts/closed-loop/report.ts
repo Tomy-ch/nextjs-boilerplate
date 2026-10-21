@@ -108,13 +108,12 @@ function invocationLines(
  * 記録から数えた事実の報告。
  *
  * @remarks
- * **一度も起動されなかったスキルは、退役の候補としてではなく事実として並べます**
- * 。機会を待つスキルは、機会が
+ * **一度も起動されなかったスキルは、退役の候補としてではなく事実として並べます**。
+ * 機会を待つスキルは、機会が
  * 来なかった期間について何も語りません。
  *
  * **数えられなかった行は必ず出します。**記録の形はツールが決めており版が上がれば変わるので、
- * 黙って飛ばすと「読めた範囲だけの数」が全量として読まれます
- * 。
+ * 黙って飛ばすと「読めた範囲だけの数」が全量として読まれます。
  */
 export function reportTranscript(
   counts: TranscriptCounts,
@@ -128,7 +127,7 @@ export function reportTranscript(
   const lines = [
     "",
     `記録: ${context.files} 行 / 置き場 ${context.places} 件（解釈できなかった行 ${context.unparsable}）`,
-    `やり取り ${counts.turns} / 道具の失敗 ${counts.toolErrors} / 中断 ${counts.interruptions}`,
+    `人の発話 ${counts.humanPrompts} / 道具の失敗 ${counts.toolErrors} / 中断 ${counts.interruptions}`,
     "",
     "スキルの起動:",
     ...(invocations.length > 0 ? invocations : ["  なし"]),

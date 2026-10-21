@@ -30,8 +30,8 @@ export type TranscriptCounts = {
   readonly toolErrors: number;
   /** 人が実行を中断した回数 */
   readonly interruptions: number;
-  /** やり取りの数（人とモデルの発話） */
-  readonly turns: number;
+  /** 人の発話の数。何を人の発話とするかは events.ts が決める */
+  readonly humanPrompts: number;
   /** 最初と最後の時刻（epoch 秒）。窓との突き合わせに使う */
   readonly firstAt: number | null;
   readonly lastAt: number | null;
@@ -87,7 +87,7 @@ export function countEvents(events: readonly Event[]): TranscriptCounts {
     tools: countNames(events, "tool_use"),
     toolErrors: events.filter((event) => event.kind === "tool_result" && event.ok === false).length,
     interruptions: events.filter((event) => event.kind === "interrupt").length,
-    turns: events.filter((event) => event.kind === "prompt" || event.kind === "assistant").length,
+    humanPrompts: events.filter((event) => event.kind === "prompt").length,
     ...spanOf(events),
   };
 }
