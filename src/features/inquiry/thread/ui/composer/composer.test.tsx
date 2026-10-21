@@ -44,30 +44,54 @@ describe("InquiryComposer", () => {
     expect(container.querySelector('input[name="idempotencyKey"]')).toHaveValue(KEY);
   });
 
-  it("空のままでは送信できない", () => {
+  it("空でも送信の操作は押せる", () => {
     renderComposer();
 
-    expect(screen.getByRole("button", { name: "送信" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "送信" })).toBeEnabled();
   });
 
-  it("空白だけでは送信できない", async () => {
+  it("本文が必須であることを入力欄が伝える", () => {
     renderComposer();
 
-    await userEvent.type(screen.getByLabelText("お問い合わせ内容"), "   ");
-
-    expect(screen.getByRole("button", { name: "送信" })).toBeDisabled();
+    expect(screen.getByLabelText("お問い合わせ内容")).toHaveAttribute("aria-required", "true");
   });
 
-  it("空のままでは修飾キーつきの Enter でも送らない", async () => {
-    renderComposer();
-
+  it.each([
+    ["空", ""],
+    ["空白だけ", "   "],
+  ])("%sのまま押したら送らず、入力を促す文言を欄に紐づけて出す", async (_label, body) => {
+    const user = userEvent.setup();
+    const { props } = renderComposer();
     const textarea = screen.getByLabelText("お問い合わせ内容");
-    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
 
-    textarea.closest("form")?.addEventListener("submit", submit);
+    if (body !== "") {
+      await user.type(textarea, body);
+    }
+    await user.click(screen.getByRole("button", { name: "送信" }));
+
+    expect(props.action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま修飾キーつきの Enter を押しても送らず、入力を促す", async () => {
+    const { props } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
     await userEvent.type(textarea, "{Meta>}{Enter}{/Meta}");
 
-    expect(submit).not.toHaveBeenCalled();
+    expect(props.action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま押した後に書き始めると、入力を促す文言を消す", async () => {
+    const user = userEvent.setup();
+
+    renderComposer();
+    await user.click(screen.getByRole("button", { name: "送信" }));
+    await user.type(screen.getByLabelText("お問い合わせ内容"), "本");
+
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
   it("項目エラーが無ければ、入力欄に不正の印を付けない", () => {

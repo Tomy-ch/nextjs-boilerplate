@@ -5,6 +5,7 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { type InquiryId, toInquiryId } from "@/model/inquiry/inquiry";
 
 import { REPLY_BODY_FIELD, REPLY_INQUIRY_ID_FIELD } from "./form-names";
+import { REPLY_EMPTY_MESSAGE } from "./form-state";
 
 /** 送信の内容を解いた結果。 */
 export type AdminInquiryReplyFormResult =
@@ -15,8 +16,6 @@ export type AdminInquiryReplyFormResult =
       readonly idempotencyKey: string;
     }
   | { readonly ok: false; readonly bodyError: string | null };
-
-const EMPTY_MESSAGE = "本文を入力してください。";
 
 const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`;
 
@@ -45,7 +44,7 @@ export function parseAdminInquiryReplyForm(formData: FormData): AdminInquiryRepl
   const trimmed = body.success ? body.data.trim() : "";
 
   if (trimmed === "") {
-    return { ok: false, bodyError: EMPTY_MESSAGE };
+    return { ok: false, bodyError: REPLY_EMPTY_MESSAGE };
   }
 
   if ([...trimmed].length > INQUIRY_BODY_MAX_LENGTH) {

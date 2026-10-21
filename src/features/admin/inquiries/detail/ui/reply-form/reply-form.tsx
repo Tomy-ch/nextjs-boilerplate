@@ -1,16 +1,17 @@
 "use client";
 
-import { type ChangeEvent, useCallback, useState } from "react";
+import { type ChangeEvent, type SubmitEvent, useCallback, useState } from "react";
 
 import { INQUIRY_BODY_MAX_LENGTH } from "@/adapters/client/api/inquiry-limits";
 import { Button } from "@/components/design-system/action/button/button";
 import { Label } from "@/components/design-system/form/label/label";
+import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 
 import { REPLY_BODY_FIELD, REPLY_INQUIRY_ID_FIELD } from "../../../form-names";
-import type { AdminInquiryReplyState } from "../../../form-state";
+import { type AdminInquiryReplyState, REPLY_EMPTY_MESSAGE } from "../../../form-state";
 
 /** `AdminInquiryReplyForm` の props。 */
 export type AdminInquiryReplyFormProps = {
@@ -52,6 +53,7 @@ export function AdminInquiryReplyForm({
 }: AdminInquiryReplyFormProps) {
   const [draft, setDraft] = useState("");
   const [seenState, setSeenState] = useState(state);
+  const [emptyError, setEmptyError] = useState<string | null>(null);
 
   // 送信が成立したら書きかけを片付ける。通らなかったときに残すのは、打ち直させないためである。
   if (seenState !== state) {
@@ -62,22 +64,39 @@ export function AdminInquiryReplyForm({
     }
   }
 
-  const bodyErrors = state.status === "error" ? (state.fieldErrors?.[REPLY_BODY_FIELD] ?? []) : [];
+  const serverBodyErrors =
+    state.status === "error" ? (state.fieldErrors?.[REPLY_BODY_FIELD] ?? []) : [];
+  const bodyErrors = emptyError === null ? serverBodyErrors : [emptyError];
   const submitLabel = pending ? SENDING_LABEL : SUBMIT_LABEL;
 
   const keepDraft = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
     setDraft(event.target.value);
+    setEmptyError(null);
   }, []);
 
+  const refuseEmpty = useCallback(
+    (event: SubmitEvent<HTMLFormElement>) => {
+      if (draft.trim() === "") {
+        event.preventDefault();
+        setEmptyError(REPLY_EMPTY_MESSAGE);
+      }
+    },
+    [draft],
+  );
+
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form action={action} className="flex flex-col gap-2" onSubmit={refuseEmpty}>
       <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
       <input name={REPLY_INQUIRY_ID_FIELD} type="hidden" value={inquiryId} />
 
-      <Label htmlFor={REPLY_BODY_FIELD}>{LABEL}</Label>
+      <div className="flex items-center gap-2">
+        <RequirementBadge required />
+        <Label htmlFor={REPLY_BODY_FIELD}>{LABEL}</Label>
+      </div>
       <Textarea
         aria-describedby={bodyErrors.length === 0 ? undefined : `${REPLY_BODY_FIELD}-error`}
         aria-invalid={bodyErrors.length === 0 ? undefined : true}
+        aria-required
         id={REPLY_BODY_FIELD}
         maxLength={INQUIRY_BODY_MAX_LENGTH}
         name={REPLY_BODY_FIELD}
@@ -94,7 +113,7 @@ export function AdminInquiryReplyForm({
       )}
 
       <div className="flex justify-end">
-        <Button disabled={pending || draft.trim() === ""} type="submit">
+        <Button disabled={pending} type="submit">
           {submitLabel}
         </Button>
       </div>

@@ -4,13 +4,12 @@ import { INQUIRY_BODY_MAX_LENGTH } from "@/adapters/client/api/inquiry-limits";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
 import { INQUIRY_BODY_FIELD } from "./form-names";
+import { EMPTY_BODY_MESSAGE } from "./form-state";
 
 /** 送信の内容を解いた結果。読めなかった項目は、そのまま項目の文言になる。 */
 export type InquiryMessageFormResult =
   | { readonly ok: true; readonly body: string; readonly idempotencyKey: string }
   | { readonly ok: false; readonly bodyError: string | null };
-
-const EMPTY_MESSAGE = "本文を入力してください。";
 
 const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`;
 
@@ -38,7 +37,7 @@ export function parseInquiryMessageForm(formData: FormData): InquiryMessageFormR
   const trimmed = body.success ? body.data.trim() : "";
 
   if (trimmed === "") {
-    return { ok: false, bodyError: EMPTY_MESSAGE };
+    return { ok: false, bodyError: EMPTY_BODY_MESSAGE };
   }
 
   if ([...trimmed].length > INQUIRY_BODY_MAX_LENGTH) {

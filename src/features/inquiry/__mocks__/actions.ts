@@ -2,7 +2,7 @@ import { fn } from "storybook/test";
 
 import { succeededActionState } from "@/model/action-state";
 
-import type { InquiryMessageActionState } from "../actions";
+import type { InquiryMessageActionState } from "../form-state";
 
 /**
  * カタログでの [sendInquiryMessageAction](../actions.ts)。
