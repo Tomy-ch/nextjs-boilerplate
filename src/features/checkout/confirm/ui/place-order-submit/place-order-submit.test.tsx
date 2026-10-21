@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -9,6 +10,7 @@ const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
 
 vi.mock("../../../actions", () => ({ placeOrderAction }));
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 
 import type { PlaceOrderFormState } from "../../../form-state";
@@ -44,6 +46,26 @@ function PlaceOrderForm({ orderable, fullWidth }: { orderable: boolean; fullWidt
       <PlaceOrderSubmit fullWidth={fullWidth} label={LABEL} orderable={orderable} />
       <PlaceOrderError />
     </form>
+  );
+}
+
+function SelectNoCouponButton() {
+  const { selectCoupon } = usePlaceOrderState();
+  const select = useCallback(() => selectCoupon(null), [selectCoupon]);
+
+  return (
+    <button type="button" onClick={select}>
+      クーポンを使わない
+    </button>
+  );
+}
+
+function renderWithCouponChoice() {
+  return render(
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+      <PlaceOrderForm fullWidth={false} orderable />
+      <SelectNoCouponButton />
+    </PlaceOrderStateProvider>,
   );
 }
 
@@ -134,6 +156,32 @@ describe("PlaceOrderError", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: LABEL })).toBeEnabled());
     expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
+  });
+
+  it("失敗の後にクーポンを選び直すと、理由を消す", async () => {
+    respondWith(
+      failedActionState({ formError: "クーポンを使えませんでした。", kind: ErrorKind.VALIDATION }),
+    );
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("クーポンを使えませんでした。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
+  });
+
+  it("結果の定まらない失敗の後は、クーポンを選び直そうとしても理由を出したまま", async () => {
+    respondWith(
+      failedActionState({ formError: "いまは確定できません。", kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("いまは確定できません。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.getByText("いまは確定できません。")).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {

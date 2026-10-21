@@ -31,7 +31,8 @@ const meta = {
         component: [
           "クーポンを 1 枚選ぶ radio の群です。「使わない」を先頭に置き、渡された選択肢をその後に並べます。",
           "最初はどれも選んでいません。選択は確定の送信状態と同じ器が持ち、確定でクーポンが拒まれると",
-          "欄を不正と示して理由を結び、選び直すと外します。",
+          "欄を不正と示して理由を結び、選び直すと外します。送信中と、直前の確定の結果が分からないあいだは",
+          "選び直せず、その理由を欄の説明として結びます。",
         ].join(""),
       },
     },
@@ -97,5 +98,32 @@ export const Rejected: Story = {
     await userEvent.click(canvas.getByRole("radio", { name: firstCouponName() }));
     await userEvent.click(canvas.getByRole("button", { name: "注文を確定する" }));
     await canvas.findByText("このクーポンは使えなくなりました。選び直してください。");
+  },
+};
+
+/**
+ * 確定の結果が定まらない失敗のあとの状態。欄は操作できないと示され、同じ内容で確定し直すよう
+ * 案内が出る。
+ *
+ * @remarks
+ * 確定先が応じられなかった失敗を、差し替えた Server Action の戻り値から作ります。
+ */
+export const OutcomeOpen: Story = {
+  beforeEach: () => {
+    mocked(placeOrderAction).mockResolvedValue(
+      failedActionState({
+        formError: "いまは確定できません。時間をおいてもう一度お試しください。",
+        kind: ErrorKind.UNAVAILABLE,
+      }),
+    );
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(canvas.getByRole("radio", { name: firstCouponName() }));
+    await userEvent.click(canvas.getByRole("button", { name: "注文を確定する" }));
+    await canvas.findByText(
+      "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。",
+    );
   },
 };

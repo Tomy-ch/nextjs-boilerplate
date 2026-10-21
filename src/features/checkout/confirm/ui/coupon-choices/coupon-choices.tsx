@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, type ReactNode, useCallback, useContext, useId } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useId,
+  useSyncExternalStore,
+} from "react";
 
 import { FieldError } from "@/components/design-system/form/field/field";
 import { Label } from "@/components/design-system/form/label/label";
@@ -13,6 +20,38 @@ import type { CouponId } from "@/model/coupon/coupon";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 
 const ChoicesScopeContext = createContext<string | null>(null);
+
+const LOCKED_MESSAGE =
+  "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
+const NO_SCRIPT_MESSAGE =
+  "JavaScript が無効のときはクーポンを選べません。クーポンを使わない注文はできます。";
+
+/**
+ * 購読するものを持たない。
+ *
+ * @returns 何もしない解除関数
+ */
+function subscribeToNothing(): () => void {
+  return () => undefined;
+}
+
+/**
+ * client で読む値。hydration を終えている。
+ *
+ * @returns 常に true
+ */
+function readHydrated(): boolean {
+  return true;
+}
+
+/**
+ * server 描画と hydration 中の値。
+ *
+ * @returns 常に false
+ */
+function readNotHydrated(): boolean {
+  return false;
+}
 
 /** {@link CouponChoices} の props。 */
 export type CouponChoicesProps = {
@@ -32,6 +71,11 @@ export type CouponChoicesProps = {
  *
  * 選択は確定の送信状態と同じ器（`../place-order-state`）が持ちます。
  *
+ * 送信中と、直前の確定の結果が定まらないあいだは選び直せません。止めるのは器の `selectCoupon` で、
+ * ここは `disabled` にせず `aria-disabled` で示します。結果が定まらないあいだだけ、同じ内容で確定し
+ * 直す案内を欄の説明に結びます（理由は `model/idempotency-key.ts` の `leavesOutcomeOpen`）。
+ * hydration を終えるまでは `disabled` です。それまでの選択は確定に載りません（`../../../README.md`）。
+ *
  * @param props - {@link CouponChoicesProps}。
  */
 export function CouponChoices({ title, children }: CouponChoicesProps) {
@@ -39,20 +83,35 @@ export function CouponChoices({ title, children }: CouponChoicesProps) {
 
   const scope = useId();
   const errorId = `${scope}-error`;
-  const { couponErrors } = usePlaceOrderState();
+  const lockedId = `${scope}-locked`;
+  const hydrated = useSyncExternalStore(subscribeToNothing, readHydrated, readNotHydrated);
+  const { couponErrors, couponLocked, outcomeOpen } = usePlaceOrderState();
   const invalid = couponErrors !== undefined;
+  const describedBy = [outcomeOpen ? lockedId : null, invalid ? errorId : null]
+    .filter((id) => id !== null)
+    .join(" ");
 
   return (
     <ChoicesScopeContext.Provider value={scope}>
       <RadioGroupNative
-        aria-describedby={invalid ? errorId : undefined}
+        aria-describedby={describedBy === "" ? undefined : describedBy}
+        aria-disabled={couponLocked || undefined}
         aria-invalid={invalid || undefined}
+        disabled={!hydrated}
         role="radiogroup"
       >
         <legend className="mb-3 font-emphasis leading-none">{title}</legend>
         <CouponChoice couponId={null}>使わない</CouponChoice>
         {children}
       </RadioGroupNative>
+      <noscript>
+        <p className="text-muted-foreground text-sm">{NO_SCRIPT_MESSAGE}</p>
+      </noscript>
+      {outcomeOpen ? (
+        <p className="text-muted-foreground text-sm" id={lockedId}>
+          {LOCKED_MESSAGE}
+        </p>
+      ) : null}
       {invalid ? <FieldError id={errorId}>{couponErrors.join(" ")}</FieldError> : null}
     </ChoicesScopeContext.Provider>
   );
@@ -80,7 +139,7 @@ export function CouponChoice({ couponId, children }: CouponChoiceProps) {
   "use memo";
 
   const scope = useContext(ChoicesScopeContext);
-  const { couponId: chosen, couponSelection, selectCoupon } = usePlaceOrderState();
+  const { couponId: chosen, couponSelection, selectCoupon, couponLocked } = usePlaceOrderState();
   const select = useCallback(() => {
     selectCoupon(couponId);
   }, [selectCoupon, couponId]);
@@ -95,6 +154,7 @@ export function CouponChoice({ couponId, children }: CouponChoiceProps) {
   return (
     <Label className="items-start font-normal" htmlFor={id}>
       <RadioGroupNativeItem
+        aria-disabled={couponLocked || undefined}
         checked={checked}
         className="mt-0.5"
         id={id}

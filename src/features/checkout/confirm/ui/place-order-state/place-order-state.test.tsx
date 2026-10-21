@@ -34,6 +34,8 @@ const OTHER_COUPON: CartCoupon = {
   discountAmount: 300,
 };
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
+const REJECTED_FORM_ERROR = "選んだクーポンを使えなかったため、注文は確定していません。";
+const UNAVAILABLE_FORM_ERROR = "いまは確定できません。";
 
 /** 器から読んだものを、そのまま見える形に出す姿。名前で 2 つを見分ける。 */
 function Consumer({ name }: { name: string }) {
@@ -51,7 +53,8 @@ function Consumer({ name }: { name: string }) {
 
 /** 器から読んだクーポンの状態を、そのまま見える形に出す姿。 */
 function CouponConsumer({ name }: { name: string }) {
-  const { coupon, couponId, couponSelection, couponErrors } = usePlaceOrderState();
+  const { coupon, couponId, couponSelection, couponErrors, couponLocked, outcomeOpen, formError } =
+    usePlaceOrderState();
   const selection = couponSelection === undefined ? "未選択" : (couponSelection ?? "使わない");
   const discount = coupon === null ? "なし" : `${coupon.id} ${coupon.discountAmount}`;
 
@@ -61,6 +64,9 @@ function CouponConsumer({ name }: { name: string }) {
       <p>{`${name}:載せる ${couponId ?? "なし"}`}</p>
       <p>{`${name}:値引き ${discount}`}</p>
       <p>{`${name}:文言 ${couponErrors?.join(" ") ?? "なし"}`}</p>
+      <p>{`${name}:選び直し ${couponLocked ? "できない" : "できる"}`}</p>
+      <p>{`${name}:結果 ${outcomeOpen ? "未定" : "未定ではない"}`}</p>
+      <p>{`${name}:全体の文言 ${formError ?? "なし"}`}</p>
     </>
   );
 }
@@ -77,12 +83,32 @@ function SelectCouponButton({ couponId, label }: { couponId: CouponId | null; la
   );
 }
 
+function unavailable() {
+  return failedActionState({ formError: UNAVAILABLE_FORM_ERROR, kind: ErrorKind.UNAVAILABLE });
+}
+
 function rejectedCoupon() {
   return failedActionState({
-    formError: "選んだクーポンを使えなかったため、注文は確定していません。",
+    formError: REJECTED_FORM_ERROR,
     fieldErrors: { [COUPON_ID_FIELD]: [REJECTED_FIELD_ERROR] },
     kind: ErrorKind.VALIDATION,
   });
+}
+
+/** 送る操作、選び直す操作、クーポンの状態を 1 つの器に並べる。 */
+function renderCouponFlow(coupons: readonly CartCoupon[] | null = [COUPON, OTHER_COUPON]) {
+  return render(
+    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
+      <Consumer name="脇" />
+      <SelectCouponButton couponId={COUPON.id} label="1 枚目を選ぶ" />
+      <SelectCouponButton couponId={OTHER_COUPON.id} label="2 枚目を選ぶ" />
+      <CouponConsumer name="帯" />
+    </PlaceOrderStateProvider>,
+  );
+}
+
+async function click(name: string) {
+  await userEvent.click(screen.getByRole("button", { name }));
 }
 
 beforeEach(() => {
@@ -190,6 +216,14 @@ describe("usePlaceOrderState", () => {
     expect(screen.getByText("脇:理由なし")).toBeVisible();
   });
 
+  it("まだ送っていないあいだは、クーポンを選び直せてフォーム全体の文言も持たない", () => {
+    renderCouponFlow();
+
+    expect(screen.getByText("帯:選び直し できる")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
+    expect(screen.getByText("帯:全体の文言 なし")).toBeVisible();
+  });
+
   // ----- まだ選んでいないとき -----
   it("まだ選んでいないあいだは、クーポンを載せず選択も持たない", () => {
     render(
@@ -261,8 +295,41 @@ describe("usePlaceOrderState", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
 
+    expect(screen.getByText("脇:選択 未選択")).toBeVisible();
     expect(screen.getByText("脇:載せる なし")).toBeVisible();
     expect(screen.getByText("脇:値引き なし")).toBeVisible();
+  });
+
+  it("選んだクーポンが候補から消えたら、選択も手放す", async () => {
+    const { rerender } = renderCouponFlow();
+
+    await click("1 枚目を選ぶ");
+    rerender(
+      <PlaceOrderStateProvider coupons={[OTHER_COUPON]} idempotencyKey={KEY}>
+        <CouponConsumer name="帯" />
+      </PlaceOrderStateProvider>,
+    );
+
+    expect(screen.getByText("帯:選択 未選択")).toBeVisible();
+  });
+
+  it("消えたクーポンが候補に戻っても、選んだ状態には戻さない", async () => {
+    const { rerender } = renderCouponFlow();
+
+    await click("1 枚目を選ぶ");
+    rerender(
+      <PlaceOrderStateProvider coupons={[OTHER_COUPON]} idempotencyKey={KEY}>
+        <CouponConsumer name="帯" />
+      </PlaceOrderStateProvider>,
+    );
+    rerender(
+      <PlaceOrderStateProvider coupons={[COUPON, OTHER_COUPON]} idempotencyKey={KEY}>
+        <CouponConsumer name="帯" />
+      </PlaceOrderStateProvider>,
+    );
+
+    expect(screen.getByText("帯:選択 未選択")).toBeVisible();
+    expect(screen.getByText("帯:載せる なし")).toBeVisible();
   });
 
   it("クーポンを選び直しても、配る鍵は変えない", async () => {
@@ -393,6 +460,106 @@ describe("usePlaceOrderState", () => {
     await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
 
     expect(await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`)).toBeVisible();
+  });
+
+  it("確定がクーポンを名指しして拒んだ後は、クーポンを選び直せる", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText(`帯:文言 ${REJECTED_FIELD_ERROR}`);
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText("帯:選び直し できる")).toBeVisible();
+    expect(screen.getByText(`帯:選択 ${OTHER_COUPON.id}`)).toBeVisible();
+  });
+
+  it("確定が拒まれたら、フォーム全体の文言を読む", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    renderCouponFlow();
+    await click("脇 から送る");
+
+    expect(await screen.findByText(`帯:全体の文言 ${REJECTED_FORM_ERROR}`)).toBeVisible();
+  });
+
+  it("拒まれた後にクーポンを選び直すと、フォーム全体の文言を消す", async () => {
+    placeOrderAction.mockResolvedValue(rejectedCoupon());
+
+    renderCouponFlow();
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${REJECTED_FORM_ERROR}`);
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText("帯:全体の文言 なし")).toBeVisible();
+  });
+
+  it("選び直した後に送って再び拒まれたら、フォーム全体の文言をまた読む", async () => {
+    placeOrderAction.mockImplementation(async () => rejectedCoupon());
+
+    renderCouponFlow();
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${REJECTED_FORM_ERROR}`);
+    await click("2 枚目を選ぶ");
+    await screen.findByText("帯:全体の文言 なし");
+    await click("脇 から送る");
+
+    expect(await screen.findByText(`帯:全体の文言 ${REJECTED_FORM_ERROR}`)).toBeVisible();
+  });
+
+  it("分類を持たない失敗の後は、クーポンを選び直せる", async () => {
+    placeOrderAction.mockResolvedValue(failedActionState({ formError: "在庫が変わりました。" }));
+
+    renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText("帯:全体の文言 在庫が変わりました。");
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText("帯:選び直し できる")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
+    expect(screen.getByText(`帯:選択 ${OTHER_COUPON.id}`)).toBeVisible();
+  });
+
+  // ----- 確定の結果が定まらないとき -----
+  it("確定先が応じられなかったら、結果が未定でクーポンを選び直せないと読む", async () => {
+    placeOrderAction.mockResolvedValue(unavailable());
+
+    renderCouponFlow();
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`);
+
+    expect(screen.getByText("帯:選び直し できない")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定")).toBeVisible();
+  });
+
+  it("確定先が応じられなかった後は、選び直そうとしても選択を変えない", async () => {
+    placeOrderAction.mockResolvedValue(unavailable());
+
+    renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`);
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText(`帯:選択 ${COUPON.id}`)).toBeVisible();
+    expect(screen.getByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`)).toBeVisible();
+  });
+
+  // ----- 送っているあいだ -----
+  it("送っているあいだは、クーポンを選び直せないと読み、選び直そうとしても選択を変えない", async () => {
+    placeOrderAction.mockReturnValue(new Promise(() => undefined));
+
+    renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText("脇:待っている");
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText("帯:選び直し できない")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
+    expect(screen.getByText(`帯:選択 ${COUPON.id}`)).toBeVisible();
   });
 
   // ----- 器の外で読んだとき -----

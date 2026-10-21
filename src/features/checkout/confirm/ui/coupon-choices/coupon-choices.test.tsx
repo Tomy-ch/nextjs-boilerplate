@@ -36,6 +36,8 @@ const SECOND: CartCoupon = {
   id: toCouponId("0193a1c0-0001-7000-8000-000000000002"),
 };
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
+const LOCKED_MESSAGE =
+  "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
 
 /** 選択は送信状態の器が持つ。拒まれた状態を作れるよう、確定の操作も並べる。 */
 function renderChoices() {
@@ -67,6 +69,20 @@ async function rejectSelected() {
   await userEvent.click(screen.getByRole("button", { name: "注文を確定する" }));
 
   return screen.findByText(REJECTED_FIELD_ERROR);
+}
+
+async function leaveOutcomeOpen() {
+  placeOrderAction.mockResolvedValue(
+    failedActionState({
+      formError: "いまは確定できません。",
+      kind: ErrorKind.UNAVAILABLE,
+    }),
+  );
+
+  await userEvent.click(radio("1 枚目のクーポン"));
+  await userEvent.click(screen.getByRole("button", { name: "注文を確定する" }));
+
+  return screen.findByText(LOCKED_MESSAGE);
 }
 
 beforeEach(() => {
@@ -128,6 +144,21 @@ describe("CouponChoices", () => {
     expect(group).not.toHaveAttribute("aria-describedby");
   });
 
+  it("結果の定まらない送信が無ければ、欄を操作できないとは示さず理由の文も出さない", () => {
+    renderChoices();
+
+    expect(screen.getByRole("radiogroup", { name: "クーポン" })).not.toHaveAttribute(
+      "aria-disabled",
+    );
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it("読み込みが済んだ後は、欄を操作できる", () => {
+    renderChoices();
+
+    expect(screen.getByRole("radiogroup", { name: "クーポン" })).toBeEnabled();
+  });
+
   it("a11y 自動検査に違反しない", async () => {
     const { container } = renderChoices();
 
@@ -161,6 +192,55 @@ describe("CouponChoices", () => {
     const { container } = renderChoices();
 
     await rejectSelected();
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it("拒まれても、欄を操作できないとは示さない", async () => {
+    renderChoices();
+
+    await rejectSelected();
+
+    expect(screen.getByRole("radiogroup", { name: "クーポン" })).not.toHaveAttribute(
+      "aria-disabled",
+    );
+  });
+
+  // ----- 確定の結果が定まらないとき -----
+  it("結果が定まらないあいだは、欄を操作できないと示し、その理由を欄の説明として結ぶ", async () => {
+    renderChoices();
+
+    const message = await leaveOutcomeOpen();
+    const group = screen.getByRole("radiogroup", { name: "クーポン" });
+
+    expect(group).toHaveAttribute("aria-disabled", "true");
+    expect(group).toHaveAttribute("aria-describedby", message.id);
+  });
+
+  it("結果が定まらないあいだは、どの選択肢も操作できないと示す", async () => {
+    renderChoices();
+
+    await leaveOutcomeOpen();
+
+    for (const choice of screen.getAllByRole("radio")) {
+      expect(choice).toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  it("結果が定まらないあいだに別のクーポンを押しても、選んでいたものから動かない", async () => {
+    renderChoices();
+
+    await leaveOutcomeOpen();
+    await userEvent.click(radio("2 枚目のクーポン"));
+
+    expect(radio("1 枚目のクーポン")).toBeChecked();
+    expect(radio("2 枚目のクーポン")).not.toBeChecked();
+  });
+
+  it("結果が定まらない状態でも a11y 自動検査に違反しない", async () => {
+    const { container } = renderChoices();
+
+    await leaveOutcomeOpen();
 
     expect((await axe(container)).violations).toEqual([]);
   });

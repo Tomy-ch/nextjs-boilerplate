@@ -28,12 +28,32 @@ export function newIdempotencyKey(): string {
   return newUuid();
 }
 
-const RETRYABLE_FAILURES: ReadonlySet<ErrorKind> = new Set([
-  ErrorKind.UNAVAILABLE,
-  ErrorKind.INTERNAL,
-  ErrorKind.TOO_MANY_REQUESTS,
-  ErrorKind.CANCELED,
-]);
+/**
+ * 失敗の分類ごとに、送信の結果が定まったか。
+ *
+ * @remarks
+ * 結果が定まらない失敗を「定まった」側へ倒すと、同じ送信の送り直しが新しい鍵で飛び、二重に成立し
+ * ます。
+ *
+ * 中断（`canceled`）は自動の再試行の対象にはなりませんが、届いたかどうかが分からない点で結果は
+ * 定まっていません。
+ */
+const SUBMISSION_OUTCOME = {
+  [ErrorKind.INVALID_ARGUMENT]: "settled",
+  [ErrorKind.UNAUTHENTICATED]: "settled",
+  [ErrorKind.PERMISSION_DENIED]: "settled",
+  [ErrorKind.NOT_FOUND]: "settled",
+  [ErrorKind.CONFLICT]: "settled",
+  [ErrorKind.VALIDATION]: "settled",
+  [ErrorKind.UNSUPPORTED_MEDIA_TYPE]: "settled",
+  [ErrorKind.PAYLOAD_TOO_LARGE]: "settled",
+  [ErrorKind.URI_TOO_LONG]: "settled",
+  [ErrorKind.TOO_MANY_REQUESTS]: "open",
+  [ErrorKind.CANCELED]: "open",
+  [ErrorKind.UNAVAILABLE]: "open",
+  [ErrorKind.UNIMPLEMENTED]: "settled",
+  [ErrorKind.INTERNAL]: "open",
+} as const satisfies Record<ErrorKind, "settled" | "open">;
 
 /**
  * 送信の結果が、その鍵の役目を終わらせたか。
@@ -43,7 +63,7 @@ const RETRYABLE_FAILURES: ReadonlySet<ErrorKind> = new Set([
  * 返します。次の送信は中身が変わり得るため、新しい鍵で送ります。
  *
  * 結果が定まらない失敗（利用不可・内部エラー・レート制限・中断）と、分類を持たない失敗では false
- * です。前者は同じ鍵で送り直すことこそ鍵の役目で、後者は結果を判断できないため鍵を保ちます。
+ * です。前者は同じ鍵で送り直すことこそ鍵の役目で、後者は送る前に止めたものとして扱い、鍵を保ちます。
  *
  * @param state - 直近の送信が返した結果
  * @returns 次の送信を新しい鍵で送るべきなら true
@@ -57,5 +77,26 @@ export function settlesSubmission(state: ActionState<unknown>): boolean {
     return false;
   }
 
-  return !RETRYABLE_FAILURES.has(state.kind);
+  return SUBMISSION_OUTCOME[state.kind] === "settled";
+}
+
+/**
+ * 直近の送信が、結果の定まらない失敗だったか。
+ *
+ * @remarks
+ * true のあいだ、次の送信は同じ鍵で同じ中身を送り直すものでなければなりません。受け取る側は同じ
+ * 鍵の再送を初回の結果として扱うため、中身を変えると、初回が成立していたときに変える前の中身の
+ * 結果が黙って返ります。
+ *
+ * 分類を持たない失敗は送る前に止めたものとして扱い、false を返します。
+ *
+ * @param state - 直近の送信が返した結果
+ * @returns 直近の送信が結果の定まらない失敗なら true
+ */
+export function leavesOutcomeOpen(state: ActionState<unknown>): boolean {
+  return (
+    state.status === "error" &&
+    state.kind !== undefined &&
+    SUBMISSION_OUTCOME[state.kind] === "open"
+  );
 }
