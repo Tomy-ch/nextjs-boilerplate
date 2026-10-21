@@ -196,6 +196,7 @@ describe("parseLine", () => {
     "<task-notification>違う</task-notification>",
     "<local-command-caveat>違う</local-command-caveat>",
     "<system-reminder>違う</system-reminder>",
+    "This session is being continued from a previous conversation. 違う",
   ])("差し込まれた本文 %s は、人の発話として出さない", (text) => {
     expect(parseLine(line({ type: "user", timestamp: AT, message: { content: text } }))).toEqual(
       [],

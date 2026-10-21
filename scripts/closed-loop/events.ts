@@ -72,13 +72,15 @@ const HUMAN_PROMPT_SOURCES: readonly string[] = ["typed", "suggestion_accepted",
  *
  * @remarks
  * `isMeta` の付いた行（スキル本文、別セッションからの通知）は構造で落ちるので、ここへは載せません。
- * 目印と鍵の 2 か所で同じ行を判定すると、片方を消してももう片方のテストが緑のまま残ります。
+ * 文脈圧縮の要約は `isCompactSummary` でも落ちますが、目印にも残します。鍵の付かない版の要約が
+ * 人の発話に混ざると、私的な要約が公開される読解の材料へ流れるためです。
  */
 const INJECTED_MARKERS: readonly string[] = [
   "<task-notification>",
   "<local-command-caveat>",
   "<command-name>",
   "<system-reminder>",
+  "This session is being continued from a previous conversation",
 ];
 
 /** ISO の時刻を epoch 秒にする。読めなければ 0。 */
