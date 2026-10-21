@@ -96,8 +96,10 @@ answers:
    `gh run view <run-id> --log-failed`. Scripts Check runs on `pull_request` and
    `workflow_dispatch` only, so before a PR exists this source is usually absent.
 2. **Candidates from the branch diff.** Callable exports in the files this branch touched that have
-   no sibling `<subject>.test.ts`. These are **unverified candidates**, not the gate's set: offer
-   them at Step 3, and let the user exclude what the declarations would have excluded.
+   no sibling `<subject>.test.ts`, or have one whose top-level `describe` does not name them. What
+   counts as callable is the gate's predicate in `scripts/lib/one-to-one.ts`; do not restate it here.
+   These are **unverified candidates**, not the gate's set: offer them at Step 3, and let the user
+   exclude what the declarations would have excluded.
 3. **A subject the user names.** When none of the above yields anything, stop and ask for one.
 
 Say in the report that the set was **not checked against the 1:1 gate**, and which source it came
