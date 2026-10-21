@@ -22,8 +22,13 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 - **複数の error 境界が共有する組み立て**（`boundary-feedback.ts`）。境界が受け取った失敗を表示できる形と
   再試行の導線へ組む 1 か所で、バージョンが揃わない失敗（[docs/rules.ja.md](../../docs/rules.ja.md#forms)）
   の扱いをここだけが持つ。境界ごとに書くと、その扱いが 1 か所だけ古くなる。テストは `unit` として扱う
+- **セクションの Server Action が共有する主体の断言**（`<section>/assert-<role>.ts`）。各 action は自分のエントリポイントで主体を
+  改めて確かめ、`actions.ts` ごとに書くと 1 つのコピーだけが動く。このレイヤーに置くのは、`adapters/server/auth` を
+  引けるのが `app` と `adapters` だけだからである（共有する形は *運用* にある）。バックエンドが session を拒んだときに
+  それらの action が共有する redirect はその隣に置く（`<section>/redirect-if-unauthenticated.ts`）。どちらも同じ戻り先を
+  持ってログインへ送るためである。テストは `unit` として扱う
 - **並行 route の slot**（`@<name>/`）。page から layout へ props は渡せないので、画面ごとに違う値をレイアウトシェルへ
-  届ける橋は slot になる（現在地までの階層など）。`default.tsx` を置き、階層を持たない画面にも空を返す
+  届けるブリッジは slot になる（現在地までの階層など）。`default.tsx` を置き、階層を持たない画面にも空を返す
   slot を route ごとに置く —— soft navigation では直前の slot が残るためで、落とし穴は
   [docs/design/rendering.md](../../docs/design/rendering.ja.md) が持つ
 - **metadata ファイル**（`sitemap.ts` / `robots.ts` / `icon.tsx` / `apple-icon.tsx` /
@@ -276,10 +281,24 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   303 にします（302 のままだと、戻した先をブラウザが POST で開き直しうる）。本体の大きさの上限も
   受信エンドポイントが自分で持ちます —— `next.config.ts` の `bodySizeLimit` は Server Action にしか及びません
 
-- **Server Action の形は同じです。** ファイルごとに断言の補助（`assertXxx`）を 1 つ持ち、export する
-  action の先頭で呼びます。断言に失敗したら**投げずに `ActionState` として返します**
-  （`actionStateFromError`）—— 失敗は操作の隣に出すもので、境界へ抜けさせません。続いて feature の
-  parser で送信を解き、`adapters/server` を呼び、結果を返します。項目ごとの誤りがあるときは全体の文言を
+- **Server Action の形は同じです。** export する action はそれぞれ、先頭で断言の補助（`assertXxx`）を呼びます。
+  **同じ主体を要求する action が並ぶセクションは、その補助をセクションの根に 1 つだけ持ち**
+  （`<section>/assert-<role>.ts`）、配下の `actions.ts` はどれもそれを呼びます —— すべてのエンドポイントが持つべき確認を
+  ファイルごとに書くと、1 つのコピーだけが食い違っていきます。補助は session の無い要求と、役割を持たない session を
+  別に扱います。**session が無ければ、フォームのある画面を戻り先として持たせてログインへ redirect します**（`loginPath`）
+  —— `401` は認証し直して要求を繰り返すことで解消するもので（[RFC 9110 §15.5.2](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2)）、
+  フォームの隣に出しても利用者にはそこでできることがありません。各 action はその画面のパスを渡します。1 件ごとの画面を持つ
+  action はセクションの一覧を渡します —— 対象の 1 件は送信を解いて初めて分かり、それは断言より後だからです。
+  `redirect()` は投げて抜けるので、action の `catch` はまず `unstable_rethrow` へエラーを渡します。**役割が無ければ
+  `PERMISSION_DENIED` を投げ、action はそれを素通りさせず `ActionState` として返します**（`actionStateFromError`）—— 失敗は
+  カタログの汎用の文言で操作の隣に出し、その文言は役割が足りないとは言いません
+  （[docs/rules.ja.md](../../docs/rules.ja.md#authorization)）。続いて feature の
+  parser で送信を解き、`adapters/server` を呼び、結果を返します。**adapter が `UNAUTHENTICATED` で失敗したとき（バックエンドが
+  `401` を返した）は、`ActionState` を返さず、断言へ渡したのと同じ戻り先を持たせてログインへ redirect します** —— 断言が
+  通した session をバックエンドがもう受け付けておらず、同じ理屈が当てはまります。セクションはこの確認を断言の隣に 1 つだけ
+  持ち（`<section>/redirect-if-unauthenticated.ts`）、各 action は adapter の呼び出しを囲む `catch` の中で、種類ごとの
+  対応づけより先にそれを呼びます。`try` ではなく `catch` で走らせるので、redirect は捕まりません。複数件を順に送り、
+  1 件でも通ったら取り直させる action は、この redirect より前にそれを済ませます。項目ごとの誤りがあるときは全体の文言を
   出しません（要約が同じことを言い、同じ指摘が 2 か所に並ぶ）。カタログのデフォルト文言は分類しか伝えないので、
   拒まれた理由がその画面でしか言えないとき（バージョンの競合、進行中の関連が残っている）だけ画面固有の文言を
   当てます。成立した後にどこへ送るかは 3 通りです:

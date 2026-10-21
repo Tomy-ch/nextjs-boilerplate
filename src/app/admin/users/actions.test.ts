@@ -2,15 +2,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { ADMIN_USER_LIST_PATH } from "@/features/admin/paths";
 import { WITHDRAW_CONFLICT_MESSAGE } from "@/features/admin/users/form-state";
+import { loginPath } from "@/features/auth/facade/paths";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
 
-const { verifySession, withdrawUser } = vi.hoisted(() => ({
+const { redirect, unstable_rethrow, verifySession, withdrawUser } = vi.hoisted(() => ({
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
+  unstable_rethrow: vi.fn((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+      throw error;
+    }
+  }),
   verifySession: vi.fn(),
   withdrawUser: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/users", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/users")>()),
@@ -58,6 +69,15 @@ describe("withdrawUserAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、送らずにこの画面へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValue(null);
+
+    await expect(withdrawUserAction(idleActionState(), withdrawForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath(ADMIN_USER_LIST_PATH)}`,
+    );
+    expect(withdrawUser).not.toHaveBeenCalled();
+  });
+
   it("役割が足りなければ送らずに拒む", async () => {
     verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
@@ -97,6 +117,15 @@ describe("withdrawUserAction", () => {
       kind: ErrorKind.CONFLICT,
       formError: `${USER_NAME} は${WITHDRAW_CONFLICT_MESSAGE}`,
     });
+  });
+
+  it("接続先が認証切れで拒んだら、この画面へ戻る入り直しへ送る", async () => {
+    withdrawUser.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(withdrawUserAction(idleActionState(), withdrawForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath(ADMIN_USER_LIST_PATH)}`,
+    );
+    expect(withdrawUser).toHaveBeenCalledTimes(1);
   });
 
   it("競合以外の失敗は、分類ごとの既定の文言で返す", async () => {

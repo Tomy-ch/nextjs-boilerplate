@@ -1,35 +1,22 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
 import { postInquiryReply } from "@/adapters/server/api/inquiries";
-import { verifySession } from "@/adapters/server/auth/session";
-import { createAppError } from "@/errors/app-error";
-import { ErrorKind } from "@/errors/error-kind";
 import { REPLY_BODY_FIELD } from "@/features/admin/inquiries/form-names";
 import type { AdminInquiryReplyState } from "@/features/admin/inquiries/form-state";
 import { REPLY_MALFORMED_MESSAGE } from "@/features/admin/inquiries/form-state";
 import { parseAdminInquiryReplyForm } from "@/features/admin/inquiries/parse-reply-form";
-import { adminInquiryDetailPath } from "@/features/admin/paths";
+import { ADMIN_INQUIRY_LIST_PATH, adminInquiryDetailPath } from "@/features/admin/paths";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { isAdmin } from "@/model/authz";
 
-/**
- * 役割を持たない主体の要求をここで止める。
- *
- * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
- */
-async function assertAdmin(): Promise<void> {
-  if (!isAdmin(await verifySession())) {
-    throw createAppError(ErrorKind.PERMISSION_DENIED, {
-      cause: new Error("管理の操作に必要な役割がありません"),
-    });
-  }
-}
+import { assertAdmin } from "../assert-admin";
+import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * 問い合わせへ回答を 1 通送る。
@@ -50,8 +37,10 @@ export async function replyInquiryAction(
   formData: FormData,
 ): Promise<AdminInquiryReplyState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_INQUIRY_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -66,6 +55,8 @@ export async function replyInquiryAction(
   try {
     await postInquiryReply(parsed.inquiryId, parsed.body, parsed.idempotencyKey);
   } catch (error) {
+    redirectIfUnauthenticated(error, ADMIN_INQUIRY_LIST_PATH);
+
     return actionStateFromError(error);
   }
 

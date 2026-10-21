@@ -31,6 +31,11 @@ The App Router's driving adapter. `page.tsx` and `layout.tsx` call features thin
 - **Assembly shared by several error boundaries** (`boundary-feedback.ts`). The one place that turns a failure a boundary received into a displayable shape and
   a retry link, and the only place that handles failures from mismatched versions ([docs/rules.md](../../docs/rules.md#forms)).
   Written per boundary, that handling goes stale in one place only. Tests are treated as `unit`
+- **The principal assertion shared by a section's Server Actions** (`<section>/assert-<role>.ts`). Each action checks the principal
+  again at its own entry point, and written per `actions.ts` only one copy moves. It sits in this layer because only `app` and
+  `adapters` can take `adapters/server/auth` (the shape it shares is under *Operations*). The redirect those actions share when the
+  backend rejects the session sits beside it (`<section>/redirect-if-unauthenticated.ts`), since both send to sign-in with the same
+  return destination. Tests are treated as `unit`
 - **Parallel route slots** (`@<name>/`). A page cannot pass props to a layout, so the bridge that delivers per-screen values to the layout shell
   is a slot (such as the hierarchy down to the current location). Place a `default.tsx`, and place per route a slot that returns empty even for screens with no
   hierarchy — in a soft navigation the previous slot remains, and the pitfall is held by
@@ -284,10 +289,24 @@ allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-whe
   uses 303 (left as 302, the browser may reopen the destination with a POST). The body size limit is also
   held by the receiving endpoint itself — `bodySizeLimit` in `next.config.ts` reaches only Server Actions
 
-- **Server Actions share one shape.** Each file holds one assertion helper (`assertXxx`), called at the start of
-  each exported action. When the assertion fails, **return it as an `ActionState` rather than throwing**
-  (`actionStateFromError`) — a failure is shown next to the operation and is not allowed through to the boundary. Then parse the submission with the feature's
-  parser, call `adapters/server`, and return the result. When there are per-field errors, the overall message is
+- **Server Actions share one shape.** Each exported action starts by calling an assertion helper (`assertXxx`).
+  **A section whose actions require the same principal holds that helper once, at the section's root**
+  (`<section>/assert-<role>.ts`), and every `actions.ts` beneath it calls it — written per file, a check every entry point must hold
+  drifts apart in one copy. The helper treats a request with no session and a session without the role differently.
+  **With no session it redirects to sign-in, carrying the screen the form lives on as the return destination** (`loginPath`) — a
+  `401` is resolved by authenticating again and repeating the request ([RFC 9110 §15.5.2](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2)),
+  and shown next to the form it leaves the user nothing to do there. Each action passes that screen's path; an action whose screen is per item
+  passes its section's list, because the item is known only after the submission is parsed, which comes after the assertion.
+  `redirect()` exits by throwing, so the action's `catch` passes the error to `unstable_rethrow` first. **Without the role it throws
+  `PERMISSION_DENIED`, and the action returns it as an `ActionState` rather than letting it through** (`actionStateFromError`) — the
+  failure is shown next to the operation with the catalog's generic text, which does not say the role is insufficient
+  ([docs/rules.md](../../docs/rules.md#authorization)). Then parse the submission with the feature's
+  parser, call `adapters/server`, and return the result. **When the adapter fails with `UNAUTHENTICATED` (the backend answered
+  `401`), the action redirects to sign-in with the same return destination it passed to the assertion, rather than returning an
+  `ActionState`** — the backend no longer accepts the session the assertion let through, and the same reasoning applies. The section holds this
+  check once beside the assertion (`<section>/redirect-if-unauthenticated.ts`), and each action calls it first in the `catch` around
+  the adapter call, before any per-kind mapping; it runs in the `catch` rather than the `try`, so the redirect is not caught. An action
+  that sends several items in order and revalidates when one went through does so before this redirect. When there are per-field errors, the overall message is
   not shown (the summary would say the same thing, and the same point would appear in two places). The catalog's default text conveys only the classification, so
   screen-specific text is applied only when the reason for rejection can be stated only on that screen (a version conflict, related work still in progress).
   Where to send after success has three cases:

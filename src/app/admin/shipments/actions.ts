@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { unstable_rethrow } from "next/navigation";
 
 import { deliverPurchase, shipPurchase } from "@/adapters/server/api/purchases";
-import { verifySession } from "@/adapters/server/auth/session";
-import { createAppError, findAppError } from "@/errors/app-error";
+import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
@@ -20,20 +20,9 @@ import {
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { isAdmin } from "@/model/authz";
 
-/**
- * 役割を持たない主体の要求をここで止める。
- *
- * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
- */
-async function assertAdmin(): Promise<void> {
-  if (!isAdmin(await verifySession())) {
-    throw createAppError(ErrorKind.PERMISSION_DENIED, {
-      cause: new Error("管理の操作に必要な役割がありません"),
-    });
-  }
-}
+import { assertAdmin } from "../assert-admin";
+import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * 送信から発送する購入を取り出す。1 件も載っていなければ空の並び。
@@ -52,7 +41,7 @@ type ShipmentProgress = {
   readonly shipped: number;
   readonly refused: number;
   /** 打ち切った理由。最後まで送れば null。 */
-  readonly abort: ShipmentState | null;
+  readonly abort: { readonly error: unknown } | null;
 };
 
 /**
@@ -84,7 +73,7 @@ async function shipEach(purchaseCodes: readonly string[]): Promise<ShipmentProgr
       shipped += 1;
     } catch (error) {
       if (findAppError(error)?.kind !== ErrorKind.CONFLICT) {
-        return { shipped, refused, abort: actionStateFromError(error) };
+        return { shipped, refused, abort: { error } };
       }
 
       refused += 1;
@@ -120,8 +109,10 @@ export async function shipPurchasesAction(
   formData: FormData,
 ): Promise<ShipmentState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_SHIPMENT_QUEUE_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -138,7 +129,9 @@ export async function shipPurchasesAction(
   }
 
   if (abort !== null) {
-    return abort;
+    redirectIfUnauthenticated(abort.error, ADMIN_SHIPMENT_QUEUE_PATH);
+
+    return actionStateFromError(abort.error);
   }
 
   if (shipped === 0) {
@@ -170,8 +163,10 @@ export async function deliverPurchaseAction(
   formData: FormData,
 ): Promise<DeliveryState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_SHIPMENT_QUEUE_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -184,6 +179,8 @@ export async function deliverPurchaseAction(
   try {
     await deliverPurchase(purchaseCode);
   } catch (error) {
+    redirectIfUnauthenticated(error, ADMIN_SHIPMENT_QUEUE_PATH);
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: DELIVERY_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
     }

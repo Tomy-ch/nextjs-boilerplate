@@ -7,16 +7,27 @@ import {
   SHIPMENT_CONFLICT_MESSAGE,
   SHIPMENT_TARGET_LOST_MESSAGE,
 } from "@/features/admin/shipments/form-state";
+import { loginPath } from "@/features/auth/facade/paths";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
-const { deliverPurchase, revalidatePath, shipPurchase, verifySession } = vi.hoisted(() => ({
-  deliverPurchase: vi.fn(),
-  revalidatePath: vi.fn(),
-  shipPurchase: vi.fn(),
-  verifySession: vi.fn<() => Promise<Session | null>>(),
-}));
+const { deliverPurchase, redirect, revalidatePath, shipPurchase, unstable_rethrow, verifySession } =
+  vi.hoisted(() => ({
+    deliverPurchase: vi.fn(),
+    redirect: vi.fn((path: string) => {
+      throw new Error(`NEXT_REDIRECT:${path}`);
+    }),
+    revalidatePath: vi.fn(),
+    shipPurchase: vi.fn(),
+    unstable_rethrow: vi.fn((error: unknown) => {
+      if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+        throw error;
+      }
+    }),
+    verifySession: vi.fn<() => Promise<Session | null>>(),
+  }));
 
+vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
@@ -90,6 +101,15 @@ describe("shipPurchasesAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、発送を試みずにこの画面へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValue(null);
+
+    await expect(shipPurchasesAction(idleActionState(), shipmentForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/shipments")}`,
+    );
+    expect(shipPurchase).not.toHaveBeenCalled();
+  });
+
   it("役割が足りない主体の要求を、発送を試みる前に止める", async () => {
     verifySession.mockResolvedValue(session(SESSION_ROLE.user));
 
@@ -149,6 +169,17 @@ describe("shipPurchasesAction", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
   });
 
+  it("接続先が認証切れで拒んだら、そこまでの発送を反映させたうえで、この画面へ戻る入り直しへ送る", async () => {
+    shipPurchase.mockResolvedValueOnce(undefined);
+    shipPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(shipPurchasesAction(idleActionState(), shipmentForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/shipments")}`,
+    );
+    expect(shipPurchase).toHaveBeenCalledTimes(2);
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+  });
+
   it("1 件も通らずに打ち切ったときは取り直させない", async () => {
     shipPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAVAILABLE));
 
@@ -180,6 +211,15 @@ describe("deliverPurchaseAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、要求を送らずにこの画面へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValueOnce(null);
+
+    const pending = deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    await expect(pending).rejects.toThrow(`NEXT_REDIRECT:${loginPath("/admin/shipments")}`);
+    expect(deliverPurchase).not.toHaveBeenCalled();
+  });
+
   it("役割が無ければ、要求を送らずに拒む", async () => {
     verifySession.mockResolvedValueOnce(session(SESSION_ROLE.user));
 
@@ -202,6 +242,16 @@ describe("deliverPurchaseAction", () => {
     const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
     expect(state).toMatchObject({ status: "error", formError: DELIVERY_CONFLICT_MESSAGE });
+  });
+
+  it("接続先が認証切れで拒んだら、取り直させずにこの画面へ戻る入り直しへ送る", async () => {
+    deliverPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    const pending = deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
+
+    await expect(pending).rejects.toThrow(`NEXT_REDIRECT:${loginPath("/admin/shipments")}`);
+    expect(deliverPurchase).toHaveBeenCalledTimes(1);
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("競合以外の失敗では、一覧を取り直させない", async () => {
