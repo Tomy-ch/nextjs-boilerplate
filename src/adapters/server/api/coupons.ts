@@ -56,7 +56,9 @@ export async function readMyCartCoupons(): Promise<readonly CartCoupon[] | null>
   try {
     return await getMyCartCoupons();
   } catch (cause) {
-    reportQuietly(() => getLogger().warn("使えるクーポンを読めませんでした", { cause: String(cause) }));
+    reportQuietly(() =>
+      getLogger().warn("使えるクーポンを読めませんでした", { cause: String(cause) }),
+    );
 
     return null;
   }

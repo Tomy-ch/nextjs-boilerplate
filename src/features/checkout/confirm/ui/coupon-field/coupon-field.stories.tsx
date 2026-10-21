@@ -67,7 +67,9 @@ export const Rejected: Story = {
     mocked(placeOrderAction).mockResolvedValue(
       failedActionState({
         formError: "選んだクーポンを使えなかったため、注文は確定していません。",
-        fieldErrors: { [COUPON_ID_FIELD]: ["このクーポンは使えなくなりました。選び直してください。"] },
+        fieldErrors: {
+          [COUPON_ID_FIELD]: ["このクーポンは使えなくなりました。選び直してください。"],
+        },
       }),
     );
   },
