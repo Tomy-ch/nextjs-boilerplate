@@ -105,6 +105,56 @@ describe("parseLine", () => {
     ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
   });
 
+  it.each([
+    { origin: { kind: "human" } },
+    { promptSource: "typed" },
+    { promptSource: "suggestion_accepted" },
+    { promptSource: "queued" },
+  ])("出所を人と示す行 %o は、人の発話として出す", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it.each([
+    { origin: { kind: "peer" } },
+    { origin: { kind: "task-notification" } },
+    { promptSource: "system" },
+    { promptSource: "未知の値" },
+  ])("出所を人以外と示す行 %o は、isMeta が無くても人の発話として出さない", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "違う" } })),
+    ).toEqual([]);
+  });
+
+  it("origin.kind が人を示せば、promptSource より優先する", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: { kind: "human" },
+          promptSource: "system",
+          message: { content: "直して" },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it("origin が物でなければ、promptSource で決める", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: "human",
+          promptSource: "system",
+          message: { content: "直して" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
   it("文脈圧縮の要約は、人の発話として出さない", () => {
     expect(
       parseLine(

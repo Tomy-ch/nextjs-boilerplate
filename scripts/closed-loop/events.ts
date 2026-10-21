@@ -36,7 +36,10 @@ type Line = {
   readonly message?: unknown;
   readonly isMeta?: unknown;
   readonly isCompactSummary?: unknown;
+  readonly origin?: unknown;
+  readonly promptSource?: unknown;
 };
+type Origin = { readonly kind?: unknown };
 type Message = { readonly content?: unknown };
 type SkillInput = { readonly skill?: unknown };
 type Block = {
@@ -60,6 +63,9 @@ const COMMAND_NAME_RE = /<command-name>\/?[a-z0-9-]+<\/command-name>/g;
 
 /** 人が実行を中断したときに記録へ入る綴り。 */
 const INTERRUPTION_MARK = "[Request interrupted";
+
+/** 人が入力したことを示す `promptSource` の値。 */
+const HUMAN_PROMPT_SOURCES: readonly string[] = ["typed", "suggestion_accepted", "queued"];
 
 /**
  * `isMeta` を持たずに差し込まれる本文の目印。
@@ -199,6 +205,34 @@ export function parseLine(line: string): readonly Event[] {
 }
 
 /**
+ * 記録の 1 行の出所が人か。
+ *
+ * @param record - 記録の 1 行
+ * @returns 出所が人なら true
+ *
+ * @remarks
+ * 出所を正で示す鍵（`origin.kind` / `promptSource`）を持つ行はそれだけで決め、知らない値は人と
+ * しません。鍵は新しい版の行にしか無いので、持たない行だけ `isMeta` / `isCompactSummary` の
+ * 除外で決めます。
+ */
+function isHumanOrigin(record: Line): boolean {
+  const kind =
+    typeof record.origin === "object" && record.origin !== null
+      ? (record.origin as Origin).kind
+      : undefined;
+
+  if (typeof kind === "string") {
+    return kind === "human";
+  }
+
+  if (typeof record.promptSource === "string") {
+    return HUMAN_PROMPT_SOURCES.includes(record.promptSource);
+  }
+
+  return record.isMeta !== true && record.isCompactSummary !== true;
+}
+
+/**
  * 記録の 1 行が人の打った発話か。
  *
  * @param record - 記録の 1 行
@@ -206,13 +240,11 @@ export function parseLine(line: string): readonly Event[] {
  * @returns 人の発話なら true
  *
  * @remarks
- * 人の発話を正で示す鍵（`origin.kind` / `promptSource`）は新しい版の行にしか無く、古い行の人の発話を
- * 落とします。だから、差し込み・圧縮の要約・道具の結果・中断に当たらないものを人の発話とします。
+ * 出所が人でも、道具の結果だけの行・中断の綴り・`/<名前>` の起動は発話に数えません。
  */
 function isHumanPrompt(record: Line, text: string): boolean {
   return (
-    record.isMeta !== true &&
-    record.isCompactSummary !== true &&
+    isHumanOrigin(record) &&
     text !== "" &&
     !text.includes(INTERRUPTION_MARK) &&
     !INJECTED_MARKERS.some((marker) => text.includes(marker))
