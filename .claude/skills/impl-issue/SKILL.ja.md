@@ -578,6 +578,8 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 | `test-review` | 範囲・レビュアーのモデル | 範囲の問い |
 | `settle-comments` | 範囲**と適用モード** | 範囲と適用モードの問い |
 | `resolve-merge` | base | base の解決 |
+| `manage-skill` | 承認済みの計画が名指しする操作・スキル・系統 | Step 1 の操作の確認 |
+| `canonicalize-doc` | 対の各パスと方向 | Step 0 の入力の確認 |
 
 **どの行も必須である。**1 つ欠けると、本スキルが既に決めた関所が復活する。項目ごとに確認するのが
 デフォルトのサブスキル —— `settle-comments` が要注意 —— は、適用モードが届かなければまさにそれをする。

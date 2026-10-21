@@ -611,6 +611,8 @@ payload so the sub-skill skips its own gate.
 | `test-review` | Scope, reviewer model | Its scope question |
 | `settle-comments` | Scope **and apply mode** | Its scope and apply-mode questions |
 | `resolve-merge` | The base | Its base resolution |
+| `manage-skill` | The operation, the skill, and its family, as the approved plan names them | Its Step 1 operation confirmation |
+| `canonicalize-doc` | The pair's paths and the direction | Its Step 0 input confirmation |
 
 **Every row is required, because a missing one reinstates a gate this skill already settled.** A
 sub-skill whose default is to confirm per item — `settle-comments` is the one to watch — will do exactly
