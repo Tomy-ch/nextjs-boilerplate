@@ -50,7 +50,8 @@ operationIds used.
 | `GetCartsMe` | The cart before confirmation. Read once more right before confirming to rebuild the lines |
 | `GetUsersMe` | The destination. Uses the registration data as is |
 | `GetExchangeRates` | The reference conversion. The purchase is not stopped if it cannot be read |
-| `PostPurchases` | Confirming the purchase. Carries an idempotency key |
+| `GetCartsMeCoupons` | The coupons usable on the current cart, with the discount each would give. The purchase is not stopped if they cannot be read |
+| `PostPurchases` | Confirming the purchase. Carries an idempotency key, and the chosen coupon when there is one |
 | `GetPurchasesDetail` | The purchase the completion screen refetches |
 | `PutCartsMeItem` | When a price change is acknowledged, re-sets that line at its current quantity |
 | `DeleteCartsMeItem` | After success, removes the purchased lines from the cart |
@@ -83,21 +84,24 @@ What belongs to neither screen sits directly under the slice, not under a screen
 | `actions.ts` | The purchase confirmation Server Action. Holds only orchestration and classification; `adapters` does the communication |
 | `__mocks__/actions.ts` | Replacing the Server Action in the catalog |
 | `form-state.ts` | The confirmation's return type. Closes `ActionState<T>` in this screen's shape |
-| `form-fields.ts` | The name of the form field carrying the signal that a price change was acknowledged |
+| `form-fields.ts` | The names of the form fields carrying the price-change acknowledgment and the chosen coupon |
 | `order.ts` | Extracting the lines to put on the purchase, and judging which lines changed price |
 | `checkout.fixture.ts` | A fixed cart and purchase read by stories and tests |
 | `paths.ts` | The completion screen's location, and the search conditions put on it |
 | `facade/paths/` | The checkout entry point. The cart draws on it as its destination |
-| `confirm/page-content.tsx` | Parallel fetching of the cart and registration data, adding the reference conversion |
+| `confirm/page-content.tsx` | Parallel fetching of the cart, registration data and usable coupons, adding the reference conversion |
 | `confirm/view.tsx` | The purchase confirmation display. Splits contents and summary left and right |
 | `confirm/ui/shipping-card/` | Checking the destination, and the path to change it in the registration data |
 | `confirm/ui/order-lines/` | Restating what will be confirmed, and the path back to the cart |
 | `confirm/ui/order-line-row/` | One restated line. The issue display is borrowed from `cart`'s [`facade/line-issues/`](../cart/facade/line-issues/) |
+| `confirm/ui/coupon-field/` | The coupon field. Renders each candidate's face value, scope, discount amount as received, and expiry on the server |
+| `confirm/ui/coupon-choices/` | The client receiver of the coupon field: the radio group, "do not use", and the refusal shown on the group. The candidates arrive as children |
+| `confirm/ui/coupon-estimate/` | The estimated discount row in the summary for the chosen coupon. Not subtracted from the subtotal |
 | `confirm/ui/order-summary/` | Subtotal, notes and the confirming operation. The caller decides the container |
 | `confirm/ui/place-order-form/` | The confirming submission. The form that sends as is |
 | `confirm/ui/price-change-confirm/` | The form that checks before sending when a price changed |
 | `confirm/ui/place-order-submit/` | The submit part and the failure display. Shared by the two forms |
-| `confirm/ui/place-order-state/` | The container that holds the confirmation's submission state once on the screen and distributes it to the two forms |
+| `confirm/ui/place-order-state/` | The container that holds the confirmation's submission state and the chosen coupon once on the screen and distributes them to the two forms |
 | `confirm/ui/skeleton/` | The purchase confirmation loading UI |
 | `complete/page-content.tsx` | Fetching the purchase that succeeded. `not-found` if what it points at cannot be read |
 | `complete/purchase-code.ts` | Reads the purchase the completion screen shows from the search conditions |
@@ -133,6 +137,9 @@ How idempotency keys and submissions without the acknowledgment signal are handl
 - [ ] The Action stops a submission without the acknowledgment signal
 - [ ] The completion is shown even if the cleanup (removing from the cart) fails
 - [ ] Confirmation works even when the reference conversion cannot be read
+- [ ] Confirmation works with no usable coupon and when the coupons cannot be read
+- [ ] Coupon discount amounts are shown as received, never computed on the screen
+- [ ] A coupon refused at confirmation refetches the candidates so another can be chosen
 - [ ] There is one idempotency key per assembly of the screen
 
 ## Design Decisions
@@ -153,7 +160,13 @@ showing would allow confirming on stale assumptions even if stock or prices chan
 open.
 
 **One idempotency key is made per assembly of the screen.** Pressing twice or resending via a reload still leaves
-one purchase, and reopening the screen with the intent to buy again gives a different key.
+one purchase, and reopening the screen with the intent to buy again gives a different key. A refusal that
+settles the submission (a refused coupon, a conflict) renews the key, because the next submission may differ.
+
+**A confirmation sent before hydration carries no coupon.** The coupon choices sit in the body column, outside
+the two confirming forms (the side summary and the bottom band), so the chosen coupon reaches a form as a hidden
+input written from the shared submission state. A `form` attribute cannot tie one radio group to two forms. The
+confirmation itself still submits without JavaScript; only the coupon waits for hydration.
 
 **On success, the user is sent to a different URL.** Showing the completion on the same screen would make a
 reload erase the completion and the back operation return to the pre-confirmation screen. The completion screen

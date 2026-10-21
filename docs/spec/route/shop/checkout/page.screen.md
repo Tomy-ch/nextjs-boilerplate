@@ -11,7 +11,7 @@ The screen where the user checks the shipping address and the order contents and
 | お届け先 (Shipping address) | Name, address and phone number, and a link to go change the registered information |
 | ご注文内容 (Order contents) | The line items restated (product name, unit price, quantity, and the conditions flagged on that row), and a link back to the cart |
 | クーポン (Coupon) | The coupons usable on the current cart, each with its face value, scope, discount amount and expiry, and the choice not to use one |
-| Summary | Subtotal, the reference converted amount toggle, notes, and the confirm operation |
+| Summary | Subtotal, the reference converted amount toggle, the estimated coupon discount when one is chosen, notes, and the confirm operation |
 
 ## Restating the Line Items
 
@@ -49,9 +49,11 @@ can be compared without opening anything. The amount is the one the backend retu
 **"Do not use" comes first, and nothing is chosen at the start.** A radio cannot be cleared once chosen; without an option to not use one,
 a user who chose a coupon could not go back to buying without it. The choice takes effect when made — there is no separate "apply" operation.
 
-**The discount is not added into the summary.** The amount can change by the time the order is placed, and a total that included it would be
-an amount this screen cannot promise. One sentence under the field says the discount is decided at confirmation and is not in the total;
-the completion screen shows the amount actually applied.
+**The summary shows the chosen coupon's discount as an estimate, and does not subtract it.** A row labelled as an estimate carries the
+amount listed for the chosen candidate, in both the side summary and the bottom band, so the choice is confirmed where the amounts are read.
+The subtotal stays as the backend returned it: the amount can change by the time the order is placed, and a subtracted figure would be an
+amount this screen cannot promise. One sentence under the field says so, and one beside the estimate row says the discount is decided at
+confirmation, so the band at narrow widths carries the reason next to the amount. The completion screen shows the amount actually applied.
 
 **The field is placed once, at the end of the body column.** Placing it in the summary would put the same choice in both the side summary and the bottom band.
 

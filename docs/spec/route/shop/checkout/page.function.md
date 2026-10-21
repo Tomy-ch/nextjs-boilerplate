@@ -61,11 +61,13 @@ A coupon that would discount nothing at that moment refuses the order rather tha
 stale premises even if stock or prices changed while the screen was left open.
 
 **One idempotency key is created each time the screen is assembled.** Pressing twice or resubmitting by reloading still leaves one
-purchase. Reopening the screen with the intent to buy again gives a different key.
+purchase. Reopening the screen with the intent to buy again gives a different key. **Once the order is refused — a coupon that cannot be used, or a
+conflict in stock or price — the next submission takes a new key**, since it may carry different content. A failure whose outcome is unknown
+(the backend unavailable, an internal error) keeps the key so the same submission can be resent.
 
 **A coupon refused at confirmation refetches the candidates.** Every reason the backend refuses one for (expired, used, not held, zero
-discount) is a coupon the next fetch no longer lists, so the user chooses again from what is current. The same idempotency key can be
-resent: a refused request leaves no purchase behind.
+discount) is a coupon the next fetch no longer lists, so the user chooses again from what is current. The next submission takes a new
+idempotency key, as above.
 
 If stock runs short at the moment of placing the order, it comes back as a failure. This margin remains even after passing the cart's
 re-evaluation.

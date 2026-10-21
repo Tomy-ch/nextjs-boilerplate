@@ -45,7 +45,8 @@
 | `GetCartsMe` | 確定前のカート。確定の直前にもう一度読み、明細を組み直す |
 | `GetUsersMe` | 届け先。登録情報をそのまま使う |
 | `GetExchangeRates` | 参考換算額。読めなくても購入を止めない |
-| `PostPurchases` | 購入の確定。冪等キーを載せる |
+| `GetCartsMeCoupons` | いまのカートに使えるクーポンと、それぞれの値引き額。読めなくても購入を止めない |
+| `PostPurchases` | 購入の確定。冪等キーと、選んでいればクーポンを載せる |
 | `GetPurchasesDetail` | 完了画面が取り直す購入 |
 | `PutCartsMeItem` | 値の変更を承知したとき、その明細を今の数量で設定し直す |
 | `DeleteCartsMeItem` | 成立の後、購入した明細をカートから取り除く |
@@ -78,21 +79,24 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 | `actions.ts` | 購入確定の Server Action。編成と分類だけを持ち、通信は `adapters` が行う |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
 | `form-state.ts` | 確定の戻り値の型。`ActionState<T>` をこの画面の形で閉じる |
-| `form-fields.ts` | 値の変更を承知した合図を載せるフォーム項目の名前 |
+| `form-fields.ts` | 値の変更を承知した合図と、選んだクーポンを載せるフォーム項目の名前 |
 | `order.ts` | 購入に載せる明細の取り出しと、金額が変わった明細の判定 |
 | `checkout.fixture.ts` | story とテストが読む固定のカートと購入 |
 | `paths.ts` | 完了画面の場所と、そこへ載せる検索条件 |
 | `facade/paths/` | 購入手続きのエントリポイント。カートが送る先に引く |
-| `confirm/page-content.tsx` | カートと登録情報の並行取得、参考換算額の付与 |
+| `confirm/page-content.tsx` | カート・登録情報・使えるクーポンの並行取得、参考換算額の付与 |
 | `confirm/view.tsx` | 購入確認の表示。内容と集計を左右に分ける |
 | `confirm/ui/shipping-card/` | 届け先の確認と、登録情報へ変えに行く導線 |
 | `confirm/ui/order-lines/` | 確定する内容の再掲と、カートへ戻る導線 |
 | `confirm/ui/order-line-row/` | 再掲の 1 行。事情の表示は `cart` の [`facade/line-issues/`](../cart/facade/line-issues/) を借りる |
+| `confirm/ui/coupon-field/` | クーポンの欄。候補ごとの額面・範囲・受け取ったままの値引き額・有効期限を server でレンダリングする |
+| `confirm/ui/coupon-choices/` | クーポンの欄の client 側の受信エンドポイント。radio group・「使わない」・グループに出す拒否の表示。候補は children で届く |
+| `confirm/ui/coupon-estimate/` | 選んだクーポンについて集計に出す値引きの見込みの行。小計からは差し引かない |
 | `confirm/ui/order-summary/` | 小計・注記・確定の操作。器は呼び出し元が決める |
 | `confirm/ui/place-order-form/` | 確定の送信。そのまま送る姿 |
 | `confirm/ui/price-change-confirm/` | 金額が変わったときに確かめてから送る姿 |
 | `confirm/ui/place-order-submit/` | 送信部と失敗の表示。2 つの姿が共有する |
-| `confirm/ui/place-order-state/` | 確定の送信状態を画面に 1 つだけ置き、2 つの姿へ配る器 |
+| `confirm/ui/place-order-state/` | 確定の送信状態と選んだクーポンを画面に 1 つだけ置き、2 つの姿へ配る器 |
 | `confirm/ui/skeleton/` | 購入確認のローディング表示 |
 | `complete/page-content.tsx` | 成立した購入の取得。指し先が読めなければ `not-found` |
 | `complete/purchase-code.ts` | 完了画面が見せる購入を検索条件から読む |
@@ -128,6 +132,9 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 - [ ] 承知の合図が無い送信を Action が止める
 - [ ] 後始末（カートからの取り除き）が失敗しても完了が出る
 - [ ] 参考換算額が読めなくても確定できる
+- [ ] 使えるクーポンが無くても、読めなくても確定できる
+- [ ] クーポンの値引き額は受け取った値をそのまま出し、画面で計算しない
+- [ ] 確定時に拒まれたクーポンは候補を取り直し、選び直せる
 - [ ] 冪等キーが 1 回の画面の組み立てにつき 1 つになる
 
 ## 設計上の判断
@@ -145,7 +152,13 @@ Server Action の側でも止まります（画面を経由しない呼び出し
 開いたまま放置されたあいだに在庫や価格が変わっていても、古い前提のまま確定できてしまいます。
 
 **冪等キーは画面を組み立てるたびに 1 つだけ作ります。** 二重に押しても再読み込みで送り直しても
-購入は 1 件のままで、買い直しの意思で画面を開き直したときは別のキーになります。
+購入は 1 件のままで、買い直しの意思で画面を開き直したときは別のキーになります。送信を確定させた拒否
+（拒まれたクーポン、衝突）はキーを新しくします。次の送信は中身が違い得るためです。
+
+**hydration 前に送った確定にはクーポンが載りません。** クーポンの選択肢は本文の列にあり、確定の 2 つの form
+（脇の集計と下端のバンド）の外に居るため、選んだクーポンは共有の送信状態から書いた hidden input として form に
+届きます。1 つの radio group を `form` 属性で 2 つの form に結ぶことはできません。確定そのものは JavaScript 無しでも
+送れ、待つのはクーポンだけです。
 
 **成立したら別の URL へ送ります。** 同じ画面で完了を見せると、再読み込みで完了が消え、戻る操作が
 確定前の画面へ帰ります。完了画面は購入を取り直してレンダリングするため、共有しても再読み込みしても同じ
