@@ -23,6 +23,7 @@ import {
 } from "../../gen/api/endpoints.zod";
 import type { UserPutRequest, UsersPostRequest } from "../../gen/api/model";
 import { signOut, verifySession } from "../auth/session";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
 import { taintObjectReference } from "../taint/taint";
 
@@ -173,7 +174,7 @@ export async function registerUser(profile: UserProfile, idempotencyKey: string)
   await getUserScopedClient().request({
     path: "/v1/users",
     method: "POST",
-    headers: { "Idempotency-Key": idempotencyKey },
+    headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
     idempotent: true,
     body: {
       firstName: profile.firstName,
