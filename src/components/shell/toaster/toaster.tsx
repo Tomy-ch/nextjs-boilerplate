@@ -213,27 +213,25 @@ export function ToastProvider({
   const nextIdRef = useRef(0);
 
   const dismiss = useCallback((id: string) => {
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) => current.filter((item) => item.id !== id));
+  }, []);
+
+  const toast = useCallback<ToastControls["toast"]>((next) => {
+    nextIdRef.current += 1;
+    const id = `toast-${nextIdRef.current}`;
+    setToasts((current) => [{ ...next, id }, ...current]);
+    return id;
+  }, []);
+
+  const update = useCallback<ToastControls["update"]>((id, patch) => {
+    setToasts((current) =>
+      current.map((item) => (item.id === id ? { ...item, ...patch, id } : item)),
+    );
   }, []);
 
   const controls = useMemo<ToastControls>(
-    () => ({
-      dismiss,
-      setVisibleToasts,
-      toast: (toast) => {
-        nextIdRef.current += 1;
-        const id = `toast-${nextIdRef.current}`;
-        setToasts((current) => [{ ...toast, id }, ...current]);
-        return id;
-      },
-      update: (id, patch) => {
-        setToasts((current) =>
-          current.map((toast) => (toast.id === id ? { ...toast, ...patch, id } : toast)),
-        );
-      },
-      visibleToasts,
-    }),
-    [dismiss, visibleToasts],
+    () => ({ dismiss, setVisibleToasts, toast, update, visibleToasts }),
+    [dismiss, toast, update, visibleToasts],
   );
 
   return (
