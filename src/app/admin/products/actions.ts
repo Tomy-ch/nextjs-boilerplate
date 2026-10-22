@@ -42,15 +42,14 @@ import {
   type StockFormState,
 } from "@/features/admin/products/stock/form-state";
 import { parseStockForm } from "@/features/admin/products/stock/parse-stock-form";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
 import { type ProductDiscontinueResult, toProductId } from "@/model/product/product";
-
 import { assertAdmin } from "../assert-admin";
-import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
 

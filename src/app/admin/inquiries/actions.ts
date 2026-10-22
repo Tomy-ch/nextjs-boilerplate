@@ -9,14 +9,13 @@ import type { AdminInquiryReplyState } from "@/features/admin/inquiries/form-sta
 import { REPLY_MALFORMED_MESSAGE } from "@/features/admin/inquiries/form-state";
 import { parseAdminInquiryReplyForm } from "@/features/admin/inquiries/parse-reply-form";
 import { ADMIN_INQUIRY_LIST_PATH, adminInquiryDetailPath } from "@/features/admin/paths";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-
 import { assertAdmin } from "../assert-admin";
-import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * 問い合わせへ回答を 1 通送る。

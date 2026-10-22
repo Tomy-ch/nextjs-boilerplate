@@ -15,14 +15,13 @@ import {
   SHIPMENT_TARGET_LOST_MESSAGE,
   type ShipmentState,
 } from "@/features/admin/shipments/form-state";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-
 import { assertAdmin } from "../assert-admin";
-import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * 送信から発送する購入を取り出す。1 件も載っていなければ空の並び。

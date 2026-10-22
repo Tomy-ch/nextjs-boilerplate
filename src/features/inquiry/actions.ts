@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 import { postMyInquiryMessage } from "@/adapters/server/api/inquiries";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { loginPath } from "@/features/auth/facade/paths";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   type ActionState,
   actionStateFromError,
@@ -73,13 +72,9 @@ export async function sendInquiryMessageAction(
   try {
     await postMyInquiryMessage(parsed.body, parsed.idempotencyKey);
   } catch (error) {
-    const kind = findAppError(error)?.kind;
+    redirectIfUnauthenticated(error, INQUIRY_PATH);
 
-    if (kind === ErrorKind.UNAUTHENTICATED) {
-      redirect(loginPath(INQUIRY_PATH));
-    }
-
-    if (kind === ErrorKind.VALIDATION) {
+    if (findAppError(error)?.kind === ErrorKind.VALIDATION) {
       return failedActionState({
         fieldErrors: { [INQUIRY_BODY_FIELD]: [REJECTED_BODY_MESSAGE] },
         kind: ErrorKind.VALIDATION,

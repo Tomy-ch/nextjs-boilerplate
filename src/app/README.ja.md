@@ -24,9 +24,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   の扱いをここだけが持つ。境界ごとに書くと、その扱いが 1 か所だけ古くなる。テストは `unit` として扱う
 - **セクションの Server Action が共有する主体の断言**（`<section>/assert-<role>.ts`）。各 action は自分のエントリポイントで主体を
   改めて確かめ、`actions.ts` ごとに書くと 1 つのコピーだけが動く。このレイヤーに置くのは、`adapters/server/auth` を
-  引けるのが `app` と `adapters` だけだからである（共有する形は *運用* にある）。バックエンドが session を拒んだときに
-  それらの action が共有する redirect はその隣に置く（`<section>/redirect-if-unauthenticated.ts`）。どちらも同じ戻り先を
-  持ってログインへ送るためである。テストは `unit` として扱う
+  引けるのが `app` と `adapters` だけだからである（共有する形は *運用* にある）。テストは `unit` として扱う
 - **並行 route の slot**（`@<name>/`）。page から layout へ props は渡せないので、画面ごとに違う値をレイアウトシェルへ
   届けるブリッジは slot になる（現在地までの階層など）。`default.tsx` を置き、階層を持たない画面にも空を返す
   slot を route ごとに置く —— soft navigation では直前の slot が残るためで、落とし穴は
@@ -115,9 +113,11 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
 - **実時計はダイナミックホールの内側で `connection()` を待ってから読む**（`config/clock`）。プリレンダーの最中には
   値が定まらない
 - **ダイナミックホールの内側の転送はシェルを配り終えた後になる。** 応答は 200 で出ており、転送は `Location` ではなく
-  meta タグで伝わる。未認証は前捌き（`proxy.ts`）がエントリポイントで本物の転送として捌くので、ここまで届くのは
+  meta タグで伝わる。画面の要求では、未認証は前捌き（`proxy.ts`）がエントリポイントで本物の転送として捌くので、ここまで届くのは
   バックエンドに問わないと分からない判定（主体についてバックエンドだけが持つ状態など）だけである
-  （[0041](../../docs/adr/0041-cache-components-decision.ja.md) / [0079](../../docs/adr/0079-auth-frontend-seam.ja.md)）
+  （[0041](../../docs/adr/0041-cache-components-decision.ja.md) / [0079](../../docs/adr/0079-auth-frontend-seam.ja.md)）。
+  Server Action の呼び出しは前捌きが転送しない。未認証の redirect は各 action が持つ（*運用*、
+  [0043](../../docs/adr/0043-middleware-policy.ja.md)）
 - **一次資源が無いことも 200 で伝わる。** 見つからないことは `not-found.tsx` と `noindex` が伝える
   （[0080](../../docs/adr/0080-error-handling.ja.md)）
 - **確かめる前にシェルを配れない区画は、レイアウトシェルが判定し `instant = false` を名乗る。** 判定をダイナミックホールへ落とすと、
@@ -295,8 +295,8 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   （[docs/rules.ja.md](../../docs/rules.ja.md#authorization)）。続いて feature の
   parser で送信を解き、`adapters/server` を呼び、結果を返します。**adapter が `UNAUTHENTICATED` で失敗したとき（バックエンドが
   `401` を返した）は、`ActionState` を返さず、断言へ渡したのと同じ戻り先を持たせてログインへ redirect します** —— 断言が
-  通した session をバックエンドがもう受け付けておらず、同じ理屈が当てはまります。セクションはこの確認を断言の隣に 1 つだけ
-  持ち（`<section>/redirect-if-unauthenticated.ts`）、各 action は adapter の呼び出しを囲む `catch` の中で、種類ごとの
+  通した session をバックエンドがもう受け付けておらず、同じ理屈が当てはまります。この確認はすべての Server Action が共有する
+  もので（`features/auth/facade` の `redirectIfUnauthenticated`）、各 action は adapter の呼び出しを囲む `catch` の中で、種類ごとの
   対応づけより先にそれを呼びます。`try` ではなく `catch` で走らせるので、redirect は捕まりません。複数件を順に送り、
   1 件でも通ったら取り直させる action は、この redirect より前にそれを済ませます。項目ごとの誤りがあるときは全体の文言を
   出しません（要約が同じことを言い、同じ指摘が 2 か所に並ぶ）。カタログのデフォルト文言は分類しか伝えないので、

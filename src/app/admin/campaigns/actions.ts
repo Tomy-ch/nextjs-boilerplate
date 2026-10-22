@@ -14,6 +14,7 @@ import {
   type SuspendCampaignState,
 } from "@/features/admin/campaigns/list/form-state";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "@/features/admin/paths";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   actionStateFromError,
   failedActionState,
@@ -21,9 +22,7 @@ import {
 } from "@/model/action-state";
 import { toCampaignId } from "@/model/campaign/campaign";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
-
 import { assertAdmin } from "../assert-admin";
-import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * キャンペーンの配布を停止する。

@@ -33,9 +33,7 @@ The App Router's driving adapter. `page.tsx` and `layout.tsx` call features thin
   Written per boundary, that handling goes stale in one place only. Tests are treated as `unit`
 - **The principal assertion shared by a section's Server Actions** (`<section>/assert-<role>.ts`). Each action checks the principal
   again at its own entry point, and written per `actions.ts` only one copy moves. It sits in this layer because only `app` and
-  `adapters` can take `adapters/server/auth` (the shape it shares is under *Operations*). The redirect those actions share when the
-  backend rejects the session sits beside it (`<section>/redirect-if-unauthenticated.ts`), since both send to sign-in with the same
-  return destination. Tests are treated as `unit`
+  `adapters` can take `adapters/server/auth` (the shape it shares is under *Operations*). Tests are treated as `unit`
 - **Parallel route slots** (`@<name>/`). A page cannot pass props to a layout, so the bridge that delivers per-screen values to the layout shell
   is a slot (such as the hierarchy down to the current location). Place a `default.tsx`, and place per route a slot that returns empty even for screens with no
   hierarchy — in a soft navigation the previous slot remains, and the pitfall is held by
@@ -124,9 +122,11 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
 - **The real clock is read inside the dynamic hole after awaiting `connection()`** (`config/clock`). During prerendering
   the value is not settled
 - **A redirect inside a dynamic hole happens after the static shell has been served.** The response has gone out as 200, and the redirect is conveyed by a
-  meta tag rather than `Location`. The unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
+  meta tag rather than `Location`. For a screen request the unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
   only decisions that cannot be known without asking the backend (such as state about a principal that only the backend holds)
-  ([0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md))
+  ([0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md)).
+  A Server Action call is not redirected by the front gate; each action owns its unauthenticated redirect (*Operations*,
+  [0043](../../docs/adr/0043-middleware-policy.md))
 - **A missing primary resource is also conveyed with 200.** That it was not found is conveyed by `not-found.tsx` and `noindex`
   ([0080](../../docs/adr/0080-error-handling.md))
 - **A section that cannot serve a static shell before checking has the layout shell decide and declare `instant = false`.** Push the decision down into a dynamic hole and
@@ -303,8 +303,8 @@ allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-whe
   ([docs/rules.md](../../docs/rules.md#authorization)). Then parse the submission with the feature's
   parser, call `adapters/server`, and return the result. **When the adapter fails with `UNAUTHENTICATED` (the backend answered
   `401`), the action redirects to sign-in with the same return destination it passed to the assertion, rather than returning an
-  `ActionState`** — the backend no longer accepts the session the assertion let through, and the same reasoning applies. The section holds this
-  check once beside the assertion (`<section>/redirect-if-unauthenticated.ts`), and each action calls it first in the `catch` around
+  `ActionState`** — the backend no longer accepts the session the assertion let through, and the same reasoning applies. The check is the
+  one every Server Action shares (`redirectIfUnauthenticated` in `features/auth/facade`), and each action calls it first in the `catch` around
   the adapter call, before any per-kind mapping; it runs in the `catch` rather than the `try`, so the redirect is not caught. An action
   that sends several items in order and revalidates when one went through does so before this redirect. When there are per-field errors, the overall message is
   not shown (the summary would say the same thing, and the same point would appear in two places). The catalog's default text conveys only the classification, so

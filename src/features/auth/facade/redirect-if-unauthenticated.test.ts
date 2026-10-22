@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { loginPath } from "@/features/auth/facade/paths";
 
 const { redirect } = vi.hoisted(() => ({
   redirect: vi.fn((path: string) => {
@@ -12,9 +11,10 @@ const { redirect } = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({ redirect }));
 
+import { loginPath } from "./paths";
 import { redirectIfUnauthenticated } from "./redirect-if-unauthenticated";
 
-const RETURN_TO = "/admin/users";
+const RETURN_TO = "/mypage/edit";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -40,7 +40,6 @@ describe("redirectIfUnauthenticated", () => {
       redirectIfUnauthenticated(createAppError(ErrorKind.UNAUTHENTICATED), RETURN_TO),
     ).toThrow(`NEXT_REDIRECT:${loginPath(RETURN_TO)}`);
     expect(redirect).toHaveBeenCalledTimes(1);
-    expect(redirect).toHaveBeenCalledWith(loginPath(RETURN_TO));
   });
 
   it("認証切れが cause の奥にあっても入り直しへ送る", () => {

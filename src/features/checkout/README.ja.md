@@ -118,7 +118,7 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | 完了画面へ `redirect`。購入した明細をカートから取り除く | 分類を確定の操作の隣に出す |
+| `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | 完了画面へ `redirect`。購入した明細をカートから取り除く | 分類を確定の操作の隣に出す。認証が切れていれば、この画面を戻り先としてログインへ `redirect` |
 
 冪等キーと、承知の合図が無い送信の扱いは「設計上の判断」に書いてあります。
 

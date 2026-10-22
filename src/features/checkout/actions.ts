@@ -8,10 +8,12 @@ import { getMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/ap
 import { createPurchase } from "@/adapters/server/api/purchases";
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { actionStateFromError, failedActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { PurchaseOrderLine } from "@/model/purchase/purchase";
+import { CHECKOUT_PATH } from "./facade/paths/paths";
 import { ACCEPT_PRICE_CHANGE_FIELD } from "./form-fields";
 import type { PlaceOrderFormState } from "./form-state";
 import { hasPriceChangedLines, orderLinesOf, priceChangedLines } from "./order";
@@ -87,7 +89,10 @@ export async function placeOrderAction(
   }
 
   const accepted = formData.get(ACCEPT_PRICE_CHANGE_FIELD) !== null;
-  let cart = await getMyCart();
+  let cart = await getMyCart().catch((error: unknown) => {
+    redirectIfUnauthenticated(error, CHECKOUT_PATH);
+    throw error;
+  });
 
   if (hasPriceChangedLines(cart)) {
     if (!accepted) {
@@ -98,6 +103,8 @@ export async function placeOrderAction(
       await acceptPriceChanges(priceChangedLines(cart));
       cart = await getMyCart();
     } catch (error) {
+      redirectIfUnauthenticated(error, CHECKOUT_PATH);
+
       return actionStateFromError(error);
     }
   }
@@ -113,6 +120,8 @@ export async function placeOrderAction(
   try {
     purchaseCode = await createPurchase(lines, idempotencyKey.data);
   } catch (error) {
+    redirectIfUnauthenticated(error, CHECKOUT_PATH);
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: CONFLICT_MESSAGE });
     }

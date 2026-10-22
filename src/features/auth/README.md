@@ -53,6 +53,7 @@ There is only one screen, so files sit directly under the slice without a screen
 | `login-view.tsx` | The login screen. The form that starts authentication, and the guidance when it could not start |
 | `read-login-notice.ts` | Reads the reason to show from the URL (the reading side) |
 | `facade/paths.ts` | The destination for this screen, for other features to point at |
+| `facade/redirect-if-unauthenticated.ts` | Sends a Server Action whose backend call failed with `UNAUTHENTICATED` to sign-in, returning to the screen the form lives on. Other features' `actions.ts` call it in the `catch` around the adapter call |
 | `facade/login-notice.ts` | The guidance vocabulary and the destination when authentication could not start (the building side). **The Route Handler builds the destination** (`app/api/auth/login`), and a Route Handler can draw only on a feature's `facade/` |
 
 ## Kernel Dependencies
@@ -79,7 +80,7 @@ the URL is rewritten without a request going out.
 
 ## What Sits Alongside
 
-- Protected-route checks and the redirect when unauthenticated are in [`src/proxy.ts`](../../proxy.ts)
+- Protected-route checks and the redirect when unauthenticated are in [`src/proxy.ts`](../../proxy.ts) for screen requests. A Server Action call passes it, and the action redirects on its own (`facade/redirect-if-unauthenticated.ts`)
 - The authentication round trip is in [`src/app/api/auth/`](../../app/api/auth)
 - Definitive authorization is in [`adapters/server/auth`](../../adapters/server/auth)
 

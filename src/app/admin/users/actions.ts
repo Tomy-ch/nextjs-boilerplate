@@ -12,15 +12,14 @@ import {
   WITHDRAW_CONFLICT_MESSAGE,
   WITHDRAW_TARGET_LOST_MESSAGE,
 } from "@/features/admin/users/form-state";
+import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
 import { toUserId } from "@/model/user/user";
-
 import { assertAdmin } from "../assert-admin";
-import { redirectIfUnauthenticated } from "../redirect-if-unauthenticated";
 
 /**
  * 利用者を 1 件退会させる。

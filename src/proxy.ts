@@ -257,7 +257,25 @@ async function openCors(request: NextRequest, origin: string): Promise<NextRespo
 }
 
 /**
+ * Server Action の呼び出しかを判定する。
+ *
+ * @remarks
+ * 読み取りの method は `Next-Action` を載せていても含めません。ヘッダを足すだけで画面の前捌きを
+ * 外せることになるためです。
+ *
+ * @param request - 受信した要求
+ * @returns 状態を変える method で `Next-Action` を載せていれば true
+ */
+function isServerActionCall(request: NextRequest): boolean {
+  return isStateChanging(request.method) && request.headers.has("next-action");
+}
+
+/**
  * 到達してよい役割を持たない要求を送り返し、それ以外を通す。
+ *
+ * @remarks
+ * **Server Action の呼び出しは送り返さずに通します。** action の経路は redirect の応答を扱えず、
+ * 送り返すと画面は汎用の失敗に落ちます。認証と役割の判定は action 自身が持ちます。
  *
  * @param request - 受信した要求
  * @returns 送出する応答
@@ -266,7 +284,7 @@ async function authorize(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);
 
-  if (allowed === null) {
+  if (allowed === null || isServerActionCall(request)) {
     return NextResponse.next();
   }
 

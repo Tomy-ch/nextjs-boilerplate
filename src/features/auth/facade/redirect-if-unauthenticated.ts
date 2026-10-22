@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 
 import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { loginPath } from "@/features/auth/facade/paths";
+
+import { loginPath } from "./paths";
 
 /**
  * 接続先が認証切れで拒んだ失敗なら、操作を出した画面へ戻る入り直しへ送る。

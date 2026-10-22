@@ -141,9 +141,9 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `registerAction` | `actions.ts` | `ProfileFormState` | 戻り先へ `redirect` | 項目ごとの誤りを画面に残す |
-| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`。画面は移さず toast | 同上 |
-| `withdrawAction` | `actions.ts` | `WithdrawFormState` | session を破棄してトップへ | 確認を開いたまま、その中で伝える |
+| `registerAction` | `actions.ts` | `ProfileFormState` | 戻り先へ `redirect` | 項目ごとの誤りを画面に残す。認証が切れていれば、この画面を戻り先としてログインへ `redirect`（持っていた戻り先は保つ） |
+| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`。画面は移さず toast | 項目ごとの誤りを画面に残す。認証が切れていれば、この画面を戻り先としてログインへ `redirect` |
+| `withdrawAction` | `actions.ts` | `WithdrawFormState` | session を破棄してトップへ | 確認を開いたまま、その中で伝える。認証が切れていれば、この画面を戻り先としてログインへ `redirect` |
 
 **対象を指す識別子は戻り値にも送信にも載りません。** 解決するのは `adapters` の中です。
 
