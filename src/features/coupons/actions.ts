@@ -69,7 +69,7 @@ export async function claimCouponAction(
   const parsed = parseClaimCouponForm(formData);
 
   if (!parsed.ok) {
-    return parsed.codeError === null
+    return parsed.reason === "unreadable"
       ? failedActionState({ formError: MALFORMED_MESSAGE })
       : failedActionState({ fieldErrors: { [CLAIM_CODE_FIELD]: [parsed.codeError] } });
   }

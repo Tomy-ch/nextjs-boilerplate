@@ -9,7 +9,8 @@ import { EMPTY_BODY_MESSAGE } from "./form-state";
 /** 送信の内容を解いた結果。読めなかった項目は、そのまま項目の文言になる。 */
 export type InquiryMessageFormResult =
   | { readonly ok: true; readonly body: string; readonly idempotencyKey: string }
-  | { readonly ok: false; readonly bodyError: string | null };
+  | { readonly ok: false; readonly reason: "unreadable" }
+  | { readonly ok: false; readonly reason: "field"; readonly bodyError: string };
 
 const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`;
 
@@ -31,17 +32,17 @@ export function parseInquiryMessageForm(formData: FormData): InquiryMessageFormR
   const idempotencyKey = z.uuid().safeParse(formData.get(IDEMPOTENCY_KEY_FIELD));
 
   if (!idempotencyKey.success) {
-    return { ok: false, bodyError: null };
+    return { ok: false, reason: "unreadable" };
   }
 
   const trimmed = body.success ? body.data.trim() : "";
 
   if (trimmed === "") {
-    return { ok: false, bodyError: EMPTY_BODY_MESSAGE };
+    return { ok: false, reason: "field", bodyError: EMPTY_BODY_MESSAGE };
   }
 
   if ([...trimmed].length > INQUIRY_BODY_MAX_LENGTH) {
-    return { ok: false, bodyError: TOO_LONG_MESSAGE };
+    return { ok: false, reason: "field", bodyError: TOO_LONG_MESSAGE };
   }
 
   return { ok: true, body: trimmed, idempotencyKey: idempotencyKey.data };

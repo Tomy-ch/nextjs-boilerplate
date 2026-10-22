@@ -8,7 +8,8 @@ import { EMPTY_CODE_MESSAGE } from "./form-state";
 /** 受け取りの内容を解いた結果。読めなかった項目は、そのまま項目の文言になる。 */
 export type ClaimCouponFormResult =
   | { readonly ok: true; readonly code: string; readonly idempotencyKey: string }
-  | { readonly ok: false; readonly codeError: string | null };
+  | { readonly ok: false; readonly reason: "unreadable" }
+  | { readonly ok: false; readonly reason: "field"; readonly codeError: string };
 
 /**
  * 受け取りの内容を、契約が受け付ける形へ解く。
@@ -27,11 +28,11 @@ export function parseClaimCouponForm(formData: FormData): ClaimCouponFormResult 
   const idempotencyKey = z.uuid().safeParse(formData.get(IDEMPOTENCY_KEY_FIELD));
 
   if (!idempotencyKey.success) {
-    return { ok: false, codeError: null };
+    return { ok: false, reason: "unreadable" };
   }
 
   if (!code.success || code.data.trim() === "") {
-    return { ok: false, codeError: EMPTY_CODE_MESSAGE };
+    return { ok: false, reason: "field", codeError: EMPTY_CODE_MESSAGE };
   }
 
   return { ok: true, code: code.data, idempotencyKey: idempotencyKey.data };

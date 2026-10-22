@@ -15,7 +15,8 @@ export type AdminInquiryReplyFormResult =
       readonly body: string;
       readonly idempotencyKey: string;
     }
-  | { readonly ok: false; readonly bodyError: string | null };
+  | { readonly ok: false; readonly reason: "unreadable" }
+  | { readonly ok: false; readonly reason: "field"; readonly bodyError: string };
 
 const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`;
 
@@ -38,17 +39,17 @@ export function parseAdminInquiryReplyForm(formData: FormData): AdminInquiryRepl
   const inquiryId = z.uuid().safeParse(formData.get(REPLY_INQUIRY_ID_FIELD));
 
   if (!idempotencyKey.success || !inquiryId.success) {
-    return { ok: false, bodyError: null };
+    return { ok: false, reason: "unreadable" };
   }
 
   const trimmed = body.success ? body.data.trim() : "";
 
   if (trimmed === "") {
-    return { ok: false, bodyError: REPLY_EMPTY_MESSAGE };
+    return { ok: false, reason: "field", bodyError: REPLY_EMPTY_MESSAGE };
   }
 
   if ([...trimmed].length > INQUIRY_BODY_MAX_LENGTH) {
-    return { ok: false, bodyError: TOO_LONG_MESSAGE };
+    return { ok: false, reason: "field", bodyError: TOO_LONG_MESSAGE };
   }
 
   return {

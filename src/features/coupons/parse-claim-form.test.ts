@@ -47,6 +47,7 @@ describe("parseClaimCouponForm", () => {
   ])("コードが%sなら、入力を促す文言を返す", (_label, code) => {
     expect(parseClaimCouponForm(formOf({ code, key: KEY }))).toEqual({
       ok: false,
+      reason: "field",
       codeError: EMPTY_CODE_MESSAGE,
     });
   });
@@ -54,6 +55,7 @@ describe("parseClaimCouponForm", () => {
   it("コードの項目が無ければ、入力を促す文言を返す", () => {
     expect(parseClaimCouponForm(formOf({ key: KEY }))).toEqual({
       ok: false,
+      reason: "field",
       codeError: EMPTY_CODE_MESSAGE,
     });
   });
@@ -63,6 +65,7 @@ describe("parseClaimCouponForm", () => {
 
     expect(parseClaimCouponForm(formOf({ code: file, key: KEY }))).toEqual({
       ok: false,
+      reason: "field",
       codeError: EMPTY_CODE_MESSAGE,
     });
   });
@@ -70,21 +73,21 @@ describe("parseClaimCouponForm", () => {
   it("冪等キーが無ければ、項目に紐づかない失敗にする", () => {
     expect(parseClaimCouponForm(formOf({ code: "SPRING" }))).toEqual({
       ok: false,
-      codeError: null,
+      reason: "unreadable",
     });
   });
 
   it("冪等キーが uuid でなければ、項目に紐づかない失敗にする", () => {
     expect(parseClaimCouponForm(formOf({ code: "SPRING", key: "broken" }))).toEqual({
       ok: false,
-      codeError: null,
+      reason: "unreadable",
     });
   });
 
   it("冪等キーが解けなければ、コードが空でも入力を促さない", () => {
     expect(parseClaimCouponForm(formOf({ code: "", key: "broken" }))).toEqual({
       ok: false,
-      codeError: null,
+      reason: "unreadable",
     });
   });
 });

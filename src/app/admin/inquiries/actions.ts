@@ -57,7 +57,7 @@ export async function replyInquiryAction(
   const parsed = parseAdminInquiryReplyForm(formData);
 
   if (!parsed.ok) {
-    return parsed.bodyError === null
+    return parsed.reason === "unreadable"
       ? failedActionState({ formError: REPLY_MALFORMED_MESSAGE })
       : failedActionState({ fieldErrors: { [REPLY_BODY_FIELD]: [parsed.bodyError] } });
   }

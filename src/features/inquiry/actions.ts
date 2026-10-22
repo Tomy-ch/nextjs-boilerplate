@@ -56,7 +56,7 @@ export async function sendInquiryMessageAction(
   const parsed = parseInquiryMessageForm(formData);
 
   if (!parsed.ok) {
-    return parsed.bodyError === null
+    return parsed.reason === "unreadable"
       ? failedActionState({ formError: MALFORMED_MESSAGE })
       : failedActionState({ fieldErrors: { [INQUIRY_BODY_FIELD]: [parsed.bodyError] } });
   }
