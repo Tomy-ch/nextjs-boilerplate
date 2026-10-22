@@ -535,3 +535,4 @@
 "scripts/closed-loop/score.ts" = "2026-10-22"
 "scripts/closed-loop/weekly-report.ts" = "2026-10-22"
 ".claude/skills/submit-pr/SKILL.md" = "2026-10-22"
+"scripts/setup/remove-licensed-scanners/scanner-manifest.ts" = "2026-10-22"
