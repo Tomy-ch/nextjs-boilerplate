@@ -29,6 +29,8 @@ export type CouponListProps = {
   readonly now: Date;
 };
 
+const LIST_LABEL = "保有クーポンの一覧";
+
 const EMPTY_TITLE = "まだクーポンはありません。";
 
 const EMPTY_DESCRIPTION = "キャンペーンコードをお持ちなら、上の欄から受け取れます。";
@@ -100,7 +102,7 @@ export const CouponList = withPartSpan(
     }
 
     return (
-      <List className="gap-3">
+      <List aria-label={LIST_LABEL} className="gap-3">
         {coupons.map((coupon) => {
           const status = holdingStatusAt(coupon, now);
           const cap = formatCouponDiscountCap(coupon.discount);

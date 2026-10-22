@@ -19,7 +19,7 @@ test("マイページの導線から保有クーポンへ移り、コードで�
   await expect(page).toHaveURL(/\/mypage\/coupons$/);
   await expect(page.getByRole("heading", { level: 1, name: "クーポン" })).toBeVisible();
 
-  const rows = page.getByRole("listitem").filter({ hasText: "引き" });
+  const rows = page.getByRole("list", { name: "保有クーポンの一覧" }).getByRole("listitem");
 
   await expect(rows).toHaveCount(5);
   await expect(rows.filter({ hasText: "使用済み" })).toHaveCount(1);

@@ -44,7 +44,9 @@ describe("CouponList", () => {
   it("各行に、その券の状態名を応答の順のまま出す", () => {
     render(<CouponList coupons={HELD_COUPONS} now={FIXTURE_NOW} />);
 
-    const rows = screen.getAllByRole("listitem");
+    const rows = within(screen.getByRole("list", { name: "保有クーポンの一覧" })).getAllByRole(
+      "listitem",
+    );
 
     expect(rows).toHaveLength(4);
     expect(rows[0]).toHaveTextContent("未使用");
