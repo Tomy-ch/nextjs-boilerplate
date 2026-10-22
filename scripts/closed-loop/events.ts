@@ -72,9 +72,8 @@ const HUMAN_PROMPT_SOURCES: readonly string[] = ["typed", "suggestion_accepted",
  *
  * @remarks
  * 出所の鍵を持たない行のうち `isMeta` の付いたもの（スキル本文、別セッションからの通知）は構造で
- * 落ちるので、ここへは載せません。文脈圧縮の要約は目印にも残します。`isCompactSummary` が効くのは
- * 出所の鍵を持たない行だけで、要約が人の発話に混ざると、私的な要約が公開される読解の材料へ流れる
- * ためです。
+ * 落ちるので、ここへは載せません。文脈圧縮の要約は `isCompactSummary` でも落ちますが、目印にも
+ * 残します。要約が人の発話に混ざると、私的な要約が公開される読解の材料へ流れるためです。
  */
 const INJECTED_MARKERS: readonly string[] = [
   "<task-notification>",
@@ -214,11 +213,15 @@ export function parseLine(line: string): readonly Event[] {
  * @returns 出所が人なら true
  *
  * @remarks
- * 出所を正で示す鍵（`origin.kind` / `promptSource`）を持つ行はそれだけで決め、知らない値は人と
- * しません。鍵は新しい版の行にしか無いので、持たない行だけ `isMeta` / `isCompactSummary` の
- * 除外で決めます。
+ * 文脈圧縮の要約は出所の鍵より先に外し、鍵の値に頼らず構造で閉じます。それ以外で出所を正で示す鍵
+ * （`origin.kind` / `promptSource`）を持つ行はそれだけで決め、知らない値は人としません。鍵は
+ * 新しい版の行にしか無いので、持たない行だけ `isMeta` の除外で決めます。
  */
 function isHumanOrigin(record: Line): boolean {
+  if (record.isCompactSummary === true) {
+    return false;
+  }
+
   const kind =
     typeof record.origin === "object" && record.origin !== null
       ? (record.origin as Origin).kind
@@ -232,7 +235,7 @@ function isHumanOrigin(record: Line): boolean {
     return HUMAN_PROMPT_SOURCES.includes(record.promptSource);
   }
 
-  return record.isMeta !== true && record.isCompactSummary !== true;
+  return record.isMeta !== true;
 }
 
 /**

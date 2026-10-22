@@ -128,8 +128,8 @@ describe("parseLine", () => {
 
   it.each([
     { origin: { kind: "human" }, isMeta: true },
-    { promptSource: "typed", isCompactSummary: true },
-  ])("出所を人と示す鍵 %o は、isMeta や isCompactSummary より優先する", (keys) => {
+    { promptSource: "typed", isMeta: true },
+  ])("出所を人と示す鍵 %o は、isMeta より優先する", (keys) => {
     expect(
       parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
     ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
@@ -138,7 +138,7 @@ describe("parseLine", () => {
   it.each([
     { origin: null, promptSource: "typed", isMeta: true },
     { origin: {}, promptSource: "queued", isMeta: true },
-    { origin: { kind: 5 }, promptSource: "typed", isCompactSummary: true },
+    { origin: { kind: 5 }, promptSource: "typed", isMeta: true },
   ])("origin.kind が文字列でない行 %o は、isMeta より先に promptSource で人と決める", (keys) => {
     expect(
       parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
@@ -195,18 +195,22 @@ describe("parseLine", () => {
     ).toEqual([]);
   });
 
-  it("文脈圧縮の要約は、目印の文面を含まなくても isCompactSummary で人の発話として出さない", () => {
-    expect(
-      parseLine(
-        line({
-          type: "user",
-          timestamp: AT,
-          isCompactSummary: true,
-          message: { content: "要約の本文。違う" },
-        }),
-      ),
-    ).toEqual([]);
-  });
+  it.each([{}, { origin: { kind: "human" } }, { promptSource: "typed" }])(
+    "文脈圧縮の要約は、出所の鍵 %o があっても目印の文面が無くても、人の発話として出さない",
+    (keys) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            ...keys,
+            isCompactSummary: true,
+            message: { content: "要約の本文。違う" },
+          }),
+        ),
+      ).toEqual([]);
+    },
+  );
 
   it("道具の結果だけの行は、道具の結果だけを出す", () => {
     expect(
