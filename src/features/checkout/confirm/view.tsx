@@ -57,7 +57,7 @@ export type CheckoutConfirmViewProps = {
  *
  * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
  *
- * **確定の送信状態は器が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
+ * **確定の送信状態は `PlaceOrderStateProvider` が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
  * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
  * 表に出る側が「何も送っていない」姿になります。
  *

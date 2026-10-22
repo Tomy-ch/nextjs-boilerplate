@@ -5,7 +5,7 @@ import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { CouponField } from "./coupon-field";
 
-/** 画面が組み立てた鍵の代わり。カタログでは送信しないため、値そのものに意味はない。 */
+/** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 const meta = {

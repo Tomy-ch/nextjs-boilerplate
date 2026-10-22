@@ -64,7 +64,7 @@ beforeEach(() => {
   });
 });
 
-/** 送信欄へ本文を入れて送る。返るのは、送信の応答を手元で確定させる関数。 */
+/** 送信欄へ本文を入れて送る。 */
 async function send(body: string): Promise<void> {
   const user = userEvent.setup();
 
@@ -214,7 +214,7 @@ describe("InquiryConversation", () => {
         within(screen.getByLabelText("サポートとのやり取り")).getByText("在庫はいつ戻りますか。"),
       ).toBeVisible();
     } finally {
-      // 応答を待たせたままにすると、次のファイルのテストへ遷移が残る。
+      // 応答を待たせたままにすると、後続のテストへ遷移が残る。
       await act(async () => {
         settle.resolve?.();
       });

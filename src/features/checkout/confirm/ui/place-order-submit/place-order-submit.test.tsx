@@ -74,7 +74,6 @@ async function submit() {
   await userEvent.click(screen.getByRole("button", { name: LABEL }));
 }
 
-/** 送信が返す結果を決める。返さないあいだ待ち続けたいときは `settle` を呼ぶまで解決しない。 */
 function respondWith(state: PlaceOrderFormState) {
   placeOrderAction.mockResolvedValue(state);
 }

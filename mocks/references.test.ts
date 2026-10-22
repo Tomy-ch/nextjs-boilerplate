@@ -252,7 +252,7 @@ describe("REFERENCE_PATCHES", () => {
 
     for (const entry of patched) {
       expect(entry.discountAmount > 0).toBe(entry.appliedCoupon !== null);
-      // 小計 $39.98 に対して、なし / 定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+      // 小計 $10.00 に対して、なし / 定額 $5.00 / 上限 $1.00 の 10% / 上限の無い 15% の切り捨て。
       expect([0, 500, 100, 150]).toContain(entry.discountAmount);
     }
 
@@ -350,7 +350,7 @@ describe("REFERENCE_PATCHES", () => {
   });
 
   it("カートに使えるクーポンを、値引きの立つ組だけで、額面の重ならない候補として並べる", () => {
-    // 小計 $39.98 に対して、定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+    // 小計 $39.98 に対して、定額 $5.00 / 上限 $1.00 の 10% / 上限の無い 15% の切り捨て。
     const { coupons } = patchedCartCoupons;
 
     expect(coupons.map((entry) => entry.discountAmount)).toEqual([500, 100, 599]);

@@ -15,8 +15,8 @@ import type { DrawFromEndpoint, ReferencePatches } from "./stable-responses";
  * 別々に決めると「Tシャツの分類が書籍」になります。生成器は項目を 1 つずつ作るので、組で決まる値を
  * 表せません。
  *
- * **契約ごとの知識なので、機構（`stable-responses.ts`）ではなくこちらが持ちます。** テンプレートから
- * 自分の契約の参照をこの表に書き、この題材ごと破棄します。
+ * **契約ごとの知識なので、機構（`stable-responses.ts`）ではなくこちらが持ちます。** この表は題材と
+ * 一緒に破棄され、自分の契約を持つ側は同じ形の表を自分の参照で書きます。
  */
 
 /** 分類マスタの口。seed は要求の URL から決まるので、画面が叩くのと同じ綴りを使う。 */
@@ -298,8 +298,8 @@ const CART_PATH = "/v1/carts/me";
  * 使えるクーポンの有効期限。並びの位置で選ぶ。
  *
  * @remarks
- * 生成器は期限を基準日より過去に引くため、「失効済みは並ばない」契約と食い違います。どの「いま」で
- * 開いても失効前に見えるよう、基準日より十分先の日付を置きます。
+ * 生成器は期限を基準日（`stable-responses.ts` の `REFERENCE_DATE`）より過去に引くため、「失効済みは
+ * 並ばない」契約と食い違います。失効前に見えるよう、基準日より先の固定の日付を置きます。
  */
 const CART_COUPON_EXPIRIES = [
   "2027-03-31T14:59:59Z",
@@ -446,8 +446,7 @@ function alignStatusBreakdown(key: string) {
  *
  * @remarks
  * **項目が消えたら落とします。** 契約が変わって参照の項目が無くなったとき、黙って整合が外れると
- * 今と同じ状態（選択肢に無い値が入った画面）へ戻ります。落ちれば、契約に追随して表を直す契機に
- * なります。
+ * 選択肢に無い値が入った画面になります。落ちれば、契約に追随して表を直す契機になります。
  */
 export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsResponseMock", alignProductList],

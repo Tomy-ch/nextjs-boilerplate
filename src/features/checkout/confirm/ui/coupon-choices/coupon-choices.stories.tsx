@@ -11,7 +11,7 @@ import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { CouponChoice, CouponChoices } from "./coupon-choices";
 
-/** 画面が組み立てた鍵の代わり。カタログでは送信しないため、値そのものに意味はない。 */
+/** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 function firstCouponName(): string {
@@ -32,7 +32,7 @@ const meta = {
           "クーポンを 1 枚選ぶ radio の群です。「使わない」を先頭に置き、渡された選択肢をその後に並べます。",
           "最初はどれも選んでいません。選択は確定の送信状態と同じ器が持ち、確定でクーポンが拒まれると",
           "欄を不正と示して理由を結び、選び直すと外します。送信中と、直前の確定の結果が分からないあいだは",
-          "選び直せず、その理由を欄の説明として結びます。",
+          "選び直せません。結果が分からないあいだは、その理由を欄の説明として結びます。",
         ].join(""),
       },
     },

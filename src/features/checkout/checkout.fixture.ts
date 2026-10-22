@@ -169,8 +169,8 @@ export const DISCOUNTED_PURCHASE: Purchase = {
  * いまのカートに使えるクーポン。
  *
  * @remarks
- * 値引き額は額面から導けない値にしてあります。画面が額面から計算し直していれば、出る額が
- * ここと食い違います。
+ * 定率の値引き額は、額面と小計から導けない値にしてあります。画面が額面から計算し直していれば、
+ * 出る額がここと食い違います。
  */
 export const CART_COUPONS: readonly CartCoupon[] = [
   {
