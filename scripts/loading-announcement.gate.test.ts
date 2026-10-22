@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   findSilentSkeletons,
-  isSkeletonModule,
+  isSkeletonModule, // sample:line
   mountsAnnouncer,
   type SourceModule,
 } from "./lib/loading-announcement";
