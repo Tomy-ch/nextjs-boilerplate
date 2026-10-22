@@ -112,6 +112,45 @@ describe("findSilentSkeletons", () => {
     expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
   });
 
+  it("名前空間として取り込んだ待機表示を返す", () => {
+    const modules = [
+      skeleton(
+        source(
+          importFrom("* as Leaf"),
+          "export const S = () => <div aria-hidden><Leaf.LoadingAnnouncement /></div>;",
+        ),
+      ),
+    ];
+
+    expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
+  });
+
+  it("既定の書き出しとして取り込んだ待機表示を返す", () => {
+    const modules = [
+      skeleton(
+        source(
+          importFrom("LoadingAnnouncement"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
+      ),
+    ];
+
+    expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
+  });
+
+  it("副作用だけを取り込んだ待機表示を返す", () => {
+    const modules = [
+      skeleton(
+        source(
+          `import "${SPECIFIER}";`,
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
+      ),
+    ];
+
+    expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
+  });
+
   it("型として取り込んだだけの待機表示を返す", () => {
     const modules = [
       skeleton(
