@@ -85,12 +85,16 @@ describe("AdminInquiryReplyForm", () => {
     expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
-  it("書きかけがあれば送信できる", async () => {
-    renderForm();
+  it("書きかけがあれば、押したら送り、入力を促す文言は出さない", async () => {
+    const action = vi.fn();
+
+    renderForm({ action });
 
     await userEvent.type(screen.getByLabelText("回答"), "承知しました。");
+    await userEvent.click(screen.getByRole("button", { name: "回答する" }));
 
-    expect(screen.getByRole("button", { name: "回答する" })).toBeEnabled();
+    expect(action).toHaveBeenCalledOnce();
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
   it("送信中は二重に送れない", () => {

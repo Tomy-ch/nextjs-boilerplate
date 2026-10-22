@@ -1,19 +1,13 @@
 "use client";
 
-import {
-  type ChangeEvent,
-  type SubmitEvent,
-  useActionState,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { type ChangeEvent, useActionState, useCallback, useEffect, useState } from "react";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Field, FieldError, FieldLabel } from "@/components/design-system/form/field/field";
 import { Input } from "@/components/design-system/form/input/input";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { useToast } from "@/components/shell/toaster/toaster";
+import { useEmptyGuard } from "@/components/use-empty-guard";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD, newIdempotencyKey } from "@/model/idempotency-key";
@@ -60,8 +54,12 @@ function renewsKey(state: ClaimCouponFormState): boolean {
 export function ClaimForm() {
   const [state, formAction] = useActionState(claimCouponAction, idleActionState());
   const [code, setCode] = useState("");
+  const {
+    error: emptyError,
+    clear: clearEmpty,
+    refuseEmpty,
+  } = useEmptyGuard(code, EMPTY_CODE_MESSAGE);
   const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
-  const [emptyError, setEmptyError] = useState<string | null>(null);
   const [seenState, setSeenState] = useState(state);
   const { toast } = useToast();
 
@@ -84,19 +82,12 @@ export function ClaimForm() {
     }
   }, [state, toast]);
 
-  const keepCode = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-    setCode(event.target.value);
-    setEmptyError(null);
-  }, []);
-
-  const refuseEmpty = useCallback(
-    (event: SubmitEvent<HTMLFormElement>) => {
-      if (code.trim() === "") {
-        event.preventDefault();
-        setEmptyError(EMPTY_CODE_MESSAGE);
-      }
+  const keepCode = useCallback(
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setCode(event.target.value);
+      clearEmpty();
     },
-    [code],
+    [clearEmpty],
   );
 
   const serverCodeErrors =

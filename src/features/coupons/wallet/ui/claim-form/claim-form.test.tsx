@@ -187,7 +187,41 @@ describe("ClaimForm", () => {
     expect(await screen.findByText(REJECTED_MESSAGE)).toBeVisible();
     expect(field).toHaveAttribute("aria-invalid", "true");
     expect(field).toHaveAccessibleDescription(REJECTED_MESSAGE);
+    expect(field).toHaveValue("UNKNOWN");
     expect(screen.queryByText("受け取れませんでした")).not.toBeInTheDocument();
+  });
+
+  it("弾かれた後に空にして押すと、弾かれた文言に代えて入力を促す文言だけを出す", async () => {
+    const user = userEvent.setup();
+
+    claimCouponAction.mockResolvedValue(
+      failedActionState({
+        fieldErrors: { [CLAIM_CODE_FIELD]: [REJECTED_MESSAGE] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+    renderForm();
+
+    await claim("UNKNOWN");
+    await screen.findByText(REJECTED_MESSAGE);
+    await user.clear(screen.getByLabelText("キャンペーンコード"));
+    await user.click(screen.getByRole("button", { name: "受け取る" }));
+
+    expect(claimCouponAction).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText("キャンペーンコード")).toHaveAccessibleDescription(
+      "キャンペーンコードを入力してください。",
+    );
+    expect(screen.queryByText(REJECTED_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it("空のまま押した表示も a11y 自動検査に違反しない", async () => {
+    const user = userEvent.setup();
+    const { container } = renderForm();
+
+    await user.click(screen.getByRole("button", { name: "受け取る" }));
+    await screen.findByText("キャンペーンコードを入力してください。");
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 
   it("コードが弾かれたら、直したコードは別のキーで送る", async () => {

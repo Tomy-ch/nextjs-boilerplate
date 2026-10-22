@@ -53,6 +53,7 @@ contract live there, so when the contract changes they are rebuilt ([Placement a
 - Use [`cn.ts`](./cn.ts) for conditional class names and resolving Tailwind utility conflicts. Do not add implementations that use `clsx` and `tailwind-merge` directly
 - Take icons from [`icon.ts`](./icon.ts). Implementations that import the supplier directly are not placed even inside `components`. This keeps a replacement to one file, and `no-restricted-imports` in `eslint.config.ts` shuts them out. **This surface is limited to named re-exports** — a table that looks up a component by name pulls unused icons into the bundle too
 - For the decision "once satisfied, keep it mounted from then on", use [`use-latched.ts`](./use-latched.ts). If the content is removed every time its container closes, **things that cannot be restored once removed** (an editing surface that can only be built from the content at the time it opened, an input that must be included in the submission) are rebuilt. It is needed across layers, so it lives here rather than under a layer
+- For a required field that must not be sent empty, use [`use-empty-guard.ts`](./use-empty-guard.ts) rather than disabling the submit control. A control that cannot be pressed takes no focus, so keyboard and assistive-technology users never reach why; the hook stops the submission when pressed and returns the wording to attach to the field. It is needed by forms in several features, so it lives here rather than under a layer
 - Colors, spacing and the like use the semantic tokens of [`tokens/`](../../tokens/README.md). Do not use primitive tokens directly
 - Add shadcn/ui components with `pnpm add:ui <component> --as=<heading> [--layer=<layer>] [-- <shadcn add options>]`. It copies in one component at a time to the place matching its layer and heading, and on success records the layer, heading, registry, time added and CLI version in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), so do not run `pnpm exec shadcn add` directly. `--as` is required and `--layer` defaults to `design-system`; an invalid value for either is rejected before `shadcn add` runs
 - An original component with no equivalent upstream item is placed with `pnpm gen component <name> --as=<heading> [--layer=<layer>]`. The vocabulary and defaults of the placement options are the same as `add:ui`; it emits the implementation, story, test and a README copied from `component-template.md` into the same directory, and records a `kind: original` row in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml). `pnpm check:ui` fails a directory that has a README but no row in the ledger, so the template and the ledger row are emitted together
@@ -322,6 +323,7 @@ components/
 ├── scripts/
 ├── cn.ts
 ├── icon.ts
+├── use-empty-guard.ts
 ├── use-latched.ts
 └── shadcn-manifest.yaml
 ```

@@ -1,12 +1,13 @@
 "use client";
 
-import { type ChangeEvent, type SubmitEvent, useCallback, useState } from "react";
+import { type ChangeEvent, useCallback, useState } from "react";
 
 import { INQUIRY_BODY_MAX_LENGTH } from "@/adapters/client/api/inquiry-limits";
 import { Button } from "@/components/design-system/action/button/button";
 import { Label } from "@/components/design-system/form/label/label";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
+import { useEmptyGuard } from "@/components/use-empty-guard";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 
@@ -52,8 +53,12 @@ export function AdminInquiryReplyForm({
   state,
 }: AdminInquiryReplyFormProps) {
   const [draft, setDraft] = useState("");
+  const {
+    error: emptyError,
+    clear: clearEmpty,
+    refuseEmpty,
+  } = useEmptyGuard(draft, REPLY_EMPTY_MESSAGE);
   const [seenState, setSeenState] = useState(state);
-  const [emptyError, setEmptyError] = useState<string | null>(null);
 
   // 送信が成立したら書きかけを片付ける。通らなかったときに残すのは、打ち直させないためである。
   if (seenState !== state) {
@@ -69,19 +74,12 @@ export function AdminInquiryReplyForm({
   const bodyErrors = emptyError === null ? serverBodyErrors : [emptyError];
   const submitLabel = pending ? SENDING_LABEL : SUBMIT_LABEL;
 
-  const keepDraft = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft(event.target.value);
-    setEmptyError(null);
-  }, []);
-
-  const refuseEmpty = useCallback(
-    (event: SubmitEvent<HTMLFormElement>) => {
-      if (draft.trim() === "") {
-        event.preventDefault();
-        setEmptyError(REPLY_EMPTY_MESSAGE);
-      }
+  const keepDraft = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft(event.target.value);
+      clearEmpty();
     },
-    [draft],
+    [clearEmpty],
   );
 
   return (
