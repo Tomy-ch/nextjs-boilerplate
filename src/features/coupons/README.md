@@ -1,5 +1,5 @@
 ---
-imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability]
+imports-allowed: [model, components, adapters, capabilities, stores, errors, logging, observability] # Generated: regenerate with `pnpm gen:architecture`
 forbidden: [features]
 test-requirement: [feature, component, unit]
 coverage-exclusions:
