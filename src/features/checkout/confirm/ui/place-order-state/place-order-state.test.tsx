@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
@@ -132,6 +132,21 @@ beforeEach(() => {
   placeOrderAction.mockResolvedValue(succeededActionState(undefined));
 });
 
+let settlePending: (() => void) | undefined;
+
+/** 応答を返さないまま待たせる送信。後片付けで必ず返す。 */
+function pendingAction() {
+  const { promise, resolve } = Promise.withResolvers<ReturnType<typeof succeededActionState>>();
+  settlePending = () => resolve(succeededActionState(undefined));
+
+  return promise;
+}
+
+afterEach(async () => {
+  await act(async () => settlePending?.());
+  settlePending = undefined;
+});
+
 describe("PlaceOrderStateProvider", () => {
   it("受け取った鍵を、器の中のどの姿へも同じ値で配る", () => {
     const { container } = render(
@@ -180,7 +195,7 @@ describe("PlaceOrderStateProvider", () => {
   });
 
   it("片方の姿から送っているあいだ、もう片方の姿も待っている", async () => {
-    placeOrderAction.mockReturnValue(new Promise(() => undefined));
+    placeOrderAction.mockReturnValue(pendingAction());
 
     render(
       <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
@@ -662,7 +677,7 @@ describe("usePlaceOrderState", () => {
 
   // ----- 送っているあいだ -----
   it("送っているあいだは、結果が未定ではなくクーポンを選び直せないと読む", async () => {
-    placeOrderAction.mockReturnValue(new Promise(() => undefined));
+    placeOrderAction.mockReturnValue(pendingAction());
 
     renderCouponFlow();
     await click("脇 から送る");
@@ -673,7 +688,7 @@ describe("usePlaceOrderState", () => {
   });
 
   it("送っているあいだは、選び直そうとしても選択を変えない", async () => {
-    placeOrderAction.mockReturnValue(new Promise(() => undefined));
+    placeOrderAction.mockReturnValue(pendingAction());
 
     renderCouponFlow();
     await click("1 枚目を選ぶ");
