@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { toCouponDiscount } from "./coupon-discount";
 
 describe("toCouponDiscount", () => {
+  // ----- 正常系 -----
   it("定額は上限を落とし、金額だけを写す", () => {
     expect(toCouponDiscount({ kind: "flat", value: "5.00", maxAmount: null })).toEqual({
       kind: "flat",

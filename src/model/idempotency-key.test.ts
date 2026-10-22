@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { ErrorKind } from "@/errors/error-kind";
+import { ErrorKind, errorKinds } from "@/errors/error-kind";
 
 import { failedActionState, idleActionState, succeededActionState } from "./action-state";
 import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "./idempotency-key";
+
+const OUTCOME_OPEN_KINDS: readonly ErrorKind[] = [
+  ErrorKind.TOO_MANY_REQUESTS,
+  ErrorKind.CANCELED,
+  ErrorKind.UNAVAILABLE,
+  ErrorKind.INTERNAL,
+];
+const OUTCOME_SETTLED_KINDS = errorKinds.filter((kind) => !OUTCOME_OPEN_KINDS.includes(kind));
 
 describe("newIdempotencyKey", () => {
   // ----- 正常系 -----
@@ -24,16 +32,6 @@ describe("settlesSubmission", () => {
     expect(settlesSubmission(succeededActionState(undefined))).toBe(true);
   });
 
-  it.each([
-    ErrorKind.VALIDATION,
-    ErrorKind.CONFLICT,
-    ErrorKind.NOT_FOUND,
-    ErrorKind.UNIMPLEMENTED,
-  ])("%s で拒まれた送信は、その鍵の役目を終える", (kind) => {
-    expect(settlesSubmission(failedActionState({ kind }))).toBe(true);
-  });
-
-  // ----- 異常系 -----
   it("まだ送っていなければ、鍵の役目は終わっていない", () => {
     expect(settlesSubmission(idleActionState())).toBe(false);
   });
@@ -42,28 +40,17 @@ describe("settlesSubmission", () => {
     expect(settlesSubmission(failedActionState({ formError: "失敗しました。" }))).toBe(false);
   });
 
-  it.each([
-    ErrorKind.UNAVAILABLE,
-    ErrorKind.INTERNAL,
-    ErrorKind.TOO_MANY_REQUESTS,
-    ErrorKind.CANCELED,
-  ])("%s で失敗した送信は、同じ鍵で送り直す", (kind) => {
+  it.each(OUTCOME_SETTLED_KINDS)("%s で拒まれた送信は、その鍵の役目を終える", (kind) => {
+    expect(settlesSubmission(failedActionState({ kind }))).toBe(true);
+  });
+
+  it.each(OUTCOME_OPEN_KINDS)("%s で失敗した送信は、同じ鍵で送り直す", (kind) => {
     expect(settlesSubmission(failedActionState({ kind }))).toBe(false);
   });
 });
 
 describe("leavesOutcomeOpen", () => {
   // ----- 正常系 -----
-  it.each([
-    ErrorKind.TOO_MANY_REQUESTS,
-    ErrorKind.CANCELED,
-    ErrorKind.UNAVAILABLE,
-    ErrorKind.INTERNAL,
-  ])("%s で失敗した送信は、結果が定まっていない", (kind) => {
-    expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(true);
-  });
-
-  // ----- 異常系 -----
   it("まだ送っていなければ、結果が定まっていないとはしない", () => {
     expect(leavesOutcomeOpen(idleActionState())).toBe(false);
   });
@@ -76,10 +63,11 @@ describe("leavesOutcomeOpen", () => {
     expect(leavesOutcomeOpen(failedActionState({ formError: "失敗しました。" }))).toBe(false);
   });
 
-  it.each([ErrorKind.VALIDATION, ErrorKind.CONFLICT])(
-    "%s で拒まれた送信は、結果が定まっていないとはしない",
-    (kind) => {
-      expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(false);
-    },
-  );
+  it.each(OUTCOME_OPEN_KINDS)("%s で失敗した送信は、結果が定まっていない", (kind) => {
+    expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(true);
+  });
+
+  it.each(OUTCOME_SETTLED_KINDS)("%s で拒まれた送信は、結果が定まっていないとはしない", (kind) => {
+    expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(false);
+  });
 });

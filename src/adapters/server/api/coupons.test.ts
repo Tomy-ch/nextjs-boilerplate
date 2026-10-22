@@ -93,6 +93,12 @@ describe("getMyCartCoupons", () => {
 
     expect(await kindOf(getMyCartCoupons)).toBe(ErrorKind.UNAVAILABLE);
   });
+
+  it("契約に無い形の応答を内層へ渡さない", async () => {
+    serveJson(CART_COUPONS_URL, { coupons: [{ coupon: wireCoupon, discountAmount: "332" }] });
+
+    expect(await kindOf(getMyCartCoupons)).toBe(ErrorKind.INTERNAL);
+  });
 });
 
 describe("readMyCartCoupons", () => {

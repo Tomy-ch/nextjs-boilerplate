@@ -36,6 +36,7 @@ const OTHER_COUPON: CartCoupon = {
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
 const REJECTED_FORM_ERROR = "選んだクーポンを使えなかったため、注文は確定していません。";
 const UNAVAILABLE_FORM_ERROR = "いまは確定できません。";
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** 器から読んだものを、そのまま見える形に出す姿。名前で 2 つを見分ける。 */
 function Consumer({ name }: { name: string }) {
@@ -83,8 +84,8 @@ function SelectCouponButton({ couponId, label }: { couponId: CouponId | null; la
   );
 }
 
-function unavailable() {
-  return failedActionState({ formError: UNAVAILABLE_FORM_ERROR, kind: ErrorKind.UNAVAILABLE });
+function unavailable(formError = UNAVAILABLE_FORM_ERROR) {
+  return failedActionState({ formError, kind: ErrorKind.UNAVAILABLE });
 }
 
 function rejectedCoupon() {
@@ -105,6 +106,16 @@ function renderCouponFlow(coupons: readonly CartCoupon[] | null = [COUPON, OTHER
       <CouponConsumer name="帯" />
     </PlaceOrderStateProvider>,
   );
+}
+
+/** 器が次の送信に載せる鍵の欄を引く。 */
+function keyInput(container: HTMLElement) {
+  return container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`);
+}
+
+/** 確定の送信のうち、0 始まりで call 番目に載った鍵を読む。 */
+function sentKey(call: number) {
+  return placeOrderAction.mock.calls[call]?.[1].get(IDEMPOTENCY_KEY_FIELD);
 }
 
 async function click(name: string) {
@@ -371,10 +382,8 @@ describe("usePlaceOrderState", () => {
     await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
     await screen.findByText(`脇:文言 ${REJECTED_FIELD_ERROR}`);
 
-    const key = container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`);
-
-    expect(key).not.toHaveValue(KEY);
-    expect(key).toHaveAttribute("value", expect.stringMatching(/^[0-9a-f-]{36}$/));
+    expect(keyInput(container)).not.toHaveValue(KEY);
+    expect(keyInput(container)).toHaveAttribute("value", expect.stringMatching(UUID_V7));
   });
 
   it("確定が衝突で拒まれたら、次の送信を別の鍵で送る", async () => {
@@ -390,10 +399,8 @@ describe("usePlaceOrderState", () => {
     await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
     await screen.findByText("脇:在庫が変わりました。");
 
-    const key = container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`);
-
-    expect(key).not.toHaveValue(KEY);
-    expect(key).toHaveAttribute("value", expect.stringMatching(/^[0-9a-f-]{36}$/));
+    expect(keyInput(container)).not.toHaveValue(KEY);
+    expect(keyInput(container)).toHaveAttribute("value", expect.stringMatching(UUID_V7));
   });
 
   it("確定先が応じられなかった失敗では、送り直しても同じ鍵のまま", async () => {
@@ -547,8 +554,61 @@ describe("usePlaceOrderState", () => {
     expect(screen.getByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`)).toBeVisible();
   });
 
+  it("結果の定まらない失敗の後に同じ鍵で送り直して拒まれたら、選び直せるようになり次を別の鍵で送る", async () => {
+    placeOrderAction.mockResolvedValueOnce(unavailable()).mockResolvedValueOnce(rejectedCoupon());
+
+    const { container } = renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`);
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${REJECTED_FORM_ERROR}`);
+
+    expect(sentKey(0)).toBe(KEY);
+    expect(sentKey(1)).toBe(KEY);
+    expect(screen.getByText("帯:選び直し できる")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
+    expect(keyInput(container)).not.toHaveValue(KEY);
+    expect(keyInput(container)).toHaveAttribute("value", expect.stringMatching(UUID_V7));
+
+    await click("2 枚目を選ぶ");
+
+    expect(screen.getByText(`帯:選択 ${OTHER_COUPON.id}`)).toBeVisible();
+  });
+
+  it("結果の定まらない失敗の後に送り直して再び定まらなかったら、選び直せないまま同じ鍵を保つ", async () => {
+    placeOrderAction
+      .mockResolvedValueOnce(unavailable())
+      .mockResolvedValueOnce(unavailable("まだ確定できません。"));
+
+    const { container } = renderCouponFlow();
+    await click("1 枚目を選ぶ");
+    await click("脇 から送る");
+    await screen.findByText(`帯:全体の文言 ${UNAVAILABLE_FORM_ERROR}`);
+    await click("脇 から送る");
+    await screen.findByText("帯:全体の文言 まだ確定できません。");
+    await click("2 枚目を選ぶ");
+
+    expect(sentKey(1)).toBe(KEY);
+    expect(screen.getByText("帯:選び直し できない")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定")).toBeVisible();
+    expect(screen.getByText(`帯:選択 ${COUPON.id}`)).toBeVisible();
+    expect(keyInput(container)).toHaveValue(KEY);
+  });
+
   // ----- 送っているあいだ -----
-  it("送っているあいだは、クーポンを選び直せないと読み、選び直そうとしても選択を変えない", async () => {
+  it("送っているあいだは、結果が未定ではなくクーポンを選び直せないと読む", async () => {
+    placeOrderAction.mockReturnValue(new Promise(() => undefined));
+
+    renderCouponFlow();
+    await click("脇 から送る");
+    await screen.findByText("脇:待っている");
+
+    expect(screen.getByText("帯:選び直し できない")).toBeVisible();
+    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
+  });
+
+  it("送っているあいだは、選び直そうとしても選択を変えない", async () => {
     placeOrderAction.mockReturnValue(new Promise(() => undefined));
 
     renderCouponFlow();
@@ -557,8 +617,6 @@ describe("usePlaceOrderState", () => {
     await screen.findByText("脇:待っている");
     await click("2 枚目を選ぶ");
 
-    expect(screen.getByText("帯:選び直し できない")).toBeVisible();
-    expect(screen.getByText("帯:結果 未定ではない")).toBeVisible();
     expect(screen.getByText(`帯:選択 ${COUPON.id}`)).toBeVisible();
   });
 

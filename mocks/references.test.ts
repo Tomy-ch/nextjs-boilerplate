@@ -252,7 +252,7 @@ describe("REFERENCE_PATCHES", () => {
 
     for (const entry of patched) {
       expect(entry.discountAmount > 0).toBe(entry.appliedCoupon !== null);
-      // 小計 $10.00 に対して、なし / 定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+      // 小計 $39.98 に対して、なし / 定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
       expect([0, 500, 100, 150]).toContain(entry.discountAmount);
     }
 
@@ -349,6 +349,85 @@ describe("REFERENCE_PATCHES", () => {
     expect(new Set(codes).size).toBe(codes.length);
   });
 
+  it("カートに使えるクーポンを、値引きの立つ組だけで、額面の重ならない候補として並べる", () => {
+    // 小計 $39.98 に対して、定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
+    const { coupons } = patchedCartCoupons;
+
+    expect(coupons.map((entry) => entry.discountAmount)).toEqual([500, 100, 599]);
+    expect(new Set(coupons.map((entry) => JSON.stringify(entry.coupon.discount))).size).toBe(
+      coupons.length,
+    );
+  });
+
+  it("カートに使えるクーポンを、いま使える未使用のクーポンにする", () => {
+    for (const { coupon } of patchedCartCoupons.coupons) {
+      expect(Date.parse(coupon.expiresAt)).toBeGreaterThan(Date.parse("2026-01-01T00:00:00Z"));
+      expect(coupon.usedAt).toBeNull();
+      expect(coupon.usableFrom).toBeNull();
+      expect(coupon.minPurchaseAmount).toBeNull();
+    }
+  });
+
+  it("カートに使えるクーポンのうち範囲を分類で絞るものは、分類マスタに在る分類を指す", () => {
+    const categoryScopes = patchedCartCoupons.coupons
+      .map((entry) => entry.coupon.scope)
+      .filter((scope) => scope.kind === "category");
+
+    expect(categoryScopes.length).toBeGreaterThan(0);
+    for (const scope of categoryScopes) {
+      expect(CATEGORIES.map((category) => category.id)).toContain(scope.targetId);
+    }
+  });
+
+  it("カートの明細を、買える明細と買えない明細が並ぶ組へ揃える", () => {
+    const patched = patchOf("getGetCartsMeResponseMock")(
+      {
+        items: [
+          cartLine("cart-1", 0),
+          cartLine("cart-2", 4),
+          cartLine("cart-3", 1),
+          cartLine("cart-4", 1),
+        ],
+        subtotalAmount: 1_234_567,
+      },
+      draw,
+    ) as {
+      items: readonly {
+        productName: string;
+        quantity: number;
+        unitPrice: string;
+        issues: unknown[];
+      }[];
+      subtotalAmount: number;
+    };
+
+    expect(patched.items.map((line) => line.issues.length)).toEqual([0, 0, 1]);
+    for (const line of patched.items) {
+      expect(line.productName).not.toBeNull();
+      expect(line.unitPrice).toBe("19.99");
+      expect(line.quantity).toBeGreaterThan(0);
+    }
+  });
+
+  it("カートの小計を、買える明細の単価と数量から組む", () => {
+    const patched = patchOf("getGetCartsMeResponseMock")(
+      {
+        items: [cartLine("cart-1", 0), cartLine("cart-2", 4), cartLine("cart-3", 1)],
+        subtotalAmount: 1,
+      },
+      draw,
+    ) as { subtotalAmount: number };
+
+    // 数量は 1 と 2 に揃い、在庫の無い 3 件目は小計に入らない。
+    expect(patched.subtotalAmount).toBe(1_999 * 1 + 1_999 * 2);
+  });
+
+  it("カートの明細を足し直した応答も同じ組へ揃える", () => {
+    expect(REFERENCE_PATCHES.get("getPutCartsMeItemResponseMock")).toBe(
+      REFERENCE_PATCHES.get("getGetCartsMeResponseMock"),
+    );
+  });
+
   // ----- 異常系 -----
   it("小計を持たない購入詳細は値引きを揃えられないので落ちる", () => {
     expect(() =>
@@ -424,85 +503,6 @@ describe("REFERENCE_PATCHES", () => {
   it("内訳の応答が配列を持たなければ落ちる", () => {
     expect(() => patchOf("getGetDashboardSummaryResponseMock")({}, draw)).toThrow(
       "配列を持ちません",
-    );
-  });
-
-  it("カートに使えるクーポンを、値引きの立つ組だけで、額面の重ならない候補として並べる", () => {
-    // 小計 $10.00 に対して、定額 $5.00 / 上限 $1.00 の 10% / 15% の切り捨て。
-    const { coupons } = patchedCartCoupons;
-
-    expect(coupons.map((entry) => entry.discountAmount)).toEqual([500, 100, 150]);
-    expect(new Set(coupons.map((entry) => JSON.stringify(entry.coupon.discount))).size).toBe(
-      coupons.length,
-    );
-  });
-
-  it("カートに使えるクーポンを、いま使える未使用のクーポンにする", () => {
-    for (const { coupon } of patchedCartCoupons.coupons) {
-      expect(Date.parse(coupon.expiresAt)).toBeGreaterThan(Date.parse("2026-01-01T00:00:00Z"));
-      expect(coupon.usedAt).toBeNull();
-      expect(coupon.usableFrom).toBeNull();
-      expect(coupon.minPurchaseAmount).toBeNull();
-    }
-  });
-
-  it("カートに使えるクーポンのうち範囲を分類で絞るものは、分類マスタに在る分類を指す", () => {
-    const categoryScopes = patchedCartCoupons.coupons
-      .map((entry) => entry.coupon.scope)
-      .filter((scope) => scope.kind === "category");
-
-    expect(categoryScopes.length).toBeGreaterThan(0);
-    for (const scope of categoryScopes) {
-      expect(CATEGORIES.map((category) => category.id)).toContain(scope.targetId);
-    }
-  });
-
-  it("カートの明細を、買える明細と買えない明細が並ぶ組へ揃える", () => {
-    const patched = patchOf("getGetCartsMeResponseMock")(
-      {
-        items: [
-          cartLine("cart-1", 0),
-          cartLine("cart-2", 4),
-          cartLine("cart-3", 1),
-          cartLine("cart-4", 1),
-        ],
-        subtotalAmount: 1_234_567,
-      },
-      draw,
-    ) as {
-      items: readonly {
-        productName: string;
-        quantity: number;
-        unitPrice: string;
-        issues: unknown[];
-      }[];
-      subtotalAmount: number;
-    };
-
-    expect(patched.items.map((line) => line.issues.length)).toEqual([0, 0, 1]);
-    for (const line of patched.items) {
-      expect(line.productName).not.toBeNull();
-      expect(line.unitPrice).toBe("19.99");
-      expect(line.quantity).toBeGreaterThan(0);
-    }
-  });
-
-  it("カートの小計を、買える明細の単価と数量から組む", () => {
-    const patched = patchOf("getGetCartsMeResponseMock")(
-      {
-        items: [cartLine("cart-1", 0), cartLine("cart-2", 4), cartLine("cart-3", 1)],
-        subtotalAmount: 1,
-      },
-      draw,
-    ) as { subtotalAmount: number };
-
-    // 数量は 1 と 2 に揃い、在庫の無い 3 件目は小計に入らない。
-    expect(patched.subtotalAmount).toBe(1_999 * 1 + 1_999 * 2);
-  });
-
-  it("カートの明細を足し直した応答も同じ組へ揃える", () => {
-    expect(REFERENCE_PATCHES.get("getPutCartsMeItemResponseMock")).toBe(
-      REFERENCE_PATCHES.get("getGetCartsMeResponseMock"),
     );
   });
 });

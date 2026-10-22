@@ -5,6 +5,7 @@ import { toCouponId } from "./coupon";
 const RAW_ID = "0193a1c0-0001-7000-8000-000000000002";
 
 describe("toCouponId", () => {
+  // ----- 正常系 -----
   it("受け取った文字列をそのまま識別子として返す", () => {
     expect(toCouponId(RAW_ID)).toBe(RAW_ID);
   });

@@ -2,6 +2,7 @@
 
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -36,6 +37,8 @@ const SECOND: CartCoupon = {
   id: toCouponId("0193a1c0-0001-7000-8000-000000000002"),
 };
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
+const NO_SCRIPT_MESSAGE =
+  "JavaScript が無効のときはクーポンを選べません。クーポンを使わない注文はできます。";
 const LOCKED_MESSAGE =
   "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
 
@@ -243,6 +246,21 @@ describe("CouponChoices", () => {
     await leaveOutcomeOpen();
 
     expect((await axe(container)).violations).toEqual([]);
+  });
+
+  // ----- server で描くとき -----
+  it("server で描いた時点では欄を操作できず、JavaScript が無効のときの案内を出す", () => {
+    const markup = renderToStaticMarkup(
+      <PlaceOrderStateProvider coupons={[FIRST, SECOND]} idempotencyKey={KEY}>
+        <CouponChoices title="クーポン">
+          <CouponChoice couponId={FIRST.id}>1 枚目のクーポン</CouponChoice>
+          <CouponChoice couponId={SECOND.id}>2 枚目のクーポン</CouponChoice>
+        </CouponChoices>
+      </PlaceOrderStateProvider>,
+    );
+
+    expect(markup).toMatch(/<fieldset[^>]*\sdisabled=""/);
+    expect(markup).toContain(NO_SCRIPT_MESSAGE);
   });
 });
 
