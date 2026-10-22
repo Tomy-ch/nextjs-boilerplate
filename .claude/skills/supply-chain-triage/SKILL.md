@@ -234,7 +234,7 @@ Print the report below, then hand back to the calling skill (which runs its own 
 
 推奨: <下記の対応表に従う>
 
-本スキルは何も変更していません（報告のみ）。採用の判断は <呼び出し元 / 利用者> が行います。
+本スキルは何も変更していません（報告のみ）。採用の判断は <呼び出し元 / ユーザー> が行います。
 ```
 
 Map the band to a recommendation:
