@@ -107,7 +107,9 @@ section is how the skill carries it out.
 
 Web and general software-development terms are written in **katakana or English, never as kanji
 calques**. Established kanji terms — 関数, 型, 依存, 境界, 設定, 環境, 契約, 取得, 生成物, 台帳,
-外枠 — stay. This table is the permanent home of the rule; apply every row to what you write.
+外枠 — stay. This table is the permanent home of the rule; apply every row to what you write. The rule
+binds the mirror, and the text a mirror copies from its canonical byte for byte (a fenced template);
+Japanese the canonical or the code chose for itself is not a translation and is not bound by it.
 
 A katakana word for an English word ending in -er / -or / -ar carries the long-vowel mark (ユーザー,
 サーバー, ブラウザー), per the cabinet notice 「外来語の表記」. "user" is ユーザー in every sense the
