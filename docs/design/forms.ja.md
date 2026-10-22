@@ -149,7 +149,9 @@ rhf を使うときの配線は次のとおり。
 
 **送信中は `Button` の `pending` が押せなくする。** 冪等キーがあるから二度押しても増えない、を理由に押せるまま残さない。
 
-**冪等キーの作り方と運び方。** [`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドは `useState(initial)` で**最初に受け取った値を固定**して hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+**冪等キーの作り方と運び方。** 1 回きりの送信では、[`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドは `useState(initial)` で**最初に受け取った値を固定**して hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+
+**同じ画面から繰り返す送信は、キーをアイランドが持つ。** アイランドが `useState(newIdempotencyKey)` で作り、成立したあとと、直した入力が別の要求になる拒否のあとに作り直す。競合・サービス停止・届かなかった応答のあとは同じキーで送り直し、成立していた送信を 2 つにしない。どちらの形を取るかは送信の回数で決まる（[`src/features/README.md`](../../src/features/README.ja.md)）。
 
 キーは全部の変更に要るわけではない。**設定（絶対値）を送る操作は自然に冪等**なのでキーを持たない。逆に自然キーを持たない作成は再試行もしない —— 同じ本文を二度送れば 2 件できる。
 
@@ -265,7 +267,7 @@ Route Handler を指す `redirect()` は要求を出さない。理由は [`rend
 
 ### 冪等キーを render のたびに作ると、キーの意味が無くなる
 
-`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは画面を組み立てる Server Component の 1 か所で、アイランドは `useState(initial)` で固定する。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
+`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは画面を組み立てる Server Component の 1 か所で、アイランドは `useState(initial)` で固定する。同じ画面から繰り返す送信はアイランドで作るが、`useState` の遅延初期化を通す —— `useState(newIdempotencyKey)` は mount で 1 回だけ呼ぶが、`useState(newIdempotencyKey())` は render のたびに呼び出しを評価する。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
 
 ### 開閉で unmount されるサブツリーに、キーと送信の状態を置かない
 

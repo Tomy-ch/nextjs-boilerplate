@@ -218,9 +218,9 @@ coupons (`coupons`), the site description (`site-info`).
   learning on the spot is easier to fix than being told "it is missing" only after a round trip. Error wording
   is shown only for touched fields, while the judgment of whether you may proceed does not look at whether a
   field was touched
-- **The idempotency key collapses duplicate registration submissions**. The point that assembled the screen
-  makes one key and puts it on the submission, so however many times it is sent from the same screen, the
-  user remains one person
+- **The idempotency key collapses duplicate registration submissions**. Registration is a one-time submission,
+  so the point that assembled the screen makes one key and puts it on the submission; however many times it is
+  sent from the same screen, the user remains one person
 - **Only the edit screen has breadcrumbs**. My Page is pointed at directly by the global nav, so breadcrumbs
   there would duplicate the same path
 

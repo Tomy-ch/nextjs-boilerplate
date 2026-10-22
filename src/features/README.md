@@ -175,7 +175,8 @@ What this section owns is how that is divided inside a slice.
 - **Where the idempotency key is issued depends on how many times it is sent.** For a one-time creation
   (registration, confirmation), `page-content` makes one per assembly and passes it through props. For
   submissions repeated from the same screen (adding items one at a time), the client island holds it with
-  `useState(newIdempotencyKey)` and **regenerates it only on success**. Setting (PUT) and deletion produce the
+  `useState(newIdempotencyKey)` and **regenerates it only on success, and on a rejection that makes the corrected input a
+  different request**. Setting (PUT) and deletion produce the
   same result if delivered twice, so they carry no key
 - **Distinguish only conflicts (409).** The action the person who pressed can take (reload the screen) differs
   from other failures
