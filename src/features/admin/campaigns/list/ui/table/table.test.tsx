@@ -125,8 +125,8 @@ describe("AdminCampaignTable", () => {
   it("状態の混ざった表では、停止していない行にだけ操作を出す", () => {
     render(<AdminCampaignTable items={ADMIN_CAMPAIGN_ROWS} onSuspend={vi.fn()} />);
 
-    const unsuspended = ADMIN_CAMPAIGN_ROWS.filter((item) => !item.suspended);
-    const suspended = ADMIN_CAMPAIGN_ROWS.filter((item) => item.suspended);
+    const unsuspended = ADMIN_CAMPAIGN_ROWS.filter((item) => item.suspendedAt === null);
+    const suspended = ADMIN_CAMPAIGN_ROWS.filter((item) => item.suspendedAt !== null);
 
     expect(screen.getAllByRole("button", { name: / の操作$/ })).toHaveLength(unsuspended.length);
     for (const item of unsuspended) {

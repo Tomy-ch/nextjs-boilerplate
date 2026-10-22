@@ -29,7 +29,7 @@ const OTHER_ROW = otherUnsuspendedRow();
 
 function otherUnsuspendedRow(): AdminCampaignRow {
   const row = ADMIN_CAMPAIGN_ROWS.find(
-    (item) => !item.suspended && item.id !== UPCOMING_CAMPAIGN_ROW.id,
+    (item) => item.suspendedAt === null && item.id !== UPCOMING_CAMPAIGN_ROW.id,
   );
 
   if (row === undefined) throw new Error("fixture に停止していない別の行がありません");
@@ -48,7 +48,7 @@ function renderList(suspendAction: () => Promise<SuspendCampaignState> = idle) {
 function RefetchingList() {
   const [items, setItems] = useState<readonly AdminCampaignRow[]>([UPCOMING_CAMPAIGN_ROW]);
   const suspendAction = useCallback(async () => {
-    setItems([{ ...UPCOMING_CAMPAIGN_ROW, suspended: true }]);
+    setItems([{ ...UPCOMING_CAMPAIGN_ROW, suspendedAt: "2025/12/22 12:30" }]);
 
     return succeededActionState({ code: UPCOMING_CAMPAIGN_ROW.code });
   }, []);

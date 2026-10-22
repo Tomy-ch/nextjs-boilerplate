@@ -4,11 +4,7 @@ import { COUPON_SCOPE_NAME } from "@/model/coupon/coupon";
 import { formatCouponDiscount, formatCouponDiscountCap } from "@/model/coupon/discount-label";
 import { formatDateTime } from "@/model/datetime";
 
-import {
-  DISTRIBUTION_STATUS,
-  DISTRIBUTION_STATUS_NAME,
-  toDistributionStatus,
-} from "./distribution-status";
+import { DISTRIBUTION_STATUS_NAME, toDistributionStatus } from "./distribution-status";
 import { toDistributionStatusTone } from "./status-tone";
 
 /**
@@ -24,8 +20,6 @@ export type AdminCampaignRow = {
   readonly statusName: string;
   /** 状態に対応するバッジの見た目。 */
   readonly statusTone: BadgeVariant;
-  /** 停止したか。停止した行には停止の操作を出さない。 */
-  readonly suspended: boolean;
   /** 配布期間の開始。この時刻ちょうどを含む。 */
   readonly startsAt: string;
   /** 配布期間の終了。この時刻ちょうどは含まない。 */
@@ -42,7 +36,7 @@ export type AdminCampaignRow = {
   readonly scopeName: string;
   /** 配るクーポンの有効期限。 */
   readonly couponExpiresAt: string;
-  /** 停止した日時。停止していなければ null。 */
+  /** 停止した日時。null でなければ停止済みの行で、停止の操作を出さない。 */
   readonly suspendedAt: string | null;
 };
 
@@ -69,7 +63,6 @@ export function toAdminCampaignRows(
       code: campaign.code,
       statusName: DISTRIBUTION_STATUS_NAME[status],
       statusTone: toDistributionStatusTone(status),
-      suspended: status === DISTRIBUTION_STATUS.SUSPENDED,
       startsAt: formatDateTime(new Date(campaign.startsAt)),
       endsAt: formatDateTime(new Date(campaign.endsAt)),
       remaining: campaign.totalLimit - campaign.issuedCount,

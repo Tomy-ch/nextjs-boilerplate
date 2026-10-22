@@ -65,7 +65,7 @@ describe("toAdminCampaignRows", () => {
 
     expect(row.statusName).toBe("配布前");
     expect(row.statusTone).toBe(BADGE_VARIANT.WARNING);
-    expect(row.suspended).toBe(false);
+    expect(row.suspendedAt).toBeNull();
   });
 
   it("期間の中のキャンペーンを、配布中の見た目と操作できる行にする", () => {
@@ -73,7 +73,7 @@ describe("toAdminCampaignRows", () => {
 
     expect(row.statusName).toBe("配布中");
     expect(row.statusTone).toBe(BADGE_VARIANT.SECONDARY);
-    expect(row.suspended).toBe(false);
+    expect(row.suspendedAt).toBeNull();
   });
 
   it("期間を過ぎたキャンペーンを、期間外の見た目と操作できる行にする", () => {
@@ -81,7 +81,7 @@ describe("toAdminCampaignRows", () => {
 
     expect(row.statusName).toBe("期間外");
     expect(row.statusTone).toBe(BADGE_VARIANT.OUTLINE);
-    expect(row.suspended).toBe(false);
+    expect(row.suspendedAt).toBeNull();
   });
 
   it("停止したキャンペーンを、停止の見た目と停止済みの行にする", () => {
@@ -89,14 +89,14 @@ describe("toAdminCampaignRows", () => {
 
     expect(row.statusName).toBe("停止");
     expect(row.statusTone).toBe(BADGE_VARIANT.DEFAULT);
-    expect(row.suspended).toBe(true);
+    expect(row.suspendedAt).toBe(formatDateTime(new Date(SUSPENDED_AT)));
   });
 
   it("期間の中でも、停止していれば停止の行にする", () => {
     const row = rowOf(campaign({ suspendedAt: SUSPENDED_AT }), DURING);
 
     expect(row.statusName).toBe("停止");
-    expect(row.suspended).toBe(true);
+    expect(row.suspendedAt).toBe(formatDateTime(new Date(SUSPENDED_AT)));
   });
 
   it("開始の時刻ちょうどは、配布中の行にする", () => {
@@ -185,11 +185,11 @@ describe("toAdminCampaignRows", () => {
       DURING,
     );
 
-    expect(rows.map((row) => [row.code, row.statusName, row.suspended])).toEqual([
-      ["UPCOMING", "配布前", false],
-      ["ACTIVE", "配布中", false],
-      ["SUSPENDED", "停止", true],
-      ["ENDED", "期間外", false],
+    expect(rows.map((row) => [row.code, row.statusName, row.suspendedAt])).toEqual([
+      ["UPCOMING", "配布前", null],
+      ["ACTIVE", "配布中", null],
+      ["SUSPENDED", "停止", formatDateTime(new Date(SUSPENDED_AT))],
+      ["ENDED", "期間外", null],
     ]);
   });
 });

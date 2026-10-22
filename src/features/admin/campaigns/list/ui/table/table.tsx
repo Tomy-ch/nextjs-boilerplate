@@ -161,7 +161,7 @@ function toColumns(
         triggerLabel: (item) => `${item.code} の操作`,
         // 空を返すと `RowActionsMenu` が trigger ごと描かない。
         actions: (item) =>
-          item.suspended
+          item.suspendedAt !== null
             ? []
             : [
                 {
