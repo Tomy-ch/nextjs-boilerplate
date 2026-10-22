@@ -221,7 +221,10 @@ export const Loading: Story = {
 export const FetchError: Story = {
   render: () => (
     <ContentContainer className="py-8">
-      <AdminScreenError message={getDefaultErrorMeta(ErrorKind.INTERNAL).message} />
+      <AdminScreenError
+        message={getDefaultErrorMeta(ErrorKind.INTERNAL).message}
+        onRetry={() => {}}
+      />
     </ContentContainer>
   ),
   globals: { viewport: { value: "desktop", isRotated: false } },
