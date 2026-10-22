@@ -65,7 +65,8 @@ purchase. Reopening the screen with the intent to buy again gives a different ke
 conflict in stock or price — the next submission takes a new key**, since it may carry different content. A failure whose outcome is unknown
 (the backend unavailable, an internal error) keeps the key so the same submission can be resent. **While that outcome is open, the
 submission's content does not change**: the backend replays the first result for a repeated key, so a different coupon under it would
-silently return the purchase made with the earlier one.
+silently return the purchase made with the earlier one. This holds even when the candidates were fetched again
+meanwhile and no longer list the chosen coupon: it is still sent.
 
 **A coupon refused at confirmation refetches the candidates.** Every reason the backend refuses one for (expired, used, not held, zero
 discount) is a coupon the next fetch no longer lists, so the user chooses again from what is current. The next submission takes a new

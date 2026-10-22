@@ -76,7 +76,12 @@ Choosing again also clears the reason next to the confirm operation, so a correc
 **While a confirmation is in flight, and while the outcome of the last one is unknown, the coupon cannot be chosen again.** The field
 stays reachable and says, in one sentence, that the coupon can be chosen again once the outcome is known and that the same order can be
 confirmed again. Before the page is interactive the choices are disabled, and without JavaScript one sentence says the order can still
-be placed without a coupon.
+be placed without a coupon. When the candidates are fetched again during that time and no longer list the chosen coupon, the field
+shows nothing chosen and the summary drops the estimate row, but the coupon is still sent with the next confirmation; when no
+candidate remains, the field keeps only its heading and that sentence.
+
+Choosing a coupon again clears only a refusal that named the coupon. Any other reason (a price change, a conflict in stock) stays
+until the next confirmation, since choosing a coupon does not fix it.
 
 While sending, only the glyph is swapped and **the visible text stays put**. Lengthening the text would move the container's width, and in a stuck
 summary or a fixed band even the surrounding positions would move.
@@ -96,4 +101,5 @@ The coupon field stays at the end of the body column at every width; below `lg` 
 
 When the cart has no products, it says there is nothing to confirm and shows only a link to browse products.
 
-When the cart has no usable coupon, the coupon field is not shown at all. An empty choice offers nothing to decide.
+When the cart has no usable coupon, the coupon field is not shown at all. An empty choice offers nothing to decide. The one
+exception is while the outcome of a confirmation is open (see The Confirm Operation).

@@ -143,6 +143,7 @@ How idempotency keys and submissions without the acknowledgment signal are handl
 - [ ] While the outcome of a confirmation is open, the coupon cannot be chosen again
 - [ ] A resend under the same key carries the same content; a settled response renews the key
 - [ ] Before hydration the coupon choices are disabled, and a confirmation sent then carries no coupon
+- [ ] A refusal that does not name the coupon keeps its reason across a re-choice
 - [ ] There is one idempotency key per assembly of the screen
 
 ## Design Decisions
@@ -175,7 +176,10 @@ are disabled, so a choice that would not be sent never looks made, and a `noscri
 **While the outcome of a confirmation is open, the coupon cannot be chosen again.** A resend under the same key
 must carry the same content: the backend replays the first result for a repeated key, so a different coupon
 under it would silently return the purchase made with the earlier one. The same lock holds while a submission is
-in flight, so a refusal is never shown against a choice made after it was sent.
+in flight, so a refusal is never shown against a choice made after it was sent. The chosen coupon is kept and
+sent even when the candidates are fetched again meanwhile and no longer list it; when none remain, the field
+keeps its heading and the sentence so the reason stays on screen. Choosing again clears only a refusal that named
+the coupon; a price change or a conflict keeps its reason until the next confirmation.
 
 **On success, the user is sent to a different URL.** Showing the completion on the same screen would make a
 reload erase the completion and the back operation return to the pre-confirmation screen. The completion screen
