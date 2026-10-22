@@ -6,6 +6,14 @@ const SPECIFIER = "@/components/shell/loading-announcer/loading-announcer";
 
 const SKELETON_PATH = "src/features/notes/list/ui/skeleton/skeleton.tsx";
 
+function importFrom(clause: string): string {
+  return `import ${clause} from "${SPECIFIER}";`;
+}
+
+function source(...lines: readonly string[]): string {
+  return lines.join("\n");
+}
+
 function skeleton(content: string, path = SKELETON_PATH) {
   return { path, content };
 }
@@ -27,7 +35,10 @@ describe("findSilentSkeletons", () => {
   it("葉を取り込んで置いている待機表示は返さない", () => {
     const modules = [
       skeleton(
-        `import { LoadingAnnouncement } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden><LoadingAnnouncement /></div>;`,
+        source(
+          importFrom("{ LoadingAnnouncement }"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
       ),
     ];
 
@@ -37,7 +48,10 @@ describe("findSilentSkeletons", () => {
   it("別名で取り込んでいても、その名前で置いていれば返さない", () => {
     const modules = [
       skeleton(
-        `import { LoadingAnnouncement as Announce } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden><Announce /></div>;`,
+        source(
+          importFrom("{ LoadingAnnouncement as Announce }"),
+          "export const S = () => <div aria-hidden><Announce /></div>;",
+        ),
       ),
     ];
 
@@ -62,7 +76,10 @@ describe("findSilentSkeletons", () => {
   it("取り込んだだけで置いていない待機表示を返す", () => {
     const modules = [
       skeleton(
-        `import { LoadingAnnouncement } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden />;`,
+        source(
+          importFrom("{ LoadingAnnouncement }"),
+          "export const S = () => <div aria-hidden />;",
+        ),
       ),
     ];
 
@@ -72,7 +89,10 @@ describe("findSilentSkeletons", () => {
   it("取り込まずに同じ名前の要素を置いている待機表示を返す", () => {
     const modules = [
       skeleton(
-        "const LoadingAnnouncement = () => null;\nexport const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        source(
+          "const LoadingAnnouncement = () => null;",
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
       ),
     ];
 
@@ -82,7 +102,10 @@ describe("findSilentSkeletons", () => {
   it("別の module から同じ名前を取り込んでいる待機表示を返す", () => {
     const modules = [
       skeleton(
-        'import { LoadingAnnouncement } from "./local";\nexport const S = () => <div aria-hidden><LoadingAnnouncement /></div>;',
+        source(
+          'import { LoadingAnnouncement } from "./local";',
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
       ),
     ];
 
@@ -92,7 +115,10 @@ describe("findSilentSkeletons", () => {
   it("型として取り込んだだけの待機表示を返す", () => {
     const modules = [
       skeleton(
-        `import type { LoadingAnnouncement } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden><LoadingAnnouncement /></div>;`,
+        source(
+          importFrom("type { LoadingAnnouncement }"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
       ),
     ];
 
@@ -102,7 +128,10 @@ describe("findSilentSkeletons", () => {
   it("名前が前方一致するだけの要素を置いている待機表示を返す", () => {
     const modules = [
       skeleton(
-        `import { LoadingAnnouncement } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden><LoadingAnnouncement2 /></div>;`,
+        source(
+          importFrom("{ LoadingAnnouncement }"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement2 /></div>;",
+        ),
       ),
     ];
 
@@ -112,7 +141,11 @@ describe("findSilentSkeletons", () => {
   it("コメントの中にだけ葉を書いた待機表示を返す", () => {
     const modules = [
       skeleton(
-        `import { LoadingAnnouncement } from "${SPECIFIER}";\n// <LoadingAnnouncement />\nexport const S = () => <div aria-hidden />;`,
+        source(
+          importFrom("{ LoadingAnnouncement }"),
+          "// <LoadingAnnouncement />",
+          "export const S = () => <div aria-hidden />;",
+        ),
       ),
     ];
 
@@ -125,7 +158,10 @@ describe("findSilentSkeletons", () => {
     const modules = [
       skeleton("export const S = () => <div aria-hidden />;", silentB),
       skeleton(
-        `import { LoadingAnnouncement } from "${SPECIFIER}";\nexport const S = () => <div aria-hidden><LoadingAnnouncement /></div>;`,
+        source(
+          importFrom("{ LoadingAnnouncement }"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
       ),
       skeleton("export const S = () => <div aria-hidden />;", silentA),
     ];
@@ -142,7 +178,10 @@ describe("mountsAnnouncer", () => {
     expect(
       mountsAnnouncer({
         path: LAYOUT_PATH,
-        content: `import { LoadingAnnouncerProvider } from "${SPECIFIER}";\nexport default () => <LoadingAnnouncerProvider>{null}</LoadingAnnouncerProvider>;`,
+        content: source(
+          importFrom("{ LoadingAnnouncerProvider }"),
+          "export default () => <LoadingAnnouncerProvider>{null}</LoadingAnnouncerProvider>;",
+        ),
       }),
     ).toBe(true);
   });
@@ -152,7 +191,10 @@ describe("mountsAnnouncer", () => {
     expect(
       mountsAnnouncer({
         path: LAYOUT_PATH,
-        content: `import { LoadingAnnouncerProvider } from "${SPECIFIER}";\nexport default () => <div />;`,
+        content: source(
+          importFrom("{ LoadingAnnouncerProvider }"),
+          "export default () => <div />;",
+        ),
       }),
     ).toBe(false);
   });
