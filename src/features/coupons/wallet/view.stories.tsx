@@ -32,7 +32,9 @@ const meta = {
         <PageHeader>
           <div>
             <PageHeaderTitle>クーポン</PageHeaderTitle>
-            <PageHeaderDescription>受け取ったクーポンと、その状態を確認できます。</PageHeaderDescription>
+            <PageHeaderDescription>
+              受け取ったクーポンと、その状態を確認できます。
+            </PageHeaderDescription>
           </div>
         </PageHeader>
         <Story />
