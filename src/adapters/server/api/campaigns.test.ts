@@ -29,7 +29,7 @@ const wireCoupon = {
   usableFrom: null,
 };
 
-const KEY = "0198a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a70";
+const KEY = "00000000-0000-4000-8000-000000000001";
 
 beforeEach(() => {
   vi.clearAllMocks();
