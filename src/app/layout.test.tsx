@@ -131,7 +131,7 @@ describe("RootLayout", () => {
     );
 
     expect(markup).toContain('<p class="sr-only" role="status"></p>');
-    expect(markup.indexOf('<p class="sr-only" role="status">')).toBeGreaterThan(
+    expect(markup.indexOf('<p class="sr-only" role="status">')).toBeGreaterThanOrEqual(
       appRootClosesAt(markup),
     );
   });

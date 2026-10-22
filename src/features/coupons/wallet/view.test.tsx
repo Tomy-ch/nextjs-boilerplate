@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -34,7 +34,9 @@ describe("WalletView", () => {
     renderView();
 
     const field = screen.getByLabelText("キャンペーンコード");
-    const firstRow = screen.getAllByRole("listitem")[0];
+    const firstRow = within(screen.getByRole("list", { name: "保有クーポンの一覧" })).getAllByRole(
+      "listitem",
+    )[0];
 
     if (firstRow === undefined) {
       throw new Error("一覧の行がありません。");
@@ -48,7 +50,9 @@ describe("WalletView", () => {
   it("渡された時刻で一覧の状態を決める", () => {
     renderView([UNUSED_COUPON], UNUSED_COUPON.expiresAt);
 
-    expect(screen.getByRole("listitem")).toHaveTextContent("期限切れ");
+    expect(
+      within(screen.getByRole("list", { name: "保有クーポンの一覧" })).getByRole("listitem"),
+    ).toHaveTextContent("期限切れ");
   });
 
   it("a11y 自動検査に違反しない", async () => {
