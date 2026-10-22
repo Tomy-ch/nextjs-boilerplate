@@ -175,7 +175,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: ".github/workflows/README.ja.md",
         block:
-          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
+          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナーが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
       },
       {
         file: ".github/workflows/README.md",
