@@ -82,6 +82,7 @@
   "scripts/gen/plan.test.ts": 2,
   "scripts/lib/untested-modules.ts": 21,
   "scripts/lint-md/steps.ts": 2,
+  "scripts/loading-announcement.gate.test.ts": 1,
   "scripts/premise-lint/scan.test.ts": 12,
   "scripts/premise-lint/scan.ts": 6,
   "scripts/premise-lint/targets.ts": 3,
