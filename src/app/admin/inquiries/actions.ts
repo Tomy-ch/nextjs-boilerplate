@@ -1,15 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { postInquiryReply } from "@/adapters/server/api/inquiries";
+import { isUnauthenticated } from "@/errors/app-error";
 import { REPLY_BODY_FIELD } from "@/features/admin/inquiries/form-names";
 import type { AdminInquiryReplyState } from "@/features/admin/inquiries/form-state";
 import { REPLY_MALFORMED_MESSAGE } from "@/features/admin/inquiries/form-state";
 import { parseAdminInquiryReplyForm } from "@/features/admin/inquiries/parse-reply-form";
 import { ADMIN_INQUIRY_LIST_PATH, adminInquiryDetailPath } from "@/features/admin/paths";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -54,7 +55,7 @@ export async function replyInquiryAction(
   try {
     await postInquiryReply(parsed.inquiryId, parsed.body, parsed.idempotencyKey);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_INQUIRY_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_INQUIRY_LIST_PATH));
 
     return actionStateFromError(error);
   }

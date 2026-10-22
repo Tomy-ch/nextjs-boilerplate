@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { deliverPurchase, shipPurchase } from "@/adapters/server/api/purchases";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
@@ -15,7 +15,7 @@ import {
   SHIPMENT_TARGET_LOST_MESSAGE,
   type ShipmentState,
 } from "@/features/admin/shipments/form-state";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -128,7 +128,7 @@ export async function shipPurchasesAction(
   }
 
   if (abort !== null) {
-    redirectIfUnauthenticated(abort.error, ADMIN_SHIPMENT_QUEUE_PATH);
+    if (isUnauthenticated(abort.error)) redirect(loginPath(ADMIN_SHIPMENT_QUEUE_PATH));
 
     return actionStateFromError(abort.error);
   }
@@ -178,7 +178,7 @@ export async function deliverPurchaseAction(
   try {
     await deliverPurchase(purchaseCode);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_SHIPMENT_QUEUE_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_SHIPMENT_QUEUE_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: DELIVERY_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });

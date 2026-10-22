@@ -1,11 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { suspendCampaign } from "@/adapters/server/api/campaigns";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { SUSPEND_FORM_NAMES } from "@/features/admin/campaigns/list/form-names";
 import {
@@ -14,7 +14,7 @@ import {
   type SuspendCampaignState,
 } from "@/features/admin/campaigns/list/form-state";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "@/features/admin/paths";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -69,7 +69,7 @@ export async function suspendCampaignAction(
   try {
     await suspendCampaign(toCampaignId(id), idempotencyKey.data);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_CAMPAIGN_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_CAMPAIGN_LIST_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       revalidatePath(ADMIN_CAMPAIGN_LIST_PATH);

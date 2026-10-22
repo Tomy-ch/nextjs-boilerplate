@@ -10,7 +10,7 @@ import {
   uploadProductImage,
 } from "@/adapters/server/api/products";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import {
   ADMIN_PRODUCT_LIST_PATH,
@@ -42,7 +42,7 @@ import {
   type StockFormState,
 } from "@/features/admin/products/stock/form-state";
 import { parseStockForm } from "@/features/admin/products/stock/parse-stock-form";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -104,7 +104,7 @@ export async function uploadProductImageAction(
   try {
     return succeededActionState(await uploadProductImage(image));
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_PRODUCT_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
 
     return actionStateFromError(error);
   }
@@ -144,7 +144,7 @@ export async function createProductAction(
   try {
     await createProduct(parsed.value);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_PRODUCT_NEW_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_NEW_PATH));
 
     return actionStateFromError(error);
   }
@@ -192,7 +192,7 @@ export async function updateProductAction(
   try {
     await updateProduct(toProductId(id), parsed.value);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_PRODUCT_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({
@@ -242,7 +242,7 @@ export async function adjustProductStockAction(
   try {
     await adjustProductStock(parsed.productId, parsed.delta);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_PRODUCT_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
 
     // 範囲外は入力の誤りなので、量の欄のそばへ返す。欄が 1 つなので先頭の要約は出さない。
     if (findAppError(error)?.kind === ErrorKind.VALIDATION) {
@@ -296,7 +296,7 @@ export async function discontinueProductAction(
   try {
     result = await discontinueProduct(parsed.productId, parsed.conditions, parsed.idempotencyKey);
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_PRODUCT_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       revalidatePath(adminProductDiscontinuePath(parsed.productId));

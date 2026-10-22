@@ -116,8 +116,7 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
   meta タグで伝わる。画面の要求では、未認証は前捌き（`proxy.ts`）がエントリポイントで本物の転送として捌くので、ここまで届くのは
   バックエンドに問わないと分からない判定（主体についてバックエンドだけが持つ状態など）だけである
   （[0041](../../docs/adr/0041-cache-components-decision.ja.md) / [0079](../../docs/adr/0079-auth-frontend-seam.ja.md)）。
-  Server Action の呼び出しは前捌きが転送しない。未認証の redirect は各 action が持つ（*運用*、
-  [0043](../../docs/adr/0043-middleware-policy.ja.md)）
+  Server Action の呼び出しは前捌きが転送しない（[0043](../../docs/adr/0043-middleware-policy.ja.md)）
 - **一次資源が無いことも 200 で伝わる。** 見つからないことは `not-found.tsx` と `noindex` が伝える
   （[0080](../../docs/adr/0080-error-handling.ja.md)）
 - **確かめる前にシェルを配れない区画は、レイアウトシェルが判定し `instant = false` を名乗る。** 判定をダイナミックホールへ落とすと、
@@ -293,11 +292,11 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   `PERMISSION_DENIED` を投げ、action はそれを素通りさせず `ActionState` として返します**（`actionStateFromError`）—— 失敗は
   カタログの汎用の文言で操作の隣に出し、その文言は役割が足りないとは言いません
   （[docs/rules.ja.md](../../docs/rules.ja.md#authorization)）。続いて feature の
-  parser で送信を解き、`adapters/server` を呼び、結果を返します。**adapter が `UNAUTHENTICATED` で失敗したとき（バックエンドが
-  `401` を返した）は、`ActionState` を返さず、断言へ渡したのと同じ戻り先を持たせてログインへ redirect します** —— 断言が
-  通した session をバックエンドがもう受け付けておらず、同じ理屈が当てはまります。この確認はすべての Server Action が共有する
-  もので（`features/auth/facade` の `redirectIfUnauthenticated`）、各 action は adapter の呼び出しを囲む `catch` の中で、種類ごとの
-  対応づけより先にそれを呼びます。`try` ではなく `catch` で走らせるので、redirect は捕まりません。複数件を順に送り、
+  parser で送信を解き、`adapters/server` を呼び、結果を返します。**adapter が `UNAUTHENTICATED` で失敗したときは、`ActionState` を返さず、
+  断言へ渡したのと同じ戻り先を持たせてサインインへ redirect します**
+  （[0043](../../docs/adr/0043-middleware-policy.ja.md)）—— adapter の呼び出しを囲む `catch` の中で、種類ごとの対応づけより先に
+  `if (isUnauthenticated(error)) redirect(loginPath(...))` と書きます。`try` ではなく `catch` に置くのは、`redirect()` が
+  投げて抜け、外側の `catch` がそれを飲み込んでしまうためです。複数件を順に送り、
   1 件でも通ったら取り直させる action は、この redirect より前にそれを済ませます。項目ごとの誤りがあるときは全体の文言を
   出しません（要約が同じことを言い、同じ指摘が 2 か所に並ぶ）。カタログのデフォルト文言は分類しか伝えないので、
   拒まれた理由がその画面でしか言えないとき（バージョンの競合、進行中の関連が残っている）だけ画面固有の文言を

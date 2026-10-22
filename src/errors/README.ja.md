@@ -23,7 +23,7 @@
 
 - `ErrorKind` / `errorKinds` — 分類の型と名前付き定数、および全分類の配列
 - `AppError` / `createAppError()` — 原因を `cause` に残す分類済みエラー
-- `findAppError()` / `isAppError()` — cause chain 内の分類の判定
+- `findAppError()` / `isAppError()` / `isUnauthenticated()` — cause chain 内の分類の判定と、それが `UNAUTHENTICATED` かどうか
 - `ErrorMeta` / `createErrorMeta()` — code・利用者向け文言・requestId・公開可能な詳細識別子。不変で、`withMessage()` が文言だけ差し替えた複製を返す
 - `withErrorMeta()` / `withErrorDetails()` / `errorMetaFrom()` — cause chain を保つメタ情報ラッパー。外側のメタ情報が優先
 - `getDefaultErrorMeta()` — 分類カタログのデフォルトメタ情報

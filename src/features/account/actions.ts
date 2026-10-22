@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { registerUser, updateMyProfile, withdrawMe } from "@/adapters/server/api/users";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -78,7 +78,7 @@ export async function updateProfileAction(
   try {
     await updateMyProfile(parsed.profile);
   } catch (error) {
-    redirectIfUnauthenticated(error, PROFILE_EDIT_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(PROFILE_EDIT_PATH));
 
     return rejectedFieldsState(error) ?? actionStateFromError(error);
   }
@@ -125,7 +125,7 @@ export async function registerAction(
   try {
     await registerUser(parsed.profile, parsed.idempotencyKey);
   } catch (error) {
-    redirectIfUnauthenticated(error, onboardingPath(parsed.returnUrl));
+    if (isUnauthenticated(error)) redirect(loginPath(onboardingPath(parsed.returnUrl)));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: REGISTER_CONFLICT_MESSAGE });
@@ -163,7 +163,7 @@ export async function withdrawAction(
   try {
     destination = await withdrawMe();
   } catch (error) {
-    redirectIfUnauthenticated(error, MYPAGE_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(MYPAGE_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: WITHDRAW_CONFLICT_MESSAGE });

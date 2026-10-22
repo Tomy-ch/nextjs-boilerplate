@@ -121,8 +121,10 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える。認証が切れていれば、この画面を戻り先としてログインへ `redirect` |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える |
 | `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | 同上 | 同上 |
+
+`UNAUTHENTICATED` のときは、どの action もこの画面を戻り先としてサインインへ redirect します（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）。
 
 **競合（409）だけ言い分けます。** ほかの誰か・別のタブが先に進めた状態で押した場合で、押した人が
 取れる行動（画面を読み直す）が他の失敗と違います。

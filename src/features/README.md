@@ -159,12 +159,9 @@ What this section owns is how that is divided inside a slice.
 2. The Action decodes `FormData` with `parse-<target>-form.ts`. If it cannot, `failedActionState({ formError })`
    — the wording is a constant of that screen and prompts the user to reload the screen
 3. Call `adapters`, and map a failure to a classification with `actionStateFromError`. **A failure classified
-   `UNAUTHENTICATED` (the backend answered `401`) is not returned** — call `redirectIfUnauthenticated` from
-   `auth/facade/` first in the `catch`, passing the screen the form lives on, so the action sends to sign-in with that
-   screen as the return destination. The front gate does not redirect a Server Action call, so under a protected path
-   this is the only place the unauthenticated case is handled
-   ([0043](../../docs/adr/0043-middleware-policy.md)). Call it in the `catch`, not the `try` — `redirect()` exits by
-   throwing, and a surrounding `catch` would swallow it
+   `UNAUTHENTICATED` is not returned** — on `isUnauthenticated(error)`, first in the `catch`, redirect to sign-in with
+   the screen the form lives on as the return destination (`loginPath` from `auth/facade/`;
+   [0043](../../docs/adr/0043-middleware-policy.md))
 4. On success, `revalidatePath` or `redirect`. **If the value also appears in the outer frame (header, sidebar),
    invalidating a single path leaves the outer frame stale** — use `revalidatePath("/", "layout")`, with a
    reason attached to the `project-rules/no-app-wide-revalidate` suppression

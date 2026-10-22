@@ -89,7 +89,9 @@ operationIds used.
 
 | Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | A field message (the body; for both pre-send validation and a contract 422), or a message next to the composer. If authentication has expired, `redirect` to login with this screen as the return destination |
+| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | A field message (the body; for both pre-send validation and a contract 422), or a message next to the composer |
+
+On `UNAUTHENTICATED`, the action redirects to sign-in with this screen as the return destination ([0043](../../../docs/adr/0043-middleware-policy.md)).
 
 **An idempotency key is always attached.** A message has no natural key, so resending a send whose response merely
 did not arrive produces a second message. The key keeps the same value until a send succeeds and is regenerated at that point.

@@ -148,12 +148,9 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
 1. 入力欄は `form-names.ts` の綴りで `name` を付ける
 2. Action は `parse-<対象>-form.ts` で `FormData` を解く。解けなければ `failedActionState({ formError })`
    —— 文言はその画面の定数で、「画面を読み込み直す」を促す
-3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す。**`UNAUTHENTICATED`（バックエンドが `401` を返した）
-   と分類された失敗は返さない** —— `catch` の中でまず `auth/facade/` の `redirectIfUnauthenticated` を、フォームのある
-   画面を渡して呼び、その画面を戻り先としてサインインへ送る。前捌きは Server Action の呼び出しを転送しないので、
-   保護されたパスの下で未認証の場合を扱うのはここだけである
-   （[0043](../../docs/adr/0043-middleware-policy.ja.md)）。`try` ではなく `catch` で呼ぶ —— `redirect()` は
-   投げて抜けるので、外側の `catch` が飲み込んでしまう
+3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す。**`UNAUTHENTICATED` と分類された失敗は
+   返さない** —— `catch` の中でまず `isUnauthenticated(error)` なら、フォームのある画面を戻り先としてサインインへ
+   redirect する（`auth/facade/` の `loginPath`。[0043](../../docs/adr/0043-middleware-policy.ja.md)）
 4. 成立したら `revalidatePath` か `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
    無効化では外枠が古いまま残る** —— `revalidatePath("/", "layout")` を、`project-rules/no-app-wide-revalidate`
    の抑止に理由を添えて使う

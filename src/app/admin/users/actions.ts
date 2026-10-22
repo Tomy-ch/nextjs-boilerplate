@@ -1,9 +1,9 @@
 "use server";
 
-import { unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 
 import { withdrawUser } from "@/adapters/server/api/users";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_USER_LIST_PATH } from "@/features/admin/paths";
 import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/form-names";
@@ -12,7 +12,7 @@ import {
   WITHDRAW_CONFLICT_MESSAGE,
   WITHDRAW_TARGET_LOST_MESSAGE,
 } from "@/features/admin/users/form-state";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -60,7 +60,7 @@ export async function withdrawUserAction(
   try {
     await withdrawUser(toUserId(id));
   } catch (error) {
-    redirectIfUnauthenticated(error, ADMIN_USER_LIST_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_USER_LIST_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({

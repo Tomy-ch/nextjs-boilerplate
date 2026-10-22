@@ -51,7 +51,6 @@ loading / empty / error の 3 つは持ちません。**取得が無いためで
 | `login-view.tsx` | ログイン画面。認証を始める form と、始められなかったときの案内 |
 | `read-login-notice.ts` | URL から案内する理由を読む（読む側） |
 | `facade/paths.ts` | 他の feature が指すための、この画面への行き先 |
-| `facade/redirect-if-unauthenticated.ts` | バックエンドの呼び出しが `UNAUTHENTICATED` で失敗した Server Action を、フォームのある画面へ戻るようにしてサインインへ送る。他の feature の `actions.ts` が adapter の呼び出しを囲む `catch` の中で呼ぶ |
 | `facade/login-notice.ts` | 案内の語彙と、始められなかったときの行き先（組む側）。**行き先を組むのは Route Handler**（`app/api/auth/login`）で、Route Handler が引けるのは feature の `facade/` だけ |
 
 ## 依存カーネル
@@ -78,7 +77,7 @@ Action の `redirect()` は Route Handler へ遷移できません** —— clie
 
 ## 隣に置くもの
 
-- 保護ルートの判定と未認証時のリダイレクトは、画面の要求については [`src/proxy.ts`](../../proxy.ts)。Server Action の呼び出しはそこを素通りし、action が自分でリダイレクトする（`facade/redirect-if-unauthenticated.ts`）
+- 保護ルートの判定と未認証時のリダイレクトは、画面の要求については [`src/proxy.ts`](../../proxy.ts)。Server Action の呼び出しはそこを素通りし、`loginPath` で自分でリダイレクトする（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）
 - 認証の往復は [`src/app/api/auth/`](../../app/api/auth)
 - 確定認可は [`adapters/server/auth`](../../adapters/server/auth)
 

@@ -146,9 +146,11 @@ description (`site-info`).
 
 | Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `registerAction` | `actions.ts` | `ProfileFormState` | `redirect` to the return destination | Keeps per-field errors on screen. If authentication has expired, `redirect` to login with this screen as the return destination (the return destination it carries is kept) |
-| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`. Stays on the screen with a toast | Keeps per-field errors on screen. If authentication has expired, `redirect` to login with this screen as the return destination |
-| `withdrawAction` | `actions.ts` | `WithdrawFormState` | Discards the session and goes to the top | Keeps the confirmation open and reports inside it. If authentication has expired, `redirect` to login with this screen as the return destination |
+| `registerAction` | `actions.ts` | `ProfileFormState` | `redirect` to the return destination | Keeps per-field errors on screen |
+| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`. Stays on the screen with a toast | Keeps per-field errors on screen |
+| `withdrawAction` | `actions.ts` | `WithdrawFormState` | Discards the session and goes to the top | Keeps the confirmation open and reports inside it |
+
+On `UNAUTHENTICATED`, every action redirects to sign-in with this screen as the return destination ([0043](../../../docs/adr/0043-middleware-policy.md)); for `registerAction` that screen keeps the return destination it was opened with.
 
 **No identifier pointing at the target appears in the return value or the submission.** It is resolved inside `adapters`.
 

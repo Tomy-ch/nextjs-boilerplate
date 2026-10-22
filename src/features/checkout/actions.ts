@@ -6,9 +6,9 @@ import { z } from "zod";
 
 import { getMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/api/cart";
 import { createPurchase } from "@/adapters/server/api/purchases";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { redirectIfUnauthenticated } from "@/features/auth/facade/redirect-if-unauthenticated";
+import { loginPath } from "@/features/auth/facade/paths";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { actionStateFromError, failedActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
@@ -90,7 +90,7 @@ export async function placeOrderAction(
 
   const accepted = formData.get(ACCEPT_PRICE_CHANGE_FIELD) !== null;
   let cart = await getMyCart().catch((error: unknown) => {
-    redirectIfUnauthenticated(error, CHECKOUT_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
     throw error;
   });
 
@@ -103,7 +103,7 @@ export async function placeOrderAction(
       await acceptPriceChanges(priceChangedLines(cart));
       cart = await getMyCart();
     } catch (error) {
-      redirectIfUnauthenticated(error, CHECKOUT_PATH);
+      if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
 
       return actionStateFromError(error);
     }
@@ -120,7 +120,7 @@ export async function placeOrderAction(
   try {
     purchaseCode = await createPurchase(lines, idempotencyKey.data);
   } catch (error) {
-    redirectIfUnauthenticated(error, CHECKOUT_PATH);
+    if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: CONFLICT_MESSAGE });

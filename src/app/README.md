@@ -125,8 +125,7 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
   meta tag rather than `Location`. For a screen request the unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
   only decisions that cannot be known without asking the backend (such as state about a principal that only the backend holds)
   ([0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md)).
-  A Server Action call is not redirected by the front gate; each action owns its unauthenticated redirect (*Operations*,
-  [0043](../../docs/adr/0043-middleware-policy.md))
+  A Server Action call is not redirected by the front gate ([0043](../../docs/adr/0043-middleware-policy.md))
 - **A missing primary resource is also conveyed with 200.** That it was not found is conveyed by `not-found.tsx` and `noindex`
   ([0080](../../docs/adr/0080-error-handling.md))
 - **A section that cannot serve a static shell before checking has the layout shell decide and declare `instant = false`.** Push the decision down into a dynamic hole and
@@ -301,11 +300,11 @@ allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-whe
   `PERMISSION_DENIED`, and the action returns it as an `ActionState` rather than letting it through** (`actionStateFromError`) — the
   failure is shown next to the operation with the catalog's generic text, which does not say the role is insufficient
   ([docs/rules.md](../../docs/rules.md#authorization)). Then parse the submission with the feature's
-  parser, call `adapters/server`, and return the result. **When the adapter fails with `UNAUTHENTICATED` (the backend answered
-  `401`), the action redirects to sign-in with the same return destination it passed to the assertion, rather than returning an
-  `ActionState`** — the backend no longer accepts the session the assertion let through, and the same reasoning applies. The check is the
-  one every Server Action shares (`redirectIfUnauthenticated` in `features/auth/facade`), and each action calls it first in the `catch` around
-  the adapter call, before any per-kind mapping; it runs in the `catch` rather than the `try`, so the redirect is not caught. An action
+  parser, call `adapters/server`, and return the result. **When the adapter fails with `UNAUTHENTICATED`, the action redirects to
+  sign-in with the same return destination it passed to the assertion, rather than returning an `ActionState`**
+  ([0043](../../docs/adr/0043-middleware-policy.md)) — `if (isUnauthenticated(error)) redirect(loginPath(...))` first in the
+  `catch` around the adapter call, before any per-kind mapping. It goes in the `catch` rather than the `try`, because `redirect()`
+  exits by throwing and the surrounding `catch` would swallow it. An action
   that sends several items in order and revalidates when one went through does so before this redirect. When there are per-field errors, the overall message is
   not shown (the summary would say the same thing, and the same point would appear in two places). The catalog's default text conveys only the classification, so
   screen-specific text is applied only when the reason for rejection can be stated only on that screen (a version conflict, related work still in progress).
