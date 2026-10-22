@@ -78,7 +78,7 @@ hotfix を名指さない。ブランチ名からベースを推測するのは�
 base が事前回答されるのは、同じ run の先行する時点でユーザーが逐語で名指した ref によってだけである —— それは
 本スキルの `--base=<ref>` として届き、`make base-merge` には `BASE=<ref>` として渡る。呼び出し元のスキルが自分で
 解決した base は回答ではない: 上記のとおり解決する。`make base-merge` を実行する前に、名指された ref を
-`gh pr view --json baseRefName -q .baseRefName` と比べる。異なっていたら回答がドリフトしている —— 問い、実行しない。
+`gh pr view --json baseRefName -q .baseRefName` と比べる。異なっていたら回答がドリフトしている —— 問い、実行しない。PR が無ければ、名指された ref がそのまま答えである。
 Step 6 の commit-and-push の問いは決して事前回答されない。
 
 ## Step 2 —— 衝突した全パスを分類する

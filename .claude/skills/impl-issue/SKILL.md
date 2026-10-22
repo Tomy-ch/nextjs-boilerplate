@@ -622,7 +622,8 @@ Pass each answer **verbatim**, as the user gave it: a value this skill derived, 
 recommended is not an answer, and the receiver offers it as the recommended option instead.
 
 **Leave every confirmation [0154](../../../docs/adr/0154-claude-skills-operations.md) marks never
-pre-answerable to the receiver** — the ones taken at the moment of an outward action.
+pre-answerable to the receiver** — every stopping point `AGENTS.md`'s *Where You May Stop* takes per
+case.
 
 ## Do / Do NOT
 

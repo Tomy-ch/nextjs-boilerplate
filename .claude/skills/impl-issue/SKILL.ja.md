@@ -588,7 +588,7 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 導出した値・デフォルトにした値・推奨した値は回答ではなく、受け手はそれを推奨選択肢として提示する。
 
 **[0154](../../../docs/adr/0154-claude-skills-operations.ja.md) が事前回答できないとする確認はすべて受け手に
-残す** —— 外向きの操作の時点で取るものである。
+残す** —— `AGENTS.md` の *Where You May Stop* がその都度取る停止点すべてである。
 
 ## する / しない
 
