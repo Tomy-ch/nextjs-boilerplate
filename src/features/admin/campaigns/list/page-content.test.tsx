@@ -8,10 +8,11 @@ import { CAMPAIGN_PAGE_MAX } from "@/adapters/server/api/campaigns";
 
 import type { AdminCampaignResultsProps } from "./results";
 
-const { results, request } = vi.hoisted(() => ({
-  results: vi.fn(),
-  request: { current: Promise.resolve() },
-}));
+const { results, request } = vi.hoisted(() => {
+  const pending: { current: Promise<void> | null } = { current: null };
+
+  return { results: vi.fn(), request: pending };
+});
 
 vi.mock("./results", async () => {
   const { use } = await import("react");
@@ -19,7 +20,9 @@ vi.mock("./results", async () => {
   return {
     AdminCampaignResults: (props: AdminCampaignResultsProps) => {
       results(props);
-      use(request.current);
+      if (request.current !== null) {
+        use(request.current);
+      }
 
       return <p>{`${props.location.page} ページ目の行`}</p>;
     },
@@ -63,7 +66,7 @@ function lastResultsProps(): AdminCampaignResultsProps | undefined {
 
 beforeEach(() => {
   results.mockReset();
-  request.current = Promise.resolve();
+  request.current = null;
 });
 
 describe("AdminCampaignListPageContent", () => {
