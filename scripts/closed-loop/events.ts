@@ -15,7 +15,7 @@ export type Event = {
   /** 起きた時刻（epoch 秒）。記録に時刻が無ければ 0 */
   readonly at: number;
   readonly kind: EventKind;
-  /** `prompt` / `interrupt` の本文 */
+  /** `prompt` の本文 */
   readonly text?: string;
   /** `tool_use` の道具名、`command` のスキル名 */
   readonly name?: string;
@@ -123,13 +123,9 @@ function fromBlock(part: Block, at: number): readonly Event[] {
   return found;
 }
 
-/** 本文から、中断と `/<名前>` の起動を取り出す。 */
+/** 本文から `/<名前>` の起動を取り出す。 */
 function fromText(text: string, at: number): readonly Event[] {
   const found: Event[] = [];
-
-  if (text.includes(INTERRUPTION_MARK)) {
-    found.push({ at, kind: "interrupt", text });
-  }
 
   for (const [tag] of text.matchAll(COMMAND_NAME_RE)) {
     const name = tag.slice(COMMAND_TAG_OPEN.length, -COMMAND_TAG_CLOSE.length).replace(/^\//, "");
@@ -174,6 +170,10 @@ export function parseLine(line: string): readonly Event[] {
 
     if (isHumanPrompt(record, text)) {
       found.push({ at, kind: "prompt", text });
+    }
+
+    if (isHumanOrigin(record) && text.includes(INTERRUPTION_MARK)) {
+      found.push({ at, kind: "interrupt" });
     }
   }
 

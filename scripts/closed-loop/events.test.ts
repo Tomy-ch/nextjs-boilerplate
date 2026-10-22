@@ -233,7 +233,37 @@ describe("parseLine", () => {
           message: { content: [{ type: "text", text: "[Request interrupted by user]" }] },
         }),
       ),
-    ).toEqual([{ at: EPOCH, kind: "interrupt", text: "[Request interrupted by user]" }]);
+    ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+  });
+
+  it.each([
+    { isMeta: true },
+    { isCompactSummary: true },
+    { origin: { kind: "peer" } },
+    { promptSource: "system" },
+  ])("出所が人でない行 %o は、中断の綴りを含んでも中断として出さない", (keys) => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          ...keys,
+          message: { content: "要約の本文。[Request interrupted by user]" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("assistant の行は、中断の綴りを含んでも中断として出さない", () => {
+    expect(
+      parseLine(
+        line({
+          type: "assistant",
+          timestamp: AT,
+          message: { content: [{ type: "text", text: "[Request interrupted by user]" }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "assistant" }]);
   });
 
   it.each([

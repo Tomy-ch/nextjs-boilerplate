@@ -56,7 +56,7 @@ describe("countEvents", () => {
     const counts = countEvents([
       at(1, { kind: "tool_result", ok: false }),
       at(2, { kind: "tool_result", ok: true }),
-      at(3, { kind: "interrupt", text: "中断" }),
+      at(3, { kind: "interrupt" }),
     ]);
 
     expect(counts.toolErrors).toBe(1);
