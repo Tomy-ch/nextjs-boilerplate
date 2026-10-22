@@ -112,6 +112,19 @@ describe("findSilentSkeletons", () => {
     expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
   });
 
+  it("告知の module から別の名前だけを取り込んだ待機表示を返す", () => {
+    const modules = [
+      skeleton(
+        source(
+          importFrom("{ LoadingAnnouncerProvider }"),
+          "export const S = () => <div aria-hidden><LoadingAnnouncement /></div>;",
+        ),
+      ),
+    ];
+
+    expect(findSilentSkeletons(modules)).toEqual([SKELETON_PATH]);
+  });
+
   it("名前空間として取り込んだ待機表示を返す", () => {
     const modules = [
       skeleton(
