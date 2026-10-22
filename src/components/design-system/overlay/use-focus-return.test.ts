@@ -63,6 +63,24 @@ describe("useFocusReturn", () => {
     expect(closing.defaultPrevented).toBe(false);
   });
 
+  it("開いたときの要素が消え、focus を受けられる祖先も無かったら、既定の戻し先に任せる", () => {
+    const parent = document.createElement("div");
+    const invoker = document.createElement("button");
+
+    parent.append(invoker);
+    document.body.append(parent);
+    invoker.focus();
+    const { result } = renderHook(() => useFocusReturn({}));
+    const closing = autoFocusEvent();
+
+    result.current.onOpenAutoFocus(autoFocusEvent());
+    invoker.remove();
+    result.current.onCloseAutoFocus(closing);
+
+    expect(closing.defaultPrevented).toBe(false);
+    expect(document.body).toHaveFocus();
+  });
+
   it("開いたときに focus が body にあったら、既定の戻し先に任せる", () => {
     const { result } = renderHook(() => useFocusReturn({}));
     const closing = autoFocusEvent();

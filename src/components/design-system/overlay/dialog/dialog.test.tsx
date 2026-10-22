@@ -3,7 +3,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import {
@@ -244,6 +244,28 @@ describe("DialogContent", () => {
     await userEvent.click(screen.getByRole("button", { name: "適用" }));
 
     await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
+  });
+
+  it("呼び出し側の onCloseAutoFocus が既定を止めたら、閉じても trigger へ focus を戻さない", async () => {
+    const onCloseAutoFocus = vi.fn((event: Event) => event.preventDefault());
+
+    render(
+      <Dialog>
+        <DialogTrigger>詳細を見る</DialogTrigger>
+        <DialogContent onCloseAutoFocus={onCloseAutoFocus}>
+          <DialogTitle>表示条件</DialogTitle>
+          <DialogDescription>条件を満たす項目だけを一覧に表示します。</DialogDescription>
+          <DialogClose>戻る</DialogClose>
+        </DialogContent>
+      </Dialog>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "詳細を見る" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "詳細を見る" })).not.toHaveFocus();
   });
 });
 

@@ -224,6 +224,15 @@ describe("createProductAction", () => {
     expect(createProduct).not.toHaveBeenCalled();
   });
 
+  it("役割が足りなければ、作らずに拒む", async () => {
+    verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
+
+    const state = await createProductAction(idleActionState(), productForm());
+
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
+    expect(createProduct).not.toHaveBeenCalled();
+  });
+
   it("形の上での誤りは、項目ごとに返す", async () => {
     const state = await createProductAction(idleActionState(), productForm({ name: "" }));
 
@@ -277,6 +286,15 @@ describe("updateProductAction", () => {
     await expect(updateProductAction(idleActionState(), productForm())).rejects.toThrow(
       `NEXT_REDIRECT:${loginPath("/admin/products")}`,
     );
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("役割が足りなければ、更新せずに拒む", async () => {
+    verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
+
+    const state = await updateProductAction(idleActionState(), productForm());
+
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
     expect(updateProduct).not.toHaveBeenCalled();
   });
 

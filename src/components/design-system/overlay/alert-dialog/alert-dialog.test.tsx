@@ -2,7 +2,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import {
   AlertDialog,
@@ -163,6 +163,28 @@ describe("AlertDialogContent", () => {
     await userEvent.click(screen.getByRole("button", { name: "続行" }));
 
     await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
+  });
+
+  it("呼び出し側の onCloseAutoFocus が既定を止めたら、閉じても trigger へ focus を戻さない", async () => {
+    const onCloseAutoFocus = vi.fn((event: Event) => event.preventDefault());
+
+    render(
+      <AlertDialog>
+        <AlertDialogTrigger>開く</AlertDialogTrigger>
+        <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
+          <AlertDialogTitle>確認</AlertDialogTitle>
+          <AlertDialogDescription>続行しますか？</AlertDialogDescription>
+          <AlertDialogCancel>戻る</AlertDialogCancel>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "開く" })).not.toHaveFocus();
   });
 });
 

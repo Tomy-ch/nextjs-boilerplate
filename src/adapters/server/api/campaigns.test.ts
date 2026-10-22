@@ -103,6 +103,17 @@ describe("getCampaignPage", () => {
     expect(url.searchParams.get("perPage")).toBe(String(PER_PAGE));
   });
 
+  it("契約の上限ちょうどのページ番号と件数は、そのまま送る", async () => {
+    const requests = serveJson(CAMPAIGNS_URL, { campaigns: [], total: 0 });
+
+    await getCampaignPage({ page: CAMPAIGN_PAGE_MAX, perPage: getCampaignsQueryPerPageMax });
+
+    const url = new URL(requests[0]?.url ?? "");
+
+    expect(url.searchParams.get("page")).toBe(String(CAMPAIGN_PAGE_MAX));
+    expect(url.searchParams.get("perPage")).toBe(String(getCampaignsQueryPerPageMax));
+  });
+
   it("停止済みのキャンペーンは停止日時を伴って届く", async () => {
     serveJson(CAMPAIGNS_URL, {
       campaigns: [{ ...wireCampaign, suspendedAt: "2026-10-05T03:00:00Z" }],

@@ -173,6 +173,20 @@ describe("AdminCampaignResults", () => {
     expect(screen.getByText("キャンペーンはまだありません。")).toBeInTheDocument();
   });
 
+  it("総ページ数を超えるページを開いたとき、空の一覧と、現在地を持たないページ送りを示す", async () => {
+    getCampaignPage.mockResolvedValue(page([], 3));
+
+    render(await renderResults({ page: 50 }));
+
+    const nav = screen.getByRole("navigation", { name: "キャンペーン一覧のページ送り" });
+
+    expect(screen.getByText("キャンペーンはまだありません。")).toBeInTheDocument();
+    expect(within(nav).getByRole("link", { name: "1 ページ目" })).not.toHaveAttribute(
+      "aria-current",
+    );
+    expect(within(nav).queryAllByRole("link", { current: "page" })).toHaveLength(0);
+  });
+
   // ----- 取得が失敗したとき -----
   it("取得が失敗すれば、その失敗を境界へ渡す", async () => {
     getCampaignPage.mockRejectedValue(new Error("取得に失敗しました"));

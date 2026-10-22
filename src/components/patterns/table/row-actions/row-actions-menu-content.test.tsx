@@ -67,4 +67,20 @@ describe("RowActionsMenuContent", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "行の操作" })).toHaveFocus());
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  it("command を選んで閉じた後、次に選ばずに閉じても同じ command を再実行しない", async () => {
+    const onSelect = vi.fn();
+
+    renderMenu([{ id: "remove", kind: ROW_ACTION_KIND.COMMAND, label: "外す", onSelect }]);
+
+    await userEvent.click(screen.getByRole("button", { name: "行の操作" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "外す" }));
+    await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole("button", { name: "行の操作" }));
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "行の操作" })).toHaveFocus());
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
 });

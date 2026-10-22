@@ -318,6 +318,28 @@ describe("SheetContent", () => {
 
     await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
   });
+
+  it("呼び出し側の onCloseAutoFocus が既定を止めたら、閉じても trigger へ focus を戻さない", async () => {
+    const onCloseAutoFocus = vi.fn((event: Event) => event.preventDefault());
+
+    render(
+      <Sheet>
+        <SheetTrigger>メニューを開く</SheetTrigger>
+        <SheetContent onCloseAutoFocus={onCloseAutoFocus}>
+          <SheetTitle>メニュー</SheetTitle>
+          <SheetDescription>各セクションへ移動します。</SheetDescription>
+          <SheetClose>戻る</SheetClose>
+        </SheetContent>
+      </Sheet>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "メニューを開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "メニューを開く" })).not.toHaveFocus();
+  });
 });
 
 describe("SheetHeader", () => {
