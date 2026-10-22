@@ -619,3 +619,6 @@
 "src/features/purchases/actions.test.ts" = "2026-10-22"
 "src/features/auth/README.md" = "2026-10-22"
 "src/features/account/README.md" = "2026-10-22"
+"src/adapters/server/api/campaigns.test.ts" = "2026-10-22"
+"src/adapters/server/api/coupon-discount.test.ts" = "2026-10-22"
+"src/model/campaign/campaign.test.ts" = "2026-10-22"
