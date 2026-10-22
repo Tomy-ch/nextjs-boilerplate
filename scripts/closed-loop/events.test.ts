@@ -167,6 +167,15 @@ describe("parseLine", () => {
     ).toEqual([]);
   });
 
+  it.each([{ origin: null }, { origin: { kind: 5 } }, { promptSource: 1 }])(
+    "出所の鍵が文字列でなく isMeta も無い行 %o は、人の発話として出す",
+    (keys) => {
+      expect(
+        parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+      ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+    },
+  );
+
   it("origin.kind が人を示せば、promptSource より優先する", () => {
     expect(
       parseLine(
@@ -179,6 +188,20 @@ describe("parseLine", () => {
         }),
       ),
     ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it("origin.kind が人以外を示せば、promptSource より優先する", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: { kind: "peer" },
+          promptSource: "typed",
+          message: { content: "違う" },
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("origin が物でなければ、promptSource で決める", () => {
@@ -195,8 +218,25 @@ describe("parseLine", () => {
     ).toEqual([]);
   });
 
+  it.each([false, "true", 1])(
+    "isCompactSummary が %o で true でなければ、出所の鍵に従って人の発話として出す",
+    (isCompactSummary) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            promptSource: "typed",
+            isCompactSummary,
+            message: { content: "直して" },
+          }),
+        ),
+      ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+    },
+  );
+
   it.each([{}, { origin: { kind: "human" } }, { promptSource: "typed" }])(
-    "文脈圧縮の要約は、出所の鍵 %o があっても目印の文面が無くても、人の発話として出さない",
+    "文脈圧縮の要約は、出所の鍵 %o の有無にかかわらず、目印の文面が無くても人の発話として出さない",
     (keys) => {
       expect(
         parseLine(
