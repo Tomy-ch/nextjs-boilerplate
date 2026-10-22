@@ -102,6 +102,15 @@ describe("LoadingAnnouncerProvider", () => {
     expect(screen.getByRole("status")).toBeEmptyDOMElement();
   });
 
+  it("いくつもの読み込みがすべて待ち時間の内に終わったら、待ち時間を過ぎても告げない", () => {
+    const { rerender } = render(treeWith(2));
+
+    rerender(treeWith(0));
+    passTheWait();
+
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("読み込みが 1 つでも残っていれば、終わったとは告げない", () => {
     const { rerender } = render(treeWith(2));
 

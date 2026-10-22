@@ -53,6 +53,7 @@ describe("claimCouponAction", () => {
     expect(refresh).toHaveBeenCalledOnce();
   });
 
+  // ----- 異常系 -----
   it("認証が切れていたら、この画面へ戻る入り直しへ送る", async () => {
     claimCampaignCoupon.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
 
@@ -62,7 +63,6 @@ describe("claimCouponAction", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 
-  // ----- 異常系 -----
   it("空のコードは送らず、コードの項目の文言として返す", async () => {
     const state = await claimCouponAction(idleActionState(), formOf(" "));
 

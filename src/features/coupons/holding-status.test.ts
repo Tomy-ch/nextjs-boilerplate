@@ -54,7 +54,6 @@ describe("holdingStatusAt", () => {
     expect(holdingStatusAt(coupon, FIXTURE_NOW)).toBe("unused");
   });
 
-  // ----- 異常系 -----
   it("使用済みの券は、期限を過ぎていても使用済みと言う", () => {
     expect(holdingStatusAt(USED_COUPON, shiftedBy(USED_COUPON.expiresAt, 1))).toBe("used");
   });
@@ -65,7 +64,8 @@ describe("holdingStatusAt", () => {
     expect(holdingStatusAt(coupon, FIXTURE_NOW)).toBe("used");
   });
 
-  it("期限を過ぎた券は、利用開始前の時刻でも期限切れと言う", () => {
+  // ----- 異常系 -----
+  it("期限が利用開始より前という矛盾した券は、期限切れと言う", () => {
     const coupon: HeldCoupon = {
       ...UNUSED_COUPON,
       usableFrom: shiftedBy(FIXTURE_NOW, 1),
