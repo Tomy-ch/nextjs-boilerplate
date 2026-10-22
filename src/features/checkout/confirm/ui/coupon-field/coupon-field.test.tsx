@@ -1,22 +1,30 @@
 // @vitest-environment jsdom
 
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-vi.mock("../../../actions", () => ({ placeOrderAction: vi.fn() }));
+const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
 
+vi.mock("../../../actions", () => ({ placeOrderAction }));
+
+import { ErrorKind } from "@/errors/error-kind";
+import { failedActionState, idleActionState } from "@/model/action-state";
 import { type CartCoupon, COUPON_SCOPE_NAME } from "@/model/coupon/coupon";
 import { formatCouponDiscount, formatCouponDiscountCap } from "@/model/coupon/discount-label";
 import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 
 import { CART_COUPONS } from "../../../checkout.fixture";
+import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { CouponField } from "./coupon-field";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const UNAVAILABLE_MESSAGE = "クーポンを読み込めませんでした。クーポンを使わずに注文できます。";
+const LOCKED_MESSAGE =
+  "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
 /** 先頭の候補の額面（10% 引き・上限 $10.00）を、確定できるカートの小計へ当て直した額。 */
 const FACE_VALUE_DISCOUNT = 1_000;
 
@@ -24,6 +32,16 @@ function renderField(coupons: readonly CartCoupon[] | null = CART_COUPONS) {
   return render(
     <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
       <CouponField coupons={coupons} />
+    </PlaceOrderStateProvider>,
+  );
+}
+
+/** 結果の定まらない状態を作れるよう、確定の操作も並べる。 */
+function renderFieldWithForm(coupons: readonly CartCoupon[] | null) {
+  return render(
+    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
+      <CouponField coupons={coupons} />
+      <PlaceOrderForm orderable />
     </PlaceOrderStateProvider>,
   );
 }
@@ -42,6 +60,11 @@ function couponRadio(coupon: CartCoupon) {
     name: (name) => name.includes(formatMoney(-coupon.discountAmount)),
   });
 }
+
+beforeEach(() => {
+  placeOrderAction.mockReset();
+  placeOrderAction.mockResolvedValue(idleActionState());
+});
 
 describe("CouponField", () => {
   // ----- 候補があるとき -----
@@ -139,5 +162,27 @@ describe("CouponField", () => {
     const { container } = renderField(null);
 
     expect((await axe(container)).violations).toEqual([]);
+  });
+
+  // ----- 使えるクーポンが無いとき -----
+  it("使えるクーポンが無く結果の定まらない送信も無ければ、何も出さない", () => {
+    renderField([]);
+
+    expect(screen.queryByRole("heading", { name: "クーポン" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: "クーポン" })).not.toBeInTheDocument();
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it("使えるクーポンが無くても結果が定まらないあいだは、見出しと選び直せない理由の文だけを出す", async () => {
+    placeOrderAction.mockResolvedValue(
+      failedActionState({ formError: "いまは確定できません。", kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    renderFieldWithForm([]);
+    await userEvent.click(screen.getByRole("button", { name: "注文を確定する" }));
+
+    expect(await screen.findByText(LOCKED_MESSAGE)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "クーポン" })).toBeVisible();
+    expect(screen.queryByRole("radiogroup", { name: "クーポン" })).not.toBeInTheDocument();
   });
 });

@@ -5,7 +5,7 @@ import { formatDateTime } from "@/model/datetime";
 import { formatMoney } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 
-import { CouponChoice, CouponChoices } from "../coupon-choices/coupon-choices";
+import { CouponChoice, CouponChoices, CouponLockedNotice } from "../coupon-choices/coupon-choices";
 
 /** {@link CouponField} の props。 */
 export type CouponFieldProps = {
@@ -25,8 +25,9 @@ const NOTE =
  * **値引き額は受け取った値をそのまま出します。** 額面と範囲から計算し直すと、金額の決定が画面へ
  * 漏れます。
  *
- * 使えるクーポンが無いときは呼び出し元が欄ごと置きません。読めなかったときは、使わずに注文
- * できることだけを告げます。
+ * 使えるクーポンが無いときは欄を置きません。ただし直前の確定の結果が定まらないあいだは、見出しと
+ * 案内だけを残します（{@link CouponLockedNotice}）。読めなかったときは、使わずに注文できることだけを
+ * 告げます。
  *
  * @param props - {@link CouponFieldProps}。
  */
@@ -42,6 +43,10 @@ export const CouponField = withPartSpan(
           </CardContent>
         </Card>
       );
+    }
+
+    if (coupons.length === 0) {
+      return <CouponLockedNotice title={TITLE} />;
     }
 
     return (

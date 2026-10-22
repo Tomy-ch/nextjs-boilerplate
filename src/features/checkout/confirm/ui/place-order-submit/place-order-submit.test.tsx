@@ -13,6 +13,7 @@ vi.mock("../../../actions", () => ({ placeOrderAction }));
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 
+import { COUPON_ID_FIELD } from "../../../form-fields";
 import type { PlaceOrderFormState } from "../../../form-state";
 import {
   PlaceOrderStateProvider,
@@ -158,9 +159,13 @@ describe("PlaceOrderError", () => {
     expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
   });
 
-  it("失敗の後にクーポンを選び直すと、理由を消す", async () => {
+  it("クーポンを名指しした拒否の後にクーポンを選び直すと、理由を消す", async () => {
     respondWith(
-      failedActionState({ formError: "クーポンを使えませんでした。", kind: ErrorKind.VALIDATION }),
+      failedActionState({
+        formError: "クーポンを使えませんでした。",
+        fieldErrors: { [COUPON_ID_FIELD]: ["このクーポンは使えなくなりました。"] },
+        kind: ErrorKind.VALIDATION,
+      }),
     );
 
     renderWithCouponChoice();
@@ -169,6 +174,18 @@ describe("PlaceOrderError", () => {
     await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
 
     expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
+  });
+
+  it("衝突で拒まれた後にクーポンを選び直しても、理由を出したまま", async () => {
+    respondWith(failedActionState({ formError: "在庫が変わりました。", kind: ErrorKind.CONFLICT }));
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("在庫が変わりました。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.getByText("在庫が変わりました。")).toBeVisible();
+    expect(screen.getByText("注文を確定できませんでした")).toBeVisible();
   });
 
   it("結果の定まらない失敗の後は、クーポンを選び直そうとしても理由を出したまま", async () => {

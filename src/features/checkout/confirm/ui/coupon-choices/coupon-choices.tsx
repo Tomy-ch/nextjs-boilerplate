@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { Card, CardContent } from "@/components/design-system/display/card/card";
 import { FieldError } from "@/components/design-system/form/field/field";
 import { Label } from "@/components/design-system/form/label/label";
 import {
@@ -163,5 +164,37 @@ export function CouponChoice({ couponId, children }: CouponChoiceProps) {
       />
       {children}
     </Label>
+  );
+}
+
+/** {@link CouponLockedNotice} の props。 */
+export type CouponLockedNoticeProps = {
+  /** 欄の見出し。 */
+  title: string;
+};
+
+/**
+ * 直前の確定の結果が定まらないあいだだけ出す、クーポンを選び直せない案内。
+ *
+ * @remarks
+ * 候補が取り直されて 0 件になっても、結果が定まらないあいだは選んでいたクーポンが送信に載り続け
+ * ます。欄ごと消すと、載っている理由が画面から消えます。
+ *
+ * @param props - {@link CouponLockedNoticeProps}。
+ */
+export function CouponLockedNotice({ title }: CouponLockedNoticeProps) {
+  const { outcomeOpen } = usePlaceOrderState();
+
+  if (!outcomeOpen) {
+    return null;
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-2">
+        <h2 className="font-emphasis leading-none">{title}</h2>
+        <p className="text-muted-foreground text-sm">{LOCKED_MESSAGE}</p>
+      </CardContent>
+    </Card>
   );
 }

@@ -53,7 +53,7 @@ export type CheckoutConfirmViewProps = {
  * 何であるかを示します。
  *
  * クーポンの欄は本文に 1 か所だけ置きます。集計の側に置くと、脇と帯の 2 か所に同じ選択欄が
- * 並びます。使えるクーポンが 1 枚も無いときは欄ごと置きません。
+ * 並びます。
  *
  * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
  *
@@ -85,7 +85,7 @@ export const CheckoutConfirmView = withScreenSpan(
           <div className="flex min-w-0 flex-1 flex-col gap-6">
             <ShippingCard profile={profile} />
             <OrderLines lines={cart.lines} />
-            {coupons?.length === 0 ? null : <CouponField coupons={coupons} />}
+            <CouponField coupons={coupons} />
           </div>
 
           <aside

@@ -20,15 +20,13 @@ import type { PlaceOrderFormState } from "../../../form-state";
 export type PlaceOrderState = {
   /** form へ渡す送信先。 */
   readonly formAction: (payload: FormData) => void;
-  /** 直近の送信が返した結果。 */
-  readonly state: PlaceOrderFormState;
   /** 送信の応答を待っているか。 */
   readonly isPending: boolean;
   /** この画面の確定 1 回ぶんを表す鍵。 */
   readonly idempotencyKey: string;
-  /** 確定に載せるクーポン。使わなければ null。 */
+  /** 確定に載せるクーポンの、候補にある実体。使わないか、候補に無ければ null。 */
   readonly coupon: CartCoupon | null;
-  /** 確定に載せるクーポンの識別子。使わなければ null。 */
+  /** 確定に載せるクーポンの識別子。使わなければ null。選び直せないあいだは候補に無くても載せる。 */
   readonly couponId: CouponId | null;
   /** 利用者がクーポンの欄で選んだもの。「使わない」は null、まだ選んでいなければ undefined。 */
   readonly couponSelection: CouponId | null | undefined;
@@ -38,9 +36,9 @@ export type PlaceOrderState = {
   readonly couponLocked: boolean;
   /** 直近の送信の結果が定まっていないか。 */
   readonly outcomeOpen: boolean;
-  /** 直近の送信がフォーム全体について返した文言。選び直した後は消える。 */
+  /** 直近の送信がフォーム全体について返した文言。クーポンを名指しした拒否のものは、選び直した後に消える。 */
   readonly formError: string | null;
-  /** 直近の送信がクーポンについて返した文言。選び直した後は消える。 */
+  /** 直近の送信がクーポンについて返した文言。選び直した後に消える。 */
   readonly couponErrors: readonly string[] | undefined;
 };
 
@@ -76,13 +74,12 @@ export type PlaceOrderStateProviderProps = {
  *
  * **候補から消えたクーポンは選んでいないものとして扱います。** 確定が拒まれると候補は取り直され、
  * 拒まれたクーポンはそこに並びません。選んだ値を持ち続けると、見えない選択が次の送信に載ります。
- * 候補に戻っても選択は戻りません。
+ * 候補に戻っても選択は戻りません。ただし選び直せないあいだは手放しません。
  *
  * **送信中と、結果が定まらないあいだは選び直しを受け付けません。** 結果が定まらないあいだ中身を
  * 変えてはならない理由は {@link leavesOutcomeOpen}、送信中に止める理由は `../../../README.md`。
  *
- * 失敗の文言は `state` から直に読まず `formError` / `couponErrors` から読みます。選び直しで消える
- * のはこちらだけで、`state` には残ります。
+ * ほかの拒否の文言を選び直しで消さないのは、クーポンを変えても直らないためです。
  *
  * @param props - {@link PlaceOrderStateProviderProps}。
  */
@@ -108,23 +105,25 @@ export function PlaceOrderStateProvider({
   const [couponSelection, setCouponSelection] = useState<CouponId | null | undefined>(undefined);
   const [answeredState, setAnsweredState] = useState<PlaceOrderFormState | null>(null);
 
+  const outcomeOpen = leavesOutcomeOpen(state);
+  const couponLocked = isPending || outcomeOpen;
   const coupon = coupons?.find((candidate) => candidate.id === couponSelection) ?? null;
 
-  if (typeof couponSelection === "string" && coupon === null) {
+  if (!couponLocked && typeof couponSelection === "string" && coupon === null) {
     setCouponSelection(undefined);
   }
 
-  const couponId = coupon?.id ?? null;
-  const outcomeOpen = leavesOutcomeOpen(state);
-  const couponLocked = isPending || outcomeOpen;
-  const unanswered = state.status === "error" && state !== answeredState;
-  const formError = unanswered ? state.formError : null;
-  const couponErrors = unanswered ? state.fieldErrors?.[COUPON_ID_FIELD] : undefined;
+  const couponId =
+    couponLocked && typeof couponSelection === "string" ? couponSelection : (coupon?.id ?? null);
+  const failed = state.status === "error" ? state : null;
+  const couponRejected = failed?.fieldErrors?.[COUPON_ID_FIELD] !== undefined;
+  const answered = state === answeredState;
+  const formError = failed === null || (couponRejected && answered) ? null : failed.formError;
+  const couponErrors = answered ? undefined : failed?.fieldErrors?.[COUPON_ID_FIELD];
 
   const value = useMemo(
     () => ({
       formAction,
-      state,
       isPending,
       idempotencyKey,
       coupon,

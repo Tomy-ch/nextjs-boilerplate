@@ -22,7 +22,7 @@ import { type CartCoupon, toCouponId } from "@/model/coupon/coupon";
 import { COUPON_ID_FIELD } from "../../../form-fields";
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
-import { CouponChoice, CouponChoices } from "./coupon-choices";
+import { CouponChoice, CouponChoices, CouponLockedNotice } from "./coupon-choices";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const FIRST: CartCoupon = {
@@ -53,6 +53,29 @@ function renderChoices() {
       <PlaceOrderForm orderable />
     </PlaceOrderStateProvider>,
   );
+}
+
+/** 候補が無いときの案内。結果の定まらない状態を作れるよう、確定の操作も並べる。 */
+function renderNotice() {
+  return render(
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+      <CouponLockedNotice title="クーポン" />
+      <PlaceOrderForm orderable />
+    </PlaceOrderStateProvider>,
+  );
+}
+
+async function leaveOutcomeOpenWithoutChoices() {
+  placeOrderAction.mockResolvedValue(
+    failedActionState({
+      formError: "いまは確定できません。",
+      kind: ErrorKind.UNAVAILABLE,
+    }),
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "注文を確定する" }));
+
+  return screen.findByText(LOCKED_MESSAGE);
 }
 
 function radio(name: string) {
@@ -296,5 +319,33 @@ describe("CouponChoice", () => {
     ).toThrow("CouponChoices の外にクーポンの選択肢を置こうとしました");
 
     vi.restoreAllMocks();
+  });
+});
+
+describe("CouponLockedNotice", () => {
+  // ----- 結果の定まらない送信が無いとき -----
+  it("結果の定まらない送信が無ければ、何も出さない", () => {
+    renderNotice();
+
+    expect(screen.queryByRole("heading", { name: "クーポン" })).not.toBeInTheDocument();
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  // ----- 確定の結果が定まらないとき -----
+  it("結果が定まらないあいだは、見出しと選び直せない理由の文を出す", async () => {
+    renderNotice();
+
+    await leaveOutcomeOpenWithoutChoices();
+
+    expect(screen.getByRole("heading", { name: "クーポン" })).toBeVisible();
+    expect(screen.getByText(LOCKED_MESSAGE)).toBeVisible();
+  });
+
+  it("結果が定まらない状態でも a11y 自動検査に違反しない", async () => {
+    const { container } = renderNotice();
+
+    await leaveOutcomeOpenWithoutChoices();
+
+    expect((await axe(container)).violations).toEqual([]);
   });
 });

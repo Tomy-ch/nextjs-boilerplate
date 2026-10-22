@@ -33,7 +33,10 @@ import { CheckoutConfirmView } from "./view";
 const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const REJECTED_FORM_ERROR = "選んだクーポンを使えなかったため、注文は確定していません。";
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
+const UNAVAILABLE_FORM_ERROR = "いまは確定できません。";
 const ESTIMATE_LABEL = "クーポン値引き（見込み）";
+const LOCKED_MESSAGE =
+  "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
 
 function viewOf(cart: Cart, coupons: readonly CartCoupon[] | null) {
   return (
@@ -202,8 +205,45 @@ describe("CheckoutConfirmView", () => {
   it("使えるクーポンが無ければ、クーポンの欄を置かない", () => {
     renderView(ORDERABLE_CART, []);
 
+    expect(screen.queryByRole("heading", { name: "クーポン" })).not.toBeInTheDocument();
     expect(screen.queryByRole("radiogroup", { name: "クーポン" })).not.toBeInTheDocument();
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  });
+
+  it("結果の定まらない失敗の後に候補が無くなったら、見出しと選び直せない理由の文だけを残す", async () => {
+    placeOrderAction.mockResolvedValue(
+      failedActionState({ formError: UNAVAILABLE_FORM_ERROR, kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    const { rerender } = renderView(ORDERABLE_CART, CART_COUPONS);
+    await userEvent.click(couponRadio(couponAt(0)));
+    await userEvent.click(asideSubmit());
+    await screen.findByText(LOCKED_MESSAGE);
+    rerender(viewOf(ORDERABLE_CART, []));
+
+    expect(screen.getByRole("heading", { name: "クーポン" })).toBeVisible();
+    expect(screen.getByText(LOCKED_MESSAGE)).toBeVisible();
+    expect(screen.queryByRole("radiogroup", { name: "クーポン" })).not.toBeInTheDocument();
+  });
+
+  it("結果の定まらない失敗の後に候補が無くなっても、選んでいたクーポンを次の確定に載せ、見込みの行は外す", async () => {
+    const coupon = couponAt(0);
+    placeOrderAction.mockResolvedValue(
+      failedActionState({ formError: UNAVAILABLE_FORM_ERROR, kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    const { rerender } = renderView(ORDERABLE_CART, CART_COUPONS);
+    await userEvent.click(couponRadio(coupon));
+    await userEvent.click(asideSubmit());
+    await screen.findByText(LOCKED_MESSAGE);
+    rerender(viewOf(ORDERABLE_CART, []));
+
+    expect(screen.queryByText(ESTIMATE_LABEL)).not.toBeInTheDocument();
+
+    await userEvent.click(asideSubmit());
+
+    expect(placeOrderAction).toHaveBeenCalledTimes(2);
+    expect(placeOrderAction.mock.calls.at(-1)?.[1].get(COUPON_ID_FIELD)).toBe(coupon.id);
   });
 
   // ----- 使えるクーポンを読めなかったとき -----
