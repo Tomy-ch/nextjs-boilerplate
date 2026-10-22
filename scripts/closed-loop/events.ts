@@ -65,7 +65,11 @@ const COMMAND_NAME_RE = /<command-name>\/?[a-z0-9-]+<\/command-name>/g;
 const INTERRUPTION_MARK = "[Request interrupted";
 
 /** 人が入力したことを示す `promptSource` の値。 */
-const HUMAN_PROMPT_SOURCES: readonly string[] = ["typed", "suggestion_accepted", "queued"];
+const HUMAN_PROMPT_SOURCES: ReadonlySet<string> = new Set([
+  "typed",
+  "suggestion_accepted",
+  "queued",
+]);
 
 /**
  * `isMeta` を持たずに差し込まれる本文の目印。
@@ -136,6 +140,22 @@ function fromText(text: string, at: number): readonly Event[] {
   return found;
 }
 
+/** user の行から、人の発話と中断を取り出す。 */
+function fromUserLine(record: Line, at: number): readonly Event[] {
+  const text = textOf(record);
+  const found: Event[] = [];
+
+  if (isHumanPrompt(record, text)) {
+    found.push({ at, kind: "prompt", text });
+  }
+
+  if (isHumanOrigin(record) && text.includes(INTERRUPTION_MARK)) {
+    found.push({ at, kind: "interrupt" });
+  }
+
+  return found;
+}
+
 /**
  * 記録の 1 行から出来事を取り出す。
  *
@@ -166,15 +186,7 @@ export function parseLine(line: string): readonly Event[] {
   const found: Event[] = [];
 
   if (record.type === "user") {
-    const text = textOf(record);
-
-    if (isHumanPrompt(record, text)) {
-      found.push({ at, kind: "prompt", text });
-    }
-
-    if (isHumanOrigin(record) && text.includes(INTERRUPTION_MARK)) {
-      found.push({ at, kind: "interrupt" });
-    }
+    found.push(...fromUserLine(record, at));
   }
 
   if (record.type === "assistant") {
@@ -232,7 +244,7 @@ function isHumanOrigin(record: Line): boolean {
   }
 
   if (typeof record.promptSource === "string") {
-    return HUMAN_PROMPT_SOURCES.includes(record.promptSource);
+    return HUMAN_PROMPT_SOURCES.has(record.promptSource);
   }
 
   return record.isMeta !== true;
