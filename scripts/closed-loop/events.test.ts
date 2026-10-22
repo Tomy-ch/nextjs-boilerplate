@@ -276,6 +276,39 @@ describe("parseLine", () => {
     ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
   });
 
+  it("中断の綴りを含むブロックが複数あっても、1 行の中断は 1 回と数える", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: {
+            content: [
+              { type: "text", text: "[Request interrupted by user]" },
+              { type: "text", text: "[Request interrupted by user for tool use]" },
+            ],
+          },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+  });
+
+  it.each([{ origin: { kind: "human" } }, { promptSource: "typed" }])(
+    "出所を人と示す行 %o の中断を、綴りの続きにかかわらず出す",
+    (keys) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            ...keys,
+            message: { content: "[Request interrupted by user for tool use]" },
+          }),
+        ),
+      ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+    },
+  );
+
   it.each([
     { isMeta: true },
     { isCompactSummary: true },
