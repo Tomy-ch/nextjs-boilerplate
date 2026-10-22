@@ -2,7 +2,7 @@ import type { ActionState } from "@/model/action-state";
 import type { COUPON_ID_FIELD } from "./form-fields";
 
 /** 確定の結果が名指しし得る項目。 */
-export type PlaceOrderField = typeof COUPON_ID_FIELD;
+type PlaceOrderField = typeof COUPON_ID_FIELD;
 
 /**
  * 購入確定の結果。

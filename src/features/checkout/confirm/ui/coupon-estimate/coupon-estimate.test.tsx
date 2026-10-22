@@ -12,7 +12,10 @@ import type { CartCoupon, CouponId } from "@/model/coupon/coupon";
 import { formatMoney } from "@/model/money";
 
 import { CART_COUPONS } from "../../../checkout.fixture";
-import { PlaceOrderStateProvider, usePlaceOrderState } from "../place-order-state/place-order-state";
+import {
+  PlaceOrderStateProvider,
+  usePlaceOrderState,
+} from "../place-order-state/place-order-state";
 import { CouponEstimate } from "./coupon-estimate";
 
 const KEY = "0195f0c2-0000-7000-a000-000000000001";

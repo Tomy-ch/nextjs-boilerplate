@@ -1,7 +1,6 @@
 import "server-only";
 
 import { cache } from "react";
-import type { z } from "zod";
 
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { type CartCoupon, toCouponId } from "@/model/coupon/coupon";
@@ -9,8 +8,6 @@ import { type CartCoupon, toCouponId } from "@/model/coupon/coupon";
 import { GetCartsMeCouponsResponse } from "../../gen/api/endpoints.zod";
 import { getUserScopedClient } from "../http/user-scoped-client";
 import { toCouponDiscount } from "./coupon-discount";
-
-type WireCartCoupons = z.infer<typeof GetCartsMeCouponsResponse>;
 
 /**
  * いまのカートに対して使えるクーポンと、それぞれを適用した場合の値引き額を取得する。
