@@ -140,6 +140,9 @@ How idempotency keys and submissions without the acknowledgment signal are handl
 - [ ] Confirmation works with no usable coupon and when the coupons cannot be read
 - [ ] Coupon discount amounts are shown as received, never computed on the screen
 - [ ] A coupon refused at confirmation refetches the candidates so another can be chosen
+- [ ] While the outcome of a confirmation is open, the coupon cannot be chosen again
+- [ ] A resend under the same key carries the same content; a settled response renews the key
+- [ ] Before hydration the coupon choices are disabled, and a confirmation sent then carries no coupon
 - [ ] There is one idempotency key per assembly of the screen
 
 ## Design Decisions
