@@ -1,16 +1,11 @@
 "use client";
 
-import {
-  type ChangeEvent,
-  type KeyboardEvent,
-  type SubmitEvent,
-  useCallback,
-  useState,
-} from "react";
+import { type ChangeEvent, type KeyboardEvent, useCallback, useState } from "react";
 import { INQUIRY_BODY_MAX_LENGTH } from "@/adapters/client/api/inquiry-limits";
 import { Button } from "@/components/design-system/action/button/button";
 import { Label } from "@/components/design-system/form/label/label";
 import { Textarea } from "@/components/design-system/form/textarea/textarea";
+import { useEmptyGuard } from "@/components/use-empty-guard";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { INQUIRY_BODY_FIELD } from "../../../form-names";
 import { EMPTY_BODY_MESSAGE, type InquiryMessageActionState } from "../../../form-state";
@@ -35,6 +30,9 @@ const SUBMIT_LABEL = "送信";
 
 const SENDING_LABEL = "送信中";
 
+/** 変換を確定する打鍵に Safari が付ける keyCode。`isComposing` が立たないため、これで見分ける。 */
+const IME_PROCESS_KEY_CODE = 229;
+
 /**
  * 送信欄。書きかけはここが持ち、成立したときだけ片付ける。
  *
@@ -42,8 +40,12 @@ const SENDING_LABEL = "送信中";
  */
 export function InquiryComposer({ action, state, idempotencyKey, pending }: InquiryComposerProps) {
   const [draft, setDraft] = useState("");
+  const {
+    error: emptyError,
+    clear: clearEmpty,
+    refuseEmpty,
+  } = useEmptyGuard(draft, EMPTY_BODY_MESSAGE);
   const [seenState, setSeenState] = useState(state);
-  const [emptyError, setEmptyError] = useState<string | null>(null);
 
   // 送信が成立したら書きかけを片付ける。通らなかったときに残すのは、打ち直させないためである。
   if (seenState !== state) {
@@ -59,26 +61,27 @@ export function InquiryComposer({ action, state, idempotencyKey, pending }: Inqu
   const bodyErrors = emptyError === null ? serverBodyErrors : [emptyError];
   const submitLabel = pending ? SENDING_LABEL : SUBMIT_LABEL;
 
-  const keepDraft = useCallback((event: ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft(event.target.value);
-    setEmptyError(null);
-  }, []);
-
-  const refuseEmpty = useCallback(
-    (event: SubmitEvent<HTMLFormElement>) => {
-      if (draft.trim() === "") {
-        event.preventDefault();
-        setEmptyError(EMPTY_BODY_MESSAGE);
-      }
+  const keepDraft = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      setDraft(event.target.value);
+      clearEmpty();
     },
-    [draft],
+    [clearEmpty],
   );
 
-  const submitOnModifierEnter = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
-      event.currentTarget.form?.requestSubmit();
-    }
-  }, []);
+  const submitOnModifierEnter = useCallback(
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (pending || event.nativeEvent.isComposing || event.keyCode === IME_PROCESS_KEY_CODE) {
+        return;
+      }
+
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        event.currentTarget.form?.requestSubmit();
+      }
+    },
+    [pending],
+  );
 
   return (
     <form action={action} className="flex flex-col gap-2" onSubmit={refuseEmpty}>

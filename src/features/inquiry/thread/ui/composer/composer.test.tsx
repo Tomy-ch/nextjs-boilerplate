@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -107,15 +107,17 @@ describe("InquiryComposer", () => {
   });
 
   // ----- 書きかけがあるとき -----
-  it("本文があれば送信できる", async () => {
-    renderComposer();
+  it("本文があれば、押したら送り、入力を促す文言は出さない", async () => {
+    const { props } = renderComposer();
 
     await userEvent.type(screen.getByLabelText("お問い合わせ内容"), "本文");
+    await userEvent.click(screen.getByRole("button", { name: "送信" }));
 
-    expect(screen.getByRole("button", { name: "送信" })).toBeEnabled();
+    expect(props.action).toHaveBeenCalledOnce();
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
-  it("修飾キーつきの Enter で送信する", async () => {
+  it.each([["Meta"], ["Control"]])("修飾キー（%s）つきの Enter で送信する", async (modifier) => {
     renderComposer();
 
     const textarea = screen.getByLabelText("お問い合わせ内容");
@@ -123,9 +125,39 @@ describe("InquiryComposer", () => {
 
     textarea.closest("form")?.addEventListener("submit", submit);
     await userEvent.type(textarea, "本文");
-    await userEvent.type(textarea, "{Meta>}{Enter}{/Meta}");
+    await userEvent.type(textarea, `{${modifier}>}{Enter}{/${modifier}}`);
 
     expect(submit).toHaveBeenCalledOnce();
+  });
+
+  // user-event は変換中の打鍵を作れないため、ここだけ fireEvent で状態つきの keydown を渡す。
+  it.each([
+    ["変換中", { isComposing: true }],
+    ["Safari の変換確定", { keyCode: 229 }],
+  ])("%sの修飾キーつき Enter では送らない", async (_label, init) => {
+    renderComposer();
+
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+
+    textarea.closest("form")?.addEventListener("submit", submit);
+    await userEvent.type(textarea, "本文");
+    fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true, ...init });
+
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("送信中は修飾キーつき Enter でも送らない", async () => {
+    renderComposer({ pending: true });
+
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+
+    textarea.closest("form")?.addEventListener("submit", submit);
+    await userEvent.type(textarea, "本文");
+    await userEvent.type(textarea, "{Control>}{Enter}{/Control}");
+
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it("修飾キーの無い Enter では送らない", async () => {
