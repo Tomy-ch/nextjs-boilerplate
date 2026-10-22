@@ -260,14 +260,15 @@ async function openCors(request: NextRequest, origin: string): Promise<NextRespo
  * Server Action の呼び出しかを判定する。
  *
  * @remarks
- * 読み取りの method は `Next-Action` を載せていても含めません。ヘッダを足すだけで画面の前捌きを
- * 外せることになるためです。
+ * Next.js が action として扱う POST だけを含めます。それ以外の method は `Next-Action` を
+ * 載せていても action として処理されないため、含めるとヘッダを足すだけで画面の前捌きを外せることに
+ * なります。
  *
  * @param request - 受信した要求
- * @returns 状態を変える method で `Next-Action` を載せていれば true
+ * @returns POST で `Next-Action` を載せていれば true
  */
 function isServerActionCall(request: NextRequest): boolean {
-  return isStateChanging(request.method) && request.headers.has("next-action");
+  return request.method === "POST" && request.headers.has("next-action");
 }
 
 /**

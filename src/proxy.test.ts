@@ -451,6 +451,17 @@ describe("proxy", () => {
     );
   });
 
+  it.each(["PUT", "DELETE"])(
+    "Next-Action を載せた POST 以外の %s は保護されたパスでログインへ送る",
+    async (method) => {
+      const response = await proxy(serverAction("/account", { method }));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/login?returnUrl=%2Faccount",
+      );
+    },
+  );
+
   it("宣言に無い origin からの Server Action は保護されたパスでも 403 で止める", async () => {
     const response = await proxy(serverAction("/account", { origin: "https://evil.example.test" }));
 

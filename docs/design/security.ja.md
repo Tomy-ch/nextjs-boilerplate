@@ -174,7 +174,7 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 
 | 責務 | 実装 | 備考 |
 | --- | --- | --- |
-| 楽観的な認可 | `readOptimisticSession()` で cookie を復号し、`model/authz` の `allowedRolesFor()` に照らす | 未認証はログインへ（復帰先は `toSafeReturnUrl()` を通す）、役割不足は `/` へ。**ログインへ戻さない**のは、やり直しても同じ結果になるため。**Server Action の呼び出し（`Next-Action` を持つ状態変更のリクエスト）は素通しする** —— action の経路で返したリダイレクトを client は扱えないので、両方の確認は action 自身が持つ（[ADR 0043](../adr/0043-middleware-policy.ja.md)） |
+| 楽観的な認可 | `readOptimisticSession()` で cookie を復号し、`model/authz` の `allowedRolesFor()` に照らす | 未認証はログインへ（復帰先は `toSafeReturnUrl()` を通す）、役割不足は `/` へ。**ログインへ戻さない**のは、やり直しても同じ結果になるため。**Server Action の呼び出し（`Next-Action` を持つ `POST`）は素通しする** —— action の経路で返したリダイレクトを client は扱えないので、両方の確認は action 自身が持つ（[ADR 0043](../adr/0043-middleware-policy.ja.md)） |
 | 保護する経路の宣言 | `model/authz` の `ROUTE_POLICIES` | **保護されている側を列挙する。** 公開側を列挙すると、足した画面がデフォルトで公開になる。確定認可も同じ宣言を引く |
 | 送信元の検証 | `judgeOrigin()` + `isStateChanging()` | 同一 origin の判定は **host だけ**（`X-Forwarded-Host` → `Host` の順）。TLS を終端する proxy の後ろでは scheme が食い違うため比べない。宣言した別 origin は origin の完全一致 |
 | CORS | `openCors()` | `/api/` だけ。`Access-Control-Allow-Credentials: true` を返すので `*` は使えず、`Vary: Origin` を添える。preflight は求められたメソッドとヘッダをそのまま許す —— origin を許した時点で相手を信頼しており、一覧を別に持つと宣言が 2 つに割れる |
