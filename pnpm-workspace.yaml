@@ -19,6 +19,27 @@ minimumReleaseAgeExclude:
   # markdown-it@15.0.3 が ^3.0.3 を要求する。lint の実行時にだけ走る。トリアージは未実施。
   # 窓が明ける 2026-10-24 に外す。
   - "argparse@3.0.3"
+  # GHSA-qxg6-89mg-rqv8 / GHSA-xp26-3454-mjgp (medium) の修正版は @vitest/mocker 4.1.12。vitest と
+  # @vitest/* は互いを版の完全一致で要求するので、一式を同じ版で動かす。テストの実行時にだけ走る。
+  # /supply-chain-triage は 1/12 LOW（発行者・provenance は 4.1.11 と同一、差分は修正のみ）。
+  # 窓が明ける 2026-10-23 に外す。
+  - "vitest@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/mocker@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/coverage-istanbul@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/spy@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/utils@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/expect@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/runner@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/snapshot@4.1.12"
+  # 上と同じ vitest 4.1.12 一式。窓が明ける 2026-10-23 に外す。
+  - "@vitest/pretty-format@4.1.12"
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
