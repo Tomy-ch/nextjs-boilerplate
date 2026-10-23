@@ -578,3 +578,4 @@
 ".github/workflows/typecheck.yaml" = "2026-10-23"
 ".github/workflows/vrt-guard.yaml" = "2026-10-23"
 ".github/workflows/vrt.yaml" = "2026-10-23"
+"src/components/shell/admin-shell/admin-shell.stories.tsx" = "2026-10-23"
