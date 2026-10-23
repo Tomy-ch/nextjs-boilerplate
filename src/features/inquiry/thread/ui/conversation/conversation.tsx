@@ -19,13 +19,9 @@ import {
   MessageScrollerContent,
   MessageScrollerViewport,
 } from "@/components/design-system/container/message-scroller/message-scroller";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-import {
-  type ConflictMeaning,
-  leavesOutcomeOpen,
-  newIdempotencyKey,
-  settlesSubmission,
-} from "@/model/idempotency-key";
+import type { ConflictMeaning } from "@/model/idempotency-key";
 import { mergeMessages, pruneApplied, toConversationDays } from "@/model/inquiry/conversation";
 import type { InquiryHistory, InquiryMessage } from "@/model/inquiry/inquiry";
 
@@ -54,7 +50,7 @@ const FAILURE_TITLE = "送信できませんでした";
  * 投稿は追記だけで、最初の投稿が並行しても両方が成立するため、状態が衝突する余地がありません。
  * 残る競合は同じ鍵の投稿がまだ処理中であることだけです。
  */
-const POST_CONFLICT: ConflictMeaning = "in-progress";
+const POST_CONFLICT = "in-progress" satisfies ConflictMeaning;
 
 /** `InquiryConversation` の props。 */
 export type InquiryConversationProps = {
@@ -89,19 +85,8 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
     NO_PENDING,
     (current, draft) => [...current, draft],
   );
-  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
-  const [seenState, setSeenState] = useState(state);
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, { conflict: POST_CONFLICT });
   const retaking = useRef(false);
-
-  // 結果が定まった送信は、次の 1 通と同じ鍵で飛ばない。結果が定まらない失敗を送り直す間は同じ鍵の
-  // ままにして、応答が届かなかっただけの送信が 2 通にならないようにする。
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (settlesSubmission(state, POST_CONFLICT)) {
-      setIdempotencyKey(newIdempotencyKey());
-    }
-  }
 
   const { state: streamState, resume } = useStream({
     ticketPath: INQUIRY_STREAM_TICKET_PATH,
@@ -176,7 +161,7 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
       <InquiryComposer
         action={send}
         idempotencyKey={idempotencyKey}
-        outcomeOpen={leavesOutcomeOpen(state, POST_CONFLICT)}
+        outcomeOpen={outcomeOpen}
         pending={pending}
         state={state}
       />

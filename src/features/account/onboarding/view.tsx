@@ -1,24 +1,21 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useWatch } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import type { WizardSteps } from "@/components/patterns/wizard-form/wizard-form";
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-import {
-  IDEMPOTENCY_KEY_FIELD,
-  leavesOutcomeOpen,
-  newIdempotencyKey,
-  settlesSubmission,
-} from "@/model/idempotency-key";
+import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { SafeReturnUrl } from "@/model/return-url";
 import type { Prefecture } from "@/model/user/user";
 
 import { registerAction } from "../actions";
 import type { ProfileFormState } from "../form-state";
 import { ProfileSubmitButton } from "../ui/submit-button/submit-button";
+import { useAddressField } from "../use-address-field";
 import { useProfileFields } from "../use-profile-fields";
 import { RETURN_URL_FIELD } from "./form-names";
 import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete, STEP_IDS } from "./steps";
@@ -65,23 +62,15 @@ export function OnboardingView({
   prefectures,
   returnUrl,
 }: OnboardingViewProps) {
-  const [idempotencyKey, setIdempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
     registerAction,
     idleActionState(),
   );
-  const [seenState, setSeenState] = useState(state);
-
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (settlesSubmission(state)) {
-      setIdempotencyKey(newIdempotencyKey());
-    }
-  }
-
-  const outcomeOpen = leavesOutcomeOpen(state);
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
+    initialKey: initialIdempotencyKey,
+  });
   const fields = useProfileFields(null, state);
+  const address = useAddressField(fields);
   const values = useWatch({ control: fields.control });
 
   const steps: WizardSteps = [
@@ -94,7 +83,9 @@ export function OnboardingView({
     {
       id: STEP_IDS[1],
       title: "住所",
-      content: <RegistrationAddressSection fields={fields} prefectures={prefectures} />,
+      content: (
+        <RegistrationAddressSection address={address} fields={fields} prefectures={prefectures} />
+      ),
       blocked: !isStepComplete(values, ADDRESS_FIELDS),
       nextLabel: "確認へ進む",
     },
@@ -106,7 +97,7 @@ export function OnboardingView({
   ];
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-8">
+    <form action={formAction} className="flex max-w-2xl flex-col gap-8" onSubmit={address.cancel}>
       <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
       <input name={RETURN_URL_FIELD} type="hidden" value={returnUrl} />
 

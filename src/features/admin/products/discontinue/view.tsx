@@ -5,9 +5,9 @@ import { type ReactNode, useActionState, useCallback, useState } from "react";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import { Button } from "@/components/design-system/action/button/button";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
-import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import type { ProductDiscontinueImpact, ProductId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "../../paths";
@@ -95,8 +95,9 @@ export function AdminProductDiscontinueView({
     discontinueAction,
     idleActionState(),
   );
-  const [idempotencyKey, setIdempotencyKey] = useState(initialIdempotencyKey);
-  const [seenState, setSeenState] = useState(state);
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
+    initialKey: initialIdempotencyKey,
+  });
   const [values, setValues] = useState(EMPTY_VALUES);
   const [checked, setChecked] = useState<Partial<Record<DiscontinueProductField, string>>>({});
   const [confirming, setConfirming] = useState(false);
@@ -129,16 +130,6 @@ export function AdminProductDiscontinueView({
   }, [dismiss, values]);
 
   const closeConfirmation = useCallback(() => setConfirming(false), []);
-
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (settlesSubmission(state)) {
-      setIdempotencyKey(newIdempotencyKey());
-    }
-  }
-
-  const outcomeOpen = leavesOutcomeOpen(state);
 
   const shown = dismissed ? null : state;
   const conflicted = shown?.status === "error" && shown.kind === ErrorKind.CONFLICT;
