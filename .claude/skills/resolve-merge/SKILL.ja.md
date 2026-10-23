@@ -97,7 +97,7 @@ git diff --name-only --diff-filter=U
 | ベースライン画像 | `baseline/images` の gitlink | submodule のポインターの片側を選ばない。撮り直して baseline のターゲットで送る |
 | マーカーの基準 | `scripts/marker-baseline/baseline.json` | 数を merge しない。マーカーを持つファイルを先に解決してから `pnpm exec tsx scripts/marker-baseline --write` <!-- boilerplate-only:line --> |
 | 追記専用のレジストリ | `docs/adr/README.md` の表、`docs/spec/glossary.md`、`.github/settings/labels.json` | 両側の項目の和集合 —— **同じ鍵が両側に在る場合を除く**。それは Step 6 が人へ返す |
-| 純化パスの台帳 | `.agents/purity-sweep/purity-swept.toml` | 両側の項目の和集合。`[swept]` の同じパスが両側に在れば、新しい日付の 1 行だけを残す。どちらの側も「その日にファイル全体を読んだ」としか言っていないので食い違いようがなく、TOML のキーは 1 回しか書けない。重複はどのゲートも捕まえない —— `purity-swept.sh` は TOML として読まず、行頭で照合する。`[pending]` の同じパスが両側に在り条件が違うなら、人へ返す |
+| 純化パスの台帳 | `.agents/purity-sweep/purity-swept.toml` | 両側の項目の和集合。`[swept]` の同じパスが両側に在れば、新しい日付の 1 行だけを残す。どちらの側も「その日にファイル全体を読んだ」としか言っていないので食い違いようがなく、TOML のキーは 1 回しか書けない。重複はどのゲートも捕まえない —— `purity-swept.sh` は TOML として読まず、行頭で照合する。`[pending]` の同じパスが両側に在り条件が違うなら、人へ返す <!-- boilerplate-only:line --> |
 | 対訳ペア | `**/SKILL.ja.md` | canonical の `SKILL.md` を先に解決し、その後で対訳を見出し 1:1 へ戻す。**対訳を直接解決しない** |
 | 実装 | それ以外すべて | **機械的でない。**マーカーを残して人へ返す |
 
@@ -161,7 +161,7 @@ make version-stamp-check
 | 人へ返すもの | なぜ |
 | --- | --- |
 | 実装の衝突 | どちらの振る舞いが正しいかは読みであって、マージではない |
-| 同じ鍵が両側で足された —— ADR 番号、語彙表の項、ラベル、条件が 2 つある台帳の `[pending]` のパス | 和集合は機械的だが、**どちらの定義が生き残るかを決めるのは違う** |
+| 同じ鍵が両側で足された —— ADR 番号、語彙表の項、ラベル | 和集合は機械的だが、**どちらの定義が生き残るかを決めるのは違う** |
 | ADR の採番のし直し | 採番の規約は `docs/adr/README.md` のもの。実行時に読み、食い違いは選ばずに提起する |
 | 1 つの ref に解決できなかったベース | ベースを推測することが、ブランチが黙って別のラインをマージする経路そのものである |
 
