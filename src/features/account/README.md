@@ -60,6 +60,7 @@ operationIds used.
 | Registration | Per step | `Page/Account/Onboarding/{Default,AddressStep,ConfirmStepFilled}` |
 | | Showing errors | `Page/Account/Onboarding/ValidationErrors` |
 | | Autocomplete mechanism not working | `Page/Account/Onboarding/AddressUnavailable` |
+| | Outcome of the registration not known (the steps cannot be left) | `Page/Account/Onboarding/OutcomeOpen` |
 
 error is taken by the route's `error` boundary (`src/app/(shop)/mypage/error.tsx` and
 `src/app/(shop)/mypage/edit/error.tsx`).
@@ -219,8 +220,10 @@ coupons (`coupons`), the site description (`site-info`).
   is shown only for touched fields, while the judgment of whether you may proceed does not look at whether a
   field was touched
 - **The idempotency key collapses duplicate registration submissions**. Registration is a one-time submission,
-  so the point that assembled the screen makes one key and puts it on the submission; however many times it is
-  sent from the same screen, the user remains one person
+  so the point that assembled the screen makes the first key and puts it on the submission; however many times it
+  is sent from the same screen, the user remains one person. The key is renewed once a response settles the
+  registration (a `409` here is an existing user, a settled conflict). While the outcome is open the wizard
+  cannot leave the confirmation step, so the resend carries what was sent
 - **Only the edit screen has breadcrumbs**. My Page is pointed at directly by the global nav, so breadcrumbs
   there would duplicate the same path
 

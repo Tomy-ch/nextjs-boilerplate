@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { toSafeReturnUrl } from "@/model/return-url";
@@ -155,6 +156,76 @@ describe("OnboardingView", () => {
     expect(container.querySelector(`[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(
       IDEMPOTENCY_KEY,
     );
+  });
+
+  it("結果が定まった拒否のあとの登録は、別の鍵で送る", async () => {
+    const user = userEvent.setup();
+
+    registerAction.mockResolvedValueOnce(
+      failedActionState({
+        formError: "すでに登録が済んでいます。",
+        kind: ErrorKind.CONFLICT,
+      }),
+    );
+    renderView();
+    await goToConfirm(user);
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+    await screen.findByText("すでに登録が済んでいます。");
+    await user.click(screen.getByRole("button", { name: "登録する" }));
+
+    await waitFor(() => expect(registerAction).toHaveBeenCalledTimes(2));
+
+    const second = registerAction.mock.calls[1]?.[1];
+
+    expect(second.get(IDEMPOTENCY_KEY_FIELD)).not.toBe(IDEMPOTENCY_KEY);
+  });
+
+  it("結果が定まらない失敗のあとは、段を動けなくして同じ鍵で送り直させる", async () => {
+    const user = userEvent.setup();
+
+    registerAction.mockResolvedValueOnce(
+      failedActionState({
+        formError: "しばらくしてからお試しください。",
+        kind: ErrorKind.UNAVAILABLE,
+      }),
+    );
+    renderView();
+    await goToConfirm(user);
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+
+    expect(
+      await screen.findByText(
+        "前回の登録の結果が分かるまで、内容は変えられません。同じ内容でもう一度登録してください。",
+      ),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "基本情報" })).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "登録する" }));
+
+    await waitFor(() => expect(registerAction).toHaveBeenCalledTimes(2));
+
+    const second = registerAction.mock.calls[1]?.[1];
+
+    expect(second.get(IDEMPOTENCY_KEY_FIELD)).toBe(IDEMPOTENCY_KEY);
+  });
+
+  it("項目の誤りで拒まれたあとは、段を戻って直せる", async () => {
+    const user = userEvent.setup();
+
+    registerAction.mockResolvedValueOnce(
+      failedActionState({
+        formError: "入力内容を確認してください。",
+        fieldErrors: { postalCode: ["郵便番号は受け付けられませんでした。入力し直してください。"] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+    renderView();
+    await goToConfirm(user);
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+    await screen.findByText("入力内容を確認してください。");
+
+    expect(screen.getByRole("button", { name: "戻る" })).toBeEnabled();
   });
 
   it("埋まっていない段からは進めない", () => {

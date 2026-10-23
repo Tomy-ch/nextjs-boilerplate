@@ -63,10 +63,11 @@ easier to fix. The last step accepts no input and exists only for reading back t
 
 **One submission at the end.** Input in steps not currently shown rides on the same request.
 
-**Submitting twice still creates only one user.** The point that built the screen creates a key pointing to this one registration
-and puts it in the submission. However many times it is sent from the same screen, the key is the same, and the receiving side treats
-the second as a replay of the first. Reopening the screen gives a different key, but if registration has completed by then, this
-screen cannot be entered.
+**Submitting twice still creates only one user.** The point that built the screen creates the first key and puts it in the
+submission. While the outcome is open the same key is resent, and the receiving side treats the second as a replay of the first;
+until then the steps cannot be left, so the resend carries what was sent. Once a response settles the registration — a conflict, or
+a refused field — the next submission carries a new key. Reopening the screen gives a different key, but if registration has
+completed by then, this screen cannot be entered.
 
 **A conflict is conveyed as a failure to register.** The user has no way to distinguish a registration that has already completed
 from one that duplicates another registration.
