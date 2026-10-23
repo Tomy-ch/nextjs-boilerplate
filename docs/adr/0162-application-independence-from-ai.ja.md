@@ -59,7 +59,7 @@ Accepted
 ## 禁止事項
 
 - ❌ `pnpm build` / `pnpm test` / 必須チェックの経路に、エージェント向けの道具を挿すこと（強制: 散文 —— **一部寄せられる**。`package.json` の scripts と必須 job の workflow に `rtk` / `graphify` / `claude` 等の綴りが現れるかはスキャンで落とせるが規則は無い。名の無い道具がエージェント向けかは道具の性質で決まる）
-- ❌ 生成物の生成や、ゲートの判定にモデルを呼ぶこと（強制: CI の harden-runner（`egress-policy: block`、許可先は `.github/egress.yaml`・一致は `make egress-check`）がゲートと生成の job からモデル API への通信を落とす。手元でだけ走る判定と、許可先へモデル API を足す変更は散文 —— **寄せられない**。宛先がモデル API かは値の意味で決まる）
+- ❌ 生成物の生成や、ゲートの判定にモデルを呼ぶこと（強制: CI の bullfrog ステップ（`egress-policy: block`、許可先は `.github/egress.yaml`・一致は `make egress-check`）が、**sudo を外した**ゲートと生成の job からモデル API への通信を落とす。`.github/egress.yaml` の `sudo:` に載った job はそのフィルタを外せる権限を残す（[0153](0153-ci-configuration.ja.md)）ので、それらの job では禁止を支えるのは遮断ではなく job のステップのレビューである。手元でだけ走る判定と、許可先へモデル API を足す変更は散文 —— **寄せられない**。宛先がモデル API かは値の意味で決まる）
 - ❌ `.claude/` の存在を前提にして、無い checkout で失敗する検査を書くこと（強制: 散文 —— **寄せられる**（`.claude/` を削除した checkout で必須チェックを走らせる job を置けば落とせる。規則は無い））
 - ❌ 道具の採否を、依存の向きではなく利便性で決めること（強制: 散文 —— **寄せられない**。採否を何で決めたかは判断の理由であってコードに現れない）
 

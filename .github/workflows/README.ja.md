@@ -308,7 +308,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**バージョンの SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.ja.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
 - **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.ja.md)）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古いツリーの結果が新しいツリーの結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
-- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.ja.md)）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
+- **bullfrog** — 全 job の checkout より前の第 1 ステップで、外向き通信を**遮断**し（`block`）、sudo を外す（`enable-sudo: false`）。許可した宛先・許可する IP・sudo を残す job の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.ja.md)）。**宛先を足す根拠は実測**で —— run の job summary と debug ログから測る（手順は [`../egress.yaml`](../egress.yaml)）—— 記録が揃っていないものは宣言で `audit` に留める。**sudo を残すのは、ステップが sudo なしでは動かない job だけ** —— ホストパスをマウントする、またはホストの名前空間を共有する Docker 実行が典型で、例外は宣言にその根拠を持つ
 - **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`baseline-retake.yaml`](baseline-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**job を改名するときは新旧の両方を置く** — この配列を読むのは `workflow_run` で起動する撮り直し側であり、そこで使われるのはデフォルトブランチの定義である（上記）。改名した PR がデフォルトブランチへ入るまで、照合されるのは旧名のままになる。旧名はデフォルトブランチが追いついてから外す。該当する check run が無い名前は、単に一致しないだけで害を持たない。**書き漏らすと、壊れたツリーから撮った絵がベースライン画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
 - **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor のバージョンはワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.ja.md)）。`matrix` を**バージョンや OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.ja.md)）
 - **例外は mise CLI 自身のバージョン** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身のバージョンを宣言できない。この 1 つだけは `setup-mise` の中に**バージョンと SHA256 の対で**書かれている（[下記](#mise-の導入)）
@@ -323,7 +323,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` / `vrt` / `a11y` が使っている。
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`ignore:` を渡す job は下の表のとおりで、依存スキャナは `only:` を渡す（[下記](#依存スキャナだけは影響しうるものの側を書く)）。
+
+**matrix は shard ごとではなく、前段の scope job で門を掛ける。** 1 つの job が一度だけ問い、shard はその答えに対して `needs:` と `if:` を持つので、無関係な PR ではどの shard も起動しない。手本は [`vrt.yaml`](vrt.yaml)。required context を持つ束ねる側の job はそれでも走って報告し、答えを返さなかった scope job は降りたものではなく失敗として読む。
 
 渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。判定の実装はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた判定は必ずずれ、ずれは黙って進む。
 
@@ -332,7 +334,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 | job | 外している範囲 |
 | --- | --- |
 | `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
-| `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
+| `vrt` / `a11y` / `e2e` / `lighthouse` / `deferred-checks` / `test` / `build` / `smoke` / `dead-code` | ドキュメントと AI エージェント設定だけ |
+| `storybook-build` | 同上 + Storybook のバンドルが一切 import しないもの |
+| `gen-drift` | 同上 + ジェネレータもその後の整形パスも、生成ディレクトリの変更に変えられないもの |
 | `sast` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
 | `bearer` | 同上 + `src` の外にあるもの（カタログ / ベースライン画像 / 生成されるドキュメントサイト） |
 | `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
@@ -352,7 +356,11 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
-**一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
+`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**
+
+`md-lint` / `scripts-check` / `strip-verify` / `purge-verify` も絞らない。対象がツリー全体（すべての Markdown と `.claude/**`、リポジトリ全域にまたがる export と describe の対応 gate、strip や purge を掛けた後のツリー）なので、届かないと宣言できるパスが無い。
+
+**一覧の実体は各 workflow の `ignore:` ブロックが正**（表に挙げた workflow）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
 
 `vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは `../../vrt/README.md` の [絵が変わり得ないときは撮らない](../../vrt/README.ja.md#絵が変わり得ないときは撮らない) にまとめてある。
 
