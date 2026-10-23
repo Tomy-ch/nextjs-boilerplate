@@ -6,7 +6,7 @@
 
 import path from "node:path";
 import { dropOrphanedPins } from "../lib/actions-pin.js";
-import { dropOrphanedEndpoints } from "../lib/egress-declaration.js";
+import { dropOrphanedDeclarations } from "../lib/egress-declaration.js";
 import { listFilesRecursive, removeTarget, toRelativePath, updateFile } from "../lib/file-utils.js";
 import { stripMarkers } from "../lib/markers.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
@@ -71,11 +71,11 @@ function run(dryRun: boolean): void {
     dryRun,
   );
 
-  // 同じ形が egress の宣言にもある。消えた workflow のための宛先は、そのまま残すと
+  // 同じ形が egress の宣言にもある。消えた workflow のための宣言は、そのまま残すと
   // `make egress-check` が孤児として落とす。
-  const prunedEndpoints = updateFile(
+  const prunedDeclarations = updateFile(
     EGRESS_DECLARATION_FILE,
-    (content) => dropOrphanedEndpoints(content, ORPHANED_WORKFLOWS),
+    (content) => dropOrphanedDeclarations(content, ORPHANED_WORKFLOWS),
     dryRun,
   );
 
@@ -98,7 +98,7 @@ function run(dryRun: boolean): void {
     console.log(`- pin 除去 ${ACTIONS_PIN_LOCK_FILE}`);
   }
 
-  if (prunedEndpoints !== null) {
+  if (prunedDeclarations !== null) {
     console.log(`- 宛先の宣言を除去 ${EGRESS_DECLARATION_FILE}`);
   }
 
