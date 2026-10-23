@@ -19,6 +19,24 @@ minimumReleaseAgeExclude:
   # markdown-it@15.0.3 が ^3.0.3 を要求する。lint の実行時にだけ走る。トリアージは未実施。
   # 窓が明ける 2026-10-24 に外す。
   - "argparse@3.0.3"
+  # next 16.4 の useRouter() が読む parentRenderTree を App Router の mock が渡すのは 10.6.3 から
+  # (storybookjs/storybook#36732)。これが無いと next 16.4.1 (GHSA-2464-fhr4-w9xw /
+  # GHSA-673q-mjm6-r5xr, critical) の下で全 story が描画されない。nextjs-vite が 6 つを版の完全
+  # 一致で引くので一式で動かす。Storybook と VRT でだけ走る。/supply-chain-triage は 1/12 LOW
+  # (発行者・provenance は 10.6.2 と同一、10.6.2 との差分は修正のみ)。窓が明ける 2026-10-28 に外す。
+  - "@storybook/nextjs-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "storybook@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/builder-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react-dom-shim@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "vite-plugin-storybook-nextjs@10.6.3"
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
