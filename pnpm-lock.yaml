@@ -16,7 +16,7 @@ overrides:
   hono@<4.13.7: '>=4.13.7 <5'
   '@grpc/grpc-js@>=1.14.0 <1.14.5': '>=1.14.5 <2'
   image-size@<2.0.3: '>=2.0.3 <3'
-  ip-address@<10.5.1: '>=10.5.1 <11'
+  ip-address@<10.7.4: '>=10.7.4 <11'
   undici@>=7.28.0 <7.29.1: '>=7.29.1 <8'
   '@modelcontextprotocol/sdk@>=1.12.0 <1.32.0': '>=1.32.0 <2'
   postcss-selector-parser@>=7 <7.1.6: '>=7.1.6 <8'
@@ -5375,8 +5375,8 @@ packages:
   intl-messageformat@10.7.18:
     resolution: {integrity: sha512-m3Ofv/X/tV8Y3tHXLohcuVuhWKo7BBq62cqY15etqmLxg2DZ34AGGgQDeR+SCta2+zICb1NX83af0GJmbQ1++g==}
 
-  ip-address@10.7.2:
-    resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
+  ip-address@10.7.4:
+    resolution: {integrity: sha512-DWBMKyeM25D70nrIiTkgQth59/G+naKOTep6huF9j+GmeK3DMD60Zvxg5d5qQnz+38AHgou6ean2LECX+lrKDg==}
     engines: {node: '>= 12'}
 
   ipaddr.js@1.9.1:
@@ -12061,7 +12061,7 @@ snapshots:
     dependencies:
       debug: 4.4.3
       express: 5.2.1
-      ip-address: 10.7.2
+      ip-address: 10.7.4
     transitivePeerDependencies:
       - supports-color
 
@@ -12473,7 +12473,7 @@ snapshots:
       '@formatjs/icu-messageformat-parser': 2.11.4
       tslib: 2.8.1
 
-  ip-address@10.7.2: {}
+  ip-address@10.7.4: {}
 
   ipaddr.js@1.9.1: {}
 

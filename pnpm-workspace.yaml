@@ -106,9 +106,11 @@ overrides:
   # express-rate-limit（shadcn CLI > @modelcontextprotocol/sdk が引く）の推移的依存。
   # GHSA-2vr4-cq9g-pvrc / GHSA-rpw4-54j3-4h4q (moderate): NAT64 のローカル用範囲と fe80::/10 の
   # リンクローカルを取りこぼし、SSRF や信頼境界の迂回を許す。
-  # express-rate-limit の宣言は ^10.2.0 で 10.5.1 はその内側。
-  # express-rate-limit が 10.5.1 以上を要求したら撤去する。
-  "ip-address@<10.5.1": ">=10.5.1 <11"
+  # GHSA-rxp7-6hxx-x8q5 (moderate): Address6 が長さの上限を確かめる前に zone 識別子を入力長の二次で
+  # 照合し、長い文字列 1 つで処理が止まる。10.7.4 で塞がれた。
+  # express-rate-limit の宣言は ^10.2.0 で 10.7.4 はその内側。
+  # express-rate-limit が 10.7.4 以上を要求したら撤去する。
+  "ip-address@<10.7.4": ">=10.7.4 <11"
   # jsdom / shadcn CLI / @dotenvx/dotenvx の推移的依存。
   # GHSA-3wwx-pv8p-q78v (moderate): WebSocket の permessage-deflate の展開で未処理の例外が
   # 出てプロセスが落ちる。宣言は ^7.24.5 / ^7.27.2 / ^7.11.0 で 7.29.1 はいずれの内側でもある。
