@@ -10,9 +10,11 @@ import {
 } from "@/components/shell/app-shell/app-shell.definition";
 import { PRODUCT_LIST_PATH } from "@/features/products/facade/list-url/list-url";
 import type { Cart } from "@/model/cart/cart";
+import type { CartCoupon } from "@/model/coupon/coupon";
 import type { ReferenceAmount } from "@/model/money";
 import type { UserProfile } from "@/model/user/user";
 import { withScreenSpan } from "@/observability/render-span";
+import { CouponField } from "./ui/coupon-field/coupon-field";
 import { OrderLines } from "./ui/order-lines/order-lines";
 import { OrderSummary } from "./ui/order-summary/order-summary";
 import { PlaceOrderStateProvider } from "./ui/place-order-state/place-order-state";
@@ -24,6 +26,8 @@ export type CheckoutConfirmViewProps = {
   cart: Cart;
   /** 届け先として使う登録情報。 */
   profile: UserProfile;
+  /** いまのカートに使えるクーポン。読めなければ null。 */
+  coupons: readonly CartCoupon[] | null;
   /** 小計の参考換算額。読めなければ null。 */
   reference: ReferenceAmount | null;
   /** この画面の確定 1 回ぶんを表す鍵。 */
@@ -48,9 +52,12 @@ export type CheckoutConfirmViewProps = {
  * 検査の上では同名の区画が 2 つ並びます。下端の帯は器であって区画ではなく、中身の集計が自分で
  * 何であるかを示します。
  *
+ * クーポンの欄は本文に 1 か所だけ置きます。集計の側に置くと、脇と帯の 2 か所に同じ選択欄が
+ * 並びます。
+ *
  * 本文の下端には帯のぶんの余白を空けます。空けないと、最後の行が帯に隠れます。
  *
- * **確定の送信状態は器が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
+ * **確定の送信状態は `PlaceOrderStateProvider` が 1 つだけ持ちます**（`ui/place-order-state`）。集計が 2 か所に居るぶん
  * 送信の姿も 2 つ mount されるため、状態を姿ごとに持つと、送っている最中に幅が境界を跨いだとき
  * 表に出る側が「何も送っていない」姿になります。
  *
@@ -58,7 +65,7 @@ export type CheckoutConfirmViewProps = {
  */
 export const CheckoutConfirmView = withScreenSpan(
   "features/checkout/confirm/view",
-  ({ cart, profile, reference, idempotencyKey }: CheckoutConfirmViewProps) => {
+  ({ cart, profile, coupons, reference, idempotencyKey }: CheckoutConfirmViewProps) => {
     if (cart.lines.length === 0) {
       return (
         <div className="flex flex-col items-start gap-4 py-8">
@@ -73,11 +80,12 @@ export const CheckoutConfirmView = withScreenSpan(
     }
 
     return (
-      <PlaceOrderStateProvider idempotencyKey={idempotencyKey}>
+      <PlaceOrderStateProvider coupons={coupons} idempotencyKey={idempotencyKey}>
         <div className="flex flex-col gap-8 pb-40 lg:flex-row lg:items-start lg:pb-0">
           <div className="flex min-w-0 flex-1 flex-col gap-6">
             <ShippingCard profile={profile} />
             <OrderLines lines={cart.lines} />
+            <CouponField coupons={coupons} />
           </div>
 
           <aside

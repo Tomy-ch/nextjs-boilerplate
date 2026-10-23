@@ -4,7 +4,7 @@ import { userEvent, within } from "storybook/test";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { PriceChangeConfirm } from "./price-change-confirm";
 
-/** 画面が組み立てた鍵の代わり。カタログでは送信しないため、値そのものに意味はない。 */
+/** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 const meta = {
@@ -26,7 +26,7 @@ const meta = {
   decorators: [
     // 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に置かないと、この姿が器を持たない。
     (Story) => (
-      <PlaceOrderStateProvider idempotencyKey={IDEMPOTENCY_KEY}>
+      <PlaceOrderStateProvider coupons={[]} idempotencyKey={IDEMPOTENCY_KEY}>
         <div className="w-72">
           <Story />
         </div>

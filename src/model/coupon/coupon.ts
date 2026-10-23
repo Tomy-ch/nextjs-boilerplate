@@ -1,3 +1,37 @@
+import * as z from "zod/mini";
+
+/**
+ * クーポンの識別子を確定させるスキーマ。
+ *
+ * @remarks
+ * 外へは出しません。確定させる口は {@link toCouponId} だけで、二重に入口を設けると境界の外でも
+ * 通せてしまいます。
+ */
+const couponIdSchema = z.string().brand<"coupon">();
+
+/**
+ * クーポンを指す識別子。
+ *
+ * @remarks
+ * 素の `string` を代入できない形にしてあります。クーポンの識別子も UUID の文字列で、商品や購入の
+ * 識別子と取り違えても型では止まらないためです。
+ */
+export type CouponId = z.infer<typeof couponIdSchema>;
+
+/**
+ * 文字列をクーポンの識別子として確定させる。
+ *
+ * @remarks
+ * **呼んでよいのは境界だけ**です。`adapters` の検証の出口とフォームの受け取りで 1 度だけ通します。
+ * 実在するかは検査しません。保有していない・使えない識別子は、購入の確定が拒みます。
+ *
+ * @param value - 確定させる文字列
+ * @returns クーポンの識別子
+ */
+export function toCouponId(value: string): CouponId {
+  return couponIdSchema.parse(value);
+}
+
 /**
  * クーポンの値引きの決まり方。
  *
@@ -44,4 +78,21 @@ export const COUPON_SCOPE_NAME: Readonly<Record<CouponScopeKind, string>> = {
 export type AppliedCoupon = {
   readonly discount: CouponDiscount;
   readonly scopeKind: CouponScopeKind;
+};
+
+/**
+ * いまのカートに対して使えるクーポン 1 枚と、それを適用した場合の値引き額。
+ *
+ * @remarks
+ * 値引き額はバックエンドが購入の確定と同じ規則で求めた値で、画面は額面から計算し直しません。
+ * ロックを取らないため、確定時に実際に引かれる額と一致する保証はありません。
+ */
+export type CartCoupon = {
+  readonly id: CouponId;
+  readonly discount: CouponDiscount;
+  readonly scopeKind: CouponScopeKind;
+  /** 適用した場合に差し引かれる額。最小単位の整数。 */
+  readonly discountAmount: number;
+  /** 失効する日時の ISO 文字列。この時刻ちょうどを含めて以降は使えない。 */
+  readonly expiresAt: string;
 };

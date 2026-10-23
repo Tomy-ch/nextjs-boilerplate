@@ -43,13 +43,34 @@ listed as 0; when it will be decided is noted instead.
 The reference converted amount in the display currency **does not stop the purchase even if it cannot be read**. What is charged is the amount in the base currency,
 and the converted amount is an accompaniment that helps the reader grasp the magnitude.
 
+## Coupons
+
+**The backend decides which coupons can be used and how much each discounts.** This screen lists what it returned and computes neither.
+Used, expired and zero-discount coupons are not in the list. A cart with no usable coupon, or no cart at all, is an empty list rather than an error.
+
+**The candidates are not locked.** The discount is decided again when the order is placed, and it can differ from what was listed.
+A coupon that would discount nothing at that moment refuses the order rather than being dropped from it.
+
+**At most one coupon goes with an order.** When none is chosen, the submission carries no coupon at all.
+
+**The candidates do not stop the purchase even if they cannot be read.** A coupon is not a required part of buying.
+
 ## Submitting the Order
 
 **The line items sent are rebuilt from the cart at the moment of submission.** Sending back what the screen showed would let an order be placed on
 stale premises even if stock or prices changed while the screen was left open.
 
 **One idempotency key is created each time the screen is assembled.** Pressing twice or resubmitting by reloading still leaves one
-purchase. Reopening the screen with the intent to buy again gives a different key.
+purchase. Reopening the screen with the intent to buy again gives a different key. **Once the order is refused — a coupon that cannot be used, or a
+conflict in stock or price — the next submission takes a new key**, since it may carry different content. A failure whose outcome is unknown
+(the backend unavailable, an internal error) keeps the key so the same submission can be resent. **While that outcome is open, the
+submission's content does not change**: the backend replays the first result for a repeated key, so a different coupon under it would
+silently return the purchase made with the earlier one. This holds even when the candidates were fetched again
+meanwhile and no longer list the chosen coupon: it is still sent.
+
+**A coupon refused at confirmation refetches the candidates.** Every reason the backend refuses one for (expired, used, not held, zero
+discount) is a coupon the next fetch no longer lists, so the user chooses again from what is current. The next submission takes a new
+idempotency key, as above.
 
 If stock runs short at the moment of placing the order, it comes back as a failure. This margin remains even after passing the cart's
 re-evaluation.
@@ -69,4 +90,6 @@ The cart shown in the outer frame is refetched too.
 | --- | --- |
 | The content cannot be fetched | The whole screen falls to the `error` boundary (there is nothing to confirm) |
 | The reference converted amount cannot be fetched | Only the converted amount row is absent. Placing the order still works |
+| The usable coupons cannot be fetched | The coupon field says so in one sentence. Placing the order without a coupon still works |
+| The chosen coupon is refused at confirmation | The reason is shown next to the confirm operation and on the coupon field. The candidates are fetched again and nothing is chosen |
 | The order does not go through | The reason is shown next to the confirm operation. The screen is kept |

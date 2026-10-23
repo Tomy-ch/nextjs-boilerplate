@@ -7,18 +7,22 @@ import { axe } from "vitest-axe";
 import { createAppError, findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 
-const { readReferenceAmount, getMyCart, getMyProfile } = vi.hoisted(() => ({
+const { readReferenceAmount, getMyCart, getMyProfile, readMyCartCoupons } = vi.hoisted(() => ({
   readReferenceAmount: vi.fn(),
   getMyCart: vi.fn(),
   getMyProfile: vi.fn(),
+  readMyCartCoupons: vi.fn(),
 }));
 
 vi.mock("@/adapters/server/api/cart", () => ({ getMyCart }));
 vi.mock("@/adapters/server/api/users", () => ({ getMyProfile }));
+vi.mock("@/adapters/server/api/coupons", () => ({ readMyCartCoupons }));
 vi.mock("@/adapters/server/api/exchange-rates", () => ({ readReferenceAmount }));
 vi.mock("../actions", () => ({ placeOrderAction: vi.fn() }));
 
-import { ORDERABLE_CART, PROFILE, SUBTOTAL_REFERENCE } from "../checkout.fixture";
+import { formatMoney } from "@/model/money";
+
+import { CART_COUPONS, ORDERABLE_CART, PROFILE, SUBTOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutConfirmPageContent } from "./page-content";
 
 beforeEach(() => {
@@ -26,6 +30,7 @@ beforeEach(() => {
   getMyCart.mockResolvedValue(ORDERABLE_CART);
   getMyProfile.mockResolvedValue(PROFILE);
   readReferenceAmount.mockResolvedValue(SUBTOTAL_REFERENCE);
+  readMyCartCoupons.mockResolvedValue([]);
 });
 
 describe("CheckoutConfirmPageContent", () => {
@@ -81,5 +86,37 @@ describe("CheckoutConfirmPageContent", () => {
     await expect(CheckoutConfirmPageContent()).rejects.toSatisfy(
       (error: unknown) => findAppError(error)?.kind === ErrorKind.NOT_FOUND,
     );
+  });
+
+  // ----- 使えるクーポンがあるとき -----
+  it("候補ごとの値引き額を、受け取った額のまま出す", async () => {
+    readMyCartCoupons.mockResolvedValue(CART_COUPONS);
+
+    render(await CheckoutConfirmPageContent());
+
+    for (const coupon of CART_COUPONS) {
+      expect(screen.getByText(formatMoney(-coupon.discountAmount))).toBeVisible();
+    }
+  });
+
+  // ----- 使えるクーポンを読めなかったとき -----
+  it("クーポンを読めなくても、使わずに注文できることを告げて組み立てる", async () => {
+    readMyCartCoupons.mockResolvedValue(null);
+
+    render(await CheckoutConfirmPageContent());
+
+    expect(
+      screen.getByText("クーポンを読み込めませんでした。クーポンを使わずに注文できます。"),
+    ).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "注文を確定する" })).toHaveLength(2);
+  });
+
+  // ----- 使えるクーポンが無いとき -----
+  it("使えるクーポンが無ければ、クーポンの欄を置かずに組み立てる", async () => {
+    render(await CheckoutConfirmPageContent());
+
+    expect(screen.queryByRole("radiogroup", { name: "クーポン" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "注文を確定する" })).toHaveLength(2);
   });
 });
