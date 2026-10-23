@@ -81,7 +81,8 @@ distributed are not invalidated and can still be used.**
 does not close it. While sending, the button says so and cannot be pressed again.
 
 **When the result comes back, close it regardless of success or failure.** The confirmation is a surface that asks "really
-press?", not one that reports results.
+press?", not one that reports results. A result answers the row that was sent: when the confirmation was closed while sending and another
+row's confirmation was opened meanwhile, that one stays open.
 
 ## Results stay above the list
 

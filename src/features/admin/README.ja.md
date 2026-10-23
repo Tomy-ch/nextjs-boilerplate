@@ -215,7 +215,7 @@ feature の直下に置きます。
 | `products/discontinue/ui/discontinued-state/` | 既に廃番の商品であることと、その日時 |
 | `products/discontinue/ui/skeleton/` | 画面のローディング表示 |
 | `page-window.ts` | オフセットのページ送りに並べる番号の選び方と、それぞれへの行き先の添え方。離れた範囲を省略のマーカーへ畳む。行き先の組み方は画面が渡す |
-| `use-confirmation-target.ts` | どの行を確認しているかと、結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決める |
+| `use-confirmation-target.ts` | どの行を確認しているかと、その行の結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決め、結果がどの行に答えたものかも呼び出し側が言える |
 | `ui/offset-pagination/` | 任意のページへ飛べるページ送り。リンクとアクセシブルな名前をデータで受け取るため、client 境界のどちら側でもレンダリングできる |
 | `users/query.ts` | ユーザー一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
 | `users/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
@@ -239,7 +239,7 @@ feature の直下に置きます。
 | `campaigns/list/status-tone.ts` | 配布の状態と見た目の対応 |
 | `campaigns/list/row.ts` | 表に並べる 1 行の形。日時と値引きをサーバーで整形し、総数と発行済みの数から残数を出す |
 | `campaigns/list/form-state.ts` `campaigns/list/form-names.ts` | 停止の結果の型・送信先の型・この画面でしか言えない文言と、送信の `name` |
-| `campaigns/list/use-suspend-attempts.ts` | 行ごとの停止の試みに冪等キーを 1 つ。結果が定まらない失敗の後は保ち、応答が試みを確定させたら手放す |
+| `campaigns/list/use-suspend-attempts.ts` | 行ごとの停止の試みに冪等キーを 1 つ。結果が定まらない失敗の後は保ち、応答が試みを確定させたら手放す。結果は送った順に行へ答える |
 | `campaigns/list/page-content.tsx` | URL の解釈と画面の組み立て。「今」を route から受け取り、取り直す範囲をここで区切る |
 | `campaigns/list/results.tsx` | 1 ページ分の取得と行へのマッピング、一覧・ページ送りの組み立て |
 | `campaigns/list/view.tsx` | 配布期間の終わり方の注記。一覧本体は受け取る |

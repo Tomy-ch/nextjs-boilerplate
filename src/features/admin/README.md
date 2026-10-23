@@ -226,7 +226,7 @@ directly under the feature rather than under either screen.
 | `products/discontinue/ui/discontinued-state/` | The product is already discontinued, and since when |
 | `products/discontinue/ui/skeleton/` | The screen loading UI |
 | `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
-| `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result returns. The caller decides what it holds per confirmation |
+| `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result for it returns. The caller decides what it holds per confirmation, and may say which row a result answers |
 | `ui/offset-pagination/` | Pagination that jumps to any page. Receives the links and the accessible name as data, so it renders on either side of the client boundary |
 | `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
 | `users/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
@@ -250,7 +250,7 @@ directly under the feature rather than under either screen.
 | `campaigns/list/status-tone.ts` | The mapping between distribution statuses and appearance |
 | `campaigns/list/row.ts` | The shape of one table row. Formats dates and the discount on the server and derives the remaining count from the total and the issued count |
 | `campaigns/list/form-state.ts` `campaigns/list/form-names.ts` | The suspension result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
-| `campaigns/list/use-suspend-attempts.ts` | One idempotency key per row's suspension attempt. Kept after a failure whose outcome is open, and dropped once a response settles the attempt |
+| `campaigns/list/use-suspend-attempts.ts` | One idempotency key per row's suspension attempt. Kept after a failure whose outcome is open, and dropped once a response settles the attempt. Each result answers the rows in the order they were sent |
 | `campaigns/list/page-content.tsx` | Interpreting the URL and assembling the screen. Receives "now" from the route and bounds the refetch scope here |
 | `campaigns/list/results.tsx` | Fetching one page, mapping it to rows, and assembling the list and pagination |
 | `campaigns/list/view.tsx` | The note on how the distribution period ends. Receives the list body |
