@@ -23,13 +23,10 @@ const domain = z
 
 const reason = z.string().trim().min(1, "理由を空にできません");
 
-/** IPv4 のアドレスか CIDR。bullfrog の `allowed-ips` が受ける形のうち、IPv4 に絞ったもの。 */
-const ip = z
-  .string()
-  .regex(
-    /^((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\/(3[0-2]|[12]?\d))?$/,
-    "IPv4 のアドレスか CIDR である必要があります",
-  );
+/** bullfrog の `allowed-ips` が受ける形のうち、IPv4 だけを通す。 */
+const ip = z.union([z.ipv4(), z.cidrv4()], {
+  error: "IPv4 のアドレスか CIDR である必要があります",
+});
 
 const identifier = z.string();
 
@@ -45,7 +42,7 @@ const identifier = z.string();
  * @param value - 値の形
  * @returns 省略・`null` を空の対応表へ寄せる schema
  */
-function optionalMap<T extends z.ZodType>(key: z.ZodString, value: T) {
+function optionalMap<T extends z.ZodType>(key: z.ZodType<string, string>, value: T) {
   return z
     .record(key, value)
     .nullish()

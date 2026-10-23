@@ -60,46 +60,21 @@ export function rewriteStep(data: string, policyOf: (job: string) => StepPolicy)
   const out: string[] = [];
   const malformed: number[] = [];
   const jobs: string[] = [];
-  const missing: string[] = [];
-  let inJobs = false;
-  let job: string | null = null;
-  let hasSteps = false;
-  let guarded = false;
+  const scope = jobScope();
   // 書き換えた塊の末尾。ここまでは読み飛ばす。
   let consumed = -1;
-
-  const close = (): void => {
-    if (job !== null && hasSteps && !guarded) missing.push(job);
-    job = null;
-    hasSteps = false;
-    guarded = false;
-  };
 
   for (const [at, line] of lines.entries()) {
     if (at <= consumed) continue;
 
-    if (JOBS.test(line)) {
-      inJobs = true;
-    } else if (/^[^\s#]/.test(line)) {
-      close();
-      inJobs = false;
-    }
-
-    const key = inJobs ? JOB.exec(line)?.[1] : undefined;
-
-    if (key !== undefined) {
-      close();
-      job = key;
-    }
-
-    if (job !== null && STEPS.test(line)) hasSteps = true;
+    scope.advance(line);
 
     if (!line.includes(MENTION) || COMMENT.test(line)) {
       out.push(line);
       continue;
     }
 
-    guarded = true;
+    scope.guard();
 
     const indent = indentOf(line);
 
@@ -109,14 +84,67 @@ export function rewriteStep(data: string, policyOf: (job: string) => StepPolicy)
       continue;
     }
 
-    jobs.push(job ?? "");
-    out.push(line, ...policyBlock(indent, policyOf(job ?? "")));
+    const job = scope.current() ?? "";
+    jobs.push(job);
+    out.push(line, ...policyBlock(indent, policyOf(job)));
     consumed = endOfStep(lines, at, indent);
   }
 
-  close();
+  const missing = scope.finish();
 
   return { out: out.join("\n"), malformed, jobs, missing };
+}
+
+/**
+ * 行を順に読み、いまどの job の中にいるかと、bullfrog を持たない job を追う。
+ *
+ * @returns 1 行ずつ進める `advance`、いまの job に bullfrog があったと記す `guard`、
+ * いまの job の名前を返す `current`、最後の job を閉じて bullfrog を持たない job を返す `finish`
+ */
+function jobScope() {
+  const missing: string[] = [];
+  let inJobs = false;
+  let job: string | null = null;
+  let hasSteps = false;
+  let guarded = false;
+
+  /** いまの job を閉じる。`steps:` を持つのに bullfrog が無かったなら `missing` に記す。 */
+  const close = (): void => {
+    if (job !== null && hasSteps && !guarded) missing.push(job);
+    job = null;
+    hasSteps = false;
+    guarded = false;
+  };
+
+  return {
+    advance(line: string): void {
+      if (JOBS.test(line)) {
+        inJobs = true;
+      } else if (/^[^\s#]/.test(line)) {
+        close();
+        inJobs = false;
+      }
+
+      const key = inJobs ? JOB.exec(line)?.[1] : undefined;
+
+      if (key !== undefined) {
+        close();
+        job = key;
+      }
+
+      if (job !== null && STEPS.test(line)) hasSteps = true;
+    },
+    guard(): void {
+      guarded = true;
+    },
+    current(): string | null {
+      return job;
+    },
+    finish(): string[] {
+      close();
+      return missing;
+    },
+  };
 }
 
 function indentOf(line: string): string {
