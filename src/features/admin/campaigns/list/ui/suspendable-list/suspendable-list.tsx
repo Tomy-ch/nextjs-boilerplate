@@ -3,11 +3,11 @@
 import { type ReactNode, useActionState, useCallback } from "react";
 
 import { idleActionState } from "@/model/action-state";
-import { newIdempotencyKey } from "@/model/idempotency-key";
 
 import { useConfirmationTarget } from "../../../../use-confirmation-target";
 import type { SuspendCampaignAction, SuspendCampaignState } from "../../form-state";
 import type { AdminCampaignRow } from "../../row";
+import { useSuspendAttempts } from "../../use-suspend-attempts";
 import { CampaignSuspendDialog, type SuspendConfirmation } from "../suspend-dialog/suspend-dialog";
 import { SuspendFeedback } from "../suspend-feedback/suspend-feedback";
 import { AdminCampaignTable } from "../table/table";
@@ -30,8 +30,8 @@ export type SuspendableCampaignListProps = {
  * 送り、結果が一覧の上に出る —— この 3 つは別々の部品にあり、どれとどれが同じ相手の話かを知って
  * いるのはこの層だけです。
  *
- * **冪等キーは確認を開くたびに 1 つ作り、開閉で unmount しないこの層が持ちます。** 別の行へ同じ
- * 鍵を使い回すと、受け手に拒まれます（`docs/rules.md#forms`）。
+ * **冪等キーは行ごとの試みに 1 つで、開閉で unmount しないこの層が持ちます。** 結果が定まらない
+ * 失敗の後に同じ行を選び直すと同じ鍵で送り直し、別の行へは別の鍵を使います（`docs/rules.md#forms`）。
  *
  * 確認は成否によらず閉じ、結果は一覧の上に残ります。
  *
@@ -52,10 +52,12 @@ export function SuspendableCampaignList({
     dismiss,
   } = useConfirmationTarget<SuspendConfirmation>(state);
 
-  /** 停止する行を受け取り、新しい冪等キーとともに確認を開く。 */
+  const keyFor = useSuspendAttempts(state);
+
+  /** 停止する行を受け取り、その行の試みの冪等キーとともに確認を開く。 */
   const confirm = useCallback(
-    (target: AdminCampaignRow) => open({ target, idempotencyKey: newIdempotencyKey() }),
-    [open],
+    (target: AdminCampaignRow) => open({ target, idempotencyKey: keyFor(target.id) }),
+    [keyFor, open],
   );
 
   return (

@@ -97,6 +97,12 @@ async function submitAndSettle(dialog: HTMLElement, action: unknown, calls: numb
   );
 }
 
+async function submitAndClose(dialog: HTMLElement, action: unknown, calls: number) {
+  await userEvent.click(within(dialog).getByRole("button", { name: "停止する" }));
+  await waitFor(() => expect(action).toHaveBeenCalledTimes(calls));
+  await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+}
+
 function sentForm(action: { mock: { calls: readonly unknown[][] } }, call: number): FormData {
   const formData = action.mock.calls[call]?.[1];
 
@@ -204,7 +210,7 @@ describe("SuspendableCampaignList", () => {
     expect(formData.get(SUSPEND_FORM_NAMES.campaignCode)).toBe(OTHER_ROW.code);
   });
 
-  it("停止の送信に、確認を開いたときに作った冪等キーを載せる", async () => {
+  it("停止の送信に、その行の試みの冪等キーを載せる", async () => {
     const suspendAction = vi.fn(idle);
 
     renderTwoRows(suspendAction);
@@ -233,19 +239,36 @@ describe("SuspendableCampaignList", () => {
     );
   });
 
-  it("同じ行でも、閉じてから開き直した確認は別の冪等キーで送る", async () => {
-    const suspendAction = vi.fn(idle);
+  it("停止が成立した後に同じ行の確認を開き直したら、新しい冪等キーで送る", async () => {
+    const suspendAction = vi.fn(() =>
+      Promise.resolve<SuspendCampaignState>(
+        succeededActionState({ code: UPCOMING_CAMPAIGN_ROW.code }),
+      ),
+    );
 
     renderTwoRows(suspendAction);
 
-    const first = await openConfirmationFor(UPCOMING_CAMPAIGN_ROW);
-
-    await submitAndSettle(first, suspendAction, 1);
-    await dismissConfirmation(first);
-    await submitAndSettle(await openConfirmationFor(UPCOMING_CAMPAIGN_ROW), suspendAction, 2);
+    await submitAndClose(await openConfirmationFor(UPCOMING_CAMPAIGN_ROW), suspendAction, 1);
+    await submitAndClose(await openConfirmationFor(UPCOMING_CAMPAIGN_ROW), suspendAction, 2);
 
     expect(newIdempotencyKey).toHaveBeenCalledTimes(2);
     expect(sentForm(suspendAction, 1).get(IDEMPOTENCY_KEY_FIELD)).not.toBe(
+      sentForm(suspendAction, 0).get(IDEMPOTENCY_KEY_FIELD),
+    );
+  });
+
+  it("結果が定まらない失敗の後に同じ行の確認を開き直したら、同じ冪等キーで送り直す", async () => {
+    const suspendAction = vi.fn(() =>
+      Promise.resolve<SuspendCampaignState>(failedActionState({ kind: ErrorKind.UNAVAILABLE })),
+    );
+
+    renderTwoRows(suspendAction);
+
+    await submitAndClose(await openConfirmationFor(UPCOMING_CAMPAIGN_ROW), suspendAction, 1);
+    await submitAndClose(await openConfirmationFor(UPCOMING_CAMPAIGN_ROW), suspendAction, 2);
+
+    expect(newIdempotencyKey).toHaveBeenCalledTimes(1);
+    expect(sentForm(suspendAction, 1).get(IDEMPOTENCY_KEY_FIELD)).toBe(
       sentForm(suspendAction, 0).get(IDEMPOTENCY_KEY_FIELD),
     );
   });
