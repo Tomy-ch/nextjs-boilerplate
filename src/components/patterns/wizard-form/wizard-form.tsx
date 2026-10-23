@@ -98,6 +98,16 @@ export type WizardFormProps = {
    * @defaultValue "次へ"
    */
   nextLabel?: string;
+  /**
+   * 今の段階から離れられなくするか。
+   *
+   * @remarks
+   * 送った内容を変えさせてはならないあいだ（結果が定まらない送信のあと）に使う。前の段階へも、
+   * 進捗からも動けなくなる。理由を示すのは呼び出し元の役目。
+   *
+   * @defaultValue false
+   */
+  locked?: boolean;
   /** 外枠の class。 */
   className?: string;
 };
@@ -121,7 +131,7 @@ export type WizardFormProps = {
  * なっても印を残す（理由は `stepState`）。
  *
  * **今の段階を終えられないあいだは、先へは進捗からも行けない。** 「次へ」だけを止めても、
- * 進捗から飛べては同じことになる。前へ戻る側は止めない。
+ * 進捗から飛べては同じことになる。前へ戻る側は止めない。`locked` のあいだは、どちらへも動けない。
  *
  * 段階が変わったら、その段階の領域へ focus を移す。移さないと操作した button に focus が残り、
  * keyboard と読み上げの利用者には何が変わったのか伝わらない。最初の表示では移さない。
@@ -140,7 +150,7 @@ export type WizardFormProps = {
  * />
  * ```
  *
- * @param props - 入力全体の名前、段階の定義、最後に置く操作、および前後へ動く操作の文言。
+ * @param props - 入力全体の名前、段階の定義、最後に置く操作、前後へ動く操作の文言、および今の段階から離れられなくするか。
  *
  * @see Storybook `Form/WizardForm`
  */
@@ -150,6 +160,7 @@ export function WizardForm({
   submit,
   previousLabel = "戻る",
   nextLabel = "次へ",
+  locked = false,
   className,
 }: WizardFormProps) {
   // 現在地と最も先まで進んだ位置を 1 つの状態で持つ。別々に持って片方の更新関数の中でもう片方を
@@ -196,7 +207,7 @@ export function WizardForm({
   /**
    * その段へ移れるか。
    *
-   * 到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。到達していない段へ
+   * 離れられなくしておらず、到達済みで、いま居る段ではなく、いま居る段を終えられているなら移れる。到達していない段へ
    * 飛べると、呼び出し元が `blocked` で持つ判定を迂回できてしまう。前へ戻る側は
    * 終えられていなくても移れる —— 戻ることは、その段を済ませたと主張しないため。
    *
@@ -206,10 +217,11 @@ export function WizardForm({
    */
   const canGoTo = useCallback(
     (index: number) =>
+      !locked &&
       index <= furthestIndex &&
       index !== currentIndex &&
       !(current.blocked === true && index > currentIndex),
-    [current.blocked, currentIndex, furthestIndex],
+    [current.blocked, currentIndex, furthestIndex, locked],
   );
 
   // 規則は `canGoTo` が 1 か所で持ち、進捗はそれを消費して押せるかを決める。ここで再び
@@ -266,7 +278,7 @@ export function WizardForm({
         data-slot="wizard-form-actions"
       >
         <Button
-          disabled={currentIndex === 0}
+          disabled={locked || currentIndex === 0}
           onClick={goPrevious}
           type="button"
           variant={BUTTON_VARIANT.OUTLINE}
@@ -280,7 +292,7 @@ export function WizardForm({
             // 最後の段階の操作とは別の key を与える。同じ位置の button として reconcile されると React が
             // DOM 要素を使い回し、押した瞬間に type が button から submit へ書き換わる。click の既定動作は
             // handler の後に走るため、進んだうえで form まで送信されてしまう。
-            disabled={current.blocked}
+            disabled={locked || current.blocked}
             key="next"
             onClick={goNext}
             type="button"
