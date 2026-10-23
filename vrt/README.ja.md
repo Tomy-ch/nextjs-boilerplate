@@ -620,7 +620,7 @@ make setup-baseline-app      # 撮り直しに使う GitHub App を secret へ�
 
 GitHub App の作成とキーの生成だけは自動化できない（REST に作成のエンドポイントが無く、キーは生成時に一度しか
 表示されない）。App は**本体と置き場の 2 つだけ**に installation を絞り、権限は
-**Contents: Read and write** と **Pull requests: Read and write** の 2 つにする。置き場に
+[setup-repository § 8-2](../docs/get-started/setup-repository.ja.md#8-2-github-app-を作る人手) の表のとおりにする。置き場に
 ルールセットを掛けてはいけない — 撮り直しの push を自分で塞ぐことになる。
 
 `Pull requests` が要るのは、保護されたブランチではポインターを PR で入れるためである（前述
