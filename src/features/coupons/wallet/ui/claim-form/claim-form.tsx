@@ -18,7 +18,7 @@ import {
 
 import { claimCouponAction } from "../../../actions";
 import { CLAIM_CODE_FIELD } from "../../../form-names";
-import { type ClaimCouponFormState, EMPTY_CODE_MESSAGE } from "../../../form-state";
+import { EMPTY_CODE_MESSAGE } from "../../../form-state";
 import { ClaimSubmitButton } from "../submit-button/submit-button";
 
 const LABEL = "キャンペーンコード";
