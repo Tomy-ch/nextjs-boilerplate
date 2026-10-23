@@ -8,10 +8,8 @@ name: Dead Code
 # caller. Only reachability from a real entry point separates "supported API" from
 # "code that survived a refactor".
 #
-# The published surface is declared as entry points in `knip.ts`. A boilerplate exports the
-# components a repository created from this template consumes, so "unused inside this
-# repository" is the expected steady state there and is not a finding; everything else is
-# internal and is.
+# Which layers are published surface, and why an unused export there is not a finding, is
+# declared in `knip.ts`.
 #
 # The job always starts and then asks `diff-scope` whether the diff can reach what knip reads,
 # so the required context is reported even when the expensive steps stand down. No `paths:`
