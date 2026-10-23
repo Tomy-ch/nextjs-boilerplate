@@ -60,7 +60,7 @@ inquiry. Updates to the one that is open are learned from the feed, and the auth
 | List subscription | Waiting | `Features/Admin/Inquiries/List/FeedWatch/Default` |
 | List loading UI | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
 | Exchange and reply | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
-| Reply field | idle / submitted empty / pending / field error | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,EmptySubmitted,Pending,Invalid}` |
+| Reply field | idle / submitted empty / pending / field error / outcome open | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | Handling loading UI | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
 | Hierarchy | Under the list | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
 | Receiving state | 7 kinds | `Status/ConnectionStatus/*` |

@@ -19,7 +19,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/design-system/container/message-scroller/message-scroller";
 import { idleActionState } from "@/model/action-state";
-import { newIdempotencyKey } from "@/model/idempotency-key";
+import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import { toConversationDays } from "@/model/inquiry/conversation";
 import type { InquiryHistory, InquiryId } from "@/model/inquiry/inquiry";
 
@@ -72,11 +72,12 @@ export function AdminInquiryConversation({
   const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
   const [seenState, setSeenState] = useState(state);
 
-  // 成立した回答は、次の 1 通と同じ鍵で飛ばない。通らなかった送信を送り直す間は同じ鍵のままにする。
+  // 結果が定まった回答は、次の 1 通と同じ鍵で飛ばない。結果が定まらない失敗を送り直す間は同じ鍵の
+  // ままにして、応答が届かなかっただけの回答が 2 通にならないようにする。
   if (seenState !== state) {
     setSeenState(state);
 
-    if (state.status === "success") {
+    if (settlesSubmission(state)) {
       setIdempotencyKey(newIdempotencyKey());
     }
   }
@@ -132,6 +133,7 @@ export function AdminInquiryConversation({
         action={reply}
         idempotencyKey={idempotencyKey}
         inquiryId={inquiryId}
+        outcomeOpen={leavesOutcomeOpen(state)}
         pending={pending}
         state={state}
       />

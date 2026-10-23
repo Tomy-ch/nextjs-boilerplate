@@ -22,10 +22,12 @@ export type AdminInquiryReplyFormProps = {
   action: (formData: FormData) => void;
   /** 直前の送信の結果。 */
   state: AdminInquiryReplyState;
-  /** この送信に載せる冪等キー。成立するまで同じ値を使う。 */
+  /** この送信に載せる冪等キー。結果が定まるまで同じ値を使う。 */
   idempotencyKey: string;
   /** 送信中か。 */
   pending: boolean;
+  /** 直前の送信の結果が定まっていないか。true のあいだ本文を書き換えさせない。 */
+  outcomeOpen: boolean;
 };
 
 const LABEL = "回答";
@@ -36,6 +38,11 @@ const SUBMIT_LABEL = "回答する";
 
 const SENDING_LABEL = "送信中";
 
+const LOCKED_ID = `${REPLY_BODY_FIELD}-locked`;
+
+const LOCKED_MESSAGE =
+  "前回の回答の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度回答してください。";
+
 /**
  * 回答の入力欄。
  *
@@ -43,12 +50,17 @@ const SENDING_LABEL = "送信中";
  * **`⌘Enter` での送信を持ちません。** 運営の回答は書き上げてから送るもので、打ち終わりが
  * そのまま送信になると、書きかけが利用者へ届きます。
  *
- * @param props - 回答先・送信の受け口・直前の結果・冪等キー・送信中かどうか。
+ * **結果が定まらないあいだは本文を書き換えさせません。** 受け取る側は同じ鍵の再送に初回の結果を
+ * 返すため、書き換えた本文には書き換える前の本文の結果が黙って返ります（`model/idempotency-key.ts`）。
+ * 値を送信に載せ続けるよう、`disabled` ではなく `readOnly` で止め、理由を欄に結びます。
+ *
+ * @param props - 回答先・送信の受け口・直前の結果・冪等キー・送信中かどうか・結果が定まっていないか。
  */
 export function AdminInquiryReplyForm({
   action,
   idempotencyKey,
   inquiryId,
+  outcomeOpen,
   pending,
   state,
 }: AdminInquiryReplyFormProps) {
@@ -73,6 +85,12 @@ export function AdminInquiryReplyForm({
     state.status === "error" ? (state.fieldErrors?.[REPLY_BODY_FIELD] ?? []) : [];
   const bodyErrors = emptyError === null ? serverBodyErrors : [emptyError];
   const submitLabel = pending ? SENDING_LABEL : SUBMIT_LABEL;
+  const describedBy = [
+    outcomeOpen ? LOCKED_ID : null,
+    bodyErrors.length === 0 ? null : `${REPLY_BODY_FIELD}-error`,
+  ]
+    .filter((id) => id !== null)
+    .join(" ");
 
   const keepDraft = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -92,7 +110,7 @@ export function AdminInquiryReplyForm({
         <Label htmlFor={REPLY_BODY_FIELD}>{LABEL}</Label>
       </div>
       <Textarea
-        aria-describedby={bodyErrors.length === 0 ? undefined : `${REPLY_BODY_FIELD}-error`}
+        aria-describedby={describedBy === "" ? undefined : describedBy}
         aria-invalid={bodyErrors.length === 0 ? undefined : true}
         aria-required
         id={REPLY_BODY_FIELD}
@@ -100,9 +118,16 @@ export function AdminInquiryReplyForm({
         name={REPLY_BODY_FIELD}
         onChange={keepDraft}
         placeholder={PLACEHOLDER}
+        readOnly={outcomeOpen}
         rows={4}
         value={draft}
       />
+
+      {outcomeOpen ? (
+        <p className="text-muted-foreground text-sm" id={LOCKED_ID}>
+          {LOCKED_MESSAGE}
+        </p>
+      ) : null}
 
       {bodyErrors.length === 0 ? null : (
         <p className="text-sm text-destructive" id={`${REPLY_BODY_FIELD}-error`}>
