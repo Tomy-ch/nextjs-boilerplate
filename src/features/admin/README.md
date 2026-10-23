@@ -225,9 +225,9 @@ directly under the feature rather than under either screen.
 | `products/discontinue/ui/result/` | What the execution reported. A place that remains after the confirmation closes |
 | `products/discontinue/ui/discontinued-state/` | The product is already discontinued, and since when |
 | `products/discontinue/ui/skeleton/` | The screen loading UI |
-| `page-window.ts` | How the page numbers listed in offset pagination are chosen. Collapses distant ranges into an ellipsis marker |
+| `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
 | `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result returns. The caller decides what it holds per confirmation |
-| `ui/offset-pagination/` | Pagination that jumps to any page. The list passes how a destination is built and the accessible name |
+| `ui/offset-pagination/` | Pagination that jumps to any page. Receives the links and the accessible name as data, so it renders on either side of the client boundary |
 | `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
 | `users/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
 | `users/page-size.ts` | How many items one page lists |

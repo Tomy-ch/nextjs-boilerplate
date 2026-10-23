@@ -8,16 +8,12 @@ import {
   PaginationPrevious,
 } from "@/components/design-system/navigation/pagination/pagination";
 import { withPartSpan } from "@/observability/render-span";
-import { toPageWindow } from "../../page-window";
+import type { PageLinks } from "../../page-window";
 
 /** `OffsetPagination` の props。 */
 export type OffsetPaginationProps = {
-  /** いま見ているページ。1 から数える。 */
-  page: number;
-  /** 全部で何ページあるか。 */
-  pageCount: number;
-  /** ページ番号から行き先を組む。画面が URL に持つほかの条件は、ここで保つ。 */
-  hrefOf: (page: number) => string;
+  /** 並べる番号と行き先、前後の行き先。`toPageLinks` が組む。 */
+  links: PageLinks;
   /** ページ送りの領域のアクセシブルな名前。 */
   label: string;
 };
@@ -32,21 +28,23 @@ export type OffsetPaginationProps = {
  * 端では前後を link にせず、押せない control として残します。消すと残った側が左右へ動き、同じ
  * 場所を狙って押せません（`components/design-system/navigation/pagination`）。
  *
- * **Server Component として描いてください。** `hrefOf` は関数なので client 境界を越えられません。
- * Client Component へは、描き終えた要素として渡します。
+ * 行き先は組まずに受け取ります。URL の契約は画面ごとの `query.ts` が持ち、受け取るのが
+ * データだけなので、この部品は client 境界のどちら側でも描けます。
  *
  * @param props - {@link OffsetPaginationProps} を参照。
  * @see Storybook `Features/Admin/OffsetPagination`
  */
 export const OffsetPagination = withPartSpan(
   "features/admin/ui/offset-pagination/offset-pagination",
-  ({ hrefOf, label, page, pageCount }: OffsetPaginationProps) => (
+  ({ label, links }: OffsetPaginationProps) => (
     <Pagination aria-label={label}>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPrevious {...(page > 1 ? { href: hrefOf(page - 1) } : {})} />
+          <PaginationPrevious
+            {...(links.previousHref === undefined ? {} : { href: links.previousHref })}
+          />
         </PaginationItem>
-        {toPageWindow(page, pageCount).map((entry) =>
+        {links.entries.map((entry) =>
           entry.kind === "gap" ? (
             <PaginationItem key={`gap-${entry.after}`}>
               <PaginationEllipsis />
@@ -55,8 +53,8 @@ export const OffsetPagination = withPartSpan(
             <PaginationItem key={entry.page}>
               <PaginationLink
                 aria-label={`${entry.page} ページ目`}
-                href={hrefOf(entry.page)}
-                isActive={entry.page === page}
+                href={entry.href}
+                isActive={entry.current}
               >
                 {entry.page}
               </PaginationLink>
@@ -64,7 +62,7 @@ export const OffsetPagination = withPartSpan(
           ),
         )}
         <PaginationItem>
-          <PaginationNext {...(page < pageCount ? { href: hrefOf(page + 1) } : {})} />
+          <PaginationNext {...(links.nextHref === undefined ? {} : { href: links.nextHref })} />
         </PaginationItem>
       </PaginationContent>
     </Pagination>

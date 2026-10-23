@@ -3,6 +3,7 @@ import { userEvent, within } from "storybook/test";
 
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
+import { toPageLinks } from "../../../../page-window";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../../../paths";
 import { OffsetPagination } from "../../../../ui/offset-pagination/offset-pagination";
 import { SUSPEND_CONFLICT_MESSAGE, type SuspendCampaignAction } from "../../form-state";
@@ -63,10 +64,8 @@ const meta = {
     suspendAction: idle,
     pagination: (
       <OffsetPagination
-        hrefOf={(page) => toCampaignListHref({ page })}
         label="キャンペーン一覧のページ送り"
-        page={1}
-        pageCount={4}
+        links={toPageLinks(1, 4, (page) => toCampaignListHref({ page }))}
       />
     ),
   },

@@ -214,9 +214,9 @@ feature の直下に置きます。
 | `products/discontinue/ui/result/` | 実行が報告したこと。確認が閉じても残る場所 |
 | `products/discontinue/ui/discontinued-state/` | 既に廃番の商品であることと、その日時 |
 | `products/discontinue/ui/skeleton/` | 画面のローディング表示 |
-| `page-window.ts` | オフセットのページ送りに並べる番号の選び方。離れた範囲を省略のマーカーへ畳む |
+| `page-window.ts` | オフセットのページ送りに並べる番号の選び方と、それぞれへの行き先の添え方。離れた範囲を省略のマーカーへ畳む。行き先の組み方は画面が渡す |
 | `use-confirmation-target.ts` | どの行を確認しているかと、結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決める |
-| `ui/offset-pagination/` | 任意のページへ飛べるページ送り。行き先の組み方とアクセシブルな名前は一覧が渡す |
+| `ui/offset-pagination/` | 任意のページへ飛べるページ送り。リンクとアクセシブルな名前をデータで受け取るため、client 境界のどちら側でもレンダリングできる |
 | `users/query.ts` | ユーザー一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
 | `users/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
 | `users/page-size.ts` | 1 ページに並べる件数 |

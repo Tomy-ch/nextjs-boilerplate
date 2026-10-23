@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn, userEvent, within } from "storybook/test";
-
+import { toPageLinks } from "../../../../page-window";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../../../paths";
 import { OffsetPagination } from "../../../../ui/offset-pagination/offset-pagination";
 import {
@@ -33,10 +33,8 @@ const meta = {
     onSuspend: fn(),
     pagination: (
       <OffsetPagination
-        hrefOf={(page) => toCampaignListHref({ page })}
         label="キャンペーン一覧のページ送り"
-        page={1}
-        pageCount={4}
+        links={toPageLinks(1, 4, (page) => toCampaignListHref({ page }))}
       />
     ),
   },

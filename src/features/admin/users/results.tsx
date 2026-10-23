@@ -1,6 +1,6 @@
 import { getManagedUserPage } from "@/adapters/server/api/users";
 import { toPageCount } from "@/model/pagination";
-
+import { toPageLinks } from "../page-window";
 import { OffsetPagination } from "../ui/offset-pagination/offset-pagination";
 import type { WithdrawUserAction } from "./form-state";
 import { type AdminUserListLocation, toActiveParam, toUserListHref } from "./query";
@@ -46,10 +46,10 @@ export async function AdminUserResults({
       items={toAdminUserRows(page.items)}
       pagination={
         <OffsetPagination
-          hrefOf={(target) => toUserListHref({ scope: location.scope, page: target })}
           label="利用者一覧のページ送り"
-          page={location.page}
-          pageCount={toPageCount(page.total, page.perPage)}
+          links={toPageLinks(location.page, toPageCount(page.total, page.perPage), (target) =>
+            toUserListHref({ scope: location.scope, page: target }),
+          )}
         />
       }
       withdrawAction={withdrawAction}

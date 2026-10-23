@@ -13,7 +13,7 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
-
+import { toPageLinks } from "../page-window";
 import { ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH, ADMIN_USER_LIST_PATH } from "../paths";
 import { OffsetPagination } from "../ui/offset-pagination/offset-pagination";
 import { WITHDRAW_CONFLICT_MESSAGE } from "./form-state";
@@ -92,10 +92,10 @@ function list({
       items={items}
       pagination={
         <OffsetPagination
-          hrefOf={(target) => toUserListHref({ scope: USER_SCOPE.ALL, page: target })}
           label="利用者一覧のページ送り"
-          page={page}
-          pageCount={pageCount}
+          links={toPageLinks(page, pageCount, (target) =>
+            toUserListHref({ scope: USER_SCOPE.ALL, page: target }),
+          )}
         />
       }
       withdrawAction={withdrawAction}

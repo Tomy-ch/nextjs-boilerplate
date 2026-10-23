@@ -3,6 +3,7 @@ import { userEvent, within } from "storybook/test";
 
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
+import { toPageLinks } from "../../../page-window";
 import { ADMIN_USER_LIST_PATH } from "../../../paths";
 import { OffsetPagination } from "../../../ui/offset-pagination/offset-pagination";
 import { WITHDRAW_CONFLICT_MESSAGE, type WithdrawUserAction } from "../../form-state";
@@ -63,10 +64,8 @@ const meta = {
     withdrawAction: idle,
     pagination: (
       <OffsetPagination
-        hrefOf={(page) => toUserListHref({ scope: USER_SCOPE.ALL, page })}
         label="利用者一覧のページ送り"
-        page={1}
-        pageCount={4}
+        links={toPageLinks(1, 4, (page) => toUserListHref({ scope: USER_SCOPE.ALL, page }))}
       />
     ),
   },

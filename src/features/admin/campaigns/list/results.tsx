@@ -1,6 +1,6 @@
 import { getCampaignPage } from "@/adapters/server/api/campaigns";
 import { toPageCount } from "@/model/pagination";
-
+import { toPageLinks } from "../../page-window";
 import { OffsetPagination } from "../../ui/offset-pagination/offset-pagination";
 import type { SuspendCampaignAction } from "./form-state";
 import { type AdminCampaignListLocation, toCampaignListHref } from "./query";
@@ -46,10 +46,10 @@ export async function AdminCampaignResults({
       items={toAdminCampaignRows(page.items, now)}
       pagination={
         <OffsetPagination
-          hrefOf={(target) => toCampaignListHref({ page: target })}
           label="キャンペーン一覧のページ送り"
-          page={location.page}
-          pageCount={toPageCount(page.total, page.perPage)}
+          links={toPageLinks(location.page, toPageCount(page.total, page.perPage), (target) =>
+            toCampaignListHref({ page: target }),
+          )}
         />
       }
       suspendAction={suspendAction}

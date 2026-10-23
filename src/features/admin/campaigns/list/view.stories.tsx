@@ -15,7 +15,7 @@ import {
 import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
-
+import { toPageLinks } from "../../page-window";
 import {
   ADMIN_CAMPAIGN_LIST_PATH,
   ADMIN_DASHBOARD_PATH,
@@ -48,6 +48,9 @@ const TARGET_CODE = "SPRING2026";
 
 /** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
 const idle: SuspendCampaignAction = () => Promise.resolve(idleActionState());
+
+/** story では再取得の中身を持たない。押せることだけを見せる。 */
+const noop = () => {};
 
 /** 停止が成立した状態を作る。 */
 const succeeding: SuspendCampaignAction = () =>
@@ -118,10 +121,8 @@ function list({
       items={items}
       pagination={
         <OffsetPagination
-          hrefOf={(target) => toCampaignListHref({ page: target })}
           label="キャンペーン一覧のページ送り"
-          page={page}
-          pageCount={pageCount}
+          links={toPageLinks(page, pageCount, (target) => toCampaignListHref({ page: target }))}
         />
       }
       suspendAction={suspendAction}
@@ -221,10 +222,7 @@ export const Loading: Story = {
 export const FetchError: Story = {
   render: () => (
     <ContentContainer className="py-8">
-      <AdminScreenError
-        message={getDefaultErrorMeta(ErrorKind.INTERNAL).message}
-        onRetry={() => {}}
-      />
+      <AdminScreenError message={getDefaultErrorMeta(ErrorKind.INTERNAL).message} onRetry={noop} />
     </ContentContainer>
   ),
   globals: { viewport: { value: "desktop", isRotated: false } },

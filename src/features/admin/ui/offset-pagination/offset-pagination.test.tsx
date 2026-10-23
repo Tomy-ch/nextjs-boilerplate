@@ -4,6 +4,7 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
+import { toPageLinks } from "../../page-window";
 import { OffsetPagination } from "./offset-pagination";
 
 const LIST_PATH = "/admin/list";
@@ -14,7 +15,7 @@ function hrefOf(page: number) {
 
 function renderPagination(page: number, pageCount: number) {
   return render(
-    <OffsetPagination hrefOf={hrefOf} label="一覧のページ送り" page={page} pageCount={pageCount} />,
+    <OffsetPagination label="一覧のページ送り" links={toPageLinks(page, pageCount, hrefOf)} />,
   );
 }
 
@@ -29,28 +30,12 @@ describe("OffsetPagination", () => {
     expect(screen.getByRole("link", { name: "3 ページ目" })).not.toHaveAttribute("aria-current");
   });
 
-  it("任意のページへ跳べる行き先を組む", () => {
+  it("番号ごとに渡された行き先へ跳べる", () => {
     renderPagination(2, 4);
 
     expect(screen.getByRole("link", { name: "4 ページ目" })).toHaveAttribute(
       "href",
       `${LIST_PATH}?page=4`,
-    );
-  });
-
-  it("行き先は渡された組み方で作る", () => {
-    render(
-      <OffsetPagination
-        hrefOf={(page) => `${LIST_PATH}?scope=withdrawn&page=${page}`}
-        label="一覧のページ送り"
-        page={1}
-        pageCount={3}
-      />,
-    );
-
-    expect(screen.getByRole("link", { name: "3 ページ目" })).toHaveAttribute(
-      "href",
-      `${LIST_PATH}?scope=withdrawn&page=3`,
     );
   });
 
