@@ -323,7 +323,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` / `vrt` / `a11y` が使っている。
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`ignore:` を渡す job は下の表のとおりで、依存スキャナは `only:` を渡す（[下記](#依存スキャナだけは影響しうるものの側を書く)）。
+
+**matrix は shard ごとではなく、前段の scope job で門を掛ける。** 1 つの job が一度だけ問い、shard はその答えに対して `needs:` と `if:` を持つので、無関係な PR ではどの shard も起動しない。手本は [`vrt.yaml`](vrt.yaml)。required context を持つ束ねる側の job はそれでも走って報告し、答えを返さなかった scope job は降りたものではなく失敗として読む。
 
 渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。判定の実装はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた判定は必ずずれ、ずれは黙って進む。
 
@@ -332,7 +334,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 | job | 外している範囲 |
 | --- | --- |
 | `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
-| `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
+| `vrt` / `a11y` / `e2e` / `lighthouse` / `deferred-checks` / `test` / `build` / `smoke` / `dead-code` | ドキュメントと AI エージェント設定だけ |
+| `storybook-build` | 同上 + Storybook のバンドルが一切 import しないもの |
+| `gen-drift` | 同上 + ジェネレータもその後の整形パスも、生成ディレクトリの変更に変えられないもの |
 | `sast` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
 | `bearer` | 同上 + `src` の外にあるもの（カタログ / ベースライン画像 / 生成されるドキュメントサイト） |
 | `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
@@ -352,7 +356,11 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
-**一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
+`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**
+
+`md-lint` / `scripts-check` / `strip-verify` / `purge-verify` も絞らない。対象がツリー全体（すべての Markdown と `.claude/**`、リポジトリ全域にまたがる export と describe の対応 gate、strip や purge を掛けた後のツリー）なので、届かないと宣言できるパスが無い。
+
+**一覧の実体は各 workflow の `ignore:` ブロックが正**（表に挙げた workflow）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
 
 `vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは `../../vrt/README.md` の [絵が変わり得ないときは撮らない](../../vrt/README.ja.md#絵が変わり得ないときは撮らない) にまとめてある。
 

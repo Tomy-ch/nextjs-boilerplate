@@ -319,7 +319,9 @@ Every CI Check in this repository finishes in minutes, and the maintenance cost 
 
 If a job heavy enough that you want to narrow it with `paths:` (e2e, etc.) is added in the future, **always choose either to provide a paired guard or to remove it from the required checks**. Doing only one makes merging impossible immediately.
 
-**The third way is [`../actions/diff-scope`](../actions/diff-scope/action.yaml).** The job always starts and reports its context, and only the heavy steps are dropped with `if:`. The job name does not change, so neither the required check nor a guard needs touching, and on an unrelated PR all that is lost is a few dozen seconds of checkout and decision. `bundle-budget` / `vrt` / `a11y` use it.
+**The third way is [`../actions/diff-scope`](../actions/diff-scope/action.yaml).** The job always starts and reports its context, and only the heavy steps are dropped with `if:`. The job name does not change, so neither the required check nor a guard needs touching, and on an unrelated PR all that is lost is a few dozen seconds of checkout and decision. The jobs that pass `ignore:` are the table below; the dependency scanners pass `only:` ([below](#only-dependency-scanners-write-the-can-affect-side)).
+
+**A matrix is gated by a front scope job, not per shard.** One job asks once and the shards carry `needs:` plus `if:` on its answer, so on an unrelated PR no shard starts; [`vrt.yaml`](vrt.yaml) is the model. The aggregating job that carries the required context still runs and reports, and reads a scope job that did not answer as a failure rather than as a stand-down.
 
 What is passed is a list of "**what cannot affect me**", not a list of what does. An omission costs one wasted run, but a mistake falls toward the job silently checking nothing. **A gate that does not check cannot be told apart from "no violations"**. The decision implementation shares this action and must not be re-written per job — a decision split three ways always drifts, and the drift proceeds silently.
 
@@ -328,7 +330,9 @@ What is passed is a list of "**what cannot affect me**", not a list of what does
 | job | Excluded scope |
 | --- | --- |
 | `bundle-budget` | Documentation and AI agent configuration + what only affects pictures (CSS / tokens / stories / tests) |
-| `vrt` / `a11y` | Documentation and AI agent configuration only |
+| `vrt` / `a11y` / `e2e` / `lighthouse` / `deferred-checks` / `test` / `build` / `smoke` / `dead-code` | Documentation and AI agent configuration only |
+| `storybook-build` | Same as above + what the Storybook bundle never imports |
+| `gen-drift` | Same as above + what neither the generator nor the formatting pass after it can turn into a change in the generated directories |
 | `sast` / `devskim` | Documentation and AI agent configuration (+ `public/` for SAST) |
 | `bearer` | Same as above + what is outside `src` (the catalog / baseline images / the generated documentation site) |
 | `dast` | Same as above + what does not appear in delivered responses (stories / tests / CSS / tokens) |
@@ -348,7 +352,11 @@ Without condition 2, an omission becomes **"a gate that checks nothing"** as is.
 
 It is not applied to `codeql`. A code scanning alert closes only when "a later analysis no longer reports it", and omitting analysis per PR could drop the occasion for closing. **This is a check that entrusts its judgment to GitHub's mechanism, so its run count is not reduced for our convenience.**
 
-**The authority for the list contents is each workflow's `ignore:` block** ([`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)). This table only shows which scope is excluded and does not copy paths — copying would add one more place that silently drifts from the actual contents.
+It is not applied to `sonarcloud`. Its quality gate is computed on SonarCloud's side from the analyses it received. **This is a check that entrusts its judgment to an external mechanism, so its run count is not reduced for our convenience.**
+
+`md-lint` / `scripts-check` / `strip-verify` / `purge-verify` are not narrowed either: their subject is the whole tree (every Markdown file and `.claude/**`, the export-to-describe gate across the repository, the tree after a strip or a purge), so no path can be declared unable to reach them.
+
+**The authority for the list contents is each workflow's `ignore:` block** (the workflows the table names). This table only shows which scope is excluded and does not copy paths — copying would add one more place that silently drifts from the actual contents.
 
 `vrt` / `a11y` have one more decision inside this gate, which omits only the comparison by hashing the inputs that decide the picture. What each of the 2 layers drops is summarized in [Do not capture when the picture cannot have changed](../../vrt/README.md#do-not-capture-when-the-picture-cannot-have-changed) in `../../vrt/README.md`.
 

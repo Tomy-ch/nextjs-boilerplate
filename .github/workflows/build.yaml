@@ -10,7 +10,9 @@ name: Build
 # the build, which the delivery boundary does not promise. Adding a second build to catch that would
 # cost another ten minutes for a comparison a manifest already answers.
 #
-# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
+# The job always starts and then asks `diff-scope` whether the diff can reach the build, so the
+# required context is reported even when the expensive steps stand down. No `paths:` filter,
+# deliberately — README.md says why.
 
 on:
   pull_request:
@@ -63,13 +65,31 @@ jobs:
         with:
           persist-credentials: false
 
+      # What cannot change the build output. Tests, stories and `scripts/**` are not listed:
+      # `next build` type-checks every file the tsconfig reaches, and `public/**` is copied into
+      # the output.
+      - name: Decide whether the diff can reach the build
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache the Next.js build cache
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.next/cache
@@ -77,10 +97,12 @@ jobs:
           restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Run next build
         id: build
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           set +e
@@ -124,18 +146,30 @@ jobs:
 
           exit 0
 
+      # A job that stood down still owes the pull request a verdict (README § PR Comments, the
+      # `diff-scope` bullet). The body file is the one the comment step reads.
+      - name: Note that the diff cannot reach the build
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Build: SKIP (diff cannot reach the build)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は build の出力に届かないため、next build を実行していません。' > /tmp/build.log
+
       - name: Comment build result on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && (steps.build.outputs.status != '' || steps.standdown.outcome == 'success')
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- build-result -->'
-          status: ${{ steps.render-mode.outputs.status || steps.build.outputs.status }}
-          title: ${{ steps.render-mode.outputs.title || steps.build.outputs.title }}
+          status: ${{ steps.render-mode.outputs.status || steps.build.outputs.status || 'success' }}
+          title: ${{ steps.render-mode.outputs.title || steps.build.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/build.log
           details-summary: 'next build log'
 
       - name: Fail if the build or the render-mode check failed
-        if: always() && (steps.build.outputs.status != 'success' || steps.render-mode.outputs.status == 'failure')
+        if: >-
+          always() && steps.scope.outputs.relevant == 'true'
+          && (steps.build.outputs.status != 'success' || steps.render-mode.outputs.status == 'failure')
         run: exit 1
