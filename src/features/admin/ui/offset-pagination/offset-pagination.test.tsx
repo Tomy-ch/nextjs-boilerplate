@@ -83,6 +83,31 @@ describe("OffsetPagination", () => {
     expect(screen.getAllByText("省略されたページ")).toHaveLength(2);
   });
 
+  it("省略の印を、渡された並びのとおり番号の間に置く", () => {
+    render(
+      <OffsetPagination
+        label="一覧のページ送り"
+        links={{
+          entries: [
+            { kind: "page", page: 1, href: LIST_PATH, current: false },
+            { kind: "gap", after: 1 },
+            { kind: "page", page: 5, href: `${LIST_PATH}?page=5`, current: true },
+            { kind: "gap", after: 5 },
+            { kind: "page", page: 9, href: `${LIST_PATH}?page=9`, current: false },
+          ],
+          previousHref: `${LIST_PATH}?page=4`,
+          nextHref: `${LIST_PATH}?page=6`,
+        }}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .map((item) => (item.textContent?.includes("省略") ? "…" : item.textContent)),
+    ).toEqual(["前へ", "1", "…", "5", "…", "9", "次へ"]);
+  });
+
   it("a11y 検査を通る", async () => {
     const { container } = renderPagination(6, 12);
 
