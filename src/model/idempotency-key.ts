@@ -63,7 +63,7 @@ const SUBMISSION_OUTCOME = {
  * エンドポイントが競合（409）を何に充てているか。
  *
  * @remarks
- * `state-conflict` は在庫や状態の衝突で、中身を確かめ直した次の送信は別の要求です。
+ * `state-conflict` は対象の状態が送信と食い違ったことで、中身を確かめ直した次の送信は別の要求です。
  * `in-progress` は同じ鍵の要求がまだ処理中であることで、IETF の Idempotency-Key の draft
  * （`draft-ietf-httpapi-idempotency-key-header` §2.7）は直さずに同じ鍵で送り直してよいとします。
  * 新しい鍵で送ると、処理中の 1 回目とは別の操作が始まり得ます。どちらかはステータスコードでは
