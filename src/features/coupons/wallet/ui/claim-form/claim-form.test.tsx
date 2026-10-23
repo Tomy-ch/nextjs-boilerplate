@@ -324,8 +324,37 @@ describe("ClaimForm", () => {
     await resend();
 
     expect(await screen.findByText("クーポンを受け取りました")).toBeVisible();
-    expect(screen.getByLabelText("キャンペーンコード")).not.toHaveAttribute("readonly");
     expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+
+    await claim("SUMMER");
+
+    expect(sentAt(2).get(CLAIM_CODE_FIELD)).toBe("SUMMER");
+  });
+
+  it("結果が定まらなかった受け取りの送り直しが弾かれたら、書き換えの止めを解き、次は別のキーで送る", async () => {
+    claimCouponAction
+      .mockResolvedValueOnce(
+        failedActionState({ formError: "使えない", kind: ErrorKind.UNAVAILABLE }),
+      )
+      .mockResolvedValueOnce(
+        failedActionState({
+          fieldErrors: { [CLAIM_CODE_FIELD]: [REJECTED_MESSAGE] },
+          kind: ErrorKind.VALIDATION,
+        }),
+      );
+    renderForm();
+
+    await claim("UNKNOWN");
+    await screen.findByText(LOCKED_MESSAGE);
+    await resend();
+    await screen.findByText(REJECTED_MESSAGE);
+
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+
+    await claim("SPRING");
+
+    expect(sentAt(2).get(CLAIM_CODE_FIELD)).toBe("SPRING");
+    expect(keySentAt(2)).not.toBe(keySentAt(1));
   });
 
   it("コードが弾かれた後は、コードを書き換えられる", async () => {
@@ -340,24 +369,55 @@ describe("ClaimForm", () => {
     await claim("UNKNOWN");
     await screen.findByText(REJECTED_MESSAGE);
 
-    expect(screen.getByLabelText("キャンペーンコード")).not.toHaveAttribute("readonly");
     expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+
+    await claim("SPRING");
+
+    expect(sentAt(1).get(CLAIM_CODE_FIELD)).toBe("SPRING");
+  });
+
+  it.each([
+    [
+      "読めない要求（400）",
+      failedActionState({ formError: "読めない", kind: ErrorKind.INVALID_ARGUMENT }),
+      "読めない",
+    ],
+    [
+      "分類を持たない失敗",
+      failedActionState({ fieldErrors: { [CLAIM_CODE_FIELD]: ["空"] } }),
+      "空",
+    ],
+  ])("%sの後は、コードを書き換えられる", async (_label, failed, message) => {
+    claimCouponAction.mockResolvedValueOnce(failed);
+    renderForm();
+
+    await claim("UNKNOWN");
+    await screen.findByText(message);
+
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+
+    await claim("SPRING");
+
+    expect(sentAt(1).get(CLAIM_CODE_FIELD)).toBe("SPRING");
   });
 
   it("項目に紐づかない失敗はフォームの脇に出し、欄には紐づけない", async () => {
     claimCouponAction.mockResolvedValue(
       failedActionState({
         formError: "しばらくしてからお試しください。",
-        kind: ErrorKind.CONFLICT,
+        kind: ErrorKind.INVALID_ARGUMENT,
       }),
     );
     renderForm();
 
     await claim("SPRING");
 
+    const field = screen.getByLabelText("キャンペーンコード");
+
     expect(await screen.findByText("受け取れませんでした")).toBeVisible();
     expect(screen.getByText("しばらくしてからお試しください。")).toBeVisible();
-    expect(screen.getByLabelText("キャンペーンコード")).not.toHaveAttribute("aria-invalid");
+    expect(field).not.toHaveAttribute("aria-invalid");
+    expect(field).not.toHaveAccessibleDescription(/しばらくしてからお試しください。/);
   });
 
   it("通らなかったら入力を残し、toast は出さない", async () => {
