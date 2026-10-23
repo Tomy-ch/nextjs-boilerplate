@@ -54,7 +54,9 @@ end it (reconnecting would take the same path). No reconnection happens while th
 - **Only the body is sent.** The server decides the sender type
 - **An idempotency key is always attached.** A message has no natural key, so a resend just because the response did not arrive would become
   a second message. The key keeps the same value while the outcome is open, and is regenerated once a response settles the submission —
-  a success, or a refusal after which the rewritten message may differ
+  a success, or a refusal after which the rewritten message may differ. A `409` means a post under the same key is still being
+  processed (posts are only appended, and concurrent first posts both succeed), so it keeps the key. Until the outcome is known the
+  body cannot be edited, so the resend carries the body that was sent
 - **Submission does not go through the subscription path.** A submission failure needs to come back to the screen as a classification, and the subscription has no such round
   trip
 - A sent message appears in **the refetched authoritative copy**, not via the subscription. The refetch response returns a new subscription start position,

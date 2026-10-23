@@ -25,6 +25,7 @@ const meta = {
   args: {
     action: () => {},
     idempotencyKey: IDEMPOTENCY_KEY,
+    outcomeOpen: false,
     pending: false,
     state: idleActionState(),
   },
@@ -45,6 +46,9 @@ export const EmptySubmitted: Story = {
 
 /** 送信中。二重に送れないよう操作を閉じる。 */
 export const Pending: Story = { args: { pending: true } };
+
+/** 前回の送信の結果が分からないあいだ。本文を書き換えさせず、理由を欄に結ぶ。 */
+export const OutcomeOpen: Story = { args: { outcomeOpen: true } };
 
 /** 本文が契約を通らなかった状態。項目に文言が付く。 */
 export const Invalid: Story = {

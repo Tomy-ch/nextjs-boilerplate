@@ -20,7 +20,12 @@ import {
   MessageScrollerViewport,
 } from "@/components/design-system/container/message-scroller/message-scroller";
 import { idleActionState } from "@/model/action-state";
-import { newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
+import {
+  type ConflictMeaning,
+  leavesOutcomeOpen,
+  newIdempotencyKey,
+  settlesSubmission,
+} from "@/model/idempotency-key";
 import { mergeMessages, pruneApplied, toConversationDays } from "@/model/inquiry/conversation";
 import type { InquiryHistory, InquiryMessage } from "@/model/inquiry/inquiry";
 
@@ -41,6 +46,15 @@ const VIEWPORT_LABEL = "サポートとのやり取り";
 const EMPTY_MESSAGE = "まだやり取りはありません。ご用件をお送りください。";
 
 const FAILURE_TITLE = "送信できませんでした";
+
+/**
+ * 投稿の契約が競合（409）を何に充てているか。
+ *
+ * @remarks
+ * 投稿は追記だけで、最初の投稿が並行しても両方が成立するため、状態が衝突する余地がありません。
+ * 残る競合は同じ鍵の投稿がまだ処理中であることだけです。
+ */
+const POST_CONFLICT: ConflictMeaning = "in-progress";
 
 /** `InquiryConversation` の props。 */
 export type InquiryConversationProps = {
@@ -84,7 +98,7 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
   if (seenState !== state) {
     setSeenState(state);
 
-    if (settlesSubmission(state)) {
+    if (settlesSubmission(state, POST_CONFLICT)) {
       setIdempotencyKey(newIdempotencyKey());
     }
   }
@@ -162,6 +176,7 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
       <InquiryComposer
         action={send}
         idempotencyKey={idempotencyKey}
+        outcomeOpen={leavesOutcomeOpen(state, POST_CONFLICT)}
         pending={pending}
         state={state}
       />

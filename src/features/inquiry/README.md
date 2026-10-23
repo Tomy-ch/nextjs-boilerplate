@@ -49,7 +49,7 @@ operationIds used.
 | | long body, unbroken strings | `Page/Mypage/Inquiry/LongBody` |
 | Message list | sending | `Features/Inquiry/Thread/MessageList/Sending` |
 | | empty | `Features/Inquiry/Thread/MessageList/Empty` |
-| Composer | idle / submitted empty / pending / field error | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid}` |
+| Composer | idle / submitted empty / pending / field error / outcome open | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | Receiving status | 7 kinds | `Status/ConnectionStatus/*` |
 | Exchange and sending | success / empty / long body | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
 | Loading UI | loading | `Features/Inquiry/Thread/Skeleton/Default` |
@@ -93,7 +93,10 @@ operationIds used.
 | `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `refresh()` | A field message (the body; for both pre-send validation and a contract 422), or a message next to the composer. If authentication has expired, `redirect` to login with this screen as the return destination |
 
 **An idempotency key is always attached.** A message has no natural key, so resending a send whose response merely
-did not arrive produces a second message. The key keeps the same value until a send succeeds and is regenerated at that point.
+did not arrive produces a second message. The key keeps the same value while the outcome is open and is regenerated once a response
+settles the send. The contract's `409` can only mean a post under the same key still being processed — posts are only appended, and
+concurrent first posts both succeed — so the conversation declares that meaning (`in-progress`). While the outcome is open the body is
+`readOnly` and the field says why, so the resend carries the body that was sent.
 
 ## Test Perspectives
 
@@ -101,7 +104,8 @@ did not arrive produces a second message. The key keeps the same value until a s
 - [ ] Even when messages arrive out of order, they are listed in ascending order of position
 - [ ] For a user with no messages yet, the subscription is not started (the ticket endpoint is not called)
 - [ ] When a send succeeds the draft is cleared, and when it does not the draft remains
-- [ ] When a send succeeds the idempotency key changes, and when it does not the key stays the same
+- [ ] After a success or a settled refusal the idempotency key changes; after an open failure, including a `409`, it stays the same
+- [ ] While the outcome of a send is open, the body cannot be edited and the field says why
 
 ## Operations
 

@@ -16,10 +16,12 @@ export type InquiryComposerProps = {
   action: (formData: FormData) => void;
   /** 直前の送信の結果。成功していれば書きかけを片付ける。 */
   state: InquiryMessageActionState;
-  /** この送信に載せる冪等キー。成立するまで同じ値を使う。 */
+  /** この送信に載せる冪等キー。結果が定まるまで同じ値を使う。 */
   idempotencyKey: string;
   /** 送信中か。 */
   pending: boolean;
+  /** 直前の送信の結果が定まっていないか。true のあいだ本文を書き換えさせない。 */
+  outcomeOpen: boolean;
 };
 
 const LABEL = "お問い合わせ内容";
@@ -33,12 +35,28 @@ const SENDING_LABEL = "送信中";
 /** 変換を確定する打鍵に Safari が付ける keyCode。`isComposing` が立たないため、これで見分ける。 */
 const IME_PROCESS_KEY_CODE = 229;
 
+const LOCKED_ID = `${INQUIRY_BODY_FIELD}-locked`;
+
+const LOCKED_MESSAGE =
+  "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。";
+
 /**
  * 送信欄。書きかけはここが持ち、成立したときだけ片付ける。
  *
- * @param props - 送信の受け口、直前の送信結果、この送信に使う冪等キー、送信中かどうか。
+ * @remarks
+ * **結果が定まらないあいだは本文を書き換えさせません。** 受け取る側は同じ鍵の再送に初回の結果を
+ * 返すため、書き換えた本文には書き換える前の本文の結果が黙って返ります（`model/idempotency-key.ts`）。
+ * 値を送信に載せ続けるよう、`disabled` ではなく `readOnly` で止め、理由を欄に結びます。
+ *
+ * @param props - 送信の受け口、直前の送信結果、この送信に使う冪等キー、送信中かどうか、結果が定まっていないか。
  */
-export function InquiryComposer({ action, state, idempotencyKey, pending }: InquiryComposerProps) {
+export function InquiryComposer({
+  action,
+  state,
+  idempotencyKey,
+  pending,
+  outcomeOpen,
+}: InquiryComposerProps) {
   const [draft, setDraft] = useState("");
   const {
     error: emptyError,
@@ -60,6 +78,12 @@ export function InquiryComposer({ action, state, idempotencyKey, pending }: Inqu
     state.status === "error" ? (state.fieldErrors?.[INQUIRY_BODY_FIELD] ?? []) : [];
   const bodyErrors = emptyError === null ? serverBodyErrors : [emptyError];
   const submitLabel = pending ? SENDING_LABEL : SUBMIT_LABEL;
+  const describedBy = [
+    outcomeOpen ? LOCKED_ID : null,
+    bodyErrors.length === 0 ? null : `${INQUIRY_BODY_FIELD}-error`,
+  ]
+    .filter((id) => id !== null)
+    .join(" ");
 
   const keepDraft = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -91,7 +115,7 @@ export function InquiryComposer({ action, state, idempotencyKey, pending }: Inqu
         {LABEL}
       </Label>
       <Textarea
-        aria-describedby={bodyErrors.length === 0 ? undefined : `${INQUIRY_BODY_FIELD}-error`}
+        aria-describedby={describedBy === "" ? undefined : describedBy}
         aria-invalid={bodyErrors.length === 0 ? undefined : true}
         aria-required
         id={INQUIRY_BODY_FIELD}
@@ -100,9 +124,16 @@ export function InquiryComposer({ action, state, idempotencyKey, pending }: Inqu
         onChange={keepDraft}
         onKeyDown={submitOnModifierEnter}
         placeholder={PLACEHOLDER}
+        readOnly={outcomeOpen}
         rows={3}
         value={draft}
       />
+
+      {outcomeOpen ? (
+        <p className="text-muted-foreground text-sm" id={LOCKED_ID}>
+          {LOCKED_MESSAGE}
+        </p>
+      ) : null}
 
       {bodyErrors.length === 0 ? null : (
         <p className="text-sm text-destructive" id={`${INQUIRY_BODY_FIELD}-error`}>
