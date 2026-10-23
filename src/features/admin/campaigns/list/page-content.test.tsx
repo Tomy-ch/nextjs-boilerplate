@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -98,9 +98,12 @@ describe("AdminCampaignListPageContent", () => {
 
     request.current = fetching.promise;
     render(contentOf({}));
-    fetching.resolve();
+    await act(async () => {
+      fetching.resolve();
+      await fetching.promise;
+    });
 
-    expect(await screen.findByText("1 ページ目の行")).toBeInTheDocument();
+    expect(screen.getByText("1 ページ目の行")).toBeInTheDocument();
     expect(skeleton()).toBeNull();
   });
 
