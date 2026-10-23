@@ -26,7 +26,7 @@ const COUPON: CartCoupon = {
   discount: { kind: "flat", value: "5.00" },
   scopeKind: "all",
   discountAmount: 500,
-  expiresAt: "2027-06-30T14:59:59Z",
+  expiresAt: new Date("2027-06-30T14:59:59Z"),
 };
 const OTHER_COUPON: CartCoupon = {
   ...COUPON,

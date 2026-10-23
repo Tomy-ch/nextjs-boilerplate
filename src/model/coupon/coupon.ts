@@ -115,6 +115,6 @@ export type CartCoupon = {
   readonly scopeKind: CouponScopeKind;
   /** 適用した場合に差し引かれる額。最小単位の整数。 */
   readonly discountAmount: number;
-  /** 失効する日時の ISO 文字列。この時刻ちょうどを含めて以降は使えない。 */
-  readonly expiresAt: string;
+  /** 有効期限。この時刻ちょうどから失効として扱う。 */
+  readonly expiresAt: Date;
 };
