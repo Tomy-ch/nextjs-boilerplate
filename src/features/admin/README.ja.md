@@ -239,10 +239,11 @@ feature の直下に置きます。
 | `campaigns/list/status-tone.ts` | 配布の状態と見た目の対応 |
 | `campaigns/list/row.ts` | 表に並べる 1 行の形。日時と値引きをサーバーで整形し、総数と発行済みの数から残数を出す |
 | `campaigns/list/form-state.ts` `campaigns/list/form-names.ts` | 停止の結果の型・送信先の型・この画面でしか言えない文言と、送信の `name` |
+| `campaigns/list/use-suspend-attempts.ts` | 行ごとの停止の試みに冪等キーを 1 つ。結果が定まらない失敗の後は保ち、応答が試みを確定させたら手放す |
 | `campaigns/list/page-content.tsx` | URL の解釈と画面の組み立て。「今」を route から受け取り、取り直す範囲をここで区切る |
 | `campaigns/list/results.tsx` | 1 ページ分の取得と行へのマッピング、一覧・ページ送りの組み立て |
 | `campaigns/list/view.tsx` | 配布期間の終わり方の注記。一覧本体は受け取る |
-| `campaigns/list/ui/suspendable-list/` | 行・確認・結果を繋ぐ層。開いた確認ごとに冪等キーを 1 つ作る |
+| `campaigns/list/ui/suspendable-list/` | 行・確認・結果を繋ぐレイヤー。各行の冪等キーは `use-suspend-attempts.ts` から受け取る |
 | `campaigns/list/ui/table/` | キャンペーンの表。停止済みの行には操作を出さず、配り切った行はそのことを言葉で書く |
 | `campaigns/list/ui/suspend-dialog/` | 停止の確認。取り消せないことと、配ったクーポンは有効のままであることを書く |
 | `campaigns/list/ui/suspend-feedback/` | 停止の結果。確認が閉じても残る場所 |

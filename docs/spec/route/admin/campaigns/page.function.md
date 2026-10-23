@@ -99,8 +99,10 @@ changes nothing.
 **What is sent is the target campaign, with an idempotency key.** The code goes with it so that the result can name the row it
 is about.
 
-**The key is made each time a row's suspension is chosen**, because the screen offers the operation on many targets
-([`docs/rules.md`](../../../../rules.md#forms)). A resend of the same submission carries the same key and folds into the first.
+**Each row's suspension is one attempt with its own key**, because the screen offers the operation on many targets
+([`docs/rules.md`](../../../../rules.md#forms)). A resend of the same submission carries the same key and folds into the first; so
+does choosing the same row again after a failure whose outcome is open. Once a response settles the attempt — a success, or a
+settled refusal such as the conflict — the next suspension of that row takes a new key.
 
 **On success, stay on this screen and refetch the list.** The suspension is reflected at once, so the refetched list shows the
 row as suspended. The result is read in the list itself, so there is no other screen to move to.

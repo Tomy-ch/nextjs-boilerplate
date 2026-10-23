@@ -250,10 +250,11 @@ directly under the feature rather than under either screen.
 | `campaigns/list/status-tone.ts` | The mapping between distribution statuses and appearance |
 | `campaigns/list/row.ts` | The shape of one table row. Formats dates and the discount on the server and derives the remaining count from the total and the issued count |
 | `campaigns/list/form-state.ts` `campaigns/list/form-names.ts` | The suspension result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
+| `campaigns/list/use-suspend-attempts.ts` | One idempotency key per row's suspension attempt. Kept after a failure whose outcome is open, and dropped once a response settles the attempt |
 | `campaigns/list/page-content.tsx` | Interpreting the URL and assembling the screen. Receives "now" from the route and bounds the refetch scope here |
 | `campaigns/list/results.tsx` | Fetching one page, mapping it to rows, and assembling the list and pagination |
 | `campaigns/list/view.tsx` | The note on how the distribution period ends. Receives the list body |
-| `campaigns/list/ui/suspendable-list/` | The layer connecting rows, confirmation and result. Issues one idempotency key per opened confirmation |
+| `campaigns/list/ui/suspendable-list/` | The layer connecting rows, confirmation and result. Takes each row's idempotency key from `use-suspend-attempts.ts` |
 | `campaigns/list/ui/table/` | The campaign table. Rows of suspended campaigns show no operations; a fully distributed row says so in words |
 | `campaigns/list/ui/suspend-dialog/` | The suspension confirmation. States that it is irreversible and that coupons already handed out stay valid |
 | `campaigns/list/ui/suspend-feedback/` | The suspension result. A place that remains after the confirmation closes |
