@@ -87,6 +87,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
 
       # Transport-agnostic. In a reusable workflow the github context belongs to the
       # caller, so the workflow name / trigger / actor / run id below identify the scanner

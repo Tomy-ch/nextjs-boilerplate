@@ -2,14 +2,17 @@
 # `make egress-apply` で各 job 冒頭の bullfrog へ反映し、`make egress-check` で突合する。
 #
 # ここに無い宛先へ出ようとした実行は落ちる（`egress-policy: block`。名前解決も許した宛先に
-# 限る —— `dns-policy: allowed-domains-only`）。足す根拠は実測に置く —— bullfrog は後処理で
-# 自分のログをジョブログへ出し、そこに問い合わせた名前が `DNS Question:` 行で残る。
+# 限る —— `dns-policy: allowed-domains-only`）。足す根拠は実測に置く。
+#
+# 1. 接続ごとの判定（Authorized / Unauthorized / Blocked）は、run の job summary に bullfrog が
+#    表で出す。まずここを読む。
+# 2. 問い合わせた名前をすべて見るには、step debug logging を有効にして（`ACTIONS_STEP_DEBUG`
+#    か「Re-run with debug logging」）走らせ直す。bullfrog は自分のログを debug 出力にだけ
+#    流し、そこに名前が `DNS Question:` 行で残る。
 #
 #   gh api "repos/<owner>/<repo>/actions/runs/<RUN_ID>/jobs" --jq '.jobs[].id'
 #   gh api "repos/<owner>/<repo>/actions/jobs/<JOB_ID>/logs" \
 #     | grep -a "DNS Question:" | sed 's/.*DNS Question: //; s/ .*//; s/\.$//' | sort -u
-#
-# 宛先ごとの判定（Authorized / Unauthorized / Blocked）は run の job summary に表で出る。
 #
 # **cache が当たった実行だけを見ないこと。**依存を取りに行かない実行には
 # `registry.npmjs.org` が出ない。lockfile を動かした実行、ツールを入れ直した実行、
@@ -44,6 +47,12 @@ ips:
     だけなので、許さないとこの宛先への問い合わせが落ち、名前解決が止まる。転送役の先の
     問い合わせも bullfrog の DNS 判定を通るため、許すドメインは広がらない。外す条件は、
     試験が終わり runner の resolv.conf が 127.0.0.53 だけを指すようになること。
+  '172.17.0.1': >-
+    docker の host-gateway、つまり runner 自身であって外への宛先ではない。コンテナの中の
+    ブラウザや ZAP は `host.docker.internal`（`docker-compose.dev-tools.yml` の
+    `extra_hosts: host-gateway`）を通ってホストで起動したアプリへ繋ぐ。bullfrog はホストへ
+    入る新しい接続も判定し、ここに無い送り元を RST で切る。外す条件は、コンテナからホストの
+    サービスへ繋ぐ job が 1 つも無くなること。
 
 # job 固有。キーは workflow のファイル名（拡張子を除く）。
 # ここに無い workflow は baseline だけで足りる。
@@ -147,6 +156,9 @@ workflows:
     # 可視化用の置き場。名前に region と環境が入っており、上流が移せば綴りごと変わる。
     - dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
     - keyserver.ubuntu.com
+    # gpg の dirmngr は hkps の取得先を SRV（`_pgpkey-https._tcp.keyserver.ubuntu.com`）で
+    # 引き、落ちると A へ戻らない。`_` は宛先の書式に書けないのでワイルドカードで通す。
+    - '*.keyserver.ubuntu.com'
 
   # SARIF の送信先。
   codeql:

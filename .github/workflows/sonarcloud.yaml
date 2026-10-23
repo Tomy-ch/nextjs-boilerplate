@@ -66,6 +66,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -83,6 +84,7 @@ jobs:
             binaries.sonarsource.com
             dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
             keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # The secret is read here and nowhere that could print it. What leaves this job is a
       # boolean, so no `if:` expression downstream ever touches the value.
@@ -120,6 +122,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -137,6 +140,7 @@ jobs:
             binaries.sonarsource.com
             dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
             keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # Sonar attributes an issue to the commit that introduced it, which it can only do
       # with the history present. `fetch-depth: 0` is the vendor's documented requirement
@@ -278,6 +282,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -295,6 +300,7 @@ jobs:
             binaries.sonarsource.com
             dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
             keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # The composite action below is read from the workspace, so the repository has to be
       # present even though nothing here scans it.
@@ -361,6 +367,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -378,6 +385,7 @@ jobs:
             binaries.sonarsource.com
             dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
             keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

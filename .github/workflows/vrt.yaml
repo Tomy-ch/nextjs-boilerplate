@@ -72,6 +72,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -142,6 +143,7 @@ jobs:
           enable-sudo: true
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -318,6 +320,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
@@ -579,6 +582,7 @@ jobs:
           enable-sudo: false
           allowed-ips: |
             127.0.0.100
+            172.17.0.1
           allowed-domains: |
             github.com
             api.github.com
