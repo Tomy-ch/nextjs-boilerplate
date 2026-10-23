@@ -26,8 +26,11 @@ name: Lighthouse
 # against, so deferring it defers the comparison and not only the detection.
 #
 # The job reports a context on every pull request either way, which is what would let it
-# become a required check later; it is deliberately not one today, because the budget is not
-# yet reachable on this sample.
+# become a required check; whether it is one is a branch-protection decision that only holds
+# once the screens meet the budget.
+#
+# No `paths:` filter, deliberately — README.md says why. `plan` always starts and asks
+# `diff-scope` whether the diff can reach a measurement before anything is installed.
 
 on:
   pull_request:
@@ -89,9 +92,11 @@ jobs:
     outputs:
       # The gate can only REMOVE a reason to measure, never add one: an input state that
       # already met the budget cannot start meeting it differently, so measuring it again
-      # only re-samples the runner. Every other reason still has to say yes first.
+      # only re-samples the runner. Every other reason still has to say yes first. The scope
+      # is spelled out rather than left to `gate`: a skipped gate answers empty, not `skip`.
       run: >-
-        ${{ steps.gate.outputs.decision != 'skip'
+        ${{ steps.scope.outputs.relevant == 'true'
+        && steps.gate.outputs.decision != 'skip'
         && (steps.cadence.outputs.run == 'true' || steps.trigger.outputs.kind == 'force') }}
       # The width, as data rather than as a condition on a job. A pull request is the only
       # event where a person is waiting, so it is the only one that pays for extra machines.
@@ -136,14 +141,6 @@ jobs:
           # `||` side whenever the value before it is falsy, and `0` is, so `0` goes after `||`.
           fetch-depth: ${{ github.event_name != 'pull_request' && 1 || 0 }}
 
-      - name: Setup mise and the pinned tools
-        uses: ./.github/actions/setup-mise
-        with:
-          tools: core:node aqua:pnpm/pnpm
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install dependencies
-        uses: ./.github/actions/setup-deps
       - name: Decide whether this event has to be measured now
         id: cadence
         uses: ./.github/actions/check-trigger
@@ -151,29 +148,60 @@ jobs:
           label: run-lighthouse
           labels: ${{ toJSON(github.event.pull_request.labels.*.name) }}
 
-      # Only asked when the shared four did not already say yes, because its answer can only
-      # add reasons to measure, never remove one.
+      # Asked before the toolchain, because it costs nothing and can settle the question on its
+      # own. The list matches the other deferred checks': the screens are the built application,
+      # so anything it is built from decides a number.
+      - name: Decide whether the diff can reach a measurement
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-mise
+        with:
+          tools: core:node aqua:pnpm/pnpm
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
+        uses: ./.github/actions/setup-deps
+
       # The record of which input state already met the budget. `make lighthouse-gate` hashes
       # the inputs itself and answers `skip` when they match, so the cache only has to carry
       # the previous answer forward — a miss reads as "never measured" and measures.
       - name: Restore the last measured input state
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: tmp/lighthouse/verified-inputs.sha256
           key: lighthouse-verified-${{ github.run_id }}
           restore-keys: lighthouse-verified-
 
-      # Asked before the diff, because its answer costs nothing and can settle the question on
+      # Asked before `trigger`, because its answer costs nothing and can settle the question on
       # its own — a label applied to an open pull request re-triggers this workflow with a tree
       # that is byte-for-byte what the previous run already measured.
       - name: Decide whether the inputs already met the budget
         id: gate
+        if: steps.scope.outputs.relevant == 'true'
         run: |
           echo "decision=$(make --no-print-directory lighthouse-gate)" >> "$GITHUB_OUTPUT"
 
+      # Only asked when the shared four did not already say yes, because its answer can only
+      # add reasons to measure, never remove one.
       - name: Decide whether the diff itself earns a measurement
         id: trigger
-        if: github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
+        if: >-
+          github.event_name == 'pull_request' && steps.cadence.outputs.run != 'true'
+          && steps.scope.outputs.relevant == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
         run: pnpm exec tsx scripts/lighthouse trigger "origin/${BASE_REF}"

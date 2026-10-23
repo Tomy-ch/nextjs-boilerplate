@@ -12,7 +12,9 @@ name: Storybook Build
 # bundling failure there reads as "the comparison could not run", which sends the
 # reader to the wrong place. This job answers the narrower question on its own.
 #
-# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
+# The job always starts and then asks `diff-scope` whether the diff can reach the Storybook
+# bundle, so the required context is reported even when the expensive steps stand down. No
+# `paths:` filter, deliberately — README.md says why.
 
 on:
   pull_request:
@@ -61,17 +63,40 @@ jobs:
         with:
           persist-credentials: false
 
+      # What the Storybook bundle never imports: tests, the journeys and the helper scripts.
+      # `vrt/**`, `tokens/**` and `mocks/**` are not listed — the catalog and the stories
+      # render from them.
+      - name: Decide whether the diff can reach the Storybook bundle
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            e2e/*
+            *.test.ts
+            *.test.tsx
+            scripts/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Run build-storybook
         id: storybook-build
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           set +e
@@ -89,18 +114,28 @@ jobs:
 
           exit 0
 
+      # A job that stood down still owes the pull request a verdict (README § PR Comments, the
+      # `diff-scope` bullet). The body file is the one the comment step reads.
+      - name: Note that the diff cannot reach the Storybook bundle
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Storybook build: SKIP (diff cannot reach the bundle)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は Storybook の bundle に届かないため、build-storybook を実行していません。' > /tmp/storybook-build.log
+
       - name: Comment Storybook build result on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && (steps.storybook-build.outputs.status != '' || steps.standdown.outcome == 'success')
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- storybook-build-result -->'
-          status: ${{ steps.storybook-build.outputs.status }}
-          title: ${{ steps.storybook-build.outputs.title }}
+          status: ${{ steps.storybook-build.outputs.status || 'success' }}
+          title: ${{ steps.storybook-build.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/storybook-build.log
           details-summary: 'build-storybook log'
 
       - name: Fail if build-storybook failed
-        if: always() && steps.storybook-build.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.storybook-build.outputs.status != 'success'
         run: exit 1

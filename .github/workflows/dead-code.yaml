@@ -13,7 +13,9 @@ name: Dead Code
 # repository" is the expected steady state there and is not a finding; everything else is
 # internal and is.
 #
-# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
+# The job always starts and then asks `diff-scope` whether the diff can reach what knip reads,
+# so the required context is reported even when the expensive steps stand down. No `paths:`
+# filter, deliberately — README.md says why.
 
 on:
   pull_request:
@@ -56,14 +58,32 @@ jobs:
         with:
           persist-credentials: false
 
+      # What knip never reads. `scripts/**` and `.github/**` are not listed: scripts are
+      # internal code here, and the workflows' `run:` lines are where knip finds binaries used.
+      - name: Decide whether the diff can reach what knip reads
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Report unused files, exports and dependencies
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm knip

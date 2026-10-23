@@ -12,6 +12,10 @@ name: Gen Drift
 #
 # The second check is cheap and names the failure precisely, so it runs first. Neither step reaches
 # the network: the contract itself is committed, and fetching it is a deliberate act (make api-fetch).
+#
+# The job always starts and then asks `diff-scope` whether the diff can reach the generated
+# artifacts, so the required context is reported even when the expensive steps stand down. No
+# `paths:` filter, deliberately — README.md says why.
 
 on:
   pull_request:
@@ -51,22 +55,50 @@ jobs:
         with:
           persist-credentials: false
 
+      # What neither the generator nor the `pnpm fix` after it can turn into a change under
+      # `src/adapters/gen` or `mocks`. Tests are not listed: `mocks/` holds hand-written ones,
+      # and the formatting pass rewrites them inside the directory this job inspects.
+      - name: Decide whether the diff can reach the generated artifacts
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            e2e/*
+            .storybook/*
+            *.stories.tsx
+            public/*
+            tokens/*
+            *.css
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Verify the contract and the generated artifacts carry the same version
+        if: steps.scope.outputs.relevant == 'true'
         run: make api-gen-check
 
       - name: Regenerate from the committed contract
+        if: steps.scope.outputs.relevant == 'true'
         run: make api-gen
 
       - name: Verify the regenerated artifacts match what is committed
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         # `git status --porcelain`, not `git diff`: a contract that adds a schema makes orval write a
         # NEW file, and an untracked file is invisible to `git diff`. The gate would pass on exactly

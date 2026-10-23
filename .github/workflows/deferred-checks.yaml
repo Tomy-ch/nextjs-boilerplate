@@ -9,6 +9,9 @@ name: Deferred Checks
 #
 # So this workflow reads the diff once, for all three, and leaves at most one comment.
 #
+# No `paths:` filter, deliberately — README.md says why. The job always starts and asks
+# `diff-scope` whether the diff can reach any of the three before anything is installed.
+#
 # ## This is not a gate
 #
 # It cannot fail, and it is not a required status check. What it produces is a prompt whose
@@ -73,20 +76,37 @@ jobs:
         id: cadence
         uses: ./.github/actions/check-trigger
 
-      - name: Setup mise and the pinned tools
+      # A label is recommended only for a diff one of the three can see. All three read the built
+      # application or what renders into it, and none reads the documentation or the agent
+      # configuration, so a diff of only those earns no label.
+      - name: Decide whether the diff can reach a deferred check
+        id: scope
         if: steps.cadence.outputs.run != 'true'
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        if: steps.cadence.outputs.run != 'true'
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Decide what to say about the deferred checks
         id: nudge
-        if: steps.cadence.outputs.run != 'true'
+        if: steps.scope.outputs.relevant == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
           PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}

@@ -11,7 +11,9 @@ name: Smoke
 # run's Next.js cache rather than cold — the two run concurrently, so it is not this
 # PR's Build job it inherits from.
 #
-# No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
+# The job always starts and then asks `diff-scope` whether the diff can reach the server, so the
+# required context is reported even when the expensive steps stand down. No `paths:` filter,
+# deliberately — README.md says why.
 
 on:
   pull_request:
@@ -60,13 +62,31 @@ jobs:
         with:
           persist-credentials: false
 
+      # What the server boots from is what `next build` emits, and the build reads neither the
+      # documentation nor the agent configuration. Sources the build compiles stay listed out:
+      # `next build` type-checks every file `tsconfig.json` reaches, tests and stories included.
+      - name: Decide whether the diff can reach the server
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache the Next.js build cache
+        if: steps.scope.outputs.relevant == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ github.workspace }}/.next/cache
@@ -74,9 +94,11 @@ jobs:
           restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Build
+        if: steps.scope.outputs.relevant == 'true'
         run: pnpm build
 
       # The server is polled rather than slept at, so a fast boot does not pay for
@@ -89,6 +111,7 @@ jobs:
       # route that redirects to a page that itself fails to render would pass.
       - name: Start the server and request the root route
         id: smoke
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         run: |
           set +e
@@ -123,18 +146,28 @@ jobs:
 
           exit 0
 
+      # A job that stood down still owes the pull request a verdict (README § PR Comments, the
+      # `diff-scope` bullet). The body file is the one the comment step reads.
+      - name: Note that the diff cannot reach the server
+        id: standdown
+        if: steps.scope.outputs.relevant != 'true'
+        shell: bash
+        run: |
+          echo 'title=## ⏭️ Smoke: SKIP (diff cannot reach the server)' >> "$GITHUB_OUTPUT"
+          echo 'この PR の差分は起動するサーバに届かないため、next start を実行していません。' > /tmp/smoke.log
+
       - name: Comment smoke result on PR
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && (steps.smoke.outputs.status != '' || steps.standdown.outcome == 'success')
         continue-on-error: true
         uses: ./.github/actions/upsert-pr-comment
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           marker: '<!-- smoke-result -->'
-          status: ${{ steps.smoke.outputs.status }}
-          title: ${{ steps.smoke.outputs.title }}
+          status: ${{ steps.smoke.outputs.status || 'success' }}
+          title: ${{ steps.smoke.outputs.title || steps.standdown.outputs.title }}
           body-file: /tmp/smoke.log
           details-summary: 'next start log'
 
       - name: Fail if the server never answered
-        if: always() && steps.smoke.outputs.status != 'success'
+        if: always() && steps.scope.outputs.relevant == 'true' && steps.smoke.outputs.status != 'success'
         run: exit 1
