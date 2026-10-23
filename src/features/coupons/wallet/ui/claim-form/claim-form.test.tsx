@@ -23,6 +23,9 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const REJECTED_MESSAGE = "このコードでは受け取れません。コードを確かめてください。";
 
+const LOCKED_MESSAGE =
+  "前回の受け取りの結果が分かるまで、コードは書き換えられません。同じコードでもう一度お試しください。";
+
 function renderForm() {
   return render(
     <ToastProvider>
@@ -39,6 +42,11 @@ async function claim(code: string): Promise<void> {
   await user.clear(field);
   await user.type(field, code);
   await user.click(screen.getByRole("button", { name: "受け取る" }));
+}
+
+/** 欄に触れずに、もう一度受け取る。 */
+async function resend(): Promise<void> {
+  await userEvent.setup().click(screen.getByRole("button", { name: "受け取る" }));
 }
 
 /** n 回目の送信に載っていた内容。 */
@@ -262,9 +270,78 @@ describe("ClaimForm", () => {
     renderForm();
 
     await claim("SPRING");
-    await claim("SPRING");
+    await resend();
 
     expect(keySentAt(1)).toBe(keySentAt(0));
+  });
+
+  it.each([
+    ["処理中（409）", failedActionState({ formError: "処理中", kind: ErrorKind.CONFLICT })],
+    ["使えない（503）", failedActionState({ formError: "使えない", kind: ErrorKind.UNAVAILABLE })],
+  ])(
+    "%sの後は、結果が分かるまでコードを書き換えさせず、理由を欄に紐づける",
+    async (_label, failed) => {
+      const user = userEvent.setup();
+
+      claimCouponAction.mockResolvedValueOnce(failed);
+      renderForm();
+
+      await claim("SPRING");
+
+      const field = screen.getByLabelText("キャンペーンコード");
+
+      expect(await screen.findByText(LOCKED_MESSAGE)).toBeVisible();
+      expect(field).toHaveAttribute("readonly");
+      expect(field).toHaveAccessibleDescription(LOCKED_MESSAGE);
+
+      await user.type(field, "X");
+      await resend();
+
+      expect(sentAt(1).get(CLAIM_CODE_FIELD)).toBe("SPRING");
+    },
+  );
+
+  it("書き換えを止めている表示も a11y 自動検査に違反しない", async () => {
+    claimCouponAction.mockResolvedValueOnce(
+      failedActionState({ formError: "使えない", kind: ErrorKind.UNAVAILABLE }),
+    );
+    const { container } = renderForm();
+
+    await claim("SPRING");
+    await screen.findByText(LOCKED_MESSAGE);
+
+    expect((await axe(container)).violations).toEqual([]);
+  });
+
+  it("結果が定まらなかった受け取りが送り直しで成立したら、書き換えの止めを解く", async () => {
+    claimCouponAction.mockResolvedValueOnce(
+      failedActionState({ formError: "使えない", kind: ErrorKind.UNAVAILABLE }),
+    );
+    renderForm();
+
+    await claim("SPRING");
+    await screen.findByText(LOCKED_MESSAGE);
+    await resend();
+
+    expect(await screen.findByText("クーポンを受け取りました")).toBeVisible();
+    expect(screen.getByLabelText("キャンペーンコード")).not.toHaveAttribute("readonly");
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+  });
+
+  it("コードが弾かれた後は、コードを書き換えられる", async () => {
+    claimCouponAction.mockResolvedValueOnce(
+      failedActionState({
+        fieldErrors: { [CLAIM_CODE_FIELD]: [REJECTED_MESSAGE] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+    renderForm();
+
+    await claim("UNKNOWN");
+    await screen.findByText(REJECTED_MESSAGE);
+
+    expect(screen.getByLabelText("キャンペーンコード")).not.toHaveAttribute("readonly");
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
   });
 
   it("項目に紐づかない失敗はフォームの脇に出し、欄には紐づけない", async () => {

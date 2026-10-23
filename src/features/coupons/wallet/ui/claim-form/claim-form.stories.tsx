@@ -80,7 +80,7 @@ export const Rejected: Story = {
   play: claim("NOT-A-CODE"),
 };
 
-/** 受け取りが競合した（409）。入力を残し、待ってからの送り直しを促す。 */
+/** 受け取りが処理中と返った（409）。結果が分かるまでコードを書き換えさせず、同じコードでの送り直しを促す。 */
 export const InProgress: Story = {
   beforeEach: () => {
     mocked(claimCouponAction).mockResolvedValue(
@@ -94,7 +94,7 @@ export const InProgress: Story = {
   play: claim("WELCOME-2026"),
 };
 
-/** 一時的に受け取れない。入力を残す。 */
+/** 一時的に受け取れない。結果が分かるまでコードを書き換えさせない。 */
 export const Unavailable: Story = {
   beforeEach: () => {
     mocked(claimCouponAction).mockResolvedValue(

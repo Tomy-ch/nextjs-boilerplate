@@ -11,6 +11,7 @@ import { useEmptyGuard } from "@/components/use-empty-guard";
 import { idleActionState } from "@/model/action-state";
 import {
   IDEMPOTENCY_KEY_FIELD,
+  leavesOutcomeOpen,
   newIdempotencyKey,
   settlesSubmission,
 } from "@/model/idempotency-key";
@@ -24,6 +25,11 @@ const LABEL = "キャンペーンコード";
 
 const ERROR_ID = `${CLAIM_CODE_FIELD}-error`;
 
+const LOCKED_ID = `${CLAIM_CODE_FIELD}-locked`;
+
+const LOCKED_MESSAGE =
+  "前回の受け取りの結果が分かるまで、コードは書き換えられません。同じコードでもう一度お試しください。";
+
 const FAILED_TITLE = "受け取れませんでした";
 
 const SUCCEEDED_TITLE = "クーポンを受け取りました";
@@ -34,6 +40,10 @@ const SUCCEEDED_TITLE = "クーポンを受け取りました";
  * @remarks
  * 成立したら一覧が取り直されて同じ画面に留まるため、成功は toast で伝え、入力を片付けます。
  * 通らなかったときは入力を残し、打ち直させません。
+ *
+ * 結果が定まらないあいだはコードを書き換えさせず、同じコードで送り直す案内を欄に結びます（理由は
+ * `model/idempotency-key.ts` の `leavesOutcomeOpen`）。値は送信に載り続けるよう、`disabled` ではなく
+ * `readOnly` で止めます。
  *
  * @see Storybook `Features/Coupons/Wallet/ClaimForm`
  */
@@ -80,6 +90,10 @@ export function ClaimForm() {
     state.status === "error" ? (state.fieldErrors?.[CLAIM_CODE_FIELD] ?? []) : [];
   const codeErrors = emptyError === null ? serverCodeErrors : [emptyError];
   const formError = state.status === "error" ? state.formError : null;
+  const outcomeOpen = leavesOutcomeOpen(state, "in-progress");
+  const describedBy = [outcomeOpen ? LOCKED_ID : null, codeErrors.length === 0 ? null : ERROR_ID]
+    .filter((id) => id !== null)
+    .join(" ");
 
   return (
     <form action={formAction} className="flex flex-col gap-3" onSubmit={refuseEmpty}>
@@ -92,7 +106,7 @@ export function ClaimForm() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Input
-            aria-describedby={codeErrors.length === 0 ? undefined : ERROR_ID}
+            aria-describedby={describedBy === "" ? undefined : describedBy}
             aria-invalid={codeErrors.length === 0 ? undefined : true}
             aria-required
             autoComplete="off"
@@ -100,10 +114,16 @@ export function ClaimForm() {
             id={CLAIM_CODE_FIELD}
             name={CLAIM_CODE_FIELD}
             onChange={keepCode}
+            readOnly={outcomeOpen}
             value={code}
           />
           <ClaimSubmitButton />
         </div>
+        {outcomeOpen ? (
+          <p className="text-muted-foreground text-sm" id={LOCKED_ID}>
+            {LOCKED_MESSAGE}
+          </p>
+        ) : null}
         {codeErrors.length === 0 ? null : (
           <FieldError id={ERROR_ID}>{codeErrors.join(" ")}</FieldError>
         )}
