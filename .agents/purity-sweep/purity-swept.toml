@@ -622,3 +622,4 @@
 "src/adapters/server/api/campaigns.test.ts" = "2026-10-22"
 "src/adapters/server/api/coupon-discount.test.ts" = "2026-10-22"
 "src/model/campaign/campaign.test.ts" = "2026-10-22"
+"src/components/shell/admin-shell/admin-shell.stories.tsx" = "2026-10-23"
