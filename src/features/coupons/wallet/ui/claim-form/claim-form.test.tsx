@@ -240,13 +240,22 @@ describe("ClaimForm", () => {
     expect(keySentAt(1)).not.toBe(keySentAt(0));
   });
 
+  it("読めない要求（400）で拒まれたら、次の送信は別のキーで送る", async () => {
+    claimCouponAction.mockResolvedValueOnce(
+      failedActionState({ formError: "読めない", kind: ErrorKind.INVALID_ARGUMENT }),
+    );
+    renderForm();
+
+    await claim("SPRING");
+    await claim("SPRING");
+
+    expect(keySentAt(1)).toMatch(UUID);
+    expect(keySentAt(1)).not.toBe(keySentAt(0));
+  });
+
   it.each([
     ["処理中（409）", failedActionState({ formError: "処理中", kind: ErrorKind.CONFLICT })],
     ["使えない（503）", failedActionState({ formError: "使えない", kind: ErrorKind.UNAVAILABLE })],
-    [
-      "読めない要求（400）",
-      failedActionState({ formError: "読めない", kind: ErrorKind.INVALID_ARGUMENT }),
-    ],
     ["空のコード", failedActionState({ fieldErrors: { [CLAIM_CODE_FIELD]: ["空"] } })],
   ])("%sの後は、同じキーで送り直す", async (_label, failed) => {
     claimCouponAction.mockResolvedValueOnce(failed);

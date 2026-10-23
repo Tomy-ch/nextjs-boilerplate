@@ -8,9 +8,12 @@ import { Input } from "@/components/design-system/form/input/input";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { useToast } from "@/components/shell/toaster/toaster";
 import { useEmptyGuard } from "@/components/use-empty-guard";
-import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
-import { IDEMPOTENCY_KEY_FIELD, newIdempotencyKey } from "@/model/idempotency-key";
+import {
+  IDEMPOTENCY_KEY_FIELD,
+  newIdempotencyKey,
+  settlesSubmission,
+} from "@/model/idempotency-key";
 
 import { claimCouponAction } from "../../../actions";
 import { CLAIM_CODE_FIELD } from "../../../form-names";
@@ -24,23 +27,6 @@ const ERROR_ID = `${CLAIM_CODE_FIELD}-error`;
 const FAILED_TITLE = "受け取れませんでした";
 
 const SUCCEEDED_TITLE = "クーポンを受け取りました";
-
-/**
- * 結果を受けて、次の送信に載せる冪等キーを作り直すか。
- *
- * @remarks
- * 成立した送信と、契約がコードを弾いた送信だけで作り直します。前者は次の 1 枚が同じ鍵で飛ぶと
- * 初回の結果が返って受け取れず、後者は直したコードが別の要求になるためです。処理中・一時的な
- * 失敗・届かなかった応答のあとは同じ鍵で送り直し、成立していた受け取りを 2 枚目にしません。
- *
- * @param state - 届いた結果
- * @returns 作り直すなら `true`
- */
-function renewsKey(state: ClaimCouponFormState): boolean {
-  return (
-    state.status === "success" || (state.status === "error" && state.kind === ErrorKind.VALIDATION)
-  );
-}
 
 /**
  * キャンペーンコードの受け取り欄。入力と冪等キーはここが持つ。
@@ -66,7 +52,7 @@ export function ClaimForm() {
   if (seenState !== state) {
     setSeenState(state);
 
-    if (renewsKey(state)) {
+    if (settlesSubmission(state, "in-progress")) {
       setIdempotencyKey(newIdempotencyKey());
     }
 
