@@ -11,11 +11,19 @@ type State = { readonly status: "idle" | "success" | "error" };
 
 const TARGET = { name: "対象" };
 const OTHER = { name: "別の対象" };
+const IDLE: State = idleActionState();
 
-function renderTarget(initial: State = idleActionState()) {
+function renderTarget(initial: State = IDLE) {
   return renderHook(({ state }) => useConfirmationTarget<typeof TARGET>(state), {
     initialProps: { state: initial },
   });
+}
+
+function renderAnsweringTarget() {
+  return renderHook(
+    ({ state }) => useConfirmationTarget<typeof TARGET>(state, (current) => current === TARGET),
+    { initialProps: { state: IDLE } },
+  );
 }
 
 describe("useConfirmationTarget", () => {
@@ -88,6 +96,24 @@ describe("useConfirmationTarget", () => {
     act(() => result.current.confirm(OTHER));
 
     expect(result.current.target).toBe(OTHER);
+  });
+
+  it("結果が開いている相手への送信に答えたものでなければ、確認を閉じない", () => {
+    const { result, rerender } = renderAnsweringTarget();
+
+    act(() => result.current.confirm(OTHER));
+    rerender({ state: succeededActionState({ code: "SPRING2026" }) });
+
+    expect(result.current.target).toBe(OTHER);
+  });
+
+  it("結果が開いている相手への送信に答えたものなら、確認を閉じる", () => {
+    const { result, rerender } = renderAnsweringTarget();
+
+    act(() => result.current.confirm(TARGET));
+    rerender({ state: succeededActionState({ code: "SPRING2026" }) });
+
+    expect(result.current.target).toBeNull();
   });
 
   it("開く操作と閉じる操作は、描き直しても同じ関数のまま保つ", () => {

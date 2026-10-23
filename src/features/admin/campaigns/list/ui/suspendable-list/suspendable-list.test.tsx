@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback, useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -208,6 +208,29 @@ describe("SuspendableCampaignList", () => {
 
     expect(formData.get(SUSPEND_FORM_NAMES.campaignId)).toBe(OTHER_ROW.id);
     expect(formData.get(SUSPEND_FORM_NAMES.campaignCode)).toBe(OTHER_ROW.code);
+  });
+
+  it("送信中に閉じて別の行を開いても、先に送った行の結果ではその確認を閉じない", async () => {
+    let settle: (state: SuspendCampaignState) => void = () => undefined;
+    const suspendAction = vi.fn(
+      () =>
+        new Promise<SuspendCampaignState>((resolve) => {
+          settle = resolve;
+        }),
+    );
+
+    renderTwoRows(suspendAction);
+
+    const first = await openConfirmationFor(UPCOMING_CAMPAIGN_ROW);
+
+    await userEvent.click(within(first).getByRole("button", { name: "停止する" }));
+    await waitFor(() => expect(suspendAction).toHaveBeenCalledTimes(1));
+    await dismissConfirmation(first);
+    await openConfirmationFor(OTHER_ROW);
+
+    await act(async () => settle(succeededActionState({ code: UPCOMING_CAMPAIGN_ROW.code })));
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(OTHER_ROW.code);
   });
 
   it("停止の送信に、その行の試みの冪等キーを載せる", async () => {
