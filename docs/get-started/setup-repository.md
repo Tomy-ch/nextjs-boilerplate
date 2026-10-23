@@ -224,6 +224,9 @@ Create it at <https://github.com/settings/apps/new>.
 | Webhook | **Uncheck Active** |
 | Repository permissions → Contents | **Read and write** |
 | Repository permissions → Pull requests | **Read and write** |
+| Repository permissions → Issues | **Read and write** |
+| Repository permissions → Checks | **Read-only** |
+| Repository permissions → Actions | **Read-only** |
 | Other permissions | Leave as No access |
 | Where can this GitHub App be installed? | **Only on this account** |
 
@@ -239,6 +242,12 @@ After creating it, do three more things. You land on the **General** page right 
 
 `Pull requests` is needed because on protected branches (`release/**` / `hotfix/**` and each environment's branch)
 a retake cannot push the pointer directly and brings it in through a PR ([`vrt/README.md`](../../vrt/README.md)).
+The other three serve the jobs that call REST with this App's token rather than `GITHUB_TOKEN`
+([`.github/workflows/README.md`](../../.github/workflows/README.md)): `Issues` for PR comments, labels
+and the issues the scheduled sweeps open, `Checks` and `Actions` for a retake reading the run that
+triggered it and downloading its artifacts. The permissions each job requests are on its
+`create-github-app-token` step. A request naming one the installation lacks is refused whole, and
+the job falls back to `GITHUB_TOKEN` and its smaller rate limit.
 
 > **Permissions added later take effect only once approved on the installation side.** Changing the App's settings alone is not
 > enough; go through the "Review request" shown at `https://github.com/settings/installations/<id>`. Until it is

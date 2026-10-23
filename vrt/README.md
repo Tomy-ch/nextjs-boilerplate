@@ -619,8 +619,9 @@ make setup-baseline-app      # 撮り直しに使う GitHub App を secret へ�
 ```
 
 Only creating the GitHub App and generating its key cannot be automated (REST has no endpoint for creation, and the key is shown only
-once when generated). Restrict the App's installation to **only two repositories, the main one and the store**, and give it two permissions:
-**Contents: Read and write** and **Pull requests: Read and write**. Do not put a ruleset on the store
+once when generated). Restrict the App's installation to **only two repositories, the main one and the store**, and give it the
+permissions [setup-repository § 8-2](../docs/get-started/setup-repository.md#8-2-create-the-github-app-manual)
+lists. Do not put a ruleset on the store
 — it would block the retake's own push.
 
 `Pull requests` is needed because on protected branches the pointer arrives through a PR (see "On protected branches, the pointer arrives through a PR"
