@@ -28,6 +28,8 @@ export type AddressField = {
   readonly registration: FieldRegistration;
   /** 検索の操作。 */
   readonly onSearch: () => void;
+  /** 取得中の補完を打ち切る。送信した時点で呼び、送った内容のあとに値を変えない。 */
+  readonly cancel: () => void;
   /** 取得の最中か。操作を押せなくするのに使う。 */
   readonly searching: boolean;
   /**
@@ -56,7 +58,7 @@ export type AddressField = {
  * 町域と番地を町域だけで置き換えません。
  *
  * @param fields - `useProfileFields` が返すもの。郵便番号の配線と値の書き込みに使う
- * @returns 郵便番号欄の配線・検索操作・取得中かどうか・読み上げ用の文言
+ * @returns 郵便番号欄の配線・検索操作・取得中の補完を打ち切る操作・取得中かどうか・読み上げ用の文言
  */
 export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields): AddressField {
   const applyCompletion = useCallback(
@@ -76,7 +78,7 @@ export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields)
     [getValues, setValue],
   );
 
-  const { complete, loading, result } = useAddressCompletion(applyCompletion);
+  const { cancel, complete, loading, result } = useAddressCompletion(applyCompletion);
 
   const onSearch = useCallback(() => {
     void complete(getValues("postalCode" satisfies keyof ProfileInput), { force: true });
@@ -93,6 +95,7 @@ export function useAddressField({ fieldOf, getValues, setValue }: ProfileFields)
       },
     },
     onSearch,
+    cancel,
     searching: loading,
     unavailable: result === "unavailable",
     message: COMPLETION_MESSAGES[result],

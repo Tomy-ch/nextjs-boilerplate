@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,7 +26,7 @@ function Probe({
   onCompleted: (completion: AddressCompletion) => void;
   postalCode?: string;
 }) {
-  const { complete, loading, result } = useAddressCompletion(onCompleted);
+  const { cancel, complete, loading, result } = useAddressCompletion(onCompleted);
   const onBlurLike = useCallback(() => void complete(postalCode), [complete, postalCode]);
   const onForce = useCallback(
     () => void complete(postalCode, { force: true }),
@@ -40,6 +40,9 @@ function Probe({
       </button>
       <button onClick={onForce} type="button">
         操作で引く
+      </button>
+      <button onClick={cancel} type="button">
+        打ち切る
       </button>
       <p data-testid="result">{result}</p>
       <p data-testid="loading">{loading ? "取得中" : "待機"}</p>
@@ -205,6 +208,38 @@ describe("useAddressCompletion", () => {
 
     render(<Probe onCompleted={onCompleted} />);
     await user.click(screen.getByRole("button", { name: "blur で引く" }));
+
+    expect(onCompleted).not.toHaveBeenCalled();
+    expect(screen.getByTestId("result")).toHaveTextContent("idle");
+  });
+
+  it("打ち切ると、取得中の応答を当てず、進行中でなくなる", async () => {
+    const user = userEvent.setup();
+    const onCompleted = vi.fn();
+    let release: ((lookup: typeof ADDRESS_LOOKUP) => void) | undefined;
+    let signal: AbortSignal | undefined;
+
+    fetchAddresses.mockImplementation(
+      (_code: string, given: AbortSignal) =>
+        new Promise((resolve) => {
+          signal = given;
+          release = resolve;
+        }),
+    );
+
+    render(<Probe onCompleted={onCompleted} />);
+    await user.click(screen.getByRole("button", { name: "blur で引く" }));
+
+    expect(screen.getByTestId("loading")).toHaveTextContent("取得中");
+
+    await user.click(screen.getByRole("button", { name: "打ち切る" }));
+
+    expect(screen.getByTestId("loading")).toHaveTextContent("待機");
+    expect(signal?.aborted).toBe(true);
+
+    await act(async () => {
+      release?.(ADDRESS_LOOKUP);
+    });
 
     expect(onCompleted).not.toHaveBeenCalled();
     expect(screen.getByTestId("result")).toHaveTextContent("idle");
