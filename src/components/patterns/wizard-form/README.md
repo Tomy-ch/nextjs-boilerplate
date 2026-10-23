@@ -62,7 +62,7 @@ A step is a set of form controls, so it is represented as a `fieldset`, with the
 
 **While the current step cannot be completed, steps ahead cannot be reached from the progress indicator either.** Stopping only "Next" means nothing if the progress indicator still allows jumping. Going back is not stopped — going back does not claim the step was completed.
 
-**`locked` keeps the user on the current step.** Neither going back nor jumping from the progress indicator is possible. Use it while what was sent must not change — after a submission whose outcome is not yet known, the receiver answers a resend under the same idempotency key with the first submission's outcome, so content changed in an earlier step would silently get the result of the content before the change. Telling the user why is the caller's job.
+**`locked` keeps the user on the current step.** Neither going back nor jumping from the progress indicator is possible. Use it while what was sent must not change (a submission whose outcome is not yet known — [`use-submission-key.ts`](../../use-submission-key.ts) returns it as `outcomeOpen`). Telling the user why is the caller's job.
 
 Whether a marker appears and whether a step can be pressed are separate conditions. **There are steps that were reached but not passed**; they can be visited but get no marker. Conversely, returning to a completed step keeps its marker even while it is the current position (`Stepper`'s `passed`).
 
