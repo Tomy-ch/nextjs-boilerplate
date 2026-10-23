@@ -97,7 +97,12 @@ describe("AdminCampaignListPageContent", () => {
     const fetching = deferred();
 
     request.current = fetching.promise;
-    render(contentOf({}));
+    await act(async () => {
+      render(contentOf({}));
+    });
+
+    expect(skeleton()).not.toBeNull();
+
     await act(async () => {
       fetching.resolve();
       await fetching.promise;
