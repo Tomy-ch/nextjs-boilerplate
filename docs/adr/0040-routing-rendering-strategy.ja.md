@@ -23,11 +23,11 @@ Accepted
 ### App Router + Server Components デフォルト
 
 - **App Router 単独**を採用する(Pages Router は採用しない)。ルート構造・特殊ファイル・セグメント記法は Next.js 規約に従う([0028](0028-naming-convention.ja.md))
-- **Server Components をデフォルト**とする。`"use client"` を付けないコンポーネントはサーバで実行される
+- **Server Components をデフォルト**とする。`"use client"` を付けないコンポーネントはサーバーで実行される
 
 ### `"use client"` は feature 内のリーフへ押し下げる
 
-- `"use client"` は **feature 内の、クライアント機能(state / event / ブラウザ API)を実際に使うリーフコンポーネント**にのみ付ける(Server Action の置き場を持つ [0021](0021-frontend-responsibility.ja.md) がこの規約の正)
+- `"use client"` は **feature 内の、クライアント機能(state / event / ブラウザー API)を実際に使うリーフコンポーネント**にのみ付ける(Server Action の置き場を持つ [0021](0021-frontend-responsibility.ja.md) がこの規約の正)
 - 理由: `"use client"` 境界より内側は import・子まで丸ごと client バンドルに入るため、境界を上位(`layout.tsx` / `page.tsx`)に置くと不要に client 化が広がる。境界をリーフへ下げて client バンドルを最小化する
 - `page.tsx` / `layout.tsx` は Server Component のまま保つ
 

@@ -4,7 +4,7 @@
 
 # 観測性・ロギング
 
-[0020](0020-adopted-architecture.ja.md) / [0021](0021-frontend-responsibility.ja.md) で枠を予約した **`logging` / `observability` カーネル** の中身を確定する。**構造化ログ / OTel(vendor-neutral OTLP)/ シグナル別 config gating / trace 相関 / ブラウザ側テレメトリの扱い** を定める。
+[0020](0020-adopted-architecture.ja.md) / [0021](0021-frontend-responsibility.ja.md) で枠を予約した **`logging` / `observability` カーネル** の中身を確定する。**構造化ログ / OTel(vendor-neutral OTLP)/ シグナル別 config gating / trace 相関 / ブラウザー側テレメトリの扱い** を定める。
 
 ## Status
 
@@ -12,16 +12,16 @@ Accepted
 
 ## 背景
 
-構造化ログのスキーマ・出力先(ブラウザ → BFF 中継 vs 直接 SaaS)・観測性 SaaS SDK の採否・trace ID 伝播は、決めずに置くと feature ごとに vendor SDK を直接 import する形で散る。本 ADR がこれらを確定する。
+構造化ログのスキーマ・出力先(ブラウザー → BFF 中継 vs 直接 SaaS)・観測性 SaaS SDK の採否・trace ID 伝播は、決めずに置くと feature ごとに vendor SDK を直接 import する形で散る。本 ADR がこれらを確定する。
 
-logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠蔽)** で提供し、observability は **vendor-neutral OTLP-only** / **シグナル別 config gating** / **公式 semconv のみ** で構成する —— vendor SDK をアプリコードが直接持つと差し替えが構造的に不可能になり、signal ごとに切れないと「trace だけ止める」が「全部止める」になる。本 ADR はこの構造をプレゼンテーションレイヤー(サーバ + ブラウザ)へ敷く。
+logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠蔽)** で提供し、observability は **vendor-neutral OTLP-only** / **シグナル別 config gating** / **公式 semconv のみ** で構成する —— vendor SDK をアプリコードが直接持つと差し替えが構造的に不可能になり、signal ごとに切れないと「trace だけ止める」が「全部止める」になる。本 ADR はこの構造をプレゼンテーションレイヤー(サーバー + ブラウザー)へ敷く。
 
 ## 決定
 
 ### 1. 構造化ログ(`logging` カーネル)
 
 - ログは **抽象ロガー interface** 経由とし、実装(pino 等)をアプリコードから隠蔽する(実装ライブラリは [0004](0004-library-management.ja.md) で確定)
-- **ctx-native**: ロガーは実行コンテキスト(サーバは `AsyncLocalStorage` 等の request context)から **`trace_id` / `span_id` を自動注入**する(caller は明示的に渡さない)
+- **ctx-native**: ロガーは実行コンテキスト(サーバーは `AsyncLocalStorage` 等の request context)から **`trace_id` / `span_id` を自動注入**する(caller は明示的に渡さない)
 - レベルは Debug / Info / Warn / Error。**出力先は注入で決める**(config を logging カーネルが直読しない。[0021](0021-frontend-responsibility.ja.md))
 - **出力形式はどの環境でも JSON だけである。** 人が読みやすい整形は受け取る側(ログを表示・転送する側)の仕事とし、本体は環境で形式を切り替えない。形式が環境で分かれると、開発で見た行と配信で集めた行が別物になり、その差は配信へ出るまで現れない
 - **ログキーの表を 1 箇所に集約**する(`src/logging/logger.ts` の `LogFieldKey`)。表が持つのは `trace_id` / `span_id` / `request_id` / `error_code` / `latency_ms` / `cause` と、例外の内容を載せる OpenTelemetry semconv の `exception.type` / `exception.message` / `exception.stacktrace` である。**公式 semconv に名前がある項目はその名前を使い**、独自の名前(`error_message` 等)を立てない。表に無い名前も渡せる
@@ -34,7 +34,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 - resource attribute は **公式 semconv のみ**(`service.name` / `deployment.environment.name` / `service.version` 等)。custom / vendor-specific キーを typed config に入れない
 - W3C `TraceContext` + `Baggage` を伝播規約とする(サービス境界越えの trace 伝播)。外向き `fetch` への注入先は **backend API の origin に限定**し、IdP など別の接続先へ `Baggage` を渡さない
 - **span にもログと同じ redaction を掛ける**(上記 1 の PII / token / password 規則は span 属性と span 名の双方に及ぶ)。
-- **query 文字列は span から落とさない。** 秘匿すべき値を query へ載せていること自体が誤りであり、そこに置いた時点でブラウザの履歴・リファラ・経路上のアクセスログへ残っている。trace で伏せても守るものが無く、代わりに「どの条件のリクエストが遅いか」を追えなくする。
+- **query 文字列は span から落とさない。** 秘匿すべき値を query へ載せていること自体が誤りであり、そこに置いた時点でブラウザーの履歴・リファラー・経路上のアクセスログへ残っている。trace で伏せても守るものが無く、代わりに「どの条件のリクエストが遅いか」を追えなくする。
 - **span 名には query を載せない。** これは秘匿ではなく**集約**の要求である —— 条件はリクエストごとに違うので、名前に含めると同じ経路のリクエストが別の名前へ散り、名前を単位にした集計が成り立たなくなる。条件そのものは属性(`url.full` / `url.query`)に残るので、1 件ずつ辿るときは読める。
 
 ### 3. シグナル別 config gating
@@ -48,13 +48,13 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 
 - active trace context を持つログ行に `trace_id` / `span_id` を載せ、backend で同一 trace に揃える(上記 1 の ctx-native 注入 + OTLP log export)。相関は上記の signal gate が支配する
 
-### 5. ブラウザ側テレメトリの扱い(プレゼンテーションレイヤー固有)
+### 5. ブラウザー側テレメトリの扱い(プレゼンテーションレイヤー固有)
 
-**server 常駐の OTel exporter / batch 処理 / shutdown hook** を前提にした構成は、Next.js のブラウザ・serverless / edge には**そのまま載らない**ため、以下の形を採る:
+**server 常駐の OTel exporter / batch 処理 / shutdown hook** を前提にした構成は、Next.js のブラウザー・serverless / edge には**そのまま載らない**ため、以下の形を採る:
 
-- **サーバ側(Node runtime)**: 上記 1〜4 の pino + otel-js 相当を適用。serverless では長寿命 exporter を前提にせず、リクエスト境界での flush / OTLP 送信を基本とする
-- **ブラウザ側テレメトリは BFF 中継を seam とする**: クライアントで計測した値は **`/api/*`(BFF)経由でサーバへ送り、サーバ側で OTLP export** する(ブラウザから直接 SaaS / collector へ送らない)。これは [0030](0030-environment-variable-management.ja.md) の「secret を `NEXT_PUBLIC_` に出さない」「BFF runtime config」と整合し、vendor lock-in も避ける。vendor SDK を使う場合も、ブラウザ→SaaS の直送でなく **自ドメイン `/api/*` 経由のリレー**でこの seam を保つ
-- **ブラウザ側も OTel の SDK で計装する**: ブラウザは自分で span を作り、それを上記の中継へ流す。中継が受けるのは OTLP そのもので、サーバは読み替えずに collector へ渡す。**送り先だけがブラウザから見えない** —— collector の endpoint も資格情報もサーバ側に留まり、seam は変わらない。ブラウザは自分の trace を始めず、サーバが配った `traceparent` を親に取る(これが無いと、ブラウザ発の記録は中継リクエストの span に紐づき、測定が起きていないリクエストと親子になる)。**計装は最初のレンダリングの後に読み込む** —— 計測のための資材を初期の読み込みへ載せると、測っている当のものを悪くする
+- **サーバー側(Node runtime)**: 上記 1〜4 の pino + otel-js 相当を適用。serverless では長寿命 exporter を前提にせず、リクエスト境界での flush / OTLP 送信を基本とする
+- **ブラウザー側テレメトリは BFF 中継を seam とする**: クライアントで計測した値は **`/api/*`(BFF)経由でサーバーへ送り、サーバー側で OTLP export** する(ブラウザーから直接 SaaS / collector へ送らない)。これは [0030](0030-environment-variable-management.ja.md) の「secret を `NEXT_PUBLIC_` に出さない」「BFF runtime config」と整合し、vendor lock-in も避ける。vendor SDK を使う場合も、ブラウザー→SaaS の直送でなく **自ドメイン `/api/*` 経由のリレー**でこの seam を保つ
+- **ブラウザー側も OTel の SDK で計装する**: ブラウザーは自分で span を作り、それを上記の中継へ流す。中継が受けるのは OTLP そのもので、サーバーは読み替えずに collector へ渡す。**送り先だけがブラウザーから見えない** —— collector の endpoint も資格情報もサーバー側に留まり、seam は変わらない。ブラウザーは自分の trace を始めず、サーバーが配った `traceparent` を親に取る(これが無いと、ブラウザー発の記録は中継リクエストの span に紐づき、測定が起きていないリクエストと親子になる)。**計装は最初のレンダリングの後に読み込む** —— 計測のための資材を初期の読み込みへ載せると、測っている当のものを悪くする
 
 ### 6. 観測性バックエンド = OTLP/OTel(vendor-neutral・vendor SDK 非同梱)
 
@@ -71,7 +71,7 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 - ❌ `logging` が `observability` を import すること(依存逆転。trace 抽出は注入で受ける)（強制: ESLint boundaries（`architecture.ts` の `DEPENDENCIES` が `logging` に import 先を持たせない））
 - ❌ 起動境界からの注入をモジュール変数へ置くこと(Next は起動境界と RSC を別のモジュールグラフとして組み、同じファイルが 1 プロセス内で 2 回インスタンス化される。realm を共有する registered symbol で渡す)（強制: 散文 —— **寄せられない**。モジュール変数が起動境界からの注入を持つかは代入元の経路で決まり、宣言の形からは決まらない）
 - ❌ `logging` / `observability` カーネルが config を直読すること(注入で受ける。直読は config カーネルのみ = [0030](0030-environment-variable-management.ja.md)。vendor の DSN / endpoint も typed config 経由)（強制: ESLint boundaries（`DEPENDENCIES` が `logging` / `observability` に `config` を持たせない）と `no-restricted-syntax`（`process` の直読を `NODE_RUNTIME_ACCESS` の外で落とす））
-- ❌ ブラウザから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)（強制: `src/config/security-headers/security-headers.test.ts`（CSP の `connect-src` を `'self'` とバックエンドの origin に固定する）と E2E の `securitypolicyviolation` の見張り）
+- ❌ ブラウザーから直接 SaaS へテレメトリを送ること(BFF 中継 seam。vendor SDK 使用時も自ドメイン経由に保つ)（強制: `src/config/security-headers/security-headers.test.ts`（CSP の `connect-src` を `'self'` とバックエンドの origin に固定する）と E2E の `securitypolicyviolation` の見張り）
 - ❌ PII / token / password をログに出すこと / `console.log` をコミットに残すこと([0002](0002-formatter-linter.ja.md))
 
 ## 補足
@@ -84,8 +84,8 @@ logging は **抽象 `Logger` interface(ctx-native・実装ライブラリを隠
 - [0030-environment-variable-management.md](0030-environment-variable-management.ja.md) — `OBS_*` config の供給 / BFF runtime config / secret 非露出
 - [0028-naming-convention.md](0028-naming-convention.ja.md) — OTel の標準名(`OTEL_EXPORTER_OTLP_ENDPOINT` 等)を `{SUBSYSTEM}_{NAME}` へ改名しない例外
 - [0080-error-handling.md](0080-error-handling.ja.md) — エラーログのレベル(5xx=error / 4xx=warn)・redact(本 ADR がスキーマ・trace 相関を定める)
-- [0071-bff-api-integration.md](0071-bff-api-integration.ja.md) — fetch wrapper のログ / trace 伝播 / ブラウザ→BFF 中継の実装レイヤー
-- [0082-client-observability.md](0082-client-observability.ja.md) — ブラウザ発の経路(trace / RUM / client エラー / プロダクト分析)の具体化
+- [0071-bff-api-integration.md](0071-bff-api-integration.ja.md) — fetch wrapper のログ / trace 伝播 / ブラウザー→BFF 中継の実装レイヤー
+- [0082-client-observability.md](0082-client-observability.ja.md) — ブラウザー発の経路(trace / RUM / client エラー / プロダクト分析)の具体化
 - [0077-bff-abuse-protection-boundary.md](0077-bff-abuse-protection-boundary.ja.md) — 中継 seam が生む公開エンドポイントの保護
 - [0002-formatter-linter.md](0002-formatter-linter.ja.md) — `noConsole`(console.log 抑止)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.ja.md) — vendor-independent 正当化 / 差し替え可能性(vendor SDK を抜いても正当・OTLP 経由で非ロックイン)

@@ -35,13 +35,13 @@ recharts がレンダリングに DOM の実寸を必要とするため hydratio
 
 `config` の各 key は data の系列名と一致させます。色は `--color-<key>` の CSS 変数として配下へ配られるので、recharts 側では `var(--color-<key>)` で参照します。
 
-`ChartStyle` は `dangerouslySetInnerHTML` で stylesheet を書き出します。系列色を CSS 変数として配下へ配る手段が他に無いためで、`config` の色は開発者が書く定数であることを前提にしています。**利用者入力や API 応答を色として渡しません。**
+`ChartStyle` は `dangerouslySetInnerHTML` で stylesheet を書き出します。系列色を CSS 変数として配下へ配る手段が他に無いためで、`config` の色は開発者が書く定数であることを前提にしています。**ユーザー入力や API 応答を色として渡しません。**
 
 ### chart を唯一の伝達手段にしない
 
-chart は形と色で情報を伝えるため、それだけでは読み取れない利用者がいます。同じ内容へ到達できる数値表や要約を必ず併置します。`WithDataTable` の story がその構成です。
+chart は形と色で情報を伝えるため、それだけでは読み取れないユーザーがいます。同じ内容へ到達できる数値表や要約を必ず併置します。`WithDataTable` の story がその構成です。
 
-`ChartTooltipContent` は pointer を合わせている間だけ現れるため、touch 環境と keyboard 利用者には到達できません。tooltip でしか読めない情報を置きません。
+`ChartTooltipContent` は pointer を合わせている間だけ現れるため、touch 環境と keyboard ユーザーには到達できません。tooltip でしか読めない情報を置きません。
 
 ## 使わない場合
 

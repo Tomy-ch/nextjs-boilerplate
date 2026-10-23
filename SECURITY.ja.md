@@ -10,7 +10,7 @@
 脆弱性の公表になります。
 
 報告は GitHub の **Private Vulnerability Reporting** を使ってください。リポジトリの
-**Security** タブ → **Report a vulnerability** から、メンテナだけが読める形で送れます。
+**Security** タブ → **Report a vulnerability** から、メンテナーだけが読める形で送れます。
 
 <!-- boilerplate-only:replace-begin -->
 この機能が無効な場合は、リポジトリのオーナーへ直接連絡してください。

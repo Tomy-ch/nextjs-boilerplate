@@ -1,65 +1,150 @@
-// 宣言を SSOT にした harden-runner の書き換え。apply と check は同じ判定関数を dryRun で
+// 宣言を SSOT にした bullfrog の書き換え。apply と check は同じ判定関数を dryRun で
 // 共用し、「検査は通るのに適用結果が違う」乖離が構造的に起きないようにする（actions-pin と同形）。
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+// ここが持つのは workflow の走査と step の差し替えで、step に書く入力は bullfrog-step.ts が持つ。
+import { chmodSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import { type Declaration, endpointsFor } from "./declaration.js";
+import { policyBlock, type StepPolicy } from "./bullfrog-step.js";
+import { allowedIps, type Declaration, domainsFor, sudoFor } from "./declaration.js";
 
 const FILE_MODE = 0o644;
 
-/** 走査する範囲。harden-runner が立つのは job の冒頭だけなので composite action は含まない。 */
+/** 走査する範囲。bullfrog が立つのは job の冒頭だけなので composite action は含まない。 */
 export const WORKFLOW_DIR = ".github/workflows";
 
-const HARDEN = /^(\s*)uses: step-security\/harden-runner@/;
+const BULLFROG = /^(\s*)uses: bullfrogsec\/bullfrog@/;
+
+const MENTION = "bullfrogsec/bullfrog";
+
+const COMMENT = /^\s*#/;
+
+const JOBS = /^jobs:\s*(#.*)?$/;
+
+const JOB = /^ {2}([A-Za-z0-9_-]+):\s*(#.*)?$/;
+
+const STEPS = /^ {4}steps:\s*(#.*)?$/;
 
 export type RewriteResult = {
   readonly out: string;
   /** 想定した形をしていなかった行番号（1 始まり）。 */
   readonly malformed: number[];
+  /** bullfrog の step を持っていた job の名前。 */
+  readonly jobs: string[];
+  /** `steps:` を持つのに bullfrog の step を持たない job の名前。 */
+  readonly missing: string[];
 };
 
 /**
- * 1 ファイルの harden-runner を宣言どおりに書き換える。
+ * 1 ファイルの bullfrog を宣言どおりに書き換える。
  *
- * @param endpoints - 許す宛先。`null` なら監査のまま残す
+ * @param data - workflow ファイルの中身
+ * @param policyOf - job の名前から、その step に書く方針を返す
+ * @returns 書き換えた中身、書き換えられなかった行、bullfrog の step を持つ job と持たない job
  *
  * @remarks
- * 想定する形は次の 3 行 + 任意の許可リストです。**この形から外れていたら書き換えず、
- * 行番号を返します** —— 部分的に合う塊へ機械的に当てると、`with:` の他の入力を消しかねません。
+ * 想定する形は次の 3 行で始まる step です。**この形から外れていたら書き換えず、行番号を
+ * 返します** —— 部分的に合う塊へ機械的に当てると、別の step を巻き込みかねません。
+ * `bullfrogsec/bullfrog` を含むのに `uses:` で始まらない行（`- uses:` と 1 行に詰めた形など）も
+ * 同じ扱いです。コメント行は名前を含んでも数えません。`with:` の中身はこの関数が丸ごと持ち、手で足した入力は次の apply で消えます。
  *
  * ```yaml
- * uses: step-security/harden-runner@<sha> # <tag>
+ * uses: bullfrogsec/bullfrog@<sha> # <tag>
  * with:
  *   egress-policy: <audit|block>
  * ```
+ *
+ * `steps:` を持つ job に bullfrog が 1 つも無ければ `missing` に挙げます。再利用 workflow を
+ * `uses:` で呼ぶ job は `steps:` を持たないので対象外です。
  */
-export function rewriteHarden(data: string, endpoints: readonly string[] | null): RewriteResult {
+export function rewriteStep(data: string, policyOf: (job: string) => StepPolicy): RewriteResult {
   const lines = data.split("\n");
   const out: string[] = [];
   const malformed: number[] = [];
+  const jobs: string[] = [];
+  const scope = jobScope();
   // 書き換えた塊の末尾。ここまでは読み飛ばす。
   let consumed = -1;
 
   for (const [at, line] of lines.entries()) {
     if (at <= consumed) continue;
 
-    if (!HARDEN.test(line)) {
+    scope.advance(line);
+
+    if (!line.includes(MENTION) || COMMENT.test(line)) {
       out.push(line);
       continue;
     }
 
+    scope.guard();
+
     const indent = indentOf(line);
 
-    if (!isExpectedShape(lines, at, indent)) {
+    if (!BULLFROG.test(line) || !isExpectedShape(lines, at, indent)) {
       malformed.push(at + 1);
       out.push(line);
       continue;
     }
 
-    out.push(line, ...policyBlock(indent, endpoints));
+    const job = scope.current() ?? "";
+    jobs.push(job);
+    out.push(line, ...policyBlock(indent, policyOf(job)));
     consumed = endOfStep(lines, at, indent);
   }
 
-  return { out: out.join("\n"), malformed };
+  const missing = scope.finish();
+
+  return { out: out.join("\n"), malformed, jobs, missing };
+}
+
+/**
+ * 行を順に読み、いまどの job の中にいるかと、bullfrog を持たない job を追う。
+ *
+ * @returns 1 行ずつ進める `advance`、いまの job に bullfrog があったと記す `guard`、
+ * いまの job の名前を返す `current`、最後の job を閉じて bullfrog を持たない job を返す `finish`
+ */
+function jobScope() {
+  const missing: string[] = [];
+  let inJobs = false;
+  let job: string | null = null;
+  let hasSteps = false;
+  let guarded = false;
+
+  /** いまの job を閉じる。`steps:` を持つのに bullfrog が無かったなら `missing` に記す。 */
+  const close = (): void => {
+    if (job !== null && hasSteps && !guarded) missing.push(job);
+    job = null;
+    hasSteps = false;
+    guarded = false;
+  };
+
+  return {
+    advance(line: string): void {
+      if (JOBS.test(line)) {
+        inJobs = true;
+      } else if (/^[^\s#]/.test(line)) {
+        close();
+        inJobs = false;
+      }
+
+      const key = inJobs ? JOB.exec(line)?.[1] : undefined;
+
+      if (key !== undefined) {
+        close();
+        job = key;
+      }
+
+      if (job !== null && STEPS.test(line)) hasSteps = true;
+    },
+    guard(): void {
+      guarded = true;
+    },
+    current(): string | null {
+      return job;
+    },
+    finish(): string[] {
+      close();
+      return missing;
+    },
+  };
 }
 
 function indentOf(line: string): string {
@@ -74,26 +159,18 @@ function isExpectedShape(lines: readonly string[], at: number, indent: string): 
   );
 }
 
-/** 書き出す `with:` の中身。 */
-function policyBlock(indent: string, endpoints: readonly string[] | null): string[] {
-  if (endpoints === null) return [`${indent}with:`, `${indent}  egress-policy: audit`];
-
-  return [
-    `${indent}with:`,
-    `${indent}  egress-policy: block`,
-    `${indent}  allowed-endpoints: >`,
-    ...endpoints.map((endpoint) => `${indent}    ${endpoint}`),
-  ];
-}
-
-/** 読み飛ばす末尾。書き換えた 3 行と、既にあった許可リストの続き。 */
+/**
+ * 読み飛ばす末尾。`with:` の下で、それより深く字下げされた行が続く限り。
+ *
+ * @param lines - ファイルの全行
+ * @param at - `uses:` の行の位置
+ * @param indent - その字下げ
+ * @returns step の最後の行の位置
+ */
 function endOfStep(lines: readonly string[], at: number, indent: string): number {
-  let last = at + 2;
+  let last = at + 1;
 
-  if (lines[last + 1]?.startsWith(`${indent}  allowed-endpoints:`)) {
-    last += 1;
-    while (lines[last + 1]?.startsWith(`${indent}    `)) last += 1;
-  }
+  while (lines[last + 1]?.startsWith(`${indent}  `)) last += 1;
 
   return last;
 }
@@ -107,6 +184,10 @@ export type EgressReport = {
   readonly malformed: string[];
   /** 監査のまま残した workflow の名前。 */
   readonly audited: string[];
+  /** bullfrog の step を持っていた job（`<workflow>/<job>`）。 */
+  readonly jobs: string[];
+  /** `steps:` を持つのに bullfrog の step を持たない job（`<workflow>/<job>`）。 */
+  readonly missing: string[];
 };
 
 /** `.github/workflows` の定義ファイル名（拡張子を除く）を並べる。 */
@@ -127,18 +208,27 @@ export function runEgress(root: string, declaration: Declaration, dryRun: boolea
   const updated: string[] = [];
   const malformed: string[] = [];
   const audited: string[] = [];
+  const jobs: string[] = [];
+  const missing: string[] = [];
+  const ips = allowedIps(declaration);
 
   for (const name of workflowNames(root)) {
     const relative = `${WORKFLOW_DIR}/${name}.yaml`;
     const file = join(root, relative);
     const data = readFileSync(file, "utf8");
-    const endpoints = endpointsFor(declaration, name);
+    const domains = domainsFor(declaration, name);
 
-    if (endpoints === null) audited.push(name);
+    if (domains === null) audited.push(name);
 
-    const result = rewriteHarden(data, endpoints);
+    const result = rewriteStep(data, (job) => ({
+      domains,
+      ips,
+      sudo: sudoFor(declaration, name, job),
+    }));
 
     for (const at of result.malformed) malformed.push(`${relative}:${at}`);
+    for (const job of result.jobs) jobs.push(`${name}/${job}`);
+    for (const job of result.missing) missing.push(`${name}/${job}`);
 
     if (result.out === data) continue;
 
@@ -147,9 +237,11 @@ export function runEgress(root: string, declaration: Declaration, dryRun: boolea
       continue;
     }
 
-    writeFileSync(file, result.out, { mode: FILE_MODE });
+    writeFileSync(file, result.out);
+    // `mode` は作るときにしか効かない。既にあるファイルの権限は書いた後で揃える。
+    chmodSync(file, FILE_MODE);
     updated.push(relative);
   }
 
-  return { drifted, updated, malformed, audited };
+  return { drifted, updated, malformed, audited, jobs, missing };
 }

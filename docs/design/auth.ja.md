@@ -15,7 +15,7 @@
 | 持つもの | 持たないもの |
 | --- | --- |
 | サインインの導線（`/login`）と、認証を始める操作 | 資格情報の正しさの判定・試行回数の制限・ロックアウト（バックエンド / IdP） |
-| IdP から受け取ったトークンを **httpOnly cookie に封緘して持つ**こと | トークンの発行・署名鍵・利用者の記録 |
+| IdP から受け取ったトークンを **httpOnly cookie に封緘して持つ**こと | トークンの発行・署名鍵・ユーザーの記録 |
 | session を読んで**エントリポイントを捌く**こと（前捌きと確定認可） | 役割の canonical（バックエンドが持つ。session に載るのは確立時のコピー） |
 
 この非対称が可能にするのは、**IdP を替えても画面が変わらない**ことである。このレイヤーが IdP について知っているのは `AUTH_ISSUER` 1 つと、そこから引く Discovery 文書だけで、IdP 固有の SDK も資格情報も依存に入っていない。バックエンドの役割体系も知らない —— 知っているのは「特権を持つ側 / 持たない側」の 2 値だけで（`src/model/session.ts` の `SESSION_ROLE`）、この集合は自分の体系へ置き換える。
@@ -87,11 +87,11 @@ sequenceDiagram
   C-->>B: 302 returnUrl（もう一度検証してから）
 ```
 
-**始めるのは form であってリンクではない。** 認可要求の開始は一時状態の cookie を置く操作なので、リンクにすると prefetch で利用者が押していないのに始まる。
+**始めるのは form であってリンクではない。** 認可要求の開始は一時状態の cookie を置く操作なので、リンクにすると prefetch でユーザーが押していないのに始まる。
 
 **callback の失敗はすべて `/login` へ戻す。** `state` 不一致・復号失敗・`nonce` 不一致・`azp` 不一致・IdP がエラーを返した場合のどれも同じ扱いで、理由は画面に出さず記録にだけ残す。何が欠けたか（`code` / `state` / 一時状態）は booleans で記録され、IdP 側の設定違いで全員が入れない状態になったときの手掛かりはそこにしかない。
 
-ログアウトは `POST /api/auth/logout` だけが受ける。`signOut()` は**先に自分の cookie を消し**、それから IdP の終了エンドポイント（Discovery の `end_session_endpoint` に `id_token_hint` を添えた URL）を返す。Route Handler はそこへ 303 で送り出す。**IdP 側の session を終わらせるのは、この応答ではなく次の遷移である** —— IdP の session を持っているのは利用者のブラウザの cookie で、サーバから叩いた要求にそれは載らない。送り先を組み立てられなくてもトップへ戻す。手元の cookie は既に消えているので、利用者はログアウトできている。
+ログアウトは `POST /api/auth/logout` だけが受ける。`signOut()` は**先に自分の cookie を消し**、それから IdP の終了エンドポイント（Discovery の `end_session_endpoint` に `id_token_hint` を添えた URL）を返す。Route Handler はそこへ 303 で送り出す。**IdP 側の session を終わらせるのは、この応答ではなく次の遷移である** —— IdP の session を持っているのはユーザーのブラウザーの cookie で、サーバーから叩いた要求にそれは載らない。送り先を組み立てられなくてもトップへ戻す。手元の cookie は既に消えているので、ユーザーはログアウトできている。
 
 ## 保護の掛かる場所
 
@@ -121,7 +121,7 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 ## dev / live のモード —— 何を差し替え、何を差し替えないか
 
-軸は 2 つあり、直交している。**API の相手**（`APP_API_MODE=mock | live`）と、**認可の開始先**（`AUTH_MODE=idp | dev`）である。前者は `mocks/` が差し替える（認証はそこを通らない —— IdP との往復は Discovery が示すエンドポイントへ出るもので、契約から生成したハンドラは間に挟まらない）。後者がここの主題である。
+軸は 2 つあり、直交している。**API の相手**（`APP_API_MODE=mock | live`）と、**認可の開始先**（`AUTH_MODE=idp | dev`）である。前者は `mocks/` が差し替える（認証はそこを通らない —— IdP との往復は Discovery が示すエンドポイントへ出るもので、契約から生成したハンドラーは間に挟まらない）。後者がここの主題である。
 
 | `APP_ENV` | `APP_API_MODE` | `AUTH_MODE` | 到達のしかた |
 | --- | --- | --- | --- |
@@ -145,27 +145,27 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 **live に繋ぐとき、Bearer は `/dev/session` が取る。** 「誰として入るか」に入れた主体で、指定した issuer の Discovery を引き、Resource Owner Password Credentials で主体を名指ししたトークンを取る（`development-token.ts`）。接続先を設定から固定しないのは、バックエンドを複数のポートで並行して立てる開発機では、いま叩いている API が期待する IdP と `AUTH_ISSUER` がずれるためである。ずれたまま取るとトークンは出るのに API で 401 になる。この付与方式は本物の IdP で使ってはならない（廃止済み）—— 通るのは、照合する相手が居ない開発用の実装だからである。mock に繋いでいる間は Bearer を検証する先が無いので、空欄で足りる。
 
-**開発用のエンドポイントは 2 重に閉じている。** `page.dev.tsx` / `route.dev.ts` の拡張子は、`next.config.ts` が `isDevelopmentOnlyEndpointOpen()` を見て build に含めるかを決めるので、実環境の成果物には面そのものが無い。加えて実行時に、画面・Server Action・Route Handler がそれぞれ `isDevelopmentAccessAllowed()`（環境 + `Host` / `X-Forwarded-Host` が手元の名前）を呼び、閉じているときは 404 を返す。宛先の判定は防御線ではない —— `Host` は名乗る値で偽れる。止めるのは設定を誤ったまま公開したときに普通の利用者が普通に踏む経路で、狙って偽る相手を止めるのは環境の側である。
+**開発用のエンドポイントは 2 重に閉じている。** `page.dev.tsx` / `route.dev.ts` の拡張子は、`next.config.ts` が `isDevelopmentOnlyEndpointOpen()` を見て build に含めるかを決めるので、実環境の成果物には面そのものが無い。加えて実行時に、画面・Server Action・Route Handler がそれぞれ `isDevelopmentAccessAllowed()`（環境 + `Host` / `X-Forwarded-Host` が手元の名前）を呼び、閉じているときは 404 を返す。宛先の判定は防御線ではない —— `Host` は名乗る値で偽れる。止めるのは設定を誤ったまま公開したときに普通のユーザーが普通に踏む経路で、狙って偽る相手を止めるのは環境の側である。
 
 ## 開発用 IdP が持たないもの
 
 `local` が繋ぐ開発用 IdP（バックエンドの compose が立てる）は、このレイヤーが要るものを揃えている —— OIDC Discovery、Authorization Code + PKCE、`end_session_endpoint`、主体を名指しできるパスワード付与。**同時に、実在の IdP が持つもののうち 3 つを持たず、設計はそれを前提に組んである。** 立っている実物に対して確かめた結果である。
 
 1. **refresh token を返さない。** token endpoint の応答は `access_token` / `id_token` / `expires_in`（3600 秒）だけで、Resolver の面に `refresh` が無いのと釣り合っている。**失効に到達する手段は、待つか、`/dev/session` で失効秒数を短くして入るかの 2 つ**である。失効後の見え方（復帰先付きでログインへ送られる）は後者で踏む。
-2. **利用者の記録も役割も持たない。** ログイン画面（またはパスワード付与）に入れた名前がそのまま `sub` になり、誰でも認証は成功する。このレイヤーが役割を IdP の claim から読まずバックエンドから引くのはこのためで、バックエンドに登録の無い主体はトークンこそ出るが API で 401 になる。**特権を持つ側と持たない側を切り替えたいときは、登録済みの主体を使い分けるか、`/dev/session` で役割を直接与える**（[ADR 0113](../adr/0113-development-access-surface.ja.md) —— 制御面は到達したい状態で決め、実システムのポリシーで狭めない）。なお `mock` の側でも「認証済みだが記録が無い」状態は作れない —— 契約から生成したハンドラは 404 を返さない。
+2. **ユーザーの記録も役割も持たない。** ログイン画面（またはパスワード付与）に入れた名前がそのまま `sub` になり、誰でも認証は成功する。このレイヤーが役割を IdP の claim から読まずバックエンドから引くのはこのためで、バックエンドに登録の無い主体はトークンこそ出るが API で 401 になる。**特権を持つ側と持たない側を切り替えたいときは、登録済みの主体を使い分けるか、`/dev/session` で役割を直接与える**（[ADR 0113](../adr/0113-development-access-surface.ja.md) —— 制御面は到達したい状態で決め、実システムのポリシーで狭めない）。なお `mock` の側でも「認証済みだが記録が無い」状態は作れない —— 契約から生成したハンドラーは 404 を返さない。
 3. **実在の IdP が拒むものを拒まない。** `redirect_uri` は登録と照合されず、PKCE は `plain` も広告され強制されない。したがって**認可の往復を守る検証はすべてこちら側にある** —— S256 しか実装しない `pkce.ts`、`state` / `nonce` / `azp` の突合、`iss` と Discovery の `issuer` の完全一致、復帰先と `post_logout_redirect_uri` を `redirectUri` から導くこと。開発用 IdP で通ったことは、実在の IdP で通ることを保証しない。逆に、実在の IdP に登録する値（callback URL・ログアウト後の戻り先）は、開発用 IdP では要らなかった分だけ忘れやすい。
 
 ## 資格情報が出てはいけない境界
 
 | 境界 | 何が止めるか |
 | --- | --- |
-| **ブラウザ** | Access Token は `Session` 型に含めない。cookie は httpOnly。`SessionRecord` と `AUTH_SESSION_SECRET` は taint に登録され、Client Component へ渡した時点でレンダリングが落ちる。`/dev/session` は貼った Access Token を読み返す欄を持たない |
+| **ブラウザー** | Access Token は `Session` 型に含めない。cookie は httpOnly。`SessionRecord` と `AUTH_SESSION_SECRET` は taint に登録され、Client Component へ渡した時点でレンダリングが落ちる。`/dev/session` は貼った Access Token を読み返す欄を持たない |
 | **ログ・span** | `authorization` / `cookie` / `password` / `token` の名前を持つ項目を一律に伏せる（`src/logging/logger.ts` の `REDACTED_FIELD_NAMES`。値の形は見ない）。callback が記録するのは何が欠けたかの booleans と `cause` の文字列だけで、トークンは持ち回らない |
 | **外向きの要求** | Bearer を付けるのは `baseUrl` と同じ origin へ出る要求だけ（`request.ts` の `authorizationHeader`）。Discovery が返す絶対 URL のように接続先を離れる宛先には載せない。取得エンドポイントへ渡せるのは import した `getBearerToken` だけで、掴んだ値・引数で持ち回った値は lint が落とす |
 | **第三者のクライアント** | `/api/*` への CORS は `HTTP_ALLOWED_ORIGINS` に宣言した origin にしか開かず、宣言に無い origin からの状態を変える要求は前捌きが 403 で止める。ログアウトは POST だけを受ける（GET で消せると `<img src>` だけでログアウトさせられる） |
 | **設定** | 同梱の `AUTH_SESSION_SECRET` は `local` / `ci` 以外で起動を拒む。公開リポジトリに平文で載っている値なので、それで封緘した cookie は誰でも偽造できる |
 
-**通過するだけの値に責任範囲が広がるのは、保存・ログ・派生を始めた時点である。** ID Token だけは例外で、ログアウトの送り先に `id_token_hint` として埋めて外へ出る —— RP-Initiated Logout は利用者のブラウザ経由でそれを IdP へ届ける手順であり、届かないと IdP 側が終わらない。出るのはこの 1 用途だけで、Access Token は今も外へ出ない。
+**通過するだけの値に責任範囲が広がるのは、保存・ログ・派生を始めた時点である。** ID Token だけは例外で、ログアウトの送り先に `id_token_hint` として埋めて外へ出る —— RP-Initiated Logout はユーザーのブラウザー経由でそれを IdP へ届ける手順であり、届かないと IdP 側が終わらない。出るのはこの 1 用途だけで、Access Token は今も外へ出ない。
 
 ## 資格情報の入力面 —— いまの実装と ADR 0079 の差
 
@@ -173,7 +173,7 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 
 | | ADR が定める形（認証画面を意匠ごと所有し、借り物の画面は federation に限る） | いまの実装 |
 | --- | --- | --- |
-| 資格情報の入力面 | `/login` が所有する。利用者は自分のドメインを離れない | **IdP の画面（借り物）が受け取る。** `/login` は「ログインへ進む」の 1 ボタンで、`/api/auth/login` が authorize endpoint へ 302 する |
+| 資格情報の入力面 | `/login` が所有する。ユーザーは自分のドメインを離れない | **IdP の画面（借り物）が受け取る。** `/login` は「ログインへ進む」の 1 ボタンで、`/api/auth/login` が authorize endpoint へ 302 する |
 | 検証との接点 | Route Handler がバックエンドへ中継し、バックエンドが正規化したチャレンジを返す | **デフォルト Resolver が OIDC クライアントとして IdP と直接往復する**（Discovery / token 交換 / JWKS） |
 | 借り物の画面が現れる場所 | federation の連携先と IdP の終了エンドポイントだけ | **主たる経路そのもの** |
 
@@ -213,4 +213,4 @@ matcher は `_next/static` / `_next/image` / metadata ファイルを外して�
 - [0070](../adr/0070-backend-role-separation.ja.md) — 認証本体は out of scope。役割の canonical はバックエンド
 - [0021](../adr/0021-frontend-responsibility.ja.md) — `adapters/server/auth` へ触れてよいレイヤー
 - [0080](../adr/0080-error-handling.ja.md) — 401 / 403 の分類と、`unauthenticated` を畳まないこと
-- [0111](../adr/0111-csp-security-headers.ja.md) — 応答ヘッダの配置。`proxy.ts` が持つ `Cache-Control`
+- [0111](../adr/0111-csp-security-headers.ja.md) — 応答ヘッダーの配置。`proxy.ts` が持つ `Cache-Control`

@@ -24,7 +24,7 @@ Accepted
 
 - **biome の a11y ルール群を活用**する([0002](0002-formatter-linter.ja.md)。biome は静的 a11y lint を担う)。完全版プロファイルの `lint:ci`([0002](0002-formatter-linter.ja.md))で CI 強制する
 - 実行時 DOM の ARIA 整合・コントラスト実測等の**自動検査**は [0091](0091-test-verification-methods.ja.md) が採用した axe(`vitest-axe` / `@axe-core/playwright`)が担う(biome は静的 lint、axe は実行時 DOM 検査という役割分担)
-- **UI カタログ上でも同じ実行時検査を効かせる**([0054](0054-ui-catalog-storybook.ja.md))。test では jsdom が再現しない layout・focus・スクロールを伴う状態を、カタログ側の canvas が実ブラウザで持つためである。**カタログの story が違反ゼロであることを、その component を「完了」と呼ぶ条件に含める**
+- **UI カタログ上でも同じ実行時検査を効かせる**([0054](0054-ui-catalog-storybook.ja.md))。test では jsdom が再現しない layout・focus・スクロールを伴う状態を、カタログ側の canvas が実ブラウザーで持つためである。**カタログの story が違反ゼロであることを、その component を「完了」と呼ぶ条件に含める**
 - 自動検査が「要確認」に倒す指摘のうち、**検査器が構造上判定できないと分かっているもの**は追いかけ直さない。判定できない理由と、代わりに何を test で固定したかを component の README に記す。違反(violation)と要確認(incomplete)を同じ扱いにすると、追えない指摘が恒常的に残って検査全体が読まれなくなる
 - 手動チェックは、それらで機械化できない体験面(スクリーンリーダー体験等)に限定する
 
@@ -44,7 +44,7 @@ Accepted
 - [0002-formatter-linter.md](0002-formatter-linter.ja.md) — biome a11y ルール(静的検査の手段)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — `components` 純 UI(アクセシブルの土台)
 - [0091-test-verification-methods.md](0091-test-verification-methods.ja.md) — 実行時 a11y 自動検査 = axe(`vitest-axe` / `@axe-core/playwright`)の組込(本 ADR の自動検査手段)
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.ja.md) — UI カタログ(コンポーネント単位で実ブラウザの a11y 検査を効かせる面)
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.ja.md) — UI カタログ(コンポーネント単位で実ブラウザーの a11y 検査を効かせる面)
 - [0051-styling-system.md](0051-styling-system.ja.md) — `prefers-reduced-motion` の尊重(WCAG SC 2.3.3 = AAA 相当。AA 目標とは独立に必須とする根拠水準は 0051 側が持つ)
 - [0090-testing-strategy.md](0090-testing-strategy.ja.md) — E2E(機械化できる a11y 確認)
 - [0050-styling-strategy.md](0050-styling-strategy.ja.md) — Tailwind(コントラスト等 design token と接続)

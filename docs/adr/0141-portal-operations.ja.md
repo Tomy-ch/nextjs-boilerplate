@@ -39,7 +39,7 @@ portal は canonical ドキュメントの生成ビューである。何を載�
 - **生成スクリプト(`scripts/portal/`)**: manifest の `src`→`dst` コピー(`gen-portal-docs`)/ manifest + FS スキャンから `docs.json` 出力(`gen-docs-json`)。判断はいずれも純粋関数へ寄せ、FS 入出力は CLI 側に閉じる(テスト可能性)
 - **ビューアーは独立した workspace パッケージ(`docs-viewer/`)**、ビルドは **Vite**。パッケージを分けるのは**無害化の許容範囲がアプリ本体と違う**ためで、ドキュメントに必要な広い allowlist(`table` / `pre` / `img` / `language-*` class)を **アプリから import できない位置**へ置く。分離を規約ではなくパッケージ境界で担保する。esbuild ではなく Vite なのは、デザイントークンを通すのに Tailwind のビルドが要るため
 - **配信 = GitHub Pages**。`production` への push で発火する。**Pages はリポジトリに 1 サイトしか持てない**ため、`docs/` をサイトルートへコピーし、portal を `/portal/`、Storybook を `/storybook/` と兄弟に並べる。ルートはエントリポイントへの転送だけを持つ
-- **deep-link は位置ハッシュ(`#/<group>/<section>`)で表すため、404 fallback を必要としない**。経路がサーバへ届かない
+- **deep-link は位置ハッシュ(`#/<group>/<section>`)で表すため、404 fallback を必要としない**。経路がサーバーへ届かない
 - **portal を指すリンクは `make setup-replace-repository-reference` が差し替える**。デフォルトは `<owner>/<repo>` から組み立てたサイトルートで、custom domain は `PORTAL_URL` で上書きする。置換前は汎用リンクが生きるよう、`portal` マーカー(`portal:replace-*`)で 2 本を切り替える
 - **生成物(`guides/` / `docs.json`)は追跡しない**。配信時に組み立てるためドリフトが発生しえず、ドリフト検出の仕組みを持たない
 
@@ -50,7 +50,7 @@ portal は canonical ドキュメントの生成ビューである。何を載�
 
 ### 6. 実装状況
 
-- **Pages の有効化と、`github-pages` environment の deployment branch policy への配信元ブランチの許可は `make pages-delivery-apply` が持ち、`make setup-repo` が呼ぶ**。許可が無いと `docs-deploy` は job としては起動するが step を 1 つも実行せずに落ち、ログに理由が出ない —— 配信元は workflow の push トリガと 1 箇所で揃える必要があり、人手の手順に置くと落ちても気付けない
+- **Pages の有効化と、`github-pages` environment の deployment branch policy への配信元ブランチの許可は `make pages-delivery-apply` が持ち、`make setup-repo` が呼ぶ**。許可が無いと `docs-deploy` は job としては起動するが step を 1 つも実行せずに落ち、ログに理由が出ない —— 配信元は workflow の push トリガーと 1 箇所で揃える必要があり、人手の手順に置くと落ちても気付けない
 - ドリフトの機械検出は生成スクリプトが持ち(`portal:guides` は stale で非 0、`portal:docs` は構造の警告を出す)、`portal-manifest-sync` はそれを読み取ったうえで、生成側が黙って飲み込む配置(`Other` へ落ちる登録)と curation 候補の分類を担う
 
 ## 禁止事項

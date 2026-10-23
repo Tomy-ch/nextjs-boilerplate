@@ -3,6 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import commitlint from "../../../commitlint.config";
+import { parseDeclaration } from "../../egress/declaration";
 import { ROOT_DIR } from "../lib/runtime";
 import { SCANNER_DOMAINS } from "./scanner-manifest";
 
@@ -52,12 +53,13 @@ describe("SCANNER_DOMAINS", () => {
     }
   });
 
-  it("宛先の宣言が実在する workflow のキーを指す", () => {
-    const declaration = fs.readFileSync(path.join(ROOT_DIR, ".github/egress.yaml"), "utf8");
+  it("宛先の宣言が workflows か audit のキーを指す", () => {
+    const declaration = parseDeclaration(read(".github/egress.yaml"));
+    const keys = [...Object.keys(declaration.workflows), ...Object.keys(declaration.audit)];
 
     for (const domain of SCANNER_DOMAINS) {
-      for (const job of domain.egressJobs) {
-        expect(declaration).toContain(`  ${job}:`);
+      for (const name of domain.egressWorkflows) {
+        expect(keys, name).toContain(name);
       }
     }
   });

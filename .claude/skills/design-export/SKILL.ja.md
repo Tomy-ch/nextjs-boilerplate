@@ -33,7 +33,7 @@ ADR [0055](../../../docs/adr/0055-design-system-export.ja.md) が依存の向き
 何かを生成する前に `AskUserQuestion` を呼ぶ。
 
 1. **送り先** — どの外部ツールが bundle を受け取るか。会話から推測しない。送り先がその後のすべてを決める
-2. **範囲** — デザインシステム全体か、部分か（`design-system` のような層、または名指しの component）。bundle は全体でも安価に作れるので、利用者が特定の部分を狙っていない限り全体を選ぶ
+2. **範囲** — デザインシステム全体か、部分か（`design-system` のような層、または名指しの component）。bundle は全体でも安価に作れるので、ユーザーが特定の部分を狙っていない限り全体を選ぶ
 
 送り先がまだ決まっていない場合も bundle は作り、Step 2 で止める。bundle 自体が単独で役に立つ。添付し、貼り、読ませる対象がそれである。
 
@@ -69,7 +69,7 @@ Claude・v0・Lovable などにデザインシステムの取り込み API は�
 
 ### 送り先 B — Figma
 
-Figma はファイルを渡して届く相手ではない。REST API はデザイン内容を作らない。frame・component・variable を作るのは Plugin API で、実行主体は Figma エディタの中である。したがって経路は script ではなく、Figma へ届くエージェントになる。
+Figma はファイルを渡して届く相手ではない。REST API はデザイン内容を作らない。frame・component・variable を作るのは Plugin API で、実行主体は Figma エディターの中である。したがって経路は script ではなく、Figma へ届くエージェントになる。
 
 作り直さず委譲する。`figma-generate-library` plugin skill がまさにこの仕事のためにあり、コードベースから Figma のデザインシステムを作る（variable・component の variant・トークンのバインドを含む）。`figma-use` は下回りの操作を扱う。両者を読み込み、bundle を正として渡す。
 
@@ -77,7 +77,7 @@ Figma はファイルを渡して届く相手ではない。REST API はデザ�
 - `catalog.md` が何をどの順で作るかを決める。層ごとに、他の層が合成する `design-system` から先に作る
 - `r/*.json` が各 component の props と variant を持つ
 
-Figma ファイルへ書き込む前に利用者へ確認する。library の作成や再構成は外向きで戻しにくい操作であり、他の人が共有しているドキュメントに対して行う可能性がある。
+Figma ファイルへ書き込む前にユーザーへ確認する。library の作成や再構成は外向きで戻しにくい操作であり、他の人が共有しているドキュメントに対して行う可能性がある。
 
 ## Step 4. 報告する
 

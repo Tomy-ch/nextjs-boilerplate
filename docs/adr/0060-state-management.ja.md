@@ -18,7 +18,7 @@ Accepted
 
 ### Server state = Server Component fetch デフォルト
 
-- サーバ由来のデータは **Server Component 内の `fetch` をデフォルト**とする([0040](0040-routing-rendering-strategy.ja.md))
+- サーバー由来のデータは **Server Component 内の `fetch` をデフォルト**とする([0040](0040-routing-rendering-strategy.ja.md))
 - クライアントでのデータ取得・キャッシュ(TanStack Query 等)は本リポジトリで前提にしない。必要な取得の編成は feature の server 関数 / `adapters` 経由([0021](0021-frontend-responsibility.ja.md) / [0071](0071-bff-api-integration.ja.md))で行う。キャッシュ設計は **[0071](0071-bff-api-integration.ja.md)(BFF / API 統合)** の責務。無限スクロールの増分取得だけは、このデフォルトに対する限定例外として [0073](0073-pagination-fetch-boundary.ja.md) が所有する
 
 ### Client state = local-first
@@ -26,7 +26,7 @@ Accepted
 - クライアント状態は **local state(`useState` / `useReducer`)を起点**とする。Context は濫用せず、真にツリーを跨ぐ共有が必要な範囲に限る
 - **深い受け渡しは、まず合成で解く。** 中間のコンポーネントが値を素通しするだけなら、そのコンポーネントへ `children` を渡して受け渡しの経路そのものを無くす。Context を使うのは、受け取る側がツリーのどこに現れるか呼び出し側から決められないときに限る
 - URL state(search params / route params)は Next.js の標準機構で扱う([0040](0040-routing-rendering-strategy.ja.md))
-- **`nuqs` 等の searchParams 同期ヘルパは採らない**。[0004](0004-library-management.ja.md) の一次判定は通るが、一覧のフィルタ / sort / ページングは **URL 変更 → RSC 再取得**で成立しており、client state と URL を同期させるレイヤーを必要としないため。実装して不足を感じてから入れる
+- **`nuqs` 等の searchParams 同期ヘルパーは採らない**。[0004](0004-library-management.ja.md) の一次判定は通るが、一覧のフィルター / sort / ページングは **URL 変更 → RSC 再取得**で成立しており、client state と URL を同期させるレイヤーを必要としないため。実装して不足を感じてから入れる
 - **ただし「入れない」= 各画面が独自実装してよい、ではない**。`searchParams` の標準形は**読む側と組む側の 2 か所**で持つ。読む側は `model/search-params.ts`(同じキーの繰り返しを値の意味へ直す規則。`RawSearchParams` / `singleValue` / `repeatedValues`)を通した zod スキーマで、`page.tsx` は素の `searchParams` を `RawSearchParams` のまま feature の読む module(`read-<対象>.ts`)へ渡す。組む側(URL の綴りとキーの語彙)は行き先の feature が 1 か所で持ち、読む側とは別 module にする。デフォルトへ倒すか落とすか・URL に何を載せるかの規約は [`docs/rules.md`](../rules.ja.md#url)が所有する。強制: `model/search-params` の単体テストと、各 feature の読む module の単体テスト。読む側を必ず `model/search-params` 経由にすることは散文 —— **寄せられる**(`page.tsx` の `searchParams` を `Promise<RawSearchParams>` 以外で受ける宣言と、`model/search-params` の外での `RawSearchParams` 値へのプロパティ直参照は静的に検出できるが、規則は無い)
 - 単一 feature 内で完結する状態は feature 内 local に留める(横断性が無ければ昇格しない。[0021](0021-frontend-responsibility.ja.md) 昇格ルール)
 
@@ -38,15 +38,15 @@ Accepted
 
 ### server で処理するか client で処理するかの線引き
 
-Server Actions と Server Component fetch をデフォルトに置くのは、**画面側で面倒を見る処理をサーバへ肩代わりさせる**ためである。したがって、サーバへ寄せることがかえって処理を増やす場合、それは client の関心である。判定は難易度の感覚ではなく、次の 1 点で行う。
+Server Actions と Server Component fetch をデフォルトに置くのは、**画面側で面倒を見る処理をサーバーへ肩代わりさせる**ためである。したがって、サーバーへ寄せることがかえって処理を増やす場合、それは client の関心である。判定は難易度の感覚ではなく、次の 1 点で行う。
 
-**その情報をサーバが持っているか。**
+**その情報をサーバーが持っているか。**
 
-- **状態を変える操作はサーバ**。結果の正はバックエンドが持つ([0061](0061-form-mutation-ux.ja.md) / [0070](0070-backend-role-separation.ja.md))
-- **表示に要るデータの取得もサーバ**。client はコピーを持たない(本 ADR のデフォルト / [0023](0023-stores-kernel.ja.md))
-- **画面が今どう見えているかは client**。サーバが知らず、知る必要もないもの
+- **状態を変える操作はサーバー**。結果の正はバックエンドが持つ([0061](0061-form-mutation-ux.ja.md) / [0070](0070-backend-role-separation.ja.md))
+- **表示に要るデータの取得もサーバー**。client はコピーを持たない(本 ADR のデフォルト / [0023](0023-stores-kernel.ja.md))
+- **画面が今どう見えているかは client**。サーバーが知らず、知る必要もないもの
 
-**線を越えた合図は、サーバの応答から画面の直前の姿を組み立て直す必要が出たときである。** 組み立て直しの手掛かりはサーバが一度も持っておらず、client が最初から知っている。手掛かりを client 側で番号や順序として持ち回り始めたら、それは server 主導で書けない処理を server 主導で書いている。
+**線を越えた合図は、サーバーの応答から画面の直前の姿を組み立て直す必要が出たときである。** 組み立て直しの手掛かりはサーバーが一度も持っておらず、client が最初から知っている。手掛かりを client 側で番号や順序として持ち回り始めたら、それは server 主導で書けない処理を server 主導で書いている。
 
 逆向きの越境もある。**client へ持たせた時点で再取得・無効化・購読といった鮮度の管理が要るものは server の関心**であり、降ろしてはならない([0023](0023-stores-kernel.ja.md) の 3 条件)。
 
@@ -67,7 +67,7 @@ Server Actions と Server Component fetch をデフォルトに置くのは、**
 
 1. 同一画面で **4 つ以上の状態**を持つ
 2. 遷移が**条件付き**である(同じ操作でも現在の状態によって行き先が変わる)
-3. 遷移の誤りが**利用者に見える損害**になる(二重送信・巻き戻し・到達不能な画面)
+3. 遷移の誤りが**ユーザーに見える損害**になる(二重送信・巻き戻し・到達不能な画面)
 
 3 条件を満たさないものは上の 3 手段で書く。**状態が多いこと自体は理由にならない** —— 数が多くても遷移が一直線なら `useReducer` で足り、ステートマシンを持ち込むと読む側が状態表と実装を往復することになる。
 

@@ -6,7 +6,7 @@
 
 ## 用途
 
-注意、失敗、利用者が次に取る行動を文脈内で伝えます。
+注意、失敗、ユーザーが次に取る行動を文脈内で伝えます。
 
 ## 役割と公開 component
 
@@ -22,7 +22,7 @@
 
 ## 責務境界
 
-Server Component として表示だけを担います。状態判定、取得、再試行、dismiss、業務文言は feature が所有します。利用者の操作を必要とする失敗は、必要な link や Button を `AlertDescription` へ合成します。
+Server Component として表示だけを担います。状態判定、取得、再試行、dismiss、業務文言は feature が所有します。ユーザーの操作を必要とする失敗は、必要な link や Button を `AlertDescription` へ合成します。
 
 ## Storybook とテスト
 

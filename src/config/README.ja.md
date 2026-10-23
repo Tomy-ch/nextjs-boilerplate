@@ -17,7 +17,7 @@
 
 ## config 一覧
 
-| モジュール | 用途 | 種別 | 利用者 |
+| モジュール | 用途 | 種別 | ユーザー |
 | --- | --- | --- | --- |
 | `application-environment.ts` | `APP_ENV` の解決と、環境変数だけから決まる判定（開発専用のエンドポイントを開けてよい環境か）。Node API を使わないので `proxy.ts` から辿れる | server + build 境界 | `environment.ts` / `load-environment.ts` / `next.config.ts` / `adapters/server/auth` |
 | `load-environment.ts` | `env/.env.<環境>` の一度きりの読込。`dotenv` と `node:path` を使うため、起動 / ビルド境界だけが呼ぶ | server + build 境界 | `bootstrap.server.ts` / `next.config.ts` / build script / `playwright.e2e.config.ts` |
@@ -33,8 +33,8 @@
 | `observability/observability.schema.ts` / `observability/observability.server.ts` | service 名・OTLP endpoint・signal 別 exporter の schema / Config | server | 起動・ビルド境界 |
 | `http/http.schema.ts` / `http/http.server.ts` / `http/http.client.ts` | リクエスト URL とアップロードに許すバイト数の上限、BFF を別 origin から呼ばせる相手の schema / Config | server + client | `adapters/server` / `adapters/client` / `src/proxy.ts` と起動・ビルド境界 |
 | `site/site.schema.ts` / `site/site.server.ts` | 外から見た origin と、インデックスさせてよいかの schema / Config | server | `app`（root layout の metadata / `sitemap.ts` / `robots.ts`）と起動・ビルド境界 |
-| `analytics/analytics.schema.ts` / `analytics/analytics.client.ts` | 同意ゲートの裏で読み込むタグマネージャのコンテナ ID の schema / Config。**空は「読み込まない」という指定**で、Google への依存を外す口になる | client | `app` の client island |
-| `security-headers/security-headers.ts` | 全経路に付ける配信ヘッダ（CSP と同伴ヘッダ）の組み立て | build 境界 | `next.config.ts` |
+| `analytics/analytics.schema.ts` / `analytics/analytics.client.ts` | 同意ゲートの裏で読み込むタグマネージャーのコンテナー ID の schema / Config。**空は「読み込まない」という指定**で、Google への依存を外す口になる | client | `app` の client island |
+| `security-headers/security-headers.ts` | 全経路に付ける配信ヘッダー（CSP と同伴ヘッダー）の組み立て | build 境界 | `next.config.ts` |
 
 各 `config/<purpose>/<purpose>.schema.ts` が自分の目的に属する Zod validator を、対応する
 `<purpose>.server.ts` が不変 Config を所有します。`environment.ts` は validator を呼んで全量検証を
@@ -78,7 +78,7 @@ purpose は値を読む側の**サブシステム**の単位で、読み手が�
   配信されているか）、**他の状態と併せる判定は読み手が持つ**。認可の開始先が `dev` でも、実際に
   開発用の経路を選ぶかは環境と併せて `adapters/server/auth` が決める。config はその値を運ぶだけで、
   「この値だけでは効かない」ことを getter の文書に書く。
-- 呼ぶたびに新しい値を返すアクセサは、返す実体を共有しない。固定された「いま」も `now()` は毎回新しい
+- 呼ぶたびに新しい値を返すアクセサーは、返す実体を共有しない。固定された「いま」も `now()` は毎回新しい
   `Date` を返す —— 同じ実体を配ると、受け取った側の破壊的な操作が次の呼び出し元へ伝わる。
 
 ### `<purpose>.client.ts` —— `NEXT_PUBLIC_` の typed view
@@ -86,9 +86,9 @@ purpose は値を読む側の**サブシステム**の単位で、読み手が�
 - `export const NAME: type = <変換>(process.env["NEXT_PUBLIC_..."])` の形だけを持つ。変数名は文字列
   リテラルで名指し、検証はしない（build 時に置換されるのは検証を通った値そのもの）。
 - server と client の両側が同じ変数を読む値（リクエスト URL / アップロードの上限）は、しきい値の宣言を env の
-  1 行に閉じるための形である。**client 側の判定は根拠にしない** —— ブラウザ側は送信者が差し替え
+  1 行に閉じるための形である。**client 側の判定は根拠にしない** —— ブラウザー側は送信者が差し替え
   られるので、受信エンドポイントが同じ値で再び確かめる（[0075](../../docs/adr/0075-file-upload-seam.ja.md)）。
-- ブラウザへ出て困らない値だけを置く。「困らない」の根拠（コンテナ ID はタグを読み込む URL に現れる）を
+- ブラウザーへ出て困らない値だけを置く。「困らない」の根拠（コンテナー ID はタグを読み込む URL に現れる）を
   module の文書に書く。
 
 ### purpose か変数を足すとき
@@ -114,15 +114,15 @@ validator は**変数の形**を検証し、値の意味は判定しません。
 | 形 | 書き方 | 使う変数 |
 | --- | --- | --- |
 | http / https の URL | `z.url()` に protocol の `refine` | 接続先・issuer・callback・OTLP endpoint |
-| origin（scheme + host + port、パス無し） | `new URL(value).origin === value` を `refine` | `Origin` ヘッダと完全一致で比べる値、絶対 URL の base |
+| origin（scheme + host + port、パス無し） | `new URL(value).origin === value` を `refine` | `Origin` ヘッダーと完全一致で比べる値、絶対 URL の base |
 | 選択肢 | `z.enum([...])` | 接続モード・認可の開始先 |
 | 省略できる選択肢 | `z.string().trim().optional().transform(空 → デフォルト).pipe(z.enum([...]))` | on / off のつまみ |
-| 省略できる自由値 | `.optional()` + `refine` + `transform(空 → undefined)`、または `.default("")` に空を許す `refine` | 固定する「いま」・コンテナ ID |
+| 省略できる自由値 | `.optional()` + `refine` + `transform(空 → undefined)`、または `.default("")` に空を許す `refine` | 固定する「いま」・コンテナー ID |
 | バイト数 | `z.coerce.number().int().positive()` | 上限 |
 | カンマ区切りの一覧 | `.default("")` → split / trim / 空要素を除去 → 各要素を `refine` | 許可 origin |
 
 - **origin と URL を区別する。** 絶対 URL の base にする値（外から見た origin）にパスを許すと、
-  `new URL("/path", base)` がそのパスを捨てて意図と結果が食い違う。`Origin` ヘッダと比べる値も
+  `new URL("/path", base)` がそのパスを捨てて意図と結果が食い違う。`Origin` ヘッダーと比べる値も
   同じ形でなければ完全一致にならない。CSP へ載せる origin は組み立て側が `new URL(value).origin`
   に落とすので、URL として受けた値のパスやポートの有無は載る形に影響しない。
 - **省略できる変数は、未設定と空文字を同じ「指定なし」として扱う**（[0030](../../docs/adr/0030-environment-variable-management.ja.md)）。配信する環境の env ファイルはプラットフォームが与える変数だけを並べ、検証や運用のための
@@ -136,8 +136,8 @@ validator は**変数の形**を検証し、値の意味は判定しません。
 - **省略を許すかの基準は「デフォルトが環境によらず正しいか」。** 正しいなら必須にしない —— 全環境へ
   必須にすると、実環境の設定に「開発用ではない」と書くだけの行が増える。環境ごとに変わる値は
   必須にし、欠落を起動 / ビルドの失敗にする。
-- **綴りを検証するのは、誤った値が別の効果を伴って出ていくとき。** コンテナ ID の形を見るのは、値が
-  違えばタグは読めないのに配信ヘッダの許可だけが開いたままになるからで、形の検証はその副作用を
+- **綴りを検証するのは、誤った値が別の効果を伴って出ていくとき。** コンテナー ID の形を見るのは、値が
+  違えばタグは読めないのに配信ヘッダーの許可だけが開いたままになるからで、形の検証はその副作用を
   止めるために置く。
 - **同梱の秘密値は schema がその綴りを知り、`local` / `ci` 以外では拒否する。** 設定し忘れは「値が
   無い」ではなく「既知の値が入っている」形で現れるので、長さの検証では通り抜ける。判定は起動時に
@@ -231,28 +231,28 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 
 - `process.env` の直読はこのカーネルだけに置く（`src/` では biome `noProcessEnv` の override がこのカーネルと `src/instrumentation.ts` だけを外す）。
 - server config は `import "server-only"` で保護する。読み手は `adapters/server`・起動 / ビルド境界・エントリポイントの `proxy.ts` が主で、**`app` は Next.js の規約が route segment に置くことを要求する値だけ**を直に読む（root layout と metadata が読む `config/site`、画面が「いま」として読む `config/clock`）。**本番のバンドルに載らない開発専用画面**（`dev/**` の `page.dev.tsx`）が `config/api` / `config/auth` を直読する形も実在する（[0025](../../docs/adr/0025-app-layer-elements.ja.md) の element 表が記録している）。**読み手の正はここではなく [0021](../../docs/adr/0021-frontend-responsibility.ja.md) のレイヤー定義マッピングと [0025](../../docs/adr/0025-app-layer-elements.ja.md) の禁止事項**で、ここが述べるのはその形だけである —— 読み手を増やす判断はそちらを先に動かす。`adapters` を経由させると、値の置き場が規約で決まっているのに取得エンドポイントだけを増やすことになる。
-- client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側のレイヤーも `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.ja.md)）。
+- client config は `NEXT_PUBLIC_` 変数を文字列リテラルで名指す参照だけを持つ `*.client.ts` に置く。ここで検証はしない（ブラウザーは検証の実行点ではない）。server config の値を props として client へ渡さない。client config は runtime object ではなく公開定数なので import 境界の制限を受けず、client 側のレイヤーも `app` も読める（[0030](../../docs/adr/0030-environment-variable-management.ja.md)）。
 - 環境変数の一覧・テンプレート・secret 管理ラベルは [env/README.md](../../env/README.ja.md) を正とする。
 - proxy から辿れる config は ENV ファイルを読まない。辿れる範囲は `environment.ts` → `application-environment.ts` で止まり、`dotenv` / `node:path` を使う `load-environment.ts` へは届かない。ENV ファイルは起動 / ビルド境界が先に読み込んでいる（[0043](../../docs/adr/0043-middleware-policy.ja.md) の Edge 互換。`scripts/proxy-edge.gate.test.ts` が辿れるグラフを見る）。
 
-## 配信ヘッダの組み立て
+## 配信ヘッダーの組み立て
 
-`security-headers/security-headers.ts` はヘッダの**内容**の根拠を持ちません（[0111](../../docs/adr/0111-csp-security-headers.ja.md)）。
+`security-headers/security-headers.ts` はヘッダーの**内容**の根拠を持ちません（[0111](../../docs/adr/0111-csp-security-headers.ja.md)）。
 ここが持つのは組み立ての形です。
 
 - **入力は検証済みの ENV の生値と配信の条件**（https か / 開発サーバーか）で、`next.config.ts` が
   `getEnvironment()` から渡す。ENV 由来の origin をここへ直接書くと、環境変数と設定の 2 か所が
   別々に動く。
-- **値の意味づけは 1 か所で行う。** 「空は読み込まない」を呼び出し側で真偽値へ潰さず、コンテナ ID を
+- **値の意味づけは 1 か所で行う。** 「空は読み込まない」を呼び出し側で真偽値へ潰さず、コンテナー ID を
   文字列のまま受けて組み立て側が判定する。同じ意味づけが渡す側と受ける側の 2 か所に現れない。
 - **URL として受けた値は `new URL(value).origin` に落としてから載せる。** パスやポートの有無で
   載る形が変わらない。
 - **条件で変わる部分だけに理由を持つ**: `'unsafe-eval'` は開発サーバーだけ（React が server 側の
   エラースタックを組み直すのに使う）、HSTS と `upgrade-insecure-requests` は https で配信して
   いるときだけ（http の開発環境で出すと副資源まで書き換えられて取得できない）、第三者の配信元は
-  コンテナ ID を宣言したデプロイだけ（読み込まないもののために攻撃面だけが残る）。
-- **リクエストに依らないヘッダは `next.config.ts` の `headers()` に置く。** `src/proxy.ts` で足すと
-  proxy が処理する経路にしか載らず、静的に配れる応答が漏れる。リクエストに依るヘッダは `src/proxy.ts` が持つ。
+  コンテナー ID を宣言したデプロイだけ（読み込まないもののために攻撃面だけが残る）。
+- **リクエストに依らないヘッダーは `next.config.ts` の `headers()` に置く。** `src/proxy.ts` で足すと
+  proxy が処理する経路にしか載らず、静的に配れる応答が漏れる。リクエストに依るヘッダーは `src/proxy.ts` が持つ。
 - **配信構成の判断は含めない。** HSTS の `includeSubDomains` / `preload` は配信構成が決めるので付けず、
   期間だけを preload list の下限に揃える。
 - **許可の一覧はワイルドカードだけを挙げる。** ワイルドカードが含む代表的なホストを別に並べても
@@ -266,8 +266,8 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 
 | 何を | デフォルト | 変更する箇所 |
 | --- | --- | --- |
-| 配信ヘッダが許す第三者 origin | タグマネージャを読み込むデプロイ向けに、Google の配信元と計測の送り先を `script-src` / `connect-src` / `img-src` へ載せる分岐を持つ | `security-headers/security-headers.ts`。別のタグマネージャへ替えるなら、この origin と読み込み箇所（`src/app/analytics.tsx`）の両方を動かす |
-| `script-src` 以下のデフォルト | 上記以外の第三者 origin を許さない。リクエストに依らないヘッダは配信側が付ける | 同上。足すときは [0111](../../docs/adr/0111-csp-security-headers.ja.md) の判断に従う |
+| 配信ヘッダーが許す第三者 origin | タグマネージャーを読み込むデプロイ向けに、Google の配信元と計測の送り先を `script-src` / `connect-src` / `img-src` へ載せる分岐を持つ | `security-headers/security-headers.ts`。別のタグマネージャーへ替えるなら、この origin と読み込み箇所（`src/app/analytics.tsx`）の両方を動かす |
+| `script-src` 以下のデフォルト | 上記以外の第三者 origin を許さない。リクエストに依らないヘッダーは配信側が付ける | 同上。足すときは [0111](../../docs/adr/0111-csp-security-headers.ja.md) の判断に従う |
 
 `security-headers` は build 境界の持ち物で、`next.config.ts` が読みます。目的別 config と違って
 リクエストにも環境変数にも依らないため、差し替えはコードの変更になります。
@@ -316,5 +316,5 @@ metadata と `robots.txt` は build 時に読まれるため、配信物は環�
 - [0075](../../docs/adr/0075-file-upload-seam.ja.md) — アップロードの経路と、中継に許すバイト数をどこより内側に取るか
 - [0076](../../docs/adr/0076-payment-ui-seam.ja.md) — 決済 UI の seam。`payment` をデフォルトで閉じる根拠
 - [0079](../../docs/adr/0079-auth-frontend-seam.ja.md) — 認証モードと session の front 側の持ち分
-- [0111](../../docs/adr/0111-csp-security-headers.ja.md) — CSP と同伴ヘッダの内容、リクエストに依らないヘッダを配信側へ置く判断、別 origin から BFF を呼ばせる条件、タグマネージャを読み込むデプロイで `Cross-Origin-Embedder-Policy` を降ろす判断
-- [0131](../../docs/adr/0131-cookie-consent.ja.md) — 同意管理を採らない決定と、タグマネージャをデフォルトで読み込まない指定
+- [0111](../../docs/adr/0111-csp-security-headers.ja.md) — CSP と同伴ヘッダーの内容、リクエストに依らないヘッダーを配信側へ置く判断、別 origin から BFF を呼ばせる条件、タグマネージャーを読み込むデプロイで `Cross-Origin-Embedder-Policy` を降ろす判断
+- [0131](../../docs/adr/0131-cookie-consent.ja.md) — 同意管理を採らない決定と、タグマネージャーをデフォルトで読み込まない指定

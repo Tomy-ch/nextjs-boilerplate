@@ -6,7 +6,7 @@
 
 ## 用途
 
-form control の項目名を利用者へ伝えます。
+form control の項目名をユーザーへ伝えます。
 
 ## 役割と公開 component
 

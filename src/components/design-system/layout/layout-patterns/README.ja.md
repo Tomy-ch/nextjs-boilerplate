@@ -21,7 +21,7 @@
 ## 利用ケース
 
 - 新しいページを組むときに、縦積み・横並び・grid をどの class で書くかを確かめる
-- breakpoint をまたぐ切り替えを、viewport とコンテナのどちらで分岐させるか決める
+- breakpoint をまたぐ切り替えを、viewport とコンテナーのどちらで分岐させるか決める
 - sticky な header / footer を [`ContentContainer`](../../../shell/content-container/README.ja.md) とどう重ねるか確かめる
 
 ## 間隔の段
@@ -39,7 +39,7 @@
 | viewport breakpoint（`sm:` / `md:` / `lg:`） | ページの骨格、レイアウトシェル |
 | container query（`@container` + `@md:`） | 置かれた場所で割り当て幅が変わる再利用 component |
 
-再利用 component を viewport で書くと、同じ component を本文へ置いたときと狭い脇へ置いたときで指定が食い違います。分岐の根拠を「自分が置かれたコンテナの幅」に寄せるほうが、局所だけを見て判断できます。
+再利用 component を viewport で書くと、同じ component を本文へ置いたときと狭い脇へ置いたときで指定が食い違います。分岐の根拠を「自分が置かれたコンテナーの幅」に寄せるほうが、局所だけを見て判断できます。
 
 breakpoint は Tailwind のデフォルト（`sm` / `md` / `lg` / `xl` / `2xl`）をそのまま使い、**mobile-first**（無印が狭い画面、`sm:` 以降で上書き加算）で書きます。幅は [`tokens/primitives.json`](../../../../../tokens/primitives.json) の `breakpoint` が持つので、ここには書きません。
 

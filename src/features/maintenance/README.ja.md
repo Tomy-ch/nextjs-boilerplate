@@ -51,7 +51,7 @@
 | --- | --- |
 | `observability` | レンダリングを span に載せる |
 
-取得を持たないため `adapters` を引きません。`components` も引きません —— コンテナ（`main` と
+取得を持たないため `adapters` を引きません。`components` も引きません —— コンテナー（`main` と
 `ContentContainer`）は route 側が置き、この面が持つのは文章だけです。
 
 ## Action 戻り値契約

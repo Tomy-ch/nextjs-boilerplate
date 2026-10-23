@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[0070](0070-backend-role-separation.ja.md) が `/api/*` を **thin proxy** に限定し、[0081](0081-observability-logging.ja.md) が「ブラウザ → BFF 中継」をテレメトリの seam にした結果、本体構成に**認証を要求しない公開エンドポイント**が生じる:
+[0070](0070-backend-role-separation.ja.md) が `/api/*` を **thin proxy** に限定し、[0081](0081-observability-logging.ja.md) が「ブラウザー → BFF 中継」をテレメトリの seam にした結果、本体構成に**認証を要求しない公開エンドポイント**が生じる:
 
 - `/api/*`(テレメトリ中継含む)へのレート制限・ボディサイズ上限・認証なしエンドポイントの保護を、本体で持つか PaaS 側へ委ねるかの線引きが要る。
 - [0081](0081-observability-logging.ja.md) の中継 seam が生む無防備な公開エンドポイントに、防御方針が無いままでは置けない。
@@ -25,7 +25,7 @@ Accepted
 
 ### 1. PaaS / edge へ委譲する防御(infra 境界 seam)
 
-レート制限・IP / bot フィルタ・DDoS 緩和・大域的な WAF は Vercel / Cloudflare / AWS 等の edge / WAF 機能で敷く。本体はこれを前提とし、PaaS 側で設定する拡張点として明示する([0081](0081-observability-logging.ja.md) が生む無防備エンドポイント = テレメトリ中継 `/api/*` の保護もここに載る)。
+レート制限・IP / bot フィルター・DDoS 緩和・大域的な WAF は Vercel / Cloudflare / AWS 等の edge / WAF 機能で敷く。本体はこれを前提とし、PaaS 側で設定する拡張点として明示する([0081](0081-observability-logging.ja.md) が生む無防備エンドポイント = テレメトリ中継 `/api/*` の保護もここに載る)。
 
 - **vendor-independent 正当性材料([0010](0010-standards-and-non-lockin.ja.md))**: 公開エンドポイントを edge で多層防御する構造は OWASP / 一般的 web セキュリティの原則であって特定 PaaS 機能に依存しない(Vercel / Cloudflare / AWS WAF いずれでも成立)。
 
@@ -58,6 +58,6 @@ Accepted
 - [0075-file-upload-seam.md](0075-file-upload-seam.ja.md)— ファイルアップロード seam(同じ境界判定で仕分けた隣接主題)
 - [0076-payment-ui-seam.md](0076-payment-ui-seam.ja.md)— 決済 UI seam(mount seam と PCI 境界。同じ境界判定の兄弟)
 - [0070-backend-role-separation.md](0070-backend-role-separation.ja.md)— `/api/*` = thin proxy(無防備エンドポイントを生む起点の親決定)
-- [0081-observability-logging.md](0081-observability-logging.ja.md)— ブラウザ → BFF 中継 seam(無防備エンドポイントを生む起点。本 ADR の保護対象)
+- [0081-observability-logging.md](0081-observability-logging.ja.md)— ブラウザー → BFF 中継 seam(無防備エンドポイントを生む起点。本 ADR の保護対象)
 - [0082-client-observability.md](0082-client-observability.ja.md)— 中継のエンドポイント(`/api/telemetry`)の送信内容(§2 の参照形が守る対象)
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.ja.md)— 標準準拠 + vendor-independent 正当性(edge 多層防御の正当化の土台)

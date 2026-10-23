@@ -8,7 +8,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 
 **ワークフロー定義内のコメントは英語で書く** —— このディレクトリと `../actions/` の両方（[0140](../../docs/adr/0140-documentation-operations.ja.md)）。本書を含む `.github/` 配下のドキュメントは、ほかの文書と同じく英語の canonical と隣の日本語ミラーという形を取る。日本語のままなのは日本語の出力そのもの —— PR / issue テンプレート、`settings/`、リリースノート —— である。
 
-## トリガ戦略
+## トリガー戦略
 
 | グループ | 走るタイミング | 役割 |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ CI / CD のワークフロー定義。設計判断の出所は [ADR 0153](../../
 [`../actions/check-trigger`](../actions/check-trigger/action.yaml) 1 箇所が持つ。
 
 **降りるのは `if:` であって `on:` ではない。**job は必ず起動して context を報告する。理由は下記
-「`paths:` フィルタを使わない」と同じで、必須 check に登録した context が報告されないと PR は
+「`paths:` フィルターを使わない」と同じで、必須 check に登録した context が報告されないと PR は
 永久に止まる。
 
 払う代償は検知が 1 マージぶん遅れることで、買うのは「結果がマージの判断をほとんど動かさない検査を、
@@ -87,7 +87,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | Scripts Check | `scripts-check.yaml` | `scripts-check` | 補助スクリプト（`scripts/**`）の Vitest をカバレッジ 100% で実行し、export と describe の 1:1 対応ゲートをリポジトリ全体へ掛ける |
 | Build | `build.yaml` | `build` | `next build` が通ることを検査する |
 | Bundle Budget | `bundle-budget.yaml` | `bundle-budget` | route ごとに browser が最初に読む client JS を測り、`performance-budget.yaml` の上限と base からの増分に照らす |
-| Dead Code | `dead-code.yaml` | `dead-code` | どのエントリポイントからも到達しない file / export / dependency を検出する。`src/components/**` は利用者が使う面としてエントリポイントに宣言し、未使用を問わない |
+| Dead Code | `dead-code.yaml` | `dead-code` | どのエントリポイントからも到達しない file / export / dependency を検出する。`src/components/**` はユーザーが使う面としてエントリポイントに宣言し、未使用を問わない |
 | Smoke | `smoke.yaml` | `smoke` | `next start` を起動し `/` が応答することを検査する |
 | Storybook Build | `storybook-build.yaml` | `storybook-build` | `build-storybook` が通ることを検査する。Vitest は story を直接 import するので addon やビルダーの解決までは見ず、`vrt` の build は「比較の前段」なので失敗が別の意味に読める。配信（`deploy-docs`）とは分けている |
 | Purge Verify | `purge-verify.yaml` | `purge-verify` | 使い捨てチェックアウトで同梱サンプルを破棄し、破棄後のツリーで整形・検査・build・test が通ることと、過不足・残留参照が無いことを検査する |
@@ -98,10 +98,10 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | Actions Lint | `actions-lint.yaml` | `actions-lint` | actionlint でワークフロー定義自身を検査し（`run:` のシェルは shellcheck 経由）、composite action の `run:` シェルを `make actions-shellcheck` で、追跡下の `*.sh` を `make shellcheck` で、PR コメントを投稿するジョブへの secret 混入を `make actions-comment-secret-lint` で、mise のピンの整合を `make actions-mise-pin-lint` で、必須ステータスチェックの宣言と実体の突合を `make actions-required-check-lint` で、定義そのものの静的解析を `make actions-zizmor` で検査する |
 | Actions Pin | `actions-pin.yaml` | `actions-pin` | `uses:` が `.github/actions-pin.toml` 通りに SHA 固定されているか検査する |
 | Images Pin | `images-pin.yaml` | `images-pin` | container image 参照が `docker/images-pin.toml` 通りに digest 固定されているか検査する |
-| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナに相乗りするので追加のランナーを入れない（[0091](../../docs/adr/0091-test-verification-methods.ja.md) の、story 全数を visual regression の実行に相乗りして検査する決定）。**実ブラウザなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.ja.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないままベースライン画像だけが承認済みになるため。省く判定は 3 層ある — **普通の PR ではそもそも回さず**（上記「先送りにする検査」）、回す事由があっても差分が story に届かなければ降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.ja.md)）。PR 以外で落ちたときはブランチごとに issue を立てる |
-| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザで動かす。主要ジャーニー・ブラウザが報告する異常（hydration の不一致 / レンダリング中の例外 / 通信の失敗 / CSP 違反）・バンドごとの出し分けを 3 つのレンダリングエンジンで回し、画面単位の見た目をベースライン画像と比べる（[`e2e/README.md`](../../e2e/README.ja.md)）。**見ているのは 3 つのレンダリングエンジンだけで、ブラウザの銘柄もバージョンも見ていない** —— モダンブラウザ（[0102](../../docs/adr/0102-browser-support.ja.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、バージョンは digest 固定したイメージが決める。アプリはランナーで起動し、コンテナで動かすのはブラウザだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。巡回のあとに、配信を止めた起動（`make e2e-maintenance`）とインデックスさせる設定の build（`make e2e-metadata`。公開面 —— `robots.txt` / `sitemap.xml` / canonical / OG 画像 —— の成立を見る）を別々に回す。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。ただしレイアウトシェル・土台の CSS・画面の宣言が動いた差分は、ラベル無しでも回る（同セクションの表）。回す事由があっても、差分が画面に届かなければ降りる |
-| Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | ベースライン画像が動いている PR で `baseline-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインタを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなくベースライン画像であるため（[`vrt/README.md`](../../vrt/README.ja.md)） |
-| VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナで全 story をベースライン画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、ベースライン画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI のエントリポイントで丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュをベースライン画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.ja.md)）。比較とコメントを別ジョブに割るのは、ベースライン画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない）。**撮影は `vrt-shard` が 4 台に割る** —— 費用が story 数に比例する一方、1 台の 4 コアは `playwright.config.ts` が既に埋めているため、実時間を縮める手は台数しかない。**必須 context は束ねる側の `vrt` で、matrix の側ではない** —— matrix は `vrt-shard (1)` のように 1 件ずつ報告し、必須 check はその名前を指定できない |
+| Accessibility | `a11y.yaml` | `a11y` / `a11y-comment` | 全 story に axe を掛ける。撮影と同じ digest 固定コンテナーに相乗りするので追加のランナーを入れない（[0091](../../docs/adr/0091-test-verification-methods.ja.md) の、story 全数を visual regression の実行に相乗りして検査する決定）。**実ブラウザーなので色コントラストまで届く** — component テストの `vitest-axe` は jsdom で走るため contrast を無効化している。検査するのは撮影と同じ 1 テーマだけで、片テーマでだけ出る違反は届かない（[`vrt/README.md`](../../vrt/README.ja.md)）。VRT と job を分けるのは、a11y の失敗が撮り直しの対象に入ると、撮り直しても直らないままベースライン画像だけが承認済みになるため。省く判定は 3 層ある — **普通の PR ではそもそも回さず**（上記「先送りにする検査」）、回す事由があっても差分が story に届かなければ降り、届いても絵を決める入力が前に通った時点と同じなら axe を省く（[`vrt/README.md`](../../vrt/README.ja.md)）。PR 以外で落ちたときはブランチごとに issue を立てる |
+| E2E | `e2e.yaml` | `e2e` / `e2e-comment` | build したアプリを実際のブラウザーで動かす。主要ジャーニー・ブラウザーが報告する異常（hydration の不一致 / レンダリング中の例外 / 通信の失敗 / CSP 違反）・バンドごとの出し分けを 3 つのレンダリングエンジンで回し、画面単位の見た目をベースライン画像と比べる（[`e2e/README.md`](../../e2e/README.ja.md)）。**見ているのは 3 つのレンダリングエンジンだけで、ブラウザーの銘柄もバージョンも見ていない** —— モダンブラウザー（[0102](../../docs/adr/0102-browser-support.ja.md)）が実装として畳まれる先が Chromium / Firefox / WebKit であり、バージョンは digest 固定したイメージが決める。アプリはランナーで起動し、コンテナーで動かすのはブラウザーだけ（`node_modules` は入れた OS と CPU 向けに解決されるため）。巡回のあとに、配信を止めた起動（`make e2e-maintenance`）とインデックスさせる設定の build（`make e2e-metadata`。公開面 —— `robots.txt` / `sitemap.xml` / canonical / OG 画像 —— の成立を見る）を別々に回す。比較とコメントを別ジョブに割る理由は VRT と同じ。**普通の PR では回さない**（上記「先送りにする検査」）。ただしレイアウトシェル・土台の CSS・画面の宣言が動いた差分は、ラベル無しでも回る（同セクションの表）。回す事由があっても、差分が画面に届かなければ降りる |
+| Baseline Approval | `baseline-approval.yaml` | `baseline-approval` | ベースライン画像が動いている PR で `baseline-approve` ラベルを要求する。ラベルの有無だけでなく、付いた時刻がポインターを動かした最後のコミットより後であることを見る（古い承認を新しい一式へ持ち越さない）。PR のレビュー承認を使わないのは、承認の対象が PR 全体ではなくベースライン画像であるため（[`vrt/README.md`](../../vrt/README.ja.md)） |
+| VisualRegressionTest | `vrt.yaml` | `vrt-scope` / `vrt-shard` / `vrt` / `vrt-comment` | Storybook を build し、digest 固定した Playwright コンテナーで全 story をベースライン画像と比較する。差分のあった story を一覧表で PR へ報告し、画像は artifact（`vrt-diff`）で出す。全数実行では、ベースライン画像と撮影対象が 1 対 1 で対応することも併せて検査する。省く判定は 2 層ある — PR の差分が絵に届かなければ CI のエントリポイントで丸ごと降り、届いても `make vrt` が絵を決める入力のハッシュをベースライン画像を撮った時点の値と突き合わせ、一致していれば比較を省く（[`vrt/README.md`](../../vrt/README.ja.md)）。比較とコメントを別ジョブに割るのは、ベースライン画像の置き場が非公開なら比較側が App の secret を持つため（secret を持つジョブにコメント本文を作らせない）。**撮影は `vrt-shard` が 4 台に割る** —— 費用が story 数に比例する一方、1 台の 4 コアは `playwright.config.ts` が既に埋めているため、実時間を縮める手は台数しかない。**必須 context は束ねる側の `vrt` で、matrix の側ではない** —— matrix は `vrt-shard (1)` のように 1 件ずつ報告し、必須 check はその名前を指定できない |
 | Deferred Checks | `deferred-checks.yaml` | `deferred-checks` | 先送りにしている 3 本のうち、この PR の差分が要求するものを**名指しして**コメントを 1 件だけ残す。判定は 2 段で、**構造が先** —— どのパスがどのラベルを呼ぶかは [`recommend.ts`](../../scripts/deferred-checks/recommend.ts) が理由付きで宣言する（story が動けば axe、proxy や mock が動けばジャーニー、書体や寸法が動けば計測）。名指しできなければ [`volume.ts`](../../scripts/deferred-checks/volume.ts) の行数に落ち、線（`ALERT_AT`）を超えたときだけ 3 本を並べる。**ゲートではない。**必須 check にも登録しない —— 行数の線に理論的な根拠は無く、マージを止められる場所に根拠の無い数字を置かない。既に付いているラベルは**その検査だけ**落とす（1 枚付いたことで残る 2 本まで黙ると、付けた人が見なかった検査が名指しされないまま消える）。`lighthouse` / `e2e` が自分で回すと決めた差分では、その検査を勧めない。3 本がそれぞれ「回ったか」を自分のコメントで答えるのに対し、ここが答えるのは**「回すべきだったか」**である |
 
 ### 並列度に台数を書かない
@@ -118,7 +118,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 コードが 1 行も動いていないツリーに対しても CVE が公開されうるためで、変更を起点にした検査だけでは届かない。
 
 **そして週次があるからこそ、PR 側は絞れる。** 各 job は `diff-scope` で「自分に届かない差分」を判定して降りる
-（下記「`paths:` フィルタを使わない」）。降りた分のスキャンが消えるのではなく、**週次へ回る**というのが絞りの正確な意味で、
+（下記「`paths:` フィルターを使わない」）。降りた分のスキャンが消えるのではなく、**週次へ回る**というのが絞りの正確な意味で、
 週次を止めればこの絞りは成立しなくなる。required status check には 1 つも登録していないため、降りても PR は止まらない。
 
 | ワークフロー | ファイル | job 名 | 内容 |
@@ -128,7 +128,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | CodeQL Scan | `codeql.yaml` | `codeql` | 同じ問いに GitHub 側の解析で答える。high の検出でマージを止めるのは code scanning 側の設定で、この job が落ちるのは解析そのものが走らなかったときだけ |
 | Dependency Scan | `dependency-scan.yaml` | `dependency-scan` / `dependency-audit` / `dependency-gate` | 依存の脆弱性を Trivy と `pnpm audit` で。同じ対象に 3 つの異なる判定を掛ける（下記） |
 | OSV Scan | `osv-scan.yaml` | `osv-scan` / `osv-gate` | 同じ依存を OSV データベースで読む。報告と昇格ゲートの二段は Trivy と同じ形 |
-| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |
+| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナーが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |
 | Bearer Scan | `bearer.yaml` | `bearer` | 値がプロセスの外へ出る地点を、その値の分類と併せて見る。**落とさない**（下記） |
 | DevSkim Scan | `devskim.yaml` | `devskim` | 言語フロントエンドを持たない regex 検査。**構文木を組む検査が開かないファイル**を読む。**落とさない**（下記） |
 | Tools Cooldown | `tools-cooldown.yaml` | `tools-cooldown` | `mise.toml` の pin が配布経路ごとの冷却期間を満たすかを、バージョンの公開日時を上流から引いて見る。PR では**差分で動いた pin だけ**、週次は全 pin。公開日時を引けない backend は「違反なし」ではなく検査不成立として落ちる。免除は pin の直上のコメント（[`scripts/tools-cooldown/README.md`](../../scripts/tools-cooldown/README.ja.md)） |
@@ -142,7 +142,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 そこで、いま出ている所見だけを [`../zap/rules.tsv`](../zap/rules.tsv) に `IGNORE` で並べ、**一覧に無い所見は赤にする**。ZAP は `IGNORE` にした規則も件数・規則名・URL を出力に残すので、これは黙殺ではなく severity の引き下げにあたる（[0110](../../docs/adr/0110-security-operations.ja.md)）。
 
-各行に撤回条件が書いてある。条件が満たされた行は削除する —— 一覧が空になることが目標であって、一覧そのものは成果物ではない。CSP と同伴ヘッダ（[0111](../../docs/adr/0111-csp-security-headers.ja.md)）は載っており、ZAP が読むのはそのヘッダである。ヘッダをブラウザが enforce した結果は `e2e` の見張りが見る。
+各行に撤回条件が書いてある。条件が満たされた行は削除する —— 一覧が空になることが目標であって、一覧そのものは成果物ではない。CSP と同伴ヘッダー（[0111](../../docs/adr/0111-csp-security-headers.ja.md)）は載っており、ZAP が読むのはそのヘッダーである。ヘッダーをブラウザーが enforce した結果は `e2e` の見張りが見る。
 
 **測る側を先に入れているのは、後入れだと測る側の導入が実装の完了に従属するため。** 実装が終わるまで計測が入らない形にすると、何が足りないかの一覧が最後まで手に入らない。
 
@@ -154,11 +154,11 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 | --- | --- | --- |
 | ゲート | `secret-scan` / `sast` / `dependency-audit` / `dependency-gate` / `osv-gate` / `dast` | job の exit code |
 | ゲート | `dependency-review` | job の exit code |
-| 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナが走らなかったときだけ落ちる） |
+| 報告専用 | `dependency-scan` / `osv-scan` | 何も赤にしない（スキャナーが走らなかったときだけ落ちる） |
 | code scanning へ送る | `bearer` / `devskim` | **差分が新しく持ち込んだ alert** に対する GitHub 側のチェック |
 | code scanning へ送る | `codeql` / `sonarcloud` | 同上 |
 
-**「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかったスキャン・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない**（下記「`paths:` フィルタを使わない」）。
+**「落とさない」のは所見に対してだけで、機構が壊れたら落ちる。** `bearer` / `devskim` / `scorecard` は報告が出力のすべてなので、走らなかったスキャン・書かれなかった SARIF・届かなかったアップロードは、いずれも綺麗な結果と同じ緑になってしまう。**検査しない gate は「違反なし」と見分けが付かない**（下記「`paths:` フィルターを使わない」）。
 
 3 つ目は「落とさない」と「見せない」を分けるための配線で、job は緑を返すが差分が持ち込んだ alert は PR を赤にする。
 
@@ -166,7 +166,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 
 | job | 手段 | 落ちる条件 |
 | --- | --- | --- |
-| `dependency-scan` | `make trivy-fs` | **検出では落ちない。** スキャナが走らなかったときだけ落ちる |
+| `dependency-scan` | `make trivy-fs` | **検出では落ちない。** スキャナーが走らなかったときだけ落ちる |
 | `dependency-audit` | `make audit` | 修正版のある `high` / `critical` が 1 件でもあれば落ちる |
 | `dependency-gate` | `make trivy-fs-release` | 保護ブランチ宛 PR でだけ起動し、検出があれば落ちる |
 
@@ -178,7 +178,7 @@ merge を待てば答えが出るが、後者はいくら待っても何も出�
 DB も違うので、片方だけを正とするとそのツールが見ない領域が恒久的な死角になる。**和集合が正**で、どちらか一方でも
 しきい値に達したものを blocking として扱う。
 
-`dependency-gate` が `branches:` フィルタではなく `if:` で降りるのは required check の都合による（下記「required status check」）。
+`dependency-gate` が `branches:` フィルターではなく `if:` で降りるのは required check の都合による（下記「required status check」）。
 
 ## ワークフロー一覧（Components）
 
@@ -205,9 +205,9 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 | ワークフロー | ファイル | job 名 | 内容 |
 | --- | --- | --- | --- |
-| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面のベースライン画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインタを進める。story も画面も**報告された差分だけ**が対象で、報告はそれぞれの実行の artifact（`vrt-report` / `e2e-report`）から引く。画面の報告が無いときは撮らない —— 全数へ落とすと、コメントが誰にも見せていない画素を正にしてしまう。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインタの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
+| Baseline Retake | `baseline-retake.yaml` | `retake` / `report` | VRT または E2E の**完了**で発火し、`baseline-retake` ラベルが付いていれば、**story と画面のベースライン画像をまとめて**撮り直し、置き場へ push してサブモジュールのポインターを進める。story も画面も**報告された差分だけ**が対象で、報告はそれぞれの実行の artifact（`vrt-report` / `e2e-report`）から引く。画面の報告が無いときは撮らない —— 全数へ落とすと、コメントが誰にも見せていない画素を正にしてしまう。両方が赤いときは E2E 側の実行が VRT 側へ譲る —— 片方だけでラベルを使い切らないためで、これが「1 ラベル 1 撮り直し」を保つ。ラベルはトリガーではなく条件なので、PR 作成時に付けておける（VRT の完了を待つ必要がない）。**絵を動かしうるチェック**（`baseline-retake.yaml` の `DECIDES_PIXELS` が名指しする）が落ちている間は撮らずに見送り、ラベルを残す（次の実行で自動的に再開する）。見るのは各チェックの最新の試行だけで、名指しは allowlist である — 落ちているもの全部を数えると、撮るまで存在しない画像を待つ `baseline-approval` と互いに待ち合う。`revert-` で始まるブランチではラベル無しで全数を撮り直す（掃除で復帰先の一式が消えているため）。ポインターの push は `GITHUB_TOKEN` ではなく App のトークンで行う（`GITHUB_TOKEN` の push は実行を起こさないため、確認用の VRT が走らない）。**承認ではない** — 画素の判断は、コメントが並べる動いた画像の前後を見て PR レビューで行う |
 | VRT Guard | `vrt-guard.yaml` | `guard` | 保護ブランチへの push 後に story の比較をやり直す。通常は鳴らない（PR はマージ結果に対して判定され、ブランチは最新であることを要求されるため）。鳴ったら前提が崩れた合図として issue を立てる。**ベースライン画像は撮り直さない** |
-| Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.ja.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザをコンテナへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザのバージョンで、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言かレイアウトシェルが動いていれば待たずに測る。**この job が見るのは、自分で測ると決められる構造だけ**で、ラベルで回すべき差分の名指しは `Deferred Checks` が 3 本ぶんまとめて行う。ラベル（`run-lighthouse`）でも回る。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、払う代償は上記「先送りにする検査」と同じ、買うのは PR が 1 秒も待たないことである |
+| Lighthouse | `lighthouse.yaml` | `lighthouse` | 保護ブランチへの push と毎日 1 回、`e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らす（[0101](../../docs/adr/0101-performance-budget.ja.md)）。落ちたら issue を立てる（ブランチごとに 1 本、2 度目は同じ issue へコメント）。**performance スコアは見ない** —— 5 指標の加重平均は、下がったときにどれが下がったかを答えられない。INP は実ユーザーの操作を要して lab では測れないため TBT が代わる。撮影（`vrt` / `a11y` / `e2e`）と違ってブラウザーをコンテナーへ閉じ込めないのは、比べるのが画素ではなく数値だから —— 固定すべきはフォントのラスタライズではなくブラウザーのバージョンで、それは lockfile が担う。**PR でも起動はするが、測るのは差分が要求したときだけ** —— 画面の宣言かレイアウトシェルが動いていれば待たずに測る。**この job が見るのは、自分で測ると決められる構造だけ**で、ラベルで回すべき差分の名指しは `Deferred Checks` が 3 本ぶんまとめて行う。ラベル（`run-lighthouse`）でも回る。**全量を PR で回さない理由は実測にある** —— 計測は直列でしか成立せず（同時に測ると並列度そのものが数値へ混ざる）、23 画面 × 3 試行 × 約 14 秒 ≒ 16 分に対し build は約 1 分。費用は `画面数 × 試行回数` に張り付いており、試行を削れば runner のぶれを吸う中央値を失い、画面を削れば宣言から全数を引く意味を失う。**削るなら網羅ではなく頻度**という判断で、払う代償は上記「先送りにする検査」と同じ、買うのは PR が 1 秒も待たないことである |
 | Baseline Prune | `baseline-prune.yaml` | `report` | 月次でベースライン画像の置き場を測り、しきい値を超えたときだけ掃除を促す issue を立てる。**消さない** — 履歴の書き換えは取り消せないので、実行は人が `make baseline-prune` で起こす |
 
 ## ワークフロー一覧（Documentation）
@@ -227,21 +227,21 @@ PR ごとには走らず、ラベルや保護ブランチへの push で起動�
 
 `docs/` をサイトルートへコピーするのは、スキャンで自動発見したドキュメントへの相対経路（`../<dir>/<file>`）を成立させるため。ここを削ると自動発見のカードが全て死にリンクになる。
 
-配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルタは付けない — 理由は下記「`paths:` フィルタを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
+配信の発火は `production` への push（＋任意 ref から回すための `workflow_dispatch`）。`paths:` フィルターは付けない — 理由は下記「`paths:` フィルターを使わない」と同じではなく、リリースが間接的な経路（token・依存更新・設定）で見た目を変えうるため、対象パスを予測して並べる保守コストのほうが高いという判断による。
 
 この workflow 自身を編集する PR では、`build` だけが自己検査として走る（`deploy` は `pull_request` を除外している）。配信の壊れは、それを必要とするリリースまで気付けないため。この PR 用の実行は **required status check へ登録しない** — 当該ファイルに触れない PR では context が報告されず、必須待ちで止まる。
 
-**GitHub Pages の有効化はユーザが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
+**GitHub Pages の有効化はユーザーが Settings で実施する**（ワークフロー側で `actions/configure-pages` による自動有効化はしない）。有効化前に走った実行は deploy job で失敗する。
 
 ## required status check
 
 [`../settings/branch-protection.json`](../settings/branch-protection.json) が **CI Checks 群を必須**にし、`strict` でブランチが最新であることを要求する。これは VRT が成立する条件でもある — 判定しているのは base へマージした結果のツリー（`refs/pull/N/merge`）なので、base が動いた後の緑をそのまま通すと、ベースライン画像が「実際にマージされるツリー」とずれる。
 
-**登録してよいのは、すべての PR でその名前を報告し続ける job だけ。**報告されない context を登録すると PR は永久に止まる（下記「`paths:` フィルタを使わない」）。`deploy-docs` の `docs-build` は `paths:` で自分自身の変更に絞ってあるため登録しない。
+**登録してよいのは、すべての PR でその名前を報告し続ける job だけ。**報告されない context を登録すると PR は永久に止まる（下記「`paths:` フィルターを使わない」）。`deploy-docs` の `docs-build` は `paths:` で自分自身の変更に絞ってあるため登録しない。
 
 この条件は `make actions-required-check-lint` が機械検査する（`actions-lint` job と pre-commit が回す）。落ちる条件は `.makefiles/README.md` が持つ（[`.makefiles/README.md`](../../.makefiles/README.ja.md)）。
 
-`diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルタを使わない」）。
+`diff-scope` で降りる job は登録してよい。job 名も context の報告も変わらず、変わるのは中のステップが走るかどうかだけであるため（下記「`paths:` フィルターを使わない」）。
 
 context 名は**ワークフロー名ではなく job 名**である点に注意。job の rename は required status check の設定を黙って無効化する。同じ理由で、**PR で報告されうる job には、別々のワークフローで同じ名前を置かない** — 報告される check run が 1 つの名前に 2 つ並び、必須がどちらを指すのか決まらなくなる。`deploy-docs` の job が `docs-build` / `docs-deploy` と配信先で名乗るのはこのため。
 
@@ -287,7 +287,7 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 | --- | --- | --- |
 | `build` / `smoke` | CI のみ | フルビルドは hook の速度目標（30 秒）に収まらない。収めようとすれば `--no-verify` の常用を招く |
 | `bundle-budget` | CI のみ | 同上。しかも base ブランチの build も要るため、手元では 2 回分かかる |
-| `lighthouse` | CI のみ | 同上に加えて、画面数 × 試行回数だけブラウザを回すため hook の速度目標から桁で外れる。**PR では走らない**（下の「イベント駆動」を参照）。手元のエントリポイントは `make lighthouse` |
+| `lighthouse` | CI のみ | 同上に加えて、画面数 × 試行回数だけブラウザーを回すため hook の速度目標から桁で外れる。**PR では走らない**（下の「イベント駆動」を参照）。手元のエントリポイントは `make lighthouse` |
 | `dead-code` | CI のみ | 到達可能性はワークスペース全体を解決してから判定する。作業中のツリーでは書きかけの import が未使用として鳴り、hook で止めると押し切る癖が付く |
 | `test` | pre-push + CI | pre-commit は開発中の反復を優先して cache を使い、push 前と CI は coverage を含む完全実行で gate を掛ける |
 | `scripts-check` | pre-push + CI | `test` と同じ二層。job を `test` と分けるのは、`scripts/` に居るのが検査機構そのもので、壊れると「違反なし」を報告する向きに倒れるため。赤の意味を「機構が壊れた」と「アプリが退行した」で取り違えない |
@@ -308,22 +308,24 @@ Node / pnpm などの供給は composite action [`../actions/setup-mise`](../act
 - **actions の SHA ピン** — `uses: owner/repo@<40hex> # <tag>`。moving tag は禁止。**バージョンの SSOT は末尾コメントの tag** であり、tag → SHA の対応は [`../actions-pin.toml`](../actions-pin.toml) が持つ。`make actions-pin-resolve` で解決、`make actions-pin-apply` で反映、`make actions-pin-check` で検査する（`actions-pin` job と pre-commit hook が回す。詳細は [`.makefiles/README.md`](../../.makefiles/README.ja.md)）
 - **最小 permissions** — トップレベルは `contents: read`。PR コメントを書く job だけが `pull-requests: write` を加算する
 - **concurrency** — `${{ github.workflow }}-${{ github.ref }}` / `cancel-in-progress: true`。同一 PR への連続 push で古い実行を積まない。**配信系だけは例外**で、group に共有リソース名（`pages`）を置き `cancel-in-progress: false` とする（[0153](../../docs/adr/0153-ci-configuration.ja.md)）。配信先は ref ごとに存在せず 1 つしかなく、走行中の deploy を切ると公開中のサイトが途中まで転送された成果物を配る。**保護ブランチの検査を積むために `false` へ倒すのも禁じる** — 古いツリーの結果が新しいツリーの結果を追い越して報告される。打ち切られた実行を失敗と読まないのは、条件式側（`!cancelled()`）の責任である
-- **harden-runner** — 全 job 冒頭で外向き通信を**遮断**する（`block`）。許可した宛先の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.ja.md)）。**宛先を足す根拠は実測**で、記録が揃っていないものは宣言で `audit` に留める
+- **bullfrog** — 全 job の checkout より前の第 1 ステップで、外向き通信を**遮断**し（`block`）、sudo を外す（`enable-sudo: false`）。許可した宛先・許可する IP・sudo を残す job の SSOT は [`../egress.yaml`](../egress.yaml) 1 枚で、`make egress-apply` が反映し `make egress-check` が差分で落とす（`actions-pin` と同形。composite action へ寄せられない理由は [0153](../../docs/adr/0153-ci-configuration.ja.md)）。**宛先を足す根拠は実測**で —— run の job summary と debug ログから測る（手順は [`../egress.yaml`](../egress.yaml)）—— 記録が揃っていないものは宣言で `audit` に留める。**sudo を残すのは、ステップが sudo なしでは動かない job だけ** —— ホストパスをマウントする、またはホストの名前空間を共有する Docker 実行が典型で、例外は宣言にその根拠を持つ
 - **絵を動かしうる検査は撮り直しへ登録する** — 落ちたときに story の見た目が変わりうる job を足したら、[`baseline-retake.yaml`](baseline-retake.yaml) の `DECIDES_PIXELS` へその job 名を加える。**job を改名するときは新旧の両方を置く** — この配列を読むのは `workflow_run` で起動する撮り直し側であり、そこで使われるのはデフォルトブランチの定義である（上記）。改名した PR がデフォルトブランチへ入るまで、照合されるのは旧名のままになる。旧名はデフォルトブランチが追いついてから外す。該当する check run が無い名前は、単に一致しないだけで害を持たない。**書き漏らすと、壊れたツリーから撮った絵がベースライン画像になる**（allowlist なので、登録されていないものは黙って無視される）。逆に、落ちても絵が変わらない検査は入れない — 撮り直しが止まるだけで、止まった理由は撮り直しの側からは説明できない
 - **版数の SSOT は `mise.toml`** — Node / pnpm / actionlint / shellcheck / zizmor のバージョンはワークフロー側に書かない。[`../actions/setup-mise`](../actions/setup-mise/action.yaml) が `mise.toml` から供給する（[0003](../../docs/adr/0003-version-manager.ja.md)）。`matrix` を**バージョンや OS の掛け合わせには使わず**、`ubuntu-latest` 単一とする。仕事を割るための `matrix` は別で、費用が件数に比例し 1 台の並列度を使い切っている検査だけが使う。その場合も **required check にするのは束ねる側の単独 job**で、matrix の側ではない（[0153](../../docs/adr/0153-ci-configuration.ja.md)）
 - **例外は mise CLI 自身のバージョン** — `mise.toml` は mise が解決する対象を宣言するもので、mise 自身のバージョンを宣言できない。この 1 つだけは `setup-mise` の中に**バージョンと SHA256 の対で**書かれている（[下記](#mise-の導入)）
 
-## `paths:` フィルタを使わない
+## `paths:` フィルターを使わない
 
 CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない。
 
 `paths:` で絞られたワークフローは、条件に合わない PR では**実行されず、status context も報告しない**。required check に指定した context が報告されないと、GitHub はその PR を「必須チェック待ち」のまま永久にブロックする。埋めるには、同名 job を即成功させる guard ワークフロー（`paths-ignore` に本体の `paths` を裏返しで書いたもの）を対で置くことになる。
 
-本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルタを付けず、全 PR で全 job を走らせる。
+本リポの CI Checks はどれも数分で終わり、実行コストよりも「本体と guard の 2 ファイルを常に裏返しの関係に保つ」保守コストのほうが高い。よってフィルターを付けず、全 PR で全 job を走らせる。
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`bundle-budget` / `vrt` / `a11y` が使っている。
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`ignore:` を渡す job は下の表のとおりで、依存スキャナーは `only:` を渡す（[下記](#依存スキャナーだけは影響しうるものの側を書く)）。
+
+**matrix は shard ごとではなく、前段の scope job で門を掛ける。** 1 つの job が一度だけ問い、shard はその答えに対して `needs:` と `if:` を持つので、無関係な PR ではどの shard も起動しない。手本は [`vrt.yaml`](vrt.yaml)。required context を持つ束ねる側の job はそれでも走って報告し、答えを返さなかった scope job は降りたものではなく失敗として読む。
 
 渡すのは「**自分に影響しえないもの**」の一覧であって、影響するものの一覧ではない。書き漏らしは無駄な 1 回で済むが、書き間違いは job が黙って何も検査しなくなる方向へ倒れる。**検査しない gate は「違反なし」と見分けが付かない**。判定の実装はこの action を共有し、job ごとに書き起こさないこと — 3 本に割れた判定は必ずずれ、ずれは黙って進む。
 
@@ -332,18 +334,20 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 | job | 外している範囲 |
 | --- | --- |
 | `bundle-budget` | ドキュメントと AI エージェント設定 + 絵にしか効かないもの（CSS / token / story / テスト） |
-| `vrt` / `a11y` | ドキュメントと AI エージェント設定だけ |
+| `vrt` / `a11y` / `e2e` / `lighthouse` / `deferred-checks` / `test` / `build` / `smoke` / `dead-code` | ドキュメントと AI エージェント設定だけ |
+| `storybook-build` | 同上 + Storybook のバンドルが一切 import しないもの |
+| `gen-drift` | 同上 + ジェネレータもその後の整形パスも、生成ディレクトリの変更に変えられないもの |
 | `sast` / `devskim` | ドキュメントと AI エージェント設定（+ SAST は `public/`） |
 | `bearer` | 同上 + `src` の外にあるもの（カタログ / ベースライン画像 / 生成されるドキュメントサイト） |
 | `dast` | 同上 + 配信される応答に現れないもの（story / テスト / CSS / token） |
 
-### 依存スキャナだけは「影響しうるもの」の側を書く
+### 依存スキャナーだけは「影響しうるもの」の側を書く
 
-`dependency-scan` / `dependency-audit` / `osv-scan` / `tools-cooldown` は `ignore:` ではなく **`only:`** を渡す。依存の脆弱性を決めているのは lockfile、pin の公開日時を決めているのは `mise.toml` であって、ソースをいくら動かしてもスキャナの答えは変わらない。「影響しえないもの」を列挙する側で書こうとすると、それは「lockfile 以外のすべて」になり、書ける形にならない。
+`dependency-scan` / `dependency-audit` / `osv-scan` / `tools-cooldown` は `ignore:` ではなく **`only:`** を渡す。依存の脆弱性を決めているのは lockfile、pin の公開日時を決めているのは `mise.toml` であって、ソースをいくら動かしてもスキャナーの答えは変わらない。「影響しえないもの」を列挙する側で書こうとすると、それは「lockfile 以外のすべて」になり、書ける形にならない。
 
 **許可リストが許されるのはここだけで、条件が 2 つある。**
 
-1. **job の対象がツリーそのものでないこと。** 依存スキャナが読むのは lockfile で、ソースはその入力ではない
+1. **job の対象がツリーそのものでないこと。** 依存スキャナーが読むのは lockfile で、ソースはその入力ではない
 2. **週次のスケジュールがツリー全体をスキャンしていること。** 許可リストの書き漏らしは「1 週間は走らない」で済み、恒久の死角にはならない
 
 条件 2 が無いと、書き漏らしがそのまま **「何も検査しない gate」** になる。`diff-scope` 側にも同じ注記を置いてある。
@@ -352,7 +356,11 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
-**一覧の実体は各 workflow の `ignore:` ブロックが正**（[`bundle-budget.yaml`](bundle-budget.yaml) / [`vrt.yaml`](vrt.yaml) / [`a11y.yaml`](a11y.yaml)）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
+`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**
+
+`md-lint` / `scripts-check` / `strip-verify` / `purge-verify` も絞らない。対象がツリー全体（すべての Markdown と `.claude/**`、リポジトリ全域にまたがる export と describe の対応 gate、strip や purge を掛けた後のツリー）なので、届かないと宣言できるパスが無い。
+
+**一覧の実体は各 workflow の `ignore:` ブロックが正**（表に挙げた workflow）。この表はどの範囲を外しているかを示すだけで、パスを書き写さない — 書き写せば実体と黙ってずれる側が 1 つ増える。
 
 `vrt` / `a11y` はこの門の内側にもう 1 つ、絵を決める入力のハッシュで比較だけを省く判定を持つ。2 層がそれぞれ何を落とすかは `../../vrt/README.md` の [絵が変わり得ないときは撮らない](../../vrt/README.ja.md#絵が変わり得ないときは撮らない) にまとめてある。
 
@@ -370,11 +378,11 @@ coverage 以外の各 job は検査結果を即 fail させず、いったん ca
 - **REST を叩くジョブは App の installation token を使う。** `GITHUB_TOKEN` の上限は **1,000 req/h・リポジトリ単位**で、全ワークフローと開いている全 PR で共有する。installation token は 5,000 req/h。`baseline-retake` は VRT / E2E の完了ごとに発火して 1 回あたり約 10 回叩くため最初に枯れる側で、実際に `API rate limit exceeded for installation` で撮り直しが止まった。鋳造時の権限は**そのジョブの呼び出しが要るものだけ**を名指しする（push 用の鋳造は `setup-baselines` の側にあり、別の権限で別に取る）。**鋳造は落ちてよい**（`continue-on-error`）—— installation が許可していない権限を求めると 422 になり、そのままではジョブごと落ちる。避けようとした枠切れより悪い。落ちれば出力が空になり、呼び出しは `GITHUB_TOKEN` へ落ちて撮り直しは進む。App を登録していなくても同じ経路で動き続ける —— 枠が小さいだけである。**コメントを投稿するジョブはこの対象外**：長命の秘密鍵が本文を作るジョブへ入ることになり、下の「`secrets.*` を `env:` で渡さない」に反する。`a11y` / `e2e` が既にコメントを別ジョブへ割ってあるのはこの形で、issue を開く側だけがトークンを持つ。`lighthouse` は同じジョブで両方をやるため寄せられていない —— 寄せるならジョブを割る
 - **本文ファイルが無いことは、投稿ステップの失敗ではなく job の打ち切りとして扱う。** 打ち切られた job は本文を書くステップまで到達しない。ここで失敗させると、結果が出ていないだけの実行で投稿ステップだけが赤くなる。**何も投稿せずに戻る** —— 打ち切られたことはチェック一覧が示しており、コメントはそれを言い換えるだけである。加えて費用の形が悪い：打ち切りは判定を持たないため `success` の抑止を通り抜けて必ず書き込みを起こし、それが出る状況（job の中断）は push が連続している状況と重なるので、**API の枠が一番苦しいときに消費が跳ねる**
 - **`diff-scope` で降りたときは `status: success` を渡して更新する。**降りた job は緑を報告するので、投稿ごと落とすと前の push が出した FAIL コメントが緑チェックの隣に残り続ける。赤くした変更を base と同一内容へ戻す直し方（履歴を書き換えないこのリポジトリでは、これが正）で必ず踏む経路である。降りたことを述べる本文を書いて upsert すれば、コメントが無い PR には何も付かず、赤が残っている PR ではそれが置き換わる
-- **報告専用のスキャナは、判定を「走ったか」ではなく「見つかったか」で渡す。** `dependency-scan` / `osv-scan` の job は検出で落ちない設計なので、`status` に job の成否をそのまま渡すと、脆弱性を見つけた実行が `success` としてコメントを抑止する。3 値（`success` / `findings` / `failure`）に割り、スキャナの exit code で区別する（`TRIVY_FS_DETECT_EXIT` / `OSV_DETECT_EXIT`）
+- **報告専用のスキャナーは、判定を「走ったか」ではなく「見つかったか」で渡す。** `dependency-scan` / `osv-scan` の job は検出で落ちない設計なので、`status` に job の成否をそのまま渡すと、脆弱性を見つけた実行が `success` としてコメントを抑止する。3 値（`success` / `findings` / `failure`）に割り、スキャナーの exit code で区別する（`TRIVY_FS_DETECT_EXIT` / `OSV_DETECT_EXIT`）
 - 投稿ステップは `continue-on-error: true`。fork からの PR はトークンが read-only で投稿できないが、それで検査の判定を落とさない
 - **検査コマンドに `secrets.*` を `env:` で渡さない**。Actions のシークレットマスキングはランナーがログ表示用に捕捉する経路にしか効かず、`tee` でファイルへ落とした内容は素通りする。そのファイルがこのリポジトリ（public）の PR コメントへそのまま載る。`GITHUB_TOKEN` だけが例外（投稿そのものに要る短命トークン）。この規約は `make actions-comment-secret-lint` が機械検査するが、追えるのは `${{ }}` 式の直接参照までで、`needs.<job>.outputs` 経由の間接渡しは検査を通る — **規約が正であり、検査は退行ガード**。**もう 1 つの死角が `gh pr comment` を直接叩くジョブ**で、検査は `upsert-pr-comment` へ到達するジョブしか対象に取らない。`baseline-retake` の `retake` がそれに当たり、App トークンを持ちながら PR へ投稿する唯一のジョブなので、本文はすべてワークフローに書いたリテラルに保つ（ジョブ側にも同じことを書いてある）
 - **既存コメントの同定は「bot 投稿者」と「マーカーで始まること」の両方を要求する**。public リポジトリでは第三者がマーカー入りのコメントを先に投稿でき、かつ全ワークフローが同じ bot で投稿するため、どちらか片方では同定にならない（別ワークフローのマーカーを検査ログへ出力させれば、そのワークフローを誤ったコメントへ誘導できる）。この前提として `github-token` には **bot として投稿するトークンを渡す** — 個人の PAT では投稿できても二度と更新できない
-- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件は ADR 0153 の 5）
+- **本文の折り畳みに使うフェンスは本文から決める**。検査ログには linter やコンパイラーがソース行をそのまま出力するので、その中身は PR 提出者が制御できる。固定の 3 連バッククォートで囲むと本文自身がフェンスを閉じ、以降が生 Markdown としてレンダリングされる（mention による第三者への通知、偽の見出しやリンクが CI bot の名義で載る）。呼び出し側は自前でフェンスを組み立てず `details-summary` を使うこと（撤回条件は ADR 0153 の 5）
 - **`title` と `details-summary` には静的リテラルだけを渡す**。無害化が効くのは本文（`body-file`）だけで、`title` は生 Markdown、`details-summary` は生 HTML としてフェンスの**外**に置かれる。ログの中身を要約して `title` に載せるような変更を入れると、フェンスで塞いだ注入が外側から復活する
 
 カバレッジだけは、行単位の coverage と基準ブランチとの差分を構造化して報告する必要があるため、`test.yaml` の octocov が専用コメントを投稿する。**これは判定ではなく計測値なので、緑でも投稿し続ける** —— 上の「緑では作らない」が対象にしているのは「PASS」としか言わないコメントである。ただし**積み上げてはいけない**ので `.octocov.yaml` に `updatePrevious: true` を置いてある（デフォルトは push のたびに新しいコメントを作る）。テストの失敗内容そのものは octocov ではなくこの upsert 基盤が投稿する —— octocov は coverage しか報告せず、どのテストが落ちたかを言わない。ほかの検査ログ（セキュリティスキャン結果 / 生成物 drift を含む）はこの composite action に乗せる。
@@ -447,7 +455,7 @@ ADR は番号もセクションも決定の所在も動くが、この README �
 - [0054](../../docs/adr/0054-ui-catalog-storybook.ja.md) — 見た目と a11y の検査が載るカタログ
 - [0072](../../docs/adr/0072-api-type-generation.ja.md) — 生成物はそれ自体の所見を持たない
 - [0082](../../docs/adr/0082-client-observability.ja.md) — 実ユーザーから集める指標
-- [0090](../../docs/adr/0090-testing-strategy.ja.md) / [0091](../../docs/adr/0091-test-verification-methods.ja.md) — フレームワークの分担と、実ブラウザが持つもの
+- [0090](../../docs/adr/0090-testing-strategy.ja.md) / [0091](../../docs/adr/0091-test-verification-methods.ja.md) — フレームワークの分担と、実ブラウザーが持つもの
 - [0101](../../docs/adr/0101-performance-budget.ja.md) — 予算と、それを書く指標
 - [0102](../../docs/adr/0102-browser-support.ja.md) — 検査を当てるサポート範囲
 - [0110](../../docs/adr/0110-security-operations.ja.md) — スキャンのしきい値・抑止の書式・fail-closed のゲート
@@ -456,7 +464,7 @@ ADR は番号もセクションも決定の所在も動くが、この README �
 - [0150](../../docs/adr/0150-git-workflow.ja.md) — 環境のデプロイ元になるブランチ
 - [0153](../../docs/adr/0153-ci-configuration.ja.md) — job の分割・SHA ピン・secrets・公開面に載せてよい文字集合
 - [0155](../../docs/adr/0155-claude-skills-development.ja.md) — TypeScript の例外としてのシェル
-- [0157](../../docs/adr/0157-inspection-declaration-discipline.ja.md) — ゲートは自身が報告したとおりに報告する。語彙で分類するフィルタを通さない
+- [0157](../../docs/adr/0157-inspection-declaration-discipline.ja.md) — ゲートは自身が報告したとおりに報告する。語彙で分類するフィルターを通さない
 - [0160](../../docs/adr/0160-agent-environment-loop.ja.md) — 再計測の段と、ループが読んでよいもの
 
 ## 通知

@@ -47,7 +47,7 @@ SSR first の選定では `△` に当たります。デフォルトは `Input` 
 
 `InputGroupTextarea` だけは内容に応じて高さが伸び、外枠もそれに追随します。table の cell のように行の高さが揃っている場所へ置くと周囲が押し下げられるため、その場合は単一行の `InputGroupInput` を選びます。
 
-外枠と addon は `role="group"` を持ちます。いずれも名前を持たない group であり、入力欄のアクセシブルな名前は `Label` の `htmlFor` か `aria-label` で別に与えます。addon の記号・アイコンは装飾であり、control の名前にも説明にもなりません。`InputGroupAddon` 自体は focus を受け取らず、keyboard 利用者は control へ直接 tab で到達します。addon へ操作を置く場合は `InputGroupButton` を使い、アイコンだけのときは `aria-label` で名前を与えます。
+外枠と addon は `role="group"` を持ちます。いずれも名前を持たない group であり、入力欄のアクセシブルな名前は `Label` の `htmlFor` か `aria-label` で別に与えます。addon の記号・アイコンは装飾であり、control の名前にも説明にもなりません。`InputGroupAddon` 自体は focus を受け取らず、keyboard ユーザーは control へ直接 tab で到達します。addon へ操作を置く場合は `InputGroupButton` を使い、アイコンだけのときは `aria-label` で名前を与えます。
 
 `InputGroupButton` のデフォルトは `type="button"` で、form の中に置いても送信しません。検索実行など submit させたい場合だけ `type="submit"` を指定します。
 

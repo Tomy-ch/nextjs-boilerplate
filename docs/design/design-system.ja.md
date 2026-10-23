@@ -52,7 +52,7 @@ SSOT は `tokens/primitives.json`（生の値）と `tokens/themes/<系統>/<配
 
 デフォルトの系統・デフォルトの配色は属性を持たないので、**何も書いていないツリーは必ず `user` × `light` になる**。デフォルト以外の配色は `screen` に限定して出るため、印刷は常にデフォルトの配色である。
 
-`dark:` variant は `globals.css` の `@custom-variant dark` が**同じ二経路**で発火させている。自前の CSS に `@media (prefers-color-scheme: dark)` を書くと、`data-theme` で light を選んだ利用者に dark の宣言が当たる —— 経路を 1 つしか見ないことになる。
+`dark:` variant は `globals.css` の `@custom-variant dark` が**同じ二経路**で発火させている。自前の CSS に `@media (prefers-color-scheme: dark)` を書くと、`data-theme` で light を選んだユーザーに dark の宣言が当たる —— 経路を 1 つしか見ないことになる。
 
 系統の属性を置く側は `shell/admin-shell` で、外枠へ `data-surface` を置き、隣に `SurfacePortalBridge` を置く。ブリッジが要る理由は「[間違えやすいところ](#間違えやすいところ)」で扱う。
 
@@ -204,7 +204,7 @@ story の `title` の先頭セグメントは台帳の `as` と一致させ、`p
 
 ### story を持てないコンポーネントの条件
 
-原則は「story を持たない component を新規に作らない」で、例外は**ブラウザで描けない**か**描くものが無い**かのどちらかに限る。
+原則は「story を持たない component を新規に作らない」で、例外は**ブラウザーで描けない**か**描くものが無い**かのどちらかに限る。
 
 | コンポーネント | story | なぜ |
 | --- | --- | --- |
@@ -225,7 +225,7 @@ story の `title` の先頭セグメントは台帳の `as` と一致させ、`p
 
 ### a11y はカタログで全数
 
-`axe` は visual regression と同じ digest 固定コンテナで story 全数に掛かる（[0091](../adr/0091-test-verification-methods.ja.md)）。`addon-a11y` は手元の対話パネルであり、ゲートではない。component レイヤーの `vitest-axe` とは見えるものが違う —— jsdom には色が無いので、コントラストの実測は story レイヤーでしか出ない。
+`axe` は visual regression と同じ digest 固定コンテナーで story 全数に掛かる（[0091](../adr/0091-test-verification-methods.ja.md)）。`addon-a11y` は手元の対話パネルであり、ゲートではない。component レイヤーの `vitest-axe` とは見えるものが違う —— jsdom には色が無いので、コントラストの実測は story レイヤーでしか出ない。
 
 ## 外部への書き出し
 
@@ -306,12 +306,12 @@ CSS のカスタムプロパティ名に `.` は置けないため、生成側�
 
 ### `design:bundle` は Storybook の build 無しには動かない
 
-story 名を `storybook-static/index.json` から引くため、index が無いと止まる。これは「先に `pnpm build-storybook`」で解決し、index が古いだけの場合は build し直す。エラーの文言が「ファイルが無い」と「解釈できない」で分かれているのはそのためで、後者を前者と同じに扱うと、既にビルド済みの利用者が同じ所で止まり続ける。
+story 名を `storybook-static/index.json` から引くため、index が無いと止まる。これは「先に `pnpm build-storybook`」で解決し、index が古いだけの場合は build し直す。エラーの文言が「ファイルが無い」と「解釈できない」で分かれているのはそのためで、後者を前者と同じに扱うと、既にビルド済みのユーザーが同じ所で止まり続ける。
 
 ## 関連する ADR
 
 - [0050](../adr/0050-styling-strategy.ja.md) — Tailwind 主軸 / CSS Modules の限定許可 / `cn()` の置き場 / 系統の属性を Portal の出口へ置く分担
-- [0051](../adr/0051-styling-system.ja.md) — token の 2 層と 2 軸 / バンドとコンテナクエリ / モーション / 印刷 / 重なり順のバンド / 和文書体
+- [0051](../adr/0051-styling-system.ja.md) — token の 2 層と 2 軸 / バンドとコンテナークエリ / モーション / 印刷 / 重なり順のバンド / 和文書体
 - [0052](../adr/0052-ui-component-policy.ja.md) — shadcn/ui の copy-in / 上流を増やさない / variant は排他の見た目だけ / アイコンの封じ込め
 - [0053](../adr/0053-ui-component-interaction-seam.ja.md) — built-in 優先 / overlay の a11y 契約と履歴 / コンポーネントが持つ状態と外から渡すもの / slot で受ける
 - [0054](../adr/0054-ui-catalog-storybook.ja.md) — Storybook をコンポーネントの唯一の一覧にする / server の無い面での差し替え / 1 コンポーネント 15 主題

@@ -11,7 +11,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
 - route segment、route handler、metadata と layout への横断 UI / Provider の mount
 - Next.js が規定する特殊ファイルと route segment
 - **複数の route group のレイアウトシェルが共有する宣言モジュール**（`fonts.ts` / `site.ts` など）。route
-  要素のどれにも当たらないが、レイアウトシェルごとに書くと片方だけが動く。利用者から見て同じサイトのレイアウトシェルが
+  要素のどれにも当たらないが、レイアウトシェルごとに書くと片方だけが動く。ユーザーから見て同じサイトのレイアウトシェルが
   レンダリングする時点の違いだけで分かれているとき、導線の顔ぶれもここに 1 つ持つ —— 役割で出し分ける導線は
   含めず、出す・出さないの判定を持つレイアウトシェルが自分で足す。テストは `unit` として扱う
 - **レイアウトシェルの隣に置く、主体で決まる導線のダイナミックホール**。役割で出し分ける導線は、session を読む Server Component を
@@ -33,7 +33,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   回さない（`scripts/lib/untested-modules.ts`）。
   絵として返ることと、挙げた URL が実在すること・正規 URL が自分を指すことは、起動したアプリから
   取って見る（`make e2e-metadata`）
-- **root layout が mount する計装**（`telemetry.tsx`）。レンダリングするものを持たず、ブラウザ側のシグナルを
+- **root layout が mount する計装**（`telemetry.tsx`）。レンダリングするものを持たず、ブラウザー側のシグナルを
   中継へ送り出すだけの client component である。`components` にも `capabilities` にも置けない ——
   どちらも外部への送信を持てないため（[0082](../../docs/adr/0082-client-observability.ja.md)）。
   テストは `component` として扱う
@@ -41,7 +41,7 @@ App Router の driving adapter です。`page.tsx` と `layout.tsx` は feature 
   要する資材のゲートを、1 つの購読の裏で束ねる client component である。`components` にも
   `capabilities` にも置けない —— どちらも `stores` を引けないため
   （[0031](../../docs/adr/0031-policy-state-supply.ja.md)）。テストは `component` として扱う
-- **同意のアイランドの裏へ置くタグマネージャ**（`analytics.tsx`）。コンテナ ID を config から読み、宣言のある
+- **同意のアイランドの裏へ置くタグマネージャー**（`analytics.tsx`）。コンテナー ID を config から読み、宣言のある
   デプロイでだけ読み込む client component である。`components` に置けない —— `config` を引けないため。
   テストは `component` として扱う
 
@@ -164,7 +164,7 @@ root layout が `metadataBase`（外から見た origin。`config/site`）と `t
 | 画面 | 宣言するもの |
 | --- | --- |
 | 誰でも開け、インデックスさせたい画面 | `title` / `description` / `alternates.canonical`（自分の経路） |
-| 認証の要る画面、利用者ごとに中身が変わる画面 | 上に加えて `robots: { index: false, follow: false }`。インデックスさせる環境でも隠す |
+| 認証の要る画面、ユーザーごとに中身が変わる画面 | 上に加えて `robots: { index: false, follow: false }`。インデックスさせる環境でも隠す |
 | 動的セグメントの画面 | `generateMetadata`。取得の分類を写す判定は feature 側の module に置き、page は薄く呼ぶ |
 
 canonical を root に置かないのは、`alternates` が segment 単位で丸ごと差し替わるためである。root
@@ -179,7 +179,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 - **`robots.ts` は静的にレンダリングされ、build 時の設定が焼き込まれる。`sitemap.ts` は `connection()` を待って
   要求時に組む。** 挙げる経路にバックエンドから取る一覧が混ざるなら、build 時に取ると配信物を作る
   場所からバックエンドへ届くことが前提になり、その時点の一覧が焼き込まれる
-- **辿った一覧は要求をまたいで持つ**（`use cache` + `cacheLife`）。クローラは同じ URL を繰り返し開くので、
+- **辿った一覧は要求をまたいで持つ**（`use cache` + `cacheLife`）。クローラーは同じ URL を繰り返し開くので、
   開くたびに末尾まで辿ると 1 要求が一覧の件数ぶんの backend 呼び出しへ膨らむ。`use cache` の中では
   cookie を読めないので、辿るのは主体を名乗らないエンドポイントに限る
 - **Sitemaps protocol の上限（1 ファイル 50,000 URL）で打ち切る。** 載せ切れない分を黙って落とすのでは
@@ -214,7 +214,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   渡すのは同意が無ければ読み込んではならないものだけで、未同意の間は要素そのものをレンダリングしない —— 属性で
   無効にする形では、要素が存在する時点で取得が始まる資材を止められない。何を裏へ置くかはレイアウトシェルが決め、
   判断の材料として示す文書の行き先もレイアウトシェルが持つ（コンポーネントへ焼くと、文書を動かしたときにコンポーネントを書き換える）
-- **同意ゲートの裏に置く第三者 script は動的に読む。** 静的に import すると、依存を外したデプロイ（コンテナ ID を
+- **同意ゲートの裏に置く第三者 script は動的に読む。** 静的に import すると、依存を外したデプロイ（コンテナー ID を
   空にした側）の初期 JS にもライブラリのコードが載る。読み込んだ script は unmount で降りない（effect で
   `document.body` へ足すものも、`async` の `<script src>` も、React は資源として扱い外さない）ので、
   同意の取り消しは次の読み込みからしか効かない。読み込みの strategy を prop で選べないライブラリでは、
@@ -224,7 +224,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 - **同意した直後に配られる値は、遷移のたびに拾い直す。** 前捌きが配る値は同意を書いた後の最初の要求から
   載るので、mount の 1 回では届かない。拾うコンポーネントに経路を `key` として渡して遷移ごとに作り直し、渡した
   値は module 変数に控えて同じ値を二度渡さない（コンポーネントの中に控えると作り直しのたびに消える）
-- **ブラウザ側のシグナルを中継へ送るアイランドは、送信を `adapters/client` に持たせ、計装は mount した後に
+- **ブラウザー側のシグナルを中継へ送るアイランドは、送信を `adapters/client` に持たせ、計装は mount した後に
   動的な import で読む。** Web Vitals に載せる route は読み込みが始まった route、例外に載せる route は
   起きた時点の route（[docs/design/observability.md](../../docs/design/observability.ja.md)）。
   1 回の読み込みで送る例外は上限で打ち切る —— レンダリングが投げ続ける壊れ方では同じ例外が毎フレーム上がる
@@ -246,7 +246,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
 
 外から見た origin とインデックスの可否は環境変数で、[`env/README.md`](../../env/README.ja.md#boilerplate-導入時の変更点) が持ちます。`site.ts` が持つのは環境に依らない名乗りだけです。
 
-同意ゲートの裏で読み込むタグマネージャを別のものへ替えるなら、`analytics.tsx` と配信ヘッダの
+同意ゲートの裏で読み込むタグマネージャーを別のものへ替えるなら、`analytics.tsx` と配信ヘッダーの
 許可 origin（[`src/config/README.md`](../config/README.ja.md#boilerplate-導入時の変更点)）の両方を
 動かします。
 
@@ -274,7 +274,7 @@ canonical を root に置かないのは、`alternates` が segment 単位で丸
   `正常系` / `異常系` です。隣へ出す形は、Route Handler が `features` を引けないのに転送先が feature
   の語彙（失敗の分類）で決まるときに要ります —— 隣のモジュールが判別可能 union で転送先まで組んで返し、
   `route.ts` はエンドポイントを閉じることと HTTP の形へ直すことだけを持ちます。POST を受けて別の場所へ送る応答は
-  303 にします（302 のままだと、戻した先をブラウザが POST で開き直しうる）。本体の大きさの上限も
+  303 にします（302 のままだと、戻した先をブラウザーが POST で開き直しうる）。本体の大きさの上限も
   受信エンドポイントが自分で持ちます —— `next.config.ts` の `bodySizeLimit` は Server Action にしか及びません
 
 - **Server Action の形は同じです。** ファイルごとに断言の補助（`assertXxx`）を 1 つ持ち、export する

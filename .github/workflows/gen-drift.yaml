@@ -12,6 +12,10 @@ name: Gen Drift
 #
 # The second check is cheap and names the failure precisely, so it runs first. Neither step reaches
 # the network: the contract itself is committed, and fetching it is a deliberate act (make api-fetch).
+#
+# The job always starts and then asks `diff-scope` whether the diff can reach the generated
+# artifacts, so the required context is reported even when the expensive steps stand down. No
+# `paths:` filter, deliberately — README.md says why.
 
 on:
   pull_request:
@@ -30,43 +34,75 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
+      # What neither the generator nor the `pnpm fix` after it can turn into a change under
+      # `src/adapters/gen` or `mocks`. Tests are not listed: `mocks/` holds hand-written ones,
+      # and the formatting pass rewrites them inside the directory this job inspects.
+      - name: Decide whether the diff can reach the generated artifacts
+        id: scope
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+            vrt/*
+            e2e/*
+            .storybook/*
+            *.stories.tsx
+            public/*
+            tokens/*
+            *.css
+
       - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Verify the contract and the generated artifacts carry the same version
+        if: steps.scope.outputs.relevant == 'true'
         run: make api-gen-check
 
       - name: Regenerate from the committed contract
+        if: steps.scope.outputs.relevant == 'true'
         run: make api-gen
 
       - name: Verify the regenerated artifacts match what is committed
+        if: steps.scope.outputs.relevant == 'true'
         shell: bash
         # `git status --porcelain`, not `git diff`: a contract that adds a schema makes orval write a
         # NEW file, and an untracked file is invisible to `git diff`. The gate would pass on exactly

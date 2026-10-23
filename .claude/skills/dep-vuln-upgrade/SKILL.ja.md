@@ -19,7 +19,7 @@
 
 ## When to Use
 
-- 利用者が脆弱性の報告 —— `pnpm audit`、Trivy / OSV の所見、Dependabot alert、手書きの一覧 ——
+- ユーザーが脆弱性の報告 —— `pnpm audit`、Trivy / OSV の所見、Dependabot alert、手書きの一覧 ——
   を貼り、指摘されたパッケージを塞ぎたいとき。
 - `.github/workflows/dependency-scan.yaml` の `dependency-audit` job が修正版のある high / critical で
   落ちたとき、または PR 上の OSV / Trivy の報告が、この変更で塞ぐべきものを名指ししたとき。
@@ -49,8 +49,8 @@
   exact pin のまま。
 - `pnpm-lock.yaml` —— `pnpm install --lockfile-only` の出力としてだけ。手で編集しない。
 - `pnpm-workspace.yaml` —— `overrides` ブロックだけ。`minimumReleaseAgeExclude` は
-  **利用者がその項目そのものを承認した後に限る**（Step 5）。
-- `osv-scanner.toml` / `.trivyignore.yaml` —— 利用者がその advisory 1 件について承認した項目だけ。
+  **ユーザーがその項目そのものを承認した後に限る**（Step 5）。
+- `osv-scanner.toml` / `.trivyignore.yaml` —— ユーザーがその advisory 1 件について承認した項目だけ。
 - 生成物 —— その `make` ターゲットの出力としてだけ（Step 7）。
 
 このスキルの間でも触らないもの:
@@ -65,7 +65,7 @@
 
 ## Step 0. advisory を読み解き、方針を読む
 
-1. 引数か直近の利用者メッセージから、**パッケージ・導入済みの版（あれば）・修正版の候補・
+1. 引数か直近のユーザーメッセージから、**パッケージ・導入済みの版（あれば）・修正版の候補・
    GHSA / CVE の ID・深刻度**の組を取り出す。よくある形（`pnpm audit` の塊、Trivy / OSV の行、
    1 行 1 パッケージ）を受け付ける。同じパッケージを名指しする項目はまとめる —— 1 回の移動で
    その advisory 全部が塞がり、報告はすべての ID を挙げる。
@@ -104,7 +104,7 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
 | importer | そのパッケージを木に含む workspace のメンバー |
 | 解決済みの版 | `pnpm why` から —— 1 つのパッケージが同時に複数の major で解決されうる |
 | 直接 / 推移的 | その importer の `package.json` に名前がある → 直接。無ければ推移的で、引いている親を添える |
-| 暴露面 | 配信される importer（ブラウザかサーバへ）の実行時依存か、開発時だけか —— `pnpm why` の経路から読む |
+| 暴露面 | 配信される importer（ブラウザーかサーバーへ）の実行時依存か、開発時だけか —— `pnpm why` の経路から読む |
 
 木に居ないパッケージは **not-present** として報告し、飛ばす。`mise.toml` のツール・Node.js・Action と
 判明したものは *Do NOT use* に挙げたスキルへ回す。
@@ -154,7 +154,7 @@ pnpm view <pkg> time --json
 下限より下へ着地しうる。実際に何へ解決されたかは Step 7 で読み直す。
 
 **ウィンドウを下げる・strict を切る・フラグを渡す、のいずれでも blocked の版を入れられる状態にしない。**
-版単位の除外が唯一の扉で、それを開けるのは利用者である（Step 5）。
+版単位の除外が唯一の扉で、それを開けるのはユーザーである（Step 5）。
 
 ## Step 4. ゲートが捕まえたものをトリアージする
 
@@ -165,7 +165,7 @@ pnpm view <pkg> time --json
 トリアージは報告のみで、帯（`LOW` / `MEDIUM` / `HIGH` / `CRITICAL` /
 `INSUFFICIENT-EVIDENCE`）を返す。ウィンドウか証拠かの判断はすべてあちらのもので
 （[0110](../../../docs/adr/0110-security-operations.ja.md)：ウィンドウは直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
-そこから何も決めない。**LOW の帯は利用者への証拠であって、除外してよいという許可ではない。**
+そこから何も決めない。**LOW の帯はユーザーへの証拠であって、除外してよいという許可ではない。**
 
 blocked が無ければこの手順は飛ばす。
 
@@ -189,7 +189,7 @@ blocked が無ければこの手順は飛ばす。
   - ...
 ```
 
-非対称は意図したものである —— 塞ぐことこそ、利用者がこのスキルを起動した目的である:
+非対称は意図したものである —— 塞ぐことこそ、ユーザーがこのスキルを起動した目的である:
 
 - **clear・同じ major・親の範囲の内側 → 問わずに当てる。**
 - 以下はすべて **`AskUserQuestion` で 1 項目 1 判断として問い**、選択肢はデフォルトで未選択にする。
@@ -217,7 +217,7 @@ pnpm install --lockfile-only
 ```
 
 **推移的依存。** `pnpm-workspace.yaml` の `overrides` に、既存の項目と同じ形で項目を足す ——
-セレクタは**脆弱な範囲**を、値は**次の major までの修正済みの範囲**を名指しする:
+セレクターは**脆弱な範囲**を、値は**次の major までの修正済みの範囲**を名指しする:
 
 ```yaml
   # <parent> (<who pulls it>) の推移的依存。<where it runs, when that matters>
@@ -226,11 +226,11 @@ pnpm install --lockfile-only
   "<pkg>@<vulnerable range>": ">=<fixed> <<next-major>"
 ```
 
-- 項目を自然に失効させるのはセレクタの範囲である: 上流がそこを越えれば項目は何にも一致しなくなり、
+- 項目を自然に失効させるのはセレクターの範囲である: 上流がそこを越えれば項目は何にも一致しなくなり、
   パッケージを古い版に留め続けられない。
-- **major 系列ごとに 1 項目。** 複数の major で解決されるパッケージは、各セレクタをその major に
+- **major 系列ごとに 1 項目。** 複数の major で解決されるパッケージは、各セレクターをその major に
   閉じる。
-- **同じパッケージ・同じ major の既存項目は、重ねずに引き上げる** —— セレクタを広げ、下限を上げ、
+- **同じパッケージ・同じ major の既存項目は、重ねずに引き上げる** —— セレクターを広げ、下限を上げ、
   新しい advisory をそのコメントへ足す。
 - 承認された範囲外の override は、コメントにその旨を明記し、検証されていない組み合わせを代わりに
   実際に動かす検査を名指しする。
@@ -284,7 +284,7 @@ pnpm why <pkg> -r                                 # every resolution now at or a
 （PR が足した high / critical で落ちる）。それぞれ CI が報告したとおりに報告する。major 越えの
 typecheck とテストも同じく CI のものである。
 
-失敗しても巻き戻さない。報告して、利用者に決めさせる。
+失敗しても巻き戻さない。報告して、ユーザーに決めさせる。
 
 ## Step 8. 報告する
 
@@ -294,13 +294,13 @@ typecheck とテストも同じく CI のものである。
   advisory の ID すべてと共に。
 - 足した / 引き上げた override と、その撤去条件 —— **override は暫定である**。親が修正版を要求したら
   消す。
-- 足した除外と、**それを消すべき日付**。利用者が持つ後続作業として述べる。
+- 足した除外と、**それを消すべき日付**。ユーザーが持つ後続作業として述べる。
 - 足した抑止と、それを退役させる条件。
 - blocked の各項目のトリアージの帯と、答えられなかった軸。
 - 断られた・先送りされた・`no-fix`・`not-present`・`needs-manual` の項目と、開いたまま残る advisory。
 - Step 7 の手元の結果と、どの CI job がこの変更を判定するか。
 
-stage・commit・push はしない。利用者がツリーを確認し、`/commit` を回す。
+stage・commit・push はしない。ユーザーがツリーを確認し、`/commit` を回す。
 
 ## Notes
 
@@ -320,7 +320,7 @@ stage・commit・push はしない。利用者がツリーを確認し、`/commi
 - [ ] 同じ major の最小修正版を選び、major 越え / 範囲外 / 修正版なし / ダウングレードに印を付けた
 - [ ] 公開時刻を読み、blocked の項目はすべて `/supply-chain-triage` を通した
 - [ ] clear で同じ major の項目は問わずに当て、それ以外の判断は 1 項目ずつ問うた
-- [ ] 直接は exact pin、推移的はコメント付きの範囲セレクタの override で当てた。lockfile は作り直し、編集していない
+- [ ] 直接は exact pin、推移的はコメント付きの範囲セレクターの override で当てた。lockfile は作り直し、編集していない
 - [ ] 除外は advisory・暴露面・日本時間の日付を持つ `pkg@version` で、ウィンドウの設定には触れていない
 - [ ] frozen install と `pnpm why` を確かめた。除外か抑止の後は `make suppression-expiry`、経路に居るなら `make api-gen`
 - [ ] 後続作業を含む日本語の報告を出した。stage・commit・push はしていない

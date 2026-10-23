@@ -24,9 +24,9 @@ Accepted
 | --- | --- | --- | --- |
 | `app` | スライス | driving adapter。**役割はファイル名が決める**(`route-segment`=page/layout→features / `route-handler`=`route.ts`→adapters/server + model + feature の `facade/` / `server-action`=`actions.ts`→adapters/server+features / `metadata`=robots等→config。[0025](0025-app-layer-elements.ja.md))。`layout` は横断 UI/Provider を薄く mount 可([0026](0026-layout-shell-mount.ja.md)) | 業務ロジック / 編成 / (route-segment の)直接 fetch |
 | `features/<name>` | スライス | 画面ユースケース(データ取得の編成 / 複数 API 集約 / フォーム送信フロー / 楽観更新)+ スライス専用 UI / hooks / Server Action(主体の断言を要さないもの)。hook + UI の合成点。内部はフラット共置 | 他 feature への依存(下記昇格ルール) |
-| `model` | カーネル | 表示用 ValueObject / フォーマッタ / 単位変換 / 表示バリデーション規則 / **表示結果型(`ActionState<T>` 等)**。純粋・依存最小 | **ビジネスルール**(バックエンド責務)/ fetch / config |
+| `model` | カーネル | 表示用 ValueObject / フォーマッター / 単位変換 / 表示バリデーション規則 / **表示結果型(`ActionState<T>` 等)**。純粋・依存最小 | **ビジネスルール**(バックエンド責務)/ fetch / config |
 | `components` | カーネル | 横断 UI(デザインシステム的な純 UI コンポーネント)。トースト等の UI 状態は持てる | fetch / config / 業務状態 / `capabilities` ・ `stores` の import |
-| `adapters` | カーネル | 外部接続のみ(backend API client / BFF fetch / analytics 等)。**server / client の 2 面**([0024](0024-adapters-server-client-split.ja.md)。server = config 可・secret / client = `"use client"`・secret 不可。**面は実行文脈の分けで、境界検査の要素ではない**)。生成型・外部型を内層へ漏らさない変換の所有境界 | 業務ロジック / UI / local ブラウザ API(→ `capabilities`) |
+| `adapters` | カーネル | 外部接続のみ(backend API client / BFF fetch / analytics 等)。**server / client の 2 面**([0024](0024-adapters-server-client-split.ja.md)。server = config 可・secret / client = `"use client"`・secret 不可。**面は実行文脈の分けで、境界検査の要素ではない**)。生成型・外部型を内層へ漏らさない変換の所有境界 | 業務ロジック / UI / local ブラウザー API(→ `capabilities`) |
 | `capabilities` | カーネル | 横断 client hook(runtime 能力 = connectivity / mediaQuery / storage / clipboard / cookie 読み等)。**client-only**。[0022](0022-capabilities-kernel.ja.md) | remote IO(→ adapters)/ `server config` / 業務状態 / UI / ポリシー状態(client config の NEXT_PUBLIC リテラルは可) |
 | `stores` | カーネル | 横断 client 状態(複数 feature が共有する Zustand ストア = 選択状態 / ウィザード / グローバル UI トグル等)。**client-only**。[0023](0023-stores-kernel.ja.md) | server state(→ RSC/adapters)/ 単一 feature の状態(→ feature 内 local)/ UI マークアップ(→ components)/ `server config` / secret / 業務ロジック |
 | `config` | カーネル | 型付き config(**目的別**・単一オブジェクト非採用。server config〈secret〉/ client config〈NEXT_PUBLIC リテラル〉。[0030](0030-environment-variable-management.ja.md))。`process.env` 直読の唯一の場所 | UI / fetch / 業務ロジック |
@@ -45,7 +45,7 @@ Accepted
 | `app/server-action`(`actions.ts`。[0025](0025-app-layer-elements.ja.md)) | `adapters/server` / `features` / `model` / `errors` / `logging`(**主体の断言をここで行う**・業務ロジック禁止) |
 | `app/metadata`(robots等) | `config` / `model`(起動 / ビルド境界例外)。リクエスト時に一覧を辿る `sitemap.ts` に限り `adapters/server` と対象 feature の `facade/`([0025](0025-app-layer-elements.ja.md)) |
 | `features` | `model` / `components` / `adapters`(公開面のみ)/ **`capabilities`** / **`stores`** / `errors` / `logging` / `observability`(レンダリングを span へ載せるエンドポイント。[0081](0081-observability-logging.ja.md)) |
-| `adapters/server`([0024](0024-adapters-server-client-split.ja.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可レイヤー)**/ `observability`(ブラウザから中継したテレメトリを signal へ載せるエンドポイント。[0082](0082-client-observability.ja.md))。`server-only` |
+| `adapters/server`([0024](0024-adapters-server-client-split.ja.md)) | `model` / `errors` / `logging` / **`config`(= `server config` の唯一の許可レイヤー)**/ `observability`(ブラウザーから中継したテレメトリを signal へ載せるエンドポイント。[0082](0082-client-observability.ja.md))。`server-only` |
 | `adapters/client`([0024](0024-adapters-server-client-split.ja.md)) | `model` / `errors` / `logging` / client config(**`server config` 不可**・NEXT_PUBLIC リテラルは可)。`"use client"` |
 | `capabilities`([0022](0022-capabilities-kernel.ja.md)) | `model` / `errors` / `logging` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
 | `stores`([0023](0023-stores-kernel.ja.md)) | `model` / `errors` / client config(`server config` 不可・NEXT_PUBLIC リテラルは可)。`"use client"` |
@@ -55,8 +55,8 @@ Accepted
 
 - 表にない import 方向はすべて**禁止**(内向き依存原則。[0020](0020-adopted-architecture.ja.md) 設計原則 1)
 - **エントリポイントの保護は `app/route-segment` の名指しの例外**である([0079](0079-auth-frontend-seam.ja.md))。`verifySession()` を呼び、`model` の述語で判定し、満たさなければ `redirect()` する —— この 3 つだけを許し、取得も業務ロジックも許さない。例外にする理由は、保護がエントリポイントごとに閉じていなければ意味を持たず、**route segment の集合を知っているのは app レイヤーだけ**だからである。`features` へ回せないのは、DAL を含む `adapters/server/auth` へ触れてよいのが `app` と `adapters` だけという同じマトリクスの帰結による(下記「Server Action の置き場」と同型)
-- **計装の mount も `app/route-segment` の名指しの例外**である([0082](0082-client-observability.ja.md))。root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す —— これだけを許し、span の生成も記録も許さない。例外にする理由は、**ブラウザに OTel SDK を置かない**([0081](0081-observability-logging.ja.md))結果としてブラウザが自分の trace を持たず、サーバ側の trace id を渡せるのがレイアウトシェルを組むレイヤーだけだからである。渡さなければ、ブラウザ発の記録は中継リクエストの span に紐づき、測定が起きていないリクエストと親子になる
-- **`server config`(secret を持つ runtime config object)を import してよいのは `adapters/server` のみ**(実行時の唯一の許可レイヤー = 境界アダプタ)。内側のレイヤーは server config でなく**値を引数で受け取る**(内側のレイヤーは config を知らない)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**。[0030](0030-environment-variable-management.ja.md))は runtime object でなく公開定数のため、client 側のレイヤー(`adapters/client` / `capabilities` / Client Component)も import 可
+- **計装の mount も `app/route-segment` の名指しの例外**である([0082](0082-client-observability.ja.md))。root layout がアクティブな span の trace 相関を取り出し、mount する client component へ渡す —— これだけを許し、span の生成も記録も許さない。例外にする理由は、**ブラウザーに OTel SDK を置かない**([0081](0081-observability-logging.ja.md))結果としてブラウザーが自分の trace を持たず、サーバー側の trace id を渡せるのがレイアウトシェルを組むレイヤーだけだからである。渡さなければ、ブラウザー発の記録は中継リクエストの span に紐づき、測定が起きていないリクエストと親子になる
+- **`server config`(secret を持つ runtime config object)を import してよいのは `adapters/server` のみ**(実行時の唯一の許可レイヤー = 境界アダプター)。内側のレイヤーは server config でなく**値を引数で受け取る**(内側のレイヤーは config を知らない)。※ client config(= NEXT_PUBLIC のビルド時インライン**リテラル**。[0030](0030-environment-variable-management.ja.md))は runtime object でなく公開定数のため、client 側のレイヤー(`adapters/client` / `capabilities` / Client Component)も import 可
 - **`features` は config を読まない**のだから、外から見た origin を知るのは `app` だけである。絶対 URL の組み立て(構造化データの `url`、canonical 等)は `app` が行い、feature は自分がどこにあるかを画面の正規 URL から受け取るか、持たない
 - **起動 / ビルド境界の例外**: config の検証実行点である `instrumentation.ts`(`src/` 直下)と `next.config.ts`(リポジトリルート)は config を import してよい。これらは 11 カーネルの**外側**にある起動 / ビルドのエントリである。`app/metadata`(robots等。[0025](0025-app-layer-elements.ja.md))と `proxy.ts`(辿れる config は `environment.ts` → `application-environment.ts` まで。[0043](0043-middleware-policy.ja.md))も同格の起動 / ビルド境界例外として config import を許す。ESLint boundaries では専用 element として扱う
 
@@ -64,7 +64,7 @@ Accepted
 
 feature 間の直接 import は**禁止**する。複数 feature から共有が必要になった要素は、その性質に応じてカーネルへ**昇格**させる:
 
-- 表示用ロジック(VO / フォーマッタ) → `model` へ
+- 表示用ロジック(VO / フォーマッター) → `model` へ
 - UI コンポーネント → `components` へ
 - 外部接続 → `adapters`(server / client の面を実行文脈で選ぶ。[0024](0024-adapters-server-client-split.ja.md)) へ
 - **reactive な横断 client hook(runtime 能力) → `capabilities`([0022](0022-capabilities-kernel.ja.md)) へ**
@@ -107,7 +107,7 @@ feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇
 
 - **変わる理由が 2 つ以上ある**。変更の依頼が別々の出来事から来るなら、それは別のコンポーネントである
 - **技術的に境界が強制される**。`"use client"` の境界、Server Action、focus trap のように DOM を残せない機構、状態を form の子でしか読めない API など、仕様の側が分割を要求する
-- **状態の寿命と持ち主が違う**。操作の途中経過と表示、方針とコンテナは、置き場所も差し替えのタイミングも別である
+- **状態の寿命と持ち主が違う**。操作の途中経過と表示、方針とコンテナーは、置き場所も差し替えのタイミングも別である
 - **2 つ目の参照が実際に出た**。予測では分けない(昇格ルールと同じ規律)。**3 回目まで待つ流儀(rule of three / AHA)は採らない** —— 待つのは「2 箇所目では正しく抽象化できない」という前提を置くことであり、その前提は設計を詰めれば成立しない。2 箇所目で**正しい抽象を選ぶ**ことを要求する
 - **React を外して検証できる形になる**。順序・判定・変換は純関数として切り出す
 - **状態や購読を伴う方針が、2 つ目のコンポーネントでも要る**。この場合だけ hook にする(純粋な計算は hook にしない。関数で足りる)
@@ -127,7 +127,7 @@ feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇
 
 **Container / Presentational は採らない。** その分割線は [0040](0040-routing-rendering-strategy.ja.md) の server(取得・編成)/ client(相互作用)に置き換わっており、実務上の線引きは `"use client"` をリーフへ押し下げることである。
 
-**client のコンテナへ server の出力を渡すときは `children` を使う。** 相互作用を持つコンテナの中に server が組み立てた内容を置く場合、内容を props の値として運ばず `children` として渡す。コンテナが内容の型を知らずに済み、`"use client"` の境界がコンテナの縁で止まる。
+**client のコンテナーへ server の出力を渡すときは `children` を使う。** 相互作用を持つコンテナーの中に server が組み立てた内容を置く場合、内容を props の値として運ばず `children` として渡す。コンテナーが内容の型を知らずに済み、`"use client"` の境界がコンテナーの縁で止まる。
 
 **型で表せることは型で表す。** 状態の表し方・境界での確定・識別子の brand・`satisfies` の使い方は [0029](0029-type-design-discipline.ja.md) が持つ。
 
@@ -151,8 +151,8 @@ feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇
 カーネル・ディレクトリは **役割名のみ許可**する。名前だけから受入基準を推定できない名称は**禁止**する。
 
 - **禁止名**: `common` / `shared` / `utils` / `util` / `helpers` / `lib` / `misc` 等(役割を名指ししていない置き場)
-- **根拠**: 役割を名指しできない置き場が必要になった時点で、それは**設計の欠落**である。汎用ユーティリティの家は作らない。表示系ヘルパは `model`、非表示系は feature 内に置く。真に横断が必要になったら、**ADR 追補で役割を定義してから**作る
-- **適用例**: 境界アダプタレイヤーは `lib` ではなく **`adapters`** と命名する
+- **根拠**: 役割を名指しできない置き場が必要になった時点で、それは**設計の欠落**である。汎用ユーティリティの家は作らない。表示系ヘルパーは `model`、非表示系は feature 内に置く。真に横断が必要になったら、**ADR 追補で役割を定義してから**作る
+- **適用例**: 境界アダプターレイヤーは `lib` ではなく **`adapters`** と命名する
 
 命名規律(名前が役割を宣言)と後述のカーネル受入基準(受入基準が中身を検査)で**二段防衛**とする。
 
@@ -161,7 +161,7 @@ feature を跨ぐ横断が必要になった時点で「どのカーネルへ昇
 カーネルへ要素を追加してよい基準は次の 4 つである。1〜3 は「横断参照されるものだけを置き、単一責務を保つ」というカーネル一般の方針、4 はプレゼンテーションレイヤーロール定義([0011](0011-no-docker.ja.md))の帰結である。
 
 1. **複数箇所から参照される、または外部ライブラリの wrap である**もののみ受け入れる
-2. **単一機能ヘルパ**(1 つの feature でしか使わないもの)は feature 内に置く。カーネルへ上げない
+2. **単一機能ヘルパー**(1 つの feature でしか使わないもの)は feature 内に置く。カーネルへ上げない
 3. **単一責務**を保つ(1 カーネル = 1 役割)
 4. **ビジネスロジック禁止**(バックエンド責務。[0011](0011-no-docker.ja.md))
 
@@ -209,7 +209,7 @@ Server Action は `actions.ts`(controller 相当)に置く。**どこの `action
 - ❌ 役割を名指ししない置き場(`common` / `shared` / `utils` / `lib` / `misc` 等)の作成（強制: ESLint `boundaries/no-unknown-files` が `src/` 直下に作った禁止名の置き場（中の JS/TS）を落とす。カーネル・feature の内側は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
 - ❌ barrel(`index.ts`)を作ること(公開面は `architecture.ts` と README frontmatter が宣言する)（強制: 散文 —— **寄せられる**（再輸出だけを持つ `index.ts` を biome `noBarrelFile` で落とし、生成物は override で外す形。規則は無い））
 - ❌ Server Action / `actions.ts` に業務ロジックを書くこと(編成のみ)
-- ❌ カーネルに単一機能ヘルパ・ビジネスロジックを置くこと(受入基準違反)
+- ❌ カーネルに単一機能ヘルパー・ビジネスロジックを置くこと(受入基準違反)
 - ❌ 行数・props の数・ファイルの大きさを基準にコンポーネントを分けること(基準は変わる理由であり、量ではない)（強制: 散文 —— **寄せられない**。分けた基準が量か変わる理由かは分割の動機で決まり、コードの形には現れない）
 - ❌ 役割を名指しできない分割(`Wrapper` / `Inner` / `Base` 等)を作ること（強制: 散文 —— **一部寄せられる**。`Wrapper` / `Inner` / `Base` 等の綴りは識別子・ファイル名の照合で落とせるが規則は無い。それ以外の名前が役割を名指しているかは名前の意味で決まる）
 

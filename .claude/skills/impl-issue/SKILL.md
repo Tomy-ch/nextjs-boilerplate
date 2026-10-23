@@ -9,7 +9,7 @@ description: >-
   `resolve-merge`, to the peer review skills, and to `new-feature` for a screen-shaped issue. A scope mode
   settled up front decides whether the run ends at a merge, at the PR (the 「pr作って」 shape), or at a local
   commit. Do NOT use it for a change with no issue behind it (`commit` + `submit-pr`), for reviewing an
-  existing diff, or for authoring skills (`manage-skill`).
+  existing diff, or for a skill change no issue asks for (`manage-skill`).
 argument-hint: '<issue-url-or-number> [--scope=merge|pr|commit] [--review-mode=all|harmful|issues] [--issue-mode=fix-here|search|file] [--flow=record-on-tripwire|halt-on-tripwire] [--derive=ask|derive] [--plan=full|draft-review|single]'
 ---
 
@@ -38,7 +38,8 @@ not loaded as a skill).
 - **A change with no issue behind it** — `commit` then `submit-pr` directly.
 - **Reviewing an existing diff** — `impl-review` / `test-review`, which are peers under `AGENTS.md`'s
   Review Phase Protocol and are asked for in their own right.
-- **Authoring a skill** — `manage-skill`.
+- **Authoring a skill with no issue behind it** — `manage-skill`. An issue whose fix touches a skill
+  still runs here, and delegates the skill edit to `manage-skill`.
 - **Filing the issue in the first place** — `new-issue`. This skill starts from one that exists.
 
 ## Contract
@@ -599,22 +600,30 @@ derivation made under `derive`, lands here, and the file is the only place they 
 
 ## Delegating without double-asking
 
-Sub-skills ask their own questions. Since this skill already settled them, pass the answers as a
-payload so the sub-skill skips its own gate.
+Sub-skills ask their own questions. Where the user already answered one earlier in this run, pass
+that answer through so the sub-skill does not ask it twice. This table indexes what each receiver
+declares under its own **When an invoking skill passes the answer** clause; it grants nothing itself.
 
-| Sub-skill | Pass through | Suppresses |
-| --- | --- | --- |
-| `commit` | The grouping you already presented | Its grouping-approval question |
-| `submit-pr` | That a review already ran; the push decision | Its review prompt and push confirmation |
-| `new-feature` | The approved plan, and the subject | Its Step 0 subject confirmation |
-| `impl-review` | Scope, reviewer model | Its Step 0 |
-| `test-review` | Scope, reviewer model | Its scope question |
-| `settle-comments` | Scope **and apply mode** | Its scope and apply-mode questions |
-| `resolve-merge` | The base | Its base resolution |
+| Sub-skill | Pass through (the user's own answer) |
+| --- | --- |
+| `commit` | The grouping the user approved |
+| `submit-pr` | Which review skills the user chose for this change (Step 7) |
+| `new-feature` | The approved plan's feature, route and direction |
+| `impl-review` | Scope, reviewer model |
+| `test-review` | Scope; the review mode, when the user gave it for this review |
+| `settle-comments` | Scope **and apply mode** |
+| `resolve-merge` | A base the user named |
+| `manage-skill` | The operation, skill and family the approved plan names |
+| `canonicalize-doc` | The pair's paths and the direction |
 
-**Every row is required, because a missing one reinstates a gate this skill already settled.** A
-sub-skill whose default is to confirm per item — `settle-comments` is the one to watch — will do exactly
-that when its apply mode does not arrive.
+**What each answer pre-answers, and what is still asked, is the receiver's to say** — read its clause
+rather than a copy here. A receiver whose clause does not accept an answer asks, and that is correct.
+Pass each answer **verbatim**, as the user gave it: a value this skill derived, defaulted or
+recommended is not an answer, and the receiver offers it as the recommended option instead.
+
+**Leave every confirmation [0154](../../../docs/adr/0154-claude-skills-operations.md) marks never
+pre-answerable to the receiver** — every stopping point `AGENTS.md`'s *Where You May Stop* takes per
+case.
 
 ## Do / Do NOT
 
@@ -629,7 +638,7 @@ that when its apply mode does not arrive.
 - ✅ Harvest the general form into the surviving documents after CI is green and before the merge.
 - ✅ Say explicitly which gates were left to CI, and which paths runtime verification did not reach.
 - ✅ Fix what you find, and file only what needs another decision.
-- ✅ Pass every sub-skill its settled answers, apply mode included.
+- ✅ Pass every sub-skill the user's own answers verbatim, apply mode included — and leave its push and posting confirmations to it.
 - ❌ Pre-run the gates to produce a green of your own.
 - ❌ Merge with a request-time seam moved and never exercised, or present green CI as having exercised it.
 - ❌ Auto-apply a fix that changes the design, in any mode.
@@ -657,7 +666,9 @@ that when its apply mode does not arrive.
 - [ ] Gates left to CI, and said so in the PR.
 - [ ] `settle-comments` run as the last step of implementing, before any review.
 - [ ] The two review skills each estimated and put to the user; the approved ones run with their
-      answers passed through.
+      answers passed through, and that choice passed to `submit-pr`.
+- [ ] Every sub-skill's confirmation that its own clause keeps — the push and posting ones above
+      all — left to it rather than suppressed.
 - [ ] General form harvested into the surviving documents, with what was dropped stated.
 - [ ] Runtime verification run for a moved request-time seam — or its absence stated with which of the
       two options was taken — before merging.

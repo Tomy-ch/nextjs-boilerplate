@@ -10,7 +10,7 @@ Route Handler だけを置く区画です。`app` の中にありますが、**�
 ## 親と違う点
 
 **検証の要求はここが宣言しません。** Route Handler が確かめるのはレンダリングではなく **HTTP 境界の型と形**
-（status・ヘッダ・本文）で、それは `api/` の下に置こうが外に置こうが変わりません。置き場ではなく
+（status・ヘッダー・本文）で、それは `api/` の下に置こうが外に置こうが変わりません。置き場ではなく
 element が決めるものなので、宣言は `architecture.ts` の `APP_ELEMENTS` が `route.ts` / `route.dev.ts`
 に対して持ちます（[0025](../../../docs/adr/0025-app-layer-elements.ja.md) / [0090](../../../docs/adr/0090-testing-strategy.ja.md)）。
 
@@ -28,7 +28,7 @@ feature の内側を落とされます（宣言は `architecture.ts` の `APP_EL
 ## 受け入れるもの
 
 - バックエンドへの中継と、その入出力の検証
-- 認証の往復のように、ブラウザから直接叩けない相手との通信
+- 認証の往復のように、ブラウザーから直接叩けない相手との通信
 
 ## 失敗の返し方
 
@@ -49,8 +49,8 @@ feature の内側を落とされます（宣言は `architecture.ts` の `APP_EL
 | モジュール | 役割 |
 | --- | --- |
 | [`auth/`](auth) | 認証の往復。IdP との認可コード交換と session cookie の発行・破棄 |
-| [`telemetry/`](telemetry) | ブラウザ発の報告（Web Vitals / 未捕捉例外）を受けるエンドポイント。**認証を要求しないので、最小の防御をここが持つ**（[0077](../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md)） |
-| [`telemetry/traces/`](telemetry/traces) | ブラウザが作った span を OTLP のまま collector へ渡すエンドポイント。契約の出所が OTel 側なので、隣とエンドポイントを分ける |
+| [`telemetry/`](telemetry) | ブラウザー発の報告（Web Vitals / 未捕捉例外）を受けるエンドポイント。**認証を要求しないので、最小の防御をここが持つ**（[0077](../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md)） |
+| [`telemetry/traces/`](telemetry/traces) | ブラウザーが作った span を OTLP のまま collector へ渡すエンドポイント。契約の出所が OTel 側なので、隣とエンドポイントを分ける |
 
 <!-- sample:begin -->
 同梱のサンプルが加えるもの:
@@ -74,5 +74,5 @@ feature の内側を落とされます（宣言は `architecture.ts` の `APP_EL
 - [0077](../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md) — 認証を要求しないエンドポイントの最小の防御
 - [0079](../../../docs/adr/0079-auth-frontend-seam.ja.md) — 認証の往復（認可コード交換 / session cookie の発行・破棄）
 - [0080](../../../docs/adr/0080-error-handling.ja.md) — 分類から status と文言への対応
-- [0081](../../../docs/adr/0081-observability-logging.ja.md) — ブラウザ発シグナルの中継と、ログに何を残すか
+- [0081](../../../docs/adr/0081-observability-logging.ja.md) — ブラウザー発シグナルの中継と、ログに何を残すか
 - [0090](../../../docs/adr/0090-testing-strategy.ja.md) — Route Handler を `integration` として検証すること
