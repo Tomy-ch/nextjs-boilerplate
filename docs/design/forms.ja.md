@@ -75,6 +75,8 @@ sequenceDiagram
 | **react-hook-form** | rhf の内部状態と DOM。`register` は非制御 | 複数項目 + 検証 + 誤りの表示 |
 | **`useState` で全項目を文字列で持つ** | 画面。入力欄は `value` を受ける制御欄 | 判定が zod ではなく関数で書かれ、送信のたびに欄を作り直したくないとき |
 
+**画面が持つ値は、hydration の後にしか送信に載らない。** `useState` から値を受ける hidden の欄は、クライアントが引き継ぐ前は何も運ばず、JavaScript が動かない環境ではずっと何も運ばない。そのあいだの選択は、送られる内容から黙って落ちる。そうした操作は hydration まで無効にし、それ無しでも何を送れるかを `<noscript>` で告げる。
+
 **rhf は送信機構を置き換えない。** `handleSubmit` を呼ばず、`register` で欄を配線し、`FormData` はそのまま `<form action>` へ流す。rhf が持つのは入力中の検証だけである。JavaScript が動かない環境でも form は送られ、Server Action 側の同じスキーマが検証する。
 
 rhf を使うときの配線は次のとおり。

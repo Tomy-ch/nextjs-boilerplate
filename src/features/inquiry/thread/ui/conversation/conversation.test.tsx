@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import type { InquiryConversationEvent } from "@/adapters/client/api/inquiries";
 import type { UseStreamOptions } from "@/adapters/client/stream/use-stream";
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 import { INQUIRY_AUTHOR_KIND, type InquiryMessage } from "@/model/inquiry/inquiry";
 
@@ -63,7 +64,7 @@ beforeEach(() => {
   });
 });
 
-/** 送信欄へ本文を入れて送る。返るのは、送信の応答を手元で確定させる関数。 */
+/** 送信欄へ本文を入れて送る。 */
 async function send(body: string): Promise<void> {
   const user = userEvent.setup();
 
@@ -213,7 +214,7 @@ describe("InquiryConversation", () => {
         within(screen.getByLabelText("サポートとのやり取り")).getByText("在庫はいつ戻りますか。"),
       ).toBeVisible();
     } finally {
-      // 応答を待たせたままにすると、次のファイルのテストへ遷移が残る。
+      // 応答を待たせたままにすると、後続のテストへ遷移が残る。
       await act(async () => {
         settle.resolve?.();
       });
@@ -232,8 +233,23 @@ describe("InquiryConversation", () => {
     expect(idempotencyKeyOf(container)).not.toBe(before);
   });
 
-  it("送信が通らなかったら、同じ鍵のまま送り直させる", async () => {
-    sendInquiryMessageAction.mockResolvedValue(failedActionState({ formError: "送れません" }));
+  it("送信が拒まれて結果が定まったら、書き直した 1 通は別の鍵で飛ばす", async () => {
+    sendInquiryMessageAction.mockResolvedValue(
+      failedActionState({ formError: "送れません", kind: ErrorKind.VALIDATION }),
+    );
+
+    const { container } = render(<InquiryConversation history={EMPTY_HISTORY} />);
+    const before = idempotencyKeyOf(container);
+
+    await send("在庫はいつ戻りますか。");
+
+    expect(idempotencyKeyOf(container)).not.toBe(before);
+  });
+
+  it("結果が定まらない失敗では、同じ鍵のまま送り直させる", async () => {
+    sendInquiryMessageAction.mockResolvedValue(
+      failedActionState({ formError: "送れません", kind: ErrorKind.UNAVAILABLE }),
+    );
 
     const { container } = render(<InquiryConversation history={EMPTY_HISTORY} />);
     const before = idempotencyKeyOf(container);

@@ -15,8 +15,8 @@ import type { DrawFromEndpoint, ReferencePatches } from "./stable-responses";
  * 別々に決めると「Tシャツの分類が書籍」になります。生成器は項目を 1 つずつ作るので、組で決まる値を
  * 表せません。
  *
- * **契約ごとの知識なので、機構（`stable-responses.ts`）ではなくこちらが持ちます。** テンプレートから
- * 自分の契約の参照をこの表に書き、この題材ごと破棄します。
+ * **契約ごとの知識なので、機構（`stable-responses.ts`）ではなくこちらが持ちます。** この表は題材と
+ * 一緒に破棄され、自分の契約を持つ側は同じ形の表を自分の参照で書きます。
  */
 
 /** 分類マスタの口。seed は要求の URL から決まるので、画面が叩くのと同じ綴りを使う。 */
@@ -230,6 +230,141 @@ function alignCoupon(
 }
 
 /**
+ * カートの明細の事情。並びの位置で選ぶ。
+ *
+ * @remarks
+ * 生成器は事情を明細ごとに無作為に重ねるため、「在庫が無い」と「在庫がいくつまで」が同じ明細に
+ * 並び、買える明細が 1 つも無いカートになります。買える明細と買えない明細を 1 つずつ以上含む組に
+ * 揃え、購入確認から確定まで辿れるようにします。
+ */
+const CART_LINE_PATTERNS: readonly {
+  readonly issues: readonly string[];
+  readonly availableQuantity: number | null;
+}[] = [
+  { issues: [], availableQuantity: null },
+  { issues: [], availableQuantity: null },
+  { issues: ["outOfStock"], availableQuantity: 0 },
+];
+
+/** 題材の単価。生成器が置く値と同じ。 */
+const CART_UNIT_PRICE = "19.99";
+
+/** 単価を最小単位で表した値。小計を明細から組むために使う。 */
+const CART_UNIT_PRICE_MINOR = 1_999;
+
+/**
+ * カートの明細と小計を、噛み合う組へ揃える。
+ *
+ * @remarks
+ * 小計は買える明細の単価と数量から決まります。明細と別に引くと、明細を足しても小計が合いません。
+ */
+function alignCart(response: unknown): unknown {
+  const record = recordOf(response, "カート");
+  const lines = arrayOf(record, "items", "カート")
+    .slice(0, CART_LINE_PATTERNS.length)
+    .map((item, index) => {
+      const line = recordOf(item, "カートの明細");
+      const pattern = CART_LINE_PATTERNS[index];
+
+      if (pattern === undefined) {
+        throw new Error("明細の事情の組がありません");
+      }
+
+      const quantity = typeof line["quantity"] === "number" ? (line["quantity"] % 3) + 1 : 1;
+
+      return {
+        ...line,
+        productName: pick(PRODUCT_CATALOGUE, line["productId"], index).name,
+        quantity,
+        unitPrice: CART_UNIT_PRICE,
+        issues: pattern.issues,
+        availableQuantity: pattern.availableQuantity,
+      };
+    });
+
+  return {
+    ...record,
+    items: lines,
+    subtotalAmount: lines
+      .filter((line) => line.issues.length === 0)
+      .reduce((sum, line) => sum + CART_UNIT_PRICE_MINOR * line.quantity, 0),
+  };
+}
+
+/** カートの口。候補の値引き額は、このカートの小計に対して決まる。 */
+const CART_PATH = "/v1/carts/me";
+
+/**
+ * 使えるクーポンの有効期限。並びの位置で選ぶ。
+ *
+ * @remarks
+ * 生成器は期限を基準日（`stable-responses.ts` の `REFERENCE_DATE`）より過去に引くため、「失効済みは
+ * 並ばない」契約と食い違います。失効前に見えるよう、基準日より先の固定の日付を置きます。
+ */
+const CART_COUPON_EXPIRIES = [
+  "2027-03-31T14:59:59Z",
+  "2027-06-30T14:59:59Z",
+  "2027-12-31T14:59:59Z",
+];
+
+/**
+ * いまのカートに使えるクーポンを、値引きが立つ組だけへ揃える。
+ *
+ * @remarks
+ * 契約はこの一覧に「使用済み・失効済みと、値引きが 0 になるクーポンは並ばない」と言っています。
+ * 生成器は値引き額を額面と別に引くため、購入と同じ組の表から値引きの立つ組だけを使い、値引き額は
+ * 同じ seed のカートの小計から求めます。
+ *
+ * 並びの位置で組を選び、**組の数を超える行は落とします**。同じ額面の候補が並ぶと、比べて選ぶ画面に
+ * なりません。
+ */
+function alignCartCoupons(response: unknown, draw: DrawFromEndpoint): unknown {
+  const record = recordOf(response, "使えるクーポン");
+  const subtotal = recordOf(alignCart(draw("getGetCartsMeResponseMock", CART_PATH)), "カート")[
+    "subtotalAmount"
+  ];
+
+  if (typeof subtotal !== "number") {
+    throw new TypeError("カートの応答が小計を持ちません");
+  }
+
+  const patterns = COUPON_PATTERNS.filter((pattern) => pattern.discount !== null);
+  const categories = entriesOf(draw("getGetProductCategoriesResponseMock", CATEGORIES_PATH));
+
+  return {
+    ...record,
+    coupons: arrayOf(record, "coupons", "使えるクーポン")
+      .slice(0, patterns.length)
+      .map((entry, index) => {
+        const pattern = patterns[index];
+        const candidate = recordOf(entry, "使えるクーポンの行");
+        const coupon = recordOf(candidate["coupon"], "クーポン");
+
+        if (pattern === undefined) {
+          throw new Error("値引きの立つ組がありません");
+        }
+
+        const targetId =
+          pattern.scopeKind === "category" ? pick(categories, coupon["id"]).id : null;
+
+        return {
+          ...candidate,
+          coupon: {
+            ...coupon,
+            discount: pattern.discount,
+            scope: { kind: pattern.scopeKind, targetId },
+            expiresAt: CART_COUPON_EXPIRIES[index % CART_COUPON_EXPIRIES.length],
+            usedAt: null,
+            usableFrom: null,
+            minPurchaseAmount: null,
+          },
+          discountAmount: pattern.discountOf(subtotal),
+        };
+      }),
+  };
+}
+
+/**
  * 購入 1 件のステータスと、明細が名乗る商品名を揃える。
  *
  * @remarks
@@ -311,8 +446,7 @@ function alignStatusBreakdown(key: string) {
  *
  * @remarks
  * **項目が消えたら落とします。** 契約が変わって参照の項目が無くなったとき、黙って整合が外れると
- * 今と同じ状態（選択肢に無い値が入った画面）へ戻ります。落ちれば、契約に追随して表を直す契機に
- * なります。
+ * 選択肢に無い値が入った画面になります。落ちれば、契約に追随して表を直す契機になります。
  */
 export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsResponseMock", alignProductList],
@@ -325,6 +459,9 @@ export const REFERENCE_PATCHES: ReferencePatches = new Map([
   ["getGetProductsRankingAmountResponseMock", alignProductRanking],
   ["getGetPurchasesResponseMock", alignPurchaseList],
   ["getGetPurchasesDetailResponseMock", alignPurchase],
+  ["getGetCartsMeResponseMock", alignCart],
+  ["getPutCartsMeItemResponseMock", alignCart],
+  ["getGetCartsMeCouponsResponseMock", alignCartCoupons],
   ["getPatchPurchasesCancelResponseMock", alignPurchase],
   ["getPatchPurchasesPayResponseMock", alignPurchase],
   ["getPatchPurchasesShipResponseMock", alignPurchase],
