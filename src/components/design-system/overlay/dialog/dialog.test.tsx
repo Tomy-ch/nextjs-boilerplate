@@ -2,7 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -45,12 +45,14 @@ function DialogFixture({
 function TriggerlessDialogFixture() {
   const [open, setOpen] = useState(false);
   const [invokerShown, setInvokerShown] = useState(true);
+  const openSurface = useCallback(() => setOpen(true), []);
+  const hideInvoker = useCallback(() => setInvokerShown(false), []);
 
   return (
     <>
       <section aria-label="一覧" tabIndex={-1}>
         {invokerShown ? (
-          <button onClick={() => setOpen(true)} type="button">
+          <button onClick={openSurface} type="button">
             詳細を見る
           </button>
         ) : null}
@@ -63,7 +65,7 @@ function TriggerlessDialogFixture() {
           </DialogHeader>
           <DialogFooter>
             <DialogClose>戻る</DialogClose>
-            <DialogClose onClick={() => setInvokerShown(false)}>適用</DialogClose>
+            <DialogClose onClick={hideInvoker}>適用</DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>

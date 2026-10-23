@@ -48,12 +48,14 @@ function SheetFixture({
 function TriggerlessSheetFixture() {
   const [open, setOpen] = useState(false);
   const [invokerShown, setInvokerShown] = useState(true);
+  const openSurface = useCallback(() => setOpen(true), []);
+  const hideInvoker = useCallback(() => setInvokerShown(false), []);
 
   return (
     <>
       <section aria-label="一覧" tabIndex={-1}>
         {invokerShown ? (
-          <button onClick={() => setOpen(true)} type="button">
+          <button onClick={openSurface} type="button">
             メニューを開く
           </button>
         ) : null}
@@ -66,7 +68,7 @@ function TriggerlessSheetFixture() {
           </SheetHeader>
           <SheetFooter>
             <SheetClose>戻る</SheetClose>
-            <SheetClose onClick={() => setInvokerShown(false)}>適用</SheetClose>
+            <SheetClose onClick={hideInvoker}>適用</SheetClose>
           </SheetFooter>
         </SheetContent>
       </Sheet>

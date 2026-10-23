@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/design-system/overlay/dropdown-menu/dropdown-menu";
-import { ROW_ACTION_KIND, type RowAction } from "./row-actions.definition";
+import { type CommandRowAction, ROW_ACTION_KIND, type RowAction } from "./row-actions.definition";
 
 /** {@link RowActionsMenuContent} の props。 */
 export type RowActionsMenuContentProps = {
@@ -39,6 +39,11 @@ export function RowActionsMenuContent({ items }: RowActionsMenuContentProps) {
     if (run !== null) queueMicrotask(run);
   }, []);
 
+  /** 選ばれた command を、メニューが閉じるまで預かる。 */
+  const choose = useCallback((run: () => void) => {
+    selected.current = run;
+  }, []);
+
   return (
     <DropdownMenuContent align="end" onCloseAutoFocus={runSelected}>
       {items.map((action) => {
@@ -54,19 +59,32 @@ export function RowActionsMenuContent({ items }: RowActionsMenuContentProps) {
           );
         }
 
-        return (
-          <DropdownMenuItem
-            disabled={action.disabled}
-            key={action.id}
-            onSelect={() => {
-              selected.current = action.onSelect;
-            }}
-            variant={action.variant}
-          >
-            {action.label}
-          </DropdownMenuItem>
-        );
+        return <CommandItem action={action} key={action.id} onChoose={choose} />;
       })}
     </DropdownMenuContent>
+  );
+}
+
+/** {@link CommandItem} の props。 */
+type CommandItemProps = {
+  /** 選んだときに実行する command。 */
+  action: CommandRowAction;
+  /** 選ばれた command を預ける先。実行は、メニューが閉じた後に呼び出し側が行う。 */
+  onChoose: (run: () => void) => void;
+};
+
+/**
+ * command の 1 項目。選ばれた command を預けるだけで、ここでは実行しない。
+ *
+ * @param props - {@link CommandItemProps} を参照。
+ */
+function CommandItem({ action, onChoose }: CommandItemProps) {
+  /** この項目の command を預ける。 */
+  const select = useCallback(() => onChoose(action.onSelect), [action.onSelect, onChoose]);
+
+  return (
+    <DropdownMenuItem disabled={action.disabled} onSelect={select} variant={action.variant}>
+      {action.label}
+    </DropdownMenuItem>
   );
 }

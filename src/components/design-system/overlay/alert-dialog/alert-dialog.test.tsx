@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import {
@@ -37,12 +37,14 @@ function Example({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
 function TriggerlessExample() {
   const [open, setOpen] = useState(false);
   const [invokerShown, setInvokerShown] = useState(true);
+  const openSurface = useCallback(() => setOpen(true), []);
+  const hideInvoker = useCallback(() => setInvokerShown(false), []);
 
   return (
     <>
       <section aria-label="一覧" tabIndex={-1}>
         {invokerShown ? (
-          <button onClick={() => setOpen(true)} type="button">
+          <button onClick={openSurface} type="button">
             対象を確認する
           </button>
         ) : null}
@@ -55,7 +57,7 @@ function TriggerlessExample() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>戻る</AlertDialogCancel>
-            <AlertDialogAction onClick={() => setInvokerShown(false)}>続行</AlertDialogAction>
+            <AlertDialogAction onClick={hideInvoker}>続行</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
