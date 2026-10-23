@@ -48,7 +48,7 @@ feature スライスを 1 つ、契約から内側へ向かって作る —— �
 1. **feature 名**（kebab-case）と、スライスが持つ**画面**（kebab-case）。
 2. スライスが呼ぶ **operation**（`operationId`）。
 3. スライスが返す**表示用の型**と、そのうちどれを 2 つ以上の feature が使うか。
-4. スライスに要る**入口**（あれば） —— ブラウザ側の呼び手のための Route Handler、主体を断言しなければ
+4. スライスに要る**入口**（あれば） —— ブラウザー側の呼び手のための Route Handler、主体を断言しなければ
    ならない変更のための `app` 側 Server Action。
 
 既に在るもの —— feature、画面のディレクトリ、operation 用の adapter モジュール —— を検出し、子に失敗させる
@@ -124,7 +124,7 @@ Step 2〜5 が置いた単位 —— model のモジュール、adapter の単�
 
 - 各段とその結果 —— 走った / 飛ばした（理由） / 止まった（何で止まったか、引き渡しとともに）
 - カーネルごとのファイル
-- Step 1 の共有スキーマの利用者（あれば）
+- Step 1 の共有スキーマのユーザー（あれば）
 - `arch-check` の報告と、`type-design-reviewer` が Step 2 で model のモジュールを既に採点したこと
 - **画面**: 置いたが確定していない —— `new-feature` で続ける。`new-feature` はそれを story から引き取る
 - `AGENTS.md` の Review Phase Protocol が、`/impl-review` と `/test-review` を回すかをスキルごとに、それぞれが
@@ -143,7 +143,7 @@ Step 2〜5 が置いた単位 —— model のモジュール、adapter の単�
 - ✅ 依存の順に段を回す: 契約 → model → adapter → feature → 入口 → テスト → コメント → 監査
 - ✅ 止まった最初の段で停止し、その引き渡しを出す。先行する書き込みを巻き戻さない
 - ✅ 計画の確認は各子に取らせる
-- ✅ `arch-check` を「変更ファイルのみ」の形で回し、報告をフィルタせずに中継する
+- ✅ `arch-check` を「変更ファイルのみ」の形で回し、報告をフィルターせずに中継する
 - ✅ スキルの報告とコードコメントは日本語。文書は英語の canonical として書き、その `.ja.md` ミラーは `canonicalize-doc` で同期する
 - ❌ ソースを直接書く —— ファイルはすべて子か生成器から来る
 - ❌ 生成物を編集する、または確認なしに契約の `ref` を動かす
@@ -156,7 +156,7 @@ Step 2〜5 が置いた単位 —— model のモジュール、adapter の単�
 ## チェックリスト
 
 - [ ] スライスを決め、既に在る部分を検出した。連鎖を確認した（Step 0）
-- [ ] operation が在り、生成物が揃っている。`ref` を動かしたなら確認を取った。共有スキーマの利用者を並べた（Step 1）
+- [ ] operation が在り、生成物が揃っている。`ref` を動かしたなら確認を取った。共有スキーマのユーザーを並べた（Step 1）
 - [ ] `scaffold-model` → `scaffold-adapter` → `pnpm gen feature` → `scaffold-route` を順に回したか、引き渡しとともに止まった（Step 2〜5）
 - [ ] 置いた単位に `scaffold-test` を 1 回回した。画面の単位は外した（Step 6）
 - [ ] 連鎖の宣言に `/settle-comments` を 1 回回した（Step 7）

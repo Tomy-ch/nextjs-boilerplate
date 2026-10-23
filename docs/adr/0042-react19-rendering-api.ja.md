@@ -44,7 +44,7 @@ Accepted
 
 ### 3. `useEffect` を外部システム同期に限定する(抑制)
 
-- `useEffect` は **React 外の外部システムとの同期**(subscription / 非 React DOM 操作 / ブラウザ API 購読)に限って用いる。
+- `useEffect` は **React 外の外部システムとの同期**(subscription / 非 React DOM 操作 / ブラウザー API 購読)に限って用いる。
 - **禁止方向**: props / state から導出できる **派生値** を effect + state で同期しない(render 中の計算、または event handler で求める)。React 公式「You Might Not Need an Effect」の方針に乗る。**vendor-independent 根拠**: 派生値の effect 同期は余分な再レンダリングと同期ズレのバグ源であり、これは React のバージョンに依らない状態管理上の一般原則である。
 - **昇格**: 複数 feature から使う reactive な横断 client hook(runtime 能力)へ育つ `useEffect` は、feature 内に留めず **`capabilities` カーネル**([0022](0022-capabilities-kernel.ja.md))へ昇格させる([0021](0021-frontend-responsibility.ja.md) 昇格ルール)。effect は client 実行であり、RSC デフォルト([0040](0040-routing-rendering-strategy.ja.md))のリーフへの押し下げと整合する。
 
@@ -65,7 +65,7 @@ Accepted
 - **コストの及ぶ範囲は適用範囲に一致させる**: full-auto は共有 chunk +16.4 KB gzip・各 route の初期 JS +4〜15 KB を全 route へ乗せる。`annotation` は共有 chunk を増やさず、マーカーを付けた component が乗る route だけが増える —— 実測で、供給の購読者 13 個を付けた 1 つの画面が +2.4 KB、マーカーを 1 つも持たない他の route は増分 0(`pnpm bundle-budget <現行の .next> <比較先の .next>`)。
 - **利益は TBT ではなく INP に出る。** JS の増加は TBT(実行時間)を悪化させる側であり、Compiler が縮めるのは再レンダリングで、これは実ユーザーの操作からしか観測できない。したがって**測れているコストを払って、まだ測れていない利益を全 route へ先行適用することはしない**。
 - **採用条件は「stable 化」ではない**(既に stable である)。**再レンダリングが集中する経路であると言えること**、および**払う費用がその route に収まっていることを実測で示せること**が条件である。
-- **効果の実測をマーカーの条件にしない。** Compiler が縮めるのは event の processing(handler の中で React が同期に行う仕事)であり、体感を決める interaction latency のうち presentation(style / layout / paint)は縮めない。実測では、CPU を 4 倍に絞っても processing は全操作で中央値 0〜4 ms・最悪 94 ms(8 倍絞り)で、**同一 build を 2 度測った差(+12〜+63%)のほうが Compiler の差より大きい**(測り方: build 済みのアプリを実ブラウザで操作し、`event` と `long-animation-frame` の `PerformanceObserver` を CPU 絞りのもとで反復して読む。`processingEnd - processingStart` が Compiler の縮める部分で、`duration` の残りは縮まない)。ここで「効果が測れないから付けない」と決めると、本リポジトリが配るのは題材の画面が軽いという事情であって、実際の画面の話ではなくなる。**本リポジトリが持つのは機構と、マーカーを置く場所の実例**であり、自分の画面で釣り合うかは RUM([0082](0082-client-observability.ja.md))の INP で決め直す。
+- **効果の実測をマーカーの条件にしない。** Compiler が縮めるのは event の processing(handler の中で React が同期に行う仕事)であり、体感を決める interaction latency のうち presentation(style / layout / paint)は縮めない。実測では、CPU を 4 倍に絞っても processing は全操作で中央値 0〜4 ms・最悪 94 ms(8 倍絞り)で、**同一 build を 2 度測った差(+12〜+63%)のほうが Compiler の差より大きい**(測り方: build 済みのアプリを実ブラウザーで操作し、`event` と `long-animation-frame` の `PerformanceObserver` を CPU 絞りのもとで反復して読む。`processingEnd - processingStart` が Compiler の縮める部分で、`duration` の残りは縮まない)。ここで「効果が測れないから付けない」と決めると、本リポジトリが配るのは題材の画面が軽いという事情であって、実際の画面の話ではなくなる。**本リポジトリが持つのは機構と、マーカーを置く場所の実例**であり、自分の画面で釣り合うかは RUM([0082](0082-client-observability.ja.md))の INP で決め直す。
 
 ### 4-1. 性能改善の順序(Compiler はその一手段)
 

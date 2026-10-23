@@ -48,7 +48,7 @@ out-of-scope は「**ロール境界の外**」（バックエンド業務ロジ
 - バックエンド API（DB / 認証 / ビジネスロジック）は **別リポジトリ・別サービス**（例: Go / Rails / NestJS / Supabase 等）
 - Next.js の `/api/*` ルートは BFF（外部 API への薄いプロキシ・auth トークン交換）に留め、業務ロジックを抱え込まない
 
-この前提では、アプリ本体の Docker 化が解決する「重い system 依存をコンテナに閉じ込める」「DB / Redis 等のバックエンドサービスを同居させる」というニーズがアプリ配送層では構造的に発生しない（dev 補助としての周辺サービスは別問題、後述）。
+この前提では、アプリ本体の Docker 化が解決する「重い system 依存をコンテナーに閉じ込める」「DB / Redis 等のバックエンドサービスを同居させる」というニーズがアプリ配送層では構造的に発生しない（dev 補助としての周辺サービスは別問題、後述）。
 
 ### 2. 想定デプロイ先がすべて Docker 不要
 
@@ -59,15 +59,15 @@ out-of-scope は「**ロール境界の外**」（バックエンド業務ロジ
 | SSR on Node 直接実行 PaaS | Railway / Render | 不要 |
 
 - **Cloudflare は別枠**: Cloudflare 上の Next.js は Workers / OpenNext 方式が前提で、edge runtime 制約が大きく ISR も限定的（一般 PaaS と同列に「ISR も不要」とは扱えない）。静的書き出し + Cloudflare Pages 配信は上表の CDN 行に含まれるが、SSR / ISR は制約ありの別枠として扱う。
-- **Fly.io は対象外**: Fly.io は OCI コンテナ実行基盤であり、`fly launch` は Dockerfile 生成を標準とする。Dockerfile を要するため本方針（アプリ本体の no-Docker）の対象外。
+- **Fly.io は対象外**: Fly.io は OCI コンテナー実行基盤であり、`fly launch` は Dockerfile 生成を標準とする。Dockerfile を要するため本方針（アプリ本体の no-Docker）の対象外。
 
-Next.js を self-host する選択肢（ECS / Kubernetes / オンプレ / Fly.io 等のコンテナ実行基盤）でのみ Docker が現実的に必要となるが、これは本リポジトリの想定外。
+Next.js を self-host する選択肢（ECS / Kubernetes / オンプレ / Fly.io 等のコンテナー実行基盤）でのみ Docker が現実的に必要となるが、これは本リポジトリの想定外。
 
 ### 3. `next/image` の sharp は外部 system 依存を持たない
 
 `next/image` コンポーネントは内部で `sharp` を使うが、現代の `sharp`（≥ 0.32）は **prebuilt binary を同梱** しており、`vips-dev` / `libjpeg-turbo-dev` / `libpng-dev` / `libwebp-dev` 等を `apk add` する手順は不要。`pnpm install` だけで完結する。
 
-Docker を残す動機になりうる「`sharp` の system 依存をコンテナに閉じ込める」は、現代の sharp では存在しない依存への手当てである。
+Docker を残す動機になりうる「`sharp` の system 依存をコンテナーに閉じ込める」は、現代の sharp では存在しない依存への手当てである。
 
 ### 4. メンテナンス負担の削減
 
@@ -191,15 +191,15 @@ registry の tag は同じ名前のまま別の中身を指せるため、tag �
 
 1. **ファイル名で本体配送と区別する** — 例: `docker-compose.dev-tools.yml` / `docker-compose.docs.yml`。`docker-compose.yml`（無印）は本体配送と誤解されやすいため使わない
 2. **起動コマンドを明示** — `docker compose -f docker-compose.dev-tools.yml up` 等、専用ファイルを指す形にする。`docker compose up` 単独では起動しない設計
-3. **アプリ本体の Node / pnpm はコンテナ外で実行する** — Next.js 自身は `pnpm dev` でホスト実行が前提（mise が PATH を解決する、ADR 0003 と整合）
-4. **README / docs に「補助ツールであり配送物ではない」旨を明記** — 利用者が本番デプロイ対象と誤解しないように
+3. **アプリ本体の Node / pnpm はコンテナー外で実行する** — Next.js 自身は `pnpm dev` でホスト実行が前提（mise が PATH を解決する、ADR 0003 と整合）
+4. **README / docs に「補助ツールであり配送物ではない」旨を明記** — ユーザーが本番デプロイ対象と誤解しないように
 5. **`docker-compose.dev-tools.yml` を新規導入する PR は ADR の追補 or 関連 issue を必ず参照** — 例外運用であることを履歴に残す
 
 ### 採用しない場合
 
 ここで挙げた用途も、PaaS / SaaS で代替可能なものが多い（モック API は MSW のような Node 内モック、OpenAPI viewer は Stoplight Studio / Postman、docs viewer は GitHub Pages 等）。**Docker でないと解決できないか** を一度問うこと。
 
-## 自己ホスト・コンテナ化したい場合
+## 自己ホスト・コンテナー化したい場合
 
 Docker / self-host が必要なロールに拡張する場合の指針:
 

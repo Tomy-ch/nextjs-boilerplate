@@ -4,7 +4,7 @@
 
 # データ分類とキャッシュ境界(PII / user-scoped)
 
-値を「**どの実行境界・どのキャッシュ範囲で使ってよいか**」で分類し、誤った置き場へ入れる書き方を**通常の実装経路から消す**。分類の持たせ方(値ではなく取得エンドポイント)、関所の置き場と各関所が見えるもの、および分類・PPR・taint・React Compiler の責務分界を定める。[0111](0111-csp-security-headers.ja.md) が応答ヘッダの本体を持つのに対し、本 ADR は**値が通る道のりのどこで何を止めるか**を持つ。
+値を「**どの実行境界・どのキャッシュ範囲で使ってよいか**」で分類し、誤った置き場へ入れる書き方を**通常の実装経路から消す**。分類の持たせ方(値ではなく取得エンドポイント)、関所の置き場と各関所が見えるもの、および分類・PPR・taint・React Compiler の責務分界を定める。[0111](0111-csp-security-headers.ja.md) が応答ヘッダーの本体を持つのに対し、本 ADR は**値が通る道のりのどこで何を止めるか**を持つ。
 
 ## Status
 
@@ -39,7 +39,7 @@ Cache Components(PPR)を有効化すると、**user-scoped な値が共有・静
 
 ### 1. 分類は値ではなく「取得エンドポイント」に持たせる
 
-値を包む方式(`PublicData<T>` / `UserScopedData<T>` のようなラッパ型)は**採らない**。
+値を包む方式(`PublicData<T>` / `UserScopedData<T>` のようなラッパー型)は**採らない**。
 
 - **unwrap で分類が消える。** `wrapped.value.email` と書いた瞬間に `string` へ戻り、保証は最初のレンダリング地点で切れる。そこは PII が正当に出ていく場所であり、**保証が要る場所には届かない**
 - 代わりに全 feature が包み / 解きの記述を払う。**費用は全行に、効果は 2 箇所にしか出ない**
@@ -57,8 +57,8 @@ createHttpClient({ scope: "user-scoped" })  // 資格情報を載せられる。
 
 | 分類 | 何か | 許される置き場 |
 | --- | --- | --- |
-| **public** | 主体を名乗らずに取れるもの(マスタ・公開カタログ) | 静的レンダリング / 共有キャッシュ / PPR の静的なシェル / client 送信 |
-| **user-scoped** | 主体に紐づくもの(プロフィール・利用者ごとの一覧・利用履歴) | request scope / 動的 RSC。**共有キャッシュと静的生成は不可**。client へは詰め替えた後のみ |
+| **public** | 主体を名乗らずに取れるもの(マスター・公開カタログ) | 静的レンダリング / 共有キャッシュ / PPR の静的なシェル / client 送信 |
+| **user-scoped** | 主体に紐づくもの(プロフィール・ユーザーごとの一覧・利用履歴) | request scope / 動的 RSC。**共有キャッシュと静的生成は不可**。client へは詰め替えた後のみ |
 | **secret** | 署名鍵・トークン | server 内部のみ。キャッシュ・静的レンダリング・client DTO・client 送信のいずれも不可 |
 
 **`secret` はこの取得経路を通らない。** `config/*.server.ts` に閉じ、`import "server-only"` と [0030](0030-environment-variable-management.ja.md) の taint が持つ。**値の数が少なくレンダリングへ出ないため、こちらは branded / opaque な値型が費用に見合う**(包むのは secret だけ)。
@@ -67,7 +67,7 @@ createHttpClient({ scope: "user-scoped" })  // 資格情報を載せられる。
 
 匿名で送ってよいリクエスト(`allowAnonymous`)であっても、資格情報を載せうるエンドポイントを通るなら分類は user-scoped である。**分類はエンドポイント(接続ポイント)の性質であってリクエストごとの結果ではない**ため、静的に決まり型で塞げる。資格情報が取れなかったときに送ってよいかは契約が operation ごとに宣言し、リクエストの `allowAnonymous` がそれを運ぶ。立てても分類は動かない。
 
-user-scoped な値をキャッシュしたい場合の唯一の手段は **`use cache: private`**(サーバへ保存されず、ブラウザのメモリにのみ載る)とする。
+user-scoped な値をキャッシュしたい場合の唯一の手段は **`use cache: private`**(サーバーへ保存されず、ブラウザーのメモリにのみ載る)とする。
 
 ただし **`use cache: private` は「user-scoped をキャッシュしてよい」という一般許可ではない。** 明示的な例外能力として扱い、**必要性を説明できる箇所にのみ**使う。デフォルトは不変条件 3 のとおり uncached である。
 
@@ -80,11 +80,11 @@ user-scoped な値をキャッシュしたい場合の唯一の手段は **`use 
 | **取得エンドポイント** | user-scoped の取得に `cache` / `tags` を渡す | 型(引数の不在) | typecheck |
 | **キャッシュ投入前** | `use cache` を持つモジュールから user-scoped adapter を import する(import 先とその 1 段先まで) | lint(`project-rules/no-user-scoped-in-cached-module`) | `lint:ci` |
 | **レンダリング** | cached scope からの `cookies()` / `headers()` 読み出し。資格情報が cookie 由来であるため、user-scoped な取得を `use cache` の下へ置くと `next-request-in-use-cache` で落ちる | framework | build または実行時 |
-| **取得時** | 型を迂回して組まれた spec のキャッシュ指定と、呼び出しごとに持ち込まれた資格情報のヘッダ | `adapters/server/http` の関門 | リクエスト時に throw |
+| **取得時** | 型を迂回して組まれた spec のキャッシュ指定と、呼び出しごとに持ち込まれた資格情報のヘッダー | `adapters/server/http` の関門 | リクエスト時に throw |
 | **client 送信前** | server object をそのまま client へ渡す | taint([0030](0030-environment-variable-management.ja.md)) | レンダリング時 |
-| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダ。session cookie を載せたリクエストへの応答に `src/proxy.ts` が `Cache-Control: private, no-store` を付ける([0111](0111-csp-security-headers.ja.md)) | 応答時 |
+| **配信** | user-scoped な応答が共有キャッシュへ載る(CDN / プロキシ) | 応答ヘッダー。session cookie を載せたリクエストへの応答に `src/proxy.ts` が `Cache-Control: private, no-store` を付ける([0111](0111-csp-security-headers.ja.md)) | 応答時 |
 
-**どの段も、他の段が見えないものを見ている。** 取得エンドポイントだけでは `use cache` を書かれた時点で外れ、taint だけでは派生値とコピーで抜け、ヘッダだけではアプリ内部の共有キャッシュに効かない。
+**どの段も、他の段が見えないものを見ている。** 取得エンドポイントだけでは `use cache` を書かれた時点で外れ、taint だけでは派生値とコピーで抜け、ヘッダーだけではアプリ内部の共有キャッシュに効かない。
 
 **段 2 の判定はモジュール単位で、エンドポイントの分類の綴りを読む。** 分類の綴りは接続ポイントに居て、取得エンドポイントを並べるモジュールは接続ポイントを引くだけなので、import 先とその 1 段先までを読む。1 段先で数えないのは client を組む kernel だけである —— 分類を型として宣言するため両方の綴りを持ち、公開の接続ポイントを経由するモジュールまで取り違える。名前ごとにエンドポイントへ辿り着くかを追う解析はこの段の役目に見合わないので、エンドポイントと純粋な変換が同居するモジュールは変換だけを引いても止まる —— 止まったほうを直す(変換が自分のモジュールを持つ)。綴りを定数へ寄せると段そのものが黙るため、綴りが残っていることを別の口が見張る。
 
@@ -125,7 +125,7 @@ Page
 └─ public data
 ```
 
-**CSR は PII を安全にする手段ではない。** ブラウザへ PII が届くことに変わりはないため、CSR を選んだ場合も次を守る。
+**CSR は PII を安全にする手段ではない。** ブラウザーへ PII が届くことに変わりはないため、CSR を選んだ場合も次を守る。
 
 - 必要な属性だけを取得する(決定 8)
 - client state への保持を最小にする
@@ -160,9 +160,9 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 ## 禁止事項
 
 - ❌ user-scoped な取得に `cache` / `tags` を渡すこと(決定 1 / 3)
-- ❌ user-scoped な値を、サーバ側に保存されるキャッシュ(Data Cache / `use cache` / `unstable_cache`)へ入れること。手段は `use cache: private` に限る(決定 3)
+- ❌ user-scoped な値を、サーバー側に保存されるキャッシュ(Data Cache / `use cache` / `unstable_cache`)へ入れること。手段は `use cache: private` に限る(決定 3)
 - ❌ 資格情報を `cookies()` 以外の経路(モジュール変数・引数での持ち回り・境界をまたぐメモ化)で解決すること(決定 5。cookie が存在しない session 確立の 1 往復だけが例外で、そこは `bearerToken` の綴りで渡す)
-- ❌ 分類をラッパ型で表現し、feature レイヤーに unwrap を配ること(決定 1)（強制: 持たない —— 採らない決定。分類はラッパ型ではなく取得エンドポイントに持たせており、ラッパ型を足す変更は型の追加として diff に現れる）
+- ❌ 分類をラッパー型で表現し、feature レイヤーに unwrap を配ること(決定 1)（強制: 持たない —— 採らない決定。分類はラッパー型ではなく取得エンドポイントに持たせており、ラッパー型を足す変更は型の追加として diff に現れる）
 - ❌ どれか 1 つの段で全部を守れると見なして他の段を省くこと(決定 4)（強制: 散文 —— **寄せられない**。ある段を省いたかどうかは、段を外した理由が「別の段で足りる」かという判断で、コードの形からは決まらない）
 - ❌ React Compiler を PII / キャッシュ境界の防御として数えること(決定 6)（強制: 散文 —— **寄せられない**。何を防御として数えるかは設計の判断で、コードに現れない）
 - ❌ **PII を含むという理由で画面全体を CSR 化すること**(決定 7。切り出すのは最小の Client Island)
@@ -175,7 +175,7 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 ## 補足
 
 - **[0020](0020-adopted-architecture.ja.md) の設計原則「他の層が握る問題を、こちらで予防的に手当てしない」との関係**: 本 ADR の段はこれに反しない —— **それぞれが自分の持ち場を守っている**のであって、他所の答えを二つ目に書いているのではない。ただし決定 5 の前提に段 3 と取得時の関門が二重に乗る点だけは重複であり、これは同原則の**セキュリティ例外**(責務分界は防御を薄くする理由にならない)を根拠とする。
-- **`cache()` によるメモ化**: session の復元(`readSessionRecord`)と `verifySession` は React `cache()` で包み、復号を 1 リクエストにつき 1 度へ畳む。これは 1 リクエストのレンダリングに閉じるメモ化であって共有キャッシュではなく、不変条件 3 の request-scoped の内側で使ってよい。`use cache` の内側では `React.cache` が外側と切り離された scope で動くため、解決済みの値がメモ化を経路として中へ届くことはなく、サーバへ保存される `use cache` の下から `verifySession` を呼べば `cookies()` の読み出しとして段 3 が止める(`node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md`「React.cache isolation」「Request-time APIs」)。段 2 の lint は分類の綴りを読むため、`verifySession` を引くだけのモジュールには届かない。分離が塞ぐのはメモ化の経路だけで、解決済みの `Session` を引数や閉包で `use cache` へ渡すと cache key に載る —— これは禁止事項の「user-scoped な値を、サーバ側に保存されるキャッシュへ入れること」に当たり、止める機械の段は無い。`use cache: private` の内側では `cookies()` が許されて段 3 は発火しないが、それは決定 3 の例外能力の側である。
+- **`cache()` によるメモ化**: session の復元(`readSessionRecord`)と `verifySession` は React `cache()` で包み、復号を 1 リクエストにつき 1 度へ畳む。これは 1 リクエストのレンダリングに閉じるメモ化であって共有キャッシュではなく、不変条件 3 の request-scoped の内側で使ってよい。`use cache` の内側では `React.cache` が外側と切り離された scope で動くため、解決済みの値がメモ化を経路として中へ届くことはなく、サーバーへ保存される `use cache` の下から `verifySession` を呼べば `cookies()` の読み出しとして段 3 が止める(`node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-cache.md`「React.cache isolation」「Request-time APIs」)。段 2 の lint は分類の綴りを読むため、`verifySession` を引くだけのモジュールには届かない。分離が塞ぐのはメモ化の経路だけで、解決済みの `Session` を引数や閉包で `use cache` へ渡すと cache key に載る —— これは禁止事項の「user-scoped な値を、サーバー側に保存されるキャッシュへ入れること」に当たり、止める機械の段は無い。`use cache: private` の内側では `cookies()` が許されて段 3 は発火しないが、それは決定 3 の例外能力の側である。
 - **トレードオフ**: 通常実装の可読性はほぼ変わらない(feature 側の記述は増えず、変わるのは adapter を書くときにエンドポイントを選ぶ 1 行)。代わりに、資格情報を載せうるエンドポイントは共有キャッシュの選択肢を失う。「匿名でも取れるものを共有キャッシュへ」という最適化を採るなら、**エンドポイントを分ける**ことが条件になる。
 
 - **SSR-First との関係**: [0040](0040-routing-rendering-strategy.ja.md) は Server Components をデフォルトとし、どのレンダリングモードも閉ざさないと定める。これは**性能と UX 上のデフォルト値**であって、PII の機密性を上回る制約ではない。デフォルトは維持しつつ、PII を含む範囲では不変条件 1 が優先し、決定 9 の順序で決める。
@@ -189,6 +189,6 @@ PII を含む画面 / component は、次の順で決める。**最初から CSR
 - [0071-bff-api-integration.md](0071-bff-api-integration.ja.md) — キャッシュ・再検証の所有レイヤー。`docs/rules.md`「レンダリングとキャッシュ」の「Data Cache へ入れてよいのは、主体を名乗らずに取れるものだけ」の Rationale
 - [0072-api-type-generation.md](0072-api-type-generation.ja.md) — 型漏洩禁止(wire 型を内層へ出さない)
 - [0029-type-design-discipline.md](0029-type-design-discipline.ja.md) — branded / opaque(secret の値型)
-- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) — 応答ヘッダ。本 ADR の「配信」の段
+- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) — 応答ヘッダー。本 ADR の「配信」の段
 - [0110-security-operations.md](0110-security-operations.ja.md) — セキュリティ運用の全体像
 - [0042-react19-rendering-api.md](0042-react19-rendering-api.ja.md) — React Compiler は性能最適化のみ(本 ADR の対象外)

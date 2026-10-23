@@ -4,9 +4,9 @@
 
 # プレゼンテーションレイヤーの防御
 
-この文書は、このプレゼンテーションレイヤーが**自分で持っている防御**を通しで説明する。持っているのは 2 つの面で、**ブラウザへ配る面**（配信ヘッダ・CSP・バンドルへ入る値）と、**後ろから来た値の扱い**（分類と置き場・上流由来の値への線引き・リッチテキスト）である。エントリポイント（`src/proxy.ts`）はその 2 つの面が交わる場所として扱う。
+この文書は、このプレゼンテーションレイヤーが**自分で持っている防御**を通しで説明する。持っているのは 2 つの面で、**ブラウザーへ配る面**（配信ヘッダー・CSP・バンドルへ入る値）と、**後ろから来た値の扱い**（分類と置き場・上流由来の値への線引き・リッチテキスト）である。エントリポイント（`src/proxy.ts`）はその 2 つの面が交わる場所として扱う。
 
-判断は ADR が持つ。ヘッダと CSP の本体は [ADR 0111](../adr/0111-csp-security-headers.ja.md)、値の分類は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)、env の境界は [ADR 0030](../adr/0030-environment-variable-management.ja.md)、エントリポイントの責務は [ADR 0043](../adr/0043-middleware-policy.ja.md) が正で、ここはそれらを**実装の在り処と落とし穴**から読み直す。CI 側の検査（秘密スキャン・SAST・依存監査・DAST の配線）は [ADR 0110](../adr/0110-security-operations.ja.md) と [`.github/workflows/README.md`](../../.github/workflows/README.ja.md) が持つので再掲しない。認証の往復そのものは [ADR 0079](../adr/0079-auth-frontend-seam.ja.md) の持ち分で、ここに出てくるのは「エントリポイントがそれをどう扱うか」だけである。
+判断は ADR が持つ。ヘッダーと CSP の本体は [ADR 0111](../adr/0111-csp-security-headers.ja.md)、値の分類は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)、env の境界は [ADR 0030](../adr/0030-environment-variable-management.ja.md)、エントリポイントの責務は [ADR 0043](../adr/0043-middleware-policy.ja.md) が正で、ここはそれらを**実装の在り処と落とし穴**から読み直す。CI 側の検査（秘密スキャン・SAST・依存監査・DAST の配線）は [ADR 0110](../adr/0110-security-operations.ja.md) と [`.github/workflows/README.md`](../../.github/workflows/README.ja.md) が持つので再掲しない。認証の往復そのものは [ADR 0079](../adr/0079-auth-frontend-seam.ja.md) の持ち分で、ここに出てくるのは「エントリポイントがそれをどう扱うか」だけである。
 
 ## 全体の形
 
@@ -22,26 +22,26 @@
 
 要求に依らないものは**配信の側**（`next.config.ts`）、要求に依るものは**エントリポイント**（`src/proxy.ts`）、値に依るものは**取得エンドポイント**（`adapters/server/http`）に置く。この 3 つの分担を先に押さえると、どこに何が無いかも読める。
 
-## 配信ヘッダと CSP
+## 配信ヘッダーと CSP
 
 ### どこで宣言しているか
 
-**要求に依らないヘッダは全部 `next.config.ts` の `headers()` が付ける。** 対象は `source: "/:path*"` で、中身は [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) の `buildSecurityHeaders()` が組み立てる。CSP・`X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy`・`Permissions-Policy`・`Cross-Origin-*`・HSTS がここに載る。
+**要求に依らないヘッダーは全部 `next.config.ts` の `headers()` が付ける。** 対象は `source: "/:path*"` で、中身は [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) の `buildSecurityHeaders()` が組み立てる。CSP・`X-Frame-Options`・`X-Content-Type-Options`・`Referrer-Policy`・`Permissions-Policy`・`Cross-Origin-*`・HSTS がここに載る。
 
-値のうち環境で変わるものは、**検証済みの ENV から導く**。ヘッダの文字列へ配信元を直接書く場所は無い。
+値のうち環境で変わるものは、**検証済みの ENV から導く**。ヘッダーの文字列へ配信元を直接書く場所は無い。
 
 | 入力 | 出所 | 効く先 |
 | --- | --- | --- |
 | `mediaOrigin` | `MEDIA_ORIGIN` | `img-src` |
 | `authIssuer` | `AUTH_ISSUER` | `form-action`（ログインの form が IdP へリダイレクトされる先） |
-| `apiOrigin` | `APP_API_BASE_URL` | `connect-src`（ブラウザが backend へ直接開く購読の宛先。往復は BFF を通るので要らない） |
+| `apiOrigin` | `APP_API_BASE_URL` | `connect-src`（ブラウザーが backend へ直接開く購読の宛先。往復は BFF を通るので要らない） |
 | `servesOverTls` | `AUTH_REDIRECT_URI` の scheme（`isServedOverTls()`） | HSTS と `upgrade-insecure-requests` を出すか |
 | `development` | `next dev` かどうか（phase） | `script-src` に `'unsafe-eval'` を足すか |
 | `gtmContainerId` | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | Google の配信元を `script-src` / `connect-src` / `img-src` に足し、`Cross-Origin-Embedder-Policy` を**出さない** |
 
-最後の行が示すとおり、**同梱するタグマネージャの有無でヘッダの形が変わる**。容器 ID が空のデプロイでは `Cross-Origin-Embedder-Policy: require-corp` が出て cross-origin isolation が立ち、空でないデプロイでは出ない。どちらが正しいかはデプロイが決めることで、判断は `security-headers.ts` が 1 か所で持つ。
+最後の行が示すとおり、**同梱するタグマネージャーの有無でヘッダーの形が変わる**。容器 ID が空のデプロイでは `Cross-Origin-Embedder-Policy: require-corp` が出て cross-origin isolation が立ち、空でないデプロイでは出ない。どちらが正しいかはデプロイが決めることで、判断は `security-headers.ts` が 1 か所で持つ。
 
-**要求に依るヘッダは `src/proxy.ts` が持つ。** 資格情報を載せた要求への `Cache-Control: private, no-store` と、宣言した別 origin への `Access-Control-*` の 2 種類である（後述「エントリポイント」）。`headers()` で足すと全応答に載ってしまい、`proxy.ts` で足すと前捌きを通らない静的応答から漏れる、という**向きの違い**で置き場が決まっている。
+**要求に依るヘッダーは `src/proxy.ts` が持つ。** 資格情報を載せた要求への `Cache-Control: private, no-store` と、宣言した別 origin への `Access-Control-*` の 2 種類である（後述「エントリポイント」）。`headers()` で足すと全応答に載ってしまい、`proxy.ts` で足すと前捌きを通らない静的応答から漏れる、という**向きの違い**で置き場が決まっている。
 
 ### nonce を使うと何が起きるか
 
@@ -49,26 +49,26 @@ CSP の `script-src` は `'self' 'unsafe-inline'` である。**nonce は使っ�
 
 nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.ja.md) の seam B）を採ると、`src/proxy.ts` が要求ごとに nonce を生成し、Next.js が全 script に付ける。その瞬間に**全 route が dynamic rendering になる**。静的なシェルは配れず、CDN キャッシュも ISR も効かず、このリポジトリが有効にしている Cache Components（[rendering.md](rendering.ja.md)「このリポジトリは有効にしている」）と両立しない。「CSP を厳しくしたい」という要件は、配信モデルごと入れ替える判断を伴う。
 
-`Content-Security-Policy-Report-Only` も経由していない。段階導入の代わりに、違反は次項の検査が実ブラウザで見つける。
+`Content-Security-Policy-Report-Only` も経由していない。段階導入の代わりに、違反は次項の検査が実ブラウザーで見つける。
 
 ### 宣言と実際の配信を突き合わせる検査
 
-宣言（`next.config.ts`）と、ブラウザが受け取るもの、ブラウザが enforce した結果は**3 つの別の事実**で、それぞれ別の検査が見る。
+宣言（`next.config.ts`）と、ブラウザーが受け取るもの、ブラウザーが enforce した結果は**3 つの別の事実**で、それぞれ別の検査が見る。
 
 | 事実 | 検査 | 在り処 |
 | --- | --- | --- |
 | 組み立てが宣言どおりか | 単体テスト | [`security-headers.test.ts`](../../src/config/security-headers/security-headers.test.ts)。容器 ID の有無・TLS の有無の両方のデプロイを固定する |
 | 応答に載っているか | DAST（OWASP ZAP baseline） | `dast.yaml`（`make dast`）。既知の欠落は [`.github/zap/rules.tsv`](../../.github/zap/rules.tsv) に理由と撤回条件つきで並び、**一覧に無い所見は赤** |
-| ブラウザが enforce しているか | E2E の見張り | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) が `securitypolicyviolation` を document で受け、**全 spec・全レンダリングエンジン**で違反を数える |
+| ブラウザーが enforce しているか | E2E の見張り | [`e2e/lib/test.ts`](../../e2e/lib/test.ts) が `securitypolicyviolation` を document で受け、**全 spec・全レンダリングエンジン**で違反を数える |
 | enforce が効いている証拠 | E2E の spec | [`e2e/journeys/csp.spec.ts`](../../e2e/journeys/csp.spec.ts) が宣言に無い配信元の script を差し、違反が報告されることを確かめる |
 
-**CSP の違反は console の見張りには掛からない。** ブラウザ自身が書く行は引数を持たず、見張りが「JavaScript が書いた行」だけを数える規則で外れる。だから `securitypolicyviolation` を別経路で受けている（[`e2e/README.md`](../../e2e/README.ja.md#何を異常と数えるか) —— 「何を異常と数えるか」）。`Report-Only` へ緩めると DAST は通るが `csp.spec.ts` が落ちる —— ヘッダを読む検査と enforce を見る検査が別に在るのはこのためである。
+**CSP の違反は console の見張りには掛からない。** ブラウザー自身が書く行は引数を持たず、見張りが「JavaScript が書いた行」だけを数える規則で外れる。だから `securitypolicyviolation` を別経路で受けている（[`e2e/README.md`](../../e2e/README.ja.md#何を異常と数えるか) —— 「何を異常と数えるか」）。`Report-Only` へ緩めると DAST は通るが `csp.spec.ts` が落ちる —— ヘッダーを読む検査と enforce を見る検査が別に在るのはこのためである。
 
-`next.config.ts` と `src/config/security-headers/` を触った変更は `scripts/deferred-checks/recommend.ts` が `run-e2e` を名指しする。ヘッダの変更を単体テストだけで通した気にならないように、実ブラウザの検査へ誘導している。
+`next.config.ts` と `src/config/security-headers/` を触った変更は `scripts/deferred-checks/recommend.ts` が `run-e2e` を名指しする。ヘッダーの変更を単体テストだけで通した気にならないように、実ブラウザーの検査へ誘導している。
 
-**CI はタグマネージャの容器 ID を空にして走る。** したがって Google の配信元を足す側の CSP と、`Cross-Origin-Embedder-Policy` が降りた状態は、実ブラウザでは検査されていない。単体テストが組み立てを固定しているだけである（[ADR 0110](../adr/0110-security-operations.ja.md)）。
+**CI はタグマネージャーの容器 ID を空にして走る。** したがって Google の配信元を足す側の CSP と、`Cross-Origin-Embedder-Policy` が降りた状態は、実ブラウザーでは検査されていない。単体テストが組み立てを固定しているだけである（[ADR 0110](../adr/0110-security-operations.ja.md)）。
 
-### 配信ヘッダの隣にあるもの
+### 配信ヘッダーの隣にあるもの
 
 - `poweredByHeader: false` —— フレームワークとバージョンを名乗らない
 - `images.remotePatterns` —— `MEDIA_ORIGIN` の 1 host だけ。ワイルドカードを使わないのは、許した host が画像最適化の取りに行ける相手そのものだからである
@@ -101,7 +101,7 @@ nonce を使う道（[ADR 0111](../adr/0111-csp-security-headers.ja.md) の seam
 | キャッシュ投入前 | `use cache` を持つモジュールが user-scoped のエンドポイントを import する（import 先とその 1 段先） | ESLint | `project-rules/no-user-scoped-in-cached-module`。分類の綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る |
 | レンダリング | cached scope からの `cookies()` 読み出し | framework | `next-request-in-use-cache`。資格情報が cookie 由来であることに乗っている |
 | client 送信前 | server の object と秘密値を Client Component へ渡す | taint | [`adapters/server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) |
-| 配信 | 主体に紐づく応答が共有キャッシュへ載る | 応答ヘッダ | `src/proxy.ts` の `Cache-Control: private, no-store` |
+| 配信 | 主体に紐づく応答が共有キャッシュへ載る | 応答ヘッダー | `src/proxy.ts` の `Cache-Control: private, no-store` |
 
 **レンダリングの段は 1 つの前提に乗っている** —— 資格情報が使用地点で `cookies()` から解決されること。解決済みの値を掴んで持ち回ると、cached scope の中で `cookies()` が読まれず、framework の防御は**何も言わずに**外れる。`request.ts` の `getBearerToken` に渡せるのが import した口だけ（ESLint `project-rules/no-captured-bearer-token`）なのは、この前提を検査可能にするためである。session を確立する 1 往復だけは cookie がまだ無く、`bearerToken` という別の綴りで解決済みの値を渡す。綴りを分けてあるのは、防御が外れる箇所を数えられるようにするためであって、渡してよい場所が増えたのではない。
 
@@ -132,15 +132,15 @@ secret は取得の経路を通らず、`config/<purpose>/<purpose>.server.ts` �
 
 ### 何がバンドルへ入るか
 
-`NEXT_PUBLIC_` の変数は、ビルド時に**参照箇所ごとのリテラルへ置換**される。ブラウザへ届くのは値そのものであり、実行時に差し替える手段は無い。いま入っているのは 3 つである。
+`NEXT_PUBLIC_` の変数は、ビルド時に**参照箇所ごとのリテラルへ置換**される。ブラウザーへ届くのは値そのものであり、実行時に差し替える手段は無い。いま入っているのは 3 つである。
 
-| 変数 | 読む場所 | ブラウザで何に使うか |
+| 変数 | 読む場所 | ブラウザーで何に使うか |
 | --- | --- | --- |
 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | [`config/http/http.client.ts`](../../src/config/http/http.client.ts) | 要求 URL の上限。server 側と同じ変数を読むのでしきい値は env の 1 行 |
-| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 同上 | 送る前に弾く。**受信エンドポイントが同じ大きさをもう一度確かめる** —— ブラウザ側の判定は送信者が差し替えられる |
+| `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 同上 | 送る前に弾く。**受信エンドポイントが同じ大きさをもう一度確かめる** —— ブラウザー側の判定は送信者が差し替えられる |
 | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | [`config/analytics/analytics.client.ts`](../../src/config/analytics/analytics.client.ts) | 空なら同意ゲートの裏の要素そのものをレンダリングしない。容器 ID はタグを読む URL に現れる公開値で、秘密は容器の編集権限の側にある |
 
-client config は `NEXT_PUBLIC_` 変数を**文字列リテラルで名指す参照だけ**を持ち、そこでは検証しない。ブラウザは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
+client config は `NEXT_PUBLIC_` 変数を**文字列リテラルで名指す参照だけ**を持ち、そこでは検証しない。ブラウザーは検証の実行点ではなく、置換されるのは検証を通った値そのものだからである。
 
 ### 何が入らないか
 
@@ -150,13 +150,13 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 
 **見つける**:
 
-- 全 ENV の検証 —— `next.config.ts` が `validateEnvironment()` を呼び、`NEXT_PUBLIC_` か否かを問わず全量を検証する。欠落も不正も build failure になる。ブラウザに未検証の値が置換されることは無い
+- 全 ENV の検証 —— `next.config.ts` が `validateEnvironment()` を呼び、`NEXT_PUBLIC_` か否かを問わず全量を検証する。欠落も不正も build failure になる。ブラウザーに未検証の値が置換されることは無い
 - `server-only` の越境 —— client のバンドルから server モジュールを引いた時点で落ちる
 - client のバンドルの重さ —— `scripts/client-schema-weight.gate.test.ts` が、検証ライブラリごと client へ載る import の形を見つける
 
 **見つけない**:
 
-- **server config の値を props で Client Component へ渡す書き方。** 値が `string` になった時点で `server-only` は効かず、taint も登録した値（署名鍵）にしか効かない。RSC payload として HTML へ直列化され、そのままブラウザへ出る。これは規約（[`docs/rules.md`](../rules.ja.md#config)）と、内側のレイヤーが config を import できない依存表で止めているのであって、build が見つけるものではない
+- **server config の値を props で Client Component へ渡す書き方。** 値が `string` になった時点で `server-only` は効かず、taint も登録した値（署名鍵）にしか効かない。RSC payload として HTML へ直列化され、そのままブラウザーへ出る。これは規約（[`docs/rules.md`](../rules.ja.md#config)）と、内側のレイヤーが config を import できない依存表で止めているのであって、build が見つけるものではない
 - **派生値。** `` `Bearer ${token}` `` のような文字列は taint に登録していない
 
 `serverActions.bodySizeLimit` は `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` にエンベロープのぶん（32 KiB）を足した値である。**この上限は全 Server Action に効く。** Next.js は action ごとの上限を持たないので、ファイルのために上げた値がテキストしか受け取らないエンドポイントにも効く。
@@ -167,7 +167,7 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 
 1. **停止** —— `APP_MAINTENANCE_MODE` が立っていれば、`GET` / `HEAD` を停止画面へ rewrite し、それ以外を `503` で断る。停止画面自身と `/api/health` だけは通す。認可より先に置くのは、止めるのが全 route に対する 1 つの判断だからである
 2. **送信元** —— `Origin` を `model/cross-origin` の `judgeOrigin()` で判定し、宣言（`HTTP_ALLOWED_ORIGINS`）に無い別 origin からの**状態を変えるメソッド**を handler へ届く前に `403` で止める
-3. **CORS か楽観判定か** —— 宣言した別 origin から `/api/` へ来た要求には CORS ヘッダを付け（preflight には `204`）、それ以外は役割の楽観判定へ進む
+3. **CORS か楽観判定か** —— 宣言した別 origin から `/api/` へ来た要求には CORS ヘッダーを付け（preflight には `204`）、それ以外は役割の楽観判定へ進む
 4. **始末** —— 同意に紐づく計測 id の発行と撤去、資格情報を載せた要求への `Cache-Control: private, no-store`
 
 ### 持つもの
@@ -177,13 +177,13 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 | 楽観的な認可 | `readOptimisticSession()` で cookie を復号し、`model/authz` の `allowedRolesFor()` に照らす | 未認証はログインへ（復帰先は `toSafeReturnUrl()` を通す）、役割不足は `/` へ。**ログインへ戻さない**のは、やり直しても同じ結果になるため。**Server Action の呼び出し（`Next-Action` を持つ `POST`）は素通しする** —— action の経路で返したリダイレクトを client は扱えないので、両方の確認は action 自身が持つ（[ADR 0043](../adr/0043-middleware-policy.ja.md)） |
 | 保護する経路の宣言 | `model/authz` の `ROUTE_POLICIES` | **保護されている側を列挙する。** 公開側を列挙すると、足した画面がデフォルトで公開になる。確定認可も同じ宣言を引く |
 | 送信元の検証 | `judgeOrigin()` + `isStateChanging()` | 同一 origin の判定は **host だけ**（`X-Forwarded-Host` → `Host` の順）。TLS を終端する proxy の後ろでは scheme が食い違うため比べない。宣言した別 origin は origin の完全一致 |
-| CORS | `openCors()` | `/api/` だけ。`Access-Control-Allow-Credentials: true` を返すので `*` は使えず、`Vary: Origin` を添える。preflight は求められたメソッドとヘッダをそのまま許す —— origin を許した時点で相手を信頼しており、一覧を別に持つと宣言が 2 つに割れる |
+| CORS | `openCors()` | `/api/` だけ。`Access-Control-Allow-Credentials: true` を返すので `*` は使えず、`Vary: Origin` を添える。preflight は求められたメソッドとヘッダーをそのまま許す —— origin を許した時点で相手を信頼しており、一覧を別に持つと宣言が 2 つに割れる |
 | 資格情報を載せた応答の `Cache-Control` | `finalize()` | session cookie を載せた要求、**または cookie を書き換えた応答**。後者を外すと、匿名で同意済みの訪問者へ計測 id を配る応答が CDN に固まり、以後の全員へ同じ id を配る |
 
 ### 持たないもの
 
 - **確定認可。** データ源に最も近い所（`adapters/server/auth/session.ts` の `verifySession()`）が持ち、画面・Server Action・Route Handler がそれぞれ呼ぶ。前捌きは cookie を読むだけで、データ源を参照しない。Proxy が唯一の検査だと、Proxy を通らない経路（`matcher` の除外、Server Action の直接呼び出し）がそのまま穴になる
-- **要求に依らないヘッダ。** `next.config.ts` の持ち分（前述）
+- **要求に依らないヘッダー。** `next.config.ts` の持ち分（前述）
 - **レート制限・DDoS 緩和・WAF。** infra / edge の責務として名前付きで切ってある（[ADR 0077](../adr/0077-bff-abuse-protection-boundary.ja.md)）。本体に残す最小の防御は、認証を要求しない Route Handler が本体を読む前に掛ける**型と大きさ**で、[`adapters/server/http/json-request.ts`](../../src/adapters/server/http/json-request.ts) の `readJsonBody()` が持つ。content-type が JSON を名乗らなければ `415`、宣言された長さが上限を超えれば読まずに `413`、宣言が無いか偽っていれば読んだ後の実測で `413`。**読む前に打ち切ることまではしない** —— 際限なく流し込まれる本体を止めるのは配信経路の役割である
 - **開発専用のエンドポイントの開閉。** `route.dev.ts` / `page.dev.tsx` は `pageExtensions` で build から外れ、残った成果物では [`adapters/server/auth/development-access.ts`](../../src/adapters/server/auth/development-access.ts) の `isDevelopmentAccessAllowed()` が `APP_ENV` と宛先（`Host` / `X-Forwarded-Host` が手元の名前であること）を見る。閉じているときは `404` で、存在を知らせない（[ADR 0113](../adr/0113-development-access-surface.ja.md)）
 
@@ -204,14 +204,14 @@ server config（`*.server.ts`）は runtime object であり、`server-only` の
 | 場面 | やっていること | やっていないこと |
 | --- | --- | --- |
 | バックエンドの応答 | `adapters` 境界で生成 zod による**形の検証**（契約破れの検知）と、自前 view 型への詰め替え | 文字列の中身の無害化。応答に含まれる文言・パス・識別子はそのまま持ち回る |
-| ブラウザ発の span の中継 | [`adapters/server/telemetry/browser-traces.ts`](../../src/adapters/server/telemetry/browser-traces.ts) の `redactAttributes()` が**属性の名前**で伏せる。名前の表は `logging` が持ち、ログと同じ表を使う | **値の中身は見ない。** 上流や第三者が組んだ URL の中まで洗い出さない。名前で持ち回っている限り効き、そうでないものは元の設計が誤っている |
+| ブラウザー発の span の中継 | [`adapters/server/telemetry/browser-traces.ts`](../../src/adapters/server/telemetry/browser-traces.ts) の `redactAttributes()` が**属性の名前**で伏せる。名前の表は `logging` が持ち、ログと同じ表を使う | **値の中身は見ない。** 上流や第三者が組んだ URL の中まで洗い出さない。名前で持ち回っている限り効き、そうでないものは元の設計が誤っている |
 | エラーの文言 | [`errors/redact.ts`](../../src/errors/redact.ts) の `redactMessage()` は**呼び出し元が名指しした値**（自分が持っているトークン等）だけを置き換える | バックエンド由来の例外文やスタックのスキャン |
 | エラーの `details` | wire へ出して安全な識別子だけを載せる（[`docs/rules.md`](../rules.ja.md#data-classification)） | 入力値・理由文の伝搬 |
 | 構造化データの埋め込み | [`components/design-system/display/json-ld`](../../src/components/design-system/display/json-ld/json-ld.tsx) が JSON の `<` を `\u003c` へ逃がす | —— |
 
 最後の行は「上流の値を無害化している」ように見えるが、そうではない。**script の本文を組み立てているのは自分**であり、逃がしているのは自分が作った直列化の形である。値の出所がバックエンドである以上その中身を前提にできない、というのは「`</script>` が入っていても自分の出力が壊れない」ことの理由であって、値を清めているのではない。
 
-同じ理由で、このレイヤーが**確かめてから持ち回る**のは自分が組む値である。復帰先は `model/return-url` の `toSafeReturnUrl()` が URL パーサに解かせた結果で同一 origin の相対パスだけを通し、以降は brand 型が検証済みであることを示す。`searchParams` は `model/search-params` が「届く形」を決め、何が正しい値かは読む側のスキーマが決める。cookie は用途ごとの属性を server 境界で明示する。どれも**値を作る側**の始末である。
+同じ理由で、このレイヤーが**確かめてから持ち回る**のは自分が組む値である。復帰先は `model/return-url` の `toSafeReturnUrl()` が URL パーサーに解かせた結果で同一 origin の相対パスだけを通し、以降は brand 型が検証済みであることを示す。`searchParams` は `model/search-params` が「届く形」を決め、何が正しい値かは読む側のスキーマが決める。cookie は用途ごとの属性を server 境界で明示する。どれも**値を作る側**の始末である。
 
 **例外に見えるのがリッチテキストである。** 上流から来た HTML を、このレイヤーが sanitize してからレンダリングする。矛盾ではない —— sanitizer が持っているのは「上流の何が危ないか」の一覧（blocklist）ではなく、「**このレイヤーがレンダリングしてよいもの**」の一覧（allowlist）である。次セクションのとおり、それは表示側の仕様であって上流への対応ではない。
 
@@ -230,7 +230,7 @@ HTML 文字列
   → RichTextContent が hast-util-to-jsx-runtime で React 要素へ
 ```
 
-HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetInnerHTML` を props から**型で外している**。仕様準拠の parser でツリーにしてからツリーを検査するので、文字列置換の sanitizer が持つ parser の解釈差（sanitizer とブラウザで読み方が違う）を検査の前後で持ち込まない。
+HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetInnerHTML` を props から**型で外している**。仕様準拠の parser でツリーにしてからツリーを検査するので、文字列置換の sanitizer が持つ parser の解釈差（sanitizer とブラウザーで読み方が違う）を検査の前後で持ち込まない。
 
 ### schema が言っていること
 
@@ -266,17 +266,17 @@ HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetIn
 
 `script-src` に `'unsafe-inline'` が残っている。これは Next.js 自身の inline script を許すための弱い許可で、DAST の既知欠落一覧（`.github/zap/rules.tsv` の `10055`）にも載っている。strict にする道は nonce（全 route が dynamic になる）か hash（Next.js の実験的 SRI）で、どちらも今の配信モデルを変える。「CSP がある」ことを根拠に inline script の注入を心配しなくてよい、とは言えない。
 
-### `proxy.ts` にヘッダを足しても静的応答には載らない
+### `proxy.ts` にヘッダーを足しても静的応答には載らない
 
-前捌きを通る経路にしか効かない。要求に依らないヘッダを足したくなったら `security-headers.ts` へ行く。逆に `matcher` が除外している `_next/image` は、cookie を載せた要求でも framework の `Cache-Control`（`public, max-age=...`）のまま配られる。**主体固有の画像を `next/image` に載せた瞬間、その画像は CDN で共有される。**
+前捌きを通る経路にしか効かない。要求に依らないヘッダーを足したくなったら `security-headers.ts` へ行く。逆に `matcher` が除外している `_next/image` は、cookie を載せた要求でも framework の `Cache-Control`（`public, max-age=...`）のまま配られる。**主体固有の画像を `next/image` に載せた瞬間、その画像は CDN で共有される。**
 
 ### 送信元の検証は認証ではない
 
-`Origin` を持たない要求は same-origin として通る。ブラウザ以外の client や同一 origin の `GET` には `Origin` が無いためで、これは CSRF（**被害者のブラウザが被害者の cookie を載せて**別サイトから送る）を止める検査であって、資格情報の検証ではない。認可は `verifySession()` が別に行う。`Origin: null`（sandbox された iframe やリダイレクト越し）は文字列の `"null"` で届き、`new URL()` が拒むので untrusted になる。
+`Origin` を持たない要求は same-origin として通る。ブラウザー以外の client や同一 origin の `GET` には `Origin` が無いためで、これは CSRF（**被害者のブラウザーが被害者の cookie を載せて**別サイトから送る）を止める検査であって、資格情報の検証ではない。認可は `verifySession()` が別に行う。`Origin: null`（sandbox された iframe やリダイレクト越し）は文字列の `"null"` で届き、`new URL()` が拒むので untrusted になる。
 
 ### CORS が開くのは `/api/` だけである
 
-宣言した別 origin から画面の経路を `fetch` しても CORS ヘッダは付かず、preflight も素通しになる。読むだけの要求は 403 にしないので、「通ったのに読めない」という見え方になる。
+宣言した別 origin から画面の経路を `fetch` しても CORS ヘッダーは付かず、preflight も素通しになる。読むだけの要求は 403 にしないので、「通ったのに読めない」という見え方になる。
 
 ### 楽観判定を通ったことは、認可されたことではない
 
@@ -298,17 +298,17 @@ HTML 文字列へ戻す経路は無く、`RichTextContent` は `dangerouslySetIn
 
 ビルド時にリテラルへ置換される。PaaS の環境変数を変えても再ビルドしなければ効かない。逆に、動的アクセス（`process.env[name]`）や分割代入は置換が効かず `undefined` になる。client 側で検証していないのは手抜きではなく、検証を通った値だけが置換されるからである。
 
-### タグマネージャを有効にすると cross-origin isolation を失う
+### タグマネージャーを有効にすると cross-origin isolation を失う
 
-容器 ID を入れたデプロイでは `Cross-Origin-Embedder-Policy` が出ない。`SharedArrayBuffer` のような isolation を前提とする機能はその構成では使えない。しかもこの側の CSP は CI の実ブラウザで検査されていない。
+容器 ID を入れたデプロイでは `Cross-Origin-Embedder-Policy` が出ない。`SharedArrayBuffer` のような isolation を前提とする機能はその構成では使えない。しかもこの側の CSP は CI の実ブラウザーで検査されていない。
 
 ### `dangerouslySetInnerHTML` の例外は 2 か所ある
 
-`JsonLd`（JSON を script の本文として埋める）と `ChartStyle`（系列色を CSS 変数として `<style>` へ配る）で、どちらも biome の `noDangerouslySetInnerHtml` を理由つきで外している。共通点は、**中身が自分の直列化か開発者の定数**であることで、利用者入力や API 応答をそこへ渡さない。3 つ目を足すなら同じ形でなければならず、リッチテキストのレンダリングはここに含まれない。
+`JsonLd`（JSON を script の本文として埋める）と `ChartStyle`（系列色を CSS 変数として `<style>` へ配る）で、どちらも biome の `noDangerouslySetInnerHtml` を理由つきで外している。共通点は、**中身が自分の直列化か開発者の定数**であることで、ユーザー入力や API 応答をそこへ渡さない。3 つ目を足すなら同じ形でなければならず、リッチテキストのレンダリングはここに含まれない。
 
 ### 開発専用のエンドポイントは `APP_ENV` 未指定で閉じる
 
-`isDevelopmentOnlyEndpointOpen()` は `APP_ENV` が `local` / `ci` のときだけ true で、未指定はデフォルトへ落ちずに false になる。同梱の秘密値も同じ判定で拒まれるので、`APP_ENV` を付けずに起動すると、エンドポイントが閉じるより前に起動そのものが止まる（env ファイルを選べないか、同梱の秘密値が拒まれる）。開発のエントリポイント（`pnpm dev` / `pnpm storybook`）は script が `local` を渡している。宛先（`Host`）の判定は防御線ではなく、設定を誤ったまま公開したときに普通の利用者が普通に踏む経路を止めるだけである。
+`isDevelopmentOnlyEndpointOpen()` は `APP_ENV` が `local` / `ci` のときだけ true で、未指定はデフォルトへ落ちずに false になる。同梱の秘密値も同じ判定で拒まれるので、`APP_ENV` を付けずに起動すると、エンドポイントが閉じるより前に起動そのものが止まる（env ファイルを選べないか、同梱の秘密値が拒まれる）。開発のエントリポイント（`pnpm dev` / `pnpm storybook`）は script が `local` を渡している。宛先（`Host`）の判定は防御線ではなく、設定を誤ったまま公開したときに普通のユーザーが普通に踏む経路を止めるだけである。
 
 ### `SanitizedRichText` は Client Component へ渡せない
 
@@ -320,7 +320,7 @@ class instance は RSC の直列化を通らない。`root` を抜いて渡す�
 
 ## 関連する ADR
 
-- [0111](../adr/0111-csp-security-headers.ja.md) — CSP と同伴ヘッダの本体。seam A（静的）をデフォルトにし、nonce は opt-in とする判断
+- [0111](../adr/0111-csp-security-headers.ja.md) — CSP と同伴ヘッダーの本体。seam A（静的）をデフォルトにし、nonce は opt-in とする判断
 - [0112](../adr/0112-data-classification-cache-boundary.ja.md) — 分類を取得エンドポイントに持たせる判断と、段ごとの関所
 - [0030](../adr/0030-environment-variable-management.ja.md) — env の検証点、`NEXT_PUBLIC_` の境界、`server-only` + taint の 2 段構え
 - [0043](../adr/0043-middleware-policy.ja.md) — `proxy.ts` は薄い last resort。楽観判定に限り、確定認可はデータ境界

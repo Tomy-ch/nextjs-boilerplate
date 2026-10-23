@@ -4,7 +4,7 @@
 
 # telemetry
 
-ブラウザから中継されたシグナルを検証し、signal へ載せる受け側です。
+ブラウザーから中継されたシグナルを検証し、signal へ載せる受け側です。
 
 **import の上限はここが宣言しません。** 境界を宣言するのは要素の根で、このディレクトリを含む要素の根は [`adapters/`](../../README.ja.md) です（[0021](../../../../docs/adr/0021-frontend-responsibility.ja.md)）。
 
@@ -35,5 +35,5 @@
 [親の README](../../README.ja.md) が持ちます。
 
 - [0081](../../../../docs/adr/0081-observability-logging.ja.md) — OTLP への載せ方と、構造化ログの規則
-- [0082](../../../../docs/adr/0082-client-observability.ja.md) — ブラウザ発の Web Vitals と例外を、どの signal へ写すか
+- [0082](../../../../docs/adr/0082-client-observability.ja.md) — ブラウザー発の Web Vitals と例外を、どの signal へ写すか
 - [0077](../../../../docs/adr/0077-bff-abuse-protection-boundary.ja.md) — 認証を要求しない受信エンドポイントが自分で確かめること

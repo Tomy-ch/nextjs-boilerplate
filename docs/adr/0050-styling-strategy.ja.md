@@ -4,7 +4,7 @@
 
 # スタイリング戦略
 
-Tailwind CSS を主軸に据えつつ、**CSS Modules をエスケープハッチとして限定許可し(styled-components / emotion は非採用)/ `cn()` ヘルパの置き場 / design token の管理 / global と local の境界** を定める。
+Tailwind CSS を主軸に据えつつ、**CSS Modules をエスケープハッチとして限定許可し(styled-components / emotion は非採用)/ `cn()` ヘルパーの置き場 / design token の管理 / global と local の境界** を定める。
 
 ## Status
 
@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-`package.json` に `tailwindcss` / `@tailwindcss/postcss` があり、`postcss.config.mjs` と `src/app/globals.css` が存在するため **Tailwind v4 は事実上採用済み**である。design token 管理・`cn()` ヘルパ・global vs local 境界・代替手段の非採用方針を、本 ADR が確定する。
+`package.json` に `tailwindcss` / `@tailwindcss/postcss` があり、`postcss.config.mjs` と `src/app/globals.css` が存在するため **Tailwind v4 は事実上採用済み**である。design token 管理・`cn()` ヘルパー・global vs local 境界・代替手段の非採用方針を、本 ADR が確定する。
 
 ## 決定
 
@@ -20,14 +20,14 @@ Accepted
 
 - スタイリングは **Tailwind CSS(v4)のユーティリティクラスをデフォルト(主軸)**とする
 - **CSS Modules は、Tailwind ユーティリティでは記述しづらい複雑スタイル(高度な `:has()` / 複雑な擬似要素連鎖 / keyframes など)に限り、エスケープハッチとして限定許可**する。まず Tailwind で賄えるかを確認し、賄えない場合のみ CSS Modules を用いる
-  - 採用理由(vendor-independent / [0010](0010-standards-and-non-lockin.ja.md)): CSS Modules は **ビルド時にスコープ化される純 CSS で、ランタイム CSS-in-JS を持たない**。したがって RSC デフォルト([0040](0040-routing-rendering-strategy.ja.md))と衝突せず、Server Component でもそのまま使える。加えて **Next.js / バンドラが標準機能として同梱**する(特定ライブラリへの依存が発生しない)ため、「ベンダーを正当化から抜いてもパターンが成立する」= 非ロックインの運用テストを満たす。プラットフォーム標準に乗る([0010](0010-standards-and-non-lockin.ja.md))選択であり、追加ライブラリ・追加ランタイムを伴わない
+  - 採用理由(vendor-independent / [0010](0010-standards-and-non-lockin.ja.md)): CSS Modules は **ビルド時にスコープ化される純 CSS で、ランタイム CSS-in-JS を持たない**。したがって RSC デフォルト([0040](0040-routing-rendering-strategy.ja.md))と衝突せず、Server Component でもそのまま使える。加えて **Next.js / バンドラーが標準機能として同梱**する(特定ライブラリへの依存が発生しない)ため、「ベンダーを正当化から抜いてもパターンが成立する」= 非ロックインの運用テストを満たす。プラットフォーム標準に乗る([0010](0010-standards-and-non-lockin.ja.md))選択であり、追加ライブラリ・追加ランタイムを伴わない
   - CSS Modules はプラットフォーム標準機能であり **追加依存を導入しない**ため exact-pin 対象は生じない。将来 `cn()` 実装等でライブラリを足す場合のみ [0004](0004-library-management.ja.md)(exact pin + `pnpm audit`)に従う
 - **styled-components / emotion 等のランタイム CSS-in-JS は非採用**とする
   - 非採用理由: これらは **ランタイムでスタイルを生成する CSS-in-JS** であり、Server Component デフォルト([0040](0040-routing-rendering-strategy.ja.md))と衝突する(`"use client"` 強制・ランタイムコスト・SSR ハイドレーション複雑化)。CSS Modules の「ビルド時スコープ化・ランタイム無し」という利点を欠くため、エスケープハッチとしても採らない
 
-### `cn()` ヘルパ
+### `cn()` ヘルパー
 
-- クラス結合ヘルパ **`cn()` を採用**する。置き場は **`components` カーネル内**([0021](0021-frontend-responsibility.ja.md) 命名規律により `utils/` 等の汎用置き場は作らない)
+- クラス結合ヘルパー **`cn()` を採用**する。置き場は **`components` カーネル内**([0021](0021-frontend-responsibility.ja.md) 命名規律により `utils/` 等の汎用置き場は作らない)
 - 実装ライブラリは **`clsx` + `tailwind-merge`** とする([0052](0052-ui-component-policy.ja.md) が shadcn の実 npm 依存として既に名指ししているものと同一)。責務が join / 衝突解決に 1 対 1 対応し、[0004](0004-library-management.ja.md) の一次判定(単一責務 × 単一 upstream)を各々単独で通る。exact pin + `pnpm audit` は [0004](0004-library-management.ja.md) に従う
 - `tailwind-variants` は**採らない**。variant + slots + responsive + merge の束であり責務を 1 語で言えず、下記 `cva` とも責務が衝突する
 
@@ -49,7 +49,7 @@ Accepted
 ### テーマ / ダークモード
 
 - テーマ(ライト / ダーク等)は **CSS 変数の design token(上記)を切り替える**方式をデフォルトとする。色を各所にハードコードせず token 経由で参照することで、テーマ切替が token 差し替えに閉じる
-- ダークモードは **`prefers-color-scheme`(OS 設定追従)をデフォルトの土台**とし、Tailwind v4 の `dark` variant で表現する。ユーザ明示切替(トグル)を足す場合も、切替状態は最小の状態管理に留める(局所は local state、横断的に共有する場合は [0060](0060-state-management.ja.md) が採用した `stores`(Zustand。家は [0023](0023-stores-kernel.ja.md))に置く。Context 濫用は避ける)
+- ダークモードは **`prefers-color-scheme`(OS 設定追従)をデフォルトの土台**とし、Tailwind v4 の `dark` variant で表現する。ユーザー明示切替(トグル)を足す場合も、切替状態は最小の状態管理に留める(局所は local state、横断的に共有する場合は [0060](0060-state-management.ja.md) が採用した `stores`(Zustand。家は [0023](0023-stores-kernel.ja.md))に置く。Context 濫用は避ける)
 - **系統(`data-surface`)の属性は、Portal の出口を含む位置へ置く。** overlay コンポーネント(Dialog / Popover / DropdownMenu / Sheet / Tooltip / ContextMenu)は `document.body` 直下へ出るため、レイアウトシェルの外枠に置いた属性は overlay の中身へ届かない。本文はレイアウトシェルが外枠へ置く属性で server レンダリングの時点から効かせ、overlay の中身は `body` へ橋渡しした属性で hydration 後に効かせる —— overlay は操作で開くものなので、開く時点は常に hydration より後であり、デフォルトの系統でレンダリングされる瞬間が無い。Portal の `container` を系統の内側へ向ける案は採らない(overlay コンポーネントの全てにエンドポイントを足したうえで、呼び出し側が毎回指定することになる)。系統の軸そのものは [0051](0051-styling-system.ja.md)
 - **具体的なカラーパレット・提供するテーマの種類・トグル UI の有無は用途依存**のため、ここでは決めない。本リポジトリは「token 切替 + `prefers-color-scheme` 追従」という仕組みの枠を定める
 

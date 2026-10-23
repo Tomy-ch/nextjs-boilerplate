@@ -4,9 +4,9 @@
 
 # admin
 
-商品・利用者・キャンペーンを管理する側の画面スライスです。
+商品・ユーザー・キャンペーンを管理する側の画面スライスです。
 
-利用者向けのスライスと同じ対象を扱っても、**コンポーネントは共有しません**。買う側は 1 件を眺めて選び、
+ユーザー向けのスライスと同じ対象を扱っても、**コンポーネントは共有しません**。買う側は 1 件を眺めて選び、
 管理側は同じ属性を件どうしで見比べます。見せ方の要求が違うものを 1 つのコンポーネントにまとめると、
 どちらかの都合がもう一方へ漏れます。
 
@@ -58,13 +58,13 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | `GetProductsDiscontinueImpact` | 廃番にする前に出す見積もり | feature |
 | `GetPurchases` | 商品を廃番にできなくしている進行中の購入 | feature |
 | `GetProductCategories` / `GetProductStatuses` | 絞り込みとフォームの候補 | feature |
-| `GetUsers` | 利用者の一覧 | feature |
+| `GetUsers` | ユーザーの一覧 | feature |
 | `GetCampaigns` | キャンペーンの一覧 | feature |
 | `PostProductsImages` | 画像の送信 | app レイヤーの Action |
 | `PostProducts` / `PatchProductsDetail` | 商品の作成・編集 | app レイヤーの Action |
 | `PatchProductsStock` | 在庫の増減 | app レイヤーの Action |
 | `PostProductsDiscontinue` | 商品の廃番と、代替クーポンの発行 | app レイヤーの Action |
-| `DeleteUsersDetail` | 利用者の退会 | app レイヤーの Action |
+| `DeleteUsersDetail` | ユーザーの退会 | app レイヤーの Action |
 | `PostCampaignsSuspend` | キャンペーンの配布の停止 | app レイヤーの Action |
 
 ## 状態とデザイン参照
@@ -96,7 +96,7 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | | 送信時に進行中の購入が見つかった（競合）/ その他の失敗 | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable}` |
 | | 結果の表示 / 既に廃番 | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
 | | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
-| 利用者 | success / empty | `Page/Admin/Users/{Default,Empty}` |
+| ユーザー | success / empty | `Page/Admin/Users/{Default,Empty}` |
 | | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 | | loading | `Features/Admin/Users/Skeleton/Default` |
 | キャンペーン | success（すべての状態、配り切った行）/ empty | `Page/Admin/Campaigns/List/{Default,Empty}` |
@@ -119,15 +119,15 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 
 **商品は 5 つの画面（一覧・作成・編集・在庫補充・廃番）を持つため、画面の軸で割ってあります。**複数の画面が
 共有するものは、どの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
-利用者は画面を 1 つしか持たないため、軸を挟まず `users/` の直下に置きます。
+ユーザーは画面を 1 つしか持たないため、軸を挟まず `users/` の直下に置きます。
 キャンペーンは一覧と作成が別の画面なので、画面の軸で掘ってあります（`campaigns/list/`）。
-利用者の一覧とキャンペーンの一覧はどちらもオフセットでページを送り、どちらも行の操作を送る前に確認を挟むため、
+ユーザーの一覧とキャンペーンの一覧はどちらもオフセットでページを送り、どちらも行の操作を送る前に確認を挟むため、
 両者が共有するもの —— ページ番号の選び方、ページ送りそのもの、確認の開閉の方針 —— はどちらの画面の下でもなく
 feature の直下に置きます。
 
 | ファイル | 役割 |
 | --- | --- |
-| `paths.ts` | 管理画面のパス。画面どうしの導線と、利用者向けのレイアウトシェルからのエントリポイントが引く |
+| `paths.ts` | 管理画面のパス。画面どうしの導線と、ユーザー向けのレイアウトシェルからのエントリポイントが引く |
 | `analytics/period.ts` | 集計の URL 契約（期間の区分と両端の日付）とキーの呼び名。指定が成立しているかの判断も持つ |
 | `analytics/read-period.ts` | URL を読む側。組む側と分けてある（[`rules.md`](../../../docs/rules.ja.md#url)） |
 | `analytics/period-window.ts` | 選ばれた期間が対象にしている暦日。契約が返さないので同じ規則を辿る |
@@ -152,7 +152,7 @@ feature の直下に置きます。
 | `products/form-state.ts` | 商品のフォームの結果の型と、送信先の型。バージョンの食い違いの文言もここが持つ |
 | `products/parse-product-form.ts` | 送られてきた内容の読み取り。入力欄の名前もここだけが持つ |
 | `products/form-sections.ts` | フォームが持つ段とその並び。確認は作る画面にしかないので含めない |
-| `products/master-option.ts` | マスタをフォームで選べる候補へ直す。送る値は識別子 |
+| `products/master-option.ts` | マスターをフォームで選べる候補へ直す。送る値は識別子 |
 | `products/use-product-values.ts` | 入力の値・触れた印・段ごとの妥当性 |
 | `products/use-product-images.ts` | 選んだ画像の一覧と、送信・並び替え |
 | `products/use-image-rejection.ts` | 送る前に弾かれたファイルの文言 |
@@ -168,9 +168,9 @@ feature の直下に置きます。
 | `products/list/query.ts` | 一覧の URL 契約（絞り込みとページ送りの位置）とキーの呼び名、廃番の選択肢の呼び名。通ってきた道もここが持つ |
 | `products/list/read-location.ts` | 一覧の URL を条件へ読み戻す。読むのは画面を組み立てる地点だけで、組むのは client のコンポーネントなので、組む側と分けてある |
 | `products/list/page-size.ts` | 1 ページに並べる件数 |
-| `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスタからのコピー |
+| `products/list/filter-option.ts` | 絞り込みで選べる候補の形と、マスターからのコピー |
 | `products/list/active-filters.ts` | いま効いている条件を、解除先付きの一覧へ写す |
-| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスタを突き合わせて状態の見た目を決め、廃番はラベルより先に出す。廃番かどうかを持ち、廃番にする操作を当てはまる行にだけ出す |
+| `products/list/row.ts` | 表に並べる 1 行の形。商品とマスターを突き合わせて状態の見た目を決め、廃番はラベルより先に出す。廃番かどうかを持ち、廃番にする操作を当てはまる行にだけ出す |
 | `products/list/status-tone.ts` | 状態のコードと見た目の対応。契約が返さない意味づけをこの画面が持つ |
 | `products/list/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
 | `products/list/results.tsx` | 1 ページ分の取得と、表・ページ送りの組み立て |
@@ -217,7 +217,7 @@ feature の直下に置きます。
 | `page-window.ts` | オフセットのページ送りに並べる番号の選び方。離れた範囲を省略のマーカーへ畳む |
 | `use-confirmation-target.ts` | どの行を確認しているかと、結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決める |
 | `ui/offset-pagination/` | 任意のページへ飛べるページ送り。行き先の組み方とアクセシブルな名前は一覧が渡す |
-| `users/query.ts` | 利用者一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
+| `users/query.ts` | ユーザー一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
 | `users/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
 | `users/page-size.ts` | 1 ページに並べる件数 |
 | `users/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
@@ -226,7 +226,7 @@ feature の直下に置きます。
 | `users/results.tsx` | 1 ページ分の取得と、一覧・ページ送りの組み立て |
 | `users/view.tsx` | 絞り込み。一覧本体は受け取る |
 | `users/ui/withdrawable-list/` | 行・確認・結果を繋ぐ層。どれが同じ相手の話かをここだけが知る |
-| `users/ui/table/` | 利用者の表。退会済みの行には操作を出さない |
+| `users/ui/table/` | ユーザーの表。退会済みの行には操作を出さない |
 | `users/ui/scope-select/` | 対象の範囲の選び直し。選んだ時点で移る |
 | `users/ui/withdraw-dialog/` | 退会の確認。不可逆であることと、後始末が同時に終わらないことを書く |
 | `users/ui/withdraw-feedback/` | 退会の結果。確認が閉じても残る場所 |
@@ -263,16 +263,16 @@ feature の直下に置きます。
 
 | カーネル | 用途 |
 | --- | --- |
-| `adapters` | 集計・商品・購入・利用者・キャンペーンの取得と、画像 URL の解決。ブラウザの入力欄が読む契約の上限は `adapters/client` から取る |
+| `adapters` | 集計・商品・購入・ユーザー・キャンペーンの取得と、画像 URL の解決。ブラウザーの入力欄が読む契約の上限は `adapters/client` から取る |
 | `model` | 表示モデル（`Product` / `Purchase` / `Dashboard` / `Campaign`）、ページ送り、期間、数と日時の整形、クーポンの値引きと対象の文言、`ActionState`、冪等キー |
 | `components` | 面を組む器（表・ページ送り・ファイル送信・離脱の警告・入力の要約） |
 | `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
 | `logging` | 境界へ投げずにその場で受ける部分的な取得の失敗を記録する |
 | `observability` | レンダリングを span に載せる |
 
-**他 feature の `facade/` からコンポーネントを引きません。**利用者向けの slice と同じ対象を扱ってもコンポーネントを共有しない、
+**他 feature の `facade/` からコンポーネントを引きません。**ユーザー向けの slice と同じ対象を扱ってもコンポーネントを共有しない、
 という冒頭の線引きがそのまま依存にも出ています。引くのはルートの識別子だけで、商品 1 件を眺める
-利用者向けの画面は `products` の `facade/detail-url/` から取ります（`paths.ts` の `productDetailPath`）。
+ユーザー向けの画面は `products` の `facade/detail-url/` から取ります（`paths.ts` の `productDetailPath`）。
 
 ## Action 戻り値契約
 
@@ -322,7 +322,7 @@ feature の直下に置きます。
 2. **確定認可** — `src/app/admin/layout.tsx` が `verifySession()` を通し、役割を確かめる
 
 どの経路に何の役割が要るかは [`src/model/authz.ts`](../../model/authz.ts) が持ちます。確定認可も、
-利用者向けのレイアウトシェルが admin へのエントリポイントを出すかどうかも、同じ `isAdmin()` を引きます。判定が別々に書かれて
+ユーザー向けのレイアウトシェルが admin へのエントリポイントを出すかどうかも、同じ `isAdmin()` を引きます。判定が別々に書かれて
 いると「入れないのにエントリポイントが出ている」状態を作れてしまいます。
 
 **役割を持たない人には導線を出しません。** 押せる場所を作らないことが出し分けであり、押した先で
@@ -348,11 +348,11 @@ header も失われた素の画面になります。
 商品は非公開なので、公開済みだけの母集団に `discontinued=true` を掛けると常に空になります。
 
 商品の「状態」は在庫・販売の状態（在庫あり・在庫切れ・廃盤など）で、**公開の可否とは別の軸**です。
-公開の可否は `publishedAt` が持ち、状態マスタでの絞り込みが効くかどうかとは関係しません。
+公開の可否は `publishedAt` が持ち、状態マスターでの絞り込みが効くかどうかとは関係しません。
 
-**廃番はマスタのラベルではなく、`discontinuedAt` が持つ事実です。** 廃番にする操作はマスタの状態を
+**廃番はマスターのラベルではなく、`discontinuedAt` が持つ事実です。** 廃番にする操作はマスターの状態を
 書き換えないため、廃番の商品は `在庫あり` のようなラベルを保ったまま届きます。一覧の状態の欄は
-ラベルより廃番を先に出します（`products/list/row.ts`）。マスタの `廃盤` は admin が手で付けられる
+ラベルより廃番を先に出します（`products/list/row.ts`）。マスターの `廃盤` は admin が手で付けられる
 表示上のラベルで、別物です。
 
 **在庫僅少の一覧（`GetProductsLowStock`）は契約にありますが、この slice は使っていません。**入口の
@@ -361,7 +361,7 @@ header も失われた素の画面になります。
 ## 関連する ADR
 
 **`shipments/` と `inquiries/` は自分の README に自分の分を持ちます。** ここに挙げるのは
-この slice 全体（分析・商品・利用者と、それらが共有するコンポーネント）が依存しているものです。
+この slice 全体（分析・商品・ユーザーと、それらが共有するコンポーネント）が依存しているものです。
 
 - [0021](../../../docs/adr/0021-frontend-responsibility.ja.md) — レイヤーの責務と import 境界。カーネルへ上げてよいものの線
 - [0023](../../../docs/adr/0023-stores-kernel.ja.md) — client 状態カーネルの受入基準。1 画面の状態を上げない線

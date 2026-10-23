@@ -6,12 +6,12 @@
 
 このスキルは `/manage-skill` から起動される。引数文字列は `$ARGUMENTS`。
 
-**この**リポジトリの `.claude/skills/` 配下のスキルを作成・保守する。構造としては薄いラッパで、*方法論*（draft → test → review → improve → 必要なら description の最適化）は Anthropic 公式の `skill-creator` スキルが持ち、本ファイルはその上に本リポジトリ固有の規約を重ねて、生成されたスキルが `commit` / `new-env` / `canonicalize-doc` 等の既存スキルと並んで違和感なく収まるようにする。
+**この**リポジトリの `.claude/skills/` 配下のスキルを作成・保守する。構造としては薄いラッパーで、*方法論*（draft → test → review → improve → 必要なら description の最適化）は Anthropic 公式の `skill-creator` スキルが持ち、本ファイルはその上に本リポジトリ固有の規約を重ねて、生成されたスキルが `commit` / `new-env` / `canonicalize-doc` 等の既存スキルと並んで違和感なく収まるようにする。
 
 ## When to Use（使うべき状況）
 
 - 新規スキル / `/<name>` コマンドを作る。あるいは現在の会話で繰り返している作業をスキル化する。
-- `.claude/skills/` 配下の既存スキルを更新・修正・改善・リファクタ・リネーム・拡張する。**`SKILL.md` / `SKILL.ja.md` を手で編集する前に**、この入口を通す。
+- `.claude/skills/` 配下の既存スキルを更新・修正・改善・リファクター・リネーム・拡張する。**`SKILL.md` / `SKILL.ja.md` を手で編集する前に**、この入口を通す。
 - スキルの `description` を発火精度のために最適化する。あるいはスキルの eval を回す。
 - 壊れた対訳ペアを修復する（`SKILL.ja.md` が欠けている / 古い）。
 
@@ -24,13 +24,13 @@
 
 ## AI Modification Scope
 
-`AGENTS.md` は `.claude/**` を「そのエージェント自身であっても勝手に触ってはならないエージェント設定パス」として扱う。**このスキルの起動自体が、その制限を解除する明示的なユーザ指示にあたる** — ただし対象は `.claude/skills/**`、`.claude/agents/**`（それを配線するスキルと同時のときのみ）、および `scripts/**`（このスキルが所有するスクリプトに限る）に限られ、解除はこの実行の間だけ。
+`AGENTS.md` は `.claude/**` を「そのエージェント自身であっても勝手に触ってはならないエージェント設定パス」として扱う。**このスキルの起動自体が、その制限を解除する明示的なユーザー指示にあたる** — ただし対象は `.claude/skills/**`、`.claude/agents/**`（それを配線するスキルと同時のときのみ）、および `scripts/**`（このスキルが所有するスクリプトに限る）に限られ、解除はこの実行の間だけ。
 
 このスキルの実行中も保護されたままのもの:
 
 - `AGENTS.md`
 - `LICENSE`
-- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) / [0155](../../../docs/adr/0155-claude-skills-development.ja.md) のカバー範囲テーブルへ行を追加する。その編集にユーザの明示的承認が要るかは、他の ADR 編集と同様に `AGENTS.md` の *Protected Documentation* が決める — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
+- Accepted な ADR 本文。Step 5 は ADR [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) / [0155](../../../docs/adr/0155-claude-skills-development.ja.md) のカバー範囲テーブルへ行を追加する。その編集にユーザーの明示的承認が要るかは、他の ADR 編集と同様に `AGENTS.md` の *Protected Documentation* が決める — ADR 自身の「リスト追加は軽微編集」という記述だけでは `AGENTS.md` を上書きできない。
 - `.claude/settings.json` — プラグイン bootstrap が `claude` CLI 経由で書き込む（Step 0）。ここで手編集してはならない。
 - `.claude/settings.json` の `permissions.deny` に載っているパス。
 
@@ -42,7 +42,7 @@
 pnpm exec tsx scripts/bootstrap-plugins
 ```
 
-この bootstrap は `claude-plugins-official` marketplace を宣言し、本リポジトリが依存する公式プラグイン（`skill-creator` と `feature-dev`。各プラグインのどの資産を使い、どれを意図して使わないかは ADR 0155 が持つ）を **project スコープ**で有効化する。宣言が本リポジトリの `.claude/settings.json` に載るため、信頼済みの clone であれば開発者ごとのセットアップ無しに同じ資産が揃う。冪等であり、再実行は no-op。新たに有効化したプラグインが読み込まれるのは*次の*セッションからで、そのとき `skill-creator` は `/skill-creator` としても起動できるようになる。ただしこのラッパはそれに依存しない — パス指定でファイルを読むため、同一セッション内でも動く。
+この bootstrap は `claude-plugins-official` marketplace を宣言し、本リポジトリが依存する公式プラグイン（`skill-creator` と `feature-dev`。各プラグインのどの資産を使い、どれを意図して使わないかは ADR 0155 が持つ）を **project スコープ**で有効化する。宣言が本リポジトリの `.claude/settings.json` に載るため、信頼済みの clone であれば開発者ごとのセットアップ無しに同じ資産が揃う。冪等であり、再実行は no-op。新たに有効化したプラグインが読み込まれるのは*次の*セッションからで、そのとき `skill-creator` は `/skill-creator` としても起動できるようになる。ただしこのラッパーはそれに依存しない — パス指定でファイルを読むため、同一セッション内でも動く。
 
 実際に宣言が行われる回では、`claude` CLI は `.claude/settings.json` へ追記するのではなく**ファイル全体を書き直す** — `permissions` 内のキー順序が動きうる。追加される 2 キー以上の差分ノイズが出ることを見込み、内容を確認したうえで変更の一部としてコミットする。
 
@@ -54,7 +54,7 @@ ls ~/.claude/plugins/marketplaces/*/plugins/skill-creator/skills/skill-creator/S
 
 **Creating a skill** / **Running and evaluating test cases** / **Improving the skill** / **Description Optimization** / blind comparison / packaging について書かれていることは、すべてそのまま適用する。同梱リソース（`scripts/` = benchmark 集計・description 最適化ループ・パッケージング、eval viewer、専用エージェント、スキーマ参照）は隣に置かれており、そのまま使う。実行は公式スキルのディレクトリから行い、自前で再実装しない。
 
-bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在）は、中断せずユーザへ失敗を報告し、インラインに要約した方法論（draft → test → review → improve）で進めてよいかを確認する。
+bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在）は、中断せずユーザーへ失敗を報告し、インラインに要約した方法論（draft → test → review → improve）で進めてよいかを確認する。
 
 ## Step 1. 操作内容を確認する
 
@@ -64,7 +64,9 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 2. **どのスキルか** — 更新・最適化・修復の場合、対象の `.claude/skills/<slug>/`。
 3. **どちらの系統か** — 新規の場合、運用系（ADR 0154）か開発系（ADR 0155）か。
 
-`$ARGUMENTS` の slug や操作を黙って採用しない。推奨選択肢として提示し、ユーザに確定させる。
+`$ARGUMENTS` の slug や操作を黙って採用しない。推奨選択肢として提示し、ユーザーに確定させる。
+
+**呼び出し元のスキルが答えを渡すとき**も、このステップは**やはり問う**。本スキルはエージェント設定を書き込み、`AGENTS.md`（*Exception: Skill Execution*）はスキル自身の確認手順を有効なまま残す。したがって [0154](../../../docs/adr/0154-claude-skills-operations.ja.md) の下で、この 3 問のどれも事前回答できない。呼び出し元のスキルが渡す操作・スキル・系統は —— 承認済みの計画が名指ししたものであっても —— 推奨選択肢として提示し、ここでユーザーが確定させる。
 
 ### 新規スキルの所属を決める
 
@@ -75,7 +77,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 
 各系統の現在の構成員は、その ADR のカバー範囲テーブルが持つ。ここに一覧を置かず、今回の実行で読む。
 
-提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザへ委ねる**（[`docs/rules.md#workflow`](../../../docs/rules.ja.md#workflow)）。スキルを、規約が暗黙に決まる場所にしてはならない。
+提案されたスキルが、Accepted な ADR がまだ決めていない領域に新しい規約・パターン・ライブラリを持ち込むことになる場合は、**そこで止めて ADR の判断をユーザーへ委ねる**（[`docs/rules.md#workflow`](../../../docs/rules.ja.md#workflow)）。スキルを、規約が暗黙に決まる場所にしてはならない。
 
 近い役割の重複を作るくらいなら、既存スキルの拡張を優先する。粒度は「1 起動 = 1 オペレーション」（ADR 0154）。
 
@@ -98,7 +100,7 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 | `argument-hint` | 任意 | 引数を取る `/command` の引数形式 |
 | `allowed-tools` | 任意 | 使用ツールの明示的な許可リスト |
 
-`description` は公式の "pushy" なトリガ記述指針に従う — 何をするか、日本語のトリガ表現を含む具体的な利用文脈、そして**発火すべきでない**条件の明示。密度とトーンは `commit` / `new-env` の description を読んで揃える。
+`description` は公式の "pushy" なトリガー記述指針に従う — 何をするか、日本語のトリガー表現を含む具体的な利用文脈、そして**発火すべきでない**条件の明示。密度とトーンは `commit` / `new-env` の description を読んで揃える。
 
 ### 本文構造（ADR 0154）
 
@@ -114,9 +116,9 @@ bootstrap が失敗した場合（ネットワーク不通 / `claude` CLI 不在
 - `SKILL.md` は **英語 canonical**。canonical 本文を日本語で書かない。
 - 一方、スキルの*実行時の挙動*は日本語出力規約に従う — スキルが出力するもの（応答 / コミット・PR 文面 / コードコメント）は**日本語**。スキルが書く文書は**英語の canonical** で、その兄弟の `.ja.md` ミラーは同じ変更で `canonicalize-doc` により同期する（ADR [0140](../../../docs/adr/0140-documentation-operations.ja.md) の canonical 言語モデル）。文書を読むスキルは `*.ja.md` を除く。この 2 つの要件をスキル自身の手順へ書き込むこと。
 
-### 外向き操作の前のユーザ確認（ADR 0154）
+### 外向き操作の前のユーザー確認（ADR 0154）
 
-push / tag / release / PR 編集 / `mise.toml` の書き換え、その他の破壊的操作を行うスキルは、実行前に必ずユーザ確認を挟む。`AskUserQuestion`、または PR への push については `AGENTS.md` が定める確認文言をそのまま用いる。これらを無人で実行させてはならない。
+push / tag / release / PR 編集 / `mise.toml` の書き換え、その他の破壊的操作を行うスキルは、実行前に必ずユーザー確認を挟む。`AskUserQuestion`、または PR への push については `AGENTS.md` が定める確認文言をそのまま用いる。これらを無人で実行させてはならない。
 
 ### subagent（ADR 0155）
 
@@ -143,7 +145,7 @@ subagent を持ち出すのは、ADR が認める理由があるときだけ —
 
 ### 既存スキルの更新
 
-- ユーザが明示的にリネームを求めた場合を除き、既存の `name` とディレクトリはそのまま維持する。リネームする場合はディレクトリ移動と、そのスキルへの全参照の更新を伴う。
+- ユーザーが明示的にリネームを求めた場合を除き、既存の `name` とディレクトリはそのまま維持する。リネームする場合はディレクトリ移動と、そのスキルへの全参照の更新を伴う。
 - *インストール済み*のプラグインスキルと違い、リポジトリのスキルはその場で書き換えられる — `.claude/skills/<slug>/` 配下を**直接編集**する。read-only なので `tmp` へコピーする、といった手順は不要。
 - eval のベースラインとして、公式の指針どおり編集前のスキルを `tmp/` 配下へスナップショットし、前後比較できるようにする。
 - 変更によって他所の記述が無効にならないか確認する — ADR のカバー範囲テーブル、このスキルへ chain している他スキル、`tool-map` の依存マップ。

@@ -51,7 +51,7 @@
 
 以下は Testing Library が定める guiding principles であり、このリポジトリの好みではない。指摘するときは原則名で呼ぶ。
 
-- **query の優先順位を守る。**`getByRole`（`name` つき）が最優先、次に `getByLabelText` / `getByPlaceholderText` / `getByText`、`getByTestId` や `data-*` は**利用者から辿れる手がかりが無いときの最後の手段**。role と accessible name があるのに `data-slot` や class 名で引くのは、利用者が到達できるものではなく実装を検証している。
+- **query の優先順位を守る。**`getByRole`（`name` つき）が最優先、次に `getByLabelText` / `getByPlaceholderText` / `getByText`、`getByTestId` や `data-*` は**ユーザーから辿れる手がかりが無いときの最後の手段**。role と accessible name があるのに `data-slot` や class 名で引くのは、ユーザーが到達できるものではなく実装を検証している。
 - **`fireEvent` より `user-event`。**`user-event` は実際の入力列（focus / keydown / pointer 系）を再現する。`fireEvent.click` は合成 `click` を 1 つ投げるだけなので、**pointer を伴う経路を素通りする**。
   **例外は、実物が打鍵ごとではなく確定値をまとめて返す入力欄の代役**（リッチテキストの編集面など）。
   代役へ 1 文字ずつ送ると、実物と違う呼ばれ方を検証することになる。`fireEvent.change` で確定値を 1 回渡す。
@@ -61,16 +61,16 @@
   絞った query からは辿れない。開いた面は `screen.findByRole("dialog")` で受け、trigger と同じ名前を持つ
   実行操作は `within(dialog)` で内側へ絞る（確認の trigger と実行は、ふつう同じ名前を持つ）。story の
   play 関数で `within(canvasElement)` から始めるときも同じで、開いた面は `within(document.body)` から引く。
-- **「利用者が見ている場所へ出す」は `toBeVisible` では留まらない。** jsdom は重なりを持たないので、
+- **「ユーザーが見ている場所へ出す」は `toBeVisible` では留まらない。** jsdom は重なりを持たないので、
   overlay の背後にある要素にも `toBeVisible` は通る。`screen` から引くと、面の外に出てしまった文言も
   見つかってしまい、**約束が破れているのにテストは緑になる**。場所そのものが約束なら、その場所を
-  定めるコンテナで query を絞る —— 面の中に出す約束なら `within(dialog)` から引き、外へ出た瞬間に
+  定めるコンテナーで query を絞る —— 面の中に出す約束なら `within(dialog)` から引き、外へ出た瞬間に
   query が落ちるようにする。
 - **レンダリングのあいだだけ真になる値は、落ち着いた後に読まない。**落ち着いた値はどの経路でも偽なので、何も判らない。
   レンダリングごとの値を配列へ記録する probe component で包み、記録の列を見る。
 - **sleep ではなく待つ。**`await waitFor(...)` / `await screen.findBy...` を使う。固定の遅延は構造的に flaky になる。時間そのものが主題なら `vi.useFakeTimers` + `vi.advanceTimersByTime`。
 - **意味を持つ matcher を使う。**`toBeVisible` / `toBeDisabled` / `toHaveAccessibleName` は何を主張しているかを述べる。queried element への `toBeTruthy()` はほとんど何も主張していない。
-- **利用者が観測するものをアサートする。**hook の内部や private な呼び出し順ではなく、レンダリング結果で分岐が区別できるならそちらを見る。store の値を直接読んで済ませない。
+- **ユーザーが観測するものをアサートする。**hook の内部や private な呼び出し順ではなく、レンダリング結果で分岐が区別できるならそちらを見る。store の値を直接読んで済ませない。
 
 ## 見た目の主張をどこで見るか
 
@@ -99,7 +99,7 @@
 - **`vi.resetModules()` はモックを戻さない。** 読み直した module が受け取るのは、`vi.mock` のファクトリが前に返したのと同じモックで、呼び出しの記録も途中で与えた実装も残っている。module を読み直すテストは `beforeEach` で `vi.resetAllMocks()` も呼ぶ —— `vi.fn(impl)` は reset で `impl` へ戻るので、本物を包んだ spy は包んだまま残る。
 - 畳む手段を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末のフックを足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
 
-## jsdom に無いブラウザ API の扱い
+## jsdom に無いブラウザー API の扱い
 
 jsdom は仕様の一部を実装しない。**個別のテストで発火方法を変えて回避しない** —— それは検証したかった経路を通らないテストを生む。
 
@@ -167,7 +167,7 @@ describe("...", () => {
 ## mock の境界
 
 - **HTTP は MSW で止める。**`fetch` の手書きスタブや adapter のモジュール mock で代替しない（ADR 0090 が integration の対象を HTTP 境界に限っているため、境界の位置がテストごとに動くと何を検証しているかが決まらない）。
-- **mock は契約駆動のハンドラを使う。**テスト専用のスタブを別に持つと、契約が変わってもテストだけが古い形のまま通り続ける。
+- **mock は契約駆動のハンドラーを使う。**テスト専用のスタブを別に持つと、契約が変わってもテストだけが古い形のまま通り続ける。
 - **MSW を立てるのは `vitest.setup.msw.ts` を import したファイルだけ。**interception は 1 ファイルあたり約 480ms 掛かるので、HTTP 境界を持つファイルにだけ載せる。読み込まないファイルは、外へ出ようとした時点で `fetch` が宛先を名指しして落ちる（応答は作らない）。
 - **乱数で作る生成物を検査するときは、seed を固定して複数回まわす。**契約から生成したモックの nullable な
   項目は値と `null` のどちらかを引くので、1 回では選ばれなかった側が検査されない。

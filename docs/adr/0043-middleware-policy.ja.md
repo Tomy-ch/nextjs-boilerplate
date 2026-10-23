@@ -14,7 +14,7 @@ Accepted
 
 本リポジトリは **Next.js 16** を採用しており、**Middleware は Next.js 16 で「Proxy」にリネーム**された(ファイル規約 = `proxy.ts`。`middleware.ts` は deprecated。移行 codemod `middleware-to-proxy` あり)。実装前に `node_modules/next/dist/docs/` を確認した結果、以下を前提とする(AGENTS.md「Canonical Documentation」):
 
-- `proxy.ts` はリクエスト完了前にサーバで走り、rewrite / redirect / ヘッダ・cookie 変更 / 直接応答ができる
+- `proxy.ts` はリクエスト完了前にサーバーで走り、rewrite / redirect / ヘッダー・cookie 変更 / 直接応答ができる
 - **Next.js 公式は「Proxy は last resort。他に手段がなければ使う」**と明示。**セッション管理・完全な認可には使わず**、`optimistic checks`(権限ベースのリダイレクト等)に限る
 - **遅いデータ取得に使わない**(`fetch` の cache オプションは Proxy 内で無効)。最適化時は CDN に配置されるため、共有モジュール・グローバルに依存しない
 - **デフォルト runtime は Node.js**(proxy.md「Runtime」セクション)。`runtime` セグメント設定オプションは Proxy ファイルでは**使用不可**(設定するとエラー)。つまり runtime をコード側で選択する枠はなく、実際の実行環境はデプロイ先(adapter)に依存する(旧 Middleware の「Edge デフォルト」は Proxy には当てはまらない)
@@ -24,7 +24,7 @@ Accepted
 
 ### 1. `proxy.ts` = 薄い境界(thin・last resort)
 
-- **`proxy.ts` は薄い境界に限る**。用途は rewrite / redirect / ヘッダ・cookie 操作 / optimistic な権限リダイレクト。**業務ロジック・重い処理・データ取得を書かない**([0011](0011-no-docker.ja.md) thin proxy / [0070](0070-backend-role-separation.ja.md) と一貫。Next.js 公式の「last resort」ガイダンスとも一致)
+- **`proxy.ts` は薄い境界に限る**。用途は rewrite / redirect / ヘッダー・cookie 操作 / optimistic な権限リダイレクト。**業務ロジック・重い処理・データ取得を書かない**([0011](0011-no-docker.ja.md) thin proxy / [0070](0070-backend-role-separation.ja.md) と一貫。Next.js 公式の「last resort」ガイダンスとも一致)
 - **まず `proxy.ts` 以外で解けないか**を検討する(単純リダイレクトは `next.config.ts` の `redirects`、認可は各境界での検査)。Proxy は代替がない場合の最終手段
 - ファイルは **`src/proxy.ts`**(`src/app/` と同階層)。これは 11 カーネルの**外側**の起動 / 境界エントリであり(`instrumentation.ts` と同類として [0021](0021-frontend-responsibility.ja.md) の起動 / ビルド境界の例外に準ずる)、`app`(route / page)ではない
 
@@ -51,7 +51,7 @@ Accepted
 ### 5. 配信の停止は `proxy.ts` の前捌きで行い、停止画面の応答は 200 とする
 
 - 配信を止めているあいだ、読み取り(GET / HEAD)は停止画面へ **rewrite で差し替え**、それ以外のリクエストは proxy 自身が **503** で断る。URL は動かさない —— 復帰後に同じ URL を開けば元の画面へ戻る。停止の判定は認可より先に置く。止めるのは全ルートに対する 1 つの判断であり、経路によって見え方が変わってはならない
-- **停止画面をレンダリングする応答は 200 である。** rewrite に載せた status は読まれない。これは「503 が要らない」という判断ではなく、**プレゼンテーションレイヤーで 503 を返す手段が無い**ということである。proxy が本体ごと HTML を組み立てれば 503 を返せるが、その画面はデザインシステムに乗らない —— 状態のために画面を捨てない。止めていることを機械へ伝えたいデプロイでは、**配信面(CDN / ロードバランサ)が前に立つ**([0011](0011-no-docker.ja.md) の役割分担)。そこで止めれば Next.js まで届かないため、この機構と競合しない
+- **停止画面をレンダリングする応答は 200 である。** rewrite に載せた status は読まれない。これは「503 が要らない」という判断ではなく、**プレゼンテーションレイヤーで 503 を返す手段が無い**ということである。proxy が本体ごと HTML を組み立てれば 503 を返せるが、その画面はデザインシステムに乗らない —— 状態のために画面を捨てない。止めていることを機械へ伝えたいデプロイでは、**配信面(CDN / ロードバランサー)が前に立つ**([0011](0011-no-docker.ja.md) の役割分担)。そこで止めれば Next.js まで届かないため、この機構と競合しない
 - **`Retry-After` は付けない**(返せる場合でも)。終了の予定を供給するエンドポイントが無く、根拠の無い値を載せることになる
 
 ## 禁止事項
@@ -72,5 +72,5 @@ Accepted
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.ja.md) — App Router / driving adapter 原則
 - [0030-environment-variable-management.md](0030-environment-variable-management.ja.md) — proxy から辿れる config の範囲(`environment.ts` → `application-environment.ts`。本 ADR との交点)
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — 起動 / 境界エントリ(11 カーネル外)としての `proxy.ts`
-- [0011-no-docker.md](0011-no-docker.ja.md) — 配信面(CDN / ロードバランサ)との役割分担(停止を機械へ伝える側)
+- [0011-no-docker.md](0011-no-docker.ja.md) — 配信面(CDN / ロードバランサー)との役割分担(停止を機械へ伝える側)
 - [0121-i18n-strategy.md](0121-i18n-strategy.ja.md) — ロケール検出の seam(採用時、Proxy を使う場合)

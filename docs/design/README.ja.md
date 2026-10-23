@@ -29,7 +29,7 @@
 | [forms.md](forms.ja.md) | 入力と送信 | 入力欄から Server Action、結果の見せ方まで。3 つの hook が見ているツリーと、値を誰が持つか |
 | [data-fetching.md](data-fetching.ja.md) | 取得と契約 | 契約から生成物、生成物から表示の型まで。fetch wrapper・エラーの正規化・分類の関門 |
 | [auth.md](auth.ja.md) | 認証の前側 | 中継するが検証しない責務線、session の持ち方、保護の掛かる場所、開発用のエンドポイント |
-| [security.md](security.ja.md) | 防御 | 配信ヘッダと CSP、データの分類、`NEXT_PUBLIC_` の境界、エントリポイントが持つもの |
+| [security.md](security.ja.md) | 防御 | 配信ヘッダーと CSP、データの分類、`NEXT_PUBLIC_` の境界、エントリポイントが持つもの |
 | [observability.md](observability.ja.md) | 観測 | 2 つのカーネルの分担、1 本の trace の繋がり方、中継のエンドポイント、レンダリングの計装 |
 | [realtime-delivery.md](realtime-delivery.ja.md) | 購読と配信 | **まだ実体の無い** 購読 seam を実体化するときの形。発券から整列・再接続まで、どのレイヤーが何を持つか |
 | [vrt.md](vrt.ja.md) | 見た目の固定 | ベースライン画像が何を守り、何を守らないか。揺らぎの止め方 |

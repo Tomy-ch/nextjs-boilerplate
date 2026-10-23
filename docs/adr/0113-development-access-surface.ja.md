@@ -35,7 +35,7 @@ Accepted
 **危険は制御面ではなく、エンドポイントを開ける環境で閉じる。** 判定の中身は 2 つで、環境(`APP_ENV` が明示され、開発専用のエンドポイントを開けてよい環境であること)と宛先(リクエストが名乗る `Host` / `X-Forwarded-Host` が手元の名前であること)である。環境の定義は [0011](0011-no-docker.ja.md)、選択子をデフォルト値へ落とさないことは [0030](0030-environment-variable-management.ja.md) が持つ。
 
 - **開けてよい環境の一覧は 1 か所に置く**(`config` の `isDevelopmentOnlyEndpointOpen()`)。エンドポイントが増えるたびに条件をコピーすると、片方だけを広げた変更が黙って通る
-- **宛先の判定は防御線ではない。** `Host` はリクエスト側が名乗る値で偽れる。宛先が止めるのは、設定を誤ったまま公開したときに普通の利用者が普通に踏む経路であり、狙って偽る相手を止めるのは環境の側である。2 つを重ねるのは、役割が違うからであって、片方が弱いからではない
+- **宛先の判定は防御線ではない。** `Host` はリクエスト側が名乗る値で偽れる。宛先が止めるのは、設定を誤ったまま公開したときに普通のユーザーが普通に踏む経路であり、狙って偽る相手を止めるのは環境の側である。2 つを重ねるのは、役割が違うからであって、片方が弱いからではない
 - **宛先を名乗らないリクエストは閉じる。** 判定できないものを開ける側へ倒すと、条件の無いリクエストが最も通りやすくなる
 
 **却下した案: エンドポイントごとに開閉の条件を持つ。** 「このエンドポイントは `local` だけ」「あのエンドポイントは接続モードが mock のとき」のようにエンドポイントごとに条件を書くと、条件の数だけ緩い判断が入る余地が生まれる。接続モードで判定しないことは [0011](0011-no-docker.ja.md) / [0030](0030-environment-variable-management.ja.md) が既に禁じている。
@@ -86,4 +86,4 @@ Server Action は HTTP のエンドポイントを持たないため 404 にで�
 - [0110-security-operations.md](0110-security-operations.ja.md) / [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) — 隣接する運用と実行時の防御。本 ADR は開発用のエンドポイントという 1 点を担う
 - [0090-testing-strategy.md](0090-testing-strategy.ja.md) — このエンドポイントを通って到達する状態を検証する側
 - [0056-mock-app-exclusion.md](0056-mock-app-exclusion.ja.md) — 開発専用のエンドポイントが開く build を公開しないこと
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) — 手元の観測に実ブラウザの権限を要さず、このエンドポイントで足りること
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) — 手元の観測に実ブラウザーの権限を要さず、このエンドポイントで足りること

@@ -5,8 +5,7 @@
 // 散文を残すと、撤去したはずの製品が文書の中だけ生き残る。落とす塊・語句・節は完全一致で宣言し、
 // 一致しなければ撤去そのものを止める（[scanner-removal.ts](scanner-removal.ts)）。**宣言が現物と
 // 一致することは [manifest のテスト](scanner-manifest.test.ts)が毎回見る**ので、ずれは行を動かした
-// PR の CI で落ち、複製した側のセットアップまで持ち越さない
-// （[README](../../README.md)）。
+// PR の CI で落ち、複製した側のセットアップまで持ち越さない。
 //
 // 宣言し切れない言及は `docMentions` が**報告だけ**する。撤去後も真であり続ける記述（他の検査が
 // 使い続ける pin への言及など）がここに残る。
@@ -46,8 +45,8 @@ export type ScannerDomain = {
   presenceMarker: string;
   /** 消すファイルとディレクトリ。 */
   paths: readonly string[];
-  /** `.github/egress.yaml` の workflows / audit のキー。 */
-  egressJobs: readonly string[];
+  /** `.github/egress.yaml` の workflows / audit / sudo のキー。 */
+  egressWorkflows: readonly string[];
   /** 撤去後に参照が 0 件になったときだけ消す pin。`owner/repo` で書く。 */
   pinActions: readonly string[];
   /** 文書から落とす塊。完全一致で探す。 */
@@ -86,7 +85,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: SonarQube Cloud の検査を撤去する",
     presenceMarker: ".github/workflows/sonarcloud.yaml",
     paths: [".github/workflows/sonarcloud.yaml", "sonar-project.properties", "scripts/sonarcloud"],
-    egressJobs: ["sonarcloud"],
+    egressWorkflows: ["sonarcloud"],
     pinActions: ["SonarSource/sonarqube-scan-action"],
     docBlocks: [
       {
@@ -108,6 +107,16 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
         file: ".github/workflows/README.ja.md",
         block:
           "| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読むエンドポイントしか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |\n",
+      },
+      {
+        file: ".github/workflows/README.md",
+        block:
+          "It is not applied to `sonarcloud`. Its quality gate is computed on SonarCloud's side from the analyses it received. **This is a check that entrusts its judgment to an external mechanism, so its run count is not reduced for our convenience.**\n\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
+          "`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**\n\n",
       },
       {
         file: "docs/adr/0110-security-operations.md",
@@ -164,7 +173,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: Dependency Review の検査を撤去する",
     presenceMarker: ".github/workflows/dependency-review.yaml",
     paths: [".github/workflows/dependency-review.yaml"],
-    egressJobs: ["dependency-review"],
+    egressWorkflows: ["dependency-review"],
     pinActions: ["actions/dependency-review-action"],
     docBlocks: [
       {
@@ -175,7 +184,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
       {
         file: ".github/workflows/README.ja.md",
         block:
-          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
+          "| Dependency Review | `dependency-review.yaml` | `dependency-review` | **この PR が増やした依存**だけを見る。他の依存スキャナーが見るのはツリーの現状で、持ち越しと増分を区別できない。呼ぶ API が無料なのは public のときだけで、private では Code Security のライセンスを要求する。外すかはセットアップの 1 段で選ぶ |\n",
       },
       {
         file: ".github/workflows/README.md",
@@ -255,8 +264,8 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: CodeQL の検査を撤去する",
     presenceMarker: ".github/workflows/codeql.yaml",
     paths: [".github/workflows/codeql.yaml", ".github/codeql"],
-    egressJobs: ["codeql"],
-    // `github/codeql-action` は残る 4 つの workflow が `upload-sarif` で使い続けるため、
+    egressWorkflows: ["codeql"],
+    // `github/codeql-action` は他の workflow が `upload-sarif` で使い続けるため、
     // 宣言はしても参照が 0 件にならず落ちない。数えて決めるので、ここに書いても安全である。
     pinActions: ["github/codeql-action"],
     docBlocks: [

@@ -27,7 +27,7 @@ SSR first の選定では `◎` に当たります。native `progress` 要素で
 
 `value` は必須です。進捗不明（indeterminate）は表現の対象外にしています。native `progress` は `value` を省略すると不定表示になりますが、そのレンダリングは browser 実装に依存し、待機の表現は `Skeleton` が既に担っているためです。
 
-`progress` 要素は screen reader に `progressbar` として公開され、値は `value` と `max` から百分率として読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`progress` は labelable 要素なので `label` の `htmlFor` が使えます（`ProgressClient` では使えません）。`max` に実単位を使った場合も読み上げは百分率になるため、件数などを利用者へ見せたい場合は数値テキストを併記します。
+`progress` 要素は screen reader に `progressbar` として公開され、値は `value` と `max` から百分率として読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`progress` は labelable 要素なので `label` の `htmlFor` が使えます（`ProgressClient` では使えません）。`max` に実単位を使った場合も読み上げは百分率になるため、件数などをユーザーへ見せたい場合は数値テキストを併記します。
 
 太さや幅は `className` で上書きします。デフォルトは `h-2 w-full`、track は `bg-border`、進捗部分は `bg-foreground` です。track と進捗部分は browser ごとに別の擬似要素でレンダリングされるため、`::-webkit-progress-bar` / `::-webkit-progress-value` / `::-moz-progress-bar` の三つへ指定しています。この擬似要素の差が見た目の揺れとして問題になる場合は `ProgressClient` を使います。
 

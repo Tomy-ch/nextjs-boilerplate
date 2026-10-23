@@ -14,9 +14,9 @@ Accepted
 
 ## 採用理由 / 目的
 
-- **無害化の許容範囲が違う。** アプリ本体が sanitizer に通すのは利用者が投稿する内容で、`src/model/rich-text` の allowlist は `table` も `pre` も `class` 属性も通さない。ビューアーがレンダリングするのはリポジトリ自身が持つコミット済みの文書で、表・コードブロック・図が出せなければ用を成さない。広い allowlist と狭い allowlist を同じパッケージに並べると、広い方をアプリから import することを止めるものが規約しか無くなる
+- **無害化の許容範囲が違う。** アプリ本体が sanitizer に通すのはユーザーが投稿する内容で、`src/model/rich-text` の allowlist は `table` も `pre` も `class` 属性も通さない。ビューアーがレンダリングするのはリポジトリ自身が持つコミット済みの文書で、表・コードブロック・図が出せなければ用を成さない。広い allowlist と狭い allowlist を同じパッケージに並べると、広い方をアプリから import することを止めるものが規約しか無くなる
 - **供給面を分ける。** ビューアーが引く依存（Markdown の変換、図のレンダリング、検索）がアプリ本体の依存一覧に乗らない。アプリの bundle にも、アプリの依存として監査される集合にも現れない
-- **デザインシステムの実利用者を持つ。** ビューアーはコンポーネントを Storybook の外で、実データ量・実文書長・実際の組み合わせで使う最初の利用者である。この役割はコピーでは果たせない
+- **デザインシステムの実ユーザーを持つ。** ビューアーはコンポーネントを Storybook の外で、実データ量・実文書長・実際の組み合わせで使う最初のユーザーである。この役割はコピーでは果たせない
 
 ## 独立した workspace パッケージ
 
@@ -76,7 +76,7 @@ Accepted
 - [0004-library-management.md](0004-library-management.ja.md) — 依存の選定・固定
 - [0021-frontend-responsibility.md](0021-frontend-responsibility.ja.md) — レイヤー境界の機械強制（`src/` 側で越境を落とす検査）
 - [0052-ui-component-policy.md](0052-ui-component-policy.ja.md) — アイコンの公開面
-- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.ja.md) — コンポーネントの語彙（ビューアーはその外の実利用者）
+- [0054-ui-catalog-storybook.md](0054-ui-catalog-storybook.ja.md) — コンポーネントの語彙（ビューアーはその外の実ユーザー）
 - [0090-testing-strategy.md](0090-testing-strategy.ja.md) — 1 つの gate で回すテスト
 - [0110-security-operations.md](0110-security-operations.ja.md) — 冷却期間と推移的依存の固定
 - [0140-documentation-operations.md](0140-documentation-operations.ja.md) — 文書運用（ビューアーがレンダリングする canonical）

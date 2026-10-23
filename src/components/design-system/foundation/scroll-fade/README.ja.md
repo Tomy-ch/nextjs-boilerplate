@@ -24,7 +24,7 @@
 <ScrollArea aria-label="…" className="scroll-fade-y flex flex-col gap-3 scrollbar-none">…</ScrollArea>
 ```
 
-スクロールする領域は keyboard だけで操作する利用者も到達できる必要があるため、`overflow-*` を直接当てず [`ScrollArea`](../../container/scroll-area/README.ja.md) へ当てます。
+スクロールする領域は keyboard だけで操作するユーザーも到達できる必要があるため、`overflow-*` を直接当てず [`ScrollArea`](../../container/scroll-area/README.ja.md) へ当てます。
 
 収まりきる領域に付けても端の飾りにしかなりません。溢れうる領域にだけ付けます。
 

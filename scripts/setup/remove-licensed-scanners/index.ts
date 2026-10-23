@@ -13,7 +13,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { dropOrphanedPins } from "../lib/actions-pin.js";
-import { dropOrphanedEndpoints } from "../lib/egress-declaration.js";
+import { dropOrphanedDeclarations } from "../lib/egress-declaration.js";
 import { listFilesRecursive, removeTarget, toRelativePath, updateFile } from "../lib/file-utils.js";
 import { exitWithUsage, parseCommonFlags, ROOT_DIR } from "../lib/runtime.js";
 import { SCANNER_DOMAINS, type ScannerDomain } from "./scanner-manifest.js";
@@ -69,14 +69,14 @@ function removeDomain(domain: ScannerDomain, dryRun: boolean): void {
 
   updateFile(
     EGRESS_DECLARATION_FILE,
-    (content) => dropOrphanedEndpoints(content, domain.egressJobs),
+    (content) => dropOrphanedDeclarations(content, domain.egressWorkflows),
     dryRun,
   );
 
   console.log(`[${domain.label}]`);
   for (const target of removed) console.log(`- 削除 ${target}`);
   for (const action of orphaned) console.log(`- pin 除去 ${action}`);
-  for (const job of domain.egressJobs) console.log(`- 宛先の宣言を除去 ${job}`);
+  for (const name of domain.egressWorkflows) console.log(`- 宛先の宣言を除去 ${name}`);
   if (domain.pinActions.length > orphaned.length) {
     const kept = domain.pinActions.filter((action) => !orphaned.includes(action));
     console.log(`- pin は残す（他の workflow が参照している）: ${kept.join(" / ")}`);

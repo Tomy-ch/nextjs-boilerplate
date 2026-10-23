@@ -38,7 +38,7 @@
 
 - **使用状況と更新確認の外部送信は切る**（`core.disableTelemetry` / `disableWhatsNewNotifications`）。
   カタログの build は CI の中で最も多く回る対象（vrt / a11y / storybook-build / docs の配信）で、
-  デフォルトのままだとそのたびに外へ出る。送る相手はこのリポジトリの利用者ではなくテンプレートとして配られた先の
+  デフォルトのままだとそのたびに外へ出る。送る相手はこのリポジトリのユーザーではなくテンプレートとして配られた先の
   CI であり、送る値も送り先もテンプレートから作った側が選んだものではない
   （[0010](../docs/adr/0010-standards-and-non-lockin.ja.md) は外部への送信をデフォルトで無効にしておく）
 - **横取り用の service worker は設定の読み込み時に依存から `public/` へコピーする。** 起動コマンドに
@@ -73,7 +73,7 @@
   `fetch` を差し替えない（[0054](../docs/adr/0054-ui-catalog-storybook.ja.md)）
 - **`parameters.nextjs.appDirectory` は `true`。** このリポジトリは App Router のみを使い、
   `useRouter` などの navigation hook は App Router の context が無いと throw する
-- `parameters.a11y.test` は `error`。panel は手元の確認用で、合否を負うのは vrt と同じコンテナで走る
+- `parameters.a11y.test` は `error`。panel は手元の確認用で、合否を負うのは vrt と同じコンテナーで走る
   axe（[0054](../docs/adr/0054-ui-catalog-storybook.ja.md) / [0091](../docs/adr/0091-test-verification-methods.ja.md)）
 - sidebar の並び（`storySort`）と `tags: ["autodocs"]` の根拠は
   [`src/components/README.md`](../src/components/README.ja.md)「Storybook の表示規約」が持つ
@@ -134,9 +134,9 @@ import 行）を `replace-with` に退避しておく** —— 題材を捨て�
 外れている区画（`public/`）は [`public/README.md`](public/README.ja.md) が持つ。
 マーカーの意味は [boilerplate-only conventions](../docs/get-started/boilerplate-only-conventions.ja.md) が持つ。 <!-- boilerplate-only:line -->
 
-## story がカタログのコンテナから受ける制約
+## story がカタログのコンテナーから受ける制約
 
-コンポーネントではなくカタログのコンテナに由来する決まりは、ここが持つ。story を書く側の規約は
+コンポーネントではなくカタログのコンテナーに由来する決まりは、ここが持つ。story を書く側の規約は
 [`src/components/README.md`](../src/components/README.ja.md) と
 [`src/features/README.md`](../src/features/README.ja.md) にある。
 
@@ -183,7 +183,7 @@ frontmatter の `test-requirement: unit` が掛かるのは `lib/` である。
 
 **判定を持つものは `lib/` へ置く。** `main.ts` / `preview.tsx` / `manager.ts` は設定で、読み込まれた
 時点で副作用を起こす（アセットの複製・書体の class 付与・mock の宣言）ため単体では回せない。`msw/worker.ts`
-も同じく、ブラウザの service worker を立てるだけである。設定や配線の中に判定を書くと、そこは検査の
+も同じく、ブラウザーの service worker を立てるだけである。設定や配線の中に判定を書くと、そこは検査の
 届かない場所になる。
 
 **この配下は丸ごと 1:1 ゲートとカバレッジ母数に乗る**（[`vitest.config.ts`](../vitest.config.ts) /

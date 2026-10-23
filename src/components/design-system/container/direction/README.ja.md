@@ -28,7 +28,7 @@
 
 React context を配るため hydration が必要な client island です。Server Component からは直接 render できません。内容自体に client runtime が要らない場合は、Server Component で組み立てた要素を `children` として渡します。
 
-**このリポジトリはデフォルトを `ltr` に固定し、利用者が向きを切り替える機能を持ちません。** RTL の locale を提供する決定がされていないためです。`rtl` は Provider を差し替えたときに配下がどう変わるかを示すための値であり、向きを画面から切り替える UI が要るなら locale の決定が先になります。
+**このリポジトリはデフォルトを `ltr` に固定し、ユーザーが向きを切り替える機能を持ちません。** RTL の locale を提供する決定がされていないためです。`rtl` は Provider を差し替えたときに配下がどう変わるかを示すための値であり、向きを画面から切り替える UI が要るなら locale の決定が先になります。
 
 `dir` は DOM 属性ではありません。この Provider は context を配るだけで、文字の折り返しや `text-align` のような CSS の挙動は変えません。それらを変える必要がある場合は、呼び出し元が `html` 要素の `dir` 属性を併せて設定します。
 
