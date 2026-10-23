@@ -199,8 +199,8 @@ jobs:
         run: |
           echo "decision=$(make --no-print-directory lighthouse-gate)" >> "$GITHUB_OUTPUT"
 
-      # Only asked when the shared four did not already say yes, because its answer can only
-      # add reasons to measure, never remove one.
+      # Only asked when `check-trigger`'s four reasons did not already say yes, because its
+      # answer can only add reasons to measure, never remove one.
       - name: Decide whether the diff itself earns a measurement
         id: trigger
         if: >-
@@ -387,11 +387,10 @@ jobs:
           pattern: lighthouse-lhr-*
           merge-multiple: true
 
-      # The step id stays `lighthouse` because everything downstream reads it. What changed
-      # is what it runs: the judging half, over every machine's measurements at once. A
-      # machine that never reported is named as such here — the merge refuses to judge a
-      # partial set, because the screens it never saw would read as screens the budget
-      # declares and the tree no longer has.
+      # The judging half, over every machine's measurements at once. A machine that never
+      # reported is named as such here — the merge refuses to judge a partial set, because the
+      # screens it never saw would read as screens the budget declares and the tree no longer
+      # has.
       - name: Merge the measurements and judge them against the budget
         id: lighthouse
         if: needs.plan.outputs.run == 'true'
