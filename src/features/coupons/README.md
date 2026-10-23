@@ -48,7 +48,7 @@ operationIds used.
 | | loading | `Features/Coupons/Wallet/Skeleton/Default` |
 | Claim field | idle / submitted empty / claimed / pending | `Features/Coupons/Wallet/ClaimForm/{Default,EmptySubmitted,Claimed,Pending}` |
 | | code rejected (`422`) | `Features/Coupons/Wallet/ClaimForm/Rejected` |
-| | conflict (`409`) / unavailable / unreadable request | `Features/Coupons/Wallet/ClaimForm/{InProgress,Unavailable,Malformed}` |
+| | conflict (`409`) / unavailable, both holding the code until the outcome is known / unreadable request | `Features/Coupons/Wallet/ClaimForm/{InProgress,Unavailable,Malformed}` |
 | | narrow tier | `Features/Coupons/Wallet/ClaimForm/Mobile` |
 | Coupon list | all statuses / empty / long values / narrow tier | `Features/Coupons/Wallet/CouponList/{AllStates,Empty,LongValues,Mobile}` |
 | Submit button | enabled | `Features/Coupons/Wallet/SubmitButton/Default` |
@@ -97,7 +97,8 @@ It also draws on other features' `facade/` — login (`auth`), and the My Page r
 sent again under another key yields another coupon. The contract's `409` answers a claim still being processed under the same key, so
 the form declares that meaning to `settlesSubmission`. After a `409`, an unavailable service or a network failure the same key is sent
 again, so a claim that went through whose response was lost is not claimed twice. After a success, a rejected code (`422`) or an
-unreadable request (`400`) the next claim carries a new key.
+unreadable request (`400`) the next claim carries a new key. While the outcome is open the field is `readOnly` and says why, so the
+resend carries the code that was sent.
 
 ## Test Perspectives
 
@@ -105,6 +106,7 @@ unreadable request (`400`) the next claim carries a new key.
 - [ ] When several statuses hold at once, the one that can no longer change wins (used, then expired, then not yet usable)
 - [ ] A rejected code (`422`) shows one wording, whatever the reason behind it
 - [ ] Sending again after a conflict, an unavailable service or a lost response carries the same idempotency key; after a success, a rejected code or an unreadable request, the key changes
+- [ ] While the outcome of a claim is open, the code cannot be edited and the field says why
 - [ ] A success clears the input and reports it in a toast; a failure keeps the input
 
 ## Operations

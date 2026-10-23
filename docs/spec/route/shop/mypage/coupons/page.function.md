@@ -27,7 +27,9 @@ render fetches again.
 - **An idempotency key goes with every claim.** A claim cannot be undone, and a claim sent again under another key yields another coupon
   within the limit. The key is renewed once a response settles the claim: a success, a rejected code, or a request the contract could
   not read (`400`). After a conflict (a claim still being processed under the same key), an unavailable service or a network failure,
-  sending again reuses the same key, so a claim that did go through is not claimed twice
+  sending again reuses the same key, so a claim that did go through is not claimed twice. Until the outcome is known the code
+  cannot be edited: the receiver answers a resend under the same key with the first claim's outcome, so a changed code would
+  silently get the result of the code sent before
 - On success the list is fetched again and the screen stays where it is
 
 **When the response to a claim never arrived, check the list before claiming again.** Nothing is added to tell that case apart: the

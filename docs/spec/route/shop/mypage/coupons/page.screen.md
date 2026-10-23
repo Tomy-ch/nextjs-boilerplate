@@ -34,7 +34,8 @@ Rows are not pressable. The list is for reading.
 | While sending | The button shows that it is in progress |
 | Claimed | A toast reports it, the field is cleared, and the list, fetched again, has one more row |
 | The code was not accepted | One message beside the field, the same whatever the reason. The input stays so it can be fixed rather than retyped |
-| The claim conflicted (`409`) / temporarily unavailable / the request could not be read | A message beside the form, with the input kept |
+| The claim conflicted (`409`) / temporarily unavailable | A message beside the form. The code is kept and cannot be edited until the outcome is known, with the reason tied to the field |
+| The request could not be read | A message beside the form, with the input kept |
 
 **Even on success the screen does not move.** The proof of the claim is the row that appears in the list, which stays after a reload
 ([0063](../../../../../adr/0063-mutation-result-notification.md)).

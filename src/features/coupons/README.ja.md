@@ -43,7 +43,7 @@
 | | 待機 | `Features/Coupons/Wallet/Skeleton/Default` |
 | 受け取り欄 | 待ち受け / 空のまま押した / 受け取れた / 送信中 | `Features/Coupons/Wallet/ClaimForm/{Default,EmptySubmitted,Claimed,Pending}` |
 | | コードが弾かれた（`422`） | `Features/Coupons/Wallet/ClaimForm/Rejected` |
-| | 競合（`409`） / 使えない / 読めない要求 | `Features/Coupons/Wallet/ClaimForm/{InProgress,Unavailable,Malformed}` |
+| | 競合（`409`） / 使えない（どちらも結果が分かるまでコードを保つ） / 読めない要求 | `Features/Coupons/Wallet/ClaimForm/{InProgress,Unavailable,Malformed}` |
 | | 狭いバンド | `Features/Coupons/Wallet/ClaimForm/Mobile` |
 | クーポン一覧 | 全状態 / 空 / 長い値 / 狭いバンド | `Features/Coupons/Wallet/CouponList/{AllStates,Empty,LongValues,Mobile}` |
 | 送信ボタン | 押せる | `Features/Coupons/Wallet/SubmitButton/Default` |
@@ -92,7 +92,8 @@
 キーで送り直すともう 1 枚出ます。契約の `409` は同じキーの受け取りが処理中であることを返すので、
 フォームはその意味を `settlesSubmission` に宣言します。`409`・一時的に使えない・通信の失敗のあとは
 同じキーで送り直すので、応答だけが失われた成立済みの受け取りが 2 枚目になりません。成功・弾かれた
-コード（`422`）・読めない要求（`400`）のあとの受け取りは新しいキーで送ります。
+コード（`422`）・読めない要求（`400`）のあとの受け取りは新しいキーで送ります。結果が定まらないあいだは欄を
+`readOnly` にして理由を示し、送り直しが送ったコードのまま飛ぶようにします。
 
 ## テスト観点
 
@@ -100,6 +101,7 @@
 - [ ] 複数の状態が同時に成り立つときは、もう変わらないほうが勝つ（使用済み、次に期限切れ、次に利用開始前）
 - [ ] 弾かれたコード（`422`）は、理由によらず 1 つの文言を出す
 - [ ] 競合・一時的に使えない・届かなかった応答のあとの送り直しは同じ冪等キーを運ぶ。成功・弾かれたコード・読めない要求のあとはキーが変わる
+- [ ] 受け取りの結果が定まらないあいだはコードを書き換えられず、欄が理由を示す
 - [ ] 成功で入力を空にして toast で知らせ、失敗では入力を残す
 
 ## 運用
