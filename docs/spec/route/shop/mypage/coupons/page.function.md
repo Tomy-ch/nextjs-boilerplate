@@ -25,9 +25,9 @@ render fetches again.
 - **The code is sent as typed.** Surrounding whitespace and letter case are ignored by the contract. Only an empty (or whitespace-only) code
   is stopped before sending, because it is always rejected. Length and format are not checked here: the contract declares neither
 - **An idempotency key goes with every claim.** A claim cannot be undone, and a claim sent again under another key yields another coupon
-  within the limit. The key is renewed after a claim succeeds and after the code is rejected; after a conflict, an unavailable service or
-  a network failure, sending again reuses the same key, so a claim that did go through is not claimed twice. A request the contract could
-  not read (`400`) is not sent again as is: the user reloads the screen, and the reloaded form carries a new key
+  within the limit. The key is renewed once a response settles the claim: a success, a rejected code, or a request the contract could
+  not read (`400`). After a conflict (a claim still being processed under the same key), an unavailable service or a network failure,
+  sending again reuses the same key, so a claim that did go through is not claimed twice
 - On success the list is fetched again and the screen stays where it is
 
 **When the response to a claim never arrived, check the list before claiming again.** Nothing is added to tell that case apart: the

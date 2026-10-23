@@ -93,17 +93,18 @@ It also draws on other features' `facade/` — login (`auth`), and the My Page r
 | --- | --- | --- | --- | --- |
 | `claimCouponAction` | `actions.ts` | `ActionState<void, "code">` | `refresh()`. Stays on the screen with a toast | A field message for an empty or rejected code (one wording, whatever the reason), or a message beside the form. If authentication has expired, `redirect` to login with this screen as the return destination |
 
-**An idempotency key is always attached, and it is renewed only after a success or a rejected code.** A claim cannot be undone, and one
-sent again under another key yields another coupon. After a conflict (`409`), an unavailable service or a network failure the same key is
-sent again, so a claim that went through whose response was lost is not claimed twice. An unreadable request (`400`) leads to a reload,
-and the reloaded form carries a new key.
+**An idempotency key is always attached, and it is renewed once a response settles the claim.** A claim cannot be undone, and one
+sent again under another key yields another coupon. The contract's `409` answers a claim still being processed under the same key, so
+the form declares that meaning to `settlesSubmission`. After a `409`, an unavailable service or a network failure the same key is sent
+again, so a claim that went through whose response was lost is not claimed twice. After a success, a rejected code (`422`) or an
+unreadable request (`400`) the next claim carries a new key.
 
 ## Test Perspectives
 
 - [ ] Each row tells unused / used / expired / not yet usable apart, including the exact moments `usableFrom` and `expiresAt` are reached
 - [ ] When several statuses hold at once, the one that can no longer change wins (used, then expired, then not yet usable)
 - [ ] A rejected code (`422`) shows one wording, whatever the reason behind it
-- [ ] Sending again after a failure carries the same idempotency key; after a success or a rejected code, the key changes
+- [ ] Sending again after a conflict, an unavailable service or a lost response carries the same idempotency key; after a success, a rejected code or an unreadable request, the key changes
 - [ ] A success clears the input and reports it in a toast; a failure keeps the input
 
 ## Operations
