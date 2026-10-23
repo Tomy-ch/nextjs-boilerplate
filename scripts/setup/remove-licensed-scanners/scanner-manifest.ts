@@ -46,8 +46,8 @@ export type ScannerDomain = {
   presenceMarker: string;
   /** 消すファイルとディレクトリ。 */
   paths: readonly string[];
-  /** `.github/egress.yaml` の workflows / audit のキー。 */
-  egressJobs: readonly string[];
+  /** `.github/egress.yaml` の workflows / audit / sudo のキー。 */
+  egressWorkflows: readonly string[];
   /** 撤去後に参照が 0 件になったときだけ消す pin。`owner/repo` で書く。 */
   pinActions: readonly string[];
   /** 文書から落とす塊。完全一致で探す。 */
@@ -86,7 +86,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: SonarQube Cloud の検査を撤去する",
     presenceMarker: ".github/workflows/sonarcloud.yaml",
     paths: [".github/workflows/sonarcloud.yaml", "sonar-project.properties", "scripts/sonarcloud"],
-    egressJobs: ["sonarcloud"],
+    egressWorkflows: ["sonarcloud"],
     pinActions: ["SonarSource/sonarqube-scan-action"],
     docBlocks: [
       {
@@ -164,7 +164,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: Dependency Review の検査を撤去する",
     presenceMarker: ".github/workflows/dependency-review.yaml",
     paths: [".github/workflows/dependency-review.yaml"],
-    egressJobs: ["dependency-review"],
+    egressWorkflows: ["dependency-review"],
     pinActions: ["actions/dependency-review-action"],
     docBlocks: [
       {
@@ -255,7 +255,7 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
     commitSubject: "CI: CodeQL の検査を撤去する",
     presenceMarker: ".github/workflows/codeql.yaml",
     paths: [".github/workflows/codeql.yaml", ".github/codeql"],
-    egressJobs: ["codeql"],
+    egressWorkflows: ["codeql"],
     // `github/codeql-action` は残る 4 つの workflow が `upload-sarif` で使い続けるため、
     // 宣言はしても参照が 0 件にならず落ちない。数えて決めるので、ここに書いても安全である。
     pinActions: ["github/codeql-action"],

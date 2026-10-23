@@ -2,10 +2,9 @@ name: OpenSSF Scorecard
 
 # Measures this repository's own supply-chain posture — branch protection, pinned
 # dependencies, token permissions, the presence of a security policy — rather than
-# the code or the dependencies. For a boilerplate the posture IS the product: a repository
-# created from this template receives these settings as files plus a setup step
-# (`make setup-repository`), not as repository settings — creating from a template copies
-# the tree, never the branch protection or the token permissions.
+# the code or the dependencies. Creating a repository from a template copies the tree,
+# never the branch protection or the token permissions; `make setup-repository` applies
+# them, and this score shows whether that step was applied.
 #
 # The default branch is not a fixed name here: it moves with each release
 # (`release/vX.Y.Z`), so the push trigger matches the namespace and the job narrows to
@@ -37,29 +36,34 @@ jobs:
     permissions:
       contents: read
       security-events: write
-      id-token: write
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            api.deps.dev:443
-            api.osv.dev:443
-            oss-fuzz-build-logs.storage.googleapis.com:443
-            www.bestpractices.dev:443
+          dns-policy: allowed-domains-only
+          enable-sudo: true
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            api.deps.dev
+            api.osv.dev
+            ghcr.io
+            pkg-containers.githubusercontent.com
+            oss-fuzz-build-logs.storage.googleapis.com
+            www.bestpractices.dev
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -67,8 +71,8 @@ jobs:
           persist-credentials: false
 
       # `publish_results: false` — publishing sends the score to the OpenSSF public
-      # dataset. That is a decision about this repository's name, not a technical one,
-      # so it is left to whoever runs the generated repository.
+      # dataset. That is the repository owner's decision about its name, not a technical
+      # one.
       #
       # No `repo_token`, so `Branch-Protection` / `Fuzzing` / `CII-Best-Practices` stay
       # capped. All three are held there on purpose, with the conditions that would
