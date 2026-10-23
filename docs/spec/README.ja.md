@@ -88,6 +88,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/admin/inquiries/[inquiryId]` | [`screen`](<route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<route/admin/inquiries/[inquiryId]/page.function.ja.md>) <!-- sample:line --> |
 | `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.ja.md) / [`function`](route/admin/shipments/page.function.ja.md) <!-- sample:line --> |
 | `/admin/users` | [`screen`](route/admin/users/page.screen.ja.md) / [`function`](route/admin/users/page.function.ja.md) <!-- sample:line --> |
+| `/admin/campaigns` | [`screen`](route/admin/campaigns/page.screen.ja.md) / [`function`](route/admin/campaigns/page.function.ja.md) <!-- sample:line --> |
 | `auth` 外枠 | [`screen`](route/auth/layout.screen.ja.md) |
 | `/login` | [`screen`](route/auth/login/page.screen.ja.md) / [`function`](route/auth/login/page.function.ja.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.ja.md) / [`function`](route/auth/onboarding/page.function.ja.md) <!-- sample:line --> |

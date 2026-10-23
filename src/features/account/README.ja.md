@@ -143,8 +143,10 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
 | `registerAction` | `actions.ts` | `ProfileFormState` | 戻り先へ `redirect` | 項目ごとの誤りを画面に残す |
-| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`。画面は移さず toast | 同上 |
+| `updateProfileAction` | `actions.ts` | `ProfileFormState` | `revalidatePath`。画面は移さず toast | 項目ごとの誤りを画面に残す |
 | `withdrawAction` | `actions.ts` | `WithdrawFormState` | session を破棄してトップへ | 確認を開いたまま、その中で伝える |
+
+`UNAUTHENTICATED` のときは、どの action もこの画面を戻り先としてサインインへ redirect します（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）。`registerAction` では、その画面は開いたときに持っていた戻り先を保ちます。
 
 **対象を指す識別子は戻り値にも送信にも載りません。** 解決するのは `adapters` の中です。
 

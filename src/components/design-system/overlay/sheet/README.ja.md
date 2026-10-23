@@ -47,12 +47,14 @@ SSR first の選定では `△` に当たります。デフォルトは通常の
 
 `SheetContent` はアクセシブルな名前として `SheetTitle` を必ず子に置きます。説明が要る場合は `SheetDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示します。どちらも無いと Radix が警告します。`showCloseButton` を `false` にする場合は、内容側に `SheetClose` の閉じる手段を必ず用意します。
 
+**閉じると、`SheetTrigger` の有無にかかわらず、sheet を呼び出した要素へフォーカスが戻ります。** `Dialog` と `AlertDialog` と共有するこの規則は、レイヤー README の [本文の上へ重なる面](../../../README.ja.md#本文の上へ重なる面) が持ちます。
+
 内容は Portal で `body` 直下へレンダリングされますが、React のツリー構造としては呼び出し元の配下に残ります。sheet の内部に置いた `form` は通常どおり submit され、`name` / `value` はそのまま送信値になります。
 
-vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。`side` の位置決めと animation の class は shadcn の生成物をそのまま保持しており、animation plugin を採用していないため現状 animation の CSS は出力されません。
+vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。`side` の位置決めと animation の class は shadcn の生成物をそのまま保持しており、animation plugin を採用していないため、それらの class は animation の CSS を出力しません。
 
 ## Storybook とテスト
 
 Storybook はデフォルトの開閉、`right` / `left` / `top` / `bottom` の四つの固定位置、絞り込み面として form コンポーネントを内容に置く場合、説明を持たない場合、右上の閉じる操作を置かない場合を確認します。画面端への固定と余白の見え方は実レンダリングでしか判断できないため、位置と余白は Storybook 側の確認範囲です。
 
-テストは開くまで内容をレンダリングしないこと、title と説明の関連付け、title が見出しとしてレンダリングされること、`alertdialog` ではなく `dialog` の意味論であること、デフォルトと `side` 指定での固定位置、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、Portal 内の `form` が送信値を保つこと、`SheetPortal` / `SheetOverlay` の明示指定、a11y 自動検査を確認します。Portal 先は render の `container` の外に出るため、a11y 自動検査には `baseElement` を渡します。
+テストは開くまで内容をレンダリングしないこと、title と説明の関連付け、title が見出しとしてレンダリングされること、`alertdialog` ではなく `dialog` の意味論であること、デフォルトと `side` 指定での固定位置、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、Portal 内の `form` が送信値を保つこと、`SheetPortal` / `SheetOverlay` の明示指定、閉じたときのフォーカスの戻り先（trigger、trigger が無いときは開いた時点でフォーカスしていた要素、その要素が消えているときはフォーカス可能な祖先）、a11y 自動検査を確認します。Portal 先は render の `container` の外に出るため、a11y 自動検査には `baseElement` を渡します。

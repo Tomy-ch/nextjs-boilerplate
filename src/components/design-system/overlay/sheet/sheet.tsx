@@ -7,6 +7,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/components/cn";
 import { XIcon } from "@/components/icon";
 
+import { useFocusReturn } from "../use-focus-return";
 import { useOverlayHistory } from "../use-overlay-history";
 
 import { SHEET_SIDE, type SheetSide } from "./sheet.definition";
@@ -167,6 +168,9 @@ type SheetContentProps = ComponentProps<typeof SheetPrimitive.Content> &
  * アクセシブルな名前として `SheetTitle` を必ず子に置く。説明が要る場合は `SheetDescription` を
  * 添え、不要な場合は `aria-describedby={undefined}` を明示する。どちらも無いと Radix が警告する。
  *
+ * 閉じると、開いたときに focus があった要素へ focus を戻す（消えていれば、focus を受けられる最も
+ * 近い祖先へ）。`onCloseAutoFocus` で `preventDefault()` すれば、戻し先は呼び出し側が決める。
+ *
  * @param props - Radix `Dialog.Content` の props に `side` と `showCloseButton` を加えたもの。
  *
  * @see Storybook `Overlay/Sheet`
@@ -176,14 +180,20 @@ function SheetContent({
   children,
   side = SHEET_SIDE.RIGHT,
   showCloseButton = true,
+  onCloseAutoFocus,
+  onOpenAutoFocus,
   ...props
 }: SheetContentProps) {
+  const focusReturn = useFocusReturn({ onCloseAutoFocus, onOpenAutoFocus });
+
   return (
     <SheetPortal>
       <SheetOverlay />
       <SheetPrimitive.Content
         className={cn(sheetContentVariants({ side }), className)}
         data-slot="sheet-content"
+        onCloseAutoFocus={focusReturn.onCloseAutoFocus}
+        onOpenAutoFocus={focusReturn.onOpenAutoFocus}
         {...props}
       >
         {children}

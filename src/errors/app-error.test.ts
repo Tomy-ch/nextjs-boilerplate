@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { AppError, createAppError, findAppError, isAppError } from "./app-error";
+import { AppError, createAppError, findAppError, isAppError, isUnauthenticated } from "./app-error";
+import { ErrorKind } from "./error-kind";
 
 describe("AppError", () => {
   // ----- 正常系 -----
@@ -80,5 +81,38 @@ describe("isAppError", () => {
   it("分類されていない値には false を返す", () => {
     expect(isAppError(new Error("分類なし"))).toBe(false);
     expect(isAppError("分類なし")).toBe(false);
+  });
+});
+
+describe("isUnauthenticated", () => {
+  // ----- 正常系 -----
+  it("分類が認証切れなら true を返す", () => {
+    expect(isUnauthenticated(createAppError(ErrorKind.UNAUTHENTICATED))).toBe(true);
+  });
+
+  it("認証切れが cause の奥にあっても true を返す", () => {
+    const wrapped = new Error("上位層の文脈", {
+      cause: createAppError(ErrorKind.UNAUTHENTICATED),
+    });
+
+    expect(isUnauthenticated(wrapped)).toBe(true);
+  });
+
+  // ----- 異常系 -----
+  it("認証切れ以外の分類には false を返す", () => {
+    expect(isUnauthenticated(createAppError(ErrorKind.CONFLICT))).toBe(false);
+  });
+
+  it("外側の分類が認証切れでなければ、内側に認証切れがあっても false を返す", () => {
+    const reclassified = createAppError(ErrorKind.INTERNAL, {
+      cause: createAppError(ErrorKind.UNAUTHENTICATED),
+    });
+
+    expect(isUnauthenticated(reclassified)).toBe(false);
+  });
+
+  it("分類されていない値には false を返す", () => {
+    expect(isUnauthenticated(new Error("分類なし"))).toBe(false);
+    expect(isUnauthenticated("分類なし")).toBe(false);
   });
 });

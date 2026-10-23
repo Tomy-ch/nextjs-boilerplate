@@ -7,7 +7,7 @@ import { type AdminUserListLocation, FIRST_PAGE, USER_LIST_KEY, USER_SCOPE } fro
 /**
  * URL を読む側。**組む側（[`query.ts`](query.ts)）と分けてある**（`docs/rules.md#url` の
  * "The schema that reads `searchParams` and constants the client only reads go in a module separate
- * from the side that builds that condition into a URL"）。組むのは選択欄やページ送りといった client の部品です。
+ * from the side that builds that condition into a URL"）。組むのは選択欄といった client の部品です。
  */
 
 /** 範囲を読むスキーマ。宣言に無い名前は既定へ倒す。 */

@@ -5,6 +5,7 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/components/cn";
 import { Button, type ButtonProps } from "../../action/button/button";
+import { useFocusReturn } from "../use-focus-return";
 import { useOverlayHistory } from "../use-overlay-history";
 
 /**
@@ -69,14 +70,21 @@ export function AlertDialogOverlay({
  * `AlertDialogDescription` を添え、不要な場合は `aria-describedby={undefined}` を明示する。
  * どちらも無いと Radix が警告する。
  *
+ * 閉じると、開いたときに focus があった要素へ focus を戻す（消えていれば、focus を受けられる最も
+ * 近い祖先へ）。`onCloseAutoFocus` で `preventDefault()` すれば、戻し先は呼び出し側が決める。
+ *
  * @param props - Radix `AlertDialog.Content` の props。
  *
  * @see Storybook `Overlay/AlertDialog`
  */
 export function AlertDialogContent({
   className,
+  onCloseAutoFocus,
+  onOpenAutoFocus,
   ...props
 }: ComponentProps<typeof Primitive.Content>) {
+  const focusReturn = useFocusReturn({ onCloseAutoFocus, onOpenAutoFocus });
+
   return (
     <AlertDialogPortal>
       <AlertDialogOverlay />
@@ -86,6 +94,8 @@ export function AlertDialogContent({
           className,
         )}
         data-slot="alert-dialog-content"
+        onCloseAutoFocus={focusReturn.onCloseAutoFocus}
+        onOpenAutoFocus={focusReturn.onOpenAutoFocus}
         {...props}
       />
     </AlertDialogPortal>

@@ -4,17 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { registerUser, updateMyProfile, withdrawMe } from "@/adapters/server/api/users";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { MYPAGE_PATH } from "./facade/paths/paths";
+import { MYPAGE_PATH, PROFILE_EDIT_PATH } from "./facade/paths/paths";
 import type { ProfileFormState, WithdrawFormState } from "./form-state";
 import { parseRegistrationForm } from "./onboarding/parse-registration-form";
 import { parseProfileForm } from "./parse-profile-form";
+import { onboardingPath } from "./paths";
 import { toProfileFieldErrors } from "./profile-rejection";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
@@ -76,6 +78,8 @@ export async function updateProfileAction(
   try {
     await updateMyProfile(parsed.profile);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(PROFILE_EDIT_PATH));
+
     return rejectedFieldsState(error) ?? actionStateFromError(error);
   }
 
@@ -121,6 +125,8 @@ export async function registerAction(
   try {
     await registerUser(parsed.profile, parsed.idempotencyKey);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(onboardingPath(parsed.returnUrl)));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: REGISTER_CONFLICT_MESSAGE });
     }
@@ -157,6 +163,8 @@ export async function withdrawAction(
   try {
     destination = await withdrawMe();
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(MYPAGE_PATH));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: WITHDRAW_CONFLICT_MESSAGE });
     }

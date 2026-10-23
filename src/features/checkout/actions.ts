@@ -6,9 +6,10 @@ import { z } from "zod";
 
 import { getMyCart, removeMyCartItem, setMyCartItem } from "@/adapters/server/api/cart";
 import { createPurchase, PURCHASE_COUPON_FIELD } from "@/adapters/server/api/purchases";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { errorMetaFrom } from "@/errors/error-meta";
+import { loginPath } from "@/features/auth/facade/paths";
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { actionStateFromError, failedActionState } from "@/model/action-state";
 import { type CouponId, toCouponId } from "@/model/coupon/coupon";
@@ -130,7 +131,10 @@ export async function placeOrderAction(
   }
 
   const accepted = formData.get(ACCEPT_PRICE_CHANGE_FIELD) !== null;
-  let cart = await getMyCart();
+  let cart = await getMyCart().catch((error: unknown) => {
+    if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
+    throw error;
+  });
 
   if (hasPriceChangedLines(cart)) {
     if (!accepted) {
@@ -141,6 +145,8 @@ export async function placeOrderAction(
       await acceptPriceChanges(priceChangedLines(cart));
       cart = await getMyCart();
     } catch (error) {
+      if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
+
       return actionStateFromError(error);
     }
   }
@@ -156,6 +162,8 @@ export async function placeOrderAction(
   try {
     purchaseCode = await createPurchase(lines, idempotencyKey.data, couponId);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
     }

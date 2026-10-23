@@ -159,7 +159,10 @@ What this section owns is how that is divided inside a slice.
 1. Input fields get their `name` from the spellings in `form-names.ts`
 2. The Action decodes `FormData` with `parse-<target>-form.ts`. If it cannot, `failedActionState({ formError })`
    — the wording is a constant of that screen and prompts the user to reload the screen
-3. Call `adapters`, and map a failure to a classification with `actionStateFromError`
+3. Call `adapters`, and map a failure to a classification with `actionStateFromError`. **A failure classified
+   `UNAUTHENTICATED` is not returned** — on `isUnauthenticated(error)`, first in the `catch`, redirect to sign-in with
+   the screen the form lives on as the return destination (`loginPath` from `auth/facade/`;
+   [0043](../../docs/adr/0043-middleware-policy.md))
 4. On success, `refresh()` (staying on a screen whose data is not cached), `revalidatePath` (another route must show it) or
    `redirect`. **If the value also appears in the outer frame (header, sidebar),
    invalidating a single path leaves the outer frame stale** — use `revalidatePath("/", "layout")`, with a
@@ -177,7 +180,8 @@ What this section owns is how that is divided inside a slice.
   submissions repeated from the same screen (adding items one at a time), the client island holds it with
   `useState(newIdempotencyKey)`. **Both renew it once a response settles the submission, and keep it while the outcome is
   open** (`settlesSubmission` in `model/idempotency-key.ts`; an endpoint whose `409` means a request under the same key is
-  still being processed declares so). Setting (PUT) and deletion produce the
+  still being processed declares so). A list offering the operation on many rows keeps one per row. Setting (PUT) and
+  deletion produce the
   same result if delivered twice, so they carry no key
 - **Distinguish only conflicts (409).** The action the person who pressed can take (reload the screen) differs
   from other failures

@@ -1,10 +1,10 @@
 import { getManagedUserPage } from "@/adapters/server/api/users";
 import { toPageCount } from "@/model/pagination";
-
+import { toPageLinks } from "../page-window";
+import { OffsetPagination } from "../ui/offset-pagination/offset-pagination";
 import type { WithdrawUserAction } from "./form-state";
-import { type AdminUserListLocation, toActiveParam } from "./query";
+import { type AdminUserListLocation, toActiveParam, toUserListHref } from "./query";
 import { toAdminUserRows } from "./row";
-import { AdminUserPagination } from "./ui/pagination/pagination";
 import { WithdrawableUserList } from "./ui/withdrawable-list/withdrawable-list";
 
 /** `AdminUserResults` の props。 */
@@ -45,9 +45,11 @@ export async function AdminUserResults({
     <WithdrawableUserList
       items={toAdminUserRows(page.items)}
       pagination={
-        <AdminUserPagination
-          location={location}
-          pageCount={toPageCount(page.total, page.perPage)}
+        <OffsetPagination
+          label="利用者一覧のページ送り"
+          links={toPageLinks(location.page, toPageCount(page.total, page.perPage), (target) =>
+            toUserListHref({ scope: location.scope, page: target }),
+          )}
         />
       }
       withdrawAction={withdrawAction}

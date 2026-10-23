@@ -152,6 +152,10 @@ export function NavigationGuard({
   /**
    * dialog を閉じたあとの focus を、遷移の起点になった link へ戻す。
    *
+   * @remarks
+   * Safari では link を押しても focus が移らず、開いた時点の focus から戻し先を辿れない。起点の
+   * link は遷移を止めたこの部品だけが知っているので、ここで戻す。
+   *
    * @param event - `onCloseAutoFocus` が渡す event。
    */
   const restoreFocus = useCallback((event: Event) => {
@@ -170,12 +174,7 @@ export function NavigationGuard({
     // 中身の配置が変わると、見張るために置いただけの器が見た目を動かすことになる。
     <div className="contents" data-slot="navigation-guard" onClickCapture={interceptNavigation}>
       {children}
-      <AlertDialog
-        // Radix は `AlertDialogTrigger` へ focus を戻す実装で、trigger を持たないこの部品では focus が
-        // document へ落ちる。閉じても unmount せず mount したままにして、復帰の機会を保つ。
-        onOpenChange={setOpen}
-        open={open}
-      >
+      <AlertDialog onOpenChange={setOpen} open={open}>
         <AlertDialogContent onCloseAutoFocus={restoreFocus}>
           <AlertDialogHeader>
             <AlertDialogTitle>{title}</AlertDialogTitle>

@@ -1,4 +1,4 @@
-import type { ErrorKind } from "./error-kind";
+import { ErrorKind } from "./error-kind";
 
 /**
  * 分類を cause chain に保持するアプリケーションエラーです。
@@ -66,4 +66,14 @@ export function findAppError(error: unknown): AppError | undefined {
  */
 export function isAppError(error: unknown): boolean {
   return findAppError(error) !== undefined;
+}
+
+/**
+ * cause chain の分類が認証切れかを返します。
+ *
+ * @param error - 判定対象のエラー
+ * @returns 最初に見つかる分類が `UNAUTHENTICATED` なら `true`
+ */
+export function isUnauthenticated(error: unknown): boolean {
+  return findAppError(error)?.kind === ErrorKind.UNAUTHENTICATED;
 }
