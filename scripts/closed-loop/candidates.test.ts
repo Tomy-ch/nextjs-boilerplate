@@ -1,24 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { excerpt, isCorrective, isInjected, looksSecret, selectCandidates } from "./candidates";
+import { excerpt, isCorrective, looksSecret, selectCandidates } from "./candidates";
 import type { Event } from "./events";
 
 function prompt(at: number, text: string): Event {
   return { at, kind: "prompt", text };
 }
-
-describe("isInjected", () => {
-  // ----- 正常系 -----
-  it("人が打った本文を差し込みと見なさない", () => {
-    expect(isInjected("ここを直して")).toBe(false);
-  });
-
-  // ----- 異常系 -----
-  it("ハーネスが差し込んだ本文を見分ける", () => {
-    expect(isInjected("<system-reminder>覚えておくこと</system-reminder>")).toBe(true);
-    expect(isInjected("This session is being continued from a previous conversation")).toBe(true);
-  });
-});
 
 describe("looksSecret", () => {
   // ----- 正常系 -----
@@ -43,10 +30,6 @@ describe("isCorrective", () => {
   });
 
   // ----- 異常系 -----
-  it("差し込まれた本文は、是正の語を含んでも拾わない", () => {
-    expect(isCorrective("<system-reminder>間違いに注意</system-reminder>")).toBe(false);
-  });
-
   it("是正の語が無ければ拾わない", () => {
     expect(isCorrective("ありがとう")).toBe(false);
   });
@@ -102,12 +85,6 @@ describe("selectCandidates", () => {
   // ----- 異常系 -----
   it("秘密らしき発話を候補にしない", () => {
     expect(selectCandidates([prompt(10, "違う。ghp_0123456789abcdefghij を使え")])).toEqual([]);
-  });
-
-  it("差し込まれた本文を候補にしない", () => {
-    expect(selectCandidates([prompt(10, "<task-notification>違う</task-notification>")])).toEqual(
-      [],
-    );
   });
 
   it("上限を超えたぶんを落とす", () => {

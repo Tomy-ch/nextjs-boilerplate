@@ -4,7 +4,7 @@
 
 # capabilities
 
-connectivity、media query、storage、clipboard など、複数 feature が使うブラウザ runtime 能力の client hook を置くカーネルです。
+connectivity、media query、storage、clipboard など、複数 feature が使うブラウザー runtime 能力の client hook を置くカーネルです。
 
 ## 受け入れるもの
 
@@ -30,9 +30,9 @@ hook が返すものは、能力が**変わり続ける値**か**一度起きる
 
 - **変わり続ける値**（条件の一致、回線の有無、直近の向き）は `useSyncExternalStore` で供給する。
   `subscribe` / `snapshot` / `serverSnapshot` を別々の関数として置き、購読の開始と解除は `subscribe` の
-  返り値で対にする。ブラウザの値を `useState` へコピーして `useEffect` で追う形は採らない —— 外部の値を
+  返り値で対にする。ブラウザーの値を `useState` へコピーして `useEffect` で追う形は採らない —— 外部の値を
   読む React の標準の形がこちらであり（[0022](../../docs/adr/0022-capabilities-kernel.ja.md) 移植性）、
-  サーバ側の初期値が `serverSnapshot` という 1 か所に立つ
+  サーバー側の初期値が `serverSnapshot` という 1 か所に立つ
 - **一度起きる出来事**（要素が見えた）は callback で受け取り、見張る対象へ渡す ref を返す。「起きた」を
   state で配ると、読む側がそれを見張る effect と最新の処理を掴む ref を書くことになり、その一式が読む
   側の数だけ増える。callback は ref に最新を保ち、**処理が変わっても購読を張り直さない** —— 張り直しの
@@ -47,19 +47,19 @@ hook が返すものは、能力が**変わり続ける値**か**一度起きる
 - hook API はデファクト標準の形（慣用のシグネチャ）に寄せる（[0022](../../docs/adr/0022-capabilities-kernel.ja.md)
   移植性）
 
-### サーバ側の初期値
+### サーバー側の初期値
 
-サーバには browser の値が無い。`serverSnapshot` は**初回の HTML が取るべき姿**を返す関数として置き、
-doc に「常に X を返す」と、なぜその側かを書く。選ぶのは「利用者がまだ何もしていない側」か「その HTML
+サーバーには browser の値が無い。`serverSnapshot` は**初回の HTML が取るべき姿**を返す関数として置き、
+doc に「常に X を返す」と、なぜその側かを書く。選ぶのは「ユーザーがまだ何もしていない側」か「その HTML
 が配られたこと自体が前提とする側」で、実装はどれも同じ決め方をしている。
 
-| 能力 | サーバの値 | 選んだ根拠 |
+| 能力 | サーバーの値 | 選んだ根拠 |
 | --- | --- | --- |
 | 条件の一致 | 一致していない側 | 条件は評価できない。一致した側にだけ現れる UI は hydration の後に現れる |
 | 回線の有無 | 繋がっている側 | 繋がっていない端末へ配られるのはキャッシュされた応答 |
 | 直近の向き | まだ動いていない側 | 位置を知れない |
 
-**サーバに値が無い能力は、hook の `@remarks` に次の 3 点を書く**: サーバの値、初回レンダリングがどちらの姿に
+**サーバーに値が無い能力は、hook の `@remarks` に次の 3 点を書く**: サーバーの値、初回レンダリングがどちらの姿に
 なるか（hydration までは操作できるかもその姿に従う）、それゆえ使えない出し分け（本文の幅・順序が変わる
 もの）。初期値と実際の環境がずれるぶんだけ hydration で表示が動くため、位置が動く出し分けには使わせない
 （CSS 側で表現する）。何が使ってよい出し分けかは「使う側の線」。
@@ -79,7 +79,7 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 - **位置が動く出し分けは CSS で行い、この hook で行わない。** 使ってよいのは、DOM を残したままでは
   成立しないもの（focus trap を持つ面）と、現れても位置が動かないもの。規則は
   [`docs/rules.ja.md`](../../docs/rules.ja.md#layout)、hydration との関係は
-  [`docs/design/rendering.md`](../../docs/design/rendering.ja.md#サーバでしか分からないことブラウザでしか分からないことがある)
+  [`docs/design/rendering.md`](../../docs/design/rendering.ja.md#サーバーでしか分からないことブラウザーでしか分からないことがある)
   が持つ
 - 幅の段を条件にするときは数値を書かず、[`model/breakpoint`](../model/breakpoint.ts) が design token
   から組む文字列を渡す。JS 側に数値を書くと、段を差し替えたときに CSS 側の境界とずれる
@@ -95,12 +95,12 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 
 - ファイル先頭に `// @vitest-environment jsdom` を置く。デフォルトの環境は node（`vitest.config.ts`）
 - hook を呼ぶだけの Probe component を書き、返り値をレンダリング結果に映して読む
-  （[`docs/testing-conventions.md`](../../docs/testing-conventions.ja.md#component--hook-のテスト--testing-library-の原則) の「利用者が観測するものをアサートする」）
+  （[`docs/testing-conventions.md`](../../docs/testing-conventions.ja.md#component--hook-のテスト--testing-library-の原則) の「ユーザーが観測するものをアサートする」）
 - jsdom に無い browser API は `vitest.setup.ts` が補う（補いの一覧はそのファイルが持つ）。**変化を起こす
   必要があるテストは、そのファイルで `vi.stubGlobal` に制御できる最小の実装を置く** —— listener の集合と、
   それを発火させる `change` / `fire` を返す形。読み取り専用の値（`navigator.onLine` / `window.scrollY`）は
   `vi.spyOn(…, "get")` / `Object.defineProperty` で差し替える
-- サーバ側の初期値は `renderToStaticMarkup` でレンダリングして固定する。stub を置かずに回し、browser の値を見ずに
+- サーバー側の初期値は `renderToStaticMarkup` でレンダリングして固定する。stub を置かずに回し、browser の値を見ずに
   初期値を返すことを確かめる
 - 解除を固定する。購読ごとの hook は unmount 後の listener 数が 0 であること、module に畳んだ hook は
   最後のコンポーネントが外れたときだけ `removeEventListener` が呼ばれ、まだコンポーネントが残るあいだは呼ばれないこと
@@ -124,9 +124,9 @@ doc に「常に X を返す」と、なぜその側かを書く。選ぶのは�
 | `forbidden: components` — UI コンポーネントを import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス。機械: ESLint boundaries |
 | `forbidden: stores` — `stores` を import しない | violation | [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス。機械: ESLint boundaries |
 | `forbidden: server-config` — server config（`*.server.ts`）を import しない。`NEXT_PUBLIC_` の公開定数（`*.client.ts`）は読んでよい | violation | [0022](../../docs/adr/0022-capabilities-kernel.ja.md) 禁止事項 / [0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス。ESLint は `config` をレイヤーの粒度でしか見ない |
-| `forbidden: business-state` — 業務状態、同意や feature flag のようなポリシー状態、購読の生死や backoff のような通信機構の状態を持たない。持つのはブラウザ runtime の能力だけ | 業務状態は violation。状態がポリシーや通信機構のコピーかどうかが読み分けられないときは suggestion | [0022](../../docs/adr/0022-capabilities-kernel.ja.md) 禁止事項 |
+| `forbidden: business-state` — 業務状態、同意や feature flag のようなポリシー状態、購読の生死や backoff のような通信機構の状態を持たない。持つのはブラウザー runtime の能力だけ | 業務状態は violation。状態がポリシーや通信機構のコピーかどうかが読み分けられないときは suggestion | [0022](../../docs/adr/0022-capabilities-kernel.ja.md) 禁止事項 |
 | 置いてある hook は複数の feature から使われる。1 つの feature 専用の hook は feature の内側に置く | 使う feature が 1 つしか無ければ suggestion | [0022](../../docs/adr/0022-capabilities-kernel.ja.md) / この README「運用」 |
-| サーバに値が無い能力は、サーバ側の初期値を hook の doc に書く | 書かれていなければ violation。`renderToStaticMarkup` で固定するテストが無ければ suggestion | この README「サーバ側の初期値」/「テストの書き方」 |
+| サーバーに値が無い能力は、サーバー側の初期値を hook の doc に書く | 書かれていなければ violation。`renderToStaticMarkup` で固定するテストが無ければ suggestion | この README「サーバー側の初期値」/「テストの書き方」 |
 | 変わり続ける値は `useSyncExternalStore` で供給し、`serverSnapshot` を名指す | browser の値を `useState` へコピーして `useEffect` で追う形なら suggestion | この README「供給の形」 |
 | 購読を張った hook は解除を返し、テストが解除を固定する | 解除が無ければ violation。解除を固定するテストが無ければ suggestion | この README「購読の持ち方」/「テストの書き方」 |
 

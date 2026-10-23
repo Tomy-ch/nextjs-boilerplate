@@ -31,14 +31,14 @@ DDD への整合を謳わない（[`docs/project/out-of-scope.md`](../project/ou
 | **IdP** | 相手（OIDC の標準に従う） | **あり** —— 受け取った表明を、こちらの session へ封緘し直す | OpenID Connect | [`auth.md`](auth.ja.md) |
 | **観測基盤** | 標準（OTel） | **なし** —— OTLP のまま送る | OpenTelemetry | [`observability.md`](observability.ja.md) |
 | **メディア配信元** | 相手 | **なし** —— URL を組むだけ | 配信元の URL 規約 | [`security.md`](security.ja.md) / [0045](../adr/0045-fonts-and-images.ja.md) |
-| **タグマネージャ**（任意） | 相手 | **なし** —— 読み込むエンドポイントだけを持つ | ベンダの埋め込み仕様 | [`security.md`](security.ja.md) / [0131](../adr/0131-cookie-consent.ja.md) |
+| **タグマネージャー**（任意） | 相手 | **なし** —— 読み込むエンドポイントだけを持つ | ベンダーの埋め込み仕様 | [`security.md`](security.ja.md) / [0131](../adr/0131-cookie-consent.ja.md) |
 
 ## 入ってくる辺
 
 | 相手 | 境界の所有 | 翻案 | 契約の出所 | 機構を持つ文書 |
 | --- | --- | --- | --- | --- |
 | **`/api/*` を叩く側** | **こちら** —— エンドポイントの形をこのリポジトリが決める | **あり** —— 受けた形を検証してから内側の型にする | このリポジトリ | [`data-fetching.md`](data-fetching.ja.md) / [`observability.md`](observability.ja.md) |
-| **クローラ・インデックス** | 標準（robots / sitemap / OG） | **なし** | 各仕様 | [0044](../adr/0044-seo-metadata-strategy.ja.md) |
+| **クローラー・インデックス** | 標準（robots / sitemap / OG） | **なし** | 各仕様 | [0044](../adr/0044-seo-metadata-strategy.ja.md) |
 
 **中継のエンドポイントだけは所有が割れる。**同じ `/api/*` の下でも、こちらが形を決めるエンドポイントと、
 エンベロープだけ検証して読み替えずに転送するエンドポイントがある。どちらなのかは

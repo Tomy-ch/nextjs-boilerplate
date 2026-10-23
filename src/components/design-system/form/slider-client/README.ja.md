@@ -30,7 +30,7 @@ SSR first の選定では `◎` の例外に当たります。デフォルトは
 
 名前を持つのは外枠ではなく**各 thumb** です。`slider` role は thumb 側に付くため、外枠へ `aria-label` や `aria-labelledby` を渡しても名前になりません。`thumbLabels` に値と同じ順序で名前を渡します。範囲入力では「下限価格」「上限価格」のように、どちらの端かが判る名前にします。
 
-`aria-valuemin` / `aria-valuemax` は thumb ごとの可動域ではなく、slider 全体の `min` / `max` を指します。範囲入力で「下限は上限を越えない」ことを利用者へ伝えたい場合は、名前や併記テキストで補います。
+`aria-valuemin` / `aria-valuemax` は thumb ごとの可動域ではなく、slider 全体の `min` / `max` を指します。範囲入力で「下限は上限を越えない」ことをユーザーへ伝えたい場合は、名前や併記テキストで補います。
 
 `orientation="vertical"` で縦向きになります。その場合は高さを `className` で与えます。
 

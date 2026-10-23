@@ -6,7 +6,7 @@
 
 ## 用途
 
-利用者向け画面の外枠を組みます。header・導線・skip link・`main`・footer をまとめ、どの画面でも同じ位置に置きます。
+ユーザー向け画面の外枠を組みます。header・導線・skip link・`main`・footer をまとめ、どの画面でも同じ位置に置きます。
 
 ## 役割と公開 component
 
@@ -21,7 +21,7 @@
 
 ## 利用ケース
 
-利用者向けの route group の layout で一度だけ使います。レイアウトシェルをどこに mount するかは [0026](../../../../docs/adr/0026-layout-shell-mount.ja.md) が決めます。
+ユーザー向けの route group の layout で一度だけ使います。レイアウトシェルをどこに mount するかは [0026](../../../../docs/adr/0026-layout-shell-mount.ja.md) が決めます。
 
 導線を 1 つも持たないレイアウトシェル（`navItems` も `navSlot` も空）では、header の `nav` 自体を置きません。中身の無い landmark は、支援技術の一覧に行き先の無い項目として残るためです。
 
@@ -31,7 +31,7 @@
 
 **`main` は幅を絞りません。** 読み幅と左右余白は [`ContentContainer`](../content-container/README.ja.md) の責務です。
 
-skip link を先頭に置くのは、キーボードと支援技術の利用者が header の導線を毎回辿らずに本文へ入れるようにするためです。
+skip link を先頭に置くのは、キーボードと支援技術のユーザーが header の導線を毎回辿らずに本文へ入れるようにするためです。
 
 `sidebar` と `headerActions` の中身は知りません。置き場所だけを用意し、何を出すか・いつ出すか・どれだけの幅を取るかは渡す側が決めます。
 

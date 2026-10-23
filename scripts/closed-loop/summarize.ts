@@ -15,7 +15,7 @@ import type { Observation } from "./observation.js";
  *
  * @remarks
  * 週次はこのうち `改善案` だけを名指しで拾います（[integration.ts](integration.ts)）。
- * 8 つのうち唯一、**そのまま議題になる形で書かれる節**だからです。
+ * 節のうち唯一、**そのまま議題になる形で書かれる節**だからです。
  */
 export const BODY_SECTIONS: readonly string[] = [
   "結果",
@@ -119,8 +119,8 @@ export function buildPrompt(observation: Observation, candidates: readonly Candi
     `窓 ID: ${observation.windowId}`,
   ];
 
-  if (observation.prompts !== undefined) {
-    lines.push(`人の発話: ${observation.prompts}`);
+  if (observation.humanPrompts !== undefined) {
+    lines.push(`人の発話: ${observation.humanPrompts}`);
   }
 
   if (observation.toolCalls !== undefined) {
@@ -253,8 +253,7 @@ export function parseSummary(
  *
  * @remarks
  * 短すぎると、同じ話題を自分の言葉で言い直した文が当たります。長すぎると、言い回しを少し
- * 変えただけの引用が通ります。40 文字は**引用でなければ偶然一致しない長さ**として置いた
- * 初期値で、実運用の当たり方で動かす前提です。
+ * 変えただけの引用が通ります。40 文字は**引用でなければ偶然一致しない長さ**として置いています。
  */
 const QUOTE_RUN_CHARS = 40;
 
@@ -268,8 +267,7 @@ function flatten(text: string): string {
  *
  * @remarks
  * **これは宣言ではなく検査です。**候補として渡した本文は分かっているので、それが返ってきた
- * 本文にそのまま現れたかは機械で判定できます
- * 。
+ * 本文にそのまま現れたかは機械で判定できます。
  *
  * 判定できるのは**渡した候補との一致だけ**です。モデルが候補以外の記憶から書いた逐語は
  * ここでは捕まりません —— 捕まる範囲を広げたければ、渡す材料の側を絞ります。

@@ -46,7 +46,7 @@
 
 実体は `input type="checkbox"` で、`role="switch"` は与えていません。
 
-`switch` role は `aria-checked` を必須としますが、uncontrolled な native input では利用者の操作で React が再 render されないため同期できません。実状態と食い違う `aria-checked` は、checkbox として読み上げるより有害です。biome の `useAriaPropsForRole` もこの不足を検出します。
+`switch` role は `aria-checked` を必須としますが、uncontrolled な native input ではユーザーの操作で React が再 render されないため同期できません。実状態と食い違う `aria-checked` は、checkbox として読み上げるより有害です。biome の `useAriaPropsForRole` もこの不足を検出します。
 
 支援技術へ「入り / 切り」として伝える必要がある場合は、状態と role を Radix が対応させる [`SwitchClient`](../switch-client/README.ja.md) を使います。このコンポーネントが提供するのは **switch の見た目と native form の値**であり、読み上げは checkbox です。
 

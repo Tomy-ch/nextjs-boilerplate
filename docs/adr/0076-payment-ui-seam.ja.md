@@ -25,7 +25,7 @@ Accepted
 
 ### 1. フロント領域 = 決済 SDK の UI マウント seam
 
-決済 SDK(Stripe Elements / PayPal Buttons / Adyen Drop-in 等)は **本体非同梱(exclusion)** とし、採用したときに乗る **mount seam**(SDK が iframe / redirect を差し込む DOM マウント点 + client_secret 等の受け渡しエンドポイント)だけを名前付きで敷く。**デフォルトは決済画面を PSP 側へ遷移させる(redirect)か、backend / BFF 経由で操作する構成**であり、本体の配信ヘッダはその前提で閉じている —— iframe を差す SDK を採るなら、[0111](0111-csp-security-headers.ja.md) の `Cross-Origin-Embedder-Policy` と `Permissions-Policy` の `payment` を開ける判断を伴う。
+決済 SDK(Stripe Elements / PayPal Buttons / Adyen Drop-in 等)は **本体非同梱(exclusion)** とし、採用したときに乗る **mount seam**(SDK が iframe / redirect を差し込む DOM マウント点 + client_secret 等の受け渡しエンドポイント)だけを名前付きで敷く。**デフォルトは決済画面を PSP 側へ遷移させる(redirect)か、backend / BFF 経由で操作する構成**であり、本体の配信ヘッダーはその前提で閉じている —— iframe を差す SDK を採るなら、[0111](0111-csp-security-headers.ja.md) の `Cross-Origin-Embedder-Policy` と `Permissions-Policy` の `payment` を開ける判断を伴う。
 
 - 外部スクリプトの読込は [0131](0131-cookie-consent.ja.md)(同意ゲート)と CSP([0111](0111-csp-security-headers.ja.md))に連動させる。決済 SDK の `<script>` は同意 / CSP 許可の下でのみロードする(サードパーティスクリプト規約 = `docs/rules.md`「セキュリティ」の「第三者 script は同意ゲートの裏に置く」と一貫させる)。
 

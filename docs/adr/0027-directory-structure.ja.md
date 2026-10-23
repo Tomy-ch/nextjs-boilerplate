@@ -100,15 +100,15 @@ src/
   - **2 つ目の feature が実際に必要としたとき**に `ui/` から上げ、1 つに戻ったら下ろす
   - 深さは `features/<name>/facade/<part>/` までとし、`ui/` と同じく 1 コンポーネント = 1 ディレクトリとする
 - **テストは実装の隣に co-location する**。`__tests__/` への一括集約はしない。テストファイルの拡張子・命名規約は [0090](0090-testing-strategy.ja.md) が正(本 ADR は配置方針のみ)
-- **スタイルは Tailwind ユーティリティをデフォルト**とし([0050](0050-styling-strategy.ja.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する。design token / `cn()` ヘルパの置き場は [0050](0050-styling-strategy.ja.md) が正
-- **契約から生成するモック**(MSW ハンドラ等)は `src/` 外の **`mocks/`** に置き、生成型([0072](0072-api-type-generation.ja.md) の do-not-edit)と分離する
+- **スタイルは Tailwind ユーティリティをデフォルト**とし([0050](0050-styling-strategy.ja.md))、別ファイルの CSS は最小化する。グローバル CSS は `src/app/globals.css` に集約する。design token / `cn()` ヘルパーの置き場は [0050](0050-styling-strategy.ja.md) が正
+- **契約から生成するモック**(MSW ハンドラー等)は `src/` 外の **`mocks/`** に置き、生成型([0072](0072-api-type-generation.ja.md) の do-not-edit)と分離する
 - **カタログが差し替えるモジュールの実体は、対象と同じディレクトリの `__mocks__/<対象と同じ名前>` に置く**([0054](0054-ui-catalog-storybook.ja.md))。これは種類による掘り下げではなく、差し替えの道具が名前と位置を固定するための例外であり、`facade/<part>/__mocks__/` のように深さの上限を 1 段超える形もこの理由の範囲でだけ許す。置けるのは**カタログでしか読まれない差し替え**に限り、本番の経路が import するものを置かない
 
 ### 共有モジュールの粒度
 
 - **判定を持つモジュールは per-file を基本**とし(1 ファイル 1 役割・フラット共置)、肥大化した時点で **per-folder へ昇格**する(ネスト深化の防止)
 - **UI コンポーネントは per-folder を基本**とする。実装のほかに stories・定義・README を伴い、それらをコンポーネントごとに共置するため(`components/design-system/<役割>/<コンポーネント>/` と `features/<name>/<screen>/ui/<part>/` が同形)
-- **feature を跨いで**共有が必要になった要素は、フォルダを増やす前に [0021](0021-frontend-responsibility.ja.md) の**昇格ルール**(`model` / `components` / `adapters` / `capabilities` / `stores` へ昇格)に従う。共有の受け皿となる汎用フォルダ(`common` / `utils` 等)は作らない([0021](0021-frontend-responsibility.ja.md) 命名規律)
+- **feature を跨いで**共有が必要になった要素は、フォルダーを増やす前に [0021](0021-frontend-responsibility.ja.md) の**昇格ルール**(`model` / `components` / `adapters` / `capabilities` / `stores` へ昇格)に従う。共有の受け皿となる汎用フォルダー(`common` / `utils` 等)は作らない([0021](0021-frontend-responsibility.ja.md) 命名規律)
 - **同じ feature の画面を跨ぐだけ**の共有は昇格の対象ではない。feature 直下へ置く(上記 co-location 方針)。**昇格も画面跨ぎも当てはまらない —— 他の feature が必要とするが、特定ドメインの語彙を持つためどのカーネルも受け取れない —— 場合だけ** `facade/` を使う([0021](0021-frontend-responsibility.ja.md))
 
 ### 物理ディレクトリの作成タイミング
@@ -126,7 +126,7 @@ src/
 - ❌ 第 1 軸を 2 段以上ネストにすること、および受入条件(資源 2 つ以上 かつ いずれかが画面 2 つ以上)を満たさないうちに `<resource>/` を挟むこと（強制: 散文 —— **寄せられる**（`page-content.tsx` を持つディレクトリを画面と見なし、その親が feature 直下でないバンドルを資源として数え、ネストの段数と「資源 2 つ以上・いずれかが画面 2 つ以上」をスキャンで照合する形。規則は無い））
 - ❌ カーネル内をサブディレクトリで種類分けすること(フラット共置。UI コンポーネントの per-folder は種類分けではなく 1 コンポーネント 1 ディレクトリ)（強制: 散文 —— **一部寄せられる**。種類を表す既知の綴り（`hooks` / `types` / `utils` 等）のサブディレクトリは名前の照合で落とせるが規則は無い。役割の区画や 1 コンポーネント 1 ディレクトリとの区別は名前の意味で決まる）
 - ❌ 11 カーネルの範囲外の新規ディレクトリを ADR 追補なしに `src/` 直下へ作ること（強制: ESLint `boundaries/no-unknown-files` が `KERNELS` に無い `src/` 直下のディレクトリに置いた JS/TS ファイルを落とす。JS/TS 以外だけを持つディレクトリは散文 —— **寄せられる**（`src/` 直下の一覧を `KERNELS` と突き合わせる形。規則は無い））
-- ❌ 共有の受け皿となる汎用フォルダ(`common` / `shared` / `utils` / `lib` 等)を作ること([0021](0021-frontend-responsibility.ja.md) 命名規律)（強制: ESLint `boundaries/no-unknown-files` が `src/` 直下に作った汎用フォルダ（中の JS/TS）を落とす。カーネル・feature の内側は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
+- ❌ 共有の受け皿となる汎用フォルダー(`common` / `shared` / `utils` / `lib` 等)を作ること([0021](0021-frontend-responsibility.ja.md) 命名規律)（強制: ESLint `boundaries/no-unknown-files` が `src/` 直下に作った汎用フォルダー（中の JS/TS）を落とす。カーネル・feature の内側は散文 —— **寄せられる**（パスの各段を禁止名の一覧と照合する形。規則は無い））
 - ❌ 再輸出だけを持つ `index.ts`(barrel file)を**手で**置くこと(import 元がファイルではなくディレクトリになり、実体の所在が読めなくなる。循環参照と不要な読み込みの温床でもある。import は実体のパスを指す。**生成物は対象外** —— 生成の形は上流の道具が決めるため。実行のエントリポイントとして置く `index.ts` は再輸出ではないので該当しない)（強制: 散文 —— **寄せられる**（再輸出だけを持つ `index.ts` を biome `noBarrelFile` で落とし、生成物は override で外す形。規則は無い））
 
 ## 補足

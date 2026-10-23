@@ -15,11 +15,11 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 
 ## 0. 認証・共通事項(フロントが意識する範囲)
 
-- 認証は **Next.js BFF が mock OIDC を仲介**する。ブラウザは httpOnly BFF Session Cookie のみ保持し、JWT(Access Token / ID Token)はブラウザに露出しない
+- 認証は **Next.js BFF が mock OIDC を仲介**する。ブラウザーは httpOnly BFF Session Cookie のみ保持し、JWT(Access Token / ID Token)はブラウザーに露出しない
 - BFF は `GET /.well-known/openid-configuration` で endpoint / issuer を取得し、`GET /.well-known/jwks.json` で署名鍵を取得する。値を画面や feature に直書きしない
 - ログインは BFF が `GET /oidc/authorize` へ Authorization Code + PKCE S256 を開始し、callback で `POST /oidc/token` を `application/x-www-form-urlencoded` で呼ぶ。`code_verifier`、`state`、`nonce` は BFF が保持・検証する
-- ログアウトは BFF が `POST /oidc/logout` を呼ぶ。IdP の logout は GET ナビゲーションではないため、ブラウザから IdP へ直接遷移しない
-- フロントから見た「認証が要る API」は、BFF 経由で Bearer が自動付与される前提で実装する。個別に Authorization ヘッダを組み立てる必要はない
+- ログアウトは BFF が `POST /oidc/logout` を呼ぶ。IdP の logout は GET ナビゲーションではないため、ブラウザーから IdP へ直接遷移しない
+- フロントから見た「認証が要る API」は、BFF 経由で Bearer が自動付与される前提で実装する。個別に Authorization ヘッダーを組み立てる必要はない
 - 401 は「未ログイン / セッション切れ」として扱い、ログイン画面(U9、BFF route)へリダイレクト
 - 403 は「ログイン済みだが権限不足」。admin 系画面(A 系)で非 admin ユーザーがアクセスした場合に発生。UI 上は該当ボタン / 導線ごと出し分けるのが基本
 - 通貨: 商品の `price` は USD の decimal 文字列、購入集計の金額は USD セント整数である。`displayCurrency=JPY` を明示指定した時だけ `referenceAmount` が参考値として付与される。フロントは「参考」であることを表示上明示する
@@ -28,7 +28,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 - 商品説明(description)は **リッチテキスト**(TipTap で作成)。表示側は必ず sanitizer を通す(生の `dangerouslySetInnerHTML` 直接使用は禁止。[実装規約](../rules.ja.md#security)の「`dangerouslySetInnerHTML` は原則禁止する」)
 - ページネーションは基本 **cursor 方式**。無限スクロール(増分取得)の画面とページ送り相当の画面が混在するので、画面ごとの実装パターンに注意
 - Idempotency-Key が必要な書き込みは購入作成(U6)と問い合わせの投稿・回答(U13 / A10)である。どちらも自然キーを持たず、応答が届かなかっただけの再送が 2 件目になるため、二重送信防止として実装すること。クーポンの発行(1 人へ・一括)、キャンペーンコードによるクーポンの受け取り、キャンペーンの定義は、契約そのものがキーを必須にしている(理由は `IdempotencyKeyRequiredParam` が持つ)
-- **長寿命接続(SSE)はブラウザが backend へ直接開く**。取得の中継とは経路が別で、`EventSource` は任意のヘッダを載せられないため、資格情報は BFF が発券する短命 ticket を query に載せる。整列・重複排除・張り直し・打ち切りの判断は `adapters/client/stream` が持ち、画面は受け取った event を畳み込むだけにする([ADR 0074](../adr/0074-runtime-communication-seam.ja.md))
+- **長寿命接続(SSE)はブラウザーが backend へ直接開く**。取得の中継とは経路が別で、`EventSource` は任意のヘッダーを載せられないため、資格情報は BFF が発券する短命 ticket を query に載せる。整列・重複排除・張り直し・打ち切りの判断は `adapters/client/stream` が持ち、画面は受け取った event を畳み込むだけにする([ADR 0074](../adr/0074-runtime-communication-seam.ja.md))
 
 ---
 
@@ -39,8 +39,8 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
 | U1 | トップ | `GET /v1/products/ranking/quantity` / `GET /v1/products`(新着 sort) / `GET /v1/products/categories` | 売れ筋ランキング・新着商品・カテゴリ導線を並べるだけのトップページ。パーソナライズなし | 分類は `use cache` を持つエンドポイントから引くので静的なシェルに入り、残る 2 系統を RSC 内で `Promise.allSettled` で取る。`all` は最初の失敗で待機を打ち切るため、成功した系統の結果が使えない。落ちた系統だけを失敗表示へ替える |
-| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryCodes` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広いバンドではサイドバーで選択即時、狭いバンドでは sheet 内でまとめて確定する(並び替えはどちらのバンドでも即時)。増分取得は無限スクロール方式。状態で絞り込む操作は置かない。`statusCodes` は契約も backend も受け付けて実際に効くが、状態マスタは在庫・販売の 10 状態で売り手の語彙であり、どれを買い手へ出すかが未決のため(公開の可否は `publishedAt` の別軸で、状態マスタとは無関係) |
-| U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryCodes`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルタで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
+| U2 | 商品一覧 | `GET /v1/products`(`after` / `first` / `categoryCodes` / `keyword` / `sort`) / `GET /v1/products/categories` | 検索・絞り込み・並び替え付き一覧 | 条件は `searchParams` に載せ、変わるたびに RSC が再取得する。絞り込みは広いバンドではサイドバーで選択即時、狭いバンドでは sheet 内でまとめて確定する(並び替えはどちらのバンドでも即時)。増分取得は無限スクロール方式。状態で絞り込む操作は置かない。`statusCodes` は契約も backend も受け付けて実際に効くが、状態マスターは在庫・販売の 10 状態で売り手の語彙であり、どれを買い手へ出すかが未決のため(公開の可否は `publishedAt` の別軸で、状態マスターとは無関係) |
+| U3 | 商品詳細 | `GET /v1/products/{productId}` / `GET /v1/products`(`categoryCodes`) | 単一商品の詳細表示。関連商品は一覧 API をカテゴリフィルターで再利用(専用 API なし) | description はリッチテキストなので必ず sanitizer 経由で表示 |
 | U4 | カート | `GET /v1/carts/me` / `PUT /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me/items/{productId}` / `DELETE /v1/carts/me` | 商品追加・数量変更・削除・全消し | **リロードで消えない**。数量は加算ではなく設定(upsert)で、自然キーが冪等性を持つため `Idempotency-Key` は要らない。買えない明細・値の変わった明細は `issues` として画面に出す。カートのサイドバー / drawer の副導線「カートを見る」から入る。**認証を要さない**ため、未ログインでも中身を全画面で確かめられる唯一の経路である |
 | U5 | 購入確認 | `GET /v1/carts/me` / `GET /v1/exchange-rates?base=USD&quote=JPY&amount=` / `GET /v1/users/me` | カート内容の最終確認。JPY 表示切替可 | 明細は client から引き継がず**この画面で取り直す**。再評価が入るため、U4 で見た時点から買えなくなった明細・値の変わった明細がここで現れうる。為替 API の `amount` は decimal 文字列。為替取得失敗時は参考額なしで購入自体は継続できる(degrade)。カートのサイドバー / drawer の主導線「購入手続きへ」から入る。認証の内側にある |
 | U6 | 購入完了 | `POST /v1/purchases?displayCurrency=JPY` | 購入確定。`details` に `productId` と `quantity` を送信 | OpenAPI 上の `Idempotency-Key` は任意だが、フロントは常に設定する。二重クリック / リロードを防ぎ、`ActionState<T>` で送信状態を管理する |
@@ -50,7 +50,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | U10 | 登録(オンボーディング) | `GET /v1/prefectures` / `GET /v1/addresses?postalCode=` / `POST /v1/users` | 初回ログイン後の追加情報登録(住所等) | 明示オンボーディングとして実装する。`POST /v1/users` には `Idempotency-Key` を設定し、郵便番号補完が `isFallback=true` なら全項目を手入力する |
 | U11 | マイページ | `GET /v1/users/me` / `GET /v1/users/me/purchases/summary` | プロフィール確認・購入サマリ表示・退会導線 | 退会は確認モーダル必須(不可逆操作) |
 | U12 | ユーザー更新 | `GET /v1/users/me` / `GET /v1/prefectures` / `PUT /v1/users/{userId}` | プロフィール編集 | U11 とは独立ルート。**CollectAll**(RSC 内 `Promise.all` での並置合成)の実例 |
-| U13 | お問い合わせ | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | サポートとのやり取り。利用者ごとに 1 件で、最初の投稿が問い合わせを作る | **届いた 1 通が取り直しを待たずに出る唯一の画面**。初期表示は RSC が履歴を取り、その応答が返す `streamCursor` を購読の開始位置に渡す。購読はブラウザが backend の SSE へ直接繋ぎ、資格情報は BFF が発券する短命 ticket を query に載せる。送信は Server Action + `Idempotency-Key` で、届いた 1 通は購読ではなく取り直した canonical に現れる。`APP_API_MODE=mock` では発券の取得エンドポイントが発券を断り、購読を持たない姿で止まる（表示と送信は動く） |
+| U13 | お問い合わせ | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | サポートとのやり取り。ユーザーごとに 1 件で、最初の投稿が問い合わせを作る | **届いた 1 通が取り直しを待たずに出る唯一の画面**。初期表示は RSC が履歴を取り、その応答が返す `streamCursor` を購読の開始位置に渡す。購読はブラウザーが backend の SSE へ直接繋ぎ、資格情報は BFF が発券する短命 ticket を query に載せる。送信は Server Action + `Idempotency-Key` で、届いた 1 通は購読ではなく取り直した canonical に現れる。`APP_API_MODE=mock` では発券の取得エンドポイントが発券を断り、購読を持たない姿で止まる（表示と送信は動く） |
 
 ### admin 側(11)
 
@@ -65,7 +65,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | A7 | 商品編集 | `GET /v1/products/{productId}` / `PATCH /v1/products/{productId}` / `POST /v1/products/images` | 既存商品の編集フォーム | 読み込んだ `version` を必ず送る。409 時は「他の人が更新済み」の再読み込み導線を表示する。在庫数はここでは編集不可(A3 の担当) |
 | A8 | 発送 | `GET /v1/purchases/shippable` / `PATCH /v1/purchases/{purchaseCode}/ship` / `GET /v1/purchases`(`statusCodes=8` + `includeOtherUsers=true`) / `PATCH /v1/purchases/{purchaseCode}/deliver` | 支払い済み・未発送の注文を、まとめて発送してよい便ごとに並べて発送する。発送済みの注文はその下に並べ、1 件ずつ配達済みにする | 便の分け方も並び順も契約が決めるので画面は並べ直さない。発送は購入 1 件ずつなので、まとめる操作は同じ送信に注文を並べて送る。途中まで通った送信を失敗にせず、通った件数と通らなかった件数を両方出す。確認は挟まない(流れ作業のため)。配達の確認はまとめる軸を持たず常に 1 件 —— 届いたかどうかは注文ごとに分かれる |
 | A9 | 問い合わせ一覧 | `GET /v1/inquiries`(`after` / `first`) / `POST /v1/inquiries/feed/stream-ticket` / `GET /v1/streams/{destination}` | 届いた問い合わせを更新の新しい順に並べる。本文は含まない | 更新フィードを購読し、届いた時点で一覧を取り直す。**届いた内容で行を書き換えない** —— フィードが運ぶのは「どの問い合わせがどこまで進んだか」だけで、並び順の基準も他の列も入っていない。ページ送りは cursor で、戻る先は URL が覚える |
-| A10 | 問い合わせの対応 | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | 1 件のやり取りを読み、回答する | **会話そのものを購読できない** —— 契約が持つ購読のエンドポイントは「自分の問い合わせ」と「更新フィード」の 2 つで、運営が任意の 1 件を直接購読するエンドポイントが無い。フィードが開いている 1 件の更新を伝えたときに canonical を取り直す。右へ寄るのは運営の発言で、利用者側とは「自分」が入れ替わる。誰の問い合わせかは履歴が返さないため、一覧の行と突き合わせる |
+| A10 | 問い合わせの対応 | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | 1 件のやり取りを読み、回答する | **会話そのものを購読できない** —— 契約が持つ購読のエンドポイントは「自分の問い合わせ」と「更新フィード」の 2 つで、運営が任意の 1 件を直接購読するエンドポイントが無い。フィードが開いている 1 件の更新を伝えたときに canonical を取り直す。右へ寄るのは運営の発言で、ユーザー側とは「自分」が入れ替わる。誰の問い合わせかは履歴が返さないため、一覧の行と突き合わせる |
 | A11 | 商品の廃番 | `GET /v1/products/{productId}`(`includeUnpublished=true`) / `GET /v1/products/{productId}/discontinue-impact` / `GET /v1/purchases`(`productId` + `includeOtherUsers=true` + 進行中の `statusCodes`) / `POST /v1/products/{productId}/discontinue` | 影響を見積もり、代替クーポンの条件を受け、確認を挟んで商品 1 件を廃番にする | **見積もりは結果ではない** —— ロックを取らず返した時点で古くなるため、何が起きたかは実行の応答から出し、その件数は応答にしか無い。進行中の購入が残っている間は実行を差し出さず、代わりにその購入を並べる。409 は見積もりの後に進行中の購入が入ったということで、画面を取り直す。値引き率は decimal 文字列なので、数として持ち回らない。既に廃番の商品は廃番になった日時だけを出す |
 
 ### サイト情報・開発用の画面(4)
@@ -77,7 +77,7 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
 | S1 | このサイトについて(`/about`) | — | 何のためのサイトか・何で出来ているか・何が動かないか | 取得を持たない。静的にレンダリングする |
-| S2 | プライバシー(`/privacy`) | — | 入力した情報がどこに残るかを、起動のしかたごとに 3 通りで説明する | 定型文にしない。利用者が自分の起動構成を判断できる形で書く |
+| S2 | プライバシー(`/privacy`) | — | 入力した情報がどこに残るかを、起動のしかたごとに 3 通りで説明する | 定型文にしない。ユーザーが自分の起動構成を判断できる形で書く |
 | S3 | 利用規約(`/terms`) | — | 閲覧の同意・セキュリティ上のリスク・提供条件・免責 | 免責はこの画面だけが持つ。S1 にコピーしない |
 | D1 | 開発用 session(`/dev/session`) | — (IdP のエンドポイントのみ) | IdP を通さずに session を発行し、保護された画面へ入る | production build には route ごと入らない。開ける環境の判定を画面と Server Action の両方に掛ける |
 
@@ -94,24 +94,24 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/products` | 不要(`includeUnpublished=true` は要 admin) | 一覧(cursor + フィルタ + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished, discontinued(`includeUnpublished=true` と組んだときだけ意味を持つ。`GET /v1/products/count` も受け付ける) | items[], nextCursor | 400, 401, 403 |
+| `GET /v1/products` | 不要(`includeUnpublished=true` は要 admin) | 一覧(cursor + フィルター + keyword + sort) | after, first, categoryCodes, statusCodes, keyword, sort, includeUnpublished, discontinued(`includeUnpublished=true` と組んだときだけ意味を持つ。`GET /v1/products/count` も受け付ける) | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/products/{productId}` | 不要(`includeUnpublished=true` は要 admin) | 詳細。管理の画面(A3 / A7 / A11)は `includeUnpublished=true` で読む。付けないと未公開・廃番の商品は 404 になる | includeUnpublished | 商品詳細(description 含む) | 400, 401, 403, 404 |
-| `GET /v1/products/categories` | 不要 | カテゴリマスタ | — | categories[] | — |
-| `GET /v1/products/statuses` | 不要 | ステータスマスタ | — | statuses[] | — |
+| `GET /v1/products/categories` | 不要 | カテゴリマスター | — | categories[] | — |
+| `GET /v1/products/statuses` | 不要 | ステータスマスター | — | statuses[] | — |
 | `GET /v1/products/ranking/quantity` | 不要 | 売れ筋ランキング(数量順) | orderedAfter, orderedBefore, limit | ranked items[] | 400 |
 | `POST /v1/products` | 要 admin | 商品作成(A6) | name, description(rich text), price(decimal 文字列), categoryId, statusId, imagePath, quantity | 作成後の商品 | 400, 401, 403, 422 |
 | `PATCH /v1/products/{productId}` | 要 admin | 商品更新(A7)。在庫以外の項目 | version と部分更新フィールド | 更新後の商品 | 400, 401, 403, 404, **409(楽観ロック)**, 422 |
 | `PATCH /v1/products/{productId}/stock` | 要 admin | 在庫補充(A3) | delta | 更新後の商品 | 400, 401, 403, 404, **409**, 422, 503 |
 | `POST /v1/products/images` | 要 admin | 画像アップロード(A6 / A7) | multipart の image binary | `{ imagePath }` | 400, 401, 403, 413, 415, 422 |
 | `GET /v1/products/{productId}/discontinue-impact` | 要 admin | 廃番にしたときの影響を実行前に見積もる(A11)。ロックを取らないため、返した時点で古くなる | — | affectedCartCount, affectedUserCount, inProgressPurchaseCount | 400, 401, 403, 404 |
-| `POST /v1/products/{productId}/discontinue` | 要 admin | 商品の廃番(A11)。非公開にし、カートに入れていた確定済みユーザーへ代替クーポンを発行する。同一トランザクションで行い、取り消せない | couponDiscountRate(decimal 文字列), couponValidityDays, Idempotency-Key(任意のヘッダ) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409(進行中の購入に含まれる)**, 422 |
+| `POST /v1/products/{productId}/discontinue` | 要 admin | 商品の廃番(A11)。非公開にし、カートに入れていた確定済みユーザーへ代替クーポンを発行する。同一トランザクションで行い、取り消せない | couponDiscountRate(decimal 文字列), couponValidityDays, Idempotency-Key(任意のヘッダー) | discontinuedAt, affectedCartCount, affectedUserCount, issuedCouponCount | 400, 401, 403, 404, **409(進行中の購入に含まれる)**, 422 |
 
 ### Purchase 系
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), couponId(任意、1 枚まで), Idempotency-Key(ヘッダ), displayCurrency(任意 query) | 購入、discountAmount、appliedCoupon、referenceAmount | 400, 401, 409(在庫不足等), 422(適用できないクーポンを含む) |
-| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間。A8 と A11 は `includeOtherUsers=true` で他の利用者の購入を読み、A11 は `productId` で商品 1 件に絞る | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
+| `POST /v1/purchases` | 要 | 購入作成(U6) | details(productId, quantity), couponId(任意、1 枚まで), Idempotency-Key(ヘッダー), displayCurrency(任意 query) | 購入、discountAmount、appliedCoupon、referenceAmount | 400, 401, 409(在庫不足等), 422(適用できないクーポンを含む) |
+| `GET /v1/purchases` | 要(`includeOtherUsers=true` は要 admin) | 購入履歴(U7、cursor)。期間は瞬時の半開区間。A8 と A11 は `includeOtherUsers=true` で他のユーザーの購入を読み、A11 は `productId` で商品 1 件に絞る | after, first, orderedAfter, orderedBefore, statusCodes, includeOtherUsers, productId | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/purchases/{purchaseCode}` | 要 | 購入詳細(U8) | — | 明細(商品名を結合済み)、discountAmount、appliedCoupon | 401, 404 |
 | `PATCH /v1/purchases/{purchaseCode}/cancel` | 要 | キャンセル(U8) | — | 更新後ステータス | 400, 401, 404, 409(不正遷移) |
 | `PATCH /v1/purchases/{purchaseCode}/pay` | 要 | 支払い(擬似決済、U8)。未処理 / 受付中 / 確認中 からのみ | — | 更新後ステータス | 400, 401, 404, 409(二重支払い・不正遷移) |
@@ -125,12 +125,12 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | --- | --- | --- | --- | --- | --- |
 | `GET /v1/users/me/coupons` | 要 | 保有クーポン。発行日時の新しい順。使用済み・失効済みも並ぶ | — | coupons[] | 401 |
 | `GET /v1/carts/me/coupons` | 要 | いまのカートに使えるクーポンと、それぞれの値引き額。**適用可否と値引き額を表現層に計算させないための口** | — | coupons[](coupon, discountAmount) | 401 |
-| `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る | code, Idempotency-Key(必須のヘッダ) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
-| `POST /v1/coupons` | 要 admin | 名指しした 1 人へクーポンを 1 枚発行する | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key(必須のヘッダ) | 発行されたクーポン | 400, 401, 403, 404(受給者または範囲の対象が無い), 409, 422 |
-| `POST /v1/coupons/bulk-issue` | 要 admin | 退会していない全員へクーポンを 1 枚ずつ発行する。受給者は指定できない | discount, scope, expiresAt, Idempotency-Key(必須のヘッダ) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409(受給者数が上限超過)**, 422 |
+| `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る | code, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
+| `POST /v1/coupons` | 要 admin | 名指しした 1 人へクーポンを 1 枚発行する | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 403, 404(受給者または範囲の対象が無い), 409, 422 |
+| `POST /v1/coupons/bulk-issue` | 要 admin | 退会していない全員へクーポンを 1 枚ずつ発行する。受給者は指定できない | discount, scope, expiresAt, Idempotency-Key(必須のヘッダー) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409(受給者数が上限超過)**, 422 |
 | `GET /v1/campaigns` | 要 admin | キャンペーン一覧。開始の新しい順で、停止済み・終了済みも含む | page, perPage | campaigns[], total | 400, 401, 403, 422 |
-| `POST /v1/campaigns` | 要 admin | キャンペーンの定義。編集の口は無い | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key(必須のヘッダ) | キャンペーン | 400, 401, 403, **409(コードが使用済み)**, 422 |
-| `POST /v1/campaigns/{campaignId}/suspend` | 要 admin | キャンペーンの受け取りを止める。取り消せず、配ったクーポンは有効のまま | Idempotency-Key(任意のヘッダ) | キャンペーン | 400, 401, 403, 404, **409(停止済み)**, 422 |
+| `POST /v1/campaigns` | 要 admin | キャンペーンの定義。編集の口は無い | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key(必須のヘッダー) | キャンペーン | 400, 401, 403, **409(コードが使用済み)**, 422 |
+| `POST /v1/campaigns/{campaignId}/suspend` | 要 admin | キャンペーンの受け取りを止める。取り消せず、配ったクーポンは有効のまま | Idempotency-Key(任意のヘッダー) | キャンペーン | 400, 401, 403, 404, **409(停止済み)**, 422 |
 
 **クーポンの金額は 2 つの桁を使う。** 定額の `value` は `price` と同じ桁の USD decimal 文字列(`"5.00"` は $5)、定率の `value` は掛ける率(`"0.10"` は 10% 引き)である。`maxAmount` と `minPurchaseAmount` は、購入の合計と同じ USD セントの整数である。定額の `value` のセント未満の桁は受け付けられ、値引き額を計算するときに切り捨てられる。
 
@@ -139,11 +139,11 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | Method / Path | 認証 | 用途 | 主なリクエスト | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
 | `GET /v1/inquiries/me/messages` | 要 | 自分の履歴(U13) | afterSequence, first | messages[], streamCursor, nextAfterSequence | 400, 401 |
-| `POST /v1/inquiries/me/messages` | 要 | 自分の投稿(U13) | body, Idempotency-Key(ヘッダ) | 追加された 1 通 | 400, 401, 409, 422 |
+| `POST /v1/inquiries/me/messages` | 要 | 自分の投稿(U13) | body, Idempotency-Key(ヘッダー) | 追加された 1 通 | 400, 401, 409, 422 |
 | `POST /v1/inquiries/me/stream-ticket` | 要 | 購読の発券(U13) | — | ticket, streamId, expiresAt | 400, 401, 404(まだ問い合わせが無い) |
 | `GET /v1/inquiries` | 要 admin | 一覧(A9、cursor) | after, first | items[], nextCursor | 400, 401, 403 |
 | `GET /v1/inquiries/{inquiryId}/messages` | 要 admin | 任意の履歴(A10) | afterSequence, first | 自分の履歴と同じ形 | 400, 401, 403, 404 |
-| `POST /v1/inquiries/{inquiryId}/messages` | 要 admin | 回答(A10) | body, Idempotency-Key(ヘッダ) | 追加された 1 通 | 400, 401, 403, 404, 422 |
+| `POST /v1/inquiries/{inquiryId}/messages` | 要 admin | 回答(A10) | body, Idempotency-Key(ヘッダー) | 追加された 1 通 | 400, 401, 403, 404, 422 |
 | `POST /v1/inquiries/feed/stream-ticket` | 要 admin | 更新フィードの発券(A9 / A10) | — | ticket, streamId, expiresAt | 400, 401, 403 |
 | `GET /v1/streams/{destination}` | ticket(query) | 購読そのもの(U13 / A9 / A10) | after(開始位置) | SSE。business event と `event: control`、15 秒の heartbeat | 400, 401, 410(保持期間外), 503 |
 
@@ -162,7 +162,7 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | Method / Path | 認証 | 用途 | 備考 |
 | --- | --- | --- | --- |
 | `GET /v1/users/me` | 要 | 認証コンテキスト解決 | ログイン中ユーザーの基本情報 |
-| `GET /v1/prefectures` | 不要 | 都道府県マスタ | 登録 / 更新フォームの select 用 |
+| `GET /v1/prefectures` | 不要 | 都道府県マスター | 登録 / 更新フォームの select 用 |
 | `GET /v1/addresses?postalCode=` | 不要 | 郵便番号 → 住所補完 | isFallback=true なら全項目を手入力する(degrade) |
 | `GET /v1/exchange-rates` | 不要 | 為替レート(参考円換算用) | base, quote, amount(decimal 文字列) は必須。外部障害は 503 |
 | `POST /v1/users` | 要(内部ユーザーがまだ無い、認証済みの主体を受け付ける) | 初回オンボーディング(U10) | Idempotency-Key とユーザー情報を送る。409 は既存ユーザーなどの競合 |
@@ -172,12 +172,12 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 
 Go API の OpenAPI には存在しない。BFF の Route Handler が次の mock OIDC 契約を使う。フロントが使うのは BFF の URL(例: `/api/auth/login` / `/api/auth/logout`)だけである(仲介の理由は §0)。
 
-| Method / Path | BFF の用途 | ブラウザが直接呼ばない理由 |
+| Method / Path | BFF の用途 | ブラウザーが直接呼ばない理由 |
 | --- | --- | --- |
 | `GET /.well-known/openid-configuration` | issuer / endpoint の Discovery | 設定の正は IdP の公開メタデータであり、feature に固定しない |
 | `GET /.well-known/jwks.json` | ID Token の署名鍵取得 | JWT 検証は BFF の責務 |
 | `GET /oidc/authorize` | Authorization Code + PKCE S256 開始 | state、nonce、code_challenge を BFF が生成・検証する |
-| `POST /oidc/token` | callback 後の token 交換 | code_verifier と token をブラウザに露出しない |
+| `POST /oidc/token` | callback 後の token 交換 | code_verifier と token をブラウザーに露出しない |
 | `GET /oidc/userinfo` | 必要な claim の取得 | access token を BFF 内に閉じる |
 | `POST /oidc/logout` | RP-Initiated Logout | IdP logout は GET ではなく form POST |
 

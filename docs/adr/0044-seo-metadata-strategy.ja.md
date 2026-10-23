@@ -4,7 +4,7 @@
 
 # SEO / メタデータ戦略
 
-本リポジトリにおける **メタデータの体系(App Router Metadata API)/ クローラ制御(`sitemap.ts` / `robots.ts`)/ canonical ・alternates / 構造化データ(JSON-LD)/ アイコン体系 / 公開面の検査** の規約を定める。Next.js 16 組込みの Metadata 機構を追認し、最小の運用ルールを敷く。具体値(タイトル文言・URL 一覧・schema.org type)は用途依存とし、ここでは定めない。
+本リポジトリにおける **メタデータの体系(App Router Metadata API)/ クローラー制御(`sitemap.ts` / `robots.ts`)/ canonical ・alternates / 構造化データ(JSON-LD)/ アイコン体系 / 公開面の検査** の規約を定める。Next.js 16 組込みの Metadata 機構を追認し、最小の運用ルールを敷く。具体値(タイトル文言・URL 一覧・schema.org type)は用途依存とし、ここでは定めない。
 
 ## Status
 
@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[0045](0045-fonts-and-images.ja.md)(フォント・画像)は動的 OG 画像(`ImageResponse` / `opengraph-image`)と `public/` の favicon を**画像アセットの生成手段として**扱う。head 要素・クローラ制御・ canonical ・構造化データを含む**メタデータの体系は別軸**であり、本 ADR が持つ。
+[0045](0045-fonts-and-images.ja.md)(フォント・画像)は動的 OG 画像(`ImageResponse` / `opengraph-image`)と `public/` の favicon を**画像アセットの生成手段として**扱う。head 要素・クローラー制御・ canonical ・構造化データを含む**メタデータの体系は別軸**であり、本 ADR が持つ。
 
 実装前に `node_modules/next/dist/docs/` を確認した結果、以下は Next.js 16 の第一級のファイル規約 / API として実在する(AGENTS.md「Canonical Documentation」):
 
@@ -26,18 +26,18 @@ Accepted
 ### 1. メタデータ = App Router Metadata API をデフォルト
 
 - head メタデータ(title / description / OpenGraph / Twitter / robots meta 等)は **App Router の Metadata API** で宣言する。**`<head>` の手書き・`next/head` は使わない**
-  - 静的に決まるものは **静的 `metadata` export**、リクエスト / パラメータ依存のものは **`generateMetadata`** を使い分ける
+  - 静的に決まるものは **静的 `metadata` export**、リクエスト / パラメーター依存のものは **`generateMetadata`** を使い分ける
 - ルート(`src/app/layout.tsx`。配置は [0027](0027-directory-structure.ja.md))に **`metadataBase` と `title.template`(サイト共通のタイトルテンプレート)のデフォルト土台**を置く。各セグメントはそこからの差分だけを宣言する(重複定義を避ける)
-- **絶対 URL の出所は config(`SITE_PUBLIC_ORIGIN`)の 1 つに限り、リクエストの `Host` から採らない。** canonical / sitemap / OG 画像の絶対 URL はすべてこの origin に経路を足して組み立てる。配信面(CDN / ロードバランサ)を挟むとリクエストが名乗る host は公開名と一致しなくなり、`Host` から採ると他人を指す canonical を配ることになる
+- **絶対 URL の出所は config(`SITE_PUBLIC_ORIGIN`)の 1 つに限り、リクエストの `Host` から採らない。** canonical / sitemap / OG 画像の絶対 URL はすべてこの origin に経路を足して組み立てる。配信面(CDN / ロードバランサー)を挟むとリクエストが名乗る host は公開名と一致しなくなり、`Host` から採ると他人を指す canonical を配ることになる
 - 具体的なタイトル文言・description・OG 画像割当は**用途依存**のため、テンプレートの枠のみをここで持ち、値は feature 実装で確定する
 
-### 2. クローラ制御 = `sitemap.ts` / `robots.ts`(Next.js 規約)
+### 2. クローラー制御 = `sitemap.ts` / `robots.ts`(Next.js 規約)
 
-- サイトマップは **`app/sitemap.(xml|ts)`**、クローラ制御は **`app/robots.(txt|ts)`** で Next.js 規約に従い生成する(独自の静的ファイル配置・手書き XML 生成を作らない)。URL 数が多い場合は **`generateSitemaps`** で分割する
+- サイトマップは **`app/sitemap.(xml|ts)`**、クローラー制御は **`app/robots.(txt|ts)`** で Next.js 規約に従い生成する(独自の静的ファイル配置・手書き XML 生成を作らない)。URL 数が多い場合は **`generateSitemaps`** で分割する
 - 収録 URL・`Disallow` パス・`changefreq` 等の**具体内容は用途依存**(ルート構成に従属)のため、ここでは確定しない。本リポジトリは仕組み(このファイル規約を使う方針)を定める
 - **インデックスさせてよいかは環境が宣言する**(`SITE_INDEXABLE`。[0030](0030-environment-variable-management.ja.md))。宣言の無い環境は `robots.txt` が巡回を拒み、画面が `noindex` を出す。インデックスを許す側だけが明示する
-- **サイトマップが一覧を末尾まで辿るなら、辿った結果はリクエストをまたいで持つ**(`use cache`。所有と寿命の規約は [0071](0071-bff-api-integration.ja.md))。クローラは同じ URL を繰り返し開くため、開くたびに辿ると 1 リクエストが一覧の件数ぶんのバックエンド呼び出しへ膨らむ
-- **メタデータの route は部分的に劣化させる。** 動的な一覧の取得が失敗しても、取得できた分と、バックエンドに依らない静的な経路は返す。1 系統の失敗で全体を 500 にすると、クローラは静的な画面の存在まで知れなくなる
+- **サイトマップが一覧を末尾まで辿るなら、辿った結果はリクエストをまたいで持つ**(`use cache`。所有と寿命の規約は [0071](0071-bff-api-integration.ja.md))。クローラーは同じ URL を繰り返し開くため、開くたびに辿ると 1 リクエストが一覧の件数ぶんのバックエンド呼び出しへ膨らむ
+- **メタデータの route は部分的に劣化させる。** 動的な一覧の取得が失敗しても、取得できた分と、バックエンドに依らない静的な経路は返す。1 系統の失敗で全体を 500 にすると、クローラーは静的な画面の存在まで知れなくなる
 
 ### 3. canonical / alternates
 
@@ -69,7 +69,7 @@ Accepted
 | 関心事 | 所在 |
 | --- | --- |
 | メタデータ体系(head 要素・title.template・metadataBase・ canonical ・robots meta) | **本 ADR(0044)** |
-| クローラ制御(`sitemap.ts` / `robots.ts`)・構造化データ | **本 ADR(0044)** |
+| クローラー制御(`sitemap.ts` / `robots.ts`)・構造化データ | **本 ADR(0044)** |
 | 動的 OG 画像(`ImageResponse` / `opengraph-image`)の**生成手段** | [0045](0045-fonts-and-images.ja.md)(本 ADR は「どの OG を割り当てるか」= Metadata 側) |
 | 静的 favicon の `public/` 配置 | [0045](0045-fonts-and-images.ja.md)(本 ADR は生成 / 複数解像度アイコン規約) |
 

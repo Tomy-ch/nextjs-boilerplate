@@ -1,7 +1,7 @@
 // モデルに読ませる価値のあるターンを、決定的に選ぶ判定。
 //
-// **意味の分類はモデルがするが、何を読ませるかはモデルに選ばせない**
-// 。窓 1 件でも人の発話は数十件あり、
+// **意味の分類はモデルがするが、何を読ませるかはモデルに選ばせない**。
+// 窓 1 件でも人の発話は数十件あり、
 // 全部を渡せば費用が見合わない。ここで絞ってから渡すのは節約のためだけではなく、**絞りが決定的なら
 // 「なぜこのターンが選ばれたか」を後から説明できる**からでもある。
 //
@@ -43,27 +43,11 @@ const CORRECTIVE_MARKERS: readonly string[] = [
 ];
 
 /**
- * 人ではなくハーネスが差し込んだ本文の目印。
- *
- * @remarks
- * `user` の記録には、人が打ったものだけでなくハーネスが差し込んだものも混ざります。これらは
- * 人の発話ではないので、**是正の語を含んでいても摩擦の証拠になりません**。
- */
-const INJECTED_MARKERS: readonly string[] = [
-  "<task-notification>",
-  "<local-command-caveat>",
-  "<command-name>",
-  "<system-reminder>",
-  "This session is being continued from a previous conversation",
-];
-
-/**
  * 秘密らしき形。
  *
  * @remarks
  * 候補はモデルへ渡され、読解の結果は public な issue へ出ます。**疑わしきは落とす**を崩さない
- * こと —— 落とした 1 件は他の候補で埋まりますが、**出てしまった 1 件は取り消せません**
- * 。
+ * こと —— 落とした 1 件は他の候補で埋まりますが、**出てしまった 1 件は取り消せません**。
  */
 const SECRET_PATTERNS: readonly RegExp[] = [
   /\bgh[pousr]_[A-Za-z0-9]{16,}/,
@@ -92,19 +76,19 @@ const DEFAULT_LIMIT = 40;
 /** 1 件あたりの本文の長さ。 */
 const DEFAULT_EXCERPT_CHARS = 600;
 
-/** ハーネスが差し込んだ本文か。 */
-export function isInjected(text: string): boolean {
-  return INJECTED_MARKERS.some((marker) => text.includes(marker));
-}
-
 /** 秘密らしき形を含むか。 */
 export function looksSecret(text: string): boolean {
   return SECRET_PATTERNS.some((pattern) => pattern.test(text));
 }
 
-/** 本文が是正の合図を含むか。差し込まれた本文は人の発話ではないので含めない。 */
+/**
+ * 本文が是正の合図を含むか。
+ *
+ * @param text - 人の発話の本文
+ * @returns 是正の語を含めば true
+ */
 export function isCorrective(text: string): boolean {
-  return !isInjected(text) && CORRECTIVE_MARKERS.some((marker) => text.includes(marker));
+  return CORRECTIVE_MARKERS.some((marker) => text.includes(marker));
 }
 
 /**
@@ -126,6 +110,7 @@ export function excerpt(text: string, maxChars: number): string {
  * @param events - 窓に属する出来事。時刻順である必要はない
  * @param limit - 上限。多い場合は 是正 → 中断の直前 → 失敗の直後 の順に残す
  * @param maxChars - 1 件あたりの本文の長さ
+ * @returns 是正 → 中断の直前 → 失敗の直後 の順に並べた候補
  *
  * @remarks
  * 優先順位は**「人が明示的に是正した」を最上位**に置きます。中断と失敗は機械が観測した兆候に
@@ -141,7 +126,6 @@ export function selectCandidates(
     event.kind === "prompt" &&
     event.text !== undefined &&
     event.text !== "" &&
-    !isInjected(event.text) &&
     // 秘密らしき本文は、どの理由に当たっても候補にしない。
     !looksSecret(event.text)
       ? [{ at: event.at, text: event.text }]

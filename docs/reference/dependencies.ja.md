@@ -56,9 +56,9 @@
 | UI コンポーネントの下地 | `react-day-picker` | calendar の下地 |
 | UI コンポーネントの下地 | `recharts` | chart の下地 |
 | UI コンポーネントの下地 | `@tabler/icons-react` | アイコンの供給元。`src/components/icon.ts` に閉じる（[0052](../adr/0052-ui-component-policy.ja.md)） |
-| リッチテキスト | `@tiptap/core` / `@tiptap/react` / `@tiptap/pm` | エディタ本体・React binding・同梱 ProseMirror（[0052](../adr/0052-ui-component-policy.ja.md) / [0053](../adr/0053-ui-component-interaction-seam.ja.md)） |
+| リッチテキスト | `@tiptap/core` / `@tiptap/react` / `@tiptap/pm` | エディター本体・React binding・同梱 ProseMirror（[0052](../adr/0052-ui-component-policy.ja.md) / [0053](../adr/0053-ui-component-interaction-seam.ja.md)） |
 | リッチテキスト | `@tiptap/extensions` / `@tiptap/extension-*`（13 本） | 使う書式を 1 つずつ有効化する extension。document / paragraph / text / heading / bold / italic / strike / code / link / list / blockquote / hard-break / horizontal-rule |
-| リッチテキスト | `hast-util-from-html` | HTML を hast のツリーにするパーサ（[0053](../adr/0053-ui-component-interaction-seam.ja.md)） |
+| リッチテキスト | `hast-util-from-html` | HTML を hast のツリーにするパーサー（[0053](../adr/0053-ui-component-interaction-seam.ja.md)） |
 | リッチテキスト | `hast-util-sanitize` | hast のツリーを allowlist で検査する |
 | リッチテキスト | `hast-util-to-jsx-runtime` | 検査済みのツリーから直接 React 要素を組む。HTML 文字列を経由しないレンダリング |
 | 日付 | `date-fns` | 日付演算（[0120](../adr/0120-locale-aware-formatting.ja.md)）。書式化は `Intl` が担う |
@@ -71,9 +71,9 @@
 | 観測性（server） | `@opentelemetry/core` / `@opentelemetry/resources` | context 伝播と Resource 属性の共通コンポーネント |
 | 観測性（server） | `@opentelemetry/semantic-conventions` | 属性名の標準定義 |
 | 観測性（server） | `pino` | 構造化ログ（[0081](../adr/0081-observability-logging.ja.md)） |
-| 観測性（browser） | `@opentelemetry/sdk-trace-web` | ブラウザ側の tracer（[0082](../adr/0082-client-observability.ja.md)） |
-| 観測性（browser） | `@opentelemetry/otlp-transformer` | ブラウザの span を OTLP の形へ変換し、BFF 中継へ渡す |
-| サードパーティ script | `@next/third-parties` | タグマネージャの埋め込み。同意ゲートの裏に置く（[0131](../adr/0131-cookie-consent.ja.md) / [0082](../adr/0082-client-observability.ja.md)） |
+| 観測性（browser） | `@opentelemetry/sdk-trace-web` | ブラウザー側の tracer（[0082](../adr/0082-client-observability.ja.md)） |
+| 観測性（browser） | `@opentelemetry/otlp-transformer` | ブラウザーの span を OTLP の形へ変換し、BFF 中継へ渡す |
+| サードパーティ script | `@next/third-parties` | タグマネージャーの埋め込み。同意ゲートの裏に置く（[0131](../adr/0131-cookie-consent.ja.md) / [0082](../adr/0082-client-observability.ja.md)） |
 
 観測性の 2 グループは、安定版（`2.x`）と experimental（`0.x`）の 2 本のバージョンの系列にまたがるが、
 いずれも **単一** の上流（OpenTelemetry 自身）であり、2 つではない。例外扱いはしない。
@@ -102,16 +102,16 @@
 | 単体テスト | `@vitejs/plugin-react` | Vitest で tsx を変換する |
 | 単体テスト | `jsdom` | DOM を要するテストの環境 |
 | 単体テスト | `@testing-library/react` / `@testing-library/dom` | レンダリングとクエリ |
-| 単体テスト | `@testing-library/user-event` | 利用者操作の再現 |
+| 単体テスト | `@testing-library/user-event` | ユーザー操作の再現 |
 | 単体テスト | `@testing-library/jest-dom` | DOM 向けの matcher |
 | モック / 契約 | `msw` | HTTP mock。test / Storybook / dev で共有（[0090](../adr/0090-testing-strategy.ja.md)） |
 | モック / 契約 | `orval` | OpenAPI から型・client・zod・mock を生成する（[0072](../adr/0072-api-type-generation.ja.md)） |
 | モック / 契約 | `@faker-js/faker` | 生成 mock が返す値の供給。seed を固定して安定させる |
 | a11y 検査 | `axe-core` | a11y ルールエンジン（[0091](../adr/0091-test-verification-methods.ja.md) / [0100](../adr/0100-accessibility-target.ja.md)） |
 | UI カタログ | `storybook` / `@storybook/addon-docs` | Storybook 本体と docs（[0054](../adr/0054-ui-catalog-storybook.ja.md)） |
-| E2E / VRT | `@playwright/test` | ブラウザ駆動の journey と画面比較（[0090](../adr/0090-testing-strategy.ja.md) / [0091](../adr/0091-test-verification-methods.ja.md)） |
-| ブラウザ実測 | `lighthouse` | lab 計測。子プロセスとして起動する（[0101](../adr/0101-performance-budget.ja.md) / [0156](../adr/0156-browser-observation-tooling.ja.md)） |
-| ブラウザ実測 | `chrome-devtools-mcp` | 「掘る」レーンの CLI（[0156](../adr/0156-browser-observation-tooling.ja.md)） |
+| E2E / VRT | `@playwright/test` | ブラウザー駆動の journey と画面比較（[0090](../adr/0090-testing-strategy.ja.md) / [0091](../adr/0091-test-verification-methods.ja.md)） |
+| ブラウザー実測 | `lighthouse` | lab 計測。子プロセスとして起動する（[0101](../adr/0101-performance-budget.ja.md) / [0156](../adr/0156-browser-observation-tooling.ja.md)） |
+| ブラウザー実測 | `chrome-devtools-mcp` | 「掘る」レーンの CLI（[0156](../adr/0156-browser-observation-tooling.ja.md)） |
 | git hooks / commit | `lefthook` | pre-commit / pre-push（[0151](../adr/0151-git-hooks.ja.md)） |
 | git hooks / commit | `@commitlint/cli` / `@commitlint/types` | commit subject の規約検査（[0150](../adr/0150-git-workflow.ja.md)） |
 | スクリプトの読み書き | `yaml` | YAML 設定（manifest / budget / portal）の読み書き |
@@ -132,7 +132,7 @@
 | `@hookform/resolvers` | react-hook-form × zod | スキーマをフォーム検証の resolver として繋ぐ |
 | `@opentelemetry/instrumentation-http` | OpenTelemetry × Node `http` | server 側の受信・送信 HTTP に span を付ける |
 | `@opentelemetry/instrumentation-undici` | OpenTelemetry × undici（Node の `fetch`） | server 側の `fetch` に span を付ける |
-| `@opentelemetry/instrumentation-fetch` | OpenTelemetry × ブラウザの `fetch` | ブラウザ側の `fetch` に span を付け、context を伝播する |
+| `@opentelemetry/instrumentation-fetch` | OpenTelemetry × ブラウザーの `fetch` | ブラウザー側の `fetch` に span を付け、context を伝播する |
 
 ビルド時・開発時の bridge は本番のバンドルに乗らないため、記載は fork コスト上限だけで足りる。
 
@@ -156,7 +156,7 @@
 | --- | --- |
 | `tailwindcss` ↔ `tailwind-merge` | `tailwind-merge` は Tailwind のメジャーに連動する（v3 → 2.x / v4 → 3.x）。Tailwind のメジャー更新は両者を 1 つの PR に同載する |
 | `@opentelemetry/*` | 安定版（`2.x`）と experimental（`0.x`）の 2 系列が互いのバージョンを前提にする。片方だけ上げない |
-| `@tiptap/*` | 同一バージョンで揃える。extension とエディタ本体のバージョンがずれると schema が食い違う |
+| `@tiptap/*` | 同一バージョンで揃える。extension とエディター本体のバージョンがずれると schema が食い違う |
 | `storybook` / `@storybook/*` | 同一バージョンで揃える |
 | `vitest` / `@vitest/coverage-istanbul` | 同一バージョンで揃える |
 | `react` / `react-dom` / `@types/react` / `@types/react-dom` | ランタイムと DOM レンダリングと型定義の 4 つを同じメジャーに揃える |

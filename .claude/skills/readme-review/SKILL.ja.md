@@ -104,7 +104,7 @@ H2 見出しテキストだけでなく、各セクションの内容を読ん�
 
 Mermaid 図は加点であって観点ではありません。登録済みエントリで使っているものはありません。
 
-### Negative 観点（トリガすると −2）
+### Negative 観点（トリガーすると −2）
 
 | # | 兆候 | 判定 |
 | --- | --- | --- |
@@ -114,15 +114,15 @@ Mermaid 図は加点であって観点ではありません。登録済みエン
 | N4 | **Operational reference** | コマンド / フラグ / 使い方だけ —— スクリプトの起動面であって、判断が何も記録されていない。スクリプトの隣が置き場 |
 
 N1〜N4 は保守的に適用します。役割・設計・実行機序の内容が実質的にあれば、列挙や component の見出しが
-あっても N1 / N3 / N4 をトリガしないこと —— `src/components/README.md` が登録されているのは、まさに
+あっても N1 / N3 / N4 をトリガーしないこと —— `src/components/README.md` が登録されているのは、まさに
 その形をはるかに超えて語っているからです。
 
 ### 分類しきい値
 
-- **manual-worthy**: positive ≥ 3 かつ negative トリガなし。feature README の場合は Step 2b の必須セクションがすべて present であることも要る
-- **borderline**: positive 1〜2 かつ negative トリガなし
-- **not-yet-manual-grade**: positive 0、または positive あっても N2/N3 がトリガ
-- **out-of-scope-for-portal**: N1（コンポーネントリファレンス）または N4（スクリプトの起動面リファレンス）トリガ
+- **manual-worthy**: positive ≥ 3 かつ negative トリガーなし。feature README の場合は Step 2b の必須セクションがすべて present であることも要る
+- **borderline**: positive 1〜2 かつ negative トリガーなし
+- **not-yet-manual-grade**: positive 0、または positive あっても N2/N3 がトリガー
+- **out-of-scope-for-portal**: N1（コンポーネントリファレンス）または N4（スクリプトの起動面リファレンス）トリガー
 
 ## Step 2b. feature README の必須セクションチェック
 

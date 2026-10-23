@@ -4,7 +4,7 @@
 
 # inquiry
 
-利用者がサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
+ユーザーがサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
 設置面でもあります。
 
 ## 受け入れるもの
@@ -32,8 +32,8 @@
 | --- | --- |
 | `GetInquiriesMeMessages` | 履歴の取得。応答の `streamCursor` が購読の開始位置になる |
 | `PostInquiriesMeMessages` | 1 通の送信。最初の 1 通が問い合わせを作る |
-| `PostInquiriesMeStreamTicket` | 購読を開くエンドポイントの発券。ブラウザは中継（`/api/`）越しに呼ぶ |
-| `GetStream` | 購読そのもの。**ブラウザが backend へ直接開く**ため、この slice は URL を組まない |
+| `PostInquiriesMeStreamTicket` | 購読を開くエンドポイントの発券。ブラウザーは中継（`/api/`）越しに呼ぶ |
+| `GetStream` | 購読そのもの。**ブラウザーが backend へ直接開く**ため、この slice は URL を組まない |
 
 ## 状態とデザイン参照
 
@@ -62,11 +62,11 @@
 | `connection-status.ts` | 購読の状態と回線の有無を、画面へ出す 1 語へマッピングする |
 | `facade/paths/` | この feature が持つルート。**他の feature が指すエントリポイント** |
 | `thread/page-content.tsx` | 履歴の取得と組み立て |
-| `thread/view.tsx` | 全画面の表示。コンテナの高さを確定させる |
+| `thread/view.tsx` | 全画面の表示。コンテナーの高さを確定させる |
 | `thread/ui/conversation/` | 購読・送信・畳み込みを束ねる client island |
 | `thread/ui/message-list/` | やり取りの並び。取得も並べ替えも持たない |
 | `thread/ui/composer/` | 送信欄。書きかけを持ち、成立したときだけ片付ける |
-| `thread/ui/skeleton/` | ローディング表示。出来上がりと同じ高さのコンテナを先に置く |
+| `thread/ui/skeleton/` | ローディング表示。出来上がりと同じ高さのコンテナーを先に置く |
 | `inquiry.fixture.ts` | story とテストが読む固定のやり取り |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
 
@@ -93,7 +93,7 @@
 
 - [ ] 取り直した canonical に入ったぶんが、購読で受け取った控えから落ちる（同じ 1 通が二重に並ばない）
 - [ ] 届いた順が前後しても、位置の昇順に並ぶ
-- [ ] まだ 1 通も無い利用者では購読を始めない（発券のエンドポイントを叩かない）
+- [ ] まだ 1 通も無いユーザーでは購読を始めない（発券のエンドポイントを叩かない）
 - [ ] 送信が成立すると書きかけが消え、通らなかったときは残る
 - [ ] 送信が成立すると冪等キーが変わり、通らなかったときは変わらない
 

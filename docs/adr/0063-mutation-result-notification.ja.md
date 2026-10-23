@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[0052](0052-ui-component-policy.ja.md) は UI / form コンポーネント(shadcn 系)を採用しているが、コンポーネントが手元にあっても「**操作結果をどの手段(インライン / トースト / redirect)で出すか**」という規約は別途要る。これが空白のままだと、成功 / 失敗の通知手段が feature ごとにばらつき、実装者にも利用者にも一貫した UX が失われる。
+[0052](0052-ui-component-policy.ja.md) は UI / form コンポーネント(shadcn 系)を採用しているが、コンポーネントが手元にあっても「**操作結果をどの手段(インライン / トースト / redirect)で出すか**」という規約は別途要る。これが空白のままだと、成功 / 失敗の通知手段が feature ごとにばらつき、実装者にもユーザーにも一貫した UX が失われる。
 
 結果通知の隣接領域は [0080](0080-error-handling.ja.md)(エラー正規化)/ [0052](0052-ui-component-policy.ja.md)(UI)/ [0100](0100-accessibility-target.ja.md)(a11y)に分かれる。結果通知は送信メカニクス([0061](0061-form-mutation-ux.ja.md))が返す `ActionState` を入力に、「フォーム文脈に留まる結果か離れる結果か」で手段を選ぶレイヤーである。本 ADR はその使い分けの規約と live region a11y 要件を敷き、a11y の目標水準は [0100](0100-accessibility-target.ja.md) に委ねる。
 

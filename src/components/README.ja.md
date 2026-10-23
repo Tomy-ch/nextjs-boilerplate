@@ -270,7 +270,7 @@ Next.js と React は、`components/` 配下のディレクトリ構造・ディ
 
 | ディレクトリ | 受け持つもの | 置かないもの |
 | --- | --- | --- |
-| `action` | 利用者の操作の起点そのもの。押す・切り替えるという行為だけを持つ | 何を起こすかの決定。呼び出し元が callback で渡す |
+| `action` | ユーザーの操作の起点そのもの。押す・切り替えるという行為だけを持つ | 何を起こすかの決定。呼び出し元が callback で渡す |
 | `form` | 値を受け取り、form の値として送信するコンポーネント | 検証ルール・送信先・送信結果の解釈 |
 | `overlay` | trigger から本文の上へ面を開くコンポーネント。開閉・focus・Escape を持つ | 面の中身。呼び出し元が children で渡す |
 | `navigation` | 移動先を示すコンポーネントと、移動そのものを扱うコンポーネント | 移動先 URL の組み立て。呼び出し元が渡す |
@@ -402,7 +402,7 @@ UI を横断して支える基盤。見える要素をレンダリングしな�
 
 | component | 概要 |
 | --- | --- |
-| [`button`](design-system/action/button/README.ja.md) | 利用者の操作を開始する |
+| [`button`](design-system/action/button/README.ja.md) | ユーザーの操作を開始する |
 | [`button-group`](design-system/action/button-group/README.ja.md) | 同じ対象への複数の操作を、隣接した一続きの帯としてまとめる |
 | [`copy-button`](design-system/action/copy-button/README.ja.md) | 値を clipboard へコピーする |
 | [`print-button`](design-system/action/print-button/README.ja.md) | 表示中の文書を印刷する |
@@ -423,7 +423,7 @@ UI を横断して支える基盤。見える要素をレンダリングしな�
 | [`field`](design-system/form/field/README.ja.md) | label・入力・説明・エラーを一つの form field として構成する |
 | [`input`](design-system/form/input/README.ja.md) | 単一行の native `input` を表示・送信する |
 | [`input-group`](design-system/form/input-group/README.ja.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
-| [`label`](design-system/form/label/README.ja.md) | form control の項目名を利用者へ伝える |
+| [`label`](design-system/form/label/README.ja.md) | form control の項目名をユーザーへ伝える |
 | [`multi-select-client`](design-system/form/multi-select-client/README.ja.md) | 候補を畳んだまま、checkbox で複数の値を同時に選ぶ |
 | [`radio-group-client`](design-system/form/radio-group-client/README.ja.md) | native radio では満たせない custom interaction の client island |
 | [`requirement-badge`](design-system/form/requirement-badge/README.ja.md) | 入力項目が必須か任意かを label の隣で示す |
@@ -480,13 +480,13 @@ trigger から本文の上へ面を開くコンポーネント。
 | --- | --- |
 | [`activity-timeline`](design-system/display/activity-timeline/README.ja.md) | 起きた出来事を時刻順に並べて表示する |
 | [`amount-with-reference`](design-system/display/amount-with-reference/README.ja.md) | 金額と、切り替えで現れる別通貨の参考換算額を表示する |
-| [`avatar`](design-system/display/avatar/README.ja.md) | 利用者や組織を小さな円形で識別する |
+| [`avatar`](design-system/display/avatar/README.ja.md) | ユーザーや組織を小さな円形で識別する |
 | [`badge`](design-system/display/badge/README.ja.md) | 短い分類や状態を視覚的に補助する |
 | [`bubble`](design-system/display/bubble/README.ja.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |
 | [`card`](design-system/display/card/README.ja.md) | 関連する情報や補助操作を一つの視覚的なまとまりにする |
 | [`chart`](design-system/display/chart/README.ja.md) | 集計値の推移や内訳を、系列ごとの色と形で表示する |
 | [`json-ld`](design-system/display/json-ld/README.ja.md) | 画面が持つ構造化データを `application/ld+json` の script として埋め込む。読み手は検索エンジンで、見える要素を持たない |
-| [`kbd`](design-system/display/kbd/README.ja.md) | 利用者が押すキーを、キーボード入力として表示する |
+| [`kbd`](design-system/display/kbd/README.ja.md) | ユーザーが押すキーを、キーボード入力として表示する |
 | [`key-value-list`](design-system/display/key-value-list/README.ja.md) | 項目名と値の対を並べて表示する |
 | [`keyboard-shortcut`](design-system/display/keyboard-shortcut/README.ja.md) | キーボードで実行できる操作を、説明とキーの対として案内する |
 | [`list`](design-system/display/list/README.ja.md) | 同型の行を縦に並べ、アイコン・見出し・説明・補助操作を一貫した構造で表示する |
@@ -495,7 +495,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`message`](design-system/display/message/README.ja.md) | 送信者と本文を持つ 1 件のメッセージを表示する |
 | [`separator`](design-system/display/separator/README.ja.md) | 近接する内容のまとまりを区切る |
 | [`stepper`](design-system/display/stepper/README.ja.md) | 既知で有限の段階を定義順に並べ、現在位置とまだ到達していない先を示す |
-| [`table`](design-system/display/table/README.ja.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
+| [`table`](design-system/display/table/README.ja.md) | 列と行の関係がユーザーの理解に必要な、構造化データを表示する |
 | [`text-highlight`](design-system/display/text-highlight/README.ja.md) | 検索した語が本文のどこに当たったかを示す |
 
 #### status
@@ -522,7 +522,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`collapsible`](design-system/container/collapsible/README.ja.md) | 一つの補助内容を、必要なときだけ開いて確認する |
 | [`direction`](design-system/container/direction/README.ja.md) | 配下の component へ文字送りの向きを配る Provider |
 | [`message-scroller`](design-system/container/message-scroller/README.ja.md) | 末尾に追加され続ける一覧の scroll 位置を扱い、末尾にいる間だけ新着へ追従する |
-| [`resizable`](design-system/container/resizable/README.ja.md) | 隣り合う表示領域の境界を掴んで動かし、配分を利用者が決められるようにする |
+| [`resizable`](design-system/container/resizable/README.ja.md) | 隣り合う表示領域の境界を掴んで動かし、配分をユーザーが決められるようにする |
 | [`scroll-area`](design-system/container/scroll-area/README.ja.md) | 内容の一部だけを局所的にスクロールさせる |
 
 #### layout
@@ -552,7 +552,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`filter-bar`](patterns/filter-bar/README.ja.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
 | [`form-field`](patterns/form-field/README.ja.md) | 項目名・必須のマーカー・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
 | [`selection-toolbar`](patterns/selection-toolbar/README.ja.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
-| [`table`](patterns/table/README.ja.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
+| [`table`](patterns/table/README.ja.md) | 列と行の関係がユーザーの理解に必要な、構造化データを表示する |
 | [`table-view-options`](patterns/table-view-options/README.ja.md) | 表の表示する列・表示密度・固定列・画面幅ごとの出し分けをまとめて設定する |
 | [`editable-data`](patterns/table/editable-data/README.ja.md) | 編集 cell を含む列定義から、native form と table を組み立てる |
 | [`row-actions`](patterns/table/row-actions/README.ja.md) | 行ごとに繰り返す操作 menu を、行操作の定義から組み立てる |
@@ -565,7 +565,7 @@ mount 位置がコンポーネント側で決まっているコンポーネン�
 
 | component | 概要 |
 | --- | --- |
-| [`app-shell`](shell/app-shell/README.ja.md) | 利用者向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
+| [`app-shell`](shell/app-shell/README.ja.md) | ユーザー向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
 | [`admin-shell`](shell/admin-shell/README.ja.md) | 管理画面の外枠。脇の導線一覧・header・skip link・`main` を同じ位置に置く |
 | [`content-container`](shell/content-container/README.ja.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
 | [`page-header`](shell/page-header/README.ja.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |

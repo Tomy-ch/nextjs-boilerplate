@@ -69,8 +69,7 @@ export const COUNTED_MARKS: readonly string[] = ["commitAt", "reviewStartedAt"];
  *
  * @remarks
  * 打刻の置き場が空であることと、走査が壊れて 0 件になったことは見分けが付きません。
- * そのまま「異常なし」を返すと、**壊れた集計が永久に緑を返します**
- * 。
+ * そのまま「異常なし」を返すと、**壊れた集計が永久に緑を返します**。
  */
 export const NO_WINDOWS_MESSAGE =
   "窓が 1 件もありません。まだ打刻されていないか、走査の対象が動いた可能性があります";
@@ -132,7 +131,7 @@ export function toAnomalies(window: WindowMarks): readonly Anomaly[] {
   const stamped = MARK_ORDER.filter((name) => markAt(window, name) !== null);
 
   // 窓の開閉そのものは段の境界ではない。それしか無い窓は「飛ばした」のではなく、
-  // 何も起きなかった窓である。両者を同じ所見にすると、後者が 6 段ぶんの雑音を出す。
+  // 何も起きなかった窓である。両者を同じ所見にすると、後者が段の数ぶんの雑音を出す。
   const crossed = stamped.filter((name) => name !== "openedAt" && name !== "closedAt");
 
   if (crossed.length === 0) {

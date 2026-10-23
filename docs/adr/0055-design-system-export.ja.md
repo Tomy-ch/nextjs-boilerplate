@@ -54,7 +54,7 @@ story 名を引くために Storybook の build 済み index を読む。index �
 
 ## 書き出しが運べないもの
 
-bundle に**レンダリングした HTML も screenshot も入らない**。story は JavaScript がレンダリングするため、どちらを作るにも headless のブラウザが要り、書き出しの script はそれを持たない。送り先がコンポーネントを**読む**のではなく**見る**必要があるときは、bundle がそれを賄ったかのように振る舞わず、運べていないことをそのまま伝える。見る手段は [0156](0156-browser-observation-tooling.ja.md) の観測レーンが持つ。
+bundle に**レンダリングした HTML も screenshot も入らない**。story は JavaScript がレンダリングするため、どちらを作るにも headless のブラウザーが要り、書き出しの script はそれを持たない。送り先がコンポーネントを**読む**のではなく**見る**必要があるときは、bundle がそれを賄ったかのように振る舞わず、運べていないことをそのまま伝える。見る手段は [0156](0156-browser-observation-tooling.ja.md) の観測レーンが持つ。
 
 ## 禁止事項
 

@@ -81,7 +81,7 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
   人がコピーする工程は作らない。読み書きは [`lib/pin-lockfile.ts`](lib/pin-lockfile.ts)、公開から日の浅い
   解決先を採らない検疫は [`lib/pin-quarantine.ts`](lib/pin-quarantine.ts) が持ち、固定する対象ごとに
   違うのはキーと値の文法と、経過日数の調べ方だけである。ロックファイルは `"<key>" = "<value>"` の
-  行だけの TOML の部分集合に限り、パーサを入れずに自前の正規表現で読み書きする —— 書く側と読む側が
+  行だけの TOML の部分集合に限り、パーサーを入れずに自前の正規表現で読み書きする —— 書く側と読む側が
   同じ制約を共有していれば依存なしで往復でき、想定外の構文が紛れ込む余地も消える。壊れた行は
   読み飛ばさず、キーの重複は通さず、キー順で書き出す。
 - **基準値を持つゲートには、人が引き直すエントリポイントを付ける**（`--write`）。人が更新できないゲートは、
@@ -116,8 +116,8 @@ GitHub 上の公開の面か」であって、モジュールの置き場では�
   の形で受ける（[`lib/playwright-report.ts`](lib/playwright-report.ts)）。キーを手でコピーすると実在しない
   キーを宣言でき、型に守られているつもりのまま常に空を読む。形が崩れていれば throw する —— 0 件へ
   縮退させると「失敗なし」と読める（[`docs/rules.ja.md`](../docs/rules.ja.md#generated)）。
-- **パーサに任せる値と、生の行から取る位置・コメントを併用するときは、両方で数えた件数を突き合わ
-  せる。** コメントは構文木に残らないので、免除や理由をコメントに持つ宣言はパーサだけでは読めない。
+- **パーサーに任せる値と、生の行から取る位置・コメントを併用するときは、両方で数えた件数を突き合わ
+  せる。** コメントは構文木に残らないので、免除や理由をコメントに持つ宣言はパーサーだけでは読めない。
   生の行の読み方が壊れたまま 0 件へ縮退すると、免除の無い宣言として通る
   （[`lib/mise-pins.ts`](lib/mise-pins.ts)）。
 - **対応を突き合わせる検査は両方向を見る。** export と describe、除外の宣言と README の記録、
@@ -242,7 +242,7 @@ git grep -niE "$(pnpm exec tsx -e 'import {DANGLING_PATTERN} from "./scripts/set
 - [0071](../docs/adr/0071-bff-api-integration.ja.md) — build が要る取得先と、生成 client を使わない判断
 - [0072](../docs/adr/0072-api-type-generation.ja.md) — 生成物へ検査を課さない判断
 - [0090](../docs/adr/0090-testing-strategy.ja.md) — レイヤー別責務表 / 1:1 対応 / 除外の規律
-- [0091](../docs/adr/0091-test-verification-methods.ja.md) — 実ブラウザが負う観点と、単体で回せない範囲
+- [0091](../docs/adr/0091-test-verification-methods.ja.md) — 実ブラウザーが負う観点と、単体で回せない範囲
 - [0101](../docs/adr/0101-performance-budget.ja.md) — 予算の割り方と、測る指標
 - [0102](../docs/adr/0102-browser-support.ja.md) — 数える対象を決める browserslist
 - [0110](../docs/adr/0110-security-operations.ja.md) — 監査のしきい値 / 抑止の撤回条件 / SAST のルール集合

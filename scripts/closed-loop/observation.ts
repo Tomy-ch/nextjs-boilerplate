@@ -1,8 +1,7 @@
 // 1 つの窓について決定的に数えた値と、それを issue 本文へ書き出す / 読み戻す判定。
 //
 // 週次([weekly](weekly/index.ts))は自分で記録を読み直さず、**issue に書かれた観測を読み戻す**。
-// 記録は手元にしか無く、週次が動く時点では別の窓の別の機械かもしれないためである
-// 。
+// 記録は手元にしか無く、週次が動く時点では別の窓の別の機械かもしれないためである。
 //
 // だから本文には**人が読む表と、機械が読む区画の両方**が要る。同じ値から両方を作るので、
 // 食い違いようがない。
@@ -21,15 +20,14 @@ type ObservedPhase = {
  *
  * @remarks
  * 記録から数えた項目は `undefined` を取ります。**「観測できなかった」を `0` と混ぜません** ——
- * 記録が読めなかった窓の失敗 0 件と、実際に失敗しなかった窓の 0 件は別の事実です
- * 。
+ * 記録が読めなかった窓の失敗 0 件と、実際に失敗しなかった窓の 0 件は別の事実です。
  */
 export type Observation = {
   readonly windowId: string;
   readonly openedAt: number | null;
   readonly closedAt: number | null;
   readonly phases: readonly ObservedPhase[];
-  readonly prompts?: number;
+  readonly humanPrompts?: number;
   readonly toolCalls?: number;
   readonly toolFailures?: number;
   readonly interrupts?: number;
@@ -64,7 +62,7 @@ export function toObservation(
     ...(counts === undefined
       ? {}
       : {
-          prompts: counts.turns,
+          humanPrompts: counts.humanPrompts,
           toolCalls: totalToolCalls(counts),
           toolFailures: counts.toolErrors,
           interrupts: counts.interruptions,
@@ -91,7 +89,7 @@ export function renderObservation(observation: Observation): string {
   }
 
   for (const [key, value] of [
-    ["prompts", observation.prompts],
+    ["humanPrompts", observation.humanPrompts],
     ["toolCalls", observation.toolCalls],
     ["toolFailures", observation.toolFailures],
     ["interrupts", observation.interrupts],
@@ -230,7 +228,7 @@ export function parseObservation(body: string): Observation | undefined {
     openedAt: numberOf(scalars.get("openedAt")) ?? null,
     closedAt: numberOf(scalars.get("closedAt")) ?? null,
     phases,
-    ...defined("prompts", numberOf(scalars.get("prompts"))),
+    ...defined("humanPrompts", numberOf(scalars.get("humanPrompts"))),
     ...defined("toolCalls", numberOf(scalars.get("toolCalls"))),
     ...defined("toolFailures", numberOf(scalars.get("toolFailures"))),
     ...defined("interrupts", numberOf(scalars.get("interrupts"))),

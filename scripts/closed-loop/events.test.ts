@@ -88,6 +88,280 @@ describe("parseLine", () => {
     expect(events.some((event) => event.kind === "interrupt")).toBe(true);
   });
 
+  it.each([
+    "Base directory for this skill: /repo/.claude/skills/commit",
+    "Another Claude session sent a message: 違う",
+  ])("isMeta の付いた行 %s は、人の発話として出さない", (text) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, isMeta: true, message: { content: text } })),
+    ).toEqual([]);
+  });
+
+  it("isMeta が true でなければ、人の発話として出す", () => {
+    expect(
+      parseLine(
+        line({ type: "user", timestamp: AT, isMeta: false, message: { content: "直して" } }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it.each([
+    { origin: { kind: "human" } },
+    { promptSource: "typed" },
+    { promptSource: "suggestion_accepted" },
+    { promptSource: "queued" },
+  ])("出所を人と示す行 %o は、人の発話として出す", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it.each([
+    { origin: { kind: "peer" } },
+    { origin: { kind: "task-notification" } },
+    { promptSource: "system" },
+  ])("出所を人以外と示す行 %o は、isMeta が無くても人の発話として出さない", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "違う" } })),
+    ).toEqual([]);
+  });
+
+  it.each([
+    { origin: { kind: "human" }, isMeta: true },
+    { promptSource: "typed", isMeta: true },
+  ])("出所を人と示す鍵 %o は、isMeta より優先する", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it.each([
+    { origin: null, promptSource: "typed", isMeta: true },
+    { origin: {}, promptSource: "queued", isMeta: true },
+    { origin: { kind: 5 }, promptSource: "typed", isMeta: true },
+  ])("origin.kind が文字列でない行 %o は、isMeta より先に promptSource で人と決める", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it.each([
+    { origin: null, promptSource: "system" },
+    { origin: { kind: 5 }, promptSource: "system" },
+  ])(
+    "origin.kind が文字列でない行 %o は、isMeta が無くても promptSource で人以外と決める",
+    (keys) => {
+      expect(
+        parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "違う" } })),
+      ).toEqual([]);
+    },
+  );
+
+  it.each([
+    { origin: null, isMeta: true },
+    { origin: { kind: 5 }, isMeta: true },
+    { promptSource: 1, isMeta: true },
+  ])("出所の鍵が文字列でない行 %o は、isMeta で決める", (keys) => {
+    expect(
+      parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "違う" } })),
+    ).toEqual([]);
+  });
+
+  it.each([{ origin: null }, { origin: { kind: 5 } }, { promptSource: 1 }])(
+    "出所の鍵が文字列でなく isMeta も無い行 %o は、人の発話として出す",
+    (keys) => {
+      expect(
+        parseLine(line({ type: "user", timestamp: AT, ...keys, message: { content: "直して" } })),
+      ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+    },
+  );
+
+  it("origin.kind が人を示せば、promptSource より優先する", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: { kind: "human" },
+          promptSource: "system",
+          message: { content: "直して" },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+  });
+
+  it("origin.kind が人以外を示せば、promptSource より優先する", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: { kind: "peer" },
+          promptSource: "typed",
+          message: { content: "違う" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("origin が物でなければ、promptSource で決める", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          origin: "human",
+          promptSource: "system",
+          message: { content: "直して" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([false, "true", 1])(
+    "isCompactSummary が %o で true でなければ、出所の鍵に従って人の発話として出す",
+    (isCompactSummary) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            promptSource: "typed",
+            isCompactSummary,
+            message: { content: "直して" },
+          }),
+        ),
+      ).toEqual([{ at: EPOCH, kind: "prompt", text: "直して" }]);
+    },
+  );
+
+  it.each([{}, { origin: { kind: "human" } }, { promptSource: "typed" }])(
+    "文脈圧縮の要約は、出所の鍵 %o の有無にかかわらず、目印の文面が無くても人の発話として出さない",
+    (keys) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            ...keys,
+            isCompactSummary: true,
+            message: { content: "要約の本文。違う" },
+          }),
+        ),
+      ).toEqual([]);
+    },
+  );
+
+  it("道具の結果だけの行は、道具の結果だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: [{ type: "tool_result", is_error: false }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "tool_result", ok: true }]);
+  });
+
+  it("中断の行は、中断だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: [{ type: "text", text: "[Request interrupted by user]" }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+  });
+
+  it("中断の綴りを含むブロックが複数あっても、1 行の中断は 1 回と数える", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: {
+            content: [
+              { type: "text", text: "[Request interrupted by user]" },
+              { type: "text", text: "[Request interrupted by user for tool use]" },
+            ],
+          },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+  });
+
+  it.each([{ origin: { kind: "human" } }, { promptSource: "typed" }])(
+    "出所を人と示す行 %o の中断を、綴りの続きにかかわらず出す",
+    (keys) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            ...keys,
+            message: { content: "[Request interrupted by user for tool use]" },
+          }),
+        ),
+      ).toEqual([{ at: EPOCH, kind: "interrupt" }]);
+    },
+  );
+
+  it.each([
+    { isMeta: true },
+    { isCompactSummary: true },
+    { origin: { kind: "peer" } },
+    { promptSource: "system" },
+  ])("出所が人でない行 %o は、中断の綴りを含んでも中断として出さない", (keys) => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          ...keys,
+          message: { content: "要約の本文。[Request interrupted by user]" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("assistant の行は、中断の綴りを含んでも中断として出さない", () => {
+    expect(
+      parseLine(
+        line({
+          type: "assistant",
+          timestamp: AT,
+          message: { content: [{ type: "text", text: "[Request interrupted by user]" }] },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "assistant" }]);
+  });
+
+  it.each([
+    "<task-notification>違う</task-notification>",
+    "<local-command-caveat>違う</local-command-caveat>",
+    "<system-reminder>違う</system-reminder>",
+    "This session is being continued from a previous conversation. 違う",
+  ])("差し込まれた本文 %s は、人の発話として出さない", (text) => {
+    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: text } }))).toEqual(
+      [],
+    );
+  });
+
+  it("`/名前` の起動は、起動だけを出す", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: { content: "<command-name>/commit</command-name>" },
+        }),
+      ),
+    ).toEqual([{ at: EPOCH, kind: "command", name: "commit" }]);
+  });
+
   // ----- 異常系 -----
   it("壊れた行と空行を空にする", () => {
     expect(parseLine("{")).toEqual([]);
@@ -100,9 +374,7 @@ describe("parseLine", () => {
     expect(parseLine(line({ type: "user", timestamp: 42, message: { content: "x" } }))[0]?.at).toBe(
       0,
     );
-    expect(parseLine(line({ type: "user", timestamp: "時刻ではない", message: {} }))[0]?.at).toBe(
-      0,
-    );
+    expect(parseLine(line({ type: "assistant", timestamp: "時刻ではない" }))[0]?.at).toBe(0);
   });
 
   it("知らない形の中身を飛ばす", () => {
@@ -113,10 +385,55 @@ describe("parseLine", () => {
     expect(events).toEqual([{ at: EPOCH, kind: "assistant" }]);
   });
 
-  it("本文を持たない発話を、空の本文で出す", () => {
-    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: 42 } }))).toEqual([
-      { at: EPOCH, kind: "prompt", text: "" },
-    ]);
+  it("知らない promptSource の行は、人の発話として出さない", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          promptSource: "未知の値",
+          message: { content: "違う" },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it.each(["<system-reminder>違う</system-reminder>", "[Request interrupted by user]", ""])(
+    "出所が人の行でも、本文 %j は人の発話として出さない",
+    (text) => {
+      expect(
+        parseLine(
+          line({
+            type: "user",
+            timestamp: AT,
+            origin: { kind: "human" },
+            promptSource: "typed",
+            message: { content: text },
+          }),
+        ).filter((event) => event.kind === "prompt"),
+      ).toEqual([]);
+    },
+  );
+
+  it("text ブロックの 1 つが目印を含めば、行全体を人の発話として出さない", () => {
+    expect(
+      parseLine(
+        line({
+          type: "user",
+          timestamp: AT,
+          message: {
+            content: [
+              { type: "text", text: "違う" },
+              { type: "text", text: "<system-reminder>注記</system-reminder>" },
+            ],
+          },
+        }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("本文を持たない発話は、人の発話として出さない", () => {
+    expect(parseLine(line({ type: "user", timestamp: AT, message: { content: 42 } }))).toEqual([]);
   });
 
   it("Skill の起動を、道具の呼び出しと起動の両方として出す", () => {
@@ -136,9 +453,7 @@ describe("parseLine", () => {
   });
 
   it("message が物でない行は、本文が無いものとして読む", () => {
-    expect(parseLine(line({ type: "user", timestamp: AT, message: "文字列" }))).toEqual([
-      { at: EPOCH, kind: "prompt", text: "" },
-    ]);
+    expect(parseLine(line({ type: "user", timestamp: AT, message: "文字列" }))).toEqual([]);
   });
 
   it("Skill の入力が読めなければ、起動としては数えない", () => {
