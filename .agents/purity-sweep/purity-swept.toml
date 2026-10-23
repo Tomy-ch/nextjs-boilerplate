@@ -792,3 +792,4 @@
 "src/features/account/use-address-field.ts" = "2026-10-24"
 "src/components/use-submission-key.ts" = "2026-10-24"
 "src/components/use-submission-key.test.tsx" = "2026-10-24"
+"src/features/admin/products/ui/text-field/text-field.test.tsx" = "2026-10-24"

@@ -318,7 +318,7 @@ describe("WizardForm", () => {
     expect(screen.getByRole("group", { name: "確認" })).toBeVisible();
   });
 
-  it("離れられなくしたあいだは、終えた段階からも先へ進めない", async () => {
+  it("離れられなくしたあいだは、次へも押せない", () => {
     const { rerender } = render(<WizardFixture />);
 
     rerender(<WizardFixture locked />);

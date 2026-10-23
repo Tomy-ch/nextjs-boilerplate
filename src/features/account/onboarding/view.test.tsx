@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -23,6 +23,9 @@ import { RETURN_URL_FIELD } from "./form-names";
 import { OnboardingView } from "./view";
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
+
+const LOCKED_MESSAGE =
+  "前回の登録の結果が分かるまで、内容は変えられません。同じ内容でもう一度登録してください。";
 
 function renderView() {
   return render(
@@ -224,8 +227,73 @@ describe("OnboardingView", () => {
     await goToConfirm(user);
     await user.click(await screen.findByRole("button", { name: "登録する" }));
     await screen.findByText("入力内容を確認してください。");
+    await user.click(screen.getByRole("button", { name: "戻る" }));
 
+    const postalCode = screen.getByLabelText("郵便番号");
+
+    expect(postalCode).toBeVisible();
+
+    await user.clear(postalCode);
+    await user.type(postalCode, "220-0012");
+
+    expect(postalCode).toHaveValue("220-0012");
+  });
+
+  it("結果が定まらなかった登録の送り直しが拒まれたら、段を動けるように戻し、案内を下げる", async () => {
+    const user = userEvent.setup();
+
+    registerAction
+      .mockResolvedValueOnce(
+        failedActionState({
+          formError: "しばらくしてからお試しください。",
+          kind: ErrorKind.UNAVAILABLE,
+        }),
+      )
+      .mockResolvedValueOnce(
+        failedActionState({
+          formError: "入力内容を確認してください。",
+          kind: ErrorKind.VALIDATION,
+        }),
+      );
+    renderView();
+    await goToConfirm(user);
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+    await screen.findByText(LOCKED_MESSAGE);
+    await user.click(screen.getByRole("button", { name: "登録する" }));
+    await screen.findByText("入力内容を確認してください。");
+
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "戻る" })).toBeEnabled();
+  });
+
+  it("住所の補完を待っているうちに登録を送ったら、遅れて返った補完で送った住所を書き換えない", async () => {
+    const user = userEvent.setup();
+    let release: ((lookup: typeof ADDRESS_LOOKUP) => void) | undefined;
+
+    renderView();
+    await goToConfirm(user);
+    await user.click(screen.getByRole("button", { name: "戻る" }));
+    fetchAddresses.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const postalCode = screen.getByLabelText("郵便番号");
+
+    await user.clear(postalCode);
+    await user.type(postalCode, "105-0014");
+    await goNext(user, "確認へ進む");
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+    await act(async () => {
+      release?.({
+        candidates: [{ prefecture: PROFILE.prefecture, city: "港区", town: "芝" }],
+        isFallback: false,
+      });
+    });
+
+    expect(screen.getByLabelText("市区町村")).toHaveValue(PROFILE.city);
   });
 
   it("埋まっていない段からは進めない", () => {

@@ -62,10 +62,14 @@ describe("useSubmissionKey", () => {
     expect(result.current.outcomeOpen).toBe(false);
   });
 
-  it("結果の定まった拒否のあとは鍵を作り直す", () => {
+  it("結果が定まらない失敗のあとに成功したら、鍵を作り直し、結果が定まっていないとは返さない", () => {
     const { result, rerender } = renderKey({ state: idleActionState(), initialKey: INITIAL_KEY });
 
-    rerender({ state: failedActionState({ kind: ErrorKind.VALIDATION }), initialKey: INITIAL_KEY });
+    rerender({
+      state: failedActionState({ kind: ErrorKind.UNAVAILABLE }),
+      initialKey: INITIAL_KEY,
+    });
+    rerender({ state: succeededActionState(undefined), initialKey: INITIAL_KEY });
 
     expect(result.current.idempotencyKey).not.toBe(INITIAL_KEY);
     expect(result.current.outcomeOpen).toBe(false);
@@ -83,6 +87,24 @@ describe("useSubmissionKey", () => {
   });
 
   // ----- 異常系 -----
+  it("結果の定まった拒否のあとは鍵を作り直す", () => {
+    const { result, rerender } = renderKey({ state: idleActionState(), initialKey: INITIAL_KEY });
+
+    rerender({ state: failedActionState({ kind: ErrorKind.VALIDATION }), initialKey: INITIAL_KEY });
+
+    expect(result.current.idempotencyKey).not.toBe(INITIAL_KEY);
+    expect(result.current.outcomeOpen).toBe(false);
+  });
+
+  it("分類を持たない失敗は送る前に止めたものとして、同じ鍵のまま結果が定まっていないとは返さない", () => {
+    const { result, rerender } = renderKey({ state: idleActionState(), initialKey: INITIAL_KEY });
+
+    rerender({ state: failedActionState({ formError: "送れません。" }), initialKey: INITIAL_KEY });
+
+    expect(result.current.idempotencyKey).toBe(INITIAL_KEY);
+    expect(result.current.outcomeOpen).toBe(false);
+  });
+
   it("結果が定まらない失敗では、同じ鍵のまま結果が定まっていないと返す", () => {
     const { result, rerender } = renderKey({ state: idleActionState(), initialKey: INITIAL_KEY });
 

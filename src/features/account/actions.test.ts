@@ -244,7 +244,7 @@ describe("registerAction", () => {
 
     const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
     expect(redirect).not.toHaveBeenCalled();
   });
 });
@@ -289,6 +289,7 @@ describe("withdrawAction", () => {
 
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).resolves.toMatchObject({
       formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+      kind: ErrorKind.UNAVAILABLE,
     });
   });
 
