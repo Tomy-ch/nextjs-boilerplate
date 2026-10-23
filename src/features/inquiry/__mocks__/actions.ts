@@ -12,5 +12,5 @@ import type { InquiryMessageActionState } from "../form-state";
  * 無いので、成功を返して送った後の画面に留まります。
  */
 export const sendInquiryMessageAction = fn(
-  async (): Promise<InquiryMessageActionState> => succeededActionState(undefined),
+  (): Promise<InquiryMessageActionState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("sendInquiryMessageAction");

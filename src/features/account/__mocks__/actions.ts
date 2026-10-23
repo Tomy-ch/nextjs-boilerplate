@@ -12,12 +12,12 @@ import type { ProfileFormState, WithdrawFormState } from "../form-state";
  * 無いので、成功を返して押した後の画面に留まります。
  */
 export const registerAction = fn(
-  async (): Promise<ProfileFormState> => succeededActionState(undefined),
+  (): Promise<ProfileFormState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("registerAction");
 
 /** カタログでの [updateProfileAction](../actions.ts)。 */
 export const updateProfileAction = fn(
-  async (): Promise<ProfileFormState> => succeededActionState(undefined),
+  (): Promise<ProfileFormState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("updateProfileAction");
 
 /**
@@ -28,5 +28,5 @@ export const updateProfileAction = fn(
  * 無いので、成功を返して押した後の画面に留まります。
  */
 export const withdrawAction = fn(
-  async (): Promise<WithdrawFormState> => succeededActionState(undefined),
+  (): Promise<WithdrawFormState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("withdrawAction");

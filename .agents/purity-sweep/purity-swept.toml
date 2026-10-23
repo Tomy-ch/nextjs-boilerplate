@@ -763,3 +763,8 @@
 ".github/workflows/vrt-guard.yaml" = "2026-10-23"
 ".github/workflows/vrt.yaml" = "2026-10-23"
 "src/components/shell/admin-shell/admin-shell.stories.tsx" = "2026-10-23"
+"src/features/account/__mocks__/actions.ts" = "2026-10-24"
+"src/features/cart/__mocks__/actions.ts" = "2026-10-24"
+"src/features/cart/facade/add-to-cart/__mocks__/add-to-cart.ts" = "2026-10-24"
+"src/features/checkout/__mocks__/actions.ts" = "2026-10-24"
+"src/features/purchases/__mocks__/actions.ts" = "2026-10-24"

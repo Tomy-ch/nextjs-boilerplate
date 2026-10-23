@@ -12,5 +12,5 @@ import type { ClaimCouponFormState } from "../form-state";
  * 先が無いので、成功を返して受け取った後の画面に留まります。
  */
 export const claimCouponAction = fn(
-  async (): Promise<ClaimCouponFormState> => succeededActionState(undefined),
+  (): Promise<ClaimCouponFormState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("claimCouponAction");
