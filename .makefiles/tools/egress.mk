@@ -1,5 +1,5 @@
 ## runner の外向き通信の固定
-.PHONY: egress-apply ## 宣言を元に harden-runner の許可リストを workflow へ反映する
+.PHONY: egress-apply ## 宣言を元に bullfrog の許可リストと sudo の可否を workflow へ反映する
 .PHONY: egress-check ## workflow が宣言通り固定済みか検証する (書き換えなし・CI / hook 用)
 
 EGRESS := pnpm exec tsx scripts/egress

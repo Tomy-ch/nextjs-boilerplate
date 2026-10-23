@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { parseDeclaration } from "../../egress/declaration";
-import { dropOrphanedEndpoints } from "../lib/egress-declaration";
+import { dropOrphanedDeclarations } from "../lib/egress-declaration";
 import { ORPHANED_WORKFLOWS } from "./egress";
 import { EGRESS_DECLARATION_FILE } from "./manifest";
 
@@ -13,12 +13,16 @@ describe("ORPHANED_WORKFLOWS", () => {
   });
 
   it("実際の宣言を剥がすと、孤児が 1 つも残らない", () => {
-    const stripped = dropOrphanedEndpoints(
+    const stripped = dropOrphanedDeclarations(
       readFileSync(EGRESS_DECLARATION_FILE, "utf8"),
       ORPHANED_WORKFLOWS,
     );
     const declaration = parseDeclaration(stripped);
-    const keys = [...Object.keys(declaration.workflows), ...Object.keys(declaration.audit)];
+    const keys = [
+      ...Object.keys(declaration.workflows),
+      ...Object.keys(declaration.audit),
+      ...Object.keys(declaration.sudo),
+    ];
 
     expect(keys.filter((key) => ORPHANED_WORKFLOWS.includes(key))).toEqual([]);
   });
