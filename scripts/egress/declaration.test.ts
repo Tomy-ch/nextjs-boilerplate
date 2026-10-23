@@ -178,19 +178,15 @@ describe("parseDeclaration", () => {
     });
   });
 
-  it.each([
-    "example.com",
-    "999.1.1.1",
-    "256.0.0.1",
-    "01.2.3.4",
-    "1.2.3",
-    "10.0.0.0/33",
-  ])("IPv4 のアドレスでも CIDR でもないキー %s は落ちる", (key) => {
-    const [issue] = rejection(`${BASE}ips:\n  '${key}': 理由`);
+  it.each(["example.com", "999.1.1.1", "256.0.0.1", "01.2.3.4", "1.2.3", "10.0.0.0/33"])(
+    "IPv4 のアドレスでも CIDR でもないキー %s は落ちる",
+    (key) => {
+      const [issue] = rejection(`${BASE}ips:\n  '${key}': 理由`);
 
-    expect(issue?.path[0]).toBe("ips");
-    expect(JSON.stringify(issue)).toContain("IPv4 のアドレスか CIDR である必要があります");
-  });
+      expect(issue?.path[0]).toBe("ips");
+      expect(JSON.stringify(issue)).toContain("IPv4 のアドレスか CIDR である必要があります");
+    },
+  );
 
   it("IP を許す理由が空なら落ちる", () => {
     expect(rejection(`${BASE}ips:\n  '1.2.3.4': ''`)[0]).toMatchObject({
