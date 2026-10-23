@@ -323,7 +323,7 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 将来 `paths:` で絞りたくなるほど重い job（e2e 等）を足す場合は、**guard を対で用意するか、required check から外すか**のどちらかを必ず選ぶこと。片方だけを入れると即座にマージ不能になる。
 
-**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`ignore:` を渡す job は下の表のとおりで、依存スキャナは `only:` を渡す（[下記](#依存スキャナだけは影響しうるものの側を書く)）。
+**第 3 の道が [`../actions/diff-scope`](../actions/diff-scope/action.yaml)。** job は必ず起動して context を報告し、重いステップだけを `if:` で落とす。job 名が変わらないので required check も guard も触らずに済み、無関係な PR で消えるのは checkout と判定の数十秒だけになる。`ignore:` を渡す job は下の表のとおりで、依存スキャナーは `only:` を渡す（[下記](#依存スキャナーだけは影響しうるものの側を書く)）。
 
 **matrix は shard ごとではなく、前段の scope job で門を掛ける。** 1 つの job が一度だけ問い、shard はその答えに対して `needs:` と `if:` を持つので、無関係な PR ではどの shard も起動しない。手本は [`vrt.yaml`](vrt.yaml)。required context を持つ束ねる側の job はそれでも走って報告し、答えを返さなかった scope job は降りたものではなく失敗として読む。
 
