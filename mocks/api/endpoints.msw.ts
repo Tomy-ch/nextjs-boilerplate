@@ -290,35 +290,59 @@ export const getGetUsersMeRolesResponseMock = (
   ...overrideResponse,
 });
 
-export const getGetUsersMeCouponsResponseMock = (
-  overrideResponse: Partial<Extract<CouponListResponse, object>> = {},
-): CouponListResponse => ({
-  coupons: Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(
-    () => ({
-      id: faker.string.uuid(),
-      discount: {
-        kind: faker.helpers.arrayElement(["flat", "rate"] as const),
-        value: (() => "0.10")(),
-        maxAmount: faker.helpers.arrayElement([faker.number.int(), null]),
-      },
-      scope: {
-        kind: faker.helpers.arrayElement(["all", "category", "product"] as const),
-        targetId: faker.helpers.arrayElement([faker.string.uuid(), null]),
-      },
-      expiresAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-      usedAt: faker.helpers.arrayElement([
-        faker.date.past().toISOString().slice(0, 19) + "Z",
-        null,
-      ]),
-      issuedAt: faker.date.past().toISOString().slice(0, 19) + "Z",
-      minPurchaseAmount: faker.helpers.arrayElement([faker.number.int(), null]),
-      usableFrom: faker.helpers.arrayElement([
-        faker.date.past().toISOString().slice(0, 19) + "Z",
-        null,
-      ]),
-    }),
-  ),
-  ...overrideResponse,
+export const getGetUsersMeCouponsResponseMock = () => ({
+  coupons: [
+    {
+      id: "0193a1c0-0001-7000-8000-000000000005",
+      discount: { kind: "rate", value: "0.10", maxAmount: 1000 },
+      scope: { kind: "category", targetId: "0195f0c2-2000-7000-9000-000000000001" },
+      expiresAt: "2026-03-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-20T00:00:00Z",
+      minPurchaseAmount: 5000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000004",
+      discount: { kind: "flat", value: "5.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-04-30T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-15T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2026-01-31T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000003",
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-000000000002" },
+      expiresAt: "2026-02-28T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2025-12-04T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000002",
+      discount: { kind: "flat", value: "10.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-01-31T15:00:00Z",
+      usedAt: "2025-12-10T03:00:00Z",
+      issuedAt: "2025-11-15T00:00:00Z",
+      minPurchaseAmount: 3000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000001",
+      discount: { kind: "flat", value: "3.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2025-12-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-10-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: null,
+    },
+  ],
 });
 
 export const getGetUsersSearchResponseMock = (): UsersSearchResponse => ({

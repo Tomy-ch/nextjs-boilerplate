@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 
 import { postInquiryReply } from "@/adapters/server/api/inquiries";
@@ -9,7 +9,7 @@ import { REPLY_BODY_FIELD } from "@/features/admin/inquiries/form-names";
 import type { AdminInquiryReplyState } from "@/features/admin/inquiries/form-state";
 import { REPLY_MALFORMED_MESSAGE } from "@/features/admin/inquiries/form-state";
 import { parseAdminInquiryReplyForm } from "@/features/admin/inquiries/parse-reply-form";
-import { ADMIN_INQUIRY_LIST_PATH, adminInquiryDetailPath } from "@/features/admin/paths";
+import { ADMIN_INQUIRY_LIST_PATH } from "@/features/admin/paths";
 import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
@@ -47,7 +47,7 @@ export async function replyInquiryAction(
   const parsed = parseAdminInquiryReplyForm(formData);
 
   if (!parsed.ok) {
-    return parsed.bodyError === null
+    return parsed.reason === "unreadable"
       ? failedActionState({ formError: REPLY_MALFORMED_MESSAGE })
       : failedActionState({ fieldErrors: { [REPLY_BODY_FIELD]: [parsed.bodyError] } });
   }
@@ -60,7 +60,7 @@ export async function replyInquiryAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(adminInquiryDetailPath(parsed.inquiryId));
+  refresh();
 
   return succeededActionState(undefined);
 }

@@ -41,18 +41,60 @@ describe("AdminInquiryReplyForm", () => {
     expect(container.querySelector('input[name="idempotencyKey"]')).toHaveValue(KEY);
   });
 
-  it("空のままでは送信できない", () => {
+  it("空でも送信の操作は押せる", () => {
     renderForm();
-
-    expect(screen.getByRole("button", { name: "回答する" })).toBeDisabled();
-  });
-
-  it("書きかけがあれば送信できる", async () => {
-    renderForm();
-
-    await userEvent.type(screen.getByLabelText("回答"), "承知しました。");
 
     expect(screen.getByRole("button", { name: "回答する" })).toBeEnabled();
+  });
+
+  it("本文が必須であることを入力欄と印で伝える", () => {
+    renderForm();
+
+    expect(screen.getByLabelText("回答")).toHaveAttribute("aria-required", "true");
+    expect(screen.getByText("必須")).toBeVisible();
+  });
+
+  it.each([
+    ["空", ""],
+    ["空白だけ", "   "],
+  ])("%sのまま押したら送らず、入力を促す文言を欄に紐づけて出す", async (_label, body) => {
+    const user = userEvent.setup();
+    const action = vi.fn();
+
+    renderForm({ action });
+
+    const textarea = screen.getByLabelText("回答");
+
+    if (body !== "") {
+      await user.type(textarea, body);
+    }
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま押した後に書き始めると、入力を促す文言を消す", async () => {
+    const user = userEvent.setup();
+
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.type(screen.getByLabelText("回答"), "回");
+
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
+  });
+
+  it("書きかけがあれば、押したら送り、入力を促す文言は出さない", async () => {
+    const action = vi.fn();
+
+    renderForm({ action });
+
+    await userEvent.type(screen.getByLabelText("回答"), "承知しました。");
+    await userEvent.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(action).toHaveBeenCalledOnce();
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
   it("送信中は二重に送れない", () => {

@@ -220,7 +220,7 @@ Server Action の中で `redirect()` を呼ぶと、応答は「この URL へ�
 
 副作用を起こしたあとに Route Handler へ渡す必要があるなら、Server Action ではなく**素の form 送信**（`<form method="post" action="/...">`）で受ける。ブラウザー自身が遷移するので、`Response.redirect` の連鎖も cookie の往復もそのまま通る。
 
-代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。同梱サンプルでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
+代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。このリポジトリでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
 
 **確かめ方**: Server Action から `redirect("/api/…")` を呼ぶ画面を開き、操作したあとに開発サーバーのログを見る。URL は変わっているのに、その `GET` が 1 行も出ない。
 
@@ -306,6 +306,7 @@ memoization が効いていない。
 | Client-side navigation | ページ全体を作り直さず、変わった部分だけ差し替える遷移 | `<a>` による通常の遷移とは別物。`Link` はこちら |
 | Prefetching | 遷移先を先読みしておくこと | — |
 | `router.refresh()` | サーバーからレンダリングし直すが、**client state は保つ** | ブラウザーの再読み込みとは別物。あちらは client state を捨てる |
+| `refresh()`（`next/cache`） | Server Action 側の対応物。キャッシュを何も無効化せず、現在の route を action の応答でレンダリングし直す | `revalidatePath` とは別物。あちらは path を無効化し、訪問済みのページにも取り直しの印を付ける |
 | Version skew | ユーザーが開いたままの間に新しいバージョンがデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
 
 ### 境界とエラー
@@ -408,7 +409,7 @@ Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にす�
 
 組み合わせると、「一覧から押したときはその場にモーダルで開き、同じ URL を直接叩いたら全画面で開く。**URL は共有できる**」という形が、ルーティングの機能だけで成立する。
 
-**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。まだ使っていないが、「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
+**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
 
 ## ここでは扱わない語
 

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示で並べる入力欄の数。最初に開く観点の欄数と揃えず、フォームの形が伝わる高さに留める。 */
@@ -18,6 +19,7 @@ export const AdminProductEditSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="grid gap-8">
+        <LoadingAnnouncement />
         <Skeleton className="h-10 w-full max-w-md" />
         <div className="grid gap-6">
           {Array.from({ length: PLACEHOLDER_FIELDS }, (_, index) => index).map((index) => (

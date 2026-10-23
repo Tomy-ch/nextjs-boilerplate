@@ -90,10 +90,11 @@ the same rules**, so the input fields and validation pieces sit directly under t
 | `ui/postal-code-field/` | The postal code field. Holds the address search operation inside its frame |
 | `ui/submit-button/` | The submit control. Holds how it looks while pressed, as a child of the `form` |
 | `mypage/page-content.tsx` | Parallel fetching of your own information and the purchase summary |
-| `mypage/view.tsx` | The My Page display. Lays out the two cards to read and, below a divider, account closure |
+| `mypage/view.tsx` | The My Page display. Lays out the two cards to read, the path to coupons and, below a divider, account closure |
 | `mypage/ui/profile-card/` | The registration display and the path to editing |
 | `mypage/ui/purchase-summary-card/` | The purchase summary. Shows the breakdown by status in a table |
 | `mypage/ui/purchase-history-dialog/` | The purchase history list. A dialog with local scrolling |
+| `mypage/ui/coupons-link/` | The path to the held coupons |
 | `mypage/ui/action-row/` | The row of operations at the bottom. Paths to account closure and the site description |
 | `mypage/ui/withdraw-button/` | Account closure. A client island holding the confirmation dialog and the submission |
 | `mypage/ui/skeleton/` | The My Page loading UI |
@@ -139,8 +140,8 @@ Things that change for different reasons are kept apart. Fixing any one of them 
 | `errors` | Maps the classification of a failed submission to wording |
 | `observability` | Putting rendering on spans |
 
-It also draws on other features' `facade/` — login (`auth`), purchase destinations (`purchases`), the site
-description (`site-info`).
+It also draws on other features' `facade/` — login (`auth`), purchase destinations (`purchases`), held
+coupons (`coupons`), the site description (`site-info`).
 
 ## Action Return Contract
 
@@ -219,9 +220,9 @@ On `UNAUTHENTICATED`, every action redirects to sign-in with this screen as the 
   learning on the spot is easier to fix than being told "it is missing" only after a round trip. Error wording
   is shown only for touched fields, while the judgment of whether you may proceed does not look at whether a
   field was touched
-- **The idempotency key collapses duplicate registration submissions**. The point that assembled the screen
-  makes one key and puts it on the submission, so however many times it is sent from the same screen, the
-  user remains one person
+- **The idempotency key collapses duplicate registration submissions**. Registration is a one-time submission,
+  so the point that assembled the screen makes one key and puts it on the submission; however many times it is
+  sent from the same screen, the user remains one person
 - **Only the edit screen has breadcrumbs**. My Page is pointed at directly by the global nav, so breadcrumbs
   there would duplicate the same path
 

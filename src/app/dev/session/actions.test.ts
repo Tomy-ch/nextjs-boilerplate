@@ -12,7 +12,7 @@ const {
   issueDevelopmentAccessToken,
   issueTestSession,
   redirect,
-  revalidatePath,
+  refresh,
 } = vi.hoisted(() => ({
   discardTestSession: vi.fn(),
   isDevelopmentAccessAllowed: vi.fn(),
@@ -21,10 +21,10 @@ const {
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/auth/development-access", () => ({ isDevelopmentAccessAllowed }));
 vi.mock("@/adapters/server/auth/development-token", () => ({ issueDevelopmentAccessToken }));
@@ -201,7 +201,7 @@ describe("discardDevSessionAction", () => {
   it("捨てたあと、同じ画面を出し直させる", async () => {
     await discardDevSessionAction(idleActionState(), new FormData());
 
-    expect(revalidatePath).toHaveBeenCalledWith("/dev/session");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("画面を移さない", async () => {
@@ -229,6 +229,6 @@ describe("discardDevSessionAction", () => {
       formError: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
       status: "error",
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

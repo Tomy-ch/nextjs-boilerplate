@@ -119,8 +119,9 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
 - **The layout shell does not await `params` / `searchParams`.** It passes the Promise as is to the dynamic hole and resolves it inside. If the layout shell
   waits, not even the static shell can be served while it waits ([docs/rules.md](../../docs/rules.md#rendering))
 - **Passing identifiers through the contract's type** (`model`'s `toXxxId`) **is this layer's job**; features receive the passed value
-- **The real clock is read inside the dynamic hole after awaiting `connection()`** (`config/clock`). During prerendering
-  the value is not settled
+- **The real clock is read inside the dynamic hole, after a request-time value (cookies, `searchParams`) has been awaited, or
+  after `await io()` when the hole awaits none** (`config/clock`). During prerendering the value is not settled. `connection()` is
+  not used for this: it also blocks prefetching, and is kept for rendering that must wait for a real user request
 - **A redirect inside a dynamic hole happens after the static shell has been served.** The response has gone out as 200, and the redirect is conveyed by a
   meta tag rather than `Location`. For a screen request the unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
   only decisions that cannot be known without asking the backend (such as state about a principal that only the backend holds)
@@ -311,7 +312,7 @@ allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-whe
   Where to send after success has three cases:
   - **Send to the list with `redirect()`** — when staying on the same screen would make pressing again a double create or double update, and it
     cannot be undone because it has already succeeded
-  - **Stay and have it refetched with `revalidatePath()`** — when a succeeded row remaining in the list would keep showing an operation that
+  - **Stay and have it refetched with `refresh()`** — when a succeeded row remaining in the list would keep showing an operation that
     always conflicts if pressed. Even if cut off partway, have it refetched if even one went through (conveying why it was cut off and
     reflecting what succeeded in the list are separate matters)
   - **Stay and do nothing** — when cleanup continues under eventual consistency and refetching right away would only show

@@ -85,10 +85,11 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | `ui/postal-code-field/` | 郵便番号の項目。住所を検索する操作を枠の中に持つ |
 | `ui/submit-button/` | 送信の操作。押している間の見せ方を `form` の子として持つ |
 | `mypage/page-content.tsx` | 自分の情報と購入の集計の並行取得 |
-| `mypage/view.tsx` | マイページの表示。読む 2 枚と、区切りの下の退会を並べる |
+| `mypage/view.tsx` | マイページの表示。読む 2 枚、クーポンへの導線、区切りの下の退会を並べる |
 | `mypage/ui/profile-card/` | 登録情報の表示と、編集への導線 |
 | `mypage/ui/purchase-summary-card/` | 購入の集計。ステータス別の内訳を表で出す |
 | `mypage/ui/purchase-history-dialog/` | 購入履歴の一覧。局所スクロールを持つ dialog |
+| `mypage/ui/coupons-link/` | 保有クーポンへの導線 |
 | `mypage/ui/action-row/` | 下端の操作の並び。退会とサイト説明への導線 |
 | `mypage/ui/withdraw-button/` | 退会。確認 dialog と送信を持つ client island |
 | `mypage/ui/skeleton/` | マイページのローディング表示 |
@@ -135,7 +136,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | `observability` | レンダリングを span に載せる |
 
 他 feature の `facade/` も引きます —— ログイン（`auth`）、購入の行き先（`purchases`）、
-サイト説明（`site-info`）。
+保有クーポン（`coupons`）、サイト説明（`site-info`）。
 
 ## Action 戻り値契約
 
@@ -207,7 +208,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 - **登録では、埋まっていない段から進めません**。同じ規則を Server Action も通りますが、往復して
   初めて「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言を出すのは
   触れた項目だけで、進んでよいかの判定は触れたかどうかを見ません
-- **登録の二重送信は冪等キーが畳みます**。画面を組み立てた地点が 1 つ作って送信に載せるので、同じ
+- **登録の二重送信は冪等キーが畳みます**。登録は 1 回きりの送信なので、画面を組み立てた地点が 1 つ作って送信に載せ、同じ
   画面から何度送ってもユーザーは 1 人のままです
 - **パンくずは編集画面だけが持ちます**。マイページは global nav が直接指すので、同じ導線を二重に
   置くことになります

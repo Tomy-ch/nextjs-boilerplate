@@ -5,6 +5,7 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { type InquiryId, toInquiryId } from "@/model/inquiry/inquiry";
 
 import { REPLY_BODY_FIELD, REPLY_INQUIRY_ID_FIELD } from "./form-names";
+import { REPLY_EMPTY_MESSAGE } from "./form-state";
 
 /** 送信の内容を解いた結果。 */
 export type AdminInquiryReplyFormResult =
@@ -14,9 +15,8 @@ export type AdminInquiryReplyFormResult =
       readonly body: string;
       readonly idempotencyKey: string;
     }
-  | { readonly ok: false; readonly bodyError: string | null };
-
-const EMPTY_MESSAGE = "本文を入力してください。";
+  | { readonly ok: false; readonly reason: "unreadable" }
+  | { readonly ok: false; readonly reason: "field"; readonly bodyError: string };
 
 const TOO_LONG_MESSAGE = `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`;
 
@@ -39,17 +39,17 @@ export function parseAdminInquiryReplyForm(formData: FormData): AdminInquiryRepl
   const inquiryId = z.uuid().safeParse(formData.get(REPLY_INQUIRY_ID_FIELD));
 
   if (!idempotencyKey.success || !inquiryId.success) {
-    return { ok: false, bodyError: null };
+    return { ok: false, reason: "unreadable" };
   }
 
   const trimmed = body.success ? body.data.trim() : "";
 
   if (trimmed === "") {
-    return { ok: false, bodyError: EMPTY_MESSAGE };
+    return { ok: false, reason: "field", bodyError: REPLY_EMPTY_MESSAGE };
   }
 
   if ([...trimmed].length > INQUIRY_BODY_MAX_LENGTH) {
-    return { ok: false, bodyError: TOO_LONG_MESSAGE };
+    return { ok: false, reason: "field", bodyError: TOO_LONG_MESSAGE };
   }
 
   return {

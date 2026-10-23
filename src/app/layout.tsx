@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { LoadingAnnouncerProvider } from "@/components/shell/loading-announcer/loading-announcer";
 import { ToastProvider } from "@/components/shell/toaster/toaster";
 import { getSiteConfig } from "@/config/site/site.server";
 import { findActiveTraceparent } from "@/observability/trace-context.server";
@@ -58,9 +59,11 @@ export default function RootLayout({
           <TelemetryHole />
         </Suspense>
         <ToastProvider>
-          <div className="flex flex-1 flex-col" data-slot="app-root">
-            {children}
-          </div>
+          <LoadingAnnouncerProvider>
+            <div className="flex flex-1 flex-col" data-slot="app-root">
+              {children}
+            </div>
+          </LoadingAnnouncerProvider>
         </ToastProvider>
         <Consent>
           <Analytics />

@@ -8,24 +8,22 @@ import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { SESSION_ROLE } from "@/model/session";
 
-const { verifySession, postInquiryReply, redirect, revalidatePath, unstable_rethrow } = vi.hoisted(
-  () => ({
-    verifySession: vi.fn(),
-    postInquiryReply: vi.fn(),
-    redirect: vi.fn((path: string) => {
-      throw new Error(`NEXT_REDIRECT:${path}`);
-    }),
-    revalidatePath: vi.fn(),
-    unstable_rethrow: vi.fn((error: unknown) => {
-      if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
-        throw error;
-      }
-    }),
+const { verifySession, postInquiryReply, redirect, refresh, unstable_rethrow } = vi.hoisted(() => ({
+  verifySession: vi.fn(),
+  postInquiryReply: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-);
+  refresh: vi.fn(),
+  unstable_rethrow: vi.fn((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+      throw error;
+    }
+  }),
+}));
 
 vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/inquiries", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/inquiries")>()),
@@ -72,7 +70,7 @@ describe("replyInquiryAction", () => {
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/admin/inquiries/${INQUIRY_ID}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -126,7 +124,7 @@ describe("replyInquiryAction", () => {
       `NEXT_REDIRECT:${loginPath("/admin/inquiries")}`,
     );
     expect(postInquiryReply).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("存在しない問い合わせへの回答を分類のまま返す", async () => {
@@ -135,6 +133,6 @@ describe("replyInquiryAction", () => {
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.NOT_FOUND });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

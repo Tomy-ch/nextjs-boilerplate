@@ -5,16 +5,16 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
-const { cancelMyPurchase, payMyPurchase, redirect, revalidatePath } = vi.hoisted(() => ({
+const { cancelMyPurchase, payMyPurchase, redirect, refresh } = vi.hoisted(() => ({
   cancelMyPurchase: vi.fn(),
   payMyPurchase: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
@@ -61,7 +61,7 @@ describe("cancelPurchaseAction", () => {
     const state = await cancelPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -103,7 +103,7 @@ describe("cancelPurchaseAction", () => {
       `NEXT_REDIRECT:/login?returnUrl=%2Fpurchases%2F${PURCHASE_CODE}`,
     );
     expect(redirect).toHaveBeenCalledOnce();
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("失敗したときは取り直させない", async () => {
@@ -111,7 +111,7 @@ describe("cancelPurchaseAction", () => {
 
     await cancelPurchaseAction(idleActionState(), transitionForm());
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -127,7 +127,7 @@ describe("payPurchaseAction", () => {
     const state = await payPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -169,6 +169,6 @@ describe("payPurchaseAction", () => {
       `NEXT_REDIRECT:/login?returnUrl=%2Fpurchases%2F${PURCHASE_CODE}`,
     );
     expect(redirect).toHaveBeenCalledOnce();
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

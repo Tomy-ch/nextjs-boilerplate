@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
+
+import { COUPONS_PATH } from "@/features/coupons/facade/paths/paths";
 
 import {
   EMPTY_PURCHASE_HISTORY,
@@ -56,6 +58,27 @@ describe("MypageView", () => {
     expect(
       screen.getByRole("navigation", { name: "このサイトについての案内と退会" }),
     ).toBeVisible();
+  });
+
+  it("クーポンへの導線を、読む 2 枚の後ろ・戻せない操作の並びの前に置き、その並びには入れない", () => {
+    renderView();
+
+    const link = screen.getByRole("link", { name: /クーポン/ });
+    const operations = screen.getByRole("navigation", { name: "このサイトについての案内と退会" });
+    const following = Node.DOCUMENT_POSITION_FOLLOWING;
+
+    expect(link).toHaveAttribute("href", COUPONS_PATH);
+    expect(screen.getByText("購入サマリ").compareDocumentPosition(link) & following).toBe(
+      following,
+    );
+    expect(link.compareDocumentPosition(operations) & following).toBe(following);
+    expect(within(operations).queryByRole("link", { name: /クーポン/ })).not.toBeInTheDocument();
+  });
+
+  it("購入が無くてもクーポンへの導線を出す", () => {
+    renderView({ purchases: EMPTY_PURCHASE_HISTORY, summary: EMPTY_PURCHASE_SUMMARY });
+
+    expect(screen.getByRole("link", { name: /クーポン/ })).toHaveAttribute("href", COUPONS_PATH);
   });
 
   it("購入が無くても登録情報と操作を出す", () => {

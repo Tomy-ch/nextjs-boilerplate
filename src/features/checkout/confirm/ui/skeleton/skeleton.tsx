@@ -11,6 +11,7 @@ import {
   KeyValueValue,
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 届け先に並べる項目数。[`../shipping-card/`](../shipping-card/shipping-card.tsx) と同じ。 */
@@ -41,6 +42,7 @@ export const CheckoutConfirmSkeleton = withPartSpan(
         aria-hidden="true"
         className="flex flex-col gap-8 pb-40 lg:flex-row lg:items-start lg:pb-0"
       >
+        <LoadingAnnouncement />
         <div className="flex min-w-0 flex-1 flex-col gap-6">
           <Card>
             <CardHeader>

@@ -298,7 +298,7 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `createProductAction` | Same as above | `ProductFormState` | `redirect` to the list | Returns per-field errors to their steps |
 | `updateProductAction` | Same as above | `ProductFormState` | Same as above | Same as above. A version mismatch is told apart |
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
-| `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `revalidatePath`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
+| `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `revalidatePath` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 

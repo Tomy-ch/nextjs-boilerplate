@@ -48,7 +48,7 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | `time-window.ts` | The period that aggregation and filtering target. Maps a calendar division to a half-open interval of instants in the reference time zone |
 | `campaign/` | Display types for the campaigns the sample admin screens list and suspend <!-- sample:line --> |
 | `cart/` | Display types for the cart the sample screens handle, and how conditions raised on line items are shown <!-- sample:line --> |
-| `coupon/` | The coupon identifier, display types for the coupon discounts the sample screens handle, and their wording (face value, cap, scope) <!-- sample:line --> |
+| `coupon/` | The coupon identifier, display types for the coupons the sample screens handle (a held coupon, a coupon usable on the cart, an applied one, the discount), and their wording (face value, cap, scope) <!-- sample:line --> |
 | `dashboard/dashboard.ts` | Display types for the admin-side cross-cutting aggregates the sample screens handle <!-- sample:line --> |
 | `inquiry/` | Display types for the inquiries the sample screens handle, and folding in what arrived through the subscription <!-- sample:line --> |
 | `product/product.ts` | Display types for the products the sample screens handle <!-- sample:line --> |

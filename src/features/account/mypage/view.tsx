@@ -3,6 +3,7 @@ import type { PurchaseHistoryPage } from "@/model/purchase/purchase";
 import type { PurchaseSummary, UserProfile } from "@/model/user/user";
 import { withScreenSpan } from "@/observability/render-span";
 import { MypageActionRow } from "./ui/action-row/action-row";
+import { MypageCouponsLink } from "./ui/coupons-link/coupons-link";
 import { ProfileCard } from "./ui/profile-card/profile-card";
 import { PurchaseSummaryCard } from "./ui/purchase-summary-card/purchase-summary-card";
 
@@ -32,6 +33,7 @@ export const MypageView = withScreenSpan(
           <ProfileCard profile={profile} />
           <PurchaseSummaryCard purchases={purchases} summary={summary} />
         </div>
+        <MypageCouponsLink />
         <Separator />
         <MypageActionRow />
       </div>

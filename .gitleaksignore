@@ -32,4 +32,9 @@ d4a49aca7440cf07404459335916d97a71651eb8:src/features/admin/inquiries/actions.te
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/admin/inquiries/parse-reply-form.test.ts:generic-api-key:11
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/inquiry/actions.test.ts:generic-api-key:22
 d4a49aca7440cf07404459335916d97a71651eb8:src/features/inquiry/parse-message-form.test.ts:generic-api-key:7
+
+# 保有クーポンの画面を足したときに、キャンペーンの受け取りの adapter のテストが使った冪等キー。
+# バックエンドへ送らず、どの環境の資格情報でもない。tip では秘密に見えない綴りへ置き換え済みで、
+# 走査対象が履歴の blob であるためここへ残る。消す条件は上と同じ。
+38ef292dfc66c583a3d4ce3f6210fc1dc3bcaa63:src/adapters/server/api/campaigns.test.ts:generic-api-key:32
 # boilerplate-only:end

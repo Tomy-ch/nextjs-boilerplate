@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 枠だけで見せる行数。1 画面に収まる範囲に留め、実際より入っているように見せない。 */
@@ -19,6 +20,7 @@ export const PurchaseHistorySkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex flex-col gap-4">
+        <LoadingAnnouncement />
         <Skeleton className="h-4 w-24" />
         <ul className="divide-y rounded-lg border">
           {ROWS.map((row) => (

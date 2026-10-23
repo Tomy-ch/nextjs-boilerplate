@@ -42,6 +42,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 | `purchases/` | 確定したものの履歴と 1 件の詳細、そこからの状態遷移 | [README](purchases/README.ja.md) |
 | `account/` | 自分の記録。登録・編集・退会と、自分向けの集計 | [README](account/README.ja.md) |
 | `inquiry/` | サポートとのやり取り。届いた 1 通が取り直しを待たずに並ぶ | [README](inquiry/README.ja.md) |
+| `coupons/` | 持っているものと、キャンペーンコードで受け取れるもの。状態は画面側で現在時刻に照らして決める | [README](coupons/README.ja.md) |
 | `admin/` | 役割を持つ主体だけが入る運用面 | [README](admin/README.ja.md) |
 | `site-info/` | 取得を持たない静的な面 | [README](site-info/README.ja.md) |
 <!-- sample:end -->
@@ -62,7 +63,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 | `<screen>/view.tsx` | props だけでレンダリングできる画面の合成。`page-content` が取った値を受けて組む | 取得 |
 | `<screen>/breadcrumb-content.tsx` | 現在地までの階層。app レイヤーの `@breadcrumb` slot が置く。名前のために本文と同じ取得を通ってよい —— 同じレンダリングの中で 1 回に畳まれる | |
 | `<screen>/ui/<part>/` | その画面のコンポーネント。1 コンポーネント 1 ディレクトリで、実装・test・stories を共置する | 他の画面からの参照（2 つ目の画面が要れば 1 段上へ） |
-| `ui/skeleton/` | ローディング表示。実物と同じ段組みで、プレースホルダーの数は 1 画面に収まる固定値。`aria-hidden` | 実データの件数との一致 |
+| `ui/skeleton/` | ローディング表示。実物と同じ段組みで、プレースホルダーの数は 1 画面に収まる固定値。`aria-hidden` で、中に `LoadingAnnouncement` を 1 つ置く | 実データの件数との一致 |
 | `ui/submit-button/` | `useFormStatus` を読む送信の操作。`form` をレンダリングする component の**子**として切り出す | |
 | `ui/error-state/` | 取得に失敗したときの表示。レンダリングするのは route の `error.tsx` | 文言の組み立て（分類から `errors` が引く） |
 | `query.ts` | URL のキーの綴り、行き先の組み立て、いま見ている場所の型 —— **組む側** | `searchParams` を読むスキーマ |
@@ -151,7 +152,8 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
 3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す。**`UNAUTHENTICATED` と分類された失敗は
    返さない** —— `catch` の中でまず `isUnauthenticated(error)` なら、フォームのある画面を戻り先としてサインインへ
    redirect する（`auth/facade/` の `loginPath`。[0043](../../docs/adr/0043-middleware-policy.ja.md)）
-4. 成立したら `revalidatePath` か `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
+4. 成立したら `refresh()`（キャッシュしていないデータの画面に留まる）、`revalidatePath`（別の route にも出す）、
+   または `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
    無効化では外枠が古いまま残る** —— `revalidatePath("/", "layout")` を、`project-rules/no-app-wide-revalidate`
    の抑止に理由を添えて使う
 
@@ -163,9 +165,8 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
   `adapters/server/auth` へ触れられる app レイヤーだけである
 - **冪等キーの発行元は送信の回数で決まる。** 1 回きりの作成（登録・確定）は `page-content` が組み立て
   ごとに 1 つ作って props で渡す。同じ画面から繰り返す送信（1 件ずつ足していくもの）は client island が
-  `useState(newIdempotencyKey)` で持ち、**応答が送信を確定させたら作り直す**（`settlesSubmission`）。結果が
-  定まらない失敗では保つ（[`docs/rules.md`](../../docs/rules.ja.md#forms)）。多くの行に操作を差し出す一覧は、行ごとに 1 つ持つ。
-  設定（PUT）と削除は 2 度届いても結果が変わらないのでキーを持たない
+  `useState(newIdempotencyKey)` で持つ。**どちらも、応答が送信を確定させたら作り直し、結果が定まらないあいだは保つ**（`model/idempotency-key.ts` の `settlesSubmission`。`409` を「同じキーの要求が処理中」に充てるエンドポイントはそう宣言する）。多くの行に操作を差し出す一覧は、行ごとに 1 つ持つ。設定（PUT）と削除は 2 度届いても
+  結果が変わらないのでキーを持たない
 - **競合（409）だけ言い分ける。** 押した人が取れる行動（画面を読み直す）が他の失敗と違う
 - **確認の中で送る操作は、送信中も失敗時も dialog を開いたままにする。** 押した時点で閉じるコンポーネント
   （`AlertDialogAction`）を使うと、送信中の表示も失敗の文言もユーザーが見ていない場所に出る

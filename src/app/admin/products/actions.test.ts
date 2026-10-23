@@ -18,7 +18,7 @@ const {
   createProduct,
   discontinueProduct,
   redirect,
-  revalidatePath,
+  refresh,
   unstable_rethrow,
   updateProduct,
   uploadProductImage,
@@ -30,7 +30,7 @@ const {
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
   unstable_rethrow: vi.fn((error: unknown) => {
     if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
       throw error;
@@ -42,7 +42,7 @@ const {
 }));
 
 vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/config/http/http.client", () => ({ MAX_UPLOAD_BYTES: 4 * 1024 * 1024 }));
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
@@ -528,7 +528,7 @@ describe("discontinueProductAction", () => {
 
     await discontinueProductAction(idleActionState(), discontinueForm());
 
-    expect(revalidatePath).toHaveBeenCalledWith(`/admin/products/${PRODUCT_ID}/discontinue`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -548,7 +548,7 @@ describe("discontinueProductAction", () => {
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
     expect(discontinueProduct).not.toHaveBeenCalled();
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -563,7 +563,7 @@ describe("discontinueProductAction", () => {
 
     expect(state).toMatchObject({ status: "error", formError: DISCONTINUE_TARGET_LOST_MESSAGE });
     expect(discontinueProduct).not.toHaveBeenCalled();
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("条件が読めなければ、その欄あての文言を返し、送らず取り直させもしない", async () => {
@@ -577,7 +577,7 @@ describe("discontinueProductAction", () => {
       "couponValidityDays",
     ]);
     expect(discontinueProduct).not.toHaveBeenCalled();
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("進行中の購入が残って拒まれたら、この画面でしか言えない文言で返し、画面を取り直させる", async () => {
@@ -590,7 +590,7 @@ describe("discontinueProductAction", () => {
       formError: DISCONTINUE_CONFLICT_MESSAGE,
       kind: ErrorKind.CONFLICT,
     });
-    expect(revalidatePath).toHaveBeenCalledWith(`/admin/products/${PRODUCT_ID}/discontinue`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("接続先が条件の項目を名指しして拒んだら、その欄あてに返し、全体の文言は出さない", async () => {
@@ -610,7 +610,7 @@ describe("discontinueProductAction", () => {
       },
       kind: ErrorKind.VALIDATION,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("名指しの無い検証の失敗は、分類の既定の文言で返す", async () => {
@@ -633,7 +633,7 @@ describe("discontinueProductAction", () => {
       `NEXT_REDIRECT:${loginPath("/admin/products")}`,
     );
     expect(discontinueProduct).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("一時的に受け付けられないときは、取り直させずに分類のまま返す", async () => {
@@ -646,6 +646,6 @@ describe("discontinueProductAction", () => {
       formError: getDefaultErrorMeta(ErrorKind.UNAVAILABLE).message,
       kind: ErrorKind.UNAVAILABLE,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

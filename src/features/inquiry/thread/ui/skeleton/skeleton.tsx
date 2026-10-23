@@ -1,5 +1,6 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
 import { APP_SHELL_HEADER_HEIGHT } from "@/components/shell/app-shell/app-shell.definition";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /**
@@ -28,9 +29,11 @@ export const InquiryThreadSkeleton = withPartSpan(
   () => {
     return (
       <div
+        aria-hidden="true"
         className="flex min-h-0 flex-col gap-4"
         style={{ height: `calc(100dvh - ${APP_SHELL_HEADER_HEIGHT}px - 2rem)` }}
       >
+        <LoadingAnnouncement />
         <div className="flex flex-1 flex-col justify-end gap-4">
           {MESSAGES.map((index) => (
             <Skeleton

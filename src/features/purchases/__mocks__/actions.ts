@@ -12,10 +12,10 @@ import type { PurchaseTransitionState } from "../form-state";
  * 無いので、成功を返して押した後の画面に留まります。
  */
 export const payPurchaseAction = fn(
-  async (): Promise<PurchaseTransitionState> => succeededActionState(undefined),
+  (): Promise<PurchaseTransitionState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("payPurchaseAction");
 
 /** カタログでの [cancelPurchaseAction](../actions.ts)。 */
 export const cancelPurchaseAction = fn(
-  async (): Promise<PurchaseTransitionState> => succeededActionState(undefined),
+  (): Promise<PurchaseTransitionState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("cancelPurchaseAction");

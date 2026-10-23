@@ -47,6 +47,18 @@ describe("settlesSubmission", () => {
   it.each(OUTCOME_OPEN_KINDS)("%s で失敗した送信は、同じ鍵で送り直す", (kind) => {
     expect(settlesSubmission(failedActionState({ kind }))).toBe(false);
   });
+
+  it("競合を処理中に充てるエンドポイントでは、競合の後も同じ鍵で送り直す", () => {
+    expect(settlesSubmission(failedActionState({ kind: ErrorKind.CONFLICT }), "in-progress")).toBe(
+      false,
+    );
+  });
+
+  it("競合を処理中に充てるエンドポイントでも、競合でない拒否は鍵の役目を終える", () => {
+    expect(
+      settlesSubmission(failedActionState({ kind: ErrorKind.VALIDATION }), "in-progress"),
+    ).toBe(true);
+  });
 });
 
 describe("leavesOutcomeOpen", () => {
@@ -69,5 +81,11 @@ describe("leavesOutcomeOpen", () => {
 
   it.each(OUTCOME_SETTLED_KINDS)("%s で拒まれた送信は、結果が定まっていないとはしない", (kind) => {
     expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(false);
+  });
+
+  it("競合を処理中に充てるエンドポイントでは、競合の後は結果が定まっていない", () => {
+    expect(leavesOutcomeOpen(failedActionState({ kind: ErrorKind.CONFLICT }), "in-progress")).toBe(
+      true,
+    );
   });
 });

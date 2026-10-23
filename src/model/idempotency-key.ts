@@ -10,9 +10,10 @@ export const IDEMPOTENCY_KEY_FIELD = "idempotencyKey";
  * 変更 1 回ぶんの冪等キーを作る。
  *
  * @remarks
- * **画面を組み立てるたびに 1 つ作ります。** 同じ画面から何度送っても同じ鍵になるため、二重に
- * 押しても再読み込みで送り直しても、成立する変更は 1 つのままです。逆に、画面を開き直したときは
- * 別の鍵になります。もう一度やる意思で開いた画面が、前回の再生になっては困るためです。
+ * **同じ意図の送り直しは同じ鍵で送ります。** 二重に押しても、応答が届かずに送り直しても、成立する
+ * 変更は 1 つのままです。画面を組み立てるたびに 1 つ作り、応答が送信を確定させたら作り直します
+ * （{@link settlesSubmission}）。開き直した画面も次の 1 件も、もう一度やる意思の送信が前回の再生に
+ * なっては困るため別の鍵になります。
  *
  * **受け取った側は mount のときの値を持ち続けます。** 画面の取り直し（`router.refresh()`）は
  * 受け取った component を unmount せず prop だけを差し替えるため、渡された値をそのまま送ると、書きかけの入力は
@@ -37,6 +38,9 @@ export function newIdempotencyKey(): string {
  *
  * 中断（`canceled`）は自動の再試行の対象にはなりませんが、届いたかどうかが分からない点で結果は
  * 定まっていません。
+ *
+ * 競合（`conflict`）は状態の衝突として定まった側に置きます。同じ鍵の要求が処理中であることに充てる
+ * エンドポイントは {@link ConflictMeaning} で宣言し、定まらない側へ移します。
  */
 const SUBMISSION_OUTCOME = {
   [ErrorKind.INVALID_ARGUMENT]: "settled",
@@ -56,6 +60,33 @@ const SUBMISSION_OUTCOME = {
 } as const satisfies Record<ErrorKind, "settled" | "open">;
 
 /**
+ * エンドポイントが競合（409）を何に充てているか。
+ *
+ * @remarks
+ * `state-conflict` は対象の状態が送信と食い違ったことで、中身を確かめ直した次の送信は別の要求です。
+ * `in-progress` は同じ鍵の要求がまだ処理中であることで、IETF の Idempotency-Key の draft
+ * （`draft-ietf-httpapi-idempotency-key-header` §2.7）は直さずに同じ鍵で送り直してよいとします。
+ * 新しい鍵で送ると、処理中の 1 回目とは別の操作が始まり得ます。どちらかはステータスコードでは
+ * 決まらず、エンドポイントの契約が決めます。
+ */
+export type ConflictMeaning = "state-conflict" | "in-progress";
+
+/**
+ * 失敗の分類が、送信の結果を定めたか。
+ *
+ * @param kind - 失敗の分類
+ * @param conflict - エンドポイントが競合を何に充てているか
+ * @returns 結果が定まったなら `settled`、定まらないなら `open`
+ */
+function outcomeOf(kind: ErrorKind, conflict: ConflictMeaning): "settled" | "open" {
+  if (kind === ErrorKind.CONFLICT && conflict === "in-progress") {
+    return "open";
+  }
+
+  return SUBMISSION_OUTCOME[kind];
+}
+
+/**
  * 送信の結果が、その鍵の役目を終わらせたか。
  *
  * @remarks
@@ -64,9 +95,13 @@ const SUBMISSION_OUTCOME = {
  * 結果が定まらない失敗（同じく `open` とする分類）と、分類を持たない失敗では false です。前者は同じ鍵で送り直すことこそ鍵の役目で、後者は送る前に止めたものとして扱い、鍵を保ちます。
  *
  * @param state - 直近の送信が返した結果
+ * @param conflict - エンドポイントが競合を何に充てているか。既定は状態の衝突
  * @returns 次の送信を新しい鍵で送るべきなら true
  */
-export function settlesSubmission(state: ActionState<unknown>): boolean {
+export function settlesSubmission(
+  state: ActionState<unknown>,
+  conflict: ConflictMeaning = "state-conflict",
+): boolean {
   if (state.status === "success") {
     return true;
   }
@@ -75,7 +110,7 @@ export function settlesSubmission(state: ActionState<unknown>): boolean {
     return false;
   }
 
-  return SUBMISSION_OUTCOME[state.kind] === "settled";
+  return outcomeOf(state.kind, conflict) === "settled";
 }
 
 /**
@@ -89,12 +124,16 @@ export function settlesSubmission(state: ActionState<unknown>): boolean {
  * 分類を持たない失敗は送る前に止めたものとして扱い、false を返します。
  *
  * @param state - 直近の送信が返した結果
+ * @param conflict - エンドポイントが競合を何に充てているか。既定は状態の衝突
  * @returns 直近の送信が結果の定まらない失敗なら true
  */
-export function leavesOutcomeOpen(state: ActionState<unknown>): boolean {
+export function leavesOutcomeOpen(
+  state: ActionState<unknown>,
+  conflict: ConflictMeaning = "state-conflict",
+): boolean {
   return (
     state.status === "error" &&
     state.kind !== undefined &&
-    SUBMISSION_OUTCOME[state.kind] === "open"
+    outcomeOf(state.kind, conflict) === "open"
   );
 }

@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /**
@@ -17,7 +18,8 @@ export const AdminInquiryListSkeleton = withPartSpan(
   "features/admin/inquiries/list/ui/skeleton/skeleton",
   () => {
     return (
-      <div className="space-y-2">
+      <div aria-hidden="true" className="space-y-2">
+        <LoadingAnnouncement />
         {ROWS.map((index) => (
           <Skeleton className="h-12 w-full" key={index} />
         ))}

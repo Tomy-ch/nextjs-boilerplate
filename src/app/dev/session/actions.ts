@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDevelopmentAccessAllowed } from "@/adapters/server/auth/development-access";
 import { discardTestSession, issueTestSession } from "@/adapters/server/auth/test-session";
@@ -9,7 +9,7 @@ import type {
   DiscardSessionFormState,
 } from "@/features/dev-session/form-state";
 import { parseDevSessionForm } from "@/features/dev-session/parse-session-form";
-import { DEV_SESSION_PATH, RETURN_URL_PARAM } from "@/features/dev-session/paths";
+import { RETURN_URL_PARAM } from "@/features/dev-session/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -97,7 +97,7 @@ export async function discardDevSessionAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(DEV_SESSION_PATH);
+  refresh();
 
   return succeededActionState(undefined);
 }

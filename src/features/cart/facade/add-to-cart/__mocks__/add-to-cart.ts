@@ -8,5 +8,5 @@ import { type ActionState, succeededActionState } from "@/model/action-state";
  * @returns 常に成功として解決する `ActionState`。
  */
 export const addToCartAction = fn(
-  async (): Promise<ActionState<void>> => succeededActionState(undefined),
+  (): Promise<ActionState<void>> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("addToCartAction");

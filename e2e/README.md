@@ -673,6 +673,7 @@ where routes without declarations and declarations without a target both fail ([
 | `journeys/not-found` | No screen remains that fetches a single item and receives the absence inside the layout shell |
 | `journeys/discontinue` | The admin list, the discontinue screen and its Server Action it runs through are the sample's screens themselves |
 | `journeys/campaign-suspend` | The admin campaign list, its suspend confirmation and the Server Action it runs through are the sample's screens themselves |
+| `journeys/coupons` | My Page, the coupons screen and its claim Server Action it runs through are the sample's screens themselves |
 | `journeys/checkout-coupon` | The cart, the purchase confirmation with its coupon choice, and the confirm Server Action it runs through are the sample's screens themselves |
 
 **Remaining specs must point only at remaining screens.** The specs that check mechanisms (consent, CSP,

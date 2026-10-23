@@ -5,15 +5,15 @@ import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
-const { postMyInquiryMessage, redirect, revalidatePath } = vi.hoisted(() => ({
+const { postMyInquiryMessage, redirect, refresh } = vi.hoisted(() => ({
   postMyInquiryMessage: vi.fn(),
   redirect: vi.fn((path: string) => {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/api/inquiries", () => ({ postMyInquiryMessage }));
 
@@ -47,7 +47,7 @@ describe("sendInquiryMessageAction", () => {
     const state = await sendInquiryMessageAction(idleActionState(), formOf("本文"));
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith("/mypage/inquiry");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -76,7 +76,7 @@ describe("sendInquiryMessageAction", () => {
     await expect(sendInquiryMessageAction(idleActionState(), formOf("本文"))).rejects.toThrow(
       "NEXT_REDIRECT:/login?returnUrl=%2Fmypage%2Finquiry",
     );
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("契約が本文を弾いたら、本文の項目の文言として返し、全体の文言は出さない", async () => {
@@ -107,6 +107,6 @@ describe("sendInquiryMessageAction", () => {
 
     await sendInquiryMessageAction(idleActionState(), formOf("本文"));
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

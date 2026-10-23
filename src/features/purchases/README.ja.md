@@ -121,7 +121,7 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | 確認を開いたまま、その中で伝える |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `refresh()` | 確認を開いたまま、その中で伝える |
 | `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | 同上 | 同上 |
 
 `UNAUTHENTICATED` のときは、どの action もこの画面を戻り先としてサインインへ redirect します（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）。

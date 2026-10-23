@@ -12,9 +12,9 @@ describe("ProductListSkeleton", () => {
   });
 
   it("待機中の枠を支援技術へ読ませない", () => {
-    render(<ProductListSkeleton />);
+    const { container } = render(<ProductListSkeleton />);
 
-    expect(screen.getByRole("list", { hidden: true })).toHaveAttribute("aria-hidden", "true");
+    expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryAllByRole("list")).toHaveLength(0);
   });
 });

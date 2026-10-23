@@ -11,13 +11,13 @@ import { loginPath } from "@/features/auth/facade/paths";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
-const { deliverPurchase, redirect, revalidatePath, shipPurchase, unstable_rethrow, verifySession } =
+const { deliverPurchase, redirect, refresh, shipPurchase, unstable_rethrow, verifySession } =
   vi.hoisted(() => ({
     deliverPurchase: vi.fn(),
     redirect: vi.fn((path: string) => {
       throw new Error(`NEXT_REDIRECT:${path}`);
     }),
-    revalidatePath: vi.fn(),
+    refresh: vi.fn(),
     shipPurchase: vi.fn(),
     unstable_rethrow: vi.fn((error: unknown) => {
       if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
@@ -28,7 +28,7 @@ const { deliverPurchase, redirect, revalidatePath, shipPurchase, unstable_rethro
   }));
 
 vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
@@ -88,7 +88,7 @@ describe("shipPurchasesAction", () => {
   it("成立したら発送待ちの一覧を取り直させる", async () => {
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("いまの状況で通らなかった注文は数えて先へ進む", async () => {
@@ -147,7 +147,7 @@ describe("shipPurchasesAction", () => {
       formError: SHIPMENT_CONFLICT_MESSAGE,
       kind: ErrorKind.CONFLICT,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("競合以外の失敗では、残りを送らずに止める", async () => {
@@ -166,7 +166,7 @@ describe("shipPurchasesAction", () => {
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
     expect(shipPurchase).toHaveBeenCalledTimes(2);
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("接続先が認証切れで拒んだら、そこまでの発送を反映させたうえで、この画面へ戻る入り直しへ送る", async () => {
@@ -177,7 +177,7 @@ describe("shipPurchasesAction", () => {
       `NEXT_REDIRECT:${loginPath("/admin/shipments")}`,
     );
     expect(shipPurchase).toHaveBeenCalledTimes(2);
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("1 件も通らずに打ち切ったときは取り直させない", async () => {
@@ -185,7 +185,7 @@ describe("shipPurchasesAction", () => {
 
     await shipPurchasesAction(idleActionState(), shipmentForm());
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -201,7 +201,7 @@ describe("deliverPurchaseAction", () => {
   it("通ったら一覧を取り直させる", async () => {
     await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/shipments");
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("複数並んでいても、先頭の 1 件だけを送る", async () => {
@@ -251,7 +251,7 @@ describe("deliverPurchaseAction", () => {
 
     await expect(pending).rejects.toThrow(`NEXT_REDIRECT:${loginPath("/admin/shipments")}`);
     expect(deliverPurchase).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("競合以外の失敗では、一覧を取り直させない", async () => {
@@ -259,7 +259,7 @@ describe("deliverPurchaseAction", () => {
 
     const state = await deliverPurchaseAction(idleActionState(), shipmentForm([FIRST_CODE]));
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
   });
 });

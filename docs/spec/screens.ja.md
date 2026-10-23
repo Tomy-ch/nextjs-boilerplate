@@ -32,9 +32,9 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 
 ---
 
-## 1. 画面一覧(29)
+## 1. 画面一覧(30)
 
-### ユーザー側(13)
+### ユーザー側(14)
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
@@ -51,6 +51,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | U11 | マイページ | `GET /v1/users/me` / `GET /v1/users/me/purchases/summary` | プロフィール確認・購入サマリ表示・退会導線 | 退会は確認モーダル必須(不可逆操作) |
 | U12 | ユーザー更新 | `GET /v1/users/me` / `GET /v1/prefectures` / `PUT /v1/users/{userId}` | プロフィール編集 | U11 とは独立ルート。**CollectAll**(RSC 内 `Promise.all` での並置合成)の実例 |
 | U13 | お問い合わせ | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | サポートとのやり取り。ユーザーごとに 1 件で、最初の投稿が問い合わせを作る | **届いた 1 通が取り直しを待たずに出る唯一の画面**。初期表示は RSC が履歴を取り、その応答が返す `streamCursor` を購読の開始位置に渡す。購読はブラウザーが backend の SSE へ直接繋ぎ、資格情報は BFF が発券する短命 ticket を query に載せる。送信は Server Action + `Idempotency-Key` で、届いた 1 通は購読ではなく取り直した canonical に現れる。`APP_API_MODE=mock` では発券の取得エンドポイントが発券を断り、購読を持たない姿で止まる（表示と送信は動く） |
+| U14 | クーポン | `GET /v1/users/me/coupons` / `POST /v1/campaigns/claims` | 保有クーポンを状態つきで見る。キャンペーンコードで 1 枚受け取る | U11 とは独立したルート。**状態（未使用 / 使用済み / 期限切れ / 利用開始前）は画面側で決める** —— 3 つの時刻を現在時刻と突き合わせる。契約は状態を返さない。受け取りの証拠は一覧に 1 行増えることだけなので、受け取り欄と一覧を同じ画面に置く。受け取れない理由はすべて区別のない 1 種類の `422` で届く。`Idempotency-Key` はフォームが持ち、応答が受け取りを確定させたら作り直す。`409`（同じキーが処理中）では保つ |
 
 ### admin 側(12)
 
@@ -124,9 +125,9 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/users/me/coupons` | 要 | 保有クーポン。発行日時の新しい順。使用済み・失効済みも並ぶ | — | coupons[] | 401 |
+| `GET /v1/users/me/coupons` | 要 | 保有クーポン。発行日時の新しい順（U14）。使用済み・失効済みも並ぶ | — | coupons[] | 401 |
 | `GET /v1/carts/me/coupons` | 要 | いまのカートに使えるクーポンと、それぞれの値引き額。**適用可否と値引き額をプレゼンテーションレイヤーに計算させないためのエンドポイント** | — | coupons[](coupon, discountAmount) | 401 |
-| `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る | code, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
+| `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る（U14） | code, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
 | `POST /v1/coupons` | 要 admin | 名指しした 1 人へクーポンを 1 枚発行する | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 403, 404(受給者または範囲の対象が無い), 409, 422 |
 | `POST /v1/coupons/bulk-issue` | 要 admin | 退会していない全員へクーポンを 1 枚ずつ発行する。受給者は指定できない | discount, scope, expiresAt, Idempotency-Key(必須のヘッダー) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409(受給者数が上限超過)**, 422 |
 | `GET /v1/campaigns` | 要 admin | キャンペーン一覧(A12)。開始の新しい順で、停止済み・終了済みも含む | page, perPage | campaigns[], total | 400, 401, 403, 422 |

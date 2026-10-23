@@ -44,7 +44,7 @@
 | | 長い本文・連続文字列 | `Page/Mypage/Inquiry/LongBody` |
 | やり取りの並び | 送信中 | `Features/Inquiry/Thread/MessageList/Sending` |
 | | 空 | `Features/Inquiry/Thread/MessageList/Empty` |
-| 送信欄 | idle / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,Pending,Invalid}` |
+| 送信欄 | idle / 空のまま送ろうとした / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid}` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
 | やり取りと送信 | success / empty / 長い本文 | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
 | ローディング表示 | loading | `Features/Inquiry/Thread/Skeleton/Default` |
@@ -58,6 +58,7 @@
 | --- | --- |
 | `actions.ts` | 送信の Server Action |
 | `form-names.ts` | 送信が持つ項目の名前。**検証を持たない** —— 入力欄が要るのは綴りだけ |
+| `form-state.ts` | Server Action の戻り値の型と、送信欄と Action が共有する空の本文の文言 |
 | `parse-message-form.ts` | 送信された内容から本文と冪等キーを取り出す |
 | `connection-status.ts` | 購読の状態と回線の有無を、画面へ出す 1 語へマッピングする |
 | `facade/paths/` | この feature が持つルート。**他の feature が指すエントリポイント** |
@@ -84,9 +85,7 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言 |
-
-`UNAUTHENTICATED` のときは、action はこの画面を戻り先としてサインインへ redirect します（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）。
+| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `refresh()` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
 
 **冪等キーを必ず載せます。** メッセージは自然キーを持たないため、応答が届かなかっただけの送信を
 送り直すと 2 通目になります。キーは成立するまで同じ値を使い、成立した時点で作り直します。

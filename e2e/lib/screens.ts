@@ -137,6 +137,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: "user" },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: "user" },
   { route: "/mypage/inquiry", name: "inquiry", path: "/mypage/inquiry", signedIn: "user" },
+  { route: "/mypage/coupons", name: "coupons", path: "/mypage/coupons", signedIn: "user" },
   {
     route: "/onboarding",
     skip:

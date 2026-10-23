@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 import { BASICS_FIELDS, STEP_IDS } from "../../steps";
 
@@ -13,6 +14,7 @@ export const OnboardingSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex max-w-2xl flex-col gap-6">
+        <LoadingAnnouncement />
         <div className="flex gap-4">
           {STEP_IDS.map((step) => (
             <Skeleton className="h-6 flex-1" key={step} />

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { postMyInquiryMessage } from "@/adapters/server/api/inquiries";
@@ -8,7 +8,6 @@ import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { loginPath } from "@/features/auth/facade/paths";
 import {
-  type ActionState,
   actionStateFromError,
   failedActionState,
   succeededActionState,
@@ -16,16 +15,8 @@ import {
 
 import { INQUIRY_PATH } from "./facade/paths/paths";
 import { INQUIRY_BODY_FIELD } from "./form-names";
+import type { InquiryMessageActionState } from "./form-state";
 import { parseInquiryMessageForm } from "./parse-message-form";
-
-/**
- * 送信が画面へ返す結果。
- *
- * @remarks
- * 成功しても返す値はありません。送った 1 通は取り直した正本に現れ、それは同じ往復で再描画される
- * Server Component が持ちます。
- */
-export type InquiryMessageActionState = ActionState<void, typeof INQUIRY_BODY_FIELD>;
 
 /** 送信された内容を解けなかったときの文言。 */
 const MALFORMED_MESSAGE = "送信を受け付けられませんでした。画面を読み込み直してください。";
@@ -65,7 +56,7 @@ export async function sendInquiryMessageAction(
   const parsed = parseInquiryMessageForm(formData);
 
   if (!parsed.ok) {
-    return parsed.bodyError === null
+    return parsed.reason === "unreadable"
       ? failedActionState({ formError: MALFORMED_MESSAGE })
       : failedActionState({ fieldErrors: { [INQUIRY_BODY_FIELD]: [parsed.bodyError] } });
   }
@@ -85,7 +76,7 @@ export async function sendInquiryMessageAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(INQUIRY_PATH);
+  refresh();
 
   return succeededActionState(undefined);
 }
