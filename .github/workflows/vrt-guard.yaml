@@ -181,7 +181,6 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           permission-issues: write
-          permission-contents: read
 
       - name: Raise it where it has an owner
         if: ${{ !cancelled() && steps.vrt.outputs.status != 'success' }}

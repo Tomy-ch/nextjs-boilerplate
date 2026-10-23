@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       actions: read
 
@@ -108,7 +108,6 @@ jobs:
           # `pull-requests: write` covers the comments and the label edit; `actions: read`
           # covers `gh run download`, which reads the triggering run's artifacts.
           permission-pull-requests: write
-          permission-issues: write
           permission-checks: read
           permission-actions: read
           permission-contents: read
@@ -315,6 +314,7 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
+          push: 'true'
           # Only on the route that opens one. Unconditional, the mint 422s on an installation
           # that has not granted it and takes the push route down with it.
           pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
