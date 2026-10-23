@@ -354,7 +354,9 @@ CI Checks のワークフローには `paths:` / `paths-ignore:` を付けない
 
 `dependency-gate` / `osv-gate`（昇格ゲート）は**降りない**。昇格は誰かがツリーの現状を引き受けて判断する場面であり、その PR の差分が lockfile に触れていないことは、ツリーが持っている脆弱性を引き受けない理由にならない。一方 `dependency-audit` は降りる —— base から引き継いだ判定は変更の作者がその場で解消できず、それを赤にするのは [0110](../../docs/adr/0110-security-operations.ja.md) が禁じている形そのものである。
 
-`codeql` と `sonarcloud` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。`sonarcloud` の quality gate も同様に、受け取った解析から SonarCloud 側で計算される。**外部の仕組みに 判断を預けている検査なので、こちらの都合で走行回数を減らさない。**
+`codeql` には掛けていない。code scanning の alert は「後の解析がもう報告しない」ことでしか閉じず、PR ごとに解析を省くと閉じる契機を落としうる。**GitHub 側の仕組みに judgement を預けている検査なので、こちらの都合で走行回数を減らさない。**
+
+`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**
 
 `md-lint` / `scripts-check` / `strip-verify` / `purge-verify` も絞らない。対象がツリー全体（すべての Markdown と `.claude/**`、リポジトリ全域にまたがる export と describe の対応 gate、strip や purge を掛けた後のツリー）なので、届かないと宣言できるパスが無い。
 

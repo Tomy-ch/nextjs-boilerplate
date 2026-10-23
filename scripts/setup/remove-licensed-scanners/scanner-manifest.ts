@@ -110,6 +110,16 @@ export const SCANNER_DOMAINS: readonly ScannerDomain[] = [
           "| `sonarcloud` | CI のみ | 解析を実行するのは SonarCloud 側で、手元には結果を読むエンドポイントしか無い。そもそも `SONAR_TOKEN` を開発者の環境へ配らない |\n",
       },
       {
+        file: ".github/workflows/README.md",
+        block:
+          "It is not applied to `sonarcloud`. Its quality gate is computed on SonarCloud's side from the analyses it received. **This is a check that entrusts its judgment to an external mechanism, so its run count is not reduced for our convenience.**\n\n",
+      },
+      {
+        file: ".github/workflows/README.ja.md",
+        block:
+          "`sonarcloud` には掛けていない。quality gate は受け取った解析から SonarCloud 側で計算される。**外部の仕組みに判断を預けている検査なので、こちらの都合で走行回数を減らさない。**\n\n",
+      },
+      {
         file: "docs/adr/0110-security-operations.md",
         block:
           '- **External analysis service (SonarQube Cloud)**: unlike all the above, the only layer that **depends on an external account**. It is free for public repositories and paid for private ones, so **it is designed with no contract as the default** — if `SONAR_TOKEN` is not set, the whole analysis job steps down, and **it states "not configured" on the PR while staying green** (the absence of a comment is indistinguishable from "the check was green"). **It is not registered as a required check**. Whether a third party\'s account exists must not become a condition for merging. **It is not a target of stripping** — whether to keep it is a judgment for whoever knows whether a contract exists, and is chosen in one step of [`docs/get-started/setup-repository.md`](../get-started/setup-repository.md). `projectKey` / `organization` are repository identifiers, so they are rewritten by `make setup-replace-repository-reference` as **identity**, not as settings\n',

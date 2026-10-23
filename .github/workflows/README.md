@@ -350,7 +350,9 @@ Without condition 2, an omission becomes **"a gate that checks nothing"** as is.
 
 `dependency-gate` / `osv-gate` (promotion gates) **do not skip**. Promotion is where someone takes on the current state of the tree and decides, and the fact that the PR's diff does not touch the lockfile is no reason not to take on the vulnerabilities the tree holds. `dependency-audit`, on the other hand, does skip — a verdict inherited from base cannot be resolved on the spot by the change's author, and turning it red is exactly the form [0110](../../docs/adr/0110-security-operations.md) forbids.
 
-It is not applied to `codeql` or `sonarcloud`. A code scanning alert closes only when "a later analysis no longer reports it", and omitting analysis per PR could drop the occasion for closing; `sonarcloud`'s quality gate is likewise computed on SonarCloud's side from the analyses it received. **These are checks that entrust their judgment to an external mechanism, so their run count is not reduced for our convenience.**
+It is not applied to `codeql`. A code scanning alert closes only when "a later analysis no longer reports it", and omitting analysis per PR could drop the occasion for closing. **This is a check that entrusts its judgment to GitHub's mechanism, so its run count is not reduced for our convenience.**
+
+It is not applied to `sonarcloud`. Its quality gate is computed on SonarCloud's side from the analyses it received. **This is a check that entrusts its judgment to an external mechanism, so its run count is not reduced for our convenience.**
 
 `md-lint` / `scripts-check` / `strip-verify` / `purge-verify` are not narrowed either: their subject is the whole tree (every Markdown file and `.claude/**`, the export-to-describe gate across the repository, the tree after a strip or a purge), so no path can be declared unable to reach them.
 
