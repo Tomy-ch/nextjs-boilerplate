@@ -517,3 +517,4 @@
 "vrt/lib/a11y-rules.ts" = "2026-10-12"
 "vrt/lib/a11y-rules.test.ts" = "2026-10-12"
 "docs-viewer/package.json" = "2026-10-21"
+"src/components/shell/admin-shell/admin-shell.stories.tsx" = "2026-10-23"
