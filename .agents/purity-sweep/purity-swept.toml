@@ -525,3 +525,4 @@
 ".github/workflows/lighthouse.yaml" = "2026-10-23"
 ".github/workflows/deferred-checks.yaml" = "2026-10-23"
 ".github/actions/diff-scope/action.yaml" = "2026-10-23"
+"scripts/setup/remove-licensed-scanners/scanner-manifest.ts" = "2026-10-22"
