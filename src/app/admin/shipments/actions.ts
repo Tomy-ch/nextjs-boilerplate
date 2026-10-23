@@ -6,6 +6,7 @@ import { redirect, unstable_rethrow } from "next/navigation";
 import { deliverPurchase, shipPurchase } from "@/adapters/server/api/purchases";
 import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { ADMIN_SHIPMENT_QUEUE_PATH } from "@/features/admin/paths";
 import { SHIPMENT_FORM_NAMES } from "@/features/admin/shipments/form-names";
 import {
   DELIVERY_CONFLICT_MESSAGE,

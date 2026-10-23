@@ -13,6 +13,7 @@ import {
   succeededActionState,
 } from "@/model/action-state";
 
+import { purchaseDetailPath } from "./facade/paths/paths";
 import { PURCHASE_TRANSITION_FORM_NAMES } from "./form-names";
 import {
   CANCEL_CONFLICT_MESSAGE,

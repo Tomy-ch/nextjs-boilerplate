@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示で並べる行数。実際の 1 ページ分と揃えず、表の形が伝わる高さに留める。 */
@@ -16,6 +17,7 @@ export const AdminCampaignListSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="space-y-2">
+        <LoadingAnnouncement />
         <Skeleton className="h-10 w-full" />
         {Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index).map((index) => (
           <Skeleton className="h-14 w-full" key={index} />
