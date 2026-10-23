@@ -2,10 +2,9 @@ name: OpenSSF Scorecard
 
 # Measures this repository's own supply-chain posture — branch protection, pinned
 # dependencies, token permissions, the presence of a security policy — rather than
-# the code or the dependencies. For a boilerplate the posture IS the product: a repository
-# created from this template receives these settings as files plus a setup step
-# (`make setup-repository`), not as repository settings — creating from a template copies
-# the tree, never the branch protection or the token permissions.
+# the code or the dependencies. Creating a repository from a template copies the tree,
+# never the branch protection or the token permissions; `make setup-repository` applies
+# them, and this score shows whether that step was applied.
 #
 # The default branch is not a fixed name here: it moves with each release
 # (`release/vX.Y.Z`), so the push trigger matches the namespace and the job narrows to
@@ -71,8 +70,8 @@ jobs:
           persist-credentials: false
 
       # `publish_results: false` — publishing sends the score to the OpenSSF public
-      # dataset. That is a decision about this repository's name, not a technical one,
-      # so it is left to whoever runs the generated repository.
+      # dataset. That is the repository owner's decision about its name, not a technical
+      # one.
       #
       # No `repo_token`, so `Branch-Protection` / `Fuzzing` / `CII-Best-Practices` stay
       # capped. All three are held there on purpose, with the conditions that would

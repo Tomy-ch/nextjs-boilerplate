@@ -60,7 +60,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # The subject is `mise.toml`, not the tree, and the weekly audit above reads every pin
+      # The subject is `mise.toml`, not the tree, and the weekly audit reads every pin
       # — the two halves `only` requires (see the note in the action).
       - name: Decide whether the diff can reach the pins
         id: scope

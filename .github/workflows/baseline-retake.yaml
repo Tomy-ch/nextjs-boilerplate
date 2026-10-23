@@ -53,6 +53,8 @@ jobs:
       github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # `GITHUB_TOKEN` only reads here and comments: every push goes out with the App token
+    # that `setup-baselines` mints below.
     permissions:
       contents: read
       pull-requests: write
@@ -90,9 +92,8 @@ jobs:
             mcr.microsoft.com
             *.data.mcr.microsoft.com
 
-      # Minted rather than using `GITHUB_TOKEN` for its rate limit, and allowed to fail so the
-      # retake falls back to it (README § PR Comments). This job is the first consumer to
-      # exhaust the shared cap, making about ten calls on every VRT and E2E completion.
+      # Minted for its own rate limit rather than sharing `GITHUB_TOKEN`'s, and allowed to fail
+      # so the retake falls back to `GITHUB_TOKEN` (README § PR Comments).
       #
       # The permissions are the union of what the steps below need and nothing else. The
       # `setup-baselines` call further down narrows `pull-requests` by route; this one cannot,
@@ -120,8 +121,8 @@ jobs:
       # branch the head commit is the merge commit of the last feature pull request, so
       # that endpoint returns the feature one — already closed, and carrying none of the
       # labels a human put on the release pull request. The release pull request never
-      # appears in the answer at all, which made the retake unreachable for exactly the
-      # branch whose baselines drift the most.
+      # appears in the answer at all, so resolving by commit would leave the retake
+      # unreachable for exactly the branch whose baselines drift the most.
       - name: Resolve the pull request
         id: pr
         env:
@@ -448,7 +449,7 @@ jobs:
           # An orphan cannot be retaken — nothing renders it any more, so it is deleted.
           # Naming the files instead of falling back to the whole set is what keeps the
           # retake bounded: a full retake adopts whatever every other story happened to
-          # render at that moment, and those images were never reported (#502).
+          # render at that moment, and those images were never reported.
           orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
           if [ -n "$orphans" ]; then
             echo "$orphans" | while IFS= read -r baseline; do

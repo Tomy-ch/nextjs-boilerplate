@@ -146,9 +146,9 @@ jobs:
             .gemini/*
 
       # Installed before the `force` decision because that decision is TypeScript, and on a
-      # run that goes ahead these are the same steps it would have paid for anyway. What is
-      # new is the pull request that ends up standing down: it now pays for the toolchain to
-      # be told so. That is the price of the question, and it is named in the header above.
+      # run that goes ahead these are the same steps it would have paid for anyway. The price
+      # is that a pull request that ends up standing down also pays for the toolchain before
+      # it is told so.
       - name: Setup mise and the pinned tools
         if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
@@ -269,7 +269,7 @@ jobs:
           }
 
           # A port each: `make e2e` kills the `pnpm start` wrapper but the `next start` child
-          # it spawned can outlive it and keep :3100 bound (issue #465). Sharing the port
+          # it spawned can outlive it and keep :3100 bound. Sharing the port
           # makes the next stage fail before it drives anything.
           #
           # The report paths are the `json` reporter's `outputFile` in each stage's config.

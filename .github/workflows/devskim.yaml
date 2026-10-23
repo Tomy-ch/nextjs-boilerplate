@@ -3,15 +3,15 @@ name: DevSkim Scan
 # DevSkim is a regex linter with no language front-end, so it reads every file in the
 # tree with one rule set. That is the whole reason it is here: opengrep goes deeper
 # but only reaches the languages it parses, so a weak cipher name
-# or a hardcoded credential in a file neither opens is currently seen by nothing.
+# or a hardcoded credential in a file neither opens is seen by nothing else.
 #
 # The overlap with opengrep is real and accepted. What is NOT overlapped is the set of
 # files opengrep never opens — YAML that is not a workflow, JSON, plain text, the
 # Markdown under `docs/`.
 #
-# A FINDING never fails the job; findings go to code scanning. The baseline has not
-# been held at zero, and a language-agnostic regex scanner over a whole repository is
-# the wrong shape for a gate — the diff check over new alerts is the right one.
+# A FINDING never fails the job; findings go to code scanning. A language-agnostic regex
+# scanner over a whole repository cannot hold its baseline at zero, so the diff check over
+# new alerts is the gate.
 #
 # A BROKEN MECHANISM DOES fail it, for the reason spelled out in `bearer.yaml`:
 # reporting is this job's entire output, so a crashed scan, a missing SARIF or a failed

@@ -234,7 +234,7 @@ jobs:
           if-no-files-found: ignore
 
       # The raw triplets as they were written, kept beside the merged report so the
-      # `vrt-diff` artifact keeps the shape it had before the split.
+      # `vrt-diff` artifact has the same shape however many shards wrote it.
       - name: Upload this shard's diff images
         if: always() && steps.vrt.outputs.status == 'failure'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -377,7 +377,7 @@ jobs:
           merge-multiple: true
 
       # One report out of four. `merge-reports` reads the reporters from the config, which
-      # is what puts `report.json` and `report/` exactly where an unsplit run left them —
+      # is what puts `report.json` and `report/` at the paths the config declares —
       # `scripts/vrt table|ids|orphans` and `baseline-retake.yaml` both read those paths.
       - name: Merge the shard reports into one
         if: needs.vrt-scope.outputs.relevant == 'true'

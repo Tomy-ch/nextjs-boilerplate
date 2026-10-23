@@ -8,11 +8,10 @@ name: DAST
 # `next.config.ts` declares and what a browser actually receives are two different
 # facts, and only one of them protects anyone.
 #
-# THE GATE IS ON FROM DAY ONE, AND THE KNOWN GAPS ARE AN ENUMERATED LIST. Everything
-# ZAP reports today sits in `.github/zap/rules.tsv` with a reason and a removal
-# condition; anything NOT on that list turns this red. The list is what makes the
-# wall passable — a permanently red required check would block the very pull requests
-# that shrink it.
+# THE GATE IS ON, AND THE KNOWN GAPS ARE AN ENUMERATED LIST. Every known gap sits in
+# `.github/zap/rules.tsv` with a reason and a removal condition; anything NOT on that
+# list turns this red. The list is what makes the wall passable — a permanently red
+# required check would block the very pull requests that shrink it.
 #
 # The entries are IGNORE rather than removed, and ZAP still prints every ignored rule
 # with its URLs in the summary. That is severity lowered, not a finding hidden.

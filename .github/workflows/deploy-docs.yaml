@@ -2,11 +2,10 @@ name: Deploy Docs
 
 # Publishes the generated-HTML documentation site to GitHub Pages.
 #
-# Storybook is the site's first tenant, not the site itself. The docs portal and
-# any further generated HTML (coverage, OpenAPI) join it under sibling paths
-# later, so the site root is a redirect (`docs/index.html`) rather than Storybook
-# mounted at `/`. Retargeting that redirect is the only change the portal needs
-# here; no tenant URL moves.
+# Storybook is one tenant of the site, not the site itself. The site root is a
+# redirect (`docs/index.html`) rather than Storybook mounted at `/`, so the docs
+# portal and any other generated HTML (coverage, OpenAPI) sit beside Storybook under
+# sibling paths, and retargeting the redirect moves no tenant URL.
 #
 # The release trigger carries no `paths:`. A push to `production` is a release, and
 # a release can change the rendered site through an indirect path — a token, a

@@ -11,9 +11,9 @@ name: Images Pin
 # run in CI.
 #
 # A separate workflow from `actions-pin` on purpose: same discipline, different
-# supply chain. The two scan some of the
-# same files but never the same lines — a `docker://` step is a registry
-# reference, which `actions-pin` cannot resolve through `git ls-remote`.
+# supply chain. The two scan some of the same files but never the same lines — a
+# `docker://` step is a registry reference that `actions-pin` cannot resolve through
+# `git ls-remote`.
 #
 # No `paths:` filter, deliberately — README.md says why every workflow runs on every PR.
 

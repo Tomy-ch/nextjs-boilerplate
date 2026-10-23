@@ -399,7 +399,7 @@ jobs:
             echo 'organization を用意して 「SONAR_TOKEN」 を登録し、sonar-project.properties の'
             echo 'sonar.projectKey / sonar.organization を自分のものへ書き換えてください。'
             echo '使わないなら、このワークフローと sonar-project.properties を削除してください'
-            echo '（boilerplate の剥がしは両方を消します）。'
+            echo '（make setup-remove-licensed-scanners は両方をまとめて消します）。'
           } > /tmp/sonarcloud-notice.md
 
       - name: Comment the gap on PR

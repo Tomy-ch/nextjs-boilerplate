@@ -1,7 +1,7 @@
 name: Actions Lint
 
 # Lints the Actions definitions themselves — the same commands the pre-commit hook
-# runs. Seven checks, one concern:
+# runs. Eight checks, one concern:
 #
 #   actionlint          — workflow syntax, plus the shell of every `run:` in
 #                         `.github/workflows`. shellcheck is installed alongside it
@@ -34,6 +34,8 @@ name: Actions Lint
 #                         not TypeScript, so neither the 1:1 gate nor coverage applies,
 #                         and it sits outside `.github` so actionlint and
 #                         actions-shellcheck both miss it.
+#   egress-check        — the egress allowlist of every job agrees with
+#                         `.github/egress.yaml`, the one place it is declared.
 #
 # All of them are reported through a single PR comment: they answer the same question
 # — is the automation we are about to execute correct — and splitting them would add

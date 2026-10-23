@@ -2,8 +2,8 @@ name: OSV Scan
 
 # The dependency graph read against the OSV database. Trivy and `pnpm audit` already
 # read the same graph, and the three disagree — different aggregation units, different
-# databases. The security rules settle that: the UNION is the truth, so a third reader is
-# not redundancy to be removed but a blind spot being closed.
+# databases. The UNION of the three readers is authoritative (`.github/workflows/README.md`),
+# so a third reader is not redundancy to be removed but a blind spot being closed.
 #
 # Two jobs, the same split the Trivy pair has:
 #
