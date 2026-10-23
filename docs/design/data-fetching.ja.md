@@ -4,7 +4,7 @@
 
 # 取得と契約
 
-ブラウザから BFF（同一オリジンの `/api/*`）へ、BFF からバックエンドへ、値がどのエンドポイントを通って画面へ届くかを通しで説明する。**この文書が担うのは通り道の説明**であり、何を選んだかは ADR が持つ —— fetch wrapper の責務は [ADR 0071](../adr/0071-bff-api-integration.ja.md)、生成物の扱いは [ADR 0072](../adr/0072-api-type-generation.ja.md)、分類とキャッシュの境界は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)。レンダリングとキャッシュの語彙（memoization / Data Cache / `use cache`）は [rendering.md](rendering.ja.md) が持ち、ここでは取得エンドポイントから見た形だけを扱う。
+ブラウザーから BFF（同一オリジンの `/api/*`）へ、BFF からバックエンドへ、値がどのエンドポイントを通って画面へ届くかを通しで説明する。**この文書が担うのは通り道の説明**であり、何を選んだかは ADR が持つ —— fetch wrapper の責務は [ADR 0071](../adr/0071-bff-api-integration.ja.md)、生成物の扱いは [ADR 0072](../adr/0072-api-type-generation.ja.md)、分類とキャッシュの境界は [ADR 0112](../adr/0112-data-classification-cache-boundary.ja.md)。レンダリングとキャッシュの語彙（memoization / Data Cache / `use cache`）は [rendering.md](rendering.ja.md) が持ち、ここでは取得エンドポイントから見た形だけを扱う。
 
 判断に迷ったら ADR を優先する。この文書は説明であって規約ではない。
 
@@ -38,9 +38,9 @@ sequenceDiagram
 | バックエンドとの往復 | [`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) | 締切・再試行・遮断・応答の検証・status の分類 | 業務の判断、ログ |
 | 取得エンドポイント | `adapters/server/api/*.ts` | 契約の形から表示用の型への変換、クエリの照合、`cache()` / `use cache` | 生の `fetch` |
 | BFF | `app/api/**/route.ts` | 分類を HTTP へ写すこと、クエリの受け取り | 取得・検証・変換 |
-| ブラウザ発の取得 | [`adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) | 同一オリジンへの `fetch`、BFF が組んだ形の検証、status の分類 | 締切・再試行・遮断・資格情報 |
+| ブラウザー発の取得 | [`adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) | 同一オリジンへの `fetch`、BFF が組んだ形の検証、status の分類 | 締切・再試行・遮断・資格情報 |
 
-**Server Component と Server Action は BFF を通らない。** どちらもサーバで動くので取得エンドポイントを直接呼ぶ。BFF が要るのは、ブラウザで動く部分が続きを取りに来るときだけである（後述「一覧の続きを取る」）。
+**Server Component と Server Action は BFF を通らない。** どちらもサーバーで動くので取得エンドポイントを直接呼ぶ。BFF が要るのは、ブラウザーで動く部分が続きを取りに来るときだけである（後述「一覧の続きを取る」）。
 
 ## `adapters` の server / client が分けているもの
 
@@ -49,13 +49,13 @@ sequenceDiagram
 | | `adapters/server` | `adapters/client` |
 | --- | --- | --- |
 | 接続先 | バックエンド（`APP_API_BASE_URL`） | 同一オリジンの BFF だけ |
-| 資格情報 | cookie から解決した Bearer を要求境界が付ける | 持たない。ブラウザが cookie を自動で載せる |
+| 資格情報 | cookie から解決した Bearer を要求境界が付ける | 持たない。ブラウザーが cookie を自動で載せる |
 | 設定 | server config（接続先・上限） | `NEXT_PUBLIC_` のリテラルだけ |
 | 応答の検証 | 契約から生成した zod（`gen/<契約名>/endpoints.zod.ts`） | 手書きの `zod/mini`。BFF が組んだ形を照らす |
 | 生成物 | wire 型と zod スキーマ | **`gen/<契約名>/limits.ts` の定数だけ** |
 | resilience | 締切・再試行・遮断・retry budget | 無い。中断（`AbortSignal`）だけ |
 
-client 側の要求境界が resilience を持たないのは、同じ往復に対して再試行が 2 つの勘定で走るのを避けるためである。ブラウザ発の要求が失敗したとき、再試行はもう BFF の内側で済んでいる。
+client 側の要求境界が resilience を持たないのは、同じ往復に対して再試行が 2 つの勘定で走るのを避けるためである。ブラウザー発の要求が失敗したとき、再試行はもう BFF の内側で済んでいる。
 
 **実行文脈を持たない規則は `http/` に置く。** [`http/url-budget.ts`](../../src/adapters/http/url-budget.ts) がその形で、server と client のどちらの要求境界も同じ判定を呼ぶ。片方の element へ置くと、もう片方から import できないので規則が 2 つに割れる。
 
@@ -109,13 +109,13 @@ export const getEntry = cache(async (id: EntryId): Promise<Entry> => {
 
 ### client が引けるのは定数だけ
 
-生成 zod は 1 ファイルに全 operation を持つので、定数を 1 つ引くだけでその全体がブラウザへ配られる。だから生成の最後に `limits.ts` を切り出し、client はそこだけを引く。`endpoints.zod.ts` を client から引く経路は `scripts/client-schema-weight.gate.test.ts` が落とす。
+生成 zod は 1 ファイルに全 operation を持つので、定数を 1 つ引くだけでその全体がブラウザーへ配られる。だから生成の最後に `limits.ts` を切り出し、client はそこだけを引く。`endpoints.zod.ts` を client から引く経路は `scripts/client-schema-weight.gate.test.ts` が落とす。
 
 ## fetch wrapper で起きること
 
 [`createHttpClient`](../../src/adapters/server/http/request.ts) が返す `request()` は、1 回の呼び出しで次の順に進む。**順序が意味を持つ**ので、前から読む。
 
-1. **分類の関門。** `assertSpecWithinScope` が user-scoped のエンドポイントに `cache` / `tags` が混ざっていないかを、`assertNoCredentialHeader` が呼び出しごとのヘッダに `Authorization` / `Cookie` が無いかを見る。型が既に禁じていることの後詰めで、型を迂回して組んだ spec を止める
+1. **分類の関門。** `assertSpecWithinScope` が user-scoped のエンドポイントに `cache` / `tags` が混ざっていないかを、`assertNoCredentialHeader` が呼び出しごとのヘッダーに `Authorization` / `Cookie` が無いかを見る。型が既に禁じていることの後詰めで、型を迂回して組んだ spec を止める
 2. **URL の組み立て。** 相対パスは接続先の path を残したまま繋ぐ（`new URL(path, base)` は base の path を捨てる）。`.` / `..` の区間を含む path は `invalid-argument` で落とす —— `encodeURIComponent` で包んでも残るためである。絶対 URL はそのまま使う
 3. **URL の予算。** 遮断の判定より**先に**確かめる。予算超過は入力の誤りであって接続先の状態ではないので、遮断中の `unavailable` で覆うと直せる誤りが障害に見える
 4. **遮断器。** open なら即座に `unavailable`。待たせない
@@ -159,7 +159,7 @@ flowchart LR
 ```
 
 1. **バックエンド → wrapper。** 表に無い status は `internal` へ矯正される。分類を持たない値が上へ出ることは無い
-2. **Route Handler → ブラウザ。** `toCaughtErrorResponse` は cause chain から分類を拾い、無ければ `internal` にする。載せる文言は `errors` のカタログが持つデフォルト文だけで、バックエンドの `message` は出ない
+2. **Route Handler → ブラウザー。** `toCaughtErrorResponse` は cause chain から分類を拾い、無ければ `internal` にする。載せる文言は `errors` のカタログが持つデフォルト文だけで、バックエンドの `message` は出ない
 3. **BFF → `adapters/client`。** `KIND_BY_STATUS` に載っている 400 / 401 / 403 / 404 / 414 だけを写し、残りは `internal` に畳む。BFF が返すのは自分で組んだ応答なので、それ以上の区別は呼び出し側に要らない。**401 / 403 / 404 は畳まない** —— 畳むと画面は読み直す操作しか出せず、押しても同じ経路を辿る。張り直しを繰り返す購読では、畳むと直らない相手へ張り直し続ける
 
 **本文から読むのは `details` だけである。** それも契約が `ErrorResponseWithDetails` を宣言した `422` に限る。読めた項目名は `withErrorDetails` で cause に載り、表示名へ写すのは項目を知っている feature / form の側になる。読めなかった本文は「詳細が無い」に畳み、元の失敗をすり替えない。
@@ -170,7 +170,7 @@ flowchart LR
 
 ## 一覧の続きを取る
 
-初回ページは Server Component が取得エンドポイントを直接呼ぶ。ブラウザで動く部分が取りに来るのは **2 ページ目以降だけ**で、その経路は往路と復路でエンドポイントが違う。
+初回ページは Server Component が取得エンドポイントを直接呼ぶ。ブラウザーで動く部分が取りに来るのは **2 ページ目以降だけ**で、その経路は往路と復路でエンドポイントが違う。
 
 ```text
 features/<一覧>/use-infinite-<資源>.ts        末尾の目印が見えたら続きを頼む
@@ -188,8 +188,8 @@ Route Handler が持つのは分類を HTTP へ写すところだけで、取得
 hook の側で押さえるのは 3 つ。
 
 - **中断は失敗ではない。** 条件が変わった・画面を離れたときの `abort` は、伝える相手がもう居ない
-- **`UNAUTHENTICATED` は「続きの失敗」に畳まない。** `router.refresh()` でサーバへレンダリングし直しを頼み、送り先は route の確定認可に委ねる
-- **積み上げを捨てる判断を hook が持たない。** 別の一覧になったかどうかは置く側が `key` で表す。サーバは毎回新しい値を組むので、参照同一性で見張ると常に真になる
+- **`UNAUTHENTICATED` は「続きの失敗」に畳まない。** `router.refresh()` でサーバーへレンダリングし直しを頼み、送り先は route の確定認可に委ねる
+- **積み上げを捨てる判断を hook が持たない。** 別の一覧になったかどうかは置く側が `key` で表す。サーバーは毎回新しい値を組むので、参照同一性で見張ると常に真になる
 
 ## `use cache` / memoization との関係
 
@@ -224,13 +224,13 @@ hook の側で押さえるのは 3 つ。
 実装で押さえる点は 4 つ。
 
 - **資格情報を載せうるエンドポイントは user-scoped である。** `allowAnonymous: true` を立てても分類は動かない。分類はエンドポイントの性質であって要求ごとの結果ではない。`allowAnonymous` を立てるのは要求で、契約がその operation の `security` に `{}` を含めているものだけ。`security: []` の operation は公開の接続ポイントを引く
-- **主体を指すのは Bearer だけではない。** 契約が独自に持つ識別子のヘッダ（未認証の主体を指す `X-...` など）を載せるエンドポイントも user-scoped になる。判定は「認証されているか」ではなく「応答が主体で変わるか」。`assertNoCredentialHeader` が弾くのは `Authorization` / `Cookie` の 2 つだけで、独自ヘッダは通る —— だから分類の側で覆う
+- **主体を指すのは Bearer だけではない。** 契約が独自に持つ識別子のヘッダー（未認証の主体を指す `X-...` など）を載せるエンドポイントも user-scoped になる。判定は「認証されているか」ではなく「応答が主体で変わるか」。`assertNoCredentialHeader` が弾くのは `Authorization` / `Cookie` の 2 つだけで、独自ヘッダーは通る —— だから分類の側で覆う
 - **`getBearerToken` へ取得エンドポイントを渡すのは user-scoped の接続ポイントだけで、import したエンドポイントを渡す。** [`session.ts`](../../src/adapters/server/auth/session.ts) の `getAccessToken` がそれで、要求のたびに `cookies()` を読む。解決済みの値を掴むと、cached scope の防御（`next-request-in-use-cache`）が何も言わずに外れる。`project-rules/no-captured-bearer-token` がこの形だけを通す
 - **`bearerToken`（解決済みの値）は session 確立の 1 往復だけ。** cookie がまだ無い時点で役割を引くエンドポイントがそれで、渡せるのは囲む関数の引数だけ。モジュール変数の client にこの綴りを持ち込むと、最初の主体の資格情報がプロセスの寿命だけ居座る
 
 **client へ渡してはいけないものを登録するエンドポイントは別にある。** [`server/taint/taint.ts`](../../src/adapters/server/taint/taint.ts) の `taintObjectReference` / `taintUniqueValue` で、登録しているのは session の記録（Access Token を持つ object）と署名鍵だけである。取得エンドポイントで PII を含む取得結果を汚す形は [`adapters/README.md`](../../src/adapters/README.ja.md) が参照実装として示しているが、**同梱のエンドポイントでそれを呼んでいるものは無い**。
 
-段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダ）は、関所を一箇所に集めず段として置くと決めた [0112](../adr/0112-data-classification-cache-boundary.ja.md) の表が持ち、ここでは再掲しない。
+段の全体（型 / lint / framework / 取得時の関門 / taint / 応答ヘッダー）は、関所を一箇所に集めず段として置くと決めた [0112](../adr/0112-data-classification-cache-boundary.ja.md) の表が持ち、ここでは再掲しない。
 
 ## 購読はこの通り道に無い
 
@@ -272,7 +272,7 @@ wrapper は**単発の往復**だけを扱う。締切・再試行・遮断は�
 
 ### client 側の zod は生成物ではない
 
-`adapters/client/api/*.ts` が持つスキーマは `zod/mini` の手書きである。受け取るのはバックエンドの応答ではなく BFF が組んだ表示用の形なので、生成スキーマを当てても形が違って通らない。逆に client から `gen/<契約名>/endpoints.zod.ts` を引くと、生成物の全体と classic の `zod` がブラウザへ配られ、`scripts/client-schema-weight.gate.test.ts` が落とす。引いてよいのは `limits.ts` だけである。
+`adapters/client/api/*.ts` が持つスキーマは `zod/mini` の手書きである。受け取るのはバックエンドの応答ではなく BFF が組んだ表示用の形なので、生成スキーマを当てても形が違って通らない。逆に client から `gen/<契約名>/endpoints.zod.ts` を引くと、生成物の全体と classic の `zod` がブラウザーへ配られ、`scripts/client-schema-weight.gate.test.ts` が落とす。引いてよいのは `limits.ts` だけである。
 
 ### 遮断中は要求が出ていない
 
@@ -288,11 +288,11 @@ open の間、`request()` は `fetchImpl` を呼ばずに `unavailable` を投�
 
 ### URL の予算は符号化後のバイト数
 
-`assertRequestTargetWithinBudget` が数えるのは percent-encode 後の path とクエリで、全角 1 文字は 3 バイトが 9 文字へ膨らむ。符号化前の値を渡すと予算を 3 分の 1 に見誤る。しきい値は `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` で、`NEXT_PUBLIC_` なので変えたら再ビルドが要る。超過は `uri-too-long` で、`payload-too-large` とは分かれている —— 利用者が減らすべきものが違う。
+`assertRequestTargetWithinBudget` が数えるのは percent-encode 後の path とクエリで、全角 1 文字は 3 バイトが 9 文字へ膨らむ。符号化前の値を渡すと予算を 3 分の 1 に見誤る。しきい値は `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` で、`NEXT_PUBLIC_` なので変えたら再ビルドが要る。超過は `uri-too-long` で、`payload-too-large` とは分かれている —— ユーザーが減らすべきものが違う。
 
 ### `Object.fromEntries(searchParams)` は繰り返しキーを 1 つにする
 
-複数選べる条件は同じキーの繰り返しで届く。`URLSearchParams` をそのまま `Object.fromEntries` に掛けると最後の 1 つだけが残り、条件が黙って減る。Route Handler は [`toRawQuery`](../../src/adapters/server/http/search-params.ts) で畳んでから取得エンドポイントへ渡す。同じ関数がキーを `__proto__` に書かせない形（配列を組んでから `Object.fromEntries`）になっているのは、キーを決めるのが利用者だからである。
+複数選べる条件は同じキーの繰り返しで届く。`URLSearchParams` をそのまま `Object.fromEntries` に掛けると最後の 1 つだけが残り、条件が黙って減る。Route Handler は [`toRawQuery`](../../src/adapters/server/http/search-params.ts) で畳んでから取得エンドポイントへ渡す。同じ関数がキーを `__proto__` に書かせない形（配列を組んでから `Object.fromEntries`）になっているのは、キーを決めるのがユーザーだからである。
 
 ### 件数を明示しないと契約のデフォルト値になる
 
@@ -312,7 +312,7 @@ make api-gen-check
 curl -s -i 'http://localhost:3000/api/<資源>?first=abc' | head -20
 ```
 
-開発サーバのログに、遮断中の要求が出ていないこと・再試行が試行の数だけ並ぶことは、どちらも「取得が失敗して見える」の原因が別物であることを示す。先に応答を見てから、wrapper のどの段で止まったかを判断する。
+開発サーバーのログに、遮断中の要求が出ていないこと・再試行が試行の数だけ並ぶことは、どちらも「取得が失敗して見える」の原因が別物であることを示す。先に応答を見てから、wrapper のどの段で止まったかを判断する。
 
 ## 関連する ADR
 

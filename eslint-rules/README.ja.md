@@ -29,7 +29,7 @@ README が持ち、ルールの先頭コメントはその所有者を名指す�
 | [`no-internal-anchor`](no-internal-anchor.ts) | 内部リンクの生の `<a href="/...">`。client 遷移と prefetch を失う |
 | [`no-markup-outside-ui-layers`](no-markup-outside-ui-layers.ts) | UI を置いてよいレイヤーの外にある DOM マークアップ（[`architecture.ts`](../architecture.ts) の `UI_KERNELS`）。見るのは host 要素（小文字始まり）だけで、Provider の合成やフラグメントは JSX でも通す。指摘は要素ではなく置き場に対するものなので、報告はファイルにつき 1 件。テストは対象外 |
 | [`no-raw-font-weight`](no-raw-font-weight.ts) | 太さの直接指定（`font-medium` 等）。書体が持たない段は丸められ強調にならない（[0051](../docs/adr/0051-styling-system.ja.md)、規約は `src/components/README.md`「文字の太さ」）。`font-normal` は打ち消しなので対象外。test と story の除外は `eslint.config.ts` の `ignores` が持つ |
-| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得エンドポイントの import（[0112](../docs/adr/0112-data-classification-cache-boundary.ja.md) の段 2）。判定はモジュール単位で、import 先とその 1 段先の綴りの宣言を読む。1 段先で client を組む kernel（[`architecture.ts`](../architecture.ts) の `HTTP_CLIENT_FACTORY`）は数えない（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
+| [`no-user-scoped-in-cached-module`](no-user-scoped-in-cached-module.ts) | サーバーへ保存されるキャッシュ（`use cache`）を持つモジュールからの、user-scoped な取得エンドポイントの import（[0112](../docs/adr/0112-data-classification-cache-boundary.ja.md) の段 2）。判定はモジュール単位で、import 先とその 1 段先の綴りの宣言を読む。1 段先で client を組む kernel（[`architecture.ts`](../architecture.ts) の `HTTP_CLIENT_FACTORY`）は数えない（綴りが残っていることは `scripts/scope-spelling.gate.test.ts` が見張る） |
 
 ## ルールが共有する線引き
 

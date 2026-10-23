@@ -46,7 +46,7 @@
 
 何を印刷するかは持ちません。画面の構造、業務内容、印刷の実行（`window.print()`）はいずれもこの外側です。
 
-PDF をサーバで組む場合は backend の責務です（ADR [0070](../../../../../docs/adr/0070-backend-role-separation.ja.md)）。ここが担うのは印刷可能な HTML と CSS を出すところまでで、その先は境界として切ります。
+PDF をサーバーで組む場合は backend の責務です（ADR [0070](../../../../../docs/adr/0070-backend-role-separation.ja.md)）。ここが担うのは印刷可能な HTML と CSS を出すところまでで、その先は境界として切ります。
 
 ## 配色
 

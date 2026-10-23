@@ -26,6 +26,13 @@ inputs:
     description: Leave the credentials in the submodule's git config so later steps can push.
     required: false
     default: 'false'
+  push:
+    description: >-
+      Mint `contents: write` on the store and this repository, for the caller that pushes new
+      baselines and moves the pointer. Every other caller gets `contents: read` on the store
+      alone.
+    required: false
+    default: 'false'
   pull-requests:
     description: >-
       Ask the installation for `pull_requests: write` as well. Only the caller that has to
@@ -44,23 +51,51 @@ outputs:
 runs:
   using: composite
   steps:
-    # `owner` without `repositories` scopes the token to everything the installation
-    # covers, which is the baseline store and this repository — the App is installed
-    # on exactly those two. Naming the store here instead would duplicate the wiring
-    # that `.gitmodules` already owns.
+    # The token names its repositories and its permissions, so it carries only what the
+    # baselines need rather than everything the installation grants. A caller that only reads
+    # gets `contents: read` on the store alone; the caller that retakes (`push`) gets
+    # `contents: write` on the store and on this repository, where it pushes the new baselines
+    # and the moved pointer. The store's name is read from `.gitmodules`, which owns that
+    # wiring; an unwired store stops here rather than minting a token for the whole
+    # installation.
     #
     # One App rather than two, even though the same App also serves the workflows that make
-    # ordinary REST calls (workflows/README.md § PR コメント): this key already carries
+    # ordinary REST calls (workflows/README.md § PR Comments): this key already carries
     # `contents: write` on both repositories, so the `pull-requests` / `issues` write those
     # callers add is close to a subset of what a holder of the key can already do.
     #
-    # The permissions are named, though, so the token carries only what the baselines
-    # need rather than everything the installation grants. `contents: write` covers both
-    # ends: fetching the recorded commit here, and — for the caller that retakes — pushing
-    # the new baselines to the store and the moved pointer to this repository.
-    #
     # `pull_requests` only when the caller asks: an unset input leaves it out of the token,
     # and the callers that only read baselines must not carry it.
+    - name: Name the repositories the token reaches
+      id: scope
+      if: inputs.app-id != ''
+      shell: bash
+      env:
+        PUSH: ${{ inputs.push }}
+      run: |
+        set -euo pipefail
+
+        url="$(git config --file .gitmodules --get 'submodule.baseline/images.url' || true)"
+        store="${url%.git}"
+        store="${store##*/}"
+
+        if [ -z "$store" ]; then
+          echo "❌ 基準画像の置き場が配線されていません。make setup-baseline-store を実行してください（vrt/README.md）。" >&2
+          exit 1
+        fi
+
+        if [ "$PUSH" = 'true' ]; then
+          {
+            echo "repositories=${store},${GITHUB_REPOSITORY#*/}"
+            echo 'contents=write'
+          } >> "$GITHUB_OUTPUT"
+        else
+          {
+            echo "repositories=${store}"
+            echo 'contents=read'
+          } >> "$GITHUB_OUTPUT"
+        fi
+
     - name: Mint a token for the baseline store
       id: token
       if: inputs.app-id != ''
@@ -69,7 +104,8 @@ runs:
         app-id: ${{ inputs.app-id }}
         private-key: ${{ inputs.private-key }}
         owner: ${{ github.repository_owner }}
-        permission-contents: write
+        repositories: ${{ steps.scope.outputs.repositories }}
+        permission-contents: ${{ steps.scope.outputs.contents }}
         permission-pull-requests: ${{ inputs.pull-requests }}
 
     - name: Fetch the baseline images

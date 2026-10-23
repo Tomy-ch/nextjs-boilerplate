@@ -45,7 +45,7 @@ make api-fetch            # sources.yaml の全契約を取得する
 make api-fetch NAME=api   # 契約を 1 本だけ取得する
 ```
 
-取得は生成を伴いません。取得したら `make api-gen` で型 / zod / MSW ハンドラを生成します。
+取得は生成を伴いません。取得したら `make api-gen` で型 / zod / MSW ハンドラーを生成します。
 取得したまま生成し忘れた状態は `make api-gen-check` が検出します。commit 時の hook は
 この突合だけを回し、CI は再生成して差分まで見ます。どちらもネットワークへは出ません
 ([0072](../docs/adr/0072-api-type-generation.ja.md) の drift ゲート)。
@@ -87,7 +87,7 @@ make api-fetch NAME=api   # 契約を 1 本だけ取得する
 
 ### 取得物への手入れは 2 か所だけ
 
-取得物は、先頭の do-not-edit ヘッダと `info.version` 末尾の short SHA 以外、上流のテキストそのもの
+取得物は、先頭の do-not-edit ヘッダーと `info.version` 末尾の short SHA 以外、上流のテキストそのもの
 です([`scripts/openapi/contract-stamp.ts`](../scripts/openapi/contract-stamp.ts))。
 
 - **YAML を組み直しません。** 取り込み側の整形で全体が書き換わると、上流との差分がスタンプ以外にも
@@ -131,7 +131,7 @@ make api-fetch NAME=api   # 契約を 1 本だけ取得する
 1. `sources.yaml` に `name` / `repo` / `path` / `ref` を書く
 2. `make api-fetch NAME=<name>` で取得し、`sha` / `fetchedAt` を書き戻させる
 3. `orval.config.ts` に、その契約の入力(`openapi/<name>.gen.yaml`)を読む project を 2 つ足す ——
-   wire 型と zod を `src/adapters/gen/<name>/` へ、client と MSW ハンドラを `mocks/<name>/` へ出す
+   wire 型と zod を `src/adapters/gen/<name>/` へ、client と MSW ハンドラーを `mocks/<name>/` へ出す
    もの。既存の 1 本と同じ形にする
 4. `scripts/openapi/gen-api-plan.ts` の `GEN_API_OUTPUTS` に `src/adapters/gen/<name>` と
    `mocks/<name>` を足す。退避と空からの再生成はこの一覧を読む

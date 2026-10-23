@@ -64,4 +64,4 @@ a11y 自動検査では `region`（すべてのページ内容が landmark に�
 
 jsdom には Radix が位置計算に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
 
-枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook の `WithSelectionKeptOpen` で実ブラウザ確認します。
+枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook の `WithSelectionKeptOpen` で実ブラウザー確認します。

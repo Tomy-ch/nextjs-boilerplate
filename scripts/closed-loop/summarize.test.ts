@@ -20,7 +20,7 @@ const OBSERVATION: Observation = {
   openedAt: 0,
   closedAt: 100,
   phases: [{ from: "openedAt", to: "commitAt", sec: 60 }],
-  prompts: 4,
+  humanPrompts: 4,
   toolCalls: 20,
   toolFailures: 2,
   interrupts: 1,
@@ -53,6 +53,7 @@ describe("buildPrompt", () => {
     const prompt = buildPrompt(OBSERVATION, [{ at: 10, reason: "是正", text: "違うよ" }]);
 
     expect(prompt).toContain("窓 ID: w1-x");
+    expect(prompt).toContain("人の発話: 4");
     expect(prompt).toContain("道具の失敗: 2");
     expect(prompt).toContain("段 openedAt → commitAt: 60 秒");
     expect(prompt).toContain("> 違うよ");

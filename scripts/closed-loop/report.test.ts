@@ -128,6 +128,15 @@ describe("reportTranscript", () => {
     expect(lines.some((line) => line.includes("model"))).toBe(false);
   });
 
+  it("人の発話・道具の失敗・中断を、それぞれの数で並べる", () => {
+    const lines = reportTranscript(
+      { ...counts, humanPrompts: 3, toolErrors: 2, interruptions: 1 },
+      { files: 1, places: 1, unparsable: 0, declared: ["commit"], never: [] },
+    );
+
+    expect(lines).toContain("人の発話 3 / 道具の失敗 2 / 中断 1");
+  });
+
   // ----- 異常系 -----
   it("1 行も読めなかったことを「起動なし」へ倒さない", () => {
     expect(
@@ -141,7 +150,7 @@ describe("reportTranscript", () => {
       tools: {},
       toolErrors: 0,
       interruptions: 0,
-      turns: 2,
+      humanPrompts: 2,
       firstAt: 0,
       lastAt: 10,
     };

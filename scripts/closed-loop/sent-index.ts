@@ -1,8 +1,7 @@
 // どの窓を送出済みかを覚える索引の判定。読み書きは入口([send/index.ts](send/index.ts))が持つ。
 //
 // 置き場は `.agents/private/`（追跡外）である —— 失っても費用は「同じ窓をもう一度立てる」
-// だけで、コミットすると別のマシンでそれが正を主張する
-// 。
+// だけで、コミットすると別のマシンでそれが正を主張する。
 
 import { isSubstantive, markAt, type WindowMarks } from "./phases.js";
 
@@ -23,9 +22,8 @@ const EMPTY: SentIndex = { entries: [] };
  * 索引を解析する。読めない索引は空として扱う。
  *
  * @remarks
- * 壊れた索引で落とすと、以後どの窓も送れなくなります ——
- * 索引を失う費用は同じ窓をもう一度立てることだけで、止まる費用のほうが高い。形の合わない
- * 項目は 1 件ずつ落とし、残りは活かします。
+ * 壊れた索引で落とすと、以後どの窓も送れなくなります。形の合わない項目は 1 件ずつ落とし、
+ * 残りは活かします。
  */
 export function parseSent(raw: unknown): SentIndex {
   if (typeof raw !== "object" || raw === null) {

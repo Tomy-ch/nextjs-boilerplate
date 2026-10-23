@@ -68,13 +68,25 @@ runs:
           exit 0
         fi
 
-        git fetch --no-tags --depth=1 origin "${BASE_REF}" >/dev/null 2>&1 || true
+        # Shallow only where the checkout already is. Deepening is fine, but a depth limit on a
+        # full clone makes it shallow, and a later step taking a merge base then finds none.
+        if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+          git fetch --no-tags --depth=1 origin "${BASE_REF}" >/dev/null 2>&1 || true
+        else
+          git fetch --no-tags origin "${BASE_REF}" >/dev/null 2>&1 || true
+        fi
 
         # Two commits, not `...`. A merge base needs shared history, which a shallow checkout
         # does not have; comparing the tips only needs both trees. The difference is that
         # changes made on base since the branch diverged are counted too, which can only make
         # the job run when it need not have.
-        if ! changed="$(git diff --name-only "origin/${BASE_REF}" HEAD 2>/dev/null)"; then
+        #
+        # `--no-renames` because rename detection lists only the destination: moving a file the
+        # job reads into an ignored path would otherwise hide the deletion and stand the job
+        # down. `core.quotepath=false` keeps non-ASCII names matchable; a name git still quotes
+        # (one holding a newline) starts and ends with `"`, so it matches no pattern anchored at
+        # either end and runs the job.
+        if ! changed="$(git -c core.quotepath=false diff --name-only --no-renames "origin/${BASE_REF}" HEAD 2>/dev/null)"; then
           echo "relevant=true" >> "$GITHUB_OUTPUT"
           echo "::notice::Could not diff against origin/${BASE_REF}; running."
           exit 0

@@ -54,6 +54,12 @@ Procedure:
 whole list in one `AskUserQuestion` — the list of files and one direction for all of them — rather
 than one question per file. A file the user strikes from the list is left alone.
 
+**When an invoking skill passes the answer**, Step 0 is **still asked** — once, as the single bulk
+question when there are several files. The paths and direction an invoking skill passes are pre-filled
+as the recommended options; none is adopted without the user confirming it here
+([0154](../../../docs/adr/0154-claude-skills-operations.md)
+lets only a receiver's own declaration waive a question, and this one declares none).
+
 Do NOT read or write any files for translation until the source path(s) and direction are confirmed.
 
 ## Repo Conventions
@@ -101,7 +107,16 @@ section is how the skill carries it out.
 
 Web and general software-development terms are written in **katakana or English, never as kanji
 calques**. Established kanji terms — 関数, 型, 依存, 境界, 設定, 環境, 契約, 取得, 生成物, 台帳,
-外枠 — stay. This table is the permanent home of the rule; apply every row to what you write.
+外枠 — stay. This table is the permanent home of the rule; apply every row to what you write. The rule
+binds the mirror, and the text a mirror copies from its canonical byte for byte (a fenced template);
+Japanese the canonical or the code chose for itself is not a translation and is not bound by it.
+
+A katakana word for an English word ending in -er / -or / -ar carries the long-vowel mark (ユーザー,
+サーバー, ブラウザー), per the cabinet notice 「外来語の表記」. "user" is ユーザー in every sense the
+canonical uses it — the person using the app, the developer using the template, the person operating
+the agent — and in its compounds (ユーザー向け, エンドユーザー, ユーザーエージェント). Where the
+canonical chose another word ("operator", "caller"), the mirror follows that word instead. A verbatim
+quotation of a standard keeps the standard's spelling.
 
 Always replace:
 
@@ -110,7 +125,7 @@ Always replace:
 | 索引 | インデックス | 錨 | アンカー |
 | 雛形 | テンプレート | 閾値 | しきい値 |
 | 基準画像 | ベースライン画像 | 走査 | スキャン |
-| 目録 | インベントリ | | |
+| 目録 | インベントリ | 利用者 / ユーザ | ユーザー |
 | 既定 | デフォルト | 部品 | コンポーネント |
 | 描画 | レンダリング | 表現層 / 表示層 | プレゼンテーションレイヤー |
 | 部分木 | サブツリー | 殻 | シェル |

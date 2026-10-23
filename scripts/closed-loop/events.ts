@@ -15,7 +15,7 @@ export type Event = {
   /** 起きた時刻（epoch 秒）。記録に時刻が無ければ 0 */
   readonly at: number;
   readonly kind: EventKind;
-  /** `prompt` / `interrupt` の本文 */
+  /** `prompt` の本文 */
   readonly text?: string;
   /** `tool_use` の道具名、`command` のスキル名 */
   readonly name?: string;
@@ -30,7 +30,16 @@ export type Event = {
  * 全体を型にしません —— 形を決めているのはツールで、版が上がれば知らない鍵が増えます。
  * **読む鍵だけを宣言する**ことで、増えた鍵はここを素通りします。
  */
-type Line = { readonly type?: unknown; readonly timestamp?: unknown; readonly message?: unknown };
+type Line = {
+  readonly type?: unknown;
+  readonly timestamp?: unknown;
+  readonly message?: unknown;
+  readonly isMeta?: unknown;
+  readonly isCompactSummary?: unknown;
+  readonly origin?: unknown;
+  readonly promptSource?: unknown;
+};
+type Origin = { readonly kind?: unknown };
 type Message = { readonly content?: unknown };
 type SkillInput = { readonly skill?: unknown };
 type Block = {
@@ -54,6 +63,29 @@ const COMMAND_NAME_RE = /<command-name>\/?[a-z0-9-]+<\/command-name>/g;
 
 /** 人が実行を中断したときに記録へ入る綴り。 */
 const INTERRUPTION_MARK = "[Request interrupted";
+
+/** 人が入力したことを示す `promptSource` の値。 */
+const HUMAN_PROMPT_SOURCES: ReadonlySet<string> = new Set([
+  "typed",
+  "suggestion_accepted",
+  "queued",
+]);
+
+/**
+ * `isMeta` を持たずに差し込まれる本文の目印。
+ *
+ * @remarks
+ * 出所の鍵を持たない行のうち `isMeta` の付いたもの（スキル本文、別セッションからの通知）は構造で
+ * 落ちるので、ここへは載せません。文脈圧縮の要約は `isCompactSummary` でも落ちますが、目印にも
+ * 残します。要約が人の発話に混ざると、私的な要約が公開される読解の材料へ流れるためです。
+ */
+const INJECTED_MARKERS: readonly string[] = [
+  "<task-notification>",
+  "<local-command-caveat>",
+  "<command-name>",
+  "<system-reminder>",
+  "This session is being continued from a previous conversation",
+];
 
 /** ISO の時刻を epoch 秒にする。読めなければ 0。 */
 function toEpoch(value: unknown): number {
@@ -95,18 +127,30 @@ function fromBlock(part: Block, at: number): readonly Event[] {
   return found;
 }
 
-/** 本文から、中断と `/<名前>` の起動を取り出す。 */
+/** 本文から `/<名前>` の起動を取り出す。 */
 function fromText(text: string, at: number): readonly Event[] {
   const found: Event[] = [];
-
-  if (text.includes(INTERRUPTION_MARK)) {
-    found.push({ at, kind: "interrupt", text });
-  }
 
   for (const [tag] of text.matchAll(COMMAND_NAME_RE)) {
     const name = tag.slice(COMMAND_TAG_OPEN.length, -COMMAND_TAG_CLOSE.length).replace(/^\//, "");
 
     found.push({ at, kind: "command", name });
+  }
+
+  return found;
+}
+
+/** user の行から、人の発話と中断を取り出す。 */
+function fromUserLine(record: Line, at: number): readonly Event[] {
+  const text = textOf(record);
+  const found: Event[] = [];
+
+  if (isHumanPrompt(record, text)) {
+    found.push({ at, kind: "prompt", text });
+  }
+
+  if (isHumanOrigin(record) && text.includes(INTERRUPTION_MARK)) {
+    found.push({ at, kind: "interrupt" });
   }
 
   return found;
@@ -142,7 +186,7 @@ export function parseLine(line: string): readonly Event[] {
   const found: Event[] = [];
 
   if (record.type === "user") {
-    found.push({ at, kind: "prompt", text: textOf(record) });
+    found.push(...fromUserLine(record, at));
   }
 
   if (record.type === "assistant") {
@@ -172,6 +216,57 @@ export function parseLine(line: string): readonly Event[] {
   }
 
   return found;
+}
+
+/**
+ * 記録の 1 行の出所が人か。
+ *
+ * @param record - 記録の 1 行
+ * @returns 出所が人なら true
+ *
+ * @remarks
+ * 文脈圧縮の要約は出所の鍵より先に外し、鍵の値に頼らず構造で閉じます。それ以外で出所を正で示す鍵
+ * （`origin.kind` / `promptSource`）を持つ行はそれだけで決め、知らない値は人としません。鍵は
+ * 新しい版の行にしか無いので、持たない行だけ `isMeta` の除外で決めます。
+ */
+function isHumanOrigin(record: Line): boolean {
+  if (record.isCompactSummary === true) {
+    return false;
+  }
+
+  const kind =
+    typeof record.origin === "object" && record.origin !== null
+      ? (record.origin as Origin).kind
+      : undefined;
+
+  if (typeof kind === "string") {
+    return kind === "human";
+  }
+
+  if (typeof record.promptSource === "string") {
+    return HUMAN_PROMPT_SOURCES.has(record.promptSource);
+  }
+
+  return record.isMeta !== true;
+}
+
+/**
+ * 記録の 1 行が人の打った発話か。
+ *
+ * @param record - 記録の 1 行
+ * @param text - その行の本文
+ * @returns 人の発話なら true
+ *
+ * @remarks
+ * 出所が人でも、道具の結果だけの行・中断の綴り・`/<名前>` の起動は発話に数えません。
+ */
+function isHumanPrompt(record: Line, text: string): boolean {
+  return (
+    isHumanOrigin(record) &&
+    text !== "" &&
+    !text.includes(INTERRUPTION_MARK) &&
+    !INJECTED_MARKERS.some((marker) => text.includes(marker))
+  );
 }
 
 /** 人の発話の本文。文字列でも、text ブロックの連なりでも拾う。 */

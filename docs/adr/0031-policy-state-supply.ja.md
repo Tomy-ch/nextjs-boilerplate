@@ -34,7 +34,7 @@ consent / flag の供給を 3 つに分解し、それぞれ既存の家へ置�
 - **② が `model` へ移る条件**: **起動 / ビルド境界**(`proxy.ts` 等)も同じ述語を消費するとき。それらは `adapters` を import できないため(`proxy → model / config / errors`)、`adapters` へ置くと [0131](0131-cookie-consent.ja.md) が cookie 操作を置けと定める場所から届かない。判定と綴りを 1 か所に保つには `model` が唯一の交点になる(`model/session.ts` / `model/authz.ts` と同型)
 - どちらの条件も満たさない値は表のデフォルトどおり `adapters` / `capabilities` に置く
 
-これにより [0022](0022-capabilities-kernel.ja.md) の「seam が所有」の**物理 = `adapters` source adapter + no-op デフォルト + stateless props(反応的な横断ケースのみ `stores`)** が確定する。consent は [0131](0131-cookie-consent.ja.md) が**軽量機構 + スクリプトゲート + ゲートの裏のタグマネージャを本体同梱**とし(CMP 本体は非同梱。計測製品そのものはコンテナの中身として選ぶ —— ゲートの先に同梱するのはタグマネージャというコンテナだけである)、flag ライブラリ本体は同梱しない([0078](0078-dynamic-feature-flag-seam.ja.md))。本 ADR は**その供給方針(seam)**を定める。0131 の gate 述語はこの供給経路に乗る。
+これにより [0022](0022-capabilities-kernel.ja.md) の「seam が所有」の**物理 = `adapters` source adapter + no-op デフォルト + stateless props(反応的な横断ケースのみ `stores`)** が確定する。consent は [0131](0131-cookie-consent.ja.md) が**軽量機構 + スクリプトゲート + ゲートの裏のタグマネージャーを本体同梱**とし(CMP 本体は非同梱。計測製品そのものはコンテナーの中身として選ぶ —— ゲートの先に同梱するのはタグマネージャーというコンテナーだけである)、flag ライブラリ本体は同梱しない([0078](0078-dynamic-feature-flag-seam.ja.md))。本 ADR は**その供給方針(seam)**を定める。0131 の gate 述語はこの供給経路に乗る。
 
 ## 禁止事項
 

@@ -71,7 +71,7 @@
 ## 前提
 
 - ツールチェーンが入っている（`make install-tools` / `pnpm install`）
-- 開発サーバとカタログは `APP_ENV=local` で起動する。`pnpm dev` / `pnpm storybook` は
+- 開発サーバーとカタログは `APP_ENV=local` で起動する。`pnpm dev` / `pnpm storybook` は
   `package.json` がこれを付ける
 - バックエンド無しで進めるなら `APP_API_MODE=mock`。契約から生成したモックが応える
   （[`mocks/README.md`](../../mocks/README.ja.md)）。環境変数の置き場は
@@ -130,7 +130,7 @@ ls src/features src/adapters/server
 
 ## Step 1 — 契約を取り込み、生成する
 
-**目的:** バックエンドの OpenAPI 契約を取り込み、wire 型・zod スキーマ・MSW ハンドラを生成する。
+**目的:** バックエンドの OpenAPI 契約を取り込み、wire 型・zod スキーマ・MSW ハンドラーを生成する。
 **生成物は編集しない**——ここが「自分で書くもの」と「書いてはいけないもの」の線である。
 
 **この文書が前提にする契約。** canonical はバックエンドのリポジトリにあり、ここは形を示すだけである。
@@ -236,7 +236,7 @@ make api-gen        # 型 / zod / MSW ハンドラを生成する
 | `src/adapters/gen/api/model/` | wire 型。`NoteSummary` / `NotePatchRequest` など `components.schemas` に対応する |
 | `src/adapters/gen/api/endpoints.zod.ts` | operation ごとの zod。`GetNotesResponse` / `GetNotesDetailResponse` / `PatchNotesDetailResponse` / `GetNotesQueryParams` |
 | `src/adapters/gen/api/limits.ts` | 検証を伴わない定数だけ。client が引いてよいのはここだけ |
-| `mocks/api/endpoints.msw.ts` | 契約駆動の MSW ハンドラ |
+| `mocks/api/endpoints.msw.ts` | 契約駆動の MSW ハンドラー |
 
 **zod の名前は operationId から決まる。** 上の表は前提の契約から導いた綴りで、実際の綴りは生成された
 `endpoints.zod.ts` を開いて確かめる。以降のコードはこの綴りを使う。
@@ -368,7 +368,7 @@ export function isRequiredNoteField(field: NoteField): boolean {
   Step 3 のエンドポイントである
 - **識別子は brand を付ける。** `toNoteId` を呼んでよいのは境界だけ。内側は `NoteId` を持ち回る
   （[0029](../adr/0029-type-design-discipline.ja.md)）
-- **`zod/mini` を使う。** 表示検証はブラウザにも配られるので、classic の `zod` を引くとバンドルが膨らむ
+- **`zod/mini` を使う。** 表示検証はブラウザーにも配られるので、classic の `zod` を引くとバンドルが膨らむ
   （[`design/forms.md`](../design/forms.ja.md)「検証の二層と、その正」）
 
 **迷ったら:** `model` に置いてよいものは [`src/model/README.md`](../../src/model/README.ja.md)
@@ -504,7 +504,7 @@ export async function updateMyNote(id: NoteId, input: NotePatchRequest): Promise
 任意と宣言している）要求に立てる `allowAnonymous` は、同じ README の「資格情報を載せるかは接続口が、
 送ってよいかは要求が決める」にある。
 
-**分岐: ブラウザから 2 ページ目以降を取りたいとき。** 初回は Server Component がこのエンドポイントを直接呼び、
+**分岐: ブラウザーから 2 ページ目以降を取りたいとき。** 初回は Server Component がこのエンドポイントを直接呼び、
 続きだけを `app/api/notes/route.ts`（BFF）と `adapters/client/api/notes.ts` で取る。経路と
 持ち物の分担は [`design/data-fetching.md`](../design/data-fetching.ja.md)「一覧の続きを取る」、判断は
 [0073](../adr/0073-pagination-fetch-boundary.ja.md)。この文書は先頭ページだけで進める。
@@ -1082,7 +1082,7 @@ export default function NoteDetailError({
 **迷ったら:** シェルを配れるか、待ちの境界をどこに置くか、失敗と不在の面をどう分けるかは画面ごとの判断で、
 答えを書く場所は [`src/app/README.md`](../../src/app/README.ja.md)「この層が持つ判断」の表にある。
 
-**確認:** 開発サーバで実際に開く。session は `/dev/session` で発行する。
+**確認:** 開発サーバーで実際に開く。session は `/dev/session` で発行する。
 
 ```bash
 APP_API_MODE=mock pnpm dev
@@ -1091,7 +1091,7 @@ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' http://localhost:3000/n
 # → 307 http://localhost:3000/login?returnUrl=%2Fnotes（未認証は入口で送り返される）
 ```
 
-ブラウザで `http://localhost:3000/dev/session` を開いて `user` の session を発行し、`/notes` →
+ブラウザーで `http://localhost:3000/dev/session` を開いて `user` の session を発行し、`/notes` →
 詳細 → 存在しない ID（`/notes/00000000-0000-7000-8000-000000000000`）の順に開く。モックはどの ID にも
 応えるので、見つからない面は Step 7 のテストで確かめる。
 
@@ -1574,7 +1574,7 @@ export default function NoteEditPage({ params }: { params: Promise<{ id: string 
 
 押さえること。
 
-- **検証は 3 回起きる。** 送る前（ブラウザ。この文書では省いている）、Server Action の中
+- **検証は 3 回起きる。** 送る前（ブラウザー。この文書では省いている）、Server Action の中
   （`parseNoteForm` が同じスキーマを通し直す。これが正）、`adapters` の契約検証（生成スキーマ）。
   役割が違うので省けない（[0062](../adr/0062-form-input-validation.ja.md)）
 - **失敗は戻り値で返す。** `redirect()` だけが throw で、それは成立の合図である。`revalidatePath` と
@@ -1598,7 +1598,7 @@ export default function NoteEditPage({ params }: { params: Promise<{ id: string 
 pnpm exec vitest run src/features/notes/actions.test.ts src/features/notes/parse-note-form.test.ts
 ```
 
-開発サーバで `/notes/<id>/edit` を開き、題名を空にして保存する。項目の下に「題名を入力してください。」が
+開発サーバーで `/notes/<id>/edit` を開き、題名を空にして保存する。項目の下に「題名を入力してください。」が
 出て、入力欄の中身が消えないことを見る。
 
 ---
@@ -1614,7 +1614,7 @@ README の frontmatter `test-requirement` がどの行に当たるかを宣言�
 | 対象 | 責務 | 見るもの | 見ないもの |
 | --- | --- | --- | --- |
 | `model/note/*.test.ts` | `unit` | brand の付与、必須判定、表示検証の文言 | 契約の形 |
-| `adapters/server/api/notes.test.ts` | `integration` | MSW で止めた HTTP 境界。URL・ヘッダ・本文・変換・分類 | 画面 |
+| `adapters/server/api/notes.test.ts` | `integration` | MSW で止めた HTTP 境界。URL・ヘッダー・本文・変換・分類 | 画面 |
 | `features/notes/load-note.test.ts` | `unit` | `not-found` だけが `notFound()` へ行き、他は投げ直すこと | HTTP |
 | `features/notes/**/*.test.tsx` | `feature` | レンダリング結果と a11y。`page-content` は `render(await Component(props))` | HTTP（adapter を `vi.mock`） |
 | `features/notes/actions.test.ts` | `unit` | 返した `ActionState` の分類、成立時の再検証 | HTTP |
@@ -1936,7 +1936,7 @@ describe("NoteList", () => {
   `// ----- 正常系 -----` / `// ----- 異常系 -----` で割り、レンダリングを返す対象は割らない
 - **HTTP は MSW で止める。** `fetch` の手書きスタブや adapter のモジュール mock で代替しない。MSW を
   立てるのは `vitest.setup.msw.ts` を import したファイルだけ
-- **async RSC は `render(await Component(props))` でレンダリングする。** サーバランタイムを模した mock を積まない
+- **async RSC は `render(await Component(props))` でレンダリングする。** サーバーランタイムを模した mock を積まない
   （[0091](../adr/0091-test-verification-methods.ja.md)）
 - **カバレッジは 4 指標 100% が gate**なので、カバレッジは「意味を持つか」について何も語らない。
   分岐ごとに固有の結果を見る（[`testing-conventions.md`](../testing-conventions.ja.md)「意味網羅」）
@@ -2096,7 +2096,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
 押さえること。
 
 - **story 単位（`vrt/`）と画面単位（`e2e/visual/`）は見ている対象が違う。** 前者はコンポーネントを単独でレンダリングした姿、
-  後者はコンポーネントを組み上げた画面。どちらもベースライン画像はコンテナの中でしか撮らない
+  後者はコンポーネントを組み上げた画面。どちらもベースライン画像はコンテナーの中でしか撮らない
   （[`vrt/README.md`](../../vrt/README.ja.md) / [`e2e/README.md`](../../e2e/README.ja.md)）
 - **意図した変更も、まずは赤くなる。** 撮り直しは PR の `baseline-retake` ラベルがデフォルトの経路で、
   手元から撮って送るのは `make vrt-retake` / `make e2e-retake`。撮る（`*-update`）だけでは親の
@@ -2105,7 +2105,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   無い長い語を fixture に混ぜる（[`testing-conventions.md`](../testing-conventions.ja.md)「見た目の主張を
   どこで見るか」）
 
-**迷ったら:** overlay の探し方や docs ページの分け方など、カタログのコンテナに由来する決まりは
+**迷ったら:** overlay の探し方や docs ページの分け方など、カタログのコンテナーに由来する決まりは
 [`.storybook/README.md`](../../.storybook/README.ja.md)。
 
 **確認:**
@@ -2139,7 +2139,7 @@ docs/spec/route/notes/
         └── page.function.md
 ```
 
-機能要件と画面要件の振り分けは 1 つの問いで決める——**バックエンドの契約と利用者の目的が同じまま、
+機能要件と画面要件の振り分けは 1 つの問いで決める——**バックエンドの契約とユーザーの目的が同じまま、
 その記述だけが違う画面があり得るか。** あり得るなら画面要件、あり得ないなら機能要件
 （[`docs/spec/README.md`](../spec/README.ja.md)）。
 
@@ -2229,10 +2229,10 @@ git commit   # `/commit` skill があれば、それが prefix と分割を決�
   `pnpm gen component <name>` がカーネル側のテンプレートを出す。この文書はテンプレートが何を出すべきかの
   根拠であり、出たものを判断する物差しになる。画面を一式作るなら `new-feature` skill が
   [`playbook.md`](../playbook.ja.md) の作業順で進める
-- **2 ページ目以降をブラウザで取る。** BFF（`app/api/notes/route.ts`）と `adapters/client/api/notes.ts`
+- **2 ページ目以降をブラウザーで取る。** BFF（`app/api/notes/route.ts`）と `adapters/client/api/notes.ts`
   を足す。経路は [`design/data-fetching.md`](../design/data-fetching.ja.md)「一覧の続きを取る」
 - **公開の一覧を作る。** エンドポイントを `"public"` にし、`use cache` で要求をまたいで持つ。Step 3 の分岐と
   [`src/adapters/README.md`](../../src/adapters/README.ja.md)
-- **入力中の検証を足す。** react-hook-form + `standardSchemaResolver` で同じ `noteSchema` をブラウザ側でも
+- **入力中の検証を足す。** react-hook-form + `standardSchemaResolver` で同じ `noteSchema` をブラウザー側でも
   通す。配線は [`design/forms.md`](../design/forms.ja.md)「入力の値を誰が持つか」
 - **置き場に迷ったら** [`design/placement.md`](../design/placement.ja.md) の 3 つの問いへ戻る

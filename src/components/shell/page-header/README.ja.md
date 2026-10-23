@@ -43,4 +43,4 @@ Server Component として使えます。`PageHeaderActions` に client island �
 
 Storybook は `ContentContainer` と組んだデフォルトの構成、説明を省いた場合、操作を持たない場合、読み幅を超える viewport での中央寄せを確認します。テストは `h1` が見出し階層の起点になること、先頭ブロックが `header` 要素であること、説明と操作を省いても成立すること、左右余白を持たないこと、`className` を受け付けること、a11y 自動検査を確認します。
 
-landmark の検証はテストに含めていません。jsdom と testing-library の role 計算は `header` を無条件に `banner` とみなし、HTML が定める landmark のスコープ規則（`main` の内側では landmark にならない）を再現しないためです。実ブラウザでの確認は Storybook で行います。
+landmark の検証はテストに含めていません。jsdom と testing-library の role 計算は `header` を無条件に `banner` とみなし、HTML が定める landmark のスコープ規則（`main` の内側では landmark にならない）を再現しないためです。実ブラウザーでの確認は Storybook で行います。

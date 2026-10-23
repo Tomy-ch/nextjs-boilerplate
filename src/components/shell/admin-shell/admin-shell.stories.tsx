@@ -85,11 +85,20 @@ export const NavCollapsed: Story = {
   },
 };
 
-/** まとまりを畳んだ状態。見出しは遷移ではなく開閉の操作になる。 */
+/**
+ * まとまりを畳んだ状態。見出しは遷移ではなく開閉の操作になる。
+ *
+ * @remarks
+ * 最後に焦点を外します。`userEvent.click` は見出しへスクリプトから焦点を当てるので、実際の
+ * クリックでは出ない focus ring が絵に残ります。主題は畳んだ状態だけです。
+ */
 export const NavGroupClosed: Story = {
   globals: { viewport: { value: "desktop", isRotated: false } },
   play: async ({ canvasElement }) => {
-    await userEvent.click(within(canvasElement).getByText("レポート"));
+    const heading = within(canvasElement).getByText("レポート");
+
+    await userEvent.click(heading);
+    heading.blur();
   },
 };
 

@@ -126,6 +126,11 @@ model is passed to every `adversarial-reviewer` / `type-design-reviewer` / `revi
 subjects belong to `/test-review`, asked for separately, and to `/settle-comments`, run during implementation (Core Idea, "This skill
 audits the change and nothing else").
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
+
+- **Pre-answered**: both Step 0 questions — scope and reviewer model — by the user's own answer earlier in the same run, passed verbatim. A scope or model the invoking skill chose is offered as the recommended option instead. A passed model that is the implementer's own still gets the warn-and-confirm above.
+- **Never pre-answered**: the Step 6 confirmation before posting to the PR — it is an outward action, confirmed at the moment of posting.
+
 ### Flags
 
 - `--no-comment` — suppress Step 6 (do not post to the PR); produce the local report only. **Default is opt-out**: when an open PR exists for the current branch, Step 6 posts the surviving findings as inline review comments unless this flag is given.

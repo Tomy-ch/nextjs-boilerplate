@@ -67,7 +67,7 @@ hydration 前は `defaultCurrentId` を指定した場合だけマーカーが�
 
 `Carousel` は `role="region"` と `aria-roledescription="carousel"` を持ちます。`section` が region になるのは名前を持つときだけなので、役割は明示しています。`aria-label` か `aria-labelledby` を必ず与えます。名前のない landmark へ入っても、何の領域なのか判りません。`CarouselItem` は `role="group"` と `aria-roledescription="slide"` を持ち、`1 / 4` のような位置を `aria-label` で示します。視界に入る枚数が限られるため、名前がないと全体のどこを読んでいるのか判りません。
 
-スクロールできる領域は keyboard だけで操作する利用者も到達できる必要があるため、`CarouselContent` の `tabIndex` を `0` にしています。slide の中身が focus 可能な要素だけで構成される場合は `tabIndex={-1}` を渡して外します。読み取り専用の内容では外しません。判定は内容を知る呼び出し元が行い、デフォルトは安全側の `0` にしています。
+スクロールできる領域は keyboard だけで操作するユーザーも到達できる必要があるため、`CarouselContent` の `tabIndex` を `0` にしています。slide の中身が focus 可能な要素だけで構成される場合は `tabIndex={-1}` を渡して外します。読み取り専用の内容では外しません。判定は内容を知る呼び出し元が行い、デフォルトは安全側の `0` にしています。
 
 スクロールは親へ連鎖させません。横送りの端に達したあと画面全体が動くと、どちらを操作しているのか判らなくなるためです。
 

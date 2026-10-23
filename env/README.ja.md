@@ -30,7 +30,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 プロセスで走るため、HTTP のエンドポイントとして立てないと届きません。`APP_API_BASE_URL` はその待ち受け先になります。
 
 `next.config.ts` も build 時に検証済みの値を読み、`next/image` の許可 host（`MEDIA_ORIGIN`）、配信
-ヘッダが許す origin（`APP_API_BASE_URL` / `MEDIA_ORIGIN` / `AUTH_ISSUER` / コンテナ ID）、https で配信して
+ヘッダーが許す origin（`APP_API_BASE_URL` / `MEDIA_ORIGIN` / `AUTH_ISSUER` / コンテナー ID）、https で配信して
 いるか（`AUTH_REDIRECT_URI` の scheme）、リクエスト本体の上限（`NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES`）を
 決めます。これらは `pnpm build` と `pnpm start` に同じ値を渡します。
 
@@ -63,7 +63,7 @@ build 中にも呼ばれます。`APP_API_MODE=live` で取得先へ到達でき
 ## サブシステム別の変数
 
 セクションはサブシステムの prefix（`{SUBSYSTEM}_{NAME}`、[ADR 0028](../docs/adr/0028-naming-convention.ja.md)）
-に対応します。外部 SDK が標準名で直接読む変数（`OTEL_*`）はその標準名のまま置き、ブラウザへ出す
+に対応します。外部 SDK が標準名で直接読む変数（`OTEL_*`）はその標準名のまま置き、ブラウザーへ出す
 値だけが `NEXT_PUBLIC_` を名乗ります。
 
 Notes 列のラベルは次の意味です（[ADR 0030](../docs/adr/0030-environment-variable-management.ja.md)）。
@@ -75,7 +75,7 @@ Notes 列のラベルは次の意味です（[ADR 0030](../docs/adr/0030-environ
   `NEXT_PUBLIC_` を名乗らない。
 
 Type 列の `URL` は http / https だけを、`origin` はパス無し（`new URL(v).origin === v` が成り立つ
-形）だけを通します。検証は build 時と起動時に一度ずつ走り、リクエスト経路とブラウザでは走りません。
+形）だけを通します。検証は build 時と起動時に一度ずつ走り、リクエスト経路とブラウザーでは走りません。
 
 ### Application
 
@@ -127,7 +127,7 @@ Type 列の `URL` は http / https だけを、`origin` はパス無し（`new U
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つのリクエスト URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザ / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。デフォルト値はどれも持たない |
+| `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` | 1 つのリクエスト URL に許すバイト数の上限 | integer | `8000` | Required。ブラウザー / CDN / リバースプロキシ / backend のうち、経路上で最も小さい上限を入れる。デフォルト値はどれも持たない |
 | `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` | 中継する 1 件のアップロードに許すバイト数の上限 | integer | `4194304` | Required。デプロイ先がリクエスト本体に課す上限より内側に取る。外側の値はデプロイ先が先に打ち切るため効かない |
 | `HTTP_ALLOWED_ORIGINS` | BFF（`/api/*`）を別 origin から呼ばせる相手 | origin のカンマ区切り | `https://admin.example.com,https://app.example.com` | Optional。空なら同一 origin だけ。挙げた origin は CORS で開き、状態を変えるリクエストの送信元としても信頼する（[0111](../docs/adr/0111-csp-security-headers.ja.md)）。パス付き・`*` は不可 |
 
@@ -145,7 +145,7 @@ Type 列の `URL` は http / https だけを、`origin` はパス無し（`new U
 
 | Variable Name | Description | Type | Example | Notes |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャのコンテナ ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す手段がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.ja.md)）。secret ではない（コンテナ ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れるデプロイは、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
+| `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` | 同意ゲートの裏で読み込むタグマネージャーのコンテナー ID | string | `GTM-ABC1234` | Optional。**空は「未設定」ではなく「読み込まない」** —— Google への依存を外す手段がこれで、外した状態でも画面は成立する（[0131](../docs/adr/0131-cookie-consent.ja.md)）。secret ではない（コンテナー ID はタグを読む URL に現れるため、使っているサイトでは常に公開されている）。値を入れるデプロイは、`script-src` / `connect-src` / `img-src` が Google の origin を許し、`Cross-Origin-Embedder-Policy` が降りることを受け入れる |
 
 ## boilerplate 導入時の変更点
 
@@ -165,12 +165,12 @@ secret store へ入れます。
 | インデックスの可否 | `SITE_INDEXABLE` は Code default `off` | インデックスさせてよい環境だけが `on` を宣言する |
 | URL と本体の上限 | `NEXT_PUBLIC_HTTP_MAX_URL_BYTES` / `NEXT_PUBLIC_HTTP_MAX_UPLOAD_BYTES` はデフォルトを持たない | 経路上で最も小さい上限を測って入れる |
 | 別 origin からの BFF 呼び出し | `HTTP_ALLOWED_ORIGINS` は空（同一 origin だけ） | 開く相手があるときだけ |
-| タグマネージャ | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` は空（読み込まない） | 使うときだけコンテナ ID を入れる。CSP の許可 origin も一緒に動く |
+| タグマネージャー | `NEXT_PUBLIC_ANALYTICS_GTM_CONTAINER_ID` は空（読み込まない） | 使うときだけコンテナー ID を入れる。CSP の許可 origin も一緒に動く |
 
 各変数の意味・型・必須かどうかは上の表が持ちます。ここが挙げているのは**入れ替えないと偽になる
 もの**だけで、それ以外のデフォルトは触らずに動きます。
 
-配信ヘッダが持つ第三者 origin の固定値は
+配信ヘッダーが持つ第三者 origin の固定値は
 [`src/config/README.md`](../src/config/README.ja.md#boilerplate-導入時の変更点) が、外向き通信の
 timeout と再試行は
 [`src/adapters/server/http/README.md`](../src/adapters/server/http/README.ja.md#boilerplate-導入時の変更点)
@@ -179,7 +179,7 @@ timeout と再試行は
 ## 運用
 
 - config を経由して利用する変数は `src/config/` のスキーマで、ビルド時とサーバー起動時に検証される。
-- `NEXT_PUBLIC_` 変数にはブラウザへ露出してよい公開値だけを置く。secret を置いてはならない。
+- `NEXT_PUBLIC_` 変数にはブラウザーへ露出してよい公開値だけを置く。secret を置いてはならない。
 - `NEXT_PUBLIC_` はビルド時にリテラルへ置換されるため、値の変更には再ビルドが要る。起動時の差し替えは効かない。
-- 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。追加はユーザ確認を要する（[ADR 0030](../docs/adr/0030-environment-variable-management.ja.md)）。
+- 新しい変数を追加する前に、利用目的・server/client 境界・required/default・secret 管理ラベルを確認する。追加はユーザー確認を要する（[ADR 0030](../docs/adr/0030-environment-variable-management.ja.md)）。
 - 追加の手順はスキル `new-env` が持つ（[ADR 0030](../docs/adr/0030-environment-variable-management.ja.md) 補足）。手で行うなら、サブシステムのセクションへ変数表の行を足し、5 つのファイルへ「ファイルの書き方」の形で 1 行ずつ置く。config 経由で読む変数は、さらに `src/config/<purpose>/<purpose>.schema.ts` の validator、`environment.ts` の登録、`environment.fixture.ts` の stub、runtime module の getter を同時に足す（[`src/config/README.md`](../src/config/README.ja.md)）。config を経由しない変数（外部 SDK が標準名で直接読むもの）も、表と 5 つのファイルには載せる。

@@ -22,7 +22,7 @@
 | --- | --- |
 | `salesAmount` | 期間の売上合計。最小単位の整数 |
 | `salesCount` | 売上に算入した購入の件数 |
-| `purchaseStatusCounts` | ステータス別の件数。マスタの表示順 |
+| `purchaseStatusCounts` | ステータス別の件数。マスターの表示順 |
 | `totalProductCount` | 登録済みの商品数。未公開を含む |
 | `publishedProductCount` | 公開済みの商品数 |
 
@@ -35,7 +35,7 @@
 
 - 売上（`salesAmount` / `salesCount`）はキャンセルを除き、未払いを含む
 - `purchaseStatusCounts` はキャンセルを 1 ステータスとして含む
-- 商品数は期間に依存しないマスタの現在値
+- 商品数は期間に依存しないマスターの現在値
 
 **ステータス別の件数を足しても `salesCount` にはならない。** 母集団が違う。
 

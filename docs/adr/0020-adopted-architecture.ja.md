@@ -91,7 +91,7 @@ flowchart TD
 
 ### 2. 境界は構造的型(TypeScript)で表現する
 
-「内側は抽象に依存し、実装は外側が与える」という境界 interface の考え方を、TypeScript の**構造的型**で表現する。`adapters` が公開する型(公開面)が事実上の境界 interface であり、`features` はその構造的型に依存する。テストでは具体実装ではなく factory 注入で差し替える(DI コンテナは持たず、ESM モジュールキャッシュ + import 境界で代替する。config の注入は [0030](0030-environment-variable-management.ja.md))。
+「内側は抽象に依存し、実装は外側が与える」という境界 interface の考え方を、TypeScript の**構造的型**で表現する。`adapters` が公開する型(公開面)が事実上の境界 interface であり、`features` はその構造的型に依存する。テストでは具体実装ではなく factory 注入で差し替える(DI コンテナーは持たず、ESM モジュールキャッシュ + import 境界で代替する。config の注入は [0030](0030-environment-variable-management.ja.md))。
 
 ### 3. 生成型・外部型を内層に漏らさない(型漏洩禁止)
 
@@ -131,14 +131,14 @@ XSS・インジェクション等の防御は、下のレイヤーが握って�
 
 onion は安定核を `domain` / `usecase` と名付けるが、本リポジトリではこれを**採用しない**。
 
-- **緊張点**: 本リポジトリは [0011](0011-no-docker.ja.md) で「ビジネスロジックはバックエンド別リポ」「`/api/*` は thin proxy」を既に決定している。`src/domain/` / `src/usecase/` という受け皿は、本来ここに存在しないはずのビジネスロジックの**誘導路**になる。onion が守る「安定核」は、プレゼンテーションレイヤーでは表示用 VO・フォーマッタ程度と小さく、同じレイヤー数・レイヤー名の再現は過剰装備である。
-- **解消**: 語彙を変えて縮退する。安定核 `domain` はプレゼンテーションレイヤーの語彙 **`model`**(表示用 VO・フォーマッタ・表示バリデーション、ビジネスルール禁止)へ縮退し、`usecase`(画面ユースケース)は独立ディレクトリを持たず **feature 内へ共置**する。onion の各役割との対応は下記の対応表で担保し、レイヤー別監査・scaffold は本表を土台に載せる。
+- **緊張点**: 本リポジトリは [0011](0011-no-docker.ja.md) で「ビジネスロジックはバックエンド別リポ」「`/api/*` は thin proxy」を既に決定している。`src/domain/` / `src/usecase/` という受け皿は、本来ここに存在しないはずのビジネスロジックの**誘導路**になる。onion が守る「安定核」は、プレゼンテーションレイヤーでは表示用 VO・フォーマッター程度と小さく、同じレイヤー数・レイヤー名の再現は過剰装備である。
+- **解消**: 語彙を変えて縮退する。安定核 `domain` はプレゼンテーションレイヤーの語彙 **`model`**(表示用 VO・フォーマッター・表示バリデーション、ビジネスルール禁止)へ縮退し、`usecase`(画面ユースケース)は独立ディレクトリを持たず **feature 内へ共置**する。onion の各役割との対応は下記の対応表で担保し、レイヤー別監査・scaffold は本表を土台に載せる。
 
 ### onion の役割との対応表
 
 | onion の役割 | 本リポの対応 | 備考 |
 | --- | --- | --- |
-| domain(安定核) | `src/model/` | 表示用 VO / フォーマッタ / 表示バリデーション。**ビジネスルール禁止**。依存は `errors` のみ |
+| domain(安定核) | `src/model/` | 表示用 VO / フォーマッター / 表示バリデーション。**ビジネスルール禁止**。依存は `errors` のみ |
 | usecase | `src/features/<name>/` の編成部(server 関数 / hooks) | 画面ユースケース。boundary IF は `adapters` 公開面の構造的型で代替 |
 | controller(driving adapter) | `src/app/`(route-segment / route-handler / server-action / metadata。[0025](0025-app-layer-elements.ja.md))+ feature 内 `actions.ts` | 薄い編成のみ([0011](0011-no-docker.ja.md) thin proxy と接続) |
 | infrastructure(driven adapter) | `src/adapters/`(server / client の 2 面。[0024](0024-adapters-server-client-split.ja.md)) | 外部接続のみ(backend API client / BFF fetch / analytics 等)。config import の唯一の許可レイヤー(server 面)。命名規律により `lib` は不採用 |
@@ -154,7 +154,7 @@ onion は安定核を `domain` / `usecase` と名付けるが、本リポジト�
 
 横断関心事(`config` / `errors` / `logging` / `observability`)は **`src/` 直下の第一階層へ分離**する。あらゆるレイヤーが参照するものを、どれか 1 つのカーネル(例えば `adapters`)の下に置くと、そのカーネルが全レイヤーの依存先になり、内向き依存の図が壊れる。独立させれば、各カーネルは「自分より内側の横断関心事」だけを見る形に収まる。
 
-- `adapters` から `config` を独立させ、`errors` / `logging` / `observability` を並べる。`adapters` は**外部接続のみ**(backend API client / BFF fetch / analytics 送信 等。server/client の 2 面。[0024](0024-adapters-server-client-split.ja.md))に責務を縮小する(local ブラウザ API の storage / clipboard 等は `capabilities`。[0022](0022-capabilities-kernel.ja.md))
+- `adapters` から `config` を独立させ、`errors` / `logging` / `observability` を並べる。`adapters` は**外部接続のみ**(backend API client / BFF fetch / analytics 送信 等。server/client の 2 面。[0024](0024-adapters-server-client-split.ja.md))に責務を縮小する(local ブラウザー API の storage / clipboard 等は `capabilities`。[0022](0022-capabilities-kernel.ja.md))
 - 各ディレクトリ内は**フラットなファイル共置を基本**とし(feature 内も同様)、肥大化時のみ分割する — ネスト深化の防止
 
 ## 採用しないパターン

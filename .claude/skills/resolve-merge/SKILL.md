@@ -91,6 +91,14 @@ Two rules decide correctness here, and both live outside this skill:
 `release/*` only and will not name a hotfix, and inferring a base from branch names is guessing at
 the moment guessing is most expensive. Require `--base=<ref>` from the human.
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
+the base is pre-answered only by a ref the user named, verbatim, earlier in the same run — it arrives
+as this skill's `--base=<ref>` and reaches `make base-merge` as `BASE=<ref>`. A base the invoking
+skill resolved itself is not an answer: resolve as above. Before running `make base-merge`, compare
+the named ref with `gh pr view --json baseRefName -q .baseRefName`; if they differ, the answer has
+drifted — ask, and do not run it. With no pull request, the named ref is the answer. The Step 6
+commit-and-push question is never pre-answered.
+
 ## Step 2 — Classify every conflicted path
 
 ```bash

@@ -2,7 +2,7 @@
 > 直接編集しないでください。変更は英語の canonical な `page.screen.md` を先に更新し、そのうえでこの日本語訳を同期してください。
 > エージェントが読むのは `page.screen.md` だけです。このファイルは人間が読むための翻訳です。
 
-# `/admin/users` 利用者一覧（画面要件）
+# `/admin/users` ユーザー一覧（画面要件）
 
 > 機能要件は [`page.function.md`](page.function.ja.md)。
 

@@ -2,11 +2,11 @@
 > 直接編集しないでください。変更は英語の canonical な `0002-formatter-linter.md` を先に更新し、そのうえでこの日本語訳を同期してください。
 > エージェントが読むのは `0002-formatter-linter.md` だけです。このファイルは人間が読むための翻訳です。
 
-# フォーマッタ・リンタ管理方針
+# フォーマッター・リンター管理方針
 
-本プロジェクトでは、JavaScript / TypeScript / JSON / CSS のフォーマッタ兼リンタとして **Biome** を主軸に採用する。
+本プロジェクトでは、JavaScript / TypeScript / JSON / CSS のフォーマッター兼リンターとして **Biome** を主軸に採用する。
 
-原則は「**biome 優先、biome で対応できない検査のみ ESLint で補完する**」。フォーマットおよび biome が表現できる lint 検査はすべて biome が担い、biome で表現できない検査（レイヤー境界の import 検査等）に限り、ESLint を補完として利用する。フォーマッタは biome 単独であり、Prettier は採用しない。
+原則は「**biome 優先、biome で対応できない検査のみ ESLint で補完する**」。フォーマットおよび biome が表現できる lint 検査はすべて biome が担い、biome で表現できない検査（レイヤー境界の import 検査等）に限り、ESLint を補完として利用する。フォーマッターは biome 単独であり、Prettier は採用しない。
 
 本ドキュメントでは、Biome の採用理由、ESLint 補完利用の条件、および利用方針・運用ルールを定義する。
 
@@ -51,7 +51,7 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 - `biome.json` **1 枚**に lint / format / assist / overrides を集約する（下記「設定を分けない」）
 - VCS 連携 (`.gitignore` 尊重) も設定ファイル内で完結
 
-## TypeScript コンパイラによる検査（`tsconfig.json`）
+## TypeScript コンパイラーによる検査（`tsconfig.json`）
 
 型で捕まえられる誤りは lint ではなく **`tsc` に持たせる**。能力ベースの役割分担（後述）はツール間だけでなく「型 vs lint」にも同じ形で適用し、重複させない。
 
@@ -80,7 +80,7 @@ Biome は `next` / `react` の lint ドメインルールを内蔵しており�
 
 | 責務 | 担当 |
 | --- | --- |
-| フォーマット | biome 単独（ESLint のフォーマッタ機能は使わない） |
+| フォーマット | biome 単独（ESLint のフォーマッター機能は使わない） |
 | import 整理 (organize imports) | biome（assist） |
 | biome が表現できる lint 検査 | biome（設定は `biome.json` 1 枚。「設定を分けない」参照） |
 | biome で表現できない検査 | ESLint |
@@ -126,7 +126,7 @@ ESLint 本体・プラグイン・設定の読み込みに要するツールも�
 
 **biome の設定は `biome.json` 1 枚とし、プロファイルを持たない。** 保存時・手元・pre-commit・CI のどこから呼んでも同じ規則が掛かる。
 
-分けない理由は、**弱いほうが暗黙に探索される名前を持つと、構造的な false pass ができる**ことにある。`--config-path` を渡さない呼び出し —— エディタの拡張、素の `biome check`、このリポジトリを初めて触る人 —— は弱いほうを読んで緑を返すが、ゲートは強いほうで拒否する。緑と赤のどちらが正しいのかは、呼び出しに `--config-path` が付いていたかどうかで決まり、**出力のどこにも現れない**。
+分けない理由は、**弱いほうが暗黙に探索される名前を持つと、構造的な false pass ができる**ことにある。`--config-path` を渡さない呼び出し —— エディターの拡張、素の `biome check`、このリポジトリを初めて触る人 —— は弱いほうを読んで緑を返すが、ゲートは強いほうで拒否する。緑と赤のどちらが正しいのかは、呼び出しに `--config-path` が付いていたかどうかで決まり、**出力のどこにも現れない**。
 
 分ける根拠になりうるのは保存時の応答性だけであり、**このリポジトリではその根拠が成立しない** —— 全ファイルスキャンで 2,332 ファイル / 約 2 秒であり、`project` ドメインのルール（`noImportCycles`）を含めても含めなくても差が測れない。根拠が実測で消えた以上、分割は費用だけが残る。
 
@@ -142,7 +142,7 @@ ESLint 本体・プラグイン・設定の読み込みに要するツールも�
 - `vcs.enabled = true` / `clientKind = git`
 - `useIgnoreFile = true` で `.gitignore` を尊重し、無視対象は二重定義しない
 
-### フォーマッタ
+### フォーマッター
 
 | 項目 | 値 |
 | --- | --- |
@@ -186,7 +186,7 @@ ESLint 本体・プラグイン・設定の読み込みに要するツールも�
 - flat config 1 ファイル（`eslint.config.ts`）で管理する。カスタムルールの実装だけは `eslint-rules/` へ分ける（設定と実装を同じファイルに積むと設定の見通しが落ちるため）
 - 依存マトリクスは `architecture.ts` を単一の正とし、flat config はそれを import して検査へ変換する。**マトリクスを config 側へ書き写さない**
 - 置くのは「ESLint 利用の条件」を満たす補完検査（現時点ではレイヤー境界検査）のみ。formatter 連携・stylistic 系・biome 重複ルールは設定しない
-- 実行は `pnpm lint:ci` の 2 段目に直列で組み込む（pre-commit / CI）。レイヤー境界検査は TS resolver を伴い保存時実行には重いため、エディタでは拡張の診断並走のみとする
+- 実行は `pnpm lint:ci` の 2 段目に直列で組み込む（pre-commit / CI）。レイヤー境界検査は TS resolver を伴い保存時実行には重いため、エディターでは拡張の診断並走のみとする
 - **import resolver を設定する**。レイヤー境界検査は import 先を実ファイルまで解決できて初めて成立し、解決できない import は「どのレイヤーでもない」として黙って通る。`@/*` を解く TypeScript resolver を設定し、**違反を仕込んで error になることを確認してから**検査を導入したと見なす
 - ignore 対象（`.next/` / `out/` / 生成物等）を flat config 内で宣言し、biome の除外方針と食い違わせない
 - 各ルールには「なぜ biome で表現できないか」を示すコメントを付し、移管判定を容易にする
@@ -220,12 +220,12 @@ pnpm exec eslint .                                                 # 補完検�
 
 `lint:ci` は `pnpm lint`（biome）→ ESLint（`lint:eslint` = `eslint .`）→ 境界宣言の突合（`check:architecture`）を直列に回す。`pnpm lint` は biome のみである。境界検査系ルールは auto-fix をほぼ持たないため、`pnpm fix` は biome のみとする。
 
-## エディタ連携
+## エディター連携
 
 VSCode を前提に統合を行う。`.vscode/extensions.json` で `biomejs.biome` を推奨拡張に指定し、`.vscode/settings.json` で以下を有効化している。
 
 - `editor.defaultFormatter`: `biomejs.biome`
-- `eslint.format.enable`: `false`（フォーマッタは biome 単独。ESLint のフォーマッタ機能は無効のまま）
+- `eslint.format.enable`: `false`（フォーマッターは biome 単独。ESLint のフォーマッター機能は無効のまま）
 - 保存時の挙動（`editor.codeActionsOnSave` に併記）：
   - `source.fixAll.biome`: `always`
   - `source.organizeImports.biome`: `always`
@@ -234,24 +234,24 @@ VSCode を前提に統合を行う。`.vscode/extensions.json` で `biomejs.biom
 
 これにより、保存ごとに整形・import 整理・自動修正は biome（canonical 名の `biome.json` を自動採用）が担い、ESLint は補完検査の診断を並行表示する。**保存時に掛かる規則はゲートと同じである**（上記「設定を分けない」）。
 
-なお、`dbaeumer.vscode-eslint` は `.vscode/extensions.json` の推奨拡張に含める。フォーマットは biome が担うため、`.vscode/settings.json` では ESLint のフォーマッタ機能を無効にする。
+なお、`dbaeumer.vscode-eslint` は `.vscode/extensions.json` の推奨拡張に含める。フォーマットは biome が担うため、`.vscode/settings.json` では ESLint のフォーマッター機能を無効にする。
 
 ### `.editorconfig`
 
-repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形しないファイル**（`Makefile` / `*.mk` / `*.md` / `*.toml` / `*.yaml` 等）と、biome 拡張が入っていないエディタでの保存時のデフォルト挙動であり、biome の対象ファイルには関与しない。
+repo ルートに `.editorconfig` を置く。担当範囲は **biome が整形しないファイル**（`Makefile` / `*.mk` / `*.md` / `*.toml` / `*.yaml` 等）と、biome 拡張が入っていないエディターでの保存時のデフォルト挙動であり、biome の対象ファイルには関与しない。
 
-- 共通値（`charset` / `end_of_line` / `indent_style` / `indent_size` / `insert_final_newline` / `trim_trailing_whitespace`）は上記「フォーマッタ」表と一致させる。食い違った場合は `biome.json` が正
+- 共通値（`charset` / `end_of_line` / `indent_style` / `indent_size` / `insert_final_newline` / `trim_trailing_whitespace`）は上記「フォーマッター」表と一致させる。食い違った場合は `biome.json` が正
 - 例外は 2 件 — `*.md` は行末 2 スペースが改行を意味するため `trim_trailing_whitespace = false`、`Makefile` / `*.mk` はレシピ行がタブを要求するため `indent_style = tab`
 - `formatter.useEditorconfig` はデフォルトの `false` のまま据え置く。有効にしても `biome.json` の値が優先されるため biome 対象ファイルの結果は変わらず、整形設定のエントリポイントだけが 2 本になる
 
 ## 禁止事項
 
-- Prettier の併用は禁止（フォーマッタは biome 単独）。pre-commit と CI は `biome check` で整形を判定するため、Prettier が書いたファイルは hook が落とし、どちらが正かを決める仕事が恒久に増える。見直すのは biome の整形が本リポジトリで実際に扱う言語のいずれかを覆わなくなったとき（対応言語が減る、または新たに扱う言語が biome の対象外であるとき）だけで、Prettier の plugin が豊富であることは理由にならない
-- ESLint をフォーマッタとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）（強制: `pnpm lint:ci`（biome の整形判定）が biome と異なる整形を落とす。`eslint.format.enable` の値と `eslint.config.ts` への stylistic 系 plugin の導入は設定ファイルの解析で落とせるが規則は無い）
+- Prettier の併用は禁止（フォーマッターは biome 単独）。pre-commit と CI は `biome check` で整形を判定するため、Prettier が書いたファイルは hook が落とし、どちらが正かを決める仕事が恒久に増える。見直すのは biome の整形が本リポジトリで実際に扱う言語のいずれかを覆わなくなったとき（対応言語が減る、または新たに扱う言語が biome の対象外であるとき）だけで、Prettier の plugin が豊富であることは理由にならない
+- ESLint をフォーマッターとして使うことは禁止（`eslint.format.enable` の有効化 / stylistic・フォーマット系ルールの導入を含む）（強制: `pnpm lint:ci`（biome の整形判定）が biome と異なる整形を落とす。`eslint.format.enable` の値と `eslint.config.ts` への stylistic 系 plugin の導入は設定ファイルの解析で落とせるが規則は無い）
 - `.editorconfig` に biome の対象ファイル向けの独自値を書くことは禁止（整形の権威は `biome.json`。`.editorconfig` は biome が見ないファイルのみを担当する）（強制: 散文 —— **寄せられる**（`.editorconfig` の各セクションのうち biome の対象に当たる glob の値を `biome.json` の formatter と突き合わせる。規則は無い））
 - biome が表現できる検査を ESLint 側に置くことは禁止（能力ベース。食い違いが成立する。「ESLint 利用の条件」を満たさない ESLint ルール追加はすべて本 ADR 違反）（強制: 散文 —— **一部寄せられる**。biome に同等の規則を持つ ESLint 規則は規則名の対応表との突き合わせで落とせるが規則は無い。独自規則（`eslint-rules/`）を biome が表現できるかは検査の意味の判断で、名前からは決まらない）
 - `eslint:recommended` / `eslint-config-next` 等のプリセット一括適用は禁止（ルール単位 opt-in のみ）（強制: 散文 —— **寄せられる**（`eslint.config.ts` の構文木で `*.configs.*` の展開や `eslint-config-*` の import を検出する。規則は無い））
-- `biome.json` のフォーマッタ・リンタを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）（強制: 散文 —— **寄せられない**。無効化は `biome.json` の差分に現れるが、それが個別案件の都合か ADR で合意したものかは経緯の判断でコードの形に無い）
+- `biome.json` のフォーマッター・リンターを個別案件理由で一方的に無効化しない（必要なら ADR 改訂で合意する）（強制: 散文 —— **寄せられない**。無効化は `biome.json` の差分に現れるが、それが個別案件の都合か ADR で合意したものかは経緯の判断でコードの形に無い）
 - 自動生成物や `node_modules` などは `biome.json` の `files.includes` / `eslint.config.ts` の ignore で除外し、`biome-ignore` / `eslint-disable` コメントの多用は避ける（強制: ESLint `reportUnusedDisableDirectives` が効いていない `eslint-disable` を落とす。「多用」かどうかは散文 —— **寄せられない**。件数のしきい値がコードに無い）
 - biome の設定ファイルを増やさない（プロファイル分割の禁止。上記「設定を分けない」）（強制: 散文 —— **寄せられる**（追跡ファイルの `biome.json` / `biome.jsonc` が 1 枚であることと、scripts・workflow に `--config-path` が無いことを gate で見る。規則は無い））
 

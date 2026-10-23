@@ -25,7 +25,7 @@
 
 SSR first の選定では `◎` に当たります。native `input type="range"` で必要な意味論と操作が満たせるため、`"use client"`・React state・browser API を持ちません。値の保持、`searchParams` への反映、送信後の処理は呼び出し元が持ちます。
 
-`input type="range"` は screen reader に `slider` として公開され、値は `min` / `max` / 現在値から読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`input` は labelable 要素なので `label` の `htmlFor` が使えます（`SliderClient` では使えません）。値は読み上げられる一方で画面上には出ないため、利用者へ数値を見せたい場合はテキストを併記します。
+`input type="range"` は screen reader に `slider` として公開され、値は `min` / `max` / 現在値から読み上げられます。要素自体は名前を持たないため、`aria-label` か、`label` 要素と `id` の関連付けで**アクセシブルな名前を必ず与えます**。`input` は labelable 要素なので `label` の `htmlFor` が使えます（`SliderClient` では使えません）。値は読み上げられる一方で画面上には出ないため、ユーザーへ数値を見せたい場合はテキストを併記します。
 
 太さや幅は `className` で上書きします。track と thumb は browser ごとに別の擬似要素でレンダリングされるため、`::-webkit-slider-runnable-track` / `::-webkit-slider-thumb` / `::-moz-range-track` / `::-moz-range-thumb` の四つへ指定しています。track は `bg-border`、thumb は `bg-foreground` です。focus 表示は `outline` で与えます。
 

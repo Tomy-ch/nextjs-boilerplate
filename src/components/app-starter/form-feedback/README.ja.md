@@ -6,7 +6,7 @@
 
 ## 用途
 
-Server Action や native form の結果を、利用者が理解できる要約と次の行動として表示します。
+Server Action や native form の結果を、ユーザーが理解できる要約と次の行動として表示します。
 
 ## 役割と公開 component
 

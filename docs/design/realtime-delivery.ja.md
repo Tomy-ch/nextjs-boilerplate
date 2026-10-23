@@ -16,8 +16,8 @@
 
 | 持つもの | 持たないもの |
 | --- | --- |
-| BFF が backend から ticket を取り、ブラウザへ渡すこと | ticket の検証・失効・保管（backend） |
-| ブラウザが backend の stream を開き、届いた event を整列して feature へ渡すこと | 接続の保持・replay・fan-out（backend） |
+| BFF が backend から ticket を取り、ブラウザーへ渡すこと | ticket の検証・失効・保管（backend） |
+| ブラウザーが backend の stream を開き、届いた event を整列して feature へ渡すこと | 接続の保持・replay・fan-out（backend） |
 | event を画面の状態へ畳み込むこと（feature） | event の採番・順序の保証（backend） |
 
 この非対称が可能にするのは、**backend の実装が変わっても画面が変わらない**ことである。このレイヤーが stream について知っているのは「URL を 1 つ開くと、名前と sequence を持つ event が届く」ことだけで、backend が event をどう作り、どう溜め、どう配っているかは知らない。
@@ -36,7 +36,7 @@
 | event の畳み込み（どの event で何をどう変えるか） | `src/features/<feature>/` |
 | 送信（Server Action → `adapters/server` の冪等な POST） | `src/app/**/actions.ts` → `src/adapters/server/api/<資源>.ts` |
 | CSP の `connect-src` にバックエンドの origin を載せる箇所 | [`src/config/security-headers/security-headers.ts`](../../src/config/security-headers/security-headers.ts) |
-| status → 分類の対応（ブラウザ側） | [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) の `KIND_BY_STATUS` |
+| status → 分類の対応（ブラウザー側） | [`src/adapters/client/http/request.ts`](../../src/adapters/client/http/request.ts) の `KIND_BY_STATUS` |
 
 React への束ねの置き場は依存表から導ける。`capabilities` と `components` は `adapters` を import できず（`architecture.ts` の `DEPENDENCIES`）、stream の生死は通信機構の状態として `adapters/client` に属する（[ADR 0022](../adr/0022-capabilities-kernel.ja.md)）。したがって hook は feature か `adapters/client` のどちらかにしか置けず、`use-media-query` と同じ `useSyncExternalStore` の形で束ねる。
 
@@ -68,7 +68,7 @@ sequenceDiagram
 
 **開始位置は取得の応答から来る。** projection を返すエンドポイントが、その時点の stream の位置を一緒に返す。購読側がこれを引数に取るので、初期表示と購読の間に隙間は無い —— 隙間の event は「cursor より後」として stream から届く。
 
-**発券は同一オリジンの BFF を叩く。** ブラウザは Access Token を持たないので（[auth.md](auth.ja.md)）、backend の認可を通せるのは BFF だけである。発券の Route Handler は宣言した保護経路の下に無ければ前捌きの対象にならず、backend の 401 を `unauthenticated` へ写してそのまま 401 で返す —— 認証の要る取得の Route Handler と同じ形である。
+**発券は同一オリジンの BFF を叩く。** ブラウザーは Access Token を持たないので（[auth.md](auth.ja.md)）、backend の認可を通せるのは BFF だけである。発券の Route Handler は宣言した保護経路の下に無ければ前捌きの対象にならず、backend の 401 を `unauthenticated` へ写してそのまま 401 で返す —— 認証の要る取得の Route Handler と同じ形である。
 
 **送信は購読と別の経路を通る。**
 
@@ -154,7 +154,7 @@ stateDiagram-v2
 | `features` | event の畳み込み、楽観行の突合、切れているときの姿 | sequence、再接続、ticket |
 | `config` | CSP の `connect-src` にバックエンドの origin を載せること | — |
 
-**分類への正規化は adapter の内側で 1 度だけ行う。** 往復側と同じで（[data-fetching.md § エラーの正規化](data-fetching.ja.md#エラーの正規化--生-status-が分類へ変わる場所)）、ブラウザが投げた例外も `EventSource` の `error` も `errors` の分類へ写してから feature に渡す。
+**分類への正規化は adapter の内側で 1 度だけ行う。** 往復側と同じで（[data-fetching.md § エラーの正規化](data-fetching.ja.md#エラーの正規化--生-status-が分類へ変わる場所)）、ブラウザーが投げた例外も `EventSource` の `error` も `errors` の分類へ写してから feature に渡す。
 
 **adapter は event の形を検証してから流す。** 名前で判別する discriminated union の zod schema を持ち、契約に無い名前・形の合わない本文は落として記録する。往復側の「応答を検証せずに UI へ流さない」と同じ原則である。契約から生成した schema をそのまま当てられるかは、契約が event を component として宣言しているかで決まる（後述「バックエンド側に決めてもらうもの」）。
 
@@ -166,19 +166,19 @@ stateDiagram-v2
 
 ### `KIND_BY_STATUS` は 403 と 404 を畳まない
 
-ブラウザ側の要求境界（`adapters/client/http/request.ts`）は、発券の BFF が返す 401 / 403 / 404 をそれぞれ `unauthenticated` / `permission-denied` / `not-found` へ写す。畳んで `internal` にすると、権限喪失も購読する対象が無いことも backoff の対象になり、直らない相手へ張り直し続ける —— 「401 を畳まない」と同じ理由である。発券エンドポイントを足すときに backend が返す拒否の status がこの表に無ければ、行を足す。
+ブラウザー側の要求境界（`adapters/client/http/request.ts`）は、発券の BFF が返す 401 / 403 / 404 をそれぞれ `unauthenticated` / `permission-denied` / `not-found` へ写す。畳んで `internal` にすると、権限喪失も購読する対象が無いことも backoff の対象になり、直らない相手へ張り直し続ける —— 「401 を畳まない」と同じ理由である。発券エンドポイントを足すときに backend が返す拒否の status がこの表に無ければ、行を足す。
 
 ### `connect-src` にバックエンドの origin が要る
 
-往復はすべて同一オリジンの BFF を通るので `'self'` で足りるが、購読はブラウザが backend へ直接開く。その origin が `connect-src` に無ければ接続はブロックされ、コンソール以外に何も出ない。購読のエンドポイントは API と同じ origin に置かれる前提で、`SecurityHeaderInputs` の `apiOrigin`（`APP_API_BASE_URL` から導く）が `connect-src` に載る（[ADR 0111](../adr/0111-csp-security-headers.ja.md)）。購読のエンドポイントを API と別の origin に置く backend へ繋ぐなら、その origin を同じ形の入力として足す。開発時は backend の origin が `localhost` の別ポートになるが、同じ入力から導かれる。
+往復はすべて同一オリジンの BFF を通るので `'self'` で足りるが、購読はブラウザーが backend へ直接開く。その origin が `connect-src` に無ければ接続はブロックされ、コンソール以外に何も出ない。購読のエンドポイントは API と同じ origin に置かれる前提で、`SecurityHeaderInputs` の `apiOrigin`（`APP_API_BASE_URL` から導く）が `connect-src` に載る（[ADR 0111](../adr/0111-csp-security-headers.ja.md)）。購読のエンドポイントを API と別の origin に置く backend へ繋ぐなら、その origin を同じ形の入力として足す。開発時は backend の origin が `localhost` の別ポートになるが、同じ入力から導かれる。
 
-`EventSource` は別 origin へ CORS の要求を出す（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。応答にこの origin を許す `Access-Control-Allow-Origin` が無ければ、ブラウザは接続を失敗として扱う。これは backend の応答の側で決まり、このリポジトリの CORS（BFF の応答へ付けるもの。[ADR 0111](../adr/0111-csp-security-headers.ja.md)）とは別物である。
+`EventSource` は別 origin へ CORS の要求を出す（[WHATWG HTML「Server-sent events」](https://html.spec.whatwg.org/multipage/server-sent-events.html)）。応答にこの origin を許す `Access-Control-Allow-Origin` が無ければ、ブラウザーは接続を失敗として扱う。これは backend の応答の側で決まり、このリポジトリの CORS（BFF の応答へ付けるもの。[ADR 0111](../adr/0111-csp-security-headers.ja.md)）とは別物である。
 
 ### ticket は URL に載る
 
-redaction は**名前で伏せ、値の形は見ない**（[observability.md](observability.ja.md)）。`REDACTED_FIELD_NAMES` は `authorization` / `cookie` / `password` / `token` の 4 つで、URL 文字列の中の ticket には届かない。ブラウザ側の例外は `reportClientError` が `message` をそのまま中継へ送るので、adapter が URL を含む文言を作った時点で ticket が中継に載る。
+redaction は**名前で伏せ、値の形は見ない**（[observability.md](observability.ja.md)）。`REDACTED_FIELD_NAMES` は `authorization` / `cookie` / `password` / `token` の 4 つで、URL 文字列の中の ticket には届かない。ブラウザー側の例外は `reportClientError` が `message` をそのまま中継へ送るので、adapter が URL を含む文言を作った時点で ticket が中継に載る。
 
-守り方は 2 つで、両方要る。adapter は例外の文言に URL を入れない。ブラウザ由来の例外（`EventSource` の構築失敗など）を包むときは `redactMessage(message, [ticket])` で値を名指しして消してから `createAppError` へ渡す。`FetchInstrumentation` は `EventSource` を計装しないので span には載らないが、backend や edge のアクセスログには載る —— それはこのレイヤーの外である。
+守り方は 2 つで、両方要る。adapter は例外の文言に URL を入れない。ブラウザー由来の例外（`EventSource` の構築失敗など）を包むときは `redactMessage(message, [ticket])` で値を名指しして消してから `createAppError` へ渡す。`FetchInstrumentation` は `EventSource` を計装しないので span には載らないが、backend や edge のアクセスログには載る —— それはこのレイヤーの外である。
 
 ### heartbeat がコメント行だと client には見えない
 
@@ -202,7 +202,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 
 ### Storybook と mock は購読を持たない
 
-`mocks/` に SSE のハンドラは置かない（[ADR 0074](../adr/0074-runtime-communication-seam.ja.md)）。story が見せるのは購読の結果として feature が取る状態 —— 開いている / 切れている / 権限が無い / 楽観行がある —— で、それは props で与える。開発時に event を起こす手段は backend 側が持ち、このレイヤーは実 backend へ繋ぐ。
+`mocks/` に SSE のハンドラーは置かない（[ADR 0074](../adr/0074-runtime-communication-seam.ja.md)）。story が見せるのは購読の結果として feature が取る状態 —— 開いている / 切れている / 権限が無い / 楽観行がある —— で、それは props で与える。開発時に event を起こす手段は backend 側が持ち、このレイヤーは実 backend へ繋ぐ。
 
 ## バックエンド側に決めてもらうもの
 
@@ -210,7 +210,7 @@ redaction は**名前で伏せ、値の形は見ない**（[observability.md](ob
 
 | 項目 | client 側に何が決まるか |
 | --- | --- |
-| 再開 cursor の query パラメータ名 | adapter が URL を組む綴り |
+| 再開 cursor の query パラメーター名 | adapter が URL を組む綴り |
 | heartbeat の形式と間隔 | コメント行なら client は liveness を持たない。名前付き event なら「一定時間 event が無い」を切断の合図にできる |
 | ticket の TTL と scope | backoff 中に同じ ticket で張り直せる時間。TTL を過ぎたら発券へ戻る |
 | event の名前と本文の schema が契約（OpenAPI の component）に載るか | 載れば生成物の schema を当てられる。載らなければ adapter が手書きの schema を持つ（`adapters/client` の他のエンドポイントと同じ） |
@@ -234,7 +234,7 @@ curl -sI http://localhost:3000/ | grep -i content-security-policy | tr ';' '\n' 
 - [0022](../adr/0022-capabilities-kernel.ja.md) — 通信機構の状態と runtime の能力の区別
 - [0071](../adr/0071-bff-api-integration.ja.md) — 往復側の resilience と POST 冪等性の opt-in
 - [0073](../adr/0073-pagination-fetch-boundary.ja.md) — 一覧の cursor（stream の cursor と別物）
-- [0079](../adr/0079-auth-frontend-seam.ja.md) — Access Token はブラウザに無い
+- [0079](../adr/0079-auth-frontend-seam.ja.md) — Access Token はブラウザーに無い
 - [0080](../adr/0080-error-handling.ja.md) — 401 / 403 を再試行しない
 - [0081](../adr/0081-observability-logging.ja.md) — 名前で伏せる redaction
 - [0111](../adr/0111-csp-security-headers.ja.md) — `connect-src` のデフォルト
