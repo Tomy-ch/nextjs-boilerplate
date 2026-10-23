@@ -10,7 +10,7 @@ export type SourceModule = {
 };
 
 /** 待機表示の module の綴り。 */
-const SKELETON_MODULE = /\/ui\/skeleton\/skeleton\.tsx$/;
+const SKELETON_MODULE_SUFFIX = "/ui/skeleton/skeleton.tsx";
 
 const LEAF_SPECIFIER = "@/components/shell/loading-announcer/loading-announcer";
 
@@ -98,7 +98,7 @@ function importsAndRenders(module: SourceModule, name: string): boolean {
  * @returns 待機表示の綴りなら `true`
  */
 export function isSkeletonModule(path: string): boolean {
-  return SKELETON_MODULE.test(path);
+  return path.endsWith(SKELETON_MODULE_SUFFIX);
 }
 
 /**
