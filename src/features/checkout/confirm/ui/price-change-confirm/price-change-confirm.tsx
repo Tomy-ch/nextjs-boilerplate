@@ -15,7 +15,7 @@ import {
 } from "@/components/design-system/overlay/alert-dialog/alert-dialog";
 import { CART_PATH } from "@/features/cart/facade/paths/paths";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
-import { ACCEPT_PRICE_CHANGE_FIELD } from "../../../form-fields";
+import { ACCEPT_PRICE_CHANGE_FIELD, COUPON_ID_FIELD } from "../../../form-fields";
 import { usePlaceOrderState } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "../place-order-submit/place-order-submit";
 
@@ -54,7 +54,7 @@ const FIX_CART_LABEL = "カートを修正する";
  * @param props - {@link PriceChangeConfirmProps}。
  */
 export function PriceChangeConfirm({ orderable, changedNames }: PriceChangeConfirmProps) {
-  const { formAction, idempotencyKey } = usePlaceOrderState();
+  const { formAction, idempotencyKey, couponId } = usePlaceOrderState();
 
   return (
     <AlertDialog>
@@ -67,6 +67,9 @@ export function PriceChangeConfirm({ orderable, changedNames }: PriceChangeConfi
         <form action={formAction} className="flex flex-col gap-4">
           <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
           <input name={ACCEPT_PRICE_CHANGE_FIELD} type="hidden" value="1" />
+          {couponId === null ? null : (
+            <input name={COUPON_ID_FIELD} type="hidden" value={couponId} />
+          )}
           <AlertDialogHeader>
             <AlertDialogTitle>金額が変わっています</AlertDialogTitle>
             <AlertDialogDescription>

@@ -101,3 +101,20 @@ export type HeldCoupon = {
   /** 使った時刻。未使用なら `null`。 */
   readonly usedAt: Date | null;
 };
+
+/**
+ * いまのカートに対して使えるクーポン 1 枚と、それを適用した場合の値引き額。
+ *
+ * @remarks
+ * 値引き額はバックエンドが購入の確定と同じ規則で求めた値で、画面は額面から計算し直しません。
+ * ロックを取らないため、確定時に実際に引かれる額と一致する保証はありません。
+ */
+export type CartCoupon = {
+  readonly id: CouponId;
+  readonly discount: CouponDiscount;
+  readonly scopeKind: CouponScopeKind;
+  /** 適用した場合に差し引かれる額。最小単位の整数。 */
+  readonly discountAmount: number;
+  /** 失効する日時の ISO 文字列。この時刻ちょうどを含めて以降は使えない。 */
+  readonly expiresAt: string;
+};

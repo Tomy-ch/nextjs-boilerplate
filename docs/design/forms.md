@@ -71,6 +71,8 @@ Because of this property, input takes one of three shapes.
 | **react-hook-form** | rhf's internal state and the DOM. `register` is uncontrolled | Multiple fields + validation + error display |
 | **Holding every field as a string in `useState`** | The screen. Input fields are controlled fields that receive `value` | When judgments are written as functions rather than zod, and you do not want to rebuild the fields on every submission |
 
+**A value the screen holds reaches the submission only after hydration.** A hidden field fed from `useState` carries nothing before the client takes over, and nothing at all where JavaScript does not run, so a choice made in that window is silently dropped from what is sent. Disable such a control until hydration, and say in `<noscript>` what can still be submitted without it.
+
 **rhf does not replace the submission mechanism.** It does not call `handleSubmit`; `register` wires the fields, and the `FormData` flows to `<form action>` unchanged. All rhf holds is validation during input. Even where JavaScript does not run, the form is submitted and the same schema validates it on the Server Action side.
 
 When using rhf, the wiring is as follows.

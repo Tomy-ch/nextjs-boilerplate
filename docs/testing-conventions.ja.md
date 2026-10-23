@@ -96,6 +96,7 @@
 
 - `render` したものは Testing Library の `cleanup` が畳む（`vitest.setup.ts` が全ファイルへ掛けている）。**それ以外の経路で作ったものは自分で畳む。**
 - **`vi.hoisted` で作った `vi.fn()` のデフォルト値は、`beforeEach` でテストごとに置き直す。** `vi.restoreAllMocks()` が元へ戻すのは `vi.spyOn` で作ったものだけで、`vi.fn()` に `mockResolvedValue` で与えた値はファイルの残りのテストへ持ち越される。持ち越された値の上では、デフォルトを前提にしたテストが別の分岐を通ったまま緑になり、どのテストが値を変えたかはファイルの並び順でしか分からない。
+- **テストが待たせたままの action は解決する。** React は解決していない async action に後続の transition をすべて絡めるため、解決しない送信が 1 つあるとファイル内の後続の送信がすべて pending のまま残り、落ちるのはその後ろのケースになる。action にはテストが resolver を持つ Promise を渡し、`afterEach` で呼ぶ。
 - **`vi.resetModules()` はモックを戻さない。** 読み直した module が受け取るのは、`vi.mock` のファクトリが前に返したのと同じモックで、呼び出しの記録も途中で与えた実装も残っている。module を読み直すテストは `beforeEach` で `vi.resetAllMocks()` も呼ぶ —— `vi.fn(impl)` は reset で `impl` へ戻るので、本物を包んだ spy は包んだまま残る。
 - 畳む手段を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末のフックを足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
 

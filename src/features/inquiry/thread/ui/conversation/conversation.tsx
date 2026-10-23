@@ -20,7 +20,7 @@ import {
   MessageScrollerViewport,
 } from "@/components/design-system/container/message-scroller/message-scroller";
 import { idleActionState } from "@/model/action-state";
-import { newIdempotencyKey } from "@/model/idempotency-key";
+import { newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import { mergeMessages, pruneApplied, toConversationDays } from "@/model/inquiry/conversation";
 import type { InquiryHistory, InquiryMessage } from "@/model/inquiry/inquiry";
 
@@ -79,12 +79,12 @@ export function InquiryConversation({ history }: InquiryConversationProps) {
   const [seenState, setSeenState] = useState(state);
   const retaking = useRef(false);
 
-  // 成立した送信は、次の 1 通と同じ鍵で飛ばない。通らなかった送信を送り直す間は同じ鍵のままに
-  // して、応答が届かなかっただけの送信が 2 通にならないようにする。
+  // 結果が定まった送信は、次の 1 通と同じ鍵で飛ばない。結果が定まらない失敗を送り直す間は同じ鍵の
+  // ままにして、応答が届かなかっただけの送信が 2 通にならないようにする。
   if (seenState !== state) {
     setSeenState(state);
 
-    if (state.status === "success") {
+    if (settlesSubmission(state)) {
       setIdempotencyKey(newIdempotencyKey());
     }
   }

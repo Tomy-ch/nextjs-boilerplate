@@ -2,6 +2,7 @@
 
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useCallback } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -9,8 +10,10 @@ const { placeOrderAction } = vi.hoisted(() => ({ placeOrderAction: vi.fn() }));
 
 vi.mock("../../../actions", () => ({ placeOrderAction }));
 
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, succeededActionState } from "@/model/action-state";
 
+import { COUPON_ID_FIELD } from "../../../form-fields";
 import type { PlaceOrderFormState } from "../../../form-state";
 import {
   PlaceOrderStateProvider,
@@ -29,7 +32,7 @@ const LABEL = "注文を確定する";
  */
 function renderSubmit({ orderable = true, fullWidth = false } = {}) {
   return render(
-    <PlaceOrderStateProvider idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
       <PlaceOrderForm fullWidth={fullWidth} orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -47,11 +50,30 @@ function PlaceOrderForm({ orderable, fullWidth }: { orderable: boolean; fullWidt
   );
 }
 
+function SelectNoCouponButton() {
+  const { selectCoupon } = usePlaceOrderState();
+  const select = useCallback(() => selectCoupon(null), [selectCoupon]);
+
+  return (
+    <button type="button" onClick={select}>
+      クーポンを使わない
+    </button>
+  );
+}
+
+function renderWithCouponChoice() {
+  return render(
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+      <PlaceOrderForm fullWidth={false} orderable />
+      <SelectNoCouponButton />
+    </PlaceOrderStateProvider>,
+  );
+}
+
 async function submit() {
   await userEvent.click(screen.getByRole("button", { name: LABEL }));
 }
 
-/** 送信が返す結果を決める。返さないあいだ待ち続けたいときは `settle` を呼ぶまで解決しない。 */
 function respondWith(state: PlaceOrderFormState) {
   placeOrderAction.mockResolvedValue(state);
 }
@@ -134,6 +156,48 @@ describe("PlaceOrderError", () => {
 
     await waitFor(() => expect(screen.getByRole("button", { name: LABEL })).toBeEnabled());
     expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
+  });
+
+  it("クーポンを名指しした拒否の後にクーポンを選び直すと、理由を消す", async () => {
+    respondWith(
+      failedActionState({
+        formError: "クーポンを使えませんでした。",
+        fieldErrors: { [COUPON_ID_FIELD]: ["このクーポンは使えなくなりました。"] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("クーポンを使えませんでした。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.queryByText("注文を確定できませんでした")).not.toBeInTheDocument();
+  });
+
+  it("衝突で拒まれた後にクーポンを選び直しても、理由を出したまま", async () => {
+    respondWith(failedActionState({ formError: "在庫が変わりました。", kind: ErrorKind.CONFLICT }));
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("在庫が変わりました。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.getByText("在庫が変わりました。")).toBeVisible();
+    expect(screen.getByText("注文を確定できませんでした")).toBeVisible();
+  });
+
+  it("結果の定まらない失敗の後は、クーポンを選び直そうとしても理由を出したまま", async () => {
+    respondWith(
+      failedActionState({ formError: "いまは確定できません。", kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    renderWithCouponChoice();
+    await submit();
+    await screen.findByText("いまは確定できません。");
+    await userEvent.click(screen.getByRole("button", { name: "クーポンを使わない" }));
+
+    expect(screen.getByText("いまは確定できません。")).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {
