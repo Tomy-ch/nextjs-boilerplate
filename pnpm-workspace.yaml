@@ -46,8 +46,11 @@ overrides:
   # XSS になる。
   # GHSA-p98j-92pf-mc4p (low): 3.4.13〜3.4.15 でも、hook がノードを消すと切り離された部分木の
   # event handler が生きたまま残り、DOM XSS になる。
-  # mermaid の宣言は ^3.3.3 で 3.4.16 はその内側。mermaid が 3.4.16 以上を要求したら撤去する。
-  "dompurify@<3.4.16": ">=3.4.16 <4"
+  # GHSA-cg2g-xh64-v4q7 (critical): SAFE_FOR_TEMPLATES が、shadow root へ付けた内容の中で分割された
+  # テンプレート式を取り残す。GHSA-mrv2-3pqr-j5jr (high): GHSA-p98j-92pf-mc4p の修正が不完全で、
+  # 親や兄弟を消す hook でも event handler が残る。3.4.17 で 2 件とも塞がれた。
+  # mermaid の宣言は ^3.4.12 で 3.4.17 はその内側。mermaid が 3.4.17 以上を要求したら撤去する。
+  "dompurify@<3.4.17": ">=3.4.17 <4"
   # minimatch (glob 経由で Storybook の依存、typescript-eslint、eslint が引く) の推移的依存。
   # GHSA-cchq-frgv-rjh5 (high): 展開の中間結果に上限が無く、短い入力で処理が止まらなくなる。
   # GHSA-6j4f-fj2g-mc7p / GHSA-qhr7-859c-m2p7 (high): カンマ区切りと入れ子の波括弧の再帰に上限が
