@@ -233,6 +233,36 @@ describe("SuspendableCampaignList", () => {
     expect(screen.getByRole("alertdialog")).toHaveTextContent(OTHER_ROW.code);
   });
 
+  it("続けて送った 2 行の結果は、それぞれ送った行の確認だけを閉じる", async () => {
+    const settles: Array<(state: SuspendCampaignState) => void> = [];
+    const suspendAction = vi.fn(
+      () =>
+        new Promise<SuspendCampaignState>((resolve) => {
+          settles.push(resolve);
+        }),
+    );
+
+    renderTwoRows(suspendAction);
+
+    const first = await openConfirmationFor(UPCOMING_CAMPAIGN_ROW);
+
+    await userEvent.click(within(first).getByRole("button", { name: "停止する" }));
+    await waitFor(() => expect(suspendAction).toHaveBeenCalledTimes(1));
+    await dismissConfirmation(first);
+
+    const second = await openConfirmationFor(OTHER_ROW);
+
+    await userEvent.click(within(second).getByRole("button", { name: "停止する" }));
+    await act(async () => settles[0]?.(succeededActionState({ code: UPCOMING_CAMPAIGN_ROW.code })));
+    await waitFor(() => expect(suspendAction).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(OTHER_ROW.code);
+
+    await act(async () => settles[1]?.(succeededActionState({ code: OTHER_ROW.code })));
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  });
+
   it("停止の送信に、その行の試みの冪等キーを載せる", async () => {
     const suspendAction = vi.fn(idle);
 

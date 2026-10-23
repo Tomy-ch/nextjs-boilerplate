@@ -1,10 +1,12 @@
 "use client";
 
-import { type ReactNode, useActionState } from "react";
+import type { ReactNode } from "react";
 
 import { idleActionState } from "@/model/action-state";
 
 import { useConfirmationTarget } from "../../../use-confirmation-target";
+import { useRowActionState } from "../../../use-row-action-state";
+import { WITHDRAW_FORM_NAMES } from "../../form-names";
 import type { WithdrawUserAction, WithdrawUserState } from "../../form-state";
 import type { AdminUserRow } from "../../row";
 import { AdminUserTable } from "../table/table";
@@ -38,15 +40,19 @@ export function WithdrawableUserList({
   pagination,
   withdrawAction,
 }: WithdrawableUserListProps) {
-  const [state, formAction] = useActionState<WithdrawUserState, FormData>(
+  const [answer, formAction] = useRowActionState<WithdrawUserState>(
     withdrawAction,
     idleActionState(),
+    WITHDRAW_FORM_NAMES.userId,
   );
-  const { target, confirm, dismiss } = useConfirmationTarget<AdminUserRow>(state);
+  const { target, confirm, dismiss } = useConfirmationTarget<AdminUserRow>(
+    answer.result,
+    (current) => current.id === answer.row,
+  );
 
   return (
     <div className="space-y-4">
-      <WithdrawFeedback state={state} />
+      <WithdrawFeedback state={answer.result} />
       <AdminUserTable items={items} onWithdraw={confirm} pagination={pagination} />
       <UserWithdrawDialog formAction={formAction} onDismiss={dismiss} target={target} />
     </div>

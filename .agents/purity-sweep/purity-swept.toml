@@ -752,3 +752,5 @@
 "src/components/shell/admin-shell/admin-shell.stories.tsx" = "2026-10-23"
 "src/features/admin/campaigns/list/use-suspend-attempts.ts" = "2026-10-24"
 "src/features/admin/campaigns/list/use-suspend-attempts.test.ts" = "2026-10-24"
+"src/features/admin/use-row-action-state.ts" = "2026-10-24"
+"src/features/admin/use-row-action-state.test.ts" = "2026-10-24"

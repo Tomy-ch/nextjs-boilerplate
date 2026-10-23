@@ -1,10 +1,12 @@
 "use client";
 
-import { type ReactNode, useActionState, useCallback } from "react";
+import { type ReactNode, useCallback } from "react";
 
 import { idleActionState } from "@/model/action-state";
 
 import { useConfirmationTarget } from "../../../../use-confirmation-target";
+import { useRowActionState } from "../../../../use-row-action-state";
+import { SUSPEND_FORM_NAMES } from "../../form-names";
 import type { SuspendCampaignAction, SuspendCampaignState } from "../../form-state";
 import type { AdminCampaignRow } from "../../row";
 import { useSuspendAttempts } from "../../use-suspend-attempts";
@@ -30,8 +32,8 @@ export type SuspendableCampaignListProps = {
  * 送り、結果が一覧の上に出る —— この 3 つは別々の部品にあり、どれとどれが同じ相手の話かを知って
  * いるのはこの層だけです。
  *
- * **冪等キーは行ごとの試みに 1 つで、開閉で unmount しないこの層が持ちます。** 鍵の保ち方と、
- * 結果をどの行に対応づけるかは `useSuspendAttempts` が持ちます。
+ * **冪等キーは行ごとの試みに 1 つで、開閉で unmount しないこの層が持ちます。** 鍵の保ち方は
+ * `useSuspendAttempts` が、結果がどの行に答えたかは `useRowActionState` が持ちます。
  *
  * 確認はその行の結果が返ると成否によらず閉じ、結果は一覧の上に残ります。
  *
@@ -42,18 +44,19 @@ export function SuspendableCampaignList({
   pagination,
   suspendAction,
 }: SuspendableCampaignListProps) {
-  const [state, formAction] = useActionState<SuspendCampaignState, FormData>(
+  const [answer, formAction] = useRowActionState<SuspendCampaignState>(
     suspendAction,
     idleActionState(),
+    SUSPEND_FORM_NAMES.campaignId,
   );
-  const { keyFor, markSent, answered } = useSuspendAttempts(state);
+  const keyFor = useSuspendAttempts(answer);
   const {
     target: confirmation,
     confirm: open,
     dismiss,
   } = useConfirmationTarget<SuspendConfirmation>(
-    state,
-    (current) => current.target.id === answered,
+    answer.result,
+    (current) => current.target.id === answer.row,
   );
 
   /** 停止する行を受け取り、その行の試みの冪等キーとともに確認を開く。 */
@@ -62,20 +65,15 @@ export function SuspendableCampaignList({
     [keyFor, open],
   );
 
-  /** 確認している行を送ったと記録してから、停止を送る。 */
-  const submit = useCallback(
-    (formData: FormData) => {
-      if (confirmation !== null) markSent(confirmation.target.id);
-      formAction(formData);
-    },
-    [confirmation, formAction, markSent],
-  );
-
   return (
     <div className="space-y-4">
-      <SuspendFeedback state={state} />
+      <SuspendFeedback state={answer.result} />
       <AdminCampaignTable items={items} onSuspend={confirm} pagination={pagination} />
-      <CampaignSuspendDialog confirmation={confirmation} formAction={submit} onDismiss={dismiss} />
+      <CampaignSuspendDialog
+        confirmation={confirmation}
+        formAction={formAction}
+        onDismiss={dismiss}
+      />
     </div>
   );
 }
