@@ -7,6 +7,7 @@ import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedba
 import { Button } from "@/components/design-system/action/button/button";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
+import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import type { ProductDiscontinueImpact, ProductId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "../../paths";
@@ -52,9 +53,12 @@ export type AdminProductDiscontinueViewProps = {
   remainingPurchases: ReactNode;
   /** 廃番の送信先。 */
   discontinueAction: DiscontinueProductAction;
-  /** 画面を組み立てたときに作った冪等キー。 */
+  /** 最初の送信に載せる冪等キー。画面を組み立てたときに作る。 */
   idempotencyKey: string;
 };
+
+const LOCKED_MESSAGE =
+  "前回の廃番の結果が分かるまで、条件は書き換えられません。同じ条件でもう一度廃番にしてください。";
 
 /** まだ何も打っていない条件。既定値を置かない。 */
 const EMPTY_VALUES: DiscontinueConditionValues = {
@@ -72,6 +76,9 @@ const EMPTY_VALUES: DiscontinueConditionValues = {
  * 出し分けをこの内側で行うのはそのためで、外側で姿ごとに別の木を返すと、取り直しのたびに結果が
  * 消えます。
  *
+ * 鍵は最初に受け取ったものを使い、応答が送信を確定させたら作り直します。結果が定まらないあいだは
+ * 条件を書き換えさせず、同じ条件で送り直させます（理由は `model/idempotency-key.ts`）。
+ *
  * 画面が何を約束するかは
  * [機能要件](../../../../../docs/spec/route/admin/products/[id]/discontinue/page.function.md)と[画面要件](../../../../../docs/spec/route/admin/products/[id]/discontinue/page.screen.md)。
  *
@@ -88,7 +95,8 @@ export function AdminProductDiscontinueView({
     discontinueAction,
     idleActionState(),
   );
-  const [idempotencyKey] = useState(initialIdempotencyKey);
+  const [idempotencyKey, setIdempotencyKey] = useState(initialIdempotencyKey);
+  const [seenState, setSeenState] = useState(state);
   const [values, setValues] = useState(EMPTY_VALUES);
   const [checked, setChecked] = useState<Partial<Record<DiscontinueProductField, string>>>({});
   const [confirming, setConfirming] = useState(false);
@@ -121,6 +129,16 @@ export function AdminProductDiscontinueView({
   }, [dismiss, values]);
 
   const closeConfirmation = useCallback(() => setConfirming(false), []);
+
+  if (seenState !== state) {
+    setSeenState(state);
+
+    if (settlesSubmission(state)) {
+      setIdempotencyKey(newIdempotencyKey());
+    }
+  }
+
+  const outcomeOpen = leavesOutcomeOpen(state);
 
   const shown = dismissed ? null : state;
   const conflicted = shown?.status === "error" && shown.kind === ErrorKind.CONFLICT;
@@ -156,6 +174,7 @@ export function AdminProductDiscontinueView({
           ) : (
             <>
               <DiscontinueConditionsFields
+                {...(outcomeOpen ? { lockedReason: LOCKED_MESSAGE } : {})}
                 messages={fieldMessagesOf(checked, shown)}
                 onValuesChange={changeValues}
                 values={values}

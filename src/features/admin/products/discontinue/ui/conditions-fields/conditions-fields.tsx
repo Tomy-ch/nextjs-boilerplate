@@ -19,6 +19,8 @@ export type DiscontinueConditionsFieldsProps = {
   onValuesChange: (values: DiscontinueConditionValues) => void;
   /** 項目ごとの誤りの文言。 */
   messages: Partial<Record<DiscontinueProductField, string>>;
+  /** 書き換えさせないあいだの理由。書き換えられるなら省く。 */
+  lockedReason?: string;
 };
 
 /**
@@ -31,17 +33,22 @@ export type DiscontinueConditionsFieldsProps = {
  * **既定値を置きません。** 何をどれだけ補償するかは業務の判断で、画面が値を入れておくと、
  * 確かめずに送った値と意図して打った値が区別できなくなります。
  *
+ * `lockedReason` を渡すと、欄を `readOnly` にしてその理由を欄の組に結びます。値は送信に載り続けます。
+ *
  * 値引き率は百分率で受け、数値型の入力欄にしません。送る値は打たれた綴りから写します
  * （[`coupon-rules`](../../coupon-rules.ts)）。
  *
  * @see Storybook `Features/Admin/Products/Discontinue/ConditionsFields`
  */
 export function DiscontinueConditionsFields({
+  lockedReason,
   messages,
   onValuesChange,
   values,
 }: DiscontinueConditionsFieldsProps) {
   const idPrefix = useId();
+  const lockedId = `${idPrefix}locked`;
+  const locked = lockedReason !== undefined;
 
   const changeRate = useCallback(
     (couponDiscountRate: string) => onValuesChange({ ...values, couponDiscountRate }),
@@ -56,8 +63,16 @@ export function DiscontinueConditionsFields({
   const leave = useCallback(() => undefined, []);
 
   return (
-    <fieldset className="grid gap-4 sm:grid-cols-2 sm:items-start">
+    <fieldset
+      aria-describedby={locked ? lockedId : undefined}
+      className="grid gap-4 sm:grid-cols-2 sm:items-start"
+    >
       <legend className="mb-2 font-emphasis text-sm">代替クーポンの条件</legend>
+      {locked ? (
+        <p className="text-muted-foreground text-sm sm:col-span-2" id={lockedId}>
+          {lockedReason}
+        </p>
+      ) : null}
       <ProductTextField
         controlId={`${idPrefix}rate`}
         description="10 と打つと 10% 引きです。"
@@ -66,6 +81,7 @@ export function DiscontinueConditionsFields({
         name={DISCONTINUE_FORM_NAMES.couponDiscountRate}
         onLeave={leave}
         onValueChange={changeRate}
+        readOnly={locked}
         required={true}
         type="text"
         value={values.couponDiscountRate}
@@ -81,6 +97,7 @@ export function DiscontinueConditionsFields({
         name={DISCONTINUE_FORM_NAMES.couponValidityDays}
         onLeave={leave}
         onValueChange={changeDays}
+        readOnly={locked}
         required={true}
         type="text"
         value={values.couponValidityDays}
