@@ -31,7 +31,7 @@ const ip = z
     "IPv4 のアドレスか CIDR である必要があります",
   );
 
-const name = z.string();
+const identifier = z.string();
 
 /**
  * 省いてよい対応表。
@@ -55,9 +55,9 @@ function optionalMap<T extends z.ZodType>(key: z.ZodString, value: T) {
 const declarationSchema = z.object({
   baseline: z.array(domain).min(1, "baseline は 1 件以上要ります"),
   ips: optionalMap(ip, reason),
-  workflows: optionalMap(name, z.array(domain).min(1, "固有分は 1 件以上要ります")),
-  audit: optionalMap(name, reason),
-  sudo: optionalMap(name, z.record(name, reason)),
+  workflows: optionalMap(identifier, z.array(domain).min(1, "固有分は 1 件以上要ります")),
+  audit: optionalMap(identifier, reason),
+  sudo: optionalMap(identifier, z.record(identifier, reason)),
 });
 
 /** 許可する宛先の宣言。 */
