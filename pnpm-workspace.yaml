@@ -11,14 +11,6 @@ minimumReleaseAge: 10080
 # 項目は `name@version` で書き、直上のコメントに理由と、窓が明ける日（YYYY-MM-DD）を添える。
 # 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
 minimumReleaseAgeExclude:
-  # GHSA-gfr2-rv44-r23c / GHSA-r7fv-28h4-cvq7 (high) / GHSA-vfgh-jcmw-g37q (low) の修正版。
-  # 14.3.3 は typedoc が引き API 型の生成時にだけ、15.0.3 は markdownlint-cli2 が引き lint の
-  # 実行時にだけ走る。/supply-chain-triage は 14.3.3 が MEDIUM（出所の一致は未確認）、15.0.3 が
-  # 1/12 LOW。同名の項目は 1 つにまとめる。窓が明ける 2026-10-24 に外す。
-  - "markdown-it@14.3.3 || 15.0.3"
-  # markdown-it@15.0.3 が ^3.0.3 を要求する。lint の実行時にだけ走る。トリアージは未実施。
-  # 窓が明ける 2026-10-24 に外す。
-  - "argparse@3.0.3"
   # next 16.4 の useRouter() が読む parentRenderTree を App Router の mock が渡すのは 10.6.3 から
   # (storybookjs/storybook#36732)。これが無いと next 16.4.1 (GHSA-2464-fhr4-w9xw /
   # GHSA-673q-mjm6-r5xr, critical) の下で全 story が描画されない。nextjs-vite が 6 つを版の完全

@@ -114,7 +114,8 @@ git diff --name-only --diff-filter=U
 | Version stamp | the `version` field in `package.json` | The branch name is the source. Settle it there, then `make version-stamp-check` |
 | Baseline images | the `baseline/images` gitlink | Never pick a side of a submodule pointer. Retake and push through the baseline targets |
 | Marker baseline | `scripts/marker-baseline/baseline.json` | Never merge counts. Settle the marked files first, then `pnpm exec tsx scripts/marker-baseline --write` <!-- boilerplate-only:line --> |
-| Append-only registry | the tables in `docs/adr/README.md`, `docs/spec/glossary.md`, `.github/settings/labels.json` | Union both sides' entries — unless a key appears on both, which Step 5 hands back |
+| Append-only registry | the tables in `docs/adr/README.md`, `docs/spec/glossary.md`, `.github/settings/labels.json` | Union both sides' entries — unless a key appears on both, which Step 6 hands back |
+| Sweep ledger | `.agents/purity-sweep/purity-swept.toml` | Union both sides' entries. A `[swept]` path recorded on both sides keeps one line, the later date: each side says only that the file was read in full that day, so they cannot disagree, and a TOML key may appear once. No gate catches the duplicate — `purity-swept.sh` reads by line prefix, not as TOML. A `[pending]` path on both sides with different conditions is handed back <!-- boilerplate-only:line --> |
 | Translation pair | `**/SKILL.ja.md` | Resolve the canonical `SKILL.md` first, then bring the translation back to a 1:1 heading structure. **Never resolve the translation directly** |
 | Implementation | everything else | **Not mechanical.** Leave the markers in place and hand it back |
 
