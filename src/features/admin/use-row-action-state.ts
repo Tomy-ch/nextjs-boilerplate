@@ -33,7 +33,7 @@ export function useRowActionState<S extends ActionState<unknown>>(
   initial: S,
   rowField: string,
 ): [RowActionAnswer<S>, (formData: FormData) => void] {
-  return useActionState<RowActionAnswer<S>, FormData>(
+  const [answer, dispatch] = useActionState<RowActionAnswer<S>, FormData>(
     async (previous, formData) => {
       const row = formData.get(rowField);
 
@@ -44,4 +44,6 @@ export function useRowActionState<S extends ActionState<unknown>>(
     },
     { row: null, result: initial },
   );
+
+  return [answer, dispatch];
 }

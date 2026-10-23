@@ -48,7 +48,7 @@ export function toPageWindow(current: number, pageCount: number): readonly PageW
 }
 
 /** ページ送りに並べる 1 つと、その行き先。 */
-export type PageLinkEntry =
+type PageLinkEntry =
   | {
       readonly kind: "page";
       readonly page: number;
