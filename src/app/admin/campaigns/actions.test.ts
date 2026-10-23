@@ -13,24 +13,22 @@ import { idleActionState } from "@/model/action-state";
 import { toCampaignId } from "@/model/campaign/campaign";
 import { SESSION_ROLE, type Session, type SessionRole } from "@/model/session";
 
-const { redirect, revalidatePath, suspendCampaign, unstable_rethrow, verifySession } = vi.hoisted(
-  () => ({
-    redirect: vi.fn((path: string) => {
-      throw new Error(`NEXT_REDIRECT:${path}`);
-    }),
-    revalidatePath: vi.fn(),
-    suspendCampaign: vi.fn(),
-    unstable_rethrow: vi.fn((error: unknown) => {
-      if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
-        throw error;
-      }
-    }),
-    verifySession: vi.fn<() => Promise<Session | null>>(),
+const { redirect, refresh, suspendCampaign, unstable_rethrow, verifySession } = vi.hoisted(() => ({
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
   }),
-);
+  refresh: vi.fn(),
+  suspendCampaign: vi.fn(),
+  unstable_rethrow: vi.fn((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+      throw error;
+    }
+  }),
+  verifySession: vi.fn<() => Promise<Session | null>>(),
+}));
 
 vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/campaigns", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/campaigns")>()),
@@ -75,11 +73,10 @@ beforeEach(() => {
 
 describe("suspendCampaignAction", () => {
   // ----- 正常系 -----
-  it("成立したら、一覧のパスだけを取り直させる", async () => {
+  it("成立したら、いまの画面を取り直させる", async () => {
     await suspendCampaignAction(idleActionState(), suspendForm());
 
-    expect(revalidatePath).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_CAMPAIGN_LIST_PATH);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("成立したら、対象のコードを載せた成功の状態を返す", async () => {
@@ -163,7 +160,7 @@ describe("suspendCampaignAction", () => {
       kind: ErrorKind.CONFLICT,
       formError: `${CAMPAIGN_CODE} は${SUSPEND_CONFLICT_MESSAGE}`,
     });
-    expect(revalidatePath).toHaveBeenCalledWith(ADMIN_CAMPAIGN_LIST_PATH);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("接続先が認証切れで拒んだら、取り直させずにこの一覧へ戻る入り直しへ送る", async () => {
@@ -173,7 +170,7 @@ describe("suspendCampaignAction", () => {
       `NEXT_REDIRECT:${loginPath(ADMIN_CAMPAIGN_LIST_PATH)}`,
     );
     expect(suspendCampaign).toHaveBeenCalledTimes(1);
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("409 以外の分類で拒まれたら、分類の既定の文言を返し、一覧は取り直させない", async () => {
@@ -186,7 +183,7 @@ describe("suspendCampaignAction", () => {
       kind: ErrorKind.UNAVAILABLE,
       formError: getDefaultErrorMeta(ErrorKind.UNAVAILABLE).message,
     });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("分類の無い例外で失敗したら、internal として返す", async () => {

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
@@ -72,7 +72,7 @@ export async function suspendCampaignAction(
     if (isUnauthenticated(error)) redirect(loginPath(ADMIN_CAMPAIGN_LIST_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      revalidatePath(ADMIN_CAMPAIGN_LIST_PATH);
+      refresh();
 
       return failedActionState({
         formError: `${code} は${SUSPEND_CONFLICT_MESSAGE}`,
@@ -83,7 +83,7 @@ export async function suspendCampaignAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(ADMIN_CAMPAIGN_LIST_PATH);
+  refresh();
 
   return succeededActionState({ code });
 }

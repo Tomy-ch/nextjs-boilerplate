@@ -288,7 +288,7 @@ feature の直下に置きます。
 | `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
 | `discontinueProductAction` | 同上 | `DiscontinueProductState` | **留まり、`refresh()` で画面を取り直させ、実行が報告したことを返す** | 競合（進行中の購入）は言い分け、これも画面を取り直させる。接続先が名指しした項目はその入力欄へ返す |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
-| `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | 一覧に留まり、`revalidatePath` で一覧を取り直させる | 停止済みのキャンペーン（競合）は言い分け、これも一覧を取り直させる。確認が閉じても残る場所に出す |
+| `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | 一覧に留まり、`refresh()` で一覧を取り直させる | 停止済みのキャンペーン（競合）は言い分け、これも一覧を取り直させる。確認が閉じても残る場所に出す |
 
 **退会だけ一覧を取り直させません。**後始末が結果整合で続くため、直後に取り直しても反映前の
 一覧を見せるだけになります。何が起きたかは送信の結果が伝えます。

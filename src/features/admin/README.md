@@ -300,7 +300,7 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
 | `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
-| `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `revalidatePath` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
+| `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `refresh()` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 
 **Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
 refetching right after would only show the list before it is reflected. The submission result reports what
