@@ -245,6 +245,30 @@ describe("useAddressCompletion", () => {
     expect(screen.getByTestId("result")).toHaveTextContent("idle");
   });
 
+  it("打ち切ったあとは、同じ郵便番号でも引き直す", async () => {
+    const user = userEvent.setup();
+    const onCompleted = vi.fn();
+
+    fetchAddresses.mockImplementationOnce(() => new Promise(() => undefined));
+    render(<Probe onCompleted={onCompleted} />);
+    await user.click(screen.getByRole("button", { name: "blur で引く" }));
+    await user.click(screen.getByRole("button", { name: "打ち切る" }));
+    await user.click(screen.getByRole("button", { name: "blur で引く" }));
+
+    expect(fetchAddresses).toHaveBeenCalledTimes(2);
+    expect(onCompleted).toHaveBeenCalledOnce();
+  });
+
+  it("取得していないときに打ち切っても、何も変えない", async () => {
+    const user = userEvent.setup();
+
+    render(<Probe onCompleted={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "打ち切る" }));
+
+    expect(screen.getByTestId("loading")).toHaveTextContent("待機");
+    expect(screen.getByTestId("result")).toHaveTextContent("idle");
+  });
+
   it("画面を離れたら進行中の取得を打ち切る", async () => {
     const user = userEvent.setup();
     let signal: AbortSignal | undefined;

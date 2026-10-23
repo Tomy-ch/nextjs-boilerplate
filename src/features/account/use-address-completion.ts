@@ -63,7 +63,8 @@ function agreedValue(
  * 壊れていると読まれます。
  *
  * `cancel` は取得中のものを打ち切り、遅れて返った応答を当てません。送信のあとに値が変わると、
- * 画面に出ている値が送った内容と食い違うためです。
+ * 画面に出ている値が送った内容と食い違うためです。打ち切った郵便番号は引いたことにしないので、
+ * 次に同じ郵便番号から focus が外れたときは引き直します。
  *
  * @param onCompleted - 埋める値を受け取る。フォームへの反映は呼び出し側が持つ
  * @returns 郵便番号を引く関数・取得中のものを打ち切る関数・取得中かどうか・直近の結果
@@ -116,6 +117,7 @@ export function useAddressCompletion(onCompleted: (completion: AddressCompletion
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
+    lastPostalCodeRef.current = null;
     setLoading(false);
   }, []);
 
