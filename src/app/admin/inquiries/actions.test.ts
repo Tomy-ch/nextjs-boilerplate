@@ -7,13 +7,13 @@ import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { SESSION_ROLE } from "@/model/session";
 
-const { verifySession, postInquiryReply, revalidatePath } = vi.hoisted(() => ({
+const { verifySession, postInquiryReply, refresh } = vi.hoisted(() => ({
   verifySession: vi.fn(),
   postInquiryReply: vi.fn(),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/inquiries", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/inquiries")>()),
@@ -60,7 +60,7 @@ describe("replyInquiryAction", () => {
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/admin/inquiries/${INQUIRY_ID}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -113,6 +113,6 @@ describe("replyInquiryAction", () => {
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.NOT_FOUND });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

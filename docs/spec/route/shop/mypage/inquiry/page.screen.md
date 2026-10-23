@@ -46,7 +46,7 @@ changes the moment it arrives, so to the sender it does not look as if the row w
 
 **The draft is cleared only when it succeeds.** If the body vanished on a submission that did not go through, it would have to be retyped.
 
-It cannot be sent empty. `⌘Enter` / `Ctrl+Enter` also sends.
+Sending it empty sends nothing and puts a message beside the field instead; the button is never made unpressable. `⌘Enter` / `Ctrl+Enter` also sends.
 
 Failures are shown next to the submission field. If the body did not pass the contract, it is tied to the input; otherwise it is shown as one line
 above the field.

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
 
 import { cancelMyPurchase, payMyPurchase } from "@/adapters/server/api/purchases";
 import { findAppError } from "@/errors/app-error";
@@ -11,7 +11,6 @@ import {
   succeededActionState,
 } from "@/model/action-state";
 
-import { purchaseDetailPath } from "./facade/paths/paths";
 import { PURCHASE_TRANSITION_FORM_NAMES } from "./form-names";
 import {
   CANCEL_CONFLICT_MESSAGE,
@@ -69,7 +68,7 @@ async function runTransition(
     return actionStateFromError(error);
   }
 
-  revalidatePath(purchaseDetailPath(purchaseCode));
+  refresh();
 
   return succeededActionState(undefined);
 }

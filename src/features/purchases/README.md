@@ -125,7 +125,7 @@ The product list URL comes from the `facade/` of `products` (keys are not copied
 
 | Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | Keeps the confirmation open and reports inside it |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `refresh()` | Keeps the confirmation open and reports inside it |
 | `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | Same as above | Same as above |
 
 **Only conflicts (409) are distinguished.** This is the case where someone else or another tab advanced the state first, and the action

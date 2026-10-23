@@ -12,6 +12,7 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { Separator } from "@/components/design-system/display/separator/separator";
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示が出すカードの数。出来上がりの段組みと同じ枚数を同時に出す。 */
@@ -55,6 +56,7 @@ const ACTIONS = Array.from({ length: PLACEHOLDER_ACTIONS }, (_, index) => index)
 export const MypageSkeleton = withPartSpan("features/account/mypage/ui/skeleton/skeleton", () => {
   return (
     <div aria-hidden="true" className="flex flex-col gap-8">
+      <LoadingAnnouncement />
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>

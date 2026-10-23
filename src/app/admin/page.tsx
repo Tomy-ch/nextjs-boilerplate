@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
+import { io } from "next/cache";
 import { Suspense } from "react";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
 import {
@@ -21,10 +21,10 @@ export const metadata: Metadata = {
  *
  * @remarks
  * **「いま」を読むのは穴の内側です。** 実時計はプリレンダーの最中には値が定まらないため、
- * `connection()` を待って「要求のときに描く」ことを確定させてから読みます。
+ * `io()` を待って静的なシェルから外してから読みます。
  */
 async function AdminDashboardContent() {
-  await connection();
+  await io();
 
   return <AdminDashboardPageContent now={getClockConfig().now()} />;
 }

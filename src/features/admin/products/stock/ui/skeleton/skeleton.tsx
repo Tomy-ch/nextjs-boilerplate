@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /**
@@ -15,6 +16,7 @@ export const AdminProductStockSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="space-y-6">
+        <LoadingAnnouncement />
         <Skeleton className="h-28 w-full" />
         <Skeleton className="h-6 w-64" />
         <Skeleton className="h-16 w-full max-w-xs" />

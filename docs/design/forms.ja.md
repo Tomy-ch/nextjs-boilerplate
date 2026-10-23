@@ -141,7 +141,7 @@ rhf を使うときの配線は次のとおり。
 
 **`redirect()` で終わる action は「戻らない」。** 成立時に throw するので、`success` を返す枝が存在しない。したがってその画面の `ActionState` は成功値を持たず、成功の表示も持たない。テストでは成立時の throw を正常系に置く（[`docs/testing-conventions.md`](../testing-conventions.ja.md#何をどこに置くか)）。overlay の中から確定したときは `RedirectType.replace` にする —— overlay が積んだ履歴 1 件が戻り先に残るためである。
 
-**画面に留まる action は再検証を自分で頼む。** `revalidatePath` の範囲は、変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
+**画面に留まる action は再検証を自分で頼む。** 画面のデータをキャッシュしておらず、変更がこの route にしか出ないなら `refresh()` でレンダリングし直す。`revalidatePath` は別の route にも変更を出すときのもので、その範囲は変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
 
 **結果は次の送信まで残る。** 入力を直した時点・観点を移した時点で下げ、送り直せばまた出す。「下げた印」を戻す合図は結果の**同一性**で、`useActionState` は送信のたびに新しい object を返すので、前回の結果との `!==` で入れ替わりが判る。同梱サンプルでは `use-action-result-freshness.ts` がこれを持ち、題材を知らない形になっている。
 
@@ -151,7 +151,9 @@ rhf を使うときの配線は次のとおり。
 
 **送信中は `Button` の `pending` が押せなくする。** 冪等キーがあるから二度押しても増えない、を理由に押せるまま残さない。
 
-**冪等キーの作り方と運び方。** [`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドは `useState(initial)` で**最初に受け取った値を固定**して hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+**冪等キーの作り方と運び方。** 1 回きりの送信では、[`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドは `useState(initial)` で**最初に受け取った値を固定**して hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+
+**同じ画面から繰り返す送信は、キーをアイランドが持つ。** アイランドが `useState(newIdempotencyKey)` で作る。どちらの形でも、応答が送信を確定させたらアイランドがキーを作り直し、結果が定まらないあいだは同じキーで送り直す（`settlesSubmission`）ので、成立していた送信を 2 つにしない。どちらの形を取るかは送信の回数で決まる（[`src/features/README.md`](../../src/features/README.ja.md)）。
 
 キーは全部の変更に要るわけではない。**設定（絶対値）を送る操作は自然に冪等**なのでキーを持たない。逆に自然キーを持たない作成は再試行もしない —— 同じ本文を二度送れば 2 件できる。
 
@@ -257,7 +259,7 @@ rhf は `undefined` の項目を非制御のまま扱う。`FormData` には空�
 
 ### `redirect()` の後ろに書いたコードは動かない
 
-`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `revalidatePath` と `redirect()` を try の外に置いている。
+`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `refresh()` / `revalidatePath` と `redirect()` を try の外に置いている。
 
 Route Handler を指す `redirect()` は要求を出さない。理由は [`rendering.md`](rendering.ja.md#server-action-の-redirect-は-route-handler-へ遷移しない) が持つ。
 
@@ -267,7 +269,7 @@ Route Handler を指す `redirect()` は要求を出さない。理由は [`rend
 
 ### 冪等キーを render のたびに作ると、キーの意味が無くなる
 
-`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは画面を組み立てる Server Component の 1 か所で、アイランドは `useState(initial)` で固定する。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
+`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは画面を組み立てる Server Component の 1 か所で、アイランドは `useState(initial)` で固定する。同じ画面から繰り返す送信はアイランドで作るが、`useState` の遅延初期化を通す —— `useState(newIdempotencyKey)` は mount で 1 回だけ呼ぶが、`useState(newIdempotencyKey())` は render のたびに呼び出しを評価する。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
 
 ### 開閉で unmount されるサブツリーに、キーと送信の状態を置かない
 

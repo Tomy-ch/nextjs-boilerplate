@@ -28,9 +28,9 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 
 ---
 
-## 1. Screen List (28)
+## 1. Screen List (29)
 
-### User Side (13)
+### User Side (14)
 
 | # | Screen | APIs used | Rough specification | Frontend implementation caveats |
 | --- | --- | --- | --- | --- |
@@ -47,6 +47,7 @@ For detailed types and error codes, the imported contract [`openapi/api.gen.yaml
 | U11 | My Page | `GET /v1/users/me` / `GET /v1/users/me/purchases/summary` | Viewing the profile, showing the purchase summary, a path to account closure | Account closure requires a confirmation modal (an irreversible operation) |
 | U12 | User update | `GET /v1/users/me` / `GET /v1/prefectures` / `PUT /v1/users/{userId}` | Editing the profile | A route independent of U11. A worked example of **CollectAll** (side-by-side composition with `Promise.all` inside the RSC) |
 | U13 | Inquiries | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | Conversation with support. One per user; the first post creates the inquiry | **The only screen where an arriving message appears without waiting for a refetch**. On initial display the RSC fetches the history, and the `streamCursor` its response returns is passed as the subscription's start position. The browser connects to the backend's SSE directly for the subscription, and the credential is a short-lived ticket the BFF issues, carried in the query. Sending is a Server Action + `Idempotency-Key`, and a sent message appears in the authoritative data fetched again, not through the subscription. With `APP_API_MODE=mock` the ticket fetch endpoint refuses to issue, and the screen stops in its form without a subscription (display and sending work) |
+| U14 | Coupons | `GET /v1/users/me/coupons` / `POST /v1/campaigns/claims` | The coupons you hold, each with its status, and claiming one with a campaign code | A route independent of U11. **The status (unused / used / expired / not yet usable) is decided on the screen** by comparing the three times with now; the contract returns none. The claim field and the list share one screen, because the only proof of a claim is one more row in the list. Every reason a code cannot be claimed arrives as one undistinguished `422`. `Idempotency-Key` is held by the form and renewed once a response settles the claim; a `409` (the same key still being processed) keeps it |
 
 ### Admin Side (11)
 
@@ -119,9 +120,9 @@ is discarded.
 
 | Method / Path | Auth | Purpose | Main fields the frontend sends | Main response fields | Main errors |
 | --- | --- | --- | --- | --- | --- |
-| `GET /v1/users/me/coupons` | Required | The coupons you hold, newest issue first. Used and expired ones are included | — | coupons[] | 401 |
+| `GET /v1/users/me/coupons` | Required | The coupons you hold, newest issue first (U14). Used and expired ones are included | — | coupons[] | 401 |
 | `GET /v1/carts/me/coupons` | Required | The coupons usable against the current cart, each with the discount it would give. **The endpoint exists so the presentation layer never computes applicability or the discount** | — | coupons[] (coupon, discountAmount) | 401 |
-| `POST /v1/campaigns/claims` | Required | Claiming one coupon with a campaign code | code, Idempotency-Key (required header) | The issued coupon | 400, 401, 409, **422 (every reason a code cannot be claimed, undistinguished)** |
+| `POST /v1/campaigns/claims` | Required | Claiming one coupon with a campaign code (U14) | code, Idempotency-Key (required header) | The issued coupon | 400, 401, 409, **422 (every reason a code cannot be claimed, undistinguished)** |
 | `POST /v1/coupons` | Requires admin | Issuing one coupon to one named user | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key (required header) | The issued coupon | 400, 401, 403, 404 (no such user or scope target), 409, 422 |
 | `POST /v1/coupons/bulk-issue` | Requires admin | Issuing one coupon to every user who has not withdrawn. Recipients cannot be named | discount, scope, expiresAt, Idempotency-Key (required header) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409 (too many recipients)**, 422 |
 | `GET /v1/campaigns` | Requires admin | Campaign list, newest start first. Suspended and ended ones are included | page, perPage | campaigns[], total | 400, 401, 403, 422 |

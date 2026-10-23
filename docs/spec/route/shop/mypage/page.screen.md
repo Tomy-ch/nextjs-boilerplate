@@ -10,6 +10,7 @@ The screen where the user checks their registered information and purchase summa
 | --- | --- |
 | Profile | Name, email, phone and address, and a link to editing |
 | Purchase summary | Total count and total amount, and the breakdown by status. A link that opens the details |
+| Coupons | A path to the held coupons. Placed below the two reading cards and above the divider, so it does not sit beside the operation that cannot be undone |
 | Operation row | About this site / Privacy policy / Account closure |
 
 ## Purchase Summary Detail
@@ -55,3 +56,4 @@ failed" than like a summary of 0.
 
 - Implementation `src/features/account/mypage/` — [README](../../../../../src/features/account/README.md)
 - Neighboring screen [`/mypage/edit`](edit/page.screen.md)
+- Neighboring screen [`/mypage/coupons`](coupons/page.screen.md)

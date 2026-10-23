@@ -1,12 +1,14 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /**
  * 実物と同じ 2 段組みの枠を出す、商品詳細の待機表示。
  *
  * @remarks
- * 1 本のスピナーで代用すると、届いた瞬間に段組みが立ち上がって読み始めた位置が動きます（`docs/rules.md#states`の「loading は形状が近い skeleton を
- * 優先する」）。
+ * 1 本のスピナーで代用すると、届いた瞬間に段組みが立ち上がって読み始めた位置が動きます
+ * （`docs/rules.md#states` の
+ * "Loading prefers a skeleton close in shape, and suppresses CLS with delayed display and `aspect-ratio`"）。
  *
  * @example
  * ```tsx
@@ -19,6 +21,7 @@ export const ProductDetailSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex flex-col gap-8 pb-24 lg:pb-0">
+        <LoadingAnnouncement />
         <Skeleton className="h-5 w-48" />
         <div className="grid gap-8 lg:grid-cols-2">
           <Skeleton className="aspect-square w-full" />

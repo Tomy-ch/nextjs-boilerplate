@@ -690,6 +690,7 @@ export const NoteListEmpty = withPartSpan("features/notes/list/ui/empty/empty", 
 ```tsx
 // src/features/notes/list/ui/skeleton/skeleton.tsx
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 枠だけで見せる行数。1 画面に収まる範囲に留める。 */
@@ -701,6 +702,7 @@ const ROWS = Array.from({ length: PLACEHOLDER_ROWS }, (_, index) => index);
 export const NoteListSkeleton = withPartSpan("features/notes/list/ui/skeleton/skeleton", () => {
   return (
     <ul aria-hidden="true" className="divide-y rounded-lg border">
+      <LoadingAnnouncement />
       {ROWS.map((row) => (
         <li className="flex items-center justify-between gap-4 px-4 py-4" key={row}>
           <Skeleton className="h-5 w-48" />

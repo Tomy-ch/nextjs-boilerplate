@@ -43,6 +43,7 @@ describe("parseAdminInquiryReplyForm", () => {
   it("空の本文を項目の文言として返す", () => {
     expect(parseAdminInquiryReplyForm(formOf(""))).toMatchObject({
       ok: false,
+      reason: "field",
       bodyError: "本文を入力してください。",
     });
   });
@@ -50,6 +51,7 @@ describe("parseAdminInquiryReplyForm", () => {
   it("上限を超えた本文を項目の文言として返す", () => {
     expect(parseAdminInquiryReplyForm(formOf("あ".repeat(4_001)))).toMatchObject({
       ok: false,
+      reason: "field",
       bodyError: `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`,
     });
   });
@@ -62,6 +64,7 @@ describe("parseAdminInquiryReplyForm", () => {
 
     expect(parseAdminInquiryReplyForm(formData)).toMatchObject({
       ok: false,
+      reason: "field",
       bodyError: "本文を入力してください。",
     });
   });
@@ -69,14 +72,14 @@ describe("parseAdminInquiryReplyForm", () => {
   it("回答先が読めない送信を、項目に紐づかない失敗として返す", () => {
     expect(parseAdminInquiryReplyForm(formOf("回答", { inquiryId: "not-a-uuid" }))).toEqual({
       ok: false,
-      bodyError: null,
+      reason: "unreadable",
     });
   });
 
   it("冪等キーが読めない送信を、項目に紐づかない失敗として返す", () => {
     expect(parseAdminInquiryReplyForm(formOf("回答", { key: "not-a-uuid" }))).toEqual({
       ok: false,
-      bodyError: null,
+      reason: "unreadable",
     });
   });
 });

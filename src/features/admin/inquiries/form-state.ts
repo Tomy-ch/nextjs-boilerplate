@@ -23,6 +23,9 @@ export type AdminInquiryReplyAction = (
   formData: FormData,
 ) => Promise<AdminInquiryReplyState>;
 
+/** 本文が空のまま送ろうとしたときの文言。回答欄と Server Action が同じ文言を出す。 */
+export const REPLY_EMPTY_MESSAGE = "本文を入力してください。";
+
 /** 送信された内容を解けなかったときの文言。 */
 export const REPLY_MALFORMED_MESSAGE =
   "送信を受け付けられませんでした。画面を読み込み直してください。";

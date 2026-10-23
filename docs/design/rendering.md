@@ -216,7 +216,7 @@ Calling `redirect()` inside a Server Action makes the response an instruction "m
 
 If you need to hand off to a Route Handler after causing a side effect, receive it with **a plain form submission** (`<form method="post" action="/...">`) rather than a Server Action. The browser itself navigates, so a chain of `Response.redirect`s and the cookie round trip go through as is.
 
-The cost is that a plain submission cannot carry state over. **Per-field errors and the submitting indicator** carried on `useActionState`'s return value do not appear, so failures are returned through URL search conditions (`?error=...`). In the sample, the authorization round trip of `/dev/session` takes this shape (`DEV_AUTHORIZE_PATH` in [`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts)).
+The cost is that a plain submission cannot carry state over. **Per-field errors and the submitting indicator** carried on `useActionState`'s return value do not appear, so failures are returned through URL search conditions (`?error=...`). In this repository, the authorization round trip of `/dev/session` takes this shape (`DEV_AUTHORIZE_PATH` in [`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts)).
 
 **How to check**: open a screen that calls `redirect("/api/…")` from a Server Action, operate it, and look at the development server's log. The URL has changed, but not a single line for that `GET` appears.
 
@@ -302,6 +302,7 @@ memoization is not working.
 | Client-side navigation | Navigation that swaps only the changed parts without rebuilding the whole page | A different thing from ordinary navigation by `<a>`. `Link` does this kind |
 | Prefetching | Loading the destination ahead of time | — |
 | `router.refresh()` | Re-renders from the server, but **keeps client state** | A different thing from a browser reload, which discards client state |
+| `refresh()` (`next/cache`) | The Server Action counterpart: re-renders the current route in the action's response without invalidating any cache | A different thing from `revalidatePath`, which invalidates a path and also marks previously visited pages for refresh |
 | Version skew | A new version is deployed while a user keeps the page open, and old and new disagree | Tends to be dismissed as "it breaks occasionally", but the cause has a name |
 
 ### Boundaries and Errors
@@ -404,7 +405,7 @@ Conversely, **what is used is not dropped**. Import a large library from a Clien
 
 Combined, the shape "when pressed from a list, open in place as a modal; when the same URL is hit directly, open full screen. **The URL can be shared**" works with routing features alone.
 
-**Without knowing them, you end up building the same thing yourself with client state and modal toggling.** Then the URL does not change, so neither sharing nor going back works. It is not used yet, but it is the first option to consider the moment you think "I want to open the detail from the list as a modal".
+**Without knowing them, you end up building the same thing yourself with client state and modal toggling.** Then the URL does not change, so neither sharing nor going back works. It is the first option to consider the moment you think "I want to open the detail from the list as a modal".
 
 ## Terms Not Covered Here
 

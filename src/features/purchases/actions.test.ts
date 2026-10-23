@@ -5,13 +5,13 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
-const { cancelMyPurchase, payMyPurchase, revalidatePath } = vi.hoisted(() => ({
+const { cancelMyPurchase, payMyPurchase, refresh } = vi.hoisted(() => ({
   cancelMyPurchase: vi.fn(),
   payMyPurchase: vi.fn(),
-  revalidatePath: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
   cancelMyPurchase,
@@ -57,7 +57,7 @@ describe("cancelPurchaseAction", () => {
     const state = await cancelPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -97,7 +97,7 @@ describe("cancelPurchaseAction", () => {
 
     await cancelPurchaseAction(idleActionState(), transitionForm());
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -113,7 +113,7 @@ describe("payPurchaseAction", () => {
     const state = await payPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----

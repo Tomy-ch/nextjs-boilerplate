@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示で並べる組の数。実際の件数と揃えず、便が縦に積まれる形が伝わる数に留める。 */
@@ -16,6 +17,7 @@ export const ShipmentQueueSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="flex flex-col gap-4">
+        <LoadingAnnouncement />
         {Array.from({ length: PLACEHOLDER_GROUPS }, (_, index) => index).map((index) => (
           <Skeleton className="h-48 w-full" key={index} />
         ))}

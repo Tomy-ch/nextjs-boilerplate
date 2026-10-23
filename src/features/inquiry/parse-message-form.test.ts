@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
+import { INQUIRY_BODY_MAX_LENGTH } from "@/adapters/client/api/inquiry-limits";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
-
 import { INQUIRY_BODY_FIELD } from "./form-names";
 import { parseInquiryMessageForm } from "./parse-message-form";
 
@@ -43,6 +42,7 @@ describe("parseInquiryMessageForm", () => {
   it("空の本文を項目の文言として返す", () => {
     expect(parseInquiryMessageForm(formOf(""))).toEqual({
       ok: false,
+      reason: "field",
       bodyError: "本文を入力してください。",
     });
   });
@@ -56,10 +56,13 @@ describe("parseInquiryMessageForm", () => {
   });
 
   it("上限を超えた本文を項目の文言として返す", () => {
-    const result = parseInquiryMessageForm(formOf("あ".repeat(4_001)));
+    const result = parseInquiryMessageForm(formOf("あ".repeat(INQUIRY_BODY_MAX_LENGTH + 1)));
 
-    expect(result).toMatchObject({ ok: false });
-    expect(result.ok === false && result.bodyError).toContain("4000");
+    expect(result).toMatchObject({
+      ok: false,
+      reason: "field",
+      bodyError: `本文は ${INQUIRY_BODY_MAX_LENGTH} 文字以内で入力してください。`,
+    });
   });
 
   it("文字数はコードポイントで数える", () => {
@@ -70,7 +73,7 @@ describe("parseInquiryMessageForm", () => {
   it("冪等キーが読めない送信を、項目に紐づかない失敗として返す", () => {
     expect(parseInquiryMessageForm(formOf("本文", "not-a-uuid"))).toEqual({
       ok: false,
-      bodyError: null,
+      reason: "unreadable",
     });
   });
 });
