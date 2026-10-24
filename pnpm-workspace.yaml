@@ -186,6 +186,11 @@ overrides:
   # 内側に留まると塞げない。4.7.10 は 4.7.x の patch で、組み合わせの検証は lint:ci が代える。
   # eslint-plugin-boundaries が 4.7.10 以上を要求したら撤去する。
   "handlebars@<4.7.10": ">=4.7.10 <5"
+  # lighthouse の推移的依存。Lighthouse の計測時にしか走らず、配信物には入らない。
+  # GHSA-mrhx-c7xc-m3w5 (high): 25.13.0 未満が引く chromium-bidi 17 は zod 3 を引き、3.x に修正版が無い。
+  # 25.13.0 以降は zod 4 系の chromium-bidi 157.0.8090-0 を引く (trustPolicyExclude を参照)。
+  # lighthouse の宣言は ^25.3.0 で 25.13.0 はその内側。lighthouse が 25.13.0 以上を要求したら撤去する。
+  "puppeteer-core@>=25 <25.13.0": ">=25.13.0 <26"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
@@ -215,3 +220,13 @@ blockExoticSubdeps: true
 trustPolicy: no-downgrade
 # 公開から180日を過ぎた版は provenance 情報不足だけでは拒否しない。
 trustPolicyIgnoreAfter: 259200
+# provenance が下がった理由を直接の証拠で確かめた版だけを、版を名指しして外す。(パッケージ名だけの例外は禁止)
+# 直上のコメントに理由と、上の 180 日が過ぎて例外が要らなくなる日（YYYY-MM-DD）を添える。
+# 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
+trustPolicyExclude:
+  # GHSA-mrhx-c7xc-m3w5 (high) を塞ぐ zod 4 系の版。puppeteer-core 25.13.0 以降が引き、Lighthouse の
+  # 計測時にしか走らない。ソースが Chromium の third_party/chromium-bidi へ移り、npm への公開が
+  # GitHub Actions の trusted publishing から Chrome for Testing の公開経路へ変わったため provenance が
+  # 無い (上流の README が告知)。/supply-chain-triage は 2/12 MEDIUM (provenance が無く出所の一致は
+  # 未回答、侵害の署名なし)。180 日が過ぎる 2027-04-06 に外す。
+  - "chromium-bidi@157.0.8090-0"

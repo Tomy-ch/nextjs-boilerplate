@@ -776,3 +776,6 @@
 "scripts/audit-gate/report.ts" = "2026-10-24"
 "scripts/audit-gate/report.test.ts" = "2026-10-24"
 "scripts/audit-gate/index.ts" = "2026-10-24"
+"scripts/suppression-expiry/scan.ts" = "2026-10-24"
+"scripts/suppression-expiry/scan.test.ts" = "2026-10-24"
+"scripts/suppression-expiry/report.test.ts" = "2026-10-24"

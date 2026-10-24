@@ -25,6 +25,8 @@
   落ちたとき、または PR 上の OSV / Trivy の報告が、この変更で塞ぐべきものを名指ししたとき。
 - Dependabot のセキュリティ更新が単独では着地できないとき —— 修正が推移的依存で override が要る、
   または修正版がまだ公開経過のウィンドウの内側にある。
+- 修正版が `ERR_PNPM_TRUST_DOWNGRADE` で拒まれるとき —— それ以前のリリースより弱い公開の証拠しか
+  持たない。
 
 ## Do NOT use this skill for
 
@@ -48,15 +50,15 @@
 - workspace が宣言する各 importer の `package.json` —— advisory が名指ししたパッケージの版だけを、
   exact pin のまま。
 - `pnpm-lock.yaml` —— `pnpm install --lockfile-only` の出力としてだけ。手で編集しない。
-- `pnpm-workspace.yaml` —— `overrides` ブロックだけ。`minimumReleaseAgeExclude` は
-  **ユーザーがその項目そのものを承認した後に限る**（Step 5）。
+- `pnpm-workspace.yaml` —— `overrides` ブロックだけ。`minimumReleaseAgeExclude` /
+  `trustPolicyExclude` は**ユーザーがその項目そのものを承認した後に限る**（Step 5）。
 - `osv-scanner.toml` / `.trivyignore.yaml` —— ユーザーがその advisory 1 件について承認した項目だけ。
 - 生成物 —— その `make` ターゲットの出力としてだけ（Step 7）。
 
 このスキルの間でも触らないもの:
 
 - `pnpm-workspace.yaml` のウィンドウと他の解決ポリシー —— `minimumReleaseAge`、
-  `minimumReleaseAgeStrict`、`minimumReleaseAgeIgnoreMissingTime`、`trustPolicy*`、
+  `minimumReleaseAgeStrict`、`minimumReleaseAgeIgnoreMissingTime`、`trustPolicy`、`trustPolicyIgnoreAfter`、
   `blockExoticSubdeps`、`strictDepBuilds`、`allowBuilds`、`verifyDepsBeforeRun`、`engineStrict`、
   `nodeVersion`。**それは方針であってパッチではない。**そのどれかを 1 回の実行だけ上書きする CLI
   フラグも同じく使わない。
@@ -79,10 +81,11 @@
 
    データベースと一覧が食い違えばデータベースを採り、要約でその旨を言う。
 3. `pnpm-workspace.yaml` を通読する: `packages:`（importer）、`minimumReleaseAge`（**分単位** ——
-   1440 で割ると日数）、`minimumReleaseAgeStrict`、現在の `minimumReleaseAgeExclude`、`overrides:` の
-   上のコメントと既存の override の全項目。候補を既に名指しする除外があれば、その版のためにウィンドウが
+   1440 で割ると日数）、`minimumReleaseAgeStrict`、現在の `minimumReleaseAgeExclude`、
+   `trustPolicy` / `trustPolicyIgnoreAfter` / `trustPolicyExclude`、`overrides:` の上のコメントと既存の
+   override の全項目。候補を既に名指しする除外があれば、その版のためにウィンドウが
    意図して開けられている。
-4. [0110](../../../docs/adr/0110-security-operations.ja.md) のツールの cooldown、直接証拠で解除できる代理としてのウィンドウ、抑止のポリシーを読む。**workspace が
+4. [0110](../../../docs/adr/0110-security-operations.ja.md) のツールの cooldown、直接証拠で解除できる代理としてのウィンドウ、それ自体が独立した信号である provenance の低下、抑止のポリシーを読む。**workspace が
    公開経過のウィンドウを宣言していない、または ADR が定める npm のウィンドウと食い違うなら、止まって 2 つの出典を
    報告する** —— 権威を主張する 2 つの出典の食い違いは `AGENTS.md` の trip wire であって、どちらかを
    選ぶ値ではない。
@@ -135,30 +138,37 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
   修正版が親の宣言範囲の**外**にあるなら、override は上流が検証していない組み合わせを作る。それは
   `out-of-range` —— 1 件ずつ問い（Step 5）、自分の判断では当てない。
 
-## Step 3. 公開経過のゲートを当てる
+## Step 3. 公開経過と trust のゲートを当てる
 
-移動先になる版の公開時刻を取る:
+移動先になる版の公開時刻と、それより前に公開されたリリースと並べた公開者の証拠を取る —— pnpm は
+lockfile が持つ版だけでなく、それ以前のすべてのリリースと比べる:
 
 ```sh
 pnpm view <pkg> time --json
+pnpm view <pkg>@<version> _npmUser dist.attestations --json        # the candidate
+pnpm view '<pkg>@<<version>' _npmUser dist.attestations --json     # every earlier release
 ```
 
 ここで `npm` そのものは使わない（[0001](../../../docs/adr/0001-package-manager.ja.md)）。
 
 | 区分 | 条件 | 効果 |
 | --- | --- | --- |
-| **clear** | ウィンドウより古い、または既に `minimumReleaseAgeExclude` に名指しされている | 適用対象 |
+| **clear** | ウィンドウより古く trust の低下も無い —— または対応する除外に既に名指しされている | 適用対象 |
 | **blocked** | ウィンドウより新しい | resolver が拒む —— `minimumReleaseAgeStrict` の下ではウィンドウを過ぎた一致が無ければ解決が失敗し、検査は frozen-lockfile の再生にも及ぶので CI も拒む。解除される時刻（公開時刻 + ウィンドウ）を報告する |
+| **trust-downgraded** | 以前のリリースは trusted publisher か provenance を持ち、この版は持たない。かつ `trustPolicyIgnoreAfter` より新しい | resolver が `ERR_PNPM_TRUST_DOWNGRADE` で拒み、CI でも拒まれる。検査が効かなくなる時刻（公開時刻 + `trustPolicyIgnoreAfter`）と、上流が変更を告知したかを報告する —— 恒久的に移った公開経路は証拠を取り戻さない |
+
+2 つは独立していて、1 つの版が両方に当たることもある。そのときは両方に答えが要る。
 
 範囲指定は**ウィンドウを過ぎた**一致の中で最新の版へしか動かないので、override は失敗せずに advisory の
 下限より下へ着地しうる。実際に何へ解決されたかは Step 7 で読み直す。
 
-**ウィンドウを下げる・strict を切る・フラグを渡す、のいずれでも blocked の版を入れられる状態にしない。**
+**ウィンドウを下げる・strict を切る・`trustPolicy` / `trustPolicyIgnoreAfter` を緩める・フラグを渡す、のいずれでも
+捕まった版を入れられる状態にしない。**
 版単位の除外が唯一の扉で、それを開けるのはユーザーである（Step 5）。
 
 ## Step 4. ゲートが捕まえたものをトリアージする
 
-`blocked` の項目ごとに、Step 5 の前に **`/supply-chain-triage`** を 1 件 1 回ずつ連鎖する。
+`blocked` か `trust-downgraded` の項目ごとに、Step 5 の前に **`/supply-chain-triage`** を 1 件 1 回ずつ連鎖する。
 エコシステム `npm`、パッケージ、候補の版、**lockfile が現に持っている基準の版**、ウィンドウ、区分、
 移動を強いている advisory を渡す。
 
@@ -167,7 +177,7 @@ pnpm view <pkg> time --json
 （[0110](../../../docs/adr/0110-security-operations.ja.md)：ウィンドウは直接証拠で解除できる代理である）、このスキルは帯を問いへ運ぶだけで、
 そこから何も決めない。**LOW の帯はユーザーへの証拠であって、除外してよいという許可ではない。**
 
-blocked が無ければこの手順は飛ばす。
+捕まったものが無ければこの手順は飛ばす。
 
 ## Step 5. 要約し、clear は当て、残りは 1 件ずつ問う
 
@@ -183,6 +193,7 @@ blocked が無ければこの手順は飛ばす。
   - major 越え     : <pkg> <installed> → <fixed>  [...]  (<GHSA>)
   - 上流範囲の外   : <pkg> <fixed> は <parent> の宣言 <range> の外  (<GHSA>)
   - 窓の内側       : <pkg> <fixed>  (公開 <date> / <clear-date> に解除)  トリアージ: <band>
+  - trust の低下   : <pkg> <fixed>  (公開者 <before> → <after> / <clear-date> に解除)  トリアージ: <band>
   - 修正版なし     : <pkg>  (<GHSA> / <severity>)
 
 未検出 / 要手動:
@@ -199,6 +210,11 @@ blocked が無ければこの手順は飛ばす。
   - **blocked** —— 解除日まで待つか、その版そのものの `minimumReleaseAgeExclude` 項目を足すか。
     選択肢の説明にトリアージの帯を入れ、項目の費用を述べる: 誰かがその行を消すまで、すべての
     checkout が方針の免除を抱える。
+  - **trust-downgraded** —— [0110](../../../docs/adr/0110-security-operations.ja.md) が `trustPolicyExclude`
+    項目を認めるのは、低下を直接の証拠が説明できるときだけである。**トリアージがその証拠を見つけたとき**
+    （上流の告知、移ったパイプライン）は、検査が効かなくなるまで待つか、その版そのものの項目を足すかを
+    出し、選択肢の説明に帯と説明を入れる。低下が恒久的なら、解除日までは待っても何も得られないと述べる。
+    **何も説明しないときは**、待つか advisory を開いたままにするかだけを出し、項目が選択肢に無い理由を述べる。
   - **修正版なし** —— 理由を添えて `osv-scanner.toml` / `.trivyignore.yaml` に抑止を記すか、開いた
     ままにするか。[0004](../../../docs/adr/0004-library-management.ja.md) は、すぐ直せない high に
     ついて、暴露と緩和策を記した issue を求める。`/new-issue` を通した下書きを申し出る（起票は
@@ -256,6 +272,16 @@ minimumReleaseAgeExclude:
 - **日付は日本時間の暦日**で、ウィンドウが明けた（公開時刻 + ウィンドウ）後の最初の丸 1 日にする: 週次の検査は暦日で
   比べ、ウィンドウが明ける前に行を消すとすべての install が壊れる。
 
+**承認された trust の除外。** `trustPolicyExclude` に同じ形で項目を足す。日付は、検査が効かなくなった
+（公開時刻 + `trustPolicyIgnoreAfter`）後の最初の丸 1 日を日本時間で書く:
+
+```yaml
+trustPolicyExclude:
+  # <GHSA-id> の修正版。<where it runs>。<what explains the downgrade>。
+  # /supply-chain-triage は <band>。<N> 日が過ぎる <YYYY-MM-DD> に外す。
+  - <pkg>@<version>
+```
+
 **承認された抑止。** `osv-scanner.toml` / `.trivyignore.yaml` の冒頭と
 [0110](../../../docs/adr/0110-security-operations.ja.md) の抑止のポリシーが述べる形で書く —— 脆弱性 ID 1 件、
 ここでなぜ許容できるかの理由、それを退役させる条件。
@@ -296,7 +322,7 @@ typecheck とテストも同じく CI のものである。
   消す。
 - 足した除外と、**それを消すべき日付**。ユーザーが持つ後続作業として述べる。
 - 足した抑止と、それを退役させる条件。
-- blocked の各項目のトリアージの帯と、答えられなかった軸。
+- blocked か trust-downgraded の各項目のトリアージの帯と、答えられなかった軸。
 - 断られた・先送りされた・`no-fix`・`not-present`・`needs-manual` の項目と、開いたまま残る advisory。
 - Step 7 の手元の結果と、どの CI job がこの変更を判定するか。
 
@@ -318,9 +344,9 @@ stage・commit・push はしない。ユーザーがツリーを確認し、`/co
 - [ ] ウィンドウ・strict・除外・override を `pnpm-workspace.yaml` から読み、ADR 0110 と突き合わせた
 - [ ] 各パッケージを `pnpm why -r` で突き止め、直接 / 推移的・親・暴露面を記録した
 - [ ] 同じ major の最小修正版を選び、major 越え / 範囲外 / 修正版なし / ダウングレードに印を付けた
-- [ ] 公開時刻を読み、blocked の項目はすべて `/supply-chain-triage` を通した
+- [ ] 公開時刻と公開者の証拠を読み、blocked か trust-downgraded の項目はすべて `/supply-chain-triage` を通した
 - [ ] clear で同じ major の項目は問わずに当て、それ以外の判断は 1 項目ずつ問うた
 - [ ] 直接は exact pin、推移的はコメント付きの範囲セレクターの override で当てた。lockfile は作り直し、編集していない
-- [ ] 除外は advisory・暴露面・日本時間の日付を持つ `pkg@version` で、ウィンドウの設定には触れていない
+- [ ] 除外は advisory・暴露面・日本時間の日付を持つ `pkg@version` で、ウィンドウと trust の設定には触れていない
 - [ ] frozen install と `pnpm why` を確かめた。除外か抑止の後は `make suppression-expiry`、経路に居るなら `make api-gen`
 - [ ] 後続作業を含む日本語の報告を出した。stage・commit・push はしていない
