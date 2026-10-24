@@ -908,3 +908,8 @@
 "scripts/suppression-expiry/scan.ts" = "2026-10-24"
 "scripts/suppression-expiry/scan.test.ts" = "2026-10-24"
 "scripts/suppression-expiry/report.test.ts" = "2026-10-24"
+"src/features/cart/ui/header-action/header-action.tsx" = "2026-10-24"
+"src/features/cart/ui/header-action/header-action.test.tsx" = "2026-10-24"
+"src/features/cart/ui/panel/panel.test.tsx" = "2026-10-24"
+"src/features/cart/ui/shell-slots/shell-slots.test.tsx" = "2026-10-24"
+"src/features/admin/products/edit/view.test.tsx" = "2026-10-24"
