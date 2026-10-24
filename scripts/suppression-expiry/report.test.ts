@@ -15,7 +15,7 @@ const MALFORMED: MalformedSuppression = {
   source: "pnpm-workspace.yaml",
   subject: "pkg@1.2.3",
   condition: "",
-  kind: "cooldown-exemption",
+  kind: "window-exemption",
   defects: [
     "理由と撤回条件が書かれていない",
     "撤回条件に日付が無い（窓が明ける日を YYYY-MM-DD で書く）",

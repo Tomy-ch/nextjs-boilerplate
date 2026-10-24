@@ -106,7 +106,7 @@ describe("expiredSuppressions", () => {
 
 describe("malformedSuppressions", () => {
   function exemption(subject: string, condition: string): Suppression {
-    return { source: "pnpm-workspace.yaml", subject, condition, kind: "cooldown-exemption" };
+    return { source: "pnpm-workspace.yaml", subject, condition, kind: "window-exemption" };
   }
 
   // ----- 正常系 -----
@@ -123,6 +123,15 @@ describe("malformedSuppressions", () => {
       ]),
     ).toEqual([]);
   });
+
+  it.each(["pkg@157.0.8090-0", "pkg@14.3.3 || 15.0.3", "pkg@1.2.3+build.1"])(
+    "プレリリース・`||` で並べた複数の版・ビルド情報付きの版も、版の名指しとして様式を満たす（%s）",
+    (subject) => {
+      expect(malformedSuppressions([exemption(subject, "窓が明ける 2026-08-02 に外す。")])).toEqual(
+        [],
+      );
+    },
+  );
 
   it("免除でない宣言は、理由さえあれば日付を求めない", () => {
     expect(
@@ -196,6 +205,15 @@ describe("malformedSuppressions", () => {
       },
     ]);
   });
+
+  it.each(["pkg@*", "pkg@^1.2.3", "pkg@>=1", "pkg@1.x", "pkg@1.2.3 || *"])(
+    "範囲で書いた免除は落とす。範囲は名前だけの免除と同じく将来の版まで外す（%s）",
+    (subject) => {
+      expect(
+        malformedSuppressions([exemption(subject, "窓が明ける 2026-08-02 に外す。")])[0]?.defects,
+      ).toEqual(["対象が版を名指ししていない（<name>@<version> の形で書く）"]);
+    },
+  );
 
   it("日付の無い免除は落とす。免除の撤回条件は窓が明ける日付でしか書けない", () => {
     expect(malformedSuppressions([exemption("pkg@1.2.3", "上流が直したら外す。")])).toEqual([

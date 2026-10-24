@@ -303,6 +303,9 @@ function commentBlockAbove(
 /** pnpm が版を名指しして外す、公開からの経過時間で効く 2 つの窓。冷却期間と trust policy。 */
 const PNPM_EXEMPTION_KEYS = ["minimumReleaseAgeExclude", "trustPolicyExclude"] as const;
 
+/** 字下げの無い、コメントでない行。YAML の最上位のキーが始まる行。 */
+const TOP_LEVEL_LINE = /^[^\s#]/;
+
 /**
  * 窓の免除（pnpm）。宣言は `PNPM_EXEMPTION_KEYS` の各項目、理由は直上のコメント塊と行末のコメント。
  *
@@ -340,7 +343,7 @@ function pnpmExemptions(root: string): {
 }
 
 /**
- * 1 つのキーの免除を、そのキーの行より後ろから突き止める。
+ * 1 つのキーの免除を、そのキーの行から次の最上位のキーまでの間で突き止める。
  *
  * @param lines - `pnpm-workspace.yaml` の生の行
  * @param key - 免除を並べるキー
@@ -354,18 +357,24 @@ function keyExemptions(
   entries: readonly string[],
   consumed: Set<number>,
 ): readonly Suppression[] {
-  let searchFrom = lines.findIndex((line) => line.startsWith(`${key}:`)) + 1;
+  const keyLine = lines.findIndex((line) => line.startsWith(`${key}:`));
+  const nextKey = lines.findIndex((line, at) => at > keyLine && TOP_LEVEL_LINE.test(line));
+  const searchUntil = keyLine === -1 ? 0 : nextKey === -1 ? lines.length : nextKey;
+  let searchFrom = keyLine + 1;
 
   return entries.map((entry): Suppression => {
     const pattern = listItemLine(entry);
     const found = lines
-      .map((line, at) => ({ at, match: at >= searchFrom ? pattern.exec(line) : null }))
+      .map((line, at) => ({
+        at,
+        match: at >= searchFrom && at < searchUntil ? pattern.exec(line) : null,
+      }))
       .find((candidate): candidate is { at: number; match: RegExpExecArray } => {
         return candidate.match !== null;
       });
 
     if (found === undefined) {
-      return { source: PNPM_PATH, subject: entry, condition: "", kind: "cooldown-exemption" };
+      return { source: PNPM_PATH, subject: entry, condition: "", kind: "window-exemption" };
     }
 
     searchFrom = found.at + 1;
@@ -379,7 +388,7 @@ function keyExemptions(
       source: PNPM_PATH,
       subject: entry,
       condition: [block.text, trailing].filter((part) => part !== "").join(" "),
-      kind: "cooldown-exemption",
+      kind: "window-exemption",
     };
   });
 }
@@ -404,7 +413,7 @@ function miseExemptions(root: string): readonly Suppression[] {
             source: MISE_FILE,
             subject: pinId(pin),
             condition: pin.ignore.condition,
-            kind: "cooldown-exemption",
+            kind: "window-exemption",
           },
         ],
   );

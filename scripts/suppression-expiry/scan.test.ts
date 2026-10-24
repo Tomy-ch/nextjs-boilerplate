@@ -161,7 +161,7 @@ describe("scanSuppressions", () => {
         source: "pnpm-workspace.yaml",
         subject: "pkg@1.2.3",
         condition: "GHSA-0000 の修正版。 窓が明ける 2026-08-02 に外す。 影響は docs-viewer のみ",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
       },
     ]);
   });
@@ -204,7 +204,7 @@ describe("scanSuppressions", () => {
         source: "pnpm-workspace.yaml",
         subject: "pkg@1.2.3",
         condition: "公開経路の移転で provenance が無い。2027-04-06 に外す。",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
       },
     ]);
   });
@@ -229,6 +229,40 @@ describe("scanSuppressions", () => {
     ]);
   });
 
+  it("行を持たない免除は、別のキーの下にある同じ項目の行と理由を横取りしない", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        'minimumReleaseAgeExclude: ["x@1.0.0"]',
+        "trustPolicyExclude:",
+        "  # 理由 2027-04-06",
+        "  - x@1.0.0",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map((entry) => entry.condition)).toEqual(["", "理由 2027-04-06"]);
+  });
+
+  it("キーの行を突き止められなければ、どの項目も別の行から理由を取らない", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "minimumReleaseAgeExclude:",
+        "  # 冷却側 2026-08-02",
+        "  - x@1.0.0",
+        '"trustPolicyExclude":',
+        "  - x@1.0.0",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map((entry) => entry.condition)).toEqual([
+      "冷却側 2026-08-02",
+      "",
+    ]);
+  });
+
   it("行を突き止められない pnpm の免除は、条件を空にして載せる", () => {
     // flow 記法は行を持たない。落とすと、理由の無い免除がいちばん見えなくなる。
     place("pnpm-workspace.yaml", 'minimumReleaseAgeExclude: ["pkg@1.2.3"]\n');
@@ -238,7 +272,7 @@ describe("scanSuppressions", () => {
         source: "pnpm-workspace.yaml",
         subject: "pkg@1.2.3",
         condition: "",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
       },
     ]);
   });
@@ -267,7 +301,7 @@ describe("scanSuppressions", () => {
         source: "mise.toml",
         subject: "aqua:koalaman/shellcheck@0.11.0",
         condition: "直前の版に脆弱性がある。窓が明ける 2026-09-21 に外す。",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
       },
     ]);
   });
