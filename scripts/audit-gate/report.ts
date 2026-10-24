@@ -1,4 +1,4 @@
-import { type Advisory, isBlocking } from "./advisories";
+import { type Advisory, isBlocking, isSuppressed } from "./advisories";
 
 /**
  * 検出を PR コメントの本文へ畳む。
@@ -42,19 +42,37 @@ function table(advisories: readonly Advisory[]): string[] {
  * 表を組み立てる。
  *
  * @param advisories - 検出。
+ * @param suppressed - いま効いている抑止の ID。抑止したものは止めないが、別の表に残す。
  * @returns Markdown の本文。
  */
-export function renderReport(advisories: readonly Advisory[]): string {
+export function renderReport(
+  advisories: readonly Advisory[],
+  suppressed: ReadonlySet<string>,
+): string {
   if (advisories.length === 0) {
     return "検出はありません。";
   }
 
-  const blocking = advisories.filter(isBlocking);
-  const rest = advisories.filter((advisory) => !isBlocking(advisory));
+  const blocking = advisories.filter((advisory) => isBlocking(advisory, suppressed));
+  const held = advisories.filter((advisory) => isSuppressed(advisory, suppressed));
+  const rest = advisories.filter(
+    (advisory) => !isBlocking(advisory, suppressed) && !isSuppressed(advisory, suppressed),
+  );
   const lines: string[] = [];
 
   if (blocking.length > 0) {
     lines.push(`### 止めているもの（${blocking.length} 件）`, "", ...table(blocking), "");
+  }
+
+  if (held.length > 0) {
+    lines.push(
+      `### 抑止しているもの（${held.length} 件）`,
+      "",
+      "`osv-scanner.toml` に理由と期限を書いて許容しているもの。",
+      "",
+      ...table(held),
+      "",
+    );
   }
 
   if (rest.length > 0) {
