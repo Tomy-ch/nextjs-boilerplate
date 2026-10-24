@@ -10,6 +10,8 @@ import { z } from "zod";
  *
  * 修正版の無いものは blocking から外します。可視化は続けます —— 落とさないことと見せないことは
  * 別です。外す理由は `scripts/README.md` が挙げる関連 ADR（監査の閾値）が持ちます。
+ *
+ * `osv-scanner.toml` で抑止した ID も blocking から外します（`suppressions.ts`）。
  */
 
 /** `pnpm audit --json` の 1 件。判定に使う欄だけを受け取る。 */
@@ -41,10 +43,15 @@ const auditSchema = z.object({
  */
 const NO_PATCH = "<0.0.0";
 
+/** advisory の URL の末尾に付く GHSA の ID。 */
+const GHSA_ID = /\/(GHSA-[\w-]+)$/;
+
 /** blocking へ上げる severity。 */
 const BLOCKING_SEVERITIES: ReadonlySet<string> = new Set(["high", "critical"]);
 
 export type Advisory = {
+  /** GHSA の ID。URL から読めなければ `undefined`。 */
+  readonly id: string | undefined;
   /** 脆弱性を持つパッケージ名。 */
   readonly module: string;
   /** advisory DB の severity。 */
@@ -69,6 +76,7 @@ export function parseAudit(text: string): Advisory[] {
 
   return Object.values(parsed.advisories ?? {})
     .map((raw) => ({
+      id: GHSA_ID.exec(raw.url)?.[1],
       module: raw.module_name,
       severity: raw.severity,
       title: raw.title,
@@ -79,7 +87,28 @@ export function parseAudit(text: string): Advisory[] {
     .sort((a, b) => a.module.localeCompare(b.module));
 }
 
-/** その検出がマージを止めるか。 */
-export function isBlocking(advisory: Advisory): boolean {
-  return BLOCKING_SEVERITIES.has(advisory.severity) && advisory.patched !== undefined;
+/**
+ * その検出を抑止しているか。
+ *
+ * @param advisory - 検出。
+ * @param suppressed - いま効いている抑止の ID。
+ * @returns 抑止の ID と一致すれば `true`。
+ */
+export function isSuppressed(advisory: Advisory, suppressed: ReadonlySet<string>): boolean {
+  return advisory.id !== undefined && suppressed.has(advisory.id);
+}
+
+/**
+ * その検出がマージを止めるか。
+ *
+ * @param advisory - 検出。
+ * @param suppressed - いま効いている抑止の ID。
+ * @returns 修正版のある high / critical で、抑止していなければ `true`。
+ */
+export function isBlocking(advisory: Advisory, suppressed: ReadonlySet<string>): boolean {
+  return (
+    BLOCKING_SEVERITIES.has(advisory.severity) &&
+    advisory.patched !== undefined &&
+    !isSuppressed(advisory, suppressed)
+  );
 }

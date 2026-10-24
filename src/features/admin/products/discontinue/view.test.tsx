@@ -291,7 +291,7 @@ describe("AdminProductDiscontinueView", () => {
 
     await submit();
 
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(screen.queryByText("廃番にできませんでした")).not.toBeInTheDocument();
   });
 
