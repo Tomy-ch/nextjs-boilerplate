@@ -4,7 +4,8 @@ usage-class: situational
 description: >-
   Move only the npm dependencies a security advisory (CVE / GHSA) names to a fixed version — a direct
   dependency by its exact pin in `package.json`, a transitive one by an `overrides` entry in
-  `pnpm-workspace.yaml` — and hand every version the release-age window catches to `/supply-chain-triage`.
+  `pnpm-workspace.yaml` — and hand every version the release-age window or the trust policy catches to
+  `/supply-chain-triage`.
   Use it when someone pastes a `pnpm audit` / Trivy / OSV / Dependabot finding or a list of
   "package current → fixed (GHSA)" lines, when the `dependency-audit` job fails on a fixable high, or on
   「この脆弱性を塞いで」「GHSA-xxxx を直して」「この CVE の修正版に上げて」. Do NOT use it for a routine bump of everything (Dependabot),
@@ -37,6 +38,8 @@ skill; for human reference only).
   critical, or the OSV / Trivy report on a PR names something this change should close.
 - A Dependabot security update cannot land by itself: the fix is transitive and needs an override, or
   the fixed version is still inside the release-age window.
+- The fixed version is refused with `ERR_PNPM_TRUST_DOWNGRADE`: it carries weaker publish evidence than
+  the releases before it.
 
 ## Do NOT use this skill for
 
@@ -60,15 +63,15 @@ Permitted:
 - The `package.json` of each importer the workspace declares — only the version of a package the
   advisory names, kept an exact pin.
 - `pnpm-lock.yaml` — only as the output of `pnpm install --lockfile-only`. Never hand-edited.
-- `pnpm-workspace.yaml` — only the `overrides` block, and `minimumReleaseAgeExclude` **after the user
-  approved that exact entry** (Step 5).
+- `pnpm-workspace.yaml` — only the `overrides` block, and `minimumReleaseAgeExclude` /
+  `trustPolicyExclude` **after the user approved that exact entry** (Step 5).
 - `osv-scanner.toml` / `.trivyignore.yaml` — only an entry the user approved for that one advisory.
 - Generated artifacts, only as the output of their `make` target (Step 7).
 
 Never, even during this skill:
 
 - The window and the other resolver policies in `pnpm-workspace.yaml` — `minimumReleaseAge`,
-  `minimumReleaseAgeStrict`, `minimumReleaseAgeIgnoreMissingTime`, `trustPolicy*`,
+  `minimumReleaseAgeStrict`, `minimumReleaseAgeIgnoreMissingTime`, `trustPolicy`, `trustPolicyIgnoreAfter`,
   `blockExoticSubdeps`, `strictDepBuilds`, `allowBuilds`, `verifyDepsBeforeRun`, `engineStrict`,
   `nodeVersion`. **They are the policy, not the patch.** Equally never a CLI flag that overrides one
   of them for a single run.
@@ -91,11 +94,13 @@ Never, even during this skill:
 
    When the database and the list disagree, use the database and say so in the summary.
 3. Read `pnpm-workspace.yaml` in full: `packages:` (the importers), `minimumReleaseAge` (**minutes** —
-   divide by 1440 for days), `minimumReleaseAgeStrict`, the current `minimumReleaseAgeExclude`, the
-   comment above `overrides:` and every existing override entry. An exclusion already naming the
-   candidate means the window was opened deliberately for it.
+   divide by 1440 for days), `minimumReleaseAgeStrict`, the current `minimumReleaseAgeExclude`,
+   `trustPolicy` / `trustPolicyIgnoreAfter` / `trustPolicyExclude`, the comment above `overrides:` and
+   every existing override entry. An exclusion already naming the candidate means the window was
+   opened deliberately for it.
 4. Read [0110](../../../docs/adr/0110-security-operations.md) — the tool cooldown, the window as a proxy
-   that direct evidence can lift, and the suppression policy. **If the workspace
+   that direct evidence can lift, the provenance downgrade as a signal of its own, and the suppression
+   policy. **If the workspace
    declares no release-age window, or one that disagrees with the npm window the ADR sets, stop and
    report the two sources** — two authorities disagreeing is a trip wire in `AGENTS.md`, not a value
    to pick.
@@ -151,30 +156,36 @@ Then decide the mechanism:
   combination upstream never tested. That is `out-of-range` — asked per case (Step 5), never applied
   on your own.
 
-## Step 3. Apply the release-age gate
+## Step 3. Apply the release-age and trust gates
 
-Fetch the publish time of the version the move will land on:
+Fetch the publish time of the version the move will land on, and its publisher evidence beside that
+of the version the lockfile holds:
 
 ```sh
 pnpm view <pkg> time --json
+pnpm view <pkg>@<version> _npmUser dist.attestations --json
 ```
 
 `npm` itself is not used here ([0001](../../../docs/adr/0001-package-manager.md)).
 
 | Disposition | Condition | Effect |
 | --- | --- | --- |
-| **clear** | older than the window, or already named in `minimumReleaseAgeExclude` | eligible |
+| **clear** | older than the window, and no trust downgrade — or already named in the matching exclusion | eligible |
 | **blocked** | younger than the window | the resolver rejects it — under `minimumReleaseAgeStrict` resolution fails when no aged version matches, and the check reaches a frozen-lockfile replay, so CI rejects it too. Report when it clears (publish time + window) |
+| **trust-downgraded** | earlier releases carry a trusted publisher or provenance and this one does not, and it is younger than `trustPolicyIgnoreAfter` | the resolver rejects it with `ERR_PNPM_TRUST_DOWNGRADE`, in CI too. Report when the check stops applying (publish time + `trustPolicyIgnoreAfter`), and whether upstream announced the change — a publishing path that moved for good never regains the evidence |
+
+The two are independent: a version can be both, and then it needs both answers.
 
 A range selector only moves to the newest **aged** match, so an override can land below the
 advisory's floor without failing. Step 7 re-reads what actually resolved.
 
-**Never make a blocked version installable by lowering the window, switching off strict mode, or
-passing a flag.** The per-version exclusion is the only door, and it is the user's to open (Step 5).
+**Never make a caught version installable by lowering the window, switching off strict mode, relaxing
+`trustPolicy` / `trustPolicyIgnoreAfter`, or passing a flag.** The per-version exclusion is the only
+door, and it is the user's to open (Step 5).
 
 ## Step 4. Triage what the gate caught
 
-For every `blocked` entry, chain **`/supply-chain-triage`**, one invocation per entry, before Step 5.
+For every `blocked` or `trust-downgraded` entry, chain **`/supply-chain-triage`**, one invocation per entry, before Step 5.
 Pass ecosystem `npm`, the package, the candidate version, **the baseline the lockfile currently
 holds**, the window, the disposition, and the advisory that forces the move.
 
@@ -185,7 +196,7 @@ lift); this skill carries the band into the
 question and decides nothing from it. **A LOW band is evidence for the user, not permission to
 exclude.**
 
-Skip this step when nothing is blocked.
+Skip this step when nothing is caught.
 
 ## Step 5. Summarize; apply the clear, ask per case for the rest
 
@@ -201,6 +212,7 @@ Print the summary in Japanese, grouped by disposition:
   - major 越え     : <pkg> <installed> → <fixed>  [...]  (<GHSA>)
   - 上流範囲の外   : <pkg> <fixed> は <parent> の宣言 <range> の外  (<GHSA>)
   - 窓の内側       : <pkg> <fixed>  (公開 <date> / <clear-date> に解除)  トリアージ: <band>
+  - trust の低下   : <pkg> <fixed>  (公開者 <before> → <after> / <clear-date> に解除)  トリアージ: <band>
   - 修正版なし     : <pkg>  (<GHSA> / <severity>)
 
 未検出 / 要手動:
@@ -218,6 +230,11 @@ The asymmetry is deliberate — patching is what the user invoked the skill for:
   - **Blocked** — wait until the clear date, or add a `minimumReleaseAgeExclude` entry for that exact
     version. Put the triage band in the option's description, and say what the entry costs: every
     checkout carries a policy exemption until someone deletes the line.
+  - **Trust-downgraded** — wait until the check stops applying, or add a `trustPolicyExclude` entry for
+    that exact version. [0110](../../../docs/adr/0110-security-operations.md) admits the entry only when
+    direct evidence explains the downgrade, so put the triage band and what explains it (an upstream
+    announcement, a moved pipeline) in the option's description. When the downgrade is permanent, say
+    that waiting buys nothing before the clear date.
   - **No fix** — record a suppression in `osv-scanner.toml` / `.trivyignore.yaml` with a reason, or
     leave it open. [0004](../../../docs/adr/0004-library-management.md) requires an issue documenting
     the exposure and mitigation for a high that cannot be fixed at once; offer to draft it through
@@ -277,6 +294,16 @@ minimumReleaseAgeExclude:
   window): the weekly check compares calendar days, and deleting the line before the window opens
   breaks every install.
 
+**Approved trust exclusion.** Add the entry to `trustPolicyExclude` in the same form; the date is the
+first whole JST day after the check stops applying (publish time + `trustPolicyIgnoreAfter`):
+
+```yaml
+trustPolicyExclude:
+  # <GHSA-id> の修正版。<where it runs>。<what explains the downgrade>。
+  # /supply-chain-triage は <band>。<N> 日が過ぎる <YYYY-MM-DD> に外す。
+  - <pkg>@<version>
+```
+
 **Approved suppression.** Write the entry in the form the header of `osv-scanner.toml` /
 `.trivyignore.yaml` and the suppression policy of [0110](../../../docs/adr/0110-security-operations.md) state — one
 vulnerability id, a reason saying why it is acceptable here, and the condition that retires it.
@@ -319,7 +346,7 @@ In Japanese:
   parent requires the fixed version, it is deleted.
 - Each exclusion added and **the date it must be deleted**, stated as a follow-up the user owns.
 - Each suppression added, with its retiring condition.
-- The triage band for every blocked entry, and any axis it could not answer.
+- The triage band for every blocked or trust-downgraded entry, and any axis it could not answer.
 - Declined, deferred, `no-fix`, `not-present` and `needs-manual` entries, and the advisories left open.
 - The local results from Step 7, and which CI jobs will judge the change.
 
@@ -341,9 +368,9 @@ Do not stage, commit, or push. The user reviews the tree and runs `/commit`.
 - [ ] Window, strict mode, exclusions and overrides read from `pnpm-workspace.yaml`; checked against ADR 0110
 - [ ] Each package located with `pnpm why -r`; direct / transitive, parent and exposure recorded
 - [ ] Lowest same-major fix chosen; major / out-of-range / no-fix / downgrade flagged
-- [ ] Publish time read; every blocked entry triaged through `/supply-chain-triage`
+- [ ] Publish time and publisher evidence read; every blocked or trust-downgraded entry triaged through `/supply-chain-triage`
 - [ ] Clear same-major entries applied without asking; every other decision asked per entry
 - [ ] Direct via exact pin, transitive via a range-selector override with its comment; lockfile regenerated, never edited
-- [ ] Any exclusion is `pkg@version` with advisory, exposure and a JST date; window settings untouched
+- [ ] Any exclusion is `pkg@version` with advisory, exposure and a JST date; window and trust settings untouched
 - [ ] Frozen install and `pnpm why` checked; `make suppression-expiry` after an exclusion or suppression; `make api-gen` when on its path
 - [ ] Japanese report with follow-ups; nothing staged, committed or pushed
