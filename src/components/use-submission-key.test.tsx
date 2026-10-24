@@ -38,10 +38,11 @@ describe("useSubmissionKey", () => {
     expect(result.current.idempotencyKey).toBe(INITIAL_KEY);
   });
 
-  it("最初の鍵を渡さなければ、mount のときに作る", () => {
-    const { result } = renderKey({ state: idleActionState() });
+  it("指定を渡さなければ、mount のときに鍵を作る", () => {
+    const { result } = renderHook(() => useSubmissionKey(idleActionState()));
 
     expect(result.current.idempotencyKey).toMatch(UUID);
+    expect(result.current.outcomeOpen).toBe(false);
   });
 
   it("最初の鍵が差し替わっても、mount のときの鍵を使い続ける", () => {

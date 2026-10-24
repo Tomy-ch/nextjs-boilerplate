@@ -384,7 +384,9 @@ describe("AdminProductDiscontinueView", () => {
     await within(dialog).findByText("混み合っています。");
     await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
 
-    expect(rateField()).toHaveAccessibleDescription(expect.stringContaining(LOCKED_MESSAGE));
+    expect(screen.getByRole("group", { name: "代替クーポンの条件" })).toHaveAccessibleDescription(
+      LOCKED_MESSAGE,
+    );
 
     await userEvent.type(rateField(), "5");
 
