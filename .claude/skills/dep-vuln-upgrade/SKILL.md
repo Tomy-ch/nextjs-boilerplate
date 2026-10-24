@@ -159,11 +159,13 @@ Then decide the mechanism:
 ## Step 3. Apply the release-age and trust gates
 
 Fetch the publish time of the version the move will land on, and its publisher evidence beside that
-of the version the lockfile holds:
+of the releases published before it — pnpm compares against every earlier release, not only the one
+the lockfile holds:
 
 ```sh
 pnpm view <pkg> time --json
-pnpm view <pkg>@<version> _npmUser dist.attestations --json
+pnpm view <pkg>@<version> _npmUser dist.attestations --json        # the candidate
+pnpm view '<pkg>@<<version>' _npmUser dist.attestations --json     # every earlier release
 ```
 
 `npm` itself is not used here ([0001](../../../docs/adr/0001-package-manager.md)).
@@ -230,11 +232,13 @@ The asymmetry is deliberate — patching is what the user invoked the skill for:
   - **Blocked** — wait until the clear date, or add a `minimumReleaseAgeExclude` entry for that exact
     version. Put the triage band in the option's description, and say what the entry costs: every
     checkout carries a policy exemption until someone deletes the line.
-  - **Trust-downgraded** — wait until the check stops applying, or add a `trustPolicyExclude` entry for
-    that exact version. [0110](../../../docs/adr/0110-security-operations.md) admits the entry only when
-    direct evidence explains the downgrade, so put the triage band and what explains it (an upstream
-    announcement, a moved pipeline) in the option's description. When the downgrade is permanent, say
-    that waiting buys nothing before the clear date.
+  - **Trust-downgraded** — [0110](../../../docs/adr/0110-security-operations.md) admits a
+    `trustPolicyExclude` entry only when direct evidence explains the downgrade. **When triage found
+    such evidence** (an upstream announcement, a moved pipeline), offer waiting until the check stops
+    applying or the entry for that exact version, with the band and the explanation in the option's
+    description; when the downgrade is permanent, say that waiting buys nothing before the clear date.
+    **When nothing explains it**, offer only waiting or leaving the advisory open, and say why the entry
+    is not on the list.
   - **No fix** — record a suppression in `osv-scanner.toml` / `.trivyignore.yaml` with a reason, or
     leave it open. [0004](../../../docs/adr/0004-library-management.md) requires an issue documenting
     the exposure and mitigation for a high that cannot be fixed at once; offer to draft it through

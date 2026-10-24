@@ -140,11 +140,13 @@ pnpm why <pkg> -r        # which importers pull it, through which path, at which
 
 ## Step 3. 公開経過と trust のゲートを当てる
 
-移動先になる版の公開時刻と、lockfile が持つ版と並べた公開者の証拠を取る:
+移動先になる版の公開時刻と、それより前に公開されたリリースと並べた公開者の証拠を取る —— pnpm は
+lockfile が持つ版だけでなく、それ以前のすべてのリリースと比べる:
 
 ```sh
 pnpm view <pkg> time --json
-pnpm view <pkg>@<version> _npmUser dist.attestations --json
+pnpm view <pkg>@<version> _npmUser dist.attestations --json        # the candidate
+pnpm view '<pkg>@<<version>' _npmUser dist.attestations --json     # every earlier release
 ```
 
 ここで `npm` そのものは使わない（[0001](../../../docs/adr/0001-package-manager.ja.md)）。
@@ -208,10 +210,11 @@ pnpm view <pkg>@<version> _npmUser dist.attestations --json
   - **blocked** —— 解除日まで待つか、その版そのものの `minimumReleaseAgeExclude` 項目を足すか。
     選択肢の説明にトリアージの帯を入れ、項目の費用を述べる: 誰かがその行を消すまで、すべての
     checkout が方針の免除を抱える。
-  - **trust-downgraded** —— 検査が効かなくなるまで待つか、その版そのものの `trustPolicyExclude` 項目を
-    足すか。[0110](../../../docs/adr/0110-security-operations.ja.md) は低下を直接の証拠が説明できるときに
-    だけ項目を認めるので、選択肢の説明にトリアージの帯と低下を説明するもの（上流の告知、移った
-    パイプライン）を入れる。低下が恒久的なら、解除日までは待っても何も得られないと述べる。
+  - **trust-downgraded** —— [0110](../../../docs/adr/0110-security-operations.ja.md) が `trustPolicyExclude`
+    項目を認めるのは、低下を直接の証拠が説明できるときだけである。**トリアージがその証拠を見つけたとき**
+    （上流の告知、移ったパイプライン）は、検査が効かなくなるまで待つか、その版そのものの項目を足すかを
+    出し、選択肢の説明に帯と説明を入れる。低下が恒久的なら、解除日までは待っても何も得られないと述べる。
+    **何も説明しないときは**、待つか advisory を開いたままにするかだけを出し、項目が選択肢に無い理由を述べる。
   - **修正版なし** —— 理由を添えて `osv-scanner.toml` / `.trivyignore.yaml` に抑止を記すか、開いた
     ままにするか。[0004](../../../docs/adr/0004-library-management.ja.md) は、すぐ直せない high に
     ついて、暴露と緩和策を記した issue を求める。`/new-issue` を通した下書きを申し出る（起票は
