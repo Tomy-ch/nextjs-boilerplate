@@ -247,7 +247,7 @@ function bearerSuppressions(root: string): readonly Suppression[] {
  */
 function zapSuppressions(root: string): readonly Suppression[] {
   return read(root, ZAP_PATH)
-    .split("\n")
+    .split(/\r?\n/)
     .filter((line) => {
       const decided = line.trim();
 
@@ -303,8 +303,8 @@ function commentBlockAbove(
 /** pnpm が版を名指しして外す、公開からの経過時間で効く 2 つの窓。冷却期間と trust policy。 */
 const PNPM_EXEMPTION_KEYS = ["minimumReleaseAgeExclude", "trustPolicyExclude"] as const;
 
-/** 字下げの無い、コメントでない行。YAML の最上位のキーが始まる行。 */
-const TOP_LEVEL_LINE = /^[^\s#]/;
+/** 字下げの無い、コメントでも並びの項目でもない行。YAML の最上位のキーが始まる行。 */
+const TOP_LEVEL_LINE = /^(?![\s#]|-(?:\s|$))./;
 
 /**
  * 窓の免除（pnpm）。宣言は `PNPM_EXEMPTION_KEYS` の各項目、理由は直上のコメント塊と行末のコメント。
@@ -327,7 +327,7 @@ function pnpmExemptions(root: string): {
     text,
     parseYaml,
   );
-  const lines = text.split("\n");
+  const lines = text.split(/\r?\n/);
   const consumed = new Set<number>();
 
   const suppressions = PNPM_EXEMPTION_KEYS.flatMap((key) => {
@@ -374,7 +374,13 @@ function keyExemptions(
       });
 
     if (found === undefined) {
-      return { source: PNPM_PATH, subject: entry, condition: "", kind: "window-exemption" };
+      return {
+        source: PNPM_PATH,
+        subject: entry,
+        condition: "",
+        kind: "window-exemption",
+        versionForm: "selector",
+      };
     }
 
     searchFrom = found.at + 1;
@@ -389,6 +395,7 @@ function keyExemptions(
       subject: entry,
       condition: [block.text, trailing].filter((part) => part !== "").join(" "),
       kind: "window-exemption",
+      versionForm: "selector",
     };
   });
 }
@@ -414,6 +421,7 @@ function miseExemptions(root: string): readonly Suppression[] {
             subject: pinId(pin),
             condition: pin.ignore.condition,
             kind: "window-exemption",
+            versionForm: "pin",
           },
         ],
   );
@@ -434,7 +442,7 @@ function commentBorneSuppressions(
     const skipped = consumed.get(source) ?? new Set<number>();
 
     return read(root, source)
-      .split("\n")
+      .split(/\r?\n/)
       .map((line, index) => ({ text: line.trim(), number: index + 1 }))
       .filter(({ text, number }) => DATE_IN_LINE.test(text) && !skipped.has(number))
       .map(({ text, number }) => ({ source, subject: `L${number}`, condition: text }));

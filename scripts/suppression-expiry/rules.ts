@@ -38,6 +38,15 @@ export type Suppression = {
    * 対象も版を名指しする必要があります。名前だけの免除はその名前の将来の版まで外します。
    */
   readonly kind?: "window-exemption";
+  /**
+   * 窓の免除の対象が版をどう書くか。
+   *
+   * @remarks
+   * `selector` は `@` の後ろを semver の範囲として読む面（pnpm）で、完全な版でなければ範囲に当たる
+   * 将来の版まで外します。`pin` は pin が版そのものを書く面（mise）で、名前に backend の接頭辞と
+   * `/` を含みます。
+   */
+  readonly versionForm?: "selector" | "pin";
 };
 
 /** 撤回してよいと判定した宣言。 */
@@ -55,10 +64,13 @@ export type MalformedSuppression = Suppression & {
 /** 完全な版。 */
 const EXACT_VERSION = String.raw`\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?`;
 
-/** 窓の免除の対象の形。名前に続けて、完全な版を 1 つ以上 `||` で並べる。 */
-const VERSIONED_SUBJECT = new RegExp(
+/** 範囲として読む面の対象の形。名前に続けて、完全な版を 1 つ以上 `||` で並べる。 */
+const SELECTOR_SUBJECT = new RegExp(
   String.raw`^(?:@[^@\s/]+\/)?[^@\s/]+@${EXACT_VERSION}(?:\s*\|\|\s*${EXACT_VERSION})*$`,
 );
+
+/** pin の面の対象の形。`<backend>:<name>` に続けて、最後の `@` の後ろに版を書く。 */
+const PIN_SUBJECT = /^[^@\s]\S*@[^@\s]+$/;
 
 /**
  * 撤回条件を満たした宣言を選ぶ。
@@ -123,7 +135,9 @@ export function malformedSuppressions(
     }
 
     if (suppression.kind === "window-exemption") {
-      if (!VERSIONED_SUBJECT.test(suppression.subject)) {
+      const subjectForm = suppression.versionForm === "pin" ? PIN_SUBJECT : SELECTOR_SUBJECT;
+
+      if (!subjectForm.test(suppression.subject)) {
         defects.push("対象が版を名指ししていない（<name>@<version> の形で書く）");
       }
 
