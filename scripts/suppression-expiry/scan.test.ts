@@ -143,7 +143,7 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  // ----- 正常系: 冷却の免除 -----
+  // ----- 正常系: 窓の免除 -----
   it("pnpm の免除を、直上のコメント塊と行末コメントを理由にして宣言単位で読む", () => {
     place(
       "pnpm-workspace.yaml",
@@ -184,6 +184,48 @@ describe("scanSuppressions", () => {
     expect(scanSuppressions(root).map((entry) => entry.condition)).toEqual([
       "先に 2026-08-02",
       "後に 2026-09-02",
+    ]);
+  });
+
+  it("trust policy の免除も、冷却の免除と同じ形で宣言単位に読む", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicy: no-downgrade",
+        "trustPolicyExclude:",
+        "  # 公開経路の移転で provenance が無い。2027-04-06 に外す。",
+        '  - "pkg@1.2.3"',
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root)).toEqual([
+      {
+        source: "pnpm-workspace.yaml",
+        subject: "pkg@1.2.3",
+        condition: "公開経路の移転で provenance が無い。2027-04-06 に外す。",
+        kind: "cooldown-exemption",
+      },
+    ]);
+  });
+
+  it("2 つの免除に同じ項目があっても、それぞれ自分のキーの下の行の理由を持つ", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicyExclude:",
+        "  # trust 側 2027-04-06",
+        "  - a@1",
+        "minimumReleaseAgeExclude:",
+        "  # 冷却側 2026-08-02",
+        "  - a@1",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map((entry) => entry.condition)).toEqual([
+      "冷却側 2026-08-02",
+      "trust 側 2027-04-06",
     ]);
   });
 
