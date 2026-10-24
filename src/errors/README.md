@@ -25,7 +25,7 @@ The kernel of protocol-agnostic, application-wide errors that every layer can re
 
 - `ErrorKind` / `errorKinds` — The classification type and named constants, and the array of all classifications
 - `AppError` / `createAppError()` — A classified error that keeps its cause in `cause`
-- `findAppError()` / `isAppError()` — Finding the classification within the cause chain
+- `findAppError()` / `isAppError()` / `isUnauthenticated()` — Finding the classification within the cause chain, and whether it is `UNAUTHENTICATED`
 - `ErrorMeta` / `createErrorMeta()` — Code, user-facing text, requestId, and publishable detail identifiers. Immutable; `withMessage()` returns a copy with only the text replaced
 - `withErrorMeta()` / `withErrorDetails()` / `errorMetaFrom()` — Metadata wrappers that keep the cause chain. Outer metadata takes precedence
 - `getDefaultErrorMeta()` — The default metadata from the classification catalog

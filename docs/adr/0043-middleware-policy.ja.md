@@ -37,6 +37,10 @@ Accepted
 
 - **認証・セッションの具体モデルは用途依存**([0070](0070-backend-role-separation.ja.md)。Next.js 公式も「Proxy をセッション管理・認可に使うな」と明示)。本リポジトリは `proxy.ts` に特定の認証実装を組み込まない
 - 認証を導入する場合、`proxy.ts` で行ってよいのは **optimistic なリダイレクト**(未ログインらしきリクエストのリダイレクト等)までとし、**確定的な認可はデータ境界(`adapters` / Route Handler / Server Action)** で行う([0070](0070-backend-role-separation.ja.md) / [0071](0071-bff-api-integration.ja.md))
+- **Server Action の呼び出しは optimistic なリダイレクトにかけない。** `Next-Action` ヘッダを持つ `POST` —— Next.js が action として扱う唯一の形 —— は、`proxy.ts` の認証と役割のリダイレクトを素通りして action へ届く。それより前の判定(配信の停止、信頼できない書き込みを 403 で断る origin の検査)はそのまま効く。この呼び出しは client router が発行する `fetch` であり、client router が扱うのは action 自身の応答だけである。proxy が返したリダイレクトは HTML のページまで辿られ、client はそれを action の結果として読めず、画面は汎用の失敗へ倒れ、action 自身の認証の扱いは一度も走らない。proxy が action に応答して client に遷移させる公開の手段を Next.js は用意しておらず、そのドキュメントは確認を proxy ではなく各 Server Function の中に置いている(`node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md` / `node_modules/next/dist/docs/01-app/02-guides/data-security.md`)
+- **素通しは Server Action のリクエストだけに及ぶので、保護されたプレフィックスの下の page・layout・Route Handler はどれも自分の関門を持ち続ける。** action のリクエストは、それが送られた route のレンダリングを引き起こすことがあり、そのレンダリングは前に optimistic なリダイレクトが無いまま走る。proxy はヘッダだけで action を見分けるので、保護されたプレフィックスの下の Route Handler へ偽の `Next-Action` を載せた `POST` も通り、その Handler 自身の検査が唯一の関門になる。ヘッダを持つそれ以外のメソッドは Next.js にとって action ではなく、画面の要求と同じようにリダイレクトされる
+- **保護されたプレフィックスの下の Server Action はどれも未認証の場合を自分で持つ。** プレフィックスは `ROUTE_POLICIES`(`src/model/authz.ts`)で宣言されたものであり、その外の画面(ゲストにも出す公開の画面)から送られる action はこの規則に縛られない。session が無いとき、またはバックエンドが `401`(`UNAUTHENTICATED`)を返したとき、action はフォームのある画面を戻り先としてサインインへ `redirect()` する。Server Action の中の `redirect()` は client が遷移として行う。役割の確認も action に残る([0079](0079-auth-frontend-seam.ja.md)「エントリポイントごとのチェック」)
+- **`next-action` はフレームワーク自身のリクエストヘッダ名であり、公開の契約ではない。** Next.js を上げるときは `node_modules/next/dist/server/lib/server-action-request-meta.js` に照らして確かめ直す
 
 ### 4. 検証の割り(関数本体 = unit / matcher の選別 = e2e)
 
@@ -54,6 +58,7 @@ Accepted
 
 - ❌ `proxy.ts` に業務ロジック・重い処理・データ取得を書くこと(薄い境界。last resort)（強制: ESLint `boundaries/dependencies`（`architecture.ts` の `ENTRY_POINTS` の `proxy`）が取得エンドポイント（`adapters`）と feature の import を落とす。直の `fetch` と、書かれた処理が業務ロジックか重いかは散文 —— **寄せられない**。処理の意味と重さはコードの形から決まらない）
 - ❌ `proxy.ts` をセッション管理・確定的な認可の主機構にすること(optimistic チェックのみ。認可はデータ境界)（強制: 散文 —— **寄せられない**。判定が optimistic か確定かは、それを何の根拠に使うかの意味で決まる）
+- ❌ optimistic な認証 / 役割のリダイレクトを Server Action の呼び出し(`Next-Action` を持つ `POST`)にかけること、およびヘッダを持つそれ以外のメソッドを除外すること(§3)（強制: `src/proxy.test.ts` が、未認証または役割不足の action の呼び出しが通ること、ヘッダを持つ `GET` / `PUT` / `DELETE` がなおリダイレクトされること、信頼できない origin からの action の呼び出しがなお 403 で断られることを固定する。保護されたプレフィックスの下の各 action が自分でリダイレクトすることは、その action のテストが action ごとに固定する）
 - ❌ deprecated な `middleware.ts` を新規に作ること(Next.js 16 は `proxy.ts`)（強制: ESLint `boundaries/no-unknown-files`（`src/middleware.ts` はどの要素にも属さないため落ちる））
 - ❌ Proxy で共有モジュール・グローバル状態・Node API に依存すること、および `proxy.ts` から辿れる import のグラフに Node API や `dotenv` を含めること(CDN 配置され得る。Edge 互換を保つ)（強制: `scripts/proxy-edge.gate.test.ts` が `proxy.ts` から辿れる import のグラフに Node API と `dotenv` が現れないことを見る。ESLint `no-restricted-syntax` / `no-restricted-imports`（`NODE_RUNTIME_ACCESS` の外で `process` と `node:*` を落とす）が個々のファイルの側を落とす。共有モジュール・グローバル状態への依存は散文 —— **寄せられない**。共有されるかは実行時の配置で決まる）
 - ❌ `proxy.ts` に `runtime` セグメント設定を書くこと(Next.js 16 の Proxy では使用不可・エラーになる)

@@ -41,8 +41,10 @@ focus trap・Escape・開閉・背面の inert 化のため hydration が必要�
 
 面はページ内容の上へ重なるため、背景は `bg-background`、境界は `border-border` の semantic token で不透明にレンダリングします。トークンに定義のない class は Tailwind が CSS を出力せず、面が透明のまま背後の文字と重なって contrast を失います。
 
+**閉じると、`DialogTrigger` の有無にかかわらず、dialog を呼び出した要素へフォーカスが戻ります。** `Sheet` と `AlertDialog` と共有するこの規則は、レイヤー README の [本文の上へ重なる面](../../../README.ja.md#本文の上へ重なる面) が持ちます。
+
 vendor は現在 Radix ですが、公開 API に vendor 名は含めません。アイコンは `components` の [`icon.ts`](../../../icon.ts) から取ります。
 
 ## Storybook とテスト
 
-Storybook はデフォルトの開閉、開いた状態の title・説明・footer、form コンポーネントを内容に置く場合、説明を持たない場合、右上の閉じる操作を置かない場合を確認します。テストは開くまで内容をレンダリングしないこと、title と説明の関連付け、`alertdialog` ではなく `dialog` の意味論であること、面が不透明であること、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、`DialogPortal` / `DialogOverlay` の明示指定、a11y 自動検査を確認します。
+Storybook はデフォルトの開閉、開いた状態の title・説明・footer、form コンポーネントを内容に置く場合、説明を持たない場合、右上の閉じる操作を置かない場合を確認します。テストは開くまで内容をレンダリングしないこと、title と説明の関連付け、`alertdialog` ではなく `dialog` の意味論であること、面が不透明であること、右上と footer の双方から閉じられること、`showCloseButton` の切り替え、Escape での閉じ、`DialogPortal` / `DialogOverlay` の明示指定、閉じたときのフォーカスの戻り先（trigger、trigger が無いときは開いた時点でフォーカスしていた要素、その要素が消えているときはフォーカス可能な祖先）、a11y 自動検査を確認します。

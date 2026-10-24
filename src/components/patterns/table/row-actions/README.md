@@ -21,6 +21,8 @@ Use it in admin lists to group per-row actions such as navigating to an edit scr
 
 It does not own fetching, saving, deciding the destination, or confirmation UI. The caller handles what a `command` does and the confirmation (`AlertDialog`) for irreversible actions such as deletion. Binding to the row is also the caller's responsibility: `actions` returns, for the row it receives, an already-settled `href` and `onSelect`.
 
+**A selected `command` runs after the menu has closed and focus is back on the row's trigger.** Following the [WAI-ARIA APG Menu Button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/), selecting an item closes the menu and returns focus to its button; running the command only then makes that trigger the element focused when a confirmation `AlertDialog` opens, so the dialog returns focus to the row it was opened from when it closes. Run synchronously, the command would open the dialog while focus still sat on a menu item that is about to disappear. The menu content holds this ordering, which is why it is the one Client Component part (`row-actions-menu-content.tsx`); the menu built only from `link` stays usable from a Server Component.
+
 Business types stay with the caller as the `Row` generic, so this sugar holds no specific type, API or vocabulary.
 
 **A row with no actions gets no trigger at all.** A row for which `actions` returned empty has no menu, so there is never a surface where something pressable is shown but opens empty. In lists where whether a row has actions depends on the row (rows already done, rows whose actions are closed by their state), returning empty is the natural way to express it.
@@ -39,7 +41,7 @@ A list centered on paths to edit or restock screens is complete with `link` alon
 
 ## Storybook and Tests
 
-Storybook covers an actions column built only from navigation, one that includes actions run in place, and standalone use without a table. The tests cover that each row's trigger name identifies its target, that the actions column header is kept for screen readers, that `link` expands into each row's destination, disabling by row state, that `command` runs the caller's handler with the target row, distinguishing destructive actions, expanding `separator`, and the automated a11y check.
+Storybook covers an actions column built only from navigation, one that includes actions run in place, and standalone use without a table. The tests cover that each row's trigger name identifies its target, that the actions column header is kept for screen readers, that `link` expands into each row's destination, disabling by row state, that `command` runs the caller's handler with the target row only after focus is back on the trigger, distinguishing destructive actions, expanding `separator`, and the automated a11y check.
 
 The automated a11y check excludes `region`. Radix renders the menu into a Portal directly under `document.body`, so it falls outside any landmark; this is a constraint common to UI that uses Portals, and `region` carries axe's `best-practice` tag, outside the repository's target level (WCAG 2.x AA).
 

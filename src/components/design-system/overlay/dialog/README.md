@@ -37,8 +37,10 @@ It is a client island that needs hydration for the focus trap, Escape, opening /
 
 The surface overlaps the page content, so it is rendered opaque with the semantic tokens `bg-background` for the background and `border-border` for the border. For a class not defined in the tokens, Tailwind outputs no CSS, and the surface stays transparent, overlapping the text behind it and losing contrast.
 
+**On close, focus returns to the element that invoked the dialog, with or without `DialogTrigger`.** The rule, shared with `Sheet` and `AlertDialog`, is owned by the layer README's [Surfaces Layered over the Content](../../../README.md#surfaces-layered-over-the-content).
+
 The vendor is currently Radix, but the public API contains no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`.
 
 ## Storybook and Tests
 
-Storybook checks the default opening / closing, the title, description and footer in the open state, placing form components in the content, having no description, and not placing the top-right close action. The tests check that the content is not rendered until opened, the association of title and description, that the semantics are `dialog` rather than `alertdialog`, that the surface is opaque, that it can be closed from both the top right and the footer, toggling `showCloseButton`, closing with Escape, explicit `DialogPortal` / `DialogOverlay`, and the automated a11y check.
+Storybook checks the default opening / closing, the title, description and footer in the open state, placing form components in the content, having no description, and not placing the top-right close action. The tests check that the content is not rendered until opened, the association of title and description, that the semantics are `dialog` rather than `alertdialog`, that the surface is opaque, that it can be closed from both the top right and the footer, toggling `showCloseButton`, closing with Escape, explicit `DialogPortal` / `DialogOverlay`, where focus returns on close (the trigger, the element focused at opening when there is no trigger, and its focusable ancestor when that element is gone), and the automated a11y check.

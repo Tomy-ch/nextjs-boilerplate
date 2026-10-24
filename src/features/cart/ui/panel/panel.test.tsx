@@ -44,10 +44,10 @@ beforeEach(() => {
 });
 
 describe("CartPanel", () => {
-  it("開いているとき、脇の領域としてカートを出す", () => {
+  it("開いているとき、脇の領域としてカートを出す", async () => {
     render(<CartPanel cart={CART} />);
 
-    expect(screen.getByRole("complementary", { name: "カート" })).toBeVisible();
+    expect(await screen.findByRole("complementary", { name: "カート" })).toBeVisible();
   });
 
   it("閉じているとき、枠ごと出さない", () => {

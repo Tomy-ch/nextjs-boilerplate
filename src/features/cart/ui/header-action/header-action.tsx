@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { Suspense } from "react";
 
 import { useMediaQuery } from "@/capabilities/use-media-query";
 import { mediaBelow } from "@/model/breakpoint";
@@ -50,13 +51,19 @@ export type CartHeaderActionProps = {
  * この入れ替えは許容しています。押せる状態に見せるには出し分けを CSS へ移す必要があり、そうすると
  * 点数が 2 か所に出て、幅ごとの姿を存在の有無で検証できなくなります。
  *
+ * **drawer を読み込むあいだも、常設側の入口を出し続けます。** 空けると入口が消えてから現れ、
+ * 隣の導線が動きます（`docs/rules.md#layout`）。押された要求は `stores` が持つので、読み終えた
+ * drawer がそのまま開きます。
+ *
  * @see Storybook `Features/Cart/HeaderAction`
  */
 export function CartHeaderAction({ cart }: CartHeaderActionProps) {
   const isNarrow = useMediaQuery(NARROW);
 
   return isNarrow ? (
-    <CartHeaderDrawer cart={cart} />
+    <Suspense fallback={<CartHeaderToggle count={cart.lines.length} />}>
+      <CartHeaderDrawer cart={cart} />
+    </Suspense>
   ) : (
     <CartHeaderToggle count={cart.lines.length} />
   );

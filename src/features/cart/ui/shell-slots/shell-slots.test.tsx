@@ -73,7 +73,7 @@ describe("CartPanelSlot", () => {
   it("カートの中身を本文の脇へ出す", async () => {
     render(await CartPanelSlot());
 
-    const cart = screen.getByRole("complementary", { name: "カート" });
+    const cart = await screen.findByRole("complementary", { name: "カート" });
 
     expect(getMyCart).toHaveBeenCalledOnce();
     expect(await within(cart).findByText("小計")).toBeVisible();

@@ -13,12 +13,12 @@ import {
 } from "@/components/shell/page-header/page-header";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
-
+import { toPageLinks } from "../page-window";
 import { ADMIN_DASHBOARD_PATH, ADMIN_PRODUCT_LIST_PATH, ADMIN_USER_LIST_PATH } from "../paths";
+import { OffsetPagination } from "../ui/offset-pagination/offset-pagination";
 import { WITHDRAW_CONFLICT_MESSAGE } from "./form-state";
-import { USER_SCOPE } from "./query";
+import { toUserListHref, USER_SCOPE } from "./query";
 import type { AdminUserRow } from "./row";
-import { AdminUserPagination } from "./ui/pagination/pagination";
 import { WithdrawableUserList } from "./ui/withdrawable-list/withdrawable-list";
 import { ADMIN_USER_ROWS, LONG_NAME_USER_ROW, WITHDRAWN_USER_ROWS } from "./users.fixture";
 import { AdminUserListView } from "./view";
@@ -91,7 +91,12 @@ function list({
     <WithdrawableUserList
       items={items}
       pagination={
-        <AdminUserPagination location={{ scope: USER_SCOPE.ALL, page }} pageCount={pageCount} />
+        <OffsetPagination
+          label="利用者一覧のページ送り"
+          links={toPageLinks(page, pageCount, (target) =>
+            toUserListHref({ scope: USER_SCOPE.ALL, page: target }),
+          )}
+        />
       }
       withdrawAction={withdrawAction}
     />

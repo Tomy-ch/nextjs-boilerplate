@@ -9,6 +9,7 @@ import {
   DISCONTINUE_TARGET_LOST_MESSAGE,
 } from "@/features/admin/products/discontinue/form-state";
 import { PRODUCT_VERSION_CONFLICT_MESSAGE } from "@/features/admin/products/form-state";
+import { loginPath } from "@/features/auth/facade/paths";
 import { idleActionState } from "@/model/action-state";
 import { SESSION_ROLE } from "@/model/session";
 
@@ -18,6 +19,7 @@ const {
   discontinueProduct,
   redirect,
   refresh,
+  unstable_rethrow,
   updateProduct,
   uploadProductImage,
   verifySession,
@@ -29,12 +31,17 @@ const {
     throw new Error(`NEXT_REDIRECT:${path}`);
   }),
   refresh: vi.fn(),
+  unstable_rethrow: vi.fn((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+      throw error;
+    }
+  }),
   updateProduct: vi.fn(),
   uploadProductImage: vi.fn(),
   verifySession: vi.fn(),
 }));
 
-vi.mock("next/navigation", () => ({ redirect }));
+vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
 vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/config/http/http.client", () => ({ MAX_UPLOAD_BYTES: 4 * 1024 * 1024 }));
@@ -109,6 +116,18 @@ describe("uploadProductImageAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、送らずに一覧へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValue(null);
+
+    const pending = uploadProductImageAction(
+      idleActionState(),
+      imageForm(new File(["x"], "a.png", { type: "image/png" })),
+    );
+
+    await expect(pending).rejects.toThrow(`NEXT_REDIRECT:${loginPath("/admin/products")}`);
+    expect(uploadProductImage).not.toHaveBeenCalled();
+  });
+
   it("役割が足りなければ送らない", async () => {
     verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
@@ -161,6 +180,18 @@ describe("uploadProductImageAction", () => {
     expect(uploadProductImage).not.toHaveBeenCalled();
   });
 
+  it("接続先が認証切れで拒んだら、一覧へ戻る入り直しへ送る", async () => {
+    uploadProductImage.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    const pending = uploadProductImageAction(
+      idleActionState(),
+      imageForm(new File(["x"], "a.png", { type: "image/png" })),
+    );
+
+    await expect(pending).rejects.toThrow(`NEXT_REDIRECT:${loginPath("/admin/products")}`);
+    expect(uploadProductImage).toHaveBeenCalledTimes(1);
+  });
+
   it("送れなかったことを分類済みの結果として返す", async () => {
     uploadProductImage.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
@@ -184,12 +215,21 @@ describe("createProductAction", () => {
   });
 
   // ----- 異常系 -----
-  it("役割が足りなければ作らない", async () => {
+  it("session が無ければ作らずに、作成画面へ戻る入り直しへ送る", async () => {
     verifySession.mockResolvedValue(null);
+
+    await expect(createProductAction(idleActionState(), productForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products/new")}`,
+    );
+    expect(createProduct).not.toHaveBeenCalled();
+  });
+
+  it("役割が足りなければ、作らずに拒む", async () => {
+    verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
     const state = await createProductAction(idleActionState(), productForm());
 
-    expect(state.status).toBe("error");
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
     expect(createProduct).not.toHaveBeenCalled();
   });
 
@@ -202,6 +242,15 @@ describe("createProductAction", () => {
       fieldErrors: { name: ["商品名を入力してください。"] },
     });
     expect(createProduct).not.toHaveBeenCalled();
+  });
+
+  it("接続先が認証切れで拒んだら、作成画面へ戻る入り直しへ送る", async () => {
+    createProduct.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(createProductAction(idleActionState(), productForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products/new")}`,
+    );
+    expect(createProduct).toHaveBeenCalledTimes(1);
   });
 
   it("作れなかったことを分類済みの結果として返す", async () => {
@@ -231,12 +280,21 @@ describe("updateProductAction", () => {
   });
 
   // ----- 異常系 -----
-  it("役割が足りなければ更新しない", async () => {
+  it("session が無ければ更新せずに、一覧へ戻る入り直しへ送る", async () => {
     verifySession.mockResolvedValue(null);
+
+    await expect(updateProductAction(idleActionState(), productForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("役割が足りなければ、更新せずに拒む", async () => {
+    verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
     const state = await updateProductAction(idleActionState(), productForm());
 
-    expect(state.status).toBe("error");
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
     expect(updateProduct).not.toHaveBeenCalled();
   });
 
@@ -272,8 +330,17 @@ describe("updateProductAction", () => {
     expect(state).toMatchObject({ status: "error", formError: PRODUCT_VERSION_CONFLICT_MESSAGE });
   });
 
-  it("版の食い違い以外は、分類ごとの文言で返す", async () => {
+  it("接続先が認証切れで拒んだら、一覧へ戻る入り直しへ送る", async () => {
     updateProduct.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(updateProductAction(idleActionState(), productForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(updateProduct).toHaveBeenCalledTimes(1);
+  });
+
+  it("版の食い違い以外は、分類ごとの文言で返す", async () => {
+    updateProduct.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
     const state = await updateProductAction(idleActionState(), productForm());
 
@@ -324,6 +391,15 @@ describe("adjustProductStockAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、送らずに一覧へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValue(null);
+
+    await expect(adjustProductStockAction(idleActionState(), stockForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(adjustProductStock).not.toHaveBeenCalled();
+  });
+
   it("役割が足りなければ送らずに拒む", async () => {
     verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
@@ -373,6 +449,15 @@ describe("adjustProductStockAction", () => {
       fieldErrors: { quantity: ["動かした後の在庫が扱える範囲を外れます。量を見直してください。"] },
       kind: ErrorKind.VALIDATION,
     });
+  });
+
+  it("接続先が認証切れで拒んだら、一覧へ戻る入り直しへ送る", async () => {
+    adjustProductStock.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(adjustProductStockAction(idleActionState(), stockForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(adjustProductStock).toHaveBeenCalledTimes(1);
   });
 
   it("一時的に受け付けられないときは、時間を空ける旨の分類で返す", async () => {
@@ -447,6 +532,15 @@ describe("discontinueProductAction", () => {
   });
 
   // ----- 異常系 -----
+  it("session が無ければ、送らずに一覧へ戻る入り直しへ送る", async () => {
+    verifySession.mockResolvedValue(null);
+
+    await expect(discontinueProductAction(idleActionState(), discontinueForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(discontinueProduct).not.toHaveBeenCalled();
+  });
+
   it("役割が足りなければ送らずに拒み、取り直させもしない", async () => {
     verifySession.mockResolvedValue({ subject: "user", role: SESSION_ROLE.user });
 
@@ -530,6 +624,16 @@ describe("discontinueProductAction", () => {
       fieldErrors: undefined,
       kind: ErrorKind.VALIDATION,
     });
+  });
+
+  it("接続先が認証切れで拒んだら、取り直させずに一覧へ戻る入り直しへ送る", async () => {
+    discontinueProduct.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(discontinueProductAction(idleActionState(), discontinueForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/products")}`,
+    );
+    expect(discontinueProduct).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it("一時的に受け付けられないときは、取り直させずに分類のまま返す", async () => {

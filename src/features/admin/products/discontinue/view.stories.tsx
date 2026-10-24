@@ -144,7 +144,7 @@ type RefetchingViewProps = ComponentProps<typeof AdminProductDiscontinueView> & 
  * 送信先が画面を取り直させる流れを、canvas の中で再現する。
  *
  * @remarks
- * 本物では送信先が `revalidatePath` で取り直させ、届いた props だけが差し替わります。ここでは送信の
+ * 本物では送信先が `refresh()` で取り直させ、届いた props だけが差し替わります。ここでは送信の
  * 中で立ち位置を差し替え、island が作り直されずに結果を持ち続けることを見せます。
  */
 function RefetchingView({
