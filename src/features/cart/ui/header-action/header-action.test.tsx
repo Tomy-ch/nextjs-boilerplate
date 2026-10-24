@@ -47,13 +47,13 @@ describe("CartHeaderAction", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("脇に常設できない幅では、本文へ中身を被せる", async () => {
+  it("脇に常設できない幅では、読み込むあいだも入口を出し続け、押せば本文へ中身を被せる", async () => {
     const user = userEvent.setup();
 
     useMediaQuery.mockReturnValue(true);
 
     render(<CartHeaderAction cart={CART} />);
-    await user.click(await screen.findByRole("button", { name: /カートを開く/ }));
+    await user.click(screen.getByRole("button", { name: /カートを開く/ }));
 
     expect(await screen.findByRole("dialog")).toBeVisible();
   });
