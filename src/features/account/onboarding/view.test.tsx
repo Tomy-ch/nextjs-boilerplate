@@ -269,8 +269,14 @@ describe("OnboardingView", () => {
   it("住所の補完を待っているうちに登録を送ったら、遅れて返った補完で送った住所を書き換えない", async () => {
     const user = userEvent.setup();
     let release: ((lookup: typeof ADDRESS_LOOKUP) => void) | undefined;
+    let settle: (() => void) | undefined;
 
-    registerAction.mockImplementation(() => new Promise(() => undefined));
+    registerAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          settle = () => resolve(idleActionState());
+        }),
+    );
     renderView();
     await goToConfirm(user);
     await user.click(screen.getByRole("button", { name: "戻る" }));
@@ -287,14 +293,21 @@ describe("OnboardingView", () => {
     await user.type(postalCode, "105-0014");
     await goNext(user, "確認へ進む");
     await user.click(await screen.findByRole("button", { name: "登録する" }));
-    await act(async () => {
-      release?.({
-        candidates: [{ prefecture: PROFILE.prefecture, city: "港区", town: "芝" }],
-        isFallback: false,
-      });
-    });
 
-    expect(screen.getByLabelText("市区町村")).toHaveValue(PROFILE.city);
+    try {
+      await act(async () => {
+        release?.({
+          candidates: [{ prefecture: PROFILE.prefecture, city: "港区", town: "芝" }],
+          isFallback: false,
+        });
+      });
+
+      expect(screen.getByLabelText("市区町村")).toHaveValue(PROFILE.city);
+    } finally {
+      await act(async () => {
+        settle?.();
+      });
+    }
   });
 
   it("拒まれたあとも、打った内容を欄に残す", async () => {

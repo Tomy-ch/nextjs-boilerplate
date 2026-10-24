@@ -97,7 +97,8 @@ export function useProfileFields(
     mode: "onTouched",
     defaultValues: toDefaultValues(profile),
   });
-  const values = useWatch({ control });
+  // 値が変わるたびに描き直し、欄へ渡す値を新しくする。値そのものは `getValues` が型どおりに返す。
+  useWatch({ control });
 
   /**
    * 検証の結果。client 側を優先し、無ければ server の応答を使う。
@@ -128,7 +129,7 @@ export function useProfileFields(
       message: errorVisibility.visible(field, current),
       registration: {
         ...registration,
-        value: values[field] ?? "",
+        value: getValues(field),
         onFocus: focus.onFocus,
         onBlur: async (event) => {
           focus.onBlur();
