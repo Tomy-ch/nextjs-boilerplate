@@ -67,6 +67,9 @@ and would move the positions of the other fields.
 Whether it succeeds or fails, no result is left on this screen. On success the screen moves; on failure the reason appears at the top
 of the form.
 
+**When the outcome is not known (a temporary failure or a lost response), the confirmation step cannot be left.** "Back" and the
+progress links do not move, and one line above the steps says to register again with the same content.
+
 ## Checking in the Catalog
 
 In Storybook there is no endpoint to look up addresses, so the catalog itself returns the responses. The postal codes that can be looked

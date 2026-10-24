@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { useWatch } from "react-hook-form";
 
 import { FormFeedback } from "@/components/app-starter/form-feedback/form-feedback";
 import type { WizardSteps } from "@/components/patterns/wizard-form/wizard-form";
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import type { SafeReturnUrl } from "@/model/return-url";
@@ -14,6 +15,7 @@ import type { Prefecture } from "@/model/user/user";
 import { registerAction } from "../actions";
 import type { ProfileFormState } from "../form-state";
 import { ProfileSubmitButton } from "../ui/submit-button/submit-button";
+import { useAddressField } from "../use-address-field";
 import { useProfileFields } from "../use-profile-fields";
 import { RETURN_URL_FIELD } from "./form-names";
 import { ADDRESS_FIELDS, BASICS_FIELDS, isStepComplete, STEP_IDS } from "./steps";
@@ -23,12 +25,14 @@ import { RegistrationConfirmSection } from "./ui/confirm-section/confirm-section
 
 const SUBMIT_LABEL = "登録する";
 const PENDING_LABEL = "登録しています…";
+const LOCKED_MESSAGE =
+  "前回の登録の結果が分かるまで、内容は変えられません。同じ内容でもう一度登録してください。";
 
 /** {@link OnboardingView} の props。 */
 export type OnboardingViewProps = {
   /** 選べる都道府県。 */
   readonly prefectures: readonly Prefecture[];
-  /** この登録 1 回ぶんを指す鍵。画面を組み立てた地点が作る。 */
+  /** 最初の送信に載せる鍵。画面を組み立てた地点が作る。 */
   readonly idempotencyKey: string;
   /** 登録を終えた利用者を戻す先。 */
   readonly returnUrl: SafeReturnUrl;
@@ -46,6 +50,9 @@ export type OnboardingViewProps = {
  * **今の段が埋まるまで次へは進めません**（`blocked`）。誤りの文言を出す条件はこれとは別で、触れた
  * 項目からだけ出します。
  *
+ * 鍵は最初に受け取ったものを使い、応答が送信を確定させたら作り直します。結果が定まらないあいだは
+ * 段を動けなくし、送った内容のまま送り直させます（理由は `model/idempotency-key.ts`）。
+ *
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません。
  *
  * @param props - 選べる都道府県、この登録を指す鍵、登録を終えた利用者を戻す先。
@@ -55,15 +62,15 @@ export function OnboardingView({
   prefectures,
   returnUrl,
 }: OnboardingViewProps) {
-  // 鍵は最初に受け取ったものを使い続ける。引き下げての再取得（`router.refresh()`）は器を
-  // unmount せずに prop だけ差し替えるため、そのまま送信へ載せると、書きかけの入力は残った
-  // ままで鍵だけが変わる。応答が届かなかった送信をやり直したときに、別の登録として通ってしまう。
-  const [idempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
     registerAction,
     idleActionState(),
   );
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
+    initialKey: initialIdempotencyKey,
+  });
   const fields = useProfileFields(null, state);
+  const address = useAddressField(fields);
   const values = useWatch({ control: fields.control });
 
   const steps: WizardSteps = [
@@ -76,7 +83,9 @@ export function OnboardingView({
     {
       id: STEP_IDS[1],
       title: "住所",
-      content: <RegistrationAddressSection fields={fields} prefectures={prefectures} />,
+      content: (
+        <RegistrationAddressSection address={address} fields={fields} prefectures={prefectures} />
+      ),
       blocked: !isStepComplete(values, ADDRESS_FIELDS),
       nextLabel: "確認へ進む",
     },
@@ -88,7 +97,7 @@ export function OnboardingView({
   ];
 
   return (
-    <form action={formAction} className="flex max-w-2xl flex-col gap-8">
+    <form action={formAction} className="flex max-w-2xl flex-col gap-8" onSubmit={address.cancel}>
       <input name={IDEMPOTENCY_KEY_FIELD} type="hidden" value={idempotencyKey} />
       <input name={RETURN_URL_FIELD} type="hidden" value={returnUrl} />
 
@@ -100,8 +109,11 @@ export function OnboardingView({
         />
       ) : null}
 
+      {outcomeOpen ? <p className="text-muted-foreground text-sm">{LOCKED_MESSAGE}</p> : null}
+
       <WizardForm
         label="登録"
+        locked={outcomeOpen}
         steps={steps}
         submit={<ProfileSubmitButton label={SUBMIT_LABEL} pendingLabel={PENDING_LABEL} />}
       />

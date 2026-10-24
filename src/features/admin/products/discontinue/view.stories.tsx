@@ -373,6 +373,28 @@ export const Unavailable: Story = {
   },
 };
 
+/** 一時的に受け付けられなかった確認を閉じた状態。結果が分かるまで条件を書き換えさせず、理由を条件の欄に結ぶ。 */
+export const UnavailableLocked: Story = {
+  args: {
+    discontinueAction: returning(
+      failedActionState({
+        formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+        kind: ErrorKind.UNAVAILABLE,
+      }),
+    ),
+  },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+  play: async ({ canvasElement }) => {
+    await openConfirmation(canvasElement);
+    await submitDiscontinue();
+
+    const dialog = within(document.body).getByRole("alertdialog");
+
+    await within(dialog).findByText(/現在サービスを利用できません/);
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+  },
+};
+
 /**
  * 廃番が成立した状態。
  *

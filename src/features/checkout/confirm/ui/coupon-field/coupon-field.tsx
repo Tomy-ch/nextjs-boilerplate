@@ -84,7 +84,7 @@ function CouponSummary({ coupon }: { coupon: CartCoupon }) {
         <span className="font-emphasis text-foreground text-sm tabular-nums">
           {formatMoney(-coupon.discountAmount)}
         </span>
-        <span>有効期限 {formatDateTime(new Date(coupon.expiresAt))}</span>
+        <span>有効期限 {formatDateTime(coupon.expiresAt)}</span>
       </span>
     </span>
   );

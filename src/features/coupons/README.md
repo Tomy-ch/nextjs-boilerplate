@@ -95,7 +95,7 @@ It also draws on other features' `facade/` — login (`auth`), and the My Page r
 
 **An idempotency key is always attached, and it is renewed once a response settles the claim.** A claim cannot be undone, and one
 sent again under another key yields another coupon. The contract's `409` answers a claim still being processed under the same key, so
-the form declares that meaning to `settlesSubmission`. After a `409`, an unavailable service or a network failure the same key is sent
+the form declares that meaning to `useSubmissionKey`. After a `409`, an unavailable service or a network failure the same key is sent
 again, so a claim that went through whose response was lost is not claimed twice. After a success, a rejected code (`422`) or an
 unreadable request (`400`) the next claim carries a new key. While the outcome is open the field is `readOnly` and says why, so the
 resend carries the code that was sent.

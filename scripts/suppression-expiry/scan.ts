@@ -3,7 +3,7 @@
 // **面は 2 種類に分かれる。** 撤回条件をデータとして持つ面はその形式のパーサで宣言単位に読み、
 // コメントとして持つ面は日付を含む行だけを取り出す（`COMMENT_BORNE_PATHS`）。
 //
-// 冷却の免除（pnpm の `minimumReleaseAgeExclude` と mise.toml の pin）は両者の中間にある ——
+// 窓の免除（pnpm の `minimumReleaseAgeExclude` / `trustPolicyExclude` と mise.toml の pin）は両者の中間にある ——
 // 宣言そのものはデータだが、理由と撤回条件は隣のコメントが持つ。宣言の位置を生の行で突き止めて
 // 直上のコメント塊を添えることで、宣言単位に読む。
 //
@@ -31,7 +31,7 @@ const TRIVY_PATH = ".trivyignore.yaml";
 const BEARER_PATH = "bearer.ignore";
 /** 動的スキャンの所見の抑止。 */
 const ZAP_PATH = ".github/zap/rules.tsv";
-/** 依存の冷却期間の免除（pnpm）。 */
+/** 依存の冷却期間と trust policy の免除（pnpm）。 */
 const PNPM_PATH = "pnpm-workspace.yaml";
 
 /**
@@ -43,7 +43,7 @@ const PNPM_PATH = "pnpm-workspace.yaml";
  * 日付を含む行だけで（対象名は `L<行>`）、日付を持たない条件（「上流が N 以上を要求したら」など）は
  * 見えません。見えないこと自体を報告へ書き出すのは `index.ts` の仕事です。
  *
- * `pnpm-workspace.yaml` がここに居るのは `overrides` のためです。冷却の免除は宣言単位で読み、
+ * `pnpm-workspace.yaml` がここに居るのは `overrides` のためです。窓の免除は宣言単位で読み、
  * その行はこちらの読み取りから外します。
  */
 const COMMENT_BORNE_PATHS = [
@@ -60,6 +60,13 @@ export const COMMENT_BORNE_SOURCES: readonly string[] = COMMENT_BORNE_PATHS;
 /** 日付の並び。行がこれを含むときだけ、コメントを宣言として拾う。 */
 const DATE_IN_LINE = /\d{4}-\d{2}-\d{2}/;
 
+/**
+ * 面の本文を読む。
+ *
+ * @param root - リポジトリの根
+ * @param relativePath - 根からの相対パス
+ * @returns 本文。ファイルが無ければ空文字列
+ */
 function read(root: string, relativePath: string): string {
   const absolute = path.join(root, relativePath);
 
@@ -208,7 +215,12 @@ function trivySuppressions(root: string): readonly Suppression[] {
   );
 }
 
-/** 検出 1 件ごとの抑止（bearer）。理由は `comment`。 */
+/**
+ * 検出 1 件ごとの抑止（bearer）。理由は `comment`。
+ *
+ * @param root - リポジトリの根
+ * @returns 宣言の全件
+ */
 function bearerSuppressions(root: string): readonly Suppression[] {
   const document = parsed<Record<string, { comment?: string }>>(
     read(root, BEARER_PATH),
@@ -229,10 +241,13 @@ function bearerSuppressions(root: string): readonly Suppression[] {
  * **解説かどうかは前後の空白を落として決め、列は生の行から切ります。** 判定を生の行へ当てると
  * 行頭に空白のある解説が規則番号として混ざり、逆に行ごと落としてから切ると、先頭の空列が
  * 潰れて 2 列目が規則番号に繰り上がります。
+ *
+ * @param root - リポジトリの根
+ * @returns 宣言の全件
  */
 function zapSuppressions(root: string): readonly Suppression[] {
   return read(root, ZAP_PATH)
-    .split("\n")
+    .split(/\r?\n/)
     .filter((line) => {
       const decided = line.trim();
 
@@ -247,14 +262,25 @@ function zapSuppressions(root: string): readonly Suppression[] {
     });
 }
 
-/** YAML の並びの 1 項目の行。引用の有無を問わず、行末コメントがあればそれも取る。 */
+/**
+ * YAML の並びの 1 項目の行。引用の有無を問わず、行末コメントがあればそれも取る。
+ *
+ * @param entry - 項目の文字列
+ * @returns 項目の行に当たる正規表現。1 つ目の捕捉が行末コメント
+ */
 function listItemLine(entry: string): RegExp {
   const literal = entry.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
 
   return new RegExp(String.raw`^\s*-\s*(?:"${literal}"|'${literal}'|${literal})\s*(?:#\s*(.*))?$`);
 }
 
-/** 直上に続くコメント塊。行番号（1 始まり）と、`#` を落として繋いだ本文。 */
+/**
+ * 直上に続くコメント塊。
+ *
+ * @param lines - ファイルの生の行
+ * @param index - 宣言の行の位置（0 始まり）
+ * @returns コメント塊の行番号（1 始まり）と、`#` を落として繋いだ本文
+ */
 function commentBlockAbove(
   lines: readonly string[],
   index: number,
@@ -274,9 +300,14 @@ function commentBlockAbove(
   return { numbers, text: texts.join(" ").trim() };
 }
 
+/** pnpm が版を名指しして外す、公開からの経過時間で効く 2 つの窓。冷却期間と trust policy。 */
+const PNPM_EXEMPTION_KEYS = ["minimumReleaseAgeExclude", "trustPolicyExclude"] as const;
+
+/** 字下げの無い、コメントでも並びの項目でもない行。YAML の最上位のキーが始まる行。 */
+const TOP_LEVEL_LINE = /^(?![\s#]|-(?:\s|$))./;
+
 /**
- * 冷却期間の免除（pnpm）。宣言は `minimumReleaseAgeExclude` の項目、理由は直上のコメント塊と
- * 行末のコメント。
+ * 窓の免除（pnpm）。宣言は `PNPM_EXEMPTION_KEYS` の各項目、理由は直上のコメント塊と行末のコメント。
  *
  * @remarks
  * pnpm の宣言は文字列の並びで、理由を載せる欄を持ちません。同じファイルの `overrides` と同じく
@@ -284,6 +315,7 @@ function commentBlockAbove(
  * 載せます** —— flow 記法（`[a@1]`）で書かれた項目は行を持たず、様式違反として `rules.ts` が
  * 落とします。
  *
+ * @param root - 読みに行くリポジトリの根
  * @returns 宣言と、宣言単位の読み取りが消費した行。消費した行はコメント行の読み取りから外す
  */
 function pnpmExemptions(root: string): {
@@ -291,25 +323,64 @@ function pnpmExemptions(root: string): {
   readonly consumed: ReadonlySet<number>;
 } {
   const text = read(root, PNPM_PATH);
-  const document = parsed<{ minimumReleaseAgeExclude?: unknown }>(text, parseYaml);
-  const declared = document?.minimumReleaseAgeExclude;
-  const entries = Array.isArray(declared)
-    ? declared.filter((entry): entry is string => typeof entry === "string")
-    : [];
-  const lines = text.split("\n");
+  const document = parsed<Partial<Record<(typeof PNPM_EXEMPTION_KEYS)[number], unknown>>>(
+    text,
+    parseYaml,
+  );
+  const lines = text.split(/\r?\n/);
   const consumed = new Set<number>();
-  let searchFrom = 0;
 
-  const suppressions = entries.map((entry): Suppression => {
+  const suppressions = PNPM_EXEMPTION_KEYS.flatMap((key) => {
+    const declared = document?.[key];
+    const entries = Array.isArray(declared)
+      ? declared.filter((entry): entry is string => typeof entry === "string")
+      : [];
+
+    return keyExemptions(lines, key, entries, consumed);
+  });
+
+  return { suppressions, consumed };
+}
+
+/**
+ * 1 つのキーの免除を、そのキーの行から次の最上位のキーまでの間で突き止める。
+ *
+ * @param lines - `pnpm-workspace.yaml` の生の行
+ * @param key - 免除を並べるキー
+ * @param entries - そのキーの下に並んだ文字列の項目
+ * @param consumed - 突き止めた宣言とコメントの行を書き足す
+ * @returns 項目ごとの宣言。行を突き止められない項目は条件を空にする
+ */
+function keyExemptions(
+  lines: readonly string[],
+  key: string,
+  entries: readonly string[],
+  consumed: Set<number>,
+): readonly Suppression[] {
+  const keyLine = lines.findIndex((line) => line.startsWith(`${key}:`));
+  const nextKey = lines.findIndex((line, at) => at > keyLine && TOP_LEVEL_LINE.test(line));
+  const searchUntil = keyLine === -1 ? 0 : nextKey === -1 ? lines.length : nextKey;
+  let searchFrom = keyLine + 1;
+
+  return entries.map((entry): Suppression => {
     const pattern = listItemLine(entry);
     const found = lines
-      .map((line, at) => ({ at, match: at >= searchFrom ? pattern.exec(line) : null }))
+      .map((line, at) => ({
+        at,
+        match: at >= searchFrom && at < searchUntil ? pattern.exec(line) : null,
+      }))
       .find((candidate): candidate is { at: number; match: RegExpExecArray } => {
         return candidate.match !== null;
       });
 
     if (found === undefined) {
-      return { source: PNPM_PATH, subject: entry, condition: "", kind: "cooldown-exemption" };
+      return {
+        source: PNPM_PATH,
+        subject: entry,
+        condition: "",
+        kind: "window-exemption",
+        versionForm: "selector",
+      };
     }
 
     searchFrom = found.at + 1;
@@ -323,11 +394,10 @@ function pnpmExemptions(root: string): {
       source: PNPM_PATH,
       subject: entry,
       condition: [block.text, trailing].filter((part) => part !== "").join(" "),
-      kind: "cooldown-exemption",
+      kind: "window-exemption",
+      versionForm: "selector",
     };
   });
-
-  return { suppressions, consumed };
 }
 
 /**
@@ -335,6 +405,9 @@ function pnpmExemptions(root: string): {
  *
  * @remarks
  * 読み方は [`lib/mise-pins.ts`](../lib/mise-pins.ts) が持ち、冷却の検査と同じ関数を通します。
+ *
+ * @param root - リポジトリの根
+ * @returns 免除を持つ pin ごとの宣言
  */
 function miseExemptions(root: string): readonly Suppression[] {
   const pins = parsed<readonly MisePin[]>(read(root, MISE_FILE), readPins);
@@ -347,7 +420,8 @@ function miseExemptions(root: string): readonly Suppression[] {
             source: MISE_FILE,
             subject: pinId(pin),
             condition: pin.ignore.condition,
-            kind: "cooldown-exemption",
+            kind: "window-exemption",
+            versionForm: "pin",
           },
         ],
   );
@@ -356,7 +430,9 @@ function miseExemptions(root: string): readonly Suppression[] {
 /**
  * 条件をコメントに持つ面（`COMMENT_BORNE_PATHS`）から、日付を含む行を拾う。
  *
+ * @param root - リポジトリの根
  * @param consumed - 面ごとに、宣言単位の読み取りが既に読んだ行。二重に載せない
+ * @returns 日付を含む行ごとの宣言。対象は `L<行>`
  */
 function commentBorneSuppressions(
   root: string,
@@ -366,7 +442,7 @@ function commentBorneSuppressions(
     const skipped = consumed.get(source) ?? new Set<number>();
 
     return read(root, source)
-      .split("\n")
+      .split(/\r?\n/)
       .map((line, index) => ({ text: line.trim(), number: index + 1 }))
       .filter(({ text, number }) => DATE_IN_LINE.test(text) && !skipped.has(number))
       .map(({ text, number }) => ({ source, subject: `L${number}`, condition: text }));
@@ -377,6 +453,7 @@ function commentBorneSuppressions(
  * 抑止の宣言を、面をまたいで 1 つの一覧へ均す。
  *
  * @param root - 読みに行くリポジトリの根。既定は自分が置かれているリポジトリ
+ * @returns すべての面の宣言
  */
 export function scanSuppressions(root: string = REPO_ROOT): readonly Suppression[] {
   const pnpm = pnpmExemptions(root);

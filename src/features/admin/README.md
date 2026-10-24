@@ -102,7 +102,7 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | Discontinuation | success (can discontinue) / empty (in no cart) | `Page/Admin/Products/Discontinue/{Default,NoImpact}` |
 | | In-progress purchases remain / not all of them listed / they could not be read | `Page/Admin/Products/Discontinue/{InProgressRemaining,InProgressPartial,RemainingUnavailable}` |
 | | Confirmation, sending, unreadable condition, rejected condition | `Page/Admin/Products/Discontinue/{Confirming,Submitting,InvalidCondition,RejectedCondition}` |
-| | In-progress purchase found when sending (conflict) / other failure | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable}` |
+| | In-progress purchase found when sending (conflict) / other failure / conditions held while the outcome is open | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable,UnavailableLocked}` |
 | | Result shown / already discontinued | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
 | | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
 | Users | success / empty | `Page/Admin/Users/{Default,Empty}` |

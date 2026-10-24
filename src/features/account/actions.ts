@@ -45,7 +45,11 @@ function rejectedFieldsState(error: unknown): ProfileFormState | undefined {
 
   return Object.keys(fieldErrors).length === 0
     ? undefined
-    : failedActionState({ formError: INVALID_INPUT_MESSAGE, fieldErrors });
+    : failedActionState({
+        formError: INVALID_INPUT_MESSAGE,
+        fieldErrors,
+        kind: ErrorKind.VALIDATION,
+      });
 }
 
 /**
@@ -128,7 +132,7 @@ export async function registerAction(
     if (isUnauthenticated(error)) redirect(loginPath(onboardingPath(parsed.returnUrl)));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: REGISTER_CONFLICT_MESSAGE });
+      return failedActionState({ formError: REGISTER_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
     }
 
     return rejectedFieldsState(error) ?? actionStateFromError(error);
@@ -166,7 +170,7 @@ export async function withdrawAction(
     if (isUnauthenticated(error)) redirect(loginPath(MYPAGE_PATH));
 
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: WITHDRAW_CONFLICT_MESSAGE });
+      return failedActionState({ formError: WITHDRAW_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
     }
 
     return actionStateFromError(error);

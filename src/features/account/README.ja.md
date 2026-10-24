@@ -55,6 +55,7 @@
 | 登録 | 段ごと | `Page/Account/Onboarding/{Default,AddressStep,ConfirmStepFilled}` |
 | | 誤りを見せている | `Page/Account/Onboarding/ValidationErrors` |
 | | 補完の機構が動いていない | `Page/Account/Onboarding/AddressUnavailable` |
+| | 登録の結果が分からない（段を動けない） | `Page/Account/Onboarding/OutcomeOpen` |
 
 error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 `src/app/(shop)/mypage/edit/error.tsx`）が受けます。
@@ -208,8 +209,10 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 - **登録では、埋まっていない段から進めません**。同じ規則を Server Action も通りますが、往復して
   初めて「入っていない」と言われるより、その場で判る方が直しやすいためです。誤りの文言を出すのは
   触れた項目だけで、進んでよいかの判定は触れたかどうかを見ません
-- **登録の二重送信は冪等キーが畳みます**。登録は 1 回きりの送信なので、画面を組み立てた地点が 1 つ作って送信に載せ、同じ
-  画面から何度送ってもユーザーは 1 人のままです
+- **登録の二重送信は冪等キーが畳みます**。登録は 1 回きりの送信なので、画面を組み立てた地点が最初のキーを作って送信に載せ、
+  同じ画面から何度送ってもユーザーは 1 人のままです。キーは応答が登録を確定させたら作り直します（ここでの `409` は
+  既存のユーザーで、結果の定まった競合です）。結果が定まらないあいだは段を確認から動かせず、送り直しが送った内容のまま
+  飛びます
 - **パンくずは編集画面だけが持ちます**。マイページは global nav が直接指すので、同じ導線を二重に
   置くことになります
 

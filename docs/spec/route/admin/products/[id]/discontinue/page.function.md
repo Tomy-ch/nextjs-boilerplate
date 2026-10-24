@@ -98,8 +98,10 @@ something the user can fix in place.
 
 ## Submission
 
-**What is sent is the two conditions, with an idempotency key.** The key is made once each time the screen is assembled and is
-kept for as long as the screen stays mounted, so a resent submission folds into the first one.
+**What is sent is the two conditions, with an idempotency key.** The first key is made each time the screen is assembled, and the
+same key is resent while the outcome is open, so a resent submission folds into the first one. Once a response settles the
+submission — a refused condition, or a conflict with a purchase still in progress — the next one carries a new key. Until the outcome
+is known the conditions cannot be edited, so the resend carries the conditions that were sent.
 
 **On success, stay on this screen.** The counts of what the execution did — carts that now show a reason, users who received a
 coupon, coupons issued — exist only in its response; the contract has no endpoint to read them back, and running it again reports

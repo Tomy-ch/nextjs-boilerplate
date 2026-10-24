@@ -51,6 +51,9 @@ Sending it empty sends nothing and puts a message beside the field instead; the 
 Failures are shown next to the submission field. If the body did not pass the contract, it is tied to the input; otherwise it is shown as one line
 above the field.
 
+**When the outcome is not known (a post still being processed, a temporary failure, a lost response), the body cannot be edited.** It
+stays as sent, and a line under the field, tied to it, says to send the same body again.
+
 ## How the Receiving Status Looks
 
 **It stays shown.** If it were shown only while disconnected, the screen could not tell whether its absence means "connected" or

@@ -138,9 +138,7 @@ describe("CouponField", () => {
 
     renderField();
 
-    expect(
-      screen.getByText(`有効期限 ${formatDateTime(new Date(coupon.expiresAt))}`),
-    ).toBeVisible();
+    expect(screen.getByText(`有効期限 ${formatDateTime(coupon.expiresAt)}`)).toBeVisible();
   });
 
   it("a11y 自動検査に違反しない", async () => {

@@ -143,7 +143,7 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  // ----- 正常系: 冷却の免除 -----
+  // ----- 正常系: 窓の免除 -----
   it("pnpm の免除を、直上のコメント塊と行末コメントを理由にして宣言単位で読む", () => {
     place(
       "pnpm-workspace.yaml",
@@ -161,7 +161,8 @@ describe("scanSuppressions", () => {
         source: "pnpm-workspace.yaml",
         subject: "pkg@1.2.3",
         condition: "GHSA-0000 の修正版。 窓が明ける 2026-08-02 に外す。 影響は docs-viewer のみ",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
+        versionForm: "selector",
       },
     ]);
   });
@@ -187,22 +188,122 @@ describe("scanSuppressions", () => {
     ]);
   });
 
-  it("行を突き止められない pnpm の免除は、条件を空にして載せる", () => {
-    // flow 記法は行を持たない。落とすと、理由の無い免除がいちばん見えなくなる。
-    place("pnpm-workspace.yaml", 'minimumReleaseAgeExclude: ["pkg@1.2.3"]\n');
+  it("trust policy の免除も、冷却の免除と同じ形で宣言単位に読む", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicy: no-downgrade",
+        "trustPolicyExclude:",
+        "  # 公開経路の移転で provenance が無い。2027-04-06 に外す。",
+        '  - "pkg@1.2.3"',
+        "",
+      ].join("\n"),
+    );
 
     expect(scanSuppressions(root)).toEqual([
       {
         source: "pnpm-workspace.yaml",
         subject: "pkg@1.2.3",
-        condition: "",
-        kind: "cooldown-exemption",
+        condition: "公開経路の移転で provenance が無い。2027-04-06 に外す。",
+        kind: "window-exemption",
+        versionForm: "selector",
       },
     ]);
   });
 
-  it("文字列でない pnpm の項目は宣言として読まない", () => {
-    place("pnpm-workspace.yaml", "minimumReleaseAgeExclude:\n  - 1\n  - [a]\n");
+  it("2 つの免除に同じ項目があっても、それぞれ自分のキーの下の行の理由を持つ", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicyExclude:",
+        "  # trust 側 2027-04-06",
+        "  - a@1",
+        "minimumReleaseAgeExclude:",
+        "  # 冷却側 2026-08-02",
+        "  - a@1",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["a@1", "冷却側 2026-08-02"],
+      ["a@1", "trust 側 2027-04-06"],
+    ]);
+  });
+
+  it("行を持たない免除は、別のキーの下にある同じ項目の行と理由を横取りしない", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        'minimumReleaseAgeExclude: ["x@1.0.0"]',
+        "trustPolicyExclude:",
+        "  # 理由 2027-04-06",
+        "  - x@1.0.0",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["x@1.0.0", ""],
+      ["x@1.0.0", "理由 2027-04-06"],
+    ]);
+  });
+
+  it("字下げの無い並びの項目も、自分のキーの範囲として直上のコメントを理由に読む", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicyExclude:",
+        "# 理由 2027-04-06",
+        "- x@1.0.0",
+        "minimumReleaseAgeExclude:",
+        "- y@1.0.0 # 冷却側 2026-08-02",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["y@1.0.0", "冷却側 2026-08-02"],
+      ["x@1.0.0", "理由 2027-04-06"],
+    ]);
+  });
+
+  it("空行や列 0 のコメントを挟んでも、免除の範囲は次のキーまで続く", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "trustPolicyExclude:",
+        "  # 先 2027-04-06",
+        "  - a@1.0.0",
+        "",
+        "# 後 2027-04-07",
+        "  - b@1.0.0",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["a@1.0.0", "先 2027-04-06"],
+      ["b@1.0.0", "後 2027-04-07"],
+    ]);
+  });
+
+  it("CRLF の改行で書かれた免除も、行末コメントを理由に読む", () => {
+    place(
+      "pnpm-workspace.yaml",
+      "minimumReleaseAgeExclude:\r\n  - pkg@1.2.3 # 2026-08-02 に外す\r\n",
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["pkg@1.2.3", "2026-08-02 に外す"],
+    ]);
+  });
+
+  it("文字列でない pnpm の項目や、並びでない免除のキーは宣言として読まない", () => {
+    place(
+      "pnpm-workspace.yaml",
+      "minimumReleaseAgeExclude:\n  - 1\n  - [a]\ntrustPolicyExclude:\n",
+    );
 
     expect(scanSuppressions(root)).toEqual([]);
   });
@@ -225,7 +326,8 @@ describe("scanSuppressions", () => {
         source: "mise.toml",
         subject: "aqua:koalaman/shellcheck@0.11.0",
         condition: "直前の版に脆弱性がある。窓が明ける 2026-09-21 に外す。",
-        kind: "cooldown-exemption",
+        kind: "window-exemption",
+        versionForm: "pin",
       },
     ]);
   });
@@ -271,6 +373,40 @@ describe("scanSuppressions", () => {
   });
 
   // ----- 異常系 -----
+  it("行を突き止められない pnpm の免除は、条件を空にして載せる", () => {
+    // flow 記法は行を持たない。落とすと、理由の無い免除がいちばん見えなくなる。
+    place("pnpm-workspace.yaml", 'minimumReleaseAgeExclude: ["pkg@1.2.3"]\n');
+
+    expect(scanSuppressions(root)).toEqual([
+      {
+        source: "pnpm-workspace.yaml",
+        subject: "pkg@1.2.3",
+        condition: "",
+        kind: "window-exemption",
+        versionForm: "selector",
+      },
+    ]);
+  });
+
+  it("キーの行を突き止められなければ、どの項目も別の行から理由を取らない", () => {
+    place(
+      "pnpm-workspace.yaml",
+      [
+        "minimumReleaseAgeExclude:",
+        "  # 冷却側 2026-08-02",
+        "  - x@1.0.0",
+        '"trustPolicyExclude":',
+        "  - x@1.0.0",
+        "",
+      ].join("\n"),
+    );
+
+    expect(scanSuppressions(root).map(({ subject, condition }) => [subject, condition])).toEqual([
+      ["x@1.0.0", "冷却側 2026-08-02"],
+      ["x@1.0.0", ""],
+    ]);
+  });
+
   it("理由を持たない宣言も、条件を空にして一覧へ載せる", () => {
     // 読み飛ばすと、条件を持たない抑止だけが一覧から消え、いちばん確かめたいものが見えなくなる。
     place("osv-scanner.toml", '[[IgnoredVulns]]\nid = "GHSA-4444"\n');

@@ -44,7 +44,7 @@
 | | 長い本文・連続文字列 | `Page/Mypage/Inquiry/LongBody` |
 | やり取りの並び | 送信中 | `Features/Inquiry/Thread/MessageList/Sending` |
 | | 空 | `Features/Inquiry/Thread/MessageList/Empty` |
-| 送信欄 | idle / 空のまま送ろうとした / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid}` |
+| 送信欄 | idle / 空のまま送ろうとした / pending / 項目エラー / 結果が定まらない | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
 | やり取りと送信 | success / empty / 長い本文 | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
 | ローディング表示 | loading | `Features/Inquiry/Thread/Skeleton/Default` |
@@ -88,7 +88,10 @@
 | `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `refresh()` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
 
 **冪等キーを必ず載せます。** メッセージは自然キーを持たないため、応答が届かなかっただけの送信を
-送り直すと 2 通目になります。キーは成立するまで同じ値を使い、成立した時点で作り直します。
+送り直すと 2 通目になります。キーは結果が定まるまで同じ値を使い、応答が送信を確定させた時点で作り直します。
+契約の `409` は同じキーの投稿がまだ処理中であることしか表せません —— 投稿は追記だけで、最初の投稿が並行しても
+両方が成立します —— そのため会話の側がその意味（`in-progress`）を宣言します。結果が定まらないあいだは本文を
+`readOnly` にして理由を示し、送り直しが送った本文のまま飛ぶようにします。
 
 ## テスト観点
 
@@ -96,7 +99,8 @@
 - [ ] 届いた順が前後しても、位置の昇順に並ぶ
 - [ ] まだ 1 通も無いユーザーでは購読を始めない（発券のエンドポイントを叩かない）
 - [ ] 送信が成立すると書きかけが消え、通らなかったときは残る
-- [ ] 送信が成立すると冪等キーが変わり、通らなかったときは変わらない
+- [ ] 成立と結果の定まった拒否のあとは冪等キーが変わり、`409` を含む結果の定まらない失敗のあとは変わらない
+- [ ] 送信の結果が定まらないあいだは本文を書き換えられず、欄が理由を示す
 
 ## 運用
 

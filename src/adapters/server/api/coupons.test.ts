@@ -129,15 +129,13 @@ describe("getMyCoupons", () => {
   it("一時的に応答できないときは unavailable として投げる", async () => {
     serveStatus("get", MY_COUPONS_URL, 503);
 
-    await expect(getMyCoupons().catch((error) => findAppError(error)?.kind)).resolves.toBe(
-      ErrorKind.UNAVAILABLE,
-    );
+    expect(await kindOf(getMyCoupons)).toBe(ErrorKind.UNAVAILABLE);
   });
 
   it("契約に合わない応答は受け取らない", async () => {
     serveJson(MY_COUPONS_URL, { coupons: [{ ...wireUnused, expiresAt: "not-a-date" }] });
 
-    await expect(getMyCoupons()).rejects.toThrow();
+    expect(await kindOf(getMyCoupons)).toBe(ErrorKind.INTERNAL);
   });
 });
 
@@ -152,14 +150,14 @@ describe("getMyCartCoupons", () => {
         discount: { kind: "rate", value: "0.10", maxAmount: 1000 },
         scopeKind: "category",
         discountAmount: 332,
-        expiresAt: "2026-12-01T00:00:00Z",
+        expiresAt: new Date("2026-12-01T00:00:00Z"),
       },
       {
         id: "0193a1c0-0001-7000-8000-000000000003",
         discount: { kind: "flat", value: "5.00" },
         scopeKind: "all",
         discountAmount: 500,
-        expiresAt: "2026-12-01T00:00:00Z",
+        expiresAt: new Date("2026-12-01T00:00:00Z"),
       },
     ]);
   });
@@ -197,7 +195,9 @@ describe("readMyCartCoupons", () => {
     serveStatus("get", CART_COUPONS_URL, 503);
 
     await expect(readMyCartCoupons()).resolves.toBeNull();
-    expect(warn).toHaveBeenCalledWith("使えるクーポンを読めませんでした", expect.any(Object));
+    expect(warn).toHaveBeenCalledWith("使えるクーポンを読めませんでした", {
+      cause: expect.stringContaining(ErrorKind.UNAVAILABLE),
+    });
   });
 
   it("認証が通らなくても投げず null を返す", async () => {
