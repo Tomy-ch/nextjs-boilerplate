@@ -8,11 +8,12 @@ coverage-exclusions:
   - "src/features/admin/products/discontinue/discontinue.fixture.ts"
   - "src/features/admin/products/list/list.fixture.ts"
   - "src/features/admin/users/users.fixture.ts"
+  - "src/features/admin/campaigns/list/list.fixture.ts"
 ---
 
 # admin
 
-The screen slice for the side that manages products and users.
+The screen slice for the side that manages products, users and campaigns.
 
 Even when it handles the same subjects as the user-facing slices, **it shares no components**. The buying side
 looks at one item and chooses; the managing side compares the same attributes across items. Merging things
@@ -47,6 +48,7 @@ outer frame's promises are held by [the `admin` layout](../../../docs/spec/route
 | `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) |
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
+| `/admin/campaigns` | [`screen`](../../../docs/spec/route/admin/campaigns/page.screen.md) / [`function`](../../../docs/spec/route/admin/campaigns/page.function.md) |
 
 **The contracts, states and Actions of `/admin/shipments` are held by [shipments/README.md](shipments/README.md),
 and those of `/admin/inquiries` by [inquiries/README.md](inquiries/README.md).**
@@ -66,11 +68,13 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | `GetPurchases` | The in-progress purchases that keep a product from being discontinued | feature |
 | `GetProductCategories` / `GetProductStatuses` | Candidates for filters and forms | feature |
 | `GetUsers` | The user list | feature |
+| `GetCampaigns` | The campaign list | feature |
 | `PostProductsImages` | Image upload | An app-layer Action |
 | `PostProducts` / `PatchProductsDetail` | Creating and editing products | An app-layer Action |
 | `PatchProductsStock` | Increasing and decreasing stock | An app-layer Action |
 | `PostProductsDiscontinue` | Discontinuing a product and issuing replacement coupons | An app-layer Action |
 | `DeleteUsersDetail` | Closing a user's account | An app-layer Action |
+| `PostCampaignsSuspend` | Suspending a campaign's distribution | An app-layer Action |
 
 ## States and Design References
 
@@ -104,6 +108,11 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | Users | success / empty | `Page/Admin/Users/{Default,Empty}` |
 | | Account closure confirmation, success, conflict | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 | | loading | `Features/Admin/Users/Skeleton/Default` |
+| Campaigns | success (every status, a fully distributed row) / empty | `Page/Admin/Campaigns/List/{Default,Empty}` |
+| | Pagination, a long code | `Page/Admin/Campaigns/List/{MiddlePage,LastPage,SinglePage,LongCode}` |
+| | Suspension confirmation, sending | `Page/Admin/Campaigns/List/SuspendConfirm`, `Features/Admin/Campaigns/List/SuspendDialog/Submitting` |
+| | Suspended, already suspended (conflict), other failure | `Page/Admin/Campaigns/List/{Suspended,SuspendConflicted,SuspendFailed}` |
+| | loading | `Page/Admin/Campaigns/List/Loading`, `Features/Admin/Campaigns/List/Skeleton/Default` |
 | Every screen beneath | error | `Features/Admin/ErrorState/{Default,WithDigest}` |
 
 **loading and error cannot be reached from a screen's composition.** The loading UI is the `Suspense` fallback
@@ -122,6 +131,10 @@ Create a directory per screen and divide each by nature.
 **Products have five screens (list, create, edit, restock, discontinue), so they are split along the screen axis.** What
 several screens share belongs to none of them, so the level above (directly under `products/` and
 `products/ui/`) owns it. Users have only one screen, so files sit directly under `users/` with no axis between.
+Campaigns are dug along the screen axis (`campaigns/list/`), since listing and creating campaigns are separate screens.
+The user list and the campaign list both page by offset and both confirm a row operation before sending it, so
+what they share — choosing the page numbers, the pagination itself and the confirmation open/close policy — sits
+directly under the feature rather than under either screen.
 
 | File | Role |
 | --- | --- |
@@ -212,10 +225,14 @@ several screens share belongs to none of them, so the level above (directly unde
 | `products/discontinue/ui/result/` | What the execution reported. A place that remains after the confirmation closes |
 | `products/discontinue/ui/discontinued-state/` | The product is already discontinued, and since when |
 | `products/discontinue/ui/skeleton/` | The screen loading UI |
+| `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
+| `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result for it returns. The caller decides what it holds per confirmation, and may say which row a result answers |
+| `use-row-action-state.ts` | Sending an operation on a row and keeping its result together with the row it answers, read from the submitted form. The confirmation is closable while sending, so a result need not belong to the row open now |
+| `ui/offset-pagination/` | Pagination that jumps to any page. Receives the links and the accessible name as data, so it renders on either side of the client boundary |
 | `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
+| `users/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
 | `users/page-size.ts` | How many items one page lists |
 | `users/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
-| `users/page-window.ts` | How the page numbers listed in pagination are chosen. Collapses distant ranges into an ellipsis marker |
 | `users/row.ts` | The shape of one table row. Lines up family and given names, and reduces whether the account is closed to a boolean |
 | `users/form-state.ts` `users/form-names.ts` | The account closure result type, the submission target's type, and the submission's `name`s |
 | `users/results.tsx` | Fetching one page, and assembling the list and pagination |
@@ -227,6 +244,23 @@ several screens share belongs to none of them, so the level above (directly unde
 | `users/ui/withdraw-feedback/` | The account closure result. A place that remains after the confirmation closes |
 | `users/ui/submit-button/` | Submitting the account closure. Extracted as a child of the form to read `useFormStatus` |
 | `users/ui/skeleton/` | The table loading UI |
+| `campaigns/list/query.ts` | The campaign list URL contract (page number) and the key name |
+| `campaigns/list/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
+| `campaigns/list/page-size.ts` | How many items one page lists |
+| `campaigns/list/distribution-status.ts` | The four distribution statuses, their names, and the judgment against "now". Suspension comes before the period; the period excludes its end |
+| `campaigns/list/status-tone.ts` | The mapping between distribution statuses and appearance |
+| `campaigns/list/row.ts` | The shape of one table row. Formats dates and the discount on the server and derives the remaining count from the total and the issued count |
+| `campaigns/list/form-state.ts` `campaigns/list/form-names.ts` | The suspension result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
+| `campaigns/list/use-suspend-attempts.ts` | One idempotency key per row's suspension attempt. Kept after a failure whose outcome is open, and dropped once a response settles the attempt for the row the response answered |
+| `campaigns/list/page-content.tsx` | Interpreting the URL and assembling the screen. Receives "now" from the route and bounds the refetch scope here |
+| `campaigns/list/results.tsx` | Fetching one page, mapping it to rows, and assembling the list and pagination |
+| `campaigns/list/view.tsx` | The note on how the distribution period ends. Receives the list body |
+| `campaigns/list/ui/suspendable-list/` | The layer connecting rows, confirmation and result. Takes each row's idempotency key from `use-suspend-attempts.ts` |
+| `campaigns/list/ui/table/` | The campaign table. Rows of suspended campaigns show no operations; a fully distributed row says so in words |
+| `campaigns/list/ui/suspend-dialog/` | The suspension confirmation. States that it is irreversible and that coupons already handed out stay valid |
+| `campaigns/list/ui/suspend-feedback/` | The suspension result. A place that remains after the confirmation closes |
+| `campaigns/list/ui/submit-button/` | Submitting the suspension. Extracted as a child of the form to read `useFormStatus` |
+| `campaigns/list/ui/skeleton/` | The table loading UI |
 | `ui/error-state/` | What is shown when fetching fails. Used by the `/admin` error boundary. There is one boundary, so it names no screen |
 | `shipments/` | The shipments screen. **Has its own README** ([README](shipments/README.md)) |
 | `inquiries/` | The inquiry list and handling. **Has its own README** ([README](inquiries/README.md)) |
@@ -235,15 +269,15 @@ several screens share belongs to none of them, so the level above (directly unde
 `*-section.tsx` are its subjects, and carry behavior that holds only once the components come together.
 **A single component under `ui/` takes the `component` shape** — that one component's rendering contract and the
 mandatory automated a11y check — and **pure functions that cross screens (`summary-cards.ts` / `paths.ts` /
-`analytics/period.ts` and so on) take the `unit` shape** — no rendering; return values and branches are matched
+`analytics/period.ts` / `page-window.ts` and so on) take the `unit` shape** — no rendering; return values and branches are matched
 directly. Imposing composition tests on something with no composition leaves nothing to verify.
 
 ## Kernel Dependencies
 
 | Kernel | Purpose |
 | --- | --- |
-| `adapters` | Fetching analytics, products, purchases and users, and resolving image URLs. The contract's limits that input fields read in the browser come from `adapters/client` |
-| `model` | Display models (`Product` / `Purchase` / `Dashboard`), pagination, periods, number and date formatting, `ActionState`, idempotency keys |
+| `adapters` | Fetching analytics, products, purchases, users and campaigns, and resolving image URLs. The contract's limits that input fields read in the browser come from `adapters/client` |
+| `model` | Display models (`Product` / `Purchase` / `Dashboard` / `Campaign`), pagination, periods, number and date formatting, coupon discount and scope wording, `ActionState`, idempotency keys |
 | `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
 | `errors` | Maps fetch and submission failures to the wording the screen shows |
 | `logging` | Recording a partial fetch failure the screen absorbs in place instead of throwing to the boundary |
@@ -266,12 +300,16 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
 | `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
+| `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `refresh()` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 
 **Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
 refetching right after would only show the list before it is reflected. The submission result reports what
 happened.
 
-**Only discontinuation stays on its screen after success.** The counts of what the execution did exist only in
+**Row operations on a list stay on the list.** Account closure and suspension act on one row, and their result
+is read in that list, so neither moves to another URL.
+
+**Discontinuation, a screen of its own, also stays on it after success.** The counts of what the execution did exist only in
 its response — the contract has no endpoint to read them back, and running it again reports zeros — so a
 destination screen could not show them. What a reload keeps is the fact of discontinuation (`discontinuedAt`),
 which the refetched screen shows; the counts disappear with the reload.
@@ -287,6 +325,8 @@ assembly are held on the feature side (`products/parse-product-form.ts` and so o
 - [ ] A version mismatch (409) is told apart from other failures
 - [ ] Rows of closed accounts show no operations
 - [ ] Discontinuation is not offered while in-progress purchases remain, nor for a product already discontinued
+- [ ] Rows of suspended campaigns show no operations
+- [ ] A campaign's status puts suspension before the period, and the period excludes its end
 
 The layer assignment (`feature` / `component` / `unit`) is at the end of Structure.
 

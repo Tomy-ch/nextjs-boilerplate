@@ -124,6 +124,8 @@ error は route の `error` 境界（`src/app/(shop)/checkout/error.tsx`）が�
 | --- | --- | --- | --- | --- |
 | `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | 完了画面へ `redirect`。購入した明細をカートから取り除く | 分類を確定の操作の隣に出す |
 
+`UNAUTHENTICATED` のときは、action はこの画面を戻り先としてサインインへ redirect します（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）。
+
 冪等キーと、承知の合図が無い送信の扱いは「設計上の判断」に書いてあります。
 
 ## テスト観点

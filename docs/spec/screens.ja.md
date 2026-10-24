@@ -32,7 +32,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 
 ---
 
-## 1. 画面一覧(29)
+## 1. 画面一覧(30)
 
 ### ユーザー側(14)
 
@@ -53,7 +53,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | U13 | お問い合わせ | `GET /v1/inquiries/me/messages` / `POST /v1/inquiries/me/messages` / `POST /v1/inquiries/me/stream-ticket` / `GET /v1/streams/{destination}` | サポートとのやり取り。ユーザーごとに 1 件で、最初の投稿が問い合わせを作る | **届いた 1 通が取り直しを待たずに出る唯一の画面**。初期表示は RSC が履歴を取り、その応答が返す `streamCursor` を購読の開始位置に渡す。購読はブラウザーが backend の SSE へ直接繋ぎ、資格情報は BFF が発券する短命 ticket を query に載せる。送信は Server Action + `Idempotency-Key` で、届いた 1 通は購読ではなく取り直した canonical に現れる。`APP_API_MODE=mock` では発券の取得エンドポイントが発券を断り、購読を持たない姿で止まる（表示と送信は動く） |
 | U14 | クーポン | `GET /v1/users/me/coupons` / `POST /v1/campaigns/claims` | 保有クーポンを状態つきで見る。キャンペーンコードで 1 枚受け取る | U11 とは独立したルート。**状態（未使用 / 使用済み / 期限切れ / 利用開始前）は画面側で決める** —— 3 つの時刻を現在時刻と突き合わせる。契約は状態を返さない。受け取りの証拠は一覧に 1 行増えることだけなので、受け取り欄と一覧を同じ画面に置く。受け取れない理由はすべて区別のない 1 種類の `422` で届く。`Idempotency-Key` はフォームが持ち、応答が受け取りを確定させたら作り直す。`409`（同じキーが処理中）では保つ |
 
-### admin 側(11)
+### admin 側(12)
 
 | # | 画面 | 使用 API | ざっくり仕様 | フロント実装上の注意 |
 | --- | --- | --- | --- | --- |
@@ -68,6 +68,7 @@ EC サンプルの画面と API の対応表。サンプルのバックエンド
 | A9 | 問い合わせ一覧 | `GET /v1/inquiries`(`after` / `first`) / `POST /v1/inquiries/feed/stream-ticket` / `GET /v1/streams/{destination}` | 届いた問い合わせを更新の新しい順に並べる。本文は含まない | 更新フィードを購読し、届いた時点で一覧を取り直す。**届いた内容で行を書き換えない** —— フィードが運ぶのは「どの問い合わせがどこまで進んだか」だけで、並び順の基準も他の列も入っていない。ページ送りは cursor で、戻る先は URL が覚える |
 | A10 | 問い合わせの対応 | `GET /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/{inquiryId}/messages` / `POST /v1/inquiries/feed/stream-ticket` | 1 件のやり取りを読み、回答する | **会話そのものを購読できない** —— 契約が持つ購読のエンドポイントは「自分の問い合わせ」と「更新フィード」の 2 つで、運営が任意の 1 件を直接購読するエンドポイントが無い。フィードが開いている 1 件の更新を伝えたときに canonical を取り直す。右へ寄るのは運営の発言で、ユーザー側とは「自分」が入れ替わる。誰の問い合わせかは履歴が返さないため、一覧の行と突き合わせる |
 | A11 | 商品の廃番 | `GET /v1/products/{productId}`(`includeUnpublished=true`) / `GET /v1/products/{productId}/discontinue-impact` / `GET /v1/purchases`(`productId` + `includeOtherUsers=true` + 進行中の `statusCodes`) / `POST /v1/products/{productId}/discontinue` | 影響を見積もり、代替クーポンの条件を受け、確認を挟んで商品 1 件を廃番にする | **見積もりは結果ではない** —— ロックを取らず返した時点で古くなるため、何が起きたかは実行の応答から出し、その件数は応答にしか無い。進行中の購入が残っている間は実行を差し出さず、代わりにその購入を並べる。409 は見積もりの後に進行中の購入が入ったということで、画面を取り直す。値引き率は decimal 文字列なので、数として持ち回らない。既に廃番の商品は廃番になった日時だけを出す |
+| A12 | キャンペーン一覧 | `GET /v1/campaigns`(`page` / `perPage`) / `POST /v1/campaigns/{campaignId}/suspend` | すべてのキャンペーンを配布の状態と残数で並べ、確認を挟んで配布を停止する | 契約は状態を返さない。停止済み・配布前・配布中・期間外は、サーバーで読んだ「今」に対して停止を先に判定し、期間は開始を含み終了を含まない。残数は `totalLimit` から `issuedCount` を引いた値。停止は停止済みの行を除くすべての行に差し出し、確認では配ったクーポンは有効のままであることを伝える。1 つの画面が多くの対象を持つため、idempotency key は開いた確認ごとに 1 つ作る。409 は既に停止済みということで、成功のときと同じく 409 の後も一覧を取り直す |
 
 ### サイト情報・開発用の画面(4)
 
@@ -125,13 +126,13 @@ EC の業務フローの外にある画面である。**題材(EC)を持つの�
 | Method / Path | 認証 | 用途 | フロントが送る主な項目 | 主なレスポンス項目 | 主なエラー |
 | --- | --- | --- | --- | --- | --- |
 | `GET /v1/users/me/coupons` | 要 | 保有クーポン。発行日時の新しい順（U14）。使用済み・失効済みも並ぶ | — | coupons[] | 401 |
-| `GET /v1/carts/me/coupons` | 要 | いまのカートに使えるクーポンと、それぞれの値引き額。**適用可否と値引き額を表現層に計算させないための口** | — | coupons[](coupon, discountAmount) | 401 |
+| `GET /v1/carts/me/coupons` | 要 | いまのカートに使えるクーポンと、それぞれの値引き額。**適用可否と値引き額をプレゼンテーションレイヤーに計算させないためのエンドポイント** | — | coupons[](coupon, discountAmount) | 401 |
 | `POST /v1/campaigns/claims` | 要 | キャンペーンコードでクーポンを 1 枚受け取る（U14） | code, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 409, **422(受け取れない理由はすべて区別しない)** |
 | `POST /v1/coupons` | 要 admin | 名指しした 1 人へクーポンを 1 枚発行する | userId, discount, scope, expiresAt, minPurchaseAmount, usableFrom, Idempotency-Key(必須のヘッダー) | 発行されたクーポン | 400, 401, 403, 404(受給者または範囲の対象が無い), 409, 422 |
 | `POST /v1/coupons/bulk-issue` | 要 admin | 退会していない全員へクーポンを 1 枚ずつ発行する。受給者は指定できない | discount, scope, expiresAt, Idempotency-Key(必須のヘッダー) | issuedAt, expiresAt, recipientCount, issuedCouponCount | 400, 401, 403, 404, **409(受給者数が上限超過)**, 422 |
-| `GET /v1/campaigns` | 要 admin | キャンペーン一覧。開始の新しい順で、停止済み・終了済みも含む | page, perPage | campaigns[], total | 400, 401, 403, 422 |
-| `POST /v1/campaigns` | 要 admin | キャンペーンの定義。編集の口は無い | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key(必須のヘッダー) | キャンペーン | 400, 401, 403, **409(コードが使用済み)**, 422 |
-| `POST /v1/campaigns/{campaignId}/suspend` | 要 admin | キャンペーンの受け取りを止める。取り消せず、配ったクーポンは有効のまま | Idempotency-Key(任意のヘッダー) | キャンペーン | 400, 401, 403, 404, **409(停止済み)**, 422 |
+| `GET /v1/campaigns` | 要 admin | キャンペーン一覧(A12)。開始の新しい順で、停止済み・終了済みも含む | page, perPage | campaigns[], total | 400, 401, 403, 422 |
+| `POST /v1/campaigns` | 要 admin | キャンペーンの定義。編集のエンドポイントは無い | code, discount, scope, minPurchaseAmount, usableFrom, couponExpiresAt, startsAt, endsAt, totalLimit, perUserLimit, Idempotency-Key(必須のヘッダー) | キャンペーン | 400, 401, 403, **409(コードが使用済み)**, 422 |
+| `POST /v1/campaigns/{campaignId}/suspend` | 要 admin | キャンペーンの受け取りを止める(A12)。取り消せず、配ったクーポンは有効のまま | Idempotency-Key(任意のヘッダー) | キャンペーン | 400, 401, 403, 404, **409(停止済み)**, 422 |
 
 **クーポンの金額は 2 つの桁を使う。** 定額の `value` は `price` と同じ桁の USD decimal 文字列(`"5.00"` は $5)、定率の `value` は掛ける率(`"0.10"` は 10% 引き)である。`maxAmount` と `minPurchaseAmount` は、購入の合計と同じ USD セントの整数である。定額の `value` のセント未満の桁は受け付けられ、値引き額を計算するときに切り捨てられる。
 

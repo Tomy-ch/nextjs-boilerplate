@@ -608,6 +608,7 @@ E2E だが、E2E は費用のため PR ごとには回らない（`.github/workf
 | `journeys/focus` | ドロワー・モーダル・メニューを持つ画面が残らない |
 | `journeys/not-found` | 1 件を指す取得を持ち、レイアウトシェルの内側で不在を受ける画面が残らない |
 | `journeys/discontinue` | 経由する管理の一覧・廃番の画面・その Server Action が、題材の画面そのものである |
+| `journeys/campaign-suspend` | 経由する管理のキャンペーン一覧・その停止確認・その Server Action が、題材の画面そのものである |
 | `journeys/coupons` | 経由するマイページ・クーポンの画面・受け取りの Server Action が、題材の画面そのものである |
 | `journeys/checkout-coupon` | 経由するカート・クーポンを選ぶ購入確認・確定の Server Action が、題材の画面そのものである |
 

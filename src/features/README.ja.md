@@ -149,7 +149,9 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
 1. 入力欄は `form-names.ts` の綴りで `name` を付ける
 2. Action は `parse-<対象>-form.ts` で `FormData` を解く。解けなければ `failedActionState({ formError })`
    —— 文言はその画面の定数で、「画面を読み込み直す」を促す
-3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す
+3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す。**`UNAUTHENTICATED` と分類された失敗は
+   返さない** —— `catch` の中でまず `isUnauthenticated(error)` なら、フォームのある画面を戻り先としてサインインへ
+   redirect する（`auth/facade/` の `loginPath`。[0043](../../docs/adr/0043-middleware-policy.ja.md)）
 4. 成立したら `refresh()`（キャッシュしていないデータの画面に留まる）、`revalidatePath`（別の route にも出す）、
    または `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
    無効化では外枠が古いまま残る** —— `revalidatePath("/", "layout")` を、`project-rules/no-app-wide-revalidate`
@@ -163,7 +165,7 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
   `adapters/server/auth` へ触れられる app レイヤーだけである
 - **冪等キーの発行元は送信の回数で決まる。** 1 回きりの作成（登録・確定）は `page-content` が組み立て
   ごとに 1 つ作って props で渡す。同じ画面から繰り返す送信（1 件ずつ足していくもの）は client island が
-  mount のときに作る。**どちらも `components/use-submission-key.ts` を通して持ち、応答が送信を確定させたら作り直し、結果が定まらないあいだは保つ**（`409` を「同じキーの要求が処理中」に充てるエンドポイントは `conflict` としてそう宣言する）。設定（PUT）と削除は 2 度届いても
+  mount のときに作る。**どちらも `components/use-submission-key.ts` を通して持ち、応答が送信を確定させたら作り直し、結果が定まらないあいだは保つ**（`409` を「同じキーの要求が処理中」に充てるエンドポイントは `conflict` としてそう宣言する）。多くの行に操作を差し出す一覧は、代わりに行ごとに 1 つ持つ。設定（PUT）と削除は 2 度届いても
   結果が変わらないのでキーを持たない
 - **競合（409）だけ言い分ける。** 押した人が取れる行動（画面を読み直す）が他の失敗と違う
 - **確認の中で送る操作は、送信中も失敗時も dialog を開いたままにする。** 押した時点で閉じるコンポーネント

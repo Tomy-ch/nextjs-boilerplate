@@ -38,6 +38,8 @@
 
 Client island として開閉・focus trap・Escape を担い、確認内容・Server Action・実行結果は feature が children として渡します。
 
+**閉じると、`AlertDialogTrigger` の有無にかかわらず、dialog を呼び出した要素へフォーカスが戻ります。** `Dialog` と `Sheet` と共有するこの規則は、レイヤー README の [本文の上へ重なる面](../../../README.ja.md#本文の上へ重なる面) が持ちます。
+
 何を消すのか、実行後にどこへ遷移するのか、失敗したときに何を出すのかは持ちません。`AlertDialogAction` は dialog を閉じるところまでで、実行そのものは呼び出し元の handler または `form` の送信が担います。
 
 **失敗の文言は `AlertDialogContent` の内側へ置きます。** 外側は開いているあいだ overlay に覆われ、
@@ -54,4 +56,4 @@ vendor は現在 Radix ですが、公開 API に vendor 名は含めません�
 
 ## Storybook とテスト
 
-Storybook は破壊的操作の確認という基本構成（`Default`）を確認します。テストは trigger からの開閉、`alertdialog` role と title によるアクセシブルな名前、`AlertDialogCancel` で閉じること、a11y 自動検査を確認します。
+Storybook は破壊的操作の確認という基本構成（`Default`）を確認します。テストは trigger からの開閉、`alertdialog` role と title によるアクセシブルな名前、`AlertDialogCancel` で閉じること、閉じたときのフォーカスの戻り先（trigger、trigger が無いときは開いた時点でフォーカスしていた要素、その要素が消えているときはフォーカス可能な祖先）、a11y 自動検査を確認します。

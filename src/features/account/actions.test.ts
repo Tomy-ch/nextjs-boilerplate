@@ -149,6 +149,16 @@ describe("updateProfileAction", () => {
     });
   });
 
+  it("認証が切れていたら、編集画面へ戻る入り直しへ送り、再検証を要求しない", async () => {
+    updateMyProfile.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(updateProfileAction(IDLE_PROFILE, formDataOf())).rejects.toThrow(
+      "NEXT_REDIRECT:/login?returnUrl=%2Fmypage%2Fedit",
+    );
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
   it("更新が失敗したとき再検証を要求しない", async () => {
     updateMyProfile.mockRejectedValue(new Error("boom"));
 
@@ -239,6 +249,15 @@ describe("registerAction", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 
+  it("認証が切れていたら、戻り先を保ったまま登録画面へ戻る入り直しへ送る", async () => {
+    registerUser.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(
+      registerAction(IDLE_PROFILE, registrationFormDataOf({ [RETURN_URL_FIELD]: "/checkout" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/login?returnUrl=%2Fonboarding%3FreturnUrl%3D%252Fcheckout");
+    expect(redirect).toHaveBeenCalledOnce();
+  });
+
   it("競合以外の失敗は分類のまま伝える", async () => {
     registerUser.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 
@@ -299,6 +318,15 @@ describe("withdrawAction", () => {
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).resolves.toMatchObject({
       formError: "問題が発生しました。時間をおいて再試行してください。",
     });
+  });
+
+  it("認証が切れていたら、マイページへ戻る入り直しへ送る", async () => {
+    withdrawMe.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/login?returnUrl=%2Fmypage",
+    );
+    expect(redirect).toHaveBeenCalledOnce();
   });
 
   it("失敗したとき画面を移さない", async () => {

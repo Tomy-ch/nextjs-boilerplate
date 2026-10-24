@@ -6,6 +6,7 @@ import type { ComponentProps } from "react";
 import { cn } from "@/components/cn";
 import { XIcon } from "@/components/icon";
 
+import { useFocusReturn } from "../use-focus-return";
 import { useOverlayHistory } from "../use-overlay-history";
 
 /**
@@ -121,6 +122,9 @@ function DialogOverlay({ className, ...props }: ComponentProps<typeof DialogPrim
  * 背景は `bg-background`、境界は `border-border` を使う。面が透明だと背後の内容と重なって
  * 可読性と contrast を失う。
  *
+ * 閉じると、開いたときに focus があった要素へ focus を戻す（消えていれば、focus を受けられる最も
+ * 近い祖先へ）。`onCloseAutoFocus` で `preventDefault()` すれば、戻し先は呼び出し側が決める。
+ *
  * @param props - Radix `Dialog.Content` の props。`showCloseButton` を `false` にすると右上の
  *   閉じる操作を描画しない。閉じる手段を内容側で用意する場合だけ使う。
  *
@@ -130,11 +134,15 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  onCloseAutoFocus,
+  onOpenAutoFocus,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Content> & {
   /** @defaultValue true */
   showCloseButton?: boolean;
 }) {
+  const focusReturn = useFocusReturn({ onCloseAutoFocus, onOpenAutoFocus });
+
   return (
     <DialogPortal>
       <DialogOverlay />
@@ -144,6 +152,8 @@ function DialogContent({
           className,
         )}
         data-slot="dialog-content"
+        onCloseAutoFocus={focusReturn.onCloseAutoFocus}
+        onOpenAutoFocus={focusReturn.onOpenAutoFocus}
         {...props}
       >
         {children}

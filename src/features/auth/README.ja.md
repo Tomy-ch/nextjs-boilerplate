@@ -77,7 +77,7 @@ Action の `redirect()` は Route Handler へ遷移できません** —— clie
 
 ## 隣に置くもの
 
-- 保護ルートの判定と未認証時のリダイレクトは [`src/proxy.ts`](../../proxy.ts)
+- 保護ルートの判定と未認証時のリダイレクトは、画面の要求については [`src/proxy.ts`](../../proxy.ts)。Server Action の呼び出しはそこを素通りし、`loginPath` で自分でリダイレクトする（[0043](../../../docs/adr/0043-middleware-policy.ja.md)）
 - 認証の往復は [`src/app/api/auth/`](../../app/api/auth)
 - 確定認可は [`adapters/server/auth`](../../adapters/server/auth)
 

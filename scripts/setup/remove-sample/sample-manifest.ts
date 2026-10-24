@@ -51,6 +51,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 何を購読するかは題材が決めるので、この中継は題材側である。
   "src/app/api/inquiries",
   // 題材に固有のカーネルモジュール
+  "src/model/campaign",
   "src/model/cart",
   "src/model/coupon",
   "src/model/dashboard",
@@ -94,6 +95,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "e2e/journeys/focus.spec.ts",
   "e2e/journeys/not-found.spec.ts",
   "e2e/journeys/discontinue.spec.ts",
+  "e2e/journeys/campaign-suspend.spec.ts",
   "e2e/journeys/coupons.spec.ts",
   "e2e/journeys/checkout-coupon.spec.ts",
   // 破棄の道具（使い終わったら不要）。

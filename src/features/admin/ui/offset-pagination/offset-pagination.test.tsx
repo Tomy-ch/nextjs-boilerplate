@@ -4,17 +4,22 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ADMIN_USER_LIST_PATH } from "../../../paths";
-import { USER_SCOPE } from "../../query";
-import { AdminUserPagination } from "./pagination";
+import { toPageLinks } from "../../page-window";
+import { OffsetPagination } from "./offset-pagination";
+
+const LIST_PATH = "/admin/list";
+
+function hrefOf(page: number) {
+  return page === 1 ? LIST_PATH : `${LIST_PATH}?page=${page}`;
+}
 
 function renderPagination(page: number, pageCount: number) {
   return render(
-    <AdminUserPagination location={{ scope: USER_SCOPE.ALL, page }} pageCount={pageCount} />,
+    <OffsetPagination label="一覧のページ送り" links={toPageLinks(page, pageCount, hrefOf)} />,
   );
 }
 
-describe("AdminUserPagination", () => {
+describe("OffsetPagination", () => {
   it("いま見ているページを現在地として示す", () => {
     renderPagination(2, 4);
 
@@ -25,24 +30,19 @@ describe("AdminUserPagination", () => {
     expect(screen.getByRole("link", { name: "3 ページ目" })).not.toHaveAttribute("aria-current");
   });
 
-  it("任意のページへ跳べる行き先を組む", () => {
+  it("番号ごとに渡された行き先へ跳べる", () => {
     renderPagination(2, 4);
 
     expect(screen.getByRole("link", { name: "4 ページ目" })).toHaveAttribute(
       "href",
-      `${ADMIN_USER_LIST_PATH}?page=4`,
+      `${LIST_PATH}?page=4`,
     );
   });
 
-  it("絞り込みを保ったまま移る", () => {
-    render(
-      <AdminUserPagination location={{ scope: USER_SCOPE.WITHDRAWN, page: 1 }} pageCount={3} />,
-    );
+  it("渡された名前で読み上げる", () => {
+    renderPagination(1, 4);
 
-    expect(screen.getByRole("link", { name: "3 ページ目" })).toHaveAttribute(
-      "href",
-      `${ADMIN_USER_LIST_PATH}?scope=withdrawn&page=3`,
-    );
+    expect(screen.getByRole("navigation", { name: "一覧のページ送り" })).toBeInTheDocument();
   });
 
   it("先頭では、前へを link にせず押せない状態で残す", () => {
@@ -62,13 +62,10 @@ describe("AdminUserPagination", () => {
   it("途中では前後のどちらへも進める", () => {
     renderPagination(2, 4);
 
-    expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute(
-      "href",
-      ADMIN_USER_LIST_PATH,
-    );
+    expect(screen.getByRole("link", { name: "前のページ" })).toHaveAttribute("href", LIST_PATH);
     expect(screen.getByRole("link", { name: "次のページ" })).toHaveAttribute(
       "href",
-      `${ADMIN_USER_LIST_PATH}?page=3`,
+      `${LIST_PATH}?page=3`,
     );
   });
 
@@ -84,6 +81,31 @@ describe("AdminUserPagination", () => {
 
     expect(screen.queryByRole("link", { name: "3 ページ目" })).not.toBeInTheDocument();
     expect(screen.getAllByText("省略されたページ")).toHaveLength(2);
+  });
+
+  it("省略の印を、渡された並びのとおり番号の間に置く", () => {
+    render(
+      <OffsetPagination
+        label="一覧のページ送り"
+        links={{
+          entries: [
+            { kind: "page", page: 1, href: LIST_PATH, current: false },
+            { kind: "gap", after: 1 },
+            { kind: "page", page: 5, href: `${LIST_PATH}?page=5`, current: true },
+            { kind: "gap", after: 5 },
+            { kind: "page", page: 9, href: `${LIST_PATH}?page=9`, current: false },
+          ],
+          previousHref: `${LIST_PATH}?page=4`,
+          nextHref: `${LIST_PATH}?page=6`,
+        }}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByRole("listitem")
+        .map((item) => (item.textContent?.includes("省略") ? "…" : item.textContent)),
+    ).toEqual(["前へ", "1", "…", "5", "…", "9", "次へ"]);
   });
 
   it("a11y 検査を通る", async () => {

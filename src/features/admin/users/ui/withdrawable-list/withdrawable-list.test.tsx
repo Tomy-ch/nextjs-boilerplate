@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -18,6 +18,14 @@ const ROW: AdminUserRow = {
   name: "山田 太郎",
   email: "yamada@example.com",
   phone: "09012345678",
+  withdrawn: false,
+};
+
+const OTHER: AdminUserRow = {
+  id: toUserId("0195f0c2-0000-7000-8000-000000000002"),
+  name: "佐藤 花子",
+  email: "sato@example.com",
+  phone: "09087654321",
   withdrawn: false,
 };
 
@@ -106,6 +114,68 @@ describe("WithdrawableUserList", () => {
 
     expect(withdrawAction).not.toHaveBeenCalled();
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("確認をやめたら、開いた行の操作へ focus を戻す", async () => {
+    renderList();
+
+    await userEvent.click(screen.getByRole("button", { name: "山田 太郎 の操作" }));
+    await userEvent.click(
+      await within(document.body).findByRole("menuitem", { name: "退会させる" }),
+    );
+
+    const dialog = await screen.findByRole("alertdialog");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "山田 太郎 の操作" })).toHaveFocus(),
+    );
+  });
+
+  it("結果が返って確認が閉じたら、開いた行の操作へ focus を戻す", async () => {
+    renderList(() =>
+      Promise.resolve(
+        failedActionState({
+          formError: "山田 太郎 は進行中の購入が残っています。",
+          kind: ErrorKind.CONFLICT,
+        }),
+      ),
+    );
+
+    await confirmWithdraw();
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "山田 太郎 の操作" })).toHaveFocus(),
+    );
+  });
+
+  it("送信中に閉じて別の行を開いても、先に送った行の結果ではその確認を閉じない", async () => {
+    let settle: (state: WithdrawUserState) => void = () => undefined;
+    const withdrawAction = vi.fn(
+      () =>
+        new Promise<WithdrawUserState>((resolve) => {
+          settle = resolve;
+        }),
+    );
+
+    render(<WithdrawableUserList items={[ROW, OTHER]} withdrawAction={withdrawAction} />);
+
+    await confirmWithdraw();
+    await waitFor(() => expect(withdrawAction).toHaveBeenCalledTimes(1));
+    await userEvent.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "やめる" }),
+    );
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "佐藤 花子 の操作" }));
+    await userEvent.click(
+      await within(document.body).findByRole("menuitem", { name: "退会させる" }),
+    );
+    await screen.findByRole("alertdialog");
+
+    await act(async () => settle(succeededActionState({ name: ROW.name })));
+
+    expect(screen.getByRole("alertdialog")).toHaveTextContent(OTHER.name);
   });
 
   it("下に置くページ送りをそのまま並べる", () => {

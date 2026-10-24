@@ -227,6 +227,7 @@ biome の a11y ルールは要素の形だけを見るため、意味論が正�
 ### 本文の上へ重なる面
 
 - **Portal で本文の上へ出る面（通知、menu、dialog）は不透明な地を持つ。** 文脈内の `Alert` が使う `bg-warning/10` のような tint は、下地が本文の面であることを前提にしている。同じ variant の class を重なる面へ流用するときは、下地を面の側で与える
+- **modal が閉じたら、フォーカスはそれを呼び出した要素へ戻る**（[WAI-ARIA APG Modal Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)、WCAG 2.4.3）。Radix がフォーカスを戻す先はその component 自身の `Trigger` だけなので、trigger を持たない state から開いた modal（たとえば行の menu から開いたもの）は、閉じるとフォーカスを document body に残す。そこで `DialogContent`・`SheetContent`・`AlertDialogContent` は開いた時点でフォーカスを持っていた要素を覚えておき、どう閉じても（閉じる操作、Escape、結果が届いたあとに呼び出し元が閉じる場合）そこへフォーカスを戻す。その要素がその時点で document から消えていれば、開いた時点での最も近い `tabindex` を持つ祖先へ戻す。結果とともに操作が消えた行であれば table のスクロール領域であり、読み手の位置が保たれる。どちらも無い場合と、開いた時点でフォーカスが document body にあった場合は Radix のデフォルトに従う。呼び出し元の `onOpenAutoFocus` / `onCloseAutoFocus` は先に実行され、呼び出し元の `onCloseAutoFocus` での `preventDefault()` が優先される。実装は [`overlay/use-focus-return.ts`](./design-system/overlay/use-focus-return.ts) の 1 つだけである
 - 脇に領域を並べるバンドでは `main` が flex の項目になり、デフォルトでは中身の最小幅より狭くなれない。段組みや長い語が最小幅を押し上げると、`main` が親をはみ出して画面全体に横スクロールが出る。中身の側では防げないので、レイアウトシェルが `min-w-0` で縮む
 
 ## 配置・命名
@@ -245,7 +246,7 @@ Next.js と React は、`components/` 配下のディレクトリ構造・ディ
 - 公開 API でなくても、複数ファイルが同じ UI 概念の値を使う場合は owner を一つ決めて定義し、各ファイルから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい
 - レイヤー・目的・コンポーネント名は小文字 kebab-case にする。これは全ソースの kebab-case 規約と揃えるためであり、Next.js / React の強制ではない
 - `foundation` は個々の component ではなく、UI を横断して支える基盤の目的である。`typeset` の組版と `scrollbar` の scrollbar 表示が属し、いずれも `globals.css` から import する。**見える要素をレンダリングしない**のが共通点で、CSS だけのものと、属性を運ぶだけでレンダリングを返さない client island（`surface` のブリッジ）がある。CSS の効き方は 2 通りある。`scrollbar` のように継承プロパティを `:root` へ一度宣言して指定なしに効くものと、`typeset` のように `.typeset` を付けた範囲だけに効く opt-in のものがある。どちらかを README の冒頭で明示する
-- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が引く）、レイヤーをまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
+- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が、`overlay/use-focus-return.ts` を `dialog` / `sheet` / `alert-dialog` が引く）、レイヤーをまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
 
 ### レイヤー
 

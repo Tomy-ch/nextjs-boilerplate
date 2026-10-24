@@ -77,10 +77,19 @@ function headRequest(path: string): NextRequest {
 }
 
 /** Server Action の送信。使用先の route へ `Next-Action` 付きの POST として届く。 */
-function serverAction(path: string): NextRequest {
+function serverAction(
+  path: string,
+  init: { method?: string; sealed?: string; origin?: string } = {},
+): NextRequest {
+  const headers: Record<string, string> = {
+    "next-action": "0123456789abcdef",
+    ...(init.sealed === undefined ? {} : { cookie: `auth_session=${init.sealed}` }),
+    ...(init.origin === undefined ? {} : { origin: init.origin, host: "localhost:3000" }),
+  };
+
   return new NextRequest(new URL(path, "http://localhost:3000"), {
-    method: "POST",
-    headers: { "next-action": "0123456789abcdef" },
+    method: init.method ?? "POST",
+    headers,
   });
 }
 
@@ -415,6 +424,49 @@ describe("proxy", () => {
 
     expect(response.headers.get("location")).toContain("/login");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("未認証でも保護されたパスへの Server Action はログインへ送らずに通す", async () => {
+    const response = await proxy(serverAction("/account"));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+    expect(readOptimisticSession).not.toHaveBeenCalled();
+  });
+
+  it("役割が足りない主体の Server Action も送り返さずに通す", async () => {
+    readOptimisticSession.mockResolvedValue(session);
+
+    const response = await proxy(serverAction("/admin/reports", { sealed: "sealed" }));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("Next-Action を載せた読み取りは保護されたパスでログインへ送る", async () => {
+    const response = await proxy(serverAction("/account", { method: "GET" }));
+
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?returnUrl=%2Faccount",
+    );
+  });
+
+  it.each(["PUT", "DELETE"])(
+    "Next-Action を載せた POST 以外の %s は保護されたパスでログインへ送る",
+    async (method) => {
+      const response = await proxy(serverAction("/account", { method }));
+
+      expect(response.headers.get("location")).toBe(
+        "http://localhost:3000/login?returnUrl=%2Faccount",
+      );
+    },
+  );
+
+  it("宣言に無い origin からの Server Action は保護されたパスでも 403 で止める", async () => {
+    const response = await proxy(serverAction("/account", { origin: "https://evil.example.test" }));
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("location")).toBeNull();
   });
 
   it("宣言に無い origin からの書き込みは 403 で止める", async () => {

@@ -151,7 +151,7 @@ describe("AdminProductEditView", () => {
     // **ここは `user-event` を使いません。**差し替えた入力欄は編集面の代役で、実物は打鍵ごとに
     // 文字を足すのではなく、組み上げた HTML をまとめて返します。1 文字ずつ送ると実物と違う
     // 呼ばれ方になります。
-    fireEvent.change(screen.getByRole("textbox", { name: "商品説明" }), {
+    fireEvent.change(await screen.findByRole("textbox", { name: "商品説明" }), {
       target: { value: "<p>直した本文</p>" },
     });
 

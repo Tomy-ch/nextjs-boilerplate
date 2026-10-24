@@ -40,7 +40,8 @@ undone and that the cleanup does not finish at the same time**.
 
 **When the result comes back, close it regardless of success or failure.** The confirmation is a surface that asks "really press?",
 not one that reports results. Keeping it open only on rejection would separate the reason shown above the list behind the background,
-and the user would have to close it once to read it.
+and the user would have to close it once to read it. A result answers the row that was sent: when the confirmation was closed while sending and
+another row's confirmation was opened meanwhile, that one stays open.
 
 ## Results stay above the list
 

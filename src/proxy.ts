@@ -257,7 +257,26 @@ async function openCors(request: NextRequest, origin: string): Promise<NextRespo
 }
 
 /**
+ * Server Action の呼び出しかを判定する。
+ *
+ * @remarks
+ * Next.js が action として扱う POST だけを含めます。それ以外の method は `Next-Action` を
+ * 載せていても action として処理されないため、含めるとヘッダを足すだけで画面の前捌きを外せることに
+ * なります。
+ *
+ * @param request - 受信した要求
+ * @returns POST で `Next-Action` を載せていれば true
+ */
+function isServerActionCall(request: NextRequest): boolean {
+  return request.method === "POST" && request.headers.has("next-action");
+}
+
+/**
  * 到達してよい役割を持たない要求を送り返し、それ以外を通す。
+ *
+ * @remarks
+ * **Server Action の呼び出しは送り返さずに通します。** action の経路は redirect の応答を扱えず、
+ * 送り返すと画面は汎用の失敗に落ちます。認証と役割の判定は action 自身が持ちます。
  *
  * @param request - 受信した要求
  * @returns 送出する応答
@@ -266,7 +285,7 @@ async function authorize(request: NextRequest): Promise<NextResponse> {
   const url = new URL(request.url);
   const allowed = allowedRolesFor(url.pathname);
 
-  if (allowed === null) {
+  if (allowed === null || isServerActionCall(request)) {
     return NextResponse.next();
   }
 

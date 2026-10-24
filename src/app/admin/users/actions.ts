@@ -1,35 +1,25 @@
 "use server";
 
+import { redirect, unstable_rethrow } from "next/navigation";
+
 import { withdrawUser } from "@/adapters/server/api/users";
-import { verifySession } from "@/adapters/server/auth/session";
-import { createAppError, findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { ADMIN_USER_LIST_PATH } from "@/features/admin/paths";
 import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/form-names";
 import type { WithdrawUserState } from "@/features/admin/users/form-state";
 import {
   WITHDRAW_CONFLICT_MESSAGE,
   WITHDRAW_TARGET_LOST_MESSAGE,
 } from "@/features/admin/users/form-state";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { isAdmin } from "@/model/authz";
 import { toUserId } from "@/model/user/user";
-
-/**
- * 役割を持たない主体の要求をここで止める。
- *
- * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
- */
-async function assertAdmin(): Promise<void> {
-  if (!isAdmin(await verifySession())) {
-    throw createAppError(ErrorKind.PERMISSION_DENIED, {
-      cause: new Error("管理の操作に必要な役割がありません"),
-    });
-  }
-}
+import { assertAdmin } from "../assert-admin";
 
 /**
  * 利用者を 1 件退会させる。
@@ -53,8 +43,10 @@ export async function withdrawUserAction(
   formData: FormData,
 ): Promise<WithdrawUserState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_USER_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -68,6 +60,8 @@ export async function withdrawUserAction(
   try {
     await withdrawUser(toUserId(id));
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_USER_LIST_PATH));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({
         formError: `${name} は${WITHDRAW_CONFLICT_MESSAGE}`,

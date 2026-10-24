@@ -345,6 +345,38 @@ describe("placeOrderAction", () => {
     });
   });
 
+  it("確定で認証が切れていたら、確認画面へ戻る入り直しへ送る", async () => {
+    createPurchase.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    expect(await run(formDataOf())).toEqual({ to: "/login?returnUrl=%2Fcheckout" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("カートを読む時点で認証が切れていたら、確認画面へ戻る入り直しへ送る", async () => {
+    getMyCart.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    expect(await run(formDataOf())).toEqual({ to: "/login?returnUrl=%2Fcheckout" });
+    expect(createPurchase).not.toHaveBeenCalled();
+  });
+
+  it("置き直しで認証が切れていたら、確認画面へ戻る入り直しへ送る", async () => {
+    getMyCart.mockResolvedValue(PARTIALLY_ORDERABLE_CART);
+    setMyCartItem.mockRejectedValueOnce(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    expect(await run(formDataOf({ [ACCEPT_PRICE_CHANGE_FIELD]: "1" }))).toEqual({
+      to: "/login?returnUrl=%2Fcheckout",
+    });
+    expect(createPurchase).not.toHaveBeenCalled();
+  });
+
+  it("カートを読めない認証切れ以外の失敗は、値にせず境界へ渡す", async () => {
+    const failure = createAppError(ErrorKind.UNAVAILABLE);
+    getMyCart.mockRejectedValue(failure);
+
+    await expect(placeOrderAction(IDLE, formDataOf())).rejects.toBe(failure);
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
   it("後始末が通らなくても完了へ送る", async () => {
     removeMyCartItem.mockRejectedValue(createAppError(ErrorKind.UNAVAILABLE));
 

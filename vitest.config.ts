@@ -40,6 +40,9 @@ export default defineConfig({
       // カタログ自身の module を story から読む経路。`tsconfig.json` の宣言が正で、ここは
       // その写しである（vitest は tsconfig の `paths` を読まない）。
       "~catalog": fileURLToPath(new URL("./.storybook", import.meta.url)),
+      // App Router の build が差し替える先と揃える。素の `next/dynamic` は pages router の実装で、
+      // 読み込み中に Suspense を通らないため、待機表示の振る舞いがアプリと食い違う。
+      "next/dynamic": "next/dist/api/app-dynamic",
     },
   },
   test: {

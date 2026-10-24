@@ -129,6 +129,8 @@ destination editing, product list, purchase detail) are likewise drawn from the 
 | --- | --- | --- | --- | --- |
 | `placeOrderAction` | `actions.ts` | `PlaceOrderFormState` | `redirect` to the completion screen. Removes the purchased lines from the cart | Shows the classification next to the confirming operation |
 
+On `UNAUTHENTICATED`, the action redirects to sign-in with this screen as the return destination ([0043](../../../docs/adr/0043-middleware-policy.md)).
+
 How idempotency keys and submissions without the acknowledgment signal are handled is under Design Decisions.
 
 ## Test Perspectives
