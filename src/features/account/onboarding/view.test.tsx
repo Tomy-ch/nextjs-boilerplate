@@ -270,6 +270,7 @@ describe("OnboardingView", () => {
     const user = userEvent.setup();
     let release: ((lookup: typeof ADDRESS_LOOKUP) => void) | undefined;
 
+    registerAction.mockImplementation(() => new Promise(() => undefined));
     renderView();
     await goToConfirm(user);
     await user.click(screen.getByRole("button", { name: "戻る" }));
@@ -293,6 +294,21 @@ describe("OnboardingView", () => {
       });
     });
 
+    expect(screen.getByLabelText("市区町村")).toHaveValue(PROFILE.city);
+  });
+
+  it("拒まれたあとも、打った内容を欄に残す", async () => {
+    const user = userEvent.setup();
+
+    registerAction.mockResolvedValueOnce(
+      failedActionState({ formError: "入力内容を確認してください。", kind: ErrorKind.VALIDATION }),
+    );
+    renderView();
+    await goToConfirm(user);
+    await user.click(await screen.findByRole("button", { name: "登録する" }));
+    await screen.findByText("入力内容を確認してください。");
+
+    expect(screen.getByLabelText("名字")).toHaveValue(PROFILE.lastName);
     expect(screen.getByLabelText("市区町村")).toHaveValue(PROFILE.city);
   });
 

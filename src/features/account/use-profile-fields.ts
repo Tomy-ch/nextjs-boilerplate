@@ -8,7 +8,7 @@ import type {
   UseFormRegisterReturn,
   UseFormSetValue,
 } from "react-hook-form";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import type { ProfileField, ProfileInput } from "@/model/user/profile-schema";
 import { isRequiredProfileField, profileSchema } from "@/model/user/profile-schema";
@@ -21,11 +21,17 @@ import { useErrorVisibility } from "./use-error-visibility";
  * 入力欄へ渡す配線。
  *
  * @remarks
- * `register` が返すものに focus の通知を足した形です。rhf は focus を追跡しないため、誤りをいつ
- * 見せるかの判定に要る分をここで補います。
+ * `register` が返すものに、focus の通知と今の値を足した形です。rhf は focus を追跡しないため、
+ * 誤りをいつ見せるかの判定に要る分をここで補います。
+ *
+ * **値を渡して、入力欄を React が値を持つ形にします。** `<form action>` は action が終わると成否に
+ * かかわらず `form.reset()` を呼び、`register` だけの入力欄は打った内容を失います
+ * （`docs/design/forms.md`）。拒まれた送信のあとも、結果が定まらないあいだの送り直しでも、送った
+ * 内容が欄に残っていなければなりません。
  */
 export type FieldRegistration = UseFormRegisterReturn & {
   readonly onFocus: () => void;
+  readonly value: string;
 };
 
 /** 入力欄 1 つを描くのに要るもの一式。 */
@@ -91,6 +97,7 @@ export function useProfileFields(
     mode: "onTouched",
     defaultValues: toDefaultValues(profile),
   });
+  const values = useWatch({ control });
 
   /**
    * 検証の結果。client 側を優先し、無ければ server の応答を使う。
@@ -121,6 +128,7 @@ export function useProfileFields(
       message: errorVisibility.visible(field, current),
       registration: {
         ...registration,
+        value: values[field] ?? "",
         onFocus: focus.onFocus,
         onBlur: async (event) => {
           focus.onBlur();

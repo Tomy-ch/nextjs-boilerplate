@@ -18,6 +18,7 @@ function registrationOf(overrides: Partial<FieldRegistration> = {}): FieldRegist
     onBlur: vi.fn(async () => {}),
     onChange: vi.fn(async () => {}),
     onFocus: vi.fn(),
+    value: "",
     ref: vi.fn(),
     ...overrides,
   };
