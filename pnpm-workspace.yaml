@@ -11,6 +11,14 @@ minimumReleaseAge: 10080
 # 項目は `name@version` で書き、直上のコメントに理由と、窓が明ける日（YYYY-MM-DD）を添える。
 # 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
 minimumReleaseAgeExclude:
+  # GHSA-w74x-v6f9-j3xg / GHSA-wjr9-j795-jxcr (moderate) ほかの修正版。ajv が引き、commitlint・orval・shadcn
+  # の CLI でだけ走る。/supply-chain-triage は 2/12 LOW (tarball は upstream の v3.1.9 とバイト一致、
+  # provenance あり、侵害の署名なし)。窓が明ける 2026-10-28 に外す。
+  - "fast-uri@3.1.9"
+  # GHSA-27r3-jxmh-p828 (high) の修正版。shadcn の CLI が使う express が引き、配信物には入らない。
+  # /supply-chain-triage は 0/12 LOW (provenance は master の先頭を指し、侵害の署名なし)。
+  # 窓が明ける 2026-10-30 に外す。
+  - "body-parser@2.4.0"
   # next 16.4 の useRouter() が読む parentRenderTree を App Router の mock が渡すのは 10.6.3 から
   # (storybookjs/storybook#36732)。これが無いと next 16.4.1 (GHSA-2464-fhr4-w9xw /
   # GHSA-673q-mjm6-r5xr, critical) の下で全 story が描画されない。nextjs-vite が 6 つを版の完全
@@ -48,8 +56,15 @@ overrides:
   # 同じ URI 解析の取り違えが 3.1.5 にも残っており、3.1.6 で塞がれた。
   # GHSA-58mr-gqgx-xq4g / GHSA-qw65-cvwx-89v3 (high): authority の閉じない角括弧による host の
   # 取り違えと、serialize が port を検証せず authority を差し込める件。3.1.7 で塞がれた。
-  # ajv の宣言は ^3.0.1 で 3.1.7 はその内側。ajv が 3.1.7 以上を要求したら撤去する。
-  "fast-uri@<3.1.7": ">=3.1.7 <4"
+  # GHSA-w74x-v6f9-j3xg / GHSA-wjr9-j795-jxcr (moderate) / GHSA-333x-w4r6-6crp / GHSA-xhq7-xmqj-769h (low):
+  # scheme の percent-decode・domain の不正文字・相対参照の dot-segment の扱いの取り違え。3.1.9 で塞がれた。
+  # ajv の宣言は ^3.0.1 で 3.1.9 はその内側。ajv が 3.1.9 以上を要求したら撤去する。
+  "fast-uri@<3.1.9": ">=3.1.9 <4"
+  # body-parser (express が引き、express は shadcn の CLI が使う @modelcontextprotocol/sdk の依存) の推移的
+  # 依存。shadcn の CLI でだけ走り、配信物には入らない。
+  # GHSA-27r3-jxmh-p828 (high): 圧縮された本文の後ろに余分なバイトが付くと、解凍ストリームが残って DoS になる。
+  # express の宣言は ^2.2.1 で 2.4.0 はその内側。express が 2.4.0 以上を要求したら撤去する。
+  "body-parser@>=2.0.0 <2.4.0": ">=2.4.0 <3"
   # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
   # 公開されるドキュメントサイトで browser 上を走る。
   # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り
@@ -116,11 +131,14 @@ overrides:
   # express-rate-limit の宣言は ^10.2.0 で 10.7.4 はその内側。
   # express-rate-limit が 10.7.4 以上を要求したら撤去する。
   "ip-address@<10.7.4": ">=10.7.4 <11"
-  # jsdom / shadcn CLI / @dotenvx/dotenvx の推移的依存。
+  # jsdom / shadcn CLI / @shadcn/registry / @dotenvx/dotenvx の推移的依存。テストと shadcn の CLI で
+  # だけ走り、配信物には入らない。
   # GHSA-3wwx-pv8p-q78v (moderate): WebSocket の permessage-deflate の展開で未処理の例外が
-  # 出てプロセスが落ちる。宣言は ^7.24.5 / ^7.27.2 / ^7.11.0 で 7.29.1 はいずれの内側でもある。
-  # 3 つがすべて 7.29.1 以上を要求したら撤去する。
-  "undici@>=7.28.0 <7.29.1": ">=7.29.1 <8"
+  # 出てプロセスが落ちる。7.29.1 で塞がれた。
+  # GHSA-xjj6-f33q-929c (high) / GHSA-4qv8-2p9j-2685 / GHSA-f72v-6w45-q472 (moderate): 7.30.1 で塞がれた。
+  # 宣言は ^7.24.5 / ^7.29.1 / ^7.11.0 で 7.30.1 はいずれの内側でもある。
+  # すべてが 7.30.1 以上を要求したら撤去する。
+  "undici@>=7.0.0 <7.30.1": ">=7.30.1 <8"
   # shadcn CLI の推移的依存。
   # GHSA-6qxp-vccf-f47h (high): OAuth クライアントが資格情報を、MCP サーバが名指しした認可サーバへ
   # 送ってしまう。
