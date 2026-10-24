@@ -6,9 +6,9 @@ description: >-
   is to be a compromised publish, so a human can decide adopt-now vs wait from evidence rather than a day
   count. Use it whenever a version is held back by `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`;
   whenever `make tools-cooldown-check` blocks a pin; whenever a Dependabot security update wants to skip the
-  window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. It reports an axis as
-  unanswerable rather than as a pass when the evidence cannot be obtained. Strictly report-only — it never
-  edits a lockfile or a pin, lowers a window, or applies an upgrade. Do NOT use it to perform the upgrade, or
+  window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. An axis without
+  evidence is reported unanswerable, never a pass. Strictly report-only — it never edits a lockfile or a pin,
+  lowers a window, or applies an upgrade. Do NOT use it to perform the upgrade, or
   as a malware scanner for first-party code.
 argument-hint: '[<ecosystem>:<name>@<candidate-version>] [baseline=<version>] [days=<N>]'
 ---
