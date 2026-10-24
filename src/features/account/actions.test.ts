@@ -128,6 +128,7 @@ describe("updateProfileAction", () => {
       fieldErrors: {
         email: ["メールアドレスは受け付けられませんでした。入力し直してください。"],
       },
+      kind: ErrorKind.VALIDATION,
     });
   });
 
@@ -219,6 +220,7 @@ describe("registerAction", () => {
       status: "error",
       formError:
         "この内容では登録できませんでした。すでに登録が済んでいるか、他の登録と重複しています。",
+      kind: ErrorKind.CONFLICT,
     });
   });
 
@@ -232,6 +234,7 @@ describe("registerAction", () => {
       fieldErrors: {
         postalCode: ["郵便番号は受け付けられませんでした。入力し直してください。"],
       },
+      kind: ErrorKind.VALIDATION,
     });
     expect(redirect).not.toHaveBeenCalled();
   });
@@ -241,7 +244,7 @@ describe("registerAction", () => {
 
     const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
     expect(redirect).not.toHaveBeenCalled();
   });
 });
@@ -277,6 +280,7 @@ describe("withdrawAction", () => {
       formError:
         "進行中の購入が残っているため退会できません。購入が完了またはキャンセルされてから、もう一度お試しください。",
       fieldErrors: undefined,
+      kind: ErrorKind.CONFLICT,
     });
   });
 
@@ -285,6 +289,7 @@ describe("withdrawAction", () => {
 
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).resolves.toMatchObject({
       formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+      kind: ErrorKind.UNAVAILABLE,
     });
   });
 

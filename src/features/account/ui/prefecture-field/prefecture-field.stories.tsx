@@ -11,6 +11,7 @@ const REGISTRATION: FieldRegistration = {
   onBlur: fn(async () => {}),
   onChange: fn(async () => {}),
   onFocus: fn(),
+  value: "",
   ref: fn(),
 };
 

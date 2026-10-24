@@ -4,14 +4,16 @@ import { userEvent, within } from "storybook/test";
 import { idleActionState } from "@/model/action-state";
 import type { UserProfile } from "@/model/user/user";
 import { PREFECTURES, PROFILE } from "../../../account.fixture";
+import { useAddressField } from "../../../use-address-field";
 import { useProfileFields } from "../../../use-profile-fields";
 import { RegistrationAddressSection } from "./address-section";
 
 /** 入力欄の配線と補完を実物のまま通す。差し替えると、確かめたい補完そのものが動かない。 */
 function LiveAddressSection({ profile }: { profile: UserProfile | null }) {
   const fields = useProfileFields(profile, idleActionState());
+  const address = useAddressField(fields);
 
-  return <RegistrationAddressSection fields={fields} prefectures={PREFECTURES} />;
+  return <RegistrationAddressSection address={address} fields={fields} prefectures={PREFECTURES} />;
 }
 
 const meta = {
@@ -49,7 +51,7 @@ export const Completed: Story = {
 
     await userEvent.type(canvas.getByLabelText("郵便番号"), "220-0012");
     await userEvent.click(canvas.getByRole("button", { name: "住所を検索" }));
-    await canvas.findByText(/補完しました|見つかりませんでした/);
+    await canvas.findByText(/補完しました/);
   },
 };
 
@@ -60,6 +62,6 @@ export const NotFound: Story = {
 
     await userEvent.type(canvas.getByLabelText("郵便番号"), "999-9999");
     await userEvent.click(canvas.getByRole("button", { name: "住所を検索" }));
-    await canvas.findByText(/補完しました|見つかりませんでした/);
+    await canvas.findByText(/見つかりませんでした/);
   },
 };

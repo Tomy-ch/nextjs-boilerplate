@@ -17,14 +17,16 @@ import {
   PREFECTURES,
   UNAVAILABLE_ADDRESS_LOOKUP,
 } from "../../../account.fixture";
+import { useAddressField } from "../../../use-address-field";
 import { useProfileFields } from "../../../use-profile-fields";
 import { RegistrationAddressSection } from "./address-section";
 
 /** 入力欄の配線と補完を実物のまま通す。 */
 function Probe() {
   const fields = useProfileFields(null, idleActionState());
+  const address = useAddressField(fields);
 
-  return <RegistrationAddressSection fields={fields} prefectures={PREFECTURES} />;
+  return <RegistrationAddressSection address={address} fields={fields} prefectures={PREFECTURES} />;
 }
 
 async function searchWith(postalCode: string) {

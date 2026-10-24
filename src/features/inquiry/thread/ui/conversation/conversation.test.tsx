@@ -259,6 +259,43 @@ describe("InquiryConversation", () => {
     expect(idempotencyKeyOf(container)).toBe(before);
   });
 
+  it("投稿の競合（409）は同じ鍵の投稿が処理中のことなので、同じ鍵のまま送り直させる", async () => {
+    sendInquiryMessageAction.mockResolvedValue(
+      failedActionState({ formError: "処理中です", kind: ErrorKind.CONFLICT }),
+    );
+
+    const { container } = render(<InquiryConversation history={EMPTY_HISTORY} />);
+    const before = idempotencyKeyOf(container);
+
+    await send("在庫はいつ戻りますか。");
+    await screen.findByText("処理中です");
+
+    expect(idempotencyKeyOf(container)).toBe(before);
+  });
+
+  it("結果が定まらない失敗のあとは、送った本文を書き換えさせない", async () => {
+    sendInquiryMessageAction.mockResolvedValue(
+      failedActionState({ formError: "送れません", kind: ErrorKind.CONFLICT }),
+    );
+
+    render(<InquiryConversation history={EMPTY_HISTORY} />);
+
+    await send("在庫はいつ戻りますか。");
+    await screen.findByText(
+      "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+    );
+
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
+    expect(textarea).toHaveAccessibleDescription(
+      "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+    );
+
+    await userEvent.type(textarea, "追記");
+
+    expect(textarea).toHaveValue("在庫はいつ戻りますか。");
+  });
+
   // ----- 送れなかったとき -----
   it("項目に紐づかない失敗を、送信欄の隣で知らせる", async () => {
     sendInquiryMessageAction.mockResolvedValue(

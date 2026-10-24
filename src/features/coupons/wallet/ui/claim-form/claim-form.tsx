@@ -8,13 +8,9 @@ import { Input } from "@/components/design-system/form/input/input";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { useToast } from "@/components/shell/toaster/toaster";
 import { useEmptyGuard } from "@/components/use-empty-guard";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-import {
-  IDEMPOTENCY_KEY_FIELD,
-  leavesOutcomeOpen,
-  newIdempotencyKey,
-  settlesSubmission,
-} from "@/model/idempotency-key";
+import { type ConflictMeaning, IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
 import { claimCouponAction } from "../../../actions";
 import { CLAIM_CODE_FIELD } from "../../../form-names";
@@ -33,6 +29,9 @@ const LOCKED_MESSAGE =
 const FAILED_TITLE = "受け取れませんでした";
 
 const SUCCEEDED_TITLE = "クーポンを受け取りました";
+
+/** 受け取りの契約は競合（409）を、同じ鍵の受け取りが処理中であることに充てる。 */
+const CLAIM_CONFLICT = "in-progress" satisfies ConflictMeaning;
 
 /**
  * キャンペーンコードの受け取り欄。入力と冪等キーはここが持つ。
@@ -55,16 +54,12 @@ export function ClaimForm() {
     clear: clearEmpty,
     refuseEmpty,
   } = useEmptyGuard(code, EMPTY_CODE_MESSAGE);
-  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, { conflict: CLAIM_CONFLICT });
   const [seenState, setSeenState] = useState(state);
   const { toast } = useToast();
 
   if (seenState !== state) {
     setSeenState(state);
-
-    if (settlesSubmission(state, "in-progress")) {
-      setIdempotencyKey(newIdempotencyKey());
-    }
 
     if (state.status === "success") {
       setCode("");
@@ -90,7 +85,6 @@ export function ClaimForm() {
     state.status === "error" ? (state.fieldErrors?.[CLAIM_CODE_FIELD] ?? []) : [];
   const codeErrors = emptyError === null ? serverCodeErrors : [emptyError];
   const formError = state.status === "error" ? state.formError : null;
-  const outcomeOpen = leavesOutcomeOpen(state, "in-progress");
   const describedBy = [outcomeOpen ? LOCKED_ID : null, codeErrors.length === 0 ? null : ERROR_ID]
     .filter((id) => id !== null)
     .join(" ");

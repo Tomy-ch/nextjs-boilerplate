@@ -8,10 +8,9 @@ import {
   useMemo,
   useState,
 } from "react";
-
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
 import type { CartCoupon, CouponId } from "@/model/coupon/coupon";
-import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "@/model/idempotency-key";
 import { placeOrderAction } from "../../../actions";
 import { COUPON_ID_FIELD } from "../../../form-fields";
 import type { PlaceOrderFormState } from "../../../form-state";
@@ -67,7 +66,7 @@ export type PlaceOrderStateProviderProps = {
  * は自分が属する `form` しか見ないので、共有できるのは送信の状態そのものを持つ側だけです。
  *
  * 鍵は最初に受け取ったものを使い続け（理由は `model/idempotency-key.ts`）、応答が送信を確定させた
- * ときだけ新しくします（{@link settlesSubmission}）。
+ * ときだけ新しくします（`useSubmissionKey`）。
  *
  * **選んだクーポンも同じ理由でここに置きます。** 確定は脇・下端の帯・金額の確かめの dialog の
  * どこからでも送られ、どこから送っても同じ選択が載らなければなりません。
@@ -77,7 +76,7 @@ export type PlaceOrderStateProviderProps = {
  * 候補に戻っても選択は戻りません。ただし選び直せないあいだは手放しません。
  *
  * **送信中と、結果が定まらないあいだは選び直しを受け付けません。** 結果が定まらないあいだ中身を
- * 変えてはならない理由は {@link leavesOutcomeOpen}、送信中に止める理由は `../../../README.md`。
+ * 変えてはならない理由は `model/idempotency-key.ts` の `leavesOutcomeOpen`、送信中に止める理由は `../../../README.md`。
  *
  * ほかの拒否の文言を選び直しで消さないのは、クーポンを変えても直らないためです。
  *
@@ -88,24 +87,16 @@ export function PlaceOrderStateProvider({
   coupons,
   children,
 }: PlaceOrderStateProviderProps) {
-  const [idempotencyKey, setIdempotencyKey] = useState(initialIdempotencyKey);
   const [state, formAction, isPending] = useActionState<PlaceOrderFormState, FormData>(
     placeOrderAction,
     idleActionState(),
   );
-  const [seenState, setSeenState] = useState(state);
-
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (settlesSubmission(state)) {
-      setIdempotencyKey(newIdempotencyKey());
-    }
-  }
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
+    initialKey: initialIdempotencyKey,
+  });
   const [couponSelection, setCouponSelection] = useState<CouponId | null | undefined>(undefined);
   const [answeredState, setAnsweredState] = useState<PlaceOrderFormState | null>(null);
 
-  const outcomeOpen = leavesOutcomeOpen(state);
   const couponLocked = isPending || outcomeOpen;
   const coupon = coupons?.find((candidate) => candidate.id === couponSelection) ?? null;
 

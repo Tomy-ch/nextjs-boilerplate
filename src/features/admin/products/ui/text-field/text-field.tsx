@@ -9,7 +9,7 @@ import { FormField } from "@/components/patterns/form-field/form-field";
 /** `ProductTextField` の props。 */
 export type ProductTextFieldProps = Pick<
   InputProps,
-  "inputMode" | "max" | "min" | "placeholder" | "step" | "type"
+  "inputMode" | "max" | "min" | "placeholder" | "readOnly" | "step" | "type"
 > & {
   /** 入力欄の `id`。誤りの文言の `id` はここから導く。 */
   controlId: string;

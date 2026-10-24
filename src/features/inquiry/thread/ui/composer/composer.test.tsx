@@ -16,6 +16,7 @@ function renderComposer(overrides: Partial<Parameters<typeof InquiryComposer>[0]
   const props = {
     action: vi.fn(),
     idempotencyKey: KEY,
+    outcomeOpen: false,
     pending: false,
     state: idleActionState<void, typeof INQUIRY_BODY_FIELD>(),
     ...overrides,
@@ -188,6 +189,7 @@ describe("InquiryComposer", () => {
       <InquiryComposer
         action={vi.fn()}
         idempotencyKey={KEY}
+        outcomeOpen={false}
         pending={false}
         state={succeededActionState<void, typeof INQUIRY_BODY_FIELD>(undefined)}
       />,
@@ -206,6 +208,7 @@ describe("InquiryComposer", () => {
       <InquiryComposer
         action={vi.fn()}
         idempotencyKey={KEY}
+        outcomeOpen={false}
         pending={false}
         state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
       />,
@@ -214,6 +217,60 @@ describe("InquiryComposer", () => {
     expect(textarea).toHaveValue("打ち直したくない本文");
     // 項目に紐づかない失敗なので、入力欄そのものへ不正の印は付かない。
     expect(textarea).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("結果が定まらないあいだは本文を書き換えさせず、理由を欄に結ぶ", async () => {
+    const { rerender } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
+    await userEvent.type(textarea, "送った本文");
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "を書き換える");
+
+    expect(textarea).toHaveValue("送った本文");
+    expect(textarea).toHaveAccessibleDescription(
+      "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+    );
+  });
+
+  it("結果が定まったら、また書き換えられる", async () => {
+    const { rerender } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={false}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "本文");
+
+    expect(textarea).toHaveValue("本文");
+    expect(
+      screen.queryByText(
+        "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("本文の項目エラーを入力欄へ紐づける", () => {

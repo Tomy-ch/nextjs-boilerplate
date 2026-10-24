@@ -169,3 +169,21 @@ export const Blocked: Story = {
   },
   render: () => <ValidatedWizard />,
 };
+
+/**
+ * 今の段階から離れられなくした場合。送った内容を変えてはならないあいだに使い、前へも進捗からも
+ * 動けない。理由を示すのは呼び出し元。
+ */
+export const Locked: Story = {
+  args: {
+    label: "利用申請",
+    steps: STEPS,
+    submit: <Button type="submit">申請する</Button>,
+    locked: true,
+  },
+  render: (args) => (
+    <form className="max-w-xl">
+      <WizardForm {...args} />
+    </form>
+  ),
+};

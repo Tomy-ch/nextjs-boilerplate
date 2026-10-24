@@ -90,7 +90,7 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | 廃番 | success（廃番にできる）/ empty（どのカートにも無い） | `Page/Admin/Products/Discontinue/{Default,NoImpact}` |
 | | 進行中の購入が残っている / 全件は並んでいない / 読めなかった | `Page/Admin/Products/Discontinue/{InProgressRemaining,InProgressPartial,RemainingUnavailable}` |
 | | 確認・送信中・条件が読めない・条件が拒まれた | `Page/Admin/Products/Discontinue/{Confirming,Submitting,InvalidCondition,RejectedCondition}` |
-| | 送信時に進行中の購入が見つかった（競合）/ その他の失敗 | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable}` |
+| | 送信時に進行中の購入が見つかった（競合）/ その他の失敗 / 結果が定まらないあいだ条件を保つ | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable,UnavailableLocked}` |
 | | 結果の表示 / 既に廃番 | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
 | | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
 | ユーザー | success / empty | `Page/Admin/Users/{Default,Empty}` |
