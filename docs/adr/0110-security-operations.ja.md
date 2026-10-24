@@ -91,13 +91,13 @@ Accepted (一部 exclusion)
 - **サプライチェーン姿勢の計測(OpenSSF Scorecard)**: コードでも依存でもなく、**リポジトリ自身の設定**(ブランチ保護 / 依存のピン / token の権限 / セキュリティポリシーの有無)を測る。**姿勢そのものが成果物**であり、宣言ファイルとセットアップ手順（`make setup-repo`）としてこれを持つ —— **テンプレートからの生成はツリーしかコピーせず、ブランチ保護も token の権限も複製されない**ので、設定そのものではなく設定を適用する手順が渡る。変更ではなくリポジトリの性質なので PR では走らせず、required check にも登録しない。**公開データセットへの送信(`publish_results`)は行わない** —— リポジトリの名前に関する判断であり、技術的な判断ではないためここでは決めない
   - **点を上げることを目的にしない。** 測られた点が低いことと、守られていないことは別である —— **点が低いことは、どの決定の撤回条件にもならない**([0140](0140-documentation-operations.ja.md))。頭打ちのまま置く信号が 3 つあり、いずれも点ではなく対象の有無で決めている
     - **`Branch-Protection`** —— 読み切るには常設の資格情報が要り、それを置かない決定が先にある([0153](0153-ci-configuration.ja.md)「トークンの発行元」)。保護の実体は [`.github/settings/branch-protection.json`](../../.github/settings/branch-protection.json) が宣言している
-    - **`Fuzzing`** —— ファジングを持たない。**撤回条件は、本体が、外から来たバイト列を自前で解く層を持つようになったとき**。いまのプレゼンテーションレイヤーが解くのは契約から生成した型を通った値で、パーサーそのものを持たない —— ファズする対象が無い([0090](0090-testing-strategy.ja.md))
+    - **`Fuzzing`** —— ファジングを持たない。**撤回条件は、本体が、外から来たバイト列を自前で解く層を持つようになったとき**。プレゼンテーションレイヤーは契約から生成した型を通った値だけを受け取り、パーサーを自前で持たない —— ファズする対象が無い([0090](0090-testing-strategy.ja.md))
     - **`CII-Best-Practices`** —— OpenSSF Best Practices バッジを取得しない。**撤回条件は、本リポジトリが、テンプレートではなく成果物そのものとして公開運用へ移るとき**。バッジは登録した*リポジトリの名前*に紐づき、複製したツリーには移らない([0142](0142-license.ja.md))
 - **Actions 定義の静的解析(zizmor)**: CI の実行内容そのものを対象にする層。アプリのコードと依存を見る上の 3 者は、`.github/**` に書かれた `run:` や権限の与え方を見ない。**hook と CI の双方**で`--offline` で走らせ、**high の所見で fail-closed**。`--min-severity` は表示も絞るので、全所見を出す実行とゲートの実行を分け、引き下げた所見が出力から消えないようにする。抑止は`.github/zizmor.yml` に理由付きで宣言し、下記 4 の抑止ポリシーに従う(検査の責務と落とし方は [0153](0153-ci-configuration.ja.md) が正)
 - **Trivy fs 二段運用**:
   - **dev ゲート**(全 PR・advisory): `scan-type: fs` / `severity: CRITICAL,HIGH,MEDIUM` / **`ignore-unfixed: true`**(修正不能は無視)/ hard-fail しない + PR コメント
   - **release ゲート**(保護ブランチへの PR 限定・厳格): **`ignore-unfixed: false`**(未修正も可視化)で厳格化。**止めるのはこの一点だけ**である
-- **依存監査ゲート**: **`pnpm audit` をデフォルト**とする。到達可能性(reachability)フィルター —— 脆弱な関数へ実際に到達するコードパスがあるものだけを blocking にする絞り込み —— は、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking しきい値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.ja.md) のデフォルトを維持し、本項はその CI ゲート側の blocking しきい値を定める
+- **依存監査ゲート**: **`pnpm audit` をデフォルト**とする。到達可能性(reachability)フィルター —— 脆弱な関数へ実際に到達するコードパスがあるものだけを blocking にする絞り込み —— は、`pnpm audit` に該当機能がなく、osv-scanner の call analysis も JS/TS 非対応のため、**現行ツールでは実装不能**である。したがって blocking しきい値は **severity(`high` / `critical`)と修正可能性(fixable)** で定める(未修正〈unfixable〉はノイズになりやすいため advisory 扱いとし、修正可能な high 以上を blocking)。運用 SLA(`high` 以上は 48 時間以内に対応着手)は [0004](0004-library-management.ja.md) のデフォルトを維持し、本項はその CI ゲート側の blocking しきい値を定める。**`osv-scanner.toml`(下記 3.4)で抑止した検出も、`ignoreUntil` までは止めない** —— `pnpm audit` は自前の抑止を持たず、同じ許容を書く 2 か所目を作ると 1 か所目と揃え続けることになる。抑止したものは報告に抑止済みとして残す
 - **スキャナー間で検出が食い違う場合は和集合を正とする**。Trivy fs と `pnpm audit` は集計単位(CVE 単位 / advisory 単位)も対象範囲も異なり、同一リポジトリに対して異なる件数を返す。片方だけを正とすると、そのツールが見ない領域(例: `pnpm audit` は npm advisory DB のみを見る)が恒久的な死角になる。**どちらか一方でも blocking しきい値に達したものは blocking として扱う**。両者の件数が一致しないこと自体は異常ではないため、突合して差分を潰そうとしない
 
 #### 3.1 脆弱性スキャンを push のゲートにしない
@@ -155,10 +155,10 @@ Security グループは**週次スケジュール + 差分が届く PR** で走
 | `.gitleaks.toml` | 検知ルールセットとパス単位の allowlist |
 | `.gitleaksignore` | 検出 1 件(フィンガープリント `<path>:<rule-id>:<line>`) |
 | `.trivyignore.yaml` | 脆弱性 ID 1 件(`paths` でパスを限定)。期限の項目は `expired_at` |
-| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルターした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる。期限の項目は `ignoreUntil` |
+| `osv-scanner.toml` | 脆弱性 ID 1 件(`reason` が必須)。**フィルターした所見をツールが理由付きで出力へ残す**ため、抑止と黙殺が見分けられる。期限の項目は `ignoreUntil`。**依存監査ゲートも同じエントリを読む**(`scripts/audit-gate`) |
 | `sonar-project.properties` | ルール 1 件 × パスの組(`sonar.issue.ignore.multicriteria`)。**SonarCloud は hotspot を UI で review する仕組みを持つが、それはリポジトリの外に決定を置く** —— 複製したリポジトリへ同じ判断が渡らないので、リポジトリが持つ抑止はこのファイルに限る |
 | `bearer.ignore` | 検出 1 件(フィンガープリント)。`comment` に理由を書く。**JSON なので冒頭のポリシー明記が置けない** —— 様式は `bearer ignore add` が決め、理由は各エントリが持つ |
-| `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(zizmor 1.29.0 の制約。ファイル単位の remap が入ったら remap は撤回する) |
+| `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(固定している zizmor の制約。ファイル単位の remap が入ったら remap は撤回する) |
 | `mise.toml` | pin 1 件(直上のコメント `tools-cooldown-ignore:`)。**ウィンドウが明ける日を必ず添える** —— 検疫の免除は日付でしか撤去条件を書けない |
 | `pnpm-workspace.yaml` | 検疫の免除 1 件(`minimumReleaseAgeExclude` の `<name>@<version>`)。**バージョンを名指しし、直上のコメントに理由とウィンドウが明ける日を書く** —— 名前だけの免除はその依存の以後すべてのバージョンを素通しにする |
 

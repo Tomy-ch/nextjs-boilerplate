@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { type Advisory, isBlocking, parseAudit } from "./advisories";
+import { type Advisory, isBlocking, isSuppressed, parseAudit } from "./advisories";
+
+const NONE: ReadonlySet<string> = new Set();
 
 function raw(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -20,6 +22,7 @@ function audit(advisories: Record<string, unknown>): string {
 
 function advisory(overrides: Partial<Advisory> = {}): Advisory {
   return {
+    id: "GHSA-r28c-9q8g-f849",
     module: "postcss",
     severity: "high",
     title: "PostCSS: Path Traversal",
@@ -51,6 +54,12 @@ describe("parseAudit", () => {
     ]);
   });
 
+  it("URL から GHSA の ID を読めなければ ID を持たない", () => {
+    expect(
+      parseAudit(audit({ "1": raw({ url: "https://www.npmjs.com/advisories/1234" }) }))[0]?.id,
+    ).toBeUndefined();
+  });
+
   it("finding を持たない検出の経路を空にする", () => {
     expect(parseAudit(audit({ "1": raw({ findings: undefined }) }))[0]?.paths).toEqual([]);
   });
@@ -80,18 +89,41 @@ describe("parseAudit", () => {
 describe("isBlocking", () => {
   // ----- 正常系 -----
   it("修正版のある high を止める", () => {
-    expect(isBlocking(advisory())).toBe(true);
+    expect(isBlocking(advisory(), NONE)).toBe(true);
   });
 
   it("修正版のある critical を止める", () => {
-    expect(isBlocking(advisory({ severity: "critical" }))).toBe(true);
+    expect(isBlocking(advisory({ severity: "critical" }), NONE)).toBe(true);
   });
 
   it("修正版の無い high を止めない", () => {
-    expect(isBlocking(advisory({ patched: undefined }))).toBe(false);
+    expect(isBlocking(advisory({ patched: undefined }), NONE)).toBe(false);
   });
 
   it("修正版があっても moderate を止めない", () => {
-    expect(isBlocking(advisory({ severity: "moderate" }))).toBe(false);
+    expect(isBlocking(advisory({ severity: "moderate" }), NONE)).toBe(false);
+  });
+
+  it("抑止した ID の high を止めない", () => {
+    expect(isBlocking(advisory(), new Set(["GHSA-r28c-9q8g-f849"]))).toBe(false);
+  });
+
+  it("別の ID を抑止していても、修正版のある high を止める", () => {
+    expect(isBlocking(advisory(), new Set(["GHSA-0000-0000-0000"]))).toBe(true);
+  });
+});
+
+describe("isSuppressed", () => {
+  // ----- 正常系 -----
+  it("抑止した ID と一致すれば抑止している", () => {
+    expect(isSuppressed(advisory(), new Set(["GHSA-r28c-9q8g-f849"]))).toBe(true);
+  });
+
+  it("抑止した ID と一致しなければ抑止していない", () => {
+    expect(isSuppressed(advisory(), NONE)).toBe(false);
+  });
+
+  it("ID を持たない検出は抑止していない", () => {
+    expect(isSuppressed(advisory({ id: undefined }), new Set(["GHSA-r28c-9q8g-f849"]))).toBe(false);
   });
 });
