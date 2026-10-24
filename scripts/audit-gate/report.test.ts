@@ -27,7 +27,7 @@ describe("renderReport", () => {
   it("止めているものを件数つきの見出しで先に出す", () => {
     const body = renderReport([advisory({ severity: "moderate" }), advisory()], NONE);
 
-    expect(body.indexOf("### 止めているもの（1 件）", NONE)).toBeLessThan(
+    expect(body.indexOf("### 止めているもの（1 件）")).toBeLessThan(
       body.indexOf("### 止めないもの（1 件）"),
     );
   });
