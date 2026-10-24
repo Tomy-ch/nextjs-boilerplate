@@ -134,6 +134,7 @@ export function AdminProductDiscontinueView({
   const shown = dismissed ? null : state;
   const conflicted = shown?.status === "error" && shown.kind === ErrorKind.CONFLICT;
   const reloadHref = adminProductDiscontinuePath(product.id);
+  const lockedReason = outcomeOpen ? LOCKED_MESSAGE : undefined;
 
   return (
     <div className="grid gap-6">
@@ -165,7 +166,7 @@ export function AdminProductDiscontinueView({
           ) : (
             <>
               <DiscontinueConditionsFields
-                {...(outcomeOpen ? { lockedReason: LOCKED_MESSAGE } : {})}
+                lockedReason={lockedReason}
                 messages={fieldMessagesOf(checked, shown)}
                 onValuesChange={changeValues}
                 values={values}
