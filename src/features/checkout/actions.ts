@@ -63,6 +63,35 @@ function isCouponRejected(error: unknown): boolean {
 }
 
 /**
+ * 確定で投げられたエラーを、画面へ返す状態に写す。
+ *
+ * @remarks
+ * 認証が切れていればログイン画面へ送るため、戻りません。
+ *
+ * @param error - 確定で投げられたエラー
+ * @returns 確定の失敗。分類つき
+ */
+function purchaseFailureState(error: unknown): PlaceOrderFormState {
+  if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
+
+  if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
+    return failedActionState({ formError: CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
+  }
+
+  if (isCouponRejected(error)) {
+    revalidatePath(CHECKOUT_PATH);
+
+    return failedActionState({
+      formError: COUPON_REJECTED_MESSAGE,
+      fieldErrors: { [COUPON_ID_FIELD]: [COUPON_REJECTED_FIELD_MESSAGE] },
+      kind: ErrorKind.VALIDATION,
+    });
+  }
+
+  return actionStateFromError(error);
+}
+
+/**
  * カートから購入した明細を取り除く。取り除けなくても投げない。
  *
  * @remarks
@@ -162,23 +191,7 @@ export async function placeOrderAction(
   try {
     purchaseCode = await createPurchase(lines, idempotencyKey.data, couponId);
   } catch (error) {
-    if (isUnauthenticated(error)) redirect(loginPath(CHECKOUT_PATH));
-
-    if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      return failedActionState({ formError: CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT });
-    }
-
-    if (isCouponRejected(error)) {
-      revalidatePath(CHECKOUT_PATH);
-
-      return failedActionState({
-        formError: COUPON_REJECTED_MESSAGE,
-        fieldErrors: { [COUPON_ID_FIELD]: [COUPON_REJECTED_FIELD_MESSAGE] },
-        kind: ErrorKind.VALIDATION,
-      });
-    }
-
-    return actionStateFromError(error);
+    return purchaseFailureState(error);
   }
 
   await removeOrderedLines(lines);
