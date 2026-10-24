@@ -65,6 +65,14 @@ Accepted (一部 exclusion)
 - **CLI 表面の変化** — 上流がサブコマンドを足せば、`.claude/settings.json` の deny が塞いでいるつもりの範囲が黙って穴になる。deny をプラットフォーム名の列挙ではなくパターンで書くのはこのためである([0154](0154-claude-skills-operations.ja.md) 外部スキル)
 - **ツールの挙動を書き写したドキュメントとの整合** — `.claude/README.md` はデフォルト値・API を呼ぶ経路・撤去手順を pin されたバージョンの事実として書いている。バージョンが動けば同じ場所が古くなる
 
+#### 1.3 provenance の低下は、それ自体が独立した信号である
+
+**pnpm は、公開の証拠がそれ以前のリリースより弱いバージョンを拒否する**(`pnpm-workspace.yaml` の `trustPolicy: no-downgrade`)。乗っ取られたアカウントはふつう、trusted publishing を持っていたパイプラインの外から公開するので、provenance が失われたことがその公開の残す痕跡になる。これはバージョンの経過日数とは独立しており、1 のウィンドウではカバーされない。
+
+- **検査は公開から 180 日で止まる**(`trustPolicyIgnoreAfter`)。これがこの信号のウィンドウで、根拠は 1.1 と同じである —— その頃までに上流は乗っ取られた公開に気づいて取り下げる時間を得ており、また provenance の時代より古いバージョンが、誰も補えない欠如を理由に拒否され続けることを避ける
+- **説明のつく低下は、1.2 が求める証拠に基づいてバージョンごとに外す** —— 上流が告知した公開者の変更や、移転したパイプラインなど。免除はバージョンを名指しし、理由と 180 日が尽きる日付を、3.4 が定める形で持つ。名前だけの免除は、同じ弱まった経路からの以後の公開をすべて通してしまい、それこそが検査の止めたいものである
+- **低下が恒久的なとき、待つことは対処にならない。** 公開経路が移ったまま戻らないパッケージは証拠を取り戻さないので、出口はバージョン単位の免除と 180 日の 2 つだけである
+
 ### 2. 秘密スキャン = gitleaks(fail-closed)
 
 - **gitleaks** で秘密スキャンする。検知ルールは `useDefault` を土台とする
@@ -160,7 +168,7 @@ Security グループは**週次スケジュール + 差分が届く PR** で走
 | `bearer.ignore` | 検出 1 件(フィンガープリント)。`comment` に理由を書く。**JSON なので冒頭のポリシー明記が置けない** —— 様式は `bearer ignore add` が決め、理由は各エントリが持つ |
 | `.github/zizmor.yml` | ファイル 1 件(`ignore`)。**ファイルで絞れない audit は severity の remap(監査 ID 単位)** —— composite action は全て `action.yaml` で、`ignore` はベース名一致のため 1 つ挙げると全ての composite action が黙る(固定している zizmor の制約。ファイル単位の remap が入ったら remap は撤回する) |
 | `mise.toml` | pin 1 件(直上のコメント `tools-cooldown-ignore:`)。**ウィンドウが明ける日を必ず添える** —— 検疫の免除は日付でしか撤去条件を書けない |
-| `pnpm-workspace.yaml` | 検疫の免除 1 件(`minimumReleaseAgeExclude` の `<name>@<version>`)。**バージョンを名指しし、直上のコメントに理由とウィンドウが明ける日を書く** —— 名前だけの免除はその依存の以後すべてのバージョンを素通しにする。**trust policy の免除(`trustPolicyExclude`)も同じ形で書き**、日付は `trustPolicyIgnoreAfter` がそのバージョンを自力で通す日にする。書いてよいのは、provenance の低下を 1.2 の 4 つの問いへの直接の証拠が説明できるバージョンだけ —— 低下は乗っ取られた公開が残す信号だからである |
+| `pnpm-workspace.yaml` | 検疫の免除 1 件(`minimumReleaseAgeExclude` の `<name>@<version>`)。**バージョンを名指しし、直上のコメントに理由とウィンドウが明ける日を書く** —— 名前だけの免除はその依存の以後すべてのバージョンを素通しにする。**trust policy の免除(`trustPolicyExclude`)も同じ形で書き**、日付は `trustPolicyIgnoreAfter` がそのバージョンを自力で通す日にする。書いてよいのは 1.3 が定める条件のもとだけ |
 
 - **ソース側の抑止は行 1 件に限る**。`// nosemgrep: <rule-id>`(Opengrep) と `// DevSkim: ignore <rule-id>`(DevSkim) は、抑止ファイルを持たないスキャナーの様式であり、**規則 1 件 × 行 1 件**まで絞れるためこのポリシーを満たす。理由はその場に書く。**DevSkim は所見と同じ行に置いたものしか読まない** —— 直前の行へ置くと黙って効かず、抑止したつもりの所見が Security タブに残り続ける
 - **抑止した所見を code scanning へ渡さない**。Opengrep は `// nosemgrep:` で消した所見を SARIF には `suppressions` 付きで残し、GitHub はそれを閉じた alert として扱わない。渡すと**ゲートは緑のまま Security タブにだけ所見が積み上がり**、上記 3 の「落とさない」と「見せない」の分離が、意図しない側へ崩れる。取り込みの手前で落とす(`scripts/sarif`)
