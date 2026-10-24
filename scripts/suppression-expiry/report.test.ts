@@ -128,7 +128,7 @@ describe("renderIssueBody", () => {
   });
 
   it("実行の URL を渡さなければ、実行の行を出さない", () => {
-    // 常に渡す実装へ戻しても、渡した側のケースだけでは落ちない。
+    // 常に載せる実装は、渡した側のケースだけでは落ちない。
     const body = renderIssueBody({
       expired: [],
       malformed: [],
