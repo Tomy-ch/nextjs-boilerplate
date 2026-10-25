@@ -141,8 +141,8 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 両者が共有するもの —— ページ番号の選び方、ページ送りそのもの、確認の開閉の方針 —— はどちらの画面の下でもなく
 feature の直下に置きます。同じく、商品とキャンペーンのフォームが共有する入力欄・マスターの候補・結果の鮮度と、
 廃番とキャンペーン作成の 2 画面が共有するクーポンの値引きの読み方も、feature の直下に置きます。クーポンの範囲の読み方、
-値引きと範囲の入力欄、範囲が探す商品の候補、壁時計の日時を瞬間へ確定させることも同じで、クーポンを定義または発行する
-すべての画面が問うものです。
+値引きと範囲の入力欄、範囲が探す商品の候補、壁時計の日時を瞬間へ確定させること、そうしたフォームの入力値と触れたマーカー、
+確認した送信の失敗をどこに出すかも同じで、クーポンを定義または発行するすべての画面が問うものです。
 
 | ファイル | 役割 |
 | --- | --- |
@@ -233,11 +233,13 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `master-option.ts` | マスターをフォームで選べる候補へ直す。送る値は識別子 |
 | `use-action-result-freshness.ts` | 直前の送信の結果を、いま出してよいか |
 | `ui/text-field/` `ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
-| `coupon-discount.ts` | クーポンの値引きの読み方と文言。百分率を契約の decimal 文字列へ、ドルをセントへ、数を経ずに写す。送る側と受ける側の両方が通る |
+| `coupon-discount.ts` | クーポンの値引きと最低購入額の読み方と文言。百分率を契約の decimal 文字列へ、ドルをセントへ、数を経ずに写す。送る側と受ける側の両方が通る |
 | `coupon-scope.ts` | クーポンの範囲の読み方と文言。種別とその対象 1 つ |
 | `coupon-summary.ts` | 確認が送る値引きと範囲の欄と、その中で値引き・範囲・壁時計の値をどう読み上げるか |
 | `use-product-candidates.ts` | 範囲が名前で探す商品の候補。打つのに合わせてブラウザから取る |
-| `wall-clock.ts` | `datetime-local` の壁時計の値を、打った人の時間帯での瞬間へ確定させる。ブラウザで呼ぶ |
+| `wall-clock.ts` | `datetime-local` の壁時計の値を、打った人の時間帯での瞬間へ確定させ、その瞬間を読み戻す。ブラウザで呼ぶ。読めない値は打たれたまま残し、空の任意欄として通らず読む側が退けるようにする |
+| `use-coupon-form-values.ts` | 値引きと範囲を共有の入力欄から受けるフォームの、入力値、触れたマーカー、欄ごとの誤り。空の値と判断は画面が渡す |
+| `confirmation-feedback.ts` | 確認した送信の失敗の文言それぞれを、確認の中と欄の隣のどちらに出すか。どの結果で確認を閉じるかは画面が決める |
 | `ui/coupon-discount-fields/` | 値引きの種類・額・上限。額の欄は種類を選んでから、上限は定率のときだけ出す |
 | `ui/coupon-scope-fields/` | 範囲の種類とその対象 —— カテゴリの選択か、商品の検索 |
 | `ui/radio-field/` | 少数の中から 1 つを選ぶ欄。値は呼び出し元が持つ |
@@ -263,15 +265,15 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `users/list/ui/skeleton/` | 表のローディング表示 |
 | `users/coupon-new/issue-rules.ts` | 有効期限・利用開始・最低購入額の読み方と文言、その前後関係。値引きと範囲は `coupon-discount.ts` / `coupon-scope.ts` に任せる。送る側と受ける側の両方が通る |
 | `users/coupon-new/form-state.ts` `users/coupon-new/form-names.ts` | 発行の結果の型、送信先の型、欄の呼び名、送信の `name`。受け取り手は hidden の欄で運ぶ |
-| `users/coupon-new/use-issue-values.ts` | 入力値、触れたマーカー、欄ごとの誤りと、発行が成立したらそれらを空にすること |
+| `users/coupon-new/use-issue-values.ts` | `use-coupon-form-values.ts` をこの画面の入力欄と判断へバインドする。発行が成立したら値を空にするのは view |
 | `users/coupon-new/parse-issue-form.ts` | 送られた受け取り手・クーポン・冪等キー・確認の合図を読む |
 | `users/coupon-new/issue-rejection.ts` | 接続先が名指した欄をこの画面の入力欄へマッピングし、`404` で失われた受け取り手と失われた範囲の対象を見分ける |
-| `users/coupon-new/issue-feedback.ts` | どの結果で確認を閉じるか、受け取り手が失われたか、それぞれの失敗の文言をどこに出すか |
+| `users/coupon-new/issue-feedback.ts` | どの結果で確認を閉じるかと、受け取り手が失われたか |
 | `users/coupon-new/issue-summary.ts` | 確認と発行済みの結果が出す値と読み上げ |
 | `users/coupon-new/recipient.ts` | client へ渡す受け取り手の形。taint の掛かったユーザーから、画面が出す項目だけをコピーする |
 | `users/coupon-new/page-content.tsx` | 受け取り手と、範囲で選べるカテゴリを取る。受け取り手が無ければ `notFound()` にする |
 | `users/coupon-new/view.tsx` | 唯一の client island。送信の状態・キー・打っている値を持ち、結果が定まらないあいだは入力を止め、成立後はフォームを発行済みの結果へ差し替える |
-| `users/coupon-new/breadcrumb-content.tsx` | 発行画面までの階層。受け取り手が読めないときは名前を除いた経路に倒す |
+| `users/coupon-new/breadcrumb-content.tsx` | 発行画面までの階層。受け取り手が存在しないときは経路を出さず、それ以外の理由で読めないときは名前を除いた経路に倒す |
 | `users/coupon-new/ui/recipient-card/` | 受け取り手。見せるだけで、選ばせない |
 | `users/coupon-new/ui/validity-fields/` | 有効期限・利用開始・最低購入額。値は呼び出し元が持つ |
 | `users/coupon-new/ui/confirm-dialog/` | 確認。受け取り手を名指し、発行は取り消せないことを言う。受け取るのは `formAction` だけ |
@@ -297,10 +299,10 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `campaigns/list/ui/skeleton/` | 表のローディング表示 |
 | `campaigns/new/campaign-rules.ts` | コード・期間・上限の読み方と文言、その前後関係。送る側と受ける側の両方が通る |
 | `campaigns/new/form-state.ts` `campaigns/new/form-names.ts` | 定義の結果の型、送信先の型、欄の呼び名、送信の `name` |
-| `campaigns/new/use-campaign-values.ts` | 入力値、触れた印、欄ごとの誤り |
+| `campaigns/new/use-campaign-values.ts` | `use-coupon-form-values.ts` をこの画面の入力欄と判断へバインドする |
 | `campaigns/new/parse-campaign-form.ts` | 送られた定義・冪等キー・確認の合図を読む |
 | `campaigns/new/campaign-rejection.ts` | コードの競合と、接続先が名指した欄を、この画面の入力欄へ写す |
-| `campaigns/new/campaign-feedback.ts` | どの結果で確認を閉じるか、失敗の文言を確認の中と欄の隣のどちらに出すか |
+| `campaigns/new/campaign-feedback.ts` | どの結果で確認を閉じるかと、再送の衝突をどう読むか |
 | `campaigns/new/campaign-summary.ts` | 確認が出す値と読み上げ |
 | `campaigns/new/page-content.tsx` | 範囲で選べるカテゴリを取る |
 | `campaigns/new/view.tsx` | 唯一の client island。送信の状態・キー・打っている値を持ち、結果が定まらないあいだは入力を止める |
