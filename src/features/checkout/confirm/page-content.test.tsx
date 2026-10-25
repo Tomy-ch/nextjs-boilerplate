@@ -25,6 +25,8 @@ import { formatMoney } from "@/model/money";
 import { CART_COUPONS, ORDERABLE_CART, PROFILE, SUBTOTAL_REFERENCE } from "../checkout.fixture";
 import { CheckoutConfirmPageContent } from "./page-content";
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 beforeEach(() => {
   vi.clearAllMocks();
   getMyCart.mockResolvedValue(ORDERABLE_CART);
@@ -54,13 +56,15 @@ describe("CheckoutConfirmPageContent", () => {
     expect(screen.getAllByRole("button", { name: "円で見る" })).toHaveLength(2);
   });
 
-  it("画面を組み立てるたびに別の鍵を作る", async () => {
+  it("画面を開くたびに別の鍵で送る", async () => {
     const { container: first } = render(await CheckoutConfirmPageContent());
     const { container: second } = render(await CheckoutConfirmPageContent());
 
     const keyOf = (container: HTMLElement) =>
       container.querySelector<HTMLInputElement>('input[name="idempotencyKey"]')?.value;
 
+    expect(keyOf(first)).toMatch(UUID);
+    expect(keyOf(second)).toMatch(UUID);
     expect(keyOf(first)).not.toBe(keyOf(second));
   });
   it("参考換算額を引けなくても組み立てる", async () => {

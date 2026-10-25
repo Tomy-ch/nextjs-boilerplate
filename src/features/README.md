@@ -61,7 +61,7 @@ opening the file. Whether a component goes in `ui/` or is promoted to `component
 
 | module | Holds | Does not hold |
 | --- | --- | --- |
-| `<screen>/page-content.tsx` | Interpreting the URL, the fetches that do not change with conditions, placing loading boundaries, classifying `not-found`, issuing the idempotency key carried by a one-time submission | Appearance |
+| `<screen>/page-content.tsx` | Interpreting the URL, the fetches that do not change with conditions, placing loading boundaries, classifying `not-found` | Appearance |
 | `<screen>/results.tsx` | Only the fetches that change with conditions. Sits inside the `Suspense` that `page-content` placed and bounds the refetch scope | The controls (search field, filters, display of the active conditions) |
 | `<screen>/view.tsx` | Composition of a screen renderable from props alone. Receives what `page-content` fetched and assembles it | Fetching |
 | `<screen>/breadcrumb-content.tsx` | The hierarchy down to the current location. Placed by the app layer's `@breadcrumb` slot. May go through the same fetch as the body to get a name — it is collapsed to one within the same render | |
@@ -175,12 +175,11 @@ What this section owns is how that is divided inside a slice.
 - **An Action living in the app layer is passed by the route through props, and `form-state.ts` holds its
   type** (`(state, formData) => Promise<State>`). A screen does not decide its own submission target — only
   the app layer, which can touch `adapters/server/auth`, may decide it
-- **Where the idempotency key is issued depends on how many times it is sent.** For a one-time creation
-  (registration, confirmation), `page-content` makes one per assembly and passes it through props. For
-  submissions repeated from the same screen (adding items one at a time), the client island creates it at mount. **Both hold
-  it through `components/use-submission-key.ts`, which renews it once a response settles the submission and keeps it while
-  the outcome is open** (an endpoint whose `409` means a request under the same key is still being processed declares so
-  as `conflict`). A list offering the operation on many rows keeps one per row instead. Setting (PUT) and deletion produce the
+- **The idempotency key is created by the island that sends, at mount, through `components/use-submission-key.ts`**,
+  which renews it once a response settles the submission and keeps it while the outcome is open (an endpoint whose `409`
+  means a request under the same key is still being processed declares so as `conflict`). `page-content` does not make
+  it: a key in props survives in the router cache's copy of the page, and going back after a successful submission brings
+  the screen back with a key that was already used ([docs/design/forms.md](../../docs/design/forms.md)). A list offering the operation on many rows keeps one per row instead. Setting (PUT) and deletion produce the
   same result if delivered twice, so they carry no key
 - **Distinguish only conflicts (409).** The action the person who pressed can take (reload the screen) differs
   from other failures

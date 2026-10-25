@@ -16,7 +16,7 @@ The screen slice that checks the cart contents, confirms the purchase and report
 - The check before confirmation (destination, order contents, subtotal) and orchestrating the confirming submission (Server Action)
 - Fetching the purchase that succeeded, and showing the receipt and breakdown
 - Reading the reference conversion into the display currency (the purchase is not stopped if it cannot be read)
-- Issuing the idempotency key that represents one confirmation
+- Holding the idempotency key that represents one confirmation, made when the sending island mounts
 
 ## What It Borrows
 
@@ -146,7 +146,7 @@ How idempotency keys and submissions without the acknowledgment signal are handl
 - [ ] A resend under the same key carries the same content; a settled response renews the key
 - [ ] Before hydration the coupon choices are disabled, and a confirmation sent then carries no coupon
 - [ ] A refusal that does not name the coupon keeps its reason across a re-choice
-- [ ] There is one idempotency key per assembly of the screen
+- [ ] There is one idempotency key per mount of the screen
 
 ## Design Decisions
 
@@ -165,8 +165,8 @@ changed are not in it. A note says so.
 showing would allow confirming on stale assumptions even if stock or prices changed while the screen was left
 open.
 
-**One idempotency key is made per assembly of the screen.** Pressing twice or resending via a reload still leaves
-one purchase, and reopening the screen with the intent to buy again gives a different key. A refusal that
+**One idempotency key is made when the screen mounts.** Pressing twice or resending after a failure whose outcome is
+unknown still leaves one purchase, and reopening the screen with the intent to buy again gives a different key. A refusal that
 settles the submission (a refused coupon, a conflict) renews the key, because the next submission may differ.
 
 **A confirmation sent before hydration carries no coupon.** The coupon choices sit in the body column, outside

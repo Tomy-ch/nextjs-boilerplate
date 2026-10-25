@@ -30,7 +30,6 @@ import {
 import { COUPON_ID_FIELD } from "../form-fields";
 import { CheckoutConfirmView } from "./view";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const REJECTED_FORM_ERROR = "選んだクーポンを使えなかったため、注文は確定していません。";
 const REJECTED_FIELD_ERROR = "このクーポンは使えなくなりました。選び直してください。";
 const UNAVAILABLE_FORM_ERROR = "いまは確定できません。";
@@ -43,7 +42,6 @@ function viewOf(cart: Cart, coupons: readonly CartCoupon[] | null) {
     <CheckoutConfirmView
       cart={cart}
       coupons={coupons}
-      idempotencyKey={KEY}
       profile={PROFILE}
       reference={SUBTOTAL_REFERENCE}
     />

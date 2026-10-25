@@ -48,9 +48,6 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
 
 const RELOAD_HREF = `${ADMIN_PRODUCT_LIST_PATH}/${DISCONTINUE_PRODUCT.id}/discontinue`;
 
-/** canvas で冪等キーとして載せる値。送信は起きないので固定でよい。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
-
 const OPEN: DiscontinueStanding = { kind: "open", impact: OPEN_IMPACT };
 const BLOCKED: DiscontinueStanding = { kind: "open", impact: BLOCKED_IMPACT };
 const DISCONTINUED: DiscontinueStanding = { kind: "discontinued", discontinuedAt: DISCONTINUED_AT };
@@ -227,7 +224,6 @@ const meta = {
     standing: OPEN,
     remainingPurchases: null,
     discontinueAction: idle,
-    idempotencyKey: IDEMPOTENCY_KEY,
   },
 } satisfies Meta<typeof AdminProductDiscontinueView>;
 

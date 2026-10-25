@@ -18,7 +18,6 @@ import {
 } from "../place-order-state/place-order-state";
 import { CouponEstimate } from "./coupon-estimate";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const LABEL = "クーポン値引き（見込み）";
 const NOTE = "クーポンの値引きは確定時に決まります。";
 /** 先頭の候補の額面（10% 引き・上限 $10.00）を、確定できるカートの小計へ当て直した額。 */
@@ -46,7 +45,7 @@ function couponAt(index: number): CartCoupon {
 
 function renderEstimate(coupons: readonly CartCoupon[] | null = CART_COUPONS) {
   return render(
-    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={coupons}>
       <SelectCouponButton couponId={couponAt(0).id} label="1 枚目を選ぶ" />
       <SelectCouponButton couponId={couponAt(1).id} label="2 枚目を選ぶ" />
       <SelectCouponButton couponId={null} label="使わない" />

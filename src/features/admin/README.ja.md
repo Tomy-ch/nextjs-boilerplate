@@ -207,7 +207,7 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `products/discontinue/form-state.ts` `products/discontinue/form-names.ts` | 廃番の結果の型・送信先の型・この画面でしか言えない文言と、送信の `name` |
 | `products/discontinue/parse-discontinue-form.ts` | 送られてきた対象・冪等キー・確認の合図・条件の読み取り |
 | `products/discontinue/discontinue-rejection.ts` | 接続先が拒否で名指しした項目を、この画面の入力欄へ写す |
-| `products/discontinue/page-content.tsx` | 商品と、既に廃番でなければ見積もりの取得。冪等キーを組み立てごとに 1 つ作る |
+| `products/discontinue/page-content.tsx` | 商品と、既に廃番でなければ見積もりの取得 |
 | `products/discontinue/remaining-purchases-section.tsx` | 進行中の購入の取得。見積もりとは別の待機・別の失敗単位 |
 | `products/discontinue/view.tsx` | 唯一の client アイランド。送信の状態・キー・打っている条件を持ち、3 つの立ち位置の出し分けを内側で行うため取り直しで unmount されない |
 | `products/discontinue/discontinue-feedback.ts` | どの条件が確認を開かせないか、どの結果が確認を閉じるか、失敗の文言を確認の中と欄の隣のどちらに出すか |

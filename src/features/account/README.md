@@ -103,7 +103,7 @@ the same rules**, so the input fields and validation pieces sit directly under t
 | `edit/view.tsx` | The profile edit display. Owns the breadcrumbs |
 | `edit/ui/profile-form/` | The arrangement. A client island |
 | `edit/ui/skeleton/` | The profile edit loading UI |
-| `onboarding/page-content.tsx` | Fetching the prefecture master, and generating the key for this one registration |
+| `onboarding/page-content.tsx` | Fetching the prefecture master |
 | `onboarding/view.tsx` | The registration display. A client island holding the step container and the submission |
 | `onboarding/steps.ts` | Which field belongs to which step, and the judgment of whether that step can be completed |
 | `onboarding/form-names.ts` | The `name`s of the hidden fields. Holds only spellings; validation is not placed on the reading side |
@@ -222,8 +222,8 @@ On `UNAUTHENTICATED`, every action redirects to sign-in with this screen as the 
   is shown only for touched fields, while the judgment of whether you may proceed does not look at whether a
   field was touched
 - **The idempotency key collapses duplicate registration submissions**. Registration is a one-time submission,
-  so the point that assembled the screen makes the first key and puts it on the submission; however many times it
-  is sent from the same screen, the user remains one person. The key is renewed once a response settles the
+  so the wizard makes the key when it mounts and puts it on the submission; however many times it is sent from the
+  same screen, the user remains one person. The key is renewed once a response settles the
   registration (a `409` here is an existing user, a settled conflict). While the outcome is open the wizard
   cannot leave the confirmation step, so the resend carries what was sent
 - **Only the edit screen has breadcrumbs**. My Page is pointed at directly by the global nav, so breadcrumbs

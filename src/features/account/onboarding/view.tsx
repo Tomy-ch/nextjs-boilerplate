@@ -32,8 +32,6 @@ const LOCKED_MESSAGE =
 export type OnboardingViewProps = {
   /** 選べる都道府県。 */
   readonly prefectures: readonly Prefecture[];
-  /** 最初の送信に載せる鍵。画面を組み立てた地点が作る。 */
-  readonly idempotencyKey: string;
   /** 登録を終えた利用者を戻す先。 */
   readonly returnUrl: SafeReturnUrl;
 };
@@ -50,25 +48,19 @@ export type OnboardingViewProps = {
  * **今の段が埋まるまで次へは進めません**（`blocked`）。誤りの文言を出す条件はこれとは別で、触れた
  * 項目からだけ出します。
  *
- * 鍵は最初に受け取ったものを使い、応答が送信を確定させたら作り直します。結果が定まらないあいだは
+ * 鍵は mount のときに作り、応答が送信を確定させたら作り直します。結果が定まらないあいだは
  * 段を動けなくし、送った内容のまま送り直させます（理由は `model/idempotency-key.ts`）。
  *
  * パンくずを置きません。この画面に着いた利用者はまだどの画面にも入れず、戻れる祖先がありません。
  *
- * @param props - 選べる都道府県、この登録を指す鍵、登録を終えた利用者を戻す先。
+ * @param props - 選べる都道府県と、登録を終えた利用者を戻す先。
  */
-export function OnboardingView({
-  idempotencyKey: initialIdempotencyKey,
-  prefectures,
-  returnUrl,
-}: OnboardingViewProps) {
+export function OnboardingView({ prefectures, returnUrl }: OnboardingViewProps) {
   const [state, formAction] = useActionState<ProfileFormState, FormData>(
     registerAction,
     idleActionState(),
   );
-  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
-    initialKey: initialIdempotencyKey,
-  });
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state);
   const fields = useProfileFields(null, state);
   const address = useAddressField(fields);
   const values = useWatch({ control: fields.control });

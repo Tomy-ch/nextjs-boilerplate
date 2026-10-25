@@ -8,7 +8,6 @@ import { PlaceOrderStateProvider } from "../place-order-state/place-order-state"
 import { CouponEstimate } from "./coupon-estimate";
 
 /** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 function firstCouponName(): string {
   const coupon = CART_COUPONS[0];
@@ -35,7 +34,7 @@ const meta = {
   decorators: [
     // 選択は送信状態の器が持つ。選ぶ欄を並べ、選んだクーポンの見込みを出せるようにする。
     (Story) => (
-      <PlaceOrderStateProvider coupons={CART_COUPONS} idempotencyKey={IDEMPOTENCY_KEY}>
+      <PlaceOrderStateProvider coupons={CART_COUPONS}>
         <div className="flex max-w-md flex-col gap-4">
           <CouponChoices title="クーポン">
             {CART_COUPONS.map((coupon) => (

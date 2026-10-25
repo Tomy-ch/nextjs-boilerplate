@@ -53,8 +53,6 @@ export type AdminProductDiscontinueViewProps = {
   remainingPurchases: ReactNode;
   /** 廃番の送信先。 */
   discontinueAction: DiscontinueProductAction;
-  /** 最初の送信に載せる冪等キー。画面を組み立てたときに作る。 */
-  idempotencyKey: string;
 };
 
 const LOCKED_MESSAGE =
@@ -76,7 +74,7 @@ const EMPTY_VALUES: DiscontinueConditionValues = {
  * 出し分けをこの内側で行うのはそのためで、外側で姿ごとに別の木を返すと、取り直しのたびに結果が
  * 消えます。
  *
- * 鍵は最初に受け取ったものを使い、応答が送信を確定させたら作り直します。結果が定まらないあいだは
+ * 鍵は mount のときに作り、応答が送信を確定させたら作り直します。結果が定まらないあいだは
  * 条件を書き換えさせず、同じ条件で送り直させます（理由は `model/idempotency-key.ts`）。
  *
  * 画面が何を約束するかは
@@ -86,7 +84,6 @@ const EMPTY_VALUES: DiscontinueConditionValues = {
  */
 export function AdminProductDiscontinueView({
   discontinueAction,
-  idempotencyKey: initialIdempotencyKey,
   product,
   remainingPurchases,
   standing,
@@ -95,9 +92,7 @@ export function AdminProductDiscontinueView({
     discontinueAction,
     idleActionState(),
   );
-  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
-    initialKey: initialIdempotencyKey,
-  });
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state);
   const [values, setValues] = useState(EMPTY_VALUES);
   const [checked, setChecked] = useState<Partial<Record<DiscontinueProductField, string>>>({});
   const [confirming, setConfirming] = useState(false);

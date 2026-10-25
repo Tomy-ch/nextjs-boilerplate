@@ -21,7 +21,6 @@ import {
 } from "../place-order-state/place-order-state";
 import { PlaceOrderError, PlaceOrderSubmit } from "./place-order-submit";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const LABEL = "注文を確定する";
 
 /**
@@ -32,7 +31,7 @@ const LABEL = "注文を確定する";
  */
 function renderSubmit({ orderable = true, fullWidth = false } = {}) {
   return render(
-    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[]}>
       <PlaceOrderForm fullWidth={fullWidth} orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -63,7 +62,7 @@ function SelectNoCouponButton() {
 
 function renderWithCouponChoice() {
   return render(
-    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[]}>
       <PlaceOrderForm fullWidth={false} orderable />
       <SelectNoCouponButton />
     </PlaceOrderStateProvider>,

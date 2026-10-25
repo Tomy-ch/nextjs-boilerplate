@@ -60,8 +60,8 @@ A coupon that would discount nothing at that moment refuses the order rather tha
 **The line items sent are rebuilt from the cart at the moment of submission.** Sending back what the screen showed would let an order be placed on
 stale premises even if stock or prices changed while the screen was left open.
 
-**One idempotency key is created each time the screen is assembled.** Pressing twice or resubmitting by reloading still leaves one
-purchase. Reopening the screen with the intent to buy again gives a different key. **Once the order is refused — a coupon that cannot be used, or a
+**One idempotency key is created each time the screen is opened.** Pressing twice or resending after a failure whose outcome is
+unknown still leaves one purchase. Reopening the screen with the intent to buy again gives a different key. **Once the order is refused — a coupon that cannot be used, or a
 conflict in stock or price — the next submission takes a new key**, since it may carry different content. A failure whose outcome is unknown
 (the backend unavailable, an internal error) keeps the key so the same submission can be resent. **While that outcome is open, the
 submission's content does not change**: the backend replays the first result for a repeated key, so a different coupon under it would

@@ -22,18 +22,14 @@ import { ADDRESS_LOOKUP, PREFECTURES, PROFILE } from "../account.fixture";
 import { RETURN_URL_FIELD } from "./form-names";
 import { OnboardingView } from "./view";
 
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const LOCKED_MESSAGE =
   "前回の登録の結果が分かるまで、内容は変えられません。同じ内容でもう一度登録してください。";
 
 function renderView() {
   return render(
-    <OnboardingView
-      idempotencyKey={IDEMPOTENCY_KEY}
-      prefectures={PREFECTURES}
-      returnUrl={toSafeReturnUrl("/mypage")}
-    />,
+    <OnboardingView prefectures={PREFECTURES} returnUrl={toSafeReturnUrl("/mypage")} />,
   );
 }
 
@@ -141,24 +137,20 @@ describe("OnboardingView", () => {
 
     const formData = registerAction.mock.calls[0]?.[1];
 
-    expect(formData.get(IDEMPOTENCY_KEY_FIELD)).toBe(IDEMPOTENCY_KEY);
+    expect(formData.get(IDEMPOTENCY_KEY_FIELD)).toMatch(UUID);
     expect(formData.get(RETURN_URL_FIELD)).toBe("/mypage");
   });
 
   it("画面を取り直しても、送信に載る鍵を変えない", () => {
     const { container, rerender } = renderView();
+    const first = container.querySelector<HTMLInputElement>(
+      `[name="${IDEMPOTENCY_KEY_FIELD}"]`,
+    )?.value;
 
-    rerender(
-      <OnboardingView
-        idempotencyKey="0195f0c2-0000-7000-8000-0000000000ff"
-        prefectures={PREFECTURES}
-        returnUrl={toSafeReturnUrl("/mypage")}
-      />,
-    );
+    rerender(<OnboardingView prefectures={PREFECTURES} returnUrl={toSafeReturnUrl("/mypage")} />);
 
-    expect(container.querySelector(`[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(
-      IDEMPOTENCY_KEY,
-    );
+    expect(first).toMatch(UUID);
+    expect(container.querySelector(`[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(first);
   });
 
   it("結果が定まった拒否のあとの登録は、別の鍵で送る", async () => {
@@ -178,9 +170,11 @@ describe("OnboardingView", () => {
 
     await waitFor(() => expect(registerAction).toHaveBeenCalledTimes(2));
 
+    const first = registerAction.mock.calls[0]?.[1];
     const second = registerAction.mock.calls[1]?.[1];
 
-    expect(second.get(IDEMPOTENCY_KEY_FIELD)).not.toBe(IDEMPOTENCY_KEY);
+    expect(second.get(IDEMPOTENCY_KEY_FIELD)).toMatch(UUID);
+    expect(second.get(IDEMPOTENCY_KEY_FIELD)).not.toBe(first.get(IDEMPOTENCY_KEY_FIELD));
   });
 
   it("結果が定まらない失敗のあとは、段を動けなくして同じ鍵で送り直させる", async () => {
@@ -208,9 +202,11 @@ describe("OnboardingView", () => {
 
     await waitFor(() => expect(registerAction).toHaveBeenCalledTimes(2));
 
+    const first = registerAction.mock.calls[0]?.[1];
     const second = registerAction.mock.calls[1]?.[1];
 
-    expect(second.get(IDEMPOTENCY_KEY_FIELD)).toBe(IDEMPOTENCY_KEY);
+    expect(first.get(IDEMPOTENCY_KEY_FIELD)).toMatch(UUID);
+    expect(second.get(IDEMPOTENCY_KEY_FIELD)).toBe(first.get(IDEMPOTENCY_KEY_FIELD));
   });
 
   it("項目の誤りで拒まれたあとは、段を戻って直せる", async () => {

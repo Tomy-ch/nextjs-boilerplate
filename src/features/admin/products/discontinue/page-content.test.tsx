@@ -16,27 +16,20 @@ import { RemainingPurchasesSection } from "./remaining-purchases-section";
 import { DiscontinueRemainingPurchases } from "./ui/remaining-purchases/remaining-purchases";
 import { AdminProductDiscontinueView } from "./view";
 
-const { getProductDiscontinueImpact, getProductIncludingUnpublished, newIdempotencyKey } =
-  vi.hoisted(() => ({
-    getProductDiscontinueImpact: vi.fn(),
-    getProductIncludingUnpublished: vi.fn(),
-    newIdempotencyKey: vi.fn(),
-  }));
+const { getProductDiscontinueImpact, getProductIncludingUnpublished } = vi.hoisted(() => ({
+  getProductDiscontinueImpact: vi.fn(),
+  getProductIncludingUnpublished: vi.fn(),
+}));
 
 vi.mock("@/adapters/server/api/products", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/products")>()),
   getProductDiscontinueImpact,
   getProductIncludingUnpublished,
 }));
-vi.mock("@/model/idempotency-key", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/model/idempotency-key")>()),
-  newIdempotencyKey,
-}));
 
 import { AdminProductDiscontinuePageContent } from "./page-content";
 
 const ID = DISCONTINUE_PRODUCT.id;
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-0000000000aa";
 
 const PRODUCT = {
   ...DISCONTINUE_PRODUCT,
@@ -62,10 +55,8 @@ function assemble() {
 beforeEach(() => {
   getProductIncludingUnpublished.mockReset();
   getProductDiscontinueImpact.mockReset();
-  newIdempotencyKey.mockReset();
   getProductIncludingUnpublished.mockResolvedValue(PRODUCT);
   getProductDiscontinueImpact.mockResolvedValue(OPEN_IMPACT);
-  newIdempotencyKey.mockReturnValue(IDEMPOTENCY_KEY);
 });
 
 describe("AdminProductDiscontinuePageContent", () => {
@@ -89,16 +80,6 @@ describe("AdminProductDiscontinuePageContent", () => {
     const element = await assemble();
 
     expect(element.props.discontinueAction).toBe(discontinueAction);
-  });
-
-  it("組み立てるたびに冪等キーを 1 つ作って渡す", async () => {
-    const first = await assemble();
-
-    newIdempotencyKey.mockReturnValue("0195f0c2-0000-7000-8000-0000000000bb");
-    const second = await assemble();
-
-    expect(first.props.idempotencyKey).toBe(IDEMPOTENCY_KEY);
-    expect(second.props.idempotencyKey).toBe("0195f0c2-0000-7000-8000-0000000000bb");
   });
 
   it("取り直しで island を作り直させないよう、鍵を付けない", async () => {

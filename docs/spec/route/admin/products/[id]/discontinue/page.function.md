@@ -98,7 +98,7 @@ something the user can fix in place.
 
 ## Submission
 
-**What is sent is the two conditions, with an idempotency key.** The first key is made each time the screen is assembled, and the
+**What is sent is the two conditions, with an idempotency key.** The first key is made each time the screen is opened, and the
 same key is resent while the outcome is open, so a resent submission folds into the first one. Once a response settles the
 submission — a refused condition, or a conflict with a purchase still in progress — the next one carries a new key. Until the outcome
 is known the conditions cannot be edited, so the resend carries the conditions that were sent.

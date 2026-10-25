@@ -18,8 +18,7 @@ import {
 } from "../place-order-state/place-order-state";
 import { PriceChangeConfirm } from "./price-change-confirm";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
-const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NAMES = ["ノイズキャンセリングヘッドホン"];
 const COUPON: CartCoupon = {
   id: toCouponId("0193a1c0-0001-7000-8000-000000000001"),
@@ -29,9 +28,9 @@ const COUPON: CartCoupon = {
   expiresAt: new Date("2027-06-30T14:59:59Z"),
 };
 
-function renderConfirm(orderable = true, idempotencyKey = KEY) {
+function renderConfirm(orderable = true) {
   return render(
-    <PlaceOrderStateProvider coupons={[]} idempotencyKey={idempotencyKey}>
+    <PlaceOrderStateProvider coupons={[]}>
       <PriceChangeConfirm changedNames={NAMES} orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -51,7 +50,7 @@ function SelectCouponButton({ couponId, label }: { couponId: CouponId | null; la
 
 function renderWithCoupon() {
   return render(
-    <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[COUPON]}>
       <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
       <PriceChangeConfirm changedNames={NAMES} orderable />
     </PlaceOrderStateProvider>,
@@ -96,7 +95,9 @@ describe("PriceChangeConfirm", () => {
     const dialog = screen.getByRole("alertdialog");
 
     expect(dialog.querySelector(`input[name="${ACCEPT_PRICE_CHANGE_FIELD}"]`)).toHaveValue("1");
-    expect(dialog.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+    expect(
+      dialog.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)?.getAttribute("value"),
+    ).toMatch(UUID);
   });
 
   it("選んだクーポンを、承知の合図と一緒に確かめの中の送信へ載せる", async () => {
@@ -121,21 +122,26 @@ describe("PriceChangeConfirm", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("組み直された画面から別の鍵が届いても、送信へ載せる鍵は変えない", async () => {
+  it("組み直された画面で描き直しても、送信へ載せる鍵は変えない", async () => {
     const { rerender } = renderConfirm();
 
     await open();
+    const first = screen
+      .getByRole("alertdialog")
+      .querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)
+      ?.getAttribute("value");
     await userEvent.click(screen.getByRole("button", { name: "確認へ戻る" }));
     rerender(
-      <PlaceOrderStateProvider coupons={[]} idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider coupons={[]}>
         <PriceChangeConfirm changedNames={NAMES} orderable />
       </PlaceOrderStateProvider>,
     );
     await open();
 
+    expect(first).toMatch(UUID);
     expect(
       screen.getByRole("alertdialog").querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`),
-    ).toHaveValue(KEY);
+    ).toHaveValue(first);
   });
 
   it("閉じるだけの操作で確かめから戻れる", async () => {
