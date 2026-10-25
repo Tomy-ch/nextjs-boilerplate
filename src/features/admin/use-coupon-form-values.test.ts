@@ -107,6 +107,27 @@ describe("useCouponFormValues", () => {
     );
   });
 
+  it("判定の関数が替われば、触れた欄の誤りを新しい判定で出し直す", () => {
+    const strict: CouponFormRead<OwnField> = () => ({
+      ok: false,
+      errors: { name: "新しい判定の文言" },
+    });
+    const { rerender, result } = renderHook(
+      ({ reading }: { reading: CouponFormRead<OwnField> }) =>
+        useCouponFormValues(EMPTY_OWN, reading),
+      { initialProps: { reading: read } },
+    );
+
+    act(() => result.current.setOwn("name", "春"));
+    act(() => result.current.touch("name"));
+
+    expect(result.current.errors).toEqual({});
+
+    rerender({ reading: strict });
+
+    expect(result.current.errors).toEqual({ name: "新しい判定の文言" });
+  });
+
   it("触れた欄を直せば誤りが消える", () => {
     const { result } = renderValues();
 

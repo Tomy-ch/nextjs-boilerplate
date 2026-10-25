@@ -13,7 +13,6 @@ describe("readableWallClock", () => {
     expect(readableWallClock("2026-10-01T10:00")).toBe("2026/10/01 10:00");
   });
 
-  // ----- 境界値 -----
   it("空なら空のまま返す", () => {
     expect(readableWallClock("")).toBe("");
   });

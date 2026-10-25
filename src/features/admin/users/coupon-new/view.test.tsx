@@ -9,11 +9,13 @@ import { axe } from "vitest-axe";
 import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
+import { toProductId } from "@/model/product/product";
 
 import { COUPON_DISCOUNT_KIND_MISSING_MESSAGE } from "../../coupon-discount";
 import { COUPON_SCOPE_KIND_MISSING_MESSAGE } from "../../coupon-scope";
 import { ADMIN_USER_LIST_PATH } from "../../paths";
 import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
+import type { ProductCandidates } from "../../use-product-candidates";
 import {
   FILLED_ISSUE_OWN_VALUES,
   ISSUE_CATEGORY_OPTIONS,
@@ -25,6 +27,7 @@ import {
   ISSUE_RECIPIENT_LOST_MESSAGE,
   ISSUE_RESEND_CONFLICT_MESSAGE,
   ISSUE_SCOPE_CATEGORY_LOST_MESSAGE,
+  ISSUE_SCOPE_PRODUCT_LOST_MESSAGE,
   ISSUE_TARGET_UNKNOWN_MESSAGE,
   type IssueCouponAction,
   type IssueCouponState,
@@ -34,6 +37,9 @@ import type { IssueRecipient } from "./recipient";
 import { AdminUserCouponNewView } from "./view";
 
 const guard = vi.hoisted(() => ({ when: false }));
+const products = vi.hoisted((): { candidates: ProductCandidates } => ({
+  candidates: { status: "idle" },
+}));
 
 vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   NavigationGuard: ({ children, when }: { children: ReactNode; when: boolean }) => {
@@ -45,7 +51,7 @@ vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
 
 vi.mock("../../use-product-candidates", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../use-product-candidates")>()),
-  useProductCandidates: () => ({ status: "idle" }),
+  useProductCandidates: () => products.candidates,
 }));
 
 const LOCKED_MESSAGE =
@@ -55,6 +61,19 @@ const EXPIRY_REJECTED = "有効期限は受け付けられませんでした。�
 const DIALOG_NAME = `${ISSUE_RECIPIENT.name} さんにこのクーポンを発行しますか？`;
 const ISSUED_TITLE = `${ISSUE_RECIPIENT.name} さんにクーポンを 1 枚発行しました`;
 const AXE_OPTIONS = { rules: { "color-contrast": { enabled: false } } };
+
+const EARPHONES = {
+  id: toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11"),
+  name: "ワイヤレスイヤホン",
+};
+const FOUND_PRODUCTS: ProductCandidates = {
+  status: "found",
+  items: [
+    EARPHONES,
+    { id: toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b12"), name: "ワイヤレス充電器" },
+  ],
+  hasMore: false,
+};
 
 const ISSUED: IssueCouponState = succeededActionState(undefined);
 const UNAVAILABLE = failedActionState<never>({
@@ -75,6 +94,11 @@ const CATEGORY_LOST = failedActionState<never, "scopeCategoryId">({
   fieldErrors: { scopeCategoryId: [ISSUE_SCOPE_CATEGORY_LOST_MESSAGE] },
   kind: ErrorKind.NOT_FOUND,
 });
+const PRODUCT_LOST = failedActionState<never, "scopeProductId">({
+  formError: null,
+  fieldErrors: { scopeProductId: [ISSUE_SCOPE_PRODUCT_LOST_MESSAGE] },
+  kind: ErrorKind.NOT_FOUND,
+});
 const TARGET_UNKNOWN = failedActionState<never>({
   formError: ISSUE_TARGET_UNKNOWN_MESSAGE,
   kind: ErrorKind.NOT_FOUND,
@@ -89,6 +113,7 @@ let settlePending: (() => void) | undefined;
 
 beforeEach(() => {
   guard.when = false;
+  products.candidates = { status: "idle" };
 });
 
 afterEach(async () => {
@@ -131,6 +156,16 @@ function dateField(label: string): HTMLElement {
 
 function categoryField(): HTMLElement {
   return screen.getByRole("combobox", { name: "カテゴリ" });
+}
+
+function productField(): HTMLElement {
+  return screen.getByRole("button", { name: "商品" });
+}
+
+async function pickProduct(name: string) {
+  await userEvent.click(screen.getByRole("radio", { name: "特定の商品" }));
+  await userEvent.click(productField());
+  await userEvent.click(await screen.findByRole("option", { name }));
 }
 
 function setDateTime(label: string, value: string) {
@@ -349,6 +384,32 @@ describe("AdminUserCouponNewView", () => {
     expect(summaryOf(dialog)).toContainEqual(["値引きの対象", "特定のカテゴリ：雑貨"]);
   });
 
+  it("上限額を添えた定率と特定の商品を選ぶと、商品の名前で復唱し、上限額と商品の識別子を送ってカテゴリを送らない", async () => {
+    const action = sending();
+
+    products.candidates = FOUND_PRODUCTS;
+    renderView(action);
+    await fillAll();
+    await userEvent.click(screen.getByRole("radio", { name: "定率" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "上限額（ドル）" }), "20");
+    await pickProduct(EARPHONES.name);
+    const dialog = await openConfirmation();
+
+    expect(summaryOf(dialog)).toContainEqual(["値引き", "5% 引き（1 回 20 ドルまで）"]);
+    expect(summaryOf(dialog)).toContainEqual(["値引きの対象", `特定の商品：${EARPHONES.name}`]);
+
+    await send(dialog);
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
+
+    const formData = sent(action, 0);
+
+    expect(formData.get("discountKind")).toBe("rate");
+    expect(formData.get("discountMaxAmount")).toBe("20");
+    expect(formData.get("scopeKind")).toBe("product");
+    expect(formData.get("scopeProductId")).toBe(EARPHONES.id);
+    expect(formData.get("scopeCategoryId")).toBeNull();
+  });
+
   it("確認を通った送信に、URL が決めた発行先・打った値・冪等キー・確認の合図を載せる", async () => {
     const action = sending();
 
@@ -547,6 +608,36 @@ describe("AdminUserCouponNewView", () => {
     expect(keyOf(action, 1)).not.toBe(keyOf(action, 0));
   });
 
+  it("対象のカテゴリを失った状態で a11y 検査を通る", async () => {
+    const { container } = renderView(sending(CATEGORY_LOST));
+
+    await fillAndSend();
+    await waitFor(() =>
+      expect(categoryField()).toHaveAccessibleDescription(
+        expect.stringContaining(ISSUE_SCOPE_CATEGORY_LOST_MESSAGE),
+      ),
+    );
+
+    expect((await axe(container, AXE_OPTIONS)).violations).toEqual([]);
+  });
+
+  it("対象の商品が見つからなければ、欄を残して確認を閉じ、商品の欄にだけ文言を出す", async () => {
+    products.candidates = FOUND_PRODUCTS;
+    renderView(sending(PRODUCT_LOST));
+
+    await fillAll();
+    await pickProduct(EARPHONES.name);
+    await send(await openConfirmation());
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(productField()).toHaveAccessibleDescription(
+      expect.stringContaining(ISSUE_SCOPE_PRODUCT_LOST_MESSAGE),
+    );
+    expect(productField()).toBeEnabled();
+    expect(screen.queryByText(ISSUE_RECIPIENT_LOST_MESSAGE)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "内容を確認する" })).toBeInTheDocument();
+  });
+
   it("発行先か対象かを言い当てられない拒否では、確認を開いたまま全体の文言を出し、次は別の冪等キーで送る", async () => {
     const action = sending(TARGET_UNKNOWN);
 
@@ -728,6 +819,29 @@ describe("AdminUserCouponNewView", () => {
     expect(dateField("有効期限")).toBeEnabled();
 
     await send(await openConfirmation());
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
+
+    expect(keyOf(action, 1)).toBe(keyOf(action, 0));
+    expect(keyOf(action, 2)).not.toBe(keyOf(action, 0));
+  });
+
+  it("結果が定まらない失敗のあとの送り直しが発行先か対象かを言い当てられない拒否なら、欄の止めを解き、次は別の冪等キーで送る", async () => {
+    const action = sending(UNAVAILABLE, TARGET_UNKNOWN);
+
+    renderView(action);
+    const dialog = await fillAndSend();
+
+    await within(dialog).findByText(FORM_ERROR);
+
+    expect(keyOf(action, 0)).toMatch(/\S/);
+
+    await send(dialog);
+    await within(screen.getByRole("alertdialog")).findByText(ISSUE_TARGET_UNKNOWN_MESSAGE);
+
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+    expect(dateField("有効期限")).toBeEnabled();
+
+    await send(screen.getByRole("alertdialog"));
     await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
 
     expect(keyOf(action, 1)).toBe(keyOf(action, 0));

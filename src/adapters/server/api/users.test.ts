@@ -561,14 +561,6 @@ describe("getManagedUserPage", () => {
     ).resolves.toBe("2026-08-01T00:00:00Z");
   });
 
-  // ----- 異常系 -----
-  it("契約が拒むページ番号は送る前に止める", async () => {
-    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
-
-    await expect(getManagedUserPage({ page: 0, perPage: PER_PAGE })).rejects.toThrow();
-    expect(requests).toHaveLength(0);
-  });
-
   it("契約が受け付ける件数の上限そのものは通す", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
@@ -577,6 +569,14 @@ describe("getManagedUserPage", () => {
     expect(new URL(requests[0]?.url ?? "").searchParams.get("perPage")).toBe(
       String(getUsersQueryPerPageMax),
     );
+  });
+
+  // ----- 異常系 -----
+  it("契約が拒むページ番号は送る前に止める", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await expect(getManagedUserPage({ page: 0, perPage: PER_PAGE })).rejects.toThrow();
+    expect(requests).toHaveLength(0);
   });
 
   it("契約の上限を 1 件超える件数は送る前に止める", async () => {
