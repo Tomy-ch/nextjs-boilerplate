@@ -22,7 +22,7 @@
     "gen:architecture": "tsx scripts/architecture --write",
     "gen:tokens": "tsx tokens/scripts/gen-tokens.ts",
     "knip": "knip",
-    "lint": "biome check --error-on-warnings",
+    "lint": "biome check --error-on-warnings --diagnostic-level=warn",
     "lint:ci": "pnpm lint && pnpm lint:eslint && pnpm check:architecture",
     "lint:eslint": "eslint .",
     "lint:md": "tsx scripts/lint-md",
