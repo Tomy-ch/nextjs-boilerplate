@@ -303,7 +303,7 @@ describe("createCampaignAction", () => {
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
-  it.each([
+  it.each<{ name: string; overrides: Readonly<Record<string, string | null>> }>([
     { name: "冪等キーが届かない", overrides: { idempotencyKey: null } },
     { name: "冪等キーが UUID の形でない", overrides: { idempotencyKey: "not-a-uuid" } },
     { name: "確認を通った合図が届かない", overrides: { confirmed: null } },
