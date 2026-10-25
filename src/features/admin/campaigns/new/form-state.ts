@@ -1,7 +1,7 @@
 import type { ActionState } from "@/model/action-state";
 
 import type { CouponDiscountField } from "../../coupon-discount";
-import type { CouponScopeField } from "../../coupon-scope";
+import type { CouponScopeField } from "./coupon-scope";
 
 /** キャンペーン自身の入力欄のうち、入力した人が直せる項目。 */
 export type CampaignOwnField =
@@ -52,8 +52,18 @@ export const CAMPAIGN_TARGET_LOST_MESSAGE =
  * コードが既に使われていて拒まれたときの文言。
  *
  * @remarks
- * 同じ冪等キーの送信がまだ処理中のときも、接続先は同じ 409 を返します。契約からは区別が
- * つかないため、文言はコードの重複として書きます。
+ * 冪等キーを初めて載せた送信への 409 にだけ使います。そのキーの送信が先に走っていないので、
+ * 409 はコードの重複に限られます。
  */
 export const CAMPAIGN_CODE_CONFLICT_MESSAGE =
   "このキャンペーンコードは既に使われています。別のコードを入力してください。";
+
+/**
+ * 結果が分からないまま送り直した送信が、409 で拒まれたときの文言。
+ *
+ * @remarks
+ * 接続先は、同じ冪等キーの送信がまだ処理中のときもコードの重複と同じ 409 を返し、契約からは
+ * 区別がつきません。前回の送信が成立している場合があるため、別のコードで送り直させません。
+ */
+export const CAMPAIGN_RESEND_CONFLICT_MESSAGE =
+  "前回の定義がまだ処理中か、このキャンペーンコードが既に使われています。しばらくしてから同じ内容でもう一度定義するか、一覧で定義されたかを確かめてください。";

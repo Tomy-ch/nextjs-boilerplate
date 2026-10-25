@@ -10,10 +10,6 @@ import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState } from "@/model/action-state";
 
 import { COUPON_DISCOUNT_KIND_MISSING_MESSAGE } from "../../coupon-discount";
-import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-} from "../../coupon-scope";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../paths";
 import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import {
@@ -31,9 +27,14 @@ import {
   CAMPAIGN_USABLE_AFTER_EXPIRY_MESSAGE,
   type CampaignOwnValues,
 } from "./campaign-rules";
+import {
+  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+} from "./coupon-scope";
 import { CAMPAIGN_CONFIRMED_VALUE } from "./form-names";
 import {
   CAMPAIGN_CODE_CONFLICT_MESSAGE,
+  CAMPAIGN_RESEND_CONFLICT_MESSAGE,
   type CreateCampaignAction,
   type CreateCampaignState,
 } from "./form-state";
@@ -49,11 +50,11 @@ vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   },
 }));
 
-vi.mock("../../use-product-candidates", async (importOriginal) => {
+vi.mock("./use-product-candidates", async (importOriginal) => {
   const fixture = await import("./campaign-new.fixture");
 
   return {
-    ...(await importOriginal<typeof import("../../use-product-candidates")>()),
+    ...(await importOriginal<typeof import("./use-product-candidates")>()),
     useProductCandidates: () => fixture.FOUND_PRODUCTS,
   };
 });
@@ -810,6 +811,29 @@ describe("AdminCampaignCreateView", () => {
 
     expect(sent(action, 1).get("idempotencyKey")).toBe(sent(action, 0).get("idempotencyKey"));
     expect([...sent(action, 1).entries()]).toEqual([...sent(action, 0).entries()]);
+  });
+
+  it("結果が定まらない失敗のあとの送り直しが 409 なら、確認の中にどちらとも読める文言を出し、欄を止めたまま同じ冪等キーで送り直す", async () => {
+    const action = sending(UNAVAILABLE, CONFLICTED);
+
+    renderView(action);
+    const dialog = await fillAndSend();
+
+    await within(dialog).findByText(FORM_ERROR);
+    await send(dialog);
+    await within(dialog).findByText(CAMPAIGN_RESEND_CONFLICT_MESSAGE);
+
+    expect(screen.getByRole("alertdialog")).toBeInTheDocument();
+    expect(codeField()).not.toHaveAccessibleDescription(
+      expect.stringContaining(CAMPAIGN_CODE_CONFLICT_MESSAGE),
+    );
+    expect(screen.getByText(LOCKED_MESSAGE)).toBeInTheDocument();
+    expect(codeField()).toBeDisabled();
+
+    await send(screen.getByRole("alertdialog"));
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
+
+    expect(sent(action, 2).get("idempotencyKey")).toBe(sent(action, 0).get("idempotencyKey"));
   });
 
   it.each([

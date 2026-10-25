@@ -3,9 +3,15 @@ import { describe, expect, it } from "vitest";
 import { ErrorKind } from "@/errors/error-kind";
 import { type FieldErrors, failedActionState, idleActionState } from "@/model/action-state";
 
-import { closesConfirmation, failuresOf, fieldMessagesOf } from "./campaign-feedback";
+import {
+  closesConfirmation,
+  failuresOf,
+  fieldMessagesOf,
+  resendResultOf,
+} from "./campaign-feedback";
 import {
   CAMPAIGN_CODE_CONFLICT_MESSAGE,
+  CAMPAIGN_RESEND_CONFLICT_MESSAGE,
   type CreateCampaignField,
   type CreateCampaignState,
 } from "./form-state";
@@ -20,6 +26,34 @@ function failed(options: {
 }): CreateCampaignState {
   return failedActionState<never, CreateCampaignField>(options);
 }
+
+describe("resendResultOf", () => {
+  // ----- 正常系 -----
+  it("409 はコードの欄から外し、どちらとも読める全体の文言だけを持つ失敗に読み替える", () => {
+    const conflicted: CreateCampaignState = failedActionState({
+      formError: null,
+      fieldErrors: { code: ["重複"] },
+      kind: ErrorKind.CONFLICT,
+    });
+
+    expect(resendResultOf(conflicted)).toStrictEqual(
+      failedActionState({ formError: CAMPAIGN_RESEND_CONFLICT_MESSAGE, kind: ErrorKind.CONFLICT }),
+    );
+  });
+
+  it("409 でない失敗は読み替えずにそのまま返す", () => {
+    const rejected: CreateCampaignState = failedActionState({
+      formError: "拒否",
+      kind: ErrorKind.VALIDATION,
+    });
+
+    expect(resendResultOf(rejected)).toBe(rejected);
+  });
+
+  it("失敗でない結果はそのまま返す", () => {
+    expect(resendResultOf(idle)).toBe(idle);
+  });
+});
 
 describe("closesConfirmation", () => {
   // ----- 正常系 -----

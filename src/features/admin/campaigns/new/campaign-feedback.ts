@@ -1,4 +1,32 @@
-import type { CreateCampaignField, CreateCampaignState } from "./form-state";
+import { ErrorKind } from "@/errors/error-kind";
+import { failedActionState } from "@/model/action-state";
+
+import {
+  CAMPAIGN_RESEND_CONFLICT_MESSAGE,
+  type CreateCampaignField,
+  type CreateCampaignState,
+} from "./form-state";
+
+/**
+ * 結果が分からないまま送り直した送信の結果を、画面が見せる形へ読み替える。
+ *
+ * @remarks
+ * 409 だけを読み替えます。送り直しへの 409 は、前回の送信がまだ処理中である場合と区別が
+ * つかないため、コードの欄ではなく確認の中に、どちらとも読める文言で出します。
+ *
+ * @param state - 送り直した送信の結果
+ * @returns 409 なら全体の文言だけを持つ失敗。それ以外はそのまま
+ */
+export function resendResultOf(state: CreateCampaignState): CreateCampaignState {
+  if (state.status !== "error" || state.kind !== ErrorKind.CONFLICT) {
+    return state;
+  }
+
+  return failedActionState({
+    formError: CAMPAIGN_RESEND_CONFLICT_MESSAGE,
+    kind: ErrorKind.CONFLICT,
+  });
+}
 
 /**
  * 結果が返ったときに確認を閉じるか。
