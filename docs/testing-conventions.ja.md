@@ -66,6 +66,7 @@
   見つかってしまい、**約束が破れているのにテストは緑になる**。場所そのものが約束なら、その場所を
   定めるコンテナーで query を絞る —— 面の中に出す約束なら `within(dialog)` から引き、外へ出た瞬間に
   query が落ちるようにする。
+- **role の query はデフォルトで `aria-hidden` の内側を飛ばす。** 隠れたサブツリーに `generic` や `button` が無いことをデフォルトの query で確かめると、サブツリーが何を持っていても通る。属性そのものを確かめるか、無いことが主張なら `{ hidden: true }` を渡す。
 - **レンダリングのあいだだけ真になる値は、落ち着いた後に読まない。**落ち着いた値はどの経路でも偽なので、何も判らない。
   レンダリングごとの値を配列へ記録する probe component で包み、記録の列を見る。
 - **sleep ではなく待つ。**`await waitFor(...)` / `await screen.findBy...` を使う。固定の遅延は構造的に flaky になる。時間そのものが主題なら `vi.useFakeTimers` + `vi.advanceTimersByTime`。
@@ -97,6 +98,7 @@
 - `render` したものは Testing Library の `cleanup` が畳む（`vitest.setup.ts` が全ファイルへ掛けている）。**それ以外の経路で作ったものは自分で畳む。**
 - **`vi.hoisted` で作った `vi.fn()` のデフォルト値は、`beforeEach` でテストごとに置き直す。** `vi.restoreAllMocks()` が元へ戻すのは `vi.spyOn` で作ったものだけで、`vi.fn()` に `mockResolvedValue` で与えた値はファイルの残りのテストへ持ち越される。持ち越された値の上では、デフォルトを前提にしたテストが別の分岐を通ったまま緑になり、どのテストが値を変えたかはファイルの並び順でしか分からない。
 - **テストが待たせたままの action は解決する。** React は解決していない async action に後続の transition をすべて絡めるため、解決しない送信が 1 つあるとファイル内の後続の送信がすべて pending のまま残り、落ちるのはその後ろのケースになる。action にはテストが resolver を持つ Promise を渡し、`afterEach` で呼ぶ。
+- **module レベルの client は、retry の予算と circuit breaker の状態をファイル内のケースをまたいで持ち続ける。** 失敗のステータスを次々に返すケースが breaker を開くことがあり、すると後のケースは確かめたい分類ではなく `unavailable` を受け取る —— その前にいくつ失敗があったかで緑にも赤にもなる。失敗の分類が主題なら、その `describe` のために module を読み直す（`vi.resetModules()` と動的 `import` で、分類を読むためのエラーヘルパーも一緒に）。
 - **`vi.resetModules()` はモックを戻さない。** 読み直した module が受け取るのは、`vi.mock` のファクトリが前に返したのと同じモックで、呼び出しの記録も途中で与えた実装も残っている。module を読み直すテストは `beforeEach` で `vi.resetAllMocks()` も呼ぶ —— `vi.fn(impl)` は reset で `impl` へ戻るので、本物を包んだ spy は包んだまま残る。
 - 畳む手段を持たない production の関数を呼ぶなら、生成そのものをテスト側で捕まえる（[`docs-viewer/src/mount/mount-portal.test.tsx`](../docs-viewer/src/mount/mount-portal.test.tsx) が `createRoot` に対して行っている）。**畳めるようにするために production へ後始末のフックを足さない** —— production に呼ぶ相手が居ない API は、次に読む人が用途を問い直すだけの荷物になる。
 
