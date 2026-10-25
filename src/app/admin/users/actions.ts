@@ -2,10 +2,21 @@
 
 import { redirect, unstable_rethrow } from "next/navigation";
 
-import { withdrawUser } from "@/adapters/server/api/users";
+import { issueCoupon } from "@/adapters/server/api/coupons";
+import { getManagedUser, withdrawUser } from "@/adapters/server/api/users";
 import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_USER_LIST_PATH } from "@/features/admin/paths";
+import { ADMIN_USER_LIST_PATH, adminUserCouponNewPath } from "@/features/admin/paths";
+import {
+  ISSUE_RESEND_CONFLICT_MESSAGE,
+  type IssueCouponState,
+} from "@/features/admin/users/coupon-new/form-state";
+import {
+  notFoundStateOf,
+  type RecipientReread,
+  toIssueFieldErrors,
+} from "@/features/admin/users/coupon-new/issue-rejection";
+import { parseIssueForm } from "@/features/admin/users/coupon-new/parse-issue-form";
 import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/list/form-names";
 import type { WithdrawUserState } from "@/features/admin/users/list/form-state";
 import {
@@ -18,8 +29,11 @@ import {
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { toUserId } from "@/model/user/user";
+import { toUserId, type UserId } from "@/model/user/user";
 import { assertAdmin } from "../assert-admin";
+
+const INVALID_INPUT_MESSAGE =
+  "入力内容を受け付けられませんでした。値引き・対象・期限の組み合わせを確認してください。";
 
 /**
  * 利用者を 1 件退会させる。
@@ -73,4 +87,69 @@ export async function withdrawUserAction(
   }
 
   return succeededActionState({ name });
+}
+
+async function rereadRecipient(recipient: UserId, screenPath: string): Promise<RecipientReread> {
+  try {
+    const user = await getManagedUser(recipient);
+
+    return { kind: "found", deletedAt: user.deletedAt };
+  } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(screenPath));
+
+    return findAppError(error)?.kind === ErrorKind.NOT_FOUND
+      ? { kind: "absent" }
+      : { kind: "unreadable" };
+  }
+}
+
+export async function issueUserCouponAction(
+  _previous: IssueCouponState,
+  formData: FormData,
+): Promise<IssueCouponState> {
+  const parsed = parseIssueForm(formData);
+  const screenPath =
+    parsed.recipient === null ? ADMIN_USER_LIST_PATH : adminUserCouponNewPath(parsed.recipient);
+
+  try {
+    await assertAdmin(screenPath);
+  } catch (error) {
+    unstable_rethrow(error);
+
+    return actionStateFromError(error);
+  }
+
+  if (!parsed.ok) {
+    return failedActionState({ formError: parsed.formError, fieldErrors: parsed.fieldErrors });
+  }
+
+  const { draft, idempotencyKey, recipient } = parsed;
+
+  try {
+    await issueCoupon(recipient, draft, idempotencyKey);
+  } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(screenPath));
+
+    const kind = findAppError(error)?.kind;
+
+    if (kind === ErrorKind.NOT_FOUND) {
+      return notFoundStateOf(draft.scope, () => rereadRecipient(recipient, screenPath));
+    }
+
+    if (kind === ErrorKind.CONFLICT) {
+      return failedActionState({ formError: ISSUE_RESEND_CONFLICT_MESSAGE, kind });
+    }
+
+    if (kind === ErrorKind.VALIDATION) {
+      const fieldErrors = toIssueFieldErrors(error);
+
+      return Object.keys(fieldErrors).length > 0
+        ? failedActionState({ formError: null, fieldErrors, kind })
+        : failedActionState({ formError: INVALID_INPUT_MESSAGE, kind });
+    }
+
+    return actionStateFromError(error);
+  }
+
+  return succeededActionState(undefined);
 }

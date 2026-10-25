@@ -8,6 +8,7 @@ coverage-exclusions:
   - "src/features/admin/products/discontinue/discontinue.fixture.ts"
   - "src/features/admin/products/list/list.fixture.ts"
   - "src/features/admin/users/list/list.fixture.ts"
+  - "src/features/admin/users/coupon-new/coupon-new.fixture.ts"
   - "src/features/admin/campaigns/list/list.fixture.ts"
   - "src/features/admin/campaigns/new/campaign-new.fixture.ts"
 ---
@@ -49,6 +50,7 @@ outer frame's promises are held by [the `admin` layout](../../../docs/spec/route
 | `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.md>) |
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
+| `/admin/users/[id]/coupons/new` | [`screen`](<../../../docs/spec/route/admin/users/[id]/coupons/new/page.screen.md>) / [`function`](<../../../docs/spec/route/admin/users/[id]/coupons/new/page.function.md>) |
 | `/admin/campaigns` | [`screen`](../../../docs/spec/route/admin/campaigns/page.screen.md) / [`function`](../../../docs/spec/route/admin/campaigns/page.function.md) |
 | `/admin/campaigns/new` | [`screen`](../../../docs/spec/route/admin/campaigns/new/page.screen.md) / [`function`](../../../docs/spec/route/admin/campaigns/new/page.function.md) |
 
@@ -70,12 +72,14 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | `GetPurchases` | The in-progress purchases that keep a product from being discontinued | feature |
 | `GetProductCategories` / `GetProductStatuses` | Candidates for filters and forms | feature |
 | `GetUsers` | The user list | feature |
+| `GetUsersDetail` | The recipient a coupon is issued to, read by the issuing screen and its hierarchy | feature |
 | `GetCampaigns` | The campaign list | feature |
 | `PostProductsImages` | Image upload | An app-layer Action |
 | `PostProducts` / `PatchProductsDetail` | Creating and editing products | An app-layer Action |
 | `PatchProductsStock` | Increasing and decreasing stock | An app-layer Action |
 | `PostProductsDiscontinue` | Discontinuing a product and issuing replacement coupons | An app-layer Action |
 | `DeleteUsersDetail` | Closing a user's account | An app-layer Action |
+| `PostCoupons` | Issuing one coupon to one user. On a `404` the Action rereads the recipient through `GetUsersDetail` to tell the recipient from the scope target | An app-layer Action |
 | `PostCampaigns` | Defining a campaign | An app-layer Action |
 | `PostCampaignsSuspend` | Suspending a campaign's distribution | An app-layer Action |
 
@@ -111,6 +115,12 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | Users | success / empty | `Page/Admin/Users/List/{Default,Empty}` |
 | | Account closure confirmation, success, conflict | `Page/Admin/Users/List/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
 | | loading | `Features/Admin/Users/List/Skeleton/Default` |
+| Coupon issue to a user | Input, filled, per band | `Page/Admin/Users/CouponNew/{Default,DefaultTablet,DefaultMobile,Filled}` |
+| | Invalid fields, usable from after the expiry | `Page/Admin/Users/CouponNew/{InvalidFields,UsableAfterExpiry}` |
+| | Confirmation, sending, issued (stays on the screen) | `Page/Admin/Users/CouponNew/{Confirming,ConfirmingMobile,Submitting,Issued}` |
+| | Recipient already closed at load / lost when sending / scope target lost when sending | `Page/Admin/Users/CouponNew/{RecipientWithdrawn,RecipientLost,ScopeTargetLost}` |
+| | Rejected fields, other rejection, outcome open (inputs held), a request under the same key still in progress | `Page/Admin/Users/CouponNew/{RejectedFields,Rejected,Unavailable,ResendConflicted}` |
+| | loading | `Features/Admin/Users/CouponNew/Skeleton/Default` |
 | Campaigns | success (every status, a fully distributed row) / empty | `Page/Admin/Campaigns/List/{Default,Empty}` |
 | | Pagination, a long code | `Page/Admin/Campaigns/List/{MiddlePage,LastPage,SinglePage,LongCode}` |
 | | Suspension confirmation, sending | `Page/Admin/Campaigns/List/SuspendConfirm`, `Features/Admin/Campaigns/List/SuspendDialog/Submitting` |
@@ -138,7 +148,7 @@ Create a directory per screen and divide each by nature.
 
 **Products have five screens (list, create, edit, restock, discontinue), so they are split along the screen axis.** What
 several screens share belongs to none of them, so the level above (directly under `products/` and
-`products/ui/`) owns it. Users are dug along the screen axis (`users/list/`), and the display name the user screens share sits directly under `users/`.
+`products/ui/`) owns it. Users are dug along the screen axis (`users/list/` and `users/coupon-new/`), and the display name the user screens share sits directly under `users/`.
 Campaigns are dug along the screen axis (`campaigns/list/` and `campaigns/new/`), since listing and creating campaigns are separate screens.
 The user list and the campaign list both page by offset and both confirm a row operation before sending it, so
 what they share — choosing the page numbers, the pagination itself and the confirmation open/close policy — sits
@@ -239,6 +249,7 @@ screen that defines or issues a coupon asks for.
 | `ui/text-field/` `ui/select-field/` | One input field. The caller holds the value |
 | `coupon-discount.ts` | Reading and wording a coupon's discount. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
 | `coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
+| `coupon-summary.ts` | The discount and scope fields a confirmation sends, and how the discount, scope and wall-clock values read back in it |
 | `use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
 | `wall-clock.ts` | Fixes a `datetime-local` wall-clock value into an instant in the time zone of the person who typed it. Called in the browser |
 | `ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
@@ -264,6 +275,23 @@ screen that defines or issues a coupon asks for.
 | `users/list/ui/withdraw-feedback/` | The account closure result. A place that remains after the confirmation closes |
 | `users/list/ui/submit-button/` | Submitting the account closure. Extracted as a child of the form to read `useFormStatus` |
 | `users/list/ui/skeleton/` | The table loading UI |
+| `users/coupon-new/issue-rules.ts` | Reading and wording the expiry, usable-from and minimum purchase, and their order. The discount and scope are left to `coupon-discount.ts` / `coupon-scope.ts`. Both the sending and receiving sides go through it |
+| `users/coupon-new/form-state.ts` `users/coupon-new/form-names.ts` | The issue result type, the submission target's type, field labels, and the submission's `name`s. The recipient travels as a hidden field |
+| `users/coupon-new/use-issue-values.ts` | Input values, touched markers and per-field errors, and emptying them once an issue succeeds |
+| `users/coupon-new/parse-issue-form.ts` | Reading the submitted recipient, coupon, idempotency key and confirmation signal |
+| `users/coupon-new/issue-rejection.ts` | Maps the fields the connection target named onto this screen's input fields, and tells a lost recipient from a lost scope target on a `404` |
+| `users/coupon-new/issue-feedback.ts` | Which result closes the confirmation, whether the recipient was lost, and where each failure message is shown |
+| `users/coupon-new/issue-summary.ts` | The values and the read-back the confirmation and the issued result show |
+| `users/coupon-new/recipient.ts` | The recipient's shape handed to the client: only the items the screen shows, copied out of the tainted user |
+| `users/coupon-new/page-content.tsx` | Fetching the recipient and the categories a scope can choose. An absent recipient becomes `notFound()` |
+| `users/coupon-new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open, and swaps the form for the issued result after success |
+| `users/coupon-new/breadcrumb-content.tsx` | The hierarchy down to the issuing screen. Falls back to a trail without the name when the recipient cannot be read |
+| `users/coupon-new/ui/recipient-card/` | The recipient. Shown, never chosen |
+| `users/coupon-new/ui/validity-fields/` | The expiry, usable-from and minimum purchase. The caller holds the values |
+| `users/coupon-new/ui/confirm-dialog/` | The confirmation. Names the recipient and states that an issue cannot be undone. Receives only `formAction` |
+| `users/coupon-new/ui/issued-result/` | What was issued and to whom. A place that remains after the confirmation closes; offers issuing another and going back to the list |
+| `users/coupon-new/ui/unavailable-recipient/` | The recipient cannot receive: closed at load, or lost when sending. Only the way back to the list |
+| `users/coupon-new/ui/skeleton/` | The screen loading UI |
 | `campaigns/list/query.ts` | The campaign list URL contract (page number) and the key name |
 | `campaigns/list/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
 | `campaigns/list/page-size.ts` | How many items one page lists |
@@ -310,7 +338,7 @@ directly. Imposing composition tests on something with no composition leaves not
 | Kernel | Purpose |
 | --- | --- |
 | `adapters` | Fetching analytics, products, purchases, users and campaigns, and resolving image URLs. The contract's limits that input fields read in the browser come from `adapters/client` |
-| `model` | Display models (`Product` / `Purchase` / `Dashboard` / `Campaign` / `CampaignDraft`), pagination, periods, number and date formatting, coupon discount and scope wording, `ActionState`, idempotency keys |
+| `model` | Display models (`Product` / `Purchase` / `Dashboard` / `Campaign` / `CampaignDraft` / `CouponIssueDraft`), pagination, periods, number and date formatting, coupon discount and scope wording, `ActionState`, idempotency keys |
 | `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
 | `errors` | Maps fetch and submission failures to the wording the screen shows |
 | `logging` | Recording a partial fetch failure the screen absorbs in place instead of throwing to the boundary |
@@ -333,6 +361,7 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
 | `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
+| `issueUserCouponAction` | `src/app/admin/users/actions.ts` | `IssueCouponState` | **Stays on the screen** and refetches nothing; the screen shows what was issued | A lost recipient replaces the form; a lost scope target goes to its field; fields the connection target named go to their input fields; a `409` is read as a request under the same key still in progress and keeps the inputs held; anything else is shown in the confirmation |
 | `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | Has the list refetched, then `redirect` to it | A code already used (conflict) goes to the code field — except a conflict on a resend while the outcome is open, which is shown in the confirmation with the inputs still held; fields the connection target named go to their input fields; anything else is shown in the confirmation. While the outcome is open the inputs are held |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `refresh()` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 
@@ -342,6 +371,10 @@ happened.
 
 **Row operations on a list stay on the list.** Account closure and suspension act on one row, and their result
 is read in that list, so neither moves to another URL.
+
+**Issuing a coupon to a user stays on its screen too.** No management screen lists the coupons a user holds, so a
+destination could not show that the issue happened; the result is shown in place and disappears on a reload. The
+issued coupon cannot be undone, so the form is emptied rather than left filled for a second press.
 
 **Discontinuation, a screen of its own, also stays on it after success.** The counts of what the execution did exist only in
 its response — the contract has no endpoint to read them back, and running it again reports zeros — so a
@@ -365,6 +398,9 @@ assembly are held on the feature side (`products/parse-product-form.ts` and so o
 - [ ] A 409 on a resend while the outcome is open is shown in the confirmation as either case, not on the code field, and the inputs stay held
 - [ ] The order of the period and the limits is shown before sending; the connection target still judges it
 - [ ] A resend while the outcome is open carries the same idempotency key and the inputs stay held; the next screen opened carries a new key
+- [ ] The coupon issue's recipient is fixed by the URL: the screen offers no way to choose it, and the submission carries the recipient the route named
+- [ ] The two `404`s of a coupon issue are told apart: a closed or absent recipient replaces the form, a missing scope target goes to its field, and when the recipient cannot be reread neither is claimed
+- [ ] A coupon issue resent while the outcome is open, or after a `409`, carries the same idempotency key; the issue after a success carries a new one
 
 The layer assignment (`feature` / `component` / `unit`) is at the end of Structure.
 
