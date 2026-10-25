@@ -100,23 +100,31 @@ export function toCouponScope(values: CouponScopeValues): CouponScopeReading {
 }
 
 /**
+ * 送信された値を文字列として取り出す。
+ *
+ * @param formData - 送信された form の値
+ * @param name - 項目の名前
+ * @returns 文字列の値。載っていないかファイルなら空文字
+ */
+function textOf(formData: FormData, name: string): string {
+  const value = formData.get(name);
+
+  return typeof value === "string" ? value : "";
+}
+
+/**
  * 送られてきた form から、範囲として選ばれていた値を取り出す。
  *
  * @param formData - 送信された form の値
  * @returns 選ばれていた値。種別が読めなければ空
  */
 export function readCouponScopeValues(formData: FormData): CouponScopeValues {
-  const text = (name: string) => {
-    const value = formData.get(name);
-
-    return typeof value === "string" ? value : "";
-  };
-  const kind = text(COUPON_SCOPE_FORM_NAMES.kind);
+  const kind = textOf(formData, COUPON_SCOPE_FORM_NAMES.kind);
 
   return {
     kind: kind === "all" || kind === "category" || kind === "product" ? kind : "",
-    categoryId: text(COUPON_SCOPE_FORM_NAMES.categoryId),
-    productId: text(COUPON_SCOPE_FORM_NAMES.productId),
+    categoryId: textOf(formData, COUPON_SCOPE_FORM_NAMES.categoryId),
+    productId: textOf(formData, COUPON_SCOPE_FORM_NAMES.productId),
     productName: "",
   };
 }

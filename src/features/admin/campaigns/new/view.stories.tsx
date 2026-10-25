@@ -36,7 +36,6 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
   { label: "販促", items: [{ href: ADMIN_CAMPAIGN_LIST_PATH, label: "キャンペーン一覧" }] },
 ];
 
-/** canvas で冪等キーとして載せる値。送信は起きないので固定でよい。 */
 /** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
 const idle = () => Promise.resolve<CreateCampaignState>(idleActionState());
 

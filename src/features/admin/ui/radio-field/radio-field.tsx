@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId } from "react";
+import { useId } from "react";
 
 import { FieldError } from "@/components/design-system/form/field/field";
 import { toErrorId } from "@/components/design-system/form/field/field.definition";
@@ -65,15 +65,6 @@ export function AdminRadioField<TValue extends string>({
   const idPrefix = useId();
   const errorId = toErrorId(idPrefix);
 
-  const change = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const selected = options.find((option) => option.value === event.target.value);
-
-      if (selected !== undefined) onValueChange(selected.value);
-    },
-    [onValueChange, options],
-  );
-
   return (
     <RadioGroupNative
       aria-describedby={message === undefined ? undefined : errorId}
@@ -95,7 +86,7 @@ export function AdminRadioField<TValue extends string>({
               checked={value === option.value}
               id={`${idPrefix}${option.value}`}
               name={name}
-              onChange={change}
+              onChange={() => onValueChange(option.value)}
               value={option.value}
             />
             {option.label}

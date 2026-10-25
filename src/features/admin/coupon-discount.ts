@@ -216,22 +216,30 @@ export function toCouponDiscount(values: CouponDiscountValues): CouponDiscountRe
 }
 
 /**
+ * 送信された値を文字列として取り出す。
+ *
+ * @param formData - 送信された form の値
+ * @param name - 項目の名前
+ * @returns 文字列の値。載っていないかファイルなら空文字
+ */
+function textOf(formData: FormData, name: string): string {
+  const value = formData.get(name);
+
+  return typeof value === "string" ? value : "";
+}
+
+/**
  * 送られてきた form から、値引きとして打たれていた値を取り出す。
  *
  * @param formData - 送信された form の値
  * @returns 打たれていた値。種別が読めなければ空
  */
 export function readCouponDiscountValues(formData: FormData): CouponDiscountValues {
-  const text = (name: string) => {
-    const value = formData.get(name);
-
-    return typeof value === "string" ? value : "";
-  };
-  const kind = text(COUPON_DISCOUNT_FORM_NAMES.kind);
+  const kind = textOf(formData, COUPON_DISCOUNT_FORM_NAMES.kind);
 
   return {
     kind: kind === "flat" || kind === "rate" ? kind : "",
-    value: text(COUPON_DISCOUNT_FORM_NAMES.value),
-    maxAmount: text(COUPON_DISCOUNT_FORM_NAMES.maxAmount),
+    value: textOf(formData, COUPON_DISCOUNT_FORM_NAMES.value),
+    maxAmount: textOf(formData, COUPON_DISCOUNT_FORM_NAMES.maxAmount),
   };
 }

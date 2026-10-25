@@ -54,7 +54,15 @@ export function CampaignPeriodFields({
   const leave = useCallback((field: CampaignPeriodField) => () => onLeave(field), [onLeave]);
   const clearUsableFrom = useCallback(() => onValueChange("usableFrom", ""), [onValueChange]);
 
-  const field = (name: CampaignPeriodField, required: boolean, description?: string) => (
+  /**
+   * 日時の 1 項目を組む。
+   *
+   * @param name - 組む項目
+   * @param required - 必須か
+   * @param description - 受け取りや利用にとってその日時が何を意味するか
+   * @returns 日時の入力欄
+   */
+  const field = (name: CampaignPeriodField, required: boolean, description: string) => (
     <AdminTextField
       controlId={`${idPrefix}${name}`}
       label={CAMPAIGN_FIELD_LABELS[name]}
@@ -63,8 +71,8 @@ export function CampaignPeriodFields({
       onValueChange={change(name)}
       required={required}
       type="datetime-local"
+      description={description}
       value={values[name]}
-      {...(description === undefined ? {} : { description })}
       {...(messages[name] === undefined ? {} : { message: messages[name] })}
     />
   );
