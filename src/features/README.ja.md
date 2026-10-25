@@ -58,7 +58,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 
 | module | 持ち物 | 持たないもの |
 | --- | --- | --- |
-| `<screen>/page-content.tsx` | URL の解釈、条件で変わらない取得、待機の境界の配置、`not-found` の分類、1 回きりの送信に載せる冪等キーの発行 | 見た目 |
+| `<screen>/page-content.tsx` | URL の解釈、条件で変わらない取得、待機の境界の配置、`not-found` の分類 | 見た目 |
 | `<screen>/results.tsx` | 条件で変わる取得だけ。`page-content` が置いた `Suspense` の内側に居て、取り直す範囲を区切る | 操作面（検索欄・絞り込み・効いている条件の表示） |
 | `<screen>/view.tsx` | props だけでレンダリングできる画面の合成。`page-content` が取った値を受けて組む | 取得 |
 | `<screen>/breadcrumb-content.tsx` | 現在地までの階層。app レイヤーの `@breadcrumb` slot が置く。名前のために本文と同じ取得を通ってよい —— 同じレンダリングの中で 1 回に畳まれる | |
@@ -163,9 +163,10 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
 - **app レイヤーに住む Action は route が props で渡し、その型を `form-state.ts` が持つ**
   （`(state, formData) => Promise<State>`）。画面は送信先を自分で決めない —— 決めてよいのは
   `adapters/server/auth` へ触れられる app レイヤーだけである
-- **冪等キーの発行元は送信の回数で決まる。** 1 回きりの作成（登録・確定）は `page-content` が組み立て
-  ごとに 1 つ作って props で渡す。同じ画面から繰り返す送信（1 件ずつ足していくもの）は client island が
-  mount のときに作る。**どちらも `components/use-submission-key.ts` を通して持ち、応答が送信を確定させたら作り直し、結果が定まらないあいだは保つ**（`409` を「同じキーの要求が処理中」に充てるエンドポイントは `conflict` としてそう宣言する）。多くの行に操作を差し出す一覧は、代わりに行ごとに 1 つ持つ。設定（PUT）と削除は 2 度届いても
+- **冪等キーは、送るアイランドが mount のときに `components/use-submission-key.ts` を通して作る。** 応答が送信を
+  確定させたら作り直し、結果が定まらないあいだは保つ（`409` を「同じキーの要求が処理中」に充てるエンドポイントは
+  `conflict` としてそう宣言する）。`page-content` は作らない。props に載せたキーは router cache が持つ画面のコピーに
+  残り、送信が成立した後に「戻る」で戻ると、送り終えたキーのまま画面が戻ってくる（[docs/design/forms.md](../../docs/design/forms.ja.md)）。多くの行に操作を差し出す一覧は、代わりに行ごとに 1 つ持つ。設定（PUT）と削除は 2 度届いても
   結果が変わらないのでキーを持たない
 - **競合（409）だけ言い分ける。** 押した人が取れる行動（画面を読み直す）が他の失敗と違う
 - **確認の中で送る操作は、送信中も失敗時も dialog を開いたままにする。** 押した時点で閉じるコンポーネント

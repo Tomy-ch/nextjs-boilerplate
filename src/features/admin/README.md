@@ -220,7 +220,7 @@ campaign creation screens, sit directly under the feature.
 | `products/discontinue/form-state.ts` `products/discontinue/form-names.ts` | The discontinuation result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
 | `products/discontinue/parse-discontinue-form.ts` | Reading the submitted target, idempotency key, confirmation signal and conditions |
 | `products/discontinue/discontinue-rejection.ts` | Maps the fields the connection target named in a rejection onto this screen's input fields |
-| `products/discontinue/page-content.tsx` | Fetching the product and, unless it is already discontinued, the estimate. Issues the idempotency key once per assembly |
+| `products/discontinue/page-content.tsx` | Fetching the product and, unless it is already discontinued, the estimate |
 | `products/discontinue/remaining-purchases-section.tsx` | Fetching the in-progress purchases. A separate wait and a separate unit of failure from the estimate |
 | `products/discontinue/view.tsx` | The only client island. Holds the submission state, the key and the conditions being typed, and branches between the three standings inside itself so a refetch never unmounts it |
 | `products/discontinue/discontinue-feedback.ts` | Which conditions block opening the confirmation, which result closes it, and where each failure message is shown — in the confirmation or beside the field |
