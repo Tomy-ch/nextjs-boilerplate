@@ -45,7 +45,7 @@ export type CouponDiscountFieldsProps = {
  * 打った上限は捨てず、定率へ戻せば元に戻ります。送るかどうかは読む側が種別で決めます。
  *
  * 額も率も数値型の入力欄にしません。decimal を数値として持たないためで、送る値は打たれた綴りから
- * 写します（[`coupon-discount`](../../coupon-discount.ts)）。
+ * 写します（[`coupon-discount`](../../../../coupon-discount.ts)）。
  *
  * @param props - 打たれている値と、その変更・離脱の通知、項目ごとの誤りの文言。
  *

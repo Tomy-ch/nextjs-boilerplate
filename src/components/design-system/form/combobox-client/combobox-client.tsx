@@ -98,10 +98,9 @@ export type ComboboxClientProps = {
  * 増えるだけになる。
  *
  * 候補の取得・並び順・件数の制限は持たない。`options` として渡された配列をそのまま扱い、
- * 絞り込みは `Command` が label に対して行う。サーバ側で検索する必要がある場合は、呼び出し元が
- * `onSearchChange` で入力語を受け取り、`options` を差し替える。このとき選択中の候補が `options`
- * から外れると trigger は placeholder に戻るため、選択中の候補を `options` に残すのも呼び出し元の
- * 役目である。
+ * 絞り込みは `Command` が label に対して行う（サーバ側で検索するときは `onSearchChange` を参照）。
+ * 選択中の候補が `options` から外れると trigger は placeholder に戻るため、`options` を差し替える
+ * 呼び出し元は選択中の候補を残す。
  *
  * hydration が必要で、Server Component からは直接 render できない。
  *

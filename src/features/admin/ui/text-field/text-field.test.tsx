@@ -47,12 +47,10 @@ describe("AdminTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveValue("ワイヤレスイヤホン");
   });
 
-  it("打鍵のたびに新しい値を伝える", async () => {
+  it("打鍵のたびに、今の値へその打鍵を足した値を伝える", async () => {
     const onValueChange = vi.fn();
     renderField({ onValueChange });
 
-    // 値は呼び出し元が持つため、打鍵しても入力欄は空のままである。1 打鍵で 1 度、その文字が
-    // 伝わることを見る。
     await userEvent.type(screen.getByLabelText("商品名"), "あ");
 
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith("あ");

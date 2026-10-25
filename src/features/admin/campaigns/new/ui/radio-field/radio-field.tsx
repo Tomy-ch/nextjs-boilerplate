@@ -42,7 +42,7 @@ export type AdminRadioFieldProps<TValue extends string> = {
  * **native の radio で組みます。** 選択肢は固定で少なく、独自の keyboard 操作も要りません。
  *
  * **既定の選択を置きません。** 最初から 1 つ選ばれていると、確かめずに送った値と意図して選んだ
- * 値が区別できません（[ADR 0062](../../../../../docs/adr/0062-form-input-validation.md)）。
+ * 値が区別できません。
  *
  * **値は呼び出し元が持ちます。** 選び直しで出し分ける欄があるため、外側が選択を知っている必要が
  * あります。

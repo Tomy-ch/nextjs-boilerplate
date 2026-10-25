@@ -67,8 +67,12 @@ export function StockAmountFields({ current, message }: StockAmountFieldsProps) 
     );
   }, []);
 
-  // 量の欄は focus が外れたことを外へ伝えない。結果を取り下げる合図は、外側の form が入力ごとに拾う。
-  /** 量の欄が focus を外れても、外へは何もしない。 */
+  /**
+   * 量の欄が focus を外れても、外へは何もしない。
+   *
+   * @remarks
+   * 結果を取り下げる合図は、外側の form が入力ごとに拾う。
+   */
   const leave = useCallback(() => undefined, []);
 
   return (

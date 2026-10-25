@@ -22,7 +22,7 @@ export const STATUS_OPTIONS: readonly AdminSelectOption[] = [
   { value: "01936f6d-0000-7000-8000-000000000106", label: "入荷待ち" },
 ];
 
-/** 4 MiB。config が配る既定と同じ値を、story でも同じ意味で使う。 */
+/** 4 MiB。env のファイルが載せている上限と同じ値を、story でも同じ意味で使う。 */
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 /** 編集の対象として読み込んだ商品。説明は表示側と同じ経路を通る HTML で持つ。 */

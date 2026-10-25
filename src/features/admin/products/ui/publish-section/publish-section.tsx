@@ -45,7 +45,7 @@ function readNothing(): undefined {
  * 受け口は配備先の時差で読み、その差ぶんずれた瞬間が保存されます。
  *
  * server と client で違う値になるため、`useSyncExternalStore` で「server では持たない」ことを
- * 明示します。effect で後から入れると、描画のたびにもう 1 周させることになります。
+ * 明示します。effect で後から入れると、mount した直後にもう 1 回描き直すことになります。
  *
  * @returns 分単位の time zone offset。server では `undefined`。
  */

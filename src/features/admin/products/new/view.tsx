@@ -77,10 +77,11 @@ export function AdminProductCreateView({
     withQuantity: true,
   });
 
-  // 説明欄だけは値の更新と結果の取り下げを 1 つの handler にまとめる。他の項目は form 全体の
-  // `onInput` が取り下げを担うが、編集面は input event を出さない。
   /**
    * 描いている説明を書き換え、結果の表示を取り下げる。
+   *
+   * @remarks
+   * 他の項目は form 全体の `onInput` が取り下げを担うが、説明の編集面は input event を出さない。
    *
    * @param value - 新しい説明の値。
    */
@@ -134,7 +135,7 @@ export function AdminProductCreateView({
           {
             id: "images",
             title: PRODUCT_SECTION_TITLES.images,
-            // 送れなかった枚を残したまま先へ進ませない。載らないのは送信に載らない枚だけで、
+            // 送れなかった枚を残したまま先へ進ませない。その枚は送信から黙って抜けるだけで、
             // 気づく手立てが画像の段にしか無い。
             blocked: images.uploading || images.failed,
             content: (
