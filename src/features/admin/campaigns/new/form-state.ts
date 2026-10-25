@@ -14,6 +14,18 @@ export type CampaignOwnField =
   | "perUserLimit"
   | "minPurchaseAmount";
 
+/** キャンペーン自身の入力欄の項目の一覧。 */
+export const CAMPAIGN_OWN_FIELDS = [
+  "code",
+  "startsAt",
+  "endsAt",
+  "couponExpiresAt",
+  "usableFrom",
+  "totalLimit",
+  "perUserLimit",
+  "minPurchaseAmount",
+] as const satisfies readonly CampaignOwnField[];
+
 /** キャンペーンの定義の送信のうち、入力した人が直せる項目。 */
 export type CreateCampaignField = CampaignOwnField | CouponDiscountField | CouponScopeField;
 

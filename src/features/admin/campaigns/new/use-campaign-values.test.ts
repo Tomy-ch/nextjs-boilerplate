@@ -26,7 +26,7 @@ import {
   type CouponScopeValues,
   EMPTY_COUPON_SCOPE_VALUES,
 } from "./coupon-scope";
-import type { CampaignOwnField } from "./form-state";
+import { CAMPAIGN_OWN_FIELDS } from "./form-state";
 import { useCampaignValues } from "./use-campaign-values";
 
 const VALID_OWN: CampaignOwnValues = {
@@ -44,17 +44,6 @@ const VALID_DISCOUNT: CouponDiscountValues = { kind: "flat", value: "5", maxAmou
 
 const VALID_SCOPE: CouponScopeValues = { ...EMPTY_COUPON_SCOPE_VALUES, kind: "all" };
 
-const OWN_FIELDS: readonly CampaignOwnField[] = [
-  "code",
-  "startsAt",
-  "endsAt",
-  "couponExpiresAt",
-  "usableFrom",
-  "totalLimit",
-  "perUserLimit",
-  "minPurchaseAmount",
-];
-
 function renderValues() {
   return renderHook(() => useCampaignValues());
 }
@@ -62,7 +51,7 @@ function renderValues() {
 type Rendered = ReturnType<typeof renderValues>["result"];
 
 function fillValid(result: Rendered): void {
-  for (const field of OWN_FIELDS) {
+  for (const field of CAMPAIGN_OWN_FIELDS) {
     act(() => result.current.setOwn(field, VALID_OWN[field]));
   }
 
