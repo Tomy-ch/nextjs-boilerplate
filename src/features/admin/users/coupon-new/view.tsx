@@ -30,9 +30,13 @@ import { useIssueValues } from "./use-issue-values";
 const LOCKED_MESSAGE =
   "前回の発行の結果が分かるまで、内容は変えられません。同じ内容でもう一度発行してください。";
 
+/** `AdminUserCouponNewView` の props。 */
 export type AdminUserCouponNewViewProps = {
+  /** URL が名指しした受給者。画面では変えられない。 */
   recipient: IssueRecipient;
+  /** 範囲に選べるカテゴリ。 */
   categoryOptions: readonly AdminSelectOption[];
+  /** 発行を送る Server Action。 */
   issueAction: IssueCouponAction;
 };
 
@@ -40,6 +44,16 @@ type IssueCouponFormProps = Omit<AdminUserCouponNewViewProps, "recipient"> & {
   recipient: Pick<IssueRecipient, "id" | "name">;
 };
 
+/**
+ * 発行のフォーム。送信の状態・冪等キー・打たれている値を持つ。
+ *
+ * @remarks
+ * **冪等キーは開いたときに作り、結果が定まらないあいだは同じキーで同じ内容を送り直させます。**
+ * 409 は同じキーの要求が処理中と読み、キーと内容を保ちます。成功のあとは入力を空へ戻し、
+ * 報せの面に替えます。続けて押した 2 枚目が、気付かれずに同じ内容で発行されるのを避けるためです。
+ *
+ * @param props - 受給者・カテゴリ・Server Action
+ */
 function IssueCouponForm({ categoryOptions, issueAction, recipient }: IssueCouponFormProps) {
   const [state, formAction] = useActionState<IssueCouponState, FormData>(
     issueAction,
@@ -180,6 +194,15 @@ function IssueCouponForm({ categoryOptions, issueAction, recipient }: IssueCoupo
   );
 }
 
+/**
+ * 利用者 1 人にクーポンを発行する画面の、唯一の Client Island。
+ *
+ * @remarks
+ * 受給者は表示だけで、選ばせません。退会済みの受給者にはフォームを出しません。
+ *
+ * @param props - {@link AdminUserCouponNewViewProps} を参照。
+ * @see Storybook `Page/Admin/Users/CouponNew`
+ */
 export function AdminUserCouponNewView({
   categoryOptions,
   issueAction,

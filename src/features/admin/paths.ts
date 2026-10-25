@@ -93,6 +93,12 @@ export function adminInquiryDetailPath(id: InquiryId): string {
   return `${ADMIN_INQUIRY_LIST_PATH}/${encodeURIComponent(id)}`;
 }
 
+/**
+ * 利用者 1 人にクーポンを発行する画面のパス。
+ *
+ * @param id - 発行先の利用者
+ * @returns 発行の画面のパス
+ */
 export function adminUserCouponNewPath(id: UserId): string {
   return `${ADMIN_USER_LIST_PATH}/${encodeURIComponent(id)}/coupons/new`;
 }

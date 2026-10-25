@@ -18,9 +18,19 @@ import { ADMIN_USER_LIST_PATH } from "../../paths";
 import { displayNameOf } from "../display-name";
 
 export type AdminUserCouponNewBreadcrumbContentProps = {
+  /** URL が名指しした受給者。 */
   id: UserId;
 };
 
+/**
+ * 階層に出す受給者の名前を読む。
+ *
+ * @remarks
+ * 投げません。階層が落ちると画面の外枠ごと崩れるため、読めなければ名前を省きます。
+ *
+ * @param id - URL が名指しした受給者
+ * @returns 姓名。読めなければ undefined
+ */
 async function recipientNameOf(id: UserId): Promise<string | undefined> {
   try {
     return displayNameOf(await getManagedUser(id));
@@ -35,6 +45,11 @@ async function recipientNameOf(id: UserId): Promise<string | undefined> {
   }
 }
 
+/**
+ * 発行の画面までの階層。
+ *
+ * @param props - {@link AdminUserCouponNewBreadcrumbContentProps} を参照。
+ */
 export async function AdminUserCouponNewBreadcrumbContent({
   id,
 }: AdminUserCouponNewBreadcrumbContentProps) {

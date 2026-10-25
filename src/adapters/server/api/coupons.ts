@@ -113,6 +113,19 @@ export async function readMyCartCoupons(): Promise<readonly CartCoupon[] | null>
   }
 }
 
+/**
+ * 利用者 1 人にクーポンを 1 枚発行する。
+ *
+ * @remarks
+ * **発行は取り消せず、冪等キーが再送を初回の結果へ畳みます。** 別のキーで送れば別の発行に
+ * なります。キーを作るのは画面で、結果が定まるまで同じキーで送り直します。
+ *
+ * 応答は写しません。発行した直後の画面が見せるのは、送った内容の復唱です。
+ *
+ * @param recipient - 発行先の利用者。退会していない人に限られる
+ * @param draft - 発行する内容
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ */
 export async function issueCoupon(
   recipient: UserId,
   draft: CouponIssueDraft,

@@ -18,12 +18,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * 発行の画面の中身。
+ *
+ * @remarks
+ * **`params` を解くのはここです。** 器の側で待つと、待っている間は殻すら配れません。
+ */
 async function AdminUserCouponNewContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
   return <AdminUserCouponNewPageContent id={toUserId(id)} issueAction={issueUserCouponAction} />;
 }
 
+/** 利用者 1 人にクーポンを発行する画面。 */
 export default function AdminUserCouponNewPage({ params }: { params: Promise<{ id: string }> }) {
   return (
     <ContentContainer className="py-8">

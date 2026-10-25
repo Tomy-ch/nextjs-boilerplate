@@ -369,6 +369,16 @@ export const getManagedUserPage = cache(
   },
 );
 
+/**
+ * 利用者を 1 件取得する。
+ *
+ * @remarks
+ * 退会済みも返ります。退会しているかは `deletedAt` で判ります。memo 化するのは、1 リクエストの
+ * 中で画面と階層の双方がこれを引くためです。admin の役割を要します。
+ *
+ * @param id - 取得する利用者
+ * @returns 一覧と同じ項目の利用者
+ */
 export const getManagedUser = cache(async (id: UserId): Promise<ManagedUser> => {
   const wire = await getUserScopedClient().request({
     path: `/v1/users/${encodeURIComponent(id)}`,

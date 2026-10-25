@@ -20,16 +20,25 @@ import { ISSUE_CONFIRMED_VALUE, ISSUE_FORM_NAMES } from "../../form-names";
 import type { IssueConfirmation } from "../../issue-summary";
 import type { IssueRecipient } from "../../recipient";
 
+/** `IssueConfirmDialog` の props。 */
 export type IssueConfirmDialogProps = {
+  /** 確認を開いているか。 */
   open: boolean;
+  /** 確認を閉じる操作が選ばれたことを伝える。 */
   onDismiss: () => void;
+  /** 発行を送る。受給者・内容・冪等キー・確認の合図を載せた値を受ける。 */
   formAction: (formData: FormData) => void;
+  /** 受給者。名前を見出しに出し、識別子を hidden で載せる。 */
   recipient: Pick<IssueRecipient, "id" | "name">;
+  /** 送る値と、人に見せる復唱。 */
   confirmation: IssueConfirmation;
+  /** この送信の冪等キー。持ち主は呼び出し元で、ここでは載せるだけ。 */
   idempotencyKey: string;
+  /** 確認の中に出す失敗の文言。 */
   failures: readonly string[];
 };
 
+/** 送信中は押せない、発行の送信ボタン。 */
 function IssueSubmit() {
   const { pending } = useFormStatus();
 
@@ -40,6 +49,16 @@ function IssueSubmit() {
   );
 }
 
+/**
+ * 発行の確認。受給者を名指しし、発行が取り消せないことを述べてから送る。
+ *
+ * @remarks
+ * 発行はこの中の form からだけ送ります。確認の合図を載せるのはこの form だけなので、確認を
+ * 経ない送信は受け取る側で拒まれます。
+ *
+ * @param props - {@link IssueConfirmDialogProps} を参照。
+ * @see Storybook `Features/Admin/Users/CouponNew/ConfirmDialog`
+ */
 export function IssueConfirmDialog({
   confirmation,
   failures,

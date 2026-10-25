@@ -2,10 +2,20 @@ import { withPartSpan } from "@/observability/render-span";
 
 import type { IssueRecipient } from "../../recipient";
 
+/** `IssueRecipientCard` の props。 */
 export type IssueRecipientCardProps = {
+  /** 発行先の利用者。 */
   recipient: Pick<IssueRecipient, "name" | "email">;
 };
 
+/**
+ * 発行先の利用者を、選ぶものではなく読むものとして示す。
+ *
+ * @remarks
+ * 操作を持ちません。取り消せない発行の宛先を、内容と同じ面で変えさせないためです。
+ *
+ * @see Storybook `Features/Admin/Users/CouponNew/RecipientCard`
+ */
 export const IssueRecipientCard = withPartSpan(
   "features/admin/users/coupon-new/ui/recipient-card/recipient-card",
   ({ recipient }: IssueRecipientCardProps) => {

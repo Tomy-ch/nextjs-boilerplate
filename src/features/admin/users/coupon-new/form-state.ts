@@ -3,8 +3,15 @@ import type { ActionState } from "@/model/action-state";
 import type { CouponDiscountField } from "../../coupon-discount";
 import type { CouponScopeField } from "../../coupon-scope";
 
+/** 発行の画面が自前で持つ欄。値引きと範囲は共有の部品が持つ。 */
 export type IssueOwnField = "expiresAt" | "usableFrom" | "minPurchaseAmount";
 
+/**
+ * 発行の結果が文言を返す先。
+ *
+ * @remarks
+ * `userId` は入力欄ではありません。宛先を失った結果を載せる場所で、画面はこれを見てフォームを差し替えます。
+ */
 export type IssueCouponField = IssueOwnField | CouponDiscountField | CouponScopeField | "userId";
 
 export type IssueCouponState = ActionState<void, IssueCouponField>;
@@ -14,6 +21,7 @@ export type IssueCouponAction = (
   formData: FormData,
 ) => Promise<IssueCouponState>;
 
+/** 接続先が名指しした欄を文言にするときの、欄の名前。 */
 export const ISSUE_FIELD_LABELS: Readonly<Record<IssueOwnField, string>> = {
   expiresAt: "有効期限",
   usableFrom: "利用開始",

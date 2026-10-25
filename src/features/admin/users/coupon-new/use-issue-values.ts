@@ -16,16 +16,29 @@ export type IssueFormValues = {
   readonly own: IssueOwnValues;
   readonly discount: CouponDiscountValues;
   readonly scope: CouponScopeValues;
+  /** 触れた欄の誤り。確認を開こうとしたあとは全部の欄。 */
   readonly errors: Readonly<Partial<Record<IssueCouponField, string>>>;
+  /** 何か打たれていれば true。離れるときの確認に使う。 */
   readonly dirty: boolean;
   readonly setOwn: (field: IssueOwnField, value: string) => void;
   readonly setDiscount: (values: CouponDiscountValues) => void;
   readonly setScope: (values: CouponScopeValues) => void;
   readonly touch: (field: IssueCouponField) => void;
+  /** 全部の欄の誤りを見せる。誤りが無ければ true を返す。 */
   readonly touchAll: () => boolean;
+  /** 値と触れた印を空へ戻す。 */
   readonly reset: () => void;
 };
 
+/**
+ * 発行の画面で打たれている値と、欄ごとの誤りを持つ。
+ *
+ * @remarks
+ * 誤りは触れた欄にだけ出します。開いた直後から赤いフォームは、まだ何もしていない人を責めます。
+ * 判定は送る前と受け取った後で同じものを通ります。
+ *
+ * @returns 値と、それを変える操作
+ */
 export function useIssueValues(): IssueFormValues {
   const [ownValues, setOwnValues] = useState(EMPTY_ISSUE_OWN_VALUES);
   const [discountValues, setDiscountValues] = useState(EMPTY_COUPON_DISCOUNT_VALUES);

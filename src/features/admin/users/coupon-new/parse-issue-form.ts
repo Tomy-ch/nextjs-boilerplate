@@ -25,12 +25,29 @@ export type IssueFormParseResult =
       readonly fieldErrors?: FieldErrors<IssueCouponField>;
     };
 
+/**
+ * 送られた値を文字列として読む。
+ *
+ * @param formData - 送られた値
+ * @param name - 読む項目の名前
+ * @returns 文字列の値。無いか文字列でなければ空
+ */
 function textOf(formData: FormData, name: string): string {
   const value = formData.get(name);
 
   return typeof value === "string" ? value : "";
 }
 
+/**
+ * 送られた発行の内容を読む。
+ *
+ * @remarks
+ * 受給者・冪等キー・確認の合図のどれかが欠けた送信は、確認を経ていない送信として内容を
+ * 読みません。受給者は画面が URL から載せたもので、ここで選ばれた値ではありません。
+ *
+ * @param formData - 確認の form が送った値
+ * @returns 発行する内容と鍵か、欄ごとまたは全体の文言
+ */
 export function parseIssueForm(formData: FormData): IssueFormParseResult {
   const recipientField = z.uuid().safeParse(formData.get(ISSUE_FORM_NAMES.userId));
   const recipient = recipientField.success ? toUserId(recipientField.data) : null;

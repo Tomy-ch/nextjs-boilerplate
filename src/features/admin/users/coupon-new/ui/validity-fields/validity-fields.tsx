@@ -9,13 +9,24 @@ import { ISSUE_FORM_NAMES } from "../../form-names";
 import { ISSUE_FIELD_LABELS, type IssueOwnField } from "../../form-state";
 import type { IssueOwnValues } from "../../issue-rules";
 
+/** `IssueValidityFields` の props。 */
 export type IssueValidityFieldsProps = {
+  /** 打たれている有効期限・利用開始・最低購入額。持ち主は呼び出し元。 */
   values: IssueOwnValues;
+  /** 欄の値が変わったことを伝える。 */
   onValueChange: (field: IssueOwnField, value: string) => void;
+  /** 欄から離れたことを伝える。誤りを見せる合図になる。 */
   onLeave: (field: IssueOwnField) => void;
+  /** 欄ごとに出す誤りの文言。 */
   messages: Readonly<Partial<Record<IssueOwnField, string>>>;
 };
 
+/**
+ * 発行するクーポンの有効期限・利用開始・最低購入額の欄。
+ *
+ * @param props - {@link IssueValidityFieldsProps} を参照。
+ * @see Storybook `Features/Admin/Users/CouponNew/ValidityFields`
+ */
 export function IssueValidityFields({
   messages,
   onLeave,

@@ -89,6 +89,13 @@ export async function withdrawUserAction(
   return succeededActionState({ name });
 }
 
+/**
+ * 送信が 404 になったあと、宛先の利用者を引き直す。
+ *
+ * @param recipient - 送った宛先
+ * @param screenPath - 認証が切れていたときに戻す画面
+ * @returns 引き直した結果
+ */
 async function rereadRecipient(recipient: UserId, screenPath: string): Promise<RecipientReread> {
   try {
     const user = await getManagedUser(recipient);
@@ -103,6 +110,20 @@ async function rereadRecipient(recipient: UserId, screenPath: string): Promise<R
   }
 }
 
+/**
+ * 利用者 1 人にクーポンを 1 枚発行する。
+ *
+ * @remarks
+ * **役割の判定は、送信内容を読めたかに関わらず先に行います。** 送信の口は画面を経ずに呼べる
+ * ため、読めない送信への応答から先に役割の無い者へ返さないためです。
+ *
+ * 成立しても移らず、取り直しもしません。管理側に発行を映す画面が無く、画面に留まって報せます。
+ * 404 は、宛先と範囲の対象のどちらに由来するかを言い分けて返します。
+ *
+ * @param _previous - 直前の結果。使わない
+ * @param formData - 発行の確認が送った値
+ * @returns 発行の結果
+ */
 export async function issueUserCouponAction(
   _previous: IssueCouponState,
   formData: FormData,
