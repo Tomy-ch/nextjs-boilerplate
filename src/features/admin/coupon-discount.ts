@@ -128,12 +128,15 @@ export function toMinorUnitAmount(amount: string): number | null {
     return null;
   }
 
-  const [, integer = "", fraction = ""] = matched;
+  const [, integer, fraction] = matched;
   const minor =
-    Number(integer) * MINOR_UNITS_PER_MAJOR + Number(fraction.padEnd(PERCENT_SHIFT, "0"));
+    Number(integer) * MINOR_UNITS_PER_MAJOR + Number((fraction ?? "").padEnd(PERCENT_SHIFT, "0"));
 
   return minor > 0 && Number.isSafeInteger(minor) ? minor : null;
 }
+
+/** 0 より大きく 1 以下の乗数の綴り。`toCouponDiscountRate` が返す「整数部.小数部」の形だけを読む。 */
+const RATE_IN_RANGE = /^(?:0\.\d*[1-9]\d*|1\.0+)$/;
 
 /**
  * decimal 文字列が 0 より大きく 1 以下か。
@@ -142,15 +145,7 @@ export function toMinorUnitAmount(amount: string): number | null {
  * @returns 範囲に収まれば true
  */
 function isRateInRange(rate: string): boolean {
-  const [integer = "", fraction = ""] = rate.split(".");
-  const integerValue = Number(integer);
-  const fractionIsZero = /^0*$/.test(fraction);
-
-  if (integerValue === 0) {
-    return !fractionIsZero;
-  }
-
-  return integerValue === 1 && fractionIsZero;
+  return RATE_IN_RANGE.test(rate);
 }
 
 /** 打たれた値引きを読んだ結果。 */
