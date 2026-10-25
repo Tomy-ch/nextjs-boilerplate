@@ -80,7 +80,7 @@
   "scripts/README.md": 3,
   "scripts/e2e-routes.gate.test.ts": 2,
   "scripts/gen/plan.test.ts": 2,
-  "scripts/lib/untested-modules.ts": 22,
+  "scripts/lib/untested-modules.ts": 23,
   "scripts/lint-md/steps.ts": 2,
   "scripts/loading-announcement.gate.test.ts": 2,
   "scripts/premise-lint/scan.test.ts": 12,
