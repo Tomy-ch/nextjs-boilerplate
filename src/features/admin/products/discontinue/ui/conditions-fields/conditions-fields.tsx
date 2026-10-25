@@ -4,7 +4,7 @@ import { useCallback, useId } from "react";
 
 import { COUPON_VALIDITY_DAYS_MAX } from "@/adapters/client/api/product-discontinue-limits";
 
-import { ProductTextField } from "../../../ui/text-field/text-field";
+import { AdminTextField } from "../../../../ui/text-field/text-field";
 import { DISCONTINUE_FORM_NAMES } from "../../form-names";
 import type { DiscontinueProductField } from "../../form-state";
 
@@ -32,7 +32,7 @@ export type DiscontinueConditionsFieldsProps = {
  * 確かめずに送った値と意図して打った値が区別できなくなります。
  *
  * 値引き率は百分率で受け、数値型の入力欄にしません。送る値は打たれた綴りから写します
- * （[`coupon-rules`](../../coupon-rules.ts)）。
+ * （[`coupon-discount`](../../../../coupon-discount.ts)）。
  *
  * @see Storybook `Features/Admin/Products/Discontinue/ConditionsFields`
  */
@@ -58,7 +58,7 @@ export function DiscontinueConditionsFields({
   return (
     <fieldset className="grid gap-4 sm:grid-cols-2 sm:items-start">
       <legend className="mb-2 font-emphasis text-sm">代替クーポンの条件</legend>
-      <ProductTextField
+      <AdminTextField
         controlId={`${idPrefix}rate`}
         description="10 と打つと 10% 引きです。"
         inputMode="decimal"
@@ -73,7 +73,7 @@ export function DiscontinueConditionsFields({
           ? {}
           : { message: messages.couponDiscountRate })}
       />
-      <ProductTextField
+      <AdminTextField
         controlId={`${idPrefix}days`}
         description={`発行した日から数えます。最長 ${COUPON_VALIDITY_DAYS_MAX} 日です。`}
         inputMode="numeric"

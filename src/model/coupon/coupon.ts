@@ -1,3 +1,5 @@
+import type { ProductCategoryId, ProductId } from "../product/product";
+
 /**
  * クーポンの値引きの決まり方。
  *
@@ -27,6 +29,18 @@ export type CouponDiscount =
  * 使います。
  */
 export type CouponScopeKind = "all" | "category" | "product";
+
+/**
+ * 発行するクーポンが値引きの対象にする範囲。
+ *
+ * @remarks
+ * 種別と対象は組で決まります。全体は対象を持たず、カテゴリと商品はそれぞれの識別子を 1 つ持ちます。
+ * 識別子を種別と別の欄で持つと、全体なのに対象がある、のような組み合わせが型の上で作れてしまいます。
+ */
+export type CouponScopeTarget =
+  | { readonly kind: "all" }
+  | { readonly kind: "category"; readonly categoryId: ProductCategoryId }
+  | { readonly kind: "product"; readonly productId: ProductId };
 
 /** 範囲の種別ごとの呼び名。 */
 export const COUPON_SCOPE_NAME: Readonly<Record<CouponScopeKind, string>> = {

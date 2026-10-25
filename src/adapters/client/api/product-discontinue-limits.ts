@@ -1,20 +1,4 @@
-import {
-  postProductsDiscontinueBodyCouponDiscountRateRegExp,
-  postProductsDiscontinueBodyCouponValidityDaysMax,
-} from "../../gen/api/limits";
-
-/**
- * 代替クーポンの値引き率が取れる綴り。符号の無い decimal 文字列。
- *
- * @remarks
- * **検証を持たない module に置きます。** 入力欄と story はこの形と数だけを要り、要求の検証
- * スキーマは要りません。スキーマ一式を持つ module から取ると、定数を読む import がそれを
- * ブラウザの束へ載せます。
- *
- * 0 より大きく 1 以下という範囲は、契約が文章でしか宣言していないためここには含みません。
- */
-export const COUPON_DISCOUNT_RATE_PATTERN: RegExp =
-  postProductsDiscontinueBodyCouponDiscountRateRegExp;
+import { postProductsDiscontinueBodyCouponValidityDaysMax } from "../../gen/api/limits";
 
 /**
  * 代替クーポンの有効日数の下限。

@@ -9,10 +9,8 @@ import {
 } from "@/model/action-state";
 import type { ProductDiscontinueResult } from "@/model/product/product";
 
-import {
-  COUPON_DISCOUNT_RATE_INVALID_MESSAGE,
-  COUPON_VALIDITY_DAYS_INVALID_MESSAGE,
-} from "./coupon-rules";
+import { COUPON_DISCOUNT_RATE_INVALID_MESSAGE } from "../../coupon-discount";
+import { COUPON_VALIDITY_DAYS_INVALID_MESSAGE } from "./coupon-rules";
 import {
   checkConditions,
   closesConfirmation,

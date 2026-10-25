@@ -10,7 +10,7 @@ import { idleActionState } from "@/model/action-state";
 import type { ProductDiscontinueImpact, ProductId } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "../../paths";
-import { useActionResultFreshness } from "../use-action-result-freshness";
+import { useActionResultFreshness } from "../../use-action-result-freshness";
 import {
   checkConditions,
   closesConfirmation,
