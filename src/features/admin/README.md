@@ -358,6 +358,7 @@ assembly are held on the feature side (`products/parse-product-form.ts` and so o
 - [ ] Rows of suspended campaigns show no operations
 - [ ] A campaign's status puts suspension before the period, and the period excludes its end
 - [ ] A campaign code already in use (409) is shown on the code field
+- [ ] A 409 on a resend while the outcome is open is shown in the confirmation as either case, not on the code field, and the inputs stay held
 - [ ] The order of the period and the limits is shown before sending; the connection target still judges it
 - [ ] A resend while the outcome is open carries the same idempotency key and the inputs stay held; the next screen opened carries a new key
 
