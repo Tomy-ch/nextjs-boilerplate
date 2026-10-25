@@ -98,7 +98,7 @@ error は route の `error` 境界（`src/app/(shop)/mypage/error.tsx` と
 | `edit/view.tsx` | プロフィール編集の表示。パンくずをここが持つ |
 | `edit/ui/profile-form/` | 並び。client island |
 | `edit/ui/skeleton/` | プロフィール編集のローディング表示 |
-| `onboarding/page-content.tsx` | 都道府県マスターの取得と、この登録 1 回ぶんのキーの生成 |
+| `onboarding/page-content.tsx` | 都道府県マスターの取得 |
 | `onboarding/view.tsx` | 登録の表示。段の器と送信を持つ client island |
 | `onboarding/steps.ts` | どの項目がどの段に属するかと、その段を終えられるかの判定 |
 | `onboarding/form-names.ts` | 隠し項目の `name`。綴りだけを持ち、検証は読む側へ置かない |

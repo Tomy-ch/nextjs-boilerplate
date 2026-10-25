@@ -103,7 +103,7 @@ the same rules**, so the input fields and validation pieces sit directly under t
 | `edit/view.tsx` | The profile edit display. Owns the breadcrumbs |
 | `edit/ui/profile-form/` | The arrangement. A client island |
 | `edit/ui/skeleton/` | The profile edit loading UI |
-| `onboarding/page-content.tsx` | Fetching the prefecture master, and generating the key for this one registration |
+| `onboarding/page-content.tsx` | Fetching the prefecture master |
 | `onboarding/view.tsx` | The registration display. A client island holding the step container and the submission |
 | `onboarding/steps.ts` | Which field belongs to which step, and the judgment of whether that step can be completed |
 | `onboarding/form-names.ts` | The `name`s of the hidden fields. Holds only spellings; validation is not placed on the reading side |

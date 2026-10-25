@@ -16,7 +16,7 @@ The screen slice that checks the cart contents, confirms the purchase and report
 - The check before confirmation (destination, order contents, subtotal) and orchestrating the confirming submission (Server Action)
 - Fetching the purchase that succeeded, and showing the receipt and breakdown
 - Reading the reference conversion into the display currency (the purchase is not stopped if it cannot be read)
-- Issuing the idempotency key that represents one confirmation
+- Holding the idempotency key that represents one confirmation, made when the sending island mounts
 
 ## What It Borrows
 
