@@ -37,8 +37,6 @@ const NAV_GROUPS: readonly AdminShellNavGroup[] = [
 ];
 
 /** canvas で冪等キーとして載せる値。送信は起きないので固定でよい。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000002";
-
 /** canvas では送らない。押した先で何も起きないことを、待ち続けない形で示す。 */
 const idle = () => Promise.resolve<CreateCampaignState>(idleActionState());
 
@@ -176,7 +174,6 @@ const meta = {
   args: {
     categoryOptions: CAMPAIGN_CATEGORY_OPTIONS,
     createAction: idle,
-    idempotencyKey: IDEMPOTENCY_KEY,
   },
 } satisfies Meta<typeof AdminCampaignCreateView>;
 

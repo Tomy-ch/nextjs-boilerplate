@@ -1,7 +1,7 @@
 "use server";
 
 import { refresh, revalidatePath } from "next/cache";
-import { RedirectType, redirect, unstable_rethrow } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
 import { createCampaign, suspendCampaign } from "@/adapters/server/api/campaigns";
@@ -99,11 +99,10 @@ export async function suspendCampaignAction(
  * キャンペーンを定義する。
  *
  * @remarks
- * **成立したら一覧を取り直させてから、一覧へ送ります。** 履歴は置き換えます — 積むと、戻る操作で
- * 送り終えた画面が古い冪等キーのまま戻り、内容を変えて送ると別の内容として拒まれます。
+ * **成立したら一覧を取り直させてから、一覧へ送ります。**
  *
  * **409 はコードの欄へ出します。** 422 は名指しされた欄があればそこへ、無ければ全体の文言に
- * まとめます。どちらも業務の拒否で、接続先は冪等キーを記録しないため、直して同じキーで送り直せます。
+ * まとめます。
  *
  * @param _previous - 直前の action state（本体では参照しない）。
  * @param formData - 定義の送信内容。
@@ -151,5 +150,5 @@ export async function createCampaignAction(
   }
 
   revalidatePath(ADMIN_CAMPAIGN_LIST_PATH);
-  redirect(ADMIN_CAMPAIGN_LIST_PATH, RedirectType.replace);
+  redirect(ADMIN_CAMPAIGN_LIST_PATH);
 }
