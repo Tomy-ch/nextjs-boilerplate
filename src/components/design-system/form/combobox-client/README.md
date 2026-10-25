@@ -32,7 +32,7 @@ It does not own fetching options, their order or limits on their count. It handl
 
 **The trigger does not get `role="combobox"`.** The filter input itself is exposed as `role="combobox"` inside `Command`, so putting it on the trigger too would duplicate the combobox and make the `aria-controls` associations conflict. The trigger is a button that opens the popover, and Radix reflects open / closed in `aria-expanded`.
 
-The trigger's text changes with the selection state, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. The filter input's name is passed internally as the `label` of `Command`.
+The trigger's text changes with the selection state, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. The filter input's name is passed internally as the `label` of `Command`. A field error is tied to the trigger the same way: pass the error's id as `aria-describedby` and `aria-invalid`.
 
 Filtering is done against the label. The `value` of `CommandItem` is the value sent to the form and differs from the display text, so the label is passed as `keywords` to make it searchable. Readings are not normalized, so if kana input should find kanji options, the caller prepares a `label` that includes the reading.
 

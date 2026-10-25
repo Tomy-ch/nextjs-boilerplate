@@ -53,6 +53,23 @@ function ControlledFixture() {
   );
 }
 
+function DescribedByFixture() {
+  const errorId = useId();
+
+  return (
+    <>
+      <ComboboxClient
+        aria-describedby={errorId}
+        aria-invalid={true}
+        aria-label="都道府県"
+        name="prefecture"
+        options={OPTIONS}
+      />
+      <p id={errorId}>都道府県を選んでください。</p>
+    </>
+  );
+}
+
 function LabelledByFixture() {
   const labelId = useId();
 
@@ -159,6 +176,44 @@ describe("ComboboxClient", () => {
     await userEvent.click(screen.getByRole("option", { name: "神奈川県" }));
 
     expect(screen.getByRole("status")).toHaveTextContent("kanagawa");
+  });
+
+  it("選んだ候補そのものも、値と一緒に呼び出し元へ渡す", async () => {
+    const onValueChange = vi.fn();
+    render(
+      <ComboboxClient
+        aria-label="都道府県"
+        name="prefecture"
+        onValueChange={onValueChange}
+        options={OPTIONS}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
+
+    await userEvent.click(screen.getByRole("option", { name: "神奈川県" }));
+
+    expect(onValueChange).toHaveBeenCalledWith(
+      "kanagawa",
+      OPTIONS.find((option) => option.value === "kanagawa"),
+    );
+  });
+
+  it("誤りの説明と誤りの印を trigger へ結び付ける", () => {
+    render(<DescribedByFixture />);
+
+    const trigger = screen.getByRole("button", { name: "都道府県" });
+
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    expect(trigger).toHaveAccessibleDescription("都道府県を選んでください。");
+  });
+
+  it("誤りを渡さなければ、trigger は誤りの印を持たない", () => {
+    render(<ComboboxClient aria-label="都道府県" name="prefecture" options={OPTIONS} />);
+
+    expect(screen.getByRole("button", { name: "都道府県" })).toHaveAttribute(
+      "aria-invalid",
+      "false",
+    );
   });
 
   it("disabled の候補は選択できない", async () => {

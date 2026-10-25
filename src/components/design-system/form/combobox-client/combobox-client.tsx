@@ -35,8 +35,8 @@ export type ComboboxClientProps = {
   value?: string;
   /** uncontrolled の初期値。 */
   defaultValue?: string;
-  /** 選択が変わったときの通知。 */
-  onValueChange?: (value: string) => void;
+  /** 選択が変わったときの通知。選ばれた候補そのものも渡す。 */
+  onValueChange?: (value: string, option: ComboboxClientOption) => void;
   /**
    * 絞り込み入力が変わったときの通知。
    *
@@ -68,6 +68,14 @@ export type ComboboxClientProps = {
   "aria-label"?: string;
   /** trigger の名前を外の要素から参照する場合の id。 */
   "aria-labelledby"?: string;
+  /** trigger の説明（誤りの文言など）を外の要素から参照する場合の id。 */
+  "aria-describedby"?: string;
+  /**
+   * trigger の値が誤りを持つか。
+   *
+   * @defaultValue `false`
+   */
+  "aria-invalid"?: boolean;
   /**
    * 入力を無効にするか。
    *
@@ -119,6 +127,8 @@ export function ComboboxClient({
   emptyMessage = "該当する候補がありません",
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid = false,
   disabled = false,
   className,
 }: ComboboxClientProps) {
@@ -129,9 +139,9 @@ export function ComboboxClient({
   const selectedOption = options.find((option) => option.value === currentValue);
 
   const handleSelect = useCallback(
-    (nextValue: string) => {
-      if (value === undefined) setSelectedValue(nextValue);
-      onValueChange?.(nextValue);
+    (option: ComboboxClientOption) => {
+      if (value === undefined) setSelectedValue(option.value);
+      onValueChange?.(option.value, option);
       setOpen(false);
     },
     [onValueChange, value],
@@ -152,6 +162,8 @@ export function ComboboxClient({
           <Button
             // 絞り込み入力が `Command` の中で `role="combobox"` として公開されるため、ここには付けない。
             // 二重になると `aria-controls` の関連付けも競合する。開閉は Radix が `aria-expanded` に反映する。
+            aria-describedby={ariaDescribedBy}
+            aria-invalid={ariaInvalid}
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
             className={cn("w-full justify-between font-normal", className)}
@@ -186,7 +198,7 @@ export function ComboboxClient({
                   disabled={option.disabled}
                   key={option.value}
                   keywords={[option.label]}
-                  onSelect={handleSelect}
+                  onSelect={() => handleSelect(option)}
                   value={option.value}
                 >
                   <span className="flex-1">{option.label}</span>

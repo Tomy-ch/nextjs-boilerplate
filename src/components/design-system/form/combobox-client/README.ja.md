@@ -36,7 +36,7 @@ hydration が必要で、Server Component からは直接 render できません
 
 **trigger に `role="combobox"` は付けません。** 絞り込み入力そのものが `Command` の中で `role="combobox"` として公開されるため、trigger にも付けると combobox が二重になり、`aria-controls` の関連付けも競合します。trigger は popover を開く button であり、開閉は Radix が `aria-expanded` に反映します。
 
-trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。絞り込み入力の名前は `Command` の `label` として内部で渡しています。
+trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。絞り込み入力の名前は `Command` の `label` として内部で渡しています。項目の誤りも同じ形で trigger に結び付けます。誤りの id を `aria-describedby` に、`aria-invalid` と一緒に渡します。
 
 絞り込みは label に対して行います。`CommandItem` の `value` は form へ送る値で表示文言と異なるため、label を `keywords` として渡して検索対象にしています。読みは正規化されないため、かな入力で漢字の候補を引かせたい場合は、呼び出し元が読みを含む `label` を用意します。
 
