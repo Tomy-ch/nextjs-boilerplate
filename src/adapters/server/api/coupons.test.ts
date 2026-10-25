@@ -232,16 +232,6 @@ const issueDraft = {
   expiresAt: new Date("2026-12-31T14:59:59Z"),
 } as const;
 
-async function kindOf(run: () => Promise<unknown>): Promise<string | undefined> {
-  try {
-    await run();
-  } catch (error) {
-    return findAppError(error)?.kind;
-  }
-
-  return undefined;
-}
-
 describe("issueCoupon", () => {
   // ----- 正常系 -----
   it("受給者と発行する内容を、日時を瞬間の文字列にして本文で送る", async () => {
