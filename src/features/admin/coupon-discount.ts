@@ -136,7 +136,7 @@ export function toMinorUnitAmount(amount: string): number | null {
 }
 
 /** 0 より大きく 1 以下の乗数の綴り。`toCouponDiscountRate` が返す「整数部.小数部」の形だけを読む。 */
-const RATE_IN_RANGE = /^(?:0\.\d*[1-9]\d*|1\.0+)$/;
+const RATE_IN_RANGE = /^(?:0\.0*[1-9]\d*|1\.0+)$/;
 
 /**
  * decimal 文字列が 0 より大きく 1 以下か。

@@ -58,9 +58,9 @@ export type CampaignFormValues = {
  * @returns 画面が持つ入力の状態と、その操作
  */
 export function useCampaignValues(): CampaignFormValues {
-  const [own, setOwnValues] = useState(EMPTY_CAMPAIGN_OWN_VALUES);
-  const [discount, setDiscountValues] = useState(EMPTY_COUPON_DISCOUNT_VALUES);
-  const [scope, setScopeValues] = useState(EMPTY_COUPON_SCOPE_VALUES);
+  const [ownValues, setOwnValues] = useState(EMPTY_CAMPAIGN_OWN_VALUES);
+  const [discountValues, setDiscountValues] = useState(EMPTY_COUPON_DISCOUNT_VALUES);
+  const [scopeValues, setScopeValues] = useState(EMPTY_COUPON_SCOPE_VALUES);
   const [touched, setTouched] = useState<ReadonlySet<CreateCampaignField> | "all">(new Set());
 
   const touch = useCallback((field: CreateCampaignField) => {
@@ -81,20 +81,20 @@ export function useCampaignValues(): CampaignFormValues {
 
   const setScope = useCallback(
     (values: CouponScopeValues) => {
-      if (values.categoryId !== scope.categoryId) touch("scopeCategoryId");
-      if (values.productId !== scope.productId) touch("scopeProductId");
+      if (values.categoryId !== scopeValues.categoryId) touch("scopeCategoryId");
+      if (values.productId !== scopeValues.productId) touch("scopeProductId");
 
       setScopeValues(values);
       touch("scopeKind");
     },
-    [scope, touch],
+    [scopeValues, touch],
   );
 
   const failures = useMemo(() => {
-    const reading = toCampaignDraft(submissionOf(own, discount, scope));
+    const reading = toCampaignDraft(submissionOf(ownValues, discountValues, scopeValues));
 
     return reading.ok ? {} : reading.errors;
-  }, [discount, own, scope]);
+  }, [discountValues, ownValues, scopeValues]);
 
   const errors = useMemo(() => {
     if (touched === "all") return failures;
@@ -117,9 +117,20 @@ export function useCampaignValues(): CampaignFormValues {
   }, [failures]);
 
   const dirty =
-    own !== EMPTY_CAMPAIGN_OWN_VALUES ||
-    discount !== EMPTY_COUPON_DISCOUNT_VALUES ||
-    scope !== EMPTY_COUPON_SCOPE_VALUES;
+    ownValues !== EMPTY_CAMPAIGN_OWN_VALUES ||
+    discountValues !== EMPTY_COUPON_DISCOUNT_VALUES ||
+    scopeValues !== EMPTY_COUPON_SCOPE_VALUES;
 
-  return { own, discount, scope, errors, dirty, setOwn, setDiscount, setScope, touch, touchAll };
+  return {
+    own: ownValues,
+    discount: discountValues,
+    scope: scopeValues,
+    errors,
+    dirty,
+    setOwn,
+    setDiscount,
+    setScope,
+    touch,
+    touchAll,
+  };
 }

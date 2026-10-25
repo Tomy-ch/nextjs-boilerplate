@@ -11,7 +11,7 @@ import { COUPON_SCOPE_FORM_NAMES, type CouponScopeValues } from "./coupon-scope"
 import { CAMPAIGN_FORM_NAMES } from "./form-names";
 
 /** 確認に並べる 1 行。 */
-export type CampaignSummaryRow = { readonly term: string; readonly detail: string };
+type CampaignSummaryRow = { readonly term: string; readonly detail: string };
 
 /** 確認に要るもの一式。 */
 export type CampaignConfirmation = {

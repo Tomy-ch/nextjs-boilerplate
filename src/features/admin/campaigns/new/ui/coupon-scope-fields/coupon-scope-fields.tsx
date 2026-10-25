@@ -125,7 +125,7 @@ export function CouponScopeFields({
         options={KIND_OPTIONS}
         required={true}
         value={values.kind}
-        {...(messages[kindName] === undefined ? {} : { message: messages[kindName] })}
+        message={messages[kindName]}
       />
       {values.kind === "category" ? (
         <div className="sm:max-w-md">
@@ -136,7 +136,7 @@ export function CouponScopeFields({
             onValueChange={changeCategory}
             options={categoryOptions}
             value={values.categoryId}
-            {...(messages[categoryName] === undefined ? {} : { message: messages[categoryName] })}
+            message={messages[categoryName]}
           />
         </div>
       ) : null}

@@ -84,7 +84,7 @@ export function CouponDiscountFields({
         options={KIND_OPTIONS}
         required={true}
         value={values.kind}
-        {...(messages[kindName] === undefined ? {} : { message: messages[kindName] })}
+        message={messages[kindName]}
       />
       {values.kind === "" ? null : (
         <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
@@ -103,7 +103,7 @@ export function CouponDiscountFields({
             required={true}
             type="text"
             value={values.value}
-            {...(messages[valueName] === undefined ? {} : { message: messages[valueName] })}
+            message={messages[valueName]}
           />
           {values.kind === "rate" ? (
             <AdminTextField
@@ -117,9 +117,7 @@ export function CouponDiscountFields({
               required={false}
               type="text"
               value={values.maxAmount}
-              {...(messages[maxAmountName] === undefined
-                ? {}
-                : { message: messages[maxAmountName] })}
+              message={messages[maxAmountName]}
             />
           ) : null}
         </div>

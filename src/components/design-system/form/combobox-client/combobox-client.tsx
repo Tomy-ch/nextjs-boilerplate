@@ -192,19 +192,12 @@ export function ComboboxClient({
             />
             <CommandList>
               {options.map((option) => (
-                // CommandItem の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡す。
-                <CommandItem
-                  disabled={option.disabled}
+                <ComboboxClientItem
                   key={option.value}
-                  keywords={[option.label]}
-                  onSelect={() => handleSelect(option)}
-                  value={option.value}
-                >
-                  <span className="flex-1">{option.label}</span>
-                  {option.value === currentValue ? (
-                    <CheckIcon aria-hidden="true" className="size-4" />
-                  ) : null}
-                </CommandItem>
+                  onChoose={handleSelect}
+                  option={option}
+                  selected={option.value === currentValue}
+                />
               ))}
             </CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -213,5 +206,39 @@ export function ComboboxClient({
       </Popover>
       <input name={name} type="hidden" value={currentValue} />
     </div>
+  );
+}
+
+/** {@link ComboboxClientItem} の props。 */
+type ComboboxClientItemProps = {
+  /** この候補が選ばれたことを伝える。 */
+  readonly onChoose: (option: ComboboxClientOption) => void;
+  /** 並べる候補。 */
+  readonly option: ComboboxClientOption;
+  /** 選ばれているか。 */
+  readonly selected: boolean;
+};
+
+/**
+ * 候補 1 つ分の項目。
+ *
+ * @remarks
+ * `CommandItem` の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡します。
+ *
+ * @param props - 候補と、選ばれているか・選ばれたときの通知。
+ */
+function ComboboxClientItem({ onChoose, option, selected }: ComboboxClientItemProps) {
+  const choose = useCallback(() => onChoose(option), [onChoose, option]);
+
+  return (
+    <CommandItem
+      disabled={option.disabled}
+      keywords={[option.label]}
+      onSelect={choose}
+      value={option.value}
+    >
+      <span className="flex-1">{option.label}</span>
+      {selected ? <CheckIcon aria-hidden="true" className="size-4" /> : null}
+    </CommandItem>
   );
 }

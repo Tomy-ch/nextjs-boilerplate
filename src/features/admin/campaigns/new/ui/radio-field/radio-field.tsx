@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useCallback, useId } from "react";
 
 import { FieldError } from "@/components/design-system/form/field/field";
 import { toErrorId } from "@/components/design-system/form/field/field.definition";
@@ -76,24 +76,67 @@ export function AdminRadioField<TValue extends string>({
       </legend>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         {options.map((option) => (
-          <Label
-            className="flex items-center gap-2"
-            htmlFor={`${idPrefix}${option.value}`}
+          <RadioFieldChoice
+            checked={value === option.value}
+            id={`${idPrefix}${option.value}`}
+            invalid={message !== undefined}
             key={option.value}
-          >
-            <RadioGroupNativeItem
-              aria-invalid={message !== undefined}
-              checked={value === option.value}
-              id={`${idPrefix}${option.value}`}
-              name={name}
-              onChange={() => onValueChange(option.value)}
-              value={option.value}
-            />
-            {option.label}
-          </Label>
+            name={name}
+            onChoose={onValueChange}
+            option={option}
+          />
         ))}
       </div>
       {message === undefined ? null : <FieldError id={errorId}>{message}</FieldError>}
     </RadioGroupNative>
+  );
+}
+
+/** {@link RadioFieldChoice} の props。 */
+type RadioFieldChoiceProps<TValue extends string> = {
+  /** 選ばれているか。 */
+  readonly checked: boolean;
+  /** radio の id。label がこれを指す。 */
+  readonly id: string;
+  /** 群が誤りを持つか。 */
+  readonly invalid: boolean;
+  /** 群が共有する `name`。 */
+  readonly name: string;
+  /** この選択肢が選ばれたことを伝える。 */
+  readonly onChoose: (value: TValue) => void;
+  /** 並べる選択肢。 */
+  readonly option: AdminRadioOption<TValue>;
+};
+
+/**
+ * 選択肢 1 つ分の radio と label。
+ *
+ * @remarks
+ * 選ばれた値は、change event の文字列からではなく、この選択肢そのものから渡します。
+ *
+ * @param props - 選択肢と、その状態・選ばれたときの通知。
+ */
+function RadioFieldChoice<TValue extends string>({
+  checked,
+  id,
+  invalid,
+  name,
+  onChoose,
+  option,
+}: RadioFieldChoiceProps<TValue>) {
+  const choose = useCallback(() => onChoose(option.value), [onChoose, option.value]);
+
+  return (
+    <Label className="flex items-center gap-2" htmlFor={id}>
+      <RadioGroupNativeItem
+        aria-invalid={invalid}
+        checked={checked}
+        id={id}
+        name={name}
+        onChange={choose}
+        value={option.value}
+      />
+      {option.label}
+    </Label>
   );
 }

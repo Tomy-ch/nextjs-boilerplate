@@ -18,7 +18,7 @@ import type { CampaignOwnField, CreateCampaignField } from "./form-state";
 const COUNT_SPELLING = /^\d+$/;
 
 /** 日時を受け持つ項目。画面では壁時計の値、送るときは瞬間の文字列で持つ。 */
-export const CAMPAIGN_DATE_FIELDS = [
+const CAMPAIGN_DATE_FIELDS = [
   "startsAt",
   "endsAt",
   "couponExpiresAt",
@@ -198,24 +198,74 @@ export type CampaignDraftReading =
  */
 export function toCampaignDraft(submission: CampaignSubmission): CampaignDraftReading {
   const { own } = submission;
-  const errors: Partial<Record<CreateCampaignField, string>> = {};
-
   const code = normalizeCampaignCode(own.code);
-
-  if (
-    code.length < CAMPAIGN_CODE_MIN_LENGTH ||
-    code.length > CAMPAIGN_CODE_MAX_LENGTH ||
-    !CAMPAIGN_CODE_PATTERN.test(code)
-  ) {
-    errors.code = CAMPAIGN_CODE_INVALID_MESSAGE;
-  }
-
+  const codeError = codeErrorOf(code);
   const discount = toCouponDiscount(submission.discount);
   const scope = toCouponScope(submission.scope);
+  const period = periodOf(own);
+  const limits = limitsOf(own);
 
-  if (!discount.ok) Object.assign(errors, discount.errors);
-  if (!scope.ok) Object.assign(errors, scope.errors);
+  if (codeError !== undefined || !discount.ok || !scope.ok || !period.ok || !limits.ok) {
+    return {
+      ok: false,
+      errors: {
+        ...(codeError === undefined ? {} : { code: codeError }),
+        ...(discount.ok ? {} : discount.errors),
+        ...(scope.ok ? {} : scope.errors),
+        ...(period.ok ? {} : period.errors),
+        ...(limits.ok ? {} : limits.errors),
+      },
+    };
+  }
 
+  return {
+    ok: true,
+    draft: {
+      code,
+      discount: discount.discount,
+      scope: scope.scope,
+      ...period.period,
+      ...limits.limits,
+    },
+  };
+}
+
+/**
+ * 正規化したコードが、契約の許す綴りかを見る。
+ *
+ * @param code - 正規化したコード
+ * @returns 誤りの文言。許される綴りなら undefined
+ */
+function codeErrorOf(code: string): string | undefined {
+  return code.length < CAMPAIGN_CODE_MIN_LENGTH ||
+    code.length > CAMPAIGN_CODE_MAX_LENGTH ||
+    !CAMPAIGN_CODE_PATTERN.test(code)
+    ? CAMPAIGN_CODE_INVALID_MESSAGE
+    : undefined;
+}
+
+/** 期間の読み取り結果。 */
+type CampaignPeriodReading =
+  | {
+      readonly ok: true;
+      readonly period: Pick<
+        CampaignDraft,
+        "startsAt" | "endsAt" | "couponExpiresAt" | "usableFrom"
+      >;
+    }
+  | { readonly ok: false; readonly errors: Partial<Record<CampaignOwnField, string>> };
+
+/**
+ * 配布期間とクーポンの使える期間を読み、前後関係を見る。
+ *
+ * @remarks
+ * 関係の誤りは後ろに来るべき項目の側へ付け、前の項目が読めなければ比べません。
+ *
+ * @param own - キャンペーン自身の項目として打たれている値
+ * @returns 組めた期間。組めなければ項目ごとの文言
+ */
+function periodOf(own: CampaignOwnValues): CampaignPeriodReading {
+  const errors: Partial<Record<CampaignOwnField, string>> = {};
   const startsAt = instantOf(own.startsAt);
   const endsAt = instantOf(own.endsAt);
   const couponExpiresAt = instantOf(own.couponExpiresAt);
@@ -241,8 +291,38 @@ export function toCampaignDraft(submission: CampaignSubmission): CampaignDraftRe
     errors.usableFrom = CAMPAIGN_USABLE_AFTER_EXPIRY_MESSAGE;
   }
 
+  if (
+    startsAt === null ||
+    endsAt === null ||
+    couponExpiresAt === null ||
+    Object.keys(errors).length > 0
+  ) {
+    return { ok: false, errors };
+  }
+
+  return { ok: true, period: { startsAt, endsAt, couponExpiresAt, usableFrom } };
+}
+
+/** 上限と最低購入額の読み取り結果。 */
+type CampaignLimitsReading =
+  | {
+      readonly ok: true;
+      readonly limits: Pick<CampaignDraft, "totalLimit" | "perUserLimit" | "minPurchaseAmount">;
+    }
+  | { readonly ok: false; readonly errors: Partial<Record<CampaignOwnField, string>> };
+
+/**
+ * 枚数の上限と最低購入額を読み、上限どうしの大小を見る。
+ *
+ * @param own - キャンペーン自身の項目として打たれている値
+ * @returns 組めた上限。組めなければ項目ごとの文言
+ */
+function limitsOf(own: CampaignOwnValues): CampaignLimitsReading {
+  const errors: Partial<Record<CampaignOwnField, string>> = {};
   const totalLimit = countOf(own.totalLimit);
   const perUserLimit = countOf(own.perUserLimit);
+  const minPurchaseAmount =
+    own.minPurchaseAmount === "" ? null : toMinorUnitAmount(own.minPurchaseAmount);
 
   if (totalLimit === null) errors.totalLimit = CAMPAIGN_LIMIT_INVALID_MESSAGE;
 
@@ -252,39 +332,13 @@ export function toCampaignDraft(submission: CampaignSubmission): CampaignDraftRe
     errors.perUserLimit = CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE;
   }
 
-  const minPurchaseAmount =
-    own.minPurchaseAmount === "" ? null : toMinorUnitAmount(own.minPurchaseAmount);
-
   if (own.minPurchaseAmount !== "" && minPurchaseAmount === null) {
     errors.minPurchaseAmount = CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE;
   }
 
-  if (
-    !discount.ok ||
-    !scope.ok ||
-    startsAt === null ||
-    endsAt === null ||
-    couponExpiresAt === null ||
-    totalLimit === null ||
-    perUserLimit === null ||
-    Object.keys(errors).length > 0
-  ) {
+  if (totalLimit === null || perUserLimit === null || Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
 
-  return {
-    ok: true,
-    draft: {
-      code,
-      discount: discount.discount,
-      scope: scope.scope,
-      minPurchaseAmount,
-      usableFrom,
-      couponExpiresAt,
-      startsAt,
-      endsAt,
-      totalLimit,
-      perUserLimit,
-    },
-  };
+  return { ok: true, limits: { totalLimit, perUserLimit, minPurchaseAmount } };
 }

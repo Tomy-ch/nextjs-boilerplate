@@ -48,10 +48,10 @@ export function CampaignPeriodFields({
   const idPrefix = useId();
 
   const change = useCallback(
-    (field: CampaignPeriodField) => (value: string) => onValueChange(field, value),
+    (name: CampaignPeriodField) => (value: string) => onValueChange(name, value),
     [onValueChange],
   );
-  const leave = useCallback((field: CampaignPeriodField) => () => onLeave(field), [onLeave]);
+  const leave = useCallback((name: CampaignPeriodField) => () => onLeave(name), [onLeave]);
   const clearUsableFrom = useCallback(() => onValueChange("usableFrom", ""), [onValueChange]);
 
   /**
