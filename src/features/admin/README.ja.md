@@ -39,6 +39,7 @@
 | `/admin/inquiries/[inquiryId]` | [`screen`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/admin/inquiries/[inquiryId]/page.function.ja.md>) |
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.ja.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/users/page.function.ja.md) |
+| `/admin/users/[id]/coupons/new` | [`screen`](<../../../docs/spec/route/admin/users/[id]/coupons/new/page.screen.ja.md>) / [`function`](<../../../docs/spec/route/admin/users/[id]/coupons/new/page.function.ja.md>) |
 | `/admin/campaigns` | [`screen`](../../../docs/spec/route/admin/campaigns/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/campaigns/page.function.ja.md) |
 | `/admin/campaigns/new` | [`screen`](../../../docs/spec/route/admin/campaigns/new/page.screen.ja.md) / [`function`](../../../docs/spec/route/admin/campaigns/new/page.function.ja.md) |
 
@@ -60,12 +61,14 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | `GetPurchases` | 商品を廃番にできなくしている進行中の購入 | feature |
 | `GetProductCategories` / `GetProductStatuses` | 絞り込みとフォームの候補 | feature |
 | `GetUsers` | ユーザーの一覧 | feature |
+| `GetUsersDetail` | クーポンを発行する相手。発行の画面とその階層が読む | feature |
 | `GetCampaigns` | キャンペーンの一覧 | feature |
 | `PostProductsImages` | 画像の送信 | app レイヤーの Action |
 | `PostProducts` / `PatchProductsDetail` | 商品の作成・編集 | app レイヤーの Action |
 | `PatchProductsStock` | 在庫の増減 | app レイヤーの Action |
 | `PostProductsDiscontinue` | 商品の廃番と、代替クーポンの発行 | app レイヤーの Action |
 | `DeleteUsersDetail` | ユーザーの退会 | app レイヤーの Action |
+| `PostCoupons` | 1 人のユーザーへのクーポン 1 枚の発行。`404` のときは Action が `GetUsersDetail` で受け取り手を読み直し、受け取り手と範囲の対象を見分ける | app レイヤーの Action |
 | `PostCampaigns` | キャンペーンの定義 | app レイヤーの Action |
 | `PostCampaignsSuspend` | キャンペーンの配布の停止 | app レイヤーの Action |
 
@@ -98,9 +101,15 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 | | 送信時に進行中の購入が見つかった（競合）/ その他の失敗 / 結果が定まらないあいだ条件を保つ | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable,UnavailableLocked}` |
 | | 結果の表示 / 既に廃番 | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
 | | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
-| ユーザー | success / empty | `Page/Admin/Users/{Default,Empty}` |
-| | 退会の確認・成立・競合 | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
-| | loading | `Features/Admin/Users/Skeleton/Default` |
+| ユーザー | success / empty | `Page/Admin/Users/List/{Default,Empty}` |
+| | 退会の確認・成立・競合 | `Page/Admin/Users/List/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
+| | loading | `Features/Admin/Users/List/Skeleton/Default` |
+| ユーザーへのクーポンの発行 | 入力、入力済み、バンドごと | `Page/Admin/Users/CouponNew/{Default,DefaultTablet,DefaultMobile,Filled}` |
+| | 欄の誤り、有効期限より後の利用開始 | `Page/Admin/Users/CouponNew/{InvalidFields,UsableAfterExpiry}` |
+| | 確認、送信中、発行済み（画面に留まる） | `Page/Admin/Users/CouponNew/{Confirming,ConfirmingMobile,Submitting,Issued}` |
+| | 読み込み時に既に退会済みの受け取り手 / 送信時に失われた受け取り手 / 送信時に失われた範囲の対象 | `Page/Admin/Users/CouponNew/{RecipientWithdrawn,RecipientLost,ScopeTargetLost}` |
+| | 名指された欄、その他の拒否、結果が定まらない（入力を止める）、同じキーのリクエストがまだ処理中 | `Page/Admin/Users/CouponNew/{RejectedFields,Rejected,Unavailable,ResendConflicted}` |
+| | loading | `Features/Admin/Users/CouponNew/Skeleton/Default` |
 | キャンペーン | success（すべての状態、配り切った行）/ empty | `Page/Admin/Campaigns/List/{Default,Empty}` |
 | | ページ送り・長いコード | `Page/Admin/Campaigns/List/{MiddlePage,LastPage,SinglePage,LongCode}` |
 | | 停止の確認・送信中 | `Page/Admin/Campaigns/List/SuspendConfirm`, `Features/Admin/Campaigns/List/SuspendDialog/Submitting` |
@@ -126,12 +135,14 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 
 **商品は 5 つの画面（一覧・作成・編集・在庫補充・廃番）を持つため、画面の軸で割ってあります。**複数の画面が
 共有するものは、どの画面のものでもないので 1 段上（`products/` 直下と `products/ui/`）が所有します。
-ユーザーは画面を 1 つしか持たないため、軸を挟まず `users/` の直下に置きます。
+ユーザーは画面の軸で掘ってあり（`users/list/` と `users/coupon-new/`）、ユーザーの画面が共有する表示名は `users/` の直下に置きます。
 キャンペーンは一覧と作成が別の画面なので、画面の軸で掘ってあります（`campaigns/list/` と `campaigns/new/`）。
 ユーザーの一覧とキャンペーンの一覧はどちらもオフセットでページを送り、どちらも行の操作を送る前に確認を挟むため、
 両者が共有するもの —— ページ番号の選び方、ページ送りそのもの、確認の開閉の方針 —— はどちらの画面の下でもなく
 feature の直下に置きます。同じく、商品とキャンペーンのフォームが共有する入力欄・マスターの候補・結果の鮮度と、
-廃番とキャンペーン作成の 2 画面が共有するクーポンの値引きの読み方も、feature の直下に置きます。
+廃番とキャンペーン作成の 2 画面が共有するクーポンの値引きの読み方も、feature の直下に置きます。クーポンの範囲の読み方、
+値引きと範囲の入力欄、範囲が探す商品の候補、壁時計の日時を瞬間へ確定させることも同じで、クーポンを定義または発行する
+すべての画面が問うものです。
 
 | ファイル | 役割 |
 | --- | --- |
@@ -223,25 +234,50 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `use-action-result-freshness.ts` | 直前の送信の結果を、いま出してよいか |
 | `ui/text-field/` `ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
 | `coupon-discount.ts` | クーポンの値引きの読み方と文言。百分率を契約の decimal 文字列へ、ドルをセントへ、数を経ずに写す。送る側と受ける側の両方が通る |
+| `coupon-scope.ts` | クーポンの範囲の読み方と文言。種別とその対象 1 つ |
+| `coupon-summary.ts` | 確認が送る値引きと範囲の欄と、その中で値引き・範囲・壁時計の値をどう読み上げるか |
+| `use-product-candidates.ts` | 範囲が名前で探す商品の候補。打つのに合わせてブラウザから取る |
+| `wall-clock.ts` | `datetime-local` の壁時計の値を、打った人の時間帯での瞬間へ確定させる。ブラウザで呼ぶ |
+| `ui/coupon-discount-fields/` | 値引きの種類・額・上限。額の欄は種類を選んでから、上限は定率のときだけ出す |
+| `ui/coupon-scope-fields/` | 範囲の種類とその対象 —— カテゴリの選択か、商品の検索 |
+| `ui/radio-field/` | 少数の中から 1 つを選ぶ欄。値は呼び出し元が持つ |
 | `page-window.ts` | オフセットのページ送りに並べる番号の選び方と、それぞれへの行き先の添え方。離れた範囲を省略のマーカーへ畳む。行き先の組み方は画面が渡す |
 | `use-confirmation-target.ts` | どの行を確認しているかと、その行の結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決め、結果がどの行に答えたものかも呼び出し側が言える |
 | `use-row-action-state.ts` | 行に対する操作を送り、その結果を、送った form から読んだ答えの行とともに持つ。送信中も確認を閉じられるため、結果がいま開いている行のものとは限らない |
 | `ui/offset-pagination/` | 任意のページへ飛べるページ送り。リンクとアクセシブルな名前をデータで受け取るため、client 境界のどちら側でもレンダリングできる |
-| `users/query.ts` | ユーザー一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
-| `users/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
-| `users/page-size.ts` | 1 ページに並べる件数 |
-| `users/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
-| `users/row.ts` | 表に並べる 1 行の形。姓名を並べ、退会済みかを真偽値へ落とす |
-| `users/form-state.ts` `users/form-names.ts` | 退会の結果の型・送信先の型と、送信の `name` |
-| `users/results.tsx` | 1 ページ分の取得と、一覧・ページ送りの組み立て |
-| `users/view.tsx` | 絞り込み。一覧本体は受け取る |
-| `users/ui/withdrawable-list/` | 行・確認・結果を繋ぐ層。どれが同じ相手の話かをここだけが知る |
-| `users/ui/table/` | ユーザーの表。退会済みの行には操作を出さない |
-| `users/ui/scope-select/` | 対象の範囲の選び直し。選んだ時点で移る |
-| `users/ui/withdraw-dialog/` | 退会の確認。不可逆であることと、後始末が同時に終わらないことを書く |
-| `users/ui/withdraw-feedback/` | 退会の結果。確認が閉じても残る場所 |
-| `users/ui/submit-button/` | 退会の送信。`useFormStatus` を読むため form の子で切り出す |
-| `users/ui/skeleton/` | 表のローディング表示 |
+| `users/display-name.ts` | 姓と名を表示名へ並べる。順序は契約が決めない、表示側の判断である |
+| `users/list/query.ts` | ユーザー一覧の URL 契約（範囲とページ番号）とキーの呼び名。上限は呼び出し側から受け取る |
+| `users/list/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
+| `users/list/page-size.ts` | 1 ページに並べる件数 |
+| `users/list/page-content.tsx` | URL の解釈と画面の組み立て。取り直す範囲をここで区切る |
+| `users/list/row.ts` | 表に並べる 1 行の形。表示名は `display-name.ts` から取り、退会済みかを真偽値へ落とす |
+| `users/list/form-state.ts` `users/list/form-names.ts` | 退会の結果の型・送信先の型と、送信の `name` |
+| `users/list/results.tsx` | 1 ページ分の取得と、一覧・ページ送りの組み立て |
+| `users/list/view.tsx` | 絞り込み。一覧本体は受け取る |
+| `users/list/ui/withdrawable-list/` | 行・確認・結果を繋ぐレイヤー。どれが同じ相手の話かをここだけが知る |
+| `users/list/ui/table/` | ユーザーの表。退会済みの行には操作を出さない |
+| `users/list/ui/scope-select/` | 対象の範囲の選び直し。選んだ時点で移る |
+| `users/list/ui/withdraw-dialog/` | 退会の確認。不可逆であることと、後始末が同時に終わらないことを書く |
+| `users/list/ui/withdraw-feedback/` | 退会の結果。確認が閉じても残る場所 |
+| `users/list/ui/submit-button/` | 退会の送信。`useFormStatus` を読むため form の子で切り出す |
+| `users/list/ui/skeleton/` | 表のローディング表示 |
+| `users/coupon-new/issue-rules.ts` | 有効期限・利用開始・最低購入額の読み方と文言、その前後関係。値引きと範囲は `coupon-discount.ts` / `coupon-scope.ts` に任せる。送る側と受ける側の両方が通る |
+| `users/coupon-new/form-state.ts` `users/coupon-new/form-names.ts` | 発行の結果の型、送信先の型、欄の呼び名、送信の `name`。受け取り手は hidden の欄で運ぶ |
+| `users/coupon-new/use-issue-values.ts` | 入力値、触れたマーカー、欄ごとの誤りと、発行が成立したらそれらを空にすること |
+| `users/coupon-new/parse-issue-form.ts` | 送られた受け取り手・クーポン・冪等キー・確認の合図を読む |
+| `users/coupon-new/issue-rejection.ts` | 接続先が名指した欄をこの画面の入力欄へマッピングし、`404` で失われた受け取り手と失われた範囲の対象を見分ける |
+| `users/coupon-new/issue-feedback.ts` | どの結果で確認を閉じるか、受け取り手が失われたか、それぞれの失敗の文言をどこに出すか |
+| `users/coupon-new/issue-summary.ts` | 確認と発行済みの結果が出す値と読み上げ |
+| `users/coupon-new/recipient.ts` | client へ渡す受け取り手の形。taint の掛かったユーザーから、画面が出す項目だけをコピーする |
+| `users/coupon-new/page-content.tsx` | 受け取り手と、範囲で選べるカテゴリを取る。受け取り手が無ければ `notFound()` にする |
+| `users/coupon-new/view.tsx` | 唯一の client island。送信の状態・キー・打っている値を持ち、結果が定まらないあいだは入力を止め、成立後はフォームを発行済みの結果へ差し替える |
+| `users/coupon-new/breadcrumb-content.tsx` | 発行画面までの階層。受け取り手が読めないときは名前を除いた経路に倒す |
+| `users/coupon-new/ui/recipient-card/` | 受け取り手。見せるだけで、選ばせない |
+| `users/coupon-new/ui/validity-fields/` | 有効期限・利用開始・最低購入額。値は呼び出し元が持つ |
+| `users/coupon-new/ui/confirm-dialog/` | 確認。受け取り手を名指し、発行は取り消せないことを言う。受け取るのは `formAction` だけ |
+| `users/coupon-new/ui/issued-result/` | 誰に何を発行したか。確認が閉じても残る場所。続けての発行と一覧へ戻る道を出す |
+| `users/coupon-new/ui/unavailable-recipient/` | 受け取り手が受け取れない —— 読み込み時に退会済みか、送信時に失われた。一覧へ戻る道だけを出す |
+| `users/coupon-new/ui/skeleton/` | 画面のローディング表示 |
 | `campaigns/list/query.ts` | キャンペーン一覧の URL 契約（ページ番号）とキーの呼び名 |
 | `campaigns/list/read-location.ts` | 一覧の URL を位置へ読み戻す。上限は呼び出し側から受け取る |
 | `campaigns/list/page-size.ts` | 1 ページに並べる件数 |
@@ -269,11 +305,6 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `campaigns/new/page-content.tsx` | 範囲で選べるカテゴリを取る |
 | `campaigns/new/view.tsx` | 唯一の client island。送信の状態・キー・打っている値を持ち、結果が定まらないあいだは入力を止める |
 | `campaigns/new/breadcrumb-content.tsx` | 作成画面までの階層 |
-| `campaigns/new/coupon-scope.ts` | クーポンの範囲の読み方と文言。種別とその対象 1 つ |
-| `campaigns/new/use-product-candidates.ts` | 範囲が名前で探す商品の候補。打つのに合わせてブラウザから取る |
-| `campaigns/new/ui/coupon-discount-fields/` | 値引きの種類・額・上限。額の欄は種類を選んでから、上限は定率のときだけ出す |
-| `campaigns/new/ui/coupon-scope-fields/` | 範囲の種類とその対象 —— カテゴリの選択か、商品の検索 |
-| `campaigns/new/ui/radio-field/` | 少数の中から 1 つを選ぶ欄。値は呼び出し元が持つ |
 | `campaigns/new/ui/period-fields/` `campaigns/new/ui/limit-fields/` | 配布期間、クーポンの有効期間、上限。値は呼び出し元が持つ |
 | `campaigns/new/ui/confirm-dialog/` | 確認。定義は後から変えられないことを言う。受け取るのは `formAction` だけ |
 | `campaigns/new/ui/skeleton/` | フォームのローディング表示 |
@@ -293,7 +324,7 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | カーネル | 用途 |
 | --- | --- |
 | `adapters` | 集計・商品・購入・ユーザー・キャンペーンの取得と、画像 URL の解決。ブラウザーの入力欄が読む契約の上限は `adapters/client` から取る |
-| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard` / `Campaign` / `CampaignDraft`）、ページ送り、期間、数と日時の整形、クーポンの値引きと対象の文言、`ActionState`、冪等キー |
+| `model` | 表示モデル（`Product` / `Purchase` / `Dashboard` / `Campaign` / `CampaignDraft` / `CouponIssueDraft`）、ページ送り、期間、数と日時の整形、クーポンの値引きと対象の文言、`ActionState`、冪等キー |
 | `components` | 面を組む器（表・ページ送り・ファイル送信・離脱の警告・入力の要約） |
 | `errors` | 取得と送信の失敗を、画面が出す文言へ写す |
 | `logging` | 境界へ投げずにその場で受ける部分的な取得の失敗を記録する |
@@ -315,6 +346,7 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
 | `discontinueProductAction` | 同上 | `DiscontinueProductState` | **留まり、`refresh()` で画面を取り直させ、実行が報告したことを返す** | 競合（進行中の購入）は言い分け、これも画面を取り直させる。接続先が名指しした項目はその入力欄へ返す |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
+| `issueUserCouponAction` | `src/app/admin/users/actions.ts` | `IssueCouponState` | **画面に留まり**、何も取り直させない。画面は発行したものを出す | 失われた受け取り手はフォームを差し替え、失われた範囲の対象はその欄へ、接続先が名指した欄はその入力欄へ返す。`409` は同じキーのリクエストがまだ処理中と読み、入力を止めたままにする。それ以外は確認の中に出す |
 | `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | 一覧を取り直させてから、一覧へ `redirect` する | 使用済みのコード（競合）はコードの欄へ（結果が定まらないあいだの再送への競合は、入力を止めたまま確認の中へ）、接続先が名指した欄はその入力欄へ、それ以外は確認の中に出す。結果が定まらないあいだは入力を止める |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | 一覧に留まり、`refresh()` で一覧を取り直させる | 停止済みのキャンペーン（競合）は言い分け、これも一覧を取り直させる。確認が閉じても残る場所に出す |
 
@@ -323,6 +355,10 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 
 **一覧の行の操作は一覧に留まります。** 退会も停止も 1 行に対する操作で、その結果はその一覧の中で読むため、
 どちらも別の URL へ移りません。
+
+**ユーザーへのクーポンの発行も、その画面に留まります。** 管理側にはユーザーの持つクーポンを並べる画面が無いため、移った先では
+発行が起きたことを出せません。結果はその場に出し、読み込み直すと消えます。発行したクーポンは取り消せないため、もう一度
+押されないよう、フォームは入力済みのまま残さず空にします。
 
 **廃番は自分の画面を持ち、これも成立後はその画面に留まります。** 実行が何をしたかの件数はその応答にしか無く——契約に読み直す
 エンドポイントは無く、もう一度実行すると 0 が報告される——移った先の画面では出せません。読み込み直して残るのは廃番の
@@ -345,6 +381,9 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 - [ ] 結果が定まらないあいだの再送への 409 は、コードの欄ではなく確認の中にどちらとも読める形で出し、入力は止めたまま
 - [ ] 期間と上限の前後関係は送る前に出す。判定するのは引き続き接続先である
 - [ ] 結果が定まらないあいだの再送は同じ冪等キーを載せ、入力は止まったまま。次に開いた画面は新しいキーを載せる
+- [ ] クーポンの発行の受け取り手は URL で決まる。画面はそれを選ぶ手段を出さず、送信は route が名指した受け取り手を載せる
+- [ ] クーポンの発行の 2 つの `404` を見分ける。退会済みか存在しない受け取り手はフォームを差し替え、無くなった範囲の対象はその欄へ出し、受け取り手を読み直せないときはどちらとも言わない
+- [ ] 結果が定まらないあいだ、または `409` の後に送り直したクーポンの発行は同じ冪等キーを載せる。成立後の発行は新しいキーを載せる
 
 レイヤーの割り当て（`feature` / `component` / `unit`）は「構成」の末尾にあります。
 
