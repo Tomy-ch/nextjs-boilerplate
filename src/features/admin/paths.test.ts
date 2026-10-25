@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import { toInquiryId } from "@/model/inquiry/inquiry";
 import { toProductId } from "@/model/product/product";
+import { toUserId } from "@/model/user/user";
 
 import {
   adminInquiryDetailPath,
   adminProductDiscontinuePath,
   adminProductEditPath,
   adminProductStockPath,
+  adminUserCouponNewPath,
   productDetailPath,
 } from "./paths";
 
@@ -61,5 +63,18 @@ describe("adminInquiryDetailPath", () => {
 
   it("id に URL で意味を持つ文字が含まれても壊れない", () => {
     expect(adminInquiryDetailPath(toInquiryId("a/b?c"))).toBe("/admin/inquiries/a%2Fb%3Fc");
+  });
+});
+
+describe("adminUserCouponNewPath", () => {
+  // ----- 正常系 -----
+  it("利用者へクーポンを発行する画面を指す", () => {
+    const user = toUserId("0195f0c2-0000-7000-8000-0000000000a1");
+
+    expect(adminUserCouponNewPath(user)).toBe(`/admin/users/${user}/coupons/new`);
+  });
+
+  it("id に URL で意味を持つ文字が含まれても壊れない", () => {
+    expect(adminUserCouponNewPath(toUserId("a/b?c"))).toBe("/admin/users/a%2Fb%3Fc/coupons/new");
   });
 });

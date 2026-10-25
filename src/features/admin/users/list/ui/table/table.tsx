@@ -10,6 +10,7 @@ import {
   type StaticDataTableColumn,
 } from "@/components/patterns/table/static-data/static-data";
 
+import { adminUserCouponNewPath } from "../../../../paths";
 import type { AdminUserRow } from "../../row";
 
 const WIDE_ONLY = "hidden md:table-cell";
@@ -72,6 +73,13 @@ function toColumns(
           item.withdrawn
             ? []
             : [
+                {
+                  id: "issue-coupon",
+                  kind: ROW_ACTION_KIND.LINK,
+                  label: "クーポンを発行する",
+                  href: adminUserCouponNewPath(item.id),
+                },
+                { id: "withdraw-separator", kind: ROW_ACTION_KIND.SEPARATOR },
                 {
                   id: "withdraw",
                   kind: ROW_ACTION_KIND.COMMAND,

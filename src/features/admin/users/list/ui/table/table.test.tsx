@@ -62,6 +62,16 @@ describe("AdminUserTable", () => {
     expect(screen.getByRole("button", { name: "山田 太郎 の操作" })).toBeInTheDocument();
   });
 
+  it("退会していない行から、その利用者へクーポンを発行する画面へ移れる", async () => {
+    render(<AdminUserTable items={[row()]} onWithdraw={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "山田 太郎 の操作" }));
+
+    expect(
+      await within(document.body).findByRole("menuitem", { name: "クーポンを発行する" }),
+    ).toHaveAttribute("href", "/admin/users/0195f0c2-0000-7000-8000-000000000001/coupons/new");
+  });
+
   it("退会が選ばれたら、その行を呼び出し元へ渡す", async () => {
     const onWithdraw = vi.fn();
 
