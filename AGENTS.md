@@ -1,4 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
 # Agents Documentation
 
 Repository rules for **AI coding agents** (Claude Code / Codex / Copilot / Gemini, etc.) working in this repo.
@@ -452,4 +451,3 @@ Do not edit them directly — present the proposed change and edit only after ex
 when a new file appears necessary, **prefer modifying an existing one** if it suffices.
 
 > Below v1.0.0 this approval requirement is lifted — see "Temporary Operating Rules until v1.0.0" above.
-<!-- END:nextjs-agent-rules -->

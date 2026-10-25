@@ -59,7 +59,6 @@ Accepted
 - **置き場は兄弟**であり、すべての canonical のミラーと同じである: canonical の文書はすべて英語で、それぞれが日本語のミラーを `<name>.ja.md` として隣に持つ ([0140](0140-documentation-operations.ja.md))
 - **追従の向きは canonical が先**である。知識を探すのも判定を当てるのも書き換えるのも `AGENTS.md` に対して行い、ミラーを inline で直さない
 - **ペアの見出し構造は `scripts/skill-lint` が 1:1 で検査する**。宣言だけではミラーの遅れを検出できない([0144](0144-decision-enforcement-pairing.ja.md))。訳文が同じことを言っているかは機械では判定できないので、そこは未検査として skill-lint 自身が名指しする
-- **`BEGIN-END` マーカーはミラーへ持ち込まない**。あれは Next.js が `AGENTS.md` へ生成する範囲の境界であり（下記「BEGIN-END マーカー」）、ミラーへは何も生成されない
 
 ## 構成 (セクション構造)
 
@@ -143,17 +142,16 @@ ADR 化されていない決定領域の一覧を AGENTS.md は持たない。�
 
 ADR が策定されたら、[`docs/adr/README.md`](README.ja.md) の一覧へ追加する。AGENTS.md は触らない。
 
-## BEGIN-END マーカー
+## Next.js が管理するブロック
 
-本文は以下のマーカーで囲む:
+`next dev` は、`AGENTS.md` のうち `<!-- BEGIN:nextjs-agent-rules -->` から
+`<!-- END:nextjs-agent-rules -->` までの範囲を自分のものとして扱う。`agentRules` が有効ならその範囲を
+書き換え、[`next.config.ts`](../../next.config.ts) の `agentRules: false` ならその範囲を取り除き、ほかに
+何も残らなければファイルごと消す。
 
-```markdown
-<!-- BEGIN:nextjs-agent-rules -->
-... AGENTS.md 本文 ...
-<!-- END:nextjs-agent-rules -->
-```
-
-Next.js 自身が `AGENTS.md` を生成する範囲の境界であり、将来ここへ外部生成ブロックを挟む余地でもある。現状は本文全体がマーカー内に入り、生成は [`next.config.ts`](../../next.config.ts) の `agentRules: false` で止めてある —— 走ると囲みの中身ごと置き換わる。
+**だから本文はどのマーカーの外にも置き、`agentRules` は `false` のままにする。** 有効にすると、誰も
+書いていない生成の指示が規約のファイルへ入る。そしてマーカーの内側に置いた規約は、設定の値に
+かかわらず次の `next dev` で消える。
 
 ## 更新責務
 
@@ -204,7 +202,7 @@ v1.0.0 未満の ADR は living document で、本文を直接上書きする([0
 - ❌ AGENTS.md と並列に同等の規約ファイル (CLAUDE-RULES.md / GENERAL-RULES.md 等) を追加すること (規約は AGENTS.md 1 本)（強制: 持たない —— 採らない決定。規約ファイルが AGENTS.md 1 本であること自体が状態で、並ぶファイルを置けば追加として差分に現れる）
 - ❌ 確定済み ADR の本文を AGENTS.md に転載 / 二重化すること (要旨表に留める)（強制: 散文 —— **寄せられない**。転載は言い換えや圧縮を伴いうるので字面が一致するとは限らず、要旨と転載の境目は意味で決まる）
 - ❌ AGENTS.md のセクション順序を独自判断で変えること（強制: 散文 —— **寄せられる**（AGENTS.md の `##` 見出しの並びを本 ADR のセクション構成表の順と突き合わせる。規則は無い））
-- ❌ BEGIN-END マーカーを削除すること（強制: 散文 —— **寄せられる**（AGENTS.md の先頭と末尾に `BEGIN:nextjs-agent-rules` / `END:nextjs-agent-rules` の対が在るかを見る。規則は無い））
+- ❌ `AGENTS.md` の本文のどこかを `BEGIN:nextjs-agent-rules` / `END:nextjs-agent-rules` で包むこと（強制: 散文 —— **寄せられる**（`AGENTS.md` にどちらのマーカーも無いことを見る。規則は無い））
 - ❌ エージェント固有設定 (`.github/copilot-instructions.md` 等) に AGENTS.md と矛盾するルールを書くこと（強制: 散文 —— **寄せられない**。2 つの規則が矛盾するかは文の意味で決まる）
 
 ## 補足

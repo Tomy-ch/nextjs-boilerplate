@@ -55,7 +55,6 @@ and that is the only one agents load.
 - **It is placed as a sibling**, as every canonical's mirror is: all canonical documents are English, and each has its Japanese mirror beside it as `<name>.ja.md` ([0140](0140-documentation-operations.md))
 - **The canonical leads.** Searching for knowledge, applying routing and rewriting are all done against `AGENTS.md`; the mirror is not fixed inline
 - **`scripts/skill-lint` checks the heading structure of the pair 1:1**. A declaration alone cannot detect the mirror falling behind ([0144](0144-decision-enforcement-pairing.md)). Whether the translation says the same thing cannot be judged by a machine, so skill-lint itself names that as unchecked
-- **`BEGIN-END` markers are not carried into the mirror**. They are the boundary of the range Next.js generates into `AGENTS.md` (see *BEGIN-END Markers* below), and nothing is generated into the mirror
 
 ## Structure (Section Layout)
 
@@ -138,17 +137,16 @@ AGENTS.md holds no list of decision areas not yet made into ADRs. The tracker is
 
 Once an ADR is written, add it to the list in [`docs/adr/README.md`](README.md). AGENTS.md is not touched.
 
-## BEGIN-END Markers
+## The Next.js-Managed Block
 
-The body is wrapped in the following markers:
+`next dev` treats the range between `<!-- BEGIN:nextjs-agent-rules -->` and
+`<!-- END:nextjs-agent-rules -->` in `AGENTS.md` as its own. With `agentRules` enabled it rewrites that
+range; with `agentRules: false` in [`next.config.ts`](../../next.config.ts) it removes the range, and
+deletes the file when nothing else is left.
 
-```markdown
-<!-- BEGIN:nextjs-agent-rules -->
-... AGENTS.md body ...
-<!-- END:nextjs-agent-rules -->
-```
-
-This is the boundary of the range in which Next.js itself generates `AGENTS.md`, and also room to insert an externally generated block here in the future. Currently the whole body sits inside the markers, and generation is stopped by `agentRules: false` in [`next.config.ts`](../../next.config.ts) — if it ran, the wrapped contents would be replaced wholesale.
+**So the body sits outside any such marker, and `agentRules` stays `false`.** Enabled, it would put
+generated instructions into the rules file that no human wrote; and any rule placed inside the markers
+is deleted by the next `next dev`, whichever value the option has.
 
 ## Update Responsibilities
 
@@ -199,7 +197,7 @@ This is done in the same change as the immutable switch of [0140](0140-documenta
 - ❌ Adding a rules file equivalent to and parallel with AGENTS.md (CLAUDE-RULES.md / GENERAL-RULES.md, etc.) (the rules are the single AGENTS.md) (Enforcement: none — a decision not to adopt. That the rules file is the single AGENTS.md is itself a state, and placing a parallel file shows up in the diff as an addition)
 - ❌ Transcribing / duplicating the body of a settled ADR into AGENTS.md (keep it to a summary table) (Enforcement: Prose — **not mechanizable**. A transcription can be reworded or condensed and need not match character for character, so the line between summary and transcription is decided by meaning)
 - ❌ Changing the section order of AGENTS.md on one's own judgment (Enforcement: Prose — **mechanizable** (compare the order of AGENTS.md's `##` headings with the order of this ADR's section-layout table. No rule exists))
-- ❌ Deleting the BEGIN-END markers (Enforcement: Prose — **mechanizable** (check that the pair `BEGIN:nextjs-agent-rules` / `END:nextjs-agent-rules` sits at the start and end of AGENTS.md. No rule exists))
+- ❌ Wrapping any part of the `AGENTS.md` body in `BEGIN:nextjs-agent-rules` / `END:nextjs-agent-rules` (Enforcement: Prose — **mechanizable** (check that `AGENTS.md` contains neither marker. No rule exists))
 - ❌ Writing rules that contradict AGENTS.md in agent-specific configuration (`.github/copilot-instructions.md`, etc.) (Enforcement: Prose — **not mechanizable**. Whether two rules contradict is decided by the meaning of the sentences)
 
 ## Notes
