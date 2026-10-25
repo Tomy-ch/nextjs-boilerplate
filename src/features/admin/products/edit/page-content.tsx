@@ -3,8 +3,8 @@ import { getProductIncludingUnpublished } from "@/adapters/server/api/products";
 import { resolveMediaUrl } from "@/adapters/server/media/media-url";
 import type { ProductId } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
+import { toMasterOptions } from "../../master-option";
 import type { UpdateProductAction, UploadProductImageAction } from "../form-state";
-import { toMasterOptions } from "../master-option";
 import { AdminProductEditView } from "./view";
 
 /** `AdminProductEditPageContent` の props。 */

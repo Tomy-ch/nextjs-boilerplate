@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ProductSelectField } from "./select-field";
+import { AdminSelectField } from "./select-field";
 
 const OPTIONS = [
   { value: "category-1", label: "電子機器" },
@@ -14,9 +14,9 @@ const OPTIONS = [
 
 const noop = () => {};
 
-function renderField(props: Partial<Parameters<typeof ProductSelectField>[0]> = {}) {
+function renderField(props: Partial<Parameters<typeof AdminSelectField>[0]> = {}) {
   return render(
-    <ProductSelectField
+    <AdminSelectField
       controlId="form-category"
       label="分類"
       name="categoryId"
@@ -28,7 +28,7 @@ function renderField(props: Partial<Parameters<typeof ProductSelectField>[0]> = 
   );
 }
 
-describe("ProductSelectField", () => {
+describe("AdminSelectField", () => {
   it("項目名で引ける選択欄として公開する", () => {
     renderField();
 

@@ -6,8 +6,8 @@ import type { InputProps } from "@/components/design-system/form/input/input";
 import { Input } from "@/components/design-system/form/input/input";
 import { FormField } from "@/components/patterns/form-field/form-field";
 
-/** `ProductTextField` の props。 */
-export type ProductTextFieldProps = Pick<
+/** `AdminTextField` の props。 */
+export type AdminTextFieldProps = Pick<
   InputProps,
   "inputMode" | "max" | "min" | "placeholder" | "step" | "type"
 > & {
@@ -43,7 +43,7 @@ export type ProductTextFieldProps = Pick<
  *
  * @param props - native `input` 属性の一部と、上記の表示用 props。
  */
-export function ProductTextField({
+export function AdminTextField({
   controlId,
   description,
   label,
@@ -54,7 +54,7 @@ export function ProductTextField({
   required,
   value,
   ...input
-}: ProductTextFieldProps) {
+}: AdminTextFieldProps) {
   const change = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => onValueChange(event.target.value),
     [onValueChange],

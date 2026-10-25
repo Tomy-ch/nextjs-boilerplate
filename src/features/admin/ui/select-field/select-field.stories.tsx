@@ -1,12 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { fn } from "storybook/test";
 
-import { CATEGORY_ID, CATEGORY_OPTIONS } from "../../products.fixture";
-import { ProductSelectField } from "./select-field";
+import { CATEGORY_ID, CATEGORY_OPTIONS } from "../../products/products.fixture";
+import { AdminSelectField } from "./select-field";
 
 const meta = {
-  title: "Features/Admin/Products/SelectField",
-  component: ProductSelectField,
+  title: "Features/Admin/SelectField",
+  component: AdminSelectField,
   parameters: {
     layout: "padded",
     docs: {
@@ -27,7 +27,7 @@ const meta = {
     onValueChange: fn(),
   },
   decorators: [(Story) => <div className="max-w-md">{Story()}</div>],
-} satisfies Meta<typeof ProductSelectField>;
+} satisfies Meta<typeof AdminSelectField>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

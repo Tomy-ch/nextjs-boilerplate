@@ -9,13 +9,13 @@ import {
 import { FormField } from "@/components/patterns/form-field/form-field";
 
 /** 選べる候補 1 件。 */
-export type ProductSelectOption = {
+export type AdminSelectOption = {
   readonly value: string;
   readonly label: string;
 };
 
-/** `ProductSelectField` の props。 */
-export type ProductSelectFieldProps = {
+/** `AdminSelectField` の props。 */
+export type AdminSelectFieldProps = {
   /** 入力欄の `id`。 */
   controlId: string;
   /** 送信時の名前。 */
@@ -23,7 +23,7 @@ export type ProductSelectFieldProps = {
   /** 項目の名前。 */
   label: string;
   /** 選べる候補。 */
-  options: readonly ProductSelectOption[];
+  options: readonly AdminSelectOption[];
   /** 今の値。 */
   value: string;
   /** 値が変わったことを伝える。 */
@@ -47,7 +47,7 @@ export type ProductSelectFieldProps = {
  *
  * @param props - 入力欄の `id` と名前・項目名・選べる候補・今の値・変更の通知・誤りの文言。
  */
-export function ProductSelectField({
+export function AdminSelectField({
   controlId,
   label,
   message,
@@ -55,7 +55,7 @@ export function ProductSelectField({
   onValueChange,
   options,
   value,
-}: ProductSelectFieldProps) {
+}: AdminSelectFieldProps) {
   const change = useCallback(
     (event: React.ChangeEvent<HTMLSelectElement>) => onValueChange(event.target.value),
     [onValueChange],

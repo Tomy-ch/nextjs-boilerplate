@@ -4,6 +4,7 @@ import { useActionState, useCallback, useId, useMemo } from "react";
 
 import { WizardForm } from "@/components/patterns/wizard-form/wizard-form";
 import { idleActionState } from "@/model/action-state";
+import type { AdminSelectOption } from "../../ui/select-field/select-field";
 import { PRODUCT_SECTION_TITLES } from "../form-sections";
 import type {
   CreateProductAction,
@@ -16,8 +17,6 @@ import { ProductDescriptionSection } from "../ui/description-section/description
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
-
-import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
 import { useProductForm } from "../use-product-form";
 import { emptyProductValues } from "../use-product-values";
@@ -25,9 +24,9 @@ import { emptyProductValues } from "../use-product-values";
 /** `AdminProductCreateView` の props。 */
 export type AdminProductCreateViewProps = {
   /** 選べる分類。 */
-  categoryOptions: readonly ProductSelectOption[];
+  categoryOptions: readonly AdminSelectOption[];
   /** 選べる状態。 */
-  statusOptions: readonly ProductSelectOption[];
+  statusOptions: readonly AdminSelectOption[];
   /** 受け付ける 1 枚あたりの大きさ（byte）。 */
   maxUploadBytes: number;
   /** 商品を作る送信先。 */

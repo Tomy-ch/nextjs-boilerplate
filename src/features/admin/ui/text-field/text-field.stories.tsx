@@ -2,15 +2,15 @@ import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useCallback, useState } from "react";
 import { fn } from "storybook/test";
 
-import { PRODUCT_NAME_MAX_LENGTH } from "../../field-limits";
-import type { ProductTextFieldProps } from "./text-field";
-import { ProductTextField } from "./text-field";
+import { PRODUCT_NAME_MAX_LENGTH } from "../../products/field-limits";
+import type { AdminTextFieldProps } from "./text-field";
+import { AdminTextField } from "./text-field";
 
 /**
  * 打鍵を受けられる形で包む。値の持ち主は呼び出し元なので、包まないと打っても何も入らない。
  * args の `value` はその初期値として使う。
  */
-function LiveTextField({ value, onValueChange, ...props }: ProductTextFieldProps) {
+function LiveTextField({ value, onValueChange, ...props }: AdminTextFieldProps) {
   const [current, setCurrent] = useState(value);
   const change = useCallback(
     (next: string) => {
@@ -20,18 +20,18 @@ function LiveTextField({ value, onValueChange, ...props }: ProductTextFieldProps
     [onValueChange],
   );
 
-  return <ProductTextField {...props} onValueChange={change} value={current} />;
+  return <AdminTextField {...props} onValueChange={change} value={current} />;
 }
 
 const meta = {
-  title: "Features/Admin/Products/TextField",
-  component: ProductTextField,
+  title: "Features/Admin/TextField",
+  component: AdminTextField,
   parameters: {
     layout: "padded",
     docs: {
       description: {
         component: [
-          "商品フォームの 1 行入力です。**値は呼び出し元が持ちます** —— 入力欄に任せると、弾かれた送信のあとに書いた内容が消えます。",
+          "管理画面のフォームの 1 行入力です。**値は呼び出し元が持ちます** —— 入力欄に任せると、弾かれた送信のあとに書いた内容が消えます。",
           "a11y 属性は `FormField` が組むので、項目ごとに書き写しません。",
         ].join(""),
       },
@@ -48,7 +48,7 @@ const meta = {
   },
   render: (args) => <LiveTextField {...args} />,
   decorators: [(Story) => <div className="max-w-md">{Story()}</div>],
-} satisfies Meta<typeof ProductTextField>;
+} satisfies Meta<typeof AdminTextField>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

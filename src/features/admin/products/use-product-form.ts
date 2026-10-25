@@ -1,8 +1,8 @@
 "use client";
 
 import { useUnsavedChanges } from "../ui/unsaved-changes-guard/unsaved-changes-guard";
+import { useActionResultFreshness } from "../use-action-result-freshness";
 import type { ProductFormState, UploadProductImageAction } from "./form-state";
-import { useActionResultFreshness } from "./use-action-result-freshness";
 import type { ImageRejection } from "./use-image-rejection";
 import { useImageRejection } from "./use-image-rejection";
 import type { ProductImages, ProductSavedImage } from "./use-product-images";

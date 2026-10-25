@@ -5,13 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ProductTextField } from "./text-field";
+import { AdminTextField } from "./text-field";
 
 const noop = () => {};
 
-function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}) {
+function renderField(props: Partial<Parameters<typeof AdminTextField>[0]> = {}) {
   return render(
-    <ProductTextField
+    <AdminTextField
       controlId="form-name"
       label="商品名"
       name="name"
@@ -24,7 +24,7 @@ function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}
   );
 }
 
-describe("ProductTextField", () => {
+describe("AdminTextField", () => {
   it("項目名で引ける入力欄として公開する", () => {
     renderField();
 

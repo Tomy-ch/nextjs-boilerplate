@@ -1,4 +1,4 @@
-import type { ProductSelectOption } from "./ui/select-field/select-field";
+import type { AdminSelectOption } from "./ui/select-field/select-field";
 
 /**
  * マスタを、フォームで選べる候補へ直す。
@@ -15,6 +15,6 @@ import type { ProductSelectOption } from "./ui/select-field/select-field";
  */
 export function toMasterOptions(
   masters: readonly { readonly id: string; readonly name: string }[],
-): readonly ProductSelectOption[] {
+): readonly AdminSelectOption[] {
   return masters.map(({ id, name }) => ({ value: id, label: name }));
 }

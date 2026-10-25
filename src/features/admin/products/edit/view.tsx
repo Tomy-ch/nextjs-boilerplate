@@ -15,6 +15,7 @@ import { idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 
 import { adminProductEditPath } from "../../paths";
+import type { AdminSelectOption } from "../../ui/select-field/select-field";
 import { PRODUCT_FORM_NAMES } from "../form-names";
 import {
   findFirstInvalidSection,
@@ -31,7 +32,6 @@ import { ProductDescriptionSection } from "../ui/description-section/description
 import { ProductFormFeedback } from "../ui/form-feedback/form-feedback";
 import { ProductImagesSection } from "../ui/images-section/images-section";
 import { ProductPublishSection } from "../ui/publish-section/publish-section";
-import type { ProductSelectOption } from "../ui/select-field/select-field";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
 import { useProductForm } from "../use-product-form";
 import type { ProductSavedImage } from "../use-product-images";
@@ -44,9 +44,9 @@ export type AdminProductEditViewProps = {
   /** 読み込んだ時点で保存されている画像。表示 URL まで解決済み。 */
   savedImages: readonly ProductSavedImage[];
   /** 選べる分類。 */
-  categoryOptions: readonly ProductSelectOption[];
+  categoryOptions: readonly AdminSelectOption[];
   /** 選べる状態。 */
-  statusOptions: readonly ProductSelectOption[];
+  statusOptions: readonly AdminSelectOption[];
   /** 受け付ける 1 枚あたりの大きさ（byte）。 */
   maxUploadBytes: number;
   /** 商品を更新する送信先。 */

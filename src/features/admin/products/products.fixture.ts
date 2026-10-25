@@ -1,6 +1,6 @@
 import type { Product } from "@/model/product/product";
 import { toProductCategoryId, toProductId, toProductStatusId } from "@/model/product/product";
-import type { ProductSelectOption } from "./ui/select-field/select-field";
+import type { AdminSelectOption } from "../ui/select-field/select-field";
 
 /** 分類の識別子。商品の分類と候補の並びで同じものを指す。 */
 export const CATEGORY_ID = toProductCategoryId("01936f6d-0000-7000-8000-000000000001");
@@ -9,14 +9,14 @@ export const CATEGORY_ID = toProductCategoryId("01936f6d-0000-7000-8000-00000000
 const STATUS_ID = toProductStatusId("01936f6d-0000-7000-8000-000000000101");
 
 /** 選べる分類。 */
-export const CATEGORY_OPTIONS: readonly ProductSelectOption[] = [
+export const CATEGORY_OPTIONS: readonly AdminSelectOption[] = [
   { value: CATEGORY_ID, label: "電子機器" },
   { value: "01936f6d-0000-7000-8000-000000000002", label: "書籍" },
   { value: "01936f6d-0000-7000-8000-000000000004", label: "食品" },
 ];
 
 /** 選べる状態。 */
-export const STATUS_OPTIONS: readonly ProductSelectOption[] = [
+export const STATUS_OPTIONS: readonly AdminSelectOption[] = [
   { value: STATUS_ID, label: "在庫あり" },
   { value: "01936f6d-0000-7000-8000-000000000102", label: "在庫切れ" },
   { value: "01936f6d-0000-7000-8000-000000000106", label: "入荷待ち" },
