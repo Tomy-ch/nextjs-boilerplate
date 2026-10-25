@@ -13,6 +13,7 @@ import { toUserId } from "@/model/user/user";
 
 import {
   DeleteUsersDetailResponse,
+  GetUsersDetailResponse,
   GetUsersMePurchasesSummaryResponse,
   GetUsersMeResponse,
   GetUsersQueryParams,
@@ -303,7 +304,9 @@ export type ManagedUserQuery = {
  * @param wire - 契約の利用者応答 1 件
  * @returns 一覧向けの利用者
  */
-function toManagedUser(wire: z.infer<typeof GetUsersResponse>["users"][number]): ManagedUser {
+function toManagedUser(
+  wire: z.infer<typeof GetUsersResponse>["users"][number] | z.infer<typeof GetUsersDetailResponse>,
+): ManagedUser {
   return {
     id: toUserId(wire.id),
     firstName: wire.firstName,
@@ -365,6 +368,22 @@ export const getManagedUserPage = cache(
     };
   },
 );
+
+export const getManagedUser = cache(async (id: UserId): Promise<ManagedUser> => {
+  const wire = await getUserScopedClient().request({
+    path: `/v1/users/${encodeURIComponent(id)}`,
+    schema: GetUsersDetailResponse,
+  });
+
+  const user = toManagedUser(wire);
+
+  taintObjectReference(
+    "利用者には連絡先が含まれます。Client Component へ渡すのは画面が使う項目だけにしてください",
+    user,
+  );
+
+  return user;
+});
 
 /**
  * 利用者を 1 件退会させる。

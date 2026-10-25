@@ -5,10 +5,19 @@ import type { z } from "zod";
 
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { type CartCoupon, type HeldCoupon, toCouponId } from "@/model/coupon/coupon";
+import type { CouponIssueDraft } from "@/model/coupon/coupon-issue-draft";
+import type { UserId } from "@/model/user/user";
 
-import { GetCartsMeCouponsResponse, GetUsersMeCouponsResponse } from "../../gen/api/endpoints.zod";
+import {
+  GetCartsMeCouponsResponse,
+  GetUsersMeCouponsResponse,
+  PostCouponsResponse,
+} from "../../gen/api/endpoints.zod";
+import type { CouponsPostRequest } from "../../gen/api/model";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
-import { toCouponDiscount } from "./coupon-discount";
+import { toCouponDiscount, toCouponDiscountInput } from "./coupon-discount";
+import { toCouponScopeInput } from "./coupon-scope";
 
 type WireHeldCoupon = z.infer<typeof GetUsersMeCouponsResponse>["coupons"][number];
 
@@ -102,4 +111,26 @@ export async function readMyCartCoupons(): Promise<readonly CartCoupon[] | null>
 
     return null;
   }
+}
+
+export async function issueCoupon(
+  recipient: UserId,
+  draft: CouponIssueDraft,
+  idempotencyKey: string,
+): Promise<void> {
+  await getUserScopedClient().request({
+    path: "/v1/coupons",
+    method: "POST",
+    headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+    body: {
+      userId: recipient,
+      discount: toCouponDiscountInput(draft.discount),
+      scope: toCouponScopeInput(draft.scope),
+      minPurchaseAmount: draft.minPurchaseAmount,
+      usableFrom: draft.usableFrom === null ? null : draft.usableFrom.toISOString(),
+      expiresAt: draft.expiresAt.toISOString(),
+    } satisfies CouponsPostRequest,
+    idempotent: true,
+    schema: PostCouponsResponse,
+  });
 }

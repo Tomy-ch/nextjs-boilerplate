@@ -2,7 +2,10 @@ import "server-only";
 
 import type { CouponDiscount } from "@/model/coupon/coupon";
 
-import type { CouponDiscount as WireCouponDiscount } from "../../gen/api/model";
+import type {
+  CouponDiscountInput,
+  CouponDiscount as WireCouponDiscount,
+} from "../../gen/api/model";
 
 /**
  * 契約のクーポンの値引きを表示用の型へ写す。
@@ -15,6 +18,22 @@ import type { CouponDiscount as WireCouponDiscount } from "../../gen/api/model";
  * @returns 表示用の値引き
  */
 export function toCouponDiscount(discount: WireCouponDiscount): CouponDiscount {
+  return discount.kind === "flat"
+    ? { kind: "flat", value: discount.value }
+    : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount };
+}
+
+/**
+ * 値引きを契約の形へ写す。
+ *
+ * @remarks
+ * 定額には上限の欄そのものを載せません。契約は定額に上限を付けた要求を、意味を持たない組み
+ * 合わせとして拒みます。
+ *
+ * @param discount - 表示用の値引き
+ * @returns 契約が受け付ける値引き
+ */
+export function toCouponDiscountInput(discount: CouponDiscount): CouponDiscountInput {
   return discount.kind === "flat"
     ? { kind: "flat", value: discount.value }
     : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount };

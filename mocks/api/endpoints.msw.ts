@@ -177,7 +177,7 @@ export const getGetUsersDetailResponseMock = (
     faker.string.alpha({ length: { min: 10, max: 255 } }),
     undefined,
   ]),
-  deletedAt: faker.helpers.arrayElement([faker.date.past().toISOString().slice(0, 19) + "Z", null]),
+  deletedAt: faker.helpers.arrayElement([(() => null)(), null]),
   ...overrideResponse,
 });
 
