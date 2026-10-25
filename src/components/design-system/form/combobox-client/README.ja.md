@@ -42,8 +42,8 @@ trigger は選択状態によって文言が変わるため、`aria-label` か `
 
 ## Storybook とテスト
 
-Storybook は未選択、選択済み、選べない候補を含む場合、文言を差し替える場合、操作できない状態、外の `Label` を `aria-labelledby` で名前にする場合、制御 component として送信値を併記する場合を確認します。
+Storybook は未選択、選択済み、選べない候補を含む場合、文言を差し替える場合、開いた一覧、絞り込んだ候補、一致なし、操作できない状態、外の `Label` を `aria-labelledby` で名前にする場合、制御 component として送信値を併記する場合を確認します。
 
-テストは開くまで候補一覧を出さないこと、未選択時の placeholder と hidden input が空であること、選択済みの値に対応する label を trigger へ出すこと、選択中の値が候補から外れると trigger は placeholder に戻り hidden input には値が残ること、trigger が combobox ではなく button として公開されること、開いたときの絞り込み入力と候補、label による絞り込み、一致なしの文言と `emptyMessage` による差し替え、入力語を受け取る呼び出し元への入力語の通知と手元で絞らないこと、選択による hidden input への反映と閉じ、選択中の候補にだけ選択済みの印が出ること、呼び出し元への通知と制御 component としての反映、`disabled` の候補が選べないこと、trigger の無効化、`aria-label` が無いときに絞り込み入力の名前が `searchPlaceholder` になること、a11y 自動検査を確認します。
+テストは開くまで候補一覧を出さないこと、未選択時の placeholder と hidden input が空であること、選択済みの値に対応する label を trigger へ出すこと、選択中の値が候補から外れると trigger は placeholder に戻り hidden input には値が残ること、trigger が combobox ではなく button として公開されること、開いたときの絞り込み入力と候補、label による絞り込み、一致なしの文言と `emptyMessage` による差し替え、入力語を受け取る呼び出し元への入力語の通知と手元で絞らないこと、選択による hidden input への反映と閉じ、選択中の候補にだけ選択済みの印が出ること、呼び出し元への通知と制御 component としての反映、選んだ候補そのものが値と一緒に渡ること、誤りの説明と誤りの印が trigger に結び付き誤りを渡さなければ印も無いこと、`disabled` の候補が選べないこと、trigger の無効化、`aria-labelledby` が trigger と popover の両方の名前になること、`aria-label` が無いときに絞り込み入力の名前が `searchPlaceholder` になること、a11y 自動検査を確認します。
 
 cmdk と Popover は jsdom に無い `scrollIntoView` と `ResizeObserver` を使います。これらは共有のテスト設定（`vitest.setup.ts`）が補います。
