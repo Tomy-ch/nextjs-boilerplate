@@ -38,6 +38,15 @@ export type ComboboxClientProps = {
   /** 選択が変わったときの通知。 */
   onValueChange?: (value: string) => void;
   /**
+   * 絞り込み入力が変わったときの通知。
+   *
+   * @remarks
+   * 渡すと**候補を手元で絞らなくなります**。入力語で候補を取り直すのは呼び出し元で、取り直した
+   * 結果を `options` として差し替えます。手元でも絞ると、取り直した候補を label の一致でもう一度
+   * 削り、検索の側が一致と判断した候補が消えます。
+   */
+  onSearchChange?: (search: string) => void;
+  /**
    * 未選択時に trigger へ表示する文言。
    *
    * @defaultValue `"選択してください"`
@@ -82,7 +91,9 @@ export type ComboboxClientProps = {
  *
  * 候補の取得・並び順・件数の制限は持たない。`options` として渡された配列をそのまま扱い、
  * 絞り込みは `Command` が label に対して行う。サーバ側で検索する必要がある場合は、呼び出し元が
- * `options` を差し替える。
+ * `onSearchChange` で入力語を受け取り、`options` を差し替える。このとき選択中の候補が `options`
+ * から外れると trigger は placeholder に戻るため、選択中の候補を `options` に残すのも呼び出し元の
+ * 役目である。
  *
  * hydration が必要で、Server Component からは直接 render できない。
  *
@@ -102,6 +113,7 @@ export function ComboboxClient({
   value,
   defaultValue,
   onValueChange,
+  onSearchChange,
   placeholder = "選択してください",
   searchPlaceholder = "検索",
   emptyMessage = "該当する候補がありません",
@@ -112,6 +124,7 @@ export function ComboboxClient({
 }: ComboboxClientProps) {
   const [open, setOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(defaultValue ?? "");
+  const [search, setSearch] = useState("");
   const currentValue = value ?? selectedValue;
   const selectedOption = options.find((option) => option.value === currentValue);
 
@@ -122,6 +135,14 @@ export function ComboboxClient({
       setOpen(false);
     },
     [onValueChange, value],
+  );
+
+  const changeSearch = useCallback(
+    (nextSearch: string) => {
+      setSearch(nextSearch);
+      onSearchChange?.(nextSearch);
+    },
+    [onSearchChange],
   );
 
   return (
@@ -149,8 +170,15 @@ export function ComboboxClient({
           aria-labelledby={ariaLabelledBy}
           className="w-(--radix-popover-trigger-width) p-0"
         >
-          <Command label={ariaLabel ?? searchPlaceholder}>
-            <CommandInput placeholder={searchPlaceholder} />
+          <Command
+            label={ariaLabel ?? searchPlaceholder}
+            shouldFilter={onSearchChange === undefined}
+          >
+            <CommandInput
+              onValueChange={changeSearch}
+              placeholder={searchPlaceholder}
+              value={search}
+            />
             <CommandList>
               {options.map((option) => (
                 // CommandItem の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡す。

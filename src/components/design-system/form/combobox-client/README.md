@@ -24,7 +24,7 @@ If the options are few and static, prefer `SelectNative`. Using it where no filt
 
 It needs hydration and cannot be rendered directly from a Server Component. The selected value is held as a hidden input, so it goes into a native form as is.
 
-It does not own fetching options, their order or limits on their count. It handles the array passed as `options` as is, and `Command` does the filtering against the label. When the search must happen on the server, the caller replaces `options`.
+It does not own fetching options, their order or limits on their count. It handles the array passed as `options` as is, and `Command` does the filtering against the label. When the search must happen on the server, the caller receives the typed text through `onSearchChange` and replaces `options`; passing it stops the local filtering, which would otherwise cut the fetched options down again by label. Keeping the selected option inside `options` is then the caller's job — once it drops out, the trigger falls back to the placeholder.
 
 **It has no required setting.** The hidden input that carries the value is outside constraint validation, so the browser does not validate it even with `required`. Show that the field is required with `Field`, and enforce it in the Server Action or server-side validation.
 
@@ -40,6 +40,6 @@ Filtering is done against the label. The `value` of `CommandItem` is the value s
 
 Storybook checks nothing selected, a selection made, options that include unselectable ones, replaced text, the non-operable state, naming via an outside `Label` with `aria-labelledby`, and a controlled component shown alongside its submitted value.
 
-The tests check that the option list is not rendered until opened, that the placeholder shows and the hidden input is empty when nothing is selected, that the trigger shows the label matching the selected value, that the trigger is exposed as a button rather than a combobox, the filter input and options when opened, filtering by label, the no-match text, that selecting updates the hidden input and closes, notification to the caller and reflection as a controlled component, that `disabled` options cannot be selected, disabling the trigger, and the automated a11y check.
+The tests check that the option list is not rendered until opened, that the placeholder shows and the hidden input is empty when nothing is selected, that the trigger shows the label matching the selected value, that the trigger is exposed as a button rather than a combobox, the filter input and options when opened, filtering by label, the no-match text, that a caller receiving the typed text gets it and the options are not filtered locally, that selecting updates the hidden input and closes, notification to the caller and reflection as a controlled component, that `disabled` options cannot be selected, disabling the trigger, and the automated a11y check.
 
 cmdk and Popover use `scrollIntoView` and `ResizeObserver`, which jsdom lacks, so as with `command` the tests supply them.

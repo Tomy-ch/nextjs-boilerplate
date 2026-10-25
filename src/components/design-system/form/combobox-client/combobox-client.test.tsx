@@ -123,6 +123,25 @@ describe("ComboboxClient", () => {
     expect(screen.getByText("該当する候補がありません")).toBeInTheDocument();
   });
 
+  it("入力語を受け取る呼び出し元には入力語を伝え、候補を手元で絞らない", async () => {
+    const onSearchChange = vi.fn();
+
+    render(
+      <ComboboxClient
+        aria-label="都道府県"
+        name="prefecture"
+        onSearchChange={onSearchChange}
+        options={OPTIONS}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
+
+    await userEvent.type(screen.getByRole("combobox", { name: "都道府県" }), "神奈川");
+
+    expect(onSearchChange).toHaveBeenLastCalledWith("神奈川");
+    expect(screen.getAllByRole("option")).toHaveLength(3);
+  });
+
   it("候補を選ぶと hidden input へ値を入れて閉じる", async () => {
     const { container } = render(<Fixture />);
     await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
