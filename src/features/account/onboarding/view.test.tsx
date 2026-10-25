@@ -205,6 +205,7 @@ describe("OnboardingView", () => {
     const first = registerAction.mock.calls[0]?.[1];
     const second = registerAction.mock.calls[1]?.[1];
 
+    expect(first.get(IDEMPOTENCY_KEY_FIELD)).toMatch(UUID);
     expect(second.get(IDEMPOTENCY_KEY_FIELD)).toBe(first.get(IDEMPOTENCY_KEY_FIELD));
   });
 

@@ -395,6 +395,7 @@ describe("AdminProductDiscontinueView", () => {
     );
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action.mock.calls[0]?.[1].get("idempotencyKey")).toMatch(UUID);
     expect(action.mock.calls[1]?.[1].get("idempotencyKey")).toBe(
       action.mock.calls[0]?.[1].get("idempotencyKey"),
     );

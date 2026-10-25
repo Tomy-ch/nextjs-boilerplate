@@ -376,6 +376,7 @@ describe("usePlaceOrderState", () => {
       </PlaceOrderStateProvider>,
     );
     const first = currentKey(container);
+    expect(first).toMatch(UUID_V7);
 
     await userEvent.click(screen.getByRole("button", { name: "クーポンを選ぶ" }));
 
@@ -445,6 +446,7 @@ describe("usePlaceOrderState", () => {
       </PlaceOrderStateProvider>,
     );
     const first = currentKey(container);
+    expect(first).toMatch(UUID_V7);
 
     await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
     await screen.findByText("脇:いまは確定できません。");
@@ -461,6 +463,7 @@ describe("usePlaceOrderState", () => {
       </PlaceOrderStateProvider>,
     );
     const first = currentKey(container);
+    expect(first).toMatch(UUID_V7);
 
     await userEvent.click(screen.getByRole("button", { name: "脇 から送る" }));
     await screen.findByText("脇:在庫が変わりました。");
@@ -639,6 +642,7 @@ describe("usePlaceOrderState", () => {
     await screen.findByText("帯:全体の文言 まだ確定できません。");
     await click("2 枚目を選ぶ");
 
+    expect(sentKey(0)).toMatch(UUID_V7);
     expect(sentKey(1)).toBe(sentKey(0));
     expect(screen.getByText("帯:選び直し できない")).toBeVisible();
     expect(screen.getByText("帯:結果 未定")).toBeVisible();
