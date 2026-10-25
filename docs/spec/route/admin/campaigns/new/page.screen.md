@@ -70,8 +70,8 @@ this screen passes its content.
 Storybook's `Page/Admin/Campaigns/New` holds the empty and filled form, field errors, a reversed period, the confirmation, sending,
 a used code, rejected fields, a rejection without fields, and the held form while an outcome is open, on desktop, tablet and
 smartphone. Neither submission nor navigation happens in the canvas. The loading appearance is held by
-`Features/Admin/Campaigns/New/Skeleton`; the discount and scope inputs by `Features/Admin/Campaigns/New/CouponDiscountFields` and
-`Features/Admin/Campaigns/New/CouponScopeFields`.
+`Features/Admin/Campaigns/New/Skeleton`; the discount and scope inputs by `Features/Admin/CouponDiscountFields` and
+`Features/Admin/CouponScopeFields`.
 
 ## Related
 

@@ -7,7 +7,7 @@ coverage-exclusions:
   - "src/features/admin/products/products.fixture.ts"
   - "src/features/admin/products/discontinue/discontinue.fixture.ts"
   - "src/features/admin/products/list/list.fixture.ts"
-  - "src/features/admin/users/users.fixture.ts"
+  - "src/features/admin/users/list/list.fixture.ts"
   - "src/features/admin/campaigns/list/list.fixture.ts"
   - "src/features/admin/campaigns/new/campaign-new.fixture.ts"
 ---
@@ -108,9 +108,9 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | | In-progress purchase found when sending (conflict) / other failure / conditions held while the outcome is open | `Page/Admin/Products/Discontinue/{Conflicted,Unavailable,UnavailableLocked}` |
 | | Result shown / already discontinued | `Page/Admin/Products/Discontinue/{Discontinued,AlreadyDiscontinued}` |
 | | loading | `Features/Admin/Products/Discontinue/Skeleton/Default` |
-| Users | success / empty | `Page/Admin/Users/{Default,Empty}` |
-| | Account closure confirmation, success, conflict | `Page/Admin/Users/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
-| | loading | `Features/Admin/Users/Skeleton/Default` |
+| Users | success / empty | `Page/Admin/Users/List/{Default,Empty}` |
+| | Account closure confirmation, success, conflict | `Page/Admin/Users/List/{WithdrawConfirm,Withdrawn,WithdrawConflicted}` |
+| | loading | `Features/Admin/Users/List/Skeleton/Default` |
 | Campaigns | success (every status, a fully distributed row) / empty | `Page/Admin/Campaigns/List/{Default,Empty}` |
 | | Pagination, a long code | `Page/Admin/Campaigns/List/{MiddlePage,LastPage,SinglePage,LongCode}` |
 | | Suspension confirmation, sending | `Page/Admin/Campaigns/List/SuspendConfirm`, `Features/Admin/Campaigns/List/SuspendDialog/Submitting` |
@@ -138,13 +138,15 @@ Create a directory per screen and divide each by nature.
 
 **Products have five screens (list, create, edit, restock, discontinue), so they are split along the screen axis.** What
 several screens share belongs to none of them, so the level above (directly under `products/` and
-`products/ui/`) owns it. Users have only one screen, so files sit directly under `users/` with no axis between.
+`products/ui/`) owns it. Users are dug along the screen axis (`users/list/`), and the display name the user screens share sits directly under `users/`.
 Campaigns are dug along the screen axis (`campaigns/list/` and `campaigns/new/`), since listing and creating campaigns are separate screens.
 The user list and the campaign list both page by offset and both confirm a row operation before sending it, so
 what they share — choosing the page numbers, the pagination itself and the confirmation open/close policy — sits
 directly under the feature rather than under either screen. Likewise the input fields, master options and result
 freshness shared by product and campaign forms, and the reading of a coupon discount shared by the discontinue and
-campaign creation screens, sit directly under the feature.
+campaign creation screens, sit directly under the feature. So do the reading of a coupon scope, the discount and scope
+input fields, the product candidates a scope searches, and fixing a wall-clock date-time into an instant, which every
+screen that defines or issues a coupon asks for.
 
 | File | Role |
 | --- | --- |
@@ -236,25 +238,32 @@ campaign creation screens, sit directly under the feature.
 | `use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
 | `ui/text-field/` `ui/select-field/` | One input field. The caller holds the value |
 | `coupon-discount.ts` | Reading and wording a coupon's discount. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
+| `coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
+| `use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
+| `wall-clock.ts` | Fixes a `datetime-local` wall-clock value into an instant in the time zone of the person who typed it. Called in the browser |
+| `ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
+| `ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
+| `ui/radio-field/` | One choice among a few. The caller holds the value |
 | `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
 | `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result for it returns. The caller decides what it holds per confirmation, and may say which row a result answers |
 | `use-row-action-state.ts` | Sending an operation on a row and keeping its result together with the row it answers, read from the submitted form. The confirmation is closable while sending, so a result need not belong to the row open now |
 | `ui/offset-pagination/` | Pagination that jumps to any page. Receives the links and the accessible name as data, so it renders on either side of the client boundary |
-| `users/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
-| `users/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
-| `users/page-size.ts` | How many items one page lists |
-| `users/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
-| `users/row.ts` | The shape of one table row. Lines up family and given names, and reduces whether the account is closed to a boolean |
-| `users/form-state.ts` `users/form-names.ts` | The account closure result type, the submission target's type, and the submission's `name`s |
-| `users/results.tsx` | Fetching one page, and assembling the list and pagination |
-| `users/view.tsx` | Filtering. Receives the list body |
-| `users/ui/withdrawable-list/` | The layer connecting rows, confirmation and result. The only place that knows which ones concern the same person |
-| `users/ui/table/` | The user table. Rows of closed accounts show no operations |
-| `users/ui/scope-select/` | Re-selecting the target scope. Navigates as soon as it is selected |
-| `users/ui/withdraw-dialog/` | The account closure confirmation. States that it is irreversible and that the cleanup does not finish at the same time |
-| `users/ui/withdraw-feedback/` | The account closure result. A place that remains after the confirmation closes |
-| `users/ui/submit-button/` | Submitting the account closure. Extracted as a child of the form to read `useFormStatus` |
-| `users/ui/skeleton/` | The table loading UI |
+| `users/display-name.ts` | Lines up family and given names into the display name. The order is a presentation decision the contract leaves open |
+| `users/list/query.ts` | The user list URL contract (scope and page number) and the key names. Receives the upper bound from the caller |
+| `users/list/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
+| `users/list/page-size.ts` | How many items one page lists |
+| `users/list/page-content.tsx` | Interpreting the URL and assembling the screen. Bounds the refetch scope here |
+| `users/list/row.ts` | The shape of one table row. Takes the display name from `display-name.ts`, and reduces whether the account is closed to a boolean |
+| `users/list/form-state.ts` `users/list/form-names.ts` | The account closure result type, the submission target's type, and the submission's `name`s |
+| `users/list/results.tsx` | Fetching one page, and assembling the list and pagination |
+| `users/list/view.tsx` | Filtering. Receives the list body |
+| `users/list/ui/withdrawable-list/` | The layer connecting rows, confirmation and result. The only place that knows which ones concern the same person |
+| `users/list/ui/table/` | The user table. Rows of closed accounts show no operations |
+| `users/list/ui/scope-select/` | Re-selecting the target scope. Navigates as soon as it is selected |
+| `users/list/ui/withdraw-dialog/` | The account closure confirmation. States that it is irreversible and that the cleanup does not finish at the same time |
+| `users/list/ui/withdraw-feedback/` | The account closure result. A place that remains after the confirmation closes |
+| `users/list/ui/submit-button/` | Submitting the account closure. Extracted as a child of the form to read `useFormStatus` |
+| `users/list/ui/skeleton/` | The table loading UI |
 | `campaigns/list/query.ts` | The campaign list URL contract (page number) and the key name |
 | `campaigns/list/read-location.ts` | Reading the list URL back into a location. Receives the upper bound from the caller |
 | `campaigns/list/page-size.ts` | How many items one page lists |
@@ -282,11 +291,6 @@ campaign creation screens, sit directly under the feature.
 | `campaigns/new/page-content.tsx` | Fetching the categories a scope can choose |
 | `campaigns/new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open |
 | `campaigns/new/breadcrumb-content.tsx` | The hierarchy down to the creation screen |
-| `campaigns/new/coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
-| `campaigns/new/use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
-| `campaigns/new/ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
-| `campaigns/new/ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
-| `campaigns/new/ui/radio-field/` | One choice among a few. The caller holds the value |
 | `campaigns/new/ui/period-fields/` `campaigns/new/ui/limit-fields/` | The distribution period, coupon validity and limits. The caller holds the values |
 | `campaigns/new/ui/confirm-dialog/` | The confirmation. States that a definition cannot be changed afterwards. Receives only `formAction` |
 | `campaigns/new/ui/skeleton/` | The form loading UI |

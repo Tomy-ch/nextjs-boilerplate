@@ -3,13 +3,13 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { type CouponDiscountValues, EMPTY_COUPON_DISCOUNT_VALUES } from "../../coupon-discount";
+import { type CouponScopeValues, EMPTY_COUPON_SCOPE_VALUES } from "../../coupon-scope";
 import {
   type CampaignOwnValues,
   EMPTY_CAMPAIGN_OWN_VALUES,
   submissionOf,
   toCampaignDraft,
 } from "./campaign-rules";
-import { type CouponScopeValues, EMPTY_COUPON_SCOPE_VALUES } from "./coupon-scope";
 import type { CampaignOwnField, CreateCampaignField } from "./form-state";
 
 /** 画面が持つ入力の状態と、その操作。 */

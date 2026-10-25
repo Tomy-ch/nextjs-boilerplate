@@ -6,12 +6,12 @@ import { withdrawUser } from "@/adapters/server/api/users";
 import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { ADMIN_USER_LIST_PATH } from "@/features/admin/paths";
-import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/form-names";
-import type { WithdrawUserState } from "@/features/admin/users/form-state";
+import { WITHDRAW_FORM_NAMES } from "@/features/admin/users/list/form-names";
+import type { WithdrawUserState } from "@/features/admin/users/list/form-state";
 import {
   WITHDRAW_CONFLICT_MESSAGE,
   WITHDRAW_TARGET_LOST_MESSAGE,
-} from "@/features/admin/users/form-state";
+} from "@/features/admin/users/list/form-state";
 import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,

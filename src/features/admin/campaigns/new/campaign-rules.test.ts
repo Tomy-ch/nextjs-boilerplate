@@ -7,6 +7,12 @@ import {
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
 import {
+  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+  type CouponScopeValues,
+  EMPTY_COUPON_SCOPE_VALUES,
+} from "../../coupon-scope";
+import {
   CAMPAIGN_CODE_INVALID_MESSAGE,
   CAMPAIGN_DATE_MISSING_MESSAGE,
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
@@ -21,14 +27,7 @@ import {
   normalizeCampaignCode,
   submissionOf,
   toCampaignDraft,
-  wallClockToInstant,
 } from "./campaign-rules";
-import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-  type CouponScopeValues,
-  EMPTY_COUPON_SCOPE_VALUES,
-} from "./coupon-scope";
 
 const CATEGORY_ID = "0195f0c2-0000-7000-8000-000000000011";
 
@@ -68,22 +67,6 @@ describe("normalizeCampaignCode", () => {
 
   it("空白だけなら空文字を返す", () => {
     expect(normalizeCampaignCode("   ")).toBe("");
-  });
-});
-
-describe("wallClockToInstant", () => {
-  // ----- 正常系 -----
-  it("壁時計の値を実行環境の時間帯で読んで瞬間の文字列へ確定させる", () => {
-    expect(wallClockToInstant("2026-10-01T10:00")).toBe("2026-10-01T01:00:00.000Z");
-  });
-
-  it("空なら空文字を返す", () => {
-    expect(wallClockToInstant("")).toBe("");
-  });
-
-  // ----- 異常系 -----
-  it("読めない値は例外を投げずに空文字を返す", () => {
-    expect(wallClockToInstant("abc")).toBe("");
   });
 });
 

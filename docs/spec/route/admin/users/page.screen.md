@@ -70,7 +70,7 @@ same spot cannot be aimed at.
 
 ## Checking in the Catalog
 
-Storybook's `Page/Admin/Users` holds: the first page, active only, closed only, a middle page, the last page, a single page only, no
+Storybook's `Page/Admin/Users/List` holds: the first page, active only, closed only, a middle page, the last page, a single page only, no
 matches, the row actions opened, the closure confirmation, success, the rejected state, a full name of the contract's maximum length,
 tablet and smartphone.
 

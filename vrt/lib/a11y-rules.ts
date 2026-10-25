@@ -82,7 +82,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
       "features-admin-campaigns-list-table--row-actions-open", // sample:line
       "features-admin-products-list-table--discontinued-row-actions-open", // sample:line
       "features-admin-products-list-table--row-actions-open", // sample:line
-      "features-admin-users-table--row-actions-open", // sample:line
+      "features-admin-users-list-table--row-actions-open", // sample:line
       "form-selectclient--open",
       "overlay-dropdownmenu--grouped",
       "overlay-dropdownmenu--icon-trigger",
@@ -92,7 +92,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
       "overlay-dropdownmenu--with-selection-kept-open",
       "page-admin-campaigns-list--row-actions-open", // sample:line
       "page-admin-products-list--row-actions-open", // sample:line
-      "page-admin-users--row-actions-open", // sample:line
+      "page-admin-users-list--row-actions-open", // sample:line
     ],
     reason:
       "dropdown の menu を modal とする決定の帰結。modal の overlay を開くと Radix は背景へ `aria-hidden` だけを当て、trigger は tabbable のまま残る。焦点は FocusScope が閉じ込めるため実際には届かない。axe も同じ場合を violation ではなく incomplete にする逃げ道を持つが、その判定は dialog しか見ないため menu では効かない。",

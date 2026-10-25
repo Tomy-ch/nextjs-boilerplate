@@ -12,7 +12,7 @@ const meta = {
         component: [
           "集計の待機表示です。数値カードの枠と、その下に続く帯の高さを出すため、",
           "描画された瞬間に下に置いたものの位置が動きません。",
-          "表を待つ `Features/Admin/Products/List/Skeleton` や `Features/Admin/Users/Skeleton` とは",
+          "表を待つ `Features/Admin/Products/List/Skeleton` や `Features/Admin/Users/List/Skeleton` とは",
           "枠の形が違い、こちらは行ではなくカードと帯で待ちます。",
           "入口と集計の両方が使うので、どちらの画面の名前も持ちません。",
         ].join(""),
