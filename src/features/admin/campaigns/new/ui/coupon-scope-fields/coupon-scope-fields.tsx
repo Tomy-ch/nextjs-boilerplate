@@ -9,7 +9,7 @@ import {
 import { Field, FieldDescription, FieldError } from "@/components/design-system/form/field/field";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { COUPON_SCOPE_NAME, type CouponScopeKind } from "@/model/coupon/coupon";
-
+import { AdminSelectField, type AdminSelectOption } from "../../../../ui/select-field/select-field";
 import {
   COUPON_SCOPE_FORM_NAMES,
   type CouponScopeField,
@@ -17,7 +17,6 @@ import {
 } from "../../coupon-scope";
 import { PRODUCT_CANDIDATE_LIMIT, type ProductCandidates } from "../../use-product-candidates";
 import { AdminRadioField, type AdminRadioOption } from "../radio-field/radio-field";
-import { AdminSelectField, type AdminSelectOption } from "../select-field/select-field";
 
 /** 種別の選択肢。並び順のまま出す。 */
 const KIND_OPTIONS: readonly AdminRadioOption<CouponScopeKind>[] = [
@@ -69,7 +68,7 @@ export type CouponScopeFieldsProps = {
  *
  * @param props - 選ばれている値と候補、その変更の通知、項目ごとの誤りの文言。
  *
- * @see Storybook `Features/Admin/CouponScopeFields`
+ * @see Storybook `Features/Admin/Campaigns/New/CouponScopeFields`
  */
 export function CouponScopeFields({
   categoryOptions,

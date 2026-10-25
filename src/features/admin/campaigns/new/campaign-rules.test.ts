@@ -7,12 +7,6 @@ import {
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
 import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-  type CouponScopeValues,
-  EMPTY_COUPON_SCOPE_VALUES,
-} from "../../coupon-scope";
-import {
   CAMPAIGN_CODE_INVALID_MESSAGE,
   CAMPAIGN_DATE_MISSING_MESSAGE,
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
@@ -29,6 +23,12 @@ import {
   toCampaignDraft,
   wallClockToInstant,
 } from "./campaign-rules";
+import {
+  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+  type CouponScopeValues,
+  EMPTY_COUPON_SCOPE_VALUES,
+} from "./coupon-scope";
 
 const CATEGORY_ID = "0195f0c2-0000-7000-8000-000000000011";
 

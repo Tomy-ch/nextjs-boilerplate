@@ -51,7 +51,7 @@ export type AdminRadioFieldProps<TValue extends string> = {
  *
  * @param props - 群の名前・選択肢・選ばれている値と、誤りの文言。
  *
- * @see Storybook `Features/Admin/RadioField`
+ * @see Storybook `Features/Admin/Campaigns/New/RadioField`
  */
 export function AdminRadioField<TValue extends string>({
   legend,

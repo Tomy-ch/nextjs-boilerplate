@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { COUPON_SCOPE_NAME } from "@/model/coupon/coupon";
 
 import type { CouponDiscountValues } from "../../coupon-discount";
-import type { CouponScopeValues } from "../../coupon-scope";
 import type { CampaignOwnValues } from "./campaign-rules";
 import { type CampaignConfirmation, confirmationOf } from "./campaign-summary";
+import type { CouponScopeValues } from "./coupon-scope";
 
 const CATEGORY_ID = "0195f0c2-0000-7000-8000-000000000011";
 const PRODUCT_ID = "0195f0c2-0000-7000-8000-000000000021";

@@ -1,13 +1,13 @@
 import { COUPON_SCOPE_NAME } from "@/model/coupon/coupon";
 
 import { COUPON_DISCOUNT_FORM_NAMES, type CouponDiscountValues } from "../../coupon-discount";
-import { COUPON_SCOPE_FORM_NAMES, type CouponScopeValues } from "../../coupon-scope";
 import {
   type CampaignOwnValues,
   type CampaignSubmission,
   normalizeCampaignCode,
   submissionOf,
 } from "./campaign-rules";
+import { COUPON_SCOPE_FORM_NAMES, type CouponScopeValues } from "./coupon-scope";
 import { CAMPAIGN_FORM_NAMES } from "./form-names";
 
 /** 確認に並べる 1 行。 */

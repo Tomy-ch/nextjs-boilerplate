@@ -15,7 +15,7 @@ function Holder(props: AdminRadioFieldProps<string>) {
 }
 
 const meta = {
-  title: "Features/Admin/RadioField",
+  title: "Features/Admin/Campaigns/New/RadioField",
   component: AdminRadioField,
   render: (args) => <Holder {...args} />,
   parameters: {

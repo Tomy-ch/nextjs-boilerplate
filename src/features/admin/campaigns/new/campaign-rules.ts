@@ -11,7 +11,7 @@ import {
   toCouponDiscount,
   toMinorUnitAmount,
 } from "../../coupon-discount";
-import { type CouponScopeValues, toCouponScope } from "../../coupon-scope";
+import { type CouponScopeValues, toCouponScope } from "./coupon-scope";
 import type { CampaignOwnField, CreateCampaignField } from "./form-state";
 
 /** 枚数として読める綴り。符号も小数も持たない。 */

@@ -5,7 +5,10 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { type CouponDiscountValues, EMPTY_COUPON_DISCOUNT_VALUES } from "../../coupon-discount";
+import {
+  type CouponDiscountValues,
+  EMPTY_COUPON_DISCOUNT_VALUES,
+} from "../../../../coupon-discount";
 import { CouponDiscountFields, type CouponDiscountFieldsProps } from "./coupon-discount-fields";
 
 const FLAT: CouponDiscountValues = { kind: "flat", value: "5", maxAmount: "20" };

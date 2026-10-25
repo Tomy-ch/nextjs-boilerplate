@@ -1,10 +1,10 @@
 import { toProductId } from "@/model/product/product";
 
 import type { CouponDiscountValues } from "../../coupon-discount";
-import type { CouponScopeValues } from "../../coupon-scope";
 import type { AdminSelectOption } from "../../ui/select-field/select-field";
-import type { ProductCandidates } from "../../use-product-candidates";
 import type { CampaignOwnValues } from "./campaign-rules";
+import type { CouponScopeValues } from "./coupon-scope";
+import type { ProductCandidates } from "./use-product-candidates";
 
 /** 範囲として選べるカテゴリ。 */
 export const CAMPAIGN_CATEGORY_OPTIONS: readonly AdminSelectOption[] = [

@@ -6,12 +6,12 @@ import {
   COUPON_DISCOUNT_FORM_NAMES,
   COUPON_DISCOUNT_KIND_MISSING_MESSAGE,
 } from "../../coupon-discount";
-import { COUPON_SCOPE_FORM_NAMES, COUPON_SCOPE_KIND_MISSING_MESSAGE } from "../../coupon-scope";
 import {
   CAMPAIGN_CODE_INVALID_MESSAGE,
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
   CAMPAIGN_LIMIT_INVALID_MESSAGE,
 } from "./campaign-rules";
+import { COUPON_SCOPE_FORM_NAMES, COUPON_SCOPE_KIND_MISSING_MESSAGE } from "./coupon-scope";
 import { CAMPAIGN_CONFIRMED_VALUE, CAMPAIGN_FORM_NAMES } from "./form-names";
 import { CAMPAIGN_TARGET_LOST_MESSAGE } from "./form-state";
 import { parseCampaignForm } from "./parse-campaign-form";

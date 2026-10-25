@@ -9,13 +9,6 @@ import {
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
 import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-  COUPON_SCOPE_PRODUCT_MISSING_MESSAGE,
-  type CouponScopeValues,
-  EMPTY_COUPON_SCOPE_VALUES,
-} from "../../coupon-scope";
-import {
   CAMPAIGN_CODE_INVALID_MESSAGE,
   CAMPAIGN_DATE_MISSING_MESSAGE,
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
@@ -26,6 +19,13 @@ import {
   type CampaignOwnValues,
   EMPTY_CAMPAIGN_OWN_VALUES,
 } from "./campaign-rules";
+import {
+  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+  COUPON_SCOPE_PRODUCT_MISSING_MESSAGE,
+  type CouponScopeValues,
+  EMPTY_COUPON_SCOPE_VALUES,
+} from "./coupon-scope";
 import type { CampaignOwnField } from "./form-state";
 import { useCampaignValues } from "./use-campaign-values";
 

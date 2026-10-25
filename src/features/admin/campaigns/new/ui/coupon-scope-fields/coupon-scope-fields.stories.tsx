@@ -42,7 +42,7 @@ async function openProducts(canvasElement: HTMLElement) {
 }
 
 const meta = {
-  title: "Features/Admin/CouponScopeFields",
+  title: "Features/Admin/Campaigns/New/CouponScopeFields",
   component: CouponScopeFields,
   render: (args) => <Holder {...args} />,
   parameters: {

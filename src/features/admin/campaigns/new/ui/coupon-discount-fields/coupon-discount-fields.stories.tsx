@@ -8,7 +8,7 @@ import {
   COUPON_DISCOUNT_RATE_OUT_OF_RANGE_MESSAGE,
   type CouponDiscountValues,
   EMPTY_COUPON_DISCOUNT_VALUES,
-} from "../../coupon-discount";
+} from "../../../../coupon-discount";
 import { CouponDiscountFields, type CouponDiscountFieldsProps } from "./coupon-discount-fields";
 
 /**
@@ -23,7 +23,7 @@ function Holder(props: CouponDiscountFieldsProps) {
 }
 
 const meta = {
-  title: "Features/Admin/CouponDiscountFields",
+  title: "Features/Admin/Campaigns/New/CouponDiscountFields",
   component: CouponDiscountFields,
   render: (args) => <Holder {...args} />,
   parameters: {

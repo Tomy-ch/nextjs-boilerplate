@@ -5,8 +5,8 @@ import type { CampaignDraft } from "@/model/campaign/campaign-draft";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
 import { readCouponDiscountValues } from "../../coupon-discount";
-import { readCouponScopeValues } from "../../coupon-scope";
 import { type CampaignOwnValues, toCampaignDraft } from "./campaign-rules";
+import { readCouponScopeValues } from "./coupon-scope";
 import { CAMPAIGN_CONFIRMED_VALUE, CAMPAIGN_FORM_NAMES } from "./form-names";
 import { CAMPAIGN_TARGET_LOST_MESSAGE, type CreateCampaignField } from "./form-state";
 

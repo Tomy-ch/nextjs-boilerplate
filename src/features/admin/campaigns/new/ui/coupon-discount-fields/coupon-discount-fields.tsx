@@ -7,9 +7,9 @@ import {
   COUPON_DISCOUNT_KIND_NAME,
   type CouponDiscountField,
   type CouponDiscountValues,
-} from "../../coupon-discount";
+} from "../../../../coupon-discount";
+import { AdminTextField } from "../../../../ui/text-field/text-field";
 import { AdminRadioField, type AdminRadioOption } from "../radio-field/radio-field";
-import { AdminTextField } from "../text-field/text-field";
 
 const { kind: kindName, maxAmount: maxAmountName, value: valueName } = COUPON_DISCOUNT_FORM_NAMES;
 
@@ -49,7 +49,7 @@ export type CouponDiscountFieldsProps = {
  *
  * @param props - 打たれている値と、その変更・離脱の通知、項目ごとの誤りの文言。
  *
- * @see Storybook `Features/Admin/CouponDiscountFields`
+ * @see Storybook `Features/Admin/Campaigns/New/CouponDiscountFields`
  */
 export function CouponDiscountFields({
   messages,
