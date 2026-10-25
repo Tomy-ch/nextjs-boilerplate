@@ -9,6 +9,7 @@ coverage-exclusions:
   - "src/features/admin/products/list/list.fixture.ts"
   - "src/features/admin/users/users.fixture.ts"
   - "src/features/admin/campaigns/list/list.fixture.ts"
+  - "src/features/admin/campaigns/new/campaign-new.fixture.ts"
 ---
 
 # admin
@@ -49,6 +50,7 @@ outer frame's promises are held by [the `admin` layout](../../../docs/spec/route
 | `/admin/shipments` | [`screen`](../../../docs/spec/route/admin/shipments/page.screen.md) / [`function`](../../../docs/spec/route/admin/shipments/page.function.md) |
 | `/admin/users` | [`screen`](../../../docs/spec/route/admin/users/page.screen.md) / [`function`](../../../docs/spec/route/admin/users/page.function.md) |
 | `/admin/campaigns` | [`screen`](../../../docs/spec/route/admin/campaigns/page.screen.md) / [`function`](../../../docs/spec/route/admin/campaigns/page.function.md) |
+| `/admin/campaigns/new` | [`screen`](../../../docs/spec/route/admin/campaigns/new/page.screen.md) / [`function`](../../../docs/spec/route/admin/campaigns/new/page.function.md) |
 
 **The contracts, states and Actions of `/admin/shipments` are held by [shipments/README.md](shipments/README.md),
 and those of `/admin/inquiries` by [inquiries/README.md](inquiries/README.md).**
@@ -62,7 +64,7 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | --- | --- | --- |
 | `GetDashboardSummary` | Figures for the entry screen and analytics | feature |
 | `GetProductsRankingQuantity` | The best-seller table | feature |
-| `GetProducts` | The product list, including filtering by discontinuation | feature |
+| `GetProducts` | The product list, including filtering by discontinuation, and the product candidates a coupon scope searches | feature |
 | `GetProductsDetail` | The single item read by edit, restock and discontinuation | feature |
 | `GetProductsDiscontinueImpact` | The estimate shown before discontinuing | feature |
 | `GetPurchases` | The in-progress purchases that keep a product from being discontinued | feature |
@@ -74,6 +76,7 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | `PatchProductsStock` | Increasing and decreasing stock | An app-layer Action |
 | `PostProductsDiscontinue` | Discontinuing a product and issuing replacement coupons | An app-layer Action |
 | `DeleteUsersDetail` | Closing a user's account | An app-layer Action |
+| `PostCampaigns` | Defining a campaign | An app-layer Action |
 | `PostCampaignsSuspend` | Suspending a campaign's distribution | An app-layer Action |
 
 ## States and Design References
@@ -113,6 +116,11 @@ Server Actions live in the app layer; the reason is under Action Return Contract
 | | Suspension confirmation, sending | `Page/Admin/Campaigns/List/SuspendConfirm`, `Features/Admin/Campaigns/List/SuspendDialog/Submitting` |
 | | Suspended, already suspended (conflict), other failure | `Page/Admin/Campaigns/List/{Suspended,SuspendConflicted,SuspendFailed}` |
 | | loading | `Page/Admin/Campaigns/List/Loading`, `Features/Admin/Campaigns/List/Skeleton/Default` |
+| Campaign creation | Input, filled, per band | `Page/Admin/Campaigns/New/{Default,DefaultTablet,DefaultMobile,Filled}` |
+| | Invalid fields, period or limits reversed | `Page/Admin/Campaigns/New/{InvalidFields,PeriodReversed}` |
+| | Confirmation, sending | `Page/Admin/Campaigns/New/{Confirming,ConfirmingMobile,Submitting}` |
+| | Code already used (conflict), rejected fields, other rejection, outcome open (inputs held) | `Page/Admin/Campaigns/New/{CodeConflicted,RejectedFields,Rejected,Unavailable}` |
+| | loading | `Features/Admin/Campaigns/New/Skeleton/Default` |
 | Every screen beneath | error | `Features/Admin/ErrorState/{Default,WithDigest}` |
 
 **loading and error cannot be reached from a screen's composition.** The loading UI is the `Suspense` fallback
@@ -131,10 +139,12 @@ Create a directory per screen and divide each by nature.
 **Products have five screens (list, create, edit, restock, discontinue), so they are split along the screen axis.** What
 several screens share belongs to none of them, so the level above (directly under `products/` and
 `products/ui/`) owns it. Users have only one screen, so files sit directly under `users/` with no axis between.
-Campaigns are dug along the screen axis (`campaigns/list/`), since listing and creating campaigns are separate screens.
+Campaigns are dug along the screen axis (`campaigns/list/` and `campaigns/new/`), since listing and creating campaigns are separate screens.
 The user list and the campaign list both page by offset and both confirm a row operation before sending it, so
 what they share — choosing the page numbers, the pagination itself and the confirmation open/close policy — sits
-directly under the feature rather than under either screen.
+directly under the feature rather than under either screen. Likewise the input fields, master options and result
+freshness shared by product and campaign forms, and the coupon discount and scope inputs shared by every screen that
+issues a coupon, sit directly under the feature.
 
 | File | Role |
 | --- | --- |
@@ -163,16 +173,13 @@ directly under the feature rather than under either screen.
 | `products/form-state.ts` | The product form's result type and the submission target's type. Also holds the version mismatch wording |
 | `products/parse-product-form.ts` | Reading what was sent. Also the only holder of the input field names |
 | `products/form-sections.ts` | The steps the form has and their order. Confirmation exists only on the create screen, so it is not included |
-| `products/master-option.ts` | Turns master data into candidates selectable in the form. The value sent is the identifier |
 | `products/use-product-values.ts` | Input values, touched markers, and validity per step |
 | `products/use-product-images.ts` | The list of selected images, and uploading and reordering |
 | `products/use-image-rejection.ts` | Wording for files rejected before sending |
-| `products/use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
 | `products/use-product-form.ts` | Assembling the state shared by create and edit. Also holds the freshness of submission results |
 | `products/form-names.ts` | The input fields' `name`s. The sending and reading sides see the same spelling |
 | `products/validation-summary.ts` | Maps per-field errors to the shape the summary lists |
 | `products/image-rejection.ts` | How rejected files are described, and size formatting |
-| `products/ui/text-field/` `products/ui/select-field/` | One input field. The caller holds the value |
 | `products/ui/basics-section/` `description-section/` `images-section/` `publish-section/` `confirm-section/` | The step contents shared by create and edit. They do not know they are steps |
 | ↳ `description-editor.tsx` / `confirm-details.tsx` | The split between **when to load** a heavy component and **what to render**. Kept apart so loading concerns do not mix into the container |
 | `products/ui/submit-button/` `products/ui/form-feedback/` | The submit control and the submission result |
@@ -209,7 +216,7 @@ directly under the feature rather than under either screen.
 | `products/stock/ui/amount-fields/` | Direction and quantity. Holds the value being typed and adds the projection |
 | `products/stock/ui/projection/` | The projection after submission. That it is a reference value, and the caveat when negative |
 | `products/stock/ui/skeleton/` | The form loading UI |
-| `products/discontinue/coupon-rules.ts` | How the coupon conditions are read and worded. Turns a percentage into the contract's decimal string without going through a number. Both the sending and receiving sides go through it |
+| `products/discontinue/coupon-rules.ts` | How the coupon validity days are read and worded. The discount rate is read by `coupon-discount.ts`; this screen keeps only what it alone asks for. Both the sending and receiving sides go through it |
 | `products/discontinue/form-state.ts` `products/discontinue/form-names.ts` | The discontinuation result type, the submission target's type, the wording only this screen can give, and the submission's `name`s |
 | `products/discontinue/parse-discontinue-form.ts` | Reading the submitted target, idempotency key, confirmation signal and conditions |
 | `products/discontinue/discontinue-rejection.ts` | Maps the fields the connection target named in a rejection onto this screen's input fields |
@@ -225,6 +232,14 @@ directly under the feature rather than under either screen.
 | `products/discontinue/ui/result/` | What the execution reported. A place that remains after the confirmation closes |
 | `products/discontinue/ui/discontinued-state/` | The product is already discontinued, and since when |
 | `products/discontinue/ui/skeleton/` | The screen loading UI |
+| `master-option.ts` | Turns master data into candidates selectable in a form. The value sent is the identifier |
+| `use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
+| `ui/text-field/` `ui/select-field/` `ui/radio-field/` | One input field. The caller holds the value |
+| `coupon-discount.ts` | Reading and wording a coupon's discount. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
+| `coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
+| `use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
+| `ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
+| `ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
 | `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
 | `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result for it returns. The caller decides what it holds per confirmation, and may say which row a result answers |
 | `use-row-action-state.ts` | Sending an operation on a row and keeping its result together with the row it answers, read from the submitted form. The confirmation is closable while sending, so a result need not belong to the row open now |
@@ -261,6 +276,19 @@ directly under the feature rather than under either screen.
 | `campaigns/list/ui/suspend-feedback/` | The suspension result. A place that remains after the confirmation closes |
 | `campaigns/list/ui/submit-button/` | Submitting the suspension. Extracted as a child of the form to read `useFormStatus` |
 | `campaigns/list/ui/skeleton/` | The table loading UI |
+| `campaigns/new/campaign-rules.ts` | Reading and wording the code, period and limits, and their order relations. Both the sending and receiving sides go through it |
+| `campaigns/new/form-state.ts` `campaigns/new/form-names.ts` | The definition result type, the submission target's type, field labels, and the submission's `name`s |
+| `campaigns/new/use-campaign-values.ts` | Input values, touched markers and per-field errors |
+| `campaigns/new/parse-campaign-form.ts` | Reading the submitted definition, idempotency key and confirmation signal |
+| `campaigns/new/campaign-rejection.ts` | Maps a code conflict and the fields the connection target named onto this screen's input fields |
+| `campaigns/new/campaign-feedback.ts` | Which result closes the confirmation, and where each failure message is shown — in the confirmation or beside the field |
+| `campaigns/new/campaign-summary.ts` | The values and the read-back the confirmation shows |
+| `campaigns/new/page-content.tsx` | Fetching the categories a scope can choose |
+| `campaigns/new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open |
+| `campaigns/new/breadcrumb-content.tsx` | The hierarchy down to the creation screen |
+| `campaigns/new/ui/period-fields/` `campaigns/new/ui/limit-fields/` | The distribution period, coupon validity and limits. The caller holds the values |
+| `campaigns/new/ui/confirm-dialog/` | The confirmation. States that a definition cannot be changed afterwards. Receives only `formAction` |
+| `campaigns/new/ui/skeleton/` | The form loading UI |
 | `ui/error-state/` | What is shown when fetching fails. Used by the `/admin` error boundary. There is one boundary, so it names no screen |
 | `shipments/` | The shipments screen. **Has its own README** ([README](shipments/README.md)) |
 | `inquiries/` | The inquiry list and handling. **Has its own README** ([README](inquiries/README.md)) |
@@ -269,7 +297,7 @@ directly under the feature rather than under either screen.
 `*-section.tsx` are its subjects, and carry behavior that holds only once the components come together.
 **A single component under `ui/` takes the `component` shape** — that one component's rendering contract and the
 mandatory automated a11y check — and **pure functions that cross screens (`summary-cards.ts` / `paths.ts` /
-`analytics/period.ts` / `page-window.ts` and so on) take the `unit` shape** — no rendering; return values and branches are matched
+`analytics/period.ts` / `page-window.ts` / `coupon-discount.ts` and so on) take the `unit` shape** — no rendering; return values and branches are matched
 directly. Imposing composition tests on something with no composition leaves nothing to verify.
 
 ## Kernel Dependencies
@@ -277,7 +305,7 @@ directly. Imposing composition tests on something with no composition leaves not
 | Kernel | Purpose |
 | --- | --- |
 | `adapters` | Fetching analytics, products, purchases, users and campaigns, and resolving image URLs. The contract's limits that input fields read in the browser come from `adapters/client` |
-| `model` | Display models (`Product` / `Purchase` / `Dashboard` / `Campaign`), pagination, periods, number and date formatting, coupon discount and scope wording, `ActionState`, idempotency keys |
+| `model` | Display models (`Product` / `Purchase` / `Dashboard` / `Campaign` / `CampaignDraft`), pagination, periods, number and date formatting, coupon discount and scope wording, `ActionState`, idempotency keys |
 | `components` | The containers screens are built from (tables, pagination, file upload, leave warnings, input summaries) |
 | `errors` | Maps fetch and submission failures to the wording the screen shows |
 | `logging` | Recording a partial fetch failure the screen absorbs in place instead of throwing to the boundary |
@@ -300,6 +328,7 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
 | `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
+| `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | Has the list refetched, then `redirect` to it | A code already used (conflict) goes to the code field; fields the connection target named go to their input fields; anything else is shown in the confirmation. While the outcome is open the inputs are held |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `refresh()` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 
 **Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
@@ -327,6 +356,9 @@ assembly are held on the feature side (`products/parse-product-form.ts` and so o
 - [ ] Discontinuation is not offered while in-progress purchases remain, nor for a product already discontinued
 - [ ] Rows of suspended campaigns show no operations
 - [ ] A campaign's status puts suspension before the period, and the period excludes its end
+- [ ] A campaign code already in use (409) is shown on the code field
+- [ ] The order of the period and the limits is shown before sending; the connection target still judges it
+- [ ] A resend while the outcome is open carries the same idempotency key and the inputs stay held; the next screen opened carries a new key
 
 The layer assignment (`feature` / `component` / `unit`) is at the end of Structure.
 
