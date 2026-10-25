@@ -382,7 +382,9 @@ describe("toCampaignDraft", () => {
 
   it("配布終了が無ければ、有効期限との前後を比べない", () => {
     expect(
-      toCampaignDraft(submission({ endsAt: "", couponExpiresAt: "2026-09-01T00:00:00.000Z" })),
+      toCampaignDraft(
+        submission({ endsAt: "", couponExpiresAt: "2026-09-01T00:00:00.000Z", usableFrom: "" }),
+      ),
     ).toStrictEqual({
       ok: false,
       errors: { endsAt: CAMPAIGN_DATE_MISSING_MESSAGE },
