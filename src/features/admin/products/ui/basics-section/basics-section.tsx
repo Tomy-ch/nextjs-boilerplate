@@ -1,21 +1,20 @@
 "use client";
 
 import { useCallback } from "react";
-
+import type { AdminSelectOption } from "../../../ui/select-field/select-field";
+import { AdminSelectField } from "../../../ui/select-field/select-field";
+import { AdminTextField } from "../../../ui/text-field/text-field";
 import { PRODUCT_NAME_MAX_LENGTH } from "../../field-limits";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { controlIdOf } from "../../form-sections";
 import type { ProductFormValues } from "../../use-product-values";
-import type { ProductSelectOption } from "../select-field/select-field";
-import { ProductSelectField } from "../select-field/select-field";
-import { ProductTextField } from "../text-field/text-field";
 
 /** `ProductBasicsSection` の props。 */
 export type ProductBasicsSectionProps = {
   /** 入力欄の `id` の前置き。同じ画面に 2 つ置いても衝突しないよう外から与える。 */
   idPrefix: string;
   /** 選べる分類。 */
-  categoryOptions: readonly ProductSelectOption[];
+  categoryOptions: readonly AdminSelectOption[];
   /** 入力の状態と操作。 */
   form: ProductFormValues;
   /** 在庫数を尋ねるか。作る時だけ尋ね、編集では別の口が持つ。 */
@@ -63,7 +62,7 @@ export function ProductBasicsSection({
 
   return (
     <div className="grid gap-6">
-      <ProductTextField
+      <AdminTextField
         controlId={controlIdOf(idPrefix, "name")}
         description={`${PRODUCT_NAME_MAX_LENGTH} 文字までです。`}
         label="商品名"
@@ -74,7 +73,7 @@ export function ProductBasicsSection({
         required={true}
         value={values.name}
       />
-      <ProductTextField
+      <AdminTextField
         controlId={controlIdOf(idPrefix, "price")}
         description="USD で入力します。小数はそのまま保たれます。"
         inputMode="decimal"
@@ -88,7 +87,7 @@ export function ProductBasicsSection({
         value={values.price}
       />
       {withQuantity ? (
-        <ProductTextField
+        <AdminTextField
           controlId={controlIdOf(idPrefix, "quantity")}
           description="登録した時点の在庫です。以降の増減は在庫の補充が持ちます。"
           inputMode="numeric"
@@ -103,7 +102,7 @@ export function ProductBasicsSection({
           value={values.quantity}
         />
       ) : null}
-      <ProductTextField
+      <AdminTextField
         controlId={controlIdOf(idPrefix, "stockWarningThreshold")}
         description="この数を下回ったら在庫が少ないものとして扱います。空欄なら扱いません。"
         inputMode="numeric"
@@ -117,7 +116,7 @@ export function ProductBasicsSection({
         type="number"
         value={values.stockWarningThreshold}
       />
-      <ProductSelectField
+      <AdminSelectField
         controlId={controlIdOf(idPrefix, "categoryId")}
         label="分類"
         message={errors.categoryId?.[0]}

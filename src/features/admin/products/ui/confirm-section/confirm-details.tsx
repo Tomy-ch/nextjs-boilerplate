@@ -11,18 +11,17 @@ import {
 } from "@/components/design-system/display/key-value-list/key-value-list";
 import { RichTextContent } from "@/components/design-system/rich-text/rich-text-content/rich-text-content";
 import { SanitizedRichText } from "@/model/rich-text/sanitized-rich-text";
-
+import type { AdminSelectOption } from "../../../ui/select-field/select-field";
 import type { ProductValues } from "../../use-product-values";
-import type { ProductSelectOption } from "../select-field/select-field";
 
 /** `ProductConfirmDetails` の props。 */
 export type ProductConfirmDetailsProps = {
   /** 送ろうとしている値。 */
   values: ProductValues;
   /** 選べる分類。識別子を名前へ直すのに使う。 */
-  categoryOptions: readonly ProductSelectOption[];
+  categoryOptions: readonly AdminSelectOption[];
   /** 選べる状態。識別子を名前へ直すのに使う。 */
-  statusOptions: readonly ProductSelectOption[];
+  statusOptions: readonly AdminSelectOption[];
   /** 送信に載る画像の枚数。 */
   imageCount: number;
 };
@@ -34,7 +33,7 @@ export type ProductConfirmDetailsProps = {
  * @param value - 選ばれている候補の識別子。
  * @returns 一致した候補の表示名。一致が無ければ空文字列。
  */
-function labelOf(options: readonly ProductSelectOption[], value: string): string {
+function labelOf(options: readonly AdminSelectOption[], value: string): string {
   return options.find((option) => option.value === value)?.label ?? "";
 }
 

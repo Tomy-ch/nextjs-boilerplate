@@ -28,7 +28,7 @@
 
 hydration が必要で、Server Component からは直接 render できません。選択値は hidden input として持つため、native form へそのまま載ります。
 
-候補の取得・並び順・件数の制限は持ちません。`options` として渡された配列をそのまま扱い、絞り込みは `Command` が label に対して行います。サーバー側で検索する必要がある場合は、呼び出し元が `options` を差し替えます。
+候補の取得・並び順・件数の制限は持ちません。`options` として渡された配列をそのまま扱い、絞り込みは `Command` が label に対して行います。サーバー側で検索する必要がある場合は、呼び出し元が `onSearchChange` で入力語を受け取り、`options` を差し替えます。渡すと手元の絞り込みは止まります。止めないと、取り直した候補を label の一致でもう一度削ってしまうためです。このとき選択中の候補を `options` に残すのは呼び出し元の役目で、外れると trigger は placeholder に戻ります。
 
 **必須指定は持ちません。** 値を運ぶ hidden input は constraint validation の対象外であり、`required` を付けても browser は検証しません。必須であることの表示は `Field`、実際の強制は Server Action や server 側の検証で行います。
 
@@ -36,14 +36,14 @@ hydration が必要で、Server Component からは直接 render できません
 
 **trigger に `role="combobox"` は付けません。** 絞り込み入力そのものが `Command` の中で `role="combobox"` として公開されるため、trigger にも付けると combobox が二重になり、`aria-controls` の関連付けも競合します。trigger は popover を開く button であり、開閉は Radix が `aria-expanded` に反映します。
 
-trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。絞り込み入力の名前は `Command` の `label` として内部で渡しています。
+trigger は選択状態によって文言が変わるため、`aria-label` か `aria-labelledby` で**アクセシブルな名前を必ず与えます**。絞り込み入力の名前は `Command` の `label` として内部で渡しています。項目の誤りも同じ形で trigger に結び付けます。誤りの id を `aria-describedby` に、`aria-invalid` と一緒に渡します。
 
 絞り込みは label に対して行います。`CommandItem` の `value` は form へ送る値で表示文言と異なるため、label を `keywords` として渡して検索対象にしています。読みは正規化されないため、かな入力で漢字の候補を引かせたい場合は、呼び出し元が読みを含む `label` を用意します。
 
 ## Storybook とテスト
 
-Storybook は未選択、選択済み、選べない候補を含む場合、文言を差し替える場合、操作できない状態、外の `Label` を `aria-labelledby` で名前にする場合、制御 component として送信値を併記する場合を確認します。
+Storybook は未選択、選択済み、選べない候補を含む場合、文言を差し替える場合、開いた一覧、絞り込んだ候補、一致なし、操作できない状態、外の `Label` を `aria-labelledby` で名前にする場合、制御 component として送信値を併記する場合を確認します。
 
-テストは開くまで候補一覧を出さないこと、未選択時の placeholder と hidden input が空であること、選択済みの値に対応する label を trigger へ出すこと、trigger が combobox ではなく button として公開されること、開いたときの絞り込み入力と候補、label による絞り込み、一致なしの文言、選択による hidden input への反映と閉じ、呼び出し元への通知と制御 component としての反映、`disabled` の候補が選べないこと、trigger の無効化、a11y 自動検査を確認します。
+テストは開くまで候補一覧を出さないこと、未選択時の placeholder と hidden input が空であること、選択済みの値に対応する label を trigger へ出すこと、選択中の値が候補から外れると trigger は placeholder に戻り hidden input には値が残ること、trigger が combobox ではなく button として公開されること、開いたときの絞り込み入力と候補、label による絞り込み、一致なしの文言と `emptyMessage` による差し替え、入力語を受け取る呼び出し元への入力語の通知と手元で絞らないこと、選択による hidden input への反映と閉じ、選択中の候補にだけ選択済みの印が出ること、呼び出し元への通知と制御 component としての反映、選んだ候補そのものが値と一緒に渡ること、誤りの説明と誤りの印が trigger に結び付き誤りを渡さなければ印も無いこと、`disabled` の候補が選べないこと、trigger の無効化、`aria-labelledby` が trigger と popover の両方の名前になること、`aria-label` が無いときに絞り込み入力の名前が `searchPlaceholder` になること、a11y 自動検査を確認します。
 
-cmdk と Popover は jsdom に無い `scrollIntoView` と `ResizeObserver` を使うため、`command` と同じくテスト側で補っています。
+cmdk と Popover は jsdom に無い `scrollIntoView` と `ResizeObserver` を使います。これらは共有のテスト設定（`vitest.setup.ts`）が補います。

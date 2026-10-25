@@ -2,10 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 
-import {
-  COUPON_DISCOUNT_RATE_INVALID_MESSAGE,
-  COUPON_VALIDITY_DAYS_INVALID_MESSAGE,
-} from "./coupon-rules";
+import { COUPON_DISCOUNT_RATE_INVALID_MESSAGE } from "../../coupon-discount";
+import { COUPON_VALIDITY_DAYS_INVALID_MESSAGE } from "./coupon-rules";
 import { DISCONTINUE_CONFIRMED_VALUE, DISCONTINUE_FORM_NAMES } from "./form-names";
 import { DISCONTINUE_TARGET_LOST_MESSAGE } from "./form-state";
 import { parseDiscontinueForm } from "./parse-discontinue-form";

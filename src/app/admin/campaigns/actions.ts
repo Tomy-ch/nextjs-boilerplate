@@ -1,10 +1,10 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { z } from "zod";
 
-import { suspendCampaign } from "@/adapters/server/api/campaigns";
+import { createCampaign, suspendCampaign } from "@/adapters/server/api/campaigns";
 import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { SUSPEND_FORM_NAMES } from "@/features/admin/campaigns/list/form-names";
@@ -13,7 +13,10 @@ import {
   SUSPEND_TARGET_LOST_MESSAGE,
   type SuspendCampaignState,
 } from "@/features/admin/campaigns/list/form-state";
-import { ADMIN_CAMPAIGN_LIST_PATH } from "@/features/admin/paths";
+import { toCampaignFieldErrors } from "@/features/admin/campaigns/new/campaign-rejection";
+import type { CreateCampaignState } from "@/features/admin/campaigns/new/form-state";
+import { parseCampaignForm } from "@/features/admin/campaigns/new/parse-campaign-form";
+import { ADMIN_CAMPAIGN_LIST_PATH, ADMIN_CAMPAIGN_NEW_PATH } from "@/features/admin/paths";
 import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
@@ -23,6 +26,10 @@ import {
 import { toCampaignId } from "@/model/campaign/campaign";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { assertAdmin } from "../assert-admin";
+
+/** 接続先が欄を名指ししないまま内容を拒んだときの文言。 */
+const INVALID_INPUT_MESSAGE =
+  "入力内容を受け付けられませんでした。期間・上限・値引きの組み合わせを確認してください。";
 
 /**
  * キャンペーンの配布を停止する。
@@ -86,4 +93,57 @@ export async function suspendCampaignAction(
   refresh();
 
   return succeededActionState({ code });
+}
+
+/**
+ * キャンペーンを定義する。
+ *
+ * @remarks
+ * **成立したら一覧を取り直させてから、一覧へ送ります。**
+ *
+ * **409 はコードの欄へ出します。** 422 は名指しされた欄があればそこへ、無ければ全体の文言に
+ * まとめます。
+ *
+ * @param _previous - 直前の action state（本体では参照しない）。
+ * @param formData - 定義の送信内容。
+ * @returns 送信結果を表す action state。成立時は一覧へ redirect するため戻らない。
+ */
+export async function createCampaignAction(
+  _previous: CreateCampaignState,
+  formData: FormData,
+): Promise<CreateCampaignState> {
+  try {
+    await assertAdmin(ADMIN_CAMPAIGN_NEW_PATH);
+  } catch (error) {
+    unstable_rethrow(error);
+
+    return actionStateFromError(error);
+  }
+
+  const parsed = parseCampaignForm(formData);
+
+  if (!parsed.ok) {
+    return failedActionState({ formError: parsed.formError, fieldErrors: parsed.fieldErrors });
+  }
+
+  try {
+    await createCampaign(parsed.draft, parsed.idempotencyKey);
+  } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_CAMPAIGN_NEW_PATH));
+
+    const kind = findAppError(error)?.kind;
+
+    if (kind === ErrorKind.CONFLICT || kind === ErrorKind.VALIDATION) {
+      const fieldErrors = toCampaignFieldErrors(error);
+
+      return Object.keys(fieldErrors).length > 0
+        ? failedActionState({ formError: null, fieldErrors, kind })
+        : failedActionState({ formError: INVALID_INPUT_MESSAGE, kind });
+    }
+
+    return actionStateFromError(error);
+  }
+
+  revalidatePath(ADMIN_CAMPAIGN_LIST_PATH);
+  redirect(ADMIN_CAMPAIGN_LIST_PATH);
 }

@@ -1,7 +1,7 @@
 import { getProductCategories, getProductStatuses } from "@/adapters/server/api/product-masters";
 import { withScreenSpan } from "@/observability/render-span";
+import { toMasterOptions } from "../../master-option";
 import type { CreateProductAction, UploadProductImageAction } from "../form-state";
-import { toMasterOptions } from "../master-option";
 import { AdminProductCreateView } from "./view";
 
 /** `AdminProductCreatePageContent` の props。 */

@@ -3,12 +3,12 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
+import type { AdminSelectOption } from "../../../ui/select-field/select-field";
+import { AdminSelectField } from "../../../ui/select-field/select-field";
+import { AdminTextField } from "../../../ui/text-field/text-field";
 import { PRODUCT_FORM_NAMES } from "../../form-names";
 import { controlIdOf } from "../../form-sections";
 import type { ProductFormValues } from "../../use-product-values";
-import type { ProductSelectOption } from "../select-field/select-field";
-import { ProductSelectField } from "../select-field/select-field";
-import { ProductTextField } from "../text-field/text-field";
 
 /**
  * 時差は変わらない。購読しないので、解除も何もしない。
@@ -45,7 +45,7 @@ function readNothing(): undefined {
  * 受け口は配備先の時差で読み、その差ぶんずれた瞬間が保存されます。
  *
  * server と client で違う値になるため、`useSyncExternalStore` で「server では持たない」ことを
- * 明示します。effect で後から入れると、描画のたびにもう 1 周させることになります。
+ * 明示します。effect で後から入れると、mount した直後にもう 1 回描き直すことになります。
  *
  * @returns 分単位の time zone offset。server では `undefined`。
  */
@@ -58,7 +58,7 @@ export type ProductPublishSectionProps = {
   /** 入力欄の `id` の前置き。 */
   idPrefix: string;
   /** 選べる状態。 */
-  statusOptions: readonly ProductSelectOption[];
+  statusOptions: readonly AdminSelectOption[];
   /** 入力の状態と操作。 */
   form: ProductFormValues;
 };
@@ -107,7 +107,7 @@ export function ProductPublishSection({
       {timezoneOffset === undefined ? null : (
         <input name={PRODUCT_FORM_NAMES.timezoneOffset} type="hidden" value={timezoneOffset} />
       )}
-      <ProductSelectField
+      <AdminSelectField
         controlId={controlIdOf(idPrefix, "statusId")}
         label="状態"
         message={errors.statusId?.[0]}
@@ -117,7 +117,7 @@ export function ProductPublishSection({
         value={values.statusId}
       />
       <div className="grid gap-2">
-        <ProductTextField
+        <AdminTextField
           controlId={controlIdOf(idPrefix, "publishedAt")}
           description="空欄のままにすると未公開です。"
           label="公開日時"

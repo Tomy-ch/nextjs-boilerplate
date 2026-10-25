@@ -24,7 +24,7 @@ If the options are few and static, prefer `SelectNative`. Using it where no filt
 
 It needs hydration and cannot be rendered directly from a Server Component. The selected value is held as a hidden input, so it goes into a native form as is.
 
-It does not own fetching options, their order or limits on their count. It handles the array passed as `options` as is, and `Command` does the filtering against the label. When the search must happen on the server, the caller replaces `options`.
+It does not own fetching options, their order or limits on their count. It handles the array passed as `options` as is, and `Command` does the filtering against the label. When the search must happen on the server, the caller receives the typed text through `onSearchChange` and replaces `options`; passing it stops the local filtering, which would otherwise cut the fetched options down again by label. Keeping the selected option inside `options` is then the caller's job — once it drops out, the trigger falls back to the placeholder.
 
 **It has no required setting.** The hidden input that carries the value is outside constraint validation, so the browser does not validate it even with `required`. Show that the field is required with `Field`, and enforce it in the Server Action or server-side validation.
 
@@ -32,14 +32,14 @@ It does not own fetching options, their order or limits on their count. It handl
 
 **The trigger does not get `role="combobox"`.** The filter input itself is exposed as `role="combobox"` inside `Command`, so putting it on the trigger too would duplicate the combobox and make the `aria-controls` associations conflict. The trigger is a button that opens the popover, and Radix reflects open / closed in `aria-expanded`.
 
-The trigger's text changes with the selection state, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. The filter input's name is passed internally as the `label` of `Command`.
+The trigger's text changes with the selection state, so **always give it an accessible name** with `aria-label` or `aria-labelledby`. The filter input's name is passed internally as the `label` of `Command`. A field error is tied to the trigger the same way: pass the error's id as `aria-describedby` and `aria-invalid`.
 
 Filtering is done against the label. The `value` of `CommandItem` is the value sent to the form and differs from the display text, so the label is passed as `keywords` to make it searchable. Readings are not normalized, so if kana input should find kanji options, the caller prepares a `label` that includes the reading.
 
 ## Storybook and Tests
 
-Storybook checks nothing selected, a selection made, options that include unselectable ones, replaced text, the non-operable state, naming via an outside `Label` with `aria-labelledby`, and a controlled component shown alongside its submitted value.
+Storybook checks nothing selected, a selection made, options that include unselectable ones, replaced text, the open list, filtered options, no match, the non-operable state, naming via an outside `Label` with `aria-labelledby`, and a controlled component shown alongside its submitted value.
 
-The tests check that the option list is not rendered until opened, that the placeholder shows and the hidden input is empty when nothing is selected, that the trigger shows the label matching the selected value, that the trigger is exposed as a button rather than a combobox, the filter input and options when opened, filtering by label, the no-match text, that selecting updates the hidden input and closes, notification to the caller and reflection as a controlled component, that `disabled` options cannot be selected, disabling the trigger, and the automated a11y check.
+The tests check that the option list is not rendered until opened, that the placeholder shows and the hidden input is empty when nothing is selected, that the trigger shows the label matching the selected value, that the trigger falls back to the placeholder while the hidden input keeps the value when the selected value leaves the options, that the trigger is exposed as a button rather than a combobox, the filter input and options when opened, filtering by label, the no-match text and its replacement through `emptyMessage`, that a caller receiving the typed text gets it and the options are not filtered locally, that selecting updates the hidden input and closes, that only the selected option carries the selected mark, notification to the caller and reflection as a controlled component, that the selected option itself is passed along with the value, that an error description and the invalid mark are tied to the trigger and the mark is absent when no error is passed, that `disabled` options cannot be selected, disabling the trigger, that `aria-labelledby` names both the trigger and the popover, that the filter input is named by `searchPlaceholder` when there is no `aria-label`, and the automated a11y check.
 
-cmdk and Popover use `scrollIntoView` and `ResizeObserver`, which jsdom lacks, so as with `command` the tests supply them.
+cmdk and Popover use `scrollIntoView` and `ResizeObserver`, which jsdom lacks; the shared test setup (`vitest.setup.ts`) supplies them.

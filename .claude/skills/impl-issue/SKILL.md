@@ -503,6 +503,27 @@ opened. Only `merge` reaches the end of it.
 
 Open the PR first via `submit-pr`, so CI starts while the rest of this step runs.
 
+### Link the PR to its issue — as soon as the PR is open
+
+**Register the PR in the issue's Development, by hand, every run that opens one** — under scope `pr`
+as much as under `merge`. This repository's PRs target a release branch, and GitHub ignores closing
+keywords on a PR whose base is not the default branch: no link is created, whatever the body says.
+Without the link, a reader of the issue cannot find the work from it.
+
+It is part of opening the PR, so the confirmation `submit-pr` took for the PR covers it — provided the
+only issue linked is the one this run was handed (ADR
+[0154](../../../docs/adr/0154-claude-skills-operations.md)).
+
+No API or `gh` command creates the link; the PR's **Development** sidebar does. Drive it through the
+browser automation tool, then verify it deterministically rather than from what the page showed:
+
+```bash
+gh pr view <pr> --json closingIssuesReferences --jq '.[].number'   # must print <n>
+```
+
+When the browser cannot be driven, the link is not skipped: name it as an outstanding item in the
+closing report, with the PR and the issue, so the user makes it.
+
 ### Harvest — before the merge, after CI is green
 
 **Collect the general form of what was fixed into the documents that survive a sample purge**
@@ -664,6 +685,8 @@ case.
 - [ ] No stop outside the five listed places.
 - [ ] Plan reconciled against the actual diff.
 - [ ] Gates left to CI, and said so in the PR.
+- [ ] The PR registered in the issue's Development and confirmed through `closingIssuesReferences` —
+      or handed to the user as an outstanding item.
 - [ ] `settle-comments` run as the last step of implementing, before any review.
 - [ ] The two review skills each estimated and put to the user; the approved ones run with their
       answers passed through, and that choice passed to `submit-pr`.

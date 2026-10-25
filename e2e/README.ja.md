@@ -597,7 +597,7 @@ E2E だが、E2E は費用のため PR ごとには回らない（`.github/workf
 <!-- sample:begin -->
 ## 同梱サンプルを破棄すると何が消えるか
 
-**消えるのは、確かめる相手が題材と一緒に居なくなる spec だけである。**該当するのは 7 本で、
+**消えるのは、確かめる相手が題材と一緒に居なくなる spec だけである。**該当するのは 10 本で、
 いずれも `journeys/` に居る。
 
 | spec | 消える理由 |
@@ -609,6 +609,7 @@ E2E だが、E2E は費用のため PR ごとには回らない（`.github/workf
 | `journeys/not-found` | 1 件を指す取得を持ち、レイアウトシェルの内側で不在を受ける画面が残らない |
 | `journeys/discontinue` | 経由する管理の一覧・廃番の画面・その Server Action が、題材の画面そのものである |
 | `journeys/campaign-suspend` | 経由する管理のキャンペーン一覧・その停止確認・その Server Action が、題材の画面そのものである |
+| `journeys/campaign-new` | 経由する管理のキャンペーン一覧・キャンペーンの作成画面とその確認・作成の Server Action が、題材の画面そのものである |
 | `journeys/coupons` | 経由するマイページ・クーポンの画面・受け取りの Server Action が、題材の画面そのものである |
 | `journeys/checkout-coupon` | 経由するカート・クーポンを選ぶ購入確認・確定の Server Action が、題材の画面そのものである |
 

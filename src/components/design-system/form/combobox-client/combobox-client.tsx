@@ -35,8 +35,17 @@ export type ComboboxClientProps = {
   value?: string;
   /** uncontrolled の初期値。 */
   defaultValue?: string;
-  /** 選択が変わったときの通知。 */
-  onValueChange?: (value: string) => void;
+  /** 選択が変わったときの通知。選ばれた候補そのものも渡す。 */
+  onValueChange?: (value: string, option: ComboboxClientOption) => void;
+  /**
+   * 絞り込み入力が変わったときの通知。
+   *
+   * @remarks
+   * 渡すと**候補を手元で絞らなくなります**。入力語で候補を取り直すのは呼び出し元で、取り直した
+   * 結果を `options` として差し替えます。手元でも絞ると、取り直した候補を label の一致でもう一度
+   * 削り、検索の側が一致と判断した候補が消えます。
+   */
+  onSearchChange?: (search: string) => void;
   /**
    * 未選択時に trigger へ表示する文言。
    *
@@ -59,6 +68,14 @@ export type ComboboxClientProps = {
   "aria-label"?: string;
   /** trigger の名前を外の要素から参照する場合の id。 */
   "aria-labelledby"?: string;
+  /** trigger の説明（誤りの文言など）を外の要素から参照する場合の id。 */
+  "aria-describedby"?: string;
+  /**
+   * trigger の値が誤りを持つか。
+   *
+   * @defaultValue `false`
+   */
+  "aria-invalid"?: boolean;
   /**
    * 入力を無効にするか。
    *
@@ -81,8 +98,9 @@ export type ComboboxClientProps = {
  * 増えるだけになる。
  *
  * 候補の取得・並び順・件数の制限は持たない。`options` として渡された配列をそのまま扱い、
- * 絞り込みは `Command` が label に対して行う。サーバ側で検索する必要がある場合は、呼び出し元が
- * `options` を差し替える。
+ * 絞り込みは `Command` が label に対して行う（サーバ側で検索するときは `onSearchChange` を参照）。
+ * 選択中の候補が `options` から外れると trigger は placeholder に戻るため、`options` を差し替える
+ * 呼び出し元は選択中の候補を残す。
  *
  * hydration が必要で、Server Component からは直接 render できない。
  *
@@ -102,26 +120,38 @@ export function ComboboxClient({
   value,
   defaultValue,
   onValueChange,
+  onSearchChange,
   placeholder = "選択してください",
   searchPlaceholder = "検索",
   emptyMessage = "該当する候補がありません",
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
+  "aria-describedby": ariaDescribedBy,
+  "aria-invalid": ariaInvalid = false,
   disabled = false,
   className,
 }: ComboboxClientProps) {
   const [open, setOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(defaultValue ?? "");
+  const [search, setSearch] = useState("");
   const currentValue = value ?? selectedValue;
   const selectedOption = options.find((option) => option.value === currentValue);
 
   const handleSelect = useCallback(
-    (nextValue: string) => {
-      if (value === undefined) setSelectedValue(nextValue);
-      onValueChange?.(nextValue);
+    (option: ComboboxClientOption) => {
+      if (value === undefined) setSelectedValue(option.value);
+      onValueChange?.(option.value, option);
       setOpen(false);
     },
     [onValueChange, value],
+  );
+
+  const changeSearch = useCallback(
+    (nextSearch: string) => {
+      setSearch(nextSearch);
+      onSearchChange?.(nextSearch);
+    },
+    [onSearchChange],
   );
 
   return (
@@ -131,6 +161,8 @@ export function ComboboxClient({
           <Button
             // 絞り込み入力が `Command` の中で `role="combobox"` として公開されるため、ここには付けない。
             // 二重になると `aria-controls` の関連付けも競合する。開閉は Radix が `aria-expanded` に反映する。
+            aria-describedby={ariaDescribedBy}
+            aria-invalid={ariaInvalid}
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
             className={cn("w-full justify-between font-normal", className)}
@@ -149,23 +181,23 @@ export function ComboboxClient({
           aria-labelledby={ariaLabelledBy}
           className="w-(--radix-popover-trigger-width) p-0"
         >
-          <Command label={ariaLabel ?? searchPlaceholder}>
-            <CommandInput placeholder={searchPlaceholder} />
+          <Command
+            label={ariaLabel ?? searchPlaceholder}
+            shouldFilter={onSearchChange === undefined}
+          >
+            <CommandInput
+              onValueChange={changeSearch}
+              placeholder={searchPlaceholder}
+              value={search}
+            />
             <CommandList>
               {options.map((option) => (
-                // CommandItem の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡す。
-                <CommandItem
-                  disabled={option.disabled}
+                <ComboboxClientItem
                   key={option.value}
-                  keywords={[option.label]}
-                  onSelect={handleSelect}
-                  value={option.value}
-                >
-                  <span className="flex-1">{option.label}</span>
-                  {option.value === currentValue ? (
-                    <CheckIcon aria-hidden="true" className="size-4" />
-                  ) : null}
-                </CommandItem>
+                  onChoose={handleSelect}
+                  option={option}
+                  selected={option.value === currentValue}
+                />
               ))}
             </CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -174,5 +206,39 @@ export function ComboboxClient({
       </Popover>
       <input name={name} type="hidden" value={currentValue} />
     </div>
+  );
+}
+
+/** {@link ComboboxClientItem} の props。 */
+type ComboboxClientItemProps = {
+  /** この候補が選ばれたことを伝える。 */
+  readonly onChoose: (option: ComboboxClientOption) => void;
+  /** 並べる候補。 */
+  readonly option: ComboboxClientOption;
+  /** 選ばれているか。 */
+  readonly selected: boolean;
+};
+
+/**
+ * 候補 1 つ分の項目。
+ *
+ * @remarks
+ * `CommandItem` の value は送信値で表示文言と異なるため、絞り込みは label を keywords として渡します。
+ *
+ * @param props - 候補と、選ばれているか・選ばれたときの通知。
+ */
+function ComboboxClientItem({ onChoose, option, selected }: ComboboxClientItemProps) {
+  const choose = useCallback(() => onChoose(option), [onChoose, option]);
+
+  return (
+    <CommandItem
+      disabled={option.disabled}
+      keywords={[option.label]}
+      onSelect={choose}
+      value={option.value}
+    >
+      <span className="flex-1">{option.label}</span>
+      {selected ? <CheckIcon aria-hidden="true" className="size-4" /> : null}
+    </CommandItem>
   );
 }

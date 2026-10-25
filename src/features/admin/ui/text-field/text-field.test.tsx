@@ -5,13 +5,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
-import { ProductTextField } from "./text-field";
+import { AdminTextField } from "./text-field";
 
 const noop = () => {};
 
-function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}) {
+function renderField(props: Partial<Parameters<typeof AdminTextField>[0]> = {}) {
   return render(
-    <ProductTextField
+    <AdminTextField
       controlId="form-name"
       label="商品名"
       name="name"
@@ -24,7 +24,7 @@ function renderField(props: Partial<Parameters<typeof ProductTextField>[0]> = {}
   );
 }
 
-describe("ProductTextField", () => {
+describe("AdminTextField", () => {
   it("項目名で引ける入力欄として公開する", () => {
     renderField();
 
@@ -47,12 +47,10 @@ describe("ProductTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveValue("ワイヤレスイヤホン");
   });
 
-  it("打鍵のたびに新しい値を伝える", async () => {
+  it("打鍵のたびに、今の値へその打鍵を足した値を伝える", async () => {
     const onValueChange = vi.fn();
     renderField({ onValueChange });
 
-    // 値は呼び出し元が持つため、打鍵しても入力欄は空のままである。1 打鍵で 1 度、その文字が
-    // 伝わることを見る。
     await userEvent.type(screen.getByLabelText("商品名"), "あ");
 
     expect(onValueChange).toHaveBeenCalledExactlyOnceWith("あ");

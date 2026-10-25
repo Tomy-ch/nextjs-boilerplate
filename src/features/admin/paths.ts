@@ -29,6 +29,9 @@ export const ADMIN_INQUIRY_LIST_PATH = "/admin/inquiries";
 /** キャンペーンを一覧で見る画面のパス。 */
 export const ADMIN_CAMPAIGN_LIST_PATH = "/admin/campaigns";
 
+/** キャンペーンを定義する画面のパス。 */
+export const ADMIN_CAMPAIGN_NEW_PATH = `${ADMIN_CAMPAIGN_LIST_PATH}/new`;
+
 /** 商品を作る画面のパス。 */
 export const ADMIN_PRODUCT_NEW_PATH = `${ADMIN_PRODUCT_LIST_PATH}/new`;
 

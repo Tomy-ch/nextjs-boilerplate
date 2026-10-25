@@ -1,11 +1,7 @@
 import { ErrorKind } from "@/errors/error-kind";
 
-import {
-  COUPON_DISCOUNT_RATE_INVALID_MESSAGE,
-  COUPON_VALIDITY_DAYS_INVALID_MESSAGE,
-  toCouponDiscountRate,
-  toCouponValidityDays,
-} from "./coupon-rules";
+import { COUPON_DISCOUNT_RATE_INVALID_MESSAGE, toCouponDiscountRate } from "../../coupon-discount";
+import { COUPON_VALIDITY_DAYS_INVALID_MESSAGE, toCouponValidityDays } from "./coupon-rules";
 import type { DiscontinueProductField, DiscontinueProductState } from "./form-state";
 import type { DiscontinueConditionValues } from "./ui/conditions-fields/conditions-fields";
 

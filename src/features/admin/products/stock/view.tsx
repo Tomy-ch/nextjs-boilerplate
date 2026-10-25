@@ -10,8 +10,8 @@ import { idleActionState } from "@/model/action-state";
 import type { Product } from "@/model/product/product";
 
 import { ADMIN_PRODUCT_LIST_PATH, adminProductStockPath } from "../../paths";
+import { useActionResultFreshness } from "../../use-action-result-freshness";
 import { ProductSubmitButton } from "../ui/submit-button/submit-button";
-import { useActionResultFreshness } from "../use-action-result-freshness";
 import { STOCK_FORM_NAMES } from "./form-names";
 import type { AdjustProductStockAction, StockFormState } from "./form-state";
 import { StockAmountFields } from "./ui/amount-fields/amount-fields";

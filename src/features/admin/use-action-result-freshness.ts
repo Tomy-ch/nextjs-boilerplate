@@ -20,8 +20,6 @@ export type ActionResultFreshness = {
  * 結果がどこにも出ず、押しても何も起きない画面になります。戻す合図は「結果そのものが入れ替わった
  * こと」で、それはこの hook が覚えている直前の結果との同一性で判ります。
  *
- * 題材を知りません。`useActionState` の結果を持つフォームなら、何を送るものでも同じように使えます。
- *
  * @typeParam T - `useActionState` が返す結果の型
  * @param state - `useActionState` が返す現在の結果
  * @returns 結果の鮮度と、下げる操作
