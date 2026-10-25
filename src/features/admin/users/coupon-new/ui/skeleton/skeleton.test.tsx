@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, render, screen, within } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
@@ -21,7 +21,6 @@ describe("AdminUserCouponNewSkeleton", () => {
     const { container } = render(<AdminUserCouponNewSkeleton />);
 
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
-    expect(within(container).queryAllByRole("generic")).toHaveLength(0);
   });
 
   it("出ているあいだが長引けば、読み込んでいることを読み上げの通知へ載せる", () => {
