@@ -34,6 +34,19 @@ describe("AdminCampaignListView", () => {
     );
   });
 
+  it("作成の画面への導線を置く", () => {
+    render(
+      <AdminCampaignListView>
+        <p>一覧の中身</p>
+      </AdminCampaignListView>,
+    );
+
+    expect(screen.getByRole("link", { name: "キャンペーンを作成" })).toHaveAttribute(
+      "href",
+      "/admin/campaigns/new",
+    );
+  });
+
   it("a11y 検査を通る", async () => {
     const { container } = render(
       <AdminCampaignListView>
