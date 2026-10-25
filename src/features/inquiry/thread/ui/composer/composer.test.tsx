@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -16,6 +16,7 @@ function renderComposer(overrides: Partial<Parameters<typeof InquiryComposer>[0]
   const props = {
     action: vi.fn(),
     idempotencyKey: KEY,
+    outcomeOpen: false,
     pending: false,
     state: idleActionState<void, typeof INQUIRY_BODY_FIELD>(),
     ...overrides,
@@ -44,30 +45,54 @@ describe("InquiryComposer", () => {
     expect(container.querySelector('input[name="idempotencyKey"]')).toHaveValue(KEY);
   });
 
-  it("空のままでは送信できない", () => {
+  it("空でも送信の操作は押せる", () => {
     renderComposer();
 
-    expect(screen.getByRole("button", { name: "送信" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "送信" })).toBeEnabled();
   });
 
-  it("空白だけでは送信できない", async () => {
+  it("本文が必須であることを入力欄が伝える", () => {
     renderComposer();
 
-    await userEvent.type(screen.getByLabelText("お問い合わせ内容"), "   ");
-
-    expect(screen.getByRole("button", { name: "送信" })).toBeDisabled();
+    expect(screen.getByLabelText("お問い合わせ内容")).toHaveAttribute("aria-required", "true");
   });
 
-  it("空のままでは修飾キーつきの Enter でも送らない", async () => {
-    renderComposer();
-
+  it.each([
+    ["空", ""],
+    ["空白だけ", "   "],
+  ])("%sのまま押したら送らず、入力を促す文言を欄に紐づけて出す", async (_label, body) => {
+    const user = userEvent.setup();
+    const { props } = renderComposer();
     const textarea = screen.getByLabelText("お問い合わせ内容");
-    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
 
-    textarea.closest("form")?.addEventListener("submit", submit);
+    if (body !== "") {
+      await user.type(textarea, body);
+    }
+    await user.click(screen.getByRole("button", { name: "送信" }));
+
+    expect(props.action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま修飾キーつきの Enter を押しても送らず、入力を促す", async () => {
+    const { props } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
     await userEvent.type(textarea, "{Meta>}{Enter}{/Meta}");
 
-    expect(submit).not.toHaveBeenCalled();
+    expect(props.action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま押した後に書き始めると、入力を促す文言を消す", async () => {
+    const user = userEvent.setup();
+
+    renderComposer();
+    await user.click(screen.getByRole("button", { name: "送信" }));
+    await user.type(screen.getByLabelText("お問い合わせ内容"), "本");
+
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
   it("項目エラーが無ければ、入力欄に不正の印を付けない", () => {
@@ -83,15 +108,17 @@ describe("InquiryComposer", () => {
   });
 
   // ----- 書きかけがあるとき -----
-  it("本文があれば送信できる", async () => {
-    renderComposer();
+  it("本文があれば、押したら送り、入力を促す文言は出さない", async () => {
+    const { props } = renderComposer();
 
     await userEvent.type(screen.getByLabelText("お問い合わせ内容"), "本文");
+    await userEvent.click(screen.getByRole("button", { name: "送信" }));
 
-    expect(screen.getByRole("button", { name: "送信" })).toBeEnabled();
+    expect(props.action).toHaveBeenCalledOnce();
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
-  it("修飾キーつきの Enter で送信する", async () => {
+  it.each([["Meta"], ["Control"]])("修飾キー（%s）つきの Enter で送信する", async (modifier) => {
     renderComposer();
 
     const textarea = screen.getByLabelText("お問い合わせ内容");
@@ -99,9 +126,39 @@ describe("InquiryComposer", () => {
 
     textarea.closest("form")?.addEventListener("submit", submit);
     await userEvent.type(textarea, "本文");
-    await userEvent.type(textarea, "{Meta>}{Enter}{/Meta}");
+    await userEvent.type(textarea, `{${modifier}>}{Enter}{/${modifier}}`);
 
     expect(submit).toHaveBeenCalledOnce();
+  });
+
+  // user-event は変換中の打鍵を作れないため、ここだけ fireEvent で状態つきの keydown を渡す。
+  it.each([
+    ["変換中", { isComposing: true }],
+    ["Safari の変換確定", { keyCode: 229 }],
+  ])("%sの修飾キーつき Enter では送らない", async (_label, init) => {
+    renderComposer();
+
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+
+    textarea.closest("form")?.addEventListener("submit", submit);
+    await userEvent.type(textarea, "本文");
+    fireEvent.keyDown(textarea, { key: "Enter", ctrlKey: true, ...init });
+
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it("送信中は修飾キーつき Enter でも送らない", async () => {
+    renderComposer({ pending: true });
+
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+    const submit = vi.fn((event: SubmitEvent) => event.preventDefault());
+
+    textarea.closest("form")?.addEventListener("submit", submit);
+    await userEvent.type(textarea, "本文");
+    await userEvent.type(textarea, "{Control>}{Enter}{/Control}");
+
+    expect(submit).not.toHaveBeenCalled();
   });
 
   it("修飾キーの無い Enter では送らない", async () => {
@@ -132,6 +189,7 @@ describe("InquiryComposer", () => {
       <InquiryComposer
         action={vi.fn()}
         idempotencyKey={KEY}
+        outcomeOpen={false}
         pending={false}
         state={succeededActionState<void, typeof INQUIRY_BODY_FIELD>(undefined)}
       />,
@@ -150,6 +208,7 @@ describe("InquiryComposer", () => {
       <InquiryComposer
         action={vi.fn()}
         idempotencyKey={KEY}
+        outcomeOpen={false}
         pending={false}
         state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
       />,
@@ -158,6 +217,60 @@ describe("InquiryComposer", () => {
     expect(textarea).toHaveValue("打ち直したくない本文");
     // 項目に紐づかない失敗なので、入力欄そのものへ不正の印は付かない。
     expect(textarea).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("結果が定まらないあいだは本文を書き換えさせず、理由を欄に結ぶ", async () => {
+    const { rerender } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
+    await userEvent.type(textarea, "送った本文");
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "を書き換える");
+
+    expect(textarea).toHaveValue("送った本文");
+    expect(textarea).toHaveAccessibleDescription(
+      "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+    );
+  });
+
+  it("結果が定まったら、また書き換えられる", async () => {
+    const { rerender } = renderComposer();
+    const textarea = screen.getByLabelText("お問い合わせ内容");
+
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    rerender(
+      <InquiryComposer
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        outcomeOpen={false}
+        pending={false}
+        state={failedActionState<void, typeof INQUIRY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "本文");
+
+    expect(textarea).toHaveValue("本文");
+    expect(
+      screen.queryByText(
+        "前回の送信の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度送信してください。",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("本文の項目エラーを入力欄へ紐づける", () => {

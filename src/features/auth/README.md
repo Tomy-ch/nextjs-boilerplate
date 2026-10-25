@@ -79,7 +79,7 @@ the URL is rewritten without a request going out.
 
 ## What Sits Alongside
 
-- Protected-route checks and the redirect when unauthenticated are in [`src/proxy.ts`](../../proxy.ts)
+- Protected-route checks and the redirect when unauthenticated are in [`src/proxy.ts`](../../proxy.ts) for screen requests. A Server Action call passes it and redirects on its own with `loginPath` ([0043](../../../docs/adr/0043-middleware-policy.md))
 - The authentication round trip is in [`src/app/api/auth/`](../../app/api/auth)
 - Definitive authorization is in [`adapters/server/auth`](../../adapters/server/auth)
 

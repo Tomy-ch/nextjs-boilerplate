@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -116,7 +116,7 @@ describe("rowActionsColumn", () => {
     await openMenu("旧プラン の操作");
     await userEvent.click(screen.getByRole("menuitem", { name: "一覧から外す" }));
 
-    expect(onRemove).toHaveBeenCalledWith("2");
+    await waitFor(() => expect(onRemove).toHaveBeenCalledWith("2"));
   });
 
   it("破壊的な操作を variant で区別する", async () => {

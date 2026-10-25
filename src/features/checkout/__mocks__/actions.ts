@@ -12,5 +12,5 @@ import type { PlaceOrderFormState } from "../form-state";
  * 無いので、成功を返して押した後の画面に留まります。
  */
 export const placeOrderAction = fn(
-  async (): Promise<PlaceOrderFormState> => succeededActionState(undefined),
+  (): Promise<PlaceOrderFormState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("placeOrderAction");

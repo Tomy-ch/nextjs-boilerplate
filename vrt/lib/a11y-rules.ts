@@ -79,6 +79,8 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
     stories: [
       "action-buttongroup--split-button-open",
       "container-tableviewoptions--menu-open",
+      "features-admin-campaigns-list-table--row-actions-open", // sample:line
+      "features-admin-products-list-table--discontinued-row-actions-open", // sample:line
       "features-admin-products-list-table--row-actions-open", // sample:line
       "features-admin-users-table--row-actions-open", // sample:line
       "form-selectclient--open",
@@ -88,6 +90,7 @@ export const STORY_DISABLED_RULES: readonly StoryDisabledRule[] = [
       "overlay-dropdownmenu--open",
       "overlay-dropdownmenu--with-selection",
       "overlay-dropdownmenu--with-selection-kept-open",
+      "page-admin-campaigns-list--row-actions-open", // sample:line
       "page-admin-products-list--row-actions-open", // sample:line
       "page-admin-users--row-actions-open", // sample:line
     ],

@@ -14,25 +14,25 @@
 
 | 語 | 意味 | よくある取り違え |
 | --- | --- | --- |
-| **Server Component** | サーバでだけ実行され、ブラウザへコードが送られないコンポーネント。App Router のデフォルト | 「速いコンポーネント」ではない。実行場所の話 |
-| **Client Component** | `"use client"` を持つファイルから始まるコンポーネント。ブラウザへコードが送られ、操作を受け付ける | **「サーバでレンダリングされない」ではない**（後述） |
-| **SSR** | サーバで HTML を組み立てて返すこと | Server Component 専用の仕組みではない。Client Component も対象 |
-| **hydration** | 返ってきた HTML に、ブラウザ側で event handler を取り付けて操作可能にすること | HTML を作り直すことではない。既にある DOM に紐付けるだけ |
-| **RSC Payload** | Server Component をレンダリングした結果の直列表現。HTML とは別に配られ、ブラウザ側がツリーを突き合わせるのに使う | HTML の別名ではない |
+| **Server Component** | サーバーでだけ実行され、ブラウザーへコードが送られないコンポーネント。App Router のデフォルト | 「速いコンポーネント」ではない。実行場所の話 |
+| **Client Component** | `"use client"` を持つファイルから始まるコンポーネント。ブラウザーへコードが送られ、操作を受け付ける | **「サーバーでレンダリングされない」ではない**（後述） |
+| **SSR** | サーバーで HTML を組み立てて返すこと | Server Component 専用の仕組みではない。Client Component も対象 |
+| **hydration** | 返ってきた HTML に、ブラウザー側で event handler を取り付けて操作可能にすること | HTML を作り直すことではない。既にある DOM に紐付けるだけ |
+| **RSC Payload** | Server Component をレンダリングした結果の直列表現。HTML とは別に配られ、ブラウザー側がツリーを突き合わせるのに使う | HTML の別名ではない |
 
-**Client Island** は正式な用語ではなく、「ほぼサーバでレンダリングされた画面の中に、操作のために埋め込まれた小さい Client Component」を指す通称である。このリポジトリではこの形をデフォルトにしている。
+**Client Island** は正式な用語ではなく、「ほぼサーバーでレンダリングされた画面の中に、操作のために埋め込まれた小さい Client Component」を指す通称である。このリポジトリではこの形をデフォルトにしている。
 
 ## 1 リクエストで起きること
 
 順序を押さえると、後の誤解がほとんど消える。
 
-1. サーバが **Server Component** をレンダリングし、結果を **RSC Payload** にする
-2. サーバが **Client Component もレンダリングして**、Payload と合わせて **HTML** を組み立てる
-3. ブラウザが HTML を表示する。**画面はここで既に見えている**
-4. ブラウザが RSC Payload でツリーを突き合わせる
-5. ブラウザが JavaScript で **Client Component だけを hydration** する。**ここで操作可能になる**
+1. サーバーが **Server Component** をレンダリングし、結果を **RSC Payload** にする
+2. サーバーが **Client Component もレンダリングして**、Payload と合わせて **HTML** を組み立てる
+3. ブラウザーが HTML を表示する。**画面はここで既に見えている**
+4. ブラウザーが RSC Payload でツリーを突き合わせる
+5. ブラウザーが JavaScript で **Client Component だけを hydration** する。**ここで操作可能になる**
 
-**2 が最大の分かれ目である。** Client Component もサーバで HTML になる。`"use client"` は「サーバでレンダリングするな」という意味ではない。
+**2 が最大の分かれ目である。** Client Component もサーバーで HTML になる。`"use client"` は「サーバーでレンダリングするな」という意味ではない。
 
 ### 3 の時点で何が見えているか
 
@@ -40,10 +40,10 @@
 
 例外は 2 つある。
 
-- **Suspense の中でまだ解決していない部分**は fallback（ローディング表示）が出ている。中身も同じくサーバがレンダリングするが、届く時刻が後になる
-- **ブラウザにしか分からない値に依存する分岐**は、サーバ側の姿でレンダリングされている。画面幅・ポインタの種類・`window` の有無がこれにあたる（後述）
+- **Suspense の中でまだ解決していない部分**は fallback（ローディング表示）が出ている。中身も同じくサーバーがレンダリングするが、届く時刻が後になる
+- **ブラウザーにしか分からない値に依存する分岐**は、サーバー側の姿でレンダリングされている。画面幅・ポインターの種類・`window` の有無がこれにあたる（後述）
 
-この 2 つを除けば、**JavaScript が 1 行も動いていない時点で画面は完成している**。検索する側や、通信が細くて JavaScript の到着が遅れる利用者が見るのはこの状態である。
+この 2 つを除けば、**JavaScript が 1 行も動いていない時点で画面は完成している**。検索する側や、通信が細くて JavaScript の到着が遅れるユーザーが見るのはこの状態である。
 
 ## レンダリングする時点の違い
 
@@ -53,11 +53,11 @@
 
 | 軸 | 問い | 値 |
 | --- | --- | --- |
-| どこで作るか | サーバか、ブラウザか | SSR / CSR |
+| どこで作るか | サーバーか、ブラウザーか | SSR / CSR |
 | いつ作るか | build 時か、リクエスト時か | Static rendering / Dynamic rendering |
 | どの単位で返すか | ページ丸ごとか、部分ごとか | 一括 / streaming |
 
-**PPR が触るのは 2 つめと 3 つめであって、CSR / SSR ではない。** サーバでレンダリングする話に閉じており、「ブラウザでレンダリングするか」には関与しない。
+**PPR が触るのは 2 つめと 3 つめであって、CSR / SSR ではない。** サーバーでレンダリングする話に閉じており、「ブラウザーでレンダリングするか」には関与しない。
 
 ### CSR — 比較のために置く（App Router のデフォルトではない）
 
@@ -91,7 +91,7 @@ sequenceDiagram
   Note over B: hydration して操作可能になる
 ```
 
-**リクエスト時にサーバは何もレンダリングしない。** 速いが、build 時に決まらない情報は載せられない。
+**リクエスト時にサーバーは何もレンダリングしない。** 速いが、build 時に決まらない情報は載せられない。
 
 ### Dynamic rendering — リクエストごとにレンダリングする
 
@@ -136,7 +136,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | CSR | JavaScript とデータを待つ | 載る | — |
 | Static rendering | 待たない | 載らない | — |
-| Dynamic rendering | サーバがレンダリングし終わるまで待つ | 載る | — |
+| Dynamic rendering | サーバーがレンダリングし終わるまで待つ | 載る | — |
 | PPR | 待たない | 載る | **`<Suspense>` の位置** |
 
 **PPR だけが最後の列を持つ。** これが「Suspense が飾りから構造になる」ということであり、PPR の複雑さの出どころである。
@@ -147,9 +147,9 @@ sequenceDiagram
 
 `"use client"` が宣言しているのは、**client bundle に入る境界**である。レンダリングの場所ではない。
 
-古い枠組み（サーバで HTML を返す SSR か、空の HTML に JavaScript がレンダリングする CSR かの二択）で読むと、`"use client"` が「CSR 側へ倒す指示」に見える。App Router にその二択は無い。デフォルトは「サーバで HTML を作り、操作の要る部分だけブラウザで hydration する」の一本で、`"use client"` はその後半に参加するかどうかを決めているだけである。
+古い枠組み（サーバーで HTML を返す SSR か、空の HTML に JavaScript がレンダリングする CSR かの二択）で読むと、`"use client"` が「CSR 側へ倒す指示」に見える。App Router にその二択は無い。デフォルトは「サーバーで HTML を作り、操作の要る部分だけブラウザーで hydration する」の一本で、`"use client"` はその後半に参加するかどうかを決めているだけである。
 
-**唯一の本物の CSR** は、`dynamic(..., { ssr: false })` のようにサーバでのレンダリングを明示的に止めた場合である。これは意図して選ぶものであって、`"use client"` の一般的な帰結ではない。
+**唯一の本物の CSR** は、`dynamic(..., { ssr: false })` のようにサーバーでのレンダリングを明示的に止めた場合である。これは意図して選ぶものであって、`"use client"` の一般的な帰結ではない。
 
 ### Client Component の下が全部 Client になるとは限らない
 
@@ -158,9 +158,9 @@ sequenceDiagram
 - **伝染する**: `"use client"` のファイルが `import` したもの、および直接レンダリングするコンポーネント
 - **伝染しない**: `children` や props として**渡された**もの
 
-渡されたものはサーバでレンダリングされ、**レンダリング済みの結果**として Client Component に置かれる。Client Component はそれを import していないので、client bundle には入らない。
+渡されたものはサーバーでレンダリングされ、**レンダリング済みの結果**として Client Component に置かれる。Client Component はそれを import していないので、client bundle には入らない。
 
-したがって「Server → Client → Server」のネストは成立する。Client Component に `children` のスロットを開け、そこへサーバでレンダリングしたものを差す形がその実装である。
+したがって「Server → Client → Server」のネストは成立する。Client Component に `children` のスロットを開け、そこへサーバーでレンダリングしたものを差す形がその実装である。
 
 ```tsx
 // layout（Server Component）
@@ -169,11 +169,11 @@ sequenceDiagram
 
 **確かめ方**: `curl` で初期 HTML を取り、中身が入っているかを見る。JavaScript を実行する前の状態が見えるので、SSR されたかどうかがそのまま判る。
 
-### サーバでしか分からないこと・ブラウザでしか分からないことがある
+### サーバーでしか分からないこと・ブラウザーでしか分からないことがある
 
-画面幅・ポインタの種類・`window` の有無は、サーバでは決められない。そこで **サーバ側の初期値**を決めておき、hydration の後に本当の値へ入れ替える形になる。
+画面幅・ポインターの種類・`window` の有無は、サーバーでは決められない。そこで **サーバー側の初期値**を決めておき、hydration の後に本当の値へ入れ替える形になる。
 
-このリポジトリの [`capabilities/use-media-query.ts`](../../src/capabilities/use-media-query.ts) はサーバで常に `false` を返す。つまり**初回の HTML は「一致していない側」の姿**であり、一致した側の姿は hydration の後に現れる。
+このリポジトリの [`capabilities/use-media-query.ts`](../../src/capabilities/use-media-query.ts) はサーバーで常に `false` を返す。つまり**初回の HTML は「一致していない側」の姿**であり、一致した側の姿は hydration の後に現れる。
 
 この性質から、次の使い分けが出る。
 
@@ -194,11 +194,11 @@ hydration の警告も型エラーも出ず、**保存された値だけが静�
 
 ### hydration mismatch は偶発的ではない
 
-サーバがレンダリングした HTML とブラウザがレンダリングした結果が食い違うと起きる。原因は 2 つある。
+サーバーがレンダリングした HTML とブラウザーがレンダリングした結果が食い違うと起きる。原因は 2 つある。
 
-**1. サーバとブラウザで違う値を使った。** 典型は現在時刻、乱数、`window` 依存の値である。日時については [実装規約「表示と書式」](../rules.ja.md#formatting)が「server と client で異なる値を初期 render しない」を規約として持つ。
+**1. サーバーとブラウザーで違う値を使った。** 典型は現在時刻、乱数、`window` 依存の値である。日時については [実装規約「表示と書式」](../rules.ja.md#formatting)が「server と client で異なる値を初期 render しない」を規約として持つ。
 
-**2. React の外から DOM を書き換えた。** React が比べる相手は「サーバが返した HTML」ではなく **hydrate する瞬間の DOM** なので、その前に誰かが属性を足すと、値が両側で同じでも食い違いとして報告される。書き換える主体は自分のコードとは限らない —— focus の閉じ込めや背面の inert 化を行うライブラリは、React を通さずに `document` へ直接手を入れる。
+**2. React の外から DOM を書き換えた。** React が比べる相手は「サーバーが返した HTML」ではなく **hydrate する瞬間の DOM** なので、その前に誰かが属性を足すと、値が両側で同じでも食い違いとして報告される。書き換える主体は自分のコードとは限らない —— focus の閉じ込めや背面の inert 化を行うライブラリは、React を通さずに `document` へ直接手を入れる。
 
 **2 は hydration が 1 回の commit で終わらないときに起きる。** hydration は Suspense 境界ごとに分かれ、境界の外は先に、中は後から hydrate される。先に hydrate されたアイランドの effect が、まだ hydrate されていない側の DOM を書き換えると、後からそこへ来た React が食い違いを見る。**アイランドが置かれた位置と、書き換える相手の位置が違う**ことが条件なので、値を揃えても消えない。
 
@@ -206,38 +206,38 @@ hydration の警告も型エラーも出ず、**保存された値だけが静�
 要素へ変える**かのどちらかになる。このリポジトリは後者を採り、画面本体を root layout がレンダリングする 1 要素で
 包んでいる（`src/app/layout.tsx` の `app-root`）。
 
-**確かめ方**: ブラウザの console を見る。mismatch が起きていれば警告が出る。出ていなければ起きていない。
+**確かめ方**: ブラウザーの console を見る。mismatch が起きていれば警告が出る。出ていなければ起きていない。
 
 ### Server Component は「速い」わけではない
 
-Server Component の利点は、**そのコードがブラウザへ送られないこと**と、**サーバ側の資源（設定・秘密・バックエンド接続）へ直接届くこと**である。実行そのものが速いわけではない。
+Server Component の利点は、**そのコードがブラウザーへ送られないこと**と、**サーバー側の資源（設定・秘密・バックエンド接続）へ直接届くこと**である。実行そのものが速いわけではない。
 
-逆に Client Component の代償は、**その分の JavaScript がブラウザへ送られること**である。SSR が壊れることではない。したがって「Client Component にすると SSR が死ぬ」を心配する必要はなく、心配すべきは**送るコードの量**である。
+逆に Client Component の代償は、**その分の JavaScript がブラウザーへ送られること**である。SSR が壊れることではない。したがって「Client Component にすると SSR が死ぬ」を心配する必要はなく、心配すべきは**送るコードの量**である。
 
 ### Server Action の `redirect()` は Route Handler へ遷移しない
 
 Server Action の中で `redirect()` を呼ぶと、応答は「この URL へ移れ」という指示になり、**遷移を実際に行うのは client router** である。router が知っているのは route segment（`page.tsx`）であって Route Handler（`route.ts`）ではないため、**Route Handler を指した redirect は要求が一度も出ないまま URL だけが書き換わる。** 同一オリジンの絶対 URL にしても同じで、client router から見れば内部の遷移だからである。
 
-副作用を起こしたあとに Route Handler へ渡す必要があるなら、Server Action ではなく**素の form 送信**（`<form method="post" action="/...">`）で受ける。ブラウザ自身が遷移するので、`Response.redirect` の連鎖も cookie の往復もそのまま通る。
+副作用を起こしたあとに Route Handler へ渡す必要があるなら、Server Action ではなく**素の form 送信**（`<form method="post" action="/...">`）で受ける。ブラウザー自身が遷移するので、`Response.redirect` の連鎖も cookie の往復もそのまま通る。
 
-代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。同梱サンプルでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
+代償は、素の送信が状態を持ち越せないことである。`useActionState` の戻り値に載る**項目ごとの誤りと送信中の表示は出ない**ので、失敗は URL の検索条件（`?error=...`）で戻すことになる。このリポジトリでは `/dev/session` の認可の往復がこの形を採っている（[`src/features/dev-session/paths.ts`](../../src/features/dev-session/paths.ts) の `DEV_AUTHORIZE_PATH`）。
 
-**確かめ方**: Server Action から `redirect("/api/…")` を呼ぶ画面を開き、操作したあとに開発サーバのログを見る。URL は変わっているのに、その `GET` が 1 行も出ない。
+**確かめ方**: Server Action から `redirect("/api/…")` を呼ぶ画面を開き、操作したあとに開発サーバーのログを見る。URL は変わっているのに、その `GET` が 1 行も出ない。
 
 ## このリポジトリでの現れ方
 
 | レイヤー | デフォルト | 備考 |
 | --- | --- | --- |
 | `app/` の `page.tsx` / `layout.tsx` | Server | 薄いレイヤーに留め、取得と組み立ては `features` が持つ |
-| `app/**/route.ts` | サーバのみ | HTTP のエンドポイント。[ADR 0025](../adr/0025-app-layer-elements.ja.md) |
+| `app/**/route.ts` | サーバーのみ | HTTP のエンドポイント。[ADR 0025](../adr/0025-app-layer-elements.ja.md) |
 | `features/` | 原則 Server。操作の要る部分だけ Client Island | アイランドは小さく切り、レイアウトシェルは Server のまま保つ |
 | `components/` | コンポーネントによる | 操作を持つコンポーネントは Client |
-| `capabilities/` | Client | ブラウザの能力を購読する hook。[ADR 0022](../adr/0022-capabilities-kernel.ja.md) |
+| `capabilities/` | Client | ブラウザーの能力を購読する hook。[ADR 0022](../adr/0022-capabilities-kernel.ja.md) |
 | `stores/` | Client | 横断する client 状態。[ADR 0023](../adr/0023-stores-kernel.ja.md) |
-| `adapters/server` | サーバのみ | `server-only` を宣言している |
+| `adapters/server` | サーバーのみ | `server-only` を宣言している |
 | `adapters/client` | Client | 同一オリジンへの薄い取得。[ADR 0024](../adr/0024-adapters-server-client-split.ja.md) |
 
-**レイアウトシェルを Client にせず、アイランドを差す。** 横断的な操作を足したくなったとき、外枠そのものを `"use client"` にすると、外枠が import しているものが全部ブラウザへ行く。外枠に props のスロットを開け、そこへ小さい Client Component を渡す形にすれば、外枠は Server のまま保てる。[`components/shell/app-shell`](../../src/components/shell/app-shell/) が `headerActions` / `sidebar` の口を持っているのはこのためである。
+**レイアウトシェルを Client にせず、アイランドを差す。** 横断的な操作を足したくなったとき、外枠そのものを `"use client"` にすると、外枠が import しているものが全部ブラウザーへ行く。外枠に props のスロットを開け、そこへ小さい Client Component を渡す形にすれば、外枠は Server のまま保てる。[`components/shell/app-shell`](../../src/components/shell/app-shell/) が `headerActions` / `sidebar` の口を持っているのはこのためである。
 
 ## 他に踏みやすい語
 
@@ -249,17 +249,17 @@ Server Action の中で `redirect()` を呼ぶと、応答は「この URL へ�
 
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
-| `"use server"` | **`"use client"` の反対ではない。** client から呼べるサーバ関数を宣言するマーカー | 「このファイルはサーバで動く」の意味だと読む。デフォルトでサーバなので、そういう宣言は要らない |
+| `"use server"` | **`"use client"` の反対ではない。** client から呼べるサーバー関数を宣言するマーカー | 「このファイルはサーバーで動く」の意味だと読む。デフォルトでサーバーなので、そういう宣言は要らない |
 | Server Function | `"use server"` を付けた非同期関数。client から呼べる | — |
 | Server Action | Server Function のうち、form の `action` や Client Component の props として渡されたもの | Server Function との差は**呼ばれ方**だけ |
-| Client Bundles | ブラウザへ送られる JavaScript の塊 | Client Component の代償はここであって、SSR の可否ではない |
+| Client Bundles | ブラウザーへ送られる JavaScript の塊 | Client Component の代償はここであって、SSR の可否ではない |
 | `server-only` / `client-only` | 反対側へ import したらビルドを落とすマーカー | 実行を止めるものではなく、依存の混線を build 時に気付かせるもの |
 
 ### ルーティング
 
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
-| Route Segment | URL の 1 階層に対応するフォルダ | — |
+| Route Segment | URL の 1 階層に対応するフォルダー | — |
 | Route Handler | `route.ts`。HTTP のエンドポイント | Pages Router の「API Routes」とは別物。同じ階層に `page.tsx` と共存できない |
 | Proxy | `proxy.ts`。route に届く前に通るレイヤー | **Next 16 で `middleware.ts` から改称された。** 「middleware」で調べると旧名の情報に当たる |
 | Parallel Route / Slot | `@name/` ごと独立してレンダリングされ、layout が props で受け取る枝 | 下記 2 つを踏みやすい |
@@ -280,7 +280,7 @@ slot が残る。
 | Static rendering | build 時にレンダリングしておく | 明示的に選ぶものではない |
 | Dynamic rendering | リクエストごとにレンダリングする | 同上。**使った API で自動的に決まる** |
 | Runtime rendering | Dynamic rendering の別名 | **3 つめのレンダリング方式ではない。** 資料によって呼び名が揺れているだけ |
-| Prerendering / Static Shell | 事前にレンダリングしてある部分。ブラウザへ即座に返る | — |
+| Prerendering / Static Shell | 事前にレンダリングしてある部分。ブラウザーへ即座に返る | — |
 | Streaming / Suspense boundary | レンダリングできたところから順に送る仕組みと、その区切り | — |
 | Loading UI | Suspense が解決するまで出る表示。`loading.tsx` がこれにあたる | `loading.tsx` は「読み込み中の画面」ではなく、**そのセグメントに Suspense を敷く宣言**である |
 
@@ -290,7 +290,7 @@ slot が残る。
 | --- | --- | --- |
 | Memoization | **1 リクエストのレンダリング中だけ**。同じ `fetch` GET は自動で 1 回にまとまる。`fetch` 以外は React の `cache()` を使う | 「キャッシュした」と言うと次のリクエストにも残ると読まれる。残らない |
 | Data Cache / Revalidation | **リクエストを跨いで残る**。`tags` を無効化して捨てる | 上と同じ「キャッシュ」の語で呼ばれる |
-| Client Cache | **ブラウザが持つ** RSC Payload の控え。戻る / 進むで再利用される | サーバ側のキャッシュと混同する。再読み込みで消える |
+| Client Cache | **ブラウザーが持つ** RSC Payload の控え。戻る / 進むで再利用される | サーバー側のキャッシュと混同する。再読み込みで消える |
 
 **Route Handler は React の component tree の外にある。** `fetch` の自動 memoization が効くのは component tree の中なので、`route.ts` から呼ぶ経路では同じ前提を置かない。
 
@@ -305,8 +305,9 @@ memoization が効いていない。
 | --- | --- | --- |
 | Client-side navigation | ページ全体を作り直さず、変わった部分だけ差し替える遷移 | `<a>` による通常の遷移とは別物。`Link` はこちら |
 | Prefetching | 遷移先を先読みしておくこと | — |
-| `router.refresh()` | サーバからレンダリングし直すが、**client state は保つ** | ブラウザの再読み込みとは別物。あちらは client state を捨てる |
-| Version skew | 利用者が開いたままの間に新しいバージョンがデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
+| `router.refresh()` | サーバーからレンダリングし直すが、**client state は保つ** | ブラウザーの再読み込みとは別物。あちらは client state を捨てる |
+| `refresh()`（`next/cache`） | Server Action 側の対応物。キャッシュを何も無効化せず、現在の route を action の応答でレンダリングし直す | `revalidatePath` とは別物。あちらは path を無効化し、訪問済みのページにも取り直しの印を付ける |
+| Version skew | ユーザーが開いたままの間に新しいバージョンがデプロイされ、新旧が食い違うこと | 「たまに壊れる」で片付けられがちだが、原因の名前が付いている |
 
 ### 境界とエラー
 
@@ -320,14 +321,14 @@ memoization が効いていない。
 | --- | --- | --- |
 | Dynamic route segment | `[id]`。値が入る階層 | — |
 | Catch-all segment | `[...slug]` / `[[...slug]]`。以降の階層をまとめて受ける | — |
-| Private Folder `_name` | **URL に現れない**フォルダ。ルーティングの対象から外す | **URL に出ないフォルダは 2 種類ある。** `(name)` はレイアウトシェルを分けるため、`_name` はルーティングから外すため。目的が違う |
+| Private Folder `_name` | **URL に現れない**フォルダー。ルーティングの対象から外す | **URL に出ないフォルダーは 2 種類ある。** `(name)` はレイアウトシェルを分けるため、`_name` はルーティングから外すため。目的が違う |
 
 ### ビルドと配信
 
 | 語 | 意味 | 取り違え |
 | --- | --- | --- |
 | ISR（Incremental Static Regeneration） | 静的にレンダリングしたものを期限付きで作り直す | 名前が難しいだけで、やっていることは「静的だが古くなったら再レンダリングする」 |
-| Static Export | ページを全部静的ファイルとして出す構成 | 採るとサーバが無くなるため、Request-time API も Route Handler も使えなくなる |
+| Static Export | ページを全部静的ファイルとして出す構成 | 採るとサーバーが無くなるため、Request-time API も Route Handler も使えなくなる |
 
 ### その他
 
@@ -335,7 +336,7 @@ memoization が効いていない。
 | --- | --- | --- |
 | `params` / `searchParams` は Promise | Next 15 以降、`await` してから読む | 同期で読めた頃のコード例が大量に残っている |
 | Edge runtime / Node.js runtime | 実行環境が 2 つある | [`instrumentation.ts`](../../src/instrumentation.ts) が `NEXT_RUNTIME` で分岐しているのはこのため |
-| Turbopack | デフォルトのバンドラ | webpack 前提の設定情報に当たることがある |
+| Turbopack | デフォルトのバンドラー | webpack 前提の設定情報に当たることがある |
 
 ## 表では足りない語
 
@@ -349,7 +350,7 @@ memoization が効いていない。
 
 ### Route Group `(name)` — URL に出ないだけではない
 
-括弧で囲んだフォルダは URL に現れない。`app/(marketing)/about/page.tsx` は `/about` である。ここまでは知られているが、**副作用が 2 つある**。
+括弧で囲んだフォルダーは URL に現れない。`app/(marketing)/about/page.tsx` は `/about` である。ここまでは知られているが、**副作用が 2 つある**。
 
 - **グループごとに root layout を分けられる。** 分けた場合、**異なる root layout を跨ぐ遷移はフルページリロードになる**（client-side navigation にならない）。レイアウトシェルを分けたこと自体が遷移の質を変える
 - **別のグループが同じ URL へ解決するとエラーになる。** `(marketing)/about` と `(shop)/about` はどちらも `/about` なので共存できない
@@ -408,7 +409,7 @@ Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にす�
 
 組み合わせると、「一覧から押したときはその場にモーダルで開き、同じ URL を直接叩いたら全画面で開く。**URL は共有できる**」という形が、ルーティングの機能だけで成立する。
 
-**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。まだ使っていないが、「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
+**知らないと、同じことを client state とモーダルの出し分けで自前に組むことになる。** その場合 URL が変わらないので、共有も戻る操作も成立しない。「一覧から詳細をモーダルで開きたい」と思った時点で最初に検討する選択肢である。
 
 ## ここでは扱わない語
 
@@ -432,6 +433,6 @@ Next 16 では `cacheComponents: true` の 1 つに束ねられ、有効にす�
 curl -s http://localhost:3000/<path> | grep -o '<探したい文字列>'
 ```
 
-ブラウザの console に hydration の警告が出ていないかを見る。出ていなければ、サーバとブラウザの出力は一致している。
+ブラウザーの console に hydration の警告が出ていないかを見る。出ていなければ、サーバーとブラウザーの出力は一致している。
 
-**開発サーバの状態を過信しない。** 起動時に一度だけ走る初期化（モックの起動など）は、ファイルを保存して再コンパイルした後に失われていることがある。挙動が変わったように見えたら、開発サーバを立て直してから判断する。
+**開発サーバーの状態を過信しない。** 起動時に一度だけ走る初期化（モックの起動など）は、ファイルを保存して再コンパイルした後に失われていることがある。挙動が変わったように見えたら、開発サーバーを立て直してから判断する。

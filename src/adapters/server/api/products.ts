@@ -40,12 +40,11 @@ import type {
   ProductsPostRequest,
 } from "../../gen/api/model";
 import { getPublicClient } from "../http/public-client";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
 import { resolveMediaUrl } from "../media/media-url";
 
 type WireProductQuery = z.infer<typeof GetProductsQueryParams>;
-
-const IDEMPOTENCY_KEY_HEADER = "Idempotency-Key";
 
 /**
  * 契約が受け付ける並び順。

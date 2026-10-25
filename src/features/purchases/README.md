@@ -125,8 +125,10 @@ The product list URL comes from the `facade/` of `products` (keys are not copied
 
 | Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `revalidatePath` | Keeps the confirmation open and reports inside it |
+| `cancelPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | `refresh()` | Keeps the confirmation open and reports inside it |
 | `payPurchaseAction` | `actions.ts` | `PurchaseTransitionState` | Same as above | Same as above |
+
+On `UNAUTHENTICATED`, every action redirects to sign-in with this screen as the return destination ([0043](../../../docs/adr/0043-middleware-policy.md)).
 
 **Only conflicts (409) are distinguished.** This is the case where someone else or another tab advanced the state first, and the action
 the person who pressed can take (reloading the screen) differs from other failures.

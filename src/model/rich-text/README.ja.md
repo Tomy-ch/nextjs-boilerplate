@@ -56,7 +56,7 @@ sanitize の実装は `hast-util-from-html` / `hast-util-sanitize` の 2 本に�
 
 差し替えを検討する条件は一つです。**現在の 2 本のいずれかに `high` 以上の advisory が出て、上流が反応しないとき。** その場合は ADR [0004](../../../docs/adr/0004-library-management.ja.md) の応答期限に従います。上流が更新を止めていること自体は条件になりません。この port は仕様準拠の parse を経てからツリーを検査するため、成熟して変更が止まることは劣化ではないからです。
 
-`dangerouslySetInnerHTML` を使う実装へは戻しません（[`docs/rules.ja.md`](../../../docs/rules.ja.md) の禁止と biome `noDangerouslySetInnerHtml`）。文字列を経由する sanitizer は、sanitizer とブラウザの解釈差そのものが攻撃面になります。
+`dangerouslySetInnerHTML` を使う実装へは戻しません（[`docs/rules.ja.md`](../../../docs/rules.ja.md) の禁止と biome `noDangerouslySetInnerHtml`）。文字列を経由する sanitizer は、sanitizer とブラウザーの解釈差そのものが攻撃面になります。
 
 ## 境界
 

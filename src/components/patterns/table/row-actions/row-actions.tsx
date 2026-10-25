@@ -1,17 +1,14 @@
-import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 
 import { Button } from "@/components/design-system/action/button/button";
 import {
   DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/design-system/overlay/dropdown-menu/dropdown-menu";
 import { EllipsisIcon } from "@/components/icon";
 import type { StaticDataTableColumn } from "../static-data/static-data";
-import { ROW_ACTION_KIND, type RowAction } from "./row-actions.definition";
+import type { RowAction } from "./row-actions.definition";
+import { RowActionsMenuContent } from "./row-actions-menu-content";
 
 /** {@link RowActionsMenu} の props。 */
 export type RowActionsMenuProps<Row> = {
@@ -38,6 +35,9 @@ export type RowActionsMenuProps<Row> = {
  * `link` だけで構成すれば Server Component から使える。`command` は関数を保持するため、
  * 呼び出し元が Client Component である必要がある。
  *
+ * `command` の `onSelect` は、メニューが閉じて focus が trigger へ戻ってから呼ぶ。確認の面を開く
+ * `command` でも、面を閉じた後の focus がこの trigger へ戻る。
+ *
  * **操作が 1 つも無い行には trigger ごと出さない。** 押せる物が並んでいるのに開くと空、という
  * 面を作らないためで、行によって操作の有無が変わる一覧（すでに済んでいる行など）では `actions`
  * が空を返すのが自然な表し方になる。
@@ -62,32 +62,7 @@ export function RowActionsMenu<Row>({ actions, row, triggerLabel }: RowActionsMe
           <span className="sr-only">{triggerLabel(row)}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        {items.map((action) => {
-          if (action.kind === ROW_ACTION_KIND.SEPARATOR) {
-            return <DropdownMenuSeparator key={action.id} />;
-          }
-
-          if (action.kind === ROW_ACTION_KIND.LINK) {
-            return (
-              <DropdownMenuItem asChild disabled={action.disabled} key={action.id}>
-                <Link href={action.href}>{action.label}</Link>
-              </DropdownMenuItem>
-            );
-          }
-
-          return (
-            <DropdownMenuItem
-              disabled={action.disabled}
-              key={action.id}
-              onSelect={action.onSelect}
-              variant={action.variant}
-            >
-              {action.label}
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
+      <RowActionsMenuContent items={items} />
     </DropdownMenu>
   );
 }

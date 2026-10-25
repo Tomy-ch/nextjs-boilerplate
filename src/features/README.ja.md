@@ -42,6 +42,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 | `purchases/` | 確定したものの履歴と 1 件の詳細、そこからの状態遷移 | [README](purchases/README.ja.md) |
 | `account/` | 自分の記録。登録・編集・退会と、自分向けの集計 | [README](account/README.ja.md) |
 | `inquiry/` | サポートとのやり取り。届いた 1 通が取り直しを待たずに並ぶ | [README](inquiry/README.ja.md) |
+| `coupons/` | 持っているものと、キャンペーンコードで受け取れるもの。状態は画面側で現在時刻に照らして決める | [README](coupons/README.ja.md) |
 | `admin/` | 役割を持つ主体だけが入る運用面 | [README](admin/README.ja.md) |
 | `site-info/` | 取得を持たない静的な面 | [README](site-info/README.ja.md) |
 <!-- sample:end -->
@@ -62,7 +63,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 | `<screen>/view.tsx` | props だけでレンダリングできる画面の合成。`page-content` が取った値を受けて組む | 取得 |
 | `<screen>/breadcrumb-content.tsx` | 現在地までの階層。app レイヤーの `@breadcrumb` slot が置く。名前のために本文と同じ取得を通ってよい —— 同じレンダリングの中で 1 回に畳まれる | |
 | `<screen>/ui/<part>/` | その画面のコンポーネント。1 コンポーネント 1 ディレクトリで、実装・test・stories を共置する | 他の画面からの参照（2 つ目の画面が要れば 1 段上へ） |
-| `ui/skeleton/` | ローディング表示。実物と同じ段組みで、プレースホルダの数は 1 画面に収まる固定値。`aria-hidden` | 実データの件数との一致 |
+| `ui/skeleton/` | ローディング表示。実物と同じ段組みで、プレースホルダーの数は 1 画面に収まる固定値。`aria-hidden` で、中に `LoadingAnnouncement` を 1 つ置く | 実データの件数との一致 |
 | `ui/submit-button/` | `useFormStatus` を読む送信の操作。`form` をレンダリングする component の**子**として切り出す | |
 | `ui/error-state/` | 取得に失敗したときの表示。レンダリングするのは route の `error.tsx` | 文言の組み立て（分類から `errors` が引く） |
 | `query.ts` | URL のキーの綴り、行き先の組み立て、いま見ている場所の型 —— **組む側** | `searchParams` を読むスキーマ |
@@ -91,7 +92,7 @@ slice に固有の線引きと、契約・仕様・デザインへのインデ�
 ## 取得と待機の境界
 
 **条件で変わるものと、変わらないものを分ける。** `page-content` が取るのは条件に依らないもの
-（絞り込みの候補、マスタ）で、条件で変わる一覧と件数は `results` が持つ。`results` を包む
+（絞り込みの候補、マスター）で、条件で変わる一覧と件数は `results` が持つ。`results` を包む
 `Suspense` には**条件を直列化したキー**を与える —— 条件が変われば一覧は総入れ替えで、キーが無いと
 次の一覧が届くまで前の条件の一覧が残る。分けないと、条件を 1 つ変えるたびに操作面ごとローディング表示へ
 落ち、続けて絞り込む足場が消える。
@@ -148,8 +149,11 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
 1. 入力欄は `form-names.ts` の綴りで `name` を付ける
 2. Action は `parse-<対象>-form.ts` で `FormData` を解く。解けなければ `failedActionState({ formError })`
    —— 文言はその画面の定数で、「画面を読み込み直す」を促す
-3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す
-4. 成立したら `revalidatePath` か `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
+3. `adapters` を呼び、失敗は `actionStateFromError` で分類へ写す。**`UNAUTHENTICATED` と分類された失敗は
+   返さない** —— `catch` の中でまず `isUnauthenticated(error)` なら、フォームのある画面を戻り先としてサインインへ
+   redirect する（`auth/facade/` の `loginPath`。[0043](../../docs/adr/0043-middleware-policy.ja.md)）
+4. 成立したら `refresh()`（キャッシュしていないデータの画面に留まる）、`revalidatePath`（別の route にも出す）、
+   または `redirect`。**値が外枠（header・サイドバー）にも出るなら経路 1 つの
    無効化では外枠が古いまま残る** —— `revalidatePath("/", "layout")` を、`project-rules/no-app-wide-revalidate`
    の抑止に理由を添えて使う
 
@@ -161,11 +165,11 @@ Action の置き場は [0021](../../docs/adr/0021-frontend-responsibility.ja.md)
   `adapters/server/auth` へ触れられる app レイヤーだけである
 - **冪等キーの発行元は送信の回数で決まる。** 1 回きりの作成（登録・確定）は `page-content` が組み立て
   ごとに 1 つ作って props で渡す。同じ画面から繰り返す送信（1 件ずつ足していくもの）は client island が
-  `useState(newIdempotencyKey)` で持ち、**成立したときだけ作り直す**。設定（PUT）と削除は 2 度届いても
+  mount のときに作る。**どちらも `components/use-submission-key.ts` を通して持ち、応答が送信を確定させたら作り直し、結果が定まらないあいだは保つ**（`409` を「同じキーの要求が処理中」に充てるエンドポイントは `conflict` としてそう宣言する）。多くの行に操作を差し出す一覧は、代わりに行ごとに 1 つ持つ。設定（PUT）と削除は 2 度届いても
   結果が変わらないのでキーを持たない
 - **競合（409）だけ言い分ける。** 押した人が取れる行動（画面を読み直す）が他の失敗と違う
 - **確認の中で送る操作は、送信中も失敗時も dialog を開いたままにする。** 押した時点で閉じるコンポーネント
-  （`AlertDialogAction`）を使うと、送信中の表示も失敗の文言も利用者が見ていない場所に出る
+  （`AlertDialogAction`）を使うと、送信中の表示も失敗の文言もユーザーが見ていない場所に出る
 
 ## レンダリングを span に載せる
 
@@ -192,8 +196,8 @@ span 名はその module のパスに揃える —— 1 つの route に最上�
 
 仕組みと span の読み方は [observability/README.md](../observability/README.ja.md) が持つ。
 
-- **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。利用者の入力を混ぜない
-- **client component（`"use client"` を持つファイル）は包まない。** ブラウザでのレンダリングでは span を作らないため、包んでも得られるのは server レンダリングの 1 回分だけである
+- **名前は `src/` からのモジュールパスと一致させる。** span 名がそのまま置き場を指すので、ずれると trace からファイルへ戻れない。ユーザーの入力を混ぜない
+- **client component（`"use client"` を持つファイル）は包まない。** ブラウザーでのレンダリングでは span を作らないため、包んでも得られるのは server レンダリングの 1 回分だけである
 - **取得を持つ側を包むと帰属が付く。** `page-content` が待つ通信はその span の中に入るので、外向きの `fetch` を画面へ結び付けられる
 - **コンポーネントは常用しない。** `part` を開けると 1 レンダリングの span がレンダリングするコンポーネントの数だけ増える。値打ちが出るのは、分岐した結果——どの姿を返したか——を trace から読みたいときである
 
@@ -205,7 +209,7 @@ span 名はその module のパスに揃える —— 1 つの route に最上�
 しか通らないので、コンポーネントが表せる残りの状態（バンドごとの幅・契約上の最大長・送信中・拒まれた結果）は
 そこに現れない。
 
-story を持てないのは**ブラウザでレンダリングできないコンポーネントだけ**である。`server-only` を辿る取得を中に持つ
+story を持てないのは**ブラウザーでレンダリングできないコンポーネントだけ**である。`server-only` を辿る取得を中に持つ
 async な合成がそれにあたる。持てない理由と、中身がどこで見られるかを本体の doc に書く。
 **そこへ寄せないように分ける** —— 取得を持つ合成と見た目を持つコンポーネントを分け、状態を props で受ける側に
 story を持たせる。1 つに束ねると、見え方を確かめるのに取得が要るコンポーネントが残る。
@@ -279,8 +283,8 @@ story を持たせる。1 つに束ねると、見え方を確かめるのに取
 | 複数の feature が同じ表示ロジック・UI・hook を別々に持たない。2 つ目が現れた時点で責務に応じたカーネルへ上げる | suggestion（同じ理由で変わるかは人が裁く） | [0021](../../docs/adr/0021-frontend-responsibility.ja.md)（feature 内でのコンポーネントの分け方）/ この README「運用」 |
 | バックエンドの業務ロジックを持たない。契約が返さない値を計算して出さない | violation。表示のための整形か業務の判定かが読み分けられないときは suggestion | [0021](../../docs/adr/0021-frontend-responsibility.ja.md)（カーネルの受入基準 4） / [0070](../../docs/adr/0070-backend-role-separation.ja.md) 禁止事項 |
 | feature の `actions.ts` は編成だけを持ち、主体の断言が要らないものに限る。断言が要る変更は `src/app/**/actions.ts` に住む | 業務ロジックを持っていれば violation。主体に紐づく変更を断言なしで送っていれば suggestion | [0021](../../docs/adr/0021-frontend-responsibility.ja.md)（Server Action の置き場の規則）/ この README「運用」 |
-| 画面の最上位（`page-content` / `view`、シェルの側で取得を持つ合成）は `withScreenSpan`、`<screen>/ui/**` は `withPartSpan` で包む。span 名は `src/` からのモジュールパスと一致させ、利用者の入力を混ぜない。`"use client"` を持つファイルは包まない | 最上位が包まれていない、名前がパスと一致しない、client component を包んでいる、はいずれも violation | この README「レンダリングを span に載せる」/ [docs/rules.md](../../docs/rules.ja.md#layers) |
-| `<screen>/ui/**` と `facade/**` のレンダリングするコンポーネントは自分の story を持つ。持てないのはブラウザでレンダリングできないコンポーネントだけで、その理由と中身の見られる場所を本体の doc に書く | story が無く、doc にも理由が無ければ violation。取得を持つ合成と見た目を持つコンポーネントが 1 つに束ねられていれば suggestion | この README「カタログに載せる」/ [0054](../../docs/adr/0054-ui-catalog-storybook.ja.md) |
+| 画面の最上位（`page-content` / `view`、シェルの側で取得を持つ合成）は `withScreenSpan`、`<screen>/ui/**` は `withPartSpan` で包む。span 名は `src/` からのモジュールパスと一致させ、ユーザーの入力を混ぜない。`"use client"` を持つファイルは包まない | 最上位が包まれていない、名前がパスと一致しない、client component を包んでいる、はいずれも violation | この README「レンダリングを span に載せる」/ [docs/rules.md](../../docs/rules.ja.md#layers) |
+| `<screen>/ui/**` と `facade/**` のレンダリングするコンポーネントは自分の story を持つ。持てないのはブラウザーでレンダリングできないコンポーネントだけで、その理由と中身の見られる場所を本体の doc に書く | story が無く、doc にも理由が無ければ violation。取得を持つ合成と見た目を持つコンポーネントが 1 つに束ねられていれば suggestion | この README「カタログに載せる」/ [0054](../../docs/adr/0054-ui-catalog-storybook.ja.md) |
 
 ## 関連する ADR
 

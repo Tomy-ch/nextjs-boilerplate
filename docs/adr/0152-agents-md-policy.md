@@ -162,27 +162,27 @@ The `Protected Documentation` declaration is prose, and a declaration alone is n
 
 ### Final form (from v1.0.0)
 
-`permissions.deny` holds the following 8 entries, and `permissions.ask` holds none of them.
+`permissions.deny` holds the following 4 entries, and `permissions.ask` holds none of them. An `Edit(...)` rule applies to every built-in tool that rewrites a file, `Write` included, so no `Write(...)` entry is written — Claude Code warns that such a rule never matches.
 
 | Entry | What it protects |
 | --- | --- |
-| `Edit(AGENTS.md)` / `Write(AGENTS.md)` | The rules body |
-| `Edit(LICENSE)` / `Write(LICENSE)` | The license ([0142](0142-license.md)) |
-| `Edit(.claude/settings.json)` / `Write(.claude/settings.json)` | The permission boundary itself. Do not leave a shape in which an agent can remove its own deny |
-| `Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` | Accepted ADR bodies (immutable — [0140](0140-documentation-operations.md)). `*-*` applies only to numbered ADRs, not to `docs/adr/README.md` |
+| `Edit(AGENTS.md)` | The rules body |
+| `Edit(LICENSE)` | The license ([0142](0142-license.md)) |
+| `Edit(.claude/settings.json)` | The permission boundary itself. Do not leave a shape in which an agent can remove its own deny |
+| `Edit(docs/adr/*-*.md)` | Accepted ADR bodies (immutable — [0140](0140-documentation-operations.md)). `*-*` applies only to numbered ADRs, not to `docs/adr/README.md` |
 
 **Why `deny` rather than `ask`.** `ask` requests approval for every edit, and the protection is breached by the one time the approver lets it through without reading the content. What Protected Documentation protects is "a human reads the proposed change and judges it", so the path is limited to agent proposal → human edit, and the agent's edit itself is blocked. `deny` has no path that slips through on approval fatigue.
 
 ### Current form (below v1.0.0) and why
 
-- The 6 entries for `AGENTS.md` / `LICENSE` / `.claude/settings.json` are placed in `permissions.ask`. Approval remains; there is no hard block
+- The 3 entries for `AGENTS.md` / `LICENSE` / `.claude/settings.json` are placed in `permissions.ask`. Approval remains; there is no hard block
 - Accepted ADR bodies carry no entry
 
 Below v1.0.0, ADRs are living documents whose bodies are overwritten directly ([0140](0140-documentation-operations.md)). Most of the work in this period is rewriting ADR bodies itself, so putting ADRs under `ask` would make approval prompts constant and build the habit of approving without reading — the exact opposite of the reason for choosing `deny`. Not prompting is more correct as protection than prompting endlessly and being ignored. AGENTS.md / LICENSE / settings.json are edited rarely, and `ask` works as a chance to "read and judge", so they are kept.
 
 ### Restoration steps at v1.0.0
 
-1. In `.claude/settings.json`, move the 6 entries above from `permissions.ask` to `permissions.deny`, and add `Edit(docs/adr/*-*.md)` / `Write(docs/adr/*-*.md)` to `permissions.deny`
+1. In `.claude/settings.json`, move the 3 entries above from `permissions.ask` to `permissions.deny`, and add `Edit(docs/adr/*-*.md)` to `permissions.deny`
 2. Delete the `Temporary Operating Rules until v1.0.0` section of `AGENTS.md`, and remove the "lifted below v1.0.0" provisos attached to `AI Modification Scope` / `Protected Documentation`
 3. From this ADR, remove the #1.5 row of the section-layout table, the below-v1.0.0 proviso in *Update Responsibilities*, and the *Current form* subsection above
 
@@ -191,7 +191,7 @@ This is done in the same change as the immutable switch of [0140](0140-documenta
 ### Enforcement and what it does not reach
 
 - **`permissions.deny` works only for Claude Code.** Codex / Copilot / Gemini have no equivalent declaration format, and there the prose of AGENTS.md is the only protection. Not mechanizable
-- **A `deny` on `Edit` / `Write` does not reach rewrites through `Bash` (`sed` / heredoc).** Blocking them needs a `deny` that looks for the path inside Bash's arguments, but where the path appears in the arguments is not fixed, and it cannot be written as a prefix-match declaration. Not mechanizable
+- **A `deny` on `Edit` does not reach rewrites through `Bash` (`sed` / heredoc).** Blocking them needs a `deny` that looks for the path inside Bash's arguments, but where the path appears in the arguments is not fixed, and it cannot be written as a prefix-match declaration. Not mechanizable
 - **That `settings.json` matches this ADR's final form** can be written as a check that compares the table above with the JSON. Not implemented
 
 ## Prohibitions

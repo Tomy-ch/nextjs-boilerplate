@@ -10,7 +10,7 @@ Claude Code 向けの設定資産を置く。
 | --- | --- |
 | `skills/` | 本リポジトリが著作・保守するスキル。`/<slug>` で起動する（[ADR 0154](../docs/adr/0154-claude-skills-operations.ja.md) / [0155](../docs/adr/0155-claude-skills-development.ja.md)）。配置・命名・frontmatter・必須のセクションは ADR が持ち、下の「`skills/` —— ADR が定めない共通形」は既存のスキルが揃えている残りを述べる |
 | `agents/` | スキルが呼び出すサブエージェントの定義。read-only / `sonnet` デフォルト / 基準は `skills/<slug>/prompts/` の 1 ファイル、という規約は [0155](../docs/adr/0155-claude-skills-development.ja.md) が持ち、下の「`agents/` —— 定義の共通形」はそれ以外を述べる |
-| `settings.json` | `env`（送信をデフォルトで止めるという [0156](../docs/adr/0156-browser-observation-tooling.ja.md) の決定に従い、道具のデフォルトを環境変数で固定する。機械ごとに違う観測ブラウザの実行ファイルはここに置かず、レンダリングエンジンをゲートに揃えるという 0156 の決定から来る `scripts/chromium-path` が答える）/ `permissions`（`allow` / `ask` / `deny`）/ `hooks`（登録だけ。下記）/ プラグイン宣言 |
+| `settings.json` | `env`（送信をデフォルトで止めるという [0156](../docs/adr/0156-browser-observation-tooling.ja.md) の決定に従い、道具のデフォルトを環境変数で固定する。機械ごとに違う観測ブラウザーの実行ファイルはここに置かず、レンダリングエンジンをゲートに揃えるという 0156 の決定から来る `scripts/chromium-path` が答える）/ `permissions`（`allow` / `ask` / `deny`）/ `hooks`（登録だけ。下記）/ プラグイン宣言 |
 | `worktrees/` | 追跡外。並行作業の git worktree が置かれる。`skill-lint` のインデックスからも外れる —— 別ブランチのツリーなので、ここに在るファイルは「このブランチのソース」ではない |
 
 個々のスキル・エージェントの棚卸しはここに手書きしない。`/tool-map` が実体から生成する。
@@ -33,7 +33,7 @@ Claude Code 向けの設定資産を置く。
 綴りを散文として書くときは heredoc へ置く（本体は割る前に落とされる）。
 
 読むのはシェルの文法だけで、`python -c` / `node -e` のようにほかの言語へ渡した引用は割らない。
-その言語の中からシェルを呼ぶかは形から分からず、そこを塞ぐのは AGENTS.md の、別のインタプリタへ
+その言語の中からシェルを呼ぶかは形から分からず、そこを塞ぐのは AGENTS.md の、別のインタプリターへ
 迂回しても解決にならないという規則である。
 
 載せる理由は 4 つあり、**どれに当たるかを言えないものは載せない。**
@@ -52,15 +52,15 @@ Claude Code 向けの設定資産を置く。
 
 **採否が決まっているものが `deny`、可否が場面で決まるものが `ask`。**
 
-実ブラウザへ繋ぐ経路（`--cdp` / `--profile` / `connect` / `attach`）は `ask` に置く。
+実ブラウザーへ繋ぐ経路（`--cdp` / `--profile` / `connect` / `attach`）は `ask` に置く。
 [0156](../docs/adr/0156-browser-observation-tooling.ja.md) が禁じているのは接続そのものではなく
-**確認なしの接続**で、実ブラウザでしか再現しない事象を裏取りする場面は実在する。拒否にすると、
+**確認なしの接続**で、実ブラウザーでしか再現しない事象を裏取りする場面は実在する。拒否にすると、
 人が「今回は使う」と決める余地まで消える。
 
 外部の言語モデルを呼ぶサブコマンド（`chat`）は `deny` のまま。あれは接続の可否ではなく**採否**の
 問題で、0156 が不採用と決めている。確認へ落とすと、決めたはずの採否が呼び出しのたびに開き直る。
 
-### ラッパは中身で決まる
+### ラッパーは中身で決まる
 
 `make <target>` を載せるかは、**recipe の中に `deny` の操作が在るかで決まる。**
 [`command-guard`](../scripts/command-guard/) が見るのはコマンドの形であって Makefile の中ではない
@@ -95,10 +95,10 @@ Claude Code 向けの設定資産を置く。
 | 冪等な導入 | 再実行が no-op で、pin されたバージョンしか入らない（AGENTS.md「Installing Things」） | `pnpm install` / `mise install` / `make ai-install-tools` |
 | 内側のコマンド粒度の実行 | `pnpm <script>` / `make <target>` を**名指し**で許す。任意のコマンドを包む形（`rtk run` / `pnpm dlx`）は許さない —— 包みを許すと名指しの粒度が消える | `pnpm build *` / `make help` / `rtk git diff *` |
 
-外向きに書くが取り戻せる操作 —— ブランチを切る、ラベルやブランチ保護を設定する、実ブラウザへ繋ぐ ——
+外向きに書くが取り戻せる操作 —— ブランチを切る、ラベルやブランチ保護を設定する、実ブラウザーへ繋ぐ ——
 は `ask` に置く。`deny` にすると「今回は使う」と人が決める余地が消え、`allow` にすると確認が消える。
 
-`Edit(...)` / `Write(...)` の `ask` は、AGENTS.md「Temporary Operating Rules」が保護文書に置いている
+`Edit(...)` の `ask` は、AGENTS.md「Temporary Operating Rules」が保護文書に置いている
 段階のコピーである。段階が変われば、そちらの手順に従って `deny` へ戻る。
 
 ## `hooks` —— 登録はここ、実体は外
@@ -195,8 +195,8 @@ test -x "$CLAUDE_PROJECT_DIR/<実体>" && "$CLAUDE_PROJECT_DIR/<実体>" --hook 
 | 行長 | 4096 字を超える行は検査を飛ばさず違反にする（長く書けば外せる抜け道を作らない） |
 
 - **意図的に実在しない参照**（例示・任意配置）は同じ行に `<!-- skill-lint-ignore -->` を置く。
-  YAML スカラの中では効かないので、frontmatter の誤検知は記述側を直す。
-- `<name>` のプレースホルダ、`...` の省略、まだ無いカーネル（`src/<kernel>/`）への参照は検査しない。
+  YAML スカラーの中では効かないので、frontmatter の誤検知は記述側を直す。
+- `<name>` のプレースホルダー、`...` の省略、まだ無いカーネル（`src/<kernel>/`）への参照は検査しない。
   実体化した時点で配下は自動的に検査対象へ入る。
 - `tmp/` / `graphify-out/` / `.git/` は実行時の生成先として実在を問わない。`docs/portal/` の生成物は
   名指しの 2 つだけ許す。
@@ -290,10 +290,10 @@ graphify uninstall --purge
 [`scripts/bootstrap-external-skills/skills.ts`](../scripts/bootstrap-external-skills/skills.ts) の
 導入対象・このセクションを消せば戻る。
 
-### インストーラの副作用
+### インストーラーの副作用
 
-`bootstrap-external-skills` は user スコープにしか書かないが、上流のインストーラは
-**`~/.claude/CLAUDE.md`（user グローバル）** も作成し、`/graphify` のトリガを登録する。リポジトリの
+`bootstrap-external-skills` は user スコープにしか書かないが、上流のインストーラーは
+**`~/.claude/CLAUDE.md`（user グローバル）** も作成し、`/graphify` のトリガーを登録する。リポジトリの
 `CLAUDE.md` / `AGENTS.md` には触らない。
 
 ## rtk

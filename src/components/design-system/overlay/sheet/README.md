@@ -43,12 +43,14 @@ It does not own the text it displays, fetching, saving, business decisions, or t
 
 `SheetContent` always has a `SheetTitle` child as its accessible name. When a description is needed, add `SheetDescription`; when not, set `aria-describedby={undefined}` explicitly. Radix warns when neither is present. When `showCloseButton` is set to `false`, always provide a closing means with `SheetClose` in the content.
 
+**On close, focus returns to the element that invoked the sheet, with or without `SheetTrigger`.** The rule, shared with `Dialog` and `AlertDialog`, is owned by the layer README's [Surfaces Layered over the Content](../../../README.md#surfaces-layered-over-the-content).
+
 The content is rendered into the Portal directly under `body`, but in the React tree it stays under the caller. A `form` placed inside the sheet submits normally, and its `name` / `value` become the submitted values as they are.
 
-The vendor is currently Radix, but the public API carries no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`. The positioning and animation classes for `side` are kept exactly as shadcn generated them; since no animation plugin is adopted, no animation CSS is emitted at present.
+The vendor is currently Radix, but the public API carries no vendor name. Icons come from [`icon.ts`](../../../icon.ts) in `components`. The positioning and animation classes for `side` are kept exactly as shadcn generated them; since no animation plugin is adopted, those classes emit no animation CSS.
 
 ## Storybook and Tests
 
 Storybook covers the default open and close, the four fixed positions `right` / `left` / `top` / `bottom`, form components placed in the content as a filter surface, the case without a description, and the case without the top-right close control. Fixing to a screen edge and the look of the spacing can only be judged in a real render, so position and spacing are within Storybook's scope.
 
-The tests cover that the content is not rendered until opened, the association of the title and the description, that the title renders as a heading, that the semantics are `dialog` rather than `alertdialog`, the fixed position by default and with `side`, closing from both the top right and the footer, toggling `showCloseButton`, closing with Escape, that a `form` inside the Portal keeps its submitted values, explicit use of `SheetPortal` / `SheetOverlay`, and the automated a11y check. The Portal target lies outside the render's `container`, so `baseElement` is passed to the automated a11y check.
+The tests cover that the content is not rendered until opened, the association of the title and the description, that the title renders as a heading, that the semantics are `dialog` rather than `alertdialog`, the fixed position by default and with `side`, closing from both the top right and the footer, toggling `showCloseButton`, closing with Escape, that a `form` inside the Portal keeps its submitted values, explicit use of `SheetPortal` / `SheetOverlay`, where focus returns on close (the trigger, the element focused at opening when there is no trigger, and its focusable ancestor when that element is gone), and the automated a11y check. The Portal target lies outside the render's `container`, so `baseElement` is passed to the automated a11y check.

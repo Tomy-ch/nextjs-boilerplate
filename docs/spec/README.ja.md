@@ -14,7 +14,7 @@
 
 振り分けはこの問いで決めます。
 
-> **バックエンドの契約と利用者の目的が同じまま、その記述だけが違う画面があり得るか。**
+> **バックエンドの契約とユーザーの目的が同じまま、その記述だけが違う画面があり得るか。**
 > あり得る → 画面要件。あり得ない → 機能要件。
 
 | | 機能要件（`*.function.md`） | 画面要件（`*.screen.md`） |
@@ -71,6 +71,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/mypage` | [`screen`](route/shop/mypage/page.screen.ja.md) / [`function`](route/shop/mypage/page.function.ja.md) <!-- sample:line --> |
 | `/mypage/edit` | [`screen`](route/shop/mypage/edit/page.screen.ja.md) / [`function`](route/shop/mypage/edit/page.function.ja.md) <!-- sample:line --> |
 | `/mypage/inquiry` | [`screen`](route/shop/mypage/inquiry/page.screen.ja.md) / [`function`](route/shop/mypage/inquiry/page.function.ja.md) <!-- sample:line --> |
+| `/mypage/coupons` | [`screen`](route/shop/mypage/coupons/page.screen.ja.md) / [`function`](route/shop/mypage/coupons/page.function.ja.md) <!-- sample:line --> |
 | `(site-info)` 外枠 | [`layout.screen.md`](route/site-info/layout.screen.ja.md) / [`layout.function.md`](route/site-info/layout.function.ja.md) <!-- sample:line --> |
 | `/about` | [`screen`](route/site-info/about/page.screen.ja.md) / [`function`](route/site-info/about/page.function.ja.md) <!-- sample:line --> |
 | `/privacy` | [`screen`](route/site-info/privacy/page.screen.ja.md) / [`function`](route/site-info/privacy/page.function.ja.md) <!-- sample:line --> |
@@ -87,6 +88,7 @@ route group は URL に現れないため、括弧を外した名前で置きま
 | `/admin/inquiries/[inquiryId]` | [`screen`](<route/admin/inquiries/[inquiryId]/page.screen.ja.md>) / [`function`](<route/admin/inquiries/[inquiryId]/page.function.ja.md>) <!-- sample:line --> |
 | `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.ja.md) / [`function`](route/admin/shipments/page.function.ja.md) <!-- sample:line --> |
 | `/admin/users` | [`screen`](route/admin/users/page.screen.ja.md) / [`function`](route/admin/users/page.function.ja.md) <!-- sample:line --> |
+| `/admin/campaigns` | [`screen`](route/admin/campaigns/page.screen.ja.md) / [`function`](route/admin/campaigns/page.function.ja.md) <!-- sample:line --> |
 | `auth` 外枠 | [`screen`](route/auth/layout.screen.ja.md) |
 | `/login` | [`screen`](route/auth/login/page.screen.ja.md) / [`function`](route/auth/login/page.function.ja.md) |
 | `/onboarding` | [`screen`](route/auth/onboarding/page.screen.ja.md) / [`function`](route/auth/onboarding/page.function.ja.md) <!-- sample:line --> |

@@ -71,6 +71,11 @@ Call `AskUserQuestion` before writing anything:
 3. **Whether a spec already exists** under `docs/spec/route/**` for this route — look at the English
    canonicals and ignore every `*.ja.md` mirror.
 
+**When an invoking skill passes the answer** ([0154](../../../docs/adr/0154-claude-skills-operations.md)):
+items 1 and 2 are pre-answered by a plan the user approved earlier in the same run, passed verbatim,
+when it names the feature, the route and the direction. What the plan leaves out is still asked, and
+item 3 is read from the tree either way — it is state, not an answer.
+
 Read `docs/playbook.md` now and follow the order it states. The order below mirrors it at the time
 of writing; **if they differ, the playbook is correct.**
 
@@ -90,7 +95,8 @@ contract it consumes, the state table, the kernel dependencies, the Server Actio
 and the test viewpoints. The README is the English canonical. The state table drives the next step,
 so it is written before any component exists.
 
-Where the direction is genuinely underspecified, ask with `AskUserQuestion` rather than choosing
+Where the direction is genuinely underspecified, ask with `AskUserQuestion` — an approved plan that
+did not settle the point does not pre-answer it — rather than choosing
 product behavior. The user is the author-of-record for what the screen promises.
 
 ## Step 3. Story first (order step 2)

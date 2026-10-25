@@ -164,6 +164,66 @@ const PREFECTURES = [
   name,
 }));
 
+/**
+ * 保有クーポンのモック応答。生成器の既定ではどの行も失効になるため応答ごと置く。日付は
+ * `mocks/stable-responses.ts` の基準日と CI の `CLOCK_FIXED_NOW`（どちらも 2026-01-01T00:00:00Z）を
+ * 「いま」として選んであり、どちらかが動けば状態の内訳が変わる。
+ */
+const HELD_COUPONS = {
+  coupons: [
+    {
+      id: "0193a1c0-0001-7000-8000-000000000005",
+      discount: { kind: "rate", value: "0.10", maxAmount: 1000 },
+      scope: { kind: "category", targetId: "0195f0c2-2000-7000-9000-000000000001" },
+      expiresAt: "2026-03-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-20T00:00:00Z",
+      minPurchaseAmount: 5000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000004",
+      discount: { kind: "flat", value: "5.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-04-30T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-15T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2026-01-31T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000003",
+      discount: { kind: "rate", value: "0.15", maxAmount: null },
+      scope: { kind: "product", targetId: "0195f0c2-0000-7000-8000-000000000002" },
+      expiresAt: "2026-02-28T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-12-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: "2025-12-04T15:00:00Z",
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000002",
+      discount: { kind: "flat", value: "10.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2026-01-31T15:00:00Z",
+      usedAt: "2025-12-10T03:00:00Z",
+      issuedAt: "2025-11-15T00:00:00Z",
+      minPurchaseAmount: 3000,
+      usableFrom: null,
+    },
+    {
+      id: "0193a1c0-0001-7000-8000-000000000001",
+      discount: { kind: "flat", value: "3.00", maxAmount: null },
+      scope: { kind: "all", targetId: null },
+      expiresAt: "2025-12-31T15:00:00Z",
+      usedAt: null,
+      issuedAt: "2025-10-01T00:00:00Z",
+      minPurchaseAmount: null,
+      usableFrom: null,
+    },
+  ],
+};
+
 // sample:end
 
 // sample:replace-begin
@@ -255,6 +315,7 @@ export default defineConfig({
           GetProductStatuses: { mock: { data: PRODUCT_STATUSES } },
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
           GetPurchaseStatuses: { mock: { data: PURCHASE_STATUSES } },
+          GetUsersMeCoupons: { mock: { data: HELD_COUPONS } },
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {
@@ -279,6 +340,93 @@ export default defineConfig({
                 affectedCartCount: 12,
                 affectedUserCount: 9,
                 issuedCouponCount: 9,
+              },
+            },
+          },
+          // 行の状態は配布期間と「いま」の前後で決まり、期間の両端は大小の決まった組なので、
+          // 項目ごとの範囲では配布前と期間外を同時に出せない。応答ごと指定する。日時は手元の実時計と
+          // CI の固定時計のどちらから見ても同じ状態になるよう、十分に遠い過去と未来で切る。
+          GetCampaigns: {
+            mock: {
+              data: {
+                campaigns: [
+                  {
+                    id: "0193a1c0-0002-7000-8000-000000000a01",
+                    code: "SPRING-2099",
+                    discount: { kind: "flat", value: "5.00", maxAmount: null },
+                    scope: { kind: "all", targetId: null },
+                    minPurchaseAmount: 5000,
+                    usableFrom: null,
+                    couponExpiresAt: "2099-06-30T15:00:00Z",
+                    startsAt: "2099-03-01T00:00:00Z",
+                    endsAt: "2099-04-01T00:00:00Z",
+                    totalLimit: 500,
+                    perUserLimit: 1,
+                    issuedCount: 0,
+                    suspendedAt: null,
+                  },
+                  {
+                    id: "0193a1c0-0002-7000-8000-000000000a02",
+                    code: "WELCOME",
+                    discount: { kind: "rate", value: "0.10", maxAmount: 2000 },
+                    scope: { kind: "category", targetId: "0193a1c0-0002-7000-8000-000000000c01" },
+                    minPurchaseAmount: null,
+                    usableFrom: null,
+                    couponExpiresAt: "2099-12-31T15:00:00Z",
+                    startsAt: "2020-01-01T00:00:00Z",
+                    endsAt: "2099-01-01T00:00:00Z",
+                    totalLimit: 300,
+                    perUserLimit: 1,
+                    issuedCount: 120,
+                    suspendedAt: null,
+                  },
+                  {
+                    id: "0193a1c0-0002-7000-8000-000000000a03",
+                    code: "FIRST-100",
+                    discount: { kind: "rate", value: "0.15", maxAmount: null },
+                    scope: { kind: "product", targetId: "0193a1c0-0002-7000-8000-000000000d01" },
+                    minPurchaseAmount: null,
+                    usableFrom: null,
+                    couponExpiresAt: "2099-12-31T15:00:00Z",
+                    startsAt: "2019-06-01T00:00:00Z",
+                    endsAt: "2099-01-01T00:00:00Z",
+                    totalLimit: 100,
+                    perUserLimit: 1,
+                    issuedCount: 100,
+                    suspendedAt: null,
+                  },
+                  {
+                    id: "0193a1c0-0002-7000-8000-000000000a04",
+                    code: "LEAKED-CODE",
+                    discount: { kind: "flat", value: "20.00", maxAmount: null },
+                    scope: { kind: "all", targetId: null },
+                    minPurchaseAmount: null,
+                    usableFrom: null,
+                    couponExpiresAt: "2099-12-31T15:00:00Z",
+                    startsAt: "2019-01-01T00:00:00Z",
+                    endsAt: "2099-01-01T00:00:00Z",
+                    totalLimit: 1000,
+                    perUserLimit: 1,
+                    issuedCount: 312,
+                    suspendedAt: "2019-01-02T03:00:00Z",
+                  },
+                  {
+                    id: "0193a1c0-0002-7000-8000-000000000a05",
+                    code: "SUMMER-2018",
+                    discount: { kind: "rate", value: "0.05", maxAmount: 1000 },
+                    scope: { kind: "all", targetId: null },
+                    minPurchaseAmount: 3000,
+                    usableFrom: null,
+                    couponExpiresAt: "2018-09-30T15:00:00Z",
+                    startsAt: "2018-07-01T00:00:00Z",
+                    endsAt: "2018-09-01T00:00:00Z",
+                    totalLimit: 200,
+                    perUserLimit: 2,
+                    issuedCount: 184,
+                    suspendedAt: null,
+                  },
+                ],
+                total: 5,
               },
             },
           },

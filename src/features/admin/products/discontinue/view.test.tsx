@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
@@ -26,6 +26,8 @@ import { AdminProductDiscontinueView, type AdminProductDiscontinueViewProps } fr
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-0000000000aa";
 const REMAINING_MARKER = "残っている購入の区画";
+const LOCKED_MESSAGE =
+  "前回の廃番の結果が分かるまで、条件は書き換えられません。同じ条件でもう一度廃番にしてください。";
 
 const idle: DiscontinueProductAction = () => Promise.resolve(idleActionState());
 
@@ -286,7 +288,7 @@ describe("AdminProductDiscontinueView", () => {
 
     await submit();
 
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(screen.queryByText("廃番にできませんでした")).not.toBeInTheDocument();
   });
 
@@ -364,6 +366,66 @@ describe("AdminProductDiscontinueView", () => {
     const reopened = await screen.findByRole("alertdialog");
 
     expect(within(reopened).queryByText("混み合っています。")).not.toBeInTheDocument();
+  });
+
+  it("結果が定まらない失敗のあとは、条件を書き換えさせず、同じ鍵で送り直させる", async () => {
+    const action = vi.fn<DiscontinueProductAction>(() => Promise.resolve(idleActionState()));
+
+    action.mockResolvedValueOnce(
+      failedActionState({ formError: "混み合っています。", kind: ErrorKind.UNAVAILABLE }),
+    );
+    renderView({ discontinueAction: action });
+
+    const dialog = await submit("10", "30");
+
+    await within(dialog).findByText("混み合っています。");
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+
+    expect(screen.getByRole("group", { name: "代替クーポンの条件" })).toHaveAccessibleDescription(
+      LOCKED_MESSAGE,
+    );
+
+    await userEvent.type(rateField(), "5");
+
+    expect(rateField()).toHaveValue("10");
+
+    await userEvent.click(screen.getByRole("button", { name: "廃番にする" }));
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "廃番にする" }),
+    );
+
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).toBe(IDEMPOTENCY_KEY);
+    expect(action.mock.calls[1]?.[1].get("couponDiscountRate")).toBe("10");
+  });
+
+  it("条件を拒まれたあとは、打ち直した条件を別の鍵で送る", async () => {
+    const message = "値引き率は受け付けられませんでした。入力し直してください。";
+    const action = vi.fn<DiscontinueProductAction>(() => Promise.resolve(idleActionState()));
+
+    action.mockResolvedValueOnce(
+      failedActionState({
+        formError: null,
+        fieldErrors: { couponDiscountRate: [message] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+    renderView({ discontinueAction: action });
+
+    const dialog = await submit("10", "30");
+
+    await within(dialog).findByText(message);
+    await userEvent.click(within(dialog).getByRole("button", { name: "やめる" }));
+    await userEvent.clear(rateField());
+    await userEvent.type(rateField(), "20");
+    await userEvent.click(screen.getByRole("button", { name: "廃番にする" }));
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "廃番にする" }),
+    );
+
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).not.toBe(IDEMPOTENCY_KEY);
+    expect(action.mock.calls[1]?.[1].get("couponDiscountRate")).toBe("20");
   });
 
   it("結果が無いうちは、結果も失敗の報せも出さない", () => {

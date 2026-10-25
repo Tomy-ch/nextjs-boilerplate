@@ -2,8 +2,7 @@
 // 入口([weekly/index.ts](weekly/index.ts))が持ち、ここは受け取った issue だけから答えを出す。
 //
 // **ここは何も決めない。**順位は検討の入口であって結論ではなく、測り直しは再発の件数と
-// 判定の時期が来たかを並べるだけである。保持・簡素化・撤回を決めるのは人である
-// 。
+// 判定の時期が来たかを並べるだけである。保持・簡素化・撤回を決めるのは人である。
 
 import type { Observation } from "./observation.js";
 import { FINDING_KINDS, type FindingKind, KIND_LABEL_PREFIX } from "./summarize.js";
@@ -100,8 +99,7 @@ export function failureRate(observation: Observation): number | undefined {
  * PR が開いてからマージされるまでの秒。観測できなければ `undefined`。
  *
  * @remarks
- * **実装が速くてもマージが遅ければリードタイムは縮みません。**実装の時間と並べて出すために、
- * 段から待ちだけを取り出します。
+ * 実装の時間と並べて出すために、段から待ちだけを取り出します（{@link waitDominated}）。
  */
 export function mergeWaitSec(observation: Observation): number | undefined {
   return observation.phases.find((phase) => phase.from === "prOpenedAt" && phase.to === "mergedAt")
@@ -113,8 +111,7 @@ export function mergeWaitSec(observation: Observation): number | undefined {
  *
  * @remarks
  * 分類のラベルが付いていればそれを鍵にし、無ければ `UNCLASSIFIED` にまとめます。
- * **意味による分類はここでは行いません** —— 決定的な集計が先に立ち、モデルはその後です
- * 。
+ * **意味による分類はここでは行いません** —— 決定的な集計が先に立ち、モデルはその後です。
  */
 export function clusterKey(issue: FeedbackIssue): string {
   return issue.kinds.length === 0
@@ -193,8 +190,8 @@ export function waitDominated(issues: readonly FeedbackIssue[]): readonly number
  * 着地から測り直しまでの日数。
  *
  * @remarks
- * 「一定期間後に再計測する」と置いた待ち時間です（[README](../README.md)）。**短すぎれば母数が足りず、長すぎれば次の改善と混ざります。**14 日は
- * 最初の設定値で、運用のデータで動かす前提です。
+ * 着地から再計測までの待ち時間です（[README](../README.md)）。**短すぎれば母数が足りず、長すぎれば
+ * 次の改善と混ざります。**
  */
 export const REEVALUATION_DAYS = 14;
 
@@ -221,7 +218,7 @@ export type Reevaluation = {
  * `UNCLASSIFIED` は除きます。**何についての所見か分かっていない以上、「同じものが再発したか」に
  * 答えられません。**
  *
- * **判定はしません。**再発の件数と、測り直しの時期が来たかを並べるだけです。
+ * 再発の件数と、測り直しの時期が来たかを並べます。
  */
 export function reevaluations(
   issues: readonly FeedbackIssue[],

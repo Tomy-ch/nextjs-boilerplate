@@ -83,6 +83,28 @@ either by an explicit path in `scripts/lib/untested-modules.ts`, or by one of th
 that same file (`RUNTIME_ONLY_MODULES` covers `src/app/**/page.tsx`, which no unit run can render).
 Re-deriving the exclusions by reading the lists invites disagreeing with the gate that actually runs.
 
+### When the gate cannot run here
+
+Whether a check runs locally is not this skill's decision — the user may have stopped local runs, a
+permission may refuse the command, or the environment may lack what it needs. What this skill owns is
+how the set is resolved without it. **Do not fall back to reading the exclusion declarations** —
+that is the re-derivation the paragraph above rules out. Take the set from the first source that
+answers:
+
+1. **The gate's own verdict from CI.** When the branch has a pull request, its Scripts Check run
+   carries the same gate output; read the `missing-test-file` / `missing-describe` lines from
+   `gh run view <run-id> --log-failed`. Scripts Check runs on `pull_request` and
+   `workflow_dispatch` only, so before a PR exists this source is usually absent.
+2. **Candidates from the branch diff.** Callable exports in the files this branch touched that have
+   no sibling `<subject>.test.ts`, or have one whose top-level `describe` does not name them. What
+   counts as callable is the gate's predicate in `scripts/lib/one-to-one.ts`; do not restate it here.
+   These are **unverified candidates**, not the gate's set: offer them at Step 3, and let the user
+   exclude what the declarations would have excluded.
+3. **A subject the user names.** When none of the above yields anything, stop and ask for one.
+
+Say in the report that the set was **not checked against the 1:1 gate**, and which source it came
+from.
+
 ### Narrow it to the change in hand
 
 The gate reports the whole repository. In a tree with parallel worktrees that includes subjects
@@ -319,6 +341,11 @@ extraction, and "covered by another test" is never a reason.
 
 Run these and report the results honestly, including anything that did not run:
 
+Report each command below as **passed / failed / not run** — a check that did not run is never
+reported as one that passed ([0157](../../../docs/adr/0157-inspection-declaration-discipline.md)).
+When none of them ran, say plainly that the written tests have **never been executed**, that CI (Test /
+Scripts Check) owns the verdict, and that 100 % coverage on the subjects is **unconfirmed**.
+
 Run these **after each group**, so a mistaken shape is caught before it is copied into the next one:
 
 ```sh
@@ -359,26 +386,31 @@ Say plainly what was written, what was verified, and what was left as a finding.
 the questions a writer cannot ask about their own output — whether the assertions mean anything, and
 whether the layer's duty is actually exercised.
 
+When the tests are handed over without having run, say so in the handoff — the reviewer otherwise
+reads them as tests that pass.
+
 ## Constraints
 
 - ✅ Read ADR 0090 / 0091, the `test-requirement` frontmatter, and sibling tests at runtime
 - ✅ Japanese `it` strings; export-name `describe`; separators on the axis ADR 0090 assigns
 - ✅ Confirm the case plan before writing, per group
 - ✅ Narrow the set to this branch's files; leave another session's subjects alone
-- ✅ Verify with the 1:1 gate and per-subject coverage
+- ✅ Verify with the 1:1 gate and per-subject coverage, or report each check that did not run as not run
 - ❌ Edit, rename, or restructure the subject — read-only, always
 - ❌ Write `it.skip` / `it.todo` to make the file pass
-- ❌ Write a test for a subject the 1:1 gate does not report as missing
+- ❌ Write a test for a subject the 1:1 gate does not report as missing — when the gate could not run,
+  for a diff candidate the user has not kept at Step 3
 - ❌ Hand-roll a `fetch` stub where MSW owns the boundary
 - ❌ Treat the lists in this file as the rules — where they and the sources differ, the sources win
 
 ## Checklist
 
-- [ ] Subject set resolved from the gate, narrowed to this branch's files, and grouped by `test-requirement` owner
+- [ ] Subject set resolved from the gate — or, when it could not run, from CI / diff candidates / a named
+      subject with that source reported — narrowed to this branch's files, and grouped by `test-requirement` owner
 - [ ] ADR 0090 / 0091 and the nearest `test-requirement` read this run
 - [ ] Case set derived from the subject's branches, each with a distinctive assertion
 - [ ] Case plan confirmed with the user, one group at a time
 - [ ] File written next to the subject, with the export-name `describe` and separators
-- [ ] `pnpm fix` and the new tests run per group; the 1:1 gate run once at the end
-- [ ] Per-subject coverage confirmed at 100 % on all four metrics, scoped to the subjects in hand
+- [ ] `pnpm fix` and the new tests run per group; the 1:1 gate run once at the end — or each reported as not run
+- [ ] Per-subject coverage confirmed at 100 % on all four metrics, scoped to the subjects in hand — or reported as unconfirmed
 - [ ] Unreachable branches reported as findings, not skipped

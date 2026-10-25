@@ -2,13 +2,13 @@
 name: supply-chain-triage
 usage-class: safety
 description: >-
-  Gather direct evidence about ONE artifact version that a cooldown window has caught, and score how likely it
+  Gather direct evidence about ONE artifact version that a cooldown window or pnpm's trust policy has caught, and score how likely it
   is to be a compromised publish, so a human can decide adopt-now vs wait from evidence rather than a day
   count. Use it whenever a version is held back by `tools-upgrade` / `actions-pin` / `images-pin` / `dep-vuln-upgrade`;
   whenever `make tools-cooldown-check` blocks a pin; whenever a Dependabot security update wants to skip the
-  window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. It reports an axis as
-  unanswerable rather than as a pass when the evidence cannot be obtained. Strictly report-only — it never
-  edits a lockfile or a pin, lowers a window, or applies an upgrade. Do NOT use it to perform the upgrade, or
+  window; before any deliberate override; and on 「このバージョン安全？」「なぜ検疫されている、取っていいのか」. An axis without
+  evidence is reported unanswerable, never a pass. Strictly report-only — it never edits a lockfile or a pin,
+  lowers a window, or applies an upgrade. Do NOT use it to perform the upgrade, or
   as a malware scanner for first-party code.
 argument-hint: '[<ecosystem>:<name>@<candidate-version>] [baseline=<version>] [days=<N>]'
 ---
@@ -45,6 +45,8 @@ command recipes, not prose for human readers.
   same-day publish is worth it.
 - Before any deliberate window override. **Overriding without evidence is the one combination
   [0110](../../../docs/adr/0110-security-operations.md) rules out.**
+- pnpm's trust policy refused a version (`ERR_PNPM_TRUST_DOWNGRADE`): it carries weaker publish evidence
+  than the releases before it, and someone must decide whether the downgrade is explained.
 - The user asks, in any phrasing, whether a specific release is safe to take.
 
 ## Contract
@@ -106,6 +108,12 @@ Score on what the evidence says, not on how it feels:
   changed to an unknown account; the artifact does not match the tag; a tag already trusted now
   resolves to a different commit).
 - `?` — not obtainable. Say why in one clause. **Never substitute `0`.**
+
+**A trust-downgraded capture leaves axis A `?` by construction** — the provenance that would answer it
+is what was lost, so the band is capped at MEDIUM. Say so on axis A rather than searching for a
+substitute, and let axis P carry what explains the downgrade (an upstream announcement, a pipeline
+that moved): [0110](../../../docs/adr/0110-security-operations.md) admits a per-version exemption
+only when the downgrade is explained.
 
 **The baseline is the version the caller would otherwise keep** — the currently-pinned SHA, the
 locked version, the installed one — not simply the previous release in the registry. The question
@@ -183,7 +191,7 @@ Fix these before gathering anything, from the arguments, the calling skill's con
 | ecosystem | `npm` / `github-actions` / `container-image` — selects the reference file. A `mise` pin routes to its backend's ecosystem |
 | name + candidate version | The exact thing under consideration (tag, version, digest) |
 | baseline version | What the caller keeps if this is declined; the diff's other end |
-| window `N` and how it was caught | Which disposition fired, and when the candidate ages out |
+| window `N` and how it was caught | Which disposition fired, and when the candidate ages out. For a trust downgrade, the window is `trustPolicyIgnoreAfter` and the clear date is publish time + that |
 | urgency | Is a CVE forcing the move, or is this a routine bump? **This does not change the score** — it changes what the recommendation is worth to the reader |
 
 If the baseline cannot be determined (a first-ever pin), say so — **axis D loses its other end** and
@@ -218,6 +226,7 @@ Print the report below, then hand back to the calling skill (which runs its own 
 ```text
 供給網トリアージ: <ecosystem>:<name> <baseline> → <candidate>
   捕捉理由: <disposition>（窓 <N> 日 / 公開 <publish-date>, <age> 日 / 解除 <clear-date>）
+            trust の低下なら: trust-downgraded（公開者 <before> → <after> / trustPolicyIgnoreAfter <N> 日 / 解除 <clear-date>）
   緊急度  : <CVE 等 / 定期更新>
 
 スコア: <sum>/12 → <BAND>
@@ -234,7 +243,7 @@ Print the report below, then hand back to the calling skill (which runs its own 
 
 推奨: <下記の対応表に従う>
 
-本スキルは何も変更していません（報告のみ）。採用の判断は <呼び出し元 / 利用者> が行います。
+本スキルは何も変更していません（報告のみ）。採用の判断は <呼び出し元 / ユーザー> が行います。
 ```
 
 Map the band to a recommendation:
@@ -257,6 +266,10 @@ Restate the walls whenever they apply — **a LOW score does not make a blocked 
   repository owns, and a LOW score does not clear it. The escape hatch is the exemption comment
   [0110](../../../docs/adr/0110-security-operations.md) requires — **a triage verdict is the
   evidence that belongs in that comment's reason, not permission to write it.**
+- **`pnpm-workspace.yaml`'s trust policy** (`trustPolicy`) is enforced by the resolver the same way, in
+  CI too. The exit is a per-version `trustPolicyExclude` entry, written only when the downgrade is
+  explained — the decision is the caller's. Never suggest relaxing `trustPolicy` or
+  `trustPolicyIgnoreAfter`.
 - **A first-ever pin has no aged fallback**, so a LOW score still leaves the choice between waiting
   and a deliberate bootstrap.
 

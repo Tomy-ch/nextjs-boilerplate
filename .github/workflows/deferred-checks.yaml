@@ -9,6 +9,9 @@ name: Deferred Checks
 #
 # So this workflow reads the diff once, for all three, and leaves at most one comment.
 #
+# No `paths:` filter, deliberately — README.md says why. The job always starts and asks
+# `diff-scope` whether the diff can reach any of the three before anything is installed.
+#
 # ## This is not a gate
 #
 # It cannot fail, and it is not a required status check. What it produces is a prompt whose
@@ -41,21 +44,25 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -73,20 +80,37 @@ jobs:
         id: cadence
         uses: ./.github/actions/check-trigger
 
-      - name: Setup mise and the pinned tools
+      # A label is recommended only for a diff one of the three can see. All three read the built
+      # application or what renders into it, and none reads the documentation or the agent
+      # configuration, so a diff of only those earns no label.
+      - name: Decide whether the diff can reach a deferred check
+        id: scope
         if: steps.cadence.outputs.run != 'true'
+        uses: ./.github/actions/diff-scope
+        with:
+          base-ref: ${{ github.base_ref }}
+          ignore: |
+            docs/*
+            *.md
+            .claude/*
+            .agents/*
+            .cursor/*
+            .gemini/*
+
+      - name: Setup mise and the pinned tools
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-mise
         with:
           tools: core:node aqua:pnpm/pnpm
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        if: steps.cadence.outputs.run != 'true'
+        if: steps.scope.outputs.relevant == 'true'
         uses: ./.github/actions/setup-deps
 
       - name: Decide what to say about the deferred checks
         id: nudge
-        if: steps.cadence.outputs.run != 'true'
+        if: steps.scope.outputs.relevant == 'true'
         env:
           BASE_REF: ${{ github.base_ref }}
           PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}

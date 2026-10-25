@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { newIdempotencyKey } from "./idempotency-key";
+import { ErrorKind, errorKinds } from "@/errors/error-kind";
+
+import { failedActionState, idleActionState, succeededActionState } from "./action-state";
+import { leavesOutcomeOpen, newIdempotencyKey, settlesSubmission } from "./idempotency-key";
+
+const OUTCOME_OPEN_KINDS: readonly ErrorKind[] = [
+  ErrorKind.TOO_MANY_REQUESTS,
+  ErrorKind.CANCELED,
+  ErrorKind.UNAVAILABLE,
+  ErrorKind.INTERNAL,
+];
+const OUTCOME_SETTLED_KINDS = errorKinds.filter((kind) => !OUTCOME_OPEN_KINDS.includes(kind));
 
 describe("newIdempotencyKey", () => {
   // ----- 正常系 -----
@@ -12,5 +23,69 @@ describe("newIdempotencyKey", () => {
 
   it("呼ぶたびに別の鍵になる", () => {
     expect(newIdempotencyKey()).not.toBe(newIdempotencyKey());
+  });
+});
+
+describe("settlesSubmission", () => {
+  // ----- 正常系 -----
+  it("成功した送信は、その鍵の役目を終える", () => {
+    expect(settlesSubmission(succeededActionState(undefined))).toBe(true);
+  });
+
+  it("まだ送っていなければ、鍵の役目は終わっていない", () => {
+    expect(settlesSubmission(idleActionState())).toBe(false);
+  });
+
+  it("分類を持たない失敗では、鍵の役目は終わっていない", () => {
+    expect(settlesSubmission(failedActionState({ formError: "失敗しました。" }))).toBe(false);
+  });
+
+  it.each(OUTCOME_SETTLED_KINDS)("%s で拒まれた送信は、その鍵の役目を終える", (kind) => {
+    expect(settlesSubmission(failedActionState({ kind }))).toBe(true);
+  });
+
+  it.each(OUTCOME_OPEN_KINDS)("%s で失敗した送信は、同じ鍵で送り直す", (kind) => {
+    expect(settlesSubmission(failedActionState({ kind }))).toBe(false);
+  });
+
+  it("競合を処理中に充てるエンドポイントでは、競合の後も同じ鍵で送り直す", () => {
+    expect(settlesSubmission(failedActionState({ kind: ErrorKind.CONFLICT }), "in-progress")).toBe(
+      false,
+    );
+  });
+
+  it("競合を処理中に充てるエンドポイントでも、競合でない拒否は鍵の役目を終える", () => {
+    expect(
+      settlesSubmission(failedActionState({ kind: ErrorKind.VALIDATION }), "in-progress"),
+    ).toBe(true);
+  });
+});
+
+describe("leavesOutcomeOpen", () => {
+  // ----- 正常系 -----
+  it("まだ送っていなければ、結果が定まっていないとはしない", () => {
+    expect(leavesOutcomeOpen(idleActionState())).toBe(false);
+  });
+
+  it("成功した送信は、結果が定まっていないとはしない", () => {
+    expect(leavesOutcomeOpen(succeededActionState(undefined))).toBe(false);
+  });
+
+  it("分類を持たない失敗は、結果が定まっていないとはしない", () => {
+    expect(leavesOutcomeOpen(failedActionState({ formError: "失敗しました。" }))).toBe(false);
+  });
+
+  it.each(OUTCOME_OPEN_KINDS)("%s で失敗した送信は、結果が定まっていない", (kind) => {
+    expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(true);
+  });
+
+  it.each(OUTCOME_SETTLED_KINDS)("%s で拒まれた送信は、結果が定まっていないとはしない", (kind) => {
+    expect(leavesOutcomeOpen(failedActionState({ kind }))).toBe(false);
+  });
+
+  it("競合を処理中に充てるエンドポイントでは、競合の後は結果が定まっていない", () => {
+    expect(leavesOutcomeOpen(failedActionState({ kind: ErrorKind.CONFLICT }), "in-progress")).toBe(
+      true,
+    );
   });
 });

@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { useCallback, useState } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 import {
   AlertDialog,
@@ -32,6 +33,38 @@ function Example({ defaultOpen = false }: { defaultOpen?: boolean } = {}) {
     </AlertDialog>
   );
 }
+
+function TriggerlessExample() {
+  const [open, setOpen] = useState(false);
+  const [invokerShown, setInvokerShown] = useState(true);
+  const openSurface = useCallback(() => setOpen(true), []);
+  const hideInvoker = useCallback(() => setInvokerShown(false), []);
+
+  return (
+    <>
+      <section aria-label="一覧" tabIndex={-1}>
+        {invokerShown ? (
+          <button onClick={openSurface} type="button">
+            対象を確認する
+          </button>
+        ) : null}
+      </section>
+      <AlertDialog onOpenChange={setOpen} open={open}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認</AlertDialogTitle>
+            <AlertDialogDescription>続行しますか？</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>戻る</AlertDialogCancel>
+            <AlertDialogAction onClick={hideInvoker}>続行</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+}
+
 describe("AlertDialog", () => {
   it("開閉と確認 dialog の意味論を提供する", async () => {
     render(<Example />);
@@ -103,6 +136,57 @@ describe("AlertDialogContent", () => {
     render(<Example />);
 
     expect(screen.queryByRole("alertdialog")).toBeNull();
+  });
+
+  it("trigger から開いたときは、閉じると trigger へ focus を戻す", async () => {
+    render(<Example />);
+
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "開く" })).toHaveFocus());
+  });
+
+  it("trigger を持たないときは、閉じると開いたときに focus があった要素へ戻す", async () => {
+    render(<TriggerlessExample />);
+
+    await userEvent.click(screen.getByRole("button", { name: "対象を確認する" }));
+    await userEvent.keyboard("{Escape}");
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "対象を確認する" })).toHaveFocus(),
+    );
+  });
+
+  it("開いたときに focus があった要素が閉じる間に消えたら、focus できる最も近い祖先へ戻す", async () => {
+    render(<TriggerlessExample />);
+
+    await userEvent.click(screen.getByRole("button", { name: "対象を確認する" }));
+    await userEvent.click(screen.getByRole("button", { name: "続行" }));
+
+    await waitFor(() => expect(screen.getByRole("region", { name: "一覧" })).toHaveFocus());
+  });
+
+  it("呼び出し側の onCloseAutoFocus が既定を止めたら、閉じても trigger へ focus を戻さない", async () => {
+    const onCloseAutoFocus = vi.fn((event: Event) => event.preventDefault());
+
+    render(
+      <AlertDialog>
+        <AlertDialogTrigger>開く</AlertDialogTrigger>
+        <AlertDialogContent onCloseAutoFocus={onCloseAutoFocus}>
+          <AlertDialogTitle>確認</AlertDialogTitle>
+          <AlertDialogDescription>続行しますか？</AlertDialogDescription>
+          <AlertDialogCancel>戻る</AlertDialogCancel>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "開く" }));
+    await userEvent.click(screen.getByRole("button", { name: "戻る" }));
+
+    await waitFor(() => expect(onCloseAutoFocus).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.getByRole("button", { name: "開く" })).not.toHaveFocus();
   });
 });
 

@@ -3,6 +3,7 @@ import type { Cart } from "@/model/cart/cart";
 import type { ReferenceAmount } from "@/model/money";
 import { withPartSpan } from "@/observability/render-span";
 import { hasExcludedLines, orderLinesOf, priceChangedNames } from "../../../order";
+import { CouponEstimate } from "../coupon-estimate/coupon-estimate";
 import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PriceChangeConfirm } from "../price-change-confirm/price-change-confirm";
 
@@ -48,6 +49,7 @@ export const OrderSummary = withPartSpan(
           reference={reference}
           size={size}
         />
+        <CouponEstimate />
         <div className="flex flex-col gap-1 text-muted-foreground text-xs">
           <p>税と送料は、注文を確定した時点で決まります。</p>
           {hasExcludedLines(cart) ? <p>買えない明細は今回の購入から外れます。</p> : null}

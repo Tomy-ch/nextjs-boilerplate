@@ -17,7 +17,7 @@ function OrderForm({ children }: { children: ReactElement }) {
 /** 送信状態は画面が 1 つだけ持つ。器の外では読めないので、包まないと描けない。 */
 function withPlaceOrderState(Story: () => ReactElement) {
   return (
-    <PlaceOrderStateProvider idempotencyKey="0195f0c2-0000-7000-b000-000000000001">
+    <PlaceOrderStateProvider coupons={[]} idempotencyKey="0195f0c2-0000-7000-b000-000000000001">
       <OrderForm>{Story()}</OrderForm>
     </PlaceOrderStateProvider>
   );
@@ -32,7 +32,7 @@ const meta = {
       description: {
         component: [
           "購入を確定する送信部です。**待っているかは画面が 1 つだけ持つ送信の状態から採ります**（`Features/Checkout/Confirm/PlaceOrderState`）。",
-          "幅は器に合わせ、集計の中では主操作として広げ、確かめの footer では文言の幅に収めます。",
+          "幅は置き場に合わせ、集計の中では主操作として広げ、確かめの footer では文言の幅に収めます。",
         ].join(""),
       },
     },
@@ -47,7 +47,7 @@ type Story = StoryObj<typeof meta>;
 /** 確定できる明細がある状態。 */
 export const Default: Story = {};
 
-/** 器の幅いっぱいに広げた姿。集計の中では主操作になる。 */
+/** 置き場の幅いっぱいに広げた姿。集計の中では主操作になる。 */
 export const FullWidth: Story = {
   args: { fullWidth: true },
 };

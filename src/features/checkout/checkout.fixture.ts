@@ -1,4 +1,5 @@
 import type { Cart, CartLine } from "@/model/cart/cart";
+import { type CartCoupon, toCouponId } from "@/model/coupon/coupon";
 import type { ReferenceAmount } from "@/model/money";
 import { toProductId } from "@/model/product/product";
 import type { Purchase } from "@/model/purchase/purchase";
@@ -163,3 +164,34 @@ export const DISCOUNTED_PURCHASE: Purchase = {
   taxAmount: 1_790,
   totalAmount: 20_187,
 };
+
+/**
+ * いまのカートに使えるクーポン。
+ *
+ * @remarks
+ * 定率の値引き額は、額面と小計から導けない値にしてあります。画面が額面から計算し直していれば、
+ * 出る額がここと食い違います。
+ */
+export const CART_COUPONS: readonly CartCoupon[] = [
+  {
+    id: toCouponId("0193a1c0-0001-7000-8000-000000000001"),
+    discount: { kind: "rate", value: "0.10", maxAmount: 1_000 },
+    scopeKind: "category",
+    discountAmount: 332,
+    expiresAt: new Date("2027-03-31T14:59:59Z"),
+  },
+  {
+    id: toCouponId("0193a1c0-0001-7000-8000-000000000002"),
+    discount: { kind: "flat", value: "5.00" },
+    scopeKind: "all",
+    discountAmount: 500,
+    expiresAt: new Date("2027-06-30T14:59:59Z"),
+  },
+  {
+    id: toCouponId("0193a1c0-0001-7000-8000-000000000003"),
+    discount: { kind: "rate", value: "0.15", maxAmount: null },
+    scopeKind: "product",
+    discountAmount: 287,
+    expiresAt: new Date("2027-12-31T14:59:59Z"),
+  },
+];

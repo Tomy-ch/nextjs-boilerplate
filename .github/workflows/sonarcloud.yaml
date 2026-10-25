@@ -59,27 +59,32 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            sonarcloud.io:443
-            api.sonarcloud.io:443
-            scanner.sonarcloud.io:443
-            binaries.sonarsource.com:443
-            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
-            keyserver.ubuntu.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            sonarcloud.io
+            api.sonarcloud.io
+            scanner.sonarcloud.io
+            binaries.sonarsource.com
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
+            keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # The secret is read here and nowhere that could print it. What leaves this job is a
       # boolean, so no `if:` expression downstream ever touches the value.
@@ -110,27 +115,32 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            sonarcloud.io:443
-            api.sonarcloud.io:443
-            scanner.sonarcloud.io:443
-            binaries.sonarsource.com:443
-            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
-            keyserver.ubuntu.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            sonarcloud.io
+            api.sonarcloud.io
+            scanner.sonarcloud.io
+            binaries.sonarsource.com
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
+            keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # Sonar attributes an issue to the commit that introduced it, which it can only do
       # with the history present. `fetch-depth: 0` is the vendor's documented requirement
@@ -265,27 +275,32 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            sonarcloud.io:443
-            api.sonarcloud.io:443
-            scanner.sonarcloud.io:443
-            binaries.sonarsource.com:443
-            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
-            keyserver.ubuntu.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            sonarcloud.io
+            api.sonarcloud.io
+            scanner.sonarcloud.io
+            binaries.sonarsource.com
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
+            keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       # The composite action below is read from the workspace, so the repository has to be
       # present even though nothing here scans it.
@@ -345,27 +360,32 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            sonarcloud.io:443
-            api.sonarcloud.io:443
-            scanner.sonarcloud.io:443
-            binaries.sonarsource.com:443
-            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com:443
-            keyserver.ubuntu.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            sonarcloud.io
+            api.sonarcloud.io
+            scanner.sonarcloud.io
+            binaries.sonarsource.com
+            dna-visualization-scannerdata-eu-central-1-prod.s3.eu-central-1.amazonaws.com
+            keyserver.ubuntu.com
+            *.keyserver.ubuntu.com
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -387,7 +407,7 @@ jobs:
             echo 'organization を用意して 「SONAR_TOKEN」 を登録し、sonar-project.properties の'
             echo 'sonar.projectKey / sonar.organization を自分のものへ書き換えてください。'
             echo '使わないなら、このワークフローと sonar-project.properties を削除してください'
-            echo '（boilerplate の剥がしは両方を消します）。'
+            echo '（make setup-remove-licensed-scanners は両方をまとめて消します）。'
           } > /tmp/sonarcloud-notice.md
 
       - name: Comment the gap on PR

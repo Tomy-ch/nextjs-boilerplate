@@ -21,6 +21,7 @@ function renderForm(overrides: Partial<Parameters<typeof AdminInquiryReplyForm>[
       action={vi.fn()}
       idempotencyKey={KEY}
       inquiryId={INQUIRY_ID}
+      outcomeOpen={false}
       pending={false}
       state={idleActionState<void, typeof REPLY_BODY_FIELD>()}
       {...overrides}
@@ -41,18 +42,60 @@ describe("AdminInquiryReplyForm", () => {
     expect(container.querySelector('input[name="idempotencyKey"]')).toHaveValue(KEY);
   });
 
-  it("空のままでは送信できない", () => {
+  it("空でも送信の操作は押せる", () => {
     renderForm();
-
-    expect(screen.getByRole("button", { name: "回答する" })).toBeDisabled();
-  });
-
-  it("書きかけがあれば送信できる", async () => {
-    renderForm();
-
-    await userEvent.type(screen.getByLabelText("回答"), "承知しました。");
 
     expect(screen.getByRole("button", { name: "回答する" })).toBeEnabled();
+  });
+
+  it("本文が必須であることを入力欄と印で伝える", () => {
+    renderForm();
+
+    expect(screen.getByLabelText("回答")).toHaveAttribute("aria-required", "true");
+    expect(screen.getByText("必須")).toBeVisible();
+  });
+
+  it.each([
+    ["空", ""],
+    ["空白だけ", "   "],
+  ])("%sのまま押したら送らず、入力を促す文言を欄に紐づけて出す", async (_label, body) => {
+    const user = userEvent.setup();
+    const action = vi.fn();
+
+    renderForm({ action });
+
+    const textarea = screen.getByLabelText("回答");
+
+    if (body !== "") {
+      await user.type(textarea, body);
+    }
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(action).not.toHaveBeenCalled();
+    expect(textarea).toHaveAttribute("aria-invalid", "true");
+    expect(textarea).toHaveAccessibleDescription("本文を入力してください。");
+  });
+
+  it("空のまま押した後に書き始めると、入力を促す文言を消す", async () => {
+    const user = userEvent.setup();
+
+    renderForm();
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await user.type(screen.getByLabelText("回答"), "回");
+
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
+  });
+
+  it("書きかけがあれば、押したら送り、入力を促す文言は出さない", async () => {
+    const action = vi.fn();
+
+    renderForm({ action });
+
+    await userEvent.type(screen.getByLabelText("回答"), "承知しました。");
+    await userEvent.click(screen.getByRole("button", { name: "回答する" }));
+
+    expect(action).toHaveBeenCalledOnce();
+    expect(screen.queryByText("本文を入力してください。")).not.toBeInTheDocument();
   });
 
   it("送信中は二重に送れない", () => {
@@ -84,6 +127,7 @@ describe("AdminInquiryReplyForm", () => {
         action={vi.fn()}
         idempotencyKey={KEY}
         inquiryId={INQUIRY_ID}
+        outcomeOpen={false}
         pending={false}
         state={succeededActionState<void, typeof REPLY_BODY_FIELD>(undefined)}
       />,
@@ -102,12 +146,70 @@ describe("AdminInquiryReplyForm", () => {
         action={vi.fn()}
         idempotencyKey={KEY}
         inquiryId={INQUIRY_ID}
+        outcomeOpen={false}
         pending={false}
         state={failedActionState<void, typeof REPLY_BODY_FIELD>({ formError: "失敗" })}
       />,
     );
 
     expect(textarea).toHaveValue("打ち直したくない回答");
+  });
+
+  it("結果が定まらないあいだは本文を書き換えさせず、理由を欄に結ぶ", async () => {
+    const { rerender } = renderForm();
+    const textarea = screen.getByLabelText("回答");
+
+    await userEvent.type(textarea, "送った本文");
+    rerender(
+      <AdminInquiryReplyForm
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        inquiryId={INQUIRY_ID}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof REPLY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "を書き換える");
+
+    expect(textarea).toHaveValue("送った本文");
+    expect(textarea).toHaveAccessibleDescription(
+      "前回の回答の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度回答してください。",
+    );
+  });
+
+  it("結果が定まったら、また書き換えられる", async () => {
+    const { rerender } = renderForm();
+    const textarea = screen.getByLabelText("回答");
+
+    rerender(
+      <AdminInquiryReplyForm
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        inquiryId={INQUIRY_ID}
+        outcomeOpen={true}
+        pending={false}
+        state={failedActionState<void, typeof REPLY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    rerender(
+      <AdminInquiryReplyForm
+        action={vi.fn()}
+        idempotencyKey={KEY}
+        inquiryId={INQUIRY_ID}
+        outcomeOpen={false}
+        pending={false}
+        state={failedActionState<void, typeof REPLY_BODY_FIELD>({ formError: "失敗" })}
+      />,
+    );
+    await userEvent.type(textarea, "本文");
+
+    expect(textarea).toHaveValue("本文");
+    expect(
+      screen.queryByText(
+        "前回の回答の結果が分かるまで、本文は書き換えられません。同じ本文でもう一度回答してください。",
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it("本文の項目エラーを入力欄へ紐づける", () => {

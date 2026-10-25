@@ -5,10 +5,11 @@
 //   apply   `.github/egress.yaml` を workflow へ反映する
 //   check   宣言との差分で落とす（ネットワークへは出ない）
 //
-// 判定の中身は apply-check.ts が持ち、宣言の読み取りは declaration.ts が持つ。
+// 判定の中身は apply-check.ts と failures.ts が持ち、宣言の読み取りは declaration.ts が持つ。
 import { resolve } from "node:path";
 import { runEgress, workflowNames } from "./apply-check.js";
-import { DECLARATION_FILE, orphanKeys, readDeclaration } from "./declaration.js";
+import { DECLARATION_FILE, orphanKeys, orphanSudo, readDeclaration } from "./declaration.js";
+import { failures } from "./failures.js";
 
 const USAGE = "usage: egress <apply|check>";
 
@@ -40,20 +41,15 @@ function main(): void {
 
   const orphans = orphanKeys(declaration, names);
   const report = runEgress(root, declaration, command === "check");
+  const stops = failures(report, orphans, orphanSudo(declaration, report.jobs));
 
-  for (const at of report.malformed) {
-    console.error(`❌ ${at}: harden-runner の形が想定と違うため書き換えられません。`);
-  }
-
-  for (const key of orphans) {
-    console.error(`❌ ${DECLARATION_FILE}: ${key} に対応する workflow がありません。`);
-  }
+  for (const message of stops) console.error(message);
 
   if (report.audited.length > 0) {
     console.error(`⚠️ 監査のまま: ${report.audited.join(", ")}（理由は ${DECLARATION_FILE}）`);
   }
 
-  if (report.malformed.length > 0 || orphans.length > 0) process.exit(1);
+  if (stops.length > 0) process.exit(1);
 
   if (command === "apply") {
     console.error(

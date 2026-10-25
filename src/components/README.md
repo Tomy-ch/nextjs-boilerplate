@@ -53,6 +53,8 @@ contract live there, so when the contract changes they are rebuilt ([Placement a
 - Use [`cn.ts`](./cn.ts) for conditional class names and resolving Tailwind utility conflicts. Do not add implementations that use `clsx` and `tailwind-merge` directly
 - Take icons from [`icon.ts`](./icon.ts). Implementations that import the supplier directly are not placed even inside `components`. This keeps a replacement to one file, and `no-restricted-imports` in `eslint.config.ts` shuts them out. **This surface is limited to named re-exports** — a table that looks up a component by name pulls unused icons into the bundle too
 - For the decision "once satisfied, keep it mounted from then on", use [`use-latched.ts`](./use-latched.ts). If the content is removed every time its container closes, **things that cannot be restored once removed** (an editing surface that can only be built from the content at the time it opened, an input that must be included in the submission) are rebuilt. It is needed across layers, so it lives here rather than under a layer
+- A form that sends an idempotency key holds it through [`use-submission-key.ts`](./use-submission-key.ts): it pins the first key, renews it once a response settles the submission, and says whether the outcome is still open so the inputs can be kept as sent. Whether the key is renewed is `model/idempotency-key.ts`'s classification; the hook only keeps the key and that classification on one `state`. Forms in several features need it, so it lives here rather than under a layer
+- For a required field that must not be sent empty, use [`use-empty-guard.ts`](./use-empty-guard.ts) rather than disabling the submit control. A control that cannot be pressed takes no focus, so keyboard and assistive-technology users never reach why; the hook stops the submission when pressed and returns the wording to attach to the field. It is needed by forms in several features, so it lives here rather than under a layer
 - Colors, spacing and the like use the semantic tokens of [`tokens/`](../../tokens/README.md). Do not use primitive tokens directly
 - Add shadcn/ui components with `pnpm add:ui <component> --as=<heading> [--layer=<layer>] [-- <shadcn add options>]`. It copies in one component at a time to the place matching its layer and heading, and on success records the layer, heading, registry, time added and CLI version in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml), so do not run `pnpm exec shadcn add` directly. `--as` is required and `--layer` defaults to `design-system`; an invalid value for either is rejected before `shadcn add` runs
 - An original component with no equivalent upstream item is placed with `pnpm gen component <name> --as=<heading> [--layer=<layer>]`. The vocabulary and defaults of the placement options are the same as `add:ui`; it emits the implementation, story, test and a README copied from `component-template.md` into the same directory, and records a `kind: original` row in [`shadcn-manifest.yaml`](./shadcn-manifest.yaml). `pnpm check:ui` fails a directory that has a README but no row in the ledger, so the template and the ledger row are emitted together
@@ -229,6 +231,7 @@ Biome's a11y rules look only at the shape of elements, so they can fire even whe
 ### Surfaces Layered over the Content
 
 - **Surfaces that a Portal places over the content (notifications, menus, dialogs) have an opaque background.** A tint such as `bg-warning/10` used by an in-context `Alert` assumes the underlying layer is the content's surface. When reusing the same variant's classes on an overlapping surface, give it a background on the surface side
+- **When a modal closes, focus returns to the element that invoked it** ([WAI-ARIA APG Modal Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/), WCAG 2.4.3). Radix returns focus only to the component's own `Trigger`, so a modal opened from state with no trigger — from a row's menu, for instance — leaves focus on the document body when it closes. `DialogContent`, `SheetContent` and `AlertDialogContent` therefore remember the element that held focus when they opened and return focus there however they closed (a close action, Escape, or the caller closing them once a result arrives). If that element is no longer in the document by then, focus goes to its nearest ancestor with `tabindex`, as it stood at opening — for a row whose action vanished with the result, the table's scroll region — which keeps the reader's place. With neither available, or when focus was on the document body at opening, Radix's default applies. A caller's `onOpenAutoFocus` / `onCloseAutoFocus` still runs first, and a `preventDefault()` in the caller's `onCloseAutoFocus` wins. The one implementation is [`overlay/use-focus-return.ts`](./design-system/overlay/use-focus-return.ts)
 - On a band that places a region alongside, `main` becomes a flex item and by default cannot be narrower than its content's minimum width. When columns or a long word push the minimum width up, `main` overflows its parent and a horizontal scroll appears across the whole screen. The content side cannot prevent this, so the layout shell shrinks with `min-w-0`
 
 ## Placement and Naming
@@ -247,7 +250,7 @@ Next.js and React do not prescribe the directory structure, directory names, or 
 - Even when not public API, if several files use values of the same UI concept, decide one owner, define them there, and reference them from each file. Values that represent JSX / type syntax itself, such as native HTML element names, may be written directly
 - Layer, purpose and component names are lowercase kebab-case. This aligns with the kebab-case convention of all source and is not enforced by Next.js / React
 - `foundation` is not an individual component but the purpose of the base that supports UI across the board. `typeset`'s typesetting and `scrollbar`'s scrollbar display belong to it, and both are imported from `globals.css`. What they share is that they **render no visible element**: some are CSS only, and some are client islands that only carry attributes and return no rendered output (the `surface` bridge). There are two ways the CSS applies: one declares an inherited property once on `:root` and applies with no opt-in, like `scrollbar`; the other is opt-in and applies only within the range marked `.typeset`, like `typeset`. State which one at the top of the README
-- A hook shared by several components goes in **the shallowest common place that covers its range**. One shared within the same purpose goes directly under the purpose directory (`overlay/use-overlay-history.ts` is pulled by `dialog` / `sheet` / `drawer` / `alert-dialog`); one that spans layers goes directly under `components/` (`use-latched.ts`). It has no README, so it is not counted as a component
+- A hook shared by several components goes in **the shallowest common place that covers its range**. One shared within the same purpose goes directly under the purpose directory (`overlay/use-overlay-history.ts` is pulled by `dialog` / `sheet` / `drawer` / `alert-dialog`, and `overlay/use-focus-return.ts` by `dialog` / `sheet` / `alert-dialog`); one that spans layers goes directly under `components/` (`use-latched.ts`). It has no README, so it is not counted as a component
 
 ### Layers
 
@@ -322,7 +325,9 @@ components/
 ├── scripts/
 ├── cn.ts
 ├── icon.ts
+├── use-empty-guard.ts
 ├── use-latched.ts
+├── use-submission-key.ts
 └── shadcn-manifest.yaml
 ```
 
@@ -574,6 +579,7 @@ Components whose mount position is decided by the component itself ([Layers](#la
 | [`content-container`](./shell/content-container/README.md) | Aligns the reading width and side margins of page content inside `main` |
 | [`page-header`](./shell/page-header/README.md) | At the top of a page, shows that page's name, description and main actions |
 | [`toaster`](./shell/toaster/README.md) | Shows the success or failure of a mutation that does not redirect as a temporary notification |
+| [`loading-announcer`](./shell/loading-announcer/README.md) | Tells assistive technology, from one region at the root, that part of the screen is loading and when it has finished |
 | [`pull-to-refresh`](./shell/pull-to-refresh/README.md) | Pulls down from the top edge of the screen to refetch the current route. Works only in environments with touch |
 | [`consent-banner`](./shell/consent-banner/README.md) | Keeps asking at the bottom edge, until a choice is made, whether cookies may be used for optional purposes |
 

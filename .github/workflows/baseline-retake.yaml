@@ -53,8 +53,10 @@ jobs:
       github.event.workflow_run.conclusion == 'failure'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # `GITHUB_TOKEN` only reads here and comments: every push goes out with the App token
+    # that `setup-baselines` mints below.
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       actions: read
 
@@ -67,29 +69,32 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            fonts.googleapis.com:443
-            fonts.gstatic.com:443
-            mcr.microsoft.com:443
-            *.data.mcr.microsoft.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: true
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            fonts.googleapis.com
+            fonts.gstatic.com
+            mcr.microsoft.com
+            *.data.mcr.microsoft.com
 
-      # Minted rather than using `GITHUB_TOKEN` for its rate limit, and allowed to fail so the
-      # retake falls back to it (README § PR Comments). This job is the first consumer to
-      # exhaust the shared cap, making about ten calls on every VRT and E2E completion.
+      # Minted for its own rate limit rather than sharing `GITHUB_TOKEN`'s, and allowed to fail
+      # so the retake falls back to `GITHUB_TOKEN` (README § PR Comments).
       #
       # The permissions are the union of what the steps below need and nothing else. The
       # `setup-baselines` call further down narrows `pull-requests` by route; this one cannot,
@@ -105,7 +110,6 @@ jobs:
           # `pull-requests: write` covers the comments and the label edit; `actions: read`
           # covers `gh run download`, which reads the triggering run's artifacts.
           permission-pull-requests: write
-          permission-issues: write
           permission-checks: read
           permission-actions: read
           permission-contents: read
@@ -118,8 +122,8 @@ jobs:
       # branch the head commit is the merge commit of the last feature pull request, so
       # that endpoint returns the feature one — already closed, and carrying none of the
       # labels a human put on the release pull request. The release pull request never
-      # appears in the answer at all, which made the retake unreachable for exactly the
-      # branch whose baselines drift the most.
+      # appears in the answer at all, so resolving by commit would leave the retake
+      # unreachable for exactly the branch whose baselines drift the most.
       - name: Resolve the pull request
         id: pr
         env:
@@ -312,6 +316,7 @@ jobs:
           app-id: ${{ secrets.BASELINE_APP_ID }}
           private-key: ${{ secrets.BASELINE_APP_PRIVATE_KEY }}
           persist-credentials: 'true'
+          push: 'true'
           # Only on the route that opens one. Unconditional, the mint 422s on an installation
           # that has not granted it and takes the push route down with it.
           pull-requests: ${{ steps.route.outputs.route == 'pull-request' && 'write' || '' }}
@@ -445,7 +450,7 @@ jobs:
           # An orphan cannot be retaken — nothing renders it any more, so it is deleted.
           # Naming the files instead of falling back to the whole set is what keeps the
           # retake bounded: a full retake adopts whatever every other story happened to
-          # render at that moment, and those images were never reported (#502).
+          # render at that moment, and those images were never reported.
           orphans="$(pnpm exec tsx scripts/vrt orphans tmp/vrt/report.json)"
           if [ -n "$orphans" ]; then
             echo "$orphans" | while IFS= read -r baseline; do
@@ -730,25 +735,29 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            fonts.googleapis.com:443
-            fonts.gstatic.com:443
-            mcr.microsoft.com:443
-            *.data.mcr.microsoft.com:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            fonts.googleapis.com
+            fonts.gstatic.com
+            mcr.microsoft.com
+            *.data.mcr.microsoft.com
 
       # Resolved by branch for the reason the retake job states: on a release branch the
       # head commit belongs to the feature pull request that was merged, not to the

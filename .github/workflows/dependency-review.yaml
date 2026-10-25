@@ -1,32 +1,24 @@
 name: Dependency Review
 
 # Blocks a pull request before merge when it introduces a dependency with a known
-# vulnerability. The other dependency scanners read the tree as it stands and cannot separate
-# a finding carried over from the base from one this change added; this job answers only
-# "did this pull request add it", which its author can undo.
+# vulnerability — the one question the other dependency scanners do not ask. Trivy,
+# `pnpm audit` and OSV all read the tree as it stands, so a vulnerability inherited from the
+# base is indistinguishable from one this change added, and the inherited ones are exactly
+# what a report-only gate has to tolerate. This reads the diff of the dependency graph
+# instead, which makes failing on it fair: whoever adds a known-vulnerable package can take
+# it back out.
 #
-# Two things it needs are settings rather than code: the repository's Dependency graph must be
-# enabled, and the API behind it is free on a public repository while a private one needs a
-# GitHub Advanced Security (Code Security) licence. Both are decisions for whoever owns the
-# repository, so this file ships and `docs/get-started/setup-repository.md` says where to turn
-# the graph on and how to remove the workflow when the licence is not wanted.
-
-# The one question the other dependency scanners do not ask: what did THIS pull
-# request add. Trivy, `pnpm audit` and OSV all read the tree as it stands, so a
-# vulnerability inherited from before is indistinguishable from one just introduced —
-# and the inherited ones are exactly what a report-only gate has to tolerate. This
-# reads the diff of the dependency graph instead, which makes failing on it fair:
-# whoever adds a known-vulnerable package can take it back out.
+# GITHUB'S DEPENDENCY GRAPH MUST BE ENABLED — a one-time repository setting. The API behind
+# it is free on a public repository while a private one needs a GitHub Advanced Security
+# (Code Security) licence; `docs/get-started/setup-repository.md` §3 says where to turn the
+# graph on and how to remove this workflow when the licence is not wanted. Without the graph
+# the action fails rather than standing down: a gate that quietly skips when the thing it
+# reads is switched off is indistinguishable from one that found nothing, and this is the
+# only layer that sees what a pull request ADDED.
 #
 # Runs on every PR without a `paths:` filter. A lockfile is not the only way the graph
 # moves — an override, a workspace field, an action pin all do — and the action simply
 # reports no change when the graph did not move.
-#
-# GITHUB'S DEPENDENCY GRAPH MUST BE ENABLED — a one-time repository setting listed in
-# `docs/get-started/setup-repository.md` §3. Without it the action fails rather than standing
-# down, which is deliberate: a gate that quietly skips when the thing it reads is switched off
-# is indistinguishable from one that found nothing, and this is the only layer that sees what a
-# pull request ADDED.
 
 on:
   pull_request:
@@ -52,23 +44,27 @@ jobs:
 
     steps:
       - name: Harden the runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        uses: bullfrogsec/bullfrog@7dee337d4575320b6d8cbe9a56d48d2fb765963a # v0.11.1
         with:
           egress-policy: block
-          allowed-endpoints: >
-            github.com:443
-            api.github.com:443
-            codeload.github.com:443
-            release-assets.githubusercontent.com:443
-            *.actions.githubusercontent.com:443
-            *.blob.core.windows.net:443
-            *.githubapp.com:443
-            prod.app-api.stepsecurity.io:443
-            mise-versions.jdx.dev:443
-            nodejs.org:443
-            registry.npmjs.org:443
-            api.deps.dev:443
-            api.securityscorecards.dev:443
+          dns-policy: allowed-domains-only
+          enable-sudo: false
+          allowed-ips: |
+            127.0.0.100
+            172.17.0.1
+          allowed-domains: |
+            github.com
+            api.github.com
+            codeload.github.com
+            release-assets.githubusercontent.com
+            *.actions.githubusercontent.com
+            *.blob.core.windows.net
+            *.githubapp.com
+            mise-versions.jdx.dev
+            nodejs.org
+            registry.npmjs.org
+            api.deps.dev
+            api.securityscorecards.dev
 
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

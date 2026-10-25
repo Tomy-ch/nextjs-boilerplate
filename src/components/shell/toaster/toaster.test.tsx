@@ -225,8 +225,8 @@ describe("Toaster", () => {
 
     const item = screen.getByRole("status");
 
-    // **払いのけは `user-event` の範囲外です。**ドラッグは扱う対象に含まれず、押した点からの
-    // 移動量を伴う一連の入力を組み立てる手段がありません。
+    // 払いのけは `user-event` の範囲外。ドラッグは扱う対象に含まれず、押した点からの移動量を
+    // 伴う一連の入力を組み立てる手段が無い。
     fireEvent.pointerDown(item, { button: 0, clientX: 0, clientY: 0 });
     fireEvent.pointerMove(item, { clientX: -120, clientY: 0 });
     fireEvent.pointerUp(item);
@@ -434,8 +434,8 @@ describe("Toaster", () => {
 
       const region = screen.getByRole("region", { name: "通知" });
 
-      // **この describe は偽の時計の下にあります。**`user-event` は入力の再現に自前の
-      // 待ち合わせを挟むため、その下では止まったままになります。
+      // この describe は偽の時計の下にある。`user-event` は入力の再現に自前の待ち合わせを
+      // 挟むため、その下では止まったままになる。
       fireEvent.pointerOver(region);
       act(() => {
         vi.advanceTimersByTime(5000);
@@ -565,6 +565,16 @@ function VisibleToastsControl() {
   );
 }
 
+/** 描画のたびに受け取った `toast` と `update` を記録する。参照が変わったかを後から比べる。 */
+function ControlsProbe({ seen }: { seen: { toast: unknown[]; update: unknown[] } }) {
+  const { toast, update } = useToast();
+
+  seen.toast.push(toast);
+  seen.update.push(update);
+
+  return <VisibleToastsControl />;
+}
+
 function UpdateTrigger() {
   const { toast, update } = useToast();
   const idRef = useRef("");
@@ -658,6 +668,23 @@ describe("ToastProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
 
     expect(screen.getByTestId("visible-toasts")).toHaveTextContent("5");
+  });
+
+  it("上限を変えても、通知を出す関数と差し替える関数は同じ参照のまま", async () => {
+    const seen: { toast: unknown[]; update: unknown[] } = { toast: [], update: [] };
+
+    render(
+      <ToastProvider defaultVisibleToasts={2}>
+        <ControlsProbe seen={seen} />
+      </ToastProvider>,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "上限を広げる" }));
+
+    expect(screen.getByTestId("visible-toasts")).toHaveTextContent("5");
+    expect(seen.toast.length).toBeGreaterThan(1);
+    expect(new Set(seen.toast).size).toBe(1);
+    expect(new Set(seen.update).size).toBe(1);
   });
 
   it("表示中の通知を差し替える", async () => {

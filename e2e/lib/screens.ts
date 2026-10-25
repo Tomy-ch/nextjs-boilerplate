@@ -137,6 +137,7 @@ export const SCREENS: readonly ScreenDeclaration[] = [
   { route: "/mypage", name: "mypage", path: "/mypage", signedIn: "user" },
   { route: "/mypage/edit", name: "profile-edit", path: "/mypage/edit", signedIn: "user" },
   { route: "/mypage/inquiry", name: "inquiry", path: "/mypage/inquiry", signedIn: "user" },
+  { route: "/mypage/coupons", name: "coupons", path: "/mypage/coupons", signedIn: "user" },
   {
     route: "/onboarding",
     skip:
@@ -191,6 +192,12 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     signedIn: "admin",
   },
   { route: "/admin/users", name: "admin-users", path: "/admin/users", signedIn: "admin" },
+  {
+    route: "/admin/campaigns",
+    name: "admin-campaigns",
+    path: "/admin/campaigns",
+    signedIn: "admin",
+  },
   {
     route: "/admin/inquiries",
     name: "admin-inquiries",

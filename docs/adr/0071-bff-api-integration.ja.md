@@ -28,7 +28,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 すべての outbound を fetch wrapper 経由に集約し(生 `fetch` を直接使わない)、以下を備える:
 
 - **dual timeout**: **per-attempt timeout** と **overall timeout** の二段を `AbortSignal` / `AbortController`(`AbortSignal.timeout()`)で表現する。backoff が overall を超える場合は retry を skip(deadline 尊重)。デフォルト値は per-attempt 3s / overall 10s とし、per-downstream に調整可能とする。**試行回数の上限は 3** —— overall 10s は per-attempt 3s の 3 倍を少し超える値であり、それ以上の試行は overall に阻まれて実行されない
-- **retry**: **idempotent メソッド(GET / PUT / DELETE)は retryable**、**POST / PATCH は明示 opt-in**(idempotency key 付与時のみ)。retryable 条件 = 5xx / 429 / transport error。**exponential backoff + full jitter**、`Retry-After` ヘッダを尊重する
+- **retry**: **idempotent メソッド(GET / PUT / DELETE)は retryable**、**POST / PATCH は明示 opt-in**(idempotency key 付与時のみ)。retryable 条件 = 5xx / 429 / transport error。**exponential backoff + full jitter**、`Retry-After` ヘッダーを尊重する
 - **retry budget**: per-downstream の token bucket(デフォルト 10%)で retry storm を防ぐ
 - **circuit breaker**: closed / half-open / open の状態機械(デフォルト: 失敗率 0.5 / サンプル 20 / open 5s / half-open probe 3)。単一バックエンドでも、劣化時に叩き続けず fail-fast するために持つ
 - per-downstream の **Profile**(timeout / retry / breaker 設定)で調整し、未指定はデフォルト Profile を使う
@@ -46,7 +46,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 ### エラー正規化(生 status を漏らさない)
 
 - 生の HTTP status を上位(feature / UI)に漏らさず、**`errors` カーネルの分類(sentinel)へ正規化**する([0021](0021-frontend-responsibility.ja.md) errors)。HTTP status → 安定エラーコード(`NOT_FOUND` / `VALIDATION_FAILED` 等)の対応表を wrapper が持つ
-- **正規化テーブル・ユーザ向けメッセージ変換の詳細は [0080](0080-error-handling.ja.md) が正**。本 ADR は「adapters が生 status を正規化して errors 分類で返す」境界の存在を定める
+- **正規化テーブル・ユーザー向けメッセージ変換の詳細は [0080](0080-error-handling.ja.md) が正**。本 ADR は「adapters が生 status を正規化して errors 分類で返す」境界の存在を定める
 - ログは `logging` カーネル([0021](0021-frontend-responsibility.ja.md)。config 値は注入で受ける)
 
 ### response の runtime 検証の受け取り点
@@ -69,8 +69,8 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - **デフォルトは uncached**([0040](0040-routing-rendering-strategy.ja.md) の Next.js 16 事実 = `fetch` はデフォルトでキャッシュされない)を土台とし、**キャッシュは opt-in**。用途を問わないグローバルキャッシュをデフォルトで敷かない
 - **キャッシュ指定の所有レイヤー**: 何をキャッシュするかの宣言(`use cache` / `cache: 'force-cache'` 等)と再検証(`revalidateTag` / `revalidatePath` / `cacheLife` / `cacheTag`)は、**データ取得を所有するレイヤー = `adapters`(fetch wrapper)と、それを呼ぶ Server Component / feature** が持つ。resilience 同様、コンポーネント各所に散らさず境界へ集約する
 - **cache tag 命名**は wire リソース(operationId / エンティティ)に対応させ、[0072](0072-api-type-generation.ja.md) の生成境界と一貫させる。**体系は `<資源>` と `<資源>:<識別子>` の 2 段**とし、資源名はバックエンド契約の集合名に揃える。画面名や feature 名は使わない。**タグを付けるのは取得を所有する `adapters` の 1 か所**で、その module が定数として公開し、`features` / `app` はその定数だけを使う。文字列を書く側が増えるほど、綴りの食い違いが「無効化したのに古いまま」という形で現れる
-- **ミューテーション後の再検証**: 変更系 Server Action(上記 / [0040](0040-routing-rendering-strategy.ja.md) `actions.ts`)成功後は、影響する tag / path を `revalidateTag` / `revalidatePath` で無効化する(または `router.refresh()`)。「更新したのに画面が古い / 二重に再取得する」を防ぐデフォルト経路をこのレイヤーが定める。**単位はそのデータを所有する取得エンドポイント**で、所有エンドポイントがキャッシュに居るならタグを無効化し、居ないならレンダリングし直す。アプリ全体を捨てる呼び方(`revalidatePath("/", "layout")`)は所有境界ではない —— 更新した値がどの画面にも付く外枠に出るときだけの例外とし、理由をその場に書く。**例外は `eslint-disable-next-line project-rules/no-app-wide-revalidate` で名乗る** —— マーカーが要るならエコシステム標準の綴りへ揃え、独自の接頭辞を作らない(`docs/rules.ja.md#comments`)。**専用のエンドポイントを `adapters` へ置く形は採らない** —— 例外が要るかは画面側の事情で決まるのに、エンドポイントは `adapters` の公開面になる。`adapters` は内部と宣言されているので(`knip.ts`)、そのエンドポイントを引く画面が無い構成では、呼ばれない export として死んだコードの検査に挙がる
-- **キャッシュへ入れてよいのは、主体を名乗らずに取れるものだけ**。Data Cache は server 側で共有され、キーは URL・method・ヘッダ・本文である。資格情報を載せる取得を入れると、キーが主体ごとに割れて再利用はほとんど起きない一方、入れ物だけが主体の数だけ増える。**入れないものへタグ(`next.tags`)を付けない** —— タグは入っているものにしか付かないため、付けた側も無効化する側も、動いていないのに動いて見える
+- **ミューテーション後の再検証**: 変更系 Server Action(上記 / [0040](0040-routing-rendering-strategy.ja.md) `actions.ts`)成功後は、影響する tag / path を `updateTag` / `revalidateTag` / `revalidatePath` で無効化する。キャッシュしていないデータの画面に留まる action は、`refresh()` で現在の route をレンダリングし直す(client からは `router.refresh()`)。「更新したのに画面が古い / 二重に再取得する」を防ぐデフォルト経路をこのレイヤーが定める。**単位はそのデータを所有する取得エンドポイント**で、所有エンドポイントがキャッシュに居るならタグを無効化し、居ないならレンダリングし直す。アプリ全体を捨てる呼び方(`revalidatePath("/", "layout")`)は所有境界ではない —— 更新した値がどの画面にも付く外枠に出るときだけの例外とし、理由をその場に書く。**例外は `eslint-disable-next-line project-rules/no-app-wide-revalidate` で名乗る** —— マーカーが要るならエコシステム標準の綴りへ揃え、独自の接頭辞を作らない(`docs/rules.ja.md#comments`)。**専用のエンドポイントを `adapters` へ置く形は採らない** —— 例外が要るかは画面側の事情で決まるのに、エンドポイントは `adapters` の公開面になる。`adapters` は内部と宣言されているので(`knip.ts`)、そのエンドポイントを引く画面が無い構成では、呼ばれない export として死んだコードの検査に挙がる
+- **キャッシュへ入れてよいのは、主体を名乗らずに取れるものだけ**。Data Cache は server 側で共有され、キーは URL・method・ヘッダー・本文である。資格情報を載せる取得を入れると、キーが主体ごとに割れて再利用はほとんど起きない一方、入れ物だけが主体の数だけ増える。**入れないものへタグ(`next.tags`)を付けない** —— タグは入っているものにしか付かないため、付けた側も無効化する側も、動いていないのに動いて見える
 - **重複排除**: 同一リクエスト内の重複 fetch は React `cache()` / fetch memoization で排除し、BFF・バックエンドへの重複呼び出しを抑止する
 - **`Cache Components` は有効である**([0041](0041-cache-components-decision.ja.md))。上のデフォルト uncached はそのまま効き、残したいものに `use cache` を付け、寿命は `cacheLife`、捨てるタグは `cacheTag` で持つ。所有レイヤー(取得エンドポイントとそれを呼ぶ RSC)も、タグの綴りも、ミューテーション連動も変わらない
 - **`use cache` を置ける粒度は 3 つ**(page / 関数 / component)。**取得エンドポイントの側へ寄せる。** 呼ぶ側へ置くと、同じ取得が呼び出しの数だけ別の寿命を持ち、捨てるタグの付け先が散る
@@ -79,7 +79,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - **`use cache` が確実に残すのは、組み立て時にシェルへ焼かれた分だけである。** デフォルトの入れ物はプロセスのメモリなので、serverless ではリクエストごとに別のインスタンスへ着地しえて再利用が起きない回があり、デプロイをまたぐとキーごと捨てられる。これは `fetch` の `cache: "force-cache"`(Data Cache。デプロイとインスタンスをまたいで残る)から失うもので、**request 時の再利用を保証と読んではならない**。インスタンスをまたいで残す必要が出たときは `cacheHandlers` か `use cache: remote` を選ぶ —— どちらもデプロイ先に依存するため、本体は選ばない([0010](0010-standards-and-non-lockin.ja.md))
 - **`use cache` の内側の取得に個別のキャッシュ指定(`cache` / `next.tags`)を置かない。** 内側はまとめて外側の寿命に従うため、二重に持つと内側が切れないぶん、外側が取り直しても同じ古い応答を掴む
 - **`use cache` を持つモジュールは、client を組む kernel を直に引かない。** **分類ごとに 1 つ置いた接続ポイント**を経由する。直に引けるモジュールは user-scoped な client も組める状態にあり、[0112](0112-data-classification-cache-boundary.ja.md) の「キャッシュ投入前」の段がその import を落とす
-- **`use cache` を持つエンドポイントは組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.ja.md) の環境定義) —— そのとき build は契約から生成したハンドラを HTTP のエンドポイントとして立て、取得先を自給する。これは request 時の往復を減らすことと引き換えに受け取る制約である
+- **`use cache` を持つエンドポイントは組み立て時にも呼ばれる。** キャッシュの中身は build 中に作られるため、**build 環境から取得先へ到達できることが前提になる**。到達できない環境で組むなら `APP_API_MODE=mock` を選ぶ([0011](0011-no-docker.ja.md) の環境定義) —— そのとき build は契約から生成したハンドラーを HTTP のエンドポイントとして立て、取得先を自給する。これは request 時の往復を減らすことと引き換えに受け取る制約である
 - **user-scoped な値は `use cache` の下へ置かない**([0112](0112-data-classification-cache-boundary.ja.md))。手段は `use cache: private` に限り、それは明示的な例外能力である。強制は `project-rules/no-user-scoped-in-cached-module` と framework の `next-request-in-use-cache` が持つ
 - 具体値(何を・どれだけ・どの tag で)は用途依存のため、ここでは確定しない(本 ADR は所有レイヤーとデフォルト方針 = opt-in・境界集約・ミューテーション連動を定める)
 
@@ -91,7 +91,7 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 
 - ❌ コンポーネント・feature に生 `fetch` を散らすこと(adapters の wrapper 経由)（強制: 散文 —— **寄せられる**（`adapters` の外での `fetch` の呼び出しを、購読の `SUBSCRIPTION_CONSTRUCTION_SELECTOR` と同じ `no-restricted-syntax` で落とせる。規則は無い））
 - ❌ 生の HTTP status を上位へ漏らすこと(errors 分類へ正規化)（強制: `src/adapters/server/http/request.test.ts` と `src/adapters/client/http/request.test.ts` が wrapper の status の分類へのマッピングを、ESLint `no-restricted-syntax`（`src/errors/**`）が errors カーネルへの transport 語彙の持ち込みを落とす。wrapper を通らない経路は散文 —— **寄せられる**（`adapters` の外の生 `fetch` を落とす規則が無い））
-- ❌ 非 idempotent メソッド(POST / PATCH)を idempotency key なしに無条件 retry すること（強制: `src/adapters/server/http/retry-policy.test.ts` と `request.test.ts`（宣言の無い POST / PATCH を再試行しない）が wrapper のデフォルトを落とす。`idempotent: true` の宣言に idempotency key が伴うかは散文 —— **寄せられない**。ヘッダの意味は wrapper には見えない）
+- ❌ 非 idempotent メソッド(POST / PATCH)を idempotency key なしに無条件 retry すること（強制: `src/adapters/server/http/retry-policy.test.ts` と `request.test.ts`（宣言の無い POST / PATCH を再試行しない）が wrapper のデフォルトを落とす。`idempotent: true` の宣言に idempotency key が伴うかは散文 —— **寄せられない**。ヘッダーの意味は wrapper には見えない）
 - ❌ retry budget / circuit breaker なしに retry すること(retry storm 防止)（強制: `src/adapters/server/http/request.test.ts`（遮断中は接続せずに落とす / 予算を使い切ったら再試行しない）と `retry-budget.test.ts` / `circuit-breaker.test.ts` が wrapper の再試行を落とす。wrapper の外に書いた再試行は散文 —— **寄せられない**。再試行かどうかは制御の流れの意味で決まり、形からは決まらない）
 - ❌ `adapters` の fetch wrapper に業務ロジックを書くこと(外部接続と変換のみ。[0021](0021-frontend-responsibility.ja.md))（強制: 散文 —— **寄せられない**。業務ロジックか外部接続の変換かはレイヤーの責務の判断で、コードの形からは決まらない）
 - ❌ 接続ポイントの外で client を組むこと(downstream と分類の組ごとに 1 つ)（強制: ESLint `project-rules/no-client-outside-connection-port`。組んでよい場所は `architecture.ts` の `CONNECTION_PORTS` で、寄せられない箇所は `eslint-disable-next-line` に理由を書いて名乗る）
@@ -112,5 +112,5 @@ outbound HTTP が持つべき resilience は **dual timeout / idempotent retry /
 - [0072-api-type-generation.md](0072-api-type-generation.ja.md) — 型 + zod 生成(response 検証スキーマの供給元)
 - [0040-routing-rendering-strategy.md](0040-routing-rendering-strategy.ja.md) — Server Actions(変更系の呼び口)/ レンダリングモード(データ取得のキャッシュ設計は本 ADR「データ取得のキャッシュ・再検証」セクションが持つ)
 - [0030-environment-variable-management.md](0030-environment-variable-management.ja.md) — BFF runtime config の逃し先
-- [0080-error-handling.md](0080-error-handling.ja.md) — HTTP status → エラー分類・ユーザ向けメッセージの正規化テーブル(本 ADR の error 正規化の詳細)
+- [0080-error-handling.md](0080-error-handling.ja.md) — HTTP status → エラー分類・ユーザー向けメッセージの正規化テーブル(本 ADR の error 正規化の詳細)
 - [0081-observability-logging.md](0081-observability-logging.ja.md) — fetch wrapper のログ / トレース伝播

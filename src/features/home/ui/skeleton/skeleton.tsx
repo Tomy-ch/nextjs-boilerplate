@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 新着の待機表示で並べる件数。折り返し 1 段分に留める。 */
@@ -22,6 +23,7 @@ const RANKING_ROW_COUNT = 5;
 export const HomeSkeleton = withPartSpan("features/home/ui/skeleton/skeleton", () => {
   return (
     <div aria-hidden="true" className="space-y-10">
+      <LoadingAnnouncement />
       <section>
         <h2 className="text-lg font-emphasis">新着商品</h2>
         <div className="@container/new-arrivals mt-4">

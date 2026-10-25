@@ -11,10 +11,32 @@ minimumReleaseAge: 10080
 # 項目は `name@version` で書き、直上のコメントに理由と、窓が明ける日（YYYY-MM-DD）を添える。
 # 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
 minimumReleaseAgeExclude:
-  # GHSA-8r5x-fm3f-whwj / GHSA-p8wg-vrv2-v86f (critical) の修正版。eslint-plugin-boundaries が引き、
-  # lint の実行時にだけ走る。発行者・タグとの一致・差分・依存面の 4 軸を直接証拠で確かめた
-  # （/supply-chain-triage: 1/12 LOW）。窓が明ける 2026-10-12 に外す。
-  - "handlebars@4.7.10"
+  # GHSA-w74x-v6f9-j3xg / GHSA-wjr9-j795-jxcr (moderate) ほかの修正版。ajv が引き、commitlint・orval・shadcn
+  # の CLI でだけ走る。/supply-chain-triage は 2/12 LOW (tarball は upstream の v3.1.9 とバイト一致、
+  # provenance あり、侵害の署名なし)。窓が明ける 2026-10-28 に外す。
+  - "fast-uri@3.1.9"
+  # GHSA-27r3-jxmh-p828 (high) の修正版。shadcn の CLI が使う express が引き、配信物には入らない。
+  # /supply-chain-triage は 0/12 LOW (provenance は master の先頭を指し、侵害の署名なし)。
+  # 窓が明ける 2026-10-30 に外す。
+  - "body-parser@2.4.0"
+  # next 16.4 の useRouter() が読む parentRenderTree を App Router の mock が渡すのは 10.6.3 から
+  # (storybookjs/storybook#36732)。これが無いと next 16.4.1 (GHSA-2464-fhr4-w9xw /
+  # GHSA-673q-mjm6-r5xr, critical) の下で全 story が描画されない。nextjs-vite が 6 つを版の完全
+  # 一致で引くので一式で動かす。Storybook と VRT でだけ走る。/supply-chain-triage は 1/12 LOW
+  # (発行者・provenance は 10.6.2 と同一、10.6.2 との差分は修正のみ)。窓が明ける 2026-10-28 に外す。
+  - "@storybook/nextjs-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "storybook@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/builder-vite@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "@storybook/react-dom-shim@10.6.3"
+  # 上と同じ storybook 10.6.3 一式。窓が明ける 2026-10-28 に外す。
+  - "vite-plugin-storybook-nextjs@10.6.3"
 # 冷却期間を満たす版がなければ解決を失敗させる。
 minimumReleaseAgeStrict: true
 # 公開日時を返さないレジストリの依存は解決を失敗させる。
@@ -34,16 +56,26 @@ overrides:
   # 同じ URI 解析の取り違えが 3.1.5 にも残っており、3.1.6 で塞がれた。
   # GHSA-58mr-gqgx-xq4g / GHSA-qw65-cvwx-89v3 (high): authority の閉じない角括弧による host の
   # 取り違えと、serialize が port を検証せず authority を差し込める件。3.1.7 で塞がれた。
-  # ajv の宣言は ^3.0.1 で 3.1.7 はその内側。ajv が 3.1.7 以上を要求したら撤去する。
-  "fast-uri@<3.1.7": ">=3.1.7 <4"
+  # GHSA-w74x-v6f9-j3xg / GHSA-wjr9-j795-jxcr (moderate) / GHSA-333x-w4r6-6crp / GHSA-xhq7-xmqj-769h (low):
+  # scheme の percent-decode・domain の不正文字・相対参照の dot-segment の扱いの取り違え。3.1.9 で塞がれた。
+  # ajv の宣言は ^3.0.1 で 3.1.9 はその内側。ajv が 3.1.9 以上を要求したら撤去する。
+  "fast-uri@<3.1.9": ">=3.1.9 <4"
+  # body-parser (express が引き、express は shadcn の CLI が使う @modelcontextprotocol/sdk の依存) の推移的
+  # 依存。shadcn の CLI でだけ走り、配信物には入らない。
+  # GHSA-27r3-jxmh-p828 (high): 圧縮された本文の後ろに余分なバイトが付くと、解凍ストリームが残って DoS になる。
+  # express の宣言は ^2.2.1 で 2.4.0 はその内側。express が 2.4.0 以上を要求したら撤去する。
+  "body-parser@>=2.0.0 <2.4.0": ">=2.4.0 <3"
   # dompurify (mermaid が引く) の推移的依存。mermaid は docs-viewer の実行時依存なので、これは
   # 公開されるドキュメントサイトで browser 上を走る。
   # GHSA-4gpp-cmpq-32hh (moderate): IN_PLACE hook の削除で切り離された部分木が実行可能なまま残り
   # XSS になる。
   # GHSA-p98j-92pf-mc4p (low): 3.4.13〜3.4.15 でも、hook がノードを消すと切り離された部分木の
   # event handler が生きたまま残り、DOM XSS になる。
-  # mermaid の宣言は ^3.3.3 で 3.4.16 はその内側。mermaid が 3.4.16 以上を要求したら撤去する。
-  "dompurify@<3.4.16": ">=3.4.16 <4"
+  # GHSA-cg2g-xh64-v4q7 (critical): SAFE_FOR_TEMPLATES が、shadow root へ付けた内容の中で分割された
+  # テンプレート式を取り残す。GHSA-mrv2-3pqr-j5jr (high): GHSA-p98j-92pf-mc4p の修正が不完全で、
+  # 親や兄弟を消す hook でも event handler が残る。3.4.17 で 2 件とも塞がれた。
+  # mermaid の宣言は ^3.4.12 で 3.4.17 はその内側。mermaid が 3.4.17 以上を要求したら撤去する。
+  "dompurify@<3.4.17": ">=3.4.17 <4"
   # minimatch (glob 経由で Storybook の依存、typescript-eslint、eslint が引く) の推移的依存。
   # GHSA-cchq-frgv-rjh5 (high): 展開の中間結果に上限が無く、短い入力で処理が止まらなくなる。
   # GHSA-6j4f-fj2g-mc7p / GHSA-qhr7-859c-m2p7 (high): カンマ区切りと入れ子の波括弧の再帰に上限が
@@ -57,8 +89,17 @@ overrides:
   "js-yaml@>=4 <4.3.1": ">=4.3.1 <5"
   # typedoc (orval が引く) の推移的依存。API 型の生成時にしか走らず、配信物には入らない。
   # GHSA-253c-mchw-3w2r (moderate): linkify を有効にすると 2 つの経路が入力長に対して二次で伸びる。
-  # typedoc の宣言は ^14.3.0 で 14.3.1 はその内側。typedoc が 14.3.1 以上を要求したら撤去する。
-  "markdown-it@<14.3.1": ">=14.3.1 <15"
+  # GHSA-gfr2-rv44-r23c (high): 複数行にわたる 1 つのリンク参照定義の描画が二次で伸びる。
+  # GHSA-vfgh-jcmw-g37q (low): html を有効にするとインライン HTML の解析が二次で伸びる。14.3.3 で塞がれた。
+  # typedoc の宣言は ^14.3.0 で 14.3.3 はその内側。typedoc が 14.3.3 以上を要求したら撤去する。
+  "markdown-it@<14.3.3": ">=14.3.3 <15"
+  # markdownlint-cli2 の推移的依存。lint の実行時にしか走らない。
+  # GHSA-gfr2-rv44-r23c / GHSA-vfgh-jcmw-g37q に加え、GHSA-r7fv-28h4-cvq7 (high): smartquotes が
+  # 閉じない引用符で二次で伸びる。15.0.3 で 3 件とも塞がれた。
+  # **この宣言は上流の宣言範囲の内側から外れる。** markdownlint-cli2 は 15.0.1 の完全固定で、
+  # 内側に留まると塞げない。15.0.3 は 15.0.x の patch で、組み合わせの検証は pnpm lint:md が代える。
+  # markdownlint-cli2 が 15.0.3 以上を要求したら撤去する。
+  "markdown-it@>=15.0.0 <15.0.3": ">=15.0.3 <16"
   # postcss の推移的依存。
   # GHSA-8v8w-v8xg-79rf (high): 自前の生成器を渡すと終わらない場合がある。
   # postcss の宣言は ^3.3.6 で 3.3.18 はその内側。postcss が 3.3.18 以上を要求したら撤去する。
@@ -82,26 +123,32 @@ overrides:
   # otlp-grpc-exporter-base の宣言は ^1.14.3 で 1.14.5 はその内側。
   # @opentelemetry/otlp-grpc-exporter-base が 1.14.5 以上を要求したら撤去する。
   "@grpc/grpc-js@>=1.14.0 <1.14.5": ">=1.14.5 <2"
-  # vite-plugin-storybook-nextjs（@storybook/nextjs-vite が引く）の推移的依存。
-  # GHSA-5p2g-fcmc-qvqq / GHSA-w3rx-r6r6-pgpr (high): JXL / HEIF / ICNS の解析が無限ループに入る。
-  # vite-plugin-storybook-nextjs の宣言は ^2.0.0 で 2.0.3 はその内側。
-  # vite-plugin-storybook-nextjs が 2.0.3 以上を要求するか、image-size を引かなくなったら撤去する。
-  "image-size@<2.0.3": ">=2.0.3 <3"
   # express-rate-limit（shadcn CLI > @modelcontextprotocol/sdk が引く）の推移的依存。
   # GHSA-2vr4-cq9g-pvrc / GHSA-rpw4-54j3-4h4q (moderate): NAT64 のローカル用範囲と fe80::/10 の
   # リンクローカルを取りこぼし、SSRF や信頼境界の迂回を許す。
-  # express-rate-limit の宣言は ^10.2.0 で 10.5.1 はその内側。
-  # express-rate-limit が 10.5.1 以上を要求したら撤去する。
-  "ip-address@<10.5.1": ">=10.5.1 <11"
-  # jsdom / shadcn CLI / @dotenvx/dotenvx の推移的依存。
+  # GHSA-rxp7-6hxx-x8q5 (moderate): Address6 が長さの上限を確かめる前に zone 識別子を入力長の二次で
+  # 照合し、長い文字列 1 つで処理が止まる。10.7.4 で塞がれた。
+  # express-rate-limit の宣言は ^10.2.0 で 10.7.4 はその内側。
+  # express-rate-limit が 10.7.4 以上を要求したら撤去する。
+  "ip-address@<10.7.4": ">=10.7.4 <11"
+  # jsdom / shadcn CLI / @shadcn/registry / @dotenvx/dotenvx の推移的依存。テストと shadcn の CLI で
+  # だけ走り、配信物には入らない。
   # GHSA-3wwx-pv8p-q78v (moderate): WebSocket の permessage-deflate の展開で未処理の例外が
-  # 出てプロセスが落ちる。宣言は ^7.24.5 / ^7.27.2 / ^7.11.0 で 7.29.1 はいずれの内側でもある。
-  # 3 つがすべて 7.29.1 以上を要求したら撤去する。
-  "undici@>=7.28.0 <7.29.1": ">=7.29.1 <8"
+  # 出てプロセスが落ちる。7.29.1 で塞がれた。
+  # GHSA-xjj6-f33q-929c (high) / GHSA-4qv8-2p9j-2685 / GHSA-f72v-6w45-q472 (moderate): 7.30.1 で塞がれた。
+  # 宣言は ^7.24.5 / ^7.29.1 / ^7.11.0 で 7.30.1 はいずれの内側でもある。
+  # すべてが 7.30.1 以上を要求したら撤去する。
+  "undici@>=7.0.0 <7.30.1": ">=7.30.1 <8"
   # shadcn CLI の推移的依存。
   # GHSA-6qxp-vccf-f47h (high): OAuth クライアントが資格情報を、MCP サーバが名指しした認可サーバへ
-  # 送ってしまう。shadcn の宣言は ^1.26.0 で 1.31.0 はその内側。shadcn が 1.31.0 以上を要求したら撤去する。
-  "@modelcontextprotocol/sdk@>=1.12.0 <1.31.0": ">=1.31.0 <2"
+  # 送ってしまう。
+  # GHSA-22jm-h49p-29qw / GHSA-46jr-4wx8-v453 (high): experimental tasks が作成元のセッションに
+  # 結び付かない件と、既定の上限内の 1 リクエストで検証中にメモリを使い切る件。
+  # GHSA-6prh-2h8m-c8cw / GHSA-rvq5-wwqv-78pq (moderate): HTTP クライアントが別 origin への
+  # リダイレクトでヘッダと本文を送り直す件と、bearer 認証が別サービス向けのトークンを受け入れる件。
+  # 1.32.0 で 4 件とも塞がれた。
+  # shadcn の宣言は ^1.26.0 で 1.32.0 はその内側。shadcn が 1.32.0 以上を要求したら撤去する。
+  "@modelcontextprotocol/sdk@>=1.12.0 <1.32.0": ">=1.32.0 <2"
   # shadcn CLI の推移的依存。
   # GHSA-rj75-hqrm-r3gf (moderate): `.a.a.a…` のような平たいセレクタの解析がクラス数に対して二次で伸びる。
   # shadcn の宣言は ^7.1.0 で 7.1.6 はその内側。shadcn が 7.1.6 以上を要求したら撤去する。
@@ -139,6 +186,11 @@ overrides:
   # 内側に留まると塞げない。4.7.10 は 4.7.x の patch で、組み合わせの検証は lint:ci が代える。
   # eslint-plugin-boundaries が 4.7.10 以上を要求したら撤去する。
   "handlebars@<4.7.10": ">=4.7.10 <5"
+  # lighthouse の推移的依存。Lighthouse の計測時にしか走らず、配信物には入らない。
+  # GHSA-mrhx-c7xc-m3w5 (high): 25.13.0 未満が引く chromium-bidi 17 は zod 3 を引き、3.x に修正版が無い。
+  # 25.13.0 以降は zod 4 系の chromium-bidi 157.0.8090-0 を引く (trustPolicyExclude を参照)。
+  # lighthouse の宣言は ^25.3.0 で 25.13.0 はその内側。lighthouse が 25.13.0 以上を要求したら撤去する。
+  "puppeteer-core@>=25 <25.13.0": ">=25.13.0 <26"
 
 # 依存状態が lockfile と一致しないままスクリプトを実行しない。
 # 例外は base-branch / base-merge の 2 つだけ（.makefiles/github/operation/release-branch.mk）。
@@ -168,3 +220,13 @@ blockExoticSubdeps: true
 trustPolicy: no-downgrade
 # 公開から180日を過ぎた版は provenance 情報不足だけでは拒否しない。
 trustPolicyIgnoreAfter: 259200
+# provenance が下がった理由を直接の証拠で確かめた版だけを、版を名指しして外す。(パッケージ名だけの例外は禁止)
+# 直上のコメントに理由と、上の 180 日が過ぎて例外が要らなくなる日（YYYY-MM-DD）を添える。
+# 週次の棚卸し（make suppression-expiry）が宣言単位で読み、どちらか欠けていれば落ちる。
+trustPolicyExclude:
+  # GHSA-mrhx-c7xc-m3w5 (high) を塞ぐ zod 4 系の版。puppeteer-core 25.13.0 以降が引き、Lighthouse の
+  # 計測時にしか走らない。ソースが Chromium の third_party/chromium-bidi へ移り、npm への公開が
+  # GitHub Actions の trusted publishing から Chrome for Testing の公開経路へ変わったため provenance が
+  # 無い (上流の README が告知)。/supply-chain-triage は 2/12 MEDIUM (provenance が無く出所の一致は
+  # 未回答、侵害の署名なし)。180 日が過ぎる 2027-04-06 に外す。
+  - "chromium-bidi@157.0.8090-0"

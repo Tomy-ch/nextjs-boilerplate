@@ -28,7 +28,7 @@
 
 hydration が必要で、Server Component からは直接 render できません。選択値は hidden input として持つため、native form へそのまま載ります。
 
-候補の取得・並び順・件数の制限は持ちません。`options` として渡された配列をそのまま扱い、絞り込みは `Command` が label に対して行います。サーバ側で検索する必要がある場合は、呼び出し元が `onSearchChange` で入力語を受け取り、`options` を差し替えます。渡すと手元の絞り込みは止まります。止めないと、取り直した候補を label の一致でもう一度削ってしまうためです。このとき選択中の候補を `options` に残すのは呼び出し元の役目で、外れると trigger は placeholder に戻ります。
+候補の取得・並び順・件数の制限は持ちません。`options` として渡された配列をそのまま扱い、絞り込みは `Command` が label に対して行います。サーバー側で検索する必要がある場合は、呼び出し元が `onSearchChange` で入力語を受け取り、`options` を差し替えます。渡すと手元の絞り込みは止まります。止めないと、取り直した候補を label の一致でもう一度削ってしまうためです。このとき選択中の候補を `options` に残すのは呼び出し元の役目で、外れると trigger は placeholder に戻ります。
 
 **必須指定は持ちません。** 値を運ぶ hidden input は constraint validation の対象外であり、`required` を付けても browser は検証しません。必須であることの表示は `Field`、実際の強制は Server Action や server 側の検証で行います。
 

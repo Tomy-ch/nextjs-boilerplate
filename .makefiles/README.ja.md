@@ -29,7 +29,7 @@ hook / CI の二層実行を明示するため `make` がエントリポイン�
 
 - ターゲット名はハイフン区切りの小文字（`make install-tools`、`make setup-repo`）
 - すべて `.PHONY` 指定し、末尾 `## <説明>` コメントを付けて `make help` の一覧に載せること。説明コメントの無い
-  `.PHONY` 行は `make help` が警告する（一覧に出ないターゲットは利用者から見えないため）
+  `.PHONY` 行は `make help` が警告する（一覧に出ないターゲットはユーザーから見えないため）
 - 自明でないロジックはインラインシェルではなく `scripts/*.ts` に置き `pnpm exec tsx` から実行する。TypeScript に
   置けば `pnpm typecheck` と biome の検査対象に入り、実行環境ごとのシェル差異も持ち込まずに済む
 - **外から来る値を make の変数として recipe 行へ展開しない。**`$(VAR)` はシェルへ渡る前にテキスト置換されるので、
@@ -48,7 +48,7 @@ hook / CI の二層実行を明示するため `make` がエントリポイン�
 - **GitHub 設定の宣言は `.github/settings/*.json` に置き、`setting/` のターゲットはそれを API へ渡すだけにする。**
   1 つの payload に収まらず複数のエンドポイントへ分かれる設定（Pages の配信設定）だけが値を `.mk` に直接持ち、
   その理由をコメントに書く。いずれも現状を読んでから書き、適用済みのリポジトリで再実行しても何も変えない
-- **利用者が渡す真偽の切り替えは `$(filter 1,$(VAR))` で判定する。**`$(if $(VAR),…)` は空文字列判定なので、
+- **ユーザーが渡す真偽の切り替えは `$(filter 1,$(VAR))` で判定する。**`$(if $(VAR),…)` は空文字列判定なので、
   `DRY_RUN=0` を「有効」と読む。有効値を `1` だけに揃えてあるのはこのため
 - **`$(shell …)` を変数の定義に置かない。**トップレベルの `Makefile` は全 `.mk` を `include` するため、
   即時展開の `$(shell …)` はどのターゲットを叩いても走る。外部への問い合わせ（負荷帯の解決、docker の
@@ -60,7 +60,7 @@ hook / CI の二層実行を明示するため `make` がエントリポイン�
 - **順序が要る手順は prerequisite に並べず recipe の中で繋ぐ。**prerequisite は `-j` 付きの呼び出しで順序を
   持たない。`$(MAKE) a` → `$(MAKE) b` と recipe で順に呼ぶ（撮り直して送る）か、recipe の本文に置く（撮る
   直前に区画を空にする）。プロセスを起動して片付けるまでも 1 つの recipe に閉じ、`trap … EXIT INT TERM` で
-  片付ける —— 生死を跨いだ状態を依存関係で表そうとすると、失敗した実行がサーバを残す
+  片付ける —— 生死を跨いだ状態を依存関係で表そうとすると、失敗した実行がサーバーを残す
 - **派生ターゲットは recipe をコピーせず、target-specific variable で差し替える。**`e2e-maintenance: E2E_PRECHECK := true`
   のように、共通の recipe（起動・待ち受け・片付け）は 1 つだけ持ち、変えたい環境・当てる設定・前提検査を
   変数で上書きする。同じ立て付けを 2 組持つと、片方だけを直した状態が生まれる
@@ -77,13 +77,13 @@ hook / CI の二層実行を明示するため `make` がエントリポイン�
 - **静音実行のパターンルールは接頭辞 `ai-%` であり、他のターゲット名を `ai-` で始めない。**`%-ai` のような
   接尾辞にすると、基底が既にパターンルールのターゲットのとき一致先が二つに割れ、外れたほうは失敗せず黙って
   別のことをする。`ai-%` なら他のパターンのリテラル接頭辞と一致しない
-- **サーバを立てるターゲットは自分のデフォルトポートを持ち、他と重ねない。**開発サーバ（3000）/ Storybook（6006）と
+- **サーバーを立てるターゲットは自分のデフォルトポートを持ち、他と重ねない。**開発サーバー（3000）/ Storybook（6006）と
   も互いとも別にし、起動前に空いていることを確かめる。同じポートを使うと、既に何かが待ち受けている環境で
-  「起動を待つ」が他人のサーバへの疎通で満たされ、その相手に対してテストが走る。CI が同じ機械で複数の
+  「起動を待つ」が他人のサーバーへの疎通で満たされ、その相手に対してテストが走る。CI が同じ機械で複数の
   起動を続けて回すときも、段ごとに別のポートを渡す
-- **コンテナで走らせるターゲットは `RUNNER_UID` / `RUNNER_GID` を `id -u` / `id -g` で渡す。**生成物をホストの
-  所有者で書き出すためで、compose 側のデフォルト（1000）は Linux の初回ユーザであって、実行者と一致する保証が無い
-- **`.gitignore` を読まないスキャナには、スキャンから外す場所を明示する。**`node_modules`（lockfile と同じ依存の
+- **コンテナーで走らせるターゲットは `RUNNER_UID` / `RUNNER_GID` を `id -u` / `id -g` で渡す。**生成物をホストの
+  所有者で書き出すためで、compose 側のデフォルト（1000）は Linux の初回ユーザーであって、実行者と一致する保証が無い
+- **`.gitignore` を読まないスキャナーには、スキャンから外す場所を明示する。**`node_modules`（lockfile と同じ依存の
   二重計上）と `.claude/worktrees`（別ブランチの実体）は ignore 済みでも指定しないとスキャンされる
 - **報告専用のスキャンとゲートは別ターゲットにする。**報告専用は exit code で落とさず、CI だけが
   `<TOOL>_DETECT_EXIT=1` を渡して検出の有無を受け取る —— 「走らなかった」と「見つかった」が同じ緑になると
@@ -111,11 +111,11 @@ make help
 
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
-| `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザ認証方式でログインを行います。 |
+| `make gh-login` | `gh` コマンドで GitHub にログインします。 | ブラウザー認証方式でログインを行います。 |
 | `make labels-delete-all` | GitHub リポジトリ上の既存ラベルをすべて削除します。 | なし |
 | `make labels-create-default` | `.github/settings/labels.json` をもとに、デフォルトラベルを作成します。 | 宣言の読み取りと、宣言と実在の差分は [`scripts/github-settings/labels.ts`](../scripts/github-settings/labels.ts) が持ちます。名前が実在するラベルは色や説明が宣言と違っても触りません。 |
 | `make branch-protection-apply` | `.github/settings/` のルールセット（`branch-protection.json` / `work-branch-history.json`）を、対象リポジトリへ順に POST します。 | 1 件でも API が拒めば応答を全文出して止まります。`gh` のバージョンが古くて API と噛み合わないときも同じ形で現れます。 |
-| `make pages-delivery-apply [PAGES_DELIVERY_BRANCH=<branch>]` | GitHub Pages を Actions 配信にし、`github-pages` environment へ配信元ブランチを許可します。 | デフォルトの配信元は `production` で、[`deploy-docs.yaml`](../.github/workflows/deploy-docs.yaml) の push トリガと揃える必要があります。3 段とも現状を読んでから書くため、適用済みのリポジトリで実行しても何も変えません。environment への PUT を「まだ名指し方式でないとき」に限るのは、この PUT が body に無い項目（レビュアー・待ち時間）を消すためです。**許可が無いと `docs-deploy` は step を 1 つも実行せずに落ちます**（job 自体は起動するので、失敗の理由がログに出ません）。 |
+| `make pages-delivery-apply [PAGES_DELIVERY_BRANCH=<branch>]` | GitHub Pages を Actions 配信にし、`github-pages` environment へ配信元ブランチを許可します。 | デフォルトの配信元は `production` で、[`deploy-docs.yaml`](../.github/workflows/deploy-docs.yaml) の push トリガーと揃える必要があります。3 段とも現状を読んでから書くため、適用済みのリポジトリで実行しても何も変えません。environment への PUT を「まだ名指し方式でないとき」に限るのは、この PUT が body に無い項目（レビュアー・待ち時間）を消すためです。**許可が無いと `docs-deploy` は step を 1 つも実行せずに落ちます**（job 自体は起動するので、失敗の理由がログに出ません）。 |
 
 ### GitHub リポジトリ初期化関連
 
@@ -142,7 +142,7 @@ make help
 | --- | --- | --- |
 | `make setup-replace-license-copyright COPYRIGHT_HOLDER=<name> [COPYRIGHT_YEAR=<year>]` | LICENSE の著作権表記を更新します。 | 年は省略可能です。 |
 | `make setup-replace-repository-reference REPOSITORY=<owner>/<repo> [PORTAL_URL=<url>]` | GitHub リポジトリ参照とプロジェクト名（`package.json` の `name`）、およびドキュメントポータルへのリンクを、新しいリポジトリのものへ置換します。 | `PORTAL_URL` を省くと GitHub Pages の配信先（`https://<owner>.github.io/<repo>/`）を組み立てます。custom domain のときだけ渡します。`docs/` / `.claude/` / `scripts/setup/` / ビルド成果物（`.next` / `dist` / `build` / `tmp`）/ ロックファイルは対象外です。 |
-| `make setup-remove-licensed-scanners` | 資格情報を要するスキャナ（CodeQL / SonarQube Cloud / Dependency Review）を 3 つまとめて撤去します。 | **製品ごとに別のコミットへ分けます。**1 つだけ残したくなったらそのコミットを `git revert` します。作業ツリーはクリーンである必要があります。workflow・pin・宛先の宣言に加えて、**宣言した文書の行も落とします** —— 宣言が現物と一致することはテストが見るので、行が動いていれば撤去は投げて止まります。撤去は選択なので、決めるまでの間に壊れるものはありません（どれも未設定なら自分を飛ばして緑を返します）。 |
+| `make setup-remove-licensed-scanners` | 資格情報を要するスキャナー（CodeQL / SonarQube Cloud / Dependency Review）を 3 つまとめて撤去します。 | **製品ごとに別のコミットへ分けます。**1 つだけ残したくなったらそのコミットを `git revert` します。作業ツリーはクリーンである必要があります。workflow・pin・宛先の宣言に加えて、**宣言した文書の行も落とします** —— 宣言が現物と一致することはテストが見るので、行が動いていれば撤去は投げて止まります。撤去は選択なので、決めるまでの間に壊れるものはありません（どれも未設定なら自分を飛ばして緑を返します）。 |
 | `make setup-remove-boilerplate-only` | boilerplate 限定の記述（配る側にしか意味を持たない規則・注記）を剥がします。 | 剥がし終えると道具自身も消えます。飛ばす選択肢はありません（[0152](../docs/adr/0152-agents-md-policy.ja.md)）。 <!-- boilerplate-only:line --> |
 | `make setup-remove-sample` | 題材を持つ画面一式を破棄し、検証まで実行します。 | **破壊的です。** 残す側にサンプル固有の語彙を持ち込まないための出口で、削除後にゲートが通ることまで確かめます。 |
 
@@ -184,7 +184,7 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 `make actions-shellcheck` は、次のいずれかでも異常終了します。検査範囲が黙って縮んだまま緑になる状態を
 作らないためのもので、判定はファイル単位です（合計で見ると 1 ファイルの抽出失敗が他ファイルの成功に隠れます）。
 
-- **抽出数が合わない** — パーサ自身の変換で数えた `runs.steps[].run` の件数と、実際に抽出できた件数が食い違う
+- **抽出数が合わない** — パーサー自身の変換で数えた `runs.steps[].run` の件数と、実際に抽出できた件数が食い違う
   （`using:` の綴りを取り違えた action もここで落ちます）
 - `runs.using: composite` なのに `runs.steps` がリストとして読めない
 - `run:` ステップに `shell:` が無い / 参照先の無い alias がある / YAML として壊れている
@@ -315,7 +315,7 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | コマンド | 説明 | 補足 |
 | --- | --- | --- |
 | `make api-fetch [NAME=<name>]` | `openapi/sources.yaml` の座標から契約を取得し、blob SHA をスタンプします。 | `gh` の認証が要ります。`NAME` を省くと `sources.yaml` の全件を取得します。 |
-| `make api-gen` | 取得済みの契約から型 / zod / MSW ハンドラを生成します。 | 生成の直後に整形まで掛けます。整形を別手順にすると生成しただけの状態が commit され、drift ゲートが「生成し忘れ」ではなく「整形し忘れ」で落ちます。 |
+| `make api-gen` | 取得済みの契約から型 / zod / MSW ハンドラーを生成します。 | 生成の直後に整形まで掛けます。整形を別手順にすると生成しただけの状態が commit され、drift ゲートが「生成し忘れ」ではなく「整形し忘れ」で落ちます。 |
 | `make api-gen-check` | 契約と生成物のバージョンが揃っているか検証します（生成はしません）。 | CI / hook 用。 |
 
 ### GitHub Actions の SHA ピン関連
@@ -330,8 +330,8 @@ pre-commit hook と CI の `actions-lint` job が実行します。actionlint �
 | `make actions-pin-resolve [ACTIONS_PIN_MIN_AGE_DAYS=<days>] [ACTIONS_PIN_ALLOW_MOVED="<key>..."]` | コメント tag を `git ls-remote` で SHA へ解決し、ロックファイルを再生成します。 | 3 つのうち唯一ネットワークへ出ます。デフォルトの検疫日数は 14。不変を宣言した tag の解決先が変わると exit 1（下記）。GitHub API のレート制限に掛かる場合は `GITHUB_TOKEN`（または `GH_TOKEN`）を設定してください。 |
 | `make actions-pin-apply` | ロックファイルを元に `uses:` の `@<sha>` を書き換えます。 | コメント tag は保持します。 |
 | `make actions-pin-check` | `uses:` がロックファイル通りに固定されているか検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-pin` job が実行します。未登録の参照 / 未固定・不一致の SHA / 壊れたロックファイル / 参照されなくなったエントリ / 解釈できない `uses:` 記法を検出して exit 1（fail-closed）。 |
-| `make egress-apply` | `.github/egress.yaml` を workflow の harden-runner へ反映します。 | 許可した宛先以外への外向き通信は遮断されます（`egress-policy: block`）。**足す根拠は実測**（`audit` が記録した `domain resolved:` 行）に置いてください。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
-| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / 参照されなくなったエントリを検出して exit 1（fail-closed）。 |
+| `make egress-apply` | `.github/egress.yaml` を全 job 冒頭の bullfrog ステップへ反映します。 | 許可した宛先以外への外向き通信は遮断され（`egress-policy: block`）、宣言が根拠付きで名指しした job を除いて sudo が外されます。**足す根拠は実測**に置いてください —— run の job summary と debug ログから測ります（手順は `.github/egress.yaml`）。記録が揃っていない workflow は宣言側で `audit` に留め、理由と外す条件を書きます。 |
+| `make egress-check` | workflow が宣言どおり固定済みかを検査します。 | 書き換えず、ネットワークにも出ません。pre-commit hook と CI の `actions-lint` job が実行します。宣言との差分 / 想定外の記述 / `steps:` を持つのに bullfrog ステップがない job / どの workflow / job からも参照されないエントリを検出して exit 1（fail-closed）。 |
 
 `uses:` は **1 行 1 ステップのブロック記法**で書いてください。YAML の flow mapping
 （`- {name: X, uses: owner/repo@v1}`）は検査の網に入らないため、素通りではなく error になります。
@@ -419,36 +419,36 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make gate-scripts-test` | 帯が `ci-first` でなければ補助スクリプトのテストを実行します。 | 同上（委ねる先は `scripts-check.yaml`）。 |
 | `make load-status` | ローカルゲートの負荷帯と 1 ウィンドウあたりの CPU 配分を表示します。 | 帯は測って決めます（[ADR 0151](../docs/adr/0151-git-hooks.ja.md)）。**出力そのものが答えなので `make ai-<target>` で包みません。** |
 | `make build-storybook` | Storybook を静的に build します。 | VRT の撮影対象。`make vrt` / `make vrt-update` / `make a11y` が前段で呼びます。`storybook build` は preview の build が失敗しても 0 を返すため、生成物（`iframe.html` と `assets/`）の存在を見てから成功を返します。ENV の検証で落ちているときは `APP_ENV` を明示します。 |
-| `make a11y` | 全 story に axe を掛けます。 | VRT と同じ digest 固定のコンテナ・同じ story 列挙で実行します（[ADR 0091](../docs/adr/0091-test-verification-methods.ja.md)）。ベースライン画像は要らないので置き場の配線も要求しません。省略判定は自前の記録（`tmp/a11y/`）だけを見ます —— ベースライン画像を撮った時点の記録を流用すると、axe が落ちる状態で撮り直しが起きたとき、以後その状態を「一致」と読んで緑を報告します。 |
-| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | 全 story をベースライン画像と比較します。`VRT_SHARD` は撮影対象の何分割目かで、渡すのは CI だけです。 | digest 固定した Playwright コンテナ内で実行します（[`vrt/README.md`](../vrt/README.ja.md)）。ホスト直実行は比較の前に落ちます。置き場が未配線・未取得なら比較の前に名指しで案内して止まります（取り込まずに回すと全 story が「ベースライン画像が無い」で落ち、退行と見分けが付かないため）。比較を省いた実行でも、ベースライン画像と story の 1 対 1 の対応だけは 1 台目（割っていないか `1/N`）が検査します —— 数える相手は置き場のファイルと story の全インベントリで、台の数だけ繰り返しても同じ答えしか出ないためです。割った実行のレポートは `list,blob` で出します —— `--reporter` は設定を上書きするもので足すものではなく、blob だけにすると標準出力に何も残らず、どの story で詰まったかが読めなくなります。spec を名指しするのは a11y の spec を同じ実行に巻き込まないためで、混ざると a11y の失敗が撮り直しの対象に入り、撮り直しても直らないままベースライン画像だけが承認済みになります。 |
+| `make a11y` | 全 story に axe を掛けます。 | VRT と同じ digest 固定のコンテナー・同じ story 列挙で実行します（[ADR 0091](../docs/adr/0091-test-verification-methods.ja.md)）。ベースライン画像は要らないので置き場の配線も要求しません。省略判定は自前の記録（`tmp/a11y/`）だけを見ます —— ベースライン画像を撮った時点の記録を流用すると、axe が落ちる状態で撮り直しが起きたとき、以後その状態を「一致」と読んで緑を報告します。 |
+| `make vrt [VRT_SHARD=<i>/<N>] [VRT_ARGS=<args>]` | 全 story をベースライン画像と比較します。`VRT_SHARD` は撮影対象の何分割目かで、渡すのは CI だけです。 | digest 固定した Playwright コンテナー内で実行します（[`vrt/README.md`](../vrt/README.ja.md)）。ホスト直実行は比較の前に落ちます。置き場が未配線・未取得なら比較の前に名指しで案内して止まります（取り込まずに回すと全 story が「ベースライン画像が無い」で落ち、退行と見分けが付かないため）。比較を省いた実行でも、ベースライン画像と story の 1 対 1 の対応だけは 1 台目（割っていないか `1/N`）が検査します —— 数える相手は置き場のファイルと story の全インベントリで、台の数だけ繰り返しても同じ答えしか出ないためです。割った実行のレポートは `list,blob` で出します —— `--reporter` は設定を上書きするもので足すものではなく、blob だけにすると標準出力に何も残らず、どの story で詰まったかが読めなくなります。spec を名指しするのは a11y の spec を同じ実行に巻き込まないためで、混ざると a11y の失敗が撮り直しの対象に入り、撮り直しても直らないままベースライン画像だけが承認済みになります。 |
 | `make vrt-retake [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>] [BASELINE_BRANCH=<branch>]` | ベースライン画像を撮り直して置き場へ送ります（`vrt-update` → `baseline-push`）。 | 手元から撮り直すエントリポイントはこれです。撮って送らないと親の gitlink が古いままになり、手元の `make vrt` は通るのに CI だけ落ちます。 |
 | `make vrt-update [VRT_ONLY=<id>,<id>] [VRT_ARGS=<args>]` | ベースライン画像を撮り直します（置き場へは送りません）。 | `VRT_ONLY` は撮り直す story を id で絞ります（該当 0 件なら失敗）。CI 側の同じ操作は `baseline-retake` ラベルが起動し、直前の実行が報告した story だけを対象にします。全数のときだけ撮る前に区画を空にし、**引数が 1 つでも付いていたら消しません** —— 絞り込みは `VRT_ONLY` だけでなく `VRT_ARGS` の `--grep` / `--project` でも起きるので、狭める引数を列挙して判定すると漏れた引数が「全 story を消して一部だけ撮り直す」になります。知らない引数は消さない側へ倒します。撮った時点の入力のハッシュは撮った直後に書きます —— 送る側で書くと、撮らずに置き場を直したツリーでも「この入力で撮った」と記録でき、次の実行が比較を省きます。撮り直しは承認ではなく、見た目の判断は置き場の compare ビューを見て PR レビューで行います。 |
 | `make baseline-sync` | ベースライン画像の実体を、いま居るブランチが指すバージョンへ合わせます。 | hook (post-checkout / post-merge) が呼びます。git はブランチを移っても実体を動かさないため、放っておくと指し先から取り残され、その汚れを commit すると間違った指し先が載ります。取り込んでいない作業ツリーでは何もしません（`--init` を付けると worktree を足すたびに置き場を丸ごと取りに行くため、在るものを合わせるだけに留めます）。 |
-| `make baseline-push [BASELINE_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインタを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`BASELINE_BRANCH` のデフォルトは現在のブランチ。 |
+| `make baseline-push [BASELINE_BRANCH=<branch>]` | 撮り直した一式を置き場へ送り、サブモジュールのポインターを進めます。 | 置き場へ送る経路はここだけです。サブモジュールの中で直接コミットすると撮り直しどうしが繋がり、掃除でどれも落とせなくなります。`BASELINE_BRANCH` のデフォルトは現在のブランチ。 |
 | `make vrt-gate` | 比較を省いてよいかだけを答えます（`run` / `skip`）。 | **`build-storybook` の後でしか答えられません** —— 絵を決める入力に `storybook-static` が入っているためで、CI が「先に判定してから撮影を割る」形を取れない理由もこれです。 |
 | `make vrt-record-verified` | 検査が通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全 shard が緑になってから**書きます（`vrt.yaml`）。手前で書くと、落ちた状態を「通った」として残します。記録は 2 つあります —— **撮った時点**（置き場が画像と同じコミットで持つ）と**検査が通った時点**（`tmp/` に置き、CI は cache で持ち回る）。分けるのは、絵を変えない変更でも `storybook-static` のバイト列は動くためで、撮影時点の記録だけでは一致するウィンドウがほとんど閉じます。追跡下に置かないのは、これがツリーの状態ではなく「そのツリーを検査した」という実行の履歴だからです。 |
 | `make vrt-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/vrt/`（追跡対象外）。 |
-| `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザで動かし、主要ジャーニー・ブラウザが報告する異常・バンドごとの出し分けを 3 つのレンダリングエンジンで回して、画面単位の見た目をベースライン画像と比べます。 | **アプリはホスト、ブラウザはコンテナ**で動きます（[`e2e/README.md`](../e2e/README.ja.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナ内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。相手はモックでなければならず、`APP_ENV` のデフォルトを `ci` に固定します —— デフォルトの `local` は live を指すので、明示していない呼び出しを実物のバックエンドへ向けません。待ち受けるアドレスはコンテナが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行のエンドポイントが開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります（Docker Desktop は loopback で届き、Linux では bridge の gateway が宛先になるので OS で解決を分けます）。別 origin から BFF を呼ぶ検証のため、宣言した origin の文書だけを返すサーバをアプリと同じホストに立て、その origin を `HTTP_ALLOWED_ORIGINS` へ渡します —— ブラウザの中で文書を偽装する手は採りません。Chromium は偽装した文書を公開ネットワーク由来と扱い、ホストへの fetch を Private Network Access で止めるためです。 |
-| `make e2e-maintenance [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `APP_MAINTENANCE_MODE=on` でアプリを起動し、全ルートが停止画面へ差し替わること・生存確認が通ること・状態を変える要求が 503 で断られることを確かめます。 | `make e2e` と同じ立て付け（build → 起動 → コンテナのブラウザから当てる → 片付け）に、起動の環境と当てる設定だけを差し替えて乗せています。**ベースライン画像を撮らない**ので置き場（submodule）を要求しません。停止は全ルートに効き、切り替えに起動し直しが要るため、通常の巡回へ混ぜられません（[`e2e/README.md`](../e2e/README.ja.md)）。 |
-| `make e2e-metadata [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `SITE_INDEXABLE=on` でアプリを build して起動し、`robots.txt` が巡回を許すこと・`sitemap.xml` が挙げる URL が実在し自分を正規 URL として名乗ること・アイコンと OG 画像が絵として返ることを確かめます。 | `make e2e-maintenance` と同じ立て付けですが、**build から差し替えます** —— 静的にレンダリングされる画面の metadata は build 時の設定で焼き込まれるためです（[`src/config/site/site.server.ts`](../src/config/site/site.server.ts)）。外から見た origin にはコンテナから見たアプリの場所を渡し、画面が名乗る URL と開いた URL を同じ綴りにします。インデックスさせない側は通常の巡回が見ます（[`e2e/README.md`](../e2e/README.ja.md)）。 |
+| `make e2e [E2E_ARGS=<args>] [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | build したアプリを実際のブラウザーで動かし、主要ジャーニー・ブラウザーが報告する異常・バンドごとの出し分けを 3 つのレンダリングエンジンで回して、画面単位の見た目をベースライン画像と比べます。 | **アプリはホスト、ブラウザーはコンテナー**で動きます（[`e2e/README.md`](../e2e/README.ja.md)）。`node_modules` は入れた OS と CPU 向けに解決されるため、コンテナー内で `next start` は起動できません。起動と後片付けもこのターゲットが持ちます。相手はモックでなければならず、`APP_ENV` のデフォルトを `ci` に固定します —— デフォルトの `local` は live を指すので、明示していない呼び出しを実物のバックエンドへ向けません。待ち受けるアドレスはコンテナーが到達に使う経路 1 本へ絞ります —— この起動が使う `APP_ENV=ci` ではテスト専用の session 発行のエンドポイントが開いているため、全インターフェースで待ち受けると LAN から叩ける状態になります（Docker Desktop は loopback で届き、Linux では bridge の gateway が宛先になるので OS で解決を分けます）。別 origin から BFF を呼ぶ検証のため、宣言した origin の文書だけを返すサーバーをアプリと同じホストに立て、その origin を `HTTP_ALLOWED_ORIGINS` へ渡します —— ブラウザーの中で文書を偽装する手は採りません。Chromium は偽装した文書を公開ネットワーク由来と扱い、ホストへの fetch を Private Network Access で止めるためです。 |
+| `make e2e-maintenance [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `APP_MAINTENANCE_MODE=on` でアプリを起動し、全ルートが停止画面へ差し替わること・生存確認が通ること・状態を変える要求が 503 で断られることを確かめます。 | `make e2e` と同じ立て付け（build → 起動 → コンテナーのブラウザーから当てる → 片付け）に、起動の環境と当てる設定だけを差し替えて乗せています。**ベースライン画像を撮らない**ので置き場（submodule）を要求しません。停止は全ルートに効き、切り替えに起動し直しが要るため、通常の巡回へ混ぜられません（[`e2e/README.md`](../e2e/README.ja.md)）。 |
+| `make e2e-metadata [E2E_PORT=<port>] [E2E_HOSTNAME=<addr>]` | `SITE_INDEXABLE=on` でアプリを build して起動し、`robots.txt` が巡回を許すこと・`sitemap.xml` が挙げる URL が実在し自分を正規 URL として名乗ること・アイコンと OG 画像が絵として返ることを確かめます。 | `make e2e-maintenance` と同じ立て付けですが、**build から差し替えます** —— 静的にレンダリングされる画面の metadata は build 時の設定で焼き込まれるためです（[`src/config/site/site.server.ts`](../src/config/site/site.server.ts)）。外から見た origin にはコンテナーから見たアプリの場所を渡し、画面が名乗る URL と開いた URL を同じ綴りにします。インデックスさせない側は通常の巡回が見ます（[`e2e/README.md`](../e2e/README.ja.md)）。 |
 | `make e2e-update [E2E_ARGS=<args>]` | 画面のベースライン画像を撮り直します（置き場へは送りません）。 | 送るのは `make baseline-push` です。画面のベースライン画像も story と同じ置き場の `screen/` 区画に入ります。撮り直しは承認ではありません。 |
 | `make e2e-retake [E2E_ARGS=<args>]` | 画面のベースライン画像を撮り直して置き場へ送ります（`e2e-update` → `baseline-push`）。 | 手元から撮り直すエントリポイントはこれです。story 側の `make vrt-retake` と同じ関係で、撮って送らないと親の gitlink が古いまま残ります。 |
 | `make e2e-build` | 画面を通した検証が使う本番ビルドを作ります。 | `make e2e` / `make lighthouse` が前段で呼びます。単体で叩くのは、起動だけを繰り返して切り分けるときです。build の前に `.next/cache/fetch-cache` を捨てます —— `cache: "force-cache"` の取得結果はそこに残り、CI では別ブランチの build が作ったものが復元されるため、残したまま撮ると絵がツリーの状態ではなく「前の build が何をキャッシュしたか」で決まります。生成物（`.next/server/app`）の存在を見てから成功を返します。 |
-| `make e2e-run` | アプリを起動してブラウザから当て、終了時に後片付けします。 | 同じく `make e2e` / `make lighthouse` から呼ばれます。起動・待ち受け・片付けの 1 組をここが持つので、上位のターゲットは環境と当てる設定だけを差し替えます。 |
-| `make e2e-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/e2e/`（追跡対象外）。trace も同じ場所に出ます。**レポートサーバとして常駐するので `make ai-<target>` で包みません。** |
-| `make lighthouse [E2E_PORT=<port>] [LIGHTHOUSE_SHARD=<i>/<n>]` | `e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らします。 | 起動は `make e2e` と同じ仕組みを使い、**ブラウザだけホストで動かします** —— 比べるのが画素ではなく数値なので、固定すべきはフォントのラスタライズではなくブラウザのバージョンで、それは lockfile の `@playwright/test` が担います。ベースライン画像は要らないので置き場の代わりに、測るブラウザがホストに入っていることを確かめます。画面ごとに複数回測って中央値を採り、回数も同じ宣言が持ちます（[ADR 0101](../docs/adr/0101-performance-budget.ja.md)）。`LIGHTHOUSE_SHARD` は機械を割る指定で、**1 台の中で並べる指定ではありません** —— 測っているのは CPU 律速の値なので、同じ機械で並べた時点で互いの CPU を奪い合います。割るのは PR の待ち時間のためだけです。待ち受けは loopback に固定します —— bridge の gateway で待ち受けると、テスト専用の session 発行エンドポイントが見る `Host` がその IP になり、開ける宛先の集合のどれとも一致せず 404 が返って役割の要る画面が開けません。**直すときに宛先の集合を広げてはいけません** —— あれは設定を誤って公開したときに被害を手元へ留める線で、広げれば任意の役割の session を発行するエンドポイントの露出面がそのぶん広がります。 |
+| `make e2e-run` | アプリを起動してブラウザーから当て、終了時に後片付けします。 | 同じく `make e2e` / `make lighthouse` から呼ばれます。起動・待ち受け・片付けの 1 組をここが持つので、上位のターゲットは環境と当てる設定だけを差し替えます。 |
+| `make e2e-report` | 直前の実行の HTML レポートを開きます。 | 出力は `tmp/e2e/`（追跡対象外）。trace も同じ場所に出ます。**レポートサーバーとして常駐するので `make ai-<target>` で包みません。** |
+| `make lighthouse [E2E_PORT=<port>] [LIGHTHOUSE_SHARD=<i>/<n>]` | `e2e/lib/screens.ts` が宣言する画面を 1 枚ずつ Lighthouse で開き、LCP / CLS / TBT を `performance-budget.yaml` の上限と照らします。 | 起動は `make e2e` と同じ仕組みを使い、**ブラウザーだけホストで動かします** —— 比べるのが画素ではなく数値なので、固定すべきはフォントのラスタライズではなくブラウザーのバージョンで、それは lockfile の `@playwright/test` が担います。ベースライン画像は要らないので置き場の代わりに、測るブラウザーがホストに入っていることを確かめます。画面ごとに複数回測って中央値を採り、回数も同じ宣言が持ちます（[ADR 0101](../docs/adr/0101-performance-budget.ja.md)）。`LIGHTHOUSE_SHARD` は機械を割る指定で、**1 台の中で並べる指定ではありません** —— 測っているのは CPU 律速の値なので、同じ機械で並べた時点で互いの CPU を奪い合います。割るのは PR の待ち時間のためだけです。待ち受けは loopback に固定します —— bridge の gateway で待ち受けると、テスト専用の session 発行エンドポイントが見る `Host` がその IP になり、開ける宛先の集合のどれとも一致せず 404 が返って役割の要る画面が開けません。**直すときに宛先の集合を広げてはいけません** —— あれは設定を誤って公開したときに被害を手元へ留める線で、広げれば任意の役割の session を発行するエンドポイントの露出面がそのぶん広がります。 |
 | `make lighthouse-gate` | 測定を省いてよいかだけを答えます（`run` / `skip`）。 | 数える入力は build 生成物ではなく元なので、**台を割る前の段で 1 度だけ引けます**。撮影側（`vrt-gate`）が台ごとに引くのは `storybook-static` を数えているためで、こちらにその制約はありません。 |
 | `make lighthouse-record-verified` | 予算を通った時点の入力のハッシュを記録します。 | CI が呼びます。割った実行では**全台の結果を知っている束ねる側**が書きます（`lighthouse.yaml`）。 |
 | `make lighthouse-merge` | 分割した台の結果を束ね、予算と照らします。 | 判定を持つのは束ねる側だけです。台ごとに予算を掛けると、割り方を変えるたびに落ち方が変わる検査になります。 |
 | `make lighthouse-report` | 直前の実行が残した LHR から、動いた要素・押し下げの量・重い script を引きます。 | 出力は `tmp/lighthouse/`（追跡対象外）。**出力そのものが答えなので `make ai-<target>` で包みません。** |
-| `make vrt-review BRANCH=<branch> VRT_ONLY=<id>,<id> [RUN=<run-id>] [VRT_REVIEW_PORT=<port>]` | CI が落とした story を、使い捨ての作業ツリーで立てた Storybook に並べます。 | 引数は PR コメントがコピー用の 1 行として書き出します。**手元の作業ツリーは動かしません** —— `tmp/review/vrt/<ブランチ>` に `origin/<ブランチ>` を切り離して展開します。`RUN` を渡すと `vrt-diff` も落として隣のポートで配ります（`gh` が要る）。ここで見えるのは「なぜ変わったか」であって画素の一致ではありません（ホストのフォントでレンダリングするため）。撮影側とエントリポイントを分けてあるのは、こちらが比較も撮り直しも行わず、コンテナも置き場も要らないためです。`VRT_ONLY` / `E2E_ONLY` は撮影側と同じ集合を同じ名前で受けます。 |
+| `make vrt-review BRANCH=<branch> VRT_ONLY=<id>,<id> [RUN=<run-id>] [VRT_REVIEW_PORT=<port>]` | CI が落とした story を、使い捨ての作業ツリーで立てた Storybook に並べます。 | 引数は PR コメントがコピー用の 1 行として書き出します。**手元の作業ツリーは動かしません** —— `tmp/review/vrt/<ブランチ>` に `origin/<ブランチ>` を切り離して展開します。`RUN` を渡すと `vrt-diff` も落として隣のポートで配ります（`gh` が要る）。ここで見えるのは「なぜ変わったか」であって画素の一致ではありません（ホストのフォントでレンダリングするため）。撮影側とエントリポイントを分けてあるのは、こちらが比較も撮り直しも行わず、コンテナーも置き場も要らないためです。`VRT_ONLY` / `E2E_ONLY` は撮影側と同じ集合を同じ名前で受けます。 |
 | `make e2e-review BRANCH=<branch> E2E_ONLY=<name>,<name> [RUN=<run-id>] [E2E_REVIEW_PORT=<port>]` | CI が落とした画面を、使い捨ての作業ツリーで起動したアプリに並べます。 | 起動するのは**本番ビルド**です（画面のベースライン画像がそれで撮られているため）。役割の要る画面は行き先を持たせた開発用 session の面を経由します。待ち受けは loopback へ絞ります —— `APP_ENV=ci` で session 発行のエンドポイントが開いているためです。 |
 | `make review-clean` | 上の 2 つが生やした作業ツリーを、git の登録ごと片付けます。 | 作業ツリーは Ctrl-C では消えず、`node_modules` と build 生成物を抱えたまま `tmp/review/` に溜まります。ディレクトリを直接消すと実体を失った登録が残り、次の `git worktree add` がそこで断られるため、片付けはこのエントリポイントから行います。 |
 
 ## `.makefiles/security` 系
 
 シークレットの混入・脆弱な依存・自分が書いたコードの脆弱なパターン・配信面の欠落をローカルで検知するための
-スキャンと、抑止と pin の棚卸しです（[ADR 0110](../docs/adr/0110-security-operations.ja.md)）。依存スキャナが
+スキャンと、抑止と pin の棚卸しです（[ADR 0110](../docs/adr/0110-security-operations.ja.md)）。依存スキャナーが
 「引き込んだライブラリが既知の脆弱性を持つか」を問うのに対し、SAST は「自分が書いたコードが脆弱なパターンを
 含むか」を、DAST は「走っているアプリが宣言どおりに配信しているか」を問います。
 
@@ -464,14 +464,14 @@ tag を省いた `uses: docker://alpine`（＝`:latest`）は検査の網に入�
 | `make sast` | 自分が書いたコードの脆弱なパターンを opengrep で検査します。 | **0 件の baseline を前提にしたゲート**で、所見があれば exit 1。許容する所見はソースへ `// nosemgrep: <rule-id>` を理由付きで置きます。GitHub の外へ持ち出せる SAST としてここに置き、ローカルでも CI でも同じコマンドが回ります。手で書いたソースだけを対象にし、生成物（生成した client / モックの handler）は外します —— 編集できないものの所見は行動につながらず、出るなら直す先は契約か生成器です。`--taint-intrafile` でファイル内の taint 追跡を有効にします（パターン一致だけでは、値の出所が別の行にある形を拾えません）。 |
 | `make sast-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。**検査条件は `make sast` と同じ変数を読む** —— ゲートと Security タブの一覧が違うスキャンを指すと、どちらも信用できなくなります。書き出したあと `scripts/sarif` が整えます —— `// nosemgrep:` で抑止した所見は SARIF に残るため、落とさないと Security タブにだけ積み上がります。 |
 | `make osv-scan` | 依存の脆弱性を OSV データベースで見ます。 | 報告専用。Trivy とも `pnpm audit` とも参照先が違うので件数は一致しません。**CI だけが `OSV_DETECT_EXIT=1` を渡し**、検出を exit code で受け取ってコメントの要否を決めます（手元のデフォルトは 0 で、従来どおり落ちません）。 |
-| `make osv-scan-release` | 昇格前の依存脆弱性を OSV で見ます。 | 保護ブランチ宛 PR で CI が呼ぶゲート。検出で exit 1。抑止は `osv-scanner.toml` が持ち、**フィルタした所見は理由付きで出力に残ります**。 |
-| `make dast` | 走っているアプリへ HTTP を撃ち、配信面を検査します。 | **ここだけが成果物ではなく応答を読みます** —— CSP と同伴ヘッダが宣言どおり配信されているかは、成果物を読んでも分かりません。撃つ相手は `DAST_TARGET` で渡します（デフォルトはコンテナから見たホストの :3000。走るのがコンテナの中だからで、CI はランナー内で起動したアプリを、手元では `pnpm start` したものを指します）。受動スキャン（baseline）を採り、OpenAPI 駆動の api-scan は採りません —— このレイヤーはプレゼンテーションレイヤーで API は別リポジトリが持つため、撃つ先が実質ありません。ファイルのパスはすべてマウント点（リポジトリ直下）からの相対で、cwd では動きません。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は exit 1**。ZAP は `IGNORE` にした規則も出力に残すので、黙殺と区別が付きます。 |
+| `make osv-scan-release` | 昇格前の依存脆弱性を OSV で見ます。 | 保護ブランチ宛 PR で CI が呼ぶゲート。検出で exit 1。抑止は `osv-scanner.toml` が持ち、**フィルターした所見は理由付きで出力に残ります**。 |
+| `make dast` | 走っているアプリへ HTTP を撃ち、配信面を検査します。 | **ここだけが成果物ではなく応答を読みます** —— CSP と同伴ヘッダーが宣言どおり配信されているかは、成果物を読んでも分かりません。撃つ相手は `DAST_TARGET` で渡します（デフォルトはコンテナーから見たホストの :3000。走るのがコンテナーの中だからで、CI はランナー内で起動したアプリを、手元では `pnpm start` したものを指します）。受動スキャン（baseline）を採り、OpenAPI 駆動の api-scan は採りません —— このレイヤーはプレゼンテーションレイヤーで API は別リポジトリが持つため、撃つ先が実質ありません。ファイルのパスはすべてマウント点（リポジトリ直下）からの相対で、cwd では動きません。既知の欠落は `.github/zap/rules.tsv` の一覧が持ち、**一覧に無い所見は exit 1**。ZAP は `IGNORE` にした規則も出力に残すので、黙殺と区別が付きます。 |
 | `make bearer-scan` | 値がプロセスの外へ出る地点を、その値の分類と併せて見ます。 | opengrep も CodeQL もパターンや taint 経路をそれ自体の条件で判定するだけで、**logger へ届いた文字列がメールアドレスであること**は知りません。**落としません。** 誤検知の傾向が強く、fail-closed にすると規則単位の無効化へ寄っていくためです（それは禁止）。所見は code scanning へ送り、差分が持ち込んだものを GitHub 側のチェックが赤にします。スキャンから外すパスは「秘密ではないと分かっている値」のファイルだけに限り、**個別の誤検知は `bearer.ignore` がフィンガープリントで受けます** —— パスで外すと、そのファイルに後から入る本物の所見まで消えます。 |
 | `make bearer-sarif` | 同じ検査を SARIF で書き出します。 | code scanning への取り込み用。所見が 0 件のとき Bearer は `results: null` を書きますが SARIF にその値は無いため、`scripts/sarif` が配列へ揃えます。揃えないと取り込みが弾かれ、「所見が無い」と「報告できていない」が見分けられなくなります。 |
-| `make suppression-expiry` | 抑止の撤回条件を突き合わせ、満たしたものか様式を欠くものがあれば落とします。 | 週に一度 CI が回します。**限界が 2 つあり、報告がそれを名指しします。** 決められるのは日付だけなので出力は全件の一覧を伴い、理由をコメントに持つ面（gitleaks / zizmor / pnpm の override / sonar）は宣言単位では読めず日付を含む行だけが出ます。冷却の免除（`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` と `mise.toml` の `tools-cooldown-ignore:`）は宣言単位で読み、理由が無い・バージョンを名指ししていない・日付を持たないものを様式違反として落とします。`SUPPRESSION_REPORT` を環境から渡すと issue の本文を書き出します（recipe 行へは展開しません）。 |
+| `make suppression-expiry` | 抑止の撤回条件を突き合わせ、満たしたものか様式を欠くものがあれば落とします。 | 週に一度 CI が回します。**限界が 2 つあり、報告がそれを名指しします。** 決められるのは日付だけなので出力は全件の一覧を伴い、理由をコメントに持つ面（gitleaks / zizmor / pnpm の override / sonar）は宣言単位では読めず日付を含む行だけが出ます。ウィンドウの免除（`pnpm-workspace.yaml` の `minimumReleaseAgeExclude` と `trustPolicyExclude`、`mise.toml` の `tools-cooldown-ignore:`）は宣言単位で読み、理由が無い・バージョンを名指ししていない・日付を持たないものを様式違反として落とします。`SUPPRESSION_REPORT` を環境から渡すと issue の本文を書き出します（recipe 行へは展開しません）。 |
 | `make tools-cooldown-check TOOLS_COOLDOWN_BASE=<ref>` | `mise.toml` の pin のうち base から動いたものが、配布経路ごとの冷却期間を満たすか検査します。 | PR で CI が base ブランチを渡して回します。ウィンドウは配布経路ごとに 2 つあります —— `TOOLS_COOLDOWN_RELEASE_DAYS`（GitHub Releases。`ACTIONS_PIN_MIN_AGE_DAYS` と同じ値）と `TOOLS_COOLDOWN_REGISTRY_DAYS`（npm / PyPI）で、言語ランタイム（`core:`）はウィンドウの対象外です。ウィンドウの内側の pin は exit 1、公開日時を引けない pin や経路を持たない backend は exit 2（検査が成立していない）。免除は pin の直上に `# tools-cooldown-ignore: <理由>。<窓が明ける日> に外す` を置きます（[`scripts/tools-cooldown/README.md`](../scripts/tools-cooldown/README.ja.md)）。`GITHUB_TOKEN` が無ければ `gh auth token` を借ります。 |
 | `make tools-cooldown-audit` | `mise.toml` の全 pin を冷却期間に照らして棚卸しします。 | 週に一度 CI が回します。手元でも引けます。免除の無いままウィンドウの内側に居る pin で落ち、免除の期限切れは `make suppression-expiry` が見ます。 |
-| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。しきい値が severity と修正可能性の 2 つなのは、到達可能性のフィルタが `pnpm audit` にも osv-scanner の call analysis（JS/TS 非対応）にも無く、現行ツールで引ける最も細い線がこの 2 つだからです。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でもしきい値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.ja.md)）。 |
+| `make audit` | 依存監査ゲート（`pnpm audit`）。 | 修正版のある `high` / `critical` が 1 件でもあれば exit 1。しきい値が severity と修正可能性の 2 つなのは、到達可能性のフィルターが `pnpm audit` にも osv-scanner の call analysis（JS/TS 非対応）にも無く、現行ツールで引ける最も細い線がこの 2 つだからです。判定と表の組み立ては `scripts/audit-gate` が持ちます。Trivy とは集計単位も参照する DB も違うため件数は一致せず、**突合して差分を潰そうとしません** —— どちらか一方でもしきい値に達したものを blocking として扱います（[ADR 0110](../docs/adr/0110-security-operations.ja.md)）。 |
 
 ## `.makefiles/agents` 系
 

@@ -12,7 +12,7 @@ export type Suppression = {
    *
    * @remarks
    * 面によって粒度が違います —— 脆弱性 ID（osv-scanner / trivy）、検出のフィンガープリント
-   * （bearer）、規則番号（ZAP）、`<name>@<version>`（冷却の免除）、行ラベル `L<行>`（条件を
+   * （bearer）、規則番号（ZAP）、`<name>@<version>`（窓の免除）、行ラベル `L<行>`（条件を
    * コメントに持つ面）。
    */
   readonly subject: string;
@@ -29,14 +29,24 @@ export type Suppression = {
   /** 期限の項目に書かれているが、暦日として読めなかった値。書かれたまま残す。 */
   readonly unreadableUntil?: string;
   /**
-   * 冷却の免除。
+   * 窓の免除。
    *
    * @remarks
-   * 供給網の冷却期間を特定の版について外す宣言です。他の抑止と違い、**撤回条件は日付でしか
-   * 書けません** —— 免除が要るのは版が窓の内側に居るあいだだけで、窓が明けた日が撤回の日です。
+   * 公開からの経過時間で効く供給網の窓（冷却期間、pnpm の trust policy が効く期間）を特定の版に
+   * ついて外す宣言です。他の抑止と違い、**撤回条件は日付でしか書けません** —— 免除が要るのは版が
+   * 窓の内側に居るあいだだけで、窓が明けた日が撤回の日です。
    * 対象も版を名指しする必要があります。名前だけの免除はその名前の将来の版まで外します。
    */
-  readonly kind?: "cooldown-exemption";
+  readonly kind?: "window-exemption";
+  /**
+   * 窓の免除の対象が版をどう書くか。
+   *
+   * @remarks
+   * `selector` は `@` の後ろを semver の範囲として読む面（pnpm）で、完全な版でなければ範囲に当たる
+   * 将来の版まで外します。`pin` は pin が版そのものを書く面（mise）で、名前に backend の接頭辞と
+   * `/` を含みます。
+   */
+  readonly versionForm?: "selector" | "pin";
 };
 
 /** 撤回してよいと判定した宣言。 */
@@ -51,8 +61,16 @@ export type MalformedSuppression = Suppression & {
   readonly defects: readonly string[];
 };
 
-/** 冷却の免除の対象の形。名前に続けて版を名指しする。 */
-const VERSIONED_SUBJECT = /^(@[^@\s/]+\/)?[^@\s/]+@\S+/;
+/** 完全な版。 */
+const EXACT_VERSION = String.raw`\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?`;
+
+/** 範囲として読む面の対象の形。名前に続けて、完全な版を 1 つ以上 `||` で並べる。 */
+const SELECTOR_SUBJECT = new RegExp(
+  String.raw`^(?:@[^@\s/]+\/)?[^@\s/]+@${EXACT_VERSION}(?:\s*\|\|\s*${EXACT_VERSION})*$`,
+);
+
+/** pin の面の対象の形。`<backend>:<name>` に続けて、最後の `@` の後ろに版を書く。 */
+const PIN_SUBJECT = /^[^@\s]\S*@[^@\s]+$/;
 
 /**
  * 撤回条件を満たした宣言を選ぶ。
@@ -90,7 +108,7 @@ export function expiredSuppressions(
  * 期限の項目を持つ宣言は、理由に日付を書かないことも要求します。期限が 2 か所に住むと、片方だけが
  * 延ばされて、もう片方の日付は誰も見なくなります。
  *
- * 冷却の免除は加えて、対象が版を名指ししていること・条件に日付があることを要求します。
+ * 窓の免除は加えて、対象が版を名指ししていること・条件に日付があることを要求します。
  * 免除の撤回条件は窓が明ける日付でしか書けないので、日付の無い免除は撤回条件を持ちません。
  *
  * @param suppressions - 読み取った宣言の全件
@@ -116,8 +134,10 @@ export function malformedSuppressions(
       );
     }
 
-    if (suppression.kind === "cooldown-exemption") {
-      if (!VERSIONED_SUBJECT.test(suppression.subject)) {
+    if (suppression.kind === "window-exemption") {
+      const subjectForm = suppression.versionForm === "pin" ? PIN_SUBJECT : SELECTOR_SUBJECT;
+
+      if (!subjectForm.test(suppression.subject)) {
         defects.push("対象が版を名指ししていない（<name>@<version> の形で書く）");
       }
 

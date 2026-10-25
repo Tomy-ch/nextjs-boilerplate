@@ -15,12 +15,14 @@ function renderFields(
   overrides: Partial<{
     values: DiscontinueConditionValues;
     messages: Partial<Record<keyof DiscontinueConditionValues, string>>;
+    lockedReason: string;
   }> = {},
 ) {
   const onValuesChange = vi.fn();
 
   const { container } = render(
     <DiscontinueConditionsFields
+      {...(overrides.lockedReason === undefined ? {} : { lockedReason: overrides.lockedReason })}
       messages={overrides.messages ?? {}}
       onValuesChange={onValuesChange}
       values={overrides.values ?? EMPTY}
@@ -126,6 +128,30 @@ describe("DiscontinueConditionsFields", () => {
 
     expect(daysField()).toHaveAccessibleDescription(/日数の誤り/);
     expect(rateField()).not.toHaveAccessibleDescription(/日数の誤り/);
+  });
+
+  it("書き換えさせない理由を渡すと、どちらの欄も書き換えられず、理由を欄の組に結ぶ", async () => {
+    const reason = "前回の結果が分かるまで、条件は書き換えられません。";
+    const { onValuesChange } = renderFields({
+      values: { couponDiscountRate: "10", couponValidityDays: "30" },
+      lockedReason: reason,
+    });
+
+    await userEvent.type(rateField(), "5");
+    await userEvent.type(daysField(), "1");
+
+    expect(onValuesChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("group", { name: "代替クーポンの条件" })).toHaveAccessibleDescription(
+      reason,
+    );
+  });
+
+  it("書き換えさせない理由が無ければ、欄の組に説明を結ばない", () => {
+    renderFields();
+
+    expect(
+      screen.getByRole("group", { name: "代替クーポンの条件" }),
+    ).not.toHaveAccessibleDescription();
   });
 
   it("誤りがある状態で a11y 検査を通る", async () => {

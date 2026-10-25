@@ -60,7 +60,7 @@ inquiry. Updates to the one that is open are learned from the feed, and the auth
 | List subscription | Waiting | `Features/Admin/Inquiries/List/FeedWatch/Default` |
 | List loading UI | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
 | Exchange and reply | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
-| Reply field | idle / pending / field error | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
+| Reply field | idle / submitted empty / pending / field error / outcome open | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | Handling loading UI | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
 | Hierarchy | Under the list | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
 | Receiving state | 7 kinds | `Status/ConnectionStatus/*` |
@@ -105,7 +105,7 @@ inquiry. Updates to the one that is open are learned from the feed, and the auth
 
 | Action | Location | Return value | After success | On failure |
 | --- | --- | --- | --- | --- |
-| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | `revalidatePath` only the one that is open | Field wording (the body), or wording next to the reply field |
+| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | `refresh()` only the one that is open | Field wording (the body), or wording next to the reply field |
 
 **The screen puts the reply target on the submission.** Operators move between several inquiries, so "the one
 open now" cannot be decided on the server side.

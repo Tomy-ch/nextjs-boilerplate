@@ -4,7 +4,7 @@
 
 本リポジトリで繰り返し踏みがちな運用上の落とし穴に対する、具体的な復旧・手順ステップ集。これは
 **ワークフローではなくルックアップ表**: 症状を見つけて対処を打つ。破壊的またはルートファイルに触れるステップは
-`AGENTS.md` に従い先にユーザへ伝える。
+`AGENTS.md` に従い先にユーザーへ伝える。
 
 > **スコープ注記。** この runbook は意図的に薄く、実在する落とし穴だけを載せる。本リポジトリは Docker
 > ツールランナーも DB も持たないプレゼンテーションレイヤーなので([0011](../../../docs/adr/0011-no-docker.ja.md))、その種の項目は
@@ -71,7 +71,7 @@ make install-tools     # mise.toml に従い Node.js + pnpm を入れ、両バ�
   `node_modules` を破棄しようとして `ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY`。スタックの末尾が
   `runDepsStatusCheck` であることが目印で、落ちたのは前段のゲートであって `lint:ci` / `typecheck` /
   `lint:md` ではない。
-- **追跡対象のルート設定を書き換える。** pnpm 11 は `pnpm-workspace.yaml` の先頭にプレースホルダを追記する:
+- **追跡対象のルート設定を書き換える。** pnpm 11 は `pnpm-workspace.yaml` の先頭にプレースホルダーを追記する:
 
   ```yaml
   allowBuilds:
@@ -116,7 +116,7 @@ hook も同じ `PATH` で解決するため、誤った pnpm を掴んだシェ�
 両者の分かれ目になる。
 
 ピンを新しい pnpm へ動かすかは `tools-upgrade` の判断であって、この罠の回避策ではない。動かす場合は
-`allowBuilds` をプレースホルダでなく実値で埋める作業も要る。
+`allowBuilds` をプレースホルダーでなく実値で埋める作業も要る。
 
 ## 3. `DRY_RUN` は `make setup-repo` には効かない
 
@@ -133,7 +133,7 @@ dry-run が有効になる値は `1` のみ。それ以外(`DRY_RUN=0` を含む
 
 `make setup-repo` はリポジトリ初期化の一度きりターゲットで**破壊的**: ローカルと `origin` の既存タグを全削除し、
 `v0.0.0.md` 以外のリリースノートを削除し、`upstream` リモートを外し、`v0.0.0` と保護ブランチ 3 本を作成・push する。
-実行前にユーザ確認を取り、初期化済みリポジトリでは実行しない(`v0.0.0` があれば中断する)。
+実行前にユーザー確認を取り、初期化済みリポジトリでは実行しない(`v0.0.0` があれば中断する)。
 
 ## 4. `pnpm install --frozen-lockfile` が落ちる ── lockfile 不整合
 
@@ -148,12 +148,12 @@ git add package.json pnpm-lock.yaml
 ```
 
 原則: **`package.json` の依存変更は、再生成した `pnpm-lock.yaml` を必ず同時コミットする。**(`package.json` は
-保護対象のルート設定 ── 依存編集はユーザ明示指示が必要。[0004](../../../docs/adr/0004-library-management.ja.md)
+保護対象のルート設定 ── 依存編集はユーザー明示指示が必要。[0004](../../../docs/adr/0004-library-management.ja.md)
 により依存メジャーは別 PR。)
 
 ## 5. biome: `pnpm lint` vs `pnpm fix`(ADR 0002)
 
-フォーマッタは biome 単独で、biome が表現できる lint 検査はすべて biome が持つ。Prettier は不採用。ESLint が
+フォーマッターは biome 単独で、biome が表現できる lint 検査はすべて biome が持つ。Prettier は不採用。ESLint が
 持つのは biome で表現できない検査だけである(ADR 0002 の能力ベース分割)。現行の集合はここに写さず
 `eslint.config.ts` を読む —— いまはレイヤー境界(`boundaries/*`)、React Hooks の規則、型アサーションの禁止、
 このリポジトリ自身の `project-rules/*` である。入口は次のとおり:
@@ -182,7 +182,7 @@ README が境界を宣言している場合(宣言を持つのは要素の根だ
 
 `noConsole` はデフォルト `warn` ── **`console.log` をコミットに残さない**(AGENTS.md / ADR 0002)。自動修正で直らない
 ものは手で直す。`// biome-ignore` を多用しない(スコープ付き `overrides` を `biome.json` に。ただし `biome.json` は
-保護対象ルート設定=ユーザ指示)。
+保護対象ルート設定=ユーザー指示)。
 
 ## 6. スクラッチ出力は `tmp/` 配下に置き、git には乗せない
 
@@ -304,13 +304,13 @@ make actions-mise-pin-lint
 
 `mise.toml` の中のツールの版は別件で、`tools-upgrade` が担当し、mise 自身は意図的に触らない。
 
-## 9. worktree を消しても、そこから起動したサーバは止まらない
+## 9. worktree を消しても、そこから起動したサーバーは止まらない
 
 `git worktree remove` が消すのはチェックアウトとその登録で、作業ディレクトリがその中にあったプロセスには
 触れない。バックグラウンドに残った `pnpm dev` や `pnpm storybook` はポートを掴んだまま、読み込み済みの
 コードを配り続ける ── 次にそのポートを開いた人はもう存在しない worktree を見ることになり、そのポートを
-使いたい worktree は使えない。`make review-clean` も同じで、見直し用のターゲットは自分のサーバを Ctrl-C で
-止め、片付けはその worktree を消すが、手で起動したサーバはそれらが止めるものではない。
+使いたい worktree は使えない。`make review-clean` も同じで、見直し用のターゲットは自分のサーバーを Ctrl-C で
+止め、片付けはその worktree を消すが、手で起動したサーバーはそれらが止めるものではない。
 
 ポートを掴んでいるプロセスを見つけ、どこから・いつ起動したかを読む。
 
@@ -327,7 +327,7 @@ kill <pid>
 
 ## 10. あるポートのタブが、別のタブのダイアログが開いている間固まる
 
-ポートを分けるとサーバは衝突しないが、browser の中のタブは**隔離されない**。Chrome はレンダラープロセスを
+ポートを分けるとサーバーは衝突しないが、browser の中のタブは**隔離されない**。Chrome はレンダラープロセスを
 *サイト* ── スキーム + 登録可能ドメイン(eTLD+1) ── 単位でまとめ、ポートはそこに含まれない。
 `http://localhost:6006` と `http://localhost:6007` は別オリジンだが同一サイトなので、タブが 1 つの
 レンダラープロセスを共有しうる。JavaScript のモーダル(`alert` / `confirm` / `prompt` / `window.print()`)は
@@ -346,9 +346,9 @@ grep -rnE 'window\.(print|alert|confirm|prompt)\(' src
 
 ## 制約
 
-- ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザが操作を頼んだ時のみ。
+- ✅ read-only ナレッジ: 正確なコマンドを提示。実行はユーザーが操作を頼んだ時のみ。
 - ✅ 破壊的ステップ(§3 のタグ/ブランチ削除、§9 の `kill`)は `AGENTS.md` に従い事前警告。
-- ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザ確認 ── デフォルトの
+- ✅ ルートファイル編集(§5 `biome.json`、§4 `package.json`)は事前にユーザー確認 ── デフォルトの
   AI 変更スコープ外。§2 の `git restore pnpm-workspace.yaml` は例外 ── 頼んでいない機械的な変更を
   作るのではなく捨てる操作だから。
 - ❌ Docker / DB の項目をここに足さない(スコープ注記)。

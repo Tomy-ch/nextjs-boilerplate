@@ -60,15 +60,15 @@ export function PlaceOrderSubmit({ label, orderable, fullWidth = false }: PlaceO
  * ことがありません。
  */
 export function PlaceOrderError() {
-  const { state } = usePlaceOrderState();
+  const { formError } = usePlaceOrderState();
 
-  if (state.status !== "error" || state.formError === null) {
+  if (formError === null) {
     return null;
   }
 
   return (
     <FormFeedback
-      description={state.formError}
+      description={formError}
       title="注文を確定できませんでした"
       variant="destructive"
     />

@@ -4,7 +4,7 @@
 
 新規環境変数をプロジェクトに end-to-end で追加するスキル。各環境の env ファイルへ値を置き env 変数表へ載せる。加えて、アプリが config 経由で読む変数であれば、**目的（purpose）別の config モジュール 1 本**のスキーマに宣言し、その不変な型付きオブジェクト経由で公開し、config カーネル README で解説する。
 
-2 つのドキュメントは持つものが違う（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。**`env/README` が「どの変数が存在するか」の正**であり、値がプレースホルダのみの変数も config を経由しない変数もここに載る。**config カーネル README は「設定値そのもの」の正**であり、ビルド時に検証され構築時に purpose モジュールへ流し込まれる値を扱う。config が扱うのは env に存在するものの部分集合であり、同じ内容を両方へ書かない。
+2 つのドキュメントは持つものが違う（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。**`env/README` が「どの変数が存在するか」の正**であり、値がプレースホルダーのみの変数も config を経由しない変数もここに載る。**config カーネル README は「設定値そのもの」の正**であり、ビルド時に検証され構築時に purpose モジュールへ流し込まれる値を扱う。config が扱うのは env に存在するものの部分集合であり、同じ内容を両方へ書かない。
 
 本スキルが実装する設計は [0030](../../../docs/adr/0030-environment-variable-management.ja.md)（環境変数管理 / config カーネル）、命名形式は [0028](../../../docs/adr/0028-naming-convention.ja.md) に従う。ADR が正であり、本スキルはその機械的作業を自動化するだけである。
 
@@ -16,7 +16,7 @@
 ls src/config/ 2>/dev/null
 ```
 
-`src/config/` が無い場合は**即座に停止**し、config カーネル未着手のため変数を追加する先が無い旨をユーザへ伝える。変数追加の依頼を根拠に、カーネル・スキーマ・検証呼び出し・`env/` を**新規作成してはならない**。カーネル構築はそれ自体が独立した変更であり、[0030](../../../docs/adr/0030-environment-variable-management.ja.md) がそこへ委ねたスキーマライブラリ選定を要するため。
+`src/config/` が無い場合は**即座に停止**し、config カーネル未着手のため変数を追加する先が無い旨をユーザーへ伝える。変数追加の依頼を根拠に、カーネル・スキーマ・検証呼び出し・`env/` を**新規作成してはならない**。カーネル構築はそれ自体が独立した変更であり、[0030](../../../docs/adr/0030-environment-variable-management.ja.md) がそこへ委ねたスキーマライブラリ選定を要するため。
 
 ## 使うとき
 
@@ -50,17 +50,17 @@ ls src/config/ 2>/dev/null
 
 **触らない**:
 
-- `next.config.ts` / `instrumentation.ts` — ビルド時・サーバ起動時の検証点（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）はスキーマモジュールを丸ごと import するため、既存 purpose のスキーマへフィールドを足せば自動的に検証対象になる。ここへの変更が要るように見える場合は、その purpose モジュールが未接続ということなので、編集せず報告して止まる
+- `next.config.ts` / `instrumentation.ts` — ビルド時・サーバー起動時の検証点（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）はスキーマモジュールを丸ごと import するため、既存 purpose のスキーマへフィールドを足せば自動的に検証対象になる。ここへの変更が要るように見える場合は、その purpose モジュールが未接続ということなので、編集せず報告して止まる
 - `biome.json` — `noProcessEnv` の override は config カーネルの持ち物で、変数追加の範囲ではない
 - `env/` と `src/config/` の外のすべて
 
 ## Step 0. 仕様の収集
 
-**スキル起動直後に必ず `AskUserQuestion` を呼ぶ**。env 変数の追加はユーザ確認を要する（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。まとめて聞く。
+**スキル起動直後に必ず `AskUserQuestion` を呼ぶ**。env 変数の追加はユーザー確認を要する（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。まとめて聞く。
 
 ### 質問 1: 変数名と purpose
 
-- 質問:「環境変数名を入力してください（`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`）。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
+- 質問:「環境変数名を入力してください（`{SUBSYSTEM}_{NAME}` の UPPER_SNAKE_CASE。ブラウザーへ出す変数は `NEXT_PUBLIC_{SUBSYSTEM}_{NAME}`）。例: `APP_API_BASE_URL` / `NEXT_PUBLIC_ANALYTICS_SITE_ID`」
 - 自由入力。その後:
   1. **purpose は名前ではなく読み手が引く**（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。接頭辞は [0028](../../../docs/adr/0028-naming-convention.ja.md) の命名の単位で purpose とは独立しており、同じ接頭辞の変数でも読むサブシステムが違えば別の purpose に入る。その値をどのサブシステムが読むかを尋ねる
   2. その読み手を `src/config/` から検出した purpose 群と突合する
@@ -84,12 +84,12 @@ ls src/config/ 2>/dev/null
 - 質問:「この変数はどちら側ですか？」
 - 選択肢:
   - 「server（secret を含み得る / runtime object）」 — `<purpose>.server.ts` へ
-  - 「client（`NEXT_PUBLIC_` / ブラウザに露出する公開定数）」 — `<purpose>.client.ts` へ
+  - 「client（`NEXT_PUBLIC_` / ブラウザーに露出する公開定数）」 — `<purpose>.client.ts` へ
 
 [0030](../../../docs/adr/0030-environment-variable-management.ja.md) の 2 つの不変条件を強制する:
 
 - `NEXT_PUBLIC_` 付きの名前は client モジュール、無い名前は server モジュールへ行く。回答が名前と矛盾する場合は不整合を提示して聞き直す
-- **secret を `NEXT_PUBLIC_` に置かない。** 質問 5 で secret ラベルが付いたのに client 側であれば停止して説明する — `NEXT_PUBLIC_` の値はブラウザバンドルへリテラル展開されるため secret が漏れる。そのまま進めず、分割（公開 ID は client / secret キーは server）を提案する
+- **secret を `NEXT_PUBLIC_` に置かない。** 質問 5 で secret ラベルが付いたのに client 側であれば停止して説明する — `NEXT_PUBLIC_` の値はブラウザーバンドルへリテラル展開されるため secret が漏れる。そのまま進めず、分割（公開 ID は client / secret キーは server）を提案する
 
 ### 質問 4: 型と required / code default
 
@@ -110,7 +110,7 @@ ls src/config/ 2>/dev/null
   - 「Secret management required（本番は secret store から供給。平文コミット禁止）」
   - 「Secret management recommended（定期ローテーション推奨）」
 
-いずれかの secret ラベルが付く場合、コミットされる env ファイルへ書くのは**プレースホルダ**であり実値ではない。本番値は PaaS の env / secret store から供給する（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。実値を尋ねるのではなく、この旨をユーザへ伝える。
+いずれかの secret ラベルが付く場合、コミットされる env ファイルへ書くのは**プレースホルダー**であり実値ではない。本番値は PaaS の env / secret store から供給する（[0030](../../../docs/adr/0030-environment-variable-management.ja.md)）。実値を尋ねるのではなく、この旨をユーザーへ伝える。
 
 ### 質問 6: 説明
 
@@ -119,7 +119,7 @@ ls src/config/ 2>/dev/null
 - 「説明」
 - Notes 欄（任意） — Secret 管理 / 環境依存等の注記
 
-どちらも短く直截に、周囲の行のレジスタに合わせる。
+どちらも短く直截に、周囲の行のレジスターに合わせる。
 
 ### 質問 7: 環境別の値
 
@@ -130,7 +130,7 @@ ls src/config/ 2>/dev/null
   - 「prd だけ別の値を入れる」
   - 「環境ごとに個別指定する（追加質問）」
 
-選択に応じて値を集める。`prd` は、ユーザが明示値を与えない限り、`env/README.md` がプラットフォームの与える値に割り当てる行の形（名前だけのコメントアウト行）にする。secret ラベル付きの変数は常にその形とする。
+選択に応じて値を集める。`prd` は、ユーザーが明示値を与えない限り、`env/README.md` がプラットフォームの与える値に割り当てる行の形（名前だけのコメントアウト行）にする。secret ラベル付きの変数は常にその形とする。
 
 ## Step 1. 挿入位置の決定
 
@@ -154,7 +154,7 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 
 - どのファイルでも同じ位置へ行を足す。5 つのファイルは `env/README.md` の変数表と同じ順序で同じ変数を持つので、新しい行は表の行が入る位置に入る。目印にするセクションコメントは無い
 - 行の形（`NAME=value` / `NAME=` / `# NAME=` / `# NAME=<候補>`）は、`env/README.md` の「ファイルの書き方」の定義に従って、誰が値を与えるかで選ぶ。同じセクションが一部の環境に限る変数（検証のためだけの上書き、開発専用の切り替え）は、その環境のファイルにだけ足す
-- secret ラベル付きはプレースホルダ（またはコメントアウト行）とし、実値は書かない
+- secret ラベル付きはプレースホルダー（またはコメントアウト行）とし、実値は書かない
 
 ### `env/README.md` — 変数の存在（常に）
 
@@ -164,7 +164,7 @@ server モジュール固有: `import "server-only"` はファイル先頭に既
 |APP_API_BASE_URL|<説明>|<型>|<例>|<注記>|
 ```
 
-secret ラベルを選んだ場合は Notes 列に含める。この行は**すべての**変数について書く — config モジュールが読まない変数も、値が常にプレースホルダの変数も含む。
+secret ラベルを選んだ場合は Notes 列に含める。この行は**すべての**変数について書く — config モジュールが読まない変数も、値が常にプレースホルダーの変数も含む。
 
 ### `src/config/README.md` — 設定値（config 経由の変数のみ）
 
@@ -221,19 +221,19 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 
 テストスクリプトが在ればそれも実行する。本スキルにとって意味のあるゲートは `pnpm build` である — [0030](../../../docs/adr/0030-environment-variable-management.ja.md) の全量検証が実際に走るのがそこだから。
 
-失敗したら内容を提示して停止する。編集のロールバックはしない（fix forward するかはユーザが決める）。
+失敗したら内容を提示して停止する。編集のロールバックはしない（fix forward するかはユーザーが決める）。
 
 ## Step 5. 締め
 
 - 1 行サマリを出す: `<VAR_NAME> を <purpose> に追加。<N> ファイル更新。build OK。`
-- secret ラベル付き、または `prd` をプレースホルダのままにした場合は、実値を PaaS の env / secret store に設定する必要がある旨（本スキルはそこを触らない）を伝える
+- secret ラベル付き、または `prd` をプレースホルダーのままにした場合は、実値を PaaS の env / secret store に設定する必要がある旨（本スキルはそこを触らない）を伝える
 - 本スキルはコミットしない。レビュー後に `/commit` を使う
 
 ## AI 変更スコープ
 
 `CLAUDE.md` / `AGENTS.md` の「Exception: Skill Execution」に従い、本スキル実行中は以下へスコープを限定して AI 変更スコープが緩和される:
 
-- env ファイル群と `env/README.md`。config 経由の経路ではさらに、purpose schema、対応する runtime モジュール、`src/config/environment.ts`、`src/config/environment.fixture.ts`、同居するテストファイル、`src/config/README.md` — またはユーザが承認した部分集合
+- env ファイル群と `env/README.md`。config 経由の経路ではさらに、purpose schema、対応する runtime モジュール、`src/config/environment.ts`、`src/config/environment.fixture.ts`、同居するテストファイル、`src/config/README.md` — またはユーザーが承認した部分集合
 
 保護されたまま:
 
@@ -252,7 +252,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - ❌ config モジュールが無いことを理由に `env/README` の行を省くこと（存在の正は env。config を経由しない変数も載せる）
 - ❌ env 変数表の内容を config README へ二重に書くこと（逆も同様。2 つの文書は持つものが違う）
 - ❌ 仕様確認の `AskUserQuestion` を省くこと / 計画提示なしに適用すること
-- ✅ ユーザ向け出力は日本語
+- ✅ ユーザー向け出力は日本語
 - ✅ env ファイル（行の順序・行の形）と README 表（列数・順序）の体裁を保つ
 - ✅ 書き込み後に `pnpm fix` + `pnpm lint:ci` + `pnpm typecheck` + `pnpm build` を実行する
 - ✅ 検証の失敗は提示する。自動ロールバックはしない
@@ -269,7 +269,7 @@ pnpm build      # スキーマ全量のビルド時検証（required の欠落�
 - [ ] 型と required / code default を確認した
 - [ ] 説明を canonical の `env/README.md` の言語である英語で確定した（訳したなら計画に提示しレビューを受けた）
 - [ ] 環境別の値を確定した
-- [ ] 計画全体を提示し、ユーザが承認した
+- [ ] 計画全体を提示し、ユーザーが承認した
 - [ ] config 経由の経路: purpose を 1 つだけ更新した（スキーマ項目 + runtime モジュールの既存の形での値。setter なし）
 - [ ] client モジュールの値は文字列リテラルで名指す参照のみ
 - [ ] 変数が属する env ファイルすべてを、表の順序の位置へ、`env/README.md` が割り当てる行の形で更新した

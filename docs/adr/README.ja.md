@@ -27,9 +27,9 @@
 
 ## 一覧
 
-- [0001-package-manager.md](0001-package-manager.ja.md) - パッケージマネージャの選定（pnpm 採用 / lockfile commit / npm・yarn 禁止）
-- [0002-formatter-linter.md](0002-formatter-linter.ja.md) - フォーマッタ・リンタの選定（Biome 優先 + 隙間補完 ESLint）
-- [0003-version-manager.md](0003-version-manager.ja.md) - Node.js / pnpm のバージョンマネージャ選定（mise 採用）
+- [0001-package-manager.md](0001-package-manager.ja.md) - パッケージマネージャーの選定（pnpm 採用 / lockfile commit / npm・yarn 禁止）
+- [0002-formatter-linter.md](0002-formatter-linter.ja.md) - フォーマッター・リンターの選定（Biome 優先 + 隙間補完 ESLint）
+- [0003-version-manager.md](0003-version-manager.ja.md) - Node.js / pnpm のバージョンマネージャー選定（mise 採用）
 - [0004-library-management.md](0004-library-management.ja.md) - ライブラリ選定・運用方針（npm 依存のメタ方針 / exact pin / 監査）
 - [0010-standards-and-non-lockin.md](0010-standards-and-non-lockin.ja.md) - 標準準拠と非ロックイン（設計判断の恒久メタ軸 = デファクト seam に乗る / 非ロックイン判定）
 - [0011-no-docker.md](0011-no-docker.ja.md) - Docker を採用しない方針（プレゼンテーションレイヤー → アプリ基盤ロール定義）
@@ -38,7 +38,7 @@
 - [0022-capabilities-kernel.md](0022-capabilities-kernel.ja.md) - `capabilities` カーネル（横断 client hook の家 / runtime 能力供給 / use client 固定）
 - [0023-stores-kernel.md](0023-stores-kernel.ja.md) - `stores` カーネル（横断 client 状態 = Zustand の家 / 昇格基準）
 - [0024-adapters-server-client-split.md](0024-adapters-server-client-split.ja.md) - adapters の server/client 分割（2 軸モデル / client 側外部接続境界 = 構造ブロッカー S1）
-- [0025-app-layer-elements.md](0025-app-layer-elements.ja.md) - app レイヤの element 構成（Route Handler / metadata / 3 element = S2）
+- [0025-app-layer-elements.md](0025-app-layer-elements.ja.md) - app レイヤーの element 構成（Route Handler / metadata / 3 element = S2）
 - [0026-layout-shell-mount.md](0026-layout-shell-mount.ja.md) - layout の横断 UI / Provider mount（app シェル合成 = S4）
 - [0027-directory-structure.md](0027-directory-structure.ja.md) - ディレクトリ構造（物理配置 / `@/*` alias / co-location / 共有粒度）
 - [0028-naming-convention.md](0028-naming-convention.ja.md) - 命名規則（ファイル名 / 識別子 / route セグメント / 環境変数 / ADR ファイル）
@@ -79,15 +79,15 @@
 - [0091-test-verification-methods.md](0091-test-verification-methods.ja.md) - テスト検証手段方針（async RSC テストの寄せ先 / a11y 自動テスト = axe 組込）
 - [0100-accessibility-target.md](0100-accessibility-target.ja.md) - アクセシビリティ目標（WCAG AA / biome a11y / 手動チェック）
 - [0101-performance-budget.md](0101-performance-budget.ja.md) - パフォーマンス予算（Core Web Vitals / 仕組みは定義・しきい値は用途依存）
-- [0102-browser-support.md](0102-browser-support.ja.md) - ブラウザサポート行列（Next.js デフォルト browserslist 追認 / 切り捨ては用途依存）
+- [0102-browser-support.md](0102-browser-support.ja.md) - ブラウザーサポート行列（Next.js デフォルト browserslist 追認 / 切り捨ては用途依存）
 - [0110-security-operations.md](0110-security-operations.ja.md) - セキュリティ運用（Dependabot cooldown / gitleaks / Trivy 二段 / CodeQL / image-scan は exclusion）
-- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) - CSP・セキュリティヘッダ（実行時）
+- [0111-csp-security-headers.md](0111-csp-security-headers.ja.md) - CSP・セキュリティヘッダー（実行時）
 - [0112-data-classification-cache-boundary.md](0112-data-classification-cache-boundary.ja.md) - データ分類とキャッシュ境界（PII / user-scoped / secret の置き場と段ごとの関所）
 - [0113-development-access-surface.md](0113-development-access-surface.ja.md) - 開発用のエンドポイントの制御面（到達したい状態で決める / build 除外と実行時判定は別の保証）
 - [0120-locale-aware-formatting.md](0120-locale-aware-formatting.ja.md) - ロケール対応フォーマット（日付・数値 + Intl / date-fns 日付演算）
 - [0121-i18n-strategy.md](0121-i18n-strategy.ja.md) - i18n 戦略（本体非同梱 = exclusion / 採用時の seam）
 - [0130-pwa-strategy.md](0130-pwa-strategy.ja.md) - PWA 戦略（Manifest / SW / オフライン本体非同梱 = exclusion）
-- [0131-cookie-consent.md](0131-cookie-consent.ja.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャは同梱 / CMP・IAB TCF は非同梱。計測製品そのものはコンテナの中身として選ぶ）
+- [0131-cookie-consent.md](0131-cookie-consent.ja.md) - Cookie 同意（軽量 consent 機構 + スクリプトゲート + ゲートの裏のタグマネージャーは同梱 / CMP・IAB TCF は非同梱。計測製品そのものはコンテナーの中身として選ぶ）
 - [0140-documentation-operations.md](0140-documentation-operations.ja.md) - ドキュメント運用ポリシー（EN canonical 方向 / タクソノミー / rules.md 新設 / ADR 不可変性）
 - [0141-portal-operations.md](0141-portal-operations.ja.md) - ポータル運用（manifest = 構造制御 / 登録基準 / GitHub Pages）
 - [0142-license.md](0142-license.ja.md) - ライセンス選定（MIT 採用根拠 / OSS 寄与 = inbound=outbound / private:true との関係）
@@ -101,7 +101,7 @@
 - [0153-ci-configuration.md](0153-ci-configuration.ja.md) - CI 構成（job 分割 / SHA ピン / 最小 permissions / hooks mirror / matrix 非採用）
 - [0154-claude-skills-operations.md](0154-claude-skills-operations.ja.md) - Claude スキル運用方針（運用系）
 - [0155-claude-skills-development.md](0155-claude-skills-development.ja.md) - Claude スキル運用方針（開発系）
-- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) - ブラウザ実測ツール（3 レーンの分担 / CLI 前提・MCP 登録なし / 実プロファイル非接続 / 取得経路は pnpm と mise の使い分け）
+- [0156-browser-observation-tooling.md](0156-browser-observation-tooling.ja.md) - ブラウザー実測ツール（3 レーンの分担 / CLI 前提・MCP 登録なし / 実プロファイル非接続 / 取得経路は pnpm と mise の使い分け）
 - [0157-inspection-declaration-discipline.md](0157-inspection-declaration-discipline.ja.md) - 検査の宣言規律（成立しない検査を「違反なし」へ倒さない / 抑止は理由と撤去条件を持つ）
 - [0158-code-search-tooling.md](0158-code-search-tooling.ja.md) - コード検索・影響解析ツール（採用範囲 / 導入経路 / allow・deny 境界）
 - [0159-script-structure.md](0159-script-structure.ja.md) - 補助スクリプトの言語と構造（TypeScript / 1 ツール 1 ディレクトリ / エントリポイントと判定の分離）

@@ -31,7 +31,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 ## このスキルが在る理由
 
 **このリポジトリで衝突マーカーが着地する先の大半は、誰も編集すべきでないファイルである。**
-契約から生成した API の型と、同じ契約から作られたモックのハンドラ、束ねられた契約そのもの、
+契約から生成した API の型と、同じ契約から作られたモックのハンドラー、束ねられた契約そのもの、
 `pnpm-lock.yaml`、pin の lockfile、マーカーの基準、デザイントークンの生成物 ——
 どれも生成器か resolver を持っており、**どれにも「正しい側」が無い。**
 
@@ -41,7 +41,7 @@ canonical はこのディレクトリの `SKILL.md`（英語）。規約の正�
 
 2 つめの理由はより静かである。**きれいなマージは、終わったマージではない。**派生した成果物が古く
 なるのは**もう一方の側の変更**によってであって、それとのテキストの衝突によってではない ——
-2 つのブランチがそれぞれ endpoint を足し、何も衝突せず、**モックのハンドラは再生成可能なまま
+2 つのブランチがそれぞれ endpoint を足し、何も衝突せず、**モックのハンドラーは再生成可能なまま
 再生成されていない**状態が残る。衝突で名付けられたスキルは**まさにその case で飛ばされる**。
 だからこのスキルはマージで名付けられている。
 
@@ -74,6 +74,13 @@ make base-merge            # 衝突が残れば exit 1 で未解決のパスを 
 hotfix を名指さない。ブランチ名からベースを推測するのは、**推測が最も高くつく瞬間に推測すること**である。
 `--base=<ref>` を人から受け取る。
 
+**呼び出し元のスキルが答えを渡すとき**（[0154](../../../docs/adr/0154-claude-skills-operations.ja.md)）:
+base が事前回答されるのは、同じ run の先行する時点でユーザーが逐語で名指した ref によってだけである —— それは
+本スキルの `--base=<ref>` として届き、`make base-merge` には `BASE=<ref>` として渡る。呼び出し元のスキルが自分で
+解決した base は回答ではない: 上記のとおり解決する。`make base-merge` を実行する前に、名指された ref を
+`gh pr view --json baseRefName -q .baseRefName` と比べる。異なっていたら回答がドリフトしている —— 問い、実行しない。PR が無ければ、名指された ref がそのまま答えである。
+Step 6 の commit-and-push の問いは決して事前回答されない。
+
 ## Step 2 —— 衝突した全パスを分類する
 
 ```bash
@@ -87,9 +94,10 @@ git diff --name-only --diff-filter=U
 | 依存の lockfile | `pnpm-lock.yaml` | 行を選ばない。`package.json` を先に解決してから `pnpm install` |
 | pin の lockfile | `.github/actions-pin.toml`, `docker/images-pin.toml` | 行を選ばない。`make actions-pin-resolve` + `make actions-pin-apply`、`make images-pin-resolve` + `make images-pin-apply` |
 | 版の刻印 | `package.json` の `version` | ブランチ名が出典。そこで決めてから `make version-stamp-check` |
-| ベースライン画像 | `baseline/images` の gitlink | submodule のポインタの片側を選ばない。撮り直して baseline のターゲットで送る |
+| ベースライン画像 | `baseline/images` の gitlink | submodule のポインターの片側を選ばない。撮り直して baseline のターゲットで送る |
 | マーカーの基準 | `scripts/marker-baseline/baseline.json` | 数を merge しない。マーカーを持つファイルを先に解決してから `pnpm exec tsx scripts/marker-baseline --write` <!-- boilerplate-only:line --> |
-| 追記専用のレジストリ | `docs/adr/README.md` の表、`docs/spec/glossary.md`、`.github/settings/labels.json` | 両側の項目の和集合 —— **同じ鍵が両側に在る場合を除く**。それは Step 5 が人へ返す |
+| 追記専用のレジストリ | `docs/adr/README.md` の表、`docs/spec/glossary.md`、`.github/settings/labels.json` | 両側の項目の和集合 —— **同じ鍵が両側に在る場合を除く**。それは Step 6 が人へ返す |
+| 純化パスの台帳 | `.agents/purity-sweep/purity-swept.toml` | 両側の項目の和集合。`[swept]` の同じパスが両側に在れば、新しい日付の 1 行だけを残す。どちらの側も「その日にファイル全体を読んだ」としか言っていないので食い違いようがなく、TOML のキーは 1 回しか書けない。重複はどのゲートも捕まえない —— `purity-swept.sh` は TOML として読まず、行頭で照合する。`[pending]` の同じパスが両側に在り条件が違うなら、人へ返す <!-- boilerplate-only:line --> |
 | 対訳ペア | `**/SKILL.ja.md` | canonical の `SKILL.md` を先に解決し、その後で対訳を見出し 1:1 へ戻す。**対訳を直接解決しない** |
 | 実装 | それ以外すべて | **機械的でない。**マーカーを残して人へ返す |
 
@@ -113,7 +121,7 @@ pin の lockfile では、項目を突き合わせるのではなく **resolver 
 以後の検査はすべてそれを権威として扱う。
 
 **staging はパスを明示して行う。**`git add -A` はどこでも禁じられている理由でここでも禁じられ、
-マージの最中はなおさらである —— **自分が決めていない submodule のポインタを staging する。**
+マージの最中はなおさらである —— **自分が決めていない submodule のポインターを staging する。**
 
 ## Step 4 —— 衝突しなかったものを再生成する
 
@@ -202,7 +210,7 @@ push は `--no-verify`。**コミットそのものは `commit` へ委ねる** �
 - ✅ resolver 自身の検査を回し、どれを回したかを述べる。
 - ✅ ちょうど 2 つの状態のどちらかで終わる。きれいなほうならコミット前に聞く。
 - ✅ 日本語で報告する。
-- ❌ 生成物・lockfile・submodule のポインタ・`SKILL.ja.md` を手で編集する / 片側を選ぶ。
+- ❌ 生成物・lockfile・submodule のポインター・`SKILL.ja.md` を手で編集する / 片側を選ぶ。
 - ❌ rebase / squash / force-push する。ブランチ自身のベース以外を取り込む。
 - ❌ ゲートを回す —— それは hook と CI のものである。
 - ❌ `git add -A` や `git merge --abort` を使う。

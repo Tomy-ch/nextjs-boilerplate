@@ -111,7 +111,7 @@ principle of not holding the same judgment in two places. **Whether a skill is a
 | `tools-upgrade` | Dependency audit of `mise.toml` | Compares against upstream latest and applies a supply-chain quarantine with a per-backend window ([0110](0110-security-operations.md)). Updates `mise.toml` after approval |
 | `node-upgrade` | Node.js version update | Updates the SSOT, `mise.toml` `[tools] node` ([ADR 0003](0003-version-manager.md)), to the target version, and verifies with a lockfile rebuild + `pnpm install` / `pnpm lint` / `pnpm build`. Following `@types/node` to a new major is a separate PR ([0004](0004-library-management.md)) |
 | `actions-pin` | SHA-pin audit of GitHub Actions | Updates the versions in `uses:` with quarantine, using `.github/actions-pin.toml` as the SSOT. Does not take releases newer than the exclusion window, and steps back to a version that has passed the window. The substance is `make actions-pin-{resolve,apply,check}` ([0153](0153-ci-configuration.md)) |
-| `dep-vuln-upgrade` | Dependency update named by a vulnerability | Moves only the npm dependencies a CVE / GHSA names to the smallest fixed version within the same major. A direct dependency moves by its exact pin in `package.json`, a transitive one by `overrides` in `pnpm-workspace.yaml` (vulnerable range → a fixed range inside the upstream's declared range), and the lockfile is rebuilt with `pnpm install --lockfile-only`. Versions caught by the window (`minimumReleaseAge`) are handed to `supply-chain-triage`, and the window is not lowered. Crossing a major, an override outside the upstream range, exempting from quarantine, and an entry in a suppression file are each confirmed one by one. Adding a new dependency is out of scope ([0004](0004-library-management.md)) |
+| `dep-vuln-upgrade` | Dependency update named by a vulnerability | Moves only the npm dependencies a CVE / GHSA names to the smallest fixed version within the same major. A direct dependency moves by its exact pin in `package.json`, a transitive one by `overrides` in `pnpm-workspace.yaml` (vulnerable range → a fixed range inside the upstream's declared range), and the lockfile is rebuilt with `pnpm install --lockfile-only`. Versions caught by the window (`minimumReleaseAge`) or the trust policy (`trustPolicy`) are handed to `supply-chain-triage`, and neither is relaxed. Crossing a major, an override outside the upstream range, exempting from quarantine or the trust policy, and an entry in a suppression file are each confirmed one by one. Adding a new dependency is out of scope ([0004](0004-library-management.md)) |
 | `repo-truth` | Factual answers about the current state | Answers "how does this repository work right now" from primary sources, separating evidence from inference. Reads indexes by concern first and makes keyword search the last net (documents are named for the concern they own, so the governing file does not contain the words of the question). Gives **undefined** (read the owning index through and it is not there) and **could not confirm** (did not read it through) as separate conclusions, with the frontier covered. Read-only, and does not fix drift it finds |
 | `how-to` | Goal → canonical procedure | For an operation one wants to perform, returns prerequisites / commands / success check / recovery / destructiveness together. First routes to the owning skill and stops; if none, reads both the make targets and the `package.json` scripts through the index. If there is no procedure, gives **UNDEFINED** and the frontier, and **does not invent commands**. Whereas `repo-ops`, being symptom-driven, cannot conclude "there is no procedure", this one, being goal-driven, can. Does not run gates even with `--mode=run` |
 | `question` | Resolving the reading of a question and routing it | Resolves the reading of a question on three axes (world / intent / target), confirms **only the axes that genuinely split** with `AskUserQuestion`, and hands it to the owning skill. Does not answer by itself. Destinations are resolved by reading the frontmatter of `.claude/skills/*/SKILL.md` at runtime; no table is hardcoded. **When the world axis resolves to "the diff in this window", it hands off to the Review Phase Protocol of `AGENTS.md`** — routing straight to one review bypasses the discipline of asking about all three as peers |
@@ -199,6 +199,30 @@ As a consequence, **a skill must not skip confirmation on the grounds that "the 
 
 - Do **not implicitly adopt** values from arguments / the latest message
 - Confirm right before execution to avoid drift
+
+### An answer the user already gave in the same run
+
+A skill invoked by another skill may treat one of its inputs as confirmed, without asking again, only
+when **all three** hold:
+
+- **The invoking skill passes the user's own answer, verbatim, from earlier in the same run.** A value
+  the invoking skill derived, defaulted or recommended is not an answer, and is offered as the
+  recommended option instead.
+- **The input cannot drift between that answer and execution.** A scope, a reviewer model, an apply
+  mode, a translation direction, or an approved grouping qualifies. A set computed from runtime state
+  — the unpushed commits, a base resolved from `origin`'s current state, the files a merge left conflicted — does not, because the
+  state can move after the user answered.
+- **The receiving skill declares, in its own body, which of its questions such an answer may
+  pre-answer.** The invoking skill's declaration alone suppresses nothing: a skill owns its own
+  preconditions, and a caller that waives them is overriding a contract it does not own.
+
+Never pre-answerable: every stopping point `AGENTS.md`'s *Where You May Stop* takes per case — among
+them the confirmations of *User Confirmation Before Commercial Actions* above and the confirmation before
+pushing to an existing PR. They are taken at the moment of the action, because what they confirm is the
+action, not an input to it.
+
+Enforcement: Prose — **not mechanizable**. Whether an input can drift is decided by what it means, not
+by the shape of the question.
 
 ## Shared References
 

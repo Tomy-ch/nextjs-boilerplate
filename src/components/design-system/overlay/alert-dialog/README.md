@@ -34,6 +34,8 @@ While open it holds one history entry, and **the back action closes only itself*
 
 As a client island it handles opening / closing, the focus trap and Escape; the feature passes the confirmation content, the Server Action and the result as children.
 
+**On close, focus returns to the element that invoked the dialog, with or without `AlertDialogTrigger`.** The rule, shared with `Dialog` and `Sheet`, is owned by the layer README's [Surfaces Layered over the Content](../../../README.md#surfaces-layered-over-the-content).
+
 It does not own what is deleted, where to navigate after running, or what to show on failure. `AlertDialogAction` goes only as far as closing the dialog; running the operation itself is done by the caller's handler or a `form` submission.
 
 **Place failure text inside `AlertDialogContent`.** While it is open, the outside is covered by the overlay, and Radix also sets `aria-hidden` on everything behind, so it does not reach assistive technology even with `role="alert"`. **The caller decides what to show, but where to show it is decided by how this component is built.**
@@ -46,4 +48,4 @@ The vendor is currently Radix, but the public API contains no vendor name.
 
 ## Storybook and Tests
 
-Storybook checks the basic composition of confirming a destructive operation (`Default`). The tests check opening / closing from the trigger, the `alertdialog` role and the accessible name from the title, closing with `AlertDialogCancel`, and the automated a11y check.
+Storybook checks the basic composition of confirming a destructive operation (`Default`). The tests check opening / closing from the trigger, the `alertdialog` role and the accessible name from the title, closing with `AlertDialogCancel`, where focus returns on close (the trigger, the element focused at opening when there is no trigger, and its focusable ancestor when that element is gone), and the automated a11y check.

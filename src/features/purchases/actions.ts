@@ -1,10 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { cancelMyPurchase, payMyPurchase } from "@/adapters/server/api/purchases";
-import { findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
@@ -62,6 +64,8 @@ async function runTransition(
   try {
     await transition(purchaseCode);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(purchaseDetailPath(purchaseCode)));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({ formError: conflictMessage, kind: ErrorKind.CONFLICT });
     }
@@ -69,7 +73,7 @@ async function runTransition(
     return actionStateFromError(error);
   }
 
-  revalidatePath(purchaseDetailPath(purchaseCode));
+  refresh();
 
   return succeededActionState(undefined);
 }

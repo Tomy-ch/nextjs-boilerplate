@@ -94,7 +94,7 @@ places the governance of outward actions in the skill's own confirmation step, n
 Operations that write outward but are recoverable — cutting a branch, setting labels or branch protection, connecting to a real browser —
 go in `ask`. Putting them in `deny` removes the room for a human to decide "this time we use it", and putting them in `allow` removes the confirmation.
 
-The `ask` entries for `Edit(...)` / `Write(...)` are a copy of the stage that AGENTS.md § Temporary Operating Rules puts on protected documents.
+The `ask` entries for `Edit(...)` are a copy of the stage that AGENTS.md § Temporary Operating Rules puts on protected documents.
 When the stage changes, they go back to `deny` following the procedure there.
 
 ## `hooks` — Registered Here, Implemented Elsewhere

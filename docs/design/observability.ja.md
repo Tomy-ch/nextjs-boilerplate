@@ -4,7 +4,7 @@
 
 # 観測
 
-この文書は、ログ・trace・測定が**ブラウザからサーバ、その先の collector までどう繋がっているか**を通しで説明する。何を採り何を採らないかの判断は [ADR 0081](../adr/0081-observability-logging.ja.md)（サーバ側）と [ADR 0082](../adr/0082-client-observability.ja.md)（ブラウザ側）が持ち、ここはその判断が**コードのどこで、どの順に**実現されているかと、実装を読まないと踏む落とし穴を扱う。
+この文書は、ログ・trace・測定が**ブラウザーからサーバー、その先の collector までどう繋がっているか**を通しで説明する。何を採り何を採らないかの判断は [ADR 0081](../adr/0081-observability-logging.ja.md)（サーバー側）と [ADR 0082](../adr/0082-client-observability.ja.md)（ブラウザー側）が持ち、ここはその判断が**コードのどこで、どの順に**実現されているかと、実装を読まないと踏む落とし穴を扱う。
 
 `src/logging/` と `src/observability/` の各 README は、それぞれのカーネルの窓口である。この文書は両者と `adapters` / `app` / `instrumentation.ts` を跨いだ 1 本の線を引く。判断に迷ったら ADR を優先する。
 
@@ -24,15 +24,15 @@
 | ファイル | 役割 | `@opentelemetry/*` |
 | --- | --- | --- |
 | `initialize.server.ts` | `NodeSDK` を 1 プロセス 1 回だけ構築し、signal ごとに exporter を付ける | 持つ |
-| `trace-context.server.ts` | 現在の span から識別子を取り出す / `traceparent` を書き出す / ブラウザが返した `traceparent` の文脈で処理する | 持つ |
+| `trace-context.server.ts` | 現在の span から識別子を取り出す / `traceparent` を書き出す / ブラウザーが返した `traceparent` の文脈で処理する | 持つ |
 | `render-span.ts` | `withScreenSpan` / `withPartSpan`。`features` が import する面 | **持たない** |
 | `render-span-runner.server.ts` | レンダリングを span で包む実装。起動境界が `render-span.ts` へ注入する | 持つ |
 | `otlp-log-sink.server.ts` | 正規化済みログレコードを OTel Logs API へ渡す | 持つ |
-| `web-vital-metric.server.ts` | ブラウザが測った Web Vitals をヒストグラムへ記録する | 持つ |
+| `web-vital-metric.server.ts` | ブラウザーが測った Web Vitals をヒストグラムへ記録する | 持つ |
 
 ## 起動境界が全部を結ぶ
 
-Next.js は Node サーバの準備時に `src/instrumentation.ts` の `register()` を呼ぶ。観測に関わる結線は**すべてここで、この順に**起きる。
+Next.js は Node サーバーの準備時に `src/instrumentation.ts` の `register()` を呼ぶ。観測に関わる結線は**すべてここで、この順に**起きる。
 
 1. `bootstrapConfig()` で env を検証する。観測の設定（`OBS_*`）はここで初めて読める
 2. API の接続モードが `mock` なら interception を立てる（検証の後に置くのは、未検証の値で接続先を差し替えないため）
@@ -41,7 +41,7 @@ Next.js は Node サーバの準備時に `src/instrumentation.ts` の `register
 5. `initializeLogger({ level, traceContextExtractor, logRecordSink? })` —— Pino を初期化する。`logRecordSink` は `OBS_LOGS_EXPORTER=otlp` のときだけ付く
 6. trace と logs が両方有効なら、`observability.initialize` という span の中で起動ログを 1 行出す。**これが相関の疎通確認になる** —— ログ基盤の側でこの行に `trace_id` が付いていれば結線は通っている
 
-Edge runtime とブラウザでは 1〜6 のどれも走らない（`NEXT_RUNTIME === "nodejs"` で分岐する）。ブラウザ側の計装は別のエントリポイント（後述の `Telemetry` island）から立ち上がり、ブラウザで測ったものは中継を通ってこのサーバ側 SDK に載る。
+Edge runtime とブラウザーでは 1〜6 のどれも走らない（`NEXT_RUNTIME === "nodejs"` で分岐する）。ブラウザー側の計装は別のエントリポイント（後述の `Telemetry` island）から立ち上がり、ブラウザーで測ったものは中継を通ってこのサーバー側 SDK に載る。
 
 ### signal の gate とレンダリングの範囲は別の軸
 
@@ -67,24 +67,24 @@ Edge runtime とブラウザでは 1〜6 のどれも走らない（`NEXT_RUNTIM
 
 ## 1 本の trace がどう繋がるか
 
-SSR からブラウザの取得、その先のバックエンドまでが 1 本になる仕組みを、要求の順に追う。
+SSR からブラウザーの取得、その先のバックエンドまでが 1 本になる仕組みを、要求の順に追う。
 
 1. **受信要求** —— `HttpInstrumentation` が root span を作る。Next.js 自身の計装が `render route (app)` などの span をその下に張る
 2. **レンダリング** —— `withScreenSpan` で包まれた画面の最上位が `render <module path>` の span を張る（次セクション）。本体で待つ `fetch` はこの中に入る
 3. **外向き `fetch`** —— `UndiciInstrumentation` が span を張り、`traceparent` / `baggage` を注入する。**注入先は `APP_API_BASE_URL` の origin だけ**で、他の origin へは伝播しない（`ignoreRequestHook` で切っている）
-4. **ブラウザへ配る** —— root layout の `TelemetryHole` が `findActiveTraceparent()` で現在の span を W3C の `traceparent` 文字列にし、`Telemetry` island へ props で渡す。request-time の値なので `Suspense` の中に置いてあり、シェルのレンダリングを止めない
-5. **ブラウザ側の計装** —— `Telemetry` が mount した後、`adapters/client/telemetry/browser-tracer.ts` を**動的 import** で読み、`startBrowserTracing(traceparent)` を呼ぶ。`WebTracerProvider` を登録し、`FetchInstrumentation` で **`fetch` すべて**（BFF への取得も、router が遷移と先読みで出す RSC の要求も）を span にする
-6. **親の決め方** —— **ブラウザは自分の trace を始めない。** `DocumentRootContextManager` が「何も囲まれていない文脈」のときだけ、配られた `traceparent` の文脈を返す。`fetch` を包む計装は呼ばれた時点の有効な文脈から親を取るので、これで全部の要求が画面を組んだ要求の子になる
-7. **中継** —— ブラウザの span は `BatchSpanProcessor` → `relayExporter` で OTLP JSON に直列化され、`navigator.sendBeacon` で同一オリジンの `/api/telemetry/traces` へ送られる。画面が `hidden` になる直前に `forceFlush` する
-8. **collector へ** —— `adapters/server/telemetry/browser-traces.ts` がエンベロープの形だけ検証し、`service.name` を上書きし、伏せる属性を censor へ置き換えてから、サーバ側の設定が知る collector の `/v1/traces` へ **読み替えずに** POST する
+4. **ブラウザーへ配る** —— root layout の `TelemetryHole` が `findActiveTraceparent()` で現在の span を W3C の `traceparent` 文字列にし、`Telemetry` island へ props で渡す。request-time の値なので `Suspense` の中に置いてあり、シェルのレンダリングを止めない
+5. **ブラウザー側の計装** —— `Telemetry` が mount した後、`adapters/client/telemetry/browser-tracer.ts` を**動的 import** で読み、`startBrowserTracing(traceparent)` を呼ぶ。`WebTracerProvider` を登録し、`FetchInstrumentation` で **`fetch` すべて**（BFF への取得も、router が遷移と先読みで出す RSC の要求も）を span にする
+6. **親の決め方** —— **ブラウザーは自分の trace を始めない。** `DocumentRootContextManager` が「何も囲まれていない文脈」のときだけ、配られた `traceparent` の文脈を返す。`fetch` を包む計装は呼ばれた時点の有効な文脈から親を取るので、これで全部の要求が画面を組んだ要求の子になる
+7. **中継** —— ブラウザーの span は `BatchSpanProcessor` → `relayExporter` で OTLP JSON に直列化され、`navigator.sendBeacon` で同一オリジンの `/api/telemetry/traces` へ送られる。画面が `hidden` になる直前に `forceFlush` する
+8. **collector へ** —— `adapters/server/telemetry/browser-traces.ts` がエンベロープの形だけ検証し、`service.name` を上書きし、伏せる属性を censor へ置き換えてから、サーバー側の設定が知る collector の `/v1/traces` へ **読み替えずに** POST する
 
-`traceparent` が渡らない実行（静的生成された画面）では 6 の文脈が `ROOT_CONTEXT` になり、ブラウザ側で新しい trace が始まる。これは仕様であって欠陥ではない —— 親にできる要求がそもそも無い。
+`traceparent` が渡らない実行（静的生成された画面）では 6 の文脈が `ROOT_CONTEXT` になり、ブラウザー側で新しい trace が始まる。これは仕様であって欠陥ではない —— 親にできる要求がそもそも無い。
 
-**ブラウザが作った span は `observability` カーネルを通らない。** `adapters/server` が OTLP のまま collector へ渡す。カーネルが受け持つのは、4 の書き出しと、例外の記録を返ってきた `traceparent` の文脈で行う `withRemoteTraceContext` だけである。
+**ブラウザーが作った span は `observability` カーネルを通らない。** `adapters/server` が OTLP のまま collector へ渡す。カーネルが受け持つのは、4 の書き出しと、例外の記録を返ってきた `traceparent` の文脈で行う `withRemoteTraceContext` だけである。
 
 ## 中継のエンドポイント
 
-ブラウザから collector を直接叩かせないので、同一オリジンの Route Handler が受ける。エンドポイントは 2 つある。
+ブラウザーから collector を直接叩かせないので、同一オリジンの Route Handler が受ける。エンドポイントは 2 つある。
 
 | エンドポイント | 受けるもの | 契約の出所 | 受け側 |
 | --- | --- | --- | --- |
@@ -100,9 +100,9 @@ SSR からブラウザの取得、その先のバックエンドまでが 1 本�
 - JSON として読めなければ **400**、契約の形に合わなければ **400**
 - 通れば **204** で、本文は返さない。送り手は `sendBeacon` か `keepalive` 付きの `fetch` で、どちらも応答を読まない
 
-上限はエンドポイントごとに置く。報告のエンドポイントは **16 KB**（契約が許す最大の報告を UTF-8 の JSON に直した大きさから逆算）、trace のエンドポイントは **128 KB**（ブラウザ側の `maxExportBatchSize: 32` が収まる大きさ）と `resourceSpans` **4 つ**まで。ブラウザ側の切り詰め（`MAX_ERROR_*_LENGTH`、`MAX_EXPORT_BATCH_SIZE`）は通信量を抑えるための**コピー**であって、受け側の根拠ではない。
+上限はエンドポイントごとに置く。報告のエンドポイントは **16 KB**（契約が許す最大の報告を UTF-8 の JSON に直した大きさから逆算）、trace のエンドポイントは **128 KB**（ブラウザー側の `maxExportBatchSize: 32` が収まる大きさ）と `resourceSpans` **4 つ**まで。ブラウザー側の切り詰め（`MAX_ERROR_*_LENGTH`、`MAX_EXPORT_BATCH_SIZE`）は通信量を抑えるための**コピー**であって、受け側の根拠ではない。
 
-trace のエンドポイントはさらに 2 つを持つ。**`service.name` の上書き** —— 名乗りをそのまま通すと誰でも任意の service の trace へ span を書けるので、サーバが知る `OBS_SERVICE_NAME` に揃える。**失敗を応答へ出さない** —— collector が落ちていることは中継の失敗ではなく、投げ直すと観測基盤の不調が無認証のエンドポイントの 500 になる。`warn` ログを 1 行出して 204 を返す。
+trace のエンドポイントはさらに 2 つを持つ。**`service.name` の上書き** —— 名乗りをそのまま通すと誰でも任意の service の trace へ span を書けるので、サーバーが知る `OBS_SERVICE_NAME` に揃える。**失敗を応答へ出さない** —— collector が落ちていることは中継の失敗ではなく、投げ直すと観測基盤の不調が無認証のエンドポイントの 500 になる。`warn` ログを 1 行出して 204 を返す。
 
 レート制限・大域的な遮断はここに無い。それは edge / WAF の責務である（[ADR 0077](../adr/0077-bff-abuse-protection-boundary.ja.md)）。
 
@@ -115,7 +115,7 @@ trace のエンドポイントはさらに 2 つを持つ。**`service.name` の
 | 画面の最上位（`features/<name>/<screen>/` の `page-content` / `view`、シェルの側で取得を持つ合成） | `withScreenSpan` | 有効（`OBS_RENDER_SPANS=screen`） |
 | feature が持つコンポーネント（`<screen>/ui/**`） | `withPartSpan` | 無効（`part` で開く） |
 
-包む側（`render-span.ts`）は `globalThis` の構成を読んで、範囲が有効なら注入された `run` に渡し、無効ならそのまま呼ぶ。注入が無い実行（テスト・Storybook・ブラウザ）では何も作らない。
+包む側（`render-span.ts`）は `globalThis` の構成を読んで、範囲が有効なら注入された `run` に渡し、無効ならそのまま呼ぶ。注入が無い実行（テスト・Storybook・ブラウザー）では何も作らない。
 
 包まれる側（`render-span-runner.server.ts`）は `tracer.startActiveSpan` でレンダリングを実行する。戻り値が Promise なら**元の Promise をそのまま返し**、解決 / 拒否の後で span を閉じる —— 派生した Promise を返すと React が待つ対象が変わる。レンダリングが投げれば span を `ERROR` にし、`Error` なら例外として記録して投げ直す。ただし `notFound()` / `redirect()` のような Next が制御に使う throw は `unstable_rethrow` で見分け、失敗として記録しない。
 
@@ -123,15 +123,15 @@ trace のエンドポイントはさらに 2 つを持つ。**`service.name` の
 
 ## Web Vitals は metric、例外は log
 
-ブラウザで測ったものは 2 種類あり、載せる signal が違う。
+ブラウザーで測ったものは 2 種類あり、載せる signal が違う。
 
-**Web Vitals** は `next/web-vitals` の `useReportWebVitals` で拾い、`/api/telemetry` へ送り、サーバ側で**指標ごとのヒストグラム**（`browser.web_vital.lcp` など）に記録する。属性は `http.route` と `browser.web_vital.rating` / `browser.web_vital.navigation_type` の 3 つだけである。event ではなく metric なのは、event で出すと 1 レコードごとに中継の POST の span が付き、測定が起きていない要求と親子になるからである。この報告は `traceparent` を持たない —— metric は trace を持てない。
+**Web Vitals** は `next/web-vitals` の `useReportWebVitals` で拾い、`/api/telemetry` へ送り、サーバー側で**指標ごとのヒストグラム**（`browser.web_vital.lcp` など）に記録する。属性は `http.route` と `browser.web_vital.rating` / `browser.web_vital.navigation_type` の 3 つだけである。event ではなく metric なのは、event で出すと 1 レコードごとに中継の POST の span が付き、測定が起きていない要求と親子になるからである。この報告は `traceparent` を持たない —— metric は trace を持てない。
 
-`http.route` には 1 件ぶんのパスではなく **route の型**（`/docs/[slug]`）を載せる。復元はブラウザ側の `toRoutePattern(usePathname(), useParams())` が行う。載せるのは**読み込みが始まった route** で、client 遷移で route が変わっても報告時点の route ではない（CLS / INP は離脱までの累積で、読み込みに紐づく）。
+`http.route` には 1 件ぶんのパスではなく **route の型**（`/docs/[slug]`）を載せる。復元はブラウザー側の `toRoutePattern(usePathname(), useParams())` が行う。載せるのは**読み込みが始まった route** で、client 遷移で route が変わっても報告時点の route ではない（CLS / INP は離脱までの累積で、読み込みに紐づく）。
 
 刻みは指標ごとに持つ。時間の指標はミリ秒の並び、`CLS` は 0〜1 の並びで、デフォルトの刻みに任せると `CLS` が最初の 1 区間へ全部入って百分位が内挿だけで決まる。
 
-**例外**（`window` の `error` / `unhandledrejection`）は同じエンドポイントへ送り、サーバ側で `getLogger().error(...)` の構造化ログに **`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`** を付けて載せる。記録は `withRemoteTraceContext(report.traceparent, ...)` の中で行うので、**`trace_id` は画面を組んだ要求のもの**になる。渡ってこなければ `ROOT_CONTEXT` で記録し、中継要求の span には紐づけない。1 回のページ読み込みで送るのは **8 件**まで（`Telemetry` island が数える）。
+**例外**（`window` の `error` / `unhandledrejection`）は同じエンドポイントへ送り、サーバー側で `getLogger().error(...)` の構造化ログに **`exception.type` / `exception.message` / `exception.stacktrace` / `http.route`** を付けて載せる。記録は `withRemoteTraceContext(report.traceparent, ...)` の中で行うので、**`trace_id` は画面を組んだ要求のもの**になる。渡ってこなければ `ROOT_CONTEXT` で記録し、中継要求の span には紐づけない。1 回のページ読み込みで送るのは **8 件**まで（`Telemetry` island が数える）。
 
 **エラー境界が捕まえた例外は、この経路に乗らない。** React は明示的な境界（自前の `error.tsx` / `global-error.tsx`）が捕まえた例外を `onCaughtError` から`console.error` へ流すだけで、**`window` の `error` を発火しない**。`window` へ上がるのは組み込みの暗黙境界に落ちたときだけである。取得の失敗は大半が `error.tsx` に捕まるので、**いちばん記録したい経路がここで抜ける。**
 
@@ -145,11 +145,11 @@ trace のエンドポイントはさらに 2 つを持つ。**`service.name` の
 | --- | --- | --- |
 | `pino.server.ts` の `redactFields` | stdout と OTLP sink へ渡す前のフィールド | 名前を小文字化して表と突き合わせ、値を `[REDACTED]` に置換 |
 | `pino.server.ts` の Pino `redact` | Pino 自身の出力 | 同じ表を `paths` に渡す |
-| `browser-traces.ts` の `censorSecret` | ブラウザが作った span の属性 | 同じ表に当たる `key` の `value` を `{ stringValue: "[REDACTED]" }` へ差し替え |
+| `browser-traces.ts` の `censorSecret` | ブラウザーが作った span の属性 | 同じ表に当たる `key` の `value` を `{ stringValue: "[REDACTED]" }` へ差し替え |
 
-**名前で伏せ、値の形は見ない。** span 側で掛けるのが中継なのは、そこが全部を通る唯一の場所だからである —— ブラウザ側で掛けても送信者は差し替えられる。
+**名前で伏せ、値の形は見ない。** span 側で掛けるのが中継なのは、そこが全部を通る唯一の場所だからである —— ブラウザー側で掛けても送信者は差し替えられる。
 
-query は落とさない。秘匿すべき値を query に載せていること自体が誤りで、trace で伏せても守るものが無い。ただし **span 名には載せない** —— これは秘匿ではなく集約の要求で、条件が要求ごとに違うので名前に含めると同じ経路が別の名前へ散る。ブラウザ側は `nameByPath` が `<method> <pathname>` に名前を付け直し、`url.path` を属性に置く。query を含む URL はデフォルトの計装が `url.full` に残すので、1 件ずつ辿るときはそちらを読む。
+query は落とさない。秘匿すべき値を query に載せていること自体が誤りで、trace で伏せても守るものが無い。ただし **span 名には載せない** —— これは秘匿ではなく集約の要求で、条件が要求ごとに違うので名前に含めると同じ経路が別の名前へ散る。ブラウザー側は `nameByPath` が `<method> <pathname>` に名前を付け直し、`url.path` を属性に置く。query を含む URL はデフォルトの計装が `url.full` に残すので、1 件ずつ辿るときはそちらを読む。
 
 ## vendor SDK が内層に無いこと
 
@@ -189,23 +189,23 @@ Next.js が自前で張る `fetch` span は、span 名に query 付きの URL �
 
 ### dev では同じ Web Vitals が 2 回届く
 
-React の Strict Mode が effect を 2 度呼び、`useReportWebVitals` は購読を解除しないため、計測器への登録が 2 つ残る。production build では 1 回になる。ブラウザ側の trace の立ち上げ（`startBrowserTracing`）は `started` の番人で 2 度目を素通しにしている —— 番人が無いと `provider.register()` の 2 回目は黙って失敗し、`fetch` の計装だけが二重に包まれて、以後の要求が親子 2 本の span になる。
+React の Strict Mode が effect を 2 度呼び、`useReportWebVitals` は購読を解除しないため、計測器への登録が 2 つ残る。production build では 1 回になる。ブラウザー側の trace の立ち上げ（`startBrowserTracing`）は `started` の番人で 2 度目を素通しにしている —— 番人が無いと `provider.register()` の 2 回目は黙って失敗し、`fetch` の計装だけが二重に包まれて、以後の要求が親子 2 本の span になる。
 
-### 静的生成された画面ではブラウザの trace が繋がらない
+### 静的生成された画面ではブラウザーの trace が繋がらない
 
-`traceparent` はアクティブな span から取るので、request-time のレンダリングでしか得られない。静的生成された画面では `Telemetry` に `undefined` が渡り、ブラウザは新しい trace を始める。例外の記録も trace 無しで載る。SSR と繋げたければ、その画面を dynamic にする以外に無い。
+`traceparent` はアクティブな span から取るので、request-time のレンダリングでしか得られない。静的生成された画面では `Telemetry` に `undefined` が渡り、ブラウザーは新しい trace を始める。例外の記録も trace 無しで載る。SSR と繋げたければ、その画面を dynamic にする以外に無い。
 
 ### `traceparent` の真正性は確かめられない
 
-ブラウザが返してくる値は書式（`00-<32hex>-<16hex>-<2hex>`）と全 0 でないことしか見ない。誰でも任意の trace ID を名乗れるので、**trace の紐づけを認可や監査の根拠にしてはならない**。読めない値では文脈を空にし、中継要求の span へは決して紐づけない。
+ブラウザーが返してくる値は書式（`00-<32hex>-<16hex>-<2hex>`）と全 0 でないことしか見ない。誰でも任意の trace ID を名乗れるので、**trace の紐づけを認可や監査の根拠にしてはならない**。読めない値では文脈を空にし、中継要求の span へは決して紐づけない。
 
-### 配信を止めているあいだ、ブラウザ発の報告は届かない
+### 配信を止めているあいだ、ブラウザー発の報告は届かない
 
 `src/proxy.ts` は停止中 `GET` / `HEAD` 以外を 503 で断り、通す経路も `/maintenance` と `/api/health` だけである。`/api/telemetry` 系は `POST` なので落ちる。停止中の画面で起きた例外や測定はどこにも残らない —— これは停止の約束を自分の境界で言い切った帰結で、エンドポイントを開けて回避するものではない。
 
 ### `getLogger()` は初期化前に投げる
 
-起動境界を通らない実行（テスト、`instrumentation.ts` を経ない script）で `getLogger()` を呼ぶと投げる。**記録の失敗で記録の対象まで失敗させない**ために `reportQuietly()` があり、中継の受け側はすべてこれで包んでいる。新しく観測を足す側も、成否が利用者へ見える処理の中では同じ形にする。
+起動境界を通らない実行（テスト、`instrumentation.ts` を経ない script）で `getLogger()` を呼ぶと投げる。**記録の失敗で記録の対象まで失敗させない**ために `reportQuietly()` があり、中継の受け側はすべてこれで包んでいる。新しく観測を足す側も、成否がユーザーへ見える処理の中では同じ形にする。
 
 ### `Error` や `Date` をそのままフィールドに載せると空になる
 
@@ -213,7 +213,7 @@ OTLP sink（`toOtlpValue`）は `string` / `number` / `boolean` / `null` / `Uint
 
 ### `render-span.ts` に `@opentelemetry/api` を import してはならない
 
-このファイルは `features` が import するのでブラウザのバンドルにも入る。`@opentelemetry/api` を連れて行くと、Vite が取り込む CJS ビルドがブラウザに無い `__dirname` を参照し、**モジュール評価の時点で落ちる** —— その面を import した story は 1 つもレンダリングできなくなる。実装は `render-span-runner.server.ts` に置き、起動境界が注入する。
+このファイルは `features` が import するのでブラウザーのバンドルにも入る。`@opentelemetry/api` を連れて行くと、Vite が取り込む CJS ビルドがブラウザーに無い `__dirname` を参照し、**モジュール評価の時点で落ちる** —— その面を import した story は 1 つもレンダリングできなくなる。実装は `render-span-runner.server.ts` に置き、起動境界が注入する。
 
 ### Route Handler は自分で観測を初期化しない
 
@@ -222,7 +222,7 @@ OTLP sink（`toOtlpValue`）は `string` / `number` / `boolean` / `null` / `Uint
 ## 関連する ADR
 
 - [0081](../adr/0081-observability-logging.ja.md) — 構造化ログ / OTLP-only / signal 別 gate / trace 相関 / redaction。この文書の土台
-- [0082](../adr/0082-client-observability.ja.md) — ブラウザ側の trace / Web Vitals / 例外を BFF 中継に載せる判断と、metric で採る理由
+- [0082](../adr/0082-client-observability.ja.md) — ブラウザー側の trace / Web Vitals / 例外を BFF 中継に載せる判断と、metric で採る理由
 - [0077](../adr/0077-bff-abuse-protection-boundary.ja.md) — 中継のエンドポイントが自分で持つ最小防御と、edge へ委ねる範囲
 - [0021](../adr/0021-frontend-responsibility.ja.md) — カーネルが config を直読せず起動境界から注入を受ける線
 - [0024](../adr/0024-adapters-server-client-split.ja.md) — 送信面（`adapters/client`）と受け側（`adapters/server`）の家

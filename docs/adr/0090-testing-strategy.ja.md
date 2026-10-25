@@ -79,8 +79,8 @@ describe("parseSearchParams", () => {
 | feature | 画面スライスの合成 UI と振る舞い(`features/**`) | Vitest + RTL |
 | route | route segment の合成(`app/**` の `layout.tsx` / `page.tsx`) | Vitest + RTL |
 | integration | **HTTP 境界のみ**(`adapters` の API クライアント / route handler の境界) | Vitest + MSW |
-| e2e | ブラウザ経路の通し | Playwright |
-| visual | story の**見た目**(ベースライン画像との比較) | Playwright(コンテナ内) |
+| e2e | ブラウザー経路の通し | Playwright |
+| visual | story の**見た目**(ベースライン画像との比較) | Playwright(コンテナー内) |
 
 `visual` だけは対象が実装モジュールではなく **story** であり、`test-requirement` の宣言も持たない。他のレイヤーが「この振る舞いが正しいか」を問うのに対し、`visual` が問うのは「**前と変わっていないか**」だけで、正しさの基準を内部に持たないためである(基準は過去の自分)。DOM のアサートでは表現できない観点をここが負う。手段と運用は [0091](0091-test-verification-methods.ja.md)。
 
@@ -121,8 +121,8 @@ describe("parseSearchParams", () => {
 ### mock 戦略
 
 - **HTTP 境界の mock は MSW**、**モジュール境界の差し替えは `vi.mock`** を用いる。手書き mock は最小化する — 手書き stub は対象の呼び出し方に結合し、実装を変えると本番が正しくても落ちる
-- **MSW が担うのは契約を持つ相手**である。契約(OpenAPI)から生成したハンドラが応答の形の正であり、手書きすると契約破れをテストが追認する。契約を持たない相手 — 認証基盤のように契約の外にあるもの — には生成ハンドラが存在せず、MSW を使っても応答を手書きすることになるため、**呼び出し側が注入する実装(`fetchImpl`)で差し替える**
-- **通信そのものの振る舞い(再試行 / 遮断 / timeout)を確かめるテストも `fetchImpl` の注入で書く**。試行ごとに別の応答を返す必要があり、その制御は接続先ごとのハンドラではなく呼び出し側が持つ。この注入点は本番のコードが持つ seam であって、テストのための穴ではない
+- **MSW が担うのは契約を持つ相手**である。契約(OpenAPI)から生成したハンドラーが応答の形の正であり、手書きすると契約破れをテストが追認する。契約を持たない相手 — 認証基盤のように契約の外にあるもの — には生成ハンドラーが存在せず、MSW を使っても応答を手書きすることになるため、**呼び出し側が注入する実装(`fetchImpl`)で差し替える**
+- **通信そのものの振る舞い(再試行 / 遮断 / timeout)を確かめるテストも `fetchImpl` の注入で書く**。試行ごとに別の応答を返す必要があり、その制御は接続先ごとのハンドラーではなく呼び出し側が持つ。この注入点は本番のコードが持つ seam であって、テストのための穴ではない
 - config の差し替えは env スタブ + factory 再生成([0030](0030-environment-variable-management.ja.md))。env スタブの具体 API は Vitest の **`vi.stubEnv`** とする([0030](0030-environment-variable-management.ja.md) は具体 API を本 ADR へ委ねる)
 
 ### 配置・命名

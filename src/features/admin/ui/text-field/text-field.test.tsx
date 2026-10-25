@@ -37,6 +37,16 @@ describe("AdminTextField", () => {
     expect(screen.getByLabelText("商品名")).toHaveValue("ワイヤレスイヤホン");
   });
 
+  it("書き換えさせないときは、打鍵しても値を伝えない", async () => {
+    const onValueChange = vi.fn();
+
+    renderField({ onValueChange, readOnly: true, value: "ワイヤレスイヤホン" });
+    await userEvent.type(screen.getByLabelText("商品名"), "X");
+
+    expect(onValueChange).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("商品名")).toHaveValue("ワイヤレスイヤホン");
+  });
+
   it("打鍵のたびに新しい値を伝える", async () => {
     const onValueChange = vi.fn();
     renderField({ onValueChange });

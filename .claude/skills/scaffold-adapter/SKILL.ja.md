@@ -25,7 +25,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
   引き渡す。
 - **既存の adapter モジュールへの関数の追加** —— そのモジュールを編集する。生成器は既に在るパスを拒み、
   このスキルはそれを迂回しない。
-- **ブラウザ側の口**（`client/`） —— `pnpm gen adapter` が置くのは server 側だけである。
+- **ブラウザー側の口**（`client/`） —— `pnpm gen adapter` が置くのは server 側だけである。
 - **要求を持たない純粋な変換** —— 単位である。書いて `scaffold-test` を回す。
 - **契約テストを手で書くこと** —— `scaffold-integration-test`。Step 6 が連鎖させる。
 
@@ -39,7 +39,7 @@ operation を呼ぶか、そこから導かれる分類と接続口、寿命を�
 | `src/adapters/README.md` の `## Audit Criteria` | 口が満たすべき行。計画はその 1 行ずつに答える |
 | `src/adapters/README.md` の分類・寿命・資格情報・URL の予算・taint のセクション | どの接続口か、`allowAnonymous` を立てるか、寿命を持つか・どう持つか、結果を汚すか |
 | `src/adapters/server/http/README.md` | 口が通る接続口と要求境界 |
-| `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメータ・宣言された応答・生成スキーマ <!-- skill-lint-ignore --> |
+| `openapi/<name>.gen.yaml` と `src/adapters/gen/` | operation と、その `security`・パラメーター・宣言された応答・生成スキーマ <!-- skill-lint-ignore --> |
 | `scripts/gen/` | `pnpm gen adapter` が何を置き、どんな次の手順を出すか |
 | 同じ種類の operation を呼ぶ隣のモジュール | 要求・写し・taint の具体の形。食い違えば README が勝つ |
 

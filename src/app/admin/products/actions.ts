@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { refresh } from "next/cache";
+import { redirect, unstable_rethrow } from "next/navigation";
 import {
   adjustProductStock,
   createProduct,
@@ -9,11 +9,10 @@ import {
   updateProduct,
   uploadProductImage,
 } from "@/adapters/server/api/products";
-import { verifySession } from "@/adapters/server/auth/session";
 import { MAX_UPLOAD_BYTES } from "@/config/http/http.client";
-import { createAppError, findAppError } from "@/errors/app-error";
+import { findAppError, isUnauthenticated } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
-import { ADMIN_PRODUCT_LIST_PATH, adminProductDiscontinuePath } from "@/features/admin/paths";
+import { ADMIN_PRODUCT_LIST_PATH, ADMIN_PRODUCT_NEW_PATH } from "@/features/admin/paths";
 import { toDiscontinueFieldErrors } from "@/features/admin/products/discontinue/discontinue-rejection";
 import {
   DISCONTINUE_CONFLICT_MESSAGE,
@@ -39,32 +38,20 @@ import {
   type StockFormState,
 } from "@/features/admin/products/stock/form-state";
 import { parseStockForm } from "@/features/admin/products/stock/parse-stock-form";
+import { loginPath } from "@/features/auth/facade/paths";
 import {
   actionStateFromError,
   failedActionState,
   succeededActionState,
 } from "@/model/action-state";
-import { isAdmin } from "@/model/authz";
 import { type ProductDiscontinueResult, toProductId } from "@/model/product/product";
+import { assertAdmin } from "../assert-admin";
 
 const INVALID_INPUT_MESSAGE = "入力内容を確認してください。";
 
 const MISSING_IMAGE_MESSAGE = "画像が選ばれていません。";
 const UNSUPPORTED_IMAGE_MESSAGE = `${PRODUCT_IMAGE_ACCEPT_LABEL} のいずれかを選んでください。`;
 const OVERSIZED_IMAGE_MESSAGE = "画像が大きすぎます。もっと小さいものを選んでください。";
-
-/**
- * 役割を持たない主体の要求をここで止める。
- *
- * @throws 管理の役割を持たない session では {@link createAppError} で `PERMISSION_DENIED` を投げる。
- */
-async function assertAdmin(): Promise<void> {
-  if (!isAdmin(await verifySession())) {
-    throw createAppError(ErrorKind.PERMISSION_DENIED, {
-      cause: new Error("管理の操作に必要な役割がありません"),
-    });
-  }
-}
 
 /**
  * 画像を 1 件アップロードする。
@@ -89,8 +76,10 @@ export async function uploadProductImageAction(
   formData: FormData,
 ): Promise<ProductImageUploadState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_PRODUCT_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -111,6 +100,8 @@ export async function uploadProductImageAction(
   try {
     return succeededActionState(await uploadProductImage(image));
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
+
     return actionStateFromError(error);
   }
 }
@@ -131,8 +122,10 @@ export async function createProductAction(
   formData: FormData,
 ): Promise<ProductFormState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_PRODUCT_NEW_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -147,6 +140,8 @@ export async function createProductAction(
   try {
     await createProduct(parsed.value);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_NEW_PATH));
+
     return actionStateFromError(error);
   }
 
@@ -169,8 +164,10 @@ export async function updateProductAction(
   formData: FormData,
 ): Promise<ProductFormState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_PRODUCT_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -191,6 +188,8 @@ export async function updateProductAction(
   try {
     await updateProduct(toProductId(id), parsed.value);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
       return failedActionState({
         formError: PRODUCT_VERSION_CONFLICT_MESSAGE,
@@ -223,8 +222,10 @@ export async function adjustProductStockAction(
   formData: FormData,
 ): Promise<StockFormState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_PRODUCT_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -237,6 +238,8 @@ export async function adjustProductStockAction(
   try {
     await adjustProductStock(parsed.productId, parsed.delta);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
+
     // 範囲外は入力の誤りなので、量の欄のそばへ返す。欄が 1 つなので先頭の要約は出さない。
     if (findAppError(error)?.kind === ErrorKind.VALIDATION) {
       return failedActionState({
@@ -271,8 +274,10 @@ export async function discontinueProductAction(
   formData: FormData,
 ): Promise<DiscontinueProductState> {
   try {
-    await assertAdmin();
+    await assertAdmin(ADMIN_PRODUCT_LIST_PATH);
   } catch (error) {
+    unstable_rethrow(error);
+
     return actionStateFromError(error);
   }
 
@@ -287,8 +292,10 @@ export async function discontinueProductAction(
   try {
     result = await discontinueProduct(parsed.productId, parsed.conditions, parsed.idempotencyKey);
   } catch (error) {
+    if (isUnauthenticated(error)) redirect(loginPath(ADMIN_PRODUCT_LIST_PATH));
+
     if (findAppError(error)?.kind === ErrorKind.CONFLICT) {
-      revalidatePath(adminProductDiscontinuePath(parsed.productId));
+      refresh();
 
       return failedActionState({
         formError: DISCONTINUE_CONFLICT_MESSAGE,
@@ -305,7 +312,7 @@ export async function discontinueProductAction(
     return actionStateFromError(error);
   }
 
-  revalidatePath(adminProductDiscontinuePath(parsed.productId));
+  refresh();
 
   return succeededActionState(result);
 }

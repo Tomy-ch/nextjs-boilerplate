@@ -9,13 +9,13 @@
 ## 受け入れるもの
 
 - transport に依存しないエラー分類の語彙と、それを `cause` chain に載せる型
-- 分類ごとのデフォルトの表示メタ情報（機械可読な code と、利用者向けの文言）のカタログ
+- 分類ごとのデフォルトの表示メタ情報（機械可読な code と、ユーザー向けの文言）のカタログ
 - cause chain を保ったまま表示メタ情報を重ねるエントリポイントと、chain から分類・メタ情報を取り出すエントリポイント
 - メッセージに含まれる秘匿値を、呼出し側の名指しで置き換える関数
 
 ## 受け入れないもの
 
-- transport の status・レスポンス形式・ヘッダなど、プロトコル由来の語彙（[0080](../../docs/adr/0080-error-handling.ja.md) 禁止事項）
+- transport の status・レスポンス形式・ヘッダーなど、プロトコル由来の語彙（[0080](../../docs/adr/0080-error-handling.ja.md) 禁止事項）
 - 他のカーネルと外部パッケージへの依存（[0021](../../docs/adr/0021-frontend-responsibility.ja.md) 依存マトリクス）
 - ログ出力（`logging` と境界の責務）
 
@@ -23,8 +23,8 @@
 
 - `ErrorKind` / `errorKinds` — 分類の型と名前付き定数、および全分類の配列
 - `AppError` / `createAppError()` — 原因を `cause` に残す分類済みエラー
-- `findAppError()` / `isAppError()` — cause chain 内の分類の判定
-- `ErrorMeta` / `createErrorMeta()` — code・利用者向け文言・requestId・公開可能な詳細識別子。不変で、`withMessage()` が文言だけ差し替えた複製を返す
+- `findAppError()` / `isAppError()` / `isUnauthenticated()` — cause chain 内の分類の判定と、それが `UNAUTHENTICATED` かどうか
+- `ErrorMeta` / `createErrorMeta()` — code・ユーザー向け文言・requestId・公開可能な詳細識別子。不変で、`withMessage()` が文言だけ差し替えた複製を返す
 - `withErrorMeta()` / `withErrorDetails()` / `errorMetaFrom()` — cause chain を保つメタ情報ラッパー。外側のメタ情報が優先
 - `getDefaultErrorMeta()` — 分類カタログのデフォルトメタ情報
 - `resolveErrorMeta()` — 分類カタログと外側メタ情報から code・文言・詳細を解決
@@ -56,7 +56,7 @@
 | `VALIDATION` | ドメインまたはユースケースの検証失敗 |
 | `UNSUPPORTED_MEDIA_TYPE` | サポートしない入力形式 |
 | `PAYLOAD_TOO_LARGE` | 許容サイズを超えた入力 |
-| `URI_TOO_LONG` | 条件を載せた URL が長すぎる。本体が大きい `PAYLOAD_TOO_LARGE` とは利用者が減らすべきものが違う |
+| `URI_TOO_LONG` | 条件を載せた URL が長すぎる。本体が大きい `PAYLOAD_TOO_LARGE` とはユーザーが減らすべきものが違う |
 | `TOO_MANY_REQUESTS` | 流量制限・外部依存のスロットリング |
 | `CANCELED` | 呼出し側による処理の中断。失敗ではなく打ち切りで、再試行の対象にしない |
 | `INTERNAL` | 想定外の内部エラー。契約と違う形の応答も、通信の失敗と区別してここへ入れる |
@@ -72,7 +72,7 @@
 ### 分類を足す手順
 
 1. `error-kind.ts` の型 union と定数の両方へ足す
-2. `error-catalog.ts` のデフォルトメタ情報へ、code と利用者向け文言を足す。表は `Record<ErrorKind, ErrorMeta>` なので、足すまで型検査が通らない
+2. `error-catalog.ts` のデフォルトメタ情報へ、code とユーザー向け文言を足す。表は `Record<ErrorKind, ErrorMeta>` なので、足すまで型検査が通らない
 3. この README の分類表へ 1 行足す
 4. 変換を持つ `adapters` のエンドポイント（server / client それぞれ）の、status → 分類と分類 → status の両向きの表を直す。分類 → status の抜けは `errorKinds` を回すテストが見つけるが、**status → 分類は表に無い status を `INTERNAL` へ倒すので、抜けは黙って `INTERNAL` になる** —— 両向きを同時に直す
 5. [0080](../../docs/adr/0080-error-handling.ja.md) の対応表を直す
@@ -91,8 +91,8 @@
 ## 表示メタ情報の解決
 
 - **カタログの文言は分類しか伝えません。** 「接続できません」からは、宛先が立っていないのか、宛先を間違えたのかは判りません。宛先のようにその場でしか判らない文脈を持つ境界は、分類を残したまま `withErrorMeta()` で文言を載せます。文言の正はカタログにあるので、`withMessage()` を含めて文言を差し替えるのは境界レイヤーに限ります
-- `resolveErrorMeta()` は分類のないエラーに `undefined` を返します。**未分類を `INTERNAL` へ倒すのは呼出し側の境界の判断**であり、`resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL)` の形で書きます。分類を持たない値は想定していない経路で投げられたものなので、このレイヤーは利用者に見せる形を選べません
-- `AppError` は `Error` の派生、`ErrorMeta` は `#private` を持つクラスで、どちらも素の値ではなく、**Server Action / RSC の直列化境界を越えません**。越える前に `resolveErrorMeta()` と `findAppError()` で code・文言・分類の素の値へ落とします。画面へ返すコンテナは `model` が持ちます（[0080](../../docs/adr/0080-error-handling.ja.md)）
+- `resolveErrorMeta()` は分類のないエラーに `undefined` を返します。**未分類を `INTERNAL` へ倒すのは呼出し側の境界の判断**であり、`resolveErrorMeta(error) ?? getDefaultErrorMeta(ErrorKind.INTERNAL)` の形で書きます。分類を持たない値は想定していない経路で投げられたものなので、このレイヤーはユーザーに見せる形を選べません
+- `AppError` は `Error` の派生、`ErrorMeta` は `#private` を持つクラスで、どちらも素の値ではなく、**Server Action / RSC の直列化境界を越えません**。越える前に `resolveErrorMeta()` と `findAppError()` で code・文言・分類の素の値へ落とします。画面へ返すコンテナーは `model` が持ちます（[0080](../../docs/adr/0080-error-handling.ja.md)）
 - production では Server Component から投げられたエラーの本文が伏せられ、error 境界には `digest` しか届きません。**error 境界は受け取ったエラーから解決せず、`getDefaultErrorMeta(ErrorKind.INTERNAL)` の文言を出します**（[0080](../../docs/adr/0080-error-handling.ja.md)）
 
 ## 秘匿値の置換
@@ -113,7 +113,7 @@ const error = withErrorDetails(classified, ["accessToken"]);
 const meta = resolveErrorMeta(error);
 ```
 
-`requestId` はログ相関と、利用者からの連絡の突き合わせに使うため、共通エラー画面で表示できます。`details` は wire に出して安全な識別子だけを指定します。画面の表示名は、業務フィールドを知る feature / form 側で変換します。入力値・token・password・理由文は渡しません。
+`requestId` はログ相関と、ユーザーからの連絡の突き合わせに使うため、共通エラー画面で表示できます。`details` は wire に出して安全な識別子だけを指定します。画面の表示名は、業務フィールドを知る feature / form 側で変換します。入力値・token・password・理由文は渡しません。
 
 ### レイヤーごとの使い方
 

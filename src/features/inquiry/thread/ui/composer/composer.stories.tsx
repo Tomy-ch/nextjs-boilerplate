@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
+import { userEvent, within } from "storybook/test";
 
 import { failedActionState, idleActionState } from "@/model/action-state";
 
@@ -24,6 +25,7 @@ const meta = {
   args: {
     action: () => {},
     idempotencyKey: IDEMPOTENCY_KEY,
+    outcomeOpen: false,
     pending: false,
     state: idleActionState(),
   },
@@ -32,11 +34,21 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** まだ何も打っていない状態。空のままでは送信できない。 */
+/** まだ何も打っていない状態。 */
 export const Default: Story = {};
+
+/** 空のまま押した。送らずに、入力を促す文言を入力欄に紐づけて出す。 */
+export const EmptySubmitted: Story = {
+  play: async ({ canvasElement }) => {
+    await userEvent.click(within(canvasElement).getByRole("button", { name: "送信" }));
+  },
+};
 
 /** 送信中。二重に送れないよう操作を閉じる。 */
 export const Pending: Story = { args: { pending: true } };
+
+/** 前回の送信の結果が分からないあいだ。本文を書き換えさせず、理由を欄に結ぶ。 */
+export const OutcomeOpen: Story = { args: { outcomeOpen: true } };
 
 /** 本文が契約を通らなかった状態。項目に文言が付く。 */
 export const Invalid: Story = {

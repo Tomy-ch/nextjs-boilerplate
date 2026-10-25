@@ -22,10 +22,17 @@ const STEPS = [
   { id: "confirm", title: "確認", content: <p>この内容で申請します。</p> },
 ] satisfies WizardSteps;
 
-function WizardFixture({ steps = STEPS }: { steps?: WizardSteps } = {}) {
+function WizardFixture({
+  steps = STEPS,
+  locked = false,
+}: {
+  steps?: WizardSteps;
+  locked?: boolean;
+} = {}) {
   return (
     <WizardForm
       label="利用申請"
+      locked={locked}
       steps={steps}
       submit={
         <Button type="submit" variant="default">
@@ -294,6 +301,40 @@ describe("WizardForm", () => {
 
     expect(screen.getByLabelText("氏名")).toBeVisible();
     expect(screen.getByLabelText("用途")).not.toBeVisible();
+  });
+
+  it("離れられなくしたあいだは、前へも進捗からも動けない", async () => {
+    const { rerender } = render(<WizardFixture />);
+
+    await next();
+    await next();
+    rerender(<WizardFixture locked />);
+
+    expect(screen.getByRole("button", { name: "戻る" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: STEPS[0].title })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: STEPS[0].title }));
+
+    expect(screen.getByRole("group", { name: "確認" })).toBeVisible();
+  });
+
+  it("離れられなくしたあいだは、次へも押せない", () => {
+    const { rerender } = render(<WizardFixture />);
+
+    rerender(<WizardFixture locked />);
+
+    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled();
+  });
+
+  it("離れられなくするのをやめたら、また戻れる", async () => {
+    const { rerender } = render(<WizardFixture />);
+
+    await next();
+    rerender(<WizardFixture locked />);
+    rerender(<WizardFixture />);
+    await previous();
+
+    expect(screen.getByRole("group", { name: "申請者" })).toBeVisible();
   });
 
   it("段階が減って現在地が並びの外へ出たら、先頭から始め直す", async () => {

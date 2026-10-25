@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import type { ReactElement } from "react";
-import { userEvent, within } from "storybook/test";
+import { mocked, userEvent, within } from "storybook/test";
 
 import { AppShell } from "@/components/shell/app-shell/app-shell";
 import { ContentContainer } from "@/components/shell/content-container/content-container";
@@ -9,9 +9,12 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
+import { ErrorKind } from "@/errors/error-kind";
+import { failedActionState } from "@/model/action-state";
 import { toSafeReturnUrl } from "@/model/return-url";
 
 import { PREFECTURES, PROFILE } from "../account.fixture";
+import { registerAction } from "../actions";
 import { OnboardingView } from "./view";
 
 const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
@@ -76,6 +79,23 @@ async function searchAddress(canvasElement: HTMLElement, postalCode: string): Pr
   await canvas.findByText(/補完しました|見つかりませんでした|使えません/);
 }
 
+/**
+ * 確認の段まで埋めて進める。
+ *
+ * @param context - story の `play` が受け取る文脈
+ */
+async function fillToConfirm({ canvasElement }: { canvasElement: HTMLElement }): Promise<void> {
+  const canvas = within(canvasElement);
+
+  await fillBasics(canvas);
+  await goNext(canvas);
+  await userEvent.type(canvas.getByLabelText("郵便番号"), PROFILE.postalCode);
+  await userEvent.selectOptions(canvas.getByLabelText("都道府県"), PROFILE.prefecture);
+  await userEvent.type(canvas.getByLabelText("市区町村"), PROFILE.city);
+  await userEvent.type(canvas.getByLabelText("丁目・番地"), PROFILE.street);
+  await goNext(canvas, "確認へ進む");
+}
+
 const meta = {
   title: "Page/Account/Onboarding",
   component: OnboardingView,
@@ -116,16 +136,25 @@ export const AddressStep: Story = {
 
 /** 確認の段。任意入力の建物名だけが空で、送る内容を読み返せる。 */
 export const ConfirmStepFilled: Story = {
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
+  play: fillToConfirm,
+};
 
-    await fillBasics(canvas);
-    await goNext(canvas);
-    await userEvent.type(canvas.getByLabelText("郵便番号"), PROFILE.postalCode);
-    await userEvent.selectOptions(canvas.getByLabelText("都道府県"), PROFILE.prefecture);
-    await userEvent.type(canvas.getByLabelText("市区町村"), PROFILE.city);
-    await userEvent.type(canvas.getByLabelText("丁目・番地"), PROFILE.street);
-    await goNext(canvas, "確認へ進む");
+/**
+ * 登録の結果が分からない（一時的に使えない）。同じ内容で送り直すあいだ、前の段へも進捗からも
+ * 戻れない。
+ */
+export const OutcomeOpen: Story = {
+  beforeEach: () => {
+    mocked(registerAction).mockResolvedValue(
+      failedActionState({
+        formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+        kind: ErrorKind.UNAVAILABLE,
+      }),
+    );
+  },
+  play: async (context) => {
+    await fillToConfirm(context);
+    await userEvent.click(within(context.canvasElement).getByRole("button", { name: "登録する" }));
   },
 };
 
@@ -154,7 +183,7 @@ export const AddressUnavailable: Story = {
  *
  * @remarks
  * 最後は焦点を移さずに外します。`tab()` で次の項目へ移すと、主題ではない focus ring が絵に
- * 残り、その角の aa が実行ごとに揺れます。検証に要るのは焦点が外れることだけです。
+ * 残り、その角のアンチエイリアスが実行ごとに揺れます。検証に要るのは焦点が外れることだけです。
  */
 export const ValidationErrors: Story = {
   play: async ({ canvasElement }) => {

@@ -10,6 +10,7 @@ import { useCartStore } from "@/stores/cart-store";
 
 import {
   BLOCKED_CART,
+  CART_COUPONS,
   EMPTY_CART,
   LONG_CART,
   ORDERABLE_CART,
@@ -64,7 +65,7 @@ const meta = {
       story: { inline: false, iframeHeight: 900 },
       description: {
         component: [
-          "購入確認です。届け先と内容を左に積み、集計と確定を右へ置きます。",
+          "購入確認です。届け先と内容とクーポンを左に積み、集計と確定を右へ置きます。",
           "脇に置けない幅では、集計と確定が画面の下端に固定された帯へ移ります。",
           "**カタログでは購入は実行されません。**",
         ].join(""),
@@ -81,6 +82,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     cart: ORDERABLE_CART,
+    coupons: CART_COUPONS,
     idempotencyKey: IDEMPOTENCY_KEY,
     profile: PROFILE,
     reference: SUBTOTAL_REFERENCE,
@@ -127,5 +129,17 @@ export const Empty: Story = {
 /** 参考換算額を引けなかった状態。円で見る操作が消え、確定は生きている。 */
 export const WithoutReference: Story = {
   args: { ...Default.args, reference: null },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 使えるクーポンが無い状態。クーポンの欄ごと置かない。 */
+export const WithoutCoupons: Story = {
+  args: { ...Default.args, coupons: [] },
+  globals: { viewport: { value: "desktop", isRotated: false } },
+};
+
+/** 使えるクーポンを読めなかった状態。使わずに注文できることだけを告げ、確定は生きている。 */
+export const CouponsUnavailable: Story = {
+  args: { ...Default.args, coupons: null },
   globals: { viewport: { value: "desktop", isRotated: false } },
 };

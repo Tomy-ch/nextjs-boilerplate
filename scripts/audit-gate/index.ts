@@ -1,14 +1,25 @@
 import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { isBlocking, parseAudit } from "./advisories";
 import { renderReport } from "./report";
+import { parseSuppressions } from "./suppressions";
+
+/** 抑止の置き場。リポジトリの根から見た位置。 */
+const OSV_CONFIG = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../..",
+  "osv-scanner.toml",
+);
 
 /**
  * 依存監査のゲート。
  *
  * 使い方: `tsx scripts/audit-gate`
  *
- * 修正版のある high / critical が 1 件でもあれば exit 1。
+ * 修正版のある high / critical が 1 件でもあれば exit 1。`osv-scanner.toml` で期限内に抑止したものは除く。
  */
 
 /**
@@ -36,9 +47,10 @@ function runAudit(): string {
 
 function main(): void {
   const advisories = parseAudit(runAudit());
-  const blocking = advisories.filter(isBlocking);
+  const suppressed = parseSuppressions(fs.readFileSync(OSV_CONFIG, "utf8"), new Date());
+  const blocking = advisories.filter((advisory) => isBlocking(advisory, suppressed));
 
-  console.log(renderReport(advisories));
+  console.log(renderReport(advisories, suppressed));
 
   if (blocking.length > 0) {
     console.error(`\n❌ 修正版のある high / critical が ${blocking.length} 件あります。`);

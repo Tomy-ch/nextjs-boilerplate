@@ -2,7 +2,7 @@ import { fn } from "storybook/test";
 
 import { succeededActionState } from "@/model/action-state";
 
-import type { InquiryMessageActionState } from "../actions";
+import type { InquiryMessageActionState } from "../form-state";
 
 /**
  * カタログでの [sendInquiryMessageAction](../actions.ts)。
@@ -12,5 +12,5 @@ import type { InquiryMessageActionState } from "../actions";
  * 無いので、成功を返して送った後の画面に留まります。
  */
 export const sendInquiryMessageAction = fn(
-  async (): Promise<InquiryMessageActionState> => succeededActionState(undefined),
+  (): Promise<InquiryMessageActionState> => Promise.resolve(succeededActionState(undefined)),
 ).mockName("sendInquiryMessageAction");

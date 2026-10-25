@@ -41,6 +41,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   "src/features/site-info",
   "src/features/admin",
   "src/features/inquiry",
+  "src/features/coupons",
   // 題材の取得を中継する BFF。`src/app/api` ごとではなく題材の口だけを挙げる。
   // 認証の口（`src/app/api/auth`）は同じ場所にあるコア残留である。
   "src/app/api/products",
@@ -50,6 +51,7 @@ export const SAMPLE_PATHS: readonly string[] = [
   // 何を購読するかは題材が決めるので、この中継は題材側である。
   "src/app/api/inquiries",
   // 題材に固有のカーネルモジュール
+  "src/model/campaign",
   "src/model/cart",
   "src/model/coupon",
   "src/model/dashboard",
@@ -93,6 +95,9 @@ export const SAMPLE_PATHS: readonly string[] = [
   "e2e/journeys/focus.spec.ts",
   "e2e/journeys/not-found.spec.ts",
   "e2e/journeys/discontinue.spec.ts",
+  "e2e/journeys/campaign-suspend.spec.ts",
+  "e2e/journeys/coupons.spec.ts",
+  "e2e/journeys/checkout-coupon.spec.ts",
   // 破棄の道具（使い終わったら不要）。
   "scripts/setup/remove-sample",
 ];
@@ -184,12 +189,15 @@ const DANGLING_WORDS: readonly DanglingWord[] = [
   { boundary: WORD_BOUNDARY.NONE, word: "注文" },
   { boundary: WORD_BOUNDARY.NONE, word: "問い合わせ" },
   { boundary: WORD_BOUNDARY.NONE, word: "クーポン" },
+  { boundary: WORD_BOUNDARY.NONE, word: "キャンペーン" },
   { boundary: WORD_BOUNDARY.BOTH, word: "products" },
   { boundary: WORD_BOUNDARY.BOTH, word: "cart" },
   { boundary: WORD_BOUNDARY.LEADING, word: "inquiry" },
   { boundary: WORD_BOUNDARY.LEADING, word: "inquiries" },
   // `appliedCoupon` のように識別子の途中に現れるので、境界を要求しない。
   { boundary: WORD_BOUNDARY.NONE, word: "coupon" },
+  // `PostCampaignsClaims` のように識別子の途中に現れるので、境界を要求しない。
+  { boundary: WORD_BOUNDARY.NONE, word: "campaign" },
 ];
 
 /**

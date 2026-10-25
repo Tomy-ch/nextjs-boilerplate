@@ -58,6 +58,15 @@ export const Filled: Story = {
   args: { values: { couponDiscountRate: "12.5", couponValidityDays: "30" } },
 };
 
+/** 前回の廃番の結果が分からないあいだ。打った条件のまま書き換えさせず、理由を欄の組に結ぶ。 */
+export const Locked: Story = {
+  args: {
+    values: { couponDiscountRate: "12.5", couponValidityDays: "30" },
+    lockedReason:
+      "前回の廃番の結果が分かるまで、条件は書き換えられません。同じ条件でもう一度廃番にしてください。",
+  },
+};
+
 /** 両方が読めなかった状態。欄ごとに、項目名を主語にした指摘が出る。 */
 export const Invalid: Story = {
   args: {

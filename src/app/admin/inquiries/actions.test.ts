@@ -3,17 +3,27 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { REPLY_BODY_FIELD, REPLY_INQUIRY_ID_FIELD } from "@/features/admin/inquiries/form-names";
+import { loginPath } from "@/features/auth/facade/paths";
 import { idleActionState } from "@/model/action-state";
 import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import { SESSION_ROLE } from "@/model/session";
 
-const { verifySession, postInquiryReply, revalidatePath } = vi.hoisted(() => ({
+const { verifySession, postInquiryReply, redirect, refresh, unstable_rethrow } = vi.hoisted(() => ({
   verifySession: vi.fn(),
   postInquiryReply: vi.fn(),
-  revalidatePath: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
+  refresh: vi.fn(),
+  unstable_rethrow: vi.fn((error: unknown) => {
+    if (error instanceof Error && error.message.startsWith("NEXT_REDIRECT:")) {
+      throw error;
+    }
+  }),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/navigation", () => ({ redirect, unstable_rethrow }));
+vi.mock("next/cache", () => ({ refresh }));
 vi.mock("@/adapters/server/auth/session", () => ({ verifySession }));
 vi.mock("@/adapters/server/api/inquiries", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/inquiries")>()),
@@ -60,7 +70,7 @@ describe("replyInquiryAction", () => {
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/admin/inquiries/${INQUIRY_ID}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -73,12 +83,12 @@ describe("replyInquiryAction", () => {
     expect(postInquiryReply).not.toHaveBeenCalled();
   });
 
-  it("session を持たない要求も止める", async () => {
+  it("session を持たない要求は、送らずに一覧へ戻る入り直しへ送る", async () => {
     verifySession.mockResolvedValue(null);
 
-    const state = await replyInquiryAction(idleActionState(), replyForm());
-
-    expect(state).toMatchObject({ status: "error", kind: ErrorKind.PERMISSION_DENIED });
+    await expect(replyInquiryAction(idleActionState(), replyForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/inquiries")}`,
+    );
     expect(postInquiryReply).not.toHaveBeenCalled();
   });
 
@@ -107,12 +117,22 @@ describe("replyInquiryAction", () => {
     });
   });
 
+  it("接続先が認証切れで拒んだら、取り直させずに一覧へ戻る入り直しへ送る", async () => {
+    postInquiryReply.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(replyInquiryAction(idleActionState(), replyForm())).rejects.toThrow(
+      `NEXT_REDIRECT:${loginPath("/admin/inquiries")}`,
+    );
+    expect(postInquiryReply).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("存在しない問い合わせへの回答を分類のまま返す", async () => {
     postInquiryReply.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
 
     const state = await replyInquiryAction(idleActionState(), replyForm());
 
     expect(state).toMatchObject({ status: "error", kind: ErrorKind.NOT_FOUND });
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

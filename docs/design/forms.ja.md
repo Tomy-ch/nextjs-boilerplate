@@ -45,7 +45,7 @@ sequenceDiagram
 
 順序で押さえるべき点は 3 つある。
 
-1. **検証は 3 回起きる。** 送る前（ブラウザ）、受け取った後（Server Action の中で同じスキーマをもう一度）、外へ出す境界（`adapters` の契約検証）。1 回目は体験のため、2 回目が正、3 回目は契約の砦であり、役割が違うので省けない
+1. **検証は 3 回起きる。** 送る前（ブラウザー）、受け取った後（Server Action の中で同じスキーマをもう一度）、外へ出す境界（`adapters` の契約検証）。1 回目は体験のため、2 回目が正、3 回目は契約の砦であり、役割が違うので省けない
 2. **Server Action は戻り値で失敗を返す。** 例外を投げて終わるのは `redirect()` だけで、それは成立の合図である
 3. **action が終わると `<form>` は reset される。** 成功でも失敗でも起きる（後述）
 
@@ -75,6 +75,8 @@ sequenceDiagram
 | **react-hook-form** | rhf の内部状態と DOM。`register` は非制御 | 複数項目 + 検証 + 誤りの表示 |
 | **`useState` で全項目を文字列で持つ** | 画面。入力欄は `value` を受ける制御欄 | 判定が zod ではなく関数で書かれ、送信のたびに欄を作り直したくないとき |
 
+**画面が持つ値は、hydration の後にしか送信に載らない。** `useState` から値を受ける hidden の欄は、クライアントが引き継ぐ前は何も運ばず、JavaScript が動かない環境ではずっと何も運ばない。そのあいだの選択は、送られる内容から黙って落ちる。そうした操作は hydration まで無効にし、それ無しでも何を送れるかを `<noscript>` で告げる。
+
 **rhf は送信機構を置き換えない。** `handleSubmit` を呼ばず、`register` で欄を配線し、`FormData` はそのまま `<form action>` へ流す。rhf が持つのは入力中の検証だけである。JavaScript が動かない環境でも form は送られ、Server Action 側の同じスキーマが検証する。
 
 rhf を使うときの配線は次のとおり。
@@ -87,12 +89,12 @@ rhf を使うときの配線は次のとおり。
 
 | 層 | 何を判定するか | 置き場 | 流儀 | 届く先 |
 | --- | --- | --- | --- | --- |
-| **表示検証** | 必須・長さ・形式。人向けの文言を持つ | `src/model/<領域>/*-schema.ts` | `zod/mini` | ブラウザ（resolver）と Server Action（解き手）の**両方** |
-| **契約検証** | 要求と応答が契約の形か | `src/adapters/gen/api/endpoints.zod.ts`。実施点は [`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) | `zod` | サーバのみ。画面には分類だけが返る |
+| **表示検証** | 必須・長さ・形式。人向けの文言を持つ | `src/model/<領域>/*-schema.ts` | `zod/mini` | ブラウザー（resolver）と Server Action（解き手）の**両方** |
+| **契約検証** | 要求と応答が契約の形か | `src/adapters/gen/api/endpoints.zod.ts`。実施点は [`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts) | `zod` | サーバーのみ。画面には分類だけが返る |
 
-**正は Server Action の側で通し直した表示検証である。** ブラウザ側の判定は即時に返すためのもので、送信者が差し替えられる。同じスキーマを両側で通すのは、判定と文言を 1 か所に置くためであり、ブラウザ側を信用するためではない。
+**正は Server Action の側で通し直した表示検証である。** ブラウザー側の判定は即時に返すためのもので、送信者が差し替えられる。同じスキーマを両側で通すのは、判定と文言を 1 か所に置くためであり、ブラウザー側を信用するためではない。
 
-**契約由来の上限をブラウザで使うときは、生成スキーマではなく定数を引く。** `src/adapters/gen/api/limits.ts` は生成物のうち zod を参照しない定数だけをコピーしたもので、client はこちらだけを import する。スキーマ本体を引くと全エンドポイント分の生成物がブラウザへ配られる（[ADR 0072](../adr/0072-api-type-generation.ja.md)）。
+**契約由来の上限をブラウザーで使うときは、生成スキーマではなく定数を引く。** `src/adapters/gen/api/limits.ts` は生成物のうち zod を参照しない定数だけをコピーしたもので、client はこちらだけを import する。スキーマ本体を引くと全エンドポイント分の生成物がブラウザーへ配られる（[ADR 0072](../adr/0072-api-type-generation.ja.md)）。
 
 **接続先が項目を名指しして拒んだ結果は、表示検証と同じ形へ写す。** 契約が返す `details` は項目名だけで理由を含まないので、文言は「〈項目名〉は受け付けられませんでした」の形にしか書けない。この画面の入力欄に結び付かない名前は捨てる —— キーにすると、どこにも出ない文言を持った「項目の誤りがある」状態が生まれる。写す先は `ActionState` の `fieldErrors` で、画面は送る前に弾かれたのか接続先に弾かれたのかを知らずに同じように出せる。
 
@@ -139,17 +141,19 @@ rhf を使うときの配線は次のとおり。
 
 **`redirect()` で終わる action は「戻らない」。** 成立時に throw するので、`success` を返す枝が存在しない。したがってその画面の `ActionState` は成功値を持たず、成功の表示も持たない。テストでは成立時の throw を正常系に置く（[`docs/testing-conventions.md`](../testing-conventions.ja.md#何をどこに置くか)）。overlay の中から確定したときは `RedirectType.replace` にする —— overlay が積んだ履歴 1 件が戻り先に残るためである。
 
-**画面に留まる action は再検証を自分で頼む。** `revalidatePath` の範囲は、変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
+**画面に留まる action は再検証を自分で頼む。** 画面のデータをキャッシュしておらず、変更がこの route にしか出ないなら `refresh()` でレンダリングし直す。`revalidatePath` は別の route にも変更を出すときのもので、その範囲は変更が出る場所で決まる。外枠（header の件数・サイドバー）にも出るものは `revalidatePath("/", "layout")` にしないと、本文だけが新しく外枠が古いままになる。
 
 **結果は次の送信まで残る。** 入力を直した時点・観点を移した時点で下げ、送り直せばまた出す。「下げた印」を戻す合図は結果の**同一性**で、`useActionState` は送信のたびに新しい object を返すので、前回の結果との `!==` で入れ替わりが判る。同梱サンプルでは `use-action-result-freshness.ts` がこれを持ち、題材を知らない形になっている。
 
-**確認 dialog の中で送るなら、結果はどこに出すかを先に決める。** dialog の中の form が送り、失敗しても dialog は開いたままなので、失敗は dialog の中に出す（利用者が見ている場所）。成立すれば dialog は閉じ、そこに出したものごと消える。`AlertDialogAction` は押した時点で dialog を閉じるコンポーネントなので、実行ボタンには使わず、`AlertDialogCancel` と `type="submit"` のボタンを並べる。
+**確認 dialog の中で送るなら、結果はどこに出すかを先に決める。** dialog の中の form が送り、失敗しても dialog は開いたままなので、失敗は dialog の中に出す（ユーザーが見ている場所）。成立すれば dialog は閉じ、そこに出したものごと消える。`AlertDialogAction` は押した時点で dialog を閉じるコンポーネントなので、実行ボタンには使わず、`AlertDialogCancel` と `type="submit"` のボタンを並べる。
 
 ## 送信中・二重送信・確認
 
 **送信中は `Button` の `pending` が押せなくする。** 冪等キーがあるから二度押しても増えない、を理由に押せるまま残さない。
 
-**冪等キーの作り方と運び方。** [`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドは `useState(initial)` で**最初に受け取った値を固定**して hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+**冪等キーの作り方と運び方。** 1 回きりの送信では、[`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) の `newIdempotencyKey()` を**画面を組み立てる Server Component**が 1 回呼び、props でアイランドへ渡し、アイランドはそれを [`useSubmissionKey`](../../src/components/use-submission-key.ts) の `initialKey` に渡して**最初に受け取った値を固定**し、返った鍵を hidden input（`IDEMPOTENCY_KEY_FIELD`）に載せる。固定するのは、`router.refresh()` が器を unmount せず prop だけ差し替えるためで、固定しないと書きかけの入力は残ったままキーだけが新しくなり、届かなかった送信のやり直しが別のキーで飛ぶ。Server Action は `z.uuid()` で解き、`adapters/server` が `Idempotency-Key` header に載せる。fetch wrapper（[`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)）は `idempotent: true` を宣言した要求だけ再試行する。
+
+**同じ画面から繰り返す送信は、キーをアイランドが持つ。** アイランドが `initialKey` を渡さずに `useSubmissionKey` を呼び、hook が mount のときに作る。どちらの形でも、応答が送信を確定させたら hook がキーを作り直し、結果が定まらないあいだは保つので、成立していた送信を 2 つにしない。hook は `outcomeOpen` も返し、アイランドはそれで入力を送ったまま保つ。エンドポイントの `409` の意味は `conflict` として 1 度だけ渡す。どちらの形を取るかは送信の回数で決まる（[`src/features/README.md`](../../src/features/README.ja.md)）。
 
 キーは全部の変更に要るわけではない。**設定（絶対値）を送る操作は自然に冪等**なのでキーを持たない。逆に自然キーを持たない作成は再試行もしない —— 同じ本文を二度送れば 2 件できる。
 
@@ -157,12 +161,12 @@ rhf を使うときの配線は次のとおり。
 
 **送信の失敗は 2 系統ある。** action が `error` を**返す**失敗と、呼び出しそのものが **reject する**失敗（切断・本文の上限超過・5xx）で、後者は戻り値では受け取れない。`<form action>` 経由なら reject は最も近い error 境界（`error.tsx`。[ADR 0080](../adr/0080-error-handling.ja.md)）へ届く。action を **form を通さず直接呼ぶ**場合（選んだ時点で送るファイルなど）は呼び出し側が `try / catch` で受けないと、その送信は進行中でも失敗でもない状態に居残る。
 
-**離脱の抑止**は 2 コンポーネントに分かれる。[`app-starter/unload-guard`](../../src/components/app-starter/unload-guard/README.ja.md)（リロード・タブを閉じる・外部へ）と [`app-starter/navigation-guard`](../../src/components/app-starter/navigation-guard/README.ja.md)（配下の `Link`）で、**ブラウザの戻る / 進むはどちらでも塞げない**。
+**離脱の抑止**は 2 コンポーネントに分かれる。[`app-starter/unload-guard`](../../src/components/app-starter/unload-guard/README.ja.md)（リロード・タブを閉じる・外部へ）と [`app-starter/navigation-guard`](../../src/components/app-starter/navigation-guard/README.ja.md)（配下の `Link`）で、**ブラウザーの戻る / 進むはどちらでも塞げない**。
 
 ## ファイル添付のエンドポイント
 
 受信エンドポイントは **Server Action ひとつ**である（[ADR 0075](../adr/0075-file-upload-seam.ja.md)）。
-`/api/*` に本体を受ける中継エンドポイントは無く、署名付き URL へブラウザが直接送る形も採っていない。
+`/api/*` に本体を受ける中継エンドポイントは無く、署名付き URL へブラウザーが直接送る形も採っていない。
 
 Server Action が `File` を受け取り、`adapters/server` の fetch wrapper が `multipart:` 指定で
 backend の受信エンドポイントへ送る。返るのは**保存キー**だけで、表示 URL への組み立ては `adapters/server` が
@@ -243,7 +247,7 @@ React は action を始めた時点で reset を予約し、transition の commi
 
 **rhf の `register` はこれを防がない。** `register` が配るのは `name` / `onChange` / `onBlur` / `ref` で、`value` は配らない（非制御）。値は mount 時に `ref.value` へ書かれるだけで、同じ要素への 2 回目以降の ref 呼び出しは早期 return し、書き直さない。したがって reset のあと、rhf の内部状態は入力済みのままなのに DOM は空、という食い違いが起きうる。弾かれた送信のあとも残す欄は `value` を React が持つ形にする（`useState` で持つ、または rhf なら `Controller` / `useController` で制御欄にする）。
 
-**確かめ方**: 失敗を返す action を用意し、送信後に入力欄の中身が残っているかをブラウザで見る。jsdom のテストは `FormData` の中身と文言しか見ていないことが多い。
+**確かめ方**: 失敗を返す action を用意し、送信後に入力欄の中身が残っているかをブラウザーで見る。jsdom のテストは `FormData` の中身と文言しか見ていないことが多い。
 
 ### `zodResolver` は `zod/mini` のスキーマを受け付けない
 
@@ -255,7 +259,7 @@ rhf は `undefined` の項目を非制御のまま扱う。`FormData` には空�
 
 ### `redirect()` の後ろに書いたコードは動かない
 
-`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `revalidatePath` と `redirect()` を try の外に置いている。
+`redirect()` は throw する。`try / catch` の中で呼ぶと catch がそれを捕まえて失敗の状態を返し、遷移が起きないまま画面に「失敗」が出る。`redirect()` は try の**外**で呼ぶ。同梱サンプルの action はすべて、通信を try で包み、成立後の `refresh()` / `revalidatePath` と `redirect()` を try の外に置いている。
 
 Route Handler を指す `redirect()` は要求を出さない。理由は [`rendering.md`](rendering.ja.md#server-action-の-redirect-は-route-handler-へ遷移しない) が持つ。
 
@@ -265,7 +269,7 @@ Route Handler を指す `redirect()` は要求を出さない。理由は [`rend
 
 ### 冪等キーを render のたびに作ると、キーの意味が無くなる
 
-`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは画面を組み立てる Server Component の 1 か所で、アイランドは `useState(initial)` で固定する。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
+`newIdempotencyKey()` を Client Component の render で呼ぶと、再レンダリングのたびにキーが変わり、二重送信も再送も別の要求になる。作るのは 1 か所 —— 画面を組み立てる Server Component か、mount のときの `useSubmissionKey` —— で、アイランドは `useSubmissionKey` を通して持つ。**hidden input に prop をそのまま渡す**のも同じ穴で、`router.refresh()` が prop だけを差し替える。
 
 ### 開閉で unmount されるサブツリーに、キーと送信の状態を置かない
 
@@ -275,9 +279,9 @@ dialog / sheet / drawer の中で `useActionState` を呼ぶと、閉じた時�
 
 送る側の `name` と読む側の `formData.get()` の綴りが食い違っても、型は通り、実行して初めて「送ったのに空で届く」形で現れる。綴りは `form-names.ts` の 1 か所に置き、`satisfies Readonly<Record<Field, string>>` で項目の集合と突き合わせる。
 
-### `required` を付けると、隠れた段でブラウザが送信を止める
+### `required` を付けると、隠れた段でブラウザーが送信を止める
 
-段に分けた入力は表示していない段も DOM に残す（`hidden`）。`required` の欄が隠れた段に空のまま在ると、ブラウザは focus できない欄を理由に**何も言わずに**送信を止める。必須の**表示**は `Field` が持ち、**強制**は Server Action の検証が持つ。`FormField` は `aria-required` を組むが `required` は組まない。
+段に分けた入力は表示していない段も DOM に残す（`hidden`）。`required` の欄が隠れた段に空のまま在ると、ブラウザーは focus できない欄を理由に**何も言わずに**送信を止める。必須の**表示**は `Field` が持ち、**強制**は Server Action の検証が持つ。`FormField` は `aria-required` を組むが `required` は組まない。
 
 ### 選んだ時点で送るファイルは、form の `action` を通らない
 

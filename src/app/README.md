@@ -31,6 +31,9 @@ The App Router's driving adapter. `page.tsx` and `layout.tsx` call features thin
 - **Assembly shared by several error boundaries** (`boundary-feedback.ts`). The one place that turns a failure a boundary received into a displayable shape and
   a retry link, and the only place that handles failures from mismatched versions ([docs/rules.md](../../docs/rules.md#forms)).
   Written per boundary, that handling goes stale in one place only. Tests are treated as `unit`
+- **The principal assertion shared by a section's Server Actions** (`<section>/assert-<role>.ts`). Each action checks the principal
+  again at its own entry point, and written per `actions.ts` only one copy moves. It sits in this layer because only `app` and
+  `adapters` can take `adapters/server/auth` (the shape it shares is under *Operations*). Tests are treated as `unit`
 - **Parallel route slots** (`@<name>/`). A page cannot pass props to a layout, so the bridge that delivers per-screen values to the layout shell
   is a slot (such as the hierarchy down to the current location). Place a `default.tsx`, and place per route a slot that returns empty even for screens with no
   hierarchy — in a soft navigation the previous slot remains, and the pitfall is held by
@@ -116,12 +119,14 @@ async function ScreenContent({ params }: { params: Promise<{ id: string }> }) {
 - **The layout shell does not await `params` / `searchParams`.** It passes the Promise as is to the dynamic hole and resolves it inside. If the layout shell
   waits, not even the static shell can be served while it waits ([docs/rules.md](../../docs/rules.md#rendering))
 - **Passing identifiers through the contract's type** (`model`'s `toXxxId`) **is this layer's job**; features receive the passed value
-- **The real clock is read inside the dynamic hole after awaiting `connection()`** (`config/clock`). During prerendering
-  the value is not settled
+- **The real clock is read inside the dynamic hole, after a request-time value (cookies, `searchParams`) has been awaited, or
+  after `await io()` when the hole awaits none** (`config/clock`). During prerendering the value is not settled. `connection()` is
+  not used for this: it also blocks prefetching, and is kept for rendering that must wait for a real user request
 - **A redirect inside a dynamic hole happens after the static shell has been served.** The response has gone out as 200, and the redirect is conveyed by a
-  meta tag rather than `Location`. The unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
+  meta tag rather than `Location`. For a screen request the unauthenticated case is handled by the front gate (`proxy.ts`) at the entry point as a real redirect, so what reaches here is
   only decisions that cannot be known without asking the backend (such as state about a principal that only the backend holds)
-  ([0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md))
+  ([0041](../../docs/adr/0041-cache-components-decision.md) / [0079](../../docs/adr/0079-auth-frontend-seam.md)).
+  A Server Action call is not redirected by the front gate ([0043](../../docs/adr/0043-middleware-policy.md))
 - **A missing primary resource is also conveyed with 200.** That it was not found is conveyed by `not-found.tsx` and `noindex`
   ([0080](../../docs/adr/0080-error-handling.md))
 - **A section that cannot serve a static shell before checking has the layout shell decide and declare `instant = false`.** Push the decision down into a dynamic hole and
@@ -284,16 +289,30 @@ allowed origins ([`src/config/README.md`](../config/README.md#what-to-change-whe
   uses 303 (left as 302, the browser may reopen the destination with a POST). The body size limit is also
   held by the receiving endpoint itself — `bodySizeLimit` in `next.config.ts` reaches only Server Actions
 
-- **Server Actions share one shape.** Each file holds one assertion helper (`assertXxx`), called at the start of
-  each exported action. When the assertion fails, **return it as an `ActionState` rather than throwing**
-  (`actionStateFromError`) — a failure is shown next to the operation and is not allowed through to the boundary. Then parse the submission with the feature's
-  parser, call `adapters/server`, and return the result. When there are per-field errors, the overall message is
+- **Server Actions share one shape.** Each exported action starts by calling an assertion helper (`assertXxx`).
+  **A section whose actions require the same principal holds that helper once, at the section's root**
+  (`<section>/assert-<role>.ts`), and every `actions.ts` beneath it calls it — written per file, a check every entry point must hold
+  drifts apart in one copy. The helper treats a request with no session and a session without the role differently.
+  **With no session it redirects to sign-in, carrying the screen the form lives on as the return destination** (`loginPath`) — a
+  `401` is resolved by authenticating again and repeating the request ([RFC 9110 §15.5.2](https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2)),
+  and shown next to the form it leaves the user nothing to do there. Each action passes that screen's path; an action whose screen is per item
+  passes its section's list, because the item is known only after the submission is parsed, which comes after the assertion.
+  `redirect()` exits by throwing, so the action's `catch` passes the error to `unstable_rethrow` first. **Without the role it throws
+  `PERMISSION_DENIED`, and the action returns it as an `ActionState` rather than letting it through** (`actionStateFromError`) — the
+  failure is shown next to the operation with the catalog's generic text, which does not say the role is insufficient
+  ([docs/rules.md](../../docs/rules.md#authorization)). Then parse the submission with the feature's
+  parser, call `adapters/server`, and return the result. **When the adapter fails with `UNAUTHENTICATED`, the action redirects to
+  sign-in with the same return destination it passed to the assertion, rather than returning an `ActionState`**
+  ([0043](../../docs/adr/0043-middleware-policy.md)) — `if (isUnauthenticated(error)) redirect(loginPath(...))` first in the
+  `catch` around the adapter call, before any per-kind mapping. It goes in the `catch` rather than the `try`, because `redirect()`
+  exits by throwing and the surrounding `catch` would swallow it. An action
+  that sends several items in order and revalidates when one went through does so before this redirect. When there are per-field errors, the overall message is
   not shown (the summary would say the same thing, and the same point would appear in two places). The catalog's default text conveys only the classification, so
   screen-specific text is applied only when the reason for rejection can be stated only on that screen (a version conflict, related work still in progress).
   Where to send after success has three cases:
   - **Send to the list with `redirect()`** — when staying on the same screen would make pressing again a double create or double update, and it
     cannot be undone because it has already succeeded
-  - **Stay and have it refetched with `revalidatePath()`** — when a succeeded row remaining in the list would keep showing an operation that
+  - **Stay and have it refetched with `refresh()`** — when a succeeded row remaining in the list would keep showing an operation that
     always conflicts if pressed. Even if cut off partway, have it refetched if even one went through (conveying why it was cut off and
     reflecting what succeeded in the list are separate matters)
   - **Stay and do nothing** — when cleanup continues under eventual consistency and refetching right away would only show

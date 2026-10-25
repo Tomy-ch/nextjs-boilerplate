@@ -21,12 +21,12 @@
 
 | モジュール | 検証 | 理由 |
 | --- | --- | --- |
-| [`data-scope.ts`](data-scope.ts) | `unit` | 取得エンドポイントの分類と、キャッシュ・資格情報ヘッダの関門 |
+| [`data-scope.ts`](data-scope.ts) | `unit` | 取得エンドポイントの分類と、キャッシュ・資格情報ヘッダーの関門 |
 | [`error-status.ts`](error-status.ts) | `unit` | 分類から status への表 |
 | [`error-response.ts`](error-response.ts) | `unit` | 分類から応答を組む |
 | [`json-request.ts`](json-request.ts) | `unit` | 受け取った要求の型と大きさを見る |
 | [`public-client.ts`](public-client.ts) | `integration` | 主体を名乗らずに取れるものの接続ポイント |
-| [`request.ts`](request.ts) | `integration` | 外部 API を叩く |
+| [`request.ts`](request.ts) | `integration` | 外部 API を叩く。冪等キーを載せるヘッダー名も持つ |
 | [`user-scoped-client.ts`](user-scoped-client.ts) | `integration` | 主体に紐づくものの接続ポイント。資格情報の取得口を渡すのはここだけ |
 | [`retry-policy.ts`](retry-policy.ts) | `unit` | status から再試行の可否を決める |
 | [`search-params.ts`](search-params.ts) | `unit` | クエリを素の値へ写す |

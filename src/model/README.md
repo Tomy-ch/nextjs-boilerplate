@@ -37,7 +37,7 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | `pagination.ts` | Types representing one page for cursor-based and offset-based paging, plus appending for incremental fetching and conversion to page numbers |
 | `action-state.ts` | The container for the result a Server Action returns to the screen. Field errors, form errors, success value |
 | `search-params.ts` | Rules that turn how many times the same URL key appears into a value's meaning. Used together with zod schemas |
-| `idempotency-key.ts` | The key that identifies one change, and the name of the form field that carries it |
+| `idempotency-key.ts` | The key that identifies one change, the name of the form field that carries it, and which responses settle a submission (renew the key) or leave its outcome open (keep the key and the content) |
 | `uuid.ts` | Unique values a screen creates. RFC 9562 version 7, creatable even from sources that are not a secure context |
 | `consent.ts` | The intent on whether cookies may be used for optional purposes, and the gate predicates per category |
 | `money.ts` | Formats an amount into locale-appropriate currency notation, whether it arrives as an integer in the minor unit or as a decimal string in the major unit |
@@ -46,8 +46,9 @@ The pure kernel that holds display Value Objects, formatters, unit conversion, d
 | `return-url.ts` | A return destination that passed validation. Only same-origin relative paths pass; anything else falls back to the default destination |
 | `cross-origin.ts` | Judging a request's origin, and building CORS / preflight response headers |
 | `time-window.ts` | The period that aggregation and filtering target. Maps a calendar division to a half-open interval of instants in the reference time zone |
+| `campaign/` | Display types for the campaigns the sample admin screens list and suspend <!-- sample:line --> |
 | `cart/` | Display types for the cart the sample screens handle, and how conditions raised on line items are shown <!-- sample:line --> |
-| `coupon/` | Display types for the coupon discounts the sample screens handle, and their wording (face value, cap, scope) <!-- sample:line --> |
+| `coupon/` | The coupon identifier, display types for the coupons the sample screens handle (a held coupon, a coupon usable on the cart, an applied one, the discount), and their wording (face value, cap, scope) <!-- sample:line --> |
 | `dashboard/dashboard.ts` | Display types for the admin-side cross-cutting aggregates the sample screens handle <!-- sample:line --> |
 | `inquiry/` | Display types for the inquiries the sample screens handle, and folding in what arrived through the subscription <!-- sample:line --> |
 | `product/product.ts` | Display types for the products the sample screens handle <!-- sample:line --> |

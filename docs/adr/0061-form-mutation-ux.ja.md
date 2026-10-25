@@ -12,7 +12,7 @@ Accepted
 
 ## 背景
 
-[0060](0060-state-management.ja.md) は form state に **react-hook-form + zod を採用**し、[0052](0052-ui-component-policy.ja.md) は UI / form コンポーネント(shadcn 系)を採用しているが、rhf が担うのは**クライアントの入力状態・検証**であって「**サーバへどう送信し、結果を返すか**」という送信メカニクスは別レイヤである。boilerplate で最頻出の UI であるフォームが、送信の骨格すら規約なしでは feature ごとに発明され(`onSubmit` 内での手 fetch / rhf の `handleSubmit` から独自 POST 等に分岐)、[0062](0062-form-input-validation.ja.md) の入力検証も [0063](0063-mutation-result-notification.ja.md) の結果通知も、乗る先の器がなければ統一できない。
+[0060](0060-state-management.ja.md) は form state に **react-hook-form + zod を採用**し、[0052](0052-ui-component-policy.ja.md) は UI / form コンポーネント(shadcn 系)を採用しているが、rhf が担うのは**クライアントの入力状態・検証**であって「**サーバーへどう送信し、結果を返すか**」という送信メカニクスは別レイヤーである。boilerplate で最頻出の UI であるフォームが、送信の骨格すら規約なしでは feature ごとに発明され(`onSubmit` 内での手 fetch / rhf の `handleSubmit` から独自 POST 等に分岐)、[0062](0062-form-input-validation.ja.md) の入力検証も [0063](0063-mutation-result-notification.ja.md) の結果通知も、乗る先の器がなければ統一できない。
 
 送信メカニクスは入力検証・結果通知の**共通の土台**である。両者は戻り値契約(`ActionState`)を入力に選ぶため、まず「送ってから結果が返るまでの骨格」を 1 本に固定する必要がある。本 ADR はその骨格のみを担い、送信前の入力検証 UX は [0062](0062-form-input-validation.ja.md)、送信後の結果通知 UX は [0063](0063-mutation-result-notification.ja.md) が担う。rhf との関係は「rhf = クライアント入力検証 / 送信 = 本 ADR の `<form action>` + Server Action」に切り分け、送信機構を二重化しない。
 
@@ -23,7 +23,7 @@ Accepted
 ### 1. 送信フローの canonical 形(デファクトに乗る)
 
 - `<form action={serverAction}>` + `useActionState`(結果 state)+ `useFormStatus`(pending)を送信フローの**デフォルト形**とする。Server Action は feature 内 `actions.ts` に置き、編成のみを行う([0021](0021-frontend-responsibility.ja.md) / [0040](0040-routing-rendering-strategy.ja.md))。`"use client"` は入力を扱うリーフへ押し下げる([0040](0040-routing-rendering-strategy.ja.md))
-- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.ja.md)):progressive enhancement(JS 無効でも `<form>` が送信される)/ PRG(Post-Redirect-Get は web-platform の確立パターン)/ pending・結果 state の一元化。運用テスト =「React / Next.js を正当化から抜いても、サーバ往復する form は『標準 HTTP form + 進捗表示 + 結果表示』として成立するか?」→ Yes。ゆえにデファクトに乗っても縛られていない
+- **vendor-independent 正当性材料**([0010](0010-standards-and-non-lockin.ja.md)):progressive enhancement(JS 無効でも `<form>` が送信される)/ PRG(Post-Redirect-Get は web-platform の確立パターン)/ pending・結果 state の一元化。運用テスト =「React / Next.js を正当化から抜いても、サーバー往復する form は『標準 HTTP form + 進捗表示 + 結果表示』として成立するか?」→ Yes。ゆえにデファクトに乗っても縛られていない
 
 ### 2. 戻り値契約 `ActionState<T>`(入力検証・通知が共通に依拠する器)
 

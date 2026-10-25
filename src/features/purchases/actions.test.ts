@@ -5,13 +5,17 @@ import { getDefaultErrorMeta } from "@/errors/error-catalog";
 import { ErrorKind } from "@/errors/error-kind";
 import { idleActionState } from "@/model/action-state";
 
-const { cancelMyPurchase, payMyPurchase, revalidatePath } = vi.hoisted(() => ({
+const { cancelMyPurchase, payMyPurchase, redirect, refresh } = vi.hoisted(() => ({
   cancelMyPurchase: vi.fn(),
   payMyPurchase: vi.fn(),
-  revalidatePath: vi.fn(),
+  redirect: vi.fn((path: string) => {
+    throw new Error(`NEXT_REDIRECT:${path}`);
+  }),
+  refresh: vi.fn(),
 }));
 
-vi.mock("next/cache", () => ({ revalidatePath }));
+vi.mock("next/cache", () => ({ refresh }));
+vi.mock("next/navigation", () => ({ redirect }));
 vi.mock("@/adapters/server/api/purchases", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/adapters/server/api/purchases")>()),
   cancelMyPurchase,
@@ -57,7 +61,7 @@ describe("cancelPurchaseAction", () => {
     const state = await cancelPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -92,12 +96,22 @@ describe("cancelPurchaseAction", () => {
     });
   });
 
+  it("認証が切れていたら、その購入の詳細へ戻る入り直しへ送る", async () => {
+    cancelMyPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(cancelPurchaseAction(idleActionState(), transitionForm())).rejects.toThrow(
+      `NEXT_REDIRECT:/login?returnUrl=%2Fpurchases%2F${PURCHASE_CODE}`,
+    );
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it("失敗したときは取り直させない", async () => {
     cancelMyPurchase.mockRejectedValueOnce(createAppError(ErrorKind.CONFLICT));
 
     await cancelPurchaseAction(idleActionState(), transitionForm());
 
-    expect(revalidatePath).not.toHaveBeenCalled();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });
 
@@ -113,7 +127,7 @@ describe("payPurchaseAction", () => {
     const state = await payPurchaseAction(idleActionState(), transitionForm());
 
     expect(state.status).toBe("success");
-    expect(revalidatePath).toHaveBeenCalledWith(`/purchases/${PURCHASE_CODE}`);
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   // ----- 異常系 -----
@@ -146,5 +160,15 @@ describe("payPurchaseAction", () => {
       kind: ErrorKind.INTERNAL,
       formError: getDefaultErrorMeta(ErrorKind.INTERNAL).message,
     });
+  });
+
+  it("認証が切れていたら、その購入の詳細へ戻る入り直しへ送る", async () => {
+    payMyPurchase.mockRejectedValueOnce(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(payPurchaseAction(idleActionState(), transitionForm())).rejects.toThrow(
+      `NEXT_REDIRECT:/login?returnUrl=%2Fpurchases%2F${PURCHASE_CODE}`,
+    );
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

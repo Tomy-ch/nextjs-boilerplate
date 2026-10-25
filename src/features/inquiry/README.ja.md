@@ -4,7 +4,7 @@
 
 # inquiry
 
-利用者がサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
+ユーザーがサポートとやり取りする画面スライスです。届いた 1 通が**取り直しを待たずに**画面へ出る
 設置面でもあります。
 
 ## 受け入れるもの
@@ -32,8 +32,8 @@
 | --- | --- |
 | `GetInquiriesMeMessages` | 履歴の取得。応答の `streamCursor` が購読の開始位置になる |
 | `PostInquiriesMeMessages` | 1 通の送信。最初の 1 通が問い合わせを作る |
-| `PostInquiriesMeStreamTicket` | 購読を開くエンドポイントの発券。ブラウザは中継（`/api/`）越しに呼ぶ |
-| `GetStream` | 購読そのもの。**ブラウザが backend へ直接開く**ため、この slice は URL を組まない |
+| `PostInquiriesMeStreamTicket` | 購読を開くエンドポイントの発券。ブラウザーは中継（`/api/`）越しに呼ぶ |
+| `GetStream` | 購読そのもの。**ブラウザーが backend へ直接開く**ため、この slice は URL を組まない |
 
 ## 状態とデザイン参照
 
@@ -44,7 +44,7 @@
 | | 長い本文・連続文字列 | `Page/Mypage/Inquiry/LongBody` |
 | やり取りの並び | 送信中 | `Features/Inquiry/Thread/MessageList/Sending` |
 | | 空 | `Features/Inquiry/Thread/MessageList/Empty` |
-| 送信欄 | idle / pending / 項目エラー | `Features/Inquiry/Thread/Composer/{Default,Pending,Invalid}` |
+| 送信欄 | idle / 空のまま送ろうとした / pending / 項目エラー / 結果が定まらない | `Features/Inquiry/Thread/Composer/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
 | やり取りと送信 | success / empty / 長い本文 | `Features/Inquiry/Thread/Conversation/{Default,Empty,LongBody}` |
 | ローディング表示 | loading | `Features/Inquiry/Thread/Skeleton/Default` |
@@ -58,15 +58,16 @@
 | --- | --- |
 | `actions.ts` | 送信の Server Action |
 | `form-names.ts` | 送信が持つ項目の名前。**検証を持たない** —— 入力欄が要るのは綴りだけ |
+| `form-state.ts` | Server Action の戻り値の型と、送信欄と Action が共有する空の本文の文言 |
 | `parse-message-form.ts` | 送信された内容から本文と冪等キーを取り出す |
 | `connection-status.ts` | 購読の状態と回線の有無を、画面へ出す 1 語へマッピングする |
 | `facade/paths/` | この feature が持つルート。**他の feature が指すエントリポイント** |
 | `thread/page-content.tsx` | 履歴の取得と組み立て |
-| `thread/view.tsx` | 全画面の表示。コンテナの高さを確定させる |
+| `thread/view.tsx` | 全画面の表示。コンテナーの高さを確定させる |
 | `thread/ui/conversation/` | 購読・送信・畳み込みを束ねる client island |
 | `thread/ui/message-list/` | やり取りの並び。取得も並べ替えも持たない |
 | `thread/ui/composer/` | 送信欄。書きかけを持ち、成立したときだけ片付ける |
-| `thread/ui/skeleton/` | ローディング表示。出来上がりと同じ高さのコンテナを先に置く |
+| `thread/ui/skeleton/` | ローディング表示。出来上がりと同じ高さのコンテナーを先に置く |
 | `inquiry.fixture.ts` | story とテストが読む固定のやり取り |
 | `__mocks__/actions.ts` | カタログでの Server Action の差し替え |
 
@@ -84,18 +85,22 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `revalidatePath("/mypage/inquiry")` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
+| `sendInquiryMessageAction` | `actions.ts` | `ActionState<void, "body">` | `refresh()` | 項目の文言（本文。送る前の検証と契約の 422 のどちらでも）か、送信欄の隣の文言。認証が切れていたらこの画面を戻り先にログインへ `redirect` |
 
 **冪等キーを必ず載せます。** メッセージは自然キーを持たないため、応答が届かなかっただけの送信を
-送り直すと 2 通目になります。キーは成立するまで同じ値を使い、成立した時点で作り直します。
+送り直すと 2 通目になります。キーは結果が定まるまで同じ値を使い、応答が送信を確定させた時点で作り直します。
+契約の `409` は同じキーの投稿がまだ処理中であることしか表せません —— 投稿は追記だけで、最初の投稿が並行しても
+両方が成立します —— そのため会話の側がその意味（`in-progress`）を宣言します。結果が定まらないあいだは本文を
+`readOnly` にして理由を示し、送り直しが送った本文のまま飛ぶようにします。
 
 ## テスト観点
 
 - [ ] 取り直した canonical に入ったぶんが、購読で受け取った控えから落ちる（同じ 1 通が二重に並ばない）
 - [ ] 届いた順が前後しても、位置の昇順に並ぶ
-- [ ] まだ 1 通も無い利用者では購読を始めない（発券のエンドポイントを叩かない）
+- [ ] まだ 1 通も無いユーザーでは購読を始めない（発券のエンドポイントを叩かない）
 - [ ] 送信が成立すると書きかけが消え、通らなかったときは残る
-- [ ] 送信が成立すると冪等キーが変わり、通らなかったときは変わらない
+- [ ] 成立と結果の定まった拒否のあとは冪等キーが変わり、`409` を含む結果の定まらない失敗のあとは変わらない
+- [ ] 送信の結果が定まらないあいだは本文を書き換えられず、欄が理由を示す
 
 ## 運用
 

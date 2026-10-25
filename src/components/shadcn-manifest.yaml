@@ -55,7 +55,7 @@ components:
   # projects. Use the sonner component instead." で終了する。registry の `toast` は
   # new-york-v4 style に存在せず（404）、`@base-ui/react` は非ロックインを理由に不採用。
   # CLI が案内する代替がこの `sonner` だが、既存の `Toaster` と責務が重複するため copy-in せず、
-  # 不足していた機能だけを自前実装へ取り込んだ（vendor 追加なし）。
+  # 必要な機能は自前実装が持つ（vendor 追加なし）。
   toaster:
     kind: reimplemented
     layer: shell
@@ -578,9 +578,9 @@ components:
     as: display
     directory: src/components/design-system/display/keyboard-shortcut
     addedAt: 2026-08-04T08:25:00.000Z
-  # CLI で copy-in したが、その後に構造ごと書き換えた。公開名を `Item*` から `List` /
-  # `ListItem*` へ総入れ替えし、`div` だった root を `ul` / `li` にして上流の `ItemGroup` が
-  # 抱えていた `aria-required-children` 違反を構造的に解消し、`ListItemLink` を足している。
+  # 上流の `item` とは構造が異なる。公開名は `List` / `ListItem*`、root は `ul` / `li` で、
+  # 上流の `ItemGroup` が抱える `aria-required-children` 違反を構造で避け、`ListItemLink` を
+  # 足している。
   # 上流の変更をそのまま取り込める関係にないため、要追従ではなく参考として扱う。
   list:
     kind: reimplemented
@@ -1433,7 +1433,7 @@ components:
         commit: 04432835f91dbe0a3273f50ac829e0a377110e5f
         committedAt: 2025-10-03T17:05:22Z
   # registry の `empty` は非採用。画面状態は loading / empty / error / success を束ねる
-  # この component へ集約し、empty だけを別部品として重複させない（候補一覧の判断）。
+  # この component へ集約し、empty だけを別部品として重複させない。
   feedback-state:
     kind: reimplemented
     layer: app-starter
@@ -1447,7 +1447,7 @@ components:
         localPath: src/components/app-starter/feedback-state/feedback-state.tsx
         commit: f31ed81983653919dd4fe77aee4b4859f610f1dc
         committedAt: 2026-03-02T08:49:00Z
-  # ここから下は実体を持たない `not-adopted`。`as` を持たないため上の目的別の並びに入らない。
+  # 実体を持たない `not-adopted`。`as` を持たないため component 目録に載らない。
   async-operation-state:
     kind: not-adopted
     reason: >-
@@ -1465,3 +1465,9 @@ components:
     as: status
     directory: src/components/app-starter/connection-status
     addedAt: 2026-09-11T18:42:03.548Z
+  loading-announcer:
+    kind: original
+    layer: shell
+    as: feedback
+    directory: src/components/shell/loading-announcer
+    addedAt: 2026-10-21T17:51:09.152Z

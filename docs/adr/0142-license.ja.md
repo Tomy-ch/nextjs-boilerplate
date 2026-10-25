@@ -29,14 +29,14 @@ Accepted
 ### 2. OSS 寄与ポリシー = inbound = outbound(CLA なし)
 
 - コントリビューションは **inbound = outbound**(投稿された貢献は成果物と同じ **MIT** の条件でライセンスされる)をデフォルトとする。**別途の CLA / 著作権譲渡は要求しない**
-- 著作権はコントリビュータが保持し、MIT の許諾のもとにリポジトリへ提供される形とする。`LICENSE` の Copyright 表記(`Tomy-ch`)は原著作者表記であり、貢献者の著作権を否定しない
+- 著作権はコントリビューターが保持し、MIT の許諾のもとにリポジトリへ提供される形とする。`LICENSE` の Copyright 表記(`Tomy-ch`)は原著作者表記であり、貢献者の著作権を否定しない
 - DCO(Developer Certificate of Origin)署名は必須化しない(必要になれば別途 `CONTRIBUTING.md` で規定 = 用途依存の運用強化)
 
 ### 3. `package.json` の `private: true` と MIT の関係
 
 - `package.json` は **`"private": true`** であり、これは **npm レジストリへの誤 publish を防ぐガード**である。本リポジトリは npm 配布物ではなく、テンプレートとして複製して使うものであるため、publish を意図的に無効化している
-- `private: true`(npm 公開の抑止)と MIT(ソースの複製・改変・再配布の許諾)は**別レイヤの関心事**であり両立する。MIT は本リポのソースを複製・改変・再配布する権利を付与し、`private` は npm パッケージとしての配布経路を閉じるだけである
-- `package.json` は SPDX 準拠のツール可読性のため **`"license": "MIT"`** を持つ。`private: true` と併記して矛盾しない(上記のとおり別レイヤ)
+- `private: true`(npm 公開の抑止)と MIT(ソースの複製・改変・再配布の許諾)は**別レイヤーの関心事**であり両立する。MIT は本リポのソースを複製・改変・再配布する権利を付与し、`private` は npm パッケージとしての配布経路を閉じるだけである
+- `package.json` は SPDX 準拠のツール可読性のため **`"license": "MIT"`** を持つ。`private: true` と併記して矛盾しない(上記のとおり別レイヤー)
 
 ### 4. application 自体のライセンス
 
@@ -45,7 +45,7 @@ Accepted
 ## 禁止事項
 
 - ❌ CLA / 著作権譲渡を貢献の必須条件として持ち込むこと(inbound = outbound をデフォルトとする。強化は `CONTRIBUTING.md` で別途合意)（強制: 持たない —— 採らない決定。CLA・著作権譲渡の仕組みは置かれておらず、入れる変更は `CONTRIBUTING.md` と運用の追加として diff に現れる）
-- ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤ)（強制: 散文 —— **寄せられない**。フラグの解釈は読み手の理解の問題で、コードに現れない）
+- ❌ `private: true` を「MIT を無効化するもの」と解釈すること(publish ガードとライセンス許諾は別レイヤー)（強制: 散文 —— **寄せられない**。フラグの解釈は読み手の理解の問題で、コードに現れない）
 - ❌ `LICENSE` の Copyright 表記・許諾文を無断で除去・改変すること(Protected Documentation。[0152](0152-agents-md-policy.ja.md) / AGENTS.md)
 
 ## 関連 ADR

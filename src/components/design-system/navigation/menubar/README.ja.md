@@ -44,7 +44,7 @@
 | 可視の導線がすでにあり、右クリックから加速したい | [`ContextMenu`](../../overlay/context-menu/README.ja.md) |
 | サイトの階層を辿る遷移 | [`NavigationMenu`](../navigation-menu/README.ja.md) / [`Breadcrumb`](../breadcrumb/README.ja.md) |
 
-最後の行を守れないことが最も多い誤用です。menubar は操作の構造であり、遷移リンクを混ぜると「操作」と「遷移」の区別が利用者側から失われます。
+最後の行を守れないことが最も多い誤用です。menubar は操作の構造であり、遷移リンクを混ぜると「操作」と「遷移」の区別がユーザー側から失われます。
 
 一つの menu を開いている間、左右キーと hover で隣の menu へそのまま移れることがこの component の本体です。この横断的な移動が要らないなら、`DropdownMenu` を単独で置くほうが構造は単純になります。
 
@@ -74,4 +74,4 @@ a11y 自動検査では `region`（すべてのページ内容が landmark に�
 
 jsdom には Radix が位置計算に使う `ResizeObserver` と `scrollIntoView` が無いため、テスト側で stub しています。実装からその依存を取り除く方向では対処しません。
 
-枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook で実ブラウザ確認します。
+枠外の操作で閉じることはテストに含めていません。jsdom が `PointerEvent` を実装しておらず Radix の検出機構を再現できないためで、Storybook で実ブラウザー確認します。

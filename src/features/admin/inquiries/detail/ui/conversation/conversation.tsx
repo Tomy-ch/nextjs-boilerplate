@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useOptimistic, useState } from "react";
+import { useActionState, useCallback, useOptimistic } from "react";
 
 import {
   INQUIRY_FEED_STREAM_TICKET_PATH,
@@ -18,8 +18,8 @@ import {
   MessageScrollerContent,
   MessageScrollerViewport,
 } from "@/components/design-system/container/message-scroller/message-scroller";
+import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-import { newIdempotencyKey } from "@/model/idempotency-key";
 import { toConversationDays } from "@/model/inquiry/conversation";
 import type { InquiryHistory, InquiryId } from "@/model/inquiry/inquiry";
 
@@ -69,17 +69,7 @@ export function AdminInquiryConversation({
     NO_PENDING,
     (current, draft) => [...current, draft],
   );
-  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
-  const [seenState, setSeenState] = useState(state);
-
-  // 成立した回答は、次の 1 通と同じ鍵で飛ばない。通らなかった送信を送り直す間は同じ鍵のままにする。
-  if (seenState !== state) {
-    setSeenState(state);
-
-    if (state.status === "success") {
-      setIdempotencyKey(newIdempotencyKey());
-    }
-  }
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state);
 
   const reply = useCallback(
     (formData: FormData) => {
@@ -132,6 +122,7 @@ export function AdminInquiryConversation({
         action={reply}
         idempotencyKey={idempotencyKey}
         inquiryId={inquiryId}
+        outcomeOpen={outcomeOpen}
         pending={pending}
         state={state}
       />

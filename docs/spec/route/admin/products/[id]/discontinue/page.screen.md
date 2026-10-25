@@ -58,6 +58,9 @@ decimal keypad, not a numeric input — a numeric input would carry the value as
 **Errors appear when trying to open the confirmation, next to each field, not when leaving a field.** Leaving a half-typed field is
 not a mistake. **Changing a condition clears the previous messages.**
 
+**When the outcome of the last execution is not known, the conditions cannot be edited.** The values stay as sent, and a line at the
+top of the conditions says to discontinue again with the same conditions.
+
 ## Execution and Cancel
 
 **「廃番にする」 (discontinue) has the destructive appearance and does not send — it opens the confirmation.** 「キャンセル」 (cancel)
@@ -123,7 +126,7 @@ purchases in progress wraps its date and total under its code and status on narr
 
 Storybook's `Page/Admin/Products/Discontinue` holds: can be discontinued (with tablet and smartphone), in no cart, purchases in
 progress remain, not all of them listed, they cannot be read, the confirmation open, sending, unreadable conditions, conditions
-refused by the backend, refused because a purchase in progress appeared, temporarily not accepted, the result after success, already
+refused by the backend, refused because a purchase in progress appeared, temporarily not accepted, the conditions held after that, the result after success, already
 discontinued, and a product name of the contract's maximum length.
 
 ## Related

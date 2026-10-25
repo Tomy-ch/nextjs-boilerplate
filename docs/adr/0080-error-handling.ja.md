@@ -26,17 +26,17 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 
 | sentinel(分類) | 安定エラーコード | HTTP status | 系統 |
 | --- | --- | --- | --- |
-| InvalidArgument | `BAD_REQUEST` | 400 | ユーザ起因 |
-| Unauthenticated | `UNAUTHENTICATED` | 401 | ユーザ起因 |
-| PermissionDenied | `FORBIDDEN` | 403 | ユーザ起因 |
-| NotFound | `NOT_FOUND` | 404 | ユーザ起因 |
-| Conflict | `RESOURCE_CONFLICT` | 409 | ユーザ起因 |
-| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | ユーザ起因 |
-| UriTooLong | `URI_TOO_LONG` | 414 | ユーザ起因 |
-| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | ユーザ起因 |
-| Validation | `VALIDATION_FAILED` | 422 | ユーザ起因 |
-| TooManyRequests | `TOO_MANY_REQUESTS` | 429 | ユーザ起因 |
-| Canceled | `CANCELED` | 499 | ユーザ起因 |
+| InvalidArgument | `BAD_REQUEST` | 400 | ユーザー起因 |
+| Unauthenticated | `UNAUTHENTICATED` | 401 | ユーザー起因 |
+| PermissionDenied | `FORBIDDEN` | 403 | ユーザー起因 |
+| NotFound | `NOT_FOUND` | 404 | ユーザー起因 |
+| Conflict | `RESOURCE_CONFLICT` | 409 | ユーザー起因 |
+| PayloadTooLarge | `PAYLOAD_TOO_LARGE` | 413 | ユーザー起因 |
+| UriTooLong | `URI_TOO_LONG` | 414 | ユーザー起因 |
+| UnsupportedMediaType | `UNSUPPORTED_MEDIA_TYPE` | 415 | ユーザー起因 |
+| Validation | `VALIDATION_FAILED` | 422 | ユーザー起因 |
+| TooManyRequests | `TOO_MANY_REQUESTS` | 429 | ユーザー起因 |
+| Canceled | `CANCELED` | 499 | ユーザー起因 |
 | Unavailable | `SERVICE_UNAVAILABLE` | 503 | システム起因(リトライ含意) |
 | Unimplemented | `NOT_IMPLEMENTED` | 501 | システム起因 |
 | Internal | `INTERNAL` | 500 | システム起因 |
@@ -46,16 +46,16 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 - **worker 向けの分類(再試行可能 / 恒久 / 致命)は採らない**。メッセージング worker 固有の軸であり、プレゼンテーションレイヤーは HTTP taxonomy のみを持つ
 - **エラーコード語彙はこの repo が持つ**: 上表のコードは分類ごとに `errors` カタログが生成する**この repo の語彙**であり、**wire へ出ることは無い**(route が返す失敗は文言だけを載せる)。境界も接続先の `code` を読まない(下記 2)。**契約は `ErrorResponse.code` の値域を宣言していない**(`type: string`)ため、生成物から突き合わせる手段も無い。したがってバックエンドの綴りへ機械的に寄せることはせず、**分類の意味に対して正しい名前を選ぶ**(401 は認証が成立していないので `UNAUTHENTICATED`、403 は認可の拒否なので `FORBIDDEN`)。エラーコードは wire contract の値ではないため、[0028](0028-naming-convention.ja.md) の「命名の権威をバックエンドに置かない」がそのまま効く。人がログを突き合わせるときの対応は HTTP status で取れる —— 一次キーが status であることが、綴りの一致より確実な対応づけになる。フロント内部で追加の分類ラベルが要る場合も、この語彙と競合させない
 - **`Canceled`(status 499・非標準)を独立分類として採る**。fetch の中断([0071](0071-bff-api-integration.ja.md) の dual timeout / `AbortSignal`)は失敗ではなく打ち切りであり、システム起因の失敗へ畳むと再試行の対象になる
-- **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。リクエストの本体が大きいのと、条件を載せた URL が長いのとでは、利用者が減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
+- **`UriTooLong`(414)を `PayloadTooLarge`(413)と分けて持つ**。リクエストの本体が大きいのと、条件を載せた URL が長いのとでは、ユーザーが減らすべきものが違う。畳むと「送信するデータが大きすぎます」しか出せず、条件を減らせばよいことが伝わらない
 
 ### 2. 境界での HTTP status 正規化(1 回のみ)
 
-- バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザ向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.ja.md) の「生 status を errors へ正規化」の詳細 = 本 ADR)
+- バックエンド応答の生 HTTP status → sentinel 分類 + 安定エラーコード + ユーザー向けメッセージ への変換は、**`adapters` 境界で 1 回だけ**行う([0071](0071-bff-api-integration.ja.md) の「生 status を errors へ正規化」の詳細 = 本 ADR)
 - **生 HTTP status・生エラーを内層 / UI へ漏らさない**([0071](0071-bff-api-integration.ja.md) と一致)。未知エラーは `Internal`(500)へ矯正する
-- ユーザ向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は分類ごとにカタログが持つ(本 ADR は分類とコードの対応表を定める)
+- ユーザー向けメッセージは日本語(AGENTS.md Language Rules)。メッセージ本文は分類ごとにカタログが持つ(本 ADR は分類とコードの対応表を定める)
 - **失敗した応答の本文から読むのは `details` だけ。** 契約が詳細識別子を宣言した status（`ErrorResponseWithDetails`
   を宣言したエンドポイント）に限って本文を読み、`ErrorMeta.details` へ載せる。項目名を表示名へ写すのは feature / form の側。
-  **`message` は読まない** —— 接続先が選んだ文言をそのまま出すことになり、こちらが選んでいない文字列が利用者へ
+  **`message` は読まない** —— 接続先が選んだ文言をそのまま出すことになり、こちらが選んでいない文字列がユーザーへ
   出る（文言は分類ごとにカタログが持つ）。**`code` も読まない** —— `ErrorResponse.code` に値域の宣言が無いため、
   綴りで分岐しても契約を再生成して食い違いを検出できない。分類の一次キーは HTTP status のままとする
 - **失敗応答の追加情報として境界が持つのは `requestId` と `details` の 2 つ**とする。`traceId` / `correlationId`、
@@ -77,8 +77,8 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 ### 3. App Router のエラー特殊ファイル階層
 
 - `error.tsx`(セグメント境界の recovery UI)/ `global-error.tsx`(root layout のエラー)/ `not-found.tsx`(404)は、**正規化済みのエラーコード / メッセージを表示するだけ**の薄い境界とする。生エラー・スタックを画面へ漏らさない
-- **production の redact 挙動に注意**(Next.js 公式 `error.js` file convention): production では **Server Component から throw されたエラーの `message` は redact され**、client の error boundary(`error.tsx`)には**汎用メッセージ + `error.digest`(サーバログ突合用の自動生成ハッシュ)のみ**が伝播する(Client Component 由来の throw は原文メッセージが渡る)。したがって「正規化済みメッセージの表示」を **throw 経路に頼らない**こと。ユーザ向けメッセージは次のいずれかで解決する:
-  - (a) **期待エラー(主にユーザ起因 4xx 系)**: throw せず **Server Action の戻り値(ActionState / `useActionState`)として値で渡す**(公式ガイド「expected errors は return value でモデル化」。[0040](0040-routing-rendering-strategy.ja.md) の Server Actions 採用と整合)
+- **production の redact 挙動に注意**(Next.js 公式 `error.js` file convention): production では **Server Component から throw されたエラーの `message` は redact され**、client の error boundary(`error.tsx`)には**汎用メッセージ + `error.digest`(サーバーログ突合用の自動生成ハッシュ)のみ**が伝播する(Client Component 由来の throw は原文メッセージが渡る)。したがって「正規化済みメッセージの表示」を **throw 経路に頼らない**こと。ユーザー向けメッセージは次のいずれかで解決する:
+  - (a) **期待エラー(主にユーザー起因 4xx 系)**: throw せず **Server Action の戻り値(ActionState / `useActionState`)として値で渡す**(公式ガイド「expected errors は return value でモデル化」。[0040](0040-routing-rendering-strategy.ja.md) の Server Actions 採用と整合)
   - (b) **予期しないエラー(システム起因 5xx 系)**: `error.tsx` は汎用文言 + `digest` の表示にとどめ、`digest` と境界ログ(下記 6)の突合で原因を解決する
 
   いずれも本 ADR の分類(上記 1 の系統列)・境界正規化(上記 2)と両立する。どの feature がどちらを使うかは feature ごとに決める
@@ -93,7 +93,7 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 - **`<Suspense>` 境界をどこへ置くか(粒度)は [0040](0040-routing-rendering-strategy.ja.md)「境界の粒度」が持つ。** ここで定めるのは、置かれた境界の fallback が業務ロジックを持たない薄い表示境界であることまでである
 - `loading.tsx` も `app/` 配下の App Router 特殊ファイル([0027](0027-directory-structure.ja.md) / [0028](0028-naming-convention.ja.md))である
 - **一次資源が見つからないことは 200 で配信される。** [0041](0041-cache-components-decision.ja.md) により
-  `Cache Components` が有効な間、動的な route は必ずシェルから流れる。本文より先にヘッダが出るため、その後で
+  `Cache Components` が有効な間、動的な route は必ずシェルから流れる。本文より先にヘッダーが出るため、その後で
   `notFound()` に達しても status はもう 200 で、存在しない 1 件を指す URL が 200 として配信される。
   **これは route 側の書き方では解けない** —— `loading.tsx` を置かなくても、`<Suspense>` を使わなくても、
   `export const instant = false` を名乗っても変わらない。Next 自身が案内する回避は `proxy` での事前確認だが、
@@ -118,7 +118,7 @@ App Router の `error.tsx` / `not-found.tsx` / `global-error.tsx` の責務・Er
 ### 6. ログ出力タイミング
 
 - エラーのログは **境界で 1 回**(`adapters` の正規化点 / route の error 境界)出力し、二重ログを抑止する
-- **5xx(システム起因)= error レベル / 4xx(ユーザ起因)= warn レベル**。ログの具体(スキーマ・出力先・trace 相関)は **[0081](0081-observability-logging.ja.md)** が正
+- **5xx(システム起因)= error レベル / 4xx(ユーザー起因)= warn レベル**。ログの具体(スキーマ・出力先・trace 相関)は **[0081](0081-observability-logging.ja.md)** が正
 
 ### 境界の粒度
 

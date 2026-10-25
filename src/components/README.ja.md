@@ -49,6 +49,8 @@
 - class 名の条件分岐と Tailwind utility の競合解消には [`cn.ts`](./cn.ts) を使う。`clsx` と `tailwind-merge` を直接利用する実装は増やさない
 - アイコンは [`icon.ts`](./icon.ts) から取る。供給元を直接 import する実装は `components` の内側にも置かない。差し替えを 1 ファイルへ閉じるためで、`eslint.config.ts` の `no-restricted-imports` が締め出す。**この面は名前付き再輸出に限る** —— 名前から component を引く表を置くと、使っていないアイコンまでバンドルへ乗る
 - 「一度満たしたら以後 mount を維持する」判断には [`use-latched.ts`](./use-latched.ts) を使う。器が閉じるたびに中身を外すと、**外すと復元できないもの**（開いた時点の内容からしか組み立てられない編集面、送信に載せる必要がある入力欄）が作り直しになる。レイヤーをまたいで要るためレイヤーの下ではなくここに置く
+- 冪等キーを送るフォームは、キーを [`use-submission-key.ts`](./use-submission-key.ts) で持つ。最初のキーを固定し、応答が送信を確定させたら作り直し、結果がまだ定まっていないかを返すので、入力を送ったまま保てる。作り直すかを決めるのは `model/idempotency-key.ts` の分類で、hook はキーとその分類を 1 つの `state` に結ぶだけである。複数の feature のフォームが要るため、レイヤーの下ではなくここに置く
+- 空のまま送らせない必須の欄には、送信の操作を押せなくするのではなく [`use-empty-guard.ts`](./use-empty-guard.ts) を使う。押せない操作には focus が当たらず、キーボードや支援技術のユーザーは理由に辿り着けない。hook は押された時点で送信を止め、欄に紐づける文言を返す。複数の feature のフォームが要るため、レイヤーの下ではなくここに置く
 - 色・余白などは [`tokens/`](../../tokens/README.ja.md) の semantic token を使う。primitive token の直接利用はしない
 - shadcn/ui の追加は `pnpm add:ui <component> --as=<見出し> [--layer=<層>] [-- <shadcn add のオプション>]` を使う。一度に一コンポーネントだけをレイヤーと見出しに応じた場所へ copy-in し、成功時に [`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へレイヤー・見出し・レジストリ・追加日時・CLI バージョンを記録するため、`pnpm exec shadcn add` を直接実行しない。`--as` は必須、`--layer` のデフォルトは `design-system` で、いずれも値が不正なら `shadcn add` を走らせる前に弾かれる
 - 上流に相当する item が無い自前の component は `pnpm gen component <name> --as=<見出し> [--layer=<層>]` で置く。配置オプションの語彙とデフォルトは `add:ui` と同じで、実装・story・test と `component-template.md` のコピーの README を同じディレクトリへ出し、[`shadcn-manifest.yaml`](./shadcn-manifest.yaml) へ `kind: original` の行を記録する。README を持つディレクトリは台帳に行が無いと `pnpm check:ui` が落とすため、テンプレートと台帳の行は一度に出る
@@ -225,6 +227,7 @@ biome の a11y ルールは要素の形だけを見るため、意味論が正�
 ### 本文の上へ重なる面
 
 - **Portal で本文の上へ出る面（通知、menu、dialog）は不透明な地を持つ。** 文脈内の `Alert` が使う `bg-warning/10` のような tint は、下地が本文の面であることを前提にしている。同じ variant の class を重なる面へ流用するときは、下地を面の側で与える
+- **modal が閉じたら、フォーカスはそれを呼び出した要素へ戻る**（[WAI-ARIA APG Modal Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/)、WCAG 2.4.3）。Radix がフォーカスを戻す先はその component 自身の `Trigger` だけなので、trigger を持たない state から開いた modal（たとえば行の menu から開いたもの）は、閉じるとフォーカスを document body に残す。そこで `DialogContent`・`SheetContent`・`AlertDialogContent` は開いた時点でフォーカスを持っていた要素を覚えておき、どう閉じても（閉じる操作、Escape、結果が届いたあとに呼び出し元が閉じる場合）そこへフォーカスを戻す。その要素がその時点で document から消えていれば、開いた時点での最も近い `tabindex` を持つ祖先へ戻す。結果とともに操作が消えた行であれば table のスクロール領域であり、読み手の位置が保たれる。どちらも無い場合と、開いた時点でフォーカスが document body にあった場合は Radix のデフォルトに従う。呼び出し元の `onOpenAutoFocus` / `onCloseAutoFocus` は先に実行され、呼び出し元の `onCloseAutoFocus` での `preventDefault()` が優先される。実装は [`overlay/use-focus-return.ts`](./design-system/overlay/use-focus-return.ts) の 1 つだけである
 - 脇に領域を並べるバンドでは `main` が flex の項目になり、デフォルトでは中身の最小幅より狭くなれない。段組みや長い語が最小幅を押し上げると、`main` が親をはみ出して画面全体に横スクロールが出る。中身の側では防げないので、レイアウトシェルが `min-w-0` で縮む
 
 ## 配置・命名
@@ -243,7 +246,7 @@ Next.js と React は、`components/` 配下のディレクトリ構造・ディ
 - 公開 API でなくても、複数ファイルが同じ UI 概念の値を使う場合は owner を一つ決めて定義し、各ファイルから参照する。native HTML 要素名など JSX／型構文そのものを表す値は直接記述してよい
 - レイヤー・目的・コンポーネント名は小文字 kebab-case にする。これは全ソースの kebab-case 規約と揃えるためであり、Next.js / React の強制ではない
 - `foundation` は個々の component ではなく、UI を横断して支える基盤の目的である。`typeset` の組版と `scrollbar` の scrollbar 表示が属し、いずれも `globals.css` から import する。**見える要素をレンダリングしない**のが共通点で、CSS だけのものと、属性を運ぶだけでレンダリングを返さない client island（`surface` のブリッジ）がある。CSS の効き方は 2 通りある。`scrollbar` のように継承プロパティを `:root` へ一度宣言して指定なしに効くものと、`typeset` のように `.typeset` を付けた範囲だけに効く opt-in のものがある。どちらかを README の冒頭で明示する
-- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が引く）、レイヤーをまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
+- 複数の component が共有する hook は、**要る範囲の一番浅い共通の場所**へ置く。同じ目的の中で共有するものは目的ディレクトリの直下（`overlay/use-overlay-history.ts` を `dialog` / `sheet` / `drawer` / `alert-dialog` が、`overlay/use-focus-return.ts` を `dialog` / `sheet` / `alert-dialog` が引く）、レイヤーをまたぐものは `components/` 直下（`use-latched.ts`）。README を持たないので component としては数えられない
 
 ### レイヤー
 
@@ -270,7 +273,7 @@ Next.js と React は、`components/` 配下のディレクトリ構造・ディ
 
 | ディレクトリ | 受け持つもの | 置かないもの |
 | --- | --- | --- |
-| `action` | 利用者の操作の起点そのもの。押す・切り替えるという行為だけを持つ | 何を起こすかの決定。呼び出し元が callback で渡す |
+| `action` | ユーザーの操作の起点そのもの。押す・切り替えるという行為だけを持つ | 何を起こすかの決定。呼び出し元が callback で渡す |
 | `form` | 値を受け取り、form の値として送信するコンポーネント | 検証ルール・送信先・送信結果の解釈 |
 | `overlay` | trigger から本文の上へ面を開くコンポーネント。開閉・focus・Escape を持つ | 面の中身。呼び出し元が children で渡す |
 | `navigation` | 移動先を示すコンポーネントと、移動そのものを扱うコンポーネント | 移動先 URL の組み立て。呼び出し元が渡す |
@@ -318,7 +321,9 @@ components/
 ├── scripts/
 ├── cn.ts
 ├── icon.ts
+├── use-empty-guard.ts
 ├── use-latched.ts
+├── use-submission-key.ts
 └── shadcn-manifest.yaml
 ```
 
@@ -402,7 +407,7 @@ UI を横断して支える基盤。見える要素をレンダリングしな�
 
 | component | 概要 |
 | --- | --- |
-| [`button`](design-system/action/button/README.ja.md) | 利用者の操作を開始する |
+| [`button`](design-system/action/button/README.ja.md) | ユーザーの操作を開始する |
 | [`button-group`](design-system/action/button-group/README.ja.md) | 同じ対象への複数の操作を、隣接した一続きの帯としてまとめる |
 | [`copy-button`](design-system/action/copy-button/README.ja.md) | 値を clipboard へコピーする |
 | [`print-button`](design-system/action/print-button/README.ja.md) | 表示中の文書を印刷する |
@@ -423,7 +428,7 @@ UI を横断して支える基盤。見える要素をレンダリングしな�
 | [`field`](design-system/form/field/README.ja.md) | label・入力・説明・エラーを一つの form field として構成する |
 | [`input`](design-system/form/input/README.ja.md) | 単一行の native `input` を表示・送信する |
 | [`input-group`](design-system/form/input-group/README.ja.md) | 単位記号・アイコン・補助操作を入力欄と一続きの枠に収める |
-| [`label`](design-system/form/label/README.ja.md) | form control の項目名を利用者へ伝える |
+| [`label`](design-system/form/label/README.ja.md) | form control の項目名をユーザーへ伝える |
 | [`multi-select-client`](design-system/form/multi-select-client/README.ja.md) | 候補を畳んだまま、checkbox で複数の値を同時に選ぶ |
 | [`radio-group-client`](design-system/form/radio-group-client/README.ja.md) | native radio では満たせない custom interaction の client island |
 | [`requirement-badge`](design-system/form/requirement-badge/README.ja.md) | 入力項目が必須か任意かを label の隣で示す |
@@ -480,13 +485,13 @@ trigger から本文の上へ面を開くコンポーネント。
 | --- | --- |
 | [`activity-timeline`](design-system/display/activity-timeline/README.ja.md) | 起きた出来事を時刻順に並べて表示する |
 | [`amount-with-reference`](design-system/display/amount-with-reference/README.ja.md) | 金額と、切り替えで現れる別通貨の参考換算額を表示する |
-| [`avatar`](design-system/display/avatar/README.ja.md) | 利用者や組織を小さな円形で識別する |
+| [`avatar`](design-system/display/avatar/README.ja.md) | ユーザーや組織を小さな円形で識別する |
 | [`badge`](design-system/display/badge/README.ja.md) | 短い分類や状態を視覚的に補助する |
 | [`bubble`](design-system/display/bubble/README.ja.md) | 発話や通知の 1 かたまりを吹き出しとして表示する。`Message` の中では送信者の向きへ追従する |
 | [`card`](design-system/display/card/README.ja.md) | 関連する情報や補助操作を一つの視覚的なまとまりにする |
 | [`chart`](design-system/display/chart/README.ja.md) | 集計値の推移や内訳を、系列ごとの色と形で表示する |
 | [`json-ld`](design-system/display/json-ld/README.ja.md) | 画面が持つ構造化データを `application/ld+json` の script として埋め込む。読み手は検索エンジンで、見える要素を持たない |
-| [`kbd`](design-system/display/kbd/README.ja.md) | 利用者が押すキーを、キーボード入力として表示する |
+| [`kbd`](design-system/display/kbd/README.ja.md) | ユーザーが押すキーを、キーボード入力として表示する |
 | [`key-value-list`](design-system/display/key-value-list/README.ja.md) | 項目名と値の対を並べて表示する |
 | [`keyboard-shortcut`](design-system/display/keyboard-shortcut/README.ja.md) | キーボードで実行できる操作を、説明とキーの対として案内する |
 | [`list`](design-system/display/list/README.ja.md) | 同型の行を縦に並べ、アイコン・見出し・説明・補助操作を一貫した構造で表示する |
@@ -495,7 +500,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`message`](design-system/display/message/README.ja.md) | 送信者と本文を持つ 1 件のメッセージを表示する |
 | [`separator`](design-system/display/separator/README.ja.md) | 近接する内容のまとまりを区切る |
 | [`stepper`](design-system/display/stepper/README.ja.md) | 既知で有限の段階を定義順に並べ、現在位置とまだ到達していない先を示す |
-| [`table`](design-system/display/table/README.ja.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
+| [`table`](design-system/display/table/README.ja.md) | 列と行の関係がユーザーの理解に必要な、構造化データを表示する |
 | [`text-highlight`](design-system/display/text-highlight/README.ja.md) | 検索した語が本文のどこに当たったかを示す |
 
 #### status
@@ -522,7 +527,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`collapsible`](design-system/container/collapsible/README.ja.md) | 一つの補助内容を、必要なときだけ開いて確認する |
 | [`direction`](design-system/container/direction/README.ja.md) | 配下の component へ文字送りの向きを配る Provider |
 | [`message-scroller`](design-system/container/message-scroller/README.ja.md) | 末尾に追加され続ける一覧の scroll 位置を扱い、末尾にいる間だけ新着へ追従する |
-| [`resizable`](design-system/container/resizable/README.ja.md) | 隣り合う表示領域の境界を掴んで動かし、配分を利用者が決められるようにする |
+| [`resizable`](design-system/container/resizable/README.ja.md) | 隣り合う表示領域の境界を掴んで動かし、配分をユーザーが決められるようにする |
 | [`scroll-area`](design-system/container/scroll-area/README.ja.md) | 内容の一部だけを局所的にスクロールさせる |
 
 #### layout
@@ -552,7 +557,7 @@ trigger から本文の上へ面を開くコンポーネント。
 | [`filter-bar`](patterns/filter-bar/README.ja.md) | 一覧の絞り込み操作と、いま効いている条件をまとめて表示する |
 | [`form-field`](patterns/form-field/README.ja.md) | 項目名・必須のマーカー・入力欄・補足・誤りを、入力欄の種類によらず同じ並びで組む |
 | [`selection-toolbar`](patterns/selection-toolbar/README.ja.md) | 一覧で選んだ件数と、その選択に対して行える操作をまとめる |
-| [`table`](patterns/table/README.ja.md) | 列と行の関係が利用者の理解に必要な、構造化データを表示する |
+| [`table`](patterns/table/README.ja.md) | 列と行の関係がユーザーの理解に必要な、構造化データを表示する |
 | [`table-view-options`](patterns/table-view-options/README.ja.md) | 表の表示する列・表示密度・固定列・画面幅ごとの出し分けをまとめて設定する |
 | [`editable-data`](patterns/table/editable-data/README.ja.md) | 編集 cell を含む列定義から、native form と table を組み立てる |
 | [`row-actions`](patterns/table/row-actions/README.ja.md) | 行ごとに繰り返す操作 menu を、行操作の定義から組み立てる |
@@ -565,11 +570,12 @@ mount 位置がコンポーネント側で決まっているコンポーネン�
 
 | component | 概要 |
 | --- | --- |
-| [`app-shell`](shell/app-shell/README.ja.md) | 利用者向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
+| [`app-shell`](shell/app-shell/README.ja.md) | ユーザー向け画面の外枠。header・導線・skip link・`main`・footer を同じ位置に置く |
 | [`admin-shell`](shell/admin-shell/README.ja.md) | 管理画面の外枠。脇の導線一覧・header・skip link・`main` を同じ位置に置く |
 | [`content-container`](shell/content-container/README.ja.md) | `main` の内側で、ページ本文の読み幅と左右余白を揃える |
 | [`page-header`](shell/page-header/README.ja.md) | ページ先頭で、そのページの名前・説明・主要な操作を示す |
 | [`toaster`](shell/toaster/README.ja.md) | redirect しない mutation の成功・失敗を一時的な通知として表示する |
+| [`loading-announcer`](shell/loading-announcer/README.ja.md) | 画面のどこかが読み込み中であることと、読み込み終えたことを、ルートの領域 1 つから支援技術へ告げる |
 | [`pull-to-refresh`](shell/pull-to-refresh/README.ja.md) | 画面の上端から引き下げて、いまの route を取り直す。touch のある環境でだけ働く |
 | [`consent-banner`](shell/consent-banner/README.ja.md) | 任意の用途に cookie を使ってよいかを、選び終えるまで下端で尋ね続ける |
 

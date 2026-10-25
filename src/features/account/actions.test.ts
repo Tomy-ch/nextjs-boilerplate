@@ -128,6 +128,7 @@ describe("updateProfileAction", () => {
       fieldErrors: {
         email: ["メールアドレスは受け付けられませんでした。入力し直してください。"],
       },
+      kind: ErrorKind.VALIDATION,
     });
   });
 
@@ -146,6 +147,16 @@ describe("updateProfileAction", () => {
     await expect(updateProfileAction(IDLE_PROFILE, formDataOf())).resolves.toMatchObject({
       formError: "問題が発生しました。時間をおいて再試行してください。",
     });
+  });
+
+  it("認証が切れていたら、編集画面へ戻る入り直しへ送り、再検証を要求しない", async () => {
+    updateMyProfile.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(updateProfileAction(IDLE_PROFILE, formDataOf())).rejects.toThrow(
+      "NEXT_REDIRECT:/login?returnUrl=%2Fmypage%2Fedit",
+    );
+    expect(redirect).toHaveBeenCalledOnce();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("更新が失敗したとき再検証を要求しない", async () => {
@@ -219,6 +230,7 @@ describe("registerAction", () => {
       status: "error",
       formError:
         "この内容では登録できませんでした。すでに登録が済んでいるか、他の登録と重複しています。",
+      kind: ErrorKind.CONFLICT,
     });
   });
 
@@ -232,8 +244,18 @@ describe("registerAction", () => {
       fieldErrors: {
         postalCode: ["郵便番号は受け付けられませんでした。入力し直してください。"],
       },
+      kind: ErrorKind.VALIDATION,
     });
     expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("認証が切れていたら、戻り先を保ったまま登録画面へ戻る入り直しへ送る", async () => {
+    registerUser.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(
+      registerAction(IDLE_PROFILE, registrationFormDataOf({ [RETURN_URL_FIELD]: "/checkout" })),
+    ).rejects.toThrow("NEXT_REDIRECT:/login?returnUrl=%2Fonboarding%3FreturnUrl%3D%252Fcheckout");
+    expect(redirect).toHaveBeenCalledOnce();
   });
 
   it("競合以外の失敗は分類のまま伝える", async () => {
@@ -241,7 +263,7 @@ describe("registerAction", () => {
 
     const state = await registerAction(IDLE_PROFILE, registrationFormDataOf());
 
-    expect(state).toMatchObject({ status: "error" });
+    expect(state).toMatchObject({ status: "error", kind: ErrorKind.UNAVAILABLE });
     expect(redirect).not.toHaveBeenCalled();
   });
 });
@@ -277,6 +299,7 @@ describe("withdrawAction", () => {
       formError:
         "進行中の購入が残っているため退会できません。購入が完了またはキャンセルされてから、もう一度お試しください。",
       fieldErrors: undefined,
+      kind: ErrorKind.CONFLICT,
     });
   });
 
@@ -285,6 +308,7 @@ describe("withdrawAction", () => {
 
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).resolves.toMatchObject({
       formError: "現在サービスを利用できません。しばらくしてから再試行してください。",
+      kind: ErrorKind.UNAVAILABLE,
     });
   });
 
@@ -294,6 +318,15 @@ describe("withdrawAction", () => {
     await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).resolves.toMatchObject({
       formError: "問題が発生しました。時間をおいて再試行してください。",
     });
+  });
+
+  it("認証が切れていたら、マイページへ戻る入り直しへ送る", async () => {
+    withdrawMe.mockRejectedValue(createAppError(ErrorKind.UNAUTHENTICATED));
+
+    await expect(withdrawAction(IDLE_WITHDRAW, new FormData())).rejects.toThrow(
+      "NEXT_REDIRECT:/login?returnUrl=%2Fmypage",
+    );
+    expect(redirect).toHaveBeenCalledOnce();
   });
 
   it("失敗したとき画面を移さない", async () => {

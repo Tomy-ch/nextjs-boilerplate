@@ -20,7 +20,7 @@
 - 購読そのもの（接続・整列・張り直しは `adapters/client/stream` の領分）
 - 並び順と絞り込みの軸（契約が決める。更新の新しい順しか無い）
 - 役割の断言（回答の Server Action は app レイヤーにあり、そこで断言する）
-- 利用者側の問い合わせ画面（`inquiry` の領分。feature 間で直接参照しません）
+- ユーザー側の問い合わせ画面（`inquiry` の領分。feature 間で直接参照しません）
 
 ## Route と契約
 
@@ -37,7 +37,7 @@
 | --- | --- |
 | `GetInquiries` | 一覧の取得。更新の新しい順で本文を含まない |
 | `GetInquiriesDetailMessages` | 1 件のやり取りの取得 |
-| `PostInquiriesDetailMessages` | 回答の送信。送り手の種別はサーバが決める |
+| `PostInquiriesDetailMessages` | 回答の送信。送り手の種別はサーバーが決める |
 | `PostInquiriesFeedStreamTicket` | 更新フィードを購読するエンドポイントの発券 |
 
 **会話そのものを購読するエンドポイントはありません。** 契約が持つのは「自分の問い合わせ」と「更新フィード」の
@@ -58,7 +58,7 @@
 | 一覧の購読 | 待機 | `Features/Admin/Inquiries/List/FeedWatch/Default` |
 | 一覧のローディング表示 | loading | `Features/Admin/Inquiries/List/Skeleton/Default` |
 | やり取りと回答 | success | `Features/Admin/Inquiries/Detail/Conversation/Default` |
-| 回答欄 | idle / pending / 項目エラー | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,Pending,Invalid}` |
+| 回答欄 | idle / 空のまま送ろうとした / pending / 項目エラー / 結果が定まらない | `Features/Admin/Inquiries/Detail/ReplyForm/{Default,EmptySubmitted,Pending,Invalid,OutcomeOpen}` |
 | 対応のローディング表示 | loading | `Features/Admin/Inquiries/Detail/Skeleton/Default` |
 | 階層 | 一覧の下 | `Features/Admin/Inquiries/BreadcrumbTrail/OneLevel` |
 | 受信の状態 | 7 種 | `Status/ConnectionStatus/*` |
@@ -103,10 +103,10 @@
 
 | Action | 置き場 | 戻り値 | 成功後 | 失敗時 |
 | --- | --- | --- | --- | --- |
-| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | 開いている 1 件だけ `revalidatePath` | 項目の文言（本文）か、回答欄の隣の文言 |
+| `replyInquiryAction` | **`src/app/admin/inquiries/actions.ts`** | `AdminInquiryReplyState` | 開いている 1 件だけ `refresh()` | 項目の文言（本文）か、回答欄の隣の文言 |
 
 **回答先は画面が送信に載せます。** 運営は複数の問い合わせを行き来するため、「いま開いているもの」
-をサーバ側で決められません。
+をサーバー側で決められません。
 
 **したがって置き場は app レイヤーです。** 任意の問い合わせを名指しできる以上、役割の断言が要り、
 断言に使う `adapters/server/auth` へ触れてよいのは app だけです。**この画面は送信先を自分で
@@ -131,13 +131,13 @@
 - **開始位置を渡さずに購読します。** 一覧の取得はフィードの位置を返さないため、発券が束ねた位置
   から始まります。取りこぼした更新は次の更新で取り返されます
 - **右へ寄るのは運営の発言です。** 同じやり取りでも、誰が読んでいるかで「自分」が入れ替わります。
-  利用者側とコンポーネントを共有していないのはこのためで、共有すると向きの判断が引数として両方へ漏れます
-- **誰の問い合わせかを出せません。** 契約が返すやり取りは送り手の種別しか持たず、利用者の識別子は
+  ユーザー側とコンポーネントを共有していないのはこのためで、共有すると向きの判断が引数として両方へ漏れます
+- **誰の問い合わせかを出せません。** 契約が返すやり取りは送り手の種別しか持たず、ユーザーの識別子は
   一覧の行だけが持ちます
 
 ## mock のデプロイでは購読しません
 
-理由は利用者側（[`../../inquiry/README.md`](../../inquiry/README.ja.md)）と同じです。一覧も対応も、
+理由はユーザー側（[`../../inquiry/README.md`](../../inquiry/README.ja.md)）と同じです。一覧も対応も、
 購読が止まった姿のまま表示と送信が動きます。
 
 ## 関連する ADR

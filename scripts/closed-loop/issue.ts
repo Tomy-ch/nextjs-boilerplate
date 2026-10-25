@@ -112,8 +112,8 @@ function readingLines(summary: Summary | undefined, gap: ReadingGap): readonly s
  * @param gap - 読解が無いときの理由
  *
  * @remarks
- * **読めなかったことを「所見なし」に倒しません**
- * 。読解の節が空なのか、
+ * **読めなかったことを「所見なし」に倒しません**。
+ * 読解の節が空なのか、
  * そもそも読んでいないのかは本文から分かる必要があります。
  *
  * **記録の抜粋は載せません**。

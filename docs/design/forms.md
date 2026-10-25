@@ -71,6 +71,8 @@ Because of this property, input takes one of three shapes.
 | **react-hook-form** | rhf's internal state and the DOM. `register` is uncontrolled | Multiple fields + validation + error display |
 | **Holding every field as a string in `useState`** | The screen. Input fields are controlled fields that receive `value` | When judgments are written as functions rather than zod, and you do not want to rebuild the fields on every submission |
 
+**A value the screen holds reaches the submission only after hydration.** A hidden field fed from `useState` carries nothing before the client takes over, and nothing at all where JavaScript does not run, so a choice made in that window is silently dropped from what is sent. Disable such a control until hydration, and say in `<noscript>` what can still be submitted without it.
+
 **rhf does not replace the submission mechanism.** It does not call `handleSubmit`; `register` wires the fields, and the `FormData` flows to `<form action>` unchanged. All rhf holds is validation during input. Even where JavaScript does not run, the form is submitted and the same schema validates it on the Server Action side.
 
 When using rhf, the wiring is as follows.
@@ -135,7 +137,7 @@ When to use which means belongs to [ADR 0063](../adr/0063-mutation-result-notifi
 
 **An action that ends in `redirect()` "does not return".** It throws on success, so there is no branch that returns `success`. That screen's `ActionState` therefore holds no success value and has no success display. In tests, the throw on success is placed in the normal cases ([`docs/testing-conventions.md`](../testing-conventions.md#what-goes-where)). When confirming from inside an overlay, use `RedirectType.replace` — because otherwise the one history entry the overlay pushed remains as the back destination.
 
-**An action that stays on the screen asks for revalidation itself.** The scope of `revalidatePath` is decided by where the change shows up. Anything that also shows in the outer frame (a count in the header, the sidebar) needs `revalidatePath("/", "layout")`; otherwise only the body is fresh and the outer frame stays stale.
+**An action that stays on the screen asks for revalidation itself.** When the screen's data is not cached and the change shows only on this route, `refresh()` re-renders it; `revalidatePath` is for a change that must also show on another route, and its scope is decided by where the change shows up. Anything that also shows in the outer frame (a count in the header, the sidebar) needs `revalidatePath("/", "layout")`; otherwise only the body is fresh and the outer frame stays stale.
 
 **The result stays until the next submission.** It is dismissed when the input is corrected or the viewpoint moves, and shown again on resubmission. The signal to restore the "dismissed" mark is the result's **identity**: `useActionState` returns a new object on every submission, so `!==` against the previous result reveals the change. In the sample, `use-action-result-freshness.ts` holds this, in a shape that knows nothing of the subject matter.
 
@@ -145,7 +147,9 @@ When to use which means belongs to [ADR 0063](../adr/0063-mutation-result-notifi
 
 **While submitting, `Button`'s `pending` makes it unpressable.** Do not leave it pressable on the grounds that an idempotency key keeps a double press from adding twice.
 
-**How the idempotency key is created and carried.** **The Server Component that assembles the screen** calls `newIdempotencyKey()` from [`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) once and passes it to the island through props; the island **pins the first value it received** with `useState(initial)` and puts it in a hidden input (`IDEMPOTENCY_KEY_FIELD`). It is pinned because `router.refresh()` swaps only the prop without unmounting the container; without pinning, half-typed input remains while only the key becomes new, and a retry of a submission that never arrived goes out with a different key. The Server Action parses it with `z.uuid()`, and `adapters/server` puts it in the `Idempotency-Key` header. The fetch wrapper ([`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)) retries only requests that declare `idempotent: true`.
+**How the idempotency key is created and carried.** For a one-time submission, **the Server Component that assembles the screen** calls `newIdempotencyKey()` from [`src/model/idempotency-key.ts`](../../src/model/idempotency-key.ts) once and passes it to the island through props; the island hands it to [`useSubmissionKey`](../../src/components/use-submission-key.ts) as `initialKey`, which **pins the first value it received**, and puts the key it returns in a hidden input (`IDEMPOTENCY_KEY_FIELD`). It is pinned because `router.refresh()` swaps only the prop without unmounting the container; without pinning, half-typed input remains while only the key becomes new, and a retry of a submission that never arrived goes out with a different key. The Server Action parses it with `z.uuid()`, and `adapters/server` puts it in the `Idempotency-Key` header. The fetch wrapper ([`adapters/server/http/request.ts`](../../src/adapters/server/http/request.ts)) retries only requests that declare `idempotent: true`.
+
+**A submission repeated from the same screen keeps its key in the island instead.** The island calls `useSubmissionKey` without `initialKey`, and the hook creates one at mount. In both shapes the hook replaces the key once a response settles the submission, and keeps it while the outcome is open, so a submission that went through is not made twice. It also returns `outcomeOpen`, which the island uses to keep the inputs as sent; the endpoint's meaning of `409` is passed once, as `conflict`. Which shape a feature takes is decided by how many times it is sent ([`src/features/README.md`](../../src/features/README.md)).
 
 Not every change needs a key. **An operation that sends a setting (an absolute value) is naturally idempotent**, so it has no key. Conversely, a creation with no natural key is not retried either — sending the same body twice makes two records.
 
@@ -251,7 +255,7 @@ rhf treats `undefined` fields as uncontrolled. It arrives in `FormData` not as a
 
 ### Code written after `redirect()` does not run
 
-`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the sample wraps the communication in try and places the post-success `revalidatePath` and `redirect()` outside the try.
+`redirect()` throws. Called inside `try / catch`, the catch captures it and returns a failure state, and "failure" appears on screen with no navigation. Call `redirect()` **outside** the try. Every action in the sample wraps the communication in try and places the post-success `refresh()` / `revalidatePath` and `redirect()` outside the try.
 
 A `redirect()` pointing at a Route Handler sends no request. The reason belongs to [`rendering.md`](rendering.md#a-server-actions-redirect-does-not-navigate-to-a-route-handler).
 
@@ -261,7 +265,7 @@ If "whether to add a path to reload" is judged by matching `formError`, the path
 
 ### Creating the idempotency key on every render defeats the key
 
-Calling `newIdempotencyKey()` in a Client Component's render changes the key on every re-render, and both a double submission and a resend become separate requests. Create it in one place, the Server Component that assembles the screen, and pin it in the island with `useState(initial)`. **Passing the prop straight to the hidden input** is the same hole: `router.refresh()` swaps only the prop.
+Calling `newIdempotencyKey()` in a Client Component's render changes the key on every re-render, and both a double submission and a resend become separate requests. Create it in one place — the Server Component that assembles the screen, or `useSubmissionKey` at mount — and hold it in the island through `useSubmissionKey`. **Passing the prop straight to the hidden input** is the same hole: `router.refresh()` swaps only the prop.
 
 ### Do not put the key and submission state in a subtree that unmounts on open / close
 

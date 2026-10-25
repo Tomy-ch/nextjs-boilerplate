@@ -31,7 +31,7 @@
 - **lefthook による git hook**（pre-commit / commit-msg / pre-push）— [ADR 0151](docs/adr/0151-git-hooks.ja.md)
 - **ローカルのセキュリティスキャン**（gitleaks / Trivy）と抑止ポリシー — [ADR 0110](docs/adr/0110-security-operations.ja.md)
 - **GitHub Actions 定義の lint**（actionlint + shellcheck）— [ADR 0153](docs/adr/0153-ci-configuration.ja.md)
-- **story 単位の visual regression**（digest 固定した Playwright コンテナで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.ja.md) / [`vrt/README.md`](vrt/README.ja.md) / [機構](docs/design/vrt.ja.md)
+- **story 単位の visual regression**（digest 固定した Playwright コンテナーで撮る）— [ADR 0091](docs/adr/0091-test-verification-methods.ja.md) / [`vrt/README.md`](vrt/README.ja.md) / [機構](docs/design/vrt.ja.md)
 - **ブランチ / コミット / リリース運用** — [ADR 0150](docs/adr/0150-git-workflow.ja.md)
 - **リポジトリ運用の make ターゲット** — [`.makefiles/README.md`](.makefiles/README.ja.md)
 
@@ -99,7 +99,7 @@ pnpm dev
 | 環境 | API・IdP・画像配信・テレメトリの接続先、秘密値、経路上の上限 | [env](env/README.ja.md#boilerplate-導入時の変更点) |
 | 外部接続 | IdP の差し替え点 | [adapters/server/auth](src/adapters/server/auth/README.ja.md#差し替え点) |
 | 外部接続 | 外向きの往復に許す時間・試行回数・遮断の条件 | [adapters/server/http](src/adapters/server/http/README.ja.md#boilerplate-導入時の変更点) |
-| 外部接続 | 配信ヘッダが許す第三者 origin | [config](src/config/README.ja.md#boilerplate-導入時の変更点) |
+| 外部接続 | 配信ヘッダーが許す第三者 origin | [config](src/config/README.ja.md#boilerplate-導入時の変更点) |
 | 外部接続 | バックエンドエラーが持つ追加情報の形 | [errors](src/errors/README.ja.md#boilerplate-導入時の変更点) |
 | 運用 | 必須チェックの集合、保護するブランチ、通知の宛先、定期実行、資格情報を要する検査の取捨 | [.github/workflows](.github/workflows/README.ja.md#boilerplate-導入時の変更点) |
 | 運用 | VRT ベースライン画像の置き場と、CI がそこへ書き込む資格 | [vrt](vrt/README.ja.md#boilerplate-導入時の変更点) |
@@ -176,12 +176,12 @@ make help                       # 全 make ターゲットとその説明
 - [mocks/README.md](mocks/README.ja.md) — 契約から生成する、契約駆動のモック
 - [env/README.md](env/README.ja.md) — 環境ごとの環境変数
 - [tokens/README.md](tokens/README.ja.md) — デザイントークンの SSOT
-- [e2e/README.md](e2e/README.ja.md) — 実ブラウザでの、画面を通した検証
+- [e2e/README.md](e2e/README.ja.md) — 実ブラウザーでの、画面を通した検証
 - [vrt/README.md](vrt/README.ja.md) — ベースライン画像と比べる、story 単位の visual regression
 - [scripts/README.md](scripts/README.ja.md) — リポジトリを検査・生成・操作するツール
 - [.makefiles/README.md](.makefiles/README.ja.md) — 全 `make` ターゲット
 - [.github/workflows/README.md](.github/workflows/README.ja.md) — CI / CD のワークフロー定義
-- [docs-viewer/README.md](docs-viewer/README.ja.md) — ドキュメントポータルのビューア
+- [docs-viewer/README.md](docs-viewer/README.ja.md) — ドキュメントポータルのビューアー
 - [.claude/README.md](.claude/README.ja.md) — Claude Code 向けの設定資産（スキル / エージェント / 権限境界 / 外部スキル）
 
 ## スタック

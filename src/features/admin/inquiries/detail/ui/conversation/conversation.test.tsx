@@ -7,6 +7,7 @@ import { axe } from "vitest-axe";
 
 import type { InquiryFeedEvent } from "@/adapters/client/api/inquiries";
 import type { UseStreamOptions } from "@/adapters/client/stream/use-stream";
+import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState, succeededActionState } from "@/model/action-state";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 
@@ -193,5 +194,59 @@ describe("AdminInquiryConversation", () => {
     await user.click(screen.getByRole("button", { name: "回答する" }));
 
     expect(keyOf()).not.toBe(before);
+  });
+
+  it("回答が拒まれて結果が定まったら、書き直した 1 通は別の鍵で飛ばす", async () => {
+    const user = userEvent.setup();
+
+    replyAction.mockResolvedValue(
+      failedActionState({ formError: "送れません", kind: ErrorKind.VALIDATION }),
+    );
+
+    const { container } = render(
+      <AdminInquiryConversation
+        history={ADMIN_INQUIRY_HISTORY}
+        inquiryId={ADMIN_INQUIRY_ID}
+        replyAction={replyAction}
+      />,
+    );
+    const keyOf = () =>
+      container.querySelector<HTMLInputElement>('input[name="idempotencyKey"]')?.value ?? "";
+    const before = keyOf();
+
+    await user.type(screen.getByLabelText("回答"), "承知しました。");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await screen.findByText("送れません");
+    await user.type(screen.getByLabelText("回答"), "追記");
+
+    expect(keyOf()).not.toBe(before);
+    expect(screen.getByLabelText("回答")).toHaveValue("承知しました。追記");
+  });
+
+  it("結果が定まらない失敗のあとは、同じ鍵のまま送り直させ、本文を書き換えさせない", async () => {
+    const user = userEvent.setup();
+
+    replyAction.mockResolvedValue(
+      failedActionState({ formError: "送れません", kind: ErrorKind.UNAVAILABLE }),
+    );
+
+    const { container } = render(
+      <AdminInquiryConversation
+        history={ADMIN_INQUIRY_HISTORY}
+        inquiryId={ADMIN_INQUIRY_ID}
+        replyAction={replyAction}
+      />,
+    );
+    const keyOf = () =>
+      container.querySelector<HTMLInputElement>('input[name="idempotencyKey"]')?.value ?? "";
+    const before = keyOf();
+
+    await user.type(screen.getByLabelText("回答"), "承知しました。");
+    await user.click(screen.getByRole("button", { name: "回答する" }));
+    await screen.findByText("送れません");
+    await user.type(screen.getByLabelText("回答"), "追記");
+
+    expect(keyOf()).toBe(before);
+    expect(screen.getByLabelText("回答")).toHaveValue("承知しました。");
   });
 });

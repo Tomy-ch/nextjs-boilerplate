@@ -15,7 +15,7 @@
 | --- | --- |
 | [mise](https://mise.jdx.dev) | ツール / ランタイムのバージョン管理。**シェルで activate しておくこと**（[0003](../adr/0003-version-manager.ja.md)） |
 | GitHub CLI (`gh`) | リポジトリ運用の make ターゲットが使う。`gh auth login` 済みであること |
-| Docker | 手順 8 でのみ使う。ベースライン画像は digest 固定したコンテナの中でしか撮らない（[`vrt/README.md`](../../vrt/README.ja.md)） |
+| Docker | 手順 8 でのみ使う。ベースライン画像は digest 固定したコンテナーの中でしか撮らない（[`vrt/README.md`](../../vrt/README.ja.md)） |
 
 ## 1. 手元を用意する
 
@@ -51,7 +51,7 @@ make setup-repo
 許可していないと、`docs-deploy` は job としては起動するが step を 1 つも実行せずに失敗する。
 ログに理由が出ないため、`docs-build` が緑であることと合わせて「組み上がっているのに公開されない」
 状態になる。配信元を `production` 以外にするなら、`PAGES_DELIVERY_BRANCH` と
-[`deploy-docs.yaml`](../../.github/workflows/deploy-docs.yaml) の push トリガを揃えて変える。
+[`deploy-docs.yaml`](../../.github/workflows/deploy-docs.yaml) の push トリガーを揃えて変える。
 
 ## 3. GitHub の画面で設定する（人手）
 
@@ -91,9 +91,9 @@ URL の形は Pages の有効化ではなく `<owner>/<repo>` が決めるため
 失効しているので、残すと自分に効かない規則に従うことになる。剥がし終えると道具自身も消える。
 <!-- boilerplate-only:end -->
 
-## 5. 資格情報を要するスキャナを残すかを決める
+## 5. 資格情報を要するスキャナーを残すかを決める
 
-3 つのスキャナが、このリポジトリだけでは供給できないものを要求する。
+3 つのスキャナーが、このリポジトリだけでは供給できないものを要求する。
 
 | 検査 | 要るもの |
 | --- | --- |
@@ -129,7 +129,7 @@ actions-pin-check` と `make egress-check` はどちらも「どの workflow か
 
 **宣言した文書の行も落とす。** 一致しなければ撤去は投げて止まるので、消したつもりで消えていない状態は
 残らない。拾い切れていない言及は最後に一覧で出すので、そこは自分で掃く。有効/無効を切り替えるスイッチ
-は無い —— 残すとは残すことであり、設定されたまま無効なスキャナは、誰も読まず誰も保守しないものになる。
+は無い —— 残すとは残すことであり、設定されたまま無効なスキャナーは、誰も読まず誰も保守しないものになる。
 
 ## 6. 同梱サンプルを破棄する
 
@@ -229,6 +229,9 @@ git commit -m "Build: ベースライン画像の置き場を配線する"
 | Webhook | **Active のチェックを外す** |
 | Repository permissions → Contents | **Read and write** |
 | Repository permissions → Pull requests | **Read and write** |
+| Repository permissions → Issues | **Read and write** |
+| Repository permissions → Checks | **Read-only** |
+| Repository permissions → Actions | **Read-only** |
 | その他の permissions | No access のまま |
 | Where can this GitHub App be installed? | **Only on this account** |
 
@@ -243,7 +246,12 @@ owner 名などを足す。名前は後から変えられる（slug も追随す
 3. **Install App** → **Only select repositories** で**本体と置き場の 2 つだけ**
 
 `Pull requests` が要るのは、保護されたブランチ（`release/**` / `hotfix/**` と各環境のブランチ）では
-撮り直しがポインタを直接 push できず、PR で入れるためである（[`vrt/README.md`](../../vrt/README.ja.md)）。
+撮り直しがポインターを直接 push できず、PR で入れるためである（[`vrt/README.md`](../../vrt/README.ja.md)）。
+残りの 3 つは、`GITHUB_TOKEN` ではなくこの App の token で REST を叩くジョブのためにある
+（[`.github/workflows/README.md`](../../.github/workflows/README.ja.md)）。`Issues` は PR へのコメント・ラベルと、
+定期の棚卸しが立てる issue に、`Checks` と `Actions` は撮り直しが自分を起動した run を読み、その artifact を
+ダウンロードするのに使う。各ジョブが求める権限は、その `create-github-app-token` のステップに書いてある。
+installation に無い権限を 1 つでも求めると発行ごと拒まれ、ジョブは `GITHUB_TOKEN` とその小さい rate limit に戻る。
 
 > **後から権限を足したときは、installation 側で承認するまで効かない。** App の設定を変えただけでは
 > 足りず、`https://github.com/settings/installations/<id>` に出る "Review request" を通す。承認して
@@ -269,7 +277,7 @@ App ID（General ページの App ID）:           ← 8-2 で控えた数字
 
 `App ID: 2168345` のようにラベルごと貼っても通る。
 
-**登録が済んだら `.pem` を消すこと。** ブラウザが落とした実体がそこにある。
+**登録が済んだら `.pem` を消すこと。** ブラウザーが落とした実体がそこにある。
 
 ```bash
 gh secret list   # BASELINE_APP_ID / BASELINE_APP_PRIVATE_KEY が並ぶ
