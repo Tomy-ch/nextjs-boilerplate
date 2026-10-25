@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 
 import type { CouponScopeKind, CouponScopeTarget } from "@/model/coupon/coupon";
 import { toProductCategoryId, toProductId } from "@/model/product/product";

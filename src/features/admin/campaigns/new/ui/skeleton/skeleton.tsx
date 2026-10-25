@@ -1,4 +1,5 @@
 import { Skeleton } from "@/components/design-system/status/skeleton/skeleton";
+import { LoadingAnnouncement } from "@/components/shell/loading-announcer/loading-announcer";
 import { withPartSpan } from "@/observability/render-span";
 
 /** 待機表示で並べる欄の群の数。コード・値引き・対象・期間・上限の 5 つ。 */
@@ -18,6 +19,7 @@ export const AdminCampaignCreateSkeleton = withPartSpan(
   () => {
     return (
       <div aria-hidden="true" className="grid gap-8">
+        <LoadingAnnouncement />
         {Array.from({ length: PLACEHOLDER_GROUPS }, (_, index) => index).map((index) => (
           <div className="grid gap-3" key={index}>
             <Skeleton className="h-5 w-32" />
