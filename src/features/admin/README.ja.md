@@ -131,7 +131,7 @@ app レイヤーにあるためで、理由は「Action 戻り値契約」に書
 ユーザーの一覧とキャンペーンの一覧はどちらもオフセットでページを送り、どちらも行の操作を送る前に確認を挟むため、
 両者が共有するもの —— ページ番号の選び方、ページ送りそのもの、確認の開閉の方針 —— はどちらの画面の下でもなく
 feature の直下に置きます。同じく、商品とキャンペーンのフォームが共有する入力欄・マスターの候補・結果の鮮度と、
-クーポンを発行するどの画面も共有する値引きと範囲の入力も、feature の直下に置きます。
+廃番とキャンペーン作成の 2 画面が共有するクーポンの値引きの読み方も、feature の直下に置きます。
 
 | ファイル | 役割 |
 | --- | --- |
@@ -221,12 +221,8 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `products/discontinue/ui/skeleton/` | 画面のローディング表示 |
 | `master-option.ts` | マスターをフォームで選べる候補へ直す。送る値は識別子 |
 | `use-action-result-freshness.ts` | 直前の送信の結果を、いま出してよいか |
-| `ui/text-field/` `ui/select-field/` `ui/radio-field/` | 入力 1 項目。値は呼び出し元が持つ |
+| `ui/text-field/` `ui/select-field/` | 入力 1 項目。値は呼び出し元が持つ |
 | `coupon-discount.ts` | クーポンの値引きの読み方と文言。百分率を契約の decimal 文字列へ、ドルをセントへ、数を経ずに写す。送る側と受ける側の両方が通る |
-| `coupon-scope.ts` | クーポンの範囲の読み方と文言。種別とその対象 1 つ |
-| `use-product-candidates.ts` | 範囲が名前で探す商品の候補。打つのに合わせてブラウザから取る |
-| `ui/coupon-discount-fields/` | 値引きの種類・額・上限。額の欄は種類を選んでから、上限は定率のときだけ出す |
-| `ui/coupon-scope-fields/` | 範囲の種類とその対象 —— カテゴリの選択か、商品の検索 |
 | `page-window.ts` | オフセットのページ送りに並べる番号の選び方と、それぞれへの行き先の添え方。離れた範囲を省略のマーカーへ畳む。行き先の組み方は画面が渡す |
 | `use-confirmation-target.ts` | どの行を確認しているかと、その行の結果が返ったら確認を閉じること。確認ごとに何を持つかは呼び出し側が決め、結果がどの行に答えたものかも呼び出し側が言える |
 | `use-row-action-state.ts` | 行に対する操作を送り、その結果を、送った form から読んだ答えの行とともに持つ。送信中も確認を閉じられるため、結果がいま開いている行のものとは限らない |
@@ -273,6 +269,11 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `campaigns/new/page-content.tsx` | 範囲で選べるカテゴリを取る |
 | `campaigns/new/view.tsx` | 唯一の client island。送信の状態・キー・打っている値を持ち、結果が定まらないあいだは入力を止める |
 | `campaigns/new/breadcrumb-content.tsx` | 作成画面までの階層 |
+| `campaigns/new/coupon-scope.ts` | クーポンの範囲の読み方と文言。種別とその対象 1 つ |
+| `campaigns/new/use-product-candidates.ts` | 範囲が名前で探す商品の候補。打つのに合わせてブラウザから取る |
+| `campaigns/new/ui/coupon-discount-fields/` | 値引きの種類・額・上限。額の欄は種類を選んでから、上限は定率のときだけ出す |
+| `campaigns/new/ui/coupon-scope-fields/` | 範囲の種類とその対象 —— カテゴリの選択か、商品の検索 |
+| `campaigns/new/ui/radio-field/` | 少数の中から 1 つを選ぶ欄。値は呼び出し元が持つ |
 | `campaigns/new/ui/period-fields/` `campaigns/new/ui/limit-fields/` | 配布期間、クーポンの有効期間、上限。値は呼び出し元が持つ |
 | `campaigns/new/ui/confirm-dialog/` | 確認。定義は後から変えられないことを言う。受け取るのは `formAction` だけ |
 | `campaigns/new/ui/skeleton/` | フォームのローディング表示 |
@@ -314,7 +315,7 @@ feature の直下に置きます。同じく、商品とキャンペーンのフ
 | `adjustProductStockAction` | 同上 | `StockFormState` | 同上 | 同上 |
 | `discontinueProductAction` | 同上 | `DiscontinueProductState` | **留まり、`refresh()` で画面を取り直させ、実行が報告したことを返す** | 競合（進行中の購入）は言い分け、これも画面を取り直させる。接続先が名指しした項目はその入力欄へ返す |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **一覧は取り直させない** | 競合は言い分け、確認が閉じても残る場所に出す |
-| `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | 一覧を取り直させてから、一覧へ `redirect` する | 使用済みのコード（競合）はコードの欄へ、接続先が名指した欄はその入力欄へ、それ以外は確認の中に出す。結果が定まらないあいだは入力を止める |
+| `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | 一覧を取り直させてから、一覧へ `redirect` する | 使用済みのコード（競合）はコードの欄へ（結果が定まらないあいだの再送への競合は、入力を止めたまま確認の中へ）、接続先が名指した欄はその入力欄へ、それ以外は確認の中に出す。結果が定まらないあいだは入力を止める |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | 一覧に留まり、`refresh()` で一覧を取り直させる | 停止済みのキャンペーン（競合）は言い分け、これも一覧を取り直させる。確認が閉じても残る場所に出す |
 
 **退会だけ一覧を取り直させません。**後始末が結果整合で続くため、直後に取り直しても反映前の

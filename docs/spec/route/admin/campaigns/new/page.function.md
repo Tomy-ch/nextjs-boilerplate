@@ -59,6 +59,11 @@ submission is decided by the key. **While a failure leaves the outcome open (the
 unavailable), the content cannot be changed**, only sent again as it is: different content under the same key is rejected.
 Once a response settles the outcome, the next submission carries a new key. A screen opened again carries a new key.
 
+**A conflict returned to such a resend is not read as a used code.** The backend returns the same conflict for a
+submission with the same key that is still being processed, so the first submission may have gone through; the key and
+the held content stay, and the message says that either may be the case. A conflict returned to a key's first
+submission can only be a used code.
+
 ## On success, go to the list
 
 **On success, the list is made to refetch, then the user is sent to it.** The list never shows a state without the campaign just
@@ -69,7 +74,8 @@ defined.
 | What happened | What is shown |
 | --- | --- |
 | A shape or order error | Per-field messages, before sending |
-| The code is already used (conflict) | On the code field. The other fields are kept |
+| The code is already used (conflict on a key's first submission) | On the code field. The other fields are kept |
+| A conflict on a resend while the outcome is open | In the confirmation, worded for both a used code and a submission still being processed. The content stays held |
 | The backend named fields | On those fields |
 | The backend rejected the content without naming a field | One message for the whole, in the confirmation |
 | The outcome is open (connection dropped, service unavailable) | In the confirmation; the content is held until it is sent again |

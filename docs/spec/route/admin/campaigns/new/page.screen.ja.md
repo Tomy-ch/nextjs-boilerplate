@@ -67,8 +67,8 @@
 
 Storybook の `Page/Admin/Campaigns/New` が、空と入力済みのフォーム、欄の誤り、逆転した期間、確認、送信中、使用済みのコード、
 名指された欄、欄を名指さない拒否、結果が定まらないあいだ止めたフォームを、デスクトップ・タブレット・スマホで持つ。canvas
-では送信も移動も起きない。待機の見た目は `Features/Admin/Campaigns/New/Skeleton` が、共有の値引きと範囲の入力は
-`Features/Admin/CouponDiscountFields` と `Features/Admin/CouponScopeFields` が持つ。
+では送信も移動も起きない。待機の見た目は `Features/Admin/Campaigns/New/Skeleton` が、値引きと範囲の入力は
+`Features/Admin/Campaigns/New/CouponDiscountFields` と `Features/Admin/Campaigns/New/CouponScopeFields` が持つ。
 
 ## 関連
 

@@ -143,8 +143,8 @@ Campaigns are dug along the screen axis (`campaigns/list/` and `campaigns/new/`)
 The user list and the campaign list both page by offset and both confirm a row operation before sending it, so
 what they share — choosing the page numbers, the pagination itself and the confirmation open/close policy — sits
 directly under the feature rather than under either screen. Likewise the input fields, master options and result
-freshness shared by product and campaign forms, and the coupon discount and scope inputs shared by every screen that
-issues a coupon, sit directly under the feature.
+freshness shared by product and campaign forms, and the reading of a coupon discount shared by the discontinue and
+campaign creation screens, sit directly under the feature.
 
 | File | Role |
 | --- | --- |
@@ -234,12 +234,8 @@ issues a coupon, sit directly under the feature.
 | `products/discontinue/ui/skeleton/` | The screen loading UI |
 | `master-option.ts` | Turns master data into candidates selectable in a form. The value sent is the identifier |
 | `use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
-| `ui/text-field/` `ui/select-field/` `ui/radio-field/` | One input field. The caller holds the value |
+| `ui/text-field/` `ui/select-field/` | One input field. The caller holds the value |
 | `coupon-discount.ts` | Reading and wording a coupon's discount. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
-| `coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
-| `use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
-| `ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
-| `ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
 | `page-window.ts` | How the page numbers listed in offset pagination are chosen, and attaching each its destination. Collapses distant ranges into an ellipsis marker; the screen supplies how a destination is built |
 | `use-confirmation-target.ts` | Which row is being confirmed, and closing the confirmation once a result for it returns. The caller decides what it holds per confirmation, and may say which row a result answers |
 | `use-row-action-state.ts` | Sending an operation on a row and keeping its result together with the row it answers, read from the submitted form. The confirmation is closable while sending, so a result need not belong to the row open now |
@@ -286,6 +282,11 @@ issues a coupon, sit directly under the feature.
 | `campaigns/new/page-content.tsx` | Fetching the categories a scope can choose |
 | `campaigns/new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open |
 | `campaigns/new/breadcrumb-content.tsx` | The hierarchy down to the creation screen |
+| `campaigns/new/coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
+| `campaigns/new/use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
+| `campaigns/new/ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
+| `campaigns/new/ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
+| `campaigns/new/ui/radio-field/` | One choice among a few. The caller holds the value |
 | `campaigns/new/ui/period-fields/` `campaigns/new/ui/limit-fields/` | The distribution period, coupon validity and limits. The caller holds the values |
 | `campaigns/new/ui/confirm-dialog/` | The confirmation. States that a definition cannot be changed afterwards. Receives only `formAction` |
 | `campaigns/new/ui/skeleton/` | The form loading UI |
@@ -328,7 +329,7 @@ drawn: the user-facing screen for viewing one product comes from `products`' `fa
 | `adjustProductStockAction` | Same as above | `StockFormState` | Same as above | Same as above |
 | `discontinueProductAction` | Same as above | `DiscontinueProductState` | **Stays, has the screen refetched with `refresh()`, and returns what the execution reported** | A conflict (in-progress purchases) is told apart and also has the screen refetched. Fields the connection target named go to their input fields |
 | `withdrawUserAction` | `src/app/admin/users/actions.ts` | `WithdrawUserState` | **Does not make the list refetch** | A conflict is told apart, and shown in a place that remains after the confirmation closes |
-| `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | Has the list refetched, then `redirect` to it | A code already used (conflict) goes to the code field; fields the connection target named go to their input fields; anything else is shown in the confirmation. While the outcome is open the inputs are held |
+| `createCampaignAction` | `src/app/admin/campaigns/actions.ts` | `CreateCampaignState` | Has the list refetched, then `redirect` to it | A code already used (conflict) goes to the code field — except a conflict on a resend while the outcome is open, which is shown in the confirmation with the inputs still held; fields the connection target named go to their input fields; anything else is shown in the confirmation. While the outcome is open the inputs are held |
 | `suspendCampaignAction` | `src/app/admin/campaigns/actions.ts` | `SuspendCampaignState` | Stays on the list and has it refetched with `refresh()` | An already suspended campaign (conflict) is told apart and also has the list refetched; shown in a place that remains after the confirmation closes |
 
 **Only account closure does not make the list refetch.** The cleanup continues with eventual consistency, so
