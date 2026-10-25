@@ -132,18 +132,13 @@ export async function createCampaignAction(
     if (isUnauthenticated(error)) redirect(loginPath(ADMIN_CAMPAIGN_NEW_PATH));
 
     const kind = findAppError(error)?.kind;
-    const fieldErrors = toCampaignFieldErrors(error);
 
-    if (Object.keys(fieldErrors).length > 0) {
-      return failedActionState({
-        formError: null,
-        fieldErrors,
-        kind: kind ?? ErrorKind.VALIDATION,
-      });
-    }
+    if (kind === ErrorKind.CONFLICT || kind === ErrorKind.VALIDATION) {
+      const fieldErrors = toCampaignFieldErrors(error);
 
-    if (kind === ErrorKind.VALIDATION) {
-      return failedActionState({ formError: INVALID_INPUT_MESSAGE, kind });
+      return Object.keys(fieldErrors).length > 0
+        ? failedActionState({ formError: null, fieldErrors, kind })
+        : failedActionState({ formError: INVALID_INPUT_MESSAGE, kind });
     }
 
     return actionStateFromError(error);
