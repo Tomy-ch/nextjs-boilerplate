@@ -2,7 +2,10 @@
 
 import { useCallback, useId, useMemo } from "react";
 
-import { ComboboxClient } from "@/components/design-system/form/combobox-client/combobox-client";
+import {
+  ComboboxClient,
+  type ComboboxClientOption,
+} from "@/components/design-system/form/combobox-client/combobox-client";
 import { Field, FieldDescription, FieldError } from "@/components/design-system/form/field/field";
 import { RequirementBadge } from "@/components/design-system/form/requirement-badge/requirement-badge";
 import { COUPON_SCOPE_NAME, type CouponScopeKind } from "@/model/coupon/coupon";
@@ -107,12 +110,10 @@ export function CouponScopeFields({
   }, [productCandidates, values.productId, values.productName]);
 
   const changeProduct = useCallback(
-    (productId: string) => {
-      const chosen = productOptions.find((option) => option.value === productId);
-
-      onValuesChange({ ...values, productId, productName: chosen?.label ?? "" });
+    (productId: string, option: ComboboxClientOption) => {
+      onValuesChange({ ...values, productId, productName: option.label });
     },
-    [onValuesChange, productOptions, values],
+    [onValuesChange, values],
   );
 
   return (
@@ -149,6 +150,8 @@ export function CouponScopeFields({
             </span>
           </div>
           <ComboboxClient
+            aria-describedby={messages[productName] === undefined ? undefined : productErrorId}
+            aria-invalid={messages[productName] !== undefined}
             aria-labelledby={productLabelId}
             emptyMessage={EMPTY_MESSAGES[productCandidates.status]}
             name={productName}
