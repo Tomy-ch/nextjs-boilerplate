@@ -17,8 +17,7 @@ import {
 } from "../place-order-state/place-order-state";
 import { PlaceOrderForm } from "./place-order-form";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
-const OTHER_KEY = "0195f0c2-0000-7000-a000-000000000002";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COUPON: CartCoupon = {
   id: toCouponId("0193a1c0-0001-7000-8000-000000000001"),
   discount: { kind: "flat", value: "5.00" },
@@ -27,10 +26,10 @@ const COUPON: CartCoupon = {
   expiresAt: new Date("2027-06-30T14:59:59Z"),
 };
 
-/** 送信の状態は器が持つ。鍵を差し替えて描き直せるよう、器ごと組み立てる。 */
-function renderForm(orderable = true, idempotencyKey = KEY) {
+/** 送信の状態は器が持つ。描き直せるよう、器ごと組み立てる。 */
+function renderForm(orderable = true) {
   return render(
-    <PlaceOrderStateProvider coupons={[]} idempotencyKey={idempotencyKey}>
+    <PlaceOrderStateProvider coupons={[]}>
       <PlaceOrderForm orderable={orderable} />
     </PlaceOrderStateProvider>,
   );
@@ -50,7 +49,7 @@ function SelectCouponButton({ couponId, label }: { couponId: CouponId | null; la
 
 function renderWithCoupon() {
   return render(
-    <PlaceOrderStateProvider coupons={[COUPON]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[COUPON]}>
       <SelectCouponButton couponId={COUPON.id} label="クーポンを選ぶ" />
       <SelectCouponButton couponId={null} label="使わないを選ぶ" />
       <PlaceOrderForm orderable />
@@ -65,22 +64,28 @@ describe("PlaceOrderForm", () => {
     expect(screen.getByRole("button", { name: "注文を確定する" })).toBeEnabled();
   });
 
-  it("画面が組んだ鍵を送信へ載せる", () => {
+  it("器が mount のときに作った鍵を送信へ載せる", () => {
     const { container } = renderForm();
 
-    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+    expect(
+      container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)?.getAttribute("value"),
+    ).toMatch(UUID);
   });
 
-  it("組み直された画面から別の鍵が届いても、送信へ載せる鍵は変えない", () => {
+  it("組み直された画面で描き直しても、送信へ載せる鍵は変えない", () => {
     const { container, rerender } = renderForm();
+    const first = container
+      .querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)
+      ?.getAttribute("value");
 
     rerender(
-      <PlaceOrderStateProvider coupons={[]} idempotencyKey={OTHER_KEY}>
+      <PlaceOrderStateProvider coupons={[]}>
         <PlaceOrderForm orderable />
       </PlaceOrderStateProvider>,
     );
 
-    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(KEY);
+    expect(first).toMatch(UUID);
+    expect(container.querySelector(`input[name="${IDEMPOTENCY_KEY_FIELD}"]`)).toHaveValue(first);
   });
 
   it("クーポンを選んでいなければ、送信へクーポンを載せない", () => {

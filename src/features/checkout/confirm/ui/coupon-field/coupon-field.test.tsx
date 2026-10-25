@@ -21,7 +21,6 @@ import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { CouponField } from "./coupon-field";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const UNAVAILABLE_MESSAGE = "クーポンを読み込めませんでした。クーポンを使わずに注文できます。";
 const LOCKED_MESSAGE =
   "前回の確定の結果が分かるまで、クーポンは選び直せません。同じ内容でもう一度確定してください。";
@@ -30,7 +29,7 @@ const FACE_VALUE_DISCOUNT = 1_000;
 
 function renderField(coupons: readonly CartCoupon[] | null = CART_COUPONS) {
   return render(
-    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={coupons}>
       <CouponField coupons={coupons} />
     </PlaceOrderStateProvider>,
   );
@@ -39,7 +38,7 @@ function renderField(coupons: readonly CartCoupon[] | null = CART_COUPONS) {
 /** 結果の定まらない状態を作れるよう、確定の操作も並べる。 */
 function renderFieldWithForm(coupons: readonly CartCoupon[] | null) {
   return render(
-    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={coupons}>
       <CouponField coupons={coupons} />
       <PlaceOrderForm orderable />
     </PlaceOrderStateProvider>,

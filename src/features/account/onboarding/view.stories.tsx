@@ -17,8 +17,6 @@ import { PREFECTURES, PROFILE } from "../account.fixture";
 import { registerAction } from "../actions";
 import { OnboardingView } from "./view";
 
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-00000000000f";
-
 /**
  * route と同じ器で包む。
  *
@@ -100,7 +98,6 @@ const meta = {
   title: "Page/Account/Onboarding",
   component: OnboardingView,
   args: {
-    idempotencyKey: IDEMPOTENCY_KEY,
     prefectures: PREFECTURES,
     returnUrl: toSafeReturnUrl("/mypage"),
   },

@@ -30,8 +30,6 @@ export type CheckoutConfirmViewProps = {
   coupons: readonly CartCoupon[] | null;
   /** 小計の参考換算額。読めなければ null。 */
   reference: ReferenceAmount | null;
-  /** この画面の確定 1 回ぶんを表す鍵。 */
-  idempotencyKey: string;
 };
 
 /**
@@ -65,7 +63,7 @@ export type CheckoutConfirmViewProps = {
  */
 export const CheckoutConfirmView = withScreenSpan(
   "features/checkout/confirm/view",
-  ({ cart, profile, coupons, reference, idempotencyKey }: CheckoutConfirmViewProps) => {
+  ({ cart, profile, coupons, reference }: CheckoutConfirmViewProps) => {
     if (cart.lines.length === 0) {
       return (
         <div className="flex flex-col items-start gap-4 py-8">
@@ -80,7 +78,7 @@ export const CheckoutConfirmView = withScreenSpan(
     }
 
     return (
-      <PlaceOrderStateProvider coupons={coupons} idempotencyKey={idempotencyKey}>
+      <PlaceOrderStateProvider coupons={coupons}>
         <div className="flex flex-col gap-8 pb-40 lg:flex-row lg:items-start lg:pb-0">
           <div className="flex min-w-0 flex-1 flex-col gap-6">
             <ShippingCard profile={profile} />

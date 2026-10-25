@@ -6,7 +6,6 @@ import { PlaceOrderStateProvider } from "../place-order-state/place-order-state"
 import { CouponField } from "./coupon-field";
 
 /** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 const meta = {
   title: "Features/Checkout/Confirm/CouponField",
@@ -28,7 +27,7 @@ const meta = {
   decorators: [
     // 選択は送信状態の器が持つ。確定の操作を並べ、選んだ値が送信に載ることも確かめられるようにする。
     (Story, { args }) => (
-      <PlaceOrderStateProvider coupons={args.coupons ?? null} idempotencyKey={IDEMPOTENCY_KEY}>
+      <PlaceOrderStateProvider coupons={args.coupons ?? null}>
         <div className="flex max-w-md flex-col gap-4">
           <Story />
           <PlaceOrderForm orderable />

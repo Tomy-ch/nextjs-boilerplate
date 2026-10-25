@@ -13,12 +13,6 @@ import {
 /** {@link useSubmissionKey} の任意の指定。 */
 export type SubmissionKeyOptions = {
   /**
-   * 最初の送信に載せる鍵。画面を組み立てた地点が作ったものを渡す。
-   *
-   * @defaultValue mount のときに作る鍵
-   */
-  readonly initialKey?: string;
-  /**
    * 送信先が競合（409）を何に充てているか。
    *
    * @defaultValue "state-conflict"
@@ -38,15 +32,16 @@ export type SubmissionKey = {
  * 送信 1 回ぶんの冪等キーを持ち、応答が送信を確定させたら作り直す。
  *
  * @remarks
- * 鍵は mount のときの値を持ち続け、`state` が変わったときだけ見直します。作り直すかと、結果が
- * 定まっていないかは、同じ `state` と同じ `conflict` から `model/idempotency-key.ts` が決めます。
- * 2 つを別々に呼ぶと、競合の意味を片方にだけ渡す食い違いを書けてしまいます。
+ * **鍵は mount のときに作って持ち続け、`state` が変わったときだけ見直します。** server が作って
+ * props で渡した鍵は client の router cache が持つ画面の写しに残り、成立して別の画面へ移った後に
+ * 「戻る」で戻ると、送り終えた鍵のまま island が作り直されます。
  *
- * `initialKey` は mount のときにだけ読みます。画面の取り直しが prop を差し替えても、書きかけの
- * 入力は残ったまま鍵だけが変わることはありません。
+ * 作り直すかと、結果が定まっていないかは、同じ `state` と同じ `conflict` から
+ * `model/idempotency-key.ts` が決めます。2 つを別々に呼ぶと、競合の意味を片方にだけ渡す食い違いを
+ * 書けてしまいます。
  *
  * @param state - 直近の送信が返した結果
- * @param options - 最初の鍵と、送信先が競合を何に充てているか
+ * @param options - 送信先が競合を何に充てているか
  * @returns 次の送信に載せる鍵と、直前の送信の結果が定まっていないか
  *
  * @example
@@ -57,9 +52,9 @@ export type SubmissionKey = {
  */
 export function useSubmissionKey(
   state: ActionState<unknown>,
-  { initialKey, conflict = "state-conflict" }: SubmissionKeyOptions = {},
+  { conflict = "state-conflict" }: SubmissionKeyOptions = {},
 ): SubmissionKey {
-  const [idempotencyKey, setIdempotencyKey] = useState(() => initialKey ?? newIdempotencyKey());
+  const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
   const [seenState, setSeenState] = useState(state);
 
   if (seenState !== state) {

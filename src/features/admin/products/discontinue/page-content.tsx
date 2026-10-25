@@ -4,7 +4,6 @@ import {
   getProductDiscontinueImpact,
   getProductIncludingUnpublished,
 } from "@/adapters/server/api/products";
-import { newIdempotencyKey } from "@/model/idempotency-key";
 import type { ProductId } from "@/model/product/product";
 import { withScreenSpan } from "@/observability/render-span";
 
@@ -30,7 +29,7 @@ export type AdminProductDiscontinuePageContentProps = {
  * `docs/spec/route/admin/products/[id]/discontinue/page.function.md#the-product-is-read-including-unpublished-ones`）。
  * 存在しない識別子は取得の口が `not-found` へ正規化し、route の境界が受けます。
  *
- * **island には鍵を与えません。** 成立や競合のあとの取り直しで island を作り直すと、送信の結果が
+ * **island に React の `key` を付けません。** 成立や競合のあとの取り直しで island を作り直すと、送信の結果が
  * 消えます。
  */
 export const AdminProductDiscontinuePageContent = withScreenSpan(
@@ -62,7 +61,6 @@ export const AdminProductDiscontinuePageContent = withScreenSpan(
     return (
       <AdminProductDiscontinueView
         discontinueAction={discontinueAction}
-        idempotencyKey={newIdempotencyKey()}
         product={{ id: product.id, name: product.name }}
         remainingPurchases={remainingPurchases}
         standing={standing}

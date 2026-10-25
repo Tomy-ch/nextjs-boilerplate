@@ -4,7 +4,6 @@ import { PlaceOrderStateProvider } from "../place-order-state/place-order-state"
 import { PlaceOrderForm } from "./place-order-form";
 
 /** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
 
 const meta = {
   title: "Features/Checkout/Confirm/PlaceOrderForm",
@@ -24,7 +23,7 @@ const meta = {
   decorators: [
     // 送信の状態は画面に 1 つだけ置く `PlaceOrderStateProvider` が持ち、その外では読めない。
     (Story) => (
-      <PlaceOrderStateProvider coupons={[]} idempotencyKey={IDEMPOTENCY_KEY}>
+      <PlaceOrderStateProvider coupons={[]}>
         <div className="w-72">
           <Story />
         </div>

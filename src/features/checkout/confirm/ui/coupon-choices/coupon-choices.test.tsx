@@ -24,7 +24,6 @@ import { PlaceOrderForm } from "../place-order-form/place-order-form";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { CouponChoice, CouponChoices, CouponLockedNotice } from "./coupon-choices";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const FIRST: CartCoupon = {
   id: toCouponId("0193a1c0-0001-7000-8000-000000000001"),
   discount: { kind: "flat", value: "5.00" },
@@ -45,7 +44,7 @@ const LOCKED_MESSAGE =
 /** 選択は送信状態の器が持つ。拒まれた状態を作れるよう、確定の操作も並べる。 */
 function renderChoices() {
   return render(
-    <PlaceOrderStateProvider coupons={[FIRST, SECOND]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[FIRST, SECOND]}>
       <CouponChoices title="クーポン">
         <CouponChoice couponId={FIRST.id}>1 枚目のクーポン</CouponChoice>
         <CouponChoice couponId={SECOND.id}>2 枚目のクーポン</CouponChoice>
@@ -58,7 +57,7 @@ function renderChoices() {
 /** 候補が無いときの案内。結果の定まらない状態を作れるよう、確定の操作も並べる。 */
 function renderNotice() {
   return render(
-    <PlaceOrderStateProvider coupons={[]} idempotencyKey={KEY}>
+    <PlaceOrderStateProvider coupons={[]}>
       <CouponLockedNotice title="クーポン" />
       <PlaceOrderForm orderable />
     </PlaceOrderStateProvider>,
@@ -274,7 +273,7 @@ describe("CouponChoices", () => {
   // ----- server で描くとき -----
   it("server で描いた時点では欄を操作できず、JavaScript が無効のときの案内を出す", () => {
     const markup = renderToStaticMarkup(
-      <PlaceOrderStateProvider coupons={[FIRST, SECOND]} idempotencyKey={KEY}>
+      <PlaceOrderStateProvider coupons={[FIRST, SECOND]}>
         <CouponChoices title="クーポン">
           <CouponChoice couponId={FIRST.id}>1 枚目のクーポン</CouponChoice>
           <CouponChoice couponId={SECOND.id}>2 枚目のクーポン</CouponChoice>
@@ -312,7 +311,7 @@ describe("CouponChoice", () => {
 
     expect(() =>
       render(
-        <PlaceOrderStateProvider coupons={[FIRST]} idempotencyKey={KEY}>
+        <PlaceOrderStateProvider coupons={[FIRST]}>
           <CouponChoice couponId={FIRST.id}>1 枚目のクーポン</CouponChoice>
         </PlaceOrderStateProvider>,
       ),

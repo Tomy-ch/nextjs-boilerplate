@@ -20,9 +20,6 @@ import {
 } from "../checkout.fixture";
 import { CheckoutConfirmView } from "./view";
 
-/** 画面が組み立てた鍵の代わり。カタログでは確定を実行しないため、値そのものに意味はない。 */
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-a000-000000000001";
-
 const NAV_ITEMS = [
   { href: "/products", label: "商品" },
   { href: "/mypage", label: "マイページ" },
@@ -83,7 +80,6 @@ export const Default: Story = {
   args: {
     cart: ORDERABLE_CART,
     coupons: CART_COUPONS,
-    idempotencyKey: IDEMPOTENCY_KEY,
     profile: PROFILE,
     reference: SUBTOTAL_REFERENCE,
   },

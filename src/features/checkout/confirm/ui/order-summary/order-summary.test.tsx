@@ -22,16 +22,11 @@ import { CouponChoice, CouponChoices } from "../coupon-choices/coupon-choices";
 import { PlaceOrderStateProvider } from "../place-order-state/place-order-state";
 import { OrderSummary } from "./order-summary";
 
-const KEY = "0195f0c2-0000-7000-a000-000000000001";
 const ESTIMATE_LABEL = "クーポン値引き（見込み）";
 
 /** 送信の状態は画面が 1 つだけ持つ。実画面と同じ位置に器を置いて描く。 */
 function renderSummary(ui: ReactNode, coupons: readonly CartCoupon[] | null = null) {
-  return render(
-    <PlaceOrderStateProvider coupons={coupons} idempotencyKey={KEY}>
-      {ui}
-    </PlaceOrderStateProvider>,
-  );
+  return render(<PlaceOrderStateProvider coupons={coupons}>{ui}</PlaceOrderStateProvider>);
 }
 
 describe("OrderSummary", () => {

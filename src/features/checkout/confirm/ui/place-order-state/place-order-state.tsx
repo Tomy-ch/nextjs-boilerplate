@@ -45,8 +45,6 @@ const PlaceOrderStateContext = createContext<PlaceOrderState | null>(null);
 
 /** {@link PlaceOrderStateProvider} の props。 */
 export type PlaceOrderStateProviderProps = {
-  /** 画面を組み立てた地点が作った鍵。 */
-  idempotencyKey: string;
   /** いまのカートに使えるクーポン。読めなかったときは null。 */
   coupons: readonly CartCoupon[] | null;
   /** 内側に描く木。 */
@@ -65,8 +63,7 @@ export type PlaceOrderStateProviderProps = {
  * 待っているかを `useFormStatus` ではなく `useActionState` から採るのはこのためです。`useFormStatus`
  * は自分が属する `form` しか見ないので、共有できるのは送信の状態そのものを持つ側だけです。
  *
- * 鍵は最初に受け取ったものを使い続け（理由は `model/idempotency-key.ts`）、応答が送信を確定させた
- * ときだけ新しくします（`useSubmissionKey`）。
+ * 鍵は mount のときに作り、応答が送信を確定させたときだけ新しくします（`useSubmissionKey`）。
  *
  * **選んだクーポンも同じ理由でここに置きます。** 確定は脇・下端の帯・金額の確かめの dialog の
  * どこからでも送られ、どこから送っても同じ選択が載らなければなりません。
@@ -82,18 +79,12 @@ export type PlaceOrderStateProviderProps = {
  *
  * @param props - {@link PlaceOrderStateProviderProps}。
  */
-export function PlaceOrderStateProvider({
-  idempotencyKey: initialIdempotencyKey,
-  coupons,
-  children,
-}: PlaceOrderStateProviderProps) {
+export function PlaceOrderStateProvider({ coupons, children }: PlaceOrderStateProviderProps) {
   const [state, formAction, isPending] = useActionState<PlaceOrderFormState, FormData>(
     placeOrderAction,
     idleActionState(),
   );
-  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state, {
-    initialKey: initialIdempotencyKey,
-  });
+  const { idempotencyKey, outcomeOpen } = useSubmissionKey(state);
   const [couponSelection, setCouponSelection] = useState<CouponId | null | undefined>(undefined);
   const [answeredState, setAnsweredState] = useState<PlaceOrderFormState | null>(null);
 

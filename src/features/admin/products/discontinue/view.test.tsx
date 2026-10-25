@@ -24,7 +24,7 @@ import {
 } from "./form-state";
 import { AdminProductDiscontinueView, type AdminProductDiscontinueViewProps } from "./view";
 
-const IDEMPOTENCY_KEY = "0195f0c2-0000-7000-8000-0000000000aa";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const REMAINING_MARKER = "残っている購入の区画";
 const LOCKED_MESSAGE =
   "前回の廃番の結果が分かるまで、条件は書き換えられません。同じ条件でもう一度廃番にしてください。";
@@ -44,7 +44,6 @@ function props(
     standing: { kind: "open", impact: OPEN_IMPACT },
     remainingPurchases: <p>{REMAINING_MARKER}</p>,
     discontinueAction: idle,
-    idempotencyKey: IDEMPOTENCY_KEY,
     ...overrides,
   };
 }
@@ -184,27 +183,28 @@ describe("AdminProductDiscontinueView", () => {
     const sent = action.mock.calls[0]?.[1];
 
     expect(sent?.get("productId")).toBe(DISCONTINUE_PRODUCT.id);
-    expect(sent?.get("idempotencyKey")).toBe(IDEMPOTENCY_KEY);
+    expect(sent?.get("idempotencyKey")).toMatch(UUID);
     expect(sent?.get("couponDiscountRate")).toBe("12.5");
     expect(sent?.get("couponValidityDays")).toBe("30");
     expect(sent?.get("confirmed")).toBe("true");
   });
 
-  it("取り直しで別の冪等キーが届いても、最初の鍵で送る", async () => {
+  it("取り直しで描き直しても、mount のときの鍵で送る", async () => {
     const action = returning(idleActionState());
     const { rerender } = renderView({ discontinueAction: action });
+    const opened = await openConfirmation();
+    const first = opened.querySelector<HTMLInputElement>('[name="idempotencyKey"]')?.value;
 
-    rerender(
-      <AdminProductDiscontinueView
-        {...props({
-          discontinueAction: action,
-          idempotencyKey: "0195f0c2-0000-7000-8000-0000000000bb",
-        })}
-      />,
+    await userEvent.click(within(opened).getByRole("button", { name: "やめる" }));
+    rerender(<AdminProductDiscontinueView {...props({ discontinueAction: action })} />);
+    await userEvent.click(screen.getByRole("button", { name: "廃番にする" }));
+    await userEvent.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "廃番にする" }),
     );
-    await submit();
 
-    expect(action.mock.calls[0]?.[1].get("idempotencyKey")).toBe(IDEMPOTENCY_KEY);
+    await waitFor(() => expect(action).toHaveBeenCalledOnce());
+    expect(first).toMatch(UUID);
+    expect(action.mock.calls[0]?.[1].get("idempotencyKey")).toBe(first);
   });
 
   it("成立したら確認を閉じ、見積もりではなく実行の応答の件数を確認の外に出す", async () => {
@@ -395,7 +395,9 @@ describe("AdminProductDiscontinueView", () => {
     );
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
-    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).toBe(IDEMPOTENCY_KEY);
+    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).toBe(
+      action.mock.calls[0]?.[1].get("idempotencyKey"),
+    );
     expect(action.mock.calls[1]?.[1].get("couponDiscountRate")).toBe("10");
   });
 
@@ -424,7 +426,10 @@ describe("AdminProductDiscontinueView", () => {
     );
 
     await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
-    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).not.toBe(IDEMPOTENCY_KEY);
+    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).toMatch(UUID);
+    expect(action.mock.calls[1]?.[1].get("idempotencyKey")).not.toBe(
+      action.mock.calls[0]?.[1].get("idempotencyKey"),
+    );
     expect(action.mock.calls[1]?.[1].get("couponDiscountRate")).toBe("20");
   });
 
