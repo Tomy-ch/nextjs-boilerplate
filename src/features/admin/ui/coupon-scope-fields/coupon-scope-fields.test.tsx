@@ -13,7 +13,7 @@ import { CouponScopeFields, type CouponScopeFieldsProps } from "./coupon-scope-f
 
 const CATEGORY_OPTIONS = [
   { value: "5dd52d84-78eb-4a52-ba0b-2e11c95c2af2", label: "家電" },
-  { value: "6ee63e95-89fc-4b63-cb1c-3f22d06d3b03", label: "雑貨" },
+  { value: "6ee63e95-89fc-4b63-8b1c-3f22d06d3b03", label: "雑貨" },
 ];
 
 const EARPHONES = {
@@ -31,7 +31,7 @@ const PRODUCT_VALUES: CouponScopeValues = { ...EMPTY_COUPON_SCOPE_VALUES, kind: 
 
 const CHOSEN_ELSEWHERE: CouponScopeValues = {
   kind: "category",
-  categoryId: "6ee63e95-89fc-4b63-cb1c-3f22d06d3b03",
+  categoryId: "6ee63e95-89fc-4b63-8b1c-3f22d06d3b03",
   productId: EARPHONES.id,
   productName: EARPHONES.name,
 };
@@ -119,7 +119,7 @@ describe("CouponScopeFields", () => {
 
     const category = screen.getByRole("combobox", { name: "カテゴリ" });
 
-    expect(category).toHaveValue("6ee63e95-89fc-4b63-cb1c-3f22d06d3b03");
+    expect(category).toHaveValue("6ee63e95-89fc-4b63-8b1c-3f22d06d3b03");
     expect(category).toHaveAttribute("name", "scopeCategoryId");
     expect(screen.queryByRole("button", { name: "商品" })).not.toBeInTheDocument();
   });

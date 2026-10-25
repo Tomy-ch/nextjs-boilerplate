@@ -21,7 +21,7 @@ vi.mock("@/logging/logging.server", () => ({
   reportQuietly: (run: () => void) => run(),
 }));
 
-import { getMyCartCoupons, getMyCoupons, issueCoupon, readMyCartCoupons } from "./coupons";
+import { getMyCartCoupons, getMyCoupons, readMyCartCoupons } from "./coupons";
 
 const MY_COUPONS_URL = `${PARSED_ENVIRONMENT.APP_API_BASE_URL}/v1/users/me/coupons`;
 
@@ -232,7 +232,33 @@ const issueDraft = {
   expiresAt: new Date("2026-12-31T14:59:59Z"),
 } as const;
 
+async function loadIssueCoupon() {
+  vi.resetModules();
+
+  const [module, errors] = await Promise.all([import("./coupons"), import("@/errors/app-error")]);
+
+  return {
+    issueCoupon: module.issueCoupon,
+    kindOfIssue: async (run: () => Promise<unknown>): Promise<string | undefined> => {
+      try {
+        await run();
+      } catch (error) {
+        return errors.findAppError(error)?.kind;
+      }
+
+      return undefined;
+    },
+  };
+}
+
 describe("issueCoupon", () => {
+  let issueCoupon: Awaited<ReturnType<typeof loadIssueCoupon>>["issueCoupon"];
+  let kindOfIssue: Awaited<ReturnType<typeof loadIssueCoupon>>["kindOfIssue"];
+
+  beforeEach(async () => {
+    ({ issueCoupon, kindOfIssue } = await loadIssueCoupon());
+  });
+
   // ----- 正常系 -----
   it("受給者と発行する内容を、日時を瞬間の文字列にして本文で送る", async () => {
     const requests = serveWrite("post", COUPONS_URL, issuedCoupon);
@@ -276,7 +302,7 @@ describe("issueCoupon", () => {
   it("受給者か範囲の対象が見つからなければ、その分類のまま投げる", async () => {
     serveStatus("post", COUPONS_URL, 404);
 
-    await expect(kindOf(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
+    await expect(kindOfIssue(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
       ErrorKind.NOT_FOUND,
     );
   });
@@ -284,7 +310,7 @@ describe("issueCoupon", () => {
   it("同じ鍵の要求と競合したら、その分類のまま投げる", async () => {
     serveStatus("post", COUPONS_URL, 409);
 
-    await expect(kindOf(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
+    await expect(kindOfIssue(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
       ErrorKind.CONFLICT,
     );
   });
@@ -292,7 +318,7 @@ describe("issueCoupon", () => {
   it("内容が条件を満たさないという拒否を、入力の誤りとして分類する", async () => {
     serveStatus("post", COUPONS_URL, 422);
 
-    await expect(kindOf(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
+    await expect(kindOfIssue(() => issueCoupon(RECIPIENT, issueDraft, "key"))).resolves.toBe(
       ErrorKind.VALIDATION,
     );
   });

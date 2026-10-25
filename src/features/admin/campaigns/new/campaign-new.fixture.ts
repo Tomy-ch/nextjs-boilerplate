@@ -9,7 +9,7 @@ import type { CampaignOwnValues } from "./campaign-rules";
 /** 範囲として選べるカテゴリ。 */
 export const CAMPAIGN_CATEGORY_OPTIONS: readonly AdminSelectOption[] = [
   { value: "5dd52d84-78eb-4a52-ba0b-2e11c95c2af2", label: "家電" },
-  { value: "6ee63e95-89fc-4b63-cb1c-3f22d06d3b03", label: "雑貨" },
+  { value: "6ee63e95-89fc-4b63-8b1c-3f22d06d3b03", label: "雑貨" },
 ];
 
 /** 商品名で探して見つかった候補。 */

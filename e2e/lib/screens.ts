@@ -205,6 +205,12 @@ export const SCREENS: readonly ScreenDeclaration[] = [
     signedIn: "admin",
   },
   {
+    route: "/admin/campaigns/new",
+    name: "admin-campaign-new",
+    path: "/admin/campaigns/new",
+    signedIn: "admin",
+  },
+  {
     route: "/admin/inquiries",
     name: "admin-inquiries",
     path: "/admin/inquiries",

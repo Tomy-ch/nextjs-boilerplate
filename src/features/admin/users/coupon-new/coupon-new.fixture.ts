@@ -8,6 +8,12 @@ import type { IssueRecipient } from "./recipient";
 
 const MAX_NAME_LENGTH = 100;
 
+/**
+ * 表示の幅を確かめるための、指定した長さの文字列を組む。
+ *
+ * @param length - 文字数
+ * @returns 和文と欧文が混ざった、指定した長さの文字列
+ */
 function longText(length: number): string {
   const unit = "長谷川ヴィクトリア-Bartholomew-Featherstonehaugh-";
 
@@ -34,7 +40,7 @@ export const LONG_NAME_RECIPIENT: IssueRecipient = {
 
 export const ISSUE_CATEGORY_OPTIONS: readonly AdminSelectOption[] = [
   { value: "5dd52d84-78eb-4a52-ba0b-2e11c95c2af2", label: "家電" },
-  { value: "6ee63e95-89fc-4b63-cb1c-3f22d06d3b03", label: "雑貨" },
+  { value: "6ee63e95-89fc-4b63-8b1c-3f22d06d3b03", label: "雑貨" },
 ];
 
 export const FILLED_ISSUE_OWN_VALUES: IssueOwnValues = {

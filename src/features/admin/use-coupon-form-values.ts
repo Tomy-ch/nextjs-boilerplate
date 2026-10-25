@@ -28,7 +28,7 @@ export type CouponFormField<TOwnField extends string> =
  *
  * @typeParam TOwnField - 画面が自前で持つ欄
  */
-export type CouponFormErrors<TOwnField extends string> = Readonly<
+type CouponFormErrors<TOwnField extends string> = Readonly<
   Partial<Record<CouponFormField<TOwnField>, string>>
 >;
 
@@ -37,7 +37,7 @@ export type CouponFormErrors<TOwnField extends string> = Readonly<
  *
  * @typeParam TOwnField - 画面が自前で持つ欄
  */
-export type CouponFormReading<TOwnField extends string> =
+type CouponFormReading<TOwnField extends string> =
   | { readonly ok: true }
   | { readonly ok: false; readonly errors: CouponFormErrors<TOwnField> };
 
