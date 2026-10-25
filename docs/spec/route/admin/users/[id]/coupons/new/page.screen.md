@@ -58,8 +58,9 @@ closed-account surface. The browser's back and forward are not blocked
 
 ## Breadcrumbs
 
-**利用者一覧 > <name> > クーポンの発行** (User list > the recipient > Issuing a coupon). When the recipient cannot be read, the name is
-left out rather than the trail failing.
+**利用者一覧 > <name> > クーポンの発行** (User list > the recipient > Issuing a coupon). When the recipient does not exist, no trail
+is shown, so a not-found page does not lead into issuing. When the recipient cannot be read for any other reason, the name is left
+out rather than the trail failing.
 
 ## Checking in the Catalog
 

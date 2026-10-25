@@ -22,26 +22,33 @@ export type AdminUserCouponNewBreadcrumbContentProps = {
   id: UserId;
 };
 
+/** 階層に出す受給者の読み取り結果。見つからなかったかと、出せる名前。 */
+type RecipientReading =
+  | { readonly found: false }
+  | { readonly found: true; readonly name: string | undefined };
+
 /**
  * 階層に出す受給者の名前を読む。
  *
  * @remarks
- * 投げません。階層が落ちると画面の外枠ごと崩れるため、読めなければ名前を省きます。
+ * 投げません。階層が落ちると画面の外枠ごと崩れるため、見つからない以外の失敗では名前を省きます。
  *
  * @param id - URL が名指しした受給者
- * @returns 姓名。読めなければ undefined
+ * @returns 見つからなければ見つからなかったこと。それ以外は姓名で、読めなければ undefined
  */
-async function recipientNameOf(id: UserId): Promise<string | undefined> {
+async function recipientOf(id: UserId): Promise<RecipientReading> {
   try {
-    return displayNameOf(await getManagedUser(id));
+    return { found: true, name: displayNameOf(await getManagedUser(id)) };
   } catch (cause) {
-    if (findAppError(cause)?.kind !== ErrorKind.NOT_FOUND) {
-      reportQuietly(() =>
-        getLogger().warn("階層に出す利用者を読めませんでした", { cause: String(cause) }),
-      );
+    if (findAppError(cause)?.kind === ErrorKind.NOT_FOUND) {
+      return { found: false };
     }
 
-    return undefined;
+    reportQuietly(() =>
+      getLogger().warn("階層に出す利用者を読めませんでした", { cause: String(cause) }),
+    );
+
+    return { found: true, name: undefined };
   }
 }
 
@@ -53,7 +60,13 @@ async function recipientNameOf(id: UserId): Promise<string | undefined> {
 export async function AdminUserCouponNewBreadcrumbContent({
   id,
 }: AdminUserCouponNewBreadcrumbContentProps) {
-  const name = await recipientNameOf(id);
+  const recipient = await recipientOf(id);
+
+  if (!recipient.found) {
+    return null;
+  }
+
+  const { name } = recipient;
 
   return (
     <Breadcrumb>

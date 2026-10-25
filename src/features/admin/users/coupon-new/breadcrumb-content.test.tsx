@@ -72,12 +72,13 @@ describe("AdminUserCouponNewBreadcrumbContent", () => {
   });
 
   // ----- 利用者が見つからないとき -----
-  it("利用者が見つからなければ氏名を省いて階層を出し、記録は残さない", async () => {
+  it("利用者が見つからなければ階層を出さず、記録は残さない", async () => {
     getManagedUser.mockRejectedValue(createAppError(ErrorKind.NOT_FOUND));
 
-    render(await assemble());
+    const { container } = render(await assemble());
 
-    expect(crumbs()).toEqual(["利用者一覧", "クーポンの発行"]);
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
     expect(logger.warn).not.toHaveBeenCalled();
   });
 
