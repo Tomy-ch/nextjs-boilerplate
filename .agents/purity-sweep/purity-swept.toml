@@ -913,3 +913,7 @@
 "src/features/cart/ui/panel/panel.test.tsx" = "2026-10-24"
 "src/features/cart/ui/shell-slots/shell-slots.test.tsx" = "2026-10-24"
 "src/features/admin/products/edit/view.test.tsx" = "2026-10-24"
+"src/features/admin/campaigns/new/form-state.ts" = "2026-10-25"
+"src/features/admin/coupon-discount.test.ts" = "2026-10-25"
+"src/features/admin/campaigns/new/campaign-rules.test.ts" = "2026-10-25"
+"src/features/admin/campaigns/new/use-campaign-values.test.ts" = "2026-10-25"
