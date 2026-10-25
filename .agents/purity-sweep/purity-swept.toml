@@ -998,3 +998,6 @@
 "src/features/admin/use-action-result-freshness.test.tsx" = "2026-10-25"
 "src/features/admin/use-action-result-freshness.ts" = "2026-10-25"
 "src/model/campaign/campaign-draft.ts" = "2026-10-25"
+"src/features/account/onboarding/page-content.test.tsx" = "2026-10-25"
+"src/features/account/onboarding/page-content.tsx" = "2026-10-25"
+"src/features/admin/products/discontinue/page-content.tsx" = "2026-10-25"
