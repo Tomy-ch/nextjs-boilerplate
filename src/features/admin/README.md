@@ -155,8 +155,9 @@ what they share — choosing the page numbers, the pagination itself and the con
 directly under the feature rather than under either screen. Likewise the input fields, master options and result
 freshness shared by product and campaign forms, and the reading of a coupon discount shared by the discontinue and
 campaign creation screens, sit directly under the feature. So do the reading of a coupon scope, the discount and scope
-input fields, the product candidates a scope searches, and fixing a wall-clock date-time into an instant, which every
-screen that defines or issues a coupon asks for.
+input fields, the product candidates a scope searches, fixing a wall-clock date-time into an instant, the input values
+and touched markers of such a form, and where a confirmed submission's failures are shown, which every screen that
+defines or issues a coupon asks for.
 
 | File | Role |
 | --- | --- |
@@ -247,11 +248,13 @@ screen that defines or issues a coupon asks for.
 | `master-option.ts` | Turns master data into candidates selectable in a form. The value sent is the identifier |
 | `use-action-result-freshness.ts` | Whether the result of the previous submission may be shown now |
 | `ui/text-field/` `ui/select-field/` | One input field. The caller holds the value |
-| `coupon-discount.ts` | Reading and wording a coupon's discount. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
+| `coupon-discount.ts` | Reading and wording a coupon's discount and its minimum purchase. Turns a percentage into the contract's decimal string and dollars into cents without going through a number. Both the sending and receiving sides go through it |
 | `coupon-scope.ts` | Reading and wording a coupon's scope: the kind and its one target |
 | `coupon-summary.ts` | The discount and scope fields a confirmation sends, and how the discount, scope and wall-clock values read back in it |
 | `use-product-candidates.ts` | Product candidates a scope searches by name, fetched from the browser as typed |
-| `wall-clock.ts` | Fixes a `datetime-local` wall-clock value into an instant in the time zone of the person who typed it. Called in the browser |
+| `wall-clock.ts` | Fixes a `datetime-local` wall-clock value into an instant in the time zone of the person who typed it, and reads that instant back. Called in the browser. A value it cannot read is kept as typed, so the reader rejects it instead of it passing as an empty optional field |
+| `use-coupon-form-values.ts` | Input values, touched markers and per-field errors of a form that takes the discount and scope from the shared fields. The screen supplies its own empty values and its judgment |
+| `confirmation-feedback.ts` | Where each failure message of a confirmed submission is shown — in the confirmation or beside the field. The screen decides which result closes the confirmation |
 | `ui/coupon-discount-fields/` | The discount kind, amount and cap. The amount field appears once a kind is chosen; the cap only for a rate |
 | `ui/coupon-scope-fields/` | The scope kind and its target — a category choice, or a product search |
 | `ui/radio-field/` | One choice among a few. The caller holds the value |
@@ -277,15 +280,15 @@ screen that defines or issues a coupon asks for.
 | `users/list/ui/skeleton/` | The table loading UI |
 | `users/coupon-new/issue-rules.ts` | Reading and wording the expiry, usable-from and minimum purchase, and their order. The discount and scope are left to `coupon-discount.ts` / `coupon-scope.ts`. Both the sending and receiving sides go through it |
 | `users/coupon-new/form-state.ts` `users/coupon-new/form-names.ts` | The issue result type, the submission target's type, field labels, and the submission's `name`s. The recipient travels as a hidden field |
-| `users/coupon-new/use-issue-values.ts` | Input values, touched markers and per-field errors, and emptying them once an issue succeeds |
+| `users/coupon-new/use-issue-values.ts` | Binds `use-coupon-form-values.ts` to this screen's fields and judgment. The view empties the values once an issue succeeds |
 | `users/coupon-new/parse-issue-form.ts` | Reading the submitted recipient, coupon, idempotency key and confirmation signal |
 | `users/coupon-new/issue-rejection.ts` | Maps the fields the connection target named onto this screen's input fields, and tells a lost recipient from a lost scope target on a `404` |
-| `users/coupon-new/issue-feedback.ts` | Which result closes the confirmation, whether the recipient was lost, and where each failure message is shown |
+| `users/coupon-new/issue-feedback.ts` | Which result closes the confirmation, and whether the recipient was lost |
 | `users/coupon-new/issue-summary.ts` | The values and the read-back the confirmation and the issued result show |
 | `users/coupon-new/recipient.ts` | The recipient's shape handed to the client: only the items the screen shows, copied out of the tainted user |
 | `users/coupon-new/page-content.tsx` | Fetching the recipient and the categories a scope can choose. An absent recipient becomes `notFound()` |
 | `users/coupon-new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open, and swaps the form for the issued result after success |
-| `users/coupon-new/breadcrumb-content.tsx` | The hierarchy down to the issuing screen. Falls back to a trail without the name when the recipient cannot be read |
+| `users/coupon-new/breadcrumb-content.tsx` | The hierarchy down to the issuing screen. Shows no trail when the recipient does not exist, and a trail without the name when it cannot be read otherwise |
 | `users/coupon-new/ui/recipient-card/` | The recipient. Shown, never chosen |
 | `users/coupon-new/ui/validity-fields/` | The expiry, usable-from and minimum purchase. The caller holds the values |
 | `users/coupon-new/ui/confirm-dialog/` | The confirmation. Names the recipient and states that an issue cannot be undone. Receives only `formAction` |
@@ -311,10 +314,10 @@ screen that defines or issues a coupon asks for.
 | `campaigns/list/ui/skeleton/` | The table loading UI |
 | `campaigns/new/campaign-rules.ts` | Reading and wording the code, period and limits, and their order relations. Both the sending and receiving sides go through it |
 | `campaigns/new/form-state.ts` `campaigns/new/form-names.ts` | The definition result type, the submission target's type, field labels, and the submission's `name`s |
-| `campaigns/new/use-campaign-values.ts` | Input values, touched markers and per-field errors |
+| `campaigns/new/use-campaign-values.ts` | Binds `use-coupon-form-values.ts` to this screen's fields and judgment |
 | `campaigns/new/parse-campaign-form.ts` | Reading the submitted definition, idempotency key and confirmation signal |
 | `campaigns/new/campaign-rejection.ts` | Maps a code conflict and the fields the connection target named onto this screen's input fields |
-| `campaigns/new/campaign-feedback.ts` | Which result closes the confirmation, and where each failure message is shown — in the confirmation or beside the field |
+| `campaigns/new/campaign-feedback.ts` | Which result closes the confirmation, and how a resend's conflict is read |
 | `campaigns/new/campaign-summary.ts` | The values and the read-back the confirmation shows |
 | `campaigns/new/page-content.tsx` | Fetching the categories a scope can choose |
 | `campaigns/new/view.tsx` | The only client island. Holds the submission state, the key and the values being typed; holds the inputs while an outcome is open |

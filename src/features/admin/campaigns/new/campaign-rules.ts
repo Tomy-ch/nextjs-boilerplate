@@ -7,12 +7,13 @@ import {
 import type { CampaignDraft } from "@/model/campaign/campaign-draft";
 
 import {
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
   type CouponDiscountValues,
+  readMinPurchaseAmount,
   toCouponDiscount,
-  toMinorUnitAmount,
 } from "../../coupon-discount";
 import { type CouponScopeValues, toCouponScope } from "../../coupon-scope";
-import { wallClockToInstant } from "../../wall-clock";
+import { instantOf, wallClockToInstant } from "../../wall-clock";
 import type { CampaignOwnField, CreateCampaignField } from "./form-state";
 
 /** 枚数として読める綴り。符号も小数も持たない。 */
@@ -78,10 +79,6 @@ export const CAMPAIGN_LIMIT_INVALID_MESSAGE = `${CAMPAIGN_LIMIT_MIN} 以上の�
 export const CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE =
   "1 人あたりの上限は総枚数の上限以下にしてください。";
 
-/** 最低購入額が読めなかったときの文言。 */
-export const CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE =
-  "最低購入額は 50 や 49.99 のように、0 より大きいドルの額を小数第 2 位までで入力してください。";
-
 /**
  * 打たれたコードを、保存される綴りへ揃える。
  *
@@ -116,22 +113,6 @@ export function submissionOf(
   }
 
   return { own: { ...own, ...instants }, discount, scope };
-}
-
-/**
- * 瞬間の文字列を読む。
- *
- * @param text - ISO 8601 の瞬間
- * @returns 読めた瞬間。空か読めなければ null
- */
-function instantOf(text: string): Date | null {
-  if (text === "") {
-    return null;
-  }
-
-  const instant = new Date(text);
-
-  return Number.isNaN(instant.getTime()) ? null : instant;
 }
 
 /**
@@ -300,8 +281,7 @@ function limitsOf(own: CampaignOwnValues): CampaignLimitsReading {
   const errors: Partial<Record<CampaignOwnField, string>> = {};
   const totalLimit = countOf(own.totalLimit);
   const perUserLimit = countOf(own.perUserLimit);
-  const minPurchaseAmount =
-    own.minPurchaseAmount === "" ? null : toMinorUnitAmount(own.minPurchaseAmount);
+  const minPurchaseAmount = readMinPurchaseAmount(own.minPurchaseAmount);
 
   if (totalLimit === null) errors.totalLimit = CAMPAIGN_LIMIT_INVALID_MESSAGE;
 
@@ -311,13 +291,19 @@ function limitsOf(own: CampaignOwnValues): CampaignLimitsReading {
     errors.perUserLimit = CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE;
   }
 
-  if (own.minPurchaseAmount !== "" && minPurchaseAmount === null) {
-    errors.minPurchaseAmount = CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE;
-  }
+  if (!minPurchaseAmount.ok) errors.minPurchaseAmount = COUPON_MIN_PURCHASE_INVALID_MESSAGE;
 
-  if (totalLimit === null || perUserLimit === null || Object.keys(errors).length > 0) {
+  if (
+    totalLimit === null ||
+    perUserLimit === null ||
+    !minPurchaseAmount.ok ||
+    Object.keys(errors).length > 0
+  ) {
     return { ok: false, errors };
   }
 
-  return { ok: true, limits: { totalLimit, perUserLimit, minPurchaseAmount } };
+  return {
+    ok: true,
+    limits: { totalLimit, perUserLimit, minPurchaseAmount: minPurchaseAmount.amount },
+  };
 }

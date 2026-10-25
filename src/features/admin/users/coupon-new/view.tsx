@@ -6,7 +6,7 @@ import { useActionState, useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/design-system/action/button/button";
 import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-
+import { failuresOf, fieldMessagesOf } from "../../confirmation-feedback";
 import type { CouponDiscountField, CouponDiscountValues } from "../../coupon-discount";
 import type { CouponScopeValues } from "../../coupon-scope";
 import { ADMIN_USER_LIST_PATH } from "../../paths";
@@ -17,7 +17,7 @@ import { useUnsavedChanges } from "../../ui/unsaved-changes-guard/unsaved-change
 import { useActionResultFreshness } from "../../use-action-result-freshness";
 import { useProductCandidates } from "../../use-product-candidates";
 import type { IssueCouponAction, IssueCouponState, IssueOwnField } from "./form-state";
-import { closesConfirmation, failuresOf, fieldMessagesOf, recipientLostIn } from "./issue-feedback";
+import { closesConfirmation, recipientLostIn } from "./issue-feedback";
 import { confirmationOf, type IssueSummaryRow } from "./issue-summary";
 import type { IssueRecipient } from "./recipient";
 import { IssueConfirmDialog } from "./ui/confirm-dialog/confirm-dialog";
@@ -183,7 +183,7 @@ function IssueCouponForm({ categoryOptions, issueAction, recipient }: IssueCoupo
       </div>
       <IssueConfirmDialog
         confirmation={confirmation}
-        failures={shown === null ? [] : failuresOf(shown)}
+        failures={shown === null ? [] : failuresOf(shown, closesConfirmation)}
         formAction={submit}
         idempotencyKey={idempotencyKey}
         onDismiss={closeConfirmation}

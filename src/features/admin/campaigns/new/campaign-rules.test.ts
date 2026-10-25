@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   COUPON_DISCOUNT_FLAT_INVALID_MESSAGE,
   COUPON_DISCOUNT_KIND_MISSING_MESSAGE,
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
   type CouponDiscountValues,
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
@@ -18,7 +19,6 @@ import {
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
   CAMPAIGN_EXPIRES_BEFORE_END_MESSAGE,
   CAMPAIGN_LIMIT_INVALID_MESSAGE,
-  CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE,
   CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE,
   CAMPAIGN_USABLE_AFTER_EXPIRY_MESSAGE,
   type CampaignOwnValues,
@@ -110,15 +110,15 @@ describe("submissionOf", () => {
   });
 
   // ----- 異常系 -----
-  it("読めない日時は空文字として持つ", () => {
+  it("読めない日時は空にせず、打たれたまま持つ", () => {
     const result = submissionOf(
-      { ...OWN, startsAt: "abc", endsAt: "2026-13-40T99:99" },
+      { ...OWN, startsAt: "abc", endsAt: "99999-01-01T00:00" },
       DISCOUNT,
       SCOPE,
     );
 
-    expect(result.own.startsAt).toBe("");
-    expect(result.own.endsAt).toBe("");
+    expect(result.own.startsAt).toBe("abc");
+    expect(result.own.endsAt).toBe("99999-01-01T00:00");
   });
 });
 
@@ -271,6 +271,29 @@ describe("toCampaignDraft", () => {
     });
   });
 
+  it.each<{ field: string; overrides: Partial<CampaignOwnValues> }>([
+    { field: "startsAt", overrides: { startsAt: "99999-01-01T00:00" } },
+    { field: "couponExpiresAt", overrides: { couponExpiresAt: "99999-01-01T00:00" } },
+    { field: "usableFrom", overrides: { usableFrom: "99999-01-01T00:00" } },
+  ])(
+    "瞬間へ確定できなかった $field は、黙って落とさずその欄に日時が無い文言を返す",
+    ({ field, overrides }) => {
+      const own: CampaignOwnValues = {
+        ...OWN,
+        startsAt: "2026-10-01T10:00",
+        endsAt: "2026-11-01T00:00",
+        couponExpiresAt: "2026-12-01T00:00",
+        usableFrom: "2026-10-05T09:00",
+        ...overrides,
+      };
+
+      expect(toCampaignDraft(submissionOf(own, DISCOUNT, SCOPE))).toStrictEqual({
+        ok: false,
+        errors: { [field]: CAMPAIGN_DATE_MISSING_MESSAGE },
+      });
+    },
+  );
+
   it.each([
     { label: "配布開始と同じ", endsAt: "2026-10-01T01:00:00.000Z" },
     { label: "配布開始より前", endsAt: "2026-09-30T00:00:00.000Z" },
@@ -343,14 +366,10 @@ describe("toCampaignDraft", () => {
     });
   });
 
-  it.each([
-    { label: "0", amount: "0" },
-    { label: "最小単位より細かい桁を持つ額", amount: "1.005" },
-    { label: "数でない綴り", amount: "abc" },
-  ])("最低購入額が$label（$amount）なら、最低購入額の欄に文言を返す", ({ amount }) => {
-    expect(toCampaignDraft(submission({ minPurchaseAmount: amount }))).toStrictEqual({
+  it("最低購入額が読めなければ、最低購入額の欄に文言を返す", () => {
+    expect(toCampaignDraft(submission({ minPurchaseAmount: "abc" }))).toStrictEqual({
       ok: false,
-      errors: { minPurchaseAmount: CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE },
+      errors: { minPurchaseAmount: COUPON_MIN_PURCHASE_INVALID_MESSAGE },
     });
   });
 

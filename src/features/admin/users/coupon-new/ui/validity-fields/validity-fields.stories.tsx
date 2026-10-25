@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useCallback, useState } from "react";
+import { COUPON_MIN_PURCHASE_INVALID_MESSAGE } from "../../../../coupon-discount";
 import { FILLED_ISSUE_OWN_VALUES } from "../../coupon-new.fixture";
 import type { IssueOwnField } from "../../form-state";
 import {
   EMPTY_ISSUE_OWN_VALUES,
   ISSUE_EXPIRES_AT_MISSING_MESSAGE,
-  ISSUE_MIN_PURCHASE_INVALID_MESSAGE,
   ISSUE_USABLE_AFTER_EXPIRY_MESSAGE,
 } from "../../issue-rules";
 import { IssueValidityFields, type IssueValidityFieldsProps } from "./validity-fields";
@@ -68,7 +68,7 @@ export const Invalid: Story = {
     messages: {
       expiresAt: ISSUE_EXPIRES_AT_MISSING_MESSAGE,
       usableFrom: ISSUE_USABLE_AFTER_EXPIRY_MESSAGE,
-      minPurchaseAmount: ISSUE_MIN_PURCHASE_INVALID_MESSAGE,
+      minPurchaseAmount: COUPON_MIN_PURCHASE_INVALID_MESSAGE,
     },
   },
 };

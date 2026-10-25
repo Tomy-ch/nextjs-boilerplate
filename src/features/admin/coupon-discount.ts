@@ -135,6 +135,31 @@ export function toMinorUnitAmount(amount: string): number | null {
   return minor > 0 && Number.isSafeInteger(minor) ? minor : null;
 }
 
+/** 最低購入額が読めなかったときの文言。 */
+export const COUPON_MIN_PURCHASE_INVALID_MESSAGE =
+  "最低購入額は 50 や 49.99 のように、0 より大きいドルの額を小数第 2 位までで入力してください。";
+
+/** 打たれた最低購入額を読んだ結果。 */
+export type MinPurchaseAmountReading =
+  | { readonly ok: true; readonly amount: number | null }
+  | { readonly ok: false };
+
+/**
+ * 主単位で打たれた最低購入額を、最小単位の額として読む。
+ *
+ * @param text - 打たれた最低購入額。空なら条件を付けない
+ * @returns 読めた額。空なら条件無しの null。読めなければ失敗
+ */
+export function readMinPurchaseAmount(text: string): MinPurchaseAmountReading {
+  if (text === "") {
+    return { ok: true, amount: null };
+  }
+
+  const amount = toMinorUnitAmount(text);
+
+  return amount === null ? { ok: false } : { ok: true, amount };
+}
+
 /** 0 より大きく 1 以下の乗数の綴り。`toCouponDiscountRate` が返す「整数部.小数部」の形だけを読む。 */
 const RATE_IN_RANGE = /^(?:0\.0*[1-9]\d*|1\.0+)$/;
 

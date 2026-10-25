@@ -6,13 +6,16 @@ import type { CouponScopeField } from "../../coupon-scope";
 /** 発行の画面が自前で持つ欄。値引きと範囲は共有の部品が持つ。 */
 export type IssueOwnField = "expiresAt" | "usableFrom" | "minPurchaseAmount";
 
+/** 発行の画面で入力した人が直せる欄。手元の判定が文言を付ける先。 */
+export type IssueDraftField = IssueOwnField | CouponDiscountField | CouponScopeField;
+
 /**
  * 発行の結果が文言を返す先。
  *
  * @remarks
  * `userId` は入力欄ではありません。宛先を失った結果を載せる場所で、画面はこれを見てフォームを差し替えます。
  */
-export type IssueCouponField = IssueOwnField | CouponDiscountField | CouponScopeField | "userId";
+export type IssueCouponField = IssueDraftField | "userId";
 
 export type IssueCouponState = ActionState<void, IssueCouponField>;
 

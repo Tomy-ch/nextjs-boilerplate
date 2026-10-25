@@ -5,14 +5,12 @@ import { IDEMPOTENCY_KEY_FIELD } from "@/model/idempotency-key";
 import {
   COUPON_DISCOUNT_FORM_NAMES,
   COUPON_DISCOUNT_KIND_MISSING_MESSAGE,
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
 } from "../../coupon-discount";
 import { COUPON_SCOPE_FORM_NAMES } from "../../coupon-scope";
 import { ISSUE_CONFIRMED_VALUE, ISSUE_FORM_NAMES } from "./form-names";
 import { ISSUE_TARGET_LOST_MESSAGE } from "./form-state";
-import {
-  ISSUE_EXPIRES_AT_MISSING_MESSAGE,
-  ISSUE_MIN_PURCHASE_INVALID_MESSAGE,
-} from "./issue-rules";
+import { ISSUE_EXPIRES_AT_MISSING_MESSAGE } from "./issue-rules";
 import { parseIssueForm } from "./parse-issue-form";
 
 const USER_ID = "0195f0c2-0000-7000-8000-000000000001";
@@ -118,7 +116,7 @@ describe("parseIssueForm", () => {
       ok: false,
       recipient: USER_ID,
       formError: null,
-      fieldErrors: { minPurchaseAmount: [ISSUE_MIN_PURCHASE_INVALID_MESSAGE] },
+      fieldErrors: { minPurchaseAmount: [COUPON_MIN_PURCHASE_INVALID_MESSAGE] },
     });
   });
 

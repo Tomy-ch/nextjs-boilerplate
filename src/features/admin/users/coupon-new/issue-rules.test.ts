@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   COUPON_DISCOUNT_FLAT_INVALID_MESSAGE,
   COUPON_DISCOUNT_KIND_MISSING_MESSAGE,
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
   type CouponDiscountValues,
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
@@ -15,7 +16,6 @@ import {
 import {
   EMPTY_ISSUE_OWN_VALUES,
   ISSUE_EXPIRES_AT_MISSING_MESSAGE,
-  ISSUE_MIN_PURCHASE_INVALID_MESSAGE,
   ISSUE_USABLE_AFTER_EXPIRY_MESSAGE,
   ISSUE_USABLE_FROM_INVALID_MESSAGE,
   type IssueOwnValues,
@@ -85,15 +85,15 @@ describe("submissionOf", () => {
   });
 
   // ----- 異常系 -----
-  it("読めない日時は空文字として持つ", () => {
+  it("読めない日時は空にせず、打たれたまま持つ", () => {
     const result = submissionOf(
-      { ...EMPTY_ISSUE_OWN_VALUES, expiresAt: "abc", usableFrom: "2026-13-40T99:99" },
+      { ...EMPTY_ISSUE_OWN_VALUES, expiresAt: "abc", usableFrom: "99999-01-01T00:00" },
       DISCOUNT,
       SCOPE,
     );
 
-    expect(result.own.expiresAt).toBe("");
-    expect(result.own.usableFrom).toBe("");
+    expect(result.own.expiresAt).toBe("abc");
+    expect(result.own.usableFrom).toBe("99999-01-01T00:00");
   });
 });
 
@@ -182,6 +182,32 @@ describe("toCouponIssueDraft", () => {
     });
   });
 
+  it("瞬間へ確定できなかった利用開始は、黙って落とさず利用開始の欄に文言を返す", () => {
+    const own: IssueOwnValues = {
+      expiresAt: "2026-12-31T23:59",
+      usableFrom: "99999-01-01T00:00",
+      minPurchaseAmount: "",
+    };
+
+    expect(toCouponIssueDraft(submissionOf(own, DISCOUNT, SCOPE))).toStrictEqual({
+      ok: false,
+      errors: { usableFrom: ISSUE_USABLE_FROM_INVALID_MESSAGE },
+    });
+  });
+
+  it("瞬間へ確定できなかった有効期限は、有効期限の欄に入力が無い文言を返す", () => {
+    const own: IssueOwnValues = {
+      expiresAt: "99999-01-01T00:00",
+      usableFrom: "",
+      minPurchaseAmount: "",
+    };
+
+    expect(toCouponIssueDraft(submissionOf(own, DISCOUNT, SCOPE))).toStrictEqual({
+      ok: false,
+      errors: { expiresAt: ISSUE_EXPIRES_AT_MISSING_MESSAGE },
+    });
+  });
+
   it("利用開始が有効期限と同じなら、利用開始の欄に期限より前にする文言を返す", () => {
     expect(
       toCouponIssueDraft(
@@ -205,14 +231,10 @@ describe("toCouponIssueDraft", () => {
     });
   });
 
-  it.each([
-    { label: "0", amount: "0" },
-    { label: "最小単位より細かい桁を持つ額", amount: "49.999" },
-    { label: "数でない綴り", amount: "abc" },
-  ])("最低購入額が$label（$amount）なら、最低購入額の欄に文言を返す", ({ amount }) => {
-    expect(toCouponIssueDraft(submission({ minPurchaseAmount: amount }))).toStrictEqual({
+  it("最低購入額が読めなければ、最低購入額の欄に文言を返す", () => {
+    expect(toCouponIssueDraft(submission({ minPurchaseAmount: "abc" }))).toStrictEqual({
       ok: false,
-      errors: { minPurchaseAmount: ISSUE_MIN_PURCHASE_INVALID_MESSAGE },
+      errors: { minPurchaseAmount: COUPON_MIN_PURCHASE_INVALID_MESSAGE },
     });
   });
 
@@ -272,7 +294,7 @@ describe("toCouponIssueDraft", () => {
       errors: {
         discountValue: COUPON_DISCOUNT_FLAT_INVALID_MESSAGE,
         scopeCategoryId: COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-        minPurchaseAmount: ISSUE_MIN_PURCHASE_INVALID_MESSAGE,
+        minPurchaseAmount: COUPON_MIN_PURCHASE_INVALID_MESSAGE,
       },
     });
   });

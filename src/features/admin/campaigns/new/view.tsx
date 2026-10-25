@@ -6,7 +6,7 @@ import { useActionState, useCallback, useId, useMemo, useState } from "react";
 import { Button } from "@/components/design-system/action/button/button";
 import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-
+import { failuresOf, fieldMessagesOf } from "../../confirmation-feedback";
 import type { CouponDiscountField, CouponDiscountValues } from "../../coupon-discount";
 import type { CouponScopeValues } from "../../coupon-scope";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../paths";
@@ -17,12 +17,7 @@ import { AdminTextField } from "../../ui/text-field/text-field";
 import { useUnsavedChanges } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import { useActionResultFreshness } from "../../use-action-result-freshness";
 import { useProductCandidates } from "../../use-product-candidates";
-import {
-  closesConfirmation,
-  failuresOf,
-  fieldMessagesOf,
-  resendResultOf,
-} from "./campaign-feedback";
+import { closesConfirmation, resendResultOf } from "./campaign-feedback";
 import { confirmationOf } from "./campaign-summary";
 import { CAMPAIGN_FORM_NAMES } from "./form-names";
 import {
@@ -201,7 +196,7 @@ export function AdminCampaignCreateView({
       </div>
       <CampaignConfirmDialog
         confirmation={confirmation}
-        failures={shown === null ? [] : failuresOf(shown)}
+        failures={shown === null ? [] : failuresOf(shown, closesConfirmation)}
         formAction={submit}
         idempotencyKey={idempotencyKey}
         onDismiss={closeConfirmation}

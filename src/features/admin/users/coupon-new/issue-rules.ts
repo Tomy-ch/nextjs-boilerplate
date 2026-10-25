@@ -1,13 +1,14 @@
 import type { CouponIssueDraft } from "@/model/coupon/coupon-issue-draft";
 
 import {
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
   type CouponDiscountValues,
+  readMinPurchaseAmount,
   toCouponDiscount,
-  toMinorUnitAmount,
 } from "../../coupon-discount";
 import { type CouponScopeValues, toCouponScope } from "../../coupon-scope";
-import { wallClockToInstant } from "../../wall-clock";
-import type { IssueCouponField, IssueOwnField } from "./form-state";
+import { instantOf, wallClockToInstant } from "../../wall-clock";
+import type { IssueDraftField, IssueOwnField } from "./form-state";
 
 export type IssueOwnValues = Readonly<Record<IssueOwnField, string>>;
 
@@ -29,9 +30,6 @@ export const ISSUE_USABLE_FROM_INVALID_MESSAGE =
   "利用開始は日時を最後まで入力するか、空欄に戻してください。";
 
 export const ISSUE_USABLE_AFTER_EXPIRY_MESSAGE = "利用開始は有効期限より前にしてください。";
-
-export const ISSUE_MIN_PURCHASE_INVALID_MESSAGE =
-  "最低購入額は 50 や 49.99 のように、0 より大きいドルの額を小数第 2 位までで入力してください。";
 
 /**
  * 打たれた値のうち日時だけを、打った人の時間帯の瞬間へ確定させる。
@@ -60,27 +58,11 @@ export function submissionOf(
   };
 }
 
-/**
- * 瞬間の文字列を日時として読む。
- *
- * @param text - 確定済みの瞬間の文字列
- * @returns 読めた日時。空か読めなければ null
- */
-function instantOf(text: string): Date | null {
-  if (text === "") {
-    return null;
-  }
-
-  const instant = new Date(text);
-
-  return Number.isNaN(instant.getTime()) ? null : instant;
-}
-
 export type CouponIssueDraftReading =
   | { readonly ok: true; readonly draft: CouponIssueDraft }
   | {
       readonly ok: false;
-      readonly errors: Readonly<Partial<Record<IssueCouponField, string>>>;
+      readonly errors: Readonly<Partial<Record<IssueDraftField, string>>>;
     };
 
 type IssueOwnReading =
@@ -100,8 +82,7 @@ function ownOf(own: IssueOwnValues): IssueOwnReading {
   const errors: Partial<Record<IssueOwnField, string>> = {};
   const expiresAt = instantOf(own.expiresAt);
   const usableFrom = instantOf(own.usableFrom);
-  const minPurchaseAmount =
-    own.minPurchaseAmount === "" ? null : toMinorUnitAmount(own.minPurchaseAmount);
+  const minPurchaseAmount = readMinPurchaseAmount(own.minPurchaseAmount);
 
   if (expiresAt === null) errors.expiresAt = ISSUE_EXPIRES_AT_MISSING_MESSAGE;
 
@@ -111,15 +92,16 @@ function ownOf(own: IssueOwnValues): IssueOwnReading {
     errors.usableFrom = ISSUE_USABLE_AFTER_EXPIRY_MESSAGE;
   }
 
-  if (own.minPurchaseAmount !== "" && minPurchaseAmount === null) {
-    errors.minPurchaseAmount = ISSUE_MIN_PURCHASE_INVALID_MESSAGE;
-  }
+  if (!minPurchaseAmount.ok) errors.minPurchaseAmount = COUPON_MIN_PURCHASE_INVALID_MESSAGE;
 
-  if (expiresAt === null || Object.keys(errors).length > 0) {
+  if (expiresAt === null || !minPurchaseAmount.ok || Object.keys(errors).length > 0) {
     return { ok: false, errors };
   }
 
-  return { ok: true, own: { expiresAt, usableFrom, minPurchaseAmount } };
+  return {
+    ok: true,
+    own: { expiresAt, usableFrom, minPurchaseAmount: minPurchaseAmount.amount },
+  };
 }
 
 /**
