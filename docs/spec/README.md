@@ -84,6 +84,7 @@ yet" and "there is none".
 | `/admin/inquiries/[inquiryId]` | [`screen`](<route/admin/inquiries/[inquiryId]/page.screen.md>) / [`function`](<route/admin/inquiries/[inquiryId]/page.function.md>) <!-- sample:line --> |
 | `/admin/shipments` | [`screen`](route/admin/shipments/page.screen.md) / [`function`](route/admin/shipments/page.function.md) <!-- sample:line --> |
 | `/admin/users` | [`screen`](route/admin/users/page.screen.md) / [`function`](route/admin/users/page.function.md) <!-- sample:line --> |
+| `/admin/users/[id]/coupons/new` | [`screen`](<route/admin/users/[id]/coupons/new/page.screen.md>) / [`function`](<route/admin/users/[id]/coupons/new/page.function.md>) <!-- sample:line --> |
 | `/admin/campaigns` | [`screen`](route/admin/campaigns/page.screen.md) / [`function`](route/admin/campaigns/page.function.md) <!-- sample:line --> |
 | `/admin/campaigns/new` | [`screen`](route/admin/campaigns/new/page.screen.md) / [`function`](route/admin/campaigns/new/page.function.md) <!-- sample:line --> |
 | `auth` outer frame | [`screen`](route/auth/layout.screen.md) |

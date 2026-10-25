@@ -29,7 +29,9 @@ horizontally.
 
 ## Row Actions
 
-**「退会させる」 (close account) is placed inside the row-end action menu.** An irreversible action is not laid out bare on the list.
+**「クーポンを発行する」 (issue a coupon) and 「退会させる」 (close account) are placed inside the row-end action menu**, the closure
+last and set apart. An irreversible action is not laid out bare on the list. Issuing leads to a screen of its own for that user
+([`[id]/coupons/new/page.screen.md`](<[id]/coupons/new/page.screen.md>)), so the recipient is decided by the row pressed.
 
 **Rows of closed accounts do not show even the action trigger.** No surface where something clickable is shown but opens empty.
 
