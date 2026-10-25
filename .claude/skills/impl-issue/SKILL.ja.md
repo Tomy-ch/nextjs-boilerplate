@@ -473,6 +473,27 @@ Step 7 で止め、手元にコミット済みで push していないことを�
 
 先に `submit-pr` で PR を開く。この段の残りを回している間に CI が始まるようにするためである。
 
+### PR を issue に紐付ける —— PR が開いたらすぐに
+
+**PR を開いた run では毎回、issue の Development に PR を手で登録する** —— scope が `merge` でも
+`pr` でも同じである。このリポジトリの PR はリリースブランチを宛先にしており、GitHub は宛先が
+デフォルトブランチでない PR の closing キーワードを無視する。本文に何を書いても紐付けは作られない。
+紐付けが無いと、issue を読んだ人がそこから作業へ辿り着けない。
+
+これは PR を開く操作の一部なので、`submit-pr` が PR について取った確認がこれを覆う —— ただし紐付ける
+issue が、この run に渡された 1 件だけである場合に限る（ADR
+[0154](../../../docs/adr/0154-claude-skills-operations.md)）。
+
+紐付けを作る API も `gh` のコマンドも無く、作れるのは PR の **Development** サイドバーだけである。
+ブラウザ自動操作のツールで操作し、そのうえで画面に出たものではなく決定的な手段で確かめる:
+
+```bash
+gh pr view <pr> --json closingIssuesReferences --jq '.[].number'   # must print <n>
+```
+
+ブラウザを操作できないときも、紐付けは飛ばさない。PR と issue を添えて完了報告に未了の項目として
+挙げ、利用者に作ってもらう。
+
 ### 回収 —— merge の前、CI が緑になった後
 
 **直したものの一般形を、サンプル破棄後も残る文書へ集める**（`docs/rules.md`・層の README・その領域を
@@ -620,6 +641,8 @@ gh issue comment <n> --body-file <handover> && gh issue close <n>
 - [ ] 一覧に無い場所で止まっていない。
 - [ ] 計画を実際の差分と突き合わせた。
 - [ ] ゲートを CI へ委ね、そのことを PR に書いた。
+- [ ] issue の Development に PR を登録し、`closingIssuesReferences` で確かめた —— または、未了の
+      項目として利用者に渡した。
 - [ ] `settle-comments` を実装の最後の手順として、どのレビューよりも前に回した。
 - [ ] レビュースキル 2 本をそれぞれ見積もって利用者へ問い、承認された分を答え付きで回した。
 - [ ] 一般形を残る文書へ回収し、落としたものを述べた。
