@@ -3,20 +3,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useCallback, useId, useState } from "react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { axe } from "vitest-axe";
 
 import { ComboboxClient, type ComboboxClientOption } from "./combobox-client";
-
-beforeAll(() => {
-  // cmdk と Popover が使う寸法計測・表示位置の API を jsdom が持たないため、ここで補う。
-  Element.prototype.scrollIntoView = vi.fn();
-  globalThis.ResizeObserver ??= class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
-});
 
 const OPTIONS: ComboboxClientOption[] = [
   { label: "東京都", value: "tokyo" },
@@ -102,6 +92,22 @@ describe("ComboboxClient", () => {
     expect(screen.getByRole("button", { name: "都道府県" })).toHaveTextContent("神奈川県");
   });
 
+  it("選択中の値が候補から外れると、trigger は placeholder に戻り、hidden input には値が残る", () => {
+    const { container, rerender } = render(<Fixture defaultValue="kanagawa" />);
+
+    rerender(
+      <ComboboxClient
+        aria-label="都道府県"
+        defaultValue="kanagawa"
+        name="prefecture"
+        options={OPTIONS.filter((option) => option.value !== "kanagawa")}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "都道府県" })).toHaveTextContent("選択してください");
+    expect(container.querySelector("input[name='prefecture']")).toHaveValue("kanagawa");
+  });
+
   it("trigger は combobox ではなく popover を開く button として公開する", () => {
     render(<Fixture />);
 
@@ -140,6 +146,23 @@ describe("ComboboxClient", () => {
     expect(screen.getByText("該当する候補がありません")).toBeInTheDocument();
   });
 
+  it("emptyMessage を渡せば、一致する候補が無いときにその文言を表示する", async () => {
+    render(
+      <ComboboxClient
+        aria-label="都道府県"
+        emptyMessage="一致する都道府県がありません"
+        name="prefecture"
+        options={OPTIONS}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
+
+    await userEvent.type(screen.getByRole("combobox", { name: "都道府県" }), "該当なし");
+
+    expect(screen.getByText("一致する都道府県がありません")).toBeInTheDocument();
+    expect(screen.queryByText("該当する候補がありません")).not.toBeInTheDocument();
+  });
+
   it("入力語を受け取る呼び出し元には入力語を伝え、候補を手元で絞らない", async () => {
     const onSearchChange = vi.fn();
 
@@ -167,6 +190,16 @@ describe("ComboboxClient", () => {
 
     expect(container.querySelector("input[name='prefecture']")).toHaveValue("kanagawa");
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+  });
+
+  it("選択中の候補にだけ選択済みの印を出す", async () => {
+    render(<Fixture defaultValue="kanagawa" />);
+
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
+
+    expect(screen.getByRole("option", { name: "神奈川県" }).querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("option", { name: "東京都" }).querySelector("svg")).toBeNull();
+    expect(screen.getByRole("option", { name: "大阪府" }).querySelector("svg")).toBeNull();
   });
 
   it("選択を呼び出し元へ通知し、制御 component として反映できる", async () => {
@@ -245,6 +278,14 @@ describe("ComboboxClient", () => {
     await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
 
     expect(screen.getByRole("dialog", { name: "都道府県" })).toBeInTheDocument();
+  });
+
+  it("aria-label が無ければ、絞り込み入力の名前は searchPlaceholder になる", async () => {
+    render(<LabelledByFixture />);
+
+    await userEvent.click(screen.getByRole("button", { name: "都道府県" }));
+
+    expect(screen.getByRole("combobox", { name: "検索" })).toBeInTheDocument();
   });
 
   it("開いた状態で a11y 自動検査に違反しない", async () => {

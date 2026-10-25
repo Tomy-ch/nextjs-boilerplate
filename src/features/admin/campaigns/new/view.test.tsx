@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -81,8 +81,8 @@ beforeEach(() => {
   guard.when = false;
 });
 
-afterEach(() => {
-  settlePending?.();
+afterEach(async () => {
+  await act(async () => settlePending?.());
   settlePending = undefined;
 });
 
@@ -750,13 +750,22 @@ describe("AdminCampaignCreateView", () => {
   });
 
   it("全体の文言も欄の誤りも無い失敗では、確認を開いたまま報せを出さない", async () => {
-    const action = sending(failedActionState({ formError: null, kind: ErrorKind.VALIDATION }));
+    const action = vi.fn<CreateCampaignAction>(
+      () =>
+        new Promise((resolve) => {
+          settlePending = () =>
+            resolve(failedActionState({ formError: null, kind: ErrorKind.VALIDATION }));
+        }),
+    );
 
     renderView(action);
     const dialog = await fillAndSend();
 
-    await waitFor(() => expect(action).toHaveBeenCalledTimes(1));
-    await within(dialog).findByRole("button", { name: "定義する" });
+    expect(await within(dialog).findByRole("button", { name: "定義しています…" })).toBeDisabled();
+
+    await act(async () => settlePending?.());
+
+    expect(await within(dialog).findByRole("button", { name: "定義する" })).toBeEnabled();
 
     expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("alertdialog")).toBe(dialog);
@@ -834,6 +843,35 @@ describe("AdminCampaignCreateView", () => {
     await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
 
     expect(sent(action, 2).get("idempotencyKey")).toBe(sent(action, 0).get("idempotencyKey"));
+  });
+
+  it("結果が定まらない失敗のあとの送り直しに欄を名指しした拒否が返れば、確認を閉じて欄に誤りを出し、欄の止めを解き、次は別の冪等キーで送る", async () => {
+    const action = sending(
+      UNAVAILABLE,
+      failedActionState<never, "couponExpiresAt">({
+        formError: null,
+        fieldErrors: { couponExpiresAt: [EXPIRY_REJECTED] },
+        kind: ErrorKind.VALIDATION,
+      }),
+    );
+
+    renderView(action);
+    const dialog = await fillAndSend();
+
+    await within(dialog).findByText(FORM_ERROR);
+    await send(dialog);
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(dateField("クーポンの有効期限")).toHaveAccessibleDescription(
+      expect.stringContaining(EXPIRY_REJECTED),
+    );
+    expect(screen.queryByText(LOCKED_MESSAGE)).not.toBeInTheDocument();
+    expect(codeField()).toBeEnabled();
+
+    await send(await openConfirmation());
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(3));
+
+    expect(sent(action, 2).get("idempotencyKey")).not.toBe(sent(action, 0).get("idempotencyKey"));
   });
 
   it.each([

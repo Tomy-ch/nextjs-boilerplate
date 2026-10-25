@@ -203,6 +203,28 @@ describe("toCampaignDraft", () => {
     ).toBe(true);
   });
 
+  it("有効期限が配布終了の 1 ミリ秒後なら受け付ける", () => {
+    expect(
+      toCampaignDraft(
+        submission({
+          endsAt: "2026-10-31T15:00:00.000Z",
+          couponExpiresAt: "2026-10-31T15:00:00.001Z",
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+
+  it("利用開始が有効期限の 1 ミリ秒前なら受け付ける", () => {
+    expect(
+      toCampaignDraft(
+        submission({
+          couponExpiresAt: "2026-11-30T15:00:00.000Z",
+          usableFrom: "2026-11-30T14:59:59.999Z",
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+
   it("定率の値引きと、カテゴリに絞った範囲を契約の形で組む", () => {
     const reading = toCampaignDraft(
       submission(
